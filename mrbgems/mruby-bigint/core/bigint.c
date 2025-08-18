@@ -111,7 +111,7 @@ mpz_init_heap(mpz_ctx_t *ctx, mpz_t *s, size_t hint)
 {
   s->sn = 0;
   if (hint > 0) {
-    s->p = mrb_malloc(MPZ_MRB(ctx), hint * sizeof(mp_limb));
+    s->p = (mp_limb*)mrb_malloc(MPZ_MRB(ctx), hint * sizeof(mp_limb));
     limb_zero(s->p, hint);
     s->sz = hint;
   }
@@ -714,7 +714,7 @@ mpz_sub_int(mpz_ctx_t *ctx, mpz_t *x, mrb_int n)
 
 /* Multiply-and-add: rp[0..n-1] += s1p[0..n-1] * limb; return carry (high limb) */
 static inline mp_limb
-limb_addmul_1(mp_limb *restrict rp, const mp_limb *restrict s1p, size_t n, mp_limb limb)
+limb_addmul_1(mp_limb *rp, const mp_limb *s1p, size_t n, mp_limb limb)
 {
 #if defined(__SIZEOF_INT128__) && (__SIZEOF_INT128__ == 16)
   /* Use 128-bit arithmetic with 8x unrolling for maximum efficiency */
@@ -1262,9 +1262,10 @@ static void
 div_limb(mpz_ctx_t *ctx, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
 {
   mrb_state *mrb = MPZ_MRB(ctx);
-
   size_t pool_state = pool_save(ctx);
   mpz_t temp_q, temp_r;
+  size_t n;
+  mp_dbl_limb remainder;
 
   if (zero_p(x)) {
     zero(q);
@@ -1359,11 +1360,11 @@ div_limb(mpz_ctx_t *ctx, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
   }
 
   /* Multi-limb dividend, single-limb divisor */
-  size_t n = x->sz;
+  n = x->sz;
   mpz_init_heap(ctx, &temp_q, n);
   mpz_init_heap(ctx, &temp_r, 1);
 
-  mp_dbl_limb remainder = 0;
+  remainder = 0;
 
   /* Process from most significant limb to least significant */
   for (size_t i = n; i > 0; i--) {
@@ -1962,7 +1963,7 @@ mpz_get_str(mpz_ctx_t *ctx, char *s, mrb_int sz, mrb_int base, mpz_t *x)
   }
   else {
     /* Check for overflow in size calculation */
-    if (xlen > SIZE_MAX / sizeof(mp_limb)) {
+    if ((size_t)xlen > SIZE_MAX / sizeof(mp_limb)) {
       mrb_raise(mrb, E_RUNTIME_ERROR, "bigint size too large for string conversion");
     }
 
@@ -2556,6 +2557,9 @@ mpz_gcd(mpz_ctx_t *ctx, mpz_t *gg, mpz_t *aa, mpz_t *bb)
 {
   size_t pool_state = pool_save(ctx);
   mpz_t a, b;
+  size_t shift;
+  size_t a_zeros;
+  size_t b_zeros;
 
   /* Handle special cases */
   if (zero_p(aa)) {
@@ -2588,8 +2592,8 @@ mpz_gcd(mpz_ctx_t *ctx, mpz_t *gg, mpz_t *aa, mpz_t *bb)
 
   /* Fast path for powers of 2 */
   if (mpz_power_of_2_p(aa)) {
-    size_t a_zeros = mpz_trailing_zeros(aa);
-    size_t b_zeros = mpz_trailing_zeros(bb);
+    a_zeros = mpz_trailing_zeros(aa);
+    b_zeros = mpz_trailing_zeros(bb);
     size_t min_zeros = (a_zeros < b_zeros) ? a_zeros : b_zeros;
 
     mpz_init_set_int(ctx, gg, 1);
@@ -2597,8 +2601,8 @@ mpz_gcd(mpz_ctx_t *ctx, mpz_t *gg, mpz_t *aa, mpz_t *bb)
     goto cleanup;
   }
   if (mpz_power_of_2_p(bb)) {
-    size_t a_zeros = mpz_trailing_zeros(aa);
-    size_t b_zeros = mpz_trailing_zeros(bb);
+    a_zeros = mpz_trailing_zeros(aa);
+    b_zeros = mpz_trailing_zeros(bb);
     size_t min_zeros = (a_zeros < b_zeros) ? a_zeros : b_zeros;
 
     mpz_init_set_int(ctx, gg, 1);
@@ -2609,9 +2613,9 @@ mpz_gcd(mpz_ctx_t *ctx, mpz_t *gg, mpz_t *aa, mpz_t *bb)
   mpz_init_set(ctx, &a, aa);
   mpz_init_set(ctx, &b, bb);
 
-  size_t shift = 0;
-  size_t a_zeros = mpz_trailing_zeros(&a);
-  size_t b_zeros = mpz_trailing_zeros(&b);
+  shift = 0;
+  a_zeros = mpz_trailing_zeros(&a);
+  b_zeros = mpz_trailing_zeros(&b);
   shift = (a_zeros < b_zeros) ? a_zeros : b_zeros;
 
   mpz_div_2exp(ctx, &a, &a, a_zeros);
