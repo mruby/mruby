@@ -1036,6 +1036,138 @@ mrb_file_path(mrb_state *mrb, mrb_value klass)
   return filename;
 }
 
+// Forward declaration for recursive join processing
+static mrb_value mrb_file_join_process_args(mrb_state *mrb, const mrb_value *argv, mrb_int argc);
+
+static mrb_value
+mrb_file_join_process_args(mrb_state *mrb, const mrb_value *argv, mrb_int argc)
+{
+  mrb_value result = mrb_ary_new_capa(mrb, argc);
+
+  for (mrb_int i = 0; i < argc; i++) {
+    mrb_value arg = argv[i];
+
+    if (mrb_array_p(arg)) {
+      // Check for recursive arrays using mruby's built-in detection
+      if (MRB_RECURSIVE_UNARY_P(mrb, MRB_SYM(join), arg)) {
+        mrb_raise(mrb, E_ARGUMENT_ERROR, "recursive array");
+      }
+
+      // Recursively process the array
+      mrb_value nested = mrb_file_join_process_args(mrb, RARRAY_PTR(arg), RARRAY_LEN(arg));
+
+      // Append nested results to our result
+      mrb_int nested_len = RARRAY_LEN(nested);
+      for (mrb_int k = 0; k < nested_len; k++) {
+        mrb_ary_push(mrb, result, RARRAY_PTR(nested)[k]);
+      }
+    }
+    else {
+      // Convert to string (raises TypeError if not convertible)
+      mrb_ensure_string_type(mrb, arg);
+      mrb_ary_push(mrb, result, arg);
+    }
+  }
+
+  return result;
+}
+
+/*
+ * call-seq:
+ *   File.join(string, ...) -> string
+ *
+ * Returns a new string formed by joining the strings using the operating
+ * system's path separator (File::SEPARATOR).
+ *
+ *   File.join("usr", "mail", "gumby")   #=> "usr/mail/gumby"
+ *   File.join("usr", "mail", "gumby")   #=> "usr\\mail\\gumby" (on Windows)
+ */
+static mrb_value
+mrb_file_join(mrb_state *mrb, mrb_value klass)
+{
+  const mrb_value *argv;
+  mrb_int argc;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+
+  // Handle empty case
+  if (argc == 0) {
+    return mrb_str_new_lit(mrb, "");
+  }
+
+  // Process arguments and flatten arrays
+  mrb_value names = mrb_file_join_process_args(mrb, argv, argc);
+
+  mrb_int names_len = RARRAY_LEN(names);
+  if (names_len == 0) {
+    return mrb_str_new_lit(mrb, "");
+  }
+
+  // Handle single element case
+  if (names_len == 1) {
+    return RARRAY_PTR(names)[0];
+  }
+
+  // Start building the result
+  mrb_value first = RARRAY_PTR(names)[0];
+  mrb_value result = mrb_str_dup(mrb, first);
+
+  // Remove trailing separator from first component
+  const char *sep = FILE_SEPARATOR;
+  mrb_int sep_len = strlen(sep);
+  if (RSTRING_LEN(result) > 0 &&
+      RSTRING_LEN(result) >= sep_len &&
+      memcmp(RSTRING_PTR(result) + RSTRING_LEN(result) - sep_len, sep, sep_len) == 0) {
+    mrb_str_resize(mrb, result, RSTRING_LEN(result) - sep_len);
+  }
+
+  // Process middle components
+  for (mrb_int i = 1; i < names_len - 1; i++) {
+    mrb_value component = RARRAY_PTR(names)[i];
+    const char *comp_str = RSTRING_PTR(component);
+    mrb_int comp_len = RSTRING_LEN(component);
+
+    // Skip empty components
+    if (comp_len == 0) continue;
+
+    // Remove leading separator
+    if (comp_len >= sep_len && memcmp(comp_str, sep, sep_len) == 0) {
+      comp_str += sep_len;
+      comp_len -= sep_len;
+    }
+
+    // Remove trailing separator
+    if (comp_len >= sep_len && memcmp(comp_str + comp_len - sep_len, sep, sep_len) == 0) {
+      comp_len -= sep_len;
+    }
+
+    // Add separator and component if not empty
+    if (comp_len > 0) {
+      mrb_str_cat_cstr(mrb, result, sep);
+      mrb_str_cat(mrb, result, comp_str, comp_len);
+    }
+  }
+
+  // Process last component
+  if (names_len > 1) {
+    mrb_value last = RARRAY_PTR(names)[names_len - 1];
+    const char *last_str = RSTRING_PTR(last);
+    mrb_int last_len = RSTRING_LEN(last);
+
+    // Remove leading separator from last component
+    if (last_len >= sep_len && memcmp(last_str, sep, sep_len) == 0) {
+      last_str += sep_len;
+      last_len -= sep_len;
+    }
+
+    // Add separator and last component
+    mrb_str_cat_cstr(mrb, result, sep);
+    mrb_str_cat(mrb, result, last_str, last_len);
+  }
+
+  return result;
+}
+
 void
 mrb_init_file(mrb_state *mrb)
 {
@@ -1053,6 +1185,7 @@ mrb_init_file(mrb_state *mrb)
   mrb_define_class_method_id(mrb, file, MRB_SYM(dirname),   mrb_file_dirname,    MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM(basename),  mrb_file_basename,   MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM(extname),   mrb_file_extname,    MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, file, MRB_SYM(join),      mrb_file_join,       MRB_ARGS_ANY());
   mrb_define_class_method_id(mrb, file, MRB_SYM(path),      mrb_file_path,       MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM(realpath),  mrb_file_realpath,   MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM(absolute_path), mrb_file_absolute_path, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));

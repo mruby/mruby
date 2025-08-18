@@ -79,59 +79,6 @@ class File < IO
     "<#{self.class}:#{@path}>"
   end
 
-  #
-  # call-seq:
-  #   File.join(string, ...) -> string
-  #
-  # Returns a new string formed by joining the strings using the operating
-  # system's path separator (File::SEPARATOR).
-  #
-  #   File.join("usr", "mail", "gumby")   #=> "usr/mail/gumby"
-  #   File.join("usr", "mail", "gumby")   #=> "usr\\mail\\gumby" (on Windows)
-  #
-  def self.join(*names)
-    return "" if names.empty?
-
-    names.map! do |name|
-      case name
-      when String
-        name
-      when Array
-        if names == name
-          raise ArgumentError, "recursive array"
-        end
-        join(*name)
-      else
-        raise TypeError, "no implicit conversion of #{name.class} into String"
-      end
-    end
-
-    return names[0] if names.size == 1
-
-    if names[0][-1] == File::SEPARATOR
-      s = names[0][0..-2]
-    else
-      s = names[0].dup
-    end
-
-    (1..names.size-2).each { |i|
-      t = names[i]
-      if t[0] == File::SEPARATOR and t[-1] == File::SEPARATOR
-        t = t[1..-2]
-      elsif t[0] == File::SEPARATOR
-        t = t[1..-1]
-      elsif t[-1] == File::SEPARATOR
-        t = t[0..-2]
-      end
-      s += File::SEPARATOR + t if t != ""
-    }
-    if names[-1][0] == File::SEPARATOR
-      s += File::SEPARATOR + names[-1][1..-1]
-    else
-      s += File::SEPARATOR + names[-1]
-    end
-    s
-  end
 
   #
   # call-seq:
