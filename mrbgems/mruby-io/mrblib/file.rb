@@ -274,25 +274,6 @@ class File < IO
     FileTest.zero?(file)
   end
 
-  #
-  # call-seq:
-  #   File.extname(path) -> string
-  #
-  # Returns the extension (the portion of file name in path starting from the
-  # last period). If path is a dotfile, or starts with a period, then the starting
-  # dot is not dealt with the start of the extension.
-  #
-  #   File.extname("test.rb")         #=> ".rb"
-  #   File.extname("a/b/d/test.rb")   #=> ".rb"
-  #   File.extname("test")            #=> ""
-  #   File.extname(".profile")        #=> ""
-  #
-  def self.extname(filename)
-    fname = self.basename(filename)
-    epos = fname.rindex('.')
-    return '' if epos == 0 || epos.nil?
-    return fname[epos..-1]
-  end
 
   #
   # call-seq:

@@ -961,6 +961,64 @@ mrb_file_s_readlink(mrb_state *mrb, mrb_value klass)
 #endif
 }
 
+/*
+ * call-seq:
+ *   File.extname(path) -> string
+ *
+ * Returns the extension (the portion of file name in path starting from the
+ * last period). If path is a dotfile, or starts with a period, then the starting
+ * dot is not dealt with the start of the extension.
+ *
+ *   File.extname("test.rb")         #=> ".rb"
+ *   File.extname("a/b/d/test.rb")   #=> ".rb"
+ *   File.extname("test")            #=> ""
+ *   File.extname(".profile")        #=> ""
+ */
+static mrb_value
+mrb_file_extname(mrb_state *mrb, mrb_value klass)
+{
+  char *path;
+  mrb_get_args(mrb, "z", &path);
+
+  size_t len = strlen(path);
+  if (len == 0) {
+    return mrb_str_new_lit(mrb, "");
+  }
+
+  // Remove trailing slashes to find the actual filename
+  while (len > 1 && path[len - 1] == '/') {
+    len--;
+  }
+
+  // Find the last path separator to get basename
+  ssize_t base_start = len - 1;
+  while (base_start >= 0 && path[base_start] != '/') {
+    base_start--;
+  }
+  base_start++; // move to first character after '/'
+
+  // If the result is only slashes, no extension
+  if ((size_t)base_start == len) {
+    return mrb_str_new_lit(mrb, "");
+  }
+
+  // Look for the last '.' in the basename
+  ssize_t dot_pos = -1;
+  for (size_t i = base_start; i < len; i++) {
+    if (path[i] == '.') {
+      dot_pos = i;
+    }
+  }
+
+  // No dot found, or dot is the first character (dotfile)
+  if (dot_pos == -1 || dot_pos == (ssize_t)base_start) {
+    return mrb_str_new_lit(mrb, "");
+  }
+
+  // Return extension from dot to end
+  return mrb_str_new(mrb, path + dot_pos, len - dot_pos);
+}
+
 void
 mrb_init_file(mrb_state *mrb)
 {
@@ -977,6 +1035,7 @@ mrb_init_file(mrb_state *mrb)
 
   mrb_define_class_method_id(mrb, file, MRB_SYM(dirname),   mrb_file_dirname,    MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM(basename),  mrb_file_basename,   MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
+  mrb_define_class_method_id(mrb, file, MRB_SYM(extname),   mrb_file_extname,    MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM(realpath),  mrb_file_realpath,   MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM(absolute_path), mrb_file_absolute_path, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM_Q(absolute_path), mrb_file_absolute_path_p, MRB_ARGS_REQ(1));
