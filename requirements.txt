@@ -1,0 +1,2 @@
+pre-commit==4.2.0
+pyyaml==6.0.2
