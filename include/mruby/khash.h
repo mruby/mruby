@@ -165,29 +165,28 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     return h->size;  /* Not found - return end position */              \
   }                                                                     \
   static inline void kh__rebuild_##name(mrb_state *mrb, kh_##name##_t *h, khint_t new_n_buckets) { \
-    /* Save old state */                                                \
-    void *old_data = h->data;                                           \
+    kh_##name##_t hh;                                                   \
+    hh.data = NULL;                                                     \
+    hh.n_buckets = new_n_buckets;                                       \
+    hh.size = 0;                                                        \
+    kh__alloc_##name(mrb, &hh);                                         \
+    /* Rehash from old 'h' to 'hh' */                                   \
     khkey_t *old_keys = kh_keys_##name(h);                              \
     khval_t *old_vals = kh_vals_##name(h);                              \
     uint8_t *old_flags = kh__is_small_##name(h) ? NULL : kh_flags_##name(h); \
-    khint_t old_n_buckets = h->n_buckets;                               \
-    khint_t old_size = h->size;                                         \
-    /* Allocate new table */                                            \
-    h->n_buckets = new_n_buckets;                                       \
-    h->size = 0;                                                        \
-    kh__alloc_##name(mrb, h);                                           \
-    /* Rehash elements */                                               \
-    khint_t limit = old_flags ? old_n_buckets : old_size;               \
+    khint_t limit = old_flags ? h->n_buckets : h->size;                 \
     for (khint_t i = 0; i < limit; i++) {                               \
       if (old_flags && __ac_iseither(old_flags, i)) continue;           \
-      khint_t k = kh_put_##name(mrb, h, old_keys[i], NULL);             \
+      khint_t k = kh_put_##name(mrb, &hh, old_keys[i], NULL);           \
       if (kh_is_map) {                                                  \
-        khval_t *new_vals = kh_vals_##name(h);                          \
-        new_vals[k] = old_vals[i];                                      \
+        kh_val(name, &hh, k) = old_vals[i];                             \
       }                                                                 \
     }                                                                   \
-    /* Cleanup */                                                       \
-    mrb_free(mrb, old_data);                                            \
+    /* Final Swap */                                                    \
+    mrb_free(mrb, h->data);                                             \
+    h->data = hh.data;                                                  \
+    h->n_buckets = hh.n_buckets;                                        \
+    h->size = hh.size;                                                  \
   }                                                                     \
   static inline khint_t kh__put_small_##name(mrb_state *mrb, kh_##name##_t *h, khkey_t key, int *ret) { \
     /* First check if key exists */                                     \
