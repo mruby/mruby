@@ -1019,6 +1019,23 @@ mrb_file_extname(mrb_state *mrb, mrb_value klass)
   return mrb_str_new(mrb, path + dot_pos, len - dot_pos);
 }
 
+/*
+ * call-seq:
+ *   File.path(path)  -> string
+ *
+ * Returns the string representation of the path
+ *
+ *   File.path("/dev/null")          #=> "/dev/null"
+ *   File.path(Pathname.new("/tmp")) #=> "/tmp"
+ */
+static mrb_value
+mrb_file_path(mrb_state *mrb, mrb_value klass)
+{
+  mrb_value filename;
+  mrb_get_args(mrb, "S", &filename);
+  return filename;
+}
+
 void
 mrb_init_file(mrb_state *mrb)
 {
@@ -1036,6 +1053,7 @@ mrb_init_file(mrb_state *mrb)
   mrb_define_class_method_id(mrb, file, MRB_SYM(dirname),   mrb_file_dirname,    MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM(basename),  mrb_file_basename,   MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM(extname),   mrb_file_extname,    MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, file, MRB_SYM(path),      mrb_file_path,       MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM(realpath),  mrb_file_realpath,   MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM(absolute_path), mrb_file_absolute_path, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM_Q(absolute_path), mrb_file_absolute_path_p, MRB_ARGS_REQ(1));

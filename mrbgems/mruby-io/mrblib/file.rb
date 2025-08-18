@@ -275,20 +275,4 @@ class File < IO
   end
 
 
-  #
-  # call-seq:
-  #   File.path(path)  -> string
-  #
-  # Returns the string representation of the path
-  #
-  #   File.path("/dev/null")          #=> "/dev/null"
-  #   File.path(Pathname.new("/tmp")) #=> "/tmp"
-  #
-  def self.path(filename)
-    if filename.kind_of?(String)
-      filename
-    else
-      raise TypeError, "no implicit conversion of #{filename.class} into String"
-    end
-  end
 end
