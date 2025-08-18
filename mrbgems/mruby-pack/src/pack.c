@@ -117,10 +117,14 @@ static const int le_idx32[4] = {0, 1, 2, 3};    /* little-endian 32-bit: LSB...M
 static const int be_idx64[8] = {7, 6, 5, 4, 3, 2, 1, 0};  /* big-endian 64-bit: MSB...LSB */
 static const int le_idx64[8] = {0, 1, 2, 3, 4, 5, 6, 7};  /* little-endian 64-bit: LSB...MSB */  /* little-endian 64-bit */
 /* lookup tables for binary string optimization */
-static const uint8_t char_to_bit[256] = {
-  ['0'] = 0, ['1'] = 1
-  /* All other characters default to 0 */
-};
+/* Convert character to bit value (0 or 1) */
+static inline uint8_t char_to_bit(unsigned char c) {
+  switch (c) {
+    case '0': return 0;
+    case '1': return 1;
+    default: return 0;
+  }
+}
 
 static const char bit_to_char[2] = {'0', '1'};
 
@@ -129,14 +133,14 @@ static inline uint8_t
 pack_8_bits_msb(const char *src)
 {
   uint8_t result = 0;
-  result |= char_to_bit[(uint8_t)src[0]] << 7;
-  result |= char_to_bit[(uint8_t)src[1]] << 6;
-  result |= char_to_bit[(uint8_t)src[2]] << 5;
-  result |= char_to_bit[(uint8_t)src[3]] << 4;
-  result |= char_to_bit[(uint8_t)src[4]] << 3;
-  result |= char_to_bit[(uint8_t)src[5]] << 2;
-  result |= char_to_bit[(uint8_t)src[6]] << 1;
-  result |= char_to_bit[(uint8_t)src[7]];
+  result |= char_to_bit((uint8_t)src[0]) << 7;
+  result |= char_to_bit((uint8_t)src[1]) << 6;
+  result |= char_to_bit((uint8_t)src[2]) << 5;
+  result |= char_to_bit((uint8_t)src[3]) << 4;
+  result |= char_to_bit((uint8_t)src[4]) << 3;
+  result |= char_to_bit((uint8_t)src[5]) << 2;
+  result |= char_to_bit((uint8_t)src[6]) << 1;
+  result |= char_to_bit((uint8_t)src[7]);
   return result;
 }
 
@@ -144,14 +148,14 @@ static inline uint8_t
 pack_8_bits_lsb(const char *src)
 {
   uint8_t result = 0;
-  result |= char_to_bit[(uint8_t)src[0]];
-  result |= char_to_bit[(uint8_t)src[1]] << 1;
-  result |= char_to_bit[(uint8_t)src[2]] << 2;
-  result |= char_to_bit[(uint8_t)src[3]] << 3;
-  result |= char_to_bit[(uint8_t)src[4]] << 4;
-  result |= char_to_bit[(uint8_t)src[5]] << 5;
-  result |= char_to_bit[(uint8_t)src[6]] << 6;
-  result |= char_to_bit[(uint8_t)src[7]] << 7;
+  result |= char_to_bit((uint8_t)src[0]);
+  result |= char_to_bit((uint8_t)src[1]) << 1;
+  result |= char_to_bit((uint8_t)src[2]) << 2;
+  result |= char_to_bit((uint8_t)src[3]) << 3;
+  result |= char_to_bit((uint8_t)src[4]) << 4;
+  result |= char_to_bit((uint8_t)src[5]) << 5;
+  result |= char_to_bit((uint8_t)src[6]) << 6;
+  result |= char_to_bit((uint8_t)src[7]) << 7;
   return result;
 }
 
@@ -185,15 +189,19 @@ unpack_8_bits_lsb(uint8_t byte, char *dst)
 #define CHAR_NULL    0x01
 #define CHAR_SPACE   0x02
 
-static const uint8_t char_class[256] = {
-  [0] = CHAR_NULL,
-  [' '] = CHAR_SPACE,
-  ['\t'] = CHAR_SPACE,
-  ['\n'] = CHAR_SPACE,
-  ['\v'] = CHAR_SPACE,
-  ['\f'] = CHAR_SPACE,
-  ['\r'] = CHAR_SPACE
-};
+/* Character classification function */
+static inline uint8_t char_class(unsigned char c) {
+  switch (c) {
+    case '\0': return CHAR_NULL;
+    case ' ':
+    case '\t':
+    case '\n':
+    case '\v':
+    case '\f':
+    case '\r': return CHAR_SPACE;
+    default: return 0;
+  }
+}
 /* UTF-8 optimization lookup tables */
 /* UTF-8 sequence length lookup table for non-ASCII bytes (0x80-0xFF) */
 /* Index = byte_value - 0x80, so table[0] = info for byte 0x80 */
@@ -288,50 +296,52 @@ typedef struct {
   unsigned int base_flags;
 } format_info_t;
 
-/* direct O(1) lookup table for format characters */
-static const format_info_t format_table[256] = {
-  ['A'] = {PACK_DIR_STR, PACK_TYPE_STRING, 0, PACK_FLAG_WIDTH | PACK_FLAG_COUNT2},
-  ['a'] = {PACK_DIR_STR, PACK_TYPE_STRING, 0, PACK_FLAG_WIDTH | PACK_FLAG_COUNT2 | PACK_FLAG_a},
-  ['B'] = {PACK_DIR_BSTR, PACK_TYPE_STRING, 0, PACK_FLAG_COUNT2},
-  ['b'] = {PACK_DIR_BSTR, PACK_TYPE_STRING, 0, PACK_FLAG_COUNT2 | PACK_FLAG_LSB},
-  ['C'] = {PACK_DIR_CHAR, PACK_TYPE_INTEGER, 1, 0},
-  ['c'] = {PACK_DIR_CHAR, PACK_TYPE_INTEGER, 1, PACK_FLAG_SIGNED},
-  ['D'] = {PACK_DIR_DOUBLE, PACK_TYPE_FLOAT, 8, PACK_FLAG_SIGNED},
-  ['d'] = {PACK_DIR_DOUBLE, PACK_TYPE_FLOAT, 8, PACK_FLAG_SIGNED},
-  ['E'] = {PACK_DIR_DOUBLE, PACK_TYPE_FLOAT, 8, PACK_FLAG_SIGNED | PACK_FLAG_LT},
-  ['e'] = {PACK_DIR_FLOAT, PACK_TYPE_FLOAT, 4, PACK_FLAG_SIGNED | PACK_FLAG_LT},
-  ['F'] = {PACK_DIR_FLOAT, PACK_TYPE_FLOAT, 4, PACK_FLAG_SIGNED},
-  ['f'] = {PACK_DIR_FLOAT, PACK_TYPE_FLOAT, 4, PACK_FLAG_SIGNED},
-  ['G'] = {PACK_DIR_DOUBLE, PACK_TYPE_FLOAT, 8, PACK_FLAG_SIGNED | PACK_FLAG_GT},
-  ['g'] = {PACK_DIR_FLOAT, PACK_TYPE_FLOAT, 4, PACK_FLAG_SIGNED | PACK_FLAG_GT},
-  ['H'] = {PACK_DIR_HEX, PACK_TYPE_STRING, 0, PACK_FLAG_COUNT2},
-  ['h'] = {PACK_DIR_HEX, PACK_TYPE_STRING, 0, PACK_FLAG_COUNT2 | PACK_FLAG_LSB},
-  /* I, i, J, j are handled specially based on sizeof() */
-  ['L'] = {PACK_DIR_LONG, PACK_TYPE_INTEGER, 4, 0},
-  ['l'] = {PACK_DIR_LONG, PACK_TYPE_INTEGER, 4, PACK_FLAG_SIGNED},
-  ['M'] = {PACK_DIR_QENC, PACK_TYPE_STRING, 0, PACK_FLAG_WIDTH | PACK_FLAG_COUNT2},
-  ['m'] = {PACK_DIR_BASE64, PACK_TYPE_STRING, 0, PACK_FLAG_WIDTH | PACK_FLAG_COUNT2},
-  ['N'] = {PACK_DIR_LONG, PACK_TYPE_INTEGER, 4, PACK_FLAG_GT},
-  ['n'] = {PACK_DIR_SHORT, PACK_TYPE_INTEGER, 2, PACK_FLAG_GT},
-  ['Q'] = {PACK_DIR_QUAD, PACK_TYPE_INTEGER, 8, 0},
-  ['q'] = {PACK_DIR_QUAD, PACK_TYPE_INTEGER, 8, PACK_FLAG_SIGNED},
-  ['S'] = {PACK_DIR_SHORT, PACK_TYPE_INTEGER, 2, 0},
-  ['s'] = {PACK_DIR_SHORT, PACK_TYPE_INTEGER, 2, PACK_FLAG_SIGNED},
-  ['u'] = {PACK_DIR_UU, PACK_TYPE_STRING, 0, PACK_FLAG_WIDTH | PACK_FLAG_COUNT2},
-  ['U'] = {PACK_DIR_UTF8, PACK_TYPE_INTEGER, 0, 0},
-  ['V'] = {PACK_DIR_LONG, PACK_TYPE_INTEGER, 4, PACK_FLAG_LT},
-  ['v'] = {PACK_DIR_SHORT, PACK_TYPE_INTEGER, 2, PACK_FLAG_LT},
-  ['w'] = {PACK_DIR_BER, PACK_TYPE_INTEGER, 0, PACK_FLAG_SIGNED},
-  ['x'] = {PACK_DIR_NUL, PACK_TYPE_NONE, 0, 0},
-  ['X'] = {PACK_DIR_BACK, PACK_TYPE_NONE, 0, 0},
-  ['@'] = {PACK_DIR_ABS, PACK_TYPE_NONE, 0, 0},
-  ['Z'] = {PACK_DIR_STR, PACK_TYPE_STRING, 0, PACK_FLAG_WIDTH | PACK_FLAG_COUNT2 | PACK_FLAG_Z}
-  /* All other entries default to {0,0,0,0} indicating invalid format */
-};
+/* Format character lookup function */
+static inline format_info_t get_format_info(unsigned char c) {
+  switch (c) {
+    case 'A': return (format_info_t){PACK_DIR_STR, PACK_TYPE_STRING, 0, PACK_FLAG_WIDTH | PACK_FLAG_COUNT2};
+    case 'a': return (format_info_t){PACK_DIR_STR, PACK_TYPE_STRING, 0, PACK_FLAG_WIDTH | PACK_FLAG_COUNT2 | PACK_FLAG_a};
+    case 'B': return (format_info_t){PACK_DIR_BSTR, PACK_TYPE_STRING, 0, PACK_FLAG_COUNT2};
+    case 'b': return (format_info_t){PACK_DIR_BSTR, PACK_TYPE_STRING, 0, PACK_FLAG_COUNT2 | PACK_FLAG_LSB};
+    case 'C': return (format_info_t){PACK_DIR_CHAR, PACK_TYPE_INTEGER, 1, 0};
+    case 'c': return (format_info_t){PACK_DIR_CHAR, PACK_TYPE_INTEGER, 1, PACK_FLAG_SIGNED};
+    case 'D': return (format_info_t){PACK_DIR_DOUBLE, PACK_TYPE_FLOAT, 8, PACK_FLAG_SIGNED};
+    case 'd': return (format_info_t){PACK_DIR_DOUBLE, PACK_TYPE_FLOAT, 8, PACK_FLAG_SIGNED};
+    case 'E': return (format_info_t){PACK_DIR_DOUBLE, PACK_TYPE_FLOAT, 8, PACK_FLAG_SIGNED | PACK_FLAG_LT};
+    case 'e': return (format_info_t){PACK_DIR_FLOAT, PACK_TYPE_FLOAT, 4, PACK_FLAG_SIGNED | PACK_FLAG_LT};
+    case 'F': return (format_info_t){PACK_DIR_FLOAT, PACK_TYPE_FLOAT, 4, PACK_FLAG_SIGNED};
+    case 'f': return (format_info_t){PACK_DIR_FLOAT, PACK_TYPE_FLOAT, 4, PACK_FLAG_SIGNED};
+    case 'G': return (format_info_t){PACK_DIR_DOUBLE, PACK_TYPE_FLOAT, 8, PACK_FLAG_SIGNED | PACK_FLAG_GT};
+    case 'g': return (format_info_t){PACK_DIR_FLOAT, PACK_TYPE_FLOAT, 4, PACK_FLAG_SIGNED | PACK_FLAG_GT};
+    case 'H': return (format_info_t){PACK_DIR_HEX, PACK_TYPE_STRING, 0, PACK_FLAG_COUNT2};
+    case 'h': return (format_info_t){PACK_DIR_HEX, PACK_TYPE_STRING, 0, PACK_FLAG_COUNT2 | PACK_FLAG_LSB};
+    /* I, i, J, j are handled specially based on sizeof() */
+    case 'L': return (format_info_t){PACK_DIR_LONG, PACK_TYPE_INTEGER, 4, 0};
+    case 'l': return (format_info_t){PACK_DIR_LONG, PACK_TYPE_INTEGER, 4, PACK_FLAG_SIGNED};
+    case 'M': return (format_info_t){PACK_DIR_QENC, PACK_TYPE_STRING, 0, PACK_FLAG_WIDTH | PACK_FLAG_COUNT2};
+    case 'm': return (format_info_t){PACK_DIR_BASE64, PACK_TYPE_STRING, 0, PACK_FLAG_WIDTH | PACK_FLAG_COUNT2};
+    case 'N': return (format_info_t){PACK_DIR_LONG, PACK_TYPE_INTEGER, 4, PACK_FLAG_GT};
+    case 'n': return (format_info_t){PACK_DIR_SHORT, PACK_TYPE_INTEGER, 2, PACK_FLAG_GT};
+    case 'Q': return (format_info_t){PACK_DIR_QUAD, PACK_TYPE_INTEGER, 8, 0};
+    case 'q': return (format_info_t){PACK_DIR_QUAD, PACK_TYPE_INTEGER, 8, PACK_FLAG_SIGNED};
+    case 'S': return (format_info_t){PACK_DIR_SHORT, PACK_TYPE_INTEGER, 2, 0};
+    case 's': return (format_info_t){PACK_DIR_SHORT, PACK_TYPE_INTEGER, 2, PACK_FLAG_SIGNED};
+    case 'u': return (format_info_t){PACK_DIR_UU, PACK_TYPE_STRING, 0, PACK_FLAG_WIDTH | PACK_FLAG_COUNT2};
+    case 'U': return (format_info_t){PACK_DIR_UTF8, PACK_TYPE_INTEGER, 0, 0};
+    case 'V': return (format_info_t){PACK_DIR_LONG, PACK_TYPE_INTEGER, 4, PACK_FLAG_LT};
+    case 'v': return (format_info_t){PACK_DIR_SHORT, PACK_TYPE_INTEGER, 2, PACK_FLAG_LT};
+    case 'w': return (format_info_t){PACK_DIR_BER, PACK_TYPE_INTEGER, 0, PACK_FLAG_SIGNED};
+    case 'x': return (format_info_t){PACK_DIR_NUL, PACK_TYPE_NONE, 0, 0};
+    case 'X': return (format_info_t){PACK_DIR_BACK, PACK_TYPE_NONE, 0, 0};
+    case '@': return (format_info_t){PACK_DIR_ABS, PACK_TYPE_NONE, 0, 0};
+    case 'Z': return (format_info_t){PACK_DIR_STR, PACK_TYPE_STRING, 0, PACK_FLAG_WIDTH | PACK_FLAG_COUNT2 | PACK_FLAG_Z};
+    default: return (format_info_t){PACK_DIR_NONE, PACK_TYPE_NONE, 0, 0};
+  }
+}
 
 
-#define IS_PADDING_CHAR_A(c) (char_class[(unsigned char)(c)] & (CHAR_NULL | CHAR_SPACE))
-#define IS_PADDING_CHAR_Z(c) (char_class[(unsigned char)(c)] & CHAR_NULL)
+#define IS_PADDING_CHAR_A(c) (char_class((unsigned char)(c)) & (CHAR_NULL | CHAR_SPACE))
+#define IS_PADDING_CHAR_Z(c) (char_class((unsigned char)(c)) & CHAR_NULL)
 
 static int
 hex2int(unsigned char ch)
@@ -1696,7 +1706,8 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_type *typep, mrb_int *siz
   default:
     /* Use O(1) lookup table for standard format characters */
     if (t >= 0 && t < 256) {
-      const format_info_t *info = &format_table[t];
+      format_info_t info_val = get_format_info(t);
+      const format_info_t *info = &info_val;
       if (info->dir != PACK_DIR_NONE) {
         /* Valid format character found in lookup table */
         dir = info->dir;
