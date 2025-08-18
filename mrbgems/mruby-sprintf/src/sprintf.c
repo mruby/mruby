@@ -105,73 +105,72 @@ typedef struct {
   int subtype;    /* format-specific subtype */
 } fmt_spec_t;
 
-/* Format specifier lookup table */
-static const fmt_spec_t format_table[128] = {
-  /* Control characters and whitespace */
-  ['\0'] = {FMT_LITERAL, 0, 0},
-  ['\n'] = {FMT_LITERAL, 0, 0},
-
-  /* Flags */
-  [' ']  = {FMT_FLAG, 0, FSPACE},
-  ['#']  = {FMT_FLAG, 0, FSHARP},
-  ['+']  = {FMT_FLAG, 0, FPLUS},
-  ['-']  = {FMT_FLAG, 0, FMINUS},
-  ['0']  = {FMT_FLAG, 0, FZERO},
-
-  /* Width digits */
-  ['1']  = {FMT_DIGIT, 0, 1},
-  ['2']  = {FMT_DIGIT, 0, 2},
-  ['3']  = {FMT_DIGIT, 0, 3},
-  ['4']  = {FMT_DIGIT, 0, 4},
-  ['5']  = {FMT_DIGIT, 0, 5},
-  ['6']  = {FMT_DIGIT, 0, 6},
-  ['7']  = {FMT_DIGIT, 0, 7},
-  ['8']  = {FMT_DIGIT, 0, 8},
-  ['9']  = {FMT_DIGIT, 0, 9},
-
-  /* Width and precision */
-  ['*']  = {FMT_WIDTH, 0, 0},
-  ['.']  = {FMT_PREC, 0, 0},
-
-  /* Named arguments */
-  ['<']  = {FMT_NAMED, 0, '<'},
-  ['{']  = {FMT_NAMED, 0, '{'},
-
-  /* Literal percent */
-  ['%']  = {FMT_LITERAL, 0, '%'},
-
-  /* Character formatting */
-  ['c']  = {FMT_CHAR, 0, 0},
-
-  /* String formatting */
-  ['s']  = {FMT_STRING, 0, 0},
-  ['p']  = {FMT_STRING, 0, 1}, /* inspect format */
-
-  /* Integer formatting */
-  ['d']  = {FMT_INTEGER, 10, 1}, /* signed decimal */
-  ['i']  = {FMT_INTEGER, 10, 1}, /* signed decimal */
-  ['u']  = {FMT_INTEGER, 10, 1}, /* unsigned decimal (same as signed in mruby) */
-  ['o']  = {FMT_INTEGER, 8,  0}, /* octal */
-  ['x']  = {FMT_INTEGER, 16, 0}, /* hex lowercase */
-  ['X']  = {FMT_INTEGER, 16, 1}, /* hex uppercase */
-  ['b']  = {FMT_INTEGER, 2,  0}, /* binary lowercase */
-  ['B']  = {FMT_INTEGER, 2,  1}, /* binary uppercase */
-
-  /* Float formatting */
-  ['f']  = {FMT_FLOAT, 0, 'f'},
-  ['e']  = {FMT_FLOAT, 0, 'e'},
-  ['E']  = {FMT_FLOAT, 0, 'E'},
-  ['g']  = {FMT_FLOAT, 0, 'g'},
-  ['G']  = {FMT_FLOAT, 0, 'G'},
-};
 
 /* Get format specifier info for character c */
 static inline fmt_spec_t get_format_info(unsigned char c) {
-  if (c >= 128) {
-    static const fmt_spec_t invalid = {FMT_INVALID, 0, 0};
-    return invalid;
+  static const fmt_spec_t invalid = {FMT_INVALID, 0, 0};
+
+  switch (c) {
+    /* Control characters and whitespace */
+    case '\0': case '\n':
+      return (fmt_spec_t){FMT_LITERAL, 0, 0};
+
+    /* Flags */
+    case ' ':  return (fmt_spec_t){FMT_FLAG, 0, FSPACE};
+    case '#':  return (fmt_spec_t){FMT_FLAG, 0, FSHARP};
+    case '+':  return (fmt_spec_t){FMT_FLAG, 0, FPLUS};
+    case '-':  return (fmt_spec_t){FMT_FLAG, 0, FMINUS};
+    case '0':  return (fmt_spec_t){FMT_FLAG, 0, FZERO};
+
+    /* Width digits */
+    case '1':  return (fmt_spec_t){FMT_DIGIT, 0, 1};
+    case '2':  return (fmt_spec_t){FMT_DIGIT, 0, 2};
+    case '3':  return (fmt_spec_t){FMT_DIGIT, 0, 3};
+    case '4':  return (fmt_spec_t){FMT_DIGIT, 0, 4};
+    case '5':  return (fmt_spec_t){FMT_DIGIT, 0, 5};
+    case '6':  return (fmt_spec_t){FMT_DIGIT, 0, 6};
+    case '7':  return (fmt_spec_t){FMT_DIGIT, 0, 7};
+    case '8':  return (fmt_spec_t){FMT_DIGIT, 0, 8};
+    case '9':  return (fmt_spec_t){FMT_DIGIT, 0, 9};
+
+    /* Width and precision */
+    case '*':  return (fmt_spec_t){FMT_WIDTH, 0, 0};
+    case '.':  return (fmt_spec_t){FMT_PREC, 0, 0};
+
+    /* Named arguments */
+    case '<':  return (fmt_spec_t){FMT_NAMED, 0, '<'};
+    case '{':  return (fmt_spec_t){FMT_NAMED, 0, '{'};
+
+    /* Literal percent */
+    case '%':  return (fmt_spec_t){FMT_LITERAL, 0, '%'};
+
+    /* Character formatting */
+    case 'c':  return (fmt_spec_t){FMT_CHAR, 0, 0};
+
+    /* String formatting */
+    case 's':  return (fmt_spec_t){FMT_STRING, 0, 0};
+    case 'p':  return (fmt_spec_t){FMT_STRING, 0, 1}; /* inspect format */
+
+    /* Integer formatting */
+    case 'd':  return (fmt_spec_t){FMT_INTEGER, 10, 1}; /* signed decimal */
+    case 'i':  return (fmt_spec_t){FMT_INTEGER, 10, 1}; /* signed decimal */
+    case 'u':  return (fmt_spec_t){FMT_INTEGER, 10, 1}; /* unsigned (same as signed in mruby) */
+    case 'o':  return (fmt_spec_t){FMT_INTEGER, 8,  0}; /* octal */
+    case 'x':  return (fmt_spec_t){FMT_INTEGER, 16, 0}; /* hex lowercase */
+    case 'X':  return (fmt_spec_t){FMT_INTEGER, 16, 1}; /* hex uppercase */
+    case 'b':  return (fmt_spec_t){FMT_INTEGER, 2,  0}; /* binary lowercase */
+    case 'B':  return (fmt_spec_t){FMT_INTEGER, 2,  1}; /* binary uppercase */
+
+    /* Float formatting */
+    case 'f':  return (fmt_spec_t){FMT_FLOAT, 0, 'f'};
+    case 'e':  return (fmt_spec_t){FMT_FLOAT, 0, 'e'};
+    case 'E':  return (fmt_spec_t){FMT_FLOAT, 0, 'E'};
+    case 'g':  return (fmt_spec_t){FMT_FLOAT, 0, 'g'};
+    case 'G':  return (fmt_spec_t){FMT_FLOAT, 0, 'G'};
+
+    default:
+      return invalid;
   }
-  return format_table[c];
 }
 
 #ifndef MRB_NO_FLOAT
