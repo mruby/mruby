@@ -167,9 +167,8 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
   static inline void kh__rebuild_##name(mrb_state *mrb, kh_##name##_t *h, khint_t new_n_buckets) { \
     kh_##name##_t hh;                                                   \
     hh.data = NULL;                                                     \
-    hh.n_buckets = new_n_buckets;                                       \
     hh.size = 0;                                                        \
-    kh__alloc_##name(mrb, &hh);                                         \
+    kh_init_data_##name(mrb, &hh, new_n_buckets);                       \
     /* Rehash from old 'h' to 'hh' */                                   \
     khkey_t *old_keys = kh_keys_##name(h);                              \
     khval_t *old_vals = kh_vals_##name(h);                              \
