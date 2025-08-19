@@ -35,6 +35,7 @@ kset_equal_value(mrb_state *mrb, mrb_value a, mrb_value b)
 KHASH_DEFINE(set_val, mrb_value, char, FALSE, kset_hash_value, kset_equal_value)
 
 #define KSET_INITIAL_SIZE 4
+#define GOLDEN_RATIO_PRIME 0x9e3779b97f4a7c15ULL
 
 /* Compatibility layer and type definitions */
 typedef kh_set_val_t kset_t;
@@ -644,7 +645,7 @@ set_hash_m(mrb_state *mrb, mrb_value self)
 
   /* Include the size of the set in the hash */
   size_t size = kset_size(set);
-  hash ^= size * 0x9e3779b97f4a7c15ULL; /* Multiply by golden ratio prime */
+  hash ^= size * GOLDEN_RATIO_PRIME;
 
   if (!kset_is_uninitialized(set) && size > 0) {
     /* Process each element - order independent using XOR */
@@ -654,7 +655,7 @@ set_hash_m(mrb_state *mrb, mrb_value self)
       khint_t elem_hash = (khint_t)mrb_obj_hash_code(mrb, kset_key(set, k));
 
       /* XOR is commutative, so order doesn't matter */
-      hash ^= elem_hash * 0x9e3779b97f4a7c15ULL; /* Mix with golden ratio */
+      hash ^= elem_hash * GOLDEN_RATIO_PRIME;
 
       mrb_gc_arena_restore(mrb, ai);
     }
