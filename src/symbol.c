@@ -148,15 +148,6 @@ using_hash_table(mrb_state *mrb)
   return mrb->symhash != NULL;
 }
 
-/* Symbol literal flag check using LSB tagging */
-static inline mrb_bool
-sym_lit_p(mrb_state *mrb, mrb_sym i)
-{
-  /* Works for both linear and hash modes - check LSB of tagged pointer */
-  return symtbl_is_literal(mrb->symtbl[i]);
-}
-
-
 static mrb_bool
 sym_check(mrb_state *mrb, const char *name, size_t len, mrb_sym i)
 {
