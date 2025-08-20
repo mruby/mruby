@@ -321,7 +321,7 @@ sym_intern_common(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
     mrb->symtbl[sym] = symtbl_tag_literal(name);
   }
   else {
-  heap_allocation:
+  heap_allocation:;
     /* Always heap-allocate when not explicitly literal */
     uint32_t ulen = (uint32_t)len;
     size_t ilen = mrb_packed_int_len(ulen);
