@@ -139,4 +139,10 @@ struct mrb_parser_heredoc_info {
   mrb_ast_node *doc;
 };
 
+/* AST node structure */
+struct mrb_ast_node {
+  struct mrb_ast_node *car, *cdr;
+  uint16_t lineno, filename_index;
+};
+
 #endif  /* MRUBY_COMPILER_NODE_H */

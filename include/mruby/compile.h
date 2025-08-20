@@ -53,10 +53,7 @@ MRB_API void mrb_ccontext_cleanup_local_variables(mrb_ccontext *c);
 #define mrbc_cleanup_local_variables mrb_ccontext_cleanup_local_variables
 
 /* AST node structure */
-typedef struct mrb_ast_node {
-  struct mrb_ast_node *car, *cdr;
-  uint16_t lineno, filename_index;
-} mrb_ast_node;
+typedef struct mrb_ast_node mrb_ast_node;
 
 /* lexer states */
 enum mrb_lex_state_enum {
