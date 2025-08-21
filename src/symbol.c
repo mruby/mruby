@@ -54,7 +54,7 @@ presym_sym2name(mrb_sym sym, mrb_int *lenp)
 /* ------------------------------------------------------ */
 
 /* LSB pointer tagging for literal flags */
-#define SYMTBL_LITERAL_FLAG 1UL
+#define SYMTBL_LITERAL_FLAG ((uintptr_t)1)
 
 /* Extract clean pointer for memory operations */
 static inline const char*
