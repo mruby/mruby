@@ -468,7 +468,7 @@ io_s_popen(mrb_state *mrb, mrb_value klass)
     pid = pi.dwProcessId;
   }
 
-  mrb_value io = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(p->klass), NULL, &mrb_io_type));
+  mrb_value io = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
   fptr = io_alloc(mrb);
   fptr->fd = _open_osfhandle((intptr_t)ofd[0], 0);
   fptr->fd2 = _open_osfhandle((intptr_t)ifd[1], 0);
