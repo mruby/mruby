@@ -577,7 +577,7 @@ mpz_add(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mpz_t *y)
           borrow = 0;
         }
         else {
-          z.p[0] = ((mp_dbl_limb)1 << DIG_SIZE) + x->p[0] - (mp_limb)borrow;
+          z.p[0] = (mp_limb)(((mp_dbl_limb)1 << DIG_SIZE) + x->p[0] - (mp_limb)borrow);
           borrow = 1;
         }
 
@@ -588,7 +588,7 @@ mpz_add(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mpz_t *y)
             borrow = 0;
           }
           else {
-            z.p[i] = ((mp_dbl_limb)1 << DIG_SIZE) + x->p[i] - (mp_limb)borrow;
+            z.p[i] = (mp_limb)(((mp_dbl_limb)1 << DIG_SIZE) + x->p[i] - (mp_limb)borrow);
             borrow = 1;
           }
         }
@@ -1942,7 +1942,7 @@ mpz_get_str(mpz_ctx_t *ctx, char *s, mrb_int sz, mrb_int base, mpz_t *x)
 
   if ((base & (base - 1)) == 0) {  // base is a power of 2
     int shift = 0;
-    while ((1 << shift) < base) shift++;
+    while (((uint64_t)1 << shift) < base) shift++;
     mp_limb mask = (mp_limb)base - 1;
     mp_dbl_limb value = 0;
     int bits = 0;
@@ -1994,7 +1994,7 @@ mpz_get_str(mpz_ctx_t *ctx, char *s, mrb_int sz, mrb_int base, mpz_t *x)
       }
 
       // convert to character
-      for (mp_limb b=b2; b>=base; b/=base) {
+      for (mp_limb b=b2; b>=base; b/=(mp_limb)base) {
         char a0 = (char)(a % base);
         if (a0 < 10) a0 += '0';
         else a0 += 'a' - 10;
