@@ -1796,8 +1796,9 @@ mpz_mul_int(mpz_ctx_t *ctx, mpz_t *x, mrb_int n)
   }
 
   if (cc) {
-    // If there is a remaining carry, store it
+    // If there is a remaining carry, store it and update size
     x->p[x_sz] = (mp_limb)cc;
+    x->sz = x_sz + 1;
   }
   else {
     x->sz = x_sz;
