@@ -543,7 +543,8 @@ complex_pow(mrb_state *mrb, mrb_value self)
 
     mrb_float exp_a = F(exp)(a);
     return mrb_complex_new(mrb, exp_a * F(cos)(b), exp_a * F(sin)(b));
-  } else {
+  }
+  else {
     mrb_float other_float = mrb_as_float(mrb, other);
 
     mrb_float abs_self = F(hypot)(self_real, self_imaginary);

@@ -1507,7 +1507,8 @@ udiv(mpz_ctx_t *ctx, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
           left_side -= y_third;
           right_side = (rhat << DIG_SIZE) + x_fourth;
         }
-      } else if (yd == 2) { // Original 2-limb check
+      }
+      else if (yd == 2) { // Original 2-limb check
         mp_dbl_limb y_second = y.p[yd-2];
         mp_dbl_limb x_third = (j+yd-2 < x.sz) ? x.p[j+yd-2] : 0;
         mp_dbl_limb left_side = qhat * y_second;
