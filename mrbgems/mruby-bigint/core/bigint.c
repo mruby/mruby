@@ -784,7 +784,7 @@ limb_addmul_1(mp_limb *rp, const mp_limb *s1p, size_t n, mp_limb limb)
 
   return (mp_limb)acc;
 
-#elif defined(_MSC_VER) && defined(MRB_64BIT)
+#elif defined(_MSC_VER) && defined(MRB_64BIT) && !defined(MRB_NO_MPZ64BIT)
   /* 64-bit limbs on MSVC with 6x unrolling: use _umul128 */
   unsigned long long carry = 0;
   size_t i;
@@ -2826,7 +2826,13 @@ bint_new(mpz_ctx_t *ctx, mpz_t *x)
   if (x->sz <= RBIGINT_EMBED_SIZE_MAX) {
     RBIGINT_SET_EMBED_SIZE(b, x->sz);
     RBIGINT_SET_EMBED_SIGN(b, x->sn);
-    if (x->p) memcpy(RBIGINT_EMBED_ARY(b), x->p, x->sz*sizeof(mp_limb));
+    if (x->p) {
+      memcpy(RBIGINT_EMBED_ARY(b), x->p, x->sz*sizeof(mp_limb));
+    }
+    else {
+      /* Initialize embedded array to zero when x->p is NULL */
+      memset(RBIGINT_EMBED_ARY(b), 0, x->sz*sizeof(mp_limb));
+    }
     mpz_clear(ctx, x);
   }
   else {
