@@ -941,7 +941,15 @@ mpz_mul_basic(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v)
     if (a_limb == 0) continue;
 
     mp_limb carry = limb_addmul_1(w.p + j, b->p, b->sz, a_limb);
-    w.p[j + b->sz] += carry;
+
+    /* Properly handle carry propagation to avoid overflow */
+    size_t k = j + b->sz;
+    while (carry && k < a->sz + b->sz) {
+      mp_dbl_limb sum = (mp_dbl_limb)w.p[k] + (mp_dbl_limb)carry;
+      w.p[k] = LOW(sum);
+      carry = HIGH(sum);
+      k++;
+    }
   }
 
   w.sn = a->sn * b->sn;
@@ -2025,6 +2033,24 @@ mpz_get_int(mpz_t *y, mrb_int *v)
     return TRUE;
   }
 
+#ifdef MRB_NO_MPZ64BIT
+  /* When using 16-bit limbs, we need to handle larger accumulation */
+  mrb_uint i = 0;
+  mp_limb *d = y->p + y->sz;
+
+  while (d-- > y->p) {
+    /* Check for overflow before shifting */
+    if (i > (mrb_uint)(MRB_INT_MAX >> DIG_SIZE)) {
+      return FALSE;
+    }
+    i = (i << DIG_SIZE) | *d;
+  }
+
+  if (i > (mrb_uint)MRB_INT_MAX) {
+    return FALSE;
+  }
+#else
+  /* Original logic for 32-bit limbs */
   mp_dbl_limb i = 0;
   mp_limb *d = y->p + y->sz;
 
@@ -2039,6 +2065,8 @@ mpz_get_int(mpz_t *y, mrb_int *v)
     /* overflow */
     return FALSE;
   }
+#endif
+
   if (y->sn < 0) {
     *v = -(mrb_int)i;
   }
