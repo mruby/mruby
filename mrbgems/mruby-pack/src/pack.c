@@ -375,7 +375,7 @@ pack_char(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int
 }
 
 static int
-unpack_char(mrb_state *mrb, const void *src, int srclen, mrb_value ary, unsigned int flags)
+unpack_char(mrb_state *mrb, const void *src, mrb_int srclen, mrb_value ary, unsigned int flags)
 {
   if (flags & PACK_FLAG_SIGNED)
     mrb_ary_push(mrb, ary, mrb_fixnum_value(*(signed char*)src));
@@ -400,7 +400,7 @@ pack_short(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned in
 }
 
 static int
-unpack_short(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
+unpack_short(mrb_state *mrb, const unsigned char *src, mrb_int srclen, mrb_value ary, unsigned int flags)
 {
   /* use lookup tables to eliminate branching */
   const int *idx = (flags & PACK_FLAG_LITTLEENDIAN) ? le_idx16 : be_idx16;
@@ -464,7 +464,7 @@ u32tostr(char *buf, size_t len, uint32_t n)
 #endif /* MRB_INT64 */
 
 static int
-unpack_long(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
+unpack_long(mrb_state *mrb, const unsigned char *src, mrb_int srclen, mrb_value ary, unsigned int flags)
 {
 #ifndef MRB_INT64
   char msg[60];
@@ -565,7 +565,7 @@ i64tostr(char *buf, size_t len, int64_t n)
 #endif /* MRB_INT64 */
 
 static int
-unpack_quad(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
+unpack_quad(mrb_state *mrb, const unsigned char *src, mrb_int srclen, mrb_value ary, unsigned int flags)
 {
   char msg[60];
   uint64_t ull;
@@ -648,7 +648,7 @@ pack_BER(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int 
 }
 
 static int
-unpack_BER(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
+unpack_BER(mrb_state *mrb, const unsigned char *src, mrb_int srclen, mrb_value ary, unsigned int flags)
 {
   mrb_int n = 0;
   const unsigned char *p = src;
@@ -703,7 +703,7 @@ pack_double(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned i
 }
 
 static int
-unpack_double(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value ary, unsigned int flags)
+unpack_double(mrb_state *mrb, const unsigned char * src, mrb_int srclen, mrb_value ary, unsigned int flags)
 {
   union {
     double d;
@@ -749,7 +749,7 @@ pack_float(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned in
 }
 
 static int
-unpack_float(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value ary, unsigned int flags)
+unpack_float(mrb_state *mrb, const unsigned char * src, mrb_int srclen, mrb_value ary, unsigned int flags)
 {
   union {
     float f;
@@ -815,7 +815,7 @@ pack_utf8(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, int count, u
 
 
 static int
-unpack_utf8(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value ary, unsigned int flags)
+unpack_utf8(mrb_state *mrb, const unsigned char * src, mrb_int srclen, mrb_value ary, unsigned int flags)
 {
   if (srclen == 0) {
     return 1;
@@ -949,7 +949,7 @@ pack_str(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, 
 } while (0)
 
 static int
-unpack_str(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, unsigned int flags)
+unpack_str(mrb_state *mrb, const void *src, mrb_int slen, mrb_value ary, int count, unsigned int flags)
 {
   CHECK_UNPACK_LEN(mrb, slen, ary);
 
@@ -959,7 +959,7 @@ unpack_str(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, 
   if (count != -1 && count < slen) {
     slen = count;
   }
-  copylen = slen;
+  copylen = (int)slen;
 
   if (slen >= 0 && flags & PACK_FLAG_Z) {  /* "Z" format */
     const char *cp = (const char*)memchr(sptr, '\0', slen);
@@ -982,7 +982,7 @@ unpack_str(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, 
 
   mrb_value dst = mrb_str_new(mrb, sptr, (mrb_int)copylen);
   mrb_ary_push(mrb, ary, dst);
-  return slen;
+  return (int)slen;
 }
 
 
@@ -1038,7 +1038,7 @@ pack_hex(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, 
 }
 
 static int
-unpack_hex(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, unsigned int flags)
+unpack_hex(mrb_state *mrb, const void *src, mrb_int slen, mrb_value ary, int count, unsigned int flags)
 {
   CHECK_UNPACK_LEN(mrb, slen, ary);
 
@@ -1056,7 +1056,7 @@ unpack_hex(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, 
   const char *sptr0 = sptr;
 
   if (count == -1)
-    count = slen * 2;
+    count = (int)(slen * 2);
 
   mrb_value dst = mrb_str_new(mrb, NULL, count);
   char *dptr = RSTRING_PTR(dst);
@@ -1129,7 +1129,7 @@ pack_bstr(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count,
 }
 
 static int
-unpack_bstr(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, unsigned int flags)
+unpack_bstr(mrb_state *mrb, const void *src, mrb_int slen, mrb_value ary, int count, unsigned int flags)
 {
   CHECK_UNPACK_LEN(mrb, slen, ary);
 
@@ -1137,7 +1137,7 @@ unpack_bstr(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count,
   const char *sptr = sptr0;
 
   if (count == -1 || count > slen * 8)
-    count = slen * 8;
+    count = (int)(slen * 8);
 
   /* pre-allocate exact output size */
   mrb_value dst = mrb_str_new(mrb, NULL, count);
@@ -1278,7 +1278,7 @@ pack_base64(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int coun
 }
 
 static int
-unpack_base64(mrb_state *mrb, const void *src, int slen, mrb_value ary)
+unpack_base64(mrb_state *mrb, const void *src, mrb_int slen, mrb_value ary)
 {
   CHECK_UNPACK_LEN(mrb, slen, ary);
 
@@ -1286,7 +1286,7 @@ unpack_base64(mrb_state *mrb, const void *src, int slen, mrb_value ary)
   const char *sptr = sptr0;
 
   /* estimate buffer size - may be shorter due to padding/whitespace */
-  int dlen = slen / 4 * 3;
+  int dlen = (int)(slen / 4 * 3);
   mrb_value dst = mrb_str_new(mrb, NULL, dlen);
   char *dptr0 = RSTRING_PTR(dst);
   char *dptr = dptr0;
@@ -1425,7 +1425,7 @@ pack_qenc(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count)
 }
 
 static int
-unpack_qenc(mrb_state *mrb, const void *src, int slen, mrb_value ary)
+unpack_qenc(mrb_state *mrb, const void *src, mrb_int slen, mrb_value ary)
 {
   CHECK_UNPACK_LEN(mrb, slen, ary);
 
@@ -1466,14 +1466,14 @@ unpack_qenc(mrb_state *mrb, const void *src, int slen, mrb_value ary)
 
   buf = mrb_str_resize(mrb, buf, (mrb_int)(ptr - RSTRING_PTR(buf)));
   mrb_ary_push(mrb, ary, buf);
-  return slen;
+  return (int)slen;
 }
 
 static int
 pack_uu(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count)
 {
   char *s = RSTRING_PTR(src);
-  int slen = RSTRING_LEN(src);
+  int slen = (int)RSTRING_LEN(src);
   int lines_written = 0;
   int dlen = 0;
 
@@ -1532,7 +1532,7 @@ pack_uu(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count)
 }
 
 static int
-unpack_uu(mrb_state *mrb, const void *src, int slen, mrb_value ary)
+unpack_uu(mrb_state *mrb, const void *src, mrb_int slen, mrb_value ary)
 {
   const char *s = (const char*)src;
   const char *send = s + slen;
@@ -1599,7 +1599,7 @@ unpack_uu(mrb_state *mrb, const void *src, int slen, mrb_value ary)
 
   result = mrb_str_resize(mrb, result, (mrb_int)(dptr - dptr_start));
   mrb_ary_push(mrb, ary, result);
-  return slen;
+  return (int)slen;
 }
 
 static int
@@ -1636,7 +1636,7 @@ has_tmpl(const struct tmpl *tmpl)
 }
 
 static enum pack_dir
-read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_type *typep, mrb_int *sizep, mrb_int *countp, unsigned int *flagsp)
+read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_type *typep, mrb_int *sizep, int *countp, unsigned int *flagsp)
 {
   mrb_int t, tlen;
   int ch, size = 0;
@@ -1706,7 +1706,7 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_type *typep, mrb_int *siz
   default:
     /* Use O(1) lookup table for standard format characters */
     if (t >= 0 && t < 256) {
-      format_info_t info_val = get_format_info(t);
+      format_info_t info_val = get_format_info((unsigned char)t);
       const format_info_t *info = &info_val;
       if (info->dir != PACK_DIR_NONE) {
         /* Valid format character found in lookup table */
@@ -1817,7 +1817,8 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
   mrb_value o, result;
   struct tmpl tmpl;
   enum pack_type type;
-  mrb_int count, size;
+  int count;
+  mrb_int size;
   unsigned int flags;
   enum pack_dir dir;
 
@@ -1957,7 +1958,7 @@ pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
 {
   mrb_value result;
   struct tmpl tmpl;
-  mrb_int count;
+  int count;
   unsigned int flags;
   enum pack_dir dir;
   enum pack_type type;
@@ -1967,7 +1968,7 @@ pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
   prepare_tmpl(mrb, &tmpl);
 
   srcidx = 0;
-  srclen = (int)RSTRING_LEN(str);
+  srclen = RSTRING_LEN(str);
 
   result = mrb_ary_new(mrb);
   while (has_tmpl(&tmpl)) {
