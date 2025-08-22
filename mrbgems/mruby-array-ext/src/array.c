@@ -401,7 +401,7 @@ ary_rotate_bang(mrb_state *mrb, mrb_value self)
 static void
 ary_init_temp_set(mrb_state *mrb, ary_set_t *set, mrb_int capacity)
 {
-  kh_init_data(ary_set, mrb, set, capacity > 0 ? capacity : 8);
+  kh_init_data(ary_set, mrb, set, (khint_t)(capacity > 0 ? capacity : 8));
 }
 
 static void
