@@ -1942,7 +1942,7 @@ mpz_get_str(mpz_ctx_t *ctx, char *s, mrb_int sz, mrb_int base, mpz_t *x)
 
   if ((base & (base - 1)) == 0) {  // base is a power of 2
     int shift = 0;
-    while (((uint64_t)1 << shift) < base) shift++;
+    while (((uint64_t)1 << shift) < (uint64_t)base) shift++;
     mp_limb mask = (mp_limb)base - 1;
     mp_dbl_limb value = 0;
     int bits = 0;
