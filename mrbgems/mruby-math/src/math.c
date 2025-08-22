@@ -431,6 +431,36 @@ math_exp(mrb_state *mrb, mrb_value obj)
 
 /*
  *  call-seq:
+ *     Math.expm1(x)    -> float
+ *
+ *  Returns exp(x) - 1.
+ */
+static mrb_value
+math_expm1(mrb_state *mrb, mrb_value obj)
+{
+  mrb_float x = expm1(get_float_arg(mrb));
+  return mrb_float_value(mrb, x);
+}
+
+/*
+ *  call-seq:
+ *     Math.log1p(x)    -> float
+ *
+ *  Returns log(1 + x).
+ */
+static mrb_value
+math_log1p(mrb_state *mrb, mrb_value obj)
+{
+  mrb_float x = get_float_arg(mrb);
+  if (x < -1.0) {
+    domain_error(mrb, "log1p");
+  }
+  x = log1p(x);
+  return mrb_float_value(mrb, x);
+}
+
+/*
+ *  call-seq:
  *     Math.log(numeric)    -> float
  *     Math.log(num,base)   -> float
  *
@@ -702,6 +732,8 @@ mrb_mruby_math_gem_init(mrb_state* mrb)
   mrb_define_module_function(mrb, mrb_math, "atanh", math_atanh, MRB_ARGS_REQ(1));
 
   mrb_define_module_function(mrb, mrb_math, "exp", math_exp, MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, mrb_math, "expm1", math_expm1, MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, mrb_math, "log1p", math_log1p, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, mrb_math, "log", math_log, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_module_function(mrb, mrb_math, "log2", math_log2, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, mrb_math, "log10", math_log10, MRB_ARGS_REQ(1));
