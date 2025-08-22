@@ -142,13 +142,12 @@ rand_i(rand_state *t, mrb_int max)
 {
   /* return uniform integer in [0, max) without modulo bias */
   if (max <= 0) return 0;
-  uint32_t bound = (uint32_t)max;
-  uint32_t threshold = (uint32_t)(-bound) % bound; /* power-of-two fast path => 0 */
+  uint32_t threshold = (uint32_t)(-max) % (uint32_t)max; /* power-of-two fast path => 0 */
   uint32_t r;
   do {
     r = rand_uint32(t);
   } while (r < threshold);
-  return (mrb_int)(r % bound);
+  return (mrb_int)(r % (uint32_t)max);
 }
 
 static mrb_value
