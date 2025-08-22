@@ -178,7 +178,7 @@ mrb_dir_getwd(mrb_state *mrb, mrb_value klass)
   mrb_int size = 64;
 
   path = mrb_str_buf_new(mrb, size);
-  while (getcwd(RSTRING_PTR(path), size) == NULL) {
+  while (getcwd(RSTRING_PTR(path), (size_t)size) == NULL) {
     int e = errno;
     if (e != ERANGE) {
       mrb_sys_fail(mrb, "getcwd(2)");
