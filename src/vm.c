@@ -1004,7 +1004,7 @@ send_method(mrb_state *mrb, mrb_value self, mrb_bool pub)
     if (m.flags & MRB_METHOD_PRIVATE_FL) {
     vis_err:;
       if (n == 15) {
-        n = RARRAY_LEN(regs[0]) - 1;
+        n = (int)(RARRAY_LEN(regs[0]) - 1);
         regs = RARRAY_PTR(regs[0]);
       }
       vis_error(mrb, name, mrb_ary_new_from_values(mrb, n, regs+1), self, priv);
