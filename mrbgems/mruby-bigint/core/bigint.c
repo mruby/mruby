@@ -916,7 +916,7 @@ mpz_mul_basic(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v)
     a = u; b = v;
   }
 
-  /* Fast path: single-limb × multi-limb */
+  /* Fast path: single-limb * multi-limb */
   if (b->sz == 1) {
     mp_limb scalar = b->p[0];
     mpz_t w;
@@ -2683,7 +2683,7 @@ mpz_bits(const mpz_t *x)
   return i * limb_bits + (limb_bits - lzb(high));
 }
 
-/* Compute Barrett parameter μ = floor(2^(2k) / m) where k ≈ log₂(m) */
+/* Compute Barrett parameter mu = floor(2^(2k) / m) where k ~ log2(m) */
 static void
 mpz_barrett_mu(mpz_ctx_t *ctx, mpz_t *mu, mpz_t *m)
 {
@@ -2696,7 +2696,7 @@ mpz_barrett_mu(mpz_ctx_t *ctx, mpz_t *mu, mpz_t *m)
   mpz_clear(ctx, &temp);
 }
 
-/* Barrett reduction: r = x mod m using precomputed μ */
+/* Barrett reduction: r = x mod m using precomputed mu */
 static void
 mpz_barrett_reduce(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *m, mpz_t *mu)
 {
@@ -2727,7 +2727,7 @@ mpz_barrett_reduce(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *m, mpz_t *mu)
     mpz_set(ctx, &q1, x);
   }
 
-  /* Step 2: q2 = q1 * μ */
+  /* Step 2: q2 = q1 * mu */
   mpz_mul(ctx, &q2, &q1, mu);
 
   /* Step 3: q3 = floor(q2 / 2^(k+1)) */
@@ -2754,7 +2754,7 @@ mpz_barrett_reduce(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *m, mpz_t *mu)
     mpz_clear(ctx, &power);
   }
 
-  /* Step 7: Final correction - ensure 0 ≤ r < m */
+  /* Step 7: Final correction - ensure 0 <= r < m */
   while (mpz_cmp(ctx, r, m) >= 0) {
     mpz_sub(ctx, r, r, m);
   }
