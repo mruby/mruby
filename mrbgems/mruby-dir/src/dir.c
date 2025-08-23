@@ -246,7 +246,7 @@ mrb_dir_chroot(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(0);
 #else
   const char *path;
-  int res;
+  mrb_int res;
 
   mrb_get_args(mrb, "z", &path);
   res = chroot(path);
