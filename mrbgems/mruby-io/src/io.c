@@ -2072,7 +2072,7 @@ io_gets(mrb_state *mrb, mrb_value io)
 {
   mrb_value rs = mrb_nil_value();
   mrb_bool rs_given = FALSE;    /* newline break */
-  mrb_int limit;
+  mrb_int limit = 0;
   mrb_bool limit_given = FALSE; /* no limit */
   struct mrb_io *fptr = io_get_read_fptr(mrb, io);
   struct mrb_io_buf *buf = fptr->buf;
