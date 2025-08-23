@@ -1636,13 +1636,13 @@ has_tmpl(const struct tmpl *tmpl)
 }
 
 static enum pack_dir
-read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_type *typep, mrb_int *sizep, int *countp, unsigned int *flagsp)
+read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_type *typep, mrb_int *sizep, mrb_int *countp, unsigned int *flagsp)
 {
   mrb_int t, tlen;
   int ch, size = 0;
   enum pack_dir dir;
   enum pack_type type;
-  int count = 1;
+  mrb_int count = 1;
   unsigned int flags = 0;
   const char *tptr;
 
@@ -1733,7 +1733,7 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_type *typep, mrb_int *siz
       if (!mrb_read_int(tptr+tmpl->idx, tptr+tlen, &e, &n) || INT_MAX < n) {
         mrb_raise(mrb, E_RUNTIME_ERROR, "too big template length");
       }
-      count = (int)n;
+      count = n;
       tmpl->idx = (int)(e - tptr);
       continue;
     }
@@ -1817,7 +1817,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
   mrb_value o, result;
   struct tmpl tmpl;
   enum pack_type type;
-  int count;
+  mrb_int count;
   mrb_int size;
   unsigned int flags;
   enum pack_dir dir;
@@ -1958,7 +1958,7 @@ pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
 {
   mrb_value result;
   struct tmpl tmpl;
-  int count;
+  mrb_int count;
   unsigned int flags;
   enum pack_dir dir;
   enum pack_type type;
