@@ -794,34 +794,46 @@ limb_addmul_1(mp_limb *rp, const mp_limb *s1p, size_t n, mp_limb limb)
     unsigned long long hi, lo, sum;
 
     lo = _umul128((unsigned long long)s1p[i], (unsigned long long)limb, &hi);
-    sum = (unsigned long long)rp[i] + lo + carry;
+    unsigned long long rp_val = (unsigned long long)rp[i];
+    unsigned long long temp = rp_val + lo;
+    sum = temp + carry;
     rp[i] = (mp_limb)sum;
-    carry = hi + (sum < lo);
+    carry = hi + (temp < rp_val) + (sum < temp);
 
     lo = _umul128((unsigned long long)s1p[i+1], (unsigned long long)limb, &hi);
-    sum = (unsigned long long)rp[i+1] + lo + carry;
+    unsigned long long rp_val1 = (unsigned long long)rp[i+1];
+    unsigned long long temp1 = rp_val1 + lo;
+    sum = temp1 + carry;
     rp[i+1] = (mp_limb)sum;
-    carry = hi + (sum < lo);
+    carry = hi + (temp1 < rp_val1) + (sum < temp1);
 
     lo = _umul128((unsigned long long)s1p[i+2], (unsigned long long)limb, &hi);
-    sum = (unsigned long long)rp[i+2] + lo + carry;
+    unsigned long long rp_val2 = (unsigned long long)rp[i+2];
+    unsigned long long temp2 = rp_val2 + lo;
+    sum = temp2 + carry;
     rp[i+2] = (mp_limb)sum;
-    carry = hi + (sum < lo);
+    carry = hi + (temp2 < rp_val2) + (sum < temp2);
 
     lo = _umul128((unsigned long long)s1p[i+3], (unsigned long long)limb, &hi);
-    sum = (unsigned long long)rp[i+3] + lo + carry;
+    unsigned long long rp_val3 = (unsigned long long)rp[i+3];
+    unsigned long long temp3 = rp_val3 + lo;
+    sum = temp3 + carry;
     rp[i+3] = (mp_limb)sum;
-    carry = hi + (sum < lo);
+    carry = hi + (temp3 < rp_val3) + (sum < temp3);
 
     lo = _umul128((unsigned long long)s1p[i+4], (unsigned long long)limb, &hi);
-    sum = (unsigned long long)rp[i+4] + lo + carry;
+    unsigned long long rp_val4 = (unsigned long long)rp[i+4];
+    unsigned long long temp4 = rp_val4 + lo;
+    sum = temp4 + carry;
     rp[i+4] = (mp_limb)sum;
-    carry = hi + (sum < lo);
+    carry = hi + (temp4 < rp_val4) + (sum < temp4);
 
     lo = _umul128((unsigned long long)s1p[i+5], (unsigned long long)limb, &hi);
-    sum = (unsigned long long)rp[i+5] + lo + carry;
+    unsigned long long rp_val5 = (unsigned long long)rp[i+5];
+    unsigned long long temp5 = rp_val5 + lo;
+    sum = temp5 + carry;
     rp[i+5] = (mp_limb)sum;
-    carry = hi + (sum < lo);
+    carry = hi + (temp5 < rp_val5) + (sum < temp5);
   }
 
   /* 3x unrolled loop for medium operands */
@@ -829,28 +841,36 @@ limb_addmul_1(mp_limb *rp, const mp_limb *s1p, size_t n, mp_limb limb)
     unsigned long long hi, lo, sum;
 
     lo = _umul128((unsigned long long)s1p[i], (unsigned long long)limb, &hi);
-    sum = (unsigned long long)rp[i] + lo + carry;
+    unsigned long long rp_val = (unsigned long long)rp[i];
+    unsigned long long temp = rp_val + lo;
+    sum = temp + carry;
     rp[i] = (mp_limb)sum;
-    carry = hi + (sum < lo);
+    carry = hi + (temp < rp_val) + (sum < temp);
 
     lo = _umul128((unsigned long long)s1p[i+1], (unsigned long long)limb, &hi);
-    sum = (unsigned long long)rp[i+1] + lo + carry;
+    unsigned long long rp_val1 = (unsigned long long)rp[i+1];
+    unsigned long long temp1 = rp_val1 + lo;
+    sum = temp1 + carry;
     rp[i+1] = (mp_limb)sum;
-    carry = hi + (sum < lo);
+    carry = hi + (temp1 < rp_val1) + (sum < temp1);
 
     lo = _umul128((unsigned long long)s1p[i+2], (unsigned long long)limb, &hi);
-    sum = (unsigned long long)rp[i+2] + lo + carry;
+    unsigned long long rp_val2 = (unsigned long long)rp[i+2];
+    unsigned long long temp2 = rp_val2 + lo;
+    sum = temp2 + carry;
     rp[i+2] = (mp_limb)sum;
-    carry = hi + (sum < lo);
+    carry = hi + (temp2 < rp_val2) + (sum < temp2);
   }
 
   /* Handle remaining elements */
   for (; i < n; i++) {
     unsigned long long hi, lo;
     lo = _umul128((unsigned long long)s1p[i], (unsigned long long)limb, &hi);
-    unsigned long long sum = (unsigned long long)rp[i] + lo + carry;
+    unsigned long long rp_val = (unsigned long long)rp[i];
+    unsigned long long temp = rp_val + lo;
+    unsigned long long sum = temp + carry;
     rp[i] = (mp_limb)sum;
-    carry = hi + (sum < lo);
+    carry = hi + (temp < rp_val) + (sum < temp);
   }
 
   return (mp_limb)carry;
