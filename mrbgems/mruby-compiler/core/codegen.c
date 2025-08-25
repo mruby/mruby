@@ -1708,6 +1708,41 @@ lit_pool_extend(codegen_scope *s)
   return &s->pool[s->irep->plen++];
 }
 
+/* Helper functions for simple load operations that follow the pattern:
+ * if (!val) return; <prepare>; genop_X(...); push(); */
+static void
+gen_load_op1(codegen_scope *s, mrb_code op, int val)
+{
+  if (!val) return;
+  genop_1(s, op, cursp());
+  push();
+}
+
+static void
+gen_load_op2(codegen_scope *s, mrb_code op, uint16_t arg, int val)
+{
+  if (!val) return;
+  genop_2(s, op, cursp(), arg);
+  push();
+}
+
+/* Helper function for conditional nil loading - loads nil only if val is needed */
+static void
+gen_load_nil(codegen_scope *s, int val)
+{
+  if (!val) return;
+  genop_1(s, OP_LOADNIL, cursp());
+  push();
+}
+
+/* Helper function for loading literal and pushing */
+static void
+gen_load_lit(codegen_scope *s, int off)
+{
+  genop_2(s, OP_LOADL, cursp(), off);
+  push();
+}
+
 /*
  * Adds a big integer literal (BigInt) to the IREP's literal pool.
  * The BigInt is provided as a string `p` in the given `base`.
@@ -3557,8 +3592,7 @@ static void
 codegen_stmts(codegen_scope *s, node *tree, int val)
 {
   if (val && !tree) {
-    genop_1(s, OP_LOADNIL, cursp());
-    push();
+    gen_load_nil(s, 1);
   }
   while (tree) {
     codegen(s, tree->car, tree->cdr ? NOVAL : val);
@@ -3779,8 +3813,7 @@ codegen_if(codegen_scope *s, node *tree, int val)
       dispatch(s, pos1);
     }
     else if (val && !nil_p) {
-      genop_1(s, OP_LOADNIL, cursp());
-      push();
+      gen_load_nil(s, 1);
     }
   }
 }
@@ -3828,37 +3861,25 @@ codegen_or(codegen_scope *s, node *tree, int val)
 static void
 codegen_self(codegen_scope *s, node *tree, int val)
 {
-  if (!val) return;
-
-  genop_1(s, OP_LOADSELF, cursp());
-  push();
+  gen_load_op1(s, OP_LOADSELF, val);
 }
 
 static void
 codegen_nil(codegen_scope *s, node *tree, int val)
 {
-  if (!val) return;
-
-  genop_1(s, OP_LOADNIL, cursp());
-  push();
+  gen_load_op1(s, OP_LOADNIL, val);
 }
 
 static void
 codegen_true(codegen_scope *s, node *tree, int val)
 {
-  if (!val) return;
-
-  genop_1(s, OP_LOADT, cursp());
-  push();
+  gen_load_op1(s, OP_LOADT, val);
 }
 
 static void
 codegen_false(codegen_scope *s, node *tree, int val)
 {
-  if (!val) return;
-
-  genop_1(s, OP_LOADF, cursp());
-  push();
+  gen_load_op1(s, OP_LOADF, val);
 }
 
 static void
@@ -3928,11 +3949,8 @@ codegen_const(codegen_scope *s, node *tree, int val)
 static void
 codegen_sym(codegen_scope *s, node *tree, int val)
 {
-  if (!val) return;
-
   int sym = new_sym(s, nsym(tree));
-  genop_2(s, OP_LOADSYM, cursp(), sym);
-  push();
+  gen_load_op2(s, OP_LOADSYM, sym, val);
 }
 
 static void
@@ -4119,19 +4137,13 @@ codegen_while_until(codegen_scope *s, node *tree, int val, int nt)
 
   if (true_always(tree->car)) {
     if (nt == NODE_UNTIL || nt == NODE_UNTIL_MOD) {
-      if (val) {
-        genop_1(s, OP_LOADNIL, cursp());
-        push();
-      }
+      gen_load_nil(s, val);
       return;
     }
   }
   else if (false_always(tree->car)) {
     if (nt == NODE_WHILE || nt == NODE_WHILE_MOD) {
-      if (val) {
-        genop_1(s, OP_LOADNIL, cursp());
-        push();
-      }
+      gen_load_nil(s, val);
       return;
     }
   }
@@ -4172,8 +4184,7 @@ codegen_negate(codegen_scope *s, node *tree, int val)
       mrb_read_float(p, NULL, &f);
       int off = new_lit_float(s, (mrb_float)-f);
 
-      genop_2(s, OP_LOADL, cursp(), off);
-      push();
+      gen_load_lit(s, off);
     }
     break;
 #endif
@@ -4214,14 +4225,12 @@ codegen_negate(codegen_scope *s, node *tree, int val)
 static void
 codegen_float(codegen_scope *s, node *tree, int val)
 {
-  if (!val) return;
   char *p = (char*)tree;
   double f;
   mrb_read_float(p, NULL, &f);
   int off = new_lit_float(s, (mrb_float)f);
 
-  genop_2(s, OP_LOADL, cursp(), off);
-  push();
+  gen_load_op2(s, OP_LOADL, off, val);
 }
 
 static void
@@ -4307,8 +4316,7 @@ codegen_heredoc_dstr(codegen_scope *s, node *tree, int val)
     node *n = tree;
 
     if (!n) {
-      genop_1(s, OP_LOADNIL, cursp());
-      push();
+      gen_load_nil(s, 1);
       return;
     }
     codegen(s, n->car, VAL);
@@ -4503,8 +4511,7 @@ codegen_class(codegen_scope *s, node *tree, int val)
   node *body;
 
   if (tree->car->car == (node*)0) {
-    genop_1(s, OP_LOADNIL, cursp());
-    push();
+    gen_load_nil(s, 1);
   }
   else if (tree->car->car == (node*)1) {
     genop_1(s, OP_OCLASS, cursp());
@@ -4596,9 +4603,7 @@ codegen_alias(codegen_scope *s, node *tree, int val)
   int b = new_sym(s, nsym(tree->cdr));
 
   genop_2(s, OP_ALIAS, a, b);
-  if (!val) return;
-  genop_1(s, OP_LOADNIL, cursp());
-  push();
+  gen_load_nil(s, val);
 }
 
 static void
@@ -4611,9 +4616,7 @@ codegen_undef(codegen_scope *s, node *tree, int val)
     genop_1(s, OP_UNDEF, symbol);
     t = t->cdr;
   }
-  if (!val) return;
-  genop_1(s, OP_LOADNIL, cursp());
-  push();
+  gen_load_nil(s, val);
 }
 
 static void
@@ -4726,27 +4729,21 @@ codegen_retry(codegen_scope *s, node *tree, int val)
 static void
 codegen_back_ref(codegen_scope *s, node *tree, int val)
 {
-  if (!val) return;
-
   char buf[] = {'$', nchar(tree)};
   int sym = new_sym(s, mrb_intern(s->mrb, buf, sizeof(buf)));
-  genop_2(s, OP_GETGV, cursp(), sym);
-  push();
+  gen_load_op2(s, OP_GETGV, sym, val);
 }
 
 static void
 codegen_nth_ref(codegen_scope *s, node *tree, int val)
 {
-  if (!val) return;
-
   mrb_state *mrb = s->mrb;
   mrb_value str;
   int sym;
 
   str = mrb_format(mrb, "$%d", nint(tree));
   sym = new_sym(s, mrb_intern_str(mrb, str));
-  genop_2(s, OP_GETGV, cursp(), sym);
-  push();
+  gen_load_op2(s, OP_GETGV, sym, val);
 }
 
 static void
