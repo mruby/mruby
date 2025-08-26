@@ -213,6 +213,43 @@ struct mrb_ast_var_node {
   mrb_sym symbol;
 };
 
+/* Phase 2 Variable Node Structures */
+
+/* Variable-sized call node with inline argument storage */
+struct mrb_ast_call_node {
+  struct mrb_ast_var_header header;  /* 8 bytes */
+  struct mrb_ast_node *receiver;     /* Receiver object */
+  mrb_sym method_name;               /* Method name symbol */
+  uint8_t argc;                      /* Number of regular arguments */
+  uint8_t has_kwargs:1;              /* Has keyword arguments */
+  uint8_t has_block:1;               /* Has block argument */
+  uint8_t safe_call:1;               /* Safe navigation (&.) */
+  uint8_t reserved:5;                /* Reserved for future flags */
+  /* Followed by variable data:
+   * - argc * sizeof(struct mrb_ast_node*) for regular arguments
+   * - struct mrb_ast_node* for kwargs (if has_kwargs)
+   * - struct mrb_ast_node* for block (if has_block)
+   */
+  struct mrb_ast_node *args[];       /* Flexible array for arguments */
+};
+
+/* Variable-sized array node with inline element storage */
+struct mrb_ast_array_node {
+  struct mrb_ast_var_header header;  /* 8 bytes */
+  uint16_t len;                      /* Number of elements */
+  uint16_t flags;                    /* Array-specific flags */
+  struct mrb_ast_node *elements[];   /* Flexible array for elements */
+};
+
+/* Variable-sized hash node with inline key-value storage */
+struct mrb_ast_hash_node {
+  struct mrb_ast_var_header header;  /* 8 bytes */
+  uint16_t len;                      /* Number of key-value pairs */
+  uint16_t flags;                    /* Hash-specific flags */
+  /* Interleaved key-value pairs: key0, value0, key1, value1, ... */
+  struct mrb_ast_node *pairs[];      /* Flexible array for key-value pairs */
+};
+
 /* String storage strategy thresholds */
 #define STR_INLINE_THRESHOLD  48   /* Inline strings <= 48 bytes */
 #define STR_SMALL_THRESHOLD   128  /* Small strings <= 128 bytes */
@@ -238,6 +275,11 @@ struct mrb_ast_var_node {
 #define int_node(n) ((struct mrb_ast_int_node*)(n))
 #define var_node(n) ((struct mrb_ast_var_node*)(n))
 
+/* Phase 2 node casting macros */
+#define call_node(n) ((struct mrb_ast_call_node*)(n))
+#define array_node(n) ((struct mrb_ast_array_node*)(n))
+#define hash_node(n) ((struct mrb_ast_hash_node*)(n))
+
 /* Phase 1 value access macros */
 #define SYM_NODE_VALUE(n) (sym_node(n)->symbol)
 #define STR_NODE_PTR(n) (str_node(n)->data)
@@ -245,5 +287,20 @@ struct mrb_ast_var_node {
 #define STR_NODE_INLINE_P(n) (var_header(n)->flags & VAR_NODE_FLAG_INLINE_DATA)
 #define INT_NODE_VALUE(n) (int_node(n)->value)
 #define VAR_NODE_SYMBOL(n) (var_node(n)->symbol)
+
+/* Phase 2 value access macros */
+#define CALL_NODE_RECEIVER(n) (call_node(n)->receiver)
+#define CALL_NODE_METHOD(n) (call_node(n)->method_name)
+#define CALL_NODE_ARGC(n) (call_node(n)->argc)
+#define CALL_NODE_ARGS(n) (call_node(n)->args)
+#define CALL_NODE_HAS_KWARGS(n) (call_node(n)->has_kwargs)
+#define CALL_NODE_HAS_BLOCK(n) (call_node(n)->has_block)
+#define CALL_NODE_SAFE(n) (call_node(n)->safe_call)
+
+#define ARRAY_NODE_LEN(n) (array_node(n)->len)
+#define ARRAY_NODE_ELEMENTS(n) (array_node(n)->elements)
+
+#define HASH_NODE_LEN(n) (hash_node(n)->len)
+#define HASH_NODE_PAIRS(n) (hash_node(n)->pairs)
 
 #endif  /* MRUBY_COMPILER_NODE_H */

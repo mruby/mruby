@@ -610,13 +610,167 @@ new_self(parser_state *p)
   return list1((node*)NODE_SELF);
 }
 
+/* Forward declaration for variable-sized call node */
+static node* new_call_var(parser_state *p, node *receiver, mrb_sym method, node *args, int pass);
+static node* new_array_var(parser_state *p, node *a);
+static node* new_hash_var(parser_state *p, node *a);
+
 /* (:call a b c) */
 static node*
 new_call(parser_state *p, node *a, mrb_sym b, node *c, int pass)
 {
+  if (p->var_nodes_enabled) {
+    return new_call_var(p, a, b, c, pass);
+  }
   node *n = list4(int_to_node(pass?NODE_CALL:NODE_SCALL), a, sym_to_node(b), c);
   void_expr_error(p, a);
   return n;
+}
+
+/* Variable-sized call node creation */
+static node*
+new_call_var(parser_state *p, node *receiver, mrb_sym method, node *args, int pass)
+{
+  /* Analyze the arguments to determine size needed */
+  uint8_t argc = 0;
+  uint8_t has_kwargs = 0;
+  uint8_t has_block = 0;
+  node *regular_args = NULL, *kwargs = NULL, *block = NULL;
+
+  if (args) {
+    regular_args = args->car;
+    if (args->cdr) {
+      kwargs = args->cdr->car;
+      has_kwargs = (kwargs != NULL);
+      if (args->cdr->cdr) {
+        block = args->cdr->cdr;
+        has_block = (block != NULL);
+      }
+    }
+  }
+
+  /* Count regular arguments */
+  node *arg_iter = regular_args;
+  while (arg_iter) {
+    argc++;
+    arg_iter = arg_iter->cdr;
+  }
+
+  /* Calculate total size needed */
+  size_t base_size = sizeof(struct mrb_ast_call_node);
+  size_t args_size = argc * sizeof(struct mrb_ast_node*);
+  size_t kwargs_size = has_kwargs ? sizeof(struct mrb_ast_node*) : 0;
+  size_t block_size = has_block ? sizeof(struct mrb_ast_node*) : 0;
+  size_t total_size = base_size + args_size + kwargs_size + block_size;
+
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_call_node *n = (struct mrb_ast_call_node*)
+    parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->header, p, pass ? NODE_CALL : NODE_SCALL, class);
+  n->receiver = receiver;
+  n->method_name = method;
+  n->argc = argc;
+  n->has_kwargs = has_kwargs;
+  n->has_block = has_block;
+  n->safe_call = (pass == 2); /* Assuming pass == 2 means safe call (&.) */
+  n->reserved = 0;
+
+  /* Copy regular arguments into flexible array */
+  arg_iter = regular_args;
+  for (int i = 0; i < argc; i++) {
+    n->args[i] = arg_iter->car;
+    arg_iter = arg_iter->cdr;
+  }
+
+  /* Add kwargs and block after regular arguments */
+  if (has_kwargs) {
+    n->args[argc] = kwargs;
+  }
+  if (has_block) {
+    n->args[argc + (has_kwargs ? 1 : 0)] = block;
+  }
+
+  void_expr_error(p, receiver);
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
+}
+
+/* Variable-sized array node creation */
+static node*
+new_array_var(parser_state *p, node *a)
+{
+  /* Count array elements */
+  uint16_t len = 0;
+  node *elem_iter = a;
+  while (elem_iter) {
+    len++;
+    elem_iter = elem_iter->cdr;
+  }
+
+  /* Calculate total size needed */
+  size_t base_size = sizeof(struct mrb_ast_array_node);
+  size_t elems_size = len * sizeof(struct mrb_ast_node*);
+  size_t total_size = base_size + elems_size;
+
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_array_node *n = (struct mrb_ast_array_node*)
+    parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->header, p, NODE_ARRAY, class);
+  n->len = len;
+  n->flags = 0;
+
+  /* Copy elements into flexible array */
+  elem_iter = a;
+  for (int i = 0; i < len; i++) {
+    n->elements[i] = elem_iter->car;
+    elem_iter = elem_iter->cdr;
+  }
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
+}
+
+/* Variable-sized hash node creation */
+static node*
+new_hash_var(parser_state *p, node *a)
+{
+  /* Count hash key-value pairs */
+  uint16_t len = 0;
+  node *pair_iter = a;
+  while (pair_iter) {
+    len++;
+    pair_iter = pair_iter->cdr;
+  }
+
+  /* Calculate total size needed */
+  size_t base_size = sizeof(struct mrb_ast_hash_node);
+  size_t pairs_size = len * 2 * sizeof(struct mrb_ast_node*); /* key and value for each pair */
+  size_t total_size = base_size + pairs_size;
+
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_hash_node *n = (struct mrb_ast_hash_node*)
+    parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->header, p, NODE_HASH, class);
+  n->len = len;
+  n->flags = 0;
+
+  /* Copy key-value pairs into flexible array */
+  pair_iter = a;
+  for (int i = 0; i < len; i++) {
+    if (pair_iter && pair_iter->car) {
+      /* Each pair is a cons (key . value) */
+      node *pair = pair_iter->car;
+      n->pairs[i * 2] = pair->car;     /* key */
+      n->pairs[i * 2 + 1] = pair->cdr; /* value */
+    }
+    pair_iter = pair_iter->cdr;
+  }
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:fcall self mid args) */
@@ -743,6 +897,9 @@ new_or(parser_state *p, node *a, node *b)
 static node*
 new_array(parser_state *p, node *a)
 {
+  if (p->cxt && p->cxt->use_variable_nodes) {
+    return new_array_var(p, a);
+  }
   return cons_head((node*)NODE_ARRAY, a);
 }
 
@@ -758,6 +915,9 @@ new_splat(parser_state *p, node *a)
 static node*
 new_hash(parser_state *p, node *a)
 {
+  if (p->cxt && p->cxt->use_variable_nodes) {
+    return new_hash_var(p, a);
+  }
   return cons_head((node*)NODE_HASH, a);
 }
 
@@ -6955,7 +7115,7 @@ mrb_parser_new(mrb_state *mrb)
     p->var_alloc_counts[i] = 0;
   }
   p->var_total_allocated = 0;
-  p->var_nodes_enabled = FALSE;  /* Start disabled for compatibility */
+  p->var_nodes_enabled = TRUE;   /* Enable variable-sized nodes by default */
 
   return p;
 }

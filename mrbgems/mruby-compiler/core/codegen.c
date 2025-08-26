@@ -4920,6 +4920,180 @@ codegen_yield(codegen_scope *s, node *tree, int val)
 
 
 /* Handle variable-sized node types */
+static void
+gen_call_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_call_node *call = call_node(varnode);
+  mrb_sym sym = CALL_NODE_METHOD(call);
+  int skip = 0, n = 0, nk = 0, noop = no_optimize(s), noself = 0, blk = 0, sp_save = cursp();
+  enum mrb_insn opt_op = OP_NOP;
+  int argc = CALL_NODE_ARGC(call);
+  int safe = CALL_NODE_SAFE(call);
+
+  if (!noop) {
+    if (sym == MRB_OPSYM_2(s->mrb, add)) opt_op = OP_ADD;
+    else if (sym == MRB_OPSYM_2(s->mrb, sub)) opt_op = OP_SUB;
+    else if (sym == MRB_OPSYM_2(s->mrb, mul)) opt_op = OP_MUL;
+    else if (sym == MRB_OPSYM_2(s->mrb, div)) opt_op = OP_DIV;
+    else if (sym == MRB_OPSYM_2(s->mrb, lt)) opt_op = OP_LT;
+    else if (sym == MRB_OPSYM_2(s->mrb, le)) opt_op = OP_LE;
+    else if (sym == MRB_OPSYM_2(s->mrb, gt)) opt_op = OP_GT;
+    else if (sym == MRB_OPSYM_2(s->mrb, ge)) opt_op = OP_GE;
+    else if (sym == MRB_OPSYM_2(s->mrb, eq)) opt_op = OP_EQ;
+    else if (sym == MRB_OPSYM_2(s->mrb, aref)) opt_op = OP_GETIDX;
+    else if (sym == MRB_OPSYM_2(s->mrb, aset)) opt_op = OP_SETIDX;
+  }
+
+  if (!CALL_NODE_RECEIVER(call)) {
+    noself = 1;
+    push();
+  }
+  else {
+    codegen(s, CALL_NODE_RECEIVER(call), VAL); /* receiver */
+  }
+
+  if (safe) {
+    int recv = cursp()-1;
+    gen_move(s, cursp(), recv, 1);
+    skip = genjmp2_0(s, OP_JMPNIL, cursp(), val);
+  }
+
+  /* Generate arguments */
+  n = argc;
+  if (argc > 0) {
+    struct mrb_ast_node **args = CALL_NODE_ARGS(call);
+    int i;
+    for (i = 0; i < argc; i++) {
+      codegen(s, args[i], VAL);
+    }
+    if (n > 14) {
+      noop = 1;
+      n = 15;
+      push();
+    }
+  }
+
+  /* Handle keyword arguments if present */
+  if (CALL_NODE_HAS_KWARGS(call)) {
+    noop = 1;
+    nk = 1; /* Simplified - would need proper kwarg handling */
+  }
+
+  /* Handle block if present */
+  if (CALL_NODE_HAS_BLOCK(call)) {
+    noop = 1;
+    blk = 1;
+  }
+
+  push();
+  s->sp = sp_save;
+
+  /* Apply optimizations */
+  if (opt_op == OP_ADD && n == 1) {
+    gen_addsub(s, OP_ADD, cursp());
+  }
+  else if (opt_op == OP_SUB && n == 1) {
+    gen_addsub(s, OP_SUB, cursp());
+  }
+  else if (opt_op == OP_MUL && n == 1) {
+    gen_muldiv(s, OP_MUL, cursp());
+  }
+  else if (opt_op == OP_DIV && n == 1) {
+    gen_muldiv(s, OP_DIV, cursp());
+  }
+  else if (opt_op == OP_LT && n == 1) {
+    genop_1(s, OP_LT, cursp());
+  }
+  else if (opt_op == OP_LE && n == 1) {
+    genop_1(s, OP_LE, cursp());
+  }
+  else if (opt_op == OP_GT && n == 1) {
+    genop_1(s, OP_GT, cursp());
+  }
+  else if (opt_op == OP_GE && n == 1) {
+    genop_1(s, OP_GE, cursp());
+  }
+  else if (opt_op == OP_EQ && n == 1) {
+    genop_1(s, OP_EQ, cursp());
+  }
+  else if (opt_op == OP_SETIDX && n == 2) {
+    genop_1(s, OP_SETIDX, cursp());
+  }
+  else if (!noop && n == 0 && gen_uniop(s, sym, cursp())) {
+    /* constant folding succeeded */
+  }
+  else if (!noop && n == 1 && gen_binop(s, sym, cursp())) {
+    /* constant folding succeeded */
+  }
+  else if (noself) {
+    genop_3(s, blk ? OP_SSENDB : OP_SSEND, cursp(), new_sym(s, sym), n|(nk<<4));
+  }
+  else {
+    genop_3(s, blk ? OP_SENDB : OP_SEND, cursp(), new_sym(s, sym), n|(nk<<4));
+  }
+
+  if (safe) {
+    dispatch(s, skip);
+  }
+  if (!val) return;
+  push();
+}
+
+static void
+gen_array_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_array_node *array = array_node(varnode);
+  int len = ARRAY_NODE_LEN(array);
+  struct mrb_ast_node **elements = ARRAY_NODE_ELEMENTS(array);
+  int i;
+
+  if (!val) return;
+
+  if (len == 0) {
+    genop_2(s, OP_ARRAY, cursp(), 0);
+    push();
+    return;
+  }
+
+  /* Generate code for each element */
+  for (i = 0; i < len; i++) {
+    codegen(s, elements[i], VAL);
+  }
+
+  /* Create array with elements on stack */
+  pop_n(len);
+  genop_2(s, OP_ARRAY, cursp(), len);
+  push();
+}
+
+static void
+gen_hash_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_hash_node *hash = hash_node(varnode);
+  int len = HASH_NODE_LEN(hash);
+  struct mrb_ast_node **pairs = HASH_NODE_PAIRS(hash);
+  int i;
+
+  if (!val) return;
+
+  if (len == 0) {
+    genop_2(s, OP_HASH, cursp(), 0);
+    push();
+    return;
+  }
+
+  /* Generate code for each key-value pair */
+  for (i = 0; i < len; i++) {
+    codegen(s, pairs[i * 2], VAL);     /* key */
+    codegen(s, pairs[i * 2 + 1], VAL); /* value */
+  }
+
+  /* Create hash with key-value pairs on stack */
+  pop_n(len * 2); /* Pop all keys and values */
+  genop_2(s, OP_HASH, cursp(), len);
+  push();
+}
+
 static mrb_bool
 codegen_variable_node(codegen_scope *s, node *varnode, int val)
 {
@@ -4959,6 +5133,18 @@ codegen_variable_node(codegen_scope *s, node *varnode, int val)
 
   case NODE_CVAR:
     codegen_cvar(s, VAR_NODE_SYMBOL(varnode), val);
+    return TRUE;
+
+  case NODE_CALL:
+    gen_call_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_ARRAY:
+    gen_array_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_HASH:
+    gen_hash_var(s, varnode, val);
     return TRUE;
 
   default:
