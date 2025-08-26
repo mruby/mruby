@@ -1534,8 +1534,8 @@ pack_uu(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count)
 static int
 unpack_uu(mrb_state *mrb, const void *src, mrb_int slen, mrb_value ary)
 {
-  const char *s = (const char*)src;
-  const char *send = s + slen;
+  const unsigned char *s = (const unsigned char*)src;
+  const unsigned char *send = s + slen;
   mrb_value result = mrb_str_new(mrb, 0, slen * 3 / 4); /* estimate result size */
   char *dptr = RSTRING_PTR(result);
   char *dptr_start = dptr;
