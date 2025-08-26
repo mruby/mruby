@@ -256,7 +256,7 @@ When more than one version requirements is passed, the dependency must satisfy a
 
 You can have default gem to use as dependency when it's not defined in your build configuration.
 When the last argument of `add_dependency` call is `Hash`, it will be treated as default gem information.
-Its format is same as argument of method `MRuby::Build#gem`, expect that it can't be treated as path gem location.
+Its format is same as argument of method `MRuby::Build#gem`, except that it can't be treated as path gem location.
 
 When a special version of dependency is required,
 use `MRuby::Build#gem` in the build configuration to override default gem.
@@ -304,10 +304,10 @@ Your GEM can export include paths to another GEMs that depends on your GEM.
 By default, `/...absolute path.../{GEM_NAME}/include` will be exported.
 So it is recommended not to put GEM's local header files on include/.
 
-These exports are retroactive.
+These exports are transitive.
 For example: when B depends on C and A depends on B, A will get include paths exported by C.
 
-Exported include_paths are automatically appended to GEM local include_paths by rake.
+Exported `include_paths` are automatically appended to GEM local `include_paths` by rake.
 You can use `spec.export_include_paths` accessor if you want more complex build.
 
 ## C Extension
