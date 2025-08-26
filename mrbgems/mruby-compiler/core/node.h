@@ -100,6 +100,7 @@ enum node_type {
   NODE_LITERAL_DELIM,
   NODE_WORDS,
   NODE_SYMBOLS,
+  NODE_VARIABLE,
   NODE_LAST
 };
 
@@ -152,5 +153,97 @@ struct mrb_ast_head_node {
   struct mrb_ast_node *car, *cdr;
   uint16_t lineno, filename_index;
 };
+
+/* Variable-sized AST nodes - Phase 1 Infrastructure */
+
+/* Variable node header - common to all variable-sized nodes */
+struct mrb_ast_var_header {
+  uint16_t lineno;           /* Line number information */
+  uint16_t filename_index;   /* File index information */
+  uint8_t node_type;         /* NODE_INT, NODE_STR, NODE_SYM, etc. */
+  uint8_t size_class;        /* Size class for allocation/deallocation */
+  uint16_t flags;            /* Type-specific flags and metadata */
+  /* Total: 8 bytes header for all variable nodes */
+};
+
+/* Size class enumeration */
+enum mrb_ast_size_class {
+  SIZE_CLASS_TINY    = 0,  /* 8-16 bytes  - symbols, small values */
+  SIZE_CLASS_SMALL   = 1,  /* 16-32 bytes - most nodes */
+  SIZE_CLASS_MEDIUM  = 2,  /* 32-64 bytes - complex expressions */
+  SIZE_CLASS_LARGE   = 3,  /* 64-128 bytes - large arrays/calls */
+  SIZE_CLASS_XLARGE  = 4,  /* 128+ bytes - very large constructs */
+  SIZE_CLASS_COUNT   = 5
+};
+
+/* Size class limits for allocation decisions */
+#define SIZE_CLASS_LIMITS { 16, 32, 64, 128, 256 }
+
+/* Node type flags */
+#define VAR_NODE_FLAG_INLINE_DATA    0x0001  /* Data stored inline */
+#define VAR_NODE_FLAG_HEAP_ALLOCATED 0x0002  /* Large data on heap */
+#define VAR_NODE_FLAG_CACHED         0x0004  /* Node is cached/reusable */
+
+/* Phase 1 Variable Node Structures */
+
+/* Variable-sized symbol node */
+struct mrb_ast_sym_node {
+  struct mrb_ast_var_header header;  /* 8 bytes */
+  mrb_sym symbol;                    /* Direct symbol reference */
+  /* Total: 12-16 bytes vs previous 20+ bytes + indirection */
+};
+
+/* Variable-sized string node with inline storage */
+struct mrb_ast_str_node {
+  struct mrb_ast_var_header header;  /* 8 bytes */
+  size_t len;                        /* String length */
+  char data[];                       /* Flexible array - inline string storage */
+  /* Total: Variable (16 + string_length) vs previous 20+ bytes + separate allocation */
+};
+
+/* Variable-sized integer node */
+struct mrb_ast_int_node {
+  struct mrb_ast_var_header header;  /* 8 bytes */
+  int32_t value;                     /* Direct 32-bit integer storage */
+};
+
+/* Variable-sized node for variables (lvar, ivar, etc.) */
+struct mrb_ast_var_node {
+  struct mrb_ast_var_header header;
+  mrb_sym symbol;
+};
+
+/* String storage strategy thresholds */
+#define STR_INLINE_THRESHOLD  48   /* Inline strings <= 48 bytes */
+#define STR_SMALL_THRESHOLD   128  /* Small strings <= 128 bytes */
+
+#define VAR_NODE_TYPE(n) ((enum node_type)(((struct mrb_ast_var_header*)(n))->node_type))
+#define VAR_NODE_CLASS(n) (((struct mrb_ast_var_header*)(n))->size_class)
+
+/* Type-safe casting macros */
+#define var_header(n) ((struct mrb_ast_var_header*)(n))
+
+/* Common type casting macros used by parser and codegen */
+#define node_to_sym(x) ((mrb_sym)(intptr_t)(x))
+#define sym_to_node(x) ((node*)(intptr_t)(x))
+#define int_to_node(x) ((node*)(intptr_t)(x))
+#define head(x) ((struct mrb_ast_head_node*)(x))
+#define node_to_int(x) ((int)(intptr_t)(x))
+#define node_to_type(x) ((enum node_type)(intptr_t)(x))
+#define node_to_char(x) ((char)(intptr_t)(x))
+
+/* Phase 1 node casting macros */
+#define sym_node(n) ((struct mrb_ast_sym_node*)(n))
+#define str_node(n) ((struct mrb_ast_str_node*)(n))
+#define int_node(n) ((struct mrb_ast_int_node*)(n))
+#define var_node(n) ((struct mrb_ast_var_node*)(n))
+
+/* Phase 1 value access macros */
+#define SYM_NODE_VALUE(n) (sym_node(n)->symbol)
+#define STR_NODE_PTR(n) (str_node(n)->data)
+#define STR_NODE_LEN(n) (str_node(n)->len)
+#define STR_NODE_INLINE_P(n) (var_header(n)->flags & VAR_NODE_FLAG_INLINE_DATA)
+#define INT_NODE_VALUE(n) (int_node(n)->value)
+#define VAR_NODE_SYMBOL(n) (var_node(n)->symbol)
 
 #endif  /* MRUBY_COMPILER_NODE_H */
