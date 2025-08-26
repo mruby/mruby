@@ -4923,6 +4923,7 @@ codegen(codegen_scope *s, node *tree, int val)
 {
   int nt;
   int rlev = s->rlev;
+  struct mrb_ast_head_node *head;
 
   if (!tree) {
     if (val) {
@@ -4932,23 +4933,26 @@ codegen(codegen_scope *s, node *tree, int val)
     return;
   }
 
+  head = (struct mrb_ast_head_node*)tree;
   s->rlev++;
   if (s->rlev > MRB_CODEGEN_LEVEL_MAX) {
     codegen_error(s, "too complex expression");
   }
-  if (s->irep && s->filename_index != tree->filename_index) {
+  if (s->irep && s->filename_index != head->filename_index) {
     mrb_sym fname = mrb_parser_get_filename(s->parser, s->filename_index);
     const char *filename = mrb_sym_name_len(s->mrb, fname, NULL);
 
-    mrb_debug_info_append_file(s->mrb, s->irep->debug_info,
-                               filename, s->lines, s->debug_start_pos, s->pc);
+    if (filename) {
+      mrb_debug_info_append_file(s->mrb, s->irep->debug_info,
+                                 filename, s->lines, s->debug_start_pos, s->pc);
+    }
     s->debug_start_pos = s->pc;
-    s->filename_index = tree->filename_index;
-    s->filename_sym = mrb_parser_get_filename(s->parser, tree->filename_index);
+    s->filename_index = head->filename_index;
+    s->filename_sym = mrb_parser_get_filename(s->parser, head->filename_index);
   }
 
   nt = nint(tree->car);
-  s->lineno = tree->lineno;
+  s->lineno = head->lineno;
   tree = tree->cdr;
   switch (nt) {
   case NODE_STMTS:

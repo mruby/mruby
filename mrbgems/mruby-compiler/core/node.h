@@ -139,8 +139,16 @@ struct mrb_parser_heredoc_info {
   mrb_ast_node *doc;
 };
 
-/* AST node structure */
+/* AST node structures - Head-only location optimization */
+
+/* Structure nodes - only car/cdr, ignores location fields */
 struct mrb_ast_node {
+  struct mrb_ast_node *car, *cdr;
+  /* No location fields - saves 4 bytes per structure node */
+};
+
+/* Head nodes - with location info, used by cons_head() */
+struct mrb_ast_head_node {
   struct mrb_ast_node *car, *cdr;
   uint16_t lineno, filename_index;
 };
