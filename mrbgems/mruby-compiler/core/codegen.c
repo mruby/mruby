@@ -5684,6 +5684,47 @@ gen_dsym_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
+gen_nth_ref_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_nth_ref_node *n = (struct mrb_ast_nth_ref_node*)varnode;
+  codegen_nth_ref(s, int_to_node(n->nth), val);
+}
+
+static void
+gen_back_ref_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_back_ref_node *n = (struct mrb_ast_back_ref_node*)varnode;
+  codegen_back_ref(s, int_to_node(n->type), val);
+}
+
+static void
+gen_nvar_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_nvar_node *n = (struct mrb_ast_nvar_node*)varnode;
+  codegen_nvar(s, int_to_node(n->num), val);
+}
+
+static void
+gen_dvar_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_dvar_node *n = (struct mrb_ast_dvar_node*)varnode;
+  // DVAR nodes are not currently used in mruby, but provide basic implementation
+  if (val) {
+    codegen_lvar(s, n->name, val);
+  }
+}
+
+static void
+gen_match_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_match_node *n = (struct mrb_ast_match_node*)varnode;
+  // MATCH nodes are not currently used in mruby, but provide basic implementation
+  if (val) {
+    codegen(s, n->pattern, val);
+  }
+}
+
+static void
 gen_args_tail_var(codegen_scope *s, node *varnode, int val)
 {
   /* Args tail nodes are handled within function definitions, not directly */
@@ -5909,6 +5950,26 @@ codegen_variable_node(codegen_scope *s, node *varnode, int val)
 
   case NODE_DSYM:
     gen_dsym_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_NTH_REF:
+    gen_nth_ref_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_BACK_REF:
+    gen_back_ref_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_NVAR:
+    gen_nvar_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_DVAR:
+    gen_dvar_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_MATCH:
+    gen_match_var(s, varnode, val);
     return TRUE;
 
   default:

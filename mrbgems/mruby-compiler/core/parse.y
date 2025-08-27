@@ -1723,7 +1723,18 @@ new_nvar(parser_state *p, int num)
   else {
     p->nvars->car = int_to_node(nvar > num ? nvar : num);
   }
-  return cons_head((node*)NODE_NVAR, int_to_node(num));
+
+  if (!p->var_nodes_enabled) {
+    return cons_head((node*)NODE_NVAR, int_to_node(num));
+  }
+
+  size_t total_size = sizeof(struct mrb_ast_nvar_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+  struct mrb_ast_nvar_node *n = (struct mrb_ast_nvar_node*)
+    parser_alloc_var(p, total_size, class);
+  init_var_header(&n->hdr, p, NODE_NVAR, class);
+  n->num = num;
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:const . a) */
@@ -2342,14 +2353,34 @@ new_dregx(parser_state *p, node *a, node *b)
 static node*
 new_back_ref(parser_state *p, int n)
 {
-  return cons_head((node*)NODE_BACK_REF, int_to_node(n));
+  if (!p->var_nodes_enabled) {
+    return cons_head((node*)NODE_BACK_REF, int_to_node(n));
+  }
+
+  size_t total_size = sizeof(struct mrb_ast_back_ref_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+  struct mrb_ast_back_ref_node *backref_node = (struct mrb_ast_back_ref_node*)
+    parser_alloc_var(p, total_size, class);
+  init_var_header(&backref_node->hdr, p, NODE_BACK_REF, class);
+  backref_node->type = n;
+  return cons_head((node*)NODE_VARIABLE, (node*)backref_node);
 }
 
 /* (:nthref . n) */
 static node*
 new_nth_ref(parser_state *p, int n)
 {
-  return cons_head((node*)NODE_NTH_REF, int_to_node(n));
+  if (!p->var_nodes_enabled) {
+    return cons_head((node*)NODE_NTH_REF, int_to_node(n));
+  }
+
+  size_t total_size = sizeof(struct mrb_ast_nth_ref_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+  struct mrb_ast_nth_ref_node *nthref_node = (struct mrb_ast_nth_ref_node*)
+    parser_alloc_var(p, total_size, class);
+  init_var_header(&nthref_node->hdr, p, NODE_NTH_REF, class);
+  nthref_node->nth = n;
+  return cons_head((node*)NODE_VARIABLE, (node*)nthref_node);
 }
 
 /* (:heredoc . a) */

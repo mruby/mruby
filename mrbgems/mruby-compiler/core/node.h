@@ -749,4 +749,42 @@ struct mrb_ast_dsym_node {
 #define HEREDOC_NODE_NAME(n) (heredoc_node(n)->name)
 #define DSYM_NODE_LIST(n) (dsym_node(n)->list)
 
+// Group 10: References and Variables
+struct mrb_ast_nth_ref_node {
+  struct mrb_ast_var_header hdr;
+  int nth;
+};
+
+struct mrb_ast_back_ref_node {
+  struct mrb_ast_var_header hdr;
+  int type;
+};
+
+struct mrb_ast_nvar_node {
+  struct mrb_ast_var_header hdr;
+  int num;
+};
+
+struct mrb_ast_dvar_node {
+  struct mrb_ast_var_header hdr;
+  mrb_sym name;
+};
+
+struct mrb_ast_match_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *pattern;
+};
+
+#define nth_ref_node(n) ((struct mrb_ast_nth_ref_node*)(n))
+#define back_ref_node(n) ((struct mrb_ast_back_ref_node*)(n))
+#define nvar_node(n) ((struct mrb_ast_nvar_node*)(n))
+#define dvar_node(n) ((struct mrb_ast_dvar_node*)(n))
+#define match_node(n) ((struct mrb_ast_match_node*)(n))
+
+#define NTH_REF_NODE_NTH(n) (nth_ref_node(n)->nth)
+#define BACK_REF_NODE_TYPE(n) (back_ref_node(n)->type)
+#define NVAR_NODE_NUM(n) (nvar_node(n)->num)
+#define DVAR_NODE_NAME(n) (dvar_node(n)->name)
+#define MATCH_NODE_PATTERN(n) (match_node(n)->pattern)
+
 #endif  /* MRUBY_COMPILER_NODE_H */
