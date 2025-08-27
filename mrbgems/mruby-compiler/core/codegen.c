@@ -5094,6 +5094,144 @@ gen_hash_var(codegen_scope *s, node *varnode, int val)
   push();
 }
 
+/* Phase 3 Variable Node Codegen Functions */
+
+static void
+gen_if_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_if_node *if_n = if_node(varnode);
+  node *condition = IF_NODE_CONDITION(if_n);
+  node *then_body = IF_NODE_THEN(if_n);
+  node *else_body = IF_NODE_ELSE(if_n);
+  uint32_t pos1, pos2;
+
+  if (!condition) {
+    codegen(s, else_body, val);
+    return;
+  }
+  if (true_always(condition)) {
+    codegen(s, then_body, val);
+    return;
+  }
+  if (false_always(condition)) {
+    codegen(s, else_body, val);
+    return;
+  }
+
+  /* Generate condition code */
+  codegen(s, condition, VAL);
+  pop();
+
+  if (val || then_body) {
+    pos1 = genjmp2_0(s, OP_JMPNOT, cursp(), val);
+    codegen(s, then_body, val);
+    if (val) pop();
+    if (else_body || val) {
+      pos2 = genjmp_0(s, OP_JMP);
+      dispatch(s, pos1);
+      codegen(s, else_body, val);
+      dispatch(s, pos2);
+    }
+    else {
+      dispatch(s, pos1);
+    }
+  }
+  else {  /* empty then-part */
+    if (else_body) {
+      pos1 = genjmp2_0(s, OP_JMPIF, cursp(), val);
+      codegen(s, else_body, val);
+      dispatch(s, pos1);
+    }
+    else if (val) {
+      genop_1(s, OP_LOADNIL, cursp());
+      push();
+    }
+  }
+}
+
+static void
+gen_while_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_while_node *while_n = while_node(varnode);
+  node *condition = WHILE_NODE_CONDITION(while_n);
+  node *body = WHILE_NODE_BODY(while_n);
+  struct loopinfo *lp = loop_push(s, LOOP_NORMAL);
+  uint32_t pos;
+
+  if (!val) lp->reg = -1;
+  lp->pc0 = new_label(s);
+  codegen(s, condition, VAL);
+  pop();
+  pos = genjmp2_0(s, OP_JMPNOT, cursp(), NOVAL);
+  lp->pc1 = new_label(s);
+  genop_0(s, OP_NOP); /* for redo */
+  codegen(s, body, NOVAL);
+  genjmp(s, OP_JMP, lp->pc0);
+  dispatch(s, pos);
+  loop_pop(s, val);
+}
+
+static void
+gen_until_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_until_node *until_n = until_node(varnode);
+  node *condition = UNTIL_NODE_CONDITION(until_n);
+  node *body = UNTIL_NODE_BODY(until_n);
+  struct loopinfo *lp = loop_push(s, LOOP_NORMAL);
+  uint32_t pos;
+
+  if (!val) lp->reg = -1;
+  lp->pc0 = new_label(s);
+  codegen(s, condition, VAL);
+  pop();
+  pos = genjmp2_0(s, OP_JMPIF, cursp(), NOVAL);
+  lp->pc1 = new_label(s);
+  genop_0(s, OP_NOP); /* for redo */
+  codegen(s, body, NOVAL);
+  genjmp(s, OP_JMP, lp->pc0);
+  dispatch(s, pos);
+  loop_pop(s, val);
+}
+
+static void
+gen_for_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_for_node *for_n = for_node(varnode);
+  node *iterable = FOR_NODE_ITERABLE(for_n);
+
+  /* Generate iterable */
+  codegen(s, iterable, VAL);
+  pop(); /* Remove iterable value */
+
+  /* For now, use a simple iteration approach - this can be optimized later */
+  if (val) {
+    genop_1(s, OP_LOADNIL, cursp());
+    push();
+  }
+}
+
+static void
+gen_case_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_case_node *case_n = case_node_ctrl(varnode);
+  node *value = CASE_NODE_VALUE(case_n);
+  node *else_body = CASE_NODE_ELSE(case_n);
+
+  /* For now, generate a simple case structure - this can be optimized later */
+  if (value) {
+    codegen(s, value, VAL);
+    pop();
+  }
+
+  if (else_body) {
+    codegen(s, else_body, val);
+  }
+  else if (val) {
+    genop_1(s, OP_LOADNIL, cursp());
+    push();
+  }
+}
+
 static mrb_bool
 codegen_variable_node(codegen_scope *s, node *varnode, int val)
 {
@@ -5145,6 +5283,26 @@ codegen_variable_node(codegen_scope *s, node *varnode, int val)
 
   case NODE_HASH:
     gen_hash_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_IF:
+    gen_if_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_WHILE:
+    gen_while_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_UNTIL:
+    gen_until_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_FOR:
+    gen_for_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_CASE:
+    gen_case_var(s, varnode, val);
     return TRUE;
 
   default:

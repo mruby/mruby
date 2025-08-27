@@ -267,6 +267,13 @@ struct mrb_ast_while_node {
   struct mrb_ast_node *body;         /* Loop body */
 };
 
+/* Variable-sized until node */
+struct mrb_ast_until_node {
+  struct mrb_ast_var_header header;  /* 8 bytes */
+  struct mrb_ast_node *condition;    /* Loop condition */
+  struct mrb_ast_node *body;         /* Loop body */
+};
+
 /* Variable-sized case node with variable when clauses */
 struct mrb_ast_case_node {
   struct mrb_ast_var_header header;  /* 8 bytes */
@@ -304,6 +311,12 @@ struct mrb_ast_for_node {
 #define node_to_type(x) ((enum node_type)(intptr_t)(x))
 #define node_to_char(x) ((char)(intptr_t)(x))
 
+// Macros for variable-sized nodes
+#define NODE_TYPE(n) ((enum node_type)(intptr_t)((n)->car))
+#define NODE_VAR_NODE_PTR(n) ((struct mrb_ast_var_header*)((n)->cdr))
+
+
+
 /* Phase 1 node casting macros */
 #define sym_node(n) ((struct mrb_ast_sym_node*)(n))
 #define str_node(n) ((struct mrb_ast_str_node*)(n))
@@ -318,6 +331,7 @@ struct mrb_ast_for_node {
 /* Phase 3 node casting macros */
 #define if_node(n) ((struct mrb_ast_if_node*)(n))
 #define while_node(n) ((struct mrb_ast_while_node*)(n))
+#define until_node(n) ((struct mrb_ast_until_node*)(n))
 #define case_node_ctrl(n) ((struct mrb_ast_case_node*)(n))
 #define for_node(n) ((struct mrb_ast_for_node*)(n))
 
@@ -351,6 +365,9 @@ struct mrb_ast_for_node {
 
 #define WHILE_NODE_CONDITION(n) (while_node(n)->condition)
 #define WHILE_NODE_BODY(n) (while_node(n)->body)
+
+#define UNTIL_NODE_CONDITION(n) (until_node(n)->condition)
+#define UNTIL_NODE_BODY(n) (until_node(n)->body)
 
 #define CASE_NODE_VALUE(n) (case_node_ctrl(n)->value)
 #define CASE_NODE_WHEN_COUNT(n) (case_node_ctrl(n)->when_count)
