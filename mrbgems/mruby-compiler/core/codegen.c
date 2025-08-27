@@ -5422,6 +5422,76 @@ gen_super_var(codegen_scope *s, node *varnode, int val)
   codegen_super(s, args, val);
 }
 
+/* Variable-sized literal node generation functions */
+static void
+gen_dstr_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_dstr_node *dstr_n = dstr_node(varnode->car);
+  node *list = DSTR_NODE_LIST(dstr_n);
+
+  /* Use traditional dstr codegen logic */
+  codegen_heredoc_dstr(s, list, val);
+}
+
+static void
+gen_regx_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_regx_node *regx_n = regx_node(varnode->car);
+  const char *pattern = REGX_NODE_PATTERN(regx_n);
+  const char *flags = REGX_NODE_FLAGS(regx_n);
+  const char *encoding = REGX_NODE_ENCODING(regx_n);
+
+  /* Create simple list structure like traditional node */
+  node list_node;
+  node flags_node;
+  list_node.car = (node*)pattern;
+  list_node.cdr = &flags_node;
+  flags_node.car = (node*)flags;
+  flags_node.cdr = (node*)encoding;
+
+  codegen_regx(s, &list_node, val);
+}
+
+static void
+gen_dot2_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_dot2_node *dot2_n = dot2_node(varnode->car);
+  node *left = DOT2_NODE_LEFT(dot2_n);
+  node *right = DOT2_NODE_RIGHT(dot2_n);
+
+  /* Create simple cons structure like traditional node */
+  node range_node;
+  range_node.car = left;
+  range_node.cdr = right;
+
+  codegen_dot2(s, &range_node, val);
+}
+
+static void
+gen_dot3_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_dot3_node *dot3_n = dot3_node(varnode->car);
+  node *left = DOT3_NODE_LEFT(dot3_n);
+  node *right = DOT3_NODE_RIGHT(dot3_n);
+
+  /* Create simple cons structure like traditional node */
+  node range_node;
+  range_node.car = left;
+  range_node.cdr = right;
+
+  codegen_dot3(s, &range_node, val);
+}
+
+static void
+gen_float_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_float_node *float_n = float_node(varnode->car);
+  const char *value = FLOAT_NODE_VALUE(float_n);
+
+  /* Use traditional float codegen logic directly */
+  codegen_float(s, (node*)value, val);
+}
+
 static mrb_bool
 codegen_variable_node(codegen_scope *s, node *varnode, int val)
 {
@@ -5541,6 +5611,26 @@ codegen_variable_node(codegen_scope *s, node *varnode, int val)
 
   case NODE_SUPER:
     gen_super_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_DSTR:
+    gen_dstr_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_REGX:
+    gen_regx_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_DOT2:
+    gen_dot2_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_DOT3:
+    gen_dot3_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_FLOAT:
+    gen_float_var(s, varnode, val);
     return TRUE;
 
   default:

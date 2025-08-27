@@ -517,4 +517,56 @@ struct mrb_ast_super_node {
 
 #define SUPER_NODE_ARGS(n) (super_node(n)->args)
 
+/* Variable-sized literal node structures */
+struct mrb_ast_dstr_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *list;
+};
+
+struct mrb_ast_regx_node {
+  struct mrb_ast_var_header hdr;
+  const char *pattern;
+  const char *flags;
+  const char *encoding;
+};
+
+struct mrb_ast_dot2_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *left;
+  struct mrb_ast_node *right;
+};
+
+struct mrb_ast_dot3_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *left;
+  struct mrb_ast_node *right;
+};
+
+struct mrb_ast_float_node {
+  struct mrb_ast_var_header hdr;
+  const char *value;
+};
+
+/* Literal node casting macros */
+#define dstr_node(n) ((struct mrb_ast_dstr_node*)(n))
+#define regx_node(n) ((struct mrb_ast_regx_node*)(n))
+#define dot2_node(n) ((struct mrb_ast_dot2_node*)(n))
+#define dot3_node(n) ((struct mrb_ast_dot3_node*)(n))
+#define float_node(n) ((struct mrb_ast_float_node*)(n))
+
+/* Literal node value access macros */
+#define DSTR_NODE_LIST(n) (dstr_node(n)->list)
+
+#define REGX_NODE_PATTERN(n) (regx_node(n)->pattern)
+#define REGX_NODE_FLAGS(n) (regx_node(n)->flags)
+#define REGX_NODE_ENCODING(n) (regx_node(n)->encoding)
+
+#define DOT2_NODE_LEFT(n) (dot2_node(n)->left)
+#define DOT2_NODE_RIGHT(n) (dot2_node(n)->right)
+
+#define DOT3_NODE_LEFT(n) (dot3_node(n)->left)
+#define DOT3_NODE_RIGHT(n) (dot3_node(n)->right)
+
+#define FLOAT_NODE_VALUE(n) (float_node(n)->value)
+
 #endif  /* MRUBY_COMPILER_NODE_H */

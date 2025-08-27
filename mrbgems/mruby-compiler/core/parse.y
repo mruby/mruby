@@ -547,6 +547,11 @@ static node* new_or_var(parser_state *p, node *left, node *right);
 static node* new_return_var(parser_state *p, node *args);
 static node* new_yield_var(parser_state *p, node *args);
 static node* new_super_var(parser_state *p, node *args);
+static node* new_dstr_var(parser_state *p, node *list);
+static node* new_regx_var(parser_state *p, const char *pattern, const char *flags, const char *encoding);
+static node* new_dot2_var(parser_state *p, node *left, node *right);
+static node* new_dot3_var(parser_state *p, node *left, node *right);
+static node* new_float_var(parser_state *p, const char *value);
 
 /* (:if cond then else) */
 static node*
@@ -1128,6 +1133,86 @@ new_super_var(parser_state *p, node *args)
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
+/* Variable-sized literal node creation functions */
+static node*
+new_dstr_var(parser_state *p, node *list)
+{
+  size_t total_size = sizeof(struct mrb_ast_dstr_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_dstr_node *n = (struct mrb_ast_dstr_node*)
+    parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->hdr, p, NODE_DSTR, class);
+  n->list = list;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
+}
+
+static node*
+new_regx_var(parser_state *p, const char *pattern, const char *flags, const char *encoding)
+{
+  size_t total_size = sizeof(struct mrb_ast_regx_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_regx_node *n = (struct mrb_ast_regx_node*)
+    parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->hdr, p, NODE_REGX, class);
+  n->pattern = pattern;
+  n->flags = flags;
+  n->encoding = encoding;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
+}
+
+static node*
+new_dot2_var(parser_state *p, node *left, node *right)
+{
+  size_t total_size = sizeof(struct mrb_ast_dot2_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_dot2_node *n = (struct mrb_ast_dot2_node*)
+    parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->hdr, p, NODE_DOT2, class);
+  n->left = left;
+  n->right = right;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
+}
+
+static node*
+new_dot3_var(parser_state *p, node *left, node *right)
+{
+  size_t total_size = sizeof(struct mrb_ast_dot3_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_dot3_node *n = (struct mrb_ast_dot3_node*)
+    parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->hdr, p, NODE_DOT3, class);
+  n->left = left;
+  n->right = right;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
+}
+
+static node*
+new_float_var(parser_state *p, const char *value)
+{
+  size_t total_size = sizeof(struct mrb_ast_float_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_float_node *n = (struct mrb_ast_float_node*)
+    parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->hdr, p, NODE_FLOAT, class);
+  n->value = strdup(value);
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
+}
+
 /* (:fcall self mid args) */
 static node*
 new_fcall(parser_state *p, mrb_sym b, node *c)
@@ -1216,6 +1301,9 @@ new_retry(parser_state *p)
 static node*
 new_dot2(parser_state *p, node *a, node *b)
 {
+  if (p->var_nodes_enabled) {
+    return new_dot2_var(p, a, b);
+  }
   return cons_head((node*)NODE_DOT2, cons(a, b));
 }
 
@@ -1223,6 +1311,9 @@ new_dot2(parser_state *p, node *a, node *b)
 static node*
 new_dot3(parser_state *p, node *a, node *b)
 {
+  if (p->var_nodes_enabled) {
+    return new_dot3_var(p, a, b);
+  }
   return cons_head((node*)NODE_DOT3, cons(a, b));
 }
 
@@ -1791,7 +1882,13 @@ new_int(parser_state *p, const char *s, int base, int suffix)
 static node*
 new_float(parser_state *p, const char *s, int suffix)
 {
-  node* result = cons((node*)NODE_FLOAT, (node*)strdup(s));
+  node* result;
+  if (p->var_nodes_enabled) {
+    result = new_float_var(p, s);
+  }
+  else {
+    result = cons((node*)NODE_FLOAT, (node*)strdup(s));
+  }
   if (suffix & NUM_SUFFIX_R) {
     result = new_rational(p, result);
   }
@@ -1853,6 +1950,9 @@ new_str(parser_state *p, const char *s, size_t len)
 static node*
 new_dstr(parser_state *p, node *a)
 {
+  if (p->var_nodes_enabled) {
+    return new_dstr_var(p, a);
+  }
   return cons_head((node*)NODE_DSTR, a);
 }
 
@@ -1961,6 +2061,9 @@ new_dsym(parser_state *p, node *a)
 static node*
 new_regx(parser_state *p, const char *p1, const char* p2, const char* p3)
 {
+  if (p->var_nodes_enabled) {
+    return new_regx_var(p, p1, p2, p3);
+  }
   return cons_head((node*)NODE_REGX, cons((node*)p1, cons((node*)p2, (node*)p3)));
 }
 
