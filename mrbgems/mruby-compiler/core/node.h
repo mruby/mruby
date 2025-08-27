@@ -403,8 +403,6 @@ struct mrb_ast_super_node {
 #define NODE_TYPE(n) ((enum node_type)(intptr_t)((n)->car))
 #define NODE_VAR_NODE_PTR(n) ((struct mrb_ast_var_header*)((n)->cdr))
 
-
-
 /* Phase 1 node casting macros */
 #define sym_node(n) ((struct mrb_ast_sym_node*)(n))
 #define str_node(n) ((struct mrb_ast_str_node*)(n))
@@ -600,5 +598,61 @@ struct mrb_ast_const_node {
 
 /* Simple node value access macros */
 #define CONST_NODE_SYMBOL(n) (const_node(n)->symbol)
+
+/* Variable-sized advanced node structures */
+struct mrb_ast_rescue_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *body;
+  struct mrb_ast_node *rescue_clauses;
+  struct mrb_ast_node *else_clause;
+};
+
+struct mrb_ast_block_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *locals;
+  struct mrb_ast_node *args;
+  struct mrb_ast_node *body;
+};
+
+struct mrb_ast_args_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *mandatory;
+  struct mrb_ast_node *optional;
+  mrb_sym rest;
+  struct mrb_ast_node *mandatory_after_rest;
+  struct mrb_ast_node *tail;
+};
+
+struct mrb_ast_args_tail_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *keywords;
+  struct mrb_ast_node *kwrest;
+  mrb_sym block;
+};
+
+/* Advanced node casting macros */
+#define rescue_node(n) ((struct mrb_ast_rescue_node*)(n))
+#define block_node(n) ((struct mrb_ast_block_node*)(n))
+#define args_node(n) ((struct mrb_ast_args_node*)(n))
+#define args_tail_node(n) ((struct mrb_ast_args_tail_node*)(n))
+
+/* Advanced node value access macros */
+#define RESCUE_NODE_BODY(n) (rescue_node(n)->body)
+#define RESCUE_NODE_RESCUE_CLAUSES(n) (rescue_node(n)->rescue_clauses)
+#define RESCUE_NODE_ELSE_CLAUSE(n) (rescue_node(n)->else_clause)
+
+#define BLOCK_NODE_LOCALS(n) (block_node(n)->locals)
+#define BLOCK_NODE_ARGS(n) (block_node(n)->args)
+#define BLOCK_NODE_BODY(n) (block_node(n)->body)
+
+#define ARGS_NODE_MANDATORY(n) (args_node(n)->mandatory)
+#define ARGS_NODE_OPTIONAL(n) (args_node(n)->optional)
+#define ARGS_NODE_REST(n) (args_node(n)->rest)
+#define ARGS_NODE_MANDATORY_AFTER_REST(n) (args_node(n)->mandatory_after_rest)
+#define ARGS_NODE_TAIL(n) (args_node(n)->tail)
+
+#define ARGS_TAIL_NODE_KEYWORDS(n) (args_tail_node(n)->keywords)
+#define ARGS_TAIL_NODE_KWREST(n) (args_tail_node(n)->kwrest)
+#define ARGS_TAIL_NODE_BLOCK(n) (args_tail_node(n)->block)
 
 #endif  /* MRUBY_COMPILER_NODE_H */
