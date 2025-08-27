@@ -569,4 +569,36 @@ struct mrb_ast_float_node {
 
 #define FLOAT_NODE_VALUE(n) (float_node(n)->value)
 
+/* Variable-sized simple node structures */
+struct mrb_ast_self_node {
+  struct mrb_ast_var_header hdr;
+};
+
+struct mrb_ast_nil_node {
+  struct mrb_ast_var_header hdr;
+};
+
+struct mrb_ast_true_node {
+  struct mrb_ast_var_header hdr;
+};
+
+struct mrb_ast_false_node {
+  struct mrb_ast_var_header hdr;
+};
+
+struct mrb_ast_const_node {
+  struct mrb_ast_var_header hdr;
+  mrb_sym symbol;
+};
+
+/* Simple node casting macros */
+#define self_node(n) ((struct mrb_ast_self_node*)(n))
+#define nil_node(n) ((struct mrb_ast_nil_node*)(n))
+#define true_node(n) ((struct mrb_ast_true_node*)(n))
+#define false_node(n) ((struct mrb_ast_false_node*)(n))
+#define const_node(n) ((struct mrb_ast_const_node*)(n))
+
+/* Simple node value access macros */
+#define CONST_NODE_SYMBOL(n) (const_node(n)->symbol)
+
 #endif  /* MRUBY_COMPILER_NODE_H */

@@ -43,6 +43,13 @@ static void backref_error(parser_state *p, node *n);
 static void void_expr_error(parser_state *p, node *n);
 static void tokadd(parser_state *p, int32_t c);
 
+/* Forward declarations for variable-sized simple node functions */
+static node* new_self_var(parser_state *p);
+static node* new_nil_var(parser_state *p);
+static node* new_true_var(parser_state *p);
+static node* new_false_var(parser_state *p);
+static node* new_const_var(parser_state *p, mrb_sym symbol);
+
 #define identchar(c) (ISALNUM(c) || (c) == '_' || !ISASCII(c))
 
 typedef unsigned int stack_type;
@@ -501,6 +508,9 @@ new_ensure(parser_state *p, node *a, node *b)
 static node*
 new_nil(parser_state *p)
 {
+  if (p->var_nodes_enabled) {
+    return new_nil_var(p);
+  }
   return list1((node*)NODE_NIL);
 }
 
@@ -508,6 +518,9 @@ new_nil(parser_state *p)
 static node*
 new_true(parser_state *p)
 {
+  if (p->var_nodes_enabled) {
+    return new_true_var(p);
+  }
   return list1((node*)NODE_TRUE);
 }
 
@@ -515,6 +528,9 @@ new_true(parser_state *p)
 static node*
 new_false(parser_state *p)
 {
+  if (p->var_nodes_enabled) {
+    return new_false_var(p);
+  }
   return list1((node*)NODE_FALSE);
 }
 
@@ -654,6 +670,9 @@ new_postexe(parser_state *p, node *a)
 static node*
 new_self(parser_state *p)
 {
+  if (p->var_nodes_enabled) {
+    return new_self_var(p);
+  }
   return list1((node*)NODE_SELF);
 }
 
@@ -1213,6 +1232,78 @@ new_float_var(parser_state *p, const char *value)
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
+/* Variable-sized simple node creation functions */
+static node*
+new_self_var(parser_state *p)
+{
+  size_t total_size = sizeof(struct mrb_ast_self_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_self_node *n = (struct mrb_ast_self_node*)
+    parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->hdr, p, NODE_SELF, class);
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
+}
+
+static node*
+new_nil_var(parser_state *p)
+{
+  size_t total_size = sizeof(struct mrb_ast_nil_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_nil_node *n = (struct mrb_ast_nil_node*)
+    parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->hdr, p, NODE_NIL, class);
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
+}
+
+static node*
+new_true_var(parser_state *p)
+{
+  size_t total_size = sizeof(struct mrb_ast_true_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_true_node *n = (struct mrb_ast_true_node*)
+    parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->hdr, p, NODE_TRUE, class);
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
+}
+
+static node*
+new_false_var(parser_state *p)
+{
+  size_t total_size = sizeof(struct mrb_ast_false_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_false_node *n = (struct mrb_ast_false_node*)
+    parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->hdr, p, NODE_FALSE, class);
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
+}
+
+static node*
+new_const_var(parser_state *p, mrb_sym symbol)
+{
+  size_t total_size = sizeof(struct mrb_ast_const_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_const_node *n = (struct mrb_ast_const_node*)
+    parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->hdr, p, NODE_CONST, class);
+  n->symbol = symbol;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
+}
+
 /* (:fcall self mid args) */
 static node*
 new_fcall(parser_state *p, mrb_sym b, node *c)
@@ -1517,6 +1608,9 @@ new_nvar(parser_state *p, int num)
 static node*
 new_const(parser_state *p, mrb_sym sym)
 {
+  if (p->var_nodes_enabled) {
+    return new_const_var(p, sym);
+  }
   return cons_head((node*)NODE_CONST, sym_to_node(sym));
 }
 

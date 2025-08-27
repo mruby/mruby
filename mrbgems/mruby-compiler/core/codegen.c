@@ -5492,6 +5492,45 @@ gen_float_var(codegen_scope *s, node *varnode, int val)
   codegen_float(s, (node*)value, val);
 }
 
+/* Variable-sized simple node generation functions */
+static void
+gen_self_var(codegen_scope *s, node *varnode, int val)
+{
+  /* Use traditional self codegen logic */
+  codegen_self(s, NULL, val);
+}
+
+static void
+gen_nil_var(codegen_scope *s, node *varnode, int val)
+{
+  /* Use traditional nil codegen logic */
+  codegen_nil(s, NULL, val);
+}
+
+static void
+gen_true_var(codegen_scope *s, node *varnode, int val)
+{
+  /* Use traditional true codegen logic */
+  codegen_true(s, NULL, val);
+}
+
+static void
+gen_false_var(codegen_scope *s, node *varnode, int val)
+{
+  /* Use traditional false codegen logic */
+  codegen_false(s, NULL, val);
+}
+
+static void
+gen_const_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_const_node *const_n = const_node(varnode->car);
+  mrb_sym symbol = CONST_NODE_SYMBOL(const_n);
+
+  /* Use traditional const codegen logic */
+  codegen_const(s, symbol, val);
+}
+
 static mrb_bool
 codegen_variable_node(codegen_scope *s, node *varnode, int val)
 {
@@ -5631,6 +5670,26 @@ codegen_variable_node(codegen_scope *s, node *varnode, int val)
 
   case NODE_FLOAT:
     gen_float_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_SELF:
+    gen_self_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_NIL:
+    gen_nil_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_TRUE:
+    gen_true_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_FALSE:
+    gen_false_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_CONST:
+    gen_const_var(s, varnode, val);
     return TRUE;
 
   default:
