@@ -1535,14 +1535,35 @@ static node*
 new_colon2(parser_state *p, node *b, mrb_sym c)
 {
   void_expr_error(p, b);
-  return cons_head((node*)NODE_COLON2, cons(b, sym_to_node(c)));
+  if (!p->var_nodes_enabled) {
+    return cons_head((node*)NODE_COLON2, cons(b, sym_to_node(c)));
+  }
+
+  size_t total_size = sizeof(struct mrb_ast_colon2_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+  struct mrb_ast_colon2_node *colon2_node = (struct mrb_ast_colon2_node*)
+    parser_alloc_var(p, total_size, class);
+  init_var_header(&colon2_node->hdr, p, NODE_COLON2, class);
+  colon2_node->base = b;
+  colon2_node->name = c;
+  return cons_head((node*)NODE_VARIABLE, (node*)colon2_node);
 }
 
 /* (:colon3 . c) */
 static node*
 new_colon3(parser_state *p, mrb_sym c)
 {
-  return cons_head((node*)NODE_COLON3, sym_to_node(c));
+  if (!p->var_nodes_enabled) {
+    return cons_head((node*)NODE_COLON3, sym_to_node(c));
+  }
+
+  size_t total_size = sizeof(struct mrb_ast_colon3_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+  struct mrb_ast_colon3_node *colon3_node = (struct mrb_ast_colon3_node*)
+    parser_alloc_var(p, total_size, class);
+  init_var_header(&colon3_node->hdr, p, NODE_COLON3, class);
+  colon3_node->name = c;
+  return cons_head((node*)NODE_VARIABLE, (node*)colon3_node);
 }
 
 /* (:and a b) */
@@ -2502,8 +2523,19 @@ call_with_block(parser_state *p, node *a, node *b)
 static node*
 new_negate(parser_state *p, node *n)
 {
-  return cons_head((node*)NODE_NEGATE, n);
+  if (!p->var_nodes_enabled) {
+    return cons_head((node*)NODE_NEGATE, n);
+  }
+
+  size_t total_size = sizeof(struct mrb_ast_negate_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+  struct mrb_ast_negate_node *negate_node = (struct mrb_ast_negate_node*)
+    parser_alloc_var(p, total_size, class);
+  init_var_header(&negate_node->hdr, p, NODE_NEGATE, class);
+  negate_node->operand = n;
+  return cons_head((node*)NODE_VARIABLE, (node*)negate_node);
 }
+
 
 static node*
 cond(node *n)

@@ -5724,6 +5724,63 @@ gen_match_var(codegen_scope *s, node *varnode, int val)
   }
 }
 
+// Group 11: Operators and Expressions
+static void
+gen_not_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_not_node *n = (struct mrb_ast_not_node*)varnode;
+  // NOT nodes are rarely used - generate method call to !
+  if (val) {
+    codegen(s, n->operand, TRUE);
+    pop();
+    mrb_sym sym = new_sym(s, mrb_intern_lit(s->mrb, "!"));
+    genop_3(s, OP_SEND, cursp(), sym, 0);
+    push();
+  }
+}
+
+static void
+gen_negate_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_negate_node *n = (struct mrb_ast_negate_node*)varnode;
+  codegen_negate(s, n->operand, val);
+}
+
+static void
+gen_colon2_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_colon2_node *n = (struct mrb_ast_colon2_node*)varnode;
+  // Generate COLON2 (::) access manually
+  int sym = new_sym(s, n->name);
+  codegen(s, n->base, VAL);
+  pop();
+  genop_2(s, OP_GETMCNST, cursp(), sym);
+  if (val) push();
+}
+
+static void
+gen_colon3_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_colon3_node *n = (struct mrb_ast_colon3_node*)varnode;
+  // Generate COLON3 (::Name) access manually
+  int sym = new_sym(s, n->name);
+  genop_2(s, OP_OCLASS, cursp(), sym);
+  if (val) push();
+}
+
+
+static void
+gen_defined_var(codegen_scope *s, node *varnode, int val)
+{
+  // DEFINED nodes are rarely used - generate basic implementation
+  (void)varnode; // suppress unused warning
+  if (val) {
+    // For now, just return nil (defined? is complex to implement correctly)
+    genop_1(s, OP_LOADNIL, cursp());
+    push();
+  }
+}
+
 static void
 gen_args_tail_var(codegen_scope *s, node *varnode, int val)
 {
@@ -5970,6 +6027,26 @@ codegen_variable_node(codegen_scope *s, node *varnode, int val)
 
   case NODE_MATCH:
     gen_match_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_NOT:
+    gen_not_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_NEGATE:
+    gen_negate_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_COLON2:
+    gen_colon2_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_COLON3:
+    gen_colon3_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_DEFINED:
+    gen_defined_var(s, varnode, val);
     return TRUE;
 
   default:

@@ -787,4 +787,44 @@ struct mrb_ast_match_node {
 #define DVAR_NODE_NAME(n) (dvar_node(n)->name)
 #define MATCH_NODE_PATTERN(n) (match_node(n)->pattern)
 
+// Group 11: Operators and Expressions
+struct mrb_ast_not_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *operand;
+};
+
+struct mrb_ast_negate_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *operand;
+};
+
+struct mrb_ast_colon2_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *base;
+  mrb_sym name;
+};
+
+struct mrb_ast_colon3_node {
+  struct mrb_ast_var_header hdr;
+  mrb_sym name;
+};
+
+struct mrb_ast_defined_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *expr;
+};
+
+#define not_node(n) ((struct mrb_ast_not_node*)(n))
+#define negate_node(n) ((struct mrb_ast_negate_node*)(n))
+#define colon2_node(n) ((struct mrb_ast_colon2_node*)(n))
+#define colon3_node(n) ((struct mrb_ast_colon3_node*)(n))
+#define defined_node(n) ((struct mrb_ast_defined_node*)(n))
+
+#define NOT_NODE_OPERAND(n) (not_node(n)->operand)
+#define NEGATE_NODE_OPERAND(n) (negate_node(n)->operand)
+#define COLON2_NODE_BASE(n) (colon2_node(n)->base)
+#define COLON2_NODE_NAME(n) (colon2_node(n)->name)
+#define COLON3_NODE_NAME(n) (colon3_node(n)->name)
+#define DEFINED_NODE_EXPR(n) (defined_node(n)->expr)
+
 #endif  /* MRUBY_COMPILER_NODE_H */
