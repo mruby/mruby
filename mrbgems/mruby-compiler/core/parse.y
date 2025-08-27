@@ -535,6 +535,13 @@ static node* new_while_var(parser_state *p, node *condition, node *body);
 static node* new_until_var(parser_state *p, node *condition, node *body);
 static node* new_case_var(parser_state *p, node *value, node *when_list);
 static node* new_for_var(parser_state *p, node *var, node *iterable, node *body);
+static node* new_def_var(parser_state *p, mrb_sym name, node *args, node *body);
+static node* new_class_var(parser_state *p, node *name, node *superclass, node *body);
+static node* new_module_var(parser_state *p, node *name, node *body);
+static node* new_sclass_var(parser_state *p, node *obj, node *body);
+static node* new_asgn_var(parser_state *p, node *lhs, node *rhs);
+static node* new_masgn_var(parser_state *p, node *lhs, node *rhs);
+static node* new_op_asgn_var(parser_state *p, node *lhs, mrb_sym op, node *rhs);
 
 /* (:if cond then else) */
 static node*
@@ -870,6 +877,76 @@ new_for_var(parser_state *p, node *var, node *iterable, node *body)
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
+/* Variable-sized method definition node creation */
+static node*
+new_def_var(parser_state *p, mrb_sym name, node *args, node *body)
+{
+  size_t total_size = sizeof(struct mrb_ast_def_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_def_node *n = (struct mrb_ast_def_node*)
+    parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->header, p, NODE_DEF, class);
+  n->name = name;
+  n->args = args;
+  n->body = body;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
+}
+
+/* Variable-sized class definition node creation */
+static node*
+new_class_var(parser_state *p, node *name, node *superclass, node *body)
+{
+  size_t total_size = sizeof(struct mrb_ast_class_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_class_node *n = (struct mrb_ast_class_node*)
+    parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->header, p, NODE_CLASS, class);
+  n->name = name;
+  n->superclass = superclass;
+  n->body = body;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
+}
+
+/* Variable-sized module definition node creation */
+static node*
+new_module_var(parser_state *p, node *name, node *body)
+{
+  size_t total_size = sizeof(struct mrb_ast_module_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_module_node *n = (struct mrb_ast_module_node*)
+    parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->header, p, NODE_MODULE, class);
+  n->name = name;
+  n->body = body;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
+}
+
+/* Variable-sized singleton class definition node creation */
+static node*
+new_sclass_var(parser_state *p, node *obj, node *body)
+{
+  size_t total_size = sizeof(struct mrb_ast_sclass_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_sclass_node *n = (struct mrb_ast_sclass_node*)
+    parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->header, p, NODE_SCLASS, class);
+  n->obj = obj;
+  n->body = body;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
+}
+
 /* Variable-sized case node creation */
 static node*
 new_case_var(parser_state *p, node *value, node *when_list)
@@ -912,6 +989,58 @@ new_case_var(parser_state *p, node *value, node *when_list)
     n->when_clauses[i] = current_when->car; // Each car is a (condition . body) cons node
     current_when = current_when->cdr;
   }
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
+}
+
+/* Variable-sized assignment node creation */
+static node*
+new_asgn_var(parser_state *p, node *lhs, node *rhs)
+{
+  size_t total_size = sizeof(struct mrb_ast_asgn_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_asgn_node *n = (struct mrb_ast_asgn_node*)
+    parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->header, p, NODE_ASGN, class);
+  n->lhs = lhs;
+  n->rhs = rhs;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
+}
+
+/* Variable-sized multiple assignment node creation */
+static node*
+new_masgn_var(parser_state *p, node *lhs, node *rhs)
+{
+  size_t total_size = sizeof(struct mrb_ast_masgn_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_masgn_node *n = (struct mrb_ast_masgn_node*)
+    parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->header, p, NODE_MASGN, class);
+  n->lhs = lhs;
+  n->rhs = rhs;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
+}
+
+/* Variable-sized operator assignment node creation */
+static node*
+new_op_asgn_var(parser_state *p, node *lhs, mrb_sym op, node *rhs)
+{
+  size_t total_size = sizeof(struct mrb_ast_op_asgn_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_op_asgn_node *n = (struct mrb_ast_op_asgn_node*)
+    parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->header, p, NODE_OP_ASGN, class);
+  n->lhs = lhs;
+  n->operator = op;
+  n->rhs = rhs;
 
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
@@ -1214,6 +1343,9 @@ static node*
 new_class(parser_state *p, node *c, node *s, node *b)
 {
   void_expr_error(p, s);
+  if (p->var_nodes_enabled) {
+    return new_class_var(p, c, s, cons(locals_node(p), b));
+  }
   return list4((node*)NODE_CLASS, c, s, cons(locals_node(p), b));
 }
 
@@ -1222,6 +1354,9 @@ static node*
 new_sclass(parser_state *p, node *o, node *b)
 {
   void_expr_error(p, o);
+  if (p->var_nodes_enabled) {
+    return new_sclass_var(p, o, cons(locals_node(p), b));
+  }
   return list3((node*)NODE_SCLASS, o, cons(locals_node(p), b));
 }
 
@@ -1229,6 +1364,9 @@ new_sclass(parser_state *p, node *o, node *b)
 static node*
 new_module(parser_state *p, node *m, node *b)
 {
+  if (p->var_nodes_enabled) {
+    return new_module_var(p, m, cons(locals_node(p), b));
+  }
   return list3((node*)NODE_MODULE, m, cons(locals_node(p), b));
 }
 
@@ -1236,6 +1374,9 @@ new_module(parser_state *p, node *m, node *b)
 static node*
 new_def(parser_state *p, mrb_sym m, node *a, node *b)
 {
+  if (p->var_nodes_enabled) {
+    return new_def_var(p, m, a, b);
+  }
   return list5((node*)NODE_DEF, sym_to_node(m), 0, a, b);
 }
 
@@ -1446,6 +1587,9 @@ static node*
 new_asgn(parser_state *p, node *a, node *b)
 {
   void_expr_error(p, b);
+  if (p->var_nodes_enabled) {
+    return new_asgn_var(p, a, b);
+  }
   return cons_head((node*)NODE_ASGN, cons(a, b));
 }
 
@@ -1454,6 +1598,9 @@ static node*
 new_masgn(parser_state *p, node *a, node *b)
 {
   void_expr_error(p, b);
+  if (p->var_nodes_enabled) {
+    return new_masgn_var(p, a, b);
+  }
   return cons_head((node*)NODE_MASGN, cons(a, b));
 }
 
@@ -1469,6 +1616,9 @@ static node*
 new_op_asgn(parser_state *p, node *a, mrb_sym op, node *b)
 {
   void_expr_error(p, b);
+  if (p->var_nodes_enabled) {
+    return new_op_asgn_var(p, a, op, b);
+  }
   return list4((node*)NODE_OP_ASGN, a, sym_to_node(op), b);
 }
 

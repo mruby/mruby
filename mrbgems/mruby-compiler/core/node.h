@@ -252,6 +252,36 @@ struct mrb_ast_hash_node {
 
 /* Phase 3 Variable Node Structures - Control Flow */
 
+/* Variable-sized method definition node */
+struct mrb_ast_def_node {
+  struct mrb_ast_var_header header;  /* 8 bytes */
+  mrb_sym name;                      /* Method name */
+  struct mrb_ast_node *args;         /* Arguments node */
+  struct mrb_ast_node *body;         /* Method body */
+};
+
+/* Variable-sized class definition node */
+struct mrb_ast_class_node {
+  struct mrb_ast_var_header header;  /* 8 bytes */
+  struct mrb_ast_node *name;         /* Class name (NODE_CONST or NODE_COLON2) */
+  struct mrb_ast_node *superclass;   /* Superclass (can be NULL) */
+  struct mrb_ast_node *body;         /* Class body */
+};
+
+/* Variable-sized module definition node */
+struct mrb_ast_module_node {
+  struct mrb_ast_var_header header;  /* 8 bytes */
+  struct mrb_ast_node *name;         /* Module name (NODE_CONST or NODE_COLON2) */
+  struct mrb_ast_node *body;         /* Module body */
+};
+
+/* Variable-sized singleton class definition node */
+struct mrb_ast_sclass_node {
+  struct mrb_ast_var_header header;  /* 8 bytes */
+  struct mrb_ast_node *obj;          /* Object for singleton class */
+  struct mrb_ast_node *body;         /* Singleton class body */
+};
+
 /* Variable-sized if node */
 struct mrb_ast_if_node {
   struct mrb_ast_var_header header;  /* 8 bytes */
@@ -292,6 +322,30 @@ struct mrb_ast_for_node {
   struct mrb_ast_node *body;         /* Loop body */
 };
 
+/* Assignment Node Structures */
+
+/* Variable-sized assignment node */
+struct mrb_ast_asgn_node {
+  struct mrb_ast_var_header header;  /* 8 bytes */
+  struct mrb_ast_node *lhs;          /* Left-hand side (target) */
+  struct mrb_ast_node *rhs;          /* Right-hand side (value) */
+};
+
+/* Variable-sized multiple assignment node */
+struct mrb_ast_masgn_node {
+  struct mrb_ast_var_header header;  /* 8 bytes */
+  struct mrb_ast_node *lhs;          /* Left-hand side (multiple targets) */
+  struct mrb_ast_node *rhs;          /* Right-hand side (values) */
+};
+
+/* Variable-sized operator assignment node */
+struct mrb_ast_op_asgn_node {
+  struct mrb_ast_var_header header;  /* 8 bytes */
+  struct mrb_ast_node *lhs;          /* Left-hand side (target) */
+  mrb_sym operator;                  /* Assignment operator (e.g., +=, -=, etc.) */
+  struct mrb_ast_node *rhs;          /* Right-hand side (value) */
+};
+
 /* String storage strategy thresholds */
 #define STR_INLINE_THRESHOLD  48   /* Inline strings <= 48 bytes */
 #define STR_SMALL_THRESHOLD   128  /* Small strings <= 128 bytes */
@@ -329,11 +383,18 @@ struct mrb_ast_for_node {
 #define hash_node(n) ((struct mrb_ast_hash_node*)(n))
 
 /* Phase 3 node casting macros */
+#define def_node(n) ((struct mrb_ast_def_node*)(n))
+#define class_node(n) ((struct mrb_ast_class_node*)(n))
+#define module_node(n) ((struct mrb_ast_module_node*)(n))
+#define sclass_node(n) ((struct mrb_ast_sclass_node*)(n))
 #define if_node(n) ((struct mrb_ast_if_node*)(n))
 #define while_node(n) ((struct mrb_ast_while_node*)(n))
 #define until_node(n) ((struct mrb_ast_until_node*)(n))
 #define case_node_ctrl(n) ((struct mrb_ast_case_node*)(n))
 #define for_node(n) ((struct mrb_ast_for_node*)(n))
+#define asgn_node(n) ((struct mrb_ast_asgn_node*)(n))
+#define masgn_node(n) ((struct mrb_ast_masgn_node*)(n))
+#define op_asgn_node(n) ((struct mrb_ast_op_asgn_node*)(n))
 
 /* Phase 1 value access macros */
 #define SYM_NODE_VALUE(n) (sym_node(n)->symbol)
@@ -377,5 +438,31 @@ struct mrb_ast_for_node {
 #define FOR_NODE_VAR(n) (for_node(n)->var)
 #define FOR_NODE_ITERABLE(n) (for_node(n)->iterable)
 #define FOR_NODE_BODY(n) (for_node(n)->body)
+
+/* Definition node value access macros */
+#define DEF_NODE_NAME(n) (def_node(n)->name)
+#define DEF_NODE_ARGS(n) (def_node(n)->args)
+#define DEF_NODE_BODY(n) (def_node(n)->body)
+
+#define CLASS_NODE_NAME(n) (class_node(n)->name)
+#define CLASS_NODE_SUPERCLASS(n) (class_node(n)->superclass)
+#define CLASS_NODE_BODY(n) (class_node(n)->body)
+
+#define MODULE_NODE_NAME(n) (module_node(n)->name)
+#define MODULE_NODE_BODY(n) (module_node(n)->body)
+
+#define SCLASS_NODE_OBJ(n) (sclass_node(n)->obj)
+#define SCLASS_NODE_BODY(n) (sclass_node(n)->body)
+
+/* Assignment node value access macros */
+#define ASGN_NODE_LHS(n) (asgn_node(n)->lhs)
+#define ASGN_NODE_RHS(n) (asgn_node(n)->rhs)
+
+#define MASGN_NODE_LHS(n) (masgn_node(n)->lhs)
+#define MASGN_NODE_RHS(n) (masgn_node(n)->rhs)
+
+#define OP_ASGN_NODE_LHS(n) (op_asgn_node(n)->lhs)
+#define OP_ASGN_NODE_OP(n) (op_asgn_node(n)->operator)
+#define OP_ASGN_NODE_RHS(n) (op_asgn_node(n)->rhs)
 
 #endif  /* MRUBY_COMPILER_NODE_H */
