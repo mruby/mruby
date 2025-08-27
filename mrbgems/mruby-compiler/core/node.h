@@ -346,6 +346,40 @@ struct mrb_ast_op_asgn_node {
   struct mrb_ast_node *rhs;          /* Right-hand side (value) */
 };
 
+/* Expression Node Structures */
+
+/* Variable-sized AND node */
+struct mrb_ast_and_node {
+  struct mrb_ast_var_header header;  /* 8 bytes */
+  struct mrb_ast_node *left;         /* Left operand */
+  struct mrb_ast_node *right;        /* Right operand */
+};
+
+/* Variable-sized OR node */
+struct mrb_ast_or_node {
+  struct mrb_ast_var_header header;  /* 8 bytes */
+  struct mrb_ast_node *left;         /* Left operand */
+  struct mrb_ast_node *right;        /* Right operand */
+};
+
+/* Variable-sized RETURN node */
+struct mrb_ast_return_node {
+  struct mrb_ast_var_header header;  /* 8 bytes */
+  struct mrb_ast_node *args;         /* Return arguments (can be NULL) */
+};
+
+/* Variable-sized YIELD node */
+struct mrb_ast_yield_node {
+  struct mrb_ast_var_header header;  /* 8 bytes */
+  struct mrb_ast_node *args;         /* Yield arguments (can be NULL) */
+};
+
+/* Variable-sized SUPER node */
+struct mrb_ast_super_node {
+  struct mrb_ast_var_header header;  /* 8 bytes */
+  struct mrb_ast_node *args;         /* Super arguments (can be NULL) */
+};
+
 /* String storage strategy thresholds */
 #define STR_INLINE_THRESHOLD  48   /* Inline strings <= 48 bytes */
 #define STR_SMALL_THRESHOLD   128  /* Small strings <= 128 bytes */
@@ -395,6 +429,11 @@ struct mrb_ast_op_asgn_node {
 #define asgn_node(n) ((struct mrb_ast_asgn_node*)(n))
 #define masgn_node(n) ((struct mrb_ast_masgn_node*)(n))
 #define op_asgn_node(n) ((struct mrb_ast_op_asgn_node*)(n))
+#define and_node(n) ((struct mrb_ast_and_node*)(n))
+#define or_node(n) ((struct mrb_ast_or_node*)(n))
+#define return_node(n) ((struct mrb_ast_return_node*)(n))
+#define yield_node(n) ((struct mrb_ast_yield_node*)(n))
+#define super_node(n) ((struct mrb_ast_super_node*)(n))
 
 /* Phase 1 value access macros */
 #define SYM_NODE_VALUE(n) (sym_node(n)->symbol)
@@ -464,5 +503,18 @@ struct mrb_ast_op_asgn_node {
 #define OP_ASGN_NODE_LHS(n) (op_asgn_node(n)->lhs)
 #define OP_ASGN_NODE_OP(n) (op_asgn_node(n)->operator)
 #define OP_ASGN_NODE_RHS(n) (op_asgn_node(n)->rhs)
+
+/* Expression node value access macros */
+#define AND_NODE_LEFT(n) (and_node(n)->left)
+#define AND_NODE_RIGHT(n) (and_node(n)->right)
+
+#define OR_NODE_LEFT(n) (or_node(n)->left)
+#define OR_NODE_RIGHT(n) (or_node(n)->right)
+
+#define RETURN_NODE_ARGS(n) (return_node(n)->args)
+
+#define YIELD_NODE_ARGS(n) (yield_node(n)->args)
+
+#define SUPER_NODE_ARGS(n) (super_node(n)->args)
 
 #endif  /* MRUBY_COMPILER_NODE_H */

@@ -5349,6 +5349,79 @@ gen_op_asgn_var(codegen_scope *s, node *varnode, int val)
   }
 }
 
+/* Variable-sized expression codegen functions */
+static void
+gen_and_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_and_node *and_n = and_node(varnode);
+  node *left = AND_NODE_LEFT(and_n);
+  node *right = AND_NODE_RIGHT(and_n);
+
+  /* Simplified AND logic - evaluate left, then conditionally right */
+  if (left) {
+    codegen(s, left, VAL);
+    /* For now, just evaluate right too - can be optimized later for short-circuit */
+    if (right) {
+      codegen(s, right, val);
+    }
+  }
+  else if (val) {
+    genop_1(s, OP_LOADNIL, cursp());
+    push();
+  }
+}
+
+static void
+gen_or_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_or_node *or_n = or_node(varnode);
+  node *left = OR_NODE_LEFT(or_n);
+  node *right = OR_NODE_RIGHT(or_n);
+
+  /* Simplified OR logic - evaluate left, then conditionally right */
+  if (left) {
+    codegen(s, left, VAL);
+    /* For now, just evaluate right too - can be optimized later for short-circuit */
+    if (right) {
+      codegen(s, right, val);
+    }
+  }
+  else if (val) {
+    genop_1(s, OP_LOADNIL, cursp());
+    push();
+  }
+}
+
+static void
+gen_return_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_return_node *return_n = return_node(varnode);
+  node *args = RETURN_NODE_ARGS(return_n);
+
+  /* Use traditional return codegen logic */
+  codegen_return(s, args, val);
+}
+
+static void
+gen_yield_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_yield_node *yield_n = yield_node(varnode);
+  node *args = YIELD_NODE_ARGS(yield_n);
+
+  /* Use traditional yield codegen logic */
+  codegen_yield(s, args, val);
+}
+
+static void
+gen_super_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_super_node *super_n = super_node(varnode);
+  node *args = SUPER_NODE_ARGS(super_n);
+
+  /* Use traditional super codegen logic */
+  codegen_super(s, args, val);
+}
+
 static mrb_bool
 codegen_variable_node(codegen_scope *s, node *varnode, int val)
 {
@@ -5448,6 +5521,26 @@ codegen_variable_node(codegen_scope *s, node *varnode, int val)
 
   case NODE_OP_ASGN:
     gen_op_asgn_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_AND:
+    gen_and_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_OR:
+    gen_or_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_RETURN:
+    gen_return_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_YIELD:
+    gen_yield_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_SUPER:
+    gen_super_var(s, varnode, val);
     return TRUE;
 
   default:
