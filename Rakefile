@@ -4,6 +4,7 @@ MRUBY_ROOT = File.dirname(File.expand_path(__FILE__))
 MRUBY_BUILD_HOST_IS_CYGWIN = RUBY_PLATFORM.include?('cygwin')
 MRUBY_BUILD_HOST_IS_OPENBSD = RUBY_PLATFORM.include?('openbsd')
 
+Rake.application.options.always_multitask = true unless ENV["SERIAL"]
 Rake.verbose(false) if Rake.verbose == Rake::DSL::DEFAULT
 
 $LOAD_PATH << File.join(MRUBY_ROOT, "lib")
