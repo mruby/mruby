@@ -655,4 +655,98 @@ struct mrb_ast_args_tail_node {
 #define ARGS_TAIL_NODE_KWREST(n) (args_tail_node(n)->kwrest)
 #define ARGS_TAIL_NODE_BLOCK(n) (args_tail_node(n)->block)
 
+// Group 8: Control Flow Statements
+struct mrb_ast_break_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *value;
+};
+
+struct mrb_ast_next_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *value;
+};
+
+struct mrb_ast_redo_node {
+  struct mrb_ast_var_header hdr;
+};
+
+struct mrb_ast_retry_node {
+  struct mrb_ast_var_header hdr;
+};
+
+struct mrb_ast_while_mod_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *condition;
+  struct mrb_ast_node *body;
+};
+
+struct mrb_ast_until_mod_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *condition;
+  struct mrb_ast_node *body;
+};
+
+#define break_node(n) ((struct mrb_ast_break_node*)(n))
+#define next_node(n) ((struct mrb_ast_next_node*)(n))
+#define redo_node(n) ((struct mrb_ast_redo_node*)(n))
+#define retry_node(n) ((struct mrb_ast_retry_node*)(n))
+#define while_mod_node(n) ((struct mrb_ast_while_mod_node*)(n))
+#define until_mod_node(n) ((struct mrb_ast_until_mod_node*)(n))
+
+#define BREAK_NODE_VALUE(n) (break_node(n)->value)
+#define NEXT_NODE_VALUE(n) (next_node(n)->value)
+#define WHILE_MOD_NODE_CONDITION(n) (while_mod_node(n)->condition)
+#define WHILE_MOD_NODE_BODY(n) (while_mod_node(n)->body)
+#define UNTIL_MOD_NODE_CONDITION(n) (until_mod_node(n)->condition)
+#define UNTIL_MOD_NODE_BODY(n) (until_mod_node(n)->body)
+
+// Group 9: String and Regex Variants
+struct mrb_ast_xstr_node {
+  struct mrb_ast_var_header hdr;
+  mrb_sym name;
+};
+
+struct mrb_ast_dxstr_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *list;
+};
+
+struct mrb_ast_dregx_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *list;
+  int options;
+};
+
+struct mrb_ast_dregx_once_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *list;
+  int options;
+};
+
+struct mrb_ast_heredoc_node {
+  struct mrb_ast_var_header hdr;
+  mrb_sym name;
+};
+
+struct mrb_ast_dsym_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *list;
+};
+
+#define xstr_node(n) ((struct mrb_ast_xstr_node*)(n))
+#define dxstr_node(n) ((struct mrb_ast_dxstr_node*)(n))
+#define dregx_node(n) ((struct mrb_ast_dregx_node*)(n))
+#define dregx_once_node(n) ((struct mrb_ast_dregx_once_node*)(n))
+#define heredoc_node(n) ((struct mrb_ast_heredoc_node*)(n))
+#define dsym_node(n) ((struct mrb_ast_dsym_node*)(n))
+
+#define XSTR_NODE_NAME(n) (xstr_node(n)->name)
+#define DXSTR_NODE_LIST(n) (dxstr_node(n)->list)
+#define DREGX_NODE_LIST(n) (dregx_node(n)->list)
+#define DREGX_NODE_OPTIONS(n) (dregx_node(n)->options)
+#define DREGX_ONCE_NODE_LIST(n) (dregx_once_node(n)->list)
+#define DREGX_ONCE_NODE_OPTIONS(n) (dregx_once_node(n)->options)
+#define HEREDOC_NODE_NAME(n) (heredoc_node(n)->name)
+#define DSYM_NODE_LIST(n) (dsym_node(n)->list)
+
 #endif  /* MRUBY_COMPILER_NODE_H */

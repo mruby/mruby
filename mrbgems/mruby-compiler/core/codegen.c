@@ -5587,6 +5587,103 @@ gen_block_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
+gen_break_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_break_node *n = (struct mrb_ast_break_node*)varnode;
+  codegen_break(s, n->value, val);
+}
+
+static void
+gen_next_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_next_node *n = (struct mrb_ast_next_node*)varnode;
+  codegen_next(s, n->value, val);
+}
+
+static void
+gen_redo_var(codegen_scope *s, node *varnode, int val)
+{
+  codegen_redo(s, NULL, val);
+}
+
+static void
+gen_retry_var(codegen_scope *s, node *varnode, int val)
+{
+  codegen_retry(s, NULL, val);
+}
+
+static void
+gen_while_mod_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_while_mod_node *n = (struct mrb_ast_while_mod_node*)varnode;
+  // Stack allocation for compatibility with existing codegen
+  struct mrb_ast_node temp_tree = { .car = n->condition, .cdr = n->body };
+  codegen_while_until(s, (node*)&temp_tree, val, NODE_WHILE_MOD);
+}
+
+static void
+gen_until_mod_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_until_mod_node *n = (struct mrb_ast_until_mod_node*)varnode;
+  // Stack allocation for compatibility with existing codegen
+  struct mrb_ast_node temp_tree = { .car = n->condition, .cdr = n->body };
+  codegen_while_until(s, (node*)&temp_tree, val, NODE_UNTIL_MOD);
+}
+
+static void
+gen_xstr_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_xstr_node *n = (struct mrb_ast_xstr_node*)varnode;
+  // Stack allocation for compatibility with existing codegen
+  mrb_int len;
+  const char *str = mrb_sym2name_len(s->mrb, n->name, &len);
+  struct mrb_ast_node temp_car = { .car = (node*)str, .cdr = int_to_node((int)len) };
+  struct mrb_ast_node temp_tree = { .car = (node*)&temp_car, .cdr = NULL };
+  codegen_xstr(s, (node*)&temp_tree, val);
+}
+
+static void
+gen_dxstr_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_dxstr_node *n = (struct mrb_ast_dxstr_node*)varnode;
+  codegen_dxstr(s, n->list, val);
+}
+
+static void
+gen_dregx_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_dregx_node *n = (struct mrb_ast_dregx_node*)varnode;
+  // Stack allocation for compatibility with existing codegen
+  struct mrb_ast_node temp_tree = { .car = n->list, .cdr = int_to_node(n->options) };
+  codegen_dregx(s, (node*)&temp_tree, val);
+}
+
+static void
+gen_heredoc_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_heredoc_node *n = (struct mrb_ast_heredoc_node*)varnode;
+  // For heredocs, we need to handle them similar to strings
+  if (val) {
+    mrb_int len;
+    const char *str = mrb_sym2name_len(s->mrb, n->name, &len);
+    int off = new_lit_str(s, str, (int)len);
+    genop_2(s, OP_STRING, cursp(), off);
+    push();
+  }
+}
+
+static void
+gen_dsym_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_dsym_node *n = (struct mrb_ast_dsym_node*)varnode;
+  // Generate dstr first, then convert to symbol
+  if (val) {
+    codegen_heredoc_dstr(s, n->list, VAL);
+    genop_1(s, OP_INTERN, cursp());
+  }
+}
+
+static void
 gen_args_tail_var(codegen_scope *s, node *varnode, int val)
 {
   /* Args tail nodes are handled within function definitions, not directly */
@@ -5768,6 +5865,50 @@ codegen_variable_node(codegen_scope *s, node *varnode, int val)
 
   case NODE_ARGS_TAIL:
     gen_args_tail_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_BREAK:
+    gen_break_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_NEXT:
+    gen_next_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_REDO:
+    gen_redo_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_RETRY:
+    gen_retry_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_WHILE_MOD:
+    gen_while_mod_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_UNTIL_MOD:
+    gen_until_mod_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_XSTR:
+    gen_xstr_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_DXSTR:
+    gen_dxstr_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_DREGX:
+    gen_dregx_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_HEREDOC:
+    gen_heredoc_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_DSYM:
+    gen_dsym_var(s, varnode, val);
     return TRUE;
 
   default:
