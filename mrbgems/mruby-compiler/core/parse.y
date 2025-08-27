@@ -525,11 +525,25 @@ new_alias(parser_state *p, mrb_sym a, mrb_sym b)
   return cons_head((node*)NODE_ALIAS, cons(sym_to_node(a), sym_to_node(b)));
 }
 
+/* Forward declaration for variable-sized call node */
+/* Forward declarations for variable-sized AST node creation functions */
+static node* new_call_var(parser_state *p, node *receiver, mrb_sym method, node *args, int pass);
+static node* new_array_var(parser_state *p, node *a);
+static node* new_hash_var(parser_state *p, node *a);
+static node* new_if_var(parser_state *p, node *condition, node *then_body, node *else_body);
+static node* new_while_var(parser_state *p, node *condition, node *body);
+static node* new_case_var(parser_state *p, node *value, node *when_list);
+static node* new_for_var(parser_state *p, node *var, node *iterable, node *body);
+
 /* (:if cond then else) */
 static node*
 new_if(parser_state *p, node *a, node *b, node *c)
 {
   void_expr_error(p, a);
+  // If variable-sized nodes are enabled, use the specialized creation function
+  if (p->var_nodes_enabled) {
+    return new_if_var(p, a, b, c);
+  }
   return list4((node*)NODE_IF, a, b, c);
 }
 
@@ -546,6 +560,10 @@ static node*
 new_while(parser_state *p, node *a, node *b)
 {
   void_expr_error(p, a);
+  // If variable-sized nodes are enabled, use the specialized creation function
+  if (p->var_nodes_enabled) {
+    return new_while_var(p, a, b);
+  }
   return cons_head((node*)NODE_WHILE, cons(a, b));
 }
 
@@ -578,6 +596,10 @@ static node*
 new_for(parser_state *p, node *v, node *o, node *b)
 {
   void_expr_error(p, o);
+  // If variable-sized nodes are enabled, use the specialized creation function
+  if (p->var_nodes_enabled) {
+    return new_for_var(p, v, o, b);
+  }
   return list4((node*)NODE_FOR, v, o, b);
 }
 
@@ -585,6 +607,10 @@ new_for(parser_state *p, node *v, node *o, node *b)
 static node*
 new_case(parser_state *p, node *a, node *b)
 {
+  // If variable-sized nodes are enabled, use the specialized creation function
+  if (p->var_nodes_enabled) {
+    return new_case_var(p, a, b);
+  }
   node *n = list2((node*)NODE_CASE, a);
   node *n2 = n;
 
@@ -610,10 +636,7 @@ new_self(parser_state *p)
   return list1((node*)NODE_SELF);
 }
 
-/* Forward declaration for variable-sized call node */
-static node* new_call_var(parser_state *p, node *receiver, mrb_sym method, node *args, int pass);
-static node* new_array_var(parser_state *p, node *a);
-static node* new_hash_var(parser_state *p, node *a);
+
 
 /* (:call a b c) */
 static node*
@@ -768,6 +791,105 @@ new_hash_var(parser_state *p, node *a)
       n->pairs[i * 2 + 1] = pair->cdr; /* value */
     }
     pair_iter = pair_iter->cdr;
+  }
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
+}
+
+/* Variable-sized if node creation */
+static node*
+new_if_var(parser_state *p, node *condition, node *then_body, node *else_body)
+{
+  size_t total_size = sizeof(struct mrb_ast_if_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_if_node *n = (struct mrb_ast_if_node*)
+    parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->header, p, NODE_IF, class);
+  n->condition = condition;
+  n->then_body = then_body;
+  n->else_body = else_body;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
+}
+
+/* Variable-sized while node creation */
+static node*
+new_while_var(parser_state *p, node *condition, node *body)
+{
+  size_t total_size = sizeof(struct mrb_ast_while_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_while_node *n = (struct mrb_ast_while_node*)
+    parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->header, p, NODE_WHILE, class);
+  n->condition = condition;
+  n->body = body;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
+}
+
+/* Variable-sized for node creation */
+static node*
+new_for_var(parser_state *p, node *var, node *iterable, node *body)
+{
+  size_t total_size = sizeof(struct mrb_ast_for_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_for_node *n = (struct mrb_ast_for_node*)
+    parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->header, p, NODE_FOR, class);
+  n->var = var;
+  n->iterable = iterable;
+  n->body = body;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
+}
+
+/* Variable-sized case node creation */
+static node*
+new_case_var(parser_state *p, node *value, node *when_list)
+{
+  uint16_t when_count = 0;
+  node *else_body = NULL;
+  node *current_when = when_list;
+
+  // First pass: count when clauses and identify else_body
+  // The when_list is a linked list where each element's car is a (condition . body) cons node.
+  // The last element's car might be 0, and its cdr is the else_body.
+  while (current_when) {
+    node *clause = current_when->car;
+    if (clause && node_to_int(clause->car) == 0) { // This is the else clause
+      else_body = clause->cdr;
+      break; // Else body is always the last
+    }
+    when_count++;
+    current_when = current_when->cdr;
+  }
+
+  size_t base_size = sizeof(struct mrb_ast_case_node);
+  size_t when_clauses_size = when_count * sizeof(struct mrb_ast_node*);
+  size_t total_size = base_size + when_clauses_size;
+
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_case_node *n = (struct mrb_ast_case_node*)
+    parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->header, p, NODE_CASE, class);
+  n->value = value;
+  n->when_count = when_count;
+  n->flags = 0; // No specific flags for now
+  n->else_body = else_body;
+
+  // Second pass: copy when clauses into flexible array
+  current_when = when_list;
+  for (int i = 0; i < when_count; i++) {
+    n->when_clauses[i] = current_when->car; // Each car is a (condition . body) cons node
+    current_when = current_when->cdr;
   }
 
   return cons_head((node*)NODE_VARIABLE, (node*)n);

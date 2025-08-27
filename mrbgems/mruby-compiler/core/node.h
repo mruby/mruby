@@ -250,6 +250,41 @@ struct mrb_ast_hash_node {
   struct mrb_ast_node *pairs[];      /* Flexible array for key-value pairs */
 };
 
+/* Phase 3 Variable Node Structures - Control Flow */
+
+/* Variable-sized if node */
+struct mrb_ast_if_node {
+  struct mrb_ast_var_header header;  /* 8 bytes */
+  struct mrb_ast_node *condition;    /* Condition expression */
+  struct mrb_ast_node *then_body;    /* Then branch */
+  struct mrb_ast_node *else_body;    /* Else branch (can be NULL) */
+};
+
+/* Variable-sized while node */
+struct mrb_ast_while_node {
+  struct mrb_ast_var_header header;  /* 8 bytes */
+  struct mrb_ast_node *condition;    /* Loop condition */
+  struct mrb_ast_node *body;         /* Loop body */
+};
+
+/* Variable-sized case node with variable when clauses */
+struct mrb_ast_case_node {
+  struct mrb_ast_var_header header;  /* 8 bytes */
+  struct mrb_ast_node *value;        /* Case value expression */
+  uint16_t when_count;               /* Number of when clauses */
+  uint16_t flags;                    /* Case-specific flags */
+  struct mrb_ast_node *else_body;    /* Else clause (can be NULL) */
+  struct mrb_ast_node *when_clauses[]; /* Flexible array for when clauses */
+};
+
+/* Variable-sized for node */
+struct mrb_ast_for_node {
+  struct mrb_ast_var_header header;  /* 8 bytes */
+  struct mrb_ast_node *var;          /* Loop variable */
+  struct mrb_ast_node *iterable;     /* Object to iterate over */
+  struct mrb_ast_node *body;         /* Loop body */
+};
+
 /* String storage strategy thresholds */
 #define STR_INLINE_THRESHOLD  48   /* Inline strings <= 48 bytes */
 #define STR_SMALL_THRESHOLD   128  /* Small strings <= 128 bytes */
@@ -280,6 +315,12 @@ struct mrb_ast_hash_node {
 #define array_node(n) ((struct mrb_ast_array_node*)(n))
 #define hash_node(n) ((struct mrb_ast_hash_node*)(n))
 
+/* Phase 3 node casting macros */
+#define if_node(n) ((struct mrb_ast_if_node*)(n))
+#define while_node(n) ((struct mrb_ast_while_node*)(n))
+#define case_node_ctrl(n) ((struct mrb_ast_case_node*)(n))
+#define for_node(n) ((struct mrb_ast_for_node*)(n))
+
 /* Phase 1 value access macros */
 #define SYM_NODE_VALUE(n) (sym_node(n)->symbol)
 #define STR_NODE_PTR(n) (str_node(n)->data)
@@ -302,5 +343,22 @@ struct mrb_ast_hash_node {
 
 #define HASH_NODE_LEN(n) (hash_node(n)->len)
 #define HASH_NODE_PAIRS(n) (hash_node(n)->pairs)
+
+/* Phase 3 value access macros */
+#define IF_NODE_CONDITION(n) (if_node(n)->condition)
+#define IF_NODE_THEN(n) (if_node(n)->then_body)
+#define IF_NODE_ELSE(n) (if_node(n)->else_body)
+
+#define WHILE_NODE_CONDITION(n) (while_node(n)->condition)
+#define WHILE_NODE_BODY(n) (while_node(n)->body)
+
+#define CASE_NODE_VALUE(n) (case_node_ctrl(n)->value)
+#define CASE_NODE_WHEN_COUNT(n) (case_node_ctrl(n)->when_count)
+#define CASE_NODE_ELSE(n) (case_node_ctrl(n)->else_body)
+#define CASE_NODE_WHENS(n) (case_node_ctrl(n)->when_clauses)
+
+#define FOR_NODE_VAR(n) (for_node(n)->var)
+#define FOR_NODE_ITERABLE(n) (for_node(n)->iterable)
+#define FOR_NODE_BODY(n) (for_node(n)->body)
 
 #endif  /* MRUBY_COMPILER_NODE_H */
