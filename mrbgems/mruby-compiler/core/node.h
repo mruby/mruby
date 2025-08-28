@@ -887,6 +887,47 @@ struct mrb_ast_block_arg_node {
   struct mrb_ast_node *value;
 };
 
+// Group 15: Structural Nodes
+struct mrb_ast_method_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *body;
+};
+
+struct mrb_ast_scope_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *locals;
+  struct mrb_ast_node *body;
+};
+
+struct mrb_ast_stmts_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *stmts;
+};
+
+struct mrb_ast_begin_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *body;
+};
+
+struct mrb_ast_ensure_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *body;
+  struct mrb_ast_node *ensure_clause;
+};
+
+struct mrb_ast_iter_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *vars;
+  struct mrb_ast_node *body;
+};
+
+struct mrb_ast_when_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *cond;
+  struct mrb_ast_node *body;
+  struct mrb_ast_node *next_when;
+};
+
 #define fcall_node(n) ((struct mrb_ast_fcall_node*)(n))
 #define zsuper_node(n) ((struct mrb_ast_zsuper_node*)(n))
 #define lambda_node(n) ((struct mrb_ast_lambda_node*)(n))
@@ -898,6 +939,13 @@ struct mrb_ast_block_arg_node {
 #define to_ary_node(n) ((struct mrb_ast_to_ary_node*)(n))
 #define svalue_node(n) ((struct mrb_ast_svalue_node*)(n))
 #define block_arg_node(n) ((struct mrb_ast_block_arg_node*)(n))
+#define method_node(n) ((struct mrb_ast_method_node*)(n))
+#define scope_node(n) ((struct mrb_ast_scope_node*)(n))
+#define stmts_node(n) ((struct mrb_ast_stmts_node*)(n))
+#define begin_node(n) ((struct mrb_ast_begin_node*)(n))
+#define ensure_node(n) ((struct mrb_ast_ensure_node*)(n))
+#define iter_node(n) ((struct mrb_ast_iter_node*)(n))
+#define when_node(n) ((struct mrb_ast_when_node*)(n))
 
 #define FCALL_NODE_METHOD_NAME(n) (fcall_node(n)->method_name)
 #define FCALL_NODE_ARGS(n) (fcall_node(n)->args)
@@ -911,5 +959,17 @@ struct mrb_ast_block_arg_node {
 #define TO_ARY_NODE_VALUE(n) (to_ary_node(n)->value)
 #define SVALUE_NODE_VALUE(n) (svalue_node(n)->value)
 #define BLOCK_ARG_NODE_VALUE(n) (block_arg_node(n)->value)
+#define METHOD_NODE_BODY(n) (method_node(n)->body)
+#define SCOPE_NODE_LOCALS(n) (scope_node(n)->locals)
+#define SCOPE_NODE_BODY(n) (scope_node(n)->body)
+#define STMTS_NODE_STMTS(n) (stmts_node(n)->stmts)
+#define BEGIN_NODE_BODY(n) (begin_node(n)->body)
+#define ENSURE_NODE_BODY(n) (ensure_node(n)->body)
+#define ENSURE_NODE_ENSURE_CLAUSE(n) (ensure_node(n)->ensure_clause)
+#define ITER_NODE_VARS(n) (iter_node(n)->vars)
+#define ITER_NODE_BODY(n) (iter_node(n)->body)
+#define WHEN_NODE_COND(n) (when_node(n)->cond)
+#define WHEN_NODE_BODY(n) (when_node(n)->body)
+#define WHEN_NODE_NEXT_WHEN(n) (when_node(n)->next_when)
 
 #endif  /* MRUBY_COMPILER_NODE_H */

@@ -5882,6 +5882,60 @@ gen_block_arg_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
+gen_scope_var(codegen_scope *s, const node *varnode, int val)
+{
+  struct mrb_ast_scope_node *scope = scope_node(varnode);
+
+  // Convert variable-sized scope to traditional cons list for scope_body
+  node *locals = scope->locals;
+  node *body = scope->body;
+
+  // Create stack-allocated traditional node structure
+  node scope_node_stack;
+  scope_node_stack.car = locals;
+  scope_node_stack.cdr = body;
+
+  scope_body(s, &scope_node_stack, val);
+}
+
+static void
+gen_stmts_var(codegen_scope *s, const node *varnode, int val)
+{
+  struct mrb_ast_stmts_node *stmts = stmts_node(varnode);
+
+  // Convert variable-sized stmts to traditional cons list for codegen_stmts
+  node *stmts_list = stmts->stmts;
+  codegen_stmts(s, stmts_list, val);
+}
+
+static void
+gen_begin_var(codegen_scope *s, const node *varnode, int val)
+{
+  struct mrb_ast_begin_node *begin = begin_node(varnode);
+
+  // Convert variable-sized begin to traditional cons list for codegen_begin
+  node *body = begin->body;
+  codegen_begin(s, body, val);
+}
+
+static void
+gen_ensure_var(codegen_scope *s, const node *varnode, int val)
+{
+  struct mrb_ast_ensure_node *ensure = ensure_node(varnode);
+
+  // Convert variable-sized ensure to traditional structure for codegen_ensure
+  node *body = ensure->body;
+  node *ensure_body = ensure->ensure_clause;
+
+  // Create stack-allocated traditional node structure
+  node ensure_node_stack;
+  ensure_node_stack.car = body;
+  ensure_node_stack.cdr = ensure_body;
+
+  codegen_ensure(s, &ensure_node_stack, val);
+}
+
+static void
 gen_args_tail_var(codegen_scope *s, node *varnode, int val)
 {
   /* Args tail nodes are handled within function definitions, not directly */
@@ -6180,6 +6234,22 @@ codegen_variable_node(codegen_scope *s, node *varnode, int val)
 
   case NODE_BLOCK_ARG:
     gen_block_arg_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_SCOPE:
+    gen_scope_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_STMTS:
+    gen_stmts_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_BEGIN:
+    gen_begin_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_ENSURE:
+    gen_ensure_var(s, varnode, val);
     return TRUE;
 
   default:
