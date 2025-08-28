@@ -5826,6 +5826,62 @@ gen_lambda_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
+gen_kw_hash_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_kw_hash_node *n = kw_hash_node(varnode);
+  // Create stack-allocated node structure for traditional codegen
+  struct mrb_ast_node stack_node;
+  stack_node.car = (node*)NODE_KW_HASH;
+  stack_node.cdr = n->args;
+  codegen_hash(s, &stack_node, val);
+}
+
+static void
+gen_words_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_words_node *n = words_node(varnode);
+  // Create stack-allocated node structure for traditional codegen
+  struct mrb_ast_node stack_node;
+  stack_node.car = (node*)NODE_WORDS;
+  stack_node.cdr = n->args;
+  codegen_words(s, &stack_node, val);
+}
+
+static void
+gen_symbols_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_symbols_node *n = symbols_node(varnode);
+  // Create stack-allocated node structure for traditional codegen
+  struct mrb_ast_node stack_node;
+  stack_node.car = (node*)NODE_SYMBOLS;
+  stack_node.cdr = n->args;
+  codegen_symbols(s, &stack_node, val);
+}
+
+
+static void
+gen_splat_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_splat_node *n = splat_node(varnode);
+  // Create stack-allocated node structure for traditional codegen
+  struct mrb_ast_node stack_node;
+  stack_node.car = (node*)NODE_SPLAT;
+  stack_node.cdr = n->value;
+  codegen_splat(s, &stack_node, val);
+}
+
+static void
+gen_block_arg_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_block_arg_node *n = block_arg_node(varnode);
+  // Create stack-allocated node structure for traditional codegen
+  struct mrb_ast_node stack_node;
+  stack_node.car = (node*)NODE_BLOCK_ARG;
+  stack_node.cdr = n->value;
+  codegen_block_arg(s, &stack_node, val);
+}
+
+static void
 gen_args_tail_var(codegen_scope *s, node *varnode, int val)
 {
   /* Args tail nodes are handled within function definitions, not directly */
@@ -6103,6 +6159,27 @@ codegen_variable_node(codegen_scope *s, node *varnode, int val)
 
   case NODE_LAMBDA:
     gen_lambda_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_KW_HASH:
+    gen_kw_hash_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_WORDS:
+    gen_words_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_SYMBOLS:
+    gen_symbols_var(s, varnode, val);
+    return TRUE;
+
+
+  case NODE_SPLAT:
+    gen_splat_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_BLOCK_ARG:
+    gen_block_arg_var(s, varnode, val);
     return TRUE;
 
   default:

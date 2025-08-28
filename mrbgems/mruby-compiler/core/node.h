@@ -845,14 +845,71 @@ struct mrb_ast_lambda_node {
   struct mrb_ast_node *body;
 };
 
+// Group 13: Containers and Collections
+struct mrb_ast_zarray_node {
+  struct mrb_ast_var_header hdr;
+};
+
+struct mrb_ast_kw_hash_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *args;
+};
+
+struct mrb_ast_words_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *args;
+};
+
+struct mrb_ast_symbols_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *args;
+};
+
+// Group 14: Arguments and Parameters
+
+struct mrb_ast_splat_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *value;
+};
+
+struct mrb_ast_to_ary_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *value;
+};
+
+struct mrb_ast_svalue_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *value;
+};
+
+struct mrb_ast_block_arg_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *value;
+};
+
 #define fcall_node(n) ((struct mrb_ast_fcall_node*)(n))
 #define zsuper_node(n) ((struct mrb_ast_zsuper_node*)(n))
 #define lambda_node(n) ((struct mrb_ast_lambda_node*)(n))
+#define zarray_node(n) ((struct mrb_ast_zarray_node*)(n))
+#define kw_hash_node(n) ((struct mrb_ast_kw_hash_node*)(n))
+#define words_node(n) ((struct mrb_ast_words_node*)(n))
+#define symbols_node(n) ((struct mrb_ast_symbols_node*)(n))
+#define splat_node(n) ((struct mrb_ast_splat_node*)(n))
+#define to_ary_node(n) ((struct mrb_ast_to_ary_node*)(n))
+#define svalue_node(n) ((struct mrb_ast_svalue_node*)(n))
+#define block_arg_node(n) ((struct mrb_ast_block_arg_node*)(n))
 
 #define FCALL_NODE_METHOD_NAME(n) (fcall_node(n)->method_name)
 #define FCALL_NODE_ARGS(n) (fcall_node(n)->args)
 #define LAMBDA_NODE_LOCALS(n) (lambda_node(n)->locals)
 #define LAMBDA_NODE_ARGS(n) (lambda_node(n)->args)
 #define LAMBDA_NODE_BODY(n) (lambda_node(n)->body)
+#define KW_HASH_NODE_ARGS(n) (kw_hash_node(n)->args)
+#define WORDS_NODE_ARGS(n) (words_node(n)->args)
+#define SYMBOLS_NODE_ARGS(n) (symbols_node(n)->args)
+#define SPLAT_NODE_VALUE(n) (splat_node(n)->value)
+#define TO_ARY_NODE_VALUE(n) (to_ary_node(n)->value)
+#define SVALUE_NODE_VALUE(n) (svalue_node(n)->value)
+#define BLOCK_ARG_NODE_VALUE(n) (block_arg_node(n)->value)
 
 #endif  /* MRUBY_COMPILER_NODE_H */

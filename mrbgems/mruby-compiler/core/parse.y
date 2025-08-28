@@ -1623,7 +1623,17 @@ static node*
 new_splat(parser_state *p, node *a)
 {
   void_expr_error(p, a);
-  return cons_head((node*)NODE_SPLAT, a);
+  if (!p->var_nodes_enabled) {
+    return cons_head((node*)NODE_SPLAT, a);
+  }
+
+  size_t total_size = sizeof(struct mrb_ast_splat_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+  struct mrb_ast_splat_node *splat_node = (struct mrb_ast_splat_node*)
+    parser_alloc_var(p, total_size, class);
+  init_var_header(&splat_node->hdr, p, NODE_SPLAT, class);
+  splat_node->value = a;
+  return cons_head((node*)NODE_VARIABLE, (node*)splat_node);
 }
 
 /* (:hash (k . v) (k . v)...) */
@@ -1640,7 +1650,17 @@ new_hash(parser_state *p, node *a)
 static node*
 new_kw_hash(parser_state *p, node *a)
 {
-  return cons_head((node*)NODE_KW_HASH, a);
+  if (!p->var_nodes_enabled) {
+    return cons_head((node*)NODE_KW_HASH, a);
+  }
+
+  size_t total_size = sizeof(struct mrb_ast_kw_hash_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+  struct mrb_ast_kw_hash_node *kw_hash_node = (struct mrb_ast_kw_hash_node*)
+    parser_alloc_var(p, total_size, class);
+  init_var_header(&kw_hash_node->hdr, p, NODE_KW_HASH, class);
+  kw_hash_node->args = a;
+  return cons_head((node*)NODE_VARIABLE, (node*)kw_hash_node);
 }
 
 /* (:sym . a) */
@@ -1994,7 +2014,17 @@ new_args_dots(parser_state *p, node *m)
 static node*
 new_block_arg(parser_state *p, node *a)
 {
-  return cons_head((node*)NODE_BLOCK_ARG, a);
+  if (!p->var_nodes_enabled) {
+    return cons_head((node*)NODE_BLOCK_ARG, a);
+  }
+
+  size_t total_size = sizeof(struct mrb_ast_block_arg_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+  struct mrb_ast_block_arg_node *block_arg_node = (struct mrb_ast_block_arg_node*)
+    parser_alloc_var(p, total_size, class);
+  init_var_header(&block_arg_node->hdr, p, NODE_BLOCK_ARG, class);
+  block_arg_node->value = a;
+  return cons_head((node*)NODE_VARIABLE, (node*)block_arg_node);
 }
 
 static node*
@@ -2469,14 +2499,34 @@ new_literal_delim(parser_state *p)
 static node*
 new_words(parser_state *p, node *a)
 {
-  return cons_head((node*)NODE_WORDS, a);
+  if (!p->var_nodes_enabled) {
+    return cons_head((node*)NODE_WORDS, a);
+  }
+
+  size_t total_size = sizeof(struct mrb_ast_words_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+  struct mrb_ast_words_node *words_node = (struct mrb_ast_words_node*)
+    parser_alloc_var(p, total_size, class);
+  init_var_header(&words_node->hdr, p, NODE_WORDS, class);
+  words_node->args = a;
+  return cons_head((node*)NODE_VARIABLE, (node*)words_node);
 }
 
 /* (:symbols . a) */
 static node*
 new_symbols(parser_state *p, node *a)
 {
-  return cons_head((node*)NODE_SYMBOLS, a);
+  if (!p->var_nodes_enabled) {
+    return cons_head((node*)NODE_SYMBOLS, a);
+  }
+
+  size_t total_size = sizeof(struct mrb_ast_symbols_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+  struct mrb_ast_symbols_node *symbols_node = (struct mrb_ast_symbols_node*)
+    parser_alloc_var(p, total_size, class);
+  init_var_header(&symbols_node->hdr, p, NODE_SYMBOLS, class);
+  symbols_node->args = a;
+  return cons_head((node*)NODE_VARIABLE, (node*)symbols_node);
 }
 
 /* xxx ----------------------------- */
