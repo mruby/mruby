@@ -827,4 +827,32 @@ struct mrb_ast_defined_node {
 #define COLON3_NODE_NAME(n) (colon3_node(n)->name)
 #define DEFINED_NODE_EXPR(n) (defined_node(n)->expr)
 
+// Group 12: Function Calls and Special Forms
+struct mrb_ast_fcall_node {
+  struct mrb_ast_var_header hdr;
+  mrb_sym method_name;
+  struct mrb_ast_node *args;
+};
+
+struct mrb_ast_zsuper_node {
+  struct mrb_ast_var_header hdr;
+};
+
+struct mrb_ast_lambda_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *locals;
+  struct mrb_ast_node *args;
+  struct mrb_ast_node *body;
+};
+
+#define fcall_node(n) ((struct mrb_ast_fcall_node*)(n))
+#define zsuper_node(n) ((struct mrb_ast_zsuper_node*)(n))
+#define lambda_node(n) ((struct mrb_ast_lambda_node*)(n))
+
+#define FCALL_NODE_METHOD_NAME(n) (fcall_node(n)->method_name)
+#define FCALL_NODE_ARGS(n) (fcall_node(n)->args)
+#define LAMBDA_NODE_LOCALS(n) (lambda_node(n)->locals)
+#define LAMBDA_NODE_ARGS(n) (lambda_node(n)->args)
+#define LAMBDA_NODE_BODY(n) (lambda_node(n)->body)
+
 #endif  /* MRUBY_COMPILER_NODE_H */

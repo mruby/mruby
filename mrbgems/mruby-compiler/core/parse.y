@@ -1392,8 +1392,19 @@ new_args_tail_var(parser_state *p, node *keywords, node *kwrest, mrb_sym block)
 static node*
 new_fcall(parser_state *p, mrb_sym b, node *c)
 {
-  node *n = list4((node*)NODE_FCALL, 0, sym_to_node(b), c);
-  return n;
+  if (!p->var_nodes_enabled) {
+    node *n = list4((node*)NODE_FCALL, 0, sym_to_node(b), c);
+    return n;
+  }
+
+  size_t total_size = sizeof(struct mrb_ast_fcall_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+  struct mrb_ast_fcall_node *fcall_node = (struct mrb_ast_fcall_node*)
+    parser_alloc_var(p, total_size, class);
+  init_var_header(&fcall_node->hdr, p, NODE_FCALL, class);
+  fcall_node->method_name = b;
+  fcall_node->args = c;
+  return cons_head((node*)NODE_VARIABLE, (node*)fcall_node);
 }
 
 /* (a b . c) */
@@ -1417,7 +1428,16 @@ new_super(parser_state *p, node *c)
 static node*
 new_zsuper(parser_state *p)
 {
-  return cons_head((node*)NODE_ZSUPER, 0);
+  if (!p->var_nodes_enabled) {
+    return cons_head((node*)NODE_ZSUPER, 0);
+  }
+
+  size_t total_size = sizeof(struct mrb_ast_zsuper_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+  struct mrb_ast_zsuper_node *zsuper_node = (struct mrb_ast_zsuper_node*)
+    parser_alloc_var(p, total_size, class);
+  init_var_header(&zsuper_node->hdr, p, NODE_ZSUPER, class);
+  return cons_head((node*)NODE_VARIABLE, (node*)zsuper_node);
 }
 
 /* (:yield . c) */
@@ -2023,7 +2043,19 @@ static node*
 new_lambda(parser_state *p, node *a, node *b)
 {
   a = setup_numparams(p, a);
-  return list4((node*)NODE_LAMBDA, locals_node(p), a, b);
+  if (!p->var_nodes_enabled) {
+    return list4((node*)NODE_LAMBDA, locals_node(p), a, b);
+  }
+
+  size_t total_size = sizeof(struct mrb_ast_lambda_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+  struct mrb_ast_lambda_node *lambda_node = (struct mrb_ast_lambda_node*)
+    parser_alloc_var(p, total_size, class);
+  init_var_header(&lambda_node->hdr, p, NODE_LAMBDA, class);
+  lambda_node->locals = locals_node(p);
+  lambda_node->args = a;
+  lambda_node->body = b;
+  return cons_head((node*)NODE_VARIABLE, (node*)lambda_node);
 }
 
 /* (:asgn lhs rhs) */

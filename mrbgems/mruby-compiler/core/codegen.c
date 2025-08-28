@@ -5781,6 +5781,50 @@ gen_defined_var(codegen_scope *s, node *varnode, int val)
   }
 }
 
+// Group 12: Function Calls and Special Forms
+static void
+gen_fcall_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_fcall_node *n = fcall_node(varnode);
+  // Create a stack-allocated node structure for traditional codegen
+  struct mrb_ast_node stack_nodes[3];
+  stack_nodes[0].car = NULL; // no receiver (self)
+  stack_nodes[0].cdr = &stack_nodes[1];
+  stack_nodes[1].car = (node*)(intptr_t)n->method_name; // method name as int
+  stack_nodes[1].cdr = &stack_nodes[2];
+  stack_nodes[2].car = n->args;
+  stack_nodes[2].cdr = NULL;
+  gen_call(s, &stack_nodes[0], val, 0);
+}
+
+static void
+gen_zsuper_var(codegen_scope *s, node *varnode, int val)
+{
+  (void)varnode; // suppress unused warning
+  // Create a simple stack structure
+  struct mrb_ast_node stack_node;
+  stack_node.car = (node*)NODE_ZSUPER;
+  stack_node.cdr = NULL;
+  codegen_zsuper(s, &stack_node, val);
+}
+
+static void
+gen_lambda_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_lambda_node *n = lambda_node(varnode);
+  // Create stack-allocated node structure for traditional codegen
+  struct mrb_ast_node stack_nodes[4];
+  stack_nodes[0].car = (node*)NODE_LAMBDA;
+  stack_nodes[0].cdr = &stack_nodes[1];
+  stack_nodes[1].car = n->locals;
+  stack_nodes[1].cdr = &stack_nodes[2];
+  stack_nodes[2].car = n->args;
+  stack_nodes[2].cdr = &stack_nodes[3];
+  stack_nodes[3].car = n->body;
+  stack_nodes[3].cdr = NULL;
+  codegen_lambda(s, &stack_nodes[0], val);
+}
+
 static void
 gen_args_tail_var(codegen_scope *s, node *varnode, int val)
 {
@@ -6047,6 +6091,18 @@ codegen_variable_node(codegen_scope *s, node *varnode, int val)
 
   case NODE_DEFINED:
     gen_defined_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_FCALL:
+    gen_fcall_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_ZSUPER:
+    gen_zsuper_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_LAMBDA:
+    gen_lambda_var(s, varnode, val);
     return TRUE;
 
   default:
