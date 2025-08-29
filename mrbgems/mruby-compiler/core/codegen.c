@@ -5899,16 +5899,6 @@ gen_scope_var(codegen_scope *s, const node *varnode, int val)
 }
 
 static void
-gen_stmts_var(codegen_scope *s, const node *varnode, int val)
-{
-  struct mrb_ast_stmts_node *stmts = stmts_node(varnode);
-
-  // Convert variable-sized stmts to traditional cons list for codegen_stmts
-  node *stmts_list = stmts->stmts;
-  codegen_stmts(s, stmts_list, val);
-}
-
-static void
 gen_begin_var(codegen_scope *s, const node *varnode, int val)
 {
   struct mrb_ast_begin_node *begin = begin_node(varnode);
@@ -6238,10 +6228,6 @@ codegen_variable_node(codegen_scope *s, node *varnode, int val)
 
   case NODE_SCOPE:
     gen_scope_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_STMTS:
-    gen_stmts_var(s, varnode, val);
     return TRUE;
 
   case NODE_BEGIN:

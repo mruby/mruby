@@ -463,10 +463,9 @@ nvars_unnest(parser_state *p)
 static node*
 new_scope(parser_state *p, node *body)
 {
-  // TEMPORARILY DISABLED: Always use traditional nodes for Group 15
-  // if (!p->var_nodes_enabled) {
+  if (!p->var_nodes_enabled) {
     return cons_head((node*)NODE_SCOPE, cons(locals_node(p), body));
-  // }
+  }
 
   size_t total_size = sizeof(struct mrb_ast_scope_node);
   enum mrb_ast_size_class class = size_to_class(total_size);
@@ -482,38 +481,23 @@ new_scope(parser_state *p, node *body)
 static node*
 new_stmts(parser_state *p, node *body)
 {
-  // TEMPORARILY DISABLED: Always use traditional nodes for Group 15
   if (body) {
     /* If body is already a NODE_STMTS, just return it directly */
     if (node_to_type(body->car) == NODE_STMTS) {
       return body;
     }
-    // if (!p->var_nodes_enabled) {
-      return list2((node*)NODE_STMTS, body);
-    // }
+    return list2((node*)NODE_STMTS, body);
   }
-
-  // if (!p->var_nodes_enabled) {
-    return cons_head((node*)NODE_STMTS, 0);
-  // }
-
-  size_t total_size = sizeof(struct mrb_ast_stmts_node);
-  enum mrb_ast_size_class class = size_to_class(total_size);
-  struct mrb_ast_stmts_node *stmts_node = (struct mrb_ast_stmts_node*)
-    parser_alloc_var(p, total_size, class);
-  init_var_header(&stmts_node->hdr, p, NODE_STMTS, class);
-  stmts_node->stmts = body;
-  return cons_head((node*)NODE_VARIABLE, (node*)stmts_node);
+  return cons_head((node*)NODE_STMTS, 0);
 }
 
 /* (:begin body) */
 static node*
 new_begin(parser_state *p, node *body)
 {
-  // TEMPORARILY DISABLED: Always use traditional nodes for Group 15
-  // if (!p->var_nodes_enabled) {
+  if (!p->var_nodes_enabled) {
     return cons_head((node*)NODE_BEGIN, body);
-  // }
+  }
 
   size_t total_size = sizeof(struct mrb_ast_begin_node);
   enum mrb_ast_size_class class = size_to_class(total_size);
@@ -546,10 +530,9 @@ new_mod_rescue(parser_state *p, node *body, node *resq)
 static node*
 new_ensure(parser_state *p, node *a, node *b)
 {
-  // TEMPORARILY DISABLED: Always use traditional nodes for Group 15
-  // if (!p->var_nodes_enabled) {
+  if (!p->var_nodes_enabled) {
     return cons_head((node*)NODE_ENSURE, cons(a, cons(0, b)));
-  // }
+  }
 
   size_t total_size = sizeof(struct mrb_ast_ensure_node);
   enum mrb_ast_size_class class = size_to_class(total_size);

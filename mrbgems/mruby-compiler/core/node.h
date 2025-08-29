@@ -899,11 +899,6 @@ struct mrb_ast_scope_node {
   struct mrb_ast_node *body;
 };
 
-struct mrb_ast_stmts_node {
-  struct mrb_ast_var_header hdr;
-  struct mrb_ast_node *stmts;
-};
-
 struct mrb_ast_begin_node {
   struct mrb_ast_var_header hdr;
   struct mrb_ast_node *body;
@@ -941,7 +936,6 @@ struct mrb_ast_when_node {
 #define block_arg_node(n) ((struct mrb_ast_block_arg_node*)(n))
 #define method_node(n) ((struct mrb_ast_method_node*)(n))
 #define scope_node(n) ((struct mrb_ast_scope_node*)(n))
-#define stmts_node(n) ((struct mrb_ast_stmts_node*)(n))
 #define begin_node(n) ((struct mrb_ast_begin_node*)(n))
 #define ensure_node(n) ((struct mrb_ast_ensure_node*)(n))
 #define iter_node(n) ((struct mrb_ast_iter_node*)(n))
