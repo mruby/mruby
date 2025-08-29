@@ -5925,6 +5925,72 @@ gen_ensure_var(codegen_scope *s, const node *varnode, int val)
   codegen_ensure(s, &ensure_node_stack, val);
 }
 
+// Group 16: Declarations and Definitions
+
+static void
+gen_alias_var(codegen_scope *s, const node *varnode, int val)
+{
+  struct mrb_ast_alias_node *alias = alias_node(varnode);
+
+  // Create stack-allocated traditional node structure
+  node alias_node_stack;
+  alias_node_stack.car = (node*)(intptr_t)alias->new_name;
+  alias_node_stack.cdr = (node*)(intptr_t)alias->old_name;
+
+  codegen_alias(s, &alias_node_stack, val);
+}
+
+static void
+gen_undef_var(codegen_scope *s, const node *varnode, int val)
+{
+  struct mrb_ast_undef_node *undef = undef_node(varnode);
+
+  // Create stack-allocated traditional node structure
+  node undef_node_stack;
+  undef_node_stack.car = undef->syms;
+  undef_node_stack.cdr = NULL;
+
+  codegen_undef(s, &undef_node_stack, val);
+}
+
+static void
+gen_postexe_var(codegen_scope *s, const node *varnode, int val)
+{
+  struct mrb_ast_postexe_node *postexe = postexe_node(varnode);
+
+  // Create stack-allocated traditional node structure
+  node postexe_node_stack;
+  postexe_node_stack.car = postexe->body;
+  postexe_node_stack.cdr = NULL;
+
+  codegen_postexe(s, &postexe_node_stack, val);
+}
+
+static void
+gen_sdef_var(codegen_scope *s, const node *varnode, int val)
+{
+  struct mrb_ast_sdef_node *sdef = sdef_node(varnode);
+
+  // Extract components and call codegen_sdef logic directly
+  node *recv = sdef->obj;
+  mrb_sym method_sym = sdef->name;
+  node *args_body = sdef->args;
+  node *body = sdef->body;
+
+  int sym = new_sym(s, method_sym);
+  int idx = lambda_body(s, args_body ? args_body : body, 0);
+
+  codegen(s, recv, VAL);
+  pop();
+  genop_1(s, OP_SCLASS, cursp());
+  push();
+  genop_2(s, OP_METHOD, cursp(), idx);
+  push(); pop();
+  pop();
+  genop_2(s, OP_DEF, cursp(), sym);
+  if (val) push();
+}
+
 static void
 gen_args_tail_var(codegen_scope *s, node *varnode, int val)
 {
@@ -6236,6 +6302,22 @@ codegen_variable_node(codegen_scope *s, node *varnode, int val)
 
   case NODE_ENSURE:
     gen_ensure_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_ALIAS:
+    gen_alias_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_UNDEF:
+    gen_undef_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_POSTEXE:
+    gen_postexe_var(s, varnode, val);
+    return TRUE;
+
+  case NODE_SDEF:
+    gen_sdef_var(s, varnode, val);
     return TRUE;
 
   default:

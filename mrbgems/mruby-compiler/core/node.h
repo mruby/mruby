@@ -923,6 +923,32 @@ struct mrb_ast_when_node {
   struct mrb_ast_node *next_when;
 };
 
+// Group 16: Declarations and Definitions
+
+struct mrb_ast_alias_node {
+  struct mrb_ast_var_header hdr;
+  mrb_sym new_name;
+  mrb_sym old_name;
+};
+
+struct mrb_ast_undef_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *syms;
+};
+
+struct mrb_ast_postexe_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *body;
+};
+
+struct mrb_ast_sdef_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *obj;
+  mrb_sym name;
+  struct mrb_ast_node *args;
+  struct mrb_ast_node *body;
+};
+
 #define fcall_node(n) ((struct mrb_ast_fcall_node*)(n))
 #define zsuper_node(n) ((struct mrb_ast_zsuper_node*)(n))
 #define lambda_node(n) ((struct mrb_ast_lambda_node*)(n))
@@ -940,6 +966,10 @@ struct mrb_ast_when_node {
 #define ensure_node(n) ((struct mrb_ast_ensure_node*)(n))
 #define iter_node(n) ((struct mrb_ast_iter_node*)(n))
 #define when_node(n) ((struct mrb_ast_when_node*)(n))
+#define alias_node(n) ((struct mrb_ast_alias_node*)(n))
+#define undef_node(n) ((struct mrb_ast_undef_node*)(n))
+#define postexe_node(n) ((struct mrb_ast_postexe_node*)(n))
+#define sdef_node(n) ((struct mrb_ast_sdef_node*)(n))
 
 #define FCALL_NODE_METHOD_NAME(n) (fcall_node(n)->method_name)
 #define FCALL_NODE_ARGS(n) (fcall_node(n)->args)

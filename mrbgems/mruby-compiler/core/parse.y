@@ -578,7 +578,18 @@ new_false(parser_state *p)
 static node*
 new_alias(parser_state *p, mrb_sym a, mrb_sym b)
 {
-  return cons_head((node*)NODE_ALIAS, cons(sym_to_node(a), sym_to_node(b)));
+  if (!p->var_nodes_enabled) {
+    return cons_head((node*)NODE_ALIAS, cons(sym_to_node(a), sym_to_node(b)));
+  }
+
+  size_t total_size = sizeof(struct mrb_ast_alias_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+  struct mrb_ast_alias_node *alias_node = (struct mrb_ast_alias_node*)
+    parser_alloc_var(p, total_size, class);
+  init_var_header(&alias_node->hdr, p, NODE_ALIAS, class);
+  alias_node->new_name = a;
+  alias_node->old_name = b;
+  return cons_head((node*)NODE_VARIABLE, (node*)alias_node);
 }
 
 /* Forward declaration for variable-sized call node */
@@ -725,7 +736,17 @@ new_case(parser_state *p, node *a, node *b)
 static node*
 new_postexe(parser_state *p, node *a)
 {
-  return cons_head((node*)NODE_POSTEXE, a);
+  if (!p->var_nodes_enabled) {
+    return cons_head((node*)NODE_POSTEXE, a);
+  }
+
+  size_t total_size = sizeof(struct mrb_ast_postexe_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+  struct mrb_ast_postexe_node *postexe_node = (struct mrb_ast_postexe_node*)
+    parser_alloc_var(p, total_size, class);
+  init_var_header(&postexe_node->hdr, p, NODE_POSTEXE, class);
+  postexe_node->body = a;
+  return cons_head((node*)NODE_VARIABLE, (node*)postexe_node);
 }
 
 /* (:self) */
@@ -1844,7 +1865,17 @@ new_const(parser_state *p, mrb_sym sym)
 static node*
 new_undef(parser_state *p, mrb_sym sym)
 {
-  return list2((node*)NODE_UNDEF, sym_to_node(sym));
+  if (!p->var_nodes_enabled) {
+    return list2((node*)NODE_UNDEF, sym_to_node(sym));
+  }
+
+  size_t total_size = sizeof(struct mrb_ast_undef_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+  struct mrb_ast_undef_node *undef_node = (struct mrb_ast_undef_node*)
+    parser_alloc_var(p, total_size, class);
+  init_var_header(&undef_node->hdr, p, NODE_UNDEF, class);
+  undef_node->syms = sym_to_node(sym);
+  return cons_head((node*)NODE_VARIABLE, (node*)undef_node);
 }
 
 /* (:class class super body) */
@@ -1906,7 +1937,20 @@ static node*
 new_sdef(parser_state *p, node *o, mrb_sym m, node *a, node *b)
 {
   void_expr_error(p, o);
-  return list6((node*)NODE_SDEF, o, sym_to_node(m), 0, a, b);
+  if (!p->var_nodes_enabled) {
+    return list6((node*)NODE_SDEF, o, sym_to_node(m), 0, a, b);
+  }
+
+  size_t total_size = sizeof(struct mrb_ast_sdef_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+  struct mrb_ast_sdef_node *sdef_node = (struct mrb_ast_sdef_node*)
+    parser_alloc_var(p, total_size, class);
+  init_var_header(&sdef_node->hdr, p, NODE_SDEF, class);
+  sdef_node->obj = o;
+  sdef_node->name = m;
+  sdef_node->args = a;
+  sdef_node->body = b;
+  return cons_head((node*)NODE_VARIABLE, (node*)sdef_node);
 }
 
 static void
