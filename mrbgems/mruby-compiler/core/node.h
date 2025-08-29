@@ -8,7 +8,6 @@
 #define MRUBY_COMPILER_NODE_H
 
 enum node_type {
-  NODE_METHOD,
   NODE_SCOPE,
   NODE_BLOCK,
   NODE_IF,
