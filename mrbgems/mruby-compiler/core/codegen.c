@@ -5945,12 +5945,8 @@ gen_undef_var(codegen_scope *s, const node *varnode, int val)
 {
   struct mrb_ast_undef_node *undef = undef_node(varnode);
 
-  // Create stack-allocated traditional node structure
-  node undef_node_stack;
-  undef_node_stack.car = undef->syms;
-  undef_node_stack.cdr = NULL;
-
-  codegen_undef(s, &undef_node_stack, val);
+  // The syms field now contains the list directly
+  codegen_undef(s, undef->syms, val);
 }
 
 static void

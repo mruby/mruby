@@ -1825,14 +1825,14 @@ new_const(parser_state *p, mrb_sym sym)
 
 /* (:undef a...) */
 static node*
-new_undef(parser_state *p, mrb_sym sym)
+new_undef(parser_state *p, node *syms)
 {
   size_t total_size = sizeof(struct mrb_ast_undef_node);
   enum mrb_ast_size_class class = size_to_class(total_size);
   struct mrb_ast_undef_node *undef_node = (struct mrb_ast_undef_node*)
     parser_alloc_var(p, total_size, class);
   init_var_header(&undef_node->hdr, p, NODE_UNDEF, class);
-  undef_node->syms = sym_to_node(sym);
+  undef_node->syms = syms;
   return cons_head((node*)NODE_VARIABLE, (node*)undef_node);
 }
 
@@ -3102,7 +3102,7 @@ stmt            : keyword_alias fsym {p->lstate = EXPR_FNAME;} fsym
                     }
                 | keyword_undef undef_list
                     {
-                      $$ = $2;
+                      $$ = new_undef(p, $2);
                     }
                 | stmt modifier_if expr_value
                     {
@@ -3586,7 +3586,7 @@ fsym            : fname
 
 undef_list      : fsym
                     {
-                      $$ = new_undef(p, $1);
+                      $$ = cons(sym_to_node($1), 0);
                     }
                 | undef_list ',' {p->lstate = EXPR_FNAME;} fsym
                     {
