@@ -2635,10 +2635,6 @@ call_with_block(parser_state *p, node *a, node *b)
 static node*
 new_negate(parser_state *p, node *n)
 {
-  if (!p->var_nodes_enabled) {
-    return cons_head((node*)NODE_NEGATE, n);
-  }
-
   size_t total_size = sizeof(struct mrb_ast_negate_node);
   enum mrb_ast_size_class class = size_to_class(total_size);
   struct mrb_ast_negate_node *negate_node = (struct mrb_ast_negate_node*)
