@@ -2475,10 +2475,6 @@ new_back_ref(parser_state *p, int n)
 static node*
 new_nth_ref(parser_state *p, int n)
 {
-  if (!p->var_nodes_enabled) {
-    return cons_head((node*)NODE_NTH_REF, int_to_node(n));
-  }
-
   size_t total_size = sizeof(struct mrb_ast_nth_ref_node);
   enum mrb_ast_size_class class = size_to_class(total_size);
   struct mrb_ast_nth_ref_node *nthref_node = (struct mrb_ast_nth_ref_node*)
