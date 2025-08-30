@@ -2444,17 +2444,16 @@ new_regx(parser_state *p, const char *p1, const char* p2, const char* p3)
 static node*
 new_dregx(parser_state *p, node *a, node *b)
 {
-  if (!p->var_nodes_enabled) {
-    return cons_head((node*)NODE_DREGX, cons(a, b));
-  }
-
   size_t total_size = sizeof(struct mrb_ast_dregx_node);
   enum mrb_ast_size_class class = size_to_class(total_size);
   struct mrb_ast_dregx_node *n = (struct mrb_ast_dregx_node*)
     parser_alloc_var(p, total_size, class);
   init_var_header(&n->hdr, p, NODE_DREGX, class);
   n->list = a;
-  n->options = (int)(intptr_t)b;
+
+  // Store the whole regx structure for codegen
+  // b is (NODE_REGX . (pattern . (flags . encoding)))
+  n->regx = (struct mrb_ast_node*)b;
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
@@ -4698,7 +4697,10 @@ string_fragment : tCHAR
                 | tSTRING
                 | tSTRING_BEG tSTRING
                     {
-                      $$ = $2;
+                      node *data = $2->cdr;  /* (string . length) */
+                      const char *string = (const char*)data->car;
+                      size_t len = (size_t)node_to_int(data->cdr);
+                      $$ = new_str(p, string, len);
                     }
                 | tSTRING_BEG string_rep tSTRING
                     {
@@ -4763,7 +4765,11 @@ xstring         : tXSTRING_BEG tXSTRING
 
 regexp          : tREGEXP_BEG tREGEXP
                     {
-                        $$ = $2;
+                      node *data = $2->cdr;  /* (pattern . (flags . encoding)) */
+                      const char *pattern = (const char*)data->car;
+                      const char *flags = (const char*)data->cdr->car;
+                      const char *encoding = (const char*)data->cdr->cdr;
+                      $$ = new_regx(p, pattern, flags, encoding);
                     }
                 | tREGEXP_BEG string_rep tREGEXP
                     {
@@ -6454,11 +6460,11 @@ parse_string(parser_state *p)
     else {
       encp = NULL;
     }
-    pylval.nd = new_regx(p, s, dup, encp);
+    pylval.nd = cons_head((node*)NODE_REGX, cons((node*)s, cons((node*)dup, (node*)encp)));
 
     return tREGEXP;
   }
-  pylval.nd = new_str(p, tok(p), toklen(p));
+  pylval.nd = cons_head((node*)NODE_STR, cons((node*)strndup(tok(p), toklen(p)), int_to_node(toklen(p))));
 
   return tSTRING;
 }

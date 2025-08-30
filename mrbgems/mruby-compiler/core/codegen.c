@@ -5653,8 +5653,8 @@ static void
 gen_dregx_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_dregx_node *n = (struct mrb_ast_dregx_node*)varnode;
-  // Stack allocation for compatibility with existing codegen
-  struct mrb_ast_node temp_tree = { .car = n->list, .cdr = int_to_node(n->options) };
+  // Reconstruct the traditional structure: (list . regx)
+  struct mrb_ast_node temp_tree = { .car = (node*)n->list, .cdr = (node*)n->regx };
   codegen_dregx(s, (node*)&temp_tree, val);
 }
 

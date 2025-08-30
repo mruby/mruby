@@ -708,7 +708,7 @@ struct mrb_ast_dxstr_node {
 struct mrb_ast_dregx_node {
   struct mrb_ast_var_header hdr;
   struct mrb_ast_node *list;
-  int options;
+  struct mrb_ast_node *regx;
 };
 
 struct mrb_ast_dregx_once_node {
