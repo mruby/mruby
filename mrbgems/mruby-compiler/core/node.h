@@ -518,6 +518,7 @@ struct mrb_ast_dstr_node {
 struct mrb_ast_regx_node {
   struct mrb_ast_var_header hdr;
   const char *pattern;
+  int pattern_len;
   const char *flags;
   const char *encoding;
 };
@@ -708,7 +709,8 @@ struct mrb_ast_dxstr_node {
 struct mrb_ast_dregx_node {
   struct mrb_ast_var_header hdr;
   struct mrb_ast_node *list;
-  struct mrb_ast_node *regx;
+  const char *flags;
+  const char *encoding;
 };
 
 struct mrb_ast_dregx_once_node {

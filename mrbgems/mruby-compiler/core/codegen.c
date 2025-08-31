@@ -68,6 +68,12 @@
 /* Maximum number of arguments for some opcodes like OP_SUPER or OP_ARGARY. */
 #define MAXARG_S (1<<16)
 
+/* Macro to detect NODE_LITERAL_DELIM separators in literal arrays */
+#define IS_LITERAL_DELIM(node) \
+  ((node) && (node)->car && \
+   node_to_int((node)->car->car) == NODE_LITERAL_DELIM && \
+   (node)->car->cdr == NULL)
+
 typedef mrb_ast_node node;
 typedef struct mrb_parser_state parser_state;
 
@@ -1201,6 +1207,7 @@ get_int_operand(codegen_scope *s, struct mrb_insn_data *data, mrb_int *n)
 
 static int new_lit_str2(codegen_scope *s, const char *str1, mrb_int len1, const char *str2, mrb_int len2);
 static int find_pool_str(codegen_scope *s, const char *str1, mrb_int len1, const char *str2, mrb_int len2);
+static void codegen_cons_list_string(codegen_scope *s, node *list, int val);
 
 /*
  * Reallocates or allocates memory for a string literal in the IREP's literal pool.
@@ -3165,72 +3172,111 @@ static void
 gen_literal_array(codegen_scope *s, node *tree, mrb_bool sym, int val)
 {
   if (val) {
-    int i = 0, j = 0, gen = 0;
+    int array_size = 0;
+    node *current = tree;
 
-    while (tree) {
-      switch (node_to_int(tree->car->car)) {
-      case NODE_STR:
-        if ((tree->cdr == NULL) && (node_to_int(tree->car->cdr->cdr) == 0))
-          break;
-        /* fall through */
-      case NODE_STMTS:
-      case NODE_BEGIN:
-        codegen(s, tree->car, VAL);
-        j++;
-        break;
+    /* Process each segment separated by NODE_LITERAL_DELIM */
+    while (current) {
+      /* Build segment from current position to next delimiter */
+      node *segment = NULL;
+      node **segment_tail = &segment;
 
-      case NODE_LITERAL_DELIM:
-        if (j > 0) {
-          j = 0;
-          i++;
-          if (sym)
+      /* Collect nodes until we hit a delimiter or end */
+      while (current && !IS_LITERAL_DELIM(current)) {
+        /* Add this node to segment */
+        node *segment_node = (node*)mrbc_malloc(sizeof(node));
+        segment_node->car = current->car;
+        segment_node->cdr = NULL;
+
+        *segment_tail = segment_node;
+        segment_tail = &segment_node->cdr;
+
+        current = current->cdr;
+      }
+
+      /* Process the segment if it has content */
+      if (segment) {
+        /* Check if this is an empty string segment (for %w[] case) */
+        mrb_bool is_empty_segment = TRUE;
+        node *check = segment;
+        while (check) {
+          if (check->car) {
+            mrb_int len = node_to_int(check->car->car);
+            if (len > 0) {
+              is_empty_segment = FALSE;
+              break;
+            }
+            else if (len < 0) {
+              /* Expression node - not empty */
+              is_empty_segment = FALSE;
+              break;
+            }
+            /* len == 0 means empty string, continue checking */
+          }
+          check = check->cdr;
+        }
+
+        /* Only process non-empty segments */
+        if (!is_empty_segment) {
+          /* Use codegen_cons_list_string for this segment */
+          codegen_cons_list_string(s, segment, VAL);
+
+          /* Apply symbol conversion if needed */
+          if (sym) {
             gen_intern(s);
+          }
+
+          array_size++;
         }
-        break;
-      }
-      while (j >= 2) {
-        pop(); pop();
-        genop_1(s, OP_STRCAT, cursp());
-        push();
-        j--;
-      }
-      if (i > GEN_LIT_ARY_MAX) {
-        pop_n(i);
-        if (gen) {
-          pop();
-          genop_2(s, OP_ARYPUSH, cursp(), i);
+
+        /* Free the temporary segment nodes */
+        node *temp = segment;
+        while (temp) {
+          node *next = temp->cdr;
+          mrbc_free(temp);
+          temp = next;
         }
-        else {
-          genop_2(s, OP_ARRAY, cursp(), i);
-          gen = 1;
-        }
-        push();
-        i = 0;
       }
-      tree = tree->cdr;
+
+      /* Skip the delimiter if present */
+      if (current && IS_LITERAL_DELIM(current)) {
+        current = current->cdr;
+      }
     }
-    if (j > 0) {
-      i++;
-      if (sym)
-        gen_intern(s);
-    }
-    pop_n(i);
-    if (gen) {
-      pop();
-      genop_2(s, OP_ARYPUSH, cursp(), i);
+
+    /* Generate the array from pushed elements */
+    if (array_size > 0) {
+      pop_n(array_size);
+      genop_2(s, OP_ARRAY, cursp(), array_size);
     }
     else {
-      genop_2(s, OP_ARRAY, cursp(), i);
+      genop_2(s, OP_ARRAY, cursp(), 0);
     }
     push();
   }
   else {
-    while (tree) {
-      switch (node_to_int(tree->car->car)) {
-      case NODE_STMTS: case NODE_BEGIN: case NODE_BLOCK:
-        codegen(s, tree->car, NOVAL);
+    /* NOVAL case: only evaluate expressions for side effects */
+    node *current = tree;
+
+    while (current) {
+      /* Process nodes until delimiter */
+      while (current && !IS_LITERAL_DELIM(current)) {
+        node *elem = current->car;
+        if (elem) {
+          mrb_int len = node_to_int(elem->car);
+          if (len < 0) {
+            /* Expression: (-1 . node) - evaluate for side effects */
+            codegen(s, (node*)elem->cdr, NOVAL);
+          }
+          /* String literals: (len . str) - no side effects, skip */
+        }
+        current = current->cdr;
       }
-      tree = tree->cdr;
+
+      /* Skip delimiter */
+      if (current && IS_LITERAL_DELIM(current)) {
+        current = current->cdr;
+      }
     }
   }
 }
@@ -4261,9 +4307,29 @@ codegen_xstr(codegen_scope *s, node *tree, int val)
   int off = new_lit_str(s, p, len);
   int sym;
 
+  /* Always execute backtick command for side effects, even in NOVAL mode */
   push();
   genop_2(s, OP_STRING, cursp(), off);
   push(); push();
+  pop_n(3);
+  sym = new_sym(s, MRB_OPSYM_2(s->mrb, tick)); /* ` */
+  genop_3(s, OP_SSEND, cursp(), sym, 1);
+
+  if (val) {
+    push(); /* Keep result on stack if needed */
+  }
+  /* If val=0, the result is discarded but the method was still called */
+}
+
+static void
+codegen_dxstr(codegen_scope *s, node *tree, int val)
+{
+  int sym;
+
+  push();
+  /* Use common cons list string codegen since tree is now in cons list format */
+  codegen_cons_list_string(s, tree, VAL);
+  push();                   /* for block */
   pop_n(3);
   sym = new_sym(s, MRB_OPSYM_2(s->mrb, tick)); /* ` */
   genop_3(s, OP_SSEND, cursp(), sym, 1);
@@ -4277,68 +4343,18 @@ codegen_words(codegen_scope *s, node *tree, int val)
 }
 
 static void
-codegen_dxstr(codegen_scope *s, node *tree, int val)
-{
-  node *n;
-  int sym = new_sym(s, MRB_SYM_2(s->mrb, Kernel));
-
-  push();
-  codegen(s, tree->car, VAL);
-  n = tree->cdr;
-  while (n) {
-    if (node_to_int(n->car->car) == NODE_XSTR) {
-      n->car->car = (struct mrb_ast_node*)(intptr_t)NODE_STR;
-      mrb_assert(!n->cdr); /* must be the end */
-    }
-    codegen(s, n->car, VAL);
-    pop(); pop();
-    genop_1(s, OP_STRCAT, cursp());
-    push();
-    n = n->cdr;
-  }
-  push();                   /* for block */
-  pop_n(3);
-  sym = new_sym(s, MRB_OPSYM_2(s->mrb, tick)); /* ` */
-  genop_3(s, OP_SSEND, cursp(), sym, 1);
-  if (val) push();
-}
-
-static void
 codegen_symbols(codegen_scope *s, node *tree, int val)
 {
   gen_literal_array(s, tree, TRUE, val);
 }
 
+/* codegen_cons_list_string forward declaration moved to top of file */
+
 static void
 codegen_heredoc_dstr(codegen_scope *s, node *tree, int val)
 {
-  if (val) {
-    node *n = tree;
-
-    if (!n) {
-      gen_load_nil(s, 1);
-      return;
-    }
-    codegen(s, n->car, VAL);
-    n = n->cdr;
-    while (n) {
-      codegen(s, n->car, VAL);
-      pop(); pop();
-      genop_1(s, OP_STRCAT, cursp());
-      push();
-      n = n->cdr;
-    }
-  }
-  else {
-    node *n = tree;
-
-    while (n) {
-      if (node_to_int(n->car->car) != NODE_STR) {
-        codegen(s, n->car, NOVAL);
-      }
-      n = n->cdr;
-    }
-  }
+  /* Use common cons list string codegen since tree is now in cons list format */
+  codegen_cons_list_string(s, tree, val);
 }
 
 static void
@@ -4351,6 +4367,125 @@ codegen_str(codegen_scope *s, node *tree, int val)
 
     genop_2(s, OP_STRING, cursp(), off);
     push();
+  }
+}
+
+/* Common function to generate bytecode for cons list string representation
+ * Handles list of elements where each element is either:
+ * - (len . str) for string literals
+ * - (-1 . node) for expressions that need evaluation
+ */
+/* Common function to generate bytecode for cons list string representation
+ * Handles list of elements where each element is either:
+ * - (len . str) for string literals
+ * - (-1 . node) for expressions that need evaluation
+ */
+/* Common function to generate bytecode for cons list string representation
+ * Handles list of elements where each element is either:
+ * - (len . str) for string literals
+ * - (-1 . node) for expressions that need evaluation
+ */
+/* Common function to generate bytecode for cons list string representation
+ * Handles list of elements where each element is either:
+ * - (len . str) for string literals
+ * - (-1 . node) for expressions that need evaluation
+ */
+static void
+codegen_cons_list_string(codegen_scope *s, node *list, int val)
+{
+  if (!list) {
+    if (val) {
+      gen_load_nil(s, 1);
+    }
+    return;
+  }
+
+  if (val) {
+    /* Handle as cons list of string parts with safety checks */
+    node *n = list;
+
+    /* Generate first element */
+    node *elem = n->car;
+    if (!elem) {
+      gen_load_nil(s, 1);
+      return;
+    }
+
+
+    mrb_int len = node_to_int(elem->car);
+
+    if (len >= 0) {
+      /* String literal: (len . str) */
+      char *str = (char*)elem->cdr;
+      if (str) {
+        int off = new_lit_str(s, str, len);
+        genop_2(s, OP_STRING, cursp(), off);
+        push();
+      }
+      else {
+        /* Handle null string */
+        int off = new_lit_str(s, "", 0);
+        genop_2(s, OP_STRING, cursp(), off);
+        push();
+      }
+    }
+    else {
+      /* Expression: (-1 . node) */
+      codegen(s, (node*)elem->cdr, VAL);
+    }
+
+    /* Concatenate remaining elements */
+    n = n->cdr;
+    while (n) {
+      elem = n->car;
+      if (!elem) break;
+
+
+      len = node_to_int(elem->car);
+
+      if (len >= 0) {
+        /* String literal: (len . str) */
+        char *str = (char*)elem->cdr;
+        if (str) {
+          int off = new_lit_str(s, str, len);
+          genop_2(s, OP_STRING, cursp(), off);
+          push();
+        }
+        else {
+          /* Handle null string */
+          int off = new_lit_str(s, "", 0);
+          genop_2(s, OP_STRING, cursp(), off);
+          push();
+        }
+      }
+      else {
+        /* Expression: (-1 . node) */
+        codegen(s, (node*)elem->cdr, VAL);
+      }
+
+      pop(); pop();
+      genop_1(s, OP_STRCAT, cursp());
+      push();
+      n = n->cdr;
+    }
+  }
+  else {
+    /* NOVAL case: only evaluate expressions for side effects */
+    node *n = list;
+    while (n) {
+      node *elem = n->car;
+      if (!elem) break;
+
+
+      mrb_int len = node_to_int(elem->car);
+
+      if (len < 0) {
+        /* Expression: (-1 . node) - evaluate for side effects */
+        codegen(s, (node*)elem->cdr, NOVAL);
+      }
+      /* String literals: (len . str) - no side effects, skip */
+      n = n->cdr;
+    }
   }
 }
 
@@ -4407,14 +4542,8 @@ codegen_dregx(codegen_scope *s, node *tree, int val)
     push();
   }
   else {
-    node *n = tree->car;
-
-    while (n) {
-      if (node_to_int(n->car->car) != NODE_STR) {
-        codegen(s, n->car, NOVAL);
-      }
-      n = n->cdr;
-    }
+    /* NOVAL case: still need to evaluate expressions for side effects */
+    codegen_cons_list_string(s, tree->car, NOVAL);
   }
 }
 
@@ -5424,11 +5553,11 @@ gen_super_var(codegen_scope *s, node *varnode, int val)
 static void
 gen_dstr_var(codegen_scope *s, node *varnode, int val)
 {
-  struct mrb_ast_dstr_node *dstr_n = dstr_node(varnode->car);
-  node *list = DSTR_NODE_LIST(dstr_n);
+  struct mrb_ast_dstr_node *dstr_n = dstr_node(varnode);
+  node *list = dstr_n->list;
 
-  /* Use traditional dstr codegen logic */
-  codegen_heredoc_dstr(s, list, val);
+  /* Use common cons list string codegen */
+  codegen_cons_list_string(s, list, val);
 }
 
 static void
@@ -5645,17 +5774,69 @@ gen_xstr_var(codegen_scope *s, node *varnode, int val)
 static void
 gen_dxstr_var(codegen_scope *s, node *varnode, int val)
 {
-  struct mrb_ast_dxstr_node *n = (struct mrb_ast_dxstr_node*)varnode;
-  codegen_dxstr(s, n->list, val);
+  struct mrb_ast_dxstr_node *n = dxstr_node(varnode);
+  node *list = n->list;
+  int sym;
+
+  /* Always execute backtick command for side effects, even in NOVAL mode */
+  push();
+  /* Generate string using common function */
+  codegen_cons_list_string(s, list, VAL);
+
+  push();                   /* for block */
+  pop_n(3);
+  sym = new_sym(s, MRB_OPSYM_2(s->mrb, tick)); /* ` */
+  genop_3(s, OP_SSEND, cursp(), sym, 1);
+
+  if (val) {
+    push(); /* Keep result on stack if needed */
+  }
+  /* If val=0, the result is discarded but the method was still called */
 }
 
 static void
 gen_dregx_var(codegen_scope *s, node *varnode, int val)
 {
-  struct mrb_ast_dregx_node *n = (struct mrb_ast_dregx_node*)varnode;
-  // Reconstruct the traditional structure: (list . regx)
-  struct mrb_ast_node temp_tree = { .car = (node*)n->list, .cdr = (node*)n->regx };
-  codegen_dregx(s, (node*)&temp_tree, val);
+  struct mrb_ast_dregx_node *n = dregx_node(varnode);
+
+  if (val) {
+    int sym = new_sym(s, mrb_intern_lit(s->mrb, REGEXP_CLASS));
+    int argc = 1;
+    int off;
+
+    genop_1(s, OP_OCLASS, cursp());
+    genop_2(s, OP_GETMCNST, cursp(), sym);
+    push();
+
+    /* Generate regex pattern using common cons list function */
+    codegen_cons_list_string(s, n->list, VAL);
+
+    /* Add flags if present */
+    if (n->flags && *n->flags) {
+      off = new_lit_cstr(s, n->flags);
+      genop_2(s, OP_STRING, cursp(), off);
+      push();
+      argc++;
+    }
+
+    /* Add encoding if present */
+    if (n->encoding && *n->encoding) {
+      off = new_lit_cstr(s, n->encoding);
+      genop_2(s, OP_STRING, cursp(), off);
+      push();
+      argc++;
+    }
+
+    push(); /* space for a block */
+    pop_n(argc+2);
+    sym = new_sym(s, MRB_SYM_2(s->mrb, compile));
+    genop_3(s, OP_SEND, cursp(), sym, argc);
+    push();
+  }
+  else {
+    /* NOVAL case: still need to evaluate expressions for side effects */
+    codegen_cons_list_string(s, n->list, NOVAL);
+  }
 }
 
 static void
@@ -5841,10 +6022,10 @@ gen_words_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_words_node *n = words_node(varnode);
   // Create stack-allocated node structure for traditional codegen
-  struct mrb_ast_node stack_node;
+  struct mrb_ast_head_node stack_node = {0};
   stack_node.car = (node*)NODE_WORDS;
   stack_node.cdr = n->args;
-  codegen_words(s, &stack_node, val);
+  codegen_words(s, (node*)&stack_node, val);
 }
 
 static void
@@ -5852,10 +6033,10 @@ gen_symbols_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_symbols_node *n = symbols_node(varnode);
   // Create stack-allocated node structure for traditional codegen
-  struct mrb_ast_node stack_node;
+  struct mrb_ast_head_node stack_node = {0};
   stack_node.car = (node*)NODE_SYMBOLS;
   stack_node.cdr = n->args;
-  codegen_symbols(s, &stack_node, val);
+  codegen_symbols(s, (node*)&stack_node, val);
 }
 
 
@@ -5864,10 +6045,10 @@ gen_splat_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_splat_node *n = splat_node(varnode);
   // Create stack-allocated node structure for traditional codegen
-  struct mrb_ast_node stack_node;
+  struct mrb_ast_head_node stack_node = {0};
   stack_node.car = (node*)NODE_SPLAT;
   stack_node.cdr = n->value;
-  codegen_splat(s, &stack_node, val);
+  codegen_splat(s, (node*)&stack_node, val);
 }
 
 static void
@@ -5875,10 +6056,10 @@ gen_block_arg_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_block_arg_node *n = block_arg_node(varnode);
   // Create stack-allocated node structure for traditional codegen
-  struct mrb_ast_node stack_node;
+  struct mrb_ast_head_node stack_node = {0};
   stack_node.car = (node*)NODE_BLOCK_ARG;
   stack_node.cdr = n->value;
-  codegen_block_arg(s, &stack_node, val);
+  codegen_block_arg(s, (node*)&stack_node, val);
 }
 
 static void
