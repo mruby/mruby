@@ -57,9 +57,7 @@ enum node_type {
   NODE_NEGATE,
   NODE_LAMBDA,
   NODE_SYM,
-  NODE_STR,
   NODE_DSTR,
-  NODE_XSTR,
   NODE_DXSTR,
   NODE_REGX,
   NODE_DREGX,
@@ -154,7 +152,7 @@ struct mrb_ast_head_node {
 struct mrb_ast_var_header {
   uint16_t lineno;           /* Line number information */
   uint16_t filename_index;   /* File index information */
-  uint8_t node_type;         /* NODE_INT, NODE_STR, NODE_SYM, etc. */
+  uint8_t node_type;         /* NODE_INT, NODE_SYM, NODE_DSTR, etc. */
   uint8_t size_class;        /* Size class for allocation/deallocation */
   uint16_t flags;            /* Type-specific flags and metadata */
   /* Total: 8 bytes header for all variable nodes */

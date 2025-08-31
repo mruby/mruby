@@ -3355,7 +3355,6 @@ true_always(node *tree)
   switch (node_to_int(tree->car)) {
   case NODE_TRUE:
   case NODE_INT:
-  case NODE_STR:
   case NODE_SYM:
     return TRUE;
   default:
@@ -4299,27 +4298,6 @@ codegen_int(codegen_scope *s, node *tree, int val)
   push();
 }
 
-static void
-codegen_xstr(codegen_scope *s, node *tree, int val)
-{
-  char *p = (char*)tree->car;
-  mrb_int len = node_to_int(tree->cdr);
-  int off = new_lit_str(s, p, len);
-  int sym;
-
-  /* Always execute backtick command for side effects, even in NOVAL mode */
-  push();
-  genop_2(s, OP_STRING, cursp(), off);
-  push(); push();
-  pop_n(3);
-  sym = new_sym(s, MRB_OPSYM_2(s->mrb, tick)); /* ` */
-  genop_3(s, OP_SSEND, cursp(), sym, 1);
-
-  if (val) {
-    push(); /* Keep result on stack if needed */
-  }
-  /* If val=0, the result is discarded but the method was still called */
-}
 
 static void
 codegen_dxstr(codegen_scope *s, node *tree, int val)
@@ -4357,18 +4335,6 @@ codegen_heredoc_dstr(codegen_scope *s, node *tree, int val)
   codegen_cons_list_string(s, tree, val);
 }
 
-static void
-codegen_str(codegen_scope *s, node *tree, int val)
-{
-  if (val) {
-    char *p = (char*)tree->car;
-    mrb_int len = node_to_int(tree->cdr);
-    int off = new_lit_str(s, p, len);
-
-    genop_2(s, OP_STRING, cursp(), off);
-    push();
-  }
-}
 
 /* Common function to generate bytecode for cons list string representation
  * Handles list of elements where each element is either:
@@ -5759,17 +5725,6 @@ gen_until_mod_var(codegen_scope *s, node *varnode, int val)
   codegen_while_until(s, (node*)&temp_tree, val, NODE_UNTIL_MOD);
 }
 
-static void
-gen_xstr_var(codegen_scope *s, node *varnode, int val)
-{
-  struct mrb_ast_xstr_node *n = (struct mrb_ast_xstr_node*)varnode;
-  // Stack allocation for compatibility with existing codegen
-  mrb_int len;
-  const char *str = mrb_sym2name_len(s->mrb, n->name, &len);
-  struct mrb_ast_node temp_car = { .car = (node*)str, .cdr = int_to_node((int)len) };
-  struct mrb_ast_node temp_tree = { .car = (node*)&temp_car, .cdr = NULL };
-  codegen_xstr(s, (node*)&temp_tree, val);
-}
 
 static void
 gen_dxstr_var(codegen_scope *s, node *varnode, int val)
@@ -6192,14 +6147,6 @@ codegen_variable_node(codegen_scope *s, node *varnode, int val)
     }
     return TRUE;
 
-  case NODE_STR:
-    if (val) {
-      int off = new_lit_str(s, STR_NODE_PTR(varnode), STR_NODE_LEN(varnode));
-      genop_2(s, OP_STRING, cursp(), off);
-      push();
-    }
-    return TRUE;
-
   case NODE_SYM:
     codegen_sym(s, SYM_NODE_VALUE(varnode), val);
     return TRUE;
@@ -6374,10 +6321,6 @@ codegen_variable_node(codegen_scope *s, node *varnode, int val)
 
   case NODE_UNTIL_MOD:
     gen_until_mod_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_XSTR:
-    gen_xstr_var(s, varnode, val);
     return TRUE;
 
   case NODE_DXSTR:
@@ -6730,10 +6673,6 @@ codegen(codegen_scope *s, node *tree, int val)
     codegen_negate(s, tree, val);
     break;
 
-  case NODE_STR:
-    codegen_str(s, tree, val);
-    break;
-
   case NODE_HEREDOC:
     codegen_heredoc(s, tree, val);
     break;
@@ -6752,10 +6691,6 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_DXSTR:
     codegen_dxstr(s, tree, val);
-    break;
-
-  case NODE_XSTR:
-    codegen_xstr(s, tree, val);
     break;
 
   case NODE_REGX:

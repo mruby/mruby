@@ -2542,9 +2542,7 @@ prohibit_literals(parser_state *p, node *n)
   else {
     switch (node_to_type(n->car)) {
     case NODE_INT:
-    case NODE_STR:
     case NODE_DSTR:
-    case NODE_XSTR:
     case NODE_DXSTR:
     case NODE_DREGX:
     case NODE_MATCH:
@@ -8190,6 +8188,7 @@ dump_args(mrb_state *mrb, node *n, int offset)
  * performed at the caller, the string pointer returned as the return
  * value may become invalid.
  */
+#if 0
 static const char*
 str_dump(mrb_state *mrb, const char *str, int len)
 {
@@ -8206,6 +8205,8 @@ str_dump(mrb_state *mrb, const char *str, int len)
   mrb_gc_arena_restore(mrb, ai);
   return RSTRING_PTR(s);
 }
+#endif
+
 #endif
 
 void
@@ -8723,17 +8724,9 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     mrb_parser_dump(mrb, tree, offset+1);
     break;
 
-  case NODE_STR:
-    printf("NODE_STR %s len %d\n", str_dump(mrb, (char*)tree->car, node_to_int(tree->cdr)), node_to_int(tree->cdr));
-    break;
-
   case NODE_DSTR:
     printf("NODE_DSTR:\n");
     dump_recur(mrb, tree, offset+1);
-    break;
-
-  case NODE_XSTR:
-    printf("NODE_XSTR %s len %d\n", str_dump(mrb, (char*)tree->car, node_to_int(tree->cdr)), node_to_int(tree->cdr));
     break;
 
   case NODE_DXSTR:
