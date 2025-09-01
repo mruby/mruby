@@ -4300,7 +4300,7 @@ codegen_int(codegen_scope *s, node *tree, int val)
 
 
 static void
-codegen_dxstr(codegen_scope *s, node *tree, int val)
+codegen_xstr(codegen_scope *s, node *tree, int val)
 {
   int sym;
 
@@ -4329,7 +4329,7 @@ codegen_symbols(codegen_scope *s, node *tree, int val)
 /* codegen_cons_list_string forward declaration moved to top of file */
 
 static void
-codegen_heredoc_dstr(codegen_scope *s, node *tree, int val)
+codegen_heredoc_str(codegen_scope *s, node *tree, int val)
 {
   /* Use common cons list string codegen since tree is now in cons list format */
   codegen_cons_list_string(s, tree, val);
@@ -4864,7 +4864,7 @@ static void
 codegen_heredoc(codegen_scope *s, node *tree, int val)
 {
   tree = ((struct mrb_parser_heredoc_info*)tree)->doc;
-  codegen_heredoc_dstr(s, tree, val);
+  codegen_heredoc_str(s, tree, val);
 }
 
 static void
@@ -5517,10 +5517,10 @@ gen_super_var(codegen_scope *s, node *varnode, int val)
 
 /* Variable-sized literal node generation functions */
 static void
-gen_dstr_var(codegen_scope *s, node *varnode, int val)
+gen_str_var(codegen_scope *s, node *varnode, int val)
 {
-  struct mrb_ast_dstr_node *dstr_n = dstr_node(varnode);
-  node *list = dstr_n->list;
+  struct mrb_ast_str_node *str_n = str_node(varnode);
+  node *list = str_n->list;
 
   /* Use common cons list string codegen */
   codegen_cons_list_string(s, list, val);
@@ -5727,9 +5727,9 @@ gen_until_mod_var(codegen_scope *s, node *varnode, int val)
 
 
 static void
-gen_dxstr_var(codegen_scope *s, node *varnode, int val)
+gen_xstr_var(codegen_scope *s, node *varnode, int val)
 {
-  struct mrb_ast_dxstr_node *n = dxstr_node(varnode);
+  struct mrb_ast_xstr_node *n = xstr_node(varnode);
   node *list = n->list;
   int sym;
 
@@ -5812,9 +5812,9 @@ static void
 gen_dsym_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_dsym_node *n = (struct mrb_ast_dsym_node*)varnode;
-  // Generate dstr first, then convert to symbol
+  // Generate str first, then convert to symbol
   if (val) {
-    codegen_heredoc_dstr(s, n->list, VAL);
+    codegen_heredoc_str(s, n->list, VAL);
     genop_1(s, OP_INTERN, cursp());
   }
 }
@@ -6247,8 +6247,8 @@ codegen_variable_node(codegen_scope *s, node *varnode, int val)
     gen_super_var(s, varnode, val);
     return TRUE;
 
-  case NODE_DSTR:
-    gen_dstr_var(s, varnode, val);
+  case NODE_STR:
+    gen_str_var(s, varnode, val);
     return TRUE;
 
   case NODE_REGX:
@@ -6323,8 +6323,8 @@ codegen_variable_node(codegen_scope *s, node *varnode, int val)
     gen_until_mod_var(s, varnode, val);
     return TRUE;
 
-  case NODE_DXSTR:
-    gen_dxstr_var(s, varnode, val);
+  case NODE_XSTR:
+    gen_xstr_var(s, varnode, val);
     return TRUE;
 
   case NODE_DREGX:
@@ -6677,8 +6677,8 @@ codegen(codegen_scope *s, node *tree, int val)
     codegen_heredoc(s, tree, val);
     break;
 
-  case NODE_DSTR:
-    codegen_heredoc_dstr(s, tree, val);
+  case NODE_STR:
+    codegen_heredoc_str(s, tree, val);
     break;
 
   case NODE_WORDS:
@@ -6689,8 +6689,8 @@ codegen(codegen_scope *s, node *tree, int val)
     codegen_symbols(s, tree, val);
     break;
 
-  case NODE_DXSTR:
-    codegen_dxstr(s, tree, val);
+  case NODE_XSTR:
+    codegen_xstr(s, tree, val);
     break;
 
   case NODE_REGX:

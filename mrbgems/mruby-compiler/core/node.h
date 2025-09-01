@@ -57,8 +57,8 @@ enum node_type {
   NODE_NEGATE,
   NODE_LAMBDA,
   NODE_SYM,
-  NODE_DSTR,
-  NODE_DXSTR,
+  NODE_STR,
+  NODE_XSTR,
   NODE_REGX,
   NODE_DREGX,
   NODE_DREGX_ONCE,
@@ -152,7 +152,7 @@ struct mrb_ast_head_node {
 struct mrb_ast_var_header {
   uint16_t lineno;           /* Line number information */
   uint16_t filename_index;   /* File index information */
-  uint8_t node_type;         /* NODE_INT, NODE_SYM, NODE_DSTR, etc. */
+  uint8_t node_type;         /* NODE_INT, NODE_SYM, NODE_STR, etc. */
   uint8_t size_class;        /* Size class for allocation/deallocation */
   uint16_t flags;            /* Type-specific flags and metadata */
   /* Total: 8 bytes header for all variable nodes */
@@ -185,12 +185,10 @@ struct mrb_ast_sym_node {
   /* Total: 12-16 bytes vs previous 20+ bytes + indirection */
 };
 
-/* Variable-sized string node with inline storage */
+/* Variable-sized string node with cons list */
 struct mrb_ast_str_node {
-  struct mrb_ast_var_header header;  /* 8 bytes */
-  size_t len;                        /* String length */
-  char data[];                       /* Flexible array - inline string storage */
-  /* Total: Variable (16 + string_length) vs previous 20+ bytes + separate allocation */
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *list;
 };
 
 /* Variable-sized integer node */
@@ -508,10 +506,6 @@ struct mrb_ast_super_node {
 #define SUPER_NODE_ARGS(n) (super_node(n)->args)
 
 /* Variable-sized literal node structures */
-struct mrb_ast_dstr_node {
-  struct mrb_ast_var_header hdr;
-  struct mrb_ast_node *list;
-};
 
 struct mrb_ast_regx_node {
   struct mrb_ast_var_header hdr;
@@ -539,14 +533,13 @@ struct mrb_ast_float_node {
 };
 
 /* Literal node casting macros */
-#define dstr_node(n) ((struct mrb_ast_dstr_node*)(n))
 #define regx_node(n) ((struct mrb_ast_regx_node*)(n))
 #define dot2_node(n) ((struct mrb_ast_dot2_node*)(n))
 #define dot3_node(n) ((struct mrb_ast_dot3_node*)(n))
 #define float_node(n) ((struct mrb_ast_float_node*)(n))
 
 /* Literal node value access macros */
-#define DSTR_NODE_LIST(n) (dstr_node(n)->list)
+#define STR_NODE_LIST(n) (str_node(n)->list)
 
 #define REGX_NODE_PATTERN(n) (regx_node(n)->pattern)
 #define REGX_NODE_FLAGS(n) (regx_node(n)->flags)
@@ -696,11 +689,6 @@ struct mrb_ast_until_mod_node {
 // Group 9: String and Regex Variants
 struct mrb_ast_xstr_node {
   struct mrb_ast_var_header hdr;
-  mrb_sym name;
-};
-
-struct mrb_ast_dxstr_node {
-  struct mrb_ast_var_header hdr;
   struct mrb_ast_node *list;
 };
 
@@ -728,14 +716,12 @@ struct mrb_ast_dsym_node {
 };
 
 #define xstr_node(n) ((struct mrb_ast_xstr_node*)(n))
-#define dxstr_node(n) ((struct mrb_ast_dxstr_node*)(n))
 #define dregx_node(n) ((struct mrb_ast_dregx_node*)(n))
 #define dregx_once_node(n) ((struct mrb_ast_dregx_once_node*)(n))
 #define heredoc_node(n) ((struct mrb_ast_heredoc_node*)(n))
 #define dsym_node(n) ((struct mrb_ast_dsym_node*)(n))
 
-#define XSTR_NODE_NAME(n) (xstr_node(n)->name)
-#define DXSTR_NODE_LIST(n) (dxstr_node(n)->list)
+#define XSTR_NODE_LIST(n) (xstr_node(n)->list)
 #define DREGX_NODE_LIST(n) (dregx_node(n)->list)
 #define DREGX_NODE_OPTIONS(n) (dregx_node(n)->options)
 #define DREGX_ONCE_NODE_LIST(n) (dregx_once_node(n)->list)

@@ -2223,16 +2223,16 @@ new_float(parser_state *p, const char *s, int suffix)
 
 
 /* Create string node from cons list */
-/* (:dstr . a) */
+/* (:str . a) */
 static node*
 new_str(parser_state *p, node *a)
 {
-  size_t total_size = sizeof(struct mrb_ast_dstr_node);
+  size_t total_size = sizeof(struct mrb_ast_str_node);
   enum mrb_ast_size_class class = size_to_class(total_size);
 
-  struct mrb_ast_dstr_node *n = (struct mrb_ast_dstr_node*)parser_alloc_var(p, total_size, class);
+  struct mrb_ast_str_node *n = (struct mrb_ast_str_node*)parser_alloc_var(p, total_size, class);
 
-  init_var_header(&n->hdr, p, NODE_DSTR, class);
+  init_var_header(&n->hdr, p, NODE_STR, class);
   n->list = a;
 
   return cons_head((node*)NODE_VARIABLE, (node*)n);
@@ -2243,10 +2243,10 @@ new_str(parser_state *p, node *a)
 static node*
 new_xstr(parser_state *p, node *a)
 {
-  size_t total_size = sizeof(struct mrb_ast_dxstr_node);
+  size_t total_size = sizeof(struct mrb_ast_xstr_node);
   enum mrb_ast_size_class class = size_to_class(total_size);
-  struct mrb_ast_dxstr_node *n = (struct mrb_ast_dxstr_node*)parser_alloc_var(p, total_size, class);
-  init_var_header(&n->hdr, p, NODE_DXSTR, class);
+  struct mrb_ast_xstr_node *n = (struct mrb_ast_xstr_node*)parser_alloc_var(p, total_size, class);
+  init_var_header(&n->hdr, p, NODE_XSTR, class);
   n->list = a;
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
@@ -2604,8 +2604,8 @@ prohibit_literals(parser_state *p, node *n)
   else {
     switch (node_to_type(n->car)) {
     case NODE_INT:
-    case NODE_DSTR:
-    case NODE_DXSTR:
+    case NODE_STR:
+    case NODE_XSTR:
     case NODE_DREGX:
     case NODE_MATCH:
     case NODE_FLOAT:
@@ -15549,13 +15549,13 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     mrb_parser_dump(mrb, tree, offset+1);
     break;
 
-  case NODE_DSTR:
-    printf("NODE_DSTR:\n");
+  case NODE_STR:
+    printf("NODE_STR:\n");
     dump_recur(mrb, tree, offset+1);
     break;
 
-  case NODE_DXSTR:
-    printf("NODE_DXSTR:\n");
+  case NODE_XSTR:
+    printf("NODE_XSTR:\n");
     dump_recur(mrb, tree, offset+1);
     break;
 
