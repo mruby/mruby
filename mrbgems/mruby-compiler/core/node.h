@@ -61,7 +61,6 @@ enum node_type {
   NODE_XSTR,
   NODE_REGX,
   NODE_DREGX,
-  NODE_DREGX_ONCE,
   NODE_ARG,
   NODE_ARGS_TAIL,
   NODE_KW_ARG,
@@ -699,11 +698,6 @@ struct mrb_ast_dregx_node {
   const char *encoding;
 };
 
-struct mrb_ast_dregx_once_node {
-  struct mrb_ast_var_header hdr;
-  struct mrb_ast_node *list;
-  int options;
-};
 
 struct mrb_ast_heredoc_node {
   struct mrb_ast_var_header hdr;
@@ -717,15 +711,12 @@ struct mrb_ast_dsym_node {
 
 #define xstr_node(n) ((struct mrb_ast_xstr_node*)(n))
 #define dregx_node(n) ((struct mrb_ast_dregx_node*)(n))
-#define dregx_once_node(n) ((struct mrb_ast_dregx_once_node*)(n))
 #define heredoc_node(n) ((struct mrb_ast_heredoc_node*)(n))
 #define dsym_node(n) ((struct mrb_ast_dsym_node*)(n))
 
 #define XSTR_NODE_LIST(n) (xstr_node(n)->list)
 #define DREGX_NODE_LIST(n) (dregx_node(n)->list)
 #define DREGX_NODE_OPTIONS(n) (dregx_node(n)->options)
-#define DREGX_ONCE_NODE_LIST(n) (dregx_once_node(n)->list)
-#define DREGX_ONCE_NODE_OPTIONS(n) (dregx_once_node(n)->options)
 #define HEREDOC_NODE_NAME(n) (heredoc_node(n)->name)
 #define DSYM_NODE_LIST(n) (dsym_node(n)->list)
 
