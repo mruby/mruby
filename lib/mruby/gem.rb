@@ -43,6 +43,7 @@ module MRuby
       def initialize(name, &block)
         @name = name
         @initializer = block
+        @last_initializer = nil
         @version = "0.0.0"
         @dependencies = []
         @conflicts = []
@@ -84,6 +85,7 @@ module MRuby
         build.libmruby_objs << @objs
 
         instance_eval(&@build_config_initializer) if @build_config_initializer
+        instance_eval(&@last_initializer) if @last_initializer
 
         repo_url = build.gem_dir_to_repo_url[dir]
         build.locks[repo_url]['version'] = version if repo_url
@@ -190,6 +192,14 @@ module MRuby
         Dir["#{@dir}/#{src_dir_from_gem_dir}/*{#{exts}}"].map do |f|
           objfile(f.relative_path_from(@dir).to_s.pathmap("#{build_dir}/%X"))
         end
+      end
+
+      # This method is for GEM authors.
+      #
+      # If the user wants to adjust GEM, provide block arguments to
+      # the `MRuby::Build#gem` method in the build configuration file.
+      def last_initializer(&block)
+        @last_initializer = block
       end
 
       def define_gem_init_builder
