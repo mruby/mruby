@@ -2270,7 +2270,7 @@ new_bv(parser_state *p, mrb_sym id)
 static node*
 new_literal_delim(parser_state *p)
 {
-  return cons_head((node*)NODE_LITERAL_DELIM, 0);
+  return cons((node*)0, (node*)0);
 }
 
 /* (:words . a) */
@@ -8779,10 +8779,6 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
   case NODE_SYMBOLS:
     printf("NODE_SYMBOLS:\n");
     dump_recur(mrb, tree, offset+1);
-    break;
-
-  case NODE_LITERAL_DELIM:
-    printf("NODE_LITERAL_DELIM\n");
     break;
 
   case NODE_SELF:

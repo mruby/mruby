@@ -68,10 +68,10 @@
 /* Maximum number of arguments for some opcodes like OP_SUPER or OP_ARGARY. */
 #define MAXARG_S (1<<16)
 
-/* Macro to detect NODE_LITERAL_DELIM separators in literal arrays */
+/* Macro to detect (0 . 0) separators in literal arrays */
 #define IS_LITERAL_DELIM(node) \
   ((node) && (node)->car && \
-   node_to_int((node)->car->car) == NODE_LITERAL_DELIM && \
+   (node)->car->car == NULL && \
    (node)->car->cdr == NULL)
 
 typedef mrb_ast_node node;
