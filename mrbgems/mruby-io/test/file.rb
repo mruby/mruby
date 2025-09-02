@@ -57,6 +57,40 @@ assert('File.basename with suffix') do
   assert_equal 'foo.rb', File.basename('foo.rb', '.RB') # case-sensitive
 end
 
+if MRubyIOTestUtil.win?
+  assert('File.basename (for Windows)') do
+    assert_equal '/',  File.basename('/')
+    assert_equal '/',  File.basename('//a')
+    assert_equal '/',  File.basename('//a/')
+    assert_equal '/',  File.basename('//a/b')
+    assert_equal '/',  File.basename('//a/b/')
+    assert_equal 'c',  File.basename('//a/b/c')
+    assert_equal 'c',  File.basename('//a/b/c/')
+    assert_equal '/',  File.basename("\\\\a\\b")
+    assert_equal '',   File.basename('c:')
+    assert_equal '/',  File.basename('c:/')
+    assert_equal 'a',  File.basename('c:/a')
+    assert_equal 'a',  File.basename('c:/a/')
+    assert_equal 'b',  File.basename('c:/a/b')
+    assert_equal '/',  File.basename("c:\\")
+  end
+else
+  assert('File.basename (for generic)') do
+    assert_equal '/',  File.basename('/')
+    assert_equal 'a',  File.basename('//a')
+    assert_equal 'a',  File.basename('//a/')
+    assert_equal 'b',  File.basename('//a/b')
+    assert_equal 'b',  File.basename('//a/b/')
+    assert_equal 'c',  File.basename('//a/b/c')
+    assert_equal 'c',  File.basename('//a/b/c/')
+    assert_equal 'c:', File.basename('c:')
+    assert_equal 'c:', File.basename('c:/')
+    assert_equal 'a',  File.basename('c:/a')
+    assert_equal 'a',  File.basename('c:/a/')
+    assert_equal 'b',  File.basename('c:/a/b')
+  end
+end
+
 assert('File.dirname') do
   assert_equal '.',    File.dirname('')
   assert_equal '.',    File.dirname('a')
