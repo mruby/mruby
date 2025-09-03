@@ -611,7 +611,6 @@ static node* new_op_asgn_var(parser_state *p, node *lhs, mrb_sym op, node *rhs);
 static node* new_and_var(parser_state *p, node *left, node *right);
 static node* new_or_var(parser_state *p, node *left, node *right);
 static node* new_return_var(parser_state *p, node *args);
-static node* new_yield_var(parser_state *p, node *args);
 static node* new_float_var(parser_state *p, const char *value);
 
 /* (:if cond then else) */
@@ -1166,19 +1165,6 @@ new_return_var(parser_state *p, node *args)
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
-static node*
-new_yield_var(parser_state *p, node *args)
-{
-  size_t total_size = sizeof(struct mrb_ast_yield_node);
-  enum mrb_ast_size_class class = size_to_class(total_size);
-
-  struct mrb_ast_yield_node *n = (struct mrb_ast_yield_node*)parser_alloc_var(p, total_size, class);
-
-  init_var_header(&n->header, p, NODE_YIELD, class);
-  n->args = args;
-
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
-}
 
 /* Variable-sized literal node creation functions */
 
@@ -1351,10 +1337,15 @@ new_yield(parser_state *p, node *c)
         yyerror(NULL, p, "both block arg and actual block given");
   }
 
-  if (p->var_nodes_enabled) {
-    return new_yield_var(p, c);
-  }
-  return cons_head((node*)NODE_YIELD, c);
+  size_t total_size = sizeof(struct mrb_ast_yield_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_yield_node *n = (struct mrb_ast_yield_node*)parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->header, p, NODE_YIELD, class);
+  n->args = c;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:return . c) */
@@ -2321,6 +2312,11 @@ call_with_block(parser_state *p, node *a, node *b)
         else {
           args_with_block(p, super_n->args, b);
         }
+        return;
+      }
+      else if (var_type == NODE_YIELD) {
+        /* Variable-sized yield nodes should generate an error when given a block */
+        yyerror(NULL, p, "block given to yield");
         return;
       }
     }
@@ -4270,12 +4266,7 @@ do_block        : keyword_do_block
 
 block_call      : command do_block
                     {
-                      if (node_to_type($1->car) == NODE_YIELD) {
-                        yyerror(&@1, p, "block given to yield");
-                      }
-                      else {
-                        call_with_block(p, $1, $2);
-                      }
+                      call_with_block(p, $1, $2);
                       $$ = $1;
                     }
                 | block_call call_op2 operation2 opt_paren_args

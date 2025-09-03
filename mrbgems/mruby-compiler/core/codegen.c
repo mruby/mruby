@@ -4791,47 +4791,6 @@ codegen_block_arg(codegen_scope *s, node *tree, int val)
 }
 
 
-static void
-codegen_yield(codegen_scope *s, node *tree, int val)
-{
-  codegen_scope *s2 = s;
-  int lv = 0, ainfo = -1;
-  int n = 0, nk = 0, sendv = 0;
-
-  while (!s2->mscope) {
-    lv++;
-    s2 = s2->prev;
-    if (!s2) break;
-  }
-  if (s2) {
-    ainfo = (int)s2->ainfo;
-  }
-  if (ainfo < 0) codegen_error(s, "invalid yield (SyntaxError)");
-  if (lv > 0xf) codegen_error(s, "too deep nesting");
-  push();
-  if (tree) {
-    if (tree->car) {
-      n = gen_values(s, tree->car, VAL, 14);
-      if (n < 0) {
-        n = sendv = 1;
-        push();
-      }
-    }
-    if (tree->cdr->car) {
-      nk = gen_hash(s, tree->cdr->car->cdr, VAL, 14);
-      if (nk < 0) {
-        nk = 15;
-      }
-    }
-  }
-  push();pop(); /* space for a block */
-  pop_n(n + (nk == 15 ? 1 : nk * 2) + 1);
-  genop_2S(s, OP_BLKPUSH, cursp(), (ainfo<<4)|(lv & 0xf));
-  if (sendv) n = CALL_MAXARGS;
-  genop_3(s, OP_SEND, cursp(), new_sym(s, MRB_SYM_2(s->mrb, call)), n|(nk<<4));
-  if (val) push();
-}
-
 /* Handle variable-sized node types */
 static void
 gen_call_var(codegen_scope *s, node *varnode, int val)
@@ -5317,9 +5276,42 @@ gen_yield_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_yield_node *yield_n = yield_node(varnode);
   node *args = YIELD_NODE_ARGS(yield_n);
+  codegen_scope *s2 = s;
+  int lv = 0, ainfo = -1;
+  int n = 0, nk = 0, sendv = 0;
 
-  /* Use traditional yield codegen logic */
-  codegen_yield(s, args, val);
+  while (!s2->mscope) {
+    lv++;
+    s2 = s2->prev;
+    if (!s2) break;
+  }
+  if (s2) {
+    ainfo = (int)s2->ainfo;
+  }
+  if (ainfo < 0) codegen_error(s, "invalid yield (SyntaxError)");
+  if (lv > 0xf) codegen_error(s, "too deep nesting");
+  push();
+  if (args) {
+    if (args->car) {
+      n = gen_values(s, args->car, VAL, 14);
+      if (n < 0) {
+        n = sendv = 1;
+        push();
+      }
+    }
+    if (args->cdr->car) {
+      nk = gen_hash(s, args->cdr->car->cdr, VAL, 14);
+      if (nk < 0) {
+        nk = 15;
+      }
+    }
+  }
+  push();pop(); /* space for a block */
+  pop_n(n + (nk == 15 ? 1 : nk * 2) + 1);
+  genop_2S(s, OP_BLKPUSH, cursp(), (ainfo<<4)|(lv & 0xf));
+  if (sendv) n = CALL_MAXARGS;
+  genop_3(s, OP_SEND, cursp(), new_sym(s, MRB_SYM_2(s->mrb, call)), n|(nk<<4));
+  if (val) push();
 }
 
 static void
@@ -6473,13 +6465,8 @@ codegen(codegen_scope *s, node *tree, int val)
     codegen_op_asgn(s, tree, val);
     break;
 
-
   case NODE_RETURN:
     codegen_return(s, tree, val);
-    break;
-
-  case NODE_YIELD:
-    codegen_yield(s, tree, val);
     break;
 
   case NODE_BREAK:
