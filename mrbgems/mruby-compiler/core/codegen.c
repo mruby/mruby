@@ -4314,17 +4314,7 @@ codegen_xstr(codegen_scope *s, node *tree, int val)
   if (val) push();
 }
 
-static void
-codegen_words(codegen_scope *s, node *tree, int val)
-{
-  gen_literal_array(s, tree, FALSE, val);
-}
 
-static void
-codegen_symbols(codegen_scope *s, node *tree, int val)
-{
-  gen_literal_array(s, tree, TRUE, val);
-}
 
 /* codegen_cons_list_string forward declaration moved to top of file */
 
@@ -5976,22 +5966,14 @@ static void
 gen_words_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_words_node *n = words_node(varnode);
-  // Create stack-allocated node structure for traditional codegen
-  struct mrb_ast_head_node stack_node = {0};
-  stack_node.car = (node*)NODE_WORDS;
-  stack_node.cdr = n->args;
-  codegen_words(s, (node*)&stack_node, val);
+  gen_literal_array(s, n->args, FALSE, val);
 }
 
 static void
 gen_symbols_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_symbols_node *n = symbols_node(varnode);
-  // Create stack-allocated node structure for traditional codegen
-  struct mrb_ast_head_node stack_node = {0};
-  stack_node.car = (node*)NODE_SYMBOLS;
-  stack_node.cdr = n->args;
-  codegen_symbols(s, (node*)&stack_node, val);
+  gen_literal_array(s, n->args, TRUE, val);
 }
 
 
@@ -6681,13 +6663,6 @@ codegen(codegen_scope *s, node *tree, int val)
     codegen_heredoc_str(s, tree, val);
     break;
 
-  case NODE_WORDS:
-    codegen_words(s, tree, val);
-    break;
-
-  case NODE_SYMBOLS:
-    codegen_symbols(s, tree, val);
-    break;
 
   case NODE_XSTR:
     codegen_xstr(s, tree, val);

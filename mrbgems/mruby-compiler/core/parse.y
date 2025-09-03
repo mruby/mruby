@@ -2300,10 +2300,6 @@ new_str_empty(parser_state *p)
 static node*
 new_words(parser_state *p, node *a)
 {
-  if (!p->var_nodes_enabled) {
-    return cons_head((node*)NODE_WORDS, a);
-  }
-
   size_t total_size = sizeof(struct mrb_ast_words_node);
   enum mrb_ast_size_class class = size_to_class(total_size);
   struct mrb_ast_words_node *words_node = (struct mrb_ast_words_node*)parser_alloc_var(p, total_size, class);
@@ -2316,10 +2312,6 @@ new_words(parser_state *p, node *a)
 static node*
 new_symbols(parser_state *p, node *a)
 {
-  if (!p->var_nodes_enabled) {
-    return cons_head((node*)NODE_SYMBOLS, a);
-  }
-
   size_t total_size = sizeof(struct mrb_ast_symbols_node);
   enum mrb_ast_size_class class = size_to_class(total_size);
   struct mrb_ast_symbols_node *symbols_node = (struct mrb_ast_symbols_node*)parser_alloc_var(p, total_size, class);
