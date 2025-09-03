@@ -3981,14 +3981,6 @@ codegen_const(codegen_scope *s, mrb_sym sym, int val)
 }
 
 static void
-codegen_sym(codegen_scope *s, mrb_sym sym, int val)
-{
-  int i = new_sym(s, sym);
-  gen_load_op2(s, OP_LOADSYM, i, val);
-}
-
-
-static void
 codegen_array(codegen_scope *s, node *tree, int val)
 {
   int n;
@@ -6088,7 +6080,10 @@ codegen_variable_node(codegen_scope *s, node *varnode, int val)
     return TRUE;
 
   case NODE_SYM:
-    codegen_sym(s, SYM_NODE_VALUE(varnode), val);
+    {
+      int i = new_sym(s, SYM_NODE_VALUE(varnode));
+      gen_load_op2(s, OP_LOADSYM, i, val);
+    }
     return TRUE;
 
   case NODE_LVAR:
@@ -6630,11 +6625,6 @@ codegen(codegen_scope *s, node *tree, int val)
   case NODE_DREGX:
     codegen_dregx(s, tree, val);
     break;
-
-  case NODE_SYM:
-    codegen_sym(s, node_to_sym(tree), val);
-    break;
-
 
   case NODE_SELF:
     codegen_self(s, tree, val);

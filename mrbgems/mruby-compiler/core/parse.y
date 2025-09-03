@@ -1578,16 +1578,9 @@ new_kw_hash(parser_state *p, node *a)
 }
 
 /* (:sym . a) */
-/* Original symbol node creation (legacy) */
+/* Symbol node creation - supports both variable and legacy modes */
 static node*
-new_sym_original(parser_state *p, mrb_sym sym)
-{
-  return cons_head((node*)NODE_SYM, sym_to_node(sym));
-}
-
-/* Create variable-sized symbol node */
-static node*
-new_sym_var(parser_state *p, mrb_sym sym)
+new_sym(parser_state *p, mrb_sym sym)
 {
   size_t size = sizeof(struct mrb_ast_sym_node);
   enum mrb_ast_size_class class = size_to_class(size);
@@ -1598,16 +1591,6 @@ new_sym_var(parser_state *p, mrb_sym sym)
   n->symbol = sym;
 
   return cons_head((node*)NODE_VARIABLE, (node*)n);
-}
-
-/* Symbol node creation - supports both variable and legacy modes */
-static node*
-new_sym(parser_state *p, mrb_sym sym)
-{
-  if (p->var_nodes_enabled) {
-    return new_sym_var(p, sym);
-  }
-  return new_sym_original(p, sym);
 }
 
 static node*
