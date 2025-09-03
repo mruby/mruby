@@ -613,8 +613,6 @@ static node* new_or_var(parser_state *p, node *left, node *right);
 static node* new_return_var(parser_state *p, node *args);
 static node* new_yield_var(parser_state *p, node *args);
 static node* new_super_var(parser_state *p, node *args);
-static node* new_dot2_var(parser_state *p, node *left, node *right);
-static node* new_dot3_var(parser_state *p, node *left, node *right);
 static node* new_float_var(parser_state *p, const char *value);
 
 /* (:if cond then else) */
@@ -1198,35 +1196,7 @@ new_super_var(parser_state *p, node *args)
 }
 
 /* Variable-sized literal node creation functions */
-static node*
-new_dot2_var(parser_state *p, node *left, node *right)
-{
-  size_t total_size = sizeof(struct mrb_ast_dot2_node);
-  enum mrb_ast_size_class class = size_to_class(total_size);
 
-  struct mrb_ast_dot2_node *n = (struct mrb_ast_dot2_node*)parser_alloc_var(p, total_size, class);
-
-  init_var_header(&n->hdr, p, NODE_DOT2, class);
-  n->left = left;
-  n->right = right;
-
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
-}
-
-static node*
-new_dot3_var(parser_state *p, node *left, node *right)
-{
-  size_t total_size = sizeof(struct mrb_ast_dot3_node);
-  enum mrb_ast_size_class class = size_to_class(total_size);
-
-  struct mrb_ast_dot3_node *n = (struct mrb_ast_dot3_node*)parser_alloc_var(p, total_size, class);
-
-  init_var_header(&n->hdr, p, NODE_DOT3, class);
-  n->left = left;
-  n->right = right;
-
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
-}
 
 static node*
 new_float_var(parser_state *p, const char *value)
@@ -1456,20 +1426,32 @@ new_retry(parser_state *p)
 static node*
 new_dot2(parser_state *p, node *a, node *b)
 {
-  if (p->var_nodes_enabled) {
-    return new_dot2_var(p, a, b);
-  }
-  return cons_head((node*)NODE_DOT2, cons(a, b));
+  size_t total_size = sizeof(struct mrb_ast_dot2_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_dot2_node *n = (struct mrb_ast_dot2_node*)parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->hdr, p, NODE_DOT2, class);
+  n->left = a;
+  n->right = b;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:dot3 a b) */
 static node*
 new_dot3(parser_state *p, node *a, node *b)
 {
-  if (p->var_nodes_enabled) {
-    return new_dot3_var(p, a, b);
-  }
-  return cons_head((node*)NODE_DOT3, cons(a, b));
+  size_t total_size = sizeof(struct mrb_ast_dot3_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_dot3_node *n = (struct mrb_ast_dot3_node*)parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->hdr, p, NODE_DOT3, class);
+  n->left = a;
+  n->right = b;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:colon2 b c) */

@@ -4024,28 +4024,6 @@ codegen_call_fcall(codegen_scope *s, node *tree, int val)
 }
 
 static void
-codegen_dot2(codegen_scope *s, node *tree, int val)
-{
-  codegen(s, tree->car, val);
-  codegen(s, tree->cdr, val);
-  if (!val) return;
-  pop(); pop();
-  genop_1(s, OP_RANGE_INC, cursp());
-  push();
-}
-
-static void
-codegen_dot3(codegen_scope *s, node *tree, int val)
-{
-  codegen(s, tree->car, val);
-  codegen(s, tree->cdr, val);
-  if (!val) return;
-  pop(); pop();
-  genop_1(s, OP_RANGE_EXC, cursp());
-  push();
-}
-
-static void
 codegen_scall(codegen_scope *s, node *tree, int val)
 {
   gen_call(s, tree, val, 1);
@@ -5494,31 +5472,29 @@ gen_regx_var(codegen_scope *s, node *varnode, int val)
 static void
 gen_dot2_var(codegen_scope *s, node *varnode, int val)
 {
-  struct mrb_ast_dot2_node *dot2_n = dot2_node(varnode->car);
-  node *left = DOT2_NODE_LEFT(dot2_n);
-  node *right = DOT2_NODE_RIGHT(dot2_n);
+  node *left = DOT2_NODE_LEFT(varnode);
+  node *right = DOT2_NODE_RIGHT(varnode);
 
-  /* Create simple cons structure like traditional node */
-  node range_node;
-  range_node.car = left;
-  range_node.cdr = right;
-
-  codegen_dot2(s, &range_node, val);
+  codegen(s, left, val);
+  codegen(s, right, val);
+  if (!val) return;
+  pop(); pop();
+  genop_1(s, OP_RANGE_INC, cursp());
+  push();
 }
 
 static void
 gen_dot3_var(codegen_scope *s, node *varnode, int val)
 {
-  struct mrb_ast_dot3_node *dot3_n = dot3_node(varnode->car);
-  node *left = DOT3_NODE_LEFT(dot3_n);
-  node *right = DOT3_NODE_RIGHT(dot3_n);
+  node *left = DOT3_NODE_LEFT(varnode);
+  node *right = DOT3_NODE_RIGHT(varnode);
 
-  /* Create simple cons structure like traditional node */
-  node range_node;
-  range_node.car = left;
-  range_node.cdr = right;
-
-  codegen_dot3(s, &range_node, val);
+  codegen(s, left, val);
+  codegen(s, right, val);
+  if (!val) return;
+  pop(); pop();
+  genop_1(s, OP_RANGE_EXC, cursp());
+  push();
 }
 
 static void
@@ -6479,14 +6455,6 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
   case NODE_SCALL:
     codegen_scall(s, tree, val);
-    break;
-
-  case NODE_DOT2:
-    codegen_dot2(s, tree, val);
-    break;
-
-  case NODE_DOT3:
-    codegen_dot3(s, tree, val);
     break;
 
   case NODE_COLON2:
