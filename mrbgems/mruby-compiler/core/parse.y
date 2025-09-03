@@ -2196,10 +2196,6 @@ new_xstr(parser_state *p, node *a)
 static node*
 new_dsym(parser_state *p, node *a)
 {
-  if (!p->var_nodes_enabled) {
-    return cons_head((node*)NODE_DSYM, a);
-  }
-
   size_t total_size = sizeof(struct mrb_ast_dsym_node);
   enum mrb_ast_size_class class = size_to_class(total_size);
   struct mrb_ast_dsym_node *n = (struct mrb_ast_dsym_node*)parser_alloc_var(p, total_size, class);

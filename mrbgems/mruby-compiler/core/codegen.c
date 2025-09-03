@@ -3998,13 +3998,6 @@ codegen_sym(codegen_scope *s, mrb_sym sym, int val)
   gen_load_op2(s, OP_LOADSYM, i, val);
 }
 
-static void
-codegen_dsym(codegen_scope *s, node *tree, int val)
-{
-  codegen(s, tree, val);
-  if (!val) return;
-  gen_intern(s);
-}
 
 static void
 codegen_array(codegen_scope *s, node *tree, int val)
@@ -5801,11 +5794,11 @@ gen_heredoc_var(codegen_scope *s, node *varnode, int val)
 static void
 gen_dsym_var(codegen_scope *s, node *varnode, int val)
 {
-  struct mrb_ast_dsym_node *n = (struct mrb_ast_dsym_node*)varnode;
-  // Generate str first, then convert to symbol
+  struct mrb_ast_dsym_node *n = dsym_node(varnode);
+  // Generate the list content, then intern to symbol
+  codegen(s, n->list, val);
   if (val) {
-    codegen_heredoc_str(s, n->list, VAL);
-    genop_1(s, OP_INTERN, cursp());
+    gen_intern(s);
   }
 }
 
@@ -6680,9 +6673,6 @@ codegen(codegen_scope *s, node *tree, int val)
     codegen_sym(s, node_to_sym(tree), val);
     break;
 
-  case NODE_DSYM:
-    codegen_dsym(s, tree, val);
-    break;
 
   case NODE_SELF:
     codegen_self(s, tree, val);
