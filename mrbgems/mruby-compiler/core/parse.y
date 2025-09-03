@@ -587,9 +587,7 @@ new_alias(parser_state *p, mrb_sym a, mrb_sym b)
   return cons_head((node*)NODE_VARIABLE, (node*)alias_node);
 }
 
-/* Forward declaration for variable-sized call node */
 /* Forward declarations for variable-sized AST node creation functions */
-static node* new_call_var(parser_state *p, node *receiver, mrb_sym method, node *args, int pass);
 static node* new_array_var(parser_state *p, node *a);
 static node* new_hash_var(parser_state *p, node *a);
 static node* new_if_var(parser_state *p, node *condition, node *then_body, node *else_body);
@@ -739,20 +737,16 @@ new_self(parser_state *p)
   return list1((node*)NODE_SELF);
 }
 
-
-
 /* (:call a b c) */
 static node*
 new_call(parser_state *p, node *a, mrb_sym b, node *c, int pass)
 {
-  if (p->var_nodes_enabled) {
-    return new_call_var(p, a, b, c, pass);
-  }
   node *n = list4(int_to_node(pass?NODE_CALL:NODE_SCALL), a, sym_to_node(b), c);
   void_expr_error(p, a);
   return n;
 }
 
+#if 0
 /* Variable-sized call node creation */
 static node*
 new_call_var(parser_state *p, node *receiver, mrb_sym method, node *args, int pass)
@@ -820,6 +814,7 @@ new_call_var(parser_state *p, node *receiver, mrb_sym method, node *args, int pa
   void_expr_error(p, receiver);
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
+#endif
 
 /* Variable-sized array node creation */
 static node*
