@@ -42,6 +42,8 @@ static void yywarning(parser_state *p, const char *s);
 static void backref_error(parser_state *p, node *n);
 static void void_expr_error(parser_state *p, node *n);
 static void tokadd(parser_state *p, int32_t c);
+static const char* tok(parser_state *p);
+static int toklen(parser_state *p);
 
 /* Forward declarations for variable-sized simple node functions */
 static node* new_self_var(parser_state *p);
@@ -2271,6 +2273,27 @@ static node*
 new_literal_delim(parser_state *p)
 {
   return cons((node*)0, (node*)0);
+}
+
+/* Helper for creating string representation cons (length . string_ptr) */
+static node*
+new_str_rep(parser_state *p, const char *str, int len)
+{
+  return cons(int_to_node(len), (node*)strndup(str, len));
+}
+
+/* Helper for creating string representation from current token */
+static node*
+new_str_tok(parser_state *p)
+{
+  return new_str_rep(p, tok(p), toklen(p));
+}
+
+/* Helper for creating empty string representation */
+static node*
+new_str_empty(parser_state *p)
+{
+  return new_str_rep(p, "", 0);
 }
 
 /* (:words . a) */
@@ -4550,7 +4573,7 @@ heredoc_bodies  : heredoc_body
 heredoc_body    : tHEREDOC_END
                     {
                       parser_heredoc_info *info = parsing_heredoc_info(p);
-                      info->doc = push(info->doc, cons(int_to_node(0), (node*)strndup("", 0)));
+                      info->doc = push(info->doc, new_str_empty(p));
                       heredoc_end(p);
                     }
                 | heredoc_string_rep tHEREDOC_END
@@ -6022,7 +6045,7 @@ parse_string(parser_state *p)
         }
         return 0;
       }
-      pylval.nd = cons(int_to_node(toklen(p)), (node*)strndup(tok(p), toklen(p)));
+      pylval.nd = new_str_tok(p);
       if (unindent && head) {
         nspaces = push(nspaces, int_to_node(spaces));
         heredoc_push_indented(p, hinfo, pylval.nd, escaped, nspaces, empty && line_head);
@@ -6114,7 +6137,7 @@ parse_string(parser_state *p)
         tokfix(p);
         p->lstate = EXPR_BEG;
         p->cmd_start = TRUE;
-        pylval.nd = cons(int_to_node(toklen(p)), (node*)strndup(tok(p), toklen(p)));
+        pylval.nd = new_str_tok(p);
         if (hinfo) {
           if (unindent && head) {
             nspaces = push(nspaces, int_to_node(spaces));
@@ -6148,7 +6171,7 @@ parse_string(parser_state *p)
       else {
         pushback(p, c);
         tokfix(p);
-        pylval.nd = cons(int_to_node(toklen(p)), (node*)strndup(tok(p), toklen(p)));
+        pylval.nd = new_str_tok(p);
         return tSTRING_MID;
       }
     }
@@ -6164,7 +6187,7 @@ parse_string(parser_state *p)
   end_strterm(p);
 
   if (type & STR_FUNC_XQUOTE) {
-    pylval.nd = cons(int_to_node(toklen(p)), (node*)strndup(tok(p), toklen(p)));
+    pylval.nd = new_str_tok(p);
     return tXSTRING;
   }
 
@@ -6227,7 +6250,7 @@ parse_string(parser_state *p)
 
     return tREGEXP;
   }
-  pylval.nd = cons(int_to_node(toklen(p)), (node*)strndup(tok(p), toklen(p)));
+  pylval.nd = new_str_tok(p);
 
   return tSTRING;
 }
@@ -6721,7 +6744,7 @@ parser_yylex(parser_state *p)
       tokadd(p, c);
     }
     tokfix(p);
-    pylval.nd = cons(int_to_node(toklen(p)), (node*)strndup(tok(p), toklen(p)));
+    pylval.nd = new_str_tok(p);
     p->lstate = EXPR_END;
     return tCHAR;
 
