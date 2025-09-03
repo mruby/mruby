@@ -4645,25 +4645,6 @@ codegen_undef(codegen_scope *s, node *tree, int val)
 }
 
 static void
-codegen_return(codegen_scope *s, node *tree, int val)
-{
-  if (tree) {
-    gen_retval(s, tree);
-  }
-  else {
-    genop_1(s, OP_LOADNIL, cursp());
-  }
-  if (s->loop) {
-    gen_return(s, OP_RETURN_BLK, cursp());
-  }
-  else {
-    gen_return(s, OP_RETURN, cursp());
-  }
-  if (!val) return;
-  push();
-}
-
-static void
 codegen_break(codegen_scope *s, node *tree, int val)
 {
   loop_break(s, tree);
@@ -5267,8 +5248,20 @@ gen_return_var(codegen_scope *s, node *varnode, int val)
   struct mrb_ast_return_node *return_n = return_node(varnode);
   node *args = RETURN_NODE_ARGS(return_n);
 
-  /* Use traditional return codegen logic */
-  codegen_return(s, args, val);
+  if (args) {
+    gen_retval(s, args);
+  }
+  else {
+    genop_1(s, OP_LOADNIL, cursp());
+  }
+  if (s->loop) {
+    gen_return(s, OP_RETURN_BLK, cursp());
+  }
+  else {
+    gen_return(s, OP_RETURN, cursp());
+  }
+  if (!val) return;
+  push();
 }
 
 static void
@@ -6463,10 +6456,6 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_OP_ASGN:
     codegen_op_asgn(s, tree, val);
-    break;
-
-  case NODE_RETURN:
-    codegen_return(s, tree, val);
     break;
 
   case NODE_BREAK:

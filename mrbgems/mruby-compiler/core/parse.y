@@ -610,7 +610,6 @@ static node* new_masgn_var(parser_state *p, node *lhs, node *rhs);
 static node* new_op_asgn_var(parser_state *p, node *lhs, mrb_sym op, node *rhs);
 static node* new_and_var(parser_state *p, node *left, node *right);
 static node* new_or_var(parser_state *p, node *left, node *right);
-static node* new_return_var(parser_state *p, node *args);
 static node* new_float_var(parser_state *p, const char *value);
 
 /* (:if cond then else) */
@@ -1151,19 +1150,6 @@ new_or_var(parser_state *p, node *left, node *right)
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
-static node*
-new_return_var(parser_state *p, node *args)
-{
-  size_t total_size = sizeof(struct mrb_ast_return_node);
-  enum mrb_ast_size_class class = size_to_class(total_size);
-
-  struct mrb_ast_return_node *n = (struct mrb_ast_return_node*)parser_alloc_var(p, total_size, class);
-
-  init_var_header(&n->header, p, NODE_RETURN, class);
-  n->args = args;
-
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
-}
 
 
 /* Variable-sized literal node creation functions */
@@ -1352,10 +1338,15 @@ new_yield(parser_state *p, node *c)
 static node*
 new_return(parser_state *p, node *c)
 {
-  if (p->var_nodes_enabled) {
-    return new_return_var(p, c);
-  }
-  return cons_head((node*)NODE_RETURN, c);
+  size_t total_size = sizeof(struct mrb_ast_return_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_return_node *n = (struct mrb_ast_return_node*)parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->header, p, NODE_RETURN, class);
+  n->args = c;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:break . c) */
@@ -2319,6 +2310,13 @@ call_with_block(parser_state *p, node *a, node *b)
         yyerror(NULL, p, "block given to yield");
         return;
       }
+      else if (var_type == NODE_RETURN) {
+        /* Variable-sized return nodes - recursively call with args */
+        struct mrb_ast_return_node *return_n = return_node(a->cdr);
+        if (return_n->args == NULL) return;
+        call_with_block(p, return_n->args, b);
+        return;
+      }
     }
     /* For other variable-sized nodes, fall through to default */
     break;
@@ -2330,7 +2328,6 @@ call_with_block(parser_state *p, node *a, node *b)
     if (!n->car) n->car = new_callargs(p, 0, 0, b);
     else args_with_block(p, n->car, b);
     break;
-  case NODE_RETURN:
   case NODE_BREAK:
   case NODE_NEXT:
     if (a->cdr == NULL) return;
