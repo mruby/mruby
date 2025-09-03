@@ -700,7 +700,7 @@ struct mrb_ast_dregx_node {
 
 struct mrb_ast_heredoc_node {
   struct mrb_ast_var_header hdr;
-  mrb_sym name;
+  struct mrb_parser_heredoc_info info;
 };
 
 struct mrb_ast_dsym_node {

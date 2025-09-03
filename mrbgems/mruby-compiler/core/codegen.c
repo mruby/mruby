@@ -4307,18 +4307,6 @@ codegen_xstr(codegen_scope *s, node *tree, int val)
   if (val) push();
 }
 
-
-
-/* codegen_cons_list_string forward declaration moved to top of file */
-
-static void
-codegen_heredoc_str(codegen_scope *s, node *tree, int val)
-{
-  /* Use common cons list string codegen since tree is now in cons list format */
-  codegen_cons_list_string(s, tree, val);
-}
-
-
 /* Common function to generate bytecode for cons list string representation
  * Handles list of elements where each element is either:
  * - (len . str) for string literals
@@ -4843,12 +4831,6 @@ codegen_block_arg(codegen_scope *s, node *tree, int val)
   }
 }
 
-static void
-codegen_heredoc(codegen_scope *s, node *tree, int val)
-{
-  tree = ((struct mrb_parser_heredoc_info*)tree)->doc;
-  codegen_heredoc_str(s, tree, val);
-}
 
 static void
 codegen_super(codegen_scope *s, node *tree, int val)
@@ -5780,15 +5762,9 @@ gen_dregx_var(codegen_scope *s, node *varnode, int val)
 static void
 gen_heredoc_var(codegen_scope *s, node *varnode, int val)
 {
-  struct mrb_ast_heredoc_node *n = (struct mrb_ast_heredoc_node*)varnode;
-  // For heredocs, we need to handle them similar to strings
-  if (val) {
-    mrb_int len;
-    const char *str = mrb_sym2name_len(s->mrb, n->name, &len);
-    int off = new_lit_str(s, str, (int)len);
-    genop_2(s, OP_STRING, cursp(), off);
-    push();
-  }
+  struct mrb_ast_heredoc_node *n = heredoc_node(varnode);
+  // Process heredoc doc field as cons list string
+  codegen_cons_list_string(s, n->info.doc, val);
 }
 
 static void
@@ -6648,12 +6624,9 @@ codegen(codegen_scope *s, node *tree, int val)
     codegen_negate(s, tree, val);
     break;
 
-  case NODE_HEREDOC:
-    codegen_heredoc(s, tree, val);
-    break;
 
   case NODE_STR:
-    codegen_heredoc_str(s, tree, val);
+    codegen_cons_list_string(s, tree, val);
     break;
 
 

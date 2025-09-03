@@ -12,6 +12,7 @@
 #define YYSTACK_USE_ALLOCA 1
 
 #include <ctype.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #include <mruby.h>
@@ -2245,18 +2246,27 @@ new_nth_ref(parser_state *p, int n)
 
 /* (:heredoc . a) */
 static node*
-new_heredoc(parser_state *p)
+new_heredoc(parser_state *p, struct mrb_parser_heredoc_info **infop)
 {
-  if (!p->var_nodes_enabled) {
-    parser_heredoc_info *inf = (parser_heredoc_info*)parser_palloc(p, sizeof(parser_heredoc_info));
-    return cons_head((node*)NODE_HEREDOC, (node*)inf);
-  }
-
   size_t total_size = sizeof(struct mrb_ast_heredoc_node);
   enum mrb_ast_size_class class = size_to_class(total_size);
   struct mrb_ast_heredoc_node *n = (struct mrb_ast_heredoc_node*)parser_alloc_var(p, total_size, class);
   init_var_header(&n->hdr, p, NODE_HEREDOC, class);
-  n->name = 0; // Will be set by heredoc processing
+
+  /* Initialize embedded heredoc info struct */
+  n->info.allow_indent = FALSE;
+  n->info.remove_indent = FALSE;
+  n->info.line_head = FALSE;
+  n->info.indent = 0;
+  n->info.indented = NULL;
+  n->info.type = str_not_parsing;  // Will be set by heredoc processing
+  n->info.term = NULL;  // Will be set by heredoc processing
+  n->info.term_len = 0;
+  n->info.doc = NULL;
+
+  /* Return pointer to embedded info if requested */
+  *infop = &n->info;
+
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
@@ -2514,6 +2524,11 @@ parsing_heredoc_info(parser_state *p)
   node *nd = p->parsing_heredoc;
   if (nd == NULL) return NULL;
   /* mrb_assert(nd->car->car == NODE_HEREDOC); */
+  if (nd->car->car == (node*)NODE_VARIABLE) {
+    /* Variable-sized heredoc node - return address of embedded info struct */
+    struct mrb_ast_heredoc_node *heredoc = heredoc_node(NODE_VAR_NODE_PTR(nd->car));
+    return &heredoc->info;
+  }
   return (parser_heredoc_info*)nd->car->cdr;
 }
 
@@ -6339,8 +6354,7 @@ heredoc_identifier(parser_state *p)
     pushback(p, c);
   }
   tokfix(p);
-  newnode = new_heredoc(p);
-  info = (parser_heredoc_info*)newnode->cdr;
+  newnode = new_heredoc(p, &info);
   info->term = strndup(tok(p), toklen(p));
   info->term_len = toklen(p);
   if (! quote)
