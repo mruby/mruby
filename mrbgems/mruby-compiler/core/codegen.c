@@ -4792,110 +4792,6 @@ codegen_block_arg(codegen_scope *s, node *tree, int val)
 
 
 static void
-codegen_super(codegen_scope *s, node *tree, int val)
-{
-  codegen_scope *s2 = s;
-  int lv = 0;
-  int n = 0, nk = 0, st = 0;
-
-  push();
-  while (!s2->mscope) {
-    lv++;
-    s2 = s2->prev;
-    if (!s2) break;
-  }
-  if (tree) {
-    node *args = tree->car;
-    if (args) {
-      st = n = gen_values(s, args, VAL, 14);
-      if (n < 0) {
-        st = 1; n = 15;
-        push();
-      }
-    }
-    /* keyword arguments */
-    if (tree->cdr->car) {
-      nk = gen_hash(s, tree->cdr->car->cdr, VAL, 14);
-      if (nk < 0) {st++; nk = 15;}
-      else st += nk*2;
-      n |= nk<<4;
-    }
-    /* block arguments */
-    if (tree->cdr->cdr) {
-      codegen(s, tree->cdr->cdr, VAL);
-    }
-    else if (s2) gen_blkmove(s, s2->ainfo, lv);
-    else {
-      genop_1(s, OP_LOADNIL, cursp());
-      push();
-    }
-  }
-  else {
-    if (s2) gen_blkmove(s, s2->ainfo, lv);
-    else {
-      genop_1(s, OP_LOADNIL, cursp());
-      push();
-    }
-  }
-  st++;
-  pop_n(st+1);
-  genop_2(s, OP_SUPER, cursp(), n);
-  if (val) push();
-}
-
-static void
-codegen_zsuper(codegen_scope *s, node *tree, int val)
-{
-  codegen_scope *s2 = s;
-  int lv = 0;
-  uint16_t ainfo = 0;
-  int n = CALL_MAXARGS;
-  int sp = cursp();
-
-  push();        /* room for receiver */
-  while (!s2->mscope) {
-    lv++;
-    s2 = s2->prev;
-    if (!s2) break;
-  }
-  if (s2 && s2->ainfo > 0) {
-    ainfo = s2->ainfo;
-  }
-  if (lv > 0xf) codegen_error(s, "too deep nesting");
-  if (ainfo > 0) {
-    genop_2S(s, OP_ARGARY, cursp(), (ainfo<<4)|(lv & 0xf));
-    push(); push(); push();   /* ARGARY pushes 3 values at most */
-    pop(); pop(); pop();
-    /* keyword arguments */
-    if (ainfo & 0x1) {
-      n |= CALL_MAXARGS<<4;
-      push();
-    }
-    /* block argument */
-    if (tree && tree->cdr && tree->cdr->cdr) {
-      push();
-      codegen(s, tree->cdr->cdr, VAL);
-    }
-  }
-  else {
-    /* block argument */
-    if (tree && tree->cdr && tree->cdr->cdr) {
-      codegen(s, tree->cdr->cdr, VAL);
-    }
-    else if (s2) {
-      gen_blkmove(s, 0, lv);
-    }
-    else {
-      genop_1(s, OP_LOADNIL, cursp());
-    }
-    n = 0;
-  }
-  s->sp = sp;
-  genop_2(s, OP_SUPER, cursp(), n);
-  if (val) push();
-}
-
-static void
 codegen_yield(codegen_scope *s, node *tree, int val)
 {
   codegen_scope *s2 = s;
@@ -5330,11 +5226,8 @@ gen_asgn_var(codegen_scope *s, node *varnode, int val)
 static void
 gen_masgn_var(codegen_scope *s, node *varnode, int val)
 {
-  struct mrb_ast_masgn_node *masgn_n = masgn_node(varnode);
-  node *rhs = MASGN_NODE_RHS(masgn_n);
-
   /* Simplified multiple assignment codegen */
-  /* For now, just generate RHS value and then handle LHS assignment */
+  node *rhs = MASGN_NODE_RHS(varnode);
   if (rhs) {
     codegen(s, rhs, VAL);
   }
@@ -5433,10 +5326,55 @@ static void
 gen_super_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_super_node *super_n = super_node(varnode);
-  node *args = SUPER_NODE_ARGS(super_n);
+  node *tree = SUPER_NODE_ARGS(super_n);
 
-  /* Use traditional super codegen logic */
-  codegen_super(s, args, val);
+  codegen_scope *s2 = s;
+  int lv = 0;
+  int n = 0, nk = 0, st = 0;
+
+  push();
+  while (!s2->mscope) {
+    lv++;
+    s2 = s2->prev;
+    if (!s2) break;
+  }
+  if (tree) {
+    node *args = tree->car;
+    if (args) {
+      st = n = gen_values(s, args, VAL, 14);
+      if (n < 0) {
+        st = 1; n = 15;
+        push();
+      }
+    }
+    /* keyword arguments */
+    if (tree->cdr->car) {
+      nk = gen_hash(s, tree->cdr->car->cdr, VAL, 14);
+      if (nk < 0) {st++; nk = 15;}
+      else st += nk*2;
+      n |= nk<<4;
+    }
+    /* block arguments */
+    if (tree->cdr->cdr) {
+      codegen(s, tree->cdr->cdr, VAL);
+    }
+    else if (s2) gen_blkmove(s, s2->ainfo, lv);
+    else {
+      genop_1(s, OP_LOADNIL, cursp());
+      push();
+    }
+  }
+  else {
+    if (s2) gen_blkmove(s, s2->ainfo, lv);
+    else {
+      genop_1(s, OP_LOADNIL, cursp());
+      push();
+    }
+  }
+  st++;
+  pop_n(st+1);
+  genop_2(s, OP_SUPER, cursp(), n);
+  if (val) push();
 }
 
 /* Variable-sized literal node generation functions */
@@ -5852,12 +5790,57 @@ gen_fcall_var(codegen_scope *s, node *varnode, int val)
 static void
 gen_zsuper_var(codegen_scope *s, node *varnode, int val)
 {
-  (void)varnode; // suppress unused warning
-  // Create a simple stack structure
-  struct mrb_ast_node stack_node;
-  stack_node.car = (node*)NODE_ZSUPER;
-  stack_node.cdr = NULL;
-  codegen_zsuper(s, &stack_node, val);
+  /* NODE_ZSUPER now uses mrb_ast_super_node, which may have args */
+  struct mrb_ast_super_node *zsuper_n = super_node(varnode);
+  node *tree = zsuper_n->args;  /* May be NULL or args added by call_with_block */
+
+  codegen_scope *s2 = s;
+  int lv = 0;
+  uint16_t ainfo = 0;
+  int n = CALL_MAXARGS;
+  int sp = cursp();
+
+  push();        /* room for receiver */
+  while (!s2->mscope) {
+    lv++;
+    s2 = s2->prev;
+    if (!s2) break;
+  }
+  if (s2 && s2->ainfo > 0) {
+    ainfo = s2->ainfo;
+  }
+  if (lv > 0xf) codegen_error(s, "too deep nesting");
+  if (ainfo > 0) {
+    genop_2S(s, OP_ARGARY, cursp(), (ainfo<<4)|(lv & 0xf));
+    push(); push(); push();   /* ARGARY pushes 3 values at most */
+    pop(); pop(); pop();
+    /* keyword arguments */
+    if (ainfo & 0x1) {
+      n |= CALL_MAXARGS<<4;
+      push();
+    }
+    /* block argument - tree here is args, so check tree->cdr->cdr */
+    if (tree && tree->cdr && tree->cdr->cdr) {
+      push();
+      codegen(s, tree->cdr->cdr, VAL);
+    }
+  }
+  else {
+    /* block argument */
+    if (tree && tree->cdr && tree->cdr->cdr) {
+      codegen(s, tree->cdr->cdr, VAL);
+    }
+    else if (s2) {
+      gen_blkmove(s, 0, lv);
+    }
+    else {
+      genop_1(s, OP_LOADNIL, cursp());
+    }
+    n = 0;
+  }
+  s->sp = sp;
+  genop_2(s, OP_SUPER, cursp(), n);
+  if (val) push();
 }
 
 static void
@@ -6490,13 +6473,6 @@ codegen(codegen_scope *s, node *tree, int val)
     codegen_op_asgn(s, tree, val);
     break;
 
-  case NODE_SUPER:
-    codegen_super(s, tree, val);
-    break;
-
-  case NODE_ZSUPER:
-    codegen_zsuper(s, tree, val);
-    break;
 
   case NODE_RETURN:
     codegen_return(s, tree, val);

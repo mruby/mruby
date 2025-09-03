@@ -804,9 +804,6 @@ struct mrb_ast_fcall_node {
   struct mrb_ast_node *args;
 };
 
-struct mrb_ast_zsuper_node {
-  struct mrb_ast_var_header hdr;
-};
 
 struct mrb_ast_lambda_node {
   struct mrb_ast_var_header hdr;
@@ -920,7 +917,7 @@ struct mrb_ast_sdef_node {
 };
 
 #define fcall_node(n) ((struct mrb_ast_fcall_node*)(n))
-#define zsuper_node(n) ((struct mrb_ast_zsuper_node*)(n))
+#define zsuper_node(n) ((struct mrb_ast_super_node*)(n))
 #define lambda_node(n) ((struct mrb_ast_lambda_node*)(n))
 #define zarray_node(n) ((struct mrb_ast_zarray_node*)(n))
 #define kw_hash_node(n) ((struct mrb_ast_kw_hash_node*)(n))

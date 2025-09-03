@@ -612,7 +612,6 @@ static node* new_and_var(parser_state *p, node *left, node *right);
 static node* new_or_var(parser_state *p, node *left, node *right);
 static node* new_return_var(parser_state *p, node *args);
 static node* new_yield_var(parser_state *p, node *args);
-static node* new_super_var(parser_state *p, node *args);
 static node* new_float_var(parser_state *p, const char *value);
 
 /* (:if cond then else) */
@@ -1181,20 +1180,6 @@ new_yield_var(parser_state *p, node *args)
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
-static node*
-new_super_var(parser_state *p, node *args)
-{
-  size_t total_size = sizeof(struct mrb_ast_super_node);
-  enum mrb_ast_size_class class = size_to_class(total_size);
-
-  struct mrb_ast_super_node *n = (struct mrb_ast_super_node*)parser_alloc_var(p, total_size, class);
-
-  init_var_header(&n->header, p, NODE_SUPER, class);
-  n->args = args;
-
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
-}
-
 /* Variable-sized literal node creation functions */
 
 
@@ -1335,21 +1320,27 @@ new_callargs(parser_state *p, node *a, node *b, node *c)
 static node*
 new_super(parser_state *p, node *c)
 {
-  if (p->var_nodes_enabled) {
-    return new_super_var(p, c);
-  }
-  return cons_head((node*)NODE_SUPER, c);
+  size_t total_size = sizeof(struct mrb_ast_super_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_super_node *n = (struct mrb_ast_super_node*)parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->header, p, NODE_SUPER, class);
+  n->args = c;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:zsuper) */
 static node*
 new_zsuper(parser_state *p)
 {
-  size_t total_size = sizeof(struct mrb_ast_zsuper_node);
+  size_t total_size = sizeof(struct mrb_ast_super_node);
   enum mrb_ast_size_class class = size_to_class(total_size);
-  struct mrb_ast_zsuper_node *zsuper_node = (struct mrb_ast_zsuper_node*)parser_alloc_var(p, total_size, class);
-  init_var_header(&zsuper_node->hdr, p, NODE_ZSUPER, class);
-  return cons_head((node*)NODE_VARIABLE, (node*)zsuper_node);
+  struct mrb_ast_super_node *n = (struct mrb_ast_super_node*)parser_alloc_var(p, total_size, class);
+  init_var_header(&n->header, p, NODE_ZSUPER, class);
+  n->args = NULL;  /* zsuper initially has no args, but may be added by call_with_block */
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:yield . c) */
@@ -2317,10 +2308,23 @@ call_with_block(parser_state *p, node *a, node *b)
   node *n;
 
   switch (node_to_type(a->car)) {
-  case NODE_SUPER:
-  case NODE_ZSUPER:
-    if (!a->cdr) a->cdr = new_callargs(p, 0, 0, b);
-    else args_with_block(p, a->cdr, b);
+  case NODE_VARIABLE:
+    /* Handle variable-sized nodes wrapped in NODE_VARIABLE */
+    {
+      enum node_type var_type = VAR_NODE_TYPE(a->cdr);
+      if (var_type == NODE_SUPER || var_type == NODE_ZSUPER) {
+        /* For variable-sized super/zsuper nodes, we need to update the args field directly */
+        struct mrb_ast_super_node *super_n = super_node(a->cdr);
+        if (!super_n->args) {
+          super_n->args = new_callargs(p, 0, 0, b);
+        }
+        else {
+          args_with_block(p, super_n->args, b);
+        }
+        return;
+      }
+    }
+    /* For other variable-sized nodes, fall through to default */
     break;
   case NODE_CALL:
   case NODE_FCALL:
