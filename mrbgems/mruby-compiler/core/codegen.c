@@ -3915,17 +3915,6 @@ codegen_nil(codegen_scope *s, node *tree, int val)
   gen_load_op1(s, OP_LOADNIL, val);
 }
 
-static void
-codegen_true(codegen_scope *s, node *tree, int val)
-{
-  gen_load_op1(s, OP_LOADT, val);
-}
-
-static void
-codegen_false(codegen_scope *s, node *tree, int val)
-{
-  gen_load_op1(s, OP_LOADF, val);
-}
 
 static void
 codegen_lvar(codegen_scope *s, mrb_sym sym, int val)
@@ -5568,15 +5557,15 @@ gen_nil_var(codegen_scope *s, node *varnode, int val)
 static void
 gen_true_var(codegen_scope *s, node *varnode, int val)
 {
-  /* Use traditional true codegen logic */
-  codegen_true(s, NULL, val);
+  /* Generate OP_LOADT instruction for true literal */
+  gen_load_op1(s, OP_LOADT, val);
 }
 
 static void
 gen_false_var(codegen_scope *s, node *varnode, int val)
 {
-  /* Use traditional false codegen logic */
-  codegen_false(s, NULL, val);
+  /* Generate OP_LOADF instruction for false literal */
+  gen_load_op1(s, OP_LOADF, val);
 }
 
 static void
@@ -6653,14 +6642,6 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_NIL:
     codegen_nil(s, tree, val);
-    break;
-
-  case NODE_TRUE:
-    codegen_true(s, tree, val);
-    break;
-
-  case NODE_FALSE:
-    codegen_false(s, tree, val);
     break;
 
   case NODE_ALIAS:
