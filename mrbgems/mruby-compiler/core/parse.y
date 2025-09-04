@@ -598,8 +598,6 @@ new_alias(parser_state *p, mrb_sym a, mrb_sym b)
 /* Forward declarations for variable-sized AST node creation functions */
 static node* new_array_var(parser_state *p, node *a);
 static node* new_hash_var(parser_state *p, node *a);
-static node* new_while_var(parser_state *p, node *condition, node *body);
-static node* new_until_var(parser_state *p, node *condition, node *body);
 static node* new_case_var(parser_state *p, node *value, node *when_list);
 static node* new_for_var(parser_state *p, node *var, node *iterable, node *body);
 static node* new_def_var(parser_state *p, mrb_sym name, node *args, node *body);
@@ -631,55 +629,58 @@ new_if(parser_state *p, node *condition, node *then_body, node *else_body)
 
 /* (:while cond body) */
 static node*
-new_while(parser_state *p, node *a, node *b)
+new_while(parser_state *p, node *condition, node *body)
 {
-  void_expr_error(p, a);
-  // If variable-sized nodes are enabled, use the specialized creation function
-  if (p->var_nodes_enabled) {
-    return new_while_var(p, a, b);
-  }
-  return cons_head((node*)NODE_WHILE, cons(a, b));
+  void_expr_error(p, condition);
+
+  size_t total_size = sizeof(struct mrb_ast_while_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+  struct mrb_ast_while_node *n;
+
+  n = (struct mrb_ast_while_node*)parser_alloc_var(p, total_size, class);
+  init_var_header(&n->header, p, NODE_WHILE, class);
+  n->condition = condition;
+  n->body = body;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:until cond body) */
 static node*
-new_until(parser_state *p, node *a, node *b)
+new_until(parser_state *p, node *condition, node *body)
 {
-  void_expr_error(p, a);
-  if (p->var_nodes_enabled) {
-    return new_until_var(p, a, b);
-  }
-  return cons_head((node*)NODE_UNTIL, cons(a, b));
+  void_expr_error(p, condition);
+
+  size_t total_size = sizeof(struct mrb_ast_until_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+  struct mrb_ast_until_node *n;
+
+  n = (struct mrb_ast_until_node*)parser_alloc_var(p, total_size, class);
+  init_var_header(&n->header, p, NODE_UNTIL, class);
+  n->condition = condition;
+  n->body = body;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:while_mod cond body) */
 static node*
-new_while_mod(parser_state *p, node *a, node *b)
+new_while_mod(parser_state *p, node *condition, node *body)
 {
-  void_expr_error(p, a);
-
-  size_t total_size = sizeof(struct mrb_ast_while_mod_node);
-  enum mrb_ast_size_class class = size_to_class(total_size);
-  struct mrb_ast_while_mod_node *n = (struct mrb_ast_while_mod_node*)parser_alloc_var(p, total_size, class);
-  init_var_header(&n->hdr, p, NODE_WHILE_MOD, class);
-  n->condition = a;
-  n->body = b;
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  node *while_node = new_while(p, condition, body);
+  struct mrb_ast_while_node *n = (struct mrb_ast_while_node*)NODE_VAR_NODE_PTR(while_node);
+  n->header.node_type = NODE_WHILE_MOD;
+  return while_node;
 }
 
 /* (:until_mod cond body) */
 static node*
 new_until_mod(parser_state *p, node *a, node *b)
 {
-  void_expr_error(p, a);
-
-  size_t total_size = sizeof(struct mrb_ast_until_mod_node);
-  enum mrb_ast_size_class class = size_to_class(total_size);
-  struct mrb_ast_until_mod_node *n = (struct mrb_ast_until_mod_node*)parser_alloc_var(p, total_size, class);
-  init_var_header(&n->hdr, p, NODE_UNTIL_MOD, class);
-  n->condition = a;
-  n->body = b;
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  node *until_node = new_until(p, a, b);
+  struct mrb_ast_until_node *n = (struct mrb_ast_until_node*)NODE_VAR_NODE_PTR(until_node);
+  n->header.node_type = NODE_UNTIL_MOD;
+  return until_node;
 }
 
 /* (:for var obj body) */
@@ -894,37 +895,6 @@ new_hash_var(parser_state *p, node *a)
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
-/* Variable-sized while node creation */
-static node*
-new_while_var(parser_state *p, node *condition, node *body)
-{
-  size_t total_size = sizeof(struct mrb_ast_while_node);
-  enum mrb_ast_size_class class = size_to_class(total_size);
-
-  struct mrb_ast_while_node *n = (struct mrb_ast_while_node*)parser_alloc_var(p, total_size, class);
-
-  init_var_header(&n->header, p, NODE_WHILE, class);
-  n->condition = condition;
-  n->body = body;
-
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
-}
-
-/* Variable-sized until node creation */
-static node*
-new_until_var(parser_state *p, node *condition, node *body)
-{
-  size_t total_size = sizeof(struct mrb_ast_until_node);
-  enum mrb_ast_size_class class = size_to_class(total_size);
-
-  struct mrb_ast_until_node *n = (struct mrb_ast_until_node*)parser_alloc_var(p, total_size, class);
-
-  init_var_header(&n->header, p, NODE_UNTIL, class);
-  n->condition = condition;
-  n->body = body;
-
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
-}
 
 /* Variable-sized for node creation */
 static node*

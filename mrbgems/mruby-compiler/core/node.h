@@ -669,31 +669,13 @@ struct mrb_ast_retry_node {
   struct mrb_ast_var_header hdr;
 };
 
-struct mrb_ast_while_mod_node {
-  struct mrb_ast_var_header hdr;
-  struct mrb_ast_node *condition;
-  struct mrb_ast_node *body;
-};
-
-struct mrb_ast_until_mod_node {
-  struct mrb_ast_var_header hdr;
-  struct mrb_ast_node *condition;
-  struct mrb_ast_node *body;
-};
 
 #define break_node(n) ((struct mrb_ast_break_node*)(n))
 #define next_node(n) ((struct mrb_ast_next_node*)(n))
 #define redo_node(n) ((struct mrb_ast_redo_node*)(n))
 #define retry_node(n) ((struct mrb_ast_retry_node*)(n))
-#define while_mod_node(n) ((struct mrb_ast_while_mod_node*)(n))
-#define until_mod_node(n) ((struct mrb_ast_until_mod_node*)(n))
-
 #define BREAK_NODE_VALUE(n) (break_node(n)->value)
 #define NEXT_NODE_VALUE(n) (next_node(n)->value)
-#define WHILE_MOD_NODE_CONDITION(n) (while_mod_node(n)->condition)
-#define WHILE_MOD_NODE_BODY(n) (while_mod_node(n)->body)
-#define UNTIL_MOD_NODE_CONDITION(n) (until_mod_node(n)->condition)
-#define UNTIL_MOD_NODE_BODY(n) (until_mod_node(n)->body)
 
 // Group 9: String and Regex Variants
 struct mrb_ast_xstr_node {
