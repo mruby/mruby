@@ -4626,15 +4626,6 @@ codegen_sclass(codegen_scope *s, node *tree, int val)
   }
 }
 
-static void
-codegen_alias(codegen_scope *s, node *tree, int val)
-{
-  int a = new_sym(s, node_to_sym(tree->car));
-  int b = new_sym(s, node_to_sym(tree->cdr));
-
-  genop_2(s, OP_ALIAS, a, b);
-  gen_load_nil(s, val);
-}
 
 static void
 codegen_undef(codegen_scope *s, node *tree, int val)
@@ -5951,12 +5942,11 @@ gen_alias_var(codegen_scope *s, const node *varnode, int val)
 {
   struct mrb_ast_alias_node *alias = alias_node(varnode);
 
-  // Create stack-allocated traditional node structure
-  node alias_node_stack;
-  alias_node_stack.car = (node*)(intptr_t)alias->new_name;
-  alias_node_stack.cdr = (node*)(intptr_t)alias->old_name;
+  int a = new_sym(s, alias->new_name);
+  int b = new_sym(s, alias->old_name);
 
-  codegen_alias(s, &alias_node_stack, val);
+  genop_2(s, OP_ALIAS, a, b);
+  gen_load_nil(s, val);
 }
 
 static void
@@ -6553,9 +6543,6 @@ codegen(codegen_scope *s, node *tree, int val)
     codegen_nil(s, tree, val);
     break;
 
-  case NODE_ALIAS:
-    codegen_alias(s, tree, val);
-    break;
 
   case NODE_UNDEF:
     codegen_undef(s, tree, val);
