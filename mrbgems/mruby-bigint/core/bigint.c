@@ -2813,6 +2813,19 @@ mrb_bint_new_uint64(mrb_state *mrb, uint64_t x)
   return mrb_obj_value(b);
 }
 
+static mrb_value
+bint_norm(mrb_state *mrb, struct RBigint *b)
+{
+  mrb_int i;
+  mpz_t a;
+
+  bint_as_mpz(b, &a);
+  if (mpz_get_int(&a, &i)) {
+    return mrb_int_value(mrb, i);
+  }
+  return mrb_obj_value(b);
+}
+
 mrb_value
 mrb_bint_new_str(mrb_state *mrb, const char *x, mrb_int len, mrb_int base)
 {
@@ -2830,21 +2843,7 @@ mrb_bint_new_str(mrb_state *mrb, const char *x, mrb_int len, mrb_int base)
   if (sn < 0) {
     z.sn = sn;
   }
-  struct RBigint *b = bint_new(ctx, &z);
-  return mrb_obj_value(b);
-}
-
-static mrb_value
-bint_norm(mrb_state *mrb, struct RBigint *b)
-{
-  mrb_int i;
-  mpz_t a;
-
-  bint_as_mpz(b, &a);
-  if (mpz_get_int(&a, &i)) {
-    return mrb_int_value(mrb, i);
-  }
-  return mrb_obj_value(b);
+  return bint_norm(mrb, bint_new(ctx, &z));
 }
 
 void
