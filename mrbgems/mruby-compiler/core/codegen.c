@@ -2818,7 +2818,9 @@ gen_call(codegen_scope *s, node *tree, int val, int safe)
     else if (sym == MRB_OPSYM_2(s->mrb, aref)) opt_op = OP_GETIDX;
     else if (sym == MRB_OPSYM_2(s->mrb, aset)) opt_op = OP_SETIDX;
   }
-  if (!tree->car || (opt_op == OP_NOP && node_to_int(tree->car->car) == NODE_SELF)) {
+  if (!tree->car || (opt_op == OP_NOP &&
+      node_to_int(tree->car->car) == NODE_VARIABLE &&
+      VAR_NODE_TYPE(tree->car->cdr) == NODE_SELF)) {
     noself = 1;
     push();
   }
@@ -2936,6 +2938,28 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
     /* never happens; should have already checked in the parser */
     codegen_error(s, "Can't assign to numbered parameter");
     break;
+
+  case NODE_VARIABLE:
+    /* Handle variable-sized nodes completely here */
+    {
+      enum node_type var_type = VAR_NODE_TYPE(tree->cdr);
+      switch (var_type) {
+      case NODE_NIL:
+        if (rhs) {
+          codegen(s, rhs, VAL);
+          pop();
+          sp = cursp();
+        }
+        /* NODE_NIL assignment is complete - just break (splat without assignment) */
+        break;
+      default:
+        codegen_error(s, "unsupported variable-sized lhs");
+        break;
+      }
+      /* Variable-sized node handling is complete - skip second switch */
+      if (val) push();
+      return;
+    }
 
   default:
     codegen_error(s, "unknown lhs");
@@ -3091,6 +3115,7 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
   /* splat without assignment */
   case NODE_NIL:
     break;
+
 
   default:
     codegen_error(s, "unknown lhs");
@@ -6500,7 +6525,6 @@ codegen(codegen_scope *s, node *tree, int val)
   case NODE_NIL:
     codegen_nil(s, tree, val);
     break;
-
 
   case NODE_UNDEF:
     codegen_undef(s, tree, val);
