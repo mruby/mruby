@@ -3378,10 +3378,18 @@ static mrb_bool
 true_always(node *tree)
 {
   switch (node_to_int(tree->car)) {
-  case NODE_TRUE:
   case NODE_INT:
   case NODE_SYM:
     return TRUE;
+  case NODE_VARIABLE:
+    /* Check variable-sized nodes that are always true */
+    switch (VAR_NODE_TYPE(tree->cdr)) {
+    case NODE_FLOAT:
+    case NODE_TRUE:
+      return TRUE;
+    default:
+      return FALSE;
+    }
   default:
     return FALSE;
   }
@@ -3390,13 +3398,17 @@ true_always(node *tree)
 static mrb_bool
 false_always(node *tree)
 {
-  switch (node_to_int(tree->car)) {
-  case NODE_FALSE:
-  case NODE_NIL:
-    return TRUE;
-  default:
-    return FALSE;
+  if (node_to_int(tree->car) == NODE_VARIABLE) {
+    /* Check variable-sized nodes that are always false */
+    switch (VAR_NODE_TYPE(tree->cdr)) {
+    case NODE_FALSE:
+    case NODE_NIL:
+      return TRUE;
+    default:
+      return FALSE;
+    }
   }
+  return FALSE;
 }
 
 static void
