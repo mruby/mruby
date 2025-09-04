@@ -12099,18 +12099,26 @@ void_expr_error(parser_state *p, node *n)
   if (n == NULL) return;
   c = node_to_int(n->car);
   switch (c) {
-  case NODE_BREAK:
-  case NODE_RETURN:
-  case NODE_NEXT:
-  case NODE_REDO:
-  case NODE_RETRY:
-    yyerror(NULL, p, "void value expression");
-    break;
-  case NODE_AND:
-  case NODE_OR:
-    if (n->cdr) {
-      void_expr_error(p, n->cdr->car);
-      void_expr_error(p, n->cdr->cdr);
+  case NODE_VARIABLE:
+    /* Handle variable-sized nodes */
+    switch (VAR_NODE_TYPE(n->cdr)) {
+    case NODE_BREAK:
+    case NODE_RETURN:
+    case NODE_NEXT:
+    case NODE_REDO:
+    case NODE_RETRY:
+      yyerror(NULL, p, "void value expression");
+      break;
+    case NODE_AND:
+    case NODE_OR:
+      {
+        struct mrb_ast_and_node *and_n = (struct mrb_ast_and_node*)n->cdr;
+        void_expr_error(p, (node*)and_n->left);
+        void_expr_error(p, (node*)and_n->right);
+      }
+      break;
+    default:
+      break;
     }
     break;
   case NODE_STMTS:
