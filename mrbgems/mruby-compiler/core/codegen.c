@@ -3915,7 +3915,6 @@ codegen_nil(codegen_scope *s, node *tree, int val)
   gen_load_op1(s, OP_LOADNIL, val);
 }
 
-
 static void
 codegen_lvar(codegen_scope *s, mrb_sym sym, int val)
 {
@@ -4206,6 +4205,24 @@ codegen_negate(codegen_scope *s, node *tree, int val)
     }
     break;
 
+  case NODE_VARIABLE:
+#ifndef MRB_NO_FLOAT
+    if (VAR_NODE_TYPE(tree->cdr) == NODE_FLOAT) {
+      if (val) {
+        struct mrb_ast_float_node *float_n = (struct mrb_ast_float_node*)tree->cdr;
+        const char *value = float_n->value;
+        double f;
+
+        mrb_read_float(value, NULL, &f);
+        int off = new_lit_float(s, (mrb_float)-f);
+
+        gen_load_lit(s, off);
+      }
+#endif
+      break;
+    }
+    /* fall through for other variable node types */
+
   default:
     codegen(s, tree, VAL);
     pop();
@@ -4217,17 +4234,6 @@ codegen_negate(codegen_scope *s, node *tree, int val)
     if (val) push();
     break;
   }
-}
-
-static void
-codegen_float(codegen_scope *s, node *tree, int val)
-{
-  char *p = (char*)tree;
-  double f;
-  mrb_read_float(p, NULL, &f);
-  int off = new_lit_float(s, (mrb_float)f);
-
-  gen_load_op2(s, OP_LOADL, off, val);
 }
 
 static void
@@ -4249,7 +4255,6 @@ codegen_int(codegen_scope *s, node *tree, int val)
   }
   push();
 }
-
 
 static void
 codegen_xstr(codegen_scope *s, node *tree, int val)
@@ -5423,11 +5428,14 @@ gen_dot3_var(codegen_scope *s, node *varnode, int val)
 static void
 gen_float_var(codegen_scope *s, node *varnode, int val)
 {
-  struct mrb_ast_float_node *float_n = float_node(varnode->car);
-  const char *value = FLOAT_NODE_VALUE(float_n);
+  struct mrb_ast_float_node *float_n = (struct mrb_ast_float_node*)varnode;
+  const char *value = float_n->value;
+  double f;
 
-  /* Use traditional float codegen logic directly */
-  codegen_float(s, (node*)value, val);
+  mrb_read_float(value, NULL, &f);
+  int off = new_lit_float(s, (mrb_float)f);
+
+  gen_load_op2(s, OP_LOADL, off, val);
 }
 
 /* Variable-sized simple node generation functions */
@@ -5569,7 +5577,6 @@ gen_until_mod_var(codegen_scope *s, node *varnode, int val)
   struct mrb_ast_node temp_tree = { .car = n->condition, .cdr = n->body };
   codegen_while_until(s, (node*)&temp_tree, val, NODE_UNTIL_MOD);
 }
-
 
 static void
 gen_xstr_var(codegen_scope *s, node *varnode, int val)
@@ -6518,21 +6525,13 @@ codegen(codegen_scope *s, node *tree, int val)
     codegen_int(s, tree, val);
     break;
 
-#ifndef MRB_NO_FLOAT
-  case NODE_FLOAT:
-    codegen_float(s, tree, val);
-    break;
-#endif
-
   case NODE_NEGATE:
     codegen_negate(s, tree, val);
     break;
 
-
   case NODE_STR:
     codegen_cons_list_string(s, tree, val);
     break;
-
 
   case NODE_XSTR:
     codegen_xstr(s, tree, val);

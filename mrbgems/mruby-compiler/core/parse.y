@@ -610,7 +610,6 @@ static node* new_masgn_var(parser_state *p, node *lhs, node *rhs);
 static node* new_op_asgn_var(parser_state *p, node *lhs, mrb_sym op, node *rhs);
 static node* new_and_var(parser_state *p, node *left, node *right);
 static node* new_or_var(parser_state *p, node *left, node *right);
-static node* new_float_var(parser_state *p, const char *value);
 
 /* (:if cond then else) */
 static node*
@@ -1155,19 +1154,6 @@ new_or_var(parser_state *p, node *left, node *right)
 /* Variable-sized literal node creation functions */
 
 
-static node*
-new_float_var(parser_state *p, const char *value)
-{
-  size_t total_size = sizeof(struct mrb_ast_float_node);
-  enum mrb_ast_size_class class = size_to_class(total_size);
-
-  struct mrb_ast_float_node *n = (struct mrb_ast_float_node*)parser_alloc_var(p, total_size, class);
-
-  init_var_header(&n->hdr, p, NODE_FLOAT, class);
-  n->value = strdup(value);
-
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
-}
 
 /* Variable-sized simple node creation functions */
 static node*
@@ -2058,13 +2044,16 @@ new_int(parser_state *p, const char *s, int base, int suffix)
 static node*
 new_float(parser_state *p, const char *s, int suffix)
 {
-  node* result;
-  if (p->var_nodes_enabled) {
-    result = new_float_var(p, s);
-  }
-  else {
-    result = cons((node*)NODE_FLOAT, (node*)strdup(s));
-  }
+  size_t total_size = sizeof(struct mrb_ast_float_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_float_node *n = (struct mrb_ast_float_node*)parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->hdr, p, NODE_FLOAT, class);
+  n->value = strdup(s);
+
+  node* result = cons_head((node*)NODE_VARIABLE, (node*)n);
+
   if (suffix & NUM_SUFFIX_R) {
     result = new_rational(p, result);
   }
@@ -2074,9 +2063,6 @@ new_float(parser_state *p, const char *s, int suffix)
   return result;
 }
 #endif
-
-
-
 
 /* Create string node from cons list */
 /* (:str . a) */
@@ -2348,7 +2334,6 @@ new_negate(parser_state *p, node *n)
   negate_node->operand = n;
   return cons_head((node*)NODE_VARIABLE, (node*)negate_node);
 }
-
 
 static node*
 cond(node *n)
