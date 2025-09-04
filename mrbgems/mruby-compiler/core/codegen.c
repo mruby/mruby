@@ -3787,75 +3787,6 @@ codegen_block(codegen_scope *s, node *tree, int val)
   push();
 }
 
-static void
-codegen_if(codegen_scope *s, node *tree, int val)
-{
-  uint32_t pos1, pos2;
-  mrb_bool nil_p = FALSE;
-  node *elsepart = tree->cdr->cdr->car;
-
-  if (!tree->car) {
-    codegen(s, elsepart, val);
-    return;
-  }
-  if (true_always(tree->car)) {
-    codegen(s, tree->cdr->car, val);
-    return;
-  }
-  if (false_always(tree->car)) {
-    codegen(s, elsepart, val);
-    return;
-  }
-  if (node_to_int(tree->car->car) == NODE_CALL) {
-    node *n = tree->car->cdr;
-    mrb_sym mid = node_to_sym(n->cdr->car);
-    mrb_sym sym_nil_p = MRB_SYM_Q_2(s->mrb, nil);
-    if (mid == sym_nil_p && n->cdr->cdr->car == NULL) {
-      nil_p = TRUE;
-      codegen(s, n->car, VAL);
-    }
-  }
-  if (!nil_p) {
-    codegen(s, tree->car, VAL);
-  }
-  pop();
-  if (val || tree->cdr->car) {
-    if (nil_p) {
-      pos2 = genjmp2_0(s, OP_JMPNIL, cursp(), val);
-      pos1 = genjmp_0(s, OP_JMP);
-      dispatch(s, pos2);
-    }
-    else {
-      pos1 = genjmp2_0(s, OP_JMPNOT, cursp(), val);
-    }
-    codegen(s, tree->cdr->car, val);
-    if (val) pop();
-    if (elsepart || val) {
-      pos2 = genjmp_0(s, OP_JMP);
-      dispatch(s, pos1);
-      codegen(s, elsepart, val);
-      dispatch(s, pos2);
-    }
-    else {
-      dispatch(s, pos1);
-    }
-  }
-  else {                    /* empty then-part */
-    if (elsepart) {
-      if (nil_p) {
-        pos1 = genjmp2_0(s, OP_JMPNIL, cursp(), val);
-      }
-      else {
-        pos1 = genjmp2_0(s, OP_JMPIF, cursp(), val);
-      }
-      codegen(s, elsepart, val);
-      dispatch(s, pos1);
-    }
-    else if (val && !nil_p) {
-      gen_load_nil(s, 1);
-    }
-  }
-}
 
 
 static void
@@ -4903,10 +4834,11 @@ static void
 gen_if_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_if_node *if_n = if_node(varnode);
-  node *condition = IF_NODE_CONDITION(if_n);
-  node *then_body = IF_NODE_THEN(if_n);
-  node *else_body = IF_NODE_ELSE(if_n);
+  node *condition = if_n->condition;
+  node *then_body = if_n->then_body;
+  node *else_body = if_n->else_body;
   uint32_t pos1, pos2;
+  mrb_bool nil_p = FALSE;
 
   if (!condition) {
     codegen(s, else_body, val);
@@ -4921,12 +4853,42 @@ gen_if_var(codegen_scope *s, node *varnode, int val)
     return;
   }
 
-  /* Generate condition code */
-  codegen(s, condition, VAL);
+  /* Check for nil? optimization - handle both traditional and variable-sized nodes */
+  if (NODE_TYPE(condition) == NODE_CALL) {
+    /* Traditional cons-list NODE_CALL */
+    node *n = condition->cdr;
+    mrb_sym mid = node_to_sym(n->cdr->car);
+    mrb_sym sym_nil_p = MRB_SYM_Q_2(s->mrb, nil);
+    if (mid == sym_nil_p && n->cdr->cdr->car == NULL) {
+      nil_p = TRUE;
+      codegen(s, n->car, VAL);
+    }
+  }
+  else if (NODE_TYPE(condition) == NODE_VARIABLE && VAR_NODE_TYPE(condition->cdr) == NODE_CALL) {
+    /* Variable-sized NODE_CALL wrapped in NODE_VARIABLE */
+    struct mrb_ast_call_node *call_n = (struct mrb_ast_call_node*)condition->cdr;
+    mrb_sym sym_nil_p = MRB_SYM_Q_2(s->mrb, nil);
+    if (call_n->method_name == sym_nil_p && call_n->argc == 0) {
+      nil_p = TRUE;
+      codegen(s, call_n->receiver, VAL);
+    }
+  }
+
+  if (!nil_p) {
+    /* Generate condition code */
+    codegen(s, condition, VAL);
+  }
   pop();
 
   if (val || then_body) {
-    pos1 = genjmp2_0(s, OP_JMPNOT, cursp(), val);
+    if (nil_p) {
+      pos2 = genjmp2_0(s, OP_JMPNIL, cursp(), val);
+      pos1 = genjmp_0(s, OP_JMP);
+      dispatch(s, pos2);
+    }
+    else {
+      pos1 = genjmp2_0(s, OP_JMPNOT, cursp(), val);
+    }
     codegen(s, then_body, val);
     if (val) pop();
     if (else_body || val) {
@@ -4941,13 +4903,17 @@ gen_if_var(codegen_scope *s, node *varnode, int val)
   }
   else {  /* empty then-part */
     if (else_body) {
-      pos1 = genjmp2_0(s, OP_JMPIF, cursp(), val);
+      if (nil_p) {
+        pos1 = genjmp2_0(s, OP_JMPNIL, cursp(), val);
+      }
+      else {
+        pos1 = genjmp2_0(s, OP_JMPIF, cursp(), val);
+      }
       codegen(s, else_body, val);
       dispatch(s, pos1);
     }
-    else if (val) {
-      genop_1(s, OP_LOADNIL, cursp());
-      push();
+    else if (val && !nil_p) {
+      gen_load_nil(s, 1);
     }
   }
 }
@@ -6350,11 +6316,6 @@ codegen(codegen_scope *s, node *tree, int val)
   case NODE_BLOCK:
     codegen_block(s, tree, val);
     break;
-
-  case NODE_IF:
-    codegen_if(s, tree, val);
-    break;
-
 
   case NODE_WHILE_MOD:
   case NODE_UNTIL_MOD:

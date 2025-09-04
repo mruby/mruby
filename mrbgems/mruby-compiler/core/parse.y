@@ -598,7 +598,6 @@ new_alias(parser_state *p, mrb_sym a, mrb_sym b)
 /* Forward declarations for variable-sized AST node creation functions */
 static node* new_array_var(parser_state *p, node *a);
 static node* new_hash_var(parser_state *p, node *a);
-static node* new_if_var(parser_state *p, node *condition, node *then_body, node *else_body);
 static node* new_while_var(parser_state *p, node *condition, node *body);
 static node* new_until_var(parser_state *p, node *condition, node *body);
 static node* new_case_var(parser_state *p, node *value, node *when_list);
@@ -613,22 +612,21 @@ static node* new_op_asgn_var(parser_state *p, node *lhs, mrb_sym op, node *rhs);
 
 /* (:if cond then else) */
 static node*
-new_if(parser_state *p, node *a, node *b, node *c)
+new_if(parser_state *p, node *condition, node *then_body, node *else_body)
 {
-  void_expr_error(p, a);
-  // If variable-sized nodes are enabled, use the specialized creation function
-  if (p->var_nodes_enabled) {
-    return new_if_var(p, a, b, c);
-  }
-  return list4((node*)NODE_IF, a, b, c);
-}
+  void_expr_error(p, condition);
 
-/* (:unless cond then else) */
-static node*
-new_unless(parser_state *p, node *a, node *b, node *c)
-{
-  void_expr_error(p, a);
-  return list4((node*)NODE_IF, a, c, b);
+  size_t total_size = sizeof(struct mrb_ast_if_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+  struct mrb_ast_if_node *n;
+
+  n = (struct mrb_ast_if_node*)parser_alloc_var(p, total_size, class);
+  init_var_header(&n->header, p, NODE_IF, class);
+  n->condition = condition;
+  n->then_body = then_body;
+  n->else_body = else_body;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:while cond body) */
@@ -892,23 +890,6 @@ new_hash_var(parser_state *p, node *a)
     }
     pair_iter = pair_iter->cdr;
   }
-
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
-}
-
-/* Variable-sized if node creation */
-static node*
-new_if_var(parser_state *p, node *condition, node *then_body, node *else_body)
-{
-  size_t total_size = sizeof(struct mrb_ast_if_node);
-  enum mrb_ast_size_class class = size_to_class(total_size);
-
-  struct mrb_ast_if_node *n = (struct mrb_ast_if_node*)parser_alloc_var(p, total_size, class);
-
-  init_var_header(&n->header, p, NODE_IF, class);
-  n->condition = condition;
-  n->then_body = then_body;
-  n->else_body = else_body;
 
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
@@ -2823,7 +2804,7 @@ stmt            : keyword_alias fsym {p->lstate = EXPR_FNAME;} fsym
                     }
                 | stmt modifier_unless expr_value
                     {
-                      $$ = new_unless(p, cond($3), $1, 0);
+                      $$ = new_if(p, cond($3), 0, $1);
                     }
                 | stmt modifier_while expr_value
                     {
@@ -3880,7 +3861,7 @@ primary         : literal
                   opt_else
                   keyword_end
                     {
-                      $$ = new_unless(p, cond($2), $4, $5);
+                      $$ = new_if(p, cond($2), $5, $4);
                       SET_LINENO($$, $1);
                     }
                 | keyword_while {COND_PUSH(1);} expr_value do {COND_POP();}
