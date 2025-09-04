@@ -608,8 +608,6 @@ static node* new_sclass_var(parser_state *p, node *obj, node *body);
 static node* new_asgn_var(parser_state *p, node *lhs, node *rhs);
 static node* new_masgn_var(parser_state *p, node *lhs, node *rhs);
 static node* new_op_asgn_var(parser_state *p, node *lhs, mrb_sym op, node *rhs);
-static node* new_and_var(parser_state *p, node *left, node *right);
-static node* new_or_var(parser_state *p, node *left, node *right);
 
 /* (:if cond then else) */
 static node*
@@ -1119,41 +1117,6 @@ new_op_asgn_var(parser_state *p, node *lhs, mrb_sym op, node *rhs)
 }
 
 /* Variable-sized expression node creation */
-static node*
-new_and_var(parser_state *p, node *left, node *right)
-{
-  size_t total_size = sizeof(struct mrb_ast_and_node);
-  enum mrb_ast_size_class class = size_to_class(total_size);
-
-  struct mrb_ast_and_node *n = (struct mrb_ast_and_node*)parser_alloc_var(p, total_size, class);
-
-  init_var_header(&n->header, p, NODE_AND, class);
-  n->left = left;
-  n->right = right;
-
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
-}
-
-static node*
-new_or_var(parser_state *p, node *left, node *right)
-{
-  size_t total_size = sizeof(struct mrb_ast_or_node);
-  enum mrb_ast_size_class class = size_to_class(total_size);
-
-  struct mrb_ast_or_node *n = (struct mrb_ast_or_node*)parser_alloc_var(p, total_size, class);
-
-  init_var_header(&n->header, p, NODE_OR, class);
-  n->left = left;
-  n->right = right;
-
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
-}
-
-
-
-/* Variable-sized literal node creation functions */
-
-
 
 /* Variable-sized simple node creation functions */
 static node*
@@ -1181,8 +1144,6 @@ new_nil_var(parser_state *p)
 
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
-
-
 
 static node*
 new_const_var(parser_state *p, mrb_sym symbol)
@@ -1448,10 +1409,17 @@ static node*
 new_and(parser_state *p, node *a, node *b)
 {
   void_expr_error(p, a);
-  if (p->var_nodes_enabled) {
-    return new_and_var(p, a, b);
-  }
-  return cons_head((node*)NODE_AND, cons(a, b));
+
+  size_t total_size = sizeof(struct mrb_ast_and_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_and_node *n = (struct mrb_ast_and_node*)parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->header, p, NODE_AND, class);
+  n->left = a;
+  n->right = b;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:or a b) */
@@ -1459,10 +1427,17 @@ static node*
 new_or(parser_state *p, node *a, node *b)
 {
   void_expr_error(p, a);
-  if (p->var_nodes_enabled) {
-    return new_or_var(p, a, b);
-  }
-  return cons_head((node*)NODE_OR, cons(a, b));
+
+  size_t total_size = sizeof(struct mrb_ast_or_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_or_node *n = (struct mrb_ast_or_node*)parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->header, p, NODE_OR, class);
+  n->left = a;
+  n->right = b;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:array a...) */
@@ -2080,7 +2055,6 @@ new_str(parser_state *p, node *a)
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
-
 /* (:xstr . a) */
 static node*
 new_xstr(parser_state *p, node *a)
@@ -2093,7 +2067,6 @@ new_xstr(parser_state *p, node *a)
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
-
 /* (:dsym . a) */
 static node*
 new_dsym(parser_state *p, node *a)
@@ -2105,7 +2078,6 @@ new_dsym(parser_state *p, node *a)
   n->list = a;
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
-
 
 /* (:dregx . (list . (flags . encoding))) */
 static node*

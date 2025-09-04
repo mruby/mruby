@@ -3863,45 +3863,6 @@ codegen_if(codegen_scope *s, node *tree, int val)
   }
 }
 
-static void
-codegen_and(codegen_scope *s, node *tree, int val)
-{
-  uint32_t pos;
-
-  if (true_always(tree->car)) {
-    codegen(s, tree->cdr, val);
-    return;
-  }
-  if (false_always(tree->car)) {
-    codegen(s, tree->car, val);
-    return;
-  }
-  codegen(s, tree->car, VAL);
-  pop();
-  pos = genjmp2_0(s, OP_JMPNOT, cursp(), val);
-  codegen(s, tree->cdr, val);
-  dispatch(s, pos);
-}
-
-static void
-codegen_or(codegen_scope *s, node *tree, int val)
-{
-  uint32_t pos;
-
-  if (true_always(tree->car)) {
-    codegen(s, tree->car, val);
-    return;
-  }
-  if (false_always(tree->car)) {
-    codegen(s, tree->cdr, val);
-    return;
-  }
-  codegen(s, tree->car, VAL);
-  pop();
-  pos = genjmp2_0(s, OP_JMPIF, cursp(), val);
-  codegen(s, tree->cdr, val);
-  dispatch(s, pos);
-}
 
 static void
 codegen_self(codegen_scope *s, node *tree, int val)
@@ -5199,43 +5160,47 @@ gen_op_asgn_var(codegen_scope *s, node *varnode, int val)
 static void
 gen_and_var(codegen_scope *s, node *varnode, int val)
 {
-  struct mrb_ast_and_node *and_n = and_node(varnode);
-  node *left = AND_NODE_LEFT(and_n);
-  node *right = AND_NODE_RIGHT(and_n);
+  struct mrb_ast_and_node *and_n = (struct mrb_ast_and_node*)varnode;
+  node *left = and_n->left;
+  node *right = and_n->right;
+  uint32_t pos;
 
-  /* Simplified AND logic - evaluate left, then conditionally right */
-  if (left) {
-    codegen(s, left, VAL);
-    /* For now, just evaluate right too - can be optimized later for short-circuit */
-    if (right) {
-      codegen(s, right, val);
-    }
+  if (true_always(left)) {
+    codegen(s, right, val);
+    return;
   }
-  else if (val) {
-    genop_1(s, OP_LOADNIL, cursp());
-    push();
+  if (false_always(left)) {
+    codegen(s, left, val);
+    return;
   }
+  codegen(s, left, VAL);
+  pop();
+  pos = genjmp2_0(s, OP_JMPNOT, cursp(), val);
+  codegen(s, right, val);
+  dispatch(s, pos);
 }
 
 static void
 gen_or_var(codegen_scope *s, node *varnode, int val)
 {
-  struct mrb_ast_or_node *or_n = or_node(varnode);
-  node *left = OR_NODE_LEFT(or_n);
-  node *right = OR_NODE_RIGHT(or_n);
+  struct mrb_ast_or_node *or_n = (struct mrb_ast_or_node*)varnode;
+  node *left = or_n->left;
+  node *right = or_n->right;
+  uint32_t pos;
 
-  /* Simplified OR logic - evaluate left, then conditionally right */
-  if (left) {
-    codegen(s, left, VAL);
-    /* For now, just evaluate right too - can be optimized later for short-circuit */
-    if (right) {
-      codegen(s, right, val);
-    }
+  if (true_always(left)) {
+    codegen(s, left, val);
+    return;
   }
-  else if (val) {
-    genop_1(s, OP_LOADNIL, cursp());
-    push();
+  if (false_always(left)) {
+    codegen(s, right, val);
+    return;
   }
+  codegen(s, left, VAL);
+  pop();
+  pos = genjmp2_0(s, OP_JMPIF, cursp(), val);
+  codegen(s, right, val);
+  dispatch(s, pos);
 }
 
 static void
@@ -6387,13 +6352,6 @@ codegen(codegen_scope *s, node *tree, int val)
     codegen_if(s, tree, val);
     break;
 
-  case NODE_AND:
-    codegen_and(s, tree, val);
-    break;
-
-  case NODE_OR:
-    codegen_or(s, tree, val);
-    break;
 
   case NODE_WHILE_MOD:
   case NODE_UNTIL_MOD:
