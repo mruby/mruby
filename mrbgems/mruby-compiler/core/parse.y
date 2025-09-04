@@ -1932,10 +1932,23 @@ new_op_asgn(parser_state *p, node *a, mrb_sym op, node *b)
 }
 
 static node*
+new_int_n(parser_state *p, int32_t val)
+{
+  size_t size = sizeof(struct mrb_ast_int_node);
+  enum mrb_ast_size_class class = size_to_class(size);
+  struct mrb_ast_int_node *n = (struct mrb_ast_int_node*)parser_alloc_var(p, size, class);
+
+  init_var_header(&n->header, p, NODE_INT, class);
+  n->value = val;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
+}
+
+static node*
 new_imaginary(parser_state *p, node *imaginary)
 {
   return new_fcall(p, MRB_SYM_2(p->mrb, Complex),
-                  new_callargs(p, list2(list3((node*)NODE_INT, (node*)strdup("0"), int_to_node(10)), imaginary), 0, 0));
+                   new_callargs(p, list2(new_int_n(p, 0), imaginary), 0, 0));
 }
 
 static node*
@@ -1944,55 +1957,112 @@ new_rational(parser_state *p, node *rational)
   return new_fcall(p, MRB_SYM_2(p->mrb, Rational), new_callargs(p, list1(rational), 0, 0));
 }
 
-/* (:int . i) */
-static node*
-new_int_original(parser_state *p, const char *s, int base)
+/* Read integer into int32_t with overflow detection */
+static mrb_bool
+read_int32(const char *p, int base, int32_t *result)
 {
-  return list3((node*)NODE_INT, (node*)strdup(s), int_to_node(base));
-}
+  const char *e = p + strlen(p);
+  int32_t value = 0;
+  mrb_bool neg = FALSE;
 
-static node*
-new_int_var(parser_state *p, int32_t value)
-{
-  size_t size = sizeof(struct mrb_ast_int_node);
-  enum mrb_ast_size_class class = size_to_class(size);
+  if (base < 2 || base > 16) {
+    return FALSE;
+  }
 
-  struct mrb_ast_int_node *n = (struct mrb_ast_int_node*)parser_alloc_var(p, size, class);
+  if (*p == '+') {
+    p++;
+  }
+  else if (*p == '-') {
+    neg = TRUE;
+    p++;
+  }
 
-  init_var_header(&n->header, p, NODE_INT, class);
-  n->value = value;
+  while (p < e) {
+    int n;
+    char c = *p;
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+    /* Skip underscores */
+    if (c == '_') {
+      p++;
+      continue;
+    }
+
+    /* Parse digit */
+    if (c >= '0' && c <= '9') {
+      n = c - '0';
+    }
+    else if (c >= 'a' && c <= 'f') {
+      n = c - 'a' + 10;
+    }
+    else if (c >= 'A' && c <= 'F') {
+      n = c - 'A' + 10;
+    }
+    else {
+      /* Invalid character */
+      return FALSE;
+    }
+
+    if (n >= base) {
+      /* Digit not valid for this base */
+      return FALSE;
+    }
+
+    /* Check for multiplication overflow */
+    if (value > INT32_MAX / base) {
+      return FALSE;
+    }
+
+    value *= base;
+
+    /* Check for addition overflow */
+    if (value > INT32_MAX - n) {
+      /* Special case: -INT32_MIN is valid */
+      if (neg && value == (INT32_MAX - n + 1) && p + 1 == e) {
+        *result = INT32_MIN;
+        return TRUE;
+      }
+      return FALSE;
+    }
+
+    value += n;
+    p++;
+  }
+
+  *result = neg ? -value : value;
+  return TRUE;
 }
 
 static node*
 new_int(parser_state *p, const char *s, int base, int suffix)
 {
+  int32_t val;
   node* result;
 
-  if (p->var_nodes_enabled && suffix == 0) {
-    char *e;
-    long long val;
-#ifdef MRB_INT64
-    val = strtoll(s, &e, base);
-#else
-    val = strtol(s, &e, base);
-#endif
-    if (*e == 0) { /* conversion successful */
-      if (val >= INT32_MIN && val <= INT32_MAX) {
-        return new_int_var(p, (int32_t)val);
-      }
-    }
-    /* fallback to original for large numbers or parse errors */
+  /* Try to parse as int32_t first */
+  if (read_int32(s, base, &val)) {
+    result = new_int_n(p, val);
+  }
+  else {
+    /* Big integer - create NODE_BIGINT */
+    size_t size = sizeof(struct mrb_ast_bigint_node);
+    enum mrb_ast_size_class class = size_to_class(size);
+    struct mrb_ast_bigint_node *n = (struct mrb_ast_bigint_node*)parser_alloc_var(p, size, class);
+
+    init_var_header(&n->header, p, NODE_BIGINT, class);
+    n->string = strdup(s);
+    n->base = base;
+
+    result = cons_head((node*)NODE_VARIABLE, (node*)n);
   }
 
-  result = new_int_original(p, s, base);
+  /* Handle suffix modifiers */
   if (suffix & NUM_SUFFIX_R) {
     result = new_rational(p, result);
   }
   if (suffix & NUM_SUFFIX_I) {
     result = new_imaginary(p, result);
   }
+
   return result;
 }
 

@@ -3314,51 +3314,6 @@ raise_error(codegen_scope *s, const char *msg)
   genop_1(s, OP_ERR, idx);
 }
 
-static mrb_int
-readint(codegen_scope *s, const char *p, int base, mrb_bool neg, mrb_bool *overflow)
-{
-  const char *e = p + strlen(p);
-  mrb_int result = 0;
-
-  mrb_assert(base >= 2 && base <= 16);
-  if (*p == '+') p++;
-  while (p < e) {
-    int n;
-    char c = *p;
-    switch (c) {
-    case '0': case '1': case '2': case '3':
-    case '4': case '5': case '6': case '7':
-      n = c - '0'; break;
-    case '8': case '9':
-      n = c - '0'; break;
-    case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
-      n = c - 'a' + 10; break;
-    case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
-      n = c - 'A' + 10; break;
-    default:
-      codegen_error(s, "malformed readint input");
-      *overflow = TRUE;
-      /* not reached */
-      return result;
-    }
-    if (mrb_int_mul_overflow(result, base, &result)) {
-    overflow:
-      *overflow = TRUE;
-      return 0;
-    }
-    mrb_uint tmp = ((mrb_uint)result)+n;
-    if (neg && tmp == (mrb_uint)MRB_INT_MAX+1) {
-      *overflow = FALSE;
-      return MRB_INT_MIN;
-    }
-    if (tmp > MRB_INT_MAX) goto overflow;
-    result = (mrb_int)tmp;
-    p++;
-  }
-  *overflow = FALSE;
-  if (neg) return -result;
-  return result;
-}
 
 static void
 gen_retval(codegen_scope *s, node *tree)
@@ -3384,6 +3339,8 @@ true_always(node *tree)
   case NODE_VARIABLE:
     /* Check variable-sized nodes that are always true */
     switch (VAR_NODE_TYPE(tree->cdr)) {
+    case NODE_INT:
+    case NODE_BIGINT:
     case NODE_FLOAT:
     case NODE_TRUE:
       return TRUE;
@@ -4184,44 +4141,63 @@ codegen_negate(codegen_scope *s, node *tree, int val)
 #endif
 
   case NODE_INT:
-    if (val) {
-      char *p = (char*)tree->cdr->car;
-      int base = node_to_int(tree->cdr->cdr->car);
-      mrb_int i;
-      mrb_bool overflow;
-
-      i = readint(s, p, base, TRUE, &overflow);
-      if (overflow) {
-        base = -base;
-        int off = new_litbint(s, p, base);
-        genop_2(s, OP_LOADL, cursp(), off);
-      }
-      else {
-        gen_int(s, cursp(), i);
-      }
-      push();
-    }
+    /* This case should not occur since NODE_INT is now always variable-sized */
     break;
 
   case NODE_VARIABLE:
+    {
+      enum node_type vnt = VAR_NODE_TYPE(tree->cdr);
+      switch (vnt) {
 #ifndef MRB_NO_FLOAT
-    if (VAR_NODE_TYPE(tree->cdr) == NODE_FLOAT) {
-      if (val) {
-        struct mrb_ast_float_node *float_n = (struct mrb_ast_float_node*)tree->cdr;
-        const char *value = float_n->value;
-        double f;
+      case NODE_FLOAT:
+        if (val) {
+          struct mrb_ast_float_node *float_n = (struct mrb_ast_float_node*)tree->cdr;
+          const char *value = float_n->value;
+          double f;
 
-        mrb_read_float(value, NULL, &f);
-        int off = new_lit_float(s, (mrb_float)-f);
+          mrb_read_float(value, NULL, &f);
+          int off = new_lit_float(s, (mrb_float)-f);
 
-        gen_load_lit(s, off);
-      }
+          gen_load_lit(s, off);
+        }
+        break;
 #endif
+
+      case NODE_INT:
+        if (val) {
+          int32_t value = INT_NODE_VALUE(tree->cdr);
+          if (value == INT32_MIN) {
+            /* -INT32_MIN overflows, use bigint */
+            int off = new_litbint(s, "2147483648", -10);
+            genop_2(s, OP_LOADL, cursp(), off);
+          }
+          else {
+            gen_int(s, cursp(), -value);
+          }
+          push();
+        }
+        break;
+
+      case NODE_BIGINT:
+        if (val) {
+          char *str = BIGINT_NODE_STRING(tree->cdr);
+          int base = BIGINT_NODE_BASE(tree->cdr);
+          /* Negate base to indicate negative number */
+          int off = new_litbint(s, str, -base);
+          genop_2(s, OP_LOADL, cursp(), off);
+          push();
+        }
+        break;
+
+      default:
+        /* Fall through to default case */
+        goto default_negate;
+      }
       break;
     }
-    /* fall through for other variable node types */
 
   default:
+  default_negate:
     codegen(s, tree, VAL);
     pop();
     push_n(2);pop_n(2); /* space for receiver&block */
@@ -4232,26 +4208,6 @@ codegen_negate(codegen_scope *s, node *tree, int val)
     if (val) push();
     break;
   }
-}
-
-static void
-codegen_int(codegen_scope *s, node *tree, int val)
-{
-  if (!val) return;
-  char *p = (char*)tree->car;
-  int base = node_to_int(tree->cdr->car);
-  mrb_int i;
-  mrb_bool overflow;
-
-  i = readint(s, p, base, FALSE, &overflow);
-  if (overflow) {
-    int off = new_litbint(s, p, base);
-    genop_2(s, OP_LOADL, cursp(), off);
-  }
-  else {
-    gen_int(s, cursp(), i);
-  }
-  push();
 }
 
 static void
@@ -6022,6 +5978,16 @@ codegen_variable_node(codegen_scope *s, node *varnode, int val)
     }
     return TRUE;
 
+  case NODE_BIGINT:
+    if (val) {
+      char *str = BIGINT_NODE_STRING(varnode);
+      int base = BIGINT_NODE_BASE(varnode);
+      int off = new_litbint(s, str, base);
+      genop_2(s, OP_LOADL, cursp(), off);
+      push();
+    }
+    return TRUE;
+
   case NODE_SYM:
     {
       int i = new_sym(s, SYM_NODE_VALUE(varnode));
@@ -6506,9 +6472,6 @@ codegen(codegen_scope *s, node *tree, int val)
     codegen_block_arg(s, tree, val);
     break;
 
-  case NODE_INT:
-    codegen_int(s, tree, val);
-    break;
 
   case NODE_NEGATE:
     codegen_negate(s, tree, val);

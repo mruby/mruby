@@ -53,6 +53,7 @@ enum node_type {
   NODE_BACK_REF,
   NODE_MATCH,
   NODE_INT,
+  NODE_BIGINT,
   NODE_FLOAT,
   NODE_NEGATE,
   NODE_LAMBDA,
@@ -193,6 +194,13 @@ struct mrb_ast_str_node {
 struct mrb_ast_int_node {
   struct mrb_ast_var_header header;  /* 8 bytes */
   int32_t value;                     /* Direct 32-bit integer storage */
+};
+
+/* Variable-sized big integer node */
+struct mrb_ast_bigint_node {
+  struct mrb_ast_var_header header;  /* 8 bytes */
+  char *string;                      /* String representation of big number */
+  int base;                          /* Number base (8, 10, 16) */
 };
 
 /* Variable-sized node for variables (lvar, ivar, etc.) */
@@ -395,6 +403,7 @@ struct mrb_ast_super_node {
 #define sym_node(n) ((struct mrb_ast_sym_node*)(n))
 #define str_node(n) ((struct mrb_ast_str_node*)(n))
 #define int_node(n) ((struct mrb_ast_int_node*)(n))
+#define bigint_node(n) ((struct mrb_ast_bigint_node*)(n))
 #define var_node(n) ((struct mrb_ast_var_node*)(n))
 
 /* Phase 2 node casting macros */
@@ -427,6 +436,8 @@ struct mrb_ast_super_node {
 #define STR_NODE_LEN(n) (str_node(n)->len)
 #define STR_NODE_INLINE_P(n) (var_header(n)->flags & VAR_NODE_FLAG_INLINE_DATA)
 #define INT_NODE_VALUE(n) (int_node(n)->value)
+#define BIGINT_NODE_STRING(n) (bigint_node(n)->string)
+#define BIGINT_NODE_BASE(n) (bigint_node(n)->base)
 #define VAR_NODE_SYMBOL(n) (var_node(n)->symbol)
 
 /* Phase 2 value access macros */
