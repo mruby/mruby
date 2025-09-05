@@ -305,9 +305,9 @@ struct mrb_ast_case_node {
   struct mrb_ast_var_header header;  /* 8 bytes */
   struct mrb_ast_node *value;        /* Case value expression */
   uint16_t when_count;               /* Number of when clauses */
-  uint16_t flags;                    /* Case-specific flags */
+  uint16_t padding;                  /* Padding for alignment */
   struct mrb_ast_node *else_body;    /* Else clause (can be NULL) */
-  struct mrb_ast_node *when_clauses[]; /* Flexible array for when clauses */
+  struct mrb_ast_node *when_clauses[1]; /* Variable array for when clauses */
 };
 
 /* Variable-sized for node */
@@ -419,7 +419,7 @@ struct mrb_ast_super_node {
 #define if_node(n) ((struct mrb_ast_if_node*)(n))
 #define while_node(n) ((struct mrb_ast_while_node*)(n))
 #define until_node(n) ((struct mrb_ast_until_node*)(n))
-#define case_node_ctrl(n) ((struct mrb_ast_case_node*)(n))
+#define case_node(n) ((struct mrb_ast_case_node*)(n))
 #define for_node(n) ((struct mrb_ast_for_node*)(n))
 #define asgn_node(n) ((struct mrb_ast_asgn_node*)(n))
 #define masgn_node(n) ((struct mrb_ast_masgn_node*)(n))
@@ -466,10 +466,10 @@ struct mrb_ast_super_node {
 #define UNTIL_NODE_CONDITION(n) (until_node(n)->condition)
 #define UNTIL_NODE_BODY(n) (until_node(n)->body)
 
-#define CASE_NODE_VALUE(n) (case_node_ctrl(n)->value)
-#define CASE_NODE_WHEN_COUNT(n) (case_node_ctrl(n)->when_count)
-#define CASE_NODE_ELSE(n) (case_node_ctrl(n)->else_body)
-#define CASE_NODE_WHENS(n) (case_node_ctrl(n)->when_clauses)
+#define CASE_NODE_VALUE(n) (case_node(n)->value)
+#define CASE_NODE_WHEN_COUNT(n) (case_node(n)->when_count)
+#define CASE_NODE_ELSE(n) (case_node(n)->else_body)
+#define CASE_NODE_WHENS(n) (case_node(n)->when_clauses)
 
 #define FOR_NODE_VAR(n) (for_node(n)->var)
 #define FOR_NODE_ITERABLE(n) (for_node(n)->iterable)

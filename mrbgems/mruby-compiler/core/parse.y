@@ -598,7 +598,6 @@ new_alias(parser_state *p, mrb_sym a, mrb_sym b)
 /* Forward declarations for variable-sized AST node creation functions */
 static node* new_array_var(parser_state *p, node *a);
 static node* new_hash_var(parser_state *p, node *a);
-static node* new_case_var(parser_state *p, node *value, node *when_list);
 static node* new_def_var(parser_state *p, mrb_sym name, node *args, node *body);
 static node* new_class_var(parser_state *p, node *name, node *superclass, node *body);
 static node* new_module_var(parser_state *p, node *name, node *body);
@@ -705,19 +704,46 @@ new_for(parser_state *p, node *v, node *o, node *b)
 static node*
 new_case(parser_state *p, node *a, node *b)
 {
-  // If variable-sized nodes are enabled, use the specialized creation function
-  if (p->var_nodes_enabled) {
-    return new_case_var(p, a, b);
-  }
-  node *n = list2((node*)NODE_CASE, a);
-  node *n2 = n;
+  uint16_t when_count = 0;
+  node *else_body = NULL;
+  node *current_when = b;
 
   void_expr_error(p, a);
-  while (n2->cdr) {
-    n2 = n2->cdr;
+
+  // First pass: count when clauses and identify else_body
+  // The when_list is a linked list where each element's car is a (condition . body) cons node.
+  // The last element's car might be 0, and its cdr is the else_body.
+  while (current_when) {
+    node *clause = current_when->car;
+    if (clause && node_to_int(clause->car) == 0) { // This is the else clause
+      else_body = clause->cdr;
+      break; // Else body is always the last
+    }
+    when_count++;
+    current_when = current_when->cdr;
   }
-  n2->cdr = b;
-  return n;
+
+  size_t base_size = sizeof(struct mrb_ast_case_node);
+  size_t when_clauses_size = when_count * sizeof(struct mrb_ast_node*);
+  size_t total_size = base_size + when_clauses_size;
+
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_case_node *n = (struct mrb_ast_case_node*)parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->header, p, NODE_CASE, class);
+  n->value = a;
+  n->when_count = when_count;
+  n->else_body = else_body;
+
+  // Second pass: copy when clauses into flexible array
+  current_when = b;
+  for (int i = 0; i < when_count; i++) {
+    n->when_clauses[i] = current_when->car; // Each car is a (condition . body) cons node
+    current_when = current_when->cdr;
+  }
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:postexe a) */
@@ -969,50 +995,6 @@ new_sclass_var(parser_state *p, node *obj, node *body)
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
-/* Variable-sized case node creation */
-static node*
-new_case_var(parser_state *p, node *value, node *when_list)
-{
-  uint16_t when_count = 0;
-  node *else_body = NULL;
-  node *current_when = when_list;
-
-  // First pass: count when clauses and identify else_body
-  // The when_list is a linked list where each element's car is a (condition . body) cons node.
-  // The last element's car might be 0, and its cdr is the else_body.
-  while (current_when) {
-    node *clause = current_when->car;
-    if (clause && node_to_int(clause->car) == 0) { // This is the else clause
-      else_body = clause->cdr;
-      break; // Else body is always the last
-    }
-    when_count++;
-    current_when = current_when->cdr;
-  }
-
-  size_t base_size = sizeof(struct mrb_ast_case_node);
-  size_t when_clauses_size = when_count * sizeof(struct mrb_ast_node*);
-  size_t total_size = base_size + when_clauses_size;
-
-  enum mrb_ast_size_class class = size_to_class(total_size);
-
-  struct mrb_ast_case_node *n = (struct mrb_ast_case_node*)parser_alloc_var(p, total_size, class);
-
-  init_var_header(&n->header, p, NODE_CASE, class);
-  n->value = value;
-  n->when_count = when_count;
-  n->flags = 0; // No specific flags for now
-  n->else_body = else_body;
-
-  // Second pass: copy when clauses into flexible array
-  current_when = when_list;
-  for (int i = 0; i < when_count; i++) {
-    n->when_clauses[i] = current_when->car; // Each car is a (condition . body) cons node
-    current_when = current_when->cdr;
-  }
-
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
-}
 
 /* Variable-sized assignment node creation */
 static node*

@@ -3841,71 +3841,6 @@ codegen_scall(codegen_scope *s, node *tree, int val)
   gen_call(s, tree, val, 1);
 }
 
-static void
-codegen_case(codegen_scope *s, node *tree, int val)
-{
-  int head = 0;
-  uint32_t pos1, pos2, pos3, tmp;
-  node *n;
-
-  pos3 = JMPLINK_START;
-  if (tree->car) {
-    head = cursp();
-    codegen(s, tree->car, VAL);
-  }
-  tree = tree->cdr;
-  while (tree) {
-    n = tree->car->car;
-    pos1 = pos2 = JMPLINK_START;
-    while (n) {
-      codegen(s, n->car, VAL);
-      if (head) {
-        gen_move(s, cursp(), head, 0);
-        push(); push(); pop(); pop(); pop();
-        if (node_to_int(n->car->car) == NODE_SPLAT) {
-          genop_3(s, OP_SEND, cursp(), new_sym(s, MRB_SYM_2(s->mrb, __case_eqq)), 1);
-        }
-        else {
-          genop_3(s, OP_SEND, cursp(), new_sym(s, MRB_OPSYM_2(s->mrb, eqq)), 1);
-        }
-      }
-      else {
-        pop();
-      }
-      tmp = genjmp2(s, OP_JMPIF, cursp(), pos2, !head);
-      pos2 = tmp;
-      n = n->cdr;
-    }
-    if (tree->car->car) {
-      pos1 = genjmp_0(s, OP_JMP);
-      dispatch_linked(s, pos2);
-    }
-    codegen(s, tree->car->cdr, val);
-    if (val) pop();
-    tmp = genjmp(s, OP_JMP, pos3);
-    pos3 = tmp;
-    dispatch(s, pos1);
-    tree = tree->cdr;
-  }
-  if (val) {
-    uint32_t pos = cursp();
-    genop_1(s, OP_LOADNIL, cursp());
-    if (pos3 != JMPLINK_START) dispatch_linked(s, pos3);
-    if (head) pop();
-    if (cursp() != pos) {
-      gen_move(s, cursp(), pos, 0);
-    }
-    push();
-  }
-  else {
-    if (pos3 != JMPLINK_START) {
-      dispatch_linked(s, pos3);
-    }
-    if (head) {
-      pop();
-    }
-  }
-}
 
 static void
 codegen_negate(codegen_scope *s, node *tree, int val)
@@ -5006,22 +4941,95 @@ gen_for_var(codegen_scope *s, node *varnode, int val)
 static void
 gen_case_var(codegen_scope *s, node *varnode, int val)
 {
-  struct mrb_ast_case_node *case_n = case_node_ctrl(varnode);
+  struct mrb_ast_case_node *case_n = case_node(varnode);
   node *value = CASE_NODE_VALUE(case_n);
   node *else_body = CASE_NODE_ELSE(case_n);
+  uint16_t when_count = CASE_NODE_WHEN_COUNT(case_n);
+  struct mrb_ast_node **when_clauses = CASE_NODE_WHENS(case_n);
 
-  /* For now, generate a simple case structure - this can be optimized later */
+  int head = 0;
+  uint32_t pos1, pos2, pos3, tmp;
+  node *n;
+
+  pos3 = JMPLINK_START;
+
+  /* Handle case value exactly like original */
   if (value) {
+    head = cursp();
     codegen(s, value, VAL);
-    pop();
   }
 
+  /* Iterate through when clauses array (replacing cons-list traversal) */
+  for (int i = 0; i < when_count; i++) {
+    node *when_clause = (node*)when_clauses[i];
+    if (!when_clause) continue;
+
+    /* when_clause is (condition . body) cons node */
+    node *args = when_clause->car;  /* when conditions */
+    node *body = when_clause->cdr;  /* when body */
+
+    /* Process when conditions - original logic unchanged */
+    n = args;
+    pos1 = pos2 = JMPLINK_START;
+    while (n) {
+      codegen(s, n->car, VAL);
+      if (head) {
+        gen_move(s, cursp(), head, 0);
+        push(); push(); pop(); pop(); pop();
+        if (node_to_int(n->car->car) == NODE_SPLAT) {
+          genop_3(s, OP_SEND, cursp(), new_sym(s, MRB_SYM_2(s->mrb, __case_eqq)), 1);
+        }
+        else {
+          genop_3(s, OP_SEND, cursp(), new_sym(s, MRB_OPSYM_2(s->mrb, eqq)), 1);
+        }
+      }
+      else {
+        pop();
+      }
+      tmp = genjmp2(s, OP_JMPIF, cursp(), pos2, !head);
+      pos2 = tmp;
+      n = n->cdr;
+    }
+    if (args) {
+      pos1 = genjmp_0(s, OP_JMP);
+      dispatch_linked(s, pos2);
+    }
+
+    /* Generate when body - original logic unchanged */
+    codegen(s, body, val);
+    if (val) pop();
+    tmp = genjmp(s, OP_JMP, pos3);
+    pos3 = tmp;
+    dispatch(s, pos1);
+  }
+
+  /* Handle else clause like the original - before the final result logic */
   if (else_body) {
     codegen(s, else_body, val);
+    if (val) pop();
+    tmp = genjmp(s, OP_JMP, pos3);
+    pos3 = tmp;
   }
-  else if (val) {
+
+  /* Apply original's "nil-first, align-last" strategy for VAL case */
+  if (val) {
+    uint32_t pos = cursp();
     genop_1(s, OP_LOADNIL, cursp());
+    if (pos3 != JMPLINK_START) dispatch_linked(s, pos3);
+    if (head) pop();
+    if (cursp() != pos) {
+      gen_move(s, cursp(), pos, 0);
+    }
     push();
+  }
+  else {
+    /* NOVAL case - original logic unchanged */
+    if (pos3 != JMPLINK_START) {
+      dispatch_linked(s, pos3);
+    }
+    if (head) {
+      pop();
+    }
   }
 }
 
@@ -6324,10 +6332,6 @@ codegen(codegen_scope *s, node *tree, int val)
     codegen_block(s, tree, val);
     break;
 
-
-  case NODE_CASE:
-    codegen_case(s, tree, val);
-    break;
 
   case NODE_SCOPE:
     codegen_scope_node(s, tree, val);
