@@ -2290,79 +2290,6 @@ search_upvar(codegen_scope *s, mrb_sym id, int *idx)
   return -1; /* not reached */
 }
 
-/*
- * Generates the bytecode for a `for` loop.
- *
- * A `for` loop in mruby, like `for x in collection`, is typically syntactic sugar for
- * `collection.each { |x| ... }`. This function implements that transformation.
- *
- * The process involves:
- * 1. Generating code for the `collection` (the receiver of the `each` call).
- * 2. Creating a new scope for the block that will be passed to `each`.
- * 3. Inside this new block scope:
- *    a. Emitting `OP_ENTER` to set up the block's argument handling.
- *       The argument specification `0x40000` likely indicates a block that
- *       takes one mandatory argument.
- *    b. Generating code to assign the iterated item (passed as a block argument)
- *       to the loop variable(s) specified in `tree->car`. This can be a simple
- *       assignment or a multiple assignment (destructuring).
- *    c. Setting up a `LOOP_FOR` context for handling `break`/`next`/`redo` within the loop.
- *    d. Generating code for the actual body of the `for` loop (`tree->cdr->cdr->car`).
- *    e. Emitting `OP_RETURN` for the block's implicit return.
- * 4. Finalizing the block scope and obtaining its `mrb_irep`.
- * 5. Back in the original scope, generating `OP_BLOCK` to create a closure from the
- *    block's `mrb_irep`.
- * 6. Generating `OP_SENDB` to call the `each` method (by symbol) on the collection,
- *    passing the newly created block.
- *
- * @param s The current code generation scope.
- * @param tree The AST node representing the `for` loop.
- *             `tree->car` contains the loop variable(s).
- *             `tree->cdr->car` is the collection being iterated over.
- *             `tree->cdr->cdr->car` is the body of the loop.
- */
-static void
-for_body(codegen_scope *s, node *tree)
-{
-  codegen_scope *prev = s;
-  int idx;
-  struct loopinfo *lp;
-  node *n2;
-
-  /* generate receiver */
-  codegen(s, tree->cdr->car, VAL);
-  /* generate loop-block */
-  s = scope_new(s->mrb, s, NULL);
-
-  push();                       /* push for a block parameter */
-
-  /* generate loop variable */
-  n2 = tree->car;
-  genop_W(s, OP_ENTER, 0x40000);
-  if (n2->car && !n2->car->cdr && !n2->cdr) {
-    gen_assignment(s, n2->car->car, NULL, 1, NOVAL);
-  }
-  else {
-    gen_massignment(s, n2, 1, VAL);
-  }
-  /* construct loop */
-  lp = loop_push(s, LOOP_FOR);
-  lp->pc1 = new_label(s);
-  genop_0(s, OP_NOP); /* for redo */
-
-  /* loop body */
-  codegen(s, tree->cdr->cdr->car, VAL);
-  pop();
-  gen_return(s, OP_RETURN, cursp());
-  loop_pop(s, NOVAL);
-  scope_finish(s);
-  s = prev;
-  genop_2(s, OP_BLOCK, cursp(), s->irep->rlen-1);
-  push();pop(); /* space for a block */
-  pop();
-  idx = new_sym(s, MRB_SYM_2(s->mrb, each));
-  genop_3(s, OP_SENDB, cursp(), idx, 0);
-}
 
 /*
  * Generates the bytecode for the body of a lambda or a block.
@@ -3981,14 +3908,6 @@ codegen_case(codegen_scope *s, node *tree, int val)
 }
 
 static void
-codegen_for(codegen_scope *s, node *tree, int val)
-{
-  for_body(s, tree);
-  if (val) push();
-}
-
-
-static void
 codegen_negate(codegen_scope *s, node *tree, int val)
 {
   int nt = node_to_int(tree->car);
@@ -5041,17 +4960,47 @@ static void
 gen_for_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_for_node *for_n = for_node(varnode);
+  node *var = FOR_NODE_VAR(for_n);
   node *iterable = FOR_NODE_ITERABLE(for_n);
+  node *body = FOR_NODE_BODY(for_n);
 
-  /* Generate iterable */
+  codegen_scope *prev = s;
+  int idx;
+  struct loopinfo *lp;
+
+  /* generate receiver */
   codegen(s, iterable, VAL);
-  pop(); /* Remove iterable value */
+  /* generate loop-block */
+  s = scope_new(s->mrb, s, NULL);
 
-  /* For now, use a simple iteration approach - this can be optimized later */
-  if (val) {
-    genop_1(s, OP_LOADNIL, cursp());
-    push();
+  push();                       /* push for a block parameter */
+
+  /* generate loop variable */
+  genop_W(s, OP_ENTER, 0x40000);
+  if (var->car && !var->car->cdr && !var->cdr) {
+    gen_assignment(s, var->car->car, NULL, 1, NOVAL);
   }
+  else {
+    gen_massignment(s, var, 1, VAL);
+  }
+  /* construct loop */
+  lp = loop_push(s, LOOP_FOR);
+  lp->pc1 = new_label(s);
+  genop_0(s, OP_NOP); /* for redo */
+
+  /* loop body */
+  codegen(s, body, VAL);
+  pop();
+  gen_return(s, OP_RETURN, cursp());
+  loop_pop(s, NOVAL);
+  scope_finish(s);
+  s = prev;
+  genop_2(s, OP_BLOCK, cursp(), s->irep->rlen-1);
+  push();pop(); /* space for a block */
+  pop();
+  idx = new_sym(s, MRB_SYM_2(s->mrb, each));
+  genop_3(s, OP_SENDB, cursp(), idx, 0);
+  if (val) push();
 }
 
 static void
@@ -6375,9 +6324,6 @@ codegen(codegen_scope *s, node *tree, int val)
     codegen_block(s, tree, val);
     break;
 
-  case NODE_FOR:
-    codegen_for(s, tree, val);
-    break;
 
   case NODE_CASE:
     codegen_case(s, tree, val);

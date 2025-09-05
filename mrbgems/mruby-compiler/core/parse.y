@@ -599,7 +599,6 @@ new_alias(parser_state *p, mrb_sym a, mrb_sym b)
 static node* new_array_var(parser_state *p, node *a);
 static node* new_hash_var(parser_state *p, node *a);
 static node* new_case_var(parser_state *p, node *value, node *when_list);
-static node* new_for_var(parser_state *p, node *var, node *iterable, node *body);
 static node* new_def_var(parser_state *p, mrb_sym name, node *args, node *body);
 static node* new_class_var(parser_state *p, node *name, node *superclass, node *body);
 static node* new_module_var(parser_state *p, node *name, node *body);
@@ -688,11 +687,18 @@ static node*
 new_for(parser_state *p, node *v, node *o, node *b)
 {
   void_expr_error(p, o);
-  // If variable-sized nodes are enabled, use the specialized creation function
-  if (p->var_nodes_enabled) {
-    return new_for_var(p, v, o, b);
-  }
-  return list4((node*)NODE_FOR, v, o, b);
+
+  size_t total_size = sizeof(struct mrb_ast_for_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_for_node *n = (struct mrb_ast_for_node*)parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->header, p, NODE_FOR, class);
+  n->var = v;
+  n->iterable = o;
+  n->body = b;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:case a ((when ...) body) ((when...) body)) */
@@ -896,22 +902,6 @@ new_hash_var(parser_state *p, node *a)
 }
 
 
-/* Variable-sized for node creation */
-static node*
-new_for_var(parser_state *p, node *var, node *iterable, node *body)
-{
-  size_t total_size = sizeof(struct mrb_ast_for_node);
-  enum mrb_ast_size_class class = size_to_class(total_size);
-
-  struct mrb_ast_for_node *n = (struct mrb_ast_for_node*)parser_alloc_var(p, total_size, class);
-
-  init_var_header(&n->header, p, NODE_FOR, class);
-  n->var = var;
-  n->iterable = iterable;
-  n->body = body;
-
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
-}
 
 /* Variable-sized method definition node creation */
 static node*
