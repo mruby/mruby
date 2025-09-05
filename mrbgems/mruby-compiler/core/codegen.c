@@ -4948,7 +4948,8 @@ gen_case_var(codegen_scope *s, node *varnode, int val)
   struct mrb_ast_node **when_clauses = CASE_NODE_WHENS(case_n);
 
   int head = 0;
-  uint32_t pos1, pos2, pos3, tmp;
+  uint32_t pos3, tmp;
+  uint32_t next_when_pos = JMPLINK_START;
   node *n;
 
   pos3 = JMPLINK_START;
@@ -4959,18 +4960,25 @@ gen_case_var(codegen_scope *s, node *varnode, int val)
     codegen(s, value, VAL);
   }
 
-  /* Iterate through when clauses array (replacing cons-list traversal) */
+  /* Iterate through when clauses array with JMPNOT optimization */
   for (int i = 0; i < when_count; i++) {
     node *when_clause = (node*)when_clauses[i];
     if (!when_clause) continue;
+
+    /* Dispatch previous when's "next" jump to this location */
+    if (next_when_pos != JMPLINK_START) {
+      dispatch_linked(s, next_when_pos);
+      next_when_pos = JMPLINK_START;
+    }
 
     /* when_clause is (condition . body) cons node */
     node *args = when_clause->car;  /* when conditions */
     node *body = when_clause->cdr;  /* when body */
 
-    /* Process when conditions - original logic unchanged */
+    /* Process when conditions with JMPNOT optimization */
     n = args;
-    pos1 = pos2 = JMPLINK_START;
+    uint32_t condition_success_pos = JMPLINK_START;
+
     while (n) {
       codegen(s, n->car, VAL);
       if (head) {
@@ -4986,40 +4994,62 @@ gen_case_var(codegen_scope *s, node *varnode, int val)
       else {
         pop();
       }
-      tmp = genjmp2(s, OP_JMPIF, cursp(), pos2, !head);
-      pos2 = tmp;
+
+      if (n->cdr) {
+        /* More conditions in this when - use JMPIF to success handler */
+        tmp = genjmp2(s, OP_JMPIF, cursp(), condition_success_pos, !head);
+        condition_success_pos = tmp;
+      }
+      else {
+        /* Last condition - use JMPNOT to next when clause */
+        tmp = genjmp2(s, OP_JMPNOT, cursp(), next_when_pos, !head);
+        next_when_pos = tmp;
+      }
       n = n->cdr;
     }
-    if (args) {
-      pos1 = genjmp_0(s, OP_JMP);
-      dispatch_linked(s, pos2);
+
+    /* Dispatch multiple condition success jumps to body */
+    if (condition_success_pos != JMPLINK_START) {
+      dispatch_linked(s, condition_success_pos);
     }
 
-    /* Generate when body - original logic unchanged */
+    /* Generate when body inline - no extra JMP needed! */
     codegen(s, body, val);
     if (val) pop();
     tmp = genjmp(s, OP_JMP, pos3);
     pos3 = tmp;
-    dispatch(s, pos1);
   }
 
-  /* Handle else clause like the original - before the final result logic */
+  /* Dispatch final "next when" jump to else clause or nil handling */
+  if (next_when_pos != JMPLINK_START) {
+    dispatch_linked(s, next_when_pos);
+  }
+
+  /* Handle else clause - DON'T generate unnecessary JMP */
   if (else_body) {
     codegen(s, else_body, val);
     if (val) pop();
-    tmp = genjmp(s, OP_JMP, pos3);
-    pos3 = tmp;
+    /* Only generate JMP if there will be more code after this (i.e., LOADNIL case) */
+    if (!val || !else_body) {
+      tmp = genjmp(s, OP_JMP, pos3);
+      pos3 = tmp;
+    }
   }
 
   /* Apply original's "nil-first, align-last" strategy for VAL case */
   if (val) {
-    uint32_t pos = cursp();
-    genop_1(s, OP_LOADNIL, cursp());
-    if (pos3 != JMPLINK_START) dispatch_linked(s, pos3);
-    if (head) pop();
-    if (cursp() != pos) {
-      gen_move(s, cursp(), pos, 0);
+    if (!else_body) {
+      /* Only generate LOADNIL if there's no else clause */
+      genop_1(s, OP_LOADNIL, cursp());
     }
+    /* Always dispatch pos3 jumps */
+    if (pos3 != JMPLINK_START) dispatch_linked(s, pos3);
+    if (head) {
+      /* This is the crucial MOVE instruction! Move result to original case value position */
+      gen_move(s, head, cursp(), 0);
+      pop();
+    }
+    /* Always push to maintain stack alignment */
     push();
   }
   else {
