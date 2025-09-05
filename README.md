@@ -12,6 +12,22 @@
   </a>
 </div>
 
+### Table of contents
+
+- [What is mruby](#what-is-mruby)
+- [How to get mruby](#how-to-get-mruby)
+- [mruby homepage](#mruby-homepage)
+- [Mailing list](#mailing-list)
+- [How to compile, test, and install (mruby and gems)](#how-to-compile-test-and-install-mruby-and-gems)
+- [Building documentation](#building-documentation)
+- [How to customize mruby (mrbgems)](#how-to-customize-mruby-mrbgems)
+- [Index of Document](#index-of-document)
+- [License](#license)
+- [Note for License](#note-for-license)
+- [How to Contribute](#how-to-contribute)
+- [Star History](#star-history)
+- [Contributors](#contributors)
+
 ## What is mruby
 
 mruby is the lightweight implementation of the Ruby language complying to (part
@@ -134,6 +150,14 @@ Please ask us if you want to distribute your code under another license.
 
 To contribute to mruby, please refer to the [contribution guidelines][contribution-guidelines] and send a pull request to the [mruby GitHub repository](https://github.com/mruby/mruby).
 By contributing, you grant non-exclusive rights to your code under the MIT License.
+
+## Star History
+
+[![mruby Star History](https://api.star-history.com/svg?repos=mruby/mruby&type=Date)](https://www.star-history.com/#mruby/mruby&Date)
+
+## Contributors
+
+[![mruby Contributors](https://contrib.rocks/image?repo=mruby/mruby&anon=1&max=500)](https://github.com/mruby/mruby/graphs/contributors)
 
 [ISO-standard]: https://www.iso.org/iso/iso_catalogue/catalogue_tc/catalogue_detail.htm?csnumber=59579
 [contribution-guidelines]: CONTRIBUTING.md
