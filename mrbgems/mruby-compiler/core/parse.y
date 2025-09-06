@@ -597,7 +597,6 @@ new_alias(parser_state *p, mrb_sym a, mrb_sym b)
 
 /* Forward declarations for variable-sized AST node creation functions */
 static node* new_array_var(parser_state *p, node *a);
-static node* new_hash_var(parser_state *p, node *a);
 static node* new_def_var(parser_state *p, mrb_sym name, node *args, node *body);
 static node* new_class_var(parser_state *p, node *name, node *superclass, node *body);
 static node* new_module_var(parser_state *p, node *name, node *body);
@@ -887,45 +886,6 @@ new_array_var(parser_state *p, node *a)
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
-/* Variable-sized hash node creation */
-static node*
-new_hash_var(parser_state *p, node *a)
-{
-  /* Count hash key-value pairs */
-  uint16_t len = 0;
-  node *pair_iter = a;
-  while (pair_iter) {
-    len++;
-    pair_iter = pair_iter->cdr;
-  }
-
-  /* Calculate total size needed */
-  size_t base_size = sizeof(struct mrb_ast_hash_node);
-  size_t pairs_size = len * 2 * sizeof(struct mrb_ast_node*); /* key and value for each pair */
-  size_t total_size = base_size + pairs_size;
-
-  enum mrb_ast_size_class class = size_to_class(total_size);
-
-  struct mrb_ast_hash_node *n = (struct mrb_ast_hash_node*)parser_alloc_var(p, total_size, class);
-
-  init_var_header(&n->header, p, NODE_HASH, class);
-  n->len = len;
-  n->flags = 0;
-
-  /* Copy key-value pairs into flexible array */
-  pair_iter = a;
-  for (int i = 0; i < len; i++) {
-    if (pair_iter && pair_iter->car) {
-      /* Each pair is a cons (key . value) */
-      node *pair = pair_iter->car;
-      n->pairs[i * 2] = pair->car;     /* key */
-      n->pairs[i * 2 + 1] = pair->cdr; /* value */
-    }
-    pair_iter = pair_iter->cdr;
-  }
-
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
-}
 
 
 
@@ -1376,10 +1336,40 @@ new_splat(parser_state *p, node *a)
 static node*
 new_hash(parser_state *p, node *a)
 {
-  if (p->cxt && p->cxt->use_variable_nodes) {
-    return new_hash_var(p, a);
+  /* Count hash key-value pairs */
+  uint16_t len = 0;
+  node *pair_iter = a;
+  while (pair_iter) {
+    len++;
+    pair_iter = pair_iter->cdr;
   }
-  return cons_head((node*)NODE_HASH, a);
+
+  /* Calculate total size needed */
+  size_t base_size = sizeof(struct mrb_ast_hash_node);
+  size_t pairs_size = len * 2 * sizeof(struct mrb_ast_node*); /* key and value for each pair */
+  size_t total_size = base_size + pairs_size;
+
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_hash_node *n = (struct mrb_ast_hash_node*)parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->header, p, NODE_HASH, class);
+  n->len = len;
+  n->flags = 0;
+
+  /* Copy key-value pairs into flexible array */
+  pair_iter = a;
+  for (int i = 0; i < len; i++) {
+    if (pair_iter && pair_iter->car) {
+      /* Each pair is a cons (key . value) */
+      node *pair = pair_iter->car;
+      n->pairs[i * 2] = pair->car;     /* key */
+      n->pairs[i * 2 + 1] = pair->cdr; /* value */
+    }
+    pair_iter = pair_iter->cdr;
+  }
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:kw_hash (k . v) (k . v)...) */

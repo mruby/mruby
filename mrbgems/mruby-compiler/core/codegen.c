@@ -3806,6 +3806,92 @@ codegen_array(codegen_scope *s, node *tree, int val)
   push();
 }
 
+
+static void
+gen_hash_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_hash_node *hash = hash_node(varnode);
+  int len = hash->len;
+  struct mrb_ast_node **pairs = hash->pairs;
+  int i;
+  int regular_pairs = 0;
+  mrb_bool update = FALSE;
+  mrb_bool first = TRUE;
+
+  if (!val) return;
+
+  if (len == 0) {
+    genop_2(s, OP_HASH, cursp(), 0);
+    push();
+    return;
+  }
+
+  /* Process each key-value pair, handling double-splat (**) cases */
+  for (i = 0; i < len; i++) {
+    struct mrb_ast_node *key = pairs[i * 2];
+    struct mrb_ast_node *value = pairs[i * 2 + 1];
+
+    /* Check if this is a double-splat (**kwargs) */
+    if (node_to_int(key->car) == NODE_KW_REST_ARGS) {
+      /* Flush any accumulated regular pairs first */
+      if (val && first && regular_pairs == 0) {
+        /* First element is splat - create empty hash */
+        genop_2(s, OP_HASH, cursp(), 0);
+        push();
+        update = TRUE;
+      }
+      else if (val && regular_pairs > 0) {
+        /* Create/add hash from accumulated pairs */
+        pop_n(regular_pairs * 2);
+        if (!update) {
+          genop_2(s, OP_HASH, cursp(), regular_pairs);
+        }
+        else {
+          pop();
+          genop_2(s, OP_HASHADD, cursp(), regular_pairs);
+        }
+        push();
+      }
+
+      /* Generate the splat hash */
+      codegen(s, value, val);
+
+      /* Merge the splat hash */
+      if (val && (regular_pairs > 0 || update)) {
+        pop(); pop();
+        genop_1(s, OP_HASHCAT, cursp());
+        push();
+      }
+
+      update = TRUE;
+      regular_pairs = 0;
+    }
+    else {
+      /* Regular key-value pair */
+      codegen(s, key, val);
+      codegen(s, value, val);
+      regular_pairs++;
+    }
+    first = FALSE;
+  }
+
+  /* Handle any remaining regular pairs */
+  if (val) {
+    if (!update && regular_pairs > 0) {
+      /* Simple case: no splats, just create hash */
+      pop_n(regular_pairs * 2);
+      genop_2(s, OP_HASH, cursp(), regular_pairs);
+      push();
+    }
+    else if (update && regular_pairs > 0) {
+      /* Add remaining pairs to existing hash */
+      pop_n(regular_pairs * 2 + 1);
+      genop_2(s, OP_HASHADD, cursp(), regular_pairs);
+      push();
+    }
+  }
+}
+
 static void
 codegen_hash(codegen_scope *s, node *tree, int val)
 {
@@ -4589,33 +4675,6 @@ gen_array_var(codegen_scope *s, node *varnode, int val)
   push();
 }
 
-static void
-gen_hash_var(codegen_scope *s, node *varnode, int val)
-{
-  struct mrb_ast_hash_node *hash = hash_node(varnode);
-  int len = HASH_NODE_LEN(hash);
-  struct mrb_ast_node **pairs = HASH_NODE_PAIRS(hash);
-  int i;
-
-  if (!val) return;
-
-  if (len == 0) {
-    genop_2(s, OP_HASH, cursp(), 0);
-    push();
-    return;
-  }
-
-  /* Generate code for each key-value pair */
-  for (i = 0; i < len; i++) {
-    codegen(s, pairs[i * 2], VAL);     /* key */
-    codegen(s, pairs[i * 2 + 1], VAL); /* value */
-  }
-
-  /* Create hash with key-value pairs on stack */
-  pop_n(len * 2); /* Pop all keys and values */
-  genop_2(s, OP_HASH, cursp(), len);
-  push();
-}
 
 /* Phase 3 Variable Node Codegen Functions */
 
