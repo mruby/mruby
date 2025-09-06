@@ -596,7 +596,6 @@ new_alias(parser_state *p, mrb_sym a, mrb_sym b)
 }
 
 /* Forward declarations for variable-sized AST node creation functions */
-static node* new_array_var(parser_state *p, node *a);
 static node* new_def_var(parser_state *p, mrb_sym name, node *args, node *body);
 static node* new_class_var(parser_state *p, node *name, node *superclass, node *body);
 static node* new_module_var(parser_state *p, node *name, node *body);
@@ -851,40 +850,6 @@ new_call_var(parser_state *p, node *receiver, mrb_sym method, node *args, int pa
 #endif
 
 /* Variable-sized array node creation */
-static node*
-new_array_var(parser_state *p, node *a)
-{
-  /* Count array elements */
-  uint16_t len = 0;
-  node *elem_iter = a;
-  while (elem_iter) {
-    len++;
-    elem_iter = elem_iter->cdr;
-  }
-
-  /* Calculate total size needed */
-  size_t base_size = sizeof(struct mrb_ast_array_node);
-  size_t elems_size = len * sizeof(struct mrb_ast_node*);
-  size_t total_size = base_size + elems_size;
-
-  enum mrb_ast_size_class class = size_to_class(total_size);
-
-  struct mrb_ast_array_node *n = (struct mrb_ast_array_node*)
-    parser_alloc_var(p, total_size, class);
-
-  init_var_header(&n->header, p, NODE_ARRAY, class);
-  n->len = len;
-  n->flags = 0;
-
-  /* Copy elements into flexible array */
-  elem_iter = a;
-  for (int i = 0; i < len; i++) {
-    n->elements[i] = elem_iter->car;
-    elem_iter = elem_iter->cdr;
-  }
-
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
-}
 
 
 
@@ -1309,10 +1274,36 @@ new_or(parser_state *p, node *a, node *b)
 static node*
 new_array(parser_state *p, node *a)
 {
-  if (p->cxt && p->cxt->use_variable_nodes) {
-    return new_array_var(p, a);
+  /* Count array elements */
+  uint16_t len = 0;
+  node *elem_iter = a;
+  while (elem_iter) {
+    len++;
+    elem_iter = elem_iter->cdr;
   }
-  return cons_head((node*)NODE_ARRAY, a);
+
+  /* Calculate total size needed */
+  size_t base_size = sizeof(struct mrb_ast_array_node);
+  size_t elems_size = len * sizeof(struct mrb_ast_node*);
+  size_t total_size = base_size + elems_size;
+
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_array_node *n = (struct mrb_ast_array_node*)
+    parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->header, p, NODE_ARRAY, class);
+  n->len = len;
+  n->flags = 0;
+
+  /* Copy elements into flexible array */
+  elem_iter = a;
+  for (int i = 0; i < len; i++) {
+    n->elements[i] = elem_iter->car;
+    elem_iter = elem_iter->cdr;
+  }
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:splat . a) */

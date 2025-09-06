@@ -3793,21 +3793,6 @@ codegen_const(codegen_scope *s, mrb_sym sym, int val)
 }
 
 static void
-codegen_array(codegen_scope *s, node *tree, int val)
-{
-  int n;
-
-  n = gen_values(s, tree, val, 0);
-  if (!val) return;
-  if (n >= 0) {
-    pop_n(n);
-    genop_2(s, OP_ARRAY, cursp(), n);
-  }
-  push();
-}
-
-
-static void
 gen_hash_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_hash_node *hash = hash_node(varnode);
@@ -4655,6 +4640,9 @@ gen_array_var(codegen_scope *s, node *varnode, int val)
   int len = ARRAY_NODE_LEN(array);
   struct mrb_ast_node **elements = ARRAY_NODE_ELEMENTS(array);
   int i;
+  int regular_elements = 0;
+  int first = 1;
+  int slimit = GEN_VAL_STACK_MAX;
 
   if (!val) return;
 
@@ -4664,15 +4652,65 @@ gen_array_var(codegen_scope *s, node *varnode, int val)
     return;
   }
 
-  /* Generate code for each element */
+  if (cursp() >= GEN_LIT_ARY_MAX) slimit = INT16_MAX;
+
+  /* Process each element, handling splats */
   for (i = 0; i < len; i++) {
-    codegen(s, elements[i], VAL);
+    struct mrb_ast_node *element = elements[i];
+    int is_splat = node_to_int(element->car) == NODE_SPLAT;
+
+    if (is_splat || cursp() >= slimit) { /* flush accumulated elements */
+      if (regular_elements > 0) {
+        pop_n(regular_elements);
+        if (first) {
+          genop_2(s, OP_ARRAY, cursp(), regular_elements);
+          push();
+          first = 0;
+        }
+        else {
+          pop();
+          genop_2(s, OP_ARYPUSH, cursp(), regular_elements);
+          push();
+        }
+        regular_elements = 0;
+      }
+      else if (first && is_splat) {
+        /* First element is splat - create empty array */
+        genop_1(s, OP_LOADNIL, cursp());
+        genop_2(s, OP_ARRAY, cursp(), 0);
+        push();
+        first = 0;
+      }
+    }
+
+    codegen(s, element, val);
+
+    if (is_splat) {
+      /* Concatenate splat array */
+      pop(); pop();
+      genop_1(s, OP_ARYCAT, cursp());
+      push();
+    }
+    else {
+      regular_elements++;
+    }
   }
 
-  /* Create array with elements on stack */
-  pop_n(len);
-  genop_2(s, OP_ARRAY, cursp(), len);
-  push();
+  /* Handle any remaining regular elements */
+  if (!first) {
+    /* Variable length - we have an array from splats */
+    if (regular_elements > 0) {
+      pop_n(regular_elements + 1);
+      genop_2(s, OP_ARYPUSH, cursp(), regular_elements);
+      push();
+    }
+  }
+  else {
+    /* Simple case: no splats, just create array */
+    pop_n(regular_elements);
+    genop_2(s, OP_ARRAY, cursp(), regular_elements);
+    push();
+  }
 }
 
 
@@ -6421,7 +6459,6 @@ codegen(codegen_scope *s, node *tree, int val)
     codegen_block(s, tree, val);
     break;
 
-
   case NODE_SCOPE:
     codegen_scope_node(s, tree, val);
     break;
@@ -6440,10 +6477,6 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_COLON3:
     codegen_colon3(s, tree, val);
-    break;
-
-  case NODE_ARRAY:
-    codegen_array(s, tree, val);
     break;
 
   case NODE_HASH:
