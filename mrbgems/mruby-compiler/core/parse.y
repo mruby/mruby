@@ -1209,9 +1209,6 @@ static node*
 new_colon2(parser_state *p, node *b, mrb_sym c)
 {
   void_expr_error(p, b);
-  if (!p->var_nodes_enabled) {
-    return cons_head((node*)NODE_COLON2, cons(b, sym_to_node(c)));
-  }
 
   size_t total_size = sizeof(struct mrb_ast_colon2_node);
   enum mrb_ast_size_class class = size_to_class(total_size);

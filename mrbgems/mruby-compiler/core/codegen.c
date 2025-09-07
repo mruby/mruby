@@ -2833,6 +2833,52 @@ gen_call(codegen_scope *s, node *tree, int val, int safe)
 }
 
 static void
+gen_colon_assign_common(codegen_scope *s, node *rhs, int sp, int val, int idx, int final_op)
+{
+  if (rhs) {
+    codegen(s, rhs, VAL);
+    pop();
+    gen_move(s, sp, cursp(), 0);
+  }
+  pop(); pop();
+  genop_2(s, final_op, cursp(), idx);
+  if (val) push();
+}
+
+static void
+gen_colon2_assign_var(codegen_scope *s, node *varnode, node *rhs, int sp, int val)
+{
+  struct mrb_ast_colon2_node *n = (struct mrb_ast_colon2_node*)varnode;
+  int idx;
+
+  if (sp) {
+    gen_move(s, cursp(), sp, 0);
+  }
+  sp = cursp();
+  push();
+  codegen(s, n->base, VAL);
+  idx = new_sym(s, n->name);
+  gen_colon_assign_common(s, rhs, sp, val, idx, OP_SETMCNST);
+}
+
+static void
+gen_colon3_assign_var(codegen_scope *s, node *varnode, node *rhs, int sp, int val)
+{
+  struct mrb_ast_colon3_node *n = (struct mrb_ast_colon3_node*)varnode;
+  int idx;
+
+  if (sp) {
+    gen_move(s, cursp(), sp, 0);
+  }
+  sp = cursp();
+  push();
+  genop_1(s, OP_OCLASS, cursp());
+  push();
+  idx = new_sym(s, n->name);
+  gen_colon_assign_common(s, rhs, sp, val, idx, OP_SETCONST);
+}
+
+static void
 gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
 {
   int idx;
@@ -2854,8 +2900,6 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
     }
     break;
 
-  case NODE_COLON2:
-  case NODE_COLON3:
   case NODE_CALL:
   case NODE_SCALL:
     /* keep evaluation order */
@@ -2879,6 +2923,12 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
         }
         /* NODE_NIL assignment is complete - just break (splat without assignment) */
         break;
+      case NODE_COLON2:
+        gen_colon2_assign_var(s, tree->cdr, rhs, sp, val);
+        return;
+      case NODE_COLON3:
+        gen_colon3_assign_var(s, tree->cdr, rhs, sp, val);
+        return;
       default:
         codegen_error(s, "unsupported variable-sized lhs");
         break;
@@ -2919,29 +2969,6 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
     break;
   case NODE_CONST:
     gen_setxv(s, OP_SETCONST, sp, node_to_sym(tree), val);
-    break;
-  case NODE_COLON2:
-  case NODE_COLON3:
-    if (sp) {
-      gen_move(s, cursp(), sp, 0);
-    }
-    sp = cursp();
-    push();
-    if (type == NODE_COLON2) {
-      codegen(s, tree->car, VAL);
-      idx = new_sym(s, node_to_sym(tree->cdr));
-    }
-    else {   /* NODE_COLON3 */
-      genop_1(s, OP_OCLASS, cursp());
-      push();
-      idx = new_sym(s, node_to_sym(tree));
-    }
-    if (rhs) {
-      codegen(s, rhs, VAL); pop();
-      gen_move(s, sp, cursp(), 0);
-    }
-    pop_n(2);
-    genop_2(s, OP_SETMCNST, sp, idx);
     break;
 
   case NODE_CALL:
@@ -4417,26 +4444,6 @@ codegen_next(codegen_scope *s, node *tree, int val)
   push();
 }
 
-static void
-codegen_colon2(codegen_scope *s, node *tree, int val)
-{
-  int sym = new_sym(s, node_to_sym(tree->cdr));
-
-  codegen(s, tree->car, VAL);
-  pop();
-  genop_2(s, OP_GETMCNST, cursp(), sym);
-  if (val) push();
-}
-
-static void
-codegen_colon3(codegen_scope *s, node *tree, int val)
-{
-  int sym = new_sym(s, node_to_sym(tree));
-
-  genop_1(s, OP_OCLASS, cursp());
-  genop_2(s, OP_GETMCNST, cursp(), sym);
-  if (val) push();
-}
 
 static void
 codegen_redo(codegen_scope *s, node *tree, int val)
@@ -5807,7 +5814,6 @@ gen_colon3_var(codegen_scope *s, node *varnode, int val)
   if (val) push();
 }
 
-
 static void
 gen_defined_var(codegen_scope *s, node *varnode, int val)
 {
@@ -6469,14 +6475,6 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
   case NODE_SCALL:
     codegen_scall(s, tree, val);
-    break;
-
-  case NODE_COLON2:
-    codegen_colon2(s, tree, val);
-    break;
-
-  case NODE_COLON3:
-    codegen_colon3(s, tree, val);
     break;
 
   case NODE_HASH:
