@@ -50,7 +50,6 @@ static int toklen(parser_state *p);
 static node* new_const_var(parser_state *p, mrb_sym symbol);
 
 /* Forward declarations for variable-sized advanced node functions */
-static node* new_rescue_var(parser_state *p, node *body, node *rescue_clauses, node *else_clause);
 static node* new_block_var(parser_state *p, node *locals, node *args, node *body);
 static node* new_args_tail_var(parser_state *p, node *keywords, node *kwrest, mrb_sym block);
 
@@ -507,14 +506,21 @@ new_begin(parser_state *p, node *body)
 
 #define newline_node(n) (n)
 
-/* (:rescue body rescue else) */
+/* (:rescue body rescue else) - Always use variable-sized nodes */
 static node*
 new_rescue(parser_state *p, node *body, node *resq, node *els)
 {
-  if (p->var_nodes_enabled) {
-    return new_rescue_var(p, body, resq, els);
-  }
-  return list4((node*)NODE_RESCUE, body, resq, els);
+  size_t total_size = sizeof(struct mrb_ast_rescue_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_rescue_node *n = (struct mrb_ast_rescue_node*)parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->hdr, p, NODE_RESCUE, class);
+  n->body = body;
+  n->rescue_clauses = resq;
+  n->else_clause = els;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
 static node*
@@ -523,14 +529,10 @@ new_mod_rescue(parser_state *p, node *body, node *resq)
   return new_rescue(p, body, list1(list3(0, 0, resq)), 0);
 }
 
-/* (:ensure body ensure) */
+/* (:ensure body ensure) - Always use variable-sized nodes */
 static node*
 new_ensure(parser_state *p, node *a, node *b)
 {
-  if (!p->var_nodes_enabled) {
-    return cons_head((node*)NODE_ENSURE, cons(a, cons(0, b)));
-  }
-
   size_t total_size = sizeof(struct mrb_ast_ensure_node);
   enum mrb_ast_size_class class = size_to_class(total_size);
   struct mrb_ast_ensure_node *ensure_node = (struct mrb_ast_ensure_node*)parser_alloc_var(p, total_size, class);
@@ -849,11 +851,6 @@ new_call_var(parser_state *p, node *receiver, mrb_sym method, node *args, int pa
 }
 #endif
 
-/* Variable-sized array node creation */
-
-
-
-
 /* Variable-sized method definition node creation */
 static node*
 new_def_var(parser_state *p, mrb_sym name, node *args, node *body)
@@ -920,7 +917,6 @@ new_sclass_var(parser_state *p, node *obj, node *body)
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
-
 /* Variable-sized assignment node creation */
 static node*
 new_asgn_var(parser_state *p, node *lhs, node *rhs)
@@ -970,11 +966,7 @@ new_op_asgn_var(parser_state *p, node *lhs, mrb_sym op, node *rhs)
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
-/* Variable-sized expression node creation */
-
 /* Variable-sized simple node creation functions */
-
-
 static node*
 new_const_var(parser_state *p, mrb_sym symbol)
 {
@@ -990,22 +982,6 @@ new_const_var(parser_state *p, mrb_sym symbol)
 }
 
 /* Variable-sized advanced node creation functions */
-static node*
-new_rescue_var(parser_state *p, node *body, node *rescue_clauses, node *else_clause)
-{
-  size_t total_size = sizeof(struct mrb_ast_rescue_node);
-  enum mrb_ast_size_class class = size_to_class(total_size);
-
-  struct mrb_ast_rescue_node *n = (struct mrb_ast_rescue_node*)parser_alloc_var(p, total_size, class);
-
-  init_var_header(&n->hdr, p, NODE_RESCUE, class);
-  n->body = body;
-  n->rescue_clauses = rescue_clauses;
-  n->else_clause = else_clause;
-
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
-}
-
 static node*
 new_block_var(parser_state *p, node *locals, node *args, node *body)
 {
@@ -2859,7 +2835,6 @@ command_rhs     : command_call   %prec tOP_ASGN
                 | command_asgn
                 ;
 
-
 expr            : command_call
                 | expr keyword_and expr
                     {
@@ -2879,7 +2854,6 @@ expr            : command_call
                     }
                 | arg
                 ;
-
 
 defn_head       : keyword_def fname
                     {
@@ -4111,7 +4085,6 @@ block_param_def : '|' {local_add_blk(p);} opt_bv_decl '|'
                     }
                 ;
 
-
 opt_bv_decl     : opt_nl
                     {
                       $$ = 0;
@@ -4465,7 +4438,6 @@ words           : tWORDS_BEG tSTRING
                       $$ = new_words(p, n);
                     }
                 ;
-
 
 symbol          : basic_symbol
                     {
@@ -5446,7 +5418,6 @@ skips(parser_state *p, const char *s)
   }
   return FALSE;
 }
-
 
 static int
 newtok(parser_state *p)

@@ -2290,7 +2290,6 @@ search_upvar(codegen_scope *s, mrb_sym id, int *idx)
   return -1; /* not reached */
 }
 
-
 /*
  * Generates the bytecode for the body of a lambda or a block.
  * This function is responsible for creating a new scope, handling arguments
@@ -3070,7 +3069,6 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
   case NODE_NIL:
     break;
 
-
   default:
     codegen_error(s, "unknown lhs");
     break;
@@ -3267,7 +3265,6 @@ raise_error(codegen_scope *s, const char *msg)
 
   genop_1(s, OP_ERR, idx);
 }
-
 
 static void
 gen_retval(codegen_scope *s, node *tree)
@@ -3601,127 +3598,6 @@ codegen_begin(codegen_scope *s, node *tree, int val)
 }
 
 static void
-codegen_rescue(codegen_scope *s, node *tree, int val)
-{
-  int noexc;
-  uint32_t exend, pos1, pos2, tmp;
-  struct loopinfo *lp;
-  int catch_entry, begin, end;
-
-  if (tree->car == NULL) return;
-  lp = loop_push(s, LOOP_BEGIN);
-  lp->pc0 = new_label(s);
-  catch_entry = catch_handler_new(s);
-  begin = s->pc;
-  codegen(s, tree->car, VAL);
-  pop();
-  lp->type = LOOP_RESCUE;
-  end = s->pc;
-  noexc = genjmp_0(s, OP_JMP);
-  catch_handler_set(s, catch_entry, MRB_CATCH_RESCUE, begin, end, s->pc);
-  tree = tree->cdr;
-  exend = JMPLINK_START;
-  pos1 = JMPLINK_START;
-  if (tree->car) {
-    node *n2 = tree->car;
-    int exc = cursp();
-
-    genop_1(s, OP_EXCEPT, exc);
-    push();
-    while (n2) {
-      node *n3 = n2->car;
-      node *n4 = n3->car;
-
-      dispatch(s, pos1);
-      pos2 = JMPLINK_START;
-      do {
-        if (n4 && n4->car && node_to_int(n4->car->car) == NODE_SPLAT) {
-          codegen(s, n4->car, VAL);
-          gen_move(s, cursp(), exc, 0);
-          push_n(2); pop_n(2); /* space for one arg and a block */
-          pop();
-          genop_3(s, OP_SEND, cursp(), new_sym(s, MRB_SYM_2(s->mrb, __case_eqq)), 1);
-        }
-        else {
-          if (n4) {
-            codegen(s, n4->car, VAL);
-          }
-          else {
-            genop_2(s, OP_GETCONST, cursp(), new_sym(s, MRB_SYM_2(s->mrb, StandardError)));
-            push();
-          }
-          pop();
-          genop_2(s, OP_RESCUE, exc, cursp());
-        }
-        tmp = genjmp2(s, OP_JMPIF, cursp(), pos2, val);
-        pos2 = tmp;
-        if (n4) {
-          n4 = n4->cdr;
-        }
-      } while (n4);
-      pos1 = genjmp_0(s, OP_JMP);
-      dispatch_linked(s, pos2);
-
-      pop();
-      if (n3->cdr->car) {
-        gen_assignment(s, n3->cdr->car, NULL, exc, NOVAL);
-      }
-      if (n3->cdr->cdr->car) {
-        codegen(s, n3->cdr->cdr->car, val);
-        if (val) pop();
-      }
-      tmp = genjmp(s, OP_JMP, exend);
-      exend = tmp;
-      n2 = n2->cdr;
-      push();
-    }
-    if (pos1 != JMPLINK_START) {
-      dispatch(s, pos1);
-      genop_1(s, OP_RAISEIF, exc);
-    }
-  }
-  pop();
-  tree = tree->cdr;
-  dispatch(s, noexc);
-  if (tree->car) {
-    codegen(s, tree->car, val);
-  }
-  else if (val) {
-    push();
-  }
-  dispatch_linked(s, exend);
-  loop_pop(s, NOVAL);
-}
-
-static void
-codegen_ensure(codegen_scope *s, node *tree, int val)
-{
-  if (!tree->cdr || !tree->cdr->cdr ||
-      (node_to_int(tree->cdr->cdr->car) == NODE_STMTS &&
-       tree->cdr->cdr->cdr)) {
-    int catch_entry, begin, end, target;
-    int idx;
-
-    catch_entry = catch_handler_new(s);
-    begin = s->pc;
-    codegen(s, tree->car, val);
-    end = target = s->pc;
-    push();
-    idx = cursp();
-    genop_1(s, OP_EXCEPT, idx);
-    push();
-    codegen(s, tree->cdr->cdr, NOVAL);
-    pop();
-    genop_1(s, OP_RAISEIF, idx);
-    pop();
-    catch_handler_set(s, catch_entry, MRB_CATCH_ENSURE, begin, end, target);
-  }
-  else {                      /* empty ensure ignored */
-    codegen(s, tree->car, val);
-  }
-}
-
-static void
 codegen_lambda(codegen_scope *s, node *tree, int val)
 {
   if (!val) return;
@@ -3740,8 +3616,6 @@ codegen_block(codegen_scope *s, node *tree, int val)
   genop_2(s, OP_BLOCK, cursp(), idx);
   push();
 }
-
-
 
 static void
 codegen_self(codegen_scope *s, node *tree, int val)
@@ -3939,7 +3813,6 @@ codegen_scall(codegen_scope *s, node *tree, int val)
   gen_call(s, tree, val, 1);
 }
 
-
 static void
 codegen_negate(codegen_scope *s, node *tree, int val)
 {
@@ -4084,7 +3957,6 @@ codegen_cons_list_string(codegen_scope *s, node *list, int val)
       return;
     }
 
-
     mrb_int len = node_to_int(elem->car);
 
     if (len >= 0) {
@@ -4112,7 +3984,6 @@ codegen_cons_list_string(codegen_scope *s, node *list, int val)
     while (n) {
       elem = n->car;
       if (!elem) break;
-
 
       len = node_to_int(elem->car);
 
@@ -4148,7 +4019,6 @@ codegen_cons_list_string(codegen_scope *s, node *list, int val)
     while (n) {
       node *elem = n->car;
       if (!elem) break;
-
 
       mrb_int len = node_to_int(elem->car);
 
@@ -4398,7 +4268,6 @@ codegen_sclass(codegen_scope *s, node *tree, int val)
   }
 }
 
-
 static void
 codegen_undef(codegen_scope *s, node *tree, int val)
 {
@@ -4443,7 +4312,6 @@ codegen_next(codegen_scope *s, node *tree, int val)
   if (!val) return;
   push();
 }
-
 
 static void
 codegen_redo(codegen_scope *s, node *tree, int val)
@@ -4518,7 +4386,6 @@ codegen_block_arg(codegen_scope *s, node *tree, int val)
     codegen(s, tree, val);
   }
 }
-
 
 /* Handle variable-sized node types */
 static void
@@ -4719,7 +4586,6 @@ gen_array_var(codegen_scope *s, node *varnode, int val)
     push();
   }
 }
-
 
 /* Phase 3 Variable Node Codegen Functions */
 
@@ -5561,23 +5427,97 @@ gen_const_var(codegen_scope *s, node *varnode, int val)
 static void
 gen_rescue_var(codegen_scope *s, node *varnode, int val)
 {
-  /* For now, completely avoid accessing the variable-sized structure */
-  /* and just fall back to safe codegen to prevent crashes */
+  struct mrb_ast_rescue_node *rescue = rescue_node(varnode);
+  node *body = rescue->body;
+  node *rescue_clauses = rescue->rescue_clauses;
+  node *else_clause = rescue->else_clause;
 
-  if (!varnode) {
-    if (val) {
-      genop_1(s, OP_LOADNIL, cursp());
+  int noexc;
+  uint32_t exend, pos1, pos2, tmp;
+  struct loopinfo *lp;
+  int catch_entry, begin, end;
+
+  if (body == NULL) return;
+  lp = loop_push(s, LOOP_BEGIN);
+  lp->pc0 = new_label(s);
+  catch_entry = catch_handler_new(s);
+  begin = s->pc;
+  codegen(s, body, VAL);
+  pop();
+  lp->type = LOOP_RESCUE;
+  end = s->pc;
+  noexc = genjmp_0(s, OP_JMP);
+  catch_handler_set(s, catch_entry, MRB_CATCH_RESCUE, begin, end, s->pc);
+  exend = JMPLINK_START;
+  pos1 = JMPLINK_START;
+  if (rescue_clauses) {
+    node *n2 = rescue_clauses;
+    int exc = cursp();
+
+    genop_1(s, OP_EXCEPT, exc);
+    push();
+    while (n2) {
+      node *n3 = n2->car;
+      node *n4 = n3->car;
+
+      dispatch(s, pos1);
+      pos2 = JMPLINK_START;
+      do {
+        if (n4 && n4->car && node_to_int(n4->car->car) == NODE_SPLAT) {
+          codegen(s, n4->car, VAL);
+          gen_move(s, cursp(), exc, 0);
+          push_n(2); pop_n(2); /* space for one arg and a block */
+          pop();
+          genop_3(s, OP_SEND, cursp(), new_sym(s, MRB_SYM_2(s->mrb, __case_eqq)), 1);
+        }
+        else {
+          if (n4) {
+            codegen(s, n4->car, VAL);
+          }
+          else {
+            genop_2(s, OP_GETCONST, cursp(), new_sym(s, MRB_SYM_2(s->mrb, StandardError)));
+            push();
+          }
+          pop();
+          genop_2(s, OP_RESCUE, exc, cursp());
+        }
+        tmp = genjmp2(s, OP_JMPIF, cursp(), pos2, val);
+        pos2 = tmp;
+        if (n4) {
+          n4 = n4->cdr;
+        }
+      } while (n4);
+      pos1 = genjmp_0(s, OP_JMP);
+      dispatch_linked(s, pos2);
+
+      pop();
+      if (n3->cdr->car) {
+        gen_assignment(s, n3->cdr->car, NULL, exc, NOVAL);
+      }
+      if (n3->cdr->cdr->car) {
+        codegen(s, n3->cdr->cdr->car, val);
+        if (val) pop();
+      }
+      tmp = genjmp(s, OP_JMP, exend);
+      exend = tmp;
+      n2 = n2->cdr;
       push();
     }
-    return;
+    if (pos1 != JMPLINK_START) {
+      dispatch(s, pos1);
+      genop_1(s, OP_RAISEIF, exc);
+    }
   }
-
-  /* Since rescue is complex, just delegate to safe handling */
-  /* This may not be optimal but prevents crashes */
-  if (val) {
-    genop_1(s, OP_LOADNIL, cursp());
+  pop();
+  dispatch(s, noexc);
+  if (else_clause) {
+    codegen(s, else_clause, val);
+  }
+  else if (val) {
     push();
   }
+  dispatch_linked(s, exend);
+  loop_pop(s, NOVAL);
 }
 
 static void
@@ -5640,7 +5580,6 @@ gen_retry_var(codegen_scope *s, node *varnode, int val)
 {
   codegen_retry(s, NULL, val);
 }
-
 
 static void
 gen_xstr_var(codegen_scope *s, node *varnode, int val)
@@ -5940,7 +5879,6 @@ gen_symbols_var(codegen_scope *s, node *varnode, int val)
   gen_literal_array(s, n->args, TRUE, val);
 }
 
-
 static void
 gen_splat_var(codegen_scope *s, node *varnode, int val)
 {
@@ -5991,20 +5929,35 @@ gen_begin_var(codegen_scope *s, const node *varnode, int val)
 }
 
 static void
-gen_ensure_var(codegen_scope *s, const node *varnode, int val)
+gen_ensure_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_ensure_node *ensure = ensure_node(varnode);
-
-  // Convert variable-sized ensure to traditional structure for codegen_ensure
   node *body = ensure->body;
-  node *ensure_body = ensure->ensure_clause;
+  node *ensure_clause = ensure->ensure_clause;
 
-  // Create stack-allocated traditional node structure
-  node ensure_node_stack;
-  ensure_node_stack.car = body;
-  ensure_node_stack.cdr = ensure_body;
+  if (!ensure_clause ||
+      (node_to_int(ensure_clause->car) == NODE_STMTS &&
+       ensure_clause->cdr)) {
+    int catch_entry, begin, end, target;
+    int idx;
 
-  codegen_ensure(s, &ensure_node_stack, val);
+    catch_entry = catch_handler_new(s);
+    begin = s->pc;
+    codegen(s, body, val);
+    end = target = s->pc;
+    push();
+    idx = cursp();
+    genop_1(s, OP_EXCEPT, idx);
+    push();
+    codegen(s, ensure_clause, NOVAL);
+    pop();
+    genop_1(s, OP_RAISEIF, idx);
+    pop();
+    catch_handler_set(s, catch_entry, MRB_CATCH_ENSURE, begin, end, target);
+  }
+  else {                      /* empty ensure ignored */
+    codegen(s, body, val);
+  }
 }
 
 // Group 16: Declarations and Definitions
@@ -6361,7 +6314,6 @@ codegen_variable_node(codegen_scope *s, node *varnode, int val)
     gen_symbols_var(s, varnode, val);
     return TRUE;
 
-
   case NODE_SPLAT:
     gen_splat_var(s, varnode, val);
     return TRUE;
@@ -6447,14 +6399,6 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_BEGIN:
     codegen_begin(s, tree, val);
-    break;
-
-  case NODE_RESCUE:
-    codegen_rescue(s, tree, val);
-    break;
-
-  case NODE_ENSURE:
-    codegen_ensure(s, tree, val);
     break;
 
   case NODE_LAMBDA:
@@ -6553,7 +6497,6 @@ codegen(codegen_scope *s, node *tree, int val)
   case NODE_BLOCK_ARG:
     codegen_block_arg(s, tree, val);
     break;
-
 
   case NODE_NEGATE:
     codegen_negate(s, tree, val);
