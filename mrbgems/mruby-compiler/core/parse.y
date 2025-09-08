@@ -53,6 +53,9 @@ static node* new_const_var(parser_state *p, mrb_sym symbol);
 static node* new_block_var(parser_state *p, node *locals, node *args, node *body);
 static node* new_args_tail_var(parser_state *p, node *keywords, node *kwrest, mrb_sym block);
 
+/* Helper function to check node type for both traditional and variable-sized nodes */
+static mrb_bool node_type_p(node *n, enum node_type type);
+
 #define identchar(c) (ISALNUM(c) || (c) == '_' || !ISASCII(c))
 
 typedef unsigned int stack_type;
@@ -439,6 +442,21 @@ locals_node(parser_state *p)
   return p->locals ? p->locals->car : NULL;
 }
 
+/* Helper function to check node type for both traditional and variable-sized nodes */
+static mrb_bool
+node_type_p(node *n, enum node_type type)
+{
+  if (!n) return FALSE;
+
+  /* Check traditional cons-list nodes */
+  if (node_to_int(n->car) == type) return TRUE;
+
+  /* Check variable-sized nodes */
+  if (n->car == (node*)NODE_VARIABLE && VAR_NODE_TYPE(n->cdr) == type) return TRUE;
+
+  return FALSE;
+}
+
 static void
 nvars_nest(parser_state *p)
 {
@@ -461,10 +479,6 @@ nvars_unnest(parser_state *p)
 static node*
 new_scope(parser_state *p, node *body)
 {
-  if (!p->var_nodes_enabled) {
-    return cons_head((node*)NODE_SCOPE, cons(locals_node(p), body));
-  }
-
   size_t total_size = sizeof(struct mrb_ast_scope_node);
   enum mrb_ast_size_class class = size_to_class(total_size);
   struct mrb_ast_scope_node *scope_node = (struct mrb_ast_scope_node*)parser_alloc_var(p, total_size, class);
@@ -488,14 +502,10 @@ new_stmts(parser_state *p, node *body)
   return cons_head((node*)NODE_STMTS, 0);
 }
 
-/* (:begin body) */
+/* (:begin body) - Always use variable-sized nodes */
 static node*
 new_begin(parser_state *p, node *body)
 {
-  if (!p->var_nodes_enabled) {
-    return cons_head((node*)NODE_BEGIN, body);
-  }
-
   size_t total_size = sizeof(struct mrb_ast_begin_node);
   enum mrb_ast_size_class class = size_to_class(total_size);
   struct mrb_ast_begin_node *begin_node = (struct mrb_ast_begin_node*)parser_alloc_var(p, total_size, class);
@@ -2704,7 +2714,7 @@ stmt            : keyword_alias fsym {p->lstate = EXPR_FNAME;} fsym
                     }
                 | stmt modifier_while expr_value
                     {
-                      if ($1 && node_to_type($1->car) == NODE_BEGIN) {
+                      if ($1 && node_type_p($1, NODE_BEGIN)) {
                         $$ = new_while_mod(p, cond($3), $1);
                       }
                       else {
@@ -2713,7 +2723,7 @@ stmt            : keyword_alias fsym {p->lstate = EXPR_FNAME;} fsym
                     }
                 | stmt modifier_until expr_value
                     {
-                      if ($1 && node_to_type($1->car) == NODE_BEGIN) {
+                      if ($1 && node_type_p($1, NODE_BEGIN)) {
                         $$ = new_until_mod(p, cond($3), $1);
                       }
                       else {
@@ -7560,8 +7570,11 @@ parser_update_cxt(parser_state *p, mrb_ccontext *cxt)
 
   if (!cxt) return;
   if (!p->tree) return;
-  if (node_to_int(p->tree->car) != NODE_SCOPE) return;
-  n0 = n = p->tree->cdr->car;
+  if (!node_type_p(p->tree, NODE_SCOPE)) return;
+
+  /* Extract locals from variable-sized NODE_SCOPE */
+  struct mrb_ast_scope_node *scope = scope_node(p->tree->cdr);
+  n0 = n = scope->locals;
   while (n) {
     i++;
     n = n->cdr;
@@ -8805,6 +8818,44 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
       printf("NODE_KW_REST_ARGS\n");
     break;
 
+  case NODE_VARIABLE:
+    /* Handle variable-sized nodes wrapped in NODE_VARIABLE */
+    {
+      enum node_type var_type = VAR_NODE_TYPE(tree);
+      switch (var_type) {
+      case NODE_SCOPE:
+        printf("NODE_SCOPE:\n");
+        {
+          struct mrb_ast_scope_node *scope = scope_node(tree);
+          node *n2 = scope->locals;
+          mrb_bool first_lval = TRUE;
+
+          if (n2 && (n2->car || n2->cdr)) {
+            dump_prefix(tree, offset+1);
+            printf("local variables:\n");
+            dump_prefix(tree, offset+2);
+            while (n2) {
+              if (n2->car) {
+                if (!first_lval) printf(", ");
+                printf("%s", mrb_sym_name(mrb, node_to_sym(n2->car)));
+                first_lval = FALSE;
+              }
+              n2 = n2->cdr;
+            }
+            printf("\n");
+          }
+        }
+        tree = scope_node(tree)->body;
+        offset++;
+        goto again;
+
+      default:
+        printf("NODE_VARIABLE (unsupported type: %d)\n", var_type);
+        break;
+      }
+    }
+    break;
+
   default:
     printf("node type: %d (0x%x)\n", nodetype, (unsigned)nodetype);
     break;
@@ -8819,11 +8870,15 @@ void
 mrb_parser_foreach_top_variable(mrb_state *mrb, struct mrb_parser_state *p, mrb_parser_foreach_top_variable_func *func, void *user)
 {
   const mrb_ast_node *n = p->tree;
-  if ((intptr_t)n->car == NODE_SCOPE) {
-    n = n->cdr->car;
+  if (node_type_p((node*)n, NODE_SCOPE)) {
+    /* Extract locals from variable-sized NODE_SCOPE */
+    struct mrb_ast_scope_node *scope = scope_node(n->cdr);
+    n = scope->locals;
     for (; n; n = n->cdr) {
       mrb_sym sym = node_to_sym(n->car);
-      if (sym && !func(mrb, sym, user)) break;
+      if (sym != 0) {
+        if (!func(mrb, sym, user)) break;
+      }
     }
   }
 }

@@ -3591,13 +3591,6 @@ codegen_stmts(codegen_scope *s, node *tree, int val)
 }
 
 static void
-codegen_begin(codegen_scope *s, node *tree, int val)
-{
-  /* NODE_BEGIN contains a single body node directly in cdr */
-  codegen(s, tree, val);
-}
-
-static void
 codegen_lambda(codegen_scope *s, node *tree, int val)
 {
   if (!val) return;
@@ -3795,11 +3788,6 @@ codegen_splat(codegen_scope *s, node *tree, int val)
   codegen(s, tree, val);
 }
 
-static void
-codegen_scope_node(codegen_scope *s, node *tree, int val)
-{
-  scope_body(s, tree, NOVAL);
-}
 
 static void
 codegen_call_fcall(codegen_scope *s, node *tree, int val)
@@ -5906,26 +5894,26 @@ gen_scope_var(codegen_scope *s, const node *varnode, int val)
 {
   struct mrb_ast_scope_node *scope = scope_node(varnode);
 
-  // Convert variable-sized scope to traditional cons list for scope_body
-  node *locals = scope->locals;
-  node *body = scope->body;
-
-  // Create stack-allocated traditional node structure
+  /* Create a traditional cons-list structure that scope_body() expects:
+   * tree->car should contain the locals cons-list
+   * tree->cdr should contain the body
+   */
   node scope_node_stack;
-  scope_node_stack.car = locals;
-  scope_node_stack.cdr = body;
+  scope_node_stack.car = scope->locals;
+  scope_node_stack.cdr = scope->body;
 
-  scope_body(s, &scope_node_stack, val);
+  /* Traditional codegen_scope_node called scope_body with NOVAL, not val */
+  scope_body(s, &scope_node_stack, NOVAL);
 }
 
 static void
-gen_begin_var(codegen_scope *s, const node *varnode, int val)
+gen_begin_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_begin_node *begin = begin_node(varnode);
-
-  // Convert variable-sized begin to traditional cons list for codegen_begin
   node *body = begin->body;
-  codegen_begin(s, body, val);
+
+  /* Inline codegen_begin logic - just generate code for the body */
+  codegen(s, body, val);
 }
 
 static void
@@ -6397,20 +6385,12 @@ codegen(codegen_scope *s, node *tree, int val)
     codegen_stmts(s, tree, val);
     break;
 
-  case NODE_BEGIN:
-    codegen_begin(s, tree, val);
-    break;
-
   case NODE_LAMBDA:
     codegen_lambda(s, tree, val);
     break;
 
   case NODE_BLOCK:
     codegen_block(s, tree, val);
-    break;
-
-  case NODE_SCOPE:
-    codegen_scope_node(s, tree, val);
     break;
 
   case NODE_CALL:
