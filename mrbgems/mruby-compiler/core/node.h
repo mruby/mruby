@@ -870,6 +870,11 @@ struct mrb_ast_ensure_node {
   struct mrb_ast_node *ensure_clause;
 };
 
+struct mrb_ast_stmts_node {
+  struct mrb_ast_var_header hdr;
+  struct mrb_ast_node *stmts;        /* Cons-list of statements */
+};
+
 struct mrb_ast_iter_node {
   struct mrb_ast_var_header hdr;
   struct mrb_ast_node *vars;
@@ -924,6 +929,7 @@ struct mrb_ast_sdef_node {
 #define scope_node(n) ((struct mrb_ast_scope_node*)(n))
 #define begin_node(n) ((struct mrb_ast_begin_node*)(n))
 #define ensure_node(n) ((struct mrb_ast_ensure_node*)(n))
+#define stmts_node(n) ((struct mrb_ast_stmts_node*)(n))
 #define iter_node(n) ((struct mrb_ast_iter_node*)(n))
 #define when_node(n) ((struct mrb_ast_when_node*)(n))
 #define alias_node(n) ((struct mrb_ast_alias_node*)(n))

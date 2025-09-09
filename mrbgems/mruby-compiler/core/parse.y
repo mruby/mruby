@@ -492,15 +492,17 @@ new_scope(parser_state *p, node *body)
 static node*
 new_stmts(parser_state *p, node *body)
 {
-  if (body) {
-    /* If body is already a NODE_STMTS, just return it directly */
-    if (node_to_type(body->car) == NODE_STMTS) {
-      return body;
-    }
-    return list2((node*)NODE_STMTS, body);
-  }
-  return cons_head((node*)NODE_STMTS, 0);
+  size_t total_size = sizeof(struct mrb_ast_stmts_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_stmts_node *n = (struct mrb_ast_stmts_node*)parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->hdr, p, NODE_STMTS, class);
+  n->stmts = body ? list1(body) : 0;  /* Wrap single statement in cons-list */
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
+
 
 /* (:begin body) - Always use variable-sized nodes */
 static node*
@@ -2668,7 +2670,9 @@ stmts           : none
                     }
                 | stmts terms stmt
                     {
-                      $$ = push($1, newline_node($3));
+                      /* Update the cons-list inside the existing variable-sized node */
+                      STMTS_NODE_STMTS($1->cdr) = push(STMTS_NODE_STMTS($1->cdr), newline_node($3));
+                      $$ = $1;
                     }
                 | error stmt
                     {
@@ -7652,7 +7656,7 @@ mrb_parser_new(mrb_state *mrb)
     p->var_alloc_counts[i] = 0;
   }
   p->var_total_allocated = 0;
-  p->var_nodes_enabled = TRUE;   /* Enable variable-sized nodes by default */
+  p->var_nodes_enabled = TRUE;
 
   return p;
 }

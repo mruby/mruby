@@ -3579,18 +3579,6 @@ codegen_masgn(codegen_scope *s, node *tree, int val)
 }
 
 static void
-codegen_stmts(codegen_scope *s, node *tree, int val)
-{
-  if (val && !tree) {
-    gen_load_nil(s, 1);
-  }
-  while (tree) {
-    codegen(s, tree->car, tree->cdr ? NOVAL : val);
-    tree = tree->cdr;
-  }
-}
-
-static void
 codegen_lambda(codegen_scope *s, node *tree, int val)
 {
   if (!val) return;
@@ -4881,6 +4869,9 @@ gen_def_var(codegen_scope *s, node *varnode, int val)
 }
 
 /* Helper function for generating class/module/singleton class body */
+/* Forward declaration */
+static mrb_bool is_empty_stmts(node *stmt_node);
+
 static void
 gen_class_body(codegen_scope *s, node *body, int val)
 {
@@ -4892,7 +4883,7 @@ gen_class_body(codegen_scope *s, node *body, int val)
     node *body_stmts = body->cdr;
 
     /* Check for empty body case */
-    if (node_to_int(body_stmts->car) == NODE_STMTS && body_stmts->cdr == NULL) {
+    if (is_empty_stmts(body_stmts)) {
       genop_1(s, OP_LOADNIL, cursp());
     }
     else {
@@ -5876,9 +5867,7 @@ gen_ensure_var(codegen_scope *s, node *varnode, int val)
   node *body = ensure->body;
   node *ensure_clause = ensure->ensure_clause;
 
-  if (!ensure_clause ||
-      (node_to_int(ensure_clause->car) == NODE_STMTS &&
-       ensure_clause->cdr)) {
+  if (!ensure_clause || !is_empty_stmts(ensure_clause)) {
     int catch_entry, begin, end, target;
     int idx;
 
@@ -5899,6 +5888,41 @@ gen_ensure_var(codegen_scope *s, node *varnode, int val)
   else {                      /* empty ensure ignored */
     codegen(s, body, val);
   }
+}
+
+static void
+gen_stmts_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_stmts_node *stmts = stmts_node(varnode);
+  node *tree = STMTS_NODE_STMTS(stmts);
+
+  if (val && !tree) {
+    gen_load_nil(s, 1);
+  }
+  while (tree) {
+    codegen(s, tree->car, tree->cdr ? NOVAL : val);
+    tree = tree->cdr;
+  }
+}
+
+static mrb_bool
+is_empty_stmts(node *stmt_node)
+{
+  if (!stmt_node) return TRUE;
+
+  if (node_to_int(stmt_node->car) == NODE_VARIABLE) {
+    /* Variable-sized NODE_STMTS with internal cons-list */
+    if (NODE_TYPE(stmt_node) == NODE_STMTS) {
+      struct mrb_ast_stmts_node *stmts = stmts_node(NODE_VAR_NODE_PTR(stmt_node));
+      return STMTS_NODE_STMTS(stmts) == NULL;
+    }
+  }
+  else if (node_to_int(stmt_node->car) == NODE_STMTS) {
+    /* Traditional cons-list NODE_STMTS */
+    return stmt_node->cdr == NULL;
+  }
+
+  return FALSE;
 }
 
 // Group 16: Declarations and Definitions
@@ -6275,6 +6299,10 @@ codegen_variable_node(codegen_scope *s, node *varnode, int val)
     gen_ensure_var(s, varnode, val);
     return TRUE;
 
+  case NODE_STMTS:
+    gen_stmts_var(s, varnode, val);
+    return TRUE;
+
   case NODE_ALIAS:
     gen_alias_var(s, varnode, val);
     return TRUE;
@@ -6334,10 +6362,6 @@ codegen(codegen_scope *s, node *tree, int val)
   s->lineno = head->lineno;
   tree = tree->cdr;
   switch (nt) {
-  case NODE_STMTS:
-    codegen_stmts(s, tree, val);
-    break;
-
   case NODE_LAMBDA:
     codegen_lambda(s, tree, val);
     break;
