@@ -2347,11 +2347,19 @@ lambda_body(codegen_scope *s, node *tree, int blk)
     pa = node_len(tree->car->cdr->cdr->cdr->car);
     pargs = tree->car->cdr->cdr->cdr->car;
     /* keyword arguments */
-    ka = tail ? node_len(tail->cdr->car) : 0;
-    /* keyword dictionary? */
-    kd = tail && tail->cdr->cdr->car? 1 : 0;
-    /* block argument? */
-    ba = tail && tail->cdr->cdr->cdr->car ? 1 : 0;
+    if (tail && node_to_int(tail->car) == NODE_VARIABLE) {
+      /* Handle variable-sized NODE_ARGS_TAIL */
+      struct mrb_ast_args_tail_node *tail_node = args_tail_node(tail->cdr);
+      ka = tail_node->keywords ? node_len(tail_node->keywords) : 0;
+      kd = tail_node->kwrest ? 1 : 0;
+      ba = tail_node->block ? 1 : 0;
+    }
+    else {
+      /* Handle traditional cons-list NODE_ARGS_TAIL */
+      ka = tail ? node_len(tail->cdr->car) : 0;
+      kd = tail && tail->cdr->cdr->car? 1 : 0;
+      ba = tail && tail->cdr->cdr->cdr->car ? 1 : 0;
+    }
 
     if (ma > 0x1f || oa > 0x1f || pa > 0x1f || ka > 0x1f) {
       codegen_error(s, "too many formal arguments");
@@ -2404,14 +2412,26 @@ lambda_body(codegen_scope *s, node *tree, int blk)
 
     /* Keyword argument processing */
     if (tail) { /* `tail` contains keyword arguments and block argument */
-      node *kwds = tail->cdr->car; /* AST node for keyword arguments. */
+      node *kwds;
       int kwrest = 0; /* Flag for keyword rest argument (e.g., **kwargs) */
 
-      if (tail->cdr->cdr->car) { /* Check if a keyword rest argument exists. */
-        kwrest = 1;
+      if (node_to_int(tail->car) == NODE_VARIABLE) {
+        /* Handle variable-sized NODE_ARGS_TAIL */
+        struct mrb_ast_args_tail_node *tail_node = args_tail_node(tail->cdr);
+        kwds = tail_node->keywords;
+        if (tail_node->kwrest) {
+          kwrest = 1;
+        }
       }
-      mrb_assert(node_to_int(tail->car) == NODE_ARGS_TAIL);
-      mrb_assert(node_len(tail) == 4);
+      else {
+        /* Handle traditional cons-list NODE_ARGS_TAIL */
+        kwds = tail->cdr->car; /* AST node for keyword arguments. */
+        if (tail->cdr->cdr->car) { /* Check if a keyword rest argument exists. */
+          kwrest = 1;
+        }
+        mrb_assert(node_to_int(tail->car) == NODE_ARGS_TAIL);
+        mrb_assert(node_len(tail) == 4);
+      }
 
       while (kwds) {
         int jmpif_key_p, jmp_def_set = -1;
@@ -2444,12 +2464,31 @@ lambda_body(codegen_scope *s, node *tree, int blk)
 
         kwds = kwds->cdr;
       }
-      if (tail->cdr->car && !kwrest) { /* If there are keyword args but no keyword rest. */
+      /* Check if there are keyword args but no keyword rest */
+      int has_keywords = 0;
+      if (node_to_int(tail->car) == NODE_VARIABLE) {
+        /* Handle variable-sized NODE_ARGS_TAIL */
+        has_keywords = args_tail_node(tail->cdr)->keywords != NULL;
+      }
+      else {
+        /* Handle traditional cons-list NODE_ARGS_TAIL */
+        has_keywords = tail->cdr->car != NULL;
+      }
+
+      if (has_keywords && !kwrest) { /* If there are keyword args but no keyword rest. */
         genop_0(s, OP_KEYEND); /* Signal end of keyword arguments. */
       }
       /* Block argument processing */
       if (ba) { /* If a block argument (e.g., &blk) is present. */
-        mrb_sym bparam = node_to_sym(tail->cdr->cdr->cdr->car); /* Symbol of the block parameter. */
+        mrb_sym bparam;
+        if (node_to_int(tail->car) == NODE_VARIABLE) {
+          /* Handle variable-sized NODE_ARGS_TAIL */
+          bparam = args_tail_node(tail->cdr)->block;
+        }
+        else {
+          /* Handle traditional cons-list NODE_ARGS_TAIL */
+          bparam = node_to_sym(tail->cdr->cdr->cdr->car); /* Symbol of the block parameter. */
+        }
         pos = ma+oa+ra+pa+(ka||kd); /* Calculate register offset for the block parameter. */
         if (bparam) { /* If it's a named block parameter. */
           int idx = lv_idx(s, bparam);
@@ -3578,25 +3617,6 @@ codegen_masgn(codegen_scope *s, node *tree, int val)
   }
 }
 
-static void
-codegen_lambda(codegen_scope *s, node *tree, int val)
-{
-  if (!val) return;
-
-  int idx = lambda_body(s, tree, 1);
-  genop_2(s, OP_LAMBDA, cursp(), idx);
-  push();
-}
-
-static void
-codegen_block(codegen_scope *s, node *tree, int val)
-{
-  if (!val) return;
-
-  int idx = lambda_body(s, tree, 1);
-  genop_2(s, OP_BLOCK, cursp(), idx);
-  push();
-}
 
 static void
 codegen_self(codegen_scope *s, node *tree, int val)
@@ -5422,32 +5442,20 @@ gen_block_var(codegen_scope *s, node *varnode, int val)
 {
   if (!val) return;
 
-  struct mrb_ast_block_node *block_n = block_node(varnode);
+  struct mrb_ast_block_node *n = block_node(varnode);
 
-  // Create a dummy empty args node
-  node *new_args = (node*)codegen_palloc(s, sizeof(node));
-  new_args->car = NULL; // no mandatory args
-  new_args->cdr = (node*)codegen_palloc(s, sizeof(node));
-  new_args->cdr->car = NULL; // no optional args
-  new_args->cdr->cdr = (node*)codegen_palloc(s, sizeof(node));
-  new_args->cdr->cdr->car = NULL; // no rest arg
-  new_args->cdr->cdr->cdr = (node*)codegen_palloc(s, sizeof(node));
-  new_args->cdr->cdr->cdr->car = NULL; // no post args
-  new_args->cdr->cdr->cdr->cdr = NULL; // no tail
+  // Create stack-allocated node structure for lambda_body call
+  struct mrb_ast_node stack_nodes[4];
+  stack_nodes[0].car = (node*)NODE_BLOCK;
+  stack_nodes[0].cdr = &stack_nodes[1];
+  stack_nodes[1].car = n->locals;
+  stack_nodes[1].cdr = &stack_nodes[2];
+  stack_nodes[2].car = n->args;
+  stack_nodes[2].cdr = &stack_nodes[3];
+  stack_nodes[3].car = n->body;
+  stack_nodes[3].cdr = NULL;
 
-  node body_node;
-  body_node.car = block_n->body;
-  body_node.cdr = NULL;
-
-  node args_and_body_node;
-  args_and_body_node.car = new_args;
-  args_and_body_node.cdr = &body_node;
-
-  node lv_node;
-  lv_node.car = block_n->locals;
-  lv_node.cdr = &args_and_body_node;
-
-  int idx = lambda_body(s, &lv_node, 1);
+  int idx = lambda_body(s, &stack_nodes[1], 1);
   genop_2(s, OP_BLOCK, cursp(), idx);
   push();
 }
@@ -5780,8 +5788,11 @@ gen_zsuper_var(codegen_scope *s, node *varnode, int val)
 static void
 gen_lambda_var(codegen_scope *s, node *varnode, int val)
 {
+  if (!val) return;
+
   struct mrb_ast_lambda_node *n = lambda_node(varnode);
-  // Create stack-allocated node structure for traditional codegen
+
+  // Create stack-allocated node structure for lambda_body call
   struct mrb_ast_node stack_nodes[4];
   stack_nodes[0].car = (node*)NODE_LAMBDA;
   stack_nodes[0].cdr = &stack_nodes[1];
@@ -5791,7 +5802,10 @@ gen_lambda_var(codegen_scope *s, node *varnode, int val)
   stack_nodes[2].cdr = &stack_nodes[3];
   stack_nodes[3].car = n->body;
   stack_nodes[3].cdr = NULL;
-  codegen_lambda(s, &stack_nodes[0], val);
+
+  int idx = lambda_body(s, &stack_nodes[1], 1);
+  genop_2(s, OP_LAMBDA, cursp(), idx);
+  push();
 }
 
 static void
@@ -6362,13 +6376,6 @@ codegen(codegen_scope *s, node *tree, int val)
   s->lineno = head->lineno;
   tree = tree->cdr;
   switch (nt) {
-  case NODE_LAMBDA:
-    codegen_lambda(s, tree, val);
-    break;
-
-  case NODE_BLOCK:
-    codegen_block(s, tree, val);
-    break;
 
   case NODE_CALL:
   case NODE_FCALL:

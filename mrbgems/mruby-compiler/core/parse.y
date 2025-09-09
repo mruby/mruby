@@ -1726,10 +1726,7 @@ static node*
 new_block(parser_state *p, node *a, node *b)
 {
   a = setup_numparams(p, a);
-  if (p->var_nodes_enabled) {
-    return new_block_var(p, locals_node(p), a, b);
-  }
-  return list4((node*)NODE_BLOCK, locals_node(p), a, b);
+  return new_block_var(p, locals_node(p), a, b);
 }
 
 /* (:lambda arg body) */
@@ -1737,9 +1734,6 @@ static node*
 new_lambda(parser_state *p, node *a, node *b)
 {
   a = setup_numparams(p, a);
-  if (!p->var_nodes_enabled) {
-    return list4((node*)NODE_LAMBDA, locals_node(p), a, b);
-  }
 
   size_t total_size = sizeof(struct mrb_ast_lambda_node);
   enum mrb_ast_size_class class = size_to_class(total_size);
@@ -7656,7 +7650,7 @@ mrb_parser_new(mrb_state *mrb)
     p->var_alloc_counts[i] = 0;
   }
   p->var_total_allocated = 0;
-  p->var_nodes_enabled = TRUE;
+  p->var_nodes_enabled = FALSE;
 
   return p;
 }
