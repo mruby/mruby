@@ -4165,98 +4165,6 @@ codegen_postexe(codegen_scope *s, node *tree, int val)
 }
 
 static void
-codegen_class(codegen_scope *s, node *tree, int val)
-{
-  int idx;
-  node *body;
-
-  if (tree->car->car == (node*)0) {
-    gen_load_nil(s, 1);
-  }
-  else if (tree->car->car == (node*)1) {
-    genop_1(s, OP_OCLASS, cursp());
-    push();
-  }
-  else {
-    codegen(s, tree->car->car, VAL);
-  }
-  if (tree->cdr->car) {
-    codegen(s, tree->cdr->car, VAL);
-  }
-  else {
-    genop_1(s, OP_LOADNIL, cursp());
-    push();
-  }
-  pop(); pop();
-  idx = new_sym(s, node_to_sym(tree->car->cdr));
-  genop_2(s, OP_CLASS, cursp(), idx);
-  body = tree->cdr->cdr->car;
-  if (node_to_int(body->cdr->car) == NODE_STMTS && body->cdr->cdr == NULL) {
-    genop_1(s, OP_LOADNIL, cursp());
-  }
-  else {
-    idx = scope_body(s, body->car, body->cdr, val);
-    genop_2(s, OP_EXEC, cursp(), idx);
-  }
-  if (val) {
-    push();
-  }
-}
-
-static void
-codegen_module(codegen_scope *s, node *tree, int val)
-{
-  int idx;
-
-  if (tree->car->car == (node*)0) {
-    genop_1(s, OP_LOADNIL, cursp());
-    push();
-  }
-  else if (tree->car->car == (node*)1) {
-    genop_1(s, OP_OCLASS, cursp());
-    push();
-  }
-  else {
-    codegen(s, tree->car->car, VAL);
-  }
-  pop();
-  idx = new_sym(s, node_to_sym(tree->car->cdr));
-  genop_2(s, OP_MODULE, cursp(), idx);
-  if (node_to_int(tree->cdr->car->cdr->car) == NODE_STMTS &&
-      tree->cdr->car->cdr->cdr == NULL) {
-    genop_1(s, OP_LOADNIL, cursp());
-  }
-  else {
-    idx = scope_body(s, tree->cdr->car->car, tree->cdr->car->cdr, val);
-    genop_2(s, OP_EXEC, cursp(), idx);
-  }
-  if (val) {
-    push();
-  }
-}
-
-static void
-codegen_sclass(codegen_scope *s, node *tree, int val)
-{
-  int idx;
-
-  codegen(s, tree->car, VAL);
-  pop();
-  genop_1(s, OP_SCLASS, cursp());
-  if (node_to_int(tree->cdr->car->cdr->car) == NODE_STMTS &&
-      tree->cdr->car->cdr->cdr == NULL) {
-    genop_1(s, OP_LOADNIL, cursp());
-  }
-  else {
-    idx = scope_body(s, tree->cdr->car->car, tree->cdr->car->cdr, val);
-    genop_2(s, OP_EXEC, cursp(), idx);
-  }
-  if (val) {
-    push();
-  }
-}
-
-static void
 codegen_undef(codegen_scope *s, node *tree, int val)
 {
   node *t = tree;
@@ -5043,14 +4951,48 @@ static void
 gen_class_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_class_node *class_n = class_node(varnode);
+  node *name = CLASS_NODE_NAME(class_n);
+  node *superclass = CLASS_NODE_SUPERCLASS(class_n);
   node *body = CLASS_NODE_BODY(class_n);
+  int idx;
 
-  /* For now, generate simple class definition - this can be optimized later */
-  if (body) {
-    codegen(s, body, val);
+  /* Handle class namespace - same logic as codegen_class */
+  if (name->car == (node*)0) {
+    gen_load_nil(s, 1);
   }
-  else if (val) {
+  else if (name->car == (node*)1) {
+    genop_1(s, OP_OCLASS, cursp());
+    push();
+  }
+  else {
+    codegen(s, name->car, VAL);
+  }
+
+  /* Handle superclass */
+  if (superclass) {
+    codegen(s, superclass, VAL);
+  }
+  else {
     genop_1(s, OP_LOADNIL, cursp());
+    push();
+  }
+
+  pop(); pop();
+
+  /* Create class with name symbol */
+  idx = new_sym(s, node_to_sym(name->cdr));
+  genop_2(s, OP_CLASS, cursp(), idx);
+
+  /* Generate class body - body is scope with locals+body structure */
+  if (node_to_int(body->cdr->car) == NODE_STMTS && body->cdr->cdr == NULL) {
+    genop_1(s, OP_LOADNIL, cursp());
+  }
+  else {
+    idx = scope_body(s, body->car, body->cdr, val);
+    genop_2(s, OP_EXEC, cursp(), idx);
+  }
+
+  if (val) {
     push();
   }
 }
@@ -5059,14 +5001,38 @@ static void
 gen_module_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_module_node *module_n = module_node(varnode);
+  node *name = MODULE_NODE_NAME(module_n);
   node *body = MODULE_NODE_BODY(module_n);
+  int idx;
 
-  /* For now, generate simple module definition - this can be optimized later */
-  if (body) {
-    codegen(s, body, val);
-  }
-  else if (val) {
+  /* Handle module namespace - same logic as codegen_module */
+  if (name->car == (node*)0) {
     genop_1(s, OP_LOADNIL, cursp());
+    push();
+  }
+  else if (name->car == (node*)1) {
+    genop_1(s, OP_OCLASS, cursp());
+    push();
+  }
+  else {
+    codegen(s, name->car, VAL);
+  }
+  pop();
+
+  /* Create module with name symbol */
+  idx = new_sym(s, node_to_sym(name->cdr));
+  genop_2(s, OP_MODULE, cursp(), idx);
+
+  /* Generate module body - body is scope with locals+body structure */
+  if (node_to_int(body->cdr->car) == NODE_STMTS && body->cdr->cdr == NULL) {
+    genop_1(s, OP_LOADNIL, cursp());
+  }
+  else {
+    idx = scope_body(s, body->car, body->cdr, val);
+    genop_2(s, OP_EXEC, cursp(), idx);
+  }
+
+  if (val) {
     push();
   }
 }
@@ -5075,14 +5041,39 @@ static void
 gen_sclass_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_sclass_node *sclass_n = sclass_node(varnode);
+  node *obj = SCLASS_NODE_OBJ(sclass_n);
   node *body = SCLASS_NODE_BODY(sclass_n);
+  int idx;
 
-  /* For now, generate simple singleton class definition - this can be optimized later */
-  if (body) {
-    codegen(s, body, val);
+  /* Generate code for the singleton object */
+  codegen(s, obj, VAL);
+  pop();
+
+  /* Enter singleton class scope */
+  genop_1(s, OP_SCLASS, cursp());
+
+  /* Handle singleton class body */
+  if (body && body->cdr) {
+    /* Extract locals and body from the cons structure: (locals . body) */
+    node *locals = body->car;
+    node *body_stmts = body->cdr;
+
+    /* Check for empty body case */
+    if (node_to_int(body_stmts->car) == NODE_STMTS && body_stmts->cdr == NULL) {
+      genop_1(s, OP_LOADNIL, cursp());
+    }
+    else {
+      /* Generate proper scope with locals and body */
+      idx = scope_body(s, locals, body_stmts, val);
+      genop_2(s, OP_EXEC, cursp(), idx);
+    }
   }
-  else if (val) {
+  else {
+    /* No body - load nil */
     genop_1(s, OP_LOADNIL, cursp());
+  }
+
+  if (val) {
     push();
   }
 }
@@ -6500,18 +6491,6 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_UNDEF:
     codegen_undef(s, tree, val);
-    break;
-
-  case NODE_CLASS:
-    codegen_class(s, tree, val);
-    break;
-
-  case NODE_MODULE:
-    codegen_module(s, tree, val);
-    break;
-
-  case NODE_SCLASS:
-    codegen_sclass(s, tree, val);
     break;
 
   case NODE_DEF:

@@ -609,9 +609,6 @@ new_alias(parser_state *p, mrb_sym a, mrb_sym b)
 
 /* Forward declarations for variable-sized AST node creation functions */
 static node* new_def_var(parser_state *p, mrb_sym name, node *args, node *body);
-static node* new_class_var(parser_state *p, node *name, node *superclass, node *body);
-static node* new_module_var(parser_state *p, node *name, node *body);
-static node* new_sclass_var(parser_state *p, node *obj, node *body);
 static node* new_asgn_var(parser_state *p, node *lhs, node *rhs);
 static node* new_masgn_var(parser_state *p, node *lhs, node *rhs);
 static node* new_op_asgn_var(parser_state *p, node *lhs, mrb_sym op, node *rhs);
@@ -878,54 +875,8 @@ new_def_var(parser_state *p, mrb_sym name, node *args, node *body)
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
-/* Variable-sized class definition node creation */
-static node*
-new_class_var(parser_state *p, node *name, node *superclass, node *body)
-{
-  size_t total_size = sizeof(struct mrb_ast_class_node);
-  enum mrb_ast_size_class class = size_to_class(total_size);
 
-  struct mrb_ast_class_node *n = (struct mrb_ast_class_node*)parser_alloc_var(p, total_size, class);
 
-  init_var_header(&n->header, p, NODE_CLASS, class);
-  n->name = name;
-  n->superclass = superclass;
-  n->body = body;
-
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
-}
-
-/* Variable-sized module definition node creation */
-static node*
-new_module_var(parser_state *p, node *name, node *body)
-{
-  size_t total_size = sizeof(struct mrb_ast_module_node);
-  enum mrb_ast_size_class class = size_to_class(total_size);
-
-  struct mrb_ast_module_node *n = (struct mrb_ast_module_node*)parser_alloc_var(p, total_size, class);
-
-  init_var_header(&n->header, p, NODE_MODULE, class);
-  n->name = name;
-  n->body = body;
-
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
-}
-
-/* Variable-sized singleton class definition node creation */
-static node*
-new_sclass_var(parser_state *p, node *obj, node *body)
-{
-  size_t total_size = sizeof(struct mrb_ast_sclass_node);
-  enum mrb_ast_size_class class = size_to_class(total_size);
-
-  struct mrb_ast_sclass_node *n = (struct mrb_ast_sclass_node*)parser_alloc_var(p, total_size, class);
-
-  init_var_header(&n->header, p, NODE_SCLASS, class);
-  n->obj = obj;
-  n->body = body;
-
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
-}
 
 /* Variable-sized assignment node creation */
 static node*
@@ -1504,10 +1455,18 @@ static node*
 new_class(parser_state *p, node *c, node *s, node *b)
 {
   void_expr_error(p, s);
-  if (p->var_nodes_enabled) {
-    return new_class_var(p, c, s, cons(locals_node(p), b));
-  }
-  return list4((node*)NODE_CLASS, c, s, cons(locals_node(p), b));
+
+  size_t total_size = sizeof(struct mrb_ast_class_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_class_node *n = (struct mrb_ast_class_node*)parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->header, p, NODE_CLASS, class);
+  n->name = c;
+  n->superclass = s;
+  n->body = cons(locals_node(p), b);
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:sclass obj body) */
@@ -1515,20 +1474,32 @@ static node*
 new_sclass(parser_state *p, node *o, node *b)
 {
   void_expr_error(p, o);
-  if (p->var_nodes_enabled) {
-    return new_sclass_var(p, o, cons(locals_node(p), b));
-  }
-  return list3((node*)NODE_SCLASS, o, cons(locals_node(p), b));
+
+  size_t total_size = sizeof(struct mrb_ast_sclass_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+  struct mrb_ast_sclass_node *n = (struct mrb_ast_sclass_node*)parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->header, p, NODE_SCLASS, class);
+  n->obj = o;
+  n->body = cons(locals_node(p), b);
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:module module body) */
 static node*
 new_module(parser_state *p, node *m, node *b)
 {
-  if (p->var_nodes_enabled) {
-    return new_module_var(p, m, cons(locals_node(p), b));
-  }
-  return list3((node*)NODE_MODULE, m, cons(locals_node(p), b));
+  size_t total_size = sizeof(struct mrb_ast_module_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_module_node *n = (struct mrb_ast_module_node*)parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->header, p, NODE_MODULE, class);
+  n->name = m;
+  n->body = cons(locals_node(p), b);
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:def m lv (arg . body)) */
