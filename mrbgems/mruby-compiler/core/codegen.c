@@ -4178,73 +4178,6 @@ codegen_undef(codegen_scope *s, node *tree, int val)
 }
 
 static void
-codegen_break(codegen_scope *s, node *tree, int val)
-{
-  loop_break(s, tree);
-  if (!val) return;
-  push();
-}
-
-static void
-codegen_next(codegen_scope *s, node *tree, int val)
-{
-  if (!s->loop) {
-    raise_error(s, "unexpected next");
-  }
-  else if (s->loop->type == LOOP_NORMAL) {
-    codegen(s, tree, NOVAL);
-    genjmp(s, OP_JMPUW, s->loop->pc0);
-  }
-  else {
-    if (tree) {
-      codegen(s, tree, VAL);
-      pop();
-    }
-    else {
-      genop_1(s, OP_LOADNIL, cursp());
-    }
-    gen_return(s, OP_RETURN, cursp());
-  }
-  if (!val) return;
-  push();
-}
-
-static void
-codegen_redo(codegen_scope *s, node *tree, int val)
-{
-  for (const struct loopinfo *lp = s->loop; ; lp = lp->prev) {
-    if (!lp) {
-      raise_error(s, "unexpected redo");
-      break;
-    }
-    if (lp->type != LOOP_BEGIN && lp->type != LOOP_RESCUE) {
-      genjmp(s, OP_JMPUW, lp->pc1);
-      break;
-    }
-  }
-  if (!val) return;
-  push();
-}
-
-static void
-codegen_retry(codegen_scope *s, node *tree, int val)
-{
-  const struct loopinfo *lp = s->loop;
-
-  while (lp && lp->type != LOOP_RESCUE) {
-    lp = lp->prev;
-  }
-  if (!lp) {
-    raise_error(s, "unexpected retry");
-  }
-  else {
-    genjmp(s, OP_JMPUW, lp->pc0);
-  }
-  if (!val) return;
-  push();
-}
-
-static void
 codegen_back_ref(codegen_scope *s, node *tree, int val)
 {
   char buf[] = {'$', node_to_char(tree)};
@@ -5532,26 +5465,69 @@ static void
 gen_break_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_break_node *n = (struct mrb_ast_break_node*)varnode;
-  codegen_break(s, n->value, val);
+  loop_break(s, n->value);
+  if (!val) return;
+  push();
 }
 
 static void
 gen_next_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_next_node *n = (struct mrb_ast_next_node*)varnode;
-  codegen_next(s, n->value, val);
+  if (!s->loop) {
+    raise_error(s, "unexpected next");
+  }
+  else if (s->loop->type == LOOP_NORMAL) {
+    codegen(s, n->value, NOVAL);
+    genjmp(s, OP_JMPUW, s->loop->pc0);
+  }
+  else {
+    if (n->value) {
+      codegen(s, n->value, VAL);
+      pop();
+    }
+    else {
+      genop_1(s, OP_LOADNIL, cursp());
+    }
+    gen_return(s, OP_RETURN, cursp());
+  }
+  if (!val) return;
+  push();
 }
 
 static void
 gen_redo_var(codegen_scope *s, node *varnode, int val)
 {
-  codegen_redo(s, NULL, val);
+  for (const struct loopinfo *lp = s->loop; ; lp = lp->prev) {
+    if (!lp) {
+      raise_error(s, "unexpected redo");
+      break;
+    }
+    if (lp->type != LOOP_BEGIN && lp->type != LOOP_RESCUE) {
+      genjmp(s, OP_JMPUW, lp->pc1);
+      break;
+    }
+  }
+  if (!val) return;
+  push();
 }
 
 static void
 gen_retry_var(codegen_scope *s, node *varnode, int val)
 {
-  codegen_retry(s, NULL, val);
+  const struct loopinfo *lp = s->loop;
+
+  while (lp && lp->type != LOOP_RESCUE) {
+    lp = lp->prev;
+  }
+  if (!lp) {
+    raise_error(s, "unexpected retry");
+  }
+  else {
+    genjmp(s, OP_JMPUW, lp->pc0);
+  }
+  if (!val) return;
+  push();
 }
 
 static void
@@ -6397,22 +6373,6 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_OP_ASGN:
     codegen_op_asgn(s, tree, val);
-    break;
-
-  case NODE_BREAK:
-    codegen_break(s, tree, val);
-    break;
-
-  case NODE_NEXT:
-    codegen_next(s, tree, val);
-    break;
-
-  case NODE_REDO:
-    codegen_redo(s, tree, val);
-    break;
-
-  case NODE_RETRY:
-    codegen_retry(s, tree, val);
     break;
 
   case NODE_LVAR:

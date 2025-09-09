@@ -2185,6 +2185,20 @@ call_with_block(parser_state *p, node *a, node *b)
         call_with_block(p, return_n->args, b);
         return;
       }
+      else if (var_type == NODE_BREAK) {
+        /* Variable-sized break nodes - recursively call with value */
+        struct mrb_ast_break_node *break_n = (struct mrb_ast_break_node*)a->cdr;
+        if (break_n->value == NULL) return;
+        call_with_block(p, break_n->value, b);
+        return;
+      }
+      else if (var_type == NODE_NEXT) {
+        /* Variable-sized next nodes - recursively call with value */
+        struct mrb_ast_next_node *next_n = (struct mrb_ast_next_node*)a->cdr;
+        if (next_n->value == NULL) return;
+        call_with_block(p, next_n->value, b);
+        return;
+      }
     }
     /* For other variable-sized nodes, fall through to default */
     break;
@@ -2195,11 +2209,6 @@ call_with_block(parser_state *p, node *a, node *b)
     n = a->cdr->cdr->cdr; /* (args kw . blk) */
     if (!n->car) n->car = new_callargs(p, 0, 0, b);
     else args_with_block(p, n->car, b);
-    break;
-  case NODE_BREAK:
-  case NODE_NEXT:
-    if (a->cdr == NULL) return;
-    call_with_block(p, a->cdr, b);
     break;
   default:
     break;
