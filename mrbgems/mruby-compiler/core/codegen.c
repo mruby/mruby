@@ -2582,11 +2582,19 @@ scope_body(codegen_scope *s, node *locals, node *body, int val)
   return s->irep->rlen - 1;
 }
 
+/* Helper to detect splat nodes in variable-sized format */
+static mrb_bool
+is_splat_node(node *n)
+{
+  return (node_to_int(n->car) == NODE_VARIABLE &&
+          VAR_NODE_TYPE(n->cdr) == NODE_SPLAT);
+}
+
 static mrb_bool
 nosplat(node *t)
 {
   while (t) {
-    if (node_to_int(t->car->car) == NODE_SPLAT) return FALSE;
+    if (is_splat_node(t->car)) return FALSE;
     t = t->cdr;
   }
   return TRUE;
@@ -2640,7 +2648,7 @@ gen_values(codegen_scope *s, node *t, int val, int limit)
   }
 
   while (t) {
-    int is_splat = node_to_int(t->car->car) == NODE_SPLAT;
+    int is_splat = is_splat_node(t->car);
 
     if (is_splat || cursp() >= slimit) { /* flush stack */
       pop_n(n);
@@ -3308,7 +3316,7 @@ raise_error(codegen_scope *s, const char *msg)
 static void
 gen_retval(codegen_scope *s, node *tree)
 {
-  if (node_to_int(tree->car) == NODE_SPLAT) {
+  if (is_splat_node(tree)) {
     codegen(s, tree, VAL);
     pop();
     genop_1(s, OP_ARYSPLAT, cursp());
@@ -3768,13 +3776,6 @@ gen_hash_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-codegen_splat(codegen_scope *s, node *tree, int val)
-{
-  codegen(s, tree, val);
-}
-
-
-static void
 codegen_call_fcall(codegen_scope *s, node *tree, int val)
 {
   gen_call(s, tree, val, 0);
@@ -3785,8 +3786,6 @@ codegen_scall(codegen_scope *s, node *tree, int val)
 {
   gen_call(s, tree, val, 1);
 }
-
-
 
 /* Common function to generate bytecode for cons list string representation
  * Handles list of elements where each element is either:
@@ -3903,7 +3902,6 @@ codegen_cons_list_string(codegen_scope *s, node *list, int val)
     }
   }
 }
-
 
 static void
 codegen_regx(codegen_scope *s, node *tree, int val)
@@ -4154,7 +4152,7 @@ gen_array_var(codegen_scope *s, node *varnode, int val)
   /* Process each element, handling splats */
   for (i = 0; i < len; i++) {
     struct mrb_ast_node *element = elements[i];
-    int is_splat = node_to_int(element->car) == NODE_SPLAT;
+    int is_splat = is_splat_node(element);
 
     if (is_splat || cursp() >= slimit) { /* flush accumulated elements */
       if (regular_elements > 0) {
@@ -4577,7 +4575,7 @@ gen_case_var(codegen_scope *s, node *varnode, int val)
       if (head) {
         gen_move(s, cursp(), head, 0);
         push(); push(); pop(); pop(); pop();
-        if (node_to_int(n->car->car) == NODE_SPLAT) {
+        if (is_splat_node(n->car)) {
           genop_3(s, OP_SEND, cursp(), new_sym(s, MRB_SYM_2(s->mrb, __case_eqq)), 1);
         }
         else {
@@ -5166,7 +5164,7 @@ gen_rescue_var(codegen_scope *s, node *varnode, int val)
       dispatch(s, pos1);
       pos2 = JMPLINK_START;
       do {
-        if (n4 && n4->car && node_to_int(n4->car->car) == NODE_SPLAT) {
+        if (n4 && n4->car && is_splat_node(n4->car)) {
           codegen(s, n4->car, VAL);
           gen_move(s, cursp(), exc, 0);
           push_n(2); pop_n(2); /* space for one arg and a block */
@@ -5717,11 +5715,8 @@ static void
 gen_splat_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_splat_node *n = splat_node(varnode);
-  // Create stack-allocated node structure for traditional codegen
-  struct mrb_ast_head_node stack_node = {0};
-  stack_node.car = (node*)NODE_SPLAT;
-  stack_node.cdr = n->value;
-  codegen_splat(s, (node*)&stack_node, val);
+  // Generate code for the splat value directly
+  codegen(s, n->value, val);
 }
 
 static void
@@ -6269,10 +6264,6 @@ codegen(codegen_scope *s, node *tree, int val)
     codegen_scall(s, tree, val);
     break;
 
-  case NODE_SPLAT:
-    codegen_splat(s, tree, val);
-    break;
-
   case NODE_ASGN:
     codegen_asgn(s, tree, val);
     break;
@@ -6307,10 +6298,6 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_CONST:
     codegen_const(s, node_to_sym(tree), val);
-    break;
-
-  case NODE_ARG:
-    /* should not happen */
     break;
 
   case NODE_BLOCK_ARG:
