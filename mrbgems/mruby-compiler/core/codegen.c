@@ -3625,12 +3625,6 @@ codegen_self(codegen_scope *s, node *tree, int val)
 }
 
 static void
-codegen_nil(codegen_scope *s, node *tree, int val)
-{
-  gen_load_op1(s, OP_LOADNIL, val);
-}
-
-static void
 codegen_lvar(codegen_scope *s, mrb_sym sym, int val)
 {
   if (!val) return;
@@ -5303,7 +5297,7 @@ static void
 gen_nil_var(codegen_scope *s, node *varnode, int val)
 {
   /* Use traditional nil codegen logic */
-  codegen_nil(s, NULL, val);
+  gen_load_op1(s, OP_LOADNIL, val);
 }
 
 static void
@@ -6453,10 +6447,6 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_SELF:
     codegen_self(s, tree, val);
-    break;
-
-  case NODE_NIL:
-    codegen_nil(s, tree, val);
     break;
 
   case NODE_UNDEF:
