@@ -3874,20 +3874,6 @@ codegen_negate(codegen_scope *s, node *tree, int val)
   }
 }
 
-static void
-codegen_xstr(codegen_scope *s, node *tree, int val)
-{
-  int sym;
-
-  push();
-  /* Use common cons list string codegen since tree is now in cons list format */
-  codegen_cons_list_string(s, tree, VAL);
-  push();                   /* for block */
-  pop_n(3);
-  sym = new_sym(s, MRB_OPSYM_2(s->mrb, tick)); /* ` */
-  genop_3(s, OP_SSEND, cursp(), sym, 1);
-  if (val) push();
-}
 
 /* Common function to generate bytecode for cons list string representation
  * Handles list of elements where each element is either:
@@ -4005,63 +3991,6 @@ codegen_cons_list_string(codegen_scope *s, node *list, int val)
   }
 }
 
-static void
-codegen_dregx(codegen_scope *s, node *tree, int val)
-{
-  if (val) {
-    node *n = tree->car;
-    int sym = new_sym(s, mrb_intern_lit(s->mrb, REGEXP_CLASS));
-    int argc = 1;
-    int off;
-    char *p;
-
-    genop_1(s, OP_OCLASS, cursp());
-    genop_2(s, OP_GETMCNST, cursp(), sym);
-    push();
-    codegen(s, n->car, VAL);
-    n = n->cdr;
-    while (n) {
-      codegen(s, n->car, VAL);
-      pop(); pop();
-      genop_1(s, OP_STRCAT, cursp());
-      push();
-      n = n->cdr;
-    }
-    n = tree->cdr->cdr;
-    if (n->car) { /* tail */
-      p = (char*)n->car;
-      off = new_lit_cstr(s, p);
-      codegen(s, tree->car, VAL);
-      genop_2(s, OP_STRING, cursp(), off);
-      pop();
-      genop_1(s, OP_STRCAT, cursp());
-      push();
-    }
-    if (n->cdr->car) { /* opt */
-      char *p2 = (char*)n->cdr->car;
-      off = new_lit_cstr(s, p2);
-      genop_2(s, OP_STRING, cursp(), off);
-      push();
-      argc++;
-    }
-    if (n->cdr->cdr) { /* enc */
-      char *p2 = (char*)n->cdr->cdr;
-      off = new_lit_cstr(s, p2);
-      genop_2(s, OP_STRING, cursp(), off);
-      push();
-      argc++;
-    }
-    push(); /* space for a block */
-    pop_n(argc+2);
-    sym = new_sym(s, MRB_SYM_2(s->mrb, compile));
-    genop_3(s, OP_SEND, cursp(), sym, argc);
-    push();
-  }
-  else {
-    /* NOVAL case: still need to evaluate expressions for side effects */
-    codegen_cons_list_string(s, tree->car, NOVAL);
-  }
-}
 
 static void
 codegen_regx(codegen_scope *s, node *tree, int val)
@@ -6403,21 +6332,6 @@ codegen(codegen_scope *s, node *tree, int val)
     codegen_negate(s, tree, val);
     break;
 
-  case NODE_STR:
-    codegen_cons_list_string(s, tree, val);
-    break;
-
-  case NODE_XSTR:
-    codegen_xstr(s, tree, val);
-    break;
-
-  case NODE_REGX:
-    codegen_regx(s, tree, val);
-    break;
-
-  case NODE_DREGX:
-    codegen_dregx(s, tree, val);
-    break;
 
   case NODE_UNDEF:
     codegen_undef(s, tree, val);
