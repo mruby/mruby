@@ -3099,7 +3099,7 @@ RETRY_TRY_BLOCK:
       int lim = a+b*2+1;
 
       hash = regs[a];
-      mrb_ensure_hash_type(mrb, hash);
+      mrb_assert(mrb_hash_p(hash));
       for (int i=a+1; i<lim; i+=2) {
         mrb_hash_set(mrb, hash, regs[i], regs[i+1]);
         ci = mrb->c->ci;
