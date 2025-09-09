@@ -3786,93 +3786,6 @@ codegen_scall(codegen_scope *s, node *tree, int val)
   gen_call(s, tree, val, 1);
 }
 
-static void
-codegen_negate(codegen_scope *s, node *tree, int val)
-{
-  int nt = node_to_int(tree->car);
-  switch (nt) {
-#ifndef MRB_NO_FLOAT
-  case NODE_FLOAT:
-    if (val) {
-      char *p = (char*)tree->cdr;
-      double f;
-      mrb_read_float(p, NULL, &f);
-      int off = new_lit_float(s, (mrb_float)-f);
-
-      gen_load_lit(s, off);
-    }
-    break;
-#endif
-
-  case NODE_INT:
-    /* This case should not occur since NODE_INT is now always variable-sized */
-    break;
-
-  case NODE_VARIABLE:
-    {
-      enum node_type vnt = VAR_NODE_TYPE(tree->cdr);
-      switch (vnt) {
-#ifndef MRB_NO_FLOAT
-      case NODE_FLOAT:
-        if (val) {
-          struct mrb_ast_float_node *float_n = (struct mrb_ast_float_node*)tree->cdr;
-          const char *value = float_n->value;
-          double f;
-
-          mrb_read_float(value, NULL, &f);
-          int off = new_lit_float(s, (mrb_float)-f);
-
-          gen_load_lit(s, off);
-        }
-        break;
-#endif
-
-      case NODE_INT:
-        if (val) {
-          int32_t value = INT_NODE_VALUE(tree->cdr);
-          if (value == INT32_MIN) {
-            /* -INT32_MIN overflows, use bigint */
-            int off = new_litbint(s, "2147483648", -10);
-            genop_2(s, OP_LOADL, cursp(), off);
-          }
-          else {
-            gen_int(s, cursp(), -value);
-          }
-          push();
-        }
-        break;
-
-      case NODE_BIGINT:
-        if (val) {
-          char *str = BIGINT_NODE_STRING(tree->cdr);
-          int base = BIGINT_NODE_BASE(tree->cdr);
-          /* Negate base to indicate negative number */
-          int off = new_litbint(s, str, -base);
-          genop_2(s, OP_LOADL, cursp(), off);
-          push();
-        }
-        break;
-
-      default:
-        /* Fall through to default case */
-        goto default_negate;
-      }
-      break;
-    }
-
-  default:
-  default_negate:
-    codegen(s, tree, VAL);
-    pop();
-    push_n(2);pop_n(2); /* space for receiver&block */
-    mrb_sym minus = MRB_OPSYM_2(s->mrb, minus);
-    if (!gen_uniop(s, minus, cursp())) {
-      genop_3(s, OP_SEND, cursp(), new_sym(s, minus), 0);
-    }
-    if (val) push();
-    break;
-  }
-}
 
 
 /* Common function to generate bytecode for cons list string representation
@@ -5557,7 +5470,91 @@ static void
 gen_negate_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_negate_node *n = (struct mrb_ast_negate_node*)varnode;
-  codegen_negate(s, n->operand, val);
+  node *tree = n->operand;
+  int nt = node_to_int(tree->car);
+
+  switch (nt) {
+#ifndef MRB_NO_FLOAT
+  case NODE_FLOAT:
+    if (val) {
+      char *p = (char*)tree->cdr;
+      double f;
+      mrb_read_float(p, NULL, &f);
+      int off = new_lit_float(s, (mrb_float)-f);
+
+      gen_load_lit(s, off);
+    }
+    break;
+#endif
+
+  case NODE_INT:
+    /* This case should not occur since NODE_INT is now always variable-sized */
+    break;
+
+  case NODE_VARIABLE:
+    {
+      enum node_type vnt = VAR_NODE_TYPE(tree->cdr);
+      switch (vnt) {
+#ifndef MRB_NO_FLOAT
+      case NODE_FLOAT:
+        if (val) {
+          struct mrb_ast_float_node *float_n = (struct mrb_ast_float_node*)tree->cdr;
+          const char *value = float_n->value;
+          double f;
+
+          mrb_read_float(value, NULL, &f);
+          int off = new_lit_float(s, (mrb_float)-f);
+
+          gen_load_lit(s, off);
+        }
+        break;
+#endif
+
+      case NODE_INT:
+        if (val) {
+          int32_t value = INT_NODE_VALUE(tree->cdr);
+          if (value == INT32_MIN) {
+            /* -INT32_MIN overflows, use bigint */
+            int off = new_litbint(s, "2147483648", -10);
+            genop_2(s, OP_LOADL, cursp(), off);
+          }
+          else {
+            gen_int(s, cursp(), -value);
+          }
+          push();
+        }
+        break;
+
+      case NODE_BIGINT:
+        if (val) {
+          char *str = BIGINT_NODE_STRING(tree->cdr);
+          int base = BIGINT_NODE_BASE(tree->cdr);
+          /* Negate base to indicate negative number */
+          int off = new_litbint(s, str, -base);
+          genop_2(s, OP_LOADL, cursp(), off);
+          push();
+        }
+        break;
+
+      default:
+        /* Fall through to default case */
+        goto default_negate;
+      }
+      break;
+    }
+
+  default:
+  default_negate:
+    codegen(s, tree, VAL);
+    pop();
+    push_n(2);pop_n(2); /* space for receiver&block */
+    mrb_sym minus = MRB_OPSYM_2(s->mrb, minus);
+    if (!gen_uniop(s, minus, cursp())) {
+      genop_3(s, OP_SEND, cursp(), new_sym(s, minus), 0);
+    }
+    if (val) push();
+    break;
+  }
 }
 
 static void
@@ -6318,10 +6315,6 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_BLOCK_ARG:
     codegen_block_arg(s, tree, val);
-    break;
-
-  case NODE_NEGATE:
-    codegen_negate(s, tree, val);
     break;
 
   case NODE_DEF:
