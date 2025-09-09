@@ -4947,112 +4947,12 @@ gen_def_var(codegen_scope *s, node *varnode, int val)
   }
 }
 
+/* Helper function for generating class/module/singleton class body */
 static void
-gen_class_var(codegen_scope *s, node *varnode, int val)
+gen_class_body(codegen_scope *s, node *body, int val)
 {
-  struct mrb_ast_class_node *class_n = class_node(varnode);
-  node *name = CLASS_NODE_NAME(class_n);
-  node *superclass = CLASS_NODE_SUPERCLASS(class_n);
-  node *body = CLASS_NODE_BODY(class_n);
   int idx;
 
-  /* Handle class namespace - same logic as codegen_class */
-  if (name->car == (node*)0) {
-    gen_load_nil(s, 1);
-  }
-  else if (name->car == (node*)1) {
-    genop_1(s, OP_OCLASS, cursp());
-    push();
-  }
-  else {
-    codegen(s, name->car, VAL);
-  }
-
-  /* Handle superclass */
-  if (superclass) {
-    codegen(s, superclass, VAL);
-  }
-  else {
-    genop_1(s, OP_LOADNIL, cursp());
-    push();
-  }
-
-  pop(); pop();
-
-  /* Create class with name symbol */
-  idx = new_sym(s, node_to_sym(name->cdr));
-  genop_2(s, OP_CLASS, cursp(), idx);
-
-  /* Generate class body - body is scope with locals+body structure */
-  if (node_to_int(body->cdr->car) == NODE_STMTS && body->cdr->cdr == NULL) {
-    genop_1(s, OP_LOADNIL, cursp());
-  }
-  else {
-    idx = scope_body(s, body->car, body->cdr, val);
-    genop_2(s, OP_EXEC, cursp(), idx);
-  }
-
-  if (val) {
-    push();
-  }
-}
-
-static void
-gen_module_var(codegen_scope *s, node *varnode, int val)
-{
-  struct mrb_ast_module_node *module_n = module_node(varnode);
-  node *name = MODULE_NODE_NAME(module_n);
-  node *body = MODULE_NODE_BODY(module_n);
-  int idx;
-
-  /* Handle module namespace - same logic as codegen_module */
-  if (name->car == (node*)0) {
-    genop_1(s, OP_LOADNIL, cursp());
-    push();
-  }
-  else if (name->car == (node*)1) {
-    genop_1(s, OP_OCLASS, cursp());
-    push();
-  }
-  else {
-    codegen(s, name->car, VAL);
-  }
-  pop();
-
-  /* Create module with name symbol */
-  idx = new_sym(s, node_to_sym(name->cdr));
-  genop_2(s, OP_MODULE, cursp(), idx);
-
-  /* Generate module body - body is scope with locals+body structure */
-  if (node_to_int(body->cdr->car) == NODE_STMTS && body->cdr->cdr == NULL) {
-    genop_1(s, OP_LOADNIL, cursp());
-  }
-  else {
-    idx = scope_body(s, body->car, body->cdr, val);
-    genop_2(s, OP_EXEC, cursp(), idx);
-  }
-
-  if (val) {
-    push();
-  }
-}
-
-static void
-gen_sclass_var(codegen_scope *s, node *varnode, int val)
-{
-  struct mrb_ast_sclass_node *sclass_n = sclass_node(varnode);
-  node *obj = SCLASS_NODE_OBJ(sclass_n);
-  node *body = SCLASS_NODE_BODY(sclass_n);
-  int idx;
-
-  /* Generate code for the singleton object */
-  codegen(s, obj, VAL);
-  pop();
-
-  /* Enter singleton class scope */
-  genop_1(s, OP_SCLASS, cursp());
-
-  /* Handle singleton class body */
   if (body && body->cdr) {
     /* Extract locals and body from the cons structure: (locals . body) */
     node *locals = body->car;
@@ -5072,6 +4972,100 @@ gen_sclass_var(codegen_scope *s, node *varnode, int val)
     /* No body - load nil */
     genop_1(s, OP_LOADNIL, cursp());
   }
+}
+
+/* Helper function for generating namespace/parent for class/module */
+static void
+gen_namespace(codegen_scope *s, node *name)
+{
+  if (name->car == (node*)0) {
+    genop_1(s, OP_LOADNIL, cursp());
+    push();
+  }
+  else if (name->car == (node*)1) {
+    genop_1(s, OP_OCLASS, cursp());
+    push();
+  }
+  else {
+    codegen(s, name->car, VAL);
+  }
+}
+
+static void
+gen_class_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_class_node *class_n = class_node(varnode);
+  node *name = CLASS_NODE_NAME(class_n);
+  node *superclass = CLASS_NODE_SUPERCLASS(class_n);
+  node *body = CLASS_NODE_BODY(class_n);
+  int idx;
+
+  /* Handle class namespace */
+  gen_namespace(s, name);
+
+  /* Handle superclass */
+  if (superclass) {
+    codegen(s, superclass, VAL);
+  }
+  else {
+    genop_1(s, OP_LOADNIL, cursp());
+    push();
+  }
+
+  pop(); pop();
+
+  /* Create class with name symbol */
+  idx = new_sym(s, node_to_sym(name->cdr));
+  genop_2(s, OP_CLASS, cursp(), idx);
+
+  /* Generate class body */
+  gen_class_body(s, body, val);
+
+  if (val) {
+    push();
+  }
+}
+
+static void
+gen_module_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_module_node *module_n = module_node(varnode);
+  node *name = MODULE_NODE_NAME(module_n);
+  node *body = MODULE_NODE_BODY(module_n);
+  int idx;
+
+  /* Handle module namespace */
+  gen_namespace(s, name);
+  pop();
+
+  /* Create module with name symbol */
+  idx = new_sym(s, node_to_sym(name->cdr));
+  genop_2(s, OP_MODULE, cursp(), idx);
+
+  /* Generate module body */
+  gen_class_body(s, body, val);
+
+  if (val) {
+    push();
+  }
+}
+
+static void
+gen_sclass_var(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_sclass_node *sclass_n = sclass_node(varnode);
+  node *obj = SCLASS_NODE_OBJ(sclass_n);
+  node *body = SCLASS_NODE_BODY(sclass_n);
+
+  /* Generate code for the singleton object */
+  codegen(s, obj, VAL);
+  pop();
+
+  /* Enter singleton class scope */
+  genop_1(s, OP_SCLASS, cursp());
+
+  /* Generate singleton class body */
+  gen_class_body(s, body, val);
 
   if (val) {
     push();
