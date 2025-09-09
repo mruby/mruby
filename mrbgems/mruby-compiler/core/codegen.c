@@ -3619,12 +3619,6 @@ codegen_masgn(codegen_scope *s, node *tree, int val)
 
 
 static void
-codegen_self(codegen_scope *s, node *tree, int val)
-{
-  gen_load_op1(s, OP_LOADSELF, val);
-}
-
-static void
 codegen_lvar(codegen_scope *s, mrb_sym sym, int val)
 {
   if (!val) return;
@@ -5290,7 +5284,7 @@ static void
 gen_self_var(codegen_scope *s, node *varnode, int val)
 {
   /* Use traditional self codegen logic */
-  codegen_self(s, NULL, val);
+  gen_load_op1(s, OP_LOADSELF, val);
 }
 
 static void
@@ -6443,10 +6437,6 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_DREGX:
     codegen_dregx(s, tree, val);
-    break;
-
-  case NODE_SELF:
-    codegen_self(s, tree, val);
     break;
 
   case NODE_UNDEF:
