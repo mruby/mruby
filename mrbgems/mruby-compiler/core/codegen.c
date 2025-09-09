@@ -2517,13 +2517,13 @@ lambda_body(codegen_scope *s, node *tree, int blk)
  *         Returns 0 if `s->irep` is NULL (should not happen in normal operation).
  */
 static int
-scope_body(codegen_scope *s, node *tree, int val)
+scope_body(codegen_scope *s, node *locals, node *body, int val)
 {
-  /* Create a new scope, inheriting from `s`, with local variables from `tree->car`. */
-  codegen_scope *scope = scope_new(s->mrb, s, tree->car);
+  /* Create a new scope, inheriting from `s`, with local variables from `locals`. */
+  codegen_scope *scope = scope_new(s->mrb, s, locals);
 
   /* Generate code for the body of the scope. */
-  codegen(scope, tree->cdr, VAL);
+  codegen(scope, body, VAL);
   /* Ensure the scope returns the value of its last expression. */
   gen_return(scope, OP_RETURN, scope->sp-1);
 
@@ -4195,7 +4195,7 @@ codegen_class(codegen_scope *s, node *tree, int val)
     genop_1(s, OP_LOADNIL, cursp());
   }
   else {
-    idx = scope_body(s, body, val);
+    idx = scope_body(s, body->car, body->cdr, val);
     genop_2(s, OP_EXEC, cursp(), idx);
   }
   if (val) {
@@ -4227,7 +4227,7 @@ codegen_module(codegen_scope *s, node *tree, int val)
     genop_1(s, OP_LOADNIL, cursp());
   }
   else {
-    idx = scope_body(s, tree->cdr->car, val);
+    idx = scope_body(s, tree->cdr->car->car, tree->cdr->car->cdr, val);
     genop_2(s, OP_EXEC, cursp(), idx);
   }
   if (val) {
@@ -4248,7 +4248,7 @@ codegen_sclass(codegen_scope *s, node *tree, int val)
     genop_1(s, OP_LOADNIL, cursp());
   }
   else {
-    idx = scope_body(s, tree->cdr->car, val);
+    idx = scope_body(s, tree->cdr->car->car, tree->cdr->car->cdr, val);
     genop_2(s, OP_EXEC, cursp(), idx);
   }
   if (val) {
@@ -5894,16 +5894,8 @@ gen_scope_var(codegen_scope *s, const node *varnode, int val)
 {
   struct mrb_ast_scope_node *scope = scope_node(varnode);
 
-  /* Create a traditional cons-list structure that scope_body() expects:
-   * tree->car should contain the locals cons-list
-   * tree->cdr should contain the body
-   */
-  node scope_node_stack;
-  scope_node_stack.car = scope->locals;
-  scope_node_stack.cdr = scope->body;
-
-  /* Traditional codegen_scope_node called scope_body with NOVAL, not val */
-  scope_body(s, &scope_node_stack, NOVAL);
+  /* Pass locals and body directly to scope_body() */
+  scope_body(s, scope->locals, scope->body, NOVAL);
 }
 
 static void
