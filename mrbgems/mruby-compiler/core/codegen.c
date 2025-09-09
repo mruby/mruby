@@ -4163,14 +4163,6 @@ codegen_undef(codegen_scope *s, node *tree, int val)
 }
 
 static void
-codegen_back_ref(codegen_scope *s, node *tree, int val)
-{
-  char buf[] = {'$', node_to_char(tree)};
-  int sym = new_sym(s, mrb_intern(s->mrb, buf, sizeof(buf)));
-  gen_load_op2(s, OP_GETGV, sym, val);
-}
-
-static void
 codegen_block_arg(codegen_scope *s, node *tree, int val)
 {
   if (!tree) {
@@ -5598,7 +5590,9 @@ static void
 gen_back_ref_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_back_ref_node *n = (struct mrb_ast_back_ref_node*)varnode;
-  codegen_back_ref(s, int_to_node(n->type), val);
+  char buf[] = {'$', (char)n->type};
+  int sym = new_sym(s, mrb_intern(s->mrb, buf, sizeof(buf)));
+  gen_load_op2(s, OP_GETGV, sym, val);
 }
 
 static void
@@ -6395,10 +6389,6 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_CONST:
     codegen_const(s, node_to_sym(tree), val);
-    break;
-
-  case NODE_BACK_REF:
-    codegen_back_ref(s, tree, val);
     break;
 
   case NODE_ARG:
