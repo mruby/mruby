@@ -4079,19 +4079,6 @@ codegen_postexe(codegen_scope *s, node *tree, int val)
 }
 
 static void
-codegen_undef(codegen_scope *s, node *tree, int val)
-{
-  node *t = tree;
-
-  while (t) {
-    int symbol = new_sym(s, node_to_sym(t->car));
-    genop_1(s, OP_UNDEF, symbol);
-    t = t->cdr;
-  }
-  gen_load_nil(s, val);
-}
-
-static void
 codegen_block_arg(codegen_scope *s, node *tree, int val)
 {
   if (!tree) {
@@ -5852,9 +5839,14 @@ static void
 gen_undef_var(codegen_scope *s, const node *varnode, int val)
 {
   struct mrb_ast_undef_node *undef = undef_node(varnode);
+  node *t = undef->syms;
 
-  // The syms field now contains the list directly
-  codegen_undef(s, undef->syms, val);
+  while (t) {
+    int symbol = new_sym(s, node_to_sym(t->car));
+    genop_1(s, OP_UNDEF, symbol);
+    t = t->cdr;
+  }
+  gen_load_nil(s, val);
 }
 
 static void
@@ -6330,11 +6322,6 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_NEGATE:
     codegen_negate(s, tree, val);
-    break;
-
-
-  case NODE_UNDEF:
-    codegen_undef(s, tree, val);
     break;
 
   case NODE_DEF:
