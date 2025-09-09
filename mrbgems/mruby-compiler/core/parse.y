@@ -50,7 +50,6 @@ static int toklen(parser_state *p);
 static node* new_const_var(parser_state *p, mrb_sym symbol);
 
 /* Forward declarations for variable-sized advanced node functions */
-static node* new_block_var(parser_state *p, node *locals, node *args, node *body);
 static node* new_args_tail_var(parser_state *p, node *keywords, node *kwrest, mrb_sym block);
 
 /* Helper function to check node type for both traditional and variable-sized nodes */
@@ -946,24 +945,6 @@ new_const_var(parser_state *p, mrb_sym symbol)
 
 /* Variable-sized advanced node creation functions */
 static node*
-new_block_var(parser_state *p, node *locals, node *args, node *body)
-{
-  size_t total_size = sizeof(struct mrb_ast_block_node);
-  enum mrb_ast_size_class class = size_to_class(total_size);
-
-  struct mrb_ast_block_node *n = (struct mrb_ast_block_node*)parser_alloc_var(p, total_size, class);
-
-  init_var_header(&n->hdr, p, NODE_BLOCK, class);
-  n->locals = locals;
-  /* args might be modified by setup_numparams and could be corrupted */
-  /* Store it carefully to prevent memory corruption */
-  n->args = args;
-  n->body = body;
-
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
-}
-
-static node*
 new_args_tail_var(parser_state *p, node *keywords, node *kwrest, mrb_sym block)
 {
   size_t total_size = sizeof(struct mrb_ast_args_tail_node);
@@ -1726,7 +1707,18 @@ static node*
 new_block(parser_state *p, node *a, node *b)
 {
   a = setup_numparams(p, a);
-  return new_block_var(p, locals_node(p), a, b);
+
+  size_t total_size = sizeof(struct mrb_ast_block_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_block_node *n = (struct mrb_ast_block_node*)parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->hdr, p, NODE_BLOCK, class);
+  n->locals = locals_node(p);
+  n->args = a;
+  n->body = b;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:lambda arg body) */
