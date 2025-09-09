@@ -3780,17 +3780,6 @@ gen_hash_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-codegen_hash(codegen_scope *s, node *tree, int val)
-{
-  int nk = gen_hash(s, tree, val, GEN_LIT_ARY_MAX);
-  if (val && nk >= 0) {
-    pop_n(nk*2);
-    genop_2(s, OP_HASH, cursp(), nk);
-    push();
-  }
-}
-
-static void
 codegen_splat(codegen_scope *s, node *tree, int val)
 {
   codegen(s, tree, val);
@@ -5812,11 +5801,13 @@ static void
 gen_kw_hash_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_kw_hash_node *n = kw_hash_node(varnode);
-  // Create stack-allocated node structure for traditional codegen
-  struct mrb_ast_node stack_node;
-  stack_node.car = (node*)NODE_KW_HASH;
-  stack_node.cdr = n->args;
-  codegen_hash(s, &stack_node, val);
+
+  int nk = gen_hash(s, n->args, val, GEN_LIT_ARY_MAX);
+  if (val && nk >= 0) {
+    pop_n(nk*2);
+    genop_2(s, OP_HASH, cursp(), nk);
+    push();
+  }
 }
 
 static void
@@ -5870,7 +5861,6 @@ gen_begin_var(codegen_scope *s, node *varnode, int val)
   struct mrb_ast_begin_node *begin = begin_node(varnode);
   node *body = begin->body;
 
-  /* Inline codegen_begin logic - just generate code for the body */
   codegen(s, body, val);
 }
 
@@ -6383,11 +6373,6 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
   case NODE_SCALL:
     codegen_scall(s, tree, val);
-    break;
-
-  case NODE_HASH:
-  case NODE_KW_HASH:
-    codegen_hash(s, tree, val);
     break;
 
   case NODE_SPLAT:
