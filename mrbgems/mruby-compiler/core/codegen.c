@@ -3954,25 +3954,6 @@ codegen_sdef(codegen_scope *s, node *tree, int val)
   if (val) push();
 }
 
-static void
-codegen_block_arg(codegen_scope *s, node *tree, int val)
-{
-  if (!tree) {
-    int idx = lv_idx(s, MRB_OPSYM_2(s->mrb, and));
-
-    if (idx == 0) {
-      gen_getupvar(s, cursp(), MRB_OPSYM_2(s->mrb, and));
-    }
-    else {
-      gen_move(s, cursp(), idx, val);
-    }
-    if (val) push();
-  }
-  else {
-    codegen(s, tree, val);
-  }
-}
-
 /* Handle variable-sized node types */
 static void
 gen_call_var(codegen_scope *s, node *varnode, int val)
@@ -5688,11 +5669,21 @@ static void
 gen_block_arg_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_block_arg_node *n = block_arg_node(varnode);
-  // Create stack-allocated node structure for traditional codegen
-  struct mrb_ast_head_node stack_node = {0};
-  stack_node.car = (node*)NODE_BLOCK_ARG;
-  stack_node.cdr = n->value;
-  codegen_block_arg(s, (node*)&stack_node, val);
+
+  if (!n->value) {
+    int idx = lv_idx(s, MRB_OPSYM_2(s->mrb, and));
+
+    if (idx == 0) {
+      gen_getupvar(s, cursp(), MRB_OPSYM_2(s->mrb, and));
+    }
+    else {
+      gen_move(s, cursp(), idx, val);
+    }
+    if (val) push();
+  }
+  else {
+    codegen(s, n->value, val);
+  }
 }
 
 static void
@@ -6239,10 +6230,6 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_CONST:
     codegen_const(s, node_to_sym(tree), val);
-    break;
-
-  case NODE_BLOCK_ARG:
-    codegen_block_arg(s, tree, val);
     break;
 
   case NODE_DEF:
