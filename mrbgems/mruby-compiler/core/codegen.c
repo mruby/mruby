@@ -3955,12 +3955,6 @@ codegen_sdef(codegen_scope *s, node *tree, int val)
 }
 
 static void
-codegen_postexe(codegen_scope *s, node *tree, int val)
-{
-  codegen(s, tree, NOVAL);
-}
-
-static void
 codegen_block_arg(codegen_scope *s, node *tree, int val)
 {
   if (!tree) {
@@ -5812,18 +5806,6 @@ gen_undef_var(codegen_scope *s, const node *varnode, int val)
   gen_load_nil(s, val);
 }
 
-static void
-gen_postexe_var(codegen_scope *s, const node *varnode, int val)
-{
-  struct mrb_ast_postexe_node *postexe = postexe_node(varnode);
-
-  // Create stack-allocated traditional node structure
-  node postexe_node_stack;
-  postexe_node_stack.car = postexe->body;
-  postexe_node_stack.cdr = NULL;
-
-  codegen_postexe(s, &postexe_node_stack, val);
-}
 
 static void
 gen_sdef_var(codegen_scope *s, const node *varnode, int val)
@@ -6161,7 +6143,10 @@ codegen_variable_node(codegen_scope *s, node *varnode, int val)
     return TRUE;
 
   case NODE_POSTEXE:
-    gen_postexe_var(s, varnode, val);
+    {
+      struct mrb_ast_postexe_node *postexe = postexe_node(varnode);
+      codegen(s, postexe->body, NOVAL);
+    }
     return TRUE;
 
   case NODE_SDEF:
@@ -6266,10 +6251,6 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_SDEF:
     codegen_sdef(s, tree, val);
-    break;
-
-  case NODE_POSTEXE:
-    codegen_postexe(s, tree, val);
     break;
 
   case NODE_VARIABLE:
