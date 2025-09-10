@@ -2347,7 +2347,7 @@ lambda_body(codegen_scope *s, node *tree, int blk)
     pa = node_len(tree->car->cdr->cdr->cdr->car);
     pargs = tree->car->cdr->cdr->cdr->car;
     /* keyword arguments */
-    if (tail && node_to_int(tail->car) == NODE_VARIABLE) {
+    if (tail) {
       /* Handle variable-sized NODE_ARGS_TAIL */
       struct mrb_ast_args_tail_node *tail_node = args_tail_node(tail->cdr);
       ka = tail_node->keywords ? node_len(tail_node->keywords) : 0;
@@ -2355,10 +2355,7 @@ lambda_body(codegen_scope *s, node *tree, int blk)
       ba = tail_node->block ? 1 : 0;
     }
     else {
-      /* Handle traditional cons-list NODE_ARGS_TAIL */
-      ka = tail ? node_len(tail->cdr->car) : 0;
-      kd = tail && tail->cdr->cdr->car? 1 : 0;
-      ba = tail && tail->cdr->cdr->cdr->car ? 1 : 0;
+      ka = kd = ba = 0;
     }
 
     if (ma > 0x1f || oa > 0x1f || pa > 0x1f || ka > 0x1f) {
@@ -2415,22 +2412,11 @@ lambda_body(codegen_scope *s, node *tree, int blk)
       node *kwds;
       int kwrest = 0; /* Flag for keyword rest argument (e.g., **kwargs) */
 
-      if (node_to_int(tail->car) == NODE_VARIABLE) {
-        /* Handle variable-sized NODE_ARGS_TAIL */
-        struct mrb_ast_args_tail_node *tail_node = args_tail_node(tail->cdr);
-        kwds = tail_node->keywords;
-        if (tail_node->kwrest) {
-          kwrest = 1;
-        }
-      }
-      else {
-        /* Handle traditional cons-list NODE_ARGS_TAIL */
-        kwds = tail->cdr->car; /* AST node for keyword arguments. */
-        if (tail->cdr->cdr->car) { /* Check if a keyword rest argument exists. */
-          kwrest = 1;
-        }
-        mrb_assert(node_to_int(tail->car) == NODE_ARGS_TAIL);
-        mrb_assert(node_len(tail) == 4);
+      /* Handle variable-sized NODE_ARGS_TAIL */
+      struct mrb_ast_args_tail_node *tail_node = args_tail_node(tail->cdr);
+      kwds = tail_node->keywords;
+      if (tail_node->kwrest) {
+        kwrest = 1;
       }
 
       while (kwds) {
@@ -2465,30 +2451,15 @@ lambda_body(codegen_scope *s, node *tree, int blk)
         kwds = kwds->cdr;
       }
       /* Check if there are keyword args but no keyword rest */
-      int has_keywords = 0;
-      if (node_to_int(tail->car) == NODE_VARIABLE) {
-        /* Handle variable-sized NODE_ARGS_TAIL */
-        has_keywords = args_tail_node(tail->cdr)->keywords != NULL;
-      }
-      else {
-        /* Handle traditional cons-list NODE_ARGS_TAIL */
-        has_keywords = tail->cdr->car != NULL;
-      }
+      int has_keywords = args_tail_node(tail->cdr)->keywords != NULL;
 
       if (has_keywords && !kwrest) { /* If there are keyword args but no keyword rest. */
         genop_0(s, OP_KEYEND); /* Signal end of keyword arguments. */
       }
       /* Block argument processing */
       if (ba) { /* If a block argument (e.g., &blk) is present. */
-        mrb_sym bparam;
-        if (node_to_int(tail->car) == NODE_VARIABLE) {
-          /* Handle variable-sized NODE_ARGS_TAIL */
-          bparam = args_tail_node(tail->cdr)->block;
-        }
-        else {
-          /* Handle traditional cons-list NODE_ARGS_TAIL */
-          bparam = node_to_sym(tail->cdr->cdr->cdr->car); /* Symbol of the block parameter. */
-        }
+        /* Handle variable-sized NODE_ARGS_TAIL */
+        mrb_sym bparam = args_tail_node(tail->cdr)->block;
         pos = ma+oa+ra+pa+(ka||kd); /* Calculate register offset for the block parameter. */
         if (bparam) { /* If it's a named block parameter. */
           int idx = lv_idx(s, bparam);
@@ -5879,17 +5850,6 @@ gen_sdef_var(codegen_scope *s, const node *varnode, int val)
   if (val) push();
 }
 
-static void
-gen_args_tail_var(codegen_scope *s, node *varnode, int val)
-{
-  /* Args tail nodes are handled within function definitions, not directly */
-  /* This should not be called in normal codegen flow */
-  if (val) {
-    genop_1(s, OP_LOADNIL, cursp());
-    push();
-  }
-}
-
 static mrb_bool
 codegen_variable_node(codegen_scope *s, node *varnode, int val)
 {
@@ -6062,10 +6022,6 @@ codegen_variable_node(codegen_scope *s, node *varnode, int val)
 
   case NODE_BLOCK:
     gen_block_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_ARGS_TAIL:
-    gen_args_tail_var(s, varnode, val);
     return TRUE;
 
   case NODE_BREAK:

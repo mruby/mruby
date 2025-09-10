@@ -50,7 +50,6 @@ static int toklen(parser_state *p);
 static node* new_const_var(parser_state *p, mrb_sym symbol);
 
 /* Forward declarations for variable-sized advanced node functions */
-static node* new_args_tail_var(parser_state *p, node *keywords, node *kwrest, mrb_sym block);
 
 /* Helper function to check node type for both traditional and variable-sized nodes */
 static mrb_bool node_type_p(node *n, enum node_type type);
@@ -943,23 +942,6 @@ new_const_var(parser_state *p, mrb_sym symbol)
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
-/* Variable-sized advanced node creation functions */
-static node*
-new_args_tail_var(parser_state *p, node *keywords, node *kwrest, mrb_sym block)
-{
-  size_t total_size = sizeof(struct mrb_ast_args_tail_node);
-  enum mrb_ast_size_class class = size_to_class(total_size);
-
-  struct mrb_ast_args_tail_node *n = (struct mrb_ast_args_tail_node*)parser_alloc_var(p, total_size, class);
-
-  init_var_header(&n->hdr, p, NODE_ARGS_TAIL, class);
-  n->keywords = keywords;
-  n->kwrest = kwrest;
-  n->block = block;
-
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
-}
-
 /* (:fcall self mid args) */
 static node*
 new_fcall(parser_state *p, mrb_sym b, node *c)
@@ -1625,10 +1607,17 @@ new_args_tail(parser_state *p, node *kws, node *kwrest, mrb_sym blk)
     }
   }
 
-  if (p->var_nodes_enabled) {
-    return new_args_tail_var(p, kws, kwrest, blk);
-  }
-  return list4((node*)NODE_ARGS_TAIL, kws, kwrest, sym_to_node(blk));
+  size_t total_size = sizeof(struct mrb_ast_args_tail_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_args_tail_node *n = (struct mrb_ast_args_tail_node*)parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->hdr, p, NODE_ARGS_TAIL, class);
+  n->keywords = kws;
+  n->kwrest = kwrest;
+  n->block = blk;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:kw_arg kw_sym def_arg) */
