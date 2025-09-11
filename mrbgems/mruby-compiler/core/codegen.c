@@ -2925,7 +2925,6 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
   switch (type) {
   case NODE_ARG:
   case NODE_LVAR:
-  case NODE_CONST:
   case NODE_NIL:
   case NODE_MASGN:
     if (rhs) {
@@ -2968,6 +2967,9 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
       case NODE_CVAR:
         gen_xvar_assignment(s, tree, rhs, sp, val, OP_SETCV);
         break;
+      case NODE_CONST:
+        gen_xvar_assignment(s, tree, rhs, sp, val, OP_SETCONST);
+        break;
       default:
         codegen_error(s, "unsupported variable-sized lhs");
         break;
@@ -2996,9 +2998,6 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
     else {                      /* upvar */
       gen_setupvar(s, sp, node_to_sym(tree));
     }
-    break;
-  case NODE_CONST:
-    gen_setxv(s, OP_SETCONST, sp, node_to_sym(tree), val);
     break;
 
   case NODE_CALL:
@@ -3622,15 +3621,6 @@ codegen_lvar(codegen_scope *s, mrb_sym sym, int val)
     gen_getupvar(s, cursp(), sym);
   }
   push();
-}
-
-static void
-codegen_const(codegen_scope *s, mrb_sym sym, int val)
-{
-  int i = new_sym(s, sym);
-
-  genop_2(s, OP_GETCONST, cursp(), i);
-  if (val) push();
 }
 
 static void
@@ -5094,11 +5084,12 @@ gen_false_var(codegen_scope *s, node *varnode, int val)
 static void
 gen_const_var(codegen_scope *s, node *varnode, int val)
 {
-  struct mrb_ast_const_node *const_n = const_node(varnode->car);
-  mrb_sym symbol = CONST_NODE_SYMBOL(const_n);
+  struct mrb_ast_const_node *const_n = const_node(varnode);
+  mrb_sym symbol = const_n->symbol;
 
-  /* Use traditional const codegen logic */
-  codegen_const(s, symbol, val);
+  int i = new_sym(s, symbol);
+  genop_2(s, OP_GETCONST, cursp(), i);
+  if (val) push();
 }
 
 static void
@@ -6245,9 +6236,6 @@ codegen(codegen_scope *s, node *tree, int val)
     codegen_lvar(s, node_to_sym(tree), val);
     break;
 
-  case NODE_CONST:
-    codegen_const(s, node_to_sym(tree), val);
-    break;
 
   case NODE_DEF:
     codegen_def(s, tree, val);

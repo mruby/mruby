@@ -47,7 +47,6 @@ static const char* tok(parser_state *p);
 static int toklen(parser_state *p);
 
 /* Forward declarations for variable-sized simple node functions */
-static node* new_const_var(parser_state *p, mrb_sym symbol);
 
 /* Forward declarations for variable-sized advanced node functions */
 
@@ -928,19 +927,6 @@ new_op_asgn_var(parser_state *p, node *lhs, mrb_sym op, node *rhs)
 }
 
 /* Variable-sized simple node creation functions */
-static node*
-new_const_var(parser_state *p, mrb_sym symbol)
-{
-  size_t total_size = sizeof(struct mrb_ast_const_node);
-  enum mrb_ast_size_class class = size_to_class(total_size);
-
-  struct mrb_ast_const_node *n = (struct mrb_ast_const_node*)parser_alloc_var(p, total_size, class);
-
-  init_var_header(&n->hdr, p, NODE_CONST, class);
-  n->symbol = symbol;
-
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
-}
 
 /* (:fcall self mid args) */
 static node*
@@ -1361,10 +1347,15 @@ new_nvar(parser_state *p, int num)
 static node*
 new_const(parser_state *p, mrb_sym sym)
 {
-  if (p->var_nodes_enabled) {
-    return new_const_var(p, sym);
-  }
-  return cons_head((node*)NODE_CONST, sym_to_node(sym));
+  size_t total_size = sizeof(struct mrb_ast_const_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_const_node *n = (struct mrb_ast_const_node*)parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->hdr, p, NODE_CONST, class);
+  n->symbol = sym;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:undef a...) */
