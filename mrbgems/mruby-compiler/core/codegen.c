@@ -3375,8 +3375,9 @@ codegen_op_asgn(codegen_scope *s, node *tree, int val)
   int idx, callargs = -1, vsp = -1;
 
   if ((len == 2 && name[0] == '|' && name[1] == '|') &&
-      (node_to_int(tree->car->car) == NODE_CONST ||
-       node_to_int(tree->car->car) == NODE_CVAR)) {
+      node_to_int(tree->car->car) == NODE_VARIABLE &&
+      (VAR_NODE_TYPE(tree->car->cdr) == NODE_CONST ||
+       VAR_NODE_TYPE(tree->car->cdr) == NODE_CVAR)) {
     int catch_entry, begin, end;
     int noexc, exc;
     struct loopinfo *lp;
