@@ -607,7 +607,6 @@ new_alias(parser_state *p, mrb_sym a, mrb_sym b)
 
 /* Forward declarations for variable-sized AST node creation functions */
 static node* new_def_var(parser_state *p, mrb_sym name, node *args, node *body);
-static node* new_op_asgn_var(parser_state *p, node *lhs, mrb_sym op, node *rhs);
 
 /* (:if cond then else) */
 static node*
@@ -867,23 +866,6 @@ new_def_var(parser_state *p, mrb_sym name, node *args, node *body)
   n->name = name;
   n->args = args;
   n->body = body;
-
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
-}
-
-/* Variable-sized operator assignment node creation */
-static node*
-new_op_asgn_var(parser_state *p, node *lhs, mrb_sym op, node *rhs)
-{
-  size_t total_size = sizeof(struct mrb_ast_op_asgn_node);
-  enum mrb_ast_size_class class = size_to_class(total_size);
-
-  struct mrb_ast_op_asgn_node *n = (struct mrb_ast_op_asgn_node*)parser_alloc_var(p, total_size, class);
-
-  init_var_header(&n->header, p, NODE_OP_ASGN, class);
-  n->lhs = lhs;
-  n->operator = op;
-  n->rhs = rhs;
 
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
@@ -1712,10 +1694,15 @@ static node*
 new_op_asgn(parser_state *p, node *a, mrb_sym op, node *b)
 {
   void_expr_error(p, b);
-  if (p->var_nodes_enabled) {
-    return new_op_asgn_var(p, a, op, b);
-  }
-  return list4((node*)NODE_OP_ASGN, a, sym_to_node(op), b);
+
+  size_t total_size = sizeof(struct mrb_ast_op_asgn_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+  struct mrb_ast_op_asgn_node *n = (struct mrb_ast_op_asgn_node*)parser_alloc_var(p, total_size, class);
+  init_var_header(&n->header, p, NODE_OP_ASGN, class);
+  n->lhs = a;
+  n->operator = op;
+  n->rhs = b;
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
 static node*
