@@ -30,13 +30,6 @@ repos:
       - id: gitleaks
         name: run gitleaks
         description: detect hardcoded secrets with gitleaks
-  - repo: https://github.com/shssoichiro/oxipng
-    rev: v9.1.5
-    hooks:
-      - id: oxipng
-        name: run oxipng
-        description: use lossless compression to optimize PNG files
-        args: ["--fix", "-o", "4", "--strip", "safe", "--alpha"]
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
