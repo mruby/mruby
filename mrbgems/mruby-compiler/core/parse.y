@@ -1349,10 +1349,6 @@ new_nvar(parser_state *p, int num)
     p->nvars->car = int_to_node(nvar > num ? nvar : num);
   }
 
-  if (!p->var_nodes_enabled) {
-    return cons_head((node*)NODE_NVAR, int_to_node(num));
-  }
-
   size_t total_size = sizeof(struct mrb_ast_nvar_node);
   enum mrb_ast_size_class class = size_to_class(total_size);
   struct mrb_ast_nvar_node *n = (struct mrb_ast_nvar_node*)parser_alloc_var(p, total_size, class);

@@ -2940,11 +2940,6 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
     /* keep evaluation order */
     break;
 
-  case NODE_NVAR:
-    /* never happens; should have already checked in the parser */
-    codegen_error(s, "Can't assign to numbered parameter");
-    break;
-
   case NODE_VARIABLE:
     /* Handle variable-sized nodes completely here */
     {
@@ -3614,7 +3609,6 @@ codegen_masgn(codegen_scope *s, node *tree, int val)
   }
 }
 
-
 static void
 codegen_lvar(codegen_scope *s, mrb_sym sym, int val)
 {
@@ -3629,17 +3623,6 @@ codegen_lvar(codegen_scope *s, mrb_sym sym, int val)
   }
   push();
 }
-
-static void
-codegen_nvar(codegen_scope *s, node *tree, int val)
-{
-  if (!val) return;
-  int idx = node_to_int(tree);
-
-  gen_move(s, cursp(), idx, val);
-  push();
-}
-
 
 static void
 codegen_const(codegen_scope *s, mrb_sym sym, int val)
@@ -5418,8 +5401,11 @@ gen_back_ref_var(codegen_scope *s, node *varnode, int val)
 static void
 gen_nvar_var(codegen_scope *s, node *varnode, int val)
 {
+  if (!val) return;
   struct mrb_ast_nvar_node *n = (struct mrb_ast_nvar_node*)varnode;
-  codegen_nvar(s, int_to_node(n->num), val);
+
+  gen_move(s, cursp(), n->num, val);
+  push();
 }
 
 static void
@@ -6257,10 +6243,6 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_LVAR:
     codegen_lvar(s, node_to_sym(tree), val);
-    break;
-
-  case NODE_NVAR:
-    codegen_nvar(s, tree, val);
     break;
 
   case NODE_CONST:
