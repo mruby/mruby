@@ -2,8 +2,6 @@ MRuby.each_target do
   active_gems_txt = "#{build_dir}/mrbgems/active_gems.txt"
 
   if enable_gems?
-    # set up all gems
-    gems.each(&:setup)
     gems.check self
 
     # loader all gems

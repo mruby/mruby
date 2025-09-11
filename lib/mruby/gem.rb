@@ -401,7 +401,16 @@ module MRuby
         end
       end
 
-      def generate_gem_table build
+      def setup(build)
+        gemset = nil
+        begin
+          gemset_prev = gemset
+          self.each(&:setup)
+          gemset = self.setup_dependencies(build).keys.sort
+        end until gemset == gemset_prev
+      end
+
+      def setup_dependencies(build)
         gem_table = each_with_object({}) { |spec, h| h[spec.name] = spec }
 
         default_gems = {}
@@ -423,6 +432,12 @@ module MRuby
             default_gems[dep[:gem]] ||= default_gem_params(dep)
           end
         end
+
+        gem_table
+      end
+
+      def generate_gem_table(build)
+        gem_table = setup_dependencies(build)
 
         each do |g|
           g.dependencies.each do |dep|
