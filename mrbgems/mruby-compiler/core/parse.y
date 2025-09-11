@@ -1292,7 +1292,7 @@ new_sym(parser_state *p, mrb_sym sym)
 }
 
 static node*
-new_var_var(parser_state *p, mrb_sym sym, enum node_type type)
+new_xvar(parser_state *p, mrb_sym sym, enum node_type type)
 {
   size_t size = sizeof(struct mrb_ast_var_node);
   enum mrb_ast_size_class class = size_to_class(size);
@@ -1319,40 +1319,11 @@ static node*
 new_lvar(parser_state *p, mrb_sym sym)
 {
   if (p->var_nodes_enabled) {
-    return new_var_var(p, sym, NODE_LVAR);
+    return new_xvar(p, sym, NODE_LVAR);
   }
   return cons_head((node*)NODE_LVAR, sym_to_node(sym));
 }
 
-/* (:gvar . a) */
-static node*
-new_gvar(parser_state *p, mrb_sym sym)
-{
-  if (p->var_nodes_enabled) {
-    return new_var_var(p, sym, NODE_GVAR);
-  }
-  return cons_head((node*)NODE_GVAR, sym_to_node(sym));
-}
-
-/* (:ivar . a) */
-static node*
-new_ivar(parser_state *p, mrb_sym sym)
-{
-  if (p->var_nodes_enabled) {
-    return new_var_var(p, sym, NODE_IVAR);
-  }
-  return cons_head((node*)NODE_IVAR, sym_to_node(sym));
-}
-
-/* (:cvar . a) */
-static node*
-new_cvar(parser_state *p, mrb_sym sym)
-{
-  if (p->var_nodes_enabled) {
-    return new_var_var(p, sym, NODE_CVAR);
-  }
-  return cons_head((node*)NODE_CVAR, sym_to_node(sym));
-}
 
 /* (:nvar . a) */
 static node*
@@ -4479,15 +4450,15 @@ variable        : tIDENTIFIER
                     }
                 | tIVAR
                     {
-                      $$ = new_ivar(p, $1);
+                      $$ = new_xvar(p, $1, NODE_IVAR);
                     }
                 | tGVAR
                     {
-                      $$ = new_gvar(p, $1);
+                      $$ = new_xvar(p, $1, NODE_GVAR);
                     }
                 | tCVAR
                     {
-                      $$ = new_cvar(p, $1);
+                      $$ = new_xvar(p, $1, NODE_CVAR);
                     }
                 | tCONSTANT
                     {

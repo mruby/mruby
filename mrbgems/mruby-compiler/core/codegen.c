@@ -153,7 +153,6 @@ static void loop_pop(codegen_scope *s, int val);
 static int catch_handler_new(codegen_scope *s);
 static void catch_handler_set(codegen_scope *s, int ent, enum mrb_catch_type type, uint32_t begin, uint32_t end, uint32_t target);
 
-static void gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val);
 static void gen_massignment(codegen_scope *s, node *tree, int sp, int val);
 
 static void codegen(codegen_scope *s, node *tree, int val);
@@ -2896,17 +2895,36 @@ gen_colon3_assign_var(codegen_scope *s, node *varnode, node *rhs, int sp, int va
 }
 
 static void
+gen_xvar_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val, uint8_t op)
+{
+  struct mrb_ast_var_node *var = var_node(tree->cdr);
+  if (rhs) {
+    codegen(s, rhs, VAL);
+    pop();
+    sp = cursp();
+  }
+  gen_setxv(s, op, sp, var->symbol, val);
+}
+
+static void
+gen_xvar(codegen_scope *s, mrb_sym sym, int val, uint8_t op)
+{
+  if (!val) return;
+  int i = new_sym(s, sym);
+
+  genop_2(s, op, cursp(), i);
+  push();
+}
+
+static void
 gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
 {
   int idx;
   int type = node_to_int(tree->car);
 
   switch (type) {
-  case NODE_GVAR:
   case NODE_ARG:
   case NODE_LVAR:
-  case NODE_IVAR:
-  case NODE_CVAR:
   case NODE_CONST:
   case NODE_NIL:
   case NODE_MASGN:
@@ -2946,6 +2964,15 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
       case NODE_COLON3:
         gen_colon3_assign_var(s, tree->cdr, rhs, sp, val);
         return;
+      case NODE_GVAR:
+        gen_xvar_assignment(s, tree, rhs, sp, val, OP_SETGV);
+        break;
+      case NODE_IVAR:
+        gen_xvar_assignment(s, tree, rhs, sp, val, OP_SETIV);
+        break;
+      case NODE_CVAR:
+        gen_xvar_assignment(s, tree, rhs, sp, val, OP_SETCV);
+        break;
       default:
         codegen_error(s, "unsupported variable-sized lhs");
         break;
@@ -2962,9 +2989,6 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
 
   tree = tree->cdr;
   switch (type) {
-  case NODE_GVAR:
-    gen_setxv(s, OP_SETGV, sp, node_to_sym(tree), val);
-    break;
   case NODE_ARG:
   case NODE_LVAR:
     idx = lv_idx(s, node_to_sym(tree));
@@ -2977,12 +3001,6 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
     else {                      /* upvar */
       gen_setupvar(s, sp, node_to_sym(tree));
     }
-    break;
-  case NODE_IVAR:
-    gen_setxv(s, OP_SETIV, sp, node_to_sym(tree), val);
-    break;
-  case NODE_CVAR:
-    gen_setxv(s, OP_SETCV, sp, node_to_sym(tree), val);
     break;
   case NODE_CONST:
     gen_setxv(s, OP_SETCONST, sp, node_to_sym(tree), val);
@@ -3622,35 +3640,6 @@ codegen_nvar(codegen_scope *s, node *tree, int val)
   push();
 }
 
-static void
-codegen_gvar(codegen_scope *s, mrb_sym sym, int val)
-{
-  if (!val) return;
-  int i = new_sym(s, sym);
-
-  genop_2(s, OP_GETGV, cursp(), i);
-  push();
-}
-
-static void
-codegen_ivar(codegen_scope *s, mrb_sym sym, int val)
-{
-  if (!val) return;
-  int i = new_sym(s, sym);
-
-  genop_2(s, OP_GETIV, cursp(), i);
-  push();
-}
-
-static void
-codegen_cvar(codegen_scope *s, mrb_sym sym, int val)
-{
-  if (!val) return;
-  int i = new_sym(s, sym);
-
-  genop_2(s, OP_GETCV, cursp(), i);
-  push();
-}
 
 static void
 codegen_const(codegen_scope *s, mrb_sym sym, int val)
@@ -4779,19 +4768,77 @@ gen_op_asgn_var(codegen_scope *s, node *varnode, int val)
   struct mrb_ast_op_asgn_node *op_asgn_n = op_asgn_node(varnode);
   node *lhs = OP_ASGN_NODE_LHS(op_asgn_n);
   node *rhs = OP_ASGN_NODE_RHS(op_asgn_n);
+  mrb_sym sym = op_asgn_n->operator;
+  mrb_int len;
+  const char *name = mrb_sym_name_len(s->mrb, sym, &len);
+  int vsp = -1;
 
-  /* Simplified operator assignment codegen */
-  /* For now, generate a basic assignment - can be optimized later */
-  if (rhs) {
-    codegen(s, rhs, VAL);
-    if (lhs) {
-      gen_assignment(s, lhs, NULL, 0, val);
+  /* Handle ||= and &&= operators */
+  if (len == 2 &&
+      ((name[0] == '|' && name[1] == '|') ||
+       (name[0] == '&' && name[1] == '&'))) {
+    uint32_t pos;
+
+    /* Generate code to get current value of LHS */
+    codegen(s, lhs, VAL);
+    pop();
+    if (val) {
+      if (vsp >= 0) {
+        gen_move(s, vsp, cursp(), 1);
+      }
+      pos = genjmp2_0(s, name[0]=='|'?OP_JMPIF:OP_JMPNOT, cursp(), val);
     }
+    else {
+      pos = genjmp2_0(s, name[0]=='|'?OP_JMPIF:OP_JMPNOT, cursp(), val);
+    }
+    codegen(s, rhs, VAL);
+    pop();
+    if (val && vsp >= 0) {
+      gen_move(s, vsp, cursp(), 1);
+    }
+    gen_assignment(s, lhs, NULL, cursp(), val);
+    dispatch(s, pos);
+    return;
   }
-  else if (val) {
-    genop_1(s, OP_LOADNIL, cursp());
-    push();
+
+  /* For other operators, generate: lhs = lhs op rhs */
+  codegen(s, lhs, VAL);
+  codegen(s, rhs, VAL);
+  push(); pop();
+  pop(); pop();
+
+  /* Apply the operator */
+  if (len == 1 && name[0] == '+')  {
+    gen_addsub(s, OP_ADD, cursp());
   }
+  else if (len == 1 && name[0] == '-')  {
+    gen_addsub(s, OP_SUB, cursp());
+  }
+  else if (len == 1 && name[0] == '*')  {
+    genop_1(s, OP_MUL, cursp());
+  }
+  else if (len == 1 && name[0] == '/')  {
+    genop_1(s, OP_DIV, cursp());
+  }
+  else if (len == 1 && name[0] == '<')  {
+    genop_1(s, OP_LT, cursp());
+  }
+  else if (len == 2 && name[0] == '<' && name[1] == '=')  {
+    genop_1(s, OP_LE, cursp());
+  }
+  else if (len == 1 && name[0] == '>')  {
+    genop_1(s, OP_GT, cursp());
+  }
+  else if (len == 2 && name[0] == '>' && name[1] == '=')  {
+    genop_1(s, OP_GE, cursp());
+  }
+  else {
+    int idx = new_sym(s, sym);
+    genop_3(s, OP_SEND, cursp(), idx, 1);
+  }
+
+  /* Assign the result back to LHS */
+  gen_assignment(s, lhs, NULL, cursp(), val);
 }
 
 /* Variable-sized expression codegen functions */
@@ -5858,15 +5905,15 @@ codegen_variable_node(codegen_scope *s, node *varnode, int val)
     return TRUE;
 
   case NODE_GVAR:
-    codegen_gvar(s, VAR_NODE_SYMBOL(varnode), val);
+    gen_xvar(s, VAR_NODE_SYMBOL(varnode), val, OP_GETGV);
     return TRUE;
 
   case NODE_IVAR:
-    codegen_ivar(s, VAR_NODE_SYMBOL(varnode), val);
+    gen_xvar(s, VAR_NODE_SYMBOL(varnode), val, OP_GETIV);
     return TRUE;
 
   case NODE_CVAR:
-    codegen_cvar(s, VAR_NODE_SYMBOL(varnode), val);
+    gen_xvar(s, VAR_NODE_SYMBOL(varnode), val, OP_GETCV);
     return TRUE;
 
   case NODE_CALL:
@@ -6214,18 +6261,6 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_NVAR:
     codegen_nvar(s, tree, val);
-    break;
-
-  case NODE_GVAR:
-    codegen_gvar(s, node_to_sym(tree), val);
-    break;
-
-  case NODE_IVAR:
-    codegen_ivar(s, node_to_sym(tree), val);
-    break;
-
-  case NODE_CVAR:
-    codegen_cvar(s, node_to_sym(tree), val);
     break;
 
   case NODE_CONST:
