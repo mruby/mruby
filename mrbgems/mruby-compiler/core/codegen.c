@@ -154,6 +154,7 @@ static int catch_handler_new(codegen_scope *s);
 static void catch_handler_set(codegen_scope *s, int ent, enum mrb_catch_type type, uint32_t begin, uint32_t end, uint32_t target);
 
 static void gen_massignment(codegen_scope *s, node *tree, int sp, int val);
+static void gen_masgn_var(codegen_scope *s, node *varnode, node *rhs, int sp, int val);
 
 static void codegen(codegen_scope *s, node *tree, int val);
 static void raise_error(codegen_scope *s, const char *msg);
@@ -2472,8 +2473,11 @@ lambda_body(codegen_scope *s, node *tree, int blk)
       node *n = margs;
       pos = 1; /* Start from register 1 (after self). */
       while (n) {
-        if (node_to_int(n->car->car) == NODE_MASGN) { /* If the argument is a mass assignment (e.g., |(a,b)| ). */
-          gen_massignment(s, n->car->cdr->car, pos, NOVAL);
+        if (node_to_int(n->car->car) == NODE_VARIABLE) {
+          if (VAR_NODE_TYPE(n->car->cdr) == NODE_MASGN) { /* If the argument is a mass assignment (e.g., |(a,b)| ). */
+            struct mrb_ast_masgn_node *masgn_n = (struct mrb_ast_masgn_node*)n->car->cdr;
+            gen_massignment(s, masgn_n->lhs, pos, NOVAL);
+          }
         }
         pos++;
         n = n->cdr;
@@ -2483,8 +2487,11 @@ lambda_body(codegen_scope *s, node *tree, int blk)
       node *n = pargs;
       pos = ma+oa+ra+1; /* Calculate starting register for post-mandatory args. */
       while (n) {
-        if (node_to_int(n->car->car) == NODE_MASGN) { /* If argument is a mass assignment. */
-          gen_massignment(s, n->car->cdr->car, pos, NOVAL);
+        if (node_to_int(n->car->car) == NODE_VARIABLE) {
+          if (VAR_NODE_TYPE(n->car->cdr) == NODE_MASGN) { /* If argument is a mass assignment. */
+            struct mrb_ast_masgn_node *masgn_n = (struct mrb_ast_masgn_node*)n->car->cdr;
+            gen_massignment(s, masgn_n->lhs, pos, NOVAL);
+          }
         }
         pos++;
         n = n->cdr;
@@ -2926,7 +2933,6 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
   case NODE_ARG:
   case NODE_LVAR:
   case NODE_NIL:
-  case NODE_MASGN:
     if (rhs) {
       codegen(s, rhs, VAL);
       pop();
@@ -2970,6 +2976,9 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
       case NODE_CONST:
         gen_xvar_assignment(s, tree, rhs, sp, val, OP_SETCONST);
         break;
+      case NODE_MASGN:
+        gen_masgn_var(s, tree->cdr, rhs, sp, val);
+        return;
       default:
         codegen_error(s, "unsupported variable-sized lhs");
         break;
@@ -3089,10 +3098,6 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
       }
       s->sp = top;
     }
-    break;
-
-  case NODE_MASGN:
-    gen_massignment(s, tree->car, sp, val);
     break;
 
   /* splat without assignment */
@@ -3521,91 +3526,6 @@ codegen_op_asgn(codegen_scope *s, node *tree, int val)
     pop();
     idx = new_sym(s, attrsym(s,node_to_sym(tree->car->cdr->cdr->car)));
     genop_3(s, OP_SEND, cursp(), idx, callargs);
-  }
-}
-
-static void
-codegen_masgn(codegen_scope *s, node *tree, int val)
-{
-  int len = 0, n = 0, post = 0;
-  node *t = tree->cdr, *p;
-  int rhs = cursp();
-
-  if (!val && node_to_int(t->car) == NODE_ARRAY && t->cdr && nosplat(t->cdr)) {
-    /* fixed rhs */
-    t = t->cdr;
-    while (t) {
-      codegen(s, t->car, VAL);
-      len++;
-      t = t->cdr;
-    }
-    tree = tree->car;
-    if (tree->car) {                /* pre */
-      t = tree->car;
-      n = 0;
-      while (t) {
-        if (n < len) {
-          gen_assignment(s, t->car, NULL, rhs+n, NOVAL);
-          n++;
-        }
-        else {
-          genop_1(s, OP_LOADNIL, rhs+n);
-          gen_assignment(s, t->car, NULL, rhs+n, NOVAL);
-        }
-        t = t->cdr;
-      }
-    }
-    t = tree->cdr;
-    if (t) {
-      if (t->cdr) {         /* post count */
-        p = t->cdr->car;
-        while (p) {
-          post++;
-          p = p->cdr;
-        }
-      }
-      if (t->car) {         /* rest (len - pre - post) */
-        int rn;
-
-        if (len < post + n) {
-          rn = 0;
-        }
-        else {
-          rn = len - post - n;
-        }
-        if (cursp() == rhs+n) {
-          genop_2(s, OP_ARRAY, cursp(), rn);
-        }
-        else {
-          genop_3(s, OP_ARRAY2, cursp(), rhs+n, rn);
-        }
-        gen_assignment(s, t->car, NULL, cursp(), NOVAL);
-        n += rn;
-      }
-      if (t->cdr && t->cdr->car) {
-        t = t->cdr->car;
-        while (t) {
-          if (n<len) {
-            gen_assignment(s, t->car, NULL, rhs+n, NOVAL);
-          }
-          else {
-            genop_1(s, OP_LOADNIL, cursp());
-            gen_assignment(s, t->car, NULL, cursp(), NOVAL);
-          }
-          t = t->cdr;
-          n++;
-        }
-      }
-    }
-    pop_n(len);
-  }
-  else {
-    /* variable rhs */
-    codegen(s, t, VAL);
-    gen_massignment(s, tree->car, rhs, val);
-    if (!val) {
-      pop();
-    }
   }
 }
 
@@ -4715,18 +4635,151 @@ gen_asgn_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_masgn_var(codegen_scope *s, node *varnode, int val)
+gen_masgn_var(codegen_scope *s, node *varnode, node *rhs, int sp, int val)
 {
-  /* Simplified multiple assignment codegen */
-  node *rhs = MASGN_NODE_RHS(varnode);
-  if (rhs) {
-    codegen(s, rhs, VAL);
+  struct mrb_ast_masgn_node *masgn_n = (struct mrb_ast_masgn_node*)varnode;
+
+  /* If called from codegen_variable_node context, use the embedded rhs */
+  if (!rhs && sp == 0) {
+    rhs = masgn_n->rhs;
+    sp = 0;  /* Use register 0 as base for standalone assignment */
   }
-  else if (val) {
-    genop_1(s, OP_LOADNIL, cursp());
-    push();
+
+  int len = 0, n = 0, post = 0;
+  node *t = rhs ? rhs : masgn_n->rhs, *p;
+  node *tree = masgn_n->lhs;  /* Use tree variable like original */
+  int rhs_reg = sp;
+
+  if (!val && t && node_to_int(t->car) == NODE_ARRAY && t->cdr && nosplat(t->cdr)) {
+    /* fixed rhs */
+    t = t->cdr;
+    while (t) {
+      codegen(s, t->car, VAL);
+      len++;
+      t = t->cdr;
+    }
+    if (tree && tree->car) {                /* pre */
+      t = tree->car;
+      n = 0;
+      while (t) {
+        if (n < len) {
+          gen_assignment(s, t->car, NULL, rhs_reg+n, NOVAL);
+          n++;
+        }
+        else {
+          genop_1(s, OP_LOADNIL, rhs_reg+n);
+          gen_assignment(s, t->car, NULL, rhs_reg+n, NOVAL);
+        }
+        t = t->cdr;
+      }
+    }
+    if (tree) {
+      t = tree->cdr;
+      if (t) {
+        if (t->cdr) {         /* post count */
+          p = t->cdr->car;
+          while (p) {
+            post++;
+            p = p->cdr;
+          }
+        }
+        if (t->car) {         /* rest (len - pre - post) */
+          int rn;
+
+          if (len < post + n) {
+            rn = 0;
+          }
+          else {
+            rn = len - post - n;
+          }
+          if (cursp() == rhs_reg+n) {
+            genop_2(s, OP_ARRAY, cursp(), rn);
+          }
+          else {
+            genop_3(s, OP_ARRAY2, cursp(), rhs_reg+n, rn);
+          }
+          gen_assignment(s, t->car, NULL, cursp(), NOVAL);
+          n += rn;
+        }
+        if (t->cdr && t->cdr->car) {
+          t = t->cdr->car;
+          while (t) {
+            if (n<len) {
+              gen_assignment(s, t->car, NULL, rhs_reg+n, NOVAL);
+            }
+            else {
+              genop_1(s, OP_LOADNIL, cursp());
+              gen_assignment(s, t->car, NULL, cursp(), NOVAL);
+            }
+            t = t->cdr;
+            n++;
+          }
+        }
+      }
+    }
+    pop_n(len);
   }
-  /* TODO: Add proper multiple assignment logic here */
+  else {
+    /* variable rhs - implement gen_massignment logic directly for variable-sized nodes */
+    if (t) {
+      codegen(s, t, VAL);
+      rhs_reg = cursp() - 1;  /* rhs is now at cursp()-1 */
+    }
+
+    /* Handle the lhs tree structure directly */
+    n = 0;
+    post = 0;
+
+    if (tree && tree->car) {              /* pre */
+      node *pre = tree->car;
+      n = 0;
+      while (pre) {
+        int sp = cursp();
+        genop_3(s, OP_AREF, sp, rhs_reg, n);
+        push();
+        gen_assignment(s, pre->car, NULL, sp, NOVAL);
+        pop();
+        n++;
+        pre = pre->cdr;
+      }
+    }
+
+    if (tree) {
+      node *rest_part = tree->cdr;
+      if (rest_part) {
+        if (rest_part->cdr) {               /* post count */
+          node *p = rest_part->cdr->car;
+          while (p) {
+            post++;
+            p = p->cdr;
+          }
+        }
+        gen_move(s, cursp(), rhs_reg, val);
+        push_n(post+1);
+        pop_n(post+1);
+        genop_3(s, OP_APOST, cursp(), n, post);
+        int nn = 1;
+        if (rest_part->car && rest_part->car != (node*)-1) { /* rest */
+          gen_assignment(s, rest_part->car, NULL, cursp(), NOVAL);
+        }
+        if (rest_part->cdr && rest_part->cdr->car) {
+          node *post_part = rest_part->cdr->car;
+          while (post_part) {
+            gen_assignment(s, post_part->car, NULL, cursp()+nn, NOVAL);
+            post_part = post_part->cdr;
+            nn++;
+          }
+        }
+        if (val) {
+          gen_move(s, cursp(), rhs_reg, 0);
+        }
+      }
+    }
+
+    if (!val && t) {
+      pop();  /* pop the rhs value */
+    }
+  }
 }
 
 static void
@@ -5939,7 +5992,7 @@ codegen_variable_node(codegen_scope *s, node *varnode, int val)
     return TRUE;
 
   case NODE_MASGN:
-    gen_masgn_var(s, varnode, val);
+    gen_masgn_var(s, varnode, NULL, 0, val);
     return TRUE;
 
   case NODE_OP_ASGN:
@@ -6211,10 +6264,6 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
   case NODE_SCALL:
     codegen_scall(s, tree, val);
-    break;
-
-  case NODE_MASGN:
-    codegen_masgn(s, tree, val);
     break;
 
   case NODE_OP_ASGN:

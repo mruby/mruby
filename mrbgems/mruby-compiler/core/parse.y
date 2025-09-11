@@ -607,7 +607,6 @@ new_alias(parser_state *p, mrb_sym a, mrb_sym b)
 
 /* Forward declarations for variable-sized AST node creation functions */
 static node* new_def_var(parser_state *p, mrb_sym name, node *args, node *body);
-static node* new_masgn_var(parser_state *p, node *lhs, node *rhs);
 static node* new_op_asgn_var(parser_state *p, node *lhs, mrb_sym op, node *rhs);
 
 /* (:if cond then else) */
@@ -868,22 +867,6 @@ new_def_var(parser_state *p, mrb_sym name, node *args, node *body)
   n->name = name;
   n->args = args;
   n->body = body;
-
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
-}
-
-/* Variable-sized multiple assignment node creation */
-static node*
-new_masgn_var(parser_state *p, node *lhs, node *rhs)
-{
-  size_t total_size = sizeof(struct mrb_ast_masgn_node);
-  enum mrb_ast_size_class class = size_to_class(total_size);
-
-  struct mrb_ast_masgn_node *n = (struct mrb_ast_masgn_node*)parser_alloc_var(p, total_size, class);
-
-  init_var_header(&n->header, p, NODE_MASGN, class);
-  n->lhs = lhs;
-  n->rhs = rhs;
 
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
@@ -1465,16 +1448,29 @@ static void
 local_add_margs(parser_state *p, node *n)
 {
   while (n) {
-    if (node_to_type(n->car->car) == NODE_MASGN) {
-      node *t = n->car->cdr->cdr;
+    if (node_to_type(n->car->car) == NODE_VARIABLE) {
+      if (VAR_NODE_TYPE(n->car->cdr) == NODE_MASGN) {
+        struct mrb_ast_masgn_node *masgn_n = (struct mrb_ast_masgn_node*)n->car->cdr;
+        node *lhs = masgn_n->lhs;
+        node *rhs = masgn_n->rhs;
 
-      n->car->cdr->cdr = NULL;
-      while (t) {
-        local_add_f(p, node_to_sym(t->car));
-        t = t->cdr;
+        /* For parameter destructuring, rhs contains the locals */
+        if (rhs) {
+          node *t = rhs;
+          while (t) {
+            local_add_f(p, node_to_sym(t->car));
+            t = t->cdr;
+          }
+        }
+
+        /* Process nested destructuring in lhs */
+        if (lhs && lhs->car) {
+          local_add_margs(p, lhs->car);
+        }
+        if (lhs && lhs->cdr && lhs->cdr->cdr && lhs->cdr->cdr->car) {
+          local_add_margs(p, lhs->cdr->cdr->car);
+        }
       }
-      local_add_margs(p, n->car->cdr->car->car);
-      local_add_margs(p, n->car->cdr->car->cdr->cdr->car);
     }
     n = n->cdr;
   }
@@ -1682,17 +1678,33 @@ static node*
 new_masgn(parser_state *p, node *a, node *b)
 {
   void_expr_error(p, b);
-  if (p->var_nodes_enabled) {
-    return new_masgn_var(p, a, b);
-  }
-  return cons_head((node*)NODE_MASGN, cons(a, b));
+
+  size_t total_size = sizeof(struct mrb_ast_masgn_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_masgn_node *n = (struct mrb_ast_masgn_node*)parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->header, p, NODE_MASGN, class);
+  n->lhs = a;
+  n->rhs = b;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:masgn mlhs mrhs) no check */
 static node*
 new_masgn_param(parser_state *p, node *a, node *b)
 {
-  return cons_head((node*)NODE_MASGN, cons(a, b));
+  size_t total_size = sizeof(struct mrb_ast_masgn_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_masgn_node *n = (struct mrb_ast_masgn_node*)parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->header, p, NODE_MASGN, class);
+  n->lhs = a;
+  n->rhs = b;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:asgn lhs rhs) */
