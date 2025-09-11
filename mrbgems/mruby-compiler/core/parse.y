@@ -1244,16 +1244,6 @@ new_strsym(parser_state *p, node* str)
   return mrb_intern(p->mrb, s, len);
 }
 
-/* (:lvar . a) */
-static node*
-new_lvar(parser_state *p, mrb_sym sym)
-{
-  if (p->var_nodes_enabled) {
-    return new_xvar(p, sym, NODE_LVAR);
-  }
-  return cons_head((node*)NODE_LVAR, sym_to_node(sym));
-}
-
 /* (:nvar . a) */
 static node*
 new_nvar(parser_state *p, int num)
@@ -1423,7 +1413,7 @@ defs_setup(parser_state *p, node *d, node *a, node *b)
 static node*
 new_arg(parser_state *p, mrb_sym sym)
 {
-  return cons_head((node*)NODE_ARG, sym_to_node(sym));
+  return new_xvar(p, sym, NODE_ARG);
 }
 
 static void
@@ -2163,25 +2153,32 @@ ret_args(parser_state *p, node *n)
 static void
 assignable(parser_state *p, node *lhs)
 {
-  switch (node_to_int(lhs->car)) {
-  case NODE_LVAR:
-    local_add(p, node_to_sym(lhs->cdr));
-    break;
-  case NODE_CONST:
-    if (p->in_def)
-      yyerror(NULL, p, "dynamic constant assignment");
-    break;
+  if (node_to_int(lhs->car) == NODE_VARIABLE) {
+    node *var_node = lhs->cdr;
+    switch (VAR_NODE_TYPE(var_node)) {
+    case NODE_LVAR:
+      local_add(p, VAR_NODE_SYMBOL(var_node));
+      break;
+    case NODE_CONST:
+      if (p->in_def)
+        yyerror(NULL, p, "dynamic constant assignment");
+      break;
+    }
   }
 }
 
 static node*
 var_reference(parser_state *p, node *lhs)
 {
-  if (node_to_int(lhs->car) == NODE_LVAR) {
-    if (!local_var_p(p, node_to_sym(lhs->cdr))) {
-      node *n = new_fcall(p, node_to_sym(lhs->cdr), 0);
-      cons_free(lhs);
-      return n;
+  if (node_to_int(lhs->car) == NODE_VARIABLE) {
+    node *var_node = lhs->cdr;
+    if (VAR_NODE_TYPE(var_node) == NODE_LVAR) {
+      mrb_sym sym = VAR_NODE_SYMBOL(var_node);
+      if (!local_var_p(p, sym)) {
+        node *n = new_fcall(p, sym, 0);
+        /* Don't free variable-sized nodes - they're managed by the parser allocator */
+        return n;
+      }
     }
   }
   return lhs;
@@ -2193,7 +2190,7 @@ label_reference(parser_state *p, mrb_sym sym)
   const char *name = mrb_sym_name(p->mrb, sym);
 
   if (local_var_p(p, sym)) {
-    return new_lvar(p, sym);
+    return new_xvar(p, sym, NODE_LVAR);
   }
   else if (ISUPPER(name[0])) {
     return new_const(p, sym);
@@ -2656,7 +2653,7 @@ stmt            : keyword_alias fsym {p->lstate = EXPR_FNAME;} fsym
                     }
                 | arg tASSOC tIDENTIFIER
                     {
-                      node *lhs = new_lvar(p, $3);
+                      node *lhs = new_xvar(p, $3, NODE_LVAR);
                       assignable(p, lhs);
                       $$ = new_asgn(p, lhs, $1);
                     }
@@ -3400,9 +3397,9 @@ paren_args      : '(' opt_call_args ')'
                       mrb_sym r = intern_op(mul);
                       mrb_sym k = intern_op(pow);
                       mrb_sym b = intern_op(and);
-                      $$ = new_callargs(p, push($2, new_splat(p, new_lvar(p, r))),
-                                        new_kw_hash(p, list1(cons(new_kw_rest_args(p, 0), new_lvar(p, k)))),
-                                        new_block_arg(p, new_lvar(p, b)));
+                      $$ = new_callargs(p, push($2, new_splat(p, new_xvar(p, r, NODE_LVAR))),
+                                        new_kw_hash(p, list1(cons(new_kw_rest_args(p, 0), new_xvar(p, k, NODE_LVAR)))),
+                                        new_block_arg(p, new_xvar(p, b, NODE_LVAR)));
                     }
                 | '(' tBDOT3 rparen
                     {
@@ -3410,9 +3407,9 @@ paren_args      : '(' opt_call_args ')'
                       mrb_sym k = intern_op(pow);
                       mrb_sym b = intern_op(and);
                       if (local_var_p(p, r) && local_var_p(p, k) && local_var_p(p, b)) {
-                        $$ = new_callargs(p, list1(new_splat(p, new_lvar(p, r))),
-                                          new_kw_hash(p, list1(cons(new_kw_rest_args(p, 0), new_lvar(p, k)))),
-                                          new_block_arg(p, new_lvar(p, b)));
+                        $$ = new_callargs(p, list1(new_splat(p, new_xvar(p, r, NODE_LVAR))),
+                                          new_kw_hash(p, list1(cons(new_kw_rest_args(p, 0), new_xvar(p, k, NODE_LVAR)))),
+                                          new_block_arg(p, new_xvar(p, b, NODE_LVAR)));
                       }
                       else {
                         yyerror(&@1, p, "unexpected argument forwarding ...");
@@ -3505,7 +3502,7 @@ args            : arg
                     }
                 | tSTAR
                     {
-                      $$ = list1(new_splat(p, new_lvar(p, intern_op(mul))));
+                      $$ = list1(new_splat(p, new_xvar(p, intern_op(mul), NODE_LVAR)));
                     }
                 | tSTAR arg
                     {
@@ -3518,7 +3515,7 @@ args            : arg
                     }
                 | args comma tSTAR
                     {
-                      $$ = push($1, new_splat(p, new_lvar(p, intern_op(mul))));
+                      $$ = push($1, new_splat(p, new_xvar(p, intern_op(mul), NODE_LVAR)));
                     }
                 | args comma tSTAR arg
                     {
@@ -4417,7 +4414,7 @@ numeric         : tINTEGER
 
 variable        : tIDENTIFIER
                     {
-                      $$ = new_lvar(p, $1);
+                      $$ = new_xvar(p, $1, NODE_LVAR);
                     }
                 | tIVAR
                     {
@@ -4939,7 +4936,7 @@ assoc           : arg tASSOC arg
                     }
                 | tDSTAR
                     {
-                      $$ = cons(new_kw_rest_args(p, 0), new_lvar(p, intern_op(pow)));
+                      $$ = cons(new_kw_rest_args(p, 0), new_xvar(p, intern_op(pow), NODE_LVAR));
                     }
                 ;
 

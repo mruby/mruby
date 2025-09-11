@@ -2930,8 +2930,6 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
   int type = node_to_int(tree->car);
 
   switch (type) {
-  case NODE_ARG:
-  case NODE_LVAR:
   case NODE_NIL:
     if (rhs) {
       codegen(s, rhs, VAL);
@@ -2979,6 +2977,27 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
       case NODE_MASGN:
         gen_masgn_var(s, tree->cdr, rhs, sp, val);
         return;
+      case NODE_LVAR:
+      case NODE_ARG:
+        {
+          mrb_sym sym = VAR_NODE_SYMBOL(tree->cdr);
+          if (rhs) {
+            codegen(s, rhs, VAL);
+            pop();
+            sp = cursp();
+          }
+          idx = lv_idx(s, sym);
+          if (idx > 0) {
+            if (idx != sp) {
+              gen_move(s, idx, sp, val);
+            }
+            break;
+          }
+          else {
+            gen_setupvar(s, sp, sym);
+          }
+        }
+        break;
       default:
         codegen_error(s, "unsupported variable-sized lhs");
         break;
@@ -2995,20 +3014,6 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
 
   tree = tree->cdr;
   switch (type) {
-  case NODE_ARG:
-  case NODE_LVAR:
-    idx = lv_idx(s, node_to_sym(tree));
-    if (idx > 0) {
-      if (idx != sp) {
-        gen_move(s, idx, sp, val);
-      }
-      break;
-    }
-    else {                      /* upvar */
-      gen_setupvar(s, sp, node_to_sym(tree));
-    }
-    break;
-
   case NODE_CALL:
   case NODE_SCALL:
     {
@@ -3372,7 +3377,7 @@ gen_blkmove(codegen_scope *s, uint16_t ainfo, int lv)
 }
 
 static void
-codegen_lvar(codegen_scope *s, mrb_sym sym, int val)
+gen_lvar(codegen_scope *s, mrb_sym sym, int val)
 {
   if (!val) return;
   int idx = lv_idx(s, sym);
@@ -5294,7 +5299,7 @@ gen_dvar_var(codegen_scope *s, node *varnode, int val)
   struct mrb_ast_dvar_node *n = (struct mrb_ast_dvar_node*)varnode;
   // DVAR nodes are not currently used in mruby, but provide basic implementation
   if (val) {
-    codegen_lvar(s, n->name, val);
+    gen_lvar(s, n->name, val);
   }
 }
 
@@ -5766,7 +5771,7 @@ codegen_variable_node(codegen_scope *s, node *varnode, int val)
     return TRUE;
 
   case NODE_LVAR:
-    codegen_lvar(s, VAR_NODE_SYMBOL(varnode), val);
+    gen_lvar(s, VAR_NODE_SYMBOL(varnode), val);
     return TRUE;
 
   case NODE_GVAR:
@@ -6106,10 +6111,6 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
   case NODE_SCALL:
     codegen_scall(s, tree, val);
-    break;
-
-  case NODE_LVAR:
-    codegen_lvar(s, node_to_sym(tree), val);
     break;
 
   case NODE_DEF:
