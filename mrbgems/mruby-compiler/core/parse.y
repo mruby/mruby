@@ -500,7 +500,6 @@ new_stmts(parser_state *p, node *body)
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
-
 /* (:begin body) - Always use variable-sized nodes */
 static node*
 new_begin(parser_state *p, node *body)
@@ -608,7 +607,6 @@ new_alias(parser_state *p, mrb_sym a, mrb_sym b)
 
 /* Forward declarations for variable-sized AST node creation functions */
 static node* new_def_var(parser_state *p, mrb_sym name, node *args, node *body);
-static node* new_asgn_var(parser_state *p, node *lhs, node *rhs);
 static node* new_masgn_var(parser_state *p, node *lhs, node *rhs);
 static node* new_op_asgn_var(parser_state *p, node *lhs, mrb_sym op, node *rhs);
 
@@ -870,25 +868,6 @@ new_def_var(parser_state *p, mrb_sym name, node *args, node *body)
   n->name = name;
   n->args = args;
   n->body = body;
-
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
-}
-
-
-
-
-/* Variable-sized assignment node creation */
-static node*
-new_asgn_var(parser_state *p, node *lhs, node *rhs)
-{
-  size_t total_size = sizeof(struct mrb_ast_asgn_node);
-  enum mrb_ast_size_class class = size_to_class(total_size);
-
-  struct mrb_ast_asgn_node *n = (struct mrb_ast_asgn_node*)parser_alloc_var(p, total_size, class);
-
-  init_var_header(&n->header, p, NODE_ASGN, class);
-  n->lhs = lhs;
-  n->rhs = rhs;
 
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
@@ -1310,7 +1289,6 @@ new_lvar(parser_state *p, mrb_sym sym)
   return cons_head((node*)NODE_LVAR, sym_to_node(sym));
 }
 
-
 /* (:nvar . a) */
 static node*
 new_nvar(parser_state *p, int num)
@@ -1686,10 +1664,17 @@ static node*
 new_asgn(parser_state *p, node *a, node *b)
 {
   void_expr_error(p, b);
-  if (p->var_nodes_enabled) {
-    return new_asgn_var(p, a, b);
-  }
-  return cons_head((node*)NODE_ASGN, cons(a, b));
+
+  size_t total_size = sizeof(struct mrb_ast_asgn_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_asgn_node *n = (struct mrb_ast_asgn_node*)parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->header, p, NODE_ASGN, class);
+  n->lhs = a;
+  n->rhs = b;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:masgn mlhs=(pre rest post)  mrhs) */

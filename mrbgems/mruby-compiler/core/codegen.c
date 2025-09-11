@@ -3879,12 +3879,6 @@ codegen_regx(codegen_scope *s, node *tree, int val)
 }
 
 static void
-codegen_asgn(codegen_scope *s, node *tree, int val)
-{
-  gen_assignment(s, tree->car, tree->cdr, 0, val);
-}
-
-static void
 codegen_def(codegen_scope *s, node *tree, int val)
 {
   int sym = new_sym(s, node_to_sym(tree->car));
@@ -4714,10 +4708,9 @@ static void
 gen_asgn_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_asgn_node *asgn_n = asgn_node(varnode);
-  node *lhs = ASGN_NODE_LHS(asgn_n);
-  node *rhs = ASGN_NODE_RHS(asgn_n);
+  node *lhs = asgn_n->lhs;
+  node *rhs = asgn_n->rhs;
 
-  /* Use existing assignment generation logic */
   gen_assignment(s, lhs, rhs, 0, val);
 }
 
@@ -5822,7 +5815,6 @@ gen_undef_var(codegen_scope *s, const node *varnode, int val)
   gen_load_nil(s, val);
 }
 
-
 static void
 gen_sdef_var(codegen_scope *s, const node *varnode, int val)
 {
@@ -6221,10 +6213,6 @@ codegen(codegen_scope *s, node *tree, int val)
     codegen_scall(s, tree, val);
     break;
 
-  case NODE_ASGN:
-    codegen_asgn(s, tree, val);
-    break;
-
   case NODE_MASGN:
     codegen_masgn(s, tree, val);
     break;
@@ -6236,7 +6224,6 @@ codegen(codegen_scope *s, node *tree, int val)
   case NODE_LVAR:
     codegen_lvar(s, node_to_sym(tree), val);
     break;
-
 
   case NODE_DEF:
     codegen_def(s, tree, val);
