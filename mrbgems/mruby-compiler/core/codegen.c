@@ -2305,11 +2305,11 @@ search_upvar(codegen_scope *s, mrb_sym id, int *idx)
  * @return The index of the newly created `mrb_irep` in the parent scope's `reps` array.
  */
 static int
-lambda_body(codegen_scope *s, node *tree, int blk)
+lambda_body_ex(codegen_scope *s, node *locals, node *args, node *body, int blk)
 {
   codegen_scope *parent = s;
   /* Create a new scope for the lambda/block body. */
-  s = scope_new(s->mrb, s, tree->car);
+  s = scope_new(s->mrb, s, locals);
 
   /* `mscope` is false for blocks, true for lambdas/methods. */
   s->mscope = !blk;
@@ -2319,10 +2319,9 @@ lambda_body(codegen_scope *s, node *tree, int blk)
     struct loopinfo *lp = loop_push(s, LOOP_BLOCK);
     lp->pc0 = new_label(s); /* Mark entry point for potential retry/redo. */
   }
-  tree = tree->cdr;
 
   /* Argument processing */
-  if (tree->car == NULL) { /* No arguments */
+  if (args == NULL) { /* No arguments */
     genop_W(s, OP_ENTER, 0); /* Generate OP_ENTER with no argument specification. */
     s->ainfo = 0;
   }
@@ -2335,17 +2334,17 @@ lambda_body(codegen_scope *s, node *tree, int blk)
     node *tail;
 
     /* mandatory arguments */
-    ma = node_len(tree->car->car);
-    margs = tree->car->car;
-    tail = tree->car->cdr->cdr->cdr->cdr;
+    ma = node_len(args->car);
+    margs = args->car;
+    tail = args->cdr->cdr->cdr->cdr;
 
     /* optional arguments */
-    oa = node_len(tree->car->cdr->car);
+    oa = node_len(args->cdr->car);
     /* rest argument? */
-    ra = tree->car->cdr->cdr->car ? 1 : 0;
+    ra = args->cdr->cdr->car ? 1 : 0;
     /* mandatory arguments after rest argument */
-    pa = node_len(tree->car->cdr->cdr->cdr->car);
-    pargs = tree->car->cdr->cdr->cdr->car;
+    pa = node_len(args->cdr->cdr->cdr->car);
+    pargs = args->cdr->cdr->cdr->car;
     /* keyword arguments */
     if (tail) {
       /* Handle variable-sized NODE_ARGS_TAIL */
@@ -2384,7 +2383,7 @@ lambda_body(codegen_scope *s, node *tree, int blk)
     if (oa > 0) {
       genjmp_0(s, OP_JMP); /* Jump to skip all default assignments if all optional args are provided. */
     }
-    opt = tree->car->cdr->car; /* AST node for optional arguments. */
+    opt = args->cdr->car; /* AST node for optional arguments. */
     i = 0;
     while (opt) { /* Iterate through optional arguments. */
       int idx;
@@ -2500,7 +2499,7 @@ lambda_body(codegen_scope *s, node *tree, int blk)
   }
 
   /* Generate code for the actual body of the lambda/block. */
-  codegen(s, tree->cdr->car, VAL);
+  codegen(s, body, VAL);
   pop(); /* Pop the result of the body. */
 
   /* Implicit return of the last evaluated expression. */
@@ -2513,6 +2512,18 @@ lambda_body(codegen_scope *s, node *tree, int blk)
   }
   scope_finish(s); /* Finalize the IREP for this lambda/block. */
   return parent->irep->rlen - 1; /* Return the index of this IREP in the parent's REP list. */
+}
+
+static int
+lambda_body(codegen_scope *s, node *tree, int blk)
+{
+  /* Extract locals, args, and body from the cons structure */
+  node *locals = tree->car;
+  node *args = tree->cdr ? tree->cdr->car : NULL;
+  node *body = (tree->cdr && tree->cdr->cdr) ? tree->cdr->cdr->car : NULL;
+
+  /* Call the new lambda_body_ex with individual parameters */
+  return lambda_body_ex(s, locals, args, body, blk);
 }
 
 /*
@@ -4330,16 +4341,19 @@ static void
 gen_def_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_def_node *def_n = def_node(varnode);
-  node *body = DEF_NODE_BODY(def_n);
+  int sym = new_sym(s, def_n->name);
 
-  /* For now, generate simple method definition - this can be optimized later */
-  if (body) {
-    codegen(s, body, val);
-  }
-  else if (val) {
-    genop_1(s, OP_LOADNIL, cursp());
-    push();
-  }
+  /* Call lambda_body_ex directly with individual parameters */
+  /* For NODE_DEF, args should contain the full locals structure from defn_setup */
+  int idx = lambda_body_ex(s, NULL, def_n->args, def_n->body, 0);
+
+  genop_1(s, OP_TCLASS, cursp());
+  push();
+  genop_2(s, OP_METHOD, cursp(), idx);
+  push(); pop();
+  pop();
+  genop_2(s, OP_DEF, cursp(), sym);
+  if (val) push();
 }
 
 /* Helper function for generating class/module/singleton class body */
@@ -5089,18 +5103,8 @@ gen_block_var(codegen_scope *s, node *varnode, int val)
 
   struct mrb_ast_block_node *n = block_node(varnode);
 
-  // Create stack-allocated node structure for lambda_body call
-  struct mrb_ast_node stack_nodes[4];
-  stack_nodes[0].car = (node*)NODE_BLOCK;
-  stack_nodes[0].cdr = &stack_nodes[1];
-  stack_nodes[1].car = n->locals;
-  stack_nodes[1].cdr = &stack_nodes[2];
-  stack_nodes[2].car = n->args;
-  stack_nodes[2].cdr = &stack_nodes[3];
-  stack_nodes[3].car = n->body;
-  stack_nodes[3].cdr = NULL;
-
-  int idx = lambda_body(s, &stack_nodes[1], 1);
+  /* Call lambda_body_ex directly with individual parameters */
+  int idx = lambda_body_ex(s, n->locals, n->args, n->body, 1);
   genop_2(s, OP_BLOCK, cursp(), idx);
   push();
 }
@@ -5532,18 +5536,8 @@ gen_lambda_var(codegen_scope *s, node *varnode, int val)
 
   struct mrb_ast_lambda_node *n = lambda_node(varnode);
 
-  // Create stack-allocated node structure for lambda_body call
-  struct mrb_ast_node stack_nodes[4];
-  stack_nodes[0].car = (node*)NODE_LAMBDA;
-  stack_nodes[0].cdr = &stack_nodes[1];
-  stack_nodes[1].car = n->locals;
-  stack_nodes[1].cdr = &stack_nodes[2];
-  stack_nodes[2].car = n->args;
-  stack_nodes[2].cdr = &stack_nodes[3];
-  stack_nodes[3].car = n->body;
-  stack_nodes[3].cdr = NULL;
-
-  int idx = lambda_body(s, &stack_nodes[1], 1);
+  /* Call lambda_body_ex directly with individual parameters */
+  int idx = lambda_body_ex(s, n->locals, n->args, n->body, 1);
   genop_2(s, OP_LAMBDA, cursp(), idx);
   push();
 }
@@ -5719,15 +5713,12 @@ static void
 gen_sdef_var(codegen_scope *s, const node *varnode, int val)
 {
   struct mrb_ast_sdef_node *sdef = sdef_node(varnode);
-
-  // Extract components and call codegen_sdef logic directly
   node *recv = sdef->obj;
-  mrb_sym method_sym = sdef->name;
-  node *args_body = sdef->args;
-  node *body = sdef->body;
+  int sym = new_sym(s, sdef->name);
 
-  int sym = new_sym(s, method_sym);
-  int idx = lambda_body(s, args_body ? args_body : body, 0);
+  /* Call lambda_body_ex directly with individual parameters */
+  /* For NODE_SDEF, args should contain the full locals structure from defs_setup */
+  int idx = lambda_body_ex(s, NULL, sdef->args, sdef->body, 0);
 
   codegen(s, recv, VAL);
   pop();
