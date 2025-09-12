@@ -2880,7 +2880,7 @@ gen_colon_assign_common(codegen_scope *s, node *rhs, int sp, int val, int idx, i
 }
 
 static void
-gen_colon2_assign_var(codegen_scope *s, node *varnode, node *rhs, int sp, int val)
+gen_colon2_assign(codegen_scope *s, node *varnode, node *rhs, int sp, int val)
 {
   struct mrb_ast_colon2_node *n = (struct mrb_ast_colon2_node*)varnode;
   int idx;
@@ -2896,7 +2896,7 @@ gen_colon2_assign_var(codegen_scope *s, node *varnode, node *rhs, int sp, int va
 }
 
 static void
-gen_colon3_assign_var(codegen_scope *s, node *varnode, node *rhs, int sp, int val)
+gen_colon3_assign(codegen_scope *s, node *varnode, node *rhs, int sp, int val)
 {
   struct mrb_ast_colon3_node *n = (struct mrb_ast_colon3_node*)varnode;
   int idx;
@@ -2968,10 +2968,10 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
         /* NODE_NIL assignment is complete - just break (splat without assignment) */
         break;
       case NODE_COLON2:
-        gen_colon2_assign_var(s, tree->cdr, rhs, sp, val);
+        gen_colon2_assign(s, tree->cdr, rhs, sp, val);
         return;
       case NODE_COLON3:
-        gen_colon3_assign_var(s, tree->cdr, rhs, sp, val);
+        gen_colon3_assign(s, tree->cdr, rhs, sp, val);
         return;
       case NODE_GVAR:
         gen_xvar_assignment(s, tree, rhs, sp, val, OP_SETGV);
