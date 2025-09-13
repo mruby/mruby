@@ -263,20 +263,6 @@ list4_gen(parser_state *p, node *a, node *b, node *c, node *d)
 #define list4(a,b,c,d) list4_gen(p, (a),(b),(c),(d))
 
 static node*
-list5_gen(parser_state *p, node *a, node *b, node *c, node *d, node *e)
-{
-  return cons_head(a, cons(b, cons(c, cons(d, cons(e, 0)))));
-}
-#define list5(a,b,c,d,e) list5_gen(p, (a),(b),(c),(d),(e))
-
-static node*
-list6_gen(parser_state *p, node *a, node *b, node *c, node *d, node *e, node *f)
-{
-  return cons_head(a, cons(b, cons(c, cons(d, cons(e, cons(f, 0))))));
-}
-#define list6(a,b,c,d,e,f) list6_gen(p, (a),(b),(c),(d),(e),(f))
-
-static node*
 append_gen(parser_state *p, node *a, node *b)
 {
   node *c = a;
@@ -605,9 +591,6 @@ new_alias(parser_state *p, mrb_sym a, mrb_sym b)
   return cons_head((node*)NODE_VARIABLE, (node*)alias_node);
 }
 
-/* Forward declarations for variable-sized AST node creation functions */
-static node* new_def_var(parser_state *p, mrb_sym name, node *args, node *body);
-
 /* (:if cond then else) */
 static node*
 new_if(parser_state *p, node *condition, node *then_body, node *else_body)
@@ -852,25 +835,6 @@ new_call_var(parser_state *p, node *receiver, mrb_sym method, node *args, int pa
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 #endif
-
-/* Variable-sized method definition node creation */
-static node*
-new_def_var(parser_state *p, mrb_sym name, node *args, node *body)
-{
-  size_t total_size = sizeof(struct mrb_ast_def_node);
-  enum mrb_ast_size_class class = size_to_class(total_size);
-
-  struct mrb_ast_def_node *n = (struct mrb_ast_def_node*)parser_alloc_var(p, total_size, class);
-
-  init_var_header(&n->header, p, NODE_DEF, class);
-  n->name = name;
-  n->args = args;
-  n->body = body;
-
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
-}
-
-/* Variable-sized simple node creation functions */
 
 /* (:fcall self mid args) */
 static node*
@@ -1357,56 +1321,51 @@ new_module(parser_state *p, node *m, node *b)
 
 /* (:def m lv (arg . body)) */
 static node*
-new_def(parser_state *p, mrb_sym m, node *a, node *b)
+new_def(parser_state *p, mrb_sym name)
 {
-  if (p->var_nodes_enabled) {
-    return new_def_var(p, m, a, b);
-  }
-  return list5((node*)NODE_DEF, sym_to_node(m), 0, a, b);
+  size_t total_size = sizeof(struct mrb_ast_def_node);
+  enum mrb_ast_size_class class = size_to_class(total_size);
+
+  struct mrb_ast_def_node *n = (struct mrb_ast_def_node*)parser_alloc_var(p, total_size, class);
+
+  init_var_header(&n->header, p, NODE_DEF, class);
+  n->name = name;
+  n->args = int_to_node(p->cmdarg_stack);
+  n->locals = local_switch(p);
+  n->body = NULL;
+
+  return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
 static void
 defn_setup(parser_state *p, node *d, node *a, node *b)
 {
-  node *n = d->cdr->cdr;
+  struct mrb_ast_def_node *n = def_node(d->cdr);
+  node *locals = n->locals;
 
-  n->car = locals_node(p);
-  p->cmdarg_stack = node_to_int(n->cdr->car);
-  n->cdr->car = a;
-  local_resume(p, n->cdr->cdr->car);
-  n->cdr->cdr->car = b;
+  n->locals = locals_node(p);
+  p->cmdarg_stack = node_to_int(n->args);
+  n->args = a;
+  n->body = b;
+  local_resume(p, locals);
 }
 
 /* (:sdef obj m lv (arg . body)) */
 static node*
-new_sdef(parser_state *p, node *o, mrb_sym m, node *a, node *b)
+new_sdef(parser_state *p, node *o, mrb_sym name)
 {
   void_expr_error(p, o);
-  if (!p->var_nodes_enabled) {
-    return list6((node*)NODE_SDEF, o, sym_to_node(m), 0, a, b);
-  }
 
   size_t total_size = sizeof(struct mrb_ast_sdef_node);
   enum mrb_ast_size_class class = size_to_class(total_size);
   struct mrb_ast_sdef_node *sdef_node = (struct mrb_ast_sdef_node*)parser_alloc_var(p, total_size, class);
-  init_var_header(&sdef_node->hdr, p, NODE_SDEF, class);
+  init_var_header(&sdef_node->header, p, NODE_SDEF, class);
   sdef_node->obj = o;
-  sdef_node->name = m;
-  sdef_node->args = a;
-  sdef_node->body = b;
+  sdef_node->name = name;
+  sdef_node->args = int_to_node(p->cmdarg_stack);
+  sdef_node->locals = local_switch(p);
+  sdef_node->body = NULL;
   return cons_head((node*)NODE_VARIABLE, (node*)sdef_node);
-}
-
-static void
-defs_setup(parser_state *p, node *d, node *a, node *b)
-{
-  node *n = d->cdr->cdr->cdr;
-
-  n->car = locals_node(p);
-  p->cmdarg_stack = node_to_int(n->cdr->car);
-  n->cdr->car = a;
-  local_resume(p, n->cdr->cdr->car);
-  n->cdr->cdr->car = b;
 }
 
 /* (:arg . sym) */
@@ -2711,7 +2670,7 @@ command_asgn    : lhs '=' command_rhs
                     {
                       $$ = $1;
                       void_expr_error(p, $4);
-                      defs_setup(p, $$, $2, $4);
+                      defn_setup(p, $$, $2, $4);
                       nvars_unnest(p);
                       p->in_def--;
                       p->in_single--;
@@ -2720,7 +2679,7 @@ command_asgn    : lhs '=' command_rhs
                     {
                       $$ = $1;
                       void_expr_error(p, $4);
-                      defs_setup(p, $$, $2, new_mod_rescue(p, $4, $6));
+                      defn_setup(p, $$, $2, new_mod_rescue(p, $4, $6));
                       nvars_unnest(p);
                       p->in_def--;
                       p->in_single--;
@@ -2762,7 +2721,7 @@ expr            : command_call
 
 defn_head       : keyword_def fname
                     {
-                      $$ = new_def(p, $2, int_to_node(p->cmdarg_stack), local_switch(p));
+                      $$ = new_def(p, $2);
                       p->cmdarg_stack = 0;
                       p->in_def++;
                       nvars_block(p);
@@ -2775,7 +2734,7 @@ defs_head       : keyword_def singleton dot_or_colon
                     }
                     fname
                     {
-                      $$ = new_sdef(p, $2, $5, int_to_node(p->cmdarg_stack), local_switch(p));
+                      $$ = new_sdef(p, $2, $5);
                       p->cmdarg_stack = 0;
                       p->in_def++;
                       p->in_single++;
@@ -3342,7 +3301,7 @@ arg             : lhs '=' arg_rhs
                     {
                       $$ = $1;
                       void_expr_error(p, $4);
-                      defs_setup(p, $$, $2, $4);
+                      defn_setup(p, $$, $2, $4);
                       nvars_unnest(p);
                       p->in_def--;
                       p->in_single--;
@@ -3351,7 +3310,7 @@ arg             : lhs '=' arg_rhs
                     {
                       $$ = $1;
                       void_expr_error(p, $4);
-                      defs_setup(p, $$, $2, new_mod_rescue(p, $4, $6));
+                      defn_setup(p, $$, $2, new_mod_rescue(p, $4, $6));
                       nvars_unnest(p);
                       p->in_def--;
                       p->in_single--;
@@ -3767,7 +3726,7 @@ primary         : literal
                   keyword_end
                     {
                       $$ = $1;
-                      defs_setup(p, $$, $2, $3);
+                      defn_setup(p, $$, $2, $3);
                       nvars_unnest(p);
                       p->in_def--;
                       p->in_single--;

@@ -252,11 +252,22 @@ struct mrb_ast_hash_node {
 struct mrb_ast_def_node {
   struct mrb_ast_var_header header;  /* 8 bytes */
   mrb_sym name;                      /* Method name */
-  struct mrb_ast_node *args;         /* Arguments node */
+  struct mrb_ast_node *args;         /* Method arguments */
   struct mrb_ast_node *body;         /* Method body */
+  struct mrb_ast_node *locals;       /* Local Variables */
+} ;
+
+/* Variable-sized singleton method definition node */
+struct mrb_ast_sdef_node {
+  struct mrb_ast_var_header header;  /* 8 bytes */
+  mrb_sym name;                      /* Method name */
+  struct mrb_ast_node *args;         /* Method arguments */
+  struct mrb_ast_node *body;         /* Method body */
+  struct mrb_ast_node *locals;       /* Local Variables */
+  struct mrb_ast_node *obj;          /* receiver */
 };
 
-/* Variable-sized class definition node */
+/* variable-sized class definition node */
 struct mrb_ast_class_node {
   struct mrb_ast_var_header header;  /* 8 bytes */
   struct mrb_ast_node *name;         /* Class name (NODE_CONST or NODE_COLON2) */
@@ -903,14 +914,6 @@ struct mrb_ast_undef_node {
 
 struct mrb_ast_postexe_node {
   struct mrb_ast_var_header hdr;
-  struct mrb_ast_node *body;
-};
-
-struct mrb_ast_sdef_node {
-  struct mrb_ast_var_header hdr;
-  struct mrb_ast_node *obj;
-  mrb_sym name;
-  struct mrb_ast_node *args;
   struct mrb_ast_node *body;
 };
 
