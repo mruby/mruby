@@ -155,6 +155,7 @@ static void catch_handler_set(codegen_scope *s, int ent, enum mrb_catch_type typ
 
 static void gen_massignment(codegen_scope *s, node *tree, int sp, int val);
 static void gen_masgn_var(codegen_scope *s, node *varnode, node *rhs, int sp, int val);
+static void gen_call_assign_var(codegen_scope *s, node *varnode, node *rhs, int sp, int val);
 
 static void codegen(codegen_scope *s, node *tree, int val);
 static void raise_error(codegen_scope *s, const char *msg);
@@ -2747,112 +2748,6 @@ gen_hash(codegen_scope *s, node *tree, int val, int limit)
   return len;
 }
 
-static void
-gen_call(codegen_scope *s, node *tree, int val, int safe)
-{
-  mrb_sym sym = node_to_sym(tree->cdr->car);
-  int skip = 0, n = 0, nk = 0, noop = no_optimize(s), noself = 0, blk = 0, sp_save = cursp();
-  enum mrb_insn opt_op = OP_NOP;
-
-  if (!noop) {
-    if (sym == MRB_OPSYM_2(s->mrb, add)) opt_op = OP_ADD;
-    else if (sym == MRB_OPSYM_2(s->mrb, sub)) opt_op = OP_SUB;
-    else if (sym == MRB_OPSYM_2(s->mrb, mul)) opt_op = OP_MUL;
-    else if (sym == MRB_OPSYM_2(s->mrb, div)) opt_op = OP_DIV;
-    else if (sym == MRB_OPSYM_2(s->mrb, lt)) opt_op = OP_LT;
-    else if (sym == MRB_OPSYM_2(s->mrb, le)) opt_op = OP_LE;
-    else if (sym == MRB_OPSYM_2(s->mrb, gt)) opt_op = OP_GT;
-    else if (sym == MRB_OPSYM_2(s->mrb, ge)) opt_op = OP_GE;
-    else if (sym == MRB_OPSYM_2(s->mrb, eq)) opt_op = OP_EQ;
-    else if (sym == MRB_OPSYM_2(s->mrb, aref)) opt_op = OP_GETIDX;
-    else if (sym == MRB_OPSYM_2(s->mrb, aset)) opt_op = OP_SETIDX;
-  }
-  if (!tree->car || (opt_op == OP_NOP &&
-      node_to_int(tree->car->car) == NODE_VARIABLE &&
-      VAR_NODE_TYPE(tree->car->cdr) == NODE_SELF)) {
-    noself = 1;
-    push();
-  }
-  else {
-    codegen(s, tree->car, VAL); /* receiver */
-  }
-  if (safe) {
-    int recv = cursp()-1;
-    gen_move(s, cursp(), recv, 1);
-    skip = genjmp2_0(s, OP_JMPNIL, cursp(), val);
-  }
-  tree = tree->cdr->cdr->car;
-  if (tree) {
-    if (tree->car) {            /* positional arguments */
-      n = gen_values(s, tree->car, VAL, 14);
-      if (n < 0) {              /* variable length */
-        noop = 1;               /* not operator */
-        n = 15;
-        push();
-      }
-    }
-    if (tree->cdr->car) {       /* keyword arguments */
-      noop = 1;
-      nk = gen_hash(s, tree->cdr->car->cdr, VAL, 14);
-      if (nk < 0) nk = 15;
-    }
-  }
-  if (tree && tree->cdr && tree->cdr->cdr) {
-    codegen(s, tree->cdr->cdr, VAL);
-    pop();
-    noop = 1;
-    blk = 1;
-  }
-  push();
-  s->sp = sp_save;
-  if (opt_op == OP_ADD && n == 1) {
-    gen_addsub(s, OP_ADD, cursp());
-  }
-  else if (opt_op == OP_SUB && n == 1) {
-    gen_addsub(s, OP_SUB, cursp());
-  }
-  else if (opt_op == OP_MUL && n == 1) {
-    gen_muldiv(s, OP_MUL, cursp());
-  }
-  else if (opt_op == OP_DIV && n == 1) {
-    gen_muldiv(s, OP_DIV, cursp());
-  }
-  else if (opt_op == OP_LT && n == 1) {
-    genop_1(s, OP_LT, cursp());
-  }
-  else if (opt_op == OP_LE && n == 1) {
-    genop_1(s, OP_LE, cursp());
-  }
-  else if (opt_op == OP_GT && n == 1) {
-    genop_1(s, OP_GT, cursp());
-  }
-  else if (opt_op == OP_GE && n == 1) {
-    genop_1(s, OP_GE, cursp());
-  }
-  else if (opt_op == OP_EQ && n == 1) {
-    genop_1(s, OP_EQ, cursp());
-  }
-  else if (opt_op == OP_SETIDX && n == 2) {
-    genop_1(s, OP_SETIDX, cursp());
-  }
-  else if (!noop && n == 0 && gen_uniop(s, sym, cursp())) {
-    /* constant folding succeeded */
-  }
-  else if (!noop && n == 1 && gen_binop(s, sym, cursp())) {
-    /* constant folding succeeded */
-  }
-  else if (noself) {
-    genop_3(s, blk ? OP_SSENDB : OP_SSEND, cursp(), new_sym(s, sym), n|(nk<<4));
-  }
-  else {
-    genop_3(s, blk ? OP_SENDB : OP_SEND, cursp(), new_sym(s, sym), n|(nk<<4));
-  }
-  if (safe) {
-    dispatch(s, skip);
-  }
-  if (!val) return;
-  push();
-}
 
 static void
 gen_colon_assign_common(codegen_scope *s, node *rhs, int sp, int val, int idx, int final_op)
@@ -2938,7 +2833,6 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
     break;
 
   case NODE_CALL:
-  case NODE_SCALL:
     /* keep evaluation order */
     break;
 
@@ -2997,6 +2891,9 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
           }
         }
         break;
+      case NODE_CALL:
+        gen_call_assign_var(s, tree->cdr, rhs, sp, val);
+        return;
       default:
         codegen_error(s, "unsupported variable-sized lhs");
         break;
@@ -3013,97 +2910,6 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
 
   tree = tree->cdr;
   switch (type) {
-  case NODE_CALL:
-  case NODE_SCALL:
-    {
-      int noself = 0, safe = (type == NODE_SCALL), skip = 0, top, call, n = 0;
-      mrb_sym mid = node_to_sym(tree->cdr->car);
-
-      top = cursp();
-      if (val || sp == cursp()) {
-        push();                   /* room for retval */
-      }
-      call = cursp();
-      if (!tree->car) {
-        noself = 1;
-        push();
-      }
-      else {
-        codegen(s, tree->car, VAL); /* receiver */
-      }
-      if (safe) {
-        int recv = cursp()-1;
-        gen_move(s, cursp(), recv, 1);
-        skip = genjmp2_0(s, OP_JMPNIL, cursp(), val);
-      }
-      tree = tree->cdr->cdr->car;
-      if (tree) {
-        if (tree->car) {            /* positional arguments */
-          n = gen_values(s, tree->car, VAL, (tree->cdr->car)?13:14);
-          if (n < 0) {              /* variable length */
-            n = 15;
-            push();
-          }
-        }
-        if (tree->cdr->car) {       /* keyword arguments */
-          if (n == 13 || n == 14) {
-            pop_n(n);
-            genop_2(s, OP_ARRAY, cursp(), n);
-            push();
-            n = 15;
-          }
-          gen_hash(s, tree->cdr->car->cdr, VAL, 0);
-          if (n < 14) {
-            n++;
-          }
-          else {
-            pop_n(2);
-            genop_2(s, OP_ARYPUSH, cursp(), 1);
-          }
-          push();
-        }
-      }
-      if (rhs) {
-        codegen(s, rhs, VAL);
-        pop();
-      }
-      else {
-        gen_move(s, cursp(), sp, 0);
-      }
-      if (val) {
-        gen_move(s, top, cursp(), 1);
-      }
-      if (n < 15) {
-        n++;
-        if (n == 15) {
-          pop_n(14);
-          genop_2(s, OP_ARRAY, cursp(), 15);
-        }
-      }
-      else {
-        pop();
-        genop_2(s, OP_ARYPUSH, cursp(), 1);
-      }
-      push(); pop();
-      s->sp = call;
-      if (mid == MRB_OPSYM_2(s->mrb, aref) && n == 2) {
-        push_n(4); pop_n(4); /* self + idx + value + (invisible block for OP_SEND) */
-        genop_1(s, OP_SETIDX, cursp());
-      }
-      else {
-        int st = 2 /* self + block */ +
-                 (((n >> 0) & 0x0f) < 15 ? ((n >> 0) & 0x0f)     : 1) +
-                 (((n >> 4) & 0x0f) < 15 ? ((n >> 4) & 0x0f) * 2 : 1);
-        push_n(st); pop_n(st);
-        genop_3(s, noself ? OP_SSEND : OP_SEND, cursp(), new_sym(s, attrsym(s, mid)), n);
-      }
-      if (safe) {
-        dispatch(s, skip);
-      }
-      s->sp = top;
-    }
-    break;
-
   /* splat without assignment */
   case NODE_NIL:
     break;
@@ -3475,17 +3281,7 @@ gen_hash_var(codegen_scope *s, node *varnode, int val)
   }
 }
 
-static void
-codegen_call_fcall(codegen_scope *s, node *tree, int val)
-{
-  gen_call(s, tree, val, 0);
-}
 
-static void
-codegen_scall(codegen_scope *s, node *tree, int val)
-{
-  gen_call(s, tree, val, 1);
-}
 
 /* Common function to generate bytecode for cons list string representation
  * Handles list of elements where each element is either:
@@ -3652,8 +3448,8 @@ gen_call_var(codegen_scope *s, node *varnode, int val)
   mrb_sym sym = CALL_NODE_METHOD(call);
   int skip = 0, n = 0, nk = 0, noop = no_optimize(s), noself = 0, blk = 0, sp_save = cursp();
   enum mrb_insn opt_op = OP_NOP;
-  int argc = CALL_NODE_ARGC(call);
   int safe = CALL_NODE_SAFE(call);
+  node *args = call->args;
 
   if (!noop) {
     if (sym == MRB_OPSYM_2(s->mrb, add)) opt_op = OP_ADD;
@@ -3669,12 +3465,14 @@ gen_call_var(codegen_scope *s, node *varnode, int val)
     else if (sym == MRB_OPSYM_2(s->mrb, aset)) opt_op = OP_SETIDX;
   }
 
-  if (!CALL_NODE_RECEIVER(call)) {
+  if (!call->receiver || (opt_op == OP_NOP &&
+      node_to_int(call->receiver->car) == NODE_VARIABLE &&
+      VAR_NODE_TYPE(call->receiver->cdr) == NODE_SELF)) {
     noself = 1;
     push();
   }
   else {
-    codegen(s, CALL_NODE_RECEIVER(call), VAL); /* receiver */
+    codegen(s, call->receiver, VAL); /* receiver */
   }
 
   if (safe) {
@@ -3683,31 +3481,35 @@ gen_call_var(codegen_scope *s, node *varnode, int val)
     skip = genjmp2_0(s, OP_JMPNIL, cursp(), val);
   }
 
-  /* Generate arguments */
-  n = argc;
-  if (argc > 0) {
-    struct mrb_ast_node **args = CALL_NODE_ARGS(call);
-    int i;
-    for (i = 0; i < argc; i++) {
-      codegen(s, args[i], VAL);
-    }
-    if (n > 14) {
-      noop = 1;
+  /* Generate arguments - use gen_values to properly handle splat */
+  if (args && args->car) {
+    n = gen_values(s, args->car, VAL, 14);
+    if (n < 0) {              /* variable length (contains splat) */
       n = 15;
       push();
+      noop = 1;
     }
   }
 
   /* Handle keyword arguments if present */
   if (CALL_NODE_HAS_KWARGS(call)) {
-    noop = 1;
-    nk = 1; /* Simplified - would need proper kwarg handling */
+    if (args && args->cdr && args->cdr->car) {
+      nk = gen_hash(s, args->cdr->car->cdr, VAL, 14);
+      if (nk < 0) {
+        nk = 15;
+      }
+      noop = 1;
+    }
   }
 
   /* Handle block if present */
   if (CALL_NODE_HAS_BLOCK(call)) {
-    noop = 1;
-    blk = 1;
+    if (args && args->cdr && args->cdr->cdr) {
+      codegen(s, args->cdr->cdr, VAL);
+      pop();
+      blk = 1;
+      noop = 1;
+    }
   }
 
   push();
@@ -3762,6 +3564,150 @@ gen_call_var(codegen_scope *s, node *varnode, int val)
   }
   if (!val) return;
   push();
+}
+
+static void
+gen_call_assign_var(codegen_scope *s, node *varnode, node *rhs, int sp, int val)
+{
+  enum node_type var_type = VAR_NODE_TYPE(varnode);
+  int noself = 0, safe = 0, skip = 0, top, callsp, n = 0, nk = 0;
+  mrb_sym mid = 0;
+  node *args = NULL;
+  node *receiver = NULL;
+  enum mrb_insn opt_op = OP_NOP;
+  int noop = no_optimize(s);
+
+  /* Extract information based on node type */
+  if (var_type == NODE_CALL) {
+    struct mrb_ast_call_node *call = call_node(varnode);
+    mid = call->method_name;
+    args = call->args;
+    receiver = call->receiver;
+    safe = call->safe_call;
+  }
+  else {
+    codegen_error(s, "unsupported call type in assignment");
+    return;
+  }
+
+  /* Convert method name to assignment form (e.g., [] -> []=) */
+  mrb_sym assign_mid = attrsym(s, mid);
+
+  /* Check for optimizable operations */
+  if (!noop) {
+    if (mid == MRB_OPSYM_2(s->mrb, aref)) opt_op = OP_SETIDX;
+  }
+
+  top = cursp();
+  if (val || sp == cursp()) {
+    push();                   /* room for retval */
+  }
+  callsp = cursp();
+
+  /* Generate receiver */
+  if (!receiver) {
+    noself = 1;
+    push();
+  }
+  else {
+    codegen(s, receiver, VAL); /* receiver */
+  }
+
+  /* Handle safe navigation */
+  if (safe) {
+    int recv = cursp()-1;
+    gen_move(s, cursp(), recv, 1);
+    skip = genjmp2_0(s, OP_JMPNIL, cursp(), val);
+  }
+
+  /* Generate arguments from original call */
+  if (args && args->car) {
+    node *regular_args = args->car;
+    node *arg_iter = regular_args;
+    while (arg_iter) {
+      codegen(s, arg_iter->car, VAL);
+      n++;
+      arg_iter = arg_iter->cdr;
+    }
+    if (n > 13) {  /* leave room for rhs */
+      pop_n(n);
+      genop_2(s, OP_ARRAY, cursp(), n);
+      push();
+      n = 15;
+      noop = 1;
+    }
+  }
+
+  /* Handle keyword arguments if present */
+  if (args && args->cdr && args->cdr->car) {
+    node *kwargs = args->cdr->car;
+    if (n == 13 || n == 14) {
+      pop_n(n);
+      genop_2(s, OP_ARRAY, cursp(), n);
+      push();
+      n = 15;
+    }
+    gen_hash(s, kwargs->cdr, VAL, 0);
+    if (n < 14) {
+      n++;
+    }
+    else {
+      pop_n(2);
+      genop_2(s, OP_ARYPUSH, cursp(), 1);
+    }
+    push();
+    noop = 1;
+  }
+
+  /* Generate rhs (the assigned value) */
+  if (rhs) {
+    codegen(s, rhs, VAL);
+    pop();
+  }
+  else {
+    /* For compound assignments, move the computed value from sp to cursp() */
+    gen_move(s, cursp(), sp, 0);
+  }
+  if (val) {
+    gen_move(s, top, cursp(), 1);
+  }
+  /* Account for the value being assigned (either from rhs or already on stack) */
+  if (n < 14) {
+    n++;
+  }
+  else {
+    if (rhs) {
+      pop_n(2);
+      genop_2(s, OP_ARYPUSH, cursp(), 1);
+      push();
+    }
+  }
+
+  /* Generate the optimized instruction or method call */
+  push(); push();
+  s->sp = callsp;
+
+  if (opt_op == OP_SETIDX && n == 2) {
+    /* Always preserve return value for SETIDX - assignments return the assigned value */
+    genop_1(s, OP_SETIDX, cursp());
+  }
+  else if (noself) {
+    genop_3(s, OP_SSEND, cursp(), new_sym(s, assign_mid), n|(nk<<4));
+  }
+  else {
+    genop_3(s, OP_SEND, cursp(), new_sym(s, assign_mid), n|(nk<<4));
+  }
+
+  if (safe) {
+    dispatch(s, skip);
+  }
+
+  /* Restore stack pointer like legacy code */
+  s->sp = top;
+
+  if (val) {
+    push();
+  }
 }
 
 static void
@@ -5412,22 +5358,6 @@ gen_defined_var(codegen_scope *s, node *varnode, int val)
   }
 }
 
-// Group 12: Function Calls and Special Forms
-static void
-gen_fcall_var(codegen_scope *s, node *varnode, int val)
-{
-  struct mrb_ast_fcall_node *n = fcall_node(varnode);
-  // Create a stack-allocated node structure for traditional codegen
-  struct mrb_ast_node stack_nodes[3];
-  stack_nodes[0].car = NULL; // no receiver (self)
-  stack_nodes[0].cdr = &stack_nodes[1];
-  stack_nodes[1].car = (node*)(intptr_t)n->method_name; // method name as int
-  stack_nodes[1].cdr = &stack_nodes[2];
-  stack_nodes[2].car = n->args;
-  stack_nodes[2].cdr = NULL;
-  gen_call(s, &stack_nodes[0], val, 0);
-}
-
 static void
 gen_zsuper_var(codegen_scope *s, node *varnode, int val)
 {
@@ -5940,10 +5870,6 @@ codegen_variable_node(codegen_scope *s, node *varnode, int val)
     gen_defined_var(s, varnode, val);
     return TRUE;
 
-  case NODE_FCALL:
-    gen_fcall_var(s, varnode, val);
-    return TRUE;
-
   case NODE_ZSUPER:
     gen_zsuper_var(s, varnode, val);
     return TRUE;
@@ -6028,7 +5954,6 @@ codegen(codegen_scope *s, node *tree, int val)
   }
 
   head = (struct mrb_ast_head_node*)tree;
-  nt = node_to_int(tree->car);
 
   s->rlev++;
   if (s->rlev > MRB_CODEGEN_LEVEL_MAX) {
@@ -6047,24 +5972,11 @@ codegen(codegen_scope *s, node *tree, int val)
     s->filename_sym = mrb_parser_get_filename(s->parser, head->filename_index);
   }
 
+  nt = node_to_int(tree->car);
   s->lineno = head->lineno;
   tree = tree->cdr;
-  switch (nt) {
-
-  case NODE_CALL:
-  case NODE_FCALL:
-    codegen_call_fcall(s, tree, val);
-    break;
-  case NODE_SCALL:
-    codegen_scall(s, tree, val);
-    break;
-
-  case NODE_VARIABLE:
+  if (nt == NODE_VARIABLE) {
     codegen_variable_node(s, tree, val);
-    break;
-
-  default:
-    break;
   }
   s->rlev = rlev;
 }

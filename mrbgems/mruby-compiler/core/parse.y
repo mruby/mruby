@@ -256,13 +256,6 @@ list3_gen(parser_state *p, node *a, node *b, node *c)
 #define list3(a,b,c) list3_gen(p, (a),(b),(c))
 
 static node*
-list4_gen(parser_state *p, node *a, node *b, node *c, node *d)
-{
-  return cons_head(a, cons(b, cons(c, cons(d, 0))));
-}
-#define list4(a,b,c,d) list4_gen(p, (a),(b),(c),(d))
-
-static node*
 append_gen(parser_state *p, node *a, node *b)
 {
   node *c = a;
@@ -759,99 +752,49 @@ new_self(parser_state *p)
 
 /* (:call a b c) */
 static node*
-new_call(parser_state *p, node *a, mrb_sym b, node *c, int pass)
+new_call(parser_state *p, node *receiver, mrb_sym method, node *args, int pass)
 {
-  node *n = list4(int_to_node(pass?NODE_CALL:NODE_SCALL), a, sym_to_node(b), c);
-  void_expr_error(p, a);
-  return n;
-}
-
-#if 0
-/* Variable-sized call node creation */
-static node*
-new_call_var(parser_state *p, node *receiver, mrb_sym method, node *args, int pass)
-{
-  /* Analyze the arguments to determine size needed */
-  uint8_t argc = 0;
+  /* Analyze the arguments to determine structure */
   uint8_t has_kwargs = 0;
   uint8_t has_block = 0;
-  node *regular_args = NULL, *kwargs = NULL, *block = NULL;
 
   if (args) {
-    regular_args = args->car;
+    /* Check for kwargs and block */
     if (args->cdr) {
-      kwargs = args->cdr->car;
-      has_kwargs = (kwargs != NULL);
+      has_kwargs = (args->cdr->car != NULL);
       if (args->cdr->cdr) {
-        block = args->cdr->cdr;
-        has_block = (block != NULL);
+        has_block = (args->cdr->cdr != NULL);
       }
     }
   }
 
-  /* Count regular arguments */
-  node *arg_iter = regular_args;
-  while (arg_iter) {
-    argc++;
-    arg_iter = arg_iter->cdr;
-  }
-
-  /* Calculate total size needed */
-  size_t base_size = sizeof(struct mrb_ast_call_node);
-  size_t args_size = argc * sizeof(struct mrb_ast_node*);
-  size_t kwargs_size = has_kwargs ? sizeof(struct mrb_ast_node*) : 0;
-  size_t block_size = has_block ? sizeof(struct mrb_ast_node*) : 0;
-  size_t total_size = base_size + args_size + kwargs_size + block_size;
-
+  /* Calculate size needed (fixed size now) */
+  size_t total_size = sizeof(struct mrb_ast_call_node);
   enum mrb_ast_size_class class = size_to_class(total_size);
 
   struct mrb_ast_call_node *n = (struct mrb_ast_call_node*)parser_alloc_var(p, total_size, class);
 
-  init_var_header(&n->header, p, pass ? NODE_CALL : NODE_SCALL, class);
+  init_var_header(&n->header, p, NODE_CALL, class);
   n->receiver = receiver;
   n->method_name = method;
-  n->argc = argc;
+  n->argc = 0; /* argc will be determined at codegen time to handle splats */
   n->has_kwargs = has_kwargs;
   n->has_block = has_block;
-  n->safe_call = (pass == 2); /* Assuming pass == 2 means safe call (&.) */
+  n->safe_call = (pass == 0); /* pass == 0 means safe call (&.) */
   n->reserved = 0;
 
-  /* Copy regular arguments into flexible array */
-  arg_iter = regular_args;
-  for (int i = 0; i < argc; i++) {
-    n->args[i] = arg_iter->car;
-    arg_iter = arg_iter->cdr;
-  }
-
-  /* Add kwargs and block after regular arguments */
-  if (has_kwargs) {
-    n->args[argc] = kwargs;
-  }
-  if (has_block) {
-    n->args[argc + (has_kwargs ? 1 : 0)] = block;
-  }
+  /* Store args pointer directly - no need to unpack and repack */
+  n->args = args;
 
   void_expr_error(p, receiver);
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
-#endif
 
 /* (:fcall self mid args) */
 static node*
 new_fcall(parser_state *p, mrb_sym b, node *c)
 {
-  if (!p->var_nodes_enabled) {
-    node *n = list4((node*)NODE_FCALL, 0, sym_to_node(b), c);
-    return n;
-  }
-
-  size_t total_size = sizeof(struct mrb_ast_fcall_node);
-  enum mrb_ast_size_class class = size_to_class(total_size);
-  struct mrb_ast_fcall_node *fcall_node = (struct mrb_ast_fcall_node*)parser_alloc_var(p, total_size, class);
-  init_var_header(&fcall_node->hdr, p, NODE_FCALL, class);
-  fcall_node->method_name = b;
-  fcall_node->args = c;
-  return cons_head((node*)NODE_VARIABLE, (node*)fcall_node);
+  return new_call(p, NULL, b, c, '.');
 }
 
 /* (a b . c) */
@@ -2020,8 +1963,6 @@ endless_method_name(parser_state *p, node *defn)
 static void
 call_with_block(parser_state *p, node *a, node *b)
 {
-  node *n;
-
   switch (node_to_type(a->car)) {
   case NODE_VARIABLE:
     /* Handle variable-sized nodes wrapped in NODE_VARIABLE */
@@ -2064,16 +2005,29 @@ call_with_block(parser_state *p, node *a, node *b)
         call_with_block(p, next_n->value, b);
         return;
       }
+      else if (var_type == NODE_CALL) {
+        /* Variable-sized call nodes - add block to existing args */
+        struct mrb_ast_call_node *call = call_node(a->cdr);
+
+        if (call->has_block) {
+          yyerror(NULL, p, "both block arg and actual block given");
+          return;
+        }
+        call->has_block = 1;
+
+        /* Use existing args and add block */
+        if (call->args) {
+          /* Modify existing callargs structure to add block */
+          args_with_block(p, call->args, b);
+        }
+        else {
+          /* Create new callargs with just the block */
+          call->args = new_callargs(p, NULL, NULL, b);
+        }
+        return;
+      }
     }
     /* For other variable-sized nodes, fall through to default */
-    break;
-  case NODE_CALL:
-  case NODE_FCALL:
-  case NODE_SCALL:
-    /* (NODE_CALL recv mid (args kw . blk)) */
-    n = a->cdr->cdr->cdr; /* (args kw . blk) */
-    if (!n->car) n->car = new_callargs(p, 0, 0, b);
-    else args_with_block(p, n->car, b);
     break;
   default:
     break;
@@ -8162,19 +8116,8 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     offset++;
     goto again;
 
-  case NODE_FCALL:
   case NODE_CALL:
-  case NODE_SCALL:
-    switch (nodetype) {
-    case NODE_FCALL:
-      printf("NODE_FCALL:\n"); break;
-    case NODE_CALL:
-      printf("NODE_CALL(.):\n"); break;
-    case NODE_SCALL:
-      printf("NODE_SCALL(&.):\n"); break;
-    default:
-      break;
-    }
+    printf("NODE_CALL(.):\n"); break;
     mrb_parser_dump(mrb, tree->car, offset+1);
     dump_prefix(tree, offset+1);
     printf("method='%s' (%d)\n",

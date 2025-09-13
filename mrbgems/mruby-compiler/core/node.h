@@ -32,8 +32,6 @@ enum node_type {
   NODE_ASGN,
   NODE_OP_ASGN,
   NODE_CALL,
-  NODE_SCALL,
-  NODE_FCALL,
   NODE_SUPER,
   NODE_ZSUPER,
   NODE_ARRAY,
@@ -221,12 +219,7 @@ struct mrb_ast_call_node {
   uint8_t has_block:1;               /* Has block argument */
   uint8_t safe_call:1;               /* Safe navigation (&.) */
   uint8_t reserved:5;                /* Reserved for future flags */
-  /* Followed by variable data:
-   * - argc * sizeof(struct mrb_ast_node*) for regular arguments
-   * - struct mrb_ast_node* for kwargs (if has_kwargs)
-   * - struct mrb_ast_node* for block (if has_block)
-   */
-  struct mrb_ast_node *args[];       /* Flexible array for arguments */
+  struct mrb_ast_node *args;         /* Arguments Information */
 };
 
 /* Variable-sized array node with inline element storage */
@@ -802,13 +795,6 @@ struct mrb_ast_defined_node {
 #define DEFINED_NODE_EXPR(n) (defined_node(n)->expr)
 
 // Group 12: Function Calls and Special Forms
-struct mrb_ast_fcall_node {
-  struct mrb_ast_var_header hdr;
-  mrb_sym method_name;
-  struct mrb_ast_node *args;
-};
-
-
 struct mrb_ast_lambda_node {
   struct mrb_ast_var_header hdr;
   struct mrb_ast_node *locals;
@@ -917,7 +903,6 @@ struct mrb_ast_postexe_node {
   struct mrb_ast_node *body;
 };
 
-#define fcall_node(n) ((struct mrb_ast_fcall_node*)(n))
 #define zsuper_node(n) ((struct mrb_ast_super_node*)(n))
 #define lambda_node(n) ((struct mrb_ast_lambda_node*)(n))
 #define zarray_node(n) ((struct mrb_ast_zarray_node*)(n))
@@ -940,8 +925,6 @@ struct mrb_ast_postexe_node {
 #define postexe_node(n) ((struct mrb_ast_postexe_node*)(n))
 #define sdef_node(n) ((struct mrb_ast_sdef_node*)(n))
 
-#define FCALL_NODE_METHOD_NAME(n) (fcall_node(n)->method_name)
-#define FCALL_NODE_ARGS(n) (fcall_node(n)->args)
 #define LAMBDA_NODE_LOCALS(n) (lambda_node(n)->locals)
 #define LAMBDA_NODE_ARGS(n) (lambda_node(n)->args)
 #define LAMBDA_NODE_BODY(n) (lambda_node(n)->body)
