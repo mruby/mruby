@@ -1963,73 +1963,81 @@ endless_method_name(parser_state *p, node *defn)
 static void
 call_with_block(parser_state *p, node *a, node *b)
 {
-  switch (node_to_type(a->car)) {
-  case NODE_VARIABLE:
-    /* Handle variable-sized nodes wrapped in NODE_VARIABLE */
+  /* Only handle variable-sized nodes wrapped in NODE_VARIABLE */
+  if (node_to_type(a->car) != NODE_VARIABLE) {
+    return;
+  }
+
+  enum node_type var_type = VAR_NODE_TYPE(a->cdr);
+  switch (var_type) {
+  case NODE_SUPER:
+  case NODE_ZSUPER:
+    /* For variable-sized super/zsuper nodes, update the args field directly */
     {
-      enum node_type var_type = VAR_NODE_TYPE(a->cdr);
-      if (var_type == NODE_SUPER || var_type == NODE_ZSUPER) {
-        /* For variable-sized super/zsuper nodes, we need to update the args field directly */
-        struct mrb_ast_super_node *super_n = super_node(a->cdr);
-        if (!super_n->args) {
-          super_n->args = new_callargs(p, 0, 0, b);
-        }
-        else {
-          args_with_block(p, super_n->args, b);
-        }
-        return;
+      struct mrb_ast_super_node *super_n = super_node(a->cdr);
+      if (!super_n->args) {
+        super_n->args = new_callargs(p, 0, 0, b);
       }
-      else if (var_type == NODE_YIELD) {
-        /* Variable-sized yield nodes should generate an error when given a block */
-        yyerror(NULL, p, "block given to yield");
-        return;
-      }
-      else if (var_type == NODE_RETURN) {
-        /* Variable-sized return nodes - recursively call with args */
-        struct mrb_ast_return_node *return_n = return_node(a->cdr);
-        if (return_n->args == NULL) return;
-        call_with_block(p, return_n->args, b);
-        return;
-      }
-      else if (var_type == NODE_BREAK) {
-        /* Variable-sized break nodes - recursively call with value */
-        struct mrb_ast_break_node *break_n = (struct mrb_ast_break_node*)a->cdr;
-        if (break_n->value == NULL) return;
-        call_with_block(p, break_n->value, b);
-        return;
-      }
-      else if (var_type == NODE_NEXT) {
-        /* Variable-sized next nodes - recursively call with value */
-        struct mrb_ast_next_node *next_n = (struct mrb_ast_next_node*)a->cdr;
-        if (next_n->value == NULL) return;
-        call_with_block(p, next_n->value, b);
-        return;
-      }
-      else if (var_type == NODE_CALL) {
-        /* Variable-sized call nodes - add block to existing args */
-        struct mrb_ast_call_node *call = call_node(a->cdr);
-
-        if (call->has_block) {
-          yyerror(NULL, p, "both block arg and actual block given");
-          return;
-        }
-        call->has_block = 1;
-
-        /* Use existing args and add block */
-        if (call->args) {
-          /* Modify existing callargs structure to add block */
-          args_with_block(p, call->args, b);
-        }
-        else {
-          /* Create new callargs with just the block */
-          call->args = new_callargs(p, NULL, NULL, b);
-        }
-        return;
+      else {
+        args_with_block(p, super_n->args, b);
       }
     }
-    /* For other variable-sized nodes, fall through to default */
+    break;
+  case NODE_YIELD:
+    /* Variable-sized yield nodes should generate an error when given a block */
+    yyerror(NULL, p, "block given to yield");
+    break;
+  case NODE_RETURN:
+    /* Variable-sized return nodes - recursively call with args */
+    {
+      struct mrb_ast_return_node *return_n = return_node(a->cdr);
+      if (return_n->args != NULL) {
+        call_with_block(p, return_n->args, b);
+      }
+    }
+    break;
+  case NODE_BREAK:
+    /* Variable-sized break nodes - recursively call with value */
+    {
+      struct mrb_ast_break_node *break_n = (struct mrb_ast_break_node*)a->cdr;
+      if (break_n->value != NULL) {
+        call_with_block(p, break_n->value, b);
+      }
+    }
+    break;
+  case NODE_NEXT:
+    /* Variable-sized next nodes - recursively call with value */
+    {
+      struct mrb_ast_next_node *next_n = (struct mrb_ast_next_node*)a->cdr;
+      if (next_n->value != NULL) {
+        call_with_block(p, next_n->value, b);
+      }
+    }
+    break;
+  case NODE_CALL:
+    /* Variable-sized call nodes - add block to existing args */
+    {
+      struct mrb_ast_call_node *call = call_node(a->cdr);
+
+      if (call->has_block) {
+        yyerror(NULL, p, "both block arg and actual block given");
+        return;
+      }
+      call->has_block = 1;
+
+      /* Use existing args and add block */
+      if (call->args) {
+        /* Modify existing callargs structure to add block */
+        args_with_block(p, call->args, b);
+      }
+      else {
+        /* Create new callargs with just the block */
+        call->args = new_callargs(p, NULL, NULL, b);
+      }
+    }
     break;
   default:
+    /* For other variable-sized nodes, do nothing */
     break;
   }
 }
