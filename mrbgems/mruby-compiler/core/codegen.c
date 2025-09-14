@@ -5616,327 +5616,6 @@ gen_sdef_var(codegen_scope *s, const node *varnode, int val)
   if (val) push();
 }
 
-static mrb_bool
-codegen_variable_node(codegen_scope *s, node *varnode, int val)
-{
-  enum node_type nt = VAR_NODE_TYPE(varnode);
-
-  switch (nt) {
-  case NODE_INT:
-    if (val) {
-      gen_int(s, cursp(), INT_NODE_VALUE(varnode));
-      push();
-    }
-    return TRUE;
-
-  case NODE_BIGINT:
-    if (val) {
-      char *str = BIGINT_NODE_STRING(varnode);
-      int base = BIGINT_NODE_BASE(varnode);
-      int off = new_litbint(s, str, base);
-      genop_2(s, OP_LOADL, cursp(), off);
-      push();
-    }
-    return TRUE;
-
-  case NODE_SYM:
-    {
-      int i = new_sym(s, SYM_NODE_VALUE(varnode));
-      gen_load_op2(s, OP_LOADSYM, i, val);
-    }
-    return TRUE;
-
-  case NODE_LVAR:
-    gen_lvar(s, VAR_NODE_SYMBOL(varnode), val);
-    return TRUE;
-
-  case NODE_GVAR:
-    gen_xvar(s, VAR_NODE_SYMBOL(varnode), val, OP_GETGV);
-    return TRUE;
-
-  case NODE_IVAR:
-    gen_xvar(s, VAR_NODE_SYMBOL(varnode), val, OP_GETIV);
-    return TRUE;
-
-  case NODE_CVAR:
-    gen_xvar(s, VAR_NODE_SYMBOL(varnode), val, OP_GETCV);
-    return TRUE;
-
-  case NODE_CALL:
-    gen_call_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_ARRAY:
-    gen_array_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_HASH:
-    gen_hash_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_IF:
-    gen_if_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_WHILE:
-    gen_while_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_UNTIL:
-    gen_until_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_FOR:
-    gen_for_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_CASE:
-    gen_case_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_DEF:
-    gen_def_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_CLASS:
-    gen_class_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_MODULE:
-    gen_module_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_SCLASS:
-    gen_sclass_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_ASGN:
-    gen_asgn_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_MASGN:
-    gen_masgn_var(s, varnode, NULL, 0, val);
-    return TRUE;
-
-  case NODE_OP_ASGN:
-    gen_op_asgn_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_AND:
-    gen_and_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_OR:
-    gen_or_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_RETURN:
-    gen_return_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_YIELD:
-    gen_yield_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_SUPER:
-    gen_super_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_STR:
-    gen_str_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_REGX:
-    gen_regx_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_DOT2:
-    gen_dot2_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_DOT3:
-    gen_dot3_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_FLOAT:
-    gen_float_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_SELF:
-    gen_self_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_NIL:
-    gen_nil_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_TRUE:
-    gen_true_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_FALSE:
-    gen_false_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_CONST:
-    gen_const_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_RESCUE:
-    gen_rescue_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_BLOCK:
-    gen_block_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_BREAK:
-    gen_break_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_NEXT:
-    gen_next_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_REDO:
-    gen_redo_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_RETRY:
-    gen_retry_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_WHILE_MOD:
-    gen_while_mod_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_UNTIL_MOD:
-    gen_until_mod_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_XSTR:
-    gen_xstr_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_DREGX:
-    gen_dregx_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_HEREDOC:
-    gen_heredoc_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_DSYM:
-    gen_dsym_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_NTH_REF:
-    gen_nth_ref_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_BACK_REF:
-    gen_back_ref_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_NVAR:
-    gen_nvar_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_DVAR:
-    gen_dvar_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_MATCH:
-    gen_match_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_NOT:
-    gen_not_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_NEGATE:
-    gen_negate_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_COLON2:
-    gen_colon2_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_COLON3:
-    gen_colon3_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_DEFINED:
-    gen_defined_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_ZSUPER:
-    gen_zsuper_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_LAMBDA:
-    gen_lambda_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_KW_HASH:
-    gen_kw_hash_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_WORDS:
-    gen_words_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_SYMBOLS:
-    gen_symbols_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_SPLAT:
-    gen_splat_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_BLOCK_ARG:
-    gen_block_arg_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_SCOPE:
-    gen_scope_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_BEGIN:
-    gen_begin_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_ENSURE:
-    gen_ensure_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_STMTS:
-    gen_stmts_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_ALIAS:
-    gen_alias_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_UNDEF:
-    gen_undef_var(s, varnode, val);
-    return TRUE;
-
-  case NODE_POSTEXE:
-    {
-      struct mrb_ast_postexe_node *postexe = postexe_node(varnode);
-      codegen(s, postexe->body, NOVAL);
-    }
-    return TRUE;
-
-  case NODE_SDEF:
-    gen_sdef_var(s, varnode, val);
-    return TRUE;
-
-  default:
-    return FALSE; /* Not handled, fall through to main codegen */
-  }
-}
 
 static void
 codegen(codegen_scope *s, node *tree, int val)
@@ -5975,8 +5654,327 @@ codegen(codegen_scope *s, node *tree, int val)
   nt = node_to_int(tree->car);
   s->lineno = head->lineno;
   tree = tree->cdr;
+
   if (nt == NODE_VARIABLE) {
-    codegen_variable_node(s, tree, val);
+    /* Inlined codegen_variable_node() logic */
+    enum node_type var_type = VAR_NODE_TYPE(tree);
+
+    switch (var_type) {
+    case NODE_INT:
+      if (val) {
+        gen_int(s, cursp(), INT_NODE_VALUE(tree));
+        push();
+      }
+      break;
+
+    case NODE_BIGINT:
+      if (val) {
+        char *str = BIGINT_NODE_STRING(tree);
+        int base = BIGINT_NODE_BASE(tree);
+        int off = new_litbint(s, str, base);
+        genop_2(s, OP_LOADL, cursp(), off);
+        push();
+      }
+      break;
+
+    case NODE_SYM:
+      {
+        int i = new_sym(s, SYM_NODE_VALUE(tree));
+        gen_load_op2(s, OP_LOADSYM, i, val);
+      }
+      break;
+
+    case NODE_LVAR:
+      gen_lvar(s, VAR_NODE_SYMBOL(tree), val);
+      break;
+
+    case NODE_GVAR:
+      gen_xvar(s, VAR_NODE_SYMBOL(tree), val, OP_GETGV);
+      break;
+
+    case NODE_IVAR:
+      gen_xvar(s, VAR_NODE_SYMBOL(tree), val, OP_GETIV);
+      break;
+
+    case NODE_CVAR:
+      gen_xvar(s, VAR_NODE_SYMBOL(tree), val, OP_GETCV);
+      break;
+
+    case NODE_CALL:
+      gen_call_var(s, tree, val);
+      break;
+
+    case NODE_ARRAY:
+      gen_array_var(s, tree, val);
+      break;
+
+    case NODE_HASH:
+      gen_hash_var(s, tree, val);
+      break;
+
+    case NODE_IF:
+      gen_if_var(s, tree, val);
+      break;
+
+    case NODE_WHILE:
+      gen_while_var(s, tree, val);
+      break;
+
+    case NODE_UNTIL:
+      gen_until_var(s, tree, val);
+      break;
+
+    case NODE_FOR:
+      gen_for_var(s, tree, val);
+      break;
+
+    case NODE_CASE:
+      gen_case_var(s, tree, val);
+      break;
+
+    case NODE_DEF:
+      gen_def_var(s, tree, val);
+      break;
+
+    case NODE_CLASS:
+      gen_class_var(s, tree, val);
+      break;
+
+    case NODE_MODULE:
+      gen_module_var(s, tree, val);
+      break;
+
+    case NODE_SCLASS:
+      gen_sclass_var(s, tree, val);
+      break;
+
+    case NODE_ASGN:
+      gen_asgn_var(s, tree, val);
+      break;
+
+    case NODE_MASGN:
+      gen_masgn_var(s, tree, NULL, 0, val);
+      break;
+
+    case NODE_OP_ASGN:
+      gen_op_asgn_var(s, tree, val);
+      break;
+
+    case NODE_AND:
+      gen_and_var(s, tree, val);
+      break;
+
+    case NODE_OR:
+      gen_or_var(s, tree, val);
+      break;
+
+    case NODE_RETURN:
+      gen_return_var(s, tree, val);
+      break;
+
+    case NODE_YIELD:
+      gen_yield_var(s, tree, val);
+      break;
+
+    case NODE_SUPER:
+      gen_super_var(s, tree, val);
+      break;
+
+    case NODE_STR:
+      gen_str_var(s, tree, val);
+      break;
+
+    case NODE_REGX:
+      gen_regx_var(s, tree, val);
+      break;
+
+    case NODE_DOT2:
+      gen_dot2_var(s, tree, val);
+      break;
+
+    case NODE_DOT3:
+      gen_dot3_var(s, tree, val);
+      break;
+
+    case NODE_FLOAT:
+      gen_float_var(s, tree, val);
+      break;
+
+    case NODE_SELF:
+      gen_self_var(s, tree, val);
+      break;
+
+    case NODE_NIL:
+      gen_nil_var(s, tree, val);
+      break;
+
+    case NODE_TRUE:
+      gen_true_var(s, tree, val);
+      break;
+
+    case NODE_FALSE:
+      gen_false_var(s, tree, val);
+      break;
+
+    case NODE_CONST:
+      gen_const_var(s, tree, val);
+      break;
+
+    case NODE_RESCUE:
+      gen_rescue_var(s, tree, val);
+      break;
+
+    case NODE_BLOCK:
+      gen_block_var(s, tree, val);
+      break;
+
+    case NODE_BREAK:
+      gen_break_var(s, tree, val);
+      break;
+
+    case NODE_NEXT:
+      gen_next_var(s, tree, val);
+      break;
+
+    case NODE_REDO:
+      gen_redo_var(s, tree, val);
+      break;
+
+    case NODE_RETRY:
+      gen_retry_var(s, tree, val);
+      break;
+
+    case NODE_WHILE_MOD:
+      gen_while_mod_var(s, tree, val);
+      break;
+
+    case NODE_UNTIL_MOD:
+      gen_until_mod_var(s, tree, val);
+      break;
+
+    case NODE_XSTR:
+      gen_xstr_var(s, tree, val);
+      break;
+
+    case NODE_DREGX:
+      gen_dregx_var(s, tree, val);
+      break;
+
+    case NODE_HEREDOC:
+      gen_heredoc_var(s, tree, val);
+      break;
+
+    case NODE_DSYM:
+      gen_dsym_var(s, tree, val);
+      break;
+
+    case NODE_NTH_REF:
+      gen_nth_ref_var(s, tree, val);
+      break;
+
+    case NODE_BACK_REF:
+      gen_back_ref_var(s, tree, val);
+      break;
+
+    case NODE_NVAR:
+      gen_nvar_var(s, tree, val);
+      break;
+
+    case NODE_DVAR:
+      gen_dvar_var(s, tree, val);
+      break;
+
+    case NODE_MATCH:
+      gen_match_var(s, tree, val);
+      break;
+
+    case NODE_NOT:
+      gen_not_var(s, tree, val);
+      break;
+
+    case NODE_NEGATE:
+      gen_negate_var(s, tree, val);
+      break;
+
+    case NODE_COLON2:
+      gen_colon2_var(s, tree, val);
+      break;
+
+    case NODE_COLON3:
+      gen_colon3_var(s, tree, val);
+      break;
+
+    case NODE_DEFINED:
+      gen_defined_var(s, tree, val);
+      break;
+
+    case NODE_ZSUPER:
+      gen_zsuper_var(s, tree, val);
+      break;
+
+    case NODE_LAMBDA:
+      gen_lambda_var(s, tree, val);
+      break;
+
+    case NODE_KW_HASH:
+      gen_kw_hash_var(s, tree, val);
+      break;
+
+    case NODE_WORDS:
+      gen_words_var(s, tree, val);
+      break;
+
+    case NODE_SYMBOLS:
+      gen_symbols_var(s, tree, val);
+      break;
+
+    case NODE_SPLAT:
+      gen_splat_var(s, tree, val);
+      break;
+
+    case NODE_BLOCK_ARG:
+      gen_block_arg_var(s, tree, val);
+      break;
+
+    case NODE_SCOPE:
+      gen_scope_var(s, tree, val);
+      break;
+
+    case NODE_BEGIN:
+      gen_begin_var(s, tree, val);
+      break;
+
+    case NODE_ENSURE:
+      gen_ensure_var(s, tree, val);
+      break;
+
+    case NODE_STMTS:
+      gen_stmts_var(s, tree, val);
+      break;
+
+    case NODE_ALIAS:
+      gen_alias_var(s, tree, val);
+      break;
+
+    case NODE_UNDEF:
+      gen_undef_var(s, tree, val);
+      break;
+
+    case NODE_POSTEXE:
+      {
+        struct mrb_ast_postexe_node *postexe = postexe_node(tree);
+        codegen(s, postexe->body, NOVAL);
+      }
+      break;
+
+    case NODE_SDEF:
+      gen_sdef_var(s, tree, val);
+      break;
+
+    default:
+      /* Unhandled node type - should not occur with current AST */
+      break;
+    }
   }
   s->rlev = rlev;
 }
