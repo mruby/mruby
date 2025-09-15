@@ -1311,13 +1311,6 @@ new_sdef(parser_state *p, node *o, mrb_sym name)
   return cons_head((node*)NODE_VARIABLE, (node*)sdef_node);
 }
 
-/* (:arg . sym) */
-static node*
-new_arg(parser_state *p, mrb_sym sym)
-{
-  return new_xvar(p, sym, NODE_ARG);
-}
-
 static void
 local_add_margs(parser_state *p, node *n)
 {
@@ -1500,7 +1493,7 @@ setup_numparams(parser_state *p, node *a)
         buf[1] = i+'0';
         buf[2] = '\0';
         sym = intern_cstr(buf);
-        args = cons(new_arg(p, sym), args);
+        args = cons(new_xvar(p, sym, NODE_LVAR), args);
         p->locals->car = cons(sym_to_node(sym), p->locals->car);
       }
       a = new_args(p, args, 0, 0, 0, 0);
@@ -3771,11 +3764,11 @@ f_margs         : f_arg
                     }
                 | f_arg ',' tSTAR f_norm_arg
                     {
-                      $$ = list3($1, new_arg(p, $4), 0);
+                      $$ = list3($1, new_xvar(p, $4, NODE_LVAR), 0);
                     }
                 | f_arg ',' tSTAR f_norm_arg ',' f_arg
                     {
-                      $$ = list3($1, new_arg(p, $4), $6);
+                      $$ = list3($1, new_xvar(p, $4, NODE_LVAR), $6);
                     }
                 | f_arg ',' tSTAR
                     {
@@ -3788,11 +3781,11 @@ f_margs         : f_arg
                     }
                 | tSTAR f_norm_arg
                     {
-                      $$ = list3(0, new_arg(p, $2), 0);
+                      $$ = list3(0, new_xvar(p, $2, NODE_LVAR), 0);
                     }
                 | tSTAR f_norm_arg ',' f_arg
                     {
-                      $$ = list3(0, new_arg(p, $2), $4);
+                      $$ = list3(0, new_xvar(p, $2, NODE_LVAR), $4);
                     }
                 | tSTAR
                     {
@@ -4686,7 +4679,7 @@ f_norm_arg      : f_bad_arg
 
 f_arg_item      : f_norm_arg
                     {
-                      $$ = new_arg(p, $1);
+                      $$ = new_xvar(p, $1, NODE_LVAR);
                     }
                 | tLPAREN
                     {
@@ -8381,10 +8374,6 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
 
   case NODE_NTH_REF:
     printf("NODE_NTH_REF: $%d\n", node_to_int(tree));
-    break;
-
-  case NODE_ARG:
-    printf("NODE_ARG %s\n", mrb_sym_name(mrb, node_to_sym(tree)));
     break;
 
   case NODE_BLOCK_ARG:

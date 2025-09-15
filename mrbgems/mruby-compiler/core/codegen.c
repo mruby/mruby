@@ -2860,7 +2860,6 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
         gen_masgn_var(s, tree->cdr, rhs, sp, val);
         return;
       case NODE_LVAR:
-      case NODE_ARG:
         {
           mrb_sym sym = VAR_NODE_SYMBOL(tree->cdr);
           if (rhs) {
