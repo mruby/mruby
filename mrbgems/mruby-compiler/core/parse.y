@@ -1273,7 +1273,7 @@ new_def(parser_state *p, mrb_sym name)
 
   init_var_header(&n->header, p, NODE_DEF, class);
   n->name = name;
-  n->args = int_to_node(p->cmdarg_stack);
+  n->args = (struct mrb_ast_args *)int_to_node(p->cmdarg_stack);
   n->locals = local_switch(p);
   n->body = NULL;
 
@@ -1288,7 +1288,7 @@ defn_setup(parser_state *p, node *d, node *a, node *b)
 
   n->locals = locals_node(p);
   p->cmdarg_stack = node_to_int(n->args);
-  n->args = a;
+  n->args = (struct mrb_ast_args *)a;
   n->body = b;
   local_resume(p, locals);
 }
@@ -1305,7 +1305,7 @@ new_sdef(parser_state *p, node *o, mrb_sym name)
   init_var_header(&sdef_node->header, p, NODE_SDEF, class);
   sdef_node->obj = o;
   sdef_node->name = name;
-  sdef_node->args = int_to_node(p->cmdarg_stack);
+  sdef_node->args = (struct mrb_ast_args *)int_to_node(p->cmdarg_stack);
   sdef_node->locals = local_switch(p);
   sdef_node->body = NULL;
   return cons_head((node*)NODE_VARIABLE, (node*)sdef_node);
@@ -1368,31 +1368,54 @@ local_add_lv(parser_state *p, node *lv)
 static node*
 new_args(parser_state *p, node *m, node *opt, mrb_sym rest, node *m2, node *tail)
 {
-  node *n;
-
   local_add_margs(p, m);
   local_add_margs(p, m2);
 
-  n = cons(m2, tail);
-  n = cons(sym_to_node(rest), n);
-  n = cons(opt, n);
+  /* Save original optional arguments before processing */
+  node *orig_opt = opt;
+
+  /* Process optional arguments (keep original side effects) */
   while (opt) {
     /* opt: (sym . (opt . lv)) -> (sym . opt) */
     local_add_lv(p, opt->car->cdr->cdr);
     opt->car->cdr = opt->car->cdr->car;
     opt = opt->cdr;
   }
-  return cons(m, n);
+
+  /* Allocate struct mrb_ast_args (no hdr) */
+  struct mrb_ast_args *args = (struct mrb_ast_args*)parser_palloc(p, sizeof(struct mrb_ast_args));
+
+  /* Initialize members */
+  args->mandatory_args = m;
+  args->optional_args = orig_opt;
+  args->rest_arg = rest;
+  args->post_mandatory_args = m2;
+
+  /* Deconstruct tail cons list: (kws . (kwrest . blk)) */
+  if (tail) {
+    args->keyword_args = (node*)tail->car;          /* kws */
+    args->kwrest_arg = (mrb_sym)(intptr_t)tail->cdr->car; /* kwrest */
+    args->block_arg = (mrb_sym)(intptr_t)tail->cdr->cdr;  /* blk */
+    cons_free(tail->cdr);
+    cons_free(tail);
+  }
+  else {
+    args->keyword_args = NULL;
+    args->kwrest_arg = 0;
+    args->block_arg = 0;
+  }
+
+  return (node*)args;
 }
 
 /* (:args_tail keywords rest_keywords_sym block_sym) */
 static node*
-new_args_tail(parser_state *p, node *kws, node *kwrest, mrb_sym blk)
+new_args_tail(parser_state *p, node *kws, mrb_sym kwrest, mrb_sym blk)
 {
   node *k;
 
-  if (kws || kwrest) {
-    local_add_kw(p, (kwrest && kwrest->cdr)? node_to_sym(kwrest->cdr) : 0);
+  if (kwrest) {
+    local_add_kw(p, kwrest);
   }
 
   local_add_blk(p);
@@ -1413,17 +1436,8 @@ new_args_tail(parser_state *p, node *kws, node *kwrest, mrb_sym blk)
     }
   }
 
-  size_t total_size = sizeof(struct mrb_ast_args_tail_node);
-  enum mrb_ast_size_class class = size_to_class(total_size);
-
-  struct mrb_ast_args_tail_node *n = (struct mrb_ast_args_tail_node*)parser_alloc_var(p, total_size, class);
-
-  init_var_header(&n->hdr, p, NODE_ARGS_TAIL, class);
-  n->keywords = kws;
-  n->kwrest = kwrest;
-  n->block = blk;
-
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  /* Return cons list: (keyword . (kwrest . blk)) */
+  return cons(kws, cons(sym_to_node(kwrest), sym_to_node(blk)));
 }
 
 /* (:kw_arg kw_sym def_arg) */
@@ -1448,8 +1462,7 @@ new_args_dots(parser_state *p, node *m)
   mrb_sym k = intern_op(pow);
   mrb_sym b = intern_op(and);
   local_add_f(p, r);
-  return new_args(p, m, 0, r, 0,
-                  new_args_tail(p, 0, new_kw_rest_args(p, k), b));
+  return new_args(p, m, 0, r, 0, new_args_tail(p, NULL, k, b));
 }
 
 /* (:block_arg . a) */
@@ -1471,8 +1484,10 @@ setup_numparams(parser_state *p, node *a)
   if (nvars > 0) {
     int i;
     mrb_sym sym;
-    // m || opt || rest || tail
-    if (a && (a->car || (a->cdr && a->cdr->car) || (a->cdr->cdr && a->cdr->cdr->car) || (a->cdr->cdr->cdr->cdr && a->cdr->cdr->cdr->cdr->car))) {
+    // Check if any arguments are already defined
+    struct mrb_ast_args *args = (struct mrb_ast_args *)a;
+    if (a && (args->mandatory_args || args->optional_args || args->rest_arg ||
+              args->post_mandatory_args || args->keyword_args || args->kwrest_arg)) {
       yyerror(NULL, p, "ordinary parameter is defined");
     }
     else if (p->locals) {
@@ -1507,7 +1522,7 @@ new_block(parser_state *p, node *a, node *b)
 
   init_var_header(&n->hdr, p, NODE_BLOCK, class);
   n->locals = locals_node(p);
-  n->args = a;
+  n->args = (struct mrb_ast_args *)a;
   n->body = b;
 
   return cons_head((node*)NODE_VARIABLE, (node*)n);
@@ -1524,7 +1539,7 @@ new_lambda(parser_state *p, node *a, node *b)
   struct mrb_ast_lambda_node *lambda_node = (struct mrb_ast_lambda_node*)parser_alloc_var(p, total_size, class);
   init_var_header(&lambda_node->hdr, p, NODE_LAMBDA, class);
   lambda_node->locals = locals_node(p);
-  lambda_node->args = a;
+  lambda_node->args = (struct mrb_ast_args *)a;
   lambda_node->body = b;
   return cons_head((node*)NODE_VARIABLE, (node*)lambda_node);
 }
@@ -2339,9 +2354,9 @@ prohibit_literals(parser_state *p, node *n)
 %type <nd> heredoc words symbols
 %type <num> call_op call_op2     /* 0:'&.', 1:'.', 2:'::' */
 
-%type <nd> args_tail opt_args_tail f_kwarg f_kw f_kwrest
+%type <nd> args_tail opt_args_tail f_kwarg f_kw
 %type <nd> f_block_kwarg f_block_kw block_args_tail opt_block_args_tail
-%type <id> f_label
+%type <id> f_label f_kwrest
 
 %token tUPLUS             "unary plus"
 %token tUMINUS            "unary minus"
@@ -4532,11 +4547,11 @@ kwrest_mark     : tPOW
 
 f_kwrest        : kwrest_mark tIDENTIFIER
                     {
-                      $$ = new_kw_rest_args(p, $2);
+                      $$ = $2;
                     }
                 | kwrest_mark
                     {
-                      $$ = new_kw_rest_args(p, 0);
+                      $$ = intern_op(pow);
                     }
                 ;
 

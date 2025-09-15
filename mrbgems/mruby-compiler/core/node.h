@@ -245,7 +245,7 @@ struct mrb_ast_hash_node {
 struct mrb_ast_def_node {
   struct mrb_ast_var_header header;  /* 8 bytes */
   mrb_sym name;                      /* Method name */
-  struct mrb_ast_node *args;         /* Method arguments */
+  struct mrb_ast_args *args;         /* Method arguments */
   struct mrb_ast_node *body;         /* Method body */
   struct mrb_ast_node *locals;       /* Local Variables */
 } ;
@@ -254,7 +254,7 @@ struct mrb_ast_def_node {
 struct mrb_ast_sdef_node {
   struct mrb_ast_var_header header;  /* 8 bytes */
   mrb_sym name;                      /* Method name */
-  struct mrb_ast_node *args;         /* Method arguments */
+  struct mrb_ast_args *args;         /* Method arguments */
   struct mrb_ast_node *body;         /* Method body */
   struct mrb_ast_node *locals;       /* Local Variables */
   struct mrb_ast_node *obj;          /* receiver */
@@ -609,31 +609,27 @@ struct mrb_ast_rescue_node {
 struct mrb_ast_block_node {
   struct mrb_ast_var_header hdr;
   struct mrb_ast_node *locals;
-  struct mrb_ast_node *args;
+  struct mrb_ast_args *args;
   struct mrb_ast_node *body;
 };
 
-struct mrb_ast_args_node {
-  struct mrb_ast_var_header hdr;
-  struct mrb_ast_node *mandatory;
-  struct mrb_ast_node *optional;
-  mrb_sym rest;
-  struct mrb_ast_node *mandatory_after_rest;
-  struct mrb_ast_node *tail;
-};
+/* Unified argument structure - eliminates args_tail_node allocation */
+struct mrb_ast_args {
+  /* Core argument lists (parser builds these naturally) */
+  struct mrb_ast_node *mandatory_args;      /* Cons list of mandatory arguments */
+  struct mrb_ast_node *optional_args;       /* Cons list of optional arguments */
+  struct mrb_ast_node *post_mandatory_args; /* Cons list of post-mandatory arguments */
+  struct mrb_ast_node *keyword_args;        /* Cons list of keyword arguments */
 
-struct mrb_ast_args_tail_node {
-  struct mrb_ast_var_header hdr;
-  struct mrb_ast_node *keywords;
-  struct mrb_ast_node *kwrest;
-  mrb_sym block;
+  /* Special arguments (directly embedded) */
+  mrb_sym rest_arg;                         /* Rest argument symbol (0 = none) */
+  mrb_sym kwrest_arg;                       /* Keyword rest argument (0 = none) */
+  mrb_sym block_arg;                        /* Block argument symbol (0 = none) */
 };
 
 /* Advanced node casting macros */
 #define rescue_node(n) ((struct mrb_ast_rescue_node*)(n))
 #define block_node(n) ((struct mrb_ast_block_node*)(n))
-#define args_node(n) ((struct mrb_ast_args_node*)(n))
-#define args_tail_node(n) ((struct mrb_ast_args_tail_node*)(n))
 
 /* Advanced node value access macros */
 #define RESCUE_NODE_BODY(n) (rescue_node(n)->body)
@@ -672,7 +668,6 @@ struct mrb_ast_redo_node {
 struct mrb_ast_retry_node {
   struct mrb_ast_var_header hdr;
 };
-
 
 #define break_node(n) ((struct mrb_ast_break_node*)(n))
 #define next_node(n) ((struct mrb_ast_next_node*)(n))
@@ -798,7 +793,7 @@ struct mrb_ast_defined_node {
 struct mrb_ast_lambda_node {
   struct mrb_ast_var_header hdr;
   struct mrb_ast_node *locals;
-  struct mrb_ast_node *args;
+  struct mrb_ast_args *args;
   struct mrb_ast_node *body;
 };
 

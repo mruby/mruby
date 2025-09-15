@@ -2306,7 +2306,7 @@ search_upvar(codegen_scope *s, mrb_sym id, int *idx)
  * @return The index of the newly created `mrb_irep` in the parent scope's `reps` array.
  */
 static int
-lambda_body(codegen_scope *s, node *locals, node *args, node *body, int blk)
+lambda_body(codegen_scope *s, node *locals, struct mrb_ast_args *args, node *body, int blk)
 {
   codegen_scope *parent = s;
   /* Create a new scope for the lambda/block body. */
@@ -2332,31 +2332,25 @@ lambda_body(codegen_scope *s, node *locals, node *args, node *body, int blk)
     uint32_t pos;
     node *opt;
     node *margs, *pargs;
-    node *tail;
+
+    /* args is already struct mrb_ast_args * */
 
     /* mandatory arguments */
-    ma = node_len(args->car);
-    margs = args->car;
-    tail = args->cdr->cdr->cdr->cdr;
+    ma = node_len(args->mandatory_args);
+    margs = args->mandatory_args;
 
     /* optional arguments */
-    oa = node_len(args->cdr->car);
+    oa = node_len(args->optional_args);
     /* rest argument? */
-    ra = args->cdr->cdr->car ? 1 : 0;
+    ra = args->rest_arg ? 1 : 0;
     /* mandatory arguments after rest argument */
-    pa = node_len(args->cdr->cdr->cdr->car);
-    pargs = args->cdr->cdr->cdr->car;
+    pa = node_len(args->post_mandatory_args);
+    pargs = args->post_mandatory_args;
+
     /* keyword arguments */
-    if (tail) {
-      /* Handle variable-sized NODE_ARGS_TAIL */
-      struct mrb_ast_args_tail_node *tail_node = args_tail_node(tail->cdr);
-      ka = tail_node->keywords ? node_len(tail_node->keywords) : 0;
-      kd = tail_node->kwrest ? 1 : 0;
-      ba = tail_node->block ? 1 : 0;
-    }
-    else {
-      ka = kd = ba = 0;
-    }
+    ka = args->keyword_args ? node_len(args->keyword_args) : 0;
+    kd = args->kwrest_arg ? 1 : 0;
+    ba = args->block_arg ? 1 : 0;
 
     if (ma > 0x1f || oa > 0x1f || pa > 0x1f || ka > 0x1f) {
       codegen_error(s, "too many formal arguments");
@@ -2384,7 +2378,7 @@ lambda_body(codegen_scope *s, node *locals, node *args, node *body, int blk)
     if (oa > 0) {
       genjmp_0(s, OP_JMP); /* Jump to skip all default assignments if all optional args are provided. */
     }
-    opt = args->cdr->car; /* AST node for optional arguments. */
+    opt = args->optional_args; /* AST node for optional arguments. */
     i = 0;
     while (opt) { /* Iterate through optional arguments. */
       int idx;
@@ -2408,16 +2402,11 @@ lambda_body(codegen_scope *s, node *locals, node *args, node *body, int blk)
     }
 
     /* Keyword argument processing */
-    if (tail) { /* `tail` contains keyword arguments and block argument */
+    if (ka > 0 || kd > 0) { /* Has keyword arguments or keyword rest */
       node *kwds;
-      int kwrest = 0; /* Flag for keyword rest argument (e.g., **kwargs) */
+      int kwrest = kd; /* Flag for keyword rest argument (e.g., **kwargs) */
 
-      /* Handle variable-sized NODE_ARGS_TAIL */
-      struct mrb_ast_args_tail_node *tail_node = args_tail_node(tail->cdr);
-      kwds = tail_node->keywords;
-      if (tail_node->kwrest) {
-        kwrest = 1;
-      }
+      kwds = args->keyword_args;
 
       while (kwds) {
         int jmpif_key_p, jmp_def_set = -1;
@@ -2451,20 +2440,20 @@ lambda_body(codegen_scope *s, node *locals, node *args, node *body, int blk)
         kwds = kwds->cdr;
       }
       /* Check if there are keyword args but no keyword rest */
-      int has_keywords = args_tail_node(tail->cdr)->keywords != NULL;
+      int has_keywords = args->keyword_args != NULL;
 
       if (has_keywords && !kwrest) { /* If there are keyword args but no keyword rest. */
         genop_0(s, OP_KEYEND); /* Signal end of keyword arguments. */
       }
-      /* Block argument processing */
-      if (ba) { /* If a block argument (e.g., &blk) is present. */
-        /* Handle variable-sized NODE_ARGS_TAIL */
-        mrb_sym bparam = args_tail_node(tail->cdr)->block;
-        pos = ma+oa+ra+pa+(ka||kd); /* Calculate register offset for the block parameter. */
-        if (bparam) { /* If it's a named block parameter. */
-          int idx = lv_idx(s, bparam);
-          genop_2(s, OP_MOVE, idx, pos+1); /* Move the block from its argument slot to the local variable. */
-        }
+    }
+
+    /* Block argument processing */
+    if (ba) { /* If a block argument (e.g., &blk) is present. */
+      mrb_sym bparam = args->block_arg;
+      pos = ma+oa+ra+pa+(ka||kd); /* Calculate register offset for the block parameter. */
+      if (bparam) { /* If it's a named block parameter. */
+        int idx = lv_idx(s, bparam);
+        genop_2(s, OP_MOVE, idx, pos+1); /* Move the block from its argument slot to the local variable. */
       }
     }
 
