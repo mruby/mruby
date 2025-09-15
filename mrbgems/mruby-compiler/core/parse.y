@@ -1142,6 +1142,11 @@ new_xvar(parser_state *p, mrb_sym sym, enum node_type type)
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
+#define new_lvar(p, sym) new_xvar(p, sym, NODE_LVAR)
+#define new_ivar(p, sym) new_xvar(p, sym, NODE_IVAR)
+#define new_gvar(p, sym) new_xvar(p, sym, NODE_GVAR)
+#define new_cvar(p, sym) new_xvar(p, sym, NODE_CVAR)
+
 static mrb_sym
 new_strsym(parser_state *p, node* str)
 {
@@ -1493,7 +1498,7 @@ setup_numparams(parser_state *p, node *a)
         buf[1] = i+'0';
         buf[2] = '\0';
         sym = intern_cstr(buf);
-        args = cons(new_xvar(p, sym, NODE_LVAR), args);
+        args = cons(new_lvar(p, sym), args);
         p->locals->car = cons(sym_to_node(sym), p->locals->car);
       }
       a = new_args(p, args, 0, 0, 0, 0);
@@ -2119,7 +2124,7 @@ label_reference(parser_state *p, mrb_sym sym)
   const char *name = mrb_sym_name(p->mrb, sym);
 
   if (local_var_p(p, sym)) {
-    return new_xvar(p, sym, NODE_LVAR);
+    return new_lvar(p, sym);
   }
   else if (ISUPPER(name[0])) {
     return new_const(p, sym);
@@ -2582,7 +2587,7 @@ stmt            : keyword_alias fsym {p->lstate = EXPR_FNAME;} fsym
                     }
                 | arg tASSOC tIDENTIFIER
                     {
-                      node *lhs = new_xvar(p, $3, NODE_LVAR);
+                      node *lhs = new_lvar(p, $3);
                       assignable(p, lhs);
                       $$ = new_asgn(p, lhs, $1);
                     }
@@ -3326,9 +3331,9 @@ paren_args      : '(' opt_call_args ')'
                       mrb_sym r = intern_op(mul);
                       mrb_sym k = intern_op(pow);
                       mrb_sym b = intern_op(and);
-                      $$ = new_callargs(p, push($2, new_splat(p, new_xvar(p, r, NODE_LVAR))),
-                                        new_kw_hash(p, list1(cons(new_kw_rest_args(p, 0), new_xvar(p, k, NODE_LVAR)))),
-                                        new_block_arg(p, new_xvar(p, b, NODE_LVAR)));
+                      $$ = new_callargs(p, push($2, new_splat(p, new_lvar(p, r))),
+                                        new_kw_hash(p, list1(cons(new_kw_rest_args(p, 0), new_lvar(p, k)))),
+                                        new_block_arg(p, new_lvar(p, b)));
                     }
                 | '(' tBDOT3 rparen
                     {
@@ -3336,9 +3341,9 @@ paren_args      : '(' opt_call_args ')'
                       mrb_sym k = intern_op(pow);
                       mrb_sym b = intern_op(and);
                       if (local_var_p(p, r) && local_var_p(p, k) && local_var_p(p, b)) {
-                        $$ = new_callargs(p, list1(new_splat(p, new_xvar(p, r, NODE_LVAR))),
-                                          new_kw_hash(p, list1(cons(new_kw_rest_args(p, 0), new_xvar(p, k, NODE_LVAR)))),
-                                          new_block_arg(p, new_xvar(p, b, NODE_LVAR)));
+                        $$ = new_callargs(p, list1(new_splat(p, new_lvar(p, r))),
+                                          new_kw_hash(p, list1(cons(new_kw_rest_args(p, 0), new_lvar(p, k)))),
+                                          new_block_arg(p, new_lvar(p, b)));
                       }
                       else {
                         yyerror(&@1, p, "unexpected argument forwarding ...");
@@ -3431,7 +3436,7 @@ args            : arg
                     }
                 | tSTAR
                     {
-                      $$ = list1(new_splat(p, new_xvar(p, intern_op(mul), NODE_LVAR)));
+                      $$ = list1(new_splat(p, new_lvar(p, intern_op(mul))));
                     }
                 | tSTAR arg
                     {
@@ -3444,7 +3449,7 @@ args            : arg
                     }
                 | args comma tSTAR
                     {
-                      $$ = push($1, new_splat(p, new_xvar(p, intern_op(mul), NODE_LVAR)));
+                      $$ = push($1, new_splat(p, new_lvar(p, intern_op(mul))));
                     }
                 | args comma tSTAR arg
                     {
@@ -3764,11 +3769,11 @@ f_margs         : f_arg
                     }
                 | f_arg ',' tSTAR f_norm_arg
                     {
-                      $$ = list3($1, new_xvar(p, $4, NODE_LVAR), 0);
+                      $$ = list3($1, new_lvar(p, $4), 0);
                     }
                 | f_arg ',' tSTAR f_norm_arg ',' f_arg
                     {
-                      $$ = list3($1, new_xvar(p, $4, NODE_LVAR), $6);
+                      $$ = list3($1, new_lvar(p, $4), $6);
                     }
                 | f_arg ',' tSTAR
                     {
@@ -3781,11 +3786,11 @@ f_margs         : f_arg
                     }
                 | tSTAR f_norm_arg
                     {
-                      $$ = list3(0, new_xvar(p, $2, NODE_LVAR), 0);
+                      $$ = list3(0, new_lvar(p, $2), 0);
                     }
                 | tSTAR f_norm_arg ',' f_arg
                     {
-                      $$ = list3(0, new_xvar(p, $2, NODE_LVAR), $4);
+                      $$ = list3(0, new_lvar(p, $2), $4);
                     }
                 | tSTAR
                     {
@@ -4343,19 +4348,19 @@ numeric         : tINTEGER
 
 variable        : tIDENTIFIER
                     {
-                      $$ = new_xvar(p, $1, NODE_LVAR);
+                      $$ = new_lvar(p, $1);
                     }
                 | tIVAR
                     {
-                      $$ = new_xvar(p, $1, NODE_IVAR);
+                      $$ = new_ivar(p, $1);
                     }
                 | tGVAR
                     {
-                      $$ = new_xvar(p, $1, NODE_GVAR);
+                      $$ = new_gvar(p, $1);
                     }
                 | tCVAR
                     {
-                      $$ = new_xvar(p, $1, NODE_CVAR);
+                      $$ = new_cvar(p, $1);
                     }
                 | tCONSTANT
                     {
@@ -4679,7 +4684,7 @@ f_norm_arg      : f_bad_arg
 
 f_arg_item      : f_norm_arg
                     {
-                      $$ = new_xvar(p, $1, NODE_LVAR);
+                      $$ = new_lvar(p, $1);
                     }
                 | tLPAREN
                     {
@@ -4865,7 +4870,7 @@ assoc           : arg tASSOC arg
                     }
                 | tDSTAR
                     {
-                      $$ = cons(new_kw_rest_args(p, 0), new_xvar(p, intern_op(pow), NODE_LVAR));
+                      $$ = cons(new_kw_rest_args(p, 0), new_lvar(p, intern_op(pow)));
                     }
                 ;
 
