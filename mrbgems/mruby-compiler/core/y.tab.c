@@ -14696,7 +14696,6 @@ dump_args(mrb_state *mrb, node *n, int offset)
 
   n = n->cdr;
   if (n) {
-    mrb_assert(node_to_int(n->car) == NODE_ARGS_TAIL);
     mrb_parser_dump(mrb, n, offset);
   }
 }
@@ -15427,27 +15426,6 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     dump_recur(mrb, ((parser_heredoc_info*)tree)->doc, offset+1);
     break;
 
-  case NODE_ARGS_TAIL:
-    printf("NODE_ARGS_TAIL:\n");
-    {
-      node *kws = tree->car;
-
-      while (kws) {
-        mrb_parser_dump(mrb, kws->car, offset+1);
-        kws = kws->cdr;
-      }
-    }
-    tree = tree->cdr;
-    if (tree->car) {
-      mrb_assert(node_to_int(tree->car->car) == NODE_KW_REST_ARGS);
-      mrb_parser_dump(mrb, tree->car, offset+1);
-    }
-    tree = tree->cdr;
-    if (tree->car) {
-      dump_prefix(tree, offset+1);
-      printf("block='%s'\n", mrb_sym_name(mrb, node_to_sym(tree->car)));
-    }
-    break;
 
   case NODE_KW_ARG:
     printf("NODE_KW_ARG %s:\n", mrb_sym_name(mrb, node_to_sym(tree->car)));

@@ -60,7 +60,6 @@ enum node_type {
   NODE_XSTR,
   NODE_REGX,
   NODE_DREGX,
-  NODE_ARGS_TAIL,
   NODE_KW_ARG,
   NODE_KW_REST_ARGS,
   NODE_SPLAT,
