@@ -4103,17 +4103,15 @@ static void
 gen_case_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_case_node *case_n = case_node(varnode);
-  node *value = CASE_NODE_VALUE(case_n);
-  node *else_body = CASE_NODE_ELSE(case_n);
-  uint16_t when_count = CASE_NODE_WHEN_COUNT(case_n);
-  struct mrb_ast_node **when_clauses = CASE_NODE_WHENS(case_n);
+  node *value = case_n->value;
+  node *body = case_n->body;
 
   int head = 0;
-  uint32_t pos3, tmp;
+  uint32_t case_end_jumps, tmp;
   uint32_t next_when_pos = JMPLINK_START;
   node *n;
 
-  pos3 = JMPLINK_START;
+  case_end_jumps = JMPLINK_START;
 
   /* Handle case value exactly like original */
   if (value) {
@@ -4121,10 +4119,10 @@ gen_case_var(codegen_scope *s, node *varnode, int val)
     codegen(s, value, VAL);
   }
 
-  /* Iterate through when clauses array with JMPNOT optimization */
-  for (int i = 0; i < when_count; i++) {
-    node *when_clause = (node*)when_clauses[i];
-    if (!when_clause) continue;
+  /* Iterate through when clauses list with JMPNOT optimization */
+  node *current_when = body;
+  while (current_when) {
+    node *when_clause = current_when->car;
 
     /* Dispatch previous when's "next" jump to this location */
     if (next_when_pos != JMPLINK_START) {
@@ -4134,7 +4132,7 @@ gen_case_var(codegen_scope *s, node *varnode, int val)
 
     /* when_clause is (condition . body) cons node */
     node *args = when_clause->car;  /* when conditions */
-    node *body = when_clause->cdr;  /* when body */
+    node *when_body = when_clause->cdr;  /* when body */
 
     /* Process when conditions with JMPNOT optimization */
     n = args;
@@ -4174,39 +4172,36 @@ gen_case_var(codegen_scope *s, node *varnode, int val)
       dispatch_linked(s, condition_success_pos);
     }
 
-    /* Generate when body inline - no extra JMP needed! */
-    codegen(s, body, val);
+    /* Generate when body */
+    codegen(s, when_body, val);
     if (val) pop();
-    tmp = genjmp(s, OP_JMP, pos3);
-    pos3 = tmp;
+
+    /* Check if this is the last when clause before else, or if there's no else clause */
+    node *next_node = current_when->cdr;
+
+    tmp = genjmp(s, OP_JMP, case_end_jumps);
+    case_end_jumps = tmp;
+
+    current_when = next_node;
   }
 
-  /* Dispatch final "next when" jump to else clause or nil handling */
+  /* Handle case where no else clause was found */
   if (next_when_pos != JMPLINK_START) {
     dispatch_linked(s, next_when_pos);
-  }
-
-  /* Handle else clause - DON'T generate unnecessary JMP */
-  if (else_body) {
-    codegen(s, else_body, val);
-    if (val) pop();
-    /* Only generate JMP if there will be more code after this (i.e., LOADNIL case) */
-    if (!val || !else_body) {
-      tmp = genjmp(s, OP_JMP, pos3);
-      pos3 = tmp;
-    }
-  }
-
-  /* Apply original's "nil-first, align-last" strategy for VAL case */
-  if (val) {
-    if (!else_body) {
-      /* Only generate LOADNIL if there's no else clause */
+    /* No else clause, generate LOADNIL for VAL case */
+    if (val) {
       genop_1(s, OP_LOADNIL, cursp());
     }
-    /* Always dispatch pos3 jumps */
-    if (pos3 != JMPLINK_START) dispatch_linked(s, pos3);
+  }
+
+  /* Apply stack management strategy for cases without else clause */
+  if (val) {
+    /* Dispatch remaining case_end_jumps */
+    if (case_end_jumps != JMPLINK_START) {
+      dispatch_linked(s, case_end_jumps);
+    }
     if (head) {
-      /* This is the crucial MOVE instruction! Move result to original case value position */
+      /* Move result to original case value position */
       gen_move(s, head, cursp(), 0);
       pop();
     }
@@ -4214,9 +4209,9 @@ gen_case_var(codegen_scope *s, node *varnode, int val)
     push();
   }
   else {
-    /* NOVAL case - original logic unchanged */
-    if (pos3 != JMPLINK_START) {
-      dispatch_linked(s, pos3);
+    /* NOVAL case */
+    if (case_end_jumps != JMPLINK_START) {
+      dispatch_linked(s, case_end_jumps);
     }
     if (head) {
       pop();

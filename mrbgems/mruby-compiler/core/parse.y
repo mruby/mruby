@@ -682,44 +682,13 @@ new_for(parser_state *p, node *v, node *o, node *b)
 static node*
 new_case(parser_state *p, node *a, node *b)
 {
-  uint16_t when_count = 0;
-  node *else_body = NULL;
-  node *current_when = b;
-
   void_expr_error(p, a);
 
-  // First pass: count when clauses and identify else_body
-  // The when_list is a linked list where each element's car is a (condition . body) cons node.
-  // The last element's car might be 0, and its cdr is the else_body.
-  while (current_when) {
-    node *clause = current_when->car;
-    if (clause && node_to_int(clause->car) == 0) { // This is the else clause
-      else_body = clause->cdr;
-      break; // Else body is always the last
-    }
-    when_count++;
-    current_when = current_when->cdr;
-  }
+  struct mrb_ast_case_node *n = (struct mrb_ast_case_node*)parser_alloc_var(p, sizeof(struct mrb_ast_case_node), SIZE_CLASS_MEDIUM);
 
-  size_t base_size = sizeof(struct mrb_ast_case_node);
-  size_t when_clauses_size = when_count * sizeof(struct mrb_ast_node*);
-  size_t total_size = base_size + when_clauses_size;
-
-  enum mrb_ast_size_class class = size_to_class(total_size);
-
-  struct mrb_ast_case_node *n = (struct mrb_ast_case_node*)parser_alloc_var(p, total_size, class);
-
-  init_var_header(&n->header, p, NODE_CASE, class);
+  init_var_header(&n->header, p, NODE_CASE, SIZE_CLASS_MEDIUM);
   n->value = a;
-  n->when_count = when_count;
-  n->else_body = else_body;
-
-  // Second pass: copy when clauses into flexible array
-  current_when = b;
-  for (int i = 0; i < when_count; i++) {
-    n->when_clauses[i] = current_when->car; // Each car is a (condition . body) cons node
-    current_when = current_when->cdr;
-  }
+  n->body = b;
 
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
