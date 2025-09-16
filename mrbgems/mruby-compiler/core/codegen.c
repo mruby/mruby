@@ -4533,7 +4533,7 @@ gen_op_asgn_var(codegen_scope *s, node *varnode, int val)
   struct mrb_ast_op_asgn_node *op_asgn_n = op_asgn_node(varnode);
   node *lhs = op_asgn_n->lhs;
   node *rhs = op_asgn_n->rhs;
-  mrb_sym sym = op_asgn_n->operator;
+  mrb_sym sym = op_asgn_n->op;
   mrb_int len;
   const char *name = mrb_sym_name_len(s->mrb, sym, &len);
   int vsp = -1;

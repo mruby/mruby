@@ -1574,7 +1574,7 @@ new_op_asgn(parser_state *p, node *a, mrb_sym op, node *b)
   struct mrb_ast_op_asgn_node *n = (struct mrb_ast_op_asgn_node*)parser_alloc_var(p, total_size, class);
   init_var_header(&n->header, p, NODE_OP_ASGN, class);
   n->lhs = a;
-  n->operator = op;
+  n->op = op;
   n->rhs = b;
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }

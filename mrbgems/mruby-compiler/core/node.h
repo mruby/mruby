@@ -337,7 +337,7 @@ struct mrb_ast_masgn_node {
 struct mrb_ast_op_asgn_node {
   struct mrb_ast_var_header header;  /* 8 bytes */
   struct mrb_ast_node *lhs;          /* Left-hand side (target) */
-  mrb_sym operator;                  /* Assignment operator (e.g., +=, -=, etc.) */
+  mrb_sym op;                        /* Assignment operator (e.g., +=, -=, etc.) */
   struct mrb_ast_node *rhs;          /* Right-hand side (value) */
 };
 
@@ -495,7 +495,7 @@ struct mrb_ast_super_node {
 #define MASGN_NODE_RHS(n) (masgn_node(n)->rhs)
 
 #define OP_ASGN_NODE_LHS(n) (op_asgn_node(n)->lhs)
-#define OP_ASGN_NODE_OP(n) (op_asgn_node(n)->operator)
+#define OP_ASGN_NODE_OP(n) (op_asgn_node(n)->op)
 #define OP_ASGN_NODE_RHS(n) (op_asgn_node(n)->rhs)
 
 /* Expression node value access macros */
