@@ -728,13 +728,10 @@ new_call(parser_state *p, node *receiver, mrb_sym method, node *args, int pass)
   uint8_t has_block = 0;
 
   if (args) {
-    /* Check for kwargs and block */
-    if (args->cdr) {
-      has_kwargs = (args->cdr->car != NULL);
-      if (args->cdr->cdr) {
-        has_block = (args->cdr->cdr != NULL);
-      }
-    }
+    /* Handle callargs structure - direct casting like new_args() */
+    struct mrb_ast_callargs *callargs = (struct mrb_ast_callargs*)args;
+    has_kwargs = (callargs->keyword_args != NULL);
+    has_block = (callargs->block_arg != NULL);
   }
 
   /* Calculate size needed (fixed size now) */
@@ -770,7 +767,16 @@ new_fcall(parser_state *p, mrb_sym b, node *c)
 static node*
 new_callargs(parser_state *p, node *a, node *b, node *c)
 {
-  return cons_head(a, cons(b, c));
+  /* Allocate struct mrb_ast_callargs (fixed size, like new_args) */
+  struct mrb_ast_callargs *callargs = (struct mrb_ast_callargs*)parser_palloc(p, sizeof(struct mrb_ast_callargs));
+
+  /* Initialize members directly */
+  callargs->regular_args = a;   /* Cons list of regular arguments (preserves splat compatibility) */
+  callargs->keyword_args = b;   /* Keyword arguments hash node */
+  callargs->block_arg = c;      /* Block argument node */
+
+  /* Return direct cast to node (like new_args) */
+  return (node*)callargs;
 }
 
 /* (:super . c) */
@@ -804,8 +810,12 @@ new_zsuper(parser_state *p)
 static node*
 new_yield(parser_state *p, node *c)
 {
-  if (c && c->cdr && c->cdr->cdr) {
-        yyerror(NULL, p, "both block arg and actual block given");
+  /* Handle callargs structure - direct casting like new_args() */
+  if (c) {
+    struct mrb_ast_callargs *callargs = (struct mrb_ast_callargs*)c;
+    if (callargs->block_arg) {
+      yyerror(NULL, p, "both block arg and actual block given");
+    }
   }
 
   size_t total_size = sizeof(struct mrb_ast_yield_node);
@@ -1920,10 +1930,12 @@ static void
 args_with_block(parser_state *p, node *a, node *b)
 {
   if (b) {
-    if (a->cdr && a->cdr->cdr) {
+    /* Handle callargs structure - direct casting like new_args() */
+    struct mrb_ast_callargs *callargs = (struct mrb_ast_callargs*)a;
+    if (callargs->block_arg) {
       yyerror(NULL, p, "both block arg and actual block given");
     }
-    a->cdr->cdr = b;
+    callargs->block_arg = b;
   }
 }
 
@@ -2044,13 +2056,15 @@ cond(node *n)
 static node*
 ret_args(parser_state *p, node *n)
 {
-  if (n->cdr->cdr) {
+  /* Handle callargs structure - direct casting like new_args() */
+  struct mrb_ast_callargs *callargs = (struct mrb_ast_callargs*)n;
+  if (callargs->block_arg) {
     yyerror(NULL, p, "block argument should not be given");
     return NULL;
   }
-  if (!n->car) return NULL;
-  if (!n->car->cdr) return n->car->car;
-  return new_array(p, n->car);
+  if (!callargs->regular_args) return NULL;
+  if (!callargs->regular_args->cdr) return callargs->regular_args->car;
+  return new_array(p, callargs->regular_args);
 }
 
 static void

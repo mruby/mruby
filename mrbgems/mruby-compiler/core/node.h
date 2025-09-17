@@ -60,6 +60,7 @@ enum node_type {
   NODE_XSTR,
   NODE_REGX,
   NODE_DREGX,
+  NODE_CALLARGS,
   NODE_KW_ARG,
   NODE_KW_REST_ARGS,
   NODE_SPLAT,
@@ -620,9 +621,17 @@ struct mrb_ast_args {
   mrb_sym block_arg;                        /* Block argument symbol (0 = none) */
 };
 
+/* Call arguments structure - replaces cons-based new_callargs */
+struct mrb_ast_callargs {
+  struct mrb_ast_node *regular_args;    /* Cons list of regular arguments (preserves splat compatibility) */
+  struct mrb_ast_node *keyword_args;    /* Keyword arguments hash node */
+  struct mrb_ast_node *block_arg;       /* Block argument node */
+};
+
 /* Advanced node casting macros */
 #define rescue_node(n) ((struct mrb_ast_rescue_node*)(n))
 #define block_node(n) ((struct mrb_ast_block_node*)(n))
+#define callargs_node(n) ((struct mrb_ast_callargs*)(n))
 
 /* Advanced node value access macros */
 #define RESCUE_NODE_BODY(n) (rescue_node(n)->body)
@@ -642,6 +651,10 @@ struct mrb_ast_args {
 #define ARGS_TAIL_NODE_KEYWORDS(n) (args_tail_node(n)->keywords)
 #define ARGS_TAIL_NODE_KWREST(n) (args_tail_node(n)->kwrest)
 #define ARGS_TAIL_NODE_BLOCK(n) (args_tail_node(n)->block)
+
+#define CALLARGS_NODE_REGULAR(n) (callargs_node(n)->regular_args)
+#define CALLARGS_NODE_KEYWORDS(n) (callargs_node(n)->keyword_args)
+#define CALLARGS_NODE_BLOCK(n) (callargs_node(n)->block_arg)
 
 // Group 8: Control Flow Statements
 struct mrb_ast_break_node {

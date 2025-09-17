@@ -3470,33 +3470,36 @@ gen_call_var(codegen_scope *s, node *varnode, int val)
   }
 
   /* Generate arguments - use gen_values to properly handle splat */
-  if (args && args->car) {
-    n = gen_values(s, args->car, VAL, 14);
-    if (n < 0) {              /* variable length (contains splat) */
-      n = 15;
-      push();
-      noop = 1;
-    }
-  }
-
-  /* Handle keyword arguments if present */
-  if (CALL_NODE_HAS_KWARGS(call)) {
-    if (args && args->cdr && args->cdr->car) {
-      nk = gen_hash(s, args->cdr->car->cdr, VAL, 14);
-      if (nk < 0) {
-        nk = 15;
+  if (args) {
+    struct mrb_ast_callargs *callargs = (struct mrb_ast_callargs*)args;
+    if (callargs->regular_args) {
+      n = gen_values(s, callargs->regular_args, VAL, 14);
+      if (n < 0) {              /* variable length (contains splat) */
+        n = 15;
+        push();
+        noop = 1;
       }
-      noop = 1;
     }
-  }
 
-  /* Handle block if present */
-  if (CALL_NODE_HAS_BLOCK(call)) {
-    if (args && args->cdr && args->cdr->cdr) {
-      codegen(s, args->cdr->cdr, VAL);
-      pop();
-      blk = 1;
-      noop = 1;
+    /* Handle keyword arguments if present */
+    if (CALL_NODE_HAS_KWARGS(call)) {
+      if (callargs->keyword_args) {
+        nk = gen_hash(s, callargs->keyword_args->cdr, VAL, 14);
+        if (nk < 0) {
+          nk = 15;
+        }
+        noop = 1;
+      }
+    }
+
+    /* Handle block if present */
+    if (CALL_NODE_HAS_BLOCK(call)) {
+      if (callargs->block_arg) {
+        codegen(s, callargs->block_arg, VAL);
+        pop();
+        blk = 1;
+        noop = 1;
+      }
     }
   }
 
@@ -3609,42 +3612,45 @@ gen_call_assign_var(codegen_scope *s, node *varnode, node *rhs, int sp, int val)
   }
 
   /* Generate arguments from original call */
-  if (args && args->car) {
-    node *regular_args = args->car;
-    node *arg_iter = regular_args;
-    while (arg_iter) {
-      codegen(s, arg_iter->car, VAL);
-      n++;
-      arg_iter = arg_iter->cdr;
+  if (args) {
+    struct mrb_ast_callargs *callargs = (struct mrb_ast_callargs*)args;
+    if (callargs->regular_args) {
+      node *regular_args = callargs->regular_args;
+      node *arg_iter = regular_args;
+      while (arg_iter) {
+        codegen(s, arg_iter->car, VAL);
+        n++;
+        arg_iter = arg_iter->cdr;
+      }
+      if (n > 13) {  /* leave room for rhs */
+        pop_n(n);
+        genop_2(s, OP_ARRAY, cursp(), n);
+        push();
+        n = 15;
+        noop = 1;
+      }
     }
-    if (n > 13) {  /* leave room for rhs */
-      pop_n(n);
-      genop_2(s, OP_ARRAY, cursp(), n);
+
+    /* Handle keyword arguments if present */
+    if (callargs->keyword_args) {
+      node *kwargs = callargs->keyword_args;
+      if (n == 13 || n == 14) {
+        pop_n(n);
+        genop_2(s, OP_ARRAY, cursp(), n);
+        push();
+        n = 15;
+      }
+      gen_hash(s, kwargs->cdr, VAL, 0);
+      if (n < 14) {
+        n++;
+      }
+      else {
+        pop_n(2);
+        genop_2(s, OP_ARYPUSH, cursp(), 1);
+      }
       push();
-      n = 15;
       noop = 1;
     }
-  }
-
-  /* Handle keyword arguments if present */
-  if (args && args->cdr && args->cdr->car) {
-    node *kwargs = args->cdr->car;
-    if (n == 13 || n == 14) {
-      pop_n(n);
-      genop_2(s, OP_ARRAY, cursp(), n);
-      push();
-      n = 15;
-    }
-    gen_hash(s, kwargs->cdr, VAL, 0);
-    if (n < 14) {
-      n++;
-    }
-    else {
-      pop_n(2);
-      genop_2(s, OP_ARYPUSH, cursp(), 1);
-    }
-    push();
-    noop = 1;
   }
 
   /* Generate rhs (the assigned value) */
@@ -4696,15 +4702,16 @@ gen_yield_var(codegen_scope *s, node *varnode, int val)
   if (lv > 0xf) codegen_error(s, "too deep nesting");
   push();
   if (args) {
-    if (args->car) {
-      n = gen_values(s, args->car, VAL, 14);
+    struct mrb_ast_callargs *callargs = (struct mrb_ast_callargs*)args;
+    if (callargs->regular_args) {
+      n = gen_values(s, callargs->regular_args, VAL, 14);
       if (n < 0) {
         n = sendv = 1;
         push();
       }
     }
-    if (args->cdr->car) {
-      nk = gen_hash(s, args->cdr->car->cdr, VAL, 14);
+    if (callargs->keyword_args) {
+      nk = gen_hash(s, callargs->keyword_args->cdr, VAL, 14);
       if (nk < 0) {
         nk = 15;
       }
@@ -4735,31 +4742,36 @@ gen_super_var(codegen_scope *s, node *varnode, int val)
     if (!s2) break;
   }
   if (tree) {
-    node *args = tree->car;
-    if (args) {
-      st = n = gen_values(s, args, VAL, 14);
-      if (n < 0) {
-        st = 1; n = 15;
+    /* Handle callargs structure - direct casting like new_args() */
+    struct mrb_ast_callargs *callargs = (struct mrb_ast_callargs*)tree;
+
+      /* Regular arguments */
+      if (callargs->regular_args) {
+        st = n = gen_values(s, callargs->regular_args, VAL, 14);
+        if (n < 0) {
+          st = 1; n = 15;
+          push();
+        }
+      }
+
+      /* Keyword arguments */
+      if (callargs->keyword_args) {
+        nk = gen_hash(s, callargs->keyword_args->cdr, VAL, 14);
+        if (nk < 0) {st++; nk = 15;}
+        else st += nk*2;
+        n |= nk<<4;
+      }
+
+      /* Block arguments */
+      if (callargs->block_arg) {
+        codegen(s, callargs->block_arg, VAL);
+      }
+      else if (s2) gen_blkmove(s, s2->ainfo, lv);
+      else {
+        genop_1(s, OP_LOADNIL, cursp());
         push();
       }
     }
-    /* keyword arguments */
-    if (tree->cdr->car) {
-      nk = gen_hash(s, tree->cdr->car->cdr, VAL, 14);
-      if (nk < 0) {st++; nk = 15;}
-      else st += nk*2;
-      n |= nk<<4;
-    }
-    /* block arguments */
-    if (tree->cdr->cdr) {
-      codegen(s, tree->cdr->cdr, VAL);
-    }
-    else if (s2) gen_blkmove(s, s2->ainfo, lv);
-    else {
-      genop_1(s, OP_LOADNIL, cursp());
-      push();
-    }
-  }
   else {
     if (s2) gen_blkmove(s, s2->ainfo, lv);
     else {
@@ -5373,16 +5385,22 @@ gen_zsuper_var(codegen_scope *s, node *varnode, int val)
       n |= CALL_MAXARGS<<4;
       push();
     }
-    /* block argument - tree here is args, so check tree->cdr->cdr */
-    if (tree && tree->cdr && tree->cdr->cdr) {
-      push();
-      codegen(s, tree->cdr->cdr, VAL);
+    /* block argument - tree here is args, so check for block */
+    if (tree) {
+      struct mrb_ast_callargs *callargs = (struct mrb_ast_callargs*)tree;
+      if (callargs->block_arg) {
+        push();
+        codegen(s, callargs->block_arg, VAL);
+      }
     }
   }
   else {
     /* block argument */
-    if (tree && tree->cdr && tree->cdr->cdr) {
-      codegen(s, tree->cdr->cdr, VAL);
+    if (tree) {
+      struct mrb_ast_callargs *callargs = (struct mrb_ast_callargs*)tree;
+      if (callargs->block_arg) {
+        codegen(s, callargs->block_arg, VAL);
+      }
     }
     else if (s2) {
       gen_blkmove(s, 0, lv);
