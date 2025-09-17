@@ -2066,6 +2066,9 @@ assignable(parser_state *p, node *lhs)
       if (p->in_def)
         yyerror(NULL, p, "dynamic constant assignment");
       break;
+    default:
+      /* Other node types don't need special handling in assignable */
+      break;
     }
   }
 }
