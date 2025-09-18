@@ -1401,15 +1401,15 @@ new_args_tail(parser_state *p, node *kws, mrb_sym kwrest, mrb_sym blk)
   /* allocate register for keywords arguments */
   /* order is for Proc#parameters */
   for (k = kws; k; k = k->cdr) {
-    if (!k->car->cdr->cdr->car) { /* allocate required keywords */
-      local_add_f(p, node_to_sym(k->car->cdr->car));
+    if (!k->car->cdr) { /* allocate required keywords - simplified structure: (key . NULL) */
+      local_add_f(p, node_to_sym(k->car->car));
     }
   }
   for (k = kws; k; k = k->cdr) {
-    if (k->car->cdr->cdr->car) { /* allocate keywords with default */
-      local_add_lv(p, k->car->cdr->cdr->car->cdr);
-      k->car->cdr->cdr->car = k->car->cdr->cdr->car->car;
-      local_add_f(p, node_to_sym(k->car->cdr->car));
+    if (k->car->cdr) { /* allocate keywords with default - simplified structure: (key . value) */
+      local_add_lv(p, k->car->cdr->cdr);  /* value->cdr for default args */
+      k->car->cdr = k->car->cdr->car;    /* value->car for default args */
+      local_add_f(p, node_to_sym(k->car->car));
     }
   }
 
@@ -1417,12 +1417,12 @@ new_args_tail(parser_state *p, node *kws, mrb_sym kwrest, mrb_sym blk)
   return cons(kws, cons(sym_to_node(kwrest), sym_to_node(blk)));
 }
 
-/* (:kw_arg kw_sym def_arg) */
+/* (kw_sym . def_arg) - simplified from NODE_KW_ARG wrapper */
 static node*
 new_kw_arg(parser_state *p, mrb_sym kw, node *def_arg)
 {
   mrb_assert(kw);
-  return list3((node*)NODE_KW_ARG, sym_to_node(kw), def_arg);
+  return cons(sym_to_node(kw), def_arg);
 }
 
 /* (:kw_rest_args . a) */
@@ -8581,12 +8581,6 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
   case NODE_HEREDOC:
     printf("NODE_HEREDOC (<<%s):\n", ((parser_heredoc_info*)tree)->term);
     dump_recur(mrb, ((parser_heredoc_info*)tree)->doc, offset+1);
-    break;
-
-
-  case NODE_KW_ARG:
-    printf("NODE_KW_ARG %s:\n", mrb_sym_name(mrb, node_to_sym(tree->car)));
-    mrb_parser_dump(mrb, tree->cdr->car, offset + 1);
     break;
 
   case NODE_KW_REST_ARGS:

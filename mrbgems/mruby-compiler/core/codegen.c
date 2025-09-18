@@ -2410,10 +2410,9 @@ lambda_body(codegen_scope *s, node *locals, struct mrb_ast_args *args, node *bod
 
       while (kwds) {
         int jmpif_key_p, jmp_def_set = -1;
-        node *kwd = kwds->car, *def_arg = kwd->cdr->cdr->car;
-        mrb_sym kwd_sym = node_to_sym(kwd->cdr->car);
-
-        mrb_assert(node_to_int(kwd->car) == NODE_KW_ARG);
+        node *kwd = kwds->car;
+        mrb_sym kwd_sym = node_to_sym(kwd->car);   /* Direct access to key */
+        node *def_arg = kwd->cdr;                  /* Direct access to value */
 
         if (def_arg) {
           int idx;
