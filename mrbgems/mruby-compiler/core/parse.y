@@ -1429,7 +1429,7 @@ new_kw_arg(parser_state *p, mrb_sym kw, node *def_arg)
 static node*
 new_kw_rest_args(parser_state *p, mrb_sym sym)
 {
-  return cons_head((node*)NODE_KW_REST_ARGS, sym_to_node(sym));
+  return sym_to_node(intern_op(pow));  /* Use ** symbol as direct marker */
 }
 
 static node*
@@ -8581,13 +8581,6 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
   case NODE_HEREDOC:
     printf("NODE_HEREDOC (<<%s):\n", ((parser_heredoc_info*)tree)->term);
     dump_recur(mrb, ((parser_heredoc_info*)tree)->doc, offset+1);
-    break;
-
-  case NODE_KW_REST_ARGS:
-    if (tree)
-      printf("NODE_KW_REST_ARGS %s\n", mrb_sym_name(mrb, node_to_sym(tree)));
-    else
-      printf("NODE_KW_REST_ARGS\n");
     break;
 
   case NODE_VARIABLE:

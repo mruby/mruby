@@ -2672,7 +2672,7 @@ gen_hash(codegen_scope *s, node *tree, int val, int limit)
   mrb_bool first = TRUE;
 
   while (tree) {
-    if (node_to_int(tree->car->car->car) == NODE_KW_REST_ARGS) {
+    if (node_to_sym(tree->car->car) == MRB_OPSYM_2(s->mrb, pow)) {
       if (val && first) {
         genop_2(s, OP_HASH, cursp(), 0);
         push();
@@ -3208,7 +3208,7 @@ gen_hash_var(codegen_scope *s, node *varnode, int val)
     struct mrb_ast_node *value = pairs[i * 2 + 1];
 
     /* Check if this is a double-splat (**kwargs) */
-    if (node_to_int(key->car) == NODE_KW_REST_ARGS) {
+    if (node_to_sym(key) == MRB_OPSYM_2(s->mrb, pow)) {
       /* Flush any accumulated regular pairs first */
       if (val && first && regular_pairs == 0) {
         /* First element is splat - create empty hash */
