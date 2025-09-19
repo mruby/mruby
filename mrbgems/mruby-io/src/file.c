@@ -653,7 +653,7 @@ mrb_file_absolute_path(mrb_state *mrb, mrb_value self)
   const char *path;
   const char *default_dir = ".";
   mrb_get_args(mrb, "z|z", &path, &default_dir);
-  return path_expand(mrb, path, default_dir, TRUE);
+  return path_expand(mrb, path, default_dir, FALSE);
 }
 
 /*
