@@ -3707,16 +3707,14 @@ static void
 gen_array_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_array_node *array = array_node(varnode);
-  int len = ARRAY_NODE_LEN(array);
-  struct mrb_ast_node **elements = ARRAY_NODE_ELEMENTS(array);
-  int i;
+  node *elements = ARRAY_NODE_ELEMENTS(array);
   int regular_elements = 0;
   int first = 1;
   int slimit = GEN_VAL_STACK_MAX;
 
   if (!val) return;
 
-  if (len == 0) {
+  if (!elements) {
     genop_2(s, OP_ARRAY, cursp(), 0);
     push();
     return;
@@ -3724,9 +3722,10 @@ gen_array_var(codegen_scope *s, node *varnode, int val)
 
   if (cursp() >= GEN_LIT_ARY_MAX) slimit = INT16_MAX;
 
-  /* Process each element, handling splats */
-  for (i = 0; i < len; i++) {
-    struct mrb_ast_node *element = elements[i];
+  /* Process each element using cons-list iteration, handling splats */
+  node *current = elements;
+  while (current) {
+    struct mrb_ast_node *element = current->car;
     int is_splat = is_splat_node(element);
 
     if (is_splat || cursp() >= slimit) { /* flush accumulated elements */
@@ -3764,6 +3763,8 @@ gen_array_var(codegen_scope *s, node *varnode, int val)
     else {
       regular_elements++;
     }
+
+    current = current->cdr;
   }
 
   /* Handle any remaining regular elements */

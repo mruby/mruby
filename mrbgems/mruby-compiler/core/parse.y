@@ -989,34 +989,10 @@ new_or(parser_state *p, node *a, node *b)
 static node*
 new_array(parser_state *p, node *a)
 {
-  /* Count array elements */
-  uint16_t len = 0;
-  node *elem_iter = a;
-  while (elem_iter) {
-    len++;
-    elem_iter = elem_iter->cdr;
-  }
+  struct mrb_ast_array_node *n = (struct mrb_ast_array_node*)parser_alloc_var(p, sizeof(struct mrb_ast_array_node), SIZE_CLASS_MEDIUM);
 
-  /* Calculate total size needed */
-  size_t base_size = sizeof(struct mrb_ast_array_node);
-  size_t elems_size = len * sizeof(struct mrb_ast_node*);
-  size_t total_size = base_size + elems_size;
-
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-
-  struct mrb_ast_array_node *n = (struct mrb_ast_array_node*)
-    parser_alloc_var(p, total_size, size_class);
-
-  init_var_header(&n->header, p, NODE_ARRAY, size_class);
-  n->len = len;
-  n->flags = 0;
-
-  /* Copy elements into flexible array */
-  elem_iter = a;
-  for (int i = 0; i < len; i++) {
-    n->elements[i] = elem_iter->car;
-    elem_iter = elem_iter->cdr;
-  }
+  init_var_header(&n->header, p, NODE_ARRAY, SIZE_CLASS_MEDIUM);
+  n->elements = a;
 
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }

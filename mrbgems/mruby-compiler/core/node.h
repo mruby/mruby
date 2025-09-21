@@ -219,12 +219,10 @@ struct mrb_ast_call_node {
   struct mrb_ast_node *args;         /* Arguments Information */
 };
 
-/* Variable-sized array node with inline element storage */
+/* Variable-sized array node - revert to original cons list approach */
 struct mrb_ast_array_node {
-  struct mrb_ast_var_header header;  /* 8 bytes */
-  uint16_t len;                      /* Number of elements */
-  uint16_t flags;                    /* Array-specific flags */
-  struct mrb_ast_node *elements[];   /* Flexible array for elements */
+  struct mrb_ast_var_header header;    /* 8 bytes */
+  struct mrb_ast_node *elements;       /* Original elements list */
 };
 
 /* Variable-sized hash node with inline key-value storage */
@@ -447,7 +445,6 @@ struct mrb_ast_super_node {
 #define CALL_NODE_HAS_BLOCK(n) (call_node(n)->has_block)
 #define CALL_NODE_SAFE(n) (call_node(n)->safe_call)
 
-#define ARRAY_NODE_LEN(n) (array_node(n)->len)
 #define ARRAY_NODE_ELEMENTS(n) (array_node(n)->elements)
 
 #define HASH_NODE_LEN(n) (hash_node(n)->len)
