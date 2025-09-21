@@ -225,13 +225,10 @@ struct mrb_ast_array_node {
   struct mrb_ast_node *elements;       /* Original elements list */
 };
 
-/* Variable-sized hash node with inline key-value storage */
+/* Variable-sized hash node - revert to original cons list approach */
 struct mrb_ast_hash_node {
-  struct mrb_ast_var_header header;  /* 8 bytes */
-  uint16_t len;                      /* Number of key-value pairs */
-  uint16_t flags;                    /* Hash-specific flags */
-  /* Interleaved key-value pairs: key0, value0, key1, value1, ... */
-  struct mrb_ast_node *pairs[];      /* Flexible array for key-value pairs */
+  struct mrb_ast_var_header header;    /* 8 bytes */
+  struct mrb_ast_node *pairs;          /* Original pairs list */
 };
 
 /* Phase 3 Variable Node Structures - Control Flow */
@@ -447,7 +444,6 @@ struct mrb_ast_super_node {
 
 #define ARRAY_NODE_ELEMENTS(n) (array_node(n)->elements)
 
-#define HASH_NODE_LEN(n) (hash_node(n)->len)
 #define HASH_NODE_PAIRS(n) (hash_node(n)->pairs)
 
 /* Phase 3 value access macros */

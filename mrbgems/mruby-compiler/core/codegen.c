@@ -3187,25 +3187,26 @@ static void
 gen_hash_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_hash_node *hash = hash_node(varnode);
-  int len = hash->len;
-  struct mrb_ast_node **pairs = hash->pairs;
-  int i;
+  node *pairs = HASH_NODE_PAIRS(hash);
   int regular_pairs = 0;
   mrb_bool update = FALSE;
   mrb_bool first = TRUE;
 
   if (!val) return;
 
-  if (len == 0) {
+  if (!pairs) {
     genop_2(s, OP_HASH, cursp(), 0);
     push();
     return;
   }
 
-  /* Process each key-value pair, handling double-splat (**) cases */
-  for (i = 0; i < len; i++) {
-    struct mrb_ast_node *key = pairs[i * 2];
-    struct mrb_ast_node *value = pairs[i * 2 + 1];
+  /* Process each key-value pair using cons-list iteration, handling double-splat (**) cases */
+  node *current = pairs;
+  while (current) {
+    /* Each current->car is a cons (key . value) */
+    node *pair = current->car;
+    struct mrb_ast_node *key = pair->car;
+    struct mrb_ast_node *value = pair->cdr;
 
     /* Check if this is a double-splat (**kwargs) */
     if (node_to_sym(key) == MRB_OPSYM_2(s->mrb, pow)) {
@@ -3249,6 +3250,8 @@ gen_hash_var(codegen_scope *s, node *varnode, int val)
       regular_pairs++;
     }
     first = FALSE;
+
+    current = current->cdr;
   }
 
   /* Handle any remaining regular pairs */
