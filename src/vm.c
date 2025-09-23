@@ -1457,7 +1457,7 @@ RETRY_TRY_BLOCK:
 #ifdef MRB_USE_BIGINT
         {
           const char *s = irep->pool[b].u.str;
-          regs[a] = mrb_bint_new_str(mrb, s+2, (uint8_t)s[0], s[1]);
+          regs[a] = mrb_bint_new_str(mrb, s+2, (uint8_t)s[0], (int8_t)s[1]);
         }
         break;
 #else
