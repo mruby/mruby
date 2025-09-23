@@ -163,37 +163,13 @@ cons_head_gen(parser_state *p, node *car, node *cdr)
 /* Head-only location optimization: separate functions for head vs structure nodes */
 #define cons(a,b) cons_gen(p,(a),(b))           /* Structure nodes - no location */
 #define cons_head(a,b) cons_head_gen(p,(a),(b)) /* Head nodes - with location */
-
-/* Variable-sized node infrastructure - Phase 1 */
-
-/* Calculate size class for given byte size */
-static inline enum mrb_ast_size_class
-size_to_class(size_t size)
-{
-  static const size_t limits[] = SIZE_CLASS_LIMITS;
-  for (int i = 0; i < SIZE_CLASS_COUNT; i++) {
-    if (size <= limits[i]) return (enum mrb_ast_size_class)i;
-  }
-  return SIZE_CLASS_XLARGE;
-}
-
-/* Get maximum size for a size class */
-static inline size_t
-size_class_limit(enum mrb_ast_size_class size_class)
-{
-  static const size_t limits[] = SIZE_CLASS_LIMITS;
-  return (size_class < SIZE_CLASS_COUNT) ? limits[size_class] : 512;
-}
-
 /* Initialize variable node header */
 static void
-init_var_header(struct mrb_ast_var_header *header, parser_state *p,
-                enum node_type type, enum mrb_ast_size_class size_class)
+init_var_header(struct mrb_ast_var_header *header, parser_state *p, enum node_type type)
 {
   header->lineno = p->lineno;
   header->filename_index = p->current_filename_index;
   header->node_type = (uint8_t)type;
-  header->size_class = (uint8_t)size_class;
   header->flags = 0;
 
   /* Handle file boundary edge case */
@@ -423,10 +399,8 @@ nvars_unnest(parser_state *p)
 static node*
 new_scope(parser_state *p, node *body)
 {
-  size_t total_size = sizeof(struct mrb_ast_scope_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-  struct mrb_ast_scope_node *scope_node = (struct mrb_ast_scope_node*)parser_palloc(p, total_size);
-  init_var_header(&scope_node->hdr, p, NODE_SCOPE, size_class);
+  struct mrb_ast_scope_node *scope_node = (struct mrb_ast_scope_node*)parser_palloc(p, sizeof(struct mrb_ast_scope_node));
+  init_var_header(&scope_node->hdr, p, NODE_SCOPE);
   scope_node->locals = locals_node(p);
   scope_node->body = body;
   return cons_head((node*)NODE_VARIABLE, (node*)scope_node);
@@ -436,12 +410,9 @@ new_scope(parser_state *p, node *body)
 static node*
 new_stmts(parser_state *p, node *body)
 {
-  size_t total_size = sizeof(struct mrb_ast_stmts_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
+  struct mrb_ast_stmts_node *n = (struct mrb_ast_stmts_node*)parser_palloc(p, sizeof(struct mrb_ast_stmts_node));
 
-  struct mrb_ast_stmts_node *n = (struct mrb_ast_stmts_node*)parser_palloc(p, total_size);
-
-  init_var_header(&n->hdr, p, NODE_STMTS, size_class);
+  init_var_header(&n->hdr, p, NODE_STMTS);
   n->stmts = body ? list1(body) : 0;  /* Wrap single statement in cons-list */
 
   return cons_head((node*)NODE_VARIABLE, (node*)n);
@@ -451,10 +422,8 @@ new_stmts(parser_state *p, node *body)
 static node*
 new_begin(parser_state *p, node *body)
 {
-  size_t total_size = sizeof(struct mrb_ast_begin_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-  struct mrb_ast_begin_node *begin_node = (struct mrb_ast_begin_node*)parser_palloc(p, total_size);
-  init_var_header(&begin_node->hdr, p, NODE_BEGIN, size_class);
+  struct mrb_ast_begin_node *begin_node = (struct mrb_ast_begin_node*)parser_palloc(p, sizeof(struct mrb_ast_begin_node));
+  init_var_header(&begin_node->hdr, p, NODE_BEGIN);
   begin_node->body = body;
   return cons_head((node*)NODE_VARIABLE, (node*)begin_node);
 }
@@ -465,12 +434,8 @@ new_begin(parser_state *p, node *body)
 static node*
 new_rescue(parser_state *p, node *body, node *resq, node *els)
 {
-  size_t total_size = sizeof(struct mrb_ast_rescue_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-
-  struct mrb_ast_rescue_node *n = (struct mrb_ast_rescue_node*)parser_palloc(p, total_size);
-
-  init_var_header(&n->hdr, p, NODE_RESCUE, size_class);
+  struct mrb_ast_rescue_node *n = (struct mrb_ast_rescue_node*)parser_palloc(p, sizeof(struct mrb_ast_rescue_node));
+  init_var_header(&n->hdr, p, NODE_RESCUE);
   n->body = body;
   n->rescue_clauses = resq;
   n->else_clause = els;
@@ -488,10 +453,8 @@ new_mod_rescue(parser_state *p, node *body, node *resq)
 static node*
 new_ensure(parser_state *p, node *a, node *b)
 {
-  size_t total_size = sizeof(struct mrb_ast_ensure_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-  struct mrb_ast_ensure_node *ensure_node = (struct mrb_ast_ensure_node*)parser_palloc(p, total_size);
-  init_var_header(&ensure_node->hdr, p, NODE_ENSURE, size_class);
+  struct mrb_ast_ensure_node *ensure_node = (struct mrb_ast_ensure_node*)parser_palloc(p, sizeof(struct mrb_ast_ensure_node));
+  init_var_header(&ensure_node->hdr, p, NODE_ENSURE);
   ensure_node->body = a;
   ensure_node->ensure_clause = b;
   return cons_head((node*)NODE_VARIABLE, (node*)ensure_node);
@@ -501,12 +464,8 @@ new_ensure(parser_state *p, node *a, node *b)
 static node*
 new_nil(parser_state *p)
 {
-  size_t total_size = sizeof(struct mrb_ast_nil_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-
-  struct mrb_ast_nil_node *n = (struct mrb_ast_nil_node*)parser_palloc(p, total_size);
-
-  init_var_header(&n->hdr, p, NODE_NIL, size_class);
+  struct mrb_ast_nil_node *n = (struct mrb_ast_nil_node*)parser_palloc(p, sizeof(struct mrb_ast_nil_node));
+  init_var_header(&n->hdr, p, NODE_NIL);
 
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
@@ -515,12 +474,8 @@ new_nil(parser_state *p)
 static node*
 new_true(parser_state *p)
 {
-  size_t total_size = sizeof(struct mrb_ast_true_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-
-  struct mrb_ast_true_node *n = (struct mrb_ast_true_node*)parser_palloc(p, total_size);
-
-  init_var_header(&n->hdr, p, NODE_TRUE, size_class);
+  struct mrb_ast_true_node *n = (struct mrb_ast_true_node*)parser_palloc(p, sizeof(struct mrb_ast_true_node));
+  init_var_header(&n->hdr, p, NODE_TRUE);
 
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
@@ -529,12 +484,8 @@ new_true(parser_state *p)
 static node*
 new_false(parser_state *p)
 {
-  size_t total_size = sizeof(struct mrb_ast_false_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-
-  struct mrb_ast_false_node *n = (struct mrb_ast_false_node*)parser_palloc(p, total_size);
-
-  init_var_header(&n->hdr, p, NODE_FALSE, size_class);
+  struct mrb_ast_false_node *n = (struct mrb_ast_false_node*)parser_palloc(p, sizeof(struct mrb_ast_false_node));
+  init_var_header(&n->hdr, p, NODE_FALSE);
 
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
@@ -543,10 +494,8 @@ new_false(parser_state *p)
 static node*
 new_alias(parser_state *p, mrb_sym a, mrb_sym b)
 {
-  size_t total_size = sizeof(struct mrb_ast_alias_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-  struct mrb_ast_alias_node *alias_node = (struct mrb_ast_alias_node*)parser_palloc(p, total_size);
-  init_var_header(&alias_node->hdr, p, NODE_ALIAS, size_class);
+  struct mrb_ast_alias_node *alias_node = (struct mrb_ast_alias_node*)parser_palloc(p, sizeof(struct mrb_ast_alias_node));
+  init_var_header(&alias_node->hdr, p, NODE_ALIAS);
   alias_node->new_name = a;
   alias_node->old_name = b;
   return cons_head((node*)NODE_VARIABLE, (node*)alias_node);
@@ -558,12 +507,10 @@ new_if(parser_state *p, node *condition, node *then_body, node *else_body)
 {
   void_expr_error(p, condition);
 
-  size_t total_size = sizeof(struct mrb_ast_if_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
   struct mrb_ast_if_node *n;
 
-  n = (struct mrb_ast_if_node*)parser_palloc(p, total_size);
-  init_var_header(&n->header, p, NODE_IF, size_class);
+  n = (struct mrb_ast_if_node*)parser_palloc(p, sizeof(struct mrb_ast_if_node));
+  init_var_header(&n->header, p, NODE_IF);
   n->condition = condition;
   n->then_body = then_body;
   n->else_body = else_body;
@@ -577,12 +524,10 @@ new_while(parser_state *p, node *condition, node *body)
 {
   void_expr_error(p, condition);
 
-  size_t total_size = sizeof(struct mrb_ast_while_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
   struct mrb_ast_while_node *n;
 
-  n = (struct mrb_ast_while_node*)parser_palloc(p, total_size);
-  init_var_header(&n->header, p, NODE_WHILE, size_class);
+  n = (struct mrb_ast_while_node*)parser_palloc(p, sizeof(struct mrb_ast_if_node));
+  init_var_header(&n->header, p, NODE_WHILE);
   n->condition = condition;
   n->body = body;
 
@@ -595,12 +540,10 @@ new_until(parser_state *p, node *condition, node *body)
 {
   void_expr_error(p, condition);
 
-  size_t total_size = sizeof(struct mrb_ast_until_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
   struct mrb_ast_until_node *n;
 
-  n = (struct mrb_ast_until_node*)parser_palloc(p, total_size);
-  init_var_header(&n->header, p, NODE_UNTIL, size_class);
+  n = (struct mrb_ast_until_node*)parser_palloc(p, sizeof(struct mrb_ast_if_node));
+  init_var_header(&n->header, p, NODE_UNTIL);
   n->condition = condition;
   n->body = body;
 
@@ -633,12 +576,8 @@ new_for(parser_state *p, node *v, node *o, node *b)
 {
   void_expr_error(p, o);
 
-  size_t total_size = sizeof(struct mrb_ast_for_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-
-  struct mrb_ast_for_node *n = (struct mrb_ast_for_node*)parser_palloc(p, total_size);
-
-  init_var_header(&n->header, p, NODE_FOR, size_class);
+  struct mrb_ast_for_node *n = (struct mrb_ast_for_node*)parser_palloc(p, sizeof(struct mrb_ast_for_node));
+  init_var_header(&n->header, p, NODE_FOR);
   n->var = v;
   n->iterable = o;
   n->body = b;
@@ -654,7 +593,7 @@ new_case(parser_state *p, node *a, node *b)
 
   struct mrb_ast_case_node *n = (struct mrb_ast_case_node*)parser_palloc(p, sizeof(struct mrb_ast_case_node));
 
-  init_var_header(&n->header, p, NODE_CASE, SIZE_CLASS_MEDIUM);
+  init_var_header(&n->header, p, NODE_CASE);
   n->value = a;
   n->body = b;
 
@@ -665,10 +604,8 @@ new_case(parser_state *p, node *a, node *b)
 static node*
 new_postexe(parser_state *p, node *a)
 {
-  size_t total_size = sizeof(struct mrb_ast_postexe_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-  struct mrb_ast_postexe_node *postexe_node = (struct mrb_ast_postexe_node*)parser_palloc(p, total_size);
-  init_var_header(&postexe_node->hdr, p, NODE_POSTEXE, size_class);
+  struct mrb_ast_postexe_node *postexe_node = (struct mrb_ast_postexe_node*)parser_palloc(p, sizeof(struct mrb_ast_postexe_node));
+  init_var_header(&postexe_node->hdr, p, NODE_POSTEXE);
   postexe_node->body = a;
   return cons_head((node*)NODE_VARIABLE, (node*)postexe_node);
 }
@@ -677,12 +614,8 @@ new_postexe(parser_state *p, node *a)
 static node*
 new_self(parser_state *p)
 {
-  size_t total_size = sizeof(struct mrb_ast_self_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-
-  struct mrb_ast_self_node *n = (struct mrb_ast_self_node*)parser_palloc(p, total_size);
-
-  init_var_header(&n->hdr, p, NODE_SELF, size_class);
+  struct mrb_ast_self_node *n = (struct mrb_ast_self_node*)parser_palloc(p, sizeof(struct mrb_ast_self_node));
+  init_var_header(&n->hdr, p, NODE_SELF);
 
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
@@ -702,13 +635,8 @@ new_call(parser_state *p, node *receiver, mrb_sym method, node *args, int pass)
     has_block = (callargs->block_arg != NULL);
   }
 
-  /* Calculate size needed (fixed size now) */
-  size_t total_size = sizeof(struct mrb_ast_call_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-
-  struct mrb_ast_call_node *n = (struct mrb_ast_call_node*)parser_palloc(p, total_size);
-
-  init_var_header(&n->header, p, NODE_CALL, size_class);
+  /* Calculate size needed (fixed size now) */  struct mrb_ast_call_node *n = (struct mrb_ast_call_node*)parser_palloc(p, sizeof(struct mrb_ast_call_node));
+  init_var_header(&n->header, p, NODE_CALL);
   n->receiver = receiver;
   n->method_name = method;
   n->argc = 0; /* argc will be determined at codegen time to handle splats */
@@ -751,12 +679,8 @@ new_callargs(parser_state *p, node *a, node *b, node *c)
 static node*
 new_super(parser_state *p, node *c)
 {
-  size_t total_size = sizeof(struct mrb_ast_super_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-
-  struct mrb_ast_super_node *n = (struct mrb_ast_super_node*)parser_palloc(p, total_size);
-
-  init_var_header(&n->header, p, NODE_SUPER, size_class);
+  struct mrb_ast_super_node *n = (struct mrb_ast_super_node*)parser_palloc(p, sizeof(struct mrb_ast_super_node));
+  init_var_header(&n->header, p, NODE_SUPER);
   n->args = c;
 
   return cons_head((node*)NODE_VARIABLE, (node*)n);
@@ -766,10 +690,8 @@ new_super(parser_state *p, node *c)
 static node*
 new_zsuper(parser_state *p)
 {
-  size_t total_size = sizeof(struct mrb_ast_super_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-  struct mrb_ast_super_node *n = (struct mrb_ast_super_node*)parser_palloc(p, total_size);
-  init_var_header(&n->header, p, NODE_ZSUPER, size_class);
+  struct mrb_ast_super_node *n = (struct mrb_ast_super_node*)parser_palloc(p, sizeof(struct mrb_ast_super_node));
+  init_var_header(&n->header, p, NODE_ZSUPER);
   n->args = NULL;  /* zsuper initially has no args, but may be added by call_with_block */
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
@@ -784,14 +706,8 @@ new_yield(parser_state *p, node *c)
     if (callargs->block_arg) {
       yyerror(NULL, p, "both block arg and actual block given");
     }
-  }
-
-  size_t total_size = sizeof(struct mrb_ast_yield_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-
-  struct mrb_ast_yield_node *n = (struct mrb_ast_yield_node*)parser_palloc(p, total_size);
-
-  init_var_header(&n->header, p, NODE_YIELD, size_class);
+  }  struct mrb_ast_yield_node *n = (struct mrb_ast_yield_node*)parser_palloc(p, sizeof(struct mrb_ast_yield_node));
+  init_var_header(&n->header, p, NODE_YIELD);
   n->args = c;
 
   return cons_head((node*)NODE_VARIABLE, (node*)n);
@@ -801,12 +717,8 @@ new_yield(parser_state *p, node *c)
 static node*
 new_return(parser_state *p, node *c)
 {
-  size_t total_size = sizeof(struct mrb_ast_return_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-
-  struct mrb_ast_return_node *n = (struct mrb_ast_return_node*)parser_palloc(p, total_size);
-
-  init_var_header(&n->header, p, NODE_RETURN, size_class);
+  struct mrb_ast_return_node *n = (struct mrb_ast_return_node*)parser_palloc(p, sizeof(struct mrb_ast_return_node));
+  init_var_header(&n->header, p, NODE_RETURN);
   n->args = c;
 
   return cons_head((node*)NODE_VARIABLE, (node*)n);
@@ -816,10 +728,8 @@ new_return(parser_state *p, node *c)
 static node*
 new_break(parser_state *p, node *c)
 {
-  size_t total_size = sizeof(struct mrb_ast_break_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-  struct mrb_ast_break_node *n = (struct mrb_ast_break_node*)parser_palloc(p, total_size);
-  init_var_header(&n->hdr, p, NODE_BREAK, size_class);
+  struct mrb_ast_break_node *n = (struct mrb_ast_break_node*)parser_palloc(p, sizeof(struct mrb_ast_break_node));
+  init_var_header(&n->hdr, p, NODE_BREAK);
   n->value = c;
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
@@ -828,10 +738,8 @@ new_break(parser_state *p, node *c)
 static node*
 new_next(parser_state *p, node *c)
 {
-  size_t total_size = sizeof(struct mrb_ast_next_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-  struct mrb_ast_next_node *n = (struct mrb_ast_next_node*)parser_palloc(p, total_size);
-  init_var_header(&n->hdr, p, NODE_NEXT, size_class);
+  struct mrb_ast_next_node *n = (struct mrb_ast_next_node*)parser_palloc(p, sizeof(struct mrb_ast_next_node));
+  init_var_header(&n->hdr, p, NODE_NEXT);
   n->value = c;
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
@@ -840,10 +748,8 @@ new_next(parser_state *p, node *c)
 static node*
 new_redo(parser_state *p)
 {
-  size_t total_size = sizeof(struct mrb_ast_redo_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-  struct mrb_ast_redo_node *n = (struct mrb_ast_redo_node*)parser_palloc(p, total_size);
-  init_var_header(&n->hdr, p, NODE_REDO, size_class);
+  struct mrb_ast_redo_node *n = (struct mrb_ast_redo_node*)parser_palloc(p, sizeof(struct mrb_ast_redo_node));
+  init_var_header(&n->hdr, p, NODE_REDO);
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
@@ -851,10 +757,8 @@ new_redo(parser_state *p)
 static node*
 new_retry(parser_state *p)
 {
-  size_t total_size = sizeof(struct mrb_ast_retry_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-  struct mrb_ast_retry_node *n = (struct mrb_ast_retry_node*)parser_palloc(p, total_size);
-  init_var_header(&n->hdr, p, NODE_RETRY, size_class);
+  struct mrb_ast_retry_node *n = (struct mrb_ast_retry_node*)parser_palloc(p, sizeof(struct mrb_ast_retry_node));
+  init_var_header(&n->hdr, p, NODE_RETRY);
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
@@ -862,12 +766,8 @@ new_retry(parser_state *p)
 static node*
 new_dot2(parser_state *p, node *a, node *b)
 {
-  size_t total_size = sizeof(struct mrb_ast_dot2_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-
-  struct mrb_ast_dot2_node *n = (struct mrb_ast_dot2_node*)parser_palloc(p, total_size);
-
-  init_var_header(&n->hdr, p, NODE_DOT2, size_class);
+  struct mrb_ast_dot2_node *n = (struct mrb_ast_dot2_node*)parser_palloc(p, sizeof(struct mrb_ast_dot2_node));
+  init_var_header(&n->hdr, p, NODE_DOT2);
   n->left = a;
   n->right = b;
 
@@ -878,12 +778,8 @@ new_dot2(parser_state *p, node *a, node *b)
 static node*
 new_dot3(parser_state *p, node *a, node *b)
 {
-  size_t total_size = sizeof(struct mrb_ast_dot3_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-
-  struct mrb_ast_dot3_node *n = (struct mrb_ast_dot3_node*)parser_palloc(p, total_size);
-
-  init_var_header(&n->hdr, p, NODE_DOT3, size_class);
+  struct mrb_ast_dot3_node *n = (struct mrb_ast_dot3_node*)parser_palloc(p, sizeof(struct mrb_ast_dot3_node));
+  init_var_header(&n->hdr, p, NODE_DOT3);
   n->left = a;
   n->right = b;
 
@@ -896,10 +792,8 @@ new_colon2(parser_state *p, node *b, mrb_sym c)
 {
   void_expr_error(p, b);
 
-  size_t total_size = sizeof(struct mrb_ast_colon2_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-  struct mrb_ast_colon2_node *colon2_node = (struct mrb_ast_colon2_node*)parser_palloc(p, total_size);
-  init_var_header(&colon2_node->hdr, p, NODE_COLON2, size_class);
+  struct mrb_ast_colon2_node *colon2_node = (struct mrb_ast_colon2_node*)parser_palloc(p, sizeof(struct mrb_ast_colon2_node));
+  init_var_header(&colon2_node->hdr, p, NODE_COLON2);
   colon2_node->base = b;
   colon2_node->name = c;
   return cons_head((node*)NODE_VARIABLE, (node*)colon2_node);
@@ -909,10 +803,8 @@ new_colon2(parser_state *p, node *b, mrb_sym c)
 static node*
 new_colon3(parser_state *p, mrb_sym c)
 {
-  size_t total_size = sizeof(struct mrb_ast_colon3_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-  struct mrb_ast_colon3_node *colon3_node = (struct mrb_ast_colon3_node*)parser_palloc(p, total_size);
-  init_var_header(&colon3_node->hdr, p, NODE_COLON3, size_class);
+  struct mrb_ast_colon3_node *colon3_node = (struct mrb_ast_colon3_node*)parser_palloc(p, sizeof(struct mrb_ast_colon3_node));
+  init_var_header(&colon3_node->hdr, p, NODE_COLON3);
   colon3_node->name = c;
   return cons_head((node*)NODE_VARIABLE, (node*)colon3_node);
 }
@@ -923,12 +815,8 @@ new_and(parser_state *p, node *a, node *b)
 {
   void_expr_error(p, a);
 
-  size_t total_size = sizeof(struct mrb_ast_and_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-
-  struct mrb_ast_and_node *n = (struct mrb_ast_and_node*)parser_palloc(p, total_size);
-
-  init_var_header(&n->header, p, NODE_AND, size_class);
+  struct mrb_ast_and_node *n = (struct mrb_ast_and_node*)parser_palloc(p, sizeof(struct mrb_ast_and_node));
+  init_var_header(&n->header, p, NODE_AND);
   n->left = a;
   n->right = b;
 
@@ -941,12 +829,8 @@ new_or(parser_state *p, node *a, node *b)
 {
   void_expr_error(p, a);
 
-  size_t total_size = sizeof(struct mrb_ast_or_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-
-  struct mrb_ast_or_node *n = (struct mrb_ast_or_node*)parser_palloc(p, total_size);
-
-  init_var_header(&n->header, p, NODE_OR, size_class);
+  struct mrb_ast_or_node *n = (struct mrb_ast_or_node*)parser_palloc(p, sizeof(struct mrb_ast_or_node));
+  init_var_header(&n->header, p, NODE_OR);
   n->left = a;
   n->right = b;
 
@@ -959,7 +843,7 @@ new_array(parser_state *p, node *a)
 {
   struct mrb_ast_array_node *n = (struct mrb_ast_array_node*)parser_palloc(p, sizeof(struct mrb_ast_array_node));
 
-  init_var_header(&n->header, p, NODE_ARRAY, SIZE_CLASS_MEDIUM);
+  init_var_header(&n->header, p, NODE_ARRAY);
   n->elements = a;
 
   return cons_head((node*)NODE_VARIABLE, (node*)n);
@@ -971,10 +855,8 @@ new_splat(parser_state *p, node *a)
 {
   void_expr_error(p, a);
 
-  size_t total_size = sizeof(struct mrb_ast_splat_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-  struct mrb_ast_splat_node *splat_node = (struct mrb_ast_splat_node*)parser_palloc(p, total_size);
-  init_var_header(&splat_node->hdr, p, NODE_SPLAT, size_class);
+  struct mrb_ast_splat_node *splat_node = (struct mrb_ast_splat_node*)parser_palloc(p, sizeof(struct mrb_ast_splat_node));
+  init_var_header(&splat_node->hdr, p, NODE_SPLAT);
   splat_node->value = a;
   return cons_head((node*)NODE_VARIABLE, (node*)splat_node);
 }
@@ -985,7 +867,7 @@ new_hash(parser_state *p, node *a)
 {
   struct mrb_ast_hash_node *n = (struct mrb_ast_hash_node*)parser_palloc(p, sizeof(struct mrb_ast_hash_node));
 
-  init_var_header(&n->header, p, NODE_HASH, SIZE_CLASS_MEDIUM);
+  init_var_header(&n->header, p, NODE_HASH);
   n->pairs = a;
 
   return cons_head((node*)NODE_VARIABLE, (node*)n);
@@ -998,11 +880,8 @@ new_kw_hash(parser_state *p, node *a)
   if (!p->var_nodes_enabled) {
     return cons_head((node*)NODE_KW_HASH, a);
   }
-
-  size_t total_size = sizeof(struct mrb_ast_kw_hash_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-  struct mrb_ast_kw_hash_node *kw_hash_node = (struct mrb_ast_kw_hash_node*)parser_palloc(p, total_size);
-  init_var_header(&kw_hash_node->hdr, p, NODE_KW_HASH, size_class);
+  struct mrb_ast_kw_hash_node *kw_hash_node = (struct mrb_ast_kw_hash_node*)parser_palloc(p, sizeof(struct mrb_ast_kw_hash_node));
+  init_var_header(&kw_hash_node->hdr, p, NODE_KW_HASH);
   kw_hash_node->args = a;
   return cons_head((node*)NODE_VARIABLE, (node*)kw_hash_node);
 }
@@ -1013,11 +892,10 @@ static node*
 new_sym(parser_state *p, mrb_sym sym)
 {
   size_t size = sizeof(struct mrb_ast_sym_node);
-  enum mrb_ast_size_class size_class = size_to_class(size);
 
   struct mrb_ast_sym_node *n = (struct mrb_ast_sym_node*)parser_palloc(p, size);
 
-  init_var_header(&n->header, p, NODE_SYM, size_class);
+  init_var_header(&n->header, p, NODE_SYM);
   n->symbol = sym;
 
   return cons_head((node*)NODE_VARIABLE, (node*)n);
@@ -1027,11 +905,10 @@ static node*
 new_xvar(parser_state *p, mrb_sym sym, enum node_type type)
 {
   size_t size = sizeof(struct mrb_ast_var_node);
-  enum mrb_ast_size_class size_class = size_to_class(size);
 
   struct mrb_ast_var_node *n = (struct mrb_ast_var_node*)parser_palloc(p, size);
 
-  init_var_header(&n->header, p, type, size_class);
+  init_var_header(&n->header, p, type);
   n->symbol = sym;
 
   return cons_head((node*)NODE_VARIABLE, (node*)n);
@@ -1074,11 +951,8 @@ new_nvar(parser_state *p, int num)
   else {
     p->nvars->car = int_to_node(nvar > num ? nvar : num);
   }
-
-  size_t total_size = sizeof(struct mrb_ast_nvar_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-  struct mrb_ast_nvar_node *n = (struct mrb_ast_nvar_node*)parser_palloc(p, total_size);
-  init_var_header(&n->hdr, p, NODE_NVAR, size_class);
+  struct mrb_ast_nvar_node *n = (struct mrb_ast_nvar_node*)parser_palloc(p, sizeof(struct mrb_ast_nvar_node));
+  init_var_header(&n->hdr, p, NODE_NVAR);
   n->num = num;
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
@@ -1087,12 +961,8 @@ new_nvar(parser_state *p, int num)
 static node*
 new_const(parser_state *p, mrb_sym sym)
 {
-  size_t total_size = sizeof(struct mrb_ast_const_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-
-  struct mrb_ast_const_node *n = (struct mrb_ast_const_node*)parser_palloc(p, total_size);
-
-  init_var_header(&n->hdr, p, NODE_CONST, size_class);
+  struct mrb_ast_const_node *n = (struct mrb_ast_const_node*)parser_palloc(p, sizeof(struct mrb_ast_const_node));
+  init_var_header(&n->hdr, p, NODE_CONST);
   n->symbol = sym;
 
   return cons_head((node*)NODE_VARIABLE, (node*)n);
@@ -1102,10 +972,8 @@ new_const(parser_state *p, mrb_sym sym)
 static node*
 new_undef(parser_state *p, node *syms)
 {
-  size_t total_size = sizeof(struct mrb_ast_undef_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-  struct mrb_ast_undef_node *undef_node = (struct mrb_ast_undef_node*)parser_palloc(p, total_size);
-  init_var_header(&undef_node->hdr, p, NODE_UNDEF, size_class);
+  struct mrb_ast_undef_node *undef_node = (struct mrb_ast_undef_node*)parser_palloc(p, sizeof(struct mrb_ast_undef_node));
+  init_var_header(&undef_node->hdr, p, NODE_UNDEF);
   undef_node->syms = syms;
   return cons_head((node*)NODE_VARIABLE, (node*)undef_node);
 }
@@ -1116,12 +984,8 @@ new_class(parser_state *p, node *c, node *s, node *b)
 {
   void_expr_error(p, s);
 
-  size_t total_size = sizeof(struct mrb_ast_class_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-
-  struct mrb_ast_class_node *n = (struct mrb_ast_class_node*)parser_palloc(p, total_size);
-
-  init_var_header(&n->header, p, NODE_CLASS, size_class);
+  struct mrb_ast_class_node *n = (struct mrb_ast_class_node*)parser_palloc(p, sizeof(struct mrb_ast_class_node));
+  init_var_header(&n->header, p, NODE_CLASS);
   n->name = c;
   n->superclass = s;
   n->body = cons(locals_node(p), b);
@@ -1135,11 +999,8 @@ new_sclass(parser_state *p, node *o, node *b)
 {
   void_expr_error(p, o);
 
-  size_t total_size = sizeof(struct mrb_ast_sclass_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-  struct mrb_ast_sclass_node *n = (struct mrb_ast_sclass_node*)parser_palloc(p, total_size);
-
-  init_var_header(&n->header, p, NODE_SCLASS, size_class);
+  struct mrb_ast_sclass_node *n = (struct mrb_ast_sclass_node*)parser_palloc(p, sizeof(struct mrb_ast_sclass_node));
+  init_var_header(&n->header, p, NODE_SCLASS);
   n->obj = o;
   n->body = cons(locals_node(p), b);
 
@@ -1150,12 +1011,8 @@ new_sclass(parser_state *p, node *o, node *b)
 static node*
 new_module(parser_state *p, node *m, node *b)
 {
-  size_t total_size = sizeof(struct mrb_ast_module_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-
-  struct mrb_ast_module_node *n = (struct mrb_ast_module_node*)parser_palloc(p, total_size);
-
-  init_var_header(&n->header, p, NODE_MODULE, size_class);
+  struct mrb_ast_module_node *n = (struct mrb_ast_module_node*)parser_palloc(p, sizeof(struct mrb_ast_module_node));
+  init_var_header(&n->header, p, NODE_MODULE);
   n->name = m;
   n->body = cons(locals_node(p), b);
 
@@ -1166,12 +1023,8 @@ new_module(parser_state *p, node *m, node *b)
 static node*
 new_def(parser_state *p, mrb_sym name)
 {
-  size_t total_size = sizeof(struct mrb_ast_def_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-
-  struct mrb_ast_def_node *n = (struct mrb_ast_def_node*)parser_palloc(p, total_size);
-
-  init_var_header(&n->header, p, NODE_DEF, size_class);
+  struct mrb_ast_def_node *n = (struct mrb_ast_def_node*)parser_palloc(p, sizeof(struct mrb_ast_def_node));
+  init_var_header(&n->header, p, NODE_DEF);
   n->name = name;
   n->args = (struct mrb_ast_args *)int_to_node(p->cmdarg_stack);
   n->locals = local_switch(p);
@@ -1199,10 +1052,8 @@ new_sdef(parser_state *p, node *o, mrb_sym name)
 {
   void_expr_error(p, o);
 
-  size_t total_size = sizeof(struct mrb_ast_sdef_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-  struct mrb_ast_sdef_node *sdef_node = (struct mrb_ast_sdef_node*)parser_palloc(p, total_size);
-  init_var_header(&sdef_node->header, p, NODE_SDEF, size_class);
+  struct mrb_ast_sdef_node *sdef_node = (struct mrb_ast_sdef_node*)parser_palloc(p, sizeof(struct mrb_ast_sdef_node));
+  init_var_header(&sdef_node->header, p, NODE_SDEF);
   sdef_node->obj = o;
   sdef_node->name = name;
   sdef_node->args = (struct mrb_ast_args *)int_to_node(p->cmdarg_stack);
@@ -1362,10 +1213,8 @@ new_args_dots(parser_state *p, node *m)
 static node*
 new_block_arg(parser_state *p, node *a)
 {
-  size_t total_size = sizeof(struct mrb_ast_block_arg_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-  struct mrb_ast_block_arg_node *block_arg_node = (struct mrb_ast_block_arg_node*)parser_palloc(p, total_size);
-  init_var_header(&block_arg_node->hdr, p, NODE_BLOCK_ARG, size_class);
+  struct mrb_ast_block_arg_node *block_arg_node = (struct mrb_ast_block_arg_node*)parser_palloc(p, sizeof(struct mrb_ast_block_arg_node));
+  init_var_header(&block_arg_node->hdr, p, NODE_BLOCK_ARG);
   block_arg_node->value = a;
   return cons_head((node*)NODE_VARIABLE, (node*)block_arg_node);
 }
@@ -1406,14 +1255,8 @@ setup_numparams(parser_state *p, node *a)
 static node*
 new_block(parser_state *p, node *a, node *b)
 {
-  a = setup_numparams(p, a);
-
-  size_t total_size = sizeof(struct mrb_ast_block_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-
-  struct mrb_ast_block_node *n = (struct mrb_ast_block_node*)parser_palloc(p, total_size);
-
-  init_var_header(&n->hdr, p, NODE_BLOCK, size_class);
+  a = setup_numparams(p, a);  struct mrb_ast_block_node *n = (struct mrb_ast_block_node*)parser_palloc(p, sizeof(struct mrb_ast_block_node));
+  init_var_header(&n->hdr, p, NODE_BLOCK);
   n->locals = locals_node(p);
   n->args = (struct mrb_ast_args *)a;
   n->body = b;
@@ -1425,12 +1268,8 @@ new_block(parser_state *p, node *a, node *b)
 static node*
 new_lambda(parser_state *p, node *a, node *b)
 {
-  a = setup_numparams(p, a);
-
-  size_t total_size = sizeof(struct mrb_ast_lambda_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-  struct mrb_ast_lambda_node *lambda_node = (struct mrb_ast_lambda_node*)parser_palloc(p, total_size);
-  init_var_header(&lambda_node->hdr, p, NODE_LAMBDA, size_class);
+  a = setup_numparams(p, a);  struct mrb_ast_lambda_node *lambda_node = (struct mrb_ast_lambda_node*)parser_palloc(p, sizeof(struct mrb_ast_lambda_node));
+  init_var_header(&lambda_node->hdr, p, NODE_LAMBDA);
   lambda_node->locals = locals_node(p);
   lambda_node->args = (struct mrb_ast_args *)a;
   lambda_node->body = b;
@@ -1443,12 +1282,8 @@ new_asgn(parser_state *p, node *a, node *b)
 {
   void_expr_error(p, b);
 
-  size_t total_size = sizeof(struct mrb_ast_asgn_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-
-  struct mrb_ast_asgn_node *n = (struct mrb_ast_asgn_node*)parser_palloc(p, total_size);
-
-  init_var_header(&n->header, p, NODE_ASGN, size_class);
+  struct mrb_ast_asgn_node *n = (struct mrb_ast_asgn_node*)parser_palloc(p, sizeof(struct mrb_ast_asgn_node));
+  init_var_header(&n->header, p, NODE_ASGN);
   n->lhs = a;
   n->rhs = b;
 
@@ -1461,12 +1296,8 @@ new_masgn(parser_state *p, node *a, node *b)
 {
   void_expr_error(p, b);
 
-  size_t total_size = sizeof(struct mrb_ast_masgn_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-
-  struct mrb_ast_masgn_node *n = (struct mrb_ast_masgn_node*)parser_palloc(p, total_size);
-
-  init_var_header(&n->header, p, NODE_MASGN, size_class);
+  struct mrb_ast_masgn_node *n = (struct mrb_ast_masgn_node*)parser_palloc(p, sizeof(struct mrb_ast_masgn_node));
+  init_var_header(&n->header, p, NODE_MASGN);
   n->lhs = a;
   n->rhs = b;
 
@@ -1477,12 +1308,8 @@ new_masgn(parser_state *p, node *a, node *b)
 static node*
 new_masgn_param(parser_state *p, node *a, node *b)
 {
-  size_t total_size = sizeof(struct mrb_ast_masgn_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-
-  struct mrb_ast_masgn_node *n = (struct mrb_ast_masgn_node*)parser_palloc(p, total_size);
-
-  init_var_header(&n->header, p, NODE_MASGN, size_class);
+  struct mrb_ast_masgn_node *n = (struct mrb_ast_masgn_node*)parser_palloc(p, sizeof(struct mrb_ast_masgn_node));
+  init_var_header(&n->header, p, NODE_MASGN);
   n->lhs = a;
   n->rhs = b;
 
@@ -1495,10 +1322,8 @@ new_op_asgn(parser_state *p, node *a, mrb_sym op, node *b)
 {
   void_expr_error(p, b);
 
-  size_t total_size = sizeof(struct mrb_ast_op_asgn_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-  struct mrb_ast_op_asgn_node *n = (struct mrb_ast_op_asgn_node*)parser_palloc(p, total_size);
-  init_var_header(&n->header, p, NODE_OP_ASGN, size_class);
+  struct mrb_ast_op_asgn_node *n = (struct mrb_ast_op_asgn_node*)parser_palloc(p, sizeof(struct mrb_ast_op_asgn_node));
+  init_var_header(&n->header, p, NODE_OP_ASGN);
   n->lhs = a;
   n->op = op;
   n->rhs = b;
@@ -1509,10 +1334,9 @@ static node*
 new_int_n(parser_state *p, int32_t val)
 {
   size_t size = sizeof(struct mrb_ast_int_node);
-  enum mrb_ast_size_class size_class = size_to_class(size);
   struct mrb_ast_int_node *n = (struct mrb_ast_int_node*)parser_palloc(p, size);
 
-  init_var_header(&n->header, p, NODE_INT, size_class);
+  init_var_header(&n->header, p, NODE_INT);
   n->value = val;
 
   return cons_head((node*)NODE_VARIABLE, (node*)n);
@@ -1619,10 +1443,9 @@ new_int(parser_state *p, const char *s, int base, int suffix)
   else {
     /* Big integer - create NODE_BIGINT */
     size_t size = sizeof(struct mrb_ast_bigint_node);
-    enum mrb_ast_size_class size_class = size_to_class(size);
     struct mrb_ast_bigint_node *n = (struct mrb_ast_bigint_node*)parser_palloc(p, size);
 
-    init_var_header(&n->header, p, NODE_BIGINT, size_class);
+    init_var_header(&n->header, p, NODE_BIGINT);
     n->string = strdup(s);
     n->base = base;
 
@@ -1645,12 +1468,8 @@ new_int(parser_state *p, const char *s, int base, int suffix)
 static node*
 new_float(parser_state *p, const char *s, int suffix)
 {
-  size_t total_size = sizeof(struct mrb_ast_float_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-
-  struct mrb_ast_float_node *n = (struct mrb_ast_float_node*)parser_palloc(p, total_size);
-
-  init_var_header(&n->hdr, p, NODE_FLOAT, size_class);
+  struct mrb_ast_float_node *n = (struct mrb_ast_float_node*)parser_palloc(p, sizeof(struct mrb_ast_float_node));
+  init_var_header(&n->hdr, p, NODE_FLOAT);
   n->value = strdup(s);
 
   node* result = cons_head((node*)NODE_VARIABLE, (node*)n);
@@ -1670,12 +1489,8 @@ new_float(parser_state *p, const char *s, int suffix)
 static node*
 new_str(parser_state *p, node *a)
 {
-  size_t total_size = sizeof(struct mrb_ast_str_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-
-  struct mrb_ast_str_node *n = (struct mrb_ast_str_node*)parser_palloc(p, total_size);
-
-  init_var_header(&n->hdr, p, NODE_STR, size_class);
+  struct mrb_ast_str_node *n = (struct mrb_ast_str_node*)parser_palloc(p, sizeof(struct mrb_ast_str_node));
+  init_var_header(&n->hdr, p, NODE_STR);
   n->list = a;
 
   return cons_head((node*)NODE_VARIABLE, (node*)n);
@@ -1685,10 +1500,8 @@ new_str(parser_state *p, node *a)
 static node*
 new_xstr(parser_state *p, node *a)
 {
-  size_t total_size = sizeof(struct mrb_ast_xstr_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-  struct mrb_ast_xstr_node *n = (struct mrb_ast_xstr_node*)parser_palloc(p, total_size);
-  init_var_header(&n->hdr, p, NODE_XSTR, size_class);
+  struct mrb_ast_xstr_node *n = (struct mrb_ast_xstr_node*)parser_palloc(p, sizeof(struct mrb_ast_xstr_node));
+  init_var_header(&n->hdr, p, NODE_XSTR);
   n->list = a;
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
@@ -1697,10 +1510,8 @@ new_xstr(parser_state *p, node *a)
 static node*
 new_dsym(parser_state *p, node *a)
 {
-  size_t total_size = sizeof(struct mrb_ast_dsym_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-  struct mrb_ast_dsym_node *n = (struct mrb_ast_dsym_node*)parser_palloc(p, total_size);
-  init_var_header(&n->hdr, p, NODE_DSYM, size_class);
+  struct mrb_ast_dsym_node *n = (struct mrb_ast_dsym_node*)parser_palloc(p, sizeof(struct mrb_ast_dsym_node));
+  init_var_header(&n->hdr, p, NODE_DSYM);
   n->list = a;
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
@@ -1709,10 +1520,8 @@ new_dsym(parser_state *p, node *a)
 static node*
 new_dregx(parser_state *p, node *list, const char *flags, const char *encoding)
 {
-  size_t total_size = sizeof(struct mrb_ast_dregx_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-  struct mrb_ast_dregx_node *n = (struct mrb_ast_dregx_node*)parser_palloc(p, total_size);
-  init_var_header(&n->hdr, p, NODE_DREGX, size_class);
+  struct mrb_ast_dregx_node *n = (struct mrb_ast_dregx_node*)parser_palloc(p, sizeof(struct mrb_ast_dregx_node));
+  init_var_header(&n->hdr, p, NODE_DREGX);
   n->list = list;
   n->flags = flags;
   n->encoding = encoding;
@@ -1723,10 +1532,8 @@ new_dregx(parser_state *p, node *list, const char *flags, const char *encoding)
 static node*
 new_back_ref(parser_state *p, int n)
 {
-  size_t total_size = sizeof(struct mrb_ast_back_ref_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-  struct mrb_ast_back_ref_node *backref_node = (struct mrb_ast_back_ref_node*)parser_palloc(p, total_size);
-  init_var_header(&backref_node->hdr, p, NODE_BACK_REF, size_class);
+  struct mrb_ast_back_ref_node *backref_node = (struct mrb_ast_back_ref_node*)parser_palloc(p, sizeof(struct mrb_ast_back_ref_node));
+  init_var_header(&backref_node->hdr, p, NODE_BACK_REF);
   backref_node->type = n;
   return cons_head((node*)NODE_VARIABLE, (node*)backref_node);
 }
@@ -1735,10 +1542,8 @@ new_back_ref(parser_state *p, int n)
 static node*
 new_nth_ref(parser_state *p, int n)
 {
-  size_t total_size = sizeof(struct mrb_ast_nth_ref_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-  struct mrb_ast_nth_ref_node *nthref_node = (struct mrb_ast_nth_ref_node*)parser_palloc(p, total_size);
-  init_var_header(&nthref_node->hdr, p, NODE_NTH_REF, size_class);
+  struct mrb_ast_nth_ref_node *nthref_node = (struct mrb_ast_nth_ref_node*)parser_palloc(p, sizeof(struct mrb_ast_nth_ref_node));
+  init_var_header(&nthref_node->hdr, p, NODE_NTH_REF);
   nthref_node->nth = n;
   return cons_head((node*)NODE_VARIABLE, (node*)nthref_node);
 }
@@ -1747,10 +1552,8 @@ new_nth_ref(parser_state *p, int n)
 static node*
 new_heredoc(parser_state *p, struct mrb_parser_heredoc_info **infop)
 {
-  size_t total_size = sizeof(struct mrb_ast_heredoc_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-  struct mrb_ast_heredoc_node *n = (struct mrb_ast_heredoc_node*)parser_palloc(p, total_size);
-  init_var_header(&n->hdr, p, NODE_HEREDOC, size_class);
+  struct mrb_ast_heredoc_node *n = (struct mrb_ast_heredoc_node*)parser_palloc(p, sizeof(struct mrb_ast_heredoc_node));
+  init_var_header(&n->hdr, p, NODE_HEREDOC);
 
   /* Initialize embedded heredoc info struct */
   n->info.allow_indent = FALSE;
@@ -1805,10 +1608,8 @@ new_str_empty(parser_state *p)
 static node*
 new_words(parser_state *p, node *a)
 {
-  size_t total_size = sizeof(struct mrb_ast_words_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-  struct mrb_ast_words_node *words_node = (struct mrb_ast_words_node*)parser_palloc(p, total_size);
-  init_var_header(&words_node->hdr, p, NODE_WORDS, size_class);
+  struct mrb_ast_words_node *words_node = (struct mrb_ast_words_node*)parser_palloc(p, sizeof(struct mrb_ast_words_node));
+  init_var_header(&words_node->hdr, p, NODE_WORDS);
   words_node->args = a;
   return cons_head((node*)NODE_VARIABLE, (node*)words_node);
 }
@@ -1817,10 +1618,8 @@ new_words(parser_state *p, node *a)
 static node*
 new_symbols(parser_state *p, node *a)
 {
-  size_t total_size = sizeof(struct mrb_ast_symbols_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-  struct mrb_ast_symbols_node *symbols_node = (struct mrb_ast_symbols_node*)parser_palloc(p, total_size);
-  init_var_header(&symbols_node->hdr, p, NODE_SYMBOLS, size_class);
+  struct mrb_ast_symbols_node *symbols_node = (struct mrb_ast_symbols_node*)parser_palloc(p, sizeof(struct mrb_ast_symbols_node));
+  init_var_header(&symbols_node->hdr, p, NODE_SYMBOLS);
   symbols_node->args = a;
   return cons_head((node*)NODE_VARIABLE, (node*)symbols_node);
 }
@@ -1955,10 +1754,8 @@ call_with_block(parser_state *p, node *a, node *b)
 static node*
 new_negate(parser_state *p, node *n)
 {
-  size_t total_size = sizeof(struct mrb_ast_negate_node);
-  enum mrb_ast_size_class size_class = size_to_class(total_size);
-  struct mrb_ast_negate_node *negate_node = (struct mrb_ast_negate_node*)parser_palloc(p, total_size);
-  init_var_header(&negate_node->hdr, p, NODE_NEGATE, size_class);
+  struct mrb_ast_negate_node *negate_node = (struct mrb_ast_negate_node*)parser_palloc(p, sizeof(struct mrb_ast_negate_node));
+  init_var_header(&negate_node->hdr, p, NODE_NEGATE);
   negate_node->operand = n;
   return cons_head((node*)NODE_VARIABLE, (node*)negate_node);
 }
@@ -5153,7 +4950,7 @@ skips(parser_state *p, const char *s)
       }
       return TRUE;
     }
-    else{
+    else {
       s--;
     }
   }
@@ -7662,7 +7459,7 @@ mrb_load_detect_file_cxt(mrb_state *mrb, FILE *fp, mrb_ccontext *c)
     binsize = bin_to_uint32(leading.h.binary_size);
     bin_obj = mrb_str_new(mrb, NULL, binsize);
     bin = (uint8_t*)RSTRING_PTR(bin_obj);
-    if ((size_t)binsize > bufsize)  {
+    if ((size_t)binsize > bufsize) {
       memcpy(bin, leading.b, bufsize);
       if (fread(bin + bufsize, binsize - bufsize, 1, fp) == 0) {
         binsize = bufsize;
