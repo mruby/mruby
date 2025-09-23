@@ -2,10 +2,8 @@
 # https://pre-commit.com/
 default_stages: [pre-commit, pre-push]
 default_language_version:
-  # force all unspecified Python hooks to run python3
   python: python3
-  # force all unspecified Node hooks to run Node.js v22.18.0 LTS
-  node: 22.18.0
+  node: 22.19.0
 minimum_pre_commit_version: "3.2.0"
 exclude: "^tools/lrama/"
 repos:
@@ -40,7 +38,7 @@ repos:
         description: use lossless compression to optimize PNG files
         args: ["--fix", "-o", "4", "--strip", "safe", "--alpha"]
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: check-added-large-files
       - id: check-case-conflict
@@ -109,7 +107,7 @@ repos:
         types: [markdown]
         files: \.md$
   - repo: https://github.com/rubocop/rubocop
-    rev: v1.79.1
+    rev: v1.80.2
     hooks:
       - id: rubocop
         name: run rubocop
@@ -117,7 +115,7 @@ repos:
         exclude: ^test/t/syntax\.rb$
         args: [--config=.github/linters/.rubocop.yml]
   - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.10.0.1
+    rev: v0.11.0.1
     hooks:
       - id: shellcheck
         name: run shellcheck
