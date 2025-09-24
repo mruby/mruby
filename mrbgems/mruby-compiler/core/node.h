@@ -133,12 +133,6 @@ struct mrb_ast_node {
   /* No location fields - saves 4 bytes per structure node */
 };
 
-/* Head nodes - with location info, used by cons_head() */
-struct mrb_ast_head_node {
-  struct mrb_ast_node *car, *cdr;
-  uint16_t lineno, filename_index;
-};
-
 /* Variable-sized AST nodes - Phase 1 Infrastructure */
 
 /* Variable node header - common to all variable-sized nodes */
@@ -382,7 +376,6 @@ struct mrb_ast_super_node {
 #define node_to_sym(x) ((mrb_sym)(intptr_t)(x))
 #define sym_to_node(x) ((node*)(intptr_t)(x))
 #define int_to_node(x) ((node*)(intptr_t)(x))
-#define head(x) ((struct mrb_ast_head_node*)(x))
 #define node_to_int(x) ((int)(intptr_t)(x))
 #define node_to_type(x) ((enum node_type)(intptr_t)(x))
 #define node_to_char(x) ((char)(intptr_t)(x))

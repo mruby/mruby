@@ -72,7 +72,7 @@ typedef unsigned int stack_type;
 #define CMDARG_LEXPOP() BITSTACK_LEXPOP(p->cmdarg_stack)
 #define CMDARG_P()      BITSTACK_SET_P(p->cmdarg_stack)
 
-#define SET_LINENO(c,n) (head(c)->lineno = (n))
+#define SET_LINENO(c,n) (((struct mrb_ast_var_header*)(c)->cdr)->lineno = (n))
 
 #define NUM_SUFFIX_R   (1<<0)
 #define NUM_SUFFIX_I   (1<<1)
@@ -142,27 +142,8 @@ cons_gen(parser_state *p, node *car, node *cdr)
   return (node*)c;
 }
 
-static node*
-cons_head_gen(parser_state *p, node *car, node *cdr)
-{
-  struct mrb_ast_head_node *c;
-
-  /* Always allocate new nodes for head nodes - they're 24 bytes */
-  c = (struct mrb_ast_head_node*)parser_palloc(p, sizeof(struct mrb_ast_head_node));
-
-  c->car = car;
-  c->cdr = cdr;
-  c->lineno = p->lineno;
-  c->filename_index = p->current_filename_index;
-  /* beginning of next partial file; need to point the previous file */
-  if (p->lineno == 0 && p->current_filename_index > 0) {
-    c->filename_index--;
-  }
-  return (node*)c;
-}
 /* Head-only location optimization: separate functions for head vs structure nodes */
 #define cons(a,b) cons_gen(p,(a),(b))           /* Structure nodes - no location */
-#define cons_head(a,b) cons_head_gen(p,(a),(b)) /* Head nodes - with location */
 /* Initialize variable node header */
 static void
 init_var_header(struct mrb_ast_var_header *header, parser_state *p, enum node_type type)
@@ -181,21 +162,21 @@ init_var_header(struct mrb_ast_var_header *header, parser_state *p, enum node_ty
 static node*
 list1_gen(parser_state *p, node *a)
 {
-  return cons_head(a, 0);
+  return cons(a, 0);
 }
 #define list1(a) list1_gen(p, (a))
 
 static node*
 list2_gen(parser_state *p, node *a, node *b)
 {
-  return cons_head(a, cons(b, 0));
+  return cons(a, cons(b, 0));
 }
 #define list2(a,b) list2_gen(p, (a),(b))
 
 static node*
 list3_gen(parser_state *p, node *a, node *b, node *c)
 {
-  return cons_head(a, cons(b, cons(c, 0)));
+  return cons(a, cons(b, cons(c, 0)));
 }
 #define list3(a,b,c) list3_gen(p, (a),(b),(c))
 
@@ -403,7 +384,7 @@ new_scope(parser_state *p, node *body)
   init_var_header(&scope_node->hdr, p, NODE_SCOPE);
   scope_node->locals = locals_node(p);
   scope_node->body = body;
-  return cons_head((node*)NODE_VARIABLE, (node*)scope_node);
+  return cons((node*)NODE_VARIABLE, (node*)scope_node);
 }
 
 /* (:begin prog...) */
@@ -415,7 +396,7 @@ new_stmts(parser_state *p, node *body)
   init_var_header(&n->hdr, p, NODE_STMTS);
   n->stmts = body ? list1(body) : 0;  /* Wrap single statement in cons-list */
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:begin body) - Always use variable-sized nodes */
@@ -425,7 +406,7 @@ new_begin(parser_state *p, node *body)
   struct mrb_ast_begin_node *begin_node = (struct mrb_ast_begin_node*)parser_palloc(p, sizeof(struct mrb_ast_begin_node));
   init_var_header(&begin_node->hdr, p, NODE_BEGIN);
   begin_node->body = body;
-  return cons_head((node*)NODE_VARIABLE, (node*)begin_node);
+  return cons((node*)NODE_VARIABLE, (node*)begin_node);
 }
 
 #define newline_node(n) (n)
@@ -440,7 +421,7 @@ new_rescue(parser_state *p, node *body, node *resq, node *els)
   n->rescue_clauses = resq;
   n->else_clause = els;
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 static node*
@@ -457,7 +438,7 @@ new_ensure(parser_state *p, node *a, node *b)
   init_var_header(&ensure_node->hdr, p, NODE_ENSURE);
   ensure_node->body = a;
   ensure_node->ensure_clause = b;
-  return cons_head((node*)NODE_VARIABLE, (node*)ensure_node);
+  return cons((node*)NODE_VARIABLE, (node*)ensure_node);
 }
 
 /* (:nil) */
@@ -467,7 +448,7 @@ new_nil(parser_state *p)
   struct mrb_ast_nil_node *n = (struct mrb_ast_nil_node*)parser_palloc(p, sizeof(struct mrb_ast_nil_node));
   init_var_header(&n->hdr, p, NODE_NIL);
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:true) */
@@ -477,7 +458,7 @@ new_true(parser_state *p)
   struct mrb_ast_true_node *n = (struct mrb_ast_true_node*)parser_palloc(p, sizeof(struct mrb_ast_true_node));
   init_var_header(&n->hdr, p, NODE_TRUE);
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:false) */
@@ -487,7 +468,7 @@ new_false(parser_state *p)
   struct mrb_ast_false_node *n = (struct mrb_ast_false_node*)parser_palloc(p, sizeof(struct mrb_ast_false_node));
   init_var_header(&n->hdr, p, NODE_FALSE);
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:alias new old) */
@@ -498,7 +479,7 @@ new_alias(parser_state *p, mrb_sym a, mrb_sym b)
   init_var_header(&alias_node->hdr, p, NODE_ALIAS);
   alias_node->new_name = a;
   alias_node->old_name = b;
-  return cons_head((node*)NODE_VARIABLE, (node*)alias_node);
+  return cons((node*)NODE_VARIABLE, (node*)alias_node);
 }
 
 /* (:if cond then else) */
@@ -515,7 +496,7 @@ new_if(parser_state *p, node *condition, node *then_body, node *else_body)
   n->then_body = then_body;
   n->else_body = else_body;
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:while cond body) */
@@ -531,7 +512,7 @@ new_while(parser_state *p, node *condition, node *body)
   n->condition = condition;
   n->body = body;
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:until cond body) */
@@ -547,7 +528,7 @@ new_until(parser_state *p, node *condition, node *body)
   n->condition = condition;
   n->body = body;
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:while_mod cond body) */
@@ -582,7 +563,7 @@ new_for(parser_state *p, node *v, node *o, node *b)
   n->iterable = o;
   n->body = b;
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:case a ((when ...) body) ((when...) body)) */
@@ -597,7 +578,7 @@ new_case(parser_state *p, node *a, node *b)
   n->value = a;
   n->body = b;
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:postexe a) */
@@ -607,7 +588,7 @@ new_postexe(parser_state *p, node *a)
   struct mrb_ast_postexe_node *postexe_node = (struct mrb_ast_postexe_node*)parser_palloc(p, sizeof(struct mrb_ast_postexe_node));
   init_var_header(&postexe_node->hdr, p, NODE_POSTEXE);
   postexe_node->body = a;
-  return cons_head((node*)NODE_VARIABLE, (node*)postexe_node);
+  return cons((node*)NODE_VARIABLE, (node*)postexe_node);
 }
 
 /* (:self) */
@@ -617,7 +598,7 @@ new_self(parser_state *p)
   struct mrb_ast_self_node *n = (struct mrb_ast_self_node*)parser_palloc(p, sizeof(struct mrb_ast_self_node));
   init_var_header(&n->hdr, p, NODE_SELF);
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:call a b c) */
@@ -649,7 +630,7 @@ new_call(parser_state *p, node *receiver, mrb_sym method, node *args, int pass)
   n->args = args;
 
   void_expr_error(p, receiver);
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:fcall self mid args) */
@@ -683,7 +664,7 @@ new_super(parser_state *p, node *c)
   init_var_header(&n->header, p, NODE_SUPER);
   n->args = c;
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:zsuper) */
@@ -693,7 +674,7 @@ new_zsuper(parser_state *p)
   struct mrb_ast_super_node *n = (struct mrb_ast_super_node*)parser_palloc(p, sizeof(struct mrb_ast_super_node));
   init_var_header(&n->header, p, NODE_ZSUPER);
   n->args = NULL;  /* zsuper initially has no args, but may be added by call_with_block */
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:yield . c) */
@@ -710,7 +691,7 @@ new_yield(parser_state *p, node *c)
   init_var_header(&n->header, p, NODE_YIELD);
   n->args = c;
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:return . c) */
@@ -721,7 +702,7 @@ new_return(parser_state *p, node *c)
   init_var_header(&n->header, p, NODE_RETURN);
   n->args = c;
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:break . c) */
@@ -731,7 +712,7 @@ new_break(parser_state *p, node *c)
   struct mrb_ast_break_node *n = (struct mrb_ast_break_node*)parser_palloc(p, sizeof(struct mrb_ast_break_node));
   init_var_header(&n->hdr, p, NODE_BREAK);
   n->value = c;
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:next . c) */
@@ -741,7 +722,7 @@ new_next(parser_state *p, node *c)
   struct mrb_ast_next_node *n = (struct mrb_ast_next_node*)parser_palloc(p, sizeof(struct mrb_ast_next_node));
   init_var_header(&n->hdr, p, NODE_NEXT);
   n->value = c;
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:redo) */
@@ -750,7 +731,7 @@ new_redo(parser_state *p)
 {
   struct mrb_ast_redo_node *n = (struct mrb_ast_redo_node*)parser_palloc(p, sizeof(struct mrb_ast_redo_node));
   init_var_header(&n->hdr, p, NODE_REDO);
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:retry) */
@@ -759,7 +740,7 @@ new_retry(parser_state *p)
 {
   struct mrb_ast_retry_node *n = (struct mrb_ast_retry_node*)parser_palloc(p, sizeof(struct mrb_ast_retry_node));
   init_var_header(&n->hdr, p, NODE_RETRY);
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:dot2 a b) */
@@ -771,7 +752,7 @@ new_dot2(parser_state *p, node *a, node *b)
   n->left = a;
   n->right = b;
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:dot3 a b) */
@@ -783,7 +764,7 @@ new_dot3(parser_state *p, node *a, node *b)
   n->left = a;
   n->right = b;
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:colon2 b c) */
@@ -796,7 +777,7 @@ new_colon2(parser_state *p, node *b, mrb_sym c)
   init_var_header(&colon2_node->hdr, p, NODE_COLON2);
   colon2_node->base = b;
   colon2_node->name = c;
-  return cons_head((node*)NODE_VARIABLE, (node*)colon2_node);
+  return cons((node*)NODE_VARIABLE, (node*)colon2_node);
 }
 
 /* (:colon3 . c) */
@@ -806,7 +787,7 @@ new_colon3(parser_state *p, mrb_sym c)
   struct mrb_ast_colon3_node *colon3_node = (struct mrb_ast_colon3_node*)parser_palloc(p, sizeof(struct mrb_ast_colon3_node));
   init_var_header(&colon3_node->hdr, p, NODE_COLON3);
   colon3_node->name = c;
-  return cons_head((node*)NODE_VARIABLE, (node*)colon3_node);
+  return cons((node*)NODE_VARIABLE, (node*)colon3_node);
 }
 
 /* (:and a b) */
@@ -820,7 +801,7 @@ new_and(parser_state *p, node *a, node *b)
   n->left = a;
   n->right = b;
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:or a b) */
@@ -834,7 +815,7 @@ new_or(parser_state *p, node *a, node *b)
   n->left = a;
   n->right = b;
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:array a...) */
@@ -846,7 +827,7 @@ new_array(parser_state *p, node *a)
   init_var_header(&n->header, p, NODE_ARRAY);
   n->elements = a;
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:splat . a) */
@@ -858,7 +839,7 @@ new_splat(parser_state *p, node *a)
   struct mrb_ast_splat_node *splat_node = (struct mrb_ast_splat_node*)parser_palloc(p, sizeof(struct mrb_ast_splat_node));
   init_var_header(&splat_node->hdr, p, NODE_SPLAT);
   splat_node->value = a;
-  return cons_head((node*)NODE_VARIABLE, (node*)splat_node);
+  return cons((node*)NODE_VARIABLE, (node*)splat_node);
 }
 
 /* (:hash (k . v) (k . v)...) */
@@ -870,7 +851,7 @@ new_hash(parser_state *p, node *a)
   init_var_header(&n->header, p, NODE_HASH);
   n->pairs = a;
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:sym . a) */
@@ -885,7 +866,7 @@ new_sym(parser_state *p, mrb_sym sym)
   init_var_header(&n->header, p, NODE_SYM);
   n->symbol = sym;
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 static node*
@@ -898,7 +879,7 @@ new_xvar(parser_state *p, mrb_sym sym, enum node_type type)
   init_var_header(&n->header, p, type);
   n->symbol = sym;
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 #define new_lvar(p, sym) new_xvar(p, sym, NODE_LVAR)
@@ -941,7 +922,7 @@ new_nvar(parser_state *p, int num)
   struct mrb_ast_nvar_node *n = (struct mrb_ast_nvar_node*)parser_palloc(p, sizeof(struct mrb_ast_nvar_node));
   init_var_header(&n->hdr, p, NODE_NVAR);
   n->num = num;
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:const . a) */
@@ -952,7 +933,7 @@ new_const(parser_state *p, mrb_sym sym)
   init_var_header(&n->hdr, p, NODE_CONST);
   n->symbol = sym;
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:undef a...) */
@@ -962,7 +943,7 @@ new_undef(parser_state *p, node *syms)
   struct mrb_ast_undef_node *undef_node = (struct mrb_ast_undef_node*)parser_palloc(p, sizeof(struct mrb_ast_undef_node));
   init_var_header(&undef_node->hdr, p, NODE_UNDEF);
   undef_node->syms = syms;
-  return cons_head((node*)NODE_VARIABLE, (node*)undef_node);
+  return cons((node*)NODE_VARIABLE, (node*)undef_node);
 }
 
 /* (:class class super body) */
@@ -977,7 +958,7 @@ new_class(parser_state *p, node *c, node *s, node *b)
   n->superclass = s;
   n->body = cons(locals_node(p), b);
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:sclass obj body) */
@@ -991,7 +972,7 @@ new_sclass(parser_state *p, node *o, node *b)
   n->obj = o;
   n->body = cons(locals_node(p), b);
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:module module body) */
@@ -1003,7 +984,7 @@ new_module(parser_state *p, node *m, node *b)
   n->name = m;
   n->body = cons(locals_node(p), b);
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:def m lv (arg . body)) */
@@ -1017,7 +998,7 @@ new_def(parser_state *p, mrb_sym name)
   n->locals = local_switch(p);
   n->body = NULL;
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 static void
@@ -1046,7 +1027,7 @@ new_sdef(parser_state *p, node *o, mrb_sym name)
   sdef_node->args = (struct mrb_ast_args *)int_to_node(p->cmdarg_stack);
   sdef_node->locals = local_switch(p);
   sdef_node->body = NULL;
-  return cons_head((node*)NODE_VARIABLE, (node*)sdef_node);
+  return cons((node*)NODE_VARIABLE, (node*)sdef_node);
 }
 
 static void
@@ -1203,7 +1184,7 @@ new_block_arg(parser_state *p, node *a)
   struct mrb_ast_block_arg_node *block_arg_node = (struct mrb_ast_block_arg_node*)parser_palloc(p, sizeof(struct mrb_ast_block_arg_node));
   init_var_header(&block_arg_node->hdr, p, NODE_BLOCK_ARG);
   block_arg_node->value = a;
-  return cons_head((node*)NODE_VARIABLE, (node*)block_arg_node);
+  return cons((node*)NODE_VARIABLE, (node*)block_arg_node);
 }
 
 static node*
@@ -1248,7 +1229,7 @@ new_block(parser_state *p, node *a, node *b)
   n->args = (struct mrb_ast_args *)a;
   n->body = b;
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:lambda arg body) */
@@ -1260,7 +1241,7 @@ new_lambda(parser_state *p, node *a, node *b)
   lambda_node->locals = locals_node(p);
   lambda_node->args = (struct mrb_ast_args *)a;
   lambda_node->body = b;
-  return cons_head((node*)NODE_VARIABLE, (node*)lambda_node);
+  return cons((node*)NODE_VARIABLE, (node*)lambda_node);
 }
 
 /* (:asgn lhs rhs) */
@@ -1274,7 +1255,7 @@ new_asgn(parser_state *p, node *a, node *b)
   n->lhs = a;
   n->rhs = b;
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:masgn mlhs=(pre rest post)  mrhs) */
@@ -1288,7 +1269,7 @@ new_masgn(parser_state *p, node *a, node *b)
   n->lhs = a;
   n->rhs = b;
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:masgn mlhs mrhs) no check */
@@ -1300,7 +1281,7 @@ new_masgn_param(parser_state *p, node *a, node *b)
   n->lhs = a;
   n->rhs = b;
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:asgn lhs rhs) */
@@ -1314,7 +1295,7 @@ new_op_asgn(parser_state *p, node *a, mrb_sym op, node *b)
   n->lhs = a;
   n->op = op;
   n->rhs = b;
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 static node*
@@ -1326,7 +1307,7 @@ new_int_n(parser_state *p, int32_t val)
   init_var_header(&n->header, p, NODE_INT);
   n->value = val;
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 static node*
@@ -1436,7 +1417,7 @@ new_int(parser_state *p, const char *s, int base, int suffix)
     n->string = strdup(s);
     n->base = base;
 
-    result = cons_head((node*)NODE_VARIABLE, (node*)n);
+    result = cons((node*)NODE_VARIABLE, (node*)n);
   }
 
   /* Handle suffix modifiers */
@@ -1459,7 +1440,7 @@ new_float(parser_state *p, const char *s, int suffix)
   init_var_header(&n->hdr, p, NODE_FLOAT);
   n->value = strdup(s);
 
-  node* result = cons_head((node*)NODE_VARIABLE, (node*)n);
+  node* result = cons((node*)NODE_VARIABLE, (node*)n);
 
   if (suffix & NUM_SUFFIX_R) {
     result = new_rational(p, result);
@@ -1480,7 +1461,7 @@ new_str(parser_state *p, node *a)
   init_var_header(&n->hdr, p, NODE_STR);
   n->list = a;
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:xstr . a) */
@@ -1490,7 +1471,7 @@ new_xstr(parser_state *p, node *a)
   struct mrb_ast_xstr_node *n = (struct mrb_ast_xstr_node*)parser_palloc(p, sizeof(struct mrb_ast_xstr_node));
   init_var_header(&n->hdr, p, NODE_XSTR);
   n->list = a;
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:dsym . a) */
@@ -1500,7 +1481,7 @@ new_dsym(parser_state *p, node *a)
   struct mrb_ast_dsym_node *n = (struct mrb_ast_dsym_node*)parser_palloc(p, sizeof(struct mrb_ast_dsym_node));
   init_var_header(&n->hdr, p, NODE_DSYM);
   n->list = a;
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:dregx . (list . (flags . encoding))) */
@@ -1512,7 +1493,7 @@ new_dregx(parser_state *p, node *list, const char *flags, const char *encoding)
   n->list = list;
   n->flags = flags;
   n->encoding = encoding;
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 /* (:backref . n) */
@@ -1522,7 +1503,7 @@ new_back_ref(parser_state *p, int n)
   struct mrb_ast_back_ref_node *backref_node = (struct mrb_ast_back_ref_node*)parser_palloc(p, sizeof(struct mrb_ast_back_ref_node));
   init_var_header(&backref_node->hdr, p, NODE_BACK_REF);
   backref_node->type = n;
-  return cons_head((node*)NODE_VARIABLE, (node*)backref_node);
+  return cons((node*)NODE_VARIABLE, (node*)backref_node);
 }
 
 /* (:nthref . n) */
@@ -1532,7 +1513,7 @@ new_nth_ref(parser_state *p, int n)
   struct mrb_ast_nth_ref_node *nthref_node = (struct mrb_ast_nth_ref_node*)parser_palloc(p, sizeof(struct mrb_ast_nth_ref_node));
   init_var_header(&nthref_node->hdr, p, NODE_NTH_REF);
   nthref_node->nth = n;
-  return cons_head((node*)NODE_VARIABLE, (node*)nthref_node);
+  return cons((node*)NODE_VARIABLE, (node*)nthref_node);
 }
 
 /* (:heredoc . a) */
@@ -1556,7 +1537,7 @@ new_heredoc(parser_state *p, struct mrb_parser_heredoc_info **infop)
   /* Return pointer to embedded info if requested */
   *infop = &n->info;
 
-  return cons_head((node*)NODE_VARIABLE, (node*)n);
+  return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
 static void
@@ -1598,7 +1579,7 @@ new_words(parser_state *p, node *a)
   struct mrb_ast_words_node *words_node = (struct mrb_ast_words_node*)parser_palloc(p, sizeof(struct mrb_ast_words_node));
   init_var_header(&words_node->hdr, p, NODE_WORDS);
   words_node->args = a;
-  return cons_head((node*)NODE_VARIABLE, (node*)words_node);
+  return cons((node*)NODE_VARIABLE, (node*)words_node);
 }
 
 /* (:symbols . a) */
@@ -1608,7 +1589,7 @@ new_symbols(parser_state *p, node *a)
   struct mrb_ast_symbols_node *symbols_node = (struct mrb_ast_symbols_node*)parser_palloc(p, sizeof(struct mrb_ast_symbols_node));
   init_var_header(&symbols_node->hdr, p, NODE_SYMBOLS);
   symbols_node->args = a;
-  return cons_head((node*)NODE_VARIABLE, (node*)symbols_node);
+  return cons((node*)NODE_VARIABLE, (node*)symbols_node);
 }
 
 /* xxx ----------------------------- */
@@ -1744,7 +1725,7 @@ new_negate(parser_state *p, node *n)
   struct mrb_ast_negate_node *negate_node = (struct mrb_ast_negate_node*)parser_palloc(p, sizeof(struct mrb_ast_negate_node));
   init_var_header(&negate_node->hdr, p, NODE_NEGATE);
   negate_node->operand = n;
-  return cons_head((node*)NODE_VARIABLE, (node*)negate_node);
+  return cons((node*)NODE_VARIABLE, (node*)negate_node);
 }
 
 static node*
