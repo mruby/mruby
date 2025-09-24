@@ -442,7 +442,7 @@ static node*
 new_scope(parser_state *p, node *body)
 {
   struct mrb_ast_scope_node *scope_node = (struct mrb_ast_scope_node*)parser_palloc(p, sizeof(struct mrb_ast_scope_node));
-  init_var_header(&scope_node->hdr, p, NODE_SCOPE);
+  init_var_header(&scope_node->header, p, NODE_SCOPE);
   scope_node->locals = locals_node(p);
   scope_node->body = body;
   return cons((node*)NODE_VARIABLE, (node*)scope_node);
@@ -454,7 +454,7 @@ new_stmts(parser_state *p, node *body)
 {
   struct mrb_ast_stmts_node *n = (struct mrb_ast_stmts_node*)parser_palloc(p, sizeof(struct mrb_ast_stmts_node));
 
-  init_var_header(&n->hdr, p, NODE_STMTS);
+  init_var_header(&n->header, p, NODE_STMTS);
   n->stmts = body ? list1(body) : 0;  /* Wrap single statement in cons-list */
 
   return cons((node*)NODE_VARIABLE, (node*)n);
@@ -465,7 +465,7 @@ static node*
 new_begin(parser_state *p, node *body)
 {
   struct mrb_ast_begin_node *begin_node = (struct mrb_ast_begin_node*)parser_palloc(p, sizeof(struct mrb_ast_begin_node));
-  init_var_header(&begin_node->hdr, p, NODE_BEGIN);
+  init_var_header(&begin_node->header, p, NODE_BEGIN);
   begin_node->body = body;
   return cons((node*)NODE_VARIABLE, (node*)begin_node);
 }
@@ -477,7 +477,7 @@ static node*
 new_rescue(parser_state *p, node *body, node *resq, node *els)
 {
   struct mrb_ast_rescue_node *n = (struct mrb_ast_rescue_node*)parser_palloc(p, sizeof(struct mrb_ast_rescue_node));
-  init_var_header(&n->hdr, p, NODE_RESCUE);
+  init_var_header(&n->header, p, NODE_RESCUE);
   n->body = body;
   n->rescue_clauses = resq;
   n->else_clause = els;
@@ -496,7 +496,7 @@ static node*
 new_ensure(parser_state *p, node *a, node *b)
 {
   struct mrb_ast_ensure_node *ensure_node = (struct mrb_ast_ensure_node*)parser_palloc(p, sizeof(struct mrb_ast_ensure_node));
-  init_var_header(&ensure_node->hdr, p, NODE_ENSURE);
+  init_var_header(&ensure_node->header, p, NODE_ENSURE);
   ensure_node->body = a;
   ensure_node->ensure_clause = b;
   return cons((node*)NODE_VARIABLE, (node*)ensure_node);
@@ -507,7 +507,7 @@ static node*
 new_nil(parser_state *p)
 {
   struct mrb_ast_nil_node *n = (struct mrb_ast_nil_node*)parser_palloc(p, sizeof(struct mrb_ast_nil_node));
-  init_var_header(&n->hdr, p, NODE_NIL);
+  init_var_header(&n->header, p, NODE_NIL);
 
   return cons((node*)NODE_VARIABLE, (node*)n);
 }
@@ -517,7 +517,7 @@ static node*
 new_true(parser_state *p)
 {
   struct mrb_ast_true_node *n = (struct mrb_ast_true_node*)parser_palloc(p, sizeof(struct mrb_ast_true_node));
-  init_var_header(&n->hdr, p, NODE_TRUE);
+  init_var_header(&n->header, p, NODE_TRUE);
 
   return cons((node*)NODE_VARIABLE, (node*)n);
 }
@@ -527,7 +527,7 @@ static node*
 new_false(parser_state *p)
 {
   struct mrb_ast_false_node *n = (struct mrb_ast_false_node*)parser_palloc(p, sizeof(struct mrb_ast_false_node));
-  init_var_header(&n->hdr, p, NODE_FALSE);
+  init_var_header(&n->header, p, NODE_FALSE);
 
   return cons((node*)NODE_VARIABLE, (node*)n);
 }
@@ -537,7 +537,7 @@ static node*
 new_alias(parser_state *p, mrb_sym a, mrb_sym b)
 {
   struct mrb_ast_alias_node *alias_node = (struct mrb_ast_alias_node*)parser_palloc(p, sizeof(struct mrb_ast_alias_node));
-  init_var_header(&alias_node->hdr, p, NODE_ALIAS);
+  init_var_header(&alias_node->header, p, NODE_ALIAS);
   alias_node->new_name = a;
   alias_node->old_name = b;
   return cons((node*)NODE_VARIABLE, (node*)alias_node);
@@ -647,7 +647,7 @@ static node*
 new_postexe(parser_state *p, node *a)
 {
   struct mrb_ast_postexe_node *postexe_node = (struct mrb_ast_postexe_node*)parser_palloc(p, sizeof(struct mrb_ast_postexe_node));
-  init_var_header(&postexe_node->hdr, p, NODE_POSTEXE);
+  init_var_header(&postexe_node->header, p, NODE_POSTEXE);
   postexe_node->body = a;
   return cons((node*)NODE_VARIABLE, (node*)postexe_node);
 }
@@ -657,7 +657,7 @@ static node*
 new_self(parser_state *p)
 {
   struct mrb_ast_self_node *n = (struct mrb_ast_self_node*)parser_palloc(p, sizeof(struct mrb_ast_self_node));
-  init_var_header(&n->hdr, p, NODE_SELF);
+  init_var_header(&n->header, p, NODE_SELF);
 
   return cons((node*)NODE_VARIABLE, (node*)n);
 }
@@ -771,7 +771,7 @@ static node*
 new_break(parser_state *p, node *c)
 {
   struct mrb_ast_break_node *n = (struct mrb_ast_break_node*)parser_palloc(p, sizeof(struct mrb_ast_break_node));
-  init_var_header(&n->hdr, p, NODE_BREAK);
+  init_var_header(&n->header, p, NODE_BREAK);
   n->value = c;
   return cons((node*)NODE_VARIABLE, (node*)n);
 }
@@ -781,7 +781,7 @@ static node*
 new_next(parser_state *p, node *c)
 {
   struct mrb_ast_next_node *n = (struct mrb_ast_next_node*)parser_palloc(p, sizeof(struct mrb_ast_next_node));
-  init_var_header(&n->hdr, p, NODE_NEXT);
+  init_var_header(&n->header, p, NODE_NEXT);
   n->value = c;
   return cons((node*)NODE_VARIABLE, (node*)n);
 }
@@ -791,7 +791,7 @@ static node*
 new_redo(parser_state *p)
 {
   struct mrb_ast_redo_node *n = (struct mrb_ast_redo_node*)parser_palloc(p, sizeof(struct mrb_ast_redo_node));
-  init_var_header(&n->hdr, p, NODE_REDO);
+  init_var_header(&n->header, p, NODE_REDO);
   return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
@@ -800,7 +800,7 @@ static node*
 new_retry(parser_state *p)
 {
   struct mrb_ast_retry_node *n = (struct mrb_ast_retry_node*)parser_palloc(p, sizeof(struct mrb_ast_retry_node));
-  init_var_header(&n->hdr, p, NODE_RETRY);
+  init_var_header(&n->header, p, NODE_RETRY);
   return cons((node*)NODE_VARIABLE, (node*)n);
 }
 
@@ -809,7 +809,7 @@ static node*
 new_dot2(parser_state *p, node *a, node *b)
 {
   struct mrb_ast_dot2_node *n = (struct mrb_ast_dot2_node*)parser_palloc(p, sizeof(struct mrb_ast_dot2_node));
-  init_var_header(&n->hdr, p, NODE_DOT2);
+  init_var_header(&n->header, p, NODE_DOT2);
   n->left = a;
   n->right = b;
 
@@ -821,7 +821,7 @@ static node*
 new_dot3(parser_state *p, node *a, node *b)
 {
   struct mrb_ast_dot3_node *n = (struct mrb_ast_dot3_node*)parser_palloc(p, sizeof(struct mrb_ast_dot3_node));
-  init_var_header(&n->hdr, p, NODE_DOT3);
+  init_var_header(&n->header, p, NODE_DOT3);
   n->left = a;
   n->right = b;
 
@@ -835,7 +835,7 @@ new_colon2(parser_state *p, node *b, mrb_sym c)
   void_expr_error(p, b);
 
   struct mrb_ast_colon2_node *colon2_node = (struct mrb_ast_colon2_node*)parser_palloc(p, sizeof(struct mrb_ast_colon2_node));
-  init_var_header(&colon2_node->hdr, p, NODE_COLON2);
+  init_var_header(&colon2_node->header, p, NODE_COLON2);
   colon2_node->base = b;
   colon2_node->name = c;
   return cons((node*)NODE_VARIABLE, (node*)colon2_node);
@@ -846,7 +846,7 @@ static node*
 new_colon3(parser_state *p, mrb_sym c)
 {
   struct mrb_ast_colon3_node *colon3_node = (struct mrb_ast_colon3_node*)parser_palloc(p, sizeof(struct mrb_ast_colon3_node));
-  init_var_header(&colon3_node->hdr, p, NODE_COLON3);
+  init_var_header(&colon3_node->header, p, NODE_COLON3);
   colon3_node->name = c;
   return cons((node*)NODE_VARIABLE, (node*)colon3_node);
 }
@@ -898,7 +898,7 @@ new_splat(parser_state *p, node *a)
   void_expr_error(p, a);
 
   struct mrb_ast_splat_node *splat_node = (struct mrb_ast_splat_node*)parser_palloc(p, sizeof(struct mrb_ast_splat_node));
-  init_var_header(&splat_node->hdr, p, NODE_SPLAT);
+  init_var_header(&splat_node->header, p, NODE_SPLAT);
   splat_node->value = a;
   return cons((node*)NODE_VARIABLE, (node*)splat_node);
 }
@@ -981,7 +981,7 @@ new_nvar(parser_state *p, int num)
     p->nvars->car = int_to_node(nvar > num ? nvar : num);
   }
   struct mrb_ast_nvar_node *n = (struct mrb_ast_nvar_node*)parser_palloc(p, sizeof(struct mrb_ast_nvar_node));
-  init_var_header(&n->hdr, p, NODE_NVAR);
+  init_var_header(&n->header, p, NODE_NVAR);
   n->num = num;
   return cons((node*)NODE_VARIABLE, (node*)n);
 }
@@ -991,7 +991,7 @@ static node*
 new_const(parser_state *p, mrb_sym sym)
 {
   struct mrb_ast_const_node *n = (struct mrb_ast_const_node*)parser_palloc(p, sizeof(struct mrb_ast_const_node));
-  init_var_header(&n->hdr, p, NODE_CONST);
+  init_var_header(&n->header, p, NODE_CONST);
   n->symbol = sym;
 
   return cons((node*)NODE_VARIABLE, (node*)n);
@@ -1002,7 +1002,7 @@ static node*
 new_undef(parser_state *p, node *syms)
 {
   struct mrb_ast_undef_node *undef_node = (struct mrb_ast_undef_node*)parser_palloc(p, sizeof(struct mrb_ast_undef_node));
-  init_var_header(&undef_node->hdr, p, NODE_UNDEF);
+  init_var_header(&undef_node->header, p, NODE_UNDEF);
   undef_node->syms = syms;
   return cons((node*)NODE_VARIABLE, (node*)undef_node);
 }
@@ -1243,7 +1243,7 @@ static node*
 new_block_arg(parser_state *p, node *a)
 {
   struct mrb_ast_block_arg_node *block_arg_node = (struct mrb_ast_block_arg_node*)parser_palloc(p, sizeof(struct mrb_ast_block_arg_node));
-  init_var_header(&block_arg_node->hdr, p, NODE_BLOCK_ARG);
+  init_var_header(&block_arg_node->header, p, NODE_BLOCK_ARG);
   block_arg_node->value = a;
   return cons((node*)NODE_VARIABLE, (node*)block_arg_node);
 }
@@ -1285,7 +1285,7 @@ static node*
 new_block(parser_state *p, node *a, node *b)
 {
   a = setup_numparams(p, a);  struct mrb_ast_block_node *n = (struct mrb_ast_block_node*)parser_palloc(p, sizeof(struct mrb_ast_block_node));
-  init_var_header(&n->hdr, p, NODE_BLOCK);
+  init_var_header(&n->header, p, NODE_BLOCK);
   n->locals = locals_node(p);
   n->args = (struct mrb_ast_args *)a;
   n->body = b;
@@ -1298,7 +1298,7 @@ static node*
 new_lambda(parser_state *p, node *a, node *b)
 {
   a = setup_numparams(p, a);  struct mrb_ast_lambda_node *lambda_node = (struct mrb_ast_lambda_node*)parser_palloc(p, sizeof(struct mrb_ast_lambda_node));
-  init_var_header(&lambda_node->hdr, p, NODE_LAMBDA);
+  init_var_header(&lambda_node->header, p, NODE_LAMBDA);
   lambda_node->locals = locals_node(p);
   lambda_node->args = (struct mrb_ast_args *)a;
   lambda_node->body = b;
@@ -1498,7 +1498,7 @@ static node*
 new_float(parser_state *p, const char *s, int suffix)
 {
   struct mrb_ast_float_node *n = (struct mrb_ast_float_node*)parser_palloc(p, sizeof(struct mrb_ast_float_node));
-  init_var_header(&n->hdr, p, NODE_FLOAT);
+  init_var_header(&n->header, p, NODE_FLOAT);
   n->value = strdup(s);
 
   node* result = cons((node*)NODE_VARIABLE, (node*)n);
@@ -1519,7 +1519,7 @@ static node*
 new_str(parser_state *p, node *a)
 {
   struct mrb_ast_str_node *n = (struct mrb_ast_str_node*)parser_palloc(p, sizeof(struct mrb_ast_str_node));
-  init_var_header(&n->hdr, p, NODE_STR);
+  init_var_header(&n->header, p, NODE_STR);
   n->list = a;
 
   return cons((node*)NODE_VARIABLE, (node*)n);
@@ -1530,7 +1530,7 @@ static node*
 new_xstr(parser_state *p, node *a)
 {
   struct mrb_ast_xstr_node *n = (struct mrb_ast_xstr_node*)parser_palloc(p, sizeof(struct mrb_ast_xstr_node));
-  init_var_header(&n->hdr, p, NODE_XSTR);
+  init_var_header(&n->header, p, NODE_XSTR);
   n->list = a;
   return cons((node*)NODE_VARIABLE, (node*)n);
 }
@@ -1540,7 +1540,7 @@ static node*
 new_dsym(parser_state *p, node *a)
 {
   struct mrb_ast_dsym_node *n = (struct mrb_ast_dsym_node*)parser_palloc(p, sizeof(struct mrb_ast_dsym_node));
-  init_var_header(&n->hdr, p, NODE_DSYM);
+  init_var_header(&n->header, p, NODE_DSYM);
   n->list = a;
   return cons((node*)NODE_VARIABLE, (node*)n);
 }
@@ -1550,7 +1550,7 @@ static node*
 new_dregx(parser_state *p, node *list, const char *flags, const char *encoding)
 {
   struct mrb_ast_dregx_node *n = (struct mrb_ast_dregx_node*)parser_palloc(p, sizeof(struct mrb_ast_dregx_node));
-  init_var_header(&n->hdr, p, NODE_DREGX);
+  init_var_header(&n->header, p, NODE_DREGX);
   n->list = list;
   n->flags = flags;
   n->encoding = encoding;
@@ -1562,7 +1562,7 @@ static node*
 new_back_ref(parser_state *p, int n)
 {
   struct mrb_ast_back_ref_node *backref_node = (struct mrb_ast_back_ref_node*)parser_palloc(p, sizeof(struct mrb_ast_back_ref_node));
-  init_var_header(&backref_node->hdr, p, NODE_BACK_REF);
+  init_var_header(&backref_node->header, p, NODE_BACK_REF);
   backref_node->type = n;
   return cons((node*)NODE_VARIABLE, (node*)backref_node);
 }
@@ -1572,7 +1572,7 @@ static node*
 new_nth_ref(parser_state *p, int n)
 {
   struct mrb_ast_nth_ref_node *nthref_node = (struct mrb_ast_nth_ref_node*)parser_palloc(p, sizeof(struct mrb_ast_nth_ref_node));
-  init_var_header(&nthref_node->hdr, p, NODE_NTH_REF);
+  init_var_header(&nthref_node->header, p, NODE_NTH_REF);
   nthref_node->nth = n;
   return cons((node*)NODE_VARIABLE, (node*)nthref_node);
 }
@@ -1582,7 +1582,7 @@ static node*
 new_heredoc(parser_state *p, struct mrb_parser_heredoc_info **infop)
 {
   struct mrb_ast_heredoc_node *n = (struct mrb_ast_heredoc_node*)parser_palloc(p, sizeof(struct mrb_ast_heredoc_node));
-  init_var_header(&n->hdr, p, NODE_HEREDOC);
+  init_var_header(&n->header, p, NODE_HEREDOC);
 
   /* Initialize embedded heredoc info struct */
   n->info.allow_indent = FALSE;
@@ -1638,7 +1638,7 @@ static node*
 new_words(parser_state *p, node *a)
 {
   struct mrb_ast_words_node *words_node = (struct mrb_ast_words_node*)parser_palloc(p, sizeof(struct mrb_ast_words_node));
-  init_var_header(&words_node->hdr, p, NODE_WORDS);
+  init_var_header(&words_node->header, p, NODE_WORDS);
   words_node->args = a;
   return cons((node*)NODE_VARIABLE, (node*)words_node);
 }
@@ -1648,7 +1648,7 @@ static node*
 new_symbols(parser_state *p, node *a)
 {
   struct mrb_ast_symbols_node *symbols_node = (struct mrb_ast_symbols_node*)parser_palloc(p, sizeof(struct mrb_ast_symbols_node));
-  init_var_header(&symbols_node->hdr, p, NODE_SYMBOLS);
+  init_var_header(&symbols_node->header, p, NODE_SYMBOLS);
   symbols_node->args = a;
   return cons((node*)NODE_VARIABLE, (node*)symbols_node);
 }
@@ -1784,7 +1784,7 @@ static node*
 new_negate(parser_state *p, node *n)
 {
   struct mrb_ast_negate_node *negate_node = (struct mrb_ast_negate_node*)parser_palloc(p, sizeof(struct mrb_ast_negate_node));
-  init_var_header(&negate_node->hdr, p, NODE_NEGATE);
+  init_var_header(&negate_node->header, p, NODE_NEGATE);
   negate_node->operand = n;
   return cons((node*)NODE_VARIABLE, (node*)negate_node);
 }

@@ -154,7 +154,7 @@ struct mrb_ast_sym_node {
 
 /* Variable-sized string node with cons list */
 struct mrb_ast_str_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *list;
 };
 
@@ -476,7 +476,7 @@ struct mrb_ast_super_node {
 /* Variable-sized literal node structures */
 
 struct mrb_ast_regx_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   const char *pattern;
   int pattern_len;
   const char *flags;
@@ -484,19 +484,19 @@ struct mrb_ast_regx_node {
 };
 
 struct mrb_ast_dot2_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *left;
   struct mrb_ast_node *right;
 };
 
 struct mrb_ast_dot3_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *left;
   struct mrb_ast_node *right;
 };
 
 struct mrb_ast_float_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   const char *value;
 };
 
@@ -523,23 +523,23 @@ struct mrb_ast_float_node {
 
 /* Variable-sized simple node structures */
 struct mrb_ast_self_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
 };
 
 struct mrb_ast_nil_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
 };
 
 struct mrb_ast_true_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
 };
 
 struct mrb_ast_false_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
 };
 
 struct mrb_ast_const_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   mrb_sym symbol;
 };
 
@@ -555,14 +555,14 @@ struct mrb_ast_const_node {
 
 /* Variable-sized advanced node structures */
 struct mrb_ast_rescue_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *body;
   struct mrb_ast_node *rescue_clauses;
   struct mrb_ast_node *else_clause;
 };
 
 struct mrb_ast_block_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *locals;
   struct mrb_ast_args *args;
   struct mrb_ast_node *body;
@@ -619,21 +619,21 @@ struct mrb_ast_callargs {
 
 // Group 8: Control Flow Statements
 struct mrb_ast_break_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *value;
 };
 
 struct mrb_ast_next_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *value;
 };
 
 struct mrb_ast_redo_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
 };
 
 struct mrb_ast_retry_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
 };
 
 #define break_node(n) ((struct mrb_ast_break_node*)(n))
@@ -645,12 +645,12 @@ struct mrb_ast_retry_node {
 
 // Group 9: String and Regex Variants
 struct mrb_ast_xstr_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *list;
 };
 
 struct mrb_ast_dregx_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *list;
   const char *flags;
   const char *encoding;
@@ -658,12 +658,12 @@ struct mrb_ast_dregx_node {
 
 
 struct mrb_ast_heredoc_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_parser_heredoc_info info;
 };
 
 struct mrb_ast_dsym_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *list;
 };
 
@@ -680,27 +680,27 @@ struct mrb_ast_dsym_node {
 
 // Group 10: References and Variables
 struct mrb_ast_nth_ref_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   int nth;
 };
 
 struct mrb_ast_back_ref_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   int type;
 };
 
 struct mrb_ast_nvar_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   int num;
 };
 
 struct mrb_ast_dvar_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   mrb_sym name;
 };
 
 struct mrb_ast_match_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *pattern;
 };
 
@@ -718,28 +718,28 @@ struct mrb_ast_match_node {
 
 // Group 11: Operators and Expressions
 struct mrb_ast_not_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *operand;
 };
 
 struct mrb_ast_negate_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *operand;
 };
 
 struct mrb_ast_colon2_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *base;
   mrb_sym name;
 };
 
 struct mrb_ast_colon3_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   mrb_sym name;
 };
 
 struct mrb_ast_defined_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *expr;
 };
 
@@ -758,7 +758,7 @@ struct mrb_ast_defined_node {
 
 // Group 12: Function Calls and Special Forms
 struct mrb_ast_lambda_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *locals;
   struct mrb_ast_args *args;
   struct mrb_ast_node *body;
@@ -766,77 +766,77 @@ struct mrb_ast_lambda_node {
 
 // Group 13: Containers and Collections
 struct mrb_ast_zarray_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
 };
 
 struct mrb_ast_words_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *args;
 };
 
 struct mrb_ast_symbols_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *args;
 };
 
 // Group 14: Arguments and Parameters
 
 struct mrb_ast_splat_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *value;
 };
 
 struct mrb_ast_to_ary_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *value;
 };
 
 struct mrb_ast_svalue_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *value;
 };
 
 struct mrb_ast_block_arg_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *value;
 };
 
 // Group 15: Structural Nodes
 struct mrb_ast_method_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *body;
 };
 
 struct mrb_ast_scope_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *locals;
   struct mrb_ast_node *body;
 };
 
 struct mrb_ast_begin_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *body;
 };
 
 struct mrb_ast_ensure_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *body;
   struct mrb_ast_node *ensure_clause;
 };
 
 struct mrb_ast_stmts_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *stmts;        /* Cons-list of statements */
 };
 
 struct mrb_ast_iter_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *vars;
   struct mrb_ast_node *body;
 };
 
 struct mrb_ast_when_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *cond;
   struct mrb_ast_node *body;
   struct mrb_ast_node *next_when;
@@ -845,18 +845,18 @@ struct mrb_ast_when_node {
 // Group 16: Declarations and Definitions
 
 struct mrb_ast_alias_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   mrb_sym new_name;
   mrb_sym old_name;
 };
 
 struct mrb_ast_undef_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *syms;
 };
 
 struct mrb_ast_postexe_node {
-  struct mrb_ast_var_header hdr;
+  struct mrb_ast_var_header header;
   struct mrb_ast_node *body;
 };
 
