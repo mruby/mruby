@@ -5613,7 +5613,6 @@ codegen(codegen_scope *s, node *tree, int val)
 {
   int nt;
   int rlev = s->rlev;
-  struct mrb_ast_head_node *head;
 
   if (!tree) {
     if (val) {
@@ -5623,30 +5622,31 @@ codegen(codegen_scope *s, node *tree, int val)
     return;
   }
 
-  head = (struct mrb_ast_head_node*)tree;
+  nt = node_to_int(tree->car);
 
   s->rlev++;
   if (s->rlev > MRB_CODEGEN_LEVEL_MAX) {
     codegen_error(s, "too complex expression");
   }
-  if (s->irep && s->filename_index != head->filename_index) {
-    mrb_sym fname = mrb_parser_get_filename(s->parser, s->filename_index);
-    const char *filename = mrb_sym_name_len(s->mrb, fname, NULL);
-
-    if (filename) {
-      mrb_debug_info_append_file(s->mrb, s->irep->debug_info,
-                                 filename, s->lines, s->debug_start_pos, s->pc);
-    }
-    s->debug_start_pos = s->pc;
-    s->filename_index = head->filename_index;
-    s->filename_sym = mrb_parser_get_filename(s->parser, head->filename_index);
-  }
-
-  nt = node_to_int(tree->car);
-  s->lineno = head->lineno;
-  tree = tree->cdr;
 
   if (nt == NODE_VARIABLE) {
+    /* For variable-sized nodes, get filename/lineno from the variable node header */
+    struct mrb_ast_var_header *var_head = (struct mrb_ast_var_header*)tree->cdr;
+
+    if (s->irep && s->filename_index != var_head->filename_index) {
+      mrb_sym fname = mrb_parser_get_filename(s->parser, s->filename_index);
+      const char *filename = mrb_sym_name_len(s->mrb, fname, NULL);
+
+      if (filename) {
+        mrb_debug_info_append_file(s->mrb, s->irep->debug_info,
+                                   filename, s->lines, s->debug_start_pos, s->pc);
+      }
+      s->debug_start_pos = s->pc;
+      s->filename_index = var_head->filename_index;
+      s->filename_sym = mrb_parser_get_filename(s->parser, var_head->filename_index);
+    }
+    s->lineno = var_head->lineno;
+    tree = tree->cdr;
     /* Inlined codegen_variable_node() logic */
     enum node_type var_type = VAR_NODE_TYPE(tree);
 
