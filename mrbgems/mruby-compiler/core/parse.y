@@ -873,19 +873,6 @@ new_hash(parser_state *p, node *a)
   return cons_head((node*)NODE_VARIABLE, (node*)n);
 }
 
-/* (:kw_hash (k . v) (k . v)...) */
-static node*
-new_kw_hash(parser_state *p, node *a)
-{
-  if (!p->var_nodes_enabled) {
-    return cons_head((node*)NODE_KW_HASH, a);
-  }
-  struct mrb_ast_kw_hash_node *kw_hash_node = (struct mrb_ast_kw_hash_node*)parser_palloc(p, sizeof(struct mrb_ast_kw_hash_node));
-  init_var_header(&kw_hash_node->hdr, p, NODE_KW_HASH);
-  kw_hash_node->args = a;
-  return cons_head((node*)NODE_VARIABLE, (node*)kw_hash_node);
-}
-
 /* (:sym . a) */
 /* Symbol node creation - supports both variable and legacy modes */
 static node*
@@ -3006,7 +2993,7 @@ aref_args       : none
                     }
                 | assocs trailer
                     {
-                      $$ = cons(new_kw_hash(p, $1), 0);
+                      $$ = cons(new_hash(p, $1), 0);
                     }
                 ;
 
@@ -3031,7 +3018,7 @@ paren_args      : '(' opt_call_args ')'
                       mrb_sym k = intern_op(pow);
                       mrb_sym b = intern_op(and);
                       $$ = new_callargs(p, push($2, new_splat(p, new_lvar(p, r))),
-                                        new_kw_hash(p, list1(cons(new_kw_rest_args(p, 0), new_lvar(p, k)))),
+                                        list1(cons(new_kw_rest_args(p, 0), new_lvar(p, k))),
                                         new_block_arg(p, new_lvar(p, b)));
                     }
                 | '(' tBDOT3 rparen
@@ -3041,7 +3028,7 @@ paren_args      : '(' opt_call_args ')'
                       mrb_sym b = intern_op(and);
                       if (local_var_p(p, r) && local_var_p(p, k) && local_var_p(p, b)) {
                         $$ = new_callargs(p, list1(new_splat(p, new_lvar(p, r))),
-                                          new_kw_hash(p, list1(cons(new_kw_rest_args(p, 0), new_lvar(p, k)))),
+                                          list1(cons(new_kw_rest_args(p, 0), new_lvar(p, k))),
                                           new_block_arg(p, new_lvar(p, b)));
                       }
                       else {
@@ -3063,11 +3050,11 @@ opt_call_args   : none
                     }
                 | args comma assocs comma
                     {
-                      $$ = new_callargs(p,$1,new_kw_hash(p,$3),0);
+                      $$ = new_callargs(p,$1,$3,0);
                     }
                 | assocs comma
                     {
-                      $$ = new_callargs(p,0,new_kw_hash(p,$1),0);
+                      $$ = new_callargs(p,0,$1,0);
                     }
                 ;
 
@@ -3082,11 +3069,11 @@ call_args       : command
                     }
                 | assocs opt_block_arg
                     {
-                      $$ = new_callargs(p, 0, new_kw_hash(p, $1), $2);
+                      $$ = new_callargs(p, 0, $1, $2);
                     }
                 | args comma assocs opt_block_arg
                     {
-                      $$ = new_callargs(p, $1, new_kw_hash(p, $3), $4);
+                      $$ = new_callargs(p, $1, $3, $4);
                     }
                 | block_arg
                     {

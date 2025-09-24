@@ -3486,7 +3486,7 @@ gen_call_var(codegen_scope *s, node *varnode, int val)
     /* Handle keyword arguments if present */
     if (CALL_NODE_HAS_KWARGS(call)) {
       if (callargs->keyword_args) {
-        nk = gen_hash(s, callargs->keyword_args->cdr, VAL, 14);
+        nk = gen_hash(s, callargs->keyword_args, VAL, 14);
         if (nk < 0) {
           nk = 15;
         }
