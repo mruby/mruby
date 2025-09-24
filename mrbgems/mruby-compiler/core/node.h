@@ -140,15 +140,8 @@ struct mrb_ast_var_header {
   uint16_t lineno;           /* Line number information */
   uint16_t filename_index;   /* File index information */
   uint8_t node_type;         /* NODE_INT, NODE_SYM, NODE_STR, etc. */
-  uint8_t reserved;          /* Reserved for future use */
-  uint16_t flags;            /* Type-specific flags and metadata */
-  /* Total: 8 bytes header for all variable nodes */
+  /* Total: 6 bytes header for all variable nodes */
 };
-
-/* Node type flags */
-#define VAR_NODE_FLAG_INLINE_DATA    0x0001  /* Data stored inline */
-#define VAR_NODE_FLAG_HEAP_ALLOCATED 0x0002  /* Large data on heap */
-#define VAR_NODE_FLAG_CACHED         0x0004  /* Node is cached/reusable */
 
 /* Phase 1 Variable Node Structures */
 
@@ -405,7 +398,6 @@ struct mrb_ast_super_node {
 #define SYM_NODE_VALUE(n) (sym_node(n)->symbol)
 #define STR_NODE_PTR(n) (str_node(n)->data)
 #define STR_NODE_LEN(n) (str_node(n)->len)
-#define STR_NODE_INLINE_P(n) (var_header(n)->flags & VAR_NODE_FLAG_INLINE_DATA)
 #define INT_NODE_VALUE(n) (int_node(n)->value)
 #define BIGINT_NODE_STRING(n) (bigint_node(n)->string)
 #define BIGINT_NODE_BASE(n) (bigint_node(n)->base)

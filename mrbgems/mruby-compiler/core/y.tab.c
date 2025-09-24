@@ -213,7 +213,6 @@ init_var_header(struct mrb_ast_var_header *header, parser_state *p, enum node_ty
   header->lineno = p->lineno;
   header->filename_index = p->current_filename_index;
   header->node_type = (uint8_t)type;
-  header->flags = 0;
 
   /* Handle file boundary edge case */
   if (p->lineno == 0 && p->current_filename_index > 0) {
