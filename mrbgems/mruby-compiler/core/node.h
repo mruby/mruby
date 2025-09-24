@@ -140,23 +140,10 @@ struct mrb_ast_var_header {
   uint16_t lineno;           /* Line number information */
   uint16_t filename_index;   /* File index information */
   uint8_t node_type;         /* NODE_INT, NODE_SYM, NODE_STR, etc. */
-  uint8_t size_class;        /* Size class for allocation/deallocation */
+  uint8_t reserved;          /* Reserved for future use */
   uint16_t flags;            /* Type-specific flags and metadata */
   /* Total: 8 bytes header for all variable nodes */
 };
-
-/* Size class enumeration */
-enum mrb_ast_size_class {
-  SIZE_CLASS_TINY    = 0,  /* 8-16 bytes  - symbols, small values */
-  SIZE_CLASS_SMALL   = 1,  /* 16-32 bytes - most nodes */
-  SIZE_CLASS_MEDIUM  = 2,  /* 32-64 bytes - complex expressions */
-  SIZE_CLASS_LARGE   = 3,  /* 64-128 bytes - large arrays/calls */
-  SIZE_CLASS_XLARGE  = 4,  /* 128+ bytes - very large constructs */
-  SIZE_CLASS_COUNT   = 5
-};
-
-/* Size class limits for allocation decisions */
-#define SIZE_CLASS_LIMITS { 16, 32, 64, 128, 256 }
 
 /* Node type flags */
 #define VAR_NODE_FLAG_INLINE_DATA    0x0001  /* Data stored inline */
@@ -367,7 +354,6 @@ struct mrb_ast_super_node {
 #define STR_SMALL_THRESHOLD   128  /* Small strings <= 128 bytes */
 
 #define VAR_NODE_TYPE(n) ((enum node_type)(((struct mrb_ast_var_header*)(n))->node_type))
-#define VAR_NODE_CLASS(n) (((struct mrb_ast_var_header*)(n))->size_class)
 
 /* Type-safe casting macros */
 #define var_header(n) ((struct mrb_ast_var_header*)(n))
