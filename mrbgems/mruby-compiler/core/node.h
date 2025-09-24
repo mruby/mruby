@@ -37,7 +37,6 @@ enum node_type {
   NODE_ARRAY,
   NODE_ZARRAY,
   NODE_HASH,
-  NODE_KW_HASH,
   NODE_RETURN,
   NODE_YIELD,
   NODE_LVAR,
@@ -799,11 +798,6 @@ struct mrb_ast_zarray_node {
   struct mrb_ast_var_header hdr;
 };
 
-struct mrb_ast_kw_hash_node {
-  struct mrb_ast_var_header hdr;
-  struct mrb_ast_node *args;
-};
-
 struct mrb_ast_words_node {
   struct mrb_ast_var_header hdr;
   struct mrb_ast_node *args;
@@ -898,7 +892,6 @@ struct mrb_ast_postexe_node {
 #define zsuper_node(n) ((struct mrb_ast_super_node*)(n))
 #define lambda_node(n) ((struct mrb_ast_lambda_node*)(n))
 #define zarray_node(n) ((struct mrb_ast_zarray_node*)(n))
-#define kw_hash_node(n) ((struct mrb_ast_kw_hash_node*)(n))
 #define words_node(n) ((struct mrb_ast_words_node*)(n))
 #define symbols_node(n) ((struct mrb_ast_symbols_node*)(n))
 #define splat_node(n) ((struct mrb_ast_splat_node*)(n))
@@ -920,7 +913,6 @@ struct mrb_ast_postexe_node {
 #define LAMBDA_NODE_LOCALS(n) (lambda_node(n)->locals)
 #define LAMBDA_NODE_ARGS(n) (lambda_node(n)->args)
 #define LAMBDA_NODE_BODY(n) (lambda_node(n)->body)
-#define KW_HASH_NODE_ARGS(n) (kw_hash_node(n)->args)
 #define WORDS_NODE_ARGS(n) (words_node(n)->args)
 #define SYMBOLS_NODE_ARGS(n) (symbols_node(n)->args)
 #define SPLAT_NODE_VALUE(n) (splat_node(n)->value)

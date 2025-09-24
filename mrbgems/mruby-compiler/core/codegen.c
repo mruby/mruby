@@ -5432,19 +5432,6 @@ gen_lambda_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_kw_hash_var(codegen_scope *s, node *varnode, int val)
-{
-  struct mrb_ast_kw_hash_node *n = kw_hash_node(varnode);
-
-  int nk = gen_hash(s, n->args, val, GEN_LIT_ARY_MAX);
-  if (val && nk >= 0) {
-    pop_n(nk*2);
-    genop_2(s, OP_HASH, cursp(), nk);
-    push();
-  }
-}
-
-static void
 gen_words_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_words_node *n = words_node(varnode);
@@ -5918,10 +5905,6 @@ codegen(codegen_scope *s, node *tree, int val)
 
     case NODE_LAMBDA:
       gen_lambda_var(s, tree, val);
-      break;
-
-    case NODE_KW_HASH:
-      gen_kw_hash_var(s, tree, val);
       break;
 
     case NODE_WORDS:
