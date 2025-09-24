@@ -13900,7 +13900,6 @@ parser_init_cxt(parser_state *p, mrb_ccontext *cxt)
   p->no_optimize = cxt->no_optimize;
   p->no_ext_ops = cxt->no_ext_ops;
   p->upper = cxt->upper;
-  p->var_nodes_enabled = cxt->use_variable_nodes;
   if (cxt->partial_hook) {
     p->cxt = cxt;
   }
@@ -14009,9 +14008,6 @@ mrb_parser_new(mrb_state *mrb)
   p->current_filename_index = -1;
   p->filename_table = NULL;
   p->filename_table_length = 0;
-
-  /* Initialize variable-sized node infrastructure */
-  p->var_nodes_enabled = FALSE;
 
   return p;
 }

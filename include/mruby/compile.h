@@ -33,7 +33,6 @@ typedef struct mrb_ccontext {
   mrb_bool keep_lv:1;
   mrb_bool no_optimize:1;
   mrb_bool no_ext_ops:1;
-  mrb_bool use_variable_nodes:1;  /* Enable variable-sized AST nodes */
   const struct RProc *upper;
 
   size_t parser_nerr;
@@ -135,7 +134,6 @@ struct mrb_parser_state {
   uint16_t current_filename_index;
 
   /* Variable-sized node management */
-  mrb_bool var_nodes_enabled:1;            /* Feature flag for gradual rollout */
   mrb_ast_node *nvars;
 };
 
