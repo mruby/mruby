@@ -58,7 +58,6 @@ enum node_type {
   NODE_XSTR,
   NODE_REGX,
   NODE_SPLAT,
-  NODE_TO_ARY,
   NODE_BLOCK_ARG,
   NODE_DEF,
   NODE_SDEF,
@@ -754,12 +753,6 @@ struct mrb_ast_splat_node {
   struct mrb_ast_node *value;
 };
 
-struct mrb_ast_to_ary_node {
-  struct mrb_ast_var_header header;
-  struct mrb_ast_node *value;
-};
-
-
 struct mrb_ast_block_arg_node {
   struct mrb_ast_var_header header;
   struct mrb_ast_node *value;
@@ -830,7 +823,6 @@ struct mrb_ast_postexe_node {
 #define words_node(n) ((struct mrb_ast_words_node*)(n))
 #define symbols_node(n) ((struct mrb_ast_symbols_node*)(n))
 #define splat_node(n) ((struct mrb_ast_splat_node*)(n))
-#define to_ary_node(n) ((struct mrb_ast_to_ary_node*)(n))
 #define block_arg_node(n) ((struct mrb_ast_block_arg_node*)(n))
 #define method_node(n) ((struct mrb_ast_method_node*)(n))
 #define scope_node(n) ((struct mrb_ast_scope_node*)(n))
@@ -850,7 +842,6 @@ struct mrb_ast_postexe_node {
 #define WORDS_NODE_ARGS(n) (words_node(n)->args)
 #define SYMBOLS_NODE_ARGS(n) (symbols_node(n)->args)
 #define SPLAT_NODE_VALUE(n) (splat_node(n)->value)
-#define TO_ARY_NODE_VALUE(n) (to_ary_node(n)->value)
 #define BLOCK_ARG_NODE_VALUE(n) (block_arg_node(n)->value)
 #define METHOD_NODE_BODY(n) (method_node(n)->body)
 #define SCOPE_NODE_LOCALS(n) (scope_node(n)->locals)
