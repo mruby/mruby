@@ -15047,12 +15047,45 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
 
   case NODE_WORDS:
     printf("NODE_WORDS:\n");
-    dump_recur(mrb, tree, offset+1);
+    if (WORDS_NODE_ARGS(tree)) {
+      node *list = WORDS_NODE_ARGS(tree);
+      while (list && list->car) {
+        node *item = list->car;
+        if (item->car == 0 && item->cdr == 0) {
+          /* Skip separator (0 . 0) */
+        }
+        else if (item->car && item->cdr) {
+          /* String item: (len . str) */
+          dump_prefix(offset+1, lineno);
+          int len = node_to_int(item->car);
+          if (len >= 0 && len < 1000 && item->cdr) {
+            printf("word: \"%.*s\"\n", len, (char*)item->cdr);
+          }
+        }
+        list = list->cdr;
+      }
+    }
     break;
 
   case NODE_SYMBOLS:
     printf("NODE_SYMBOLS:\n");
-    dump_recur(mrb, tree, offset+1);
+    if (SYMBOLS_NODE_ARGS(tree)) {
+      node *list = SYMBOLS_NODE_ARGS(tree);
+      while (list && list->car) {
+        node *item = list->car;
+        if (item->car == 0 && item->cdr == 0) {
+          /* Skip separator (0 . 0) */
+        } else if (item->car && item->cdr) {
+          /* String item: (len . str) */
+          dump_prefix(offset+1, lineno);
+          int len = node_to_int(item->car);
+          if (len >= 0 && len < 1000 && item->cdr) {
+            printf("symbol: \"%.*s\"\n", len, (char*)item->cdr);
+          }
+        }
+        list = list->cdr;
+      }
+    }
     break;
 
   case NODE_ALIAS:
