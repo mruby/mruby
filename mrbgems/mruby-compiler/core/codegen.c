@@ -1212,7 +1212,7 @@ get_int_operand(codegen_scope *s, struct mrb_insn_data *data, mrb_int *n)
 
 static int new_lit_str2(codegen_scope *s, const char *str1, mrb_int len1, const char *str2, mrb_int len2);
 static int find_pool_str(codegen_scope *s, const char *str1, mrb_int len1, const char *str2, mrb_int len2);
-static void codegen_cons_list_string(codegen_scope *s, node *list, int val);
+static void gen_string(codegen_scope *s, node *list, int val);
 
 /*
  * Reallocates or allocates memory for a string literal in the IREP's literal pool.
@@ -3017,8 +3017,8 @@ gen_literal_array(codegen_scope *s, node *tree, mrb_bool sym, int val)
 
         /* Only process non-empty segments */
         if (!is_empty_segment) {
-          /* Use codegen_cons_list_string for this segment */
-          codegen_cons_list_string(s, segment, VAL);
+          /* Use gen_string for this segment */
+          gen_string(s, segment, VAL);
 
           /* Apply symbol conversion if needed */
           if (sym) {
@@ -3274,7 +3274,7 @@ gen_hash_var(codegen_scope *s, node *varnode, int val)
  * - (-1 . node) for expressions that need evaluation
  */
 static void
-codegen_cons_list_string(codegen_scope *s, node *list, int val)
+gen_string(codegen_scope *s, node *list, int val)
 {
   if (!list) {
     if (val) {
@@ -4764,7 +4764,7 @@ gen_str_var(codegen_scope *s, node *varnode, int val)
   node *list = str_n->list;
 
   /* Use common cons list string codegen */
-  codegen_cons_list_string(s, list, val);
+  gen_string(s, list, val);
 }
 
 static void
@@ -5055,7 +5055,7 @@ gen_xstr_var(codegen_scope *s, node *varnode, int val)
   /* Always execute backtick command for side effects, even in NOVAL mode */
   push();
   /* Generate string using common function */
-  codegen_cons_list_string(s, list, VAL);
+  gen_string(s, list, VAL);
 
   push();                   /* for block */
   pop_n(3);
@@ -5083,7 +5083,7 @@ gen_dregx_var(codegen_scope *s, node *varnode, int val)
     push();
 
     /* Generate regex pattern using common cons list function */
-    codegen_cons_list_string(s, n->list, VAL);
+    gen_string(s, n->list, VAL);
 
     /* Add flags if present */
     if (n->flags && *n->flags) {
@@ -5109,7 +5109,7 @@ gen_dregx_var(codegen_scope *s, node *varnode, int val)
   }
   else {
     /* NOVAL case: still need to evaluate expressions for side effects */
-    codegen_cons_list_string(s, n->list, NOVAL);
+    gen_string(s, n->list, NOVAL);
   }
 }
 
@@ -5118,7 +5118,7 @@ gen_heredoc_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_heredoc_node *n = heredoc_node(varnode);
   // Process heredoc doc field as cons list string
-  codegen_cons_list_string(s, n->info.doc, val);
+  gen_string(s, n->info.doc, val);
 }
 
 static void
