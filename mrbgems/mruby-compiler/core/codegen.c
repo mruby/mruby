@@ -3276,78 +3276,46 @@ gen_hash_var(codegen_scope *s, node *varnode, int val)
 static void
 gen_string(codegen_scope *s, node *list, int val)
 {
-  if (!list) {
-    if (val) {
-      gen_load_nil(s, 1);
-    }
-    return;
-  }
-
   if (val) {
     /* Handle as cons list of string parts with safety checks */
     node *n = list;
+    mrb_bool first = TRUE;
 
-    /* Generate first element */
-    node *elem = n->car;
-    if (!elem) {
-      gen_load_nil(s, 1);
-      return;
-    }
-
-    mrb_int len = node_to_int(elem->car);
-
-    if (len >= 0) {
-      /* String literal: (len . str) */
-      char *str = (char*)elem->cdr;
-      if (str) {
-        int off = new_lit_str(s, str, len);
-        genop_2(s, OP_STRING, cursp(), off);
-        push();
-      }
-      else {
-        /* Handle null string */
-        int off = new_lit_str(s, "", 0);
-        genop_2(s, OP_STRING, cursp(), off);
-        push();
-      }
-    }
-    else {
-      /* Expression: (-1 . node) */
-      codegen(s, (node*)elem->cdr, VAL);
-    }
-
-    /* Concatenate remaining elements */
-    n = n->cdr;
     while (n) {
-      elem = n->car;
+      node *elem = n->car;
       if (!elem) break;
 
-      len = node_to_int(elem->car);
+      mrb_int len = node_to_int(elem->car);
 
       if (len >= 0) {
         /* String literal: (len . str) */
-        char *str = (char*)elem->cdr;
-        if (str) {
-          int off = new_lit_str(s, str, len);
-          genop_2(s, OP_STRING, cursp(), off);
-          push();
-        }
-        else {
-          /* Handle null string */
-          int off = new_lit_str(s, "", 0);
-          genop_2(s, OP_STRING, cursp(), off);
-          push();
-        }
+        const char *str = (char*)elem->cdr;
+        if (!str) {str = ""; len = 0;}
+        int off = new_lit_str(s, str, len);
+        genop_2(s, OP_STRING, cursp(), off);
+        push();
       }
       else {
         /* Expression: (-1 . node) */
         codegen(s, (node*)elem->cdr, VAL);
       }
 
-      pop(); pop();
-      genop_1(s, OP_STRCAT, cursp());
-      push();
+      /* Concatenate with previous parts (except for first element) */
+      if (!first) {
+        pop(); pop();
+        genop_1(s, OP_STRCAT, cursp());
+        push();
+      }
+      else {
+        first = FALSE;
+      }
+
       n = n->cdr;
+    }
+
+    /* Handle empty list case */
+    if (first) {
+      gen_load_nil(s, 1);
     }
   }
   else {
@@ -3356,10 +3324,7 @@ gen_string(codegen_scope *s, node *list, int val)
     while (n) {
       node *elem = n->car;
       if (!elem) break;
-
-      mrb_int len = node_to_int(elem->car);
-
-      if (len < 0) {
+      if (node_to_int(elem->car) < 0) {
         /* Expression: (-1 . node) - evaluate for side effects */
         codegen(s, (node*)elem->cdr, NOVAL);
       }
