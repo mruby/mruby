@@ -85,7 +85,6 @@ enum node_type {
   NODE_HEREDOC,
   NODE_WORDS,
   NODE_SYMBOLS,
-  NODE_VARIABLE,
   NODE_LAST
 };
 
@@ -358,10 +357,6 @@ struct mrb_ast_super_node {
 #define node_to_int(x) ((int)(intptr_t)(x))
 #define node_to_type(x) ((enum node_type)(intptr_t)(x))
 #define node_to_char(x) ((char)(intptr_t)(x))
-
-// Macros for variable-sized nodes
-#define NODE_TYPE(n) ((enum node_type)(intptr_t)((n)->car))
-#define NODE_VAR_NODE_PTR(n) ((struct mrb_ast_var_header*)((n)->cdr))
 
 /* Phase 1 node casting macros */
 #define sym_node(n) ((struct mrb_ast_sym_node*)(n))

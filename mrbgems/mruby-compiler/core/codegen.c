@@ -160,6 +160,10 @@ static void gen_call_assign_var(codegen_scope *s, node *varnode, node *rhs, int 
 static void codegen(codegen_scope *s, node *tree, int val);
 static void raise_error(codegen_scope *s, const char *msg);
 
+/* Forward declarations for helper functions */
+static enum node_type get_node_type(node *n);
+static struct mrb_ast_var_header* get_var_header(node *n);
+
 /*
  * Reports a compilation error encountered during code generation.
  *
@@ -2198,6 +2202,11 @@ node_len(node *tree)
 {
   int n = 0;
 
+  /* Validate pointer before using it */
+  if (!tree || ((uintptr_t)tree < 0x1000)) {
+    return 0;
+  }
+
   while (tree) {
     n++;
     tree = tree->cdr;
@@ -2461,11 +2470,9 @@ lambda_body(codegen_scope *s, node *locals, struct mrb_ast_args *args, node *bod
       node *n = margs;
       pos = 1; /* Start from register 1 (after self). */
       while (n) {
-        if (node_to_int(n->car->car) == NODE_VARIABLE) {
-          if (VAR_NODE_TYPE(n->car->cdr) == NODE_MASGN) { /* If the argument is a mass assignment (e.g., |(a,b)| ). */
-            struct mrb_ast_masgn_node *masgn_n = (struct mrb_ast_masgn_node*)n->car->cdr;
-            gen_massignment(s, masgn_n->lhs, pos, NOVAL);
-          }
+        if (get_node_type(n->car) == NODE_MASGN) { /* If the argument is a mass assignment (e.g., |(a,b)| ). */
+          struct mrb_ast_masgn_node *masgn_n = (struct mrb_ast_masgn_node*)n->car;
+          gen_massignment(s, masgn_n->lhs, pos, NOVAL);
         }
         pos++;
         n = n->cdr;
@@ -2475,11 +2482,9 @@ lambda_body(codegen_scope *s, node *locals, struct mrb_ast_args *args, node *bod
       node *n = pargs;
       pos = ma+oa+ra+1; /* Calculate starting register for post-mandatory args. */
       while (n) {
-        if (node_to_int(n->car->car) == NODE_VARIABLE) {
-          if (VAR_NODE_TYPE(n->car->cdr) == NODE_MASGN) { /* If argument is a mass assignment. */
-            struct mrb_ast_masgn_node *masgn_n = (struct mrb_ast_masgn_node*)n->car->cdr;
-            gen_massignment(s, masgn_n->lhs, pos, NOVAL);
-          }
+        if (get_node_type(n->car) == NODE_MASGN) { /* If argument is a mass assignment. */
+          struct mrb_ast_masgn_node *masgn_n = (struct mrb_ast_masgn_node*)n->car;
+          gen_massignment(s, masgn_n->lhs, pos, NOVAL);
         }
         pos++;
         n = n->cdr;
@@ -2547,12 +2552,32 @@ scope_body(codegen_scope *s, node *locals, node *body, int val)
   return s->irep->rlen - 1;
 }
 
+/* Helper functions for node type checking - works with variable-sized nodes */
+static enum node_type
+get_node_type(node *n)
+{
+  if (!n) return (enum node_type)0;
+
+  /* Try to interpret as variable-sized node first */
+  struct mrb_ast_var_header *header = (struct mrb_ast_var_header*)n;
+  return (enum node_type)header->node_type;
+}
+
+static struct mrb_ast_var_header*
+get_var_header(node *n)
+{
+  if (!n) return NULL;
+
+  /* Try to interpret as variable-sized node */
+  struct mrb_ast_var_header *header = (struct mrb_ast_var_header*)n;
+  return header;
+}
+
 /* Helper to detect splat nodes in variable-sized format */
 static mrb_bool
 is_splat_node(node *n)
 {
-  return (node_to_int(n->car) == NODE_VARIABLE &&
-          VAR_NODE_TYPE(n->cdr) == NODE_SPLAT);
+  return (get_node_type(n) == NODE_SPLAT);
 }
 
 static mrb_bool
@@ -2786,7 +2811,7 @@ gen_colon3_assign(codegen_scope *s, node *varnode, node *rhs, int sp, int val)
 static void
 gen_xvar_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val, uint8_t op)
 {
-  struct mrb_ast_var_node *var = var_node(tree->cdr);
+  struct mrb_ast_var_node *var = (struct mrb_ast_var_node*)tree;
   if (rhs) {
     codegen(s, rhs, VAL);
     pop();
@@ -2809,103 +2834,68 @@ static void
 gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
 {
   int idx;
-  int type = node_to_int(tree->car);
 
-  switch (type) {
+  /* Check if this is a variable-sized node first */
+  enum node_type var_type = get_node_type(tree);
+  switch (var_type) {
   case NODE_NIL:
     if (rhs) {
       codegen(s, rhs, VAL);
       pop();
       sp = cursp();
     }
+    /* NODE_NIL assignment is complete - just break (splat without assignment) */
     break;
-
-  case NODE_CALL:
-    /* keep evaluation order */
+  case NODE_COLON2:
+    gen_colon2_assign(s, tree, rhs, sp, val);
+    return;
+  case NODE_COLON3:
+    gen_colon3_assign(s, tree, rhs, sp, val);
+    return;
+  case NODE_GVAR:
+    gen_xvar_assignment(s, tree, rhs, sp, val, OP_SETGV);
     break;
-
-  case NODE_VARIABLE:
-    /* Handle variable-sized nodes completely here */
+  case NODE_IVAR:
+    gen_xvar_assignment(s, tree, rhs, sp, val, OP_SETIV);
+    break;
+  case NODE_CVAR:
+    gen_xvar_assignment(s, tree, rhs, sp, val, OP_SETCV);
+    break;
+  case NODE_CONST:
+    gen_xvar_assignment(s, tree, rhs, sp, val, OP_SETCONST);
+    break;
+  case NODE_MASGN:
+    gen_masgn_var(s, tree, rhs, sp, val);
+    return;
+  case NODE_LVAR:
     {
-      enum node_type var_type = VAR_NODE_TYPE(tree->cdr);
-      switch (var_type) {
-      case NODE_NIL:
-        if (rhs) {
-          codegen(s, rhs, VAL);
-          pop();
-          sp = cursp();
+      mrb_sym sym = VAR_NODE_SYMBOL(tree);
+      if (rhs) {
+        codegen(s, rhs, VAL);
+        pop();
+        sp = cursp();
+      }
+      idx = lv_idx(s, sym);
+      if (idx > 0) {
+        if (idx != sp) {
+          gen_move(s, idx, sp, val);
         }
-        /* NODE_NIL assignment is complete - just break (splat without assignment) */
-        break;
-      case NODE_COLON2:
-        gen_colon2_assign(s, tree->cdr, rhs, sp, val);
-        return;
-      case NODE_COLON3:
-        gen_colon3_assign(s, tree->cdr, rhs, sp, val);
-        return;
-      case NODE_GVAR:
-        gen_xvar_assignment(s, tree, rhs, sp, val, OP_SETGV);
-        break;
-      case NODE_IVAR:
-        gen_xvar_assignment(s, tree, rhs, sp, val, OP_SETIV);
-        break;
-      case NODE_CVAR:
-        gen_xvar_assignment(s, tree, rhs, sp, val, OP_SETCV);
-        break;
-      case NODE_CONST:
-        gen_xvar_assignment(s, tree, rhs, sp, val, OP_SETCONST);
-        break;
-      case NODE_MASGN:
-        gen_masgn_var(s, tree->cdr, rhs, sp, val);
-        return;
-      case NODE_LVAR:
-        {
-          mrb_sym sym = VAR_NODE_SYMBOL(tree->cdr);
-          if (rhs) {
-            codegen(s, rhs, VAL);
-            pop();
-            sp = cursp();
-          }
-          idx = lv_idx(s, sym);
-          if (idx > 0) {
-            if (idx != sp) {
-              gen_move(s, idx, sp, val);
-            }
-            break;
-          }
-          else {
-            gen_setupvar(s, sp, sym);
-          }
-        }
-        break;
-      case NODE_CALL:
-        gen_call_assign_var(s, tree->cdr, rhs, sp, val);
-        return;
-      default:
-        codegen_error(s, "unsupported variable-sized lhs");
         break;
       }
-      /* Variable-sized node handling is complete - skip second switch */
-      if (val) push();
-      return;
+      else {
+        gen_setupvar(s, sp, sym);
+      }
     }
-
-  default:
-    codegen_error(s, "unknown lhs");
     break;
-  }
-
-  tree = tree->cdr;
-  switch (type) {
-  /* splat without assignment */
-  case NODE_NIL:
-    break;
-
+  case NODE_CALL:
+    gen_call_assign_var(s, tree, rhs, sp, val);
+    return;
   default:
-    codegen_error(s, "unknown lhs");
+    codegen_error(s, "unsupported variable-sized lhs");
     break;
   }
   if (val) push();
+  return;
 }
 
 static void
@@ -3115,21 +3105,14 @@ gen_retval(codegen_scope *s, node *tree)
 static mrb_bool
 true_always(node *tree)
 {
-  switch (node_to_int(tree->car)) {
+  /* Check if this is a variable-sized node first */
+  enum node_type var_type = get_node_type(tree);
+  switch (var_type) {
   case NODE_INT:
-  case NODE_SYM:
+  case NODE_BIGINT:
+  case NODE_FLOAT:
+  case NODE_TRUE:
     return TRUE;
-  case NODE_VARIABLE:
-    /* Check variable-sized nodes that are always true */
-    switch (VAR_NODE_TYPE(tree->cdr)) {
-    case NODE_INT:
-    case NODE_BIGINT:
-    case NODE_FLOAT:
-    case NODE_TRUE:
-      return TRUE;
-    default:
-      return FALSE;
-    }
   default:
     return FALSE;
   }
@@ -3138,17 +3121,14 @@ true_always(node *tree)
 static mrb_bool
 false_always(node *tree)
 {
-  if (node_to_int(tree->car) == NODE_VARIABLE) {
-    /* Check variable-sized nodes that are always false */
-    switch (VAR_NODE_TYPE(tree->cdr)) {
-    case NODE_FALSE:
-    case NODE_NIL:
-      return TRUE;
-    default:
-      return FALSE;
-    }
+  /* Check variable-sized nodes that are always false */
+  switch (get_node_type(tree)) {
+  case NODE_FALSE:
+  case NODE_NIL:
+    return TRUE;
+  default:
+    return FALSE;
   }
-  return FALSE;
 }
 
 static void
@@ -3455,9 +3435,7 @@ gen_call_var(codegen_scope *s, node *varnode, int val)
     else if (sym == MRB_OPSYM_2(s->mrb, aset)) opt_op = OP_SETIDX;
   }
 
-  if (!call->receiver || (opt_op == OP_NOP &&
-      node_to_int(call->receiver->car) == NODE_VARIABLE &&
-      VAR_NODE_TYPE(call->receiver->cdr) == NODE_SELF)) {
+  if (!call->receiver || (opt_op == OP_NOP && get_node_type(call->receiver) == NODE_SELF)) {
     noself = 1;
     push();
   }
@@ -3812,20 +3790,10 @@ gen_if_var(codegen_scope *s, node *varnode, int val)
     return;
   }
 
-  /* Check for nil? optimization - handle both traditional and variable-sized nodes */
-  if (NODE_TYPE(condition) == NODE_CALL) {
-    /* Traditional cons-list NODE_CALL */
-    node *n = condition->cdr;
-    mrb_sym mid = node_to_sym(n->cdr->car);
-    mrb_sym sym_nil_p = MRB_SYM_Q_2(s->mrb, nil);
-    if (mid == sym_nil_p && n->cdr->cdr->car == NULL) {
-      nil_p = TRUE;
-      codegen(s, n->car, VAL);
-    }
-  }
-  else if (NODE_TYPE(condition) == NODE_VARIABLE && VAR_NODE_TYPE(condition->cdr) == NODE_CALL) {
-    /* Variable-sized NODE_CALL wrapped in NODE_VARIABLE */
-    struct mrb_ast_call_node *call_n = (struct mrb_ast_call_node*)condition->cdr;
+  /* Check for nil? optimization */
+  if (get_node_type(condition) == NODE_CALL) {
+    /* Variable-sized NODE_CALL */
+    struct mrb_ast_call_node *call_n = (struct mrb_ast_call_node*)condition;
     mrb_sym sym_nil_p = MRB_SYM_Q_2(s->mrb, nil);
     if (call_n->method_name == sym_nil_p && call_n->argc == 0) {
       nil_p = TRUE;
@@ -5236,15 +5204,18 @@ gen_negate_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_negate_node *n = (struct mrb_ast_negate_node*)varnode;
   node *tree = n->operand;
-  int nt = node_to_int(tree->car);
 
-  switch (nt) {
+  /* Check if the operand is a variable-sized node */
+  enum node_type vnt = get_node_type(tree);
+  switch (vnt) {
 #ifndef MRB_NO_FLOAT
   case NODE_FLOAT:
     if (val) {
-      char *p = (char*)tree->cdr;
+      struct mrb_ast_float_node *float_n = (struct mrb_ast_float_node*)tree;
+      const char *value = float_n->value;
       double f;
-      mrb_read_float(p, NULL, &f);
+
+      mrb_read_float(value, NULL, &f);
       int off = new_lit_float(s, (mrb_float)-f);
 
       gen_load_lit(s, off);
@@ -5253,63 +5224,32 @@ gen_negate_var(codegen_scope *s, node *varnode, int val)
 #endif
 
   case NODE_INT:
-    /* This case should not occur since NODE_INT is now always variable-sized */
+    if (val) {
+      int32_t value = INT_NODE_VALUE(tree);
+      if (value == INT32_MIN) {
+        /* -INT32_MIN overflows, use bigint */
+        int off = new_litbint(s, "2147483648", -10);
+        genop_2(s, OP_LOADL, cursp(), off);
+      }
+      else {
+        gen_int(s, cursp(), -value);
+      }
+      push();
+    }
     break;
 
-  case NODE_VARIABLE:
-    {
-      enum node_type vnt = VAR_NODE_TYPE(tree->cdr);
-      switch (vnt) {
-#ifndef MRB_NO_FLOAT
-      case NODE_FLOAT:
-        if (val) {
-          struct mrb_ast_float_node *float_n = (struct mrb_ast_float_node*)tree->cdr;
-          const char *value = float_n->value;
-          double f;
-
-          mrb_read_float(value, NULL, &f);
-          int off = new_lit_float(s, (mrb_float)-f);
-
-          gen_load_lit(s, off);
-        }
-        break;
-#endif
-
-      case NODE_INT:
-        if (val) {
-          int32_t value = INT_NODE_VALUE(tree->cdr);
-          if (value == INT32_MIN) {
-            /* -INT32_MIN overflows, use bigint */
-            int off = new_litbint(s, "2147483648", -10);
-            genop_2(s, OP_LOADL, cursp(), off);
-          }
-          else {
-            gen_int(s, cursp(), -value);
-          }
-          push();
-        }
-        break;
-
-      case NODE_BIGINT:
-        if (val) {
-          char *str = BIGINT_NODE_STRING(tree->cdr);
-          int base = BIGINT_NODE_BASE(tree->cdr);
-          /* Negate base to indicate negative number */
-          int off = new_litbint(s, str, -base);
-          genop_2(s, OP_LOADL, cursp(), off);
-          push();
-        }
-        break;
-
-      default:
-        /* Fall through to default case */
-        goto default_negate;
-      }
-      break;
+  case NODE_BIGINT:
+    if (val) {
+      char *str = BIGINT_NODE_STRING(tree);
+      int base = BIGINT_NODE_BASE(tree);
+      /* Negate base to indicate negative number */
+      int off = new_litbint(s, str, -base);
+      genop_2(s, OP_LOADL, cursp(), off);
+      push();
     }
+    break;
 
   default:
-  default_negate:
     codegen(s, tree, VAL);
     pop();
     push_n(2);pop_n(2); /* space for receiver&block */
@@ -5542,16 +5482,10 @@ is_empty_stmts(node *stmt_node)
 {
   if (!stmt_node) return TRUE;
 
-  if (node_to_int(stmt_node->car) == NODE_VARIABLE) {
+  if (get_node_type(stmt_node) == NODE_STMTS) {
     /* Variable-sized NODE_STMTS with internal cons-list */
-    if (NODE_TYPE(stmt_node) == NODE_STMTS) {
-      struct mrb_ast_stmts_node *stmts = stmts_node(NODE_VAR_NODE_PTR(stmt_node));
-      return STMTS_NODE_STMTS(stmts) == NULL;
-    }
-  }
-  else if (node_to_int(stmt_node->car) == NODE_STMTS) {
-    /* Traditional cons-list NODE_STMTS */
-    return stmt_node->cdr == NULL;
+    struct mrb_ast_stmts_node *stmts = (struct mrb_ast_stmts_node*)stmt_node;
+    return stmts->stmts == NULL;
   }
 
   return FALSE;
@@ -5611,7 +5545,6 @@ gen_sdef_var(codegen_scope *s, const node *varnode, int val)
 static void
 codegen(codegen_scope *s, node *tree, int val)
 {
-  int nt;
   int rlev = s->rlev;
 
   if (!tree) {
@@ -5622,346 +5555,343 @@ codegen(codegen_scope *s, node *tree, int val)
     return;
   }
 
-  nt = node_to_int(tree->car);
-
   s->rlev++;
   if (s->rlev > MRB_CODEGEN_LEVEL_MAX) {
     codegen_error(s, "too complex expression");
   }
 
-  if (nt == NODE_VARIABLE) {
-    /* For variable-sized nodes, get filename/lineno from the variable node header */
-    struct mrb_ast_var_header *var_head = (struct mrb_ast_var_header*)tree->cdr;
+  /* Check if this is a variable-sized node */
+  /* For variable-sized nodes, get filename/lineno from the variable node header */
+  struct mrb_ast_var_header *var_head = get_var_header(tree);
 
-    if (s->irep && s->filename_index != var_head->filename_index) {
-      mrb_sym fname = mrb_parser_get_filename(s->parser, s->filename_index);
-      const char *filename = mrb_sym_name_len(s->mrb, fname, NULL);
+  if (s->irep && s->filename_index != var_head->filename_index) {
+    mrb_sym fname = mrb_parser_get_filename(s->parser, s->filename_index);
+    const char *filename = mrb_sym_name_len(s->mrb, fname, NULL);
 
-      if (filename) {
-        mrb_debug_info_append_file(s->mrb, s->irep->debug_info,
-                                   filename, s->lines, s->debug_start_pos, s->pc);
-      }
-      s->debug_start_pos = s->pc;
-      s->filename_index = var_head->filename_index;
-      s->filename_sym = mrb_parser_get_filename(s->parser, var_head->filename_index);
+    if (filename) {
+      mrb_debug_info_append_file(s->mrb, s->irep->debug_info,
+                                 filename, s->lines, s->debug_start_pos, s->pc);
     }
-    s->lineno = var_head->lineno;
-    tree = tree->cdr;
-    /* Inlined codegen_variable_node() logic */
-    enum node_type var_type = VAR_NODE_TYPE(tree);
-
-    switch (var_type) {
-    case NODE_INT:
-      if (val) {
-        gen_int(s, cursp(), INT_NODE_VALUE(tree));
-        push();
-      }
-      break;
-
-    case NODE_BIGINT:
-      if (val) {
-        char *str = BIGINT_NODE_STRING(tree);
-        int base = BIGINT_NODE_BASE(tree);
-        int off = new_litbint(s, str, base);
-        genop_2(s, OP_LOADL, cursp(), off);
-        push();
-      }
-      break;
-
-    case NODE_SYM:
-      {
-        int i = new_sym(s, SYM_NODE_VALUE(tree));
-        gen_load_op2(s, OP_LOADSYM, i, val);
-      }
-      break;
-
-    case NODE_LVAR:
-      gen_lvar(s, VAR_NODE_SYMBOL(tree), val);
-      break;
-
-    case NODE_GVAR:
-      gen_xvar(s, VAR_NODE_SYMBOL(tree), val, OP_GETGV);
-      break;
-
-    case NODE_IVAR:
-      gen_xvar(s, VAR_NODE_SYMBOL(tree), val, OP_GETIV);
-      break;
-
-    case NODE_CVAR:
-      gen_xvar(s, VAR_NODE_SYMBOL(tree), val, OP_GETCV);
-      break;
-
-    case NODE_CALL:
-      gen_call_var(s, tree, val);
-      break;
-
-    case NODE_ARRAY:
-      gen_array_var(s, tree, val);
-      break;
-
-    case NODE_HASH:
-      gen_hash_var(s, tree, val);
-      break;
-
-    case NODE_IF:
-      gen_if_var(s, tree, val);
-      break;
-
-    case NODE_WHILE:
-      gen_while_var(s, tree, val);
-      break;
-
-    case NODE_UNTIL:
-      gen_until_var(s, tree, val);
-      break;
-
-    case NODE_FOR:
-      gen_for_var(s, tree, val);
-      break;
-
-    case NODE_CASE:
-      gen_case_var(s, tree, val);
-      break;
-
-    case NODE_DEF:
-      gen_def_var(s, tree, val);
-      break;
-
-    case NODE_CLASS:
-      gen_class_var(s, tree, val);
-      break;
-
-    case NODE_MODULE:
-      gen_module_var(s, tree, val);
-      break;
-
-    case NODE_SCLASS:
-      gen_sclass_var(s, tree, val);
-      break;
-
-    case NODE_ASGN:
-      gen_asgn_var(s, tree, val);
-      break;
-
-    case NODE_MASGN:
-      gen_masgn_var(s, tree, NULL, 0, val);
-      break;
-
-    case NODE_OP_ASGN:
-      gen_op_asgn_var(s, tree, val);
-      break;
-
-    case NODE_AND:
-      gen_and_var(s, tree, val);
-      break;
-
-    case NODE_OR:
-      gen_or_var(s, tree, val);
-      break;
-
-    case NODE_RETURN:
-      gen_return_var(s, tree, val);
-      break;
-
-    case NODE_YIELD:
-      gen_yield_var(s, tree, val);
-      break;
-
-    case NODE_SUPER:
-      gen_super_var(s, tree, val);
-      break;
-
-    case NODE_STR:
-      gen_str_var(s, tree, val);
-      break;
-
-    case NODE_REGX:
-      gen_regx_var(s, tree, val);
-      break;
-
-    case NODE_DOT2:
-      gen_dot2_var(s, tree, val);
-      break;
-
-    case NODE_DOT3:
-      gen_dot3_var(s, tree, val);
-      break;
-
-    case NODE_FLOAT:
-      gen_float_var(s, tree, val);
-      break;
-
-    case NODE_SELF:
-      gen_self_var(s, tree, val);
-      break;
-
-    case NODE_NIL:
-      gen_nil_var(s, tree, val);
-      break;
-
-    case NODE_TRUE:
-      gen_true_var(s, tree, val);
-      break;
-
-    case NODE_FALSE:
-      gen_false_var(s, tree, val);
-      break;
-
-    case NODE_CONST:
-      gen_const_var(s, tree, val);
-      break;
-
-    case NODE_RESCUE:
-      gen_rescue_var(s, tree, val);
-      break;
-
-    case NODE_BLOCK:
-      gen_block_var(s, tree, val);
-      break;
-
-    case NODE_BREAK:
-      gen_break_var(s, tree, val);
-      break;
-
-    case NODE_NEXT:
-      gen_next_var(s, tree, val);
-      break;
-
-    case NODE_REDO:
-      gen_redo_var(s, tree, val);
-      break;
-
-    case NODE_RETRY:
-      gen_retry_var(s, tree, val);
-      break;
-
-    case NODE_WHILE_MOD:
-      gen_while_mod_var(s, tree, val);
-      break;
-
-    case NODE_UNTIL_MOD:
-      gen_until_mod_var(s, tree, val);
-      break;
-
-    case NODE_XSTR:
-      gen_xstr_var(s, tree, val);
-      break;
-
-    case NODE_DREGX:
-      gen_dregx_var(s, tree, val);
-      break;
-
-    case NODE_HEREDOC:
-      gen_heredoc_var(s, tree, val);
-      break;
-
-    case NODE_DSYM:
-      gen_dsym_var(s, tree, val);
-      break;
-
-    case NODE_NTH_REF:
-      gen_nth_ref_var(s, tree, val);
-      break;
-
-    case NODE_BACK_REF:
-      gen_back_ref_var(s, tree, val);
-      break;
-
-    case NODE_NVAR:
-      gen_nvar_var(s, tree, val);
-      break;
-
-    case NODE_DVAR:
-      gen_dvar_var(s, tree, val);
-      break;
-
-    case NODE_MATCH:
-      gen_match_var(s, tree, val);
-      break;
-
-    case NODE_NOT:
-      gen_not_var(s, tree, val);
-      break;
-
-    case NODE_NEGATE:
-      gen_negate_var(s, tree, val);
-      break;
-
-    case NODE_COLON2:
-      gen_colon2_var(s, tree, val);
-      break;
-
-    case NODE_COLON3:
-      gen_colon3_var(s, tree, val);
-      break;
-
-    case NODE_DEFINED:
-      gen_defined_var(s, tree, val);
-      break;
-
-    case NODE_ZSUPER:
-      gen_zsuper_var(s, tree, val);
-      break;
-
-    case NODE_LAMBDA:
-      gen_lambda_var(s, tree, val);
-      break;
-
-    case NODE_WORDS:
-      gen_words_var(s, tree, val);
-      break;
-
-    case NODE_SYMBOLS:
-      gen_symbols_var(s, tree, val);
-      break;
-
-    case NODE_SPLAT:
-      gen_splat_var(s, tree, val);
-      break;
-
-    case NODE_BLOCK_ARG:
-      gen_block_arg_var(s, tree, val);
-      break;
-
-    case NODE_SCOPE:
-      gen_scope_var(s, tree, val);
-      break;
-
-    case NODE_BEGIN:
-      gen_begin_var(s, tree, val);
-      break;
-
-    case NODE_ENSURE:
-      gen_ensure_var(s, tree, val);
-      break;
-
-    case NODE_STMTS:
-      gen_stmts_var(s, tree, val);
-      break;
-
-    case NODE_ALIAS:
-      gen_alias_var(s, tree, val);
-      break;
-
-    case NODE_UNDEF:
-      gen_undef_var(s, tree, val);
-      break;
-
-    case NODE_POSTEXE:
-      {
-        struct mrb_ast_postexe_node *postexe = postexe_node(tree);
-        codegen(s, postexe->body, NOVAL);
-      }
-      break;
-
-    case NODE_SDEF:
-      gen_sdef_var(s, tree, val);
-      break;
-
-    default:
-      /* Unhandled node type - should not occur with current AST */
-      break;
+    s->debug_start_pos = s->pc;
+    s->filename_index = var_head->filename_index;
+    s->filename_sym = mrb_parser_get_filename(s->parser, var_head->filename_index);
+  }
+  s->lineno = var_head->lineno;
+
+  /* Process variable-sized node directly */
+  enum node_type var_type = var_head->node_type;
+
+  switch (var_type) {
+  case NODE_INT:
+    if (val) {
+      gen_int(s, cursp(), INT_NODE_VALUE(tree));
+      push();
     }
+    break;
+
+  case NODE_BIGINT:
+    if (val) {
+      char *str = BIGINT_NODE_STRING(tree);
+      int base = BIGINT_NODE_BASE(tree);
+      int off = new_litbint(s, str, base);
+      genop_2(s, OP_LOADL, cursp(), off);
+      push();
+    }
+    break;
+
+  case NODE_SYM:
+    {
+      int i = new_sym(s, SYM_NODE_VALUE(tree));
+      gen_load_op2(s, OP_LOADSYM, i, val);
+    }
+    break;
+
+  case NODE_LVAR:
+    gen_lvar(s, VAR_NODE_SYMBOL(tree), val);
+    break;
+
+  case NODE_GVAR:
+    gen_xvar(s, VAR_NODE_SYMBOL(tree), val, OP_GETGV);
+    break;
+
+  case NODE_IVAR:
+    gen_xvar(s, VAR_NODE_SYMBOL(tree), val, OP_GETIV);
+    break;
+
+  case NODE_CVAR:
+    gen_xvar(s, VAR_NODE_SYMBOL(tree), val, OP_GETCV);
+    break;
+
+  case NODE_CALL:
+    gen_call_var(s, tree, val);
+    break;
+
+  case NODE_ARRAY:
+    gen_array_var(s, tree, val);
+    break;
+
+  case NODE_HASH:
+    gen_hash_var(s, tree, val);
+    break;
+
+  case NODE_IF:
+    gen_if_var(s, tree, val);
+    break;
+
+  case NODE_WHILE:
+    gen_while_var(s, tree, val);
+    break;
+
+  case NODE_UNTIL:
+    gen_until_var(s, tree, val);
+    break;
+
+  case NODE_FOR:
+    gen_for_var(s, tree, val);
+    break;
+
+  case NODE_CASE:
+    gen_case_var(s, tree, val);
+    break;
+
+  case NODE_DEF:
+    gen_def_var(s, tree, val);
+    break;
+
+  case NODE_CLASS:
+    gen_class_var(s, tree, val);
+    break;
+
+  case NODE_MODULE:
+    gen_module_var(s, tree, val);
+    break;
+
+  case NODE_SCLASS:
+    gen_sclass_var(s, tree, val);
+    break;
+
+  case NODE_ASGN:
+    gen_asgn_var(s, tree, val);
+    break;
+
+  case NODE_MASGN:
+    gen_masgn_var(s, tree, NULL, 0, val);
+    break;
+
+  case NODE_OP_ASGN:
+    gen_op_asgn_var(s, tree, val);
+    break;
+
+  case NODE_AND:
+    gen_and_var(s, tree, val);
+    break;
+
+  case NODE_OR:
+    gen_or_var(s, tree, val);
+    break;
+
+  case NODE_RETURN:
+    gen_return_var(s, tree, val);
+    break;
+
+  case NODE_YIELD:
+    gen_yield_var(s, tree, val);
+    break;
+
+  case NODE_SUPER:
+    gen_super_var(s, tree, val);
+    break;
+
+  case NODE_STR:
+    gen_str_var(s, tree, val);
+    break;
+
+  case NODE_REGX:
+    gen_regx_var(s, tree, val);
+    break;
+
+  case NODE_DOT2:
+    gen_dot2_var(s, tree, val);
+    break;
+
+  case NODE_DOT3:
+    gen_dot3_var(s, tree, val);
+    break;
+
+  case NODE_FLOAT:
+    gen_float_var(s, tree, val);
+    break;
+
+  case NODE_SELF:
+    gen_self_var(s, tree, val);
+    break;
+
+  case NODE_NIL:
+    gen_nil_var(s, tree, val);
+    break;
+
+  case NODE_TRUE:
+    gen_true_var(s, tree, val);
+    break;
+
+  case NODE_FALSE:
+    gen_false_var(s, tree, val);
+    break;
+
+  case NODE_CONST:
+    gen_const_var(s, tree, val);
+    break;
+
+  case NODE_RESCUE:
+    gen_rescue_var(s, tree, val);
+    break;
+
+  case NODE_BLOCK:
+    gen_block_var(s, tree, val);
+    break;
+
+  case NODE_BREAK:
+    gen_break_var(s, tree, val);
+    break;
+
+  case NODE_NEXT:
+    gen_next_var(s, tree, val);
+    break;
+
+  case NODE_REDO:
+    gen_redo_var(s, tree, val);
+    break;
+
+  case NODE_RETRY:
+    gen_retry_var(s, tree, val);
+    break;
+
+  case NODE_WHILE_MOD:
+    gen_while_mod_var(s, tree, val);
+    break;
+
+  case NODE_UNTIL_MOD:
+    gen_until_mod_var(s, tree, val);
+    break;
+
+  case NODE_XSTR:
+    gen_xstr_var(s, tree, val);
+    break;
+
+  case NODE_DREGX:
+    gen_dregx_var(s, tree, val);
+    break;
+
+  case NODE_HEREDOC:
+    gen_heredoc_var(s, tree, val);
+    break;
+
+  case NODE_DSYM:
+    gen_dsym_var(s, tree, val);
+    break;
+
+  case NODE_NTH_REF:
+    gen_nth_ref_var(s, tree, val);
+    break;
+
+  case NODE_BACK_REF:
+    gen_back_ref_var(s, tree, val);
+    break;
+
+  case NODE_NVAR:
+    gen_nvar_var(s, tree, val);
+    break;
+
+  case NODE_DVAR:
+    gen_dvar_var(s, tree, val);
+    break;
+
+  case NODE_MATCH:
+    gen_match_var(s, tree, val);
+    break;
+
+  case NODE_NOT:
+    gen_not_var(s, tree, val);
+    break;
+
+  case NODE_NEGATE:
+    gen_negate_var(s, tree, val);
+    break;
+
+  case NODE_COLON2:
+    gen_colon2_var(s, tree, val);
+    break;
+
+  case NODE_COLON3:
+    gen_colon3_var(s, tree, val);
+    break;
+
+  case NODE_DEFINED:
+    gen_defined_var(s, tree, val);
+    break;
+
+  case NODE_ZSUPER:
+    gen_zsuper_var(s, tree, val);
+    break;
+
+  case NODE_LAMBDA:
+    gen_lambda_var(s, tree, val);
+    break;
+
+  case NODE_WORDS:
+    gen_words_var(s, tree, val);
+    break;
+
+  case NODE_SYMBOLS:
+    gen_symbols_var(s, tree, val);
+    break;
+
+  case NODE_SPLAT:
+    gen_splat_var(s, tree, val);
+    break;
+
+  case NODE_BLOCK_ARG:
+    gen_block_arg_var(s, tree, val);
+    break;
+
+  case NODE_SCOPE:
+    gen_scope_var(s, tree, val);
+    break;
+
+  case NODE_BEGIN:
+    gen_begin_var(s, tree, val);
+    break;
+
+  case NODE_ENSURE:
+    gen_ensure_var(s, tree, val);
+    break;
+
+  case NODE_STMTS:
+    gen_stmts_var(s, tree, val);
+    break;
+
+  case NODE_ALIAS:
+    gen_alias_var(s, tree, val);
+    break;
+
+  case NODE_UNDEF:
+    gen_undef_var(s, tree, val);
+    break;
+
+  case NODE_POSTEXE:
+    {
+      struct mrb_ast_postexe_node *postexe = postexe_node(tree);
+      codegen(s, postexe->body, NOVAL);
+    }
+    break;
+
+  case NODE_SDEF:
+    gen_sdef_var(s, tree, val);
+    break;
+
+  default:
+    /* Unhandled variable-sized node type - should not occur with current AST */
+    break;
   }
   s->rlev = rlev;
 }
@@ -6026,7 +5956,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *nlv)
   s->syms = (mrb_sym*)mrbc_malloc(sizeof(mrb_sym)*s->scapa);
 
   s->lv = nlv;
-  s->sp += node_len(nlv)+1;        /* add self */
+  s->sp += (nlv ? node_len(nlv) : 0) + 1;        /* add self */
   s->nlocals = s->nregs = s->sp;
   if (nlv) {
     mrb_sym *lv;
