@@ -14636,25 +14636,6 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     }
     break;
 
-  case NODE_CALLARGS:
-    printf("NODE_CALLARGS:\n");
-    if (CALLARGS_NODE_REGULAR(tree)) {
-      dump_prefix(tree, offset+1);
-      printf("regular_args:\n");
-      dump_recur(mrb, CALLARGS_NODE_REGULAR(tree), offset+2);
-    }
-    if (CALLARGS_NODE_KEYWORDS(tree)) {
-      dump_prefix(tree, offset+1);
-      printf("keyword_args:\n");
-      mrb_parser_dump(mrb, CALLARGS_NODE_KEYWORDS(tree), offset+2);
-    }
-    if (CALLARGS_NODE_BLOCK(tree)) {
-      dump_prefix(tree, offset+1);
-      printf("block_arg:\n");
-      mrb_parser_dump(mrb, CALLARGS_NODE_BLOCK(tree), offset+2);
-    }
-    break;
-
   case NODE_TRUE:
     printf("NODE_TRUE\n");
     break;

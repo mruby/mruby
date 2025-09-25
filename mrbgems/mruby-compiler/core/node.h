@@ -59,7 +59,6 @@ enum node_type {
   NODE_XSTR,
   NODE_REGX,
   NODE_DREGX,
-  NODE_CALLARGS,
   NODE_SPLAT,
   NODE_TO_ARY,
   NODE_SVALUE,
