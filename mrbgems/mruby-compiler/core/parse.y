@@ -7560,19 +7560,19 @@ static void
 dump_args(mrb_state *mrb, struct mrb_ast_args *args, int offset, uint16_t lineno)
 {
   if (args->mandatory_args) {
-    dump_prefix(offset+1, lineno);
+    dump_prefix(offset, lineno);
     printf("mandatory args:\n");
-    dump_recur(mrb, args->mandatory_args, offset+2);
+    dump_recur(mrb, args->mandatory_args, offset+1);
   }
   if (args->optional_args) {
-    dump_prefix(offset+1, lineno);
+    dump_prefix(offset, lineno);
     printf("optional args:\n");
     {
       node *n = args->optional_args;
       while (n) {
-        dump_prefix(offset+2, lineno);
+        dump_prefix(offset+1, lineno);
         printf("%s=\n", mrb_sym_name(mrb, node_to_sym(n->car->car)));
-        mrb_parser_dump(mrb, n->car->cdr, offset+3);
+        mrb_parser_dump(mrb, n->car->cdr, offset+2);
         n = n->cdr;
       }
     }
@@ -7580,37 +7580,34 @@ dump_args(mrb_state *mrb, struct mrb_ast_args *args, int offset, uint16_t lineno
   if (args->rest_arg) {
     mrb_sym rest = args->rest_arg;
 
-    dump_prefix(offset+1, lineno);
+    dump_prefix(offset, lineno);
     if (rest == MRB_OPSYM(mul))
       printf("rest=*\n");
     else
       printf("rest=*%s\n", mrb_sym_name(mrb, rest));
   }
   if (args->post_mandatory_args) {
-    dump_prefix(offset+1, lineno);
+    dump_prefix(offset, lineno);
     printf("post mandatory args:\n");
-    dump_recur(mrb, args->post_mandatory_args, offset+2);
+    dump_recur(mrb, args->post_mandatory_args, offset+1);
   }
   if (args->keyword_args) {
-    dump_prefix(offset+1, lineno);
+    dump_prefix(offset, lineno);
     printf("keyword args:\n");
     {
       node *n = args->keyword_args;
       while (n) {
-        dump_prefix(offset+2, lineno);
+        dump_prefix(offset+1, lineno);
         printf("%s:\n", mrb_sym_name(mrb, node_to_sym(n->car->car)));
-        mrb_parser_dump(mrb, n->car->cdr, offset+3);
+        mrb_parser_dump(mrb, n->car->cdr, offset+2);
         n = n->cdr;
       }
     }
-    dump_prefix(offset+1, lineno);
-    printf("post mandatory args:\n");
-    dump_recur(mrb, args->post_mandatory_args, offset+2);
   }
   if (args->kwrest_arg) {
     mrb_sym rest = args->kwrest_arg;
 
-    dump_prefix(offset+1, lineno);
+    dump_prefix(offset, lineno);
     if (rest == MRB_OPSYM(pow))
       printf("kwrest=**\n");
     else
@@ -7619,7 +7616,7 @@ dump_args(mrb_state *mrb, struct mrb_ast_args *args, int offset, uint16_t lineno
   if (args->block_arg) {
     mrb_sym blk = args->block_arg;
 
-    dump_prefix(offset+1, lineno);
+    dump_prefix(offset, lineno);
     if (blk == MRB_OPSYM(and))
       printf("blk=&\n");
     else
