@@ -7538,6 +7538,22 @@ dump_cpath(mrb_state *mrb, node *tree, int offset, uint16_t lineno)
   printf("name: %s\n", mrb_sym_dump(mrb, node_to_sym(tree->cdr)));
 }
 
+/*
+ * This function restores the GC arena on return.
+ * For this reason, if a process that further generates an object is
+ * performed at the caller, the string pointer returned as the return
+ * value may become invalid.
+ */
+static const char*
+str_dump(mrb_state *mrb, const char *str, int len)
+{
+  int ai = mrb_gc_arena_save(mrb);
+  mrb_value s = mrb_str_new(mrb, str, (mrb_int)len);
+  s = mrb_str_dump(mrb, s);
+  mrb_gc_arena_restore(mrb, ai);
+  return RSTRING_PTR(s);
+}
+
 static void
 dump_str(mrb_state *mrb, node *n, int offset, uint16_t lineno)
 {
@@ -7545,7 +7561,7 @@ dump_str(mrb_state *mrb, node *n, int offset, uint16_t lineno)
     dump_prefix(offset, lineno);
     int len = node_to_int(n->car->car);
     if (len >= 0) {
-      printf("str: \"%.*s\"\n", len, (char*)n->car->cdr);
+      printf("str: %s\n", str_dump(mrb, (char*)n->car->cdr, node_to_int(n->car->car)));
     }
     else {
       printf("interpolation:\n");
@@ -7660,31 +7676,6 @@ dump_callargs(mrb_state *mrb, node *n, int offset, uint16_t lineno)
     mrb_parser_dump(mrb, args->block_arg, offset+2);
   }
 }
-
-/*
- * This function restores the GC arena on return.
- * For this reason, if a process that further generates an object is
- * performed at the caller, the string pointer returned as the return
- * value may become invalid.
- */
-#if 0
-static const char*
-str_dump(mrb_state *mrb, const char *str, int len)
-{
-  int ai = mrb_gc_arena_save(mrb);
-  mrb_value s;
-# if INT_MAX > MRB_INT_MAX / 4
-  /* check maximum length with "\xNN" character */
-  if (len > MRB_INT_MAX / 4) {
-    len = MRB_INT_MAX / 4;
-  }
-# endif
-  s = mrb_str_new(mrb, str, (mrb_int)len);
-  s = mrb_str_dump(mrb, s);
-  mrb_gc_arena_restore(mrb, ai);
-  return RSTRING_PTR(s);
-}
-#endif
 
 #endif
 
