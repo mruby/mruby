@@ -3334,46 +3334,6 @@ gen_string(codegen_scope *s, node *list, int val)
   }
 }
 
-static void
-codegen_regx(codegen_scope *s, node *tree, int val)
-{
-  if (val) {
-    char *p1 = (char*)tree->car;
-    char *p2 = (char*)tree->cdr->car;
-    char *p3 = (char*)tree->cdr->cdr;
-    int sym = new_sym(s, mrb_intern_lit(s->mrb, REGEXP_CLASS));
-    int off = new_lit_cstr(s, p1);
-    int argc = 1;
-
-    genop_1(s, OP_OCLASS, cursp());
-    genop_2(s, OP_GETMCNST, cursp(), sym);
-    push();
-    genop_2(s, OP_STRING, cursp(), off);
-    push();
-    if (p2 || p3) {
-      if (p2) { /* opt */
-        off = new_lit_cstr(s, p2);
-        genop_2(s, OP_STRING, cursp(), off);
-      }
-      else {
-        genop_1(s, OP_LOADNIL, cursp());
-      }
-      push();
-      argc++;
-      if (p3) { /* enc */
-        off = new_lit_str(s, p3, 1);
-        genop_2(s, OP_STRING, cursp(), off);
-        push();
-        argc++;
-      }
-    }
-    push(); /* space for a block */
-    pop_n(argc+2);
-    sym = new_sym(s, MRB_SYM_2(s->mrb, compile));
-    genop_3(s, OP_SEND, cursp(), sym, argc);
-    push();
-  }
-}
 
 /* Handle variable-sized node types */
 static void
@@ -4737,20 +4697,43 @@ gen_str_var(codegen_scope *s, node *varnode, int val)
 static void
 gen_regx_var(codegen_scope *s, node *varnode, int val)
 {
-  struct mrb_ast_regx_node *regx_n = regx_node(varnode->car);
-  const char *pattern = REGX_NODE_PATTERN(regx_n);
-  const char *flags = REGX_NODE_FLAGS(regx_n);
-  const char *encoding = REGX_NODE_ENCODING(regx_n);
+  if (val) {
+    struct mrb_ast_regx_node *regx_n = regx_node(varnode->car);
+    const char *p1 = REGX_NODE_PATTERN(regx_n);
+    const char *p2 = REGX_NODE_FLAGS(regx_n);
+    const char *p3 = REGX_NODE_ENCODING(regx_n);
+    int sym = new_sym(s, mrb_intern_lit(s->mrb, REGEXP_CLASS));
+    int off = new_lit_cstr(s, p1);
+    int argc = 1;
 
-  /* Create simple list structure like traditional node */
-  node list_node;
-  node flags_node;
-  list_node.car = (node*)pattern;
-  list_node.cdr = &flags_node;
-  flags_node.car = (node*)flags;
-  flags_node.cdr = (node*)encoding;
-
-  codegen_regx(s, &list_node, val);
+    genop_1(s, OP_OCLASS, cursp());
+    genop_2(s, OP_GETMCNST, cursp(), sym);
+    push();
+    genop_2(s, OP_STRING, cursp(), off);
+    push();
+    if (p2 || p3) {
+      if (p2) { /* opt */
+        off = new_lit_cstr(s, p2);
+        genop_2(s, OP_STRING, cursp(), off);
+      }
+      else {
+        genop_1(s, OP_LOADNIL, cursp());
+      }
+      push();
+      argc++;
+      if (p3) { /* enc */
+        off = new_lit_str(s, p3, 1);
+        genop_2(s, OP_STRING, cursp(), off);
+        push();
+        argc++;
+      }
+    }
+    push(); /* space for a block */
+    pop_n(argc+2);
+    sym = new_sym(s, MRB_SYM_2(s->mrb, compile));
+    genop_3(s, OP_SEND, cursp(), sym, argc);
+    push();
+  }
 }
 
 static void
