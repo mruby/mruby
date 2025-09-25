@@ -649,7 +649,8 @@ struct mrb_ast_dsym_node {
 
 #define XSTR_NODE_LIST(n) (xstr_node(n)->list)
 #define REGX_NODE_LIST(n) (regx_node(n)->list)
-#define REGX_NODE_OPTIONS(n) (regx_node(n)->options)
+#define REGX_NODE_FLAGS(n) (regx_node(n)->flags)
+#define REGX_NODE_ENCODING(n) (regx_node(n)->encoding)
 #define HEREDOC_NODE_NAME(n) (heredoc_node(n)->name)
 #define DSYM_NODE_LIST(n) (dsym_node(n)->list)
 

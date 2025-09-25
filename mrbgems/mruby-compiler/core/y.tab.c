@@ -15043,16 +15043,16 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
 
   case NODE_REGX:
     printf("NODE_REGX:\n");
-    dump_recur(mrb, tree->car, offset+1);
-    dump_prefix(offset+1, lineno);
-    printf("tail: %s\n", (char*)tree->cdr->cdr->car);
-    if (tree->cdr->cdr->cdr->car) {
-      dump_prefix(offset+1, lineno);
-      printf("opt: %s\n", (char*)tree->cdr->cdr->cdr->car);
+    if (REGX_NODE_LIST(tree)) {
+      dump_str(mrb, REGX_NODE_LIST(tree), offset+1, lineno);
     }
-    if (tree->cdr->cdr->cdr->cdr) {
+    if (REGX_NODE_FLAGS(tree)) {
       dump_prefix(offset+1, lineno);
-      printf("enc: %s\n", (char*)tree->cdr->cdr->cdr->cdr);
+      printf("flags: %s\n", REGX_NODE_FLAGS(tree));
+    }
+    if (REGX_NODE_ENCODING(tree)) {
+      dump_prefix(offset+1, lineno);
+      printf("encoding: %s\n", REGX_NODE_ENCODING(tree));
     }
     break;
 
