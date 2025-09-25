@@ -58,7 +58,6 @@ enum node_type {
   NODE_STR,
   NODE_XSTR,
   NODE_REGX,
-  NODE_DREGX,
   NODE_SPLAT,
   NODE_TO_ARY,
   NODE_SVALUE,
@@ -465,14 +464,6 @@ struct mrb_ast_super_node {
 
 /* Variable-sized literal node structures */
 
-struct mrb_ast_regx_node {
-  struct mrb_ast_var_header header;
-  const char *pattern;
-  int pattern_len;
-  const char *flags;
-  const char *encoding;
-};
-
 struct mrb_ast_dot2_node {
   struct mrb_ast_var_header header;
   struct mrb_ast_node *left;
@@ -491,17 +482,12 @@ struct mrb_ast_float_node {
 };
 
 /* Literal node casting macros */
-#define regx_node(n) ((struct mrb_ast_regx_node*)(n))
 #define dot2_node(n) ((struct mrb_ast_dot2_node*)(n))
 #define dot3_node(n) ((struct mrb_ast_dot3_node*)(n))
 #define float_node(n) ((struct mrb_ast_float_node*)(n))
 
 /* Literal node value access macros */
 #define STR_NODE_LIST(n) (str_node(n)->list)
-
-#define REGX_NODE_PATTERN(n) (regx_node(n)->pattern)
-#define REGX_NODE_FLAGS(n) (regx_node(n)->flags)
-#define REGX_NODE_ENCODING(n) (regx_node(n)->encoding)
 
 #define DOT2_NODE_LEFT(n) (dot2_node(n)->left)
 #define DOT2_NODE_RIGHT(n) (dot2_node(n)->right)
@@ -639,13 +625,12 @@ struct mrb_ast_xstr_node {
   struct mrb_ast_node *list;
 };
 
-struct mrb_ast_dregx_node {
+struct mrb_ast_regx_node {
   struct mrb_ast_var_header header;
   struct mrb_ast_node *list;
   const char *flags;
   const char *encoding;
 };
-
 
 struct mrb_ast_heredoc_node {
   struct mrb_ast_var_header header;
@@ -658,13 +643,13 @@ struct mrb_ast_dsym_node {
 };
 
 #define xstr_node(n) ((struct mrb_ast_xstr_node*)(n))
-#define dregx_node(n) ((struct mrb_ast_dregx_node*)(n))
+#define regx_node(n) ((struct mrb_ast_regx_node*)(n))
 #define heredoc_node(n) ((struct mrb_ast_heredoc_node*)(n))
 #define dsym_node(n) ((struct mrb_ast_dsym_node*)(n))
 
 #define XSTR_NODE_LIST(n) (xstr_node(n)->list)
-#define DREGX_NODE_LIST(n) (dregx_node(n)->list)
-#define DREGX_NODE_OPTIONS(n) (dregx_node(n)->options)
+#define REGX_NODE_LIST(n) (regx_node(n)->list)
+#define REGX_NODE_OPTIONS(n) (regx_node(n)->options)
 #define HEREDOC_NODE_NAME(n) (heredoc_node(n)->name)
 #define DSYM_NODE_LIST(n) (dsym_node(n)->list)
 

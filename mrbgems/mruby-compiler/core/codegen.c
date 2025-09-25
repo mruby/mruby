@@ -4695,48 +4695,6 @@ gen_str_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_regx_var(codegen_scope *s, node *varnode, int val)
-{
-  if (val) {
-    struct mrb_ast_regx_node *regx_n = regx_node(varnode->car);
-    const char *p1 = REGX_NODE_PATTERN(regx_n);
-    const char *p2 = REGX_NODE_FLAGS(regx_n);
-    const char *p3 = REGX_NODE_ENCODING(regx_n);
-    int sym = new_sym(s, mrb_intern_lit(s->mrb, REGEXP_CLASS));
-    int off = new_lit_cstr(s, p1);
-    int argc = 1;
-
-    genop_1(s, OP_OCLASS, cursp());
-    genop_2(s, OP_GETMCNST, cursp(), sym);
-    push();
-    genop_2(s, OP_STRING, cursp(), off);
-    push();
-    if (p2 || p3) {
-      if (p2) { /* opt */
-        off = new_lit_cstr(s, p2);
-        genop_2(s, OP_STRING, cursp(), off);
-      }
-      else {
-        genop_1(s, OP_LOADNIL, cursp());
-      }
-      push();
-      argc++;
-      if (p3) { /* enc */
-        off = new_lit_str(s, p3, 1);
-        genop_2(s, OP_STRING, cursp(), off);
-        push();
-        argc++;
-      }
-    }
-    push(); /* space for a block */
-    pop_n(argc+2);
-    sym = new_sym(s, MRB_SYM_2(s->mrb, compile));
-    genop_3(s, OP_SEND, cursp(), sym, argc);
-    push();
-  }
-}
-
-static void
 gen_dot2_var(codegen_scope *s, node *varnode, int val)
 {
   node *left = DOT2_NODE_LEFT(varnode);
@@ -5019,9 +4977,9 @@ gen_xstr_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_dregx_var(codegen_scope *s, node *varnode, int val)
+gen_regx_var(codegen_scope *s, node *varnode, int val)
 {
-  struct mrb_ast_dregx_node *n = dregx_node(varnode);
+  struct mrb_ast_regx_node *n = regx_node(varnode);
 
   if (val) {
     int sym = new_sym(s, mrb_intern_lit(s->mrb, REGEXP_CLASS));
@@ -5656,10 +5614,6 @@ codegen(codegen_scope *s, node *tree, int val)
     gen_str_var(s, tree, val);
     break;
 
-  case NODE_REGX:
-    gen_regx_var(s, tree, val);
-    break;
-
   case NODE_DOT2:
     gen_dot2_var(s, tree, val);
     break;
@@ -5728,8 +5682,8 @@ codegen(codegen_scope *s, node *tree, int val)
     gen_xstr_var(s, tree, val);
     break;
 
-  case NODE_DREGX:
-    gen_dregx_var(s, tree, val);
+  case NODE_REGX:
+    gen_regx_var(s, tree, val);
     break;
 
   case NODE_HEREDOC:

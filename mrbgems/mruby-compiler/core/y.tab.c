@@ -1544,12 +1544,12 @@ new_dsym(parser_state *p, node *a)
   return (node*)n;
 }
 
-/* (:dregx . (list . (flags . encoding))) */
+/* (:regx . (list . (flags . encoding))) */
 static node*
-new_dregx(parser_state *p, node *list, const char *flags, const char *encoding)
+new_regx(parser_state *p, node *list, const char *flags, const char *encoding)
 {
-  struct mrb_ast_dregx_node *n = (struct mrb_ast_dregx_node*)parser_palloc(p, sizeof(struct mrb_ast_dregx_node));
-  init_var_header(&n->header, p, NODE_DREGX);
+  struct mrb_ast_regx_node *n = (struct mrb_ast_regx_node*)parser_palloc(p, sizeof(struct mrb_ast_regx_node));
+  init_var_header(&n->header, p, NODE_REGX);
   n->list = list;
   n->flags = flags;
   n->encoding = encoding;
@@ -1955,7 +1955,7 @@ prohibit_literals(parser_state *p, node *n)
     case NODE_INT:
     case NODE_STR:
     case NODE_XSTR:
-    case NODE_DREGX:
+    case NODE_REGX:
     case NODE_MATCH:
     case NODE_FLOAT:
     case NODE_ARRAY:
@@ -10152,7 +10152,7 @@ yyreduce:
                       const char *encoding = (const char*)data->cdr->cdr;
                       /* Use data->car directly as pattern_list: (len . pattern) */
                       node *pattern_list = cons(data->car, (node*)NULL);
-                      (yyval.nd) = new_dregx(p, pattern_list, flags, encoding);
+                      (yyval.nd) = new_regx(p, pattern_list, flags, encoding);
                     }
 #line 10158 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
@@ -10165,7 +10165,7 @@ yyreduce:
                       const char *encoding = (const char*)data->cdr->cdr;
                       /* Append the pattern from $3->car to the string list $2 */
                       node *complete_list = push((yyvsp[-1].nd), data->car);
-                      (yyval.nd) = new_dregx(p, complete_list, flags, encoding);
+                      (yyval.nd) = new_regx(p, complete_list, flags, encoding);
                     }
 #line 10171 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
@@ -15042,19 +15042,7 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     break;
 
   case NODE_REGX:
-    printf("NODE_REGX /%s/\n", (char*)tree->car);
-    if (tree->cdr->car) {
-      dump_prefix(offset+1, lineno);
-      printf("opt: %s\n", (char*)tree->cdr->car);
-    }
-    if (tree->cdr->cdr) {
-      dump_prefix(offset+1, lineno);
-      printf("enc: %s\n", (char*)tree->cdr->cdr);
-    }
-    break;
-
-  case NODE_DREGX:
-    printf("NODE_DREGX:\n");
+    printf("NODE_REGX:\n");
     dump_recur(mrb, tree->car, offset+1);
     dump_prefix(offset+1, lineno);
     printf("tail: %s\n", (char*)tree->cdr->cdr->car);
