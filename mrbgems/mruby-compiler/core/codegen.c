@@ -154,8 +154,8 @@ static int catch_handler_new(codegen_scope *s);
 static void catch_handler_set(codegen_scope *s, int ent, enum mrb_catch_type type, uint32_t begin, uint32_t end, uint32_t target);
 
 static void gen_massignment(codegen_scope *s, node *tree, int sp, int val);
-static void gen_masgn_var(codegen_scope *s, node *varnode, node *rhs, int sp, int val);
-static void gen_call_assign_var(codegen_scope *s, node *varnode, node *rhs, int sp, int val);
+static void codegen_masgn(codegen_scope *s, node *varnode, node *rhs, int sp, int val);
+static void codegen_call_assign(codegen_scope *s, node *varnode, node *rhs, int sp, int val);
 
 static void codegen(codegen_scope *s, node *tree, int val);
 static void raise_error(codegen_scope *s, const char *msg);
@@ -2865,7 +2865,7 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
     gen_xvar_assignment(s, tree, rhs, sp, val, OP_SETCONST);
     break;
   case NODE_MASGN:
-    gen_masgn_var(s, tree, rhs, sp, val);
+    codegen_masgn(s, tree, rhs, sp, val);
     return;
   case NODE_LVAR:
     {
@@ -2888,7 +2888,7 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
     }
     break;
   case NODE_CALL:
-    gen_call_assign_var(s, tree, rhs, sp, val);
+    codegen_call_assign(s, tree, rhs, sp, val);
     return;
   default:
     codegen_error(s, "unsupported variable-sized lhs");
@@ -3164,7 +3164,7 @@ gen_lvar(codegen_scope *s, mrb_sym sym, int val)
 }
 
 static void
-gen_hash_var(codegen_scope *s, node *varnode, int val)
+codegen_hash(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_hash_node *hash = hash_node(varnode);
   node *pairs = HASH_NODE_PAIRS(hash);
@@ -3337,7 +3337,7 @@ gen_string(codegen_scope *s, node *list, int val)
 
 /* Handle variable-sized node types */
 static void
-gen_call_var(codegen_scope *s, node *varnode, int val)
+codegen_call(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_call_node *call = call_node(varnode);
   mrb_sym sym = CALL_NODE_METHOD(call);
@@ -3459,7 +3459,7 @@ gen_call_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_call_assign_var(codegen_scope *s, node *varnode, node *rhs, int sp, int val)
+codegen_call_assign(codegen_scope *s, node *varnode, node *rhs, int sp, int val)
 {
   enum node_type var_type = VAR_NODE_TYPE(varnode);
   int noself = 0, safe = 0, skip = 0, top, callsp, n = 0, nk = 0;
@@ -3606,7 +3606,7 @@ gen_call_assign_var(codegen_scope *s, node *varnode, node *rhs, int sp, int val)
 }
 
 static void
-gen_array_var(codegen_scope *s, node *varnode, int val)
+codegen_array(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_array_node *array = array_node(varnode);
   node *elements = ARRAY_NODE_ELEMENTS(array);
@@ -3695,7 +3695,7 @@ callargs_empty(node *n)
 }
 
 static void
-gen_if_var(codegen_scope *s, node *varnode, int val)
+codegen_if(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_if_node *if_n = if_node(varnode);
   node *condition = if_n->condition;
@@ -3773,7 +3773,7 @@ gen_if_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_while_var(codegen_scope *s, node *varnode, int val)
+codegen_while(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_while_node *while_n = while_node(varnode);
   node *condition = while_n->condition;
@@ -3817,7 +3817,7 @@ gen_while_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_until_var(codegen_scope *s, node *varnode, int val)
+codegen_until(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_until_node *until_n = until_node(varnode);
   node *condition = until_n->condition;
@@ -3861,7 +3861,7 @@ gen_until_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_while_mod_var(codegen_scope *s, node *varnode, int val)
+codegen_while_mod(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_while_node *while_n = while_node(varnode);
   node *condition = while_n->condition;
@@ -3909,7 +3909,7 @@ gen_while_mod_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_until_mod_var(codegen_scope *s, node *varnode, int val)
+codegen_until_mod(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_until_node *until_n = until_node(varnode);
   node *condition = until_n->condition;
@@ -3957,7 +3957,7 @@ gen_until_mod_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_for_var(codegen_scope *s, node *varnode, int val)
+codegen_for(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_for_node *for_n = for_node(varnode);
   node *var = FOR_NODE_VAR(for_n);
@@ -4004,7 +4004,7 @@ gen_for_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_case_var(codegen_scope *s, node *varnode, int val)
+codegen_case(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_case_node *case_n = case_node(varnode);
   node *value = case_n->value;
@@ -4126,7 +4126,7 @@ gen_case_var(codegen_scope *s, node *varnode, int val)
 /* Definition node codegen functions */
 
 static void
-gen_def_var(codegen_scope *s, node *varnode, int val)
+codegen_def(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_def_node *def_n = def_node(varnode);
   int sym = new_sym(s, def_n->name);
@@ -4192,7 +4192,7 @@ gen_namespace(codegen_scope *s, node *name)
 }
 
 static void
-gen_class_var(codegen_scope *s, node *varnode, int val)
+codegen_class(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_class_node *class_n = class_node(varnode);
   node *name = CLASS_NODE_NAME(class_n);
@@ -4227,7 +4227,7 @@ gen_class_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_module_var(codegen_scope *s, node *varnode, int val)
+codegen_module(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_module_node *module_n = module_node(varnode);
   node *name = MODULE_NODE_NAME(module_n);
@@ -4251,7 +4251,7 @@ gen_module_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_sclass_var(codegen_scope *s, node *varnode, int val)
+codegen_sclass(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_sclass_node *sclass_n = sclass_node(varnode);
   node *obj = SCLASS_NODE_OBJ(sclass_n);
@@ -4274,7 +4274,7 @@ gen_sclass_var(codegen_scope *s, node *varnode, int val)
 
 /* Variable-sized assignment codegen functions */
 static void
-gen_asgn_var(codegen_scope *s, node *varnode, int val)
+codegen_asgn(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_asgn_node *asgn_n = asgn_node(varnode);
   node *lhs = asgn_n->lhs;
@@ -4284,7 +4284,7 @@ gen_asgn_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_masgn_var(codegen_scope *s, node *varnode, node *rhs, int sp, int val)
+codegen_masgn(codegen_scope *s, node *varnode, node *rhs, int sp, int val)
 {
   struct mrb_ast_masgn_node *masgn_n = (struct mrb_ast_masgn_node*)varnode;
 
@@ -4432,7 +4432,7 @@ gen_masgn_var(codegen_scope *s, node *varnode, node *rhs, int sp, int val)
 }
 
 static void
-gen_op_asgn_var(codegen_scope *s, node *varnode, int val)
+codegen_op_asgn(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_op_asgn_node *op_asgn_n = op_asgn_node(varnode);
   node *lhs = op_asgn_n->lhs;
@@ -4512,7 +4512,7 @@ gen_op_asgn_var(codegen_scope *s, node *varnode, int val)
 
 /* Variable-sized expression codegen functions */
 static void
-gen_and_var(codegen_scope *s, node *varnode, int val)
+codegen_and(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_and_node *and_n = (struct mrb_ast_and_node*)varnode;
   node *left = and_n->left;
@@ -4535,7 +4535,7 @@ gen_and_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_or_var(codegen_scope *s, node *varnode, int val)
+codegen_or(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_or_node *or_n = (struct mrb_ast_or_node*)varnode;
   node *left = or_n->left;
@@ -4558,7 +4558,7 @@ gen_or_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_return_var(codegen_scope *s, node *varnode, int val)
+codegen_return(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_return_node *return_n = return_node(varnode);
   node *args = RETURN_NODE_ARGS(return_n);
@@ -4580,7 +4580,7 @@ gen_return_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_yield_var(codegen_scope *s, node *varnode, int val)
+codegen_yield(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_yield_node *yield_n = yield_node(varnode);
   node *args = YIELD_NODE_ARGS(yield_n);
@@ -4624,7 +4624,7 @@ gen_yield_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_super_var(codegen_scope *s, node *varnode, int val)
+codegen_super(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_super_node *super_n = super_node(varnode);
   node *tree = super_n->args;
@@ -4685,7 +4685,7 @@ gen_super_var(codegen_scope *s, node *varnode, int val)
 
 /* Variable-sized literal node generation functions */
 static void
-gen_str_var(codegen_scope *s, node *varnode, int val)
+codegen_str(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_str_node *str_n = str_node(varnode);
   node *list = str_n->list;
@@ -4695,7 +4695,7 @@ gen_str_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_dot2_var(codegen_scope *s, node *varnode, int val)
+codegen_dot2(codegen_scope *s, node *varnode, int val)
 {
   node *left = DOT2_NODE_LEFT(varnode);
   node *right = DOT2_NODE_RIGHT(varnode);
@@ -4709,7 +4709,7 @@ gen_dot2_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_dot3_var(codegen_scope *s, node *varnode, int val)
+codegen_dot3(codegen_scope *s, node *varnode, int val)
 {
   node *left = DOT3_NODE_LEFT(varnode);
   node *right = DOT3_NODE_RIGHT(varnode);
@@ -4723,7 +4723,7 @@ gen_dot3_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_float_var(codegen_scope *s, node *varnode, int val)
+codegen_float(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_float_node *float_n = (struct mrb_ast_float_node*)varnode;
   const char *value = float_n->value;
@@ -4737,35 +4737,35 @@ gen_float_var(codegen_scope *s, node *varnode, int val)
 
 /* Variable-sized simple node generation functions */
 static void
-gen_self_var(codegen_scope *s, node *varnode, int val)
+codegen_self(codegen_scope *s, node *varnode, int val)
 {
   /* Use traditional self codegen logic */
   gen_load_op1(s, OP_LOADSELF, val);
 }
 
 static void
-gen_nil_var(codegen_scope *s, node *varnode, int val)
+codegen_nil(codegen_scope *s, node *varnode, int val)
 {
   /* Use traditional nil codegen logic */
   gen_load_op1(s, OP_LOADNIL, val);
 }
 
 static void
-gen_true_var(codegen_scope *s, node *varnode, int val)
+codegen_true(codegen_scope *s, node *varnode, int val)
 {
   /* Generate OP_LOADT instruction for true literal */
   gen_load_op1(s, OP_LOADT, val);
 }
 
 static void
-gen_false_var(codegen_scope *s, node *varnode, int val)
+codegen_false(codegen_scope *s, node *varnode, int val)
 {
   /* Generate OP_LOADF instruction for false literal */
   gen_load_op1(s, OP_LOADF, val);
 }
 
 static void
-gen_const_var(codegen_scope *s, node *varnode, int val)
+codegen_const(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_const_node *const_n = const_node(varnode);
   mrb_sym symbol = const_n->symbol;
@@ -4776,7 +4776,7 @@ gen_const_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_rescue_var(codegen_scope *s, node *varnode, int val)
+codegen_rescue(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_rescue_node *rescue = rescue_node(varnode);
   node *body = rescue->body;
@@ -4872,7 +4872,7 @@ gen_rescue_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_block_var(codegen_scope *s, node *varnode, int val)
+codegen_block(codegen_scope *s, node *varnode, int val)
 {
   if (!val) return;
 
@@ -4885,7 +4885,7 @@ gen_block_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_break_var(codegen_scope *s, node *varnode, int val)
+codegen_break(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_break_node *n = (struct mrb_ast_break_node*)varnode;
   loop_break(s, n->value);
@@ -4894,7 +4894,7 @@ gen_break_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_next_var(codegen_scope *s, node *varnode, int val)
+codegen_next(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_next_node *n = (struct mrb_ast_next_node*)varnode;
   if (!s->loop) {
@@ -4919,7 +4919,7 @@ gen_next_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_redo_var(codegen_scope *s, node *varnode, int val)
+codegen_redo(codegen_scope *s, node *varnode, int val)
 {
   for (const struct loopinfo *lp = s->loop; ; lp = lp->prev) {
     if (!lp) {
@@ -4936,7 +4936,7 @@ gen_redo_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_retry_var(codegen_scope *s, node *varnode, int val)
+codegen_retry(codegen_scope *s, node *varnode, int val)
 {
   const struct loopinfo *lp = s->loop;
 
@@ -4954,7 +4954,7 @@ gen_retry_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_xstr_var(codegen_scope *s, node *varnode, int val)
+codegen_xstr(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_xstr_node *n = xstr_node(varnode);
   node *list = n->list;
@@ -4977,7 +4977,7 @@ gen_xstr_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_regx_var(codegen_scope *s, node *varnode, int val)
+codegen_regx(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_regx_node *n = regx_node(varnode);
 
@@ -5022,7 +5022,7 @@ gen_regx_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_heredoc_var(codegen_scope *s, node *varnode, int val)
+codegen_heredoc(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_heredoc_node *n = heredoc_node(varnode);
   // Process heredoc doc field as cons list string
@@ -5030,7 +5030,7 @@ gen_heredoc_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_dsym_var(codegen_scope *s, node *varnode, int val)
+codegen_dsym(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_dsym_node *n = dsym_node(varnode);
   // Generate the list content, then intern to symbol
@@ -5041,7 +5041,7 @@ gen_dsym_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_nth_ref_var(codegen_scope *s, node *varnode, int val)
+codegen_nth_ref(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_nth_ref_node *n = (struct mrb_ast_nth_ref_node*)varnode;
   mrb_state *mrb = s->mrb;
@@ -5054,7 +5054,7 @@ gen_nth_ref_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_back_ref_var(codegen_scope *s, node *varnode, int val)
+codegen_back_ref(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_back_ref_node *n = (struct mrb_ast_back_ref_node*)varnode;
   char buf[] = {'$', (char)n->type};
@@ -5063,7 +5063,7 @@ gen_back_ref_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_nvar_var(codegen_scope *s, node *varnode, int val)
+codegen_nvar(codegen_scope *s, node *varnode, int val)
 {
   if (!val) return;
   struct mrb_ast_nvar_node *n = (struct mrb_ast_nvar_node*)varnode;
@@ -5073,7 +5073,7 @@ gen_nvar_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_dvar_var(codegen_scope *s, node *varnode, int val)
+codegen_dvar(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_dvar_node *n = (struct mrb_ast_dvar_node*)varnode;
   // DVAR nodes are not currently used in mruby, but provide basic implementation
@@ -5084,7 +5084,7 @@ gen_dvar_var(codegen_scope *s, node *varnode, int val)
 
 // Group 11: Operators and Expressions
 static void
-gen_not_var(codegen_scope *s, node *varnode, int val)
+codegen_not(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_not_node *n = (struct mrb_ast_not_node*)varnode;
   // NOT nodes are rarely used - generate method call to !
@@ -5098,7 +5098,7 @@ gen_not_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_negate_var(codegen_scope *s, node *varnode, int val)
+codegen_negate(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_negate_node *n = (struct mrb_ast_negate_node*)varnode;
   node *tree = n->operand;
@@ -5161,7 +5161,7 @@ gen_negate_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_colon2_var(codegen_scope *s, node *varnode, int val)
+codegen_colon2(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_colon2_node *n = (struct mrb_ast_colon2_node*)varnode;
   // Generate COLON2 (::) access manually
@@ -5173,7 +5173,7 @@ gen_colon2_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_colon3_var(codegen_scope *s, node *varnode, int val)
+codegen_colon3(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_colon3_node *n = (struct mrb_ast_colon3_node*)varnode;
   // Generate COLON3 (::Name) access manually
@@ -5183,7 +5183,7 @@ gen_colon3_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_defined_var(codegen_scope *s, node *varnode, int val)
+codegen_defined(codegen_scope *s, node *varnode, int val)
 {
   // DEFINED nodes are rarely used - generate basic implementation
   (void)varnode; // suppress unused warning
@@ -5195,7 +5195,7 @@ gen_defined_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_zsuper_var(codegen_scope *s, node *varnode, int val)
+codegen_zsuper(codegen_scope *s, node *varnode, int val)
 {
   /* NODE_ZSUPER now uses mrb_ast_super_node, which may have args */
   struct mrb_ast_super_node *zsuper_n = super_node(varnode);
@@ -5257,7 +5257,7 @@ gen_zsuper_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_lambda_var(codegen_scope *s, node *varnode, int val)
+codegen_lambda(codegen_scope *s, node *varnode, int val)
 {
   if (!val) return;
 
@@ -5270,21 +5270,21 @@ gen_lambda_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_words_var(codegen_scope *s, node *varnode, int val)
+codegen_words(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_words_node *n = words_node(varnode);
   gen_literal_array(s, n->args, FALSE, val);
 }
 
 static void
-gen_symbols_var(codegen_scope *s, node *varnode, int val)
+codegen_symbols(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_symbols_node *n = symbols_node(varnode);
   gen_literal_array(s, n->args, TRUE, val);
 }
 
 static void
-gen_splat_var(codegen_scope *s, node *varnode, int val)
+codegen_splat(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_splat_node *n = splat_node(varnode);
   // Generate code for the splat value directly
@@ -5292,7 +5292,7 @@ gen_splat_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_block_arg_var(codegen_scope *s, node *varnode, int val)
+codegen_block_arg(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_block_arg_node *n = block_arg_node(varnode);
 
@@ -5313,7 +5313,7 @@ gen_block_arg_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_scope_var(codegen_scope *s, const node *varnode, int val)
+codegen_scope_node(codegen_scope *s, const node *varnode, int val)
 {
   struct mrb_ast_scope_node *scope = scope_node(varnode);
 
@@ -5322,7 +5322,7 @@ gen_scope_var(codegen_scope *s, const node *varnode, int val)
 }
 
 static void
-gen_begin_var(codegen_scope *s, node *varnode, int val)
+codegen_begin(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_begin_node *begin = begin_node(varnode);
   node *body = begin->body;
@@ -5331,7 +5331,7 @@ gen_begin_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_ensure_var(codegen_scope *s, node *varnode, int val)
+codegen_ensure(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_ensure_node *ensure = ensure_node(varnode);
   node *body = ensure->body;
@@ -5361,7 +5361,7 @@ gen_ensure_var(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-gen_stmts_var(codegen_scope *s, node *varnode, int val)
+codegen_stmts(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_stmts_node *stmts = stmts_node(varnode);
   node *tree = STMTS_NODE_STMTS(stmts);
@@ -5392,7 +5392,7 @@ is_empty_stmts(node *stmt_node)
 // Group 16: Declarations and Definitions
 
 static void
-gen_alias_var(codegen_scope *s, const node *varnode, int val)
+codegen_alias(codegen_scope *s, const node *varnode, int val)
 {
   struct mrb_ast_alias_node *alias = alias_node(varnode);
 
@@ -5404,7 +5404,7 @@ gen_alias_var(codegen_scope *s, const node *varnode, int val)
 }
 
 static void
-gen_undef_var(codegen_scope *s, const node *varnode, int val)
+codegen_undef(codegen_scope *s, const node *varnode, int val)
 {
   struct mrb_ast_undef_node *undef = undef_node(varnode);
   node *t = undef->syms;
@@ -5418,7 +5418,7 @@ gen_undef_var(codegen_scope *s, const node *varnode, int val)
 }
 
 static void
-gen_sdef_var(codegen_scope *s, const node *varnode, int val)
+codegen_sdef(codegen_scope *s, const node *varnode, int val)
 {
   struct mrb_ast_sdef_node *sdef = sdef_node(varnode);
   node *recv = sdef->obj;
@@ -5521,251 +5521,251 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
 
   case NODE_CALL:
-    gen_call_var(s, tree, val);
+    codegen_call(s, tree, val);
     break;
 
   case NODE_ARRAY:
-    gen_array_var(s, tree, val);
+    codegen_array(s, tree, val);
     break;
 
   case NODE_HASH:
-    gen_hash_var(s, tree, val);
+    codegen_hash(s, tree, val);
     break;
 
   case NODE_IF:
-    gen_if_var(s, tree, val);
+    codegen_if(s, tree, val);
     break;
 
   case NODE_WHILE:
-    gen_while_var(s, tree, val);
+    codegen_while(s, tree, val);
     break;
 
   case NODE_UNTIL:
-    gen_until_var(s, tree, val);
+    codegen_until(s, tree, val);
     break;
 
   case NODE_FOR:
-    gen_for_var(s, tree, val);
+    codegen_for(s, tree, val);
     break;
 
   case NODE_CASE:
-    gen_case_var(s, tree, val);
+    codegen_case(s, tree, val);
     break;
 
   case NODE_DEF:
-    gen_def_var(s, tree, val);
+    codegen_def(s, tree, val);
     break;
 
   case NODE_CLASS:
-    gen_class_var(s, tree, val);
+    codegen_class(s, tree, val);
     break;
 
   case NODE_MODULE:
-    gen_module_var(s, tree, val);
+    codegen_module(s, tree, val);
     break;
 
   case NODE_SCLASS:
-    gen_sclass_var(s, tree, val);
+    codegen_sclass(s, tree, val);
     break;
 
   case NODE_ASGN:
-    gen_asgn_var(s, tree, val);
+    codegen_asgn(s, tree, val);
     break;
 
   case NODE_MASGN:
-    gen_masgn_var(s, tree, NULL, 0, val);
+    codegen_masgn(s, tree, NULL, 0, val);
     break;
 
   case NODE_OP_ASGN:
-    gen_op_asgn_var(s, tree, val);
+    codegen_op_asgn(s, tree, val);
     break;
 
   case NODE_AND:
-    gen_and_var(s, tree, val);
+    codegen_and(s, tree, val);
     break;
 
   case NODE_OR:
-    gen_or_var(s, tree, val);
+    codegen_or(s, tree, val);
     break;
 
   case NODE_RETURN:
-    gen_return_var(s, tree, val);
+    codegen_return(s, tree, val);
     break;
 
   case NODE_YIELD:
-    gen_yield_var(s, tree, val);
+    codegen_yield(s, tree, val);
     break;
 
   case NODE_SUPER:
-    gen_super_var(s, tree, val);
+    codegen_super(s, tree, val);
     break;
 
   case NODE_STR:
-    gen_str_var(s, tree, val);
+    codegen_str(s, tree, val);
     break;
 
   case NODE_DOT2:
-    gen_dot2_var(s, tree, val);
+    codegen_dot2(s, tree, val);
     break;
 
   case NODE_DOT3:
-    gen_dot3_var(s, tree, val);
+    codegen_dot3(s, tree, val);
     break;
 
   case NODE_FLOAT:
-    gen_float_var(s, tree, val);
+    codegen_float(s, tree, val);
     break;
 
   case NODE_SELF:
-    gen_self_var(s, tree, val);
+    codegen_self(s, tree, val);
     break;
 
   case NODE_NIL:
-    gen_nil_var(s, tree, val);
+    codegen_nil(s, tree, val);
     break;
 
   case NODE_TRUE:
-    gen_true_var(s, tree, val);
+    codegen_true(s, tree, val);
     break;
 
   case NODE_FALSE:
-    gen_false_var(s, tree, val);
+    codegen_false(s, tree, val);
     break;
 
   case NODE_CONST:
-    gen_const_var(s, tree, val);
+    codegen_const(s, tree, val);
     break;
 
   case NODE_RESCUE:
-    gen_rescue_var(s, tree, val);
+    codegen_rescue(s, tree, val);
     break;
 
   case NODE_BLOCK:
-    gen_block_var(s, tree, val);
+    codegen_block(s, tree, val);
     break;
 
   case NODE_BREAK:
-    gen_break_var(s, tree, val);
+    codegen_break(s, tree, val);
     break;
 
   case NODE_NEXT:
-    gen_next_var(s, tree, val);
+    codegen_next(s, tree, val);
     break;
 
   case NODE_REDO:
-    gen_redo_var(s, tree, val);
+    codegen_redo(s, tree, val);
     break;
 
   case NODE_RETRY:
-    gen_retry_var(s, tree, val);
+    codegen_retry(s, tree, val);
     break;
 
   case NODE_WHILE_MOD:
-    gen_while_mod_var(s, tree, val);
+    codegen_while_mod(s, tree, val);
     break;
 
   case NODE_UNTIL_MOD:
-    gen_until_mod_var(s, tree, val);
+    codegen_until_mod(s, tree, val);
     break;
 
   case NODE_XSTR:
-    gen_xstr_var(s, tree, val);
+    codegen_xstr(s, tree, val);
     break;
 
   case NODE_REGX:
-    gen_regx_var(s, tree, val);
+    codegen_regx(s, tree, val);
     break;
 
   case NODE_HEREDOC:
-    gen_heredoc_var(s, tree, val);
+    codegen_heredoc(s, tree, val);
     break;
 
   case NODE_DSYM:
-    gen_dsym_var(s, tree, val);
+    codegen_dsym(s, tree, val);
     break;
 
   case NODE_NTH_REF:
-    gen_nth_ref_var(s, tree, val);
+    codegen_nth_ref(s, tree, val);
     break;
 
   case NODE_BACK_REF:
-    gen_back_ref_var(s, tree, val);
+    codegen_back_ref(s, tree, val);
     break;
 
   case NODE_NVAR:
-    gen_nvar_var(s, tree, val);
+    codegen_nvar(s, tree, val);
     break;
 
   case NODE_DVAR:
-    gen_dvar_var(s, tree, val);
+    codegen_dvar(s, tree, val);
     break;
 
   case NODE_NOT:
-    gen_not_var(s, tree, val);
+    codegen_not(s, tree, val);
     break;
 
   case NODE_NEGATE:
-    gen_negate_var(s, tree, val);
+    codegen_negate(s, tree, val);
     break;
 
   case NODE_COLON2:
-    gen_colon2_var(s, tree, val);
+    codegen_colon2(s, tree, val);
     break;
 
   case NODE_COLON3:
-    gen_colon3_var(s, tree, val);
+    codegen_colon3(s, tree, val);
     break;
 
   case NODE_DEFINED:
-    gen_defined_var(s, tree, val);
+    codegen_defined(s, tree, val);
     break;
 
   case NODE_ZSUPER:
-    gen_zsuper_var(s, tree, val);
+    codegen_zsuper(s, tree, val);
     break;
 
   case NODE_LAMBDA:
-    gen_lambda_var(s, tree, val);
+    codegen_lambda(s, tree, val);
     break;
 
   case NODE_WORDS:
-    gen_words_var(s, tree, val);
+    codegen_words(s, tree, val);
     break;
 
   case NODE_SYMBOLS:
-    gen_symbols_var(s, tree, val);
+    codegen_symbols(s, tree, val);
     break;
 
   case NODE_SPLAT:
-    gen_splat_var(s, tree, val);
+    codegen_splat(s, tree, val);
     break;
 
   case NODE_BLOCK_ARG:
-    gen_block_arg_var(s, tree, val);
+    codegen_block_arg(s, tree, val);
     break;
 
   case NODE_SCOPE:
-    gen_scope_var(s, tree, val);
+    codegen_scope_node(s, tree, val);
     break;
 
   case NODE_BEGIN:
-    gen_begin_var(s, tree, val);
+    codegen_begin(s, tree, val);
     break;
 
   case NODE_ENSURE:
-    gen_ensure_var(s, tree, val);
+    codegen_ensure(s, tree, val);
     break;
 
   case NODE_STMTS:
-    gen_stmts_var(s, tree, val);
+    codegen_stmts(s, tree, val);
     break;
 
   case NODE_ALIAS:
-    gen_alias_var(s, tree, val);
+    codegen_alias(s, tree, val);
     break;
 
   case NODE_UNDEF:
-    gen_undef_var(s, tree, val);
+    codegen_undef(s, tree, val);
     break;
 
   case NODE_POSTEXE:
@@ -5776,7 +5776,7 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
 
   case NODE_SDEF:
-    gen_sdef_var(s, tree, val);
+    codegen_sdef(s, tree, val);
     break;
 
   default:
