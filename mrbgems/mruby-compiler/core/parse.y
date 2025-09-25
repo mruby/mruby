@@ -620,26 +620,11 @@ new_self(parser_state *p)
 static node*
 new_call(parser_state *p, node *receiver, mrb_sym method, node *args, int pass)
 {
-  /* Analyze the arguments to determine structure */
-  uint8_t has_kwargs = 0;
-  uint8_t has_block = 0;
-
-  if (args) {
-    /* Handle callargs structure - direct casting like new_args() */
-    struct mrb_ast_callargs *callargs = (struct mrb_ast_callargs*)args;
-    has_kwargs = (callargs->keyword_args != NULL);
-    has_block = (callargs->block_arg != NULL);
-  }
-
   /* Calculate size needed (fixed size now) */  struct mrb_ast_call_node *n = (struct mrb_ast_call_node*)parser_palloc(p, sizeof(struct mrb_ast_call_node));
   init_var_header(&n->header, p, NODE_CALL);
   n->receiver = receiver;
   n->method_name = method;
-  n->argc = 0; /* argc will be determined at codegen time to handle splats */
-  n->has_kwargs = has_kwargs;
-  n->has_block = has_block;
   n->safe_call = (pass == 0); /* pass == 0 means safe call (&.) */
-  n->reserved = 0;
 
   /* Store args pointer directly - no need to unpack and repack */
   n->args = args;
@@ -1710,11 +1695,10 @@ call_with_block(parser_state *p, node *a, node *b)
     {
       struct mrb_ast_call_node *call = call_node(a);
 
-      if (call->has_block) {
+      if (call->args && CALLARGS_NODE_BLOCK(call->args)) {
         yyerror(NULL, p, "both block arg and actual block given");
         return;
       }
-      call->has_block = 1;
 
       /* Use existing args and add block */
       if (call->args) {

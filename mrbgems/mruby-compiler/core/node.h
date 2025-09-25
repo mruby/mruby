@@ -182,11 +182,7 @@ struct mrb_ast_call_node {
   struct mrb_ast_var_header header;  /* 8 bytes */
   struct mrb_ast_node *receiver;     /* Receiver object */
   mrb_sym method_name;               /* Method name symbol */
-  uint8_t argc;                      /* Number of regular arguments */
-  uint8_t has_kwargs:1;              /* Has keyword arguments */
-  uint8_t has_block:1;               /* Has block argument */
   uint8_t safe_call:1;               /* Safe navigation (&.) */
-  uint8_t reserved:5;                /* Reserved for future flags */
   struct mrb_ast_node *args;         /* Arguments Information */
 };
 
@@ -400,10 +396,7 @@ struct mrb_ast_super_node {
 /* Phase 2 value access macros */
 #define CALL_NODE_RECEIVER(n) (call_node(n)->receiver)
 #define CALL_NODE_METHOD(n) (call_node(n)->method_name)
-#define CALL_NODE_ARGC(n) (call_node(n)->argc)
 #define CALL_NODE_ARGS(n) (call_node(n)->args)
-#define CALL_NODE_HAS_KWARGS(n) (call_node(n)->has_kwargs)
-#define CALL_NODE_HAS_BLOCK(n) (call_node(n)->has_block)
 #define CALL_NODE_SAFE(n) (call_node(n)->safe_call)
 
 #define ARRAY_NODE_ELEMENTS(n) (array_node(n)->elements)

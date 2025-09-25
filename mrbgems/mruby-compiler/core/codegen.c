@@ -3427,24 +3427,20 @@ gen_call_var(codegen_scope *s, node *varnode, int val)
     }
 
     /* Handle keyword arguments if present */
-    if (CALL_NODE_HAS_KWARGS(call)) {
-      if (callargs->keyword_args) {
-        nk = gen_hash(s, callargs->keyword_args, VAL, 14);
-        if (nk < 0) {
-          nk = 15;
-        }
-        noop = 1;
+    if (callargs->keyword_args) {
+      nk = gen_hash(s, callargs->keyword_args, VAL, 14);
+      if (nk < 0) {
+        nk = 15;
       }
+      noop = 1;
     }
 
     /* Handle block if present */
-    if (CALL_NODE_HAS_BLOCK(call)) {
-      if (callargs->block_arg) {
-        codegen(s, callargs->block_arg, VAL);
-        pop();
-        blk = 1;
-        noop = 1;
-      }
+    if (callargs->block_arg) {
+      codegen(s, callargs->block_arg, VAL);
+      pop();
+      blk = 1;
+      noop = 1;
     }
   }
 
@@ -3731,6 +3727,12 @@ gen_array_var(codegen_scope *s, node *varnode, int val)
 }
 
 /* Phase 3 Variable Node Codegen Functions */
+static mrb_bool
+callargs_empty(node *n)
+{
+  if (!n) return TRUE;
+  return (CALLARGS_NODE_REGULAR(n) == 0 && CALLARGS_NODE_KEYWORDS(n) == 0 && CALLARGS_NODE_BLOCK(n) == 0);
+}
 
 static void
 gen_if_var(codegen_scope *s, node *varnode, int val)
@@ -3760,7 +3762,7 @@ gen_if_var(codegen_scope *s, node *varnode, int val)
     /* Variable-sized NODE_CALL */
     struct mrb_ast_call_node *call_n = (struct mrb_ast_call_node*)condition;
     mrb_sym sym_nil_p = MRB_SYM_Q_2(s->mrb, nil);
-    if (call_n->method_name == sym_nil_p && call_n->argc == 0) {
+    if (call_n->method_name == sym_nil_p && callargs_empty(call_n->args)) {
       nil_p = TRUE;
       codegen(s, call_n->receiver, VAL);
     }
