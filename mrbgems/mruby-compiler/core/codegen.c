@@ -4700,7 +4700,7 @@ static void
 gen_super_var(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_super_node *super_n = super_node(varnode);
-  node *tree = SUPER_NODE_ARGS(super_n);
+  node *tree = super_n->args;
 
   codegen_scope *s2 = s;
   int lv = 0;

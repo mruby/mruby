@@ -433,7 +433,12 @@ struct mrb_ast_super_node {
 #define DEF_NODE_NAME(n) (def_node(n)->name)
 #define DEF_NODE_ARGS(n) (def_node(n)->args)
 #define DEF_NODE_BODY(n) (def_node(n)->body)
-
+#define DEF_NODE_LOCALS(n) (def_node(n)->locals)
+#define SDEF_NODE_NAME(n) (sdef_node(n)->name)
+#define SDEF_NODE_ARGS(n) (sdef_node(n)->args)
+#define SDEF_NODE_BODY(n) (sdef_node(n)->body)
+#define SDEF_NODE_LOCALS(n) (sdef_node(n)->locals)
+#define SDEF_NODE_OBJ(n) (sdef_node(n)->body)
 #define CLASS_NODE_NAME(n) (class_node(n)->name)
 #define CLASS_NODE_SUPERCLASS(n) (class_node(n)->superclass)
 #define CLASS_NODE_BODY(n) (class_node(n)->body)
@@ -463,9 +468,7 @@ struct mrb_ast_super_node {
 #define OR_NODE_RIGHT(n) (or_node(n)->right)
 
 #define RETURN_NODE_ARGS(n) (return_node(n)->args)
-
 #define YIELD_NODE_ARGS(n) (yield_node(n)->args)
-
 #define SUPER_NODE_ARGS(n) (super_node(n)->args)
 
 /* Variable-sized literal node structures */
