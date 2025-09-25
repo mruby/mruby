@@ -759,10 +759,6 @@ struct mrb_ast_block_arg_node {
 };
 
 // Group 15: Structural Nodes
-struct mrb_ast_method_node {
-  struct mrb_ast_var_header header;
-  struct mrb_ast_node *body;
-};
 
 struct mrb_ast_scope_node {
   struct mrb_ast_var_header header;
@@ -824,7 +820,6 @@ struct mrb_ast_postexe_node {
 #define symbols_node(n) ((struct mrb_ast_symbols_node*)(n))
 #define splat_node(n) ((struct mrb_ast_splat_node*)(n))
 #define block_arg_node(n) ((struct mrb_ast_block_arg_node*)(n))
-#define method_node(n) ((struct mrb_ast_method_node*)(n))
 #define scope_node(n) ((struct mrb_ast_scope_node*)(n))
 #define begin_node(n) ((struct mrb_ast_begin_node*)(n))
 #define ensure_node(n) ((struct mrb_ast_ensure_node*)(n))
@@ -843,7 +838,6 @@ struct mrb_ast_postexe_node {
 #define SYMBOLS_NODE_ARGS(n) (symbols_node(n)->args)
 #define SPLAT_NODE_VALUE(n) (splat_node(n)->value)
 #define BLOCK_ARG_NODE_VALUE(n) (block_arg_node(n)->value)
-#define METHOD_NODE_BODY(n) (method_node(n)->body)
 #define SCOPE_NODE_LOCALS(n) (scope_node(n)->locals)
 #define SCOPE_NODE_BODY(n) (scope_node(n)->body)
 #define STMTS_NODE_STMTS(n) (stmts_node(n)->stmts)
