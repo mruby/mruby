@@ -48,7 +48,6 @@ enum node_type {
   NODE_NVAR,
   NODE_NTH_REF,
   NODE_BACK_REF,
-  NODE_MATCH,
   NODE_INT,
   NODE_BIGINT,
   NODE_FLOAT,
@@ -675,16 +674,10 @@ struct mrb_ast_dvar_node {
   mrb_sym name;
 };
 
-struct mrb_ast_match_node {
-  struct mrb_ast_var_header header;
-  struct mrb_ast_node *pattern;
-};
-
 #define nth_ref_node(n) ((struct mrb_ast_nth_ref_node*)(n))
 #define back_ref_node(n) ((struct mrb_ast_back_ref_node*)(n))
 #define nvar_node(n) ((struct mrb_ast_nvar_node*)(n))
 #define dvar_node(n) ((struct mrb_ast_dvar_node*)(n))
-#define match_node(n) ((struct mrb_ast_match_node*)(n))
 
 #define NTH_REF_NODE_NTH(n) (nth_ref_node(n)->nth)
 #define BACK_REF_NODE_TYPE(n) (back_ref_node(n)->type)

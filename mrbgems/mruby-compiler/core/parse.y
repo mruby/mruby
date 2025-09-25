@@ -1894,7 +1894,6 @@ prohibit_literals(parser_state *p, node *n)
     case NODE_STR:
     case NODE_XSTR:
     case NODE_REGX:
-    case NODE_MATCH:
     case NODE_FLOAT:
     case NODE_ARRAY:
     case NODE_HEREDOC:
@@ -8187,16 +8186,6 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
 
   case NODE_RETRY:
     printf("NODE_RETRY\n");
-    break;
-
-  case NODE_MATCH:
-    printf("NODE_MATCH:\n");
-    dump_prefix(offset + 1, lineno);
-    printf("lhs:\n");
-    mrb_parser_dump(mrb, tree->car, offset + 2);
-    dump_prefix(offset + 1, lineno);
-    printf("rhs:\n");
-    mrb_parser_dump(mrb, tree->cdr, offset + 2);
     break;
 
   case NODE_BACK_REF:

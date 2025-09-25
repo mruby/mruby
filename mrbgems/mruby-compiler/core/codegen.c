@@ -5082,16 +5082,6 @@ gen_dvar_var(codegen_scope *s, node *varnode, int val)
   }
 }
 
-static void
-gen_match_var(codegen_scope *s, node *varnode, int val)
-{
-  struct mrb_ast_match_node *n = (struct mrb_ast_match_node*)varnode;
-  // MATCH nodes are not currently used in mruby, but provide basic implementation
-  if (val) {
-    codegen(s, n->pattern, val);
-  }
-}
-
 // Group 11: Operators and Expressions
 static void
 gen_not_var(codegen_scope *s, node *varnode, int val)
@@ -5708,10 +5698,6 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_DVAR:
     gen_dvar_var(s, tree, val);
-    break;
-
-  case NODE_MATCH:
-    gen_match_var(s, tree, val);
     break;
 
   case NODE_NOT:
