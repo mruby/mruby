@@ -7762,6 +7762,10 @@ dump_node(mrb_state *mrb, node *tree, int offset)
     printf("NODE_CVAR: %s\n", mrb_sym_dump(mrb, VAR_NODE_SYMBOL(tree)));
     break;
 
+  case NODE_NVAR:
+    printf("NODE_NVAR: %d\n", nvar_node(tree)->num);
+    break;
+
   case NODE_CONST:
     printf("NODE_CONST: %s\n", mrb_sym_dump(mrb, VAR_NODE_SYMBOL(tree)));
     break;
