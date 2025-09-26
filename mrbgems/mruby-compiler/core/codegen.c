@@ -2640,6 +2640,43 @@ gen_values(codegen_scope *s, node *t, int val, int limit)
   while (t) {
     int is_splat = is_splat_node(t->car);
 
+    /* Optimization: skip or inline literal splat arrays
+     * - Empty splat (`*[]`/`*zarray`): contributes nothing; skip.
+     * - Non-empty literal array with no inner splat (`*[a,b]`): inline
+     *   as normal positional args to avoid building/concatenating arrays.
+     */
+    if (is_splat) {
+      node *sv = SPLAT_NODE_VALUE(t->car);
+      if (sv) {
+        enum node_type nt = get_node_type(sv);
+        if (nt == NODE_ARRAY) {
+          struct mrb_ast_array_node *an = array_node(sv);
+          if (ARRAY_NODE_ELEMENTS(an) == NULL) {
+            /* empty splat; contributes nothing */
+            t = t->cdr;
+            continue;
+          }
+          else if (nosplat(ARRAY_NODE_ELEMENTS(an))) {
+            /* Inline non-empty literal array elements as regular args */
+            node *e = ARRAY_NODE_ELEMENTS(an);
+            while (e) {
+              /* Honor evaluation order */
+              codegen(s, e->car, val);
+              n++;
+              e = e->cdr;
+            }
+            t = t->cdr;
+            continue;
+          }
+        }
+        else if (nt == NODE_ZARRAY) {
+          /* explicit empty array literal */
+          t = t->cdr;
+          continue;
+        }
+      }
+    }
+
     if (is_splat || cursp() >= slimit) { /* flush stack */
       pop_n(n);
       if (first) {
@@ -3629,6 +3666,25 @@ codegen_array(codegen_scope *s, node *varnode, int val)
   while (current) {
     struct mrb_ast_node *element = current->car;
     int is_splat = is_splat_node(element);
+
+    /* Skip splat of an empty literal array: [*[]] => [] without ARYCAT noise */
+    if (is_splat) {
+      node *sv = SPLAT_NODE_VALUE(element);
+      if (sv) {
+        enum node_type nt = get_node_type(sv);
+        if (nt == NODE_ARRAY) {
+          struct mrb_ast_array_node *an = array_node(sv);
+          if (ARRAY_NODE_ELEMENTS(an) == NULL) {
+            current = current->cdr;
+            continue;
+          }
+        }
+        else if (nt == NODE_ZARRAY) {
+          current = current->cdr;
+          continue;
+        }
+      }
+    }
 
     if (is_splat || cursp() >= slimit) { /* flush accumulated elements */
       if (regular_elements > 0) {
