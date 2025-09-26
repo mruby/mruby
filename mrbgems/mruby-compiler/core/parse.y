@@ -7962,12 +7962,16 @@ dump_node(mrb_state *mrb, node *tree, int offset)
 
   case NODE_ENSURE:
     printf("NODE_ENSURE:\n");
-    dump_prefix(offset+1, lineno);
-    printf("body:\n");
-    dump_node(mrb, tree->car, offset+2);
-    dump_prefix(offset+1, lineno);
-    printf("ensure:\n");
-    dump_node(mrb, tree->cdr->cdr, offset+2);
+    if (ENSURE_NODE_BODY(tree)) {
+      dump_prefix(offset+1, lineno);
+      printf("body:\n");
+      dump_node(mrb, ENSURE_NODE_BODY(tree), offset+2);
+    }
+    if (ENSURE_NODE_ENSURE_CLAUSE(tree)) {
+      dump_prefix(offset+1, lineno);
+      printf("ensure:\n");
+      dump_node(mrb, ENSURE_NODE_ENSURE_CLAUSE(tree), offset+2);
+    }
     break;
 
   case NODE_LAMBDA:
