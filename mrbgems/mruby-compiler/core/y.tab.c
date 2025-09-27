@@ -14992,14 +14992,14 @@ dump_node(mrb_state *mrb, node *tree, int offset)
   case NODE_SUPER:
     printf("NODE_SUPER:\n");
     if (SUPER_NODE_ARGS(tree)) {
-      dump_callargs(mrb, CALL_NODE_ARGS(tree), offset, lineno);
+      dump_callargs(mrb, SUPER_NODE_ARGS(tree), offset, lineno);
     }
     break;
 
   case NODE_ZSUPER:
     printf("NODE_ZSUPER:\n");
     if (SUPER_NODE_ARGS(tree)) {
-      dump_callargs(mrb, CALL_NODE_ARGS(tree), offset, lineno);
+      dump_callargs(mrb, SUPER_NODE_ARGS(tree), offset, lineno);
     }
     break;
 
