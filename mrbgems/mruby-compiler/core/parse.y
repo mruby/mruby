@@ -1036,7 +1036,6 @@ local_add_margs(parser_state *p, node *n)
   while (n) {
     if (get_node_type(n->car) == NODE_MASGN) {
       struct mrb_ast_masgn_node *masgn_n = (struct mrb_ast_masgn_node*)n->car;
-      node *lhs = masgn_n->lhs;
       node *rhs = masgn_n->rhs;
 
       /* For parameter destructuring, rhs contains the locals */
@@ -1048,12 +1047,12 @@ local_add_margs(parser_state *p, node *n)
         }
       }
 
-      /* Process nested destructuring in lhs */
-      if (lhs && lhs->car) {
-        local_add_margs(p, lhs->car);
+      /* Process nested destructuring in lhs components */
+      if (masgn_n->pre) {
+        local_add_margs(p, masgn_n->pre);
       }
-      if (lhs && lhs->cdr && lhs->cdr->cdr && lhs->cdr->cdr->car) {
-        local_add_margs(p, lhs->cdr->cdr->car);
+      if (masgn_n->post) {
+        local_add_margs(p, masgn_n->post);
       }
     }
     n = n->cdr;
@@ -1264,7 +1263,32 @@ new_masgn(parser_state *p, node *a, node *b)
 
   struct mrb_ast_masgn_node *n = (struct mrb_ast_masgn_node*)parser_palloc(p, sizeof(struct mrb_ast_masgn_node));
   init_var_header(&n->header, p, NODE_MASGN);
-  n->lhs = a;
+
+  /* Extract pre, rest, post from cons list structure (a b c) */
+  if (a) {
+    n->pre = a->car;  /* Pre-splat variables */
+    if (a->cdr) {
+      n->rest = a->cdr->car;  /* Splat variable (or -1 for anonymous) */
+      if (a->cdr->cdr) {
+        n->post = a->cdr->cdr->car;  /* Post-splat variables */
+        cons_free(a->cdr->cdr);
+      }
+      else {
+        n->post = NULL;
+      }
+      cons_free(a->cdr);
+    }
+    else {
+      n->rest = NULL;
+      n->post = NULL;
+    }
+    cons_free(a);
+  }
+  else {
+    n->pre = NULL;
+    n->rest = NULL;
+    n->post = NULL;
+  }
   n->rhs = b;
 
   return (node*)n;
@@ -1276,7 +1300,29 @@ new_masgn_param(parser_state *p, node *a, node *b)
 {
   struct mrb_ast_masgn_node *n = (struct mrb_ast_masgn_node*)parser_palloc(p, sizeof(struct mrb_ast_masgn_node));
   init_var_header(&n->header, p, NODE_MASGN);
-  n->lhs = a;
+
+  /* Extract pre, rest, post from cons list structure (a b c) */
+  if (a) {
+    n->pre = a->car;  /* Pre-splat variables */
+    if (a->cdr) {
+      n->rest = a->cdr->car;  /* Splat variable (or -1 for anonymous) */
+      if (a->cdr->cdr) {
+        n->post = a->cdr->cdr->car;  /* Post-splat variables */
+      }
+      else {
+        n->post = NULL;
+      }
+    }
+    else {
+      n->rest = NULL;
+      n->post = NULL;
+    }
+  }
+  else {
+    n->pre = NULL;
+    n->rest = NULL;
+    n->post = NULL;
+  }
   n->rhs = b;
 
   return (node*)n;
@@ -7855,17 +7901,29 @@ dump_node(mrb_state *mrb, node *tree, int offset)
 
   case NODE_MASGN:
     printf("NODE_MASGN:\n");
-    if (MASGN_NODE_LHS(tree)) {
+    /* Handle pre-splat variables */
+    if (MASGN_NODE_PRE(tree)) {
       dump_prefix(offset+1, lineno);
-      node *lhs = MASGN_NODE_LHS(tree);
-      if (lhs) {
-        printf("lhs:\n");
-        dump_recur(mrb, lhs->car, offset+2);
-        if (lhs->cdr) {
-           dump_recur(mrb, lhs->cdr->car, offset+2);
-           if (lhs->cdr->cdr) dump_recur(mrb, lhs->cdr->cdr->car, offset+2);
-        }
+      printf("pre:\n");
+      dump_recur(mrb, MASGN_NODE_PRE(tree), offset+2);
+    }
+    /* Handle splat variable (can be -1 sentinel for anonymous splat) */
+    if (MASGN_NODE_REST(tree)) {
+      if ((intptr_t)MASGN_NODE_REST(tree) == -1) {
+        dump_prefix(offset+1, lineno);
+        printf("rest: *<anonymous>\n");
       }
+      else {
+        dump_prefix(offset+1, lineno);
+        printf("rest:\n");
+        dump_node(mrb, MASGN_NODE_REST(tree), offset+2);
+      }
+    }
+    /* Handle post-splat variables */
+    if (MASGN_NODE_POST(tree)) {
+      dump_prefix(offset+1, lineno);
+      printf("post:\n");
+      dump_recur(mrb, MASGN_NODE_POST(tree), offset+2);
     }
     if (MASGN_NODE_RHS(tree)) {
       dump_prefix(offset+1, lineno);

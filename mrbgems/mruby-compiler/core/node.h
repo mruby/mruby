@@ -286,7 +286,9 @@ struct mrb_ast_asgn_node {
 /* Variable-sized multiple assignment node */
 struct mrb_ast_masgn_node {
   struct mrb_ast_var_header header;  /* 8 bytes */
-  struct mrb_ast_node *lhs;          /* Left-hand side (multiple targets) */
+  struct mrb_ast_node *pre;          /* Pre-splat variables (cons list) */
+  struct mrb_ast_node *rest;         /* Splat variable (single node or -1) */
+  struct mrb_ast_node *post;         /* Post-splat variables (cons list) */
   struct mrb_ast_node *rhs;          /* Right-hand side (values) */
 };
 
@@ -441,7 +443,9 @@ struct mrb_ast_super_node {
 #define ASGN_NODE_LHS(n) (asgn_node(n)->lhs)
 #define ASGN_NODE_RHS(n) (asgn_node(n)->rhs)
 
-#define MASGN_NODE_LHS(n) (masgn_node(n)->lhs)
+#define MASGN_NODE_PRE(n) (masgn_node(n)->pre)
+#define MASGN_NODE_REST(n) (masgn_node(n)->rest)
+#define MASGN_NODE_POST(n) (masgn_node(n)->post)
 #define MASGN_NODE_RHS(n) (masgn_node(n)->rhs)
 
 #define OP_ASGN_NODE_LHS(n) (op_asgn_node(n)->lhs)
