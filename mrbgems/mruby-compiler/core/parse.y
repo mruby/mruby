@@ -8064,18 +8064,29 @@ dump_node(mrb_state *mrb, node *tree, int offset)
 
   case NODE_CASE:
     printf("NODE_CASE:\n");
-    if (tree->car) {
-      dump_node(mrb, tree->car, offset+1);
+    if (CASE_NODE_VALUE(tree)) {
+      dump_prefix(offset+1, lineno);
+      printf("value:\n");
+      dump_node(mrb, CASE_NODE_VALUE(tree), offset+2);
     }
-    tree = tree->cdr;
-    while (tree) {
-      dump_prefix(offset+1, lineno);
-      printf("case:\n");
-      dump_recur(mrb, tree->car->car, offset+2);
-      dump_prefix(offset+1, lineno);
-      printf("body:\n");
-      dump_node(mrb, tree->car->cdr, offset+2);
-      tree = tree->cdr;
+    if (CASE_NODE_BODY(tree)) {
+      node *when_node = CASE_NODE_BODY(tree);
+      while (when_node) {
+        dump_prefix(offset+1, lineno);
+        printf("when:\n");
+        node *when_clause = when_node->car;
+        if (when_clause && when_clause->car) {
+          dump_prefix(offset+2, lineno);
+          printf("cond:\n");
+          dump_recur(mrb, when_clause->car, offset+3);
+        }
+        if (when_clause && when_clause->cdr) {
+          dump_prefix(offset+2, lineno);
+          printf("body:\n");
+          dump_node(mrb, when_clause->cdr, offset+3);
+        }
+        when_node = when_node->cdr;
+      }
     }
     break;
 
