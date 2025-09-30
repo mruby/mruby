@@ -15062,7 +15062,9 @@ dump_node(mrb_state *mrb, node *tree, int offset)
 
   case NODE_YIELD:
     printf("NODE_YIELD:\n");
-    dump_recur(mrb, YIELD_NODE_ARGS(tree), offset+1);
+    if (YIELD_NODE_ARGS(tree)) {
+      dump_callargs(mrb, YIELD_NODE_ARGS(tree), offset, lineno);
+    }
     break;
 
   case NODE_REDO:
