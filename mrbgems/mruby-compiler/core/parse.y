@@ -7772,7 +7772,7 @@ dump_node(mrb_state *mrb, node *tree, int offset)
 
   case NODE_DSYM:
     printf("NODE_DSYM:\n");
-    dump_str(mrb, dsym_node(tree)->list, offset+1, lineno);
+    dump_node(mrb, dsym_node(tree)->list, offset+1);
     break;
 
   case NODE_LVAR:

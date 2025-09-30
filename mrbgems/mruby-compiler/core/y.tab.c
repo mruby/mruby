@@ -14601,7 +14601,7 @@ dump_node(mrb_state *mrb, node *tree, int offset)
 
   case NODE_DSYM:
     printf("NODE_DSYM:\n");
-    dump_str(mrb, dsym_node(tree)->list, offset+1, lineno);
+    dump_node(mrb, dsym_node(tree)->list, offset+1);
     break;
 
   case NODE_LVAR:
@@ -15037,7 +15037,7 @@ dump_node(mrb_state *mrb, node *tree, int offset)
         printf("key:\n");
         if (node_to_sym(pairs->car->car) == MRB_OPSYM(pow)) {
           dump_prefix(offset+2, lineno);
-          printf("**:\n");
+          printf("**\n");
         }
         else {
           dump_node(mrb, pairs->car->car, offset+2);
