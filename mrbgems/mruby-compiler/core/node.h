@@ -644,13 +644,6 @@ struct mrb_ast_iter_node {
   struct mrb_ast_node *body;
 };
 
-struct mrb_ast_when_node {
-  struct mrb_ast_var_header header;
-  struct mrb_ast_node *cond;
-  struct mrb_ast_node *body;
-  struct mrb_ast_node *next_when;
-};
-
 // Group 16: Declarations and Definitions
 
 struct mrb_ast_alias_node {
@@ -681,7 +674,6 @@ struct mrb_ast_postexe_node {
 #define ensure_node(n) ((struct mrb_ast_ensure_node*)(n))
 #define stmts_node(n) ((struct mrb_ast_stmts_node*)(n))
 #define iter_node(n) ((struct mrb_ast_iter_node*)(n))
-#define when_node(n) ((struct mrb_ast_when_node*)(n))
 #define alias_node(n) ((struct mrb_ast_alias_node*)(n))
 #define undef_node(n) ((struct mrb_ast_undef_node*)(n))
 #define postexe_node(n) ((struct mrb_ast_postexe_node*)(n))
