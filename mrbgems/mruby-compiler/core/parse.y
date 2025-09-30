@@ -8076,42 +8076,23 @@ dump_node(mrb_state *mrb, node *tree, int offset)
 
   case NODE_WHILE:
     printf("NODE_WHILE:\n");
-    dump_prefix(offset+1, lineno);
-    printf("cond:\n");
-    dump_node(mrb, WHILE_NODE_CONDITION(tree), offset+2);
-    dump_prefix(offset+1, lineno);
-    printf("body:\n");
-    dump_node(mrb, WHILE_NODE_BODY(tree), offset+2);
-    break;
-
+    goto dump_loop_node;
   case NODE_UNTIL:
     printf("NODE_UNTIL:\n");
-    dump_prefix(offset+1, lineno);
-    printf("cond:\n");
-    dump_node(mrb, UNTIL_NODE_CONDITION(tree), offset+2);
-    dump_prefix(offset+1, lineno);
-    printf("body:\n");
-    dump_node(mrb, UNTIL_NODE_BODY(tree), offset+2);
-    break;
-
+    goto dump_loop_node;
   case NODE_WHILE_MOD:
     printf("NODE_WHILE_MOD:\n");
+    goto dump_loop_node;
+  case NODE_UNTIL_MOD:
+    printf("NODE_UNTIL_MOD:\n");
+
+  dump_loop_node:
     dump_prefix(offset+1, lineno);
     printf("cond:\n");
     dump_node(mrb, WHILE_NODE_CONDITION(tree), offset+2);
     dump_prefix(offset+1, lineno);
     printf("body:\n");
     dump_node(mrb, WHILE_NODE_BODY(tree), offset+2);
-    break;
-
-  case NODE_UNTIL_MOD:
-    printf("NODE_UNTIL_MOD:\n");
-    dump_prefix(offset+1, lineno);
-    printf("cond:\n");
-    dump_node(mrb, UNTIL_NODE_CONDITION(tree), offset+2);
-    dump_prefix(offset+1, lineno);
-    printf("body:\n");
-    dump_node(mrb, UNTIL_NODE_BODY(tree), offset+2);
     break;
 
   case NODE_FOR:
