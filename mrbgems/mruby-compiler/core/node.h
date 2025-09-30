@@ -128,7 +128,7 @@ struct mrb_ast_node {
   /* No location fields - saves 4 bytes per structure node */
 };
 
-/* Variable-sized AST nodes - Phase 1 Infrastructure */
+/* Variable-sized AST nodes */
 
 /* Variable node header - common to all variable-sized nodes */
 struct mrb_ast_var_header {
@@ -138,7 +138,7 @@ struct mrb_ast_var_header {
   /* Total: 6 bytes header for all variable nodes */
 };
 
-/* Phase 1 Variable Node Structures */
+/* Literal value nodes */
 
 /* Variable-sized symbol node */
 struct mrb_ast_sym_node {
@@ -172,7 +172,7 @@ struct mrb_ast_var_node {
   mrb_sym symbol;
 };
 
-/* Phase 2 Variable Node Structures */
+/* Expression and operation nodes */
 
 /* Variable-sized call node with inline argument storage */
 struct mrb_ast_call_node {
@@ -183,19 +183,19 @@ struct mrb_ast_call_node {
   struct mrb_ast_node *args;         /* Arguments Information */
 };
 
-/* Variable-sized array node - revert to original cons list approach */
+/* Variable-sized array node */
 struct mrb_ast_array_node {
   struct mrb_ast_var_header header;    /* 8 bytes */
-  struct mrb_ast_node *elements;       /* Original elements list */
+  struct mrb_ast_node *elements;       /* Elements list (cons list) */
 };
 
-/* Variable-sized hash node - revert to original cons list approach */
+/* Variable-sized hash node */
 struct mrb_ast_hash_node {
   struct mrb_ast_var_header header;    /* 8 bytes */
-  struct mrb_ast_node *pairs;          /* Original pairs list */
+  struct mrb_ast_node *pairs;          /* Key-value pairs (cons list) */
 };
 
-/* Phase 3 Variable Node Structures - Control Flow */
+/* Control flow and definition nodes */
 
 /* Variable-sized method definition node */
 struct mrb_ast_def_node {
@@ -260,11 +260,11 @@ struct mrb_ast_until_node {
   struct mrb_ast_node *body;         /* Loop body */
 };
 
-/* Variable-sized case node - revert to original cons list approach */
+/* Variable-sized case node */
 struct mrb_ast_case_node {
   struct mrb_ast_var_header header;    /* 8 bytes */
   struct mrb_ast_node *value;          /* Case value expression */
-  struct mrb_ast_node *body;           /* Original when/else body list */
+  struct mrb_ast_node *body;           /* When/else clauses (cons list) */
 };
 
 /* Variable-sized for node */
@@ -348,19 +348,19 @@ struct mrb_ast_super_node {
 #define node_to_type(x) ((enum node_type)(intptr_t)(x))
 #define node_to_char(x) ((char)(intptr_t)(x))
 
-/* Phase 1 node casting macros */
+/* Literal value node casting macros */
 #define sym_node(n) ((struct mrb_ast_sym_node*)(n))
 #define str_node(n) ((struct mrb_ast_str_node*)(n))
 #define int_node(n) ((struct mrb_ast_int_node*)(n))
 #define bigint_node(n) ((struct mrb_ast_bigint_node*)(n))
 #define var_node(n) ((struct mrb_ast_var_node*)(n))
 
-/* Phase 2 node casting macros */
+/* Expression and operation node casting macros */
 #define call_node(n) ((struct mrb_ast_call_node*)(n))
 #define array_node(n) ((struct mrb_ast_array_node*)(n))
 #define hash_node(n) ((struct mrb_ast_hash_node*)(n))
 
-/* Phase 3 node casting macros */
+/* Control flow and definition node casting macros */
 #define def_node(n) ((struct mrb_ast_def_node*)(n))
 #define class_node(n) ((struct mrb_ast_class_node*)(n))
 #define module_node(n) ((struct mrb_ast_module_node*)(n))
@@ -473,7 +473,7 @@ struct mrb_ast_callargs {
 #define block_node(n) ((struct mrb_ast_block_node*)(n))
 #define callargs_node(n) ((struct mrb_ast_callargs*)(n))
 
-// Group 8: Control Flow Statements
+/* Control flow statement nodes */
 struct mrb_ast_break_node {
   struct mrb_ast_var_header header;
   struct mrb_ast_node *value;
@@ -497,7 +497,7 @@ struct mrb_ast_retry_node {
 #define redo_node(n) ((struct mrb_ast_redo_node*)(n))
 #define retry_node(n) ((struct mrb_ast_retry_node*)(n))
 
-// Group 9: String and Regex Variants
+/* String and regex variant nodes */
 struct mrb_ast_xstr_node {
   struct mrb_ast_var_header header;
   struct mrb_ast_node *list;
@@ -520,7 +520,7 @@ struct mrb_ast_heredoc_node {
 #define heredoc_node(n) ((struct mrb_ast_heredoc_node*)(n))
 #define dsym_node(n) ((struct mrb_ast_str_node*)(n))
 
-// Group 10: References and Variables
+/* Reference and special variable nodes */
 struct mrb_ast_nth_ref_node {
   struct mrb_ast_var_header header;
   int nth;
@@ -546,7 +546,7 @@ struct mrb_ast_dvar_node {
 #define nvar_node(n) ((struct mrb_ast_nvar_node*)(n))
 #define dvar_node(n) ((struct mrb_ast_dvar_node*)(n))
 
-// Group 11: Operators and Expressions
+/* Unary operator and scope resolution nodes */
 struct mrb_ast_not_node {
   struct mrb_ast_var_header header;
   struct mrb_ast_node *operand;
@@ -579,7 +579,7 @@ struct mrb_ast_defined_node {
 #define colon3_node(n) ((struct mrb_ast_colon3_node*)(n))
 #define defined_node(n) ((struct mrb_ast_defined_node*)(n))
 
-// Group 12: Function Calls and Special Forms
+/* Lambda nodes */
 struct mrb_ast_lambda_node {
   struct mrb_ast_var_header header;
   struct mrb_ast_node *locals;
@@ -587,7 +587,7 @@ struct mrb_ast_lambda_node {
   struct mrb_ast_node *body;
 };
 
-// Group 13: Containers and Collections
+/* Array literal variant nodes */
 struct mrb_ast_zarray_node {
   struct mrb_ast_var_header header;
 };
@@ -602,7 +602,7 @@ struct mrb_ast_symbols_node {
   struct mrb_ast_node *args;
 };
 
-// Group 14: Arguments and Parameters
+/* Argument and parameter nodes */
 
 struct mrb_ast_splat_node {
   struct mrb_ast_var_header header;
@@ -614,7 +614,7 @@ struct mrb_ast_block_arg_node {
   struct mrb_ast_node *value;
 };
 
-// Group 15: Structural Nodes
+/* Structural and block nodes */
 
 struct mrb_ast_scope_node {
   struct mrb_ast_var_header header;
@@ -644,7 +644,7 @@ struct mrb_ast_iter_node {
   struct mrb_ast_node *body;
 };
 
-// Group 16: Declarations and Definitions
+/* Declaration nodes */
 
 struct mrb_ast_alias_node {
   struct mrb_ast_var_header header;
