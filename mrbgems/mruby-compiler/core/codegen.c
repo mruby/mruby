@@ -3777,7 +3777,7 @@ codegen_array(codegen_scope *s, node *varnode, int val)
   }
 }
 
-/* Phase 3 Variable Node Codegen Functions */
+/* Control flow and definition node codegen functions */
 static mrb_bool
 callargs_empty(node *n)
 {
@@ -5177,7 +5177,7 @@ codegen_dvar(codegen_scope *s, node *varnode, int val)
   }
 }
 
-// Group 11: Operators and Expressions
+/* Unary operator codegen functions */
 static void
 codegen_not(codegen_scope *s, node *varnode, int val)
 {
@@ -5484,7 +5484,7 @@ is_empty_stmts(node *stmt_node)
   return FALSE;
 }
 
-// Group 16: Declarations and Definitions
+/* Declaration codegen functions */
 
 static void
 codegen_alias(codegen_scope *s, const node *varnode, int val)
