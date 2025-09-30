@@ -566,6 +566,7 @@ new_until_mod(parser_state *p, node *a, node *b)
   return until_node;
 }
 
+
 /* (:for var obj body) */
 static node*
 new_for(parser_state *p, node *v, node *o, node *b)
@@ -8115,22 +8116,39 @@ dump_node(mrb_state *mrb, node *tree, int offset)
 
   case NODE_FOR:
     printf("NODE_FOR:\n");
-    {
-      if (FOR_NODE_VAR(tree)) {
-        dump_prefix(offset+1, lineno);
-        printf("var:\n");
-        dump_node(mrb, FOR_NODE_VAR(tree), offset+2);
+    if (FOR_NODE_VAR(tree)) {
+      dump_prefix(offset+1, lineno);
+      printf("var:\n");
+      /* FOR_NODE_VAR structure:
+       * var_list->car: cons-list of pre-splat variables
+       * var_list->cdr->car: splat varnode (not a cons-list)
+       * var_list->cdr->cdr->car: cons-list of post-splat variables */
+      node *var_list = FOR_NODE_VAR(tree);
+      if (var_list) {
+        dump_recur(mrb, var_list->car, offset+2);
+        if (var_list && var_list->cdr) {
+          /* Second element is a varnode, not a cons-list */
+          dump_prefix(offset+1, lineno);
+          printf("splat var:\n");
+          dump_node(mrb, var_list->cdr->car, offset+2);
+          if (var_list->cdr->cdr) {
+           /* Third element is a cons-list of post-splat variables */
+           dump_prefix(offset+1, lineno);
+           printf("post var:\n");
+           dump_recur(mrb, var_list->cdr->cdr->car, offset+2);
+          }
+        }
       }
-      if (FOR_NODE_ITERABLE(tree)) {
-        dump_prefix(offset+1, lineno);
-        printf("iterable:\n");
-        dump_node(mrb, FOR_NODE_ITERABLE(tree), offset+2);
-      }
-      if (FOR_NODE_BODY(tree)) {
-        dump_prefix(offset+1, lineno);
-        printf("body:\n");
-        dump_node(mrb, FOR_NODE_BODY(tree), offset+2);
-      }
+    }
+    if (FOR_NODE_ITERABLE(tree)) {
+      dump_prefix(offset+1, lineno);
+      printf("iterable:\n");
+      dump_node(mrb, FOR_NODE_ITERABLE(tree), offset+2);
+    }
+    if (FOR_NODE_BODY(tree)) {
+      dump_prefix(offset+1, lineno);
+      printf("body:\n");
+      dump_node(mrb, FOR_NODE_BODY(tree), offset+2);
     }
     break;
 
