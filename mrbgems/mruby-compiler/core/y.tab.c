@@ -14560,16 +14560,13 @@ dump_node(mrb_state *mrb, node *tree, int offset)
   /* Variable-sized node cases */
   case NODE_SCOPE:
     printf("NODE_SCOPE:\n");
-    {
-      struct mrb_ast_scope_node *scope = (struct mrb_ast_scope_node*)tree;
-      if (scope->locals) {
-        dump_locals(mrb, scope->locals, offset+1, lineno);
-      }
-      if (scope->body) {
-        dump_prefix(offset+1, lineno);
-        printf("body:\n");
-        dump_node(mrb, scope->body, offset+2);
-      }
+    if (SCOPE_NODE_LOCALS(tree)) {
+      dump_locals(mrb, SCOPE_NODE_LOCALS(tree), offset+1, lineno);
+    }
+    if (SCOPE_NODE_BODY(tree)) {
+      dump_prefix(offset+1, lineno);
+      printf("body:\n");
+      dump_node(mrb, SCOPE_NODE_BODY(tree), offset+2);
     }
     break;
 
@@ -15010,24 +15007,22 @@ dump_node(mrb_state *mrb, node *tree, int offset)
     break;
 
   case NODE_HASH:
-    {
-      printf("NODE_HASH:\n");
-      node *pairs = HASH_NODE_PAIRS(tree);
-      while (pairs) {
-        dump_prefix(offset+1, lineno);
-        printf("key:\n");
-        if (node_to_sym(pairs->car->car) == MRB_OPSYM(pow)) {
-          dump_prefix(offset+2, lineno);
-          printf("**\n");
-        }
-        else {
-          dump_node(mrb, pairs->car->car, offset+2);
-        }
-        dump_prefix(offset+1, lineno);
-        printf("value:\n");
-        dump_node(mrb, pairs->car->cdr, offset+2);
-        pairs = pairs->cdr;
+    printf("NODE_HASH:\n");
+    node *pairs = HASH_NODE_PAIRS(tree);
+    while (pairs) {
+      dump_prefix(offset+1, lineno);
+      printf("key:\n");
+      if (node_to_sym(pairs->car->car) == MRB_OPSYM(pow)) {
+        dump_prefix(offset+2, lineno);
+        printf("**\n");
       }
+      else {
+        dump_node(mrb, pairs->car->car, offset+2);
+      }
+      dump_prefix(offset+1, lineno);
+      printf("value:\n");
+      dump_node(mrb, pairs->car->cdr, offset+2);
+      pairs = pairs->cdr;
     }
     break;
 
@@ -15166,50 +15161,44 @@ dump_node(mrb_state *mrb, node *tree, int offset)
 
   case NODE_CLASS:
     printf("NODE_CLASS:\n");
-    {
-      if (CLASS_NODE_NAME(tree)) {
-        dump_cpath(mrb, MODULE_NODE_NAME(tree), offset+1, lineno);
-      }
-      if (CLASS_NODE_SUPERCLASS(tree)) {
-        dump_prefix(offset+1, lineno);
-        printf("super:\n");
-        dump_node(mrb, CLASS_NODE_SUPERCLASS(tree), offset+2);
-      }
-      if (CLASS_NODE_BODY(tree)) {
-        dump_prefix(offset+1, lineno);
-        printf("body:\n");
-        dump_node(mrb, CLASS_NODE_BODY(tree)->cdr, offset+2);
-      }
+    if (CLASS_NODE_NAME(tree)) {
+      dump_cpath(mrb, MODULE_NODE_NAME(tree), offset+1, lineno);
+    }
+    if (CLASS_NODE_SUPERCLASS(tree)) {
+      dump_prefix(offset+1, lineno);
+      printf("super:\n");
+      dump_node(mrb, CLASS_NODE_SUPERCLASS(tree), offset+2);
+    }
+    if (CLASS_NODE_BODY(tree)) {
+      dump_prefix(offset+1, lineno);
+      printf("body:\n");
+      dump_node(mrb, CLASS_NODE_BODY(tree)->cdr, offset+2);
     }
     break;
 
   case NODE_MODULE:
     printf("NODE_MODULE:\n");
-    {
-      if (MODULE_NODE_NAME(tree)) {
-        dump_cpath(mrb, MODULE_NODE_NAME(tree), offset+1, lineno);
-      }
-      if (MODULE_NODE_BODY(tree)) {
-        dump_prefix(offset+1, lineno);
-        printf("body:\n");
-        dump_node(mrb, MODULE_NODE_BODY(tree)->cdr, offset+2);
-      }
+    if (MODULE_NODE_NAME(tree)) {
+      dump_cpath(mrb, MODULE_NODE_NAME(tree), offset+1, lineno);
+    }
+    if (MODULE_NODE_BODY(tree)) {
+      dump_prefix(offset+1, lineno);
+      printf("body:\n");
+      dump_node(mrb, MODULE_NODE_BODY(tree)->cdr, offset+2);
     }
     break;
 
   case NODE_SCLASS:
     printf("NODE_SCLASS:\n");
-    {
-      if (SCLASS_NODE_OBJ(tree)) {
-        dump_prefix(offset+1, lineno);
-        printf("obj:\n");
-        dump_node(mrb, SCLASS_NODE_OBJ(tree), offset+2);
-      }
-      if (SCLASS_NODE_BODY(tree)) {
-        dump_prefix(offset+1, lineno);
-        printf("body:\n");
-        dump_node(mrb, SCLASS_NODE_BODY(tree)->cdr, offset+2);
-      }
+    if (SCLASS_NODE_OBJ(tree)) {
+      dump_prefix(offset+1, lineno);
+      printf("obj:\n");
+      dump_node(mrb, SCLASS_NODE_OBJ(tree), offset+2);
+    }
+    if (SCLASS_NODE_BODY(tree)) {
+      dump_prefix(offset+1, lineno);
+      printf("body:\n");
+      dump_node(mrb, SCLASS_NODE_BODY(tree)->cdr, offset+2);
     }
     break;
 
