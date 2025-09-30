@@ -381,8 +381,6 @@ struct mrb_ast_super_node {
 
 /* Phase 1 value access macros */
 #define SYM_NODE_VALUE(n) (sym_node(n)->symbol)
-#define STR_NODE_PTR(n) (str_node(n)->data)
-#define STR_NODE_LEN(n) (str_node(n)->len)
 #define INT_NODE_VALUE(n) (int_node(n)->value)
 #define BIGINT_NODE_STRING(n) (bigint_node(n)->string)
 #define BIGINT_NODE_BASE(n) (bigint_node(n)->base)
@@ -425,7 +423,7 @@ struct mrb_ast_super_node {
 #define SDEF_NODE_ARGS(n) (sdef_node(n)->args)
 #define SDEF_NODE_BODY(n) (sdef_node(n)->body)
 #define SDEF_NODE_LOCALS(n) (sdef_node(n)->locals)
-#define SDEF_NODE_OBJ(n) (sdef_node(n)->body)
+#define SDEF_NODE_OBJ(n) (sdef_node(n)->obj)
 #define CLASS_NODE_NAME(n) (class_node(n)->name)
 #define CLASS_NODE_SUPERCLASS(n) (class_node(n)->superclass)
 #define CLASS_NODE_BODY(n) (class_node(n)->body)
@@ -577,16 +575,6 @@ struct mrb_ast_callargs {
 #define BLOCK_NODE_ARGS(n) (block_node(n)->args)
 #define BLOCK_NODE_BODY(n) (block_node(n)->body)
 
-#define ARGS_NODE_MANDATORY(n) (args_node(n)->mandatory)
-#define ARGS_NODE_OPTIONAL(n) (args_node(n)->optional)
-#define ARGS_NODE_REST(n) (args_node(n)->rest)
-#define ARGS_NODE_MANDATORY_AFTER_REST(n) (args_node(n)->mandatory_after_rest)
-#define ARGS_NODE_TAIL(n) (args_node(n)->tail)
-
-#define ARGS_TAIL_NODE_KEYWORDS(n) (args_tail_node(n)->keywords)
-#define ARGS_TAIL_NODE_KWREST(n) (args_tail_node(n)->kwrest)
-#define ARGS_TAIL_NODE_BLOCK(n) (args_tail_node(n)->block)
-
 #define CALLARGS_NODE_REGULAR(n) (callargs_node(n)->regular_args)
 #define CALLARGS_NODE_KEYWORDS(n) (callargs_node(n)->keyword_args)
 #define CALLARGS_NODE_BLOCK(n) (callargs_node(n)->block_arg)
@@ -644,7 +632,6 @@ struct mrb_ast_heredoc_node {
 #define REGX_NODE_LIST(n) (regx_node(n)->list)
 #define REGX_NODE_FLAGS(n) (regx_node(n)->flags)
 #define REGX_NODE_ENCODING(n) (regx_node(n)->encoding)
-#define HEREDOC_NODE_NAME(n) (heredoc_node(n)->name)
 #define DSYM_NODE_LIST(n) (str_node(n)->list)
 
 // Group 10: References and Variables
@@ -677,7 +664,6 @@ struct mrb_ast_dvar_node {
 #define BACK_REF_NODE_TYPE(n) (back_ref_node(n)->type)
 #define NVAR_NODE_NUM(n) (nvar_node(n)->num)
 #define DVAR_NODE_NAME(n) (dvar_node(n)->name)
-#define MATCH_NODE_PATTERN(n) (match_node(n)->pattern)
 
 // Group 11: Operators and Expressions
 struct mrb_ast_not_node {
