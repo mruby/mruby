@@ -1505,7 +1505,7 @@ new_xstr(parser_state *p, node *a)
 static node*
 new_dsym(parser_state *p, node *a)
 {
-  struct mrb_ast_dsym_node *n = (struct mrb_ast_dsym_node*)parser_palloc(p, sizeof(struct mrb_ast_dsym_node));
+  struct mrb_ast_str_node *n = (struct mrb_ast_str_node*)parser_palloc(p, sizeof(struct mrb_ast_str_node));
   init_var_header(&n->header, p, NODE_DSYM);
   n->list = a;
   return (node*)n;
@@ -3981,7 +3981,7 @@ symbol          : basic_symbol
                       else {
                         cons_free($4);
                       }
-                      $$ = new_dsym(p, new_str(p, n));
+                      $$ = new_dsym(p, n);
                     }
                 | tSYMBEG tNUMPARAM
                     {
@@ -7772,7 +7772,7 @@ dump_node(mrb_state *mrb, node *tree, int offset)
 
   case NODE_DSYM:
     printf("NODE_DSYM:\n");
-    dump_node(mrb, dsym_node(tree)->list, offset+1);
+    dump_str(mrb, DSYM_NODE_LIST(tree), offset+1, lineno);
     break;
 
   case NODE_LVAR:

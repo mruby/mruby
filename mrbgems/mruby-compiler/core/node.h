@@ -639,22 +639,17 @@ struct mrb_ast_heredoc_node {
   struct mrb_parser_heredoc_info info;
 };
 
-struct mrb_ast_dsym_node {
-  struct mrb_ast_var_header header;
-  struct mrb_ast_node *list;
-};
-
 #define xstr_node(n) ((struct mrb_ast_xstr_node*)(n))
 #define regx_node(n) ((struct mrb_ast_regx_node*)(n))
 #define heredoc_node(n) ((struct mrb_ast_heredoc_node*)(n))
-#define dsym_node(n) ((struct mrb_ast_dsym_node*)(n))
+#define dsym_node(n) ((struct mrb_ast_str_node*)(n))
 
 #define XSTR_NODE_LIST(n) (xstr_node(n)->list)
 #define REGX_NODE_LIST(n) (regx_node(n)->list)
 #define REGX_NODE_FLAGS(n) (regx_node(n)->flags)
 #define REGX_NODE_ENCODING(n) (regx_node(n)->encoding)
 #define HEREDOC_NODE_NAME(n) (heredoc_node(n)->name)
-#define DSYM_NODE_LIST(n) (dsym_node(n)->list)
+#define DSYM_NODE_LIST(n) (str_node(n)->list)
 
 // Group 10: References and Variables
 struct mrb_ast_nth_ref_node {

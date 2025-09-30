@@ -1567,7 +1567,7 @@ new_xstr(parser_state *p, node *a)
 static node*
 new_dsym(parser_state *p, node *a)
 {
-  struct mrb_ast_dsym_node *n = (struct mrb_ast_dsym_node*)parser_palloc(p, sizeof(struct mrb_ast_dsym_node));
+  struct mrb_ast_str_node *n = (struct mrb_ast_str_node*)parser_palloc(p, sizeof(struct mrb_ast_str_node));
   init_var_header(&n->header, p, NODE_DSYM);
   n->list = a;
   return (node*)n;
@@ -10283,7 +10283,7 @@ yyreduce:
                       else {
                         cons_free((yyvsp[0].nd));
                       }
-                      (yyval.nd) = new_dsym(p, new_str(p, n));
+                      (yyval.nd) = new_dsym(p, n);
                     }
 #line 10289 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
@@ -14601,7 +14601,7 @@ dump_node(mrb_state *mrb, node *tree, int offset)
 
   case NODE_DSYM:
     printf("NODE_DSYM:\n");
-    dump_node(mrb, dsym_node(tree)->list, offset+1);
+    dump_str(mrb, DSYM_NODE_LIST(tree), offset+1, lineno);
     break;
 
   case NODE_LVAR:
@@ -14905,42 +14905,23 @@ dump_node(mrb_state *mrb, node *tree, int offset)
 
   case NODE_WHILE:
     printf("NODE_WHILE:\n");
-    dump_prefix(offset+1, lineno);
-    printf("cond:\n");
-    dump_node(mrb, WHILE_NODE_CONDITION(tree), offset+2);
-    dump_prefix(offset+1, lineno);
-    printf("body:\n");
-    dump_node(mrb, WHILE_NODE_BODY(tree), offset+2);
-    break;
-
+    goto dump_loop_node;
   case NODE_UNTIL:
     printf("NODE_UNTIL:\n");
-    dump_prefix(offset+1, lineno);
-    printf("cond:\n");
-    dump_node(mrb, UNTIL_NODE_CONDITION(tree), offset+2);
-    dump_prefix(offset+1, lineno);
-    printf("body:\n");
-    dump_node(mrb, UNTIL_NODE_BODY(tree), offset+2);
-    break;
-
+    goto dump_loop_node;
   case NODE_WHILE_MOD:
     printf("NODE_WHILE_MOD:\n");
+    goto dump_loop_node;
+  case NODE_UNTIL_MOD:
+    printf("NODE_UNTIL_MOD:\n");
+
+  dump_loop_node:
     dump_prefix(offset+1, lineno);
     printf("cond:\n");
     dump_node(mrb, WHILE_NODE_CONDITION(tree), offset+2);
     dump_prefix(offset+1, lineno);
     printf("body:\n");
     dump_node(mrb, WHILE_NODE_BODY(tree), offset+2);
-    break;
-
-  case NODE_UNTIL_MOD:
-    printf("NODE_UNTIL_MOD:\n");
-    dump_prefix(offset+1, lineno);
-    printf("cond:\n");
-    dump_node(mrb, UNTIL_NODE_CONDITION(tree), offset+2);
-    dump_prefix(offset+1, lineno);
-    printf("body:\n");
-    dump_node(mrb, UNTIL_NODE_BODY(tree), offset+2);
     break;
 
   case NODE_FOR:

@@ -5125,9 +5125,9 @@ codegen_heredoc(codegen_scope *s, node *varnode, int val)
 static void
 codegen_dsym(codegen_scope *s, node *varnode, int val)
 {
-  struct mrb_ast_dsym_node *n = dsym_node(varnode);
+  struct mrb_ast_str_node *n = dsym_node(varnode);
   // Generate the list content, then intern to symbol
-  codegen(s, n->list, val);
+  gen_string(s, n->list, val);
   if (val) {
     gen_intern(s);
   }
