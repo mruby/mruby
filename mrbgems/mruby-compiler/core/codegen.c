@@ -2471,7 +2471,7 @@ lambda_body(codegen_scope *s, node *locals, struct mrb_ast_args *args, node *bod
       node *n = margs;
       pos = 1; /* Start from register 1 (after self). */
       while (n) {
-        if (get_node_type(n->car) == NODE_MASGN) { /* If the argument is a mass assignment (e.g., |(a,b)| ). */
+        if (get_node_type(n->car) == NODE_MARG) { /* If the argument is a mass assignment (e.g., |(a,b)| ). */
           struct mrb_ast_masgn_node *masgn_n = (struct mrb_ast_masgn_node*)n->car;
           /* Use dedicated parameter destructuring logic instead of general codegen_masgn */
           int nn = 0;
@@ -2498,7 +2498,7 @@ lambda_body(codegen_scope *s, node *locals, struct mrb_ast_args *args, node *bod
       node *n = pargs;
       pos = ma+oa+ra+1; /* Calculate starting register for post-mandatory args. */
       while (n) {
-        if (get_node_type(n->car) == NODE_MASGN) { /* If argument is a mass assignment. */
+        if (get_node_type(n->car) == NODE_MARG) { /* If argument is a mass assignment. */
           struct mrb_ast_masgn_node *masgn_n = (struct mrb_ast_masgn_node*)n->car;
           /* Use dedicated parameter destructuring logic instead of general codegen_masgn */
           int nn = 0;
@@ -2933,6 +2933,8 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
     gen_xvar_assignment(s, tree, rhs, sp, val, OP_SETCONST);
     break;
   case NODE_MASGN:
+  case NODE_MARG:
+    /* Multiple assignment: expressions (MASGN) and parameter destructuring (MARG) */
     codegen_masgn(s, tree, rhs, sp, val);
     return;
   case NODE_LVAR:
@@ -5665,6 +5667,11 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_MASGN:
     codegen_masgn(s, tree, NULL, 0, val);
+    break;
+
+  case NODE_MARG:
+    /* Parameter destructuring should be handled inline by lambda_body */
+    /* This case should not be reached in normal execution */
     break;
 
   case NODE_OP_ASGN:

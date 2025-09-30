@@ -1034,7 +1034,7 @@ static void
 local_add_margs(parser_state *p, node *n)
 {
   while (n) {
-    if (get_node_type(n->car) == NODE_MASGN) {
+    if (get_node_type(n->car) == NODE_MARG) {
       struct mrb_ast_masgn_node *masgn_n = (struct mrb_ast_masgn_node*)n->car;
       node *rhs = masgn_n->rhs;
 
@@ -1045,6 +1045,8 @@ local_add_margs(parser_state *p, node *n)
           local_add_f(p, node_to_sym(t->car));
           t = t->cdr;
         }
+        /* Clear cons list RHS immediately after use */
+        masgn_n->rhs = NULL;
       }
 
       /* Process nested destructuring in lhs components */
@@ -1058,6 +1060,7 @@ local_add_margs(parser_state *p, node *n)
     n = n->cdr;
   }
 }
+
 
 static void
 local_add_lv(parser_state *p, node *lv)
@@ -1255,14 +1258,12 @@ new_asgn(parser_state *p, node *a, node *b)
   return (node*)n;
 }
 
-/* (:masgn mlhs=(pre rest post)  mrhs) */
+/* Helper function to create MASGN/MARG nodes */
 static node*
-new_masgn(parser_state *p, node *a, node *b)
+new_masgn_helper(parser_state *p, node *a, node *b, enum node_type node_type)
 {
-  void_expr_error(p, b);
-
   struct mrb_ast_masgn_node *n = (struct mrb_ast_masgn_node*)parser_palloc(p, sizeof(struct mrb_ast_masgn_node));
-  init_var_header(&n->header, p, NODE_MASGN);
+  init_var_header(&n->header, p, node_type);
 
   /* Extract pre, rest, post from cons list structure (a b c) */
   if (a) {
@@ -1294,38 +1295,19 @@ new_masgn(parser_state *p, node *a, node *b)
   return (node*)n;
 }
 
-/* (:masgn mlhs mrhs) no check */
+/* (:masgn mlhs=(pre rest post)  mrhs) */
 static node*
-new_masgn_param(parser_state *p, node *a, node *b)
+new_masgn(parser_state *p, node *a, node *b)
 {
-  struct mrb_ast_masgn_node *n = (struct mrb_ast_masgn_node*)parser_palloc(p, sizeof(struct mrb_ast_masgn_node));
-  init_var_header(&n->header, p, NODE_MASGN);
+  void_expr_error(p, b);
+  return new_masgn_helper(p, a, b, NODE_MASGN);
+}
 
-  /* Extract pre, rest, post from cons list structure (a b c) */
-  if (a) {
-    n->pre = a->car;  /* Pre-splat variables */
-    if (a->cdr) {
-      n->rest = a->cdr->car;  /* Splat variable (or -1 for anonymous) */
-      if (a->cdr->cdr) {
-        n->post = a->cdr->cdr->car;  /* Post-splat variables */
-      }
-      else {
-        n->post = NULL;
-      }
-    }
-    else {
-      n->rest = NULL;
-      n->post = NULL;
-    }
-  }
-  else {
-    n->pre = NULL;
-    n->rest = NULL;
-    n->post = NULL;
-  }
-  n->rhs = b;
-
-  return (node*)n;
+/* (:marg mlhs mrhs) no check - for parameter destructuring */
+static node*
+new_marg(parser_state *p, node *a)
+{
+  return new_masgn_helper(p, a, p->locals->car, NODE_MARG);
 }
 
 /* (:asgn lhs rhs) */
@@ -4398,7 +4380,7 @@ f_arg_item      : f_norm_arg
                     }
                   f_margs rparen
                     {
-                      $$ = new_masgn_param(p, $3, p->locals->car);
+                      $$ = new_marg(p, $3);
                       local_resume(p, $<nd>2);
                       local_add_f(p, 0);
                     }
@@ -7900,7 +7882,8 @@ dump_node(mrb_state *mrb, node *tree, int offset)
     break;
 
   case NODE_MASGN:
-    printf("NODE_MASGN:\n");
+  case NODE_MARG:
+    printf("%s:\n", get_node_type(tree) == NODE_MASGN ? "NODE_MASGN" : "NODE_MARG");
     /* Handle pre-splat variables */
     if (MASGN_NODE_PRE(tree)) {
       dump_prefix(offset+1, lineno);
@@ -8441,9 +8424,8 @@ dump_node(mrb_state *mrb, node *tree, int offset)
     break;
 
   default:
-    /* Fallback: treat as a traditional cons-list and recursively dump */
-    printf("unknown node type %d (0x%x), dumping as list:\n", nodetype, (unsigned)nodetype);
-    dump_recur(mrb, tree, offset+1);
+    /* Fallback: unknown node type - skip like codegen.c does */
+    printf("unknown node type %d (0x%x)\n", nodetype, (unsigned)nodetype);
     break;
   }
 #endif

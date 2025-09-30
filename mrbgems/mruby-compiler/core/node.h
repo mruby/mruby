@@ -29,6 +29,7 @@ enum node_type {
   NODE_OR,
   NODE_NOT,
   NODE_MASGN,
+  NODE_MARG,
   NODE_ASGN,
   NODE_OP_ASGN,
   NODE_CALL,
