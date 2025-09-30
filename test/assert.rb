@@ -171,7 +171,7 @@ def assert_false(obj, msg = nil, diff = nil)
   unless obj == false
     diff ||= "    Expected #{obj.inspect} to be false."
   end
-  assert_true(!obj, msg, diff)
+  assert_true(obj == false, msg, diff)
 end
 
 def assert_equal(exp, act_or_msg = nil, msg = nil, &block)
