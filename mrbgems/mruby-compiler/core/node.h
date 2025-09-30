@@ -335,10 +335,6 @@ struct mrb_ast_super_node {
   struct mrb_ast_node *args;         /* Super arguments (can be NULL) */
 };
 
-/* String storage strategy thresholds */
-#define STR_INLINE_THRESHOLD  48   /* Inline strings <= 48 bytes */
-#define STR_SMALL_THRESHOLD   128  /* Small strings <= 128 bytes */
-
 #define VAR_NODE_TYPE(n) ((enum node_type)(((struct mrb_ast_var_header*)(n))->node_type))
 
 /* Type-safe casting macros */
