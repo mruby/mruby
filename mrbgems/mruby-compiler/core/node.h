@@ -379,85 +379,6 @@ struct mrb_ast_super_node {
 #define yield_node(n) ((struct mrb_ast_yield_node*)(n))
 #define super_node(n) ((struct mrb_ast_super_node*)(n))
 
-/* Phase 1 value access macros */
-#define SYM_NODE_VALUE(n) (sym_node(n)->symbol)
-#define INT_NODE_VALUE(n) (int_node(n)->value)
-#define BIGINT_NODE_STRING(n) (bigint_node(n)->string)
-#define BIGINT_NODE_BASE(n) (bigint_node(n)->base)
-#define VAR_NODE_SYMBOL(n) (var_node(n)->symbol)
-
-/* Phase 2 value access macros */
-#define CALL_NODE_RECEIVER(n) (call_node(n)->receiver)
-#define CALL_NODE_METHOD(n) (call_node(n)->method_name)
-#define CALL_NODE_ARGS(n) (call_node(n)->args)
-#define CALL_NODE_SAFE(n) (call_node(n)->safe_call)
-
-#define ARRAY_NODE_ELEMENTS(n) (array_node(n)->elements)
-
-#define HASH_NODE_PAIRS(n) (hash_node(n)->pairs)
-
-/* Phase 3 value access macros */
-#define IF_NODE_CONDITION(n) (if_node(n)->condition)
-#define IF_NODE_THEN(n) (if_node(n)->then_body)
-#define IF_NODE_ELSE(n) (if_node(n)->else_body)
-
-#define WHILE_NODE_CONDITION(n) (while_node(n)->condition)
-#define WHILE_NODE_BODY(n) (while_node(n)->body)
-
-#define UNTIL_NODE_CONDITION(n) (until_node(n)->condition)
-#define UNTIL_NODE_BODY(n) (until_node(n)->body)
-
-#define CASE_NODE_VALUE(n) (case_node(n)->value)
-#define CASE_NODE_BODY(n) (case_node(n)->body)
-
-#define FOR_NODE_VAR(n) (for_node(n)->var)
-#define FOR_NODE_ITERABLE(n) (for_node(n)->iterable)
-#define FOR_NODE_BODY(n) (for_node(n)->body)
-
-/* Definition node value access macros */
-#define DEF_NODE_NAME(n) (def_node(n)->name)
-#define DEF_NODE_ARGS(n) (def_node(n)->args)
-#define DEF_NODE_BODY(n) (def_node(n)->body)
-#define DEF_NODE_LOCALS(n) (def_node(n)->locals)
-#define SDEF_NODE_NAME(n) (sdef_node(n)->name)
-#define SDEF_NODE_ARGS(n) (sdef_node(n)->args)
-#define SDEF_NODE_BODY(n) (sdef_node(n)->body)
-#define SDEF_NODE_LOCALS(n) (sdef_node(n)->locals)
-#define SDEF_NODE_OBJ(n) (sdef_node(n)->obj)
-#define CLASS_NODE_NAME(n) (class_node(n)->name)
-#define CLASS_NODE_SUPERCLASS(n) (class_node(n)->superclass)
-#define CLASS_NODE_BODY(n) (class_node(n)->body)
-
-#define MODULE_NODE_NAME(n) (module_node(n)->name)
-#define MODULE_NODE_BODY(n) (module_node(n)->body)
-
-#define SCLASS_NODE_OBJ(n) (sclass_node(n)->obj)
-#define SCLASS_NODE_BODY(n) (sclass_node(n)->body)
-
-/* Assignment node value access macros */
-#define ASGN_NODE_LHS(n) (asgn_node(n)->lhs)
-#define ASGN_NODE_RHS(n) (asgn_node(n)->rhs)
-
-#define MASGN_NODE_PRE(n) (masgn_node(n)->pre)
-#define MASGN_NODE_REST(n) (masgn_node(n)->rest)
-#define MASGN_NODE_POST(n) (masgn_node(n)->post)
-#define MASGN_NODE_RHS(n) (masgn_node(n)->rhs)
-
-#define OP_ASGN_NODE_LHS(n) (op_asgn_node(n)->lhs)
-#define OP_ASGN_NODE_OP(n) (op_asgn_node(n)->op)
-#define OP_ASGN_NODE_RHS(n) (op_asgn_node(n)->rhs)
-
-/* Expression node value access macros */
-#define AND_NODE_LEFT(n) (and_node(n)->left)
-#define AND_NODE_RIGHT(n) (and_node(n)->right)
-
-#define OR_NODE_LEFT(n) (or_node(n)->left)
-#define OR_NODE_RIGHT(n) (or_node(n)->right)
-
-#define RETURN_NODE_ARGS(n) (return_node(n)->args)
-#define YIELD_NODE_ARGS(n) (yield_node(n)->args)
-#define SUPER_NODE_ARGS(n) (super_node(n)->args)
-
 /* Variable-sized literal node structures */
 
 struct mrb_ast_dot2_node {
@@ -481,17 +402,6 @@ struct mrb_ast_float_node {
 #define dot2_node(n) ((struct mrb_ast_dot2_node*)(n))
 #define dot3_node(n) ((struct mrb_ast_dot3_node*)(n))
 #define float_node(n) ((struct mrb_ast_float_node*)(n))
-
-/* Literal node value access macros */
-#define STR_NODE_LIST(n) (str_node(n)->list)
-
-#define DOT2_NODE_LEFT(n) (dot2_node(n)->left)
-#define DOT2_NODE_RIGHT(n) (dot2_node(n)->right)
-
-#define DOT3_NODE_LEFT(n) (dot3_node(n)->left)
-#define DOT3_NODE_RIGHT(n) (dot3_node(n)->right)
-
-#define FLOAT_NODE_VALUE(n) (float_node(n)->value)
 
 /* Variable-sized simple node structures */
 struct mrb_ast_self_node {
@@ -521,9 +431,6 @@ struct mrb_ast_const_node {
 #define true_node(n) ((struct mrb_ast_true_node*)(n))
 #define false_node(n) ((struct mrb_ast_false_node*)(n))
 #define const_node(n) ((struct mrb_ast_const_node*)(n))
-
-/* Simple node value access macros */
-#define CONST_NODE_SYMBOL(n) (const_node(n)->symbol)
 
 /* Variable-sized advanced node structures */
 struct mrb_ast_rescue_node {
@@ -566,19 +473,6 @@ struct mrb_ast_callargs {
 #define block_node(n) ((struct mrb_ast_block_node*)(n))
 #define callargs_node(n) ((struct mrb_ast_callargs*)(n))
 
-/* Advanced node value access macros */
-#define RESCUE_NODE_BODY(n) (rescue_node(n)->body)
-#define RESCUE_NODE_RESCUE_CLAUSES(n) (rescue_node(n)->rescue_clauses)
-#define RESCUE_NODE_ELSE_CLAUSE(n) (rescue_node(n)->else_clause)
-
-#define BLOCK_NODE_LOCALS(n) (block_node(n)->locals)
-#define BLOCK_NODE_ARGS(n) (block_node(n)->args)
-#define BLOCK_NODE_BODY(n) (block_node(n)->body)
-
-#define CALLARGS_NODE_REGULAR(n) (callargs_node(n)->regular_args)
-#define CALLARGS_NODE_KEYWORDS(n) (callargs_node(n)->keyword_args)
-#define CALLARGS_NODE_BLOCK(n) (callargs_node(n)->block_arg)
-
 // Group 8: Control Flow Statements
 struct mrb_ast_break_node {
   struct mrb_ast_var_header header;
@@ -602,8 +496,6 @@ struct mrb_ast_retry_node {
 #define next_node(n) ((struct mrb_ast_next_node*)(n))
 #define redo_node(n) ((struct mrb_ast_redo_node*)(n))
 #define retry_node(n) ((struct mrb_ast_retry_node*)(n))
-#define BREAK_NODE_VALUE(n) (break_node(n)->value)
-#define NEXT_NODE_VALUE(n) (next_node(n)->value)
 
 // Group 9: String and Regex Variants
 struct mrb_ast_xstr_node {
@@ -627,12 +519,6 @@ struct mrb_ast_heredoc_node {
 #define regx_node(n) ((struct mrb_ast_regx_node*)(n))
 #define heredoc_node(n) ((struct mrb_ast_heredoc_node*)(n))
 #define dsym_node(n) ((struct mrb_ast_str_node*)(n))
-
-#define XSTR_NODE_LIST(n) (xstr_node(n)->list)
-#define REGX_NODE_LIST(n) (regx_node(n)->list)
-#define REGX_NODE_FLAGS(n) (regx_node(n)->flags)
-#define REGX_NODE_ENCODING(n) (regx_node(n)->encoding)
-#define DSYM_NODE_LIST(n) (str_node(n)->list)
 
 // Group 10: References and Variables
 struct mrb_ast_nth_ref_node {
@@ -659,11 +545,6 @@ struct mrb_ast_dvar_node {
 #define back_ref_node(n) ((struct mrb_ast_back_ref_node*)(n))
 #define nvar_node(n) ((struct mrb_ast_nvar_node*)(n))
 #define dvar_node(n) ((struct mrb_ast_dvar_node*)(n))
-
-#define NTH_REF_NODE_NTH(n) (nth_ref_node(n)->nth)
-#define BACK_REF_NODE_TYPE(n) (back_ref_node(n)->type)
-#define NVAR_NODE_NUM(n) (nvar_node(n)->num)
-#define DVAR_NODE_NAME(n) (dvar_node(n)->name)
 
 // Group 11: Operators and Expressions
 struct mrb_ast_not_node {
@@ -697,13 +578,6 @@ struct mrb_ast_defined_node {
 #define colon2_node(n) ((struct mrb_ast_colon2_node*)(n))
 #define colon3_node(n) ((struct mrb_ast_colon3_node*)(n))
 #define defined_node(n) ((struct mrb_ast_defined_node*)(n))
-
-#define NOT_NODE_OPERAND(n) (not_node(n)->operand)
-#define NEGATE_NODE_OPERAND(n) (negate_node(n)->operand)
-#define COLON2_NODE_BASE(n) (colon2_node(n)->base)
-#define COLON2_NODE_NAME(n) (colon2_node(n)->name)
-#define COLON3_NODE_NAME(n) (colon3_node(n)->name)
-#define DEFINED_NODE_EXPR(n) (defined_node(n)->expr)
 
 // Group 12: Function Calls and Special Forms
 struct mrb_ast_lambda_node {
@@ -812,24 +686,5 @@ struct mrb_ast_postexe_node {
 #define undef_node(n) ((struct mrb_ast_undef_node*)(n))
 #define postexe_node(n) ((struct mrb_ast_postexe_node*)(n))
 #define sdef_node(n) ((struct mrb_ast_sdef_node*)(n))
-
-#define LAMBDA_NODE_LOCALS(n) (lambda_node(n)->locals)
-#define LAMBDA_NODE_ARGS(n) (lambda_node(n)->args)
-#define LAMBDA_NODE_BODY(n) (lambda_node(n)->body)
-#define WORDS_NODE_ARGS(n) (words_node(n)->args)
-#define SYMBOLS_NODE_ARGS(n) (symbols_node(n)->args)
-#define SPLAT_NODE_VALUE(n) (splat_node(n)->value)
-#define BLOCK_ARG_NODE_VALUE(n) (block_arg_node(n)->value)
-#define SCOPE_NODE_LOCALS(n) (scope_node(n)->locals)
-#define SCOPE_NODE_BODY(n) (scope_node(n)->body)
-#define STMTS_NODE_STMTS(n) (stmts_node(n)->stmts)
-#define BEGIN_NODE_BODY(n) (begin_node(n)->body)
-#define ENSURE_NODE_BODY(n) (ensure_node(n)->body)
-#define ENSURE_NODE_ENSURE_CLAUSE(n) (ensure_node(n)->ensure_clause)
-#define ITER_NODE_VARS(n) (iter_node(n)->vars)
-#define ITER_NODE_BODY(n) (iter_node(n)->body)
-#define WHEN_NODE_COND(n) (when_node(n)->cond)
-#define WHEN_NODE_BODY(n) (when_node(n)->body)
-#define WHEN_NODE_NEXT_WHEN(n) (when_node(n)->next_when)
 
 #endif  /* MRUBY_COMPILER_NODE_H */

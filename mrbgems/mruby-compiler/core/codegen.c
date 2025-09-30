@@ -2940,7 +2940,7 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
     return;
   case NODE_LVAR:
     {
-      mrb_sym sym = VAR_NODE_SYMBOL(tree);
+      mrb_sym sym = var_node(tree)->symbol;
       if (rhs) {
         codegen(s, rhs, VAL);
         pop();
@@ -3782,7 +3782,7 @@ static mrb_bool
 callargs_empty(node *n)
 {
   if (!n) return TRUE;
-  return (CALLARGS_NODE_REGULAR(n) == 0 && CALLARGS_NODE_KEYWORDS(n) == 0 && CALLARGS_NODE_BLOCK(n) == 0);
+  return (callargs_node(n)->regular_args == 0 && callargs_node(n)->keyword_args == 0 && callargs_node(n)->block_arg == 0);
 }
 
 static void
@@ -4792,8 +4792,8 @@ codegen_str(codegen_scope *s, node *varnode, int val)
 static void
 codegen_dot2(codegen_scope *s, node *varnode, int val)
 {
-  node *left = DOT2_NODE_LEFT(varnode);
-  node *right = DOT2_NODE_RIGHT(varnode);
+  node *left = dot2_node(varnode)->left;
+  node *right = dot2_node(varnode)->right;
 
   codegen(s, left, val);
   codegen(s, right, val);
@@ -4806,8 +4806,8 @@ codegen_dot2(codegen_scope *s, node *varnode, int val)
 static void
 codegen_dot3(codegen_scope *s, node *varnode, int val)
 {
-  node *left = DOT3_NODE_LEFT(varnode);
-  node *right = DOT3_NODE_RIGHT(varnode);
+  node *left = dot3_node(varnode)->left;
+  node *right = dot3_node(varnode)->right;
 
   codegen(s, left, val);
   codegen(s, right, val);
@@ -5218,7 +5218,7 @@ codegen_negate(codegen_scope *s, node *varnode, int val)
 
   case NODE_INT:
     if (val) {
-      int32_t value = INT_NODE_VALUE(tree);
+      int32_t value = int_node(tree)->value;
       if (value == INT32_MIN) {
         /* -INT32_MIN overflows, use bigint */
         int off = new_litbint(s, "2147483648", -10);
@@ -5233,8 +5233,8 @@ codegen_negate(codegen_scope *s, node *varnode, int val)
 
   case NODE_BIGINT:
     if (val) {
-      char *str = BIGINT_NODE_STRING(tree);
-      int base = BIGINT_NODE_BASE(tree);
+      char *str = bigint_node(tree)->string;
+      int base = bigint_node(tree)->base;
       /* Negate base to indicate negative number */
       int off = new_litbint(s, str, -base);
       genop_2(s, OP_LOADL, cursp(), off);
@@ -5459,7 +5459,7 @@ static void
 codegen_stmts(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_stmts_node *stmts = stmts_node(varnode);
-  node *tree = STMTS_NODE_STMTS(stmts);
+  node *tree = stmts_node(stmts)->stmts;
 
   if (val && !tree) {
     gen_load_nil(s, 1);
@@ -5577,15 +5577,15 @@ codegen(codegen_scope *s, node *tree, int val)
   switch (var_type) {
   case NODE_INT:
     if (val) {
-      gen_int(s, cursp(), INT_NODE_VALUE(tree));
+      gen_int(s, cursp(), int_node(tree)->value);
       push();
     }
     break;
 
   case NODE_BIGINT:
     if (val) {
-      char *str = BIGINT_NODE_STRING(tree);
-      int base = BIGINT_NODE_BASE(tree);
+      char *str = bigint_node(tree)->string;
+      int base = bigint_node(tree)->base;
       int off = new_litbint(s, str, base);
       genop_2(s, OP_LOADL, cursp(), off);
       push();
@@ -5594,25 +5594,25 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_SYM:
     {
-      int i = new_sym(s, SYM_NODE_VALUE(tree));
+      int i = new_sym(s, sym_node(tree)->symbol);
       gen_load_op2(s, OP_LOADSYM, i, val);
     }
     break;
 
   case NODE_LVAR:
-    gen_lvar(s, VAR_NODE_SYMBOL(tree), val);
+    gen_lvar(s, var_node(tree)->symbol, val);
     break;
 
   case NODE_GVAR:
-    gen_xvar(s, VAR_NODE_SYMBOL(tree), val, OP_GETGV);
+    gen_xvar(s, var_node(tree)->symbol, val, OP_GETGV);
     break;
 
   case NODE_IVAR:
-    gen_xvar(s, VAR_NODE_SYMBOL(tree), val, OP_GETIV);
+    gen_xvar(s, var_node(tree)->symbol, val, OP_GETIV);
     break;
 
   case NODE_CVAR:
-    gen_xvar(s, VAR_NODE_SYMBOL(tree), val, OP_GETCV);
+    gen_xvar(s, var_node(tree)->symbol, val, OP_GETCV);
     break;
 
   case NODE_CALL:

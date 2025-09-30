@@ -1724,7 +1724,7 @@ call_with_block(parser_state *p, node *a, node *b)
     {
       struct mrb_ast_call_node *call = call_node(a);
 
-      if (call->args && CALLARGS_NODE_BLOCK(call->args)) {
+      if (call->args && callargs_node(call->args)->block_arg) {
         yyerror(NULL, p, "both block arg and actual block given");
         return;
       }
@@ -1780,7 +1780,7 @@ assignable(parser_state *p, node *lhs)
 {
   switch (get_node_type(lhs)) {
   case NODE_LVAR:
-    local_add(p, VAR_NODE_SYMBOL(lhs));
+    local_add(p, var_node(lhs)->symbol);
     break;
   case NODE_CONST:
     if (p->in_def)
@@ -1797,7 +1797,7 @@ var_reference(parser_state *p, node *lhs)
 {
   /* Check if this is a variable-sized node */
   if (node_type_p(lhs, NODE_LVAR)) {
-    mrb_sym sym = VAR_NODE_SYMBOL(lhs);
+    mrb_sym sym = var_node(lhs)->symbol;
     if (!local_var_p(p, sym)) {
       node *n = new_fcall(p, sym, 0);
       /* Don't free variable-sized nodes - they're managed by the parser allocator */
@@ -2205,7 +2205,7 @@ stmts           : none
                 | stmts terms stmt
                     {
                       /* Update the cons-list inside the existing variable-sized node */
-                      STMTS_NODE_STMTS($1) = push(STMTS_NODE_STMTS($1), newline_node($3));
+                      stmts_node($1)->stmts = push(stmts_node($1)->stmts, newline_node($3));
                       $$ = $1;
                     }
                 | error stmt
@@ -7731,61 +7731,61 @@ dump_node(mrb_state *mrb, node *tree, int offset)
   /* Variable-sized node cases */
   case NODE_SCOPE:
     printf("NODE_SCOPE:\n");
-    if (SCOPE_NODE_LOCALS(tree)) {
-      dump_locals(mrb, SCOPE_NODE_LOCALS(tree), offset+1, lineno);
+    if (scope_node(tree)->locals) {
+      dump_locals(mrb, scope_node(tree)->locals, offset+1, lineno);
     }
-    if (SCOPE_NODE_BODY(tree)) {
+    if (scope_node(tree)->body) {
       dump_prefix(offset+1, lineno);
       printf("body:\n");
-      dump_node(mrb, SCOPE_NODE_BODY(tree), offset+2);
+      dump_node(mrb, scope_node(tree)->body, offset+2);
     }
     break;
 
   case NODE_INT:
-    printf("NODE_INT: %d\n", INT_NODE_VALUE(tree));
+    printf("NODE_INT: %d\n", int_node(tree)->value);
     break;
 
   case NODE_BIGINT:
-    printf("NODE_BIGINT: %s (base %d)\n", BIGINT_NODE_STRING(tree), BIGINT_NODE_BASE(tree));
+    printf("NODE_BIGINT: %s (base %d)\n", bigint_node(tree)->string, bigint_node(tree)->base);
     break;
 
   case NODE_FLOAT:
-    printf("NODE_FLOAT: %s\n", FLOAT_NODE_VALUE(tree));
+    printf("NODE_FLOAT: %s\n", float_node(tree)->value);
     break;
 
   case NODE_STR:
     printf("NODE_STR:\n");
-    dump_str(mrb, STR_NODE_LIST(tree), offset+1, lineno);
+    dump_str(mrb, str_node(tree)->list, offset+1, lineno);
     break;
 
   case NODE_XSTR:
     printf("NODE_XSTR:\n");
-    dump_str(mrb, XSTR_NODE_LIST(tree), offset+1, lineno);
+    dump_str(mrb, xstr_node(tree)->list, offset+1, lineno);
     break;
 
   case NODE_SYM:
-    printf("NODE_SYM: %s\n", mrb_sym_dump(mrb, SYM_NODE_VALUE(tree)));
+    printf("NODE_SYM: %s\n", mrb_sym_dump(mrb, sym_node(tree)->symbol));
     break;
 
   case NODE_DSYM:
     printf("NODE_DSYM:\n");
-    dump_str(mrb, DSYM_NODE_LIST(tree), offset+1, lineno);
+    dump_str(mrb, str_node(tree)->list, offset+1, lineno);
     break;
 
   case NODE_LVAR:
-    printf("NODE_LVAR: %s\n", mrb_sym_dump(mrb, VAR_NODE_SYMBOL(tree)));
+    printf("NODE_LVAR: %s\n", mrb_sym_dump(mrb, var_node(tree)->symbol));
     break;
 
   case NODE_GVAR:
-    printf("NODE_GVAR: %s\n", mrb_sym_dump(mrb, VAR_NODE_SYMBOL(tree)));
+    printf("NODE_GVAR: %s\n", mrb_sym_dump(mrb, var_node(tree)->symbol));
     break;
 
   case NODE_IVAR:
-    printf("NODE_IVAR: %s\n", mrb_sym_dump(mrb, VAR_NODE_SYMBOL(tree)));
+    printf("NODE_IVAR: %s\n", mrb_sym_dump(mrb, var_node(tree)->symbol));
     break;
 
   case NODE_CVAR:
-    printf("NODE_CVAR: %s\n", mrb_sym_dump(mrb, VAR_NODE_SYMBOL(tree)));
+    printf("NODE_CVAR: %s\n", mrb_sym_dump(mrb, var_node(tree)->symbol));
     break;
 
   case NODE_NVAR:
@@ -7793,25 +7793,25 @@ dump_node(mrb_state *mrb, node *tree, int offset)
     break;
 
   case NODE_CONST:
-    printf("NODE_CONST: %s\n", mrb_sym_dump(mrb, VAR_NODE_SYMBOL(tree)));
+    printf("NODE_CONST: %s\n", mrb_sym_dump(mrb, var_node(tree)->symbol));
     break;
 
   case NODE_CALL:
-    printf("NODE_CALL: %s\n", mrb_sym_dump(mrb, CALL_NODE_METHOD(tree)));
-    if (CALL_NODE_RECEIVER(tree)) {
+    printf("NODE_CALL: %s\n", mrb_sym_dump(mrb, call_node(tree)->method_name));
+    if (call_node(tree)->receiver) {
       dump_prefix(offset+1, lineno);
       printf("receiver:\n");
-      dump_node(mrb, CALL_NODE_RECEIVER(tree), offset+2);
+      dump_node(mrb, call_node(tree)->receiver, offset+2);
     }
-    if (CALL_NODE_ARGS(tree)) {
-      dump_callargs(mrb, CALL_NODE_ARGS(tree), offset, lineno);
+    if (call_node(tree)->args) {
+      dump_callargs(mrb, call_node(tree)->args, offset, lineno);
     }
     break;
 
   case NODE_ARRAY:
     printf("NODE_ARRAY:\n");
-    if (ARRAY_NODE_ELEMENTS(tree)) {
-      dump_recur(mrb, ARRAY_NODE_ELEMENTS(tree), offset+1);
+    if (array_node(tree)->elements) {
+      dump_recur(mrb, array_node(tree)->elements, offset+1);
     }
     break;
 
@@ -7833,49 +7833,49 @@ dump_node(mrb_state *mrb, node *tree, int offset)
 
   case NODE_IF:
     printf("NODE_IF:\n");
-    if (IF_NODE_CONDITION(tree)) {
+    if (if_node(tree)->condition) {
       dump_prefix(offset+1, lineno);
       printf("cond:\n");
-      dump_node(mrb, IF_NODE_CONDITION(tree), offset+2);
+      dump_node(mrb, if_node(tree)->condition, offset+2);
     }
-    if (IF_NODE_THEN(tree)) {
+    if (if_node(tree)->then_body) {
       dump_prefix(offset+1, lineno);
       printf("then:\n");
-      dump_node(mrb, IF_NODE_THEN(tree), offset+2);
+      dump_node(mrb, if_node(tree)->then_body, offset+2);
     }
-    if (IF_NODE_ELSE(tree)) {
+    if (if_node(tree)->else_body) {
       dump_prefix(offset+1, lineno);
       printf("else:\n");
-      dump_node(mrb, IF_NODE_ELSE(tree), offset+2);
+      dump_node(mrb, if_node(tree)->else_body, offset+2);
     }
     break;
 
   case NODE_DEF:
-    printf("NODE_DEF: %s\n", mrb_sym_dump(mrb, DEF_NODE_NAME(tree)));
-    if (DEF_NODE_ARGS(tree)) {
-      dump_args(mrb, SDEF_NODE_ARGS(tree), offset+1, lineno);
+    printf("NODE_DEF: %s\n", mrb_sym_dump(mrb, def_node(tree)->name));
+    if (def_node(tree)->args) {
+      dump_args(mrb, sdef_node(tree)->args, offset+1, lineno);
     }
-    if (DEF_NODE_LOCALS(tree)) {
-      dump_locals(mrb, DEF_NODE_LOCALS(tree), offset+1, lineno);
+    if (def_node(tree)->locals) {
+      dump_locals(mrb, def_node(tree)->locals, offset+1, lineno);
     }
-    if (DEF_NODE_BODY(tree)) {
+    if (def_node(tree)->body) {
       dump_prefix(offset+1, lineno);
       printf("body:\n");
-      dump_node(mrb, DEF_NODE_BODY(tree), offset+2);
+      dump_node(mrb, def_node(tree)->body, offset+2);
     }
     break;
 
   case NODE_ASGN:
     printf("NODE_ASGN:\n");
-    if (ASGN_NODE_LHS(tree)) {
+    if (asgn_node(tree)->lhs) {
       dump_prefix(offset+1, lineno);
       printf("lhs:\n");
-      dump_node(mrb, ASGN_NODE_LHS(tree), offset+2);
+      dump_node(mrb, asgn_node(tree)->lhs, offset+2);
     }
-    if (ASGN_NODE_RHS(tree)) {
+    if (asgn_node(tree)->rhs) {
       dump_prefix(offset+1, lineno);
       printf("rhs:\n");
-      dump_node(mrb, ASGN_NODE_RHS(tree), offset+2);
+      dump_node(mrb, asgn_node(tree)->rhs, offset+2);
     }
     break;
 
@@ -7883,93 +7883,93 @@ dump_node(mrb_state *mrb, node *tree, int offset)
   case NODE_MARG:
     printf("%s:\n", get_node_type(tree) == NODE_MASGN ? "NODE_MASGN" : "NODE_MARG");
     /* Handle pre-splat variables */
-    if (MASGN_NODE_PRE(tree)) {
+    if (masgn_node(tree)->pre) {
       dump_prefix(offset+1, lineno);
       printf("pre:\n");
-      dump_recur(mrb, MASGN_NODE_PRE(tree), offset+2);
+      dump_recur(mrb, masgn_node(tree)->pre, offset+2);
     }
     /* Handle splat variable (can be -1 sentinel for anonymous splat) */
-    if (MASGN_NODE_REST(tree)) {
-      if ((intptr_t)MASGN_NODE_REST(tree) == -1) {
+    if (masgn_node(tree)->rest) {
+      if ((intptr_t)masgn_node(tree)->rest == -1) {
         dump_prefix(offset+1, lineno);
         printf("rest: *<anonymous>\n");
       }
       else {
         dump_prefix(offset+1, lineno);
         printf("rest:\n");
-        dump_node(mrb, MASGN_NODE_REST(tree), offset+2);
+        dump_node(mrb, masgn_node(tree)->rest, offset+2);
       }
     }
     /* Handle post-splat variables */
-    if (MASGN_NODE_POST(tree)) {
+    if (masgn_node(tree)->post) {
       dump_prefix(offset+1, lineno);
       printf("post:\n");
-      dump_recur(mrb, MASGN_NODE_POST(tree), offset+2);
+      dump_recur(mrb, masgn_node(tree)->post, offset+2);
     }
-    if (MASGN_NODE_RHS(tree)) {
+    if (masgn_node(tree)->rhs) {
       dump_prefix(offset+1, lineno);
       printf("rhs:\n");
-      dump_node(mrb, MASGN_NODE_RHS(tree), offset+2);
+      dump_node(mrb, masgn_node(tree)->rhs, offset+2);
     }
     break;
 
   case NODE_RETURN:
     printf("NODE_RETURN:\n");
-    if (RETURN_NODE_ARGS(tree)) {
-      dump_node(mrb, RETURN_NODE_ARGS(tree), offset);
+    if (return_node(tree)->args) {
+      dump_node(mrb, return_node(tree)->args, offset);
     }
     break;
 
   case NODE_BREAK:
     printf("NODE_BREAK:\n");
-    if (BREAK_NODE_VALUE(tree)) {
+    if (break_node(tree)->value) {
       dump_prefix(offset+1, lineno);
       printf("value:\n");
-      dump_node(mrb, BREAK_NODE_VALUE(tree), offset+2);
+      dump_node(mrb, break_node(tree)->value, offset+2);
     }
     break;
 
   case NODE_NEXT:
     printf("NODE_NEXT:\n");
-    if (NEXT_NODE_VALUE(tree)) {
+    if (next_node(tree)->value) {
       dump_prefix(offset+1, lineno);
       printf("value:\n");
-      dump_node(mrb, NEXT_NODE_VALUE(tree), offset+2);
+      dump_node(mrb, next_node(tree)->value, offset+2);
     }
     break;
 
   case NODE_NEGATE:
     printf("NODE_NEGATE:\n");
-    if (NEGATE_NODE_OPERAND(tree)) {
+    if (negate_node(tree)->operand) {
       dump_prefix(offset+1, lineno);
       printf("operand:\n");
-      dump_node(mrb, NEGATE_NODE_OPERAND(tree), offset+2);
+      dump_node(mrb, negate_node(tree)->operand, offset+2);
     }
     break;
 
   case NODE_STMTS:
     printf("NODE_STMTS:\n");
-    if (STMTS_NODE_STMTS(tree)) {
-      dump_recur(mrb, STMTS_NODE_STMTS(tree), offset+1);
+    if (stmts_node(tree)->stmts) {
+      dump_recur(mrb, stmts_node(tree)->stmts, offset+1);
     }
     break;
 
   case NODE_BEGIN:
     printf("NODE_BEGIN:\n");
-    if (BEGIN_NODE_BODY(tree)) {
-      dump_node(mrb, BEGIN_NODE_BODY(tree), offset+1);
+    if (begin_node(tree)->body) {
+      dump_node(mrb, begin_node(tree)->body, offset+1);
     }
     break;
 
   case NODE_RESCUE:
     printf("NODE_RESCUE:\n");
-    if (RESCUE_NODE_BODY(tree)) {
+    if (rescue_node(tree)->body) {
       dump_prefix(offset+1, lineno);
       printf("body:\n");
-      dump_node(mrb, RESCUE_NODE_BODY(tree), offset+2);
+      dump_node(mrb, rescue_node(tree)->body, offset+2);
     }
-    if (RESCUE_NODE_RESCUE_CLAUSES(tree)) {
-      node *n2 = RESCUE_NODE_RESCUE_CLAUSES(tree);
+    if (rescue_node(tree)->rescue_clauses) {
+      node *n2 = rescue_node(tree)->rescue_clauses;
       dump_prefix(offset+1, lineno);
       printf("rescue:\n");
       while (n2) {
@@ -7992,24 +7992,24 @@ dump_node(mrb_state *mrb, node *tree, int offset)
         n2 = n2->cdr;
       }
     }
-    if (RESCUE_NODE_ELSE_CLAUSE(tree)) {
+    if (rescue_node(tree)->else_clause) {
       dump_prefix(offset+1, lineno);
       printf("else:\n");
-      dump_node(mrb, RESCUE_NODE_ELSE_CLAUSE(tree), offset+2);
+      dump_node(mrb, rescue_node(tree)->else_clause, offset+2);
     }
     break;
 
   case NODE_ENSURE:
     printf("NODE_ENSURE:\n");
-    if (ENSURE_NODE_BODY(tree)) {
+    if (ensure_node(tree)->body) {
       dump_prefix(offset+1, lineno);
       printf("body:\n");
-      dump_node(mrb, ENSURE_NODE_BODY(tree), offset+2);
+      dump_node(mrb, ensure_node(tree)->body, offset+2);
     }
-    if (ENSURE_NODE_ENSURE_CLAUSE(tree)) {
+    if (ensure_node(tree)->ensure_clause) {
       dump_prefix(offset+1, lineno);
       printf("ensure:\n");
-      dump_node(mrb, ENSURE_NODE_ENSURE_CLAUSE(tree), offset+2);
+      dump_node(mrb, ensure_node(tree)->ensure_clause, offset+2);
     }
     break;
 
@@ -8020,38 +8020,38 @@ dump_node(mrb_state *mrb, node *tree, int offset)
   case NODE_BLOCK:
     printf("NODE_BLOCK:\n");
   block:
-    if (BLOCK_NODE_LOCALS(tree)) {
-      dump_locals(mrb, BLOCK_NODE_LOCALS(tree), offset+1, lineno);
+    if (block_node(tree)->locals) {
+      dump_locals(mrb, block_node(tree)->locals, offset+1, lineno);
     }
-    if (BLOCK_NODE_ARGS(tree)) {
-      dump_args(mrb, BLOCK_NODE_ARGS(tree), offset+1, lineno);
+    if (block_node(tree)->args) {
+      dump_args(mrb, block_node(tree)->args, offset+1, lineno);
     }
     dump_prefix(offset+1, lineno);
     printf("body:\n");
-    dump_node(mrb, BLOCK_NODE_BODY(tree), offset+2);
+    dump_node(mrb, block_node(tree)->body, offset+2);
     break;
 
   case NODE_AND:
     printf("NODE_AND:\n");
-    dump_node(mrb, AND_NODE_LEFT(tree), offset+1);
-    dump_node(mrb, AND_NODE_RIGHT(tree), offset+1);
+    dump_node(mrb, and_node(tree)->left, offset+1);
+    dump_node(mrb, and_node(tree)->right, offset+1);
     break;
 
   case NODE_OR:
     printf("NODE_OR:\n");
-    dump_node(mrb, OR_NODE_LEFT(tree), offset+1);
-    dump_node(mrb, OR_NODE_RIGHT(tree), offset+1);
+    dump_node(mrb, or_node(tree)->left, offset+1);
+    dump_node(mrb, or_node(tree)->right, offset+1);
     break;
 
   case NODE_CASE:
     printf("NODE_CASE:\n");
-    if (CASE_NODE_VALUE(tree)) {
+    if (case_node(tree)->value) {
       dump_prefix(offset+1, lineno);
       printf("value:\n");
-      dump_node(mrb, CASE_NODE_VALUE(tree), offset+2);
+      dump_node(mrb, case_node(tree)->value, offset+2);
     }
-    if (CASE_NODE_BODY(tree)) {
-      node *when_node = CASE_NODE_BODY(tree);
+    if (case_node(tree)->body) {
+      node *when_node = case_node(tree)->body;
       while (when_node) {
         dump_prefix(offset+1, lineno);
         printf("when:\n");
@@ -8086,22 +8086,22 @@ dump_node(mrb_state *mrb, node *tree, int offset)
   dump_loop_node:
     dump_prefix(offset+1, lineno);
     printf("cond:\n");
-    dump_node(mrb, WHILE_NODE_CONDITION(tree), offset+2);
+    dump_node(mrb, while_node(tree)->condition, offset+2);
     dump_prefix(offset+1, lineno);
     printf("body:\n");
-    dump_node(mrb, WHILE_NODE_BODY(tree), offset+2);
+    dump_node(mrb, while_node(tree)->body, offset+2);
     break;
 
   case NODE_FOR:
     printf("NODE_FOR:\n");
-    if (FOR_NODE_VAR(tree)) {
+    if (for_node(tree)->var) {
       dump_prefix(offset+1, lineno);
       printf("var:\n");
       /* FOR_NODE_VAR structure:
        * var_list->car: cons-list of pre-splat variables
        * var_list->cdr->car: splat varnode (not a cons-list)
        * var_list->cdr->cdr->car: cons-list of post-splat variables */
-      node *var_list = FOR_NODE_VAR(tree);
+      node *var_list = for_node(tree)->var;
       if (var_list) {
         dump_recur(mrb, var_list->car, offset+2);
         if (var_list && var_list->cdr) {
@@ -8118,30 +8118,30 @@ dump_node(mrb_state *mrb, node *tree, int offset)
         }
       }
     }
-    if (FOR_NODE_ITERABLE(tree)) {
+    if (for_node(tree)->iterable) {
       dump_prefix(offset+1, lineno);
       printf("iterable:\n");
-      dump_node(mrb, FOR_NODE_ITERABLE(tree), offset+2);
+      dump_node(mrb, for_node(tree)->iterable, offset+2);
     }
-    if (FOR_NODE_BODY(tree)) {
+    if (for_node(tree)->body) {
       dump_prefix(offset+1, lineno);
       printf("body:\n");
-      dump_node(mrb, FOR_NODE_BODY(tree), offset+2);
+      dump_node(mrb, for_node(tree)->body, offset+2);
     }
     break;
 
   case NODE_DOT2:
     printf("NODE_DOT2:\n");
     {
-      if (DOT2_NODE_LEFT(tree)) {
+      if (dot2_node(tree)->left) {
         dump_prefix(offset+1, lineno);
         printf("left:\n");
-        dump_node(mrb, DOT2_NODE_LEFT(tree), offset+2);
+        dump_node(mrb, dot2_node(tree)->left, offset+2);
       }
-      if (DOT2_NODE_RIGHT(tree)) {
+      if (dot2_node(tree)->right) {
         dump_prefix(offset+1, lineno);
         printf("right:\n");
-        dump_node(mrb, DOT2_NODE_RIGHT(tree), offset+2);
+        dump_node(mrb, dot2_node(tree)->right, offset+2);
       }
     }
     break;
@@ -8149,37 +8149,37 @@ dump_node(mrb_state *mrb, node *tree, int offset)
   case NODE_DOT3:
     printf("NODE_DOT3:\n");
     {
-      if (DOT3_NODE_LEFT(tree)) {
+      if (dot3_node(tree)->left) {
         dump_prefix(offset+1, lineno);
         printf("left:\n");
-        dump_node(mrb, DOT3_NODE_LEFT(tree), offset+2);
+        dump_node(mrb, dot3_node(tree)->left, offset+2);
       }
-      if (DOT3_NODE_RIGHT(tree)) {
+      if (dot3_node(tree)->right) {
         dump_prefix(offset+1, lineno);
         printf("right:\n");
-        dump_node(mrb, DOT3_NODE_RIGHT(tree), offset+2);
+        dump_node(mrb, dot3_node(tree)->right, offset+2);
       }
     }
     break;
 
   case NODE_COLON2:
     printf("NODE_COLON2:\n");
-    if (COLON2_NODE_BASE(tree)) {
+    if (colon2_node(tree)->base) {
       dump_prefix(offset+1, lineno);
       printf("base:\n");
-      dump_node(mrb, COLON2_NODE_BASE(tree), offset+2);
+      dump_node(mrb, colon2_node(tree)->base, offset+2);
     }
     dump_prefix(offset+1, lineno);
-    printf("name: %s\n", mrb_sym_name(mrb, COLON2_NODE_NAME(tree)));
+    printf("name: %s\n", mrb_sym_name(mrb, colon2_node(tree)->name));
     break;
 
   case NODE_COLON3:
-    printf("NODE_COLON3: ::%s\n", mrb_sym_name(mrb, COLON3_NODE_NAME(tree)));
+    printf("NODE_COLON3: ::%s\n", mrb_sym_name(mrb, colon3_node(tree)->name));
     break;
 
   case NODE_HASH:
     printf("NODE_HASH:\n");
-    node *pairs = HASH_NODE_PAIRS(tree);
+    node *pairs = hash_node(tree)->pairs;
     while (pairs) {
       dump_prefix(offset+1, lineno);
       printf("key:\n");
@@ -8199,37 +8199,37 @@ dump_node(mrb_state *mrb, node *tree, int offset)
 
   case NODE_SPLAT:
     printf("NODE_SPLAT:\n");
-    dump_node(mrb, SPLAT_NODE_VALUE(tree), offset+1);
+    dump_node(mrb, splat_node(tree)->value, offset+1);
     break;
 
   case NODE_OP_ASGN:
     printf("NODE_OP_ASGN:\n");
     dump_prefix(offset+1, lineno);
     printf("lhs:\n");
-    dump_node(mrb, OP_ASGN_NODE_LHS(tree), offset+2);
+    dump_node(mrb, op_asgn_node(tree)->lhs, offset+2);
     dump_prefix(offset+1, lineno);
-    printf("op='%s' (%d)\n", mrb_sym_name(mrb, OP_ASGN_NODE_OP(tree)), (int)OP_ASGN_NODE_OP(tree));
-    dump_node(mrb, OP_ASGN_NODE_RHS(tree), offset+1);
+    printf("op='%s' (%d)\n", mrb_sym_name(mrb, op_asgn_node(tree)->op), (int)op_asgn_node(tree)->op);
+    dump_node(mrb, op_asgn_node(tree)->rhs, offset+1);
     break;
 
   case NODE_SUPER:
     printf("NODE_SUPER:\n");
-    if (SUPER_NODE_ARGS(tree)) {
-      dump_callargs(mrb, SUPER_NODE_ARGS(tree), offset, lineno);
+    if (super_node(tree)->args) {
+      dump_callargs(mrb, super_node(tree)->args, offset, lineno);
     }
     break;
 
   case NODE_ZSUPER:
     printf("NODE_ZSUPER:\n");
-    if (SUPER_NODE_ARGS(tree)) {
-      dump_callargs(mrb, SUPER_NODE_ARGS(tree), offset, lineno);
+    if (super_node(tree)->args) {
+      dump_callargs(mrb, super_node(tree)->args, offset, lineno);
     }
     break;
 
   case NODE_YIELD:
     printf("NODE_YIELD:\n");
-    if (YIELD_NODE_ARGS(tree)) {
-      dump_callargs(mrb, YIELD_NODE_ARGS(tree), offset, lineno);
+    if (yield_node(tree)->args) {
+      dump_callargs(mrb, yield_node(tree)->args, offset, lineno);
     }
     break;
 
@@ -8256,23 +8256,23 @@ dump_node(mrb_state *mrb, node *tree, int offset)
 
   case NODE_REGX:
     printf("NODE_REGX:\n");
-    if (REGX_NODE_LIST(tree)) {
-      dump_str(mrb, REGX_NODE_LIST(tree), offset+1, lineno);
+    if (regx_node(tree)->list) {
+      dump_str(mrb, regx_node(tree)->list, offset+1, lineno);
     }
-    if (REGX_NODE_FLAGS(tree)) {
+    if (regx_node(tree)->flags) {
       dump_prefix(offset+1, lineno);
-      printf("flags: %s\n", REGX_NODE_FLAGS(tree));
+      printf("flags: %s\n", regx_node(tree)->flags);
     }
-    if (REGX_NODE_ENCODING(tree)) {
+    if (regx_node(tree)->encoding) {
       dump_prefix(offset+1, lineno);
-      printf("encoding: %s\n", REGX_NODE_ENCODING(tree));
+      printf("encoding: %s\n", regx_node(tree)->encoding);
     }
     break;
 
   case NODE_WORDS:
     printf("NODE_WORDS:\n");
-    if (WORDS_NODE_ARGS(tree)) {
-      node *list = WORDS_NODE_ARGS(tree);
+    if (words_node(tree)->args) {
+      node *list = words_node(tree)->args;
       while (list && list->car) {
         node *item = list->car;
         if (item->car == 0 && item->cdr == 0) {
@@ -8293,8 +8293,8 @@ dump_node(mrb_state *mrb, node *tree, int offset)
 
   case NODE_SYMBOLS:
     printf("NODE_SYMBOLS:\n");
-    if (SYMBOLS_NODE_ARGS(tree)) {
-      node *list = SYMBOLS_NODE_ARGS(tree);
+    if (symbols_node(tree)->args) {
+      node *list = symbols_node(tree)->args;
       while (list && list->car) {
         node *item = list->car;
         if (item->car == 0 && item->cdr == 0) {
@@ -8332,64 +8332,64 @@ dump_node(mrb_state *mrb, node *tree, int offset)
 
   case NODE_CLASS:
     printf("NODE_CLASS:\n");
-    if (CLASS_NODE_NAME(tree)) {
-      dump_cpath(mrb, MODULE_NODE_NAME(tree), offset+1, lineno);
+    if (class_node(tree)->name) {
+      dump_cpath(mrb, module_node(tree)->name, offset+1, lineno);
     }
-    if (CLASS_NODE_SUPERCLASS(tree)) {
+    if (class_node(tree)->superclass) {
       dump_prefix(offset+1, lineno);
       printf("super:\n");
-      dump_node(mrb, CLASS_NODE_SUPERCLASS(tree), offset+2);
+      dump_node(mrb, class_node(tree)->superclass, offset+2);
     }
-    if (CLASS_NODE_BODY(tree)) {
+    if (class_node(tree)->body) {
       dump_prefix(offset+1, lineno);
       printf("body:\n");
-      dump_node(mrb, CLASS_NODE_BODY(tree)->cdr, offset+2);
+      dump_node(mrb, class_node(tree)->body->cdr, offset+2);
     }
     break;
 
   case NODE_MODULE:
     printf("NODE_MODULE:\n");
-    if (MODULE_NODE_NAME(tree)) {
-      dump_cpath(mrb, MODULE_NODE_NAME(tree), offset+1, lineno);
+    if (module_node(tree)->name) {
+      dump_cpath(mrb, module_node(tree)->name, offset+1, lineno);
     }
-    if (MODULE_NODE_BODY(tree)) {
+    if (module_node(tree)->body) {
       dump_prefix(offset+1, lineno);
       printf("body:\n");
-      dump_node(mrb, MODULE_NODE_BODY(tree)->cdr, offset+2);
+      dump_node(mrb, module_node(tree)->body->cdr, offset+2);
     }
     break;
 
   case NODE_SCLASS:
     printf("NODE_SCLASS:\n");
-    if (SCLASS_NODE_OBJ(tree)) {
+    if (sclass_node(tree)->obj) {
       dump_prefix(offset+1, lineno);
       printf("obj:\n");
-      dump_node(mrb, SCLASS_NODE_OBJ(tree), offset+2);
+      dump_node(mrb, sclass_node(tree)->obj, offset+2);
     }
-    if (SCLASS_NODE_BODY(tree)) {
+    if (sclass_node(tree)->body) {
       dump_prefix(offset+1, lineno);
       printf("body:\n");
-      dump_node(mrb, SCLASS_NODE_BODY(tree)->cdr, offset+2);
+      dump_node(mrb, sclass_node(tree)->body->cdr, offset+2);
     }
     break;
 
   case NODE_SDEF:
-    printf("NODE_SDEF: %s\n", mrb_sym_dump(mrb, DEF_NODE_NAME(tree)));
-    if (SDEF_NODE_OBJ(tree)) {
+    printf("NODE_SDEF: %s\n", mrb_sym_dump(mrb, def_node(tree)->name));
+    if (sdef_node(tree)->obj) {
       dump_prefix(offset+1, lineno);
       printf("recv:\n");
-      dump_node(mrb, SDEF_NODE_OBJ(tree), offset+2);
+      dump_node(mrb, sdef_node(tree)->obj, offset+2);
     }
-    if (SDEF_NODE_ARGS(tree)) {
-      dump_args(mrb, SDEF_NODE_ARGS(tree), offset+1, lineno);
+    if (sdef_node(tree)->args) {
+      dump_args(mrb, sdef_node(tree)->args, offset+1, lineno);
     }
-    if (SDEF_NODE_LOCALS(tree)) {
-      dump_locals(mrb, SDEF_NODE_LOCALS(tree), offset+1, lineno);
+    if (sdef_node(tree)->locals) {
+      dump_locals(mrb, sdef_node(tree)->locals, offset+1, lineno);
     }
-    if (SDEF_NODE_BODY(tree)) {
+    if (sdef_node(tree)->body) {
       dump_prefix(offset+1, lineno);
       printf("body:\n");
-      dump_node(mrb, SDEF_NODE_BODY(tree), offset+2);
+      dump_node(mrb, sdef_node(tree)->body, offset+2);
     }
     break;
 
