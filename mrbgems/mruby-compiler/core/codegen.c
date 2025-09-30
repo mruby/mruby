@@ -2677,19 +2677,20 @@ gen_values(codegen_scope *s, node *t, int val, int limit)
      *   as normal positional args to avoid building/concatenating arrays.
      */
     if (is_splat) {
-      node *sv = SPLAT_NODE_VALUE(t->car);
+      struct mrb_ast_splat_node *splat = splat_node(t->car);
+      node *sv = splat->value;
       if (sv) {
         enum node_type nt = get_node_type(sv);
         if (nt == NODE_ARRAY) {
           struct mrb_ast_array_node *an = array_node(sv);
-          if (ARRAY_NODE_ELEMENTS(an) == NULL) {
+          if (an->elements == NULL) {
             /* empty splat; contributes nothing */
             t = t->cdr;
             continue;
           }
-          else if (nosplat(ARRAY_NODE_ELEMENTS(an))) {
+          else if (nosplat(an->elements)) {
             /* Inline non-empty literal array elements as regular args */
-            node *e = ARRAY_NODE_ELEMENTS(an);
+            node *e = an->elements;
             while (e) {
               /* Honor evaluation order */
               codegen(s, e->car, val);
@@ -3237,7 +3238,7 @@ static void
 codegen_hash(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_hash_node *hash = hash_node(varnode);
-  node *pairs = HASH_NODE_PAIRS(hash);
+  node *pairs = hash->pairs;
   int regular_pairs = 0;
   mrb_bool update = FALSE;
   mrb_bool first = TRUE;
@@ -3410,10 +3411,10 @@ static void
 codegen_call(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_call_node *call = call_node(varnode);
-  mrb_sym sym = CALL_NODE_METHOD(call);
+  mrb_sym sym = call->method_name;
   int skip = 0, n = 0, nk = 0, noop = no_optimize(s), noself = 0, blk = 0, sp_save = cursp();
   enum mrb_insn opt_op = OP_NOP;
-  int safe = CALL_NODE_SAFE(call);
+  int safe = call->safe_call;
   node *args = call->args;
 
   if (!noop) {
@@ -3679,7 +3680,7 @@ static void
 codegen_array(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_array_node *array = array_node(varnode);
-  node *elements = ARRAY_NODE_ELEMENTS(array);
+  node *elements = array->elements;
   int regular_elements = 0;
   int first = 1;
   int slimit = GEN_VAL_STACK_MAX;
@@ -3702,12 +3703,13 @@ codegen_array(codegen_scope *s, node *varnode, int val)
 
     /* Skip splat of an empty literal array: [*[]] => [] without ARYCAT noise */
     if (is_splat) {
-      node *sv = SPLAT_NODE_VALUE(element);
+      struct mrb_ast_splat_node *splat = splat_node(element);
+      node *sv = splat->value;
       if (sv) {
         enum node_type nt = get_node_type(sv);
         if (nt == NODE_ARRAY) {
           struct mrb_ast_array_node *an = array_node(sv);
-          if (ARRAY_NODE_ELEMENTS(an) == NULL) {
+          if (an->elements == NULL) {
             current = current->cdr;
             continue;
           }
@@ -4049,9 +4051,9 @@ static void
 codegen_for(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_for_node *for_n = for_node(varnode);
-  node *var = FOR_NODE_VAR(for_n);
-  node *iterable = FOR_NODE_ITERABLE(for_n);
-  node *body = FOR_NODE_BODY(for_n);
+  node *var = for_n->var;
+  node *iterable = for_n->iterable;
+  node *body = for_n->body;
 
   codegen_scope *prev = s;
   int idx;
@@ -4284,9 +4286,9 @@ static void
 codegen_class(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_class_node *class_n = class_node(varnode);
-  node *name = CLASS_NODE_NAME(class_n);
-  node *superclass = CLASS_NODE_SUPERCLASS(class_n);
-  node *body = CLASS_NODE_BODY(class_n);
+  node *name = class_n->name;
+  node *superclass = class_n->superclass;
+  node *body = class_n->body;
   int idx;
 
   /* Handle class namespace */
@@ -4319,8 +4321,8 @@ static void
 codegen_module(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_module_node *module_n = module_node(varnode);
-  node *name = MODULE_NODE_NAME(module_n);
-  node *body = MODULE_NODE_BODY(module_n);
+  node *name = module_n->name;
+  node *body = module_n->body;
   int idx;
 
   /* Handle module namespace */
@@ -4343,8 +4345,8 @@ static void
 codegen_sclass(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_sclass_node *sclass_n = sclass_node(varnode);
-  node *obj = SCLASS_NODE_OBJ(sclass_n);
-  node *body = SCLASS_NODE_BODY(sclass_n);
+  node *obj = sclass_n->obj;
+  node *body = sclass_n->body;
 
   /* Generate code for the singleton object */
   codegen(s, obj, VAL);
@@ -4654,7 +4656,7 @@ static void
 codegen_return(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_return_node *return_n = return_node(varnode);
-  node *args = RETURN_NODE_ARGS(return_n);
+  node *args = return_n->args;
 
   if (args) {
     gen_retval(s, args);
@@ -4676,7 +4678,7 @@ static void
 codegen_yield(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_yield_node *yield_n = yield_node(varnode);
-  node *args = YIELD_NODE_ARGS(yield_n);
+  node *args = yield_n->args;
   codegen_scope *s2 = s;
   int lv = 0, ainfo = -1;
   int n = 0, nk = 0, sendv = 0;
