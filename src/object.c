@@ -789,10 +789,23 @@ mrb_check_array_type(mrb_state *mrb, mrb_value ary)
 MRB_API mrb_value
 mrb_ensure_hash_type(mrb_state *mrb, mrb_value hash)
 {
-  if (!mrb_hash_p(hash)) {
+  if (mrb_hash_p(hash)) {
+    return hash;
+  }
+
+  if (!mrb_respond_to(mrb, hash, MRB_SYM(to_hash))) {
     mrb_raisef(mrb, E_TYPE_ERROR, "%Y cannot be converted to Hash", hash);
   }
-  return hash;
+
+  mrb_value conv = mrb_funcall_argv(mrb, hash, MRB_SYM(to_hash), 0, NULL);
+
+  if (!mrb_hash_p(conv)) {
+    mrb_raisef(mrb, E_TYPE_ERROR,
+               "can't convert %Y to Hash (%Y#to_hash gives %Y)", hash, hash,
+               conv);
+    return mrb_nil_value(); // unreachable
+  }
+  return conv;
 }
 
 /*
