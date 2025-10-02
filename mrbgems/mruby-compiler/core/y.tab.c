@@ -14938,21 +14938,23 @@ dump_node(mrb_state *mrb, node *tree, int offset)
 
   case NODE_HASH:
     printf("NODE_HASH:\n");
-    node *pairs = hash_node(tree)->pairs;
-    while (pairs) {
-      dump_prefix(offset+1, lineno);
-      printf("key:\n");
-      if (node_to_sym(pairs->car->car) == MRB_OPSYM(pow)) {
-        dump_prefix(offset+2, lineno);
-        printf("**\n");
+    {
+      node *pairs = hash_node(tree)->pairs;
+      while (pairs) {
+        dump_prefix(offset+1, lineno);
+        printf("key:\n");
+        if (node_to_sym(pairs->car->car) == MRB_OPSYM(pow)) {
+          dump_prefix(offset+2, lineno);
+          printf("**\n");
+        }
+        else {
+          dump_node(mrb, pairs->car->car, offset+2);
+        }
+        dump_prefix(offset+1, lineno);
+        printf("value:\n");
+        dump_node(mrb, pairs->car->cdr, offset+2);
+        pairs = pairs->cdr;
       }
-      else {
-        dump_node(mrb, pairs->car->car, offset+2);
-      }
-      dump_prefix(offset+1, lineno);
-      printf("value:\n");
-      dump_node(mrb, pairs->car->cdr, offset+2);
-      pairs = pairs->cdr;
     }
     break;
 
