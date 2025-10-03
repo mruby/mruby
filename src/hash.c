@@ -368,7 +368,7 @@ mrb_obj_hash_code(mrb_state *mrb, mrb_value key)
 static uint32_t
 obj_hash_code(mrb_state *mrb, mrb_value key, struct RHash *h)
 {
-  uint32_t hash_code;
+  uint32_t hash_code = 0;
 
   H_CHECK_MODIFIED(mrb, h) {
     hash_code = mrb_obj_hash_code(mrb, key);
@@ -379,7 +379,7 @@ obj_hash_code(mrb_state *mrb, mrb_value key, struct RHash *h)
 static mrb_bool
 obj_eql(mrb_state *mrb, mrb_value a, mrb_value b, struct RHash *h)
 {
-  mrb_bool eql;
+  mrb_bool eql = FALSE;
 
   switch (mrb_type(a)) {
   case MRB_TT_STRING:
