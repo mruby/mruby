@@ -456,42 +456,136 @@ mrb_task_hal_idle_cpu(mrb_state *mrb)
 static mrb_value
 mrb_task_s_new(mrb_state *mrb, mrb_value self)
 {
-  /* TODO: Implement Task.new */
-  return mrb_nil_value();
+  mrb_value blk;
+  mrb_value name_val = mrb_nil_value();
+  mrb_int priority = 128;  /* Default middle priority */
+  const struct RProc *proc;
+  mrb_task *t;
+  mrb_value task_obj;
+  mrb_value *kw_vals;
+  const mrb_sym *kw_names;
+  mrb_int kw_num;
+
+  /* Get block and optional keyword arguments */
+  mrb_get_args(mrb, "&|**", &blk, &kw_names, &kw_vals, &kw_num);
+
+  if (mrb_nil_p(blk)) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "tried to create task without a block");
+  }
+
+  proc = mrb_proc_ptr(blk);
+
+  /* Parse keyword arguments */
+  for (mrb_int i = 0; i < kw_num; i++) {
+    if (kw_names[i] == mrb_intern_lit(mrb, "name")) {
+      name_val = kw_vals[i];
+    }
+    else if (kw_names[i] == mrb_intern_lit(mrb, "priority")) {
+      priority = mrb_integer(kw_vals[i]);
+      if (priority < 0 || priority > 255) {
+        mrb_raise(mrb, E_ARGUMENT_ERROR, "priority must be 0-255");
+      }
+    }
+  }
+
+  /* Allocate and initialize task */
+  t = task_alloc(mrb);
+  t->priority = (uint8_t)priority;
+  t->priority_preemption = (uint8_t)priority;
+  t->status = MRB_TASKSTATUS_READY;
+  t->reason = MRB_TASKREASON_NONE;
+  t->name = name_val;
+
+  /* Create Ruby object to hold task */
+  task_obj = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_get(mrb, "Task"),
+                                                  t, &mrb_task_type));
+  t->self = task_obj;
+
+  /* Initialize task context */
+  task_init_context(mrb, t, proc);
+
+  /* Insert into ready queue */
+  mrb_task_disable_irq();
+  q_insert_task(mrb, t);
+  mrb_task_enable_irq();
+
+  /* Trigger context switch if this task has higher priority than current */
+  if (q_ready_ && q_ready_->status == MRB_TASKSTATUS_RUNNING) {
+    if (t->priority < q_ready_->priority) {
+      switching_ = TRUE;
+    }
+  }
+
+  return task_obj;
 }
 
 static mrb_value
 mrb_task_s_current(mrb_state *mrb, mrb_value self)
 {
-  /* TODO: Implement Task.current */
+  mrb_task *t = q_ready_;
+
+  if (t && t->status == MRB_TASKSTATUS_RUNNING) {
+    return t->self;
+  }
+
   return mrb_nil_value();
 }
 
 static mrb_value
 mrb_task_s_list(mrb_state *mrb, mrb_value self)
 {
-  /* TODO: Implement Task.list */
-  return mrb_ary_new(mrb);
+  mrb_value ary = mrb_ary_new(mrb);
+
+  /* Iterate all queues and collect tasks */
+  for (int i = 0; i < MRB_NUM_TASK_QUEUE; i++) {
+    mrb_task *t = mrb->task.queues[i];
+    while (t != NULL) {
+      mrb_ary_push(mrb, ary, t->self);
+      t = t->next;
+    }
+  }
+
+  return ary;
 }
 
 static mrb_value
 mrb_task_s_pass(mrb_state *mrb, mrb_value self)
 {
-  /* TODO: Implement Task.pass */
+  /* Yield to other tasks by triggering a context switch */
+  mrb_task *t = q_ready_;
+
+  if (t && t->status == MRB_TASKSTATUS_RUNNING) {
+    switching_ = TRUE;
+  }
+
   return mrb_nil_value();
 }
 
 static mrb_value
 mrb_task_s_stat(mrb_state *mrb, mrb_value self)
 {
-  /* TODO: Implement Task.stat */
+  /* TODO: Implement Task::Stat class with statistics */
   return mrb_nil_value();
 }
 
 static mrb_value
 mrb_task_s_get(mrb_state *mrb, mrb_value self)
 {
-  /* TODO: Implement Task.get */
+  mrb_value name;
+
+  mrb_get_args(mrb, "o", &name);
+
+  /* Search all queues for task with matching name */
+  for (int i = 0; i < MRB_NUM_TASK_QUEUE; i++) {
+    mrb_task *t = mrb->task.queues[i];
+    while (t != NULL) {
+      if (mrb_equal(mrb, t->name, name)) {
+        return t->self;
+      }
+      t = t->next;
+    }
+  }
+
   return mrb_nil_value();
 }
 
@@ -502,64 +596,259 @@ mrb_task_s_get(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_task_status(mrb_state *mrb, mrb_value self)
 {
-  /* TODO: Implement Task#status */
-  return mrb_nil_value();
+  mrb_task *t;
+  mrb_sym status_sym;
+
+  t = (mrb_task*)mrb_data_get_ptr(mrb, self, &mrb_task_type);
+  if (!t) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid task");
+  }
+
+  /* Convert status to symbol */
+  switch (t->status) {
+    case MRB_TASKSTATUS_DORMANT:
+      status_sym = mrb_intern_lit(mrb, "DORMANT");
+      break;
+    case MRB_TASKSTATUS_READY:
+      status_sym = mrb_intern_lit(mrb, "READY");
+      break;
+    case MRB_TASKSTATUS_RUNNING:
+      status_sym = mrb_intern_lit(mrb, "RUNNING");
+      break;
+    case MRB_TASKSTATUS_WAITING:
+      status_sym = mrb_intern_lit(mrb, "WAITING");
+      break;
+    case MRB_TASKSTATUS_SUSPENDED:
+      status_sym = mrb_intern_lit(mrb, "SUSPENDED");
+      break;
+    default:
+      status_sym = mrb_intern_lit(mrb, "UNKNOWN");
+      break;
+  }
+
+  return mrb_symbol_value(status_sym);
 }
 
 static mrb_value
 mrb_task_name(mrb_state *mrb, mrb_value self)
 {
-  /* TODO: Implement Task#name */
-  return mrb_nil_value();
+  mrb_task *t;
+
+  t = (mrb_task*)mrb_data_get_ptr(mrb, self, &mrb_task_type);
+  if (!t) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid task");
+  }
+
+  return t->name;
 }
 
 static mrb_value
 mrb_task_set_name(mrb_state *mrb, mrb_value self)
 {
-  /* TODO: Implement Task#name= */
-  return mrb_nil_value();
+  mrb_task *t;
+  mrb_value name;
+
+  t = (mrb_task*)mrb_data_get_ptr(mrb, self, &mrb_task_type);
+  if (!t) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid task");
+  }
+
+  mrb_get_args(mrb, "o", &name);
+  t->name = name;
+
+  return name;
 }
 
 static mrb_value
 mrb_task_priority(mrb_state *mrb, mrb_value self)
 {
-  /* TODO: Implement Task#priority */
-  return mrb_nil_value();
+  mrb_task *t;
+
+  t = (mrb_task*)mrb_data_get_ptr(mrb, self, &mrb_task_type);
+  if (!t) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid task");
+  }
+
+  return mrb_fixnum_value(t->priority);
 }
 
 static mrb_value
 mrb_task_set_priority(mrb_state *mrb, mrb_value self)
 {
-  /* TODO: Implement Task#priority= */
-  return mrb_nil_value();
+  mrb_task *t;
+  mrb_int priority;
+
+  t = (mrb_task*)mrb_data_get_ptr(mrb, self, &mrb_task_type);
+  if (!t) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid task");
+  }
+
+  mrb_get_args(mrb, "i", &priority);
+
+  if (priority < 0 || priority > 255) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "priority must be 0-255");
+  }
+
+  mrb_task_disable_irq();
+  t->priority = (uint8_t)priority;
+  t->priority_preemption = (uint8_t)priority;
+
+  /* Re-sort in queue if task is ready */
+  if (t->status == MRB_TASKSTATUS_READY || t->status == MRB_TASKSTATUS_RUNNING) {
+    q_delete_task(mrb, t);
+    q_insert_task(mrb, t);
+  }
+  mrb_task_enable_irq();
+
+  return mrb_fixnum_value(priority);
 }
 
 static mrb_value
 mrb_task_suspend(mrb_state *mrb, mrb_value self)
 {
-  /* TODO: Implement Task#suspend */
+  mrb_task *t;
+
+  t = (mrb_task*)mrb_data_get_ptr(mrb, self, &mrb_task_type);
+  if (!t) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid task");
+  }
+
+  /* Can only suspend ready or running tasks */
+  if (t->status != MRB_TASKSTATUS_READY && t->status != MRB_TASKSTATUS_RUNNING) {
+    return self;
+  }
+
+  mrb_task_disable_irq();
+  q_delete_task(mrb, t);
+  t->status = MRB_TASKSTATUS_SUSPENDED;
+  q_insert_task(mrb, t);
+  mrb_task_enable_irq();
+
+  /* If suspending self, trigger context switch */
+  if (t == q_ready_ || t->status == MRB_TASKSTATUS_RUNNING) {
+    switching_ = TRUE;
+  }
+
   return self;
 }
 
 static mrb_value
 mrb_task_resume(mrb_state *mrb, mrb_value self)
 {
-  /* TODO: Implement Task#resume */
+  mrb_task *t;
+
+  t = (mrb_task*)mrb_data_get_ptr(mrb, self, &mrb_task_type);
+  if (!t) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid task");
+  }
+
+  /* Can only resume suspended tasks */
+  if (t->status != MRB_TASKSTATUS_SUSPENDED) {
+    return self;
+  }
+
+  mrb_task_disable_irq();
+  q_delete_task(mrb, t);
+  t->status = MRB_TASKSTATUS_READY;
+  q_insert_task(mrb, t);
+  mrb_task_enable_irq();
+
+  /* Trigger context switch if resumed task has higher priority */
+  if (q_ready_ && q_ready_->status == MRB_TASKSTATUS_RUNNING) {
+    if (t->priority < q_ready_->priority) {
+      switching_ = TRUE;
+    }
+  }
+
   return self;
 }
 
 static mrb_value
 mrb_task_terminate(mrb_state *mrb, mrb_value self)
 {
-  /* TODO: Implement Task#terminate */
+  mrb_task *t;
+
+  t = (mrb_task*)mrb_data_get_ptr(mrb, self, &mrb_task_type);
+  if (!t) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid task");
+  }
+
+  /* Don't terminate already dormant tasks */
+  if (t->status == MRB_TASKSTATUS_DORMANT) {
+    return self;
+  }
+
+  mrb_task_disable_irq();
+
+  /* Move to dormant queue */
+  q_delete_task(mrb, t);
+  t->status = MRB_TASKSTATUS_DORMANT;
+  t->c.status = MRB_TASK_STOPPED;
+  q_insert_task(mrb, t);
+
+  /* Wake up tasks waiting on join */
+  mrb_task *curr = q_waiting_;
+  while (curr != NULL) {
+    mrb_task *next = curr->next;
+    if (curr->reason == MRB_TASKREASON_JOIN && curr->join == t) {
+      q_delete_task(mrb, curr);
+      curr->status = MRB_TASKSTATUS_READY;
+      curr->reason = MRB_TASKREASON_NONE;
+      curr->join = NULL;
+      q_insert_task(mrb, curr);
+    }
+    curr = next;
+  }
+
+  mrb_task_enable_irq();
+
+  /* If terminating self, trigger context switch */
+  if (t == q_ready_) {
+    switching_ = TRUE;
+  }
+
   return self;
 }
 
 static mrb_value
 mrb_task_join(mrb_state *mrb, mrb_value self)
 {
-  /* TODO: Implement Task#join */
-  return self;
+  mrb_task *t, *current;
+
+  t = (mrb_task*)mrb_data_get_ptr(mrb, self, &mrb_task_type);
+  if (!t) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid task");
+  }
+
+  /* Get current task */
+  current = q_ready_;
+  if (!current || current->status != MRB_TASKSTATUS_RUNNING) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "join can only be called from running task");
+  }
+
+  /* Can't join self */
+  if (t == current) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "can't join self");
+  }
+
+  /* If task is already dormant, return immediately */
+  if (t->status == MRB_TASKSTATUS_DORMANT) {
+    return t->result;
+  }
+
+  /* Wait for task to complete */
+  mrb_task_disable_irq();
+  q_delete_task(mrb, current);
+  current->status = MRB_TASKSTATUS_WAITING;
+  current->reason = MRB_TASKREASON_JOIN;
+  current->join = t;
+  q_insert_task(mrb, current);
+  mrb_task_enable_irq();
+
+  /* Trigger context switch */
+  switching_ = TRUE;
+
+  return t->result;
 }
 
 /*
