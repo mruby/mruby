@@ -45,25 +45,90 @@ static const struct mrb_data_type mrb_task_type = {
  * Queue operations
  */
 
-/* Insert task into appropriate queue based on priority */
-static void
-q_insert_task(mrb_state *mrb, mrb_task *tcb)
+/* Get queue head pointer based on task status */
+static mrb_task**
+q_get_queue(mrb_state *mrb, mrb_task *t)
 {
-  /* TODO: Implement priority-based insertion */
+  switch (t->status) {
+    case MRB_TASKSTATUS_DORMANT:
+      return &q_dormant_;
+    case MRB_TASKSTATUS_READY:
+    case MRB_TASKSTATUS_RUNNING:
+      return &q_ready_;
+    case MRB_TASKSTATUS_WAITING:
+      return &q_waiting_;
+    case MRB_TASKSTATUS_SUSPENDED:
+      return &q_suspended_;
+    default:
+      return &q_dormant_;
+  }
+}
+
+/* Insert task into queue based on priority (higher priority = lower number = earlier in queue) */
+static void
+q_insert_task(mrb_state *mrb, mrb_task *t)
+{
+  mrb_task **q = q_get_queue(mrb, t);
+  mrb_task *curr = *q;
+  mrb_task *prev = NULL;
+
+  /* Find insertion point - insert before first task with lower priority */
+  while (curr != NULL && curr->priority_preemption <= t->priority_preemption) {
+    prev = curr;
+    curr = curr->next;
+  }
+
+  /* Insert task */
+  t->next = curr;
+  if (prev == NULL) {
+    *q = t;  /* Insert at head */
+  }
+  else {
+    prev->next = t;  /* Insert after prev */
+  }
 }
 
 /* Delete task from its current queue */
 static void
-q_delete_task(mrb_state *mrb, mrb_task *tcb)
+q_delete_task(mrb_state *mrb, mrb_task *t)
 {
-  /* TODO: Implement queue deletion */
+  mrb_task **q = q_get_queue(mrb, t);
+  mrb_task *curr = *q;
+  mrb_task *prev = NULL;
+
+  /* Find and remove task */
+  while (curr != NULL) {
+    if (curr == t) {
+      if (prev == NULL) {
+        *q = curr->next;  /* Remove from head */
+      }
+      else {
+        prev->next = curr->next;  /* Remove from middle/end */
+      }
+      t->next = NULL;
+      return;
+    }
+    prev = curr;
+    curr = curr->next;
+  }
 }
 
-/* Find task in queues */
+/* Find task in all queues */
 static mrb_task*
-q_find_task(mrb_state *mrb, mrb_task *tcb)
+q_find_task(mrb_state *mrb, mrb_task *t)
 {
-  /* TODO: Implement task search */
+  mrb_task *curr;
+  int i;
+
+  for (i = 0; i < MRB_NUM_TASK_QUEUE; i++) {
+    curr = mrb->task.queues[i];
+    while (curr != NULL) {
+      if (curr == t) {
+        return curr;
+      }
+      curr = curr->next;
+    }
+  }
   return NULL;
 }
 
@@ -75,22 +140,70 @@ q_find_task(mrb_state *mrb, mrb_task *tcb)
 static mrb_task*
 task_alloc(mrb_state *mrb)
 {
-  /* TODO: Allocate and initialize task */
-  return NULL;
+  mrb_task *t = (mrb_task*)mrb_malloc(mrb, sizeof(mrb_task));
+  memset(t, 0, sizeof(mrb_task));
+  return t;
 }
 
 /* Free task and context */
 static void
 task_free(mrb_state *mrb, mrb_task *t)
 {
-  /* TODO: Free task and associated context */
+  if (t->c.stbase) {
+    mrb_free(mrb, t->c.stbase);
+  }
+  if (t->c.cibase) {
+    mrb_free(mrb, t->c.cibase);
+  }
+  mrb_free(mrb, t);
 }
 
-/* Initialize task context (stack and callinfo) */
+/* Initialize task context (stack and callinfo) - similar to Fiber */
 static void
-mrb_task_init_context(mrb_state *mrb, mrb_value task, struct RProc *proc)
+task_init_context(mrb_state *mrb, mrb_task *t, const struct RProc *proc)
 {
-  /* TODO: Allocate and initialize context similar to Fiber */
+  static const struct mrb_context mrb_context_zero = { 0 };
+  struct mrb_context *c = &t->c;
+
+  *c = mrb_context_zero;
+
+  /* Initialize VM stack */
+  size_t slen = TASK_STACK_INIT_SIZE;
+  if (proc->body.irep->nregs > slen) {
+    slen += proc->body.irep->nregs;
+  }
+  c->stbase = (mrb_value*)mrb_malloc(mrb, slen * sizeof(mrb_value));
+  c->stend = c->stbase + slen;
+
+  /* Initialize stack values to nil */
+  {
+    mrb_value *s = c->stbase + 1;
+    mrb_value *send = c->stend;
+    while (s < send) {
+      SET_NIL_VALUE(*s);
+      s++;
+    }
+  }
+
+  /* Copy receiver from current context */
+  c->stbase[0] = mrb->c->ci->stack[0];
+
+  /* Initialize callinfo stack */
+  static const mrb_callinfo ci_zero = { 0 };
+  c->cibase = (mrb_callinfo*)mrb_malloc(mrb, TASK_CI_INIT_SIZE * sizeof(mrb_callinfo));
+  c->ciend = c->cibase + TASK_CI_INIT_SIZE;
+  c->ci = c->cibase;
+  c->cibase[0] = ci_zero;
+
+  /* Setup callinfo */
+  mrb_callinfo *ci = c->ci;
+  mrb_vm_ci_target_class_set(ci, MRB_PROC_TARGET_CLASS(proc));
+  mrb_vm_ci_proc_set(ci, proc);
+  ci->stack = c->stbase;
+  ci[1] = ci[0];
+  c->ci++;  /* Push dummy callinfo */
+
+  c->status = MRB_TASK_CREATED;
 }
 
 /*
