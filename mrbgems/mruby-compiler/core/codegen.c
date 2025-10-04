@@ -5572,7 +5572,7 @@ codegen(codegen_scope *s, node *tree, int val)
   s->lineno = var_head->lineno;
 
   /* Process variable-sized node directly */
-  enum node_type var_type = var_head->node_type;
+  enum node_type var_type = (enum node_type)var_head->node_type;
 
   switch (var_type) {
   case NODE_INT:
