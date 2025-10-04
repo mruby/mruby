@@ -12,9 +12,12 @@
 #include <mruby/class.h>
 #include <mruby/data.h>
 #include <mruby/error.h>
+#include <mruby/gc.h>
 #include <mruby/proc.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>
+#include <string.h>
+#include <stdint.h>
 #include "../include/task.h"
 
 /*
@@ -214,25 +217,124 @@ task_init_context(mrb_state *mrb, mrb_task *t, const struct RProc *proc)
 void
 mrb_tick(mrb_state *mrb)
 {
-  /* TODO: Implement tick handler
-   * - Increment tick counter
-   * - Decrease current task timeslice
-   * - Wake up sleeping tasks
-   * - Set switching flag if needed
-   */
+  mrb_task *t;
+
+  /* Increment global tick counter */
+  tick_++;
+
+  /* Decrease timeslice for running task */
+  t = q_ready_;
+  if (t && t->status == MRB_TASKSTATUS_RUNNING && t->timeslice > 0) {
+    t->timeslice--;
+    if (t->timeslice == 0) {
+      switching_ = TRUE;  /* Trigger context switch */
+    }
+  }
+
+  /* Wake up sleeping tasks whose wakeup time has passed */
+  if ((int32_t)(wakeup_tick_ - tick_) <= 0) {
+    mrb_task *curr = q_waiting_;
+    mrb_task *next;
+    uint32_t next_wakeup = UINT32_MAX;
+
+    while (curr != NULL) {
+      next = curr->next;
+
+      if (curr->reason == MRB_TASKREASON_SLEEP) {
+        if ((int32_t)(curr->wakeup_tick - tick_) <= 0) {
+          /* Time to wake up */
+          q_delete_task(mrb, curr);
+          curr->status = MRB_TASKSTATUS_READY;
+          curr->reason = MRB_TASKREASON_NONE;
+          q_insert_task(mrb, curr);
+          switching_ = TRUE;
+        }
+        else if (curr->wakeup_tick < next_wakeup) {
+          next_wakeup = curr->wakeup_tick;
+        }
+      }
+
+      curr = next;
+    }
+
+    wakeup_tick_ = next_wakeup;
+  }
 }
 
 /* Main scheduler loop */
 mrb_value
 mrb_tasks_run(mrb_state *mrb)
 {
-  /* TODO: Implement main scheduler loop
-   * - Get next ready task
-   * - Switch context
-   * - Execute via mrb_vm_exec()
-   * - Handle completion/switching
-   * - Run incremental GC
-   */
+  mrb_task *t;
+  struct mrb_context *prev_c;
+
+  while (1) {
+    t = q_ready_;
+
+    /* No task ready - idle */
+    if (!t) {
+      mrb_task_hal_idle_cpu(mrb);
+      continue;
+    }
+
+    /* Set task as running */
+    t->status = MRB_TASKSTATUS_RUNNING;
+    t->timeslice = MRB_TIMESLICE_TICK_COUNT;
+
+    /* Switch to task context */
+    prev_c = mrb->c;
+    mrb->c = &t->c;
+
+    /* Clear switching flag */
+    switching_ = FALSE;
+
+    /* Execute task */
+    t->result = mrb_vm_exec(mrb, t->c.ci->proc, t->c.ci->pc);
+
+    /* Restore context */
+    mrb->c = prev_c;
+
+    /* Check if task finished */
+    if (t->c.status == MRB_TASK_STOPPED) {
+      /* Move to dormant queue */
+      mrb_task_disable_irq();
+      q_delete_task(mrb, t);
+      t->status = MRB_TASKSTATUS_DORMANT;
+      q_insert_task(mrb, t);
+      mrb_task_enable_irq();
+
+      /* Wake up tasks waiting on join */
+      mrb_task *curr = q_waiting_;
+      while (curr != NULL) {
+        mrb_task *next = curr->next;
+        if (curr->reason == MRB_TASKREASON_JOIN && curr->join == t) {
+          mrb_task_disable_irq();
+          q_delete_task(mrb, curr);
+          curr->status = MRB_TASKSTATUS_READY;
+          curr->reason = MRB_TASKREASON_NONE;
+          curr->join = NULL;
+          q_insert_task(mrb, curr);
+          mrb_task_enable_irq();
+        }
+        curr = next;
+      }
+    }
+    /* Context switch requested or task still running */
+    else if (t->status == MRB_TASKSTATUS_RUNNING) {
+      /* Move to end of ready queue (round-robin) */
+      mrb_task_disable_irq();
+      q_delete_task(mrb, t);
+      t->status = MRB_TASKSTATUS_READY;
+      q_insert_task(mrb, t);
+      mrb_task_enable_irq();
+    }
+
+    /* Run incremental GC if active */
+    if (mrb->gc.state != MRB_GC_STATE_ROOT) {
+      mrb_incremental_gc(mrb);
+    }
+  }
+
   return mrb_nil_value();
 }
 
@@ -243,25 +345,108 @@ mrb_tasks_run(mrb_state *mrb)
 static void
 sleep_ms_impl(mrb_state *mrb, mrb_int ms)
 {
-  /* TODO: Implement sleep
-   * - Move current task to waiting queue
-   * - Set wakeup tick
-   * - Trigger context switch
-   */
+  mrb_task *t = q_ready_;  /* Current running task */
+
+  if (!t) return;  /* No task to sleep */
+
+  mrb_task_disable_irq();
+
+  /* Remove from ready queue */
+  q_delete_task(mrb, t);
+
+  /* Move to waiting queue */
+  t->status = MRB_TASKSTATUS_WAITING;
+  t->reason = MRB_TASKREASON_SLEEP;
+  t->wakeup_tick = tick_ + (ms / MRB_TICK_UNIT);
+
+  /* Update next wakeup time if this task wakes earlier */
+  if (t->wakeup_tick < wakeup_tick_) {
+    wakeup_tick_ = t->wakeup_tick;
+  }
+
+  q_insert_task(mrb, t);
+
+  mrb_task_enable_irq();
+
+  /* Trigger context switch */
+  switching_ = TRUE;
 }
 
 static mrb_value
 mrb_f_sleep(mrb_state *mrb, mrb_value self)
 {
-  /* TODO: Implement Kernel#sleep */
-  return mrb_nil_value();
+  mrb_float sec = 0;
+  mrb_int n;
+
+  n = mrb_get_args(mrb, "|f", &sec);
+
+  if (n == 0) {
+    /* No argument - suspend indefinitely */
+    mrb_task *t = q_ready_;
+    if (t) {
+      mrb_task_disable_irq();
+      q_delete_task(mrb, t);
+      t->status = MRB_TASKSTATUS_SUSPENDED;
+      q_insert_task(mrb, t);
+      mrb_task_enable_irq();
+      switching_ = TRUE;
+    }
+    return mrb_nil_value();
+  }
+
+  if (sec < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "time interval must be positive");
+  }
+
+  mrb_int ms = (mrb_int)(sec * 1000);
+  sleep_ms_impl(mrb, ms);
+
+  return mrb_fixnum_value((mrb_int)sec);
 }
 
 static mrb_value
 mrb_f_sleep_ms(mrb_state *mrb, mrb_value self)
 {
-  /* TODO: Implement Kernel#sleep_ms */
+  mrb_int ms;
+
+  mrb_get_args(mrb, "i", &ms);
+
+  if (ms < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "time interval must be positive");
+  }
+
+  sleep_ms_impl(mrb, ms);
+
   return mrb_nil_value();
+}
+
+/*
+ * HAL stub implementations (temporary)
+ * These will be replaced with real implementations in Phase 6
+ */
+
+void
+mrb_task_hal_init(mrb_state *mrb)
+{
+  /* TODO: Initialize hardware timer */
+}
+
+void
+mrb_task_enable_irq(void)
+{
+  /* TODO: Enable interrupts */
+}
+
+void
+mrb_task_disable_irq(void)
+{
+  /* TODO: Disable interrupts */
+}
+
+void
+mrb_task_hal_idle_cpu(mrb_state *mrb)
+{
+  /* TODO: Put CPU in idle state */
 }
 
 /*
