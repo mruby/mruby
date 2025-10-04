@@ -56,16 +56,10 @@ typedef struct mrb_tcb {
 } mrb_tcb;
 
 /*
- * Task scheduler state (part of mrb_state)
+ * Task queue configuration
+ * (mrb_task_state is defined in mruby.h)
  */
 #define MRB_NUM_TASK_QUEUE 4
-
-typedef struct mrb_task_state {
-  mrb_tcb *queues[MRB_NUM_TASK_QUEUE];  /* Task queues */
-  volatile uint32_t tick;                /* Current tick count */
-  volatile uint32_t wakeup_tick;         /* Next wakeup tick */
-  volatile mrb_bool switching;           /* Context switch pending flag */
-} mrb_task_state;
 
 /* Queue indices */
 #define MRB_TASK_QUEUE_DORMANT   0
