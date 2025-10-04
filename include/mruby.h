@@ -248,13 +248,13 @@ struct mrb_jmpbuf;
 typedef void (*mrb_atexit_func)(struct mrb_state*);
 
 #ifdef MRB_USE_TASK_SCHEDULER
-struct mrb_tcb;
+struct mrb_task;
 
 typedef struct mrb_task_state {
-  struct mrb_tcb *queues[4];      /* Task queues (dormant, ready, waiting, suspended) */
-  volatile uint32_t tick;          /* Current tick count */
-  volatile uint32_t wakeup_tick;   /* Next wakeup tick */
-  volatile mrb_bool switching;     /* Context switch pending flag */
+  struct mrb_task *queues[4];      /* Task queues (dormant, ready, waiting, suspended) */
+  volatile uint32_t tick;           /* Current tick count */
+  volatile uint32_t wakeup_tick;    /* Next wakeup tick */
+  volatile mrb_bool switching;      /* Context switch pending flag */
 } mrb_task_state;
 #endif
 

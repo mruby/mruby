@@ -33,10 +33,10 @@ enum {
 };
 
 /*
- * Task Control Block (TCB)
+ * Task structure - represents a single task in the scheduler
  */
-typedef struct mrb_tcb {
-  struct mrb_tcb *next;            /* Linked list pointer */
+typedef struct mrb_task {
+  struct mrb_task *next;           /* Linked list pointer */
   uint8_t priority;                /* Initial priority (0-255, 0=highest) */
   uint8_t priority_preemption;     /* Effective priority for preemption */
   volatile uint8_t timeslice;      /* Remaining time slice ticks */
@@ -48,12 +48,12 @@ typedef struct mrb_tcb {
     uint32_t wakeup_tick;          /* Tick count to wake up (for sleep) */
     void *mutex;                   /* Mutex pointer (reserved) */
   };
-  const struct mrb_tcb *tcb_join;  /* Task being waited on (for join) */
+  const struct mrb_task *join;     /* Task being waited on (for join) */
 
-  mrb_value task;                  /* Ruby Task object reference */
-  mrb_value value;                 /* Task return value */
+  mrb_value self;                  /* Ruby Task object reference */
+  mrb_value result;                /* Task return value */
   struct mrb_context c;            /* Execution context (stack, callinfo, etc) */
-} mrb_tcb;
+} mrb_task;
 
 /*
  * Task queue configuration

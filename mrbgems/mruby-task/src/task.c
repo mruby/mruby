@@ -47,43 +47,43 @@ static const struct mrb_data_type mrb_task_type = {
 
 /* Insert task into appropriate queue based on priority */
 static void
-q_insert_task(mrb_state *mrb, mrb_tcb *tcb)
+q_insert_task(mrb_state *mrb, mrb_task *tcb)
 {
   /* TODO: Implement priority-based insertion */
 }
 
 /* Delete task from its current queue */
 static void
-q_delete_task(mrb_state *mrb, mrb_tcb *tcb)
+q_delete_task(mrb_state *mrb, mrb_task *tcb)
 {
   /* TODO: Implement queue deletion */
 }
 
 /* Find task in queues */
-static mrb_tcb*
-q_find_task(mrb_state *mrb, mrb_tcb *tcb)
+static mrb_task*
+q_find_task(mrb_state *mrb, mrb_task *tcb)
 {
   /* TODO: Implement task search */
   return NULL;
 }
 
 /*
- * TCB lifecycle
+ * Task lifecycle
  */
 
-/* Allocate new TCB */
-static mrb_tcb*
-mrb_tcb_new(mrb_state *mrb)
+/* Allocate new task */
+static mrb_task*
+task_alloc(mrb_state *mrb)
 {
-  /* TODO: Allocate and initialize TCB */
+  /* TODO: Allocate and initialize task */
   return NULL;
 }
 
-/* Free TCB and context */
+/* Free task and context */
 static void
-mrb_tcb_free(mrb_state *mrb, mrb_tcb *tcb)
+task_free(mrb_state *mrb, mrb_task *t)
 {
-  /* TODO: Free TCB and associated context */
+  /* TODO: Free task and associated context */
 }
 
 /* Initialize task context (stack and callinfo) */
