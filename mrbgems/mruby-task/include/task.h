@@ -42,6 +42,7 @@ typedef struct mrb_task {
   volatile uint8_t timeslice;      /* Remaining time slice ticks */
   uint8_t status;                  /* Current status (TASKSTATUS enum) */
   uint8_t reason;                  /* Wait reason (TASKREASON enum) */
+  uint8_t started;                 /* 1 if task has been started, 0 otherwise */
   mrb_value name;                  /* Optional task name */
 
   union {

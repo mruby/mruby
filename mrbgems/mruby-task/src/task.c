@@ -37,7 +37,18 @@
 static void
 mrb_task_free(mrb_state *mrb, void *ptr)
 {
-  /* TODO: Free TCB and associated resources */
+  mrb_task *t = (mrb_task*)ptr;
+  if (t) {
+    /* Free context resources */
+    if (t->c.stbase) {
+      mrb_free(mrb, t->c.stbase);
+    }
+    if (t->c.cibase) {
+      mrb_free(mrb, t->c.cibase);
+    }
+    /* Free the task structure itself */
+    mrb_free(mrb, t);
+  }
 }
 
 static const struct mrb_data_type mrb_task_type = {
@@ -271,10 +282,15 @@ mrb_tasks_run(mrb_state *mrb)
   while (1) {
     t = q_ready_;
 
-    /* No task ready - idle */
+    /* No task ready - check if all tasks are done */
     if (!t) {
-      mrb_task_hal_idle_cpu(mrb);
-      continue;
+      /* If there are tasks waiting or suspended, idle */
+      if (q_waiting_ || q_suspended_) {
+        mrb_task_hal_idle_cpu(mrb);
+        continue;
+      }
+      /* All tasks are dormant - scheduler done */
+      break;
     }
 
     /* Set task as running */
@@ -285,17 +301,27 @@ mrb_tasks_run(mrb_state *mrb)
     prev_c = mrb->c;
     mrb->c = &t->c;
 
+    /* If task hasn't started yet, pop dummy callinfo */
+    if (!t->started) {
+      t->c.ci--;  /* pop dummy callinfo */
+      t->started = 1;  /* Mark as started */
+    }
+
     /* Clear switching flag */
     switching_ = FALSE;
 
-    /* Execute task */
+    /* Set status to RUNNING so VM can transition it properly */
+    t->c.status = MRB_FIBER_RUNNING;
+
+    /* Execute task - PC is saved in ci->pc from previous run */
     t->result = mrb_vm_exec(mrb, t->c.ci->proc, t->c.ci->pc);
 
     /* Restore context */
     mrb->c = prev_c;
 
-    /* Check if task finished */
-    if (t->c.status == MRB_TASK_STOPPED) {
+    /* Check if task finished (returned without switching flag set) */
+    if (!switching_) {
+      /* Task completed naturally - mark as dormant */
       /* Move to dormant queue */
       mrb_task_disable_irq();
       q_delete_task(mrb, t);
@@ -530,12 +556,13 @@ mrb_task_s_new(mrb_state *mrb, mrb_value self)
   const struct RProc *proc;
   mrb_task *t;
   mrb_value task_obj;
-  mrb_value *kw_vals;
-  const mrb_sym *kw_names;
-  mrb_int kw_num;
+  mrb_value kw_values[2];
+  const mrb_kwargs kwargs = {
+    2, 0, (mrb_sym[]){mrb_intern_lit(mrb, "name"), mrb_intern_lit(mrb, "priority")}, kw_values, NULL
+  };
 
   /* Get block and optional keyword arguments */
-  mrb_get_args(mrb, "&|**", &blk, &kw_names, &kw_vals, &kw_num);
+  mrb_get_args(mrb, "&:", &blk, &kwargs);
 
   if (mrb_nil_p(blk)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "tried to create task without a block");
@@ -544,15 +571,13 @@ mrb_task_s_new(mrb_state *mrb, mrb_value self)
   proc = mrb_proc_ptr(blk);
 
   /* Parse keyword arguments */
-  for (mrb_int i = 0; i < kw_num; i++) {
-    if (kw_names[i] == mrb_intern_lit(mrb, "name")) {
-      name_val = kw_vals[i];
-    }
-    else if (kw_names[i] == mrb_intern_lit(mrb, "priority")) {
-      priority = mrb_integer(kw_vals[i]);
-      if (priority < 0 || priority > 255) {
-        mrb_raise(mrb, E_ARGUMENT_ERROR, "priority must be 0-255");
-      }
+  if (!mrb_nil_p(kw_values[0])) {
+    name_val = kw_values[0];
+  }
+  if (!mrb_nil_p(kw_values[1])) {
+    priority = mrb_integer(kw_values[1]);
+    if (priority < 0 || priority > 255) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "priority must be 0-255");
     }
   }
 
@@ -634,6 +659,12 @@ mrb_task_s_stat(mrb_state *mrb, mrb_value self)
 {
   /* TODO: Implement Task::Stat class with statistics */
   return mrb_nil_value();
+}
+
+static mrb_value
+mrb_task_s_run(mrb_state *mrb, mrb_value self)
+{
+  return mrb_tasks_run(mrb);
 }
 
 static mrb_value
@@ -929,7 +960,8 @@ mrb_mruby_task_gem_init(mrb_state *mrb)
   struct RClass *task_class;
 
   /* Initialize HAL (timer and interrupts) */
-  mrb_task_hal_init(mrb);
+  /* TODO: Enable after testing basic functionality */
+  /* mrb_task_hal_init(mrb); */
 
   task_class = mrb_define_class(mrb, "Task", mrb->object_class);
   MRB_SET_INSTANCE_TT(task_class, MRB_TT_DATA);
@@ -941,6 +973,7 @@ mrb_mruby_task_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, task_class, "pass",    mrb_task_s_pass,    MRB_ARGS_NONE());
   mrb_define_class_method(mrb, task_class, "stat",    mrb_task_s_stat,    MRB_ARGS_NONE());
   mrb_define_class_method(mrb, task_class, "get",     mrb_task_s_get,     MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, task_class, "run",     mrb_task_s_run,     MRB_ARGS_NONE());
 
   /* Instance methods */
   mrb_define_method(mrb, task_class, "status",    mrb_task_status,       MRB_ARGS_NONE());
