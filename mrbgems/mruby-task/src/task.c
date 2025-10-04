@@ -421,33 +421,101 @@ mrb_f_sleep_ms(mrb_state *mrb, mrb_value self)
 }
 
 /*
- * HAL stub implementations (temporary)
- * These will be replaced with real implementations in Phase 6
+ * HAL POSIX implementation
  */
+
+#ifdef __unix__
+#include <signal.h>
+#include <sys/time.h>
+#include <unistd.h>
+
+static mrb_state *global_mrb = NULL;
+static sigset_t alarm_mask;
+
+static void
+sigalrm_handler(int sig)
+{
+  (void)sig;
+  if (global_mrb) {
+    mrb_tick(global_mrb);
+  }
+}
 
 void
 mrb_task_hal_init(mrb_state *mrb)
 {
-  /* TODO: Initialize hardware timer */
+  struct sigaction sa;
+  struct itimerval timer;
+
+  global_mrb = mrb;
+
+  /* Set up SIGALRM mask for interrupt control */
+  sigemptyset(&alarm_mask);
+  sigaddset(&alarm_mask, SIGALRM);
+
+  /* Set up signal handler */
+  sa.sa_handler = sigalrm_handler;
+  sa.sa_flags = 0;
+  sigemptyset(&sa.sa_mask);
+  sigaction(SIGALRM, &sa, NULL);
+
+  /* Set up periodic timer (MRB_TICK_UNIT ms) */
+  timer.it_value.tv_sec = 0;
+  timer.it_value.tv_usec = MRB_TICK_UNIT * 1000;
+  timer.it_interval.tv_sec = 0;
+  timer.it_interval.tv_usec = MRB_TICK_UNIT * 1000;
+  setitimer(ITIMER_REAL, &timer, NULL);
 }
 
 void
 mrb_task_enable_irq(void)
 {
-  /* TODO: Enable interrupts */
+  sigprocmask(SIG_UNBLOCK, &alarm_mask, NULL);
 }
 
 void
 mrb_task_disable_irq(void)
 {
-  /* TODO: Disable interrupts */
+  sigprocmask(SIG_BLOCK, &alarm_mask, NULL);
 }
 
 void
 mrb_task_hal_idle_cpu(mrb_state *mrb)
 {
-  /* TODO: Put CPU in idle state */
+  (void)mrb;
+  /* On POSIX, just pause briefly */
+  usleep(MRB_TICK_UNIT * 1000);
 }
+
+#else
+/* Stub implementation for non-POSIX platforms */
+
+void
+mrb_task_hal_init(mrb_state *mrb)
+{
+  (void)mrb;
+  /* TODO: Platform-specific timer initialization */
+}
+
+void
+mrb_task_enable_irq(void)
+{
+  /* TODO: Platform-specific interrupt enable */
+}
+
+void
+mrb_task_disable_irq(void)
+{
+  /* TODO: Platform-specific interrupt disable */
+}
+
+void
+mrb_task_hal_idle_cpu(mrb_state *mrb)
+{
+  (void)mrb;
+  /* TODO: Platform-specific idle/sleep */
+}
+#endif
 
 /*
  * Task class methods
@@ -859,6 +927,9 @@ void
 mrb_mruby_task_gem_init(mrb_state *mrb)
 {
   struct RClass *task_class;
+
+  /* Initialize HAL (timer and interrupts) */
+  mrb_task_hal_init(mrb);
 
   task_class = mrb_define_class(mrb, "Task", mrb->object_class);
   MRB_SET_INSTANCE_TT(task_class, MRB_TT_DATA);
