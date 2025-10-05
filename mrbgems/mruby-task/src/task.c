@@ -354,7 +354,7 @@ mrb_tasks_run(mrb_state *mrb)
  */
 
 static void
-sleep_ms_impl(mrb_state *mrb, mrb_int ms)
+sleep_us_impl(mrb_state *mrb, mrb_int usec)
 {
   mrb_task *t = q_ready_;  /* Current running task */
 
@@ -362,14 +362,14 @@ sleep_ms_impl(mrb_state *mrb, mrb_int ms)
     /* Not in task context - use blocking sleep with retry on interruption */
 #ifdef __unix__
     struct timespec req, rem;
-    req.tv_sec = ms / 1000;
-    req.tv_nsec = (ms % 1000) * 1000000;
+    req.tv_sec = usec / 1000000;
+    req.tv_nsec = (usec % 1000000) * 1000;
     /* nanosleep automatically retries on EINTR with SA_RESTART */
     while (nanosleep(&req, &rem) == -1) {
       req = rem;  /* Continue with remaining time if interrupted */
     }
 #elif defined(_WIN32)
-    Sleep((DWORD)ms);
+    Sleep((DWORD)(usec / 1000));
 #endif
     return;
   }
@@ -382,7 +382,8 @@ sleep_ms_impl(mrb_state *mrb, mrb_int ms)
   /* Move to waiting queue */
   t->status = MRB_TASKSTATUS_WAITING;
   t->reason = MRB_TASKREASON_SLEEP;
-  t->wakeup_tick = tick_ + (ms / MRB_TICK_UNIT);
+  /* Convert microseconds to ticks (tick unit is in milliseconds) */
+  t->wakeup_tick = tick_ + ((usec / 1000) / MRB_TICK_UNIT);
 
   /* Update next wakeup time if this task wakes earlier */
   if (t->wakeup_tick < wakeup_tick_) {
@@ -395,6 +396,12 @@ sleep_ms_impl(mrb_state *mrb, mrb_int ms)
 
   /* Trigger context switch */
   switching_ = TRUE;
+}
+
+static void
+sleep_ms_impl(mrb_state *mrb, mrb_int ms)
+{
+  sleep_us_impl(mrb, ms * 1000);
 }
 
 static mrb_value
@@ -456,9 +463,7 @@ mrb_f_usleep(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "time interval must be positive");
   }
 
-  /* Convert microseconds to milliseconds */
-  mrb_int ms = usec / 1000;
-  sleep_ms_impl(mrb, ms);
+  sleep_us_impl(mrb, usec);
 
   return mrb_fixnum_value(usec);
 }
