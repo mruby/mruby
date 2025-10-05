@@ -445,6 +445,24 @@ mrb_f_sleep_ms(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
+static mrb_value
+mrb_f_usleep(mrb_state *mrb, mrb_value self)
+{
+  mrb_int usec;
+
+  mrb_get_args(mrb, "i", &usec);
+
+  if (usec < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "time interval must be positive");
+  }
+
+  /* Convert microseconds to milliseconds */
+  mrb_int ms = usec / 1000;
+  sleep_ms_impl(mrb, ms);
+
+  return mrb_fixnum_value(usec);
+}
+
 /*
  * HAL POSIX implementation
  */
@@ -1003,11 +1021,12 @@ mrb_mruby_task_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, task_class, "join",      mrb_task_join,         MRB_ARGS_NONE());
 
   /* Kernel methods
-   * Note: sleep overrides mruby-sleep's implementation to be task-aware
+   * Note: sleep and usleep override mruby-sleep's implementation to be task-aware
    * (cooperative sleep within tasks, blocking sleep otherwise)
    */
   mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(sleep),    mrb_f_sleep,    MRB_ARGS_OPT(1));
-  mrb_define_method(mrb, mrb->kernel_module, "sleep_ms", mrb_f_sleep_ms, MRB_ARGS_REQ(1));
+  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(usleep),   mrb_f_usleep,   MRB_ARGS_REQ(1));
+  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(sleep_ms), mrb_f_sleep_ms, MRB_ARGS_REQ(1));
 }
 
 void
