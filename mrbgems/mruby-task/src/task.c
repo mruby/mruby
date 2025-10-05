@@ -18,6 +18,12 @@
 #include <mruby/variable.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdlib.h>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
 #include "../include/task.h"
 
 /*
@@ -127,25 +133,6 @@ q_delete_task(mrb_state *mrb, mrb_task *t)
   }
 }
 
-/* Find task in all queues */
-static mrb_task*
-q_find_task(mrb_state *mrb, mrb_task *t)
-{
-  mrb_task *curr;
-  int i;
-
-  for (i = 0; i < MRB_NUM_TASK_QUEUE; i++) {
-    curr = mrb->task.queues[i];
-    while (curr != NULL) {
-      if (curr == t) {
-        return curr;
-      }
-      curr = curr->next;
-    }
-  }
-  return NULL;
-}
-
 /*
  * Task lifecycle
  */
@@ -157,19 +144,6 @@ task_alloc(mrb_state *mrb)
   mrb_task *t = (mrb_task*)mrb_malloc(mrb, sizeof(mrb_task));
   memset(t, 0, sizeof(mrb_task));
   return t;
-}
-
-/* Free task and context */
-static void
-task_free(mrb_state *mrb, mrb_task *t)
-{
-  if (t->c.stbase) {
-    mrb_free(mrb, t->c.stbase);
-  }
-  if (t->c.cibase) {
-    mrb_free(mrb, t->c.cibase);
-  }
-  mrb_free(mrb, t);
 }
 
 /* Initialize task context (stack and callinfo) - similar to Fiber */
@@ -278,6 +252,8 @@ mrb_tasks_run(mrb_state *mrb)
 {
   mrb_task *t;
   struct mrb_context *prev_c;
+  mrb_callinfo *prev_ci;
+  uint8_t prev_cci;
 
   while (1) {
     t = q_ready_;
@@ -299,6 +275,9 @@ mrb_tasks_run(mrb_state *mrb)
 
     /* Switch to task context */
     prev_c = mrb->c;
+    prev_ci = prev_c->ci;  /* Save ci pointer */
+    prev_cci = prev_c->ci->cci;  /* Save cci before context switch */
+    t->c.prev = mrb->c;  /* Link task context to current context */
     mrb->c = &t->c;
 
     /* If task hasn't started yet, pop dummy callinfo */
@@ -318,10 +297,14 @@ mrb_tasks_run(mrb_state *mrb)
 
     /* Restore context */
     mrb->c = prev_c;
+    t->c.prev = NULL;  /* Clear prev pointer to avoid dangling reference */
+    prev_c->ci = prev_ci;  /* Restore ci pointer */
+    prev_ci->cci = prev_cci;  /* Restore cci as it may have changed */
 
-    /* Check if task finished (returned without switching flag set) */
-    if (!switching_) {
+    /* Check if task finished (context status is TERMINATED) */
+    if (t->c.status == MRB_FIBER_TERMINATED) {
       /* Task completed naturally - mark as dormant */
+      switching_ = FALSE;  /* Clear switching flag */
       /* Move to dormant queue */
       mrb_task_disable_irq();
       q_delete_task(mrb, t);
@@ -373,7 +356,15 @@ sleep_ms_impl(mrb_state *mrb, mrb_int ms)
 {
   mrb_task *t = q_ready_;  /* Current running task */
 
-  if (!t) return;  /* No task to sleep */
+  if (!t) {
+    /* Not in task context - use blocking sleep */
+#ifdef __unix__
+    usleep((useconds_t)(ms * 1000));
+#elif defined(_WIN32)
+    Sleep((DWORD)ms);
+#endif
+    return;
+  }
 
   mrb_task_disable_irq();
 
@@ -472,6 +463,15 @@ mrb_task_hal_init(mrb_state *mrb)
 {
   struct sigaction sa;
   struct itimerval timer;
+  int i;
+
+  /* Initialize task state */
+  for (i = 0; i < 4; i++) {
+    mrb->task.queues[i] = NULL;
+  }
+  mrb->task.tick = 0;
+  mrb->task.wakeup_tick = UINT32_MAX;
+  mrb->task.switching = FALSE;
 
   global_mrb = mrb;
 
@@ -481,7 +481,7 @@ mrb_task_hal_init(mrb_state *mrb)
 
   /* Set up signal handler */
   sa.sa_handler = sigalrm_handler;
-  sa.sa_flags = 0;
+  sa.sa_flags = SA_RESTART;  /* Restart interrupted syscalls */
   sigemptyset(&sa.sa_mask);
   sigaction(SIGALRM, &sa, NULL);
 
@@ -519,7 +519,16 @@ mrb_task_hal_idle_cpu(mrb_state *mrb)
 void
 mrb_task_hal_init(mrb_state *mrb)
 {
-  (void)mrb;
+  int i;
+
+  /* Initialize task state */
+  for (i = 0; i < 4; i++) {
+    mrb->task.queues[i] = NULL;
+  }
+  mrb->task.tick = 0;
+  mrb->task.wakeup_tick = UINT32_MAX;
+  mrb->task.switching = FALSE;
+
   /* TODO: Platform-specific timer initialization */
 }
 
@@ -960,8 +969,7 @@ mrb_mruby_task_gem_init(mrb_state *mrb)
   struct RClass *task_class;
 
   /* Initialize HAL (timer and interrupts) */
-  /* TODO: Enable after testing basic functionality */
-  /* mrb_task_hal_init(mrb); */
+  mrb_task_hal_init(mrb);
 
   task_class = mrb_define_class(mrb, "Task", mrb->object_class);
   MRB_SET_INSTANCE_TT(task_class, MRB_TT_DATA);
