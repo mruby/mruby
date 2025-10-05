@@ -13,6 +13,7 @@
 #include <mruby/data.h>
 #include <mruby/error.h>
 #include <mruby/gc.h>
+#include <mruby/presym.h>
 #include <mruby/proc.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>
@@ -22,6 +23,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #else
+#include <time.h>
 #include <unistd.h>
 #endif
 #include "../include/task.h"
@@ -357,9 +359,15 @@ sleep_ms_impl(mrb_state *mrb, mrb_int ms)
   mrb_task *t = q_ready_;  /* Current running task */
 
   if (!t) {
-    /* Not in task context - use blocking sleep */
+    /* Not in task context - use blocking sleep with retry on interruption */
 #ifdef __unix__
-    usleep((useconds_t)(ms * 1000));
+    struct timespec req, rem;
+    req.tv_sec = ms / 1000;
+    req.tv_nsec = (ms % 1000) * 1000000;
+    /* nanosleep automatically retries on EINTR with SA_RESTART */
+    while (nanosleep(&req, &rem) == -1) {
+      req = rem;  /* Continue with remaining time if interrupted */
+    }
 #elif defined(_WIN32)
     Sleep((DWORD)ms);
 #endif
@@ -994,8 +1002,11 @@ mrb_mruby_task_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, task_class, "terminate", mrb_task_terminate,    MRB_ARGS_NONE());
   mrb_define_method(mrb, task_class, "join",      mrb_task_join,         MRB_ARGS_NONE());
 
-  /* Kernel methods */
-  mrb_define_method(mrb, mrb->kernel_module, "sleep",    mrb_f_sleep,    MRB_ARGS_OPT(1));
+  /* Kernel methods
+   * Note: sleep overrides mruby-sleep's implementation to be task-aware
+   * (cooperative sleep within tasks, blocking sleep otherwise)
+   */
+  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(sleep),    mrb_f_sleep,    MRB_ARGS_OPT(1));
   mrb_define_method(mrb, mrb->kernel_module, "sleep_ms", mrb_f_sleep_ms, MRB_ARGS_REQ(1));
 }
 
