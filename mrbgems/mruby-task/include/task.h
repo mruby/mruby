@@ -85,6 +85,7 @@ typedef struct mrb_task {
  * Platform-specific implementations must provide these
  */
 void mrb_task_hal_init(mrb_state *mrb);
+void mrb_task_hal_final(mrb_state *mrb);
 void mrb_task_enable_irq(void);
 void mrb_task_disable_irq(void);
 void mrb_task_hal_idle_cpu(mrb_state *mrb);
