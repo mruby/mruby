@@ -1006,24 +1006,24 @@ mrb_mruby_task_gem_init(mrb_state *mrb)
   MRB_SET_INSTANCE_TT(task_class, MRB_TT_DATA);
 
   /* Class methods */
-  mrb_define_class_method(mrb, task_class, "new",     mrb_task_s_new,     MRB_ARGS_BLOCK());
-  mrb_define_class_method(mrb, task_class, "current", mrb_task_s_current, MRB_ARGS_NONE());
-  mrb_define_class_method(mrb, task_class, "list",    mrb_task_s_list,    MRB_ARGS_NONE());
-  mrb_define_class_method(mrb, task_class, "pass",    mrb_task_s_pass,    MRB_ARGS_NONE());
-  mrb_define_class_method(mrb, task_class, "stat",    mrb_task_s_stat,    MRB_ARGS_NONE());
-  mrb_define_class_method(mrb, task_class, "get",     mrb_task_s_get,     MRB_ARGS_REQ(1));
-  mrb_define_class_method(mrb, task_class, "run",     mrb_task_s_run,     MRB_ARGS_NONE());
+  mrb_define_class_method_id(mrb, task_class, MRB_SYM(new),     mrb_task_s_new,     MRB_ARGS_BLOCK());
+  mrb_define_class_method_id(mrb, task_class, MRB_SYM(current), mrb_task_s_current, MRB_ARGS_NONE());
+  mrb_define_class_method_id(mrb, task_class, MRB_SYM(list),    mrb_task_s_list,    MRB_ARGS_NONE());
+  mrb_define_class_method_id(mrb, task_class, MRB_SYM(pass),    mrb_task_s_pass,    MRB_ARGS_NONE());
+  mrb_define_class_method_id(mrb, task_class, MRB_SYM(stat),    mrb_task_s_stat,    MRB_ARGS_NONE());
+  mrb_define_class_method_id(mrb, task_class, MRB_SYM(get),     mrb_task_s_get,     MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, task_class, MRB_SYM(run),     mrb_task_s_run,     MRB_ARGS_NONE());
 
   /* Instance methods */
-  mrb_define_method(mrb, task_class, "status",    mrb_task_status,       MRB_ARGS_NONE());
-  mrb_define_method(mrb, task_class, "name",      mrb_task_name,         MRB_ARGS_NONE());
-  mrb_define_method(mrb, task_class, "name=",     mrb_task_set_name,     MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, task_class, "priority",  mrb_task_priority,     MRB_ARGS_NONE());
-  mrb_define_method(mrb, task_class, "priority=", mrb_task_set_priority, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, task_class, "suspend",   mrb_task_suspend,      MRB_ARGS_NONE());
-  mrb_define_method(mrb, task_class, "resume",    mrb_task_resume,       MRB_ARGS_NONE());
-  mrb_define_method(mrb, task_class, "terminate", mrb_task_terminate,    MRB_ARGS_NONE());
-  mrb_define_method(mrb, task_class, "join",      mrb_task_join,         MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, task_class, MRB_SYM(status),      mrb_task_status,       MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, task_class, MRB_SYM(name),        mrb_task_name,         MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, task_class, MRB_SYM_E(name),      mrb_task_set_name,     MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, task_class, MRB_SYM(priority),    mrb_task_priority,     MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, task_class, MRB_SYM_E(priority),  mrb_task_set_priority, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, task_class, MRB_SYM(suspend),     mrb_task_suspend,      MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, task_class, MRB_SYM(resume),      mrb_task_resume,       MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, task_class, MRB_SYM(terminate),   mrb_task_terminate,    MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, task_class, MRB_SYM(join),        mrb_task_join,         MRB_ARGS_NONE());
 
   /* Kernel methods
    * Note: sleep and usleep override mruby-sleep's implementation to be task-aware
