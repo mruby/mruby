@@ -10,6 +10,7 @@
 */
 
 #include <mruby.h>
+#include <mruby/presym.h>
 
 #ifdef MRB_NO_FLOAT
 # error CMath conflicts with 'MRB_NO_FLOAT' configuration
@@ -392,32 +393,31 @@ DEF_CMATH_METHOD(atanh)
 void
 mrb_mruby_cmath_gem_init(mrb_state* mrb)
 {
-  struct RClass *cmath;
-  cmath = mrb_define_module(mrb, "CMath");
+  struct RClass *cmath = mrb_define_module_id(mrb, MRB_SYM(CMath));
 
   mrb_include_module(mrb, cmath, mrb_module_get(mrb, "Math"));
 
-  mrb_define_module_function(mrb, cmath, "sin", cmath_sin, MRB_ARGS_REQ(1));
-  mrb_define_module_function(mrb, cmath, "cos", cmath_cos, MRB_ARGS_REQ(1));
-  mrb_define_module_function(mrb, cmath, "tan", cmath_tan, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(sin), cmath_sin, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(cos), cmath_cos, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(tan), cmath_tan, MRB_ARGS_REQ(1));
 
-  mrb_define_module_function(mrb, cmath, "asin", cmath_asin, MRB_ARGS_REQ(1));
-  mrb_define_module_function(mrb, cmath, "acos", cmath_acos, MRB_ARGS_REQ(1));
-  mrb_define_module_function(mrb, cmath, "atan", cmath_atan, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(asin), cmath_asin, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(acos), cmath_acos, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(atan), cmath_atan, MRB_ARGS_REQ(1));
 
-  mrb_define_module_function(mrb, cmath, "sinh", cmath_sinh, MRB_ARGS_REQ(1));
-  mrb_define_module_function(mrb, cmath, "cosh", cmath_cosh, MRB_ARGS_REQ(1));
-  mrb_define_module_function(mrb, cmath, "tanh", cmath_tanh, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(sinh), cmath_sinh, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(cosh), cmath_cosh, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(tanh), cmath_tanh, MRB_ARGS_REQ(1));
 
-  mrb_define_module_function(mrb, cmath, "asinh", cmath_asinh, MRB_ARGS_REQ(1));
-  mrb_define_module_function(mrb, cmath, "acosh", cmath_acosh, MRB_ARGS_REQ(1));
-  mrb_define_module_function(mrb, cmath, "atanh", cmath_atanh, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(asinh), cmath_asinh, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(acosh), cmath_acosh, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(atanh), cmath_atanh, MRB_ARGS_REQ(1));
 
-  mrb_define_module_function(mrb, cmath, "exp", cmath_exp, MRB_ARGS_REQ(1));
-  mrb_define_module_function(mrb, cmath, "log", cmath_log, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
-  mrb_define_module_function(mrb, cmath, "log2", cmath_log2, MRB_ARGS_REQ(1));
-  mrb_define_module_function(mrb, cmath, "log10", cmath_log10, MRB_ARGS_REQ(1));
-  mrb_define_module_function(mrb, cmath, "sqrt", cmath_sqrt, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(exp), cmath_exp, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(log), cmath_log, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(log2), cmath_log2, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(log10), cmath_log10, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(sqrt), cmath_sqrt, MRB_ARGS_REQ(1));
 }
 
 void
