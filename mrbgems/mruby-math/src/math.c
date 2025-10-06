@@ -697,7 +697,7 @@ math_erfc(mrb_state *mrb, mrb_value obj)
 void
 mrb_mruby_math_gem_init(mrb_state* mrb)
 {
-  struct RClass *math = mrb_define_module(mrb, "Math");
+  struct RClass *math = mrb_define_module_id(mrb, MRB_SYM(Math));
 
   mrb_define_class_under_id(mrb, math, MRB_SYM(DomainError), E_STANDARD_ERROR);
 
