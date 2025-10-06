@@ -172,8 +172,8 @@ f_usleep(mrb_state *mrb, mrb_value self)
 void
 mrb_mruby_sleep_gem_init(mrb_state *mrb)
 {
-  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(sleep),   f_sleep,   MRB_ARGS_REQ(1));
-  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(usleep),  f_usleep,  MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, mrb->kernel_module, MRB_SYM(sleep),   f_sleep,   MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, mrb->kernel_module, MRB_SYM(usleep),  f_usleep,  MRB_ARGS_REQ(1));
 }
 
 /*
