@@ -53,6 +53,7 @@ typedef struct mrb_task {
 
   mrb_value self;                  /* Ruby Task object reference */
   mrb_value result;                /* Task return value */
+  mrb_value proc;                  /* Proc containing task code */
   struct mrb_context c;            /* Execution context (stack, callinfo, etc) */
 } mrb_task;
 
@@ -95,12 +96,13 @@ void mrb_task_hal_idle_cpu(mrb_state *mrb);
  */
 void mrb_tick(mrb_state *mrb);
 mrb_value mrb_tasks_run(mrb_state *mrb);
+void mrb_task_mark_all(mrb_state *mrb);
 
 /*
  * Task context status values (extends mrb_fiber_state)
  */
-#define MRB_TASK_CREATED  (MRB_FIBER_TRANSFERRED + 1)
-#define MRB_TASK_STOPPED  (MRB_FIBER_TRANSFERRED + 2)
+#define MRB_TASK_CREATED  (MRB_FIBER_TERMINATED + 1)
+#define MRB_TASK_STOPPED  (MRB_FIBER_TERMINATED + 2)
 
 #endif /* MRB_USE_TASK_SCHEDULER */
 

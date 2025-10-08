@@ -13,6 +13,7 @@
 #include <mruby/data.h>
 #include <mruby/error.h>
 #include <mruby/gc.h>
+#include <mruby/internal.h>
 #include <mruby/presym.h>
 #include <mruby/proc.h>
 #include <mruby/string.h>
@@ -39,6 +40,9 @@
 #define wakeup_tick_ (mrb->task.wakeup_tick)
 #define switching_   (mrb->task.switching)
 
+/* Get task from current context using pointer arithmetic */
+#define MRB2TASK(mrb) ((mrb_task *)((uint8_t *)mrb->c - offsetof(mrb_task, c)))
+
 /*
  * Task data type for GC
  */
@@ -47,6 +51,9 @@ mrb_task_free(mrb_state *mrb, void *ptr)
 {
   mrb_task *t = (mrb_task*)ptr;
   if (t) {
+    /* Unregister from GC protection */
+    mrb_gc_unregister(mrb, t->self);
+
     /* Free context resources */
     if (t->c.stbase) {
       mrb_free(mrb, t->c.stbase);
@@ -62,6 +69,67 @@ mrb_task_free(mrb_state *mrb, void *ptr)
 static const struct mrb_data_type mrb_task_type = {
   "Task", mrb_task_free,
 };
+
+/*
+ * GC marking function for all tasks
+ * Called from gc.c during root_scan_phase
+ */
+void
+mrb_task_mark_all(mrb_state *mrb)
+{
+  int qi;
+  int task_count = 0;
+  for (qi = 0; qi < 4; qi++) {
+    mrb_task *t = mrb->task.queues[qi];
+    while (t) {
+      task_count++;
+      struct mrb_context *c = &t->c;
+      mrb_callinfo *ci;
+      size_t i, e;
+
+      /* Mark task's stack */
+      if (c->stbase) {
+        if (c->ci) {
+          e = (c->ci->stack ? c->ci->stack - c->stbase : 0);
+          e += mrb_ci_nregs(c->ci);
+        }
+        else {
+          e = 0;
+        }
+        if (c->stbase + e > c->stend) e = c->stend - c->stbase;
+        for (i = 0; i < e; i++) {
+          mrb_value v = c->stbase[i];
+          if (!mrb_immediate_p(v)) {
+            mrb_gc_mark(mrb, mrb_basic_ptr(v));
+          }
+        }
+      }
+
+      /* Mark call stack */
+      if (c->cibase && c->ci) {
+        for (ci = c->cibase; ci <= c->ci; ci++) {
+          if (ci->proc) {
+            mrb_gc_mark(mrb, (struct RBasic*)ci->proc);
+          }
+          if (ci->u.target_class) {
+            mrb_gc_mark(mrb, (struct RBasic*)ci->u.target_class);
+          }
+        }
+      }
+
+      /* Mark fiber */
+      mrb_gc_mark(mrb, (struct RBasic*)c->fib);
+
+      /* Mark task-specific values */
+      mrb_gc_mark_value(mrb, t->self);
+      mrb_gc_mark_value(mrb, t->result);
+      mrb_gc_mark_value(mrb, t->name);
+      mrb_gc_mark_value(mrb, t->proc);
+
+      t = t->next;
+    }
+  }
+}
 
 /*
  * Queue operations
@@ -190,6 +258,7 @@ task_init_context(mrb_state *mrb, mrb_task *t, const struct RProc *proc)
   mrb_vm_ci_target_class_set(ci, MRB_PROC_TARGET_CLASS(proc));
   mrb_vm_ci_proc_set(ci, proc);
   ci->stack = c->stbase;
+  ci->pc = proc->body.irep->iseq;  /* Initialize PC to start of bytecode */
   ci[1] = ci[0];
   c->ci++;  /* Push dummy callinfo */
 
@@ -273,6 +342,19 @@ mrb_tasks_run(mrb_state *mrb)
       }
       /* All tasks are dormant - scheduler done */
       break;
+    }
+
+    /* Safety check - don't execute terminated tasks */
+    if (t->status == MRB_TASKSTATUS_DORMANT || t->c.status == MRB_FIBER_TERMINATED) {
+      /* Task is terminated but still in queue - remove it */
+      mrb_task_disable_irq();
+      q_delete_task(mrb, t);
+      if (t->status != MRB_TASKSTATUS_DORMANT) {
+        t->status = MRB_TASKSTATUS_DORMANT;
+        q_insert_task(mrb, t);
+      }
+      mrb_task_enable_irq();
+      continue;
     }
 
     /* Set task as running */
@@ -833,11 +915,15 @@ mrb_task_s_new(mrb_state *mrb, mrb_value self)
   t->status = MRB_TASKSTATUS_READY;
   t->reason = MRB_TASKREASON_NONE;
   t->name = name_val;
+  t->proc = blk;  /* Store proc to keep it from being GC'd */
 
   /* Create Ruby object to hold task */
   task_obj = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_get(mrb, "Task"),
                                                   t, &mrb_task_type));
   t->self = task_obj;
+
+  /* Register with GC to protect task object from collection */
+  mrb_gc_register(mrb, task_obj);
 
   /* Initialize task context */
   task_init_context(mrb, t, proc);
@@ -861,13 +947,14 @@ mrb_task_s_new(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_task_s_current(mrb_state *mrb, mrb_value self)
 {
-  mrb_task *t = q_ready_;
-
-  if (t && t->status == MRB_TASKSTATUS_RUNNING) {
-    return t->self;
+  /* Check if we're in root context (not in a task) */
+  if (mrb->c == mrb->root_c) {
+    return mrb_nil_value();
   }
 
-  return mrb_nil_value();
+  /* Use pointer arithmetic to get task from context - O(1) */
+  mrb_task *t = MRB2TASK(mrb);
+  return t->self;
 }
 
 static mrb_value
@@ -890,10 +977,9 @@ mrb_task_s_list(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_task_s_pass(mrb_state *mrb, mrb_value self)
 {
-  /* Yield to other tasks by triggering a context switch */
-  mrb_task *t = q_ready_;
-
-  if (t && t->status == MRB_TASKSTATUS_RUNNING) {
+  /* Only yield if we're in a task context */
+  if (mrb->c != mrb->root_c) {
+    /* Trigger context switch to yield to other tasks */
     switching_ = TRUE;
   }
 
@@ -1171,11 +1257,11 @@ mrb_task_join(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid task");
   }
 
-  /* Get current task */
-  current = q_ready_;
-  if (!current || current->status != MRB_TASKSTATUS_RUNNING) {
+  /* Get current task using pointer arithmetic */
+  if (mrb->c == mrb->root_c) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "join can only be called from running task");
   }
+  current = MRB2TASK(mrb);
 
   /* Can't join self */
   if (t == current) {

@@ -266,4 +266,9 @@ mrb_value mrb_bint_lcm(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_bint_abs(mrb_state *mrb, mrb_value x);
 #endif
 
+#ifdef MRB_USE_TASK_SCHEDULER
+/* GC marking for task scheduler */
+void mrb_task_mark_all(mrb_state *mrb);
+#endif
+
 #endif  /* MRUBY_INTERNAL_H */
