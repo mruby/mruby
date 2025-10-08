@@ -5271,9 +5271,9 @@ static void
 codegen_colon3(codegen_scope *s, node *varnode, int val)
 {
   struct mrb_ast_colon3_node *n = (struct mrb_ast_colon3_node*)varnode;
-  // Generate COLON3 (::Name) access manually
   int sym = new_sym(s, n->name);
-  genop_2(s, OP_OCLASS, cursp(), sym);
+  genop_1(s, OP_OCLASS, cursp());
+  genop_2(s, OP_GETMCNST, cursp(), sym);
   if (val) push();
 }
 
