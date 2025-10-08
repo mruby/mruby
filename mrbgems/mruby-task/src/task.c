@@ -98,10 +98,7 @@ mrb_task_mark_all(mrb_state *mrb)
         }
         if (c->stbase + e > c->stend) e = c->stend - c->stbase;
         for (i = 0; i < e; i++) {
-          mrb_value v = c->stbase[i];
-          if (!mrb_immediate_p(v)) {
-            mrb_gc_mark(mrb, mrb_basic_ptr(v));
-          }
+          mrb_gc_mark_value(mrb, c->stbase[i]);
         }
       }
 
