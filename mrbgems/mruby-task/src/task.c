@@ -200,6 +200,10 @@ task_init_context(mrb_state *mrb, mrb_task *t, const struct RProc *proc)
  * Scheduler core
  */
 
+/* Forward declarations for timer control (defined in HAL section) */
+static void update_timer_state(void);
+static void task_count_update(mrb_state *mrb, uint8_t old_status, uint8_t new_status);
+
 /* Tick handler - called by timer interrupt */
 void
 mrb_tick(mrb_state *mrb)
@@ -312,6 +316,7 @@ mrb_tasks_run(mrb_state *mrb)
       q_delete_task(mrb, t);
       t->status = MRB_TASKSTATUS_DORMANT;
       q_insert_task(mrb, t);
+      task_count_update(mrb, MRB_TASKSTATUS_RUNNING, MRB_TASKSTATUS_DORMANT);
       mrb_task_enable_irq();
 
       /* Wake up tasks waiting on join */
@@ -325,6 +330,7 @@ mrb_tasks_run(mrb_state *mrb)
           curr->reason = MRB_TASKREASON_NONE;
           curr->join = NULL;
           q_insert_task(mrb, curr);
+          task_count_update(mrb, MRB_TASKSTATUS_WAITING, MRB_TASKSTATUS_READY);
           mrb_task_enable_irq();
         }
         curr = next;
@@ -337,6 +343,7 @@ mrb_tasks_run(mrb_state *mrb)
       q_delete_task(mrb, t);
       t->status = MRB_TASKSTATUS_READY;
       q_insert_task(mrb, t);
+      task_count_update(mrb, MRB_TASKSTATUS_RUNNING, MRB_TASKSTATUS_READY);
       mrb_task_enable_irq();
     }
 
@@ -391,6 +398,7 @@ sleep_us_impl(mrb_state *mrb, mrb_int usec)
   }
 
   q_insert_task(mrb, t);
+  task_count_update(mrb, MRB_TASKSTATUS_READY, MRB_TASKSTATUS_WAITING);
 
   mrb_task_enable_irq();
 
@@ -420,6 +428,7 @@ mrb_f_sleep(mrb_state *mrb, mrb_value self)
       q_delete_task(mrb, t);
       t->status = MRB_TASKSTATUS_SUSPENDED;
       q_insert_task(mrb, t);
+      task_count_update(mrb, MRB_TASKSTATUS_READY, MRB_TASKSTATUS_SUSPENDED);
       mrb_task_enable_irq();
       switching_ = TRUE;
     }
@@ -484,7 +493,110 @@ mrb_f_usleep(mrb_state *mrb, mrb_value self)
 
 static mrb_state *vm_list[MRB_TASK_MAX_VMS];
 static volatile sig_atomic_t vm_count = 0;
+static volatile sig_atomic_t timer_enabled = 0;
 static sigset_t alarm_mask;
+
+/* Task counters for each VM */
+static uint16_t vm_ready_counts[MRB_TASK_MAX_VMS];
+static uint16_t vm_waiting_counts[MRB_TASK_MAX_VMS];
+
+/* Find VM index in vm_list */
+static int
+find_vm_index(mrb_state *mrb)
+{
+  int i;
+  for (i = 0; i < vm_count; i++) {
+    if (vm_list[i] == mrb) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+/* Helper functions to maintain task counters and update timer */
+static void
+task_count_update(mrb_state *mrb, uint8_t old_status, uint8_t new_status)
+{
+  int vm_idx = find_vm_index(mrb);
+  if (vm_idx < 0) return;
+
+  /* Decrement old queue counter */
+  if (old_status == MRB_TASKSTATUS_READY || old_status == MRB_TASKSTATUS_RUNNING) {
+    if (vm_ready_counts[vm_idx] > 0) {
+      vm_ready_counts[vm_idx]--;
+    }
+  }
+  else if (old_status == MRB_TASKSTATUS_WAITING) {
+    if (vm_waiting_counts[vm_idx] > 0) {
+      vm_waiting_counts[vm_idx]--;
+    }
+  }
+
+  /* Increment new queue counter */
+  if (new_status == MRB_TASKSTATUS_READY || new_status == MRB_TASKSTATUS_RUNNING) {
+    vm_ready_counts[vm_idx]++;
+  }
+  else if (new_status == MRB_TASKSTATUS_WAITING) {
+    vm_waiting_counts[vm_idx]++;
+  }
+
+  update_timer_state();
+}
+
+/* Check if timer should be enabled based on task counts */
+static int
+should_timer_be_enabled(void)
+{
+  int i;
+  /* Timer needed if any VM has multiple ready tasks OR any waiting tasks */
+  for (i = 0; i < vm_count; i++) {
+    if (vm_ready_counts[i] > 1 || vm_waiting_counts[i] > 0) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+/* Platform-specific timer control */
+static void
+hal_set_timer_enabled(int enable)
+{
+  struct itimerval timer;
+
+  if (enable) {
+    /* Enable timer */
+    timer.it_value.tv_sec = 0;
+    timer.it_value.tv_usec = MRB_TICK_UNIT * 1000;
+    timer.it_interval.tv_sec = 0;
+    timer.it_interval.tv_usec = MRB_TICK_UNIT * 1000;
+  }
+  else {
+    /* Disable timer */
+    timer.it_value.tv_sec = 0;
+    timer.it_value.tv_usec = 0;
+    timer.it_interval.tv_sec = 0;
+    timer.it_interval.tv_usec = 0;
+  }
+
+  setitimer(ITIMER_REAL, &timer, NULL);
+}
+
+/* Update timer state based on task counts */
+static void
+update_timer_state(void)
+{
+  int needs_timer = should_timer_be_enabled();
+
+  /* Update timer only if state changed */
+  if (needs_timer && !timer_enabled) {
+    hal_set_timer_enabled(1);
+    timer_enabled = 1;
+  }
+  else if (!needs_timer && timer_enabled) {
+    hal_set_timer_enabled(0);
+    timer_enabled = 0;
+  }
+}
 
 static void
 sigalrm_handler(int sig)
@@ -503,7 +615,6 @@ void
 mrb_task_hal_init(mrb_state *mrb)
 {
   struct sigaction sa;
-  struct itimerval timer;
   int i;
   int vm_index = -1;
 
@@ -537,24 +648,22 @@ mrb_task_hal_init(mrb_state *mrb)
                  MRB_TASK_MAX_VMS);
     }
     vm_list[vm_count] = mrb;
+    vm_ready_counts[vm_count] = 0;
+    vm_waiting_counts[vm_count] = 0;
     vm_count++;
   }
 
-  /* Set up signal handler and timer only for first VM */
+  /* Set up signal handler only for first VM */
   if (vm_count == 1) {
     /* Set up signal handler */
     sa.sa_handler = sigalrm_handler;
     sa.sa_flags = SA_RESTART;  /* Restart interrupted syscalls */
     sigemptyset(&sa.sa_mask);
     sigaction(SIGALRM, &sa, NULL);
-
-    /* Set up periodic timer (MRB_TICK_UNIT ms) */
-    timer.it_value.tv_sec = 0;
-    timer.it_value.tv_usec = MRB_TICK_UNIT * 1000;
-    timer.it_interval.tv_sec = 0;
-    timer.it_interval.tv_usec = MRB_TICK_UNIT * 1000;
-    setitimer(ITIMER_REAL, &timer, NULL);
   }
+
+  /* Update timer state based on current task queues */
+  update_timer_state();
 
   /* Unblock SIGALRM */
   sigprocmask(SIG_UNBLOCK, &alarm_mask, NULL);
@@ -583,7 +692,6 @@ mrb_task_hal_idle_cpu(mrb_state *mrb)
 void
 mrb_task_hal_final(mrb_state *mrb)
 {
-  struct itimerval timer;
   int i, j;
 
   /* Block SIGALRM during unregistration */
@@ -592,24 +700,22 @@ mrb_task_hal_final(mrb_state *mrb)
   /* Find and remove this VM from the list */
   for (i = 0; i < vm_count; i++) {
     if (vm_list[i] == mrb) {
-      /* Shift remaining VMs down */
+      /* Shift remaining VMs and counters down */
       for (j = i; j < vm_count - 1; j++) {
         vm_list[j] = vm_list[j + 1];
+        vm_ready_counts[j] = vm_ready_counts[j + 1];
+        vm_waiting_counts[j] = vm_waiting_counts[j + 1];
       }
       vm_list[vm_count - 1] = NULL;
+      vm_ready_counts[vm_count - 1] = 0;
+      vm_waiting_counts[vm_count - 1] = 0;
       vm_count--;
       break;
     }
   }
 
-  /* Stop the timer if this was the last VM */
-  if (vm_count == 0) {
-    timer.it_value.tv_sec = 0;
-    timer.it_value.tv_usec = 0;
-    timer.it_interval.tv_sec = 0;
-    timer.it_interval.tv_usec = 0;
-    setitimer(ITIMER_REAL, &timer, NULL);
-  }
+  /* Update timer state based on remaining VMs */
+  update_timer_state();
 
   /* Unblock SIGALRM */
   sigprocmask(SIG_UNBLOCK, &alarm_mask, NULL);
@@ -617,6 +723,27 @@ mrb_task_hal_final(mrb_state *mrb)
 
 #else
 /* Stub implementation for non-POSIX platforms */
+
+/* Platform-specific timer control stub */
+static void
+hal_set_timer_enabled(int enable)
+{
+  (void)enable;
+  /* TODO: Platform-specific timer control */
+}
+
+/* Stub for update_timer_state on non-POSIX platforms */
+static void
+update_timer_state(void)
+{
+  /* Non-POSIX platforms need to implement hal_set_timer_enabled() */
+}
+
+static int
+should_timer_be_enabled(void)
+{
+  return 0;  /* Stub: always return false for non-POSIX */
+}
 
 void
 mrb_task_hal_init(mrb_state *mrb)
@@ -718,6 +845,7 @@ mrb_task_s_new(mrb_state *mrb, mrb_value self)
   /* Insert into ready queue */
   mrb_task_disable_irq();
   q_insert_task(mrb, t);
+  task_count_update(mrb, MRB_TASKSTATUS_DORMANT, MRB_TASKSTATUS_READY);
   mrb_task_enable_irq();
 
   /* Trigger context switch if this task has higher priority than current */
@@ -936,9 +1064,11 @@ mrb_task_suspend(mrb_state *mrb, mrb_value self)
   }
 
   mrb_task_disable_irq();
+  uint8_t old_status = t->status;
   q_delete_task(mrb, t);
   t->status = MRB_TASKSTATUS_SUSPENDED;
   q_insert_task(mrb, t);
+  task_count_update(mrb, old_status, MRB_TASKSTATUS_SUSPENDED);
   mrb_task_enable_irq();
 
   /* If suspending self, trigger context switch */
@@ -968,6 +1098,7 @@ mrb_task_resume(mrb_state *mrb, mrb_value self)
   q_delete_task(mrb, t);
   t->status = MRB_TASKSTATUS_READY;
   q_insert_task(mrb, t);
+  task_count_update(mrb, MRB_TASKSTATUS_SUSPENDED, MRB_TASKSTATUS_READY);
   mrb_task_enable_irq();
 
   /* Trigger context switch if resumed task has higher priority */
@@ -998,10 +1129,12 @@ mrb_task_terminate(mrb_state *mrb, mrb_value self)
   mrb_task_disable_irq();
 
   /* Move to dormant queue */
+  uint8_t old_status = t->status;
   q_delete_task(mrb, t);
   t->status = MRB_TASKSTATUS_DORMANT;
   t->c.status = MRB_TASK_STOPPED;
   q_insert_task(mrb, t);
+  task_count_update(mrb, old_status, MRB_TASKSTATUS_DORMANT);
 
   /* Wake up tasks waiting on join */
   mrb_task *curr = q_waiting_;
@@ -1013,6 +1146,7 @@ mrb_task_terminate(mrb_state *mrb, mrb_value self)
       curr->reason = MRB_TASKREASON_NONE;
       curr->join = NULL;
       q_insert_task(mrb, curr);
+      task_count_update(mrb, MRB_TASKSTATUS_WAITING, MRB_TASKSTATUS_READY);
     }
     curr = next;
   }
@@ -1060,6 +1194,7 @@ mrb_task_join(mrb_state *mrb, mrb_value self)
   current->reason = MRB_TASKREASON_JOIN;
   current->join = t;
   q_insert_task(mrb, current);
+  task_count_update(mrb, MRB_TASKSTATUS_READY, MRB_TASKSTATUS_WAITING);
   mrb_task_enable_irq();
 
   /* Trigger context switch */
