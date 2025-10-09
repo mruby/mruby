@@ -51,10 +51,13 @@ mrb_task_free(mrb_state *mrb, void *ptr)
 {
   mrb_task *t = (mrb_task*)ptr;
   if (t) {
-    /* Unregister from GC protection */
-    mrb_gc_unregister(mrb, t->self);
+    /* Unregister from GC protection (unless it's the main task during shutdown) */
+    if (t != mrb->task.main_task) {
+      mrb_gc_unregister(mrb, t->self);
+    }
 
     /* Free context resources only if not already terminated by fiber_terminate */
+    /* Main task never has allocated context (stbase/cibase are NULL) */
     if (t->c.status != MRB_FIBER_TERMINATED) {
       if (t->c.stbase) {
         mrb_free(mrb, t->c.stbase);
@@ -951,9 +954,29 @@ mrb_task_s_new(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_task_s_current(mrb_state *mrb, mrb_value self)
 {
-  /* Check if we're in root context (not in a task) */
+  /* Check if we're in root context */
   if (mrb->c == mrb->root_c) {
-    return mrb_nil_value();
+    /* Return main task wrapper (lazy-allocate if needed) */
+    if (!mrb->task.main_task) {
+      struct RClass *task_class = mrb_class_ptr(self);
+      struct RData *data = mrb_data_object_alloc(mrb, task_class, NULL, &mrb_task_type);
+      mrb_task *t = (mrb_task*)mrb_calloc(mrb, 1, sizeof(mrb_task));
+
+      /* Initialize as main task - special status that's never scheduled */
+      t->priority = 0;
+      t->status = MRB_TASKSTATUS_RUNNING;  /* Always running */
+      t->name = mrb_str_new_cstr(mrb, "main");
+      t->self = mrb_obj_value(data);
+      data->data = t;
+      data->type = &mrb_task_type;
+
+      /* Register for GC protection */
+      mrb_gc_register(mrb, t->self);
+
+      /* Note: t->c is not used - root context is in mrb->root_c */
+      mrb->task.main_task = t;
+    }
+    return mrb->task.main_task->self;
   }
 
   /* Use pointer arithmetic to get task from context - O(1) */
@@ -1438,6 +1461,9 @@ mrb_mruby_task_gem_init(mrb_state *mrb)
   /* Initialize HAL (timer and interrupts) */
   mrb_task_hal_init(mrb);
 
+  /* Initialize main task to NULL */
+  mrb->task.main_task = NULL;
+
   task_class = mrb_define_class(mrb, "Task", mrb->object_class);
   MRB_SET_INSTANCE_TT(task_class, MRB_TT_DATA);
 
@@ -1473,6 +1499,12 @@ mrb_mruby_task_gem_init(mrb_state *mrb)
 void
 mrb_mruby_task_gem_final(mrb_state *mrb)
 {
+  /* Clear main task pointer - GC will handle freeing the object */
+  if (mrb->task.main_task) {
+    mrb_gc_unregister(mrb, mrb->task.main_task->self);
+    mrb->task.main_task = NULL;
+  }
+
   mrb_task_hal_final(mrb);
 }
 
