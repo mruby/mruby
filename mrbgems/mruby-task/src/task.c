@@ -54,12 +54,14 @@ mrb_task_free(mrb_state *mrb, void *ptr)
     /* Unregister from GC protection */
     mrb_gc_unregister(mrb, t->self);
 
-    /* Free context resources */
-    if (t->c.stbase) {
-      mrb_free(mrb, t->c.stbase);
-    }
-    if (t->c.cibase) {
-      mrb_free(mrb, t->c.cibase);
+    /* Free context resources only if not already terminated by fiber_terminate */
+    if (t->c.status != MRB_FIBER_TERMINATED) {
+      if (t->c.stbase) {
+        mrb_free(mrb, t->c.stbase);
+      }
+      if (t->c.cibase) {
+        mrb_free(mrb, t->c.cibase);
+      }
     }
     /* Free the task structure itself */
     mrb_free(mrb, t);
@@ -377,8 +379,18 @@ mrb_tasks_run(mrb_state *mrb)
     /* Set status to RUNNING so VM can transition it properly */
     t->c.status = MRB_FIBER_RUNNING;
 
+    /* Save proc and PC to locals before calling mrb_vm_exec */
+    const struct RProc *proc = t->c.ci->proc;
+    const mrb_code *pc = t->c.ci->pc;
+
+    /* Set vmexec flag to prevent fiber_terminate from being called */
+    t->c.vmexec = TRUE;
+
     /* Execute task - PC is saved in ci->pc from previous run */
-    t->result = mrb_vm_exec(mrb, t->c.ci->proc, t->c.ci->pc);
+    t->result = mrb_vm_exec(mrb, proc, pc);
+
+    /* Clear vmexec flag */
+    t->c.vmexec = FALSE;
 
     /* Restore context */
     mrb->c = prev_c;
