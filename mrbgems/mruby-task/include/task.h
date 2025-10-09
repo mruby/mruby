@@ -15,21 +15,21 @@
  * Task status values (bit-mapped)
  */
 enum {
-  MRB_TASKSTATUS_DORMANT   = 0x00,  /* Not started or finished */
-  MRB_TASKSTATUS_READY     = 0x02,  /* Ready to run */
-  MRB_TASKSTATUS_RUNNING   = 0x03,  /* Currently executing */
-  MRB_TASKSTATUS_WAITING   = 0x04,  /* Waiting for condition */
-  MRB_TASKSTATUS_SUSPENDED = 0x08,  /* Manually suspended */
+  MRB_TASK_STATUS_DORMANT   = 0x00,  /* Not started or finished */
+  MRB_TASK_STATUS_READY     = 0x02,  /* Ready to run */
+  MRB_TASK_STATUS_RUNNING   = 0x03,  /* Currently executing */
+  MRB_TASK_STATUS_WAITING   = 0x04,  /* Waiting for condition */
+  MRB_TASK_STATUS_SUSPENDED = 0x08,  /* Manually suspended */
 };
 
 /*
  * Task wait reason
  */
 enum {
-  MRB_TASKREASON_NONE  = 0x00,  /* No specific reason */
-  MRB_TASKREASON_SLEEP = 0x01,  /* Sleeping for time */
-  MRB_TASKREASON_MUTEX = 0x02,  /* Waiting for mutex (reserved) */
-  MRB_TASKREASON_JOIN  = 0x04,  /* Waiting for another task */
+  MRB_TASK_REASON_NONE  = 0x00,  /* No specific reason */
+  MRB_TASK_REASON_SLEEP = 0x01,  /* Sleeping for time */
+  MRB_TASK_REASON_MUTEX = 0x02,  /* Waiting for mutex (reserved) */
+  MRB_TASK_REASON_JOIN  = 0x04,  /* Waiting for another task */
 };
 
 /*
