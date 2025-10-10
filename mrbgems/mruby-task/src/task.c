@@ -52,6 +52,11 @@
     } \
   } while (0)
 
+/* Time conversion constants */
+#define NSEC_PER_MSEC 1000000ULL
+#define NSEC_PER_SEC  1000000000ULL
+#define USEC_PER_MSEC 1000ULL
+
 /* Convert microseconds to tick count */
 #define USEC_TO_TICKS(usec) (((usec) / 1000) / MRB_TICK_UNIT)
 
@@ -504,28 +509,56 @@ sleep_us_impl(mrb_state *mrb, mrb_int usec)
   if (mrb->c == mrb->root_c) {
     /* Not in task context - sleep in real wall-clock time */
 #ifdef __unix__
-    struct timespec start, now;
-    clock_gettime(CLOCK_MONOTONIC, &start);
+    struct timespec start, now, sleep_time;
+    int ret;
 
-    uint64_t target_ns = (uint64_t)usec * 1000ULL;
+    /* Validate input to prevent overflow */
+    if (usec < 0) {
+      return;
+    }
+
+    ret = clock_gettime(CLOCK_MONOTONIC, &start);
+    if (ret != 0) {
+      /* Fallback to simple usleep if clock_gettime fails */
+      usleep(usec);
+      switching_ = FALSE;
+      return;
+    }
+
+    uint64_t target_ns = (uint64_t)usec * USEC_PER_MSEC;
 
     /* Loop until enough real time has elapsed */
     while (1) {
-      clock_gettime(CLOCK_MONOTONIC, &now);
-      uint64_t elapsed_ns = (uint64_t)(now.tv_sec - start.tv_sec) * 1000000000ULL +
+      ret = clock_gettime(CLOCK_MONOTONIC, &now);
+      if (ret != 0) {
+        break;  /* Clock failure - exit loop */
+      }
+
+      uint64_t elapsed_ns = (uint64_t)(now.tv_sec - start.tv_sec) * NSEC_PER_SEC +
                             (uint64_t)(now.tv_nsec - start.tv_nsec);
 
       if (elapsed_ns >= target_ns) {
         break;
       }
 
-      /* Sleep for a short interval (1ms) to allow signals and reduce CPU usage */
-      struct timespec short_sleep = {0, 1000000};  /* 1ms */
-      nanosleep(&short_sleep, NULL);  /* Interrupted by signals - that's fine */
+      /* Sleep for remaining time, but at least 1ms to allow timer interrupts */
+      uint64_t remaining_ns = target_ns - elapsed_ns;
+      if (remaining_ns > NSEC_PER_MSEC) {
+        sleep_time.tv_sec = remaining_ns / NSEC_PER_SEC;
+        sleep_time.tv_nsec = remaining_ns % NSEC_PER_SEC;
+      }
+      else {
+        sleep_time.tv_sec = 0;
+        sleep_time.tv_nsec = NSEC_PER_MSEC;
+      }
+
+      nanosleep(&sleep_time, NULL);  /* Interrupted by signals - that's OK */
     }
 #elif defined(_WIN32)
     /* Windows: just use Sleep, it handles interruptions */
-    Sleep(usec / 1000);
+    if (usec >= 0) {
+      Sleep(usec / 1000);
+    }
 #endif
     /* Clear switching flag - we're in root context, not switching to a task */
     switching_ = FALSE;
@@ -547,7 +580,7 @@ sleep_us_impl(mrb_state *mrb, mrb_int usec)
   t->wakeup_tick = tick_ + USEC_TO_TICKS(usec);
 
   /* Update next wakeup time if this task wakes earlier */
-  if (t->wakeup_tick < wakeup_tick_) {
+  if ((int32_t)(t->wakeup_tick - wakeup_tick_) < 0) {
     wakeup_tick_ = t->wakeup_tick;
   }
 
