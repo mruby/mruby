@@ -65,7 +65,7 @@ Task.run
 
 ### Task Class Methods
 
-- **`Task.new(name: nil, priority: 128) { block }`**: Creates and starts a new task. Lower priority values run first (0 is highest priority).
+- **`Task.new(name: nil, priority: 128) { block }`**: Creates and starts a new task. Lower priority values run first (0 is highest priority). The `name` parameter must be a String if provided. The `priority` must be an Integer between 0-255.
 
   ```ruby
   task = Task.new(name: "background", priority: 200) do
@@ -104,11 +104,18 @@ Task.run
   worker.suspend if worker
   ```
 
-- **`Task.stat`**: Returns scheduler statistics (tick count, wakeup time, task list).
+- **`Task.stat`**: Returns a hash containing scheduler statistics:
+  - `:tick` (Integer): Current tick count
+  - `:wakeup_tick` (Integer): Next scheduled wakeup tick
+  - `:dormant`, `:ready`, `:waiting`, `:suspended`: Each is a hash with:
+    - `:count` (Integer): Number of tasks in this queue
+    - `:tasks` (Array): Array of task objects in this queue
 
   ```ruby
   stats = Task.stat
-  puts "Tick: #{stats.tick}"
+  puts "Tick: #{stats[:tick]}"
+  puts "Ready tasks: #{stats[:ready][:count]}"
+  stats[:ready][:tasks].each { |t| puts t.name }
   ```
 
 - **`Task.run`**: Starts the scheduler main loop. Blocks until no tasks remain ready or waiting.
@@ -126,11 +133,14 @@ Task.run
   puts task.status  # => :READY
   ```
 
-- **`#name`** / **`#name=`**: Get or set the task name.
+- **`#name`** / **`#name=`**: Get or set the task name. Returns `"(noname)"` for unnamed tasks. Note: `name=` accepts any value, but `Task.new` requires a String.
 
   ```ruby
   task.name = "worker-1"
   puts task.name  # => "worker-1"
+
+  task = Task.new { }
+  puts task.name  # => "(noname)"
   ```
 
 - **`#priority`** / **`#priority=`**: Get or set the task priority (0-255). Changing priority requeues the task.
