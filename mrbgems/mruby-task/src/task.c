@@ -989,7 +989,7 @@ mrb_task_s_new(mrb_state *mrb, mrb_value self)
   const struct RProc *proc;
   mrb_task *t;
   mrb_value task_obj;
-  mrb_value kw_values[2];
+  mrb_value kw_values[2] = {mrb_undef_value(), mrb_undef_value()};
   const mrb_kwargs kwargs = {
     2, 0, (mrb_sym[]){mrb_intern_lit(mrb, "name"), mrb_intern_lit(mrb, "priority")}, kw_values, NULL
   };
@@ -1004,10 +1004,18 @@ mrb_task_s_new(mrb_state *mrb, mrb_value self)
   proc = mrb_proc_ptr(blk);
 
   /* Parse keyword arguments */
-  if (!mrb_nil_p(kw_values[0])) {
+  if (!mrb_undef_p(kw_values[0])) {
+    /* Validate name type - must be String */
+    if (!mrb_string_p(kw_values[0])) {
+      mrb_raise(mrb, E_TYPE_ERROR, "name must be a String");
+    }
     name_val = kw_values[0];
   }
-  if (!mrb_nil_p(kw_values[1])) {
+  if (!mrb_undef_p(kw_values[1])) {
+    /* Validate priority type - must be Integer */
+    if (!mrb_integer_p(kw_values[1])) {
+      mrb_raise(mrb, E_TYPE_ERROR, "priority must be an Integer");
+    }
     priority = mrb_integer(kw_values[1]);
     if (priority < 0 || priority > 255) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "priority must be 0-255");
@@ -1297,6 +1305,11 @@ mrb_task_name(mrb_state *mrb, mrb_value self)
   mrb_task *t;
 
   TASK_GET_PTR_OR_RAISE(t, self);
+
+  /* Return "(noname)" if name is not set */
+  if (mrb_nil_p(t->name)) {
+    return mrb_str_new_lit(mrb, "(noname)");
+  }
 
   return t->name;
 }
