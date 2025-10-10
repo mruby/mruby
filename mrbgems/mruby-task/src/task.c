@@ -1200,6 +1200,60 @@ mrb_task_status(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+mrb_task_inspect(mrb_state *mrb, mrb_value self)
+{
+  mrb_task *t;
+  mrb_value name_val;
+  char buf[256];
+  const char *name_str;
+  const char *status_str;
+
+  TASK_GET_PTR_OR_RAISE(t, self);
+
+  /* Get status string directly from task status field */
+  switch (t->status) {
+    case MRB_TASK_STATUS_RUNNING:
+      status_str = "RUNNING";
+      break;
+    case MRB_TASK_STATUS_READY:
+      status_str = "READY";
+      break;
+    case MRB_TASK_STATUS_WAITING:
+      status_str = "WAITING";
+      break;
+    case MRB_TASK_STATUS_SUSPENDED:
+      status_str = "SUSPENDED";
+      break;
+    case MRB_TASK_STATUS_DORMANT:
+      status_str = "DORMANT";
+      break;
+    default:
+      status_str = "UNKNOWN";
+      break;
+  }
+
+  /* Get name as C string - avoid mrb_funcall to prevent VM state issues */
+  if (mrb_string_p(t->name)) {
+    name_str = RSTRING_PTR(t->name);
+  }
+  else if (mrb_symbol_p(t->name)) {
+    name_str = mrb_sym_name(mrb, mrb_symbol(t->name));
+  }
+  else {
+    /* Treat nil, undef, or any other type as unnamed */
+    name_str = "(unnamed)";
+  }
+
+  /* Format: #<Task:0x12345678 name:STATUS> */
+  snprintf(buf, sizeof(buf), "#<Task:%p %s:%s>",
+           (void *)t,
+           name_str,
+           status_str);
+
+  return mrb_str_new_cstr(mrb, buf);
+}
+
+static mrb_value
 mrb_task_name(mrb_state *mrb, mrb_value self)
 {
   mrb_task *t;
@@ -1410,6 +1464,7 @@ mrb_mruby_task_gem_init(mrb_state *mrb)
 
   /* Instance methods */
   mrb_define_method_id(mrb, task_class, MRB_SYM(status),      mrb_task_status,       MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, task_class, MRB_SYM(inspect),     mrb_task_inspect,      MRB_ARGS_NONE());
   mrb_define_method_id(mrb, task_class, MRB_SYM(name),        mrb_task_name,         MRB_ARGS_NONE());
   mrb_define_method_id(mrb, task_class, MRB_SYM_E(name),      mrb_task_set_name,     MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, task_class, MRB_SYM(priority),    mrb_task_priority,     MRB_ARGS_NONE());
