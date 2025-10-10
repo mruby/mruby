@@ -13,6 +13,7 @@
 #include <mruby/data.h>
 #include <mruby/error.h>
 #include <mruby/gc.h>
+#include <mruby/hash.h>
 #include <mruby/internal.h>
 #include <mruby/presym.h>
 #include <mruby/proc.h>
@@ -1144,11 +1145,49 @@ mrb_task_s_pass(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
+/* Helper to build statistics for a task queue */
+static mrb_value
+mrb_stat_sub(mrb_state *mrb, mrb_task *queue)
+{
+  mrb_value stat = mrb_hash_new(mrb);
+  mrb_value tasks = mrb_ary_new(mrb);
+  mrb_task *curr = queue;
+  int count = 0;
+
+  /* Walk the queue and collect task objects */
+  while (curr) {
+    count++;
+    mrb_ary_push(mrb, tasks, curr->self);
+    curr = curr->next;
+  }
+
+  /* Build statistics hash */
+  mrb_hash_set(mrb, stat, mrb_symbol_value(MRB_SYM(count)), mrb_fixnum_value(count));
+  mrb_hash_set(mrb, stat, mrb_symbol_value(MRB_SYM(tasks)), tasks);
+
+  return stat;
+}
+
 static mrb_value
 mrb_task_s_stat(mrb_state *mrb, mrb_value self)
 {
-  /* TODO: Implement Task::Stat class with statistics */
-  return mrb_nil_value();
+  mrb_value data = mrb_hash_new(mrb);
+
+  mrb_task_disable_irq();
+
+  /* Add global scheduler state */
+  mrb_hash_set(mrb, data, mrb_symbol_value(MRB_SYM(tick)), mrb_fixnum_value(tick_));
+  mrb_hash_set(mrb, data, mrb_symbol_value(MRB_SYM(wakeup_tick)), mrb_fixnum_value(wakeup_tick_));
+
+  /* Add statistics for each queue */
+  mrb_hash_set(mrb, data, mrb_symbol_value(MRB_SYM(dormant)), mrb_stat_sub(mrb, q_dormant_));
+  mrb_hash_set(mrb, data, mrb_symbol_value(MRB_SYM(ready)), mrb_stat_sub(mrb, q_ready_));
+  mrb_hash_set(mrb, data, mrb_symbol_value(MRB_SYM(waiting)), mrb_stat_sub(mrb, q_waiting_));
+  mrb_hash_set(mrb, data, mrb_symbol_value(MRB_SYM(suspended)), mrb_stat_sub(mrb, q_suspended_));
+
+  mrb_task_enable_irq();
+
+  return data;
 }
 
 static mrb_value
@@ -1203,7 +1242,6 @@ static mrb_value
 mrb_task_inspect(mrb_state *mrb, mrb_value self)
 {
   mrb_task *t;
-  mrb_value name_val;
   char buf[256];
   const char *name_str;
   const char *status_str;
