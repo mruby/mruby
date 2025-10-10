@@ -1186,33 +1186,17 @@ static mrb_value
 mrb_task_status(mrb_state *mrb, mrb_value self)
 {
   mrb_task *t;
-  mrb_sym status_sym;
 
   TASK_GET_PTR_OR_RAISE(t, self);
 
-  /* Convert status to symbol */
-  switch (t->status) {
-    case MRB_TASK_STATUS_DORMANT:
-      status_sym = mrb_intern_lit(mrb, "DORMANT");
-      break;
-    case MRB_TASK_STATUS_READY:
-      status_sym = mrb_intern_lit(mrb, "READY");
-      break;
-    case MRB_TASK_STATUS_RUNNING:
-      status_sym = mrb_intern_lit(mrb, "RUNNING");
-      break;
-    case MRB_TASK_STATUS_WAITING:
-      status_sym = mrb_intern_lit(mrb, "WAITING");
-      break;
-    case MRB_TASK_STATUS_SUSPENDED:
-      status_sym = mrb_intern_lit(mrb, "SUSPENDED");
-      break;
-    default:
-      status_sym = mrb_intern_lit(mrb, "UNKNOWN");
-      break;
-  }
-
-  return mrb_symbol_value(status_sym);
+  /* Return status as symbol matching original implementation */
+  return mrb_symbol_value(
+    (t->status == MRB_TASK_STATUS_RUNNING)   ? MRB_SYM(RUNNING)   :
+    (t->status == MRB_TASK_STATUS_READY)     ? MRB_SYM(READY)     :
+    (t->status == MRB_TASK_STATUS_WAITING)   ? MRB_SYM(WAITING)   :
+    (t->status == MRB_TASK_STATUS_SUSPENDED) ? MRB_SYM(SUSPENDED) :
+    (t->status == MRB_TASK_STATUS_DORMANT)   ? MRB_SYM(DORMANT)   :
+                                               MRB_SYM(UNKNOWN));
 }
 
 static mrb_value
