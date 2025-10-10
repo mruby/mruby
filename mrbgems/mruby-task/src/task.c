@@ -308,23 +308,6 @@ wake_up_join_waiters(mrb_state *mrb, mrb_task *completed_task)
   }
 }
 
-/* Find the earliest wakeup tick among sleeping tasks in waiting queue */
-static uint32_t
-find_earliest_wakeup_tick(mrb_state *mrb)
-{
-  mrb_task *curr = q_waiting_;
-  uint32_t next_wakeup = UINT32_MAX;
-
-  while (curr) {
-    if (curr->reason == MRB_TASK_REASON_SLEEP && curr->wakeup_tick < next_wakeup) {
-      next_wakeup = curr->wakeup_tick;
-    }
-    curr = curr->next;
-  }
-
-  return next_wakeup;
-}
-
 /* Change task state with IRQ protection and queue management */
 static void
 task_change_state(mrb_state *mrb, mrb_task *t, uint8_t new_status)
@@ -519,9 +502,33 @@ sleep_us_impl(mrb_state *mrb, mrb_int usec)
 
   /* Check if we're in a task context */
   if (mrb->c == mrb->root_c) {
-    /* Not in task context - just advance the time */
-    uint32_t sleep_ticks = USEC_TO_TICKS(usec);
-    tick_ += sleep_ticks;
+    /* Not in task context - sleep in real wall-clock time */
+#ifdef __unix__
+    struct timespec start, now;
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
+    uint64_t target_ns = (uint64_t)usec * 1000ULL;
+
+    /* Loop until enough real time has elapsed */
+    while (1) {
+      clock_gettime(CLOCK_MONOTONIC, &now);
+      uint64_t elapsed_ns = (uint64_t)(now.tv_sec - start.tv_sec) * 1000000000ULL +
+                            (uint64_t)(now.tv_nsec - start.tv_nsec);
+
+      if (elapsed_ns >= target_ns) {
+        break;
+      }
+
+      /* Sleep for a short interval (1ms) to allow signals and reduce CPU usage */
+      struct timespec short_sleep = {0, 1000000};  /* 1ms */
+      nanosleep(&short_sleep, NULL);  /* Interrupted by signals - that's fine */
+    }
+#elif defined(_WIN32)
+    /* Windows: just use Sleep, it handles interruptions */
+    Sleep(usec / 1000);
+#endif
+    /* Clear switching flag - we're in root context, not switching to a task */
+    switching_ = FALSE;
     return;
   }
 
@@ -802,9 +809,9 @@ mrb_task_hal_init(mrb_state *mrb)
 
   /* Set up signal handler only for first VM */
   if (vm_count == 1) {
-    /* Set up signal handler */
+    /* Set up signal handler - no SA_RESTART so nanosleep returns on EINTR */
     sa.sa_handler = sigalrm_handler;
-    sa.sa_flags = SA_RESTART;  /* Restart interrupted syscalls */
+    sa.sa_flags = 0;
     sigemptyset(&sa.sa_mask);
     sigaction(SIGALRM, &sa, NULL);
   }
@@ -1061,30 +1068,16 @@ mrb_task_s_list(mrb_state *mrb, mrb_value self)
 
 /*
  * Run one task iteration - helper for Task.pass from root context
+ * Waits for ready tasks if needed (cooperative yielding)
  */
 static void
 task_run_one_iteration(mrb_state *mrb)
 {
   mrb_task *t = q_ready_;
 
-  /* No ready task - check if we can wake up sleeping tasks */
+  /* No ready task - just return (sleep from root provides delays) */
   if (!t) {
-    if (q_waiting_) {
-      /* Advance time to wake up next sleeping task */
-      uint32_t next_wakeup = find_earliest_wakeup_tick(mrb);
-
-      /* Advance time to that point */
-      if (next_wakeup != UINT32_MAX) {
-        tick_ = next_wakeup;
-        wakeup_tick_ = next_wakeup;
-        mrb_tick(mrb);  /* Wake up tasks */
-        t = q_ready_;   /* Check if we now have ready tasks */
-      }
-    }
-
-    if (!t) {
-      return;  /* Still no ready tasks */
-    }
+    return;
   }
 
   /* Skip terminated tasks */
@@ -1099,7 +1092,7 @@ task_run_one_iteration(mrb_state *mrb)
     return;
   }
 
-  /* Execute task using core logic */
+  /* Execute ready task */
   execute_task(mrb, t);
 }
 
