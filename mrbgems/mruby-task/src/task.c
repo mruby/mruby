@@ -661,10 +661,10 @@ mrb_f_usleep(mrb_state *mrb, mrb_value self)
 }
 
 /*
- * HAL POSIX implementation
+ * HAL POSIX implementation (Linux, BSD, macOS)
  */
 
-#ifdef __unix__
+#if defined(__unix__) || defined(__APPLE__) || defined(__MACH__)
 #include <signal.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -904,8 +904,271 @@ mrb_task_hal_final(mrb_state *mrb)
   sigprocmask(SIG_UNBLOCK, &alarm_mask, NULL);
 }
 
+#elif defined(_WIN32)
+/*
+ * HAL Windows implementation
+ */
+
+#include <windows.h>
+#include <timeapi.h>
+
+/* Maximum number of concurrent mrb_states with task scheduler */
+#ifndef MRB_TASK_MAX_VMS
+#define MRB_TASK_MAX_VMS 8
+#endif
+
+static mrb_state *vm_list[MRB_TASK_MAX_VMS];
+static volatile LONG vm_count = 0;
+static volatile LONG timer_enabled = 0;
+static CRITICAL_SECTION irq_lock;
+static MMRESULT timer_id = 0;
+
+/* Task counters for each VM */
+static uint16_t vm_ready_counts[MRB_TASK_MAX_VMS];
+static uint16_t vm_waiting_counts[MRB_TASK_MAX_VMS];
+
+/* Find VM index in vm_list */
+static int
+find_vm_index(mrb_state *mrb)
+{
+  int i;
+  for (i = 0; i < vm_count; i++) {
+    if (vm_list[i] == mrb) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+/* Helper functions to maintain task counters and update timer */
+static void
+task_count_update(mrb_state *mrb, uint8_t old_status, uint8_t new_status)
+{
+  int vm_idx = find_vm_index(mrb);
+  if (vm_idx < 0) return;
+
+  /* Decrement old queue counter */
+  if (old_status == MRB_TASK_STATUS_READY || old_status == MRB_TASK_STATUS_RUNNING) {
+    if (vm_ready_counts[vm_idx] > 0) {
+      vm_ready_counts[vm_idx]--;
+    }
+  }
+  else if (old_status == MRB_TASK_STATUS_WAITING) {
+    if (vm_waiting_counts[vm_idx] > 0) {
+      vm_waiting_counts[vm_idx]--;
+    }
+  }
+
+  /* Increment new queue counter */
+  if (new_status == MRB_TASK_STATUS_READY || new_status == MRB_TASK_STATUS_RUNNING) {
+    vm_ready_counts[vm_idx]++;
+  }
+  else if (new_status == MRB_TASK_STATUS_WAITING) {
+    vm_waiting_counts[vm_idx]++;
+  }
+
+  update_timer_state();
+}
+
+/* Check if timer should be enabled based on task counts */
+static int
+should_timer_be_enabled(void)
+{
+  int i;
+  /* Timer needed if any VM has multiple ready tasks OR any waiting tasks */
+  for (i = 0; i < vm_count; i++) {
+    if (vm_ready_counts[i] > 1 || vm_waiting_counts[i] > 0) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+/* Multimedia timer callback - called periodically by Windows */
+static void CALLBACK
+timer_callback(UINT uID, UINT uMsg, DWORD_PTR dwUser, DWORD_PTR dw1, DWORD_PTR dw2)
+{
+  int i;
+  (void)uID; (void)uMsg; (void)dwUser; (void)dw1; (void)dw2;
+
+  /* Tick all registered VMs */
+  EnterCriticalSection(&irq_lock);
+  for (i = 0; i < vm_count; i++) {
+    if (vm_list[i]) {
+      mrb_tick(vm_list[i]);
+    }
+  }
+  LeaveCriticalSection(&irq_lock);
+}
+
+/* Platform-specific timer control */
+static void
+hal_set_timer_enabled(int enable)
+{
+  if (enable) {
+    /* Enable timer - create multimedia timer if not already running */
+    if (timer_id == 0) {
+      /* Request 1ms timer resolution */
+      timeBeginPeriod(1);
+
+      /* Create periodic timer with MRB_TICK_UNIT interval */
+      timer_id = timeSetEvent(
+        MRB_TICK_UNIT,           /* interval in milliseconds */
+        1,                        /* resolution in milliseconds */
+        timer_callback,           /* callback function */
+        0,                        /* user data */
+        TIME_PERIODIC | TIME_KILL_SYNCHRONOUS
+      );
+    }
+  }
+  else {
+    /* Disable timer */
+    if (timer_id != 0) {
+      timeKillEvent(timer_id);
+      timeEndPeriod(1);
+      timer_id = 0;
+    }
+  }
+}
+
+/* Update timer state based on task counts */
+static void
+update_timer_state(void)
+{
+  int needs_timer = should_timer_be_enabled();
+
+  /* Update timer only if state changed */
+  if (needs_timer && !timer_enabled) {
+    hal_set_timer_enabled(1);
+    InterlockedExchange(&timer_enabled, 1);
+  }
+  else if (!needs_timer && timer_enabled) {
+    hal_set_timer_enabled(0);
+    InterlockedExchange(&timer_enabled, 0);
+  }
+}
+
+void
+mrb_task_hal_init(mrb_state *mrb)
+{
+  int i;
+  LONG idx;
+
+  /* Initialize task state */
+  for (i = 0; i < 4; i++) {
+    mrb->task.queues[i] = NULL;
+  }
+  mrb->task.tick = 0;
+  mrb->task.wakeup_tick = UINT32_MAX;
+  mrb->task.switching = FALSE;
+
+  /* Initialize critical section on first VM */
+  if (vm_count == 0) {
+    InitializeCriticalSection(&irq_lock);
+  }
+
+  EnterCriticalSection(&irq_lock);
+
+  /* Check if this VM is already registered */
+  idx = -1;
+  for (i = 0; i < vm_count; i++) {
+    if (vm_list[i] == mrb) {
+      idx = i;
+      break;
+    }
+  }
+
+  /* Register new VM if not already present */
+  if (idx < 0) {
+    if (vm_count >= MRB_TASK_MAX_VMS) {
+      LeaveCriticalSection(&irq_lock);
+      mrb_raisef(mrb, E_RUNTIME_ERROR,
+                 "too many mrb_states with task scheduler (max: %d)",
+                 MRB_TASK_MAX_VMS);
+    }
+    vm_list[vm_count] = mrb;
+    vm_ready_counts[vm_count] = 0;
+    vm_waiting_counts[vm_count] = 0;
+    InterlockedIncrement(&vm_count);
+  }
+
+  /* Update timer state based on current task queues */
+  update_timer_state();
+
+  LeaveCriticalSection(&irq_lock);
+}
+
+void
+mrb_task_enable_irq(void)
+{
+  LeaveCriticalSection(&irq_lock);
+}
+
+void
+mrb_task_disable_irq(void)
+{
+  EnterCriticalSection(&irq_lock);
+}
+
+void
+mrb_task_hal_idle_cpu(mrb_state *mrb)
+{
+  (void)mrb;
+  /* On Windows, just sleep briefly */
+  Sleep(MRB_TICK_UNIT);
+}
+
+void
+mrb_task_hal_final(mrb_state *mrb)
+{
+  int i, j;
+
+  EnterCriticalSection(&irq_lock);
+
+  /* Find and remove this VM from the list */
+  for (i = 0; i < vm_count; i++) {
+    if (vm_list[i] == mrb) {
+      /* Shift remaining VMs and counters down */
+      for (j = i; j < vm_count - 1; j++) {
+        vm_list[j] = vm_list[j + 1];
+        vm_ready_counts[j] = vm_ready_counts[j + 1];
+        vm_waiting_counts[j] = vm_waiting_counts[j + 1];
+      }
+      vm_list[vm_count - 1] = NULL;
+      vm_ready_counts[vm_count - 1] = 0;
+      vm_waiting_counts[vm_count - 1] = 0;
+      InterlockedDecrement(&vm_count);
+      break;
+    }
+  }
+
+  /* Update timer state based on remaining VMs */
+  update_timer_state();
+
+  /* Cleanup critical section if last VM */
+  if (vm_count == 0) {
+    LeaveCriticalSection(&irq_lock);
+    DeleteCriticalSection(&irq_lock);
+  }
+  else {
+    LeaveCriticalSection(&irq_lock);
+  }
+}
+
 #else
-/* Stub implementation for non-POSIX platforms */
+/* Stub implementation for unsupported platforms */
+/* WARNING: Task scheduler requires platform-specific timer implementation */
+/* This stub allows compilation but task scheduling will NOT work correctly */
+
+/* Stub for task_count_update */
+static void
+task_count_update(mrb_state *mrb, uint8_t old_status, uint8_t new_status)
+{
+  (void)mrb;
+  (void)old_status;
+  (void)new_status;
+  /* Platform-specific task counting for timer control not implemented */
+}
 
 /* Platform-specific timer control stub */
 static void
@@ -915,17 +1178,17 @@ hal_set_timer_enabled(int enable)
   /* TODO: Platform-specific timer control */
 }
 
-/* Stub for update_timer_state on non-POSIX platforms */
+/* Stub for update_timer_state */
 static void
 update_timer_state(void)
 {
-  /* Non-POSIX platforms need to implement hal_set_timer_enabled() */
+  /* TODO: Implement timer state management */
 }
 
 static int
 should_timer_be_enabled(void)
 {
-  return 0;  /* Stub: always return false for non-POSIX */
+  return 0;  /* Stub: always return false */
 }
 
 void
