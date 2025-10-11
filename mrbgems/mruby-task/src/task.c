@@ -988,8 +988,9 @@ mrb_task_s_new(mrb_state *mrb, mrb_value self)
   mrb_task *t;
   mrb_value task_obj;
   mrb_value kw_values[2] = {mrb_undef_value(), mrb_undef_value()};
+  mrb_sym kw_names[2] = {mrb_intern_lit(mrb, "name"), mrb_intern_lit(mrb, "priority")};
   const mrb_kwargs kwargs = {
-    2, 0, (mrb_sym[]){mrb_intern_lit(mrb, "name"), mrb_intern_lit(mrb, "priority")}, kw_values, NULL
+    2, 0, kw_names, kw_values, NULL
   };
 
   /* Get block and optional keyword arguments */

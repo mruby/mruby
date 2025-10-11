@@ -99,10 +99,9 @@ mrb_value mrb_tasks_run(mrb_state *mrb);
 void mrb_task_mark_all(mrb_state *mrb);
 
 /*
- * Task context status values (extends mrb_fiber_state)
+ * Task context status values
+ * (MRB_TASK_CREATED and MRB_TASK_STOPPED are defined in mrb_fiber_state enum)
  */
-#define MRB_TASK_CREATED  (MRB_FIBER_TERMINATED + 1)
-#define MRB_TASK_STOPPED  (MRB_FIBER_TERMINATED + 2)
 
 #endif /* MRB_USE_TASK_SCHEDULER */
 
