@@ -1421,15 +1421,16 @@ get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list *ap)
 
         p = GET_ARG(mrb_value*);
         if (pickarg) {
+          mrb_value arg = *pickarg;
           if (!(altmode && mrb_nil_p(*pickarg))) {
             switch (c) {
             case 'C': ensure_class_type(mrb, *pickarg); break;
-            case 'S': mrb_ensure_string_type(mrb, *pickarg); break;
-            case 'A': mrb_ensure_array_type(mrb, *pickarg); break;
-            case 'H': mrb_ensure_hash_type(mrb, *pickarg); break;
+            case 'S': arg = mrb_ensure_string_type(mrb, *pickarg); break;
+            case 'A': arg = mrb_ensure_array_type(mrb, *pickarg); break;
+            case 'H': arg = mrb_ensure_hash_type(mrb, *pickarg); break;
             }
           }
-          *p = *pickarg;
+          *p = arg;
         }
       }
       break;
