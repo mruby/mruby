@@ -187,11 +187,11 @@ enum mrb_fiber_state {
   MRB_FIBER_SUSPENDED,
   MRB_FIBER_TRANSFERRED,
   MRB_FIBER_TERMINATED,
-#ifdef MRB_USE_TASK_SCHEDULER
-  MRB_TASK_CREATED,
-  MRB_TASK_STOPPED,
-#endif
 };
+
+/* Task context status aliases */
+#define MRB_TASK_CREATED MRB_FIBER_CREATED
+#define MRB_TASK_STOPPED MRB_FIBER_TERMINATED
 
 struct mrb_context {
   struct mrb_context *prev;
