@@ -71,16 +71,15 @@ mrb_task_free(mrb_state *mrb, void *ptr)
       mrb_gc_unregister(mrb, t->self);
     }
 
-    /* Free context resources only if not already terminated by fiber_terminate */
+    /* Free context resources - always free if allocated */
     /* Main task never has allocated context (stbase/cibase are NULL) */
-    if (t->c.status != MRB_FIBER_TERMINATED) {
-      if (t->c.stbase) {
-        mrb_free(mrb, t->c.stbase);
-      }
-      if (t->c.cibase) {
-        mrb_free(mrb, t->c.cibase);
-      }
+    if (t->c.stbase) {
+      mrb_free(mrb, t->c.stbase);
     }
+    if (t->c.cibase) {
+      mrb_free(mrb, t->c.cibase);
+    }
+
     /* Free the task structure itself */
     mrb_free(mrb, t);
   }
