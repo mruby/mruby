@@ -9,8 +9,6 @@
 
 #include <mruby.h>
 
-#ifdef MRB_USE_TASK_SCHEDULER
-
 /*
  * Task status values (bit-mapped)
  */
@@ -97,12 +95,5 @@ void mrb_task_hal_idle_cpu(mrb_state *mrb);
 void mrb_tick(mrb_state *mrb);
 mrb_value mrb_tasks_run(mrb_state *mrb);
 void mrb_task_mark_all(mrb_state *mrb);
-
-/*
- * Task context status values
- * (MRB_TASK_CREATED and MRB_TASK_STOPPED are defined in mrb_fiber_state enum)
- */
-
-#endif /* MRB_USE_TASK_SCHEDULER */
 
 #endif /* MRUBY_TASK_H */

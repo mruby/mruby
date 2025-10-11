@@ -5,9 +5,6 @@
 */
 
 #include <mruby.h>
-
-#ifdef MRB_USE_TASK_SCHEDULER
-
 #include <mruby/array.h>
 #include <mruby/class.h>
 #include <mruby/data.h>
@@ -1544,18 +1541,3 @@ mrb_mruby_task_gem_final(mrb_state *mrb)
 
   mrb_task_hal_final(mrb);
 }
-
-#else
-
-/* Task scheduler not enabled - provide stub */
-void
-mrb_mruby_task_gem_init(mrb_state *mrb)
-{
-}
-
-void
-mrb_mruby_task_gem_final(mrb_state *mrb)
-{
-}
-
-#endif /* MRB_USE_TASK_SCHEDULER */
