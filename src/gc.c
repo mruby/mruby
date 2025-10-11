@@ -29,8 +29,8 @@
 #endif
 
 #ifdef MRB_USE_TASK_SCHEDULER
-/* Weak stub for mrb_task_mark_all - actual implementation in task.c */
-void __attribute__((weak)) mrb_task_mark_all(mrb_state *mrb) { (void)mrb; }
+/* Forward declaration - actual implementation in task.c */
+void mrb_task_mark_all(mrb_state *mrb);
 #endif
 
 /*
