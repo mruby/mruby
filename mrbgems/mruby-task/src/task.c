@@ -101,11 +101,9 @@ void
 mrb_task_mark_all(mrb_state *mrb)
 {
   int qi;
-  int task_count = 0;
   for (qi = 0; qi < 4; qi++) {
     mrb_task *t = mrb->task.queues[qi];
     while (t) {
-      task_count++;
       struct mrb_context *c = &t->c;
       mrb_callinfo *ci;
       size_t i, e;
