@@ -1834,7 +1834,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
     if (dir == PACK_DIR_NUL) {
     grow:
       if (ridx > INT_MAX - count) goto overflow;
-      ridx += pack_nul(mrb, result, ridx, count);
+      ridx += pack_nul(mrb, result, ridx, (int)count);
       continue;
     }
     else if (dir == PACK_DIR_BACK) {
@@ -1906,29 +1906,29 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
 
       /* String formats with count - use (mrb, o, result, ridx, count, flags) signature */
       case PACK_DIR_HEX:
-        ridx += pack_hex(mrb, o, result, ridx, count, flags);
+        ridx += pack_hex(mrb, o, result, ridx, (int)count, flags);
         break;
       case PACK_DIR_BSTR:
-        ridx += pack_bstr(mrb, o, result, ridx, count, flags);
+        ridx += pack_bstr(mrb, o, result, ridx, (int)count, flags);
         break;
       case PACK_DIR_STR:
-        ridx += pack_str(mrb, o, result, ridx, count, flags);
+        ridx += pack_str(mrb, o, result, ridx, (int)count, flags);
         break;
 
       /* String formats with count only - use (mrb, o, result, ridx, count) signature */
       case PACK_DIR_BASE64:
-        ridx += pack_base64(mrb, o, result, ridx, count);
+        ridx += pack_base64(mrb, o, result, ridx, (int)count);
         break;
       case PACK_DIR_UU:
-        ridx += pack_uu(mrb, o, result, ridx, count);
+        ridx += pack_uu(mrb, o, result, ridx, (int)count);
         break;
       case PACK_DIR_QENC:
-        ridx += pack_qenc(mrb, o, result, ridx, count);
+        ridx += pack_qenc(mrb, o, result, ridx, (int)count);
         break;
 
       /* UTF8 format - special signature (mrb, o, result, ridx, count, flags) */
       case PACK_DIR_UTF8:
-        ridx += pack_utf8(mrb, o, result, ridx, count, flags);
+        ridx += pack_utf8(mrb, o, result, ridx, (int)count, flags);
         break;
 
       default:
@@ -1996,15 +1996,15 @@ pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
     switch (dir) {
     /* String formats with count and flags - (mrb, sptr, len, result, count, flags) */
     case PACK_DIR_HEX:
-      srcidx += unpack_hex(mrb, sptr, srclen - srcidx, result, count, flags);
+      srcidx += unpack_hex(mrb, sptr, srclen - srcidx, result, (int)count, flags);
       if (single) goto single_return;
       continue;
     case PACK_DIR_BSTR:
-      srcidx += unpack_bstr(mrb, sptr, srclen - srcidx, result, count, flags);
+      srcidx += unpack_bstr(mrb, sptr, srclen - srcidx, result, (int)count, flags);
       if (single) goto single_return;
       continue;
     case PACK_DIR_STR:
-      srcidx += unpack_str(mrb, sptr, srclen - srcidx, result, count, flags);
+      srcidx += unpack_str(mrb, sptr, srclen - srcidx, result, (int)count, flags);
       if (single) goto single_return;
       continue;
 
