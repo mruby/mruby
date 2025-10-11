@@ -51,7 +51,7 @@ typedef struct mpz_context {
 
 /* Convenience macros for context creation */
 #define MPZ_CTX_INIT(mrb_ptr, ctx, pool_ptr) \
-  mpz_pool_t pool ## _storage = {0};\
+  mpz_pool_t pool ## _storage = {{0}};\
   mpz_pool_t *pool_ptr = &pool ## _storage;\
   mpz_ctx_t ctx ## _struct = ((mpz_ctx_t){.mrb = (mrb_ptr), .pool = (pool_ptr)}); \
   mpz_ctx_t *ctx = &(ctx ## _struct);
