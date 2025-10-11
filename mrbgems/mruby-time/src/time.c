@@ -753,6 +753,14 @@ time_get_ptr(mrb_state *mrb, mrb_value time)
   return tm;
 }
 
+MRB_API struct tm*
+mrb_time_get_tm(mrb_state *mrb, mrb_value time)
+{
+  struct mrb_time *tm = time_get_ptr(mrb, time);
+  time_update_datetime(mrb, tm, FALSE);
+  return &tm->datetime;
+}
+
 /*
  * call-seq:
  *   time == other_time -> true or false
