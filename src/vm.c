@@ -1709,7 +1709,21 @@ RETRY_TRY_BLOCK:
       goto L_BREAK;
     goto L_RAISE;
   }
+  /* Intentionally store stack variable address for exception handling.
+   * This is safe because the pointer is cleared before function returns.
+   * Suppress GCC 12+ warning about dangling pointer. */
+#if defined(__GNUC__) && !defined(__clang__)
+  #if __GNUC__ >= 12
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wdangling-pointer"
+  #endif
+#endif
   mrb->jmp = &c_jmp;
+#if defined(__GNUC__) && !defined(__clang__)
+  #if __GNUC__ >= 12
+    #pragma GCC diagnostic pop
+  #endif
+#endif
 
   INIT_DISPATCH {
     CASE(OP_NOP, Z) {
