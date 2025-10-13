@@ -3457,7 +3457,13 @@ mrb_bint_xor(mrb_state *mrb, mrb_value x, mrb_value y)
     if (z == 0) return x;
     if (0 < z && (mp_dbl_limb)z < DIG_BASE) {
       mpz_init_set(ctx, &c, &a);
-      c.p[0] ^= z;
+      if (a.sz == 0) {
+        mpz_realloc(ctx, &c, 1);
+        c.p[0] = z;
+      }
+      else {
+        c.p[0] ^= z;
+      }
       return bint_norm(mrb, bint_new(ctx, &c));
     }
   }
