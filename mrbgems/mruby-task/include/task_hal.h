@@ -122,9 +122,7 @@ void mrb_task_disable_irq(void);
 void mrb_task_hal_idle_cpu(mrb_state *mrb);
 
 /*
- * Core scheduler functions (implemented in task.c, called by HAL)
- *
- * These are provided by the core scheduler for HAL implementations to call.
+ * Core scheduler function (implemented in task.c, called by HAL)
  */
 
 /**
@@ -140,26 +138,5 @@ void mrb_task_hal_idle_cpu(mrb_state *mrb);
  * @param mrb The mruby state to tick
  */
 void mrb_tick(mrb_state *mrb);
-
-/**
- * Main scheduler loop - runs all tasks until completion
- *
- * Executes tasks in priority order until all tasks are dormant.
- * Handles task switching, preemption, and idle states.
- *
- * @param mrb The mruby state containing the task scheduler
- * @return mrb_nil_value() when all tasks complete
- */
-mrb_value mrb_tasks_run(mrb_state *mrb);
-
-/**
- * Mark all tasks for garbage collection
- *
- * Called by the GC during marking phase to protect task objects
- * and their associated data from collection.
- *
- * @param mrb The mruby state
- */
-void mrb_task_mark_all(mrb_state *mrb);
 
 #endif /* MRUBY_TASK_HAL_H */
