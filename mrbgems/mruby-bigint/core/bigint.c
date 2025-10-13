@@ -295,10 +295,10 @@ mpz_clear(mpz_ctx_t *ctx, mpz_t *s)
       /* Pool memory - don't free, just mark as unused */
     }
     else {
-#endif
       mrb_free(MPZ_MRB(ctx), s->p);
-#if MRB_BIGINT_POOL_SIZE > 0
     }
+#else
+    mrb_free(MPZ_MRB(ctx), s->p);
 #endif
     s->p = NULL;
   }
