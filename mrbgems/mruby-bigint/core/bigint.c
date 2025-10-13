@@ -2749,10 +2749,10 @@ bint_as_mpz(struct RBigint *b, mpz_t *x)
   x->sn = RBIGINT_SIGN(b);
 }
 
-static struct RBigint*
-bint_new(mpz_ctx_t *ctx, mpz_t *x)
+/* Transfer mpz_t data to RBigint structure */
+static void
+bint_set(mpz_ctx_t *ctx, struct RBigint *b, mpz_t *x)
 {
-  struct RBigint *b = MRB_OBJ_ALLOC(MPZ_MRB(ctx), MRB_TT_BIGINT, MPZ_MRB(ctx)->integer_class);
   if (x->sz <= RBIGINT_EMBED_SIZE_MAX) {
     RBIGINT_SET_EMBED_SIZE(b, x->sz);
     RBIGINT_SET_EMBED_SIGN(b, x->sn);
@@ -2769,6 +2769,13 @@ bint_new(mpz_ctx_t *ctx, mpz_t *x)
     RBIGINT_SET_HEAP(b);
     mpz_move(ctx, &b->as.heap, x);
   }
+}
+
+static struct RBigint*
+bint_new(mpz_ctx_t *ctx, mpz_t *x)
+{
+  struct RBigint *b = MRB_OBJ_ALLOC(MPZ_MRB(ctx), MRB_TT_BIGINT, MPZ_MRB(ctx)->integer_class);
+  bint_set(ctx, b, x);
   return b;
 }
 
@@ -3540,12 +3547,12 @@ mrb_bint_rshift(mrb_state *mrb, mrb_value x, mrb_int width)
 void
 mrb_bint_copy(mrb_state *mrb, mrb_value x, mrb_value y)
 {
-  mpz_t a, b;
+  mpz_t b, temp;
   MPZ_CTX_INIT(mrb, ctx, pool);
 
-  bint_as_mpz(RBIGINT(x), &a);
   bint_as_mpz(RBIGINT(y), &b);
-  mpz_init_set(ctx, &a, &b);
+  mpz_init_set(ctx, &temp, &b);
+  bint_set(ctx, RBIGINT(x), &temp);
 }
 
 size_t
