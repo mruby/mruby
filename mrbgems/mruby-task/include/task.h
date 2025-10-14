@@ -93,7 +93,7 @@ void mrb_task_hal_idle_cpu(mrb_state *mrb);
  * Core task scheduler API
  */
 void mrb_tick(mrb_state *mrb);
-mrb_value mrb_tasks_run(mrb_state *mrb);
+mrb_value mrb_task_run(mrb_state *mrb);
 void mrb_task_mark_all(mrb_state *mrb);
 
 #endif /* MRUBY_TASK_H */

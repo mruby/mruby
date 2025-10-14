@@ -430,7 +430,7 @@ mrb_tick(mrb_state *mrb)
 
 /* Main scheduler loop */
 mrb_value
-mrb_tasks_run(mrb_state *mrb)
+mrb_task_run(mrb_state *mrb)
 {
   mrb_task *t;
 
@@ -877,7 +877,7 @@ mrb_task_s_stat(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_task_s_run(mrb_state *mrb, mrb_value self)
 {
-  return mrb_tasks_run(mrb);
+  return mrb_task_run(mrb);
 }
 
 static mrb_value
