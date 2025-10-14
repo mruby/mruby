@@ -10,6 +10,4 @@ MRuby::Gem::Specification.new('mruby-task') do |spec|
   if spec.for_windows?
     spec.linker.libraries << 'winmm'
   end
-
-  spec.add_dependency 'mruby-fiber'  # Uses same context infrastructure
 end
