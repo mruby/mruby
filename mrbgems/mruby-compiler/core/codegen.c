@@ -3047,29 +3047,22 @@ gen_literal_array(codegen_scope *s, node *tree, mrb_bool sym, int val)
 
     /* Process each segment separated by NODE_LITERAL_DELIM */
     while (current) {
-      /* Build segment from current position to next delimiter */
-      node *segment = NULL;
-      node **segment_tail = &segment;
+      /* Find the segment boundaries without allocating */
+      node *segment_start = current;
+      node *segment_prev = NULL;
 
-      /* Collect nodes until we hit a delimiter or end */
+      /* Find end of segment (delimiter or end of list) */
       while (current && !IS_LITERAL_DELIM(current)) {
-        /* Add this node to segment */
-        node *segment_node = (node*)mrbc_malloc(sizeof(node));
-        segment_node->car = current->car;
-        segment_node->cdr = NULL;
-
-        *segment_tail = segment_node;
-        segment_tail = &segment_node->cdr;
-
+        segment_prev = current;
         current = current->cdr;
       }
 
       /* Process the segment if it has content */
-      if (segment) {
+      if (segment_start != current) {
         /* Check if this is an empty string segment (for %w[] case) */
         mrb_bool is_empty_segment = TRUE;
-        node *check = segment;
-        while (check) {
+        node *check = segment_start;
+        while (check != current) {
           if (check->car) {
             mrb_int len = node_to_int(check->car->car);
             if (len > 0) {
@@ -3088,8 +3081,20 @@ gen_literal_array(codegen_scope *s, node *tree, mrb_bool sym, int val)
 
         /* Only process non-empty segments */
         if (!is_empty_segment) {
+          /* Temporarily terminate the segment by saving and clearing the cdr */
+          node *saved_cdr = NULL;
+          if (segment_prev) {
+            saved_cdr = segment_prev->cdr;
+            segment_prev->cdr = NULL;
+          }
+
           /* Use gen_string for this segment */
-          gen_string(s, segment, VAL);
+          gen_string(s, segment_start, VAL);
+
+          /* Restore the original cdr */
+          if (segment_prev) {
+            segment_prev->cdr = saved_cdr;
+          }
 
           /* Apply symbol conversion if needed */
           if (sym) {
@@ -3097,14 +3102,6 @@ gen_literal_array(codegen_scope *s, node *tree, mrb_bool sym, int val)
           }
 
           array_size++;
-        }
-
-        /* Free the temporary segment nodes */
-        node *temp = segment;
-        while (temp) {
-          node *next = temp->cdr;
-          mrbc_free(temp);
-          temp = next;
         }
       }
 
