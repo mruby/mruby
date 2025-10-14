@@ -13,8 +13,14 @@
 #include "task_hal.h"
 #include <signal.h>
 #include <sys/time.h>
+#include <time.h>
 #include <unistd.h>
 #include <stdint.h>
+
+/* Time conversion constants */
+#define NSEC_PER_MSEC 1000000ULL
+#define NSEC_PER_SEC  1000000000ULL
+#define USEC_PER_MSEC 1000ULL
 
 /* Multi-VM support */
 static mrb_state *vm_list[MRB_TASK_MAX_VMS];
@@ -118,6 +124,57 @@ mrb_task_hal_idle_cpu(mrb_state *mrb)
   (void)mrb;
   /* On POSIX, just pause briefly */
   usleep(MRB_TICK_UNIT * 1000);
+}
+
+void
+mrb_task_hal_sleep_us(mrb_state *mrb, mrb_int usec)
+{
+  struct timespec start, now, sleep_time;
+  int ret;
+
+  (void)mrb;
+
+  /* Validate input to prevent overflow */
+  if (usec < 0) {
+    return;
+  }
+
+  ret = clock_gettime(CLOCK_MONOTONIC, &start);
+  if (ret != 0) {
+    /* Fallback to simple usleep if clock_gettime fails */
+    usleep(usec);
+    return;
+  }
+
+  uint64_t target_ns = (uint64_t)usec * USEC_PER_MSEC;
+
+  /* Loop until enough real time has elapsed */
+  while (1) {
+    ret = clock_gettime(CLOCK_MONOTONIC, &now);
+    if (ret != 0) {
+      break;  /* Clock failure - exit loop */
+    }
+
+    uint64_t elapsed_ns = (uint64_t)(now.tv_sec - start.tv_sec) * NSEC_PER_SEC +
+                          (uint64_t)(now.tv_nsec - start.tv_nsec);
+
+    if (elapsed_ns >= target_ns) {
+      break;
+    }
+
+    /* Sleep for remaining time, but at least 1ms to allow timer interrupts */
+    uint64_t remaining_ns = target_ns - elapsed_ns;
+    if (remaining_ns > NSEC_PER_MSEC) {
+      sleep_time.tv_sec = remaining_ns / NSEC_PER_SEC;
+      sleep_time.tv_nsec = remaining_ns % NSEC_PER_SEC;
+    }
+    else {
+      sleep_time.tv_sec = 0;
+      sleep_time.tv_nsec = NSEC_PER_MSEC;
+    }
+
+    nanosleep(&sleep_time, NULL);  /* Interrupted by signals - that's OK */
+  }
 }
 
 void

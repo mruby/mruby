@@ -121,6 +121,26 @@ void mrb_task_disable_irq(void);
  */
 void mrb_task_hal_idle_cpu(mrb_state *mrb);
 
+/**
+ * Sleep for specified microseconds in wall-clock time
+ *
+ * Called by sleep functions when in root context (not in a task).
+ * Should sleep for the specified number of microseconds in real wall-clock
+ * time, allowing timer interrupts to occur during the sleep.
+ *
+ * Requirements:
+ * - Sleep for approximately usec microseconds in wall-clock time
+ * - Must allow timer interrupts/callbacks during sleep
+ * - Should handle interruptions gracefully and complete full sleep duration
+ * - On POSIX: use clock_gettime + nanosleep loop for accuracy
+ * - On Windows: use Sleep() with millisecond conversion
+ * - On embedded: platform-specific delay with interrupt support
+ *
+ * @param mrb The mruby state (for context, may be unused)
+ * @param usec Number of microseconds to sleep
+ */
+void mrb_task_hal_sleep_us(mrb_state *mrb, mrb_int usec);
+
 /*
  * Core scheduler function (implemented in task.c, called by HAL)
  */

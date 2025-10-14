@@ -123,6 +123,17 @@ mrb_task_hal_idle_cpu(mrb_state *mrb)
 }
 
 void
+mrb_task_hal_sleep_us(mrb_state *mrb, mrb_int usec)
+{
+  (void)mrb;
+
+  /* Windows Sleep() takes milliseconds, convert from microseconds */
+  if (usec >= 0) {
+    Sleep(usec / 1000);
+  }
+}
+
+void
 mrb_task_hal_final(mrb_state *mrb)
 {
   int i, j;
