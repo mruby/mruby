@@ -13,6 +13,7 @@
 #include <mruby/error.h>
 #include <mruby/internal.h>
 #include <mruby/presym.h>
+#include <io_hal.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -1367,21 +1368,21 @@ io_pid(mrb_state *mrb, mrb_value io)
   return mrb_nil_value();
 }
 
-static struct timeval
+static mrb_io_timeval
 time2timeval(mrb_state *mrb, mrb_value time)
 {
-  struct timeval t = { 0, 0 };
+  mrb_io_timeval t = { 0, 0 };
 
   switch (mrb_type(time)) {
     case MRB_TT_INTEGER:
-      t.tv_sec = (ftime_t)mrb_integer(time);
+      t.tv_sec = (int64_t)mrb_integer(time);
       t.tv_usec = 0;
       break;
 
 #ifndef MRB_NO_FLOAT
     case MRB_TT_FLOAT:
-      t.tv_sec = (ftime_t)mrb_float(time);
-      t.tv_usec = (fsuseconds_t)((mrb_float(time) - t.tv_sec) * 1000000.0);
+      t.tv_sec = (int64_t)mrb_float(time);
+      t.tv_usec = (int64_t)((mrb_float(time) - t.tv_sec) * 1000000.0);
       break;
 #endif
 
@@ -1487,7 +1488,7 @@ io_s_select(mrb_state *mrb, mrb_value klass)
     write = argv[1];
   mrb_value read = argv[0];
 
-  struct timeval *tp, timerec;
+  mrb_io_timeval *tp, timerec;
   if (mrb_nil_p(timeout)) {
     tp = NULL;
   }
@@ -1496,20 +1497,22 @@ io_s_select(mrb_state *mrb, mrb_value klass)
     tp = &timerec;
   }
 
-  fd_set pset, rset, *rp;
-  FD_ZERO(&pset);
+  mrb_io_fdset *pset = mrb_io_hal_fdset_alloc(mrb);
+  mrb_io_fdset *rset = NULL;
+  mrb_io_fdset *rp = NULL;
+  mrb_io_hal_fdset_zero(mrb, pset);
   if (!mrb_nil_p(read)) {
     mrb_check_type(mrb, read, MRB_TT_ARRAY);
-    rp = &rset;
-    FD_ZERO(rp);
+    rset = mrb_io_hal_fdset_alloc(mrb);
+    rp = rset;
+    mrb_io_hal_fdset_zero(mrb, rp);
     for (int i = 0; i < RARRAY_LEN(read); i++) {
       read_io = RARRAY_PTR(read)[i];
       fptr = io_get_open_fptr(mrb, read_io);
-      if (fptr->fd >= FD_SETSIZE) continue;
-      FD_SET(fptr->fd, rp);
+      mrb_io_hal_fdset_set(mrb, fptr->fd, rp);
       if (mrb_io_read_data_pending(mrb, fptr)) {
         pending++;
-        FD_SET(fptr->fd, &pset);
+        mrb_io_hal_fdset_set(mrb, fptr->fd, pset);
       }
       if (max < fptr->fd)
         max = fptr->fd;
@@ -1519,75 +1522,72 @@ io_s_select(mrb_state *mrb, mrb_value klass)
       tp = &timerec;
     }
   }
-  else {
-    rp = NULL;
-  }
 
-  fd_set wset, *wp;
+  mrb_io_fdset *wset = NULL;
+  mrb_io_fdset *wp = NULL;
   if (!mrb_nil_p(write)) {
     mrb_check_type(mrb, write, MRB_TT_ARRAY);
-    wp = &wset;
-    FD_ZERO(wp);
+    wset = mrb_io_hal_fdset_alloc(mrb);
+    wp = wset;
+    mrb_io_hal_fdset_zero(mrb, wp);
     for (int i = 0; i < RARRAY_LEN(write); i++) {
       fptr = io_get_open_fptr(mrb, RARRAY_PTR(write)[i]);
-      if (fptr->fd >= FD_SETSIZE) continue;
-      FD_SET(fptr->fd, wp);
+      mrb_io_hal_fdset_set(mrb, fptr->fd, wp);
       if (max < fptr->fd)
         max = fptr->fd;
       if (fptr->fd2 >= 0) {
-        FD_SET(fptr->fd2, wp);
+        mrb_io_hal_fdset_set(mrb, fptr->fd2, wp);
         if (max < fptr->fd2)
           max = fptr->fd2;
       }
     }
-  }
-  else {
-    wp = NULL;
   }
 
-  fd_set eset, *ep;
+  mrb_io_fdset *eset = NULL;
+  mrb_io_fdset *ep = NULL;
   if (!mrb_nil_p(except)) {
     mrb_check_type(mrb, except, MRB_TT_ARRAY);
-    ep = &eset;
-    FD_ZERO(ep);
+    eset = mrb_io_hal_fdset_alloc(mrb);
+    ep = eset;
+    mrb_io_hal_fdset_zero(mrb, ep);
     for (int i = 0; i < RARRAY_LEN(except); i++) {
       fptr = io_get_open_fptr(mrb, RARRAY_PTR(except)[i]);
-      if (fptr->fd >= FD_SETSIZE) continue;
-      FD_SET(fptr->fd, ep);
+      mrb_io_hal_fdset_set(mrb, fptr->fd, ep);
       if (max < fptr->fd)
         max = fptr->fd;
       if (fptr->fd2 >= 0) {
-        FD_SET(fptr->fd2, ep);
+        mrb_io_hal_fdset_set(mrb, fptr->fd2, ep);
         if (max < fptr->fd2)
           max = fptr->fd2;
       }
     }
-  }
-  else {
-    ep = NULL;
   }
 
   max++;
 
   int n;
 retry:
-  n = select(max, rp, wp, ep, tp);
+  n = mrb_io_hal_select(mrb, max, rp, wp, ep, tp);
   if (n < 0) {
-#ifdef _WIN32
-    errno = WSAGetLastError();
-    if (errno != WSAEINTR)
+    if (errno != EINTR) {
+      mrb_io_hal_fdset_free(mrb, pset);
+      mrb_io_hal_fdset_free(mrb, rset);
+      mrb_io_hal_fdset_free(mrb, wset);
+      mrb_io_hal_fdset_free(mrb, eset);
       mrb_sys_fail(mrb, "select failed");
-#else
-    if (errno != EINTR)
-      mrb_sys_fail(mrb, "select failed");
-#endif
+    }
     if (tp == NULL)
       goto retry;
     interrupt_flag = 1;
   }
 
-  if (!pending && n == 0)
+  if (!pending && n == 0) {
+    mrb_io_hal_fdset_free(mrb, pset);
+    mrb_io_hal_fdset_free(mrb, rset);
+    mrb_io_hal_fdset_free(mrb, wset);
+    mrb_io_hal_fdset_free(mrb, eset);
     return mrb_nil_value();
+  }
 
   result = mrb_ary_new_capa(mrb, 3);
   mrb_ary_push(mrb, result, rp ? mrb_ary_new(mrb) : mrb_ary_new_capa(mrb, 0));
@@ -1599,8 +1599,8 @@ retry:
       list = RARRAY_PTR(result)[0];
       for (int i = 0; i < RARRAY_LEN(read); i++) {
         fptr = io_get_open_fptr(mrb, RARRAY_PTR(read)[i]);
-        if (FD_ISSET(fptr->fd, rp) ||
-            FD_ISSET(fptr->fd, &pset)) {
+        if (mrb_io_hal_fdset_isset(mrb, fptr->fd, rp) ||
+            mrb_io_hal_fdset_isset(mrb, fptr->fd, pset)) {
           mrb_ary_push(mrb, list, RARRAY_PTR(read)[i]);
         }
       }
@@ -1610,10 +1610,10 @@ retry:
       list = RARRAY_PTR(result)[1];
       for (int i = 0; i < RARRAY_LEN(write); i++) {
         fptr = io_get_open_fptr(mrb, RARRAY_PTR(write)[i]);
-        if (FD_ISSET(fptr->fd, wp)) {
+        if (mrb_io_hal_fdset_isset(mrb, fptr->fd, wp)) {
           mrb_ary_push(mrb, list, RARRAY_PTR(write)[i]);
         }
-        else if (fptr->fd2 >= 0 && FD_ISSET(fptr->fd2, wp)) {
+        else if (fptr->fd2 >= 0 && mrb_io_hal_fdset_isset(mrb, fptr->fd2, wp)) {
           mrb_ary_push(mrb, list, RARRAY_PTR(write)[i]);
         }
       }
@@ -1623,15 +1623,20 @@ retry:
       list = RARRAY_PTR(result)[2];
       for (int i = 0; i < RARRAY_LEN(except); i++) {
         fptr = io_get_open_fptr(mrb, RARRAY_PTR(except)[i]);
-        if (FD_ISSET(fptr->fd, ep)) {
+        if (mrb_io_hal_fdset_isset(mrb, fptr->fd, ep)) {
           mrb_ary_push(mrb, list, RARRAY_PTR(except)[i]);
         }
-        else if (fptr->fd2 >= 0 && FD_ISSET(fptr->fd2, ep)) {
+        else if (fptr->fd2 >= 0 && mrb_io_hal_fdset_isset(mrb, fptr->fd2, ep)) {
           mrb_ary_push(mrb, list, RARRAY_PTR(except)[i]);
         }
       }
     }
   }
+
+  mrb_io_hal_fdset_free(mrb, pset);
+  mrb_io_hal_fdset_free(mrb, rset);
+  mrb_io_hal_fdset_free(mrb, wset);
+  mrb_io_hal_fdset_free(mrb, eset);
 
   return result;
 }
