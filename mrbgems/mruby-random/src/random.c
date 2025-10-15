@@ -17,48 +17,36 @@
 
 #include <time.h>
 
-/*  Written in 2019 by David Blackman and Sebastiano Vigna (vigna@acm.org)
+/*  PCG Random Number Generation
+    Based on the PCG family by Melissa O'Neill <oneill@pcg-random.org>
 
-To the extent possible under law, the author has dedicated all copyright
-and related and neighboring rights to this software to the public domain
-worldwide. This software is distributed without any warranty.
+    This implements PCG-XSH-RR with 64-bit state and 32-bit output.
+    On 32-bit platforms, uses an optimized 32-bit multiplier for better
+    performance. On 64-bit platforms, uses the standard 64-bit multiplier
+    for maximum statistical quality.
 
-See <https://creativecommons.org/publicdomain/zero/1.0/>. */
+    See <https://www.pcg-random.org/> for details. */
 
-/* This is xoshiro128++ 1.0, one of our 32-bit all-purpose, rock-solid
-   generators. It has excellent speed, a state size (128 bits) that is
-   large enough for mild parallelism, and it passes all tests we are aware
-   of.
-
-   For generating just single-precision (i.e., 32-bit) floating-point
-   numbers, xoshiro128+ is even faster.
-
-   The state must be seeded so that it is not everywhere zero. */
-
-
+/* Platform-adaptive multiplier selection:
+   - 32-bit platforms: 0xf13283ad requires only 2 multiplies instead of 3
+   - 64-bit platforms: standard multiplier for best statistical quality */
 #ifdef MRB_32BIT
-# define XORSHIFT96
-# define NSEEDS 3
-# define SEEDPOS 2
+# define PCG_MULTIPLIER 0xf13283adULL
 #else
-# define NSEEDS 4
-# define SEEDPOS 0
+# define PCG_MULTIPLIER 6364136223846793005ULL
 #endif
-#define LASTSEED (NSEEDS-1)
+#define PCG_INCREMENT 1442695040888963407ULL
 
 typedef struct rand_state {
-  uint32_t seed[NSEEDS];
+  uint64_t state;
+  uint32_t seed_value;  /* Track last seed for srand compatibility */
 } rand_state;
 
 static void
 rand_init(rand_state *t)
 {
-  t->seed[0] = 123456789;
-  t->seed[1] = 362436069;
-  t->seed[2] = 521288629;
-#ifndef XORSHIFT96
-  t->seed[3] = 88675123;
-#endif
+  t->state = 0x853c49e6748fea9bULL;
+  t->seed_value = 521288629;
 }
 
 static uint32_t rand_uint32(rand_state *state);
@@ -66,54 +54,36 @@ static uint32_t rand_uint32(rand_state *state);
 static uint32_t
 rand_seed(rand_state *t, uint32_t seed)
 {
-  uint32_t old_seed = t->seed[SEEDPOS];
-  rand_init(t);
-  t->seed[SEEDPOS] = seed;
+  uint32_t old_seed = t->seed_value;
+
+  /* PCG initialization: state=0, step, add seed, step, then mix */
+  t->state = 0;
+  rand_uint32(t);
+  t->state += seed;
   for (int i = 0; i < 10; i++) {
     rand_uint32(t);
   }
+
+  t->seed_value = seed;
   return old_seed;
 }
 
-#ifndef XORSHIFT96
-static inline uint32_t
-rotl(const uint32_t x, int k) {
-  return (x << k) | (x >> (32 - k));
-}
-#endif
-
 static uint32_t
-rand_uint32(rand_state *state)
+rand_uint32(rand_state *rng)
 {
-#ifdef XORSHIFT96
-  uint32_t *seed = state->seed;
-  uint32_t x = seed[0];
-  uint32_t y = seed[1];
-  uint32_t z = seed[2];
-  uint32_t t = (x ^ (x << 3)) ^ (y ^ (y >> 19)) ^ (z ^ (z << 6));
+  /* PCG-XSH-RR: XorShift High (xorshift), then Random Rotate */
+  uint64_t oldstate = rng->state;
 
-  x = y; y = z; z = t;
-  seed[0] = x;
-  seed[1] = y;
-  seed[2] = z;
+  /* LCG step: advance internal state */
+  rng->state = oldstate * PCG_MULTIPLIER + PCG_INCREMENT;
 
-  return z;
-#else
-  uint32_t *s = state->seed;
-  const uint32_t result = rotl(s[0] + s[3], 7) + s[0];
-  const uint32_t t = s[1] << 9;
+  /* Output function: xorshift, then rotate by top bits */
+  uint32_t xorshifted = (uint32_t)(((oldstate >> 18u) ^ oldstate) >> 27u);
+  uint32_t rot = (uint32_t)(oldstate >> 59u);
 
-  s[2] ^= s[0];
-  s[3] ^= s[1];
-  s[1] ^= s[2];
-  s[0] ^= s[3];
-
-  s[2] ^= t;
-  s[3] = rotl(s[3], 11);
-
-  return result;
-#endif  /* XORSHIFT96 */
-  }
+  /* Rotate right by rot bits (handles rot=0 case correctly) */
+  return (xorshifted >> rot) | (xorshifted << ((-rot) & 31));
+}
 
 #ifndef MRB_NO_FLOAT
 static double
