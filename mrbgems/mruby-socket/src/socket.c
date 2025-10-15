@@ -6,12 +6,9 @@
 
 #ifdef _WIN32
   #define _WIN32_WINNT 0x0501
-
   #include <winsock2.h>
   #include <ws2tcpip.h>
   #include <windows.h>
-  #include <winerror.h>
-
   #define SHUT_RDWR SD_BOTH
   typedef int fsize_t;
 #else
@@ -42,6 +39,7 @@
 #include <mruby/presym.h>
 
 #include <mruby/ext/io.h>
+#include <socket_hal.h>
 
 /* Address family information for compact lookup table */
 typedef struct {
@@ -136,53 +134,6 @@ static inline const char *get_pf_name(int family) {
 #endif
 
 #define E_SOCKET_ERROR             mrb_class_get_id(mrb, MRB_SYM(SocketError))
-
-#ifdef _WIN32
-/* Windows implementation of inet_ntop - converts network address to string */
-static const char *inet_ntop(int af, const void *src, char *dst, socklen_t cnt)
-{
-  if (af == AF_INET) {
-    struct sockaddr_in in = {0};
-
-    in.sin_family = AF_INET;
-    memcpy(&in.sin_addr, src, sizeof(struct in_addr));
-    getnameinfo((struct sockaddr*)&in, sizeof(struct sockaddr_in),
-                dst, cnt, NULL, 0, NI_NUMERICHOST);
-    return dst;
-  }
-  else if (af == AF_INET6) {
-    struct sockaddr_in6 in = {0};
-
-    in.sin6_family = AF_INET6;
-    memcpy(&in.sin6_addr, src, sizeof(struct in_addr6));
-    getnameinfo((struct sockaddr*)&in, sizeof(struct sockaddr_in6),
-                dst, cnt, NULL, 0, NI_NUMERICHOST);
-    return dst;
-  }
-  return NULL;
-}
-
-/* Windows implementation of inet_pton - converts string address to network format */
-static int inet_pton(int af, const char *src, void *dst)
-{
-  struct addrinfo hints = {0};
-  hints.ai_family = af;
-
-  struct addrinfo *res;
-  if (getaddrinfo(src, NULL, &hints, &res) != 0) {
-    printf("Couldn't resolve host %s\n", src);
-    return -1;
-  }
-
-  for (struct addrinfo *r = res; r; r = r->ai_next) {
-    memcpy(dst, r->ai_addr, r->ai_addrlen);
-  }
-
-  freeaddrinfo(res);
-  return 0;
-}
-
-#endif
 
 struct gen_addrinfo_args {
   struct RClass *klass;
@@ -306,7 +257,6 @@ mrb_addrinfo_getnameinfo(mrb_state *mrb, mrb_value self)
   return ary;
 }
 
-#ifndef _WIN32
 /*
  * call-seq:
  *   addrinfo.unix_path -> string
@@ -320,16 +270,12 @@ mrb_addrinfo_unix_path(mrb_state *mrb, mrb_value self)
 {
   mrb_value sastr = mrb_iv_get(mrb, self, MRB_IVSYM(sockaddr));
 
-  if (!mrb_string_p(sastr) || ((struct sockaddr*)RSTRING_PTR(sastr))->sa_family != AF_UNIX)
-    mrb_raise(mrb, E_SOCKET_ERROR, "need AF_UNIX address");
-  if (RSTRING_LEN(sastr) < (mrb_int)offsetof(struct sockaddr_un, sun_path) + 1) {
-    return mrb_str_new(mrb, "", 0);
+  if (!mrb_string_p(sastr)) {
+    mrb_raise(mrb, E_SOCKET_ERROR, "invalid sockaddr");
   }
-  else {
-    return mrb_str_new_cstr(mrb, ((struct sockaddr_un*)RSTRING_PTR(sastr))->sun_path);
-  }
+
+  return mrb_socket_hal_unix_path(mrb, RSTRING_PTR(sastr), (size_t)RSTRING_LEN(sastr));
 }
-#endif
 
 /* Helper to convert sockaddr to address list array [family, port, host, host] */
 static mrb_value
@@ -793,27 +739,13 @@ static mrb_value
 mrb_basicsocket_setnonblock(mrb_state *mrb, mrb_value self)
 {
   mrb_bool nonblocking;
-#ifdef _WIN32
-  u_long mode = 1;
-#endif
 
   mrb_get_args(mrb, "b", &nonblocking);
   int fd = socket_fd(mrb, self);
-#ifdef _WIN32
-  int flags = ioctlsocket(fd, FIONBIO, &mode);
-  if (flags != NO_ERROR)
-    mrb_sys_fail(mrb, "ioctlsocket");
-#else
-  int flags = fcntl(fd, F_GETFL, 0);
-  if (flags == 1)
-    mrb_sys_fail(mrb, "fcntl");
-  if (nonblocking)
-    flags |= O_NONBLOCK;
-  else
-    flags &= ~O_NONBLOCK;
-  if (fcntl(fd, F_SETFL, flags) == -1)
-    mrb_sys_fail(mrb, "fcntl");
-#endif
+
+  if (mrb_socket_hal_set_nonblock(mrb, fd, nonblocking) == -1)
+    mrb_sys_fail(mrb, "set_nonblock");
+
   return mrb_nil_value();
 }
 
@@ -927,7 +859,7 @@ mrb_ipsocket_ntop(mrb_state *mrb, mrb_value klass)
 
   mrb_get_args(mrb, "is", &af, &addr, &n);
   if ((af == AF_INET && n != 4) || (af == AF_INET6 && n != 16) ||
-      inet_ntop((int)af, addr, buf, sizeof(buf)) == NULL)
+      mrb_socket_hal_inet_ntop((int)af, addr, buf, sizeof(buf)) == NULL)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid address");
   return mrb_str_new_cstr(mrb, buf);
 }
@@ -954,13 +886,13 @@ mrb_ipsocket_pton(mrb_state *mrb, mrb_value klass)
 
   if (af == AF_INET) {
     struct in_addr in;
-    if (inet_pton(AF_INET, buf, (void*)&in.s_addr) != 1)
+    if (mrb_socket_hal_inet_pton(AF_INET, buf, (void*)&in.s_addr) != 1)
       goto invalid;
     return mrb_str_new(mrb, (char*)&in.s_addr, 4);
   }
   else if (af == AF_INET6) {
     struct in6_addr in6;
-    if (inet_pton(AF_INET6, buf, (void*)&in6.s6_addr) != 1)
+    if (mrb_socket_hal_inet_pton(AF_INET6, buf, (void*)&in6.s6_addr) != 1)
       goto invalid;
     return mrb_str_new(mrb, (char*)&in6.s6_addr, 16);
   }
@@ -1156,28 +1088,10 @@ mrb_socket_sockaddr_family(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_socket_sockaddr_un(mrb_state *mrb, mrb_value klass)
 {
-#ifdef _WIN32
-  mrb_raise(mrb, E_NOTIMP_ERROR, "sockaddr_un unsupported on Windows");
-  return mrb_nil_value();
-#else
   mrb_value path;
-  struct sockaddr_un *sunp;
 
   mrb_get_args(mrb, "S", &path);
-  if ((size_t)RSTRING_LEN(path) > sizeof(sunp->sun_path) - 1) {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "too long unix socket path (max: %d bytes)", (int)sizeof(sunp->sun_path) - 1);
-  }
-  mrb_value s = mrb_str_new_capa(mrb, sizeof(struct sockaddr_un));
-  sunp = (struct sockaddr_un*)RSTRING_PTR(s);
-#if HAVE_SA_LEN
-  sunp->sun_len = sizeof(struct sockaddr_un);
-#endif
-  sunp->sun_family = AF_UNIX;
-  memcpy(sunp->sun_path, RSTRING_PTR(path), RSTRING_LEN(path));
-  sunp->sun_path[RSTRING_LEN(path)] = '\0';
-  mrb_str_resize(mrb, s, sizeof(struct sockaddr_un));
-  return s;
-#endif
+  return mrb_socket_hal_sockaddr_un(mrb, RSTRING_PTR(path), (size_t)RSTRING_LEN(path));
 }
 
 /*
@@ -1193,24 +1107,19 @@ mrb_socket_sockaddr_un(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_socket_socketpair(mrb_state *mrb, mrb_value klass)
 {
-#ifdef _WIN32
-  mrb_raise(mrb, E_NOTIMP_ERROR, "socketpair unsupported on Windows");
-  return mrb_nil_value();
-#else
   mrb_int domain, type, protocol;
   int sv[2];
 
   mrb_get_args(mrb, "iii", &domain, &type, &protocol);
-  mrb_value ary = mrb_ary_new_capa(mrb, 2);
 
-  if (socketpair(domain, type, protocol, sv) == -1) {
+  if (mrb_socket_hal_socketpair(mrb, (int)domain, (int)type, (int)protocol, sv) == -1) {
     mrb_sys_fail(mrb, "socketpair");
   }
 
+  mrb_value ary = mrb_ary_new_capa(mrb, 2);
   mrb_ary_push(mrb, ary, mrb_fixnum_value(sv[0]));
   mrb_ary_push(mrb, ary, mrb_fixnum_value(sv[1]));
   return ary;
-#endif
 }
 
 /*
@@ -1357,20 +1266,12 @@ mrb_win32_basicsocket_syswrite(mrb_state *mrb, mrb_value self)
 void
 mrb_mruby_socket_gem_init(mrb_state* mrb)
 {
-#ifdef _WIN32
-  WSADATA wsaData;
-  int result;
-  result = WSAStartup(MAKEWORD(2,2), &wsaData);
-  if (result != NO_ERROR)
-    mrb_raise(mrb, E_RUNTIME_ERROR, "WSAStartup failed");
-#endif
+  mrb_socket_hal_init(mrb);
 
   struct RClass *ainfo = mrb_define_class_id(mrb, MRB_SYM(Addrinfo), mrb->object_class);
   mrb_define_class_method_id(mrb, ainfo, MRB_SYM(getaddrinfo), mrb_addrinfo_getaddrinfo, MRB_ARGS_REQ(2)|MRB_ARGS_OPT(4));
   mrb_define_method_id(mrb, ainfo, MRB_SYM(getnameinfo), mrb_addrinfo_getnameinfo, MRB_ARGS_OPT(1));
-#ifndef _WIN32
   mrb_define_method_id(mrb, ainfo, MRB_SYM(unix_path), mrb_addrinfo_unix_path, MRB_ARGS_NONE());
-#endif
 
   struct RClass *io = mrb_class_get_id(mrb, MRB_SYM(IO));
 
@@ -1447,7 +1348,5 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
 void
 mrb_mruby_socket_gem_final(mrb_state* mrb)
 {
-#ifdef _WIN32
-  WSACleanup();
-#endif
+  mrb_socket_hal_final(mrb);
 }
