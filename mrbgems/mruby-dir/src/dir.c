@@ -11,36 +11,15 @@
 #include <mruby/error.h>
 #include <mruby/string.h>
 #include <mruby/presym.h>
-#include <sys/types.h>
-#if defined(_WIN32)
-  #define MAXPATHLEN 1024
- #if !defined(PATH_MAX)
-  #define PATH_MAX MAX_PATH
- #endif
-  #define S_ISDIR(B) ((B)&_S_IFDIR)
-  #include "Win/dirent.c"
-  #include <direct.h>
-  #define rmdir(path) _rmdir(path)
-  #define getcwd(path,len) _getcwd(path,len)
-  #define mkdir(path,mode) _mkdir(path)
-  #define chdir(path) _chdir(path)
-#else
-  #include <sys/param.h>
-  #include <dirent.h>
-  #include <unistd.h>
-#endif
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <signal.h>
+#include "dir_hal.h"
+
 #include <string.h>
 #include <errno.h>
 
 #define E_IO_ERROR mrb_exc_get_id(mrb, MRB_SYM(IOError))
 
 struct mrb_dir {
-  DIR *dir;
+  mrb_dir_handle *handle;
 };
 
 static void
@@ -48,9 +27,9 @@ mrb_dir_free(mrb_state *mrb, void *ptr)
 {
   struct mrb_dir *mdir = (struct mrb_dir*)ptr;
 
-  if (mdir->dir) {
-    closedir(mdir->dir);
-    mdir->dir = NULL;
+  if (mdir->handle) {
+    mrb_dir_hal_close(mrb, mdir->handle);
+    mdir->handle = NULL;
   }
   mrb_free(mrb, mdir);
 }
@@ -73,13 +52,13 @@ mrb_dir_close(mrb_state *mrb, mrb_value self)
   struct mrb_dir *mdir;
   mdir = (struct mrb_dir*)mrb_get_datatype(mrb, self, &mrb_dir_type);
   if (!mdir) return mrb_nil_value();
-  if (!mdir->dir) {
+  if (!mdir->handle) {
     mrb_raise(mrb, E_IO_ERROR, "closed directory");
   }
-  if (closedir(mdir->dir) == -1) {
+  if (mrb_dir_hal_close(mrb, mdir->handle) == -1) {
     mrb_sys_fail(mrb, "closedir");
   }
-  mdir->dir = NULL;
+  mdir->handle = NULL;
   return mrb_nil_value();
 }
 
@@ -94,7 +73,7 @@ mrb_dir_close(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_dir_init(mrb_state *mrb, mrb_value self)
 {
-  DIR *dir;
+  mrb_dir_handle *handle;
   struct mrb_dir *mdir;
   const char *path;
 
@@ -106,14 +85,14 @@ mrb_dir_init(mrb_state *mrb, mrb_value self)
   DATA_PTR(self) = NULL;
 
   mdir = (struct mrb_dir*)mrb_malloc(mrb, sizeof(*mdir));
-  mdir->dir = NULL;
+  mdir->handle = NULL;
   DATA_PTR(self) = mdir;
 
   mrb_get_args(mrb, "z", &path);
-  if ((dir = opendir(path)) == NULL) {
+  if ((handle = mrb_dir_hal_open(mrb, path)) == NULL) {
     mrb_sys_fail(mrb, path);
   }
-  mdir->dir = dir;
+  mdir->handle = handle;
   return self;
 }
 
@@ -132,7 +111,7 @@ mrb_dir_delete(mrb_state *mrb, mrb_value klass)
   const char *path;
 
   mrb_get_args(mrb, "z", &path);
-  if (rmdir(path) == -1) {
+  if (mrb_dir_hal_rmdir(mrb, path) == -1) {
     mrb_sys_fail(mrb, path);
   }
   return mrb_fixnum_value(0);
@@ -150,11 +129,10 @@ mrb_dir_delete(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_dir_existp(mrb_state *mrb, mrb_value klass)
 {
-  struct stat sb;
   const char *path;
 
   mrb_get_args(mrb, "z", &path);
-  if (stat(path, &sb) == 0 && S_ISDIR(sb.st_mode)) {
+  if (mrb_dir_hal_is_directory(mrb, path)) {
     return mrb_true_value();
   }
   else {
@@ -178,7 +156,7 @@ mrb_dir_getwd(mrb_state *mrb, mrb_value klass)
   mrb_int size = 64;
 
   path = mrb_str_buf_new(mrb, size);
-  while (getcwd(RSTRING_PTR(path), (size_t)size) == NULL) {
+  while (mrb_dir_hal_getcwd(mrb, RSTRING_PTR(path), (size_t)size) == -1) {
     int e = errno;
     if (e != ERANGE) {
       mrb_sys_fail(mrb, "getcwd(2)");
@@ -210,7 +188,7 @@ mrb_dir_mkdir(mrb_state *mrb, mrb_value klass)
 
   mode = 0777;
   mrb_get_args(mrb, "z|i", &path, &mode);
-  if (mkdir(path, mode) == -1) {
+  if (mrb_dir_hal_mkdir(mrb, path, (int)mode) == -1) {
     mrb_sys_fail(mrb, path);
   }
   return mrb_fixnum_value(0);
@@ -223,7 +201,7 @@ mrb_dir_chdir(mrb_state *mrb, mrb_value klass)
   const char *path;
 
   mrb_get_args(mrb, "z", &path);
-  if (chdir(path) == -1) {
+  if (mrb_dir_hal_chdir(mrb, path) == -1) {
     mrb_sys_fail(mrb, path);
   }
   return mrb_fixnum_value(0);
@@ -241,21 +219,19 @@ mrb_dir_chdir(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_dir_chroot(mrb_state *mrb, mrb_value self)
 {
-#if defined(_WIN32) || defined(__ANDROID__) || defined(__MSDOS__)
-  mrb_raise(mrb, E_NOTIMP_ERROR, "chroot() unreliable on your system");
-  return mrb_fixnum_value(0);
-#else
   const char *path;
-  mrb_int res;
+  int res;
 
   mrb_get_args(mrb, "z", &path);
-  res = chroot(path);
+  res = mrb_dir_hal_chroot(mrb, path);
   if (res == -1) {
+    if (errno == ENOSYS) {
+      mrb_raise(mrb, E_NOTIMP_ERROR, "chroot() unreliable on your system");
+    }
     mrb_sys_fail(mrb, path);
   }
 
   return mrb_fixnum_value(res);
-#endif
 }
 
 static mrb_bool
@@ -280,22 +256,22 @@ skip_name_p(const char *name)
 static mrb_value
 mrb_dir_empty(mrb_state *mrb, mrb_value self)
 {
-  DIR *dir;
-  struct dirent *dp;
+  mrb_dir_handle *handle;
+  const char *name;
   const char *path;
   mrb_value result = mrb_true_value();
 
   mrb_get_args(mrb, "z", &path);
-  if ((dir = opendir(path)) == NULL) {
+  if ((handle = mrb_dir_hal_open(mrb, path)) == NULL) {
     mrb_sys_fail(mrb, path);
   }
-  while ((dp = readdir(dir))) {
-    if (!skip_name_p(dp->d_name)) {
+  while ((name = mrb_dir_hal_read(mrb, handle)) != NULL) {
+    if (!skip_name_p(name)) {
       result = mrb_false_value();
       break;
     }
   }
-  closedir(dir);
+  mrb_dir_hal_close(mrb, handle);
   return result;
 }
 
@@ -315,16 +291,16 @@ static mrb_value
 mrb_dir_read(mrb_state *mrb, mrb_value self)
 {
   struct mrb_dir *mdir;
-  struct dirent *dp;
+  const char *name;
 
   mdir = (struct mrb_dir*)mrb_get_datatype(mrb, self, &mrb_dir_type);
   if (!mdir) return mrb_nil_value();
-  if (!mdir->dir) {
+  if (!mdir->handle) {
     mrb_raise(mrb, E_IO_ERROR, "closed directory");
   }
-  dp = readdir(mdir->dir);
-  if (dp != NULL) {
-    return mrb_str_new_cstr(mrb, dp->d_name);
+  name = mrb_dir_hal_read(mrb, mdir->handle);
+  if (name != NULL) {
+    return mrb_str_new_cstr(mrb, name);
   }
   else {
     return mrb_nil_value();
@@ -349,10 +325,10 @@ mrb_dir_rewind(mrb_state *mrb, mrb_value self)
 
   mdir = (struct mrb_dir*)mrb_get_datatype(mrb, self, &mrb_dir_type);
   if (!mdir) return mrb_nil_value();
-  if (!mdir->dir) {
+  if (!mdir->handle) {
     mrb_raise(mrb, E_IO_ERROR, "closed directory");
   }
-  rewinddir(mdir->dir);
+  mrb_dir_hal_rewind(mrb, mdir->handle);
   return self;
 }
 
@@ -372,22 +348,21 @@ mrb_dir_rewind(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_dir_seek(mrb_state *mrb, mrb_value self)
 {
-  #if defined(_WIN32) || defined(__ANDROID__)
-  mrb_raise(mrb, E_NOTIMP_ERROR, "dirseek() unreliable on your system");
-  return self;
-  #else
   struct mrb_dir *mdir;
   mrb_int pos;
 
   mdir = (struct mrb_dir*)mrb_get_datatype(mrb, self, &mrb_dir_type);
   if (!mdir) return mrb_nil_value();
-  if (!mdir->dir) {
+  if (!mdir->handle) {
     mrb_raise(mrb, E_IO_ERROR, "closed directory");
   }
   mrb_get_args(mrb, "i", &pos);
-  seekdir(mdir->dir, (long)pos);
+  if (mrb_dir_hal_seek(mrb, mdir->handle, (long)pos) == -1) {
+    if (errno == ENOSYS) {
+      mrb_raise(mrb, E_NOTIMP_ERROR, "dirseek() unreliable on your system");
+    }
+  }
   return self;
-  #endif
 }
 
 /*
@@ -405,21 +380,21 @@ mrb_dir_seek(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_dir_tell(mrb_state *mrb, mrb_value self)
 {
-#if defined(_WIN32) || defined(__ANDROID__)
-  mrb_raise(mrb, E_NOTIMP_ERROR, "dirtell() unreliable on your system");
-  return mrb_fixnum_value(0);
-#else
   struct mrb_dir *mdir;
-  mrb_int pos;
+  long pos;
 
   mdir = (struct mrb_dir*)mrb_get_datatype(mrb, self, &mrb_dir_type);
   if (!mdir) return mrb_nil_value();
-  if (!mdir->dir) {
+  if (!mdir->handle) {
     mrb_raise(mrb, E_IO_ERROR, "closed directory");
   }
-  pos = (mrb_int)telldir(mdir->dir);
-  return mrb_fixnum_value(pos);
-#endif
+  pos = mrb_dir_hal_tell(mrb, mdir->handle);
+  if (pos == -1) {
+    if (errno == ENOSYS) {
+      mrb_raise(mrb, E_NOTIMP_ERROR, "dirtell() unreliable on your system");
+    }
+  }
+  return mrb_fixnum_value((mrb_int)pos);
 }
 
 /*
@@ -433,23 +408,23 @@ static mrb_value
 mrb_dir_entries(mrb_state *mrb, mrb_value klass)
 {
   const char *path;
-  DIR *dir;
-  struct dirent *dp;
+  mrb_dir_handle *handle;
+  const char *name;
   mrb_value ary;
 
   mrb_get_args(mrb, "z", &path);
 
-  dir = opendir(path);
-  if (dir == NULL) {
+  handle = mrb_dir_hal_open(mrb, path);
+  if (handle == NULL) {
     mrb_sys_fail(mrb, path);
   }
 
   ary = mrb_ary_new(mrb);
-  while ((dp = readdir(dir)) != NULL) {
-    mrb_ary_push(mrb, ary, mrb_str_new_cstr(mrb, dp->d_name));
+  while ((name = mrb_dir_hal_read(mrb, handle)) != NULL) {
+    mrb_ary_push(mrb, ary, mrb_str_new_cstr(mrb, name));
   }
 
-  closedir(dir);
+  mrb_dir_hal_close(mrb, handle);
   return ary;
 }
 
@@ -465,25 +440,25 @@ static mrb_value
 mrb_dir_children(mrb_state *mrb, mrb_value klass)
 {
   const char *path;
-  DIR *dir;
-  struct dirent *dp;
+  mrb_dir_handle *handle;
+  const char *name;
   mrb_value ary;
 
   mrb_get_args(mrb, "z", &path);
 
-  dir = opendir(path);
-  if (dir == NULL) {
+  handle = mrb_dir_hal_open(mrb, path);
+  if (handle == NULL) {
     mrb_sys_fail(mrb, path);
   }
 
   ary = mrb_ary_new(mrb);
-  while ((dp = readdir(dir)) != NULL) {
-    if (!skip_name_p(dp->d_name)) {
-      mrb_ary_push(mrb, ary, mrb_str_new_cstr(mrb, dp->d_name));
+  while ((name = mrb_dir_hal_read(mrb, handle)) != NULL) {
+    if (!skip_name_p(name)) {
+      mrb_ary_push(mrb, ary, mrb_str_new_cstr(mrb, name));
     }
   }
 
-  closedir(dir);
+  mrb_dir_hal_close(mrb, handle);
   return ary;
 }
 
@@ -491,6 +466,8 @@ void
 mrb_mruby_dir_gem_init(mrb_state *mrb)
 {
   struct RClass *d;
+
+  mrb_dir_hal_init(mrb);
 
   d = mrb_define_class_id(mrb, MRB_SYM(Dir), mrb->object_class);
   MRB_SET_INSTANCE_TT(d, MRB_TT_DATA);
@@ -517,4 +494,5 @@ mrb_mruby_dir_gem_init(mrb_state *mrb)
 void
 mrb_mruby_dir_gem_final(mrb_state *mrb)
 {
+  mrb_dir_hal_final(mrb);
 }
