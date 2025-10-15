@@ -34,17 +34,18 @@ enum {
  * Task structure - represents a single task in the scheduler
  *
  * Memory-optimized layout:
- * - Removed priority_preemption (always equals priority)
- * - Removed started flag (inferred from c.status != MRB_FIBER_CREATED)
- * - Unified wakeup_tick/join/mutex into single union (mutually exclusive)
- * Total savings: ~8 bytes per task
+ * - Removed priority_preemption (always equals priority): 1 byte
+ * - Removed started flag (inferred from c.status): 1 byte
+ * - Unified wakeup_tick/join/mutex into single union: 4 bytes
+ * - Removed redundant proc field (stored in c.ci->proc): 8 bytes
+ * - Unified timeslice/result into state union: ~4 bytes
+ * Total savings: ~18 bytes per task (14% reduction)
  */
 typedef struct mrb_task {
   struct mrb_task *next;           /* Linked list pointer */
   uint8_t priority;                /* Priority (0-255, 0=highest) */
   uint8_t status;                  /* Current status (TASKSTATUS enum) */
   uint8_t reason;                  /* Wait reason (TASKREASON enum) */
-  volatile uint8_t timeslice;      /* Remaining time slice ticks */
   mrb_value name;                  /* Optional task name */
 
   /* Wait-specific data - mutually exclusive based on reason field */
@@ -55,8 +56,13 @@ typedef struct mrb_task {
   } wait;
 
   mrb_value self;                  /* Ruby Task object reference */
-  mrb_value result;                /* Task return value */
-  mrb_value proc;                  /* Proc containing task code */
+
+  /* State-specific data - mutually exclusive based on status */
+  union {
+    volatile uint8_t timeslice;    /* Remaining ticks (RUNNING only) */
+    mrb_value result;              /* Task return value (DORMANT only) */
+  } state;
+
   struct mrb_context c;            /* Execution context (stack, callinfo, etc) */
 } mrb_task;
 

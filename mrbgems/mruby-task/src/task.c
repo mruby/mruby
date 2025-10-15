@@ -126,9 +126,10 @@ mrb_task_mark_all(mrb_state *mrb)
 
       /* Mark task-specific values */
       mrb_gc_mark_value(mrb, t->self);
-      mrb_gc_mark_value(mrb, t->result);
+      if (t->status == MRB_TASK_STATUS_DORMANT) {
+        mrb_gc_mark_value(mrb, t->state.result);
+      }
       mrb_gc_mark_value(mrb, t->name);
-      mrb_gc_mark_value(mrb, t->proc);
 
       t = t->next;
     }
@@ -314,7 +315,7 @@ execute_task(mrb_state *mrb, mrb_task *t)
 
   /* Set task as running */
   t->status = MRB_TASK_STATUS_RUNNING;
-  t->timeslice = MRB_TIMESLICE_TICK_COUNT;
+  t->state.timeslice = MRB_TIMESLICE_TICK_COUNT;
 
   /* Switch to task context */
   prev_c = mrb->c;
@@ -343,7 +344,7 @@ execute_task(mrb_state *mrb, mrb_task *t)
   t->c.vmexec = TRUE;
 
   /* Execute task - PC is saved in ci->pc from previous run */
-  t->result = mrb_vm_exec(mrb, proc, pc);
+  t->state.result = mrb_vm_exec(mrb, proc, pc);
 
   /* Clear vmexec flag */
   t->c.vmexec = FALSE;
@@ -386,9 +387,9 @@ mrb_tick(mrb_state *mrb)
 
   /* Decrease timeslice for running task */
   t = q_ready_;
-  if (t && t->status == MRB_TASK_STATUS_RUNNING && t->timeslice > 0) {
-    t->timeslice--;
-    if (t->timeslice == 0) {
+  if (t && t->status == MRB_TASK_STATUS_RUNNING && t->state.timeslice > 0) {
+    t->state.timeslice--;
+    if (t->state.timeslice == 0) {
       switching_ = TRUE;  /* Trigger context switch */
     }
   }
@@ -652,7 +653,7 @@ mrb_task_s_new(mrb_state *mrb, mrb_value self)
   t->status = MRB_TASK_STATUS_READY;
   t->reason = MRB_TASK_REASON_NONE;
   t->name = name_val;
-  t->proc = blk;  /* Store proc to keep it from being GC'd */
+  /* Note: proc is stored in t->c.ci->proc and marked via callinfo GC */
 
   /* Create Ruby object to hold task */
   task_obj = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_get(mrb, "Task"),
@@ -1094,7 +1095,7 @@ mrb_task_join(mrb_state *mrb, mrb_value self)
 
   /* If task is already dormant, return immediately */
   if (t->status == MRB_TASK_STATUS_DORMANT) {
-    return t->result;
+    return t->state.result;
   }
 
   /* Wait for task to complete */
@@ -1109,7 +1110,7 @@ mrb_task_join(mrb_state *mrb, mrb_value self)
   /* Trigger context switch */
   switching_ = TRUE;
 
-  return t->result;
+  return t->state.result;
 }
 
 /*
