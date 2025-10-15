@@ -520,7 +520,7 @@ path_gethome(mrb_state *mrb, const char **pathp)
 {
   mrb_assert(pathp && *pathp && **pathp == '~');
 
-  char *home;
+  const char *home;
   mrb_value path;
 
   const char *username = ++*pathp;
