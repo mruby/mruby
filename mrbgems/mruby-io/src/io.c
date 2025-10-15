@@ -13,7 +13,7 @@
 #include <mruby/error.h>
 #include <mruby/internal.h>
 #include <mruby/presym.h>
-#include <io_hal.h>
+#include "io_hal.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>

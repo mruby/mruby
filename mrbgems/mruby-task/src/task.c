@@ -19,7 +19,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include "../include/task.h"
+#include "task.h"
 #include "task_hal.h"
 
 /*

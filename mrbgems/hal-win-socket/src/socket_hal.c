@@ -12,7 +12,7 @@
 #include <mruby/class.h>
 #include <mruby/error.h>
 #include <mruby/presym.h>
-#include <socket_hal.h>
+#include "socket_hal.h"
 
 #define _WIN32_WINNT 0x0501
 #include <winsock2.h>
