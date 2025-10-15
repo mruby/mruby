@@ -167,7 +167,7 @@ q_insert_task(mrb_state *mrb, mrb_task *t)
   mrb_task *prev = NULL;
 
   /* Find insertion point - insert before first task with lower priority */
-  while (curr != NULL && curr->priority_preemption <= t->priority_preemption) {
+  while (curr != NULL && curr->priority <= t->priority) {
     prev = curr;
     curr = curr->next;
   }
@@ -280,12 +280,12 @@ wake_up_join_waiters(mrb_state *mrb, mrb_task *completed_task)
   mrb_task *curr = q_waiting_;
   while (curr != NULL) {
     mrb_task *next = curr->next;
-    if (curr->reason == MRB_TASK_REASON_JOIN && curr->join == completed_task) {
+    if (curr->reason == MRB_TASK_REASON_JOIN && curr->wait.join == completed_task) {
       mrb_task_disable_irq();
       q_delete_task(mrb, curr);
       curr->status = MRB_TASK_STATUS_READY;
       curr->reason = MRB_TASK_REASON_NONE;
-      curr->join = NULL;
+      curr->wait.join = NULL;
       q_insert_task(mrb, curr);
       mrb_task_enable_irq();
     }
@@ -324,9 +324,8 @@ execute_task(mrb_state *mrb, mrb_task *t)
   mrb->c = &t->c;
 
   /* If task hasn't started yet, pop dummy callinfo */
-  if (!t->started) {
+  if (t->c.status == MRB_FIBER_CREATED) {
     t->c.ci--;
-    t->started = 1;
   }
 
   /* Clear switching flag */
@@ -404,7 +403,7 @@ mrb_tick(mrb_state *mrb)
       next = curr->next;
 
       if (curr->reason == MRB_TASK_REASON_SLEEP) {
-        if ((int32_t)(curr->wakeup_tick - tick_) <= 0) {
+        if ((int32_t)(curr->wait.wakeup_tick - tick_) <= 0) {
           /* Time to wake up */
           q_delete_task(mrb, curr);
           curr->status = MRB_TASK_STATUS_READY;
@@ -412,8 +411,8 @@ mrb_tick(mrb_state *mrb)
           q_insert_task(mrb, curr);
           switching_ = TRUE;
         }
-        else if (curr->wakeup_tick < next_wakeup) {
-          next_wakeup = curr->wakeup_tick;
+        else if (curr->wait.wakeup_tick < next_wakeup) {
+          next_wakeup = curr->wait.wakeup_tick;
         }
       }
 
@@ -515,11 +514,11 @@ sleep_us_impl(mrb_state *mrb, mrb_int usec)
   t->status = MRB_TASK_STATUS_WAITING;
   t->reason = MRB_TASK_REASON_SLEEP;
   /* Convert microseconds to ticks (tick unit is in milliseconds) */
-  t->wakeup_tick = tick_ + USEC_TO_TICKS(usec);
+  t->wait.wakeup_tick = tick_ + USEC_TO_TICKS(usec);
 
   /* Update next wakeup time if this task wakes earlier */
-  if ((int32_t)(t->wakeup_tick - wakeup_tick_) < 0) {
-    wakeup_tick_ = t->wakeup_tick;
+  if ((int32_t)(t->wait.wakeup_tick - wakeup_tick_) < 0) {
+    wakeup_tick_ = t->wait.wakeup_tick;
   }
 
   q_insert_task(mrb, t);
@@ -650,7 +649,6 @@ mrb_task_s_new(mrb_state *mrb, mrb_value self)
   /* Allocate and initialize task */
   t = task_alloc(mrb);
   t->priority = (uint8_t)priority;
-  t->priority_preemption = (uint8_t)priority;
   t->status = MRB_TASK_STATUS_READY;
   t->reason = MRB_TASK_REASON_NONE;
   t->name = name_val;
@@ -986,7 +984,6 @@ mrb_task_set_priority(mrb_state *mrb, mrb_value self)
 
   mrb_task_disable_irq();
   t->priority = (uint8_t)priority;
-  t->priority_preemption = (uint8_t)priority;
 
   /* Re-sort in queue if task is ready */
   if (t->status == MRB_TASK_STATUS_READY || t->status == MRB_TASK_STATUS_RUNNING) {
@@ -1105,7 +1102,7 @@ mrb_task_join(mrb_state *mrb, mrb_value self)
   q_delete_task(mrb, current);
   current->status = MRB_TASK_STATUS_WAITING;
   current->reason = MRB_TASK_REASON_JOIN;
-  current->join = t;
+  current->wait.join = t;
   q_insert_task(mrb, current);
   mrb_task_enable_irq();
 

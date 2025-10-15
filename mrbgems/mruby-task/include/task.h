@@ -32,22 +32,27 @@ enum {
 
 /*
  * Task structure - represents a single task in the scheduler
+ *
+ * Memory-optimized layout:
+ * - Removed priority_preemption (always equals priority)
+ * - Removed started flag (inferred from c.status != MRB_FIBER_CREATED)
+ * - Unified wakeup_tick/join/mutex into single union (mutually exclusive)
+ * Total savings: ~8 bytes per task
  */
 typedef struct mrb_task {
   struct mrb_task *next;           /* Linked list pointer */
-  uint8_t priority;                /* Initial priority (0-255, 0=highest) */
-  uint8_t priority_preemption;     /* Effective priority for preemption */
-  volatile uint8_t timeslice;      /* Remaining time slice ticks */
+  uint8_t priority;                /* Priority (0-255, 0=highest) */
   uint8_t status;                  /* Current status (TASKSTATUS enum) */
   uint8_t reason;                  /* Wait reason (TASKREASON enum) */
-  uint8_t started;                 /* 1 if task has been started, 0 otherwise */
+  volatile uint8_t timeslice;      /* Remaining time slice ticks */
   mrb_value name;                  /* Optional task name */
 
+  /* Wait-specific data - mutually exclusive based on reason field */
   union {
-    uint32_t wakeup_tick;          /* Tick count to wake up (for sleep) */
-    void *mutex;                   /* Mutex pointer (reserved) */
-  };
-  const struct mrb_task *join;     /* Task being waited on (for join) */
+    uint32_t wakeup_tick;          /* Tick count to wake up (REASON_SLEEP) */
+    const struct mrb_task *join;   /* Task being waited on (REASON_JOIN) */
+    void *mutex;                   /* Mutex pointer (REASON_MUTEX, reserved) */
+  } wait;
 
   mrb_value self;                  /* Ruby Task object reference */
   mrb_value result;                /* Task return value */
