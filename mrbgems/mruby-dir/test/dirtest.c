@@ -5,42 +5,22 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if defined(_WIN32)
-#ifdef __cplusplus
-extern "C" {
-#endif
-typedef struct DIR DIR;
-struct dirent
-{
-  char *d_name;
-};
-DIR *opendir(const char *name);
-struct dirent *readdir(DIR *dir);
-int closedir(DIR *dir);
-#ifdef __cplusplus
-}
-#endif
-#include <io.h>
-#include <direct.h>
-#define rmdir(path) _rmdir(path)
-#define getcwd(path,len) _getcwd(path,len)
-#define mkdir(path,mode) _mkdir(path)
-#define chdir(path) _chdir(path)
-#else
-#include <unistd.h>
-#include <dirent.h>
-#endif
-
 #include <mruby.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>
+#include "dir_hal.h"
+
+#if defined(_WIN32)
+#include <io.h>
+#include <direct.h>
+#endif
 
 static void
 make_dir(mrb_state *mrb, const char *name, const char *up)
 {
-  if (mkdir(name, 0) == -1) {
-    if (chdir("..") == 0) {
-      rmdir(up);
+  if (mrb_hal_dir_mkdir(mrb, name, 0) == -1) {
+    if (mrb_hal_dir_chdir(mrb, "..") == 0) {
+      mrb_hal_dir_rmdir(mrb, up);
     }
     mrb_raisef(mrb, E_RUNTIME_ERROR, "mkdir(%s) failed", mrb_str_new_cstr(mrb, name));
   }
@@ -50,19 +30,20 @@ mrb_value
 mrb_dirtest_setup(mrb_state *mrb, mrb_value klass)
 {
   char buf[1024];
+  char cwd[1024];
   const char *aname = "a";
   const char *bname = "b";
 
   /* save current working directory */
-  if (getcwd(buf, sizeof(buf)) == NULL) {
+  if (mrb_hal_dir_getcwd(mrb, cwd, sizeof(cwd)) != 0) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "getcwd() failed");
   }
-  mrb_cv_set(mrb, klass, mrb_intern_cstr(mrb, "pwd"), mrb_str_new_cstr(mrb, buf));
+  mrb_cv_set(mrb, klass, mrb_intern_cstr(mrb, "pwd"), mrb_str_new_cstr(mrb, cwd));
 
   /* create sandbox */
 #if defined(_WIN32)
-  snprintf(buf, sizeof(buf), "%s\\mruby-dir-test.XXXXXX", _getcwd(NULL,0));
-  if ((_mktemp(buf) == NULL) || mkdir(buf,0) != 0) {
+  snprintf(buf, sizeof(buf), "%s\\mruby-dir-test.XXXXXX", cwd);
+  if ((_mktemp(buf) == NULL) || mrb_hal_dir_mkdir(mrb, buf, 0) != 0) {
     mrb_raisef(mrb, E_RUNTIME_ERROR, "mkdtemp(%s) failed", buf);
   }
 #else
@@ -74,8 +55,8 @@ mrb_dirtest_setup(mrb_state *mrb, mrb_value klass)
   mrb_cv_set(mrb, klass, mrb_intern_cstr(mrb, "sandbox"), mrb_str_new_cstr(mrb, buf));
 
   /* go to sandbox */
-  if (chdir(buf) == -1) {
-    rmdir(buf);
+  if (mrb_hal_dir_chdir(mrb, buf) == -1) {
+    mrb_hal_dir_rmdir(mrb, buf);
     mrb_raisef(mrb, E_RUNTIME_ERROR, "chdir(%s) failed", buf);
   }
 
@@ -90,35 +71,35 @@ mrb_value
 mrb_dirtest_teardown(mrb_state *mrb, mrb_value klass)
 {
   mrb_value d, sandbox;
-  DIR *dirp;
-  struct dirent *dp;
+  mrb_dir_handle *dirp;
+  const char *name;
   const char *path;
 
   /* cleanup sandbox */
   sandbox = mrb_cv_get(mrb, klass, mrb_intern_cstr(mrb, "sandbox"));
   path = mrb_str_to_cstr(mrb, sandbox);
 
-  dirp = opendir(path);
-  while ((dp = readdir(dirp)) != NULL) {
-    if (strcmp(dp->d_name, ".") == 0 || strcmp(dp->d_name, "..") == 0)
+  dirp = mrb_hal_dir_open(mrb, path);
+  while ((name = mrb_hal_dir_read(mrb, dirp)) != NULL) {
+    if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0)
       continue;
-    if (rmdir(dp->d_name) == -1) {
-      mrb_raisef(mrb, E_RUNTIME_ERROR, "rmdir(%s) failed", dp->d_name);
+    if (mrb_hal_dir_rmdir(mrb, name) == -1) {
+      mrb_raisef(mrb, E_RUNTIME_ERROR, "rmdir(%s) failed", name);
     }
   }
-  closedir(dirp);
+  mrb_hal_dir_close(mrb, dirp);
 
   /* back to original pwd */
   d = mrb_cv_get(mrb, klass, mrb_intern_cstr(mrb, "pwd"));
   path = mrb_str_to_cstr(mrb, d);
-  if (chdir(path) == -1) {
+  if (mrb_hal_dir_chdir(mrb, path) == -1) {
     mrb_raisef(mrb, E_RUNTIME_ERROR, "chdir(%s) failed", path);
   }
 
   /* remove sandbox directory */
   sandbox = mrb_cv_get(mrb, klass, mrb_intern_cstr(mrb, "sandbox"));
   path = mrb_str_to_cstr(mrb, sandbox);
-  if (rmdir(path) == -1) {
+  if (mrb_hal_dir_rmdir(mrb, path) == -1) {
     mrb_raisef(mrb, E_RUNTIME_ERROR, "rmdir(%s) failed", path);
   }
 
