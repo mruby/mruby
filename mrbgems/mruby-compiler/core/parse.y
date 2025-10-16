@@ -424,6 +424,15 @@ new_stmts(parser_state *p, node *body)
   return (node*)n;
 }
 
+/* Helper: push statement to stmts node */
+static node*
+stmts_push(parser_state *p, node *stmts, node *stmt)
+{
+  struct mrb_ast_stmts_node *n = stmts_node(stmts);
+  n->stmts = push(n->stmts, stmt);
+  return stmts;
+}
+
 /* struct: begin_node(body) */
 static node*
 new_begin(parser_state *p, node *body)
@@ -2069,7 +2078,7 @@ top_stmts       : none
                     }
                 | top_stmts terms top_stmt
                     {
-                      $$ = push($1, newline_node($3));
+                      $$ = stmts_push(p, $1, newline_node($3));
                     }
                 | error top_stmt
                     {
@@ -2102,7 +2111,7 @@ bodystmt        : compstmt
                       }
                       else if ($3) {
                         yywarning(p, "else without rescue is useless");
-                        $$ = push($1, $3);
+                        $$ = stmts_push(p, $1, $3);
                       }
                       else {
                         $$ = $1;
@@ -2134,9 +2143,7 @@ stmts           : none
                     }
                 | stmts terms stmt
                     {
-                      /* Update the cons-list inside the existing variable-sized node */
-                      stmts_node($1)->stmts = push(stmts_node($1)->stmts, newline_node($3));
-                      $$ = $1;
+                      $$ = stmts_push(p, $1, newline_node($3));
                     }
                 | error stmt
                     {
