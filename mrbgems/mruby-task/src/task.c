@@ -336,7 +336,8 @@ execute_task(mrb_state *mrb, mrb_task *t)
   t->c.status = MRB_FIBER_RUNNING;
 
   /* Save proc and PC to locals before calling mrb_vm_exec */
-  const struct RProc *proc = t->c.ci->proc;
+  /* Use current callinfo's proc if available, otherwise use task's stored proc */
+  const struct RProc *proc = t->c.ci->proc ? t->c.ci->proc : mrb_proc_ptr(t->proc);
   const mrb_code *pc = t->c.ci->pc;
 
   /* Set vmexec flag to prevent fiber_terminate from being called */
@@ -489,6 +490,17 @@ sleep_us_impl(mrb_state *mrb, mrb_int usec)
     /* Clear switching flag - we're in root context, not switching to a task */
     switching_ = FALSE;
     return;
+  }
+
+  /* Check for C function boundary - cannot do cooperative context switch */
+  mrb_callinfo *ci;
+  for (ci = mrb->c->ci; ci >= mrb->c->cibase; ci--) {
+    if (ci->cci > 0) {
+      /* Inside C function - fall back to blocking sleep without context switch */
+      mrb_hal_task_sleep_us(mrb, usec);
+      switching_ = FALSE;
+      return;
+    }
   }
 
   /* In task context - get current running task */
