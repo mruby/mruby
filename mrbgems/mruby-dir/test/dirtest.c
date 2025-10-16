@@ -31,7 +31,7 @@ make_dir(mrb_state *mrb, const char *name, const char *up)
 mrb_value
 mrb_dirtest_setup(mrb_state *mrb, mrb_value klass)
 {
-  char buf[1024];
+  char buf[2048];
   char cwd[1024];
   const char *aname = "a";
   const char *bname = "b";
