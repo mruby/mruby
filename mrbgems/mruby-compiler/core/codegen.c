@@ -4386,7 +4386,7 @@ codegen_masgn(codegen_scope *s, node *varnode, node *rhs, int sp, int val)
   node *t = rhs ? rhs : masgn_n->rhs, *p;
   int rhs_reg = sp;
 
-  if (!val && t && node_to_int(t->car) == NODE_ARRAY && t->cdr && nosplat(t->cdr)) {
+  if (!val && t && get_node_type(t) == NODE_ARRAY && t->cdr && nosplat(t->cdr)) {
     /* fixed rhs */
     t = t->cdr;
     while (t) {
