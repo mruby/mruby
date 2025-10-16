@@ -137,6 +137,10 @@ mrb_filetest_s_pipe_p(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_filetest_s_symlink_p(mrb_state *mrb, mrb_value klass)
 {
+#ifdef _WIN32
+  /* Symlinks not reliably supported on Windows */
+  mrb_raise(mrb, E_NOTIMP_ERROR, "symlink? is not supported on Windows");
+#else
 #ifndef S_ISLNK
 #  ifdef _S_ISLNK
 #    define S_ISLNK(m) _S_ISLNK(m)
@@ -160,6 +164,7 @@ mrb_filetest_s_symlink_p(mrb_state *mrb, mrb_value klass)
   if (S_ISLNK(st.st_mode))
     return mrb_true_value();
 #endif
+#endif
 
   return mrb_false_value();
 }
@@ -178,6 +183,10 @@ mrb_filetest_s_symlink_p(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_filetest_s_socket_p(mrb_state *mrb, mrb_value klass)
 {
+#ifdef _WIN32
+  /* Unix domain sockets not supported on Windows */
+  mrb_raise(mrb, E_NOTIMP_ERROR, "socket? is not supported on Windows");
+#else
 #ifndef S_ISSOCK
 #  ifdef _S_ISSOCK
 #    define S_ISSOCK(m) _S_ISSOCK(m)
@@ -200,6 +209,7 @@ mrb_filetest_s_socket_p(mrb_state *mrb, mrb_value klass)
     return mrb_false_value();
   if (S_ISSOCK(st.st_mode))
     return mrb_true_value();
+#endif
 #endif
 
   return mrb_false_value();

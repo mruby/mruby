@@ -200,57 +200,22 @@ mrb_hal_io_rename(mrb_state *mrb, const char *oldpath, const char *newpath)
 int
 mrb_hal_io_symlink(mrb_state *mrb, const char *target, const char *linkpath)
 {
-  DWORD flags = 0;
-  (void)mrb;
-
-  /* Check if target is a directory */
-  DWORD attrs = GetFileAttributes(target);
-  if (attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY)) {
-    flags = SYMBOLIC_LINK_FLAG_DIRECTORY;
-  }
-
-  if (!CreateSymbolicLink(linkpath, target, flags)) {
-    set_errno_from_win_error(GetLastError());
-    return -1;
-  }
-  return 0;
+  (void)target;
+  (void)linkpath;
+  /* Symlinks require special privileges on Windows */
+  mrb_raise(mrb, E_NOTIMP_ERROR, "symlink is not supported on Windows");
+  return -1;  /* not reached */
 }
 
 int64_t
 mrb_hal_io_readlink(mrb_state *mrb, const char *path, char *buf, size_t bufsize)
 {
-  HANDLE h;
-  DWORD ret;
-  char temp[PATH_MAX];
-  (void)mrb;
-
-  h = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, NULL,
-                 OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
-  if (h == INVALID_HANDLE_VALUE) {
-    set_errno_from_win_error(GetLastError());
-    return -1;
-  }
-
-  ret = GetFinalPathNameByHandle(h, temp, PATH_MAX, FILE_NAME_NORMALIZED);
-  CloseHandle(h);
-
-  if (ret == 0 || ret >= PATH_MAX) {
-    errno = EIO;
-    return -1;
-  }
-
-  /* Remove \\?\ prefix if present */
-  const char *result = temp;
-  if (strncmp(temp, "\\\\?\\", 4) == 0) {
-    result = temp + 4;
-  }
-
-  size_t len = strlen(result);
-  if (len > bufsize) {
-    len = bufsize;
-  }
-  memcpy(buf, result, len);
-  return (int64_t)len;
+  (void)path;
+  (void)buf;
+  (void)bufsize;
+  /* Symlinks require special handling on Windows */
+  mrb_raise(mrb, E_NOTIMP_ERROR, "readlink is not supported on Windows");
+  return -1;  /* not reached */
 }
 
 char*

@@ -380,6 +380,8 @@ assert('File.chmod') do
   begin
     assert_equal 1, File.chmod(0400, "#{$mrbtest_io_wfname}.chmod-test")
   ensure
+    # On Windows, must restore write permission before deletion
+    File.chmod(0600, "#{$mrbtest_io_wfname}.chmod-test") rescue nil
     File.delete("#{$mrbtest_io_wfname}.chmod-test")
   end
 end
