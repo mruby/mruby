@@ -87,8 +87,8 @@ typedef struct mrb_task {
 #define MRB_TIMESLICE_TICK_COUNT 3  /* Number of ticks per timeslice */
 #endif
 
-#define TASK_STACK_INIT_SIZE 64   /* Initial task stack size */
-#define TASK_CI_INIT_SIZE 8       /* Initial task callinfo size */
+#define TASK_STACK_INIT_SIZE 16   /* Initial task stack size */
+#define TASK_CI_INIT_SIZE 4       /* Initial task callinfo size */
 
 /*
  * HAL (Hardware Abstraction Layer) functions
