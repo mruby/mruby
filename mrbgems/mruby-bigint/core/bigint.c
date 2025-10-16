@@ -3466,10 +3466,10 @@ mrb_bint_xor(mrb_state *mrb, mrb_value x, mrb_value y)
       mpz_init_set(ctx, &c, &a);
       if (a.sz == 0) {
         mpz_realloc(ctx, &c, 1);
-        c.p[0] = z;
+        c.p[0] = (mp_limb)z;
       }
       else {
-        c.p[0] ^= z;
+        c.p[0] ^= (mp_limb)z;
       }
       return bint_norm(mrb, bint_new(ctx, &c));
     }
