@@ -38,14 +38,33 @@
 #define PCG_INCREMENT 1442695040888963407ULL
 
 typedef struct rand_state {
+#ifdef MRB_32BIT
+  /* On 32-bit platforms, split state to avoid alignment padding */
+  uint32_t state_lo;
+  uint32_t state_hi;
+#else
   uint64_t state;
+#endif
   uint32_t seed_value;  /* Track last seed for srand compatibility */
 } rand_state;
+
+/* Helper macros for 64-bit state access */
+#ifdef MRB_32BIT
+# define GET_STATE(t) (((uint64_t)(t)->state_hi << 32) | (t)->state_lo)
+# define SET_STATE(t, val) do { \
+    uint64_t v_ = (val); \
+    (t)->state_lo = (uint32_t)v_; \
+    (t)->state_hi = (uint32_t)(v_ >> 32); \
+  } while (0)
+#else
+# define GET_STATE(t) ((t)->state)
+# define SET_STATE(t, val) ((t)->state = (val))
+#endif
 
 static void
 rand_init(rand_state *t)
 {
-  t->state = 0x853c49e6748fea9bULL;
+  SET_STATE(t, 0x853c49e6748fea9bULL);
   t->seed_value = 521288629;
 }
 
@@ -57,9 +76,9 @@ rand_seed(rand_state *t, uint32_t seed)
   uint32_t old_seed = t->seed_value;
 
   /* PCG initialization: state=0, step, add seed, step, then mix */
-  t->state = 0;
+  SET_STATE(t, 0);
   rand_uint32(t);
-  t->state += seed;
+  SET_STATE(t, GET_STATE(t) + seed);
   for (int i = 0; i < 10; i++) {
     rand_uint32(t);
   }
@@ -72,10 +91,10 @@ static uint32_t
 rand_uint32(rand_state *rng)
 {
   /* PCG-XSH-RR: XorShift High (xorshift), then Random Rotate */
-  uint64_t oldstate = rng->state;
+  uint64_t oldstate = GET_STATE(rng);
 
   /* LCG step: advance internal state */
-  rng->state = oldstate * PCG_MULTIPLIER + PCG_INCREMENT;
+  SET_STATE(rng, oldstate * PCG_MULTIPLIER + PCG_INCREMENT);
 
   /* Output function: xorshift, then rotate by top bits */
   uint32_t xorshifted = (uint32_t)(((oldstate >> 18u) ^ oldstate) >> 27u);
