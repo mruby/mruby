@@ -336,9 +336,13 @@ execute_task(mrb_state *mrb, mrb_task *t)
   t->c.status = MRB_FIBER_RUNNING;
 
   /* Save proc and PC to locals before calling mrb_vm_exec */
-  /* Use current callinfo's proc if available, otherwise use task's stored proc */
-  const struct RProc *proc = t->c.ci->proc ? t->c.ci->proc : mrb_proc_ptr(t->proc);
+  const struct RProc *proc = t->c.ci->proc;
   const mrb_code *pc = t->c.ci->pc;
+
+  /* With C function boundary checks, proc should never be NULL on resume */
+  if (!proc) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "task context corrupted: no proc on resume");
+  }
 
   /* Set vmexec flag to prevent fiber_terminate from being called */
   t->c.vmexec = TRUE;
