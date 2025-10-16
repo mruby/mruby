@@ -79,7 +79,7 @@ set_errno_from_win_error(DWORD error)
  */
 
 int
-mrb_io_hal_stat(mrb_state *mrb, const char *path, mrb_io_stat *st)
+mrb_hal_io_stat(mrb_state *mrb, const char *path, mrb_io_stat *st)
 {
   struct _stat64 s;
   (void)mrb;
@@ -92,7 +92,7 @@ mrb_io_hal_stat(mrb_state *mrb, const char *path, mrb_io_stat *st)
 }
 
 int
-mrb_io_hal_fstat(mrb_state *mrb, int fd, mrb_io_stat *st)
+mrb_hal_io_fstat(mrb_state *mrb, int fd, mrb_io_stat *st)
 {
   struct _stat64 s;
   (void)mrb;
@@ -105,21 +105,21 @@ mrb_io_hal_fstat(mrb_state *mrb, int fd, mrb_io_stat *st)
 }
 
 int
-mrb_io_hal_lstat(mrb_state *mrb, const char *path, mrb_io_stat *st)
+mrb_hal_io_lstat(mrb_state *mrb, const char *path, mrb_io_stat *st)
 {
   /* Windows doesn't distinguish lstat from stat */
-  return mrb_io_hal_stat(mrb, path, st);
+  return mrb_hal_io_stat(mrb, path, st);
 }
 
 int
-mrb_io_hal_chmod(mrb_state *mrb, const char *path, uint32_t mode)
+mrb_hal_io_chmod(mrb_state *mrb, const char *path, uint32_t mode)
 {
   (void)mrb;
   return _chmod(path, (int)mode);
 }
 
 uint32_t
-mrb_io_hal_umask(mrb_state *mrb, int32_t mask)
+mrb_hal_io_umask(mrb_state *mrb, int32_t mask)
 {
   int old;
   (void)mrb;
@@ -136,14 +136,14 @@ mrb_io_hal_umask(mrb_state *mrb, int32_t mask)
 }
 
 int
-mrb_io_hal_ftruncate(mrb_state *mrb, int fd, int64_t length)
+mrb_hal_io_ftruncate(mrb_state *mrb, int fd, int64_t length)
 {
   (void)mrb;
   return _chsize_s(fd, length);
 }
 
 int
-mrb_io_hal_flock(mrb_state *mrb, int fd, int operation)
+mrb_hal_io_flock(mrb_state *mrb, int fd, int operation)
 {
   HANDLE h;
   OVERLAPPED overlapped;
@@ -182,21 +182,21 @@ mrb_io_hal_flock(mrb_state *mrb, int fd, int operation)
 }
 
 int
-mrb_io_hal_unlink(mrb_state *mrb, const char *path)
+mrb_hal_io_unlink(mrb_state *mrb, const char *path)
 {
   (void)mrb;
   return _unlink(path);
 }
 
 int
-mrb_io_hal_rename(mrb_state *mrb, const char *oldpath, const char *newpath)
+mrb_hal_io_rename(mrb_state *mrb, const char *oldpath, const char *newpath)
 {
   (void)mrb;
   return rename(oldpath, newpath);
 }
 
 int
-mrb_io_hal_symlink(mrb_state *mrb, const char *target, const char *linkpath)
+mrb_hal_io_symlink(mrb_state *mrb, const char *target, const char *linkpath)
 {
   DWORD flags = 0;
   (void)mrb;
@@ -215,7 +215,7 @@ mrb_io_hal_symlink(mrb_state *mrb, const char *target, const char *linkpath)
 }
 
 int64_t
-mrb_io_hal_readlink(mrb_state *mrb, const char *path, char *buf, size_t bufsize)
+mrb_hal_io_readlink(mrb_state *mrb, const char *path, char *buf, size_t bufsize)
 {
   HANDLE h;
   DWORD ret;
@@ -252,7 +252,7 @@ mrb_io_hal_readlink(mrb_state *mrb, const char *path, char *buf, size_t bufsize)
 }
 
 char*
-mrb_io_hal_realpath(mrb_state *mrb, const char *path, char *resolved)
+mrb_hal_io_realpath(mrb_state *mrb, const char *path, char *resolved)
 {
   DWORD ret;
   (void)mrb;
@@ -266,21 +266,21 @@ mrb_io_hal_realpath(mrb_state *mrb, const char *path, char *resolved)
 }
 
 char*
-mrb_io_hal_getcwd(mrb_state *mrb, char *buf, size_t size)
+mrb_hal_io_getcwd(mrb_state *mrb, char *buf, size_t size)
 {
   (void)mrb;
   return _getcwd(buf, (int)size);
 }
 
 const char*
-mrb_io_hal_getenv(mrb_state *mrb, const char *name)
+mrb_hal_io_getenv(mrb_state *mrb, const char *name)
 {
   (void)mrb;
   return getenv(name);
 }
 
 const char*
-mrb_io_hal_gethome(mrb_state *mrb, const char *username)
+mrb_hal_io_gethome(mrb_state *mrb, const char *username)
 {
   const char *home;
   (void)mrb;
@@ -313,7 +313,7 @@ mrb_io_hal_gethome(mrb_state *mrb, const char *username)
  */
 
 int
-mrb_io_hal_open(mrb_state *mrb, const char *path, int flags, uint32_t mode)
+mrb_hal_io_open(mrb_state *mrb, const char *path, int flags, uint32_t mode)
 {
   int fd;
   (void)mrb;
@@ -333,14 +333,14 @@ mrb_io_hal_open(mrb_state *mrb, const char *path, int flags, uint32_t mode)
 }
 
 int
-mrb_io_hal_close(mrb_state *mrb, int fd)
+mrb_hal_io_close(mrb_state *mrb, int fd)
 {
   (void)mrb;
   return _close(fd);
 }
 
 int64_t
-mrb_io_hal_read(mrb_state *mrb, int fd, void *buf, size_t count)
+mrb_hal_io_read(mrb_state *mrb, int fd, void *buf, size_t count)
 {
   int n;
   (void)mrb;
@@ -350,7 +350,7 @@ mrb_io_hal_read(mrb_state *mrb, int fd, void *buf, size_t count)
 }
 
 int64_t
-mrb_io_hal_write(mrb_state *mrb, int fd, const void *buf, size_t count)
+mrb_hal_io_write(mrb_state *mrb, int fd, const void *buf, size_t count)
 {
   int n;
   (void)mrb;
@@ -360,7 +360,7 @@ mrb_io_hal_write(mrb_state *mrb, int fd, const void *buf, size_t count)
 }
 
 int64_t
-mrb_io_hal_lseek(mrb_state *mrb, int fd, int64_t offset, int whence)
+mrb_hal_io_lseek(mrb_state *mrb, int fd, int64_t offset, int whence)
 {
   __int64 pos;
   int win_whence;
@@ -381,7 +381,7 @@ mrb_io_hal_lseek(mrb_state *mrb, int fd, int64_t offset, int whence)
 }
 
 int
-mrb_io_hal_dup(mrb_state *mrb, int fd)
+mrb_hal_io_dup(mrb_state *mrb, int fd)
 {
   int new_fd;
   (void)mrb;
@@ -400,7 +400,7 @@ mrb_io_hal_dup(mrb_state *mrb, int fd)
 }
 
 int
-mrb_io_hal_fcntl(mrb_state *mrb, int fd, int cmd, int arg)
+mrb_hal_io_fcntl(mrb_state *mrb, int fd, int cmd, int arg)
 {
   /* Windows has limited fcntl support */
   (void)mrb;
@@ -412,14 +412,14 @@ mrb_io_hal_fcntl(mrb_state *mrb, int fd, int cmd, int arg)
 }
 
 int
-mrb_io_hal_isatty(mrb_state *mrb, int fd)
+mrb_hal_io_isatty(mrb_state *mrb, int fd)
 {
   (void)mrb;
   return _isatty(fd) ? 1 : 0;
 }
 
 int
-mrb_io_hal_pipe(mrb_state *mrb, int fds[2])
+mrb_hal_io_pipe(mrb_state *mrb, int fds[2])
 {
   int ret;
   (void)mrb;
@@ -441,7 +441,7 @@ mrb_io_hal_pipe(mrb_state *mrb, int fds[2])
  */
 
 int
-mrb_io_hal_spawn_process(mrb_state *mrb, const char *cmd,
+mrb_hal_io_spawn_process(mrb_state *mrb, const char *cmd,
                           int stdin_fd, int stdout_fd, int stderr_fd,
                           int *pid)
 {
@@ -516,7 +516,7 @@ mrb_io_hal_spawn_process(mrb_state *mrb, const char *cmd,
 }
 
 int
-mrb_io_hal_waitpid(mrb_state *mrb, int pid, int *status, int options)
+mrb_hal_io_waitpid(mrb_state *mrb, int pid, int *status, int options)
 {
   HANDLE h = (HANDLE)pid;
   DWORD wait_result;
@@ -564,7 +564,7 @@ struct mrb_io_fdset {
 };
 
 mrb_io_fdset*
-mrb_io_hal_fdset_alloc(mrb_state *mrb)
+mrb_hal_io_fdset_alloc(mrb_state *mrb)
 {
   mrb_io_fdset *fdset = (mrb_io_fdset*)mrb_malloc(mrb, sizeof(mrb_io_fdset));
   FD_ZERO(&fdset->fds);
@@ -572,7 +572,7 @@ mrb_io_hal_fdset_alloc(mrb_state *mrb)
 }
 
 void
-mrb_io_hal_fdset_free(mrb_state *mrb, mrb_io_fdset *fdset)
+mrb_hal_io_fdset_free(mrb_state *mrb, mrb_io_fdset *fdset)
 {
   if (fdset) {
     mrb_free(mrb, fdset);
@@ -580,7 +580,7 @@ mrb_io_hal_fdset_free(mrb_state *mrb, mrb_io_fdset *fdset)
 }
 
 void
-mrb_io_hal_fdset_zero(mrb_state *mrb, mrb_io_fdset *fdset)
+mrb_hal_io_fdset_zero(mrb_state *mrb, mrb_io_fdset *fdset)
 {
   (void)mrb;
   if (fdset) {
@@ -589,7 +589,7 @@ mrb_io_hal_fdset_zero(mrb_state *mrb, mrb_io_fdset *fdset)
 }
 
 void
-mrb_io_hal_fdset_set(mrb_state *mrb, int fd, mrb_io_fdset *fdset)
+mrb_hal_io_fdset_set(mrb_state *mrb, int fd, mrb_io_fdset *fdset)
 {
   (void)mrb;
   if (fdset) {
@@ -598,7 +598,7 @@ mrb_io_hal_fdset_set(mrb_state *mrb, int fd, mrb_io_fdset *fdset)
 }
 
 int
-mrb_io_hal_fdset_isset(mrb_state *mrb, int fd, mrb_io_fdset *fdset)
+mrb_hal_io_fdset_isset(mrb_state *mrb, int fd, mrb_io_fdset *fdset)
 {
   (void)mrb;
   if (fdset) {
@@ -608,7 +608,7 @@ mrb_io_hal_fdset_isset(mrb_state *mrb, int fd, mrb_io_fdset *fdset)
 }
 
 int
-mrb_io_hal_select(mrb_state *mrb, int nfds,
+mrb_hal_io_select(mrb_state *mrb, int nfds,
                    mrb_io_fdset *readfds,
                    mrb_io_fdset *writefds,
                    mrb_io_fdset *errorfds,
@@ -636,7 +636,7 @@ mrb_io_hal_select(mrb_state *mrb, int nfds,
  */
 
 void
-mrb_io_hal_init(mrb_state *mrb)
+mrb_hal_io_init(mrb_state *mrb)
 {
   (void)mrb;
   /* Initialize Winsock for select() support */
@@ -645,7 +645,7 @@ mrb_io_hal_init(mrb_state *mrb)
 }
 
 void
-mrb_io_hal_final(mrb_state *mrb)
+mrb_hal_io_final(mrb_state *mrb)
 {
   (void)mrb;
   /* Cleanup Winsock */
@@ -667,5 +667,5 @@ void
 mrb_hal_win_io_gem_final(mrb_state *mrb)
 {
   (void)mrb;
-  /* Cleanup handled by mrb_io_hal_final called from mruby-io */
+  /* Cleanup handled by mrb_hal_io_final called from mruby-io */
 }

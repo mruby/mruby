@@ -23,57 +23,57 @@ typedef struct mrb_dir_handle mrb_dir_handle;
  */
 
 /* Open directory for reading. Returns handle or NULL on error (sets errno). */
-mrb_dir_handle* mrb_dir_hal_open(mrb_state *mrb, const char *path);
+mrb_dir_handle* mrb_hal_dir_open(mrb_state *mrb, const char *path);
 
 /* Close directory handle. Returns 0 on success, -1 on error. */
-int mrb_dir_hal_close(mrb_state *mrb, mrb_dir_handle *dir);
+int mrb_hal_dir_close(mrb_state *mrb, mrb_dir_handle *dir);
 
 /* Read next entry from directory. Returns name or NULL at end/error. */
-const char* mrb_dir_hal_read(mrb_state *mrb, mrb_dir_handle *dir);
+const char* mrb_hal_dir_read(mrb_state *mrb, mrb_dir_handle *dir);
 
 /* Rewind directory to beginning */
-void mrb_dir_hal_rewind(mrb_state *mrb, mrb_dir_handle *dir);
+void mrb_hal_dir_rewind(mrb_state *mrb, mrb_dir_handle *dir);
 
 /*
  * Optional Operations (may not be available on all platforms)
  */
 
 /* Seek to position in directory. Returns -1 if unsupported (sets errno to ENOSYS). */
-int mrb_dir_hal_seek(mrb_state *mrb, mrb_dir_handle *dir, long pos);
+int mrb_hal_dir_seek(mrb_state *mrb, mrb_dir_handle *dir, long pos);
 
 /* Get current position in directory. Returns -1 if unsupported (sets errno to ENOSYS). */
-long mrb_dir_hal_tell(mrb_state *mrb, mrb_dir_handle *dir);
+long mrb_hal_dir_tell(mrb_state *mrb, mrb_dir_handle *dir);
 
 /*
  * Filesystem Operations
  */
 
 /* Create directory with mode (mode may be ignored on some platforms). Returns 0 on success, -1 on error. */
-int mrb_dir_hal_mkdir(mrb_state *mrb, const char *path, int mode);
+int mrb_hal_dir_mkdir(mrb_state *mrb, const char *path, int mode);
 
 /* Remove empty directory. Returns 0 on success, -1 on error. */
-int mrb_dir_hal_rmdir(mrb_state *mrb, const char *path);
+int mrb_hal_dir_rmdir(mrb_state *mrb, const char *path);
 
 /* Change current working directory. Returns 0 on success, -1 on error. */
-int mrb_dir_hal_chdir(mrb_state *mrb, const char *path);
+int mrb_hal_dir_chdir(mrb_state *mrb, const char *path);
 
 /* Get current working directory. Returns 0 on success, -1 on error. */
-int mrb_dir_hal_getcwd(mrb_state *mrb, char *buf, size_t size);
+int mrb_hal_dir_getcwd(mrb_state *mrb, char *buf, size_t size);
 
 /* Change root directory (privileged operation). Returns -1 if unsupported (sets errno to ENOSYS). */
-int mrb_dir_hal_chroot(mrb_state *mrb, const char *path);
+int mrb_hal_dir_chroot(mrb_state *mrb, const char *path);
 
 /* Check if path is a directory. Returns 1 if directory, 0 if not. */
-int mrb_dir_hal_is_directory(mrb_state *mrb, const char *path);
+int mrb_hal_dir_is_directory(mrb_state *mrb, const char *path);
 
 /*
  * HAL Initialization/Finalization
  */
 
 /* Initialize HAL (called once at gem initialization) */
-void mrb_dir_hal_init(mrb_state *mrb);
+void mrb_hal_dir_init(mrb_state *mrb);
 
 /* Cleanup HAL (called once at gem finalization) */
-void mrb_dir_hal_final(mrb_state *mrb);
+void mrb_hal_dir_final(mrb_state *mrb);
 
 #endif /* MRUBY_DIR_HAL_H */

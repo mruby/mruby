@@ -36,7 +36,7 @@ struct mrb_dir_handle {
  */
 
 mrb_dir_handle*
-mrb_dir_hal_open(mrb_state *mrb, const char *path)
+mrb_hal_dir_open(mrb_state *mrb, const char *path)
 {
   mrb_dir_handle *handle;
   size_t len = strlen(path);
@@ -62,7 +62,7 @@ mrb_dir_hal_open(mrb_state *mrb, const char *path)
 }
 
 int
-mrb_dir_hal_close(mrb_state *mrb, mrb_dir_handle *handle)
+mrb_hal_dir_close(mrb_state *mrb, mrb_dir_handle *handle)
 {
   int result = -1;
 
@@ -82,7 +82,7 @@ mrb_dir_hal_close(mrb_state *mrb, mrb_dir_handle *handle)
 }
 
 const char*
-mrb_dir_hal_read(mrb_state *mrb, mrb_dir_handle *handle)
+mrb_hal_dir_read(mrb_state *mrb, mrb_dir_handle *handle)
 {
   (void)mrb;
 
@@ -106,7 +106,7 @@ mrb_dir_hal_read(mrb_state *mrb, mrb_dir_handle *handle)
 }
 
 void
-mrb_dir_hal_rewind(mrb_state *mrb, mrb_dir_handle *handle)
+mrb_hal_dir_rewind(mrb_state *mrb, mrb_dir_handle *handle)
 {
   (void)mrb;
 
@@ -126,7 +126,7 @@ mrb_dir_hal_rewind(mrb_state *mrb, mrb_dir_handle *handle)
  */
 
 int
-mrb_dir_hal_seek(mrb_state *mrb, mrb_dir_handle *handle, long pos)
+mrb_hal_dir_seek(mrb_state *mrb, mrb_dir_handle *handle, long pos)
 {
   /* Not supported on Windows */
   (void)mrb; (void)handle; (void)pos;
@@ -135,7 +135,7 @@ mrb_dir_hal_seek(mrb_state *mrb, mrb_dir_handle *handle, long pos)
 }
 
 long
-mrb_dir_hal_tell(mrb_state *mrb, mrb_dir_handle *handle)
+mrb_hal_dir_tell(mrb_state *mrb, mrb_dir_handle *handle)
 {
   /* Not supported on Windows */
   (void)mrb; (void)handle;
@@ -148,7 +148,7 @@ mrb_dir_hal_tell(mrb_state *mrb, mrb_dir_handle *handle)
  */
 
 int
-mrb_dir_hal_mkdir(mrb_state *mrb, const char *path, int mode)
+mrb_hal_dir_mkdir(mrb_state *mrb, const char *path, int mode)
 {
   /* Windows _mkdir ignores mode parameter */
   (void)mrb; (void)mode;
@@ -156,28 +156,28 @@ mrb_dir_hal_mkdir(mrb_state *mrb, const char *path, int mode)
 }
 
 int
-mrb_dir_hal_rmdir(mrb_state *mrb, const char *path)
+mrb_hal_dir_rmdir(mrb_state *mrb, const char *path)
 {
   (void)mrb;
   return _rmdir(path);
 }
 
 int
-mrb_dir_hal_chdir(mrb_state *mrb, const char *path)
+mrb_hal_dir_chdir(mrb_state *mrb, const char *path)
 {
   (void)mrb;
   return _chdir(path);
 }
 
 int
-mrb_dir_hal_getcwd(mrb_state *mrb, char *buf, size_t size)
+mrb_hal_dir_getcwd(mrb_state *mrb, char *buf, size_t size)
 {
   (void)mrb;
   return _getcwd(buf, (int)size) ? 0 : -1;
 }
 
 int
-mrb_dir_hal_chroot(mrb_state *mrb, const char *path)
+mrb_hal_dir_chroot(mrb_state *mrb, const char *path)
 {
   /* Not available on Windows */
   (void)mrb; (void)path;
@@ -186,7 +186,7 @@ mrb_dir_hal_chroot(mrb_state *mrb, const char *path)
 }
 
 int
-mrb_dir_hal_is_directory(mrb_state *mrb, const char *path)
+mrb_hal_dir_is_directory(mrb_state *mrb, const char *path)
 {
   struct _stat sb;
   (void)mrb;
@@ -202,14 +202,14 @@ mrb_dir_hal_is_directory(mrb_state *mrb, const char *path)
  */
 
 void
-mrb_dir_hal_init(mrb_state *mrb)
+mrb_hal_dir_init(mrb_state *mrb)
 {
   (void)mrb;
   /* No initialization needed for Windows */
 }
 
 void
-mrb_dir_hal_final(mrb_state *mrb)
+mrb_hal_dir_final(mrb_state *mrb)
 {
   (void)mrb;
   /* No cleanup needed for Windows */
@@ -230,7 +230,7 @@ void
 mrb_hal_win_dir_gem_final(mrb_state *mrb)
 {
   (void)mrb;
-  /* Cleanup handled by mrb_dir_hal_final called from mruby-dir */
+  /* Cleanup handled by mrb_hal_dir_final called from mruby-dir */
 }
 
 /*

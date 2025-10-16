@@ -90,7 +90,7 @@ typedef struct mrb_io_fdset mrb_io_fdset;
  * @param st Output stat structure
  * @return 0 on success, -1 on error (sets errno)
  */
-int mrb_io_hal_stat(mrb_state *mrb, const char *path, mrb_io_stat *st);
+int mrb_hal_io_stat(mrb_state *mrb, const char *path, mrb_io_stat *st);
 
 /**
  * Get file status by descriptor
@@ -100,7 +100,7 @@ int mrb_io_hal_stat(mrb_state *mrb, const char *path, mrb_io_stat *st);
  * @param st Output stat structure
  * @return 0 on success, -1 on error (sets errno)
  */
-int mrb_io_hal_fstat(mrb_state *mrb, int fd, mrb_io_stat *st);
+int mrb_hal_io_fstat(mrb_state *mrb, int fd, mrb_io_stat *st);
 
 /**
  * Get link status (don't follow symlinks)
@@ -110,7 +110,7 @@ int mrb_io_hal_fstat(mrb_state *mrb, int fd, mrb_io_stat *st);
  * @param st Output stat structure
  * @return 0 on success, -1 on error (sets errno)
  */
-int mrb_io_hal_lstat(mrb_state *mrb, const char *path, mrb_io_stat *st);
+int mrb_hal_io_lstat(mrb_state *mrb, const char *path, mrb_io_stat *st);
 
 /**
  * Change file permissions
@@ -120,7 +120,7 @@ int mrb_io_hal_lstat(mrb_state *mrb, const char *path, mrb_io_stat *st);
  * @param mode New permission mode
  * @return 0 on success, -1 on error (sets errno)
  */
-int mrb_io_hal_chmod(mrb_state *mrb, const char *path, uint32_t mode);
+int mrb_hal_io_chmod(mrb_state *mrb, const char *path, uint32_t mode);
 
 /**
  * Set/get file creation mask
@@ -129,7 +129,7 @@ int mrb_io_hal_chmod(mrb_state *mrb, const char *path, uint32_t mode);
  * @param mask New umask value (if < 0, only returns current value)
  * @return Previous umask value
  */
-uint32_t mrb_io_hal_umask(mrb_state *mrb, int32_t mask);
+uint32_t mrb_hal_io_umask(mrb_state *mrb, int32_t mask);
 
 /**
  * Truncate file to specified length
@@ -139,7 +139,7 @@ uint32_t mrb_io_hal_umask(mrb_state *mrb, int32_t mask);
  * @param length New file length
  * @return 0 on success, -1 on error (sets errno)
  */
-int mrb_io_hal_ftruncate(mrb_state *mrb, int fd, int64_t length);
+int mrb_hal_io_ftruncate(mrb_state *mrb, int fd, int64_t length);
 
 /**
  * Apply or remove advisory lock on file
@@ -149,7 +149,7 @@ int mrb_io_hal_ftruncate(mrb_state *mrb, int fd, int64_t length);
  * @param operation Lock operation (MRB_IO_LOCK_*)
  * @return 0 on success, -1 on error (sets errno)
  */
-int mrb_io_hal_flock(mrb_state *mrb, int fd, int operation);
+int mrb_hal_io_flock(mrb_state *mrb, int fd, int operation);
 
 /**
  * Delete a file
@@ -158,7 +158,7 @@ int mrb_io_hal_flock(mrb_state *mrb, int fd, int operation);
  * @param path File path (UTF-8)
  * @return 0 on success, -1 on error (sets errno)
  */
-int mrb_io_hal_unlink(mrb_state *mrb, const char *path);
+int mrb_hal_io_unlink(mrb_state *mrb, const char *path);
 
 /**
  * Rename a file
@@ -168,7 +168,7 @@ int mrb_io_hal_unlink(mrb_state *mrb, const char *path);
  * @param newpath New file path (UTF-8)
  * @return 0 on success, -1 on error (sets errno)
  */
-int mrb_io_hal_rename(mrb_state *mrb, const char *oldpath, const char *newpath);
+int mrb_hal_io_rename(mrb_state *mrb, const char *oldpath, const char *newpath);
 
 /**
  * Create a symbolic link
@@ -178,7 +178,7 @@ int mrb_io_hal_rename(mrb_state *mrb, const char *oldpath, const char *newpath);
  * @param linkpath Link path (UTF-8)
  * @return 0 on success, -1 on error (sets errno)
  */
-int mrb_io_hal_symlink(mrb_state *mrb, const char *target, const char *linkpath);
+int mrb_hal_io_symlink(mrb_state *mrb, const char *target, const char *linkpath);
 
 /**
  * Read value of a symbolic link
@@ -189,7 +189,7 @@ int mrb_io_hal_symlink(mrb_state *mrb, const char *target, const char *linkpath)
  * @param bufsize Buffer size
  * @return Number of bytes placed in buf, -1 on error (sets errno)
  */
-int64_t mrb_io_hal_readlink(mrb_state *mrb, const char *path, char *buf, size_t bufsize);
+int64_t mrb_hal_io_readlink(mrb_state *mrb, const char *path, char *buf, size_t bufsize);
 
 /**
  * Resolve pathname to absolute path
@@ -199,7 +199,7 @@ int64_t mrb_io_hal_readlink(mrb_state *mrb, const char *path, char *buf, size_t 
  * @param resolved Buffer for resolved path (must be at least PATH_MAX size)
  * @return Pointer to resolved on success, NULL on error (sets errno)
  */
-char* mrb_io_hal_realpath(mrb_state *mrb, const char *path, char *resolved);
+char* mrb_hal_io_realpath(mrb_state *mrb, const char *path, char *resolved);
 
 /**
  * Get current working directory
@@ -209,7 +209,7 @@ char* mrb_io_hal_realpath(mrb_state *mrb, const char *path, char *resolved);
  * @param size Buffer size
  * @return Pointer to buf on success, NULL on error (sets errno)
  */
-char* mrb_io_hal_getcwd(mrb_state *mrb, char *buf, size_t size);
+char* mrb_hal_io_getcwd(mrb_state *mrb, char *buf, size_t size);
 
 /**
  * Get environment variable
@@ -218,7 +218,7 @@ char* mrb_io_hal_getcwd(mrb_state *mrb, char *buf, size_t size);
  * @param name Variable name
  * @return Value string (UTF-8) or NULL if not found
  */
-const char* mrb_io_hal_getenv(mrb_state *mrb, const char *name);
+const char* mrb_hal_io_getenv(mrb_state *mrb, const char *name);
 
 /**
  * Get user's home directory
@@ -227,7 +227,7 @@ const char* mrb_io_hal_getenv(mrb_state *mrb, const char *name);
  * @param username User name (NULL for current user)
  * @return Home directory path (UTF-8) or NULL on error (sets errno)
  */
-const char* mrb_io_hal_gethome(mrb_state *mrb, const char *username);
+const char* mrb_hal_io_gethome(mrb_state *mrb, const char *username);
 
 /*
  * HAL Interface - Core I/O Operations
@@ -242,7 +242,7 @@ const char* mrb_io_hal_gethome(mrb_state *mrb, const char *username);
  * @param mode Creation mode (used if O_CREAT is set)
  * @return File descriptor on success, -1 on error (sets errno)
  */
-int mrb_io_hal_open(mrb_state *mrb, const char *path, int flags, uint32_t mode);
+int mrb_hal_io_open(mrb_state *mrb, const char *path, int flags, uint32_t mode);
 
 /**
  * Close file descriptor
@@ -251,7 +251,7 @@ int mrb_io_hal_open(mrb_state *mrb, const char *path, int flags, uint32_t mode);
  * @param fd File descriptor
  * @return 0 on success, -1 on error (sets errno)
  */
-int mrb_io_hal_close(mrb_state *mrb, int fd);
+int mrb_hal_io_close(mrb_state *mrb, int fd);
 
 /**
  * Read from file descriptor
@@ -262,7 +262,7 @@ int mrb_io_hal_close(mrb_state *mrb, int fd);
  * @param count Maximum bytes to read
  * @return Number of bytes read, 0 on EOF, -1 on error (sets errno)
  */
-int64_t mrb_io_hal_read(mrb_state *mrb, int fd, void *buf, size_t count);
+int64_t mrb_hal_io_read(mrb_state *mrb, int fd, void *buf, size_t count);
 
 /**
  * Write to file descriptor
@@ -273,7 +273,7 @@ int64_t mrb_io_hal_read(mrb_state *mrb, int fd, void *buf, size_t count);
  * @param count Number of bytes to write
  * @return Number of bytes written, -1 on error (sets errno)
  */
-int64_t mrb_io_hal_write(mrb_state *mrb, int fd, const void *buf, size_t count);
+int64_t mrb_hal_io_write(mrb_state *mrb, int fd, const void *buf, size_t count);
 
 /**
  * Reposition file offset
@@ -284,7 +284,7 @@ int64_t mrb_io_hal_write(mrb_state *mrb, int fd, const void *buf, size_t count);
  * @param whence Reference point (MRB_IO_SEEK_SET/CUR/END)
  * @return New offset from beginning of file, -1 on error (sets errno)
  */
-int64_t mrb_io_hal_lseek(mrb_state *mrb, int fd, int64_t offset, int whence);
+int64_t mrb_hal_io_lseek(mrb_state *mrb, int fd, int64_t offset, int whence);
 
 /**
  * Duplicate file descriptor
@@ -293,7 +293,7 @@ int64_t mrb_io_hal_lseek(mrb_state *mrb, int fd, int64_t offset, int whence);
  * @param fd File descriptor to duplicate
  * @return New descriptor on success, -1 on error (sets errno)
  */
-int mrb_io_hal_dup(mrb_state *mrb, int fd);
+int mrb_hal_io_dup(mrb_state *mrb, int fd);
 
 /**
  * Manipulate file descriptor
@@ -304,7 +304,7 @@ int mrb_io_hal_dup(mrb_state *mrb, int fd);
  * @param arg Command argument
  * @return Depends on command, -1 on error (sets errno)
  */
-int mrb_io_hal_fcntl(mrb_state *mrb, int fd, int cmd, int arg);
+int mrb_hal_io_fcntl(mrb_state *mrb, int fd, int cmd, int arg);
 
 /**
  * Check if descriptor refers to terminal
@@ -313,7 +313,7 @@ int mrb_io_hal_fcntl(mrb_state *mrb, int fd, int cmd, int arg);
  * @param fd File descriptor
  * @return 1 if TTY, 0 if not, -1 on error (sets errno)
  */
-int mrb_io_hal_isatty(mrb_state *mrb, int fd);
+int mrb_hal_io_isatty(mrb_state *mrb, int fd);
 
 /**
  * Create pipe
@@ -322,7 +322,7 @@ int mrb_io_hal_isatty(mrb_state *mrb, int fd);
  * @param fds Array to store two file descriptors [read_end, write_end]
  * @return 0 on success, -1 on error (sets errno)
  */
-int mrb_io_hal_pipe(mrb_state *mrb, int fds[2]);
+int mrb_hal_io_pipe(mrb_state *mrb, int fds[2]);
 
 /*
  * HAL Interface - Process Operations
@@ -345,7 +345,7 @@ int mrb_io_hal_pipe(mrb_state *mrb, int fds[2]);
  * @param pid Output parameter for process ID
  * @return 0 on success, -1 on error (sets errno)
  */
-int mrb_io_hal_spawn_process(mrb_state *mrb, const char *cmd,
+int mrb_hal_io_spawn_process(mrb_state *mrb, const char *cmd,
                                int stdin_fd, int stdout_fd, int stderr_fd,
                                int *pid);
 
@@ -358,7 +358,7 @@ int mrb_io_hal_spawn_process(mrb_state *mrb, const char *cmd,
  * @param options Wait options (0 for blocking wait)
  * @return Process ID on success, -1 on error (sets errno)
  */
-int mrb_io_hal_waitpid(mrb_state *mrb, int pid, int *status, int options);
+int mrb_hal_io_waitpid(mrb_state *mrb, int pid, int *status, int options);
 
 /*
  * HAL Interface - I/O Multiplexing
@@ -370,7 +370,7 @@ int mrb_io_hal_waitpid(mrb_state *mrb, int pid, int *status, int options);
  * @param mrb mruby state
  * @return Pointer to fdset or NULL on error
  */
-mrb_io_fdset* mrb_io_hal_fdset_alloc(mrb_state *mrb);
+mrb_io_fdset* mrb_hal_io_fdset_alloc(mrb_state *mrb);
 
 /**
  * Free file descriptor set
@@ -378,7 +378,7 @@ mrb_io_fdset* mrb_io_hal_fdset_alloc(mrb_state *mrb);
  * @param mrb mruby state
  * @param fdset File descriptor set to free
  */
-void mrb_io_hal_fdset_free(mrb_state *mrb, mrb_io_fdset *fdset);
+void mrb_hal_io_fdset_free(mrb_state *mrb, mrb_io_fdset *fdset);
 
 /**
  * Clear file descriptor set
@@ -386,7 +386,7 @@ void mrb_io_hal_fdset_free(mrb_state *mrb, mrb_io_fdset *fdset);
  * @param mrb mruby state
  * @param fdset File descriptor set
  */
-void mrb_io_hal_fdset_zero(mrb_state *mrb, mrb_io_fdset *fdset);
+void mrb_hal_io_fdset_zero(mrb_state *mrb, mrb_io_fdset *fdset);
 
 /**
  * Add descriptor to set
@@ -395,7 +395,7 @@ void mrb_io_hal_fdset_zero(mrb_state *mrb, mrb_io_fdset *fdset);
  * @param fd File descriptor
  * @param fdset File descriptor set
  */
-void mrb_io_hal_fdset_set(mrb_state *mrb, int fd, mrb_io_fdset *fdset);
+void mrb_hal_io_fdset_set(mrb_state *mrb, int fd, mrb_io_fdset *fdset);
 
 /**
  * Check if descriptor is in set
@@ -405,7 +405,7 @@ void mrb_io_hal_fdset_set(mrb_state *mrb, int fd, mrb_io_fdset *fdset);
  * @param fdset File descriptor set
  * @return Non-zero if fd is in set, 0 otherwise
  */
-int mrb_io_hal_fdset_isset(mrb_state *mrb, int fd, mrb_io_fdset *fdset);
+int mrb_hal_io_fdset_isset(mrb_state *mrb, int fd, mrb_io_fdset *fdset);
 
 /**
  * Monitor multiple file descriptors
@@ -418,7 +418,7 @@ int mrb_io_hal_fdset_isset(mrb_state *mrb, int fd, mrb_io_fdset *fdset);
  * @param timeout Timeout (NULL = block indefinitely)
  * @return Number of ready descriptors, 0 on timeout, -1 on error (sets errno)
  */
-int mrb_io_hal_select(mrb_state *mrb, int nfds,
+int mrb_hal_io_select(mrb_state *mrb, int nfds,
                        mrb_io_fdset *readfds,
                        mrb_io_fdset *writefds,
                        mrb_io_fdset *errorfds,
@@ -436,7 +436,7 @@ int mrb_io_hal_select(mrb_state *mrb, int nfds,
  *
  * @param mrb mruby state
  */
-void mrb_io_hal_init(mrb_state *mrb);
+void mrb_hal_io_init(mrb_state *mrb);
 
 /**
  * Finalize I/O HAL
@@ -446,6 +446,6 @@ void mrb_io_hal_init(mrb_state *mrb);
  *
  * @param mrb mruby state
  */
-void mrb_io_hal_final(mrb_state *mrb);
+void mrb_hal_io_final(mrb_state *mrb);
 
 #endif /* MRUBY_IO_HAL_H */

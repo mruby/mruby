@@ -274,7 +274,7 @@ mrb_addrinfo_unix_path(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_SOCKET_ERROR, "invalid sockaddr");
   }
 
-  return mrb_socket_hal_unix_path(mrb, RSTRING_PTR(sastr), (size_t)RSTRING_LEN(sastr));
+  return mrb_hal_socket_unix_path(mrb, RSTRING_PTR(sastr), (size_t)RSTRING_LEN(sastr));
 }
 
 /* Helper to convert sockaddr to address list array [family, port, host, host] */
@@ -743,7 +743,7 @@ mrb_basicsocket_setnonblock(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "b", &nonblocking);
   int fd = socket_fd(mrb, self);
 
-  if (mrb_socket_hal_set_nonblock(mrb, fd, nonblocking) == -1)
+  if (mrb_hal_socket_set_nonblock(mrb, fd, nonblocking) == -1)
     mrb_sys_fail(mrb, "set_nonblock");
 
   return mrb_nil_value();
@@ -859,7 +859,7 @@ mrb_ipsocket_ntop(mrb_state *mrb, mrb_value klass)
 
   mrb_get_args(mrb, "is", &af, &addr, &n);
   if ((af == AF_INET && n != 4) || (af == AF_INET6 && n != 16) ||
-      mrb_socket_hal_inet_ntop((int)af, addr, buf, sizeof(buf)) == NULL)
+      mrb_hal_socket_inet_ntop((int)af, addr, buf, sizeof(buf)) == NULL)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid address");
   return mrb_str_new_cstr(mrb, buf);
 }
@@ -886,13 +886,13 @@ mrb_ipsocket_pton(mrb_state *mrb, mrb_value klass)
 
   if (af == AF_INET) {
     struct in_addr in;
-    if (mrb_socket_hal_inet_pton(AF_INET, buf, (void*)&in.s_addr) != 1)
+    if (mrb_hal_socket_inet_pton(AF_INET, buf, (void*)&in.s_addr) != 1)
       goto invalid;
     return mrb_str_new(mrb, (char*)&in.s_addr, 4);
   }
   else if (af == AF_INET6) {
     struct in6_addr in6;
-    if (mrb_socket_hal_inet_pton(AF_INET6, buf, (void*)&in6.s6_addr) != 1)
+    if (mrb_hal_socket_inet_pton(AF_INET6, buf, (void*)&in6.s6_addr) != 1)
       goto invalid;
     return mrb_str_new(mrb, (char*)&in6.s6_addr, 16);
   }
@@ -1091,7 +1091,7 @@ mrb_socket_sockaddr_un(mrb_state *mrb, mrb_value klass)
   mrb_value path;
 
   mrb_get_args(mrb, "S", &path);
-  return mrb_socket_hal_sockaddr_un(mrb, RSTRING_PTR(path), (size_t)RSTRING_LEN(path));
+  return mrb_hal_socket_sockaddr_un(mrb, RSTRING_PTR(path), (size_t)RSTRING_LEN(path));
 }
 
 /*
@@ -1112,7 +1112,7 @@ mrb_socket_socketpair(mrb_state *mrb, mrb_value klass)
 
   mrb_get_args(mrb, "iii", &domain, &type, &protocol);
 
-  if (mrb_socket_hal_socketpair(mrb, (int)domain, (int)type, (int)protocol, sv) == -1) {
+  if (mrb_hal_socket_socketpair(mrb, (int)domain, (int)type, (int)protocol, sv) == -1) {
     mrb_sys_fail(mrb, "socketpair");
   }
 
@@ -1266,7 +1266,7 @@ mrb_win32_basicsocket_syswrite(mrb_state *mrb, mrb_value self)
 void
 mrb_mruby_socket_gem_init(mrb_state* mrb)
 {
-  mrb_socket_hal_init(mrb);
+  mrb_hal_socket_init(mrb);
 
   struct RClass *ainfo = mrb_define_class_id(mrb, MRB_SYM(Addrinfo), mrb->object_class);
   mrb_define_class_method_id(mrb, ainfo, MRB_SYM(getaddrinfo), mrb_addrinfo_getaddrinfo, MRB_ARGS_REQ(2)|MRB_ARGS_OPT(4));
@@ -1348,5 +1348,5 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
 void
 mrb_mruby_socket_gem_final(mrb_state* mrb)
 {
-  mrb_socket_hal_final(mrb);
+  mrb_hal_socket_final(mrb);
 }

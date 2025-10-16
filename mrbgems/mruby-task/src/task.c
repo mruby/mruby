@@ -436,7 +436,7 @@ mrb_task_run(mrb_state *mrb)
     if (!t) {
       /* If there are tasks waiting or suspended, idle */
       if (q_waiting_ || q_suspended_) {
-        mrb_task_hal_idle_cpu(mrb);
+        mrb_hal_task_idle_cpu(mrb);
         continue;
       }
       /* All tasks are dormant - scheduler done */
@@ -485,7 +485,7 @@ sleep_us_impl(mrb_state *mrb, mrb_int usec)
   /* Check if we're in a task context */
   if (mrb->c == mrb->root_c) {
     /* Not in task context - sleep in real wall-clock time using HAL */
-    mrb_task_hal_sleep_us(mrb, usec);
+    mrb_hal_task_sleep_us(mrb, usec);
     /* Clear switching flag - we're in root context, not switching to a task */
     switching_ = FALSE;
     return;
@@ -1105,7 +1105,7 @@ mrb_mruby_task_gem_init(mrb_state *mrb)
   struct RClass *task_class;
 
   /* Initialize HAL (timer and interrupts) */
-  mrb_task_hal_init(mrb);
+  mrb_hal_task_init(mrb);
 
   /* Initialize main task to NULL */
   mrb->task.main_task = NULL;
@@ -1152,5 +1152,5 @@ mrb_mruby_task_gem_final(mrb_state *mrb)
     mrb->task.main_task = NULL;
   }
 
-  mrb_task_hal_final(mrb);
+  mrb_hal_task_final(mrb);
 }

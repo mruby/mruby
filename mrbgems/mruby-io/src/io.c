@@ -374,16 +374,16 @@ io_s_popen(mrb_state *mrb, mrb_value klass)
 
   /* Create pipes for communication */
   if (readable) {
-    if (mrb_io_hal_pipe(mrb, pr) == -1) {
+    if (mrb_hal_io_pipe(mrb, pr) == -1) {
       mrb_sys_fail(mrb, "pipe");
     }
   }
 
   if (writable) {
-    if (mrb_io_hal_pipe(mrb, pw) == -1) {
+    if (mrb_hal_io_pipe(mrb, pw) == -1) {
       if (pr[0] != -1) {
-        mrb_io_hal_close(mrb, pr[0]);
-        mrb_io_hal_close(mrb, pr[1]);
+        mrb_hal_io_close(mrb, pr[0]);
+        mrb_hal_io_close(mrb, pr[1]);
       }
       mrb_sys_fail(mrb, "pipe");
     }
@@ -401,15 +401,15 @@ io_s_popen(mrb_state *mrb, mrb_value klass)
     stderr_fd = (p.opt_err != -1) ? p.opt_err : stdout_fd;
 
     /* Spawn child process using HAL */
-    if (mrb_io_hal_spawn_process(mrb, p.cmd, stdin_fd, stdout_fd, stderr_fd, &pid) == -1) {
+    if (mrb_hal_io_spawn_process(mrb, p.cmd, stdin_fd, stdout_fd, stderr_fd, &pid) == -1) {
       int saved_errno = errno;
       if (readable) {
-        mrb_io_hal_close(mrb, pr[0]);
-        mrb_io_hal_close(mrb, pr[1]);
+        mrb_hal_io_close(mrb, pr[0]);
+        mrb_hal_io_close(mrb, pr[1]);
       }
       if (writable) {
-        mrb_io_hal_close(mrb, pw[0]);
-        mrb_io_hal_close(mrb, pw[1]);
+        mrb_hal_io_close(mrb, pw[0]);
+        mrb_hal_io_close(mrb, pw[1]);
       }
       errno = saved_errno;
       mrb_raisef(mrb, E_IO_ERROR, "command not found: %s", p.cmd);
@@ -417,10 +417,10 @@ io_s_popen(mrb_state *mrb, mrb_value klass)
 
     /* Close child ends of pipes in parent */
     if (readable) {
-      mrb_io_hal_close(mrb, pr[1]);  /* close write end */
+      mrb_hal_io_close(mrb, pr[1]);  /* close write end */
     }
     if (writable) {
-      mrb_io_hal_close(mrb, pw[0]);  /* close read end */
+      mrb_hal_io_close(mrb, pw[0]);  /* close read end */
     }
   }
 
@@ -1241,7 +1241,7 @@ io_s_pipe(mrb_state *mrb, mrb_value klass)
 {
   int pipes[2];
 
-  if (mrb_io_hal_pipe(mrb, pipes) == -1) {
+  if (mrb_hal_io_pipe(mrb, pipes) == -1) {
     mrb_sys_fail(mrb, "pipe");
   }
 
@@ -1328,22 +1328,22 @@ io_s_select(mrb_state *mrb, mrb_value klass)
     tp = &timerec;
   }
 
-  mrb_io_fdset *pset = mrb_io_hal_fdset_alloc(mrb);
+  mrb_io_fdset *pset = mrb_hal_io_fdset_alloc(mrb);
   mrb_io_fdset *rset = NULL;
   mrb_io_fdset *rp = NULL;
-  mrb_io_hal_fdset_zero(mrb, pset);
+  mrb_hal_io_fdset_zero(mrb, pset);
   if (!mrb_nil_p(read)) {
     mrb_check_type(mrb, read, MRB_TT_ARRAY);
-    rset = mrb_io_hal_fdset_alloc(mrb);
+    rset = mrb_hal_io_fdset_alloc(mrb);
     rp = rset;
-    mrb_io_hal_fdset_zero(mrb, rp);
+    mrb_hal_io_fdset_zero(mrb, rp);
     for (int i = 0; i < RARRAY_LEN(read); i++) {
       read_io = RARRAY_PTR(read)[i];
       fptr = io_get_open_fptr(mrb, read_io);
-      mrb_io_hal_fdset_set(mrb, fptr->fd, rp);
+      mrb_hal_io_fdset_set(mrb, fptr->fd, rp);
       if (mrb_io_read_data_pending(mrb, fptr)) {
         pending++;
-        mrb_io_hal_fdset_set(mrb, fptr->fd, pset);
+        mrb_hal_io_fdset_set(mrb, fptr->fd, pset);
       }
       if (max < fptr->fd)
         max = fptr->fd;
@@ -1358,16 +1358,16 @@ io_s_select(mrb_state *mrb, mrb_value klass)
   mrb_io_fdset *wp = NULL;
   if (!mrb_nil_p(write)) {
     mrb_check_type(mrb, write, MRB_TT_ARRAY);
-    wset = mrb_io_hal_fdset_alloc(mrb);
+    wset = mrb_hal_io_fdset_alloc(mrb);
     wp = wset;
-    mrb_io_hal_fdset_zero(mrb, wp);
+    mrb_hal_io_fdset_zero(mrb, wp);
     for (int i = 0; i < RARRAY_LEN(write); i++) {
       fptr = io_get_open_fptr(mrb, RARRAY_PTR(write)[i]);
-      mrb_io_hal_fdset_set(mrb, fptr->fd, wp);
+      mrb_hal_io_fdset_set(mrb, fptr->fd, wp);
       if (max < fptr->fd)
         max = fptr->fd;
       if (fptr->fd2 >= 0) {
-        mrb_io_hal_fdset_set(mrb, fptr->fd2, wp);
+        mrb_hal_io_fdset_set(mrb, fptr->fd2, wp);
         if (max < fptr->fd2)
           max = fptr->fd2;
       }
@@ -1378,16 +1378,16 @@ io_s_select(mrb_state *mrb, mrb_value klass)
   mrb_io_fdset *ep = NULL;
   if (!mrb_nil_p(except)) {
     mrb_check_type(mrb, except, MRB_TT_ARRAY);
-    eset = mrb_io_hal_fdset_alloc(mrb);
+    eset = mrb_hal_io_fdset_alloc(mrb);
     ep = eset;
-    mrb_io_hal_fdset_zero(mrb, ep);
+    mrb_hal_io_fdset_zero(mrb, ep);
     for (int i = 0; i < RARRAY_LEN(except); i++) {
       fptr = io_get_open_fptr(mrb, RARRAY_PTR(except)[i]);
-      mrb_io_hal_fdset_set(mrb, fptr->fd, ep);
+      mrb_hal_io_fdset_set(mrb, fptr->fd, ep);
       if (max < fptr->fd)
         max = fptr->fd;
       if (fptr->fd2 >= 0) {
-        mrb_io_hal_fdset_set(mrb, fptr->fd2, ep);
+        mrb_hal_io_fdset_set(mrb, fptr->fd2, ep);
         if (max < fptr->fd2)
           max = fptr->fd2;
       }
@@ -1398,13 +1398,13 @@ io_s_select(mrb_state *mrb, mrb_value klass)
 
   int n;
 retry:
-  n = mrb_io_hal_select(mrb, max, rp, wp, ep, tp);
+  n = mrb_hal_io_select(mrb, max, rp, wp, ep, tp);
   if (n < 0) {
     if (errno != EINTR) {
-      mrb_io_hal_fdset_free(mrb, pset);
-      mrb_io_hal_fdset_free(mrb, rset);
-      mrb_io_hal_fdset_free(mrb, wset);
-      mrb_io_hal_fdset_free(mrb, eset);
+      mrb_hal_io_fdset_free(mrb, pset);
+      mrb_hal_io_fdset_free(mrb, rset);
+      mrb_hal_io_fdset_free(mrb, wset);
+      mrb_hal_io_fdset_free(mrb, eset);
       mrb_sys_fail(mrb, "select failed");
     }
     if (tp == NULL)
@@ -1413,10 +1413,10 @@ retry:
   }
 
   if (!pending && n == 0) {
-    mrb_io_hal_fdset_free(mrb, pset);
-    mrb_io_hal_fdset_free(mrb, rset);
-    mrb_io_hal_fdset_free(mrb, wset);
-    mrb_io_hal_fdset_free(mrb, eset);
+    mrb_hal_io_fdset_free(mrb, pset);
+    mrb_hal_io_fdset_free(mrb, rset);
+    mrb_hal_io_fdset_free(mrb, wset);
+    mrb_hal_io_fdset_free(mrb, eset);
     return mrb_nil_value();
   }
 
@@ -1430,8 +1430,8 @@ retry:
       list = RARRAY_PTR(result)[0];
       for (int i = 0; i < RARRAY_LEN(read); i++) {
         fptr = io_get_open_fptr(mrb, RARRAY_PTR(read)[i]);
-        if (mrb_io_hal_fdset_isset(mrb, fptr->fd, rp) ||
-            mrb_io_hal_fdset_isset(mrb, fptr->fd, pset)) {
+        if (mrb_hal_io_fdset_isset(mrb, fptr->fd, rp) ||
+            mrb_hal_io_fdset_isset(mrb, fptr->fd, pset)) {
           mrb_ary_push(mrb, list, RARRAY_PTR(read)[i]);
         }
       }
@@ -1441,10 +1441,10 @@ retry:
       list = RARRAY_PTR(result)[1];
       for (int i = 0; i < RARRAY_LEN(write); i++) {
         fptr = io_get_open_fptr(mrb, RARRAY_PTR(write)[i]);
-        if (mrb_io_hal_fdset_isset(mrb, fptr->fd, wp)) {
+        if (mrb_hal_io_fdset_isset(mrb, fptr->fd, wp)) {
           mrb_ary_push(mrb, list, RARRAY_PTR(write)[i]);
         }
-        else if (fptr->fd2 >= 0 && mrb_io_hal_fdset_isset(mrb, fptr->fd2, wp)) {
+        else if (fptr->fd2 >= 0 && mrb_hal_io_fdset_isset(mrb, fptr->fd2, wp)) {
           mrb_ary_push(mrb, list, RARRAY_PTR(write)[i]);
         }
       }
@@ -1454,20 +1454,20 @@ retry:
       list = RARRAY_PTR(result)[2];
       for (int i = 0; i < RARRAY_LEN(except); i++) {
         fptr = io_get_open_fptr(mrb, RARRAY_PTR(except)[i]);
-        if (mrb_io_hal_fdset_isset(mrb, fptr->fd, ep)) {
+        if (mrb_hal_io_fdset_isset(mrb, fptr->fd, ep)) {
           mrb_ary_push(mrb, list, RARRAY_PTR(except)[i]);
         }
-        else if (fptr->fd2 >= 0 && mrb_io_hal_fdset_isset(mrb, fptr->fd2, ep)) {
+        else if (fptr->fd2 >= 0 && mrb_hal_io_fdset_isset(mrb, fptr->fd2, ep)) {
           mrb_ary_push(mrb, list, RARRAY_PTR(except)[i]);
         }
       }
     }
   }
 
-  mrb_io_hal_fdset_free(mrb, pset);
-  mrb_io_hal_fdset_free(mrb, rset);
-  mrb_io_hal_fdset_free(mrb, wset);
-  mrb_io_hal_fdset_free(mrb, eset);
+  mrb_hal_io_fdset_free(mrb, pset);
+  mrb_hal_io_fdset_free(mrb, rset);
+  mrb_hal_io_fdset_free(mrb, wset);
+  mrb_hal_io_fdset_free(mrb, eset);
 
   return result;
 }

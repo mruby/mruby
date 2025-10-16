@@ -54,13 +54,13 @@
  *
  * @param mrb The mruby state to associate with the timer
  */
-void mrb_task_hal_init(mrb_state *mrb);
+void mrb_hal_task_init(mrb_state *mrb);
 
 /**
  * Cleanup timer and interrupt resources
  *
  * Called during mruby-task gem finalization. Should clean up all resources
- * allocated by mrb_task_hal_init().
+ * allocated by mrb_hal_task_init().
  *
  * Requirements:
  * - Stop and cleanup platform timer
@@ -70,7 +70,7 @@ void mrb_task_hal_init(mrb_state *mrb);
  *
  * @param mrb The mruby state to disassociate from the timer
  */
-void mrb_task_hal_final(mrb_state *mrb);
+void mrb_hal_task_final(mrb_state *mrb);
 
 /**
  * Enable timer interrupts (exit critical section)
@@ -119,7 +119,7 @@ void mrb_task_disable_irq(void);
  *
  * @param mrb The mruby state (for context, may be unused)
  */
-void mrb_task_hal_idle_cpu(mrb_state *mrb);
+void mrb_hal_task_idle_cpu(mrb_state *mrb);
 
 /**
  * Sleep for specified microseconds in wall-clock time
@@ -139,7 +139,7 @@ void mrb_task_hal_idle_cpu(mrb_state *mrb);
  * @param mrb The mruby state (for context, may be unused)
  * @param usec Number of microseconds to sleep
  */
-void mrb_task_hal_sleep_us(mrb_state *mrb, mrb_int usec);
+void mrb_hal_task_sleep_us(mrb_state *mrb, mrb_int usec);
 
 /*
  * Core scheduler function (implemented in task.c, called by HAL)

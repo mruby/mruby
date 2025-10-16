@@ -46,7 +46,7 @@ sigalrm_handler(int sig)
  */
 
 void
-mrb_task_hal_init(mrb_state *mrb)
+mrb_hal_task_init(mrb_state *mrb)
 {
   struct sigaction sa;
   struct itimerval timer;
@@ -119,7 +119,7 @@ mrb_task_disable_irq(void)
 }
 
 void
-mrb_task_hal_idle_cpu(mrb_state *mrb)
+mrb_hal_task_idle_cpu(mrb_state *mrb)
 {
   (void)mrb;
   /* On POSIX, just pause briefly */
@@ -127,7 +127,7 @@ mrb_task_hal_idle_cpu(mrb_state *mrb)
 }
 
 void
-mrb_task_hal_sleep_us(mrb_state *mrb, mrb_int usec)
+mrb_hal_task_sleep_us(mrb_state *mrb, mrb_int usec)
 {
   struct timespec start, now, sleep_time;
   int ret;
@@ -178,7 +178,7 @@ mrb_task_hal_sleep_us(mrb_state *mrb, mrb_int usec)
 }
 
 void
-mrb_task_hal_final(mrb_state *mrb)
+mrb_hal_task_final(mrb_state *mrb)
 {
   struct itimerval timer;
   int i, j;
@@ -227,5 +227,5 @@ void
 mrb_hal_posix_task_gem_final(mrb_state *mrb)
 {
   (void)mrb;
-  /* Cleanup handled by mrb_task_hal_final called from mruby-task */
+  /* Cleanup handled by mrb_hal_task_final called from mruby-task */
 }

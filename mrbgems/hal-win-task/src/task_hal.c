@@ -43,7 +43,7 @@ timer_callback(UINT uID, UINT uMsg, DWORD_PTR dwUser, DWORD_PTR dw1, DWORD_PTR d
  */
 
 void
-mrb_task_hal_init(mrb_state *mrb)
+mrb_hal_task_init(mrb_state *mrb)
 {
   int i;
   LONG idx;
@@ -115,7 +115,7 @@ mrb_task_disable_irq(void)
 }
 
 void
-mrb_task_hal_idle_cpu(mrb_state *mrb)
+mrb_hal_task_idle_cpu(mrb_state *mrb)
 {
   (void)mrb;
   /* On Windows, just sleep briefly */
@@ -123,7 +123,7 @@ mrb_task_hal_idle_cpu(mrb_state *mrb)
 }
 
 void
-mrb_task_hal_sleep_us(mrb_state *mrb, mrb_int usec)
+mrb_hal_task_sleep_us(mrb_state *mrb, mrb_int usec)
 {
   (void)mrb;
 
@@ -134,7 +134,7 @@ mrb_task_hal_sleep_us(mrb_state *mrb, mrb_int usec)
 }
 
 void
-mrb_task_hal_final(mrb_state *mrb)
+mrb_hal_task_final(mrb_state *mrb)
 {
   int i, j;
 
@@ -183,5 +183,5 @@ void
 mrb_hal_win_task_gem_final(mrb_state *mrb)
 {
   (void)mrb;
-  /* Cleanup handled by mrb_task_hal_final called from mruby-task */
+  /* Cleanup handled by mrb_hal_task_final called from mruby-task */
 }

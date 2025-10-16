@@ -25,7 +25,7 @@
  */
 
 void
-mrb_socket_hal_init(mrb_state *mrb)
+mrb_hal_socket_init(mrb_state *mrb)
 {
   WSADATA wsaData;
   int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -35,7 +35,7 @@ mrb_socket_hal_init(mrb_state *mrb)
 }
 
 void
-mrb_socket_hal_final(mrb_state *mrb)
+mrb_hal_socket_final(mrb_state *mrb)
 {
   (void)mrb;
   WSACleanup();
@@ -46,7 +46,7 @@ mrb_socket_hal_final(mrb_state *mrb)
  */
 
 int
-mrb_socket_hal_set_nonblock(mrb_state *mrb, int fd, int nonblock)
+mrb_hal_socket_set_nonblock(mrb_state *mrb, int fd, int nonblock)
 {
   (void)mrb;
   u_long mode = nonblock ? 1 : 0;
@@ -62,7 +62,7 @@ mrb_socket_hal_set_nonblock(mrb_state *mrb, int fd, int nonblock)
  */
 
 const char*
-mrb_socket_hal_inet_ntop(int af, const void *src, char *dst, size_t size)
+mrb_hal_socket_inet_ntop(int af, const void *src, char *dst, size_t size)
 {
   if (af == AF_INET) {
     struct sockaddr_in in = {0};
@@ -88,7 +88,7 @@ mrb_socket_hal_inet_ntop(int af, const void *src, char *dst, size_t size)
 }
 
 int
-mrb_socket_hal_inet_pton(int af, const char *src, void *dst)
+mrb_hal_socket_inet_pton(int af, const char *src, void *dst)
 {
   struct addrinfo hints = {0};
   hints.ai_family = af;
@@ -123,7 +123,7 @@ mrb_socket_hal_inet_pton(int af, const char *src, void *dst)
  */
 
 mrb_value
-mrb_socket_hal_sockaddr_un(mrb_state *mrb, const char *path, size_t pathlen)
+mrb_hal_socket_sockaddr_un(mrb_state *mrb, const char *path, size_t pathlen)
 {
   (void)path;
   (void)pathlen;
@@ -133,7 +133,7 @@ mrb_socket_hal_sockaddr_un(mrb_state *mrb, const char *path, size_t pathlen)
 }
 
 int
-mrb_socket_hal_socketpair(mrb_state *mrb, int domain, int type, int protocol, int sv[2])
+mrb_hal_socket_socketpair(mrb_state *mrb, int domain, int type, int protocol, int sv[2])
 {
   (void)mrb;
   (void)domain;
@@ -146,7 +146,7 @@ mrb_socket_hal_socketpair(mrb_state *mrb, int domain, int type, int protocol, in
 }
 
 mrb_value
-mrb_socket_hal_unix_path(mrb_state *mrb, const char *sockaddr, size_t socklen)
+mrb_hal_socket_unix_path(mrb_state *mrb, const char *sockaddr, size_t socklen)
 {
   (void)sockaddr;
   (void)socklen;
@@ -170,5 +170,5 @@ void
 mrb_hal_win_socket_gem_final(mrb_state *mrb)
 {
   (void)mrb;
-  /* Cleanup handled by mrb_socket_hal_final called from mruby-socket */
+  /* Cleanup handled by mrb_hal_socket_final called from mruby-socket */
 }

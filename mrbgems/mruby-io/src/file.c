@@ -135,10 +135,10 @@ mrb_file_s_umask(mrb_state *mrb, mrb_value klass)
   uint32_t omask;
 
   if (mrb_get_args(mrb, "|i", &mask) == 0) {
-    omask = mrb_io_hal_umask(mrb, -1);
+    omask = mrb_hal_io_umask(mrb, -1);
   }
   else {
-    omask = mrb_io_hal_umask(mrb, (int32_t)mask);
+    omask = mrb_hal_io_umask(mrb, (int32_t)mask);
   }
   return mrb_fixnum_value(omask);
 }
@@ -164,7 +164,7 @@ mrb_file_s_unlink(mrb_state *mrb, mrb_value obj)
     mrb_ensure_string_type(mrb, pathv);
     const char *utf8_path = RSTRING_CSTR(mrb, pathv);
     char *path = mrb_locale_from_utf8(utf8_path, -1);
-    if (mrb_io_hal_unlink(mrb, path) < 0) {
+    if (mrb_hal_io_unlink(mrb, path) < 0) {
       mrb_locale_free(path);
       mrb_sys_fail(mrb, utf8_path);
     }
@@ -189,12 +189,12 @@ mrb_file_s_rename(mrb_state *mrb, mrb_value obj)
   mrb_get_args(mrb, "SS", &from, &to);
   char *src = mrb_locale_from_utf8(RSTRING_CSTR(mrb, from), -1);
   char *dst = mrb_locale_from_utf8(RSTRING_CSTR(mrb, to), -1);
-  if (mrb_io_hal_rename(mrb, src, dst) < 0) {
+  if (mrb_hal_io_rename(mrb, src, dst) < 0) {
 #if defined(_WIN32)
     /* Windows retry: try chmod+unlink+rename if initial rename fails */
-    if (mrb_io_hal_chmod(mrb, dst, 0666) == 0 &&
-        mrb_io_hal_unlink(mrb, dst) == 0 &&
-        mrb_io_hal_rename(mrb, src, dst) == 0) {
+    if (mrb_hal_io_chmod(mrb, dst, 0666) == 0 &&
+        mrb_hal_io_unlink(mrb, dst) == 0 &&
+        mrb_hal_io_rename(mrb, src, dst) == 0) {
       mrb_locale_free(src);
       mrb_locale_free(dst);
       return mrb_fixnum_value(0);
@@ -401,7 +401,7 @@ mrb_file_realpath(mrb_state *mrb, mrb_value klass)
   }
   char *cpath = mrb_locale_from_utf8(RSTRING_CSTR(mrb, pathname), -1);
   mrb_value result = mrb_str_new_capa(mrb, PATH_MAX);
-  if (mrb_io_hal_realpath(mrb, cpath, RSTRING_PTR(result)) == NULL) {
+  if (mrb_hal_io_realpath(mrb, cpath, RSTRING_PTR(result)) == NULL) {
     mrb_locale_free(cpath);
     mrb_sys_fail(mrb, RSTRING_CSTR(mrb, pathname));
     return result;              /* not reached */
@@ -416,7 +416,7 @@ path_getwd(mrb_state *mrb)
 {
   char buf[MAXPATHLEN];
 
-  if (mrb_io_hal_getcwd(mrb, buf, MAXPATHLEN) == NULL) {
+  if (mrb_hal_io_getcwd(mrb, buf, MAXPATHLEN) == NULL) {
     mrb_sys_fail(mrb, "getcwd(2)");
   }
   char *utf8 = mrb_utf8_from_locale(buf, -1);
@@ -528,7 +528,7 @@ path_gethome(mrb_state *mrb, const char **pathp)
   ptrdiff_t len = *pathp - username;
 
   if (len == 0) {
-    home = mrb_io_hal_gethome(mrb, NULL);
+    home = mrb_hal_io_gethome(mrb, NULL);
     if (home == NULL) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "couldn't find HOME environment -- expanding '~'");
     }
@@ -538,7 +538,7 @@ path_gethome(mrb_state *mrb, const char **pathp)
   }
   else {
     const char *uname = RSTRING_CSTR(mrb, mrb_str_new(mrb, username, (mrb_int)len));
-    home = mrb_io_hal_gethome(mrb, uname);
+    home = mrb_hal_io_gethome(mrb, uname);
     if (home == NULL) {
       mrb_raisef(mrb, E_ARGUMENT_ERROR, "user %s doesn't exist", uname);
     }
@@ -694,7 +694,7 @@ mrb_file_atime(mrb_state *mrb, mrb_value self)
   mrb_io_stat st;
 
   mrb->c->ci->mid = 0;
-  if (mrb_io_hal_fstat(mrb, fd, &st) == -1)
+  if (mrb_hal_io_fstat(mrb, fd, &st) == -1)
     mrb_sys_fail(mrb, "atime");
   if (TIME_OVERFLOW_P(st.st_atime)) {
     TIME_BIGTIME(mrb, st.st_atime);
@@ -709,7 +709,7 @@ mrb_file_ctime(mrb_state *mrb, mrb_value self)
   mrb_io_stat st;
 
   mrb->c->ci->mid = 0;
-  if (mrb_io_hal_fstat(mrb, fd, &st) == -1)
+  if (mrb_hal_io_fstat(mrb, fd, &st) == -1)
     mrb_sys_fail(mrb, "ctime");
   if (TIME_OVERFLOW_P(st.st_ctime)) {
     TIME_BIGTIME(mrb, st.st_ctime);
@@ -724,7 +724,7 @@ mrb_file_mtime(mrb_state *mrb, mrb_value self)
   mrb_io_stat st;
 
   mrb->c->ci->mid = 0;
-  if (mrb_io_hal_fstat(mrb, fd, &st) == -1)
+  if (mrb_hal_io_fstat(mrb, fd, &st) == -1)
     mrb_sys_fail(mrb, "mtime");
   if (TIME_OVERFLOW_P(st.st_mtime)) {
     TIME_BIGTIME(mrb, st.st_mtime);
@@ -754,7 +754,7 @@ mrb_file_flock(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "i", &operation);
   int fd = mrb_io_fileno(mrb, self);
 
-  while (mrb_io_hal_flock(mrb, fd, (int)operation) == -1) {
+  while (mrb_hal_io_flock(mrb, fd, (int)operation) == -1) {
     switch (errno) {
       case EINTR:
         /* retry */
@@ -789,7 +789,7 @@ mrb_file_size(mrb_state *mrb, mrb_value self)
 {
   mrb_io_stat st;
   int fd = mrb_io_fileno(mrb, self);
-  if (mrb_io_hal_fstat(mrb, fd, &st) == -1) {
+  if (mrb_hal_io_fstat(mrb, fd, &st) == -1) {
     mrb_sys_fail(mrb, "fstat");
   }
 
@@ -807,7 +807,7 @@ mrb_file_size(mrb_state *mrb, mrb_value self)
 static int
 mrb_ftruncate(mrb_state *mrb, int fd, mrb_int length)
 {
-  return mrb_io_hal_ftruncate(mrb, fd, (int64_t)length);
+  return mrb_hal_io_ftruncate(mrb, fd, (int64_t)length);
 }
 
 /*
@@ -850,7 +850,7 @@ mrb_file_s_symlink(mrb_state *mrb, mrb_value klass)
   mrb_get_args(mrb, "SS", &from, &to);
   const char *src = mrb_locale_from_utf8(RSTRING_CSTR(mrb, from), -1);
   const char *dst = mrb_locale_from_utf8(RSTRING_CSTR(mrb, to), -1);
-  if (mrb_io_hal_symlink(mrb, src, dst) == -1) {
+  if (mrb_hal_io_symlink(mrb, src, dst) == -1) {
     mrb_locale_free(src);
     mrb_locale_free(dst);
     mrb_sys_fail(mrb, RSTRING_CSTR(mrb, mrb_format(mrb, "(%v, %v)", from, to)));
@@ -882,7 +882,7 @@ mrb_file_s_chmod(mrb_state *mrb, mrb_value klass)
     mrb_ensure_string_type(mrb, filenames[i]);
     const char *utf8_path = RSTRING_CSTR(mrb, filenames[i]);
     char *path = mrb_locale_from_utf8(utf8_path, -1);
-    if (mrb_io_hal_chmod(mrb, path, (uint32_t)mode) == -1) {
+    if (mrb_hal_io_chmod(mrb, path, (uint32_t)mode) == -1) {
       mrb_locale_free(path);
       mrb_sys_fail(mrb, utf8_path);
     }
@@ -914,7 +914,7 @@ mrb_file_s_readlink(mrb_state *mrb, mrb_value klass)
   char *buf = (char*)mrb_malloc(mrb, bufsize);
 
   int64_t rc;
-  while ((rc = mrb_io_hal_readlink(mrb, tmp, buf, bufsize)) == (int64_t)bufsize) {
+  while ((rc = mrb_hal_io_readlink(mrb, tmp, buf, bufsize)) == (int64_t)bufsize) {
     bufsize += 100;
     buf = (char*)mrb_realloc(mrb, buf, bufsize);
   }

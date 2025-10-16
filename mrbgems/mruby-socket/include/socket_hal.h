@@ -23,10 +23,10 @@ extern "C" {
  */
 
 /* Initialize socket subsystem (e.g., WSAStartup on Windows) */
-void mrb_socket_hal_init(mrb_state *mrb);
+void mrb_hal_socket_init(mrb_state *mrb);
 
 /* Finalize socket subsystem (e.g., WSACleanup on Windows) */
-void mrb_socket_hal_final(mrb_state *mrb);
+void mrb_hal_socket_final(mrb_state *mrb);
 
 /*
  * Socket Control Operations
@@ -34,7 +34,7 @@ void mrb_socket_hal_final(mrb_state *mrb);
 
 /* Set non-blocking mode on socket
  * Returns 0 on success, -1 on error (sets errno) */
-int mrb_socket_hal_set_nonblock(mrb_state *mrb, int fd, int nonblock);
+int mrb_hal_socket_set_nonblock(mrb_state *mrb, int fd, int nonblock);
 
 /*
  * Address Conversion Functions
@@ -46,14 +46,14 @@ int mrb_socket_hal_set_nonblock(mrb_state *mrb, int fd, int nonblock);
  * dst: buffer for string result
  * size: size of dst buffer
  * Returns: dst on success, NULL on error */
-const char* mrb_socket_hal_inet_ntop(int af, const void *src, char *dst, size_t size);
+const char* mrb_hal_socket_inet_ntop(int af, const void *src, char *dst, size_t size);
 
 /* Convert presentation format (string) to network address
  * af: address family (AF_INET, AF_INET6)
  * src: string representation of address
  * dst: buffer for network address result
  * Returns: 1 on success, 0 if src is not valid, -1 on error */
-int mrb_socket_hal_inet_pton(int af, const char *src, void *dst);
+int mrb_hal_socket_inet_pton(int af, const char *src, void *dst);
 
 /*
  * Platform-Specific Socket Features
@@ -62,7 +62,7 @@ int mrb_socket_hal_inet_pton(int af, const char *src, void *dst);
 /* Create Unix domain socket address structure
  * path: Unix socket path
  * Returns: packed sockaddr string, or raises exception if not supported */
-mrb_value mrb_socket_hal_sockaddr_un(mrb_state *mrb, const char *path, size_t pathlen);
+mrb_value mrb_hal_socket_sockaddr_un(mrb_state *mrb, const char *path, size_t pathlen);
 
 /* Create a pair of connected sockets
  * domain: address family (e.g., AF_UNIX)
@@ -70,11 +70,11 @@ mrb_value mrb_socket_hal_sockaddr_un(mrb_state *mrb, const char *path, size_t pa
  * protocol: protocol (usually 0)
  * sv: array to receive the two socket descriptors
  * Returns: 0 on success, -1 on error (sets errno) */
-int mrb_socket_hal_socketpair(mrb_state *mrb, int domain, int type, int protocol, int sv[2]);
+int mrb_hal_socket_socketpair(mrb_state *mrb, int domain, int type, int protocol, int sv[2]);
 
 /* Get Unix socket path from sockaddr
  * Returns: Unix socket path string, or raises exception if not supported */
-mrb_value mrb_socket_hal_unix_path(mrb_state *mrb, const char *sockaddr, size_t socklen);
+mrb_value mrb_hal_socket_unix_path(mrb_state *mrb, const char *sockaddr, size_t socklen);
 
 #ifdef __cplusplus
 }

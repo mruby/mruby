@@ -28,7 +28,7 @@ mrb_dir_free(mrb_state *mrb, void *ptr)
   struct mrb_dir *mdir = (struct mrb_dir*)ptr;
 
   if (mdir->handle) {
-    mrb_dir_hal_close(mrb, mdir->handle);
+    mrb_hal_dir_close(mrb, mdir->handle);
     mdir->handle = NULL;
   }
   mrb_free(mrb, mdir);
@@ -55,7 +55,7 @@ mrb_dir_close(mrb_state *mrb, mrb_value self)
   if (!mdir->handle) {
     mrb_raise(mrb, E_IO_ERROR, "closed directory");
   }
-  if (mrb_dir_hal_close(mrb, mdir->handle) == -1) {
+  if (mrb_hal_dir_close(mrb, mdir->handle) == -1) {
     mrb_sys_fail(mrb, "closedir");
   }
   mdir->handle = NULL;
@@ -89,7 +89,7 @@ mrb_dir_init(mrb_state *mrb, mrb_value self)
   DATA_PTR(self) = mdir;
 
   mrb_get_args(mrb, "z", &path);
-  if ((handle = mrb_dir_hal_open(mrb, path)) == NULL) {
+  if ((handle = mrb_hal_dir_open(mrb, path)) == NULL) {
     mrb_sys_fail(mrb, path);
   }
   mdir->handle = handle;
@@ -111,7 +111,7 @@ mrb_dir_delete(mrb_state *mrb, mrb_value klass)
   const char *path;
 
   mrb_get_args(mrb, "z", &path);
-  if (mrb_dir_hal_rmdir(mrb, path) == -1) {
+  if (mrb_hal_dir_rmdir(mrb, path) == -1) {
     mrb_sys_fail(mrb, path);
   }
   return mrb_fixnum_value(0);
@@ -132,7 +132,7 @@ mrb_dir_existp(mrb_state *mrb, mrb_value klass)
   const char *path;
 
   mrb_get_args(mrb, "z", &path);
-  if (mrb_dir_hal_is_directory(mrb, path)) {
+  if (mrb_hal_dir_is_directory(mrb, path)) {
     return mrb_true_value();
   }
   else {
@@ -156,7 +156,7 @@ mrb_dir_getwd(mrb_state *mrb, mrb_value klass)
   mrb_int size = 64;
 
   path = mrb_str_buf_new(mrb, size);
-  while (mrb_dir_hal_getcwd(mrb, RSTRING_PTR(path), (size_t)size) == -1) {
+  while (mrb_hal_dir_getcwd(mrb, RSTRING_PTR(path), (size_t)size) == -1) {
     int e = errno;
     if (e != ERANGE) {
       mrb_sys_fail(mrb, "getcwd(2)");
@@ -188,7 +188,7 @@ mrb_dir_mkdir(mrb_state *mrb, mrb_value klass)
 
   mode = 0777;
   mrb_get_args(mrb, "z|i", &path, &mode);
-  if (mrb_dir_hal_mkdir(mrb, path, (int)mode) == -1) {
+  if (mrb_hal_dir_mkdir(mrb, path, (int)mode) == -1) {
     mrb_sys_fail(mrb, path);
   }
   return mrb_fixnum_value(0);
@@ -201,7 +201,7 @@ mrb_dir_chdir(mrb_state *mrb, mrb_value klass)
   const char *path;
 
   mrb_get_args(mrb, "z", &path);
-  if (mrb_dir_hal_chdir(mrb, path) == -1) {
+  if (mrb_hal_dir_chdir(mrb, path) == -1) {
     mrb_sys_fail(mrb, path);
   }
   return mrb_fixnum_value(0);
@@ -223,7 +223,7 @@ mrb_dir_chroot(mrb_state *mrb, mrb_value self)
   int res;
 
   mrb_get_args(mrb, "z", &path);
-  res = mrb_dir_hal_chroot(mrb, path);
+  res = mrb_hal_dir_chroot(mrb, path);
   if (res == -1) {
     if (errno == ENOSYS) {
       mrb_raise(mrb, E_NOTIMP_ERROR, "chroot() unreliable on your system");
@@ -262,16 +262,16 @@ mrb_dir_empty(mrb_state *mrb, mrb_value self)
   mrb_value result = mrb_true_value();
 
   mrb_get_args(mrb, "z", &path);
-  if ((handle = mrb_dir_hal_open(mrb, path)) == NULL) {
+  if ((handle = mrb_hal_dir_open(mrb, path)) == NULL) {
     mrb_sys_fail(mrb, path);
   }
-  while ((name = mrb_dir_hal_read(mrb, handle)) != NULL) {
+  while ((name = mrb_hal_dir_read(mrb, handle)) != NULL) {
     if (!skip_name_p(name)) {
       result = mrb_false_value();
       break;
     }
   }
-  mrb_dir_hal_close(mrb, handle);
+  mrb_hal_dir_close(mrb, handle);
   return result;
 }
 
@@ -298,7 +298,7 @@ mrb_dir_read(mrb_state *mrb, mrb_value self)
   if (!mdir->handle) {
     mrb_raise(mrb, E_IO_ERROR, "closed directory");
   }
-  name = mrb_dir_hal_read(mrb, mdir->handle);
+  name = mrb_hal_dir_read(mrb, mdir->handle);
   if (name != NULL) {
     return mrb_str_new_cstr(mrb, name);
   }
@@ -328,7 +328,7 @@ mrb_dir_rewind(mrb_state *mrb, mrb_value self)
   if (!mdir->handle) {
     mrb_raise(mrb, E_IO_ERROR, "closed directory");
   }
-  mrb_dir_hal_rewind(mrb, mdir->handle);
+  mrb_hal_dir_rewind(mrb, mdir->handle);
   return self;
 }
 
@@ -357,7 +357,7 @@ mrb_dir_seek(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_IO_ERROR, "closed directory");
   }
   mrb_get_args(mrb, "i", &pos);
-  if (mrb_dir_hal_seek(mrb, mdir->handle, (long)pos) == -1) {
+  if (mrb_hal_dir_seek(mrb, mdir->handle, (long)pos) == -1) {
     if (errno == ENOSYS) {
       mrb_raise(mrb, E_NOTIMP_ERROR, "dirseek() unreliable on your system");
     }
@@ -388,7 +388,7 @@ mrb_dir_tell(mrb_state *mrb, mrb_value self)
   if (!mdir->handle) {
     mrb_raise(mrb, E_IO_ERROR, "closed directory");
   }
-  pos = mrb_dir_hal_tell(mrb, mdir->handle);
+  pos = mrb_hal_dir_tell(mrb, mdir->handle);
   if (pos == -1) {
     if (errno == ENOSYS) {
       mrb_raise(mrb, E_NOTIMP_ERROR, "dirtell() unreliable on your system");
@@ -414,17 +414,17 @@ mrb_dir_entries(mrb_state *mrb, mrb_value klass)
 
   mrb_get_args(mrb, "z", &path);
 
-  handle = mrb_dir_hal_open(mrb, path);
+  handle = mrb_hal_dir_open(mrb, path);
   if (handle == NULL) {
     mrb_sys_fail(mrb, path);
   }
 
   ary = mrb_ary_new(mrb);
-  while ((name = mrb_dir_hal_read(mrb, handle)) != NULL) {
+  while ((name = mrb_hal_dir_read(mrb, handle)) != NULL) {
     mrb_ary_push(mrb, ary, mrb_str_new_cstr(mrb, name));
   }
 
-  mrb_dir_hal_close(mrb, handle);
+  mrb_hal_dir_close(mrb, handle);
   return ary;
 }
 
@@ -446,19 +446,19 @@ mrb_dir_children(mrb_state *mrb, mrb_value klass)
 
   mrb_get_args(mrb, "z", &path);
 
-  handle = mrb_dir_hal_open(mrb, path);
+  handle = mrb_hal_dir_open(mrb, path);
   if (handle == NULL) {
     mrb_sys_fail(mrb, path);
   }
 
   ary = mrb_ary_new(mrb);
-  while ((name = mrb_dir_hal_read(mrb, handle)) != NULL) {
+  while ((name = mrb_hal_dir_read(mrb, handle)) != NULL) {
     if (!skip_name_p(name)) {
       mrb_ary_push(mrb, ary, mrb_str_new_cstr(mrb, name));
     }
   }
 
-  mrb_dir_hal_close(mrb, handle);
+  mrb_hal_dir_close(mrb, handle);
   return ary;
 }
 
@@ -467,7 +467,7 @@ mrb_mruby_dir_gem_init(mrb_state *mrb)
 {
   struct RClass *d;
 
-  mrb_dir_hal_init(mrb);
+  mrb_hal_dir_init(mrb);
 
   d = mrb_define_class_id(mrb, MRB_SYM(Dir), mrb->object_class);
   MRB_SET_INSTANCE_TT(d, MRB_TT_DATA);
@@ -494,5 +494,5 @@ mrb_mruby_dir_gem_init(mrb_state *mrb)
 void
 mrb_mruby_dir_gem_final(mrb_state *mrb)
 {
-  mrb_dir_hal_final(mrb);
+  mrb_hal_dir_final(mrb);
 }

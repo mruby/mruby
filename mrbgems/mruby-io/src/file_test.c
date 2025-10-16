@@ -28,7 +28,7 @@ mrb_stat0(mrb_state *mrb, mrb_value obj, mrb_io_stat *st, int do_lstat)
     fptr = (struct mrb_io*)mrb_data_get_ptr(mrb, obj, &mrb_io_type);
 
     if (fptr && fptr->fd >= 0) {
-      return mrb_io_hal_fstat(mrb, fptr->fd, st);
+      return mrb_hal_io_fstat(mrb, fptr->fd, st);
     }
 
     mrb_raise(mrb, E_IO_ERROR, "closed stream");
@@ -38,10 +38,10 @@ mrb_stat0(mrb_state *mrb, mrb_value obj, mrb_io_stat *st, int do_lstat)
     char *path = mrb_locale_from_utf8(RSTRING_CSTR(mrb, obj), -1);
     int ret;
     if (do_lstat) {
-      ret = mrb_io_hal_lstat(mrb, path, st);
+      ret = mrb_hal_io_lstat(mrb, path, st);
     }
     else {
-      ret = mrb_io_hal_stat(mrb, path, st);
+      ret = mrb_hal_io_stat(mrb, path, st);
     }
     mrb_locale_free(path);
     return ret;
