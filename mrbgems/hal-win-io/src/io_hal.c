@@ -18,6 +18,8 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <direct.h>
+#include <stdint.h>
 
 /* Maximum path length */
 #ifndef PATH_MAX
@@ -510,7 +512,7 @@ mrb_hal_io_spawn_process(mrb_state *mrb, const char *cmd,
   CloseHandle(pi.hThread);
 
   /* Store process handle as PID (will be used in waitpid) */
-  *pid = (int)pi.hProcess;
+  *pid = (int)(intptr_t)pi.hProcess;
 
   return 0;
 }
@@ -518,7 +520,7 @@ mrb_hal_io_spawn_process(mrb_state *mrb, const char *cmd,
 int
 mrb_hal_io_waitpid(mrb_state *mrb, int pid, int *status, int options)
 {
-  HANDLE h = (HANDLE)pid;
+  HANDLE h = (HANDLE)(intptr_t)pid;
   DWORD wait_result;
   DWORD exit_code;
   DWORD timeout;
