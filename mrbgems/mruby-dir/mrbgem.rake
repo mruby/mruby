@@ -6,15 +6,12 @@ MRuby::Gem::Specification.new('mruby-dir') do |spec|
   # HAL gems must be explicitly specified in build config (recommended) or via auto-selection below
   spec.build.gems.one? { |g| g.name =~ /^hal-.*-dir$/ } or begin
     # No HAL found - determine appropriate error message or auto-load
-    # MinGW provides POSIX compatibility, so use hal-posix-dir
     suggested_hal = if ENV['MRUBY_DIR_HAL']
       ENV['MRUBY_DIR_HAL']
     elsif spec.build.primary_toolchain == 'visualcpp'
       # Visual C++ on Windows - use native Windows HAL
       'hal-win-dir'
-    elsif RUBY_PLATFORM =~ /linux|darwin|bsd|mingw/ ||
-          (spec.build.kind_of?(MRuby::CrossBuild) && spec.build.host_target =~ /mingw/) ||
-          spec.cc.command.to_s =~ /mingw/
+    elsif RUBY_PLATFORM =~ /linux|darwin|bsd/
       'hal-posix-dir'
     elsif spec.for_windows?
       'hal-win-dir'
