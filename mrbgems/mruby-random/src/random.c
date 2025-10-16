@@ -82,7 +82,7 @@ rand_uint32(rand_state *rng)
   uint32_t rot = (uint32_t)(oldstate >> 59u);
 
   /* Rotate right by rot bits (handles rot=0 case correctly) */
-  return (xorshifted >> rot) | (xorshifted << ((-rot) & 31));
+  return (xorshifted >> rot) | (xorshifted << ((32 - rot) & 31));
 }
 
 #ifndef MRB_NO_FLOAT
