@@ -546,9 +546,9 @@ path_gethome(mrb_state *mrb, const char **pathp)
       mrb_raisef(mrb, E_ARGUMENT_ERROR, "non-absolute home of ~%s", uname);
     }
   }
-  home = mrb_utf8_from_locale(home, -1);
-  path = mrb_str_new_cstr(mrb, home);
-  mrb_utf8_free(home);
+  char *home_utf8 = mrb_utf8_from_locale(home, -1);
+  path = mrb_str_new_cstr(mrb, home_utf8);
+  mrb_utf8_free(home_utf8);
 
   SKIP_DIRSEP(*pathp);
   return RSTRING_CSTR(mrb, path);
@@ -848,8 +848,8 @@ mrb_file_s_symlink(mrb_state *mrb, mrb_value klass)
   mrb_value from, to;
 
   mrb_get_args(mrb, "SS", &from, &to);
-  const char *src = mrb_locale_from_utf8(RSTRING_CSTR(mrb, from), -1);
-  const char *dst = mrb_locale_from_utf8(RSTRING_CSTR(mrb, to), -1);
+  char *src = mrb_locale_from_utf8(RSTRING_CSTR(mrb, from), -1);
+  char *dst = mrb_locale_from_utf8(RSTRING_CSTR(mrb, to), -1);
   if (mrb_hal_io_symlink(mrb, src, dst) == -1) {
     mrb_locale_free(src);
     mrb_locale_free(dst);
