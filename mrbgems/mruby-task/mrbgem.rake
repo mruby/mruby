@@ -10,10 +10,15 @@ MRuby::Gem::Specification.new('mruby-task') do |spec|
   # HAL gems must be explicitly specified in build config (recommended) or via auto-selection below
   spec.build.gems.one? { |g| g.name =~ /^hal-.*-task$/ } or begin
     # No HAL found - determine appropriate error message or auto-load
-    suggested_hal = if spec.for_windows?
+    suggested_hal = if spec.build.primary_toolchain == 'visualcpp'
+      # Visual C++ on Windows - use native Windows HAL
       'hal-win-task'
-    elsif RUBY_PLATFORM =~ /linux|darwin|bsd/
+    elsif RUBY_PLATFORM =~ /linux|darwin|bsd|mingw/ ||
+          (spec.build.kind_of?(MRuby::CrossBuild) && spec.build.host_target =~ /mingw/) ||
+          spec.cc.command.to_s =~ /mingw/
       'hal-posix-task'
+    elsif spec.for_windows?
+      'hal-win-task'
     else
       nil
     end
