@@ -10,13 +10,10 @@ MRuby::Gem::Specification.new('mruby-io') do |spec|
   # HAL gems must be explicitly specified in build config (recommended) or via auto-selection below
   spec.build.gems.one? { |g| g.name =~ /^hal-.*-io$/ } or begin
     # No HAL found - determine appropriate error message or auto-load
-    # MinGW provides POSIX compatibility, so use hal-posix-io
     suggested_hal = if spec.build.primary_toolchain == 'visualcpp'
       # Visual C++ on Windows - use native Windows HAL
       'hal-win-io'
-    elsif RUBY_PLATFORM =~ /linux|darwin|bsd|mingw/ ||
-          (spec.build.kind_of?(MRuby::CrossBuild) && spec.build.host_target =~ /mingw/) ||
-          spec.cc.command.to_s =~ /mingw/
+    elsif RUBY_PLATFORM =~ /linux|darwin|bsd/
       'hal-posix-io'
     elsif spec.for_windows?
       'hal-win-io'
