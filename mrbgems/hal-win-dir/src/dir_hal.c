@@ -27,7 +27,7 @@
 struct mrb_dir_handle {
   intptr_t handle;          /* _findfirst/_findnext handle */
   struct _finddata_t info;  /* Current entry info */
-  char *pattern;            /* Search pattern (e.g., "dir/*") */
+  char *pattern;            /* Search pattern with wildcard */
   int first;                /* Flag: haven't read first entry yet */
 };
 
