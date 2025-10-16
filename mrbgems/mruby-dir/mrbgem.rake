@@ -7,14 +7,11 @@ MRuby::Gem::Specification.new('mruby-dir') do |spec|
   spec.build.gems.one? { |g| g.name =~ /^hal-.*-dir$/ } or begin
     # No HAL found - determine appropriate error message or auto-load
     # MinGW provides POSIX compatibility, so use hal-posix-dir
-    # Detect MinGW by checking host_target or compiler command
-    is_mingw = (spec.build.kind_of?(MRuby::CrossBuild) &&
-                spec.build.host_target =~ /mingw/) ||
-               spec.cc.command.to_s =~ /mingw/
-
     suggested_hal = if ENV['MRUBY_DIR_HAL']
       ENV['MRUBY_DIR_HAL']
-    elsif RUBY_PLATFORM =~ /linux|darwin|bsd/ || is_mingw
+    elsif RUBY_PLATFORM =~ /linux|darwin|bsd|mingw/ ||
+          (spec.build.kind_of?(MRuby::CrossBuild) && spec.build.host_target =~ /mingw/) ||
+          spec.cc.command.to_s =~ /mingw/
       'hal-posix-dir'
     elsif spec.for_windows?
       'hal-win-dir'
