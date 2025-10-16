@@ -483,7 +483,7 @@ mrb_task_run(mrb_state *mrb)
  */
 
 static void
-sleep_us_impl(mrb_state *mrb, mrb_int usec)
+sleep_us_impl(mrb_state *mrb, uint32_t usec)
 {
   mrb_task *t;
 
@@ -535,7 +535,7 @@ sleep_us_impl(mrb_state *mrb, mrb_int usec)
 }
 
 static void
-sleep_ms_impl(mrb_state *mrb, mrb_int ms)
+sleep_ms_impl(mrb_state *mrb, uint32_t ms)
 {
   sleep_us_impl(mrb, ms * 1000);
 }
@@ -567,7 +567,7 @@ mrb_f_sleep(mrb_state *mrb, mrb_value self)
   }
 
   mrb_int ms = (mrb_int)(sec * 1000);
-  sleep_ms_impl(mrb, ms);
+  sleep_ms_impl(mrb, (uint32_t)ms);
 
   return mrb_fixnum_value((mrb_int)sec);
 }
@@ -583,7 +583,7 @@ mrb_f_sleep_ms(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "time interval must be positive");
   }
 
-  sleep_ms_impl(mrb, ms);
+  sleep_ms_impl(mrb, (uint32_t)ms);
 
   return mrb_nil_value();
 }
@@ -599,7 +599,7 @@ mrb_f_usleep(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "time interval must be positive");
   }
 
-  sleep_us_impl(mrb, usec);
+  sleep_us_impl(mrb, (uint32_t)usec);
 
   return mrb_fixnum_value(usec);
 }
