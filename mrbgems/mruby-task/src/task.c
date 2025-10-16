@@ -770,6 +770,14 @@ mrb_task_s_pass(mrb_state *mrb, mrb_value self)
     task_run_one_iteration(mrb);
   }
   else {
+    /* Check for C function boundary - cannot yield from C function */
+    mrb_callinfo *ci;
+    for (ci = mrb->c->ci; ci >= mrb->c->cibase; ci--) {
+      if (ci->cci > 0) {
+        mrb_raise(mrb, E_RUNTIME_ERROR, "can't pass across C function boundary");
+      }
+    }
+
     /* In task context - trigger context switch */
     switching_ = TRUE;
   }
