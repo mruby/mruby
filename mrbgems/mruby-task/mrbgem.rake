@@ -13,9 +13,12 @@ MRuby::Gem::Specification.new('mruby-task') do |spec|
     suggested_hal = if spec.build.primary_toolchain == 'visualcpp'
       # Visual C++ on Windows - use native Windows HAL
       'hal-win-task'
-    elsif RUBY_PLATFORM =~ /linux|darwin|bsd|mingw/ ||
-          (spec.build.kind_of?(MRuby::CrossBuild) && spec.build.host_target =~ /mingw/) ||
-          spec.cc.command.to_s =~ /mingw/
+    elsif (spec.build.kind_of?(MRuby::CrossBuild) && spec.build.host_target =~ /mingw/) ||
+          spec.cc.command.to_s =~ /mingw/ ||
+          RUBY_PLATFORM =~ /mingw/
+      # MinGW provides POSIX I/O but NOT POSIX signals - use Windows HAL
+      'hal-win-task'
+    elsif RUBY_PLATFORM =~ /linux|darwin|bsd/
       'hal-posix-task'
     elsif spec.for_windows?
       'hal-win-task'
