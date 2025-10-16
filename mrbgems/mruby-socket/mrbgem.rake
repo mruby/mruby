@@ -16,9 +16,7 @@ MRuby::Gem::Specification.new('mruby-socket') do |spec|
     suggested_hal = if spec.build.primary_toolchain == 'visualcpp'
       # Visual C++ on Windows - use native Windows HAL
       'hal-win-socket'
-    elsif RUBY_PLATFORM =~ /linux|darwin|bsd|mingw/ ||
-          (spec.build.kind_of?(MRuby::CrossBuild) && spec.build.host_target =~ /mingw/) ||
-          spec.cc.command.to_s =~ /mingw/
+    elsif RUBY_PLATFORM =~ /linux|darwin|bsd/
       'hal-posix-socket'
     elsif spec.for_windows?
       'hal-win-socket'
