@@ -54,11 +54,13 @@ mrb_stat(mrb_state *mrb, mrb_value obj, mrb_io_stat *st)
   return mrb_stat0(mrb, obj, st, 0);
 }
 
+#if defined(S_ISLNK) || defined(_S_ISLNK) || defined(S_IFLNK) || defined(_S_IFLNK)
 static int
 mrb_lstat(mrb_state *mrb, mrb_value obj, mrb_io_stat *st)
 {
   return mrb_stat0(mrb, obj, st, 1);
 }
+#endif
 
 /*
  * call-seq:
