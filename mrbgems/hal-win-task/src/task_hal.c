@@ -129,7 +129,7 @@ mrb_hal_task_sleep_us(mrb_state *mrb, mrb_int usec)
 
   /* Windows Sleep() takes milliseconds, convert from microseconds */
   if (usec >= 0) {
-    Sleep(usec / 1000);
+    Sleep((DWORD)(usec / 1000));
   }
 }
 
