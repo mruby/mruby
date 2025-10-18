@@ -4386,74 +4386,80 @@ codegen_masgn(codegen_scope *s, node *varnode, node *rhs, int sp, int val)
   node *t = rhs ? rhs : masgn_n->rhs, *p;
   int rhs_reg = sp;
 
-  if (!val && t && get_node_type(t) == NODE_ARRAY && t->cdr && nosplat(t->cdr)) {
-    /* fixed rhs */
-    t = t->cdr;
-    while (t) {
-      codegen(s, t->car, VAL);
-      len++;
-      t = t->cdr;
-    }
-    if (masgn_n->pre) {                /* pre */
-      t = masgn_n->pre;
-      n = 0;
+  if (!val && t && get_node_type(t) == NODE_ARRAY) {
+    struct mrb_ast_array_node *an = array_node(t);
+    if (an->elements && nosplat(an->elements)) {
+      /* fixed rhs */
+      t = an->elements;
+      rhs_reg = cursp();  /* Save register where values will be pushed */
       while (t) {
-        if (n < len) {
-          gen_assignment(s, t->car, NULL, rhs_reg+n, NOVAL);
+        codegen(s, t->car, VAL);
+        len++;
+        t = t->cdr;
+      }
+      if (masgn_n->pre) {                /* pre */
+        t = masgn_n->pre;
+        n = 0;
+        while (t) {
+          if (n < len) {
+            gen_assignment(s, t->car, NULL, rhs_reg+n, NOVAL);
+            n++;
+          }
+          else {
+            genop_1(s, OP_LOADNIL, rhs_reg+n);
+            gen_assignment(s, t->car, NULL, rhs_reg+n, NOVAL);
+          }
+          t = t->cdr;
+        }
+      }
+      /* Count post variables */
+      if (masgn_n->post) {
+        p = masgn_n->post;
+        while (p) {
+          post++;
+          p = p->cdr;
+        }
+      }
+      /* Handle rest variable */
+      if (masgn_n->rest && (intptr_t)masgn_n->rest != -1) {
+            int rn;
+
+            if (len < post + n) {
+              rn = 0;
+            }
+            else {
+              rn = len - post - n;
+            }
+            if (cursp() == rhs_reg+n) {
+              genop_2(s, OP_ARRAY, cursp(), rn);
+            }
+            else {
+              genop_3(s, OP_ARRAY2, cursp(), rhs_reg+n, rn);
+            }
+            gen_assignment(s, masgn_n->rest, NULL, cursp(), NOVAL);
+            n += rn;
+      }
+      /* Handle post variables */
+      if (masgn_n->post) {
+        t = masgn_n->post;
+        while (t) {
+          if (n<len) {
+            gen_assignment(s, t->car, NULL, rhs_reg+n, NOVAL);
+          }
+          else {
+            genop_1(s, OP_LOADNIL, cursp());
+            gen_assignment(s, t->car, NULL, cursp(), NOVAL);
+          }
+          t = t->cdr;
           n++;
         }
-        else {
-          genop_1(s, OP_LOADNIL, rhs_reg+n);
-          gen_assignment(s, t->car, NULL, rhs_reg+n, NOVAL);
-        }
-        t = t->cdr;
       }
+      pop_n(len);
+      return;
     }
-    /* Count post variables */
-    if (masgn_n->post) {
-      p = masgn_n->post;
-      while (p) {
-        post++;
-        p = p->cdr;
-      }
-    }
-    /* Handle rest variable */
-    if (masgn_n->rest && (intptr_t)masgn_n->rest != -1) {
-          int rn;
-
-          if (len < post + n) {
-            rn = 0;
-          }
-          else {
-            rn = len - post - n;
-          }
-          if (cursp() == rhs_reg+n) {
-            genop_2(s, OP_ARRAY, cursp(), rn);
-          }
-          else {
-            genop_3(s, OP_ARRAY2, cursp(), rhs_reg+n, rn);
-          }
-          gen_assignment(s, masgn_n->rest, NULL, cursp(), NOVAL);
-          n += rn;
-    }
-    /* Handle post variables */
-    if (masgn_n->post) {
-      t = masgn_n->post;
-      while (t) {
-        if (n<len) {
-          gen_assignment(s, t->car, NULL, rhs_reg+n, NOVAL);
-        }
-        else {
-          genop_1(s, OP_LOADNIL, cursp());
-          gen_assignment(s, t->car, NULL, cursp(), NOVAL);
-        }
-        t = t->cdr;
-        n++;
-      }
-    }
-    pop_n(len);
   }
-  else {
+
+  {
     /* variable rhs - implement gen_massignment logic directly for variable-sized nodes */
 
     /* Check if this is parameter destructuring (called from lambda_body) */
