@@ -300,6 +300,28 @@ f_eval(mrb_state *mrb, mrb_value self)
   return exec_irep(mrb, self, proc);
 }
 
+static mrb_value
+object_eval(mrb_state *mrb, mrb_value self, mrb_bool class_eval)
+{
+  if (mrb_block_given_p(mrb)) {
+    mrb_get_args(mrb, "");
+    return class_eval ? mrb_mod_module_eval(mrb, self) : mrb_obj_instance_eval(mrb, self);
+  }
+
+  const char *s;
+  mrb_int len;
+  const char *file = NULL;
+  mrb_int line = 1;
+  mrb_get_args(mrb, "s|zi", &s, &len, &file, &line);
+
+  struct RClass *c = class_eval ? mrb_class_ptr(self) : mrb_singleton_class_ptr(mrb, self);
+  struct RProc *proc = create_proc_from_string(mrb, s, len, mrb_nil_value(), file, line);
+  MRB_PROC_SET_TARGET_CLASS(proc, c);
+  mrb_assert(!MRB_PROC_CFUNC_P(proc));
+  mrb_vm_ci_target_class_set(mrb->c->ci, c);
+  return exec_irep(mrb, self, proc);
+}
+
 /*
  * call-seq:
  *   obj.instance_eval(string, filename = nil, lineno = 1) -> obj
@@ -327,26 +349,7 @@ f_eval(mrb_state *mrb, mrb_value self)
 static mrb_value
 f_instance_eval(mrb_state *mrb, mrb_value self)
 {
-  if (!mrb_block_given_p(mrb)) {
-    const char *s;
-    mrb_int len;
-    const char *file = NULL;
-    mrb_int line = 1;
-    struct RClass *c;
-    struct RProc *proc;
-
-    mrb_get_args(mrb, "s|zi", &s, &len, &file, &line);
-    c = mrb_singleton_class_ptr(mrb, self);
-    proc = create_proc_from_string(mrb, s, len, mrb_nil_value(), file, line);
-    MRB_PROC_SET_TARGET_CLASS(proc, c);
-    mrb_assert(!MRB_PROC_CFUNC_P(proc));
-    mrb_vm_ci_target_class_set(mrb->c->ci, c);
-    return exec_irep(mrb, self, proc);
-  }
-  else {
-    mrb_get_args(mrb, "");
-    return mrb_obj_instance_eval(mrb, self);
-  }
+  return object_eval(mrb, self, FALSE);
 }
 
 /*
@@ -373,24 +376,7 @@ f_instance_eval(mrb_state *mrb, mrb_value self)
 static mrb_value
 f_class_eval(mrb_state *mrb, mrb_value self)
 {
-  if (!mrb_block_given_p(mrb)) {
-    const char *s;
-    mrb_int len;
-    const char *file = NULL;
-    mrb_int line = 1;
-    struct RProc *proc;
-
-    mrb_get_args(mrb, "s|zi", &s, &len, &file, &line);
-    proc = create_proc_from_string(mrb, s, len, mrb_nil_value(), file, line);
-    MRB_PROC_SET_TARGET_CLASS(proc, mrb_class_ptr(self));
-    mrb_assert(!MRB_PROC_CFUNC_P(proc));
-    mrb_vm_ci_target_class_set(mrb->c->ci, mrb_class_ptr(self));
-    return exec_irep(mrb, self, proc);
-  }
-  else {
-    mrb_get_args(mrb, "");
-    return mrb_mod_module_eval(mrb, self);
-  }
+  return object_eval(mrb, self, TRUE);
 }
 
 /*
