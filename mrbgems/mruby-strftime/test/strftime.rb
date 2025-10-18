@@ -129,7 +129,8 @@ end
 assert('Time#strftime with various time components') do
   t = Time.gm(2023, 6, 15, 14, 23, 7)
 
-  assert_equal '6', t.strftime('%-m')   if t.strftime('%-m') != ''  # Skip if platform doesn't support %-
+  # Use portable format specifiers that work on all platforms
+  assert_equal '06', t.strftime('%m')   # Month with leading zero (portable)
   assert_equal '15', t.strftime('%d')
   assert_equal '14', t.strftime('%H')
   assert_equal '23', t.strftime('%M')

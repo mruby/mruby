@@ -73,6 +73,18 @@ mrb_time_strftime(mrb_state *mrb, mrb_value self)
       memcpy(segment, fmt_ptr, (size_t)segment_len);
       segment[segment_len] = '\0';
 
+#ifdef _MSC_VER
+      /* Check for GNU extension %-flag which crashes on MSVC */
+      /* Scan for %- patterns in the format string */
+      for (const char *p = segment; *p != '\0'; p++) {
+        if (p[0] == '%' && p[1] == '-') {
+          mrb_free(mrb, segment);
+          mrb_raisef(mrb, E_ARGUMENT_ERROR,
+                     "strftime format flag '%-' not supported on this platform (use '%%#' on Windows)");
+        }
+      }
+#endif
+
       /* Allocate buffer for formatted output */
       buf_size = INITIAL_BUFFER_SIZE;
       buf = (char *)mrb_malloc(mrb, buf_size);
