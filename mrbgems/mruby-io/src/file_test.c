@@ -106,6 +106,10 @@ mrb_filetest_s_directory_p(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_filetest_s_pipe_p(mrb_state *mrb, mrb_value klass)
 {
+#ifdef _WIN32
+  /* Windows anonymous pipes are not Unix FIFOs */
+  mrb_raise(mrb, E_NOTIMP_ERROR, "pipe? is not supported on Windows");
+#else
 #ifdef S_IFIFO
 #  ifndef S_ISFIFO
 #    define S_ISFIFO(m) (((m) & S_IFMT) == S_IFIFO)
@@ -121,6 +125,7 @@ mrb_filetest_s_pipe_p(mrb_state *mrb, mrb_value klass)
 
 #endif
   return mrb_false_value();
+#endif
 }
 
 /*
