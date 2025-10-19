@@ -439,9 +439,10 @@ mrb_hal_io_spawn_process(mrb_state *mrb, const char *cmd,
   si.cb = sizeof(si);
   si.dwFlags = STARTF_USESTDHANDLES;
 
-  /* Convert file descriptors to handles */
+  /* Convert file descriptors to handles and make them inheritable */
   if (stdin_fd != -1) {
     h_stdin = (HANDLE)_get_osfhandle(stdin_fd);
+    SetHandleInformation(h_stdin, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT);
     si.hStdInput = h_stdin;
   }
   else {
@@ -450,6 +451,7 @@ mrb_hal_io_spawn_process(mrb_state *mrb, const char *cmd,
 
   if (stdout_fd != -1) {
     h_stdout = (HANDLE)_get_osfhandle(stdout_fd);
+    SetHandleInformation(h_stdout, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT);
     si.hStdOutput = h_stdout;
   }
   else {
@@ -458,6 +460,7 @@ mrb_hal_io_spawn_process(mrb_state *mrb, const char *cmd,
 
   if (stderr_fd != -1) {
     h_stderr = (HANDLE)_get_osfhandle(stderr_fd);
+    SetHandleInformation(h_stderr, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT);
     si.hStdError = h_stderr;
   }
   else {
