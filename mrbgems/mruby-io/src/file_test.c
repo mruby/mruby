@@ -9,6 +9,7 @@
 #include <mruby/ext/io.h>
 #include <mruby/error.h>
 #include <mruby/presym.h>
+#include <mruby/internal.h>
 #include "io_hal.h"
 
 #include <sys/types.h>
@@ -19,6 +20,23 @@
 #include <string.h>
 
 extern struct mrb_data_type mrb_io_type;
+
+/* Helper function to convert int64_t to mrb_value with overflow handling */
+static mrb_value
+mrb_int64_value(mrb_state *mrb, int64_t val)
+{
+  if (sizeof(val) >= sizeof(mrb_int) && val > MRB_INT_MAX) {
+#ifdef MRB_USE_BIGINT
+    return mrb_bint_new_int64(mrb, val);
+#elif !defined(MRB_NO_FLOAT)
+    return mrb_float_value(mrb, (mrb_float)val);
+#else
+    mrb_raise(mrb, E_RANGE_ERROR, "value too large for this platform");
+#endif
+  }
+
+  return mrb_int_value(mrb, (mrb_int)val);
+}
 
 static int
 mrb_stat0(mrb_state *mrb, mrb_value obj, mrb_io_stat *st, int do_lstat)
@@ -323,7 +341,7 @@ mrb_filetest_s_size(mrb_state *mrb, mrb_value klass)
   if (mrb_stat(mrb, obj, &st) < 0)
     mrb_sys_fail(mrb, "mrb_stat");
 
-  return mrb_int_value(mrb, st.st_size);
+  return mrb_int64_value(mrb, st.st_size);
 }
 
 /*
@@ -349,7 +367,7 @@ mrb_filetest_s_size_p(mrb_state *mrb, mrb_value klass)
   if (st.st_size == 0)
     return mrb_nil_value();
 
-  return mrb_int_value(mrb, st.st_size);
+  return mrb_int64_value(mrb, st.st_size);
 }
 
 void
