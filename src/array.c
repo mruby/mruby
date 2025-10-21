@@ -1956,8 +1956,11 @@ mrb_ary_cmp(mrb_state *mrb, mrb_value ary1)
   if (mrb_obj_equal(mrb, ary1, ary2)) return mrb_fixnum_value(0);
   if (!mrb_array_p(ary2)) return mrb_nil_value();
 
+  /* Hoist pointer retrieval outside loop to avoid repeated conditionals */
+  mrb_value *ptr1 = RARRAY_PTR(ary1);
+  mrb_value *ptr2 = RARRAY_PTR(ary2);
   for (mrb_int i=0; i<RARRAY_LEN(ary1) && i<RARRAY_LEN(ary2); i++) {
-    mrb_int n = mrb_cmp(mrb, RARRAY_PTR(ary1)[i], RARRAY_PTR(ary2)[i]);
+    mrb_int n = mrb_cmp(mrb, ptr1[i], ptr2[i]);
     if (n == -2) return mrb_nil_value();
     if (n != 0) return mrb_fixnum_value(n);
   }
