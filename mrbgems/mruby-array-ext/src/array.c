@@ -8,7 +8,7 @@
 #include <mruby/internal.h>
 #include <mruby/presym.h>
 #include <mruby/khash.h>
-#include <mruby/throw.h>
+#include <mruby/error.h>
 
 /* khash set for temporary array operations */
 static inline khint_t
@@ -443,6 +443,42 @@ ary_get_array_args(mrb_state *mrb, mrb_int argc, const mrb_value **argv_ptr)
   return total_len;
 }
 
+struct ary_subtract_ctx {
+  ary_set_t *set;
+  mrb_value self;
+  mrb_value result;
+  const mrb_value *argv;
+  mrb_int argc;
+};
+
+static mrb_value
+ary_subtract_body(mrb_state *mrb, mrb_value data)
+{
+  struct ary_subtract_ctx *ctx = (struct ary_subtract_ctx *)mrb_cptr(data);
+
+  for (mrb_int i = 0; i < ctx->argc; i++) {
+    ary_populate_temp_set(mrb, ctx->set, ctx->argv[i]);
+  }
+
+  for (mrb_int i = 0; i < RARRAY_LEN(ctx->self); i++) {
+    mrb_value p = RARRAY_PTR(ctx->self)[i];
+    khiter_t k = kh_get(ary_set, mrb, ctx->set, p);
+    if (kh_is_end(ctx->set, k)) {  /* key doesn't exist in any ary */
+      mrb_ary_push(mrb, ctx->result, p);
+    }
+  }
+
+  return ctx->result;
+}
+
+static mrb_value
+ary_subtract_ensure(mrb_state *mrb, mrb_value data)
+{
+  struct ary_subtract_ctx *ctx = (struct ary_subtract_ctx *)mrb_cptr(data);
+  ary_destroy_temp_set(mrb, ctx->set);
+  return mrb_nil_value();
+}
+
 static mrb_value
 ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value *argv)
 {
@@ -465,32 +501,9 @@ ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_va
     ary_set_t *set = &set_struct;
     ary_init_temp_set(mrb, set, total_len);
 
-    struct mrb_jmpbuf *prev_jmp = mrb->jmp;
-    struct mrb_jmpbuf c_jmp;
-
-    MRB_TRY(&c_jmp) {
-      mrb->jmp = &c_jmp;
-      for (mrb_int i = 0; i < argc; i++) {
-        ary_populate_temp_set(mrb, set, argv_copies[i]);
-      }
-
-      for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
-        mrb_value p = RARRAY_PTR(self)[i];
-        khiter_t k = kh_get(ary_set, mrb, set, p);
-        if (kh_is_end(set, k)) {  /* key doesn't exist in any ary */
-          mrb_ary_push(mrb, result, p);
-        }
-      }
-      mrb->jmp = prev_jmp;
-    }
-    MRB_CATCH(&c_jmp) {
-      mrb->jmp = prev_jmp;
-      ary_destroy_temp_set(mrb, set);
-      MRB_THROW(mrb->jmp);
-    }
-    MRB_END_EXC(&c_jmp);
-
-    ary_destroy_temp_set(mrb, set);
+    struct ary_subtract_ctx ctx = { set, self, result, argv_copies, argc };
+    mrb_ensure(mrb, ary_subtract_body, mrb_cptr_value(mrb, &ctx),
+                    ary_subtract_ensure, mrb_cptr_value(mrb, &ctx));
   }
   else {
     mrb_int self_len = RARRAY_LEN(self);
@@ -566,6 +579,53 @@ add_uniq(mrb_state *mrb, mrb_value item, mrb_value result)
   mrb_ary_push(mrb, result, item);
 }
 
+struct ary_union_ctx {
+  ary_set_t *set;
+  mrb_value self_copy;
+  mrb_value result;
+  const mrb_value *argv;
+  mrb_int argc;
+};
+
+static mrb_value
+ary_union_body(mrb_state *mrb, mrb_value data)
+{
+  struct ary_union_ctx *ctx = (struct ary_union_ctx *)mrb_cptr(data);
+
+  /* Add unique elements from self */
+  for (mrb_int i = 0; i < RARRAY_LEN(ctx->self_copy); i++) {
+    mrb_value elem = RARRAY_PTR(ctx->self_copy)[i];
+    khiter_t k = kh_get(ary_set, mrb, ctx->set, elem);
+    if (kh_is_end(ctx->set, k)) {
+      kh_put(ary_set, mrb, ctx->set, elem);
+      mrb_ary_push(mrb, ctx->result, elem);
+    }
+  }
+
+  /* Add unique elements from others */
+  for (mrb_int i = 0; i < ctx->argc; i++) {
+    mrb_value other = ctx->argv[i];
+    for (mrb_int j = 0; j < RARRAY_LEN(other); j++) {
+      mrb_value elem = RARRAY_PTR(other)[j];
+      khiter_t k = kh_get(ary_set, mrb, ctx->set, elem);
+      if (kh_is_end(ctx->set, k)) {
+        kh_put(ary_set, mrb, ctx->set, elem);
+        mrb_ary_push(mrb, ctx->result, elem);
+      }
+    }
+  }
+
+  return ctx->result;
+}
+
+static mrb_value
+ary_union_ensure(mrb_state *mrb, mrb_value data)
+{
+  struct ary_union_ctx *ctx = (struct ary_union_ctx *)mrb_cptr(data);
+  ary_destroy_temp_set(mrb, ctx->set);
+  return mrb_nil_value();
+}
+
 static mrb_value
 ary_union_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value *argv)
 {
@@ -585,43 +645,9 @@ ary_union_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value
     ary_set_t *set = &set_struct;
     ary_init_temp_set(mrb, set, total_len);
 
-    struct mrb_jmpbuf *prev_jmp = mrb->jmp;
-    struct mrb_jmpbuf c_jmp;
-
-    MRB_TRY(&c_jmp) {
-      mrb->jmp = &c_jmp;
-      /* Add unique elements from self */
-      for (mrb_int i = 0; i < RARRAY_LEN(self_copy); i++) {
-        mrb_value elem = RARRAY_PTR(self_copy)[i];
-        khiter_t k = kh_get(ary_set, mrb, set, elem);
-        if (kh_is_end(set, k)) {
-          kh_put(ary_set, mrb, set, elem);
-          mrb_ary_push(mrb, result, elem);
-        }
-      }
-
-      /* Add unique elements from others */
-      for (mrb_int i = 0; i < argc; i++) {
-        mrb_value other = argv_copies[i];
-        for (mrb_int j = 0; j < RARRAY_LEN(other); j++) {
-          mrb_value elem = RARRAY_PTR(other)[j];
-          khiter_t k = kh_get(ary_set, mrb, set, elem);
-          if (kh_is_end(set, k)) {
-            kh_put(ary_set, mrb, set, elem);
-            mrb_ary_push(mrb, result, elem);
-          }
-        }
-      }
-      mrb->jmp = prev_jmp;
-    }
-    MRB_CATCH(&c_jmp) {
-      mrb->jmp = prev_jmp;
-      ary_destroy_temp_set(mrb, set);
-      MRB_THROW(mrb->jmp);
-    }
-    MRB_END_EXC(&c_jmp);
-
-    ary_destroy_temp_set(mrb, set);
+    struct ary_union_ctx ctx = { set, self_copy, result, argv_copies, argc };
+    mrb_ensure(mrb, ary_union_body, mrb_cptr_value(mrb, &ctx),
+                    ary_union_ensure, mrb_cptr_value(mrb, &ctx));
   }
   else {
     /* Use linear search for small arrays */
@@ -682,6 +708,43 @@ ary_union_multi(mrb_state *mrb, mrb_value self)
   return ary_union_internal(mrb, self, argc, argv);
 }
 
+struct ary_intersection_ctx {
+  ary_set_t *set;
+  mrb_value self;
+  mrb_value result;
+  const mrb_value *argv;
+  mrb_int argc;
+};
+
+static mrb_value
+ary_intersection_body(mrb_state *mrb, mrb_value data)
+{
+  struct ary_intersection_ctx *ctx = (struct ary_intersection_ctx *)mrb_cptr(data);
+
+  for (mrb_int i = 0; i < ctx->argc; i++) {
+    ary_populate_temp_set(mrb, ctx->set, ctx->argv[i]);
+  }
+
+  for (mrb_int i = 0; i < RARRAY_LEN(ctx->self); i++) {
+    mrb_value p = RARRAY_PTR(ctx->self)[i];
+    khiter_t k = kh_get(ary_set, mrb, ctx->set, p);
+    if (!kh_is_end(ctx->set, k)) {
+      mrb_ary_push(mrb, ctx->result, p);
+      kh_del(ary_set, mrb, ctx->set, k);
+    }
+  }
+
+  return ctx->result;
+}
+
+static mrb_value
+ary_intersection_ensure(mrb_state *mrb, mrb_value data)
+{
+  struct ary_intersection_ctx *ctx = (struct ary_intersection_ctx *)mrb_cptr(data);
+  ary_destroy_temp_set(mrb, ctx->set);
+  return mrb_nil_value();
+}
+
 static mrb_value
 ary_intersection_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value *argv)
 {
@@ -704,33 +767,9 @@ ary_intersection_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mr
     ary_set_t *set = &set_struct;
     ary_init_temp_set(mrb, set, total_len);
 
-    struct mrb_jmpbuf *prev_jmp = mrb->jmp;
-    struct mrb_jmpbuf c_jmp;
-
-    MRB_TRY(&c_jmp) {
-      mrb->jmp = &c_jmp;
-      for (mrb_int i = 0; i < argc; i++) {
-        ary_populate_temp_set(mrb, set, argv_copies[i]);
-      }
-
-      for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
-        mrb_value p = RARRAY_PTR(self)[i];
-        khiter_t k = kh_get(ary_set, mrb, set, p);
-        if (!kh_is_end(set, k)) {
-          mrb_ary_push(mrb, result, p);
-          kh_del(ary_set, mrb, set, k);
-        }
-      }
-      mrb->jmp = prev_jmp;
-    }
-    MRB_CATCH(&c_jmp) {
-      mrb->jmp = prev_jmp;
-      ary_destroy_temp_set(mrb, set);
-      MRB_THROW(mrb->jmp);
-    }
-    MRB_END_EXC(&c_jmp);
-
-    ary_destroy_temp_set(mrb, set);
+    struct ary_intersection_ctx ctx = { set, self, result, argv_copies, argc };
+    mrb_ensure(mrb, ary_intersection_body, mrb_cptr_value(mrb, &ctx),
+                    ary_intersection_ensure, mrb_cptr_value(mrb, &ctx));
   }
   else {
     mrb_int self_len = RARRAY_LEN(self);
@@ -822,6 +861,39 @@ ary_intersection_multi(mrb_state *mrb, mrb_value self)
  *     a.intersect?(c)   #=> false
  */
 
+struct ary_intersect_p_ctx {
+  ary_set_t *set;
+  mrb_value shorter_ary_copy;
+  mrb_value longer_ary;
+  mrb_bool *found;
+};
+
+static mrb_value
+ary_intersect_p_body(mrb_state *mrb, mrb_value data)
+{
+  struct ary_intersect_p_ctx *ctx = (struct ary_intersect_p_ctx *)mrb_cptr(data);
+
+  ary_populate_temp_set(mrb, ctx->set, ctx->shorter_ary_copy);
+
+  for (mrb_int i = 0; i < RARRAY_LEN(ctx->longer_ary); i++) {
+    khiter_t k = kh_get(ary_set, mrb, ctx->set, RARRAY_PTR(ctx->longer_ary)[i]);
+    if (!kh_is_end(ctx->set, k)) {
+      *ctx->found = TRUE;
+      break;
+    }
+  }
+
+  return mrb_nil_value();
+}
+
+static mrb_value
+ary_intersect_p_ensure(mrb_state *mrb, mrb_value data)
+{
+  struct ary_intersect_p_ctx *ctx = (struct ary_intersect_p_ctx *)mrb_cptr(data);
+  ary_destroy_temp_set(mrb, ctx->set);
+  return mrb_nil_value();
+}
+
 static mrb_value
 ary_intersect_p(mrb_state *mrb, mrb_value self)
 {
@@ -849,31 +921,12 @@ ary_intersect_p(mrb_state *mrb, mrb_value self)
     ary_set_t *set = &set_struct;
     ary_init_temp_set(mrb, set, RARRAY_LEN(shorter_ary_copy));
 
-    struct mrb_jmpbuf *prev_jmp = mrb->jmp;
-    struct mrb_jmpbuf c_jmp;
     mrb_bool found = FALSE;
 
-    MRB_TRY(&c_jmp) {
-      mrb->jmp = &c_jmp;
-      ary_populate_temp_set(mrb, set, shorter_ary_copy);
+    struct ary_intersect_p_ctx ctx = { set, shorter_ary_copy, longer_ary, &found };
+    mrb_ensure(mrb, ary_intersect_p_body, mrb_cptr_value(mrb, &ctx),
+                    ary_intersect_p_ensure, mrb_cptr_value(mrb, &ctx));
 
-      for (mrb_int i = 0; i < RARRAY_LEN(longer_ary); i++) {
-        khiter_t k = kh_get(ary_set, mrb, set, RARRAY_PTR(longer_ary)[i]);
-        if (!kh_is_end(set, k)) {
-          found = TRUE;
-          break;
-        }
-      }
-      mrb->jmp = prev_jmp;
-    }
-    MRB_CATCH(&c_jmp) {
-      mrb->jmp = prev_jmp;
-      ary_destroy_temp_set(mrb, set);
-      MRB_THROW(mrb->jmp);
-    }
-    MRB_END_EXC(&c_jmp);
-
-    ary_destroy_temp_set(mrb, set);
     if (found) {
       return mrb_true_value();
     }
@@ -1027,6 +1080,44 @@ ary_fill_exec(mrb_state *mrb, mrb_value self)
  *  Internal helper for Array#uniq! without blocks.
  *  Modifies array in-place, returns nil if no changes.
  */
+struct ary_uniq_bang_ctx {
+  ary_set_t *set;
+  mrb_value self_copy;
+  mrb_value self;
+  mrb_int *write_pos;
+  mrb_int len;
+};
+
+static mrb_value
+ary_uniq_bang_body(mrb_state *mrb, mrb_value data)
+{
+  struct ary_uniq_bang_ctx *ctx = (struct ary_uniq_bang_ctx *)mrb_cptr(data);
+
+  ary_populate_temp_set(mrb, ctx->set, ctx->self_copy);
+
+  for (mrb_int read_pos = 0; read_pos < ctx->len; read_pos++) {
+    mrb_value elem = RARRAY_PTR(ctx->self)[read_pos];
+    khiter_t k = kh_get(ary_set, mrb, ctx->set, elem);
+    if (!kh_is_end(ctx->set, k)) {
+      if (*ctx->write_pos != read_pos) {
+        RARRAY_PTR(ctx->self)[*ctx->write_pos] = elem;
+      }
+      (*ctx->write_pos)++;
+      kh_del(ary_set, mrb, ctx->set, k);
+    }
+  }
+
+  return mrb_nil_value();
+}
+
+static mrb_value
+ary_uniq_bang_ensure(mrb_state *mrb, mrb_value data)
+{
+  struct ary_uniq_bang_ctx *ctx = (struct ary_uniq_bang_ctx *)mrb_cptr(data);
+  ary_destroy_temp_set(mrb, ctx->set);
+  return mrb_nil_value();
+}
+
 static mrb_value
 ary_uniq_bang(mrb_state *mrb, mrb_value self)
 {
@@ -1047,34 +1138,9 @@ ary_uniq_bang(mrb_state *mrb, mrb_value self)
     ary_set_t *set = &set_struct;
     ary_init_temp_set(mrb, set, len);
 
-    struct mrb_jmpbuf *prev_jmp = mrb->jmp;
-    struct mrb_jmpbuf c_jmp;
-
-    MRB_TRY(&c_jmp) {
-      mrb->jmp = &c_jmp;
-      ary_populate_temp_set(mrb, set, self_copy);
-
-      for (mrb_int read_pos = 0; read_pos < len; read_pos++) {
-        mrb_value elem = RARRAY_PTR(self)[read_pos];
-        khiter_t k = kh_get(ary_set, mrb, set, elem);
-        if (!kh_is_end(set, k)) {
-          if (write_pos != read_pos) {
-            RARRAY_PTR(self)[write_pos] = elem;
-          }
-          write_pos++;
-          kh_del(ary_set, mrb, set, k);
-        }
-      }
-      mrb->jmp = prev_jmp;
-    }
-    MRB_CATCH(&c_jmp) {
-      mrb->jmp = prev_jmp;
-      ary_destroy_temp_set(mrb, set);
-      MRB_THROW(mrb->jmp);
-    }
-    MRB_END_EXC(&c_jmp);
-
-    ary_destroy_temp_set(mrb, set);
+    struct ary_uniq_bang_ctx ctx = { set, self_copy, self, &write_pos, len };
+    mrb_ensure(mrb, ary_uniq_bang_body, mrb_cptr_value(mrb, &ctx),
+                    ary_uniq_bang_ensure, mrb_cptr_value(mrb, &ctx));
   }
   else {
     for (mrb_int read_pos = 0; read_pos < len; read_pos++) {
