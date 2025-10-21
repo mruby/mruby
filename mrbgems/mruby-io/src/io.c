@@ -1337,8 +1337,10 @@ io_s_select(mrb_state *mrb, mrb_value klass)
     rset = mrb_hal_io_fdset_alloc(mrb);
     rp = rset;
     mrb_hal_io_fdset_zero(mrb, rp);
+    /* Hoist pointer retrieval outside loop */
+    mrb_value *read_ptr = RARRAY_PTR(read);
     for (int i = 0; i < RARRAY_LEN(read); i++) {
-      read_io = RARRAY_PTR(read)[i];
+      read_io = read_ptr[i];
       fptr = io_get_open_fptr(mrb, read_io);
       mrb_hal_io_fdset_set(mrb, fptr->fd, rp);
       if (mrb_io_read_data_pending(mrb, fptr)) {
@@ -1361,8 +1363,10 @@ io_s_select(mrb_state *mrb, mrb_value klass)
     wset = mrb_hal_io_fdset_alloc(mrb);
     wp = wset;
     mrb_hal_io_fdset_zero(mrb, wp);
+    /* Hoist pointer retrieval outside loop */
+    mrb_value *write_ptr = RARRAY_PTR(write);
     for (int i = 0; i < RARRAY_LEN(write); i++) {
-      fptr = io_get_open_fptr(mrb, RARRAY_PTR(write)[i]);
+      fptr = io_get_open_fptr(mrb, write_ptr[i]);
       mrb_hal_io_fdset_set(mrb, fptr->fd, wp);
       if (max < fptr->fd)
         max = fptr->fd;
@@ -1381,8 +1385,10 @@ io_s_select(mrb_state *mrb, mrb_value klass)
     eset = mrb_hal_io_fdset_alloc(mrb);
     ep = eset;
     mrb_hal_io_fdset_zero(mrb, ep);
+    /* Hoist pointer retrieval outside loop */
+    mrb_value *except_ptr = RARRAY_PTR(except);
     for (int i = 0; i < RARRAY_LEN(except); i++) {
-      fptr = io_get_open_fptr(mrb, RARRAY_PTR(except)[i]);
+      fptr = io_get_open_fptr(mrb, except_ptr[i]);
       mrb_hal_io_fdset_set(mrb, fptr->fd, ep);
       if (max < fptr->fd)
         max = fptr->fd;
@@ -1428,37 +1434,46 @@ retry:
   if (interrupt_flag == 0) {
     if (rp) {
       list = RARRAY_PTR(result)[0];
+      /* Hoist pointer retrieval outside loop */
+      mrb_value *read_ptr = RARRAY_PTR(read);
       for (int i = 0; i < RARRAY_LEN(read); i++) {
-        fptr = io_get_open_fptr(mrb, RARRAY_PTR(read)[i]);
+        mrb_value io = read_ptr[i];
+        fptr = io_get_open_fptr(mrb, io);
         if (mrb_hal_io_fdset_isset(mrb, fptr->fd, rp) ||
             mrb_hal_io_fdset_isset(mrb, fptr->fd, pset)) {
-          mrb_ary_push(mrb, list, RARRAY_PTR(read)[i]);
+          mrb_ary_push(mrb, list, io);
         }
       }
     }
 
     if (wp) {
       list = RARRAY_PTR(result)[1];
+      /* Hoist pointer retrieval outside loop */
+      mrb_value *write_ptr = RARRAY_PTR(write);
       for (int i = 0; i < RARRAY_LEN(write); i++) {
-        fptr = io_get_open_fptr(mrb, RARRAY_PTR(write)[i]);
+        mrb_value io = write_ptr[i];
+        fptr = io_get_open_fptr(mrb, io);
         if (mrb_hal_io_fdset_isset(mrb, fptr->fd, wp)) {
-          mrb_ary_push(mrb, list, RARRAY_PTR(write)[i]);
+          mrb_ary_push(mrb, list, io);
         }
         else if (fptr->fd2 >= 0 && mrb_hal_io_fdset_isset(mrb, fptr->fd2, wp)) {
-          mrb_ary_push(mrb, list, RARRAY_PTR(write)[i]);
+          mrb_ary_push(mrb, list, io);
         }
       }
     }
 
     if (ep) {
       list = RARRAY_PTR(result)[2];
+      /* Hoist pointer retrieval outside loop */
+      mrb_value *except_ptr = RARRAY_PTR(except);
       for (int i = 0; i < RARRAY_LEN(except); i++) {
-        fptr = io_get_open_fptr(mrb, RARRAY_PTR(except)[i]);
+        mrb_value io = except_ptr[i];
+        fptr = io_get_open_fptr(mrb, io);
         if (mrb_hal_io_fdset_isset(mrb, fptr->fd, ep)) {
-          mrb_ary_push(mrb, list, RARRAY_PTR(except)[i]);
+          mrb_ary_push(mrb, list, io);
         }
         else if (fptr->fd2 >= 0 && mrb_hal_io_fdset_isset(mrb, fptr->fd2, ep)) {
-          mrb_ary_push(mrb, list, RARRAY_PTR(except)[i]);
+          mrb_ary_push(mrb, list, io);
         }
       }
     }
