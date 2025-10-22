@@ -413,6 +413,9 @@ mrb_str_format(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value fm
     nextvalue = mrb_undef_value();
 
 retry:
+    if (p >= end) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "malformed format string - unexpected end");
+    }
     {
       fmt_spec_t spec = get_format_info(*p);
 
