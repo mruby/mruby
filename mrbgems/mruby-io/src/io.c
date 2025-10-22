@@ -1688,7 +1688,10 @@ io_unget_data(mrb_state *mrb, struct mrb_io *fptr, const char *ptr, mrb_int len)
   if (len > SHRT_MAX) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string too long to ungetc");
   }
-  if (len > MRB_IO_BUF_SIZE - buf->len) {
+  if (buf->len + len > SHRT_MAX) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "total ungetc buffer exceeds maximum size");
+  }
+  if (buf->len + len > MRB_IO_BUF_SIZE) {
     fptr->buf = (struct mrb_io_buf*)mrb_realloc(mrb, buf, sizeof(struct mrb_io_buf)+buf->len+len-MRB_IO_BUF_SIZE);
     buf = fptr->buf;
   }
