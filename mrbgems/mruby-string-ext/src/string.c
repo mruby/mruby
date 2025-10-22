@@ -521,14 +521,17 @@ str_tr(mrb_state *mrb, mrb_value str, mrb_value p1, mrb_value p2, mrb_bool squee
   char *s = RSTRING_PTR(str);
   mrb_int len = RSTRING_LEN(str);
 
+  /* Hoist pointer retrieval outside loop to avoid repeated conditionals */
+  const char *p1_ptr = RSTRING_PTR(p1);
+  const char *p2_ptr = RSTRING_PTR(p2);
   mrb_int i, j;
   for (i=j=0; i<len; i++,j++) {
-    mrb_int n = tr_find_character(&pat, RSTRING_PTR(p1), s[i]);
+    mrb_int n = tr_find_character(&pat, p1_ptr, s[i]);
 
     if (i>j) s[j] = s[i];
     if (n >= 0) {
       flag_changed = TRUE;
-      mrb_int c = tr_get_character(&rep, RSTRING_PTR(p2), n);
+      mrb_int c = tr_get_character(&rep, p2_ptr, n);
 
       if (c < 0 || (squeeze && c == lastch)) {
         j--;
