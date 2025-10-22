@@ -158,6 +158,9 @@ static mrb_value
 set_init(mrb_state *mrb, mrb_value self)
 {
   kset_t *set = set_get_kset(mrb, self);
+  if (!kset_is_uninitialized(set)) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "already initialized set");
+  }
   kset_init_data(mrb, set, KSET_INITIAL_SIZE);
   return self;
 }
@@ -183,6 +186,10 @@ set_init_copy(mrb_state *mrb, mrb_value self)
   set_ensure_initialized(mrb, orig_set);
 
   kset_t *self_set = set_get_kset(mrb, self);
+  /* Free existing data if already initialized (for replace semantics) */
+  if (!kset_is_uninitialized(self_set)) {
+    kset_destroy_data(mrb, self_set);
+  }
   kset_init_data(mrb, self_set, kset_size(orig_set));
   kh_replace(set_val, mrb, self_set, orig_set);
 
