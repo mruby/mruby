@@ -1971,6 +1971,9 @@ io_gets(mrb_state *mrb, mrb_value io)
 
   mrb_value outbuf;
   if (limit_given) {
+    if (limit < 0) {
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative length %i given", limit);
+    }
     if (limit == 0) return mrb_str_new(mrb, NULL, 0);
     outbuf = mrb_str_new_capa(mrb, limit);
   }
