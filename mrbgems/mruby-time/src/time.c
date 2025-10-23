@@ -902,8 +902,7 @@ time_minus(mrb_state *mrb, mrb_value self)
       + (mrb_float)(tm->nsec - tm2->nsec) / 1.0e9;
     return mrb_float_value(mrb, f);
 #else
-    mrb_int f;
-    f = tm->sec - tm2->sec;
+    mrb_int f = tm->sec - tm2->sec;
     if (tm->nsec < tm2->nsec) f--;
     return mrb_int_value(mrb, f);
 #endif
