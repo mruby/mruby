@@ -707,8 +707,7 @@ retry:
         }
 
         {
-          size_t size;
-          size = strlen(s);
+          size_t size = strlen(s);
           /* PARANOID: assert(size <= MRB_INT_MAX) */
           len = (int)size;
         }
@@ -763,8 +762,7 @@ retry:
         }
 
         if (prefix) {
-          size_t size;
-          size = strlen(prefix);
+          size_t size = strlen(prefix);
           /* PARANOID: assert(size <= MRB_INT_MAX).
            *  this check is absolutely paranoid. */
           width -= (int)size;
