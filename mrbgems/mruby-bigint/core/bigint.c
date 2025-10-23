@@ -2773,11 +2773,13 @@ bint_set(mpz_ctx_t *ctx, struct RBigint *b, mpz_t *x)
       mpz_set(ctx, &b->as.heap, x);
       mpz_clear(ctx, x);
     }
-    else
+    else {
 #endif
-    {
       mpz_move(ctx, &b->as.heap, x);
     }
+#if MRB_BIGINT_POOL_SIZE > 0
+  }
+#endif
 }
 
 static struct RBigint*
