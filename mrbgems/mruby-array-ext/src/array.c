@@ -956,6 +956,13 @@ ary_fill_exec(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "iio", &start, &length, &obj);
 
+  if (start < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative start index");
+  }
+  if (length < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative length");
+  }
+
   struct RArray *ary = mrb_ary_ptr(self);
   mrb_int ary_len = ARY_LEN(ary);
 
