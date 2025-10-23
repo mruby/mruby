@@ -864,9 +864,7 @@ ary_fill_parse_arg(mrb_state *mrb, mrb_value self)
 {
   mrb_value arg0 = mrb_nil_value(), arg1 = mrb_nil_value(), arg2 = mrb_nil_value();
   mrb_value block = mrb_nil_value();
-  mrb_int argc;
-
-  argc = mrb_get_args(mrb, "|ooo&", &arg0, &arg1, &arg2, &block);
+  mrb_int argc = mrb_get_args(mrb, "|ooo&", &arg0, &arg1, &arg2, &block);
 
   struct RArray *ary = mrb_ary_ptr(self);
   mrb_int ary_len = ARY_LEN(ary);
