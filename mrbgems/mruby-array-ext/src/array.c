@@ -79,10 +79,8 @@ ary_assoc(mrb_state *mrb, mrb_value ary)
   mrb_value v;
   mrb_value k = mrb_get_arg1(mrb);
 
-  /* Hoist pointer retrieval outside loop */
-  mrb_value *ptr = RARRAY_PTR(ary);
   for (i = 0; i < RARRAY_LEN(ary); i++) {
-    v = mrb_check_array_type(mrb, ptr[i]);
+    v = mrb_check_array_type(mrb, RARRAY_PTR(ary)[i]);
     if (!mrb_nil_p(v) && RARRAY_LEN(v) > 0 &&
         mrb_equal(mrb, RARRAY_PTR(v)[0], k))
       return v;
@@ -111,10 +109,8 @@ ary_rassoc(mrb_state *mrb, mrb_value ary)
   mrb_value v;
   mrb_value value = mrb_get_arg1(mrb);
 
-  /* Hoist pointer retrieval outside loop */
-  mrb_value *ptr = RARRAY_PTR(ary);
   for (i = 0; i < RARRAY_LEN(ary); i++) {
-    v = ptr[i];
+    v = RARRAY_PTR(ary)[i];
     if (mrb_array_p(v) &&
         RARRAY_LEN(v) > 1 &&
         mrb_equal(mrb, RARRAY_PTR(v)[1], value))
@@ -484,17 +480,13 @@ ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_va
   }
   else {
     mrb_int self_len = RARRAY_LEN(self);
-    /* Hoist pointer retrieval outside outer loop */
-    mrb_value *self_ptr = RARRAY_PTR(self);
     for (mrb_int i = 0; i < self_len; i++) {
-      mrb_value p = self_ptr[i];
+      mrb_value p = RARRAY_PTR(self)[i];
       mrb_bool found = FALSE;
       for (mrb_int j = 0; j < argc; j++) {
         mrb_int len = RARRAY_LEN(argv[j]);
-        /* Hoist pointer retrieval outside inner loop */
-        mrb_value *argv_ptr = RARRAY_PTR(argv[j]);
         for (mrb_int k = 0; k < len; k++) {
-          if (mrb_equal(mrb, p, argv_ptr[k])) {
+          if (mrb_equal(mrb, p, RARRAY_PTR(argv[j])[k])) {
             found = TRUE;
             break;
           }
@@ -607,20 +599,16 @@ ary_union_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value
     /* Use linear search for small arrays */
     /* Add unique elements from self */
     mrb_int alen = RARRAY_LEN(self);
-    /* Hoist pointer retrieval outside loop */
-    mrb_value *self_ptr = RARRAY_PTR(self);
     for (mrb_int i = 0; i < alen; i++) {
-      add_uniq(mrb, self_ptr[i], result);
+      add_uniq(mrb, RARRAY_PTR(self)[i], result);
     }
 
     /* Add unique elements from others */
     for (mrb_int i = 0; i < argc; i++) {
       mrb_value other = argv[i];
       mrb_int olen = RARRAY_LEN(other);
-      /* Hoist pointer retrieval outside inner loop */
-      mrb_value *other_ptr = RARRAY_PTR(other);
       for (mrb_int j = 0; j < olen; j++) {
-        add_uniq(mrb, other_ptr[j], result);
+        add_uniq(mrb, RARRAY_PTR(other)[j], result);
       }
     }
   }
@@ -702,19 +690,15 @@ ary_intersection_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mr
   }
   else {
     mrb_int self_len = RARRAY_LEN(self);
-    /* Hoist pointer retrieval outside outer loop */
-    mrb_value *self_ptr = RARRAY_PTR(self);
     for (mrb_int i = 0; i < self_len; i++) {
-      mrb_value p = self_ptr[i];
+      mrb_value p = RARRAY_PTR(self)[i];
       mrb_bool found_in_all = TRUE;
 
       for (mrb_int j = 0; j < argc; j++) {
         mrb_bool found_in_current_other = FALSE;
         mrb_int len = RARRAY_LEN(argv[j]);
-        /* Hoist pointer retrieval outside inner loop */
-        mrb_value *argv_ptr = RARRAY_PTR(argv[j]);
         for (mrb_int k = 0; k < len; k++) {
-          if (mrb_equal(mrb, p, argv_ptr[k])) {
+          if (mrb_equal(mrb, p, RARRAY_PTR(argv[j])[k])) {
             found_in_current_other = TRUE;
             break;
           }
@@ -728,10 +712,8 @@ ary_intersection_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mr
       if (found_in_all) {
         mrb_bool already_added = FALSE;
         mrb_int result_len = RARRAY_LEN(result);
-        /* Hoist pointer retrieval outside loop */
-        mrb_value *result_ptr = RARRAY_PTR(result);
         for (mrb_int j = 0; j < result_len; j++) {
-          if (mrb_equal(mrb, p, result_ptr[j])) {
+          if (mrb_equal(mrb, p, RARRAY_PTR(result)[j])) {
             already_added = TRUE;
             break;
           }
@@ -837,13 +819,10 @@ ary_intersect_p(mrb_state *mrb, mrb_value self)
   }
   else {
     mrb_int longer_len = RARRAY_LEN(longer_ary);
-    mrb_int shorter_len = RARRAY_LEN(shorter_ary);
-    /* Hoist pointer retrieval outside loops to avoid O(n×m) conditionals */
-    mrb_value *longer_ptr = RARRAY_PTR(longer_ary);
-    mrb_value *shorter_ptr = RARRAY_PTR(shorter_ary);
     for (mrb_int i = 0; i < longer_len; i++) {
+      mrb_int shorter_len = RARRAY_LEN(shorter_ary);
       for (mrb_int j = 0; j < shorter_len; j++) {
-        if (mrb_equal(mrb, longer_ptr[i], shorter_ptr[j])) {
+        if (mrb_equal(mrb, RARRAY_PTR(longer_ary)[i], RARRAY_PTR(shorter_ary)[j])) {
           return mrb_true_value();
         }
       }
@@ -1024,20 +1003,18 @@ ary_uniq_bang(mrb_state *mrb, mrb_value self)
     ary_destroy_temp_set(mrb, set);
   }
   else {
-    /* Hoist pointer retrieval outside loop to avoid O(n²) conditionals */
-    mrb_value *ptr = RARRAY_PTR(self);
     for (mrb_int read_pos = 0; read_pos < len; read_pos++) {
-      mrb_value elem = ptr[read_pos];
+      mrb_value elem = RARRAY_PTR(self)[read_pos];
       mrb_bool found = FALSE;
       for (mrb_int j = 0; j < write_pos; j++) {
-        if (mrb_equal(mrb, elem, ptr[j])) {
+        if (mrb_equal(mrb, elem, RARRAY_PTR(self)[j])) {
           found = TRUE;
           break;
         }
       }
       if (!found) {
         if (write_pos != read_pos) {
-          ptr[write_pos] = elem;
+          RARRAY_PTR(self)[write_pos] = elem;
         }
         write_pos++;
       }
