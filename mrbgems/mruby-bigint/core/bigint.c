@@ -2767,8 +2767,19 @@ bint_set(mpz_ctx_t *ctx, struct RBigint *b, mpz_t *x)
   }
   else {
     RBIGINT_SET_HEAP(b);
-    mpz_move(ctx, &b->as.heap, x);
+#if MRB_BIGINT_POOL_SIZE > 0
+    if (MPZ_HAS_POOL(ctx) && is_pool_memory(x, MPZ_POOL(ctx))) {
+      /* mpz_move() cannot be used because x is in the pool. */
+      mpz_set(ctx, &b->as.heap, x);
+      mpz_clear(ctx, x);
+    }
+    else {
+#endif
+      mpz_move(ctx, &b->as.heap, x);
+    }
+#if MRB_BIGINT_POOL_SIZE > 0
   }
+#endif
 }
 
 static struct RBigint*
