@@ -2117,6 +2117,7 @@ static void
 mpz_mod_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
 {
   if (e <= 0) {
+    mpz_clear(ctx, z);
     mpz_init(ctx, z);
     zero(z);
     return;
@@ -2128,6 +2129,7 @@ mpz_mod_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
 
   if (eint >= sz) {
     /* x < 2^e, so x mod 2^e = x */
+    mpz_clear(ctx, z);
     mpz_init_heap(ctx, z, x->sz);
     mpz_set(ctx, z, x);
     return;
@@ -2135,6 +2137,7 @@ mpz_mod_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
 
   /* Need to mask off high bits */
   size_t result_sz = eint + (bs > 0 ? 1 : 0);
+  mpz_clear(ctx, z);
   mpz_init_heap(ctx, z, result_sz);
   mpz_realloc(ctx, z, result_sz);
   z->sn = x->sn;
@@ -2675,6 +2678,9 @@ mpz_barrett_reduce(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *m, mpz_t *mu)
     return;
   }
 
+  /* Save pool state for proper cleanup of temporary allocations */
+  size_t pool_state = pool_save(ctx);
+
   mpz_t q1, q2, q3, r1, r2;
   /* Conservative size estimates for Barrett reduction temporaries */
   size_t q_size = x->sz + mu->sz + 1;  /* For multiplication results */
@@ -2726,11 +2732,15 @@ mpz_barrett_reduce(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *m, mpz_t *mu)
     mpz_sub(ctx, r, r, m);
   }
 
+  /* Cleanup temporaries */
   mpz_clear(ctx, &q1);
   mpz_clear(ctx, &q2);
   mpz_clear(ctx, &q3);
   mpz_clear(ctx, &r1);
   mpz_clear(ctx, &r2);
+
+  /* Restore pool state to free any temporary pool allocations */
+  pool_restore(ctx, pool_state);
 }
 
 static void
