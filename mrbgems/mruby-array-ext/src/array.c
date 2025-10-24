@@ -465,11 +465,8 @@ ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_va
       ary_populate_temp_set(mrb, set, argv[i]);
     }
 
-    mrb_int self_len = RARRAY_LEN(self);
-    /* Hoist pointer retrieval outside loop */
-    mrb_value *self_ptr = RARRAY_PTR(self);
-    for (mrb_int i = 0; i < self_len; i++) {
-      mrb_value p = self_ptr[i];
+    for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
+      mrb_value p = RARRAY_PTR(self)[i];
       khiter_t k = kh_get(ary_set, mrb, set, p);
       if (k == kh_end(set)) {  /* key doesn't exist in any ary */
         mrb_ary_push(mrb, result, p);
@@ -565,11 +562,8 @@ ary_union_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value
     ary_init_temp_set(mrb, set, total_len);
 
     /* Add unique elements from self */
-    mrb_int alen = RARRAY_LEN(self);
-    /* Hoist pointer retrieval outside loop */
-    mrb_value *self_ptr = RARRAY_PTR(self);
-    for (mrb_int i = 0; i < alen; i++) {
-      mrb_value elem = self_ptr[i];
+    for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
+      mrb_value elem = RARRAY_PTR(self)[i];
       khiter_t k = kh_get(ary_set, mrb, set, elem);
       if (k == kh_end(set)) {
         kh_put(ary_set, mrb, set, elem);
@@ -580,11 +574,8 @@ ary_union_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value
     /* Add unique elements from others */
     for (mrb_int i = 0; i < argc; i++) {
       mrb_value other = argv[i];
-      mrb_int olen = RARRAY_LEN(other);
-      /* Hoist pointer retrieval outside inner loop */
-      mrb_value *other_ptr = RARRAY_PTR(other);
-      for (mrb_int j = 0; j < olen; j++) {
-        mrb_value elem = other_ptr[j];
+      for (mrb_int j = 0; j < RARRAY_LEN(other); j++) {
+        mrb_value elem = RARRAY_PTR(other)[j];
         khiter_t k = kh_get(ary_set, mrb, set, elem);
         if (k == kh_end(set)) {
           kh_put(ary_set, mrb, set, elem);
@@ -674,11 +665,8 @@ ary_intersection_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mr
       ary_populate_temp_set(mrb, set, argv[i]);
     }
 
-    mrb_int self_len = RARRAY_LEN(self);
-    /* Hoist pointer retrieval outside loop */
-    mrb_value *self_ptr = RARRAY_PTR(self);
-    for (mrb_int i = 0; i < self_len; i++) {
-      mrb_value p = self_ptr[i];
+    for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
+      mrb_value p = RARRAY_PTR(self)[i];
       khiter_t k = kh_get(ary_set, mrb, set, p);
       if (k != kh_end(set)) {
         mrb_ary_push(mrb, result, p);
@@ -986,14 +974,12 @@ ary_uniq_bang(mrb_state *mrb, mrb_value self)
     ary_init_temp_set(mrb, set, len);
     ary_populate_temp_set(mrb, set, self);
 
-    /* Hoist pointer retrieval outside loop to avoid repeated conditionals */
-    mrb_value *ptr = RARRAY_PTR(self);
     for (mrb_int read_pos = 0; read_pos < len; read_pos++) {
-      mrb_value elem = ptr[read_pos];
+      mrb_value elem = RARRAY_PTR(self)[read_pos];
       khiter_t k = kh_get(ary_set, mrb, set, elem);
       if (k != kh_end(set)) {
         if (write_pos != read_pos) {
-          ptr[write_pos] = elem;
+          RARRAY_PTR(self)[write_pos] = elem;
         }
         write_pos++;
         kh_del(ary_set, mrb, set, k);
