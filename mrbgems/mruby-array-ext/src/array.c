@@ -794,8 +794,7 @@ ary_intersect_p(mrb_state *mrb, mrb_value self)
     ary_init_temp_set(mrb, set, RARRAY_LEN(shorter_ary));
     ary_populate_temp_set(mrb, set, shorter_ary);
 
-    mrb_int longer_len = RARRAY_LEN(longer_ary);
-    for (mrb_int i = 0; i < longer_len; i++) {
+    for (mrb_int i = 0; i < RARRAY_LEN(longer_ary); i++) {
       khiter_t k = kh_get(ary_set, mrb, set, RARRAY_PTR(longer_ary)[i]);
       if (k != kh_end(set)) {
         ary_destroy_temp_set(mrb, set);
@@ -806,10 +805,8 @@ ary_intersect_p(mrb_state *mrb, mrb_value self)
     ary_destroy_temp_set(mrb, set);
   }
   else {
-    mrb_int longer_len = RARRAY_LEN(longer_ary);
-    for (mrb_int i = 0; i < longer_len; i++) {
-      mrb_int shorter_len = RARRAY_LEN(shorter_ary);
-      for (mrb_int j = 0; j < shorter_len; j++) {
+    for (mrb_int i = 0; i < RARRAY_LEN(longer_ary); i++) {
+      for (mrb_int j = 0; j < RARRAY_LEN(shorter_ary); j++) {
         if (mrb_equal(mrb, RARRAY_PTR(longer_ary)[i], RARRAY_PTR(shorter_ary)[j])) {
           return mrb_true_value();
         }
