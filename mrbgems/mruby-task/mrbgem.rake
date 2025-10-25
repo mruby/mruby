@@ -18,10 +18,10 @@ MRuby::Gem::Specification.new('mruby-task') do |spec|
           RUBY_PLATFORM =~ /mingw/
       # MinGW provides POSIX I/O but NOT POSIX signals - use Windows HAL
       'hal-win-task'
-    elsif RUBY_PLATFORM =~ /linux|darwin|bsd/
-      'hal-posix-task'
     elsif spec.for_windows?
       'hal-win-task'
+    elsif RUBY_PLATFORM =~ /linux|darwin|bsd/
+      'hal-posix-task'
     else
       nil
     end

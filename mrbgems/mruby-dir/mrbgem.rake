@@ -11,10 +11,10 @@ MRuby::Gem::Specification.new('mruby-dir') do |spec|
     elsif spec.build.primary_toolchain == 'visualcpp'
       # Visual C++ on Windows - use native Windows HAL
       'hal-win-dir'
-    elsif RUBY_PLATFORM =~ /linux|darwin|bsd/
-      'hal-posix-dir'
     elsif spec.for_windows?
       'hal-win-dir'
+    elsif RUBY_PLATFORM =~ /linux|darwin|bsd/
+      'hal-posix-dir'
     else
       nil
     end
