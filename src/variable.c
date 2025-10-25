@@ -538,10 +538,9 @@ mrb_iv_defined(mrb_state *mrb, mrb_value obj, mrb_sym sym)
 MRB_API mrb_bool
 mrb_iv_name_sym_p(mrb_state *mrb, mrb_sym iv_name)
 {
-  const char *s;
   mrb_int len;
+  const char *s = mrb_sym_name_len(mrb, iv_name, &len);
 
-  s = mrb_sym_name_len(mrb, iv_name, &len);
   if (len < 2) return FALSE;
   if (s[0] != '@') return FALSE;
   if (ISDIGIT(s[1])) return FALSE;
@@ -626,12 +625,10 @@ mrb_iv_remove(mrb_state *mrb, mrb_value obj, mrb_sym sym)
 static int
 iv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 {
-  mrb_value ary;
-  const char* s;
+  mrb_value ary = *(mrb_value*)p;
   mrb_int len;
+  const char* s = mrb_sym_name_len(mrb, sym, &len);
 
-  ary = *(mrb_value*)p;
-  s = mrb_sym_name_len(mrb, sym, &len);
   if (len > 1 && s[0] == '@' && s[1] != '@') {
     mrb_ary_push(mrb, ary, mrb_symbol_value(sym));
   }
@@ -670,12 +667,10 @@ mrb_obj_instance_variables(mrb_state *mrb, mrb_value self)
 static int
 cv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 {
-  mrb_value ary;
-  const char* s;
+  mrb_value ary = *(mrb_value*)p;
   mrb_int len;
+  const char* s = mrb_sym_name_len(mrb, sym, &len);
 
-  ary = *(mrb_value*)p;
-  s = mrb_sym_name_len(mrb, sym, &len);
   if (len > 2 && s[0] == '@' && s[1] == '@') {
     mrb_ary_push(mrb, ary, mrb_symbol_value(sym));
   }
@@ -1155,12 +1150,10 @@ mrb_define_global_const(mrb_state *mrb, const char *name, mrb_value val)
 static int
 const_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 {
-  mrb_value ary;
-  const char* s;
+  mrb_value ary = *(mrb_value*)p;
   mrb_int len;
+  const char* s = mrb_sym_name_len(mrb, sym, &len);
 
-  ary = *(mrb_value*)p;
-  s = mrb_sym_name_len(mrb, sym, &len);
   if (len >= 1 && ISUPPER(s[0])) {
     mrb_int i, alen = RARRAY_LEN(ary);
 
@@ -1443,23 +1436,20 @@ detect_outer_loop(mrb_state *mrb, struct RClass *c)
 mrb_value
 mrb_class_find_path(mrb_state *mrb, struct RClass *c)
 {
-  struct RClass *outer;
-  mrb_value path;
-  mrb_sym name;
-  const char *str;
-  mrb_int len;
-
   if (detect_outer_loop(mrb, c)) return mrb_nil_value();
-  outer = outer_class(mrb, c);
+  struct RClass *outer = outer_class(mrb, c);
   if (outer == NULL) return mrb_nil_value();
-  name = find_class_sym(mrb, outer, c);
+
+  mrb_sym name = find_class_sym(mrb, outer, c);
   if (name == 0) return mrb_nil_value();
-  path = mrb_str_new_capa(mrb, 40);
-  str = mrb_class_name(mrb, outer);
-  mrb_str_cat_cstr(mrb, path, str);
+
+  mrb_value path = mrb_str_new_capa(mrb, 40);
+  const char *cname = mrb_class_name(mrb, outer);
+  mrb_str_cat_cstr(mrb, path, cname);
   mrb_str_cat_cstr(mrb, path, "::");
 
-  str = mrb_sym_name_len(mrb, name, &len);
+  mrb_int len;
+  const char *str = mrb_sym_name_len(mrb, name, &len);
   mrb_str_cat(mrb, path, str, len);
   if (RSTRING_PTR(path)[0] != '#') {
     iv_del(mrb, c->iv, MRB_SYM(__outer__), NULL);
