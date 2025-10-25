@@ -20,12 +20,9 @@
 static void
 r_check(mrb_state *mrb, mrb_value a, mrb_value b)
 {
-  enum mrb_vtype ta;
-  enum mrb_vtype tb;
-  mrb_int n;
+  enum mrb_vtype ta = mrb_type(a);
+  enum mrb_vtype tb = mrb_type(b);
 
-  ta = mrb_type(a);
-  tb = mrb_type(b);
 #ifdef MRB_NO_FLOAT
   if (ta == MRB_TT_INTEGER && tb == MRB_TT_INTEGER ) return;
 #else
@@ -37,7 +34,7 @@ r_check(mrb_state *mrb, mrb_value a, mrb_value b)
 
   if (mrb_nil_p(a) || mrb_nil_p(b)) return;
 
-  n = mrb_cmp(mrb, a, b);
+  mrb_int n = mrb_cmp(mrb, a, b);
   if (n == -2) {                /* can not be compared */
     mrb_raise(mrb, E_ARGUMENT_ERROR, "bad value for range");
   }
