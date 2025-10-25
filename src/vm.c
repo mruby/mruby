@@ -1520,7 +1520,6 @@ prepare_tagged_break(mrb_state *mrb, uint32_t tag, const mrb_callinfo *return_ci
 #define INIT_DISPATCH for (;;) { insn = BYTECODE_DECODER(*ci->pc); CODE_FETCH_HOOK(mrb, irep, ci->pc, regs); switch (insn) {
 #define CASE(insn,ops) case insn: { const mrb_code *pc = ci->pc+1; FETCH_ ## ops (); ci->pc = pc; } L_ ## insn ## _BODY:
 #define NEXT goto L_END_DISPATCH
-#define JUMP NEXT
 #ifdef MRB_USE_TASK_SCHEDULER
 #define END_DISPATCH L_END_DISPATCH: \
   if (mrb->task.switching || mrb->c->status == MRB_TASK_STOPPED) \
@@ -1532,7 +1531,7 @@ prepare_tagged_break(mrb_state *mrb, uint32_t tag, const mrb_callinfo *return_ci
 
 #else
 
-#define INIT_DISPATCH JUMP; return mrb_nil_value();
+#define INIT_DISPATCH NEXT; return mrb_nil_value();
 #define CASE(insn,ops) L_ ## insn: { const mrb_code *pc = ci->pc+1; FETCH_ ## ops (); ci->pc = pc; } L_ ## insn ## _BODY:
 #ifdef MRB_USE_TASK_SCHEDULER
 #define NEXT if (mrb->task.switching || mrb->c->status == MRB_TASK_STOPPED) return mrb_nil_value(); \
@@ -1540,7 +1539,6 @@ prepare_tagged_break(mrb_state *mrb, uint32_t tag, const mrb_callinfo *return_ci
 #else
 #define NEXT insn=BYTECODE_DECODER(*ci->pc); CODE_FETCH_HOOK(mrb, irep, ci->pc, regs); goto *optable[insn]
 #endif
-#define JUMP NEXT
 
 #ifdef MRB_USE_TASK_SCHEDULER
 #define END_DISPATCH \
@@ -1989,26 +1987,23 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_JMP, S) {
       ci->pc += (int16_t)a;
-      JUMP;
+      NEXT;
     }
     CASE(OP_JMPIF, BS) {
       if (mrb_test(regs[a])) {
         ci->pc += (int16_t)b;
-        JUMP;
       }
       NEXT;
     }
     CASE(OP_JMPNOT, BS) {
       if (!mrb_test(regs[a])) {
         ci->pc += (int16_t)b;
-        JUMP;
       }
       NEXT;
     }
     CASE(OP_JMPNIL, BS) {
       if (mrb_nil_p(regs[a])) {
         ci->pc += (int16_t)b;
-        JUMP;
       }
       NEXT;
     }
@@ -2035,7 +2030,7 @@ RETRY_TRY_BLOCK:
 
       mrb->exc = NULL; /* clear break object */
       ci->pc = irep->iseq + a;
-      JUMP;
+      NEXT;
     }
 
     CASE(OP_EXCEPT, B) {
@@ -2238,7 +2233,7 @@ RETRY_TRY_BLOCK:
           irep = p->body.irep;
           stack_extend(mrb, (irep->nregs < 4) ? 4 : irep->nregs);
           ci->pc = irep->iseq;
-          JUMP;
+          NEXT;
         }
         else {
           if (MRB_PROC_NOARG_P(p) && (ci->n > 0 || ci->nk > 0)) {
@@ -2272,7 +2267,7 @@ RETRY_TRY_BLOCK:
       ci->stack[0] = recv;
       /* pop stackpos */
       ci = cipop(mrb);
-      JUMP;
+      NEXT;
     }
 
     CASE(OP_CALL, Z) {
@@ -2319,7 +2314,7 @@ RETRY_TRY_BLOCK:
         }
         ci->pc = irep->iseq;
       }
-      JUMP;
+      NEXT;
     }
 
     CASE(OP_SUPER, BB) {
@@ -2554,7 +2549,7 @@ RETRY_TRY_BLOCK:
       if (irep->nlocals-blk_pos-1 > 0) {
         stack_clear(&regs[blk_pos+1], irep->nlocals-blk_pos-1);
       }
-      JUMP;
+      NEXT;
     }
 
     CASE(OP_KARG, BB) {
@@ -2712,7 +2707,7 @@ RETRY_TRY_BLOCK:
 
       ci[1].stack[0] = v;
       mrb_gc_arena_restore(mrb, ai);
-      JUMP;
+      NEXT;
     }
 
     CASE(OP_BLKPUSH, BS) {
@@ -3261,7 +3256,7 @@ RETRY_TRY_BLOCK:
       stack_extend(mrb, irep->nregs);
       stack_clear(regs+1, irep->nregs-1);
       ci->pc = irep->iseq;
-      JUMP;
+      NEXT;
     }
 
     CASE(OP_DEF, BB) {
