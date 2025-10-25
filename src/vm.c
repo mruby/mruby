@@ -3046,14 +3046,12 @@ RETRY_TRY_BLOCK:
       mrb_value v = regs[a];
       int pre  = b;
       int post = c;
-      struct RArray *ary;
-      int len, idx;
 
       if (!mrb_array_p(v)) {
         v = ary_new_from_regs(mrb, 1, a);
       }
-      ary = mrb_ary_ptr(v);
-      len = (int)ARY_LEN(ary);
+      struct RArray *ary = mrb_ary_ptr(v);
+      int len = (int)ARY_LEN(ary);
       if (len > pre + post) {
         v = mrb_ary_new_from_values(mrb, len - pre - post, ARY_PTR(ary)+pre);
         regs[a++] = v;
@@ -3064,6 +3062,8 @@ RETRY_TRY_BLOCK:
       else {
         v = mrb_ary_new_capa(mrb, 0);
         regs[a++] = v;
+
+        int idx;
         for (idx=0; idx+pre<len; idx++) {
           regs[a+idx] = ARY_PTR(ary)[pre+idx];
         }
