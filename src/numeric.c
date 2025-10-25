@@ -947,7 +947,6 @@ flo_round(mrb_state *mrb, mrb_value num)
 {
   double number, f;
   mrb_int ndigits = 0;
-  mrb_int i;
 
   mrb_get_args(mrb, "|i", &ndigits);
   number = mrb_float(num);
@@ -959,7 +958,8 @@ flo_round(mrb_state *mrb, mrb_value num)
 
   f = 1.0;
   if (ndigits < -DBL_DIG-2) return mrb_fixnum_value(0);
-  i = ndigits >= 0 ? ndigits : -ndigits;
+
+  mrb_int i = ndigits >= 0 ? ndigits : -ndigits;
   if (ndigits > DBL_DIG+2) return num;
   while  (--i >= 0)
     f = f*10.0;
@@ -1087,9 +1087,8 @@ flo_abs(mrb_state *mrb, mrb_value num)
 mrb_value
 mrb_int_mul(mrb_state *mrb, mrb_value x, mrb_value y)
 {
-  mrb_int a;
+  mrb_int a = mrb_integer(x);
 
-  a = mrb_integer(x);
   if (mrb_integer_p(y)) {
     mrb_int b, c;
 
@@ -1818,9 +1817,8 @@ mrb_float_to_integer(mrb_state *mrb, mrb_value x)
 mrb_value
 mrb_int_add(mrb_state *mrb, mrb_value x, mrb_value y)
 {
-  mrb_int a;
+  mrb_int a = mrb_integer(x);
 
-  a = mrb_integer(x);
   if (mrb_integer_p(y)) {
     mrb_int b, c;
 
@@ -1900,9 +1898,8 @@ int_add(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_int_sub(mrb_state *mrb, mrb_value x, mrb_value y)
 {
-  mrb_int a;
+  mrb_int a = mrb_integer(x);
 
-  a = mrb_integer(x);
   if (mrb_integer_p(y)) {
     mrb_int b, c;
 
@@ -2169,9 +2166,8 @@ static mrb_value
 num_cmp(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
-  mrb_int n;
+  mrb_int n = cmpnum(mrb, self, other);
 
-  n = cmpnum(mrb, self, other);
   if (n == -2) return mrb_nil_value();
   return mrb_fixnum_value(n);
 }
@@ -2186,9 +2182,8 @@ static mrb_value
 num_lt(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
-  mrb_int n;
+  mrb_int n = cmpnum(mrb, self, other);
 
-  n = cmpnum(mrb, self, other);
   if (n == -2) cmperr(mrb, self, other);
   if (n < 0) return mrb_true_value();
   return mrb_false_value();
@@ -2198,9 +2193,8 @@ static mrb_value
 num_le(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
-  mrb_int n;
+  mrb_int n = cmpnum(mrb, self, other);
 
-  n = cmpnum(mrb, self, other);
   if (n == -2) cmperr(mrb, self, other);
   if (n <= 0) return mrb_true_value();
   return mrb_false_value();
@@ -2210,9 +2204,8 @@ static mrb_value
 num_gt(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
-  mrb_int n;
+  mrb_int n = cmpnum(mrb, self, other);
 
-  n = cmpnum(mrb, self, other);
   if (n == -2) cmperr(mrb, self, other);
   if (n > 0) return mrb_true_value();
   return mrb_false_value();
@@ -2222,9 +2215,8 @@ static mrb_value
 num_ge(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
-  mrb_int n;
+  mrb_int n = cmpnum(mrb, self, other);
 
-  n = cmpnum(mrb, self, other);
   if (n == -2) cmperr(mrb, self, other);
   if (n >= 0) return mrb_true_value();
   return mrb_false_value();
