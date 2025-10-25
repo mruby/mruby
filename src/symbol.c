@@ -846,15 +846,12 @@ id:
 static mrb_value
 sym_inspect(mrb_state *mrb, mrb_value sym)
 {
-  mrb_value str;
-  const char *name;
-  mrb_int len;
   mrb_sym id = mrb_symbol(sym);
-  char *sp;
+  mrb_int len;
+  const char *name = mrb_sym_name_len(mrb, id, &len);
+  mrb_value str = mrb_str_new(mrb, NULL, len+1);
+  char *sp = RSTRING_PTR(str);
 
-  name = mrb_sym_name_len(mrb, id, &len);
-  str = mrb_str_new(mrb, NULL, len+1);
-  sp = RSTRING_PTR(str);
   sp[0] = ':';
   memcpy(sp+1, name, len);
   mrb_assert_int_fit(mrb_int, len, size_t, SIZE_MAX);
