@@ -65,9 +65,6 @@ inspect_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
     }
   }
 
-  const char *s;
-  mrb_int len;
-  mrb_value ins;
   char *sp = RSTRING_PTR(a->str);
 
   /* need not to show internal data */
@@ -78,10 +75,13 @@ inspect_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
   else {
     mrb_str_cat_lit(mrb, a->str, ", ");
   }
-  s = mrb_sym_name_len(mrb, sym, &len);
+
+  mrb_int len;
+  const char *s = mrb_sym_name_len(mrb, sym, &len);
   mrb_str_cat(mrb, a->str, s, len);
   mrb_str_cat_lit(mrb, a->str, "=");
-  ins = mrb_inspect(mrb, v);
+
+  mrb_value ins = mrb_inspect(mrb, v);
   mrb_str_cat_str(mrb, a->str, ins);
   return 0;
 }
@@ -172,9 +172,7 @@ mrb_obj_method_recursive_p(mrb_state *mrb, mrb_value obj)
 {
   mrb_sym mid;
   mrb_value arg2 = mrb_nil_value();
-  mrb_int argc;
-
-  argc = mrb_get_args(mrb, "n|o", &mid, &arg2);
+  mrb_int argc = mrb_get_args(mrb, "n|o", &mid, &arg2);
 
   /* Use frame-skipping version for Ruby method calls */
   for (mrb_callinfo *ci=&mrb->c->ci[-2]; ci>=mrb->c->cibase; ci--) {
@@ -489,9 +487,8 @@ mrb_value
 mrb_f_raise(mrb_state *mrb, mrb_value self)
 {
   mrb_value exc, mesg;
-  mrb_int argc;
+  mrb_int argc = mrb_get_args(mrb, "|oo", &exc, &mesg);
 
-  argc = mrb_get_args(mrb, "|oo", &exc, &mesg);
   mrb->c->ci->mid = 0;
   switch (argc) {
   case 0:
