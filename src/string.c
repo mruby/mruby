@@ -1005,12 +1005,11 @@ mrb_str_modify(mrb_state *mrb, struct RString *s)
 MRB_API mrb_value
 mrb_str_resize(mrb_state *mrb, mrb_value str, mrb_int len)
 {
-  mrb_int slen;
   struct RString *s = mrb_str_ptr(str);
 
   str_check_length(mrb, len);
   mrb_str_modify(mrb, s);
-  slen = RSTR_LEN(s);
+  mrb_int slen = RSTR_LEN(s);
   if (len != slen) {
     if (slen < len || slen - len > 256) {
       resize_capa(mrb, s, len);
@@ -1704,16 +1703,11 @@ static mrb_value
 mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
 {
   mrb_value rs;
-  mrb_int newline;
-  char *p, *pp;
-  mrb_int rslen;
-  mrb_int len;
-  mrb_int argc;
+  mrb_int argc = mrb_get_args(mrb, "|S", &rs);
   struct RString *s = mrb_str_ptr(str);
 
-  argc = mrb_get_args(mrb, "|S", &rs);
   mrb_str_modify_keep_ascii(mrb, s);
-  len = RSTR_LEN(s);
+  mrb_int len = RSTR_LEN(s);
   if (argc == 0) {
     if (len == 0) return mrb_nil_value();
   smart_chomp:
@@ -1735,8 +1729,8 @@ mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
   }
 
   if (len == 0 || mrb_nil_p(rs)) return mrb_nil_value();
-  p = RSTR_PTR(s);
-  rslen = RSTRING_LEN(rs);
+  char *p = RSTR_PTR(s);
+  mrb_int rslen = RSTRING_LEN(rs);
   if (rslen == 0) {
     while (len>0 && p[len-1] == '\n') {
       len--;
@@ -1751,13 +1745,13 @@ mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
     return mrb_nil_value();
   }
   if (rslen > len) return mrb_nil_value();
-  newline = RSTRING_PTR(rs)[rslen-1];
+  mrb_int newline = RSTRING_PTR(rs)[rslen-1];
   if (rslen == 1 && newline == '\n')
     newline = RSTRING_PTR(rs)[rslen-1];
   if (rslen == 1 && newline == '\n')
     goto smart_chomp;
 
-  pp = p + len - rslen;
+  char *pp = p + len - rslen;
   if (p[len-1] == newline &&
      (rslen <= 1 ||
      memcmp(RSTRING_PTR(rs), pp, rslen) == 0)) {
@@ -2353,9 +2347,9 @@ mrb_str_reverse(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_byterindex_m(mrb_state *mrb, mrb_value str)
 {
+  mrb_int len = RSTRING_LEN(str);
   mrb_value sub;
   mrb_int pos;
-  mrb_int len = RSTRING_LEN(str);
 
   if (mrb_get_args(mrb, "S|i", &sub, &pos) == 1) {
     pos = len;
@@ -2465,18 +2459,14 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_split_m(mrb_state *mrb, mrb_value str)
 {
-  mrb_int argc;
   mrb_value spat = mrb_nil_value();
   enum {awk, string} split_type = string;
   mrb_int i = 0;
-  mrb_int beg;
-  mrb_int end;
   mrb_int lim = 0;
-  mrb_bool lim_p;
-  mrb_value result, tmp;
+  mrb_value tmp;
 
-  argc = mrb_get_args(mrb, "|oi", &spat, &lim);
-  lim_p = (lim > 0 && argc == 2);
+  mrb_int argc = mrb_get_args(mrb, "|oi", &spat, &lim);
+  mrb_bool lim_p = (lim > 0 && argc == 2);
   if (argc == 2) {
     if (lim == 1) {
       if (RSTRING_LEN(str) == 0)
@@ -2496,16 +2486,16 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
     split_type = awk;
   }
 
-  result = mrb_ary_new(mrb);
-  beg = 0;
+  mrb_value result = mrb_ary_new(mrb);
+  mrb_int beg = 0;
   if (split_type == awk) {
     mrb_bool skip = TRUE;
-    mrb_int idx = 0;
     mrb_int str_len = RSTRING_LEN(str);
-    unsigned int c;
+    mrb_int idx = beg;
+    mrb_int end = beg;
     int ai = mrb_gc_arena_save(mrb);
+    unsigned int c;
 
-    idx = end = beg;
     while (idx < str_len) {
       c = (unsigned char)RSTRING_PTR(str)[idx++];
       if (skip) {
@@ -2537,6 +2527,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
     int ai = mrb_gc_arena_save(mrb);
 
     while (idx < str_len) {
+      mrb_int end;
       if (pat_len > 0) {
         end = mrb_memsearch(RSTRING_PTR(spat), pat_len, RSTRING_PTR(str)+idx, str_len - idx);
         if (end < 0) break;
@@ -2827,12 +2818,9 @@ mrb_string_cstr(mrb_state *mrb, mrb_value str)
 MRB_API mrb_value
 mrb_str_to_integer(mrb_state *mrb, mrb_value str, mrb_int base, mrb_bool badcheck)
 {
-  const char *s;
-  mrb_int len;
-
   mrb_ensure_string_type(mrb, str);
-  s = RSTRING_PTR(str);
-  len = RSTRING_LEN(str);
+  const char *s = RSTRING_PTR(str);
+  mrb_int len = RSTRING_LEN(str);
   return mrb_str_len_to_integer(mrb, s, len, base, badcheck);
 }
 
@@ -3092,8 +3080,6 @@ MRB_API mrb_value
 mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
 {
   struct RString *s = mrb_str_ptr(str);
-  mrb_int capa;
-  mrb_int total;
   ptrdiff_t off = -1;
 
   if (len == 0) return str;
@@ -3102,7 +3088,8 @@ mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
       off = ptr - RSTR_PTR(s);
   }
 
-  capa = RSTR_CAPA(s);
+  mrb_int capa = RSTR_CAPA(s);
+  mrb_int total;
   if (mrb_int_add_overflow(RSTR_LEN(s), len, &total)) {
   size_error:
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
@@ -3253,11 +3240,10 @@ static mrb_value
 mrb_str_setbyte(mrb_state *mrb, mrb_value str)
 {
   mrb_int pos, byte;
-  mrb_int len;
 
   mrb_get_args(mrb, "ii", &pos, &byte);
 
-  len = RSTRING_LEN(str);
+  mrb_int len = RSTRING_LEN(str);
   if (pos < -len || len <= pos)
     mrb_raisef(mrb, E_INDEX_ERROR, "index %i out of string", pos);
   if (pos < 0)
