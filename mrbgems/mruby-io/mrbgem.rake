@@ -13,10 +13,10 @@ MRuby::Gem::Specification.new('mruby-io') do |spec|
     suggested_hal = if spec.build.primary_toolchain == 'visualcpp'
       # Visual C++ on Windows - use native Windows HAL
       'hal-win-io'
-    elsif RUBY_PLATFORM =~ /linux|darwin|bsd/
-      'hal-posix-io'
     elsif spec.for_windows?
       'hal-win-io'
+    elsif RUBY_PLATFORM =~ /linux|darwin|bsd/
+      'hal-posix-io'
     else
       nil
     end
