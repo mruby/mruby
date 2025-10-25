@@ -288,14 +288,12 @@ write_pool_block(mrb_state *mrb, const mrb_irep *irep, uint8_t *buf)
 static size_t
 get_syms_block_size(mrb_state *mrb, const mrb_irep *irep)
 {
-  size_t size = 0;
-  int sym_no;
-  mrb_int len;
+  size_t size = sizeof(uint16_t); /* slen */
 
-  size += sizeof(uint16_t); /* slen */
-  for (sym_no = 0; sym_no < irep->slen; sym_no++) {
+  for (int sym_no = 0; sym_no < irep->slen; sym_no++) {
     size += sizeof(uint16_t); /* snl(n) */
     if (irep->syms[sym_no] != 0) {
+      mrb_int len;
       mrb_sym_name_len(mrb, irep->syms[sym_no], &len);
       size += len + 1; /* sn(n) + null char */
     }
@@ -506,10 +504,7 @@ get_filename_table_size(mrb_state *mrb, const mrb_irep *irep, mrb_sym **fp, uint
 
   mrb_assert(lp);
   for (int i = 0; i < di->flen; i++) {
-    mrb_irep_debug_info_file *file;
-    mrb_int filename_len;
-
-    file = di->files[i];
+    mrb_irep_debug_info_file *file = di->files[i];
     if (find_filename_index(filenames, *lp, file->filename_sym) == -1) {
       /* register filename */
       *lp += 1;
@@ -517,6 +512,7 @@ get_filename_table_size(mrb_state *mrb, const mrb_irep *irep, mrb_sym **fp, uint
       filenames[*lp - 1] = file->filename_sym;
 
       /* filename */
+      mrb_int filename_len;
       mrb_sym_name_len(mrb, file->filename_sym, &filename_len);
       size += sizeof(uint16_t) + (size_t)filename_len;
     }
@@ -617,10 +613,9 @@ write_section_debug(mrb_state *mrb, const mrb_irep *irep, uint8_t *cur, mrb_sym 
   cur += uint16_to_bin(filenames_len, cur);
   section_size += sizeof(uint16_t);
   for (int i = 0; i < filenames_len; i++) {
-    char const *sym;
     mrb_int sym_len;
+    char const *sym = mrb_sym_name_len(mrb, filenames[i], &sym_len);
 
-    sym = mrb_sym_name_len(mrb, filenames[i], &sym_len);
     mrb_assert(sym);
     cur += uint16_to_bin((uint16_t)sym_len, cur);
     memcpy(cur, sym, sym_len);
