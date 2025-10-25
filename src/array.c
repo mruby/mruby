@@ -1124,7 +1124,6 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
   mrb_int alen = ARY_LEN(a);
   const mrb_value *argv;
   mrb_int argc;
-  mrb_int tail;
 
   ary_modify(mrb, a);
 
@@ -1140,7 +1139,8 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
   out_of_range:
     mrb_raisef(mrb, E_INDEX_ERROR, "index %i is out of array", head);
   }
-  tail = head + len;
+
+  mrb_int tail = head + len;
   if (alen < len || alen < tail) {
     len = alen - head;
     tail = head + len;
