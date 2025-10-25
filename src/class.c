@@ -1637,7 +1637,6 @@ get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list *ap)
           mrb_int required = kwargs->required;
           const mrb_sym *kname = kwargs->table;
           mrb_value *values = kwargs->values;
-          mrb_int j;
           const mrb_int keyword_max = 40;
 
           mrb_assert(kwnum >= 0);
@@ -1646,7 +1645,7 @@ get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list *ap)
             mrb_raise(mrb, E_ARGUMENT_ERROR, "keyword number is too large");
           }
 
-          for (j = required; j > 0; j--, kname++, values++) {
+          for (mrb_int j = required; j > 0; j--, kname++, values++) {
             mrb_value k = mrb_symbol_value(*kname);
             if (!mrb_hash_key_p(mrb, ksrc, k)) {
               mrb_raisef(mrb, E_ARGUMENT_ERROR, "missing keyword: %n", *kname);
@@ -1655,7 +1654,7 @@ get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list *ap)
             mrb_gc_protect(mrb, *values);
           }
 
-          for (j = kwnum - required; j > 0; j--, kname++, values++) {
+          for (mrb_int j = kwnum - required; j > 0; j--, kname++, values++) {
             mrb_value k = mrb_symbol_value(*kname);
             if (mrb_hash_key_p(mrb, ksrc, k)) {
               *values = mrb_hash_delete_key(mrb, ksrc, k);
@@ -2836,11 +2835,10 @@ mrb_instance_new(mrb_state *mrb, mrb_value cv)
   const mrb_value *argv;
   mrb_int argc;
   mrb_value blk;
-  mrb_sym init;
 
   mrb_get_args(mrb, "*!&", &argv, &argc, &blk);
   mrb_value obj = mrb_instance_alloc(mrb, cv);
-  init = MRB_SYM(initialize);
+  mrb_sym init = MRB_SYM(initialize);
   if (!mrb_func_basic_p(mrb, obj, init, mrb_do_nothing)) {
     mrb_funcall_with_block(mrb, obj, init, argc, argv, blk);
   }
