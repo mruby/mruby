@@ -44,17 +44,13 @@ mrb_time_strftime(mrb_state *mrb, mrb_value self)
 {
   const char *format;
   mrb_int format_len;
-  struct tm *tm;
-  mrb_value result;
-  const char *fmt_ptr;
-  mrb_int remaining;
 
   mrb_get_args(mrb, "s", &format, &format_len);
-  tm = mrb_time_get_tm(mrb, self);
+  struct tm *tm = mrb_time_get_tm(mrb, self);
 
-  result = mrb_str_new(mrb, NULL, 0);
-  fmt_ptr = format;
-  remaining = format_len;
+  mrb_value result = mrb_str_new(mrb, NULL, 0);
+  const char *fmt_ptr = format;
+  mrb_int remaining = format_len;
 
   /* Process format string in segments, handling NUL bytes */
   while (remaining > 0) {
