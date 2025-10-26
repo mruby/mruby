@@ -1125,9 +1125,9 @@ str_del_prefix_bang(mrb_state *mrb, mrb_value self)
 {
   mrb_int plen;
   const char *ptr;
-  struct RString *str = RSTRING(self);
 
   mrb_get_args(mrb, "s", &ptr, &plen);
+  struct RString *str = RSTRING(self);
   mrb_int slen = RSTR_LEN(str);
   if (plen > slen) return mrb_nil_value();
   char *s = RSTR_PTR(str);
@@ -1190,9 +1190,9 @@ str_del_suffix_bang(mrb_state *mrb, mrb_value self)
 {
   mrb_int plen;
   const char *ptr;
-  struct RString *str = RSTRING(self);
 
   mrb_get_args(mrb, "s", &ptr, &plen);
+  struct RString *str = RSTRING(self);
   mrb_check_frozen(mrb, str);
   mrb_int slen = RSTR_LEN(str);
   if (plen > slen) return mrb_nil_value();
@@ -1285,20 +1285,18 @@ str_casecmp_p(mrb_state *mrb, mrb_value self)
 static mrb_value
 str_lines(mrb_state *mrb, mrb_value self)
 {
-  mrb_value result;
-  mrb_int len;
   char *b = RSTRING_PTR(self);
   char *p = b, *t;
   char *e = b + RSTRING_LEN(self);
 
   mrb->c->ci->mid = 0;
-  result = mrb_ary_new(mrb);
+  mrb_value result = mrb_ary_new(mrb);
   int ai = mrb_gc_arena_save(mrb);
   while (p < e) {
     t = p;
     while (p < e && *p != '\n') p++;
     if (*p == '\n') p++;
-    len = (mrb_int) (p - t);
+    mrb_int len = (mrb_int) (p - t);
     mrb_ary_push(mrb, result, mrb_str_new(mrb, t, len));
     mrb_gc_arena_restore(mrb, ai);
   }
@@ -1717,7 +1715,6 @@ str_ljust_core(mrb_state *mrb, mrb_value self)
 {
   mrb_int width;
   mrb_value padstr = mrb_str_new_lit(mrb, " ");
-  mrb_int char_len, pad_char_len, padsize;
 
   mrb_get_args(mrb, "i|S", &width, &padstr);
 
@@ -1725,13 +1722,13 @@ str_ljust_core(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
   }
 
-  char_len = str_char_count(self);
+  mrb_int char_len = str_char_count(self);
   if (width <= char_len) {
     return mrb_str_dup(mrb, self);
   }
 
-  padsize = width - char_len;
-  pad_char_len = str_char_count(padstr);
+  mrb_int padsize = width - char_len;
+  mrb_int pad_char_len = str_char_count(padstr);
   if (pad_char_len == 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
   }
@@ -1768,7 +1765,6 @@ str_rjust_core(mrb_state *mrb, mrb_value self)
 {
   mrb_int width;
   mrb_value padstr = mrb_str_new_lit(mrb, " ");
-  mrb_int char_len, pad_char_len, padsize;
 
   mrb_get_args(mrb, "i|S", &width, &padstr);
 
@@ -1776,13 +1772,13 @@ str_rjust_core(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
   }
 
-  char_len = str_char_count(self);
+  mrb_int char_len = str_char_count(self);
   if (width <= char_len) {
     return mrb_str_dup(mrb, self);
   }
 
-  padsize = width - char_len;
-  pad_char_len = str_char_count(padstr);
+  mrb_int padsize = width - char_len;
+  mrb_int pad_char_len = str_char_count(padstr);
   if (pad_char_len == 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
   }
@@ -1819,7 +1815,6 @@ str_center_core(mrb_state *mrb, mrb_value self)
 {
   mrb_int width;
   mrb_value padstr = mrb_str_new_lit(mrb, " ");
-  mrb_int char_len, pad_char_len, total_pad, left_pad, right_pad;
 
   mrb_get_args(mrb, "i|S", &width, &padstr);
 
@@ -1827,16 +1822,16 @@ str_center_core(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
   }
 
-  char_len = str_char_count(self);
+  mrb_int char_len = str_char_count(self);
   if (width <= char_len) {
     return mrb_str_dup(mrb, self);
   }
 
-  total_pad = width - char_len;
-  left_pad = total_pad / 2;
-  right_pad = total_pad - left_pad;
+  mrb_int total_pad = width - char_len;
+  mrb_int left_pad = total_pad / 2;
+  mrb_int right_pad = total_pad - left_pad;
 
-  pad_char_len = str_char_count(padstr);
+  mrb_int pad_char_len = str_char_count(padstr);
   if (pad_char_len == 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
   }
@@ -1945,13 +1940,12 @@ mrb_str_slice_bang(mrb_state *mrb, mrb_value self)
   mrb_int argc = mrb_get_args(mrb, "o|o", &arg1, &arg2);
 
   struct RString *str = mrb_str_ptr(self);
-  mrb_int str_len;
   const char *ptr = RSTRING_PTR(self);
 
 #ifdef MRB_UTF8_STRING
-  str_len = str_char_count(self);
+  mrb_int str_len = str_char_count(self);
 #else
-  str_len = RSTRING_LEN(self);
+  mrb_int str_len = RSTRING_LEN(self);
 #endif
 
   mrb_int beg, len;
@@ -2070,8 +2064,7 @@ str_partition(mrb_state *mrb, mrb_value self)
   }
 
   const char *found_ptr = NULL;
-  mrb_int i;
-  for (i = 0; i <= self_len - sep_len; ++i) {
+  for (mrb_int i = 0; i <= self_len - sep_len; ++i) {
     if (memcmp(self_ptr + i, sep_ptr, sep_len) == 0) {
       found_ptr = self_ptr + i;
       break;
@@ -2131,8 +2124,7 @@ str_rpartition(mrb_state *mrb, mrb_value self)
   }
 
   const char *found_ptr = NULL;
-  mrb_int i;
-  for (i = self_len - sep_len; i >= 0; --i) {
+  for (mrb_int i = self_len - sep_len; i >= 0; --i) {
     if (memcmp(self_ptr + i, sep_ptr, sep_len) == 0) {
       found_ptr = self_ptr + i;
       break;
