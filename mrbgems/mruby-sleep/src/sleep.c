@@ -115,7 +115,6 @@ f_usleep(mrb_state *mrb, mrb_value self)
 #else
     struct timeval st_tm,ed_tm;
 #endif
-    time_t slp_tm;
 
 #ifdef _WIN32
     GetSystemTimeAsFileTime(&st_ft);
@@ -143,7 +142,7 @@ f_usleep(mrb_state *mrb, mrb_value self)
     ed_time <<=32;
     ed_time |= ed_ft.dwLowDateTime;
 
-    slp_tm = (ed_time - st_time) / 10;
+    time_t slp_tm = (ed_time - st_time) / 10;
 #else
     gettimeofday(&ed_tm, NULL);
 
