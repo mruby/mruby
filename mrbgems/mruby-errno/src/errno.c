@@ -335,13 +335,11 @@ mrb_sce_errno(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_sce_sys_fail(mrb_state *mrb, mrb_value cls)
 {
-  struct RClass *sce;
   mrb_value msg, no;
-  mrb_int argc;
 
   mrb->c->ci->mid = 0;
-  sce = mrb_class_ptr(cls);
-  argc = mrb_get_args(mrb, "o|S", &no, &msg);
+  struct RClass *sce = mrb_class_ptr(cls);
+  mrb_int argc = mrb_get_args(mrb, "o|S", &no, &msg);
 
   struct RBasic* e = mrb_obj_alloc(mrb, MRB_TT_EXCEPTION, sce);
   mrb_value exc = mrb_obj_value(e);
