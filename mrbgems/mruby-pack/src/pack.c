@@ -568,19 +568,18 @@ static int
 unpack_quad(mrb_state *mrb, const unsigned char *src, mrb_int srclen, mrb_value ary, unsigned int flags)
 {
   char msg[60];
-  uint64_t ull;
   mrb_int n;
 
   /* use lookup tables to eliminate branching */
   const int *idx = (flags & PACK_FLAG_LITTLEENDIAN) ? le_idx64 : be_idx64;
-  ull = ((uint64_t)src[idx[7]] << 56) |
-        ((uint64_t)src[idx[6]] << 48) |
-        ((uint64_t)src[idx[5]] << 40) |
-        ((uint64_t)src[idx[4]] << 32) |
-        ((uint64_t)src[idx[3]] << 24) |
-        ((uint64_t)src[idx[2]] << 16) |
-        ((uint64_t)src[idx[1]] << 8) |
-        (uint64_t)src[idx[0]];
+  uint64_t ull = ((uint64_t)src[idx[7]] << 56) |
+                 ((uint64_t)src[idx[6]] << 48) |
+                 ((uint64_t)src[idx[5]] << 40) |
+                 ((uint64_t)src[idx[4]] << 32) |
+                 ((uint64_t)src[idx[3]] << 24) |
+                 ((uint64_t)src[idx[2]] << 16) |
+                 ((uint64_t)src[idx[1]] << 8) |
+                 (uint64_t)src[idx[0]];
 
   if (flags & PACK_FLAG_SIGNED) {
     int64_t sll = ull;
@@ -1814,7 +1813,7 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_type *typep, mrb_int *siz
 static mrb_value
 mrb_pack_pack(mrb_state *mrb, mrb_value ary)
 {
-  mrb_value o, result;
+  mrb_value o;
   struct tmpl tmpl;
   enum pack_type type;
   mrb_int count;
@@ -1824,7 +1823,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
 
   prepare_tmpl(mrb, &tmpl);
 
-  result = mrb_str_new(mrb, NULL, 128);  /* allocate initial buffer */
+  mrb_value result = mrb_str_new(mrb, NULL, 128);  /* allocate initial buffer */
   mrb_int aidx = 0;
   mrb_int ridx = 0;
   while (has_tmpl(&tmpl)) {
@@ -1956,23 +1955,21 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
 static mrb_value
 pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
 {
-  mrb_value result;
   struct tmpl tmpl;
   mrb_int count;
   unsigned int flags;
-  enum pack_dir dir;
   enum pack_type type;
-  mrb_int size, srcidx, srclen;
+  mrb_int size;
   const unsigned char *sptr;
 
   prepare_tmpl(mrb, &tmpl);
 
-  srcidx = 0;
-  srclen = RSTRING_LEN(str);
+  mrb_int srcidx = 0;
+  mrb_int srclen = RSTRING_LEN(str);
 
-  result = mrb_ary_new(mrb);
+  mrb_value result = mrb_ary_new(mrb);
   while (has_tmpl(&tmpl)) {
-    dir = read_tmpl(mrb, &tmpl, &type, &size, &count, &flags);
+    enum pack_dir dir = read_tmpl(mrb, &tmpl, &type, &size, &count, &flags);
 
     if (dir == PACK_DIR_NONE) break;
     if (dir == PACK_DIR_NUL) {
