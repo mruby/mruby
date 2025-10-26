@@ -544,9 +544,7 @@ static mrb_value
 mrb_f_sleep(mrb_state *mrb, mrb_value self)
 {
   mrb_float sec = 0;
-  mrb_int n;
-
-  n = mrb_get_args(mrb, "|f", &sec);
+  mrb_int n = mrb_get_args(mrb, "|f", &sec);
 
   if (n == 0) {
     /* No argument - suspend indefinitely */
