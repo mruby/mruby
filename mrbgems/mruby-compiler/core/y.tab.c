@@ -14214,14 +14214,9 @@ mrb_load_detect_file_cxt(mrb_state *mrb, FILE *fp, mrb_ccontext *c)
     return mrb_load_exec(mrb, mrb_parse_file_continue(mrb, fp, leading.b, bufsize, c), c);
   }
   else {
-    mrb_int binsize;
-    uint8_t *bin;
-    mrb_value bin_obj = mrb_nil_value(); /* temporary string object */
-    mrb_value result;
-
-    binsize = bin_to_uint32(leading.h.binary_size);
-    bin_obj = mrb_str_new(mrb, NULL, binsize);
-    bin = (uint8_t*)RSTRING_PTR(bin_obj);
+    mrb_int binsize = bin_to_uint32(leading.h.binary_size);
+    mrb_value bin_obj = mrb_str_new(mrb, NULL, binsize);
+    uint8_t *bin = (uint8_t*)RSTRING_PTR(bin_obj);
     if ((size_t)binsize > bufsize) {
       memcpy(bin, leading.b, bufsize);
       if (fread(bin + bufsize, binsize - bufsize, 1, fp) == 0) {
@@ -14230,7 +14225,7 @@ mrb_load_detect_file_cxt(mrb_state *mrb, FILE *fp, mrb_ccontext *c)
       }
     }
 
-    result = mrb_load_irep_buf_cxt(mrb, bin, binsize, c);
+    mrb_value result = mrb_load_irep_buf_cxt(mrb, bin, binsize, c);
     if (mrb_string_p(bin_obj)) mrb_str_resize(mrb, bin_obj, 0);
     return result;
   }
