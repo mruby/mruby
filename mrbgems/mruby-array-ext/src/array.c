@@ -75,12 +75,10 @@ static struct mrb_data_type mrb_combination_state_type = {
 static mrb_value
 ary_assoc(mrb_state *mrb, mrb_value ary)
 {
-  mrb_int i;
-  mrb_value v;
   mrb_value k = mrb_get_arg1(mrb);
 
-  for (i = 0; i < RARRAY_LEN(ary); i++) {
-    v = mrb_check_array_type(mrb, RARRAY_PTR(ary)[i]);
+  for (mrb_int i = 0; i < RARRAY_LEN(ary); i++) {
+    mrb_value v = mrb_check_array_type(mrb, RARRAY_PTR(ary)[i]);
     if (!mrb_nil_p(v) && RARRAY_LEN(v) > 0 &&
         mrb_equal(mrb, RARRAY_PTR(v)[0], k))
       return v;
@@ -105,12 +103,10 @@ ary_assoc(mrb_state *mrb, mrb_value ary)
 static mrb_value
 ary_rassoc(mrb_state *mrb, mrb_value ary)
 {
-  mrb_int i;
-  mrb_value v;
   mrb_value value = mrb_get_arg1(mrb);
 
-  for (i = 0; i < RARRAY_LEN(ary); i++) {
-    v = RARRAY_PTR(ary)[i];
+  for (mrb_int i = 0; i < RARRAY_LEN(ary); i++) {
+    mrb_value v = RARRAY_PTR(ary)[i];
     if (mrb_array_p(v) &&
         RARRAY_LEN(v) > 1 &&
         mrb_equal(mrb, RARRAY_PTR(v)[1], value))
@@ -751,8 +747,6 @@ ary_intersection_multi(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "*", &argv, &argc);
   return ary_intersection_internal(mrb, self, argc, argv);
 }
-
-
 
 /*
  *  call-seq:
