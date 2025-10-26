@@ -917,13 +917,13 @@ invalid:
 static mrb_value
 mrb_ipsocket_recvfrom(mrb_state *mrb, mrb_value self)
 {
-  struct sockaddr_storage ss;
   mrb_int maxlen;
   mrb_int flags = 0;
 
   mrb_get_args(mrb, "i|i", &maxlen, &flags);
 
   mrb_value buf = mrb_str_new_capa(mrb, maxlen);
+  struct sockaddr_storage ss;
   socklen_t socklen = sizeof(ss);
   int fd = socket_fd(mrb, self);
   ssize_t n = recvfrom(fd, RSTRING_PTR(buf), (fsize_t)maxlen, (int)flags,
