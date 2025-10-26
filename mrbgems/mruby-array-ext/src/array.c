@@ -1315,6 +1315,11 @@ ary_combination_init(mrb_state *mrb, mrb_value self)
   mrb_bool permutation;
 
   mrb_get_args(mrb, "ib", &n, &permutation);
+#if MRB_INT_MAX > SIZE_MAX
+  if (n > SIZE_MAX) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "number too large");
+  }
+#endif
 
   struct mrb_combination_state *state = (struct mrb_combination_state*)mrb_malloc(mrb, sizeof(*state));
   state->n = n;
@@ -1323,10 +1328,7 @@ ary_combination_init(mrb_state *mrb, mrb_value self)
   state->finished = (n <= 0 && n != 0);
 
   if (n > 0) {
-    state->indices = (mrb_int*)mrb_malloc(mrb, sizeof(mrb_int) * n);
-    for (mrb_int i = 0; i < n; i++) {
-      state->indices[i] = 0;
-    }
+    state->indices = (mrb_int*)mrb_calloc(mrb, n, sizeof(mrb_int));
   }
   else {
     state->indices = NULL;

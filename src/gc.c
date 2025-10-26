@@ -243,15 +243,17 @@ mrb_calloc(mrb_state *mrb, size_t nelem, size_t len)
 {
   void *p;
 
-  if (nelem > 0 && len > 0 &&
-      nelem <= SIZE_MAX / len) {
+  if (nelem == 0 || len == 0) {
+    p = NULL;
+  }
+  else if (nelem <= SIZE_MAX / len) {
     size_t size = nelem * len;
     p = mrb_malloc(mrb, size);
 
     memset(p, 0, size);
   }
   else {
-    p = NULL;
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "memory allocation overflow");
   }
 
   return p;
