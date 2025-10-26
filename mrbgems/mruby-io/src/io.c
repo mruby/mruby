@@ -551,12 +551,9 @@ badfd:
 static mrb_value
 io_init(mrb_state *mrb, mrb_value io)
 {
-  struct mrb_io *fptr;
   mrb_int fd;
-  mrb_value mode, opt;          /* opt (Hash) will be ignored */
-  int flags;
-
-  mode = opt = mrb_nil_value();
+  mrb_value mode = mrb_nil_value();
+  mrb_value opt = mrb_nil_value();
 
   if (mrb_block_given_p(mrb)) {
     mrb_warn(mrb, "File.new() does not take block; use File.open() instead");
@@ -571,9 +568,9 @@ io_init(mrb_state *mrb, mrb_value io)
       check_file_descriptor(mrb, fd);
       break;
   }
-  flags = io_mode_to_flags(mrb, mode);
+  int flags = io_mode_to_flags(mrb, mode);
 
-  fptr = (struct mrb_io*)DATA_PTR(io);
+  struct mrb_io *fptr = (struct mrb_io*)DATA_PTR(io);
   if (fptr != NULL) {
     fptr_finalize(mrb, fptr, TRUE);
     mrb_free(mrb, fptr);
