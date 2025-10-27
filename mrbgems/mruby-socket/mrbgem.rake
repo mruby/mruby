@@ -13,10 +13,7 @@ MRuby::Gem::Specification.new('mruby-socket') do |spec|
   # HAL gems must be explicitly specified in build config (recommended) or via auto-selection below
   spec.build.gems.one? { |g| g.name =~ /^hal-.*-socket$/ } or begin
     # No HAL found - determine appropriate error message or auto-load
-    suggested_hal = if spec.build.primary_toolchain == 'visualcpp'
-      # Visual C++ on Windows - use native Windows HAL
-      'hal-win-socket'
-    elsif spec.for_windows?
+    suggested_hal = if spec.for_windows?
       'hal-win-socket'
     elsif RUBY_PLATFORM =~ /linux|darwin|bsd/
       'hal-posix-socket'
