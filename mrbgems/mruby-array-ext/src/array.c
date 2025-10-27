@@ -1310,7 +1310,13 @@ ary_combination_init(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "ib", &n, &permutation);
 
+  /* prepare objects in first to avoid memory leaks caused by NoMemoryError exceptions */
+  struct RData *d = mrb_data_object_alloc(mrb, mrb->object_class, NULL, NULL);
+
   struct mrb_combination_state *state = (struct mrb_combination_state*)mrb_malloc(mrb, sizeof(*state));
+  d->data = state;
+  d->type = &mrb_combination_state_type;
+  state->indices = NULL;
   state->n = n;
   state->array_size = RARRAY_LEN(self);
   state->permutation = permutation;
@@ -1322,11 +1328,8 @@ ary_combination_init(mrb_state *mrb, mrb_value self)
       state->indices[i] = 0;
     }
   }
-  else {
-    state->indices = NULL;
-  }
 
-  return mrb_obj_value(mrb_data_object_alloc(mrb, mrb->object_class, state, &mrb_combination_state_type));
+  return mrb_obj_value(d);
 }
 
 /*
