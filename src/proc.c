@@ -340,8 +340,20 @@ mrb_proc_eql(mrb_state *mrb, mrb_value self, mrb_value other)
 
   const struct RProc *p1 = mrb_proc_ptr(self);
   const struct RProc *p2 = mrb_proc_ptr(other);
+
+  /* Follow alias chains to get the real procs */
+  while (p1 && MRB_PROC_ALIAS_P(p1)) {
+    p1 = p1->upper;
+  }
+  while (p2 && MRB_PROC_ALIAS_P(p2)) {
+    p2 = p2->upper;
+  }
+
+  /* If either pointer is NULL after following aliases, they can't be equal */
+  if (!p1 || !p2) return FALSE;
+
   if (MRB_PROC_CFUNC_P(p1)) {
-    if (!MRB_PROC_CFUNC_P(p1)) return FALSE;
+    if (!MRB_PROC_CFUNC_P(p2)) return FALSE;
     if (p1->body.func != p2->body.func) return FALSE;
   }
   else if (MRB_PROC_CFUNC_P(p2)) return FALSE;
