@@ -2046,8 +2046,11 @@ mrb_ary_delete(mrb_state *mrb, mrb_value self)
 
 
 static mrb_bool
-sort_cmp(mrb_state *mrb, mrb_value ary, mrb_value *p, mrb_value a_val, mrb_value b_val, mrb_value blk)
+sort_cmp(mrb_state *mrb, mrb_value ary, mrb_value a_val, mrb_value b_val, mrb_value blk)
 {
+  mrb_value *p = RARRAY_PTR(ary);
+  mrb_int n = RARRAY_LEN(ary);
+
   mrb_int cmp;
   int ai = mrb_gc_arena_save(mrb);
 
@@ -2091,7 +2094,7 @@ sort_cmp(mrb_state *mrb, mrb_value ary, mrb_value *p, mrb_value a_val, mrb_value
   if (cmp == -2) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "comparison failed");
   }
-  if (RARRAY_PTR(ary) != p) {
+  if (RARRAY_PTR(ary) != p || RARRAY_LEN(ary) != n) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "array modified during sort");
   }
   return cmp > 0;
@@ -2106,10 +2109,10 @@ heapify(mrb_state *mrb, mrb_value ary, mrb_value *a, mrb_int index, mrb_int size
     mrb_int left_index = 2 * index + 1;
     mrb_int right_index = left_index + 1;
 
-    if (left_index < size && sort_cmp(mrb, ary, a, a[left_index], a[max], blk)) {
+    if (left_index < size && sort_cmp(mrb, ary, a[left_index], a[max], blk)) {
       max = left_index;
     }
-    if (right_index < size && sort_cmp(mrb, ary, a, a[right_index], a[max], blk)) {
+    if (right_index < size && sort_cmp(mrb, ary, a[right_index], a[max], blk)) {
       max = right_index;
     }
 
@@ -2136,7 +2139,7 @@ insertion_sort(mrb_state *mrb, mrb_value ary, mrb_value *a, mrb_int size, mrb_va
     mrb_int j = i - 1;
 
     /* Move elements that are greater than key to one position ahead */
-    while (j >= 0 && sort_cmp(mrb, ary, a, a[j], key, blk)) {
+    while (j >= 0 && sort_cmp(mrb, ary, a[j], key, blk)) {
       a[j + 1] = a[j];
       j--;
     }
