@@ -4542,9 +4542,34 @@ codegen_op_asgn(codegen_scope *s, node *varnode, int val)
       ((name[0] == '|' && name[1] == '|') ||
        (name[0] == '&' && name[1] == '&'))) {
     uint32_t pos;
+    enum node_type lhs_type = get_node_type(lhs);
 
-    /* Generate code to get current value of LHS */
-    codegen(s, lhs, VAL);
+    /* For ||= on class variables and constants, wrap read in exception handling */
+    if (name[0] == '|' && (lhs_type == NODE_CVAR || lhs_type == NODE_CONST)) {
+      int catch_entry, begin, end;
+      int noexc, exc;
+      struct loopinfo *lp;
+
+      lp = loop_push(s, LOOP_BEGIN);
+      lp->pc0 = new_label(s);
+      catch_entry = catch_handler_new(s);
+      begin = s->pc;
+      exc = cursp();
+      codegen(s, lhs, VAL);
+      end = s->pc;
+      noexc = genjmp_0(s, OP_JMP);
+      lp->type = LOOP_RESCUE;
+      catch_handler_set(s, catch_entry, MRB_CATCH_RESCUE, begin, end, s->pc);
+      genop_1(s, OP_EXCEPT, exc);
+      genop_1(s, OP_LOADF, exc);
+      dispatch(s, noexc);
+      loop_pop(s, NOVAL);
+    }
+    else {
+      /* Generate code to get current value of LHS */
+      codegen(s, lhs, VAL);
+    }
+
     pop();
     if (val) {
       if (vsp >= 0) {
