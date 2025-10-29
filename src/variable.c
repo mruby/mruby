@@ -655,9 +655,8 @@ iv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 mrb_value
 mrb_obj_instance_variables(mrb_state *mrb, mrb_value self)
 {
-  mrb_value ary;
+  mrb_value ary = mrb_ary_new(mrb);
 
-  ary = mrb_ary_new(mrb);
   if (obj_iv_p(self)) {
     iv_foreach(mrb, mrb_obj_ptr(self)->iv, iv_i, &ary);
   }
@@ -696,13 +695,11 @@ cv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 mrb_value
 mrb_mod_class_variables(mrb_state *mrb, mrb_value mod)
 {
-  mrb_value ary;
-  struct RClass *c;
   mrb_bool inherit = TRUE;
 
   mrb_get_args(mrb, "|b", &inherit);
-  ary = mrb_ary_new(mrb);
-  c = mrb_class_ptr(mod);
+  mrb_value ary = mrb_ary_new(mrb);
+  struct RClass *c = mrb_class_ptr(mod);
   while (c) {
     iv_foreach(mrb, class_iv_ptr(c), cv_i, &ary);
     if (!inherit) break;
@@ -726,9 +723,8 @@ mrb_mod_cv_get(mrb_state *mrb, struct RClass *c, mrb_sym sym)
   }
   if (given) return v;
   if (cls->tt == MRB_TT_SCLASS) {
-    mrb_value klass;
+    mrb_value klass = mrb_obj_iv_get(mrb, (struct RObject*)cls, MRB_SYM(__attached__));
 
-    klass = mrb_obj_iv_get(mrb, (struct RObject*)cls, MRB_SYM(__attached__));
     c = mrb_class_ptr(klass);
     if (c->tt == MRB_TT_CLASS || c->tt == MRB_TT_MODULE) {
       given = FALSE;
@@ -800,9 +796,8 @@ mrb_mod_cv_set(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value v)
   }
 
   if (cls->tt == MRB_TT_SCLASS) {
-    mrb_value klass;
+    mrb_value klass = mrb_obj_iv_get(mrb, (struct RObject*)cls, MRB_SYM(__attached__));
 
-    klass = mrb_obj_iv_get(mrb, (struct RObject*)cls, MRB_SYM(__attached__));
     switch (mrb_type(klass)) {
     case MRB_TT_CLASS:
     case MRB_TT_MODULE:
@@ -1185,12 +1180,11 @@ mrb_mod_const_at(mrb_state *mrb, struct RClass *c, mrb_value ary)
 mrb_value
 mrb_mod_constants(mrb_state *mrb, mrb_value mod)
 {
-  mrb_value ary;
   mrb_bool inherit = TRUE;
   struct RClass *c = mrb_class_ptr(mod);
 
   mrb_get_args(mrb, "|b", &inherit);
-  ary = mrb_ary_new(mrb);
+  mrb_value ary = mrb_ary_new(mrb);
   while (c) {
     mrb_mod_const_at(mrb, c, ary);
     if (!inherit) break;
@@ -1259,9 +1253,7 @@ mrb_gv_remove(mrb_state *mrb, mrb_sym sym)
 static int
 gv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 {
-  mrb_value ary;
-
-  ary = *(mrb_value*)p;
+  mrb_value ary = *(mrb_value*)p;
   mrb_ary_push(mrb, ary, mrb_symbol_value(sym));
   return 0;
 }
@@ -1403,9 +1395,7 @@ find_class_sym(mrb_state *mrb, struct RClass *outer, struct RClass *c)
 static struct RClass*
 outer_class(mrb_state *mrb, struct RClass *c)
 {
-  mrb_value ov;
-
-  ov = mrb_obj_iv_get(mrb, (struct RObject*)c, MRB_SYM(__outer__));
+  mrb_value ov = mrb_obj_iv_get(mrb, (struct RObject*)c, MRB_SYM(__outer__));
   if (mrb_nil_p(ov)) return NULL;
   switch (mrb_type(ov)) {
   case MRB_TT_CLASS:
