@@ -1684,9 +1684,7 @@ mrb_str_capitalize_bang(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_capitalize(mrb_state *mrb, mrb_value self)
 {
-  mrb_value str;
-
-  str = mrb_str_dup(mrb, self);
+  mrb_value str = mrb_str_dup(mrb, self);
   mrb_str_capitalize_bang(mrb, str);
   return str;
 }
@@ -1783,9 +1781,7 @@ mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_chomp(mrb_state *mrb, mrb_value self)
 {
-  mrb_value str;
-
-  str = mrb_str_dup(mrb, self);
+  mrb_value str = mrb_str_dup(mrb, self);
   mrb_str_chomp_bang(mrb, str);
   return str;
 }
@@ -1852,8 +1848,7 @@ mrb_str_chop_bang(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_chop(mrb_state *mrb, mrb_value self)
 {
-  mrb_value str;
-  str = mrb_str_dup(mrb, self);
+  mrb_value str = mrb_str_dup(mrb, self);
   mrb_str_chop_bang(mrb, str);
   return str;
 }
@@ -1902,9 +1897,7 @@ mrb_str_downcase_bang(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_downcase(mrb_state *mrb, mrb_value self)
 {
-  mrb_value str;
-
-  str = mrb_str_dup(mrb, self);
+  mrb_value str = mrb_str_dup(mrb, self);
   mrb_str_downcase_bang(mrb, str);
   return str;
 }
@@ -3045,9 +3038,7 @@ mrb_str_upcase_bang(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_upcase(mrb_state *mrb, mrb_value self)
 {
-  mrb_value str;
-
-  str = mrb_str_dup(mrb, self);
+  mrb_value str = mrb_str_dup(mrb, self);
   mrb_str_upcase_bang(mrb, str);
   return str;
 }
@@ -3322,13 +3313,12 @@ sub_replace(mrb_state *mrb, mrb_value self)
   char *p, *match;
   mrb_int plen, mlen;
   mrb_int found, offset;
-  mrb_value result;
 
   mrb_get_args(mrb, "ssi", &p, &plen, &match, &mlen, &found);
   if (found < 0 || RSTRING_LEN(self) < found) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "argument out of range");
   }
-  result = mrb_str_new(mrb, 0, 0);
+  mrb_value result = mrb_str_new(mrb, 0, 0);
   for (mrb_int i=0; i<plen; i++) {
     if (p[i] != '\\' || i+1==plen) {
       mrb_str_cat(mrb, result, p+i, 1);
