@@ -399,12 +399,10 @@ convert_type(mrb_state *mrb, mrb_value val, const char *tname, mrb_sym method, m
 MRB_API mrb_value
 mrb_type_convert(mrb_state *mrb, mrb_value val, enum mrb_vtype type, mrb_sym method)
 {
-  mrb_value v;
-  const char *tname;
-
   if (mrb_type(val) == type) return val;
-  tname = type_name(type);
-  v = convert_type(mrb, val, tname, method, TRUE);
+
+  const char *tname = type_name(type);
+  mrb_value v = convert_type(mrb, val, tname, method, TRUE);
   if (mrb_type(v) != type) {
     if (type == MRB_TT_STRING) return mrb_any_to_s(mrb, val);
     mrb_raisef(mrb, E_TYPE_ERROR, "%v cannot be converted to %s by #%n", val, tname, method);
@@ -434,10 +432,8 @@ mrb_type_convert(mrb_state *mrb, mrb_value val, enum mrb_vtype type, mrb_sym met
 MRB_API mrb_value
 mrb_type_convert_check(mrb_state *mrb, mrb_value val, enum mrb_vtype type, mrb_sym method)
 {
-  mrb_value v;
-
   if (mrb_type(val) == type && type != MRB_TT_CDATA && type != MRB_TT_ISTRUCT) return val;
-  v = convert_type(mrb, val, type_name(type), method, FALSE);
+  mrb_value v = convert_type(mrb, val, type_name(type), method, FALSE);
   if (mrb_nil_p(v) || mrb_type(v) != type) return mrb_nil_value();
   return v;
 }
