@@ -427,11 +427,10 @@ range_num_to_a(mrb_state *mrb, mrb_value range)
 mrb_value
 mrb_get_values_at(mrb_state *mrb, mrb_value obj, mrb_int olen, mrb_int argc, const mrb_value *argv, mrb_value (*func)(mrb_state*, mrb_value, mrb_int))
 {
-  mrb_int i, j, beg, len;
-  mrb_value result;
-  result = mrb_ary_new(mrb);
+  mrb_int beg, len;
+  mrb_value result = mrb_ary_new(mrb);
 
-  for (i = 0; i < argc; i++) {
+  for (mrb_int i = 0; i < argc; i++) {
     mrb_value v = argv[i];
 
     if (mrb_integer_p(v)
@@ -444,6 +443,7 @@ mrb_get_values_at(mrb_state *mrb, mrb_value obj, mrb_int olen, mrb_int argc, con
     }
     else if (mrb_range_beg_len(mrb, v, &beg, &len, olen, FALSE) == MRB_RANGE_OK) {
       mrb_int const end = olen < beg + len ? olen : beg + len;
+      mrb_int j;
       for (j = beg; j < end; j++) {
         mrb_ary_push(mrb, result, func(mrb, obj, j));
       }
