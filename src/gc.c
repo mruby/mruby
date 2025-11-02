@@ -431,10 +431,8 @@ mrb_gc_protect(mrb_state *mrb, mrb_value obj)
 MRB_API void
 mrb_gc_register(mrb_state *mrb, mrb_value obj)
 {
-  mrb_value table;
-
   if (mrb_immediate_p(obj)) return;
-  table = mrb_gv_get(mrb, GC_ROOT_SYM);
+  mrb_value table = mrb_gv_get(mrb, GC_ROOT_SYM);
   int ai = mrb_gc_arena_save(mrb);
   mrb_gc_protect(mrb, obj);
   if (!mrb_array_p(table)) {
@@ -450,13 +448,10 @@ mrb_gc_register(mrb_state *mrb, mrb_value obj)
 MRB_API void
 mrb_gc_unregister(mrb_state *mrb, mrb_value obj)
 {
-  mrb_value table;
-  struct RArray *a;
-
   if (mrb_immediate_p(obj)) return;
-  table = mrb_gv_get(mrb, GC_ROOT_SYM);
+  mrb_value table = mrb_gv_get(mrb, GC_ROOT_SYM);
   if (!mrb_array_p(table)) return;
-  a = mrb_ary_ptr(table);
+  struct RArray *a = mrb_ary_ptr(table);
   mrb_ary_modify(mrb, a);
   mrb_int len = ARY_LEN(a)-1;
   mrb_value *ptr = ARY_PTR(a);
