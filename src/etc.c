@@ -239,8 +239,8 @@ mrb_word_boxing_value_float(mrb_value v)
 MRB_API mrb_value
 mrb_word_boxing_cptr_value(mrb_state *mrb, void *p)
 {
-  mrb_value v;
   struct RCptr *cptr = MRB_OBJ_ALLOC(mrb, MRB_TT_CPTR, mrb->object_class);
+  mrb_value v;
 
   SET_OBJ_VALUE(v, cptr);
   cptr->p = p;
