@@ -2736,18 +2736,14 @@ mod_attr_define(mrb_state *mrb, mrb_value mod, mrb_value (*accessor)(mrb_state*,
 
   int ai = mrb_gc_arena_save(mrb);
   for (int i=0; i<argc; i++) {
-    mrb_value name;
-    mrb_sym method;
-    struct RProc *p;
-    mrb_method_t m;
-
-    method = to_sym(mrb, argv[i]);
-    name = prepare_ivar_name(mrb, method);
+    mrb_sym method = to_sym(mrb, argv[i]);
+    mrb_value name = prepare_ivar_name(mrb, method);
     if (access_name) {
       method = access_name(mrb, method);
     }
 
-    p = mrb_proc_new_cfunc_with_env(mrb, accessor, 1, &name);
+    struct RProc *p = mrb_proc_new_cfunc_with_env(mrb, accessor, 1, &name);
+    mrb_method_t m;
     MRB_METHOD_FROM_PROC(m, p);
     mrb_define_method_raw(mrb, c, method, m);
     mrb_gc_arena_restore(mrb, ai);
@@ -3401,9 +3397,9 @@ mrb_mod_alias(mrb_state *mrb, mrb_value mod)
 static void
 undef_method(mrb_state *mrb, struct RClass *c, mrb_sym a)
 {
-  mrb_method_t m;
   mrb_sym undefined;
   mrb_value recv;
+  mrb_method_t m;
 
   MRB_METHOD_FROM_PROC(m, NULL);
   mrb_define_method_raw(mrb, c, a, m);
