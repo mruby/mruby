@@ -1644,14 +1644,13 @@ str_chars_ary(mrb_state *mrb, mrb_value self)
   struct RString *s = mrb_str_ptr(self);
   const unsigned char *p = (unsigned char*)RSTR_PTR(s);
   const unsigned char *e = p + RSTR_LEN(s);
-  mrb_value result;
 
   /* Estimate character count for array pre-allocation */
   mrb_int estimated_chars = RSTR_LEN(s);
   if (!RSTR_SINGLE_BYTE_P(s) && !RSTR_BINARY_P(s)) {
     estimated_chars = estimated_chars / 2; /* rough estimate for UTF-8 */
   }
-  result = mrb_ary_new_capa(mrb, estimated_chars);
+  mrb_value result = mrb_ary_new_capa(mrb, estimated_chars);
 
   if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
     /* ASCII/Binary: each byte is a character */
