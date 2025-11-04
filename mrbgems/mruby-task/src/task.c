@@ -612,9 +612,6 @@ mrb_task_s_new(mrb_state *mrb, mrb_value self)
   mrb_value blk;
   mrb_value name_val = mrb_nil_value();
   mrb_int priority = 128;  /* Default middle priority */
-  const struct RProc *proc;
-  mrb_task *t;
-  mrb_value task_obj;
   mrb_value kw_values[2] = {mrb_undef_value(), mrb_undef_value()};
   mrb_sym kw_names[2] = {mrb_intern_lit(mrb, "name"), mrb_intern_lit(mrb, "priority")};
   const mrb_kwargs kwargs = {
@@ -628,7 +625,7 @@ mrb_task_s_new(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "tried to create task without a block");
   }
 
-  proc = mrb_proc_ptr(blk);
+  const struct RProc *proc = mrb_proc_ptr(blk);
 
   /* Parse keyword arguments */
   if (!mrb_undef_p(kw_values[0])) {
@@ -650,7 +647,7 @@ mrb_task_s_new(mrb_state *mrb, mrb_value self)
   }
 
   /* Allocate and initialize task */
-  t = task_alloc(mrb);
+  mrb_task *t = task_alloc(mrb);
   t->priority = (uint8_t)priority;
   t->status = MRB_TASK_STATUS_READY;
   t->reason = MRB_TASK_REASON_NONE;
@@ -658,8 +655,8 @@ mrb_task_s_new(mrb_state *mrb, mrb_value self)
   /* Note: proc is stored in t->c.ci->proc and marked via callinfo GC */
 
   /* Create Ruby object to hold task */
-  task_obj = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_get(mrb, "Task"),
-                                                  t, &mrb_task_type));
+  mrb_value task_obj = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_get(mrb, "Task"),
+                                                           t, &mrb_task_type));
   t->self = task_obj;
 
   /* Register with GC to protect task object from collection */
