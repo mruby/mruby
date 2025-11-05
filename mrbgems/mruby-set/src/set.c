@@ -1023,14 +1023,6 @@ set_join(mrb_state *mrb, mrb_value self)
     return mrb_str_new_lit(mrb, "");
   }
 
-  /* Get separator string */
-  const char *sep_ptr = "";
-  mrb_int sep_len = 0;
-  if (!mrb_nil_p(separator)) {
-    sep_ptr = RSTRING_PTR(separator);
-    sep_len = RSTRING_LEN(separator);
-  }
-
   /* Create result string */
   mrb_value result = mrb_str_new_capa(mrb, 64);  /* Initial capacity */
   mrb_bool first = TRUE;
@@ -1039,7 +1031,9 @@ set_join(mrb_state *mrb, mrb_value self)
   int ai = mrb_gc_arena_save(mrb);
   KSET_FOREACH(set, k) {
     if (!first) {
-      mrb_str_cat(mrb, result, sep_ptr, sep_len);
+      if (!mrb_nil_p(separator)) {
+        mrb_str_cat(mrb, result, RSTRING_PTR(separator), RSTRING_LEN(separator));
+      }
     }
     else {
       first = FALSE;
