@@ -1151,7 +1151,7 @@ new_args_tail(parser_state *p, node *kws, mrb_sym kwrest, mrb_sym blk)
 {
   node *k;
 
-  if (kwrest) {
+  if (kws || kwrest) {
     local_add_kw(p, kwrest);
   }
 

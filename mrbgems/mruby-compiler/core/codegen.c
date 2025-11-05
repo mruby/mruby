@@ -2373,11 +2373,12 @@ lambda_body(codegen_scope *s, node *locals, struct mrb_ast_args *args, node *bod
       | MRB_ARGS_KEY(ka, kd)
       | (ba ? MRB_ARGS_BLOCK() : 0);
     genop_W(s, OP_ENTER, a);
-    /* (12bits = 5:1:5:1) - Store argument counts for block argument passing (OP_BLKPUSH) */
+    /* (13bits = 6:1:5:1:1) - Store argument counts for block argument passing (OP_BLKPUSH) */
     s->ainfo = (((ma+oa) & 0x3f) << 7)
       | ((ra & 0x1) << 6)
       | ((pa & 0x1f) << 1)
-      | (ka || kd);
+      | (ka || kd)
+      | ((ba & 0x1) << 13);
 
     /* Optional argument default value initialization */
     pos = new_label(s); /* Start of the optional argument jump table. */
@@ -2453,6 +2454,45 @@ lambda_body(codegen_scope *s, node *locals, struct mrb_ast_args *args, node *bod
 
       if (has_keywords && !kwrest) { /* If there are keyword args but no keyword rest. */
         genop_0(s, OP_KEYEND); /* Signal end of keyword arguments. */
+
+        /* Reconstruct keyword hash for super to use */
+        /* After KEYEND, the hash at kw_pos is empty (all keys deleted by KARG) */
+        /* Build a fresh hash from the extracted keyword local variables */
+        int kw_dict_pos = ma + oa + ra + pa + 1;
+        int sp_save = cursp();
+
+        /* Load key-value pairs for each keyword argument starting at stack position */
+        node *kw_list = args->keyword_args;
+        int num_pairs = 0;
+        while (kw_list) {
+          node *kw = kw_list->car;
+          mrb_sym kw_sym = node_to_sym(kw->car);
+
+          /* Load symbol (key) */
+          genop_2(s, OP_LOADSYM, cursp(), new_sym(s, kw_sym));
+          push();
+
+          /* Load keyword local variable value */
+          genop_2(s, OP_MOVE, cursp(), lv_idx(s, kw_sym));
+          push();
+
+          num_pairs++;
+          kw_list = kw_list->cdr;
+        }
+
+        /* Create hash at current stack position, then move to keyword dict position */
+        if (num_pairs > 0) {
+          genop_2(s, OP_HASH, sp_save, num_pairs);
+          genop_2(s, OP_MOVE, kw_dict_pos, sp_save);
+        }
+        else {
+          /* No keyword args, create empty hash */
+          genop_2(s, OP_HASH, sp_save, 0);
+          genop_2(s, OP_MOVE, kw_dict_pos, sp_save);
+        }
+
+        /* Restore stack pointer */
+        s->sp = sp_save;
       }
     }
 
@@ -5326,8 +5366,10 @@ codegen_zsuper(codegen_scope *s, node *varnode, int val)
   uint16_t ainfo = 0;
   int n = CALL_MAXARGS;
   int sp = cursp();
+  mrb_bool has_block_arg = FALSE;
 
   push();        /* room for receiver */
+  int argary_pos = cursp();
   while (!s2->mscope) {
     lv++;
     s2 = s2->prev;
@@ -5335,16 +5377,21 @@ codegen_zsuper(codegen_scope *s, node *varnode, int val)
   }
   if (s2 && s2->ainfo > 0) {
     ainfo = s2->ainfo;
+    has_block_arg = (ainfo >> 13) & 0x1;
   }
   if (lv > 0xf) codegen_error(s, "too deep nesting");
   if (ainfo > 0) {
-    genop_2S(s, OP_ARGARY, cursp(), (ainfo<<4)|(lv & 0xf));
+    genop_2S(s, OP_ARGARY, argary_pos, (ainfo<<4)|(lv & 0xf));
     push(); push(); push();   /* ARGARY pushes 3 values at most */
     pop(); pop(); pop();
     /* keyword arguments */
     if (ainfo & 0x1) {
       n |= CALL_MAXARGS<<4;
       push();
+      /* If parent has keywords but no block parameter, ARGARY reads garbage for block */
+      if (!has_block_arg) {
+        genop_1(s, OP_LOADNIL, argary_pos+2);
+      }
     }
     /* block argument - tree here is args, so check for block */
     if (tree) {
