@@ -335,13 +335,11 @@ get_num(mrb_state *mrb, const char *p, const char *end, int *valp)
 static void
 get_hash(mrb_state *mrb, mrb_value *hash, mrb_int argc, const mrb_value *argv)
 {
-  mrb_value tmp;
-
   if (!mrb_undef_p(*hash)) return;
   if (argc != 2) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "one hash required");
   }
-  tmp = mrb_check_hash_type(mrb, argv[1]);
+  mrb_value tmp = mrb_check_hash_type(mrb, argv[1]);
   if (mrb_nil_p(tmp)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "one hash required");
   }
