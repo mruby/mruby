@@ -37,8 +37,8 @@ mrb_proc_binding(mrb_state *mrb, mrb_value procval)
 {
   const struct RProc *proc = mrb_proc_ptr(procval);
   struct REnv *env;
-
   mrb_value receiver;
+
   if (!proc || MRB_PROC_CFUNC_P(proc) || !proc->upper || MRB_PROC_CFUNC_P(proc->upper)) {
     env = NULL;
     proc = NULL;
