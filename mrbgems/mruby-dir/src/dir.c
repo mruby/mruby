@@ -152,10 +152,9 @@ mrb_dir_existp(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_dir_getwd(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value path;
   mrb_int size = 64;
 
-  path = mrb_str_buf_new(mrb, size);
+  mrb_value path = mrb_str_buf_new(mrb, size);
   while (mrb_hal_dir_getcwd(mrb, RSTRING_PTR(path), (size_t)size) == -1) {
     int e = errno;
     if (e != ERANGE) {
@@ -408,18 +407,16 @@ static mrb_value
 mrb_dir_entries(mrb_state *mrb, mrb_value klass)
 {
   const char *path;
-  mrb_dir_handle *handle;
-  const char *name;
-  mrb_value ary;
 
   mrb_get_args(mrb, "z", &path);
 
-  handle = mrb_hal_dir_open(mrb, path);
+  mrb_dir_handle *handle = mrb_hal_dir_open(mrb, path);
   if (handle == NULL) {
     mrb_sys_fail(mrb, path);
   }
 
-  ary = mrb_ary_new(mrb);
+  mrb_value ary = mrb_ary_new(mrb);
+  const char *name;
   while ((name = mrb_hal_dir_read(mrb, handle)) != NULL) {
     mrb_ary_push(mrb, ary, mrb_str_new_cstr(mrb, name));
   }
@@ -440,18 +437,16 @@ static mrb_value
 mrb_dir_children(mrb_state *mrb, mrb_value klass)
 {
   const char *path;
-  mrb_dir_handle *handle;
-  const char *name;
-  mrb_value ary;
 
   mrb_get_args(mrb, "z", &path);
 
-  handle = mrb_hal_dir_open(mrb, path);
+  mrb_dir_handle *handle = mrb_hal_dir_open(mrb, path);
   if (handle == NULL) {
     mrb_sys_fail(mrb, path);
   }
 
-  ary = mrb_ary_new(mrb);
+  mrb_value ary = mrb_ary_new(mrb);
+  const char *name;
   while ((name = mrb_hal_dir_read(mrb, handle)) != NULL) {
     if (!skip_name_p(name)) {
       mrb_ary_push(mrb, ary, mrb_str_new_cstr(mrb, name));
