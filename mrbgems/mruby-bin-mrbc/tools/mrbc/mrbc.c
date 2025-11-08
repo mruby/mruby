@@ -199,14 +199,13 @@ partial_hook(struct mrb_parser_state *p)
 {
   mrb_ccontext *c = p->cxt;
   struct mrbc_args *args = (struct mrbc_args*)c->partial_data;
-  const char *fn;
 
   if (p->f) fclose(p->f);
   if (args->idx >= args->argc) {
     p->f = NULL;
     return -1;
   }
-  fn = args->argv[args->idx++];
+  const char *fn = args->argv[args->idx++];
   p->f = fopen(fn, "rb");
   if (p->f == NULL) {
     fprintf(stderr, "%s: cannot open program file. (%s)\n", args->prog, fn);
@@ -219,13 +218,11 @@ partial_hook(struct mrb_parser_state *p)
 static mrb_value
 load_file(mrb_state *mrb, struct mrbc_args *args)
 {
-  mrb_ccontext *c;
-  mrb_value result;
   char *input = args->argv[args->idx];
   FILE *infile;
   mrb_bool need_close = FALSE;
 
-  c = mrb_ccontext_new(mrb);
+  mrb_ccontext *c = mrb_ccontext_new(mrb);
   if (args->verbose)
     c->dump_result = TRUE;
   c->no_exec = TRUE;
@@ -248,7 +245,7 @@ load_file(mrb_state *mrb, struct mrbc_args *args)
     mrb_ccontext_partial_hook(c, partial_hook, (void*)args);
   }
 
-  result = mrb_load_file_cxt(mrb, infile, c);
+  mrb_value result = mrb_load_file_cxt(mrb, infile, c);
   if (need_close) fclose(infile);
   mrb_ccontext_free(mrb, c);
   if (mrb_undef_p(result)) {
@@ -287,17 +284,15 @@ int
 main(int argc, char **argv)
 {
   mrb_state *mrb = mrb_open_core();
-  int n, result;
   struct mrbc_args args;
   FILE *wfp;
-  mrb_value load;
 
   if (mrb == NULL) {
     fputs("Invalid mrb_state, exiting mrbc\n", stderr);
     return EXIT_FAILURE;
   }
 
-  n = parse_args(mrb, argc, argv, &args);
+  int n = parse_args(mrb, argc, argv, &args);
   if (n < 0) {
     cleanup(mrb, &args);
     usage(argv[0]);
@@ -318,7 +313,7 @@ main(int argc, char **argv)
   }
 
   args.idx = n;
-  load = load_file(mrb, &args);
+  mrb_value load = load_file(mrb, &args);
   if (mrb_nil_p(load)) {
     cleanup(mrb, &args);
     return EXIT_FAILURE;
@@ -345,7 +340,7 @@ main(int argc, char **argv)
     fputs("Output file is required\n", stderr);
     return EXIT_FAILURE;
   }
-  result = dump_file(mrb, wfp, args.outfile, mrb_proc_ptr(load), &args);
+  int result = dump_file(mrb, wfp, args.outfile, mrb_proc_ptr(load), &args);
   fclose(wfp);
   cleanup(mrb, &args);
   if (result != MRB_DUMP_OK) {
