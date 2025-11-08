@@ -210,7 +210,7 @@ ary_slice_bang(mrb_state *mrb, mrb_value self)
   }
 
   mrb_get_args(mrb, "ii", &i, &len);
- delete_pos_len:
+ delete_pos_len:;
   mrb_int alen = ARY_LEN(a);
   if (i < 0) i += alen;
   if (i < 0 || alen < i) return mrb_nil_value();
