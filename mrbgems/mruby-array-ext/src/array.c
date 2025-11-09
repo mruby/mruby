@@ -201,16 +201,18 @@ ary_slice_bang(mrb_state *mrb, mrb_value self)
     mrb_value index = mrb_get_arg1(mrb);
 
     if (mrb_type(index) == MRB_TT_RANGE) {
-      if (mrb_range_beg_len(mrb, index, &i, &len, ARY_LEN(a), TRUE) == MRB_RANGE_OK) {
-        goto delete_pos_len;
+      if (mrb_range_beg_len(mrb, index, &i, &len, ARY_LEN(a), TRUE) != MRB_RANGE_OK) {
+        return mrb_nil_value();
       }
-      return mrb_nil_value();
     }
-    return mrb_ary_delete_at(mrb, self);
+    else {
+      return mrb_ary_delete_at(mrb, self);
+    }
+  }
+  else {
+    mrb_get_args(mrb, "ii", &i, &len);
   }
 
-  mrb_get_args(mrb, "ii", &i, &len);
- delete_pos_len:;
   mrb_int alen = ARY_LEN(a);
   if (i < 0) i += alen;
   if (i < 0 || alen < i) return mrb_nil_value();
