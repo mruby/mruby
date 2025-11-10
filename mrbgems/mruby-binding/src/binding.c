@@ -184,29 +184,34 @@ binding_initialize_copy(mrb_state *mrb, mrb_value binding)
   return binding;
 }
 
+static mrb_noreturn void
+badname_error(mrb_state *mrb, mrb_sym id)
+{
+  mrb_raisef(mrb, E_NAME_ERROR, "wrong local variable name %!n for binding", id);
+}
+
 static void
 binding_local_variable_name_check(mrb_state *mrb, mrb_sym id)
 {
   if (id == 0) {
-  badname:
-    mrb_raisef(mrb, E_NAME_ERROR, "wrong local variable name %!n for binding", id);
+    badname_error(mrb, id);
   }
 
   mrb_int len;
   const char *name = mrb_sym_name_len(mrb, id, &len);
   if (len == 0) {
-    goto badname;
+    badname_error(mrb, id);
   }
 
   if (ISASCII(*name) && !(*name == '_' || ISLOWER(*name))) {
-    goto badname;
+    badname_error(mrb, id);
   }
   len--;
   name++;
 
   for (; len > 0; len--, name++) {
     if (ISASCII(*name) && !(*name == '_' || ISALNUM(*name))) {
-      goto badname;
+      badname_error(mrb, id);
     }
   }
 }
@@ -464,6 +469,12 @@ mrb_binding_new(mrb_state *mrb, const struct RProc *proc, mrb_value recv, struct
  *   b = get_binding("hello")
  *   b.eval("param")  #=> "hello"
  */
+static mrb_noreturn void
+caller_error(mrb_state *mrb)
+{
+  mrb_raise(mrb, E_RUNTIME_ERROR, "Cannot create Binding object for non-Ruby caller");
+}
+
 static mrb_value
 mrb_f_binding(mrb_state *mrb, mrb_value self)
 {
@@ -471,12 +482,11 @@ mrb_f_binding(mrb_state *mrb, mrb_value self)
   struct REnv *env;
 
   if (mrb->c->ci->cci != 0) {
-  caller_err:
-    mrb_raise(mrb, E_RUNTIME_ERROR, "Cannot create Binding object for non-Ruby caller");
+    caller_error(mrb);
   }
   proc = (struct RProc*)mrb_proc_get_caller(mrb, &env);
   if (!env || MRB_PROC_CFUNC_P(proc)) {
-    goto caller_err;
+    caller_error(mrb);
   }
   return mrb_binding_new(mrb, proc, self, env);
 }
