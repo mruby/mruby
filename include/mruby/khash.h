@@ -407,6 +407,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
 #define kh_value(name, h, x) (kh_vals_##name(h)[x])
 #define kh_begin(h) (khint_t)(0)
 #define kh_end(h) ((h)->n_buckets == 0 ? (h)->size : (h)->n_buckets)
+#define kh_is_end(h, i) ((i) >= kh_end(h))
 #define kh_size(h) ((h)->size)
 #define kh_n_buckets(h) ((h)->n_buckets)
 
@@ -448,7 +449,7 @@ MRB_END_DECL
  */
 #define KHASH_FOREACH(name, kh, k) \
   if (kh) \
-    for (khiter_t k = kh_begin(kh); k != kh_end(kh); k++) \
+    for (khiter_t k = kh_begin(kh); !kh_is_end(kh, k); k++) \
       if (kh_exist(name, kh, k))
 
 #endif  /* MRUBY_KHASH_H */
