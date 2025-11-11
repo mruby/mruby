@@ -120,6 +120,12 @@ io_set_process_status(mrb_state *mrb, pid_t pid, int status)
 }
 #endif
 
+static mrb_noreturn void
+mode_error(mrb_state *mrb, const char *mode)
+{
+  mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal access mode %s", mode);
+}
+
 static int
 io_modestr_to_flags(mrb_state *mrb, const char *mode)
 {
@@ -137,7 +143,7 @@ io_modestr_to_flags(mrb_state *mrb, const char *mode)
       flags = O_WRONLY | O_CREAT | O_APPEND;
       break;
     default:
-      goto modeerr;
+      mode_error(mrb, mode);
   }
 
   while (*m) {
@@ -148,7 +154,7 @@ io_modestr_to_flags(mrb_state *mrb, const char *mode)
 #endif
         break;
       case 'x':
-        if (mode[0] != 'w') goto modeerr;
+        if (mode[0] != 'w') mode_error(mrb, mode);
         flags |= O_EXCL;
         break;
       case '+':
@@ -157,15 +163,11 @@ io_modestr_to_flags(mrb_state *mrb, const char *mode)
       case ':':
         /* XXX: PASSTHROUGH*/
       default:
-        goto modeerr;
+        mode_error(mrb, mode);
     }
   }
 
   return flags;
-
- modeerr:
-  mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal access mode %s", mode);
-  return 0; /* not reached */
 }
 
 static int
@@ -511,6 +513,12 @@ io_init_copy(mrb_state *mrb, mrb_value copy)
   return copy;
 }
 
+static mrb_noreturn void
+badfd_error(mrb_state *mrb)
+{
+  mrb_sys_fail(mrb, "bad file descriptor");
+}
+
 static void
 check_file_descriptor(mrb_state *mrb, mrb_int fd)
 {
@@ -520,7 +528,7 @@ check_file_descriptor(mrb_state *mrb, mrb_int fd)
 #if MRB_INT_MIN < INT_MIN || MRB_INT_MAX > INT_MAX
   if (fdi != fd) {
     errno = EBADF;
-    goto badfd;
+    badfd_error(mrb);
   }
 #endif
 
@@ -536,16 +544,12 @@ check_file_descriptor(mrb_state *mrb, mrb_int fd)
 
   if (fdi < 0 || fdi > _getmaxstdio()) {
     errno = EBADF;
-    goto badfd;
+    badfd_error(mrb);
   }
 #endif /* _WIN32 */
 
   if (fstat(fdi, &sb) == 0) return;
-  if (errno == EBADF) goto badfd;
-  return;
-
-badfd:
-  mrb_sys_fail(mrb, "bad file descriptor");
+  if (errno == EBADF) badfd_error(mrb);
 }
 
 static mrb_value
