@@ -2163,7 +2163,7 @@ mrb_hash_equal(mrb_state *mrb, mrb_value hash)
   }
 
   /* Check for recursion */
-  if (MRB_RECURSIVE_BINARY_P(mrb, MRB_OPSYM(eq), hash, hash2)) {
+  if (MRB_RECURSIVE_BINARY_FUNC_P(mrb, MRB_OPSYM(eq), hash, hash2)) {
     return mrb_false_value();
   }
 
@@ -2211,7 +2211,7 @@ mrb_hash_eql(mrb_state *mrb, mrb_value hash)
   }
 
   /* Check for recursion */
-  if (MRB_RECURSIVE_BINARY_P(mrb, MRB_SYM_Q(eql), hash, hash2)) {
+  if (MRB_RECURSIVE_BINARY_FUNC_P(mrb, MRB_SYM_Q(eql), hash, hash2)) {
     return mrb_false_value();
   }
 

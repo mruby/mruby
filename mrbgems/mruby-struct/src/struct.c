@@ -605,7 +605,7 @@ mrb_struct_equal(mrb_state *mrb, mrb_value s)
   }
 
   /* Check for recursion */
-  if (MRB_RECURSIVE_BINARY_P(mrb, MRB_OPSYM(eq), s, s2)) {
+  if (MRB_RECURSIVE_BINARY_FUNC_P(mrb, MRB_OPSYM(eq), s, s2)) {
     return mrb_false_value();
   }
 
@@ -649,7 +649,7 @@ mrb_struct_eql(mrb_state *mrb, mrb_value s)
   }
 
   /* Check for recursion */
-  if (MRB_RECURSIVE_BINARY_P(mrb, MRB_SYM_Q(eql), s, s2)) {
+  if (MRB_RECURSIVE_BINARY_FUNC_P(mrb, MRB_SYM_Q(eql), s, s2)) {
     return mrb_false_value();
   }
 

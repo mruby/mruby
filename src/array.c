@@ -1890,7 +1890,7 @@ mrb_ary_eq(mrb_state *mrb, mrb_value ary1)
   if (n == 0) return mrb_false_value();
 
   /* Check for recursion */
-  if (MRB_RECURSIVE_BINARY_P(mrb, MRB_OPSYM(eq), ary1, ary2)) {
+  if (MRB_RECURSIVE_BINARY_FUNC_P(mrb, MRB_OPSYM(eq), ary1, ary2)) {
     return mrb_false_value();
   }
 
@@ -1921,7 +1921,7 @@ mrb_ary_eql(mrb_state *mrb, mrb_value ary1)
   if (n == 0) return mrb_false_value();
 
   /* Check for recursion */
-  if (MRB_RECURSIVE_BINARY_P(mrb, MRB_SYM_Q(eql), ary1, ary2)) {
+  if (MRB_RECURSIVE_BINARY_FUNC_P(mrb, MRB_SYM_Q(eql), ary1, ary2)) {
     return mrb_false_value();
   }
 

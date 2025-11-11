@@ -167,6 +167,30 @@ mrb_recursive_method_p(mrb_state *mrb, mrb_sym mid, mrb_value obj1, mrb_value ob
   return FALSE;
 }
 
+/**
+ * Check if a C function call is recursive.
+ *
+ * Like mrb_recursive_method_p, but starts from ci[-2] to skip the immediate
+ * parent frame. Use this from C functions implementing Ruby methods that can
+ * be overridden with super calls.
+ */
+MRB_API mrb_bool
+mrb_recursive_func_p(mrb_state *mrb, mrb_sym mid, mrb_value obj1, mrb_value obj2)
+{
+  /* Start from ci[-2] to skip immediate parent frame which may be a
+     Ruby override calling super */
+  for (mrb_callinfo *ci=&mrb->c->ci[-2]; ci>=mrb->c->cibase; ci--) {
+    if (ci->mid == mid && mrb_obj_eq(mrb, obj1, ci->stack[0])) {
+      /* For unary methods, only check first argument */
+      if (mrb_nil_p(obj2)) return TRUE;
+
+      /* For binary methods, check both arguments */
+      if (mrb_obj_eq(mrb, obj2, ci->stack[1])) return TRUE;
+    }
+  }
+  return FALSE;
+}
+
 static mrb_value
 mrb_obj_method_recursive_p(mrb_state *mrb, mrb_value obj)
 {
