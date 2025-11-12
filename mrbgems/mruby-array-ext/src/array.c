@@ -8,6 +8,7 @@
 #include <mruby/internal.h>
 #include <mruby/presym.h>
 #include <mruby/khash.h>
+#include <mruby/throw.h>
 
 /* khash set for temporary array operations */
 static inline khint_t
@@ -458,17 +459,30 @@ ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_va
     ary_set_t *set = &set_struct;
     ary_init_temp_set(mrb, set, total_len);
 
-    for (mrb_int i = 0; i < argc; i++) {
-      ary_populate_temp_set(mrb, set, argv[i]);
-    }
+    struct mrb_jmpbuf *prev_jmp = mrb->jmp;
+    struct mrb_jmpbuf c_jmp;
 
-    for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
-      mrb_value p = RARRAY_PTR(self)[i];
-      khiter_t k = kh_get(ary_set, mrb, set, p);
-      if (k == kh_end(set)) {  /* key doesn't exist in any ary */
-        mrb_ary_push(mrb, result, p);
+    MRB_TRY(&c_jmp) {
+      mrb->jmp = &c_jmp;
+      for (mrb_int i = 0; i < argc; i++) {
+        ary_populate_temp_set(mrb, set, argv[i]);
       }
+
+      for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
+        mrb_value p = RARRAY_PTR(self)[i];
+        khiter_t k = kh_get(ary_set, mrb, set, p);
+        if (kh_is_end(set, k)) {  /* key doesn't exist in any ary */
+          mrb_ary_push(mrb, result, p);
+        }
+      }
+      mrb->jmp = prev_jmp;
     }
+    MRB_CATCH(&c_jmp) {
+      mrb->jmp = prev_jmp;
+      ary_destroy_temp_set(mrb, set);
+      MRB_THROW(mrb->jmp);
+    }
+    MRB_END_EXC(&c_jmp);
 
     ary_destroy_temp_set(mrb, set);
   }
@@ -558,28 +572,41 @@ ary_union_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value
     ary_set_t *set = &set_struct;
     ary_init_temp_set(mrb, set, total_len);
 
-    /* Add unique elements from self */
-    for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
-      mrb_value elem = RARRAY_PTR(self)[i];
-      khiter_t k = kh_get(ary_set, mrb, set, elem);
-      if (k == kh_end(set)) {
-        kh_put(ary_set, mrb, set, elem);
-        mrb_ary_push(mrb, result, elem);
-      }
-    }
+    struct mrb_jmpbuf *prev_jmp = mrb->jmp;
+    struct mrb_jmpbuf c_jmp;
 
-    /* Add unique elements from others */
-    for (mrb_int i = 0; i < argc; i++) {
-      mrb_value other = argv[i];
-      for (mrb_int j = 0; j < RARRAY_LEN(other); j++) {
-        mrb_value elem = RARRAY_PTR(other)[j];
+    MRB_TRY(&c_jmp) {
+      mrb->jmp = &c_jmp;
+      /* Add unique elements from self */
+      for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
+        mrb_value elem = RARRAY_PTR(self)[i];
         khiter_t k = kh_get(ary_set, mrb, set, elem);
-        if (k == kh_end(set)) {
+        if (kh_is_end(set, k)) {
           kh_put(ary_set, mrb, set, elem);
           mrb_ary_push(mrb, result, elem);
         }
       }
+
+      /* Add unique elements from others */
+      for (mrb_int i = 0; i < argc; i++) {
+        mrb_value other = argv[i];
+        for (mrb_int j = 0; j < RARRAY_LEN(other); j++) {
+          mrb_value elem = RARRAY_PTR(other)[j];
+          khiter_t k = kh_get(ary_set, mrb, set, elem);
+          if (kh_is_end(set, k)) {
+            kh_put(ary_set, mrb, set, elem);
+            mrb_ary_push(mrb, result, elem);
+          }
+        }
+      }
+      mrb->jmp = prev_jmp;
     }
+    MRB_CATCH(&c_jmp) {
+      mrb->jmp = prev_jmp;
+      ary_destroy_temp_set(mrb, set);
+      MRB_THROW(mrb->jmp);
+    }
+    MRB_END_EXC(&c_jmp);
 
     ary_destroy_temp_set(mrb, set);
   }
@@ -658,18 +685,31 @@ ary_intersection_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mr
     ary_set_t *set = &set_struct;
     ary_init_temp_set(mrb, set, total_len);
 
-    for (mrb_int i = 0; i < argc; i++) {
-      ary_populate_temp_set(mrb, set, argv[i]);
-    }
+    struct mrb_jmpbuf *prev_jmp = mrb->jmp;
+    struct mrb_jmpbuf c_jmp;
 
-    for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
-      mrb_value p = RARRAY_PTR(self)[i];
-      khiter_t k = kh_get(ary_set, mrb, set, p);
-      if (k != kh_end(set)) {
-        mrb_ary_push(mrb, result, p);
-        kh_del(ary_set, mrb, set, k);
+    MRB_TRY(&c_jmp) {
+      mrb->jmp = &c_jmp;
+      for (mrb_int i = 0; i < argc; i++) {
+        ary_populate_temp_set(mrb, set, argv[i]);
       }
+
+      for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
+        mrb_value p = RARRAY_PTR(self)[i];
+        khiter_t k = kh_get(ary_set, mrb, set, p);
+        if (!kh_is_end(set, k)) {
+          mrb_ary_push(mrb, result, p);
+          kh_del(ary_set, mrb, set, k);
+        }
+      }
+      mrb->jmp = prev_jmp;
     }
+    MRB_CATCH(&c_jmp) {
+      mrb->jmp = prev_jmp;
+      ary_destroy_temp_set(mrb, set);
+      MRB_THROW(mrb->jmp);
+    }
+    MRB_END_EXC(&c_jmp);
 
     ary_destroy_temp_set(mrb, set);
   }
@@ -787,17 +827,35 @@ ary_intersect_p(mrb_state *mrb, mrb_value self)
     ary_set_t set_struct;
     ary_set_t *set = &set_struct;
     ary_init_temp_set(mrb, set, RARRAY_LEN(shorter_ary));
-    ary_populate_temp_set(mrb, set, shorter_ary);
 
-    for (mrb_int i = 0; i < RARRAY_LEN(longer_ary); i++) {
-      khiter_t k = kh_get(ary_set, mrb, set, RARRAY_PTR(longer_ary)[i]);
-      if (k != kh_end(set)) {
-        ary_destroy_temp_set(mrb, set);
-        return mrb_true_value();
+    struct mrb_jmpbuf *prev_jmp = mrb->jmp;
+    struct mrb_jmpbuf c_jmp;
+    mrb_bool found = FALSE;
+
+    MRB_TRY(&c_jmp) {
+      mrb->jmp = &c_jmp;
+      ary_populate_temp_set(mrb, set, shorter_ary);
+
+      for (mrb_int i = 0; i < RARRAY_LEN(longer_ary); i++) {
+        khiter_t k = kh_get(ary_set, mrb, set, RARRAY_PTR(longer_ary)[i]);
+        if (!kh_is_end(set, k)) {
+          found = TRUE;
+          break;
+        }
       }
+      mrb->jmp = prev_jmp;
     }
+    MRB_CATCH(&c_jmp) {
+      mrb->jmp = prev_jmp;
+      ary_destroy_temp_set(mrb, set);
+      MRB_THROW(mrb->jmp);
+    }
+    MRB_END_EXC(&c_jmp);
 
     ary_destroy_temp_set(mrb, set);
+    if (found) {
+      return mrb_true_value();
+    }
   }
   else {
     for (mrb_int i = 0; i < RARRAY_LEN(longer_ary); i++) {
@@ -964,19 +1022,33 @@ ary_uniq_bang(mrb_state *mrb, mrb_value self)
     ary_set_t set_struct;
     ary_set_t *set = &set_struct;
     ary_init_temp_set(mrb, set, len);
-    ary_populate_temp_set(mrb, set, self);
 
-    for (mrb_int read_pos = 0; read_pos < len; read_pos++) {
-      mrb_value elem = RARRAY_PTR(self)[read_pos];
-      khiter_t k = kh_get(ary_set, mrb, set, elem);
-      if (k != kh_end(set)) {
-        if (write_pos != read_pos) {
-          RARRAY_PTR(self)[write_pos] = elem;
+    struct mrb_jmpbuf *prev_jmp = mrb->jmp;
+    struct mrb_jmpbuf c_jmp;
+
+    MRB_TRY(&c_jmp) {
+      mrb->jmp = &c_jmp;
+      ary_populate_temp_set(mrb, set, self);
+
+      for (mrb_int read_pos = 0; read_pos < len; read_pos++) {
+        mrb_value elem = RARRAY_PTR(self)[read_pos];
+        khiter_t k = kh_get(ary_set, mrb, set, elem);
+        if (!kh_is_end(set, k)) {
+          if (write_pos != read_pos) {
+            RARRAY_PTR(self)[write_pos] = elem;
+          }
+          write_pos++;
+          kh_del(ary_set, mrb, set, k);
         }
-        write_pos++;
-        kh_del(ary_set, mrb, set, k);
       }
+      mrb->jmp = prev_jmp;
     }
+    MRB_CATCH(&c_jmp) {
+      mrb->jmp = prev_jmp;
+      ary_destroy_temp_set(mrb, set);
+      MRB_THROW(mrb->jmp);
+    }
+    MRB_END_EXC(&c_jmp);
 
     ary_destroy_temp_set(mrb, set);
   }
