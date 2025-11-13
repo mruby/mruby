@@ -455,6 +455,12 @@ ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_va
   mrb_value result = mrb_ary_new(mrb);
 
   if (total_len > SET_OP_HASH_THRESHOLD) {
+    /* Create shared copies to protect elements during khash operations */
+    mrb_value *argv_copies = (mrb_value *)mrb_alloca(mrb, sizeof(mrb_value) * argc);
+    for (mrb_int i = 0; i < argc; i++) {
+      argv_copies[i] = mrb_ary_make_shared_copy(mrb, argv[i]);
+    }
+
     ary_set_t set_struct;
     ary_set_t *set = &set_struct;
     ary_init_temp_set(mrb, set, total_len);
@@ -465,7 +471,7 @@ ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_va
     MRB_TRY(&c_jmp) {
       mrb->jmp = &c_jmp;
       for (mrb_int i = 0; i < argc; i++) {
-        ary_populate_temp_set(mrb, set, argv[i]);
+        ary_populate_temp_set(mrb, set, argv_copies[i]);
       }
 
       for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
@@ -568,6 +574,13 @@ ary_union_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value
   mrb_value result = mrb_ary_new(mrb);
 
   if (total_len > SET_OP_HASH_THRESHOLD) {
+    /* Create shared copies to protect elements during khash operations */
+    mrb_value self_copy = mrb_ary_make_shared_copy(mrb, self);
+    mrb_value *argv_copies = (mrb_value *)mrb_alloca(mrb, sizeof(mrb_value) * argc);
+    for (mrb_int i = 0; i < argc; i++) {
+      argv_copies[i] = mrb_ary_make_shared_copy(mrb, argv[i]);
+    }
+
     ary_set_t set_struct;
     ary_set_t *set = &set_struct;
     ary_init_temp_set(mrb, set, total_len);
@@ -578,8 +591,8 @@ ary_union_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value
     MRB_TRY(&c_jmp) {
       mrb->jmp = &c_jmp;
       /* Add unique elements from self */
-      for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
-        mrb_value elem = RARRAY_PTR(self)[i];
+      for (mrb_int i = 0; i < RARRAY_LEN(self_copy); i++) {
+        mrb_value elem = RARRAY_PTR(self_copy)[i];
         khiter_t k = kh_get(ary_set, mrb, set, elem);
         if (kh_is_end(set, k)) {
           kh_put(ary_set, mrb, set, elem);
@@ -589,7 +602,7 @@ ary_union_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value
 
       /* Add unique elements from others */
       for (mrb_int i = 0; i < argc; i++) {
-        mrb_value other = argv[i];
+        mrb_value other = argv_copies[i];
         for (mrb_int j = 0; j < RARRAY_LEN(other); j++) {
           mrb_value elem = RARRAY_PTR(other)[j];
           khiter_t k = kh_get(ary_set, mrb, set, elem);
@@ -681,6 +694,12 @@ ary_intersection_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mr
   mrb_value result = mrb_ary_new(mrb);
 
   if (total_len > SET_OP_HASH_THRESHOLD) {
+    /* Create shared copies to protect elements during khash operations */
+    mrb_value *argv_copies = (mrb_value *)mrb_alloca(mrb, sizeof(mrb_value) * argc);
+    for (mrb_int i = 0; i < argc; i++) {
+      argv_copies[i] = mrb_ary_make_shared_copy(mrb, argv[i]);
+    }
+
     ary_set_t set_struct;
     ary_set_t *set = &set_struct;
     ary_init_temp_set(mrb, set, total_len);
@@ -691,7 +710,7 @@ ary_intersection_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mr
     MRB_TRY(&c_jmp) {
       mrb->jmp = &c_jmp;
       for (mrb_int i = 0; i < argc; i++) {
-        ary_populate_temp_set(mrb, set, argv[i]);
+        ary_populate_temp_set(mrb, set, argv_copies[i]);
       }
 
       for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
@@ -824,9 +843,11 @@ ary_intersect_p(mrb_state *mrb, mrb_value self)
   }
 
   if (RARRAY_LEN(shorter_ary) > SET_OP_HASH_THRESHOLD) {
+    mrb_value shorter_ary_copy = mrb_ary_make_shared_copy(mrb, shorter_ary);
+
     ary_set_t set_struct;
     ary_set_t *set = &set_struct;
-    ary_init_temp_set(mrb, set, RARRAY_LEN(shorter_ary));
+    ary_init_temp_set(mrb, set, RARRAY_LEN(shorter_ary_copy));
 
     struct mrb_jmpbuf *prev_jmp = mrb->jmp;
     struct mrb_jmpbuf c_jmp;
@@ -834,7 +855,7 @@ ary_intersect_p(mrb_state *mrb, mrb_value self)
 
     MRB_TRY(&c_jmp) {
       mrb->jmp = &c_jmp;
-      ary_populate_temp_set(mrb, set, shorter_ary);
+      ary_populate_temp_set(mrb, set, shorter_ary_copy);
 
       for (mrb_int i = 0; i < RARRAY_LEN(longer_ary); i++) {
         khiter_t k = kh_get(ary_set, mrb, set, RARRAY_PTR(longer_ary)[i]);
@@ -1019,6 +1040,9 @@ ary_uniq_bang(mrb_state *mrb, mrb_value self)
   mrb_int write_pos = 0;
 
   if (len > SET_OP_HASH_THRESHOLD) {
+    /* Create shared copy to protect elements during khash operations */
+    mrb_value self_copy = mrb_ary_make_shared_copy(mrb, self);
+
     ary_set_t set_struct;
     ary_set_t *set = &set_struct;
     ary_init_temp_set(mrb, set, len);
@@ -1028,7 +1052,7 @@ ary_uniq_bang(mrb_state *mrb, mrb_value self)
 
     MRB_TRY(&c_jmp) {
       mrb->jmp = &c_jmp;
-      ary_populate_temp_set(mrb, set, self);
+      ary_populate_temp_set(mrb, set, self_copy);
 
       for (mrb_int read_pos = 0; read_pos < len; read_pos++) {
         mrb_value elem = RARRAY_PTR(self)[read_pos];
