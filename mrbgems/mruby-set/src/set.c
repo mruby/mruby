@@ -1232,18 +1232,14 @@ set_has_nested_sets(mrb_state *mrb, kset_t *set)
  * Helper function: Perform the actual flattening operation
  * Returns the flattened set (creates a new kset_t*)
  */
-static kset_t*
-set_do_flatten(mrb_state *mrb, kset_t *source_set)
+static void
+set_do_flatten(mrb_state *mrb, kset_t *result_set, kset_t *source_set)
 {
-  kset_t *result_set = kset_init(mrb);
   int seen_count = 0;
 
   if (set_flatten_recursive(mrb, result_set, source_set, &seen_count) < 0) {
-    kh_destroy(set_val, mrb, result_set);
     mrb_raise(mrb, E_ARGUMENT_ERROR, "flatten recursion depth too deep");
   }
-
-  return result_set;
 }
 
 /*
@@ -1272,12 +1268,7 @@ set_flatten(mrb_state *mrb, mrb_value self)
   mrb_value result = mrb_obj_new(mrb, mrb_obj_class(mrb, self), 0, NULL);
   kset_t *result_set = set_get_kset(mrb, result);
 
-  kset_t *flattened = set_do_flatten(mrb, self_set);
-
-  /* Replace result_set's data with flattened data */
-  kset_destroy_data(mrb, result_set);
-  *result_set = *flattened;
-  mrb_free(mrb, flattened);
+  set_do_flatten(mrb, result_set, self_set);
 
   return result;
 }
@@ -1304,12 +1295,16 @@ set_flatten_bang(mrb_state *mrb, mrb_value self)
     return mrb_nil_value(); /* No nested sets, no changes needed */
   }
 
-  /* Flatten into a new set and replace self */
-  kset_t *flattened = set_do_flatten(mrb, self_set);
+  /* Create a temporary set to flatten into (GC-protected) */
+  mrb_value temp = mrb_obj_new(mrb, mrb_obj_class(mrb, self), 0, NULL);
+  kset_t *temp_set = set_get_kset(mrb, temp);
 
-  kset_destroy_data(mrb, self_set);
-  *self_set = *flattened;
-  mrb_free(mrb, flattened);
+  set_do_flatten(mrb, temp_set, self_set);
+
+  /* Swap the data between self and temp */
+  kset_t temp_data = *self_set;
+  *self_set = *temp_set;
+  *temp_set = temp_data;
 
   return self;
 }
