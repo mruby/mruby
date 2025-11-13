@@ -741,13 +741,7 @@ mrb_core_init_protect(mrb_state *mrb, void (*body)(mrb_state*, void*), void *opa
     body(mrb, opaque);
     err = 0;
   } MRB_CATCH(&c_jmp) {
-    if (mrb->exc) {
-      mrb_print_error(mrb);
-      mrb->exc = NULL;
-    }
-    else {
-      mrb_core_init_printabort(mrb);
-    }
+    /* Leave mrb->exc set for caller to inspect */
   } MRB_END_EXC(&c_jmp);
 
   mrb->jmp = prev_jmp;

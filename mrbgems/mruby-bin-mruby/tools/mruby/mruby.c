@@ -282,8 +282,16 @@ main(int argc, char **argv)
   mrb_value ARGV;
   mrb_value v;
 
-  if (mrb == NULL) {
-    fprintf(stderr, "%s: Invalid mrb_state, exiting mruby\n", *argv);
+  if (!MRB_OPEN_SUCCESS(mrb)) {
+    if (mrb) {
+      /* Initialization failed - print exception details */
+      mrb_print_error(mrb);
+      mrb_close(mrb);
+    }
+    else {
+      /* Allocation failed */
+      fprintf(stderr, "%s: Failed to allocate mrb_state, exiting mruby\n", *argv);
+    }
     return EXIT_FAILURE;
   }
 

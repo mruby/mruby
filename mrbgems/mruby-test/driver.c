@@ -290,8 +290,16 @@ main(int argc, char **argv)
 
   /* new interpreter instance */
   mrb = mrb_open();
-  if (mrb == NULL) {
-    fputs("Invalid mrb_state, exiting test driver", stderr);
+  if (!MRB_OPEN_SUCCESS(mrb)) {
+    if (mrb) {
+      /* Initialization failed - print exception details */
+      mrb_print_error(mrb);
+      mrb_close(mrb);
+    }
+    else {
+      /* Allocation failed */
+      fputs("Failed to allocate mrb_state, exiting test driver", stderr);
+    }
     return EXIT_FAILURE;
   }
 
