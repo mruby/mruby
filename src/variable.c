@@ -1065,8 +1065,10 @@ mrb_const_set(mrb_state *mrb, mrb_value mod, mrb_sym sym, mrb_value v)
   }
   mrb_obj_iv_set(mrb, mrb_obj_ptr(mod), sym, v);
 
-  mrb_value name = mrb_symbol_value(sym);
-  mrb_funcall_argv(mrb, mod, MRB_SYM(const_added), 1, &name);
+  if (!mrb->bootstrapping) {
+    mrb_value name = mrb_symbol_value(sym);
+    mrb_funcall_argv(mrb, mod, MRB_SYM(const_added), 1, &name);
+  }
 }
 
 /*
