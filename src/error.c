@@ -845,6 +845,11 @@ MRB_API void
 mrb_print_error(mrb_state *mrb)
 {
 #ifndef MRB_NO_STDIO
+  if (!mrb) {
+    /* mrb_open() returned NULL - allocation failed */
+    fputs("Failed to allocate mrb_state\n", stderr);
+    return;
+  }
   if (mrb->jmp == NULL) {
     struct mrb_jmpbuf c_jmp;
     MRB_TRY(&c_jmp) {

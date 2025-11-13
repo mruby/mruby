@@ -674,15 +674,8 @@ main(int argc, char **argv)
  l_restart:
 
   if (!MRB_OPEN_SUCCESS(mrb)) {
-    if (mrb) {
-      /* Initialization failed - print exception details */
-      mrb_print_error(mrb);
-      mrb_close(mrb);
-    }
-    else {
-      /* Allocation failed */
-      fputs("Failed to allocate mrb_state, exiting mrdb\n", stderr);
-    }
+    mrb_print_error(mrb);  /* handles NULL */
+    mrb_close(mrb);        /* handles NULL */
     return EXIT_FAILURE;
   }
 

@@ -476,15 +476,8 @@ main(int argc, char **argv)
   /* new interpreter instance */
   mrb = mrb_open();
   if (!MRB_OPEN_SUCCESS(mrb)) {
-    if (mrb) {
-      /* Initialization failed - print exception details */
-      mrb_print_error(mrb);
-      mrb_close(mrb);
-    }
-    else {
-      /* Allocation failed */
-      fputs("Failed to allocate mrb_state, exiting mirb\n", stderr);
-    }
+    mrb_print_error(mrb);  /* handles NULL */
+    mrb_close(mrb);        /* handles NULL */
     return EXIT_FAILURE;
   }
 
