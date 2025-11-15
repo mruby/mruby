@@ -1104,6 +1104,8 @@ mpz_mul(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v)
   mpz_realloc(ctx, ww, result_size);
 
   size_t scratch_size = karatsuba_scratch_size(u->sz, v->sz);
+  /* Add safety margin to account for rounding in recursive partitioning */
+  scratch_size += 8;
   size_t pool_state = pool_save(ctx);
   mp_limb *scratch = NULL;
 
