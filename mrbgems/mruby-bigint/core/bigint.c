@@ -1644,7 +1644,6 @@ mpz_mod(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *y)
   short sn = x->sn;
 
   if (zero_p(x)) {
-    mpz_init(ctx, r);
     zero(r);
     return;
   }
@@ -1661,7 +1660,7 @@ mpz_mod(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *y)
     mpz_t mu;
     mpz_init_temp(ctx, &mu, y->sz + 1);
     mpz_barrett_mu(ctx, &mu, y);
-    mpz_init_heap(ctx, r, y->sz);
+    mpz_realloc(ctx, r, y->sz);
     mpz_barrett_reduce(ctx, r, x, y, &mu);
     r->sn = sn;
     if (uzero_p(r))
@@ -1673,7 +1672,7 @@ mpz_mod(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *y)
   /* General division fallback */
   mpz_t q;
   mpz_init_temp(ctx, &q, x->sz);
-  mpz_init_heap(ctx, r, y->sz);
+  mpz_realloc(ctx, r, y->sz);
   udiv(ctx, &q, r, x, y);
   r->sn = sn;
   if (uzero_p(r))
