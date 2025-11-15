@@ -282,7 +282,7 @@ main(int argc, char **argv)
   mrb_value ARGV;
   mrb_value v;
 
-  if (!MRB_OPEN_SUCCESS(mrb)) {
+  if (MRB_OPEN_FAILURE(mrb)) {
     mrb_print_error(mrb);  /* handles NULL */
     mrb_close(mrb);        /* handles NULL */
     return EXIT_FAILURE;

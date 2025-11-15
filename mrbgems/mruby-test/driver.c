@@ -290,7 +290,7 @@ main(int argc, char **argv)
 
   /* new interpreter instance */
   mrb = mrb_open();
-  if (!MRB_OPEN_SUCCESS(mrb)) {
+  if (MRB_OPEN_FAILURE(mrb)) {
     mrb_print_error(mrb);  /* handles NULL */
     mrb_close(mrb);        /* handles NULL */
     return EXIT_FAILURE;

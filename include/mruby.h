@@ -1271,18 +1271,18 @@ MRB_API void mrb_close(mrb_state *mrb);
 MRB_API void mrb_method_cache_clear(mrb_state *mrb);
 
 /**
- * Check if mrb_open() succeeded
+ * Check if mrb_open() failed
  *
  * @param mrb
  *      Pointer returned from mrb_open() or mrb_open_core().
  * @return
- *      Non-zero if initialization succeeded, 0 if failed.
+ *      Non-zero if initialization failed, 0 if succeeded.
  * @note
  *      mrb_open() may return non-NULL even on failure (with mrb->exc set).
- *      Use this macro to check for success:
+ *      Use this macro to check for failure:
  *      @code
  *      mrb_state *mrb = mrb_open();
- *      if (!MRB_OPEN_SUCCESS(mrb)) {
+ *      if (MRB_OPEN_FAILURE(mrb)) {
  *        if (mrb) {
  *          // Inspect mrb->exc for error details
  *          mrb_close(mrb);
@@ -1291,7 +1291,17 @@ MRB_API void mrb_method_cache_clear(mrb_state *mrb);
  *      }
  *      @endcode
  */
-#define MRB_OPEN_SUCCESS(mrb) ((mrb) && !(mrb)->exc)
+#define MRB_OPEN_FAILURE(mrb) (!(mrb) || (mrb)->exc)
+
+/**
+ * Check if mrb_open() succeeded
+ *
+ * @param mrb
+ *      Pointer returned from mrb_open() or mrb_open_core().
+ * @return
+ *      Non-zero if initialization succeeded, 0 if failed.
+ */
+#define MRB_OPEN_SUCCESS(mrb) (!MRB_OPEN_FAILURE(mrb))
 
 /**
  * The memory allocation function. You can redefine this function for your own allocator.
