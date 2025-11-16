@@ -2440,7 +2440,7 @@ RETRY_TRY_BLOCK:
         kdict = regs[mrb_ci_kidx(ci)];
       }
       if (!kd) {
-        if (!mrb_nil_p(kdict) && mrb_hash_size(mrb, kdict) > 0) {
+        if (!mrb_nil_p(kdict) && mrb_hash_p(kdict) && mrb_hash_size(mrb, kdict) > 0) {
           if (argc < 14) {
             ci->n++;
             argc++;    /* include kdict in normal arguments */
