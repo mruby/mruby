@@ -63,20 +63,6 @@ typedef khint_t kset_iter_t;
 #define kset_is_uninitialized(s) ((s)->data == NULL)
 #define kset_is_empty(s) (kset_is_uninitialized(s) || kset_size(s) == 0)
 
-/* Copy all elements from src to dst (merge operation) */
-static void
-kset_copy_merge(mrb_state *mrb, kset_t *dst, kset_t *src)
-{
-  if (!kset_is_empty(src)) {
-    int ai = mrb_gc_arena_save(mrb);
-    KSET_FOREACH(src, k) {
-      kset_put(mrb, dst, kset_key(src, k));
-      mrb_gc_arena_restore(mrb, ai);
-    }
-  }
-}
-
-
 /* Embedded set structure in RSet - exactly 3 pointers */
 struct RSet {
   MRB_OBJECT_HEADER;
@@ -93,6 +79,25 @@ set_get_kset(mrb_state *mrb, mrb_value self)
 {
   mrb_check_type(mrb, self, MRB_TT_SET);
   return &mrb_set_ptr(self)->set;
+}
+
+/* Get RSet pointer from embedded kset_t pointer */
+#define kset_to_rset(kset) ((struct RBasic*)((char*)(kset) - offsetof(struct RSet, set)))
+
+/* Copy all elements from src to dst (merge operation) */
+static void
+kset_copy_merge(mrb_state *mrb, kset_t *dst, kset_t *src)
+{
+  if (!kset_is_empty(src)) {
+    struct RBasic *dst_obj = kset_to_rset(dst);
+    int ai = mrb_gc_arena_save(mrb);
+    KSET_FOREACH(src, k) {
+      mrb_value key = kset_key(src, k);
+      kset_put(mrb, dst, key);
+      mrb_field_write_barrier_value(mrb, dst_obj, key);
+      mrb_gc_arena_restore(mrb, ai);
+    }
+  }
 }
 
 /* Helper function to ensure set is initialized */
@@ -298,6 +303,7 @@ set_add(mrb_state *mrb, mrb_value self)
   set_ensure_initialized(mrb, set);
 
   kset_put(mrb, set, obj);
+  mrb_field_write_barrier_value(mrb, kset_to_rset(set), obj);
   return self;
 }
 
@@ -317,6 +323,7 @@ set_add_p(mrb_state *mrb, mrb_value self)
 
   int ret;
   kset_put2(mrb, set, obj, &ret);
+  mrb_field_write_barrier_value(mrb, kset_to_rset(set), obj);
   return (ret == 0) ? mrb_nil_value() : self;
 }
 
@@ -516,6 +523,7 @@ set_core_intersection(mrb_state *mrb, mrb_value self)
     /* If key exists in self, add it to result */
     if (!kset_is_end(self_set, self_k)) {
       kset_put(mrb, result_set, key);
+      mrb_field_write_barrier_value(mrb, kset_to_rset(result_set), key);
     }
   }
 
@@ -564,6 +572,7 @@ set_core_xor(mrb_state *mrb, mrb_value self)
     /* Add to result if not in other */
     if (kset_is_end(other_set, other_k)) {
       kset_put(mrb, result_set, key);
+      mrb_field_write_barrier_value(mrb, kset_to_rset(result_set), key);
     }
     mrb_gc_arena_restore(mrb, ai);
   }
@@ -576,6 +585,7 @@ set_core_xor(mrb_state *mrb, mrb_value self)
     /* Add to result if not in self */
     if (kset_is_end(self_set, self_k)) {
       kset_put(mrb, result_set, key);
+      mrb_field_write_barrier_value(mrb, kset_to_rset(result_set), key);
     }
     mrb_gc_arena_restore(mrb, ai);
   }
@@ -1148,6 +1158,7 @@ set_add_all(mrb_state *mrb, mrb_value self)
   int ai = mrb_gc_arena_save(mrb);
   for (mrb_int i = 0; i < argc; i++) {
     kset_put(mrb, set, argv[i]);
+    mrb_field_write_barrier_value(mrb, kset_to_rset(set), argv[i]);
     mrb_gc_arena_restore(mrb, ai);
   }
 
@@ -1178,6 +1189,7 @@ set_flatten_recursive(mrb_state *mrb, kset_t *target, kset_t *source, int *seen_
   if (!source || !target) return 0;
   if (*seen_count >= MAX_NESTED_DEPTH) return -1;
 
+  struct RBasic *target_obj = kset_to_rset(target);
   int ai = mrb_gc_arena_save(mrb);
   /* Process each element in the source set */
   KSET_FOREACH(source, k) {
@@ -1203,6 +1215,7 @@ set_flatten_recursive(mrb_state *mrb, kset_t *target, kset_t *source, int *seen_
     else {
       /* Add non-Set element directly */
       kset_put(mrb, target, elem);
+      mrb_field_write_barrier_value(mrb, target_obj, elem);
     }
     mrb_gc_arena_restore(mrb, ai);
   }
@@ -1409,6 +1422,7 @@ set_s_create(mrb_state *mrb, mrb_value klass)
 
   for (mrb_int i = 0; i < argc; i++) {
     kset_put(mrb, ks, argv[i]);
+    mrb_field_write_barrier_value(mrb, kset_to_rset(ks), argv[i]);
   }
 
   return set;
