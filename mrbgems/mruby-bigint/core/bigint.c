@@ -1365,6 +1365,7 @@ udiv(mpz_ctx_t *ctx, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
 
   mrb_assert(yy->sn != 0);      /* divided by zero */
   mrb_assert(yy->sz > 0);       /* divided by zero */
+  mrb_assert(!uzero_p(yy));     /* divided by zero */
 
   /* Use new context architecture with automatic pool/heap management */
   size_t pool_state = pool_save(ctx);
@@ -1377,11 +1378,27 @@ udiv(mpz_ctx_t *ctx, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
   size_t ns = lzb(yy->p[yd-1]);
   ulshift(ctx, &x, xx, ns);
   ulshift(ctx, &y, yy, ns);
+  trim(&y);  /* Trim after shift to remove any zero limbs */
   size_t xd = digits(&x);
+  yd = digits(&y);
+
+  /* Handle edge case: divisor became zero after normalization */
+  if (yd == 0 || y.p[yd-1] == 0) {
+    /* This should not happen with valid inputs, but handle gracefully */
+    zero(qq);
+    zero(rr);
+    mpz_clear(ctx, &q);
+    mpz_clear(ctx, &x);
+    mpz_clear(ctx, &y);
+    pool_restore(ctx, pool_state);
+    return;
+  }
+
   mpz_realloc(ctx, &q, xd-yd+1);  // Quotient has xd-yd+1 digits maximum
 
   /* Core Knuth Algorithm D division loop */
   mp_dbl_limb z = y.p[yd-1];
+  mrb_assert(z != 0);  /* Divisor high limb must be non-zero after normalization */
 
   if (xd >= yd) {
     for (size_t j = xd - yd;; j--) {
@@ -1501,7 +1518,7 @@ udiv(mpz_ctx_t *ctx, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
       if (j == 0) break;
     }
   }
-  x.sz = yy->sz;
+  x.sz = yd;
   urshift(ctx, rr, &x, ns);
   trim(&q);
   mpz_move(ctx, qq, &q);
