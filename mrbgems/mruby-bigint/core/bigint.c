@@ -3257,6 +3257,7 @@ mrb_bint_mod(mrb_state *mrb, mrb_value x, mrb_value y)
     mrb_int_zerodiv(mrb);
   }
   mpz_t a, b, z;
+  x = mrb_as_bint(mrb, x);
   y = mrb_as_bint(mrb, y);
   bint_as_mpz(RBIGINT(y), &b);
   if (zero_p(&b) || uzero_p(&b)) {
@@ -3279,6 +3280,7 @@ mrb_bint_rem(mrb_state *mrb, mrb_value x, mrb_value y)
     mrb_int_zerodiv(mrb);
   }
   mpz_t a, b, z;
+  x = mrb_as_bint(mrb, x);
   y = mrb_as_bint(mrb, y);
   bint_as_mpz(RBIGINT(y), &b);
   if (zero_p(&b) || uzero_p(&b)) {
