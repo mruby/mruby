@@ -354,10 +354,11 @@ uadd(mpz_t *z, mpz_t *x, mpz_t *y)
   /* Core multi-limb addition with carry propagation */
   mp_dbl_limb c = 0;
   size_t i;
+  size_t min_sz = (x->sz < y->sz) ? x->sz : y->sz;
 
   /* Add overlapping limbs from both operands */
   /* 4x unrolled loop for better performance */
-  for (i = 0; i + 4 <= x->sz; i += 4) {
+  for (i = 0; i + 4 <= min_sz; i += 4) {
     c += (mp_dbl_limb)y->p[i] + (mp_dbl_limb)x->p[i];
     z->p[i] = LOW(c);
     c >>= DIG_SIZE;
@@ -375,9 +376,16 @@ uadd(mpz_t *z, mpz_t *x, mpz_t *y)
     c >>= DIG_SIZE;
   }
 
-  /* Handle remaining elements */
-  for (; i < x->sz; i++) {
+  /* Handle remaining elements in overlap */
+  for (; i < min_sz; i++) {
     c += (mp_dbl_limb)y->p[i] + (mp_dbl_limb)x->p[i];
+    z->p[i] = LOW(c);
+    c >>= DIG_SIZE;
+  }
+
+  /* Add remaining limbs from x if it's larger */
+  for (; i < x->sz; i++) {
+    c += x->p[i];
     z->p[i] = LOW(c);
     c >>= DIG_SIZE;
   }
