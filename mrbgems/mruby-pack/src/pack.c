@@ -1009,7 +1009,8 @@ pack_hex(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, 
   }
 
   /* calculate output buffer size needed - one byte per two hex chars */
-  int output_bytes = (count + 1) / 2;
+  /* use count/2 + (count&1) to avoid overflow when count == INT_MAX */
+  int output_bytes = count / 2 + (count & 1);
   dst = str_len_ensure(mrb, dst, didx + output_bytes);
   char *dptr = RSTRING_PTR(dst) + didx;
   char *dptr0 = dptr;
