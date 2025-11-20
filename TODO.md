@@ -3,7 +3,6 @@
 # After mruby 3.1
 
 - parser and code generator independent from `mrb_state` (picoruby?)
-- variable sized AST node
 - iv/hash entry cache
 - more peephole optimization (if possible)
 
