@@ -5153,20 +5153,26 @@ codegen_regx(codegen_scope *s, node *varnode, int val)
     /* Generate regex pattern using common cons list function */
     gen_string(s, n->list, VAL);
 
-    /* Add flags if present */
-    if (n->flags && *n->flags) {
-      off = new_lit_cstr(s, n->flags);
-      genop_2(s, OP_STRING, cursp(), off);
+    /* Add flags and/or encoding if present */
+    if ((n->flags && *n->flags) || (n->encoding && *n->encoding)) {
+      /* Add flags (or nil if not present but encoding is) */
+      if (n->flags && *n->flags) {
+        off = new_lit_cstr(s, n->flags);
+        genop_2(s, OP_STRING, cursp(), off);
+      }
+      else {
+        genop_1(s, OP_LOADNIL, cursp());
+      }
       push();
       argc++;
-    }
 
-    /* Add encoding if present */
-    if (n->encoding && *n->encoding) {
-      off = new_lit_cstr(s, n->encoding);
-      genop_2(s, OP_STRING, cursp(), off);
-      push();
-      argc++;
+      /* Add encoding if present */
+      if (n->encoding && *n->encoding) {
+        off = new_lit_cstr(s, n->encoding);
+        genop_2(s, OP_STRING, cursp(), off);
+        push();
+        argc++;
+      }
     }
 
     push(); /* space for a block */
