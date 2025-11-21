@@ -19,7 +19,7 @@ jobs:
       fail-fast: false
     steps:
       - name: "Checkout ${{ github.ref_name }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Builds
         id: builds
         run: |
