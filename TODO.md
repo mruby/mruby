@@ -1,6 +1,6 @@
 # Things to Do in the future
 
-# After mruby 3.1
+# After mruby 3.4
 
 - parser and code generator independent from `mrb_state` (picoruby?)
 - iv/hash entry cache
