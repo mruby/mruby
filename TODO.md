@@ -3,6 +3,7 @@
 # After mruby 3.4
 
 - parser and code generator independent from `mrb_state` (picoruby?)
+- pattern matching (case/in syntax, array/hash patterns, guards, etc.)
 - iv/hash entry cache
 - more peephole optimization (if possible)
 
