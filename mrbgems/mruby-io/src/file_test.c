@@ -10,7 +10,7 @@
 #include <mruby/error.h>
 #include <mruby/presym.h>
 #include <mruby/internal.h>
-#include "io_hal.h"
+#include <mruby/io_hal.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>

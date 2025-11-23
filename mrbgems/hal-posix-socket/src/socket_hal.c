@@ -12,7 +12,7 @@
 #include <mruby/class.h>
 #include <mruby/error.h>
 #include <mruby/presym.h>
-#include "socket_hal.h"
+#include <mruby/socket_hal.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>

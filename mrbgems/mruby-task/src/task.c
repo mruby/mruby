@@ -19,8 +19,8 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include "task.h"
-#include "task_hal.h"
+#include <mruby/task.h>
+#include <mruby/task_hal.h>
 
 /*
  * Queue helper macros

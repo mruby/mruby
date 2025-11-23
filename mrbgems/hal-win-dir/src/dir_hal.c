@@ -12,7 +12,7 @@
 */
 
 #include <mruby.h>
-#include "dir_hal.h"
+#include <mruby/dir_hal.h>
 
 #include <windows.h>
 #include <direct.h>

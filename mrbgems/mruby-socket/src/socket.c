@@ -39,7 +39,7 @@
 #include <mruby/presym.h>
 
 #include <mruby/ext/io.h>
-#include "socket_hal.h"
+#include <mruby/socket_hal.h>
 
 /* Address family information for compact lookup table */
 typedef struct {

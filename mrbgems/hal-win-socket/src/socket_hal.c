@@ -16,7 +16,7 @@
 #include <mruby/class.h>
 #include <mruby/error.h>
 #include <mruby/presym.h>
-#include "socket_hal.h"
+#include <mruby/socket_hal.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <windows.h>

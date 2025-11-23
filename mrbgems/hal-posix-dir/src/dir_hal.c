@@ -8,7 +8,7 @@
 */
 
 #include <mruby.h>
-#include "dir_hal.h"
+#include <mruby/dir_hal.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>

@@ -10,7 +10,7 @@
 */
 
 #include <mruby.h>
-#include "task_hal.h"
+#include <mruby/task_hal.h>
 #include <windows.h>
 #include <timeapi.h>
 #include <stdint.h>
