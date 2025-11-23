@@ -485,11 +485,20 @@ static struct mrb_time*
 time_alloc(mrb_state *mrb, mrb_value sec, mrb_value usec, enum mrb_timezone timezone)
 {
   time_t tsec, tusec; /* Variables to hold converted seconds and microseconds */
+  time_t nsec;
 
   tsec = mrb_to_time_t(mrb, sec, &tusec);
   tusec += mrb_to_time_t(mrb, usec, NULL);
 
-  return time_alloc_time(mrb, tsec, tusec * NSECS_PER_USEC, timezone);
+  /* Normalize microseconds to avoid overflow when converting to nanoseconds */
+  if (tusec >= USECS_PER_SEC || tusec <= -USECS_PER_SEC) {
+    time_t sec_adjustment = tusec / USECS_PER_SEC;
+    tusec -= sec_adjustment * USECS_PER_SEC;
+    tsec += sec_adjustment;
+  }
+
+  nsec = tusec * NSECS_PER_USEC;
+  return time_alloc_time(mrb, tsec, nsec, timezone);
 }
 
 /*
@@ -596,7 +605,17 @@ time_now(mrb_state *mrb, mrb_value self)
 MRB_API mrb_value
 mrb_time_at(mrb_state *mrb, time_t sec, time_t usec, enum mrb_timezone zone)
 {
-  return time_make_time(mrb, mrb_class_get_id(mrb, MRB_SYM(Time)), sec, usec * NSECS_PER_USEC, zone);
+  time_t nsec;
+
+  /* Normalize microseconds to avoid overflow when converting to nanoseconds */
+  if (usec >= USECS_PER_SEC || usec <= -USECS_PER_SEC) {
+    time_t sec_adjustment = usec / USECS_PER_SEC;
+    usec -= sec_adjustment * USECS_PER_SEC;
+    sec += sec_adjustment;
+  }
+
+  nsec = usec * NSECS_PER_USEC;
+  return time_make_time(mrb, mrb_class_get_id(mrb, MRB_SYM(Time)), sec, nsec, zone);
 }
 
 /*
