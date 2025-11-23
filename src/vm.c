@@ -1517,46 +1517,36 @@ prepare_tagged_break(mrb_state *mrb, uint32_t tag, const mrb_callinfo *return_ci
 
 #ifdef MRB_USE_VM_SWITCH_DISPATCH
 
-#define INIT_DISPATCH for (;;) { insn = BYTECODE_DECODER(*ci->pc); CODE_FETCH_HOOK(mrb, irep, ci->pc, regs); switch (insn) {
-#define CASE(insn,ops) case insn: { const mrb_code *pc = ci->pc+1; FETCH_ ## ops (); ci->pc = pc; } L_ ## insn ## _BODY:
+#define INIT_DISPATCH for (;;) { CALL_CODE_HOOKS(); switch (insn) {
+#define CASE(insn,ops) case insn: DECODE_OPERANDS(ops); L_ ## insn ## _BODY:
 #define NEXT goto L_END_DISPATCH
 #define JUMP NEXT
-#ifdef MRB_USE_TASK_SCHEDULER
-#define END_DISPATCH L_END_DISPATCH: \
-  if (mrb->task.switching || mrb->c->status == MRB_TASK_STOPPED) \
-    return mrb_nil_value(); \
-  }}
-#else
-#define END_DISPATCH L_END_DISPATCH:;}}
-#endif
+#define END_DISPATCH L_END_DISPATCH: RETURN_IF_TASK_STOPPED(mrb);}}
 
 #else
 
 #define INIT_DISPATCH JUMP; return mrb_nil_value();
-#define CASE(insn,ops) L_ ## insn: { const mrb_code *pc = ci->pc+1; FETCH_ ## ops (); ci->pc = pc; } L_ ## insn ## _BODY:
-#ifdef MRB_USE_TASK_SCHEDULER
-#define NEXT if (mrb->task.switching || mrb->c->status == MRB_TASK_STOPPED) return mrb_nil_value(); \
-  insn=BYTECODE_DECODER(*ci->pc); CODE_FETCH_HOOK(mrb, irep, ci->pc, regs); goto *optable[insn]
-#else
-#define NEXT insn=BYTECODE_DECODER(*ci->pc); CODE_FETCH_HOOK(mrb, irep, ci->pc, regs); goto *optable[insn]
-#endif
+#define CASE(insn,ops) L_ ## insn: DECODE_OPERANDS(ops); L_ ## insn ## _BODY:
+#define NEXT RETURN_IF_TASK_STOPPED(mrb); CALL_CODE_HOOKS(); goto *optable[insn]
 #define JUMP NEXT
-
-#ifdef MRB_USE_TASK_SCHEDULER
-#define END_DISPATCH \
-  if (mrb->task.switching || mrb->c->status == MRB_TASK_STOPPED) \
-    return mrb_nil_value();
-#else
-#define END_DISPATCH
-#endif
+#define END_DISPATCH RETURN_IF_TASK_STOPPED(mrb)
 
 #endif
 
+#define DECODE_OPERANDS(ops) do { const mrb_code *pc = ci->pc+1; FETCH_ ## ops (); ci->pc = pc; } while (0)
+#define CALL_CODE_HOOKS() do { insn = BYTECODE_DECODER(*ci->pc); CODE_FETCH_HOOK(mrb, irep, ci->pc, regs); } while (0)
+
 #ifdef MRB_USE_TASK_SCHEDULER
-#define TASK_STOP(mrb) \
+#define RETURN_IF_TASK_STOPPED(mrb) do { \
+  if ((mrb)->task.switching || (mrb)->c->status == MRB_TASK_STOPPED) \
+    return mrb_nil_value(); \
+} while (0)
+#define TASK_STOP(mrb) do { \
   if (mrb->c->status != MRB_TASK_STOPPED) \
-    mrb->c->status = MRB_TASK_STOPPED;
+    mrb->c->status = MRB_TASK_STOPPED; \
+} while (0)
 #else
+#define RETURN_IF_TASK_STOPPED(mrb)
 #define TASK_STOP(mrb)
 #endif
 
