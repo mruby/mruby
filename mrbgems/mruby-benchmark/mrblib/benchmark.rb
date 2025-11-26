@@ -20,7 +20,7 @@ module Benchmark
     end
 
     def to_s
-      format("%10.6f %10.6f %10.6f (%10.6f)\n", @utime, @stime, total, @real)
+      "%10.6f %10.6f %10.6f (%10.6f)\n" % [@utime, @stime, total, @real]
     end
 
     def format(format_str)
@@ -45,15 +45,19 @@ module Benchmark
 
     def report(label = "")
       tms = Benchmark.measure { yield }
-      tms.instance_variable_set(:@label, label)
+      # Create new Tms with label set
+      tms = Benchmark::Tms.new(tms.utime, tms.stime, tms.cutime, tms.cstime,
+                                tms.real, label, tms.objects, tms.memory)
 
       label_str = label.to_s
       if label_str.length < @width
         label_str = label_str + " " * (@width - label_str.length)
       end
 
-      print label_str
-      print tms.to_s
+      if $stdout
+        $stdout.print label_str
+        $stdout.print tms.to_s
+      end
 
       @results << tms
       tms
@@ -71,7 +75,7 @@ module Benchmark
     start_count = nil
 
     if memory
-      if defined?(ObjectSpace)
+      if Object.const_defined?(:ObjectSpace)
         start_count = ObjectSpace.count_objects
         start_objects = start_count.values.inject(0) { |sum, n| sum + n }
       end
@@ -113,10 +117,12 @@ module Benchmark
     report = Report.new(label_width)
 
     # Print header
-    if label_width > 0
-      print " " * label_width
+    if $stdout
+      if label_width > 0
+        $stdout.print " " * label_width
+      end
+      $stdout.puts "      user     system      total        real"
     end
-    puts "      user     system      total        real"
 
     yield report
 
