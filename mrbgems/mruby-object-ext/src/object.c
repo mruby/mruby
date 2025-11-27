@@ -66,7 +66,7 @@ nil_to_i(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     obj.itself -> an_object
  *
- *  Returns <i>obj</i>.
+ *  Returns *obj*.
  *
  *      string = 'my string' #=> "my string"
  *      string.itself.object_id == string.object_id #=> true
@@ -78,7 +78,7 @@ nil_to_i(mrb_state *mrb, mrb_value obj)
  *     obj.instance_exec(arg...) {|var...| block }                       -> obj
  *
  *  Executes the given block within the context of the receiver
- *  (_obj_). In order to set the context, the variable +self+ is set
+ *  (_obj_). In order to set the context, the variable `self` is set
  *  to _obj_ while the code is executing, giving the code access to
  *  _obj_'s instance variables.  Arguments are passed as block parameters.
  *

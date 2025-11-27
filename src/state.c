@@ -50,8 +50,8 @@ mrb_open_core(void)
   mrb->bootstrapping = TRUE;
 
   if (mrb_core_init_protect(mrb, init_gc_and_core, NULL)) {
-    mrb_close(mrb);
-    return NULL;
+    /* Return mrb with mrb->exc set for caller to inspect */
+    return mrb;
   }
 
   mrb_method_cache_clear(mrb);
@@ -74,14 +74,15 @@ mrb_open(void)
 {
   mrb_state *mrb = mrb_open_core();
 
-  if (mrb == NULL) {
-    return NULL;
+  if (mrb == NULL || mrb->exc) {
+    /* Either allocation failed or core init failed */
+    return mrb;
   }
 
 #ifndef MRB_NO_GEMS
   if (mrb_core_init_protect(mrb, init_mrbgems, NULL)) {
-    mrb_close(mrb);
-    return NULL;
+    /* Gem init failed - return mrb with mrb->exc set */
+    return mrb;
   }
   mrb_gc_arena_restore(mrb, 0);
 #endif

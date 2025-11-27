@@ -1,6 +1,7 @@
 #include <mruby.h>
 #include <mruby/numeric.h>
 #include <mruby/array.h>
+#include <mruby/string.h>
 #include <mruby/internal.h>
 #include <mruby/presym.h>
 
@@ -10,9 +11,43 @@ static mrb_value flo_remainder(mrb_state *mrb, mrb_value self);
 
 /*
  *  call-seq:
+ *     int.bit_length -> integer
+ *
+ *  Returns the number of bits of the absolute value of self in binary representation.
+ *  For zero, returns 0. For negative integers, behaves as (~self).bit_length
+ *  (e.g., (-1).bit_length => 0, (-2).bit_length => 1).
+ */
+static mrb_value
+int_bit_length(mrb_state *mrb, mrb_value self)
+{
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(self)) {
+    mrb_int sign = mrb_bint_sign(mrb, self);
+    if (sign == 0) return mrb_fixnum_value(0);
+    mrb_value v = self;
+    if (sign < 0) v = mrb_bint_rev(mrb, self); /* ~self = -self-1 */
+    mrb_value s = mrb_bint_to_s(mrb, v, 2);
+    return mrb_int_value(mrb, (mrb_int)RSTRING_LEN(s));
+  }
+#endif
+  mrb_int x = mrb_integer(self);
+  if (x == 0) return mrb_fixnum_value(0);
+
+  /* for negative fixnums, use ~x */
+  mrb_uint ux = (mrb_uint)(x < 0 ? ~x : x);
+  mrb_int bits = 0;
+  while (ux) {
+    bits++;
+    ux >>= 1;
+  }
+  return mrb_int_value(mrb, bits);
+}
+
+/*
+ *  call-seq:
  *     num.remainder(numeric)  ->  real
  *
- *  <code>x.remainder(y)</code> means <code>x-y*(x/y).truncate</code>.
+ *  `x.remainder(y)` means `x-y*(x/y).truncate`.
  *
  *  See Numeric#divmod.
  */
@@ -45,6 +80,90 @@ int_remainder(mrb_state *mrb, mrb_value x)
 }
 
 mrb_value mrb_int_pow(mrb_state *mrb, mrb_value x, mrb_value y);
+
+static mrb_int
+mrb_int_gcd(mrb_int x, mrb_int y)
+{
+  if (x < 0) x = -x;
+  if (y < 0) y = -y;
+
+  while (y != 0) {
+    mrb_int temp = y;
+    y = x % y;
+    x = temp;
+  }
+
+  return x;
+}
+
+/*
+ * call-seq:
+ *     int.gcd(other_int)  ->  integer
+ *
+ * Returns the greatest common divisor of the two integers.
+ * The result is always positive.
+ */
+static mrb_value
+int_gcd(mrb_state *mrb, mrb_value x)
+{
+  mrb_value y = mrb_get_arg1(mrb);
+
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x) || mrb_bigint_p(y)) {
+    if (!mrb_integer_p(y) && !mrb_bigint_p(y)) {
+      mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %Y into Integer", y);
+    }
+    if (!mrb_bigint_p(x)) x = mrb_bint_new_int(mrb, mrb_integer(x));
+    if (!mrb_bigint_p(y)) y = mrb_bint_new_int(mrb, mrb_integer(y));
+    return mrb_bint_gcd(mrb, x, y);
+  }
+#endif
+
+  if (!mrb_integer_p(y)) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %Y into Integer", y);
+  }
+  return mrb_int_value(mrb, mrb_int_gcd(mrb_integer(x), mrb_integer(y)));
+}
+
+/*
+ * call-seq:
+ *     int.lcm(other_int)  ->  integer
+ *
+ * Returns the least common multiple of the two integers.
+ * The result is always positive.
+ */
+static mrb_value
+int_lcm(mrb_state *mrb, mrb_value x)
+{
+  mrb_value y = mrb_get_arg1(mrb);
+  mrb_int a, b, gcd_val;
+
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x) || mrb_bigint_p(y)) {
+    if (!mrb_integer_p(y) && !mrb_bigint_p(y)) {
+      mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %Y into Integer", y);
+    }
+    if (!mrb_bigint_p(x)) x = mrb_bint_new_int(mrb, mrb_integer(x));
+    if (!mrb_bigint_p(y)) y = mrb_bint_new_int(mrb, mrb_integer(y));
+    return mrb_bint_lcm(mrb, x, y);
+  }
+#endif
+
+  if (!mrb_integer_p(y)) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %Y into Integer", y);
+  }
+
+  a = mrb_integer(x);
+  b = mrb_integer(y);
+
+  if (a == 0 || b == 0) return mrb_int_value(mrb, 0);
+
+  gcd_val = mrb_int_gcd(a, b);
+  if (a < 0) a = -a;
+  if (b < 0) b = -b;
+
+  return mrb_int_value(mrb, (a / gcd_val) * b);
+}
 
 /*
  * call-seq:
@@ -125,15 +244,15 @@ int_powm(mrb_state *mrb, mrb_value x)
  *  call-seq:
  *    digits(base = 10) -> array_of_integers
  *
- *  Returns an array of integers representing the +base+-radix
- *  digits of +self+;
+ *  Returns an array of integers representing the `base`-radix
+ *  digits of `self`;
  *  the first element of the array represents the least significant digit:
  *
  *    12345.digits      # => [5, 4, 3, 2, 1]
  *    12345.digits(7)   # => [4, 6, 6, 0, 5]
  *    12345.digits(100) # => [45, 23, 1]
  *
- *  Raises an exception if +self+ is negative or +base+ is less than 2.
+ *  Raises an exception if `self` is negative or `base` is less than 2.
  *
  */
 
@@ -231,7 +350,7 @@ int_size(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *    int.even? -> true or false
  *
- *  Returns +true+ if +int+ is an even number.
+ *  Returns `true` if `int` is an even number.
  */
 static mrb_value
 int_even(mrb_state *mrb, mrb_value self)
@@ -250,7 +369,7 @@ int_even(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *    int.odd? -> true or false
  *
- *  Returns +true+ if +int+ is an odd number.
+ *  Returns `true` if `int` is an odd number.
  */
 static mrb_value
 int_odd(mrb_state *mrb, mrb_value self)
@@ -265,7 +384,7 @@ int_odd(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     num.remainder(numeric)  ->  real
  *
- *  <code>x.remainder(y)</code> means <code>x-y*(x/y).truncate</code>.
+ *  `x.remainder(y)` means `x-y*(x/y).truncate`.
  *
  *  See Numeric#divmod.
  */
@@ -309,7 +428,7 @@ isqrt(mrb_int n)
  *  call-seq:
  *    Integer.sqrt(n) -> integer
  *
- *  Returns the integer square root of the non-negative integer +n+,
+ *  Returns the integer square root of the non-negative integer `n`,
  *  which is the largest integer `i` such that `i*i <= n`.
  *
  *    Integer.sqrt(0)    # => 0
@@ -351,8 +470,11 @@ mrb_mruby_numeric_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, ic, MRB_SYM(pow), int_powm, MRB_ARGS_ARG(1,1));
   mrb_define_method_id(mrb, ic, MRB_SYM(digits), int_digits, MRB_ARGS_OPT(1));
   mrb_define_method_id(mrb, ic, MRB_SYM(size), int_size, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, ic, MRB_SYM(bit_length), int_bit_length, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, ic, MRB_SYM_Q(odd), int_odd, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, ic, MRB_SYM_Q(even), int_even, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, ic, MRB_SYM(gcd), int_gcd, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, ic, MRB_SYM(lcm), int_lcm, MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, ic, MRB_SYM(sqrt), int_sqrt, MRB_ARGS_REQ(1));
 
 #ifndef MRB_NO_FLOAT

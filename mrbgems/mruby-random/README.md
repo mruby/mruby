@@ -254,9 +254,18 @@ The `sample` method chooses one or more random elements from the array.
 
 ## Algorithm
 
-The `mruby-random` mrbgem primarily utilizes the **xoshiro128++ 1.0** algorithm for pseudo-random number generation.
+The `mruby-random` mrbgem uses the **PCG-XSH-RR** (Permuted Congruential Generator - XorShift High, Random Rotate) algorithm for pseudo-random number generation.
 
-In certain 32-bit configurations (specifically when `MRB_INT32` is defined and `MRB_64BIT` is not), a different algorithm, **XORSHIFT96**, might be employed.
+### Key Features
+
+- **Compact State**: Uses only 64 bits of state (compared to 128 bits in the previous xoshiro128++ implementation), reducing memory footprint by 50%
+- **Excellent Statistical Quality**: Passes rigorous statistical test suites (TestU01, PractRand)
+- **Platform-Optimized**: Automatically adapts to platform characteristics for optimal performance
+  - On **32-bit platforms** (`MRB_32BIT`): Uses an optimized 32-bit multiplier that requires only 2 multiply operations instead of 3
+  - On **64-bit platforms**: Uses the standard 64-bit multiplier for maximum statistical quality
+- **Fast Performance**: Competitive speed with modern PRNG algorithms while maintaining smaller memory footprint
+
+The PCG family of algorithms was developed by Melissa O'Neill and is widely used in production systems. For more details, see <https://www.pcg-random.org/>.
 
 ## License
 

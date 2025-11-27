@@ -33,7 +33,7 @@ typedef void *mrb_jmpbuf_impl;
 #if defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
 #define MRB_SETJMP _setjmp
 #define MRB_LONGJMP _longjmp
-#elif defined(__MINGW64__) && defined(__GNUC__) && __GNUC__ >= 4
+#elif defined(__MINGW64__) && !defined(_M_ARM64) && defined(__GNUC__) && __GNUC__ >= 4
 #define MRB_SETJMP __builtin_setjmp
 #define MRB_LONGJMP __builtin_longjmp
 #else

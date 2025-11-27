@@ -315,6 +315,11 @@ assert('File.expand_path (with getenv(3))') do
   assert_equal "#{MRubyIOTestUtil::ENV_HOME}/user", File.expand_path("user", MRubyIOTestUtil::ENV_HOME), "relative with base_dir"
 end
 
+assert('File.absolute_path') do
+  assert_equal File.expand_path("./~"), File.absolute_path("~")
+  assert_equal File.expand_path("./~user1"), File.absolute_path("~user1")
+end
+
 if MRubyIOTestUtil.win?
   assert('File.absolute_path? (for windows)') do
     assert_true File.absolute_path?("c:/")
@@ -375,6 +380,8 @@ assert('File.chmod') do
   begin
     assert_equal 1, File.chmod(0400, "#{$mrbtest_io_wfname}.chmod-test")
   ensure
+    # On Windows, must restore write permission before deletion
+    File.chmod(0600, "#{$mrbtest_io_wfname}.chmod-test") rescue nil
     File.delete("#{$mrbtest_io_wfname}.chmod-test")
   end
 end

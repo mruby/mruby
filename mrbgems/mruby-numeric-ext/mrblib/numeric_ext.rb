@@ -3,7 +3,7 @@ class Numeric
   #  call-seq:
   #    zero? -> true or false
   #
-  #  Returns +true+ if +zero+ has a zero value, +false+ otherwise.
+  #  Returns `true` if `zero` has a zero value, `false` otherwise.
   #
   #  Of the Core and Standard Library classes,
   #  only Rational and Complex use this implementation.
@@ -16,8 +16,8 @@ class Numeric
   #  call-seq:
   #    nonzero?  ->  self or nil
   #
-  #  Returns +self+ if +self+ is not a zero value, +nil+ otherwise;
-  #  uses method <tt>zero?</tt> for the evaluation.
+  #  Returns `self` if `self` is not a zero value, `nil` otherwise;
+  #  uses method `zero?` for the evaluation.
   #
   def nonzero?
     if self == 0
@@ -31,7 +31,7 @@ class Numeric
   #  call-seq:
   #    positive? -> true or false
   #
-  #  Returns +true+ if +self+ is greater than 0, +false+ otherwise.
+  #  Returns `true` if `self` is greater than 0, `false` otherwise.
   #
   def positive?
     self > 0
@@ -41,7 +41,7 @@ class Numeric
   #  call-seq:
   #    negative? -> true or false
   #
-  #  Returns +true+ if +self+ is less than 0, +false+ otherwise.
+  #  Returns `true` if `self` is less than 0, `false` otherwise.
   #
   def negative?
     self < 0
@@ -66,7 +66,7 @@ class Integer
   #  call-seq:
   #    int.allbits?(mask)  ->  true or false
   #
-  #  Returns +true+ if all bits of <code>+int+ & +mask+</code> are 1.
+  #  Returns `true` if all bits of ``int` & `mask`` are 1.
   #
   def allbits?(mask)
     (self & mask) == mask
@@ -76,7 +76,7 @@ class Integer
   #  call-seq:
   #    int.anybits?(mask)  ->  true or false
   #
-  #  Returns +true+ if any bits of <code>+int+ & +mask+</code> are 1.
+  #  Returns `true` if any bits of ``int` & `mask`` are 1.
   #
   def anybits?(mask)
     (self & mask) != 0
@@ -86,7 +86,7 @@ class Integer
   #  call-seq:
   #    int.nobits?(mask)  ->  true or false
   #
-  #  Returns +true+ if no bits of <code>+int+ & +mask+</code> are 1.
+  #  Returns `true` if no bits of ``int` & `mask`` are 1.
   #
   def nobits?(mask)
     (self & mask) == 0
@@ -95,7 +95,7 @@ class Integer
   #  call-seq:
   #    ceildiv(other) -> integer
   #
-  #  Returns the result of division +self+ by +other+. The
+  #  Returns the result of division `self` by `other`. The
   #  result is rounded up to the nearest integer.
   #
   #    3.ceildiv(3) # => 1
@@ -110,6 +110,15 @@ class Integer
     -div(-other)
   end
 
+  ##
+  #  call-seq:
+  #    int.integer?  ->  true
+  #
+  #  Returns true since this is an Integer.
+  #
+  #  1.integer?     #=> true
+  #  42.integer?    #=> true
+  #
   def integer?
     true
   end

@@ -14,375 +14,54 @@
 #include <mruby/data.h>
 #include <mruby/internal.h>
 #include <mruby/presym.h>
+#include <mruby/khash.h>
 
-/* Compact set implementation - memory optimized for struct RSet embedding */
-typedef uint32_t kset_int_t;
-typedef kset_int_t kset_iter_t;
+/* Use khash.h for set implementation - set mode (no values, only keys) */
+KHASH_DECLARE(set_val, mrb_value, char, FALSE)  /* FALSE = set mode */
 
-#ifndef KSET_DEFAULT_SIZE
-# define KSET_DEFAULT_SIZE 8
-#endif
-#define KSET_MIN_SIZE 8
-
-#define KSET_UPPER_BOUND(x) ((x)>>2|(x)>>1)
-
-/* Flag masks for empty/deleted status - 2 bits per bucket */
-static const uint8_t kset_empty_mask[]  = {0x02, 0x08, 0x20, 0x80};
-static const uint8_t kset_del_mask[]    = {0x01, 0x04, 0x10, 0x40};
-static const uint8_t kset_either_mask[] = {0x03, 0x0c, 0x30, 0xc0};
-
-#define KSET_IS_EMPTY(flags, i) (flags[(i)/4] & kset_empty_mask[(i)%4])
-#define KSET_IS_DEL(flags, i) (flags[(i)/4] & kset_del_mask[(i)%4])
-#define KSET_IS_EITHER(flags, i) (flags[(i)/4] & kset_either_mask[(i)%4])
-
-#define kset_power2(v) do { \
-  v--; \
-  v |= v >> 1; \
-  v |= v >> 2; \
-  v |= v >> 4; \
-  v |= v >> 8; \
-  v |= v >> 16; \
-  v++; \
-} while (0)
-
-#define kset_mask(s) ((s)->n_buckets - 1)
-#define kset_upper_bound(s) (KSET_UPPER_BOUND((s)->n_buckets))
-#define kset_end(s) ((s)->n_buckets)
-
-/* Compact set structure - exactly 3 pointers in size */
-typedef struct kset {
-  void *data;           /* Combined keys + flags memory block */
-  kset_int_t n_buckets; /* Number of buckets (power of 2) */
-  kset_int_t size;      /* Number of elements */
-} kset_t;
-
-/* Memory layout: [keys...][flags...] */
-#define kset_keys(s) ((mrb_value*)(s)->data)
-#define kset_flags(s) ((uint8_t*)((s)->data) + sizeof(mrb_value) * (s)->n_buckets)
-
-/* Fill flags with pattern */
-static inline void
-kset_fill_flags(uint8_t *p, uint8_t c, size_t len)
-{
-  while (len-- > 0) {
-    *p++ = c;
-  }
-}
-
-/* Hash function for mrb_value */
-static inline kset_int_t
+/* Hash and equality functions for mrb_value keys */
+static inline khint_t
 kset_hash_value(mrb_state *mrb, mrb_value key)
 {
-  return (kset_int_t)mrb_obj_hash_code(mrb, key);
+  return (khint_t)mrb_obj_hash_code(mrb, key);
 }
 
-/* Equality function for mrb_value */
 static inline mrb_bool
 kset_equal_value(mrb_state *mrb, mrb_value a, mrb_value b)
 {
   return mrb_eql(mrb, a, b);
 }
 
-/*
- * Inserts a key into the provided hash table arrays (keys and flags).
- * This function encapsulates the core logic of finding a slot and inserting the key.
- *
- * Parameters:
- *   mrb: mrb_state pointer
- *   key: mrb_value to insert
- *   keys_array: pointer to the keys array
- *   flags_array: pointer to the flags array
- *   n_buckets_val: number of buckets in the arrays
- *   size_ptr: pointer to the size counter, which is incremented on successful insertion of a new element
- *   ret_status: pointer to an int to store the status of the operation.
- *               - 0 if the key already exists.
- *               - 1 if the key was inserted into a new empty slot.
- *               - 2 if the key was inserted into a previously deleted slot.
- *               If NULL, status is not reported.
- *
- * Returns:
- *   The iterator (index) of the key in the keys_array.
- */
-static inline kset_iter_t
-kset_raw_put(mrb_state *mrb, mrb_value key, mrb_value *keys_array, uint8_t *flags_array,
-             kset_int_t n_buckets_val, kset_int_t *size_ptr, int *ret_status)
-{
-  kset_int_t k, del_k, step = 0;
-  kset_int_t mask = n_buckets_val - 1;
+KHASH_DEFINE(set_val, mrb_value, char, FALSE, kset_hash_value, kset_equal_value)
 
-  k = kset_hash_value(mrb, key) & mask;
-  del_k = n_buckets_val; /* Represents an invalid/not-found slot initially */
+#define KSET_INITIAL_SIZE 4
+#define GOLDEN_RATIO_PRIME 0x9e3779b97f4a7c15ULL
 
-  while (!KSET_IS_EMPTY(flags_array, k)) {
-    if (!KSET_IS_DEL(flags_array, k)) {
-      if (kset_equal_value(mrb, keys_array[k], key)) {
-        if (ret_status != NULL) { *ret_status = 0; } /* Key already exists */
-        return k;
-      }
-    }
-    else if (del_k == n_buckets_val) { /* Found a deleted slot, mark it if not already marked */
-      del_k = k;
-    }
-    k = (k + (++step)) & mask;
-  }
+/* Compatibility layer and type definitions */
+typedef kh_set_val_t kset_t;
+typedef khint_t kset_iter_t;
 
-  if (del_k != n_buckets_val) {
-    /* Use the previously found deleted slot */
-    keys_array[del_k] = key;
-    flags_array[del_k/4] &= ~kset_del_mask[del_k%4]; /* Clear only the deleted flag bit */
-    (*size_ptr)++;
-    if (ret_status != NULL) { *ret_status = 2; } /* Used deleted slot */
-    return del_k;
-  }
-  else {
-    /* Use the new empty slot found */
-    keys_array[k] = key;
-    flags_array[k/4] &= ~kset_empty_mask[k%4]; /* Clear only the empty flag bit */
-    (*size_ptr)++;
-    if (ret_status != NULL) { *ret_status = 1; } /* Used empty slot */
-    return k;
-  }
-}
+/* API Aliases to khash.h */
+#define kset_init(mrb) kh_init(set_val, mrb)
+#define kset_init_data(mrb, s, sz) kh_init_data(set_val, mrb, s, sz)
+#define kset_destroy_data(mrb, s) kh_destroy_data(set_val, mrb, s)
+#define kset_clear(mrb, s) kh_clear(set_val, mrb, s)
+#define kset_resize(mrb, s, sz) kh_resize(set_val, mrb, s, sz)
+#define kset_put(mrb, s, k) kh_put(set_val, mrb, s, k)
+#define kset_put2(mrb, s, k, r) kh_put2(set_val, mrb, s, k, r)
+#define kset_get(mrb, s, k) kh_get(set_val, mrb, s, k)
+#define kset_del(mrb, s, k) kh_del(set_val, mrb, s, k)
+#define kset_exist(s, k) kh_exist(set_val, s, k)
+#define kset_key(s, k) kh_key(set_val, s, k)
+#define kset_size(s) kh_size(s)
+#define kset_end(s) kh_end(s)
+#define kset_is_end(s, k) kh_is_end(s, k)
 
-/* Convenience macros for common operations */
-#define kset_is_uninitialized(s) (!(s)->data)
-#define kset_is_empty(s) (!(s)->data || (s)->size == 0)
+#define KSET_FOREACH(s, k) KHASH_FOREACH(set_val, s, k)
 
-/* Macro for iterating over all elements in a kset */
-#define KSET_FOREACH(s, k) \
-  for (kset_iter_t k = 0; k != kset_end(s); k++) \
-    if (kset_exist(s, k))
-
-/* Initialize set with specific size */
-static kset_t*
-kset_init_size(mrb_state *mrb, kset_int_t size)
-{
-  kset_t *s = (kset_t*)mrb_calloc(mrb, 1, sizeof(kset_t));
-
-  if (size < KSET_MIN_SIZE) {
-    size = KSET_MIN_SIZE;
-  }
-  kset_power2(size);
-
-  s->n_buckets = size;
-  s->size = 0;
-
-  /* Allocate combined memory block for keys and flags */
-  size_t keys_size = sizeof(mrb_value) * size;
-  size_t flags_size = size / 4;
-  s->data = mrb_malloc(mrb, keys_size + flags_size);
-
-  /* Initialize flags to empty (0xaa pattern) */
-  kset_fill_flags(kset_flags(s), 0xaa, flags_size);
-
-  return s;
-}
-
-/* Initialize empty set */
-static kset_t*
-kset_init(mrb_state *mrb)
-{
-  return kset_init_size(mrb, KSET_DEFAULT_SIZE);
-}
-
-/* Destroy set */
-static void
-kset_destroy(mrb_state *mrb, kset_t *s)
-{
-  if (s) {
-    if (s->data) {
-      mrb_free(mrb, s->data);
-    }
-    mrb_free(mrb, s);
-  }
-}
-
-/* Clear set */
-static void
-kset_clear(mrb_state *mrb, kset_t *s)
-{
-  (void)mrb;
-  if (s && s->data) {
-    kset_fill_flags(kset_flags(s), 0xaa, s->n_buckets / 4);
-    s->size = 0;
-  }
-}
-
-/* Find key in set */
-static kset_iter_t
-kset_get(mrb_state *mrb, kset_t *s, mrb_value key)
-{
-  kset_int_t k = kset_hash_value(mrb, key) & kset_mask(s);
-  kset_int_t step = 0;
-  uint8_t *flags = kset_flags(s);
-  mrb_value *keys = kset_keys(s);
-
-  while (!KSET_IS_EMPTY(flags, k)) {
-    if (!KSET_IS_DEL(flags, k)) {
-      if (kset_equal_value(mrb, keys[k], key)) {
-        return k;
-      }
-    }
-    k = (k + (++step)) & kset_mask(s);
-  }
-  return kset_end(s);
-}
-
-/* Resize set */
-static void
-kset_resize(mrb_state *mrb, kset_t *s, kset_int_t new_n_buckets)
-{
-  if (new_n_buckets < KSET_MIN_SIZE) {
-    new_n_buckets = KSET_MIN_SIZE;
-  }
-  kset_power2(new_n_buckets);
-
-  if (s->n_buckets == new_n_buckets) return; /* No change needed */
-
-  /* Save old data references */
-  void *old_data_ptr = s->data;
-  kset_int_t old_n_buckets = s->n_buckets;
-  mrb_value *old_keys = (mrb_value*)old_data_ptr; /* Equivalent to kset_keys(s) before s->data is changed */
-  uint8_t *old_flags = (uint8_t*)old_data_ptr + sizeof(mrb_value) * old_n_buckets; /* Equivalent to kset_flags(s) */
-
-  /* Allocate new data block */
-  size_t new_keys_bytes = sizeof(mrb_value) * new_n_buckets;
-  size_t new_flags_bytes = new_n_buckets / 4;
-  void *new_data_ptr = mrb_malloc(mrb, new_keys_bytes + new_flags_bytes);
-
-  mrb_value *new_keys = (mrb_value*)new_data_ptr;
-  uint8_t *new_flags = (uint8_t*)new_data_ptr + new_keys_bytes;
-
-  /* Initialize new flags to empty (0xaa pattern) */
-  kset_fill_flags(new_flags, 0xaa, new_flags_bytes);
-
-  kset_int_t new_size = 0;
-  kset_iter_t dummy_iter; /* kset_raw_put requires an iterator, but it's not used here */
-
-  /* Rehash old elements into the new data arrays */
-  /* Iterate only if old_data_ptr is valid (set was not empty/uninitialized) */
-  if (old_data_ptr) {
-    for (kset_int_t i = 0; i < old_n_buckets; i++) {
-      if (!KSET_IS_EITHER(old_flags, i)) {
-        /* Use kset_raw_put to insert the key into new_keys and new_flags */
-        /* Pass NULL for ret_status as kset_resize doesn't use the status */
-        dummy_iter = kset_raw_put(mrb, old_keys[i], new_keys, new_flags, new_n_buckets, &new_size, NULL);
-      }
-    }
-  }
-  (void)dummy_iter; /* Mark as intentionally unused to suppress warning */
-
-  /* Free the old data block */
-  if (old_data_ptr) {
-    mrb_free(mrb, old_data_ptr);
-  }
-
-  /* Update the set structure with the new data block and properties */
-  s->data = new_data_ptr;
-  s->n_buckets = new_n_buckets;
-  s->size = new_size;
-}
-
-/* Resize set (rehash with current bucket size, mainly for re-compacting deleted slots) */
-static void
-kset_rehash(mrb_state *mrb, kset_t *s)
-{
-  kset_resize(mrb, s, s->n_buckets);
-}
-
-/* Add key to set with return status */
-static kset_iter_t
-kset_put2(mrb_state *mrb, kset_t *s, mrb_value key, int *ret)
-{
-  kset_iter_t result_iter;
-
-  if (s->size >= kset_upper_bound(s)) {
-    kset_resize(mrb, s, s->n_buckets * 2);
-  }
-
-  /* Use the kset_raw_put function to handle the insertion logic */
-  result_iter = kset_raw_put(mrb, key, kset_keys(s), kset_flags(s), s->n_buckets, &s->size, ret);
-
-  return result_iter;
-}
-
-/* Add key to set */
-static kset_iter_t
-kset_put(mrb_state *mrb, kset_t *s, mrb_value key)
-{
-  return kset_put2(mrb, s, key, NULL);
-}
-
-/* Delete key from set */
-static void
-kset_del(mrb_state *mrb, kset_t *s, kset_iter_t x)
-{
-  (void)mrb;
-  mrb_assert(x != s->n_buckets && !KSET_IS_EITHER(kset_flags(s), x));
-  kset_flags(s)[x/4] |= kset_del_mask[x%4];
-  s->size--;
-}
-
-/* Check if iterator exists */
-static inline mrb_bool
-kset_exist(kset_t *s, kset_iter_t x)
-{
-  return !KSET_IS_EITHER(kset_flags(s), x);
-}
-
-/* Get key at iterator */
-static inline mrb_value
-kset_key(kset_t *s, kset_iter_t x)
-{
-  return kset_keys(s)[x];
-}
-
-/* Initialize embedded set */
-static void
-kset_init_embedded(mrb_state *mrb, kset_t *s)
-{
-  kset_int_t size = KSET_DEFAULT_SIZE;
-  if (size < KSET_MIN_SIZE) {
-    size = KSET_MIN_SIZE;
-  }
-  kset_power2(size);
-
-  s->n_buckets = size;
-  s->size = 0;
-
-  /* Allocate combined memory block for keys and flags */
-  size_t keys_size = sizeof(mrb_value) * size;
-  size_t flags_size = size / 4;
-  s->data = mrb_malloc(mrb, keys_size + flags_size);
-
-  /* Initialize flags to empty (0xaa pattern) */
-  kset_fill_flags(kset_flags(s), 0xaa, flags_size);
-}
-
-/* Destroy embedded set */
-static void
-kset_destroy_embedded(mrb_state *mrb, kset_t *s)
-{
-  if (s && s->data) {
-    mrb_free(mrb, s->data);
-    s->data = NULL;
-    s->n_buckets = 0;
-    s->size = 0;
-  }
-}
-
-/* Copy elements from one set to another */
-static void
-kset_copy_elements(mrb_state *mrb, kset_t *target, kset_t *source)
-{
-  if (!source || !target) return;
-
-  int ai = mrb_gc_arena_save(mrb);
-  KSET_FOREACH(source, k) {
-    kset_put(mrb, target, kset_key(source, k));
-    mrb_gc_arena_restore(mrb, ai);
-  }
-}
+/* Helper macros for set state checking */
+#define kset_is_uninitialized(s) ((s)->data == NULL)
+#define kset_is_empty(s) (kset_is_uninitialized(s) || kset_size(s) == 0)
 
 /* Embedded set structure in RSet - exactly 3 pointers */
 struct RSet {
@@ -400,6 +79,25 @@ set_get_kset(mrb_state *mrb, mrb_value self)
 {
   mrb_check_type(mrb, self, MRB_TT_SET);
   return &mrb_set_ptr(self)->set;
+}
+
+/* Get RSet pointer from embedded kset_t pointer */
+#define kset_to_rset(kset) ((struct RBasic*)((char*)(kset) - offsetof(struct RSet, set)))
+
+/* Copy all elements from src to dst (merge operation) */
+static void
+kset_copy_merge(mrb_state *mrb, kset_t *dst, kset_t *src)
+{
+  if (!kset_is_empty(src)) {
+    struct RBasic *dst_obj = kset_to_rset(dst);
+    int ai = mrb_gc_arena_save(mrb);
+    KSET_FOREACH(src, k) {
+      mrb_value key = kset_key(src, k);
+      kset_put(mrb, dst, key);
+      mrb_field_write_barrier_value(mrb, dst_obj, key);
+      mrb_gc_arena_restore(mrb, ai);
+    }
+  }
 }
 
 /* Helper function to ensure set is initialized */
@@ -429,16 +127,17 @@ void
 mrb_gc_free_set(mrb_state *mrb, struct RBasic *obj)
 {
   struct RSet *s = (struct RSet*)obj;
-  kset_destroy_embedded(mrb, &s->set);
+  kset_destroy_data(mrb, &s->set);
 }
 
 size_t
 mrb_set_memsize(mrb_value set)
 {
-  size_t size = mrb_objspace_page_slot_size();
+  size_t size = sizeof(struct RSet);
   struct RSet *s = mrb_set_ptr(set);
   kset_t *kset = &s->set;
   if (kset->data) {
+    /* New khash layout: keys + flags in single allocation */
     size += sizeof(mrb_value) * kset->n_buckets; /* keys */
     size += kset->n_buckets / 4; /* flags */
   }
@@ -465,7 +164,10 @@ static mrb_value
 set_init(mrb_state *mrb, mrb_value self)
 {
   kset_t *set = set_get_kset(mrb, self);
-  kset_init_embedded(mrb, set);
+  if (!kset_is_uninitialized(set)) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "already initialized set");
+  }
+  kset_init_data(mrb, set, KSET_INITIAL_SIZE);
   return self;
 }
 
@@ -490,8 +192,12 @@ set_init_copy(mrb_state *mrb, mrb_value self)
   set_ensure_initialized(mrb, orig_set);
 
   kset_t *self_set = set_get_kset(mrb, self);
-  kset_init_embedded(mrb, self_set);
-  kset_copy_elements(mrb, self_set, orig_set);
+  /* Free existing data if already initialized (for replace semantics) */
+  if (!kset_is_uninitialized(self_set)) {
+    kset_destroy_data(mrb, self_set);
+  }
+  kset_init_data(mrb, self_set, kset_size(orig_set));
+  kh_replace(set_val, mrb, self_set, orig_set);
 
   return self;
 }
@@ -508,7 +214,7 @@ set_size(mrb_state *mrb, mrb_value self)
 {
   kset_t *set = set_get_kset(mrb, self);
   if (kset_is_empty(set)) return mrb_fixnum_value(0);
-  return mrb_fixnum_value(set->size);
+  return mrb_fixnum_value(kset_size(set));
 }
 
 /*
@@ -553,7 +259,7 @@ set_to_a(mrb_state *mrb, mrb_value self)
 
   if (kset_is_empty(set)) return mrb_ary_new(mrb);
 
-  mrb_value ary = mrb_ary_new_capa(mrb, set->size);
+  mrb_value ary = mrb_ary_new_capa(mrb, kset_size(set));
 
   int ai = mrb_gc_arena_save(mrb);
   KSET_FOREACH(set, k) {
@@ -579,8 +285,7 @@ set_include_p(mrb_state *mrb, mrb_value self)
   kset_t *set = set_get_kset(mrb, self);
   if (kset_is_empty(set)) return mrb_false_value();
 
-  kset_iter_t k = kset_get(mrb, set, obj);
-  return mrb_bool_value(k != kset_end(set));
+  return mrb_bool_value(!kset_is_end(set, kset_get(mrb, set, obj)));
 }
 
 /*
@@ -598,6 +303,7 @@ set_add(mrb_state *mrb, mrb_value self)
   set_ensure_initialized(mrb, set);
 
   kset_put(mrb, set, obj);
+  mrb_field_write_barrier_value(mrb, kset_to_rset(set), obj);
   return self;
 }
 
@@ -617,6 +323,7 @@ set_add_p(mrb_state *mrb, mrb_value self)
 
   int ret;
   kset_put2(mrb, set, obj, &ret);
+  mrb_field_write_barrier_value(mrb, kset_to_rset(set), obj);
   return (ret == 0) ? mrb_nil_value() : self;
 }
 
@@ -634,7 +341,7 @@ set_delete(mrb_state *mrb, mrb_value self)
   if (kset_is_empty(set)) return self;
 
   kset_iter_t k = kset_get(mrb, set, obj);
-  if (k != kset_end(set)) {
+  if (!kset_is_end(set, k)) {
     kset_del(mrb, set, k);
   }
   return self;
@@ -655,7 +362,7 @@ set_delete_p(mrb_state *mrb, mrb_value self)
   if (kset_is_empty(set)) return mrb_nil_value();
 
   kset_iter_t k = kset_get(mrb, set, obj);
-  if (k != kset_end(set)) {
+  if (!kset_is_end(set, k)) {
     kset_del(mrb, set, k);
     return self;
   }
@@ -682,7 +389,7 @@ set_core_merge(mrb_state *mrb, mrb_value self)
 
   set_ensure_initialized(mrb, self_set);
   if (!kset_is_empty(other_set)) {
-    kset_copy_elements(mrb, self_set, other_set);
+    kset_copy_merge(mrb, self_set, other_set);
   }
 
   return mrb_true_value();
@@ -711,7 +418,7 @@ set_core_subtract(mrb_state *mrb, mrb_value self)
   KSET_FOREACH(other_set, k) {
     mrb_value key = kset_key(other_set, k);
     kset_iter_t self_k = kset_get(mrb, self_set, key);
-    if (self_k != kset_end(self_set)) {
+    if (!kset_is_end(self_set, self_k)) {
       kset_del(mrb, self_set, self_k);
     }
   }
@@ -735,15 +442,15 @@ set_core_union(mrb_state *mrb, mrb_value self)
   /* Create a new set by duplicating self */
   mrb_value result = mrb_obj_dup(mrb, self);
   kset_t *result_set = set_get_kset(mrb, result);
-  if (!result_set->data) {
+  if (kset_is_uninitialized(result_set)) {
     /* If self is empty, initialize the set */
-    kset_init_embedded(mrb, result_set);
+    kset_init_data(mrb, result_set, KSET_INITIAL_SIZE);
   }
 
   /* Add all elements from other set */
   kset_t *other_set = set_get_kset(mrb, other);
-  if (other_set->data) {
-    kset_copy_elements(mrb, result_set, other_set);
+  if (!kset_is_uninitialized(other_set)) {
+    kset_copy_merge(mrb, result_set, other_set);
   }
 
   return result;
@@ -765,18 +472,18 @@ set_core_difference(mrb_state *mrb, mrb_value self)
   /* Create a new set by duplicating self */
   mrb_value result = mrb_obj_dup(mrb, self);
   kset_t *result_set = set_get_kset(mrb, result);
-  if (!result_set->data) {
+  if (kset_is_uninitialized(result_set)) {
     /* If self is empty, return an empty set */
     return result;
   }
 
   /* Remove all elements that are in other set */
   kset_t *other_set = set_get_kset(mrb, other);
-  if (other_set->data) {
+  if (!kset_is_uninitialized(other_set)) {
     KSET_FOREACH(other_set, k) {
       mrb_value key = kset_key(other_set, k);
       kset_iter_t result_k = kset_get(mrb, result_set, key);
-      if (result_k != kset_end(result_set)) {
+      if (!kset_is_end(result_set, result_k)) {
         kset_del(mrb, result_set, result_k);
       }
     }
@@ -804,18 +511,19 @@ set_core_intersection(mrb_state *mrb, mrb_value self)
   kset_t *result_set = set_get_kset(mrb, result);
 
   kset_t *self_set = set_get_kset(mrb, self);
-  if (!self_set->data) return result;
+  if (kset_is_uninitialized(self_set)) return result;
 
   kset_t *other_set = set_get_kset(mrb, other);
-  if (!other_set->data) return result;
+  if (kset_is_uninitialized(other_set)) return result;
 
   KSET_FOREACH(other_set, k) {
     mrb_value key = kset_key(other_set, k);
     kset_iter_t self_k = kset_get(mrb, self_set, key);
 
     /* If key exists in self, add it to result */
-    if (self_k != kset_end(self_set)) {
+    if (!kset_is_end(self_set, self_k)) {
       kset_put(mrb, result_set, key);
+      mrb_field_write_barrier_value(mrb, kset_to_rset(result_set), key);
     }
   }
 
@@ -846,12 +554,12 @@ set_core_xor(mrb_state *mrb, mrb_value self)
   /* Handle empty sets */
   if (kset_is_empty(self_set)) {
     if (!kset_is_empty(other_set)) {
-      kset_copy_elements(mrb, result_set, other_set);
+      kset_copy_merge(mrb, result_set, other_set);
     }
     return result;
   }
   if (kset_is_empty(other_set)) {
-    kset_copy_elements(mrb, result_set, self_set);
+    kh_replace(set_val, mrb, result_set, self_set);
     return result;
   }
 
@@ -862,8 +570,9 @@ set_core_xor(mrb_state *mrb, mrb_value self)
     kset_iter_t other_k = kset_get(mrb, other_set, key);
 
     /* Add to result if not in other */
-    if (other_k == kset_end(other_set)) {
+    if (kset_is_end(other_set, other_k)) {
       kset_put(mrb, result_set, key);
+      mrb_field_write_barrier_value(mrb, kset_to_rset(result_set), key);
     }
     mrb_gc_arena_restore(mrb, ai);
   }
@@ -874,8 +583,9 @@ set_core_xor(mrb_state *mrb, mrb_value self)
     kset_iter_t self_k = kset_get(mrb, self_set, key);
 
     /* Add to result if not in self */
-    if (self_k == kset_end(self_set)) {
+    if (kset_is_end(self_set, self_k)) {
       kset_put(mrb, result_set, key);
+      mrb_field_write_barrier_value(mrb, kset_to_rset(result_set), key);
     }
     mrb_gc_arena_restore(mrb, ai);
   }
@@ -914,12 +624,12 @@ set_equal(mrb_state *mrb, mrb_value self)
   kset_t *other_set = set_get_kset(mrb, other);
 
   /* Fast path: both empty */
-  if ((!self_set->data || self_set->size == 0) && (!other_set->data || other_set->size == 0)) {
+  if (kset_is_empty(self_set) && kset_is_empty(other_set)) {
     return mrb_true_value();
   }
 
   /* Fast path: different sizes */
-  if (!self_set->data || !other_set->data || self_set->size != other_set->size) {
+  if (kset_size(self_set) != kset_size(other_set)) {
     return mrb_false_value();
   }
 
@@ -927,7 +637,7 @@ set_equal(mrb_state *mrb, mrb_value self)
   int ai = mrb_gc_arena_save(mrb);
   KSET_FOREACH(self_set, k) {
     kset_iter_t k2 = kset_get(mrb, other_set, kset_key(self_set, k));
-    if (k2 == kset_end(other_set)) {
+    if (kset_is_end(other_set, k2)) {
       return mrb_false_value(); /* Element in self not found in other */
     }
     mrb_gc_arena_restore(mrb, ai);
@@ -948,31 +658,28 @@ set_hash_m(mrb_state *mrb, mrb_value self)
 {
   kset_t *set = set_get_kset(mrb, self);
 
-  /* Use FNV-1a hash algorithm with better distribution properties */
-  uint64_t hash = 0xcbf29ce484222325ULL; /* FNV offset basis */
-  const uint64_t fnv_prime = 0x100000001b3ULL; /* FNV prime */
+  /* Use order-independent hash algorithm for sets */
+  uint64_t hash = 0; /* Start with zero for XOR accumulation */
 
   /* Include the size of the set in the hash */
-  size_t size = set ? set->size : 0;
-  hash ^= size;
-  hash *= fnv_prime;
+  size_t size = kset_size(set);
+  hash ^= size * GOLDEN_RATIO_PRIME;
 
-  if (set->data && size > 0) {
-    /* Process each element */
+  if (!kset_is_uninitialized(set) && size > 0) {
+    /* Process each element - order independent using XOR */
     int ai = mrb_gc_arena_save(mrb);
     KSET_FOREACH(set, k) {
       /* Get element's hash code */
-      kset_int_t elem_hash = (kset_int_t)mrb_obj_hash_code(mrb, kset_key(set, k));
+      khint_t elem_hash = (khint_t)mrb_obj_hash_code(mrb, kset_key(set, k));
 
-      /* Mix using FNV-1a algorithm */
-      hash ^= elem_hash;
-      hash *= fnv_prime;
+      /* XOR is commutative, so order doesn't matter */
+      hash ^= elem_hash * GOLDEN_RATIO_PRIME;
 
       mrb_gc_arena_restore(mrb, ai);
     }
   }
 
-  /* Final mixing to improve avalanche effect */
+  /* Final mixing to improve distribution */
   hash ^= hash >> 32;
 
   return mrb_fixnum_value((mrb_int)hash);
@@ -1001,12 +708,12 @@ set_superset_p(mrb_state *mrb, mrb_value self)
     return mrb_true_value(); /* Empty set is a subset of any set */
   }
 
-  if (!self_set->data) {
+  if (kset_is_uninitialized(self_set)) {
     return mrb_false_value(); /* Empty set is not a superset of a non-empty set */
   }
 
   /* Check size first - a superset must be at least as large as the subset */
-  if (self_set->size < other_set->size) {
+  if (kset_size(self_set) < kset_size(other_set)) {
     return mrb_false_value();
   }
 
@@ -1014,7 +721,7 @@ set_superset_p(mrb_state *mrb, mrb_value self)
   int ai = mrb_gc_arena_save(mrb);
   KSET_FOREACH(other_set, k) {
     kset_iter_t self_k = kset_get(mrb, self_set, kset_key(other_set, k));
-    if (self_k == kset_end(self_set)) {
+    if (kset_is_end(self_set, self_k)) {
       return mrb_false_value(); /* Element in other not found in self */
     }
     mrb_gc_arena_restore(mrb, ai);
@@ -1044,15 +751,15 @@ set_proper_superset_p(mrb_state *mrb, mrb_value self)
   /* Handle empty sets */
   if (kset_is_empty(other_set)) {
     /* Empty set is a proper subset of any non-empty set */
-    return self_set->data && self_set->size > 0 ? mrb_true_value() : mrb_false_value();
+    return !kset_is_empty(self_set) ? mrb_true_value() : mrb_false_value();
   }
 
-  if (!self_set->data) {
+  if (kset_is_uninitialized(self_set)) {
     return mrb_false_value(); /* Empty set is not a proper superset of any set */
   }
 
   /* For a proper superset, self must be strictly larger than other */
-  if (self_set->size <= other_set->size) {
+  if (kset_size(self_set) <= kset_size(other_set)) {
     return mrb_false_value();
   }
 
@@ -1060,7 +767,7 @@ set_proper_superset_p(mrb_state *mrb, mrb_value self)
   int ai = mrb_gc_arena_save(mrb);
   KSET_FOREACH(other_set, k) {
     kset_iter_t self_k = kset_get(mrb, self_set, kset_key(other_set, k));
-    if (self_k == kset_end(self_set)) {
+    if (kset_is_end(self_set, self_k)) {
       return mrb_false_value(); /* Element in other not found in self */
     }
     mrb_gc_arena_restore(mrb, ai);
@@ -1092,12 +799,12 @@ set_subset_p(mrb_state *mrb, mrb_value self)
     return mrb_true_value(); /* Empty set is a subset of any set */
   }
 
-  if (!other_set->data) {
+  if (kset_is_uninitialized(other_set)) {
     return mrb_false_value(); /* Non-empty set is not a subset of an empty set */
   }
 
   /* Check size first - a subset cannot be larger than its superset */
-  if (other_set->size < self_set->size) {
+  if (kset_size(other_set) < kset_size(self_set)) {
     return mrb_false_value();
   }
 
@@ -1105,7 +812,7 @@ set_subset_p(mrb_state *mrb, mrb_value self)
   int ai = mrb_gc_arena_save(mrb);
   KSET_FOREACH(self_set, k) {
     kset_iter_t other_k = kset_get(mrb, other_set, kset_key(self_set, k));
-    if (other_k == kset_end(other_set)) {
+    if (kset_is_end(other_set, other_k)) {
       return mrb_false_value(); /* Element in self not found in other */
     }
     mrb_gc_arena_restore(mrb, ai);
@@ -1135,15 +842,15 @@ set_proper_subset_p(mrb_state *mrb, mrb_value self)
   /* Handle empty sets */
   if (kset_is_empty(self_set)) {
     /* Empty set is a proper subset of any non-empty set */
-    return other_set->data && other_set->size > 0 ? mrb_true_value() : mrb_false_value();
+    return !kset_is_empty(other_set) ? mrb_true_value() : mrb_false_value();
   }
 
-  if (!other_set->data) {
+  if (kset_is_uninitialized(other_set)) {
     return mrb_false_value(); /* Non-empty set is not a proper subset of an empty set */
   }
 
   /* For a proper subset, self must be strictly smaller than other */
-  if (other_set->size <= self_set->size) {
+  if (kset_size(other_set) <= kset_size(self_set)) {
     return mrb_false_value();
   }
 
@@ -1151,7 +858,7 @@ set_proper_subset_p(mrb_state *mrb, mrb_value self)
   int ai = mrb_gc_arena_save(mrb);
   KSET_FOREACH(self_set, k) {
     kset_iter_t other_k = kset_get(mrb, other_set, kset_key(self_set, k));
-    if (other_k == kset_end(other_set)) {
+    if (kset_is_end(other_set, other_k)) {
       return mrb_false_value(); /* Element in self not found in other */
     }
     mrb_gc_arena_restore(mrb, ai);
@@ -1184,10 +891,10 @@ set_intersect_p(mrb_state *mrb, mrb_value self)
 
   /* Iterate through the smaller set for efficiency */
   int ai = mrb_gc_arena_save(mrb);
-  if (self_set->size < other_set->size) {
+  if (kset_size(self_set) < kset_size(other_set)) {
     KSET_FOREACH(self_set, k) {
       kset_iter_t other_k = kset_get(mrb, other_set, kset_key(self_set, k));
-      if (other_k != kset_end(other_set)) {
+      if (!kset_is_end(other_set, other_k)) {
         return mrb_true_value(); /* Found a common element */
       }
       mrb_gc_arena_restore(mrb, ai);
@@ -1196,7 +903,7 @@ set_intersect_p(mrb_state *mrb, mrb_value self)
   else {
     KSET_FOREACH(other_set, k) {
       kset_iter_t self_k = kset_get(mrb, self_set, kset_key(other_set, k));
-      if (self_k != kset_end(self_set)) {
+      if (!kset_is_end(self_set, self_k)) {
         return mrb_true_value(); /* Found a common element */
       }
       mrb_gc_arena_restore(mrb, ai);
@@ -1254,14 +961,14 @@ set_cmp(mrb_state *mrb, mrb_value self)
   }
 
   /* Compare sizes */
-  int size_cmp = self_set->size - other_set->size;
+  mrb_int size_diff = kset_size(self_set) - kset_size(other_set);
 
-  if (size_cmp < 0) {
+  if (size_diff < 0) {
     /* self might be a proper subset of other */
     int ai = mrb_gc_arena_save(mrb);
     KSET_FOREACH(self_set, k) {
       kset_iter_t other_k = kset_get(mrb, other_set, kset_key(self_set, k));
-      if (other_k == kset_end(other_set)) {
+      if (kset_is_end(other_set, other_k)) {
         /* Not a subset */
         return mrb_nil_value(); /* Not comparable */
       }
@@ -1271,12 +978,12 @@ set_cmp(mrb_state *mrb, mrb_value self)
     /* All elements of self are in other, and self is smaller than other */
     return mrb_fixnum_value(-1); /* self is a proper subset of other */
   }
-  else if (size_cmp > 0) {
+  else if (size_diff > 0) {
     /* self might be a proper superset of other */
     int ai = mrb_gc_arena_save(mrb);
     KSET_FOREACH(other_set, k) {
       kset_iter_t self_k = kset_get(mrb, self_set, kset_key(other_set, k));
-      if (self_k == kset_end(self_set)) {
+      if (kset_is_end(self_set, self_k)) {
         /* Not a superset */
         return mrb_nil_value(); /* Not comparable */
       }
@@ -1286,14 +993,14 @@ set_cmp(mrb_state *mrb, mrb_value self)
     /* All elements of other are in self, and self is larger than other */
     return mrb_fixnum_value(1); /* self is a proper superset of other */
   }
-  else {
+  else { /* size_diff == 0 */
     /* Same size, check if they're equal */
     mrb_bool is_equal = TRUE;
 
     int ai3 = mrb_gc_arena_save(mrb);
     KSET_FOREACH(self_set, k) {
       kset_iter_t other_k = kset_get(mrb, other_set, kset_key(self_set, k));
-      if (other_k == kset_end(other_set)) {
+      if (kset_is_end(other_set, other_k)) {
         is_equal = FALSE;
         break;
       }
@@ -1327,14 +1034,6 @@ set_join(mrb_state *mrb, mrb_value self)
     return mrb_str_new_lit(mrb, "");
   }
 
-  /* Get separator string */
-  const char *sep_ptr = "";
-  mrb_int sep_len = 0;
-  if (!mrb_nil_p(separator)) {
-    sep_ptr = RSTRING_PTR(separator);
-    sep_len = RSTRING_LEN(separator);
-  }
-
   /* Create result string */
   mrb_value result = mrb_str_new_capa(mrb, 64);  /* Initial capacity */
   mrb_bool first = TRUE;
@@ -1343,7 +1042,9 @@ set_join(mrb_state *mrb, mrb_value self)
   int ai = mrb_gc_arena_save(mrb);
   KSET_FOREACH(set, k) {
     if (!first) {
-      mrb_str_cat(mrb, result, sep_ptr, sep_len);
+      if (!mrb_nil_p(separator)) {
+        mrb_str_cat(mrb, result, RSTRING_PTR(separator), RSTRING_LEN(separator));
+      }
     }
     else {
       first = FALSE;
@@ -1385,7 +1086,7 @@ set_inspect(mrb_state *mrb, mrb_value self)
   }
 
   /* Estimate buffer size based on set size */
-  size_t size = set->size;
+  size_t size = kset_size(set);
   size_t buffer_size = 16 + strlen(classname) + (size * 8); /* Rough estimate */
 
   /* Create the beginning of the string with pre-allocated capacity */
@@ -1432,8 +1133,7 @@ set_reset(mrb_state *mrb, mrb_value self)
 
   kset_t *set = set_get_kset(mrb, self);
   if (!kset_is_empty(set)) {
-    /* Create a new set by copying the old one */
-    kset_rehash(mrb, set);
+    kset_resize(mrb, set, kset_size(set));
   }
 
   return self;
@@ -1458,6 +1158,7 @@ set_add_all(mrb_state *mrb, mrb_value self)
   int ai = mrb_gc_arena_save(mrb);
   for (mrb_int i = 0; i < argc; i++) {
     kset_put(mrb, set, argv[i]);
+    mrb_field_write_barrier_value(mrb, kset_to_rset(set), argv[i]);
     mrb_gc_arena_restore(mrb, ai);
   }
 
@@ -1488,6 +1189,7 @@ set_flatten_recursive(mrb_state *mrb, kset_t *target, kset_t *source, int *seen_
   if (!source || !target) return 0;
   if (*seen_count >= MAX_NESTED_DEPTH) return -1;
 
+  struct RBasic *target_obj = kset_to_rset(target);
   int ai = mrb_gc_arena_save(mrb);
   /* Process each element in the source set */
   KSET_FOREACH(source, k) {
@@ -1513,10 +1215,44 @@ set_flatten_recursive(mrb_state *mrb, kset_t *target, kset_t *source, int *seen_
     else {
       /* Add non-Set element directly */
       kset_put(mrb, target, elem);
+      mrb_field_write_barrier_value(mrb, target_obj, elem);
     }
     mrb_gc_arena_restore(mrb, ai);
   }
   return 0;
+}
+
+/*
+ * Helper function: Check if a set has any nested sets
+ * Returns TRUE if nested sets found, FALSE otherwise
+ */
+static mrb_bool
+set_has_nested_sets(mrb_state *mrb, kset_t *set)
+{
+  if (kset_is_empty(set)) return FALSE;
+
+  int ai = mrb_gc_arena_save(mrb);
+  KSET_FOREACH(set, k) {
+    if (set_is_set(kset_key(set, k))) {
+      return TRUE;
+    }
+    mrb_gc_arena_restore(mrb, ai);
+  }
+  return FALSE;
+}
+
+/*
+ * Helper function: Perform the actual flattening operation
+ * Returns the flattened set (creates a new kset_t*)
+ */
+static void
+set_do_flatten(mrb_state *mrb, kset_t *result_set, kset_t *source_set)
+{
+  int seen_count = 0;
+
+  if (set_flatten_recursive(mrb, result_set, source_set, &seen_count) < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "flatten recursion depth too deep");
+  }
 }
 
 /*
@@ -1537,32 +1273,15 @@ set_flatten(mrb_state *mrb, mrb_value self)
   }
 
   /* Fast path: check if there are any nested sets */
-  mrb_bool has_nested_sets = FALSE;
-  int ai = mrb_gc_arena_save(mrb);
-  KSET_FOREACH(self_set, k) {
-    if (set_is_set(kset_key(self_set, k))) {
-      has_nested_sets = TRUE;
-      break;
-    }
-    mrb_gc_arena_restore(mrb, ai);
-  }
-
-  /* If no nested sets, just return a duplicate */
-  if (!has_nested_sets) {
+  if (!set_has_nested_sets(mrb, self_set)) {
     return mrb_obj_dup(mrb, self);
   }
 
-  /* Create a new set of the same class */
+  /* Create a new set and flatten into it */
   mrb_value result = mrb_obj_new(mrb, mrb_obj_class(mrb, self), 0, NULL);
   kset_t *result_set = set_get_kset(mrb, result);
 
-  /* Track recursion depth */
-  int seen_count = 0;
-
-  /* Flatten the set */
-  if (set_flatten_recursive(mrb, result_set, self_set, &seen_count) < 0) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "flatten recursion depth too deep");
-  }
+  set_do_flatten(mrb, result_set, self_set);
 
   return result;
 }
@@ -1584,41 +1303,21 @@ set_flatten_bang(mrb_state *mrb, mrb_value self)
     return mrb_nil_value(); /* No changes needed for empty set */
   }
 
-  /* First, check if there are any nested sets */
-  mrb_bool has_nested_sets = FALSE;
-  int ai = mrb_gc_arena_save(mrb);
-  KSET_FOREACH(self_set, k) {
-    mrb_value elem = kset_key(self_set, k);
-    if (set_is_set(elem)) {
-      has_nested_sets = TRUE;
-      break;
-    }
-    mrb_gc_arena_restore(mrb, ai);
-  }
-
-  if (!has_nested_sets) {
+  /* Check if there are any nested sets */
+  if (!set_has_nested_sets(mrb, self_set)) {
     return mrb_nil_value(); /* No nested sets, no changes needed */
   }
 
-  /* Create a temporary set for the flattened result */
-  kset_t *new_set = kset_init(mrb);
+  /* Create a temporary set to flatten into (GC-protected) */
+  mrb_value temp = mrb_obj_new(mrb, mrb_obj_class(mrb, self), 0, NULL);
+  kset_t *temp_set = set_get_kset(mrb, temp);
 
-  /* Track recursion depth */
-  int seen_count = 0;
+  set_do_flatten(mrb, temp_set, self_set);
 
-  /* Flatten the set into the new set */
-  if (set_flatten_recursive(mrb, new_set, self_set, &seen_count) < 0) {
-    /* Clean up the new set if an error occurred */
-    kset_destroy(mrb, new_set);
-
-    /* Raise appropriate exception */
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "flatten recursion depth too deep");
-  }
-
-  /* Replace the old data with the new one */
-  kset_destroy_embedded(mrb, self_set);
-  *self_set = *new_set;
-  mrb_free(mrb, new_set);
+  /* Swap the data between self and temp */
+  kset_t temp_data = *self_set;
+  *self_set = *temp_set;
+  *temp_set = temp_data;
 
   return self;
 }
@@ -1637,12 +1336,12 @@ set_delete_all(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "*", &argv, &argc);
   kset_t *ks = set_get_kset(mrb, self);
-  if (!ks->data) return self;
+  if (kset_is_uninitialized(ks)) return self;
 
   int ai = mrb_gc_arena_save(mrb);
   for (mrb_int i = 0; i < argc; i++) {
     kset_iter_t k = kset_get(mrb, ks, argv[i]);
-    if (k != kset_end(ks)) {
+    if (!kset_is_end(ks, k)) {
       kset_del(mrb, ks, k);
     }
     mrb_gc_arena_restore(mrb, ai);
@@ -1665,11 +1364,11 @@ set_include_all_p(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "*", &argv, &argc);
   kset_t *ks = set_get_kset(mrb, self);
-  if (!ks->data) return mrb_false_value();
+  if (kset_is_uninitialized(ks)) return mrb_false_value();
 
   for (mrb_int i = 0; i < argc; i++) {
     kset_iter_t k = kset_get(mrb, ks, argv[i]);
-    if (k == kset_end(ks)) {
+    if (kset_is_end(ks, k)) {
       return mrb_false_value();
     }
   }
@@ -1695,7 +1394,7 @@ set_include_any_p(mrb_state *mrb, mrb_value self)
 
   for (mrb_int i = 0; i < argc; i++) {
     kset_iter_t k = kset_get(mrb, ks, argv[i]);
-    if (k != kset_end(ks)) {
+    if (!kset_is_end(ks, k)) {
       return mrb_true_value();
     }
   }
@@ -1723,6 +1422,7 @@ set_s_create(mrb_state *mrb, mrb_value klass)
 
   for (mrb_int i = 0; i < argc; i++) {
     kset_put(mrb, ks, argv[i]);
+    mrb_field_write_barrier_value(mrb, kset_to_rset(ks), argv[i]);
   }
 
   return set;

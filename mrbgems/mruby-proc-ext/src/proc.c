@@ -10,9 +10,9 @@
  *  call-seq:
  *     prc.lambda?    -> true or false
  *
- *  Returns +true+ if +prc+ is a lambda, +false+ if it is a proc.
- *  The difference is how they react to a +return+ statement. In a lambda,
- *  +return+ makes the lambda return. In a proc, +return+ makes the method
+ *  Returns `true` if `prc` is a lambda, `false` if it is a proc.
+ *  The difference is how they react to a `return` statement. In a lambda,
+ *  `return` makes the lambda return. In a proc, `return` makes the method
  *  that called the proc return.
  *
  *     def gen_times(factor)
@@ -71,7 +71,7 @@ mrb_proc_source_location(mrb_state *mrb, const struct RProc *p)
  *     prc.source_location  -> [filename, line] or nil
  *
  *  Returns the Ruby source filename and line number containing this proc
- *  or +nil+ if this proc was not defined in Ruby (i.e. native).
+ *  or `nil` if this proc was not defined in Ruby (i.e. native).
  *
  *     p = proc { puts "hello" }
  *     p.source_location   #=> ["prog.rb", 1]
@@ -134,7 +134,7 @@ proc_inspect(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     proc { |...| block }  -> a_proc
  *
- *  Equivalent to <code>Proc.new</code>.
+ *  Equivalent to `Proc.new`.
  *
  *     def proc(&block)
  *       block

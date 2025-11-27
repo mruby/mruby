@@ -294,14 +294,12 @@ static mrb_value
 mrb_proc_s_new(mrb_state *mrb, mrb_value proc_class)
 {
   mrb_value blk;
-  mrb_value proc;
-  struct RProc *p;
 
   /* Calling Proc.new without a block is not implemented yet */
   mrb_get_args(mrb, "&!", &blk);
-  p = MRB_OBJ_ALLOC(mrb, MRB_TT_PROC, mrb_class_ptr(proc_class));
+  struct RProc *p = MRB_OBJ_ALLOC(mrb, MRB_TT_PROC, mrb_class_ptr(proc_class));
   mrb_proc_copy(mrb, p, mrb_proc_ptr(blk));
-  proc = mrb_obj_value(p);
+  mrb_value proc = mrb_obj_value(p);
   mrb_funcall_with_block(mrb, proc, MRB_SYM(initialize), 0, NULL, proc);
   if (!MRB_PROC_STRICT_P(p) &&
       mrb->c->ci > mrb->c->cibase && MRB_PROC_ENV(p) == mrb->c->ci[-1].u.env) {
@@ -370,21 +368,20 @@ proc_hash(mrb_state *mrb, mrb_value self)
  * call-seq:
  *   lambda { |...| block }  -> a_proc
  *
- * Equivalent to <code>Proc.new</code>, except the resulting Proc objects
+ * Equivalent to `Proc.new`, except the resulting Proc objects
  * check the number of parameters passed when called.
  */
 static mrb_value
 proc_lambda(mrb_state *mrb, mrb_value self)
 {
   mrb_value blk;
-  const struct RProc *p;
 
   mrb_get_args(mrb, "&", &blk);
   if (mrb_nil_p(blk)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "tried to create Proc object without a block");
   }
   check_proc(mrb, blk);
-  p = mrb_proc_ptr(blk);
+  const struct RProc *p = mrb_proc_ptr(blk);
   if (!MRB_PROC_STRICT_P(p)) {
     struct RProc *p2 = MRB_OBJ_ALLOC(mrb, MRB_TT_PROC, p->c);
     mrb_proc_copy(mrb, p2, p);
@@ -431,19 +428,15 @@ mrb_proc_arity(const struct RProc *p)
 mrb_value
 mrb_proc_local_variables(mrb_state *mrb, const struct RProc *proc)
 {
-  const mrb_irep *irep;
-  mrb_value vars;
-  size_t i;
-
   if (proc == NULL || MRB_PROC_CFUNC_P(proc)) {
     return mrb_ary_new(mrb);
   }
-  vars = mrb_hash_new(mrb);
+  mrb_value vars = mrb_hash_new(mrb);
   while (proc) {
     if (MRB_PROC_CFUNC_P(proc)) break;
-    irep = proc->body.irep;
+    const mrb_irep *irep = proc->body.irep;
     if (irep->lv) {
-      for (i = 0; i + 1 < irep->nlocals; i++) {
+      for (size_t i = 0; i + 1 < irep->nlocals; i++) {
         if (irep->lv[i]) {
           mrb_sym sym = irep->lv[i];
           const char *name = mrb_sym_name(mrb, sym);

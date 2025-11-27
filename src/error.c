@@ -80,7 +80,7 @@ exc_initialize(mrb_state *mrb, mrb_value exc)
  *  With no argument, or if the argument is the same as the receiver,
  *  return the receiver. Otherwise, create a new
  *  exception object of the same class as the receiver, but with a
- *  message equal to <code>string</code>.
+ *  message equal to `string`.
  *
  */
 
@@ -741,13 +741,7 @@ mrb_core_init_protect(mrb_state *mrb, void (*body)(mrb_state*, void*), void *opa
     body(mrb, opaque);
     err = 0;
   } MRB_CATCH(&c_jmp) {
-    if (mrb->exc) {
-      mrb_print_error(mrb);
-      mrb->exc = NULL;
-    }
-    else {
-      mrb_core_init_printabort(mrb);
-    }
+    /* Leave mrb->exc set for caller to inspect */
   } MRB_END_EXC(&c_jmp);
 
   mrb->jmp = prev_jmp;
@@ -851,6 +845,11 @@ MRB_API void
 mrb_print_error(mrb_state *mrb)
 {
 #ifndef MRB_NO_STDIO
+  if (!mrb) {
+    /* mrb_open() returned NULL - allocation failed */
+    fputs("Failed to allocate mrb_state\n", stderr);
+    return;
+  }
   if (mrb->jmp == NULL) {
     struct mrb_jmpbuf c_jmp;
     MRB_TRY(&c_jmp) {

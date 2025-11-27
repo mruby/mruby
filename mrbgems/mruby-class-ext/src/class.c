@@ -214,7 +214,8 @@ is_ancestor(struct RClass *klass, struct RClass *super)
 static mrb_value
 mod_compare_hierarchy(mrb_state *mrb, mrb_value self, mrb_value other)
 {
-  if (!mrb_class_p(other) && !mrb_module_p(other) && !mrb_iclass_p(other)) {
+  if ((!mrb_class_p(self) && !mrb_module_p(self) && !mrb_iclass_p(self)) ||
+      (!mrb_class_p(other) && !mrb_module_p(other) && !mrb_iclass_p(other))) {
     mrb_raise(mrb, E_TYPE_ERROR, "compared with non class/module");
   }
 

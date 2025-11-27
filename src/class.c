@@ -50,18 +50,19 @@ typedef struct mt_tbl {
   union mt_ptr   *ptr;   /* block: [ ptr[0...alloc] | keys[0...alloc] ] */
 } mt_tbl;
 
-/* helper to get keys array */
+/* Helper to get keys array from method table */
 static inline mrb_sym*
 mt_keys(mt_tbl *t) {
   return (mrb_sym*)&t->ptr[t->alloc];
 }
 
+/* Helper to get values array from method table */
 static union mt_ptr*
 mt_vals(mt_tbl *t) {
   return t->ptr;
 }
 
-/* allocate or grow the block to exactly alloc entries */
+/* Allocates or grows the method table block to exactly new_alloc entries */
 static void
 mt_grow(mrb_state *mrb, mt_tbl *t, int new_alloc)
 {
@@ -81,7 +82,7 @@ mt_grow(mrb_state *mrb, mt_tbl *t, int new_alloc)
   t->alloc = new_alloc;
 }
 
-/* Creates the method table. */
+/* Creates a new empty method table */
 static mt_tbl*
 mt_new(mrb_state *mrb)
 {
@@ -95,7 +96,7 @@ mt_new(mrb_state *mrb)
   return t;
 }
 
-/* Branch-free binary search helper: returns the index where `target` should be inserted/found. */
+/* Branch-free binary search helper for method table keys */
 static inline int
 bsearch_idx(mrb_sym *keys, int size, mrb_sym target)
 {
@@ -121,7 +122,7 @@ bsearch_idx(mrb_sym *keys, int size, mrb_sym target)
   return (int)(p - keys) + offset;
 }
 
-/* Insert or update an entry in the method table using branch-free binary search */
+/* Inserts or updates an entry in the method table */
 static void
 mt_put(mrb_state *mrb, mt_tbl *t, mrb_sym sym, mrb_sym flags, union mt_ptr ptrval)
 {
@@ -164,7 +165,7 @@ mt_put(mrb_state *mrb, mt_tbl *t, mrb_sym sym, mrb_sym flags, union mt_ptr ptrva
   t->size++;
 }
 
-/* Retrieve a value from the method table using branch-free binary search */
+/* Retrieves a value from the method table */
 static mrb_sym
 mt_get(mrb_state *mrb, mt_tbl *t, mrb_sym sym, union mt_ptr *pp)
 {
@@ -187,7 +188,7 @@ mt_get(mrb_state *mrb, mt_tbl *t, mrb_sym sym, union mt_ptr *pp)
   return 0;
 }
 
-/* Deletes the entry for `sym` from the method table using branch-free search. */
+/* Deletes an entry from the method table */
 static mrb_bool
 mt_del(mrb_state *mrb, mt_tbl *t, mrb_sym sym)
 {
@@ -214,7 +215,7 @@ mt_del(mrb_state *mrb, mt_tbl *t, mrb_sym sym)
   return FALSE;
 }
 
-/* Copy the method table. */
+/* Creates a copy of the method table */
 static mt_tbl*
 mt_copy(mrb_state *mrb, mt_tbl *t)
 {
@@ -228,7 +229,7 @@ mt_copy(mrb_state *mrb, mt_tbl *t)
   return t2;
 }
 
-/* Free memory of the method table. */
+/* Frees memory of the method table */
 static void
 mt_free(mrb_state *mrb, mt_tbl *t)
 {
@@ -236,6 +237,7 @@ mt_free(mrb_state *mrb, mt_tbl *t)
   mrb_free(mrb, t);
 }
 
+/* Creates a method value structure from key and pointer */
 static inline mrb_method_t
 create_method_value(mrb_state *mrb, mrb_sym key, union mt_ptr val)
 {
@@ -243,16 +245,7 @@ create_method_value(mrb_state *mrb, mrb_sym key, union mt_ptr val)
   return m;
 }
 
-/*
- * Iterates over the methods in a class's method table.
- *
- * @param mrb The mruby state.
- * @param c The class whose method table is to be iterated.
- * @param fn The callback function to be called for each method.
- *   The function receives the mruby state, the method symbol, the method itself, and user data.
- *   It should return 0 to continue iteration, or a non-zero value to stop.
- * @param p User data to be passed to the callback function.
- */
+/* Iterates over methods in a class's method table with callback function */
 MRB_API void
 mrb_mt_foreach(mrb_state *mrb, struct RClass *c, mrb_mt_foreach_func *fn, void *p)
 {
@@ -269,6 +262,7 @@ mrb_mt_foreach(mrb_state *mrb, struct RClass *c, mrb_mt_foreach_func *fn, void *
   }
 }
 
+/* Marks method table entries for garbage collection */
 size_t
 mrb_gc_mark_mt(mrb_state *mrb, struct RClass *c)
 {
@@ -288,6 +282,7 @@ mrb_gc_mark_mt(mrb_state *mrb, struct RClass *c)
   return (size_t)t->size;
 }
 
+/* Returns memory size of class method table */
 size_t
 mrb_class_mt_memsize(mrb_state *mrb, struct RClass *c)
 {
@@ -297,12 +292,14 @@ mrb_class_mt_memsize(mrb_state *mrb, struct RClass *c)
   return sizeof(struct mt_tbl) + (size_t)h->size * sizeof(mrb_method_t);
 }
 
+/* Frees class method table for garbage collection */
 void
 mrb_gc_free_mt(mrb_state *mrb, struct RClass *c)
 {
   if (c->mt) mt_free(mrb, c->mt);
 }
 
+/* Sets the name of a class within an outer namespace */
 void
 mrb_class_name_class(mrb_state *mrb, struct RClass *outer, struct RClass *c, mrb_sym id)
 {
@@ -333,12 +330,14 @@ mrb_class_name_class(mrb_state *mrb, struct RClass *outer, struct RClass *c, mrb
   mrb_obj_iv_set_force(mrb, (struct RObject*)c, nsym, name);
 }
 
+/* Checks if a name is a valid constant name */
 mrb_bool
 mrb_const_name_p(mrb_state *mrb, const char *name, mrb_int len)
 {
   return len > 0 && ISUPPER(name[0]) && mrb_ident_p(name+1, len-1);
 }
 
+/* Sets up a class by defining it as a constant in the outer namespace */
 static void
 setup_class(mrb_state *mrb, struct RClass *outer, struct RClass *c, mrb_sym id)
 {
@@ -347,6 +346,7 @@ setup_class(mrb_state *mrb, struct RClass *outer, struct RClass *c, mrb_sym id)
 
 #define make_metaclass(mrb, c) prepare_singleton_class((mrb), (struct RBasic*)(c))
 
+/* Prepares and creates a singleton class for an object */
 static void
 prepare_singleton_class(mrb_state *mrb, struct RBasic *o)
 {
@@ -384,6 +384,7 @@ prepare_singleton_class(mrb_state *mrb, struct RBasic *o)
   sc->frozen = o->frozen;
 }
 
+/* Returns a string representation of a class name */
 static mrb_value
 class_name_str(mrb_state *mrb, struct RClass* c)
 {
@@ -397,6 +398,7 @@ class_name_str(mrb_state *mrb, struct RClass* c)
   return path;
 }
 
+/* Gets a class from a constant symbol, ensuring it's a class */
 static struct RClass*
 class_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym id)
 {
@@ -406,6 +408,7 @@ class_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym id)
   return mrb_class_ptr(c);
 }
 
+/* Gets a module from a constant symbol, ensuring it's a module */
 static struct RClass*
 module_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym id)
 {
@@ -415,6 +418,7 @@ module_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym id)
   return mrb_class_ptr(c);
 }
 
+/* Checks if an object is a class or module */
 static mrb_bool
 class_ptr_p(mrb_value obj)
 {
@@ -428,6 +432,7 @@ class_ptr_p(mrb_value obj)
   }
 }
 
+/* Checks if object is class/module and raises TypeError if not */
 static void
 check_if_class_or_module(mrb_state *mrb, mrb_value obj)
 {
@@ -436,6 +441,7 @@ check_if_class_or_module(mrb_state *mrb, mrb_value obj)
   }
 }
 
+/* Defines a new module or returns existing one */
 static struct RClass*
 define_module(mrb_state *mrb, mrb_sym name, struct RClass *outer)
 {
@@ -1631,7 +1637,6 @@ get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list *ap)
           mrb_int required = kwargs->required;
           const mrb_sym *kname = kwargs->table;
           mrb_value *values = kwargs->values;
-          mrb_int j;
           const mrb_int keyword_max = 40;
 
           mrb_assert(kwnum >= 0);
@@ -1640,7 +1645,7 @@ get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list *ap)
             mrb_raise(mrb, E_ARGUMENT_ERROR, "keyword number is too large");
           }
 
-          for (j = required; j > 0; j--, kname++, values++) {
+          for (mrb_int j = required; j > 0; j--, kname++, values++) {
             mrb_value k = mrb_symbol_value(*kname);
             if (!mrb_hash_key_p(mrb, ksrc, k)) {
               mrb_raisef(mrb, E_ARGUMENT_ERROR, "missing keyword: %n", *kname);
@@ -1649,7 +1654,7 @@ get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list *ap)
             mrb_gc_protect(mrb, *values);
           }
 
-          for (j = kwnum - required; j > 0; j--, kname++, values++) {
+          for (mrb_int j = kwnum - required; j > 0; j--, kname++, values++) {
             mrb_value k = mrb_symbol_value(*kname);
             if (mrb_hash_key_p(mrb, ksrc, k)) {
               *values = mrb_hash_delete_key(mrb, ksrc, k);
@@ -2019,6 +2024,26 @@ mrb_prepend_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
   }
 }
 
+/*
+ *  call-seq:
+ *     mod.prepend(module, ...) -> self
+ *
+ *  Invokes Module.prepend_features on each parameter in reverse order.
+ *
+ *     module Mod
+ *       def hello
+ *         "Hello from Mod.\n"
+ *       end
+ *     end
+ *
+ *     class Klass
+ *       def hello
+ *         "Hello from Klass.\n"
+ *       end
+ *       prepend Mod
+ *     end
+ *     Klass.new.hello   #=> "Hello from Mod.\n"
+ */
 static mrb_value
 mrb_mod_prepend(mrb_state *mrb, mrb_value mod)
 {
@@ -2039,6 +2064,23 @@ mrb_mod_prepend(mrb_state *mrb, mrb_value mod)
   return mod;
 }
 
+/*
+ *  call-seq:
+ *     mod.include(module, ...) -> self
+ *
+ *  Invokes Module.append_features on each parameter in reverse order.
+ *
+ *     module Mod
+ *       def hello
+ *         "Hello from Mod.\n"
+ *       end
+ *     end
+ *
+ *     class Klass
+ *       include Mod
+ *     end
+ *     Klass.new.hello   #=> "Hello from Mod.\n"
+ */
 static mrb_value
 mrb_mod_include(mrb_state *mrb, mrb_value mod)
 {
@@ -2124,8 +2166,8 @@ mrb_obj_extend(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     mod.include?(module)    -> true or false
  *
- *  Returns <code>true</code> if <i>module</i> is included in
- *  <i>mod</i> or one of <i>mod</i>'s ancestors.
+ *  Returns `true` if *module* is included in
+ *  *mod* or one of *mod*'s ancestors.
  *
  *     module A
  *     end
@@ -2156,6 +2198,22 @@ mrb_mod_include_p(mrb_state *mrb, mrb_value mod)
   return mrb_false_value();
 }
 
+/*
+ *  call-seq:
+ *     mod.ancestors -> array
+ *
+ *  Returns a list of modules included/prepended in mod (including mod itself).
+ *
+ *     module Mod
+ *       include Math
+ *       include Comparable
+ *       prepend Enumerable
+ *     end
+ *
+ *     Mod.ancestors        #=> [Enumerable, Mod, Comparable, Math]
+ *     Math.ancestors       #=> [Math]
+ *     Numeric.ancestors    #=> [Numeric, Comparable]
+ */
 static mrb_value
 mrb_mod_ancestors(mrb_state *mrb, mrb_value self)
 {
@@ -2678,18 +2736,14 @@ mod_attr_define(mrb_state *mrb, mrb_value mod, mrb_value (*accessor)(mrb_state*,
 
   int ai = mrb_gc_arena_save(mrb);
   for (int i=0; i<argc; i++) {
-    mrb_value name;
-    mrb_sym method;
-    struct RProc *p;
-    mrb_method_t m;
-
-    method = to_sym(mrb, argv[i]);
-    name = prepare_ivar_name(mrb, method);
+    mrb_sym method = to_sym(mrb, argv[i]);
+    mrb_value name = prepare_ivar_name(mrb, method);
     if (access_name) {
       method = access_name(mrb, method);
     }
 
-    p = mrb_proc_new_cfunc_with_env(mrb, accessor, 1, &name);
+    struct RProc *p = mrb_proc_new_cfunc_with_env(mrb, accessor, 1, &name);
+    mrb_method_t m;
     MRB_METHOD_FROM_PROC(m, p);
     mrb_define_method_raw(mrb, c, method, m);
     mrb_gc_arena_restore(mrb, ai);
@@ -2763,9 +2817,9 @@ mrb_instance_alloc(mrb_state *mrb, mrb_value cv)
  *  call-seq:
  *     class.new(args, ...)    ->  obj
  *
- *  Creates a new object of <i>class</i>'s class, then
- *  invokes that object's <code>initialize</code> method,
- *  passing it <i>args</i>. This is the method that ends
+ *  Creates a new object of *class*'s class, then
+ *  invokes that object's `initialize` method,
+ *  passing it *args*. This is the method that ends
  *  up getting called whenever an object is constructed using
  *  `.new`.
  *
@@ -2777,11 +2831,10 @@ mrb_instance_new(mrb_state *mrb, mrb_value cv)
   const mrb_value *argv;
   mrb_int argc;
   mrb_value blk;
-  mrb_sym init;
 
   mrb_get_args(mrb, "*!&", &argv, &argc, &blk);
   mrb_value obj = mrb_instance_alloc(mrb, cv);
-  init = MRB_SYM(initialize);
+  mrb_sym init = MRB_SYM(initialize);
   if (!mrb_func_basic_p(mrb, obj, init, mrb_do_nothing)) {
     mrb_funcall_with_block(mrb, obj, init, argc, argv, blk);
   }
@@ -2893,24 +2946,24 @@ mrb_bob_not(mrb_state *mrb, mrb_value cv)
  *     obj.equal?(other)   -> true or false
  *     obj.eql?(other)     -> true or false
  *
- *  Equality---At the <code>Object</code> level, <code>==</code> returns
- *  <code>true</code> only if <i>obj</i> and <i>other</i> are the
+ *  Equality---At the `Object` level, `==` returns
+ *  `true` only if *obj* and *other* are the
  *  same object. Typically, this method is overridden in descendant
  *  classes to provide class-specific meaning.
  *
- *  Unlike <code>==</code>, the <code>equal?</code> method should never be
+ *  Unlike `==`, the `equal?` method should never be
  *  overridden by subclasses: it is used to determine object identity
- *  (that is, <code>a.equal?(b)</code> iff <code>a</code> is the same
- *  object as <code>b</code>).
+ *  (that is, `a.equal?(b)` iff `a` is the same
+ *  object as `b`).
  *
- *  The <code>eql?</code> method returns <code>true</code> if
- *  <i>obj</i> and <i>anObject</i> have the same value. Used by
- *  <code>Hash</code> to test members for equality.  For objects of
- *  class <code>Object</code>, <code>eql?</code> is synonymous with
- *  <code>==</code>. Subclasses normally continue this tradition, but
- *  there are exceptions. <code>Numeric</code> types, for example,
- *  perform type conversion across <code>==</code>, but not across
- *  <code>eql?</code>, so:
+ *  The `eql?` method returns `true` if
+ *  *obj* and *anObject* have the same value. Used by
+ *  `Hash` to test members for equality.  For objects of
+ *  class `Object`, `eql?` is synonymous with
+ *  `==`. Subclasses normally continue this tradition, but
+ *  there are exceptions. `Numeric` types, for example,
+ *  perform type conversion across `==`, but not across
+ *  `eql?`, so:
  *
  *     1 == 1.0     #=> true
  *     1.eql? 1.0   #=> false
@@ -3174,10 +3227,10 @@ mrb_module_new(mrb_state *mrb)
  *  call-seq:
  *     obj.class    => class
  *
- *  Returns the class of <i>obj</i>, now preferred over
- *  <code>Object#type</code>, as an object's type in Ruby is only
+ *  Returns the class of *obj*, now preferred over
+ *  `Object#type`, as an object's type in Ruby is only
  *  loosely tied to that object's class. This method must always be
- *  called with an explicit receiver, as <code>class</code> is also a
+ *  called with an explicit receiver, as `class` is also a
  *  reserved word in Ruby.
  *
  *     1.class      #=> Integer
@@ -3344,9 +3397,9 @@ mrb_mod_alias(mrb_state *mrb, mrb_value mod)
 static void
 undef_method(mrb_state *mrb, struct RClass *c, mrb_sym a)
 {
-  mrb_method_t m;
   mrb_sym undefined;
   mrb_value recv;
+  mrb_method_t m;
 
   MRB_METHOD_FROM_PROC(m, NULL);
   mrb_define_method_raw(mrb, c, a, m);
@@ -3650,7 +3703,7 @@ mrb_mod_const_missing(mrb_state *mrb, mrb_value mod)
  *  call-seq:
  *     mod.method_defined?(symbol)    -> true or false
  *
- *  Returns +true+ if the named method is defined by
+ *  Returns `true` if the named method is defined by
  *  _mod_ (or its included modules and, if _mod_ is a class,
  *  its ancestors). Public and protected methods are matched.
  *
@@ -3935,10 +3988,10 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
  *  call-seq:
  *     obj.clone -> an_object
  *
- *  Produces a shallow copy of <i>obj</i>---the instance variables of
- *  <i>obj</i> are copied, but not the objects they reference. Copies
- *  the frozen state of <i>obj</i>. See also the discussion
- *  under <code>Object#dup</code>.
+ *  Produces a shallow copy of *obj*---the instance variables of
+ *  *obj* are copied, but not the objects they reference. Copies
+ *  the frozen state of *obj*. See also the discussion
+ *  under `Object#dup`.
  *
  *     class Klass
  *        attr_accessor :str
@@ -3951,7 +4004,7 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
  *     s2.inspect          #=> "#<Klass:0x401b3998 @str=\"Hi\">"
  *
  *  This method may have class-specific behavior.  If so, that
- *  behavior will be documented under the #+initialize_copy+ method of
+ *  behavior will be documented under the #`initialize_copy` method of
  *  the class.
  *
  *  Some Class(True False Nil Symbol Integer Float) Object  cannot clone.
@@ -4007,17 +4060,17 @@ mrb_obj_clone(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     obj.dup -> an_object
  *
- *  Produces a shallow copy of <i>obj</i>---the instance variables of
- *  <i>obj</i> are copied, but not the objects they reference.
- *  <code>dup</code> copies the frozen state of <i>obj</i>. See also
- *  the discussion under <code>Object#clone</code>. In general,
- *  <code>clone</code> and <code>dup</code> may have different semantics
- *  in descendant classes. While <code>clone</code> is used to duplicate
- *  an object, including its internal state, <code>dup</code> typically
+ *  Produces a shallow copy of *obj*---the instance variables of
+ *  *obj* are copied, but not the objects they reference.
+ *  `dup` copies the frozen state of *obj*. See also
+ *  the discussion under `Object#clone`. In general,
+ *  `clone` and `dup` may have different semantics
+ *  in descendant classes. While `clone` is used to duplicate
+ *  an object, including its internal state, `dup` typically
  *  uses the class of the descendant object to create the new instance.
  *
  *  This method may have class-specific behavior.  If so, that
- *  behavior will be documented under the #+initialize_copy+ method of
+ *  behavior will be documented under the #`initialize_copy` method of
  *  the class.
  */
 
@@ -4076,16 +4129,16 @@ mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value args)
  *  call-seq:
  *     obj.method_missing(symbol [, *args] )   -> result
  *
- *  Invoked by Ruby when <i>obj</i> is sent a message it cannot handle.
- *  <i>symbol</i> is the symbol for the method called, and <i>args</i>
+ *  Invoked by Ruby when *obj* is sent a message it cannot handle.
+ *  *symbol* is the symbol for the method called, and *args*
  *  are any arguments that were passed to it. By default, the interpreter
  *  raises an error when this method is called. However, it is possible
  *  to override the method to provide more dynamic behavior.
  *  If it is decided that a particular method should not be handled, then
- *  <i>super</i> should be called, so that ancestors can pick up the
+ *  *super* should be called, so that ancestors can pick up the
  *  missing method.
  *  The example below creates
- *  a class <code>Roman</code>, which responds to methods with names
+ *  a class `Roman`, which responds to methods with names
  *  consisting of roman numerals, returning the corresponding integer
  *  values.
  *
@@ -4125,14 +4178,14 @@ inspect_main(mrb_state *mrb, mrb_value mod)
 }
 
 static const mrb_code new_iseq[] = {
-  OP_ENTER, 0x0, 0x10, 0x3,  // OP_ENTER     0:0:1:0:0:1:1
-  OP_SSEND, 4, 0, 0,         // OP_SSEND     R4  :allocate  n=0
-  OP_MOVE, 0, 4,             // OP_MOVE      R0  R4
-  OP_MOVE, 4, 3,             // OP_MOVE      R4  R3 (&)
-  OP_MOVE, 3, 2,             // OP_MOVE      R3  R2 (**)
-  OP_MOVE, 2, 1,             // OP_MOVE      R2  R1 (*)
-  OP_SSENDB, 1, 1, 255,      // OP_SSENDB    R1  :initialize n=*|nk=*
-  OP_RETURN, 0               // OP_RETURN    R0
+  OP_ENTER, 0x0, 0x10, 0x3,  // 000 OP_ENTER     0:0:1:0:0:1:1
+  OP_SSEND, 4, 0, 0,         // 004 OP_SSEND     R4  :allocate  n=0
+  OP_MOVE, 0, 4,             // 008 OP_MOVE      R0  R4
+  OP_MOVE, 4, 3,             // 011 OP_MOVE      R4  R3         ; &
+  OP_MOVE, 3, 2,             // 014 OP_MOVE      R3  R2         ; **
+  OP_MOVE, 2, 1,             // 017 OP_MOVE      R2  R1         ; *
+  OP_SSENDB, 1, 1, 255,      // 020 OP_SSENDB    R1  :initialize n=*|nk=*
+  OP_RETURN, 0               // 024 OP_RETURN    R0
 };
 
 MRB_PRESYM_DEFINE_VAR_AND_INITER(new_syms, 2, MRB_SYM(allocate), MRB_SYM(initialize))
@@ -4160,13 +4213,13 @@ init_class_new(mrb_state *mrb, struct RClass *cls)
 }
 
 static const mrb_code neq_iseq[] = {
-  OP_ENTER, 0x4, 0, 0,       // OP_ENTER     1:0:0:0:0:0:0
-  OP_EQ, 0,                  // OP_EQ        R0  (R1)
-  OP_JMPNOT, 0, 0, 5,        // OP_JMPNOT    R3  016
-  OP_LOADF, 0,               // OP_LOADF     R0  (true)
-  OP_JMP, 0, 2,              // OP_JMP       R1  018
-  OP_LOADT, 0,               // OP_LOADT     R3  (true)
-  OP_RETURN, 0               // OP_RETURN    R0
+  OP_ENTER, 0x4, 0, 0,       // 000 OP_ENTER     1:0:0:0:0:0:0
+  OP_EQ, 0,                  // 004 OP_EQ        R0  (R1)
+  OP_JMPNOT, 0, 0, 5,        // 006 OP_JMPNOT    R0  015
+  OP_LOADF, 0,               // 010 OP_LOADF     R0  (false)
+  OP_JMP, 0, 2,              // 012 OP_JMP       017
+  OP_LOADT, 0,               // 015 OP_LOADT     R0  (true)
+  OP_RETURN, 0               // 017 OP_RETURN    R0
 };
 
 static const mrb_irep neq_irep = {

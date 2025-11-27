@@ -10,7 +10,7 @@ class Range
   include Enumerable
 
   ##
-  # Calls the given block for each element of +self+
+  # Calls the given block for each element of `self`
   # and pass the respective element.
   #
   # ISO 15.2.14.4.4

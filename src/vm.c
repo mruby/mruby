@@ -1004,7 +1004,7 @@ send_method(mrb_state *mrb, mrb_value self, mrb_bool pub)
     if (m.flags & MRB_METHOD_PRIVATE_FL) {
     vis_err:;
       if (n == 15) {
-        n = RARRAY_LEN(regs[0]) - 1;
+        n = (int)(RARRAY_LEN(regs[0]) - 1);
         regs = RARRAY_PTR(regs[0]);
       }
       vis_error(mrb, name, mrb_ary_new_from_values(mrb, n, regs+1), self, priv);
@@ -1059,8 +1059,8 @@ send_method(mrb_state *mrb, mrb_value self, mrb_bool pub)
  *     obj.__send__(symbol [, args...])      -> obj
  *
  *  Invokes the method identified by _symbol_, passing it any
- *  arguments specified. You can use <code>__send__</code> if the name
- *  +send+ clashes with an existing method in _obj_.
+ *  arguments specified. You can use `__send__` if the name
+ *  `send` clashes with an existing method in _obj_.
  *
  *     class Klass
  *       def hello(*args)
@@ -1146,7 +1146,7 @@ eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
  *     mod.module_eval {| | block } -> obj
  *
  *  Evaluates block in the context of _mod_. This can
- *  be used to add methods to a class. <code>module_eval</code> returns
+ *  be used to add methods to a class. `module_eval` returns
  *  the result of evaluating its argument.
  */
 mrb_value
@@ -1166,10 +1166,10 @@ mrb_mod_module_eval(mrb_state *mrb, mrb_value mod)
  *     obj.instance_eval {| | block }                       -> obj
  *
  *  Evaluates the given block,within  the context of the receiver (_obj_).
- *  In order to set the context, the variable +self+ is set to _obj_ while
+ *  In order to set the context, the variable `self` is set to _obj_ while
  *  the code is executing, giving the code access to _obj_'s
- *  instance variables. In the version of <code>instance_eval</code>
- *  that takes a +String+, the optional second and third
+ *  instance variables. In the version of `instance_eval`
+ *  that takes a `String`, the optional second and third
  *  parameters supply a filename and starting line number that are used
  *  when reporting compilation errors.
  *
@@ -1521,17 +1521,43 @@ prepare_tagged_break(mrb_state *mrb, uint32_t tag, const mrb_callinfo *return_ci
 #define CASE(insn,ops) case insn: { const mrb_code *pc = ci->pc+1; FETCH_ ## ops (); ci->pc = pc; } L_ ## insn ## _BODY:
 #define NEXT goto L_END_DISPATCH
 #define JUMP NEXT
+#ifdef MRB_USE_TASK_SCHEDULER
+#define END_DISPATCH L_END_DISPATCH: \
+  if (mrb->task.switching || mrb->c->status == MRB_TASK_STOPPED) \
+    return mrb_nil_value(); \
+  }}
+#else
 #define END_DISPATCH L_END_DISPATCH:;}}
+#endif
 
 #else
 
 #define INIT_DISPATCH JUMP; return mrb_nil_value();
 #define CASE(insn,ops) L_ ## insn: { const mrb_code *pc = ci->pc+1; FETCH_ ## ops (); ci->pc = pc; } L_ ## insn ## _BODY:
+#ifdef MRB_USE_TASK_SCHEDULER
+#define NEXT if (mrb->task.switching || mrb->c->status == MRB_TASK_STOPPED) return mrb_nil_value(); \
+  insn=BYTECODE_DECODER(*ci->pc); CODE_FETCH_HOOK(mrb, irep, ci->pc, regs); goto *optable[insn]
+#else
 #define NEXT insn=BYTECODE_DECODER(*ci->pc); CODE_FETCH_HOOK(mrb, irep, ci->pc, regs); goto *optable[insn]
+#endif
 #define JUMP NEXT
 
+#ifdef MRB_USE_TASK_SCHEDULER
+#define END_DISPATCH \
+  if (mrb->task.switching || mrb->c->status == MRB_TASK_STOPPED) \
+    return mrb_nil_value();
+#else
 #define END_DISPATCH
+#endif
 
+#endif
+
+#ifdef MRB_USE_TASK_SCHEDULER
+#define TASK_STOP(mrb) \
+  if (mrb->c->status != MRB_TASK_STOPPED) \
+    mrb->c->status = MRB_TASK_STOPPED;
+#else
+#define TASK_STOP(mrb)
 #endif
 
 /**
@@ -1683,7 +1709,21 @@ RETRY_TRY_BLOCK:
       goto L_BREAK;
     goto L_RAISE;
   }
+  /* Intentionally store stack variable address for exception handling.
+   * This is safe because the pointer is cleared before function returns.
+   * Suppress GCC 12+ warning about dangling pointer. */
+#if defined(__GNUC__) && !defined(__clang__)
+  #if __GNUC__ >= 12
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wdangling-pointer"
+  #endif
+#endif
   mrb->jmp = &c_jmp;
+#if defined(__GNUC__) && !defined(__clang__)
+  #if __GNUC__ >= 12
+    #pragma GCC diagnostic pop
+  #endif
+#endif
 
   INIT_DISPATCH {
     CASE(OP_NOP, Z) {
@@ -1718,7 +1758,7 @@ RETRY_TRY_BLOCK:
 #ifdef MRB_USE_BIGINT
         {
           const char *s = irep->pool[b].u.str;
-          regs[a] = mrb_bint_new_str(mrb, s+2, (uint8_t)s[0], s[1]);
+          regs[a] = mrb_bint_new_str(mrb, s+2, (uint8_t)s[0], (int8_t)s[1]);
         }
         break;
 #else
@@ -2400,7 +2440,7 @@ RETRY_TRY_BLOCK:
         kdict = regs[mrb_ci_kidx(ci)];
       }
       if (!kd) {
-        if (!mrb_nil_p(kdict) && mrb_hash_size(mrb, kdict) > 0) {
+        if (!mrb_nil_p(kdict) && mrb_hash_p(kdict) && mrb_hash_size(mrb, kdict) > 0) {
           if (argc < 14) {
             ci->n++;
             argc++;    /* include kdict in normal arguments */
@@ -3006,14 +3046,12 @@ RETRY_TRY_BLOCK:
       mrb_value v = regs[a];
       int pre  = b;
       int post = c;
-      struct RArray *ary;
-      int len, idx;
 
       if (!mrb_array_p(v)) {
         v = ary_new_from_regs(mrb, 1, a);
       }
-      ary = mrb_ary_ptr(v);
-      len = (int)ARY_LEN(ary);
+      struct RArray *ary = mrb_ary_ptr(v);
+      int len = (int)ARY_LEN(ary);
       if (len > pre + post) {
         v = mrb_ary_new_from_values(mrb, len - pre - post, ARY_PTR(ary)+pre);
         regs[a++] = v;
@@ -3024,6 +3062,8 @@ RETRY_TRY_BLOCK:
       else {
         v = mrb_ary_new_capa(mrb, 0);
         regs[a++] = v;
+
+        int idx;
         for (idx=0; idx+pre<len; idx++) {
           regs[a+idx] = ARY_PTR(ary)[pre+idx];
         }
@@ -3342,9 +3382,11 @@ RETRY_TRY_BLOCK:
       mrb->jmp = prev_jmp;
       if (!mrb_nil_p(v)) {
         mrb->exc = mrb_obj_ptr(v);
+        TASK_STOP(mrb);
         return v;
       }
       mrb->exc = NULL;
+      TASK_STOP(mrb);
       return regs[irep->nlocals];
     }
   }

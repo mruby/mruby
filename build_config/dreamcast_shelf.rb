@@ -5,12 +5,16 @@
 # http://gamedev.allusion.net/softprj/kos/
 #
 # This configuration has been improved to be used as KallistiOS Port (kos-ports)
-# Updated: 2023-12-24
+# Updated: 2025-07-31
 #
 # Tested on GNU/Linux, macOS and Windows (MinGW-w64/MSYS2, Cygwin, DreamSDK)
-# DreamSDK is based on MinGW/MSYS: https://dreamsdk.org/
+# DreamSDK is based on both MinGW/MSYS and MinGW-w64/MSYS2: https://dreamsdk.org/
 #
 # Install mruby for Sega Dreamcast using the "mruby" kos-port.
+# See: https://github.com/kallistios/kallistios
+#
+# If you want to see examples, check the /examples/dreamcast/mruby directory
+# in the KallistiOS repository.
 #
 MRuby::CrossBuild.new("dreamcast") do |conf|
   toolchain :gcc
@@ -19,42 +23,37 @@ MRuby::CrossBuild.new("dreamcast") do |conf|
   KOS_BASE = ENV["KOS_BASE"]
   KOS_CC_BASE = ENV["KOS_CC_BASE"]
 
-  if (KOS_BASE.nil? || KOS_BASE.empty? || KOS_CC_BASE.nil? || KOS_CC_BASE.empty?)
-    raise "Error: KallistiOS is required; KOS_BASE/KOS_CC_BASE needs to be declared; Stop."
+  # Check environment variables
+  if KOS_BASE.to_s.empty?
+    raise "Error: KallistiOS is required; KOS_BASE need to be declared; Stop."
   end
 
+  # Root directory for KallistiOS wrappers
+  # This will handle specific DreamSDK wrappers if needed
+  KOS_WRAPPERS_BASE = if ENV["ENVIRONMENT_NAME"] == "DreamSDK" && ENV["RAKE_AVAILABLE"] == "0"
+                      "#{KOS_CC_BASE}/bin"
+                    else
+                      "#{KOS_BASE}/utils/build_wrappers"
+                    end
+
   # C compiler
-  # All flags and settings below were extracted from KallistiOS environment files
   conf.cc do |cc|
-    cc.command = "#{KOS_CC_BASE}/bin/sh-elf-gcc"
-    cc.include_paths << ["#{KOS_BASE}/include", "#{KOS_BASE}/kernel/arch/dreamcast/include", "#{KOS_BASE}/addons/include", "#{KOS_BASE}/../kos-ports/include"]
-    cc.flags << ["-O2", "-fomit-frame-pointer", "-fno-builtin", "-ml", "-m4-single-only", "-ffunction-sections", "-fdata-sections", "-matomic-model=soft-imask", "-ftls-model=local-exec", "-Wall", "-g"]
-    cc.compile_options = %Q[%{flags} -o "%{outfile}" -c "%{infile}"]
-    cc.defines << %w(_arch_dreamcast)
-    cc.defines << %w(_arch_sub_pristine)
+    cc.command = "#{KOS_WRAPPERS_BASE}/kos-cc"
   end
 
   # C++ compiler
   conf.cxx do |cxx|
-    cxx.command = conf.cc.command.dup
-    cxx.include_paths = conf.cc.include_paths.dup
-    cxx.flags = conf.cc.flags.dup
-    cxx.flags << %w(-fno-operator-names)
-    cxx.defines = conf.cc.defines.dup
-    cxx.compile_options = conf.cc.compile_options.dup
+    cxx.command = "#{KOS_WRAPPERS_BASE}/kos-c++"
   end
 
   # Linker
   conf.linker do |linker|
-    linker.command = "#{KOS_CC_BASE}/bin/sh-elf-gcc"
-    linker.flags << ["-Wl,-Ttext=0x8c010000", "-Wl,--gc-sections", "-T#{KOS_BASE}/utils/ldscripts/shlelf.xc", "-nodefaultlibs", "-Wl,--start-group -lkallisti -lc -lgcc -Wl,--end-group"]
-    linker.library_paths << ["#{KOS_BASE}/lib/dreamcast", "#{KOS_BASE}/addons/lib/dreamcast", "#{KOS_BASE}/../kos-ports/lib"]
+    linker.command = "#{KOS_WRAPPERS_BASE}/kos-ld"
   end
 
   # Archiver
   conf.archiver do |archiver|
-    archiver.command = "#{KOS_CC_BASE}/bin/sh-elf-ar"
-    archiver.archive_options = 'rcs "%{outfile}" %{objs}'
+    archiver.command = "#{KOS_WRAPPERS_BASE}/kos-ar"
   end
 
   # No executables needed for KallistiOS

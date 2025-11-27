@@ -15,7 +15,7 @@
  *   hsh.values_at(key, ...)   -> array
  *
  * Return an array containing the values associated with the given keys.
- * Also see <code>Hash.select</code>.
+ * Also see `Hash.select`.
  *
  *   h = { "cat" => "feline", "dog" => "canine", "cow" => "bovine" }
  *   h.values_at("cow", "cat")  #=> ["bovine", "feline"]
@@ -25,14 +25,13 @@ static mrb_value
 hash_values_at(mrb_state *mrb, mrb_value hash)
 {
   const mrb_value *argv;
-  mrb_value result;
   mrb_int argc;
-  int ai;
 
   mrb_get_args(mrb, "*", &argv, &argc);
-  result = mrb_ary_new_capa(mrb, argc);
+  mrb_value result = mrb_ary_new_capa(mrb, argc);
   if (argc == 0) return result;
-  ai = mrb_gc_arena_save(mrb);
+
+  int ai = mrb_gc_arena_save(mrb);
   for (mrb_int i = 0; i < argc; i++) {
     mrb_ary_push(mrb, result, mrb_hash_get(mrb, hash, argv[i]));
     mrb_gc_arena_restore(mrb, ai);
@@ -54,11 +53,10 @@ static mrb_value
 hash_slice(mrb_state *mrb, mrb_value hash)
 {
   const mrb_value *argv;
-  mrb_value result;
   mrb_int argc;
 
   mrb_get_args(mrb, "*", &argv, &argc);
-  result = mrb_hash_new_capa(mrb, argc);
+  mrb_value result = mrb_hash_new_capa(mrb, argc);
   if (argc == 0) return result; /* empty hash */
   for (mrb_int i = 0; i < argc; i++) {
     mrb_value key = argv[i];
@@ -105,7 +103,7 @@ slice_bang_i(mrb_state *mrb, mrb_value key, mrb_value val, void *data)
  *  call-seq:
  *     hsh.slice!(*keys) -> a_hash
  *
- *  Deletes keys from hsh that are not in +keys+.
+ *  Deletes keys from hsh that are not in `keys`.
  *  Returns a new hash containing the deleted key-value pairs.
  *
  *     h = { a: 1, b: 2, c: 3, d: 4 }
@@ -115,25 +113,23 @@ slice_bang_i(mrb_state *mrb, mrb_value key, mrb_value val, void *data)
 static mrb_value
 hash_slice_bang(mrb_state *mrb, mrb_value self)
 {
+  struct slice_bang_i_arg args;
   const mrb_value *argv;
   mrb_int argc;
-  mrb_value removed_hash;
-  struct slice_bang_i_arg args;
-  mrb_int i, len;
 
   mrb_get_args(mrb, "*", &argv, &argc);
 
   args.keep_keys = mrb_hash_new_capa(mrb, argc);
-  for (i = 0; i < argc; i++) {
+  for (mrb_int i = 0; i < argc; i++) {
     mrb_hash_set(mrb, args.keep_keys, argv[i], mrb_true_value());
   }
 
   args.keys_to_remove = mrb_ary_new(mrb);
   mrb_hash_foreach(mrb, mrb_hash_ptr(self), slice_bang_i, &args);
 
-  len = RARRAY_LEN(args.keys_to_remove);
-  removed_hash = mrb_hash_new_capa(mrb, len);
-  for (i = 0; i < len; i++) {
+  mrb_int len = RARRAY_LEN(args.keys_to_remove);
+  mrb_value removed_hash = mrb_hash_new_capa(mrb, len);
+  for (mrb_int i = 0; i < len; i++) {
     mrb_value key = mrb_ary_ref(mrb, args.keys_to_remove, i);
     mrb_value val = mrb_hash_delete_key(mrb, self, key);
     mrb_hash_set(mrb, removed_hash, key, val);
@@ -156,11 +152,10 @@ static mrb_value
 hash_except(mrb_state *mrb, mrb_value hash)
 {
   const mrb_value *argv;
-  mrb_value result;
   mrb_int argc;
 
   mrb_get_args(mrb, "*", &argv, &argc);
-  result = mrb_hash_dup(mrb, hash);
+  mrb_value result = mrb_hash_dup(mrb, hash);
   for (mrb_int i = 0; i < argc; i++) {
     mrb_hash_delete_key(mrb, result, argv[i]);
   }
@@ -309,7 +304,7 @@ hash_key_i(mrb_state *mrb, mrb_value key, mrb_value val, void *data)
  *     hsh.key(value)    -> key
  *
  *  Returns the key of an occurrence of a given value. If the value is
- *  not found, returns <code>nil</code>.
+ *  not found, returns `nil`.
  *
  *     h = { "a" => 100, "b" => 200, "c" => 300, "d" => 300 }
  *     h.key(200)   #=> "b"

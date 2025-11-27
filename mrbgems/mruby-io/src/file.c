@@ -10,6 +10,7 @@
 #include <mruby/ext/io.h>
 #include <mruby/error.h>
 #include <mruby/presym.h>
+#include "io_hal.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -19,6 +20,18 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+
+/* Undefine system macros that conflict with mrb_io_stat field names */
+#ifdef st_atime
+#undef st_atime
+#endif
+#ifdef st_mtime
+#undef st_mtime
+#endif
+#ifdef st_ctime
+#undef st_ctime
+#endif
+
 #if defined(_WIN32)
   #include <windows.h>
   #include <io.h>
@@ -62,17 +75,18 @@
   #define DIRSEP_P(ch) ((ch) == '/')
 #endif
 
+/* Use HAL lock constants */
 #ifndef LOCK_SH
-#define LOCK_SH 1
+#define LOCK_SH MRB_IO_LOCK_SH
 #endif
 #ifndef LOCK_EX
-#define LOCK_EX 2
+#define LOCK_EX MRB_IO_LOCK_EX
 #endif
 #ifndef LOCK_NB
-#define LOCK_NB 4
+#define LOCK_NB MRB_IO_LOCK_NB
 #endif
 #ifndef LOCK_UN
-#define LOCK_UN 8
+#define LOCK_UN MRB_IO_LOCK_UN
 #endif
 
 #if !defined(_WIN32) || defined(MRB_MINGW32_LEGACY)
@@ -103,26 +117,41 @@ flock(int fd, int operation)
 }
 #endif
 
+/*
+ * call-seq:
+ *   File.umask([mask]) -> integer
+ *
+ * Returns the current umask value for this process. If the optional
+ * `mask` argument is given, set the umask to that value and return
+ * the previous value.
+ *
+ *   File.umask(0006)   #=> 18
+ *   File.umask         #=> 6
+ */
 static mrb_value
 mrb_file_s_umask(mrb_state *mrb, mrb_value klass)
 {
-#if defined(_WIN32)
-  /* nothing to do on windows */
-  return mrb_fixnum_value(0);
+  mrb_int mask;
+  uint32_t omask;
 
-#else
-  mrb_int mask, omask;
   if (mrb_get_args(mrb, "|i", &mask) == 0) {
-    omask = umask(0);
-    umask(omask);
+    omask = mrb_hal_io_umask(mrb, -1);
   }
   else {
-    omask = umask(mask);
+    omask = mrb_hal_io_umask(mrb, (int32_t)mask);
   }
   return mrb_fixnum_value(omask);
-#endif
 }
 
+/*
+ * call-seq:
+ *   File.delete(file_name, ...) -> integer
+ *   File.unlink(file_name, ...) -> integer
+ *
+ * Deletes the named file(s). Returns the number of files deleted.
+ *
+ *   File.delete("a.txt", "b.txt") #=> 2
+ */
 static mrb_value
 mrb_file_s_unlink(mrb_state *mrb, mrb_value obj)
 {
@@ -135,7 +164,7 @@ mrb_file_s_unlink(mrb_state *mrb, mrb_value obj)
     mrb_ensure_string_type(mrb, pathv);
     const char *utf8_path = RSTRING_CSTR(mrb, pathv);
     char *path = mrb_locale_from_utf8(utf8_path, -1);
-    if (UNLINK(path) < 0) {
+    if (mrb_hal_io_unlink(mrb, path) < 0) {
       mrb_locale_free(path);
       mrb_sys_fail(mrb, utf8_path);
     }
@@ -144,6 +173,14 @@ mrb_file_s_unlink(mrb_state *mrb, mrb_value obj)
   return mrb_fixnum_value(argc);
 }
 
+/*
+ * call-seq:
+ *   File.rename(old_name, new_name) -> 0
+ *
+ * Renames the given file to the new name.
+ *
+ *   File.rename("a.txt", "b.txt") #=> 0
+ */
 static mrb_value
 mrb_file_s_rename(mrb_state *mrb, mrb_value obj)
 {
@@ -152,9 +189,12 @@ mrb_file_s_rename(mrb_state *mrb, mrb_value obj)
   mrb_get_args(mrb, "SS", &from, &to);
   char *src = mrb_locale_from_utf8(RSTRING_CSTR(mrb, from), -1);
   char *dst = mrb_locale_from_utf8(RSTRING_CSTR(mrb, to), -1);
-  if (rename(src, dst) < 0) {
+  if (mrb_hal_io_rename(mrb, src, dst) < 0) {
 #if defined(_WIN32)
-    if (CHMOD(dst, 0666) == 0 && UNLINK(dst) == 0 && rename(src, dst) == 0) {
+    /* Windows retry: try chmod+unlink+rename if initial rename fails */
+    if (mrb_hal_io_chmod(mrb, dst, 0666) == 0 &&
+        mrb_hal_io_unlink(mrb, dst) == 0 &&
+        mrb_hal_io_rename(mrb, src, dst) == 0) {
       mrb_locale_free(src);
       mrb_locale_free(dst);
       return mrb_fixnum_value(0);
@@ -189,6 +229,14 @@ scan_dirname(const char *path, mrb_int level)
   return p > path ? p : path;
 }
 
+/*
+ * call-seq:
+ *   File.dirname(file_name) -> string
+ *
+ * Returns the directory part of a file name.
+ *
+ *   File.dirname("/usr/bin/ruby") #=> "/usr/bin"
+ */
 static mrb_value
 mrb_file_dirname(mrb_state *mrb, mrb_value klass)
 {
@@ -238,6 +286,15 @@ mrb_file_dirname(mrb_state *mrb, mrb_value klass)
   return (p == path) ? mrb_str_new_lit(mrb, ".") : mrb_str_new(mrb, path, p - path);
 }
 
+/*
+ * call-seq:
+ *   File.basename(file_name, [suffix]) -> string
+ *
+ * Returns the last component of the file name.
+ *
+ *   File.basename("/usr/bin/ruby") #=> "ruby"
+ *   File.basename("/usr/bin/ruby.exe", ".exe") #=> "ruby"
+ */
 static mrb_value
 mrb_file_basename(mrb_state *mrb, mrb_value klass)
 {
@@ -322,6 +379,15 @@ mrb_file_basename(mrb_state *mrb, mrb_value klass)
 #endif
 }
 
+/*
+ * call-seq:
+ *   File.realpath(pathname, [dir_string]) -> string
+ *
+ * Returns the real (absolute) path of `pathname` in the actual
+ * filesystem.
+ *
+ *   File.realpath("../../bin/ruby") #=> "/usr/bin/ruby"
+ */
 static mrb_value
 mrb_file_realpath(mrb_state *mrb, mrb_value klass)
 {
@@ -335,7 +401,7 @@ mrb_file_realpath(mrb_state *mrb, mrb_value klass)
   }
   char *cpath = mrb_locale_from_utf8(RSTRING_CSTR(mrb, pathname), -1);
   mrb_value result = mrb_str_new_capa(mrb, PATH_MAX);
-  if (realpath(cpath, RSTRING_PTR(result)) == NULL) {
+  if (mrb_hal_io_realpath(mrb, cpath, RSTRING_PTR(result)) == NULL) {
     mrb_locale_free(cpath);
     mrb_sys_fail(mrb, RSTRING_CSTR(mrb, pathname));
     return result;              /* not reached */
@@ -350,7 +416,7 @@ path_getwd(mrb_state *mrb)
 {
   char buf[MAXPATHLEN];
 
-  if (GETCWD(buf, MAXPATHLEN) == NULL) {
+  if (mrb_hal_io_getcwd(mrb, buf, MAXPATHLEN) == NULL) {
     mrb_sys_fail(mrb, "getcwd(2)");
   }
   char *utf8 = mrb_utf8_from_locale(buf, -1);
@@ -454,7 +520,7 @@ path_gethome(mrb_state *mrb, const char **pathp)
 {
   mrb_assert(pathp && *pathp && **pathp == '~');
 
-  char *home;
+  const char *home;
   mrb_value path;
 
   const char *username = ++*pathp;
@@ -462,12 +528,7 @@ path_gethome(mrb_state *mrb, const char **pathp)
   ptrdiff_t len = *pathp - username;
 
   if (len == 0) {
-    home = getenv("HOME");
-#ifdef _WIN32
-    if (home == NULL) {
-      home = getenv("USERPROFILE");
-    }
-#endif
+    home = mrb_hal_io_gethome(mrb, NULL);
     if (home == NULL) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "couldn't find HOME environment -- expanding '~'");
     }
@@ -477,22 +538,17 @@ path_gethome(mrb_state *mrb, const char **pathp)
   }
   else {
     const char *uname = RSTRING_CSTR(mrb, mrb_str_new(mrb, username, (mrb_int)len));
-#if defined(_WIN32) || defined(MRB_IO_NO_PWNAM)
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "user %s doesn't exist", uname);
-#else
-    const struct passwd *pwd = getpwnam(uname);
-    if (pwd == NULL) {
+    home = mrb_hal_io_gethome(mrb, uname);
+    if (home == NULL) {
       mrb_raisef(mrb, E_ARGUMENT_ERROR, "user %s doesn't exist", uname);
     }
-    home = pwd->pw_dir;
     if (!path_absolute_p(home)) {
       mrb_raisef(mrb, E_ARGUMENT_ERROR, "non-absolute home of ~%s", uname);
     }
-#endif
   }
-  home = mrb_utf8_from_locale(home, -1);
-  path = mrb_str_new_cstr(mrb, home);
-  mrb_utf8_free(home);
+  char *home_utf8 = mrb_utf8_from_locale(home, -1);
+  path = mrb_str_new_cstr(mrb, home_utf8);
+  mrb_utf8_free(home_utf8);
 
   SKIP_DIRSEP(*pathp);
   return RSTRING_CSTR(mrb, path);
@@ -585,6 +641,14 @@ mrb_file_expand_path(mrb_state *mrb, mrb_value self)
   return path_expand(mrb, path, default_dir, TRUE);
 }
 
+/*
+ * call-seq:
+ *   File.absolute_path(file_name, [dir_string]) -> string
+ *
+ * Converts a pathname to an absolute pathname.
+ *
+ *   File.absolute_path("~oracle/bin/oracle") #=> "/home/oracle/bin/oracle"
+ */
 static mrb_value
 mrb_file_absolute_path(mrb_state *mrb, mrb_value self)
 {
@@ -594,6 +658,15 @@ mrb_file_absolute_path(mrb_state *mrb, mrb_value self)
   return path_expand(mrb, path, default_dir, FALSE);
 }
 
+/*
+ * call-seq:
+ *   File.absolute_path?(file_name) -> true or false
+ *
+ * Returns `true` if the file name is an absolute path, `false` otherwise.
+ *
+ *   File.absolute_path?("/usr/bin/ruby") #=> true
+ *   File.absolute_path?("bin/ruby")      #=> false
+ */
 static mrb_value
 mrb_file_absolute_path_p(mrb_state *mrb, mrb_value klass)
 {
@@ -618,10 +691,10 @@ static mrb_value
 mrb_file_atime(mrb_state *mrb, mrb_value self)
 {
   int fd = mrb_io_fileno(mrb, self);
-  mrb_stat st;
+  mrb_io_stat st;
 
   mrb->c->ci->mid = 0;
-  if (mrb_fstat(fd, &st) == -1)
+  if (mrb_hal_io_fstat(mrb, fd, &st) == -1)
     mrb_sys_fail(mrb, "atime");
   if (TIME_OVERFLOW_P(st.st_atime)) {
     TIME_BIGTIME(mrb, st.st_atime);
@@ -633,10 +706,10 @@ static mrb_value
 mrb_file_ctime(mrb_state *mrb, mrb_value self)
 {
   int fd = mrb_io_fileno(mrb, self);
-  mrb_stat st;
+  mrb_io_stat st;
 
   mrb->c->ci->mid = 0;
-  if (mrb_fstat(fd, &st) == -1)
+  if (mrb_hal_io_fstat(mrb, fd, &st) == -1)
     mrb_sys_fail(mrb, "ctime");
   if (TIME_OVERFLOW_P(st.st_ctime)) {
     TIME_BIGTIME(mrb, st.st_ctime);
@@ -648,10 +721,10 @@ static mrb_value
 mrb_file_mtime(mrb_state *mrb, mrb_value self)
 {
   int fd = mrb_io_fileno(mrb, self);
-  mrb_stat st;
+  mrb_io_stat st;
 
   mrb->c->ci->mid = 0;
-  if (mrb_fstat(fd, &st) == -1)
+  if (mrb_hal_io_fstat(mrb, fd, &st) == -1)
     mrb_sys_fail(mrb, "mtime");
   if (TIME_OVERFLOW_P(st.st_mtime)) {
     TIME_BIGTIME(mrb, st.st_mtime);
@@ -659,6 +732,17 @@ mrb_file_mtime(mrb_state *mrb, mrb_value self)
   return mrb_int_value(mrb, (mrb_int)st.st_mtime);
 }
 
+/*
+ * call-seq:
+ *   file.flock(locking_constant) -> 0 or false
+ *
+ * Locks or unlocks a file according to `locking_constant`.
+ * See `File::LOCK_*` for locking constants.
+ *
+ *   f = File.new("testfile")
+ *   f.flock(File::LOCK_EX)  #=> 0
+ *   f.flock(File::LOCK_UN)  #=> 0
+ */
 static mrb_value
 mrb_file_flock(mrb_state *mrb, mrb_value self)
 {
@@ -670,7 +754,7 @@ mrb_file_flock(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "i", &operation);
   int fd = mrb_io_fileno(mrb, self);
 
-  while (flock(fd, (int)operation) == -1) {
+  while (mrb_hal_io_flock(mrb, fd, (int)operation) == -1) {
     switch (errno) {
       case EINTR:
         /* retry */
@@ -679,7 +763,7 @@ mrb_file_flock(mrb_state *mrb, mrb_value self)
 #if defined(EWOULDBLOCK) && EWOULDBLOCK != EAGAIN
       case EWOULDBLOCK: /* FreeBSD OpenBSD Linux */
 #endif
-        if (operation & LOCK_NB) {
+        if (operation & MRB_IO_LOCK_NB) {
           return mrb_false_value();
         }
         /* FALLTHRU - should not happen */
@@ -692,12 +776,20 @@ mrb_file_flock(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(0);
 }
 
+/*
+ * call-seq:
+ *   file.size -> integer
+ *
+ * Returns the size of `file` in bytes.
+ *
+ *   File.new("testfile").size #=> 66
+ */
 static mrb_value
 mrb_file_size(mrb_state *mrb, mrb_value self)
 {
-  mrb_stat st;
+  mrb_io_stat st;
   int fd = mrb_io_fileno(mrb, self);
-  if (mrb_fstat(fd, &st) == -1) {
+  if (mrb_hal_io_fstat(mrb, fd, &st) == -1) {
     mrb_sys_fail(mrb, "fstat");
   }
 
@@ -713,68 +805,70 @@ mrb_file_size(mrb_state *mrb, mrb_value self)
 }
 
 static int
-mrb_ftruncate(int fd, mrb_int length)
+mrb_ftruncate(mrb_state *mrb, int fd, mrb_int length)
 {
-#ifndef _WIN32
-  return ftruncate(fd, (off_t)length);
-#else
-  __int64 cur;
-  HANDLE file = (HANDLE)_get_osfhandle(fd);
-  if (file == INVALID_HANDLE_VALUE) {
-    return -1;
-  }
-
-  cur = _lseeki64(fd, 0, SEEK_CUR);
-  if (cur == -1) return -1;
-
-  if (_lseeki64(fd, (__int64)length, SEEK_SET) == -1) return -1;
-
-  if (!SetEndOfFile(file)) {
-    errno = EINVAL; /* TODO: GetLastError to errno */
-    return -1;
-  }
-
-  if (_lseeki64(fd, cur, SEEK_SET) == -1) return -1;
-
-  return 0;
-#endif /* _WIN32 */
+  return mrb_hal_io_ftruncate(mrb, fd, (int64_t)length);
 }
 
+/*
+ * call-seq:
+ *   file.truncate(integer) -> 0
+ *
+ * Truncates a file to a maximum of `integer` bytes.
+ *
+ *   f = File.new("out", "w")
+ *   f.write("1234567890")   #=> 10
+ *   f.truncate(5)         #=> 0
+ *   f.size                #=> 5
+ */
 static mrb_value
 mrb_file_truncate(mrb_state *mrb, mrb_value self)
 {
   mrb_value lenv = mrb_get_arg1(mrb);
   int fd = mrb_io_fileno(mrb, self);
   mrb_int length = mrb_as_int(mrb, lenv);
-  if (mrb_ftruncate(fd, length) != 0) {
+  if (mrb_ftruncate(mrb, fd, length) != 0) {
     mrb_sys_fail(mrb, "ftruncate");
   }
 
   return mrb_fixnum_value(0);
 }
 
+/*
+ * call-seq:
+ *   File.symlink(old_name, new_name) -> 0
+ *
+ * Creates a symbolic link `new_name` for the file `old_name`.
+ *
+ *   File.symlink("testfile", "link-to-test") #=> 0
+ */
 static mrb_value
 mrb_file_s_symlink(mrb_state *mrb, mrb_value klass)
 {
-#if defined(_WIN32)
-  mrb_raise(mrb, E_NOTIMP_ERROR, "symlink is not supported on this platform");
-#else
   mrb_value from, to;
 
   mrb_get_args(mrb, "SS", &from, &to);
-  const char *src = mrb_locale_from_utf8(RSTRING_CSTR(mrb, from), -1);
-  const char *dst = mrb_locale_from_utf8(RSTRING_CSTR(mrb, to), -1);
-  if (symlink(src, dst) == -1) {
+  char *src = mrb_locale_from_utf8(RSTRING_CSTR(mrb, from), -1);
+  char *dst = mrb_locale_from_utf8(RSTRING_CSTR(mrb, to), -1);
+  if (mrb_hal_io_symlink(mrb, src, dst) == -1) {
     mrb_locale_free(src);
     mrb_locale_free(dst);
     mrb_sys_fail(mrb, RSTRING_CSTR(mrb, mrb_format(mrb, "(%v, %v)", from, to)));
   }
   mrb_locale_free(src);
   mrb_locale_free(dst);
-#endif
   return mrb_fixnum_value(0);
 }
 
+/*
+ * call-seq:
+ *   File.chmod(mode_int, file_name, ...) -> integer
+ *
+ * Changes permission bits on the named file(s) to the bit pattern
+ * represented by `mode_int`.
+ *
+ *   File.chmod(0644, "testfile", "out") #=> 2
+ */
 static mrb_value
 mrb_file_s_chmod(mrb_state *mrb, mrb_value klass)
 {
@@ -788,7 +882,7 @@ mrb_file_s_chmod(mrb_state *mrb, mrb_value klass)
     mrb_ensure_string_type(mrb, filenames[i]);
     const char *utf8_path = RSTRING_CSTR(mrb, filenames[i]);
     char *path = mrb_locale_from_utf8(utf8_path, -1);
-    if (CHMOD(path, mode) == -1) {
+    if (mrb_hal_io_chmod(mrb, path, (uint32_t)mode) == -1) {
       mrb_locale_free(path);
       mrb_sys_fail(mrb, utf8_path);
     }
@@ -799,13 +893,18 @@ mrb_file_s_chmod(mrb_state *mrb, mrb_value klass)
   return mrb_fixnum_value(argc);
 }
 
+/*
+ * call-seq:
+ *   File.readlink(link_name) -> string
+ *
+ * Returns the name of the file referenced by the given link.
+ *
+ *   File.symlink("testfile", "link-to-test") #=> 0
+ *   File.readlink("link-to-test")          #=> "testfile"
+ */
 static mrb_value
 mrb_file_s_readlink(mrb_state *mrb, mrb_value klass)
 {
-#if defined(_WIN32)
-  mrb_raise(mrb, E_NOTIMP_ERROR, "readlink is not supported on this platform");
-  return mrb_nil_value(); // unreachable
-#else
   const char *path;
   size_t bufsize = 100;
 
@@ -814,8 +913,8 @@ mrb_file_s_readlink(mrb_state *mrb, mrb_value klass)
   char *tmp = mrb_locale_from_utf8(path, -1);
   char *buf = (char*)mrb_malloc(mrb, bufsize);
 
-  ssize_t rc;
-  while ((rc = readlink(tmp, buf, bufsize)) == (ssize_t)bufsize) {
+  int64_t rc;
+  while ((rc = mrb_hal_io_readlink(mrb, tmp, buf, bufsize)) == (int64_t)bufsize) {
     bufsize += 100;
     buf = (char*)mrb_realloc(mrb, buf, bufsize);
   }
@@ -831,7 +930,213 @@ mrb_file_s_readlink(mrb_state *mrb, mrb_value klass)
   mrb_free(mrb, buf);
 
   return ret;
-#endif
+}
+
+/*
+ * call-seq:
+ *   File.extname(path) -> string
+ *
+ * Returns the extension (the portion of file name in path starting from the
+ * last period). If path is a dotfile, or starts with a period, then the starting
+ * dot is not dealt with the start of the extension.
+ *
+ *   File.extname("test.rb")         #=> ".rb"
+ *   File.extname("a/b/d/test.rb")   #=> ".rb"
+ *   File.extname("test")            #=> ""
+ *   File.extname(".profile")        #=> ""
+ */
+static mrb_value
+mrb_file_extname(mrb_state *mrb, mrb_value klass)
+{
+  char *path;
+  mrb_get_args(mrb, "z", &path);
+
+  size_t len = strlen(path);
+  if (len == 0) {
+    return mrb_str_new_lit(mrb, "");
+  }
+
+  // Remove trailing slashes to find the actual filename
+  while (len > 1 && path[len - 1] == '/') {
+    len--;
+  }
+
+  // Find the last path separator to get basename
+  ssize_t base_start = len - 1;
+  while (base_start >= 0 && path[base_start] != '/') {
+    base_start--;
+  }
+  base_start++; // move to first character after '/'
+
+  // If the result is only slashes, no extension
+  if ((size_t)base_start == len) {
+    return mrb_str_new_lit(mrb, "");
+  }
+
+  // Look for the last '.' in the basename
+  ssize_t dot_pos = -1;
+  for (size_t i = base_start; i < len; i++) {
+    if (path[i] == '.') {
+      dot_pos = i;
+    }
+  }
+
+  // No dot found, or dot is the first character (dotfile)
+  if (dot_pos == -1 || dot_pos == (ssize_t)base_start) {
+    return mrb_str_new_lit(mrb, "");
+  }
+
+  // Return extension from dot to end
+  return mrb_str_new(mrb, path + dot_pos, len - dot_pos);
+}
+
+/*
+ * call-seq:
+ *   File.path(path)  -> string
+ *
+ * Returns the string representation of the path
+ *
+ *   File.path("/dev/null")          #=> "/dev/null"
+ *   File.path(Pathname.new("/tmp")) #=> "/tmp"
+ */
+static mrb_value
+mrb_file_path(mrb_state *mrb, mrb_value klass)
+{
+  mrb_value filename;
+  mrb_get_args(mrb, "S", &filename);
+  return filename;
+}
+
+// Forward declaration for recursive join processing
+static mrb_value mrb_file_join_process_args(mrb_state *mrb, const mrb_value *argv, mrb_int argc);
+
+static mrb_value
+mrb_file_join_process_args(mrb_state *mrb, const mrb_value *argv, mrb_int argc)
+{
+  mrb_value result = mrb_ary_new_capa(mrb, argc);
+
+  for (mrb_int i = 0; i < argc; i++) {
+    mrb_value arg = argv[i];
+
+    if (mrb_array_p(arg)) {
+      // Check for recursive arrays using mruby's built-in detection
+      if (MRB_RECURSIVE_UNARY_P(mrb, MRB_SYM(join), arg)) {
+        mrb_raise(mrb, E_ARGUMENT_ERROR, "recursive array");
+      }
+
+      // Recursively process the array
+      mrb_value nested = mrb_file_join_process_args(mrb, RARRAY_PTR(arg), RARRAY_LEN(arg));
+
+      // Append nested results to our result
+      mrb_int nested_len = RARRAY_LEN(nested);
+      for (mrb_int k = 0; k < nested_len; k++) {
+        mrb_ary_push(mrb, result, RARRAY_PTR(nested)[k]);
+      }
+    }
+    else {
+      // Convert to string (raises TypeError if not convertible)
+      mrb_ensure_string_type(mrb, arg);
+      mrb_ary_push(mrb, result, arg);
+    }
+  }
+
+  return result;
+}
+
+/*
+ * call-seq:
+ *   File.join(string, ...) -> string
+ *
+ * Returns a new string formed by joining the strings using the operating
+ * system's path separator (File::SEPARATOR).
+ *
+ *   File.join("usr", "mail", "gumby")   #=> "usr/mail/gumby"
+ *   File.join("usr", "mail", "gumby")   #=> "usr\\mail\\gumby" (on Windows)
+ */
+static mrb_value
+mrb_file_join(mrb_state *mrb, mrb_value klass)
+{
+  const mrb_value *argv;
+  mrb_int argc;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+
+  // Handle empty case
+  if (argc == 0) {
+    return mrb_str_new_lit(mrb, "");
+  }
+
+  // Process arguments and flatten arrays
+  mrb_value names = mrb_file_join_process_args(mrb, argv, argc);
+
+  mrb_int names_len = RARRAY_LEN(names);
+  if (names_len == 0) {
+    return mrb_str_new_lit(mrb, "");
+  }
+
+  // Handle single element case
+  if (names_len == 1) {
+    return RARRAY_PTR(names)[0];
+  }
+
+  // Start building the result
+  mrb_value first = RARRAY_PTR(names)[0];
+  mrb_value result = mrb_str_dup(mrb, first);
+
+  // Remove trailing separator from first component
+  const char *sep = FILE_SEPARATOR;
+  mrb_int sep_len = strlen(sep);
+  if (RSTRING_LEN(result) > 0 &&
+      RSTRING_LEN(result) >= sep_len &&
+      memcmp(RSTRING_PTR(result) + RSTRING_LEN(result) - sep_len, sep, sep_len) == 0) {
+    mrb_str_resize(mrb, result, RSTRING_LEN(result) - sep_len);
+  }
+
+  // Process middle components
+  for (mrb_int i = 1; i < names_len - 1; i++) {
+    mrb_value component = RARRAY_PTR(names)[i];
+    const char *comp_str = RSTRING_PTR(component);
+    mrb_int comp_len = RSTRING_LEN(component);
+
+    // Skip empty components
+    if (comp_len == 0) continue;
+
+    // Remove leading separator
+    if (comp_len >= sep_len && memcmp(comp_str, sep, sep_len) == 0) {
+      comp_str += sep_len;
+      comp_len -= sep_len;
+    }
+
+    // Remove trailing separator
+    if (comp_len >= sep_len && memcmp(comp_str + comp_len - sep_len, sep, sep_len) == 0) {
+      comp_len -= sep_len;
+    }
+
+    // Add separator and component if not empty
+    if (comp_len > 0) {
+      mrb_str_cat_cstr(mrb, result, sep);
+      mrb_str_cat(mrb, result, comp_str, comp_len);
+    }
+  }
+
+  // Process last component
+  if (names_len > 1) {
+    mrb_value last = RARRAY_PTR(names)[names_len - 1];
+    const char *last_str = RSTRING_PTR(last);
+    mrb_int last_len = RSTRING_LEN(last);
+
+    // Remove leading separator from last component
+    if (last_len >= sep_len && memcmp(last_str, sep, sep_len) == 0) {
+      last_str += sep_len;
+      last_len -= sep_len;
+    }
+
+    // Add separator and last component
+    mrb_str_cat_cstr(mrb, result, sep);
+    mrb_str_cat(mrb, result, last_str, last_len);
+  }
+
+  return result;
 }
 
 void
@@ -850,6 +1155,9 @@ mrb_init_file(mrb_state *mrb)
 
   mrb_define_class_method_id(mrb, file, MRB_SYM(dirname),   mrb_file_dirname,    MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM(basename),  mrb_file_basename,   MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
+  mrb_define_class_method_id(mrb, file, MRB_SYM(extname),   mrb_file_extname,    MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, file, MRB_SYM(join),      mrb_file_join,       MRB_ARGS_ANY());
+  mrb_define_class_method_id(mrb, file, MRB_SYM(path),      mrb_file_path,       MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM(realpath),  mrb_file_realpath,   MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM(absolute_path), mrb_file_absolute_path, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM_Q(absolute_path), mrb_file_absolute_path_p, MRB_ARGS_REQ(1));

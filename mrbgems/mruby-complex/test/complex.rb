@@ -76,6 +76,8 @@ assert 'Complex#/' do
     one = 1e200
   end
   assert_complex Complex(ten, ten) / Complex(one, one), Complex(10.0, 0.0)
+  assert_raise(ZeroDivisionError) { Complex(1,1) / 0 }
+  assert_raise(ZeroDivisionError) { Complex(1,1) / Complex(0,0) }
 end
 
 assert 'Complex#==' do
@@ -160,4 +162,13 @@ assert 'Complex#frozen?' do
   assert_predicate(1i, :frozen?)
   assert_predicate(Complex(2,3), :frozen?)
   assert_predicate(4+5i, :frozen?)
+end
+
+assert 'Complex#**' do
+  assert_complex Complex(2, 3) ** 2, Complex(-5, 12)
+  assert_complex Complex(2, 3) ** 0, Complex(1, 0)
+  assert_complex Complex(2, 3) ** 1, Complex(2, 3)
+  assert_complex Complex(2, 3) ** Complex(1, 0), Complex(2, 3)
+  assert_complex Complex(0, 1) ** 2, Complex(-1, 0)
+  assert_complex Complex(0, 1) ** Complex(0, 1), Complex(Math::E ** (-Math::PI / 2), 0)
 end

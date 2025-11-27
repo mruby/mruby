@@ -94,3 +94,11 @@ void mrb_gc_free_set(mrb_state *mrb, struct RBasic *obj)
   /* stub for mrbc */
 }
 #endif
+
+#ifdef MRB_USE_TASK_SCHEDULER
+void mrb_task_mark_all(mrb_state *mrb)
+{
+  /* stub for mrbc */
+  (void)mrb;
+}
+#endif

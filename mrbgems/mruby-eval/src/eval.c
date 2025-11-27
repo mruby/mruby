@@ -285,14 +285,13 @@ f_eval(mrb_state *mrb, mrb_value self)
   mrb_value binding = mrb_nil_value();
   const char *file = NULL;
   mrb_int line = 1;
-  struct RProc *proc;
 
   mrb_get_args(mrb, "s|ozi", &s, &len, &binding, &file, &line);
 
   if (!mrb_nil_p(binding)) {
     binding_eval_prepare(mrb, binding, s, len, file);
   }
-  proc = create_proc_from_string(mrb, s, len, binding, file, line);
+  struct RProc *proc = create_proc_from_string(mrb, s, len, binding, file, line);
   if (!mrb_nil_p(binding)) {
     self = mrb_iv_get(mrb, binding, MRB_SYM(recv));
   }
@@ -332,12 +331,10 @@ f_instance_eval(mrb_state *mrb, mrb_value self)
     mrb_int len;
     const char *file = NULL;
     mrb_int line = 1;
-    struct RClass *c;
-    struct RProc *proc;
 
     mrb_get_args(mrb, "s|zi", &s, &len, &file, &line);
-    c = mrb_singleton_class_ptr(mrb, self);
-    proc = create_proc_from_string(mrb, s, len, mrb_nil_value(), file, line);
+    struct RClass *c = mrb_singleton_class_ptr(mrb, self);
+    struct RProc *proc = create_proc_from_string(mrb, s, len, mrb_nil_value(), file, line);
     MRB_PROC_SET_TARGET_CLASS(proc, c);
     mrb_assert(!MRB_PROC_CFUNC_P(proc));
     mrb_vm_ci_target_class_set(mrb->c->ci, c);
@@ -378,10 +375,9 @@ f_class_eval(mrb_state *mrb, mrb_value self)
     mrb_int len;
     const char *file = NULL;
     mrb_int line = 1;
-    struct RProc *proc;
 
     mrb_get_args(mrb, "s|zi", &s, &len, &file, &line);
-    proc = create_proc_from_string(mrb, s, len, mrb_nil_value(), file, line);
+    struct RProc *proc = create_proc_from_string(mrb, s, len, mrb_nil_value(), file, line);
     MRB_PROC_SET_TARGET_CLASS(proc, mrb_class_ptr(self));
     mrb_assert(!MRB_PROC_CFUNC_P(proc));
     mrb_vm_ci_target_class_set(mrb->c->ci, mrb_class_ptr(self));

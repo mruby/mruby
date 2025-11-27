@@ -673,8 +673,9 @@ main(int argc, char **argv)
 
  l_restart:
 
-  if (mrb == NULL) {
-    fputs("Invalid mrb_state, exiting mruby\n", stderr);
+  if (MRB_OPEN_FAILURE(mrb)) {
+    mrb_print_error(mrb);  /* handles NULL */
+    mrb_close(mrb);        /* handles NULL */
     return EXIT_FAILURE;
   }
 

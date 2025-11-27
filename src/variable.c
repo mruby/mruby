@@ -19,9 +19,7 @@ typedef struct iv_tbl {
   mrb_value *ptr;
 } iv_tbl;
 
-#define IV_EMPTY 0
-#define IV_DELETED (1UL<<31)
-#define IV_KEY_P(k) (((k)&~((uint32_t)IV_DELETED))!=0)
+
 
 /* Creates the instance variable table. */
 static iv_tbl*
@@ -49,7 +47,7 @@ iv_rehash(mrb_state *mrb, iv_tbl *t)
   mrb_value *old_ptr = t->ptr;
 
   /* allocate exactly the same total shape as before */
-  t->ptr   = (mrb_value*)mrb_calloc(mrb, sizeof(mrb_value)+sizeof(mrb_sym), new_alloc);
+  t->ptr   = (mrb_value*)mrb_calloc(mrb, new_alloc, sizeof(mrb_value)+sizeof(mrb_sym));
   /* size remains unchanged, alloc grows */
   t->alloc = new_alloc;
 
@@ -90,7 +88,7 @@ bsearch_idx(mrb_sym *keys, int size, mrb_sym target) {
     n -= half;
   }
   /* Final adjustment: if the remaining element is still less than target, advance by one */
-  return (int)(p - keys) + (keys[0] < target);
+  return (int)(p - keys) + (p[0] < target);
 }
 
 /* Set (insert or update) the value for `sym` in the instance variable table using branch-free search. */
@@ -221,7 +219,7 @@ iv_copy(mrb_state *mrb, iv_tbl *t)
   t2->size  = t->size;
 
   /* allocate the same block shape */
-  t2->ptr = (mrb_value*)mrb_calloc(mrb, sizeof(mrb_value)+sizeof(mrb_sym), t2->alloc);
+  t2->ptr = (mrb_value*)mrb_calloc(mrb, t2->alloc, sizeof(mrb_value)+sizeof(mrb_sym));
 
   /* copy values[0...size] and keys[0...size] */
   memcpy(t2->ptr, t->ptr, sizeof(mrb_value)*t2->size);
@@ -540,10 +538,9 @@ mrb_iv_defined(mrb_state *mrb, mrb_value obj, mrb_sym sym)
 MRB_API mrb_bool
 mrb_iv_name_sym_p(mrb_state *mrb, mrb_sym iv_name)
 {
-  const char *s;
   mrb_int len;
+  const char *s = mrb_sym_name_len(mrb, iv_name, &len);
 
-  s = mrb_sym_name_len(mrb, iv_name, &len);
   if (len < 2) return FALSE;
   if (s[0] != '@') return FALSE;
   if (ISDIGIT(s[1])) return FALSE;
@@ -628,12 +625,10 @@ mrb_iv_remove(mrb_state *mrb, mrb_value obj, mrb_sym sym)
 static int
 iv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 {
-  mrb_value ary;
-  const char* s;
+  mrb_value ary = *(mrb_value*)p;
   mrb_int len;
+  const char* s = mrb_sym_name_len(mrb, sym, &len);
 
-  ary = *(mrb_value*)p;
-  s = mrb_sym_name_len(mrb, sym, &len);
   if (len > 1 && s[0] == '@' && s[1] != '@') {
     mrb_ary_push(mrb, ary, mrb_symbol_value(sym));
   }
@@ -660,9 +655,8 @@ iv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 mrb_value
 mrb_obj_instance_variables(mrb_state *mrb, mrb_value self)
 {
-  mrb_value ary;
+  mrb_value ary = mrb_ary_new(mrb);
 
-  ary = mrb_ary_new(mrb);
   if (obj_iv_p(self)) {
     iv_foreach(mrb, mrb_obj_ptr(self)->iv, iv_i, &ary);
   }
@@ -672,12 +666,10 @@ mrb_obj_instance_variables(mrb_state *mrb, mrb_value self)
 static int
 cv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 {
-  mrb_value ary;
-  const char* s;
+  mrb_value ary = *(mrb_value*)p;
   mrb_int len;
+  const char* s = mrb_sym_name_len(mrb, sym, &len);
 
-  ary = *(mrb_value*)p;
-  s = mrb_sym_name_len(mrb, sym, &len);
   if (len > 2 && s[0] == '@' && s[1] == '@') {
     mrb_ary_push(mrb, ary, mrb_symbol_value(sym));
   }
@@ -689,7 +681,7 @@ cv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
  *  call-seq:
  *     mod.class_variables(inherit=true)   -> array
  *
- *  Returns an array of the names of class variables in <i>mod</i>.
+ *  Returns an array of the names of class variables in *mod*.
  *
  *     class One
  *       @@var1 = 1
@@ -703,13 +695,11 @@ cv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 mrb_value
 mrb_mod_class_variables(mrb_state *mrb, mrb_value mod)
 {
-  mrb_value ary;
-  struct RClass *c;
   mrb_bool inherit = TRUE;
 
   mrb_get_args(mrb, "|b", &inherit);
-  ary = mrb_ary_new(mrb);
-  c = mrb_class_ptr(mod);
+  mrb_value ary = mrb_ary_new(mrb);
+  struct RClass *c = mrb_class_ptr(mod);
   while (c) {
     iv_foreach(mrb, class_iv_ptr(c), cv_i, &ary);
     if (!inherit) break;
@@ -733,9 +723,8 @@ mrb_mod_cv_get(mrb_state *mrb, struct RClass *c, mrb_sym sym)
   }
   if (given) return v;
   if (cls->tt == MRB_TT_SCLASS) {
-    mrb_value klass;
+    mrb_value klass = mrb_obj_iv_get(mrb, (struct RObject*)cls, MRB_SYM(__attached__));
 
-    klass = mrb_obj_iv_get(mrb, (struct RObject*)cls, MRB_SYM(__attached__));
     c = mrb_class_ptr(klass);
     if (c->tt == MRB_TT_CLASS || c->tt == MRB_TT_MODULE) {
       given = FALSE;
@@ -807,9 +796,8 @@ mrb_mod_cv_set(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value v)
   }
 
   if (cls->tt == MRB_TT_SCLASS) {
-    mrb_value klass;
+    mrb_value klass = mrb_obj_iv_get(mrb, (struct RObject*)cls, MRB_SYM(__attached__));
 
-    klass = mrb_obj_iv_get(mrb, (struct RObject*)cls, MRB_SYM(__attached__));
     switch (mrb_type(klass)) {
     case MRB_TT_CLASS:
     case MRB_TT_MODULE:
@@ -1077,8 +1065,10 @@ mrb_const_set(mrb_state *mrb, mrb_value mod, mrb_sym sym, mrb_value v)
   }
   mrb_obj_iv_set(mrb, mrb_obj_ptr(mod), sym, v);
 
-  mrb_value name = mrb_symbol_value(sym);
-  mrb_funcall_argv(mrb, mod, MRB_SYM(const_added), 1, &name);
+  if (!mrb->bootstrapping) {
+    mrb_value name = mrb_symbol_value(sym);
+    mrb_funcall_argv(mrb, mod, MRB_SYM(const_added), 1, &name);
+  }
 }
 
 /*
@@ -1157,12 +1147,10 @@ mrb_define_global_const(mrb_state *mrb, const char *name, mrb_value val)
 static int
 const_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 {
-  mrb_value ary;
-  const char* s;
+  mrb_value ary = *(mrb_value*)p;
   mrb_int len;
+  const char* s = mrb_sym_name_len(mrb, sym, &len);
 
-  ary = *(mrb_value*)p;
-  s = mrb_sym_name_len(mrb, sym, &len);
   if (len >= 1 && ISUPPER(s[0])) {
     mrb_int i, alen = RARRAY_LEN(ary);
 
@@ -1194,12 +1182,11 @@ mrb_mod_const_at(mrb_state *mrb, struct RClass *c, mrb_value ary)
 mrb_value
 mrb_mod_constants(mrb_state *mrb, mrb_value mod)
 {
-  mrb_value ary;
   mrb_bool inherit = TRUE;
   struct RClass *c = mrb_class_ptr(mod);
 
   mrb_get_args(mrb, "|b", &inherit);
-  ary = mrb_ary_new(mrb);
+  mrb_value ary = mrb_ary_new(mrb);
   while (c) {
     mrb_mod_const_at(mrb, c, ary);
     if (!inherit) break;
@@ -1268,9 +1255,7 @@ mrb_gv_remove(mrb_state *mrb, mrb_sym sym)
 static int
 gv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 {
-  mrb_value ary;
-
-  ary = *(mrb_value*)p;
+  mrb_value ary = *(mrb_value*)p;
   mrb_ary_push(mrb, ary, mrb_symbol_value(sym));
   return 0;
 }
@@ -1412,9 +1397,7 @@ find_class_sym(mrb_state *mrb, struct RClass *outer, struct RClass *c)
 static struct RClass*
 outer_class(mrb_state *mrb, struct RClass *c)
 {
-  mrb_value ov;
-
-  ov = mrb_obj_iv_get(mrb, (struct RObject*)c, MRB_SYM(__outer__));
+  mrb_value ov = mrb_obj_iv_get(mrb, (struct RObject*)c, MRB_SYM(__outer__));
   if (mrb_nil_p(ov)) return NULL;
   switch (mrb_type(ov)) {
   case MRB_TT_CLASS:
@@ -1445,23 +1428,20 @@ detect_outer_loop(mrb_state *mrb, struct RClass *c)
 mrb_value
 mrb_class_find_path(mrb_state *mrb, struct RClass *c)
 {
-  struct RClass *outer;
-  mrb_value path;
-  mrb_sym name;
-  const char *str;
-  mrb_int len;
-
   if (detect_outer_loop(mrb, c)) return mrb_nil_value();
-  outer = outer_class(mrb, c);
+  struct RClass *outer = outer_class(mrb, c);
   if (outer == NULL) return mrb_nil_value();
-  name = find_class_sym(mrb, outer, c);
+
+  mrb_sym name = find_class_sym(mrb, outer, c);
   if (name == 0) return mrb_nil_value();
-  path = mrb_str_new_capa(mrb, 40);
-  str = mrb_class_name(mrb, outer);
-  mrb_str_cat_cstr(mrb, path, str);
+
+  mrb_value path = mrb_str_new_capa(mrb, 40);
+  const char *cname = mrb_class_name(mrb, outer);
+  mrb_str_cat_cstr(mrb, path, cname);
   mrb_str_cat_cstr(mrb, path, "::");
 
-  str = mrb_sym_name_len(mrb, name, &len);
+  mrb_int len;
+  const char *str = mrb_sym_name_len(mrb, name, &len);
   mrb_str_cat(mrb, path, str, len);
   if (RSTRING_PTR(path)[0] != '#') {
     iv_del(mrb, c->iv, MRB_SYM(__outer__), NULL);

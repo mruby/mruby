@@ -245,25 +245,25 @@ def _assert_operator(affirmed, obj1, op, obj2 = $undefined, msg = nil)
 end
 
 ##
-# Fail unless +str+ matches against +pattern+.
+# Fail unless `str` matches against `pattern`.
 #
-# +pattern+ is interpreted as pattern for File.fnmatch?. It may contain the
+# `pattern` is interpreted as pattern for File.fnmatch?. It may contain the
 # following metacharacters:
 #
-# <code>*</code> ::
+# `*` ::
 #   Matches any string.
 #
-# <code>?</code> ::
+# `?` ::
 #   Matches any one character.
 #
-# <code>[_SET_]</code>, <code>[^_SET_]</code> (<code>[!_SET_]</code>) ::
+# `[_SET_]`, `[^_SET_]` (`[!_SET_]`) ::
 #   Matches any one character in _SET_. Behaves like character sets in
-#   Regexp, including set negation (<code>[^a-z]</code>).
+#   Regexp, including set negation (`[^a-z]`).
 #
-# <code>{_A_,_B_}</code> ::
+# `{_A_,_B_}` ::
 #   Matches pattern _A_ or pattern _B_.
 #
-# <code> \ </code> ::
+# ` \ ` ::
 #   Escapes the next character.
 def assert_match(*args); _assert_match(true, *args) end
 def assert_not_match(*args); _assert_match(false, *args) end
@@ -275,7 +275,7 @@ def _assert_match(affirmed, pattern, str, msg = nil)
 end
 
 ##
-# Fails unless +obj+ is a kind of +cls+.
+# Fails unless `obj` is a kind of `cls`.
 def assert_kind_of(cls, obj, msg = nil)
   unless ret = obj.kind_of?(cls)
     diff = "    Expected #{obj.inspect} to be a kind of #{cls}, not #{obj.class}."
@@ -284,7 +284,7 @@ def assert_kind_of(cls, obj, msg = nil)
 end
 
 ##
-# Fails unless +exp+ is equal to +act+ in terms of a Float
+# Fails unless `exp` is equal to `act` in terms of a Float
 def assert_float(exp, act, msg = nil)
   e, a = exp.to_f, act.to_f
   if e.finite? && a.finite? && (n = (e - a).abs) > Mrbtest::FLOAT_TOLERANCE

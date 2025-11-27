@@ -10,6 +10,7 @@
 */
 
 #include <mruby.h>
+#include <mruby/presym.h>
 
 #ifdef MRB_NO_FLOAT
 # error CMath conflicts with 'MRB_NO_FLOAT' configuration
@@ -145,9 +146,9 @@ cmath_ ## name(mrb_state *mrb, mrb_value self)\
  * call-seq:
  *   CMath.exp(z) -> numeric
  *
- * Returns the exponential of +z+.
- * If +z+ is a complex number, returns a complex result.
- * If +z+ is real and positive, returns a float.
+ * Returns the exponential of `z`.
+ * If `z` is a complex number, returns a complex result.
+ * If `z` is real and positive, returns a float.
  *
  *   CMath.exp(1)      #=> 2.718281828459045
  *   CMath.exp(1+1i)   #=> (1.4686939399158851+2.2873552871788423i)
@@ -159,8 +160,8 @@ DEF_CMATH_METHOD(exp)
  *   CMath.log(z)       -> numeric
  *   CMath.log(z, base) -> numeric
  *
- * Returns the natural logarithm of +z+.
- * If a second argument +base+ is given, returns the logarithm of +z+ to the given base.
+ * Returns the natural logarithm of `z`.
+ * If a second argument `base` is given, returns the logarithm of `z` to the given base.
  * Has a branch cut along the negative real axis.
  *
  *   CMath.log(1)      #=> 0.0
@@ -194,7 +195,7 @@ cmath_log(mrb_state *mrb, mrb_value self) {
  * call-seq:
  *   CMath.log10(z) -> numeric
  *
- * Returns the base-10 logarithm of +z+.
+ * Returns the base-10 logarithm of `z`.
  * Has a branch cut along the negative real axis.
  *
  *   CMath.log10(100)  #=> 2.0
@@ -216,7 +217,7 @@ cmath_log10(mrb_state *mrb, mrb_value self) {
  * call-seq:
  *   CMath.log2(z) -> numeric
  *
- * Returns the base-2 logarithm of +z+.
+ * Returns the base-2 logarithm of `z`.
  * Has a branch cut along the negative real axis.
  *
  *   CMath.log2(8)     #=> 3.0
@@ -238,7 +239,7 @@ cmath_log2(mrb_state *mrb, mrb_value self) {
  * call-seq:
  *   CMath.sqrt(z) -> numeric
  *
- * Returns the square root of +z+.
+ * Returns the square root of `z`.
  * Has a branch cut along the negative real axis.
  *
  *   CMath.sqrt(4)     #=> 2.0
@@ -260,7 +261,7 @@ cmath_sqrt(mrb_state *mrb, mrb_value self) {
  * call-seq:
  *   CMath.sin(z) -> numeric
  *
- * Returns the sine of +z+.
+ * Returns the sine of `z`.
  *
  *   CMath.sin(0)      #=> 0.0
  *   CMath.sin(1i)     #=> (0.0+1.1752011936438014i)
@@ -271,7 +272,7 @@ DEF_CMATH_METHOD(sin)
  * call-seq:
  *   CMath.cos(z) -> numeric
  *
- * Returns the cosine of +z+.
+ * Returns the cosine of `z`.
  *
  *   CMath.cos(0)      #=> 1.0
  *   CMath.cos(1i)     #=> (1.5430806348152437+0.0i)
@@ -282,7 +283,7 @@ DEF_CMATH_METHOD(cos)
  * call-seq:
  *   CMath.tan(z) -> numeric
  *
- * Returns the tangent of +z+.
+ * Returns the tangent of `z`.
  *
  *   CMath.tan(0)      #=> 0.0
  *   CMath.tan(1i)     #=> (0.0+0.7615941559557649i)
@@ -292,7 +293,7 @@ DEF_CMATH_METHOD(tan)
  * call-seq:
  *   CMath.asin(z) -> numeric
  *
- * Returns the arc sine of +z+.
+ * Returns the arc sine of `z`.
  *
  *   CMath.asin(0)     #=> 0.0
  *   CMath.asin(2)     #=> (1.5707963267948966-1.3169578969248166i)
@@ -303,7 +304,7 @@ DEF_CMATH_METHOD(asin)
  * call-seq:
  *   CMath.acos(z) -> numeric
  *
- * Returns the arc cosine of +z+.
+ * Returns the arc cosine of `z`.
  *
  *   CMath.acos(1)     #=> 0.0
  *   CMath.acos(2)     #=> (0.0+1.3169578969248166i)
@@ -314,7 +315,7 @@ DEF_CMATH_METHOD(acos)
  * call-seq:
  *   CMath.atan(z) -> numeric
  *
- * Returns the arc tangent of +z+.
+ * Returns the arc tangent of `z`.
  *
  *   CMath.atan(0)     #=> 0.0
  *   CMath.atan(1i)    #=> (0.0+Infinity*i)
@@ -324,7 +325,7 @@ DEF_CMATH_METHOD(atan)
  * call-seq:
  *   CMath.sinh(z) -> numeric
  *
- * Returns the hyperbolic sine of +z+.
+ * Returns the hyperbolic sine of `z`.
  *
  *   CMath.sinh(0)     #=> 0.0
  *   CMath.sinh(1i)    #=> (0.0+0.8414709848078965i)
@@ -335,7 +336,7 @@ DEF_CMATH_METHOD(sinh)
  * call-seq:
  *   CMath.cosh(z) -> numeric
  *
- * Returns the hyperbolic cosine of +z+.
+ * Returns the hyperbolic cosine of `z`.
  *
  *   CMath.cosh(0)     #=> 1.0
  *   CMath.cosh(1i)    #=> (0.5403023058681398+0.0i)
@@ -346,7 +347,7 @@ DEF_CMATH_METHOD(cosh)
  * call-seq:
  *   CMath.tanh(z) -> numeric
  *
- * Returns the hyperbolic tangent of +z+.
+ * Returns the hyperbolic tangent of `z`.
  *
  *   CMath.tanh(0)     #=> 0.0
  *   CMath.tanh(1i)    #=> (0.0+1.557407724654902i)
@@ -356,7 +357,7 @@ DEF_CMATH_METHOD(tanh)
  * call-seq:
  *   CMath.asinh(z) -> numeric
  *
- * Returns the inverse hyperbolic sine of +z+.
+ * Returns the inverse hyperbolic sine of `z`.
  *
  *   CMath.asinh(0)    #=> 0.0
  *   CMath.asinh(1i)   #=> (0.0+1.5707963267948966i)
@@ -367,7 +368,7 @@ DEF_CMATH_METHOD(asinh)
  * call-seq:
  *   CMath.acosh(z) -> numeric
  *
- * Returns the inverse hyperbolic cosine of +z+.
+ * Returns the inverse hyperbolic cosine of `z`.
  * Has a branch cut at values less than 1.
  *
  *   CMath.acosh(1)    #=> 0.0
@@ -379,7 +380,7 @@ DEF_CMATH_METHOD(acosh)
  * call-seq:
  *   CMath.atanh(z) -> numeric
  *
- * Returns the inverse hyperbolic tangent of +z+.
+ * Returns the inverse hyperbolic tangent of `z`.
  * Has branch cuts at values less than -1 and greater than 1.
  *
  *   CMath.atanh(0)    #=> 0.0
@@ -392,32 +393,31 @@ DEF_CMATH_METHOD(atanh)
 void
 mrb_mruby_cmath_gem_init(mrb_state* mrb)
 {
-  struct RClass *cmath;
-  cmath = mrb_define_module(mrb, "CMath");
+  struct RClass *cmath = mrb_define_module_id(mrb, MRB_SYM(CMath));
 
   mrb_include_module(mrb, cmath, mrb_module_get(mrb, "Math"));
 
-  mrb_define_module_function(mrb, cmath, "sin", cmath_sin, MRB_ARGS_REQ(1));
-  mrb_define_module_function(mrb, cmath, "cos", cmath_cos, MRB_ARGS_REQ(1));
-  mrb_define_module_function(mrb, cmath, "tan", cmath_tan, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(sin), cmath_sin, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(cos), cmath_cos, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(tan), cmath_tan, MRB_ARGS_REQ(1));
 
-  mrb_define_module_function(mrb, cmath, "asin", cmath_asin, MRB_ARGS_REQ(1));
-  mrb_define_module_function(mrb, cmath, "acos", cmath_acos, MRB_ARGS_REQ(1));
-  mrb_define_module_function(mrb, cmath, "atan", cmath_atan, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(asin), cmath_asin, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(acos), cmath_acos, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(atan), cmath_atan, MRB_ARGS_REQ(1));
 
-  mrb_define_module_function(mrb, cmath, "sinh", cmath_sinh, MRB_ARGS_REQ(1));
-  mrb_define_module_function(mrb, cmath, "cosh", cmath_cosh, MRB_ARGS_REQ(1));
-  mrb_define_module_function(mrb, cmath, "tanh", cmath_tanh, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(sinh), cmath_sinh, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(cosh), cmath_cosh, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(tanh), cmath_tanh, MRB_ARGS_REQ(1));
 
-  mrb_define_module_function(mrb, cmath, "asinh", cmath_asinh, MRB_ARGS_REQ(1));
-  mrb_define_module_function(mrb, cmath, "acosh", cmath_acosh, MRB_ARGS_REQ(1));
-  mrb_define_module_function(mrb, cmath, "atanh", cmath_atanh, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(asinh), cmath_asinh, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(acosh), cmath_acosh, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(atanh), cmath_atanh, MRB_ARGS_REQ(1));
 
-  mrb_define_module_function(mrb, cmath, "exp", cmath_exp, MRB_ARGS_REQ(1));
-  mrb_define_module_function(mrb, cmath, "log", cmath_log, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
-  mrb_define_module_function(mrb, cmath, "log2", cmath_log2, MRB_ARGS_REQ(1));
-  mrb_define_module_function(mrb, cmath, "log10", cmath_log10, MRB_ARGS_REQ(1));
-  mrb_define_module_function(mrb, cmath, "sqrt", cmath_sqrt, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(exp), cmath_exp, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(log), cmath_log, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(log2), cmath_log2, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(log10), cmath_log10, MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, cmath, MRB_SYM(sqrt), cmath_sqrt, MRB_ARGS_REQ(1));
 }
 
 void

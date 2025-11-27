@@ -41,7 +41,7 @@ mrb_sym_all_symbols(mrb_state *mrb, mrb_value self)
  * call-seq:
  *   sym.length    -> integer
  *
- * Same as <code>sym.to_s.length</code>.
+ * Same as `sym.to_s.length`.
  */
 static mrb_value
 mrb_sym_length(mrb_state *mrb, mrb_value self)

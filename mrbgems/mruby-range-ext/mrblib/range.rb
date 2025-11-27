@@ -4,7 +4,7 @@ class Range
   #    rng.first    -> obj
   #    rng.first(n) -> an_array
   #
-  # Returns the first object in the range, or an array of the first +n+
+  # Returns the first object in the range, or an array of the first `n`
   # elements.
   #
   #   (10..20).first     #=> 10
@@ -33,10 +33,10 @@ class Range
   #    rng.last(n) -> an_array
   #
   # Returns the last object in the range,
-  # or an array of the last +n+ elements.
+  # or an array of the last `n` elements.
   #
-  # Note that with no arguments +last+ will return the object that defines
-  # the end of the range even if #exclude_end? is +true+.
+  # Note that with no arguments `last` will return the object that defines
+  # the end of the range even if #exclude_end? is `true`.
   #
   #   (10..20).last      #=> 20
   #   (10...20).last     #=> 20

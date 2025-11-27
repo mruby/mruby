@@ -1,7 +1,7 @@
 ##
 # Enumerable
 #
-# The <code>Enumerable</code> mixin provides collection classes with
+# The `Enumerable` mixin provides collection classes with
 # several traversal and searching methods, and with the ability to
 # sort. The class must provide a method `each`, which
 # yields successive members of the collection. If
@@ -17,10 +17,10 @@ module Enumerable
 
   ##
   # Call the given block for each element
-  # which is yield by +each+. Return false
+  # which is yield by `each`. Return false
   # if one block value is false. Otherwise
   # return true. If no block is given and
-  # +self+ is false return false.
+  # `self` is false return false.
   #
   # ISO 15.3.2.2.1
   def all?(&block)
@@ -34,10 +34,10 @@ module Enumerable
 
   ##
   # Call the given block for each element
-  # which is yield by +each+. Return true
+  # which is yield by `each`. Return true
   # if one block value is true. Otherwise
   # return false. If no block is given and
-  # +self+ is true object return true.
+  # `self` is true object return true.
   #
   # ISO 15.3.2.2.2
   def any?(&block)
@@ -51,7 +51,7 @@ module Enumerable
 
   ##
   # Call the given block for each element
-  # which is yield by +each+. Append all
+  # which is yield by `each`. Append all
   # values of each block together and
   # return this value.
   #
@@ -67,9 +67,9 @@ module Enumerable
   ##
   # Return the first element for which
   # value from the block is true. If no
-  # object matches, calls +ifnone+ and
+  # object matches, calls `ifnone` and
   # returns its result. Otherwise returns
-  # +nil+.
+  # `nil`.
   #
   # ISO 15.3.2.2.4
   def detect(ifnone=nil, &block)
@@ -85,7 +85,7 @@ module Enumerable
 
   ##
   # Call the given block for each element
-  # which is yield by +each+. Pass an
+  # which is yield by `each`. Pass an
   # index to the block which starts at 0
   # and increase by 1 for each element.
   #
@@ -103,7 +103,7 @@ module Enumerable
 
   ##
   # Return an array of all elements which
-  # are yield by +each+.
+  # are yield by `each`.
   #
   # ISO 15.3.2.2.6
   def entries
@@ -123,7 +123,7 @@ module Enumerable
 
   ##
   # Call the given block for each element
-  # which is yield by +each+. Return an array
+  # which is yield by `each`. Return an array
   # which contains all elements whose block
   # value was true.
   #
@@ -140,9 +140,9 @@ module Enumerable
 
   ##
   # Call the given block for each element
-  # which is yield by +each+ and which return
+  # which is yield by `each` and which return
   # value was true when invoking === with
-  # +pattern+. Return an array with all
+  # `pattern`. Return an array with all
   # elements or the respective block values.
   #
   # ISO 15.3.2.2.9
@@ -159,8 +159,8 @@ module Enumerable
 
   ##
   # Return true if at least one element which
-  # is yield by +each+ returns a true value
-  # by invoking == with +obj+. Otherwise return
+  # is yield by `each` returns a true value
+  # by invoking == with `obj`. Otherwise return
   # false.
   #
   # ISO 15.3.2.2.10
@@ -173,7 +173,7 @@ module Enumerable
 
   ##
   # Call the given block for each element
-  # which is yield by +each+. Return value
+  # which is yield by `each`. Return value
   # is the sum of all block values. Pass
   # to each block the current sum and the
   # current element.
@@ -215,7 +215,7 @@ module Enumerable
 
   ##
   # Return the maximum value of all elements
-  # yield by +each+. If no block is given <=>
+  # yield by `each`. If no block is given <=>
   # will be invoked to define this value. If
   # a block is given it will be used instead.
   #
@@ -242,7 +242,7 @@ module Enumerable
 
   ##
   # Return the minimum value of all elements
-  # yield by +each+. If no block is given <=>
+  # yield by `each`. If no block is given <=>
   # will be invoked to define this value. If
   # a block is given it will be used instead.
   #
@@ -275,7 +275,7 @@ module Enumerable
 
   ##
   # Call the given block for each element
-  # which is yield by +each+. Return an
+  # which is yield by `each`. Return an
   # array which contains two arrays. The
   # first array contains all elements
   # whose block value was true. The second
@@ -300,7 +300,7 @@ module Enumerable
 
   ##
   # Call the given block for each element
-  # which is yield by +each+. Return an
+  # which is yield by `each`. Return an
   # array which contains only the elements
   # whose block value was false.
   #
@@ -323,7 +323,7 @@ module Enumerable
 
   ##
   # Return a sorted array of all elements
-  # which are yield by +each+. If no block
+  # which are yield by `each`. If no block
   # is given <=> will be invoked on each
   # element to define the order. Otherwise
   # the given block will be used for
@@ -342,6 +342,11 @@ module Enumerable
 
   # redefine #hash 15.3.1.3.15
   def hash
+    if __method_recursive?(:hash)
+      # Recursion detected, return a fixed value to break the loop
+      return 0
+    end
+
     h = 12347
     i = 0
     self.each do |e|

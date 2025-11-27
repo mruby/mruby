@@ -65,9 +65,6 @@ inspect_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
     }
   }
 
-  const char *s;
-  mrb_int len;
-  mrb_value ins;
   char *sp = RSTRING_PTR(a->str);
 
   /* need not to show internal data */
@@ -78,10 +75,13 @@ inspect_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
   else {
     mrb_str_cat_lit(mrb, a->str, ", ");
   }
-  s = mrb_sym_name_len(mrb, sym, &len);
+
+  mrb_int len;
+  const char *s = mrb_sym_name_len(mrb, sym, &len);
   mrb_str_cat(mrb, a->str, s, len);
   mrb_str_cat_lit(mrb, a->str, "=");
-  ins = mrb_inspect(mrb, v);
+
+  mrb_value ins = mrb_inspect(mrb, v);
   mrb_str_cat_str(mrb, a->str, ins);
   return 0;
 }
@@ -92,9 +92,9 @@ inspect_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
  *     obj.inspect   -> string
  *
  *  Returns a string containing a human-readable representation of
- *  <i>obj</i>. If not overridden and no instance variables, uses the
- *  <code>to_s</code> method to generate the string.
- *  <i>obj</i>.  If not overridden, uses the <code>to_s</code> method to
+ *  *obj*. If not overridden and no instance variables, uses the
+ *  `to_s` method to generate the string.
+ *  *obj*.  If not overridden, uses the `to_s` method to
  *  generate the string.
  *
  *     [ 1, 2, 3..4, 'five' ].inspect   #=> "[1, 2, 3..4, \"five\"]"
@@ -120,9 +120,9 @@ mrb_obj_inspect(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     obj === other   -> true or false
  *
- *  Case Equality---For class <code>Object</code>, effectively the same
- *  as calling  <code>#==</code>, but typically overridden by descendants
- *  to provide meaningful semantics in <code>case</code> statements.
+ *  Case Equality---For class `Object`, effectively the same
+ *  as calling  `#==`, but typically overridden by descendants
+ *  to provide meaningful semantics in `case` statements.
  */
 static mrb_value
 mrb_eqq_m(mrb_state *mrb, mrb_value self)
@@ -167,23 +167,36 @@ mrb_recursive_method_p(mrb_state *mrb, mrb_sym mid, mrb_value obj1, mrb_value ob
   return FALSE;
 }
 
-#define MRB_RECURSIVE_P(mrb, mid, obj1, obj2) \
-  mrb_recursive_method_p(mrb, mid, obj1, obj2)
+/**
+ * Check if a C function call is recursive.
+ *
+ * Like mrb_recursive_method_p, but starts from ci[-2] to skip the immediate
+ * parent frame. Use this from C functions implementing Ruby methods that can
+ * be overridden with super calls.
+ */
+MRB_API mrb_bool
+mrb_recursive_func_p(mrb_state *mrb, mrb_sym mid, mrb_value obj1, mrb_value obj2)
+{
+  /* Start from ci[-2] to skip immediate parent frame which may be a
+     Ruby override calling super */
+  for (mrb_callinfo *ci=&mrb->c->ci[-2]; ci>=mrb->c->cibase; ci--) {
+    if (ci->mid == mid && mrb_obj_eq(mrb, obj1, ci->stack[0])) {
+      /* For unary methods, only check first argument */
+      if (mrb_nil_p(obj2)) return TRUE;
 
-#define MRB_RECURSIVE_UNARY_P(mrb, mid, obj) \
-  mrb_recursive_method_p(mrb, mid, obj, mrb_nil_value())
-
-#define MRB_RECURSIVE_BINARY_P(mrb, mid, obj1, obj2) \
-  mrb_recursive_method_p(mrb, mid, obj1, obj2)
+      /* For binary methods, check both arguments */
+      if (mrb_obj_eq(mrb, obj2, ci->stack[1])) return TRUE;
+    }
+  }
+  return FALSE;
+}
 
 static mrb_value
 mrb_obj_method_recursive_p(mrb_state *mrb, mrb_value obj)
 {
   mrb_sym mid;
   mrb_value arg2 = mrb_nil_value();
-  mrb_int argc;
-
-  argc = mrb_get_args(mrb, "n|o", &mid, &arg2);
+  mrb_int argc = mrb_get_args(mrb, "n|o", &mid, &arg2);
 
   /* Use frame-skipping version for Ruby method calls */
   for (mrb_callinfo *ci=&mrb->c->ci[-2]; ci>=mrb->c->cibase; ci--) {
@@ -208,12 +221,12 @@ mrb_obj_method_recursive_p(mrb_state *mrb, mrb_value obj)
  *     obj.__id__       -> int
  *     obj.object_id    -> int
  *
- *  Returns an integer identifier for <i>obj</i>. The same number will
- *  be returned on all calls to <code>id</code> for a given object, and
+ *  Returns an integer identifier for *obj*. The same number will
+ *  be returned on all calls to `id` for a given object, and
  *  no two active objects will share an id.
- *  <code>Object#object_id</code> is a different concept from the
- *  <code>:name</code> notation, which returns the symbol id of
- *  <code>name</code>. Replaces the deprecated <code>Object#id</code>.
+ *  `Object#object_id` is a different concept from the
+ *  `:name` notation, which returns the symbol id of
+ *  `name`. Replaces the deprecated `Object#id`.
  */
 mrb_value
 mrb_obj_id_m(mrb_state *mrb, mrb_value self)
@@ -242,8 +255,8 @@ env_bidx(struct REnv *e)
  *     block_given?   -> true or false
  *     iterator?      -> true or false
  *
- *  Returns <code>true</code> if <code>yield</code> would execute a
- *  block in the current context. The <code>iterator?</code> form
+ *  Returns `true` if `yield` would execute a
+ *  block in the current context. The `iterator?` form
  *  is mildly deprecated.
  *
  *     def try
@@ -323,8 +336,8 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     obj.class    -> class
  *
- *  Returns the class of <i>obj</i>. This method must always be
- *  called with an explicit receiver, as <code>class</code> is also a
+ *  Returns the class of *obj*. This method must always be
+ *  called with an explicit receiver, as `class` is also a
  *  reserved word in Ruby.
  *
  *     1.class      #=> Integer
@@ -364,11 +377,11 @@ mrb_obj_frozen(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     obj.hash    -> int
  *
- *  Generates a <code>Integer</code> hash value for this object. This
- *  function must have the property that <code>a.eql?(b)</code> implies
- *  <code>a.hash == b.hash</code>. The hash value is used by class
- *  <code>Hash</code>. Any hash value that exceeds the capacity of a
- *  <code>Integer</code> will be truncated before being used.
+ *  Generates a `Integer` hash value for this object. This
+ *  function must have the property that `a.eql?(b)` implies
+ *  `a.hash == b.hash`. The hash value is used by class
+ *  `Hash`. Any hash value that exceeds the capacity of a
+ *  `Integer` will be truncated before being used.
  */
 static mrb_value
 mrb_obj_hash(mrb_state *mrb, mrb_value self)
@@ -409,8 +422,8 @@ mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, const struct RClass* c)
  *  call-seq:
  *     obj.instance_of?(class)    -> true or false
  *
- *  Returns <code>true</code> if <i>obj</i> is an instance of the given
- *  class. See also <code>Object#kind_of?</code>.
+ *  Returns `true` if *obj* is an instance of the given
+ *  class. See also `Object#kind_of?`.
  */
 static mrb_value
 obj_is_instance_of(mrb_state *mrb, mrb_value self)
@@ -429,9 +442,9 @@ obj_is_instance_of(mrb_state *mrb, mrb_value self)
  *     obj.is_a?(class)       -> true or false
  *     obj.kind_of?(class)    -> true or false
  *
- *  Returns <code>true</code> if <i>class</i> is the class of
- *  <i>obj</i>, or if <i>class</i> is one of the superclasses of
- *  <i>obj</i> or modules included in <i>obj</i>.
+ *  Returns `true` if *class* is the class of
+ *  *obj*, or if *class* is one of the superclasses of
+ *  *obj* or modules included in *obj*.
  *
  *     module M;    end
  *     class A
@@ -465,7 +478,7 @@ mrb_obj_is_kind_of_m(mrb_state *mrb, mrb_value self)
  *   nil.nil?               -> true
  *   <anything_else>.nil?   -> false
  *
- * Only the object <i>nil</i> responds <code>true</code> to <code>nil?</code>.
+ * Only the object *nil* responds `true` to `nil?`.
  */
 static mrb_value
 mrb_false(mrb_state *mrb, mrb_value self)
@@ -481,15 +494,15 @@ mrb_false(mrb_state *mrb, mrb_value self)
  *     raise(string)
  *     raise(exception [, string])
  *
- *  With no arguments, raises a <code>RuntimeError</code>
- *  With a single +String+ argument, raises a
- *  +RuntimeError+ with the string as a message. Otherwise,
- *  the first parameter should be the name of an +Exception+
- *  class (or an object that returns an +Exception+ object when sent
- *  an +exception+ message). The optional second parameter sets the
+ *  With no arguments, raises a `RuntimeError`
+ *  With a single `String` argument, raises a
+ *  `RuntimeError` with the string as a message. Otherwise,
+ *  the first parameter should be the name of an `Exception`
+ *  class (or an object that returns an `Exception` object when sent
+ *  an `exception` message). The optional second parameter sets the
  *  message associated with the exception, and the third parameter is an
  *  array of callback information. Exceptions are caught by the
- *  +rescue+ clause of <code>begin...end</code> blocks.
+ *  `rescue` clause of `begin...end` blocks.
  *
  *     raise "Failed to create socket"
  *     raise ArgumentError, "No parameters", caller
@@ -498,9 +511,8 @@ mrb_value
 mrb_f_raise(mrb_state *mrb, mrb_value self)
 {
   mrb_value exc, mesg;
-  mrb_int argc;
+  mrb_int argc = mrb_get_args(mrb, "|oo", &exc, &mesg);
 
-  argc = mrb_get_args(mrb, "|oo", &exc, &mesg);
   mrb->c->ci->mid = 0;
   switch (argc) {
   case 0:
@@ -528,7 +540,7 @@ mrb_f_raise(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     obj.remove_instance_variable(symbol)    -> obj
  *
- *  Removes the named instance variable from <i>obj</i>, returning that
+ *  Removes the named instance variable from *obj*, returning that
  *  variable's value.
  *
  *     class Dummy
@@ -549,11 +561,10 @@ static mrb_value
 mrb_obj_remove_instance_variable(mrb_state *mrb, mrb_value self)
 {
   mrb_sym sym;
-  mrb_value val;
 
   mrb_get_args(mrb, "n", &sym);
   mrb_iv_name_sym_check(mrb, sym);
-  val = mrb_iv_remove(mrb, self, sym);
+  mrb_value val = mrb_iv_remove(mrb, self, sym);
   if (mrb_undef_p(val)) {
     mrb_name_error(mrb, sym, "instance variable %n not defined", sym);
   }
@@ -565,15 +576,15 @@ mrb_obj_remove_instance_variable(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     obj.respond_to?(symbol, include_private=false) -> true or false
  *
- *  Returns +true+ if _obj_ responds to the given
+ *  Returns `true` if _obj_ responds to the given
  *  method. Private methods are included in the search only if the
- *  optional second parameter evaluates to +true+.
+ *  optional second parameter evaluates to `true`.
  *
  *  If the method is not implemented,
  *  as Process.fork on Windows, File.lchmod on GNU/Linux, etc.,
  *  false is returned.
  *
- *  If the method is not defined, <code>respond_to_missing?</code>
+ *  If the method is not defined, `respond_to_missing?`
  *  method is called and the result is returned.
  */
 static mrb_value
@@ -587,8 +598,7 @@ obj_respond_to(mrb_state *mrb, mrb_value self)
   if (!respond_to_p) {
     mrb_sym rtm_id = MRB_SYM_Q(respond_to_missing);
     if (!mrb_func_basic_p(mrb, self, rtm_id, mrb_false)) {
-      mrb_value v;
-      v = mrb_funcall_id(mrb, self, rtm_id, 2, mrb_symbol_value(id), mrb_bool_value(priv));
+      mrb_value v = mrb_funcall_id(mrb, self, rtm_id, 2, mrb_symbol_value(id), mrb_bool_value(priv));
       return mrb_bool_value(mrb_bool(v));
     }
   }
@@ -599,7 +609,6 @@ static mrb_value
 mrb_obj_ceqq(mrb_state *mrb, mrb_value self)
 {
   mrb_value v = mrb_get_arg1(mrb);
-  mrb_int i, len;
   mrb_sym eqq = MRB_OPSYM(eqq);
   mrb_value ary;
 
@@ -622,8 +631,8 @@ mrb_obj_ceqq(mrb_state *mrb, mrb_value self)
     }
     mrb_ensure_array_type(mrb, ary);
   }
-  len = RARRAY_LEN(ary);
-  for (i=0; i<len; i++) {
+  mrb_int len = RARRAY_LEN(ary);
+  for (mrb_int i=0; i<len; i++) {
     mrb_value c = mrb_funcall_argv(mrb, RARRAY_PTR(ary)[i], eqq, 1, &v);
     if (mrb_test(c)) return mrb_true_value();
   }

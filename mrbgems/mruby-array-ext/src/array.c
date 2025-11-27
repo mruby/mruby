@@ -4,8 +4,54 @@
 #include <mruby/array.h>
 #include <mruby/range.h>
 #include <mruby/hash.h>
+#include <mruby/data.h>
 #include <mruby/internal.h>
 #include <mruby/presym.h>
+#include <mruby/khash.h>
+#include <mruby/throw.h>
+
+/* khash set for temporary array operations */
+static inline khint_t
+ary_set_hash_func(mrb_state *mrb, mrb_value key)
+{
+  return (khint_t)mrb_obj_hash_code(mrb, key);
+}
+
+static inline mrb_bool
+ary_set_equal_func(mrb_state *mrb, mrb_value a, mrb_value b)
+{
+  return mrb_eql(mrb, a, b);
+}
+
+KHASH_DECLARE(ary_set, mrb_value, char, 0)
+KHASH_DEFINE(ary_set, mrb_value, char, 0, ary_set_hash_func, ary_set_equal_func)
+
+typedef khash_t(ary_set) ary_set_t;
+
+/* Combination state structure for repeated_combination optimization */
+struct mrb_combination_state {
+  mrb_int *indices;
+  mrb_int n;
+  mrb_int array_size;
+  mrb_bool permutation;
+  mrb_bool finished;
+};
+
+static void
+mrb_combination_state_free(mrb_state *mrb, void *ptr)
+{
+  struct mrb_combination_state *state = (struct mrb_combination_state*)ptr;
+  if (state) {
+    if (state->indices) {
+      mrb_free(mrb, state->indices);
+    }
+    mrb_free(mrb, state);
+  }
+}
+
+static struct mrb_data_type mrb_combination_state_type = {
+  "CombinationState", mrb_combination_state_free
+};
 
 /*
  *  call-seq:
@@ -16,8 +62,8 @@
  *  using obj.==.
  *  Returns the first contained array that matches (that
  *  is, the first associated array),
- *  or +nil+ if no match is found.
- *  See also <code>Array#rassoc</code>.
+ *  or `nil` if no match is found.
+ *  See also `Array#rassoc`.
  *
  *     s1 = [ "colors", "red", "blue", "green" ]
  *     s2 = [ "letters", "a", "b", "c" ]
@@ -30,12 +76,10 @@
 static mrb_value
 ary_assoc(mrb_state *mrb, mrb_value ary)
 {
-  mrb_int i;
-  mrb_value v;
   mrb_value k = mrb_get_arg1(mrb);
 
-  for (i = 0; i < RARRAY_LEN(ary); i++) {
-    v = mrb_check_array_type(mrb, RARRAY_PTR(ary)[i]);
+  for (mrb_int i = 0; i < RARRAY_LEN(ary); i++) {
+    mrb_value v = mrb_check_array_type(mrb, RARRAY_PTR(ary)[i]);
     if (!mrb_nil_p(v) && RARRAY_LEN(v) > 0 &&
         mrb_equal(mrb, RARRAY_PTR(v)[0], k))
       return v;
@@ -49,8 +93,8 @@ ary_assoc(mrb_state *mrb, mrb_value ary)
  *
  *  Searches through the array whose elements are also arrays. Compares
  *  _obj_ with the second element of each contained array using
- *  <code>==</code>. Returns the first contained array that matches. See
- *  also <code>Array#assoc</code>.
+ *  `==`. Returns the first contained array that matches. See
+ *  also `Array#assoc`.
  *
  *     a = [ [ 1, "one"], [2, "two"], [3, "three"], ["ii", "two"] ]
  *     a.rassoc("two")    #=> [2, "two"]
@@ -60,12 +104,10 @@ ary_assoc(mrb_state *mrb, mrb_value ary)
 static mrb_value
 ary_rassoc(mrb_state *mrb, mrb_value ary)
 {
-  mrb_int i;
-  mrb_value v;
   mrb_value value = mrb_get_arg1(mrb);
 
-  for (i = 0; i < RARRAY_LEN(ary); i++) {
-    v = RARRAY_PTR(ary)[i];
+  for (mrb_int i = 0; i < RARRAY_LEN(ary); i++) {
+    mrb_value v = RARRAY_PTR(ary)[i];
     if (mrb_array_p(v) &&
         RARRAY_LEN(v) > 1 &&
         mrb_equal(mrb, RARRAY_PTR(v)[1], value))
@@ -79,8 +121,8 @@ ary_rassoc(mrb_state *mrb, mrb_value ary)
  *     ary.at(index)   ->   obj  or nil
  *
  *  Returns the element at _index_. A
- *  negative index counts from the end of +self+.  Returns +nil+
- *  if the index is out of range. See also <code>Array#[]</code>.
+ *  negative index counts from the end of `self`.  Returns `nil`
+ *  if the index is out of range. See also `Array#[]`.
  *
  *     a = [ "a", "b", "c", "d", "e" ]
  *     a.at(0)     #=> "a"
@@ -106,8 +148,8 @@ ary_ref(mrb_state *mrb, mrb_value ary, mrb_int n)
  *  call-seq:
  *     ary.values_at(selector, ...)  -> new_ary
  *
- *  Returns an array containing the elements in +self+ corresponding to the
- *  given +selector+(s). The selectors may be either integer indices or ranges.
+ *  Returns an array containing the elements in `self` corresponding to the
+ *  given `selector`(s). The selectors may be either integer indices or ranges.
  *
  *     a = %w{ a b c d e f }
  *     a.values_at(1, 3, 5)          # => ["b", "d", "f"]
@@ -133,10 +175,10 @@ mrb_value mrb_ary_delete_at(mrb_state *mrb, mrb_value self);
  *     ary.slice!(start, length) -> new_ary or nil
  *     ary.slice!(range)         -> new_ary or nil
  *
- *  Deletes the element(s) given by an +index+ (optionally up to +length+
- *  elements) or by a +range+.
+ *  Deletes the element(s) given by an `index` (optionally up to `length`
+ *  elements) or by a `range`.
  *
- *  Returns the deleted object (or objects), or +nil+ if the +index+ is out of
+ *  Returns the deleted object (or objects), or `nil` if the `index` is out of
  *  range.
  *
  *     a = [ "a", "b", "c" ]
@@ -152,9 +194,7 @@ static mrb_value
 ary_slice_bang(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
-  mrb_int i, j, len, alen;
-  mrb_value *ptr;
-  mrb_value ary;
+  mrb_int i, len;
 
   mrb_ary_modify(mrb, a);
 
@@ -162,29 +202,32 @@ ary_slice_bang(mrb_state *mrb, mrb_value self)
     mrb_value index = mrb_get_arg1(mrb);
 
     if (mrb_type(index) == MRB_TT_RANGE) {
-      if (mrb_range_beg_len(mrb, index, &i, &len, ARY_LEN(a), TRUE) == MRB_RANGE_OK) {
-        goto delete_pos_len;
+      if (mrb_range_beg_len(mrb, index, &i, &len, ARY_LEN(a), TRUE) != MRB_RANGE_OK) {
+        return mrb_nil_value();
       }
-      return mrb_nil_value();
     }
-    return mrb_ary_delete_at(mrb, self);
+    else {
+      return mrb_ary_delete_at(mrb, self);
+    }
+  }
+  else {
+    mrb_get_args(mrb, "ii", &i, &len);
   }
 
-  mrb_get_args(mrb, "ii", &i, &len);
- delete_pos_len:
-  alen = ARY_LEN(a);
+  mrb_int alen = ARY_LEN(a);
   if (i < 0) i += alen;
   if (i < 0 || alen < i) return mrb_nil_value();
   if (len < 0) return mrb_nil_value();
   if (alen == i) return mrb_ary_new(mrb);
   if (len > alen - i) len = alen - i;
 
-  ptr = ARY_PTR(a) + i;
-  ary = mrb_ary_new_from_values(mrb, len, ptr);
+  mrb_value ary = mrb_ary_new_from_values(mrb, len, ARY_PTR(a) + i);
 
-  for (j = i; j < alen - len; j++) {
-    *ptr = *(ptr+len);
-    ptr++;
+  /* refresh pointer after mrb_ary_new_from_values */
+  a = mrb_ary_ptr(self);
+
+  for (int j = i; j < alen - len; j++) {
+    ARY_PTR(a)[j] = ARY_PTR(a)[j+len];
   }
 
   mrb_ary_resize(mrb, self, alen - len);
@@ -193,36 +236,11 @@ ary_slice_bang(mrb_state *mrb, mrb_value self)
 
 /*
  * call-seq:
- *    ary.compact     -> new_ary
- *
- * Returns a copy of +self+ with all +nil+ elements removed.
- *
- *   [ "a", nil, "b", nil, "c", nil ].compact
- *                      #=> [ "a", "b", "c" ]
- */
-
-static mrb_value
-ary_compact(mrb_state *mrb, mrb_value self)
-{
-  mrb_value ary = mrb_ary_new(mrb);
-  mrb_int len = RARRAY_LEN(self);
-  mrb_value *p = RARRAY_PTR(self);
-
-  for (mrb_int i = 0; i < len; i++) {
-    if (!mrb_nil_p(p[i])) {
-      mrb_ary_push(mrb, ary, p[i]);
-    }
-  }
-  return ary;
-}
-
-/*
- * call-seq:
  *    ary.compact!    -> ary  or  nil
  *
- * Removes +nil+ elements from the array.
- * Returns +nil+ if no changes were made, otherwise returns
- * <i>ary</i>.
+ * Removes `nil` elements from the array.
+ * Returns `nil` if no changes were made, otherwise returns
+ * *ary*.
  *
  *    [ "a", nil, "b", nil, "c" ].compact! #=> [ "a", "b", "c" ]
  *    [ "a", "b", "c" ].compact!           #=> nil
@@ -235,10 +253,12 @@ ary_compact_bang(mrb_state *mrb, mrb_value self)
   mrb_int len = ARY_LEN(a);
 
   mrb_ary_modify(mrb, a);
-  mrb_value *p = ARY_PTR(a);
+  /* a is still valid here, as mrb_ary_modify only modifies the RArray struct, not reallocates it */
+  /* Hoist pointer retrieval outside loop to avoid repeated conditionals */
+  mrb_value *ptr = RARRAY_PTR(self);
   for (i = 0; i < len; i++) {
-    if (!mrb_nil_p(p[i])) {
-      if (i != j) p[j] = p[i];
+    if (!mrb_nil_p(ptr[i])) {
+      if (i != j) ptr[j] = ptr[i];
       j++;
     }
   }
@@ -247,16 +267,34 @@ ary_compact_bang(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ * call-seq:
+ *    ary.compact     -> new_ary
+ *
+ * Returns a copy of `self` with all `nil` elements removed.
+ *
+ *   [ "a", nil, "b", nil, "c", nil ].compact
+ *                      #=> [ "a", "b", "c" ]
+ */
+
+static mrb_value
+ary_compact(mrb_state *mrb, mrb_value self)
+{
+  mrb_value ary = mrb_ary_dup(mrb, self);
+  ary_compact_bang(mrb, ary);
+  return ary;
+}
+
 
 /*
  *  call-seq:
  *     ary.rotate(count=1)    -> new_ary
  *
- *  Returns a new array by rotating +self+ so that the element at +count+ is
+ *  Returns a new array by rotating `self` so that the element at `count` is
  *  the first element of the new array.
  *
- *  If +count+ is negative then it rotates in the opposite direction, starting
- *  from the end of +self+ where +-1+ is the last element.
+ *  If `count` is negative then it rotates in the opposite direction, starting
+ *  from the end of `self` where +-1+ is the last element.
  *
  *     a = [ "a", "b", "c", "d" ]
  *     a.rotate         #=> ["b", "c", "d", "a"]
@@ -272,7 +310,6 @@ ary_rotate(mrb_state *mrb, mrb_value self)
 
   mrb_value ary = mrb_ary_new(mrb);
   mrb_int len = RARRAY_LEN(self);
-  mrb_value *p = RARRAY_PTR(self);
   mrb_int idx;
 
   if (len <= 0) return ary;
@@ -282,8 +319,10 @@ ary_rotate(mrb_state *mrb, mrb_value self)
   else {
     idx = count % len;
   }
+  /* Hoist pointer retrieval outside loop */
+  mrb_value *ptr = RARRAY_PTR(self);
   for (mrb_int i = 0; i<len; i++) {
-    mrb_ary_push(mrb, ary, p[idx++]);
+    mrb_ary_push(mrb, ary, ptr[idx++]);
     if (idx == len) idx = 0;
   }
   return ary;
@@ -304,11 +343,11 @@ rev(mrb_value *p, mrb_int beg, mrb_int end)
  *  call-seq:
  *     ary.rotate!(count=1)   -> ary
  *
- *  Rotates +self+ in place so that the element at +count+ comes first, and
- *  returns +self+.
+ *  Rotates `self` in place so that the element at `count` comes first, and
+ *  returns `self`.
  *
- *  If +count+ is negative then it rotates in the opposite direction, starting
- *  from the end of the array where +-1+ is the last element.
+ *  If `count` is negative then it rotates in the opposite direction, starting
+ *  from the end of the array where `-1` is the last element.
  *
  *     a = [ "a", "b", "c", "d" ]
  *     a.rotate!        #=> ["b", "c", "d", "a"]
@@ -360,76 +399,121 @@ ary_rotate_bang(mrb_state *mrb, mrb_value self)
 
 #define SET_OP_HASH_THRESHOLD 32
 
-static mrb_value
-ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int other_argc, const mrb_value *other_argv)
+/* Helper functions for temporary khash sets */
+static void
+ary_init_temp_set(mrb_state *mrb, ary_set_t *set, mrb_int capacity)
 {
-  mrb_value result_ary;
-  struct RArray *self_ary;
-  mrb_value *p, *p_end;
-  mrb_int total_other_len = 0;
+  kh_init_data(ary_set, mrb, set, (khint_t)(capacity > 0 ? capacity : 8));
+}
 
-  if (other_argc == 0) {
-    return mrb_ary_dup(mrb, self);
+static void
+ary_populate_temp_set(mrb_state *mrb, ary_set_t *set, mrb_value ary)
+{
+  mrb_int len = RARRAY_LEN(ary);
+  for (mrb_int i = 0; i < len; i++) {
+    kh_put(ary_set, mrb, set, RARRAY_PTR(ary)[i]);
   }
+}
 
-  for (mrb_int i = 0; i < other_argc; i++) {
-    mrb_value other = mrb_check_array_type(mrb, other_argv[i]);
+static void
+ary_destroy_temp_set(mrb_state *mrb, ary_set_t *set)
+{
+  if (set) {
+    kh_destroy_data(ary_set, mrb, set);
+  }
+}
+
+
+static mrb_int
+ary_get_array_args(mrb_state *mrb, mrb_int argc, const mrb_value **argv_ptr)
+{
+  mrb_int total_len = 0;
+  const mrb_value *argv = *argv_ptr;
+  mrb_value *converted_argv = (mrb_value *)mrb_alloca(mrb, sizeof(mrb_value) * argc);
+
+  for (mrb_int i = 0; i < argc; i++) {
+    mrb_value other = mrb_check_array_type(mrb, argv[i]);
     if (mrb_nil_p(other)) {
       mrb_raise(mrb, E_TYPE_ERROR, "can't convert passed argument to Array");
     }
-    total_other_len += RARRAY_LEN(other);
+    converted_argv[i] = other;
+    total_len += RARRAY_LEN(other);
+  }
+  *argv_ptr = converted_argv;
+  return total_len;
+}
+
+static mrb_value
+ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value *argv)
+{
+  if (argc == 0) {
+    return mrb_ary_dup(mrb, self);
   }
 
-  self_ary = mrb_ary_ptr(self);
-  p = ARY_PTR(self_ary);
-  p_end = p + ARY_LEN(self_ary);
-  result_ary = mrb_ary_new(mrb);
+  mrb_int total_len = ary_get_array_args(mrb, argc, &argv);
 
-  if (total_other_len > SET_OP_HASH_THRESHOLD) {
-    mrb_value hash = mrb_hash_new_capa(mrb, total_other_len);
+  mrb_value result = mrb_ary_new(mrb);
 
-    for (mrb_int i = 0; i < other_argc; i++) {
-      struct RArray *other_ary = mrb_ary_ptr(other_argv[i]);
-      mrb_value *other_p = ARY_PTR(other_ary);
-      mrb_value *other_p_end = other_p + ARY_LEN(other_ary);
-      while (other_p < other_p_end) {
-        mrb_hash_set(mrb, hash, *other_p, mrb_true_value());
-        other_p++;
-      }
+  if (total_len > SET_OP_HASH_THRESHOLD) {
+    /* Create shared copies to protect elements during khash operations */
+    mrb_value *argv_copies = (mrb_value *)mrb_alloca(mrb, sizeof(mrb_value) * argc);
+    for (mrb_int i = 0; i < argc; i++) {
+      argv_copies[i] = mrb_ary_make_shared_copy(mrb, argv[i]);
     }
 
-    while (p < p_end) {
-      mrb_value val = mrb_hash_get(mrb, hash, *p);
-      if (mrb_nil_p(val)) {  /* key doesn't exist in any other_ary */
-        mrb_ary_push(mrb, result_ary, *p);
+    ary_set_t set_struct;
+    ary_set_t *set = &set_struct;
+    ary_init_temp_set(mrb, set, total_len);
+
+    struct mrb_jmpbuf *prev_jmp = mrb->jmp;
+    struct mrb_jmpbuf c_jmp;
+
+    MRB_TRY(&c_jmp) {
+      mrb->jmp = &c_jmp;
+      for (mrb_int i = 0; i < argc; i++) {
+        ary_populate_temp_set(mrb, set, argv_copies[i]);
       }
-      p++;
+
+      for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
+        mrb_value p = RARRAY_PTR(self)[i];
+        khiter_t k = kh_get(ary_set, mrb, set, p);
+        if (kh_is_end(set, k)) {  /* key doesn't exist in any ary */
+          mrb_ary_push(mrb, result, p);
+        }
+      }
+      mrb->jmp = prev_jmp;
     }
+    MRB_CATCH(&c_jmp) {
+      mrb->jmp = prev_jmp;
+      ary_destroy_temp_set(mrb, set);
+      MRB_THROW(mrb->jmp);
+    }
+    MRB_END_EXC(&c_jmp);
+
+    ary_destroy_temp_set(mrb, set);
   }
   else {
-    while (p < p_end) {
+    mrb_int self_len = RARRAY_LEN(self);
+    for (mrb_int i = 0; i < self_len; i++) {
+      mrb_value p = RARRAY_PTR(self)[i];
       mrb_bool found = FALSE;
-      for (mrb_int i = 0; i < other_argc; i++) {
-        struct RArray *other_ary = mrb_ary_ptr(other_argv[i]);
-        mrb_value *other_p = ARY_PTR(other_ary);
-        mrb_value *other_p_end = other_p + ARY_LEN(other_ary);
-        while (other_p < other_p_end) {
-          if (mrb_equal(mrb, *p, *other_p)) {
+      for (mrb_int j = 0; j < argc; j++) {
+        mrb_int len = RARRAY_LEN(argv[j]);
+        for (mrb_int k = 0; k < len; k++) {
+          if (mrb_equal(mrb, p, RARRAY_PTR(argv[j])[k])) {
             found = TRUE;
             break;
           }
-          other_p++;
         }
         if (found) break;
       }
       if (!found) {
-        mrb_ary_push(mrb, result_ary, *p);
+        mrb_ary_push(mrb, result, p);
       }
-      p++;
     }
   }
 
-  return result_ary;
+  return result;
 }
 
 /*
@@ -437,7 +521,7 @@ ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int other_argc, const 
  *     ary - other_ary   -> new_ary
  *
  *  Returns a new array that is a copy of the original array, with any items
- *  that also appear in +other_ary+ removed.
+ *  that also appear in `other_ary` removed.
  *
  *     [ 1, 1, 2, 2, 3, 3, 4, 5 ] - [ 1, 2, 4 ]  #=> [ 3, 3, 5 ]
  */
@@ -455,7 +539,7 @@ ary_sub(mrb_state *mrb, mrb_value self)
  *     ary.difference(other_ary, ...)   -> new_ary
  *
  *  Returns a new array that is a copy of the original array, removing all
- *  occurrences of any item that also appear in any of the +other_ary+s.
+ *  occurrences of any item that also appear in any of the `other_ary`s.
  *  The order is preserved from the original array.
  *
  *    [1, 2, 3, 4, 5].difference([2, 4], [1, 5])  #=> [3]
@@ -469,111 +553,107 @@ ary_difference(mrb_state *mrb, mrb_value self)
   return ary_subtract_internal(mrb, self, argc, argv);
 }
 
+
+static void
+add_uniq(mrb_state *mrb, mrb_value item, mrb_value result)
+{
+  const mrb_int len = RARRAY_LEN(result);
+  for (mrb_int i = 0; i < len; i++) {
+    if (mrb_eql(mrb, item, RARRAY_PTR(result)[i])) {
+      return;
+    }
+  }
+  mrb_ary_push(mrb, result, item);
+}
+
+static mrb_value
+ary_union_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value *argv)
+{
+  mrb_int total_len = ary_get_array_args(mrb, argc, &argv) + RARRAY_LEN(self);
+
+  mrb_value result = mrb_ary_new(mrb);
+
+  if (total_len > SET_OP_HASH_THRESHOLD) {
+    /* Create shared copies to protect elements during khash operations */
+    mrb_value self_copy = mrb_ary_make_shared_copy(mrb, self);
+    mrb_value *argv_copies = (mrb_value *)mrb_alloca(mrb, sizeof(mrb_value) * argc);
+    for (mrb_int i = 0; i < argc; i++) {
+      argv_copies[i] = mrb_ary_make_shared_copy(mrb, argv[i]);
+    }
+
+    ary_set_t set_struct;
+    ary_set_t *set = &set_struct;
+    ary_init_temp_set(mrb, set, total_len);
+
+    struct mrb_jmpbuf *prev_jmp = mrb->jmp;
+    struct mrb_jmpbuf c_jmp;
+
+    MRB_TRY(&c_jmp) {
+      mrb->jmp = &c_jmp;
+      /* Add unique elements from self */
+      for (mrb_int i = 0; i < RARRAY_LEN(self_copy); i++) {
+        mrb_value elem = RARRAY_PTR(self_copy)[i];
+        khiter_t k = kh_get(ary_set, mrb, set, elem);
+        if (kh_is_end(set, k)) {
+          kh_put(ary_set, mrb, set, elem);
+          mrb_ary_push(mrb, result, elem);
+        }
+      }
+
+      /* Add unique elements from others */
+      for (mrb_int i = 0; i < argc; i++) {
+        mrb_value other = argv_copies[i];
+        for (mrb_int j = 0; j < RARRAY_LEN(other); j++) {
+          mrb_value elem = RARRAY_PTR(other)[j];
+          khiter_t k = kh_get(ary_set, mrb, set, elem);
+          if (kh_is_end(set, k)) {
+            kh_put(ary_set, mrb, set, elem);
+            mrb_ary_push(mrb, result, elem);
+          }
+        }
+      }
+      mrb->jmp = prev_jmp;
+    }
+    MRB_CATCH(&c_jmp) {
+      mrb->jmp = prev_jmp;
+      ary_destroy_temp_set(mrb, set);
+      MRB_THROW(mrb->jmp);
+    }
+    MRB_END_EXC(&c_jmp);
+
+    ary_destroy_temp_set(mrb, set);
+  }
+  else {
+    /* Use linear search for small arrays */
+    /* Add unique elements from self */
+    mrb_int alen = RARRAY_LEN(self);
+    for (mrb_int i = 0; i < alen; i++) {
+      add_uniq(mrb, RARRAY_PTR(self)[i], result);
+    }
+
+    /* Add unique elements from others */
+    for (mrb_int i = 0; i < argc; i++) {
+      mrb_value other = argv[i];
+      mrb_int olen = RARRAY_LEN(other);
+      for (mrb_int j = 0; j < olen; j++) {
+        add_uniq(mrb, RARRAY_PTR(other)[j], result);
+      }
+    }
+  }
+
+  return result;
+}
+
 /*
  *  call-seq:
  *     ary | other_ary     -> new_ary
  *
  *  Set Union---Returns a new array by joining this array with
- *  <i>other_ary</i>, removing duplicates.
+ *  `other_ary`, removing duplicates.
  *
  *     [ "a", "b", "c" ] | [ "c", "d", "a" ]
  *           #=> [ "a", "b", "c", "d" ]
  */
-
-static mrb_value
-ary_union_internal(mrb_state *mrb, mrb_value self, mrb_int other_argc, const mrb_value *other_argv)
-{
-  mrb_value result_ary;
-  mrb_int total_len = RARRAY_LEN(self);
-
-  for (mrb_int i = 0; i < other_argc; i++) {
-    mrb_value other = mrb_check_array_type(mrb, other_argv[i]);
-    if (mrb_nil_p(other)) {
-      mrb_raise(mrb, E_TYPE_ERROR, "can't convert passed argument to Array");
-    }
-    total_len += RARRAY_LEN(other);
-  }
-
-  result_ary = mrb_ary_new(mrb);
-
-  if (total_len > SET_OP_HASH_THRESHOLD) {
-    mrb_value hash = mrb_hash_new_capa(mrb, total_len);
-
-    /* Add elements from self */
-    struct RArray *self_ary = mrb_ary_ptr(self);
-    mrb_value *p = ARY_PTR(self_ary);
-    mrb_value *p_end = p + ARY_LEN(self_ary);
-    while (p < p_end) {
-      mrb_value val = mrb_hash_get(mrb, hash, *p);
-      if (mrb_nil_p(val)) {  /* key doesn't exist */
-        mrb_hash_set(mrb, hash, *p, mrb_true_value());
-        mrb_ary_push(mrb, result_ary, *p);
-      }
-      p++;
-    }
-
-    /* Add elements from others */
-    for (mrb_int i = 0; i < other_argc; i++) {
-      struct RArray *other_ary = mrb_ary_ptr(other_argv[i]);
-      mrb_value *other_p = ARY_PTR(other_ary);
-      mrb_value *other_p_end = other_p + ARY_LEN(other_ary);
-      while (other_p < other_p_end) {
-        mrb_value val = mrb_hash_get(mrb, hash, *other_p);
-        if (mrb_nil_p(val)) {  /* key doesn't exist */
-          mrb_hash_set(mrb, hash, *other_p, mrb_true_value());
-          mrb_ary_push(mrb, result_ary, *other_p);
-        }
-        other_p++;
-      }
-    }
-  }
-  else {
-    /* Use linear search for small arrays */
-    /* Add unique elements from self */
-    struct RArray *self_ary = mrb_ary_ptr(self);
-    mrb_value *p = ARY_PTR(self_ary);
-    mrb_value *p_end = p + ARY_LEN(self_ary);
-    while (p < p_end) {
-        mrb_bool found = FALSE;
-        mrb_int result_len = RARRAY_LEN(result_ary);
-        mrb_value *result_ptr = ARY_PTR(RARRAY(result_ary));
-        for (mrb_int j = 0; j < result_len; j++) {
-            if (mrb_equal(mrb, *p, result_ptr[j])) {
-                found = TRUE;
-                break;
-            }
-        }
-        if (!found) {
-            mrb_ary_push(mrb, result_ary, *p);
-        }
-        p++;
-    }
-
-    /* Add unique elements from others */
-    for (mrb_int i = 0; i < other_argc; i++) {
-      mrb_value other = other_argv[i];
-      mrb_value *other_p = ARY_PTR(RARRAY(other));
-      mrb_value *other_p_end = other_p + ARY_LEN(RARRAY(other));
-      while (other_p < other_p_end) {
-        mrb_bool found = FALSE;
-        mrb_int result_len = RARRAY_LEN(result_ary);
-        mrb_value *result_ptr = ARY_PTR(RARRAY(result_ary));
-        for (mrb_int j = 0; j < result_len; j++) {
-          if (mrb_equal(mrb, *other_p, result_ptr[j])) {
-            found = TRUE;
-            break;
-          }
-        }
-        if (!found) {
-          mrb_ary_push(mrb, result_ary, *other_p);
-        }
-        other_p++;
-      }
-    }
-  }
-
-  return result_ary;
-}
 
 static mrb_value
 ary_union(mrb_state *mrb, mrb_value self)
@@ -588,7 +668,7 @@ ary_union(mrb_state *mrb, mrb_value self)
  *    ary.union(other_ary,...)  -> new_ary
  *
  *  Set Union---Returns a new array by joining this array with
- *  <i>other_ary</i>s, removing duplicates.
+ *  `other_ary`s, removing duplicates.
  *
  *    ["a", "b", "c"].union(["c", "d", "a"], ["a", "c", "e"])
  *           #=> ["a", "b", "c", "d", "e"]
@@ -602,6 +682,95 @@ ary_union_multi(mrb_state *mrb, mrb_value self)
   return ary_union_internal(mrb, self, argc, argv);
 }
 
+static mrb_value
+ary_intersection_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value *argv)
+{
+  if (argc == 0) {
+    return mrb_ary_new(mrb);
+  }
+
+  mrb_int total_len = ary_get_array_args(mrb, argc, &argv);
+
+  mrb_value result = mrb_ary_new(mrb);
+
+  if (total_len > SET_OP_HASH_THRESHOLD) {
+    /* Create shared copies to protect elements during khash operations */
+    mrb_value *argv_copies = (mrb_value *)mrb_alloca(mrb, sizeof(mrb_value) * argc);
+    for (mrb_int i = 0; i < argc; i++) {
+      argv_copies[i] = mrb_ary_make_shared_copy(mrb, argv[i]);
+    }
+
+    ary_set_t set_struct;
+    ary_set_t *set = &set_struct;
+    ary_init_temp_set(mrb, set, total_len);
+
+    struct mrb_jmpbuf *prev_jmp = mrb->jmp;
+    struct mrb_jmpbuf c_jmp;
+
+    MRB_TRY(&c_jmp) {
+      mrb->jmp = &c_jmp;
+      for (mrb_int i = 0; i < argc; i++) {
+        ary_populate_temp_set(mrb, set, argv_copies[i]);
+      }
+
+      for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
+        mrb_value p = RARRAY_PTR(self)[i];
+        khiter_t k = kh_get(ary_set, mrb, set, p);
+        if (!kh_is_end(set, k)) {
+          mrb_ary_push(mrb, result, p);
+          kh_del(ary_set, mrb, set, k);
+        }
+      }
+      mrb->jmp = prev_jmp;
+    }
+    MRB_CATCH(&c_jmp) {
+      mrb->jmp = prev_jmp;
+      ary_destroy_temp_set(mrb, set);
+      MRB_THROW(mrb->jmp);
+    }
+    MRB_END_EXC(&c_jmp);
+
+    ary_destroy_temp_set(mrb, set);
+  }
+  else {
+    mrb_int self_len = RARRAY_LEN(self);
+    for (mrb_int i = 0; i < self_len; i++) {
+      mrb_value p = RARRAY_PTR(self)[i];
+      mrb_bool found_in_all = TRUE;
+
+      for (mrb_int j = 0; j < argc; j++) {
+        mrb_bool found_in_current_other = FALSE;
+        mrb_int len = RARRAY_LEN(argv[j]);
+        for (mrb_int k = 0; k < len; k++) {
+          if (mrb_equal(mrb, p, RARRAY_PTR(argv[j])[k])) {
+            found_in_current_other = TRUE;
+            break;
+          }
+        }
+        if (!found_in_current_other) {
+          found_in_all = FALSE;
+          break;
+        }
+      }
+
+      if (found_in_all) {
+        mrb_bool already_added = FALSE;
+        mrb_int result_len = RARRAY_LEN(result);
+        for (mrb_int j = 0; j < result_len; j++) {
+          if (mrb_equal(mrb, p, RARRAY_PTR(result)[j])) {
+            already_added = TRUE;
+            break;
+          }
+        }
+        if (!already_added) {
+          mrb_ary_push(mrb, result, p);
+        }
+      }
+    }
+  }
+  return result;
+}
+
 /*
  *  call-seq:
  *     ary & other_ary      -> new_ary
@@ -611,103 +780,6 @@ ary_union_multi(mrb_state *mrb, mrb_value self)
  *
  *     [ 1, 1, 3, 5 ] & [ 1, 2, 3 ]   #=> [ 1, 3 ]
  */
-
-static mrb_value
-ary_intersection_internal(mrb_state *mrb, mrb_value self, mrb_int other_argc, const mrb_value *other_argv)
-{
-  mrb_value result_ary;
-  struct RArray *self_ary;
-  mrb_value *p, *p_end;
-  mrb_int total_other_len = 0;
-
-  if (other_argc == 0) {
-    return mrb_ary_new(mrb);
-  }
-
-  for (mrb_int i = 0; i < other_argc; i++) {
-    mrb_value other = mrb_check_array_type(mrb, other_argv[i]);
-    if (mrb_nil_p(other)) {
-      mrb_raise(mrb, E_TYPE_ERROR, "can't convert passed argument to Array");
-    }
-    total_other_len += RARRAY_LEN(other);
-  }
-
-  self_ary = mrb_ary_ptr(self);
-  p = ARY_PTR(self_ary);
-  p_end = p + ARY_LEN(self_ary);
-
-  result_ary = mrb_ary_new(mrb);
-
-  if (total_other_len > SET_OP_HASH_THRESHOLD) {
-    mrb_value hash = mrb_hash_new_capa(mrb, total_other_len);
-
-    /* Populate hash with elements from all other_argv */
-    for (mrb_int i = 0; i < other_argc; i++) {
-      struct RArray *other_ary = mrb_ary_ptr(other_argv[i]);
-      mrb_value *other_p = ARY_PTR(other_ary);
-      mrb_value *other_p_end = other_p + ARY_LEN(other_ary);
-      while (other_p < other_p_end) {
-        mrb_hash_set(mrb, hash, *other_p, mrb_true_value());
-        other_p++;
-      }
-    }
-
-    /* Check elements from self against hash */
-    while (p < p_end) {
-      mrb_value val = mrb_hash_get(mrb, hash, *p);
-      if (!mrb_nil_p(val)) {  /* key exists in other_ary */
-        mrb_ary_push(mrb, result_ary, *p);
-        mrb_hash_delete_key(mrb, hash, *p);  /* remove to ensure uniqueness */
-      }
-      p++;
-    }
-  }
-  else {
-    /* Use linear search for small arrays */
-    while (p < p_end) {
-      mrb_bool found_in_all = TRUE;
-      for (mrb_int i = 0; i < other_argc; i++) {
-        struct RArray *other_ary = mrb_ary_ptr(other_argv[i]);
-        mrb_value *other_p = ARY_PTR(other_ary);
-        mrb_value *other_p_end = other_p + ARY_LEN(other_ary);
-        mrb_bool found_in_current_other = FALSE;
-
-        while (other_p < other_p_end) {
-          if (mrb_equal(mrb, *p, *other_p)) {
-            found_in_current_other = TRUE;
-            break;
-          }
-          other_p++;
-        }
-        if (!found_in_current_other) {
-          found_in_all = FALSE;
-          break;
-        }
-      }
-
-      if (found_in_all) {
-        /* Check if already in result to ensure uniqueness */
-        mrb_int result_len = RARRAY_LEN(result_ary);
-        mrb_value *result_ptr = RARRAY_PTR(result_ary);
-        mrb_bool already_added = FALSE;
-
-        for (mrb_int i = 0; i < result_len; i++) {
-          if (mrb_equal(mrb, *p, result_ptr[i])) {
-            already_added = TRUE;
-            break;
-          }
-        }
-
-        if (!already_added) {
-          mrb_ary_push(mrb, result_ary, *p);
-        }
-      }
-      p++;
-    }
-  }
-
-  return result_ary;
-}
 
 static mrb_value
 ary_intersection(mrb_state *mrb, mrb_value self)
@@ -722,7 +794,7 @@ ary_intersection(mrb_state *mrb, mrb_value self)
  *    ary.intersection(other_ary,...)  -> new_ary
  *
  *  Set Intersection---Returns a new array containing elements common to
- *  this array and <i>other_ary</i>s, removing duplicates. The order is
+ *  this array and `other_ary`s, removing duplicates. The order is
  *  preserved from the original array.
  *
  *    [1, 2, 3].intersection([3, 4, 1], [1, 3, 5])  #=> [1, 3]
@@ -736,13 +808,12 @@ ary_intersection_multi(mrb_state *mrb, mrb_value self)
   return ary_intersection_internal(mrb, self, argc, argv);
 }
 
-
 /*
  *  call-seq:
  *    ary.intersect?(other_ary)   -> true or false
  *
- *  Returns +true+ if the array and +other_ary+ have at least one element in
- *  common, otherwise returns +false+.
+ *  Returns `true` if the array and `other_ary` have at least one element in
+ *  common, otherwise returns `false`.
  *
  *     a = [ 1, 2, 3 ]
  *     b = [ 3, 4, 5 ]
@@ -755,68 +826,65 @@ static mrb_value
 ary_intersect_p(mrb_state *mrb, mrb_value self)
 {
   mrb_value other;
-  struct RArray *self_ary, *other_ary, *shorter_ary, *longer_ary;
-  mrb_value *shorter_p, *shorter_p_end, *longer_p, *longer_p_end;
-
   mrb_get_args(mrb, "A", &other);
 
-  self_ary = mrb_ary_ptr(self);
-  other_ary = mrb_ary_ptr(other);
-
-  /* Choose shorter array for hash, longer for iteration (optimization) */
-  if (ARY_LEN(self_ary) > ARY_LEN(other_ary)) {
-    shorter_ary = other_ary;
-    longer_ary = self_ary;
+  mrb_value shorter_ary, longer_ary;
+  if (RARRAY_LEN(self) > RARRAY_LEN(other)) {
+    shorter_ary = other;
+    longer_ary = self;
   }
   else {
-    shorter_ary = self_ary;
-    longer_ary = other_ary;
+    shorter_ary = self;
+    longer_ary = other;
   }
 
-  /* Early termination for empty arrays */
-  if (ARY_LEN(shorter_ary) == 0 || ARY_LEN(longer_ary) == 0) {
+  if (RARRAY_LEN(shorter_ary) == 0 || RARRAY_LEN(longer_ary) == 0) {
     return mrb_false_value();
   }
 
-  if (ARY_LEN(shorter_ary) > SET_OP_HASH_THRESHOLD) {
-    /* Use hash for large arrays to achieve O(n) performance */
-    mrb_value hash = mrb_hash_new_capa(mrb, ARY_LEN(shorter_ary));
+  if (RARRAY_LEN(shorter_ary) > SET_OP_HASH_THRESHOLD) {
+    mrb_value shorter_ary_copy = mrb_ary_make_shared_copy(mrb, shorter_ary);
 
-    /* Populate hash with elements from shorter array */
-    shorter_p = ARY_PTR(shorter_ary);
-    shorter_p_end = shorter_p + ARY_LEN(shorter_ary);
-    while (shorter_p < shorter_p_end) {
-      mrb_hash_set(mrb, hash, *shorter_p, mrb_true_value());
-      shorter_p++;
-    }
+    ary_set_t set_struct;
+    ary_set_t *set = &set_struct;
+    ary_init_temp_set(mrb, set, RARRAY_LEN(shorter_ary_copy));
 
-    /* Check elements from longer array against hash with early termination */
-    longer_p = ARY_PTR(longer_ary);
-    longer_p_end = longer_p + ARY_LEN(longer_ary);
-    while (longer_p < longer_p_end) {
-      mrb_value val = mrb_hash_get(mrb, hash, *longer_p);
-      if (!mrb_nil_p(val)) {  /* key exists in shorter array */
-        return mrb_true_value();  /* Early termination */
+    struct mrb_jmpbuf *prev_jmp = mrb->jmp;
+    struct mrb_jmpbuf c_jmp;
+    mrb_bool found = FALSE;
+
+    MRB_TRY(&c_jmp) {
+      mrb->jmp = &c_jmp;
+      ary_populate_temp_set(mrb, set, shorter_ary_copy);
+
+      for (mrb_int i = 0; i < RARRAY_LEN(longer_ary); i++) {
+        khiter_t k = kh_get(ary_set, mrb, set, RARRAY_PTR(longer_ary)[i]);
+        if (!kh_is_end(set, k)) {
+          found = TRUE;
+          break;
+        }
       }
-      longer_p++;
+      mrb->jmp = prev_jmp;
+    }
+    MRB_CATCH(&c_jmp) {
+      mrb->jmp = prev_jmp;
+      ary_destroy_temp_set(mrb, set);
+      MRB_THROW(mrb->jmp);
+    }
+    MRB_END_EXC(&c_jmp);
+
+    ary_destroy_temp_set(mrb, set);
+    if (found) {
+      return mrb_true_value();
     }
   }
   else {
-    /* Use linear search for small arrays */
-    longer_p = ARY_PTR(longer_ary);
-    longer_p_end = longer_p + ARY_LEN(longer_ary);
-    while (longer_p < longer_p_end) {
-      /* Check if element exists in shorter array */
-      shorter_p = ARY_PTR(shorter_ary);
-      shorter_p_end = shorter_p + ARY_LEN(shorter_ary);
-
-      while (shorter_p < shorter_p_end) {
-        if (mrb_equal(mrb, *longer_p, *shorter_p)) {
-          return mrb_true_value();  /* Early termination */
+    for (mrb_int i = 0; i < RARRAY_LEN(longer_ary); i++) {
+      for (mrb_int j = 0; j < RARRAY_LEN(shorter_ary); j++) {
+        if (mrb_equal(mrb, RARRAY_PTR(longer_ary)[i], RARRAY_PTR(shorter_ary)[j])) {
+          return mrb_true_value();
         }
-        shorter_p++;
       }
-      longer_p++;
     }
   }
 
@@ -834,9 +902,7 @@ ary_fill_parse_arg(mrb_state *mrb, mrb_value self)
 {
   mrb_value arg0 = mrb_nil_value(), arg1 = mrb_nil_value(), arg2 = mrb_nil_value();
   mrb_value block = mrb_nil_value();
-  mrb_int argc;
-
-  argc = mrb_get_args(mrb, "|ooo&", &arg0, &arg1, &arg2, &block);
+  mrb_int argc = mrb_get_args(mrb, "|ooo&", &arg0, &arg1, &arg2, &block);
 
   struct RArray *ary = mrb_ary_ptr(self);
   mrb_int ary_len = ARY_LEN(ary);
@@ -926,6 +992,13 @@ ary_fill_exec(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "iio", &start, &length, &obj);
 
+  if (start < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative start index");
+  }
+  if (length < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative length");
+  }
+
   struct RArray *ary = mrb_ary_ptr(self);
   mrb_int ary_len = ARY_LEN(ary);
 
@@ -951,96 +1024,71 @@ ary_fill_exec(mrb_state *mrb, mrb_value self)
 }
 
 /*
- *  Internal helper for Array#uniq without blocks.
- *  Uses hash-based deduplication for large arrays,
- *  linear search for small arrays.
- */
-static mrb_value
-ary_uniq(mrb_state *mrb, mrb_value self)
-{
-  struct RArray *ary = mrb_ary_ptr(self);
-  mrb_int len = ARY_LEN(ary);
-  mrb_value *ptr = ARY_PTR(ary);
-  mrb_value result = mrb_ary_new_capa(mrb, len);
-
-  if (len == 0) {
-    return result;
-  }
-
-  if (len > SET_OP_HASH_THRESHOLD) {
-    mrb_value hash = mrb_hash_new_capa(mrb, len);
-    for (mrb_int i = 0; i < len; i++) {
-      mrb_value elem = ptr[i];
-      if (mrb_nil_p(mrb_hash_get(mrb, hash, elem))) {
-        mrb_hash_set(mrb, hash, elem, mrb_true_value());
-        mrb_ary_push(mrb, result, elem);
-      }
-    }
-  }
-  else {
-    for (mrb_int i = 0; i < len; i++) {
-      mrb_value elem = ptr[i];
-      mrb_bool found = FALSE;
-      mrb_value *result_ptr = ARY_PTR(RARRAY(result));
-      for (mrb_int j = 0; j < RARRAY_LEN(result); j++) {
-        if (mrb_equal(mrb, elem, result_ptr[j])) {
-          found = TRUE;
-          break;
-        }
-      }
-      if (!found) {
-        mrb_ary_push(mrb, result, elem);
-      }
-    }
-  }
-
-  return result;
-}
-
-/*
  *  Internal helper for Array#uniq! without blocks.
  *  Modifies array in-place, returns nil if no changes.
  */
 static mrb_value
 ary_uniq_bang(mrb_state *mrb, mrb_value self)
 {
-  struct RArray *ary = mrb_ary_ptr(self);
-  mrb_int len = ARY_LEN(ary);
+  mrb_int len = RARRAY_LEN(self);
 
   if (len <= 1) {
     return mrb_nil_value();
   }
 
-  mrb_ary_modify(mrb, ary);
-  mrb_value *ptr = ARY_PTR(ary);
+  mrb_ary_modify(mrb, mrb_ary_ptr(self));
   mrb_int write_pos = 0;
 
   if (len > SET_OP_HASH_THRESHOLD) {
-    mrb_value hash = mrb_hash_new_capa(mrb, len);
-    for (mrb_int read_pos = 0; read_pos < len; read_pos++) {
-      mrb_value elem = ptr[read_pos];
-      if (mrb_nil_p(mrb_hash_get(mrb, hash, elem))) {
-        mrb_hash_set(mrb, hash, elem, mrb_true_value());
-        if (write_pos != read_pos) {
-          ptr[write_pos] = elem;
+    /* Create shared copy to protect elements during khash operations */
+    mrb_value self_copy = mrb_ary_make_shared_copy(mrb, self);
+
+    ary_set_t set_struct;
+    ary_set_t *set = &set_struct;
+    ary_init_temp_set(mrb, set, len);
+
+    struct mrb_jmpbuf *prev_jmp = mrb->jmp;
+    struct mrb_jmpbuf c_jmp;
+
+    MRB_TRY(&c_jmp) {
+      mrb->jmp = &c_jmp;
+      ary_populate_temp_set(mrb, set, self_copy);
+
+      for (mrb_int read_pos = 0; read_pos < len; read_pos++) {
+        mrb_value elem = RARRAY_PTR(self)[read_pos];
+        khiter_t k = kh_get(ary_set, mrb, set, elem);
+        if (!kh_is_end(set, k)) {
+          if (write_pos != read_pos) {
+            RARRAY_PTR(self)[write_pos] = elem;
+          }
+          write_pos++;
+          kh_del(ary_set, mrb, set, k);
         }
-        write_pos++;
       }
+      mrb->jmp = prev_jmp;
     }
+    MRB_CATCH(&c_jmp) {
+      mrb->jmp = prev_jmp;
+      ary_destroy_temp_set(mrb, set);
+      MRB_THROW(mrb->jmp);
+    }
+    MRB_END_EXC(&c_jmp);
+
+    ary_destroy_temp_set(mrb, set);
   }
   else {
     for (mrb_int read_pos = 0; read_pos < len; read_pos++) {
-      mrb_value elem = ptr[read_pos];
+      mrb_value elem = RARRAY_PTR(self)[read_pos];
       mrb_bool found = FALSE;
       for (mrb_int j = 0; j < write_pos; j++) {
-        if (mrb_equal(mrb, elem, ptr[j])) {
+        if (mrb_equal(mrb, elem, RARRAY_PTR(self)[j])) {
           found = TRUE;
           break;
         }
       }
       if (!found) {
         if (write_pos != read_pos) {
-          ptr[write_pos] = elem;
+          RARRAY_PTR(self)[write_pos] = elem;
         }
         write_pos++;
       }
@@ -1053,6 +1101,19 @@ ary_uniq_bang(mrb_state *mrb, mrb_value self)
 
   mrb_ary_resize(mrb, self, write_pos);
   return self;
+}
+
+/*
+ *  Internal helper for Array#uniq without blocks.
+ *  Uses hash-based deduplication for large arrays,
+ *  linear search for small arrays.
+ */
+static mrb_value
+ary_uniq(mrb_state *mrb, mrb_value self)
+{
+  mrb_value ary = mrb_ary_dup(mrb, self);
+  ary_uniq_bang(mrb, ary);
+  return ary;
 }
 
 /* Internal helper for flatten operations using iterative stack-based approach */
@@ -1103,7 +1164,7 @@ flatten_internal(mrb_state *mrb, mrb_value self, mrb_int level, mrb_bool *modifi
  *  Returns a new array that is a one-dimensional flattening of this
  *  array (recursively). That is, for every element that is an array,
  *  extract its elements into the new array. If the optional
- *  <i>level</i> argument determines the level of recursion to flatten.
+ *  `level` argument determines the level of recursion to flatten.
  *
  *    s = [ 1, 2, 3 ]           #=> [1, 2, 3]
  *    t = [ 4, 5, 6, [7, 8] ]   #=> [4, 5, 6, [7, 8]]
@@ -1196,10 +1257,9 @@ ary_fetch(mrb_state *mrb, mrb_value self)
  *     ary.flatten!        -> ary or nil
  *     ary.flatten!(level) -> array or nil
  *
- *  Flattens +self+ in place.
- *  Returns <code>nil</code> if no modifications were made (i.e.,
- *  <i>ary</i> contains no subarrays.) If the optional <i>level</i>
- *  argument determines the level of recursion to flatten.
+ *  Flattens `self` in place.  Returns `nil` if no modifications were made
+ *  (i.e., *ary* contains no subarrays.) If the optional `level` argument
+ *  determines the level of recursion to flatten.
  *
  *    a = [ 1, 2, [3, [4, 5] ] ]
  *    a.flatten!   #=> [1, 2, 3, 4, 5]
@@ -1281,6 +1341,36 @@ ary_insert(mrb_state *mrb, mrb_value self)
 }
 
 /*
+ *  Internal helper for Array#product to construct a group array.
+ *  Takes the base array (self), the array of other arrays (arys),
+ *  the current iteration index (current_i), and the desired length
+ *  of the group array (group_len).
+ */
+static mrb_value
+ary_product_group(mrb_state *mrb, mrb_value self_ary)
+{
+  mrb_value arys_ary;
+  mrb_int current_i, group_len;
+  mrb_get_args(mrb, "Aii", &arys_ary, &current_i, &group_len);
+
+  mrb_value group = mrb_ary_new_capa(mrb, group_len);
+  mrb_int j = RARRAY_LEN(arys_ary); // Corresponds to 'size' in Ruby
+  mrb_int n = current_i;
+
+  while (j > 0) {
+    j -= 1;
+    mrb_value a = RARRAY_PTR(arys_ary)[j]; // arys[j]
+    mrb_check_type(mrb, a, MRB_TT_ARRAY);
+    mrb_int b = RARRAY_LEN(a);             // a.size
+    mrb_ary_set(mrb, group, j + 1, RARRAY_PTR(a)[n % b]);
+    n /= b;
+  }
+  mrb_ary_set(mrb, group, 0, RARRAY_PTR(self_ary)[n]);
+
+  return group;
+}
+
+/*
  *  call-seq:
  *     ary.deconstruct -> ary
  *
@@ -1303,6 +1393,113 @@ static mrb_value
 ary_deconstruct(mrb_state *mrb, mrb_value ary)
 {
   return ary;
+}
+
+
+/*
+ *  Internal method to initialize combination state.
+ *  Returns opaque state object for use by __combination_next.
+ */
+static mrb_value
+ary_combination_init(mrb_state *mrb, mrb_value self)
+{
+  mrb_int n;
+  mrb_bool permutation;
+
+  mrb_get_args(mrb, "ib", &n, &permutation);
+#if MRB_INT_MAX > SIZE_MAX
+  if (n > SIZE_MAX) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "number too large");
+  }
+#endif
+
+  struct RData *d;
+  struct mrb_combination_state *state;
+  Data_Make_Struct(mrb, mrb->object_class, struct mrb_combination_state,
+                   &mrb_combination_state_type, state, d);
+
+  state->n = n;
+  state->array_size = RARRAY_LEN(self);
+  state->permutation = permutation;
+  state->finished = (n <= 0 && n != 0);
+
+  if (n > 0) {
+    state->indices = (mrb_int*)mrb_calloc(mrb, n, sizeof(mrb_int));
+  }
+
+  return mrb_obj_value(d);
+}
+
+/*
+ *  Internal method to get next combination as index array.
+ *  Returns array of indices or nil when iteration is complete.
+ */
+static mrb_value
+ary_combination_next(mrb_state *mrb, mrb_value self)
+{
+  mrb_value state_obj;
+  mrb_get_args(mrb, "o", &state_obj);
+
+  struct mrb_combination_state *state;
+
+  /* Validate state object type and get data */
+  state = (struct mrb_combination_state*)mrb_data_check_and_get(mrb, state_obj, &mrb_combination_state_type);
+  if (!state) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid combination state");
+  }
+
+  /* Check if iteration is complete */
+  if (state->finished) return mrb_nil_value();
+
+  /* Validate array hasn't been modified during iteration */
+  if (RARRAY_LEN(self) != state->array_size) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "array modified during iteration");
+  }
+
+  /* Edge case: empty array */
+  if (state->array_size == 0) {
+    state->finished = TRUE;
+    return mrb_nil_value();
+  }
+
+  /* Validate current indices are still in bounds */
+  for (mrb_int i = 0; i < state->n; i++) {
+    if (state->indices[i] >= state->array_size) {
+      state->finished = TRUE;
+      return mrb_nil_value();
+    }
+  }
+
+  /* Build current combination indices */
+  mrb_value result = mrb_ary_new_capa(mrb, state->n);
+  for (mrb_int i = 0; i < state->n; i++) {
+    mrb_ary_push(mrb, result, mrb_fixnum_value(state->indices[i]));
+  }
+
+  mrb_int pos = state->n - 1;
+
+  while (pos >= 0) {
+    state->indices[pos]++;
+    if (state->indices[pos] < state->array_size) break;
+    pos--;
+  }
+
+  if (pos < 0) {
+    state->finished = TRUE;
+  }
+  else {
+    /* Reset dependent indices */
+    for (mrb_int i = pos + 1; i < state->n; i++) {
+      if (state->permutation) {
+        state->indices[i] = 0;
+      }
+      else {
+        state->indices[i] = state->indices[i - 1];
+      }
+    }
+  }
+
+  return result;
 }
 
 void
@@ -1336,6 +1533,9 @@ mrb_mruby_array_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, a, MRB_SYM(__fetch), ary_fetch, MRB_ARGS_REQ(3));
   mrb_define_method_id(mrb, a, MRB_SYM(insert), ary_insert, MRB_ARGS_ARG(1, -1));
   mrb_define_method_id(mrb, a, MRB_SYM(deconstruct), ary_deconstruct, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, a, MRB_SYM(__product_group), ary_product_group, MRB_ARGS_REQ(4));
+  mrb_define_method_id(mrb, a, MRB_SYM(__combination_init), ary_combination_init, MRB_ARGS_REQ(2));
+  mrb_define_method_id(mrb, a, MRB_SYM(__combination_next), ary_combination_next, MRB_ARGS_REQ(1));
 }
 
 void

@@ -42,6 +42,7 @@ enum pack_dir {
   PACK_DIR_HEX,       /* h */
   PACK_DIR_BSTR,      /* b */
   PACK_DIR_BASE64,    /* m */
+  PACK_DIR_UU,        /* u */
   PACK_DIR_QENC,      /* M */
   PACK_DIR_NUL,       /* x */
   PACK_DIR_BACK,      /* X */
@@ -89,17 +90,263 @@ static const unsigned char base64_dec_tab[128] = {
    41,  42,  43,  44,  45,  46,  47,  48,  49,  50,  51, IGN, IGN, IGN, IGN, IGN,
 };
 
+/* lookup table for hex character to integer conversion */
+static const signed char hex_lookup[256] = {
+  /* 0x00-0x0F */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  /* 0x10-0x1F */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  /* 0x20-0x2F */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  /* 0x30-0x3F */  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, -1, -1, -1, -1, -1, -1,
+  /* 0x40-0x4F */ -1, 10, 11, 12, 13, 14, 15, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  /* 0x50-0x5F */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  /* 0x60-0x6F */ -1, 10, 11, 12, 13, 14, 15, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  /* 0x70-0x7F */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  /* 0x80-0x8F */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  /* 0x90-0x9F */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  /* 0xA0-0xAF */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  /* 0xB0-0xBF */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  /* 0xC0-0xCF */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  /* 0xD0-0xDF */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  /* 0xE0-0xEF */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  /* 0xF0-0xFF */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
+};
+/* byte index arrays for endianness optimization */
+static const int be_idx16[2] = {1, 0};          /* big-endian 16-bit: MSB, LSB */
+static const int le_idx16[2] = {0, 1};          /* little-endian 16-bit: LSB, MSB */
+static const int be_idx32[4] = {3, 2, 1, 0};    /* big-endian 32-bit: MSB...LSB */
+static const int le_idx32[4] = {0, 1, 2, 3};    /* little-endian 32-bit: LSB...MSB */
+static const int be_idx64[8] = {7, 6, 5, 4, 3, 2, 1, 0};  /* big-endian 64-bit: MSB...LSB */
+static const int le_idx64[8] = {0, 1, 2, 3, 4, 5, 6, 7};  /* little-endian 64-bit: LSB...MSB */  /* little-endian 64-bit */
+/* lookup tables for binary string optimization */
+/* Convert character to bit value (0 or 1) */
+static inline uint8_t char_to_bit(unsigned char c) {
+  switch (c) {
+    case '0': return 0;
+    case '1': return 1;
+    default: return 0;
+  }
+}
+
+static const char bit_to_char[2] = {'0', '1'};
+
+/* 8-bit batch processing functions for binary strings */
+static inline uint8_t
+pack_8_bits_msb(const char *src)
+{
+  uint8_t result = 0;
+  result |= char_to_bit((uint8_t)src[0]) << 7;
+  result |= char_to_bit((uint8_t)src[1]) << 6;
+  result |= char_to_bit((uint8_t)src[2]) << 5;
+  result |= char_to_bit((uint8_t)src[3]) << 4;
+  result |= char_to_bit((uint8_t)src[4]) << 3;
+  result |= char_to_bit((uint8_t)src[5]) << 2;
+  result |= char_to_bit((uint8_t)src[6]) << 1;
+  result |= char_to_bit((uint8_t)src[7]);
+  return result;
+}
+
+static inline uint8_t
+pack_8_bits_lsb(const char *src)
+{
+  uint8_t result = 0;
+  result |= char_to_bit((uint8_t)src[0]);
+  result |= char_to_bit((uint8_t)src[1]) << 1;
+  result |= char_to_bit((uint8_t)src[2]) << 2;
+  result |= char_to_bit((uint8_t)src[3]) << 3;
+  result |= char_to_bit((uint8_t)src[4]) << 4;
+  result |= char_to_bit((uint8_t)src[5]) << 5;
+  result |= char_to_bit((uint8_t)src[6]) << 6;
+  result |= char_to_bit((uint8_t)src[7]) << 7;
+  return result;
+}
+
+static inline void
+unpack_8_bits_msb(uint8_t byte, char *dst)
+{
+  dst[0] = bit_to_char[(byte >> 7) & 1];
+  dst[1] = bit_to_char[(byte >> 6) & 1];
+  dst[2] = bit_to_char[(byte >> 5) & 1];
+  dst[3] = bit_to_char[(byte >> 4) & 1];
+  dst[4] = bit_to_char[(byte >> 3) & 1];
+  dst[5] = bit_to_char[(byte >> 2) & 1];
+  dst[6] = bit_to_char[(byte >> 1) & 1];
+  dst[7] = bit_to_char[byte & 1];
+}
+
+static inline void
+unpack_8_bits_lsb(uint8_t byte, char *dst)
+{
+  dst[0] = bit_to_char[byte & 1];
+  dst[1] = bit_to_char[(byte >> 1) & 1];
+  dst[2] = bit_to_char[(byte >> 2) & 1];
+  dst[3] = bit_to_char[(byte >> 3) & 1];
+  dst[4] = bit_to_char[(byte >> 4) & 1];
+  dst[5] = bit_to_char[(byte >> 5) & 1];
+  dst[6] = bit_to_char[(byte >> 6) & 1];
+  dst[7] = bit_to_char[(byte >> 7) & 1];
+}
+
+/* character classification for string format optimization */
+#define CHAR_NULL    0x01
+#define CHAR_SPACE   0x02
+
+/* Character classification function */
+static inline uint8_t char_class(unsigned char c) {
+  switch (c) {
+    case '\0': return CHAR_NULL;
+    case ' ':
+    case '\t':
+    case '\n':
+    case '\v':
+    case '\f':
+    case '\r': return CHAR_SPACE;
+    default: return 0;
+  }
+}
+/* UTF-8 optimization lookup tables */
+/* UTF-8 sequence length lookup table for non-ASCII bytes (0x80-0xFF) */
+/* Index = byte_value - 0x80, so table[0] = info for byte 0x80 */
+static const uint8_t utf8_seq_len_high[128] = {
+  /* 0x80-0xBF: Invalid start bytes (continuation bytes) - return 0 for error */
+  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
+
+  /* 0xC0-0xDF: 2-byte sequences */
+  2,2,2,2,2,2,2,2, 2,2,2,2,2,2,2,2, 2,2,2,2,2,2,2,2, 2,2,2,2,2,2,2,2,
+
+  /* 0xE0-0xEF: 3-byte sequences */
+  3,3,3,3,3,3,3,3, 3,3,3,3,3,3,3,3,
+
+  /* 0xF0-0xF7: 4-byte sequences */
+  4,4,4,4,4,4,4,4,
+
+  /* 0xF8-0xFF: Invalid start bytes - return 0 for error */
+  0,0,0,0,0,0,0,0
+};
+
+/* Fast validation for UTF-8 continuation bytes (0x80-0xBF) */
+/* Index = byte_value - 0x80 */
+static const uint8_t utf8_is_continuation[128] = {
+  /* 0x80-0xBF: Valid continuation bytes */
+  1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
+
+  /* 0xC0-0xFF: Invalid continuation bytes */
+  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0
+};
+
+/* Helper macro for continuation byte validation */
+#define IS_UTF8_CONTINUATION(byte) \
+  ((byte) >= 0x80 && utf8_is_continuation[(byte) - 0x80])
+
+/* Quoted-printable optimization lookup table */
+/* 0=literal, 1=encode, 2=special (newline) */
+static const uint8_t qprint_encode_type[256] = {
+  /* 0x00-0x1F: Control characters - encode */
+  1,1,1,1,1,1,1,1, 1,0,2,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
+  /*     \t \n                      */
+
+  /* 0x20-0x3F: Printable ASCII */
+  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,1,0,0,
+  /*                                                                 =   */
+
+  /* 0x40-0x5F: Printable ASCII */
+  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
+
+  /* 0x60-0x7F: Printable ASCII */
+  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1,
+  /*                                                                    DEL*/
+
+  /* 0x80-0xFF: High-bit characters - encode */
+  1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1
+};
+
+/* UU-encoding optimization lookup tables */
+/* UU-encoding uses 6-bit values mapped to ASCII 32-95, but space (32) -> backtick (96) */
+static const char uu_encode_table[64] = {
+  '`', '!', '"', '#', '$', '%', '&', '\'', '(', ')', '*', '+', ',', '-', '.', '/',
+  '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', ';', '<', '=', '>', '?',
+  '@', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',
+  'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '[', '\\', ']', '^', '_'
+};
+
+/* UU-decoding lookup table for ASCII 32-127 */
+static const int8_t uu_decode_table[96] = {
+  /* ASCII 32-47: ` ! " # $ % & ' ( ) * + , - . / */
+  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15,
+  /* ASCII 48-63: 0 1 2 3 4 5 6 7 8 9 : ; < = > ? */
+  16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
+  /* ASCII 64-79: @ A B C D E F G H I J K L M N O */
+  32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47,
+  /* ASCII 80-95: P Q R S T U V W X Y Z [ \ ] ^ _ */
+  48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63,
+  /* ASCII 96-127: ` a b c... (invalid for UU, but ` = 0 for decoding) */
+  0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
+};
+
+/* template parsing optimization structures */
+typedef struct {
+  enum pack_dir dir;
+  enum pack_type type;
+  int size;
+  unsigned int base_flags;
+} format_info_t;
+
+/* Format character lookup function */
+static inline format_info_t get_format_info(unsigned char c) {
+  switch (c) {
+    case 'A': return (format_info_t){PACK_DIR_STR, PACK_TYPE_STRING, 0, PACK_FLAG_WIDTH | PACK_FLAG_COUNT2};
+    case 'a': return (format_info_t){PACK_DIR_STR, PACK_TYPE_STRING, 0, PACK_FLAG_WIDTH | PACK_FLAG_COUNT2 | PACK_FLAG_a};
+    case 'B': return (format_info_t){PACK_DIR_BSTR, PACK_TYPE_STRING, 0, PACK_FLAG_COUNT2};
+    case 'b': return (format_info_t){PACK_DIR_BSTR, PACK_TYPE_STRING, 0, PACK_FLAG_COUNT2 | PACK_FLAG_LSB};
+    case 'C': return (format_info_t){PACK_DIR_CHAR, PACK_TYPE_INTEGER, 1, 0};
+    case 'c': return (format_info_t){PACK_DIR_CHAR, PACK_TYPE_INTEGER, 1, PACK_FLAG_SIGNED};
+    case 'D': return (format_info_t){PACK_DIR_DOUBLE, PACK_TYPE_FLOAT, 8, PACK_FLAG_SIGNED};
+    case 'd': return (format_info_t){PACK_DIR_DOUBLE, PACK_TYPE_FLOAT, 8, PACK_FLAG_SIGNED};
+    case 'E': return (format_info_t){PACK_DIR_DOUBLE, PACK_TYPE_FLOAT, 8, PACK_FLAG_SIGNED | PACK_FLAG_LT};
+    case 'e': return (format_info_t){PACK_DIR_FLOAT, PACK_TYPE_FLOAT, 4, PACK_FLAG_SIGNED | PACK_FLAG_LT};
+    case 'F': return (format_info_t){PACK_DIR_FLOAT, PACK_TYPE_FLOAT, 4, PACK_FLAG_SIGNED};
+    case 'f': return (format_info_t){PACK_DIR_FLOAT, PACK_TYPE_FLOAT, 4, PACK_FLAG_SIGNED};
+    case 'G': return (format_info_t){PACK_DIR_DOUBLE, PACK_TYPE_FLOAT, 8, PACK_FLAG_SIGNED | PACK_FLAG_GT};
+    case 'g': return (format_info_t){PACK_DIR_FLOAT, PACK_TYPE_FLOAT, 4, PACK_FLAG_SIGNED | PACK_FLAG_GT};
+    case 'H': return (format_info_t){PACK_DIR_HEX, PACK_TYPE_STRING, 0, PACK_FLAG_COUNT2};
+    case 'h': return (format_info_t){PACK_DIR_HEX, PACK_TYPE_STRING, 0, PACK_FLAG_COUNT2 | PACK_FLAG_LSB};
+    /* I, i, J, j are handled specially based on sizeof() */
+    case 'L': return (format_info_t){PACK_DIR_LONG, PACK_TYPE_INTEGER, 4, 0};
+    case 'l': return (format_info_t){PACK_DIR_LONG, PACK_TYPE_INTEGER, 4, PACK_FLAG_SIGNED};
+    case 'M': return (format_info_t){PACK_DIR_QENC, PACK_TYPE_STRING, 0, PACK_FLAG_WIDTH | PACK_FLAG_COUNT2};
+    case 'm': return (format_info_t){PACK_DIR_BASE64, PACK_TYPE_STRING, 0, PACK_FLAG_WIDTH | PACK_FLAG_COUNT2};
+    case 'N': return (format_info_t){PACK_DIR_LONG, PACK_TYPE_INTEGER, 4, PACK_FLAG_GT};
+    case 'n': return (format_info_t){PACK_DIR_SHORT, PACK_TYPE_INTEGER, 2, PACK_FLAG_GT};
+    case 'Q': return (format_info_t){PACK_DIR_QUAD, PACK_TYPE_INTEGER, 8, 0};
+    case 'q': return (format_info_t){PACK_DIR_QUAD, PACK_TYPE_INTEGER, 8, PACK_FLAG_SIGNED};
+    case 'S': return (format_info_t){PACK_DIR_SHORT, PACK_TYPE_INTEGER, 2, 0};
+    case 's': return (format_info_t){PACK_DIR_SHORT, PACK_TYPE_INTEGER, 2, PACK_FLAG_SIGNED};
+    case 'u': return (format_info_t){PACK_DIR_UU, PACK_TYPE_STRING, 0, PACK_FLAG_WIDTH | PACK_FLAG_COUNT2};
+    case 'U': return (format_info_t){PACK_DIR_UTF8, PACK_TYPE_INTEGER, 0, 0};
+    case 'V': return (format_info_t){PACK_DIR_LONG, PACK_TYPE_INTEGER, 4, PACK_FLAG_LT};
+    case 'v': return (format_info_t){PACK_DIR_SHORT, PACK_TYPE_INTEGER, 2, PACK_FLAG_LT};
+    case 'w': return (format_info_t){PACK_DIR_BER, PACK_TYPE_INTEGER, 0, PACK_FLAG_SIGNED};
+    case 'x': return (format_info_t){PACK_DIR_NUL, PACK_TYPE_NONE, 0, 0};
+    case 'X': return (format_info_t){PACK_DIR_BACK, PACK_TYPE_NONE, 0, 0};
+    case '@': return (format_info_t){PACK_DIR_ABS, PACK_TYPE_NONE, 0, 0};
+    case 'Z': return (format_info_t){PACK_DIR_STR, PACK_TYPE_STRING, 0, PACK_FLAG_WIDTH | PACK_FLAG_COUNT2 | PACK_FLAG_Z};
+    default: return (format_info_t){PACK_DIR_NONE, PACK_TYPE_NONE, 0, 0};
+  }
+}
+
+
+#define IS_PADDING_CHAR_A(c) (char_class((unsigned char)(c)) & (CHAR_NULL | CHAR_SPACE))
+#define IS_PADDING_CHAR_Z(c) (char_class((unsigned char)(c)) & CHAR_NULL)
+
 static int
 hex2int(unsigned char ch)
 {
-  if (ch >= '0' && ch <= '9')
-    return ch - '0';
-  else if (ch >= 'A' && ch <= 'F')
-    return 10 + (ch - 'A');
-  else if (ch >= 'a' && ch <= 'f')
-    return 10 + (ch - 'a');
-  else
-    return -1;
+  return hex_lookup[ch];
 }
 
 static mrb_value
@@ -128,7 +375,7 @@ pack_char(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int
 }
 
 static int
-unpack_char(mrb_state *mrb, const void *src, int srclen, mrb_value ary, unsigned int flags)
+unpack_char(mrb_state *mrb, const void *src, mrb_int srclen, mrb_value ary, unsigned int flags)
 {
   if (flags & PACK_FLAG_SIGNED)
     mrb_ary_push(mrb, ary, mrb_fixnum_value(*(signed char*)src));
@@ -140,32 +387,25 @@ unpack_char(mrb_state *mrb, const void *src, int srclen, mrb_value ary, unsigned
 static int
 pack_short(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
-  uint16_t n;
-
   str = str_len_ensure(mrb, str, sidx + 2);
-  n = (uint16_t)mrb_integer(o);
-  if (flags & PACK_FLAG_LITTLEENDIAN) {
-    RSTRING_PTR(str)[sidx+0] = n % 256;
-    RSTRING_PTR(str)[sidx+1] = n / 256;
-  }
-  else {
-    RSTRING_PTR(str)[sidx+0] = n / 256;
-    RSTRING_PTR(str)[sidx+1] = n % 256;
-  }
+  uint16_t n = (uint16_t)mrb_integer(o);
+  char *dptr = RSTRING_PTR(str) + sidx;
+
+  /* use lookup tables to eliminate branching */
+  const int *idx = (flags & PACK_FLAG_LITTLEENDIAN) ? le_idx16 : be_idx16;
+  dptr[idx[0]] = (char)(n & 0xff);
+  dptr[idx[1]] = (char)(n >> 8);
+
   return 2;
 }
 
 static int
-unpack_short(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
+unpack_short(mrb_state *mrb, const unsigned char *src, mrb_int srclen, mrb_value ary, unsigned int flags)
 {
-  int n;
+  /* use lookup tables to eliminate branching */
+  const int *idx = (flags & PACK_FLAG_LITTLEENDIAN) ? le_idx16 : be_idx16;
+  int n = (src[idx[1]] << 8) | src[idx[0]];
 
-  if (flags & PACK_FLAG_LITTLEENDIAN) {
-    n = src[1] * 256 + src[0];
-  }
-  else {
-    n = src[0] * 256 + src[1];
-  }
   if ((flags & PACK_FLAG_SIGNED) && (n >= 0x8000)) {
     n -= 0x10000;
   }
@@ -176,22 +416,17 @@ unpack_short(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary
 static int
 pack_long(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
-  uint32_t n;
-
   str = str_len_ensure(mrb, str, sidx + 4);
-  n = (uint32_t)mrb_integer(o);
-  if (flags & PACK_FLAG_LITTLEENDIAN) {
-    RSTRING_PTR(str)[sidx+0] = (char)(n & 0xff);
-    RSTRING_PTR(str)[sidx+1] = (char)(n >> 8);
-    RSTRING_PTR(str)[sidx+2] = (char)(n >> 16);
-    RSTRING_PTR(str)[sidx+3] = (char)(n >> 24);
-  }
-  else {
-    RSTRING_PTR(str)[sidx+0] = (char)(n >> 24);
-    RSTRING_PTR(str)[sidx+1] = (char)(n >> 16);
-    RSTRING_PTR(str)[sidx+2] = (char)(n >> 8);
-    RSTRING_PTR(str)[sidx+3] = (char)(n & 0xff);
-  }
+  uint32_t n = (uint32_t)mrb_integer(o);
+  char *dptr = RSTRING_PTR(str) + sidx;
+
+  /* use lookup tables to eliminate branching */
+  const int *idx = (flags & PACK_FLAG_LITTLEENDIAN) ? le_idx32 : be_idx32;
+  dptr[idx[0]] = (char)(n & 0xff);
+  dptr[idx[1]] = (char)(n >> 8);
+  dptr[idx[2]] = (char)(n >> 16);
+  dptr[idx[3]] = (char)(n >> 24);
+
   return 4;
 }
 
@@ -229,7 +464,7 @@ u32tostr(char *buf, size_t len, uint32_t n)
 #endif /* MRB_INT64 */
 
 static int
-unpack_long(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
+unpack_long(mrb_state *mrb, const unsigned char *src, mrb_int srclen, mrb_value ary, unsigned int flags)
 {
 #ifndef MRB_INT64
   char msg[60];
@@ -237,18 +472,13 @@ unpack_long(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary,
   uint32_t ul;
   mrb_int n;
 
-  if (flags & PACK_FLAG_LITTLEENDIAN) {
-    ul = (uint32_t)src[3] * 256*256*256;
-    ul += (uint32_t)src[2] *256*256;
-    ul += (uint32_t)src[1] *256;
-    ul += (uint32_t)src[0];
-  }
-  else {
-    ul = (uint32_t)src[0] * 256*256*256;
-    ul += (uint32_t)src[1] *256*256;
-    ul += (uint32_t)src[2] *256;
-    ul += (uint32_t)src[3];
-  }
+  /* use lookup tables to eliminate branching */
+  const int *idx = (flags & PACK_FLAG_LITTLEENDIAN) ? le_idx32 : be_idx32;
+  ul = ((uint32_t)src[idx[3]] << 24) |
+       ((uint32_t)src[idx[2]] << 16) |
+       ((uint32_t)src[idx[1]] << 8) |
+       (uint32_t)src[idx[0]];
+
   if (flags & PACK_FLAG_SIGNED) {
     n = (int32_t)ul;
   }
@@ -268,30 +498,21 @@ unpack_long(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary,
 static int
 pack_quad(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
-  uint64_t n;
-
   str = str_len_ensure(mrb, str, sidx + 8);
-  n = (uint64_t)mrb_integer(o);
-  if (flags & PACK_FLAG_LITTLEENDIAN) {
-    RSTRING_PTR(str)[sidx+0] = (char)(n & 0xff);
-    RSTRING_PTR(str)[sidx+1] = (char)(n >> 8);
-    RSTRING_PTR(str)[sidx+2] = (char)(n >> 16);
-    RSTRING_PTR(str)[sidx+3] = (char)(n >> 24);
-    RSTRING_PTR(str)[sidx+4] = (char)(n >> 32);
-    RSTRING_PTR(str)[sidx+5] = (char)(n >> 40);
-    RSTRING_PTR(str)[sidx+6] = (char)(n >> 48);
-    RSTRING_PTR(str)[sidx+7] = (char)(n >> 56);
-  }
-  else {
-    RSTRING_PTR(str)[sidx+0] = (char)(n >> 56);
-    RSTRING_PTR(str)[sidx+1] = (char)(n >> 48);
-    RSTRING_PTR(str)[sidx+2] = (char)(n >> 40);
-    RSTRING_PTR(str)[sidx+3] = (char)(n >> 32);
-    RSTRING_PTR(str)[sidx+4] = (char)(n >> 24);
-    RSTRING_PTR(str)[sidx+5] = (char)(n >> 16);
-    RSTRING_PTR(str)[sidx+6] = (char)(n >> 8);
-    RSTRING_PTR(str)[sidx+7] = (char)(n & 0xff);
-  }
+  uint64_t n = (uint64_t)mrb_integer(o);
+  char *dptr = RSTRING_PTR(str) + sidx;
+
+  /* use lookup tables to eliminate branching */
+  const int *idx = (flags & PACK_FLAG_LITTLEENDIAN) ? le_idx64 : be_idx64;
+  dptr[idx[0]] = (char)(n & 0xff);
+  dptr[idx[1]] = (char)(n >> 8);
+  dptr[idx[2]] = (char)(n >> 16);
+  dptr[idx[3]] = (char)(n >> 24);
+  dptr[idx[4]] = (char)(n >> 32);
+  dptr[idx[5]] = (char)(n >> 40);
+  dptr[idx[6]] = (char)(n >> 48);
+  dptr[idx[7]] = (char)(n >> 56);
+
   return 8;
 }
 
@@ -344,26 +565,22 @@ i64tostr(char *buf, size_t len, int64_t n)
 #endif /* MRB_INT64 */
 
 static int
-unpack_quad(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
+unpack_quad(mrb_state *mrb, const unsigned char *src, mrb_int srclen, mrb_value ary, unsigned int flags)
 {
   char msg[60];
-  uint64_t ull;
-  int i, pos, step;
   mrb_int n;
 
-  if (flags & PACK_FLAG_LITTLEENDIAN) {
-    pos  = 7;
-    step = -1;
-  }
-  else {
-    pos  = 0;
-    step = 1;
-  }
-  ull = 0;
-  for (i = 0; i < 8; i++) {
-    ull = ull * 256 + (uint64_t)src[pos];
-    pos += step;
-  }
+  /* use lookup tables to eliminate branching */
+  const int *idx = (flags & PACK_FLAG_LITTLEENDIAN) ? le_idx64 : be_idx64;
+  uint64_t ull = ((uint64_t)src[idx[7]] << 56) |
+                 ((uint64_t)src[idx[6]] << 48) |
+                 ((uint64_t)src[idx[5]] << 40) |
+                 ((uint64_t)src[idx[4]] << 32) |
+                 ((uint64_t)src[idx[3]] << 24) |
+                 ((uint64_t)src[idx[2]] << 16) |
+                 ((uint64_t)src[idx[1]] << 8) |
+                 (uint64_t)src[idx[0]];
+
   if (flags & PACK_FLAG_SIGNED) {
     int64_t sll = ull;
 #ifndef MRB_INT64
@@ -389,43 +606,70 @@ static int
 pack_BER(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
   mrb_int n = mrb_integer(o);
-  int i;
-  char *p;
 
   if (n < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "can't compress negative numbers");
   }
-  for (i=1; i<(int)sizeof(mrb_int)+1; i++) {
-    mrb_int mask = ~((1L<<(7*i))-1);
+
+  /* fast path for 1-byte values (0-127) */
+  if (n < 128) {
+    str = str_len_ensure(mrb, str, sidx + 1);
+    RSTRING_PTR(str)[sidx] = (char)n;
+    return 1;
+  }
+
+  /* fast path for 2-byte values (128-16383) */
+  if (n < 16384) {
+    str = str_len_ensure(mrb, str, sidx + 2);
+    char *p = RSTRING_PTR(str) + sidx;
+    *p++ = (char)((n >> 7) | 0x80);
+    *p = (char)(n & 0x7f);
+    return 2;
+  }
+
+  /* original algorithm for larger values */
+  int i;
+  for (i = 1; i < (int)sizeof(mrb_int) + 1; i++) {
+    mrb_int mask = ~((1L << (7 * i)) - 1);
     if ((n & mask) == 0) break;
   }
+
   str = str_len_ensure(mrb, str, sidx + i);
-  p = RSTRING_PTR(str)+sidx;
-  for (size_t j=i; j>0; p++,j--) {
-    mrb_int x = (n>>(7*(j-1)))&0x7f;
+  char *p = RSTRING_PTR(str) + sidx;
+
+  for (size_t j = i; j > 0; p++, j--) {
+    mrb_int x = (n >> (7 * (j - 1))) & 0x7f;
     *p = (char)x;
     if (j > 1) *p |= 0x80;
   }
+
   return i;
 }
 
 static int
-unpack_BER(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
+unpack_BER(mrb_state *mrb, const unsigned char *src, mrb_int srclen, mrb_value ary, unsigned int flags)
 {
-  int i;
   mrb_int n = 0;
   const unsigned char *p = src;
   const unsigned char *e = p + srclen;
 
   if (srclen == 0) return 0;
-  for (i=1; p<e; p++,i++) {
-    if (n > (MRB_INT_MAX>>7)) {
+
+  /* calculate maximum safe bytes before potential overflow */
+  const int max_safe_bytes = (sizeof(mrb_int) * 8 - 1) / 7;  /* conservative estimate */
+
+  int i;
+  for (i = 1; p < e; p++, i++) {
+    /* check overflow before we might exceed safe limits */
+    if (i > max_safe_bytes || n > (MRB_INT_MAX >> 7)) {
       mrb_raise(mrb, E_RANGE_ERROR, "BER unpacking 'w' overflow");
     }
+
     n <<= 7;
     n |= *p & 0x7f;
     if ((*p & 0x80) == 0) break;
   }
+
   mrb_ary_push(mrb, ary, mrb_int_value(mrb, n));
   return i;
 }
@@ -434,64 +678,49 @@ unpack_BER(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, 
 static int
 pack_double(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
-  int i;
-  double d;
-  uint8_t *buffer = (uint8_t*)&d;
-  str = str_len_ensure(mrb, str, sidx + 8);
-  d = mrb_float(o);
+  union {
+    double d;
+    uint8_t bytes[8];
+  } converter;
 
-  if (flags & PACK_FLAG_LITTLEENDIAN) {
-    if (littleendian) {
-      memcpy(RSTRING_PTR(str) + sidx, buffer, 8);
-    }
-    else {
-      for (i = 0; i < 8; i++) {
-        RSTRING_PTR(str)[sidx + i] = buffer[8 - i - 1];
-      }
-    }
-  }
-  else {
-    if (littleendian) {
-      for (i = 0; i < 8; i++) {
-        RSTRING_PTR(str)[sidx + i] = buffer[8 - i - 1];
-      }
-    }
-    else {
-      memcpy(RSTRING_PTR(str) + sidx, buffer, 8);
-    }
-  }
+  str = str_len_ensure(mrb, str, sidx + 8);
+  converter.d = mrb_float(o);
+  char *dptr = RSTRING_PTR(str) + sidx;
+
+  /* use lookup tables to eliminate branching */
+  const int *idx = (flags & PACK_FLAG_LITTLEENDIAN) ? le_idx64 : be_idx64;
+  dptr[idx[0]] = converter.bytes[0];
+  dptr[idx[1]] = converter.bytes[1];
+  dptr[idx[2]] = converter.bytes[2];
+  dptr[idx[3]] = converter.bytes[3];
+  dptr[idx[4]] = converter.bytes[4];
+  dptr[idx[5]] = converter.bytes[5];
+  dptr[idx[6]] = converter.bytes[6];
+  dptr[idx[7]] = converter.bytes[7];
 
   return 8;
 }
 
 static int
-unpack_double(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value ary, unsigned int flags)
+unpack_double(mrb_state *mrb, const unsigned char * src, mrb_int srclen, mrb_value ary, unsigned int flags)
 {
-  int i;
-  double d;
-  uint8_t *buffer = (uint8_t*)&d;
+  union {
+    double d;
+    uint8_t bytes[8];
+  } converter;
 
-  if (flags & PACK_FLAG_LITTLEENDIAN) {
-    if (littleendian) {
-      memcpy(buffer, src, 8);
-    }
-    else {
-      for (i = 0; i < 8; i++) {
-        buffer[8 - i - 1] = src[i];
-      }
-    }
-  }
-  else {
-    if (littleendian) {
-      for (i = 0; i < 8; i++) {
-        buffer[8 - i - 1] = src[i];
-      }
-    }
-    else {
-      memcpy(buffer, src, 8);
-    }
-  }
-  mrb_ary_push(mrb, ary, mrb_float_value(mrb, d));
+  /* use lookup tables to eliminate branching */
+  const int *idx = (flags & PACK_FLAG_LITTLEENDIAN) ? le_idx64 : be_idx64;
+  converter.bytes[0] = src[idx[0]];
+  converter.bytes[1] = src[idx[1]];
+  converter.bytes[2] = src[idx[2]];
+  converter.bytes[3] = src[idx[3]];
+  converter.bytes[4] = src[idx[4]];
+  converter.bytes[5] = src[idx[5]];
+  converter.bytes[6] = src[idx[6]];
+  converter.bytes[7] = src[idx[7]];
+
+  mrb_ary_push(mrb, ary, mrb_float_value(mrb, converter.d));
 
   return 8;
 }
@@ -499,64 +728,41 @@ unpack_double(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value a
 static int
 pack_float(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
-  int i;
-  float f;
-  uint8_t *buffer = (uint8_t*)&f;
-  str = str_len_ensure(mrb, str, sidx + 4);
-  f = (float)mrb_float(o);
+  union {
+    float f;
+    uint8_t bytes[4];
+  } converter;
 
-  if (flags & PACK_FLAG_LITTLEENDIAN) {
-    if (littleendian) {
-      memcpy(RSTRING_PTR(str) + sidx, buffer, 4);
-    }
-    else {
-      for (i = 0; i < 4; i++) {
-        RSTRING_PTR(str)[sidx + i] = buffer[4 - i - 1];
-      }
-    }
-  }
-  else {
-    if (littleendian) {
-      for (i = 0; i < 4; i++) {
-        RSTRING_PTR(str)[sidx + i] = buffer[4 - i - 1];
-      }
-    }
-    else {
-      memcpy(RSTRING_PTR(str) + sidx, buffer, 4);
-    }
-  }
+  str = str_len_ensure(mrb, str, sidx + 4);
+  converter.f = (float)mrb_float(o);
+  char *dptr = RSTRING_PTR(str) + sidx;
+
+  /* use lookup tables to eliminate branching */
+  const int *idx = (flags & PACK_FLAG_LITTLEENDIAN) ? le_idx32 : be_idx32;
+  dptr[idx[0]] = converter.bytes[0];
+  dptr[idx[1]] = converter.bytes[1];
+  dptr[idx[2]] = converter.bytes[2];
+  dptr[idx[3]] = converter.bytes[3];
 
   return 4;
 }
 
 static int
-unpack_float(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value ary, unsigned int flags)
+unpack_float(mrb_state *mrb, const unsigned char * src, mrb_int srclen, mrb_value ary, unsigned int flags)
 {
-  int i;
-  float f;
-  uint8_t *buffer = (uint8_t*)&f;
+  union {
+    float f;
+    uint8_t bytes[4];
+  } converter;
 
-  if (flags & PACK_FLAG_LITTLEENDIAN) {
-    if (littleendian) {
-      memcpy(buffer, src, 4);
-    }
-    else {
-      for (i = 0; i < 4; i++) {
-        buffer[4 - i - 1] = src[i];
-      }
-    }
-  }
-  else {
-    if (littleendian) {
-      for (i = 0; i < 4; i++) {
-        buffer[4 - i - 1] = src[i];
-      }
-    }
-    else {
-      memcpy(buffer, src, 4);
-    }
-  }
-  mrb_ary_push(mrb, ary, mrb_float_value(mrb, f));
+  /* use lookup tables to eliminate branching */
+  const int *idx = (flags & PACK_FLAG_LITTLEENDIAN) ? le_idx32 : be_idx32;
+  converter.bytes[0] = src[idx[0]];
+  converter.bytes[1] = src[idx[1]];
+  converter.bytes[2] = src[idx[2]];
+  converter.bytes[3] = src[idx[3]];
+
+  mrb_ary_push(mrb, ary, mrb_float_value(mrb, converter.f));
 
   return 4;
 }
@@ -605,90 +811,94 @@ pack_utf8(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, int count, u
   return len;
 }
 
-static const unsigned long utf8_limits[] = {
-  0x0,        /* 1 */
-  0x80,       /* 2 */
-  0x800,      /* 3 */
-  0x10000,    /* 4 */
-  0x200000,   /* 5 */
-  0x4000000,  /* 6 */
-  0x80000000, /* 7 */
-};
 
-static unsigned long
-utf8_to_uv(mrb_state *mrb, const char *p, long *lenp)
-{
-  int c = *p++ & 0xff;
-  unsigned long uv = c;
-  long n = 1;
-
-  if (!(uv & 0x80)) {
-    *lenp = 1;
-    return uv;
-  }
-  if (!(uv & 0x40)) {
-    *lenp = 1;
-  malformed:
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "malformed UTF-8 character");
-  }
-
-  if      (!(uv & 0x20)) { n = 2; uv &= 0x1f; }
-  else if (!(uv & 0x10)) { n = 3; uv &= 0x0f; }
-  else if (!(uv & 0x08)) { n = 4; uv &= 0x07; }
-  else if (!(uv & 0x04)) { n = 5; uv &= 0x03; }
-  else if (!(uv & 0x02)) { n = 6; uv &= 0x01; }
-  else {
-    *lenp = 1;
-    goto malformed;
-  }
-  if (n > *lenp) {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "malformed UTF-8 character (expected %d bytes, given %d bytes)",
-               n, *lenp);
-  }
-  *lenp = n--;
-  if (n != 0) {
-    while (n--) {
-      c = *p++ & 0xff;
-      if ((c & 0xc0) != 0x80) {
-        *lenp -= n + 1;
-        goto malformed;
-      }
-      else {
-        c &= 0x3f;
-        uv = uv << 6 | c;
-      }
-    }
-  }
-  n = *lenp - 1;
-  if (uv < utf8_limits[n]) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "redundant UTF-8 sequence");
-  }
-  return uv;
-}
 
 static int
-unpack_utf8(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value ary, unsigned int flags)
+unpack_utf8(mrb_state *mrb, const unsigned char * src, mrb_int srclen, mrb_value ary, unsigned int flags)
 {
-  unsigned long uv;
-  long lenp = srclen;
-
   if (srclen == 0) {
     return 1;
   }
-  uv = utf8_to_uv(mrb, (const char*)src, &lenp);
-  mrb_ary_push(mrb, ary, mrb_fixnum_value((mrb_int)uv));
-  return (int)lenp;
+
+  const unsigned char *p = src;
+  uint8_t first_byte = *p;
+
+  /* ASCII fast path - most common case */
+  if (first_byte < 0x80) {
+    mrb_ary_push(mrb, ary, mrb_fixnum_value(first_byte));
+    return 1;
+  }
+
+  /* Multi-byte UTF-8 with optimized lookup table */
+  uint8_t seq_len = utf8_seq_len_high[first_byte - 0x80];
+  if (seq_len == 0 || seq_len > srclen) {
+    goto malformed;
+  }
+
+  /* Inline 2-byte sequence optimization - common case */
+  if (seq_len == 2) {
+    if (!IS_UTF8_CONTINUATION(p[1])) {
+      goto malformed;
+    }
+    uint32_t uv = ((first_byte & 0x1F) << 6) | (p[1] & 0x3F);
+    /* validate minimum value for 2-byte sequence */
+    if (uv >= 0x80) {
+      mrb_ary_push(mrb, ary, mrb_fixnum_value((mrb_int)uv));
+      return 2;
+    }
+    goto redundant;
+  }
+
+  /* Inline 3-byte sequence optimization */
+  if (seq_len == 3) {
+    if (!IS_UTF8_CONTINUATION(p[1]) || !IS_UTF8_CONTINUATION(p[2])) {
+      goto malformed;
+    }
+    uint32_t uv = ((first_byte & 0x0F) << 12) |
+                  ((p[1] & 0x3F) << 6) |
+                  (p[2] & 0x3F);
+    /* validate minimum value for 3-byte sequence */
+    if (uv >= 0x800) {
+      mrb_ary_push(mrb, ary, mrb_fixnum_value((mrb_int)uv));
+      return 3;
+    }
+    goto redundant;
+  }
+
+  /* 4-byte sequence - less common, use original implementation */
+  if (seq_len == 4) {
+    if (!IS_UTF8_CONTINUATION(p[1]) || !IS_UTF8_CONTINUATION(p[2]) || !IS_UTF8_CONTINUATION(p[3])) {
+      goto malformed;
+    }
+    uint32_t uv = ((first_byte & 0x07) << 18) |
+                  ((p[1] & 0x3F) << 12) |
+                  ((p[2] & 0x3F) << 6) |
+                  (p[3] & 0x3F);
+    /* validate minimum value and maximum valid Unicode */
+    if (uv >= 0x10000 && uv <= 0x10FFFF) {
+      mrb_ary_push(mrb, ary, mrb_fixnum_value((mrb_int)uv));
+      return 4;
+    }
+    if (uv < 0x10000) goto redundant;
+    goto malformed;
+  }
+
+malformed:
+  mrb_raise(mrb, E_ARGUMENT_ERROR, "malformed UTF-8 character");
+
+redundant:
+  mrb_raise(mrb, E_ARGUMENT_ERROR, "redundant UTF-8 sequence");
 }
 
 static int
 pack_str(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, unsigned int flags)
 {
-  mrb_int copylen, slen, padlen;
-  char *dptr, *dptr0, pad, *sptr;
+  const char *sptr = RSTRING_PTR(src);
+  mrb_int slen = RSTRING_LEN(src);
+  mrb_int copylen, padlen;
+  char pad;
 
-  sptr = RSTRING_PTR(src);
-  slen = RSTRING_LEN(src);
-
+  /* determine padding character based on format */
   if ((flags & PACK_FLAG_a) || (flags & PACK_FLAG_Z))
     pad = '\0';
   else
@@ -710,12 +920,21 @@ pack_str(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, 
     padlen = count - slen;
   }
 
+  /* pre-allocate exact buffer size */
   dst = str_len_ensure(mrb, dst, didx + copylen + padlen);
-  dptr0 = dptr = RSTRING_PTR(dst) + didx;
-  memcpy(dptr, sptr, copylen);
-  dptr += copylen;
-  while (padlen-- > 0) {
-    *dptr++ = pad;
+  char *dptr = RSTRING_PTR(dst) + didx;
+  char *dptr0 = dptr;
+
+  /* copy string data */
+  if (copylen > 0) {
+    memcpy(dptr, sptr, copylen);
+    dptr += copylen;
+  }
+
+  /* bulk padding using memset instead of loop */
+  if (padlen > 0) {
+    memset(dptr, pad, padlen);
+    dptr += padlen;
   }
 
   return (int)(dptr - dptr0);
@@ -729,53 +948,50 @@ pack_str(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, 
 } while (0)
 
 static int
-unpack_str(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, unsigned int flags)
+unpack_str(mrb_state *mrb, const void *src, mrb_int slen, mrb_value ary, int count, unsigned int flags)
 {
   CHECK_UNPACK_LEN(mrb, slen, ary);
 
-  mrb_value dst;
-  const char *sptr;
+  const char *sptr = (const char*)src;
   int copylen;
 
-  sptr = (const char*)src;
-  if (count != -1 && count < slen)  {
+  if (count != -1 && count < slen) {
     slen = count;
   }
-  copylen = slen;
+  copylen = (int)slen;
 
-  if (slen >= 0 && flags & PACK_FLAG_Z) {  /* "Z" */
-    const char *cp;
-
-    if ((cp = (const char*)memchr(sptr, '\0', slen)) != NULL) {
+  if (slen >= 0 && flags & PACK_FLAG_Z) {  /* "Z" format */
+    const char *cp = (const char*)memchr(sptr, '\0', slen);
+    if (cp != NULL) {
       copylen = (int)(cp - sptr);
       if (count == -1) {
         slen = copylen + 1;
       }
     }
   }
-  else if (!(flags & PACK_FLAG_a)) {  /* "A" */
-    while (copylen > 0 && (sptr[copylen - 1] == '\0' || ISSPACE(sptr[copylen - 1]))) {
+  else if (!(flags & PACK_FLAG_a)) {  /* "A" format - trim spaces and nulls */
+    /* optimized reverse trimming using lookup table */
+    while (copylen > 0 && IS_PADDING_CHAR_A(sptr[copylen - 1])) {
       copylen--;
     }
   }
+  /* "a" format does no trimming */
 
   if (copylen < 0) copylen = 0;
-  dst = mrb_str_new(mrb, sptr, (mrb_int)copylen);
+
+  mrb_value dst = mrb_str_new(mrb, sptr, (mrb_int)copylen);
   mrb_ary_push(mrb, ary, dst);
-  return slen;
+  return (int)slen;
 }
 
 
 static int
 pack_hex(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, unsigned int flags)
 {
+  char *sptr = RSTRING_PTR(src);
+  long slen = (long)RSTRING_LEN(src);
+
   unsigned int ashift, bshift;
-  long slen;
-  char *dptr, *dptr0, *sptr;
-
-  sptr = RSTRING_PTR(src);
-  slen = (long)RSTRING_LEN(src);
-
   if (flags & PACK_FLAG_LSB) {
     ashift = 0;
     bshift = 4;
@@ -792,40 +1008,41 @@ pack_hex(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, 
     slen = count;
   }
 
-  dst = str_len_ensure(mrb, dst, didx + count);
-  dptr = RSTRING_PTR(dst) + didx;
+  /* calculate output buffer size needed - one byte per two hex chars */
+  /* use count/2 + (count&1) to avoid overflow when count == INT_MAX */
+  int output_bytes = count / 2 + (count & 1);
+  dst = str_len_ensure(mrb, dst, didx + output_bytes);
+  char *dptr = RSTRING_PTR(dst) + didx;
+  char *dptr0 = dptr;
 
-  dptr0 = dptr;
-  for (; count > 0; count -= 2) {
-    int a = 0, b = 0;
+  /* process pairs of hex characters */
+  while (slen >= 2) {
+    int a = hex2int((unsigned char)*sptr++);
+    if (a < 0) break;
+    int b = hex2int((unsigned char)*sptr++);
+    if (b < 0) break;
 
-    if (slen > 0) {
-      a = hex2int(*sptr++);
-      if (a < 0) break;
-      slen--;
-    }
-    if (slen > 0) {
-      b = hex2int(*sptr++);
-      if (b < 0) break;
-      slen--;
-    }
     *dptr++ = (a << ashift) + (b << bshift);
+    slen -= 2;
+  }
+
+  /* handle odd remaining character */
+  if (slen > 0) {
+    int a = hex2int((unsigned char)*sptr);
+    if (a >= 0) {
+      *dptr++ = (a << ashift);
+    }
   }
 
   return (int)(dptr - dptr0);
 }
 
 static int
-unpack_hex(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, unsigned int flags)
+unpack_hex(mrb_state *mrb, const void *src, mrb_int slen, mrb_value ary, int count, unsigned int flags)
 {
   CHECK_UNPACK_LEN(mrb, slen, ary);
 
-  mrb_value dst;
-  int a, ashift, b, bshift;
-  const char *sptr, *sptr0;
-  char *dptr, *dptr0;
-  const char hexadecimal[] = "0123456789abcdef";
-
+  int ashift, bshift;
   if (flags & PACK_FLAG_LSB) {
     ashift = 0;
     bshift = 4;
@@ -835,29 +1052,32 @@ unpack_hex(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, 
     bshift = 0;
   }
 
-  sptr = (const char*)src;
+  const char *sptr = (const char*)src;
+  const char *sptr0 = sptr;
 
   if (count == -1)
-    count = slen * 2;
+    count = (int)(slen * 2);
 
-  dst = mrb_str_new(mrb, NULL, count);
-  dptr = RSTRING_PTR(dst);
+  mrb_value dst = mrb_str_new(mrb, NULL, count);
+  char *dptr = RSTRING_PTR(dst);
+  char *dptr0 = dptr;
 
-  sptr0 = sptr;
-  dptr0 = dptr;
-  while (slen > 0 && count > 0) {
-    a = (*sptr >> ashift) & 0x0f;
-    b = (*sptr >> bshift) & 0x0f;
-    sptr++;
+  const char hexadecimal[] = "0123456789abcdef";
+
+  /* process full bytes when we need pairs of hex characters */
+  while (slen > 0 && count >= 2) {
+    unsigned char byte = *sptr++;
     slen--;
 
-    *dptr++ = hexadecimal[a];
-    count--;
+    *dptr++ = hexadecimal[(byte >> ashift) & 0x0f];
+    *dptr++ = hexadecimal[(byte >> bshift) & 0x0f];
+    count -= 2;
+  }
 
-    if (count > 0) {
-      *dptr++ = hexadecimal[b];
-      count--;
-    }
+  /* handle remaining single character if count is odd */
+  if (slen > 0 && count > 0) {
+    unsigned char byte = *sptr++;
+    *dptr++ = hexadecimal[(byte >> ashift) & 0x0f];
   }
 
   dst = mrb_str_resize(mrb, dst, (mrb_int)(dptr - dptr0));
@@ -878,74 +1098,74 @@ pack_bstr(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count,
     slen = count;
   }
 
-  dst = str_len_ensure(mrb, dst, didx + count);
+  /* calculate exact output size: (slen + 7) / 8 */
+  int output_bytes = (slen + 7) / 8;
+  dst = str_len_ensure(mrb, dst, didx + output_bytes);
   char *dptr = RSTRING_PTR(dst) + didx;
   char *dptr0 = dptr;
 
-  unsigned int byte = 0;
-  for (int i=0; i++ < slen; sptr++) {
-    if (flags & PACK_FLAG_LSB) {
-      if (*sptr & 1)
-        byte |= 128;
-      if (i & 7)
-        byte >>= 1;
-      else {
-        char c = (char)(byte&0xff);
-        *dptr++ = c;
-        byte = 0;
-      }
-    }
-    else {
-      byte |= *sptr & 1;
-      if (i & 7)
-        byte <<= 1;
-      else {
-        char c = (char)(byte&0xff);
-        *dptr++ = c;
-        byte = 0;
-      }
-    }
+  /* select batch processing function based on bit order */
+  uint8_t (*pack_func)(const char *) = (flags & PACK_FLAG_LSB) ? pack_8_bits_lsb : pack_8_bits_msb;
+
+  /* process 8 characters at a time */
+  int full_bytes = slen / 8;
+  for (int i = 0; i < full_bytes; i++) {
+    *dptr++ = (char)pack_func(sptr);
+    sptr += 8;
   }
-  if (slen & 7) {
-    if (flags & PACK_FLAG_LSB) {
-      byte >>= 7 - (slen & 7);
+
+  /* handle remaining bits (partial byte) */
+  int remaining_bits = slen % 8;
+  if (remaining_bits > 0) {
+    char temp_chars[8] = {'0', '0', '0', '0', '0', '0', '0', '0'};
+    /* copy remaining characters, padding with '0' */
+    for (int i = 0; i < remaining_bits; i++) {
+      temp_chars[i] = sptr[i];
     }
-    else {
-      byte <<= 7 - (slen & 7);
-    }
-    char c = (char)(byte&0xff);
-    *dptr++ = c;
+    *dptr++ = (char)pack_func(temp_chars);
   }
+
   return (int)(dptr - dptr0);
 }
 
 static int
-unpack_bstr(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, unsigned int flags)
+unpack_bstr(mrb_state *mrb, const void *src, mrb_int slen, mrb_value ary, int count, unsigned int flags)
 {
   CHECK_UNPACK_LEN(mrb, slen, ary);
 
   const char *sptr0 = (const char*)src;
   const char *sptr = sptr0;
-  if (count == -1 || count > slen * 8)
-    count = slen * 8;
 
+  if (count == -1 || count > slen * 8)
+    count = (int)(slen * 8);
+
+  /* pre-allocate exact output size */
   mrb_value dst = mrb_str_new(mrb, NULL, count);
   char *dptr = RSTRING_PTR(dst);
-  const char *dptr0 = dptr;
-  int bits = 0;
+  char *dptr0 = dptr;
 
-  for (int i=0; i<count; i++) {
-    if (flags & PACK_FLAG_LSB) {
-      if (i & 7) bits >>= 1;
-      else bits = (unsigned char)*sptr++;
-      *dptr++ = (bits & 1) ? '1' : '0';
-    }
-    else {
-      if (i & 7) bits <<= 1;
-      else bits = (unsigned char)*sptr++;
-      *dptr++ = (bits & 128) ? '1' : '0';
+  /* select batch processing function based on bit order */
+  void (*unpack_func)(uint8_t, char *) = (flags & PACK_FLAG_LSB) ? unpack_8_bits_lsb : unpack_8_bits_msb;
+
+  /* process 8 bits (1 byte) at a time */
+  int full_bytes = count / 8;
+  for (int i = 0; i < full_bytes; i++) {
+    unpack_func((uint8_t)*sptr++, dptr);
+    dptr += 8;
+  }
+
+  /* handle remaining bits (partial byte) */
+  int remaining_bits = count % 8;
+  if (remaining_bits > 0) {
+    char temp_chars[8];
+    unpack_func((uint8_t)*sptr++, temp_chars);
+    /* copy only the required number of characters */
+    for (int i = 0; i < remaining_bits; i++) {
+      *dptr++ = temp_chars[i];
     }
   }
+
+  /* ensure string is properly sized */
   dst = mrb_str_resize(mrb, dst, (mrb_int)(dptr - dptr0));
   mrb_ary_push(mrb, ary, dst);
   return (int)(sptr - sptr0);
@@ -954,93 +1174,130 @@ unpack_bstr(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count,
 static int
 pack_base64(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count)
 {
-  mrb_int dstlen;
-  unsigned long l;
-  mrb_int column, srclen;
-  char *srcptr, *dstptr, *dstptr0;
+  char *srcptr = RSTRING_PTR(src);
+  mrb_int srclen = RSTRING_LEN(src);
 
-  srcptr = RSTRING_PTR(src);
-  srclen = RSTRING_LEN(src);
-
-  if (srclen == 0)  /* easy case */
+  if (srclen == 0) {
     return 0;
+  }
 
-  if (count != 0 && count < 3) {  /* -1, 1 or 2 */
+  if (count != 0 && count < 3) {
     count = 45;
   }
   else if (count >= 3) {
     count -= count % 3;
   }
 
-  dstlen = (srclen+2) / 3 * 4;
+  /* precise memory allocation */
+  mrb_int dstlen = (srclen + 2) / 3 * 4;
   if (count > 0) {
     dstlen += (srclen / count) + ((srclen % count) == 0 ? 0 : 1);
   }
   dst = str_len_ensure(mrb, dst, didx + dstlen);
-  dstptr = RSTRING_PTR(dst) + didx;
+  char *dstptr = RSTRING_PTR(dst) + didx;
+  char *dstptr0 = dstptr;
 
-  dstptr0 = dstptr;
-  for (column = 3; srclen >= 3; srclen -= 3, column += 3) {
-    l = (unsigned char)*srcptr++ << 16;
-    l += (unsigned char)*srcptr++ << 8;
-    l += (unsigned char)*srcptr++;
+  if (count == 0) {
+    /* fast path: no line wrapping */
+    while (srclen >= 3) {
+      unsigned long l = (unsigned char)*srcptr++ << 16;
+      l += (unsigned char)*srcptr++ << 8;
+      l += (unsigned char)*srcptr++;
+      srclen -= 3;
 
-    *dstptr++ = base64chars[(l >> 18) & 0x3f];
-    *dstptr++ = base64chars[(l >> 12) & 0x3f];
-    *dstptr++ = base64chars[(l >>  6) & 0x3f];
-    *dstptr++ = base64chars[ l        & 0x3f];
-
-    if (column == count) {
-      *dstptr++ = '\n';
-      column = 0;
+      *dstptr++ = base64chars[(l >> 18) & 0x3f];
+      *dstptr++ = base64chars[(l >> 12) & 0x3f];
+      *dstptr++ = base64chars[(l >> 6) & 0x3f];
+      *dstptr++ = base64chars[l & 0x3f];
     }
   }
+  else {
+    /* line wrapping path */
+    mrb_int column = 3;
+    while (srclen >= 3) {
+      unsigned long l = (unsigned char)*srcptr++ << 16;
+      l += (unsigned char)*srcptr++ << 8;
+      l += (unsigned char)*srcptr++;
+      srclen -= 3;
+
+      *dstptr++ = base64chars[(l >> 18) & 0x3f];
+      *dstptr++ = base64chars[(l >> 12) & 0x3f];
+      *dstptr++ = base64chars[(l >> 6) & 0x3f];
+      *dstptr++ = base64chars[l & 0x3f];
+
+      if (column == count) {
+        *dstptr++ = '\n';
+        column = 0;
+      }
+      column += 3;
+    }
+
+    /* handle remaining 1-2 bytes */
+    if (srclen == 1) {
+      unsigned long l = (unsigned char)*srcptr << 16;
+      *dstptr++ = base64chars[(l >> 18) & 0x3f];
+      *dstptr++ = base64chars[(l >> 12) & 0x3f];
+      *dstptr++ = '=';
+      *dstptr++ = '=';
+      column += 3;
+    }
+    else if (srclen == 2) {
+      unsigned long l = (unsigned char)*srcptr++ << 16;
+      l += (unsigned char)*srcptr << 8;
+      *dstptr++ = base64chars[(l >> 18) & 0x3f];
+      *dstptr++ = base64chars[(l >> 12) & 0x3f];
+      *dstptr++ = base64chars[(l >> 6) & 0x3f];
+      *dstptr++ = '=';
+      column += 3;
+    }
+
+    if (column > 0) {
+      *dstptr++ = '\n';
+    }
+    return (int)(dstptr - dstptr0);
+  }
+
+  /* handle remaining 1-2 bytes for fast path */
   if (srclen == 1) {
-    l = (unsigned char)*srcptr++ << 16;
+    unsigned long l = (unsigned char)*srcptr << 16;
     *dstptr++ = base64chars[(l >> 18) & 0x3f];
     *dstptr++ = base64chars[(l >> 12) & 0x3f];
     *dstptr++ = '=';
     *dstptr++ = '=';
-    column += 3;
   }
   else if (srclen == 2) {
-    l = (unsigned char)*srcptr++ << 16;
-    l += (unsigned char)*srcptr++ << 8;
+    unsigned long l = (unsigned char)*srcptr++ << 16;
+    l += (unsigned char)*srcptr << 8;
     *dstptr++ = base64chars[(l >> 18) & 0x3f];
     *dstptr++ = base64chars[(l >> 12) & 0x3f];
-    *dstptr++ = base64chars[(l >>  6) & 0x3f];
+    *dstptr++ = base64chars[(l >> 6) & 0x3f];
     *dstptr++ = '=';
-    column += 3;
-  }
-  if (column > 0 && count > 0) {
-    *dstptr++ = '\n';
   }
 
   return (int)(dstptr - dstptr0);
 }
 
 static int
-unpack_base64(mrb_state *mrb, const void *src, int slen, mrb_value ary)
+unpack_base64(mrb_state *mrb, const void *src, mrb_int slen, mrb_value ary)
 {
   CHECK_UNPACK_LEN(mrb, slen, ary);
 
-  mrb_value dst;
-  int dlen;
-  unsigned long l;
-  int i, padding;
-  unsigned char c, ch[4];
-  const char *sptr, *sptr0;
-  char *dptr, *dptr0;
+  const char *sptr0 = (const char*)src;
+  const char *sptr = sptr0;
 
-  sptr0 = sptr = (const char*)src;
+  /* estimate buffer size - may be shorter due to padding/whitespace */
+  int dlen = (int)(slen / 4 * 3);
+  mrb_value dst = mrb_str_new(mrb, NULL, dlen);
+  char *dptr0 = RSTRING_PTR(dst);
+  char *dptr = dptr0;
 
-  dlen = slen / 4 * 3;  /* an estimated value - may be shorter */
-  dst = mrb_str_new(mrb, NULL, dlen);
-  dptr0 = dptr = RSTRING_PTR(dst);
-
-  padding = 0;
+  int padding = 0;
   while (slen >= 4) {
-    for (i = 0; i < 4; i++) {
+    unsigned char ch[4];
+
+    /* collect 4 valid base64 characters */
+    for (int i = 0; i < 4; i++) {
+      unsigned char c;
       do {
         if (slen-- == 0)
           goto done;
@@ -1055,7 +1312,8 @@ unpack_base64(mrb_state *mrb, const void *src, int slen, mrb_value ary)
       } while (c >= sizeof(base64_dec_tab) || ch[i] == PACK_BASE64_IGNORE);
     }
 
-    l = (ch[0] << 18) + (ch[1] << 12) + (ch[2] << 6) + ch[3];
+    /* decode 4 characters to 3 bytes */
+    unsigned long l = (ch[0] << 18) + (ch[1] << 12) + (ch[2] << 6) + ch[3];
 
     if (padding == 0) {
       *dptr++ = (l >> 16) & 0xff;
@@ -1090,36 +1348,57 @@ pack_qenc(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count)
   int dlen = 0;
 
   if (count <= 1) count = 72;
+
   while (s < send) {
-    if ((*s > 126) ||
-        (*s < 32 && *s != '\n' && *s != '\t') ||
-        (*s == '=')) {
+    unsigned char byte = (unsigned char)*s;
+    uint8_t encode_type = qprint_encode_type[byte];
+
+    /* ASCII printable fast path - most common case */
+    if (encode_type == 0) {
+      /* Handle space/tab at line end special case */
+      if ((byte == ' ' || byte == '\t') && s + 1 < send && *(s + 1) == '\n') {
+        /* Space/tab before newline needs encoding */
+        buff[i++] = '=';
+        buff[i++] = hex_table[(byte & 0xf0) >> 4];
+        buff[i++] = hex_table[byte & 0x0f];
+        n += 3;
+        prev = EOF;
+      }
+      else {
+        /* Regular printable character - direct copy */
+        buff[i++] = byte;
+        n++;
+        prev = byte;
+      }
+    }
+    /* Newline special handling */
+    else if (encode_type == 2) {
+      if (prev == ' ' || prev == '\t') {
+        buff[i++] = '=';
+        buff[i++] = byte;
+      }
+      buff[i++] = byte;
+      n = 0;
+      prev = byte;
+    }
+    /* Character needs encoding */
+    else {
       buff[i++] = '=';
-      buff[i++] = hex_table[(*s & 0xf0) >> 4];
-      buff[i++] = hex_table[*s & 0x0f];
+      buff[i++] = hex_table[(byte & 0xf0) >> 4];
+      buff[i++] = hex_table[byte & 0x0f];
       n += 3;
       prev = EOF;
     }
-    else if (*s == '\n') {
-      if (prev == ' ' || prev == '\t') {
-        buff[i++] = '=';
-        buff[i++] = *s;
-      }
-      buff[i++] = *s;
-      n = 0;
-      prev = *s;
-    }
-    else {
-      buff[i++] = *s;
-      n++;
-      prev = *s;
-    }
+
+    /* Check line length limit */
     if (n > count) {
       buff[i++] = '=';
       buff[i++] = '\n';
       n = 0;
       prev = '\n';
     }
+
+    /* Flush buffer if getting full */
     if (i > 1024 - 5) {
       str_len_ensure(mrb, dst, didx+dlen+i);
       memcpy(RSTRING_PTR(dst)+didx+dlen, buff, i);
@@ -1128,51 +1407,215 @@ pack_qenc(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count)
     }
     s++;
   }
+
+  /* Add final soft line break if needed */
   if (n > 0) {
     buff[i++] = '=';
     buff[i++] = '\n';
   }
+
+  /* Flush remaining buffer */
   if (i > 0) {
     str_len_ensure(mrb, dst, didx+dlen+i);
     memcpy(RSTRING_PTR(dst)+didx+dlen, buff, i);
     dlen += i;
   }
+
   return dlen;
 }
 
 static int
-unpack_qenc(mrb_state *mrb, const void *src, int slen, mrb_value ary)
+unpack_qenc(mrb_state *mrb, const void *src, mrb_int slen, mrb_value ary)
 {
   CHECK_UNPACK_LEN(mrb, slen, ary);
 
   mrb_value buf = mrb_str_new(mrb, 0, slen);
-  const char *s = (const char*)src, *ss = s;
+  const char *s = (const char*)src;
   const char *send = s + slen;
   char *ptr = RSTRING_PTR(buf);
   int c1, c2;
 
   while (s < send) {
-    if (*s == '=') {
-      if (++s == send) break;
-      if (s+1 < send && *s == '\r' && *(s+1) == '\n')
-        s++;
-      if (*s != '\n') {
-        if ((c1 = hex2int(*s)) == -1) break;
-        if (++s == send) break;
-        if ((c2 = hex2int(*s)) == -1) break;
-        *ptr++ = (char)(c1 << 4 | c2);
+    /* Fast path for non-encoded characters - most common case */
+    if (*s != '=') {
+      *ptr++ = *s;
+      s++;
+      continue;
+    }
+
+    /* Handle =XX encoded sequences */
+    if (++s == send) break;
+
+    /* Handle soft line breaks: =\r\n or =\n */
+    if (s + 1 < send && *s == '\r' && *(s + 1) == '\n') {
+      s += 2;  /* Skip \r\n */
+      continue;
+    }
+    if (*s == '\n') {
+      s++;     /* Skip \n */
+      continue;
+    }
+
+    /* Decode =XX hex sequence */
+    if ((c1 = hex2int(*s)) == -1) break;
+    if (++s == send) break;
+    if ((c2 = hex2int(*s)) == -1) break;
+    *ptr++ = (char)(c1 << 4 | c2);
+    s++;
+  }
+
+  buf = mrb_str_resize(mrb, buf, (mrb_int)(ptr - RSTRING_PTR(buf)));
+  mrb_ary_push(mrb, ary, buf);
+  return (int)slen;
+}
+
+static int
+pack_uu(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count)
+{
+  char *s = RSTRING_PTR(src);
+  int slen = (int)RSTRING_LEN(src);
+  int lines_written = 0;
+  int dlen = 0;
+
+  if (count <= 1) count = 45; /* default line length for UU-encoding */
+
+  /* Calculate buffer size by accounting for per-line encoding
+   * Each line encodes separately, so padding happens per line, not globally
+   */
+  mrb_int num_lines = (slen + count - 1) / count;  /* Number of lines */
+  mrb_int total_encoded = 0;
+  mrb_int temp_slen = slen;
+
+  /* Calculate actual encoded size line by line */
+  while (temp_slen > 0) {
+    mrb_int line_len = (temp_slen > count) ? count : temp_slen;
+    total_encoded += ((line_len + 2) / 3) * 4;  /* Each line's encoded size */
+    temp_slen -= line_len;
+  }
+
+  /* Total buffer = encoded data + (length char + newline) per line + terminating line */
+  mrb_int buffer_size = total_encoded + num_lines * 2 + 2;
+  str_len_ensure(mrb, dst, didx + buffer_size);
+  char *dptr = RSTRING_PTR(dst) + didx;
+
+  while (slen > 0) {
+    int line_len = (slen > count) ? count : slen;
+
+    /* Write line length character */
+    *dptr++ = uu_encode_table[line_len & 0x3F];
+    dlen++;
+
+    int processed = 0;
+    while (processed < line_len) {
+      /* Process groups of 3 bytes -> 4 characters */
+      uint32_t group = 0;
+      int bytes_in_group = 0;
+
+      /* Read up to 3 bytes */
+      for (int i = 0; i < 3 && processed < line_len; i++) {
+        group = (group << 8) | (unsigned char)s[processed++];
+        bytes_in_group++;
       }
+
+      /* Pad incomplete group with zeros */
+      group <<= (3 - bytes_in_group) * 8;
+
+      /* Extract 4 groups of 6 bits and encode */
+      *dptr++ = uu_encode_table[(group >> 18) & 0x3F];
+      *dptr++ = uu_encode_table[(group >> 12) & 0x3F];
+      *dptr++ = uu_encode_table[(group >> 6) & 0x3F];
+      *dptr++ = uu_encode_table[group & 0x3F];
+      dlen += 4;
+    }
+
+    /* Add newline */
+    *dptr++ = '\n';
+    dlen++;
+
+    s += line_len;
+    slen -= line_len;
+    lines_written++;
+  }
+
+  /* Add terminating line if data was processed */
+  if (lines_written > 0) {
+    *dptr++ = uu_encode_table[0]; /* length 0 */
+    *dptr++ = '\n';
+    dlen += 2;
+  }
+
+  return dlen;
+}
+
+static int
+unpack_uu(mrb_state *mrb, const void *src, mrb_int slen, mrb_value ary)
+{
+  const unsigned char *s = (const unsigned char*)src;
+  const unsigned char *send = s + slen;
+  mrb_value result = mrb_str_new(mrb, 0, slen * 3 / 4); /* estimate result size */
+  char *dptr = RSTRING_PTR(result);
+  char *dptr_start = dptr;
+
+  while (s < send) {
+    /* Skip empty lines and whitespace */
+    while (s < send && (*s == '\n' || *s == '\r' || *s == ' ' || *s == '\t')) {
+      s++;
+    }
+    if (s >= send) break;
+
+    /* Read line length */
+    int line_len = 0;
+    if (*s >= 32 && *s < 128 && uu_decode_table[*s - 32] >= 0) {
+      line_len = uu_decode_table[*s - 32];
+      s++;
     }
     else {
-      *ptr++ = *s;
+      break; /* Invalid length character */
     }
-    s++;
-    ss = s;
+
+    /* Empty line indicates end */
+    if (line_len == 0) {
+      break;
+    }
+
+    /* Decode line data */
+    int bytes_decoded = 0;
+    while (bytes_decoded < line_len && s + 3 < send) {
+      /* Decode 4 characters to 3 bytes */
+      int c[4];
+      int valid = 1;
+
+      for (int i = 0; i < 4; i++) {
+        if (s >= send || *s < 32 || *s >= 128 || uu_decode_table[*s - 32] < 0) {
+          valid = 0;
+          break;
+        }
+        c[i] = uu_decode_table[*s++ - 32];
+      }
+
+      if (!valid) break;
+
+      /* Combine 4 x 6-bit values into 3 x 8-bit values */
+      uint32_t group = (c[0] << 18) | (c[1] << 12) | (c[2] << 6) | c[3];
+
+      /* Extract up to 3 bytes, don't exceed line length */
+      int bytes_to_extract = (line_len - bytes_decoded > 3) ? 3 : (line_len - bytes_decoded);
+
+      for (int i = 0; i < bytes_to_extract; i++) {
+        *dptr++ = (group >> (16 - i * 8)) & 0xFF;
+        bytes_decoded++;
+      }
+    }
+
+    /* Skip to end of line */
+    while (s < send && *s != '\n' && *s != '\r') {
+      s++;
+    }
   }
-  buf = mrb_str_resize(mrb, buf, (mrb_int)(ptr - RSTRING_PTR(buf)));
-  mrb_str_cat(mrb, buf, ss, send-ss);
-  mrb_ary_push(mrb, ary, buf);
-  return slen;
+
+  result = mrb_str_resize(mrb, result, (mrb_int)(dptr - dptr_start));
+  mrb_ary_push(mrb, ary, result);
+  return (int)slen;
 }
 
 static int
@@ -1215,7 +1658,7 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_type *typep, mrb_int *siz
   int ch, size = 0;
   enum pack_dir dir;
   enum pack_type type;
-  int count = 1;
+  mrb_int count = 1;
   unsigned int flags = 0;
   const char *tptr;
 
@@ -1226,84 +1669,14 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_type *typep, mrb_int *siz
   if (tmpl->idx >= tlen) return PACK_DIR_NONE;
   t = tptr[tmpl->idx++];
  alias:
+
+  /* Handle whitespace - skip and restart */
+  if (ISSPACE((char)t)) {
+    goto restart;
+  }
+
+  /* Special handling for runtime-dependent formats and special characters */
   switch (t) {
-  case 'A':
-    dir = PACK_DIR_STR;
-    type = PACK_TYPE_STRING;
-    flags |= PACK_FLAG_WIDTH | PACK_FLAG_COUNT2;
-    break;
-  case 'a':
-    dir = PACK_DIR_STR;
-    type = PACK_TYPE_STRING;
-    flags |= PACK_FLAG_WIDTH | PACK_FLAG_COUNT2 | PACK_FLAG_a;
-    break;
-  case 'C':
-    dir = PACK_DIR_CHAR;
-    type = PACK_TYPE_INTEGER;
-    size = 1;
-    break;
-  case 'c':
-    dir = PACK_DIR_CHAR;
-    type = PACK_TYPE_INTEGER;
-    size = 1;
-    flags |= PACK_FLAG_SIGNED;
-    break;
-  case 'D': case 'd':
-    dir = PACK_DIR_DOUBLE;
-    type = PACK_TYPE_FLOAT;
-    size = 8;
-    flags |= PACK_FLAG_SIGNED;
-    break;
-  case 'F': case 'f':
-    dir = PACK_DIR_FLOAT;
-    type = PACK_TYPE_FLOAT;
-    size = 4;
-    flags |= PACK_FLAG_SIGNED;
-    break;
-  case 'E':
-    dir = PACK_DIR_DOUBLE;
-    type = PACK_TYPE_FLOAT;
-    size = 8;
-    flags |= PACK_FLAG_SIGNED | PACK_FLAG_LT;
-    break;
-  case 'e':
-    dir = PACK_DIR_FLOAT;
-    type = PACK_TYPE_FLOAT;
-    size = 4;
-    flags |= PACK_FLAG_SIGNED | PACK_FLAG_LT;
-    break;
-  case 'G':
-    dir = PACK_DIR_DOUBLE;
-    type = PACK_TYPE_FLOAT;
-    size = 8;
-    flags |= PACK_FLAG_SIGNED | PACK_FLAG_GT;
-    break;
-  case 'g':
-    dir = PACK_DIR_FLOAT;
-    type = PACK_TYPE_FLOAT;
-    size = 4;
-    flags |= PACK_FLAG_SIGNED | PACK_FLAG_GT;
-    break;
-  case 'H':
-    dir = PACK_DIR_HEX;
-    type = PACK_TYPE_STRING;
-    flags |= PACK_FLAG_COUNT2;
-    break;
-  case 'h':
-    dir = PACK_DIR_HEX;
-    type = PACK_TYPE_STRING;
-    flags |= PACK_FLAG_COUNT2 | PACK_FLAG_LSB;
-    break;
-  case 'B':
-    dir = PACK_DIR_BSTR;
-    type = PACK_TYPE_STRING;
-    flags |= PACK_FLAG_COUNT2;
-    break;
-  case 'b':
-    dir = PACK_DIR_BSTR;
-    type = PACK_TYPE_STRING;
-    flags |= PACK_FLAG_COUNT2 | PACK_FLAG_LSB;
-    break;
   case 'I':
     switch (sizeof(int)) {
       case 2: t = 'S'; goto alias;
@@ -1338,115 +1711,33 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_type *typep, mrb_int *siz
         mrb_raisef(mrb, E_RUNTIME_ERROR, "mruby-pack does not support sizeof(intptr_t) == %d", (int)sizeof(intptr_t));
     }
     break;
-  case 'L':
-    dir = PACK_DIR_LONG;
-    type = PACK_TYPE_INTEGER;
-    size = 4;
-    break;
-  case 'l':
-    dir = PACK_DIR_LONG;
-    type = PACK_TYPE_INTEGER;
-    size = 4;
-    flags |= PACK_FLAG_SIGNED;
-    break;
-  case 'w':
-    dir = PACK_DIR_BER;
-    type = PACK_TYPE_INTEGER;
-    flags |= PACK_FLAG_SIGNED;
-    break;
-  case 'm':
-    dir = PACK_DIR_BASE64;
-    type = PACK_TYPE_STRING;
-    flags |= PACK_FLAG_WIDTH | PACK_FLAG_COUNT2;
-    break;
-  case 'M':
-    dir = PACK_DIR_QENC;
-    type = PACK_TYPE_STRING;
-    flags |= PACK_FLAG_WIDTH | PACK_FLAG_COUNT2;
-    break;
-  case 'N':  /* = "L>" */
-    dir = PACK_DIR_LONG;
-    type = PACK_TYPE_INTEGER;
-    size = 4;
-    flags |= PACK_FLAG_GT;
-    break;
-  case 'n':  /* = "S>" */
-    dir = PACK_DIR_SHORT;
-    type = PACK_TYPE_INTEGER;
-    size = 2;
-    flags |= PACK_FLAG_GT;
-    break;
-  case 'Q':
-    dir = PACK_DIR_QUAD;
-    type = PACK_TYPE_INTEGER;
-    size = 8;
-    break;
-  case 'q':
-    dir = PACK_DIR_QUAD;
-    type = PACK_TYPE_INTEGER;
-    size = 8;
-    flags |= PACK_FLAG_SIGNED;
-    break;
-  case 'S':
-    dir = PACK_DIR_SHORT;
-    type = PACK_TYPE_INTEGER;
-    size = 2;
-    break;
-  case 's':
-    dir = PACK_DIR_SHORT;
-    type = PACK_TYPE_INTEGER;
-    size = 2;
-    flags |= PACK_FLAG_SIGNED;
-    break;
-  case 'U':
-    dir = PACK_DIR_UTF8;
-    type = PACK_TYPE_INTEGER;
-    break;
-  case 'V':  /* = "L<" */
-    dir = PACK_DIR_LONG;
-    type = PACK_TYPE_INTEGER;
-    size = 4;
-    flags |= PACK_FLAG_LT;
-    break;
-  case 'v':  /* = "S<" */
-    dir = PACK_DIR_SHORT;
-    type = PACK_TYPE_INTEGER;
-    size = 2;
-    flags |= PACK_FLAG_LT;
-    break;
-  case 'x':
-    dir = PACK_DIR_NUL;
-    type = PACK_TYPE_NONE;
-    break;
-  case 'X':
-    dir = PACK_DIR_BACK;
-    type = PACK_TYPE_NONE;
-    break;
-  case '@':
-    dir = PACK_DIR_ABS;
-    type = PACK_TYPE_NONE;
-    break;
-  case 'Z':
-    dir = PACK_DIR_STR;
-    type = PACK_TYPE_STRING;
-    flags |= PACK_FLAG_WIDTH | PACK_FLAG_COUNT2 | PACK_FLAG_Z;
-    break;
   case '#':
     while (++tmpl->idx < tlen && tptr[tmpl->idx] != '\n')
       ;
     goto restart;
-
   case 'p': case 'P':
   case '%':
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "%c is not supported", (char)t);
     break;
   default:
-    if (!ISSPACE((char)t)) {
-      char c = (char)t;
-      mrb_value s = mrb_str_new(mrb, &c, 1);
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "unknown unpack directive %!v", s);
+    /* Use O(1) lookup table for standard format characters */
+    if (t >= 0 && t < 256) {
+      format_info_t info_val = get_format_info((unsigned char)t);
+      const format_info_t *info = &info_val;
+      if (info->dir != PACK_DIR_NONE) {
+        /* Valid format character found in lookup table */
+        dir = info->dir;
+        type = info->type;
+        size = info->size;
+        flags = info->base_flags;
+        break;
+      }
     }
-    goto restart;
+
+    /* Handle invalid characters */
+    char c = (char)t;
+    mrb_value s = mrb_str_new(mrb, &c, 1);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "unknown unpack directive %!v", s);
   }
 
   /* read suffix [0-9*_!<>] */
@@ -1458,7 +1749,7 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_type *typep, mrb_int *siz
       if (!mrb_read_int(tptr+tmpl->idx, tptr+tlen, &e, &n) || INT_MAX < n) {
         mrb_raise(mrb, E_RUNTIME_ERROR, "too big template length");
       }
-      count = (int)n;
+      count = n;
       tmpl->idx = (int)(e - tptr);
       continue;
     }
@@ -1539,16 +1830,17 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_type *typep, mrb_int *siz
 static mrb_value
 mrb_pack_pack(mrb_state *mrb, mrb_value ary)
 {
-  mrb_value o, result;
+  mrb_value o;
   struct tmpl tmpl;
   enum pack_type type;
-  mrb_int count, size;
+  mrb_int count;
+  mrb_int size;
   unsigned int flags;
   enum pack_dir dir;
 
   prepare_tmpl(mrb, &tmpl);
 
-  result = mrb_str_new(mrb, NULL, 128);  /* allocate initial buffer */
+  mrb_value result = mrb_str_new(mrb, NULL, 128);  /* allocate initial buffer */
   mrb_int aidx = 0;
   mrb_int ridx = 0;
   while (has_tmpl(&tmpl)) {
@@ -1558,7 +1850,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
     if (dir == PACK_DIR_NUL) {
     grow:
       if (ridx > INT_MAX - count) goto overflow;
-      ridx += pack_nul(mrb, result, ridx, count);
+      ridx += pack_nul(mrb, result, ridx, (int)count);
       continue;
     }
     else if (dir == PACK_DIR_BACK) {
@@ -1599,7 +1891,9 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
         }
       }
 
+      /* Optimized dispatch using grouped format handling for better branch prediction */
       switch (dir) {
+      /* Integer formats - all use (mrb, o, result, ridx, flags) signature */
       case PACK_DIR_CHAR:
         ridx += pack_char(mrb, o, result, ridx, flags);
         break;
@@ -1615,22 +1909,9 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
       case PACK_DIR_BER:
         ridx += pack_BER(mrb, o, result, ridx, flags);
         break;
-      case PACK_DIR_BASE64:
-        ridx += pack_base64(mrb, o, result, ridx, count);
-        break;
-      case PACK_DIR_QENC:
-        ridx += pack_qenc(mrb, o, result, ridx, count);
-        break;
-      case PACK_DIR_HEX:
-        ridx += pack_hex(mrb, o, result, ridx, count, flags);
-        break;
-      case PACK_DIR_BSTR:
-        ridx += pack_bstr(mrb, o, result, ridx, count, flags);
-        break;
-      case PACK_DIR_STR:
-        ridx += pack_str(mrb, o, result, ridx, count, flags);
-        break;
+
 #ifndef MRB_NO_FLOAT
+      /* Float formats - all use (mrb, o, result, ridx, flags) signature */
       case PACK_DIR_DOUBLE:
         ridx += pack_double(mrb, o, result, ridx, flags);
         break;
@@ -1638,9 +1919,34 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
         ridx += pack_float(mrb, o, result, ridx, flags);
         break;
 #endif
-      case PACK_DIR_UTF8:
-        ridx += pack_utf8(mrb, o, result, ridx, count, flags);
+
+      /* String formats with count - use (mrb, o, result, ridx, count, flags) signature */
+      case PACK_DIR_HEX:
+        ridx += pack_hex(mrb, o, result, ridx, (int)count, flags);
         break;
+      case PACK_DIR_BSTR:
+        ridx += pack_bstr(mrb, o, result, ridx, (int)count, flags);
+        break;
+      case PACK_DIR_STR:
+        ridx += pack_str(mrb, o, result, ridx, (int)count, flags);
+        break;
+
+      /* String formats with count only - use (mrb, o, result, ridx, count) signature */
+      case PACK_DIR_BASE64:
+        ridx += pack_base64(mrb, o, result, ridx, (int)count);
+        break;
+      case PACK_DIR_UU:
+        ridx += pack_uu(mrb, o, result, ridx, (int)count);
+        break;
+      case PACK_DIR_QENC:
+        ridx += pack_qenc(mrb, o, result, ridx, (int)count);
+        break;
+
+      /* UTF8 format - special signature (mrb, o, result, ridx, count, flags) */
+      case PACK_DIR_UTF8:
+        ridx += pack_utf8(mrb, o, result, ridx, (int)count, flags);
+        break;
+
       default:
         break;
       }
@@ -1666,23 +1972,21 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
 static mrb_value
 pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
 {
-  mrb_value result;
   struct tmpl tmpl;
   mrb_int count;
   unsigned int flags;
-  enum pack_dir dir;
   enum pack_type type;
-  mrb_int size, srcidx, srclen;
+  mrb_int size;
   const unsigned char *sptr;
 
   prepare_tmpl(mrb, &tmpl);
 
-  srcidx = 0;
-  srclen = (int)RSTRING_LEN(str);
+  mrb_int srcidx = 0;
+  mrb_int srclen = RSTRING_LEN(str);
 
-  result = mrb_ary_new(mrb);
+  mrb_value result = mrb_ary_new(mrb);
   while (has_tmpl(&tmpl)) {
-    dir = read_tmpl(mrb, &tmpl, &type, &size, &count, &flags);
+    enum pack_dir dir = read_tmpl(mrb, &tmpl, &type, &size, &count, &flags);
 
     if (dir == PACK_DIR_NONE) break;
     if (dir == PACK_DIR_NUL) {
@@ -1701,29 +2005,37 @@ pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
       continue;
     }
 
-    /* PACK_FLAG_COUNT2 directions */
+    /* Optimized dispatch for PACK_FLAG_COUNT2 formats - grouped by signature */
     sptr = (const unsigned char*)RSTRING_PTR(str) + srcidx;
     switch (dir) {
+    /* String formats with count and flags - (mrb, sptr, len, result, count, flags) */
     case PACK_DIR_HEX:
-      srcidx += unpack_hex(mrb, sptr, srclen - srcidx, result, count, flags);
+      srcidx += unpack_hex(mrb, sptr, srclen - srcidx, result, (int)count, flags);
       if (single) goto single_return;
       continue;
     case PACK_DIR_BSTR:
-      srcidx += unpack_bstr(mrb, sptr, srclen - srcidx, result, count, flags);
+      srcidx += unpack_bstr(mrb, sptr, srclen - srcidx, result, (int)count, flags);
       if (single) goto single_return;
       continue;
     case PACK_DIR_STR:
-      srcidx += unpack_str(mrb, sptr, srclen - srcidx, result, count, flags);
+      srcidx += unpack_str(mrb, sptr, srclen - srcidx, result, (int)count, flags);
       if (single) goto single_return;
       continue;
+
+    /* String formats without flags - (mrb, sptr, len, result) */
     case PACK_DIR_BASE64:
       srcidx += unpack_base64(mrb, sptr, srclen - srcidx, result);
+      if (single) goto single_return;
+      continue;
+    case PACK_DIR_UU:
+      srcidx += unpack_uu(mrb, sptr, srclen - srcidx, result);
       if (single) goto single_return;
       continue;
     case PACK_DIR_QENC:
       srcidx += unpack_qenc(mrb, sptr, srclen - srcidx, result);
       if (single) goto single_return;
       continue;
+
     default:
       break;
     }
@@ -1737,7 +2049,9 @@ pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
       }
 
       sptr = (const unsigned char*)RSTRING_PTR(str) + srcidx;
+      /* Optimized dispatch for element-by-element formats - grouped by signature */
       switch (dir) {
+      /* Integer formats - all use (mrb, sptr, len, result, flags) signature */
       case PACK_DIR_CHAR:
         srcidx += unpack_char(mrb, sptr, srclen - srcidx, result, flags);
         break;
@@ -1753,7 +2067,9 @@ pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
       case PACK_DIR_BER:
         srcidx += unpack_BER(mrb, sptr, srclen - srcidx, result, flags);
         break;
+
 #ifndef MRB_NO_FLOAT
+      /* Float formats - all use (mrb, sptr, len, result, flags) signature */
       case PACK_DIR_FLOAT:
         srcidx += unpack_float(mrb, sptr, srclen - srcidx, result, flags);
         break;
@@ -1761,9 +2077,12 @@ pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
         srcidx += unpack_double(mrb, sptr, srclen - srcidx, result, flags);
         break;
 #endif
+
+      /* UTF8 format - uses (mrb, sptr, len, result, flags) signature */
       case PACK_DIR_UTF8:
         srcidx += unpack_utf8(mrb, sptr, srclen - srcidx, result, flags);
         break;
+
       default:
         mrb_raise(mrb, E_RUNTIME_ERROR, "mruby-pack's bug");
       }

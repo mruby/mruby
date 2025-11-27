@@ -256,7 +256,7 @@ When more than one version requirements is passed, the dependency must satisfy a
 
 You can have default gem to use as dependency when it's not defined in your build configuration.
 When the last argument of `add_dependency` call is `Hash`, it will be treated as default gem information.
-Its format is same as argument of method `MRuby::Build#gem`, expect that it can't be treated as path gem location.
+Its format is same as argument of method `MRuby::Build#gem`, except that it can't be treated as path gem location.
 
 When a special version of dependency is required,
 use `MRuby::Build#gem` in the build configuration to override default gem.
@@ -304,11 +304,33 @@ Your GEM can export include paths to another GEMs that depends on your GEM.
 By default, `/...absolute path.../{GEM_NAME}/include` will be exported.
 So it is recommended not to put GEM's local header files on include/.
 
-These exports are retroactive.
+These exports are transitive.
 For example: when B depends on C and A depends on B, A will get include paths exported by C.
 
-Exported include_paths are automatically appended to GEM local include_paths by rake.
+Exported `include_paths` are automatically appended to GEM local `include_paths` by rake.
 You can use `spec.export_include_paths` accessor if you want more complex build.
+
+### Settings for GEM build commands/tasks
+
+When the block argument passed to `MRuby::Gem::Specification.new` is executed,
+the GEM build commands/tasks for the `MRuby::Build` instance may not yet be finalized.
+In most cases, modifying the GEM build commands/tasks within the block passed to
+`MRuby::Gem::Specification.new` is not a problem.
+
+However, you may need to perform GEM build commands/tasks after the GEM build
+commands/tasks for the `MRuby::Build` instance have been finalized.
+In such cases, you can achieve this by passing a block argument to
+`MRuby::Gem::Specification#build_settings` within the block passed to
+`MRuby::Gem::Specification.new`.
+
+```ruby
+spec.build_settings do
+  spec.cc.flags << "-any_flags"
+end
+```
+
+**NOTE**: Using the `build_settings` method will cause GEM's all build command settings
+directly written in the block passed to `MRuby::Gem::Specification.new` to be ignored.
 
 ## C Extension
 

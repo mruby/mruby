@@ -20,12 +20,9 @@
 static void
 r_check(mrb_state *mrb, mrb_value a, mrb_value b)
 {
-  enum mrb_vtype ta;
-  enum mrb_vtype tb;
-  mrb_int n;
+  enum mrb_vtype ta = mrb_type(a);
+  enum mrb_vtype tb = mrb_type(b);
 
-  ta = mrb_type(a);
-  tb = mrb_type(b);
 #ifdef MRB_NO_FLOAT
   if (ta == MRB_TT_INTEGER && tb == MRB_TT_INTEGER ) return;
 #else
@@ -37,7 +34,7 @@ r_check(mrb_state *mrb, mrb_value a, mrb_value b)
 
   if (mrb_nil_p(a) || mrb_nil_p(b)) return;
 
-  n = mrb_cmp(mrb, a, b);
+  mrb_int n = mrb_cmp(mrb, a, b);
   if (n == -2) {                /* can not be compared */
     mrb_raise(mrb, E_ARGUMENT_ERROR, "bad value for range");
   }
@@ -114,7 +111,7 @@ range_ptr_replace(mrb_state *mrb, struct RRange *r, mrb_value beg, mrb_value end
  *     rng.first    => obj
  *     rng.begin    => obj
  *
- *  Returns the first object in <i>rng</i>.
+ *  Returns the first object in `rng`.
  */
 static mrb_value
 range_beg(mrb_state *mrb, mrb_value range)
@@ -127,7 +124,7 @@ range_beg(mrb_state *mrb, mrb_value range)
  *     rng.end    => obj
  *     rng.last   => obj
  *
- *  Returns the object that defines the end of <i>rng</i>.
+ *  Returns the object that defines the end of `rng`.
  *
  *     (1..10).end    #=> 10
  *     (1...10).end   #=> 10
@@ -142,7 +139,7 @@ range_end(mrb_state *mrb, mrb_value range)
  *  call-seq:
  *     range.exclude_end?    => true or false
  *
- *  Returns <code>true</code> if <i>range</i> excludes its end value.
+ *  Returns `true` if `range` excludes its end value.
  */
 static mrb_value
 range_excl(mrb_state *mrb, mrb_value range)
@@ -154,8 +151,8 @@ range_excl(mrb_state *mrb, mrb_value range)
  *  call-seq:
  *     Range.new(start, end, exclusive=false)    => range
  *
- *  Constructs a range using the given <i>start</i> and <i>end</i>. If the third
- *  parameter is omitted or is <code>false</code>, the <i>range</i> will include
+ *  Constructs a range using the given `start` and `end`. If the third
+ *  parameter is omitted or is `false`, the `range` will include
  *  the end object; otherwise, it will be excluded.
  */
 static mrb_value
@@ -174,10 +171,10 @@ range_initialize(mrb_state *mrb, mrb_value range)
  *  call-seq:
  *     range == obj    => true or false
  *
- *  Returns <code>true</code> only if
- *  1) <i>obj</i> is a Range,
- *  2) <i>obj</i> has equivalent beginning and end items (by comparing them with <code>==</code>),
- *  3) <i>obj</i> has the same #exclude_end? setting as <i>rng</t>.
+ *  Returns `true` only if
+ *  1) `obj` is a Range,
+ *  2) `obj` has equivalent beginning and end items (by comparing them with `==`),
+ *  3) `obj` has the same #exclude_end? setting as `rng`.
  *
  *    (0..2) == (0..2)            #=> true
  *    (0..2) == Range.new(0,2)    #=> true
@@ -267,7 +264,7 @@ range_to_s(mrb_state *mrb, mrb_value range)
  *   rng.inspect  -> string
  *
  * Convert this range object to a printable form (using
- * <code>inspect</code> to convert the start and end
+ * `inspect` to convert the start and end
  * objects).
  */
 static mrb_value
@@ -297,9 +294,9 @@ range_inspect(mrb_state *mrb, mrb_value range)
  *  call-seq:
  *     rng.eql?(obj)    -> true or false
  *
- *  Returns <code>true</code> only if <i>obj</i> is a Range, has equivalent
+ *  Returns `true` only if `obj` is a Range, has equivalent
  *  beginning and end items (by comparing them with #eql?), and has the same
- *  #exclude_end? setting as <i>rng</i>.
+ *  #exclude_end? setting as `rng`.
  *
  *    (0..2).eql?(0..2)            #=> true
  *    (0..2).eql?(Range.new(0,2))  #=> true
@@ -430,11 +427,10 @@ range_num_to_a(mrb_state *mrb, mrb_value range)
 mrb_value
 mrb_get_values_at(mrb_state *mrb, mrb_value obj, mrb_int olen, mrb_int argc, const mrb_value *argv, mrb_value (*func)(mrb_state*, mrb_value, mrb_int))
 {
-  mrb_int i, j, beg, len;
-  mrb_value result;
-  result = mrb_ary_new(mrb);
+  mrb_int beg, len;
+  mrb_value result = mrb_ary_new(mrb);
 
-  for (i = 0; i < argc; i++) {
+  for (mrb_int i = 0; i < argc; i++) {
     mrb_value v = argv[i];
 
     if (mrb_integer_p(v)
@@ -447,6 +443,7 @@ mrb_get_values_at(mrb_state *mrb, mrb_value obj, mrb_int olen, mrb_int argc, con
     }
     else if (mrb_range_beg_len(mrb, v, &beg, &len, olen, FALSE) == MRB_RANGE_OK) {
       mrb_int const end = olen < beg + len ? olen : beg + len;
+      mrb_int j;
       for (j = beg; j < end; j++) {
         mrb_ary_push(mrb, result, func(mrb, obj, j));
       }

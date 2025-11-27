@@ -108,7 +108,7 @@ mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
 /*
  * Document-class: NilClass
  *
- *  The class of the singleton object <code>nil</code>.
+ *  The class of the singleton object `nil`.
  */
 
 /* 15.2.4.3.4  */
@@ -116,7 +116,7 @@ mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
  * call_seq:
  *   nil.nil?               -> true
  *
- * Only the object <i>nil</i> responds <code>true</code> to <code>nil?</code>.
+ * Only the object *nil* responds `true` to `nil?`.
  */
 
 static mrb_value
@@ -152,10 +152,10 @@ nil_inspect(mrb_state *mrb, mrb_value obj)
 /***********************************************************************
  *  Document-class: TrueClass
  *
- *  The global value <code>true</code> is the only instance of class
- *  <code>TrueClass</code> and represents a logically true value in
+ *  The global value `true` is the only instance of class
+ *  `TrueClass` and represents a logically true value in
  *  boolean expressions. The class provides operators allowing
- *  <code>true</code> to be used in logical expressions.
+ *  `true` to be used in logical expressions.
  */
 
 /* 15.2.5.3.1  */
@@ -163,8 +163,8 @@ nil_inspect(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     true & obj    -> true or false
  *
- *  And---Returns <code>false</code> if <i>obj</i> is
- *  <code>nil</code> or <code>false</code>, <code>true</code> otherwise.
+ *  And---Returns `false` if *obj* is
+ *  `nil` or `false`, `true` otherwise.
  */
 
 static mrb_value
@@ -182,8 +182,8 @@ true_and(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     true ^ obj   -> !obj
  *
- *  Exclusive Or---Returns <code>true</code> if <i>obj</i> is
- *  <code>nil</code> or <code>false</code>, <code>false</code>
+ *  Exclusive Or---Returns `true` if *obj* is
+ *  `nil` or `false`, `false`
  *  otherwise.
  */
 
@@ -201,7 +201,7 @@ true_xor(mrb_state *mrb, mrb_value obj)
  * call-seq:
  *   true.to_s   ->  "true"
  *
- * The string representation of <code>true</code> is "true".
+ * The string representation of `true` is "true".
  */
 
 static mrb_value
@@ -217,7 +217,7 @@ true_to_s(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     true | obj   -> true
  *
- *  Or---Returns <code>true</code>. As <i>anObject</i> is an argument to
+ *  Or---Returns `true`. As *anObject* is an argument to
  *  a method call, it is always evaluated; there is no short-circuit
  *  evaluation in this case.
  *
@@ -238,10 +238,10 @@ true_or(mrb_state *mrb, mrb_value obj)
 /*
  *  Document-class: FalseClass
  *
- *  The global value <code>false</code> is the only instance of class
- *  <code>FalseClass</code> and represents a logically false value in
+ *  The global value `false` is the only instance of class
+ *  `FalseClass` and represents a logically false value in
  *  boolean expressions. The class provides operators allowing
- *  <code>false</code> to participate correctly in logical expressions.
+ *  `false` to participate correctly in logical expressions.
  *
  */
 
@@ -252,7 +252,7 @@ true_or(mrb_state *mrb, mrb_value obj)
  *     false & obj   -> false
  *     nil & obj     -> false
  *
- *  And---Returns <code>false</code>. <i>obj</i> is always
+ *  And---Returns `false`. *obj* is always
  *  evaluated as it is the argument to a method call---there is no
  *  short-circuit evaluation in this case.
  */
@@ -270,9 +270,9 @@ false_and(mrb_state *mrb, mrb_value obj)
  *     false ^ obj    -> true or false
  *     nil   ^ obj    -> true or false
  *
- *  Exclusive Or---If <i>obj</i> is <code>nil</code> or
- *  <code>false</code>, returns <code>false</code>; otherwise, returns
- *  <code>true</code>.
+ *  Exclusive Or---If *obj* is `nil` or
+ *  `false`, returns `false`; otherwise, returns
+ *  `true`.
  *
  */
 
@@ -292,8 +292,8 @@ false_xor(mrb_state *mrb, mrb_value obj)
  *     false | obj   ->   true or false
  *     nil   | obj   ->   true or false
  *
- *  Or---Returns <code>false</code> if <i>obj</i> is
- *  <code>nil</code> or <code>false</code>; <code>true</code> otherwise.
+ *  Or---Returns `false` if *obj* is
+ *  `nil` or `false`; `true` otherwise.
  */
 
 static mrb_value
@@ -399,12 +399,10 @@ convert_type(mrb_state *mrb, mrb_value val, const char *tname, mrb_sym method, m
 MRB_API mrb_value
 mrb_type_convert(mrb_state *mrb, mrb_value val, enum mrb_vtype type, mrb_sym method)
 {
-  mrb_value v;
-  const char *tname;
-
   if (mrb_type(val) == type) return val;
-  tname = type_name(type);
-  v = convert_type(mrb, val, tname, method, TRUE);
+
+  const char *tname = type_name(type);
+  mrb_value v = convert_type(mrb, val, tname, method, TRUE);
   if (mrb_type(v) != type) {
     if (type == MRB_TT_STRING) return mrb_any_to_s(mrb, val);
     mrb_raisef(mrb, E_TYPE_ERROR, "%v cannot be converted to %s by #%n", val, tname, method);
@@ -434,10 +432,8 @@ mrb_type_convert(mrb_state *mrb, mrb_value val, enum mrb_vtype type, mrb_sym met
 MRB_API mrb_value
 mrb_type_convert_check(mrb_state *mrb, mrb_value val, enum mrb_vtype type, mrb_sym method)
 {
-  mrb_value v;
-
   if (mrb_type(val) == type && type != MRB_TT_CDATA && type != MRB_TT_ISTRUCT) return val;
-  v = convert_type(mrb, val, type_name(type), method, FALSE);
+  mrb_value v = convert_type(mrb, val, type_name(type), method, FALSE);
   if (mrb_nil_p(v) || mrb_type(v) != type) return mrb_nil_value();
   return v;
 }
@@ -485,8 +481,8 @@ mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t)
  *  call-seq:
  *     obj.to_s    => string
  *
- *  Returns a string representing <i>obj</i>. The default
- *  <code>to_s</code> prints the object's class and an encoding of the
+ *  Returns a string representing *obj*. The default
+ *  `to_s` prints the object's class and an encoding of the
  *  object id. As a special case, the top-level object that is the
  *  initial execution context of Ruby programs returns "main."
  */

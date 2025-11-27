@@ -220,25 +220,32 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass *kl
 /* 15.2.18.3.1  */
 /*
  *  call-seq:
- *     Struct.new( [aString] [, aSym]+> )    -> StructClass
- *     StructClass.new(arg, ...)             -> obj
- *     StructClass[arg, ...]                 -> obj
+ *     Struct.new([aString] [, aSym]+, keyword_init: false)    -> StructClass
+ *     StructClass.new(arg, ...)                               -> obj
+ *     StructClass[arg, ...]                                   -> obj
  *
- *  Creates a new class, named by <i>aString</i>, containing accessor
- *  methods for the given symbols. If the name <i>aString</i> is
+ *  Creates a new class, named by *aString*, containing accessor
+ *  methods for the given symbols. If the name *aString* is
  *  omitted, an anonymous structure class will be created. Otherwise,
  *  the name of this struct will appear as a constant in class
- *  <code>Struct</code>, so it must be unique for all
- *  <code>Struct</code>s in the system and should start with a capital
+ *  `Struct`, so it must be unique for all
+ *  `Struct`s in the system and should start with a capital
  *  letter. Assigning a structure class to a constant effectively gives
  *  the class the name of the constant.
  *
- *  <code>Struct::new</code> returns a new <code>Class</code> object,
+ *  `Struct::new` returns a new `Class` object,
  *  which can then be used to create specific instances of the new
  *  structure. The number of actual parameters must be
  *  less than or equal to the number of attributes defined for this
- *  class; unset parameters default to <code>nil</code>.  Passing too many
- *  parameters will raise an <code>ArgumentError</code>.
+ *  class; unset parameters default to `nil`.  Passing too many
+ *  parameters will raise an `ArgumentError`.
+ *
+ *  If `keyword_init` is true, the struct will accept keyword
+ *  arguments for initialization instead of positional arguments:
+ *
+ *     Person = Struct.new(:name, :age, keyword_init: true)
+ *     Person.new(name: "Alice", age: 30)
+ *     #=> #<struct Person name="Alice", age=30>
  *
  *  The remaining methods listed in this section (class and instance)
  *  are defined for this generated class.
@@ -250,6 +257,11 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass *kl
  *     # Create a structure named by its constant
  *     Customer = Struct.new(:name, :address)     #=> Customer
  *     Customer.new("Dave", "123 Main")           #=> #<struct Customer name="Dave", address="123 Main">
+ *
+ *     # Create a structure with keyword initialization
+ *     User = Struct.new(:id, :email, keyword_init: true)
+ *     User.new(id: 1, email: "user@example.com")
+ *     #=> #<struct User id=1, email="user@example.com">
  */
 static mrb_value
 mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
@@ -268,10 +280,10 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
   /* Check for keyword_init option in arguments */
   if (argc > 0 && mrb_hash_p(argv[argc-1])) {
     mrb_value options = argv[argc-1];
-    mrb_sym keyword_init_sym = mrb_intern_lit(mrb, "keyword_init");
+    mrb_value keyword_init_sym = mrb_symbol_value(MRB_SYM(keyword_init));
 
-    if (mrb_hash_key_p(mrb, options, mrb_symbol_value(keyword_init_sym))) {
-      keyword_init_val = mrb_hash_get(mrb, options, mrb_symbol_value(keyword_init_sym));
+    if (mrb_hash_key_p(mrb, options, keyword_init_sym)) {
+      keyword_init_val = mrb_hash_get(mrb, options, keyword_init_sym);
       argc--; /* Don't treat the options hash as a member name */
     }
   }
@@ -304,7 +316,7 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
   mrb_value st = make_struct(mrb, name, members, mrb_class_ptr(klass));
 
   /* Set keyword_init value on the struct class */
-  mrb_iv_set(mrb, st, mrb_intern_lit(mrb, "@__keyword_init__"), keyword_init_val);
+  mrb_iv_set(mrb, st, MRB_IVSYM(__keyword_init__), keyword_init_val);
 
   if (!mrb_nil_p(b)) {
     mrb_yield_with_class(mrb, b, 1, &st, st, mrb_class_ptr(st));
@@ -316,7 +328,7 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
 /*
  */
 static mrb_value
-mrb_struct_initialize_withArg(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value self)
+mrb_struct_init_with_args(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value self)
 {
   mrb_int n = num_members(mrb, self);
 
@@ -334,7 +346,7 @@ mrb_struct_initialize_withArg(mrb_state *mrb, mrb_int argc, const mrb_value *arg
 }
 
 static mrb_value
-mrb_struct_initialize_withKw(mrb_state *mrb, mrb_value hash, mrb_value self)
+mrb_struct_init_with_keywords(mrb_state *mrb, mrb_value hash, mrb_value self)
 {
   mrb_value members = struct_members(mrb, self);
   mrb_int member_count = num_members(mrb, self);
@@ -369,7 +381,7 @@ mrb_struct_initialize_withKw(mrb_state *mrb, mrb_value hash, mrb_value self)
 
   /* If there are any invalid keys, raise an error with all of them */
   if (RARRAY_LEN(invalid_keys) > 0) {
-    mrb_value keys_str = mrb_funcall(mrb, invalid_keys, "join", 1, mrb_str_new_lit(mrb, ", "));
+    mrb_value keys_str = mrb_ary_join(mrb, invalid_keys, mrb_str_new_lit(mrb, ", "));
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "unknown keywords: %S", keys_str);
   }
 
@@ -381,29 +393,28 @@ mrb_struct_initialize(mrb_state *mrb, mrb_value self)
 {
   const mrb_value *argv;
   mrb_int argc;
-  mrb_value klass, keyword_init;
 
   mrb_get_args(mrb, "*", &argv, &argc);
 
-  klass = mrb_obj_value(mrb_obj_class(mrb, self));
-  keyword_init = mrb_iv_get(mrb, klass, mrb_intern_lit(mrb, "@__keyword_init__"));
+  mrb_value klass = mrb_obj_value(mrb_obj_class(mrb, self));
+  mrb_value keyword_init = mrb_iv_get(mrb, klass, MRB_IVSYM(__keyword_init__));
 
   if (mrb_test(keyword_init)) { /* keyword_init: true or other truthy value */
     if (argc > 1 || (argc == 1 && !mrb_hash_p(argv[0]))) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong arguments, expected keyword arguments");
     }
     mrb_value hash = (argc == 1) ? argv[0] : mrb_hash_new(mrb);
-    return mrb_struct_initialize_withKw(mrb, hash, self);
+    return mrb_struct_init_with_keywords(mrb, hash, self);
   }
   else if (mrb_equal(mrb, keyword_init, mrb_false_value())) { /* keyword_init: false */
-    return mrb_struct_initialize_withArg(mrb, argc, argv, self);
+    return mrb_struct_init_with_args(mrb, argc, argv, self);
   }
   else { /* keyword_init: nil (default) */
     if (argc == 1 && mrb_hash_p(argv[0])) {
-      return mrb_struct_initialize_withKw(mrb, argv[0], self);
+      return mrb_struct_init_with_keywords(mrb, argv[0], self);
     }
     else {
-      return mrb_struct_initialize_withArg(mrb, argc, argv, self);
+      return mrb_struct_init_with_args(mrb, argc, argv, self);
     }
   }
 }
@@ -474,9 +485,9 @@ struct_aref_int(mrb_state *mrb, mrb_value s, mrb_int i)
  *     struct[fixnum]    -> anObject
  *
  *  Attribute Reference---Returns the value of the instance variable
- *  named by <i>symbol</i>, or indexed (0..length-1) by
- *  <i>fixnum</i>. Will raise <code>NameError</code> if the named
- *  variable does not exist, or <code>IndexError</code> if the index is
+ *  named by *symbol*, or indexed (0..length-1) by
+ *  *fixnum*. Will raise `NameError` if the named
+ *  variable does not exist, or `IndexError` if the index is
  *  out of range.
  *
  *     Customer = Struct.new(:name, :address, :zip)
@@ -524,9 +535,9 @@ mrb_struct_aset_sym(mrb_state *mrb, mrb_value s, mrb_sym id, mrb_value val)
  *     struct[fixnum] = obj    -> obj
  *
  *  Attribute Assignment---Assigns to the instance variable named by
- *  <i>symbol</i> or <i>fixnum</i> the value <i>obj</i> and
- *  returns it. Will raise a <code>NameError</code> if the named
- *  variable does not exist, or an <code>IndexError</code> if the index
+ *  *symbol* or *fixnum* the value *obj* and
+ *  returns it. Will raise a `NameError` if the named
+ *  variable does not exist, or an `IndexError` if the index
  *  is out of range.
  *
  *     Customer = Struct.new(:name, :address, :zip)
@@ -565,10 +576,10 @@ mrb_struct_aset(mrb_state *mrb, mrb_value s)
  *  call-seq:
  *     struct == other_struct     -> true or false
  *
- *  Equality---Returns <code>true</code> if <i>other_struct</i> is
+ *  Equality---Returns `true` if *other_struct* is
  *  equal to this one: they must be of the same class as generated by
- *  <code>Struct::new</code>, and the values of all instance variables
- *  must be equal (according to <code>Object#==</code>).
+ *  `Struct::new`, and the values of all instance variables
+ *  must be equal (according to `Object#==`).
  *
  *     Customer = Struct.new(:name, :address, :zip)
  *     joe   = Customer.new("Joe Smith", "123 Maple, Anytown NC", 12345)
@@ -594,7 +605,7 @@ mrb_struct_equal(mrb_state *mrb, mrb_value s)
   }
 
   /* Check for recursion */
-  if (MRB_RECURSIVE_BINARY_P(mrb, MRB_OPSYM(eq), s, s2)) {
+  if (MRB_RECURSIVE_BINARY_FUNC_P(mrb, MRB_OPSYM(eq), s, s2)) {
     return mrb_false_value();
   }
 
@@ -618,7 +629,7 @@ mrb_struct_equal(mrb_state *mrb, mrb_value s)
  *   struct.eql?(other)   -> true or false
  *
  * Two structures are equal if they are the same object, or if all their
- * fields are equal (using <code>eql?</code>).
+ * fields are equal (using `eql?`).
  */
 static mrb_value
 mrb_struct_eql(mrb_state *mrb, mrb_value s)
@@ -638,7 +649,7 @@ mrb_struct_eql(mrb_state *mrb, mrb_value s)
   }
 
   /* Check for recursion */
-  if (MRB_RECURSIVE_BINARY_P(mrb, MRB_SYM_Q(eql), s, s2)) {
+  if (MRB_RECURSIVE_BINARY_FUNC_P(mrb, MRB_SYM_Q(eql), s, s2)) {
     return mrb_false_value();
   }
 
@@ -750,19 +761,19 @@ mrb_struct_to_s(mrb_state *mrb, mrb_value self)
 }
 
 /*
- *  A <code>Struct</code> is a convenient way to bundle a number of
+ *  A `Struct` is a convenient way to bundle a number of
  *  attributes together, using accessor methods, without having to write
  *  an explicit class.
  *
- *  The <code>Struct</code> class is a generator of specific classes,
+ *  The `Struct` class is a generator of specific classes,
  *  each one of which is defined to hold a set of variables and their
  *  accessors. In these examples, we'll call the generated class
- *  "<i>Customer</i>Class," and we'll show an example instance of that
- *  class as "<i>Customer</i>Inst."
+ *  "*Customer*Class," and we'll show an example instance of that
+ *  class as "*Customer*Inst."
  *
- *  In the descriptions that follow, the parameter <i>symbol</i> refers
+ *  In the descriptions that follow, the parameter *symbol* refers
  *  to a symbol, which is either a quoted string or a
- *  <code>Symbol</code> (such as <code>:name</code>).
+ *  `Symbol` (such as `:name`).
  */
 void
 mrb_mruby_struct_gem_init(mrb_state* mrb)

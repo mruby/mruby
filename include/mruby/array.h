@@ -87,6 +87,7 @@ struct RArray {
 
 MRB_API void mrb_ary_modify(mrb_state*, struct RArray*);
 MRB_API mrb_value mrb_ary_dup(mrb_state*, mrb_value ary);
+MRB_API mrb_value mrb_ary_make_shared_copy(mrb_state*, mrb_value ary);
 MRB_API mrb_value mrb_ary_new_capa(mrb_state*, mrb_int);
 
 /*

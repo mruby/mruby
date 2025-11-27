@@ -57,7 +57,7 @@
  */
 
 #define EA_N_RESERVED_INDICES 2  /* empty and deleted */
-#define EA_INCREASE_RATIO 6 / 5 + 6
+
 #define EA_MAX_INCREASE UINT16_MAX
 #define EA_MAX_CAPA U32(lesser(IB_MAX_CAPA - EA_N_RESERVED_INDICES, MRB_INT_MAX))
 #define IB_MAX_CAPA (U32(1) << IB_MAX_BIT)
@@ -93,6 +93,7 @@ typedef struct index_buckets_iter {
   struct RHash *h;
   uint32_t bit;
   uint32_t mask;
+  uint32_t initial_pos;
   uint32_t pos;
   uint32_t ary_index;
   uint32_t ea_index;
@@ -311,6 +312,17 @@ h_check_modified_validate(mrb_state *mrb, struct h_check_modified *checker, stru
   }
 }
 
+#ifndef MRB_NO_FLOAT
+static uint32_t
+float_hash_code(mrb_float f)
+{
+  if (f == 0.0) return 0;
+  /* normalize -0.0 to 0.0 */
+  if (f == -0.0) f = 0.0;
+  return mrb_byte_hash((const uint8_t*)&f, sizeof(f));
+}
+#endif
+
 uint32_t
 mrb_obj_hash_code(mrb_state *mrb, mrb_value key)
 {
@@ -329,14 +341,22 @@ mrb_obj_hash_code(mrb_state *mrb, mrb_value key)
   case MRB_TT_INTEGER:
     if (mrb_fixnum_p(key)) {
       hash_code = U32(mrb_fixnum(key));
-      break;
     }
-#ifndef MRB_NO_FLOAT
-    /* fall through */
-  case MRB_TT_FLOAT:
+    else {
+#ifdef MRB_USE_BIGINT
+      hash_code = U32(mrb_integer(mrb_bint_hash(mrb, key)));
+#else
+      /* This path should not be reached if bignum is not configured.
+       * Hashing object_id is a fallback to avoid uninitialized value. */
+      hash_code = U32(mrb_obj_id(key));
 #endif
-    hash_code = U32(mrb_obj_id(key));
+    }
     break;
+#ifndef MRB_NO_FLOAT
+  case MRB_TT_FLOAT:
+    hash_code = float_hash_code(mrb_float(key));
+    break;
+#endif
   default:
     hash_code_obj = mrb_funcall_argv(mrb, key, MRB_SYM(hash), 0, NULL);
     hash_code = U32(tt) ^ U32(mrb_integer(hash_code_obj));
@@ -348,7 +368,7 @@ mrb_obj_hash_code(mrb_state *mrb, mrb_value key)
 static uint32_t
 obj_hash_code(mrb_state *mrb, mrb_value key, struct RHash *h)
 {
-  uint32_t hash_code;
+  uint32_t hash_code = 0;
 
   H_CHECK_MODIFIED(mrb, h) {
     hash_code = mrb_obj_hash_code(mrb, key);
@@ -359,7 +379,7 @@ obj_hash_code(mrb_state *mrb, mrb_value key, struct RHash *h)
 static mrb_bool
 obj_eql(mrb_state *mrb, mrb_value a, mrb_value b, struct RHash *h)
 {
-  mrb_bool eql;
+  mrb_bool eql = FALSE;
 
   switch (mrb_type(a)) {
   case MRB_TT_STRING:
@@ -418,7 +438,8 @@ ea_next_capa_for(uint32_t size, uint32_t max_capa)
      * `EA_INCREASE_RATIO` is the current value, 32-bit range will not be
      * exceeded during the calculation of `capa`, so `size_t` is used.
      */
-    size_t capa = (size_t)size * EA_INCREASE_RATIO, inc = capa - size;
+    size_t capa = ((size_t)size * 6) / 5 + 6;
+    size_t inc = capa - size;
     if (EA_MAX_INCREASE < inc) capa = size + EA_MAX_INCREASE;
     return capa <= max_capa ? U32(capa) : max_capa;
   }
@@ -654,7 +675,8 @@ ib_it_init(mrb_state *mrb, struct RHash *h, mrb_value key)
   it.h = h;
   it.bit = ib_bit(h);
   it.mask = ib_bit_to_capa(it.bit) - 1;
-  it.pos = ib_it_pos_for(&it, obj_hash_code(mrb, key, h));
+  it.initial_pos = ib_it_pos_for(&it, obj_hash_code(mrb, key, h));
+  it.pos = it.initial_pos;
   it.step = 0;
   return it;
 }
@@ -695,7 +717,8 @@ ib_it_next(index_buckets_iter *it)
   else {
     it->shift1 = 0;
   }
-  it->pos = ib_it_pos_for(it, it->pos + (++it->step));
+  it->step++;
+  it->pos = ib_it_pos_for(it, it->initial_pos + (it->step * it->step + it->step) / 2);
 }
 
 static mrb_bool
@@ -1417,10 +1440,10 @@ hash_set_default_proc(mrb_state *mrb, mrb_value hash, mrb_value proc)
  *
  *  Returns a new, empty hash. If this hash is subsequently accessed by
  *  a key that doesn't correspond to a hash entry, the value returned
- *  depends on the style of <code>new</code> used to create the hash. In
- *  the first form, the access returns <code>nil</code>. If
- *  <i>obj</i> is specified, this single object will be used for
- *  all <em>default values</em>. If a block is specified, it will be
+ *  depends on the style of `new` used to create the hash. In
+ *  the first form, the access returns `nil`. If
+ *  `obj` is specified, this single object will be used for
+ *  all default values. If a block is specified, it will be
  *  called with the hash object and the key, and should return the
  *  default value. It is the block's responsibility to store the value
  *  in the hash if required.
@@ -1472,9 +1495,9 @@ mrb_hash_init(mrb_state *mrb, mrb_value hash)
  *  call-seq:
  *     hsh[key]    ->  value
  *
- *  Element Reference---Retrieves the <i>value</i> object corresponding
- *  to the <i>key</i> object. If not found, returns the default value (see
- *  <code>Hash::new</code> for details).
+ *  Element Reference---Retrieves the `value` object corresponding
+ *  to the `key` object. If not found, returns the default value (see
+ *  `Hash::new` for details).
  *
  *     h = { "a" => 100, "b" => 200 }
  *     h["a"]   #=> 100
@@ -1495,8 +1518,8 @@ mrb_hash_aget(mrb_state *mrb, mrb_value self)
  *     hsh.default(key=nil)   -> obj
  *
  *  Returns the default value, the value that would be returned by
- *  <i>hsh</i>[<i>key</i>] if <i>key</i> did not exist in <i>hsh</i>.
- *  See also <code>Hash::new</code> and <code>Hash#default=</code>.
+ *  `hsh`[`key`] if `key` did not exist in `hsh`.
+ *  See also `Hash::new` and `Hash#default=`.
  *
  *     h = Hash.new                            #=> {}
  *     h.default                               #=> nil
@@ -1537,7 +1560,7 @@ mrb_hash_default(mrb_state *mrb, mrb_value hash)
  *
  *  Sets the default value, the value returned for a key that does not
  *  exist in the hash. It is not possible to set the default to a
- *  <code>Proc</code> that will be executed on each key lookup.
+ *  `Proc` that will be executed on each key lookup.
  *
  *     h = { "a" => 100, "b" => 200 }
  *     h.default = "Go fish"
@@ -1573,8 +1596,8 @@ mrb_hash_set_default(mrb_state *mrb, mrb_value hash)
  *  call-seq:
  *     hsh.default_proc -> anObject
  *
- *  If <code>Hash::new</code> was invoked with a block, return that
- *  block, otherwise return <code>nil</code>.
+ *  If `Hash::new` was invoked with a block, return that
+ *  block, otherwise return `nil`.
  *
  *     h = Hash.new {|h,k| h[k] = k*k }   #=> {}
  *     p = h.default_proc                 #=> #<Proc:0x401b3d08@-:1>
@@ -1664,8 +1687,8 @@ mrb_hash_delete(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     hsh.shift -> anArray or obj
  *
- *  Removes a key-value pair from <i>hsh</i> and returns it as the
- *  two-item array <code>[</code> <i>key, value</i> <code>]</code>, or
+ *  Removes a key-value pair from `hsh` and returns it as the
+ *  two-item array [ `key`, `value` ], or
  *  the hash's default value if the hash is empty.
  *
  *      h = { 1 => "a", 2 => "b", 3 => "c" }
@@ -1719,9 +1742,9 @@ mrb_hash_clear(mrb_state *mrb, mrb_value hash)
  *     hsh.store(key, value)   -> value
  *
  *  Element Assignment---Associates the value given by
- *  <i>value</i> with the key given by <i>key</i>.
- *  <i>key</i> should not have its value changed while it is in
- *  use as a key (a <code>String</code> passed as a key will be
+ *  `value` with the key given by `key`.
+ *  `key` should not have its value changed while it is in
+ *  use as a key (a `String` passed as a key will be
  *  duplicated and frozen).
  *
  *      h = { "a" => 100, "b" => 200 }
@@ -1792,7 +1815,7 @@ mrb_hash_empty_p(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     hsh.empty?    -> true or false
  *
- *  Returns <code>true</code> if <i>hsh</i> contains no key-value pairs.
+ *  Returns `true` if `hsh` contains no key-value pairs.
  *
  *     {}.empty?   #=> true
  *
@@ -1809,7 +1832,7 @@ mrb_hash_empty_m(mrb_state *mrb, mrb_value self)
  *     hsh.keys    -> array
  *
  *  Returns a new array populated with the keys from this hash. See also
- *  <code>Hash#values</code>.
+ *  `Hash#values`.
  *
  *     h = { "a" => 100, "b" => 200, "c" => 300, "d" => 400 }
  *     h.keys   #=> ["a", "b", "c", "d"]
@@ -1832,8 +1855,8 @@ mrb_hash_keys(mrb_state *mrb, mrb_value hash)
  *  call-seq:
  *     hsh.values    -> array
  *
- *  Returns a new array populated with the values from <i>hsh</i>. See
- *  also <code>Hash#keys</code>.
+ *  Returns a new array populated with the values from `hsh`. See
+ *  also `Hash#keys`.
  *
  *     h = { "a" => 100, "b" => 200, "c" => 300 }
  *     h.values   #=> [100, 200, 300]
@@ -1862,7 +1885,7 @@ mrb_hash_values(mrb_state *mrb, mrb_value hash)
  *     hsh.key?(key)        -> true or false
  *     hsh.member?(key)     -> true or false
  *
- *  Returns <code>true</code> if the given key is present in <i>hsh</i>.
+ *  Returns `true` if the given key is present in `hsh`.
  *
  *     h = { "a" => 100, "b" => 200 }
  *     h.has_key?("a")   #=> true
@@ -1894,8 +1917,8 @@ mrb_hash_has_key(mrb_state *mrb, mrb_value hash)
  *     hsh.has_value?(value)    -> true or false
  *     hsh.value?(value)        -> true or false
  *
- *  Returns <code>true</code> if the given value is present for some key
- *  in <i>hsh</i>.
+ *  Returns `true` if the given value is present for some key
+ *  in `hsh`.
  *
  *     h = { "a" => 100, "b" => 200 }
  *     h.has_value?(100)   #=> true
@@ -1971,7 +1994,7 @@ mrb_hash_merge_m(mrb_state *mrb, mrb_value hash)
  *
  *  Rebuilds the hash based on the current hash values for each key. If
  *  values of key objects have changed since they were inserted, this
- *  method will reindex <i>hsh</i>.
+ *  method will reindex `hsh`.
  *
  *     keys = (1..17).map{|n| [n]}
  *     k = keys[0]
@@ -2140,7 +2163,7 @@ mrb_hash_equal(mrb_state *mrb, mrb_value hash)
   }
 
   /* Check for recursion */
-  if (MRB_RECURSIVE_BINARY_P(mrb, MRB_OPSYM(eq), hash, hash2)) {
+  if (MRB_RECURSIVE_BINARY_FUNC_P(mrb, MRB_OPSYM(eq), hash, hash2)) {
     return mrb_false_value();
   }
 
@@ -2188,7 +2211,7 @@ mrb_hash_eql(mrb_state *mrb, mrb_value hash)
   }
 
   /* Check for recursion */
-  if (MRB_RECURSIVE_BINARY_P(mrb, MRB_SYM_Q(eql), hash, hash2)) {
+  if (MRB_RECURSIVE_BINARY_FUNC_P(mrb, MRB_SYM_Q(eql), hash, hash2)) {
     return mrb_false_value();
   }
 

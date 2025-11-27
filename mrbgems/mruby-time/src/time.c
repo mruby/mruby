@@ -66,6 +66,11 @@ double round(double x) {
 
 /** Time class configuration */
 
+/* Platform detection for Windows variants */
+#if defined(_MSC_VER) && _MSC_VER < 1900 || defined(__MINGW64__) || defined(__MINGW32__)
+#define MRB_TIME_WINDOWS_NO_STRFTIME_Z
+#endif
+
 /* gettimeofday(2) */
 /* C99 does not have gettimeofday that is required to retrieve microseconds */
 /* uncomment following macro on platforms without gettimeofday(2) */
@@ -110,26 +115,26 @@ double round(double x) {
 # define USE_CLOCK_GETTIME
 #endif
 
-#if !defined(NO_GETTIMEOFDAY)
-# if defined(_WIN32) && !defined(USE_CLOCK_GETTIME)
-#  define WIN32_LEAN_AND_MEAN  /* don't include winsock.h */
-#  include <windows.h>
-#  define gettimeofday my_gettimeofday
+#if !defined(NO_GETTIMEOFDAY) && defined(_WIN32) && !defined(USE_CLOCK_GETTIME)
+/* Windows gettimeofday polyfill */
+#define WIN32_LEAN_AND_MEAN  /* don't include winsock.h */
+#include <windows.h>
+#define gettimeofday my_gettimeofday
 
-#  ifdef _MSC_VER
-#    define UI64(x) x##ui64
-#  else
-#    define UI64(x) x##ull
-#  endif
+#ifdef _MSC_VER
+#  define UI64(x) x##ui64
+#else
+#  define UI64(x) x##ull
+#endif
 
 typedef long suseconds_t;
 
-# if (!defined __MINGW64__) && (!defined __MINGW32__)
+#if (!defined __MINGW64__) && (!defined __MINGW32__)
 struct timeval {
   time_t tv_sec;
   suseconds_t tv_usec;
 };
-# endif
+#endif
 
 /*
  * Polyfill for gettimeofday on Windows platforms that may not have it (e.g., older MSVC).
@@ -156,9 +161,10 @@ gettimeofday(struct timeval *tv, void *tz)
   }
   return 0;
 }
-# else
-#  include <sys/time.h>
-# endif
+
+#elif !defined(NO_GETTIMEOFDAY)
+/* Non-Windows platforms use standard sys/time.h */
+#include <sys/time.h>
 #endif
 #ifdef NO_GMTIME_R
 #define gmtime_r(t,r) gmtime(t)
@@ -232,9 +238,9 @@ static const char wday_names[7][4] = { /* Consider defining DAYS_PER_WEEK = 7 if
 
 struct mrb_time {
   time_t              sec;      /* Seconds since the Epoch */
-  time_t              usec;     /* Microsecond fraction of the second */
+  time_t              nsec;     /* Nanosecond fraction of the second (0-999999999) */
   enum mrb_timezone   timezone; /* Timezone setting (MRB_TIMEZONE_UTC or MRB_TIMEZONE_LOCAL) */
-  struct tm           datetime; /* Cache for broken-down time based on sec, usec, and timezone. Updated by time_update_datetime. */
+  struct tm           datetime; /* Cache for broken-down time based on sec, nsec, and timezone. Updated by time_update_datetime. */
 };
 
 static const struct mrb_data_type time_type = { "Time", mrb_free }; /* mrb_free is the standard C free() */
@@ -269,8 +275,15 @@ fixable_time_t_p(time_t v)
 static void
 time_out_of_range(mrb_state *mrb, mrb_value obj)
 {
-  mrb_raisef(mrb, E_ARGUMENT_ERROR, "%v out of Time range", obj);
+  mrb_raisef(mrb, E_RANGE_ERROR, "%v out of Time range", obj);
 }
+
+static mrb_noreturn void
+time_uninitialized(mrb_state *mrb)
+{
+  mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Time");
+}
+
 
 #ifndef MRB_NO_FLOAT
 static time_t
@@ -383,7 +396,7 @@ time_value_from_time_t(mrb_state *mrb, time_t t)
 #elif !defined(MRB_NO_FLOAT)
     return mrb_float_value(mrb, (mrb_float)t);
 #else
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "Time too big");
+    mrb_raise(mrb, E_RANGE_ERROR, "Time out of range");
 #endif
   }
   return mrb_int_value(mrb, (mrb_int)t);
@@ -431,30 +444,29 @@ time_wrap(mrb_state *mrb, struct RClass *tc, struct mrb_time *tm)
 
 /* Allocates a mrb_time object and initializes it. */
 static struct mrb_time*
-time_alloc_time(mrb_state *mrb, time_t sec, time_t usec, enum mrb_timezone timezone)
+time_alloc_time(mrb_state *mrb, time_t sec, time_t nsec, enum mrb_timezone timezone)
 {
   struct mrb_time *time_obj = (struct mrb_time*)mrb_malloc(mrb, sizeof(struct mrb_time));
   time_obj->sec  = sec;
-  time_obj->usec = usec;
+  time_obj->nsec = nsec;
 
-  /* Normalize seconds and microseconds. */
-  /* This is only necessary if time_t is signed and usec is negative. */
-  if (!MRB_TIME_T_UINT && time_obj->usec < 0) {
+  /* Normalize seconds and nanoseconds. */
+  /* This is only necessary if time_t is signed and nsec is negative. */
+  if (!MRB_TIME_T_UINT && time_obj->nsec < 0) {
     /*
-     * If usec is negative, adjust seconds downwards.
+     * If nsec is negative, adjust seconds downwards.
      * NDIV calculates division rounded towards negative infinity.
-     * For example, NDIV(-1, USECS_PER_SEC) is -1, so 1 second is subtracted.
-     * NDIV(-1000001, USECS_PER_SEC) is -2, so 2 seconds are subtracted.
+     * For example, NDIV(-1, 1000000000) is -1, so 1 second is subtracted.
      */
-    long sec_adjustment = (long)NDIV(time_obj->usec, USECS_PER_SEC);
-    time_obj->usec -= sec_adjustment * USECS_PER_SEC; /* Becomes positive or zero */
+    long sec_adjustment = (long)NDIV(time_obj->nsec, 1000000000L);
+    time_obj->nsec -= sec_adjustment * 1000000000L; /* Becomes positive or zero */
     time_obj->sec  += sec_adjustment;
   }
-  /* Handle positive microsecond overflow. */
-  else if (time_obj->usec >= USECS_PER_SEC) {
-    /* If usec is USECS_PER_SEC or more, adjust seconds upwards. */
-    long sec_adjustment = (long)(time_obj->usec / USECS_PER_SEC);
-    time_obj->usec -= sec_adjustment * USECS_PER_SEC; /* Reduce to < USECS_PER_SEC */
+  /* Handle positive nanosecond overflow. */
+  else if (time_obj->nsec >= 1000000000L) {
+    /* If nsec is 1000000000 or more, adjust seconds upwards. */
+    long sec_adjustment = (long)(time_obj->nsec / 1000000000L);
+    time_obj->nsec -= sec_adjustment * 1000000000L; /* Reduce to < 1000000000 */
     time_obj->sec  += sec_adjustment;
   }
   time_obj->timezone = timezone;
@@ -477,7 +489,7 @@ time_alloc(mrb_state *mrb, mrb_value sec, mrb_value usec, enum mrb_timezone time
   tsec = mrb_to_time_t(mrb, sec, &tusec);
   tusec += mrb_to_time_t(mrb, usec, NULL);
 
-  return time_alloc_time(mrb, tsec, tusec, timezone);
+  return time_alloc_time(mrb, tsec, tusec * NSECS_PER_USEC, timezone);
 }
 
 /*
@@ -513,21 +525,21 @@ static struct mrb_time*
 current_mrb_time(mrb_state *mrb)
 {
   struct mrb_time tmzero = {0}; /* Used to initialize the new mrb_time struct */
-  time_t sec, usec;
+  time_t sec, nsec;
 
 #if defined(TIME_UTC) && !defined(__ANDROID__)
   {
     struct timespec ts;
     timespec_get(&ts, TIME_UTC);
     sec = ts.tv_sec;
-    usec = ts.tv_nsec / NSECS_PER_USEC;
+    nsec = ts.tv_nsec;  /* Full nanosecond precision preserved */
   }
 #elif defined(USE_CLOCK_GETTIME)
   {
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
     sec = ts.tv_sec;
-    usec = ts.tv_nsec / NSECS_PER_USEC;
+    nsec = ts.tv_nsec;  /* Full nanosecond precision preserved */
   }
 #elif defined(NO_GETTIMEOFDAY)
   {
@@ -545,7 +557,7 @@ current_mrb_time(mrb_state *mrb)
        */
       last_usec += 1;
     }
-    usec = last_usec;
+    nsec = last_usec * NSECS_PER_USEC;  /* Convert fake microseconds to nanoseconds */
   }
 #else
   {
@@ -553,13 +565,13 @@ current_mrb_time(mrb_state *mrb)
 
     gettimeofday(&tv, NULL);
     sec = tv.tv_sec;
-    usec = tv.tv_usec;
+    nsec = tv.tv_usec * NSECS_PER_USEC;  /* Convert microseconds to nanoseconds */
   }
 #endif
 
   struct mrb_time *tm = (struct mrb_time*)mrb_malloc(mrb, sizeof(*tm));
   *tm = tmzero;
-  tm->sec = sec; tm->usec = usec;
+  tm->sec = sec; tm->nsec = nsec;
   tm->timezone = MRB_TIMEZONE_LOCAL;
   time_update_datetime(mrb, tm, TRUE);
 
@@ -584,7 +596,7 @@ time_now(mrb_state *mrb, mrb_value self)
 MRB_API mrb_value
 mrb_time_at(mrb_state *mrb, time_t sec, time_t usec, enum mrb_timezone zone)
 {
-  return time_make_time(mrb, mrb_class_get_id(mrb, MRB_SYM(Time)), sec, usec, zone);
+  return time_make_time(mrb, mrb_class_get_id(mrb, MRB_SYM(Time)), sec, usec * NSECS_PER_USEC, zone);
 }
 
 /*
@@ -660,23 +672,25 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
 
   time_t nowsecs = (*mk)(&nowtime);
   /*
-   * Handle mktime/timegm failure:
-   * If mk() returns -1, it usually indicates an error or an out-of-range date.
-   * A special case is when the time is exactly one second before the epoch (Epoch-1).
-   * Some mktime implementations might return -1 for this valid time.
-   * The code tries to detect this by adding one second to tm_sec and calling mk() again.
-   * If the result is 0 (Epoch), then the original time was indeed Epoch-1.
+   * Handle mktime/timegm failure (returns -1):
+   * This could mean either:
+   * 1. Invalid date/time arguments, OR
+   * 2. Valid time exactly one second before Unix epoch (1969-12-31 23:59:59)
+   *
+   * To distinguish: increment seconds and test again.
+   * If result is 0 (epoch), original was valid epoch-1.
+   * Otherwise, original arguments were invalid.
    */
   if (nowsecs == (time_t)-1) {
-    nowtime.tm_sec += 1;        /* Check if it was Epoch-1 by trying Epoch */
-    nowsecs = (*mk)(&nowtime);  /* Call mktime/timegm again */
-    if (nowsecs != 0) {         /* If it's not Epoch, then the original time was invalid */
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "Not a valid time");
+    struct tm test_tm = nowtime;
+    test_tm.tm_sec += 1;
+    if ((*mk)(&test_tm) != 0) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid time");
     }
-    nowsecs = (time_t)-1;       /* Reset to Epoch-1, which is a valid time_t */
+    /* Original time was valid epoch-1, keep nowsecs = -1 */
   }
 
-  return time_alloc_time(mrb, nowsecs, ausec, timezone);
+  return time_alloc_time(mrb, nowsecs, ausec * NSECS_PER_USEC, timezone);
 }
 
 /*
@@ -734,9 +748,17 @@ time_get_ptr(mrb_state *mrb, mrb_value time)
 {
   struct mrb_time *tm = DATA_GET_PTR(mrb, time, &time_type, struct mrb_time);
   if (!tm) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized time");
+    time_uninitialized(mrb);
   }
   return tm;
+}
+
+MRB_API struct tm*
+mrb_time_get_tm(mrb_state *mrb, mrb_value time)
+{
+  struct mrb_time *tm = time_get_ptr(mrb, time);
+  time_update_datetime(mrb, tm, FALSE);
+  return &tm->datetime;
 }
 
 /*
@@ -758,7 +780,7 @@ time_eq(mrb_state *mrb, mrb_value self)
   mrb_value other = mrb_get_arg1(mrb);
   struct mrb_time *tm1 = DATA_GET_PTR(mrb, self, &time_type, struct mrb_time);
   struct mrb_time *tm2 = DATA_CHECK_GET_PTR(mrb, other, &time_type, struct mrb_time);
-  mrb_bool eq_p = tm1 && tm2 && tm1->sec == tm2->sec && tm1->usec == tm2->usec;
+  mrb_bool eq_p = tm1 && tm2 && tm1->sec == tm2->sec && tm1->nsec == tm2->nsec;
 
   return mrb_bool_value(eq_p);
 }
@@ -792,10 +814,10 @@ time_cmp(mrb_state *mrb, mrb_value self)
     return mrb_fixnum_value(-1);
   }
   /* tm1->sec == tm2->sec */
-  if (tm1->usec > tm2->usec) {
+  if (tm1->nsec > tm2->nsec) {
     return mrb_fixnum_value(1);
   }
-  else if (tm1->usec < tm2->usec) {
+  else if (tm1->nsec < tm2->nsec) {
     return mrb_fixnum_value(-1);
   }
   return mrb_fixnum_value(0);
@@ -804,7 +826,7 @@ time_cmp(mrb_state *mrb, mrb_value self)
 static mrb_noreturn void
 int_overflow(mrb_state *mrb, const char *reason)
 {
-  mrb_raisef(mrb, E_RANGE_ERROR, "time_t overflow in Time %s", reason);
+  mrb_raisef(mrb, E_RANGE_ERROR, "Time out of range in %s", reason);
 }
 
 /*
@@ -849,7 +871,7 @@ time_plus(mrb_state *mrb, mrb_value self)
   }
   sec = tm->sec + sec; /* Perform the addition */
 #endif
-  return time_make_time(mrb, mrb_obj_class(mrb, self), sec, tm->usec+usec, tm->timezone);
+  return time_make_time(mrb, mrb_obj_class(mrb, self), sec, tm->nsec + usec * NSECS_PER_USEC, tm->timezone);
 }
 
 /*
@@ -877,12 +899,11 @@ time_minus(mrb_state *mrb, mrb_value self)
 #ifndef MRB_NO_FLOAT
     mrb_float f;
     f = (mrb_float)(tm->sec - tm2->sec)
-      + (mrb_float)(tm->usec - tm2->usec) / USECS_PER_SEC_F;
+      + (mrb_float)(tm->nsec - tm2->nsec) / 1.0e9;
     return mrb_float_value(mrb, f);
 #else
-    mrb_int f;
-    f = tm->sec - tm2->sec;
-    if (tm->usec < tm2->usec) f--;
+    mrb_int f = tm->sec - tm2->sec;
+    if (tm->nsec < tm2->nsec) f--;
     return mrb_int_value(mrb, f);
 #endif
   }
@@ -911,7 +932,7 @@ time_minus(mrb_state *mrb, mrb_value self)
       }
     sec = tm->sec - sec; /* Perform the subtraction */
 #endif
-    return time_make_time(mrb, mrb_obj_class(mrb, self), sec, tm->usec-usec, tm->timezone);
+    return time_make_time(mrb, mrb_obj_class(mrb, self), sec, tm->nsec - usec * NSECS_PER_USEC, tm->timezone);
   }
 }
 
@@ -968,7 +989,7 @@ time_year(mrb_state *mrb, mrb_value self)
 static size_t
 time_zonename(mrb_state *mrb, struct mrb_time *tm, char *buf, size_t len)
 {
-#if defined(_MSC_VER) && _MSC_VER < 1900 || defined(__MINGW64__) || defined(__MINGW32__)
+#ifdef MRB_TIME_WINDOWS_NO_STRFTIME_Z
   /*
    * On some Windows versions (specifically with MSC_VER < 1900, i.e., pre-VS2015, or MinGW),
    * strftime's "%z" (timezone offset) specifier might not be available or reliable.
@@ -978,7 +999,10 @@ time_zonename(mrb_state *mrb, struct mrb_time *tm, char *buf, size_t len)
   time_t utc_sec = timegm(&tm->datetime); /* Convert current datetime (interpreted as UTC) to time_t */
   /* Calculate offset in minutes: difference between this UTC time_t and the stored local time_t */
   int offset = abs((int)(utc_sec - tm->sec) / SECS_PER_MIN);
-  datetime.tm_year = 100; /* Arbitrary year for strftime, not relevant to offset display (e.g. Y2K bug-like) */
+  /* Copy actual date components for accurate timezone/DST calculation */
+  datetime.tm_year = tm->datetime.tm_year;
+  datetime.tm_mon = tm->datetime.tm_mon;
+  datetime.tm_mday = tm->datetime.tm_mday;
   datetime.tm_hour = offset / MINS_PER_HOUR; /* Convert offset to hours and minutes */
   datetime.tm_min = offset % MINS_PER_HOUR;
   buf[0] = utc_sec < tm->sec ? '-' : '+'; /* Determine sign of the offset */
@@ -1104,8 +1128,10 @@ time_getutc(mrb_state *mrb, mrb_value self)
   struct mrb_time *tm = time_get_ptr(mrb, self);
   struct mrb_time *tm2 = (struct mrb_time*)mrb_malloc(mrb, sizeof(*tm));
   *tm2 = *tm;
-  tm2->timezone = MRB_TIMEZONE_UTC;
-  time_update_datetime(mrb, tm2, TRUE);
+  if (tm2->timezone != MRB_TIMEZONE_UTC) {
+    tm2->timezone = MRB_TIMEZONE_UTC;
+    time_update_datetime(mrb, tm2, TRUE);
+  }
   return time_wrap(mrb, mrb_obj_class(mrb, self), tm2);
 }
 
@@ -1126,8 +1152,10 @@ time_getlocal(mrb_state *mrb, mrb_value self)
   struct mrb_time *tm = time_get_ptr(mrb, self);
   struct mrb_time *tm2 = (struct mrb_time*)mrb_malloc(mrb, sizeof(*tm));
   *tm2 = *tm;
-  tm2->timezone = MRB_TIMEZONE_LOCAL;
-  time_update_datetime(mrb, tm2, TRUE);
+  if (tm2->timezone != MRB_TIMEZONE_LOCAL) {
+    tm2->timezone = MRB_TIMEZONE_LOCAL;
+    time_update_datetime(mrb, tm2, TRUE);
+  }
   return time_wrap(mrb, mrb_obj_class(mrb, self), tm2);
 }
 
@@ -1211,7 +1239,7 @@ time_init_copy(mrb_state *mrb, mrb_value copy)
   struct mrb_time *t2 = (struct mrb_time*)DATA_PTR(src);
 
   if (!t2) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized time");
+    time_uninitialized(mrb);
   }
   if (!t1) {
     t1 = (struct mrb_time*)mrb_malloc(mrb, sizeof(struct mrb_time));
@@ -1241,22 +1269,6 @@ time_localtime(mrb_state *mrb, mrb_value self)
   return self;
 }
 
-/*
- * call-seq:
- *   time.mday -> integer
- *
- * Returns the day of the month (1-31) of the time.
- * This is an alias for time.day.
- *
- *   Time.local(2023, 12, 25).mday  #=> 25
- *   Time.local(2023, 1, 1).mday    #=> 1
- */
-static mrb_value
-time_mday(mrb_state *mrb, mrb_value self)
-{
-  struct mrb_time *tm = time_get_ptr(mrb, self);
-  return mrb_fixnum_value(tm->datetime.tm_mday);
-}
 
 /*
  * call-seq:
@@ -1327,7 +1339,7 @@ static mrb_value
 time_to_f(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm = time_get_ptr(mrb, self);
-  return mrb_float_value(mrb, (mrb_float)tm->sec + (mrb_float)tm->usec/USECS_PER_SEC_F);
+  return mrb_float_value(mrb, (mrb_float)tm->sec + (mrb_float)tm->nsec/1.0e9);
 }
 #endif
 
@@ -1363,7 +1375,25 @@ static mrb_value
 time_usec(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm = time_get_ptr(mrb, self);
-  return mrb_fixnum_value((mrb_int)tm->usec);
+  return mrb_fixnum_value((mrb_int)(tm->nsec / NSECS_PER_USEC));
+}
+
+/*
+ * call-seq:
+ *   time.nsec    -> integer
+ *   time.tv_nsec -> integer
+ *
+ * Returns the nanosecond component (0-999999999) of the time.
+ *
+ *   Time.at(1000000000, 123456).nsec    #=> 123456000
+ *   Time.at(1000000000.123456789).nsec  #=> 123456789
+ *   Time.at(1000000000).nsec            #=> 0
+ */
+static mrb_value
+time_nsec(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_time *tm = time_get_ptr(mrb, self);
+  return mrb_fixnum_value((mrb_int)tm->nsec);
 }
 
 /*
@@ -1427,8 +1457,14 @@ time_to_s(mrb_state *mrb, mrb_value self)
     len = strftime(buf, sizeof(buf), TO_S_FMT "UTC", &tm->datetime);
   }
   else {
+#ifdef MRB_TIME_WINDOWS_NO_STRFTIME_Z
+    /* Use two-step approach on Windows platforms without reliable %z support */
     len = strftime(buf, sizeof(buf), TO_S_FMT, &tm->datetime);
     len += time_zonename(mrb, tm, buf+len, sizeof(buf)-len);
+#else
+    /* Use combined format string on platforms with %z support */
+    len = strftime(buf, sizeof(buf), TO_S_FMT "%z", &tm->datetime);
+#endif
   }
   mrb_value str = mrb_str_new(mrb, buf, len);
   RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
@@ -1451,9 +1487,19 @@ time_hash(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm = time_get_ptr(mrb, self);
   uint32_t hash = mrb_byte_hash((uint8_t*)&tm->sec, sizeof(time_t));
-  hash = mrb_byte_hash_step((uint8_t*)&tm->usec, sizeof(time_t), hash);
+  hash = mrb_byte_hash_step((uint8_t*)&tm->nsec, sizeof(time_t), hash);
   hash = mrb_byte_hash_step((uint8_t*)&tm->timezone, sizeof(tm->timezone), hash);
   return mrb_int_value(mrb, hash);
+}
+
+/*
+ * Generic function for weekday checks. Used by all weekday methods.
+ */
+static mrb_value
+time_wday_p(mrb_state *mrb, mrb_value self, int target_wday)
+{
+  struct mrb_time *tm = time_get_ptr(mrb, self);
+  return mrb_bool_value(tm->datetime.tm_wday == target_wday);
 }
 
 /*
@@ -1468,8 +1514,7 @@ time_hash(mrb_state *mrb, mrb_value self)
 static mrb_value
 time_sunday(mrb_state *mrb, mrb_value self)
 {
-  struct mrb_time *tm = time_get_ptr(mrb, self);
-  return mrb_bool_value(tm->datetime.tm_wday == 0);
+  return time_wday_p(mrb, self, 0);
 }
 
 /*
@@ -1484,8 +1529,7 @@ time_sunday(mrb_state *mrb, mrb_value self)
 static mrb_value
 time_monday(mrb_state *mrb, mrb_value self)
 {
-  struct mrb_time *tm = time_get_ptr(mrb, self);
-  return mrb_bool_value(tm->datetime.tm_wday == 1);
+  return time_wday_p(mrb, self, 1);
 }
 
 /*
@@ -1500,8 +1544,7 @@ time_monday(mrb_state *mrb, mrb_value self)
 static mrb_value
 time_tuesday(mrb_state *mrb, mrb_value self)
 {
-  struct mrb_time *tm = time_get_ptr(mrb, self);
-  return mrb_bool_value(tm->datetime.tm_wday == 2);
+  return time_wday_p(mrb, self, 2);
 }
 
 /*
@@ -1516,8 +1559,7 @@ time_tuesday(mrb_state *mrb, mrb_value self)
 static mrb_value
 time_wednesday(mrb_state *mrb, mrb_value self)
 {
-  struct mrb_time *tm = time_get_ptr(mrb, self);
-  return mrb_bool_value(tm->datetime.tm_wday == 3);
+  return time_wday_p(mrb, self, 3);
 }
 
 /*
@@ -1532,8 +1574,7 @@ time_wednesday(mrb_state *mrb, mrb_value self)
 static mrb_value
 time_thursday(mrb_state *mrb, mrb_value self)
 {
-  struct mrb_time *tm = time_get_ptr(mrb, self);
-  return mrb_bool_value(tm->datetime.tm_wday == 4);
+  return time_wday_p(mrb, self, 4);
 }
 
 /*
@@ -1548,8 +1589,7 @@ time_thursday(mrb_state *mrb, mrb_value self)
 static mrb_value
 time_friday(mrb_state *mrb, mrb_value self)
 {
-  struct mrb_time *tm = time_get_ptr(mrb, self);
-  return mrb_bool_value(tm->datetime.tm_wday == 5);
+  return time_wday_p(mrb, self, 5);
 }
 
 /*
@@ -1564,8 +1604,40 @@ time_friday(mrb_state *mrb, mrb_value self)
 static mrb_value
 time_saturday(mrb_state *mrb, mrb_value self)
 {
+  return time_wday_p(mrb, self, 6);
+}
+
+/*
+ * ISO 15.2.19.7.12
+ * ISO 15.2.19.7.14
+ * ISO 15.2.19.7.29
+ */
+/*
+ * call-seq:
+ *   time.gmt_offset  -> integer
+ *   time.utc_offset  -> integer
+ *   time.gmtoff      -> integer
+ *
+ * Returns the offset in seconds between the timezone of time and UTC.
+ *
+ *   Time.local(2000, 1, 1).gmt_offset   #=> 32400 (JST: UTC+9)
+ *   Time.utc(2000, 1, 1).utc_offset     #=> 0     (UTC)
+ *   Time.local(2000, 7, 1).gmtoff       #=> 32400 (or 28800 if DST)
+ */
+static mrb_value
+time_utc_offset(mrb_state *mrb, mrb_value self)
+{
   struct mrb_time *tm = time_get_ptr(mrb, self);
-  return mrb_bool_value(tm->datetime.tm_wday == 6);
+
+  if (tm->timezone == MRB_TIMEZONE_UTC) {
+    return mrb_fixnum_value(0);  /* UTC is always offset 0 */
+  }
+
+  /* For local times, calculate offset = local_time_t - utc_time_t */
+  time_t utc_time_t = timegm(&tm->datetime);  /* Convert datetime as UTC */
+  mrb_int offset_seconds = (mrb_int)(tm->sec - utc_time_t);
+
+  return mrb_fixnum_value(offset_seconds);
 }
 
 void
@@ -1611,7 +1683,7 @@ mrb_mruby_time_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, tc, MRB_SYM(gmtime), time_utc    , MRB_ARGS_NONE()); /* 15.2.19.7.13 */
   mrb_define_method_id(mrb, tc, MRB_SYM(hour), time_hour, MRB_ARGS_NONE());    /* 15.2.19.7.15 */
   mrb_define_method_id(mrb, tc, MRB_SYM(localtime), time_localtime, MRB_ARGS_NONE()); /* 15.2.19.7.18 */
-  mrb_define_method_id(mrb, tc, MRB_SYM(mday), time_mday, MRB_ARGS_NONE());    /* 15.2.19.7.19 */
+  mrb_define_method_id(mrb, tc, MRB_SYM(mday), time_day, MRB_ARGS_NONE());    /* 15.2.19.7.19 */
   mrb_define_method_id(mrb, tc, MRB_SYM(min), time_min, MRB_ARGS_NONE());     /* 15.2.19.7.20 */
 
   mrb_define_method_id(mrb, tc, MRB_SYM(mon), time_mon, MRB_ARGS_NONE());       /* 15.2.19.7.21 */
@@ -1623,6 +1695,8 @@ mrb_mruby_time_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, tc, MRB_SYM(to_f), time_to_f, MRB_ARGS_NONE());       /* 15.2.19.7.24 */
 #endif
   mrb_define_method_id(mrb, tc, MRB_SYM(usec), time_usec, MRB_ARGS_NONE());       /* 15.2.19.7.26 */
+  mrb_define_method_id(mrb, tc, MRB_SYM(nsec), time_nsec, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, tc, MRB_SYM(tv_nsec), time_nsec, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, tc, MRB_SYM(utc), time_utc, MRB_ARGS_NONE());        /* 15.2.19.7.27 */
   mrb_define_method_id(mrb, tc, MRB_SYM_Q(utc), time_utc_p,MRB_ARGS_NONE());       /* 15.2.19.7.28 */
   mrb_define_method_id(mrb, tc, MRB_SYM(wday), time_wday, MRB_ARGS_NONE());       /* 15.2.19.7.30 */
@@ -1641,12 +1715,9 @@ mrb_mruby_time_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, tc, MRB_SYM_Q(friday), time_friday, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, tc, MRB_SYM_Q(saturday), time_saturday, MRB_ARGS_NONE());
 
-  /*
-    methods not available:
-      gmt_offset(15.2.19.7.12)
-      gmtoff(15.2.19.7.14)
-      utc_offset(15.2.19.7.29)
-  */
+  mrb_define_method_id(mrb, tc, MRB_SYM(gmt_offset), time_utc_offset, MRB_ARGS_NONE()); /* 15.2.19.7.12 */
+  mrb_define_method_id(mrb, tc, MRB_SYM(gmtoff), time_utc_offset, MRB_ARGS_NONE());    /* 15.2.19.7.14 */
+  mrb_define_method_id(mrb, tc, MRB_SYM(utc_offset), time_utc_offset, MRB_ARGS_NONE()); /* 15.2.19.7.29 */
 }
 
 void

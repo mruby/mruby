@@ -258,6 +258,17 @@ void mrb_bint_copy(mrb_state *mrb, mrb_value x, mrb_value y);
 size_t mrb_bint_memsize(mrb_value x);
 mrb_value mrb_bint_hash(mrb_state *mrb, mrb_value x);
 mrb_value mrb_bint_sqrt(mrb_state *mrb, mrb_value x);
+mrb_int mrb_bint_size(mrb_state *mrb, mrb_value bint);
+mrb_value mrb_bint_from_bytes(mrb_state *mrb, const uint8_t *bytes, mrb_int len);
+mrb_int mrb_bint_sign(mrb_state *mrb, mrb_value bint);
+mrb_value mrb_bint_gcd(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_value mrb_bint_lcm(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_value mrb_bint_abs(mrb_state *mrb, mrb_value x);
+#endif
+
+#ifdef MRB_USE_TASK_SCHEDULER
+/* GC marking for task scheduler */
+void mrb_task_mark_all(mrb_state *mrb);
 #endif
 
 #endif  /* MRUBY_INTERNAL_H */

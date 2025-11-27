@@ -25,8 +25,8 @@ mrb_f_nil(mrb_state *mrb, mrb_value cv)
  *  call-seq:
  *     obj.instance_variable_defined?(symbol)    -> true or false
  *
- *  Returns <code>true</code> if the given instance variable is
- *  defined in <i>obj</i>.
+ *  Returns `true` if the given instance variable is
+ *  defined in *obj*.
  *
  *     class Fred
  *       def initialize(p1, p2)
@@ -54,9 +54,9 @@ mrb_obj_ivar_defined(mrb_state *mrb, mrb_value self)
  *     obj.instance_variable_get(symbol)    -> obj
  *
  *  Returns the value of the given instance variable, or nil if the
- *  instance variable is not set. The <code>@</code> part of the
+ *  instance variable is not set. The `@` part of the
  *  variable name should be included for regular instance
- *  variables. Throws a <code>NameError</code> exception if the
+ *  variables. Throws a `NameError` exception if the
  *  supplied symbol is not valid as an instance variable name.
  *
  *     class Fred
@@ -83,8 +83,8 @@ mrb_obj_ivar_get(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     obj.instance_variable_set(symbol, obj)    -> obj
  *
- *  Sets the instance variable names by <i>symbol</i> to
- *  <i>object</i>, thereby frustrating the efforts of the class's
+ *  Sets the instance variable names by *symbol* to
+ *  *object*, thereby frustrating the efforts of the class's
  *  author to attempt to provide proper encapsulation. The variable
  *  did not have to exist prior to this call.
  *
@@ -146,7 +146,7 @@ method_entry_i(mrb_state *mrb, mrb_sym mid, mrb_method_t m, void *p)
 
   if (vicheck(m.flags, s->visibility) && kh_get(st, mrb, s->set, mid) == kh_end(s->set)) {
     khint_t k = kh_put(st, mrb, s->set, mid);
-    kh_val(s->set, k) = !MRB_METHOD_UNDEF_P(m);
+    kh_val(st, s->set, k) = !MRB_METHOD_UNDEF_P(m);
   }
   return 0;
 }
@@ -182,9 +182,9 @@ mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass *kl
   }
 
   ary = mrb_ary_new_capa(mrb, kh_size(set));
-  KHASH_FOREACH(mrb, set, k) {
-    if (kh_val(set, k)) {
-      mrb_ary_push(mrb, ary, mrb_symbol_value(kh_key(set, k)));
+  KHASH_FOREACH(st, set, k) {
+    if (kh_val(st, set, k)) {
+      mrb_ary_push(mrb, ary, mrb_symbol_value(kh_key(st, set, k)));
     }
   }
   kh_destroy(st, mrb, set);
@@ -234,8 +234,8 @@ mrb_obj_methods_m(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     obj.private_methods(all=true)   -> array
  *
- *  Returns the list of private methods accessible to <i>obj</i>. If
- *  the <i>all</i> parameter is set to <code>false</code>, only those methods
+ *  Returns the list of private methods accessible to *obj*. If
+ *  the *all* parameter is set to `false`, only those methods
  *  in the receiver will be listed.
  */
 static mrb_value
@@ -249,8 +249,8 @@ mrb_obj_private_methods(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     obj.protected_methods(all=true)   -> array
  *
- *  Returns the list of protected methods accessible to <i>obj</i>. If
- *  the <i>all</i> parameter is set to <code>false</code>, only those methods
+ *  Returns the list of protected methods accessible to *obj*. If
+ *  the *all* parameter is set to `false`, only those methods
  *  in the receiver will be listed.
  */
 static mrb_value
@@ -264,8 +264,8 @@ mrb_obj_protected_methods(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     obj.public_methods(all=true)   -> array
  *
- *  Returns the list of public methods accessible to <i>obj</i>. If
- *  the <i>all</i> parameter is set to <code>false</code>, only those methods
+ *  Returns the list of public methods accessible to *obj*. If
+ *  the *all* parameter is set to `false`, only those methods
  *  in the receiver will be listed.
  */
 static mrb_value
@@ -295,8 +295,8 @@ mrb_obj_singleton_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj)
   }
 
   ary = mrb_ary_new(mrb);
-  KHASH_FOREACH(mrb, set, k) {
-    mrb_ary_push(mrb, ary, mrb_symbol_value(kh_key(set, k)));
+  KHASH_FOREACH(st, set, k) {
+    mrb_ary_push(mrb, ary, mrb_symbol_value(kh_key(st, set, k)));
   }
   kh_destroy(st, mrb, set);
 
@@ -308,9 +308,9 @@ mrb_obj_singleton_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj)
  *  call-seq:
  *     obj.singleton_methods(all=true)    -> array
  *
- *  Returns an array of the names of singleton methods for <i>obj</i>.
- *  If the optional <i>all</i> parameter is true, the list will include
- *  methods in modules included in <i>obj</i>.
+ *  Returns an array of the names of singleton methods for *obj*.
+ *  If the optional *all* parameter is true, the list will include
+ *  methods in modules included in *obj*.
  *  Only public and protected singleton methods are returned.
  *
  *     module Other
@@ -374,7 +374,7 @@ check_cv_name_sym(mrb_state *mrb, mrb_sym id)
  *  call-seq:
  *     remove_class_variable(sym)    -> obj
  *
- *  Removes the definition of the <i>sym</i>, returning that
+ *  Removes the definition of the *sym*, returning that
  *  constant's value.
  *
  *     class Dummy
@@ -419,8 +419,8 @@ mrb_mod_remove_cvar(mrb_state *mrb, mrb_value mod)
  *  call-seq:
  *     obj.class_variable_defined?(symbol)    -> true or false
  *
- *  Returns <code>true</code> if the given class variable is defined
- *  in <i>obj</i>.
+ *  Returns `true` if the given class variable is defined
+ *  in *obj*.
  *
  *     class Fred
  *       @@foo = 99
@@ -445,7 +445,7 @@ mrb_mod_cvar_defined(mrb_state *mrb, mrb_value mod)
  *     mod.class_variable_get(symbol)    -> obj
  *
  *  Returns the value of the given class variable (or throws a
- *  <code>NameError</code> exception). The <code>@@</code> part of the
+ *  `NameError` exception). The `@@` part of the
  *  variable name should be included for regular class variables
  *
  *     class Fred
@@ -469,8 +469,8 @@ mrb_mod_cvar_get(mrb_state *mrb, mrb_value mod)
  *  call-seq:
  *     obj.class_variable_set(symbol, obj)    -> obj
  *
- *  Sets the class variable names by <i>symbol</i> to
- *  <i>object</i>.
+ *  Sets the class variable names by *symbol* to
+ *  *object*.
  *
  *     class Fred
  *       @@foo = 99
@@ -532,9 +532,9 @@ mod_instance_methods(mrb_state *mrb, mrb_value mod, unsigned int visibility)
  *  Returns an array containing the names of the public and protected instance
  *  methods in the receiver. For a module, these are the public and protected methods;
  *  for a class, they are the instance (not singleton) methods. With no
- *  argument, or with an argument that is <code>false</code>, the
- *  instance methods in <i>mod</i> are returned, otherwise the methods
- *  in <i>mod</i> and <i>mod</i>'s superclasses are returned.
+ *  argument, or with an argument that is `false`, the
+ *  instance methods in *mod* are returned, otherwise the methods
+ *  in *mod* and *mod*'s superclasses are returned.
  *
  *     module A
  *       def method1()  end
@@ -615,7 +615,7 @@ mrb_mod_undefined_methods(mrb_state *mrb, mrb_value mod)
  *     remove_method(symbol)   -> self
  *
  *  Removes the method identified by _symbol_ from the current
- *  class. For an example, see <code>Module.undef_method</code>.
+ *  class. For an example, see `Module.undef_method`.
  */
 
 static mrb_value

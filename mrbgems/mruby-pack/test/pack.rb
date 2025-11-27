@@ -38,6 +38,35 @@ assert('pack("M")') do
   assert_equal ["あ"], "=E3=81=82=\n".unpack("M")
 end
 
+# pack & unpack 'u' (UU-encode)
+assert('pack("u")') do
+  # Basic string test with known good values
+  assert_pack "u", "-2&5L;&\\L(%=O<FQD(0``\n`\n", ["Hello, World!"]
+
+  # Empty string test
+  assert_pack "u", "", [""]
+
+  # Binary data test with known good values
+  assert_pack "u", "%``$\"`_\\`\n`\n", ["\x00\x01\x02\x03\xFF"]
+
+  # Single character test with corrected value
+  assert_pack "u", "!00``\n`\n", ["A"]
+
+  # Test with different line lengths
+  short_data = "ABCD"
+  assert_equal [short_data], [short_data].pack("u").unpack("u")
+
+  # Test longer data (will span multiple lines)
+  long_data = "A" * 50
+  packed_long = [long_data].pack("u")
+  assert_equal [long_data], packed_long.unpack("u")
+
+  # Test that packed data ends with zero-length line for non-empty input
+  packed = ["test"].pack("u")
+  # Check if last two characters are backtick and newline
+  assert_equal "`\n", packed[-2, 2], "UU-encoded data should end with zero-length line"
+end
+
 # pack & unpack 'B'/'b'
 assert('pack("B/b")') do
   assert_pack "b*", "\xFF\x00", ["1111111100000000"]

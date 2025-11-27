@@ -18,6 +18,15 @@ things in mind before submitting your pull request:
 - Use mrbgem to provide non ISO features (classes, modules and methods) unless
   you have a special reason to implement them in the core
 
+## Security Issues
+
+If you discover a security vulnerability:
+
+- **High priority security vulnerabilities** (RCE): Report via email to <matz@ruby.or.jp>
+- **VM crashes from valid Ruby code**: Please report as regular bug reports on our issue tracker
+
+For detailed guidance on what qualifies as a security issue and what doesn't, see [SECURITY.md](SECURITY.md).
+
 ## pre-commit
 
 A framework for managing and maintaining multi-language `pre-commit` hooks.

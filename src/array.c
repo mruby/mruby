@@ -22,12 +22,14 @@
 #endif
 #define ARY_MAX_SIZE ((mrb_int)((ARY_C_MAX_SIZE < (size_t)MRB_INT_MAX) ? ARY_C_MAX_SIZE : MRB_INT_MAX-1))
 
+/* Raises an ArgumentError when array size exceeds limits */
 static void
 ary_too_big(mrb_state *mrb)
 {
   mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
 }
 
+/* Checks if array size would exceed limits and raises error if so */
 static inline void
 ary_check_too_big(mrb_state *mrb, mrb_int a, mrb_int b)
 {
@@ -39,6 +41,7 @@ ary_check_too_big(mrb_state *mrb, mrb_int a, mrb_int b)
 #endif
 }
 
+/* Creates a new RArray with specified capacity */
 static struct RArray*
 ary_new_capa(mrb_state *mrb, mrb_int capa)
 {
@@ -105,6 +108,7 @@ mrb_ary_new(mrb_state *mrb)
  *
  * See also https://togetter.com/li/462898 (Japanese)
  */
+/* Portable array copy function to avoid memcpy issues on some platforms */
 static inline void
 array_copy(mrb_value *dst, const mrb_value *src, mrb_int size)
 {
@@ -113,6 +117,7 @@ array_copy(mrb_value *dst, const mrb_value *src, mrb_int size)
   }
 }
 
+/* Creates a new RArray initialized with values from an array */
 static struct RArray*
 ary_new_from_values(mrb_state *mrb, mrb_int size, const mrb_value *vals)
 {
@@ -165,6 +170,7 @@ mrb_assoc_new(mrb_state *mrb, mrb_value car, mrb_value cdr)
   return mrb_obj_value(a);
 }
 
+/* Fills array elements with nil values */
 static void
 ary_fill_with_nil(mrb_value *ptr, mrb_int size)
 {
@@ -177,6 +183,7 @@ ary_fill_with_nil(mrb_value *ptr, mrb_int size)
 
 #define ary_modify_check(mrb, a) mrb_check_frozen((mrb), (a))
 
+/* Prepares array for modification, handling shared arrays and frozen check */
 static void
 ary_modify(mrb_state *mrb, struct RArray *a)
 {
@@ -223,6 +230,7 @@ mrb_ary_modify(mrb_state *mrb, struct RArray* a)
   ary_modify(mrb, a);
 }
 
+/* Converts array to shared representation for copy-on-write semantics */
 static void
 ary_make_shared(mrb_state *mrb, struct RArray *a)
 {
@@ -244,6 +252,45 @@ ary_make_shared(mrb_state *mrb, struct RArray *a)
   }
 }
 
+/* Creates a shared copy of array for temporary GC protection.
+ * Frozen arrays are returned as-is (cannot be modified).
+ * Embedded arrays get full copy (cannot be shared).
+ * Heap arrays get zero-copy shared reference.
+ */
+MRB_API mrb_value
+mrb_ary_make_shared_copy(mrb_state *mrb, mrb_value ary)
+{
+  struct RArray *orig = mrb_ary_ptr(ary);
+
+  // Frozen arrays don't need protection
+  if (mrb_frozen_p(orig)) {
+    return ary;
+  }
+
+  // Embedded arrays can't be shared - make full copy
+  if (ARY_EMBED_P(orig)) {
+    return mrb_ary_dup(mrb, ary);
+  }
+
+  // Make original array shared if not already
+  if (!ARY_SHARED_P(orig)) {
+    ary_make_shared(mrb, orig);
+  }
+
+  // Create new array that shares the buffer
+  struct RArray *shared = (struct RArray*)mrb_obj_alloc(mrb, MRB_TT_ARRAY, mrb->array_class);
+
+  shared->as.heap.ptr = orig->as.heap.ptr;
+  shared->as.heap.len = orig->as.heap.len;
+  shared->as.heap.aux.shared = orig->as.heap.aux.shared;
+  shared->as.heap.aux.shared->refcnt++;
+  ARY_SET_SHARED_FLAG(shared);
+  mrb_write_barrier(mrb, (struct RBasic*)shared);
+
+  return mrb_obj_value(shared);
+}
+
+/* Expands array capacity to accommodate at least len elements */
 static void
 ary_expand_capa(mrb_state *mrb, struct RArray *a, mrb_int len)
 {
@@ -284,6 +331,7 @@ ary_expand_capa(mrb_state *mrb, struct RArray *a, mrb_int len)
   }
 }
 
+/* Shrinks array capacity to save memory when array becomes much smaller */
 static void
 ary_shrink_capa(mrb_state *mrb, struct RArray *a)
 {
@@ -342,6 +390,16 @@ mrb_ary_resize(mrb_state *mrb, mrb_value ary, mrb_int new_len)
   return ary;
 }
 
+/*
+ *  call-seq:
+ *     Array[obj, ...] -> new_array
+ *
+ *  Creates a new Array containing the given objects:
+ *
+ *     Array[1, 'a', /^A/] # => [1, "a", /^A/]
+ *     Array[1, 2, 3]      # => [1, 2, 3]
+ *     Array[]             # => []
+ */
 static mrb_value
 mrb_ary_s_create(mrb_state *mrb, mrb_value klass)
 {
@@ -358,6 +416,42 @@ mrb_ary_s_create(mrb_state *mrb, mrb_value klass)
 
 static void ary_replace(mrb_state*, struct RArray*, struct RArray*);
 
+/*
+ *  call-seq:
+ *     Array.new(size=0, default=nil) -> new_array
+ *     Array.new(array) -> new_array
+ *     Array.new(size) {|index| ... } -> new_array
+ *
+ *  Returns a new Array.
+ *
+ *  With no block and no arguments, returns a new empty Array object.
+ *
+ *  With no block and a single `size` argument, returns a new Array object
+ *  of the given size whose elements are all `nil`:
+ *
+ *     a = Array.new(3)
+ *     a # => [nil, nil, nil]
+ *     a.size # => 3
+ *
+ *  With no block and arguments `size` and `default`, returns an Array object
+ *  of the given size; each element is the same `default` object:
+ *
+ *     a = Array.new(3, 'x')
+ *     a # => ['x', 'x', 'x']
+ *
+ *  With a block and argument `size`, returns an Array object of the given size;
+ *  the block is called with each successive integer `index`;
+ *  the element for that `index` is the return value from the block:
+ *
+ *     a = Array.new(3) {|index| "Element #{index}" }
+ *     a # => ["Element 0", "Element 1", "Element 2"]
+ *
+ *  With a single Array argument `array`, returns a new Array formed from `array`:
+ *
+ *     a = Array.new([:foo, 'bar', 2])
+ *     a.class # => Array
+ *     a # => [:foo, "bar", 2]
+ */
 static mrb_value
 mrb_ary_init(mrb_state *mrb, mrb_value ary)
 {
@@ -394,6 +488,7 @@ mrb_ary_init(mrb_state *mrb, mrb_value ary)
   return ary;
 }
 
+/* Internal helper to concatenate two arrays */
 static void
 ary_concat(mrb_state *mrb, struct RArray *a, struct RArray *a2)
 {
@@ -439,7 +534,7 @@ mrb_ary_concat(mrb_state *mrb, mrb_value self, mrb_value other)
  *  call-seq:
  *    array.concat(*other_arrays) -> self
  *
- *  Adds to +array+ all elements from each \Array in +other_arrays+; returns +self+:
+ *  Adds to `array` all elements from each \Array in `other_arrays`; returns `self`:
  *
  *    a = [0, 1]
  *    a.concat([2, 3], [4, 5]) # => [0, 1, 2, 3, 4, 5]
@@ -461,6 +556,16 @@ mrb_ary_concat_m(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ *  call-seq:
+ *     array + other_array -> new_array
+ *
+ *  Returns a new Array containing all elements of `array`
+ *  followed by all elements of `other_array`:
+ *
+ *     a = [0, 1] + [2, 3]
+ *     a # => [0, 1, 2, 3]
+ */
 static mrb_value
 mrb_ary_plus(mrb_state *mrb, mrb_value self)
 {
@@ -481,6 +586,7 @@ mrb_ary_plus(mrb_state *mrb, mrb_value self)
 
 #define ARY_REPLACE_SHARED_MIN 20
 
+/* Internal helper to replace array contents with another array */
 static void
 ary_replace(mrb_state *mrb, struct RArray *a, struct RArray *b)
 {
@@ -543,6 +649,18 @@ mrb_ary_replace(mrb_state *mrb, mrb_value self, mrb_value other)
   }
 }
 
+/*
+ *  call-seq:
+ *     array.replace(other_array) -> self
+ *     array.initialize_copy(other_array) -> self
+ *
+ *  Replaces the contents of `self` with the contents of `other_array`;
+ *  returns `self`:
+ *
+ *     a = [0, 1, 2]
+ *     a.replace(['foo', 'bar']) # => ["foo", "bar"]
+ *     a # => ["foo", "bar"]
+ */
 static mrb_value
 mrb_ary_replace_m(mrb_state *mrb, mrb_value self)
 {
@@ -554,6 +672,22 @@ mrb_ary_replace_m(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ *  call-seq:
+ *     array * int -> new_array
+ *     array * str -> new_string
+ *
+ *  When the argument is an Integer `n`,
+ *  returns a new Array built by concatenating `n` copies of `self`:
+ *
+ *     a = ['x', 'y']
+ *     a * 3 # => ["x", "y", "x", "y", "x", "y"]
+ *
+ *  When the argument is a String `separator`,
+ *  equivalent to `array.join(separator)`:
+ *
+ *     [1, 2, 3] * '|' # => "1|2|3"
+ */
 static mrb_value
 mrb_ary_times(mrb_state *mrb, mrb_value self)
 {
@@ -587,6 +721,16 @@ mrb_ary_times(mrb_state *mrb, mrb_value self)
   return mrb_obj_value(a2);
 }
 
+/*
+ *  call-seq:
+ *     array.reverse! -> self
+ *
+ *  Reverses `self` in place:
+ *
+ *     a = ['foo', 'bar', 'two']
+ *     a.reverse! # => ["two", "bar", "foo"]
+ *     a # => ["two", "bar", "foo"]
+ */
 static mrb_value
 mrb_ary_reverse_bang(mrb_state *mrb, mrb_value self)
 {
@@ -608,6 +752,17 @@ mrb_ary_reverse_bang(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ *  call-seq:
+ *     array.reverse -> new_array
+ *
+ *  Returns a new Array with the elements of `self` in reverse order:
+ *
+ *     a = ['foo', 'bar', 'two']
+ *     a1 = a.reverse
+ *     a1 # => ["two", "bar", "foo"]
+ *     a # => ["foo", "bar", "two"]
+ */
 static mrb_value
 mrb_ary_reverse(mrb_state *mrb, mrb_value self)
 {
@@ -651,6 +806,23 @@ mrb_ary_push(mrb_state *mrb, mrb_value ary, mrb_value elem)
   mrb_field_write_barrier_value(mrb, (struct RBasic*)a, elem);
 }
 
+/*
+ *  call-seq:
+ *     array.push(*objects) -> self
+ *     array << object -> self
+ *
+ *  Appends trailing elements.
+ *
+ *  Appends each argument in `objects` to `self`; returns `self`:
+ *
+ *     a = [:foo, 'bar', 2]
+ *     a.push(:baz, :bat) # => [:foo, "bar", 2, :baz, :bat]
+ *
+ *  Appends `object` to `self`; returns `self`:
+ *
+ *     a = [:foo, 'bar', 2]
+ *     a << :baz # => [:foo, "bar", 2, :baz]
+ */
 static mrb_value
 mrb_ary_push_m(mrb_state *mrb, mrb_value self)
 {
@@ -743,6 +915,27 @@ mrb_ary_shift(mrb_state *mrb, mrb_value self)
   }
 }
 
+/*
+ *  call-seq:
+ *     array.shift -> object or nil
+ *     array.shift(n) -> new_array
+ *
+ *  Removes and returns leading elements.
+ *
+ *  When no argument is given, removes and returns the first element:
+ *
+ *     a = [:foo, 'bar', 2]
+ *     a.shift # => :foo
+ *     a # => ["bar", 2]
+ *
+ *  Returns `nil` if `self` is empty.
+ *
+ *  When argument `n` is given, removes and returns the first `n` elements in a new Array:
+ *
+ *     a = [:foo, 'bar', 2]
+ *     a.shift(2) # => [:foo, "bar"]
+ *     a # => [2]
+ */
 static mrb_value
 mrb_ary_shift_m(mrb_state *mrb, mrb_value self)
 {
@@ -835,7 +1028,7 @@ mrb_ary_unshift(mrb_state *mrb, mrb_value self, mrb_value item)
  *  call-seq:
  *    array.unshift(*objects) -> self
  *
- *  Prepends the given +objects+ to +self+:
+ *  Prepends the given `objects` to `self`:
  *
  *    a = [:foo, 'bar', 2]
  *    a.unshift(:bam, :bat) # => [:bam, :bat, :foo, "bar", 2]
@@ -931,6 +1124,7 @@ mrb_ary_set(mrb_state *mrb, mrb_value ary, mrb_int n, mrb_value val)
   mrb_field_write_barrier_value(mrb, (struct RBasic*)a, val);
 }
 
+/* Creates a duplicate of an array */
 static struct RArray*
 ary_dup(mrb_state *mrb, struct RArray *a)
 {
@@ -968,7 +1162,6 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
   mrb_int alen = ARY_LEN(a);
   const mrb_value *argv;
   mrb_int argc;
-  mrb_int tail;
 
   ary_modify(mrb, a);
 
@@ -984,7 +1177,8 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
   out_of_range:
     mrb_raisef(mrb, E_INDEX_ERROR, "index %i is out of array", head);
   }
-  tail = head + len;
+
+  mrb_int tail = head + len;
   if (alen < len || alen < tail) {
     len = alen - head;
     tail = head + len;
@@ -1057,6 +1251,7 @@ mrb_ary_decref(mrb_state *mrb, mrb_shared_array *shared)
   }
 }
 
+/* Creates a subsequence array, using shared storage when appropriate */
 static mrb_value
 ary_subseq(mrb_state *mrb, struct RArray *a, mrb_int beg, mrb_int len)
 {
@@ -1096,6 +1291,7 @@ mrb_ary_subseq(mrb_state *mrb, mrb_value ary, mrb_int beg, mrb_int len)
   return ary_subseq(mrb, a, beg, len);
 }
 
+/* Converts various types to array index integer */
 static mrb_int
 aget_index(mrb_state *mrb, mrb_value index)
 {
@@ -1125,16 +1321,16 @@ aget_index(mrb_state *mrb, mrb_value index)
  *     ary.slice(start, length)  -> new_ary or nil
  *     ary.slice(range)          -> new_ary or nil
  *
- *  Element Reference --- Returns the element at +index+, or returns a
- *  subarray starting at the +start+ index and continuing for +length+
- *  elements, or returns a subarray specified by +range+ of indices.
+ *  Element Reference --- Returns the element at `index`, or returns a
+ *  subarray starting at the `start` index and continuing for `length`
+ *  elements, or returns a subarray specified by `range` of indices.
  *
  *  Negative indices count backward from the end of the array (-1 is the last
- *  element).  For +start+ and +range+ cases the starting index is just before
+ *  element).  For `start` and `range` cases the starting index is just before
  *  an element.  Additionally, an empty array is returned when the starting
  *  index for an element range is at the end of the array.
  *
- *  Returns +nil+ if the index (or starting index) are out of range.
+ *  Returns `nil` if the index (or starting index) are out of range.
  *
  *  a = [ "a", "b", "c", "d", "e" ]
  *  a[1]     => "b"
@@ -1186,16 +1382,16 @@ mrb_ary_aget(mrb_state *mrb, mrb_value self)
  *     ary[start, length] = obj or other_ary or nil  ->  obj or other_ary or nil
  *     ary[range]         = obj or other_ary or nil  ->  obj or other_ary or nil
  *
- *  Element Assignment --- Sets the element at +index+, or replaces a subarray
- *  from the +start+ index for +length+ elements, or replaces a subarray
- *  specified by the +range+ of indices.
+ *  Element Assignment --- Sets the element at `index`, or replaces a subarray
+ *  from the `start` index for `length` elements, or replaces a subarray
+ *  specified by the `range` of indices.
  *
  *  If indices are greater than the current capacity of the array, the array
- *  grows automatically.  Elements are inserted into the array at +start+ if
- *  +length+ is zero.
+ *  grows automatically.  Elements are inserted into the array at `start` if
+ *  `length` is zero.
  *
  *  Negative indices will count backward from the end of the array.  For
- *  +start+ and +range+ cases the starting index is just before an element.
+ *  `start` and `range` cases the starting index is just before an element.
  *
  *  An IndexError is raised if a negative index points past the beginning of
  *  the array.
@@ -1273,6 +1469,27 @@ mrb_ary_delete_at(mrb_state *mrb, mrb_value self)
   return val;
 }
 
+/*
+ *  call-seq:
+ *     array.first -> object or nil
+ *     array.first(n) -> new_array
+ *
+ *  Returns elements from the beginning of `self`.
+ *
+ *  When no argument is given, returns the first element:
+ *
+ *     a = [:foo, 'bar', 2]
+ *     a.first # => :foo
+ *     a # => [:foo, "bar", 2]
+ *
+ *  If `self` is empty, returns `nil`.
+ *
+ *  When non-negative Integer argument `n` is given,
+ *  returns the first `n` elements in a new Array:
+ *
+ *     a = [:foo, 'bar', 2]
+ *     a.first(2) # => [:foo, "bar"]
+ */
 static mrb_value
 mrb_ary_first(mrb_state *mrb, mrb_value self)
 {
@@ -1296,6 +1513,27 @@ mrb_ary_first(mrb_state *mrb, mrb_value self)
   return mrb_ary_new_from_values(mrb, size, ARY_PTR(a));
 }
 
+/*
+ *  call-seq:
+ *     array.last -> object or nil
+ *     array.last(n) -> new_array
+ *
+ *  Returns elements from the end of `self`.
+ *
+ *  When no argument is given, returns the last element:
+ *
+ *     a = [:foo, 'bar', 2]
+ *     a.last # => 2
+ *     a # => [:foo, "bar", 2]
+ *
+ *  If `self` is empty, returns `nil`.
+ *
+ *  When non-negative Integer argument `n` is given,
+ *  returns the last `n` elements in a new Array:
+ *
+ *     a = [:foo, 'bar', 2]
+ *     a.last(2) # => ["bar", 2]
+ */
 static mrb_value
 mrb_ary_last(mrb_state *mrb, mrb_value self)
 {
@@ -1324,11 +1562,11 @@ mrb_ary_last(mrb_state *mrb, mrb_value self)
  *     ary.index {|item| block } -> int or nil
  *     array.index -> enumerator
  *
- *  Returns the _index_ of the first object in +ary+ such that the object is
- *  <code>==</code> to +obj+.
+ *  Returns the _index_ of the first object in `ary` such that the object is
+ *  `==` to `obj`.
  *
  *  If a block is given instead of an argument, returns the _index_ of the
- *  first object for which the block returns +true+. Returns +nil+ if no
+ *  first object for which the block returns `true`. Returns `nil` if no
  *  match is found.
  *
  * ISO 15.2.12.5.14
@@ -1366,11 +1604,11 @@ mrb_ary_index_m(mrb_state *mrb, mrb_value self)
  *     ary.rindex {|item| block } -> int or nil
  *     array.rindex -> enumerator
  *
- *  Returns the _index_ of the first object in +ary+ such that the object is
- *  <code>==</code> to +obj+.
+ *  Returns the _index_ of the first object in `ary` such that the object is
+ *  `==` to `obj`.
  *
  *  If a block is given instead of an argument, returns the _index_ of the
- *  first object for which the block returns +true+. Returns +nil+ if no
+ *  first object for which the block returns `true`. Returns `nil` if no
  *  match is found.
  *
  * ISO 15.2.12.5.26
@@ -1440,6 +1678,16 @@ mrb_ary_splat(mrb_state *mrb, mrb_value v)
   return mrb_obj_value(a);
 }
 
+/*
+ *  call-seq:
+ *     array.size -> integer
+ *     array.length -> integer
+ *
+ *  Returns the count of elements in `self`:
+ *
+ *     [0, 1, 2].size # => 3
+ *     [].size # => 0
+ */
 static mrb_value
 mrb_ary_size(mrb_state *mrb, mrb_value self)
 {
@@ -1481,6 +1729,16 @@ mrb_ary_clear(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ *  call-seq:
+ *     array.empty? -> true or false
+ *
+ *  Returns `true` if the count of elements in `self` is zero,
+ *  `false` otherwise:
+ *
+ *     [].empty? # => true
+ *     [0].empty? # => false
+ */
 static mrb_value
 mrb_ary_empty_p(mrb_state *mrb, mrb_value self)
 {
@@ -1598,7 +1856,7 @@ mrb_ary_join(mrb_state *mrb, mrb_value ary, mrb_value sep)
  *     ary.join(sep="")    -> str
  *
  *  Returns a string created by converting each element of the array to
- *  a string, separated by <i>sep</i>.
+ *  a string, separated by *sep*.
  *
  *     [ "a", "b", "c" ].join        #=> "abc"
  *     [ "a", "b", "c" ].join("-")   #=> "a-b-c"
@@ -1670,7 +1928,7 @@ mrb_ary_eq(mrb_state *mrb, mrb_value ary1)
   if (n == 0) return mrb_false_value();
 
   /* Check for recursion */
-  if (MRB_RECURSIVE_BINARY_P(mrb, MRB_OPSYM(eq), ary1, ary2)) {
+  if (MRB_RECURSIVE_BINARY_FUNC_P(mrb, MRB_OPSYM(eq), ary1, ary2)) {
     return mrb_false_value();
   }
 
@@ -1687,7 +1945,7 @@ mrb_ary_eq(mrb_state *mrb, mrb_value ary1)
  * call-seq:
  *   array.eql? other_array -> true or false
  *
- *  Returns <code>true</code> if +self+ and _other_ are the same object,
+ *  Returns `true` if `self` and _other_ are the same object,
  *  or are both arrays with the same content.
  *
  */
@@ -1701,7 +1959,7 @@ mrb_ary_eql(mrb_state *mrb, mrb_value ary1)
   if (n == 0) return mrb_false_value();
 
   /* Check for recursion */
-  if (MRB_RECURSIVE_BINARY_P(mrb, MRB_SYM_Q(eql), ary1, ary2)) {
+  if (MRB_RECURSIVE_BINARY_FUNC_P(mrb, MRB_SYM_Q(eql), ary1, ary2)) {
     return mrb_false_value();
   }
 
@@ -1719,12 +1977,12 @@ mrb_ary_eql(mrb_state *mrb, mrb_value ary1)
  *   array <=> other_array -> -1, 0, or 1
  *
  *  Comparison---Returns an integer (-1, 0, or +1)
- *  if this array is less than, equal to, or greater than <i>other_ary</i>.
+ *  if this array is less than, equal to, or greater than *other_ary*.
  *  Each object in each array is compared (using <=>). If any value isn't
  *  equal, then that inequality is the return value. If all the
  *  values found are equal, then the return is based on a
  *  comparison of the array lengths. Thus, two arrays are
- *  "equal" according to <code>Array*<=></code> if and only if they have
+ *  "equal" according to `Array#<=>` if and only if they have
  *  the same length and the value of each element is equal to the
  *  value of the corresponding element in the other array.
  */
@@ -1826,8 +2084,11 @@ mrb_ary_delete(mrb_state *mrb, mrb_value self)
 
 
 static mrb_bool
-sort_cmp(mrb_state *mrb, mrb_value ary, mrb_value *p, mrb_value a_val, mrb_value b_val, mrb_value blk)
+sort_cmp(mrb_state *mrb, mrb_value ary, mrb_value a_val, mrb_value b_val, mrb_value blk)
 {
+  mrb_value *p = RARRAY_PTR(ary);
+  mrb_int n = RARRAY_LEN(ary);
+
   mrb_int cmp;
   int ai = mrb_gc_arena_save(mrb);
 
@@ -1871,7 +2132,7 @@ sort_cmp(mrb_state *mrb, mrb_value ary, mrb_value *p, mrb_value a_val, mrb_value
   if (cmp == -2) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "comparison failed");
   }
-  if (RARRAY_PTR(ary) != p) {
+  if (RARRAY_PTR(ary) != p || RARRAY_LEN(ary) != n) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "array modified during sort");
   }
   return cmp > 0;
@@ -1886,10 +2147,10 @@ heapify(mrb_state *mrb, mrb_value ary, mrb_value *a, mrb_int index, mrb_int size
     mrb_int left_index = 2 * index + 1;
     mrb_int right_index = left_index + 1;
 
-    if (left_index < size && sort_cmp(mrb, ary, a, a[left_index], a[max], blk)) {
+    if (left_index < size && sort_cmp(mrb, ary, a[left_index], a[max], blk)) {
       max = left_index;
     }
-    if (right_index < size && sort_cmp(mrb, ary, a, a[right_index], a[max], blk)) {
+    if (right_index < size && sort_cmp(mrb, ary, a[right_index], a[max], blk)) {
       max = right_index;
     }
 
@@ -1916,7 +2177,7 @@ insertion_sort(mrb_state *mrb, mrb_value ary, mrb_value *a, mrb_int size, mrb_va
     mrb_int j = i - 1;
 
     /* Move elements that are greater than key to one position ahead */
-    while (j >= 0 && sort_cmp(mrb, ary, a, a[j], key, blk)) {
+    while (j >= 0 && sort_cmp(mrb, ary, a[j], key, blk)) {
       a[j + 1] = a[j];
       j--;
     }
@@ -1929,7 +2190,7 @@ insertion_sort(mrb_state *mrb, mrb_value ary, mrb_value *a, mrb_int size, mrb_va
  *    array.sort! -> self
  *    array.sort! {|a, b| ... } -> self
  *
- *  Sort all elements and replace +self+ with these
+ *  Sort all elements and replace `self` with these
  *  elements.
  */
 static mrb_value

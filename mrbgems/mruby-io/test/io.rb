@@ -2,7 +2,7 @@
 # IO Test
 
 MRubyIOTestUtil.io_test_setup
-$cr, $crlf, $cmd = MRubyIOTestUtil.win? ? [1, "\r\n", "cmd /c "] : [0, "\n", ""]
+$cr, $cmd = MRubyIOTestUtil.win? ? [1, "cmd /c "] : [0, ""]
 
 def assert_io_open(meth)
   assert "assert_io_open" do
@@ -658,7 +658,8 @@ end
 
 assert('`cmd`') do
   begin
-    assert_equal `#{$cmd}echo foo`, "foo#{$crlf}"
+    result = `#{$cmd}echo foo`
+    assert_equal "foo", result.chomp
   rescue NotImplementedError => e
     skip e.message
   end

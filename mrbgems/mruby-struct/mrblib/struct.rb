@@ -6,7 +6,7 @@ class Struct
   include Enumerable
 
   ##
-  # Calls the given block for each element of +self+
+  # Calls the given block for each element of `self`
   # and pass the respective element.
   #
   # ISO 15.2.18.4.4
@@ -18,7 +18,7 @@ class Struct
   end
 
   ##
-  # Calls the given block for each element of +self+
+  # Calls the given block for each element of `self`
   # and pass the name and value of the respective
   # element.
   #
@@ -31,7 +31,7 @@ class Struct
   end
 
   ##
-  # Calls the given block for each element of +self+
+  # Calls the given block for each element of `self`
   # and returns an array with all elements of which
   # block is not false.
   #
@@ -54,9 +54,9 @@ class Struct
   # call-seq:
   #   hsh.dig(key,...)                 -> object
   #
-  # Extracts the nested value specified by the sequence of <i>key</i>
-  # objects by calling +dig+ at each step, returning +nil+ if any
-  # intermediate step is +nil+.
+  # Extracts the nested value specified by the sequence of *key*
+  # objects by calling `dig` at each step, returning `nil` if any
+  # intermediate step is `nil`.
   #
   def dig(idx,*args)
     n = self[idx]

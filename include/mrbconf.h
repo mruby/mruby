@@ -153,6 +153,12 @@
 //#define MRB_USE_DEBUG_HOOK /* hooks for debugger */
 //#define MRB_USE_ALL_SYMBOLS /* Symbol.all_symbols */
 
+/* Symbol table configuration */
+/* Threshold for switching from linear search to hash table */
+#ifndef MRB_SYMBOL_LINEAR_THRESHOLD
+#define MRB_SYMBOL_LINEAR_THRESHOLD 256
+#endif
+
 /* obsolete configurations */
 #if defined(DISABLE_STDIO) || defined(MRB_DISABLE_STDIO)
 # define MRB_NO_STDIO
