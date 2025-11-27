@@ -35,11 +35,11 @@ static mrb_value
 cfunc_env_get(mrb_state *mrb, mrb_value self)
 {
   mrb_sym n;
-  const mrb_value *argv; mrb_int argc;
-  mrb_method_t m;
-  struct RProc *p;
+  const mrb_value *argv;
+  mrb_int argc;
   mrb_get_args(mrb, "na", &n, &argv, &argc);
-  p = mrb_proc_new_cfunc_with_env(mrb, return_env, argc, argv);
+  struct RProc *p = mrb_proc_new_cfunc_with_env(mrb, return_env, argc, argv);
+  mrb_method_t m;
   MRB_METHOD_FROM_PROC(m, p);
   mrb_define_method_raw(mrb, mrb_class_ptr(self), n, m);
   return self;

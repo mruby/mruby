@@ -46,27 +46,27 @@ assert('Hash.[] for sub class') do
 end
 
 assert('Hash#merge!') do
+  # Single hash merge
   a = { 'abc_key' => 'abc_value', 'cba_key' => 'cba_value' }
   b = { 'cba_key' => 'XXX', 'xyz_key' => 'xyz_value' }
-
   result_1 = a.merge! b
+  assert_equal({'abc_key' => 'abc_value', 'cba_key' => 'XXX',
+               'xyz_key' => 'xyz_value' }, result_1)
 
+  # Block handling
   a = { 'abc_key' => 'abc_value', 'cba_key' => 'cba_value' }
   result_2 = a.merge!(b) do |key, original, new|
     original
   end
-
-  assert_equal({'abc_key' => 'abc_value', 'cba_key' => 'XXX',
-               'xyz_key' => 'xyz_value' }, result_1)
   assert_equal({'abc_key' => 'abc_value', 'cba_key' => 'cba_value',
                'xyz_key' => 'xyz_value' }, result_2)
 
-  assert_raise(TypeError) do
-    { 'abc_key' => 'abc_value' }.merge! "a"
-  end
-
-  # multiple arguments
+  # Multiple arguments
   assert_equal({a:1,b:2,c:3}, {a:1}.merge!({b:2},{c:3}))
+
+  # Error cases
+  assert_raise(ArgumentError) { {}.merge!() }
+  assert_raise(TypeError) { {}.merge!("not a hash") }
 end
 
 assert('Hash#values_at') do
@@ -292,9 +292,51 @@ assert("Hash#slice") do
   assert_equal({:b=>200, :c=>300}, h.slice(:b, :c, :d))
 end
 
+assert("Hash#slice!") do
+  h = { a: 1, b: 2, c: 3, d: 4 }
+  removed = h.slice!(:a, :c)
+  assert_equal({ a: 1, c: 3 }, h)
+  assert_equal({ b: 2, d: 4 }, removed)
+
+  h = { a: 1, b: 2 }
+  removed = h.slice!()
+  assert_equal({}, h)
+  assert_equal({ a: 1, b: 2 }, removed)
+
+  h = { a: 1, b: 2 }
+  removed = h.slice!(:a, :b, :c)
+  assert_equal({ a: 1, b: 2 }, h)
+  assert_equal({}, removed)
+end
+
 assert("Hash#except") do
   h = { a: 100, b: 200, c: 300 }
   assert_equal({:b=>200, :c=>300}, h.except(:a))
   assert_equal({:a=>100}, h.except(:b, :c, :d))
   assert_equal(h, h.except)
+end
+
+assert("Hash#deconstruct_keys") do
+  h = { a: 1, b: 2, c: 3, d: 4 }
+
+  # Test with specific keys
+  result = h.deconstruct_keys([:a, :c])
+  assert_equal({ a: 1, c: 3 }, result)
+
+  # Test with nil (return self)
+  result_nil = h.deconstruct_keys(nil)
+  assert_equal(h, result_nil)
+  assert_true(result_nil.equal?(h))
+
+  # Test with non-existent keys
+  result_missing = h.deconstruct_keys([:a, :x, :y])
+  assert_equal({ a: 1, x: nil, y: nil }, result_missing)
+
+  # Test with empty array
+  result_empty = h.deconstruct_keys([])
+  assert_equal({}, result_empty)
+
+  # Test error cases
+  assert_raise(TypeError) { h.deconstruct_keys("not_an_array") }
+  assert_raise(TypeError) { h.deconstruct_keys(123) }
 end

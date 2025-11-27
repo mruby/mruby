@@ -13,51 +13,59 @@
 #include <mruby/presym.h>
 #include <mruby/range.h>
 #include <mruby/string.h>
+#include <mruby/internal.h>
 
 #include <time.h>
 
-/*  Written in 2019 by David Blackman and Sebastiano Vigna (vigna@acm.org)
+/*  PCG Random Number Generation
+    Based on the PCG family by Melissa O'Neill <oneill@pcg-random.org>
 
-To the extent possible under law, the author has dedicated all copyright
-and related and neighboring rights to this software to the public domain
-worldwide. This software is distributed without any warranty.
+    This implements PCG-XSH-RR with 64-bit state and 32-bit output.
+    On 32-bit platforms, uses an optimized 32-bit multiplier for better
+    performance. On 64-bit platforms, uses the standard 64-bit multiplier
+    for maximum statistical quality.
 
-See <https://creativecommons.org/publicdomain/zero/1.0/>. */
+    See <https://www.pcg-random.org/> for details. */
 
-/* This is xoshiro128++ 1.0, one of our 32-bit all-purpose, rock-solid
-   generators. It has excellent speed, a state size (128 bits) that is
-   large enough for mild parallelism, and it passes all tests we are aware
-   of.
-
-   For generating just single-precision (i.e., 32-bit) floating-point
-   numbers, xoshiro128+ is even faster.
-
-   The state must be seeded so that it is not everywhere zero. */
-
-
+/* Platform-adaptive multiplier selection:
+   - 32-bit platforms: 0xf13283ad requires only 2 multiplies instead of 3
+   - 64-bit platforms: standard multiplier for best statistical quality */
 #ifdef MRB_32BIT
-# define XORSHIFT96
-# define NSEEDS 3
-# define SEEDPOS 2
+# define PCG_MULTIPLIER 0xf13283adULL
 #else
-# define NSEEDS 4
-# define SEEDPOS 0
+# define PCG_MULTIPLIER 6364136223846793005ULL
 #endif
-#define LASTSEED (NSEEDS-1)
+#define PCG_INCREMENT 1442695040888963407ULL
 
 typedef struct rand_state {
-  uint32_t seed[NSEEDS];
+#ifdef MRB_32BIT
+  /* On 32-bit platforms, split state to avoid alignment padding */
+  uint32_t state_lo;
+  uint32_t state_hi;
+#else
+  uint64_t state;
+#endif
+  uint32_t seed_value;  /* Track last seed for srand compatibility */
 } rand_state;
+
+/* Helper macros for 64-bit state access */
+#ifdef MRB_32BIT
+# define GET_STATE(t) (((uint64_t)(t)->state_hi << 32) | (t)->state_lo)
+# define SET_STATE(t, val) do { \
+    uint64_t v_ = (val); \
+    (t)->state_lo = (uint32_t)v_; \
+    (t)->state_hi = (uint32_t)(v_ >> 32); \
+  } while (0)
+#else
+# define GET_STATE(t) ((t)->state)
+# define SET_STATE(t, val) ((t)->state = (val))
+#endif
 
 static void
 rand_init(rand_state *t)
 {
-  t->seed[0] = 123456789;
-  t->seed[1] = 362436069;
-  t->seed[2] = 521288629;
-#ifndef XORSHIFT96
-  t->seed[3] = 88675123;
-#endif
+  SET_STATE(t, 0x853c49e6748fea9bULL);
+  t->seed_value = 521288629;
 }
 
 static uint32_t rand_uint32(rand_state *state);
@@ -65,54 +73,36 @@ static uint32_t rand_uint32(rand_state *state);
 static uint32_t
 rand_seed(rand_state *t, uint32_t seed)
 {
-  uint32_t old_seed = t->seed[SEEDPOS];
-  rand_init(t);
-  t->seed[SEEDPOS] = seed;
+  uint32_t old_seed = t->seed_value;
+
+  /* PCG initialization: state=0, step, add seed, step, then mix */
+  SET_STATE(t, 0);
+  rand_uint32(t);
+  SET_STATE(t, GET_STATE(t) + seed);
   for (int i = 0; i < 10; i++) {
     rand_uint32(t);
   }
+
+  t->seed_value = seed;
   return old_seed;
 }
 
-#ifndef XORSHIFT96
-static inline uint32_t
-rotl(const uint32_t x, int k) {
-  return (x << k) | (x >> (32 - k));
-}
-#endif
-
 static uint32_t
-rand_uint32(rand_state *state)
+rand_uint32(rand_state *rng)
 {
-#ifdef XORSHIFT96
-  uint32_t *seed = state->seed;
-  uint32_t x = seed[0];
-  uint32_t y = seed[1];
-  uint32_t z = seed[2];
-  uint32_t t = (x ^ (x << 3)) ^ (y ^ (y >> 19)) ^ (z ^ (z << 6));
+  /* PCG-XSH-RR: XorShift High (xorshift), then Random Rotate */
+  uint64_t oldstate = GET_STATE(rng);
 
-  x = y; y = z; z = t;
-  seed[0] = x;
-  seed[1] = y;
-  seed[2] = z;
+  /* LCG step: advance internal state */
+  SET_STATE(rng, oldstate * PCG_MULTIPLIER + PCG_INCREMENT);
 
-  return z;
-#else
-  uint32_t *s = state->seed;
-  const uint32_t result = rotl(s[0] + s[3], 7) + s[0];
-  const uint32_t t = s[1] << 9;
+  /* Output function: xorshift, then rotate by top bits */
+  uint32_t xorshifted = (uint32_t)(((oldstate >> 18u) ^ oldstate) >> 27u);
+  uint32_t rot = (uint32_t)(oldstate >> 59u);
 
-  s[2] ^= s[0];
-  s[3] ^= s[1];
-  s[1] ^= s[2];
-  s[0] ^= s[3];
-
-  s[2] ^= t;
-  s[3] = rotl(s[3], 11);
-
-  return result;
-#endif  /* XORSHIFT96 */
-  }
+  /* Rotate right by rot bits (handles rot=0 case correctly) */
+  return (xorshifted >> rot) | (xorshifted << ((32 - rot) & 31));
+}
 
 #ifndef MRB_NO_FLOAT
 static double
@@ -139,7 +129,14 @@ random_rand(mrb_state *mrb, rand_state *t, mrb_int max)
 static mrb_int
 rand_i(rand_state *t, mrb_int max)
 {
-  return rand_uint32(t) % max;
+  /* return uniform integer in [0, max) without modulo bias */
+  if (max <= 0) return 0;
+  uint32_t threshold = (uint32_t)(-max) % (uint32_t)max; /* power-of-two fast path => 0 */
+  uint32_t r;
+  do {
+    r = rand_uint32(t);
+  } while (r < threshold);
+  return (mrb_int)(r % (uint32_t)max);
 }
 
 static mrb_value
@@ -210,6 +207,22 @@ random_rand_impl(mrb_state *mrb, rand_state *t, mrb_value self)
     return random_range(mrb, t, arg);
   }
 
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(arg)) {
+    if (mrb_bint_sign(mrb, arg) < 0) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "negative value as random limit");
+    }
+    mrb_int size = mrb_bint_size(mrb, arg);
+    mrb_value bytes = mrb_str_new(mrb, NULL, size);
+    uint8_t *p = (uint8_t*)RSTRING_PTR(bytes);
+    for (mrb_int i = 0; i < size; i++) {
+      p[i] = (uint8_t)rand_uint32(t);
+    }
+    mrb_value rand_bint = mrb_bint_from_bytes(mrb, p, size);
+    return mrb_bint_mod(mrb, rand_bint, arg);
+  }
+#endif
+
   range_error(mrb, arg);
 }
 
@@ -229,6 +242,17 @@ random_default(mrb_state *mrb)
 #define random_ptr(v) (rand_state*)mrb_istruct_ptr(v)
 #define random_default_state(mrb) random_ptr(random_default(mrb))
 
+/*
+ * call-seq:
+ *   Random.new(seed = nil) -> random
+ *
+ * Creates a new random number generator. If seed is omitted or nil,
+ * the generator is initialized with a default seed. Otherwise,
+ * the generator is initialized with the given seed.
+ *
+ *   Random.new        #=> #<Random:0x...>
+ *   Random.new(1234)  #=> #<Random:0x...>
+ */
 static mrb_value
 random_m_init(mrb_state *mrb, mrb_value self)
 {
@@ -245,6 +269,22 @@ random_m_init(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ * call-seq:
+ *   random.rand -> float
+ *   random.rand(max) -> number
+ *   random.rand(range) -> number
+ *
+ * Returns a random number. When called without arguments, returns a
+ * random float between 0.0 and 1.0. When called with a positive integer,
+ * returns a random integer between 0 and max-1. When called with a range,
+ * returns a random number within that range.
+ *
+ *   prng = Random.new
+ *   prng.rand         #=> 0.2725926052826416
+ *   prng.rand(10)     #=> 7
+ *   prng.rand(1..6)   #=> 4
+ */
 static mrb_value
 random_m_rand(mrb_state *mrb, mrb_value self)
 {
@@ -252,6 +292,18 @@ random_m_rand(mrb_state *mrb, mrb_value self)
   return random_rand_impl(mrb, t, self);
 }
 
+/*
+ * call-seq:
+ *   random.srand(seed = nil) -> old_seed
+ *
+ * Seeds the random number generator with the given seed. If seed is
+ * omitted or nil, uses a combination of current time and internal state.
+ * Returns the previous seed value.
+ *
+ *   prng = Random.new
+ *   prng.srand(1234)  #=> (previous seed)
+ *   prng.srand        #=> 1234
+ */
 static mrb_value
 random_m_srand(mrb_state *mrb, mrb_value self)
 {
@@ -270,16 +322,41 @@ random_m_srand(mrb_state *mrb, mrb_value self)
   return mrb_int_value(mrb, (mrb_int)old_seed);
 }
 
+/*
+ * call-seq:
+ *   random.bytes(size) -> string
+ *
+ * Returns a string of random bytes of the specified size.
+ *
+ *   prng = Random.new
+ *   prng.bytes(4)     #=> "\x8F\x12\xA3\x7C"
+ *   prng.bytes(10).length  #=> 10
+ */
 static mrb_value
 random_m_bytes(mrb_state *mrb, mrb_value self)
 {
   rand_state *t = random_ptr(self);
   mrb_int i = mrb_as_int(mrb, mrb_get_arg1(mrb));
+  if (i < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "negative string size");
   mrb_value bytes = mrb_str_new(mrb, NULL, i);
   uint8_t *p = (uint8_t*)RSTRING_PTR(bytes);
 
-  for (; i > 0; i--, p++) {
-    *p = (uint8_t)rand_uint32(t);
+  /* write 4 bytes per PRNG call */
+  while (i >= 4) {
+    uint32_t x = rand_uint32(t);
+    p[0] = (uint8_t)(x);
+    p[1] = (uint8_t)(x >> 8);
+    p[2] = (uint8_t)(x >> 16);
+    p[3] = (uint8_t)(x >> 24);
+    p += 4;
+    i -= 4;
+  }
+  if (i > 0) {
+    uint32_t x = rand_uint32(t);
+    while (i-- > 0) {
+      *p++ = (uint8_t)x;
+      x >>= 8;
+    }
   }
 
   return bytes;
@@ -320,8 +397,9 @@ mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
     mrb_get_args(mrb, ":", &kw);
     rand_state *random = check_random_arg(mrb, r);
     mrb_ary_modify(mrb, mrb_ary_ptr(ary));
-    for (mrb_int i = RARRAY_LEN(ary) - 1; i > 0; i--)  {
-      mrb_value *ptr = RARRAY_PTR(ary);
+    mrb_int len = RARRAY_LEN(ary);
+    mrb_value *ptr = RARRAY_PTR(ary);
+    for (mrb_int i = len - 1; i > 0; i--)  {
       mrb_int j = rand_i(random, i + 1);
       mrb_value tmp = ptr[i];
       ptr[i] = ptr[j];
@@ -342,7 +420,7 @@ mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
 static mrb_value
 mrb_ary_shuffle(mrb_state *mrb, mrb_value ary)
 {
-  mrb_value new_ary = mrb_ary_new_from_values(mrb, RARRAY_LEN(ary), RARRAY_PTR(ary));
+  mrb_value new_ary = mrb_ary_dup(mrb, ary);
   mrb_ary_shuffle_bang(mrb, new_ary);
 
   return new_ary;
@@ -353,13 +431,13 @@ mrb_ary_shuffle(mrb_state *mrb, mrb_value ary)
  *     ary.sample      ->   obj
  *     ary.sample(n)   ->   new_ary
  *
- *  Choose a random element or +n+ random elements from the array.
+ *  Choose a random element or `n` random elements from the array.
  *
  *  The elements are chosen by using random and unique indices into the array
  *  in order to ensure that an element doesn't repeat itself unless the array
  *  already contained duplicate elements.
  *
- *  If the array is empty the first form returns +nil+ and the second form
+ *  If the array is empty the first form returns `nil` and the second form
  *  returns an empty array.
  */
 
@@ -388,32 +466,48 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
   else {
     if (n < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "negative sample number");
     if (n > len) n = len;
-    mrb_value result = mrb_ary_new_capa(mrb, n);
-    for (mrb_int i=0; i<n; i++) {
-      mrb_int idx;
-
+    /* collect unique indices without allocating Ruby Integers */
+    mrb_int *idx = (mrb_int*)mrb_alloca(mrb, sizeof(mrb_int) * (n > 0 ? n : 1));
+    for (mrb_int i = 0; i < n; i++) {
+      mrb_int v;
       for (;;) {
       retry:
-        idx = rand_i(random, len);
-
-        for (mrb_int j=0; j<i; j++) {
-          if (mrb_integer(RARRAY_PTR(result)[j]) == idx) {
-            goto retry;         /* retry if duplicate */
-          }
+        v = rand_i(random, len);
+        for (mrb_int j = 0; j < i; j++) {
+          if (idx[j] == v) goto retry; /* retry if duplicate */
         }
         break;
       }
-      mrb_ary_push(mrb, result, mrb_int_value(mrb, idx));
+      idx[i] = v;
     }
-    for (mrb_int i=0; i<n; i++) {
-      mrb_int idx = mrb_integer(RARRAY_PTR(result)[i]);
-      mrb_value elem = RARRAY_PTR(ary)[idx];
-      mrb_ary_set(mrb, result, i, elem);
+    mrb_value result = mrb_ary_new_capa(mrb, n);
+    for (mrb_int i = 0; i < n; i++) {
+      mrb_ary_push(mrb, result, RARRAY_PTR(ary)[idx[i]]);
     }
+
     return result;
   }
 }
 
+/*
+ * call-seq:
+ *   Random.rand -> float
+ *   Random.rand(max) -> number
+ *   Random.rand(range) -> number
+ *   rand -> float
+ *   rand(max) -> number
+ *   rand(range) -> number
+ *
+ * Returns a random number using the default random number generator.
+ * Equivalent to Random.new.rand. When called without arguments, returns
+ * a random float between 0.0 and 1.0. When called with a positive integer,
+ * returns a random integer between 0 and max-1. When called with a range,
+ * returns a random number within that range.
+ *
+ *   Random.rand       #=> 0.8444218515250481
+ *   Random.rand(10)   #=> 5
+ *   rand(1..6)        #=> 3
+ */
 static mrb_value
 random_f_rand(mrb_state *mrb, mrb_value self)
 {
@@ -421,6 +515,18 @@ random_f_rand(mrb_state *mrb, mrb_value self)
   return random_rand_impl(mrb, t, self);
 }
 
+/*
+ * call-seq:
+ *   Random.srand(seed = nil) -> old_seed
+ *   srand(seed = nil) -> old_seed
+ *
+ * Seeds the default random number generator with the given seed.
+ * If seed is omitted or nil, uses current time and internal state.
+ * Returns the previous seed value.
+ *
+ *   Random.srand(1234)  #=> (previous seed)
+ *   srand               #=> 1234
+ */
 static mrb_value
 random_f_srand(mrb_state *mrb, mrb_value self)
 {
@@ -428,6 +534,16 @@ random_f_srand(mrb_state *mrb, mrb_value self)
   return random_m_srand(mrb, random);
 }
 
+/*
+ * call-seq:
+ *   Random.bytes(size) -> string
+ *
+ * Returns a string of random bytes of the specified size using
+ * the default random number generator.
+ *
+ *   Random.bytes(4)     #=> "\x8F\x12\xA3\x7C"
+ *   Random.bytes(10).length  #=> 10
+ */
 static mrb_value
 random_f_bytes(mrb_state *mrb, mrb_value self)
 {

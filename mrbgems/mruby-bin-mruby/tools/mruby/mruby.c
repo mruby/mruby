@@ -282,8 +282,9 @@ main(int argc, char **argv)
   mrb_value ARGV;
   mrb_value v;
 
-  if (mrb == NULL) {
-    fprintf(stderr, "%s: Invalid mrb_state, exiting mruby\n", *argv);
+  if (MRB_OPEN_FAILURE(mrb)) {
+    mrb_print_error(mrb);  /* handles NULL */
+    mrb_close(mrb);        /* handles NULL */
     return EXIT_FAILURE;
   }
 
@@ -339,10 +340,10 @@ main(int argc, char **argv)
       }
       fclose(lfp);
       mrb_vm_ci_env_clear(mrb, mrb->c->cibase);
-      mrb_ccontext_cleanup_local_variables(mrb, c);
+      mrb_ccontext_cleanup_local_variables(c);
     }
 
-    /* set program file name */
+    /* set program filename */
     mrb_ccontext_filename(mrb, c, cmdline);
 
     /* Load program */

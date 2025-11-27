@@ -144,13 +144,13 @@ module MRuby
     #
     # === Example of +.d+ file
     #
-    # ==== Without <tt>-MP</tt> compiler flag
+    # ==== Without `-MP` compiler flag
     #
     #   /build/host/src/array.o: /src/array.c \
     #     /include/mruby/common.h /include/mruby/value.h \
     #     /src/value_array.h
     #
-    # ==== With <tt>-MP</tt> compiler flag
+    # ==== With `-MP` compiler flag
     #
     #   /build/host/src/array.o: /src/array.c \
     #     /include/mruby/common.h /include/mruby/value.h \

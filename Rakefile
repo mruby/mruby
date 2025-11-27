@@ -16,6 +16,11 @@ require "mruby/build"
 MRUBY_CONFIG = MRuby::Build.mruby_config_path
 load MRUBY_CONFIG
 
+# set up all gems
+MRuby.each_target do
+  gems.setup(self) if enable_gems?
+end
+
 # load basic rules
 MRuby.each_target do |build|
   build.define_rules

@@ -96,7 +96,7 @@ class Enumerator
   #
   # In the first form, iteration is defined by the given block, in
   # which a "yielder" object, given as block parameter, can be used to
-  # yield a value by calling the +yield+ method (aliased as +<<+):
+  # yield a value by calling the `yield` method (aliased as +<<+):
   #
   #     fib = Enumerator.new do |y|
   #       a = b = 1
@@ -132,7 +132,7 @@ class Enumerator
     @stop_exc = false
   end
 
-  def initialize_copy(obj)
+  private def initialize_copy(obj)
     raise TypeError, "can't copy type #{obj.class}" unless obj.kind_of? Enumerator
     raise TypeError, "can't copy execution context" if obj.instance_eval{@fib}
     meth = args = kwd = fib = nil
@@ -158,10 +158,10 @@ class Enumerator
   #   e.with_index(offset = 0)
   #
   # Iterates the given block for each element with an index, which
-  # starts from +offset+. If no block is given, returns a new Enumerator
-  # that includes the index, starting from +offset+
+  # starts from `offset`. If no block is given, returns a new Enumerator
+  # that includes the index, starting from `offset`
   #
-  # +offset+:: the starting index to use
+  # `offset`:: the starting index to use
   #
   def with_index(offset=0, &block)
     return to_enum :with_index, offset unless block
@@ -199,8 +199,8 @@ class Enumerator
   #   e.with_object(obj) {|(*args), obj| ... }
   #   e.with_object(obj)
   #
-  # Iterates the given block for each element with an arbitrary object, +obj+,
-  # and returns +obj+
+  # Iterates the given block for each element with an arbitrary object, `obj`,
+  # and returns `obj`
   #
   # If no block is given, returns a new Enumerator.
   #
@@ -229,6 +229,15 @@ class Enumerator
     object
   end
 
+  ##
+  # call-seq:
+  #   enum.inspect -> string
+  #
+  # Returns a string representation of the enumerator.
+  #
+  #   [1, 2, 3].each.inspect  #=> "#<Enumerator: [1, 2, 3]:each>"
+  #   [1, 2, 3].map.inspect   #=> "#<Enumerator: [1, 2, 3]:map>"
+  #
   def inspect
     if @args && @args.size > 0
       args = @args.join(", ")
@@ -238,6 +247,16 @@ class Enumerator
     end
   end
 
+  ##
+  # call-seq:
+  #   enum.size -> int, float, or nil
+  #
+  # Returns the size of the enumerator, or nil if it cannot be calculated lazily.
+  #
+  #   [1, 2, 3].each.size    #=> 3
+  #   (1..100).each.size     #=> 100
+  #   loop.size              #=> nil
+  #
   def size
     if @size
       @size
@@ -320,7 +339,7 @@ class Enumerator
   #   p e.next   #=> 3
   #   p e.next   #raises StopIteration
   #
-  # Note that enumeration sequence by +next+ does not affect other non-external
+  # Note that enumeration sequence by `next` does not affect other non-external
   # enumeration methods, unless the underlying iteration methods itself has
   # side-effect
   #
@@ -336,8 +355,8 @@ class Enumerator
   # internal position forward. When the position reached at the end,
   # StopIteration is raised.
   #
-  # This method can be used to distinguish <code>yield</code> and <code>yield
-  # nil</code>.
+  # This method can be used to distinguish `yield` and `yield
+  # nil`.
   #
   # === Example
   #
@@ -369,7 +388,7 @@ class Enumerator
   #   #  yield nil        [nil]            nil
   #   #  yield [1, 2]     [[1, 2]]         [1, 2]
   #
-  # Note that +next_values+ does not affect other non-external enumeration
+  # Note that `next_values` does not affect other non-external enumeration
   # methods unless underlying iteration method itself has side-effect
   #
   def next_values
@@ -491,7 +510,7 @@ class Enumerator
   # call-seq:
   #   e.feed obj   -> nil
   #
-  # Sets the value to be returned by the next yield inside +e+.
+  # Sets the value to be returned by the next yield inside `e`.
   #
   # If the value is not set, the yield returns nil.
   #
@@ -577,9 +596,9 @@ class Enumerator
   #
   # Creates an infinite enumerator from any block, just called over and
   # over. Result of the previous iteration is passed to the next one.
-  # If +initial+ is provided, it is passed to the first iteration, and
+  # If `initial` is provided, it is passed to the first iteration, and
   # becomes the first element of the enumerator; if it is not provided,
-  # first iteration receives +nil+, and its result becomes first
+  # first iteration receives `nil`, and its result becomes first
   # element of the iterator.
   #
   # Raising StopIteration from the block stops an iteration.
@@ -618,8 +637,8 @@ module Kernel
   #   obj.to_enum(method = :each, *args)                 -> enum
   #   obj.enum_for(method = :each, *args)                -> enum
   #
-  # Creates a new Enumerator which will enumerate by calling +method+ on
-  # +obj+, passing +args+ if any.
+  # Creates a new Enumerator which will enumerate by calling `method` on
+  # `obj`, passing `args` if any.
   #
   # === Examples
   #
@@ -729,14 +748,14 @@ module Enumerable
   #     e.next # => [2, [6, 7, 8]]
   #     e.next # => [3, [9, 10]]
   #
-  #  You can use the special symbol <tt>:_alone</tt> to force an element
+  #  You can use the special symbol `:_alone` to force an element
   #  into its own separate chuck:
   #
   #     a = [0, 0, 1, 1]
   #     e = a.chunk{|i| i.even? ? :_alone : true }
   #     e.to_a # => [[:_alone, [0]], [:_alone, [0]], [true, [1, 1]]]
   #
-  #  You can use the special symbol <tt>:_separator</tt> or +nil+
+  #  You can use the special symbol `:_separator` or `nil`
   #  to force an element to be ignored (not included in any chunk):
   #
   #     a = [0, 0, -1, 1, 1]
@@ -782,17 +801,17 @@ module Enumerable
   # _elt_before_ and _elt_after_,
   # in the receiver enumerator.
   # This method split chunks between _elt_before_ and _elt_after_ where
-  # the block returns <code>false</code>.
+  # the block returns `false`.
   #
   # The block is called the length of the receiver enumerator minus one.
   #
   # The result enumerator yields the chunked elements as an array.
-  # So +each+ method can be called as follows:
+  # So `each` method can be called as follows:
   #
   #   enum.chunk_while { |elt_before, elt_after| bool }.each { |ary| ... }
   #
   # Other methods of the Enumerator class and Enumerable module,
-  # such as +to_a+, +map+, etc., are also usable.
+  # such as `to_a`, `map`, etc., are also usable.
   #
   # For example, one-by-one increasing subsequence can be chunked as follows:
   #
@@ -818,7 +837,7 @@ module Enumerable
   #   #=> [[7, 5, 9], [2, 0], [7, 9], [4, 2, 0]]
   #
   # Enumerable#slice_when does the same, except splitting when the block
-  # returns <code>true</code> instead of <code>false</code>.
+  # returns `true` instead of `false`.
   #
   def chunk_while(&block)
     enum = self

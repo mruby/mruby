@@ -60,7 +60,11 @@ module MRuby
       def mruby_config_path
         path = ENV['MRUBY_CONFIG'] || ENV['CONFIG']
         if path.nil? || path.empty?
-          path = "#{MRUBY_ROOT}/build_config/default.rb"
+          path = if Dir.pwd != MRUBY_ROOT && File.file?("./build_config.rb")
+            "./build_config.rb"
+          else
+            "#{MRUBY_ROOT}/build_config/default.rb"
+          end
         elsif !File.file?(path) && !Pathname.new(path).absolute?
           f = "#{MRUBY_ROOT}/build_config/#{path}.rb"
           path = File.exist?(f) ? f : File.extname(path).empty? ? f : path
@@ -612,9 +616,6 @@ EOS
       puts ">>> Bintest #{name} <<<"
       targets = @gems.select { |v| File.directory? "#{v.dir}/bintest" }.map { |v| filename v.dir }
       mrbc = @gems["mruby-bin-mrbc"] ? exefile("#{@build_dir}/bin/mrbc") : mrbcfile
-
-      emulator = @test_runner.command
-      emulator = @test_runner.shellquote(emulator) if emulator
 
       env = {
         "BUILD_DIR" => @build_dir,

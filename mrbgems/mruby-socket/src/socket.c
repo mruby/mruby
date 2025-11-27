@@ -6,12 +6,9 @@
 
 #ifdef _WIN32
   #define _WIN32_WINNT 0x0501
-
   #include <winsock2.h>
   #include <ws2tcpip.h>
   #include <windows.h>
-  #include <winerror.h>
-
   #define SHUT_RDWR SD_BOTH
   typedef int fsize_t;
 #else
@@ -42,6 +39,91 @@
 #include <mruby/presym.h>
 
 #include <mruby/ext/io.h>
+#include "socket_hal.h"
+
+/* Address family information for compact lookup table */
+typedef struct {
+  int family;                 /* AF_INET, AF_INET6, etc. */
+  const char *name;           /* "AF_INET", "AF_INET6", etc. */
+  int port_offset;            /* Offset to port field in sockaddr structure */
+  mrb_bool has_port;          /* TRUE if this family has a port field */
+} af_info_t;
+
+/* Protocol family lookup table for socket option inspection */
+typedef struct {
+  int family;                 /* PF_INET, PF_INET6, etc. */
+  const char *name;           /* "INET", "INET6", etc. */
+} pf_info_t;
+
+/* Compact address family lookup table (memory-efficient) */
+static const af_info_t af_table[] = {
+  /* Internet Protocol families with port numbers */
+  {AF_INET,  "AF_INET",  offsetof(struct sockaddr_in, sin_port),   TRUE},
+  {AF_INET6, "AF_INET6", offsetof(struct sockaddr_in6, sin6_port), TRUE},
+
+  /* Local/Unix domain sockets without port numbers */
+#ifdef AF_UNIX
+  {AF_UNIX,  "AF_UNIX",  -1,                                       FALSE},
+#endif
+#ifdef AF_LOCAL
+  {AF_LOCAL, "AF_LOCAL", -1,                                       FALSE},
+#endif
+
+  /* Additional protocol families (platform-dependent) */
+#ifdef AF_LINK
+  {AF_LINK,  "AF_LINK",  -1,                                       FALSE},
+#endif
+#ifdef AF_ROUTE
+  {AF_ROUTE, "AF_ROUTE", -1,                                       FALSE},
+#endif
+#ifdef AF_UNSPEC
+  {AF_UNSPEC, "AF_UNSPEC", -1,                                     FALSE},
+#endif
+};
+
+#define AF_TABLE_SIZE (sizeof(af_table) / sizeof(af_table[0]))
+
+/* Get address family info for given family constant (compact linear search) */
+static inline const af_info_t *get_af_info(int family) {
+  for (size_t i = 0; i < AF_TABLE_SIZE; i++) {
+    if (af_table[i].family == family) {
+      return &af_table[i];
+    }
+  }
+  return NULL;
+}
+
+/* Compact protocol family lookup table (memory-efficient) */
+static const pf_info_t pf_table[] = {
+  {PF_INET,  "INET"},
+#ifdef PF_INET6
+  {PF_INET6, "INET6"},
+#endif
+#ifdef PF_IPX
+  {PF_IPX,   "IPX"},
+#endif
+#ifdef PF_AX25
+  {PF_AX25,  "AX25"},
+#endif
+#ifdef PF_APPLETALK
+  {PF_APPLETALK, "APPLETALK"},
+#endif
+#ifdef PF_UNIX
+  {PF_UNIX,  "UNIX"},
+#endif
+};
+
+#define PF_TABLE_SIZE (sizeof(pf_table) / sizeof(pf_table[0]))
+
+/* Get protocol family name for given family constant (compact linear search) */
+static inline const char *get_pf_name(int family) {
+  for (size_t i = 0; i < PF_TABLE_SIZE; i++) {
+    if (pf_table[i].family == family) {
+      return pf_table[i].name;
+    }
+  }
+  return NULL;
+}
 
 #if !defined(HAVE_SA_LEN)
 #if (defined(BSD) && (BSD >= 199006))
@@ -53,56 +135,12 @@
 
 #define E_SOCKET_ERROR             mrb_class_get_id(mrb, MRB_SYM(SocketError))
 
-#ifdef _WIN32
-static const char *inet_ntop(int af, const void *src, char *dst, socklen_t cnt)
-{
-  if (af == AF_INET) {
-    struct sockaddr_in in = {0};
-
-    in.sin_family = AF_INET;
-    memcpy(&in.sin_addr, src, sizeof(struct in_addr));
-    getnameinfo((struct sockaddr*)&in, sizeof(struct sockaddr_in),
-                dst, cnt, NULL, 0, NI_NUMERICHOST);
-    return dst;
-  }
-  else if (af == AF_INET6) {
-    struct sockaddr_in6 in = {0};
-
-    in.sin6_family = AF_INET6;
-    memcpy(&in.sin6_addr, src, sizeof(struct in_addr6));
-    getnameinfo((struct sockaddr*)&in, sizeof(struct sockaddr_in6),
-                dst, cnt, NULL, 0, NI_NUMERICHOST);
-    return dst;
-  }
-  return NULL;
-}
-
-static int inet_pton(int af, const char *src, void *dst)
-{
-  struct addrinfo hints = {0};
-  hints.ai_family = af;
-
-  struct addrinfo *res;
-  if (getaddrinfo(src, NULL, &hints, &res) != 0) {
-    printf("Couldn't resolve host %s\n", src);
-    return -1;
-  }
-
-  for (struct addrinfo *r = res; r; r = r->ai_next) {
-    memcpy(dst, r->ai_addr, r->ai_addrlen);
-  }
-
-  freeaddrinfo(res);
-  return 0;
-}
-
-#endif
-
 struct gen_addrinfo_args {
   struct RClass *klass;
   struct addrinfo *addrinfo;
 };
 
+/* Helper to generate array of Addrinfo objects from addrinfo linked list */
 static mrb_value
 gen_addrinfo(mrb_state *mrb, mrb_value args)
 {
@@ -120,6 +158,7 @@ gen_addrinfo(mrb_state *mrb, mrb_value args)
   return ary;
 }
 
+/* Helper to free addrinfo structure - used with mrb_ensure */
 static mrb_value
 free_addrinfo(mrb_state *mrb, mrb_value addrinfo)
 {
@@ -127,6 +166,15 @@ free_addrinfo(mrb_state *mrb, mrb_value addrinfo)
   return mrb_nil_value();
 }
 
+/*
+ * call-seq:
+ *   Addrinfo.getaddrinfo(nodename, servname, family=nil, socktype=nil, protocol=nil, flags=0) -> array
+ *
+ * Returns an array of Addrinfo objects for the given nodename and servname.
+ *
+ *   Addrinfo.getaddrinfo("localhost", "http")
+ *   Addrinfo.getaddrinfo("www.example.com", 80, Socket::AF_INET)
+ */
 static mrb_value
 mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
 {
@@ -175,6 +223,15 @@ mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
   return mrb_ensure(mrb, gen_addrinfo, mrb_cptr_value(mrb, &args), free_addrinfo, mrb_cptr_value(mrb, addr));
 }
 
+/*
+ * call-seq:
+ *   addrinfo.getnameinfo(flags=0) -> [hostname, service]
+ *
+ * Returns the hostname and service name for the address.
+ *
+ *   addr.getnameinfo  #=> ["localhost", "http"]
+ *   addr.getnameinfo(Socket::NI_NUMERICHOST)  #=> ["127.0.0.1", "80"]
+ */
 static mrb_value
 mrb_addrinfo_getnameinfo(mrb_state *mrb, mrb_value self)
 {
@@ -200,41 +257,41 @@ mrb_addrinfo_getnameinfo(mrb_state *mrb, mrb_value self)
   return ary;
 }
 
-#ifndef _WIN32
+/*
+ * call-seq:
+ *   addrinfo.unix_path -> string
+ *
+ * Returns the Unix domain socket path.
+ *
+ *   addr.unix_path  #=> "/tmp/socket"
+ */
 static mrb_value
 mrb_addrinfo_unix_path(mrb_state *mrb, mrb_value self)
 {
   mrb_value sastr = mrb_iv_get(mrb, self, MRB_IVSYM(sockaddr));
 
-  if (!mrb_string_p(sastr) || ((struct sockaddr*)RSTRING_PTR(sastr))->sa_family != AF_UNIX)
-    mrb_raise(mrb, E_SOCKET_ERROR, "need AF_UNIX address");
-  if (RSTRING_LEN(sastr) < (mrb_int)offsetof(struct sockaddr_un, sun_path) + 1) {
-    return mrb_str_new(mrb, "", 0);
+  if (!mrb_string_p(sastr)) {
+    mrb_raise(mrb, E_SOCKET_ERROR, "invalid sockaddr");
   }
-  else {
-    return mrb_str_new_cstr(mrb, ((struct sockaddr_un*)RSTRING_PTR(sastr))->sun_path);
-  }
-}
-#endif
 
+  return mrb_hal_socket_unix_path(mrb, RSTRING_PTR(sastr), (size_t)RSTRING_LEN(sastr));
+}
+
+/* Helper to convert sockaddr to address list array [family, port, host, host] */
 static mrb_value
 sa2addrlist(mrb_state *mrb, const struct sockaddr *sa, socklen_t salen)
 {
-  const char *afstr;
-  unsigned short port;
-
-  switch (sa->sa_family) {
-  case AF_INET:
-    afstr = "AF_INET";
-    port = ((struct sockaddr_in*)sa)->sin_port;
-    break;
-  case AF_INET6:
-    afstr = "AF_INET6";
-    port = ((struct sockaddr_in6*)sa)->sin6_port;
-    break;
-  default:
+  /* Use lookup table for O(1) address family dispatch */
+  const af_info_t *af_info = get_af_info(sa->sa_family);
+  if (!af_info) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "bad af");
     return mrb_nil_value();
+  }
+
+  /* Extract port using table-driven offset calculation */
+  unsigned short port = 0;
+  if (af_info->has_port) {
+    port = *(unsigned short*)((char*)sa + af_info->port_offset);
   }
   port = ntohs(port);
   mrb_value host = mrb_str_new_capa(mrb, NI_MAXHOST);
@@ -243,7 +300,7 @@ sa2addrlist(mrb_state *mrb, const struct sockaddr *sa, socklen_t salen)
   mrb_str_resize(mrb, host, strlen(RSTRING_PTR(host)));
 
   mrb_value ary = mrb_ary_new_capa(mrb, 4);
-  mrb_ary_push(mrb, ary, mrb_str_new_cstr(mrb, afstr));
+  mrb_ary_push(mrb, ary, mrb_str_new_cstr(mrb, af_info->name));
   mrb_ary_push(mrb, ary, mrb_fixnum_value(port));
   mrb_ary_push(mrb, ary, host);
   mrb_ary_push(mrb, ary, host);
@@ -252,12 +309,14 @@ sa2addrlist(mrb_state *mrb, const struct sockaddr *sa, socklen_t salen)
 
 int mrb_io_fileno(mrb_state *mrb, mrb_value io);
 
+/* Helper to extract file descriptor from socket object */
 static int
 socket_fd(mrb_state *mrb, mrb_value sock)
 {
   return mrb_io_fileno(mrb, sock);
 }
 
+/* Helper to get address family of socket by file descriptor */
 static int
 socket_family(int s)
 {
@@ -269,6 +328,15 @@ socket_family(int s)
   return ss.ss_family;
 }
 
+/*
+ * call-seq:
+ *   basicsocket.getpeereid -> [euid, egid]
+ *
+ * Returns the effective user ID and group ID of the peer process.
+ * Only available on systems that support getpeereid().
+ *
+ *   euid, egid = sock.getpeereid
+ */
 static mrb_value
 mrb_basicsocket_getpeereid(mrb_state *mrb, mrb_value self)
 {
@@ -289,6 +357,14 @@ mrb_basicsocket_getpeereid(mrb_state *mrb, mrb_value self)
 #endif
 }
 
+/*
+ * call-seq:
+ *   basicsocket.getpeername -> string
+ *
+ * Returns the remote socket address as a packed sockaddr string.
+ *
+ *   sockaddr = sock.getpeername
+ */
 static mrb_value
 mrb_basicsocket_getpeername(mrb_state *mrb, mrb_value self)
 {
@@ -301,6 +377,14 @@ mrb_basicsocket_getpeername(mrb_state *mrb, mrb_value self)
   return mrb_str_new(mrb, (char*)&ss, salen);
 }
 
+/*
+ * call-seq:
+ *   basicsocket.getsockname -> string
+ *
+ * Returns the local socket address as a packed sockaddr string.
+ *
+ *   sockaddr = sock.getsockname
+ */
 static mrb_value
 mrb_basicsocket_getsockname(mrb_state *mrb, mrb_value self)
 {
@@ -313,12 +397,21 @@ mrb_basicsocket_getsockname(mrb_state *mrb, mrb_value self)
   return mrb_str_new(mrb, (char*)&ss, salen);
 }
 
+/* Helper to get Socket::Option class reference */
 static struct RClass *
 socket_option_class(mrb_state *mrb)
 {
   return mrb_class_get_under_id(mrb, mrb_class_get_id(mrb, MRB_SYM(Socket)), MRB_SYM(Option));
 }
 
+/*
+ * call-seq:
+ *   Socket::Option.new(family, level, optname, data) -> socket_option
+ *
+ * Creates a new Socket::Option object with the given parameters.
+ *
+ *   opt = Socket::Option.new(Socket::AF_INET, Socket::SOL_SOCKET, Socket::SO_REUSEADDR, [1].pack("i"))
+ */
 static mrb_value
 socket_option_init(mrb_state *mrb, mrb_value self)
 {
@@ -334,6 +427,14 @@ socket_option_init(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ * call-seq:
+ *   Socket::Option.bool(family, level, optname, bool) -> socket_option
+ *
+ * Creates a new Socket::Option object from a boolean value.
+ *
+ *   opt = Socket::Option.bool(Socket::AF_INET, Socket::SOL_SOCKET, Socket::SO_REUSEADDR, true)
+ */
 static mrb_value
 socket_option_s_bool(mrb_state *mrb, mrb_value klass)
 {
@@ -347,6 +448,14 @@ socket_option_s_bool(mrb_state *mrb, mrb_value klass)
   return mrb_obj_new(mrb, mrb_class_ptr(klass), 4, args);
 }
 
+/*
+ * call-seq:
+ *   Socket::Option.int(family, level, optname, integer) -> socket_option
+ *
+ * Creates a new Socket::Option object from an integer value.
+ *
+ *   opt = Socket::Option.int(Socket::AF_INET, Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, 1)
+ */
 static mrb_value
 socket_option_s_int(mrb_state *mrb, mrb_value klass)
 {
@@ -360,30 +469,63 @@ socket_option_s_int(mrb_state *mrb, mrb_value klass)
   return mrb_obj_new(mrb, mrb_class_ptr(klass), 4, args);
 }
 
+/*
+ * call-seq:
+ *   socket_option.family -> integer
+ *
+ * Returns the address family of the socket option.
+ *
+ *   opt.family  #=> Socket::AF_INET
+ */
 static mrb_value
 socket_option_family(mrb_state *mrb, mrb_value self)
 {
   return mrb_iv_get(mrb, self, MRB_SYM(family));
 }
 
+/*
+ * call-seq:
+ *   socket_option.level -> integer
+ *
+ * Returns the protocol level of the socket option.
+ *
+ *   opt.level  #=> Socket::SOL_SOCKET
+ */
 static mrb_value
 socket_option_level(mrb_state *mrb, mrb_value self)
 {
   return mrb_iv_get(mrb, self, MRB_SYM(level));
 }
 
+/*
+ * call-seq:
+ *   socket_option.optname -> integer
+ *
+ * Returns the option name of the socket option.
+ *
+ *   opt.optname  #=> Socket::SO_REUSEADDR
+ */
 static mrb_value
 socket_option_optname(mrb_state *mrb, mrb_value self)
 {
   return mrb_iv_get(mrb, self, MRB_SYM(optname));
 }
 
+/*
+ * call-seq:
+ *   socket_option.data -> string
+ *
+ * Returns the raw data of the socket option as a string.
+ *
+ *   opt.data  #=> "\x01\x00\x00\x00"
+ */
 static mrb_value
 socket_option_data(mrb_state *mrb, mrb_value self)
 {
   return mrb_iv_get(mrb, self, MRB_SYM(data));
 }
 
+/* Helper to extract integer value from Socket::Option data */
 static int
 option_int(mrb_state *mrb, mrb_value self)
 {
@@ -398,6 +540,14 @@ option_int(mrb_state *mrb, mrb_value self)
   return tmp;
 }
 
+/*
+ * call-seq:
+ *   socket_option.int -> integer
+ *
+ * Returns the socket option data as an integer value.
+ *
+ *   opt.int  #=> 1
+ */
 static mrb_value
 socket_option_int(mrb_state *mrb, mrb_value self)
 {
@@ -405,6 +555,14 @@ socket_option_int(mrb_state *mrb, mrb_value self)
   return mrb_int_value(mrb, (mrb_int)i);
 }
 
+/*
+ * call-seq:
+ *   socket_option.bool -> true or false
+ *
+ * Returns the socket option data as a boolean value.
+ *
+ *   opt.bool  #=> true
+ */
 static mrb_value
 socket_option_bool(mrb_state *mrb, mrb_value self)
 {
@@ -412,6 +570,7 @@ socket_option_bool(mrb_state *mrb, mrb_value self)
   return mrb_bool_value((mrb_bool)i);
 }
 
+/* Helper to raise not implemented error for unimplemented Socket::Option methods */
 static mrb_value
 socket_option_notimp(mrb_state *mrb, mrb_value self)
 {
@@ -419,6 +578,14 @@ socket_option_notimp(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
+/*
+ * call-seq:
+ *   socket_option.inspect -> string
+ *
+ * Returns a string representation of the socket option for debugging.
+ *
+ *   opt.inspect  #=> "#<Socket::Option: INET level:1 optname:2 \"\\x01\\x00\\x00\\x00\">"
+ */
 static mrb_value
 socket_option_inspect(mrb_state *mrb, mrb_value self)
 {
@@ -429,32 +596,7 @@ socket_option_inspect(mrb_state *mrb, mrb_value self)
 
   if (mrb_integer_p(family)) {
     mrb_int fm = mrb_integer(family);
-    switch (fm) {
-    case PF_INET:
-      pf = "INET"; break;
-#ifdef PF_INET6
-    case PF_INET6:
-      pf = "INET6"; break;
-#endif
-#ifdef PF_IPX
-    case PF_IPX:
-      pf = "IPX"; break;
-#endif
-#ifdef PF_AX25
-    case PF_AX25:
-      pf = "AX25"; break;
-#endif
-#ifdef PF_APPLETALK
-    case PF_APPLETALK:
-      pf = "APPLETALK"; break;
-#endif
-#ifdef PF_UNIX
-    case PF_UNIX:
-      pf = "UNIX"; break;
-#endif
-    default:
-      break;
-    }
+    pf = get_pf_name((int)fm);
   }
 
   if (pf) {
@@ -475,6 +617,14 @@ socket_option_inspect(mrb_state *mrb, mrb_value self)
   return str;
 }
 
+/*
+ * call-seq:
+ *   basicsocket.getsockopt(level, optname) -> string
+ *
+ * Gets a socket option. Returns the option value as a string.
+ *
+ *   val = sock.getsockopt(Socket::SOL_SOCKET, Socket::SO_REUSEADDR)
+ */
 static mrb_value
 mrb_basicsocket_getsockopt(mrb_state *mrb, mrb_value self)
 {
@@ -494,6 +644,15 @@ mrb_basicsocket_getsockopt(mrb_state *mrb, mrb_value self)
   return mrb_obj_new(mrb, socket_option_class(mrb), 4, args);
 }
 
+/*
+ * call-seq:
+ *   basicsocket.recv(maxlen, flags=0) -> string
+ *
+ * Receives data from the socket.
+ *
+ *   data = sock.recv(1024)
+ *   data = sock.recv(512, 0)
+ */
 static mrb_value
 mrb_basicsocket_recv(mrb_state *mrb, mrb_value self)
 {
@@ -509,6 +668,13 @@ mrb_basicsocket_recv(mrb_state *mrb, mrb_value self)
   return buf;
 }
 
+/*
+ * call-seq:
+ *   basicsocket._recvfrom(maxlen, flags=0) -> [data, sockaddr]
+ *
+ * Internal method to receive data and sender address from socket.
+ * Returns data and packed sockaddr.
+ */
 static mrb_value
 mrb_basicsocket_recvfrom(mrb_state *mrb, mrb_value self)
 {
@@ -531,6 +697,14 @@ mrb_basicsocket_recvfrom(mrb_state *mrb, mrb_value self)
   return ary;
 }
 
+/*
+ * call-seq:
+ *   basicsocket.send(mesg, flags) -> integer
+ *
+ * Sends data through the socket. Returns the number of bytes sent.
+ *
+ *   bytes_sent = sock.send("Hello", 0)
+ */
 static mrb_value
 mrb_basicsocket_send(mrb_state *mrb, mrb_value self)
 {
@@ -552,34 +726,37 @@ mrb_basicsocket_send(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value((mrb_int)n);
 }
 
+/*
+ * call-seq:
+ *   basicsocket._setnonblock(flag) -> nil
+ *
+ * Internal method to set or unset non-blocking mode on the socket.
+ *
+ *   sock._setnonblock(true)   # enable non-blocking
+ *   sock._setnonblock(false)  # disable non-blocking
+ */
 static mrb_value
 mrb_basicsocket_setnonblock(mrb_state *mrb, mrb_value self)
 {
   mrb_bool nonblocking;
-#ifdef _WIN32
-  u_long mode = 1;
-#endif
 
   mrb_get_args(mrb, "b", &nonblocking);
   int fd = socket_fd(mrb, self);
-#ifdef _WIN32
-  int flags = ioctlsocket(fd, FIONBIO, &mode);
-  if (flags != NO_ERROR)
-    mrb_sys_fail(mrb, "ioctlsocket");
-#else
-  int flags = fcntl(fd, F_GETFL, 0);
-  if (flags == 1)
-    mrb_sys_fail(mrb, "fcntl");
-  if (nonblocking)
-    flags |= O_NONBLOCK;
-  else
-    flags &= ~O_NONBLOCK;
-  if (fcntl(fd, F_SETFL, flags) == -1)
-    mrb_sys_fail(mrb, "fcntl");
-#endif
+
+  if (mrb_hal_socket_set_nonblock(mrb, fd, nonblocking) == -1)
+    mrb_sys_fail(mrb, "set_nonblock");
+
   return mrb_nil_value();
 }
 
+/*
+ * call-seq:
+ *   basicsocket.setsockopt(level, optname, optval) -> 0
+ *
+ * Sets a socket option. Level and optname are constants, optval is the value.
+ *
+ *   sock.setsockopt(Socket::SOL_SOCKET, Socket::SO_REUSEADDR, 1)
+ */
 static mrb_value
 mrb_basicsocket_setsockopt(mrb_state *mrb, mrb_value self)
 {
@@ -629,6 +806,16 @@ mrb_basicsocket_setsockopt(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(0);
 }
 
+/*
+ * call-seq:
+ *   basicsocket.shutdown(how=Socket::SHUT_RDWR) -> 0
+ *
+ * Shuts down part of the socket connection.
+ *
+ *   sock.shutdown(Socket::SHUT_RD)    # shutdown reading
+ *   sock.shutdown(Socket::SHUT_WR)    # shutdown writing
+ *   sock.shutdown(Socket::SHUT_RDWR)  # shutdown both (default)
+ */
 static mrb_value
 mrb_basicsocket_shutdown(mrb_state *mrb, mrb_value self)
 {
@@ -640,6 +827,7 @@ mrb_basicsocket_shutdown(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(0);
 }
 
+/* Helper to set socket flag on IO object */
 static mrb_value
 mrb_basicsocket_set_is_socket(mrb_state *mrb, mrb_value self)
 {
@@ -654,6 +842,14 @@ mrb_basicsocket_set_is_socket(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(b);
 }
 
+/*
+ * call-seq:
+ *   IPSocket.ntop(af, addr) -> string
+ *
+ * Converts a network address to a string representation.
+ *
+ *   IPSocket.ntop(Socket::AF_INET, "\x7f\x00\x00\x01")  #=> "127.0.0.1"
+ */
 static mrb_value
 mrb_ipsocket_ntop(mrb_state *mrb, mrb_value klass)
 {
@@ -663,9 +859,23 @@ mrb_ipsocket_ntop(mrb_state *mrb, mrb_value klass)
 
   mrb_get_args(mrb, "is", &af, &addr, &n);
   if ((af == AF_INET && n != 4) || (af == AF_INET6 && n != 16) ||
-      inet_ntop((int)af, addr, buf, sizeof(buf)) == NULL)
+      mrb_hal_socket_inet_ntop((int)af, addr, buf, sizeof(buf)) == NULL)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid address");
   return mrb_str_new_cstr(mrb, buf);
+}
+
+/*
+ * call-seq:
+ *   IPSocket.pton(af, hostname) -> string
+ *
+ * Converts a string representation of an address to network format.
+ *
+ *   IPSocket.pton(Socket::AF_INET, "127.0.0.1")  #=> "\x7f\x00\x00\x01"
+ */
+static mrb_noreturn void
+invalid_address_error(mrb_state *mrb)
+{
+  mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid address");
 }
 
 static mrb_value
@@ -676,41 +886,51 @@ mrb_ipsocket_pton(mrb_state *mrb, mrb_value klass)
   char buf[50];
 
   mrb_get_args(mrb, "is", &af, &bp, &n);
-  if ((size_t)n > sizeof(buf) - 1) goto invalid;
+  if ((size_t)n > sizeof(buf) - 1) {
+    invalid_address_error(mrb);
+  }
   memcpy(buf, bp, n);
   buf[n] = '\0';
 
   if (af == AF_INET) {
     struct in_addr in;
-    if (inet_pton(AF_INET, buf, (void*)&in.s_addr) != 1)
-      goto invalid;
+    if (mrb_hal_socket_inet_pton(AF_INET, buf, (void*)&in.s_addr) != 1) {
+      invalid_address_error(mrb);
+    }
     return mrb_str_new(mrb, (char*)&in.s_addr, 4);
   }
   else if (af == AF_INET6) {
     struct in6_addr in6;
-    if (inet_pton(AF_INET6, buf, (void*)&in6.s6_addr) != 1)
-      goto invalid;
+    if (mrb_hal_socket_inet_pton(AF_INET6, buf, (void*)&in6.s6_addr) != 1) {
+      invalid_address_error(mrb);
+    }
     return mrb_str_new(mrb, (char*)&in6.s6_addr, 16);
   }
   else {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "unsupported address family");
   }
-
-invalid:
-  mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid address");
-  return mrb_nil_value(); /* dummy */
+  return mrb_nil_value(); /* not reached */
 }
 
+/*
+ * call-seq:
+ *   ipsocket.recvfrom(maxlen, flags=0) -> [data, [family, port, hostname, ip]]
+ *
+ * Receives data from the socket and returns sender address information.
+ *
+ *   data, addr = sock.recvfrom(1024)
+ *   # addr => ["AF_INET", 12345, "hostname", "192.168.1.1"]
+ */
 static mrb_value
 mrb_ipsocket_recvfrom(mrb_state *mrb, mrb_value self)
 {
-  struct sockaddr_storage ss;
   mrb_int maxlen;
   mrb_int flags = 0;
 
   mrb_get_args(mrb, "i|i", &maxlen, &flags);
 
   mrb_value buf = mrb_str_new_capa(mrb, maxlen);
+  struct sockaddr_storage ss;
   socklen_t socklen = sizeof(ss);
   int fd = socket_fd(mrb, self);
   ssize_t n = recvfrom(fd, RSTRING_PTR(buf), (fsize_t)maxlen, (int)flags,
@@ -727,6 +947,14 @@ mrb_ipsocket_recvfrom(mrb_state *mrb, mrb_value self)
   return pair;
 }
 
+/*
+ * call-seq:
+ *   Socket.gethostname -> string
+ *
+ * Returns the hostname of the current machine.
+ *
+ *   Socket.gethostname  #=> "localhost"
+ */
 static mrb_value
 mrb_socket_gethostname(mrb_state *mrb, mrb_value cls)
 {
@@ -743,6 +971,13 @@ mrb_socket_gethostname(mrb_state *mrb, mrb_value cls)
   return buf;
 }
 
+/*
+ * call-seq:
+ *   Socket._accept(fd) -> [new_fd, sockaddr]
+ *
+ * Internal method to accept a connection on a socket file descriptor.
+ * Returns the new file descriptor and remote address.
+ */
 static mrb_value
 mrb_socket_accept(mrb_state *mrb, mrb_value klass)
 {
@@ -765,19 +1000,25 @@ mrb_socket_accept2(mrb_state *mrb, mrb_value klass)
 
   socklen_t socklen = sizeof(struct sockaddr_storage);
   mrb_value sastr = mrb_str_new_capa(mrb, (mrb_int)socklen);
+  mrb_value ary = mrb_ary_new_capa(mrb, 2);
+
   int s1 = (int)accept(s0, (struct sockaddr*)RSTRING_PTR(sastr), &socklen);
   if (s1 == -1) {
     mrb_sys_fail(mrb, "accept");
   }
-  // XXX: possible descriptor leakage here!
-  mrb_str_resize(mrb, sastr, socklen);
 
-  mrb_value ary = mrb_ary_new_capa(mrb, 2);
+  mrb_str_resize(mrb, sastr, socklen);
   mrb_ary_push(mrb, ary, mrb_fixnum_value(s1));
   mrb_ary_push(mrb, ary, sastr);
   return ary;
 }
 
+/*
+ * call-seq:
+ *   Socket._bind(fd, sockaddr) -> 0
+ *
+ * Internal method to bind a socket file descriptor to the given address.
+ */
 static mrb_value
 mrb_socket_bind(mrb_state *mrb, mrb_value klass)
 {
@@ -791,6 +1032,12 @@ mrb_socket_bind(mrb_state *mrb, mrb_value klass)
   return mrb_nil_value();
 }
 
+/*
+ * call-seq:
+ *   Socket._connect(fd, sockaddr) -> 0
+ *
+ * Internal method to connect a socket file descriptor to the given address.
+ */
 static mrb_value
 mrb_socket_connect(mrb_state *mrb, mrb_value klass)
 {
@@ -804,6 +1051,12 @@ mrb_socket_connect(mrb_state *mrb, mrb_value klass)
   return mrb_nil_value();
 }
 
+/*
+ * call-seq:
+ *   Socket._listen(fd, backlog) -> 0
+ *
+ * Internal method to set a socket file descriptor to listen for connections.
+ */
 static mrb_value
 mrb_socket_listen(mrb_state *mrb, mrb_value klass)
 {
@@ -830,55 +1083,60 @@ mrb_socket_sockaddr_family(mrb_state *mrb, mrb_value klass)
   return mrb_fixnum_value(sa->sa_family);
 }
 
+/*
+ * call-seq:
+ *   Socket.sockaddr_un(path) -> string
+ *
+ * Returns a packed sockaddr_un structure for the given Unix socket path.
+ *
+ *   Socket.sockaddr_un("/tmp/socket")
+ *   Socket.sockaddr_un("/var/run/daemon.sock")
+ */
 static mrb_value
 mrb_socket_sockaddr_un(mrb_state *mrb, mrb_value klass)
 {
-#ifdef _WIN32
-  mrb_raise(mrb, E_NOTIMP_ERROR, "sockaddr_un unsupported on Windows");
-  return mrb_nil_value();
-#else
   mrb_value path;
-  struct sockaddr_un *sunp;
 
   mrb_get_args(mrb, "S", &path);
-  if ((size_t)RSTRING_LEN(path) > sizeof(sunp->sun_path) - 1) {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "too long unix socket path (max: %d bytes)", (int)sizeof(sunp->sun_path) - 1);
-  }
-  mrb_value s = mrb_str_new_capa(mrb, sizeof(struct sockaddr_un));
-  sunp = (struct sockaddr_un*)RSTRING_PTR(s);
-#if HAVE_SA_LEN
-  sunp->sun_len = sizeof(struct sockaddr_un);
-#endif
-  sunp->sun_family = AF_UNIX;
-  memcpy(sunp->sun_path, RSTRING_PTR(path), RSTRING_LEN(path));
-  sunp->sun_path[RSTRING_LEN(path)] = '\0';
-  mrb_str_resize(mrb, s, sizeof(struct sockaddr_un));
-  return s;
-#endif
+  return mrb_hal_socket_sockaddr_un(mrb, RSTRING_PTR(path), (size_t)RSTRING_LEN(path));
 }
 
+/*
+ * call-seq:
+ *   Socket.socketpair(domain, type, protocol=0) -> [socket1, socket2]
+ *   Socket.pair(domain, type, protocol=0) -> [socket1, socket2]
+ *
+ * Creates a pair of connected sockets.
+ *
+ *   sock1, sock2 = Socket.socketpair(Socket::AF_UNIX, Socket::SOCK_STREAM)
+ *   sock1, sock2 = Socket.pair(Socket::AF_UNIX, Socket::SOCK_DGRAM)
+ */
 static mrb_value
 mrb_socket_socketpair(mrb_state *mrb, mrb_value klass)
 {
-#ifdef _WIN32
-  mrb_raise(mrb, E_NOTIMP_ERROR, "socketpair unsupported on Windows");
-  return mrb_nil_value();
-#else
   mrb_int domain, type, protocol;
   int sv[2];
 
   mrb_get_args(mrb, "iii", &domain, &type, &protocol);
-  if (socketpair(domain, type, protocol, sv) == -1) {
+
+  if (mrb_hal_socket_socketpair(mrb, (int)domain, (int)type, (int)protocol, sv) == -1) {
     mrb_sys_fail(mrb, "socketpair");
   }
-  // XXX: possible descriptor leakage here!
+
   mrb_value ary = mrb_ary_new_capa(mrb, 2);
   mrb_ary_push(mrb, ary, mrb_fixnum_value(sv[0]));
   mrb_ary_push(mrb, ary, mrb_fixnum_value(sv[1]));
   return ary;
-#endif
 }
 
+/*
+ * call-seq:
+ *   Socket._socket(domain, type, protocol) -> fd
+ *
+ * Internal method to create a new socket and return its file descriptor.
+ *
+ *   fd = Socket._socket(Socket::AF_INET, Socket::SOCK_STREAM, 0)
+ */
 static mrb_value
 mrb_socket_socket(mrb_state *mrb, mrb_value klass)
 {
@@ -892,6 +1150,7 @@ mrb_socket_socket(mrb_state *mrb, mrb_value klass)
   return mrb_fixnum_value(s);
 }
 
+/* Helper to allocate TCPSocket object */
 static mrb_value
 mrb_tcpsocket_allocate(mrb_state *mrb, mrb_value klass)
 {
@@ -909,6 +1168,13 @@ mrb_tcpsocket_allocate(mrb_state *mrb, mrb_value klass)
  * will break on socket descriptors.
  */
 #ifdef _WIN32
+/*
+ * call-seq:
+ *   basicsocket.close -> nil
+ *
+ * Windows-specific implementation to close socket using closesocket().
+ * Overrides IO#close for socket objects on Windows.
+ */
 static mrb_value
 mrb_win32_basicsocket_close(mrb_state *mrb, mrb_value self)
 {
@@ -917,6 +1183,13 @@ mrb_win32_basicsocket_close(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
+/*
+ * call-seq:
+ *   basicsocket.sysread(maxlen, outbuf=nil) -> string
+ *
+ * Windows-specific implementation to read from socket using recv().
+ * Overrides IO#sysread for socket objects on Windows.
+ */
 static mrb_value
 mrb_win32_basicsocket_sysread(mrb_state *mrb, mrb_value self)
 {
@@ -960,6 +1233,13 @@ mrb_win32_basicsocket_sysread(mrb_state *mrb, mrb_value self)
   return buf;
 }
 
+/*
+ * call-seq:
+ *   basicsocket.sysseek(offset, whence) -> integer
+ *
+ * Windows-specific implementation that raises NotImplementedError.
+ * Sockets don't support seeking operations.
+ */
 static mrb_value
 mrb_win32_basicsocket_sysseek(mrb_state *mrb, mrb_value self)
 {
@@ -967,6 +1247,13 @@ mrb_win32_basicsocket_sysseek(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
+/*
+ * call-seq:
+ *   basicsocket.syswrite(string) -> integer
+ *
+ * Windows-specific implementation to write to socket using send().
+ * Overrides IO#syswrite for socket objects on Windows.
+ */
 static mrb_value
 mrb_win32_basicsocket_syswrite(mrb_state *mrb, mrb_value self)
 {
@@ -986,20 +1273,12 @@ mrb_win32_basicsocket_syswrite(mrb_state *mrb, mrb_value self)
 void
 mrb_mruby_socket_gem_init(mrb_state* mrb)
 {
-#ifdef _WIN32
-  WSADATA wsaData;
-  int result;
-  result = WSAStartup(MAKEWORD(2,2), &wsaData);
-  if (result != NO_ERROR)
-    mrb_raise(mrb, E_RUNTIME_ERROR, "WSAStartup failed");
-#endif
+  mrb_hal_socket_init(mrb);
 
   struct RClass *ainfo = mrb_define_class_id(mrb, MRB_SYM(Addrinfo), mrb->object_class);
   mrb_define_class_method_id(mrb, ainfo, MRB_SYM(getaddrinfo), mrb_addrinfo_getaddrinfo, MRB_ARGS_REQ(2)|MRB_ARGS_OPT(4));
   mrb_define_method_id(mrb, ainfo, MRB_SYM(getnameinfo), mrb_addrinfo_getnameinfo, MRB_ARGS_OPT(1));
-#ifndef _WIN32
   mrb_define_method_id(mrb, ainfo, MRB_SYM(unix_path), mrb_addrinfo_unix_path, MRB_ARGS_NONE());
-#endif
 
   struct RClass *io = mrb_class_get_id(mrb, MRB_SYM(IO));
 
@@ -1076,7 +1355,5 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
 void
 mrb_mruby_socket_gem_final(mrb_state* mrb)
 {
-#ifdef _WIN32
-  WSACleanup();
-#endif
+  mrb_hal_socket_final(mrb);
 }

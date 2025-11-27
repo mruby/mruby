@@ -74,6 +74,7 @@ assert("Array#uniq") do
 end
 
 assert("Array#-") do
+  # Test basic functionality
   a = [1, 2, 3, 1]
   b = [1]
   c = 1
@@ -81,6 +82,50 @@ assert("Array#-") do
   assert_raise(TypeError) { a - c }
   assert_equal [2, 3], (a - b)
   assert_equal [1, 2, 3, 1], a
+
+  # Test hash-based implementation (other_ary length > 32)
+  a = (1..50).to_a
+  b = (15..50).to_a  # 36 elements > 32, triggers hash approach
+  result = a - b
+  expected = (1..14).to_a
+
+  assert_equal expected, result
+  assert_equal 14, result.size
+
+  # Test with larger removal set
+  a = (1..60).to_a
+  b = (20..55).to_a  # 36 elements > 32, triggers hash approach
+  result = a - b
+  expected = (1..19).to_a + (56..60).to_a
+
+  assert_equal expected, result
+  assert_equal 24, result.size
+
+  # Test removing all elements
+  a = (1..20).to_a
+  b = (1..20).to_a
+  result = a - b
+  expected = []
+
+  assert_equal expected, result
+  assert_equal 0, result.size
+
+  # Test removing no elements
+  a = (1..20).to_a
+  b = (30..50).to_a  # 21 elements > 16, triggers hash approach
+  result = a - b
+  expected = (1..20).to_a
+
+  assert_equal expected, result
+  assert_equal 20, result.size
+
+  # Ensure original arrays are unchanged
+  original_a = (1..30).to_a
+  original_b = (10..25).to_a
+  result = original_a - original_b
+  assert_equal [1, 2, 3, 4, 5, 6, 7, 8, 9, 26, 27, 28, 29, 30], result
+  assert_equal (1..30).to_a, original_a
+  assert_equal (10..25).to_a, original_b
 end
 
 assert("Array#|") do
@@ -91,6 +136,34 @@ assert("Array#|") do
   assert_raise(TypeError) { a | c }
   assert_equal [1, 2, 3, 4], (a | b)
   assert_equal [1, 2, 3, 1], a
+end
+
+assert("Array#| with large arrays") do
+  # Test hash-based implementation (total length > 32)
+  a = (1..25).to_a
+  b = (20..45).to_a  # total = 51 > 32, triggers hash approach
+  result = a | b
+  expected = (1..45).to_a
+
+  assert_equal expected, result
+  assert_equal 45, result.size
+
+  # Test with overlapping ranges
+  a = (1..20).to_a
+  b = (15..35).to_a  # total = 41 > 32, triggers hash approach
+  result = a | b
+  expected = (1..35).to_a
+
+  assert_equal expected, result
+  assert_equal 35, result.size
+
+  # Ensure original arrays are unchanged
+  original_a = (1..20).to_a
+  original_b = (18..50).to_a
+  result = original_a | original_b
+  assert_equal (1..50).to_a, result
+  assert_equal (1..20).to_a, original_a
+  assert_equal (18..50).to_a, original_b
 end
 
 assert("Array#union") do
@@ -119,6 +192,61 @@ assert("Array#&") do
   assert_equal [1, 2, 3, 1], a
 end
 
+assert("Array#& with large arrays") do
+  # Test hash-based implementation (other_ary length > 32)
+  a = (1..50).to_a
+  b = (20..55).to_a  # 36 elements > 32, triggers hash approach
+  result = a & b
+  expected = (20..50).to_a
+
+  assert_equal expected, result
+  assert_equal 31, result.size
+
+  # Test with larger intersection set
+  a = (1..60).to_a
+  b = (25..60).to_a  # 36 elements > 32, triggers hash approach
+  result = a & b
+  expected = (25..60).to_a
+
+  assert_equal expected, result
+  assert_equal 36, result.size
+
+  # Test with duplicates in first array
+  a = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10]
+  b = (5..25).to_a  # 21 elements > 16, triggers hash approach
+  result = a & b
+  expected = [5, 6, 7, 8, 9, 10]  # no duplicates in result
+
+  assert_equal expected, result
+  assert_equal 6, result.size
+
+  # Test no intersection
+  a = (1..20).to_a
+  b = (30..50).to_a  # 21 elements > 16, triggers hash approach
+  result = a & b
+  expected = []
+
+  assert_equal expected, result
+  assert_equal 0, result.size
+
+  # Test complete intersection
+  a = (1..20).to_a
+  b = (1..20).to_a
+  result = a & b
+  expected = (1..20).to_a
+
+  assert_equal expected, result
+  assert_equal 20, result.size
+
+  # Ensure original arrays are unchanged
+  original_a = (1..30).to_a
+  original_b = (10..25).to_a
+  result = original_a & original_b
+  assert_equal (10..25).to_a, result
+  assert_equal (1..30).to_a, original_a
+  assert_equal (10..25).to_a, original_b
+end
+
 assert("Array#intersection") do
   a = [1, 2, 3, 1, 8, 6, 7, 8]
   b = [1, 4, 6, 8]
@@ -133,6 +261,63 @@ assert("Array#intersect?") do
   c = [ 5, 6, 7 ]
   assert_true(a.intersect?(b))
   assert_false(a.intersect?(c))
+end
+
+assert("Array#intersect? with large arrays") do
+  # Test hash-based implementation (shorter array > 32)
+  a = (1..50).to_a
+  b = (40..75).to_a  # 36 elements > 32, but a is longer so b is shorter
+  result = a.intersect?(b)
+  assert_true(result)  # should find intersection at 40-50
+
+  # Test with larger arrays, no intersection
+  a = (1..30).to_a
+  b = (50..85).to_a  # 36 elements > 32, triggers hash approach
+  result = a.intersect?(b)
+  assert_false(result)  # no intersection
+
+  # Test with first element matching (early termination)
+  a = (1..30).to_a
+  b = [1] + (50..70).to_a  # 22 elements > 16, first element matches
+  result = a.intersect?(b)
+  assert_true(result)  # should terminate early on first element
+
+  # Test with last element matching
+  a = (1..30).to_a
+  b = (50..70).to_a + [30]  # 22 elements > 16, last element matches
+  result = a.intersect?(b)
+  assert_true(result)  # should find match at the end
+
+  # Test empty arrays
+  a = []
+  b = (1..20).to_a
+  result = a.intersect?(b)
+  assert_false(result)  # empty array intersects with nothing
+
+  a = (1..20).to_a
+  b = []
+  result = a.intersect?(b)
+  assert_false(result)  # intersecting with empty array
+
+  # Test array size optimization (shorter array used for hash)
+  a = (1..5).to_a  # shorter
+  b = (3..30).to_a  # longer, 28 elements > 16
+  result = a.intersect?(b)
+  assert_true(result)  # should use a (shorter) for hash, find 3,4,5
+
+  # Test with duplicates
+  a = [1, 1, 2, 2, 3, 3] * 5  # 30 elements with duplicates
+  b = (25..50).to_a  # 26 elements > 16, no intersection
+  result = a.intersect?(b)
+  assert_false(result)
+
+  # Ensure original arrays are unchanged
+  original_a = (1..30).to_a
+  original_b = (25..50).to_a
+  result = original_a.intersect?(original_b)
+  assert_true(result)
+  assert_equal (1..30).to_a, original_a
+  assert_equal (25..50).to_a, original_b
 end
 
 assert("Array#flatten") do
@@ -172,6 +357,19 @@ assert("Array#fetch") do
   a.fetch(100) { |i| ret = i }
   assert_equal 100, ret
   assert_raise(IndexError) { a.fetch(100) }
+
+  # Additional edge cases
+  assert_equal "default", [].fetch(0, "default")
+  assert_equal "missing 5", ["a"].fetch(5) { |i| "missing #{i}" }
+  assert_equal "from block", ["a"].fetch(5, "default") { "from block" }
+
+  # Error message format
+  begin
+    ["a", "b"].fetch(5)
+    assert_false true
+  rescue IndexError => e
+    assert_true e.message.include?("index 5 outside of array bounds: -2...2")
+  end
 end
 
 assert("Array#fetch_values") do
@@ -209,7 +407,13 @@ assert("Array#fill") do
   assert_equal [1, 2, 3, 4, 5, 6], [1, 2, 3, 4, 5, 6].fill('x', -2...-2)
   assert_equal [1, 2, 3, 4, 'x', 6], [1, 2, 3, 4, 5, 6].fill('x', -2..-2)
   assert_equal [1, 2, 3, 4, 5, 6], [1, 2, 3, 4, 5, 6].fill('x', -2..0)
+
+  # Test extending array
+  a = [1, 2]
+  assert_equal [1, 2, nil, nil, "x"], a.fill("x", 4, 1)
 end
+
+
 
 assert("Array#reverse_each") do
   a = [ "a", "b", "c", "d" ]
@@ -269,12 +473,63 @@ assert("Array#reject!") do
 end
 
 assert("Array#insert") do
-  a = ["a", "b", "c", "d"]
-  assert_equal ["a", "b", 99, "c", "d"], a.insert(2, 99)
-  assert_equal ["a", "b", 99, "c", 1, 2, 3, "d"], a.insert(-2, 1, 2, 3)
+  # Basic insertion
+  a = [1, 2, 3]
+  assert_same a, a.insert(1, 99)
+  assert_equal [1, 99, 2, 3], a
 
-  b = ["a", "b", "c", "d"]
-  assert_equal ["a", "b", "c", "d", nil, nil, 99], b.insert(6, 99)
+  # Multiple elements
+  a = [1, 2, 3]
+  a.insert(2, 'a', 'b')
+  assert_equal [1, 2, 'a', 'b', 3], a
+
+  # Negative index
+  a = [1, 2, 3, 4]
+  a.insert(-2, 99)
+  assert_equal [1, 2, 3, 99, 4], a
+
+  # Negative index out of bounds
+  a = [1, 2, 3]
+  assert_raise(IndexError) { a.insert(-5, 99) }
+  assert_equal [1, 2, 3], a
+
+  # Insertion beyond bounds (creates nils)
+  a = [1, 2]
+  a.insert(5, 99)
+  assert_equal [1, 2, nil, nil, nil, 99], a
+
+  # Insertion at the end
+  a = [1, 2, 3]
+  a.insert(3, 99)
+  assert_equal [1, 2, 3, 99], a
+
+  # Insertion into an empty array
+  a = []
+  a.insert(0, 1, 2)
+  assert_equal [1, 2], a
+
+  # Insertion into an empty array at a non-zero index
+  a = []
+  a.insert(2, 99)
+  assert_equal [nil, nil, 99], a
+
+  # No-op (inserting zero elements)
+  a = [1, 2, 3]
+  a.insert(1)
+  assert_equal [1, 2, 3], a
+
+  # Return value is self
+  a = [1, 2, 3]
+  b = a.insert(1, 99)
+  assert_same a, b
+
+  # Large array insertion
+  a = (0...1000).to_a
+  a.insert(500, "x")
+  assert_equal 1001, a.size
+  assert_equal "x", a[500]
+  assert_equal 499, a[499]
+  assert_equal 500, a[501]
 end
 
 assert("Array#bsearch") do
@@ -500,4 +755,30 @@ assert("Array#repeated_permutation") do
                                [3,3,3,1],[3,3,3,2],[3,3,3,3]], a, 4)
   assert_repeated_permutation([[]], a, 0)
   assert_repeated_permutation([], a, -1)
+end
+
+assert("Array#deconstruct") do
+  # Basic functionality - returns self
+  a = [1, 2, 3]
+  result = a.deconstruct
+  assert_equal([1, 2, 3], result)
+  assert_true(result.equal?(a))
+
+  # Empty array
+  b = []
+  result_empty = b.deconstruct
+  assert_equal([], result_empty)
+  assert_true(result_empty.equal?(b))
+
+  # Mixed types
+  c = [1, "hello", :symbol, nil, true]
+  result_mixed = c.deconstruct
+  assert_equal([1, "hello", :symbol, nil, true], result_mixed)
+  assert_true(result_mixed.equal?(c))
+
+  # Nested arrays
+  d = [[1, 2], [3, 4], [5]]
+  result_nested = d.deconstruct
+  assert_equal([[1, 2], [3, 4], [5]], result_nested)
+  assert_true(result_nested.equal?(d))
 end

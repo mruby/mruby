@@ -12,11 +12,20 @@ things in mind before submitting your pull request:
 - Create a branch which is dedicated to your change
 - Test your changes before creating a pull request (`rake test`)
 - If possible write a test case which confirms your change
-- Don't mix several features or bug-fixes in one pull request
+- Don't mix several features or bugfixes in one pull request
 - Create a meaningful commit message
 - Explain your change (i.e. with a link to the issue you are fixing)
 - Use mrbgem to provide non ISO features (classes, modules and methods) unless
   you have a special reason to implement them in the core
+
+## Security Issues
+
+If you discover a security vulnerability:
+
+- **High priority security vulnerabilities** (RCE): Report via email to <matz@ruby.or.jp>
+- **VM crashes from valid Ruby code**: Please report as regular bug reports on our issue tracker
+
+For detailed guidance on what qualifies as a security issue and what doesn't, see [SECURITY.md](SECURITY.md).
 
 ## pre-commit
 

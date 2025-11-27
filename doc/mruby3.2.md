@@ -17,7 +17,7 @@
 ## `mruby`
 
 - `-b` only specifies the script is the binary. The files loaded by `-r` are not affected by the option.
-- `mruby` now loads complied binary if the suffix is `.mrb`.
+- `mruby` now loads compiled binary if the suffix is `.mrb`.
 
 ## `mrbc`
 

@@ -21,12 +21,27 @@
 #endif
 #endif
 
+/**
+ * This function is called to raise a RangeError when an integer operation
+ * results in an overflow. It's marked mrb_noreturn as it always raises an
+ * exception and does not return.
+ *
+ * @param mrb The mruby state.
+ * @param reason A string describing the operation that caused the overflow
+ *               (e.g., "addition", "multiplication").
+ */
 mrb_noreturn void
 mrb_int_overflow(mrb_state *mrb, const char *reason)
 {
   mrb_raisef(mrb, E_RANGE_ERROR, "integer overflow in %s", reason);
 }
 
+/**
+ * This function is called to raise a ZeroDivisionError. It's marked
+ * mrb_noreturn as it always raises an exception and does not return.
+ *
+ * @param mrb The mruby state.
+ */
 mrb_noreturn void
 mrb_int_zerodiv(mrb_state *mrb)
 {
@@ -39,6 +54,21 @@ mrb_int_noconv(mrb_state *mrb, mrb_value y)
   mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %Y into Integer", y);
 }
 
+/**
+ * Calculates x raised to the power of y, where x is an integer.
+ * y can be an integer or float. The result type can be Integer,
+ * Float, or BigInt depending on the inputs and intermediate calculations.
+ *
+ * @param mrb The mruby state.
+ * @param x The base (must be an integer type, possibly BigInt).
+ * @param y The exponent (can be Integer or Float).
+ * @return An mrb_value representing the result of the exponentiation.
+ *         This can be an Integer, Float, or BigInt.
+ * Handles potential overflows by promoting to BigInt if MRB_USE_BIGINT is defined,
+ * or by raising RangeError if not.
+ * Handles negative exponents by returning a Float if MRB_NO_FLOAT is not defined,
+ * or raising RangeError if it is.
+ */
 mrb_value
 mrb_int_pow(mrb_state *mrb, mrb_value x, mrb_value y)
 {
@@ -103,7 +133,7 @@ mrb_int_pow(mrb_state *mrb, mrb_value x, mrb_value y)
  *
  *  num ** other  ->  num
  *
- * Raises <code>num</code> the <code>other</code> power.
+ * Raises `num` the `other` power.
  *
  *    2.0**3      #=> 8.0
  */
@@ -113,6 +143,17 @@ int_pow(mrb_state *mrb, mrb_value x)
   return mrb_int_pow(mrb, x, mrb_get_arg1(mrb));
 }
 
+/**
+ * Performs integer division of x by y. This function implements specific
+ * rounding behavior for negative numbers to match Ruby's / operator for
+ * integers (floor division).
+ *
+ * @param x The dividend.
+ * @param y The divisor.
+ * @return The result of the integer division (mrb_int).
+ * Note: This function does not handle division by zero; the caller is
+ *       expected to check for this.
+ */
 mrb_int
 mrb_div_int(mrb_int x, mrb_int y)
 {
@@ -124,6 +165,17 @@ mrb_div_int(mrb_int x, mrb_int y)
   return div;
 }
 
+/**
+ * Performs integer division of x by y and returns the result as an mrb_value.
+ * It uses mrb_div_int for the division logic.
+ *
+ * @param mrb The mruby state.
+ * @param x The dividend.
+ * @param y The divisor.
+ * @return An mrb_value (integer) representing the result of the division.
+ * @raise ZeroDivisionError if y is 0.
+ * @raise RangeError for overflow conditions (specifically MRB_INT_MIN / -1).
+ */
 mrb_value
 mrb_div_int_value(mrb_state *mrb, mrb_int x, mrb_int y)
 {
@@ -146,7 +198,7 @@ mrb_div_int_value(mrb_state *mrb, mrb_int x, mrb_int y)
  *   int / num  ->  num
  *
  * Performs division: the class of the resulting object depends on
- * the class of <code>num</code> and on the magnitude of the
+ * the class of `num` and on the magnitude of the
  * result.
  */
 static mrb_value
@@ -281,7 +333,7 @@ coerce_step_counter(mrb_state *mrb, mrb_value self)
  *
  * Document-class: Float
  *
- *  <code>Float</code> objects represent inexact real numbers using
+ *  `Float` objects represent inexact real numbers using
  *  the native architecture's double-precision floating-point
  *  representation.
  */
@@ -351,6 +403,17 @@ num_fdiv(mrb_state *mrb, mrb_value x)
   return flo_div(mrb, mrb_ensure_float_type(mrb, x));
 }
 
+/**
+ * Converts an mrb_value float to a new mrb_value string.
+ * It handles formatting to ensure the string representation includes a
+ * decimal point and fractional part (e.g., ".0" is appended if not present).
+ *
+ * @param mrb The mruby state.
+ * @param flo The float mrb_value to convert.
+ * @param fmt This argument is noted as no longer used and can be NULL.
+ *            The function uses a default format.
+ * @return A new mrb_value string representing the float.
+ */
 /* the argument `fmt` is no longer used; you can pass `NULL` */
 mrb_value
 mrb_float_to_str(mrb_state *mrb, mrb_value flo, const char *fmt)
@@ -385,8 +448,8 @@ mrb_float_to_str(mrb_state *mrb, mrb_value flo, const char *fmt)
  *
  *  Returns a string containing a representation of self. As well as a
  *  fixed or exponential form of the number, the call may return
- *  "<code>NaN</code>", "<code>Infinity</code>", and
- *  "<code>-Infinity</code>".
+ *  "`NaN`", "`Infinity`", and
+ *  "`-Infinity`".
  *
  *     3.0.to_s   #=> 3.0
  *     3.25.to_s  #=> 3.25
@@ -418,8 +481,8 @@ flo_to_s(mrb_state *mrb, mrb_value flt)
  * call-seq:
  *   float + other  ->  float
  *
- * Returns a new float which is the sum of <code>float</code>
- * and <code>other</code>.
+ * Returns a new float which is the sum of `float`
+ * and `other`.
  */
 static mrb_value
 flo_add(mrb_state *mrb, mrb_value x)
@@ -444,8 +507,8 @@ flo_add(mrb_state *mrb, mrb_value x)
  * call-seq:
  *   float - other  ->  float
  *
- * Returns a new float which is the difference of <code>float</code>
- * and <code>other</code>.
+ * Returns a new float which is the difference of `float`
+ * and `other`.
  */
 
 static mrb_value
@@ -471,8 +534,8 @@ flo_sub(mrb_state *mrb, mrb_value x)
  * call-seq:
  *   float * other  ->  float
  *
- * Returns a new float which is the product of <code>float</code>
- * and <code>other</code>.
+ * Returns a new float which is the product of `float`
+ * and `other`.
  */
 
 static mrb_value
@@ -536,7 +599,7 @@ flodivmod(mrb_state *mrb, double x, double y, mrb_float *divp, mrb_float *modp)
  *     flt % other        ->  float
  *     flt.modulo(other)  ->  float
  *
- *  Return the modulo after division of <code>flt</code> by <code>other</code>.
+ *  Return the modulo after division of `flt` by `other`.
  *
  *     6543.21.modulo(137)      #=> 104.21
  *     6543.21.modulo(137.24)   #=> 92.9299999999996
@@ -558,7 +621,7 @@ flo_mod(mrb_state *mrb, mrb_value x)
  *  call-seq:
  *     num.eql?(numeric)  ->  true or false
  *
- *  Returns <code>true</code> if <i>num</i> and <i>numeric</i> are the
+ *  Returns `true` if `num` and `numeric` are the
  *  same type and have equal values.
  *
  *     1 == 1.0          #=> true
@@ -594,9 +657,9 @@ num_eql(mrb_state *mrb, mrb_value x)
  *  call-seq:
  *     flt == obj  ->  true or false
  *
- *  Returns <code>true</code> only if <i>obj</i> has the same value
- *  as <i>flt</i>. Contrast this with <code>Float#eql?</code>, which
- *  requires <i>obj</i> to be a <code>Float</code>.
+ *  Returns `true` only if *obj* has the same value
+ *  as *flt*. Contrast this with `Float#eql?`, which
+ *  requires *obj* to be a `Float`.
  *
  *     1.0 == 1   #=> true
  *
@@ -632,7 +695,7 @@ flo_eq(mrb_state *mrb, mrb_value x)
  * call-seq:
  *   flt.to_f  ->  self
  *
- * As <code>flt</code> is already a float, returns +self+.
+ * As `flt` is already a float, returns `self`.
  */
 
 /* 15.2.9.3.11 */
@@ -640,7 +703,7 @@ flo_eq(mrb_state *mrb, mrb_value x)
  *  call-seq:
  *     flt.infinite?  ->  nil, -1, +1
  *
- *  Returns <code>nil</code>, -1, or +1 depending on whether <i>flt</i>
+ *  Returns `nil`, -1, or +1 depending on whether *flt*
  *  is finite, -infinity, or +infinity.
  *
  *     (0.0).infinite?        #=> nil
@@ -664,9 +727,9 @@ flo_infinite_p(mrb_state *mrb, mrb_value num)
  *  call-seq:
  *     flt.finite?  ->  true or false
  *
- *  Returns <code>true</code> if <i>flt</i> is a valid IEEE floating
- *  point number (it is not infinite, and <code>nan?</code> is
- *  <code>false</code>).
+ *  Returns `true` if *flt* is a valid IEEE floating
+ *  point number (it is not infinite, and `nan?` is
+ *  `false`).
  *
  */
 
@@ -690,6 +753,16 @@ flo_finite_p(mrb_state *mrb, mrb_value num)
  *     FloatDomainError: Infinity
  */
 /* ------------------------------------------------------------------------*/
+/**
+ * Checks if a mrb_float value is Infinity or NaN. If it is, this function
+ * raises a FloatDomainError. This is used to prevent conversions of these
+ * special float values to exact number types like Integer.
+ *
+ * @param mrb The mruby state.
+ * @param num The float value to check.
+ * It does not return a value (void function) but will raise an exception
+ * if the number is not exact.
+ */
 void
 mrb_check_num_exact(mrb_state *mrb, mrb_float num)
 {
@@ -752,13 +825,13 @@ flo_rounding(mrb_state *mrb, mrb_value num, double (*func)(double))
  *  call-seq:
  *     float.floor([ndigits])  ->  integer or float
  *
- *  Returns the largest number less than or equal to +float+ with
- *  a precision of +ndigits+ decimal digits (default: 0).
+ *  Returns the largest number less than or equal to `float` with
+ *  a precision of `ndigits` decimal digits (default: 0).
  *
  *  When the precision is negative, the returned value is an integer
- *  with at least <code>ndigits.abs</code> trailing zeros.
+ *  with at least `ndigits.abs` trailing zeros.
  *
- *  Returns a floating-point number when +ndigits+ is positive,
+ *  Returns a floating-point number when `ndigits` is positive,
  *  otherwise returns an integer.
  *
  *     1.2.floor      #=> 1
@@ -797,13 +870,13 @@ flo_floor(mrb_state *mrb, mrb_value num)
  *  call-seq:
  *     float.ceil([ndigits])  ->  integer or float
  *
- *  Returns the smallest number greater than or equal to +float+ with
- *  a precision of +ndigits+ decimal digits (default: 0).
+ *  Returns the smallest number greater than or equal to `float` with
+ *  a precision of `ndigits` decimal digits (default: 0).
  *
  *  When the precision is negative, the returned value is an integer
- *  with at least <code>ndigits.abs</code> trailing zeros.
+ *  with at least `ndigits.abs` trailing zeros.
  *
- *  Returns a floating-point number when +ndigits+ is positive,
+ *  Returns a floating-point number when `ndigits` is positive,
  *  otherwise returns an integer.
  *
  *     1.2.ceil      #=> 2
@@ -843,7 +916,7 @@ flo_ceil(mrb_state *mrb, mrb_value num)
  *  call-seq:
  *     flt.round([ndigits])  ->  integer or float
  *
- *  Rounds <i>flt</i> to a given precision in decimal digits (default 0 digits).
+ *  Rounds *flt* to a given precision in decimal digits (default 0 digits).
  *  Precision may be negative.  Returns a floating-point number when ndigits
  *  is more than zero.
  *
@@ -874,7 +947,6 @@ flo_round(mrb_state *mrb, mrb_value num)
 {
   double number, f;
   mrb_int ndigits = 0;
-  mrb_int i;
 
   mrb_get_args(mrb, "|i", &ndigits);
   number = mrb_float(num);
@@ -886,7 +958,8 @@ flo_round(mrb_state *mrb, mrb_value num)
 
   f = 1.0;
   if (ndigits < -DBL_DIG-2) return mrb_fixnum_value(0);
-  i = ndigits >= 0 ? ndigits : -ndigits;
+
+  mrb_int i = ndigits >= 0 ? ndigits : -ndigits;
   if (ndigits > DBL_DIG+2) return num;
   while  (--i >= 0)
     f = f*10.0;
@@ -949,7 +1022,7 @@ flo_to_i(mrb_state *mrb, mrb_value num)
  *     flt.to_i      ->  integer
  *     flt.truncate  ->  integer
  *
- *  Returns <i>flt</i> truncated to an <code>Integer</code>.
+ *  Returns *flt* truncated to an `Integer`.
  */
 
 static mrb_value
@@ -978,7 +1051,7 @@ flo_abs(mrb_state *mrb, mrb_value num)
 /*
  * Document-class: Integer
  *
- *  <code>Integer</code> is hold whole numbers.
+ *  `Integer` is hold whole numbers.
  *
  */
 
@@ -991,16 +1064,31 @@ flo_abs(mrb_state *mrb, mrb_value num)
  *     int.to_i      ->  integer
  *     int.to_int    ->  integer
  *
- *  As <i>int</i> is already an <code>Integer</code>, all these
+ *  As *int* is already an `Integer`, all these
  *  methods simply return the receiver.
  */
 
+/**
+ * Multiplies two mrb_values, x and y, where x is expected to be an integer.
+ * y can be an integer, BigInt, Rational, Complex, or Float. The function
+ * handles type promotion and dispatches to appropriate handlers
+ * (e.g., mrb_bint_mul for BigInts).
+ *
+ * @param mrb The mruby state.
+ * @param x The first operand (integer).
+ * @param y The second operand (can be various numeric types).
+ * @return An mrb_value representing the product. The type of the result
+ *         depends on the types of the inputs and the magnitude of the result
+ *         (e.g., could be Integer, BigInt, Float, Rational, Complex).
+ * Handles potential integer overflows by promoting to BigInt if MRB_USE_BIGINT
+ * is defined, or raising RangeError otherwise.
+ * If y is not a recognized numeric type, it raises E_TYPE_ERROR.
+ */
 mrb_value
 mrb_int_mul(mrb_state *mrb, mrb_value x, mrb_value y)
 {
-  mrb_int a;
+  mrb_int a = mrb_integer(x);
 
-  a = mrb_integer(x);
   if (mrb_integer_p(y)) {
     mrb_int b, c;
 
@@ -1053,7 +1141,7 @@ mrb_int_mul(mrb_state *mrb, mrb_value x, mrb_value y)
  *   int * numeric  ->  numeric_result
  *
  * Performs multiplication: the class of the resulting object depends on
- * the class of <code>numeric</code> and on the magnitude of the
+ * the class of `numeric` and on the magnitude of the
  * result.
  */
 
@@ -1097,8 +1185,8 @@ intdivmod(mrb_state *mrb, mrb_int x, mrb_int y, mrb_int *divp, mrb_int *modp)
  *  call-seq:
  *    int % num        ->  num
  *
- *  Returns <code>int</code> modulo <code>other</code>.
- *  See <code>numeric.divmod</code> for more information.
+ *  Returns `int` modulo `other`.
+ *  See `numeric.divmod` for more information.
  */
 
 static mrb_value
@@ -1145,7 +1233,7 @@ static mrb_value flo_divmod(mrb_state *mrb, mrb_value x);
  *  call-seq:
  *     int.divmod(numeric)  ->  array
  *
- *  See <code>Numeric#divmod</code>.
+ *  See `Numeric#divmod`.
  */
 static mrb_value
 int_divmod(mrb_state *mrb, mrb_value x)
@@ -1202,7 +1290,7 @@ flo_divmod(mrb_state *mrb, mrb_value x)
  * call-seq:
  *   int == other  ->  true or false
  *
- * Return <code>true</code> if <code>int</code> equals <code>other</code>
+ * Return `true` if `int` equals `other`
  * numerically.
  *
  *   1 == 2      #=> false
@@ -1339,6 +1427,25 @@ int_xor(mrb_state *mrb, mrb_value x)
 
 #define NUMERIC_SHIFT_WIDTH_MAX (MRB_INT_BIT-1)
 
+/**
+ * Performs a bitwise shift operation (left or right) on an mrb_int value
+ * (val) by width positions.
+ *
+ * @param mrb The mruby state (though not directly used in the function
+ *            logic, it's often part of MRB_API signatures).
+ * @param val The integer value to be shifted.
+ * @param width The number of positions to shift. Positive for left shift,
+ *              negative for right shift.
+ * @param num A pointer to an mrb_int where the result of the shift will be
+ *            stored.
+ * @return An mrb_bool indicating whether the shift was successful.
+ *         - TRUE if the shift was performed without overflow.
+ *         - FALSE if the shift would result in an overflow (e.g., shifting
+ *           a large positive number too far left, or a negative number
+ *           too far left).
+ * Special handling for right shifts of negative numbers (arithmetic shift)
+ * and large shift widths.
+ */
 mrb_bool
 mrb_num_shift(mrb_state *mrb, mrb_int val, mrb_int width, mrb_int *num)
 {
@@ -1477,7 +1584,7 @@ prepare_int_rounding(mrb_state *mrb, mrb_value x)
  *  Returns self.
  *
  *  When the precision (ndigits) is negative, the returned value is an integer
- *  with at least <code>ndigits.abs</code> trailing zeros.
+ *  with at least `ndigits.abs` trailing zeros.
  */
 static mrb_value
 int_ceil(mrb_state *mrb, mrb_value x)
@@ -1519,7 +1626,7 @@ int_ceil(mrb_state *mrb, mrb_value x)
  *  Returns self.
  *
  *  When the precision (ndigits) is negative, the returned value is an integer
- *  with at least <code>ndigits.abs</code> trailing zeros.
+ *  with at least `ndigits.abs` trailing zeros.
  */
 static mrb_value
 int_floor(mrb_state *mrb, mrb_value x)
@@ -1560,7 +1667,7 @@ int_floor(mrb_state *mrb, mrb_value x)
  *  Returns self.
  *
  *  When the precision (ndigits) is negative, the returned value is an integer
- *  with at least <code>ndigits.abs</code> trailing zeros.
+ *  with at least `ndigits.abs` trailing zeros.
  */
 static mrb_value
 int_round(mrb_state *mrb, mrb_value x)
@@ -1624,7 +1731,7 @@ int_round(mrb_state *mrb, mrb_value x)
  *  Returns self.
  *
  *  When the precision (ndigits) is negative, the returned value is an integer
- *  with at least <code>ndigits.abs</code> trailing zeros.
+ *  with at least `ndigits.abs` trailing zeros.
  */
 static mrb_value
 int_truncate(mrb_state *mrb, mrb_value x)
@@ -1652,7 +1759,7 @@ int_truncate(mrb_state *mrb, mrb_value x)
  *  call-seq:
  *     int.to_f  ->  float
  *
- *  Converts <i>int</i> to a <code>Float</code>.
+ *  Converts *int* to a `Float`.
  *
  */
 
@@ -1668,6 +1775,15 @@ int_to_f(mrb_state *mrb, mrb_value num)
   return mrb_float_value(mrb, (mrb_float)mrb_integer(num));
 }
 
+/**
+ * Converts an mrb_value float to an mrb_value integer.
+ *
+ * @param mrb The mruby state.
+ * @param x The float mrb_value to convert.
+ * @return An mrb_value integer if the conversion is successful.
+ * @raise E_TYPE_ERROR if the input is not a float.
+ * @raise E_RANGE_ERROR if the float is Infinity or NaN.
+ */
 MRB_API mrb_value
 mrb_float_to_integer(mrb_state *mrb, mrb_value x)
 {
@@ -1682,12 +1798,27 @@ mrb_float_to_integer(mrb_state *mrb, mrb_value x)
 }
 #endif
 
+/**
+ * Adds two mrb_values, x and y, where x is expected to be an integer.
+ * y can be an integer, BigInt, Rational, Complex, or Float. The function
+ * handles type promotion and dispatches to appropriate handlers.
+ *
+ * @param mrb The mruby state.
+ * @param x The first operand (integer).
+ * @param y The second operand (can be various numeric types).
+ * @return An mrb_value representing the sum. The type of the result depends
+ *         on the types of the inputs and the magnitude of the result.
+ * Handles potential integer overflows by promoting to BigInt if MRB_USE_BIGINT
+ * is defined, or raising RangeError otherwise.
+ * If y is not a recognized numeric type and MRB_NO_FLOAT is defined, it
+ * raises E_TYPE_ERROR. If MRB_NO_FLOAT is not defined, it attempts to
+ * convert y to a float.
+ */
 mrb_value
 mrb_int_add(mrb_state *mrb, mrb_value x, mrb_value y)
 {
-  mrb_int a;
+  mrb_int a = mrb_integer(x);
 
-  a = mrb_integer(x);
   if (mrb_integer_p(y)) {
     mrb_int b, c;
 
@@ -1732,7 +1863,7 @@ mrb_int_add(mrb_state *mrb, mrb_value x, mrb_value y)
  *   int + numeric  ->  numeric_result
  *
  * Performs addition: the class of the resulting object depends on
- * the class of <code>numeric</code> and on the magnitude of the
+ * the class of `numeric` and on the magnitude of the
  * result.
  */
 static mrb_value
@@ -1748,12 +1879,27 @@ int_add(mrb_state *mrb, mrb_value self)
   return mrb_int_add(mrb, self, other);
 }
 
+/**
+ * Subtracts mrb_value y from mrb_value x, where x is expected to be an
+ * integer. y can be an integer, BigInt, Rational, Complex, or Float.
+ * The function handles type promotion and dispatches to appropriate handlers.
+ *
+ * @param mrb The mruby state.
+ * @param x The minuend (integer).
+ * @param y The subtrahend (can be various numeric types).
+ * @return An mrb_value representing the difference. The type of the result
+ *         depends on the types of the inputs and the magnitude of the result.
+ * Handles potential integer overflows by promoting to BigInt if MRB_USE_BIGINT
+ * is defined, or raising RangeError otherwise.
+ * If y is not a recognized numeric type and MRB_NO_FLOAT is defined, it
+ * raises E_TYPE_ERROR. If MRB_NO_FLOAT is not defined, it attempts to
+ * convert y to a float.
+ */
 mrb_value
 mrb_int_sub(mrb_state *mrb, mrb_value x, mrb_value y)
 {
-  mrb_int a;
+  mrb_int a = mrb_integer(x);
 
-  a = mrb_integer(x);
   if (mrb_integer_p(y)) {
     mrb_int b, c;
 
@@ -1796,7 +1942,7 @@ mrb_int_sub(mrb_state *mrb, mrb_value x, mrb_value y)
  *   int - numeric  ->  numeric
  *
  * Performs subtraction: the class of the resulting object depends on
- * the class of <code>numeric</code> and on the magnitude of the
+ * the class of `numeric` and on the magnitude of the
  * result.
  */
 static mrb_value
@@ -1812,6 +1958,16 @@ int_sub(mrb_state *mrb, mrb_value self)
   return mrb_int_sub(mrb, self, other);
 }
 
+/**
+ * Converts an mrb_int to a C-style string.
+ *
+ * @param buf The buffer to write the string to.
+ * @param len The size of the buffer.
+ * @param n The integer to convert.
+ * @param base The radix for conversion (2-36).
+ * @return A pointer to the beginning of the string in the buffer,
+ *         or NULL if an error occurs (e.g., invalid base, buffer too small).
+ */
 MRB_API char*
 mrb_int_to_cstr(char *buf, size_t len, mrb_int n, mrb_int base)
 {
@@ -1845,6 +2001,15 @@ mrb_int_to_cstr(char *buf, size_t len, mrb_int n, mrb_int base)
   return b;
 }
 
+/**
+ * Converts an mrb_value representing an integer to a new mrb_value string.
+ *
+ * @param mrb The mruby state.
+ * @param x The integer mrb_value to convert.
+ * @param base The radix for conversion (2-36).
+ * @return A new mrb_value string representing the integer,
+ *         or raises an E_ARGUMENT_ERROR if the base is invalid.
+ */
 MRB_API mrb_value
 mrb_integer_to_str(mrb_state *mrb, mrb_value x, mrb_int base)
 {
@@ -1871,8 +2036,8 @@ mrb_integer_to_str(mrb_state *mrb, mrb_value x, mrb_int base)
  *  call-seq:
  *     int.to_s(base=10)  ->  string
  *
- *  Returns a string containing the representation of <i>int</i> radix
- *  <i>base</i> (between 2 and 36).
+ *  Returns a string containing the representation of *int* radix
+ *  *base* (between 2 and 36).
  *
  *     12345.to_s       #=> "12345"
  *     12345.to_s(2)    #=> "11000000111001"
@@ -1992,18 +2157,17 @@ int_hash(mrb_state *mrb, mrb_value self)
  *             <  => -1
  *             =  =>  0
  *             >  => +1
- *  Comparison---Returns -1, 0, or +1 depending on whether <i>int</i> is
- *  less than, equal to, or greater than <i>numeric</i>. This is the
- *  basis for the tests in <code>Comparable</code>. When the operands are
+ *  Comparison---Returns -1, 0, or +1 depending on whether *int* is
+ *  less than, equal to, or greater than *numeric*. This is the
+ *  basis for the tests in `Comparable`. When the operands are
  *  not comparable, it returns nil instead of raising an exception.
  */
 static mrb_value
 num_cmp(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
-  mrb_int n;
+  mrb_int n = cmpnum(mrb, self, other);
 
-  n = cmpnum(mrb, self, other);
   if (n == -2) return mrb_nil_value();
   return mrb_fixnum_value(n);
 }
@@ -2018,9 +2182,8 @@ static mrb_value
 num_lt(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
-  mrb_int n;
+  mrb_int n = cmpnum(mrb, self, other);
 
-  n = cmpnum(mrb, self, other);
   if (n == -2) cmperr(mrb, self, other);
   if (n < 0) return mrb_true_value();
   return mrb_false_value();
@@ -2030,9 +2193,8 @@ static mrb_value
 num_le(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
-  mrb_int n;
+  mrb_int n = cmpnum(mrb, self, other);
 
-  n = cmpnum(mrb, self, other);
   if (n == -2) cmperr(mrb, self, other);
   if (n <= 0) return mrb_true_value();
   return mrb_false_value();
@@ -2042,9 +2204,8 @@ static mrb_value
 num_gt(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
-  mrb_int n;
+  mrb_int n = cmpnum(mrb, self, other);
 
-  n = cmpnum(mrb, self, other);
   if (n == -2) cmperr(mrb, self, other);
   if (n > 0) return mrb_true_value();
   return mrb_false_value();
@@ -2054,14 +2215,28 @@ static mrb_value
 num_ge(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
-  mrb_int n;
+  mrb_int n = cmpnum(mrb, self, other);
 
-  n = cmpnum(mrb, self, other);
   if (n == -2) cmperr(mrb, self, other);
   if (n >= 0) return mrb_true_value();
   return mrb_false_value();
 }
 
+/**
+ * Compares two mrb_value objects (obj1 and obj2).
+ *
+ * @param mrb The mruby state.
+ * @param obj1 The first object.
+ * @param obj2 The second object.
+ * @return An mrb_int indicating the comparison result:
+ *         - 0 if obj1 is equal to obj2.
+ *         - 1 if obj1 is greater than obj2.
+ *         - -1 if obj1 is less than obj2.
+ *         - -2 if the objects are not comparable (error).
+ * It handles comparisons for integers, floats, bigints, and strings directly.
+ * For other types, it attempts to call the <=> (spaceship) operator on obj1
+ * with obj2 as an argument.
+ */
 MRB_API mrb_int
 mrb_cmp(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
 {

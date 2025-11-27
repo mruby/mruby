@@ -6,6 +6,36 @@
 #include <mruby/debug.h>
 #include <mruby/presym.h>
 
+/*
+ *  call-seq:
+ *     prc.lambda?    -> true or false
+ *
+ *  Returns `true` if `prc` is a lambda, `false` if it is a proc.
+ *  The difference is how they react to a `return` statement. In a lambda,
+ *  `return` makes the lambda return. In a proc, `return` makes the method
+ *  that called the proc return.
+ *
+ *     def gen_times(factor)
+ *       return proc {|n| n*factor }  # return from the proc
+ *     end
+ *
+ *     times3 = gen_times(3)
+ *     times5 = gen_times(5)
+ *
+ *     times3.lambda?   #=> false
+ *     times5.lambda?   #=> false
+ *
+ *     def gen_times(factor)
+ *       return lambda {|n| n*factor }  # return from the lambda
+ *     end
+ *
+ *     times3 = gen_times(3)
+ *     times5 = gen_times(5)
+ *
+ *     times3.lambda?   #=> true
+ *     times5.lambda?   #=> true
+ */
+
 static mrb_value
 proc_lambda_p(mrb_state *mrb, mrb_value self)
 {
@@ -13,6 +43,7 @@ proc_lambda_p(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(MRB_PROC_STRICT_P(p));
 }
 
+/* Internal helper function to extract source location from a proc */
 mrb_value
 mrb_proc_source_location(mrb_state *mrb, const struct RProc *p)
 {
@@ -35,11 +66,38 @@ mrb_proc_source_location(mrb_state *mrb, const struct RProc *p)
   return mrb_assoc_new(mrb, mrb_str_new_cstr(mrb, filename), mrb_fixnum_value(line));
 }
 
+/*
+ *  call-seq:
+ *     prc.source_location  -> [filename, line] or nil
+ *
+ *  Returns the Ruby source filename and line number containing this proc
+ *  or `nil` if this proc was not defined in Ruby (i.e. native).
+ *
+ *     p = proc { puts "hello" }
+ *     p.source_location   #=> ["prog.rb", 1]
+ */
+
 static mrb_value
 proc_source_location(mrb_state *mrb, mrb_value self)
 {
   return mrb_proc_source_location(mrb, mrb_proc_ptr(self));
 }
+
+/*
+ *  call-seq:
+ *     prc.to_s    -> string
+ *     prc.inspect -> string
+ *
+ *  Returns the unique identifier for this proc, along with
+ *  an indication of where the proc was defined.
+ *
+ *     p = proc { puts "hello" }
+ *     p.inspect   #=> "#<Proc:0x401b2e88@prog.rb:1>"
+ *     p.to_s      #=> "#<Proc:0x401b2e88@prog.rb:1>"
+ *
+ *     l = lambda { puts "hello" }
+ *     l.inspect   #=> "#<Proc:0x401b2e88@prog.rb:1 (lambda)>"
+ */
 
 static mrb_value
 proc_inspect(mrb_state *mrb, mrb_value self)
@@ -71,6 +129,19 @@ proc_inspect(mrb_state *mrb, mrb_value self)
   mrb_str_cat_lit(mrb, str, ">");
   return str;
 }
+
+/*
+ *  call-seq:
+ *     proc { |...| block }  -> a_proc
+ *
+ *  Equivalent to `Proc.new`.
+ *
+ *     def proc(&block)
+ *       block
+ *     end
+ *
+ *     proc { puts "Hello world" }   #=> #<Proc:0x401b2e88@-e:58>
+ */
 
 static mrb_value
 kernel_proc(mrb_state *mrb, mrb_value self)
@@ -111,7 +182,7 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
   int i;
   const struct RProc *proc = mrb_proc_ptr(self);
   if (MRB_PROC_CFUNC_P(proc)) {
-    // TODO cfunc aspec is not implemented yet
+    /* TODO: cfunc aspec is not implemented yet - C functions don't store argument spec info */
     return mrb_ary_new(mrb);
   }
   const struct mrb_irep *irep = proc->body.irep;

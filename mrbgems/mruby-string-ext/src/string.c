@@ -89,8 +89,8 @@ int_chr_utf8(mrb_state *mrb, mrb_value num)
  *  call-seq:
  *     str.swapcase!   -> str or nil
  *
- *  Equivalent to <code>String#swapcase</code>, but modifies the receiver in
- *  place, returning <i>str</i>, or <code>nil</code> if no changes were made.
+ *  Equivalent to `String#swapcase`, but modifies the receiver in
+ *  place, returning *str*, or `nil` if no changes were made.
  *  Note: case conversion is effective only in ASCII region.
  */
 static mrb_value
@@ -122,7 +122,7 @@ str_swapcase_bang(mrb_state *mrb, mrb_value str)
  *  call-seq:
  *     str.swapcase   -> new_str
  *
- *  Returns a copy of <i>str</i> with uppercase alphabetic characters converted
+ *  Returns a copy of *str* with uppercase alphabetic characters converted
  *  to lowercase and lowercase characters converted to uppercase.
  *  Note: case conversion is effective only in ASCII region.
  *
@@ -184,7 +184,7 @@ str_concat0(mrb_state *mrb, mrb_value self, mrb_bool binary)
  *    s.concat('bar', 'baz') # => "foobarbaz"
  *    s                      # => "foobarbaz"
  *
- *  For each given object +object+ that is an \Integer,
+ *  For each given object `object` that is an \Integer,
  *  the value is considered a codepoint and converted to a character before concatenation:
  *
  *    s = 'foo'
@@ -215,7 +215,7 @@ str_append_as_bytes(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     str.start_with?([prefixes]+)   -> true or false
  *
- *  Returns true if +str+ starts with one of the +prefixes+ given.
+ *  Returns true if `str` starts with one of the `prefixes` given.
  *
  *    "hello".start_with?("hell")               #=> true
  *
@@ -251,7 +251,7 @@ str_start_with(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     str.end_with?([suffixes]+)   -> true or false
  *
- *  Returns true if +str+ ends with one of the +suffixes+ given.
+ *  Returns true if `str` ends with one of the `suffixes` given.
  */
 static mrb_value
 str_end_with(mrb_state *mrb, mrb_value self)
@@ -521,14 +521,17 @@ str_tr(mrb_state *mrb, mrb_value str, mrb_value p1, mrb_value p2, mrb_bool squee
   char *s = RSTRING_PTR(str);
   mrb_int len = RSTRING_LEN(str);
 
+  /* Hoist pointer retrieval outside loop to avoid repeated conditionals */
+  const char *p1_ptr = RSTRING_PTR(p1);
+  const char *p2_ptr = RSTRING_PTR(p2);
   mrb_int i, j;
   for (i=j=0; i<len; i++,j++) {
-    mrb_int n = tr_find_character(&pat, RSTRING_PTR(p1), s[i]);
+    mrb_int n = tr_find_character(&pat, p1_ptr, s[i]);
 
     if (i>j) s[j] = s[i];
     if (n >= 0) {
       flag_changed = TRUE;
-      mrb_int c = tr_get_character(&rep, RSTRING_PTR(p2), n);
+      mrb_int c = tr_get_character(&rep, p2_ptr, n);
 
       if (c < 0 || (squeeze && c == lastch)) {
         j--;
@@ -783,6 +786,7 @@ str_delete(mrb_state *mrb, mrb_value str, mrb_value v_pat)
   return flag_changed;
 }
 
+/* Internal helper for String#delete - returns new string with pattern characters removed */
 static mrb_value
 str_delete_m(mrb_state *mrb, mrb_value str)
 {
@@ -794,6 +798,7 @@ str_delete_m(mrb_state *mrb, mrb_value str)
   return dup;
 }
 
+/* Internal helper for String#delete! - removes pattern characters in place */
 static mrb_value
 str_delete_bang(mrb_state *mrb, mrb_value str)
 {
@@ -838,12 +843,14 @@ str_count(mrb_state *mrb, mrb_value str)
   return mrb_fixnum_value(count);
 }
 
+/* Internal helper for String#hex - converts hex string to integer */
 static mrb_value
 str_hex(mrb_state *mrb, mrb_value self)
 {
   return mrb_str_to_integer(mrb, self, 16, FALSE);
 }
 
+/* Internal helper for String#oct - converts octal string to integer */
 static mrb_value
 str_oct(mrb_state *mrb, mrb_value self)
 {
@@ -869,9 +876,9 @@ str_chr(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     int.chr([encoding])  ->  string
  *
- *  Returns a string containing the character represented by the +int+'s value
- *  according to +encoding+. +"ASCII-8BIT"+ (+"BINARY"+) and +"UTF-8"+ (only
- *  with +MRB_UTF8_STRING+) can be specified as +encoding+ (default is
+ *  Returns a string containing the character represented by the `int`'s value
+ *  according to `encoding`. +"ASCII-8BIT"+ (+"BINARY"+) and +"UTF-8"+ (only
+ *  with `MRB_UTF8_STRING`) can be specified as `encoding` (default is
  *  +"ASCII-8BIT"+).
  *
  *     65.chr                  #=> "A"
@@ -1045,6 +1052,7 @@ str_ord(mrb_state* mrb, mrb_value str)
   return mrb_fixnum_value(c);
 }
 
+/* Internal helper for String#codepoints - returns array of character codepoints */
 static mrb_value
 str_codepoints(mrb_state *mrb, mrb_value str)
 {
@@ -1094,12 +1102,20 @@ str_codepoints(mrb_state *mrb, mrb_value self)
 }
 #endif
 
+static mrb_bool
+str_prefix_p(mrb_state *mrb, mrb_value str, const char *prefix_ptr, mrb_int prefix_len)
+{
+  mrb_int str_len = RSTRING_LEN(str);
+  if (prefix_len > str_len) return FALSE;
+  return memcmp(RSTRING_PTR(str), prefix_ptr, prefix_len) == 0;
+}
+
 /*
  *  call-seq:
  *     str.delete_prefix!(prefix) -> self or nil
  *
- *  Deletes leading <code>prefix</code> from <i>str</i>, returning
- *  <code>nil</code> if no change was made.
+ *  Deletes leading `prefix` from *str*, returning
+ *  `nil` if no change was made.
  *
  *     "hello".delete_prefix!("hel") #=> "lo"
  *     "hello".delete_prefix!("llo") #=> nil
@@ -1109,13 +1125,13 @@ str_del_prefix_bang(mrb_state *mrb, mrb_value self)
 {
   mrb_int plen;
   const char *ptr;
-  struct RString *str = RSTRING(self);
 
   mrb_get_args(mrb, "s", &ptr, &plen);
+  struct RString *str = RSTRING(self);
   mrb_int slen = RSTR_LEN(str);
   if (plen > slen) return mrb_nil_value();
   char *s = RSTR_PTR(str);
-  if (memcmp(s, ptr, plen) != 0) return mrb_nil_value();
+  if (!str_prefix_p(mrb, self, ptr, plen)) return mrb_nil_value();
   if (!mrb_frozen_p(str) && (RSTR_SHARED_P(str) || RSTR_FSHARED_P(str))) {
     str->as.heap.ptr += plen;
   }
@@ -1132,7 +1148,7 @@ str_del_prefix_bang(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     str.delete_prefix(prefix) -> new_str
  *
- *  Returns a copy of <i>str</i> with leading <code>prefix</code> deleted.
+ *  Returns a copy of *str* with leading `prefix` deleted.
  *
  *     "hello".delete_prefix("hel") #=> "lo"
  *     "hello".delete_prefix("llo") #=> "hello"
@@ -1146,17 +1162,25 @@ str_del_prefix(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "s", &ptr, &plen);
   mrb_int slen = RSTRING_LEN(self);
   if (plen > slen) return mrb_str_dup(mrb, self);
-  if (memcmp(RSTRING_PTR(self), ptr, plen) != 0)
+  if (!str_prefix_p(mrb, self, ptr, plen))
     return mrb_str_dup(mrb, self);
   return mrb_str_substr(mrb, self, plen, slen-plen);
+}
+
+static mrb_bool
+str_suffix_p(mrb_state *mrb, mrb_value str, const char *suffix_ptr, mrb_int suffix_len)
+{
+  mrb_int str_len = RSTRING_LEN(str);
+  if (suffix_len > str_len) return FALSE;
+  return memcmp(RSTRING_PTR(str) + (str_len - suffix_len), suffix_ptr, suffix_len) == 0;
 }
 
 /*
  *  call-seq:
  *     str.delete_suffix!(suffix) -> self or nil
  *
- *  Deletes trailing <code>suffix</code> from <i>str</i>, returning
- *  <code>nil</code> if no change was made.
+ *  Deletes trailing `suffix` from *str*, returning
+ *  `nil` if no change was made.
  *
  *     "hello".delete_suffix!("llo") #=> "he"
  *     "hello".delete_suffix!("hel") #=> nil
@@ -1166,19 +1190,13 @@ str_del_suffix_bang(mrb_state *mrb, mrb_value self)
 {
   mrb_int plen;
   const char *ptr;
-  struct RString *str = RSTRING(self);
 
   mrb_get_args(mrb, "s", &ptr, &plen);
+  struct RString *str = RSTRING(self);
+  mrb_check_frozen(mrb, str);
   mrb_int slen = RSTR_LEN(str);
   if (plen > slen) return mrb_nil_value();
-  char *s = RSTR_PTR(str);
-  if (memcmp(s+slen-plen, ptr, plen) != 0) return mrb_nil_value();
-  if (!mrb_frozen_p(str) && (RSTR_SHARED_P(str) || RSTR_FSHARED_P(str))) {
-    /* no need to modify string */
-  }
-  else {
-    mrb_str_modify(mrb, str);
-  }
+  if (!str_suffix_p(mrb, self, ptr, plen)) return mrb_nil_value();
   RSTR_SET_LEN(str, slen-plen);
   return self;
 }
@@ -1187,7 +1205,7 @@ str_del_suffix_bang(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     str.delete_suffix(suffix) -> new_str
  *
- *  Returns a copy of <i>str</i> with leading <code>suffix</code> deleted.
+ *  Returns a copy of *str* with leading `suffix` deleted.
  *
  *     "hello".delete_suffix("hel") #=> "lo"
  *     "hello".delete_suffix("llo") #=> "hello"
@@ -1201,7 +1219,7 @@ str_del_suffix(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "s", &ptr, &plen);
   mrb_int slen = RSTRING_LEN(self);
   if (plen > slen) return mrb_str_dup(mrb, self);
-  if (memcmp(RSTRING_PTR(self)+slen-plen, ptr, plen) != 0)
+  if (!str_suffix_p(mrb, self, ptr, plen))
     return mrb_str_dup(mrb, self);
   return mrb_str_substr(mrb, self, 0, slen-plen);
 }
@@ -1212,7 +1230,7 @@ str_del_suffix(mrb_state *mrb, mrb_value self)
  * call-seq:
  *   str.casecmp(other_str)   -> -1, 0, +1 or nil
  *
- * Case-insensitive version of <code>String#<=></code>.
+ * Case-insensitive version of `String#<=>`.
  *
  *   "abcdef".casecmp("abcde")     #=> 1
  *   "aBcDeF".casecmp("abcdef")    #=> 0
@@ -1263,23 +1281,22 @@ str_casecmp_p(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(mrb_fixnum(c) == 0);
 }
 
+/* Internal helper for String#lines - splits string into array of lines */
 static mrb_value
 str_lines(mrb_state *mrb, mrb_value self)
 {
-  mrb_value result;
-  mrb_int len;
   char *b = RSTRING_PTR(self);
   char *p = b, *t;
   char *e = b + RSTRING_LEN(self);
 
   mrb->c->ci->mid = 0;
-  result = mrb_ary_new(mrb);
+  mrb_value result = mrb_ary_new(mrb);
   int ai = mrb_gc_arena_save(mrb);
   while (p < e) {
     t = p;
     while (p < e && *p != '\n') p++;
     if (*p == '\n') p++;
-    len = (mrb_int) (p - t);
+    mrb_int len = (mrb_int) (p - t);
     mrb_ary_push(mrb, result, mrb_str_new(mrb, t, len));
     mrb_gc_arena_restore(mrb, ai);
   }
@@ -1290,9 +1307,9 @@ str_lines(mrb_state *mrb, mrb_value self)
  * call-seq:
  *   +string -> new_string or self
  *
- * Returns +self+ if +self+ is not frozen.
+ * Returns `self` if `self` is not frozen.
  *
- * Otherwise returns <tt>self.dup</tt>, which is not frozen.
+ * Otherwise returns `self.dup`, which is not frozen.
  */
 static mrb_value
 str_uplus(mrb_state *mrb, mrb_value str)
@@ -1321,6 +1338,7 @@ str_uminus(mrb_state *mrb, mrb_value str)
   return mrb_obj_freeze(mrb, mrb_str_dup(mrb, str));
 }
 
+/* Internal helper for String#ascii_only? - checks if string contains only ASCII characters */
 static mrb_value
 str_ascii_only_p(mrb_state *mrb, mrb_value str)
 {
@@ -1336,12 +1354,906 @@ str_ascii_only_p(mrb_state *mrb, mrb_value str)
   return mrb_true_value();
 }
 
+/* Internal helper for String#b - returns binary encoded copy of string */
 static mrb_value
 str_b(mrb_state *mrb, mrb_value self)
 {
   mrb_value str = mrb_str_dup(mrb, self);
   mrb_str_ptr(str)->flags |= MRB_STR_BINARY;
   return str;
+}
+
+/*
+ * Check if character is whitespace (space, tab, newline, carriage return, form feed, vertical tab)
+ */
+static inline mrb_bool
+is_whitespace(char c)
+{
+  return (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v');
+}
+
+/*
+ * Check if character is whitespace or null (for rstrip)
+ */
+static inline mrb_bool
+is_whitespace_or_null(char c)
+{
+  return (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v' || c == '\0');
+}
+
+/*
+ *  call-seq:
+ *     str.lstrip   -> new_str
+ *
+ *  Returns a copy of str with leading whitespace removed.
+ *
+ *     "  hello  ".lstrip   #=> "hello  "
+ *     "hello".lstrip       #=> "hello"
+ */
+static mrb_value
+str_lstrip(mrb_state *mrb, mrb_value self)
+{
+  struct RString *s = mrb_str_ptr(self);
+  const char *ptr = RSTR_PTR(s);
+  mrb_int len = RSTR_LEN(s);
+  mrb_int start = 0;
+
+  /* Find first non-whitespace character */
+  while (start < len && is_whitespace(ptr[start])) {
+    start++;
+  }
+
+  /* Return empty string if all whitespace */
+  if (start >= len) {
+    return mrb_str_new_lit(mrb, "");
+  }
+
+  /* Return substring from first non-whitespace to end */
+  return mrb_str_substr(mrb, self, start, len - start);
+}
+
+/*
+ *  call-seq:
+ *     str.rstrip   -> new_str
+ *
+ *  Returns a copy of str with trailing whitespace removed.
+ *
+ *     "  hello  ".rstrip   #=> "  hello"
+ *     "hello".rstrip       #=> "hello"
+ */
+static mrb_value
+str_rstrip(mrb_state *mrb, mrb_value self)
+{
+  struct RString *s = mrb_str_ptr(self);
+  const char *ptr = RSTR_PTR(s);
+  mrb_int len = RSTR_LEN(s);
+  mrb_int end = len;
+
+  /* Find last non-whitespace character */
+  while (end > 0 && is_whitespace_or_null(ptr[end - 1])) {
+    end--;
+  }
+
+  /* Return empty string if all whitespace */
+  if (end <= 0) {
+    return mrb_str_new_lit(mrb, "");
+  }
+
+  /* Return substring from start to last non-whitespace */
+  return mrb_str_substr(mrb, self, 0, end);
+}
+
+/*
+ *  call-seq:
+ *     str.strip   -> new_str
+ *
+ *  Returns a copy of str with leading and trailing whitespace removed.
+ *
+ *     "    hello    ".strip   #=> "hello"
+ *     "\tgoodbye\r\n".strip   #=> "goodbye"
+ */
+static mrb_value
+str_strip(mrb_state *mrb, mrb_value self)
+{
+  struct RString *s = mrb_str_ptr(self);
+  const char *ptr = RSTR_PTR(s);
+  mrb_int len = RSTR_LEN(s);
+  mrb_int start = 0;
+  mrb_int end = len;
+
+  /* Find first non-whitespace character */
+  while (start < len && is_whitespace(ptr[start])) {
+    start++;
+  }
+
+  /* Find last non-whitespace character */
+  while (end > start && is_whitespace_or_null(ptr[end - 1])) {
+    end--;
+  }
+
+  /* Return empty string if all whitespace */
+  if (start >= end) {
+    return mrb_str_new_lit(mrb, "");
+  }
+
+  /* Return substring from first to last non-whitespace */
+  return mrb_str_substr(mrb, self, start, end - start);
+}
+
+/*
+ *  call-seq:
+ *     str.lstrip!   -> self or nil
+ *
+ *  Removes leading whitespace from str, returning nil if no change was made.
+ *
+ *     "  hello  ".lstrip!   #=> "hello  "
+ *     "hello".lstrip!       #=> nil
+ */
+static mrb_value
+str_lstrip_bang(mrb_state *mrb, mrb_value self)
+{
+  struct RString *s = mrb_str_ptr(self);
+  char *ptr = RSTR_PTR(s);
+  mrb_int len = RSTR_LEN(s);
+  mrb_int start = 0;
+
+  mrb_check_frozen(mrb, mrb_obj_ptr(self));
+  mrb_str_modify(mrb, s);
+
+  /* Find first non-whitespace character */
+  while (start < len && is_whitespace(ptr[start])) {
+    start++;
+  }
+
+  /* No change needed */
+  if (start == 0) {
+    return mrb_nil_value();
+  }
+
+  /* Move remaining characters to beginning */
+  if (start < len) {
+    memmove(ptr, ptr + start, len - start);
+    RSTR_SET_LEN(s, len - start);
+    ptr[len - start] = '\0';
+  }
+  else {
+    /* All whitespace - make empty */
+    RSTR_SET_LEN(s, 0);
+    ptr[0] = '\0';
+  }
+
+  return self;
+}
+
+/*
+ *  call-seq:
+ *     str.rstrip!   -> self or nil
+ *
+ *  Removes trailing whitespace from str, returning nil if no change was made.
+ *
+ *     "  hello  ".rstrip!   #=> "  hello"
+ *     "hello".rstrip!       #=> nil
+ */
+static mrb_value
+str_rstrip_bang(mrb_state *mrb, mrb_value self)
+{
+  struct RString *s = mrb_str_ptr(self);
+  char *ptr = RSTR_PTR(s);
+  mrb_int len = RSTR_LEN(s);
+  mrb_int end = len;
+
+  mrb_check_frozen(mrb, mrb_obj_ptr(self));
+  mrb_str_modify(mrb, s);
+
+  /* Find last non-whitespace character */
+  while (end > 0 && is_whitespace_or_null(ptr[end - 1])) {
+    end--;
+  }
+
+  /* No change needed */
+  if (end == len) {
+    return mrb_nil_value();
+  }
+
+  /* Truncate string */
+  RSTR_SET_LEN(s, end);
+  ptr[end] = '\0';
+
+  return self;
+}
+
+/*
+ *  call-seq:
+ *     str.strip!   -> self or nil
+ *
+ *  Removes leading and trailing whitespace from str, returning nil if no change was made.
+ *
+ *     "    hello    ".strip!   #=> "hello"
+ *     "hello".strip!           #=> nil
+ */
+static mrb_value
+str_strip_bang(mrb_state *mrb, mrb_value self)
+{
+  struct RString *s = mrb_str_ptr(self);
+  char *ptr = RSTR_PTR(s);
+  mrb_int len = RSTR_LEN(s);
+  mrb_int start = 0;
+  mrb_int end = len;
+  mrb_bool changed = FALSE;
+
+  mrb_check_frozen(mrb, mrb_obj_ptr(self));
+  mrb_str_modify(mrb, s);
+
+  /* Find first non-whitespace character */
+  while (start < len && is_whitespace(ptr[start])) {
+    start++;
+  }
+
+  /* Find last non-whitespace character */
+  while (end > start && is_whitespace_or_null(ptr[end - 1])) {
+    end--;
+  }
+
+  /* Check if any changes needed */
+  if (start > 0) {
+    changed = TRUE;
+    if (start < end) {
+      memmove(ptr, ptr + start, end - start);
+    }
+  }
+
+  if (end != len) {
+    changed = TRUE;
+  }
+
+  if (!changed) {
+    return mrb_nil_value();
+  }
+
+  /* Set new length */
+  RSTR_SET_LEN(s, end - start);
+  ptr[end - start] = '\0';
+
+  return self;
+}
+
+/* Internal helper to count UTF-8 characters in a string using mruby's standard function */
+static mrb_int
+str_char_count(mrb_value str)
+{
+#ifdef MRB_UTF8_STRING
+  struct RString *s = mrb_str_ptr(str);
+
+  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
+    /* ASCII/Binary: each byte is a character */
+    return RSTR_LEN(s);
+  }
+
+  /* UTF-8: use mruby's standard UTF-8 character counting function */
+  return mrb_utf8_strlen(RSTR_PTR(s), RSTR_LEN(s));
+#else
+  /* Non-UTF8 build: treat as single bytes */
+  return RSTRING_LEN(str);
+#endif
+}
+
+/* Internal fast path for String#chars - returns array of individual characters */
+static mrb_value
+str_chars_ary(mrb_state *mrb, mrb_value self)
+{
+  struct RString *s = mrb_str_ptr(self);
+  const unsigned char *p = (unsigned char*)RSTR_PTR(s);
+  const unsigned char *e = p + RSTR_LEN(s);
+
+  /* Estimate character count for array pre-allocation */
+  mrb_int estimated_chars = RSTR_LEN(s);
+  if (!RSTR_SINGLE_BYTE_P(s) && !RSTR_BINARY_P(s)) {
+    estimated_chars = estimated_chars / 2; /* rough estimate for UTF-8 */
+  }
+  mrb_value result = mrb_ary_new_capa(mrb, estimated_chars);
+
+  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
+    /* ASCII/Binary: each byte is a character */
+    while (p < e) {
+      mrb_value char_str = mrb_str_new(mrb, (char*)p, 1);
+      mrb_ary_push(mrb, result, char_str);
+      p++;
+    }
+  }
+  else {
+#ifdef MRB_UTF8_STRING
+    /* UTF-8: handle multi-byte characters */
+    while (p < e) {
+      mrb_int char_len = mrb_utf8len_table[p[0] >> 3];
+      if (char_len == 0 || char_len > 4 || p + char_len > e) {
+        /* Invalid UTF-8, treat as single byte */
+        char_len = 1;
+      }
+      else {
+        /* Validate UTF-8 sequence */
+        mrb_bool valid = TRUE;
+        if (char_len > 1) {
+          for (mrb_int i = 1; i < char_len; i++) {
+            if ((p[i] & 0xC0) != 0x80) {
+              valid = FALSE;
+              break;
+            }
+          }
+        }
+        if (!valid) {
+          char_len = 1;
+        }
+      }
+      mrb_value char_str = mrb_str_new(mrb, (char*)p, char_len);
+      mrb_ary_push(mrb, result, char_str);
+      p += char_len;
+    }
+#else
+    /* Non-UTF8 build: treat as single bytes */
+    while (p < e) {
+      mrb_value char_str = mrb_str_new(mrb, (char*)p, 1);
+      mrb_ary_push(mrb, result, char_str);
+      p++;
+    }
+#endif
+  }
+
+  return result;
+}
+
+/*
+ *  call-seq:
+ *     str.ljust(integer, padstr=' ')   -> new_str
+ *
+ *  If integer is greater than the length of str, returns a new
+ *  String of length integer with str left justified and padded with padstr;
+ *  otherwise, returns str.
+ */
+static mrb_value
+str_ljust_core(mrb_state *mrb, mrb_value self)
+{
+  mrb_int width;
+  mrb_value padstr = mrb_str_new_lit(mrb, " ");
+
+  mrb_get_args(mrb, "i|S", &width, &padstr);
+
+  if (RSTRING_LEN(padstr) == 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
+  }
+
+  mrb_int char_len = str_char_count(self);
+  if (width <= char_len) {
+    return mrb_str_dup(mrb, self);
+  }
+
+  mrb_int padsize = width - char_len;
+  mrb_int pad_char_len = str_char_count(padstr);
+  if (pad_char_len == 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
+  }
+
+  /* Build padding string by repeating padstr */
+  mrb_value padding = mrb_str_new_lit(mrb, "");
+  mrb_int chars_needed = padsize;
+  while (chars_needed > 0) {
+    if (chars_needed >= pad_char_len) {
+      mrb_str_cat_str(mrb, padding, padstr);
+      chars_needed -= pad_char_len;
+    }
+    else {
+      /* Need partial padding - use substr to get exact characters */
+      mrb_value partial = mrb_str_substr(mrb, padstr, 0, chars_needed);
+      mrb_str_cat_str(mrb, padding, partial);
+      chars_needed = 0;
+    }
+  }
+
+  return mrb_str_cat_str(mrb, mrb_str_dup(mrb, self), padding);
+}
+
+/*
+ *  call-seq:
+ *     str.rjust(integer, padstr=' ')   -> new_str
+ *
+ *  If integer is greater than the length of str, returns a new
+ *  String of length integer with str right justified and padded with padstr;
+ *  otherwise, returns str.
+ */
+static mrb_value
+str_rjust_core(mrb_state *mrb, mrb_value self)
+{
+  mrb_int width;
+  mrb_value padstr = mrb_str_new_lit(mrb, " ");
+
+  mrb_get_args(mrb, "i|S", &width, &padstr);
+
+  if (RSTRING_LEN(padstr) == 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
+  }
+
+  mrb_int char_len = str_char_count(self);
+  if (width <= char_len) {
+    return mrb_str_dup(mrb, self);
+  }
+
+  mrb_int padsize = width - char_len;
+  mrb_int pad_char_len = str_char_count(padstr);
+  if (pad_char_len == 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
+  }
+
+  /* Build padding string by repeating padstr */
+  mrb_value padding = mrb_str_new_lit(mrb, "");
+  mrb_int chars_needed = padsize;
+  while (chars_needed > 0) {
+    if (chars_needed >= pad_char_len) {
+      mrb_str_cat_str(mrb, padding, padstr);
+      chars_needed -= pad_char_len;
+    }
+    else {
+      /* Need partial padding - use substr to get exact characters */
+      mrb_value partial = mrb_str_substr(mrb, padstr, 0, chars_needed);
+      mrb_str_cat_str(mrb, padding, partial);
+      chars_needed = 0;
+    }
+  }
+
+  return mrb_str_cat_str(mrb, padding, self);
+}
+
+/*
+ *  call-seq:
+ *     str.center(width, padstr=' ')   -> new_str
+ *
+ *  Centers str in width. If width is greater than the length of str,
+ *  returns a new String of length width with str centered and padded with
+ *  padstr; otherwise, returns str.
+ */
+static mrb_value
+str_center_core(mrb_state *mrb, mrb_value self)
+{
+  mrb_int width;
+  mrb_value padstr = mrb_str_new_lit(mrb, " ");
+
+  mrb_get_args(mrb, "i|S", &width, &padstr);
+
+  if (RSTRING_LEN(padstr) == 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
+  }
+
+  mrb_int char_len = str_char_count(self);
+  if (width <= char_len) {
+    return mrb_str_dup(mrb, self);
+  }
+
+  mrb_int total_pad = width - char_len;
+  mrb_int left_pad = total_pad / 2;
+  mrb_int right_pad = total_pad - left_pad;
+
+  mrb_int pad_char_len = str_char_count(padstr);
+  if (pad_char_len == 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
+  }
+
+  /* Build left padding */
+  mrb_value left_padding = mrb_str_new_lit(mrb, "");
+  mrb_int chars_needed = left_pad;
+  while (chars_needed > 0) {
+    if (chars_needed >= pad_char_len) {
+      mrb_str_cat_str(mrb, left_padding, padstr);
+      chars_needed -= pad_char_len;
+    }
+    else {
+      mrb_value partial = mrb_str_substr(mrb, padstr, 0, chars_needed);
+      mrb_str_cat_str(mrb, left_padding, partial);
+      chars_needed = 0;
+    }
+  }
+
+  /* Build right padding */
+  mrb_value right_padding = mrb_str_new_lit(mrb, "");
+  chars_needed = right_pad;
+  while (chars_needed > 0) {
+    if (chars_needed >= pad_char_len) {
+      mrb_str_cat_str(mrb, right_padding, padstr);
+      chars_needed -= pad_char_len;
+    }
+    else {
+      mrb_value partial = mrb_str_substr(mrb, padstr, 0, chars_needed);
+      mrb_str_cat_str(mrb, right_padding, partial);
+      chars_needed = 0;
+    }
+  }
+
+  mrb_value result = mrb_str_cat_str(mrb, left_padding, self);
+  return mrb_str_cat_str(mrb, result, right_padding);
+}
+
+#ifdef MRB_UTF8_STRING
+/*
+ * Given a character index, find the byte offset in a UTF-8 string.
+ * Returns -1 if the character index is out of bounds.
+ */
+static mrb_int
+str_char_to_byte_offset(mrb_value str, mrb_int char_index)
+{
+  struct RString *s = mrb_str_ptr(str);
+  const char *p = RSTR_PTR(s);
+  mrb_int byte_len = RSTR_LEN(s);
+
+  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
+    return char_index;
+  }
+
+  if (char_index < 0) return -1;
+
+  mrb_int byte_offset = 0;
+  mrb_int current_char_index = 0;
+  while (byte_offset < byte_len && current_char_index < char_index) {
+    mrb_int char_len = mrb_utf8len(p + byte_offset, p + byte_len - byte_offset);
+    if (char_len == 0) break;
+    byte_offset += char_len;
+    current_char_index++;
+  }
+
+  if (current_char_index < char_index) return -1;
+  return byte_offset;
+}
+
+/*
+ * Given a starting character index and a character length, find the byte length.
+ */
+static mrb_int
+str_chars_to_byte_len(mrb_value str, mrb_int char_start, mrb_int char_len)
+{
+  struct RString *s = mrb_str_ptr(str);
+  const char *p = RSTR_PTR(s);
+  mrb_int str_byte_len = RSTR_LEN(s);
+
+  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
+    return char_len;
+  }
+
+  mrb_int start_byte_offset = str_char_to_byte_offset(str, char_start);
+  if (start_byte_offset == -1) return 0;
+
+  mrb_int byte_offset = start_byte_offset;
+  mrb_int current_char_len = 0;
+  while (byte_offset < str_byte_len && current_char_len < char_len) {
+    mrb_int cl = mrb_utf8len(p + byte_offset, p + str_byte_len - byte_offset);
+    if (cl == 0) break;
+    byte_offset += cl;
+    current_char_len++;
+  }
+
+  return byte_offset - start_byte_offset;
+}
+#endif
+
+static mrb_value
+mrb_str_slice_bang(mrb_state *mrb, mrb_value self)
+{
+  mrb_check_frozen(mrb, mrb_obj_ptr(self));
+
+  mrb_value arg1, arg2;
+  mrb_int argc = mrb_get_args(mrb, "o|o", &arg1, &arg2);
+
+  struct RString *str = mrb_str_ptr(self);
+  const char *ptr = RSTRING_PTR(self);
+
+#ifdef MRB_UTF8_STRING
+  mrb_int str_len = str_char_count(self);
+#else
+  mrb_int str_len = RSTRING_LEN(self);
+#endif
+
+  mrb_int beg, len;
+
+  if (argc == 1) {
+    if (mrb_string_p(arg1)) {
+      mrb_int pos = mrb_str_index(mrb, self, RSTRING_PTR(arg1), RSTRING_LEN(arg1), 0);
+      if (pos == -1) return mrb_nil_value();
+#ifdef MRB_UTF8_STRING
+      beg = str_char_count(mrb_str_substr(mrb, self, 0, pos));
+      len = str_char_count(arg1);
+#else
+      beg = pos;
+      len = RSTRING_LEN(arg1);
+#endif
+    }
+    else if (mrb_range_p(arg1)) {
+      if (mrb_range_beg_len(mrb, arg1, &beg, &len, str_len, TRUE) != MRB_RANGE_OK) {
+        return mrb_nil_value();
+      }
+    }
+    else {
+      beg = mrb_as_int(mrb, arg1);
+      if (beg < 0) beg += str_len;
+      if (beg < 0 || beg >= str_len) return mrb_nil_value();
+      len = 1;
+    }
+  }
+  else { // argc == 2
+    beg = mrb_as_int(mrb, arg1);
+    len = mrb_as_int(mrb, arg2);
+    if (beg < 0) beg += str_len;
+    if (len < 0) return mrb_nil_value();
+    if (beg < 0 || beg > str_len) return mrb_nil_value();
+  }
+
+  if (beg > str_len) return mrb_nil_value();
+  if (beg + len > str_len) {
+    len = str_len - beg;
+  }
+  if (len < 0) len = 0;
+
+#ifdef MRB_UTF8_STRING
+  mrb_int byte_beg = str_char_to_byte_offset(self, beg);
+  mrb_int byte_len = str_chars_to_byte_len(self, beg, len);
+#else
+  mrb_int byte_beg = beg;
+  mrb_int byte_len = len;
+#endif
+
+  if (byte_beg < 0 || byte_beg > RSTRING_LEN(self) || byte_beg + byte_len > RSTRING_LEN(self)) {
+    return mrb_nil_value();
+  }
+
+  mrb_value result = mrb_str_new(mrb, RSTRING_PTR(self) + byte_beg, byte_len);
+
+  mrb_str_modify(mrb, str);
+  ptr = RSTRING_PTR(self);
+  memmove((char*)ptr + byte_beg, ptr + byte_beg + byte_len, RSTRING_LEN(self) - byte_beg - byte_len);
+  RSTR_SET_LEN(str, RSTRING_LEN(self) - byte_len);
+
+  return result;
+}
+
+/*
+ *  call-seq:
+ *     string.clear    ->  string
+ *
+ *  Makes string empty.
+ *
+ *     a = "abcde"
+ *     a.clear    #=> ""
+ */
+static mrb_value
+str_clear(mrb_state *mrb, mrb_value self)
+{
+  struct RString *s = mrb_str_ptr(self);
+  mrb_str_modify(mrb, s);
+  RSTR_SET_LEN(s, 0);
+  return self;
+}
+
+/*
+ *  call-seq:
+ *     str.partition(sep) -> [head, sep, tail]
+ *
+ *  Searches for the first occurrence of `sep` in `str`. If `sep` is found,
+ *  returns a 3-element array containing the part of `str` before `sep`,
+ *  `sep` itself, and the part of `str` after `sep`.
+ *
+ *  If `sep` is not found, returns a 3-element array containing `str`,
+ *  an empty string, and an empty string.
+ *
+ *     "hello world".partition(" ")   #=> ["hello", " ", "world"]
+ *     "hello world".partition("o")   #=> ["hell", "o", " world"]
+ *     "hello world".partition("x")   #=> ["hello world", "", ""]
+ */
+static mrb_value
+str_partition(mrb_state *mrb, mrb_value self)
+{
+  mrb_value sep;
+  mrb_get_args(mrb, "S", &sep);
+
+  mrb_int self_len = RSTRING_LEN(self);
+  mrb_int sep_len = RSTRING_LEN(sep);
+  const char *self_ptr = RSTRING_PTR(self);
+  const char *sep_ptr = RSTRING_PTR(sep);
+
+  mrb_value result_ary = mrb_ary_new_capa(mrb, 3);
+
+  if (sep_len == 0) {
+    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
+    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
+    mrb_ary_push(mrb, result_ary, mrb_str_dup(mrb, self));
+    return result_ary;
+  }
+
+  const char *found_ptr = NULL;
+  for (mrb_int i = 0; i <= self_len - sep_len; ++i) {
+    if (memcmp(self_ptr + i, sep_ptr, sep_len) == 0) {
+      found_ptr = self_ptr + i;
+      break;
+    }
+  }
+
+  if (found_ptr) {
+    mrb_int pre_len = found_ptr - self_ptr;
+    mrb_int post_len = self_len - pre_len - sep_len;
+
+    mrb_ary_push(mrb, result_ary, mrb_str_new(mrb, self_ptr, pre_len));
+    mrb_ary_push(mrb, result_ary, mrb_str_dup(mrb, sep));
+    mrb_ary_push(mrb, result_ary, mrb_str_new(mrb, found_ptr + sep_len, post_len));
+  }
+  else {
+    mrb_ary_push(mrb, result_ary, mrb_str_dup(mrb, self));
+    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
+    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
+  }
+
+  return result_ary;
+}
+
+/*
+ *  call-seq:
+ *     str.rpartition(sep) -> [head, sep, tail]
+ *
+ *  Searches for the last occurrence of `sep` in `str`. If `sep` is found,
+ *  returns a 3-element array containing the part of `str` before `sep`,
+ *  `sep` itself, and the part of `str` after `sep`.
+ *
+ *  If `sep` is not found, returns a 3-element array containing an empty string,
+ *  an empty string, and `str`.
+ *
+ *     "hello world".rpartition(" ")   #=> ["hello", " ", "world"]
+ *     "hello world".rpartition("o")   #=> ["hello w", "o", "rld"]
+ *     "hello world".rpartition("x")   #=> ["", "", "hello world"]
+ */
+static mrb_value
+str_rpartition(mrb_state *mrb, mrb_value self)
+{
+  mrb_value sep;
+  mrb_get_args(mrb, "S", &sep);
+
+  mrb_int self_len = RSTRING_LEN(self);
+  mrb_int sep_len = RSTRING_LEN(sep);
+  const char *self_ptr = RSTRING_PTR(self);
+  const char *sep_ptr = RSTRING_PTR(sep);
+
+  mrb_value result_ary = mrb_ary_new_capa(mrb, 3);
+
+  if (sep_len == 0) {
+    mrb_ary_push(mrb, result_ary, mrb_str_dup(mrb, self));
+    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
+    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
+    return result_ary;
+  }
+
+  const char *found_ptr = NULL;
+  for (mrb_int i = self_len - sep_len; i >= 0; --i) {
+    if (memcmp(self_ptr + i, sep_ptr, sep_len) == 0) {
+      found_ptr = self_ptr + i;
+      break;
+    }
+  }
+
+  if (found_ptr) {
+    mrb_int pre_len = found_ptr - self_ptr;
+    mrb_int post_len = self_len - pre_len - sep_len;
+
+    mrb_ary_push(mrb, result_ary, mrb_str_new(mrb, self_ptr, pre_len));
+    mrb_ary_push(mrb, result_ary, mrb_str_dup(mrb, sep));
+    mrb_ary_push(mrb, result_ary, mrb_str_new(mrb, found_ptr + sep_len, post_len));
+  }
+  else {
+    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
+    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
+    mrb_ary_push(mrb, result_ary, mrb_str_dup(mrb, self));
+  }
+
+  return result_ary;
+}
+
+/*
+ *  call-seq:
+ *     str.insert(index, other_str)   -> str
+ *
+ *  Inserts *other_str* before the character at the given
+ *  *index*, modifying *str*. Negative indices count from the
+ *  end of the string, and insert <em>after</em> the given character.
+ *  The intent is insert *aString* so that it starts at the given
+ *  *index*.
+ *
+ *     "abcd".insert(0, 'X')    #=> "Xabcd"
+ *     "abcd".insert(3, 'X')    #=> "abcXd"
+ *     "abcd".insert(4, 'X')    #=> "abcdX"
+ *     "abcd".insert(-3, 'X')   #=> "abXcd"
+ *     "abcd".insert(-1, 'X')   #=> "abcdX"
+ */
+static mrb_value
+str_insert(mrb_state *mrb, mrb_value self)
+{
+  mrb_int idx;
+  mrb_value str_to_insert;
+  mrb_get_args(mrb, "iS", &idx, &str_to_insert);
+
+  struct RString *s = mrb_str_ptr(self);
+  mrb_int self_len = RSTR_LEN(s);
+  mrb_int insert_len = RSTRING_LEN(str_to_insert);
+
+  mrb_check_frozen(mrb, s);
+
+  if (idx < 0) {
+    idx = self_len + idx + 1;
+  }
+
+  if (idx < 0 || idx > self_len) {
+    mrb_raisef(mrb, E_INDEX_ERROR, "index %S out of string", mrb_int_value(mrb, idx));
+  }
+
+  mrb_str_modify(mrb, s);
+  mrb_str_resize(mrb, self, self_len + insert_len);
+
+  char *p = RSTRING_PTR(self);
+  memmove(p + idx + insert_len, p + idx, self_len - idx);
+  memcpy(p + idx, RSTRING_PTR(str_to_insert), insert_len);
+
+  return self;
+}
+
+/*
+ *  call-seq:
+ *     str.prepend(*other_str)   -> str
+ *
+ *  Prepend---Prepend the given strings to *str*.
+ *
+ *     a = "world"
+ *     a.prepend("hello ") #=> "hello world"
+ *     a                   #=> "hello world"
+ *
+ *  Multiple arguments are prepended in order:
+ *
+ *     a = "world"
+ *     a.prepend("hello ", "beautiful ") #=> "hello beautiful world"
+ */
+static mrb_value
+str_prepend(mrb_state *mrb, mrb_value self)
+{
+  mrb_value *argv;
+  mrb_int argc;
+  mrb_get_args(mrb, "*", &argv, &argc);
+
+  if (argc == 0) {
+    return self;
+  }
+
+  struct RString *s = mrb_str_ptr(self);
+  mrb_check_frozen(mrb, s);
+
+  /* Calculate total length needed for all prepended strings */
+  mrb_int total_prepend_len = 0;
+  for (mrb_int i = 0; i < argc; i++) {
+    mrb_ensure_string_type(mrb, argv[i]);
+    total_prepend_len += RSTRING_LEN(argv[i]);
+  }
+
+  if (total_prepend_len == 0) {
+    return self;
+  }
+
+  mrb_int self_len = RSTRING_LEN(self);
+  mrb_str_modify(mrb, s);
+  mrb_str_resize(mrb, self, self_len + total_prepend_len);
+
+  char *p = RSTRING_PTR(self);
+
+  /* Move original content to the end */
+  memmove(p + total_prepend_len, p, self_len);
+
+  /* Copy prepended strings in order */
+  mrb_int offset = 0;
+  for (mrb_int i = 0; i < argc; i++) {
+    mrb_int arg_len = RSTRING_LEN(argv[i]);
+    if (arg_len > 0) {
+      memcpy(p + offset, RSTRING_PTR(argv[i]), arg_len);
+      offset += arg_len;
+    }
+  }
+
+  return self;
 }
 
 void
@@ -1351,12 +2263,18 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 
   mrb_define_method_id(mrb, s, MRB_SYM(dump),             mrb_str_dump,        MRB_ARGS_NONE());
   mrb_define_method_id(mrb, s, MRB_SYM_B(swapcase),       str_swapcase_bang,   MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM_B(slice), mrb_str_slice_bang, MRB_ARGS_ARG(1, 1));
   mrb_define_method_id(mrb, s, MRB_SYM(swapcase),         str_swapcase,        MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, s, MRB_SYM(concat),           str_concat_m,        MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_SYM(clear),            str_clear,           MRB_ARGS_NONE());
   mrb_define_method_id(mrb, s, MRB_OPSYM(lshift),         str_concat_m,        MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_SYM(concat),           str_concat_m,        MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, s, MRB_SYM(append_as_bytes),  str_append_as_bytes, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, s, MRB_SYM(count),            str_count,           MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, s, MRB_SYM(tr),               str_tr_m,            MRB_ARGS_REQ(2));
+  mrb_define_method_id(mrb, s, MRB_SYM(partition),        str_partition,       MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_SYM(rpartition),       str_rpartition,      MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_SYM(insert),           str_insert,          MRB_ARGS_REQ(2));
+  mrb_define_method_id(mrb, s, MRB_SYM(prepend),          str_prepend,         MRB_ARGS_REST());
   mrb_define_method_id(mrb, s, MRB_SYM_B(tr),             str_tr_bang,         MRB_ARGS_REQ(2));
   mrb_define_method_id(mrb, s, MRB_SYM(tr_s),             str_tr_s,            MRB_ARGS_REQ(2));
   mrb_define_method_id(mrb, s, MRB_SYM_B(tr_s),           str_tr_s_bang,       MRB_ARGS_REQ(2));
@@ -1387,6 +2305,22 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 
   mrb_define_method_id(mrb, s, MRB_SYM(__lines),          str_lines,           MRB_ARGS_NONE());
   mrb_define_method_id(mrb, s, MRB_SYM(__codepoints),     str_codepoints,      MRB_ARGS_NONE());
+
+  /* Optimized strip methods implemented in C */
+  mrb_define_method_id(mrb, s, MRB_SYM(lstrip),           str_lstrip,          MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM(rstrip),           str_rstrip,          MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM(strip),            str_strip,           MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM_B(lstrip),         str_lstrip_bang,     MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM_B(rstrip),         str_rstrip_bang,     MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM_B(strip),          str_strip_bang,      MRB_ARGS_NONE());
+
+  /* Fast path for chars method implemented in C */
+  mrb_define_method_id(mrb, s, MRB_SYM(__chars),          str_chars_ary,       MRB_ARGS_NONE());
+
+  /* Padding methods implemented in C */
+  mrb_define_method_id(mrb, s, MRB_SYM(ljust),            str_ljust_core,      MRB_ARGS_ARG(1,1));
+  mrb_define_method_id(mrb, s, MRB_SYM(rjust),            str_rjust_core,      MRB_ARGS_ARG(1,1));
+  mrb_define_method_id(mrb, s, MRB_SYM(center),           str_center_core,     MRB_ARGS_ARG(1,1));
 
   mrb_define_method_id(mrb, mrb->integer_class, MRB_SYM(chr), int_chr, MRB_ARGS_OPT(1));
 }

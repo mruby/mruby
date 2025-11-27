@@ -19,7 +19,7 @@
  * I'm already aware that fgmp is considerably slower than gmp
  *
  * CREDITS:
- *  Paul Rouse <par@r-cube.demon.co.uk> - generic bug fixes, mpz_sqrt and
+ *  Paul Rouse <par@r-cube.demon.co.uk> - generic bugfixes, mpz_sqrt and
  *    mpz_sqrtrem, and modifications to get fgmp to compile on a system
  *    with int and long of different sizes (specifically MS-DOS,286 compiler)
  *  Also see the file "notes" included with the fgmp distribution, for

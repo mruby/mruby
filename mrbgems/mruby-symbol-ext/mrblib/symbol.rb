@@ -7,7 +7,7 @@ class Symbol
   # call-seq:
   #   sym.capitalize  -> symbol
   #
-  # Same as <code>sym.to_s.capitalize.intern</code>.
+  # Same as `sym.to_s.capitalize.intern`.
 
   def capitalize
     (self.to_s.capitalize! || self).to_sym
@@ -17,7 +17,7 @@ class Symbol
   # call-seq:
   #   sym.downcase  -> symbol
   #
-  # Same as <code>sym.to_s.downcase.intern</code>.
+  # Same as `sym.to_s.downcase.intern`.
 
   def downcase
     (self.to_s.downcase! || self).to_sym
@@ -27,7 +27,7 @@ class Symbol
   # call-seq:
   #   sym.upcase    -> symbol
   #
-  # Same as <code>sym.to_s.upcase.intern</code>.
+  # Same as `sym.to_s.upcase.intern`.
 
   def upcase
     (self.to_s.upcase! || self).to_sym
@@ -37,7 +37,7 @@ class Symbol
   # call-seq:
   #   sym.casecmp(other)  -> -1, 0, +1 or nil
   #
-  # Case-insensitive version of <code>Symbol#<=></code>.
+  # Case-insensitive version of `Symbol#<=>`.
 
   def casecmp(other)
     return nil unless other.kind_of?(Symbol)

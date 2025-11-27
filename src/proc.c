@@ -130,6 +130,14 @@ mrb_closure_new(mrb_state *mrb, const mrb_irep *irep)
   return p;
 }
 
+/*
+ * Creates a new Proc object from a C function.
+ *
+ * mrb: The mruby state.
+ * func: The C function to create the Proc from.
+ *
+ * Returns a pointer to the new Proc object.
+ */
 MRB_API struct RProc*
 mrb_proc_new_cfunc(mrb_state *mrb, mrb_func_t func)
 {
@@ -144,6 +152,17 @@ mrb_proc_new_cfunc(mrb_state *mrb, mrb_func_t func)
   return p;
 }
 
+/*
+ * Creates a new Proc object from a C function with a new environment.
+ *
+ * mrb: The mruby state.
+ * func: The C function to create the Proc from.
+ * argc: The number of arguments to be stored in the environment.
+ * argv: The array of mrb_value to be stored in the environment.
+ *       These values are copied into the environment.
+ *
+ * Returns a pointer to the new Proc object.
+ */
 MRB_API struct RProc*
 mrb_proc_new_cfunc_with_env(mrb_state *mrb, mrb_func_t func, mrb_int argc, const mrb_value *argv)
 {
@@ -172,12 +191,44 @@ mrb_proc_new_cfunc_with_env(mrb_state *mrb, mrb_func_t func, mrb_int argc, const
   return p;
 }
 
+/*
+ * Creates a new closure from a C function.
+ *
+ * This function creates a new Proc object that represents a C function
+ * along with an environment for a specified number of local variables.
+ * The local variables in the environment are initialized to nil.
+ *
+ * mrb: The mruby state.
+ * func: The C function to create the closure from.
+ * nlocals: The number of local variables to allocate space for in the
+ *          closure's environment.
+ *
+ * Returns a pointer to the new Proc object representing the closure.
+ */
 MRB_API struct RProc*
 mrb_closure_new_cfunc(mrb_state *mrb, mrb_func_t func, int nlocals)
 {
   return mrb_proc_new_cfunc_with_env(mrb, func, nlocals, NULL);
 }
 
+/*
+ * Retrieves a value from the environment of the currently executing C function Proc.
+ *
+ * This function is used within a C function that was wrapped into a Proc
+ * (e.g., using mrb_closure_new_cfunc or mrb_proc_new_cfunc_with_env)
+ * to access values stored in its associated environment.
+ *
+ * mrb: The mruby state.
+ * idx: The index of the value to retrieve from the C function's environment.
+ *      The index must be non-negative and less than the number of
+ *      environment entries (argc passed during creation).
+ *
+ * Returns the mrb_value stored at the specified index in the environment.
+ *
+ * Raises E_TYPE_ERROR if the currently executing Proc is not a C function
+ * or if it does not have an associated environment.
+ * Raises E_INDEX_ERROR if the provided index is out of bounds.
+ */
 MRB_API mrb_value
 mrb_proc_cfunc_env_get(mrb_state *mrb, mrb_int idx)
 {
@@ -243,14 +294,12 @@ static mrb_value
 mrb_proc_s_new(mrb_state *mrb, mrb_value proc_class)
 {
   mrb_value blk;
-  mrb_value proc;
-  struct RProc *p;
 
   /* Calling Proc.new without a block is not implemented yet */
   mrb_get_args(mrb, "&!", &blk);
-  p = MRB_OBJ_ALLOC(mrb, MRB_TT_PROC, mrb_class_ptr(proc_class));
+  struct RProc *p = MRB_OBJ_ALLOC(mrb, MRB_TT_PROC, mrb_class_ptr(proc_class));
   mrb_proc_copy(mrb, p, mrb_proc_ptr(blk));
-  proc = mrb_obj_value(p);
+  mrb_value proc = mrb_obj_value(p);
   mrb_funcall_with_block(mrb, proc, MRB_SYM(initialize), 0, NULL, proc);
   if (!MRB_PROC_STRICT_P(p) &&
       mrb->c->ci > mrb->c->cibase && MRB_PROC_ENV(p) == mrb->c->ci[-1].u.env) {
@@ -319,21 +368,20 @@ proc_hash(mrb_state *mrb, mrb_value self)
  * call-seq:
  *   lambda { |...| block }  -> a_proc
  *
- * Equivalent to <code>Proc.new</code>, except the resulting Proc objects
+ * Equivalent to `Proc.new`, except the resulting Proc objects
  * check the number of parameters passed when called.
  */
 static mrb_value
 proc_lambda(mrb_state *mrb, mrb_value self)
 {
   mrb_value blk;
-  const struct RProc *p;
 
   mrb_get_args(mrb, "&", &blk);
   if (mrb_nil_p(blk)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "tried to create Proc object without a block");
   }
   check_proc(mrb, blk);
-  p = mrb_proc_ptr(blk);
+  const struct RProc *p = mrb_proc_ptr(blk);
   if (!MRB_PROC_STRICT_P(p)) {
     struct RProc *p2 = MRB_OBJ_ALLOC(mrb, MRB_TT_PROC, p->c);
     mrb_proc_copy(mrb, p2, p);
@@ -380,19 +428,15 @@ mrb_proc_arity(const struct RProc *p)
 mrb_value
 mrb_proc_local_variables(mrb_state *mrb, const struct RProc *proc)
 {
-  const mrb_irep *irep;
-  mrb_value vars;
-  size_t i;
-
   if (proc == NULL || MRB_PROC_CFUNC_P(proc)) {
     return mrb_ary_new(mrb);
   }
-  vars = mrb_hash_new(mrb);
+  mrb_value vars = mrb_hash_new(mrb);
   while (proc) {
     if (MRB_PROC_CFUNC_P(proc)) break;
-    irep = proc->body.irep;
+    const mrb_irep *irep = proc->body.irep;
     if (irep->lv) {
-      for (i = 0; i + 1 < irep->nlocals; i++) {
+      for (size_t i = 0; i + 1 < irep->nlocals; i++) {
         if (irep->lv[i]) {
           mrb_sym sym = irep->lv[i];
           const char *name = mrb_sym_name(mrb, sym);
@@ -496,7 +540,7 @@ mrb_init_proc(mrb_state *mrb)
   MRB_SET_INSTANCE_TT(pc, MRB_TT_PROC);
   MRB_UNDEF_ALLOCATOR(pc);
   mrb_define_class_method_id(mrb, pc, MRB_SYM(new), mrb_proc_s_new, MRB_ARGS_NONE()|MRB_ARGS_BLOCK());
-  mrb_define_method_id(mrb, pc, MRB_SYM(initialize_copy), mrb_proc_init_copy, MRB_ARGS_REQ(1));
+  mrb_define_private_method_id(mrb, pc, MRB_SYM(initialize_copy), mrb_proc_init_copy, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, pc, MRB_SYM(arity), proc_arity, MRB_ARGS_NONE()); /* 15.2.17.4.2 */
   mrb_define_method_id(mrb, pc, MRB_OPSYM(eq), proc_eql, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, pc, MRB_SYM_Q(eql), proc_eql, MRB_ARGS_REQ(1));

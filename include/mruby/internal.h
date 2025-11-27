@@ -12,8 +12,6 @@ void mrb_ary_decref(mrb_state*, mrb_shared_array*);
 mrb_value mrb_ary_subseq(mrb_state *mrb, mrb_value ary, mrb_int beg, mrb_int len);
 #endif
 
-mrb_bool mrb_inspect_recursive_p(mrb_state *mrb, mrb_value self);
-
 #ifdef MRUBY_CLASS_H
 struct RClass *mrb_vm_define_class(mrb_state*, mrb_value, mrb_value, mrb_sym);
 struct RClass *mrb_vm_define_module(mrb_state*, mrb_value, mrb_sym);
@@ -84,6 +82,7 @@ size_t mrb_hash_memsize(mrb_value obj);
 size_t mrb_gc_mark_hash(mrb_state*, struct RHash*);
 void mrb_gc_free_hash(mrb_state*, struct RHash*);
 mrb_value mrb_hash_first_key(mrb_state*, mrb_value);
+uint32_t mrb_obj_hash_code(mrb_state *mrb, mrb_value key);
 
 /* irep */
 struct mrb_insn_data mrb_decode_insn(const mrb_code *pc);
@@ -132,6 +131,11 @@ mrb_value mrb_as_rational(mrb_state *mrb, mrb_value x);
 void mrb_rational_copy(mrb_state *mrb, mrb_value x, mrb_value y);
 int mrb_rational_mark(mrb_state *mrb, struct RBasic *rat);
 #endif
+#ifdef MRB_USE_SET
+size_t mrb_gc_mark_set(mrb_state *mrb, struct RBasic *set);
+void mrb_gc_free_set(mrb_state *mrb, struct RBasic *set);
+size_t mrb_set_memsize(mrb_value);
+#endif
 
 #ifdef MRUBY_PROC_H
 struct RProc *mrb_closure_new(mrb_state*, const mrb_irep*);
@@ -174,7 +178,6 @@ mrb_value mrb_vm_cv_get(mrb_state*, mrb_sym);
 void mrb_vm_cv_set(mrb_state*, mrb_sym, mrb_value);
 mrb_value mrb_vm_const_get(mrb_state*, mrb_sym);
 size_t mrb_obj_iv_tbl_memsize(mrb_value);
-mrb_value mrb_obj_iv_inspect(mrb_state*, struct RObject*);
 void mrb_obj_iv_set_force(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v);
 mrb_value mrb_mod_constants(mrb_state *mrb, mrb_value mod);
 mrb_value mrb_mod_const_at(mrb_state *mrb, struct RClass *c, mrb_value ary);
@@ -255,6 +258,17 @@ void mrb_bint_copy(mrb_state *mrb, mrb_value x, mrb_value y);
 size_t mrb_bint_memsize(mrb_value x);
 mrb_value mrb_bint_hash(mrb_state *mrb, mrb_value x);
 mrb_value mrb_bint_sqrt(mrb_state *mrb, mrb_value x);
+mrb_int mrb_bint_size(mrb_state *mrb, mrb_value bint);
+mrb_value mrb_bint_from_bytes(mrb_state *mrb, const uint8_t *bytes, mrb_int len);
+mrb_int mrb_bint_sign(mrb_state *mrb, mrb_value bint);
+mrb_value mrb_bint_gcd(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_value mrb_bint_lcm(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_value mrb_bint_abs(mrb_state *mrb, mrb_value x);
+#endif
+
+#ifdef MRB_USE_TASK_SCHEDULER
+/* GC marking for task scheduler */
+void mrb_task_mark_all(mrb_state *mrb);
 #endif
 
 #endif  /* MRUBY_INTERNAL_H */

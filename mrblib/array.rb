@@ -8,7 +8,7 @@ class Array
   #   array.each {|element| ... } -> self
   #   array.each -> Enumerator
   #
-  # Calls the given block for each element of +self+
+  # Calls the given block for each element of `self`
   # and pass the respective element.
   #
   # ISO 15.2.12.5.10
@@ -28,7 +28,7 @@ class Array
   #   array.each_index {|index| ... } -> self
   #   array.each_index -> Enumerator
   #
-  # Calls the given block for each element of +self+
+  # Calls the given block for each element of `self`
   # and pass the index of the respective element.
   #
   # ISO 15.2.12.5.11
@@ -48,7 +48,7 @@ class Array
   #   array.collect! {|element| ... } -> self
   #   array.collect! -> new_enumerator
   #
-  # Calls the given block for each element of +self+
+  # Calls the given block for each element of `self`
   # and pass the respective element. Each element will
   # be replaced by the resulting values.
   #
@@ -80,20 +80,10 @@ class Array
   #   array.sort -> new_array
   #   array.sort {|a, b| ... } -> new_array
   #
-  # Returns a new Array whose elements are those from +self+, sorted.
+  # Returns a new Array whose elements are those from `self`, sorted.
   def sort(&block)
     self.dup.sort!(&block)
   end
-
-  ##
-  # call-seq:
-  #   array.to_a -> self
-  #
-  # Returns self, no need to convert.
-  def to_a
-    self
-  end
-  alias entries to_a
 
   ##
   # Array is enumerable

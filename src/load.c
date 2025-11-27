@@ -415,27 +415,21 @@ read_debug_record(mrb_state *mrb, const uint8_t *start, const uint8_t *end, mrb_
 static int
 read_section_debug(mrb_state *mrb, const uint8_t *start, size_t size, mrb_irep *irep, uint8_t flags)
 {
-  const uint8_t *bin;
   const uint8_t *end = start + size;
   ptrdiff_t diff;
-  struct rite_section_debug_header *header;
-  uint16_t i;
   size_t len = 0;
   int result;
-  uint16_t filenames_len;
-  mrb_sym *filenames;
-  mrb_value filenames_obj;
 
-  bin = start;
-  header = (struct rite_section_debug_header*)bin;
+  const uint8_t *bin = start;
+  struct rite_section_debug_header *header = (struct rite_section_debug_header*)bin;
   bin += sizeof(struct rite_section_debug_header);
 
-  filenames_len = bin_to_uint16(bin);
+  uint16_t filenames_len = bin_to_uint16(bin);
   bin += sizeof(uint16_t);
   if (bin > end) return MRB_DUMP_GENERAL_FAILURE;
-  filenames_obj = mrb_str_new(mrb, NULL, sizeof(mrb_sym) * (size_t)filenames_len);
-  filenames = (mrb_sym*)RSTRING_PTR(filenames_obj);
-  for (i = 0; i < filenames_len; i++) {
+  mrb_value filenames_obj = mrb_str_new(mrb, NULL, sizeof(mrb_sym) * (size_t)filenames_len);
+  mrb_sym *filenames = (mrb_sym*)RSTRING_PTR(filenames_obj);
+  for (uint16_t i = 0; i < filenames_len; i++) {
     uint16_t f_len = bin_to_uint16(bin);
     bin += sizeof(uint16_t);
     if (bin + f_len > end) {
@@ -470,14 +464,12 @@ static int
 read_lv_record(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, size_t *record_len, mrb_sym const *syms, uint32_t syms_len)
 {
   const uint8_t *bin = start;
-  mrb_sym *lv;
-  ptrdiff_t diff;
-  int i;
 
   if (irep->nlocals == 0) return MRB_DUMP_GENERAL_FAILURE;
-  irep->lv = lv = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym) * (irep->nlocals - 1));
+  mrb_sym *lv = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym) * (irep->nlocals - 1));
+  irep->lv = lv;
 
-  for (i = 0; i + 1 < irep->nlocals; i++) {
+  for (int i = 0; i + 1 < irep->nlocals; i++) {
     uint16_t const sym_idx = bin_to_uint16(bin);
     bin += sizeof(uint16_t);
     if (sym_idx == RITE_LV_NULL_MARK) {
@@ -491,7 +483,7 @@ read_lv_record(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, size_t *rec
     }
   }
 
-  for (i = 0; i < irep->rlen; i++) {
+  for (int i = 0; i < irep->rlen; i++) {
     size_t len;
     int ret;
 
@@ -500,7 +492,7 @@ read_lv_record(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, size_t *rec
     bin += len;
   }
 
-  diff = bin - start;
+  ptrdiff_t diff = bin - start;
   mrb_assert_int_fit(ptrdiff_t, diff, size_t, SIZE_MAX);
   *record_len = (size_t)diff;
 

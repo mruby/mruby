@@ -28,6 +28,11 @@
 #include <stdlib.h>
 #endif
 
+#ifdef MRB_USE_TASK_SCHEDULER
+/* Forward declaration - actual implementation in task.c */
+void mrb_task_mark_all(mrb_state *mrb);
+#endif
+
 /*
   = Tri-color Incremental Garbage Collection
 
@@ -238,16 +243,17 @@ mrb_calloc(mrb_state *mrb, size_t nelem, size_t len)
 {
   void *p;
 
-  if (nelem > 0 && len > 0 &&
-      nelem <= SIZE_MAX / len) {
-    size_t size;
-    size = nelem * len;
+  if (nelem == 0 || len == 0) {
+    p = NULL;
+  }
+  else if (nelem <= SIZE_MAX / len) {
+    size_t size = nelem * len;
     p = mrb_malloc(mrb, size);
 
     memset(p, 0, size);
   }
   else {
-    p = NULL;
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "memory allocation overflow");
   }
 
   return p;
@@ -425,10 +431,8 @@ mrb_gc_protect(mrb_state *mrb, mrb_value obj)
 MRB_API void
 mrb_gc_register(mrb_state *mrb, mrb_value obj)
 {
-  mrb_value table;
-
   if (mrb_immediate_p(obj)) return;
-  table = mrb_gv_get(mrb, GC_ROOT_SYM);
+  mrb_value table = mrb_gv_get(mrb, GC_ROOT_SYM);
   int ai = mrb_gc_arena_save(mrb);
   mrb_gc_protect(mrb, obj);
   if (!mrb_array_p(table)) {
@@ -444,13 +448,10 @@ mrb_gc_register(mrb_state *mrb, mrb_value obj)
 MRB_API void
 mrb_gc_unregister(mrb_state *mrb, mrb_value obj)
 {
-  mrb_value table;
-  struct RArray *a;
-
   if (mrb_immediate_p(obj)) return;
-  table = mrb_gv_get(mrb, GC_ROOT_SYM);
+  mrb_value table = mrb_gv_get(mrb, GC_ROOT_SYM);
   if (!mrb_array_p(table)) return;
-  a = mrb_ary_ptr(table);
+  struct RArray *a = mrb_ary_ptr(table);
   mrb_ary_modify(mrb, a);
   mrb_int len = ARY_LEN(a)-1;
   mrb_value *ptr = ARY_PTR(a);
@@ -482,12 +483,12 @@ mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
       mrb_raise(mrb, E_TYPE_ERROR, "allocation failure");
     }
     tt = MRB_INSTANCE_TT(cls);
-    if (tt != MRB_TT_FALSE &&
-        ttype != MRB_TT_SCLASS &&
+    if (ttype != MRB_TT_SCLASS &&
         ttype != MRB_TT_ICLASS &&
         ttype != MRB_TT_ENV &&
         ttype != MRB_TT_BIGINT &&
-        ttype != tt) {
+        ttype != tt &&
+        !(cls == mrb->object_class && (ttype == MRB_TT_CPTR || ttype == MRB_TT_CDATA || ttype == MRB_TT_ISTRUCT))) {
       mrb_raisef(mrb, E_TYPE_ERROR, "allocation failure of %C", cls);
     }
   }
@@ -729,6 +730,11 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
     children += mrb_rational_mark(mrb, obj);
     break;
 #endif
+#ifdef MRB_USE_SET
+  case MRB_TT_SET:
+    children += mrb_gc_mark_set(mrb, obj);
+    break;
+#endif
 
   default:
     break;
@@ -841,6 +847,12 @@ obj_free(mrb_state *mrb, struct RBasic *obj, mrb_bool end)
     mrb_gc_free_range(mrb, ((struct RRange*)obj));
     break;
 
+#ifdef MRB_USE_SET
+  case MRB_TT_SET:
+    mrb_gc_free_set(mrb, obj);
+    break;
+#endif
+
   case MRB_TT_CDATA:
     {
       struct RData *d = (struct RData*)obj;
@@ -945,6 +957,11 @@ root_scan_phase(mrb_state *mrb, mrb_gc *gc)
   if (mrb->root_c != mrb->c) {
     mark_context(mrb, mrb->root_c);
   }
+
+#ifdef MRB_USE_TASK_SCHEDULER
+  /* mark tasks - calls into task.c to mark all task queues */
+  mrb_task_mark_all(mrb);
+#endif
 }
 
 static void
@@ -1324,7 +1341,7 @@ gc_start(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     GC.enable    -> true or false
  *
- *  Enables garbage collection, returning <code>true</code> if garbage
+ *  Enables garbage collection, returning `true` if garbage
  *  collection was previously disabled.
  *
  *     GC.disable   #=> false
@@ -1347,7 +1364,7 @@ gc_enable(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     GC.disable    -> true or false
  *
- *  Disables garbage collection, returning <code>true</code> if garbage
+ *  Disables garbage collection, returning `true` if garbage
  *  collection was already disabled.
  *
  *     GC.disable   #=> false

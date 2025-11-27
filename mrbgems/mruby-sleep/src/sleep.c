@@ -39,7 +39,24 @@
 #include <mruby.h>
 #include <mruby/presym.h>
 
-/* not implemented forever sleep (called without an argument)*/
+/*
+ * call-seq:
+ *   sleep(duration) -> integer
+ *
+ * Suspends the current thread for duration seconds (which may be any number,
+ * including a Float with fractional seconds if floating point is enabled).
+ * Returns the actual number of seconds slept (rounded), which may be less than
+ * that asked for if another thread calls Thread#run. Zero arguments causes
+ * sleep to sleep forever.
+ *
+ *   Time.new    #=> 2008-03-08 19:56:19 +0900
+ *   sleep 1.2   #=> 1
+ *   Time.new    #=> 2008-03-08 19:56:20 +0900
+ *   sleep 1.9   #=> 2
+ *   Time.new    #=> 2008-03-08 19:56:22 +0900
+ *
+ * Note: Forever sleep (called without an argument) is not implemented.
+ */
 static mrb_value
 f_sleep(mrb_state *mrb, mrb_value self)
 {
@@ -72,6 +89,21 @@ f_sleep(mrb_state *mrb, mrb_value self)
 }
 
 /* mruby special; needed for mruby without float numbers */
+/*
+ * call-seq:
+ *   usleep(microseconds) -> 0
+ *
+ * Suspends the current thread for microseconds microseconds (which should be
+ * an integer). This provides microsecond-level precision for short delays.
+ * Returns 0 on successful completion.
+ *
+ *   usleep(500000)  # Sleep for 0.5 seconds (500,000 microseconds)
+ *   usleep(1000)    # Sleep for 1 millisecond (1,000 microseconds)
+ *   usleep(100)     # Sleep for 100 microseconds
+ *
+ * Note: This function is useful for precise timing in embedded systems
+ * where sub-second delays are required.
+ */
 static mrb_value
 f_usleep(mrb_state *mrb, mrb_value self)
 {
@@ -83,7 +115,6 @@ f_usleep(mrb_state *mrb, mrb_value self)
 #else
     struct timeval st_tm,ed_tm;
 #endif
-    time_t slp_tm;
 
 #ifdef _WIN32
     GetSystemTimeAsFileTime(&st_ft);
@@ -111,7 +142,7 @@ f_usleep(mrb_state *mrb, mrb_value self)
     ed_time <<=32;
     ed_time |= ed_ft.dwLowDateTime;
 
-    slp_tm = (ed_time - st_time) / 10;
+    time_t slp_tm = (ed_time - st_time) / 10;
 #else
     gettimeofday(&ed_tm, NULL);
 
@@ -126,13 +157,29 @@ f_usleep(mrb_state *mrb, mrb_value self)
     return mrb_fixnum_value((mrb_int)slp_tm);
 }
 
+/*
+ * Initializes the mruby-sleep gem by defining sleep and usleep methods
+ * as private methods in the Kernel module, making them available globally.
+ *
+ * - sleep: requires 1 argument (duration in seconds), supports floating point
+ *   when MRB_NO_FLOAT is not defined, otherwise uses integer seconds
+ * - usleep: requires 1 argument (duration in microseconds), integer only
+ *
+ * Both methods provide thread suspension capabilities for timing control
+ * in embedded Ruby environments with cross-platform support (Windows/Unix).
+ */
 void
 mrb_mruby_sleep_gem_init(mrb_state *mrb)
 {
-  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(sleep),   f_sleep,   MRB_ARGS_REQ(1));
-  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(usleep),  f_usleep,  MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, mrb->kernel_module, MRB_SYM(sleep),   f_sleep,   MRB_ARGS_REQ(1));
+  mrb_define_module_function_id(mrb, mrb->kernel_module, MRB_SYM(usleep),  f_usleep,  MRB_ARGS_REQ(1));
 }
 
+/*
+ * Finalizes the mruby-sleep gem. Currently no cleanup is required
+ * as the sleep/usleep implementation uses system calls without
+ * persistent state or allocated resources.
+ */
 void
 mrb_mruby_sleep_gem_final(mrb_state *mrb)
 {

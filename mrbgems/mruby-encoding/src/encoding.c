@@ -64,6 +64,16 @@ get_encoding(mrb_state *mrb, mrb_sym enc)
   return mrb_const_get(mrb, mrb_obj_value(e), enc);
 }
 
+/*
+ * call-seq:
+ *   string.encoding -> encoding
+ *
+ * Returns the Encoding object that represents the encoding of the string.
+ * In mruby, this returns either "UTF-8" or "ASCII-8BIT" (BINARY).
+ *
+ *   "hello".encoding          #=> "UTF-8"
+ *   "\xff\xfe".encoding       #=> "ASCII-8BIT"
+ */
 static mrb_value
 str_encoding(mrb_state *mrb, mrb_value self)
 {
@@ -74,6 +84,18 @@ str_encoding(mrb_state *mrb, mrb_value self)
   return get_encoding(mrb, MRB_SYM(UTF_8));
 }
 
+/*
+ * call-seq:
+ *   string.force_encoding(encoding) -> string
+ *
+ * Changes the encoding of the string to the specified encoding.
+ * This method modifies the string in place and returns self.
+ * In mruby, only "UTF-8", "ASCII-8BIT", and "BINARY" are supported.
+ *
+ *   str = "hello"
+ *   str.force_encoding("ASCII-8BIT")  #=> "hello"
+ *   str.encoding                      #=> "ASCII-8BIT"
+ */
 static mrb_value
 str_force_encoding(mrb_state *mrb, mrb_value self)
 {

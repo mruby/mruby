@@ -42,6 +42,13 @@ assert 'Bigint *' do
   assert_equal(-1361129467683753853853498429727072845824, -n * n)
   assert_equal(-1361129467683753853853498429727072845824, n * -n)
   assert_equal 1361129467683753853853498429727072845824, -n * -n
+
+  # Test multiplication commutativity for large numbers with different limb counts
+  # This test specifically targets the bug where operands with different
+  # limb counts would produce different results based on order
+  a = (2**512) - 1      # 16 limbs
+  b = 26815615859885194199148049996411692254958731641184786755447122887443528060147093953603748596333806855380063716372972101707507765623893139892867298012168194  # 17 limbs
+  assert_equal(a * b, b * a)
 end
 
 assert 'Bigint /' do

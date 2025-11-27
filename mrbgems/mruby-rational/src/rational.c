@@ -110,6 +110,16 @@ rat_numerator(mrb_state *mrb, mrb_value self)
   return mrb_int_value(mrb, p->numerator);
 }
 
+/*
+ * call-seq:
+ *   rational.numerator -> integer
+ *
+ * Returns the numerator of the rational number.
+ *
+ *   Rational(3, 4).numerator  #=> 3
+ *   Rational(-2, 5).numerator #=> -2
+ *   Rational(6, 8).numerator  #=> 3 (reduced form)
+ */
 /* normalized version of rat_numerator() */
 static mrb_value
 rational_numerator(mrb_state *mrb, mrb_value self)
@@ -134,6 +144,17 @@ rat_denominator(mrb_state *mrb, mrb_value self)
   return mrb_int_value(mrb, p->denominator);
 }
 
+/*
+ * call-seq:
+ *   rational.denominator -> integer
+ *
+ * Returns the denominator of the rational number.
+ * The denominator is always positive.
+ *
+ *   Rational(3, 4).denominator  #=> 4
+ *   Rational(-2, 5).denominator #=> 5
+ *   Rational(6, 8).denominator  #=> 4 (reduced form)
+ */
 /* normalized version of rat_denominator() */
 static mrb_value
 rational_denominator(mrb_state *mrb, mrb_value self)
@@ -309,9 +330,9 @@ mrb_rational_new(mrb_state *mrb, mrb_int nume, mrb_int deno)
 static mrb_value
 int_lshift(mrb_state *mrb, mrb_value v, mrb_int n)
 {
-  if (mrb_integer_p(v)) {
+  if (mrb_integer_p(v) && n < (mrb_int)sizeof(long) * CHAR_BIT) {
     mrb_float f = (mrb_float)mrb_integer(v);
-    f *= 1<<n;
+    f *= 1L<<n;
     if (mrb_int_fit_p(f, mrb_float))
       return mrb_int_value(mrb, (mrb_int)f);
   }
@@ -378,6 +399,16 @@ mrb_rational_to_f(mrb_state *mrb, mrb_value self)
 }
 #endif
 
+/*
+ * call-seq:
+ *   rational.to_i -> integer
+ *
+ * Returns the rational number truncated to an integer.
+ *
+ *   Rational(3, 4).to_i   #=> 0
+ *   Rational(7, 3).to_i   #=> 2
+ *   Rational(-5, 2).to_i  #=> -2
+ */
 mrb_value
 mrb_rational_to_i(mrb_state *mrb, mrb_value self)
 {
@@ -414,6 +445,16 @@ mrb_as_rational(mrb_state *mrb, mrb_value x)
   }
 }
 
+/*
+ * call-seq:
+ *   rational.negative? -> true or false
+ *
+ * Returns true if the rational number is negative, false otherwise.
+ *
+ *   Rational(-1, 2).negative?  #=> true
+ *   Rational(1, 2).negative?   #=> false
+ *   Rational(0, 1).negative?   #=> false
+ */
 static mrb_value
 rational_negative_p(mrb_state *mrb, mrb_value self)
 {
@@ -428,6 +469,17 @@ rational_negative_p(mrb_state *mrb, mrb_value self)
 }
 
 #ifndef MRB_NO_FLOAT
+/*
+ * call-seq:
+ *   float.to_r -> rational
+ *
+ * Converts the float to a rational number. The conversion preserves
+ * the exact value of the float as a fraction.
+ *
+ *   0.5.to_r    #=> Rational(1, 2)
+ *   0.25.to_r   #=> Rational(1, 4)
+ *   1.5.to_r    #=> Rational(3, 2)
+ */
 static mrb_value
 float_to_r(mrb_state *mrb, mrb_value self)
 {
@@ -435,6 +487,16 @@ float_to_r(mrb_state *mrb, mrb_value self)
 }
 #endif
 
+/*
+ * call-seq:
+ *   integer.to_r -> rational
+ *
+ * Converts the integer to a rational number with denominator 1.
+ *
+ *   5.to_r     #=> Rational(5, 1)
+ *   (-3).to_r  #=> Rational(-3, 1)
+ *   0.to_r     #=> Rational(0, 1)
+ */
 static mrb_value
 int_to_r(mrb_state *mrb, mrb_value self)
 {
@@ -446,6 +508,14 @@ int_to_r(mrb_state *mrb, mrb_value self)
   return rational_new_i(mrb, mrb_integer(self), 1);
 }
 
+/*
+ * call-seq:
+ *   nil.to_r -> rational
+ *
+ * Converts nil to Rational(0, 1).
+ *
+ *   nil.to_r  #=> Rational(0, 1)
+ */
 static mrb_value
 nil_to_r(mrb_state *mrb, mrb_value self)
 {
@@ -477,6 +547,18 @@ rational_new(mrb_state *mrb, mrb_value a, mrb_value b)
 #endif
 }
 
+/*
+ * call-seq:
+ *   Rational(numerator, denominator = 1) -> rational
+ *
+ * Creates a rational number from numerator and denominator.
+ * The rational is automatically reduced to lowest terms.
+ *
+ *   Rational(1, 2)    #=> Rational(1, 2)
+ *   Rational(6, 8)    #=> Rational(3, 4)
+ *   Rational(5)       #=> Rational(5, 1)
+ *   Rational(-2, 4)   #=> Rational(-1, 2)
+ */
 static mrb_value
 rational_m(mrb_state *mrb, mrb_value self)
 {
@@ -487,6 +569,18 @@ rational_m(mrb_state *mrb, mrb_value self)
 
 #else
 
+/*
+ * call-seq:
+ *   Rational(numerator, denominator = 1) -> rational
+ *
+ * Creates a rational number from numerator and denominator.
+ * The rational is automatically reduced to lowest terms.
+ *
+ *   Rational(1, 2)    #=> Rational(1, 2)
+ *   Rational(6, 8)    #=> Rational(3, 4)
+ *   Rational(5)       #=> Rational(5, 1)
+ *   Rational(-2, 4)   #=> Rational(-1, 2)
+ */
 static mrb_value
 rational_m(mrb_state *mrb, mrb_value self)
 {
@@ -547,6 +641,17 @@ rational_eq_b(mrb_state *mrb, mrb_value x, mrb_value y)
   return mrb_bool_value(result);
 }
 
+/*
+ * call-seq:
+ *   rational == other -> true or false
+ *
+ * Returns true if rational equals other. Comparison is done by cross-multiplication
+ * to avoid floating point precision issues.
+ *
+ *   Rational(1, 2) == Rational(2, 4)  #=> true
+ *   Rational(1, 2) == 0.5             #=> true
+ *   Rational(1, 2) == Rational(1, 3)  #=> false
+ */
 static mrb_value
 rational_eq(mrb_state *mrb, mrb_value x)
 {
@@ -602,6 +707,15 @@ rational_eq(mrb_state *mrb, mrb_value x)
   return mrb_bool_value(result);
 }
 
+/*
+ * call-seq:
+ *   -rational -> rational
+ *
+ * Returns the negation of the rational number.
+ *
+ *   -Rational(1, 2)   #=> Rational(-1, 2)
+ *   -Rational(-3, 4)  #=> Rational(3, 4)
+ */
 static mrb_value
 rational_minus(mrb_state *mrb, mrb_value x)
 {
@@ -712,6 +826,17 @@ mrb_rational_add(mrb_state *mrb, mrb_value x, mrb_value y)
   }
 }
 
+/*
+ * call-seq:
+ *   rational + numeric -> rational or numeric
+ *
+ * Returns the sum of rational and numeric. If numeric is a rational,
+ * returns a rational. If numeric is a float, returns a float.
+ *
+ *   Rational(1, 2) + Rational(1, 3)  #=> Rational(5, 6)
+ *   Rational(1, 2) + 1               #=> Rational(3, 2)
+ *   Rational(1, 2) + 0.5             #=> 1.0
+ */
 static mrb_value
 rational_add(mrb_state *mrb, mrb_value x)
 {
@@ -806,6 +931,17 @@ mrb_rational_sub(mrb_state *mrb, mrb_value x, mrb_value y)
   }
 }
 
+/*
+ * call-seq:
+ *   rational - numeric -> rational or numeric
+ *
+ * Returns the difference of rational and numeric. If numeric is a rational,
+ * returns a rational. If numeric is a float, returns a float.
+ *
+ *   Rational(1, 2) - Rational(1, 3)  #=> Rational(1, 6)
+ *   Rational(3, 2) - 1               #=> Rational(1, 2)
+ *   Rational(1, 2) - 0.25            #=> 0.25
+ */
 static mrb_value
 rational_sub(mrb_state *mrb, mrb_value x)
 {
@@ -893,6 +1029,17 @@ mrb_rational_mul(mrb_state *mrb, mrb_value x, mrb_value y)
   }
 }
 
+/*
+ * call-seq:
+ *   rational * numeric -> rational or numeric
+ *
+ * Returns the product of rational and numeric. Uses standard rational
+ * multiplication: (a/b) * (c/d) = (a*c)/(b*d).
+ *
+ *   Rational(1, 2) * Rational(2, 3)  #=> Rational(1, 3)
+ *   Rational(1, 2) * 3               #=> Rational(3, 2)
+ *   Rational(1, 2) * 2.0             #=> 1.0
+ */
 static mrb_value
 rational_mul(mrb_state *mrb, mrb_value x)
 {
@@ -984,6 +1131,18 @@ mrb_rational_div(mrb_state *mrb, mrb_value x, mrb_value y)
   }
 }
 
+/*
+ * call-seq:
+ *   rational / numeric -> rational or numeric
+ *   rational.quo(numeric) -> rational or numeric
+ *
+ * Returns the quotient of rational divided by numeric. Uses standard rational
+ * division: (a/b) / (c/d) = (a/b) * (d/c) = (a*d)/(b*c).
+ *
+ *   Rational(1, 2) / Rational(1, 3)  #=> Rational(3, 2)
+ *   Rational(3, 4) / 2               #=> Rational(3, 8)
+ *   Rational(1, 2) / 0.5             #=> 1.0
+ */
 static mrb_value
 rational_div(mrb_state *mrb, mrb_value x)
 {
@@ -993,6 +1152,17 @@ rational_div(mrb_state *mrb, mrb_value x)
 
 mrb_value mrb_int_pow(mrb_state *mrb, mrb_value x, mrb_value y);
 
+/*
+ * call-seq:
+ *   rational ** numeric -> numeric
+ *
+ * Returns rational raised to the power of numeric. The result is typically
+ * a float unless the result can be exactly represented as a rational.
+ *
+ *   Rational(1, 2) ** 2    #=> Rational(1, 4)
+ *   Rational(4, 1) ** 0.5  #=> 2.0
+ *   Rational(2, 1) ** 3    #=> Rational(8, 1)
+ */
 static mrb_value
 rational_pow(mrb_state *mrb, mrb_value x)
 {
@@ -1019,6 +1189,15 @@ rational_pow(mrb_state *mrb, mrb_value x)
 #endif
 }
 
+/*
+ * call-seq:
+ *   rational.hash -> integer
+ *
+ * Returns a hash value for the rational number. Two rationals with
+ * the same value will have the same hash value.
+ *
+ *   Rational(1, 2).hash == Rational(2, 4).hash  #=> true
+ */
 static mrb_value
 rational_hash(mrb_state *mrb, mrb_value rat)
 {
@@ -1051,7 +1230,7 @@ void mrb_mruby_rational_gem_init(mrb_state *mrb)
   mrb_define_method_id(mrb, rat, MRB_SYM(to_f), mrb_rational_to_f, MRB_ARGS_NONE());
 #endif
   mrb_define_method_id(mrb, rat, MRB_SYM(to_i), mrb_rational_to_i, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, rat, MRB_SYM(to_r), mrb_obj_itself, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, rat, MRB_SYM(to_r), mrb_obj_itself, MRB_ARGS_NONE()); /* Returns self - already a rational */
   mrb_define_method_id(mrb, rat, MRB_SYM_Q(negative), rational_negative_p, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, rat, MRB_OPSYM(eq), rational_eq, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, rat, MRB_OPSYM(minus), rational_minus, MRB_ARGS_NONE());

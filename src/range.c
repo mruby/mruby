@@ -10,6 +10,7 @@
 #include <mruby/string.h>
 #include <mruby/array.h>
 #include <mruby/numeric.h>
+#include <mruby/internal.h>
 #include <mruby/presym.h>
 
 #define RANGE_INITIALIZED_FLAG 1
@@ -19,12 +20,9 @@
 static void
 r_check(mrb_state *mrb, mrb_value a, mrb_value b)
 {
-  enum mrb_vtype ta;
-  enum mrb_vtype tb;
-  mrb_int n;
+  enum mrb_vtype ta = mrb_type(a);
+  enum mrb_vtype tb = mrb_type(b);
 
-  ta = mrb_type(a);
-  tb = mrb_type(b);
 #ifdef MRB_NO_FLOAT
   if (ta == MRB_TT_INTEGER && tb == MRB_TT_INTEGER ) return;
 #else
@@ -36,7 +34,7 @@ r_check(mrb_state *mrb, mrb_value a, mrb_value b)
 
   if (mrb_nil_p(a) || mrb_nil_p(b)) return;
 
-  n = mrb_cmp(mrb, a, b);
+  mrb_int n = mrb_cmp(mrb, a, b);
   if (n == -2) {                /* can not be compared */
     mrb_raise(mrb, E_ARGUMENT_ERROR, "bad value for range");
   }
@@ -113,7 +111,7 @@ range_ptr_replace(mrb_state *mrb, struct RRange *r, mrb_value beg, mrb_value end
  *     rng.first    => obj
  *     rng.begin    => obj
  *
- *  Returns the first object in <i>rng</i>.
+ *  Returns the first object in `rng`.
  */
 static mrb_value
 range_beg(mrb_state *mrb, mrb_value range)
@@ -126,7 +124,7 @@ range_beg(mrb_state *mrb, mrb_value range)
  *     rng.end    => obj
  *     rng.last   => obj
  *
- *  Returns the object that defines the end of <i>rng</i>.
+ *  Returns the object that defines the end of `rng`.
  *
  *     (1..10).end    #=> 10
  *     (1...10).end   #=> 10
@@ -141,7 +139,7 @@ range_end(mrb_state *mrb, mrb_value range)
  *  call-seq:
  *     range.exclude_end?    => true or false
  *
- *  Returns <code>true</code> if <i>range</i> excludes its end value.
+ *  Returns `true` if `range` excludes its end value.
  */
 static mrb_value
 range_excl(mrb_state *mrb, mrb_value range)
@@ -153,8 +151,8 @@ range_excl(mrb_state *mrb, mrb_value range)
  *  call-seq:
  *     Range.new(start, end, exclusive=false)    => range
  *
- *  Constructs a range using the given <i>start</i> and <i>end</i>. If the third
- *  parameter is omitted or is <code>false</code>, the <i>range</i> will include
+ *  Constructs a range using the given `start` and `end`. If the third
+ *  parameter is omitted or is `false`, the `range` will include
  *  the end object; otherwise, it will be excluded.
  */
 static mrb_value
@@ -173,10 +171,10 @@ range_initialize(mrb_state *mrb, mrb_value range)
  *  call-seq:
  *     range == obj    => true or false
  *
- *  Returns <code>true</code> only if
- *  1) <i>obj</i> is a Range,
- *  2) <i>obj</i> has equivalent beginning and end items (by comparing them with <code>==</code>),
- *  3) <i>obj</i> has the same #exclude_end? setting as <i>rng</t>.
+ *  Returns `true` only if
+ *  1) `obj` is a Range,
+ *  2) `obj` has equivalent beginning and end items (by comparing them with `==`),
+ *  3) `obj` has the same #exclude_end? setting as `rng`.
  *
  *    (0..2) == (0..2)            #=> true
  *    (0..2) == Range.new(0,2)    #=> true
@@ -266,7 +264,7 @@ range_to_s(mrb_state *mrb, mrb_value range)
  *   rng.inspect  -> string
  *
  * Convert this range object to a printable form (using
- * <code>inspect</code> to convert the start and end
+ * `inspect` to convert the start and end
  * objects).
  */
 static mrb_value
@@ -296,9 +294,9 @@ range_inspect(mrb_state *mrb, mrb_value range)
  *  call-seq:
  *     rng.eql?(obj)    -> true or false
  *
- *  Returns <code>true</code> only if <i>obj</i> is a Range, has equivalent
+ *  Returns `true` only if `obj` is a Range, has equivalent
  *  beginning and end items (by comparing them with #eql?), and has the same
- *  #exclude_end? setting as <i>rng</i>.
+ *  #exclude_end? setting as `rng`.
  *
  *    (0..2).eql?(0..2)            #=> true
  *    (0..2).eql?(Range.new(0,2))  #=> true
@@ -348,7 +346,6 @@ range_num_to_a(mrb_state *mrb, mrb_value range)
   struct RRange *r = mrb_range_ptr(mrb, range);
   mrb_value beg = RANGE_BEG(r);
   mrb_value end = RANGE_END(r);
-  mrb_value ary;
 
   mrb->c->ci->mid = 0;
   if (mrb_nil_p(end)) {
@@ -372,7 +369,7 @@ range_num_to_a(mrb_state *mrb, mrb_value range)
         if (len == MRB_INT_MAX) goto too_long;
         len++;
       }
-      ary = mrb_ary_new_capa(mrb, len);
+      mrb_value ary = mrb_ary_new_capa(mrb, len);
       mrb_value *ptr = RARRAY_PTR(ary);
       for (mrb_int i=0; i<len; i++) {
         ptr[i] = mrb_int_value(mrb, a+i);
@@ -388,36 +385,52 @@ range_num_to_a(mrb_state *mrb, mrb_value range)
       if (a > b) {
         return mrb_ary_new_capa(mrb, 0);
       }
-      mrb_int alen = (mrb_int)(b - a) + 1;
-      ary = mrb_ary_new_capa(mrb, alen);
+      mrb_int alen = (mrb_int)(b - a) + RANGE_EXCL(r);
+      mrb_value ary = mrb_ary_new_capa(mrb, alen);
       mrb_value *ptr = RARRAY_PTR(ary);
-      if (RANGE_EXCL(r)) {
-        for (mrb_int i=0; a<b; a++) {
-          ptr[i++] = mrb_int_value(mrb, a);
-          ARY_SET_LEN(RARRAY(ary), i);
-        }
-      }
-      else {
-        for (mrb_int i=0; a<=b; a++) {
-          ptr[i++] = mrb_int_value(mrb, a);
-          ARY_SET_LEN(RARRAY(ary), i);
-        }
+      for (mrb_int i=0; i<alen; i++) {
+        ptr[i] = mrb_int_value(mrb, a+i);
+        ARY_SET_LEN(RARRAY(ary), i);
       }
       return ary;
     }
 #endif
   }
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(beg)) {
+    end = mrb_as_bint(mrb, end);
+    switch (mrb_bint_cmp(mrb, end, beg)) {
+    case 0: case -1:
+      return mrb_ary_new_capa(mrb, 0);
+    case -2:
+      return mrb_nil_value();
+    default:
+      break;
+    }
+    mrb_value lenv = mrb_bint_sub(mrb, end, beg);
+    if (!mrb_fixnum_p(lenv)) {
+      mrb_raise(mrb, E_RANGE_ERROR, "integer range too long");
+    }
+    mrb_int len = mrb_integer(lenv);
+    if (!RANGE_EXCL(r)) len++;
+    mrb_value ary = mrb_ary_new_capa(mrb, len);
+    for (mrb_int i=0; i<len; i++) {
+      RARRAY_PTR(ary)[i] = mrb_bint_add(mrb, beg, mrb_int_value(mrb, i));
+      ARY_SET_LEN(RARRAY(ary), i+1);
+    }
+    return ary;
+  }
+#endif
   return mrb_nil_value();
 }
 
 mrb_value
 mrb_get_values_at(mrb_state *mrb, mrb_value obj, mrb_int olen, mrb_int argc, const mrb_value *argv, mrb_value (*func)(mrb_state*, mrb_value, mrb_int))
 {
-  mrb_int i, j, beg, len;
-  mrb_value result;
-  result = mrb_ary_new(mrb);
+  mrb_int beg, len;
+  mrb_value result = mrb_ary_new(mrb);
 
-  for (i = 0; i < argc; i++) {
+  for (mrb_int i = 0; i < argc; i++) {
     mrb_value v = argv[i];
 
     if (mrb_integer_p(v)
@@ -430,6 +443,7 @@ mrb_get_values_at(mrb_state *mrb, mrb_value obj, mrb_int olen, mrb_int argc, con
     }
     else if (mrb_range_beg_len(mrb, v, &beg, &len, olen, FALSE) == MRB_RANGE_OK) {
       mrb_int const end = olen < beg + len ? olen : beg + len;
+      mrb_int j;
       for (j = beg; j < end; j++) {
         mrb_ary_push(mrb, result, func(mrb, obj, j));
       }
@@ -455,6 +469,17 @@ mrb_gc_mark_range(mrb_state *mrb, struct RRange *r)
   return 2;
 }
 
+/**
+ * Retrieves a pointer to the internal RRange structure from a Range object.
+ *
+ * This function ensures that the given Range object is properly initialized
+ * before returning a pointer to its data. If the Range is not initialized,
+ * it raises an E_ARGUMENT_ERROR.
+ *
+ * @param mrb The mruby state.
+ * @param range The Range object (mrb_value) from which to get the pointer.
+ * @return A pointer to the struct RRange.
+ */
 MRB_API struct RRange*
 mrb_range_ptr(mrb_state *mrb, mrb_value range)
 {
@@ -467,6 +492,18 @@ mrb_range_ptr(mrb_state *mrb, mrb_value range)
   return r;
 }
 
+/**
+ * Creates a new Range object.
+ *
+ * This function allocates and initializes a new Range object with the given
+ * beginning and end values, and an exclude_end flag.
+ *
+ * @param mrb The mruby state.
+ * @param beg The beginning value of the range.
+ * @param end The end value of the range.
+ * @param excl A boolean flag indicating whether the end value is excluded (true) or included (false).
+ * @return The new Range object (mrb_value).
+ */
 MRB_API mrb_value
 mrb_range_new(mrb_state *mrb, mrb_value beg, mrb_value end, mrb_bool excl)
 {
@@ -474,6 +511,26 @@ mrb_range_new(mrb_state *mrb, mrb_value beg, mrb_value end, mrb_bool excl)
   return mrb_range_value(r);
 }
 
+/**
+ * Calculates the beginning position and length of a range.
+ *
+ * This function is typically used to get array offsets.
+ * It interprets the range as a sequence of integers.
+ * - If the beginning of the range is nil, it's treated as 0.
+ * - If the end of the range is nil, it's treated as -1 (or the last element).
+ *
+ * The function handles negative indices, out-of-bounds conditions,
+ * and truncation based on the provided length and trunc flag.
+ *
+ * @param mrb The mruby state.
+ * @param range The Range object (mrb_value).
+ * @param[out] begp Pointer to store the calculated beginning position.
+ * @param[out] lenp Pointer to store the calculated length.
+ * @param len The length of the sequence the range is being applied to.
+ * @param trunc If true, truncate the range to fit within the given length.
+ * @return An enum mrb_range_beg_len indicating success (MRB_RANGE_OK),
+ *         type mismatch (MRB_RANGE_TYPE_MISMATCH), or out of bounds (MRB_RANGE_OUT).
+ */
 MRB_API enum mrb_range_beg_len
 mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp, mrb_int len, mrb_bool trunc)
 {
@@ -530,6 +587,6 @@ mrb_init_range(mrb_state *mrb)
   mrb_define_method_id(mrb, r, MRB_SYM(to_s),            range_to_s,            MRB_ARGS_NONE()); /* 15.2.14.4.12(x) */
   mrb_define_method_id(mrb, r, MRB_SYM(inspect),         range_inspect,         MRB_ARGS_NONE()); /* 15.2.14.4.13(x) */
   mrb_define_method_id(mrb, r, MRB_SYM_Q(eql),           range_eql,             MRB_ARGS_REQ(1)); /* 15.2.14.4.14(x) */
-  mrb_define_method_id(mrb, r, MRB_SYM(initialize_copy), range_initialize_copy, MRB_ARGS_REQ(1)); /* 15.2.14.4.15(x) */
+  mrb_define_private_method_id(mrb, r, MRB_SYM(initialize_copy), range_initialize_copy, MRB_ARGS_REQ(1)); /* 15.2.14.4.15(x) */
   mrb_define_method_id(mrb, r, MRB_SYM(__num_to_a),      range_num_to_a,        MRB_ARGS_NONE());
 }

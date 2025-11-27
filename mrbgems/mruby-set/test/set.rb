@@ -507,6 +507,28 @@ assert("Set#+") do
   ret = set + [2,4,6]
   assert_false set.equal?(ret) # assert_not_same
   assert_equal(Set[1,2,3,4,6], ret)
+  assert_equal(Set[1,2,3], set, "original set should not be modified")
+
+  # Set + Set
+  set2 = Set[3, 4, 5]
+  assert_equal(Set[1, 2, 3, 4, 5], set + set2)
+
+  # Set + empty Set
+  assert_equal(set, set + Set[])
+
+  # empty Set + Set
+  assert_equal(set, Set[] + set)
+
+  # Set + Array with no common elements
+  assert_equal(Set[1, 2, 3, 4, 5], set + [4, 5])
+
+  # Set + self
+  assert_equal(set, set + set)
+
+  # with various object types
+  s1 = Set["a", "b", "c"]
+  s2 = Set["c", "d", "e"]
+  assert_equal(Set["a", "b", "c", "d", "e"], s1 + s2)
 end
 
 assert("Set#-") do
@@ -515,6 +537,28 @@ assert("Set#-") do
   ret = set - [2,4,6]
   assert_false set.equal?(ret) # assert_not_same
   assert_equal(Set[1,3], ret)
+  assert_equal(Set[1,2,3], set, "original set should not be modified")
+
+  # Set - Set
+  set2 = Set[3, 4, 5]
+  assert_equal(Set[1, 2], set - set2)
+
+  # Set - empty Set
+  assert_equal(set, set - Set[])
+
+  # empty Set - Set
+  assert_equal(Set[], Set[] - set)
+
+  # Set - Array with no common elements
+  assert_equal(set, set - [4, 5])
+
+  # Set - self
+  assert_equal(Set[], set - set)
+
+  # with various object types
+  s1 = Set["a", "b", "c"]
+  s2 = Set["b", "c", "d"]
+  assert_equal(Set["a"], s1 - s2)
 end
 
 assert("Set#&") do
@@ -523,6 +567,28 @@ assert("Set#&") do
   ret = set & [2,4,6]
   assert_false set.equal?(ret) # assert_not_same
   assert_equal(Set[2,4], ret)
+  assert_equal(Set[1, 2, 3, 4], set, "original set should not be modified")
+
+  # Set & Set
+  set2 = Set[3, 4, 5]
+  assert_equal(Set[3, 4], set & set2)
+
+  # Set & empty Set
+  assert_equal(Set[], set & Set[])
+
+  # empty Set & Set
+  assert_equal(Set[], Set[] & set)
+
+  # Set & Array with no common elements
+  assert_equal(Set[], set & [5, 6, 7])
+
+  # Set & self
+  assert_equal(set, set & set)
+
+  # with various object types
+  s1 = Set["a", "b", "c"]
+  s2 = Set["b", "c", "d"]
+  assert_equal(Set["b", "c"], s1 & s2)
 end
 
 assert("Set#^") do
@@ -627,6 +693,72 @@ end
 #  end
 #
 assert("Set#inspect") do
-  set = Set[1,2,3]
-  assert_equal("#<Set: {1, 2, 3}>", set.inspect)
+  set = Set[1,1,1]
+  assert_equal("Set[1]", set.inspect)
+end
+
+assert("Set operations with custom objects") do
+  class MySettable
+    attr_reader :val
+    def initialize(val)
+      @val = val
+    end
+
+    def hash
+      @val.hash
+    end
+
+    def eql?(other)
+      other.is_a?(self.class) && self.val.eql?(other.val)
+    end
+
+    def ==(other)
+      eql?(other)
+    end
+
+    def to_s
+      "MySettable(#{@val})"
+    end
+    alias inspect to_s
+  end
+
+  obj1 = MySettable.new(1)
+  obj2 = MySettable.new(2)
+  obj3 = MySettable.new(3)
+  obj4 = MySettable.new(4)
+
+  set1 = Set[obj1, obj2]
+  set2 = Set[obj2, obj3]
+
+  # Test for Set#+
+  set_union = set1 + set2
+  assert_equal(3, set_union.size)
+  assert_true(set_union.include?(obj1))
+  assert_true(set_union.include?(obj2))
+  assert_true(set_union.include?(obj3))
+
+  # Test for Set#-
+  set_diff = set1 - set2
+  assert_equal(1, set_diff.size)
+  assert_equal(obj1, set_diff.to_a[0])
+
+  # Test for Set#&
+  set_intersect = set1 & set2
+  assert_equal(1, set_intersect.size)
+  assert_equal(obj2, set_intersect.to_a[0])
+
+  # Test with an array of objects
+  arr = [obj2, obj4]
+  set_intersect_arr = set1 & arr
+  assert_equal(1, set_intersect_arr.size)
+  assert_equal(obj2, set_intersect_arr.to_a[0])
+end
+
+assert("Set#hash") do
+  set = Set[1, 2, 3]
+  assert_kind_of(Integer, set.hash)
+  hash = set.hash
+  assert_equal(hash, Set[3, 1, 2].hash)
+  assert_not_equal(hash, Set[1, 2, 4].hash)
+  assert_not_equal(hash, Set[].hash)
 end

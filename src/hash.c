@@ -15,6 +15,7 @@
 #include <mruby/internal.h>
 #include <mruby/presym.h>
 
+
 /*
  * === Glossary
  *
@@ -56,7 +57,7 @@
  */
 
 #define EA_N_RESERVED_INDICES 2  /* empty and deleted */
-#define EA_INCREASE_RATIO 6 / 5 + 6
+
 #define EA_MAX_INCREASE UINT16_MAX
 #define EA_MAX_CAPA U32(lesser(IB_MAX_CAPA - EA_N_RESERVED_INDICES, MRB_INT_MAX))
 #define IB_MAX_CAPA (U32(1) << IB_MAX_BIT)
@@ -92,6 +93,7 @@ typedef struct index_buckets_iter {
   struct RHash *h;
   uint32_t bit;
   uint32_t mask;
+  uint32_t initial_pos;
   uint32_t pos;
   uint32_t ary_index;
   uint32_t ea_index;
@@ -310,8 +312,19 @@ h_check_modified_validate(mrb_state *mrb, struct h_check_modified *checker, stru
   }
 }
 
+#ifndef MRB_NO_FLOAT
 static uint32_t
-obj_hash_code(mrb_state *mrb, mrb_value key, struct RHash *h)
+float_hash_code(mrb_float f)
+{
+  if (f == 0.0) return 0;
+  /* normalize -0.0 to 0.0 */
+  if (f == -0.0) f = 0.0;
+  return mrb_byte_hash((const uint8_t*)&f, sizeof(f));
+}
+#endif
+
+uint32_t
+mrb_obj_hash_code(mrb_state *mrb, mrb_value key)
 {
   enum mrb_vtype tt = mrb_type(key);
   uint32_t hash_code;
@@ -328,29 +341,45 @@ obj_hash_code(mrb_state *mrb, mrb_value key, struct RHash *h)
   case MRB_TT_INTEGER:
     if (mrb_fixnum_p(key)) {
       hash_code = U32(mrb_fixnum(key));
-      break;
     }
-#ifndef MRB_NO_FLOAT
-    /* fall through */
-  case MRB_TT_FLOAT:
+    else {
+#ifdef MRB_USE_BIGINT
+      hash_code = U32(mrb_integer(mrb_bint_hash(mrb, key)));
+#else
+      /* This path should not be reached if bignum is not configured.
+       * Hashing object_id is a fallback to avoid uninitialized value. */
+      hash_code = U32(mrb_obj_id(key));
 #endif
-    hash_code = U32(mrb_obj_id(key));
-    break;
-  default:
-    H_CHECK_MODIFIED(mrb, h) {
-      hash_code_obj = mrb_funcall_argv(mrb, key, MRB_SYM(hash), 0, NULL);
     }
-
+    break;
+#ifndef MRB_NO_FLOAT
+  case MRB_TT_FLOAT:
+    hash_code = float_hash_code(mrb_float(key));
+    break;
+#endif
+  default:
+    hash_code_obj = mrb_funcall_argv(mrb, key, MRB_SYM(hash), 0, NULL);
     hash_code = U32(tt) ^ U32(mrb_integer(hash_code_obj));
     break;
   }
   return hash_code ^ (hash_code << 2) ^ (hash_code >> 2);
 }
 
+static uint32_t
+obj_hash_code(mrb_state *mrb, mrb_value key, struct RHash *h)
+{
+  uint32_t hash_code = 0;
+
+  H_CHECK_MODIFIED(mrb, h) {
+    hash_code = mrb_obj_hash_code(mrb, key);
+  }
+  return hash_code;
+}
+
 static mrb_bool
 obj_eql(mrb_state *mrb, mrb_value a, mrb_value b, struct RHash *h)
 {
-  mrb_bool eql;
+  mrb_bool eql = FALSE;
 
   switch (mrb_type(a)) {
   case MRB_TT_STRING:
@@ -409,7 +438,8 @@ ea_next_capa_for(uint32_t size, uint32_t max_capa)
      * `EA_INCREASE_RATIO` is the current value, 32-bit range will not be
      * exceeded during the calculation of `capa`, so `size_t` is used.
      */
-    size_t capa = (size_t)size * EA_INCREASE_RATIO, inc = capa - size;
+    size_t capa = ((size_t)size * 6) / 5 + 6;
+    size_t inc = capa - size;
     if (EA_MAX_INCREASE < inc) capa = size + EA_MAX_INCREASE;
     return capa <= max_capa ? U32(capa) : max_capa;
   }
@@ -645,7 +675,8 @@ ib_it_init(mrb_state *mrb, struct RHash *h, mrb_value key)
   it.h = h;
   it.bit = ib_bit(h);
   it.mask = ib_bit_to_capa(it.bit) - 1;
-  it.pos = ib_it_pos_for(&it, obj_hash_code(mrb, key, h));
+  it.initial_pos = ib_it_pos_for(&it, obj_hash_code(mrb, key, h));
+  it.pos = it.initial_pos;
   it.step = 0;
   return it;
 }
@@ -686,7 +717,8 @@ ib_it_next(index_buckets_iter *it)
   else {
     it->shift1 = 0;
   }
-  it->pos = ib_it_pos_for(it, it->pos + (++it->step));
+  it->step++;
+  it->pos = ib_it_pos_for(it, it->initial_pos + (it->step * it->step + it->step) / 2);
 }
 
 static mrb_bool
@@ -1118,7 +1150,33 @@ mrb_hash_memsize(mrb_value self)
                        ib_byte_size_for(ib_bit(h))));
 }
 
-/* Iterates over the key/value pairs. */
+/**
+ * Iterates over each key-value pair in the given hash.
+ *
+ * This function calls the provided callback function `func` for each entry
+ * in the hash `h`. The iteration order is the insertion order.
+ *
+ * The callback function `func` has the signature:
+ *   `int callback(mrb_state *mrb, mrb_value key, mrb_value value, void *data)`
+ * - `mrb`: The mruby state.
+ * - `key`: The key of the current hash entry.
+ * - `value`: The value of the current hash entry.
+ * - `data`: The user-supplied data pointer passed to `mrb_hash_foreach`.
+ *
+ * If the callback function returns a non-zero value, the iteration stops.
+ *
+ * Important: Modifying the hash `h` within the callback function can lead
+ * to undefined behavior if not handled carefully (e.g., using `H_CHECK_MODIFIED`
+ * as done internally for Ruby methods, though direct C API users must be cautious).
+ * The `H_CHECK_MODIFIED` macro within this function is for internal safety
+ * when this function is used to implement Ruby methods that might call
+ * arbitrary Ruby code during iteration.
+ *
+ * @param mrb The mruby state.
+ * @param h A pointer to the RHash structure to iterate over.
+ * @param func The callback function to be called for each key-value pair.
+ * @param data A void pointer that will be passed to the callback function.
+ */
 MRB_API void
 mrb_hash_foreach(mrb_state *mrb, struct RHash *h, mrb_hash_foreach_func *func, void *data)
 {
@@ -1140,6 +1198,15 @@ mrb_hash_first_key(mrb_state *mrb, mrb_value h)
   return mrb_nil_value();
 }
 
+/**
+ * Creates a new, empty hash.
+ *
+ * This function allocates and initializes a new hash object.
+ * The returned hash is empty and ready to have elements added to it.
+ *
+ * @param mrb The mruby state.
+ * @return An mrb_value representing the new empty hash.
+ */
 MRB_API mrb_value
 mrb_hash_new(mrb_state *mrb)
 {
@@ -1147,9 +1214,21 @@ mrb_hash_new(mrb_state *mrb)
   return mrb_obj_value(h);
 }
 
-/*
- * Set the capacity of EA and IB to minimum capacity (and appropriate load
- * factor) that does not cause expansion when inserting `capa` elements.
+/**
+ * Creates a new, empty hash with a specified initial capacity.
+ *
+ * This function allocates and initializes a new hash object, pre-allocating
+ * internal structures to hold at least `capa` elements. This can be an
+ * optimization if the number of elements to be stored is known in advance,
+ * as it can prevent reallocations.
+ *
+ * If `capa` is 0, it behaves like `mrb_hash_new()`.
+ * An error will be raised if `capa` is negative or excessively large.
+ *
+ * @param mrb The mruby state.
+ * @param capa The initial capacity (number of elements) the hash should be
+ *             able to hold without needing to resize.
+ * @return An mrb_value representing the new empty hash with preallocated capacity.
  */
 MRB_API mrb_value
 mrb_hash_new_capa(mrb_state *mrb, mrb_int capa)
@@ -1225,6 +1304,18 @@ mrb_hash_init_copy(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/**
+ * Creates a new hash that is a duplicate of the given hash.
+ *
+ * This function creates a shallow copy of the original hash `self`.
+ * The keys and values themselves are not duplicated, but the internal
+ * structure of the hash (entry array, hash table, default values/procs)
+ * is copied.
+ *
+ * @param mrb The mruby state.
+ * @param self The hash object (mrb_value) to duplicate.
+ * @return An mrb_value representing the new duplicated hash.
+ */
 MRB_API mrb_value
 mrb_hash_dup(mrb_state *mrb, mrb_value self)
 {
@@ -1235,6 +1326,24 @@ mrb_hash_dup(mrb_state *mrb, mrb_value self)
   return copy;
 }
 
+/**
+ * Retrieves the value associated with a given key from the hash.
+ *
+ * If the key is found in the hash, its corresponding value is returned.
+ * If the key is not found, this function considers the hash's default settings:
+ * - If a default proc is set for the hash, it is called with the hash and key,
+ *   and its result is returned.
+ * - If a default value is set, that value is returned.
+ * - Otherwise (no key found and no default settings), nil is returned.
+ * This function may also invoke a user-defined `default` method on the hash
+ * if it has been overridden and no basic default proc/value handles the lookup.
+ *
+ * @param mrb The mruby state.
+ * @param hash The hash object (mrb_value) to search.
+ * @param key The key (mrb_value) to look up.
+ * @return The associated mrb_value, or the result of the default proc,
+ *         or the default value, or nil if not found and no defaults apply.
+ */
 MRB_API mrb_value
 mrb_hash_get(mrb_state *mrb, mrb_value hash, mrb_value key)
 {
@@ -1253,6 +1362,21 @@ mrb_hash_get(mrb_state *mrb, mrb_value hash, mrb_value key)
   return mrb_funcall_argv(mrb, hash, mid, 1, &key);
 }
 
+/**
+ * Retrieves the value associated with a given key from the hash,
+ * returning a C-provided default value if the key is not found.
+ *
+ * If the `key` is found in the `hash`, its corresponding value is returned.
+ * If the `key` is not found, the `def` mrb_value provided to this function
+ * is returned. This function does *not* use the hash's own default proc
+ * or default value.
+ *
+ * @param mrb The mruby state.
+ * @param hash The hash object (mrb_value) to search.
+ * @param key The key (mrb_value) to look up.
+ * @param def The default mrb_value to return if the key is not found.
+ * @return The associated mrb_value if the key is found, otherwise `def`.
+ */
 MRB_API mrb_value
 mrb_hash_fetch(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value def)
 {
@@ -1265,6 +1389,22 @@ mrb_hash_fetch(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value def)
   return def;
 }
 
+/**
+ * Sets or updates a key-value pair in the hash.
+ *
+ * Associates `val` with `key` in the `hash`. If `key` already exists,
+ * its value is updated. If `key` does not exist, a new entry is created.
+ * The hash is modified in place.
+ *
+ * If the `key` is a `MRB_TT_STRING` and not frozen, it will be duplicated
+ * and the duplicate will be frozen before use.
+ * Write barriers are triggered for garbage collection purposes for the key and value.
+ *
+ * @param mrb The mruby state.
+ * @param hash The hash object (mrb_value) to modify.
+ * @param key The key (mrb_value) for the entry.
+ * @param val The value (mrb_value) to associate with the key.
+ */
 MRB_API void
 mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val)
 {
@@ -1300,10 +1440,10 @@ hash_set_default_proc(mrb_state *mrb, mrb_value hash, mrb_value proc)
  *
  *  Returns a new, empty hash. If this hash is subsequently accessed by
  *  a key that doesn't correspond to a hash entry, the value returned
- *  depends on the style of <code>new</code> used to create the hash. In
- *  the first form, the access returns <code>nil</code>. If
- *  <i>obj</i> is specified, this single object will be used for
- *  all <em>default values</em>. If a block is specified, it will be
+ *  depends on the style of `new` used to create the hash. In
+ *  the first form, the access returns `nil`. If
+ *  `obj` is specified, this single object will be used for
+ *  all default values. If a block is specified, it will be
  *  called with the hash object and the key, and should return the
  *  default value. It is the block's responsibility to store the value
  *  in the hash if required.
@@ -1355,9 +1495,9 @@ mrb_hash_init(mrb_state *mrb, mrb_value hash)
  *  call-seq:
  *     hsh[key]    ->  value
  *
- *  Element Reference---Retrieves the <i>value</i> object corresponding
- *  to the <i>key</i> object. If not found, returns the default value (see
- *  <code>Hash::new</code> for details).
+ *  Element Reference---Retrieves the `value` object corresponding
+ *  to the `key` object. If not found, returns the default value (see
+ *  `Hash::new` for details).
  *
  *     h = { "a" => 100, "b" => 200 }
  *     h["a"]   #=> 100
@@ -1378,8 +1518,8 @@ mrb_hash_aget(mrb_state *mrb, mrb_value self)
  *     hsh.default(key=nil)   -> obj
  *
  *  Returns the default value, the value that would be returned by
- *  <i>hsh</i>[<i>key</i>] if <i>key</i> did not exist in <i>hsh</i>.
- *  See also <code>Hash::new</code> and <code>Hash#default=</code>.
+ *  `hsh`[`key`] if `key` did not exist in `hsh`.
+ *  See also `Hash::new` and `Hash#default=`.
  *
  *     h = Hash.new                            #=> {}
  *     h.default                               #=> nil
@@ -1420,7 +1560,7 @@ mrb_hash_default(mrb_state *mrb, mrb_value hash)
  *
  *  Sets the default value, the value returned for a key that does not
  *  exist in the hash. It is not possible to set the default to a
- *  <code>Proc</code> that will be executed on each key lookup.
+ *  `Proc` that will be executed on each key lookup.
  *
  *     h = { "a" => 100, "b" => 200 }
  *     h.default = "Go fish"
@@ -1456,8 +1596,8 @@ mrb_hash_set_default(mrb_state *mrb, mrb_value hash)
  *  call-seq:
  *     hsh.default_proc -> anObject
  *
- *  If <code>Hash::new</code> was invoked with a block, return that
- *  block, otherwise return <code>nil</code>.
+ *  If `Hash::new` was invoked with a block, return that
+ *  block, otherwise return `nil`.
  *
  *     h = Hash.new {|h,k| h[k] = k*k }   #=> {}
  *     p = h.default_proc                 #=> #<Proc:0x401b3d08@-:1>
@@ -1509,6 +1649,17 @@ mrb_hash_set_default_proc(mrb_state *mrb, mrb_value hash)
   return ifnone;
 }
 
+/**
+ * Deletes a key-value pair from the hash.
+ *
+ * Removes the entry associated with `key` from the `hash`.
+ * The hash is modified in place.
+ *
+ * @param mrb The mruby state.
+ * @param hash The hash object (mrb_value) to modify.
+ * @param key The key (mrb_value) of the entry to delete.
+ * @return The value associated with the deleted key if found, otherwise nil.
+ */
 MRB_API mrb_value
 mrb_hash_delete_key(mrb_state *mrb, mrb_value hash, mrb_value key)
 {
@@ -1536,8 +1687,8 @@ mrb_hash_delete(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     hsh.shift -> anArray or obj
  *
- *  Removes a key-value pair from <i>hsh</i> and returns it as the
- *  two-item array <code>[</code> <i>key, value</i> <code>]</code>, or
+ *  Removes a key-value pair from `hsh` and returns it as the
+ *  two-item array [ `key`, `value` ], or
  *  the hash's default value if the hash is empty.
  *
  *      h = { 1 => "a", 2 => "b", 3 => "c" }
@@ -1591,9 +1742,9 @@ mrb_hash_clear(mrb_state *mrb, mrb_value hash)
  *     hsh.store(key, value)   -> value
  *
  *  Element Assignment---Associates the value given by
- *  <i>value</i> with the key given by <i>key</i>.
- *  <i>key</i> should not have its value changed while it is in
- *  use as a key (a <code>String</code> passed as a key will be
+ *  `value` with the key given by `key`.
+ *  `key` should not have its value changed while it is in
+ *  use as a key (a `String` passed as a key will be
  *  duplicated and frozen).
  *
  *      h = { "a" => 100, "b" => 200 }
@@ -1619,6 +1770,13 @@ mrb_hash_aset(mrb_state *mrb, mrb_value self)
   return val;
 }
 
+/**
+ * Returns the number of key-value pairs in the hash.
+ *
+ * @param mrb The mruby state (unused in the current implementation, but part of MRB_API convention).
+ * @param hash The hash object (mrb_value) to get the size of.
+ * @return An mrb_int representing the number of entries in the hash.
+ */
 MRB_API mrb_int
 mrb_hash_size(mrb_state *mrb, mrb_value hash)
 {
@@ -1657,7 +1815,7 @@ mrb_hash_empty_p(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     hsh.empty?    -> true or false
  *
- *  Returns <code>true</code> if <i>hsh</i> contains no key-value pairs.
+ *  Returns `true` if `hsh` contains no key-value pairs.
  *
  *     {}.empty?   #=> true
  *
@@ -1674,7 +1832,7 @@ mrb_hash_empty_m(mrb_state *mrb, mrb_value self)
  *     hsh.keys    -> array
  *
  *  Returns a new array populated with the keys from this hash. See also
- *  <code>Hash#values</code>.
+ *  `Hash#values`.
  *
  *     h = { "a" => 100, "b" => 200, "c" => 300, "d" => 400 }
  *     h.keys   #=> ["a", "b", "c", "d"]
@@ -1697,8 +1855,8 @@ mrb_hash_keys(mrb_state *mrb, mrb_value hash)
  *  call-seq:
  *     hsh.values    -> array
  *
- *  Returns a new array populated with the values from <i>hsh</i>. See
- *  also <code>Hash#keys</code>.
+ *  Returns a new array populated with the values from `hsh`. See
+ *  also `Hash#keys`.
  *
  *     h = { "a" => 100, "b" => 200, "c" => 300 }
  *     h.values   #=> [100, 200, 300]
@@ -1727,7 +1885,7 @@ mrb_hash_values(mrb_state *mrb, mrb_value hash)
  *     hsh.key?(key)        -> true or false
  *     hsh.member?(key)     -> true or false
  *
- *  Returns <code>true</code> if the given key is present in <i>hsh</i>.
+ *  Returns `true` if the given key is present in `hsh`.
  *
  *     h = { "a" => 100, "b" => 200 }
  *     h.has_key?("a")   #=> true
@@ -1759,8 +1917,8 @@ mrb_hash_has_key(mrb_state *mrb, mrb_value hash)
  *     hsh.has_value?(value)    -> true or false
  *     hsh.value?(value)        -> true or false
  *
- *  Returns <code>true</code> if the given value is present for some key
- *  in <i>hsh</i>.
+ *  Returns `true` if the given value is present for some key
+ *  in `hsh`.
  *
  *     h = { "a" => 100, "b" => 200 }
  *     h.has_value?(100)   #=> true
@@ -1780,6 +1938,24 @@ mrb_hash_has_value(mrb_state *mrb, mrb_value hash)
   return mrb_false_value();
 }
 
+/**
+ * Merges the contents of `hash2` into `hash1`.
+ *
+ * Iterates over `hash2` and for each key-value pair, sets it in `hash1`.
+ * If a key from `hash2` already exists in `hash1`, its value in `hash1`
+ * will be overwritten. `hash1` is modified in place.
+ *
+ * - `hash1` must not be frozen.
+ * - `hash2` must be a hash.
+ * - If `hash1` and `hash2` are the same object, or if `hash2` is empty,
+ *   the function returns without doing anything.
+ * - Write barriers are triggered for keys and values from `hash2` as they
+ *   are inserted into `hash1`.
+ *
+ * @param mrb The mruby state.
+ * @param hash1 The hash object (mrb_value) to be modified.
+ * @param hash2 The hash object (mrb_value) whose contents will be merged into `hash1`.
+ */
 MRB_API void
 mrb_hash_merge(mrb_state *mrb, mrb_value hash1, mrb_value hash2)
 {
@@ -1818,7 +1994,7 @@ mrb_hash_merge_m(mrb_state *mrb, mrb_value hash)
  *
  *  Rebuilds the hash based on the current hash values for each key. If
  *  values of key objects have changed since they were inserted, this
- *  method will reindex <i>hsh</i>.
+ *  method will reindex `hsh`.
  *
  *     keys = (1..17).map{|n| [n]}
  *     k = keys[0]
@@ -1879,7 +2055,7 @@ mrb_hash_to_s(mrb_state *mrb, mrb_value self)
   mrb->c->ci->mid = MRB_SYM(inspect);
   mrb_value ret = mrb_str_new_lit(mrb, "{");
   int ai = mrb_gc_arena_save(mrb);
-  if (mrb_inspect_recursive_p(mrb, self)) {
+  if (MRB_RECURSIVE_UNARY_P(mrb, MRB_SYM(inspect), self)) {
     mrb_str_cat_lit(mrb, ret, "...}");
     return ret;
   }
@@ -1972,6 +2148,96 @@ mrb_hash_rassoc(mrb_state *mrb, mrb_value hash)
   return mrb_nil_value();
 }
 
+/* 15.2.13.4.1 */
+static mrb_value
+mrb_hash_equal(mrb_state *mrb, mrb_value hash)
+{
+  mrb_value hash2 = mrb_get_arg1(mrb);
+
+  if (mrb_obj_equal(mrb, hash, hash2)) return mrb_true_value();
+  if (!mrb_hash_p(hash2)) {
+    return mrb_false_value();
+  }
+  if (mrb_hash_size(mrb, hash) != mrb_hash_size(mrb, hash2)) {
+    return mrb_false_value();
+  }
+
+  /* Check for recursion */
+  if (MRB_RECURSIVE_BINARY_FUNC_P(mrb, MRB_OPSYM(eq), hash, hash2)) {
+    return mrb_false_value();
+  }
+
+  struct RHash *h1 = mrb_hash_ptr(hash);
+  struct RHash *h2 = mrb_hash_ptr(hash2);
+
+  H_EACH(h1, entry) {
+    mrb_value val2;
+    mrb_bool found;
+
+    H_CHECK_MODIFIED(mrb, h1) {
+      found = h_get(mrb, h2, entry->key, &val2);
+    }
+    if (!found) {
+      return mrb_false_value();
+    }
+    H_CHECK_MODIFIED(mrb, h1) {
+      if (!mrb_equal(mrb, entry->val, val2)) {
+        return mrb_false_value();
+      }
+    }
+  }
+
+  return mrb_true_value();
+}
+
+/*
+ * call-seq:
+ *   hash.eql?(other) -> true or false
+ *
+ * Returns true if hash and other are both hashes with the same content
+ * compared by eql?.
+ */
+static mrb_value
+mrb_hash_eql(mrb_state *mrb, mrb_value hash)
+{
+  mrb_value hash2 = mrb_get_arg1(mrb);
+
+  if (mrb_obj_equal(mrb, hash, hash2)) return mrb_true_value();
+  if (!mrb_hash_p(hash2)) {
+    return mrb_false_value();
+  }
+  if (mrb_hash_size(mrb, hash) != mrb_hash_size(mrb, hash2)) {
+    return mrb_false_value();
+  }
+
+  /* Check for recursion */
+  if (MRB_RECURSIVE_BINARY_FUNC_P(mrb, MRB_SYM_Q(eql), hash, hash2)) {
+    return mrb_false_value();
+  }
+
+  struct RHash *h1 = mrb_hash_ptr(hash);
+  struct RHash *h2 = mrb_hash_ptr(hash2);
+
+  H_EACH(h1, entry) {
+    mrb_value val2;
+    mrb_bool found;
+
+    H_CHECK_MODIFIED(mrb, h1) {
+      found = h_get(mrb, h2, entry->key, &val2);
+    }
+    if (!found) {
+      return mrb_false_value();
+    }
+    H_CHECK_MODIFIED(mrb, h1) {
+      if (!mrb_eql(mrb, entry->val, val2)) {
+        return mrb_false_value();
+      }
+    }
+  }
+
+  return mrb_true_value();
+}
+
 void
 mrb_init_hash(mrb_state *mrb)
 {
@@ -1980,6 +2246,7 @@ mrb_init_hash(mrb_state *mrb)
   mrb->hash_class = h = mrb_define_class_id(mrb, MRB_SYM(Hash), mrb->object_class);              /* 15.2.13 */
   MRB_SET_INSTANCE_TT(h, MRB_TT_HASH);
 
+  mrb_define_method_id(mrb, h, MRB_OPSYM(eq),            mrb_hash_equal,       MRB_ARGS_REQ(1)); /* 15.2.13.4.1  */
   mrb_define_method_id(mrb, h, MRB_OPSYM(aref),          mrb_hash_aget,        MRB_ARGS_REQ(1)); /* 15.2.13.4.2  */
   mrb_define_method_id(mrb, h, MRB_OPSYM(aset),          mrb_hash_aset,        MRB_ARGS_REQ(2)); /* 15.2.13.4.3  */
   mrb_define_method_id(mrb, h, MRB_SYM(clear),           mrb_hash_clear,       MRB_ARGS_NONE()); /* 15.2.13.4.4  */
@@ -1988,12 +2255,13 @@ mrb_init_hash(mrb_state *mrb)
   mrb_define_method_id(mrb, h, MRB_SYM(default_proc),    mrb_hash_default_proc,MRB_ARGS_NONE()); /* 15.2.13.4.7  */
   mrb_define_method_id(mrb, h, MRB_SYM_E(default_proc),  mrb_hash_set_default_proc,MRB_ARGS_REQ(1)); /* 15.2.13.4.7  */
   mrb_define_method_id(mrb, h, MRB_SYM(__delete),        mrb_hash_delete,      MRB_ARGS_REQ(1)); /* core of 15.2.13.4.8  */
+  mrb_define_method_id(mrb, h, MRB_SYM_Q(eql),           mrb_hash_eql,         MRB_ARGS_REQ(1)); /* Hash#eql? */
   mrb_define_method_id(mrb, h, MRB_SYM_Q(empty),         mrb_hash_empty_m,     MRB_ARGS_NONE()); /* 15.2.13.4.12 */
   mrb_define_method_id(mrb, h, MRB_SYM_Q(has_key),       mrb_hash_has_key,     MRB_ARGS_REQ(1)); /* 15.2.13.4.13 */
   mrb_define_method_id(mrb, h, MRB_SYM_Q(has_value),     mrb_hash_has_value,   MRB_ARGS_REQ(1)); /* 15.2.13.4.14 */
   mrb_define_method_id(mrb, h, MRB_SYM_Q(include),       mrb_hash_has_key,     MRB_ARGS_REQ(1)); /* 15.2.13.4.15 */
   mrb_define_method_id(mrb, h, MRB_SYM(initialize),      mrb_hash_init,        MRB_ARGS_OPT(1)|MRB_ARGS_BLOCK()); /* 15.2.13.4.16 */
-  mrb_define_method_id(mrb, h, MRB_SYM(initialize_copy), mrb_hash_init_copy,   MRB_ARGS_REQ(1)); /* 15.2.13.4.17 */
+  mrb_define_private_method_id(mrb, h, MRB_SYM(initialize_copy), mrb_hash_init_copy, MRB_ARGS_REQ(1)); /* 15.2.13.4.17 */
   mrb_define_method_id(mrb, h, MRB_SYM_Q(key),           mrb_hash_has_key,     MRB_ARGS_REQ(1)); /* 15.2.13.4.18 */
   mrb_define_method_id(mrb, h, MRB_SYM(keys),            mrb_hash_keys,        MRB_ARGS_NONE()); /* 15.2.13.4.19 */
   mrb_define_method_id(mrb, h, MRB_SYM(length),          mrb_hash_size_m,      MRB_ARGS_NONE()); /* 15.2.13.4.20 */

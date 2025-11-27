@@ -6,7 +6,6 @@
 
 #include <string.h>
 #include <mruby.h>
-#include <mruby/khash.h>
 #include <mruby/string.h>
 #include <mruby/dump.h>
 #include <mruby/class.h>
@@ -53,6 +52,32 @@ presym_sym2name(mrb_sym sym, mrb_int *lenp)
 #endif  /* MRB_NO_PRESYM */
 
 /* ------------------------------------------------------ */
+
+/* LSB pointer tagging for literal flags */
+#define SYMTBL_LITERAL_FLAG ((uintptr_t)1)
+
+/* Extract clean pointer for memory operations */
+static inline const char*
+symtbl_get_ptr(const char *tagged_ptr)
+{
+  return (const char*)((uintptr_t)tagged_ptr & ~SYMTBL_LITERAL_FLAG);
+}
+
+/* Check if symbol is literal by testing LSB */
+static inline mrb_bool
+symtbl_is_literal(const char *tagged_ptr)
+{
+  return ((uintptr_t)tagged_ptr & SYMTBL_LITERAL_FLAG) != 0;
+}
+
+/* Create tagged pointer for literal string - with alignment verification */
+static inline const char*
+symtbl_tag_literal(const char *ptr)
+{
+  mrb_assert(((uintptr_t)ptr & 1) == 0);  /* Assert alignment */
+  return (const char*)((uintptr_t)ptr | SYMTBL_LITERAL_FLAG);
+}
+
 static void
 sym_validate_len(mrb_state *mrb, size_t len)
 {
@@ -60,6 +85,12 @@ sym_validate_len(mrb_state *mrb, size_t len)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "symbol length too long");
   }
 }
+
+/* Hash table for symbols (allocated on demand when symbols exceed threshold) */
+struct mrb_sym_hash_table {
+  uint8_t *symlink;         /* collision resolution chains */
+  mrb_sym buckets[256];     /* hash buckets */
+};
 
 #ifdef MRB_USE_ALL_SYMBOLS
 # define SYMBOL_INLINE_P(sym) FALSE
@@ -110,17 +141,21 @@ sym_inline_unpack(mrb_sym sym, char *buf, mrb_int *lenp)
 }
 #endif
 
-#define sym_lit_p(mrb, i) (mrb->symflags[i>>3]&(1<<(i&7)))
-#define sym_lit_set(mrb, i) mrb->symflags[i>>3]|=(1<<(i&7))
-#define sym_flags_clear(mrb, i) mrb->symflags[i>>3]&=~(1<<(i&7))
+/* Check if using hash table mode */
+static inline mrb_bool
+using_hash_table(mrb_state *mrb)
+{
+  return mrb->symhash != NULL;
+}
 
 static mrb_bool
 sym_check(mrb_state *mrb, const char *name, size_t len, mrb_sym i)
 {
-  const char *symname = mrb->symtbl[i];
+  const char *tagged_ptr = mrb->symtbl[i];
+  const char *symname = symtbl_get_ptr(tagged_ptr);  /* Untag for access */
   size_t symlen;
 
-  if (sym_lit_p(mrb, i)) {
+  if (symtbl_is_literal(tagged_ptr)) {
     symlen = strlen(symname);
   }
   else {
@@ -134,31 +169,35 @@ sym_check(mrb_state *mrb, const char *name, size_t len, mrb_sym i)
 }
 
 static mrb_sym
-find_symbol(mrb_state *mrb, const char *name, size_t len, uint8_t *hashp)
+find_symbol_linear(mrb_state *mrb, const char *name, size_t len)
+{
+  mrb_sym i;
+
+  for (i = 1; i <= mrb->symidx; i++) {
+    if (sym_check(mrb, name, len, i)) {
+      return (i + MRB_PRESYM_MAX);
+    }
+  }
+  return 0;
+}
+
+static mrb_sym
+find_symbol_hash(mrb_state *mrb, const char *name, size_t len, uint8_t *hashp)
 {
   mrb_sym i;
   uint8_t hash;
-
-#ifndef MRB_NO_PRESYM
-  /* presym */
-  i = presym_find(name, len);
-  if (i > 0) return i;
-#endif
-
-  /* inline symbol */
-  i = sym_inline_pack(name, len);
-  if (i > 0) return i;
+  struct mrb_sym_hash_table *ht = mrb->symhash;
 
   hash = mrb_byte_hash((const uint8_t*)name, len);
   if (hashp) *hashp = hash;
 
-  i = mrb->symhash[hash];
+  i = ht->buckets[hash];
   if (i == 0) return 0;
   for (;;) {
     if (sym_check(mrb, name, len, i)) {
       return (i+MRB_PRESYM_MAX);
     }
-    uint8_t diff = mrb->symlink[i];
+    uint8_t diff = ht->symlink[i];
     if (diff == 0xff) {
       i -= 0xff;
       while (i > 0) {
@@ -176,80 +215,242 @@ find_symbol(mrb_state *mrb, const char *name, size_t len, uint8_t *hashp)
 }
 
 static mrb_sym
-sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
+find_symbol(mrb_state *mrb, const char *name, size_t len, uint8_t *hashp)
+{
+  mrb_sym i;
+
+#ifndef MRB_NO_PRESYM
+  /* presym */
+  i = presym_find(name, len);
+  if (i > 0) return i;
+#endif
+
+  /* inline symbol */
+  i = sym_inline_pack(name, len);
+  if (i > 0) return i;
+
+  if (using_hash_table(mrb)) {
+    /* Hash table mode - O(1) average case */
+    return find_symbol_hash(mrb, name, len, hashp);
+  }
+  else {
+    /* Linear mode - O(n) but fast for small n */
+    if (hashp) *hashp = mrb_byte_hash((const uint8_t*)name, len);
+    return find_symbol_linear(mrb, name, len);
+  }
+}
+
+static void
+migrate_to_hash_table(mrb_state *mrb)
+{
+  struct mrb_sym_hash_table *ht;
+  mrb_sym i;
+
+  mrb_assert(mrb->symhash == NULL);
+  mrb_assert(mrb->symidx >= MRB_SYMBOL_LINEAR_THRESHOLD);
+
+  /* Allocate hash table structure */
+  ht = (struct mrb_sym_hash_table*)mrb_calloc(mrb, 1, sizeof(struct mrb_sym_hash_table));
+  ht->symlink = (uint8_t*)mrb_calloc(mrb, mrb->symcapa, sizeof(uint8_t));
+
+  /* Rebuild hash table from existing linear data */
+  for (i = 1; i <= mrb->symidx; i++) {
+    const char *tagged_ptr = mrb->symtbl[i];
+    const char *name = symtbl_get_ptr(tagged_ptr);
+    size_t len;
+    uint8_t hash;
+
+    /* Get name and length from tagged pointer */
+    if (symtbl_is_literal(tagged_ptr)) {
+      len = strlen(name);
+    }
+    else {
+      /* This is a packed length string */
+      len = mrb_packed_int_decode((const uint8_t*)name, (const uint8_t**)&name);
+    }
+
+    hash = mrb_byte_hash((const uint8_t*)name, len);
+
+    /* Build collision chain */
+    if (ht->buckets[hash] != 0) {
+      mrb_sym diff = i - ht->buckets[hash];
+      ht->symlink[i] = (diff > 0xff) ? 0xff : (uint8_t)diff;
+    }
+    else {
+      ht->symlink[i] = 0;
+    }
+    ht->buckets[hash] = i;
+  }
+
+  mrb->symhash = ht;
+}
+
+static mrb_sym
+sym_intern_common(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
 {
   mrb_sym sym;
-  uint8_t hash;
 
-  sym_validate_len(mrb, len);
-  sym = find_symbol(mrb, name, len, &hash);
-  if (sym > 0) return sym;
-
-  /* registering a new symbol */
   sym = mrb->symidx + 1;
   if (mrb->symcapa <= sym) {
     size_t symcapa = mrb->symcapa;
     if (symcapa == 0) symcapa = 100;
     else symcapa = (size_t)(symcapa * 6 / 5);
     mrb->symtbl = (const char**)mrb_realloc(mrb, (void*)mrb->symtbl, sizeof(char*)*symcapa);
-    mrb->symflags = (uint8_t*)mrb_realloc(mrb, mrb->symflags, symcapa/8+1);
-    memset(mrb->symflags+mrb->symcapa/8+1, 0, (symcapa-mrb->symcapa)/8);
-    mrb->symlink = (uint8_t*)mrb_realloc(mrb, mrb->symlink, symcapa);
+    if (using_hash_table(mrb)) {
+      struct mrb_sym_hash_table *ht = mrb->symhash;
+      ht->symlink = (uint8_t*)mrb_realloc(mrb, ht->symlink, symcapa);
+    }
     mrb->symcapa = symcapa;
   }
-  sym_flags_clear(mrb, sym);
-  if ((lit || mrb_ro_data_p(name)) && name[len] == 0 && strlen(name) == len) {
-    sym_lit_set(mrb, sym);
-    mrb->symtbl[sym] = name;
+
+  lit = lit || mrb_ro_data_p(name);
+  if (lit && name[len] == 0 && strlen(name) == len) {
+    if (((uintptr_t)name & 1) != 0) {
+      /* Fallback: unaligned literal, allocate heap copy */
+      goto heap_allocation;
+    }
+    mrb->symtbl[sym] = symtbl_tag_literal(name);
   }
   else {
+  heap_allocation:;
+    /* Always heap-allocate when not explicitly literal */
     uint32_t ulen = (uint32_t)len;
     size_t ilen = mrb_packed_int_len(ulen);
     char *p = (char*)mrb_malloc(mrb, len+ilen+1);
     mrb_packed_int_encode(ulen, (uint8_t*)p);
     memcpy(p+ilen, name, len);
     p[ilen+len] = 0;
-    mrb->symtbl[sym] = p;
+    mrb->symtbl[sym] = p;  /* Untagged = heap */
   }
-  if (mrb->symhash[hash]) {
-    mrb_sym i = sym - mrb->symhash[hash];
+
+  mrb->symidx = sym;
+  return sym;
+}
+
+static mrb_sym
+sym_intern_linear_mode(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
+{
+  mrb_sym sym = sym_intern_common(mrb, name, len, lit);
+  return (sym+MRB_PRESYM_MAX);
+}
+
+static mrb_sym
+sym_intern_hash_mode(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
+{
+  mrb_sym sym = sym_intern_common(mrb, name, len, lit);
+  struct mrb_sym_hash_table *ht = mrb->symhash;
+  uint8_t hash = mrb_byte_hash((const uint8_t*)name, len);
+
+  if (ht->buckets[hash]) {
+    mrb_sym i = sym - ht->buckets[hash];
     if (i > 0xff)
-      mrb->symlink[sym] = 0xff;
+      ht->symlink[sym] = 0xff;
     else
-      mrb->symlink[sym] = i;
+      ht->symlink[sym] = i;
   }
   else {
-    mrb->symlink[sym] = 0;
+    ht->symlink[sym] = 0;
   }
-  mrb->symhash[hash] = mrb->symidx = sym;
+  ht->buckets[hash] = sym;
 
   return (sym+MRB_PRESYM_MAX);
 }
 
+static mrb_sym
+sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
+{
+  mrb_sym sym;
+
+  sym_validate_len(mrb, len);
+  sym = find_symbol(mrb, name, len, NULL);
+  if (sym > 0) return sym;
+
+  /* Check if we need to migrate to hash table */
+  if (!using_hash_table(mrb) && mrb->symidx >= MRB_SYMBOL_LINEAR_THRESHOLD) {
+    migrate_to_hash_table(mrb);
+  }
+
+  /* Add new symbol using current mode */
+  if (using_hash_table(mrb)) {
+    return sym_intern_hash_mode(mrb, name, len, lit);
+  }
+  else {
+    return sym_intern_linear_mode(mrb, name, len, lit);
+  }
+}
+
+/*
+ * Interns a string, creating a symbol from it if it doesn't already exist,
+ * or returning the existing symbol if it does.
+ *
+ * mrb: The mruby state.
+ * name: The string to intern.
+ * len: The length of the string.
+ *
+ * Returns the interned symbol.
+ */
 MRB_API mrb_sym
 mrb_intern(mrb_state *mrb, const char *name, size_t len)
 {
   return sym_intern(mrb, name, len, FALSE);
 }
 
+/*
+ * Interns a static string, creating a symbol from it.
+ * This function is similar to mrb_intern, but it assumes that the given
+ * string is static and will not be freed.
+ *
+ * mrb: The mruby state.
+ * name: The static string to intern.
+ * len: The length of the string.
+ *
+ * Returns the interned symbol.
+ */
 MRB_API mrb_sym
 mrb_intern_static(mrb_state *mrb, const char *name, size_t len)
 {
   return sym_intern(mrb, name, len, TRUE);
 }
 
+/*
+ * Interns a C string (null-terminated), creating a symbol from it.
+ * This function is a convenience wrapper around mrb_intern that
+ * automatically calculates the length of the string.
+ *
+ * mrb: The mruby state.
+ * name: The C string to intern.
+ *
+ * Returns the interned symbol.
+ */
 MRB_API mrb_sym
 mrb_intern_cstr(mrb_state *mrb, const char *name)
 {
   return mrb_intern(mrb, name, strlen(name));
 }
 
+/*
+ * Interns an mruby string value, creating a symbol from it.
+ *
+ * mrb: The mruby state.
+ * str: The mruby string value to intern.
+ *
+ * Returns the interned symbol.
+ */
 MRB_API mrb_sym
 mrb_intern_str(mrb_state *mrb, mrb_value str)
 {
   return mrb_intern(mrb, RSTRING_PTR(str), RSTRING_LEN(str));
 }
 
+/*
+ * Checks if a symbol already exists for the given string.
+ *
+ * mrb: The mruby state.
+ * name: The string to check.
+ * len: The length of the string.
+ *
+ * Returns the symbol if it exists, otherwise 0.
+ */
 MRB_API mrb_sym
 mrb_intern_check(mrb_state *mrb, const char *name, size_t len)
 {
@@ -261,6 +462,15 @@ mrb_intern_check(mrb_state *mrb, const char *name, size_t len)
   return 0;
 }
 
+/*
+ * Checks if a symbol already exists for the given string.
+ *
+ * mrb: The mruby state.
+ * name: The string to check.
+ * len: The length of the string.
+ *
+ * Returns the symbol as an mrb_value if it exists, otherwise a nil value.
+ */
 MRB_API mrb_value
 mrb_check_intern(mrb_state *mrb, const char *name, size_t len)
 {
@@ -269,12 +479,32 @@ mrb_check_intern(mrb_state *mrb, const char *name, size_t len)
   return mrb_symbol_value(sym);
 }
 
+/*
+ * Checks if a symbol already exists for the given C string (null-terminated).
+ * This function is a convenience wrapper around mrb_intern_check that
+ * automatically calculates the length of the string.
+ *
+ * mrb: The mruby state.
+ * name: The C string to check.
+ *
+ * Returns the symbol if it exists, otherwise 0.
+ */
 MRB_API mrb_sym
 mrb_intern_check_cstr(mrb_state *mrb, const char *name)
 {
   return mrb_intern_check(mrb, name, strlen(name));
 }
 
+/*
+ * Checks if a symbol already exists for the given C string (null-terminated).
+ * This function is similar to mrb_intern_check_cstr, but returns the result
+ * as an mrb_value (either the symbol or nil).
+ *
+ * mrb: The mruby state.
+ * name: The C string to check.
+ *
+ * Returns the symbol as an mrb_value if it exists, otherwise a nil value.
+ */
 MRB_API mrb_value
 mrb_check_intern_cstr(mrb_state *mrb, const char *name)
 {
@@ -283,12 +513,30 @@ mrb_check_intern_cstr(mrb_state *mrb, const char *name)
   return mrb_symbol_value(sym);
 }
 
+/*
+ * Checks if a symbol already exists for the given mruby string value.
+ *
+ * mrb: The mruby state.
+ * str: The mruby string value to check.
+ *
+ * Returns the symbol if it exists, otherwise 0.
+ */
 MRB_API mrb_sym
 mrb_intern_check_str(mrb_state *mrb, mrb_value str)
 {
   return mrb_intern_check(mrb, RSTRING_PTR(str), RSTRING_LEN(str));
 }
 
+/*
+ * Checks if a symbol already exists for the given mruby string value.
+ * This function is similar to mrb_intern_check_str, but returns the result
+ * as an mrb_value (either the symbol or nil).
+ *
+ * mrb: The mruby state.
+ * str: The mruby string value to check.
+ *
+ * Returns the symbol as an mrb_value if it exists, otherwise a nil value.
+ */
 MRB_API mrb_value
 mrb_check_intern_str(mrb_state *mrb, mrb_value str)
 {
@@ -317,8 +565,10 @@ sym2name_len(mrb_state *mrb, mrb_sym sym, char *buf, mrb_int *lenp)
     return NULL;
   }
 
-  const char *symname = mrb->symtbl[sym];
-  if (!sym_lit_p(mrb, sym)) {
+  const char *tagged_ptr = mrb->symtbl[sym];
+  const char *symname = symtbl_get_ptr(tagged_ptr);  /* Untag for access */
+
+  if (!symtbl_is_literal(tagged_ptr)) {
     uint32_t len = mrb_packed_int_decode((const uint8_t*)symname, (const uint8_t**)&symname);
     if (lenp) *lenp = (mrb_int)len;
   }
@@ -328,6 +578,19 @@ sym2name_len(mrb_state *mrb, mrb_sym sym, char *buf, mrb_int *lenp)
   return symname;
 }
 
+/*
+ * Retrieves the name and length of a symbol.
+ *
+ * mrb: The mruby state.
+ * sym: The symbol to retrieve the name and length for.
+ * lenp: A pointer to an mrb_int where the length of the symbol name will be stored.
+ *       This can be NULL if the length is not needed.
+ *
+ * Returns a pointer to the C string representing the symbol's name,
+ * or NULL if the symbol is invalid.
+ * For inline symbols, the name is copied to an internal buffer (mrb->symbuf)
+ * unless MRB_USE_ALL_SYMBOLS is defined.
+ */
 MRB_API const char*
 mrb_sym_name_len(mrb_state *mrb, mrb_sym sym, mrb_int *lenp)
 {
@@ -344,33 +607,43 @@ mrb_free_symtbl(mrb_state *mrb)
   mrb_sym i, lim;
 
   for (i=1,lim=mrb->symidx+1; i<lim; i++) {
-    if (!sym_lit_p(mrb, i)) {
-      mrb_free(mrb, (char*)mrb->symtbl[i]);
+    const char *tagged_ptr = mrb->symtbl[i];
+    if (!symtbl_is_literal(tagged_ptr)) {
+      /* CRITICAL: Untag before mrb_free */
+      const char *clean_ptr = symtbl_get_ptr(tagged_ptr);
+      mrb_free(mrb, (char*)clean_ptr);
     }
   }
   mrb_free(mrb, (void*)mrb->symtbl);
-  mrb_free(mrb, (void*)mrb->symlink);
-  mrb_free(mrb, (void*)mrb->symflags);
+
+  /* Free hash table if allocated */
+  if (mrb->symhash) {
+    mrb_free(mrb, mrb->symhash->symlink);
+    mrb_free(mrb, mrb->symhash);
+    mrb->symhash = NULL;
+  }
 }
 
 void
 mrb_init_symtbl(mrb_state *mrb)
 {
+  /* Initialize in linear mode - hash table allocated on demand */
+  mrb->symhash = NULL;
 }
 
 /**********************************************************************
  * Document-class: Symbol
  *
- *  <code>Symbol</code> objects represent names and some strings
+ *  `Symbol` objects represent names and some strings
  *  inside the Ruby
- *  interpreter. They are generated using the <code>:name</code> and
- *  <code>:"string"</code> literals
- *  syntax, and by the various <code>to_sym</code> methods. The same
- *  <code>Symbol</code> object will be created for a given name or string
+ *  interpreter. They are generated using the `:name` and
+ *  `:"string"` literals
+ *  syntax, and by the various `to_sym` methods. The same
+ *  `Symbol` object will be created for a given name or string
  *  for the duration of a program's execution, regardless of the context
- *  or meaning of that name. Thus if <code>Fred</code> is a constant in
+ *  or meaning of that name. Thus if `Fred` is a constant in
  *  one context, a method in another, and a class in a third, the
- *  <code>Symbol</code> <code>:Fred</code> will be the same object in
+ *  `Symbol` `:Fred` will be the same object in
  *  all three contexts.
  *
  *     module One
@@ -397,7 +670,7 @@ mrb_init_symtbl(mrb_state *mrb)
  *  call-seq:
  *     sym.to_s      -> string
  *
- *  Returns the name or string corresponding to <i>sym</i>.
+ *  Returns the name or string corresponding to *sym*.
  *
  *     :fred.to_s   #=> "fred"
  */
@@ -411,7 +684,7 @@ sym_to_s(mrb_state *mrb, mrb_value sym)
  *  call-seq:
  *     sym.name   -> string
  *
- *  Returns the name or string corresponding to <i>sym</i>. Unlike #to_s, the
+ *  Returns the name or string corresponding to *sym*. Unlike #to_s, the
  *  returned string is frozen.
  *
  *     :fred.name         #=> "fred"
@@ -439,8 +712,8 @@ sym_name(mrb_state *mrb, mrb_value vsym)
  *   sym.to_sym   -> sym
  *   sym.intern   -> sym
  *
- * In general, <code>to_sym</code> returns the <code>Symbol</code> corresponding
- * to an object. As <i>sym</i> is already a symbol, <code>self</code> is returned
+ * In general, `to_sym` returns the `Symbol` corresponding
+ * to an object. As *sym* is already a symbol, `self` is returned
  * in this case.
  */
 
@@ -449,7 +722,7 @@ sym_name(mrb_state *mrb, mrb_value vsym)
  *  call-seq:
  *     sym.inspect    -> string
  *
- *  Returns the representation of <i>sym</i> as a symbol literal.
+ *  Returns the representation of *sym* as a symbol literal.
  *
  *     :fred.inspect   #=> ":fred"
  */
@@ -573,15 +846,12 @@ id:
 static mrb_value
 sym_inspect(mrb_state *mrb, mrb_value sym)
 {
-  mrb_value str;
-  const char *name;
-  mrb_int len;
   mrb_sym id = mrb_symbol(sym);
-  char *sp;
+  mrb_int len;
+  const char *name = mrb_sym_name_len(mrb, id, &len);
+  mrb_value str = mrb_str_new(mrb, NULL, len+1);
+  char *sp = RSTRING_PTR(str);
 
-  name = mrb_sym_name_len(mrb, id, &len);
-  str = mrb_str_new(mrb, NULL, len+1);
-  sp = RSTRING_PTR(str);
   sp[0] = ':';
   memcpy(sp+1, name, len);
   mrb_assert_int_fit(mrb_int, len, size_t, SIZE_MAX);
@@ -597,6 +867,17 @@ sym_inspect(mrb_state *mrb, mrb_value sym)
   return str;
 }
 
+/*
+ * Converts a symbol to an mruby string value.
+ *
+ * mrb: The mruby state.
+ * sym: The symbol to convert.
+ *
+ * Returns the mruby string value corresponding to the symbol.
+ * If the symbol is an inline symbol, a new string is created.
+ * Otherwise, a static string (sharing the symbol's name buffer) is returned.
+ * Returns an undefined value if the symbol is invalid (though this should not happen).
+ */
 MRB_API mrb_value
 mrb_sym_str(mrb_state *mrb, mrb_sym sym)
 {
@@ -629,12 +910,36 @@ sym_cstr(mrb_state *mrb, mrb_sym sym, mrb_bool dump)
   }
 }
 
+/*
+ * Retrieves the C string representation of a symbol's name.
+ *
+ * mrb: The mruby state.
+ * sym: The symbol to retrieve the name for.
+ *
+ * Returns a pointer to the C string representing the symbol's name.
+ * Returns NULL if the symbol is invalid.
+ * If the symbol's name contains null bytes or is not a valid identifier
+ * for direct use (based on internal checks in sym_cstr), this function
+ * might return a "dumped" (quoted and escaped) version of the name.
+ */
 MRB_API const char*
 mrb_sym_name(mrb_state *mrb, mrb_sym sym)
 {
   return sym_cstr(mrb, sym, FALSE);
 }
 
+/*
+ * Retrieves the C string representation of a symbol's name, suitable for dumping.
+ * This version is intended for producing a string that can be safely outputted,
+ * for example, in debugging or serialization contexts. It may quote or escape
+ * the symbol name if it's not a simple identifier.
+ *
+ * mrb: The mruby state.
+ * sym: The symbol to retrieve the dump name for.
+ *
+ * Returns a pointer to the C string representing the symbol's name for dumping.
+ * Returns NULL if the symbol is invalid.
+ */
 MRB_API const char*
 mrb_sym_dump(mrb_state *mrb, mrb_sym sym)
 {

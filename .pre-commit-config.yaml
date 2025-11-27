@@ -2,10 +2,8 @@
 # https://pre-commit.com/
 default_stages: [pre-commit, pre-push]
 default_language_version:
-  # force all unspecified Python hooks to run python3
   python: python3
-  # force all unspecified Node hooks to run Node.js v22.15.0 LTS
-  node: 22.15.0
+  node: 22.19.0
 minimum_pre_commit_version: "3.2.0"
 exclude: "^tools/lrama/"
 repos:
@@ -22,25 +20,18 @@ repos:
       - id: prettier
         name: run prettier
         description: format files with prettier
-        entry: prettier --write .
+        entry: prettier --write '**/*.json' '**/*.md' '**/*.yaml' '**/*.yml'
         files: \.(json|md|ya?ml)$
         language: node
-        additional_dependencies: ["prettier@3.5.3"]
+        additional_dependencies: ["prettier@3.6.2"]
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.25.1
+    rev: v8.28.0
     hooks:
       - id: gitleaks
         name: run gitleaks
         description: detect hardcoded secrets with gitleaks
-  - repo: https://github.com/shssoichiro/oxipng
-    rev: v9.1.5
-    hooks:
-      - id: oxipng
-        name: run oxipng
-        description: use lossless compression to optimize PNG files
-        args: ["-o", "4", "--strip", "safe", "--alpha"]
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: check-added-large-files
       - id: check-case-conflict
@@ -90,15 +81,8 @@ repos:
       - id: codespell
         name: run codespell
         description: check spelling with codespell
-  - repo: https://github.com/jumanjihouse/pre-commit-hooks
-    rev: 3.0.0
-    hooks:
-      - id: script-must-not-have-extension
-        name: run script-must-not-have-extension
-        description: local policy is to exclude extension from all shell files
-        types: [shell]
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.44.0
+    rev: v0.45.0
     hooks:
       - id: markdownlint
         name: run markdownlint
@@ -116,21 +100,29 @@ repos:
         types: [markdown]
         files: \.md$
   - repo: https://github.com/yoheimuta/protolint
-    rev: v0.55.2
+    rev: v0.56.4
     hooks:
       - id: protolint
         name: run protolint
         description: lint Protocol Buffer Files
         files: \.proto$
         args: [-config_path=.github/linters/.protolint.yaml]
+  - repo: https://github.com/rubocop/rubocop
+    rev: v1.80.2
+    hooks:
+      - id: rubocop
+        name: run rubocop
+        description: RuboCop is a Ruby code style checker (linter) and formatter based on the community-driven Ruby Style Guide
+        exclude: ^test/t/syntax\.rb$
+        args: [--config=.github/linters/.rubocop.yml]
   - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.10.0.1
+    rev: v0.11.0.1
     hooks:
       - id: shellcheck
         name: run shellcheck
         description: check shell scripts with a static analysis tool
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.37.0
+    rev: v1.37.1
     hooks:
       - id: yamllint
         name: run yamllint

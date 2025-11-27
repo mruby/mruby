@@ -11,6 +11,10 @@
 #include <mruby/numeric.h>
 #include <mruby/internal.h>
 
+/*
+ * Allocates an RData structure, initializes it with the given pointer and type,
+ * and assigns it to the given class.
+ */
 MRB_API struct RData*
 mrb_data_object_alloc(mrb_state *mrb, struct RClass *klass, void *ptr, const mrb_data_type *type)
 {
@@ -22,6 +26,11 @@ mrb_data_object_alloc(mrb_state *mrb, struct RClass *klass, void *ptr, const mrb
   return data;
 }
 
+/*
+ * Checks if the given mrb_value is a data object (MRB_TT_CDATA) and if its
+ * mrb_data_type matches the provided type.
+ * Raises an error if the checks fail.
+ */
 MRB_API void
 mrb_data_check_type(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
 {
@@ -42,6 +51,11 @@ mrb_data_check_type(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
   }
 }
 
+/*
+ * Checks if the given mrb_value is a data object and if its mrb_data_type
+ * matches the provided type.
+ * Returns a pointer to the data if the checks pass, otherwise returns NULL.
+ */
 MRB_API void*
 mrb_data_check_get_ptr(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
 {
@@ -54,6 +68,11 @@ mrb_data_check_get_ptr(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
   return DATA_PTR(obj);
 }
 
+/*
+ * Retrieves a pointer to the data within a data object.
+ * Calls `mrb_data_check_type` to ensure the object is of the correct type,
+ * raising an error if the type check fails.
+ */
 MRB_API void*
 mrb_data_get_ptr(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
 {
@@ -61,6 +80,12 @@ mrb_data_get_ptr(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
   return DATA_PTR(obj);
 }
 
+/*
+ * Converts an object to a symbol.
+ * If the object is already a symbol, it is returned directly.
+ * If the object is a string, it is interned to a symbol.
+ * Otherwise, a type error is raised.
+ */
 MRB_API mrb_sym
 mrb_obj_to_sym(mrb_state *mrb, mrb_value name)
 {
@@ -80,6 +105,11 @@ mrb_float_id(mrb_float f)
 }
 #endif
 
+/*
+ * Returns a unique identifier (mrb_int) for the given object.
+ * The method of generating the ID varies based on the object's type and
+ * boxing model (NaN boxing, word boxing, or no boxing).
+ */
 MRB_API mrb_int
 mrb_obj_id(mrb_value obj)
 {
@@ -146,6 +176,14 @@ mrb_obj_id(mrb_value obj)
 
 #ifdef MRB_WORD_BOXING
 #ifndef MRB_NO_FLOAT
+/*
+ * Boxes a `mrb_float` into an `mrb_value` using word boxing.
+ * - If `MRB_WORDBOX_NO_FLOAT_TRUNCATE` is defined, it allocates a new
+ *   RFloat object on the heap.
+ * - If `MRB_64BIT` and `MRB_USE_FLOAT32` are defined, it stores the float
+ *   in the lower bits of the word, shifted and tagged.
+ * - Otherwise, it stores the float directly in the word, tagged.
+ */
 MRB_API mrb_value
 mrb_word_boxing_float_value(mrb_state *mrb, mrb_float f)
 {
@@ -168,6 +206,16 @@ mrb_word_boxing_float_value(mrb_state *mrb, mrb_float f)
 
 
 #ifndef MRB_WORDBOX_NO_FLOAT_TRUNCATE
+/*
+ * Unboxes an `mrb_value` to an `mrb_float` when word boxing is used and
+ * float truncation (`MRB_WORDBOX_NO_FLOAT_TRUNCATE`) is not disabled.
+ * The function extracts the float value from the `mrb_value`'s union
+ * representation (`u.value`).
+ * - If `MRB_64BIT` and `MRB_USE_FLOAT32` are defined, the word (`u.w`)
+ *   is right-shifted by 2 bits to retrieve the float.
+ * - Otherwise, the lower 2 bits of the word (`u.w`) are cleared to
+ *   retrieve the float.
+ */
 MRB_API mrb_float
 mrb_word_boxing_value_float(mrb_value v)
 {
@@ -183,11 +231,16 @@ mrb_word_boxing_value_float(mrb_value v)
 #endif
 #endif  /* MRB_NO_FLOAT */
 
+/*
+ * Boxes a C pointer (void*) into an `mrb_value` using word boxing.
+ * It allocates an `RCptr` object, sets its internal pointer `p` to the
+ * given C pointer, and then sets the `mrb_value` to this `RCptr` object.
+ */
 MRB_API mrb_value
 mrb_word_boxing_cptr_value(mrb_state *mrb, void *p)
 {
-  mrb_value v;
   struct RCptr *cptr = MRB_OBJ_ALLOC(mrb, MRB_TT_CPTR, mrb->object_class);
+  mrb_value v;
 
   SET_OBJ_VALUE(v, cptr);
   cptr->p = p;
@@ -196,6 +249,15 @@ mrb_word_boxing_cptr_value(mrb_state *mrb, void *p)
 #endif  /* MRB_WORD_BOXING */
 
 #if defined(MRB_WORD_BOXING) || (defined(MRB_NAN_BOXING) && defined(MRB_INT64))
+/*
+ * Boxes an `mrb_int` into an `mrb_value`.
+ * If the integer `n` can be represented as a fixnum (checked by `FIXABLE(n)`),
+ * it returns a fixnum-tagged `mrb_value`. Otherwise, it allocates an
+ * `RInteger` object on the heap, stores `n` in it, marks the object as
+ * frozen, and returns an object-tagged `mrb_value`.
+ * This function is used when word boxing is enabled or when NaN boxing is
+ * enabled for 64-bit integers.
+ */
 MRB_API mrb_value
 mrb_boxing_int_value(mrb_state *mrb, mrb_int n)
 {

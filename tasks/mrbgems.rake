@@ -2,8 +2,7 @@ MRuby.each_target do
   active_gems_txt = "#{build_dir}/mrbgems/active_gems.txt"
 
   if enable_gems?
-    # set up all gems
-    gems.each(&:setup)
+    gems.setup_build
     gems.check self
 
     # loader all gems
@@ -13,8 +12,8 @@ MRuby.each_target do
       mkdir_p "#{build_dir}/mrbgems"
       open(t.name, 'w') do |f|
         gem_func_gems = gems.select { |g| g.generate_functions }
-        gem_func_decls = ''
-        gem_funcs = ''
+        gem_func_decls = +''
+        gem_funcs = +''
         gem_func_gems.each do |g|
           init = "GENERATED_TMP_mrb_#{g.funcname}_gem_init"
           final = "GENERATED_TMP_mrb_#{g.funcname}_gem_final"
@@ -98,7 +97,7 @@ MRuby.each_target do
   desc "generate the active gems text files"
   task :generate_active_gems_txt do |t|
     def t.timestamp; Time.at(0) end
-    active_gems = gems.sort_by(&:name).inject(""){|s, g| s << "#{g.name}\n"}
+    active_gems = gems.sort_by(&:name).inject(+""){|s, g| s << "#{g.name}\n"}
     if !File.exist?(active_gems_txt) || File.read(active_gems_txt) != active_gems
       mkdir_p File.dirname(active_gems_txt)
       File.write(active_gems_txt, active_gems)

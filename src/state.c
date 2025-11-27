@@ -35,6 +35,7 @@ init_gc_and_core(mrb_state *mrb, void *opaque)
   mrb_init_core(mrb);
 }
 
+/* Initializes the core of mruby, without loading gems. */
 MRB_API mrb_state*
 mrb_open_core(void)
 {
@@ -46,11 +47,15 @@ mrb_open_core(void)
 
   *mrb = mrb_state_zero;
   mrb->atexit_stack_len = 0;
+  mrb->bootstrapping = TRUE;
 
   if (mrb_core_init_protect(mrb, init_gc_and_core, NULL)) {
-    mrb_close(mrb);
-    return NULL;
+    /* Return mrb with mrb->exc set for caller to inspect */
+    return mrb;
   }
+
+  mrb_method_cache_clear(mrb);
+  mrb->bootstrapping = FALSE;
 
   return mrb;
 }
@@ -63,19 +68,21 @@ init_mrbgems(mrb_state *mrb, void *opaque)
 }
 #endif
 
+/* Initializes mruby, including loading gems. */
 MRB_API mrb_state*
 mrb_open(void)
 {
   mrb_state *mrb = mrb_open_core();
 
-  if (mrb == NULL) {
-    return NULL;
+  if (mrb == NULL || mrb->exc) {
+    /* Either allocation failed or core init failed */
+    return mrb;
   }
 
 #ifndef MRB_NO_GEMS
   if (mrb_core_init_protect(mrb, init_mrbgems, NULL)) {
-    mrb_close(mrb);
-    return NULL;
+    /* Gem init failed - return mrb with mrb->exc set */
+    return mrb;
   }
   mrb_gc_arena_restore(mrb, 0);
 #endif
@@ -156,6 +163,7 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
   mrb_free(mrb, irep);
 }
 
+/* Frees a mruby context. */
 MRB_API void
 mrb_free_context(mrb_state *mrb, struct mrb_context *c)
 {
@@ -167,6 +175,7 @@ mrb_free_context(mrb_state *mrb, struct mrb_context *c)
 
 void mrb_protect_atexit(mrb_state *mrb);
 
+/* Closes and finalizes a mruby state. */
 MRB_API void
 mrb_close(mrb_state *mrb)
 {
@@ -181,6 +190,7 @@ mrb_close(mrb_state *mrb)
   mrb_free(mrb, mrb);
 }
 
+/* Adds an instruction sequence (irep) to the mruby state. */
 MRB_API mrb_irep*
 mrb_add_irep(mrb_state *mrb)
 {
@@ -194,12 +204,14 @@ mrb_add_irep(mrb_state *mrb)
   return irep;
 }
 
+/* Returns the top-level self object. */
 MRB_API mrb_value
 mrb_top_self(mrb_state *mrb)
 {
   return mrb_obj_value(mrb->top_self);
 }
 
+/* Registers a function to be called when the mruby state is closed. */
 MRB_API void
 mrb_state_atexit(mrb_state *mrb, mrb_atexit_func f)
 {

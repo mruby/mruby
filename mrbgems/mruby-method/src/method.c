@@ -162,6 +162,33 @@ bind_check(mrb_state *mrb, mrb_value recv, mrb_value owner)
   }
 }
 
+/*
+ *  call-seq:
+ *     unbound_method.bind(obj) -> method
+ *
+ *  Bind unbound_method to obj. If Klass was the class
+ *  from which unbound_method was obtained,
+ *  obj.kind_of?(Klass) must be true.
+ *
+ *     class A
+ *       def test
+ *         puts "In A"
+ *       end
+ *     end
+ *     class B < A
+ *     end
+ *     um = B.instance_method(:test)
+ *     bm = um.bind(B.new)
+ *     bm.call
+ *     bm = um.bind(A.new)
+ *     bm.call
+ *
+ *  produces:
+ *
+ *     In A
+ *     In A
+ */
+
 static mrb_value
 unbound_method_bind(mrb_state *mrb, mrb_value self)
 {
@@ -199,6 +226,21 @@ method_p(mrb_state *mrb, struct RClass *c, mrb_value proc)
 }
 
 #define IV_GET(value, name) mrb_iv_get(mrb, value, name)
+/*
+ *  call-seq:
+ *     method == other_method  -> true or false
+ *     method.eql?(other_method)  -> true or false
+ *
+ *  Two method objects are equal if they are bound to the same
+ *  object and refer to the same method definition and their owners are the
+ *  same class or module.
+ *
+ *     a = "cat"
+ *     b = "cat"
+ *     p a.method(:upcase) == a.method(:upcase)    #=> true
+ *     p a.method(:upcase) == b.method(:upcase)    #=> false
+ */
+
 static mrb_value
 method_eql(mrb_state *mrb, mrb_value self)
 {
@@ -251,11 +293,47 @@ mcall(mrb_state *mrb, mrb_value self, mrb_value recv)
   return mrb_exec_irep(mrb, recv, proc);
 }
 
+/*
+ *  call-seq:
+ *     method.call(args, ...)    -> obj
+ *     method[args, ...]         -> obj
+ *
+ *  Invokes the method with the specified arguments, returning the
+ *  method's return value.
+ *
+ *     m = 12.method("+")
+ *     m.call(3)    #=> 15
+ *     m.call(20)   #=> 32
+ */
+
 static mrb_value
 method_call(mrb_state *mrb, mrb_value self)
 {
   return mcall(mrb, self, mrb_undef_value());
 }
+
+/*
+ *  call-seq:
+ *     unbound_method.bind_call(obj, args, ...)  -> result
+ *
+ *  Bind unbound_method to obj and then invoke the method with the
+ *  specified arguments. This is semantically equivalent to
+ *  unbound_method.bind(obj).call(args, ...).
+ *
+ *     class A
+ *       def test
+ *         puts "In A"
+ *       end
+ *     end
+ *     class B < A
+ *     end
+ *     um = B.instance_method(:test)
+ *     um.bind_call(B.new)
+ *
+ *  produces:
+ *
+ *     In A
+ */
 
 static mrb_value
 method_bcall(mrb_state *mrb, mrb_value self)
@@ -264,6 +342,29 @@ method_bcall(mrb_state *mrb, mrb_value self)
   mrb_gc_protect(mrb, recv);
   return mcall(mrb, self, recv);
 }
+
+/*
+ *  call-seq:
+ *     method.unbind    -> unbound_method
+ *
+ *  Dissociates method from its current receiver. The resulting
+ *  UnboundMethod can subsequently be bound to a new object
+ *  of the same class (see UnboundMethod).
+ *
+ *     class A
+ *       def test
+ *         puts "In A"
+ *       end
+ *     end
+ *     a = A.new
+ *     m = a.method(:test)
+ *     um = m.unbind
+ *     um.bind(A.new).call
+ *
+ *  produces:
+ *
+ *     In A
+ */
 
 static mrb_value
 method_unbind(mrb_state *mrb, mrb_value self)
@@ -298,6 +399,28 @@ method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
   }
   return proc;
 }
+
+/*
+ *  call-seq:
+ *     method.super_method  -> method
+ *
+ *  Returns a Method representing the method in the superclass
+ *  of the method's class.  Returns nil if there is no
+ *  superclass method.
+ *
+ *     class A
+ *       def test
+ *         puts "In A"
+ *       end
+ *     end
+ *     class B < A
+ *       def test
+ *         puts "In B"
+ *       end
+ *     end
+ *     obj = B.new
+ *     obj.method(:test).super_method.call   #=> "In A"
+ */
 
 static mrb_value
 method_super_method(mrb_state *mrb, mrb_value self)
@@ -337,6 +460,36 @@ method_super_method(mrb_state *mrb, mrb_value self)
   return mrb_obj_value(me);
 }
 
+/*
+ *  call-seq:
+ *     method.arity    -> integer
+ *
+ *  Returns an indication of the number of arguments accepted by a
+ *  method. Returns a nonnegative integer for methods that take a fixed
+ *  number of arguments. For Ruby methods that take a variable number of
+ *  arguments, returns -n-1, where n is the number of required
+ *  arguments. Keyword arguments will be considered as a single additional
+ *  argument, that argument being mandatory if any keyword argument is
+ *  mandatory. For methods written in C, returns -1 if the call takes a
+ *  variable number of arguments.
+ *
+ *     class C
+ *       def one;    end
+ *       def two(a); end
+ *       def three(*a);  end
+ *       def four(a, b); end
+ *       def five(a, b, *c);    end
+ *       def six(a, b, *c, &d); end
+ *     end
+ *     c = C.new
+ *     c.method(:one).arity     #=> 0
+ *     c.method(:two).arity     #=> 1
+ *     c.method(:three).arity   #=> -1
+ *     c.method(:four).arity    #=> 2
+ *     c.method(:five).arity    #=> -3
+ *     c.method(:six).arity     #=> -3
+ */
+
 static mrb_value
 method_arity(mrb_state *mrb, mrb_value self)
 {
@@ -344,6 +497,20 @@ method_arity(mrb_state *mrb, mrb_value self)
   mrb_int arity = mrb_nil_p(proc) ? -1 : mrb_proc_arity(mrb_proc_ptr(proc));
   return mrb_fixnum_value(arity);
 }
+
+/*
+ *  call-seq:
+ *     method.source_location  -> [String, Integer] or nil
+ *
+ *  Returns the Ruby source filename and line number containing this method
+ *  or nil if this method was not defined in Ruby (i.e. native).
+ *
+ *     def foo; end
+ *     method(:foo).source_location   #=> ["test.rb", 1]
+ *
+ *  Note: You need to enable debug option in your build configuration to use
+ *  this method.
+ */
 
 static mrb_value
 method_source_location(mrb_state *mrb, mrb_value self)
@@ -355,6 +522,22 @@ method_source_location(mrb_state *mrb, mrb_value self)
 
   return mrb_proc_source_location(mrb, mrb_proc_ptr(proc));
 }
+
+/*
+ *  call-seq:
+ *     method.parameters  -> array
+ *
+ *  Returns the parameter information of this method.
+ *
+ *     def foo(bar); end
+ *     method(:foo).parameters #=> [[:req, :bar]]
+ *
+ *     def foo(bar, baz, *qux); end
+ *     method(:foo).parameters #=> [[:req, :bar], [:req, :baz], [:rest, :qux]]
+ *
+ *     def foo(bar, baz, qux: 42); end
+ *     method(:foo).parameters #=> [[:req, :bar], [:req, :baz], [:keyreq, :qux]]
+ */
 
 static mrb_value
 method_parameters(mrb_state *mrb, mrb_value self)
@@ -369,6 +552,16 @@ method_parameters(mrb_state *mrb, mrb_value self)
 
   return mrb_proc_parameters(mrb, proc);
 }
+
+/*
+ *  call-seq:
+ *     method.to_s      -> string
+ *     method.inspect   -> string
+ *
+ *  Returns the name of the underlying method.
+ *
+ *     "cat".method(:count).inspect   #=> "#<Method: String#count>"
+ */
 
 static mrb_value
 method_to_s(mrb_state *mrb, mrb_value self)
@@ -489,6 +682,34 @@ method_alloc(mrb_state *mrb, struct RClass *c, mrb_value obj, mrb_sym name, mrb_
   return mrb_obj_value(me);
 }
 
+/*
+ *  call-seq:
+ *     obj.method(sym)    -> method
+ *
+ *  Looks up the named method as a receiver in obj, returning a
+ *  Method object (or raising NameError). The
+ *  Method object acts as a closure in obj's object
+ *  instance, so instance variables and the value of self
+ *  remain available.
+ *
+ *     class Demo
+ *       def initialize(n)
+ *         @iv = n
+ *       end
+ *       def hello()
+ *         "Hello, @iv = #{@iv}"
+ *       end
+ *     end
+ *
+ *     k = Demo.new(99)
+ *     m = k.method(:hello)
+ *     m.call   #=> "Hello, @iv = 99"
+ *
+ *     l = Demo.new('Fred')
+ *     m = l.method("hello")
+ *     m.call   #=> "Hello, @iv = Fred"
+ */
+
 static mrb_value
 mrb_kernel_method(mrb_state *mrb, mrb_value self)
 {
@@ -497,6 +718,30 @@ mrb_kernel_method(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "n", &name);
   return method_alloc(mrb, mrb_class(mrb, self), self, name, FALSE, FALSE);
 }
+
+/*
+ *  call-seq:
+ *     obj.singleton_method(sym)    -> method
+ *
+ *  Similar to method, searches singleton method only.
+ *
+ *     class Demo
+ *       def initialize(n)
+ *         @iv = n
+ *       end
+ *       def hello()
+ *         "Hello, @iv = #{@iv}"
+ *       end
+ *     end
+ *
+ *     k = Demo.new(99)
+ *     def k.hi
+ *       "Hi, @iv = #{@iv}"
+ *     end
+ *     m = k.singleton_method(:hi)
+ *     m.call   #=> "Hi, @iv = 99"
+ *     m = k.singleton_method(:hello) #=> NameError
+ */
 
 static mrb_value
 mrb_kernel_singleton_method(mrb_state *mrb, mrb_value self)
@@ -509,6 +754,29 @@ mrb_kernel_singleton_method(mrb_state *mrb, mrb_value self)
   return method_alloc(mrb, c, self, name, FALSE, TRUE);
 }
 
+/*
+ *  call-seq:
+ *     mod.instance_method(symbol)   -> unbound_method
+ *
+ *  Returns an UnboundMethod representing the given
+ *  instance method in mod.
+ *
+ *     class Interpreter
+ *       def do_a() print "there, "; end
+ *       def do_d() print "Hello ";  end
+ *       def do_e() print "!\n";     end
+ *       def do_v() print "world";   end
+ *     end
+ *     Interpreter.instance_method(:do_a).bind(Interpreter.new).call
+ *     Interpreter.instance_method(:do_d).bind(Interpreter.new).call
+ *     Interpreter.instance_method(:do_v).bind(Interpreter.new).call
+ *     Interpreter.instance_method(:do_e).bind(Interpreter.new).call
+ *
+ *  produces:
+ *
+ *     there, Hello world!
+ */
+
 static mrb_value
 mrb_module_instance_method(mrb_state *mrb, mrb_value self)
 {
@@ -518,17 +786,44 @@ mrb_module_instance_method(mrb_state *mrb, mrb_value self)
   return method_alloc(mrb, mrb_class_ptr(self), self, name, TRUE, FALSE);
 }
 
+/*
+ *  call-seq:
+ *     method.owner    -> class_or_module
+ *
+ *  Returns the class or module that defines the method.
+ *
+ *     (1..3).method(:map).owner #=> Enumerable
+ */
+
 static mrb_value
 method_owner(mrb_state *mrb, mrb_value self)
 {
   return mrb_iv_get(mrb, self, MRB_SYM(_owner));
 }
 
+/*
+ *  call-seq:
+ *     method.receiver    -> object
+ *
+ *  Returns the bound receiver of the method.
+ *
+ *     "hello".method(:upcase).receiver  #=> "hello"
+ */
+
 static mrb_value
 method_receiver(mrb_state *mrb, mrb_value self)
 {
   return mrb_iv_get(mrb, self, MRB_SYM(_recv));
 }
+
+/*
+ *  call-seq:
+ *     method.name    -> symbol
+ *
+ *  Returns the name of the method.
+ *
+ *     "hello".method(:upcase).name  #=> :upcase
+ */
 
 static mrb_value
 method_name(mrb_state *mrb, mrb_value self)

@@ -53,10 +53,8 @@ module MRuby
         return if defined?(@bins)  # return if already set up
 
         MRuby::Gem.current = self
-        MRuby::Build::COMMANDS.each do |command|
-          instance_variable_set("@#{command}", @build.send(command).clone)
-        end
-        @linker.run_attrs.each(&:clear)
+        reset_commands # for backward compatibility, reset the commands from the beginning.
+        @build_settings = nil
 
         @rbfiles = Dir.glob("#{@dir}/mrblib/**/*.rb").sort
         @objs = srcs_to_objs("src")
@@ -192,6 +190,19 @@ module MRuby
         end
       end
 
+      def build_settings(&blk)
+        @build_settings = blk
+      end
+
+      def setup_build
+        if @build_settings
+          # by this point, build.cc or other commands may have been modified.
+          # therefore, reset the commands again before calling build_settings.
+          reset_commands
+          @build_settings.call(self)
+        end
+      end
+
       def define_gem_init_builder
         file "#{build_dir}/gem_init.c" => [build.mrbcfile, __FILE__] + [rbfiles].flatten do |t|
           mkdir_p build_dir
@@ -303,6 +314,13 @@ module MRuby
 
         self
       end
+
+      private def reset_commands
+        MRuby::Build::COMMANDS.each do |command|
+          instance_variable_set("@#{command}", @build.send(command).clone)
+        end
+        @linker.run_attrs.each(&:clear)
+      end
     end # Specification
 
     class Version
@@ -401,7 +419,21 @@ module MRuby
         end
       end
 
-      def generate_gem_table build
+      def setup(build)
+        gemset = nil
+        begin
+          gemset_prev = gemset
+          self.each(&:setup)
+          gemset = self.setup_dependencies(build).keys.sort
+        end until gemset == gemset_prev
+      end
+
+      def setup_build
+        each(&:setup_build)
+        self
+      end
+
+      def setup_dependencies(build)
         gem_table = each_with_object({}) { |spec, h| h[spec.name] = spec }
 
         default_gems = {}
@@ -423,6 +455,12 @@ module MRuby
             default_gems[dep[:gem]] ||= default_gem_params(dep)
           end
         end
+
+        gem_table
+      end
+
+      def generate_gem_table(build)
+        gem_table = setup_dependencies(build)
 
         each do |g|
           g.dependencies.each do |dep|

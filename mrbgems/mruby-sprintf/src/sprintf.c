@@ -85,6 +85,94 @@ mrb_uint_to_cstr(char *buf, size_t len, mrb_int num, int base)
 #define FPREC  64
 #define FPREC0 128
 
+/* Format specifier types for lookup table */
+#define FMT_INVALID   0
+#define FMT_FLAG      1  /* space, #, +, -, 0 */
+#define FMT_DIGIT     2  /* 1-9 for width */
+#define FMT_NAMED     3  /* < { for named args */
+#define FMT_WIDTH     4  /* * for width from arg */
+#define FMT_PREC      5  /* . for precision */
+#define FMT_LITERAL   6  /* % \n \0 */
+#define FMT_CHAR      7  /* c */
+#define FMT_STRING    8  /* s p */
+#define FMT_INTEGER   9  /* d i o x X b B u */
+#define FMT_FLOAT    10  /* f g G e E */
+
+/* Format specifier info structure */
+typedef struct {
+  int type;       /* FMT_* type */
+  int base;       /* number base for integers */
+  int subtype;    /* format-specific subtype */
+} fmt_spec_t;
+
+
+/* Get format specifier info for character c */
+static inline fmt_spec_t get_format_info(unsigned char c) {
+  static const fmt_spec_t invalid = {FMT_INVALID, 0, 0};
+
+  switch (c) {
+    /* Control characters and whitespace */
+    case '\0': case '\n':
+      return (fmt_spec_t){FMT_LITERAL, 0, 0};
+
+    /* Flags */
+    case ' ':  return (fmt_spec_t){FMT_FLAG, 0, FSPACE};
+    case '#':  return (fmt_spec_t){FMT_FLAG, 0, FSHARP};
+    case '+':  return (fmt_spec_t){FMT_FLAG, 0, FPLUS};
+    case '-':  return (fmt_spec_t){FMT_FLAG, 0, FMINUS};
+    case '0':  return (fmt_spec_t){FMT_FLAG, 0, FZERO};
+
+    /* Width digits */
+    case '1':  return (fmt_spec_t){FMT_DIGIT, 0, 1};
+    case '2':  return (fmt_spec_t){FMT_DIGIT, 0, 2};
+    case '3':  return (fmt_spec_t){FMT_DIGIT, 0, 3};
+    case '4':  return (fmt_spec_t){FMT_DIGIT, 0, 4};
+    case '5':  return (fmt_spec_t){FMT_DIGIT, 0, 5};
+    case '6':  return (fmt_spec_t){FMT_DIGIT, 0, 6};
+    case '7':  return (fmt_spec_t){FMT_DIGIT, 0, 7};
+    case '8':  return (fmt_spec_t){FMT_DIGIT, 0, 8};
+    case '9':  return (fmt_spec_t){FMT_DIGIT, 0, 9};
+
+    /* Width and precision */
+    case '*':  return (fmt_spec_t){FMT_WIDTH, 0, 0};
+    case '.':  return (fmt_spec_t){FMT_PREC, 0, 0};
+
+    /* Named arguments */
+    case '<':  return (fmt_spec_t){FMT_NAMED, 0, '<'};
+    case '{':  return (fmt_spec_t){FMT_NAMED, 0, '{'};
+
+    /* Literal percent */
+    case '%':  return (fmt_spec_t){FMT_LITERAL, 0, '%'};
+
+    /* Character formatting */
+    case 'c':  return (fmt_spec_t){FMT_CHAR, 0, 0};
+
+    /* String formatting */
+    case 's':  return (fmt_spec_t){FMT_STRING, 0, 0};
+    case 'p':  return (fmt_spec_t){FMT_STRING, 0, 1}; /* inspect format */
+
+    /* Integer formatting */
+    case 'd':  return (fmt_spec_t){FMT_INTEGER, 10, 1}; /* signed decimal */
+    case 'i':  return (fmt_spec_t){FMT_INTEGER, 10, 1}; /* signed decimal */
+    case 'u':  return (fmt_spec_t){FMT_INTEGER, 10, 1}; /* unsigned (same as signed in mruby) */
+    case 'o':  return (fmt_spec_t){FMT_INTEGER, 8,  0}; /* octal */
+    case 'x':  return (fmt_spec_t){FMT_INTEGER, 16, 0}; /* hex lowercase */
+    case 'X':  return (fmt_spec_t){FMT_INTEGER, 16, 1}; /* hex uppercase */
+    case 'b':  return (fmt_spec_t){FMT_INTEGER, 2,  0}; /* binary lowercase */
+    case 'B':  return (fmt_spec_t){FMT_INTEGER, 2,  1}; /* binary uppercase */
+
+    /* Float formatting */
+    case 'f':  return (fmt_spec_t){FMT_FLOAT, 0, 'f'};
+    case 'e':  return (fmt_spec_t){FMT_FLOAT, 0, 'e'};
+    case 'E':  return (fmt_spec_t){FMT_FLOAT, 0, 'E'};
+    case 'g':  return (fmt_spec_t){FMT_FLOAT, 0, 'g'};
+    case 'G':  return (fmt_spec_t){FMT_FLOAT, 0, 'G'};
+
+    default:
+      return invalid;
+  }
+}
+
 #ifndef MRB_NO_FLOAT
 static int
 fmt_float(char *buf, size_t buf_size, char fmt, int flags, int width, int prec, mrb_float f)
@@ -247,13 +335,11 @@ get_num(mrb_state *mrb, const char *p, const char *end, int *valp)
 static void
 get_hash(mrb_state *mrb, mrb_value *hash, mrb_int argc, const mrb_value *argv)
 {
-  mrb_value tmp;
-
   if (!mrb_undef_p(*hash)) return;
   if (argc != 2) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "one hash required");
   }
-  tmp = mrb_check_hash_type(mrb, argv[1]);
+  mrb_value tmp = mrb_check_hash_type(mrb, argv[1]);
   if (mrb_nil_p(tmp)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "one hash required");
   }
@@ -325,272 +411,241 @@ mrb_str_format(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value fm
     nextvalue = mrb_undef_value();
 
 retry:
-    switch (*p) {
-      default:
-        mrb_raisef(mrb, E_ARGUMENT_ERROR, "malformed format string - %%%c", *p);
-        break;
+    if (p >= end) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "malformed format string - unexpected end");
+    }
+    {
+      fmt_spec_t spec = get_format_info(*p);
 
-      case ' ':
-        CHECK_FOR_FLAGS(flags);
-        flags |= FSPACE;
-        p++;
-        goto retry;
+      switch (spec.type) {
+        case FMT_INVALID:
+          mrb_raisef(mrb, E_ARGUMENT_ERROR, "malformed format string - %%%c", *p);
+          break;
 
-      case '#':
-        CHECK_FOR_FLAGS(flags);
-        flags |= FSHARP;
-        p++;
-        goto retry;
+        case FMT_FLAG:
+          CHECK_FOR_FLAGS(flags);
+          flags |= spec.subtype;
+          p++;
+          goto retry;
 
-      case '+':
-        CHECK_FOR_FLAGS(flags);
-        flags |= FPLUS;
-        p++;
-        goto retry;
-
-      case '-':
-        CHECK_FOR_FLAGS(flags);
-        flags |= FMINUS;
-        p++;
-        goto retry;
-
-      case '0':
-        CHECK_FOR_FLAGS(flags);
-        flags |= FZERO;
-        p++;
-        goto retry;
-
-      case '1': case '2': case '3': case '4':
-      case '5': case '6': case '7': case '8': case '9':
-        GETNUM(n, width);
-        if (*p == '$') {
-          if (!mrb_undef_p(nextvalue)) {
-            mrb_raisef(mrb, E_ARGUMENT_ERROR, "value given twice - %i$", n);
+        case FMT_DIGIT:
+          GETNUM(n, width);
+          if (*p == '$') {
+            if (!mrb_undef_p(nextvalue)) {
+              mrb_raisef(mrb, E_ARGUMENT_ERROR, "value given twice - %i$", n);
+            }
+            nextvalue = GETPOSARG(n);
+            p++;
+            goto retry;
           }
-          nextvalue = GETPOSARG(n);
+          CHECK_FOR_WIDTH(flags);
+          width = n;
+          flags |= FWIDTH;
+          goto retry;
+
+        case FMT_NAMED: {
+          const char *start = p;
+          char term = (spec.subtype == '<') ? '>' : '}';
+
+          for (; p < end && *p != term; )
+            p++;
+          if (id) {
+            mrb_raisef(mrb, E_ARGUMENT_ERROR, "name%l after <%n>",
+                       start, p - start + 1, id);
+          }
+          CHECKNAMEARG(start, p - start + 1);
+          get_hash(mrb, &hash, argc, argv);
+          id = mrb_intern_check(mrb, start + 1, p - start - 1);
+          if (id) {
+            nextvalue = mrb_hash_fetch(mrb, hash, mrb_symbol_value(id), mrb_undef_value());
+          }
+          if (!id || mrb_undef_p(nextvalue)) {
+            mrb_raisef(mrb, E_KEY_ERROR, "key%l not found", start, p - start + 1);
+          }
+          if (term == '}') goto format_s;
           p++;
           goto retry;
         }
-        CHECK_FOR_WIDTH(flags);
-        width = n;
-        flags |= FWIDTH;
-        goto retry;
 
-      case '<':
-      case '{': {
-        const char *start = p;
-        char term = (*p == '<') ? '>' : '}';
-
-        for (; p < end && *p != term; )
-          p++;
-        if (id) {
-          mrb_raisef(mrb, E_ARGUMENT_ERROR, "name%l after <%n>",
-                     start, p - start + 1, id);
-        }
-        CHECKNAMEARG(start, p - start + 1);
-        get_hash(mrb, &hash, argc, argv);
-        id = mrb_intern_check(mrb, start + 1, p - start - 1);
-        if (id) {
-          nextvalue = mrb_hash_fetch(mrb, hash, mrb_symbol_value(id), mrb_undef_value());
-        }
-        if (!id || mrb_undef_p(nextvalue)) {
-          mrb_raisef(mrb, E_KEY_ERROR, "key%l not found", start, p - start + 1);
-        }
-        if (term == '}') goto format_s;
-        p++;
-        goto retry;
-      }
-
-      case '*':
-        CHECK_FOR_WIDTH(flags);
-        flags |= FWIDTH;
-        GETASTER(width);
-        if (width > INT16_MAX || INT16_MIN > width) {
-          mrb_raise(mrb, E_ARGUMENT_ERROR, "width too big");
-        }
-        if (width < 0) {
-          flags |= FMINUS;
-          width = -width;
-        }
-        p++;
-        goto retry;
-
-      case '.':
-        if (flags & FPREC0) {
-          mrb_raise(mrb, E_ARGUMENT_ERROR, "precision given twice");
-        }
-        flags |= FPREC|FPREC0;
-
-        p++;
-        if (*p == '*') {
-          GETASTER(prec);
-          if (prec < 0) {  /* ignore negative precision */
-            flags &= ~FPREC;
+        case FMT_WIDTH:
+          CHECK_FOR_WIDTH(flags);
+          flags |= FWIDTH;
+          GETASTER(width);
+          if (width > INT16_MAX || INT16_MIN > width) {
+            mrb_raise(mrb, E_ARGUMENT_ERROR, "width too big");
+          }
+          if (width < 0) {
+            flags |= FMINUS;
+            width = -width;
           }
           p++;
           goto retry;
-        }
-        GETNUM(prec, precision);
-        goto retry;
 
-      case '\n':
-      case '\0':
-        p--;
-        /* fallthrough */
-      case '%':
-        if (flags != FNONE) {
-          mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid format character - %");
-        }
-        PUSH("%", 1);
-        break;
-
-      case 'c': {
-        mrb_value val = GETARG();
-        mrb_value tmp;
-        char *c;
-
-        tmp = mrb_check_string_type(mrb, val);
-        if (!mrb_nil_p(tmp)) {
-          if (RSTRING_LEN(tmp) != 1) {
-            mrb_raise(mrb, E_ARGUMENT_ERROR, "%c requires a character");
+        case FMT_PREC:
+          if (flags & FPREC0) {
+            mrb_raise(mrb, E_ARGUMENT_ERROR, "precision given twice");
           }
-        }
-        else if (mrb_integer_p(val)) {
-          mrb_int n = mrb_integer(val);
+          flags |= FPREC|FPREC0;
+
+          p++;
+          if (*p == '*') {
+            GETASTER(prec);
+            if (prec < 0) {  /* ignore negative precision */
+              flags &= ~FPREC;
+            }
+            p++;
+            goto retry;
+          }
+          GETNUM(prec, precision);
+          goto retry;
+
+        case FMT_LITERAL:
+          if (spec.subtype == 0) { /* \n or \0 */
+            p--;
+          }
+          if (flags != FNONE) {
+            mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid format character - %");
+          }
+          PUSH("%", 1);
+          break;
+
+        case FMT_CHAR: {
+          /* CHARACTER FORMATTING (%c) */
+          mrb_value val = GETARG();
+          mrb_value tmp;
+          char *c;
+
+          /* Convert argument to character string */
+          tmp = mrb_check_string_type(mrb, val);
+          if (!mrb_nil_p(tmp)) {
+            if (RSTRING_LEN(tmp) != 1) {
+              mrb_raise(mrb, E_ARGUMENT_ERROR, "%c requires a character");
+            }
+          }
+          else if (mrb_integer_p(val)) {
+            mrb_int n = mrb_integer(val);
 #ifndef MRB_UTF8_STRING
-          char buf[1];
-
-          buf[0] = (char)n&0xff;
-          tmp = mrb_str_new(mrb, buf, 1);
-#else
-          if (n < 0x80) {
             char buf[1];
 
-            buf[0] = (char)n;
+            buf[0] = (char)n&0xff;
             tmp = mrb_str_new(mrb, buf, 1);
+#else
+            if (n < 0x80) {
+              char buf[1];
+
+              buf[0] = (char)n;
+              tmp = mrb_str_new(mrb, buf, 1);
+            }
+            else {
+              tmp = mrb_funcall_argv(mrb, val, MRB_SYM(chr), 0, NULL);
+              mrb_check_type(mrb, tmp, MRB_TT_STRING);
+            }
+#endif
           }
           else {
-            tmp = mrb_funcall_argv(mrb, val, MRB_SYM(chr), 0, NULL);
-            mrb_check_type(mrb, tmp, MRB_TT_STRING);
+            mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid character");
           }
-#endif
+          /* Format and output the character with width/alignment */
+          c = RSTRING_PTR(tmp);
+          n = (int)RSTRING_LEN(tmp);
+          if (!(flags & FWIDTH)) {
+            PUSH(c, n);
+          }
+          else if ((flags & FMINUS)) {
+            PUSH(c, n);
+            if (width>0) FILL(' ', width-1);
+          }
+          else {
+            if (width>0) FILL(' ', width-1);
+            PUSH(c, n);
+          }
+          mrb_gc_arena_restore(mrb, ai);
         }
-        else {
-          mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid character");
-        }
-        c = RSTRING_PTR(tmp);
-        n = (int)RSTRING_LEN(tmp);
-        if (!(flags & FWIDTH)) {
-          PUSH(c, n);
-        }
-        else if ((flags & FMINUS)) {
-          PUSH(c, n);
-          if (width>0) FILL(' ', width-1);
-        }
-        else {
-          if (width>0) FILL(' ', width-1);
-          PUSH(c, n);
-        }
-        mrb_gc_arena_restore(mrb, ai);
-      }
-      break;
+        break;
 
-      case 's':
-      case 'p':
+        case FMT_STRING:
   format_s:
-      {
-        mrb_value arg = GETARG();
-        mrb_int len;
-        mrb_int slen;
+        {
+          /* STRING FORMATTING (%s, %p) */
+          mrb_value arg = GETARG();
+          mrb_int len;
+          mrb_int slen;
 
-        if (*p == 'p') arg = mrb_inspect(mrb, arg);
-        str = mrb_obj_as_string(mrb, arg);
-        len = RSTRING_LEN(str);
-        if (RSTRING(result)->flags & MRB_STR_EMBED) {
-          mrb_int tmp_n = len;
-          RSTRING(result)->flags &= ~MRB_STR_EMBED_LEN_MASK;
-          RSTRING(result)->flags |= tmp_n << MRB_STR_EMBED_LEN_SHIFT;
-        }
-        else {
-          RSTRING(result)->as.heap.len = blen;
-        }
-        if (flags&(FPREC|FWIDTH)) {
-          slen = RSTRING_LEN(str);
-          if (slen < 0) {
-            mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid mbstring sequence");
+          /* Convert to string (with inspect for %p) */
+          if (spec.subtype == 1) arg = mrb_inspect(mrb, arg); /* 'p' format */
+          str = mrb_obj_as_string(mrb, arg);
+          len = RSTRING_LEN(str);
+
+          /* Update result string length for embedded strings */
+          if (RSTRING(result)->flags & MRB_STR_EMBED) {
+            mrb_int tmp_n = len;
+            RSTRING(result)->flags &= ~MRB_STR_EMBED_LEN_MASK;
+            RSTRING(result)->flags |= tmp_n << MRB_STR_EMBED_LEN_SHIFT;
           }
-          if ((flags&FPREC) && (prec < slen)) {
-            char *p = RSTRING_PTR(str) + prec;
-            slen = prec;
-            len = (mrb_int)(p - RSTRING_PTR(str));
+          else {
+            RSTRING(result)->as.heap.len = blen;
           }
-          /* need to adjust multi-byte string pos */
-          if ((flags&FWIDTH) && (width > slen)) {
-            width -= (int)slen;
-            if (!(flags&FMINUS)) {
-              FILL(' ', width);
+
+          /* Handle precision and width formatting */
+          if (flags&(FPREC|FWIDTH)) {
+            slen = RSTRING_LEN(str);
+            if (slen < 0) {
+              mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid mbstring sequence");
             }
-            PUSH(RSTRING_PTR(str), len);
-            if (flags&FMINUS) {
-              FILL(' ', width);
+            if ((flags&FPREC) && (prec < slen)) {
+              char *p = RSTRING_PTR(str) + prec;
+              slen = prec;
+              len = (mrb_int)(p - RSTRING_PTR(str));
             }
-            break;
+            /* Apply width formatting with padding */
+            if ((flags&FWIDTH) && (width > slen)) {
+              width -= (int)slen;
+              if (!(flags&FMINUS)) {
+                FILL(' ', width);
+              }
+              PUSH(RSTRING_PTR(str), len);
+              if (flags&FMINUS) {
+                FILL(' ', width);
+              }
+              break;
+            }
           }
+          PUSH(RSTRING_PTR(str), len);
+          mrb_gc_arena_restore(mrb, ai);
         }
-        PUSH(RSTRING_PTR(str), len);
-        mrb_gc_arena_restore(mrb, ai);
-      }
-      break;
+        break;
 
-      case 'd':
-      case 'i':
-      case 'o':
-      case 'x':
-      case 'X':
-      case 'b':
-      case 'B':
-      case 'u': {
-        mrb_value val = GETARG();
-        char nbuf[69], *s;
-        const char *prefix = NULL;
-        int sign = 0, dots = 0;
-        char sc = 0;
-        char fc = 0;
-        mrb_int v = 0;
-        int base;
-        int len;
+        case FMT_INTEGER: {
+          /* INTEGER FORMATTING (%d, %i, %o, %x, %X, %b, %B, %u) */
+          mrb_value val = GETARG();
+          char nbuf[69], *s;
+          const char *prefix = NULL;
+          int sign = 0, dots = 0;
+          char sc = 0;
+          char fc = 0;
+          mrb_int v = 0;
+          int base;
+          int len;
 
-        if (flags & FSHARP) {
-          switch (*p) {
-            case 'o': prefix = "0"; break;
-            case 'x': prefix = "0x"; break;
-            case 'X': prefix = "0X"; break;
-            case 'b': prefix = "0b"; break;
-            case 'B': prefix = "0B"; break;
-            default: break;
-          }
-        }
-
-        switch (*p) {
-          case 'o':
-            base = 8; break;
-          case 'x':
-          case 'X':
-            base = 16; break;
-          case 'b':
-          case 'B':
-            base = 2; break;
-          case 'u':
-          case 'd':
-          case 'i':
+          /* Determine base and signedness from lookup table */
+          base = spec.base;
+          if (spec.subtype == 1) { /* signed formats: d, i, u */
             sign = 1;
-            /* fall through */
-          default:
-            base = 10; break;
-        }
+          }
 
+          /* Set prefix for alternative format (#) */
+          if (flags & FSHARP) {
+            switch (base) {
+              case 8:  prefix = "0"; break;
+              case 16: prefix = (spec.subtype == 1) ? "0X" : "0x"; break;
+              case 2:  prefix = (spec.subtype == 1) ? "0B" : "0b"; break;
+              default: break;
+            }
+          }
+
+          /* Convert value to integer and format as string */
   bin_retry:
-        switch (mrb_type(val)) {
+          switch (mrb_type(val)) {
 #ifndef MRB_NO_FLOAT
           case MRB_TT_FLOAT:
             val = mrb_float_to_integer(mrb, val);
@@ -650,8 +705,7 @@ retry:
         }
 
         {
-          size_t size;
-          size = strlen(s);
+          size_t size = strlen(s);
           /* PARANOID: assert(size <= MRB_INT_MAX) */
           len = (int)size;
         }
@@ -676,17 +730,18 @@ retry:
             s++; len--;
           }
         }
-        if (*p == 'X') {
-          char *pp = s;
-          int c;
-          while ((c = (int)(unsigned char)*pp) != 0) {
-            *pp = toupper(c);
-            pp++;
+          /* Convert to uppercase for X, B formats */
+          if (spec.subtype == 1) { /* uppercase formats: X, B */
+            char *pp = s;
+            int c;
+            while ((c = (int)(unsigned char)*pp) != 0) {
+              *pp = toupper(c);
+              pp++;
+            }
+            if (base == 16) {
+              fc = 'F';
+            }
           }
-          if (base == 16) {
-            fc = 'F';
-          }
-        }
 
         if (prefix && !prefix[1]) { /* octal */
           if (dots) {
@@ -705,8 +760,7 @@ retry:
         }
 
         if (prefix) {
-          size_t size;
-          size = strlen(prefix);
+          size_t size = strlen(prefix);
           /* PARANOID: assert(size <= MRB_INT_MAX).
            *  this check is absolutely paranoid. */
           width -= (int)size;
@@ -755,22 +809,19 @@ retry:
             FILL(fc, prec - len);
           }
         }
-        PUSH(s, len);
-        if (width > 0) {
-          FILL(' ', width);
+          PUSH(s, len);
+          if (width > 0) {
+            FILL(' ', width);
+          }
         }
-      }
-      break;
+        break;
 
-      case 'f':
-      case 'g':
-      case 'G':
-      case 'e':
-      case 'E': {
+        case FMT_FLOAT: {
+          /* FLOAT FORMATTING (%f, %g, %G, %e, %E) */
 #ifdef MRB_NO_FLOAT
-        mrb_raisef(mrb, E_ARGUMENT_ERROR, "%%%c not supported with MRB_NO_FLOAT defined", *p);
+          mrb_raisef(mrb, E_ARGUMENT_ERROR, "%%%c not supported with MRB_NO_FLOAT defined", spec.subtype);
 #else
-        mrb_value val = GETARG();
+          mrb_value val = GETARG();
         double fval;
         mrb_int need = 6;
 
@@ -834,27 +885,19 @@ retry:
         need += 20;
 
         CHECK(need);
-        n = fmt_float(&buf[blen], need, *p, flags, width, prec, fval);
+          n = fmt_float(&buf[blen], need, spec.subtype, flags, width, prec, fval);
         if (n < 0 || n >= need) {
           mrb_raise(mrb, E_RUNTIME_ERROR, "formatting error");
         }
-        blen += n;
+          blen += n;
 #endif
+        }
+        break;
       }
-      break;
     }
   }
 
   sprint_exit:
-#if 0
-  /* XXX - We cannot validate the number of arguments if (digit)$ style used.
-   */
-  if (posarg >= 0 && nextarg < argc) {
-    const char *mesg = "too many arguments for format string";
-    if (mrb_test(ruby_debug)) mrb_raise(mrb, E_ARGUMENT_ERROR, mesg);
-    if (mrb_test(ruby_verbose)) mrb_warn(mrb, mesg);
-  }
-#endif
   mrb_str_resize(mrb, result, blen);
 
   return result;
@@ -865,7 +908,7 @@ retry:
  *     format(format_string [, arguments...] )   -> string
  *     sprintf(format_string [, arguments...] )  -> string
  *
- *  Returns the string resulting from applying <i>format_string</i> to
+ *  Returns the string resulting from applying *format_string* to
  *  any additional arguments.  Within the format string, any characters
  *  other than format sequences are copied to the result.
  *
@@ -877,7 +920,7 @@ retry:
  *  sequence consists of a percent sign, followed by optional flags,
  *  width, and precision indicators, then terminated with a field type
  *  character.  The field type controls how the corresponding
- *  <code>sprintf</code> argument is to be interpreted, while the flags
+ *  `sprintf` argument is to be interpreted, while the flags
  *  modify that interpretation.
  *
  *  The field type characters are:
@@ -1052,7 +1095,7 @@ retry:
  *  numeric fields, the precision controls the number of decimal places
  *  displayed.  For string fields, the precision determines the maximum
  *  number of characters to be copied from the string.  (Thus, the format
- *  sequence <code>%10.10s</code> will always contribute exactly ten
+ *  sequence `%10.10s` will always contribute exactly ten
  *  characters to the result.)
  *
  *  Examples of precisions:
@@ -1138,8 +1181,8 @@ void
 mrb_mruby_sprintf_gem_init(mrb_state *mrb)
 {
   struct RClass *krn = mrb->kernel_module;
-  mrb_define_module_function(mrb, krn, "sprintf", mrb_f_sprintf, MRB_ARGS_ANY());
-  mrb_define_module_function(mrb, krn, "format",  mrb_f_sprintf, MRB_ARGS_ANY());
+  mrb_define_module_function_id(mrb, krn, MRB_SYM(sprintf), mrb_f_sprintf, MRB_ARGS_ANY());
+  mrb_define_module_function_id(mrb, krn, MRB_SYM(format),  mrb_f_sprintf, MRB_ARGS_ANY());
 }
 
 void

@@ -42,12 +42,6 @@
 #error Cannot define MRB_USE_FLOAT32 and MRB_NO_FLOAT at the same time
 #endif
 
-/* add -DMRB_NO_METHOD_CACHE to disable method cache to save memory */
-//#define MRB_NO_METHOD_CACHE
-/* size of the method cache (need to be the power of 2) */
-//#define MRB_METHOD_CACHE_SIZE (1<<8)
-//#define MRB_USE_INLINE_METHOD_CACHE
-
 /* define on big endian machines; used by MRB_NAN_BOXING, etc. */
 #ifndef MRB_ENDIAN_BIG
 # if (defined(BYTE_ORDER) && defined(BIG_ENDIAN) && BYTE_ORDER == BIG_ENDIAN) || \
@@ -158,6 +152,12 @@
 /* -DMRB_USE_XXXX to enable following features */
 //#define MRB_USE_DEBUG_HOOK /* hooks for debugger */
 //#define MRB_USE_ALL_SYMBOLS /* Symbol.all_symbols */
+
+/* Symbol table configuration */
+/* Threshold for switching from linear search to hash table */
+#ifndef MRB_SYMBOL_LINEAR_THRESHOLD
+#define MRB_SYMBOL_LINEAR_THRESHOLD 256
+#endif
 
 /* obsolete configurations */
 #if defined(DISABLE_STDIO) || defined(MRB_DISABLE_STDIO)

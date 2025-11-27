@@ -12,6 +12,18 @@
 #include <mruby/internal.h>
 #include <mruby/presym.h>
 
+/*
+ * Checks if two mruby values, `v1` and `v2`, are identical.
+ * For most types, this is equivalent to pointer equality.
+ * For immediate values (integers, symbols, true, false, nil),
+ * it compares their actual values.
+ *
+ * Behavior under different boxing configurations:
+ * - MRB_NAN_BOXING: Compares the raw `uint64_t` values.
+ * - MRB_WORD_BOXING: Compares the raw `mrb_word` values.
+ * - MRB_NO_BOXING: Checks if types are equal. If so, performs
+ *   type-specific comparisons (value for immediates, pointer for others).
+ */
 MRB_API mrb_bool
 mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
 {
@@ -43,13 +55,27 @@ mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
 #endif
 }
 
+/*
+ * Checks if two mruby values, `v1` and `v2`, are equal.
+ * This function currently calls mrb_obj_eq to perform the comparison.
+ */
 MRB_API mrb_bool
 mrb_obj_equal(mrb_state *mrb, mrb_value v1, mrb_value v2)
 {
-  /* temporary definition */
   return mrb_obj_eq(mrb, v1, v2);
 }
 
+/*
+ * Checks for equality between `obj1` and `obj2`.
+ *
+ * It first uses `mrb_obj_eq` for an identity check. If that fails,
+ * it handles cases like mixed integer/float comparisons.
+ * If `MRB_USE_BIGINT` is defined, it also considers comparisons
+ * involving BigInts against Integers, other BigInts, or Floats.
+ * Finally, if none of the above apply, it attempts to call the
+ * `==` operator (MRB_OPSYM(eq)) on `obj1` with `obj2` as an argument,
+ * unless `obj1`'s `==` method is the default `mrb_obj_equal_m`.
+ */
 MRB_API mrb_bool
 mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
 {
@@ -82,7 +108,7 @@ mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
 /*
  * Document-class: NilClass
  *
- *  The class of the singleton object <code>nil</code>.
+ *  The class of the singleton object `nil`.
  */
 
 /* 15.2.4.3.4  */
@@ -90,7 +116,7 @@ mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
  * call_seq:
  *   nil.nil?               -> true
  *
- * Only the object <i>nil</i> responds <code>true</code> to <code>nil?</code>.
+ * Only the object *nil* responds `true` to `nil?`.
  */
 
 static mrb_value
@@ -126,10 +152,10 @@ nil_inspect(mrb_state *mrb, mrb_value obj)
 /***********************************************************************
  *  Document-class: TrueClass
  *
- *  The global value <code>true</code> is the only instance of class
- *  <code>TrueClass</code> and represents a logically true value in
+ *  The global value `true` is the only instance of class
+ *  `TrueClass` and represents a logically true value in
  *  boolean expressions. The class provides operators allowing
- *  <code>true</code> to be used in logical expressions.
+ *  `true` to be used in logical expressions.
  */
 
 /* 15.2.5.3.1  */
@@ -137,8 +163,8 @@ nil_inspect(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     true & obj    -> true or false
  *
- *  And---Returns <code>false</code> if <i>obj</i> is
- *  <code>nil</code> or <code>false</code>, <code>true</code> otherwise.
+ *  And---Returns `false` if *obj* is
+ *  `nil` or `false`, `true` otherwise.
  */
 
 static mrb_value
@@ -156,8 +182,8 @@ true_and(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     true ^ obj   -> !obj
  *
- *  Exclusive Or---Returns <code>true</code> if <i>obj</i> is
- *  <code>nil</code> or <code>false</code>, <code>false</code>
+ *  Exclusive Or---Returns `true` if *obj* is
+ *  `nil` or `false`, `false`
  *  otherwise.
  */
 
@@ -175,7 +201,7 @@ true_xor(mrb_state *mrb, mrb_value obj)
  * call-seq:
  *   true.to_s   ->  "true"
  *
- * The string representation of <code>true</code> is "true".
+ * The string representation of `true` is "true".
  */
 
 static mrb_value
@@ -191,7 +217,7 @@ true_to_s(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     true | obj   -> true
  *
- *  Or---Returns <code>true</code>. As <i>anObject</i> is an argument to
+ *  Or---Returns `true`. As *anObject* is an argument to
  *  a method call, it is always evaluated; there is no short-circuit
  *  evaluation in this case.
  *
@@ -212,10 +238,10 @@ true_or(mrb_state *mrb, mrb_value obj)
 /*
  *  Document-class: FalseClass
  *
- *  The global value <code>false</code> is the only instance of class
- *  <code>FalseClass</code> and represents a logically false value in
+ *  The global value `false` is the only instance of class
+ *  `FalseClass` and represents a logically false value in
  *  boolean expressions. The class provides operators allowing
- *  <code>false</code> to participate correctly in logical expressions.
+ *  `false` to participate correctly in logical expressions.
  *
  */
 
@@ -226,7 +252,7 @@ true_or(mrb_state *mrb, mrb_value obj)
  *     false & obj   -> false
  *     nil & obj     -> false
  *
- *  And---Returns <code>false</code>. <i>obj</i> is always
+ *  And---Returns `false`. *obj* is always
  *  evaluated as it is the argument to a method call---there is no
  *  short-circuit evaluation in this case.
  */
@@ -244,9 +270,9 @@ false_and(mrb_state *mrb, mrb_value obj)
  *     false ^ obj    -> true or false
  *     nil   ^ obj    -> true or false
  *
- *  Exclusive Or---If <i>obj</i> is <code>nil</code> or
- *  <code>false</code>, returns <code>false</code>; otherwise, returns
- *  <code>true</code>.
+ *  Exclusive Or---If *obj* is `nil` or
+ *  `false`, returns `false`; otherwise, returns
+ *  `true`.
  *
  */
 
@@ -266,8 +292,8 @@ false_xor(mrb_state *mrb, mrb_value obj)
  *     false | obj   ->   true or false
  *     nil   | obj   ->   true or false
  *
- *  Or---Returns <code>false</code> if <i>obj</i> is
- *  <code>nil</code> or <code>false</code>; <code>true</code> otherwise.
+ *  Or---Returns `false` if *obj* is
+ *  `nil` or `false`; `true` otherwise.
  */
 
 static mrb_value
@@ -355,15 +381,28 @@ convert_type(mrb_state *mrb, mrb_value val, const char *tname, mrb_sym method, m
   return mrb_funcall_argv(mrb, val, method, 0, 0);
 }
 
+/*
+ * Attempts to convert the mruby value `val` to the specified `type`
+ * by calling the given `method` (a symbol) on `val`.
+ *
+ * It first checks if `val` is already of the target `type`. If not, it
+ * proceeds to call the conversion `method` on `val`.
+ *
+ * If the conversion method does not return a value of the target `type`,
+ * a `TypeError` is raised. However, as a special case, if the target
+ * `type` is `MRB_TT_STRING`, and the initial conversion fails to produce
+ * a string, this function will then attempt to call `mrb_any_to_s` on
+ * the original `val` as a fallback mechanism.
+ *
+ * Returns the converted value if successful.
+ */
 MRB_API mrb_value
 mrb_type_convert(mrb_state *mrb, mrb_value val, enum mrb_vtype type, mrb_sym method)
 {
-  mrb_value v;
-  const char *tname;
-
   if (mrb_type(val) == type) return val;
-  tname = type_name(type);
-  v = convert_type(mrb, val, tname, method, TRUE);
+
+  const char *tname = type_name(type);
+  mrb_value v = convert_type(mrb, val, tname, method, TRUE);
   if (mrb_type(v) != type) {
     if (type == MRB_TT_STRING) return mrb_any_to_s(mrb, val);
     mrb_raisef(mrb, E_TYPE_ERROR, "%v cannot be converted to %s by #%n", val, tname, method);
@@ -371,17 +410,41 @@ mrb_type_convert(mrb_state *mrb, mrb_value val, enum mrb_vtype type, mrb_sym met
   return v;
 }
 
+/*
+ * Attempts to convert the mruby value `val` to the specified `type`
+ * by calling the given `method` (a symbol) on `val`.
+ *
+ * This function first checks if `val` is already of the target `type`.
+ * An exception to this initial check is if the target `type` is
+ * `MRB_TT_CDATA` or `MRB_TT_ISTRUCT`; in these cases, the conversion
+ * attempt proceeds regardless of `val`'s current type.
+ *
+ * If `val` is not already of the target `type` (or if it's `MRB_TT_CDATA`
+ * or `MRB_TT_ISTRUCT`), the specified `method` is called on `val` to
+ * perform the conversion. Unlike `mrb_type_convert`, this function
+ * does *not* raise an error if the conversion fails or if the returned
+ * value is not of the target `type`.
+ *
+ * Returns the converted value if the conversion was successful and the
+ * resulting value is of the target `type`. Otherwise, it returns
+ * `mrb_nil_value()`.
+ */
 MRB_API mrb_value
 mrb_type_convert_check(mrb_state *mrb, mrb_value val, enum mrb_vtype type, mrb_sym method)
 {
-  mrb_value v;
-
   if (mrb_type(val) == type && type != MRB_TT_CDATA && type != MRB_TT_ISTRUCT) return val;
-  v = convert_type(mrb, val, type_name(type), method, FALSE);
+  mrb_value v = convert_type(mrb, val, type_name(type), method, FALSE);
   if (mrb_nil_p(v) || mrb_type(v) != type) return mrb_nil_value();
   return v;
 }
 
+/*
+ * Checks if the mruby value `x` is of the specified type `t`.
+ *
+ * If the type of `x` does not match `t`, this function raises
+ * a `TypeError`. The error message provides details about the
+ * actual type of `x` and the expected type `t`.
+ */
 MRB_API void
 mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t)
 {
@@ -418,8 +481,8 @@ mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t)
  *  call-seq:
  *     obj.to_s    => string
  *
- *  Returns a string representing <i>obj</i>. The default
- *  <code>to_s</code> prints the object's class and an encoding of the
+ *  Returns a string representing *obj*. The default
+ *  `to_s` prints the object's class and an encoding of the
  *  object id. As a special case, the top-level object that is the
  *  initial execution context of Ruby programs returns "main."
  */
@@ -446,9 +509,15 @@ mrb_any_to_s(mrb_state *mrb, mrb_value obj)
  *     obj.is_a?(class)       => true or false
  *     obj.kind_of?(class)    => true or false
  *
- *  Returns <code>true</code> if <i>class</i> is the class of
- *  <i>obj</i>, or if <i>class</i> is one of the superclasses of
- *  <i>obj</i> or modules included in <i>obj</i>.
+ *  Checks if the mruby object `obj` is an instance of class `c`,
+ *  or an instance of a class that inherits from `c`, or an instance
+ *  of a class that includes `c` if `c` is a module.
+ *
+ *  This function traverses the class hierarchy of `obj` upwards.
+ *  It returns `TRUE` if `c` is found in the ancestry. Otherwise,
+ *  it returns `FALSE`.
+ *
+ *  If `c` is not a class or module, a `TypeError` is raised.
  *
  *     module M;    end
  *     class A
@@ -457,16 +526,13 @@ mrb_any_to_s(mrb_state *mrb, mrb_value obj)
  *     class B < A; end
  *     class C < B; end
  *     b = B.new
- *     b.instance_of? A   #=> false
- *     b.instance_of? B   #=> true
- *     b.instance_of? C   #=> false
- *     b.instance_of? M   #=> false
+ *     b.instance_of? A   #=> false (mrb_obj_is_instance_of)
+ *     b.instance_of? B   #=> true  (mrb_obj_is_instance_of)
  *     b.kind_of? A       #=> true
  *     b.kind_of? B       #=> true
  *     b.kind_of? C       #=> false
  *     b.kind_of? M       #=> true
  */
-
 MRB_API mrb_bool
 mrb_obj_is_kind_of(mrb_state *mrb, mrb_value obj, struct RClass *c)
 {
@@ -503,6 +569,28 @@ mrb_value mrb_complex_to_f(mrb_state *mrb, mrb_value comp);
 mrb_value mrb_complex_to_i(mrb_state *mrb, mrb_value comp);
 #endif
 
+/*
+ * Ensures that the given mruby value `val` is an Integer.
+ *
+ * If `val` is already an `MRB_TT_INTEGER`, it is returned directly.
+ *
+ * If `val` is an `MRB_TT_FLOAT` (and `MRB_NO_FLOAT` is not defined),
+ * it is converted to an integer using `mrb_float_to_integer`.
+ *
+ * The function also handles conversions from other numeric types if
+ * the respective modules are enabled:
+ * - `MRB_TT_BIGINT` (if `MRB_USE_BIGINT` is defined): `val` is returned as is,
+ *   as BigInts are considered integers.
+ * - `MRB_TT_RATIONAL` (if `MRB_USE_RATIONAL` is defined): Converted using
+ *   `mrb_rational_to_i`.
+ * - `MRB_TT_COMPLEX` (if `MRB_USE_COMPLEX` is defined): Converted using
+ *   `mrb_complex_to_i` (typically if the imaginary part is zero).
+ *
+ * If `val` cannot be converted to an Integer (e.g., it's a String or Array,
+ * or a Complex with a non-zero imaginary part), a `TypeError` is raised.
+ *
+ * Returns the (potentially converted) integer value.
+ */
 MRB_API mrb_value
 mrb_ensure_integer_type(mrb_state *mrb, mrb_value val)
 {
@@ -535,6 +623,25 @@ mrb_ensure_integer_type(mrb_state *mrb, mrb_value val)
   return val;
 }
 
+/*
+ * Ensures that the given mruby value `val` is a C `mrb_int` (fixed-size integer).
+ *
+ * This function first calls `mrb_ensure_integer_type` to convert `val`
+ * to a generic mruby Integer if it's not already. This step might result
+ * in `val` being a Fixnum or a BigInt (if `MRB_USE_BIGINT` is enabled).
+ *
+ * If `mrb_ensure_integer_type` returns a BigInt (and `MRB_USE_BIGINT`
+ * is defined), this function then attempts to convert the BigInt to a C
+ * `mrb_int` using `mrb_bint_as_int`. This conversion may involve truncation
+ * if the BigInt's value is outside the representable range of `mrb_int`,
+ * or it could raise an error (e.g., RangeError) depending on the
+ * `mrb_bint_as_int` implementation if the value is too large to truncate.
+ *
+ * If `val` is already a standard Integer (Fixnum) after the call to
+ * `mrb_ensure_integer_type`, it is returned directly as it fits `mrb_int`.
+ *
+ * Returns an `mrb_value` that represents a C `mrb_int`.
+ */
 MRB_API mrb_value
 mrb_ensure_int_type(mrb_state *mrb, mrb_value val)
 {
@@ -548,6 +655,28 @@ mrb_ensure_int_type(mrb_state *mrb, mrb_value val)
 }
 
 #ifndef MRB_NO_FLOAT
+/*
+ * Ensures that the given mruby value `val` is a Float.
+ *
+ * If `val` is `nil`, this function raises a `TypeError`.
+ *
+ * If `val` is an `MRB_TT_INTEGER`, it is converted to an `mrb_float`.
+ * If `val` is already an `MRB_TT_FLOAT`, it is returned directly.
+ *
+ * The function also handles conversions from other numeric types if the
+ * respective mruby modules are enabled:
+ * - `MRB_TT_RATIONAL` (if `MRB_USE_RATIONAL` is defined): Converted to Float
+ *   using `mrb_rational_to_f`.
+ * - `MRB_TT_COMPLEX` (if `MRB_USE_COMPLEX` is defined): Converted to Float
+ *   using `mrb_complex_to_f` (typically requires the imaginary part to be zero).
+ * - `MRB_TT_BIGINT` (if `MRB_USE_BIGINT` is defined): Converted to Float
+ *   using `mrb_bint_as_float`.
+ *
+ * If `val` cannot be converted to a Float (e.g., it's a String, Array, or
+ * an incompatible Complex number), a `TypeError` is raised.
+ *
+ * Returns an `mrb_value` representing an `mrb_float`.
+ */
 MRB_API mrb_value
 mrb_ensure_float_type(mrb_state *mrb, mrb_value val)
 {
@@ -584,6 +713,13 @@ mrb_ensure_float_type(mrb_state *mrb, mrb_value val)
 }
 #endif
 
+/*
+ * Ensures that the given mruby value `str` is a String.
+ *
+ * If `str` is not of type `MRB_TT_STRING`, this function raises
+ * a `TypeError`.
+ * Otherwise, `str` itself is returned.
+ */
 MRB_API mrb_value
 mrb_ensure_string_type(mrb_state *mrb, mrb_value str)
 {
@@ -593,6 +729,14 @@ mrb_ensure_string_type(mrb_state *mrb, mrb_value str)
   return str;
 }
 
+/*
+ * Checks if the given mruby value `str` is a String.
+ *
+ * If `str` is of type `MRB_TT_STRING`, this function returns `str`.
+ * Otherwise (if `str` is not a String), it returns `mrb_nil_value()`
+ * without raising an error. This allows for type checking without
+ * forcing error handling.
+ */
 MRB_API mrb_value
 mrb_check_string_type(mrb_state *mrb, mrb_value str)
 {
@@ -600,6 +744,13 @@ mrb_check_string_type(mrb_state *mrb, mrb_value str)
   return str;
 }
 
+/*
+ * Ensures that the given mruby value `ary` is an Array.
+ *
+ * If `ary` is not of type `MRB_TT_ARRAY`, this function raises
+ * a `TypeError`.
+ * Otherwise, `ary` itself is returned.
+ */
 MRB_API mrb_value
 mrb_ensure_array_type(mrb_state *mrb, mrb_value ary)
 {
@@ -609,6 +760,14 @@ mrb_ensure_array_type(mrb_state *mrb, mrb_value ary)
   return ary;
 }
 
+/*
+ * Checks if the given mruby value `ary` is an Array.
+ *
+ * If `ary` is of type `MRB_TT_ARRAY`, this function returns `ary`.
+ * Otherwise (if `ary` is not an Array), it returns `mrb_nil_value()`
+ * without raising an error. This allows for type checking without
+ * forcing error handling.
+ */
 MRB_API mrb_value
 mrb_check_array_type(mrb_state *mrb, mrb_value ary)
 {
@@ -616,6 +775,13 @@ mrb_check_array_type(mrb_state *mrb, mrb_value ary)
   return ary;
 }
 
+/*
+ * Ensures that the given mruby value `hash` is a Hash.
+ *
+ * If `hash` is not of type `MRB_TT_HASH`, this function raises
+ * a `TypeError`.
+ * Otherwise, `hash` itself is returned.
+ */
 MRB_API mrb_value
 mrb_ensure_hash_type(mrb_state *mrb, mrb_value hash)
 {
@@ -625,6 +791,14 @@ mrb_ensure_hash_type(mrb_state *mrb, mrb_value hash)
   return hash;
 }
 
+/*
+ * Checks if the given mruby value `hash` is a Hash.
+ *
+ * If `hash` is of type `MRB_TT_HASH`, this function returns `hash`.
+ * Otherwise (if `hash` is not a Hash), it returns `mrb_nil_value()`
+ * without raising an error. This allows for type checking without
+ * forcing error handling.
+ */
 MRB_API mrb_value
 mrb_check_hash_type(mrb_state *mrb, mrb_value hash)
 {
@@ -632,6 +806,22 @@ mrb_check_hash_type(mrb_state *mrb, mrb_value hash)
   return hash;
 }
 
+/*
+ * Returns a human-readable string representation of the mruby object `obj`.
+ *
+ * This function calls the `inspect` method (identified by `MRB_SYM(inspect)`)
+ * on the given `obj`. The `inspect` method is expected to return a string
+ * that is suitable for debugging and inspection.
+ *
+ * If the object's `inspect` method does not return a String value (e.g., it
+ * returns `nil` or another type, or if the class doesn't define `inspect`
+ * appropriately), this function falls back to calling `mrb_obj_as_string`.
+ * `mrb_obj_as_string` typically provides a basic string representation,
+ * such as "#<ClassName:0xPointer>" if `inspect` is unavailable or
+ * misbehaves by not returning a string.
+ *
+ * The function ultimately returns the resulting string `mrb_value`.
+ */
 MRB_API mrb_value
 mrb_inspect(mrb_state *mrb, mrb_value obj)
 {
@@ -642,6 +832,22 @@ mrb_inspect(mrb_state *mrb, mrb_value obj)
   return v;
 }
 
+/*
+ * Checks if two mruby values, `obj1` and `obj2`, are equal using
+ * `eql?` semantics.
+ *
+ * This function first performs an identity check on `obj1` and `obj2`
+ * using `mrb_obj_eq`. If they are identical (i.e., the same object),
+ * it returns `TRUE` immediately.
+ *
+ * Otherwise, it calls the `eql?` method on `obj1`, passing `obj2` as
+ * an argument. The symbol for the `eql?` method is `MRB_SYM_Q(eql)`.
+ *
+ * The function returns `TRUE` if the `eql?` method call returns a truthy
+ * value (any value other than `false` or `nil`). Otherwise, it returns
+ * `FALSE`. This is determined by `mrb_test` on the result of the
+ * method call.
+ */
 MRB_API mrb_bool
 mrb_eql(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
 {
@@ -649,6 +855,14 @@ mrb_eql(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
   return mrb_test(mrb_funcall_argv(mrb, obj1, MRB_SYM_Q(eql), 1, &obj2));
 }
 
+/*
+ * Returns the receiver object itself.
+ *
+ * This function simply returns the mruby value `self` that it was passed.
+ * It corresponds to the `Object#itself` method in Ruby, which is useful
+ * in some functional programming patterns or for obtaining the object
+ * itself in a chain of method calls.
+ */
 MRB_API mrb_value
 mrb_obj_itself(mrb_state *mrb, mrb_value self)
 {

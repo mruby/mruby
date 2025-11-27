@@ -3,7 +3,7 @@ module Kernel
   #   obj.yield_self {|_obj|...} -> an_object
   #   obj.then {|_obj|...}       -> an_object
   #
-  # Yields <i>obj</i> and returns the result.
+  # Yields *obj* and returns the result.
   #
   #   'my string'.yield_self {|s|s.upcase} #=> "MY STRING"
   #
@@ -17,7 +17,7 @@ module Kernel
   #  call-seq:
   #     obj.tap{|x|...}    -> obj
   #
-  #  Yields <code>x</code> to the block, and then returns <code>x</code>.
+  #  Yields `x` to the block, and then returns `x`.
   #  The primary purpose of this method is to "tap into" a method chain,
   #  in order to perform operations on intermediate results within the chain.
   #

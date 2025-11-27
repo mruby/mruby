@@ -41,7 +41,7 @@ end
 class Integer
   ##
   # Calls the given block once for each Integer
-  # from +self+ downto +num+.
+  # from `self` downto `num`.
   #
   # ISO 15.2.8.3.15
   def downto(num, &block)
@@ -66,7 +66,7 @@ class Integer
   alias succ next
 
   ##
-  # Calls the given block +self+ times.
+  # Calls the given block `self` times.
   #
   # ISO 15.2.8.3.22
   def times(&block)
@@ -82,7 +82,7 @@ class Integer
 
   ##
   # Calls the given block once for each Integer
-  # from +self+ upto +num+.
+  # from `self` upto `num`.
   #
   # ISO 15.2.8.3.27
   def upto(num, &block)
@@ -97,8 +97,8 @@ class Integer
   end
 
   ##
-  # Calls the given block from +self+ to +num+
-  # incremented by +step+ (default 1).
+  # Calls the given block from `self` to `num`
+  # incremented by `step` (default 1).
   #
   def step(num=nil, step=1, &block)
     raise ArgumentError, "step can't be 0" if step == 0
@@ -129,8 +129,8 @@ end
 
 class Float
   ##
-  # Calls the given block from +self+ to +num+
-  # incremented by +step+ (default 1).
+  # Calls the given block from `self` to `num`
+  # incremented by `step` (default 1).
   #
   def step(num=nil, step=1, &block)
     raise ArgumentError, "step can't be 0" if step == 0
