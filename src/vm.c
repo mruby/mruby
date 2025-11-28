@@ -268,6 +268,13 @@ mrb_vm_ci_proc_set(mrb_callinfo *ci, const struct RProc *p)
   CI_PROC_SET(ci, p);
 }
 
+#define MRB_PROC_RESOLVE_ALIAS(ci, p) do {\
+  if (MRB_PROC_ALIAS_P(p)) {\
+    (ci)->mid = (p)->body.mid;\
+    (p) = (p)->upper;\
+  }\
+} while (0)
+
 #define CI_TARGET_CLASS(ci) (((ci)->u.env && (ci)->u.env->tt == MRB_TT_ENV)? (ci)->u.env->c : (ci)->u.target_class)
 
 struct RClass*
@@ -825,10 +832,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     }
     else {
       /* handle alias */
-      if (MRB_PROC_ALIAS_P(ci->proc)) {
-        ci->mid = ci->proc->body.mid;
-        ci->proc = ci->proc->upper;
-      }
+      MRB_PROC_RESOLVE_ALIAS(ci, ci->proc);
       ci->cci = CINFO_SKIP;
       val = mrb_run(mrb, ci->proc, self);
     }
@@ -883,10 +887,7 @@ exec_irep(mrb_state *mrb, mrb_value self, const struct RProc *p)
 
   ci->stack[0] = self;
   /* handle alias */
-  if (MRB_PROC_ALIAS_P(p)) {
-    ci->mid = p->body.mid;
-    p = p->upper;
-  }
+  MRB_PROC_RESOLVE_ALIAS(ci, p);
   CI_PROC_SET(ci, p);
   if (MRB_PROC_CFUNC_P(p)) {
     if (MRB_PROC_NOARG_P(p) && (ci->n > 0 || ci->nk > 0)) {
@@ -1036,10 +1037,7 @@ send_method(mrb_state *mrb, mrb_value self, mrb_bool pub)
   if (MRB_METHOD_PROC_P(m)) {
     p = MRB_METHOD_PROC(m);
     /* handle alias */
-    if (MRB_PROC_ALIAS_P(p)) {
-      ci->mid = p->body.mid;
-      p = p->upper;
-    }
+    MRB_PROC_RESOLVE_ALIAS(ci, p);
     CI_PROC_SET(ci, p);
   }
   if (MRB_METHOD_CFUNC_P(m)) {
@@ -2218,10 +2216,7 @@ RETRY_TRY_BLOCK:
       if (MRB_METHOD_PROC_P(m)) {
         const struct RProc *p = MRB_METHOD_PROC(m);
         /* handle alias */
-        if (MRB_PROC_ALIAS_P(p)) {
-          ci->mid = p->body.mid;
-          p = p->upper;
-        }
+        MRB_PROC_RESOLVE_ALIAS(ci, p);
         CI_PROC_SET(ci, p);
         if (!MRB_PROC_CFUNC_P(p)) {
           /* setup environment for calling method */
@@ -2270,11 +2265,8 @@ RETRY_TRY_BLOCK:
       const struct RProc *p = mrb_proc_ptr(recv);
 
       /* handle alias */
-      if (MRB_PROC_ALIAS_P(p)) {
-        ci->mid = p->body.mid;
-        p = p->upper;
-      }
-      else if (MRB_PROC_ENV_P(p)) {
+      MRB_PROC_RESOLVE_ALIAS(ci, p);
+      if (MRB_PROC_ENV_P(p)) {
         ci->mid = MRB_PROC_ENV(p)->mid;
       }
       /* replace callinfo */
