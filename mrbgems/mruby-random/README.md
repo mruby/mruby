@@ -269,4 +269,4 @@ The PCG family of algorithms was developed by Melissa O'Neill and is widely used
 
 ## License
 
-The `mruby-random` mrbgem is released under the MIT License. See the [LICENSE](LICENSE) file for details.
+The `mruby-random` mrbgem is released under the MIT License. See the LICENSE file for details.
