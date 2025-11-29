@@ -217,3 +217,49 @@ Nothing printed (since `include` does not call `append_features` internally).
 ## No `#hash` call for small hashes
 
 For performance reasons, mruby avoids calling the `#hash` method on keys when a hash table is small. This means that custom `#hash` methods on key objects may not be executed.
+
+## Pattern Matching
+
+Pattern matching is only partially supported in mruby. Currently, only the rightward assignment operator (`=>`) with simple variable binding is implemented.
+
+```ruby
+expr => var  # Supported: assigns expr to var
+```
+
+#### Ruby [ruby 3.0.0+]
+
+Full pattern matching with `case/in` syntax and various pattern types:
+
+```ruby
+case [1, 2, 3]
+in [a, b, c]
+  puts "#{a}, #{b}, #{c}"  # => "1, 2, 3"
+end
+
+case {name: "Alice", age: 30}
+in {name:, age:}
+  puts "#{name} is #{age}"  # => "Alice is 30"
+end
+```
+
+#### mruby [current]
+
+Only rightward assignment with simple variable binding:
+
+```ruby
+[1, 2, 3] => x
+puts x  # => [1, 2, 3]
+```
+
+The following are **not supported**:
+
+- `case/in` syntax
+- Array patterns: `in [a, b, c]`
+- Hash patterns: `in {name:, age:}`
+- Guard clauses: `in pattern if condition`
+- Pin operator: `in ^variable`
+- Find patterns: `in [*, x, *]`
+- Alternative patterns: `in pattern1 | pattern2`
+- Boolean pattern check: `value in pattern`
+
+Note: mruby does provide `Array#deconstruct` and `Hash#deconstruct_keys` methods for future pattern matching compatibility.
