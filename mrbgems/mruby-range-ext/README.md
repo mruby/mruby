@@ -90,8 +90,4 @@ Returns the number of elements in the range. Both the begin and the end of the R
 
 ## License
 
-This gem is released under the [MIT License](LICENSE).
-
-```
-
-```
+This gem is released under the MIT License.

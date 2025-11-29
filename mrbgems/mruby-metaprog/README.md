@@ -120,4 +120,4 @@ p ChildClass.class_variables.sort                   #=> [:@@child_cvar, :@@paren
 
 ## License
 
-This mrbgem is licensed under the [MIT License](LICENSE).
+This mrbgem is licensed under the MIT License.
