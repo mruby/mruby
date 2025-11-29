@@ -232,6 +232,28 @@ assert('Hash#[]', '15.2.13.4.2') do
   def h.default(k); self[k] = 1; end
   h[:foo] += 1
   assert_equal(2, h[:foo])
+
+  # Hash#[] can be aliased
+  class Hash
+    alias_method :old_get, :[]
+    def [](key) "FOO"; end
+  end
+
+  h = Hash.new({bar: "BAR"})
+  assert_equal("FOO", h[:bar])
+  assert_nothing_crashed{h[:bar]}
+  Hash.alias_method(:[], :old_get)
+  Hash.undef_method(:old_get)
+
+  # Subclasses too
+  cls = Class.new(Hash) do
+    alias_method :parent_aget, :[]
+    def [](key) "FOO"; end
+  end
+
+  h = cls.new({bar: "BAR"})
+  assert_equal("FOO", h[:bar])
+  assert_nothing_crashed{h[:bar]}
 end
 
 [%w[[]= 3], %w[store 26]].each do |meth, no|
