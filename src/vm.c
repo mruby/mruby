@@ -1896,7 +1896,7 @@ RETRY_TRY_BLOCK:
       case MRB_TT_HASH: {
         /* check if [] is aliased, if not - use mrb_hash_get */
         mrb_method_t m = mrb_method_search(mrb, mrb_class(mrb, va), MRB_OPSYM(aref));
-        if (!MRB_METHOD_FUNC_P(m)) {
+        if (!MRB_METHOD_CFUNC_P(m) || MRB_METHOD_CFUNC(m) != mrb_hash_aget) {
           goto getidx_fallback;
         }
 

@@ -83,6 +83,7 @@ size_t mrb_gc_mark_hash(mrb_state*, struct RHash*);
 void mrb_gc_free_hash(mrb_state*, struct RHash*);
 mrb_value mrb_hash_first_key(mrb_state*, mrb_value);
 uint32_t mrb_obj_hash_code(mrb_state *mrb, mrb_value key);
+mrb_value mrb_hash_aget(mrb_state *mrb, mrb_value self);
 
 /* irep */
 struct mrb_insn_data mrb_decode_insn(const mrb_code *pc);

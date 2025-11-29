@@ -1504,7 +1504,7 @@ mrb_hash_init(mrb_state *mrb, mrb_value hash)
  *     h["c"]   #=> nil
  *
  */
-static mrb_value
+mrb_value
 mrb_hash_aget(mrb_state *mrb, mrb_value self)
 {
   mrb_value key = mrb_get_arg1(mrb);
