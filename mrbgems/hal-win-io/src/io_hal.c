@@ -8,7 +8,7 @@
 */
 
 #include <mruby.h>
-#include "io_hal.h"
+#include <mruby/io_hal.h>
 
 #include <windows.h>
 #include <io.h>
