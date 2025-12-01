@@ -7,7 +7,7 @@
 - iv/hash entry cache
 - method inline caching improvements (cache method lookup results)
 - more peephole optimization (if possible)
-- built-in profiler/benchmarking tools (memory, method calls, timing)
+- built-in profiler (method call tracing, stack profiling, detailed memory analysis)
 - improved REPL (mirb) features (multi-line, syntax highlighting, completion)
 - configurable memory pools (per-object-type, memory-constrained devices)
 - suspend/resume VM state (serialize/deserialize for power cycling)
