@@ -1,14 +1,14 @@
 # Authors of mruby (mruby developers)
 
-## The List of Contributors sorted by number of commits (as of 2025-08-04 1562f10)
+## The List of Contributors sorted by number of commits (as of 2025-12-01 127ef7f)
 
-   6640 Yukihiro "Matz" Matsumoto (@matz)*
-    690 dearblue (@dearblue)*
+   7127 Yukihiro "Matz" Matsumoto (@matz)*
+    706 dearblue (@dearblue)*
     587 KOBAYASHI Shuji (@shuujii)
     353 Daniel Bovensiepen (@bovi)*
     345 Takeshi Watanabe (@take-cheeze)*
     333 Masaki Muranaka (@monaka)
-    242 John Bampton (@jbampton)
+    248 John Bampton (@jbampton)
     234 Jun Hiroe (@suzukaze)
     228 Tomoyuki Sahara (@tsahara)*
     220 Cremno (@cremno)*
@@ -66,9 +66,10 @@
      12 Kouki Ooyatsu (kaishuu0123)*
      12 NAKAMURA Usaku (@unak)*
      12 Ray Chason (@chasonr)*
+     12 SiZiOUS (@suzious)
      12 Takashi Sawanaka (@sdottaka)*
      12 Ukrainskiy Sergey (@ukrainskiysergey)
-     12 Xuejie "Rafael" Xiao (@xxuejie)*
+     12 Xuejie "Rafael" suziousXiao (@xxuejie)*
      11 Julien Ammous (@schmurfy)
      11 Kazuho Oku (@kazuho)
      11 RIZAL Reckordp (@Reckordp)+
@@ -84,9 +85,9 @@
       8 Takashi Sogabe (@sogabe)
       8 Wataru Ashihara (@wataash)*
       7 Bhargava Shastry (@bshastry)*
+      7 HASUMI Hitoshi (@hasumikin)
       7 Kouichi Nakanishi (@keizo042)
       7 Rubyist (@expeditiousRubyist)
-      7 SiZiOUS (@sizious)
       7 Simon Génier (@simon-shopify)
       7 Terence Lee (@hone)
       7 roco (@rystyle)*
@@ -95,22 +96,23 @@
       6 Beoran (@beoran)
       6 David Siaw (@davidsiaw)*
       6 Frederick John Milens III (@fjmilens3)
-      6 HASUMI Hitoshi (@hasumikin)
       6 Hiro Asari (@BanzaiMan)
+      6 Hendrik (@Asmod4n)
       6 INOUE Yasuyuki (@yasuyuki)
       6 Junji Sawada (@junjis0203)
       6 Kenji Okimoto (@okkez)+
       6 Selman ULUG (@selman)
       6 Yusuke Endoh (@mame)*
+      6 buty4649 (@buty4649)
       6 masahino (@masahino)
       5 Chris Reuter (@suetanvil)
       5 Davide D'Agostino (@DAddYE)
       5 Eric Hodel (@drbrain)
-      5 Hendrik (@Asmod4n)
       5 Ichito Nagata (@i110)
       5 Keita Obo (@ktaobo)*
       5 Max Anselm (@silverhammermba)
       5 Rodrigo Malizia (@rmalizia44)+
+      5 Ryan Davis (@zenspider)
       5 Syohei YOSHIDA (@syohex)
       5 TOMITA Masahiro (@tmtm)
       5 Yurie Yamane (@yurie)+
@@ -148,6 +150,7 @@
       3 Jonas Minnberg (@sasq64)
       3 Joseph McCullough (@joequery)
       3 Mark McCurry (@fundamental)
+      3 Meder Kydyraliev (@meder)
       3 Nobuhiro Iwamatsu (@iwamatsu)
       3 Per Lundberg (@perlun)*
       3 Rob Fors (@robfors)*
@@ -200,7 +203,6 @@
       2 Tomás Pollak (@tomas)*
       2 Yutaka HARA (@yhara)*+
       2 Zhang Xiaohui (@hifoolno)
-      2 buty4649 (@buty4649)
       2 icm7216 (@icm7216)
       1 A-Sat (@asatou)+
       1 AN Long (@aisk)
@@ -266,14 +268,15 @@
       1 Nicholas (@knf)
       1 Nozomi SATO (@nozomiS)
       1 Okumura Takahiro (@hfm)
+      1 Oliver Chang (@oliverchang)
       1 Patrick Ellis (@pje)
       1 Patrick Pokatilo (@SHyx0rmZ)
       1 Pavel Evstigneev (@Paxa)+
       1 Pete Kinnecom (@petekinnecom)
+      1 Piotr Usewicz (@pusewicz)
       1 Prayag Verma (@pra85)
       1 Ranmocy (@ranmocy)
       1 Robert McNally (@wolfmcnally)
-      1 Ryan Davis (@zenspider)
       1 Ryan Scott Lewis (@RyanScottLewis)
       1 Ryo Okubo (@syucream)
       1 SAkira a.k.a. Akira Suzuki (@sakisakira)
