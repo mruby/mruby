@@ -8,7 +8,7 @@
 #include <mruby.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>
-#include "dir_hal.h"
+#include <mruby/dir_hal.h>
 
 #if defined(_WIN32)
 #include <io.h>

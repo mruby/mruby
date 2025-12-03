@@ -10,7 +10,7 @@
 */
 
 #include <mruby.h>
-#include "task_hal.h"
+#include <mruby/task_hal.h>
 #include <signal.h>
 #include <sys/time.h>
 #include <time.h>
