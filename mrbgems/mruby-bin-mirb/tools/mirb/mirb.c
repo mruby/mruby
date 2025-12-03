@@ -131,7 +131,7 @@ p(mrb_state *mrb, mrb_value obj)
 }
 
 static void
-p_error(mrb_state *mrb, struct RObject* exc)
+p_error(mrb_state *mrb, struct RObject* exc, mrb_ccontext *cxt)
 {
   mrb_value val = mrb_exc_get_output(mrb, exc);
   if (!mrb_string_p(val)) {
@@ -143,10 +143,30 @@ p_error(mrb_state *mrb, struct RObject* exc)
   if (mrb_array_p(bt) && RARRAY_LEN(bt) > 0) {
     mrb_value location = RARRAY_PTR(bt)[0];
     if (mrb_string_p(location)) {
-      char* loc_msg = mrb_locale_from_utf8(RSTRING_PTR(location), (int)RSTRING_LEN(location));
-      fputs(loc_msg, stdout);
-      fputs(": ", stdout);
-      mrb_locale_free(loc_msg);
+      const char *loc_str = RSTRING_PTR(location);
+
+      /* parse location string: "(mirb):LINE" or "(mirb):LINE:in method" */
+      const char *colon = strchr(loc_str, ':');
+      if (colon && colon[1] >= '0' && colon[1] <= '9') {
+        /* check if there's a method name - this means error is from previous code */
+        const char *in_pos = strstr(colon + 1, ":in ");
+        if (in_pos) {
+          /* error inside a previously defined method */
+          char* loc_msg = mrb_locale_from_utf8(in_pos, (int)RSTRING_LEN(location) - (int)(in_pos - loc_str));
+          printf("(mirb)%s: ", loc_msg);
+          mrb_locale_free(loc_msg);
+        }
+        else {
+          /* no method name - could be current or previous top-level code */
+          int err_line = atoi(colon + 1);
+          if (err_line >= cxt->lineno) {
+            /* error in current input - show relative line number */
+            int relative_line = err_line - cxt->lineno + 1;
+            printf("line %d: ", relative_line);
+          }
+          /* else: error from top-level previous code, no location shown */
+        }
+      }
     }
   }
 
@@ -750,7 +770,7 @@ main(int argc, char **argv)
         /* did an exception occur? */
         if (mrb->exc) {
           MRB_EXC_CHECK_EXIT(mrb, mrb->exc);
-          p_error(mrb, mrb->exc);
+          p_error(mrb, mrb->exc, cxt);
           mrb->exc = 0;
         }
         else {
