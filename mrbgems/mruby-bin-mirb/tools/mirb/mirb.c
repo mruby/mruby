@@ -377,14 +377,9 @@ print_hint(void)
 #ifndef MRB_USE_READLINE
 /* Print the command line prompt of the REPL */
 static void
-print_cmdline(int code_block_open)
+print_cmdline(int code_block_open, int line_num)
 {
-  if (code_block_open) {
-    printf("* ");
-  }
-  else {
-    printf("> ");
-  }
+  printf("%d%c ", line_num, code_block_open ? '*' : '>');
   fflush(stdout);
 }
 #endif
@@ -470,6 +465,7 @@ main(int argc, char **argv)
   int n;
   int i;
   mrb_bool code_block_open = FALSE;
+  int line_num = 1;
   int ai;
   unsigned int stack_keep = 0;
 
@@ -550,7 +546,7 @@ main(int argc, char **argv)
     }
 
 #ifndef MRB_USE_READLINE
-    print_cmdline(code_block_open);
+    print_cmdline(code_block_open, line_num);
 
     signal(SIGINT, ctrl_c_handler);
     char_index = 0;
@@ -567,6 +563,7 @@ main(int argc, char **argv)
       ruby_code[0] = '\0';
       last_code_line[0] = '\0';
       code_block_open = FALSE;
+      line_num = 1;
       puts("^C");
       input_canceled = 0;
       continue;
@@ -586,10 +583,15 @@ main(int argc, char **argv)
       ruby_code[0] = '\0';
       last_code_line[0] = '\0';
       code_block_open = FALSE;
+      line_num = 1;
       puts("^C");
     }
     signal(SIGINT, ctrl_c_handler);
-    line = MIRB_READLINE(code_block_open ? "* " : "> ");
+    {
+      char prompt[32];
+      snprintf(prompt, sizeof(prompt), "%d%c ", line_num, code_block_open ? '*' : '>');
+      line = MIRB_READLINE(prompt);
+    }
     signal(SIGINT, SIG_DFL);
 
     if (line == NULL) {
@@ -607,6 +609,7 @@ main(int argc, char **argv)
     }
     MIRB_LINE_FREE(line);
 #endif
+    line_num++;
 
   done:
     if (code_block_open) {
@@ -654,6 +657,7 @@ main(int argc, char **argv)
         char* msg = mrb_locale_from_utf8(parser->error_buffer[0].message, -1);
         printf("line %d: %s\n", parser->error_buffer[0].lineno, msg);
         mrb_locale_free(msg);
+        line_num = 1;
       }
       else {
         /* generate bytecode */
@@ -699,6 +703,7 @@ main(int argc, char **argv)
       }
       ruby_code[0] = '\0';
       last_code_line[0] = '\0';
+      line_num = 1;
       mrb_gc_arena_restore(mrb, ai);
     }
     mrb_parser_free(parser);
