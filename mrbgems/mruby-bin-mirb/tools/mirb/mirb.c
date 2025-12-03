@@ -137,6 +137,19 @@ p_error(mrb_state *mrb, struct RObject* exc)
   if (!mrb_string_p(val)) {
     val = mrb_obj_as_string(mrb, val);
   }
+
+  /* get first line of backtrace for location info */
+  mrb_value bt = mrb_exc_backtrace(mrb, mrb_obj_value(exc));
+  if (mrb_array_p(bt) && RARRAY_LEN(bt) > 0) {
+    mrb_value location = RARRAY_PTR(bt)[0];
+    if (mrb_string_p(location)) {
+      char* loc_msg = mrb_locale_from_utf8(RSTRING_PTR(location), (int)RSTRING_LEN(location));
+      fputs(loc_msg, stdout);
+      fputs(": ", stdout);
+      mrb_locale_free(loc_msg);
+    }
+  }
+
   char* msg = mrb_locale_from_utf8(RSTRING_PTR(val), (int)RSTRING_LEN(val));
   fwrite(msg, strlen(msg), 1, stdout);
   mrb_locale_free(msg);
@@ -372,6 +385,33 @@ static void
 print_hint(void)
 {
   printf("mirb - Embeddable Interactive Ruby Shell\n\n");
+}
+
+/* Extract a specific line from source code */
+static const char*
+extract_line(const char *str, int target_line, size_t *line_len)
+{
+  const char *line_start = str;
+  const char *p = str;
+  int current_line = 1;
+
+  /* skip to target line */
+  while (current_line < target_line && *p) {
+    if (*p == '\n') {
+      current_line++;
+      line_start = p + 1;
+    }
+    p++;
+  }
+
+  /* find line end */
+  const char *line_end = line_start;
+  while (*line_end && *line_end != '\n') {
+    line_end++;
+  }
+
+  *line_len = line_end - line_start;
+  return line_start;
 }
 
 #ifndef MRB_USE_READLINE
@@ -654,8 +694,31 @@ main(int argc, char **argv)
       }
       if (0 < parser->nerr) {
         /* syntax error */
+        int err_line = parser->error_buffer[0].lineno;
+        int err_col = parser->error_buffer[0].column;
         char* msg = mrb_locale_from_utf8(parser->error_buffer[0].message, -1);
-        printf("line %d: %s\n", parser->error_buffer[0].lineno, msg);
+
+        /* convert absolute line number to relative line within ruby_code */
+        int relative_line = err_line - cxt->lineno + 1;
+
+        /* show error with line:column (using relative line number) */
+        printf("line %d:%d: %s\n", relative_line, err_col, msg);
+
+        /* show source line and caret if available */
+        if (ruby_code[0] != '\0') {
+          size_t line_len;
+          const char *line_start = extract_line(ruby_code, relative_line, &line_len);
+
+          if (line_len > 0) {
+            printf("  %.*s\n", (int)line_len, line_start);
+            printf("  ");
+            for (int i = 0; i < err_col; i++) {
+              printf(" ");
+            }
+            printf("^\n");
+          }
+        }
+
         mrb_locale_free(msg);
         line_num = 1;
       }
