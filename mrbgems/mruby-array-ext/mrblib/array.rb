@@ -545,7 +545,7 @@ class Array
     end
 
     Array.new(column_count) do |column_index|
-      self.map { |row| row[column_index] }
+      self.map {|row| row[column_index] }
     end
   end
 
