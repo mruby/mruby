@@ -59,7 +59,7 @@ class Enumerator
     def initialize(obj, &block)
       super(){|yielder|
         begin
-          obj.each{|x|
+          obj.each {|x|
             if block
               block.call(yielder, x)
             else
@@ -293,7 +293,7 @@ class Enumerator
       Lazy.new(self){|yielder, val|
         ary = block.call(val)
         # TODO: check ary is an Array
-        ary.each{|x|
+        ary.each {|x|
           yielder << x
         }
       }
@@ -314,7 +314,7 @@ class Enumerator
     def zip(*args, &block)
       enums = [self] + args
       Lazy.new(self){|yielder, val|
-        ary = enums.map{|e| e.next}
+        ary = enums.map {|e| e.next}
         if block
           yielder << block.call(ary)
         else
