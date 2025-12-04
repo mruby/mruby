@@ -25,9 +25,9 @@ module Enumerable
   # ISO 15.3.2.2.1
   def all?(&block)
     if block
-      self.each{|*val| return false unless block.call(*val)}
+      self.each {|*val| return false unless block.call(*val)}
     else
-      self.each{|*val| return false unless val.__svalue}
+      self.each {|*val| return false unless val.__svalue}
     end
     true
   end
@@ -42,9 +42,9 @@ module Enumerable
   # ISO 15.3.2.2.2
   def any?(&block)
     if block
-      self.each{|*val| return true if block.call(*val)}
+      self.each {|*val| return true if block.call(*val)}
     else
-      self.each{|*val| return true if val.__svalue}
+      self.each {|*val| return true if val.__svalue}
     end
     false
   end
@@ -60,7 +60,7 @@ module Enumerable
     return to_enum(:collect) unless block
 
     ary = []
-    self.each{|*val| ary.push(block.call(*val))}
+    self.each {|*val| ary.push(block.call(*val))}
     ary
   end
 
@@ -75,7 +75,7 @@ module Enumerable
   def detect(ifnone=nil, &block)
     return to_enum(:detect, ifnone) unless block
 
-    self.each{|*val|
+    self.each {|*val|
       if block.call(*val)
         return val.__svalue
       end
@@ -94,7 +94,7 @@ module Enumerable
     return to_enum(:each_with_index) unless block
 
     i = 0
-    self.each{|*val|
+    self.each {|*val|
       block.call(val.__svalue, i)
       i += 1
     }
@@ -108,7 +108,7 @@ module Enumerable
   # ISO 15.3.2.2.6
   def entries
     ary = []
-    self.each{|*val|
+    self.each {|*val|
       # __svalue is an internal method
       ary.push val.__svalue
     }
@@ -132,7 +132,7 @@ module Enumerable
     return to_enum(:find_all) unless block
 
     ary = []
-    self.each{|*val|
+    self.each {|*val|
       ary.push(val.__svalue) if block.call(*val)
     }
     ary
@@ -148,7 +148,7 @@ module Enumerable
   # ISO 15.3.2.2.9
   def grep(pattern, &block)
     ary = []
-    self.each{|*val|
+    self.each {|*val|
       sv = val.__svalue
       if pattern === sv
         ary.push((block)? block.call(*val): sv)
@@ -165,7 +165,7 @@ module Enumerable
   #
   # ISO 15.3.2.2.10
   def include?(obj)
-    self.each{|*val|
+    self.each {|*val|
       return true if val.__svalue == obj
     }
     false
@@ -193,7 +193,7 @@ module Enumerable
       flag = false
       result = args[0]
     end
-    self.each{|*val|
+    self.each {|*val|
       val = val.__svalue
       if flag
         # push first element as initial
@@ -223,7 +223,7 @@ module Enumerable
   def max(&block)
     flag = true  # 1st element?
     result = nil
-    self.each{|*val|
+    self.each {|*val|
       val = val.__svalue
       if flag
         # 1st element
@@ -250,7 +250,7 @@ module Enumerable
   def min(&block)
     flag = true  # 1st element?
     result = nil
-    self.each{|*val|
+    self.each {|*val|
       val = val.__svalue
       if flag
         # 1st element
@@ -288,7 +288,7 @@ module Enumerable
 
     ary_T = []
     ary_F = []
-    self.each{|*val|
+    self.each {|*val|
       if block.call(*val)
         ary_T.push(val.__svalue)
       else
@@ -309,7 +309,7 @@ module Enumerable
     return to_enum(:reject) unless block
 
     ary = []
-    self.each{|*val|
+    self.each {|*val|
       ary.push(val.__svalue) unless block.call(*val)
     }
     ary
@@ -331,7 +331,7 @@ module Enumerable
   #
   # ISO 15.3.2.2.19
   def sort(&block)
-    self.map{|*val| val.__svalue}.sort(&block)
+    self.map {|*val| val.__svalue}.sort(&block)
   end
 
   ##
