@@ -318,7 +318,7 @@ class Array
 
     while low < high
       mid = ((low+high)/2).truncate
-      res = block.call self[mid]
+      res = block.call(self[mid])
 
       case res
       when 0 # find-any mode: Found!
