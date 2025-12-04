@@ -129,7 +129,7 @@ class Hash
   #
 
   def delete_if(&block)
-    return to_enum :delete_if unless block
+    return to_enum(:delete_if) unless block
 
     self.each do |k, v|
       self.delete(k) if block.call(k, v)
@@ -186,7 +186,7 @@ class Hash
   #
 
   def keep_if(&block)
-    return to_enum :keep_if unless block
+    return to_enum(:keep_if) unless block
 
     self.each do |k, v|
       unless block.call([k, v])
@@ -316,7 +316,7 @@ class Hash
   # If no block is given, an enumerator is returned instead.
   #
   def transform_keys(&block)
-    return to_enum :transform_keys unless block
+    return to_enum(:transform_keys) unless block
     hash = {}
     self.keys.each do |k|
       new_key = block.call(k)
@@ -335,7 +335,7 @@ class Hash
   # If no block is given, an enumerator is returned instead.
   #
   def transform_keys!(&block)
-    return to_enum :transform_keys! unless block
+    return to_enum(:transform_keys!) unless block
     hash = self.transform_keys(&block)
     self.replace(hash)
     self
@@ -352,7 +352,7 @@ class Hash
   # If no block is given, an enumerator is returned instead.
   #
   def transform_values(&b)
-    return to_enum :transform_values unless block_given?
+    return to_enum(:transform_values) unless block_given?
     hash = {}
     self.keys.each do |k|
       hash[k] = yield(self[k])
@@ -371,7 +371,7 @@ class Hash
   # If no block is given, an enumerator is returned instead.
   #
   def transform_values!(&b)
-    return to_enum :transform_values! unless block_given?
+    return to_enum(:transform_values!) unless block_given?
     self.keys.each do |k|
       self[k] = yield(self[k])
     end
