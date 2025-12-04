@@ -97,7 +97,7 @@ class Complex < Numeric
   #   Complex(3.0, -4.0).abs  #=> 5.0
   #
   def abs
-    Math.hypot imaginary, real
+    Math.hypot(imaginary, real)
   end
   alias_method :magnitude, :abs
 
@@ -125,7 +125,7 @@ class Complex < Numeric
   #   Complex.polar(3, Math::PI/2).arg  #=> 1.5707963267948966
   #
   def arg
-    Math.atan2 imaginary, real
+    Math.atan2(imaginary, real)
   end
   alias_method :angle, :arg
   alias_method :phase, :arg
