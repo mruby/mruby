@@ -537,11 +537,11 @@ module Enumerable
   #
   def all?(pat=NONE, &block)
     if !NONE.equal?(pat)
-      self.each{|*val| return false unless pat === val.__svalue}
+      self.each {|*val| return false unless pat === val.__svalue}
     elsif block
-      self.each{|*val| return false unless block.call(*val)}
+      self.each {|*val| return false unless block.call(*val)}
     else
-      self.each{|*val| return false unless val.__svalue}
+      self.each {|*val| return false unless val.__svalue}
     end
     true
   end
@@ -570,11 +570,11 @@ module Enumerable
   #
   def any?(pat=NONE, &block)
     if !NONE.equal?(pat)
-      self.each{|*val| return true if pat === val.__svalue}
+      self.each {|*val| return true if pat === val.__svalue}
     elsif block
-      self.each{|*val| return true if block.call(*val)}
+      self.each {|*val| return true if block.call(*val)}
     else
-      self.each{|*val| return true if val.__svalue}
+      self.each {|*val| return true if val.__svalue}
     end
     false
   end
@@ -831,7 +831,7 @@ module Enumerable
 
   def grep_v(pattern, &block)
     ary = []
-    self.each{|*val|
+    self.each {|*val|
       sv = val.__svalue
       unless pattern === sv
         ary.push((block)? block.call(*val): sv)
