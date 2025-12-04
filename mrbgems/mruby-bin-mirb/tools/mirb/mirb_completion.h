@@ -95,7 +95,7 @@ void mirb_add_completion(mirb_completion_ctx *ctx, const char *text);
 char *mirb_extract_receiver(const char *line, int cursor_pos, int *recv_end);
 
 /* Evaluate receiver expression to get object */
-mrb_value mirb_eval_receiver(mrb_state *mrb, const char *receiver_expr);
+mrb_value mirb_eval_receiver(mrb_state *mrb, const char *receiver_expr, mrb_ccontext *cxt);;
 
 /* Check if in file completion context */
 mrb_bool mirb_in_file_context(const char *line, int quote_pos);

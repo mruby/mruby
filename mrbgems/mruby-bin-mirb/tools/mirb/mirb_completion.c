@@ -199,16 +199,36 @@ mirb_extract_receiver(const char *line, int cursor_pos, int *recv_end)
  * Receiver Evaluation
  * ============================================================ */
 
+/* Check if receiver expression is simple (just a name, no method calls) */
+static mrb_bool
+is_simple_receiver(const char *expr)
+{
+  int i;
+
+  /* Empty is not simple */
+  if (!expr || expr[0] == '\0') return FALSE;
+
+  /* Check if it contains only alphanumeric, underscore, or scope resolution */
+  for (i = 0; expr[i]; i++) {
+    char c = expr[i];
+    if (!(ISALNUM(c) || c == '_' || c == ':')) {
+      return FALSE;  /* Contains operators, parentheses, etc. */
+    }
+  }
+
+  return TRUE;
+}
+
 mrb_value
-mirb_eval_receiver(mrb_state *mrb, const char *receiver_expr)
+mirb_eval_receiver(mrb_state *mrb, const char *receiver_expr, mrb_ccontext *cxt)
 {
   struct mrb_parser_state *parser;
   struct RProc *proc;
   mrb_value result;
   int ai = mrb_gc_arena_save(mrb);
 
-  /* Parse the receiver expression */
-  parser = mrb_parse_string(mrb, receiver_expr, NULL);
+  /* Parse the receiver expression WITH compiler context to access local variables */
+  parser = mrb_parse_string(mrb, receiver_expr, cxt);
   if (!parser || parser->nerr > 0) {
     if (parser) mrb_parser_free(parser);
     return mrb_nil_value();
@@ -454,9 +474,14 @@ mirb_generate_completions(mirb_completion_ctx *ctx, const char *line, int cursor
     case COMPLETION_METHOD:
       receiver_expr = mirb_extract_receiver(line, cursor_pos, &recv_end);
       if (receiver_expr) {
-        receiver = mirb_eval_receiver(ctx->mrb, receiver_expr);
-        if (!mrb_nil_p(receiver)) {
-          mirb_complete_methods(ctx, receiver);
+        /* Only evaluate simple receivers to avoid corrupting VM state.
+         * Complex expressions like "obj.method()" are skipped for now.
+         * This prevents local variables from being cleared during tab completion. */
+        if (is_simple_receiver(receiver_expr)) {
+          receiver = mirb_eval_receiver(ctx->mrb, receiver_expr, ctx->cxt);
+          if (!mrb_nil_p(receiver)) {
+            mirb_complete_methods(ctx, receiver);
+          }
         }
         free(receiver_expr);
       }
