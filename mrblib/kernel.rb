@@ -25,7 +25,7 @@ module Kernel
   #
   # ISO 15.3.1.3.29
   private def loop(&block)
-    return to_enum :loop unless block
+    return to_enum(:loop) unless block
 
     while true
       yield

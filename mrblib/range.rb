@@ -15,7 +15,7 @@ class Range
   #
   # ISO 15.2.14.4.4
   def each(&block)
-    return to_enum :each unless block
+    return to_enum(:each) unless block
 
     val = self.begin
     last = self.end

@@ -14,7 +14,7 @@ class NoMethodError < NameError
 
   def initialize(message=nil, name=nil, args=nil)
     @args = args
-    super message, name
+    super(message, name)
   end
 end
 

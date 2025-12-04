@@ -57,7 +57,7 @@ module Enumerable
   #
   # ISO 15.3.2.2.3
   def collect(&block)
-    return to_enum :collect unless block
+    return to_enum(:collect) unless block
 
     ary = []
     self.each{|*val| ary.push(block.call(*val))}
@@ -73,7 +73,7 @@ module Enumerable
   #
   # ISO 15.3.2.2.4
   def detect(ifnone=nil, &block)
-    return to_enum :detect, ifnone unless block
+    return to_enum(:detect, ifnone) unless block
 
     self.each{|*val|
       if block.call(*val)
@@ -91,7 +91,7 @@ module Enumerable
   #
   # ISO 15.3.2.2.5
   def each_with_index(&block)
-    return to_enum :each_with_index unless block
+    return to_enum(:each_with_index) unless block
 
     i = 0
     self.each{|*val|
@@ -129,7 +129,7 @@ module Enumerable
   #
   # ISO 15.3.2.2.8
   def find_all(&block)
-    return to_enum :find_all unless block
+    return to_enum(:find_all) unless block
 
     ary = []
     self.each{|*val|
@@ -284,7 +284,7 @@ module Enumerable
   #
   # ISO 15.3.2.2.16
   def partition(&block)
-    return to_enum :partition unless block
+    return to_enum(:partition) unless block
 
     ary_T = []
     ary_F = []
@@ -306,7 +306,7 @@ module Enumerable
   #
   # ISO 15.3.2.2.17
   def reject(&block)
-    return to_enum :reject unless block
+    return to_enum(:reject) unless block
 
     ary = []
     self.each{|*val|

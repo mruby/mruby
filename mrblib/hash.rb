@@ -52,7 +52,7 @@ class Hash
   #
   # ISO 15.2.13.4.9
   def each(&block)
-    return to_enum :each unless block
+    return to_enum(:each) unless block
 
     keys = self.keys
     vals = self.values
@@ -85,7 +85,7 @@ class Hash
   #
   # ISO 15.2.13.4.10
   def each_key(&block)
-    return to_enum :each_key unless block
+    return to_enum(:each_key) unless block
 
     self.keys.each{|k| block.call(k)}
     self
@@ -110,7 +110,7 @@ class Hash
   #
   # ISO 15.2.13.4.11
   def each_value(&block)
-    return to_enum :each_value unless block
+    return to_enum(:each_value) unless block
 
     self.values.each{|v| block.call(v)}
     self
@@ -165,7 +165,7 @@ class Hash
   #  1.8/1.9 Hash#reject! returns Hash; ISO says nothing.
   #
   def reject!(&block)
-    return to_enum :reject! unless block
+    return to_enum(:reject!) unless block
 
     keys = []
     self.each{|k,v|
@@ -196,7 +196,7 @@ class Hash
   #  1.8/1.9 Hash#reject returns Hash; ISO says nothing.
   #
   def reject(&block)
-    return to_enum :reject unless block
+    return to_enum(:reject) unless block
 
     h = {}
     self.each{|k,v|
@@ -218,7 +218,7 @@ class Hash
   #  1.9 Hash#select! returns Hash; ISO says nothing.
   #
   def select!(&block)
-    return to_enum :select! unless block
+    return to_enum(:select!) unless block
 
     keys = []
     self.each{|k,v|
@@ -249,7 +249,7 @@ class Hash
   #  1.9 Hash#select returns Hash; ISO says nothing
   #
   def select(&block)
-    return to_enum :select unless block
+    return to_enum(:select) unless block
 
     h = {}
     self.each{|k,v|
