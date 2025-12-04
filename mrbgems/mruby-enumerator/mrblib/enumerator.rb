@@ -175,7 +175,7 @@ class Enumerator
     n = offset - 1
     __enumerator_block_call do |*i|
       n += 1
-      block.call i.__svalue, n
+      block.call(i.__svalue, n)
     end
   end
 
@@ -224,7 +224,7 @@ class Enumerator
     return to_enum(:with_object, object) unless block
 
     __enumerator_block_call do |i|
-      block.call [i,object]
+      block.call([i,object])
     end
     object
   end
