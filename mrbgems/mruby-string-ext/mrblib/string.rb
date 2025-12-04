@@ -4,7 +4,7 @@ class String
   # Call the given block for each character of
   # `self`.
   def each_char(&block)
-    return to_enum :each_char unless block
+    return to_enum(:each_char) unless block
     pos = 0
     while pos < self.size
       block.call(self[pos])
