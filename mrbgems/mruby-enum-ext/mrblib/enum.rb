@@ -273,7 +273,7 @@ module Enumerable
     ary = []
     self.each do |*e|
       e2 = block.call(*e)
-      if e2.respond_to? :each
+      if e2.respond_to?(:each)
         e2.each {|e3| ary.push(e3) }
       else
         ary.push(e2)
