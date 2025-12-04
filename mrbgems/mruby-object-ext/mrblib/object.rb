@@ -8,7 +8,7 @@ module Kernel
   #   'my string'.yield_self {|s|s.upcase} #=> "MY STRING"
   #
   def yield_self(&block)
-    return to_enum :yield_self unless block
+    return to_enum(:yield_self) unless block
     block.call(self)
   end
   alias then yield_self
