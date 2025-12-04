@@ -74,7 +74,7 @@ class Integer
 
     i = 0
     while i < self
-      block.call i
+      block.call(i)
       i += 1
     end
     self
