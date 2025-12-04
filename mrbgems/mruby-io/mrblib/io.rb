@@ -210,7 +210,7 @@ class IO
   #
   # 15.2.20.5.3
   def each(&block)
-    return to_enum unless block
+    return to_enum(:each) unless block
 
     while line = self.gets
       block.call(line)
