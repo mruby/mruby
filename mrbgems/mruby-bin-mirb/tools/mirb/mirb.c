@@ -29,6 +29,8 @@
 #include <signal.h>
 #include <setjmp.h>
 
+#include "mirb_completion.h"
+
 /* obsolete configuration */
 #ifdef ENABLE_READLINE
 # define MRB_USE_READLINE
@@ -594,6 +596,15 @@ main(int argc, char **argv)
   mrb_ccontext_filename(mrb, cxt, "(mirb)");
   if (args.verbose) cxt->dump_result = TRUE;
 
+  /* Setup tab completion */
+#ifdef MRB_USE_READLINE
+#ifndef MRB_USE_LINENOISE
+  mirb_setup_readline_completion(mrb, cxt);
+#else
+  mirb_setup_linenoise_completion(mrb, cxt);
+#endif
+#endif
+
   ai = mrb_gc_arena_save(mrb);
 
   while (TRUE) {
@@ -807,6 +818,16 @@ main(int argc, char **argv)
     mrb_free(mrb, args.libv);
   }
   mrb_ccontext_free(mrb, cxt);
+
+  /* Cleanup tab completion */
+#ifdef MRB_USE_READLINE
+#ifndef MRB_USE_LINENOISE
+  mirb_cleanup_readline_completion();
+#else
+  mirb_cleanup_linenoise_completion();
+#endif
+#endif
+
   mrb_close(mrb);
 
   return 0;
