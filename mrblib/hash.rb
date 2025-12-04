@@ -87,7 +87,7 @@ class Hash
   def each_key(&block)
     return to_enum(:each_key) unless block
 
-    self.keys.each{|k| block.call(k)}
+    self.keys.each {|k| block.call(k)}
     self
   end
 
@@ -112,7 +112,7 @@ class Hash
   def each_value(&block)
     return to_enum(:each_value) unless block
 
-    self.values.each{|v| block.call(v)}
+    self.values.each {|v| block.call(v)}
     self
   end
 
@@ -147,7 +147,7 @@ class Hash
       other = others[i]
       i += 1
       raise TypeError, "Hash required (#{other.class} given)" unless Hash === other
-      other.each_key{|k|
+      other.each_key {|k|
         h[k] = (self.has_key?(k))? block.call(k, self[k], other[k]): other[k]
       }
     end
@@ -168,13 +168,13 @@ class Hash
     return to_enum(:reject!) unless block
 
     keys = []
-    self.each{|k,v|
+    self.each {|k,v|
       if block.call([k, v])
         keys.push(k)
       end
     }
     return nil if keys.size == 0
-    keys.each{|k|
+    keys.each {|k|
       self.delete(k)
     }
     self
@@ -199,7 +199,7 @@ class Hash
     return to_enum(:reject) unless block
 
     h = {}
-    self.each{|k,v|
+    self.each {|k,v|
       unless block.call([k, v])
         h[k] = v
       end
@@ -221,13 +221,13 @@ class Hash
     return to_enum(:select!) unless block
 
     keys = []
-    self.each{|k,v|
+    self.each {|k,v|
       unless block.call([k, v])
         keys.push(k)
       end
     }
     return nil if keys.size == 0
-    keys.each{|k|
+    keys.each {|k|
       self.delete(k)
     }
     self
@@ -252,7 +252,7 @@ class Hash
     return to_enum(:select) unless block
 
     h = {}
-    self.each{|k,v|
+    self.each {|k,v|
       if block.call([k, v])
         h[k] = v
       end
