@@ -66,7 +66,7 @@ class Enumerator
     #   # prints: 1, 2, 3, 4, 5
     #
     def each(&block)
-      return to_enum unless block
+      return to_enum(:each) unless block
 
       i = 0
       while i < @enums.size
