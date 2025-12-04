@@ -59,7 +59,7 @@ class Hash
     len = self.size
     i = 0
     while i < len
-      block.call [keys[i], vals[i]]
+      block.call([keys[i], vals[i]])
       i += 1
     end
     self
