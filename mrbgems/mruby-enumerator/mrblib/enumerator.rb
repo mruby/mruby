@@ -164,7 +164,7 @@ class Enumerator
   # `offset`:: the starting index to use
   #
   def with_index(offset=0, &block)
-    return to_enum :with_index, offset unless block
+    return to_enum(:with_index, offset) unless block
 
     if offset.nil?
       offset = 0
@@ -762,7 +762,7 @@ module Enumerable
   #     e = a.chunk{|i| i < 0 ? :_separator : true }
   #     e.to_a # => [[true, [0, 0]], [true, [1, 1]]]
   def chunk(&block)
-    return to_enum :chunk unless block
+    return to_enum(:chunk) unless block
 
     enum = self
     Enumerator.new do |y|
