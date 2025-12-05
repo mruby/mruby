@@ -24,9 +24,9 @@ jobs:
           path: ~/.cache/pre-commit
           key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
       - name: Run pre-commit
-        run: pre-commit run --all-files
+        run: pre-commit run --color=always --all-files
       - name: Run manual pre-commit hooks
-        run: pre-commit run --all-files --hook-stage manual
+        run: pre-commit run --color=always --all-files --hook-stage manual
   ls-lint:
     name: Run ls-lint
     runs-on: ubuntu-latest
