@@ -44,7 +44,7 @@ class Addrinfo
   #
   def self.foreach(nodename, service, family=nil, socktype=nil, protocol=nil, flags=0, &block)
     a = self.getaddrinfo(nodename, service, family, socktype, protocol, flags)
-    a.each { |ai| block.call(ai) }
+    a.each {|ai| block.call(ai) }
     a
   end
 
@@ -532,7 +532,7 @@ class TCPSocket < IPSocket
     else
       s = nil
       e = SocketError
-      Addrinfo.foreach(host, service) { |ai|
+      Addrinfo.foreach(host, service) {|ai|
         begin
           s = Socket._socket(ai.afamily, Socket::SOCK_STREAM, 0)
           if local_host or local_service
@@ -769,7 +769,7 @@ class Socket < BasicSocket
   #   Addrinfo.getaddrinfo("www.example.com", 80, Socket::AF_INET)
   #
   def self.getaddrinfo(nodename, servname, family=nil, socktype=nil, protocol=nil, flags=0)
-    Addrinfo.getaddrinfo(nodename, servname, family, socktype, protocol, flags).map { |ai|
+    Addrinfo.getaddrinfo(nodename, servname, family, socktype, protocol, flags).map {|ai|
       ary = ai._to_array
       ary[2] = nodename
       ary[4] = ai.afamily
