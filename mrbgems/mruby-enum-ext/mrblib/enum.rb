@@ -923,13 +923,13 @@ class Array
     return to_enum(:sort_by) unless block
 
     ary = []
-    self.each_with_index{|e, i|
+    self.each_with_index {|e, i|
       ary.push([block.call(e), i])
     }
     if ary.size > 1
       ary.sort!
     end
-    ary.collect!{|e,i| self[i]}
+    ary.collect! {|e,i| self[i]}
   end
 
   def sort_by!(&block)
