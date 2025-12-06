@@ -20,7 +20,7 @@ class Method
   #
   def to_proc
     m = self
-    lambda { |*args, **opts, &b|
+    lambda {|*args, **opts, &b|
       m.call(*args, **opts, &b)
     }
   end
