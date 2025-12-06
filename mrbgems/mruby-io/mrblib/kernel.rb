@@ -11,7 +11,7 @@ module Kernel
   #   `echo oops && exit 99`   #=> "oops\n"
   #
   private def `(cmd) #`
-    IO.popen(cmd) { |io| io.read }
+    IO.popen(cmd) {|io| io.read }
   end
 
   #
