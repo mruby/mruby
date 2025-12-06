@@ -17,6 +17,30 @@ repos:
         description: check hooks apply to the repository
   - repo: local
     hooks:
+      - id: pre-commit-hook-validator
+        name: run pre-commit hook validator
+        description: Validates a pre-commit-config.yaml file to ensure all hooks have 'name' and 'description' keys
+        entry: scripts/pre_commit_hooks_validator.py
+        language: python
+        additional_dependencies:
+          - pyyaml
+        files: ^\.pre-commit-config\.yaml$ # Only run this hook against the config file itself
+        pass_filenames: false # Crucial: Don't pass the filename as an argument. Your script will default.
+        # Alternatively, if you want to pass the filename, you'd need:
+        # entry: python validate_pre_commit_hooks.py .pre-commit-config.yaml
+        # args: ['.pre-commit-config.yaml']
+        # pass_filenames: false
+        require_serial: true
+      - id: create-pre-commit-docs
+        name: create pre-commit docs
+        description: creates a Markdown file with information on the pre-commit hooks
+        entry: scripts/create_pre_commit_docs.py
+        language: python
+        additional_dependencies:
+          - pyyaml
+        files: ^\.pre-commit-config\.yaml$
+        pass_filenames: false
+        require_serial: true
       - id: prettier
         name: run prettier
         description: format files with prettier
@@ -51,29 +75,67 @@ repos:
     rev: v6.0.0
     hooks:
       - id: check-added-large-files
+        name: check added large files
+        description: Prevent giant files from being committed
       - id: check-case-conflict
+        name: check case conflict
+        description: Check for files with names that would conflict on a case-insensitive filesystem like MacOS HFS+ or Windows FAT
       - id: check-executables-have-shebangs
+        name: check executables have shebangs
+        description: Checks that non-binary executables have a proper shebang
         exclude: ^test/t/lang\.rb$
       - id: check-illegal-windows-names
+        name: check illegal windows names
+        description: Check for files that cannot be created on Windows
       - id: pretty-format-json
+        name: pretty format json
+        description: Checks that all your JSON files are pretty
         args: [--autofix, --no-sort-keys]
       - id: check-json
+        name: check json
+        description: Attempts to load all json files to verify syntax
       - id: check-merge-conflict
+        name: check merge conflict
+        description: Check for files that contain merge conflict strings
       - id: check-shebang-scripts-are-executable
+        name: check shebang scripts are executable
+        description: Checks that scripts with shebangs are executable
       - id: check-vcs-permalinks
+        name: check vcs permalinks
+        description: Ensures that links to vcs websites are permalinks
       - id: check-yaml
+        name: check yaml
+        description: Attempts to load all yaml files to verify syntax
       - id: destroyed-symlinks
+        name: destroyed symlinks
+        description: Detects symlinks which are changed to regular files with a content of a path which that symlink was pointing to
       - id: detect-aws-credentials
+        name: detect aws credentials
+        description: Checks for the existence of AWS secrets that you have set up with the AWS CLI
         args: [--allow-missing-credentials]
       - id: detect-private-key
+        name: detect private key
+        description: Checks for the existence of private keys
       - id: end-of-file-fixer
+        name: end of file fixer
+        description: Makes sure files end in a newline and only a newline
       - id: file-contents-sorter
+        name: file contents sorter
+        description: Sort the lines in specified files (defaults to alphabetical)
         args: [--unique]
         files: ^\.github/linters/codespell\.txt$
       - id: fix-byte-order-marker
+        name: fix byte order marker
+        description: Removes UTF-8 byte order marker
       - id: forbid-submodules
+        name: forbid submodules
+        description: Prevent addition of new git submodules
       - id: mixed-line-ending
+        name: mixed line ending
+        description: Replaces or checks mixed line ending
       - id: trailing-whitespace
+        name: trailing whitespace
+        description: Trims trailing whitespace
   - repo: https://github.com/Lucas-C/pre-commit-hooks
     rev: v1.5.5
     hooks:
