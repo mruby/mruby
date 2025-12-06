@@ -6,11 +6,16 @@
     </a>
   </p>
   <h1>mruby</h1>
-  <a href="https://github.com/marketplace/actions/super-linter">
-    <img src="https://github.com/mruby/mruby/actions/workflows/super-linter.yml/badge.svg"
-      alt="GitHub Super-Linter">
-  </a>
 </div>
+
+[![Build and Test Workflow Status](https://github.com/mruby/mruby/actions/workflows/build.yml/badge.svg)](https://github.com/mruby/mruby/actions/workflows/build.yml)
+[![CIFuzz Workflow Status](https://github.com/mruby/mruby/actions/workflows/oss-fuzz.yml/badge.svg)](https://github.com/mruby/mruby/actions/workflows/oss-fuzz.yml)
+[![CodeQL Analysis Workflow Status](https://github.com/mruby/mruby/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/mruby/mruby/actions/workflows/codeql-analysis.yml)
+[![Coverage Workflow Status](https://github.com/mruby/mruby/actions/workflows/coverage.yml/badge.svg)](https://github.com/mruby/mruby/actions/workflows/coverage.yml)
+[![Lint Workflow Status](https://github.com/mruby/mruby/actions/workflows/lint.yml/badge.svg)](https://github.com/mruby/mruby/actions/workflows/lint.yml)
+[![Release Workflow Status](https://github.com/mruby/mruby/actions/workflows/release.yml/badge.svg)](https://github.com/mruby/mruby/actions/workflows/release.yml)
+[![Pull Request Labeler Workflow Status](https://github.com/mruby/mruby/actions/workflows/labeler.yml/badge.svg)](https://github.com/mruby/mruby/actions/workflows/labeler.yml)
+[![Super-Linter Workflow Status](https://github.com/mruby/mruby/actions/workflows/super-linter.yml/badge.svg)](https://github.com/mruby/mruby/actions/workflows/super-linter.yml)
 
 ## What is mruby
 
