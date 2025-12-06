@@ -1,5 +1,5 @@
 # https://pre-commit.com/
-name: Lint
+name: pre-commit
 
 on: [pull_request]
 
@@ -27,11 +27,3 @@ jobs:
         run: pre-commit run --color=always --all-files
       - name: Run manual pre-commit hooks
         run: pre-commit run --color=always --all-files --hook-stage manual
-  ls-lint:
-    name: Run ls-lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ls-lint/action@v2.3.1
-        with:
-          config: .github/linters/.ls-lint.yml

@@ -1,0 +1,17 @@
+# https://github.com/loeffel-io/ls-lint
+name: Lint
+
+on: [pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  ls-lint:
+    name: Run ls-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ls-lint/action@v2.3.1
+        with:
+          config: .github/linters/.ls-lint.yml
