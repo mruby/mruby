@@ -77,7 +77,7 @@ module Benchmark
     if memory
       if Object.const_defined?(:ObjectSpace)
         start_count = ObjectSpace.count_objects
-        start_objects = start_count.values.inject(0) { |sum, n| sum + n }
+        start_objects = start_count.values.inject(0) {|sum, n| sum + n }
       end
     end
 
@@ -91,7 +91,7 @@ module Benchmark
 
     if memory && start_count
       end_count = ObjectSpace.count_objects
-      end_objects = end_count.values.inject(0) { |sum, n| sum + n }
+      end_objects = end_count.values.inject(0) {|sum, n| sum + n }
       objects_allocated = end_objects - start_objects
 
       # Estimate memory based on object count
