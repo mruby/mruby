@@ -43,7 +43,7 @@ class Set
   #   set                   #=> #<Set: {1, 2, 3, 4}>
   #
   def merge(enum)
-    __merge(enum) || __do_with_enum(enum) { |o| add(o) }
+    __merge(enum) || __do_with_enum(enum) {|o| add(o) }
     self
   end
 
@@ -75,7 +75,7 @@ class Set
   #   set                   #=> #<Set: {1, 3}>
   #
   def subtract(enum)
-    __subtract(enum) || __do_with_enum(enum) { |o| delete(o) }
+    __subtract(enum) || __do_with_enum(enum) {|o| delete(o) }
     self
   end
 
@@ -93,7 +93,7 @@ class Set
   def intersection(enum)
     __intersection(enum) || begin
       n = Set.new
-      __do_with_enum(enum) { |o| n.add(o) if include?(o) }
+      __do_with_enum(enum) {|o| n.add(o) if include?(o) }
       n
     end
   end
@@ -136,7 +136,7 @@ class Set
   def difference(enum)
     __difference(enum) || begin
       result = dup
-      __do_with_enum(enum) { |o| result.delete(o) }
+      __do_with_enum(enum) {|o| result.delete(o) }
       result
     end
   end
@@ -294,7 +294,7 @@ class Set
   def classify
     return to_enum(:classify) unless block_given?
     h = {}
-    each { |i|
+    each {|i|
       x = yield(i)
       (h[x] ||= self.class.new).add(i)
     }
