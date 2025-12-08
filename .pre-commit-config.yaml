@@ -3,7 +3,7 @@
 default_stages: [pre-commit, pre-push]
 default_language_version:
   python: python3
-  node: 22.19.0
+  node: 24.11.1
 minimum_pre_commit_version: "3.2.0"
 exclude: "^tools/lrama/"
 repos:
@@ -23,7 +23,7 @@ repos:
         entry: prettier --write '**/*.json' '**/*.md' '**/*.yaml' '**/*.yml'
         files: \.(json|md|ya?ml)$
         language: node
-        additional_dependencies: ["prettier@3.6.2"]
+        additional_dependencies: ["prettier@3.7.4"]
         stages: [manual]
       - id: check-zip-file-is-not-committed
         name: disallow zip files
@@ -34,13 +34,13 @@ repos:
           track and have security implications. Please remove the zip file from the repository.
         files: \.zip$
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.28.0
+    rev: v8.30.0
     hooks:
       - id: gitleaks
         name: run gitleaks
         description: detect hardcoded secrets with gitleaks
   - repo: https://github.com/oxipng/oxipng
-    rev: v9.1.5
+    rev: v10.0.0
     hooks:
       - id: oxipng
         name: run oxipng
@@ -87,7 +87,7 @@ repos:
         args: [--whitespaces-count, "2"]
         exclude: Makefile$
   - repo: https://github.com/rhysd/actionlint
-    rev: v1.7.7
+    rev: v1.7.9
     hooks:
       - id: actionlint
         name: run actionlint
@@ -99,7 +99,7 @@ repos:
         name: run codespell
         description: check spelling with codespell
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.45.0
+    rev: v0.46.0
     hooks:
       - id: markdownlint
         name: run markdownlint
@@ -108,7 +108,7 @@ repos:
         types: [markdown]
         files: \.md$
   - repo: https://github.com/tcort/markdown-link-check
-    rev: v3.13.7
+    rev: v3.14.2
     hooks:
       - id: markdown-link-check
         name: run markdown-link-check
@@ -118,7 +118,7 @@ repos:
         types: [markdown]
         files: \.md$
   - repo: https://github.com/rubocop/rubocop
-    rev: v1.80.2
+    rev: v1.81.7
     hooks:
       - id: rubocop
         name: run rubocop
