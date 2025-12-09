@@ -122,6 +122,17 @@ supports_escape_sequences(void)
   return TRUE;
 }
 
+/* ANSI color codes - safe colors that work on light and dark themes */
+#define MIRB_COLOR_RESET   "\033[0m"
+#define MIRB_COLOR_BOLD    "\033[1m"
+#define MIRB_COLOR_RED     "\033[31m"
+#define MIRB_COLOR_GREEN   "\033[32m"
+
+/* Color helpers - return empty string if colors disabled */
+static const char *col_reset(void) { return mirb_use_ansi ? MIRB_COLOR_RESET : ""; }
+static const char *col_bold(void) { return mirb_use_ansi ? MIRB_COLOR_BOLD : ""; }
+static const char *col_red(void) { return mirb_use_ansi ? MIRB_COLOR_RED : ""; }
+
 /* Check if line starts with a mid-block keyword (else, elsif, rescue, ensure, when)
  * These keywords should be at the same indent level as the opening keyword */
 static mrb_bool
@@ -157,8 +168,8 @@ reprint_line_with_indent(int line_num, const char *line, int indent)
   /* Move cursor up, clear line, return to beginning */
   printf("\033[A\r\033[K");
 
-  /* Print prompt */
-  printf("%d* ", line_num);
+  /* Print prompt (green for all prompts) */
+  printf("%s%d*%s ", mirb_use_ansi ? MIRB_COLOR_GREEN : "", line_num, col_reset());
 
   /* Print corrected indentation */
   for (i = 0; i < indent; i++) {
@@ -270,7 +281,11 @@ p(mrb_state *mrb, mrb_value obj)
 {
   mrb_value val = mrb_funcall_argv(mrb, obj, MRB_SYM(inspect), 0, NULL);
   if (!mrb->exc) {
+#if !defined(MRB_USE_LINENOISE) && defined(RL_READLINE_VERSION)
+    printf(" %s=>%s ", col_bold(), col_reset());
+#else
     fputs(" => ", stdout);
+#endif
   }
   else {
     val = mrb_exc_get_output(mrb, mrb->exc);
@@ -291,6 +306,10 @@ p_error(mrb_state *mrb, struct RObject* exc, mrb_ccontext *cxt)
   if (!mrb_string_p(val)) {
     val = mrb_obj_as_string(mrb, val);
   }
+
+#if !defined(MRB_USE_LINENOISE) && defined(RL_READLINE_VERSION)
+  printf("%s", col_red());
+#endif
 
   /* get first line of backtrace for location info */
   mrb_value bt = mrb_exc_backtrace(mrb, mrb_obj_value(exc));
@@ -327,7 +346,11 @@ p_error(mrb_state *mrb, struct RObject* exc, mrb_ccontext *cxt)
   char* msg = mrb_locale_from_utf8(RSTRING_PTR(val), (int)RSTRING_LEN(val));
   fwrite(msg, strlen(msg), 1, stdout);
   mrb_locale_free(msg);
+#if !defined(MRB_USE_LINENOISE) && defined(RL_READLINE_VERSION)
+  printf("%s\n", col_reset());
+#else
   putc('\n', stdout);
+#endif
 }
 
 /* Guess if the user might want to enter more
@@ -818,11 +841,20 @@ main(int argc, char **argv)
     }
     signal(SIGINT, ctrl_c_handler);
     {
-      char prompt[32];
-      snprintf(prompt, sizeof(prompt), "%d%c ", line_num, code_block_open ? '*' : '>');
+      char prompt[64];
 #if !defined(MRB_USE_LINENOISE) && defined(RL_READLINE_VERSION)
       /* Set indent level for auto-indent on continuation lines */
       mirb_indent_level = code_block_open ? calc_indent_level(ruby_code) : 0;
+      /* Build prompt with colors - readline needs \001 \002 around non-printing chars */
+      if (mirb_use_ansi) {
+        snprintf(prompt, sizeof(prompt), "\001" MIRB_COLOR_GREEN "\002%d%c\001" MIRB_COLOR_RESET "\002 ",
+                 line_num, code_block_open ? '*' : '>');
+      }
+      else {
+        snprintf(prompt, sizeof(prompt), "%d%c ", line_num, code_block_open ? '*' : '>');
+      }
+#else
+      snprintf(prompt, sizeof(prompt), "%d%c ", line_num, code_block_open ? '*' : '>');
 #endif
       line = MIRB_READLINE(prompt);
     }
@@ -897,7 +929,11 @@ main(int argc, char **argv)
       if (0 < parser->nwarn) {
         /* warning */
         char* msg = mrb_locale_from_utf8(parser->warn_buffer[0].message, -1);
-        printf("line %d: %s\n", parser->warn_buffer[0].lineno, msg);
+#if !defined(MRB_USE_LINENOISE) && defined(RL_READLINE_VERSION)
+        printf("%swarning: line %d: %s%s\n", col_red(), parser->warn_buffer[0].lineno, msg, col_reset());
+#else
+        printf("warning: line %d: %s\n", parser->warn_buffer[0].lineno, msg);
+#endif
         mrb_locale_free(msg);
       }
       if (0 < parser->nerr) {
@@ -910,6 +946,9 @@ main(int argc, char **argv)
         int relative_line = err_line - cxt->lineno + 1;
 
         /* show error with line:column (using relative line number) */
+#if !defined(MRB_USE_LINENOISE) && defined(RL_READLINE_VERSION)
+        printf("%s", col_red());
+#endif
         printf("line %d:%d: %s\n", relative_line, err_col, msg);
 
         /* show source line and caret if available */
@@ -926,6 +965,9 @@ main(int argc, char **argv)
             printf("^\n");
           }
         }
+#if !defined(MRB_USE_LINENOISE) && defined(RL_READLINE_VERSION)
+        printf("%s", col_reset());
+#endif
 
         mrb_locale_free(msg);
         line_num = 1;
