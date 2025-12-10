@@ -27,7 +27,6 @@
 #include <ctype.h>
 
 #include <signal.h>
-#include <setjmp.h>
 
 #ifdef _WIN32
 #include <io.h>
@@ -36,244 +35,11 @@
 #include <unistd.h>
 #endif
 
-#include "mirb_completion.h"
+#include "mirb_editor.h"
 
 /* obsolete configuration */
-#ifdef ENABLE_READLINE
-# define MRB_USE_READLINE
-#endif
-#ifdef ENABLE_LINENOISE
-# define MRB_USE_LINENOISE
-#endif
 #ifdef DISABLE_MIRB_UNDERSCORE
 # define MRB_NO_MIRB_UNDERSCORE
-#endif
-
-#ifdef MRB_USE_READLINE
-#include MRB_READLINE_HEADER
-#include MRB_READLINE_HISTORY
-#define MIRB_ADD_HISTORY(line) add_history(line)
-#define MIRB_READLINE(ch) readline(ch)
-#if !defined(RL_READLINE_VERSION) || RL_READLINE_VERSION < 0x600
-/* libedit & older readline do not have rl_free() */
-#define MIRB_LINE_FREE(line) free(line)
-#else
-#define MIRB_LINE_FREE(line) rl_free(line)
-#endif
-#define MIRB_WRITE_HISTORY(path) write_history(path)
-#define MIRB_READ_HISTORY(path) read_history(path)
-#define MIRB_USING_HISTORY() using_history()
-#elif defined(MRB_USE_LINENOISE)
-#define MRB_USE_READLINE
-#include <linenoise.h>
-#define MIRB_ADD_HISTORY(line) linenoiseHistoryAdd(line)
-#define MIRB_READLINE(ch) linenoise(ch)
-#define MIRB_LINE_FREE(line) linenoiseFree(line)
-#define MIRB_WRITE_HISTORY(path) linenoiseHistorySave(path)
-#define MIRB_READ_HISTORY(path) linenoiseHistoryLoad(history_path)
-#define MIRB_USING_HISTORY()
-#endif
-
-#if !defined(_WIN32) && defined(_POSIX_C_SOURCE)
-#define MIRB_SIGSETJMP(env) sigsetjmp(env, 1)
-#define MIRB_SIGLONGJMP(env, val) siglongjmp(env, val)
-#define SIGJMP_BUF sigjmp_buf
-#else
-#define MIRB_SIGSETJMP(env) setjmp(env)
-#define MIRB_SIGLONGJMP(env, val) longjmp(env, val)
-#define SIGJMP_BUF jmp_buf
-#endif
-
-#ifdef MRB_USE_READLINE
-
-static const char history_file_name[] = ".mirb_history";
-
-/* Auto-indent support for GNU readline (not linenoise) */
-#if !defined(MRB_USE_LINENOISE) && defined(RL_READLINE_VERSION)
-static int mirb_indent_level = 0;
-static mrb_bool mirb_use_ansi = FALSE;
-
-static int
-mirb_startup_hook(void)
-{
-  if (mirb_indent_level > 0) {
-    int i;
-    for (i = 0; i < mirb_indent_level; i++) {
-      rl_insert_text("  ");
-    }
-  }
-  return 0;
-}
-
-/* Check if terminal supports ANSI escape sequences */
-static mrb_bool
-supports_escape_sequences(void)
-{
-  const char *term;
-
-  if (!isatty(fileno(stdout))) return FALSE;
-
-  term = getenv("TERM");
-  if (!term || strcmp(term, "dumb") == 0) return FALSE;
-
-  /* Respect NO_COLOR convention */
-  if (getenv("NO_COLOR")) return FALSE;
-
-  return TRUE;
-}
-
-/* ANSI color codes - safe colors that work on light and dark themes */
-#define MIRB_COLOR_RESET   "\033[0m"
-#define MIRB_COLOR_BOLD    "\033[1m"
-#define MIRB_COLOR_RED     "\033[31m"
-#define MIRB_COLOR_GREEN   "\033[32m"
-
-/* Color helpers - return empty string if colors disabled */
-static const char *col_reset(void) { return mirb_use_ansi ? MIRB_COLOR_RESET : ""; }
-static const char *col_bold(void) { return mirb_use_ansi ? MIRB_COLOR_BOLD : ""; }
-static const char *col_red(void) { return mirb_use_ansi ? MIRB_COLOR_RED : ""; }
-
-/* Check if line starts with a mid-block keyword (else, elsif, rescue, ensure, when)
- * These keywords should be at the same indent level as the opening keyword */
-static mrb_bool
-is_midblock_keyword(const char *line)
-{
-  /* skip leading whitespace */
-  while (*line == ' ' || *line == '\t') line++;
-
-  if (strncmp(line, "else", 4) == 0 && !ISALNUM(line[4]) && line[4] != '_') return TRUE;
-  if (strncmp(line, "elsif ", 6) == 0) return TRUE;
-  if (strncmp(line, "rescue", 6) == 0 && !ISALNUM(line[6]) && line[6] != '_') return TRUE;
-  if (strncmp(line, "ensure", 6) == 0 && !ISALNUM(line[6]) && line[6] != '_') return TRUE;
-  if (strncmp(line, "when ", 5) == 0) return TRUE;
-
-  return FALSE;
-}
-
-/* Reprint line with corrected indentation using ANSI escapes */
-static void
-reprint_line_with_indent(int line_num, const char *line, int indent)
-{
-  const char *content = line;
-  const char *end;
-  int i;
-
-  /* Skip original leading whitespace to get actual content */
-  while (*content == ' ' || *content == '\t') content++;
-
-  /* Find end of content (exclude trailing newline) */
-  end = content + strlen(content);
-  while (end > content && (end[-1] == '\n' || end[-1] == '\r')) end--;
-
-  /* Move cursor up, clear line, return to beginning */
-  printf("\033[A\r\033[K");
-
-  /* Print prompt (green for all prompts) */
-  printf("%s%d*%s ", mirb_use_ansi ? MIRB_COLOR_GREEN : "", line_num, col_reset());
-
-  /* Print corrected indentation */
-  for (i = 0; i < indent; i++) {
-    printf("  ");
-  }
-
-  /* Print content (no newline - cursor stays at end of line) */
-  printf("%.*s", (int)(end - content), content);
-
-  /* Move cursor back down to next line */
-  printf("\n");
-  fflush(stdout);
-}
-
-/* Calculate indent level by counting open blocks in code */
-static int
-calc_indent_level(const char *code)
-{
-  int level = 0;
-  const char *p = code;
-
-  while (*p) {
-    /* Skip strings */
-    if (*p == '"' || *p == '\'') {
-      char quote = *p++;
-      while (*p && *p != quote) {
-        if (*p == '\\' && p[1]) p++;
-        p++;
-      }
-      if (*p) p++;
-      continue;
-    }
-    /* Skip comments */
-    if (*p == '#') {
-      while (*p && *p != '\n') p++;
-      continue;
-    }
-    /* Check for keywords */
-    if (p == code || !ISALNUM(p[-1])) {
-      if (strncmp(p, "def ", 4) == 0 ||
-          strncmp(p, "class ", 6) == 0 ||
-          strncmp(p, "module ", 7) == 0 ||
-          strncmp(p, "do\n", 3) == 0 ||
-          strncmp(p, "do ", 3) == 0 ||
-          (strncmp(p, "do", 2) == 0 && (p[2] == '\0' || p[2] == '\n')) ||
-          strncmp(p, "if ", 3) == 0 ||
-          strncmp(p, "unless ", 7) == 0 ||
-          strncmp(p, "case ", 5) == 0 ||
-          strncmp(p, "while ", 6) == 0 ||
-          strncmp(p, "until ", 6) == 0 ||
-          strncmp(p, "for ", 4) == 0 ||
-          strncmp(p, "begin\n", 6) == 0 ||
-          (strncmp(p, "begin", 5) == 0 && (p[5] == '\0' || p[5] == '\n'))) {
-        level++;
-      }
-      else if (strncmp(p, "end\n", 4) == 0 ||
-               strncmp(p, "end ", 4) == 0 ||
-               (strncmp(p, "end", 3) == 0 && (p[3] == '\0' || p[3] == '\n'))) {
-        if (level > 0) level--;
-      }
-    }
-    /* Check for block opening with { */
-    if (*p == '{') {
-      level++;
-    }
-    else if (*p == '}') {
-      if (level > 0) level--;
-    }
-    p++;
-  }
-  return level;
-}
-#endif /* !MRB_USE_LINENOISE && RL_READLINE_VERSION */
-
-static char *
-get_history_path(mrb_state *mrb)
-{
-  char *path = NULL;
-  const char *home = getenv("HOME");
-
-#ifdef _WIN32
-  if (home != NULL) {
-    home = getenv("USERPROFILE");
-  }
-#endif
-
-  if (home != NULL) {
-    int len = snprintf(NULL, 0, "%s/%s", home, history_file_name);
-    if (len >= 0) {
-      size_t size = len + 1;
-      path = (char*)mrb_malloc_simple(mrb, size);
-      if (path != NULL) {
-        int n = snprintf(path, size, "%s/%s", home, history_file_name);
-        if (n != len) {
-          mrb_free(mrb, path);
-          path = NULL;
-        }
-      }
-    }
-  }
-
-  return path;
-}
-
 #endif
 
 static void
@@ -281,11 +47,7 @@ p(mrb_state *mrb, mrb_value obj)
 {
   mrb_value val = mrb_funcall_argv(mrb, obj, MRB_SYM(inspect), 0, NULL);
   if (!mrb->exc) {
-#if !defined(MRB_USE_LINENOISE) && defined(RL_READLINE_VERSION)
-    printf(" %s=>%s ", col_bold(), col_reset());
-#else
     fputs(" => ", stdout);
-#endif
   }
   else {
     val = mrb_exc_get_output(mrb, mrb->exc);
@@ -306,10 +68,6 @@ p_error(mrb_state *mrb, struct RObject* exc, mrb_ccontext *cxt)
   if (!mrb_string_p(val)) {
     val = mrb_obj_as_string(mrb, val);
   }
-
-#if !defined(MRB_USE_LINENOISE) && defined(RL_READLINE_VERSION)
-  printf("%s", col_red());
-#endif
 
   /* get first line of backtrace for location info */
   mrb_value bt = mrb_exc_backtrace(mrb, mrb_obj_value(exc));
@@ -346,11 +104,7 @@ p_error(mrb_state *mrb, struct RObject* exc, mrb_ccontext *cxt)
   char* msg = mrb_locale_from_utf8(RSTRING_PTR(val), (int)RSTRING_LEN(val));
   fwrite(msg, strlen(msg), 1, stdout);
   mrb_locale_free(msg);
-#if !defined(MRB_USE_LINENOISE) && defined(RL_READLINE_VERSION)
-  printf("%s\n", col_reset());
-#else
   putc('\n', stdout);
-#endif
 }
 
 /* Guess if the user might want to enter more
@@ -611,7 +365,6 @@ extract_line(const char *str, int target_line, size_t *line_len)
   return line_start;
 }
 
-#ifndef MRB_USE_READLINE
 /* Print the command line prompt of the REPL */
 static void
 print_cmdline(int code_block_open, int line_num)
@@ -619,7 +372,6 @@ print_cmdline(int code_block_open, int line_num)
   printf("%d%c ", line_num, code_block_open ? '*' : '>');
   fflush(stdout);
 }
-#endif
 
 static int
 check_keyword(const char *buf, const char *word)
@@ -644,25 +396,44 @@ check_keyword(const char *buf, const char *word)
   return 1;
 }
 
-
-#ifndef MRB_USE_READLINE
 volatile sig_atomic_t input_canceled = 0;
-void
+
+/* Data for completion checker callback */
+typedef struct {
+  mrb_state *mrb;
+  mrb_ccontext *cxt;
+} mirb_check_data;
+
+/* Check if code is syntactically complete (for multi-line editor) */
+static mrb_bool
+mirb_check_code_complete(const char *code, void *user_data)
+{
+  mirb_check_data *data = (mirb_check_data *)user_data;
+  struct mrb_parser_state *parser;
+  mrb_bool complete;
+
+  parser = mrb_parser_new(data->mrb);
+  if (parser == NULL) return TRUE;  /* error - accept input */
+
+  parser->s = code;
+  parser->send = code + strlen(code);
+  parser->lineno = data->cxt->lineno;
+  mrb_parser_parse(parser, data->cxt);
+  complete = !is_code_block_open(parser);
+  mrb_parser_free(parser);
+
+  return complete;
+}
+
+static void
 ctrl_c_handler(int signo)
 {
   input_canceled = 1;
 }
-#else
-SIGJMP_BUF ctrl_c_buf;
-void
-ctrl_c_handler(int signo)
-{
-  MIRB_SIGLONGJMP(ctrl_c_buf, 1);
-}
-#endif
 
 #ifndef MRB_NO_MIRB_UNDERSCORE
-void decl_lv_underscore(mrb_state *mrb, mrb_ccontext *cxt)
+static void
+decl_lv_underscore(mrb_state *mrb, mrb_ccontext *cxt)
 {
   struct RProc *proc;
   struct mrb_parser_state *parser;
@@ -686,13 +457,11 @@ main(int argc, char **argv)
 {
   char ruby_code[4096] = { 0 };
   char last_code_line[1024] = { 0 };
-#ifndef MRB_USE_READLINE
   int last_char;
   size_t char_index;
-#else
-  char *history_path;
-  char* line;
-#endif
+  mirb_editor editor;
+  mirb_check_data check_data;
+  mrb_bool use_editor = FALSE;
   mrb_ccontext *cxt;
   struct mrb_parser_state *parser;
   mrb_state *mrb;
@@ -732,18 +501,6 @@ main(int argc, char **argv)
   mrb_define_global_const(mrb, "ARGV", ARGV);
   mrb_gv_set(mrb, mrb_intern_lit(mrb, "$DEBUG"), mrb_bool_value(args.debug));
 
-#ifdef MRB_USE_READLINE
-  history_path = get_history_path(mrb);
-  if (history_path == NULL) {
-    fputs("failed to get history path\n", stderr);
-    mrb_close(mrb);
-    return EXIT_FAILURE;
-  }
-
-  MIRB_USING_HISTORY();
-  MIRB_READ_HISTORY(history_path);
-#endif
-
   print_hint();
 
   cxt = mrb_ccontext_new(mrb);
@@ -771,21 +528,20 @@ main(int argc, char **argv)
   mrb_ccontext_filename(mrb, cxt, "(mirb)");
   if (args.verbose) cxt->dump_result = TRUE;
 
-  /* Setup tab completion and auto-indent */
-#ifdef MRB_USE_READLINE
-#ifndef MRB_USE_LINENOISE
-  mirb_setup_readline_completion(mrb, cxt);
-#if defined(RL_READLINE_VERSION)
-  /* Only enable auto-indent for interactive input */
-  if (isatty(fileno(stdin))) {
-    rl_startup_hook = mirb_startup_hook;
-    mirb_use_ansi = supports_escape_sequences();
+  /* Initialize multi-line editor */
+  if (isatty(fileno(stdin)) && mirb_editor_init(&editor)) {
+    use_editor = TRUE;
+    check_data.mrb = mrb;
+    check_data.cxt = cxt;
+    mirb_editor_set_check_complete(&editor, mirb_check_code_complete, &check_data);
+    /* Enable colored prompts if terminal supports it */
+    if (isatty(fileno(stdout))) {
+      const char *term = getenv("TERM");
+      if (term && strcmp(term, "dumb") != 0 && !getenv("NO_COLOR")) {
+        mirb_editor_set_color(&editor, TRUE);
+      }
+    }
   }
-#endif
-#else
-  mirb_setup_linenoise_completion(mrb, cxt);
-#endif
-#endif
 
   ai = mrb_gc_arena_save(mrb);
 
@@ -798,83 +554,87 @@ main(int argc, char **argv)
       break;
     }
 
-#ifndef MRB_USE_READLINE
-    print_cmdline(code_block_open, line_num);
+    if (use_editor && mirb_editor_supported(&editor)) {
+      /* Use multi-line editor */
+      char *input;
+      char prompt[16], prompt_cont[16];
+      mirb_edit_result res;
 
-    signal(SIGINT, ctrl_c_handler);
-    char_index = 0;
-    while ((last_char = getchar()) != '\n') {
-      if (last_char == EOF) break;
-      if (char_index >= sizeof(last_code_line)-2) {
-        fputs("input string too long\n", stderr);
+      snprintf(prompt, sizeof(prompt), "%d> ", line_num);
+      snprintf(prompt_cont, sizeof(prompt_cont), "%d* ", line_num);
+      mirb_editor_set_prompts(&editor, prompt, prompt_cont);
+
+      res = mirb_editor_read(&editor, &input);
+
+      if (res == MIRB_EDIT_EOF) {
+        break;
+      }
+      if (res == MIRB_EDIT_INTERRUPT) {
+        puts("^C");
         continue;
       }
-      last_code_line[char_index++] = last_char;
-    }
-    signal(SIGINT, SIG_DFL);
-    if (input_canceled) {
-      ruby_code[0] = '\0';
-      last_code_line[0] = '\0';
-      code_block_open = FALSE;
-      line_num = 1;
-      puts("^C");
-      input_canceled = 0;
-      continue;
-    }
-    if (last_char == EOF) {
-      fputs("\n", stdout);
-      break;
-    }
+      if (res != MIRB_EDIT_OK || input == NULL) {
+        continue;
+      }
 
-    last_code_line[char_index++] = '\n';
-    last_code_line[char_index] = '\0';
-#else
-    if (MIRB_SIGSETJMP(ctrl_c_buf) == 0) {
-      ;
+      /* The editor returns complete multi-line input */
+      if (strlen(input) >= sizeof(ruby_code) - 1) {
+        fputs("input string too long\n", stderr);
+        free(input);
+        continue;
+      }
+      strcpy(ruby_code, input);
+      free(input);
+
+      /* Count lines for line number update */
+      {
+        const char *p = ruby_code;
+        while (*p) {
+          if (*p++ == '\n') line_num++;
+        }
+      }
+
+      /* Check for quit/exit commands */
+      if (check_keyword(ruby_code, "quit") || check_keyword(ruby_code, "exit")) {
+        break;
+      }
+
+      /* Skip to evaluation (editor already handles multi-line) */
+      code_block_open = FALSE;
+      goto evaluate;
     }
     else {
-      ruby_code[0] = '\0';
-      last_code_line[0] = '\0';
-      code_block_open = FALSE;
-      line_num = 1;
-      puts("^C");
-    }
-    signal(SIGINT, ctrl_c_handler);
-    {
-      char prompt[64];
-#if !defined(MRB_USE_LINENOISE) && defined(RL_READLINE_VERSION)
-      /* Set indent level for auto-indent on continuation lines */
-      mirb_indent_level = code_block_open ? calc_indent_level(ruby_code) : 0;
-      /* Build prompt with colors - readline needs \001 \002 around non-printing chars */
-      if (mirb_use_ansi) {
-        snprintf(prompt, sizeof(prompt), "\001" MIRB_COLOR_GREEN "\002%d%c\001" MIRB_COLOR_RESET "\002 ",
-                 line_num, code_block_open ? '*' : '>');
-      }
-      else {
-        snprintf(prompt, sizeof(prompt), "%d%c ", line_num, code_block_open ? '*' : '>');
-      }
-#else
-      snprintf(prompt, sizeof(prompt), "%d%c ", line_num, code_block_open ? '*' : '>');
-#endif
-      line = MIRB_READLINE(prompt);
-    }
-    signal(SIGINT, SIG_DFL);
+      /* Fallback to simple line-by-line input */
+      print_cmdline(code_block_open, line_num);
 
-    if (line == NULL) {
-      printf("\n");
-      break;
+      signal(SIGINT, ctrl_c_handler);
+      char_index = 0;
+      while ((last_char = getchar()) != '\n') {
+        if (last_char == EOF) break;
+        if (char_index >= sizeof(last_code_line)-2) {
+          fputs("input string too long\n", stderr);
+          continue;
+        }
+        last_code_line[char_index++] = last_char;
+      }
+      signal(SIGINT, SIG_DFL);
+      if (input_canceled) {
+        ruby_code[0] = '\0';
+        last_code_line[0] = '\0';
+        code_block_open = FALSE;
+        line_num = 1;
+        puts("^C");
+        input_canceled = 0;
+        continue;
+      }
+      if (last_char == EOF) {
+        fputs("\n", stdout);
+        break;
+      }
+
+      last_code_line[char_index++] = '\n';
+      last_code_line[char_index] = '\0';
     }
-    if (strlen(line) > sizeof(last_code_line)-2) {
-      fputs("input string too long\n", stderr);
-      continue;
-    }
-    strcpy(last_code_line, line);
-    strcat(last_code_line, "\n");
-    if (strlen(line) > 0) {
-      MIRB_ADD_HISTORY(line);
-    }
-    MIRB_LINE_FREE(line);
-#endif
     line_num++;
 
   done:
@@ -884,20 +644,6 @@ main(int argc, char **argv)
         continue;
       }
       strcat(ruby_code, last_code_line);
-#if !defined(MRB_USE_LINENOISE) && defined(RL_READLINE_VERSION)
-      /* Check if indent level decreased or mid-block keyword needs dedent */
-      if (mirb_use_ansi && mirb_indent_level > 0) {
-        int new_level = calc_indent_level(ruby_code);
-        if (new_level < mirb_indent_level) {
-          /* Block closed (end, }) - use new lower level */
-          reprint_line_with_indent(line_num - 1, last_code_line, new_level);
-        }
-        else if (is_midblock_keyword(last_code_line)) {
-          /* Mid-block keyword (else, elsif, rescue, ensure, when) - dedent by 1 */
-          reprint_line_with_indent(line_num - 1, last_code_line, mirb_indent_level - 1);
-        }
-      }
-#endif
     }
     else {
       if (check_keyword(last_code_line, "quit") || check_keyword(last_code_line, "exit")) {
@@ -906,6 +652,7 @@ main(int argc, char **argv)
       strcpy(ruby_code, last_code_line);
     }
 
+  evaluate:
     utf8 = mrb_utf8_from_locale(ruby_code, -1);
     if (!utf8) abort();
 
@@ -929,11 +676,7 @@ main(int argc, char **argv)
       if (0 < parser->nwarn) {
         /* warning */
         char* msg = mrb_locale_from_utf8(parser->warn_buffer[0].message, -1);
-#if !defined(MRB_USE_LINENOISE) && defined(RL_READLINE_VERSION)
-        printf("%swarning: line %d: %s%s\n", col_red(), parser->warn_buffer[0].lineno, msg, col_reset());
-#else
         printf("warning: line %d: %s\n", parser->warn_buffer[0].lineno, msg);
-#endif
         mrb_locale_free(msg);
       }
       if (0 < parser->nerr) {
@@ -946,9 +689,6 @@ main(int argc, char **argv)
         int relative_line = err_line - cxt->lineno + 1;
 
         /* show error with line:column (using relative line number) */
-#if !defined(MRB_USE_LINENOISE) && defined(RL_READLINE_VERSION)
-        printf("%s", col_red());
-#endif
         printf("line %d:%d: %s\n", relative_line, err_col, msg);
 
         /* show source line and caret if available */
@@ -959,15 +699,12 @@ main(int argc, char **argv)
           if (line_len > 0) {
             printf("  %.*s\n", (int)line_len, line_start);
             printf("  ");
-            for (int i = 0; i < err_col; i++) {
+            for (int j = 0; j < err_col; j++) {
               printf(" ");
             }
             printf("^\n");
           }
         }
-#if !defined(MRB_USE_LINENOISE) && defined(RL_READLINE_VERSION)
-        printf("%s", col_reset());
-#endif
 
         mrb_locale_free(msg);
         line_num = 1;
@@ -1023,11 +760,6 @@ main(int argc, char **argv)
     cxt->lineno++;
   }
 
-#ifdef MRB_USE_READLINE
-  MIRB_WRITE_HISTORY(history_path);
-  mrb_free(mrb, history_path);
-#endif
-
   if (args.rfp) fclose(args.rfp);
   mrb_free(mrb, args.argv);
   if (args.libv) {
@@ -1038,14 +770,10 @@ main(int argc, char **argv)
   }
   mrb_ccontext_free(mrb, cxt);
 
-  /* Cleanup tab completion */
-#ifdef MRB_USE_READLINE
-#ifndef MRB_USE_LINENOISE
-  mirb_cleanup_readline_completion();
-#else
-  mirb_cleanup_linenoise_completion();
-#endif
-#endif
+  /* Cleanup editor */
+  if (use_editor) {
+    mirb_editor_cleanup(&editor);
+  }
 
   mrb_close(mrb);
 
