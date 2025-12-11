@@ -68,7 +68,10 @@ module MRuby
 
         @requirements = []
         @export_include_paths = []
-        @export_include_paths << "#{dir}/include" if File.directory? "#{dir}/include"
+        # Headers in include/ are for inter-gem use only
+        # Headers in include/export/ are exported to external users via mruby-config
+        export_dir = "#{dir}/include/export"
+        @export_include_paths << export_dir if File.directory?(export_dir)
 
         instance_eval(&@initializer)
 
@@ -542,6 +545,16 @@ module MRuby
           # as circular dependency has already detected in the caller.
           import_include_paths(dep_g)
 
+          # Add dependency's include/ to compiler paths (for inter-gem use)
+          dep_include = "#{dep_g.dir}/include"
+          if File.directory?(dep_include)
+            g.compilers.each do |compiler|
+              compiler.include_paths << dep_include
+              compiler.include_paths.uniq!
+            end
+          end
+
+          # Propagate any explicitly set export_include_paths
           dep_g.export_include_paths.uniq!
           g.compilers.each do |compiler|
             compiler.include_paths += dep_g.export_include_paths
