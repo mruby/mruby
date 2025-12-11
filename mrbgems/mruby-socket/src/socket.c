@@ -38,7 +38,7 @@
 #include <mruby/internal.h>
 #include <mruby/presym.h>
 
-#include <mruby/ext/io.h>
+#include <mruby/io.h>
 #include "socket_hal.h"
 
 /* Address family information for compact lookup table */

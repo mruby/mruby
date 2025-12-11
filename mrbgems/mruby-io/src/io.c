@@ -9,7 +9,7 @@
 #include <mruby/hash.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>
-#include <mruby/ext/io.h>
+#include <mruby/io.h>
 #include <mruby/error.h>
 #include <mruby/internal.h>
 #include <mruby/presym.h>

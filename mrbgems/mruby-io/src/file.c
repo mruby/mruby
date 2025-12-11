@@ -7,7 +7,7 @@
 #include <mruby/class.h>
 #include <mruby/data.h>
 #include <mruby/string.h>
-#include <mruby/ext/io.h>
+#include <mruby/io.h>
 #include <mruby/error.h>
 #include <mruby/presym.h>
 #include "io_hal.h"
