@@ -557,12 +557,9 @@ main(int argc, char **argv)
     if (use_editor && mirb_editor_supported(&editor)) {
       /* Use multi-line editor */
       char *input;
-      char prompt[16], prompt_cont[16];
       mirb_edit_result res;
 
-      snprintf(prompt, sizeof(prompt), "%d> ", line_num);
-      snprintf(prompt_cont, sizeof(prompt_cont), "%d* ", line_num);
-      mirb_editor_set_prompts(&editor, prompt, prompt_cont);
+      mirb_editor_set_prompt_format(&editor, "%d> ", "%d* ", line_num);
 
       res = mirb_editor_read(&editor, &input);
 

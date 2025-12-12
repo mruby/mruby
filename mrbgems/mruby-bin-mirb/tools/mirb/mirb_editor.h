@@ -42,6 +42,10 @@ typedef struct mirb_editor {
   size_t prompt_len;          /* length of primary prompt */
   size_t prompt_cont_len;     /* length of continuation prompt */
 
+  const char *prompt_fmt;     /* prompt format string (e.g., "%d> ") */
+  const char *prompt_cont_fmt;/* continuation format (e.g., "%d* ") */
+  int line_num_base;          /* starting line number for prompts */
+
   mirb_check_complete_fn *check_complete;  /* completion checker */
   void *check_complete_data;              /* user data for checker */
 
@@ -64,11 +68,21 @@ mrb_bool mirb_editor_init(mirb_editor *ed);
 void mirb_editor_cleanup(mirb_editor *ed);
 
 /*
- * Set prompts
+ * Set prompts (fixed strings)
  */
 void mirb_editor_set_prompts(mirb_editor *ed,
                               const char *prompt,
                               const char *prompt_cont);
+
+/*
+ * Set prompt format strings for line-numbered prompts
+ * Format strings should contain %d for line number (e.g., "%d> ", "%d* ")
+ * line_num is the starting line number
+ */
+void mirb_editor_set_prompt_format(mirb_editor *ed,
+                                    const char *prompt_fmt,
+                                    const char *prompt_cont_fmt,
+                                    int line_num);
 
 /*
  * Set completion checker callback

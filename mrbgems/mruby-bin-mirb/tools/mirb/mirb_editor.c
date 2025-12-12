@@ -202,6 +202,9 @@ mirb_editor_init(mirb_editor *ed)
   ed->prompt_cont = "* ";
   ed->prompt_len = 2;
   ed->prompt_cont_len = 2;
+  ed->prompt_fmt = NULL;
+  ed->prompt_cont_fmt = NULL;
+  ed->line_num_base = 1;
   ed->use_color = FALSE;
   ed->initialized = TRUE;
 
@@ -223,7 +226,7 @@ mirb_editor_cleanup(mirb_editor *ed)
 }
 
 /*
- * Set prompts
+ * Set prompts (fixed strings)
  */
 void
 mirb_editor_set_prompts(mirb_editor *ed, const char *prompt, const char *prompt_cont)
@@ -232,6 +235,23 @@ mirb_editor_set_prompts(mirb_editor *ed, const char *prompt, const char *prompt_
   ed->prompt_cont = prompt_cont;
   ed->prompt_len = strlen(prompt);
   ed->prompt_cont_len = strlen(prompt_cont);
+  ed->prompt_fmt = NULL;
+  ed->prompt_cont_fmt = NULL;
+}
+
+/*
+ * Set prompt format strings for line-numbered prompts
+ */
+void
+mirb_editor_set_prompt_format(mirb_editor *ed, const char *prompt_fmt,
+                               const char *prompt_cont_fmt, int line_num)
+{
+  ed->prompt_fmt = prompt_fmt;
+  ed->prompt_cont_fmt = prompt_cont_fmt;
+  ed->line_num_base = line_num;
+  /* Estimate prompt length (assuming line numbers up to 999) */
+  ed->prompt_len = strlen(prompt_fmt) + 2;  /* %d -> up to 3 digits, minus 2 for %d */
+  ed->prompt_cont_len = strlen(prompt_cont_fmt) + 2;
 }
 
 /*
@@ -263,18 +283,48 @@ mirb_editor_supported(mirb_editor *ed)
 }
 
 /*
+ * Calculate prompt length for given line
+ */
+static size_t
+calc_prompt_len(mirb_editor *ed, size_t line_idx)
+{
+  if (ed->prompt_fmt != NULL) {
+    /* Format string: calculate actual length */
+    int line_num = ed->line_num_base + (int)line_idx;
+    const char *fmt = (line_idx == 0) ? ed->prompt_fmt : ed->prompt_cont_fmt;
+    return (size_t)snprintf(NULL, 0, fmt, line_num);
+  }
+  else {
+    /* Fixed prompt string */
+    return (line_idx == 0) ? ed->prompt_len : ed->prompt_cont_len;
+  }
+}
+
+/*
  * Print prompt for given line
  */
 static void
 print_prompt(mirb_editor *ed, size_t line_idx)
 {
-  const char *p = (line_idx == 0) ? ed->prompt : ed->prompt_cont;
+  int line_num = ed->line_num_base + (int)line_idx;
 
   if (ed->use_color) {
-    printf("%s%s%s", COLOR_GREEN, p, COLOR_RESET);
+    printf("%s", COLOR_GREEN);
+  }
+
+  if (ed->prompt_fmt != NULL) {
+    /* Use format string with line number */
+    const char *fmt = (line_idx == 0) ? ed->prompt_fmt : ed->prompt_cont_fmt;
+    printf(fmt, line_num);
   }
   else {
+    /* Use fixed prompt string */
+    const char *p = (line_idx == 0) ? ed->prompt : ed->prompt_cont;
     printf("%s", p);
+  }
+
+  if (ed->use_color) {
+    printf("%s", COLOR_RESET);
   }
 }
 
@@ -289,7 +339,6 @@ print_prompt(mirb_editor *ed, size_t line_idx)
 static void
 refresh_display(mirb_editor *ed)
 {
-  size_t prompt_len;
   size_t lines_to_go_up;
 
   /* Calculate how many lines up we need to go to reach start of input */
@@ -323,8 +372,8 @@ refresh_display(mirb_editor *ed)
     mirb_term_cursor_up((int)lines_up_from_end);
   }
 
-  /* Position column on cursor line */
-  prompt_len = (ed->buf.cursor_line == 0) ? ed->prompt_len : ed->prompt_cont_len;
+  /* Position column on cursor line (calculate actual prompt length) */
+  size_t prompt_len = calc_prompt_len(ed, ed->buf.cursor_line);
   mirb_term_cursor_col((int)(prompt_len + ed->buf.cursor_col + 1));
 
   /* Update tracking */
