@@ -1962,7 +1962,7 @@ mrb_hash_merge(mrb_state *mrb, mrb_value hash1, mrb_value hash2)
   struct RHash *h1, *h2;
 
   hash_modify(mrb, hash1);
-  mrb_ensure_hash_type(mrb, hash2);
+  hash2 = mrb_ensure_hash_type(mrb, hash2);
   h1 = mrb_hash_ptr(hash1);
   h2 = mrb_hash_ptr(hash2);
 
