@@ -443,6 +443,36 @@ mirb_buffer_newline(mirb_buffer *buf)
   return TRUE;
 }
 
+/* Delete a line at the given index */
+void
+mirb_buffer_delete_line(mirb_buffer *buf, size_t line_idx)
+{
+  if (line_idx >= buf->line_count) return;
+  if (buf->line_count <= 1) return;  /* Keep at least one line */
+
+  /* Free the line's data */
+  line_free(&buf->lines[line_idx]);
+
+  /* Shift remaining lines down */
+  if (line_idx < buf->line_count - 1) {
+    memmove(&buf->lines[line_idx],
+            &buf->lines[line_idx + 1],
+            sizeof(mirb_line) * (buf->line_count - line_idx - 1));
+  }
+
+  buf->line_count--;
+
+  /* Adjust cursor if needed */
+  if (buf->cursor_line >= buf->line_count) {
+    buf->cursor_line = buf->line_count - 1;
+  }
+  if (buf->cursor_col > buf->lines[buf->cursor_line].len) {
+    buf->cursor_col = buf->lines[buf->cursor_line].len;
+  }
+
+  buf->modified = TRUE;
+}
+
 /*
  * Move cursor left
  */

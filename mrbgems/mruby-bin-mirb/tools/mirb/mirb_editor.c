@@ -43,6 +43,35 @@ leading_spaces(const char *line)
 /*
  * Calculate indent level by counting open blocks in code
  */
+/*
+ * Get buffer content up to and including a specific line
+ * Caller must free the returned string
+ */
+static char *
+buffer_to_string_upto_line(mirb_buffer *buf, size_t up_to_line)
+{
+  size_t total = 0;
+  size_t lines_to_include = (up_to_line < buf->line_count) ? up_to_line + 1 : buf->line_count;
+
+  for (size_t i = 0; i < lines_to_include; i++) {
+    total += buf->lines[i].len;
+    if (i < lines_to_include - 1) total++;  /* newline */
+  }
+
+  char *str = (char*)malloc(total + 1);
+  if (str == NULL) return NULL;
+
+  char *p = str;
+  for (size_t i = 0; i < lines_to_include; i++) {
+    memcpy(p, buf->lines[i].data, buf->lines[i].len);
+    p += buf->lines[i].len;
+    if (i < lines_to_include - 1) *p++ = '\n';
+  }
+  *p = '\0';
+
+  return str;
+}
+
 static int
 calc_indent_level(const char *code)
 {
@@ -394,28 +423,84 @@ handle_key(mirb_editor *ed, int key, mirb_edit_result *result)
   case MIRB_KEY_ENTER:
     /* Stop history browsing */
     mirb_history_browse_stop(&ed->hist);
-    /* Check if input is complete */
-    if (ed->check_complete) {
-      char *code = mirb_buffer_to_string(&ed->buf);
-      if (code) {
-        mrb_bool complete = ed->check_complete(code, ed->check_complete_data);
-        if (!complete) {
-          /* Calculate indent level before adding newline */
-          int indent = calc_indent_level(code);
-          free(code);
-          /* Add newline and continue editing */
-          mirb_buffer_newline(&ed->buf);
-          /* Insert indentation spaces (2 spaces per level) */
-          for (int i = 0; i < indent * 2; i++) {
-            mirb_buffer_insert_char(&ed->buf, ' ');
+    {
+      /*
+       * Smart Enter behavior:
+       * - If cursor is at end of line AND next line is the last line and is empty,
+       *   just move to it (don't create duplicate empty lines)
+       * - Otherwise, insert a new line (split current line at cursor)
+       *   If splitting in the middle and there was a trailing blank line, remove it
+       */
+      mrb_bool inserting_in_middle = (ed->buf.cursor_line < ed->buf.line_count - 1);
+
+      if (inserting_in_middle) {
+        /* Only consider smart navigation if cursor is at end of current line */
+        mirb_line *current_line = &ed->buf.lines[ed->buf.cursor_line];
+        size_t next_line_idx = ed->buf.cursor_line + 1;
+        mrb_bool next_is_last = (next_line_idx == ed->buf.line_count - 1);
+        mrb_bool next_is_blank = FALSE;
+
+        if (next_is_last) {
+          mirb_line *next_line = &ed->buf.lines[next_line_idx];
+          next_is_blank = TRUE;
+          for (size_t i = 0; i < next_line->len; i++) {
+            if (next_line->data[i] != ' ' && next_line->data[i] != '\t') {
+              next_is_blank = FALSE;
+              break;
+            }
           }
+        }
+
+        if (ed->buf.cursor_col == current_line->len && next_is_last && next_is_blank) {
+          /* Cursor at end of line, next is blank last line: just move to it */
+          mirb_buffer_cursor_down(&ed->buf);
+          mirb_buffer_cursor_end(&ed->buf);
           return TRUE;
         }
-        free(code);
+
+        if (ed->buf.cursor_col < current_line->len && next_is_last && next_is_blank) {
+          /* Cursor in middle of line, next is blank last line: remove it before split */
+          mirb_buffer_delete_line(&ed->buf, next_line_idx);
+        }
+        /* Fall through to insert new line (split at cursor) */
       }
+
+      /* Check if input is complete */
+      if (ed->check_complete) {
+        char *code = mirb_buffer_to_string(&ed->buf);
+        if (code) {
+          mrb_bool complete = ed->check_complete(code, ed->check_complete_data);
+          if (!complete) {
+            /*
+             * Calculate indent level for the new line.
+             * If inserting in the middle of existing code, only consider
+             * lines up to and including the current line to avoid
+             * being affected by 'end' keywords on later lines.
+             */
+            int indent;
+            if (inserting_in_middle) {
+              char *partial = buffer_to_string_upto_line(&ed->buf, ed->buf.cursor_line);
+              indent = partial ? calc_indent_level(partial) : 0;
+              free(partial);
+            }
+            else {
+              indent = calc_indent_level(code);
+            }
+            free(code);
+            /* Add newline and continue editing */
+            mirb_buffer_newline(&ed->buf);
+            /* Insert indentation spaces (2 spaces per level) */
+            for (int i = 0; i < indent * 2; i++) {
+              mirb_buffer_insert_char(&ed->buf, ' ');
+            }
+            return TRUE;
+          }
+          free(code);
+        }
+      }
+      *result = MIRB_EDIT_OK;
+      return FALSE;
     }
-    *result = MIRB_EDIT_OK;
-    return FALSE;
 
   case MIRB_KEY_CTRL_C:
     *result = MIRB_EDIT_INTERRUPT;

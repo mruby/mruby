@@ -106,6 +106,11 @@ mrb_bool mirb_buffer_delete_forward(mirb_buffer *buf);
 mrb_bool mirb_buffer_newline(mirb_buffer *buf);
 
 /*
+ * Delete a line at the given index
+ */
+void mirb_buffer_delete_line(mirb_buffer *buf, size_t line_idx);
+
+/*
  * Cursor movement functions
  * Return TRUE if cursor moved
  */
