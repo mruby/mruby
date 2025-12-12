@@ -192,6 +192,12 @@ mirb_editor_init(mirb_editor *ed)
     return FALSE;
   }
 
+  if (!mirb_history_init(&ed->hist, MIRB_HISTORY_SIZE)) {
+    mirb_buffer_free(&ed->buf);
+    mirb_term_cleanup(&ed->term);
+    return FALSE;
+  }
+
   ed->prompt = "> ";
   ed->prompt_cont = "* ";
   ed->prompt_len = 2;
@@ -210,6 +216,7 @@ mirb_editor_cleanup(mirb_editor *ed)
 {
   if (!ed->initialized) return;
 
+  mirb_history_free(&ed->hist);
   mirb_buffer_free(&ed->buf);
   mirb_term_cleanup(&ed->term);
   ed->initialized = FALSE;
@@ -336,6 +343,8 @@ handle_key(mirb_editor *ed, int key, mirb_edit_result *result)
 {
   switch (key) {
   case MIRB_KEY_ENTER:
+    /* Stop history browsing */
+    mirb_history_browse_stop(&ed->hist);
     /* Check if input is complete */
     if (ed->check_complete) {
       char *code = mirb_buffer_to_string(&ed->buf);
@@ -392,12 +401,40 @@ handle_key(mirb_editor *ed, int key, mirb_edit_result *result)
 
   case MIRB_KEY_UP:
   case MIRB_KEY_CTRL_P:
-    mirb_buffer_cursor_up(&ed->buf);
+    /* If on first line, navigate history; otherwise move cursor up */
+    if (ed->buf.cursor_line == 0) {
+      /* Start history browsing if not already */
+      if (!ed->hist.browsing) {
+        char *current = mirb_buffer_to_string(&ed->buf);
+        mirb_history_browse_start(&ed->hist, current);
+        free(current);
+      }
+      const char *prev = mirb_history_prev(&ed->hist);
+      if (prev) {
+        mirb_buffer_set_string(&ed->buf, prev);
+        mirb_buffer_cursor_finish(&ed->buf);
+      }
+    }
+    else {
+      mirb_buffer_cursor_up(&ed->buf);
+    }
     return TRUE;
 
   case MIRB_KEY_DOWN:
   case MIRB_KEY_CTRL_N:
-    mirb_buffer_cursor_down(&ed->buf);
+    /* If on last line, navigate history; otherwise move cursor down */
+    if (ed->buf.cursor_line == ed->buf.line_count - 1) {
+      if (ed->hist.browsing) {
+        const char *next = mirb_history_next(&ed->hist);
+        if (next) {
+          mirb_buffer_set_string(&ed->buf, next);
+          mirb_buffer_cursor_finish(&ed->buf);
+        }
+      }
+    }
+    else {
+      mirb_buffer_cursor_down(&ed->buf);
+    }
     return TRUE;
 
   case MIRB_KEY_HOME:
@@ -447,6 +484,8 @@ handle_key(mirb_editor *ed, int key, mirb_edit_result *result)
   default:
     /* Insert printable characters */
     if (key >= 32 && key < 127) {
+      /* Stop history browsing when user types */
+      mirb_history_browse_stop(&ed->hist);
       mirb_buffer_insert_char(&ed->buf, (char)key);
       /* Check for auto-dedent after typing 'end' or '}' */
       if (should_dedent(&ed->buf, (char)key)) {
@@ -604,4 +643,13 @@ mirb_editor_read_simple(mirb_editor *ed, char **out_str)
 
   *out_str = total;
   return MIRB_EDIT_OK;
+}
+
+/*
+ * Add entry to history
+ */
+void
+mirb_editor_history_add(mirb_editor *ed, const char *entry)
+{
+  mirb_history_add(&ed->hist, entry);
 }

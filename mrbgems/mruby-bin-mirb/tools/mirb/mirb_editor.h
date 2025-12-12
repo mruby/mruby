@@ -10,6 +10,7 @@
 #include <mruby.h>
 #include "mirb_term.h"
 #include "mirb_buffer.h"
+#include "mirb_history.h"
 
 /*
  * Editor result codes
@@ -34,6 +35,7 @@ typedef mrb_bool mirb_check_complete_fn(const char *code, void *user_data);
 typedef struct mirb_editor {
   mirb_term term;             /* terminal state */
   mirb_buffer buf;            /* editing buffer */
+  mirb_history hist;          /* command history */
 
   const char *prompt;         /* primary prompt (e.g., "> ") */
   const char *prompt_cont;    /* continuation prompt (e.g., "* ") */
@@ -98,5 +100,11 @@ mirb_edit_result mirb_editor_read(mirb_editor *ed, char **out_str);
  * Used internally but can be called directly
  */
 mirb_edit_result mirb_editor_read_simple(mirb_editor *ed, char **out_str);
+
+/*
+ * Add entry to history
+ * Called after successful command execution
+ */
+void mirb_editor_history_add(mirb_editor *ed, const char *entry);
 
 #endif /* MIRB_EDITOR_H */

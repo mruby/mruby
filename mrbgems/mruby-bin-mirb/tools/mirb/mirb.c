@@ -750,6 +750,10 @@ main(int argc, char **argv)
           *(mrb->c->ci->stack + 1) = result;
 #endif
         }
+        /* Add to history after evaluation (success or error) */
+        if (use_editor) {
+          mirb_editor_history_add(&editor, ruby_code);
+        }
       }
       ruby_code[0] = '\0';
       last_code_line[0] = '\0';
