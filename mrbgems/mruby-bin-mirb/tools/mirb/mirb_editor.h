@@ -30,6 +30,20 @@ typedef enum mirb_edit_result {
 typedef mrb_bool mirb_check_complete_fn(const char *code, void *user_data);
 
 /*
+ * Callback for tab completion
+ * Returns number of completions, sets completions_out and prefix_len_out
+ * Caller must free completions using mirb_tab_complete_free_fn
+ */
+typedef int mirb_tab_complete_fn(const char *line, int cursor_pos,
+                                  char ***completions_out, int *prefix_len_out,
+                                  void *user_data);
+
+/*
+ * Callback to free tab completions
+ */
+typedef void mirb_tab_complete_free_fn(char **completions, int count, void *user_data);
+
+/*
  * Editor state
  */
 typedef struct mirb_editor {
@@ -48,6 +62,10 @@ typedef struct mirb_editor {
 
   mirb_check_complete_fn *check_complete;  /* completion checker */
   void *check_complete_data;              /* user data for checker */
+
+  mirb_tab_complete_fn *tab_complete;     /* tab completion callback */
+  mirb_tab_complete_free_fn *tab_complete_free;  /* free completions callback */
+  void *tab_complete_data;                /* user data for tab completion */
 
   size_t display_cursor_row;  /* cursor row in buffer (for refresh tracking) */
   size_t prev_line_count;     /* line count from last refresh */
@@ -90,6 +108,14 @@ void mirb_editor_set_prompt_format(mirb_editor *ed,
 void mirb_editor_set_check_complete(mirb_editor *ed,
                                      mirb_check_complete_fn *fn,
                                      void *user_data);
+
+/*
+ * Set tab completion callbacks
+ */
+void mirb_editor_set_tab_complete(mirb_editor *ed,
+                                   mirb_tab_complete_fn *complete_fn,
+                                   mirb_tab_complete_free_fn *free_fn,
+                                   void *user_data);
 
 /*
  * Enable or disable colored output

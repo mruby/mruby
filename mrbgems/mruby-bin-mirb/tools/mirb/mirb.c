@@ -36,6 +36,7 @@
 #endif
 
 #include "mirb_editor.h"
+#include "mirb_completion.h"
 
 /* obsolete configuration */
 #ifdef DISABLE_MIRB_UNDERSCORE
@@ -425,6 +426,24 @@ mirb_check_code_complete(const char *code, void *user_data)
   return complete;
 }
 
+/* Tab completion callback for editor */
+static int
+mirb_tab_complete(const char *line, int cursor_pos,
+                  char ***completions_out, int *prefix_len_out,
+                  void *user_data)
+{
+  (void)user_data;
+  return mirb_get_completions(line, cursor_pos, completions_out, prefix_len_out);
+}
+
+/* Free tab completions */
+static void
+mirb_tab_complete_free(char **completions, int count, void *user_data)
+{
+  (void)user_data;
+  mirb_free_completions(completions, count);
+}
+
 static void
 ctrl_c_handler(int signo)
 {
@@ -534,6 +553,9 @@ main(int argc, char **argv)
     check_data.mrb = mrb;
     check_data.cxt = cxt;
     mirb_editor_set_check_complete(&editor, mirb_check_code_complete, &check_data);
+    /* Setup tab completion */
+    mirb_setup_editor_completion(mrb, cxt);
+    mirb_editor_set_tab_complete(&editor, mirb_tab_complete, mirb_tab_complete_free, NULL);
     /* Enable colored prompts if terminal supports it */
     if (isatty(fileno(stdout))) {
       const char *term = getenv("TERM");
@@ -773,6 +795,7 @@ main(int argc, char **argv)
 
   /* Cleanup editor */
   if (use_editor) {
+    mirb_cleanup_editor_completion();
     mirb_editor_cleanup(&editor);
   }
 

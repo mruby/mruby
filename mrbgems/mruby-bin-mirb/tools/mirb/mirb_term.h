@@ -23,6 +23,7 @@ enum mirb_key {
   MIRB_KEY_CTRL_D = 4,
   MIRB_KEY_CTRL_E = 5,
   MIRB_KEY_CTRL_F = 6,
+  MIRB_KEY_TAB = 9,
   MIRB_KEY_CTRL_K = 11,
   MIRB_KEY_CTRL_L = 12,
   MIRB_KEY_ENTER = 13,

@@ -294,6 +294,103 @@ mirb_editor_set_check_complete(mirb_editor *ed, mirb_check_complete_fn *fn, void
 }
 
 /*
+ * Set tab completion callbacks
+ */
+void
+mirb_editor_set_tab_complete(mirb_editor *ed,
+                              mirb_tab_complete_fn *complete_fn,
+                              mirb_tab_complete_free_fn *free_fn,
+                              void *user_data)
+{
+  ed->tab_complete = complete_fn;
+  ed->tab_complete_free = free_fn;
+  ed->tab_complete_data = user_data;
+}
+
+/*
+ * Handle tab completion
+ * Returns TRUE if completion was performed
+ */
+static mrb_bool
+handle_tab_completion(mirb_editor *ed)
+{
+  char **completions = NULL;
+  int count, prefix_len;
+  const char *current_line;
+  int cursor_col;
+
+  if (!ed->tab_complete) return FALSE;
+
+  /* Get current line and cursor position */
+  current_line = ed->buf.lines[ed->buf.cursor_line].data;
+  cursor_col = (int)ed->buf.cursor_col;
+
+  /* Get completions */
+  count = ed->tab_complete(current_line, cursor_col, &completions, &prefix_len,
+                           ed->tab_complete_data);
+
+  if (count == 0 || !completions) {
+    return FALSE;
+  }
+
+  if (count == 1) {
+    /* Single completion - insert it */
+    const char *completion = completions[0];
+    int i;
+
+    /* Delete the prefix we're replacing */
+    for (i = 0; i < prefix_len; i++) {
+      mirb_buffer_delete_back(&ed->buf);
+    }
+
+    /* Insert completion */
+    mirb_buffer_insert_string(&ed->buf, completion, strlen(completion));
+  }
+  else {
+    /* Multiple completions - find common prefix and show options */
+    int common_len = (int)strlen(completions[0]);
+    int i, j;
+
+    /* Find longest common prefix */
+    for (i = 1; i < count; i++) {
+      for (j = 0; j < common_len && completions[i][j]; j++) {
+        if (completions[0][j] != completions[i][j]) {
+          common_len = j;
+          break;
+        }
+      }
+      if (j < common_len) common_len = j;
+    }
+
+    if (common_len > prefix_len) {
+      /* Extend with common prefix */
+      for (i = 0; i < prefix_len; i++) {
+        mirb_buffer_delete_back(&ed->buf);
+      }
+      mirb_buffer_insert_string(&ed->buf, completions[0], common_len);
+    }
+    else {
+      /* Show all completions */
+      printf("\r\n");
+      for (i = 0; i < count; i++) {
+        printf("%s  ", completions[i]);
+        if ((i + 1) % 4 == 0 && i + 1 < count) printf("\r\n");
+      }
+      printf("\r\n");
+      /* Force full redraw */
+      ed->prev_line_count = 0;
+    }
+  }
+
+  /* Free completions */
+  if (ed->tab_complete_free) {
+    ed->tab_complete_free(completions, count, ed->tab_complete_data);
+  }
+
+  return TRUE;
+}
+
+/*
  * Enable/disable color
  */
 void
@@ -432,6 +529,7 @@ handle_key(mirb_editor *ed, int key, mirb_edit_result *result)
        *   If splitting in the middle and there was a trailing blank line, remove it
        */
       mrb_bool inserting_in_middle = (ed->buf.cursor_line < ed->buf.line_count - 1);
+      mrb_bool move_to_blank = FALSE;
 
       if (inserting_in_middle) {
         /* Only consider smart navigation if cursor is at end of current line */
@@ -453,16 +551,14 @@ handle_key(mirb_editor *ed, int key, mirb_edit_result *result)
 
         if (ed->buf.cursor_col == current_line->len && next_is_last && next_is_blank) {
           /* Cursor at end of line, next is blank last line: just move to it */
-          mirb_buffer_cursor_down(&ed->buf);
-          mirb_buffer_cursor_end(&ed->buf);
-          return TRUE;
+          move_to_blank = TRUE;
         }
-
-        if (ed->buf.cursor_col < current_line->len && next_is_last && next_is_blank) {
+        else if (ed->buf.cursor_col < current_line->len && next_is_last && next_is_blank) {
           /* Cursor in middle of line, next is blank last line: remove it before split */
           mirb_buffer_delete_line(&ed->buf, next_line_idx);
+          inserting_in_middle = FALSE;  /* No longer inserting in middle after deletion */
         }
-        /* Fall through to insert new line (split at cursor) */
+        /* Fall through to check completion */
       }
 
       /* Check if input is complete */
@@ -478,7 +574,7 @@ handle_key(mirb_editor *ed, int key, mirb_edit_result *result)
              * being affected by 'end' keywords on later lines.
              */
             int indent;
-            if (inserting_in_middle) {
+            if (inserting_in_middle && !move_to_blank) {
               char *partial = buffer_to_string_upto_line(&ed->buf, ed->buf.cursor_line);
               indent = partial ? calc_indent_level(partial) : 0;
               free(partial);
@@ -487,11 +583,26 @@ handle_key(mirb_editor *ed, int key, mirb_edit_result *result)
               indent = calc_indent_level(code);
             }
             free(code);
-            /* Add newline and continue editing */
-            mirb_buffer_newline(&ed->buf);
-            /* Insert indentation spaces (2 spaces per level) */
-            for (int i = 0; i < indent * 2; i++) {
-              mirb_buffer_insert_char(&ed->buf, ' ');
+
+            if (move_to_blank) {
+              /* Move to existing blank line and set proper indentation */
+              mirb_buffer_cursor_down(&ed->buf);
+              /* Clear existing whitespace and set correct indent */
+              mirb_line *line = &ed->buf.lines[ed->buf.cursor_line];
+              line->len = 0;
+              line->data[0] = '\0';
+              ed->buf.cursor_col = 0;
+              for (int i = 0; i < indent * 2; i++) {
+                mirb_buffer_insert_char(&ed->buf, ' ');
+              }
+            }
+            else {
+              /* Add newline and continue editing */
+              mirb_buffer_newline(&ed->buf);
+              /* Insert indentation spaces (2 spaces per level) */
+              for (int i = 0; i < indent * 2; i++) {
+                mirb_buffer_insert_char(&ed->buf, ' ');
+              }
             }
             return TRUE;
           }
@@ -613,6 +724,11 @@ handle_key(mirb_editor *ed, int key, mirb_edit_result *result)
     /* Clear screen and refresh */
     mirb_term_clear_screen();
     ed->prev_line_count = 0;
+    return TRUE;
+
+  case MIRB_KEY_TAB:
+    /* Tab completion */
+    handle_tab_completion(ed);
     return TRUE;
 
   default:
