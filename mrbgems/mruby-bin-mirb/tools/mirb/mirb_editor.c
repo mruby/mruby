@@ -523,94 +523,99 @@ handle_key(mirb_editor *ed, int key, mirb_edit_result *result)
     {
       /*
        * Smart Enter behavior:
-       * - If cursor is at end of line AND next line is the last line and is empty,
-       *   just move to it (don't create duplicate empty lines)
-       * - Otherwise, insert a new line (split current line at cursor)
-       *   If splitting in the middle and there was a trailing blank line, remove it
+       * - Only evaluate when cursor is at end of last line and code is complete
+       * - If cursor is not at end of last line, always insert/split (no evaluation)
+       * - If next line is blank last line and cursor at end, move to it
        */
-      mrb_bool inserting_in_middle = (ed->buf.cursor_line < ed->buf.line_count - 1);
-      mrb_bool move_to_blank = FALSE;
+      mrb_bool at_last_line = (ed->buf.cursor_line == ed->buf.line_count - 1);
+      mirb_line *current_line = &ed->buf.lines[ed->buf.cursor_line];
+      mrb_bool at_end_of_line = (ed->buf.cursor_col == current_line->len);
+      mrb_bool can_evaluate = at_last_line && at_end_of_line;
 
-      if (inserting_in_middle) {
-        /* Only consider smart navigation if cursor is at end of current line */
-        mirb_line *current_line = &ed->buf.lines[ed->buf.cursor_line];
+      /* Check for smart navigation to existing blank last line */
+      if (!at_last_line && at_end_of_line) {
         size_t next_line_idx = ed->buf.cursor_line + 1;
         mrb_bool next_is_last = (next_line_idx == ed->buf.line_count - 1);
-        mrb_bool next_is_blank = FALSE;
 
         if (next_is_last) {
           mirb_line *next_line = &ed->buf.lines[next_line_idx];
-          next_is_blank = TRUE;
+          mrb_bool next_is_blank = TRUE;
           for (size_t i = 0; i < next_line->len; i++) {
             if (next_line->data[i] != ' ' && next_line->data[i] != '\t') {
               next_is_blank = FALSE;
               break;
             }
           }
-        }
-
-        if (ed->buf.cursor_col == current_line->len && next_is_last && next_is_blank) {
-          /* Cursor at end of line, next is blank last line: just move to it */
-          move_to_blank = TRUE;
-        }
-        else if (ed->buf.cursor_col < current_line->len && next_is_last && next_is_blank) {
-          /* Cursor in middle of line, next is blank last line: remove it before split */
-          mirb_buffer_delete_line(&ed->buf, next_line_idx);
-          inserting_in_middle = FALSE;  /* No longer inserting in middle after deletion */
-        }
-        /* Fall through to check completion */
-      }
-
-      /* Check if input is complete */
-      if (ed->check_complete) {
-        char *code = mirb_buffer_to_string(&ed->buf);
-        if (code) {
-          mrb_bool complete = ed->check_complete(code, ed->check_complete_data);
-          if (!complete) {
-            /*
-             * Calculate indent level for the new line.
-             * If inserting in the middle of existing code, only consider
-             * lines up to and including the current line to avoid
-             * being affected by 'end' keywords on later lines.
-             */
-            int indent;
-            if (inserting_in_middle && !move_to_blank) {
-              char *partial = buffer_to_string_upto_line(&ed->buf, ed->buf.cursor_line);
-              indent = partial ? calc_indent_level(partial) : 0;
-              free(partial);
-            }
-            else {
-              indent = calc_indent_level(code);
-            }
+          if (next_is_blank) {
+            /* Move to existing blank last line with proper indentation */
+            char *code = mirb_buffer_to_string(&ed->buf);
+            int indent = code ? calc_indent_level(code) : 0;
             free(code);
 
-            if (move_to_blank) {
-              /* Move to existing blank line and set proper indentation */
-              mirb_buffer_cursor_down(&ed->buf);
-              /* Clear existing whitespace and set correct indent */
-              mirb_line *line = &ed->buf.lines[ed->buf.cursor_line];
-              line->len = 0;
-              line->data[0] = '\0';
-              ed->buf.cursor_col = 0;
-              for (int i = 0; i < indent * 2; i++) {
-                mirb_buffer_insert_char(&ed->buf, ' ');
-              }
-            }
-            else {
-              /* Add newline and continue editing */
-              mirb_buffer_newline(&ed->buf);
-              /* Insert indentation spaces (2 spaces per level) */
-              for (int i = 0; i < indent * 2; i++) {
-                mirb_buffer_insert_char(&ed->buf, ' ');
-              }
+            mirb_buffer_cursor_down(&ed->buf);
+            /* Clear existing whitespace and set correct indent */
+            mirb_line *line = &ed->buf.lines[ed->buf.cursor_line];
+            line->len = 0;
+            line->data[0] = '\0';
+            ed->buf.cursor_col = 0;
+            for (int i = 0; i < indent * 2; i++) {
+              mirb_buffer_insert_char(&ed->buf, ' ');
             }
             return TRUE;
           }
-          free(code);
         }
       }
-      *result = MIRB_EDIT_OK;
-      return FALSE;
+
+      /* If cursor in middle of line and next is blank last, remove it before split */
+      if (!at_last_line && !at_end_of_line) {
+        size_t next_line_idx = ed->buf.cursor_line + 1;
+        if (next_line_idx == ed->buf.line_count - 1) {
+          mirb_line *next_line = &ed->buf.lines[next_line_idx];
+          mrb_bool next_is_blank = TRUE;
+          for (size_t i = 0; i < next_line->len; i++) {
+            if (next_line->data[i] != ' ' && next_line->data[i] != '\t') {
+              next_is_blank = FALSE;
+              break;
+            }
+          }
+          if (next_is_blank) {
+            mirb_buffer_delete_line(&ed->buf, next_line_idx);
+          }
+        }
+      }
+
+      /* Check if input is complete - only when cursor at end of last line */
+      if (can_evaluate && ed->check_complete) {
+        char *code = mirb_buffer_to_string(&ed->buf);
+        if (code) {
+          mrb_bool complete = ed->check_complete(code, ed->check_complete_data);
+          if (complete) {
+            free(code);
+            *result = MIRB_EDIT_OK;
+            return FALSE;
+          }
+          /* Code not complete - add new line with indentation */
+          int indent = calc_indent_level(code);
+          free(code);
+          mirb_buffer_newline(&ed->buf);
+          for (int i = 0; i < indent * 2; i++) {
+            mirb_buffer_insert_char(&ed->buf, ' ');
+          }
+          return TRUE;
+        }
+      }
+
+      /* Not at end of last line - just insert/split with appropriate indent */
+      {
+        char *partial = buffer_to_string_upto_line(&ed->buf, ed->buf.cursor_line);
+        int indent = partial ? calc_indent_level(partial) : 0;
+        free(partial);
+        mirb_buffer_newline(&ed->buf);
+        for (int i = 0; i < indent * 2; i++) {
+          mirb_buffer_insert_char(&ed->buf, ' ');
+        }
+        return TRUE;
+      }
     }
 
   case MIRB_KEY_CTRL_C:
