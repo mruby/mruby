@@ -689,8 +689,18 @@ mirb_buffer_kill_to_end(mirb_buffer *buf)
     line->len = buf->cursor_col;
     buf->modified = TRUE;
   }
+  else if (line->len == 0 && buf->line_count > 1) {
+    /* Empty line: delete the entire line */
+    save_to_kill(buf, "\n", 1);
+    mirb_buffer_delete_line(buf, buf->cursor_line);
+    /* Adjust cursor to end of previous line if we deleted from middle */
+    if (buf->cursor_line > 0 && buf->cursor_line >= buf->line_count) {
+      buf->cursor_line = buf->line_count - 1;
+    }
+    buf->cursor_col = 0;
+  }
   else if (buf->cursor_line < buf->line_count - 1) {
-    /* At end of line: kill newline (join with next line) */
+    /* At end of non-empty line: kill newline (join with next line) */
     save_to_kill(buf, "\n", 1);
     mirb_buffer_delete_forward(buf);
   }
