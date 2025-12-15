@@ -8,7 +8,7 @@
 - method inline caching improvements (cache method lookup results)
 - more peephole optimization (if possible)
 - built-in profiler (method call tracing, stack profiling, detailed memory analysis)
-- improved REPL (mirb) features (multi-line, syntax highlighting, completion)
+- improved REPL (mirb) features (syntax highlighting)
 - configurable memory pools (per-object-type, memory-constrained devices)
 - suspend/resume VM state (serialize/deserialize for power cycling)
 - CMake build support (better IDE integration, standard C tooling)
