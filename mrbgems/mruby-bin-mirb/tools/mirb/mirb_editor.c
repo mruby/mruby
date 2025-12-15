@@ -684,6 +684,25 @@ handle_key(mirb_editor *ed, int key, mirb_edit_result *result)
         int indent = partial ? calc_indent_level(partial) : 0;
         free(partial);
         mirb_buffer_newline(&ed->buf);
+
+        /* Check if new line starts with dedenting keyword */
+        mirb_line *new_line = &ed->buf.lines[ed->buf.cursor_line];
+        const char *content = new_line->data;
+        if ((strncmp(content, "end", 3) == 0 &&
+             (content[3] == '\0' || content[3] == ' ' || content[3] == '\t' ||
+              content[3] == '.' || content[3] == ')')) ||
+            (strncmp(content, "else", 4) == 0 &&
+             (content[4] == '\0' || content[4] == ' ' || content[4] == '\t')) ||
+            (strncmp(content, "elsif", 5) == 0 && content[5] == ' ') ||
+            (strncmp(content, "when", 4) == 0 && content[4] == ' ') ||
+            (strncmp(content, "rescue", 6) == 0 &&
+             (content[6] == '\0' || content[6] == ' ' || content[6] == '\t')) ||
+            (strncmp(content, "ensure", 6) == 0 &&
+             (content[6] == '\0' || content[6] == ' ' || content[6] == '\t')) ||
+            content[0] == '}') {
+          if (indent > 0) indent--;
+        }
+
         for (int i = 0; i < indent * 2; i++) {
           mirb_buffer_insert_char(&ed->buf, ' ');
         }
