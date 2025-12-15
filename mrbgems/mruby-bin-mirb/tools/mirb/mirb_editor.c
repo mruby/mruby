@@ -358,6 +358,7 @@ handle_tab_indent(mirb_editor *ed)
   size_t current_spaces = 0;
   size_t i;
   const char *content;
+  size_t saved_cursor_col = ed->buf.cursor_col;
 
   /* Calculate expected indent from code up to previous line */
   if (ed->buf.cursor_line > 0) {
@@ -401,7 +402,6 @@ handle_tab_indent(mirb_editor *ed)
     for (i = 0; i < add; i++) {
       mirb_buffer_insert_char(&ed->buf, ' ');
     }
-    ed->buf.cursor_col = target_spaces;
   }
   else if (target_spaces < current_spaces) {
     /* Need to remove spaces */
@@ -410,11 +410,20 @@ handle_tab_indent(mirb_editor *ed)
     for (i = 0; i < remove; i++) {
       mirb_buffer_delete_back(&ed->buf);
     }
-    ed->buf.cursor_col = target_spaces;
+  }
+
+  /* Restore cursor position adjusted for indent change */
+  if (target_spaces >= current_spaces) {
+    ed->buf.cursor_col = saved_cursor_col + (target_spaces - current_spaces);
   }
   else {
-    /* Already correct, move cursor to end of indent */
-    ed->buf.cursor_col = target_spaces;
+    size_t removed = current_spaces - target_spaces;
+    if (saved_cursor_col >= removed) {
+      ed->buf.cursor_col = saved_cursor_col - removed;
+    }
+    else {
+      ed->buf.cursor_col = 0;
+    }
   }
 }
 
