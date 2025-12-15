@@ -154,6 +154,7 @@ should_dedent(mirb_buffer *buf, char last_char)
 {
   const char *line = mirb_buffer_current_line(buf);
   size_t col = buf->cursor_col;
+  size_t line_len = buf->lines[buf->cursor_line].len;
 
   /* Check for '}' - dedent immediately when typed at line start */
   if (last_char == '}') {
@@ -162,21 +163,39 @@ should_dedent(mirb_buffer *buf, char last_char)
     }
   }
 
-  /* Check for 'end' - dedent when 'd' completes "end" */
-  if (last_char == 'd' && col >= 3) {
-    /* Check if we just completed "end" */
-    if (line[col - 3] == 'e' && line[col - 2] == 'n' && line[col - 1] == 'd') {
-      /* Verify only whitespace before "end" */
-      if (col == 3 || line_is_blank_before(line, col - 3)) {
-        /* Verify "end" is not part of a longer word */
-        if (col == buf->lines[buf->cursor_line].len ||
-            line[col] == ' ' || line[col] == '\t' || line[col] == '\0' ||
-            line[col] == '\n' || line[col] == '.' || line[col] == ')') {
-          return TRUE;
-        }
-      }
+  /* Helper macro: check keyword completion */
+  #define CHECK_KEYWORD(keyword, len, trigger_char) \
+    if (last_char == trigger_char && col >= len) { \
+      if (strncmp(line + col - len, keyword, len) == 0) { \
+        if (col == len || line_is_blank_before(line, col - len)) { \
+          if (col == line_len || \
+              line[col] == ' ' || line[col] == '\t' || line[col] == '\0' || \
+              line[col] == '\n' || line[col] == '.' || line[col] == ')') { \
+            return TRUE; \
+          } \
+        } \
+      } \
     }
-  }
+
+  /* Check for 'end' - dedent when 'd' completes "end" */
+  CHECK_KEYWORD("end", 3, 'd');
+
+  /* Check for 'else' - dedent when 'e' completes "else" */
+  CHECK_KEYWORD("else", 4, 'e');
+
+  /* Check for 'elsif' - dedent when 'f' completes "elsif" */
+  CHECK_KEYWORD("elsif", 5, 'f');
+
+  /* Check for 'when' - dedent when 'n' completes "when" */
+  CHECK_KEYWORD("when", 4, 'n');
+
+  /* Check for 'rescue' - dedent when 'e' completes "rescue" */
+  CHECK_KEYWORD("rescue", 6, 'e');
+
+  /* Check for 'ensure' - dedent when 'e' completes "ensure" */
+  CHECK_KEYWORD("ensure", 6, 'e');
+
+  #undef CHECK_KEYWORD
 
   return FALSE;
 }
