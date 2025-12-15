@@ -311,6 +311,79 @@ mirb_editor_set_tab_complete(mirb_editor *ed,
  * Handle tab completion
  * Returns TRUE if completion was performed
  */
+
+/*
+ * Handle tab auto-indent
+ * Adjusts current line's indentation to match the expected level
+ */
+static void
+handle_tab_indent(mirb_editor *ed)
+{
+  mirb_line *line = &ed->buf.lines[ed->buf.cursor_line];
+  int expected_indent = 0;
+  size_t current_spaces = 0;
+  size_t i;
+  const char *content;
+
+  /* Calculate expected indent from code up to previous line */
+  if (ed->buf.cursor_line > 0) {
+    char *partial = buffer_to_string_upto_line(&ed->buf, ed->buf.cursor_line - 1);
+    if (partial) {
+      expected_indent = calc_indent_level(partial);
+      free(partial);
+    }
+  }
+
+  /* Count current leading whitespace */
+  for (i = 0; i < line->len && (line->data[i] == ' ' || line->data[i] == '\t'); i++) {
+    current_spaces++;
+  }
+
+  /* Check if line content starts with dedenting keyword */
+  content = line->data + current_spaces;
+  if ((strncmp(content, "end", 3) == 0 &&
+       (content[3] == '\0' || content[3] == ' ' || content[3] == '\t' ||
+        content[3] == '.' || content[3] == ')')) ||
+      (strncmp(content, "else", 4) == 0 &&
+       (content[4] == '\0' || content[4] == ' ' || content[4] == '\t')) ||
+      (strncmp(content, "elsif", 5) == 0 && content[5] == ' ') ||
+      (strncmp(content, "when", 4) == 0 && content[4] == ' ') ||
+      (strncmp(content, "rescue", 6) == 0 &&
+       (content[6] == '\0' || content[6] == ' ' || content[6] == '\t')) ||
+      (strncmp(content, "ensure", 6) == 0 &&
+       (content[6] == '\0' || content[6] == ' ' || content[6] == '\t')) ||
+      content[0] == '}') {
+    if (expected_indent > 0) expected_indent--;
+  }
+
+  /* Calculate target spaces (2 spaces per indent level) */
+  size_t target_spaces = (size_t)(expected_indent * 2);
+
+  /* Adjust indentation */
+  if (target_spaces > current_spaces) {
+    /* Need to add spaces - insert at beginning */
+    size_t add = target_spaces - current_spaces;
+    ed->buf.cursor_col = 0;
+    for (i = 0; i < add; i++) {
+      mirb_buffer_insert_char(&ed->buf, ' ');
+    }
+    ed->buf.cursor_col = target_spaces;
+  }
+  else if (target_spaces < current_spaces) {
+    /* Need to remove spaces */
+    size_t remove = current_spaces - target_spaces;
+    ed->buf.cursor_col = current_spaces;
+    for (i = 0; i < remove; i++) {
+      mirb_buffer_delete_back(&ed->buf);
+    }
+    ed->buf.cursor_col = target_spaces;
+  }
+  else {
+    /* Already correct, move cursor to end of indent */
+    ed->buf.cursor_col = target_spaces;
+  }
+}
+
 static mrb_bool
 handle_tab_completion(mirb_editor *ed)
 {
@@ -732,8 +805,32 @@ handle_key(mirb_editor *ed, int key, mirb_edit_result *result)
     return TRUE;
 
   case MIRB_KEY_TAB:
-    /* Tab completion */
-    handle_tab_completion(ed);
+    /* Auto-indent if at start/end of line or preceded by whitespace */
+    {
+      mirb_line *line = &ed->buf.lines[ed->buf.cursor_line];
+      mrb_bool do_indent = FALSE;
+
+      if (ed->buf.cursor_col == 0) {
+        do_indent = TRUE;
+      }
+      else if (ed->buf.cursor_col == line->len) {
+        /* At end of line */
+        do_indent = TRUE;
+      }
+      else {
+        char prev_char = line->data[ed->buf.cursor_col - 1];
+        if (prev_char == ' ' || prev_char == '\t') {
+          do_indent = TRUE;
+        }
+      }
+
+      if (do_indent) {
+        handle_tab_indent(ed);
+      }
+      else {
+        handle_tab_completion(ed);
+      }
+    }
     return TRUE;
 
   default:
