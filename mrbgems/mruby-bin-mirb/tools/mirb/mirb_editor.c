@@ -207,11 +207,26 @@ static void
 perform_dedent(mirb_buffer *buf)
 {
   const char *line = mirb_buffer_current_line(buf);
-  size_t spaces = leading_spaces(line);
+  size_t current_spaces = leading_spaces(line);
+  int expected_indent = 0;
 
-  /* Remove up to 2 spaces */
-  size_t to_remove = (spaces >= 2) ? 2 : spaces;
-  if (to_remove > 0) {
+  /* Calculate expected indent from code up to previous line */
+  if (buf->cursor_line > 0) {
+    char *partial = buffer_to_string_upto_line(buf, buf->cursor_line - 1);
+    if (partial) {
+      expected_indent = calc_indent_level(partial);
+      free(partial);
+    }
+  }
+
+  /* Dedent one level for keywords like end, else, etc. */
+  if (expected_indent > 0) expected_indent--;
+
+  size_t target_spaces = (size_t)(expected_indent * 2);
+
+  /* Only dedent if we have more spaces than target */
+  if (current_spaces > target_spaces) {
+    size_t to_remove = current_spaces - target_spaces;
     size_t saved_col = buf->cursor_col;
     /* Move cursor to start of line and delete leading spaces */
     buf->cursor_col = 0;
