@@ -238,6 +238,77 @@ perform_dedent(mirb_buffer *buf)
   }
 }
 
+
+/*
+ * Re-indent current line to match expected indent level
+ * Used before inserting newline to fix any misaligned indentation
+ */
+static void
+reindent_line(mirb_buffer *buf)
+{
+  mirb_line *line = &buf->lines[buf->cursor_line];
+  size_t current_spaces = 0;
+  int expected_indent = 0;
+  const char *content;
+
+  /* Count current leading whitespace */
+  for (size_t i = 0; i < line->len && (line->data[i] == ' ' || line->data[i] == '\t'); i++) {
+    current_spaces++;
+  }
+
+  /* Calculate expected indent from code up to previous line */
+  if (buf->cursor_line > 0) {
+    char *partial = buffer_to_string_upto_line(buf, buf->cursor_line - 1);
+    if (partial) {
+      expected_indent = calc_indent_level(partial);
+      free(partial);
+    }
+  }
+
+  /* Check if line content starts with dedenting keyword */
+  content = line->data + current_spaces;
+  if ((strncmp(content, "end", 3) == 0 &&
+       (content[3] == '\0' || content[3] == ' ' || content[3] == '\t' ||
+        content[3] == '.' || content[3] == ')')) ||
+      (strncmp(content, "else", 4) == 0 &&
+       (content[4] == '\0' || content[4] == ' ' || content[4] == '\t')) ||
+      (strncmp(content, "elsif", 5) == 0 && content[5] == ' ') ||
+      (strncmp(content, "when", 4) == 0 && content[4] == ' ') ||
+      (strncmp(content, "rescue", 6) == 0 &&
+       (content[6] == '\0' || content[6] == ' ' || content[6] == '\t')) ||
+      (strncmp(content, "ensure", 6) == 0 &&
+       (content[6] == '\0' || content[6] == ' ' || content[6] == '\t')) ||
+      content[0] == '}') {
+    if (expected_indent > 0) expected_indent--;
+  }
+
+  size_t target_spaces = (size_t)(expected_indent * 2);
+
+  /* Adjust indentation if needed */
+  if (target_spaces != current_spaces) {
+    size_t saved_col = buf->cursor_col;
+
+    if (target_spaces > current_spaces) {
+      /* Need to add spaces */
+      size_t add = target_spaces - current_spaces;
+      buf->cursor_col = 0;
+      for (size_t i = 0; i < add; i++) {
+        mirb_buffer_insert_char(buf, ' ');
+      }
+      buf->cursor_col = saved_col + add;
+    }
+    else {
+      /* Need to remove spaces */
+      size_t remove = current_spaces - target_spaces;
+      buf->cursor_col = current_spaces;
+      for (size_t i = 0; i < remove; i++) {
+        mirb_buffer_delete_back(buf);
+      }
+      buf->cursor_col = (saved_col > remove) ? (saved_col - remove) : 0;
+    }
+  }
+}
+
 /*
  * Initialize editor
  */
@@ -636,6 +707,8 @@ handle_key(mirb_editor *ed, int key, mirb_edit_result *result)
   case MIRB_KEY_ENTER:
     /* Stop history browsing */
     mirb_history_browse_stop(&ed->hist);
+    /* Re-indent current line before inserting newline */
+    reindent_line(&ed->buf);
     {
       /*
        * Smart Enter behavior:
