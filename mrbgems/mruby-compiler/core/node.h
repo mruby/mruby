@@ -81,6 +81,16 @@ enum node_type {
   NODE_HEREDOC,
   NODE_WORDS,
   NODE_SYMBOLS,
+  /* Pattern matching nodes */
+  NODE_CASE_MATCH,    /* case/in pattern matching expression */
+  NODE_IN,            /* in-clause node */
+  NODE_PAT_VALUE,     /* value pattern (literal, constant) */
+  NODE_PAT_VAR,       /* variable pattern */
+  NODE_PAT_PIN,       /* pin operator ^var */
+  NODE_PAT_AS,        /* as pattern (pattern => var) */
+  NODE_PAT_ALT,       /* alternative pattern (pat1 | pat2) */
+  NODE_PAT_ARRAY,     /* array pattern [a, b, *rest] */
+  NODE_PAT_HASH,      /* hash pattern {a:, b: x} */
   NODE_LAST
 };
 
@@ -267,6 +277,69 @@ struct mrb_ast_case_node {
   struct mrb_ast_node *body;           /* When/else clauses (cons list) */
 };
 
+/* Pattern matching case node (case/in) */
+struct mrb_ast_case_match_node {
+  struct mrb_ast_var_header header;    /* 8 bytes */
+  struct mrb_ast_node *value;          /* Case value expression */
+  struct mrb_ast_node *in_clauses;     /* In clause list (cons list) */
+};
+
+/* In clause node */
+struct mrb_ast_in_node {
+  struct mrb_ast_var_header header;    /* 8 bytes */
+  struct mrb_ast_node *pattern;        /* Pattern to match */
+  struct mrb_ast_node *guard;          /* Guard expression (optional) */
+  struct mrb_ast_node *body;           /* Body to execute on match */
+  mrb_bool guard_is_unless;            /* TRUE if 'unless', FALSE if 'if' */
+};
+
+/* Value pattern node (literal, constant) */
+struct mrb_ast_pat_value_node {
+  struct mrb_ast_var_header header;    /* 8 bytes */
+  struct mrb_ast_node *value;          /* Literal or constant node */
+};
+
+/* Variable pattern node */
+struct mrb_ast_pat_var_node {
+  struct mrb_ast_var_header header;    /* 8 bytes */
+  mrb_sym name;                        /* Variable name (0 for wildcard _) */
+};
+
+/* Pin pattern node (^var) */
+struct mrb_ast_pat_pin_node {
+  struct mrb_ast_var_header header;    /* 8 bytes */
+  mrb_sym name;                        /* Variable name to pin */
+};
+
+/* As pattern node (pattern => var) */
+struct mrb_ast_pat_as_node {
+  struct mrb_ast_var_header header;    /* 8 bytes */
+  struct mrb_ast_node *pattern;        /* Pattern to match */
+  mrb_sym name;                        /* Variable to bind */
+};
+
+/* Alternative pattern node (pat1 | pat2) */
+struct mrb_ast_pat_alt_node {
+  struct mrb_ast_var_header header;    /* 8 bytes */
+  struct mrb_ast_node *left;           /* Left pattern */
+  struct mrb_ast_node *right;          /* Right pattern */
+};
+
+/* Array pattern node [a, b, *rest] */
+struct mrb_ast_pat_array_node {
+  struct mrb_ast_var_header header;    /* 8 bytes */
+  struct mrb_ast_node *pre;            /* Pre-rest patterns (cons list) */
+  struct mrb_ast_node *rest;           /* Rest pattern (NULL if none, -1 if anonymous) */
+  struct mrb_ast_node *post;           /* Post-rest patterns (cons list) */
+};
+
+/* Hash pattern node {a:, b: x} */
+struct mrb_ast_pat_hash_node {
+  struct mrb_ast_var_header header;    /* 8 bytes */
+  struct mrb_ast_node *pairs;          /* Key-pattern pairs (cons list) */
+  struct mrb_ast_node *rest;           /* Rest pattern (NULL if none, -1 if **nil) */
+};
+
 /* Variable-sized for node */
 struct mrb_ast_for_node {
   struct mrb_ast_var_header header;  /* 8 bytes */
@@ -369,6 +442,15 @@ struct mrb_ast_super_node {
 #define while_node(n) ((struct mrb_ast_while_node*)(n))
 #define until_node(n) ((struct mrb_ast_until_node*)(n))
 #define case_node(n) ((struct mrb_ast_case_node*)(n))
+#define case_match_node(n) ((struct mrb_ast_case_match_node*)(n))
+#define in_node(n) ((struct mrb_ast_in_node*)(n))
+#define pat_value_node(n) ((struct mrb_ast_pat_value_node*)(n))
+#define pat_var_node(n) ((struct mrb_ast_pat_var_node*)(n))
+#define pat_pin_node(n) ((struct mrb_ast_pat_pin_node*)(n))
+#define pat_as_node(n) ((struct mrb_ast_pat_as_node*)(n))
+#define pat_alt_node(n) ((struct mrb_ast_pat_alt_node*)(n))
+#define pat_array_node(n) ((struct mrb_ast_pat_array_node*)(n))
+#define pat_hash_node(n) ((struct mrb_ast_pat_hash_node*)(n))
 #define for_node(n) ((struct mrb_ast_for_node*)(n))
 #define asgn_node(n) ((struct mrb_ast_asgn_node*)(n))
 #define masgn_node(n) ((struct mrb_ast_masgn_node*)(n))

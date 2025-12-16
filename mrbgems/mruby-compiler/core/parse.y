@@ -597,6 +597,74 @@ new_case(parser_state *p, node *a, node *b)
   return (node*)n;
 }
 
+/* Pattern matching case/in expression */
+static node*
+new_case_match(parser_state *p, node *val, node *in_clauses)
+{
+  void_expr_error(p, val);
+
+  struct mrb_ast_case_match_node *n = NEW_NODE(case_match, NODE_CASE_MATCH);
+  n->value = val;
+  n->in_clauses = in_clauses;
+
+  return (node*)n;
+}
+
+/* Create value pattern node */
+static node*
+new_pat_value(parser_state *p, node *val)
+{
+  struct mrb_ast_pat_value_node *n = NEW_NODE(pat_value, NODE_PAT_VALUE);
+  n->value = val;
+  return (node*)n;
+}
+
+/* Create variable pattern node */
+static node*
+new_pat_var(parser_state *p, mrb_sym name)
+{
+  struct mrb_ast_pat_var_node *n = NEW_NODE(pat_var, NODE_PAT_VAR);
+  n->name = name;
+  /* Register as local variable if not wildcard */
+  if (name) {
+    local_add(p, name);
+  }
+  return (node*)n;
+}
+
+/* Create as pattern node (pattern => var) */
+static node*
+new_pat_as(parser_state *p, node *pattern, mrb_sym name)
+{
+  struct mrb_ast_pat_as_node *n = NEW_NODE(pat_as, NODE_PAT_AS);
+  n->pattern = pattern;
+  n->name = name;
+  local_add(p, name);
+  return (node*)n;
+}
+
+/* Create alternative pattern node (pat1 | pat2) */
+static node*
+new_pat_alt(parser_state *p, node *left, node *right)
+{
+  struct mrb_ast_pat_alt_node *n = NEW_NODE(pat_alt, NODE_PAT_ALT);
+  n->left = left;
+  n->right = right;
+  return (node*)n;
+}
+
+/* Create in-clause node for case/in */
+static node*
+new_in(parser_state *p, node *pattern, node *guard, node *body, mrb_bool guard_is_unless)
+{
+  struct mrb_ast_in_node *n = NEW_NODE(in, NODE_IN);
+  n->pattern = pattern;
+  n->guard = guard;
+  n->body = body;
+  n->guard_is_unless = guard_is_unless;
+  return (node*)n;
+}
+
 /* struct: postexe_node(body) */
 static node*
 new_postexe(parser_state *p, node *a)
@@ -1984,6 +2052,9 @@ prohibit_literals(parser_state *p, node *n)
 %type <nd> f_block_kwarg f_block_kw block_args_tail opt_block_args_tail
 %type <id> f_label f_kwrest
 
+/* pattern matching */
+%type <nd> in_clauses p_expr p_alt p_value p_var p_as
+
 %token tUPLUS             "unary plus"
 %token tUMINUS            "unary minus"
 %token tCMP               "<=>"
@@ -3247,6 +3318,15 @@ primary         : literal
                     {
                       $$ = new_case(p, 0, $3);
                     }
+                | keyword_case expr_value opt_terms
+                  keyword_in p_expr then
+                  compstmt
+                  in_clauses
+                  keyword_end
+                    {
+                      node *in_clause = new_in(p, $5, NULL, $7, FALSE);
+                      $$ = new_case_match(p, $2, cons(in_clause, $8));
+                    }
                 | keyword_for for_var keyword_in
                   {COND_PUSH(1);}
                   expr_value do
@@ -3716,6 +3796,81 @@ cases           : opt_else
                       }
                     }
                 | case_body
+                ;
+
+/* Pattern matching in-clauses for case/in */
+in_clauses      : opt_else
+                    {
+                      $$ = $1 ? list1(new_in(p, NULL, NULL, $1, FALSE)) : 0;
+                    }
+                | keyword_in p_expr then compstmt in_clauses
+                    {
+                      node *in_clause = new_in(p, $2, NULL, $4, FALSE);
+                      $$ = cons(in_clause, $5);
+                    }
+                ;
+
+/* Pattern expressions for case/in */
+p_expr          : p_as
+                ;
+
+p_as            : p_alt
+                | p_alt tASSOC tIDENTIFIER
+                    {
+                      $$ = new_pat_as(p, $1, $3);
+                    }
+                ;
+
+p_alt           : p_value
+                | p_alt '|' p_value
+                    {
+                      $$ = new_pat_alt(p, $1, $3);
+                    }
+                ;
+
+p_value         : p_var
+                | numeric
+                    {
+                      $$ = new_pat_value(p, $1);
+                    }
+                | symbol
+                    {
+                      $$ = new_pat_value(p, $1);
+                    }
+                | tSTRING
+                    {
+                      $$ = new_pat_value(p, $1);
+                    }
+                | keyword_nil
+                    {
+                      $$ = new_pat_value(p, new_nil(p));
+                    }
+                | keyword_true
+                    {
+                      $$ = new_pat_value(p, new_true(p));
+                    }
+                | keyword_false
+                    {
+                      $$ = new_pat_value(p, new_false(p));
+                    }
+                | tCONSTANT
+                    {
+                      $$ = new_pat_value(p, new_const(p, $1));
+                    }
+                | primary_value tCOLON2 tCONSTANT
+                    {
+                      $$ = new_pat_value(p, new_colon2(p, $1, $3));
+                    }
+                | tCOLON3 tCONSTANT
+                    {
+                      $$ = new_pat_value(p, new_colon3(p, $2));
+                    }
+                ;
+
+p_var           : tIDENTIFIER
+                    {
+                      $$ = new_pat_var(p, $1);
+                    }
                 ;
 
 opt_rescue      : keyword_rescue exc_list exc_var then

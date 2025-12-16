@@ -4248,6 +4248,157 @@ codegen_case(codegen_scope *s, node *varnode, int val)
   }
 }
 
+/* Forward declaration for pattern matching code generation */
+static void codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos);
+
+/* Pattern matching case/in expression */
+static void
+codegen_case_match(codegen_scope *s, node *varnode, int val)
+{
+  struct mrb_ast_case_match_node *case_match_n = case_match_node(varnode);
+  node *value = case_match_n->value;
+  node *in_clauses = case_match_n->in_clauses;
+
+  int head = cursp();
+  uint32_t case_end_jumps = JMPLINK_START;
+  uint32_t tmp;
+
+  /* Generate code for the case value */
+  codegen(s, value, VAL);
+
+  /* Iterate through in clauses */
+  node *current_in = in_clauses;
+  while (current_in) {
+    struct mrb_ast_in_node *in_n = in_node(current_in->car);
+    node *pattern = in_n->pattern;
+    node *body = in_n->body;
+
+    uint32_t fail_pos = JMPLINK_START;
+
+    if (pattern) {
+      /* Generate pattern matching code */
+      codegen_pattern(s, pattern, head, &fail_pos);
+    }
+
+    /* Generate in-clause body */
+    codegen(s, body, val);
+    if (val) pop();
+
+    /* Jump to end of case/in */
+    tmp = genjmp(s, OP_JMP, case_end_jumps);
+    case_end_jumps = tmp;
+
+    /* Dispatch fail jumps to next in-clause */
+    if (fail_pos != JMPLINK_START) {
+      dispatch_linked(s, fail_pos);
+    }
+
+    current_in = current_in->cdr;
+  }
+
+  /* No pattern matched - generate nil or error */
+  if (val) {
+    genop_1(s, OP_LOADNIL, cursp());
+  }
+
+  /* Dispatch all end jumps */
+  if (case_end_jumps != JMPLINK_START) {
+    dispatch_linked(s, case_end_jumps);
+  }
+
+  if (val) {
+    /* Move result to original case value position */
+    gen_move(s, head, cursp(), 0);
+    pop();
+    push();
+  }
+  else {
+    pop();  /* pop the case value */
+  }
+}
+
+/* Generate pattern matching code for a single pattern.
+ * target: stack position of the value being matched
+ * fail_pos: linked list of jump positions for pattern match failure
+ */
+static void
+codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos)
+{
+  uint32_t tmp;
+
+  switch (get_node_type(pattern)) {
+  case NODE_PAT_VALUE:
+    {
+      struct mrb_ast_pat_value_node *pat_val = pat_value_node(pattern);
+      /* Generate: pattern_value === target */
+      codegen(s, pat_val->value, VAL);
+      gen_move(s, cursp(), target, 0);
+      push(); push(); pop(); pop(); pop();
+      genop_3(s, OP_SEND, cursp(), new_sym(s, MRB_OPSYM_2(s->mrb, eqq)), 1);
+      /* Jump to fail if not matched */
+      tmp = genjmp2(s, OP_JMPNOT, cursp(), *fail_pos, 1);
+      *fail_pos = tmp;
+    }
+    break;
+
+  case NODE_PAT_VAR:
+    {
+      struct mrb_ast_pat_var_node *pat_var = pat_var_node(pattern);
+      if (pat_var->name) {
+        /* Bind the matched value to the variable */
+        int idx = lv_idx(s, pat_var->name);
+        if (idx > 0) {
+          gen_move(s, idx, target, 0);
+        }
+      }
+      /* Variable pattern always matches (wildcard if name is 0) */
+    }
+    break;
+
+  case NODE_PAT_ALT:
+    {
+      struct mrb_ast_pat_alt_node *pat_alt = pat_alt_node(pattern);
+      uint32_t left_fail = JMPLINK_START;
+      uint32_t success_pos = JMPLINK_START;
+
+      /* Try left pattern */
+      codegen_pattern(s, pat_alt->left, target, &left_fail);
+      /* Left succeeded - jump to success */
+      tmp = genjmp(s, OP_JMP, success_pos);
+      success_pos = tmp;
+
+      /* Left failed - try right pattern */
+      if (left_fail != JMPLINK_START) {
+        dispatch_linked(s, left_fail);
+      }
+      codegen_pattern(s, pat_alt->right, target, fail_pos);
+
+      /* Dispatch success jumps */
+      if (success_pos != JMPLINK_START) {
+        dispatch_linked(s, success_pos);
+      }
+    }
+    break;
+
+  case NODE_PAT_AS:
+    {
+      struct mrb_ast_pat_as_node *pat_as = pat_as_node(pattern);
+      /* First match the pattern */
+      codegen_pattern(s, pat_as->pattern, target, fail_pos);
+      /* Then bind the value to the variable */
+      int idx = lv_idx(s, pat_as->name);
+      if (idx > 0) {
+        gen_move(s, idx, target, 0);
+      }
+    }
+    break;
+
+  default:
+    raise_error(s, "unsupported pattern type");
+    break;
+  }
+}
+
 /* Definition node codegen functions */
 
 static void
@@ -5723,6 +5874,10 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_CASE:
     codegen_case(s, tree, val);
+    break;
+
+  case NODE_CASE_MATCH:
+    codegen_case_match(s, tree, val);
     break;
 
   case NODE_DEF:
