@@ -15524,6 +15524,127 @@ dump_node(mrb_state *mrb, node *tree, int offset)
     }
     break;
 
+  case NODE_CASE_MATCH:
+    printf("NODE_CASE_MATCH:\n");
+    if (case_match_node(tree)->value) {
+      dump_prefix(offset+1, lineno);
+      printf("value:\n");
+      dump_node(mrb, case_match_node(tree)->value, offset+2);
+    }
+    if (case_match_node(tree)->in_clauses) {
+      node *in_clause = case_match_node(tree)->in_clauses;
+      while (in_clause) {
+        dump_node(mrb, in_clause->car, offset+1);
+        in_clause = in_clause->cdr;
+      }
+    }
+    break;
+
+  case NODE_IN:
+    printf("NODE_IN:\n");
+    if (in_node(tree)->pattern) {
+      dump_prefix(offset+1, lineno);
+      printf("pattern:\n");
+      dump_node(mrb, in_node(tree)->pattern, offset+2);
+    }
+    if (in_node(tree)->guard) {
+      dump_prefix(offset+1, lineno);
+      printf("guard (%s):\n", in_node(tree)->guard_is_unless ? "unless" : "if");
+      dump_node(mrb, in_node(tree)->guard, offset+2);
+    }
+    if (in_node(tree)->body) {
+      dump_prefix(offset+1, lineno);
+      printf("body:\n");
+      dump_node(mrb, in_node(tree)->body, offset+2);
+    }
+    break;
+
+  case NODE_PAT_VALUE:
+    printf("NODE_PAT_VALUE:\n");
+    if (pat_value_node(tree)->value) {
+      dump_node(mrb, pat_value_node(tree)->value, offset+1);
+    }
+    break;
+
+  case NODE_PAT_VAR:
+    if (pat_var_node(tree)->name) {
+      printf("NODE_PAT_VAR: %s\n", mrb_sym_dump(mrb, pat_var_node(tree)->name));
+    }
+    else {
+      printf("NODE_PAT_VAR: _ (wildcard)\n");
+    }
+    break;
+
+  case NODE_PAT_PIN:
+    printf("NODE_PAT_PIN: ^%s\n", mrb_sym_dump(mrb, pat_pin_node(tree)->name));
+    break;
+
+  case NODE_PAT_AS:
+    printf("NODE_PAT_AS: => %s\n", mrb_sym_dump(mrb, pat_as_node(tree)->name));
+    if (pat_as_node(tree)->pattern) {
+      dump_prefix(offset+1, lineno);
+      printf("pattern:\n");
+      dump_node(mrb, pat_as_node(tree)->pattern, offset+2);
+    }
+    break;
+
+  case NODE_PAT_ALT:
+    printf("NODE_PAT_ALT:\n");
+    if (pat_alt_node(tree)->left) {
+      dump_prefix(offset+1, lineno);
+      printf("left:\n");
+      dump_node(mrb, pat_alt_node(tree)->left, offset+2);
+    }
+    if (pat_alt_node(tree)->right) {
+      dump_prefix(offset+1, lineno);
+      printf("right:\n");
+      dump_node(mrb, pat_alt_node(tree)->right, offset+2);
+    }
+    break;
+
+  case NODE_PAT_ARRAY:
+    printf("NODE_PAT_ARRAY:\n");
+    if (pat_array_node(tree)->pre) {
+      dump_prefix(offset+1, lineno);
+      printf("pre:\n");
+      dump_recur(mrb, pat_array_node(tree)->pre, offset+2);
+    }
+    if (pat_array_node(tree)->rest) {
+      dump_prefix(offset+1, lineno);
+      if (pat_array_node(tree)->rest == (node*)-1) {
+        printf("rest: * (anonymous)\n");
+      }
+      else {
+        printf("rest:\n");
+        dump_node(mrb, pat_array_node(tree)->rest, offset+2);
+      }
+    }
+    if (pat_array_node(tree)->post) {
+      dump_prefix(offset+1, lineno);
+      printf("post:\n");
+      dump_recur(mrb, pat_array_node(tree)->post, offset+2);
+    }
+    break;
+
+  case NODE_PAT_HASH:
+    printf("NODE_PAT_HASH:\n");
+    if (pat_hash_node(tree)->pairs) {
+      dump_prefix(offset+1, lineno);
+      printf("pairs:\n");
+      dump_recur(mrb, pat_hash_node(tree)->pairs, offset+2);
+    }
+    if (pat_hash_node(tree)->rest) {
+      dump_prefix(offset+1, lineno);
+      if (pat_hash_node(tree)->rest == (node*)-1) {
+        printf("rest: **nil\n");
+      }
+      else {
+        printf("rest:\n");
+        dump_node(mrb, pat_hash_node(tree)->rest, offset+2);
+      }
+    }
+    break;
+
   default:
     /* Fallback: unknown node type - skip like codegen.c does */
     printf("unknown node type %d (0x%x)\n", nodetype, (unsigned)nodetype);
