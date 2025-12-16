@@ -3327,6 +3327,24 @@ primary         : literal
                       node *in_clause = new_in(p, $5, NULL, $7, FALSE);
                       $$ = new_case_match(p, $2, cons(in_clause, $8));
                     }
+                | keyword_case expr_value opt_terms
+                  keyword_in p_expr modifier_if expr_value then
+                  compstmt
+                  in_clauses
+                  keyword_end
+                    {
+                      node *in_clause = new_in(p, $5, $7, $9, FALSE);
+                      $$ = new_case_match(p, $2, cons(in_clause, $10));
+                    }
+                | keyword_case expr_value opt_terms
+                  keyword_in p_expr modifier_unless expr_value then
+                  compstmt
+                  in_clauses
+                  keyword_end
+                    {
+                      node *in_clause = new_in(p, $5, $7, $9, TRUE);
+                      $$ = new_case_match(p, $2, cons(in_clause, $10));
+                    }
                 | keyword_for for_var keyword_in
                   {COND_PUSH(1);}
                   expr_value do
@@ -3807,6 +3825,16 @@ in_clauses      : opt_else
                     {
                       node *in_clause = new_in(p, $2, NULL, $4, FALSE);
                       $$ = cons(in_clause, $5);
+                    }
+                | keyword_in p_expr modifier_if expr_value then compstmt in_clauses
+                    {
+                      node *in_clause = new_in(p, $2, $4, $6, FALSE);
+                      $$ = cons(in_clause, $7);
+                    }
+                | keyword_in p_expr modifier_unless expr_value then compstmt in_clauses
+                    {
+                      node *in_clause = new_in(p, $2, $4, $6, TRUE);
+                      $$ = cons(in_clause, $7);
                     }
                 ;
 

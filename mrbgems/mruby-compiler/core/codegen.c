@@ -4271,6 +4271,8 @@ codegen_case_match(codegen_scope *s, node *varnode, int val)
   while (current_in) {
     struct mrb_ast_in_node *in_n = in_node(current_in->car);
     node *pattern = in_n->pattern;
+    node *guard = in_n->guard;
+    mrb_bool guard_is_unless = in_n->guard_is_unless;
     node *body = in_n->body;
 
     uint32_t fail_pos = JMPLINK_START;
@@ -4278,6 +4280,21 @@ codegen_case_match(codegen_scope *s, node *varnode, int val)
     if (pattern) {
       /* Generate pattern matching code */
       codegen_pattern(s, pattern, head, &fail_pos);
+    }
+
+    /* Generate guard clause if present */
+    if (guard) {
+      codegen(s, guard, VAL);
+      pop();  /* pop before jump - cursp() now points to guard result */
+      if (guard_is_unless) {
+        /* unless guard: fail if guard is true */
+        tmp = genjmp2(s, OP_JMPIF, cursp(), fail_pos, 0);
+      }
+      else {
+        /* if guard: fail if guard is false */
+        tmp = genjmp2(s, OP_JMPNOT, cursp(), fail_pos, 0);
+      }
+      fail_pos = tmp;
     }
 
     /* Generate in-clause body */
@@ -4348,7 +4365,7 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos)
         /* Bind the matched value to the variable */
         int idx = lv_idx(s, pat_var->name);
         if (idx > 0) {
-          gen_move(s, idx, target, 0);
+          gen_move(s, idx, target, 1);  /* nopeep=1 to prevent optimization */
         }
       }
       /* Variable pattern always matches (wildcard if name is 0) */
