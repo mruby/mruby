@@ -3848,29 +3848,31 @@ cases           : opt_else
                 ;
 
 /* Pattern matching in-clauses for case/in */
+/* in_kwarg is set by lexer when keyword_in is returned */
 in_clauses      : opt_else
                     {
                       $$ = $1 ? list1(new_in(p, NULL, NULL, $1, FALSE)) : 0;
                     }
-                | keyword_in p_expr then compstmt in_clauses
+                | keyword_in p_expr {p->in_kwarg--;} then compstmt in_clauses
                     {
-                      node *in_clause = new_in(p, $2, NULL, $4, FALSE);
-                      $$ = cons(in_clause, $5);
+                      node *in_clause = new_in(p, $2, NULL, $5, FALSE);
+                      $$ = cons(in_clause, $6);
                     }
-                | keyword_in p_expr modifier_if expr_value then compstmt in_clauses
+                | keyword_in p_expr {p->in_kwarg--;} modifier_if expr_value then compstmt in_clauses
                     {
-                      node *in_clause = new_in(p, $2, $4, $6, FALSE);
-                      $$ = cons(in_clause, $7);
+                      node *in_clause = new_in(p, $2, $5, $7, FALSE);
+                      $$ = cons(in_clause, $8);
                     }
-                | keyword_in p_expr modifier_unless expr_value then compstmt in_clauses
+                | keyword_in p_expr {p->in_kwarg--;} modifier_unless expr_value then compstmt in_clauses
                     {
-                      node *in_clause = new_in(p, $2, $4, $6, TRUE);
-                      $$ = cons(in_clause, $7);
+                      node *in_clause = new_in(p, $2, $5, $7, TRUE);
+                      $$ = cons(in_clause, $8);
                     }
                 ;
 
 /* Pattern expressions for case/in */
 /* Bracket-less array patterns: in 1, 2, x is same as in [1, 2, x] */
+/* Brace-less hash patterns: in a:, b: x is same as in {a:, b: x} */
 p_expr          : p_as
                 | p_args_head p_as
                     {
@@ -3891,6 +3893,21 @@ p_expr          : p_as
                 | p_rest ',' p_args_post
                     {
                       $$ = new_pat_array(p, 0, $1, $3);
+                    }
+                | p_hash_elems
+                    {
+                      /* Brace-less hash pattern: in a:, b: x */
+                      $$ = new_pat_hash(p, $1, 0);
+                    }
+                | p_hash_elems ',' p_kwrest
+                    {
+                      /* Brace-less hash pattern with kwrest: in a:, **rest */
+                      $$ = new_pat_hash(p, $1, $3);
+                    }
+                | p_kwrest
+                    {
+                      /* Brace-less kwrest only: in **rest */
+                      $$ = new_pat_hash(p, 0, $1);
                     }
                 ;
 
@@ -4075,7 +4092,8 @@ p_hash_elems    : p_hash_elem
                 ;
 
 /* Hash pattern element: key: pattern or key: (shorthand) */
-p_hash_elem     : tIDENTIFIER tLABEL_TAG p_expr
+/* Use p_as, not p_expr to avoid brace-less recursion inside hash patterns */
+p_hash_elem     : tIDENTIFIER tLABEL_TAG p_as
                     {
                       /* {key: pattern} */
                       $$ = cons(new_sym(p, $1), $3);
@@ -4085,7 +4103,7 @@ p_hash_elem     : tIDENTIFIER tLABEL_TAG p_expr
                       /* {key:} shorthand - binds to variable with same name */
                       $$ = cons(new_sym(p, $1), new_pat_var(p, $1));
                     }
-                | symbol tASSOC p_expr
+                | symbol tASSOC p_as
                     {
                       /* {:"key" => pattern} or {:key => pattern} */
                       $$ = cons($1, $3);
@@ -5393,7 +5411,7 @@ toklen(parser_state *p)
 #define IS_END() (p->lstate == EXPR_END || p->lstate == EXPR_ENDARG || p->lstate == EXPR_ENDFN)
 #define IS_BEG() (p->lstate == EXPR_BEG || p->lstate == EXPR_MID || p->lstate == EXPR_VALUE || p->lstate == EXPR_CLASS)
 #define IS_SPCARG(c) (IS_ARG() && space_seen && !ISSPACE(c))
-#define IS_LABEL_POSSIBLE() ((p->lstate == EXPR_BEG && !cmd_state) || IS_ARG())
+#define IS_LABEL_POSSIBLE() ((p->lstate == EXPR_BEG && !cmd_state) || IS_ARG() || p->lstate == EXPR_VALUE)
 #define IS_LABEL_SUFFIX(n) (peek_n(p, ':',(n)) && !peek_n(p, ':', (n)+1))
 
 static int32_t
@@ -6855,7 +6873,8 @@ parser_yylex(parser_state *p)
     }
     if (!space_seen && IS_END()) {
       pushback(p, c);
-      p->lstate = EXPR_BEG;
+      /* In pattern matching context, use EXPR_ARG so newlines are significant */
+      p->lstate = p->in_kwarg ? EXPR_ARG : EXPR_BEG;
       return tLABEL_TAG;
     }
     if (IS_END() || ISSPACE(c) || c == '#') {
@@ -7356,6 +7375,10 @@ parser_yylex(parser_state *p)
             if (state == EXPR_ENDARG || state == EXPR_BEG)
               return keyword_do_block;
             return keyword_do;
+          }
+          if (kw->id[0] == keyword_in) {
+            /* Set in_kwarg for pattern matching context */
+            p->in_kwarg++;
           }
           if (state == EXPR_BEG || state == EXPR_VALUE || state == EXPR_CLASS)
             return kw->id[0];

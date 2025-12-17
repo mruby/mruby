@@ -103,7 +103,7 @@ struct mrb_parser_state {
   unsigned int cmdarg_stack;
   int paren_nest;
   int lpar_beg;
-  int in_def, in_single;
+  int in_def, in_single, in_kwarg;
   mrb_bool cmd_start:1;
   mrb_ast_node *locals;
 
