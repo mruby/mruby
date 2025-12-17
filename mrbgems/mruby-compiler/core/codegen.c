@@ -6118,6 +6118,61 @@ codegen(codegen_scope *s, node *tree, int val)
     codegen_case_match(s, tree, val);
     break;
 
+  case NODE_MATCH_PAT:
+    {
+      /* One-line pattern matching: expr in pattern / expr => pattern */
+      struct mrb_ast_match_pat_node *mp = match_pat_node(tree);
+      int head = cursp();
+      uint32_t fail_pos = JMPLINK_START;
+      uint32_t match_pos;
+
+      /* Evaluate the value */
+      codegen(s, mp->value, VAL);
+
+      /* Generate pattern matching code */
+      codegen_pattern(s, mp->pattern, head, &fail_pos);
+
+      /* Pattern matched - load true and jump to end */
+      pop();  /* pop the value */
+      if (val) {
+        genop_1(s, OP_LOADT, cursp());
+        push();
+      }
+      match_pos = genjmp(s, OP_JMP, JMPLINK_START);
+
+      /* Pattern failed */
+      dispatch_linked(s, fail_pos);
+      pop();  /* pop the value */
+      if (mp->raise_on_fail) {
+        /* expr => pattern: raise NoMatchingPatternError */
+        int msg_off = new_lit_cstr(s, "pattern not matched");
+        int exc_reg = cursp();
+        /* Get NoMatchingPatternError class */
+        genop_2(s, OP_GETCONST, exc_reg, new_sym(s, MRB_SYM_2(s->mrb, NoMatchingPatternError)));
+        push();
+        /* Create message string */
+        genop_2(s, OP_STRING, cursp(), msg_off);
+        push();
+        /* Call NoMatchingPatternError.new(message) */
+        pop();  /* pop argument */
+        genop_3(s, OP_SEND, exc_reg, new_sym(s, MRB_SYM_2(s->mrb, new)), 1);
+        /* Raise the exception */
+        genop_1(s, OP_RAISEIF, exc_reg);
+        if (val) push();
+      }
+      else {
+        /* expr in pattern: return false */
+        if (val) {
+          genop_1(s, OP_LOADF, cursp());
+          push();
+        }
+      }
+
+      /* End of pattern matching */
+      dispatch(s, match_pos);
+    }
+    break;
+
   case NODE_DEF:
     codegen_def(s, tree, val);
     break;

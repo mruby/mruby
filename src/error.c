@@ -920,6 +920,7 @@ mrb_init_exception(mrb_state *mrb)
   mrb_define_class_id(mrb, MRB_SYM(SyntaxError), script_error);                                        /* 15.2.38 */
   struct RClass *index_error = mrb_define_class_id(mrb, MRB_SYM(IndexError), E_STANDARD_ERROR);        /* 15.2.33 */
   mrb_define_class_id(mrb, MRB_SYM(KeyError), index_error);
+  mrb_define_class_id(mrb, MRB_SYM(NoMatchingPatternError), E_STANDARD_ERROR);                         /* pattern matching */
   struct RClass *stack_error = mrb_define_class_id(mrb, MRB_SYM(SystemStackError), exception);
   mrb->stack_err = mrb_obj_ptr(mrb_exc_new_lit(mrb, stack_error, "stack level too deep"));
 

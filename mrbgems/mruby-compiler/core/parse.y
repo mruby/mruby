@@ -684,6 +684,17 @@ new_pat_hash(parser_state *p, node *pairs, node *rest)
   return (node*)n;
 }
 
+/* Create one-line pattern matching node (expr in pattern / expr => pattern) */
+static node*
+new_match_pat(parser_state *p, node *value, node *pattern, mrb_bool raise_on_fail)
+{
+  struct mrb_ast_match_pat_node *n = NEW_NODE(match_pat, NODE_MATCH_PAT);
+  n->value = value;
+  n->pattern = pattern;
+  n->raise_on_fail = raise_on_fail;
+  return (node*)n;
+}
+
 /* Create in-clause node for case/in */
 static node*
 new_in(parser_state *p, node *pattern, node *guard, node *body, mrb_bool guard_is_unless)
@@ -2313,12 +2324,6 @@ stmt            : keyword_alias fsym {p->lstate = EXPR_FNAME;} fsym
                     {
                       $$ = new_masgn(p, $1, new_array(p, $3));
                     }
-                | arg tASSOC tIDENTIFIER
-                    {
-                      node *lhs = new_lvar(p, $3);
-                      assignable(p, lhs);
-                      $$ = new_asgn(p, lhs, $1);
-                    }
                 | expr
                 ;
 
@@ -2418,6 +2423,18 @@ expr            : command_call
                 | '!' command_call
                     {
                       $$ = call_uni_op(p, cond($2), "!");
+                    }
+                | arg tASSOC {p->in_kwarg++;} p_expr
+                    {
+                      /* expr => pattern (raises NoMatchingPatternError on failure) */
+                      p->in_kwarg--;
+                      $$ = new_match_pat(p, $1, $4, TRUE);
+                    }
+                | arg keyword_in {p->in_kwarg++;} p_expr
+                    {
+                      /* expr in pattern (returns true/false) */
+                      p->in_kwarg--;
+                      $$ = new_match_pat(p, $1, $4, FALSE);
                     }
                 | arg
                 ;
@@ -8892,6 +8909,16 @@ dump_node(mrb_state *mrb, node *tree, int offset)
         dump_node(mrb, pat_hash_node(tree)->rest, offset+2);
       }
     }
+    break;
+
+  case NODE_MATCH_PAT:
+    printf("NODE_MATCH_PAT%s:\n", match_pat_node(tree)->raise_on_fail ? " (=>)" : " (in)");
+    dump_prefix(offset+1, lineno);
+    printf("value:\n");
+    dump_node(mrb, match_pat_node(tree)->value, offset+2);
+    dump_prefix(offset+1, lineno);
+    printf("pattern:\n");
+    dump_node(mrb, match_pat_node(tree)->pattern, offset+2);
     break;
 
   default:

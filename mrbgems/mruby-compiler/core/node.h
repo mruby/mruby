@@ -91,6 +91,7 @@ enum node_type {
   NODE_PAT_ALT,       /* alternative pattern (pat1 | pat2) */
   NODE_PAT_ARRAY,     /* array pattern [a, b, *rest] */
   NODE_PAT_HASH,      /* hash pattern {a:, b: x} */
+  NODE_MATCH_PAT,     /* one-line pattern matching (expr in pat / expr => pat) */
   NODE_LAST
 };
 
@@ -340,6 +341,14 @@ struct mrb_ast_pat_hash_node {
   struct mrb_ast_node *rest;           /* Rest pattern (NULL if none, -1 if **nil) */
 };
 
+/* One-line pattern matching: expr in pattern / expr => pattern */
+struct mrb_ast_match_pat_node {
+  struct mrb_ast_var_header header;    /* 8 bytes */
+  struct mrb_ast_node *value;          /* Expression to match */
+  struct mrb_ast_node *pattern;        /* Pattern */
+  mrb_bool raise_on_fail;              /* TRUE for =>, FALSE for in */
+};
+
 /* Variable-sized for node */
 struct mrb_ast_for_node {
   struct mrb_ast_var_header header;  /* 8 bytes */
@@ -451,6 +460,7 @@ struct mrb_ast_super_node {
 #define pat_alt_node(n) ((struct mrb_ast_pat_alt_node*)(n))
 #define pat_array_node(n) ((struct mrb_ast_pat_array_node*)(n))
 #define pat_hash_node(n) ((struct mrb_ast_pat_hash_node*)(n))
+#define match_pat_node(n) ((struct mrb_ast_match_pat_node*)(n))
 #define for_node(n) ((struct mrb_ast_for_node*)(n))
 #define asgn_node(n) ((struct mrb_ast_asgn_node*)(n))
 #define masgn_node(n) ((struct mrb_ast_masgn_node*)(n))
