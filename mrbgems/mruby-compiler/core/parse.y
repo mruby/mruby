@@ -653,6 +653,17 @@ new_pat_alt(parser_state *p, node *left, node *right)
   return (node*)n;
 }
 
+/* Create array pattern node [a, b, *rest, c] */
+static node*
+new_pat_array(parser_state *p, node *pre, node *rest, node *post)
+{
+  struct mrb_ast_pat_array_node *n = NEW_NODE(pat_array, NODE_PAT_ARRAY);
+  n->pre = pre;
+  n->rest = rest;
+  n->post = post;
+  return (node*)n;
+}
+
 /* Create in-clause node for case/in */
 static node*
 new_in(parser_state *p, node *pattern, node *guard, node *body, mrb_bool guard_is_unless)
@@ -2053,7 +2064,7 @@ prohibit_literals(parser_state *p, node *n)
 %type <id> f_label f_kwrest
 
 /* pattern matching */
-%type <nd> in_clauses p_expr p_alt p_value p_var p_as
+%type <nd> in_clauses p_expr p_alt p_value p_var p_as p_array p_array_body p_array_elems p_rest
 
 %token tUPLUS             "unary plus"
 %token tUMINUS            "unary minus"
@@ -3892,6 +3903,69 @@ p_value         : p_var
                 | tCOLON3 tCONSTANT
                     {
                       $$ = new_pat_value(p, new_colon3(p, $2));
+                    }
+                | p_array
+                ;
+
+/* Array pattern: [a, b, *rest, c] */
+p_array         : tLBRACK p_array_body ']'
+                    {
+                      $$ = $2;
+                    }
+                | tLBRACK ']'
+                    {
+                      $$ = new_pat_array(p, 0, 0, 0);
+                    }
+                ;
+
+/* Array pattern body - pre elements, optional rest, post elements */
+p_array_body    : p_array_elems
+                    {
+                      /* Just pre elements, no rest */
+                      $$ = new_pat_array(p, $1, 0, 0);
+                    }
+                | p_array_elems ',' p_rest
+                    {
+                      /* Pre elements + rest, no post */
+                      $$ = new_pat_array(p, $1, $3, 0);
+                    }
+                | p_array_elems ',' p_rest ',' p_array_elems
+                    {
+                      /* Pre + rest + post */
+                      $$ = new_pat_array(p, $1, $3, $5);
+                    }
+                | p_rest
+                    {
+                      /* Just rest, no pre or post */
+                      $$ = new_pat_array(p, 0, $1, 0);
+                    }
+                | p_rest ',' p_array_elems
+                    {
+                      /* Rest + post, no pre */
+                      $$ = new_pat_array(p, 0, $1, $3);
+                    }
+                ;
+
+/* Non-rest array pattern elements */
+p_array_elems   : p_expr
+                    {
+                      $$ = list1($1);
+                    }
+                | p_array_elems ',' p_expr
+                    {
+                      $$ = push($1, $3);
+                    }
+                ;
+
+/* Rest pattern in array: *var, *_, or just * */
+p_rest          : tSTAR tIDENTIFIER
+                    {
+                      $$ = new_pat_var(p, $2);
+                    }
+                | tSTAR
+                    {
+                      /* Anonymous rest pattern */
+                      $$ = (node*)-1;
                     }
                 ;
 

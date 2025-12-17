@@ -86,6 +86,16 @@ class Array
   end
 
   ##
+  # call-seq:
+  #   array.deconstruct -> self
+  #
+  # Returns self. Used for array pattern matching in case/in expressions.
+  #
+  def deconstruct
+    self
+  end
+
+  ##
   # Array is enumerable
   # ISO 15.2.12.3
   include Enumerable

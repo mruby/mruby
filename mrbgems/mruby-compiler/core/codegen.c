@@ -4410,6 +4410,110 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos)
     }
     break;
 
+  case NODE_PAT_ARRAY:
+    {
+      struct mrb_ast_pat_array_node *pat_arr = pat_array_node(pattern);
+      int pre_len = 0, post_len = 0;
+      int arr_reg = cursp();
+      node *elem;
+      int i;
+
+      /* Count pre and post elements */
+      for (elem = pat_arr->pre; elem; elem = elem->cdr) pre_len++;
+      for (elem = pat_arr->post; elem; elem = elem->cdr) post_len++;
+
+      /* Call deconstruct on target */
+      gen_move(s, cursp(), target, 0);
+      push();
+      genop_3(s, OP_SEND, arr_reg, new_sym(s, MRB_SYM_2(s->mrb, deconstruct)), 0);
+
+      /* Check length constraints */
+      if (pat_arr->rest == 0) {
+        /* No rest: exact length match */
+        /* Generate: arr.size == pre_len */
+        gen_move(s, cursp(), arr_reg, 0);
+        push();
+        genop_3(s, OP_SEND, cursp() - 1, new_sym(s, MRB_SYM_2(s->mrb, size)), 0);
+        gen_int(s, cursp(), pre_len);
+        push(); push(); pop(); pop(); pop();
+        genop_3(s, OP_SEND, cursp(), new_sym(s, MRB_OPSYM_2(s->mrb, eq)), 1);
+        tmp = genjmp2(s, OP_JMPNOT, cursp(), *fail_pos, 1);
+        *fail_pos = tmp;
+      }
+      else {
+        /* Has rest: minimum length check */
+        int min_len = pre_len + post_len;
+        if (min_len > 0) {
+          /* Generate: arr.size >= min_len */
+          gen_move(s, cursp(), arr_reg, 0);
+          push();
+          genop_3(s, OP_SEND, cursp() - 1, new_sym(s, MRB_SYM_2(s->mrb, size)), 0);
+          gen_int(s, cursp(), min_len);
+          push(); push(); pop(); pop(); pop();
+          genop_3(s, OP_SEND, cursp(), new_sym(s, MRB_OPSYM_2(s->mrb, ge)), 1);
+          tmp = genjmp2(s, OP_JMPNOT, cursp(), *fail_pos, 1);
+          *fail_pos = tmp;
+        }
+      }
+
+      /* Match pre-rest elements */
+      i = 0;
+      for (elem = pat_arr->pre; elem; elem = elem->cdr, i++) {
+        /* Get arr[i] */
+        gen_move(s, cursp(), arr_reg, 0);
+        push();
+        gen_int(s, cursp(), i);
+        push(); push(); pop(); pop(); pop();
+        genop_3(s, OP_SEND, cursp(), new_sym(s, MRB_OPSYM_2(s->mrb, aref)), 1);
+        /* Match element pattern */
+        codegen_pattern(s, elem->car, cursp(), fail_pos);
+      }
+
+      /* Bind rest elements if rest is a variable */
+      if (pat_arr->rest && pat_arr->rest != (node*)-1) {
+        struct mrb_ast_pat_var_node *rest_var = pat_var_node(pat_arr->rest);
+        if (rest_var->name) {
+          int var_idx = lv_idx(s, rest_var->name);
+          /* Generate: arr[pre_len..-(post_len+1)] or arr[pre_len..-1] if no post */
+          gen_move(s, cursp(), arr_reg, 0);  /* arr at cursp */
+          push();
+          gen_int(s, cursp(), pre_len);      /* start at cursp */
+          push();
+          if (post_len > 0) {
+            gen_int(s, cursp(), -(post_len + 1));  /* end at cursp */
+          }
+          else {
+            gen_int(s, cursp(), -1);         /* end at cursp */
+          }
+          /* start at cursp-1, end at cursp; create inclusive range at cursp-1 */
+          genop_1(s, OP_RANGE_INC, cursp() - 1);
+          /* arr at cursp-2, range at cursp-1 */
+          pop();  /* cursp now at range position */
+          pop();  /* cursp now at arr position */
+          genop_3(s, OP_SEND, cursp(), new_sym(s, MRB_OPSYM_2(s->mrb, aref)), 1);
+          if (var_idx > 0) {
+            gen_move(s, var_idx, cursp(), 1);
+          }
+        }
+      }
+
+      /* Match post-rest elements */
+      i = -post_len;
+      for (elem = pat_arr->post; elem; elem = elem->cdr, i++) {
+        /* Get arr[i] (negative index from end) */
+        gen_move(s, cursp(), arr_reg, 0);
+        push();
+        gen_int(s, cursp(), i);
+        push(); push(); pop(); pop(); pop();
+        genop_3(s, OP_SEND, cursp(), new_sym(s, MRB_OPSYM_2(s->mrb, aref)), 1);
+        /* Match element pattern */
+        codegen_pattern(s, elem->car, cursp(), fail_pos);
+      }
+
+      pop();  /* Pop arr_reg */
+    }
+    break;
+
   default:
     raise_error(s, "unsupported pattern type");
     break;
