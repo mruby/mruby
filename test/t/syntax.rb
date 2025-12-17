@@ -1005,6 +1005,62 @@ assert('pattern matching - array patterns') do
   assert_equal 3, result
 end
 
+assert('pattern matching - find patterns') do
+  # find pattern - element at end
+  case [1, 2, 3]
+  in [*pre, 3, *post]
+    assert_equal [1, 2], pre
+    assert_equal [], post
+  end
+
+  # find pattern - element at beginning
+  case [1, 2, 3]
+  in [*pre, 1, *post]
+    assert_equal [], pre
+    assert_equal [2, 3], post
+  end
+
+  # find pattern - element in middle
+  case [1, 2, 3, 4, 5]
+  in [*pre, 3, *post]
+    assert_equal [1, 2], pre
+    assert_equal [4, 5], post
+  end
+
+  # find pattern - multiple middle elements
+  case [1, 2, 3, 4, 5]
+  in [*pre, 2, 3, *post]
+    assert_equal [1], pre
+    assert_equal [4, 5], post
+  end
+
+  # find pattern - anonymous rest
+  result = case [1, 2, 3, 4, 5]
+  in [*, 3, *]
+    :found
+  else
+    :not_found
+  end
+  assert_equal :found, result
+
+  # find pattern - no match
+  result = case [1, 2, 4, 5]
+  in [*pre, 3, *post]
+    :found
+  else
+    :not_found
+  end
+  assert_equal :not_found, result
+
+  # find pattern with literal values
+  case [1, 2, 3, 4, 5]
+  in [*pre, 2, x, *post]
+    assert_equal [1], pre
+    assert_equal 3, x
+    assert_equal [4, 5], post
+  end
+end
+
 assert('pattern matching - hash patterns') do
   # simple hash pattern
   case {a: 1, b: 2}
