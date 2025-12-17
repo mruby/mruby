@@ -664,6 +664,16 @@ new_pat_array(parser_state *p, node *pre, node *rest, node *post)
   return (node*)n;
 }
 
+/* Create hash pattern node {a:, b: x, **rest} */
+static node*
+new_pat_hash(parser_state *p, node *pairs, node *rest)
+{
+  struct mrb_ast_pat_hash_node *n = NEW_NODE(pat_hash, NODE_PAT_HASH);
+  n->pairs = pairs;
+  n->rest = rest;
+  return (node*)n;
+}
+
 /* Create in-clause node for case/in */
 static node*
 new_in(parser_state *p, node *pattern, node *guard, node *body, mrb_bool guard_is_unless)
@@ -2064,7 +2074,7 @@ prohibit_literals(parser_state *p, node *n)
 %type <id> f_label f_kwrest
 
 /* pattern matching */
-%type <nd> in_clauses p_expr p_alt p_value p_var p_as p_array p_array_body p_array_elems p_rest
+%type <nd> in_clauses p_expr p_alt p_value p_var p_as p_array p_array_body p_array_elems p_rest p_hash p_hash_body p_hash_elems p_hash_elem p_kwrest
 
 %token tUPLUS             "unary plus"
 %token tUMINUS            "unary minus"
@@ -3905,6 +3915,7 @@ p_value         : p_var
                       $$ = new_pat_value(p, new_colon3(p, $2));
                     }
                 | p_array
+                | p_hash
                 ;
 
 /* Array pattern: [a, b, *rest, c] */
@@ -3966,6 +3977,78 @@ p_rest          : tSTAR tIDENTIFIER
                     {
                       /* Anonymous rest pattern */
                       $$ = (node*)-1;
+                    }
+                ;
+
+/* Hash pattern: {a:, b: x, **rest} */
+p_hash          : tLBRACE p_hash_body '}'
+                    {
+                      $$ = $2;
+                    }
+                | tLBRACE '}'
+                    {
+                      $$ = new_pat_hash(p, 0, 0);
+                    }
+                ;
+
+/* Hash pattern body - pairs and optional kwrest */
+p_hash_body     : p_hash_elems
+                    {
+                      $$ = new_pat_hash(p, $1, 0);
+                    }
+                | p_hash_elems ',' p_kwrest
+                    {
+                      $$ = new_pat_hash(p, $1, $3);
+                    }
+                | p_kwrest
+                    {
+                      $$ = new_pat_hash(p, 0, $1);
+                    }
+                ;
+
+/* Hash pattern element list */
+p_hash_elems    : p_hash_elem
+                    {
+                      $$ = list1($1);
+                    }
+                | p_hash_elems ',' p_hash_elem
+                    {
+                      $$ = push($1, $3);
+                    }
+                ;
+
+/* Hash pattern element: key: pattern or key: (shorthand) */
+p_hash_elem     : tIDENTIFIER tLABEL_TAG p_expr
+                    {
+                      /* {key: pattern} */
+                      $$ = cons(new_sym(p, $1), $3);
+                    }
+                | tIDENTIFIER tLABEL_TAG
+                    {
+                      /* {key:} shorthand - binds to variable with same name */
+                      $$ = cons(new_sym(p, $1), new_pat_var(p, $1));
+                    }
+                | symbol tASSOC p_expr
+                    {
+                      /* {:"key" => pattern} or {:key => pattern} */
+                      $$ = cons($1, $3);
+                    }
+                ;
+
+/* Keyword rest pattern: **var, **nil, or ** */
+p_kwrest        : tDSTAR tIDENTIFIER
+                    {
+                      $$ = new_pat_var(p, $2);
+                    }
+                | tDSTAR keyword_nil
+                    {
+                      /* **nil - exact match, no extra keys allowed */
+                      $$ = (node*)-1;
+                    }
+                | tDSTAR
+                    {
+                      /* ** - anonymous rest, discards extra keys */
+                      $$ = (node*)-2;
                     }
                 ;
 

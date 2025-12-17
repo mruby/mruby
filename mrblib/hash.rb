@@ -259,4 +259,18 @@ class Hash
     }
     h
   end
+
+  ##
+  # call-seq:
+  #   hash.deconstruct_keys(keys) -> hash
+  #
+  # Returns +self+. This method is called by pattern matching to
+  # deconstruct the hash for matching.
+  #
+  # The +keys+ argument is an array of keys the pattern expects,
+  # or +nil+ for exact matching (when +**nil+ is used).
+  #
+  def deconstruct_keys(_keys)
+    self
+  end
 end
