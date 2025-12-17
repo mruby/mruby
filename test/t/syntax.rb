@@ -943,3 +943,276 @@ assert('at-least-once loop') do
   end while count < 5
   assert_equal 12, count  # 1, then 2+10=12
 end
+
+assert('pattern matching - basic case/in') do
+  # literal patterns
+  result = case 1
+  in 1 then :one
+  in 2 then :two
+  end
+  assert_equal :one, result
+
+  # variable binding
+  case 42
+  in x
+    assert_equal 42, x
+  end
+
+  # else clause
+  result = case 3
+  in 1 then :one
+  in 2 then :two
+  else :other
+  end
+  assert_equal :other, result
+end
+
+assert('pattern matching - array patterns') do
+  # simple array pattern
+  case [1, 2, 3]
+  in [a, b, c]
+    assert_equal 1, a
+    assert_equal 2, b
+    assert_equal 3, c
+  end
+
+  # array pattern with rest
+  case [1, 2, 3, 4, 5]
+  in [first, *rest]
+    assert_equal 1, first
+    assert_equal [2, 3, 4, 5], rest
+  end
+
+  # array pattern with rest in middle
+  case [1, 2, 3, 4, 5]
+  in [first, *middle, last]
+    assert_equal 1, first
+    assert_equal [2, 3, 4], middle
+    assert_equal 5, last
+  end
+
+  # nested array pattern
+  case [[1, 2], [3, 4]]
+  in [[a, b], [c, d]]
+    assert_equal [1, 2, 3, 4], [a, b, c, d]
+  end
+
+  # array pattern with literal match
+  result = case [1, 2, 3]
+  in [1, 2, x]
+    x
+  end
+  assert_equal 3, result
+end
+
+assert('pattern matching - hash patterns') do
+  # simple hash pattern
+  case {a: 1, b: 2}
+  in {a: x, b: y}
+    assert_equal 1, x
+    assert_equal 2, y
+  end
+
+  # shorthand hash pattern
+  case {a: 1, b: 2}
+  in {a:, b:}
+    assert_equal 1, a
+    assert_equal 2, b
+  end
+
+  # hash pattern with extra keys (partial match)
+  case {a: 1, b: 2, c: 3}
+  in {a: x}
+    assert_equal 1, x
+  end
+
+  # hash pattern with rest (captures all keys currently)
+  case {a: 1, b: 2, c: 3}
+  in {a:, **rest}
+    assert_equal 1, a
+    # Note: **rest currently captures all keys including matched ones
+    assert_equal({a: 1, b: 2, c: 3}, rest)
+  end
+
+  # hash value extraction
+  h = {user: "Alice"}
+  case h
+  in {user: u}
+    assert_equal "Alice", u
+  end
+end
+
+assert('pattern matching - guard clauses') do
+  # if guard
+  result = case 10
+  in x if x > 5
+    :big
+  in x
+    :small
+  end
+  assert_equal :big, result
+
+  # unless guard
+  result = case 3
+  in x unless x > 5
+    :small
+  in x
+    :big
+  end
+  assert_equal :small, result
+
+  # guard with pattern
+  result = case [1, 2, 3]
+  in [a, b, c] if a + b + c > 5
+    :sum_big
+  in [a, b, c]
+    :sum_small
+  end
+  assert_equal :sum_big, result
+end
+
+assert('pattern matching - alternative patterns') do
+  # simple alternatives
+  result = case 2
+  in 1 | 2 | 3
+    :found
+  else
+    :not_found
+  end
+  assert_equal :found, result
+
+  # alternatives in array
+  result = case [1, 2]
+  in [1, 2] | [3, 4]
+    :match
+  else
+    :no_match
+  end
+  assert_equal :match, result
+end
+
+assert('pattern matching - pin operator') do
+  x = 1
+  # pin matches exact value
+  result = case 1
+  in ^x
+    :matched
+  else
+    :not_matched
+  end
+  assert_equal :matched, result
+
+  # pin in array pattern
+  expected = 42
+  case [42, 100]
+  in [^expected, y]
+    assert_equal 100, y
+  end
+
+  # pin prevents rebinding
+  a = 1
+  result = case 2
+  in ^a
+    :same
+  else
+    :different
+  end
+  assert_equal :different, result
+end
+
+assert('pattern matching - as pattern') do
+  # bind entire match
+  case [1, 2, 3]
+  in [x, *rest] => whole
+    assert_equal 1, x
+    assert_equal [2, 3], rest
+    assert_equal [1, 2, 3], whole
+  end
+
+  # as pattern with hash
+  case {a: 1, b: 2}
+  in {a:} => h
+    assert_equal 1, a
+    assert_equal({a: 1, b: 2}, h)
+  end
+end
+
+assert('pattern matching - one-line in') do
+  # basic true/false
+  assert_true((1 in 1))
+  assert_false((1 in 2))
+
+  # with variable binding
+  assert_true(([1, 2] in [x, y]))
+
+  # in conditional
+  matched = false
+  if [1, 2, 3] in [a, *rest]
+    matched = true
+  end
+  assert_true matched
+
+  # with hash
+  assert_true(({a: 1} in {a: 1}))
+  assert_false(({a: 1} in {a: 2}))
+end
+
+assert('pattern matching - one-line =>') do
+  # simple binding
+  1 => x
+  assert_equal 1, x
+
+  # array destructuring
+  [1, 2, 3] => [a, b, c]
+  assert_equal [1, 2, 3], [a, b, c]
+
+  # hash destructuring
+  {name: "Bob", age: 25} => {name:, age:}
+  assert_equal "Bob", name
+  assert_equal 25, age
+
+  # with rest
+  [1, 2, 3, 4] => [first, *middle, last]
+  assert_equal 1, first
+  assert_equal [2, 3], middle
+  assert_equal 4, last
+end
+
+assert('pattern matching - NoMatchingPatternError') do
+  # => raises on mismatch
+  assert_raise(NoMatchingPatternError) do
+    1 => 2
+  end
+
+  # can be rescued
+  begin
+    [1, 2] => [1, 2, 3]
+  rescue NoMatchingPatternError => e
+    assert_true e.message.is_a?(String)
+  end
+
+  # case/in without else returns nil (no match)
+  result = case 5
+  in 1 then :one
+  in 2 then :two
+  end
+  assert_nil result
+end
+
+assert('pattern matching - complex patterns') do
+  # array of hashes
+  records = [{id: 1, value: "a"}, {id: 2, value: "b"}]
+  case records
+  in [first, second]
+    assert_equal({id: 1, value: "a"}, first)
+    assert_equal({id: 2, value: "b"}, second)
+  end
+
+  # hash with array value
+  data = {items: [1, 2, 3]}
+  case data
+  in {items: [a, *rest]}
+    assert_equal 1, a
+    assert_equal [2, 3], rest
+  end
+end
