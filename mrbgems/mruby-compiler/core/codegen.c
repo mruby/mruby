@@ -4410,6 +4410,30 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos)
     }
     break;
 
+  case NODE_PAT_PIN:
+    {
+      struct mrb_ast_pat_pin_node *pat_pin = pat_pin_node(pattern);
+      /* Get the current value of the pinned variable */
+      int idx = lv_idx(s, pat_pin->name);
+      if (idx > 0) {
+        /* Compare: pinned_value === target */
+        gen_move(s, cursp(), idx, 0);  /* Load pinned variable */
+        push();
+        gen_move(s, cursp(), target, 0);  /* Load target */
+        push(); push(); pop(); pop(); pop();
+        genop_3(s, OP_SEND, cursp(), new_sym(s, MRB_OPSYM_2(s->mrb, eqq)), 1);
+        /* Jump to fail if not matched */
+        tmp = genjmp2(s, OP_JMPNOT, cursp(), *fail_pos, 1);
+        *fail_pos = tmp;
+      }
+      else {
+        /* Variable not found - this is an error case, but for robustness fail the match */
+        tmp = genjmp(s, OP_JMP, *fail_pos);
+        *fail_pos = tmp;
+      }
+    }
+    break;
+
   case NODE_PAT_ARRAY:
     {
       struct mrb_ast_pat_array_node *pat_arr = pat_array_node(pattern);

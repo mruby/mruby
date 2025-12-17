@@ -632,6 +632,16 @@ new_pat_var(parser_state *p, mrb_sym name)
   return (node*)n;
 }
 
+/* Create pin pattern node (^var) */
+static node*
+new_pat_pin(parser_state *p, mrb_sym name)
+{
+  struct mrb_ast_pat_pin_node *n = NEW_NODE(pat_pin, NODE_PAT_PIN);
+  n->name = name;
+  /* Pin operator references existing variable, does not create new binding */
+  return (node*)n;
+}
+
 /* Create as pattern node (pattern => var) */
 static node*
 new_pat_as(parser_state *p, node *pattern, mrb_sym name)
@@ -2074,7 +2084,7 @@ prohibit_literals(parser_state *p, node *n)
 %type <id> f_label f_kwrest
 
 /* pattern matching */
-%type <nd> in_clauses p_expr p_alt p_value p_var p_as p_array p_array_body p_array_elems p_rest p_hash p_hash_body p_hash_elems p_hash_elem p_kwrest
+%type <nd> in_clauses p_expr p_alt p_value p_var p_as p_array p_array_body p_array_elems p_rest p_hash p_hash_body p_hash_elems p_hash_elem p_kwrest p_args_head p_args_post
 
 %token tUPLUS             "unary plus"
 %token tUMINUS            "unary minus"
@@ -3860,7 +3870,50 @@ in_clauses      : opt_else
                 ;
 
 /* Pattern expressions for case/in */
+/* Bracket-less array patterns: in 1, 2, x is same as in [1, 2, x] */
 p_expr          : p_as
+                | p_args_head p_as
+                    {
+                      $$ = new_pat_array(p, push($1, $2), 0, 0);
+                    }
+                | p_args_head p_rest
+                    {
+                      $$ = new_pat_array(p, $1, $2, 0);
+                    }
+                | p_args_head p_rest ',' p_args_post
+                    {
+                      $$ = new_pat_array(p, $1, $2, $4);
+                    }
+                | p_rest
+                    {
+                      $$ = new_pat_array(p, 0, $1, 0);
+                    }
+                | p_rest ',' p_args_post
+                    {
+                      $$ = new_pat_array(p, 0, $1, $3);
+                    }
+                ;
+
+/* Comma-separated pattern list (prefix) */
+p_args_head     : p_as ','
+                    {
+                      $$ = list1($1);
+                    }
+                | p_args_head p_as ','
+                    {
+                      $$ = push($1, $2);
+                    }
+                ;
+
+/* Comma-separated pattern list (suffix, no trailing comma) */
+p_args_post     : p_as
+                    {
+                      $$ = list1($1);
+                    }
+                | p_args_post ',' p_as
+                    {
+                      $$ = push($1, $3);
+                    }
                 ;
 
 p_as            : p_alt
@@ -3916,6 +3969,10 @@ p_value         : p_var
                     }
                 | p_array
                 | p_hash
+                | '^' tIDENTIFIER
+                    {
+                      $$ = new_pat_pin(p, $2);
+                    }
                 ;
 
 /* Array pattern: [a, b, *rest, c] */
@@ -3957,12 +4014,12 @@ p_array_body    : p_array_elems
                     }
                 ;
 
-/* Non-rest array pattern elements */
-p_array_elems   : p_expr
+/* Non-rest array pattern elements - use p_as, not p_expr to avoid bracket-less recursion */
+p_array_elems   : p_as
                     {
                       $$ = list1($1);
                     }
-                | p_array_elems ',' p_expr
+                | p_array_elems ',' p_as
                     {
                       $$ = push($1, $3);
                     }
