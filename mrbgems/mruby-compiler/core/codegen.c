@@ -4538,6 +4538,163 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos)
     }
     break;
 
+  case NODE_PAT_FIND:
+    {
+      /* Find pattern: [*pre, elem1, elem2, ..., *post]
+       * Searches for elems anywhere in the array.
+       *
+       * Stack layout:
+       *   arr_reg: deconstructed array (stable)
+       *   idx_reg: current search index (stable)
+       *
+       * Loop bound is recomputed each iteration since OP_SEND clobbers registers.
+       */
+      struct mrb_ast_pat_find_node *pat_find = pat_find_node(pattern);
+      int elems_len = 0;
+      node *elem;
+      int arr_reg = cursp();
+      int idx_reg;
+      uint32_t loop_start, match_fail, loop_end;
+
+      /* Count middle elements */
+      for (elem = pat_find->elems; elem; elem = elem->cdr) elems_len++;
+
+      /* Call deconstruct on target */
+      gen_move(s, cursp(), target, 0);
+      push();
+      genop_3(s, OP_SEND, arr_reg, new_sym(s, MRB_SYM_2(s->mrb, deconstruct)), 0);
+
+      /* Check minimum length: arr.size >= elems_len */
+      gen_move(s, cursp(), arr_reg, 0);
+      push();
+      genop_3(s, OP_SEND, cursp() - 1, new_sym(s, MRB_SYM_2(s->mrb, size)), 0);
+      gen_int(s, cursp(), elems_len);
+      push(); push(); pop(); pop(); pop();
+      genop_3(s, OP_SEND, cursp(), new_sym(s, MRB_OPSYM_2(s->mrb, ge)), 1);
+      tmp = genjmp2(s, OP_JMPNOT, cursp(), *fail_pos, 1);
+      *fail_pos = tmp;
+
+      /* Initialize index to 0 */
+      idx_reg = cursp();
+      gen_int(s, idx_reg, 0);
+      push();
+
+      /* Loop: try matching at each position */
+      loop_start = s->pc;
+      match_fail = JMPLINK_START;
+
+      /* Check if idx <= arr.size - elems_len (i.e., idx < arr.size - elems_len + 1) */
+      /* Compute: arr.size - elems_len */
+      gen_move(s, cursp(), arr_reg, 0);
+      push();
+      genop_3(s, OP_SEND, cursp() - 1, new_sym(s, MRB_SYM_2(s->mrb, size)), 0);
+      gen_int(s, cursp(), elems_len);
+      push(); push(); pop(); pop(); pop();
+      genop_3(s, OP_SEND, cursp(), new_sym(s, MRB_OPSYM_2(s->mrb, sub)), 1);
+      /* Now cursp() has (size - elems_len), compare: idx <= (size - elems_len) */
+      gen_move(s, cursp() + 1, idx_reg, 0);
+      push();
+      push(); push(); pop(); pop(); pop();
+      genop_3(s, OP_SEND, cursp(), new_sym(s, MRB_OPSYM_2(s->mrb, ge)), 1);
+      tmp = genjmp2(s, OP_JMPNOT, cursp(), *fail_pos, 1);
+      *fail_pos = tmp;
+
+      /* Try to match each middle element at idx+offset */
+      int offset = 0;
+      for (elem = pat_find->elems; elem; elem = elem->cdr, offset++) {
+        /* Get arr[idx + offset] */
+        gen_move(s, cursp(), arr_reg, 0);
+        push();
+        if (offset == 0) {
+          gen_move(s, cursp(), idx_reg, 0);
+        }
+        else {
+          gen_move(s, cursp(), idx_reg, 0);
+          push();
+          gen_int(s, cursp(), offset);
+          push(); push(); pop(); pop(); pop();
+          genop_3(s, OP_SEND, cursp(), new_sym(s, MRB_OPSYM_2(s->mrb, add)), 1);
+        }
+        push(); push(); pop(); pop(); pop();
+        genop_3(s, OP_SEND, cursp(), new_sym(s, MRB_OPSYM_2(s->mrb, aref)), 1);
+        /* Match element pattern - on fail, try next index */
+        codegen_pattern(s, elem->car, cursp(), &match_fail);
+      }
+
+      /* All elements matched - bind pre and post if named */
+      if (pat_find->pre && pat_find->pre != (node*)-1) {
+        struct mrb_ast_pat_var_node *pre_var = pat_var_node(pat_find->pre);
+        if (pre_var->name) {
+          int var_idx = lv_idx(s, pre_var->name);
+          /* pre = arr[0...idx] (exclusive range) */
+          /* Following the NODE_PAT_ARRAY pattern exactly */
+          gen_move(s, cursp(), arr_reg, 0);  /* arr at cursp */
+          push();
+          gen_int(s, cursp(), 0);            /* start=0 at cursp */
+          push();
+          gen_move(s, cursp(), idx_reg, 0);  /* end=idx at cursp */
+          /* start at cursp-1, end at cursp; create exclusive range at cursp-1 */
+          genop_1(s, OP_RANGE_EXC, cursp() - 1);
+          /* arr at cursp-2, range at cursp-1 */
+          pop();  /* cursp now at range position */
+          pop();  /* cursp now at arr position */
+          genop_3(s, OP_SEND, cursp(), new_sym(s, MRB_OPSYM_2(s->mrb, aref)), 1);
+          if (var_idx > 0) {
+            gen_move(s, var_idx, cursp(), 1);
+          }
+        }
+      }
+
+      if (pat_find->post && pat_find->post != (node*)-1) {
+        struct mrb_ast_pat_var_node *post_var = pat_var_node(pat_find->post);
+        if (post_var->name) {
+          int var_idx = lv_idx(s, post_var->name);
+          /* post = arr[(idx+elems_len)..-1] (inclusive range) */
+          /* Following the NODE_PAT_ARRAY pattern exactly */
+          gen_move(s, cursp(), arr_reg, 0);  /* arr at cursp */
+          push();
+          /* Compute idx + elems_len for start index */
+          gen_move(s, cursp(), idx_reg, 0);  /* idx at cursp */
+          push();
+          gen_int(s, cursp(), elems_len);    /* elems_len at cursp */
+          push(); push(); pop(); pop(); pop();
+          genop_3(s, OP_SEND, cursp(), new_sym(s, MRB_OPSYM_2(s->mrb, add)), 1);
+          /* start index (idx+elems_len) now at cursp */
+          push();
+          gen_int(s, cursp(), -1);           /* end=-1 at cursp */
+          /* start at cursp-1, end at cursp; create inclusive range at cursp-1 */
+          genop_1(s, OP_RANGE_INC, cursp() - 1);
+          /* arr at cursp-2, range at cursp-1 */
+          pop();  /* cursp now at range position */
+          pop();  /* cursp now at arr position */
+          genop_3(s, OP_SEND, cursp(), new_sym(s, MRB_OPSYM_2(s->mrb, aref)), 1);
+          if (var_idx > 0) {
+            gen_move(s, var_idx, cursp(), 1);
+          }
+        }
+      }
+
+      /* Jump to success (end of find pattern) */
+      loop_end = genjmp(s, OP_JMP, JMPLINK_START);
+
+      /* Match failed - increment index and try again */
+      dispatch_linked(s, match_fail);
+      gen_move(s, cursp(), idx_reg, 0);
+      push();
+      gen_int(s, cursp(), 1);
+      push(); push(); pop(); pop(); pop();
+      genop_3(s, OP_SEND, cursp(), new_sym(s, MRB_OPSYM_2(s->mrb, add)), 1);
+      gen_move(s, idx_reg, cursp(), 0);
+      genjmp(s, OP_JMP, loop_start);
+
+      /* Success exit point */
+      dispatch(s, loop_end);
+
+      pop();  /* idx_reg */
+      pop();  /* arr_reg */
+    }
+    break;
+
   case NODE_PAT_HASH:
     {
       struct mrb_ast_pat_hash_node *pat_hash = pat_hash_node(pattern);

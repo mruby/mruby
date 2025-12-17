@@ -674,6 +674,17 @@ new_pat_array(parser_state *p, node *pre, node *rest, node *post)
   return (node*)n;
 }
 
+/* Create find pattern node [*pre, elems, *post] */
+static node*
+new_pat_find(parser_state *p, node *pre, node *elems, node *post)
+{
+  struct mrb_ast_pat_find_node *n = NEW_NODE(pat_find, NODE_PAT_FIND);
+  n->pre = pre;
+  n->elems = elems;
+  n->post = post;
+  return (node*)n;
+}
+
 /* Create hash pattern node {a:, b: x, **rest} */
 static node*
 new_pat_hash(parser_state *p, node *pairs, node *rest)
@@ -2095,7 +2106,7 @@ prohibit_literals(parser_state *p, node *n)
 %type <id> f_label f_kwrest
 
 /* pattern matching */
-%type <nd> in_clauses p_expr p_alt p_value p_var p_as p_array p_array_body p_array_elems p_rest p_hash p_hash_body p_hash_elems p_hash_elem p_kwrest p_args_head p_args_post
+%type <nd> in_clauses p_expr p_alt p_value p_var p_as p_array p_array_body p_array_elems p_rest p_hash p_hash_body p_hash_elems p_hash_elem p_kwrest p_args_head p_args_post p_const
 
 %token tUPLUS             "unary plus"
 %token tUMINUS            "unary minus"
@@ -3989,17 +4000,9 @@ p_value         : p_var
                     {
                       $$ = new_pat_value(p, new_false(p));
                     }
-                | tCONSTANT
+                | p_const
                     {
-                      $$ = new_pat_value(p, new_const(p, $1));
-                    }
-                | primary_value tCOLON2 tCONSTANT
-                    {
-                      $$ = new_pat_value(p, new_colon2(p, $1, $3));
-                    }
-                | tCOLON3 tCONSTANT
-                    {
-                      $$ = new_pat_value(p, new_colon3(p, $2));
+                      $$ = new_pat_value(p, $1);
                     }
                 | p_array
                 | p_hash
@@ -4046,6 +4049,11 @@ p_array_body    : p_array_elems
                       /* Rest + post, no pre */
                       $$ = new_pat_array(p, 0, $1, $3);
                     }
+                | p_rest ',' p_array_elems ',' p_rest
+                    {
+                      /* Find pattern: [*pre, elems, *post] */
+                      $$ = new_pat_find(p, $1, $3, $5);
+                    }
                 ;
 
 /* Non-rest array pattern elements - use p_as, not p_expr to avoid bracket-less recursion */
@@ -4068,6 +4076,21 @@ p_rest          : tSTAR tIDENTIFIER
                     {
                       /* Anonymous rest pattern */
                       $$ = (node*)-1;
+                    }
+                ;
+
+/* Constant path for pattern matching: Foo, Foo::Bar, ::Foo */
+p_const         : tCONSTANT
+                    {
+                      $$ = new_const(p, $1);
+                    }
+                | p_const tCOLON2 tCONSTANT
+                    {
+                      $$ = new_colon2(p, $1, $3);
+                    }
+                | tCOLON3 tCONSTANT
+                    {
+                      $$ = new_colon3(p, $2);
                     }
                 ;
 

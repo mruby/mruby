@@ -90,6 +90,7 @@ enum node_type {
   NODE_PAT_AS,        /* as pattern (pattern => var) */
   NODE_PAT_ALT,       /* alternative pattern (pat1 | pat2) */
   NODE_PAT_ARRAY,     /* array pattern [a, b, *rest] */
+  NODE_PAT_FIND,      /* find pattern [*pre, elem, *post] */
   NODE_PAT_HASH,      /* hash pattern {a:, b: x} */
   NODE_MATCH_PAT,     /* one-line pattern matching (expr in pat / expr => pat) */
   NODE_LAST
@@ -334,6 +335,14 @@ struct mrb_ast_pat_array_node {
   struct mrb_ast_node *post;           /* Post-rest patterns (cons list) */
 };
 
+/* Find pattern node [*pre, elem, *post] - searches for elem anywhere in array */
+struct mrb_ast_pat_find_node {
+  struct mrb_ast_var_header header;    /* 8 bytes */
+  struct mrb_ast_node *pre;            /* Pre rest pattern (NULL or -1 if anonymous) */
+  struct mrb_ast_node *elems;          /* Middle patterns to find (cons list) */
+  struct mrb_ast_node *post;           /* Post rest pattern (NULL or -1 if anonymous) */
+};
+
 /* Hash pattern node {a:, b: x} */
 struct mrb_ast_pat_hash_node {
   struct mrb_ast_var_header header;    /* 8 bytes */
@@ -459,6 +468,7 @@ struct mrb_ast_super_node {
 #define pat_as_node(n) ((struct mrb_ast_pat_as_node*)(n))
 #define pat_alt_node(n) ((struct mrb_ast_pat_alt_node*)(n))
 #define pat_array_node(n) ((struct mrb_ast_pat_array_node*)(n))
+#define pat_find_node(n) ((struct mrb_ast_pat_find_node*)(n))
 #define pat_hash_node(n) ((struct mrb_ast_pat_hash_node*)(n))
 #define match_pat_node(n) ((struct mrb_ast_match_pat_node*)(n))
 #define for_node(n) ((struct mrb_ast_for_node*)(n))
