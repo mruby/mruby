@@ -512,42 +512,57 @@ retry:
         case FMT_CHAR: {
           /* CHARACTER FORMATTING (%c) */
           mrb_value val = GETARG();
-          mrb_value tmp;
-          char *c;
+          const char *c;
+          char cbuf[4];  /* stack buffer for character bytes */
+          int clen;
 
-          /* Convert argument to character string */
-          tmp = mrb_check_string_type(mrb, val);
-          if (!mrb_nil_p(tmp)) {
+          if (mrb_integer_p(val)) {
+            /* Integer: encode directly to stack buffer (no allocation) */
+            mrb_int code = mrb_integer(val);
+#ifdef MRB_UTF8_STRING
+            if (code < 0x80) {
+              cbuf[0] = (char)code;
+              clen = 1;
+            }
+            else if (code < 0x800) {
+              cbuf[0] = (char)(0xC0 | (code >> 6));
+              cbuf[1] = (char)(0x80 | (code & 0x3F));
+              clen = 2;
+            }
+            else if (code < 0x10000) {
+              cbuf[0] = (char)(0xE0 | (code >> 12));
+              cbuf[1] = (char)(0x80 | ((code >> 6) & 0x3F));
+              cbuf[2] = (char)(0x80 | (code & 0x3F));
+              clen = 3;
+            }
+            else {
+              cbuf[0] = (char)(0xF0 | (code >> 18));
+              cbuf[1] = (char)(0x80 | ((code >> 12) & 0x3F));
+              cbuf[2] = (char)(0x80 | ((code >> 6) & 0x3F));
+              cbuf[3] = (char)(0x80 | (code & 0x3F));
+              clen = 4;
+            }
+#else
+            cbuf[0] = (char)(code & 0xff);
+            clen = 1;
+#endif
+            c = cbuf;
+          }
+          else {
+            /* String: validate and use directly */
+            mrb_value tmp = mrb_check_string_type(mrb, val);
+            if (mrb_nil_p(tmp)) {
+              mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid character");
+            }
             if (RSTRING_LEN(tmp) != 1) {
               mrb_raise(mrb, E_ARGUMENT_ERROR, "%c requires a character");
             }
+            c = RSTRING_PTR(tmp);
+            clen = (int)RSTRING_LEN(tmp);
           }
-          else if (mrb_integer_p(val)) {
-            mrb_int n = mrb_integer(val);
-#ifndef MRB_UTF8_STRING
-            char buf[1];
 
-            buf[0] = (char)n&0xff;
-            tmp = mrb_str_new(mrb, buf, 1);
-#else
-            if (n < 0x80) {
-              char buf[1];
-
-              buf[0] = (char)n;
-              tmp = mrb_str_new(mrb, buf, 1);
-            }
-            else {
-              tmp = mrb_funcall_argv(mrb, val, MRB_SYM(chr), 0, NULL);
-              mrb_check_type(mrb, tmp, MRB_TT_STRING);
-            }
-#endif
-          }
-          else {
-            mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid character");
-          }
           /* Format and output the character with width/alignment */
-          c = RSTRING_PTR(tmp);
-          n = (int)RSTRING_LEN(tmp);
+          n = clen;
           if (!(flags & FWIDTH)) {
             PUSH(c, n);
           }
@@ -559,7 +574,6 @@ retry:
             if (width>0) FILL(' ', width-1);
             PUSH(c, n);
           }
-          mrb_gc_arena_restore(mrb, ai);
         }
         break;
 
