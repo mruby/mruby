@@ -189,6 +189,9 @@ should_dedent(mirb_buffer *buf, char last_char)
   /* Check for 'when' - dedent when 'n' completes "when" */
   CHECK_KEYWORD("when", 4, 'n');
 
+  /* Check for 'in' - dedent when 'n' completes "in" (pattern matching) */
+  CHECK_KEYWORD("in", 2, 'n');
+
   /* Check for 'rescue' - dedent when 'e' completes "rescue" */
   CHECK_KEYWORD("rescue", 6, 'e');
 
@@ -274,6 +277,7 @@ reindent_line(mirb_buffer *buf)
        (content[4] == '\0' || content[4] == ' ' || content[4] == '\t')) ||
       (strncmp(content, "elsif", 5) == 0 && content[5] == ' ') ||
       (strncmp(content, "when", 4) == 0 && content[4] == ' ') ||
+      (strncmp(content, "in", 2) == 0 && content[2] == ' ') ||
       (strncmp(content, "rescue", 6) == 0 &&
        (content[6] == '\0' || content[6] == ' ' || content[6] == '\t')) ||
       (strncmp(content, "ensure", 6) == 0 &&
@@ -454,6 +458,7 @@ handle_tab_indent(mirb_editor *ed)
        (content[4] == '\0' || content[4] == ' ' || content[4] == '\t')) ||
       (strncmp(content, "elsif", 5) == 0 && content[5] == ' ') ||
       (strncmp(content, "when", 4) == 0 && content[4] == ' ') ||
+      (strncmp(content, "in", 2) == 0 && content[2] == ' ') ||
       (strncmp(content, "rescue", 6) == 0 &&
        (content[6] == '\0' || content[6] == ' ' || content[6] == '\t')) ||
       (strncmp(content, "ensure", 6) == 0 &&
@@ -811,6 +816,7 @@ handle_key(mirb_editor *ed, int key, mirb_edit_result *result)
              (content[4] == '\0' || content[4] == ' ' || content[4] == '\t')) ||
             (strncmp(content, "elsif", 5) == 0 && content[5] == ' ') ||
             (strncmp(content, "when", 4) == 0 && content[4] == ' ') ||
+            (strncmp(content, "in", 2) == 0 && content[2] == ' ') ||
             (strncmp(content, "rescue", 6) == 0 &&
              (content[6] == '\0' || content[6] == ' ' || content[6] == '\t')) ||
             (strncmp(content, "ensure", 6) == 0 &&
