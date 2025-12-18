@@ -1124,24 +1124,7 @@ io_putc(mrb_state *mrb, mrb_value io)
   if (len == 0) return c;
 
 #ifdef MRB_UTF8_STRING
-  /* Determine UTF-8 character length from first byte */
-  unsigned char first = (unsigned char)ptr[0];
-  if (first < 0x80) {
-    write_len = 1;        /* ASCII */
-  }
-  else if ((first & 0xE0) == 0xC0) {
-    write_len = 2;        /* 2-byte UTF-8 */
-  }
-  else if ((first & 0xF0) == 0xE0) {
-    write_len = 3;        /* 3-byte UTF-8 */
-  }
-  else if ((first & 0xF8) == 0xF0) {
-    write_len = 4;        /* 4-byte UTF-8 */
-  }
-  else {
-    write_len = 1;        /* Invalid UTF-8, write single byte */
-  }
-  if (write_len > len) write_len = len;
+  write_len = mrb_utf8len(ptr, ptr + len);
 #else
   write_len = 1;          /* Non-UTF8: write single byte */
 #endif

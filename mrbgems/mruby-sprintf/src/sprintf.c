@@ -520,28 +520,8 @@ retry:
             /* Integer: encode directly to stack buffer (no allocation) */
             mrb_int code = mrb_integer(val);
 #ifdef MRB_UTF8_STRING
-            if (code < 0x80) {
-              cbuf[0] = (char)code;
-              clen = 1;
-            }
-            else if (code < 0x800) {
-              cbuf[0] = (char)(0xC0 | (code >> 6));
-              cbuf[1] = (char)(0x80 | (code & 0x3F));
-              clen = 2;
-            }
-            else if (code < 0x10000) {
-              cbuf[0] = (char)(0xE0 | (code >> 12));
-              cbuf[1] = (char)(0x80 | ((code >> 6) & 0x3F));
-              cbuf[2] = (char)(0x80 | (code & 0x3F));
-              clen = 3;
-            }
-            else {
-              cbuf[0] = (char)(0xF0 | (code >> 18));
-              cbuf[1] = (char)(0x80 | ((code >> 12) & 0x3F));
-              cbuf[2] = (char)(0x80 | ((code >> 6) & 0x3F));
-              cbuf[3] = (char)(0x80 | (code & 0x3F));
-              clen = 4;
-            }
+            clen = (int)mrb_utf8_to_buf(cbuf, (uint32_t)code);
+            if (clen == 0) clen = 1;  /* invalid codepoint: write single byte */
 #else
             cbuf[0] = (char)(code & 0xff);
             clen = 1;

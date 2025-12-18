@@ -166,6 +166,7 @@ mrb_value mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value idx, mrb_value l
 uint32_t mrb_byte_hash(const uint8_t*, mrb_int);
 uint32_t mrb_byte_hash_step(const uint8_t*, mrb_int, uint32_t);
 
+mrb_int mrb_utf8_to_buf(char *buf, uint32_t cp);
 #ifdef MRB_UTF8_STRING
 mrb_int mrb_utf8len(const char *str, const char *end);
 mrb_int mrb_utf8_strlen(const char *str, mrb_int byte_len);

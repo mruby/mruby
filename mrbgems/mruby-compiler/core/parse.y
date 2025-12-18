@@ -5375,30 +5375,8 @@ tokadd(parser_state *p, int32_t c)
     len = 1;
   }
   else {
-    /* Unicode character */
-    c = -c;
-    if (c < 0x80) {
-      utf8[0] = (char)c;
-      len = 1;
-    }
-    else if (c < 0x800) {
-      utf8[0] = (char)(0xC0 | (c >> 6));
-      utf8[1] = (char)(0x80 | (c & 0x3F));
-      len = 2;
-    }
-    else if (c < 0x10000) {
-      utf8[0] = (char)(0xE0 |  (c >> 12)        );
-      utf8[1] = (char)(0x80 | ((c >>  6) & 0x3F));
-      utf8[2] = (char)(0x80 | ( c        & 0x3F));
-      len = 3;
-    }
-    else {
-      utf8[0] = (char)(0xF0 |  (c >> 18)        );
-      utf8[1] = (char)(0x80 | ((c >> 12) & 0x3F));
-      utf8[2] = (char)(0x80 | ((c >>  6) & 0x3F));
-      utf8[3] = (char)(0x80 | ( c        & 0x3F));
-      len = 4;
-    }
+    /* Unicode character (negative c indicates codepoint) */
+    len = (int)mrb_utf8_to_buf(utf8, (uint32_t)(-c));
   }
   if (p->tidx+len >= p->tsiz) {
     if (p->tsiz >= MRB_PARSER_TOKBUF_MAX) {

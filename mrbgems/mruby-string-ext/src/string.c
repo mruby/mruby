@@ -51,36 +51,15 @@ int_chr_utf8(mrb_state *mrb, mrb_value num)
   char utf8[4];
   mrb_int len;
   mrb_value str;
-  uint32_t sb_flag = 0;
 
   if (cp < 0 || 0x10FFFF < cp) {
     mrb_raisef(mrb, E_RANGE_ERROR, "%v out of char range", num);
   }
-  if (cp < 0x80) {
-    utf8[0] = (char)cp;
-    len = 1;
-    sb_flag = MRB_STR_SINGLE_BYTE;
-  }
-  else if (cp < 0x800) {
-    utf8[0] = (char)(0xC0 | (cp >> 6));
-    utf8[1] = (char)(0x80 | (cp & 0x3F));
-    len = 2;
-  }
-  else if (cp < 0x10000) {
-    utf8[0] = (char)(0xE0 |  (cp >> 12));
-    utf8[1] = (char)(0x80 | ((cp >>  6) & 0x3F));
-    utf8[2] = (char)(0x80 | ( cp        & 0x3F));
-    len = 3;
-  }
-  else {
-    utf8[0] = (char)(0xF0 |  (cp >> 18));
-    utf8[1] = (char)(0x80 | ((cp >> 12) & 0x3F));
-    utf8[2] = (char)(0x80 | ((cp >>  6) & 0x3F));
-    utf8[3] = (char)(0x80 | ( cp        & 0x3F));
-    len = 4;
-  }
+  len = mrb_utf8_to_buf(utf8, (uint32_t)cp);
   str = mrb_str_new(mrb, utf8, len);
-  mrb_str_ptr(str)->flags |= sb_flag;
+  if (len == 1) {
+    RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+  }
   return str;
 }
 #endif
