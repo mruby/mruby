@@ -85,6 +85,20 @@ module Kernel
 
   #
   # call-seq:
+  #   putc(int)    -> nil
+  #
+  # Equivalent to $stdout.putc(int).
+  # If int is Integer, writes the byte (mod 256).
+  # If int is String, writes the first character.
+  # Returns nil.
+  #
+  private def putc(c)
+    $stdout.putc(c)
+    nil
+  end
+
+  #
+  # call-seq:
   #   puts(obj, ...)    -> nil
   #
   # Equivalent to $stdout.puts(obj, ...).

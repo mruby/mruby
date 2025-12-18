@@ -1083,6 +1083,85 @@ io_print(mrb_state *mrb, mrb_value io)
 
 /*
  * call-seq:
+ *   ios.putc(obj)  -> obj
+ *
+ * If obj is Integer, write the byte (mod 256).
+ * If obj is String, write the first character.
+ * Returns obj.
+ */
+static mrb_value
+io_putc(mrb_state *mrb, mrb_value io)
+{
+  struct mrb_io *fptr = io_get_write_fptr(mrb, io);
+  int fd = io_get_write_fd(fptr);
+  mrb_value c = mrb_get_arg1(mrb);
+  const char *ptr;
+  mrb_int write_len;
+
+  io_prepare_write(mrb, fptr);
+
+  if (mrb_integer_p(c)) {
+    unsigned char byte = (unsigned char)(mrb_integer(c) & 0xff);
+    ssize_t n;
+    do {
+      n = write(fd, &byte, 1);
+    } while (n == -1 && errno == EINTR);
+    if (n == -1) mrb_sys_fail(mrb, "write");
+    return c;
+  }
+
+  mrb_value str;
+  if (mrb_string_p(c)) {
+    str = c;
+  }
+  else {
+    str = mrb_obj_as_string(mrb, c);
+  }
+
+  ptr = RSTRING_PTR(str);
+  mrb_int len = RSTRING_LEN(str);
+
+  if (len == 0) return c;
+
+#ifdef MRB_UTF8_STRING
+  /* Determine UTF-8 character length from first byte */
+  unsigned char first = (unsigned char)ptr[0];
+  if (first < 0x80) {
+    write_len = 1;        /* ASCII */
+  }
+  else if ((first & 0xE0) == 0xC0) {
+    write_len = 2;        /* 2-byte UTF-8 */
+  }
+  else if ((first & 0xF0) == 0xE0) {
+    write_len = 3;        /* 3-byte UTF-8 */
+  }
+  else if ((first & 0xF8) == 0xF0) {
+    write_len = 4;        /* 4-byte UTF-8 */
+  }
+  else {
+    write_len = 1;        /* Invalid UTF-8, write single byte */
+  }
+  if (write_len > len) write_len = len;
+#else
+  write_len = 1;          /* Non-UTF8: write single byte */
+#endif
+
+  /* Write the character bytes */
+  while (write_len > 0) {
+    ssize_t n = write(fd, ptr, write_len);
+    if (n == -1) {
+      if (errno == EINTR) continue;
+      mrb_sys_fail(mrb, "write");
+    }
+    ptr += n;
+    write_len -= n;
+  }
+
+  return c;
+}
+
+/*
+ * call-seq:
  *   ios << obj     -> ios
  *
  * String Output - Writes obj to ios. obj will be converted to a string using
@@ -2180,6 +2259,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method_id(mrb, io, MRB_SYM(write),      io_write,      MRB_ARGS_ANY());    /* 15.2.20.5.20 */
   mrb_define_method_id(mrb, io, MRB_SYM(puts),       io_puts,       MRB_ARGS_ANY());
   mrb_define_method_id(mrb, io, MRB_SYM(print),      io_print,      MRB_ARGS_ANY());
+  mrb_define_method_id(mrb, io, MRB_SYM(putc),       io_putc,       MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, io, MRB_OPSYM(lshift),   io_lshift,     MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, io, MRB_SYM(pread),      io_pread,      MRB_ARGS_ANY());    /* Ruby 2.5 feature */
   mrb_define_method_id(mrb, io, MRB_SYM(pwrite),     io_pwrite,     MRB_ARGS_ANY());    /* Ruby 2.5 feature */
