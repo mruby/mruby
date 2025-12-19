@@ -5086,24 +5086,24 @@ codegen_masgn(codegen_scope *s, node *varnode, node *rhs, int sp, int val)
       }
     }
 
-    gen_move(s, cursp(), rhs_reg, val);
-    push_n(post+1);
-    pop_n(post+1);
-    genop_3(s, OP_APOST, cursp(), n, post);
-    int nn = 1;
-    if (masgn_n->rest && (intptr_t)masgn_n->rest != -1) { /* rest */
-      gen_assignment(s, masgn_n->rest, NULL, cursp(), NOVAL);
-    }
-    if (masgn_n->post) {
-      node *post_part = masgn_n->post;
-      while (post_part) {
-        gen_assignment(s, post_part->car, NULL, cursp()+nn, NOVAL);
-        post_part = post_part->cdr;
-        nn++;
+    /* Only generate APOST if there's rest or post variables */
+    if ((masgn_n->rest && (intptr_t)masgn_n->rest != -1) || masgn_n->post) {
+      gen_move(s, cursp(), rhs_reg, val);
+      push_n(post+1);
+      pop_n(post+1);
+      genop_3(s, OP_APOST, cursp(), n, post);
+      int nn = 1;
+      if (masgn_n->rest && (intptr_t)masgn_n->rest != -1) { /* rest */
+        gen_assignment(s, masgn_n->rest, NULL, cursp(), NOVAL);
       }
-    }
-    if (val) {
-      gen_move(s, cursp(), rhs_reg, 0);
+      if (masgn_n->post) {
+        node *post_part = masgn_n->post;
+        while (post_part) {
+          gen_assignment(s, post_part->car, NULL, cursp()+nn, NOVAL);
+          post_part = post_part->cdr;
+          nn++;
+        }
+      }
     }
 
     if (!val && t) {
