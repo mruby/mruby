@@ -2661,6 +2661,58 @@ nosplat(node *t)
   return TRUE;
 }
 
+/* Check if node is a simple literal that can be generated into any register */
+static mrb_bool
+is_simple_literal(node *n)
+{
+  switch (get_node_type(n)) {
+  case NODE_INT:
+  case NODE_NIL:
+  case NODE_TRUE:
+  case NODE_FALSE:
+    return TRUE;
+  default:
+    return FALSE;
+  }
+}
+
+/* Check if all lhs are local variables and get their registers */
+static mrb_bool
+all_lvar_pre(codegen_scope *s, node *pre, int *regs, int max)
+{
+  int i = 0;
+  while (pre && i < max) {
+    if (get_node_type(pre->car) != NODE_LVAR) return FALSE;
+    int idx = lv_idx(s, var_node(pre->car)->symbol);
+    if (idx <= 0) return FALSE;  /* not a local variable */
+    regs[i++] = idx;
+    pre = pre->cdr;
+  }
+  return pre == NULL;  /* all processed */
+}
+
+/* Generate a simple literal directly into a specific register */
+static void
+gen_literal_to_reg(codegen_scope *s, node *n, int reg)
+{
+  switch (get_node_type(n)) {
+  case NODE_INT:
+    gen_int(s, reg, int_node(n)->value);
+    break;
+  case NODE_NIL:
+    genop_1(s, OP_LOADNIL, reg);
+    break;
+  case NODE_TRUE:
+    genop_1(s, OP_LOADT, reg);
+    break;
+  case NODE_FALSE:
+    genop_1(s, OP_LOADF, reg);
+    break;
+  default:
+    break;
+  }
+}
+
 static mrb_sym
 attrsym(codegen_scope *s, mrb_sym a)
 {
@@ -4974,6 +5026,37 @@ codegen_masgn(codegen_scope *s, node *varnode, node *rhs, int sp, int val)
     if (an->elements && nosplat(an->elements)) {
       /* fixed rhs */
       t = an->elements;
+
+      /* Optimization: direct generation for simple cases */
+      /* When all lhs are local vars and all rhs are simple literals, */
+      /* generate directly into target registers (no temporaries) */
+      if (masgn_n->pre && !masgn_n->rest && !masgn_n->post) {
+        int regs[16];  /* support up to 16 variables */
+        node *lhs = masgn_n->pre;
+        node *rhs_elem = t;
+        int count = 0;
+        mrb_bool all_simple = TRUE;
+
+        /* Count and check rhs are all simple literals */
+        while (rhs_elem && count < 16) {
+          if (!is_simple_literal(rhs_elem->car)) {
+            all_simple = FALSE;
+            break;
+          }
+          count++;
+          rhs_elem = rhs_elem->cdr;
+        }
+        if (all_simple && count > 0 && all_lvar_pre(s, lhs, regs, count)) {
+          /* Direct generation: generate literals into target registers */
+          rhs_elem = t;
+          for (int i = 0; i < count; i++) {
+            gen_literal_to_reg(s, rhs_elem->car, regs[i]);
+            rhs_elem = rhs_elem->cdr;
+          }
+          return;
+        }
+      }
+
       rhs_reg = cursp();  /* Save register where values will be pushed */
       while (t) {
         codegen(s, t->car, VAL);
