@@ -345,6 +345,7 @@ main(int argc, char **argv)
 
     /* set program filename */
     mrb_ccontext_filename(mrb, c, cmdline);
+    c->no_return_value = TRUE;  /* main program doesn't need return value */
 
     /* Load program */
     if (args.mrbfile || mrb_extension_p(cmdline)) {

@@ -2603,13 +2603,24 @@ scope_body(codegen_scope *s, node *locals, node *body, int val)
   codegen_scope *scope = scope_new(s->mrb, s, locals);
 
   /* Generate code for the body of the scope. */
-  codegen(scope, body, VAL);
-  /* Ensure the scope returns the value of its last expression. */
-  gen_return(scope, OP_RETURN, scope->sp-1);
+  codegen(scope, body, val);
 
   /* If this is the outermost scope (e.g., top-level script), add OP_STOP. */
   if (!s->iseq) { /* s->iseq would be NULL for the initial dummy scope. */
+    if (val) {
+      gen_return(scope, OP_RETURN, scope->sp-1);
+    }
+    /* skip RETURN when no_return_value; STOP will terminate VM */
     genop_0(scope, OP_STOP);
+  }
+  else {
+    /* Ensure the scope returns the value of its last expression. */
+    if (val) {
+      gen_return(scope, OP_RETURN, scope->sp-1);
+    }
+    else {
+      gen_return(scope, OP_RETURN, 0);  /* return nil */
+    }
   }
 
   /* Finalize the IREP for this scope. */
@@ -6120,7 +6131,7 @@ codegen_scope_node(codegen_scope *s, const node *varnode, int val)
   struct mrb_ast_scope_node *scope = scope_node(varnode);
 
   /* Pass locals and body directly to scope_body() */
-  scope_body(s, scope->locals, scope->body, NOVAL);
+  scope_body(s, scope->locals, scope->body, val);
 }
 
 static void
@@ -6937,5 +6948,5 @@ generate_code(mrb_state *mrb, parser_state *p, int val)
 MRB_API struct RProc*
 mrb_generate_code(mrb_state *mrb, parser_state *p)
 {
-  return generate_code(mrb, p, VAL);
+  return generate_code(mrb, p, p->no_return_value ? NOVAL : VAL);
 }

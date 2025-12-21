@@ -33,6 +33,7 @@ typedef struct mrb_ccontext {
   mrb_bool keep_lv:1;
   mrb_bool no_optimize:1;
   mrb_bool no_ext_ops:1;
+  mrb_bool no_return_value:1;
   const struct RProc *upper;
 
   size_t parser_nerr;
@@ -125,6 +126,7 @@ struct mrb_parser_state {
   mrb_bool no_optimize:1;
   mrb_bool capture_errors:1;
   mrb_bool no_ext_ops:1;
+  mrb_bool no_return_value:1;
   const struct RProc *upper;
   struct mrb_parser_message error_buffer[10];
   struct mrb_parser_message warn_buffer[10];
