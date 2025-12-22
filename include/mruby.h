@@ -1268,7 +1268,11 @@ MRB_API mrb_state* mrb_open_core(void);
  *      Pointer to the mrb_state to be closed.
  */
 MRB_API void mrb_close(mrb_state *mrb);
+#ifndef MRB_NO_METHOD_CACHE
 MRB_API void mrb_method_cache_clear(mrb_state *mrb);
+#else
+#define mrb_method_cache_clear(mrb) ((void)0)
+#endif
 
 /**
  * Check if mrb_open() failed
