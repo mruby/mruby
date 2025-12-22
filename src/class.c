@@ -98,7 +98,7 @@ mt_new(mrb_state *mrb)
 
 /* Branch-free binary search helper for method table keys */
 static inline int
-bsearch_idx(mrb_sym *keys, int size, mrb_sym target)
+mt_bsearch_idx(mrb_sym *keys, int size, mrb_sym target)
 {
   if (size == 0) return 0;
   int n = size;
@@ -143,7 +143,7 @@ mt_put(mrb_state *mrb, mt_tbl *t, mrb_sym sym, mrb_sym flags, union mt_ptr ptrva
    * If table is empty, insertion index is 0.
    * Otherwise, find the insertion/update position branch-free.
    */
-  int lo = bsearch_idx(keys, t->size, sym);
+  int lo = mt_bsearch_idx(keys, t->size, sym);
 
   /* If the key already exists, update its value and return */
   if (lo < t->size && MT_KEY_SYM(keys[lo]) == sym) {
@@ -176,7 +176,7 @@ mt_get(mrb_state *mrb, mt_tbl *t, mrb_sym sym, union mt_ptr *pp)
   union mt_ptr *vals = mt_vals(t);
 
   /* Find the position in a branch-free manner */
-  int lo = bsearch_idx(keys, t->size, sym);
+  int lo = mt_bsearch_idx(keys, t->size, sym);
 
   /* If found, set *pp to the value and return the full key */
   if (lo < t->size && MT_KEY_SYM(keys[lo]) == sym) {
@@ -199,7 +199,7 @@ mt_del(mrb_state *mrb, mt_tbl *t, mrb_sym sym)
   union mt_ptr *vals = mt_vals(t);
 
   /* Find the index of `sym` in a branch-free manner */
-  int lo = bsearch_idx(keys, t->size, sym);
+  int lo = mt_bsearch_idx(keys, t->size, sym);
 
   /* If the key exists at index lo, remove it by shifting left */
   if (lo < t->size && MT_KEY_SYM(keys[lo]) == sym) {

@@ -69,7 +69,7 @@ iv_rehash(mrb_state *mrb, iv_tbl *t)
 
 /* Branch-free binary search helper: returns the index where `target` should be inserted/found. */
 static inline int
-bsearch_idx(mrb_sym *keys, int size, mrb_sym target) {
+iv_bsearch_idx(mrb_sym *keys, int size, mrb_sym target) {
   if (size == 0) return 0;
   int n = size;
   mrb_sym *p = keys;
@@ -107,7 +107,7 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
   /* Determine insertion/update index:
    * If table has entries, use branch-free search; otherwise index = 0.
    */
-  int lo = bsearch_idx(keys, t->size, sym);
+  int lo = iv_bsearch_idx(keys, t->size, sym);
 
   /* If the key already exists, update its value and return */
   if (lo < t->size && keys[lo] == sym) {
@@ -120,7 +120,7 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
     iv_rehash(mrb, t);
     keys = (mrb_sym*)&t->ptr[t->alloc];
     vals =  t->ptr;
-    lo = bsearch_idx(keys, t->size, sym);
+    lo = iv_bsearch_idx(keys, t->size, sym);
   }
 
   /* Shift existing entries right to make room at index lo */
@@ -147,7 +147,7 @@ iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
   mrb_value *vals =  t->ptr;
 
   /* Find index in a branch-free manner */
-  int lo = bsearch_idx(keys, t->size, sym);
+  int lo = iv_bsearch_idx(keys, t->size, sym);
 
   /* If found, store value (if vp provided) and return 1-based position */
   if (lo < t->size && keys[lo] == sym) {
@@ -170,7 +170,7 @@ iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
   mrb_value *vals =  t->ptr;
 
   /* Find index in a branch-free manner */
-  int lo = bsearch_idx(keys, t->size, sym);
+  int lo = iv_bsearch_idx(keys, t->size, sym);
 
   /* If found, optionally return value and shift entries left to delete */
   if (lo < t->size && keys[lo] == sym) {
