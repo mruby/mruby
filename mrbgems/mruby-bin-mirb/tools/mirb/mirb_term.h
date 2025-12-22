@@ -109,12 +109,6 @@ void mirb_term_clear_screen(void);   /* clear entire screen */
 void mirb_term_clear_below(void);    /* clear from cursor to end of screen */
 
 /*
- * Cursor position save/restore
- */
-void mirb_term_save_cursor(void);
-void mirb_term_restore_cursor(void);
-
-/*
  * Update terminal size information
  */
 void mirb_term_get_size(mirb_term *term);

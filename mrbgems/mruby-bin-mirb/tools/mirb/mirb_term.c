@@ -347,15 +347,3 @@ mirb_term_clear_below(void)
 {
   printf("\033[J");
 }
-
-void
-mirb_term_save_cursor(void)
-{
-  printf("\033[s");
-}
-
-void
-mirb_term_restore_cursor(void)
-{
-  printf("\033[u");
-}
