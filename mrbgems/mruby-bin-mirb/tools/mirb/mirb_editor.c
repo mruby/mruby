@@ -66,35 +66,6 @@ is_dedent_keyword(const char *content)
 /*
  * Calculate indent level by counting open blocks in code
  */
-/*
- * Get buffer content up to and including a specific line
- * Caller must free the returned string
- */
-static char *
-buffer_to_string_upto_line(mirb_buffer *buf, size_t up_to_line)
-{
-  size_t total = 0;
-  size_t lines_to_include = (up_to_line < buf->line_count) ? up_to_line + 1 : buf->line_count;
-
-  for (size_t i = 0; i < lines_to_include; i++) {
-    total += buf->lines[i].len;
-    if (i < lines_to_include - 1) total++;  /* newline */
-  }
-
-  char *str = (char*)malloc(total + 1);
-  if (str == NULL) return NULL;
-
-  char *p = str;
-  for (size_t i = 0; i < lines_to_include; i++) {
-    memcpy(p, buf->lines[i].data, buf->lines[i].len);
-    p += buf->lines[i].len;
-    if (i < lines_to_include - 1) *p++ = '\n';
-  }
-  *p = '\0';
-
-  return str;
-}
-
 static int
 calc_indent_level(const char *code)
 {
@@ -238,7 +209,7 @@ perform_dedent(mirb_buffer *buf)
 
   /* Calculate expected indent from code up to previous line */
   if (buf->cursor_line > 0) {
-    char *partial = buffer_to_string_upto_line(buf, buf->cursor_line - 1);
+    char *partial = mirb_buffer_to_string_upto_line(buf, buf->cursor_line - 1);
     if (partial) {
       expected_indent = calc_indent_level(partial);
       free(partial);
@@ -284,7 +255,7 @@ reindent_line(mirb_buffer *buf)
 
   /* Calculate expected indent from code up to previous line */
   if (buf->cursor_line > 0) {
-    char *partial = buffer_to_string_upto_line(buf, buf->cursor_line - 1);
+    char *partial = mirb_buffer_to_string_upto_line(buf, buf->cursor_line - 1);
     if (partial) {
       expected_indent = calc_indent_level(partial);
       free(partial);
@@ -448,7 +419,7 @@ handle_tab_indent(mirb_editor *ed)
 
   /* Calculate expected indent from code up to previous line */
   if (ed->buf.cursor_line > 0) {
-    char *partial = buffer_to_string_upto_line(&ed->buf, ed->buf.cursor_line - 1);
+    char *partial = mirb_buffer_to_string_upto_line(&ed->buf, ed->buf.cursor_line - 1);
     if (partial) {
       expected_indent = calc_indent_level(partial);
       free(partial);
@@ -800,7 +771,7 @@ handle_key(mirb_editor *ed, int key, mirb_edit_result *result)
 
       /* Not at end of last line - just insert/split with appropriate indent */
       {
-        char *partial = buffer_to_string_upto_line(&ed->buf, ed->buf.cursor_line);
+        char *partial = mirb_buffer_to_string_upto_line(&ed->buf, ed->buf.cursor_line);
         int indent = partial ? calc_indent_level(partial) : 0;
         free(partial);
         mirb_buffer_newline(&ed->buf);

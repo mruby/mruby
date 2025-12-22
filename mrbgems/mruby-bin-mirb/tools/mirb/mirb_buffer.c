@@ -193,24 +193,41 @@ mirb_buffer_total_len(mirb_buffer *buf)
 }
 
 /*
+ * Get buffer content up to and including a specific line as string
+ * Caller must free the returned string
+ */
+char *
+mirb_buffer_to_string_upto_line(mirb_buffer *buf, size_t up_to_line)
+{
+  size_t total = 0;
+  size_t lines_to_include = (up_to_line < buf->line_count) ? up_to_line + 1 : buf->line_count;
+
+  for (size_t i = 0; i < lines_to_include; i++) {
+    total += buf->lines[i].len;
+    if (i < lines_to_include - 1) total++;  /* newline */
+  }
+
+  char *str = (char*)malloc(total + 1);
+  if (str == NULL) return NULL;
+
+  char *p = str;
+  for (size_t i = 0; i < lines_to_include; i++) {
+    memcpy(p, buf->lines[i].data, buf->lines[i].len);
+    p += buf->lines[i].len;
+    if (i < lines_to_include - 1) *p++ = '\n';
+  }
+  *p = '\0';
+
+  return str;
+}
+
+/*
  * Get buffer as string
  */
 char *
 mirb_buffer_to_string(mirb_buffer *buf)
 {
-  size_t total = mirb_buffer_total_len(buf);
-  char *str = (char*)malloc(total + 1);
-  if (str == NULL) return NULL;
-
-  char *p = str;
-  for (size_t i = 0; i < buf->line_count; i++) {
-    memcpy(p, buf->lines[i].data, buf->lines[i].len);
-    p += buf->lines[i].len;
-    if (i < buf->line_count - 1) *p++ = '\n';
-  }
-  *p = '\0';
-
-  return str;
+  return mirb_buffer_to_string_upto_line(buf, buf->line_count - 1);
 }
 
 /*
