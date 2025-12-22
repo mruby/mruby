@@ -140,7 +140,7 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
 }
 
 static mrb_value
-exec_irep(mrb_state *mrb, mrb_value self, struct RProc *proc)
+eval_irep(mrb_state *mrb, mrb_value self, struct RProc *proc)
 {
   mrb_callinfo *ci = mrb->c->ci;
 
@@ -296,7 +296,7 @@ f_eval(mrb_state *mrb, mrb_value self)
     self = mrb_iv_get(mrb, binding, MRB_SYM(recv));
   }
   mrb_assert(!MRB_PROC_CFUNC_P(proc));
-  return exec_irep(mrb, self, proc);
+  return eval_irep(mrb, self, proc);
 }
 
 /*
@@ -338,7 +338,7 @@ f_instance_eval(mrb_state *mrb, mrb_value self)
     MRB_PROC_SET_TARGET_CLASS(proc, c);
     mrb_assert(!MRB_PROC_CFUNC_P(proc));
     mrb_vm_ci_target_class_set(mrb->c->ci, c);
-    return exec_irep(mrb, self, proc);
+    return eval_irep(mrb, self, proc);
   }
   else {
     mrb_get_args(mrb, "");
@@ -381,7 +381,7 @@ f_class_eval(mrb_state *mrb, mrb_value self)
     MRB_PROC_SET_TARGET_CLASS(proc, mrb_class_ptr(self));
     mrb_assert(!MRB_PROC_CFUNC_P(proc));
     mrb_vm_ci_target_class_set(mrb->c->ci, mrb_class_ptr(self));
-    return exec_irep(mrb, self, proc);
+    return eval_irep(mrb, self, proc);
   }
   else {
     mrb_get_args(mrb, "");
