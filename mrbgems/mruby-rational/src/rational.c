@@ -325,24 +325,6 @@ mrb_rational_new(mrb_state *mrb, mrb_int nume, mrb_int deno)
 #define RAT_HUGE_VAL HUGE_VAL
 #endif
 
-#define mrb_int_fit_p(x,t) ((t)MRB_INT_MIN <= (x) && (x) <= (t)MRB_INT_MAX)
-
-static mrb_value
-int_lshift(mrb_state *mrb, mrb_value v, mrb_int n)
-{
-  if (mrb_integer_p(v) && n < (mrb_int)sizeof(long) * CHAR_BIT) {
-    mrb_float f = (mrb_float)mrb_integer(v);
-    f *= 1L<<n;
-    if (mrb_int_fit_p(f, mrb_float))
-      return mrb_int_value(mrb, (mrb_int)f);
-  }
-#ifndef RAT_BIGINT
-  rat_overflow(mrb);
-#else
-  return mrb_bint_lshift(mrb, mrb_as_bint(mrb, v), n);
-#endif
-}
-
 static mrb_value
 rational_new_f(mrb_state *mrb, mrb_float f)
 {
@@ -364,10 +346,8 @@ rational_new_f(mrb_state *mrb, mrb_float f)
 #ifndef RAT_BIGINT
       rat_overflow(mrb);
 #else
-      mrb_value n = int_lshift(mrb, mrb_int_value(mrb, nume), exp);
-      if (mrb_bigint_p(n)) {
-        return rational_new_b(mrb, n, mrb_int_value(mrb, deno));
-      }
+      mrb_value n = mrb_bint_lshift(mrb, mrb_bint_new_int(mrb, nume), exp);
+      return rational_new_b(mrb, n, mrb_int_value(mrb, deno));
 #endif
     }
     nume = temp;
