@@ -41,6 +41,29 @@ leading_spaces(const char *line)
 }
 
 /*
+ * Check if content starts with a dedenting keyword
+ * (end, else, elsif, when, in, rescue, ensure) or '}'
+ */
+static mrb_bool
+is_dedent_keyword(const char *content)
+{
+  if (content[0] == '}') return TRUE;
+  if (strncmp(content, "end", 3) == 0 &&
+      (content[3] == '\0' || content[3] == ' ' || content[3] == '\t' ||
+       content[3] == '.' || content[3] == ')')) return TRUE;
+  if (strncmp(content, "else", 4) == 0 &&
+      (content[4] == '\0' || content[4] == ' ' || content[4] == '\t')) return TRUE;
+  if (strncmp(content, "elsif", 5) == 0 && content[5] == ' ') return TRUE;
+  if (strncmp(content, "when", 4) == 0 && content[4] == ' ') return TRUE;
+  if (strncmp(content, "in", 2) == 0 && content[2] == ' ') return TRUE;
+  if (strncmp(content, "rescue", 6) == 0 &&
+      (content[6] == '\0' || content[6] == ' ' || content[6] == '\t')) return TRUE;
+  if (strncmp(content, "ensure", 6) == 0 &&
+      (content[6] == '\0' || content[6] == ' ' || content[6] == '\t')) return TRUE;
+  return FALSE;
+}
+
+/*
  * Calculate indent level by counting open blocks in code
  */
 /*
@@ -270,19 +293,7 @@ reindent_line(mirb_buffer *buf)
 
   /* Check if line content starts with dedenting keyword */
   content = line->data + current_spaces;
-  if ((strncmp(content, "end", 3) == 0 &&
-       (content[3] == '\0' || content[3] == ' ' || content[3] == '\t' ||
-        content[3] == '.' || content[3] == ')')) ||
-      (strncmp(content, "else", 4) == 0 &&
-       (content[4] == '\0' || content[4] == ' ' || content[4] == '\t')) ||
-      (strncmp(content, "elsif", 5) == 0 && content[5] == ' ') ||
-      (strncmp(content, "when", 4) == 0 && content[4] == ' ') ||
-      (strncmp(content, "in", 2) == 0 && content[2] == ' ') ||
-      (strncmp(content, "rescue", 6) == 0 &&
-       (content[6] == '\0' || content[6] == ' ' || content[6] == '\t')) ||
-      (strncmp(content, "ensure", 6) == 0 &&
-       (content[6] == '\0' || content[6] == ' ' || content[6] == '\t')) ||
-      content[0] == '}') {
+  if (is_dedent_keyword(content)) {
     if (expected_indent > 0) expected_indent--;
   }
 
@@ -451,19 +462,7 @@ handle_tab_indent(mirb_editor *ed)
 
   /* Check if line content starts with dedenting keyword */
   content = line->data + current_spaces;
-  if ((strncmp(content, "end", 3) == 0 &&
-       (content[3] == '\0' || content[3] == ' ' || content[3] == '\t' ||
-        content[3] == '.' || content[3] == ')')) ||
-      (strncmp(content, "else", 4) == 0 &&
-       (content[4] == '\0' || content[4] == ' ' || content[4] == '\t')) ||
-      (strncmp(content, "elsif", 5) == 0 && content[5] == ' ') ||
-      (strncmp(content, "when", 4) == 0 && content[4] == ' ') ||
-      (strncmp(content, "in", 2) == 0 && content[2] == ' ') ||
-      (strncmp(content, "rescue", 6) == 0 &&
-       (content[6] == '\0' || content[6] == ' ' || content[6] == '\t')) ||
-      (strncmp(content, "ensure", 6) == 0 &&
-       (content[6] == '\0' || content[6] == ' ' || content[6] == '\t')) ||
-      content[0] == '}') {
+  if (is_dedent_keyword(content)) {
     if (expected_indent > 0) expected_indent--;
   }
 
@@ -808,20 +807,7 @@ handle_key(mirb_editor *ed, int key, mirb_edit_result *result)
 
         /* Check if new line starts with dedenting keyword */
         mirb_line *new_line = &ed->buf.lines[ed->buf.cursor_line];
-        const char *content = new_line->data;
-        if ((strncmp(content, "end", 3) == 0 &&
-             (content[3] == '\0' || content[3] == ' ' || content[3] == '\t' ||
-              content[3] == '.' || content[3] == ')')) ||
-            (strncmp(content, "else", 4) == 0 &&
-             (content[4] == '\0' || content[4] == ' ' || content[4] == '\t')) ||
-            (strncmp(content, "elsif", 5) == 0 && content[5] == ' ') ||
-            (strncmp(content, "when", 4) == 0 && content[4] == ' ') ||
-            (strncmp(content, "in", 2) == 0 && content[2] == ' ') ||
-            (strncmp(content, "rescue", 6) == 0 &&
-             (content[6] == '\0' || content[6] == ' ' || content[6] == '\t')) ||
-            (strncmp(content, "ensure", 6) == 0 &&
-             (content[6] == '\0' || content[6] == ' ' || content[6] == '\t')) ||
-            content[0] == '}') {
+        if (is_dedent_keyword(new_line->data)) {
           if (indent > 0) indent--;
         }
 
