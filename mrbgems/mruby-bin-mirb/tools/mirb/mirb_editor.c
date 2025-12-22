@@ -64,6 +64,20 @@ is_dedent_keyword(const char *content)
 }
 
 /*
+ * Check if a line contains only whitespace (or is empty)
+ */
+static mrb_bool
+is_line_blank(const mirb_line *line)
+{
+  for (size_t i = 0; i < line->len; i++) {
+    if (line->data[i] != ' ' && line->data[i] != '\t') {
+      return FALSE;
+    }
+  }
+  return TRUE;
+}
+
+/*
  * Calculate indent level by counting open blocks in code
  */
 static int
@@ -703,14 +717,7 @@ handle_key(mirb_editor *ed, int key, mirb_edit_result *result)
 
         if (next_is_last) {
           mirb_line *next_line = &ed->buf.lines[next_line_idx];
-          mrb_bool next_is_blank = TRUE;
-          for (size_t i = 0; i < next_line->len; i++) {
-            if (next_line->data[i] != ' ' && next_line->data[i] != '\t') {
-              next_is_blank = FALSE;
-              break;
-            }
-          }
-          if (next_is_blank) {
+          if (is_line_blank(next_line)) {
             /* Move to existing blank last line with proper indentation */
             char *code = mirb_buffer_to_string(&ed->buf);
             int indent = code ? calc_indent_level(code) : 0;
@@ -735,14 +742,7 @@ handle_key(mirb_editor *ed, int key, mirb_edit_result *result)
         size_t next_line_idx = ed->buf.cursor_line + 1;
         if (next_line_idx == ed->buf.line_count - 1) {
           mirb_line *next_line = &ed->buf.lines[next_line_idx];
-          mrb_bool next_is_blank = TRUE;
-          for (size_t i = 0; i < next_line->len; i++) {
-            if (next_line->data[i] != ' ' && next_line->data[i] != '\t') {
-              next_is_blank = FALSE;
-              break;
-            }
-          }
-          if (next_is_blank) {
+          if (is_line_blank(next_line)) {
             mirb_buffer_delete_line(&ed->buf, next_line_idx);
           }
         }
