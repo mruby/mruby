@@ -6402,10 +6402,23 @@ codegen(codegen_scope *s, node *tree, int val)
           genop_1(s, OP_LOADT, cursp());
           push();
         }
-        match_pos = genjmp(s, OP_JMP, JMPLINK_START);
+
+        /* Optimize: single JMPNOT can be inverted to JMPIF, eliminating JMP */
+        /* Conditions: (1) single entry in fail_pos chain, and
+         * (2) JMPNOT is immediately before current position (no code between) */
+        if ((int32_t)(fail_pos + 2) + (int16_t)PEEK_S(s->iseq+fail_pos) == 0 &&
+            fail_pos + 2 == s->pc) {
+          /* Single failure point - invert JMPNOT to JMPIF */
+          s->iseq[fail_pos - 2] = OP_JMPIF;
+          match_pos = fail_pos;
+        }
+        else {
+          /* Multiple failure points - need JMP to skip error handling */
+          match_pos = genjmp(s, OP_JMP, JMPLINK_START);
+          dispatch_linked(s, fail_pos);
+        }
 
         /* Pattern failed */
-        dispatch_linked(s, fail_pos);
         pop();  /* pop the value */
         if (mp->raise_on_fail) {
           /* expr => pattern: raise NoMatchingPatternError */
