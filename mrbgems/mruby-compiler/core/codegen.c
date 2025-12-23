@@ -4557,8 +4557,10 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos)
         gen_int(s, cursp(), i);
         push(); push(); pop(); pop(); pop();
         genop_3(s, OP_SEND, cursp(), sym_idx(s, MRB_OPSYM_2(s->mrb, aref)), 1);
+        push();  /* Preserve element result for codegen_pattern */
         /* Match element pattern */
-        codegen_pattern(s, elem->car, cursp(), fail_pos);
+        codegen_pattern(s, elem->car, cursp() - 1, fail_pos);
+        pop();  /* Clean up element slot */
       }
 
       /* Bind rest elements if rest is a variable */
@@ -4598,8 +4600,10 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos)
         gen_int(s, cursp(), i);
         push(); push(); pop(); pop(); pop();
         genop_3(s, OP_SEND, cursp(), sym_idx(s, MRB_OPSYM_2(s->mrb, aref)), 1);
+        push();  /* Preserve element result for codegen_pattern */
         /* Match element pattern */
-        codegen_pattern(s, elem->car, cursp(), fail_pos);
+        codegen_pattern(s, elem->car, cursp() - 1, fail_pos);
+        pop();  /* Clean up element slot */
       }
 
       pop();  /* Pop arr_reg */
@@ -4685,8 +4689,10 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos)
         }
         push(); push(); pop(); pop(); pop();
         genop_3(s, OP_SEND, cursp(), sym_idx(s, MRB_OPSYM_2(s->mrb, aref)), 1);
+        push();  /* Preserve element result for codegen_pattern */
         /* Match element pattern - on fail, try next index */
-        codegen_pattern(s, elem->car, cursp(), &match_fail);
+        codegen_pattern(s, elem->car, cursp() - 1, &match_fail);
+        pop();  /* Clean up element slot */
       }
 
       /* All elements matched - bind pre and post if named */
@@ -4825,9 +4831,11 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos)
         }
         push(); push(); pop(); pop(); pop();
         genop_3(s, OP_SEND, cursp(), sym_idx(s, MRB_OPSYM_2(s->mrb, aref)), 1);
+        push();  /* Preserve value for codegen_pattern */
 
         /* Match pattern against value */
-        codegen_pattern(s, pat, cursp(), fail_pos);
+        codegen_pattern(s, pat, cursp() - 1, fail_pos);
+        pop();  /* Clean up value slot */
       }
 
       /* Handle rest pattern */
