@@ -368,7 +368,7 @@ node_type_p(node *n, enum node_type type)
 
 /* Helper functions for variable-sized node detection */
 static enum node_type
-get_node_type(node *n)
+node_type(node *n)
 {
   if (!n) return (enum node_type)0;
 
@@ -1118,7 +1118,7 @@ static void
 local_add_margs(parser_state *p, node *n)
 {
   while (n) {
-    if (get_node_type(n->car) == NODE_MARG) {
+    if (node_type(n->car) == NODE_MARG) {
       struct mrb_ast_masgn_node *masgn_n = (struct mrb_ast_masgn_node*)n->car;
       node *rhs = masgn_n->rhs;
 
@@ -1838,7 +1838,7 @@ ret_args(parser_state *p, node *n)
 static void
 assignable(parser_state *p, node *lhs)
 {
-  switch (get_node_type(lhs)) {
+  switch (node_type(lhs)) {
   case NODE_LVAR:
     local_add(p, var_node(lhs)->symbol);
     break;
@@ -1935,7 +1935,7 @@ parsing_heredoc_info(parser_state *p)
   node *nd = p->parsing_heredoc;
   if (nd == NULL) return NULL;
   /* mrb_assert(nd->car->car == NODE_HEREDOC); */
-  if (get_node_type(nd->car) == NODE_HEREDOC) {
+  if (node_type(nd->car) == NODE_HEREDOC) {
     /* Variable-sized heredoc node - return address of embedded info struct */
     struct mrb_ast_heredoc_node *heredoc = (struct mrb_ast_heredoc_node*)nd->car;
     return &heredoc->info;
@@ -1977,7 +1977,7 @@ prohibit_literals(parser_state *p, node *n)
     yyerror(NULL, p, "can't define singleton method for ().");
   }
   else {
-    enum node_type nt = get_node_type(n);
+    enum node_type nt = node_type(n);
     switch (nt) {
     case NODE_INT:
     case NODE_STR:
@@ -8089,14 +8089,14 @@ dump_node(mrb_state *mrb, node *tree, int offset)
   if (!tree) return;
 
   /* Extract line number from variable-sized node header */
-  if (get_node_type(tree) != NODE_LAST) {
+  if (node_type(tree) != NODE_LAST) {
     lineno = ((struct mrb_ast_var_header*)tree)->lineno;
   }
 
   dump_prefix(offset, lineno);
 
   /* All nodes are now variable-sized nodes with headers */
-  nodetype = get_node_type(tree);
+  nodetype = node_type(tree);
 
   switch (nodetype) {
   /* Variable-sized node cases */
@@ -8252,7 +8252,7 @@ dump_node(mrb_state *mrb, node *tree, int offset)
 
   case NODE_MASGN:
   case NODE_MARG:
-    printf("%s:\n", get_node_type(tree) == NODE_MASGN ? "NODE_MASGN" : "NODE_MARG");
+    printf("%s:\n", node_type(tree) == NODE_MASGN ? "NODE_MASGN" : "NODE_MARG");
     /* Handle pre-splat variables */
     if (masgn_node(tree)->pre) {
       dump_prefix(offset+1, lineno);

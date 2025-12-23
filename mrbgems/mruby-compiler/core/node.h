@@ -426,7 +426,7 @@ struct mrb_ast_super_node {
   struct mrb_ast_node *args;         /* Super arguments (can be NULL) */
 };
 
-#define VAR_NODE_TYPE(n) ((enum node_type)(((struct mrb_ast_var_header*)(n))->node_type))
+#define NODE_TYPE(n) ((enum node_type)(((struct mrb_ast_var_header*)(n))->node_type))
 
 /* Type-safe casting macros */
 #define var_header(n) ((struct mrb_ast_var_header*)(n))

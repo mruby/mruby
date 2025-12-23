@@ -162,8 +162,10 @@ static void codegen(codegen_scope *s, node *tree, int val);
 static void raise_error(codegen_scope *s, const char *msg);
 
 /* Forward declarations for helper functions */
-static enum node_type get_node_type(node *n);
 static struct mrb_ast_var_header* get_var_header(node *n);
+
+/* NULL-safe node type accessor macro */
+#define node_type(n) ((n) ? NODE_TYPE(n) : (enum node_type)0)
 
 /*
  * Reports a compilation error encountered during code generation.
@@ -2511,7 +2513,7 @@ lambda_body(codegen_scope *s, node *locals, struct mrb_ast_args *args, node *bod
       node *n = margs;
       pos = 1; /* Start from register 1 (after self). */
       while (n) {
-        if (get_node_type(n->car) == NODE_MARG) { /* If the argument is a mass assignment (e.g., |(a,b)| ). */
+        if (node_type(n->car) == NODE_MARG) { /* If the argument is a mass assignment (e.g., |(a,b)| ). */
           struct mrb_ast_masgn_node *masgn_n = (struct mrb_ast_masgn_node*)n->car;
           /* Use dedicated parameter destructuring logic instead of general codegen_masgn */
           int nn = 0;
@@ -2538,7 +2540,7 @@ lambda_body(codegen_scope *s, node *locals, struct mrb_ast_args *args, node *bod
       node *n = pargs;
       pos = ma+oa+ra+1; /* Calculate starting register for post-mandatory args. */
       while (n) {
-        if (get_node_type(n->car) == NODE_MARG) { /* If argument is a mass assignment. */
+        if (node_type(n->car) == NODE_MARG) { /* If argument is a mass assignment. */
           struct mrb_ast_masgn_node *masgn_n = (struct mrb_ast_masgn_node*)n->car;
           /* Use dedicated parameter destructuring logic instead of general codegen_masgn */
           int nn = 0;
@@ -2634,17 +2636,6 @@ scope_body(codegen_scope *s, node *locals, node *body, int val)
   return s->irep->rlen - 1;
 }
 
-/* Helper functions for node type checking - works with variable-sized nodes */
-static enum node_type
-get_node_type(node *n)
-{
-  if (!n) return (enum node_type)0;
-
-  /* Try to interpret as variable-sized node first */
-  struct mrb_ast_var_header *header = (struct mrb_ast_var_header*)n;
-  return (enum node_type)header->node_type;
-}
-
 static struct mrb_ast_var_header*
 get_var_header(node *n)
 {
@@ -2659,7 +2650,7 @@ get_var_header(node *n)
 static mrb_bool
 is_splat_node(node *n)
 {
-  return (get_node_type(n) == NODE_SPLAT);
+  return (node_type(n) == NODE_SPLAT);
 }
 
 static mrb_bool
@@ -2676,7 +2667,7 @@ nosplat(node *t)
 static mrb_bool
 is_simple_literal(node *n)
 {
-  switch (get_node_type(n)) {
+  switch (node_type(n)) {
   case NODE_INT:
   case NODE_NIL:
   case NODE_TRUE:
@@ -2693,7 +2684,7 @@ all_lvar_pre(codegen_scope *s, node *pre, int *regs, int max)
 {
   int i = 0;
   while (pre && i < max) {
-    if (get_node_type(pre->car) != NODE_LVAR) return FALSE;
+    if (node_type(pre->car) != NODE_LVAR) return FALSE;
     int idx = lv_idx(s, var_node(pre->car)->symbol);
     if (idx <= 0) return FALSE;  /* not a local variable */
     regs[i++] = idx;
@@ -2706,7 +2697,7 @@ all_lvar_pre(codegen_scope *s, node *pre, int *regs, int max)
 static void
 gen_literal_to_reg(codegen_scope *s, node *n, int reg)
 {
-  switch (get_node_type(n)) {
+  switch (node_type(n)) {
   case NODE_INT:
     gen_int(s, reg, int_node(n)->value);
     break;
@@ -2780,7 +2771,7 @@ gen_values(codegen_scope *s, node *t, int val, int limit)
       struct mrb_ast_splat_node *splat = splat_node(t->car);
       node *sv = splat->value;
       if (sv) {
-        enum node_type nt = get_node_type(sv);
+        enum node_type nt = node_type(sv);
         if (nt == NODE_ARRAY) {
           struct mrb_ast_array_node *an = array_node(sv);
           if (an->elements == NULL) {
@@ -3005,7 +2996,7 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
   int idx;
 
   /* Check if this is a variable-sized node first */
-  enum node_type var_type = get_node_type(tree);
+  enum node_type var_type = node_type(tree);
   switch (var_type) {
   case NODE_NIL:
     if (rhs) {
@@ -3274,7 +3265,7 @@ static mrb_bool
 true_always(node *tree)
 {
   /* Check if this is a variable-sized node first */
-  enum node_type var_type = get_node_type(tree);
+  enum node_type var_type = node_type(tree);
   switch (var_type) {
   case NODE_INT:
   case NODE_BIGINT:
@@ -3290,7 +3281,7 @@ static mrb_bool
 false_always(node *tree)
 {
   /* Check variable-sized nodes that are always false */
-  switch (get_node_type(tree)) {
+  switch (node_type(tree)) {
   case NODE_FALSE:
   case NODE_NIL:
     return TRUE;
@@ -3528,7 +3519,7 @@ codegen_call(codegen_scope *s, node *varnode, int val)
     else if (sym == MRB_OPSYM_2(s->mrb, aset)) opt_op = OP_SETIDX;
   }
 
-  if (!call->receiver || (opt_op == OP_NOP && get_node_type(call->receiver) == NODE_SELF)) {
+  if (!call->receiver || (opt_op == OP_NOP && node_type(call->receiver) == NODE_SELF)) {
     noself = 1;
     push();
   }
@@ -3629,7 +3620,7 @@ codegen_call(codegen_scope *s, node *varnode, int val)
 static void
 codegen_call_assign(codegen_scope *s, node *varnode, node *rhs, int sp, int val)
 {
-  enum node_type var_type = VAR_NODE_TYPE(varnode);
+  enum node_type var_type = NODE_TYPE(varnode);
   int noself = 0, safe = 0, skip = 0, top, callsp, n = 0, nk = 0;
   mrb_sym mid = 0;
   node *args = NULL;
@@ -3803,7 +3794,7 @@ codegen_array(codegen_scope *s, node *varnode, int val)
       struct mrb_ast_splat_node *splat = splat_node(element);
       node *sv = splat->value;
       if (sv) {
-        enum node_type nt = get_node_type(sv);
+        enum node_type nt = node_type(sv);
         if (nt == NODE_ARRAY) {
           struct mrb_ast_array_node *an = array_node(sv);
           if (an->elements == NULL) {
@@ -3906,7 +3897,7 @@ codegen_if(codegen_scope *s, node *varnode, int val)
   }
 
   /* Check for nil? optimization */
-  if (get_node_type(condition) == NODE_CALL) {
+  if (node_type(condition) == NODE_CALL) {
     /* Variable-sized NODE_CALL */
     struct mrb_ast_call_node *call_n = (struct mrb_ast_call_node*)condition;
     mrb_sym sym_nil_p = MRB_SYM_Q_2(s->mrb, nil);
@@ -4406,7 +4397,7 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos)
 {
   uint32_t tmp;
 
-  switch (get_node_type(pattern)) {
+  switch (node_type(pattern)) {
   case NODE_PAT_VALUE:
     {
       struct mrb_ast_pat_value_node *pat_val = pat_value_node(pattern);
@@ -4782,7 +4773,7 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos)
         int i = 0;
         for (pair = pat_hash->pairs; pair; pair = pair->cdr, i++) {
           node *key = pair->car->car;
-          if (get_node_type(key) == NODE_SYM) {
+          if (node_type(key) == NODE_SYM) {
             genop_2(s, OP_LOADSYM, cursp(), sym_idx(s, sym_node(key)->symbol));
           }
           else {
@@ -4812,7 +4803,7 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos)
         /* Generate: hash[key] */
         gen_move(s, cursp(), hash_reg, 0);
         push();
-        if (get_node_type(key) == NODE_SYM) {
+        if (node_type(key) == NODE_SYM) {
           genop_2(s, OP_LOADSYM, cursp(), sym_idx(s, sym_node(key)->symbol));
         }
         else {
@@ -5032,7 +5023,7 @@ codegen_masgn(codegen_scope *s, node *varnode, node *rhs, int sp, int val)
   node *t = rhs ? rhs : masgn_n->rhs, *p;
   int rhs_reg = sp;
 
-  if (!val && t && get_node_type(t) == NODE_ARRAY) {
+  if (!val && t && node_type(t) == NODE_ARRAY) {
     struct mrb_ast_array_node *an = array_node(t);
     if (an->elements && nosplat(an->elements)) {
       /* fixed rhs */
@@ -5222,7 +5213,7 @@ codegen_op_asgn(codegen_scope *s, node *varnode, int val)
       ((name[0] == '|' && name[1] == '|') ||
        (name[0] == '&' && name[1] == '&'))) {
     uint32_t pos;
-    enum node_type lhs_type = get_node_type(lhs);
+    enum node_type lhs_type = node_type(lhs);
 
     /* For ||= on class variables and constants, wrap read in exception handling */
     if (name[0] == '|' && (lhs_type == NODE_CVAR || lhs_type == NODE_CONST)) {
@@ -5910,7 +5901,7 @@ codegen_negate(codegen_scope *s, node *varnode, int val)
   node *tree = n->operand;
 
   /* Check if the operand is a variable-sized node */
-  enum node_type vnt = get_node_type(tree);
+  enum node_type vnt = node_type(tree);
   switch (vnt) {
 #ifndef MRB_NO_FLOAT
   case NODE_FLOAT:
@@ -6193,7 +6184,7 @@ is_empty_stmts(node *stmt_node)
 {
   if (!stmt_node) return TRUE;
 
-  if (get_node_type(stmt_node) == NODE_STMTS) {
+  if (node_type(stmt_node) == NODE_STMTS) {
     /* Variable-sized NODE_STMTS with internal cons-list */
     struct mrb_ast_stmts_node *stmts = (struct mrb_ast_stmts_node*)stmt_node;
     return stmts->stmts == NULL;
