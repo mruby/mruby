@@ -50,6 +50,20 @@ str_check_length(mrb_state *mrb, mrb_int len)
 #endif
 }
 
+mrb_bool
+mrb_strcasecmp_p(const char *s1, mrb_int len1, const char *s2, mrb_int len2)
+{
+  if (len1 != len2) return FALSE;
+
+  const char *e1 = s1 + len1;
+  while (s1 < e1) {
+    if (*s1 != *s2 && TOUPPER(*s1) != TOUPPER(*s2)) return FALSE;
+    s1++;
+    s2++;
+  }
+  return TRUE;
+}
+
 static struct RString*
 str_init_normal_capa(mrb_state *mrb, struct RString *s,
                      const char *p, mrb_int len, mrb_int capa)

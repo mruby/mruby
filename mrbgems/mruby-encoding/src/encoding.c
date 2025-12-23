@@ -8,24 +8,6 @@
 #define ENC_BINARY     "BINARY"
 #define ENC_UTF8       "UTF-8"
 
-#define ENC_COMP_P(enc, enc_lit) \
-  casecmp_p(RSTRING_PTR(enc), RSTRING_LEN(enc), enc_lit, sizeof(enc_lit"")-1)
-
-static mrb_bool
-casecmp_p(const char *s1, mrb_int len1, const char *s2, mrb_int len2)
-{
-  if (len1 != len2) return FALSE;
-
-  const char *e1 = s1 + len1;
-  const char *e2 = s2 + len2;
-  while (s1 < e1 && s2 < e2) {
-    if (*s1 != *s2 && TOUPPER(*s1) != TOUPPER(*s2)) return FALSE;
-    s1++;
-    s2++;
-  }
-  return TRUE;
-}
-
 /*
  * call-seq:
  *   string.valid_encoding? -> true or false
@@ -104,11 +86,11 @@ str_force_encoding(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "S", &enc);
 
   struct RString *s = mrb_str_ptr(self);
-  if (ENC_COMP_P(enc, ENC_ASCII_8BIT) ||
-      ENC_COMP_P(enc, ENC_BINARY)) {
+  if (MRB_STR_CASECMP_P(enc, ENC_ASCII_8BIT) ||
+      MRB_STR_CASECMP_P(enc, ENC_BINARY)) {
     s->flags |= MRB_STR_BINARY;
   }
-  else if (ENC_COMP_P(enc, ENC_UTF8)) {
+  else if (MRB_STR_CASECMP_P(enc, ENC_UTF8)) {
     s->flags &= ~MRB_STR_BINARY;
   }
   else {
