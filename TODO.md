@@ -11,6 +11,7 @@
 - configurable memory pools (per-object-type, memory-constrained devices)
 - suspend/resume VM state (serialize/deserialize for power cycling)
 - CMake build support (better IDE integration, standard C tooling)
+- amalgamation (single-file distribution like SQLite)
 
 # Things to do (Things we need to consider)
 
