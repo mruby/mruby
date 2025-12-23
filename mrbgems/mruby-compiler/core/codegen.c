@@ -6384,6 +6384,49 @@ codegen(codegen_scope *s, node *tree, int val)
         break;
       }
 
+      /* Optimize: array literal => array pattern with matching sizes */
+      if (node_type(mp->value) == NODE_ARRAY &&
+          node_type(mp->pattern) == NODE_PAT_ARRAY) {
+        struct mrb_ast_array_node *arr = array_node(mp->value);
+        struct mrb_ast_pat_array_node *pat = pat_array_node(mp->pattern);
+        /* Only optimize for exact match (no rest, no post) */
+        if (pat->rest == 0 && pat->post == NULL) {
+          /* Count array elements and pattern pre elements */
+          int arr_len = 0, pat_len = 0;
+          node *e;
+          for (e = arr->elements; e; e = e->cdr) arr_len++;
+          for (e = pat->pre; e; e = e->cdr) pat_len++;
+          if (arr_len == pat_len) {
+            /* Sizes match - skip deconstruct and size check */
+            int arr_reg = cursp();
+            int i = 0;
+            codegen(s, mp->value, VAL);  /* Generate array */
+            /* Extract elements directly with GETIDX */
+            for (e = pat->pre; e; e = e->cdr, i++) {
+              gen_move(s, cursp(), arr_reg, 0);
+              push();
+              gen_int(s, cursp(), i);
+              push();
+              genop_1(s, OP_GETIDX, cursp() - 2);  /* R[a] = R[a][R[a+1]] */
+              pop();
+              /* Match element pattern (element is now at cursp()-1) */
+              codegen_pattern(s, e->car, cursp() - 1, &fail_pos);
+              pop();  /* clean up array copy slot */
+            }
+            pop();  /* pop array */
+            if (fail_pos != JMPLINK_START) {
+              goto pattern_fail_handling;
+            }
+            /* Pattern always matches - for 'in' pattern, return true */
+            if (!mp->raise_on_fail && val) {
+              genop_1(s, OP_LOADT, cursp());
+              push();
+            }
+            break;
+          }
+        }
+      }
+
       head = cursp();
 
       /* Evaluate the value */
@@ -6394,6 +6437,7 @@ codegen(codegen_scope *s, node *tree, int val)
 
       /* Pattern matched */
       pop();  /* pop the value */
+    pattern_fail_handling:
       if (fail_pos != JMPLINK_START) {
         /* Pattern can fail - generate failure handling code */
         uint32_t match_pos;
