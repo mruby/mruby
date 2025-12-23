@@ -107,7 +107,7 @@ typedef struct {
 
 
 /* Get format specifier info for character c */
-static inline fmt_spec_t get_format_info(unsigned char c) {
+static inline fmt_spec_t get_fmt_spec(unsigned char c) {
   static const fmt_spec_t invalid = {FMT_INVALID, 0, 0};
 
   switch (c) {
@@ -415,7 +415,7 @@ retry:
       mrb_raise(mrb, E_ARGUMENT_ERROR, "malformed format string - unexpected end");
     }
     {
-      fmt_spec_t spec = get_format_info(*p);
+      fmt_spec_t spec = get_fmt_spec(*p);
 
       switch (spec.type) {
         case FMT_INVALID:
