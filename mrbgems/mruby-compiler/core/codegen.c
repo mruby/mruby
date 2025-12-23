@@ -6364,8 +6364,27 @@ codegen(codegen_scope *s, node *tree, int val)
     {
       /* One-line pattern matching: expr in pattern / expr => pattern */
       struct mrb_ast_match_pat_node *mp = match_pat_node(tree);
-      int head = cursp();
+      int head;
       uint32_t fail_pos = JMPLINK_START;
+
+      /* Optimize: for simple variable pattern, generate value directly into variable */
+      if (node_type(mp->pattern) == NODE_PAT_VAR) {
+        struct mrb_ast_pat_var_node *pat_var = pat_var_node(mp->pattern);
+        if (pat_var->name) {
+          int idx = lv_idx(s, pat_var->name);
+          if (idx > 0) {
+            codegen(s, mp->value, VAL);
+            pop();
+            gen_move(s, idx, cursp(), 0);  /* peephole optimizes LOADI+MOVE */
+            break;
+          }
+        }
+        /* Wildcard pattern - just evaluate value for side effects */
+        codegen(s, mp->value, NOVAL);
+        break;
+      }
+
+      head = cursp();
 
       /* Evaluate the value */
       codegen(s, mp->value, VAL);
