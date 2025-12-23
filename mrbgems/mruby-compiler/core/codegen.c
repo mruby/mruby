@@ -4434,9 +4434,23 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos)
 
       /* Try left pattern */
       codegen_pattern(s, pat_alt->left, target, &left_fail);
-      /* Left succeeded - jump to success */
-      tmp = genjmp(s, OP_JMP, success_pos);
-      success_pos = tmp;
+
+      /* Optimize: if left_fail is single JMPNOT immediately before here,
+       * convert to JMPIF and skip generating JMP */
+      if (left_fail != JMPLINK_START &&
+          (int32_t)(left_fail + 2) + (int16_t)PEEK_S(s->iseq + left_fail) == 0 &&
+          left_fail + 2 == s->pc) {
+        /* Convert JMPNOT to JMPIF */
+        s->iseq[left_fail - 2] = OP_JMPIF;
+        /* Link into success_pos chain (currently empty, so offset is 0) */
+        success_pos = left_fail;
+        left_fail = JMPLINK_START;
+      }
+      else {
+        /* Left succeeded - jump to success */
+        tmp = genjmp(s, OP_JMP, success_pos);
+        success_pos = tmp;
+      }
 
       /* Left failed - try right pattern */
       if (left_fail != JMPLINK_START) {
