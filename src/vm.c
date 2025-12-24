@@ -1901,6 +1901,8 @@ RETRY_TRY_BLOCK:
         regs[a] = va;
         break;
       case MRB_TT_STRING:
+        /* optimize only for String class; subclasses may override [] */
+        if (mrb_obj_class(mrb, va) != mrb->string_class) goto getidx_fallback;
         switch (mrb_type(vb)) {
         case MRB_TT_INTEGER:
         case MRB_TT_STRING:
