@@ -4447,16 +4447,26 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos,
       /* Try left pattern */
       codegen_pattern(s, pat_alt->left, target, &left_fail, known_array_len);
 
-      /* Optimize: if left_fail is single JMPNOT immediately before here,
-       * convert to JMPIF and skip generating JMP */
-      if (left_fail != JMPLINK_START &&
-          (int32_t)(left_fail + 2) + (int16_t)PEEK_S(s->iseq + left_fail) == 0 &&
-          left_fail + 2 == s->pc) {
+      /* Optimize JMPNOT+JMP to JMPIF when:
+       * 1. Left pattern is not another NODE_PAT_ALT (avoid recursion issues)
+       * 2. Left pattern generated at least one JMPNOT
+       * 3. The last JMPNOT is immediately before current position
+       * In this case, convert JMPNOT to JMPIF and skip generating JMP */
+      if (node_type(pat_alt->left) != NODE_PAT_ALT &&
+          left_fail != JMPLINK_START && left_fail + 2 == s->pc) {
+        /* Extract the previous link from the JMPNOT chain.
+         * The chain uses relative offsets where the end is marked by
+         * an offset that points to address 0 (i.e., (pos+2)+offset == 0) */
+        int16_t prev_offset = (int16_t)PEEK_S(s->iseq + left_fail);
+        int32_t next_addr = (int32_t)(left_fail + 2) + prev_offset;
+        uint32_t prev_link = (next_addr == 0) ? JMPLINK_START : (uint32_t)next_addr;
         /* Convert JMPNOT to JMPIF */
         s->iseq[left_fail - 2] = OP_JMPIF;
-        /* Link into success_pos chain (currently empty, so offset is 0) */
+        /* Clear offset to mark end of success chain */
+        emit_S(s, left_fail, 0);
         success_pos = left_fail;
-        left_fail = JMPLINK_START;
+        /* Continue with remaining fail chain */
+        left_fail = prev_link;
       }
       else {
         /* Left succeeded - jump to success */
