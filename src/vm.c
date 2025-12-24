@@ -1892,6 +1892,8 @@ RETRY_TRY_BLOCK:
         }
         break;
       case MRB_TT_HASH:
+        /* optimize only for Hash class; subclasses may override [] */
+        if (mrb_obj_class(mrb, va) != mrb->hash_class) goto getidx_fallback;
         va = mrb_hash_get(mrb, va, vb);
         ci = mrb->c->ci;
         regs[a] = va;
