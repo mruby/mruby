@@ -1880,8 +1880,8 @@ RETRY_TRY_BLOCK:
       mrb_value va = regs[a], vb = regs[a+1];
       switch (mrb_type(va)) {
       case MRB_TT_ARRAY:
-        /* optimize only for Array class; subclasses may override [] */
-        if (mrb_obj_class(mrb, va) != mrb->array_class) goto getidx_fallback;
+        /* optimize only for Array class; subclasses/singleton may override [] */
+        if (mrb_obj_ptr(va)->c != mrb->array_class) goto getidx_fallback;
         if (!mrb_integer_p(vb)) goto getidx_fallback;
         else {
           mrb_int idx = mrb_integer(vb);
@@ -1894,15 +1894,15 @@ RETRY_TRY_BLOCK:
         }
         break;
       case MRB_TT_HASH:
-        /* optimize only for Hash class; subclasses may override [] */
-        if (mrb_obj_class(mrb, va) != mrb->hash_class) goto getidx_fallback;
+        /* optimize only for Hash class; subclasses/singleton may override [] */
+        if (mrb_obj_ptr(va)->c != mrb->hash_class) goto getidx_fallback;
         va = mrb_hash_get(mrb, va, vb);
         ci = mrb->c->ci;
         regs[a] = va;
         break;
       case MRB_TT_STRING:
-        /* optimize only for String class; subclasses may override [] */
-        if (mrb_obj_class(mrb, va) != mrb->string_class) goto getidx_fallback;
+        /* optimize only for String class; subclasses/singleton may override [] */
+        if (mrb_obj_ptr(va)->c != mrb->string_class) goto getidx_fallback;
         switch (mrb_type(vb)) {
         case MRB_TT_INTEGER:
         case MRB_TT_STRING:
@@ -1926,16 +1926,16 @@ RETRY_TRY_BLOCK:
       mrb_value va = regs[a], vb = regs[a+1], vc = regs[a+2];
       switch (mrb_type(va)) {
       case MRB_TT_ARRAY:
-        /* optimize only for Array class; subclasses may override []= */
-        if (mrb_obj_class(mrb, va) != mrb->array_class) goto setidx_fallback;
+        /* optimize only for Array class; subclasses/singleton may override []= */
+        if (mrb_obj_ptr(va)->c != mrb->array_class) goto setidx_fallback;
         if (!mrb_integer_p(vb)) goto setidx_fallback;
         mrb_ary_set(mrb, va, mrb_integer(vb), vc);
         ci = mrb->c->ci;
         regs[a] = vc;
         NEXT;
       case MRB_TT_HASH:
-        /* optimize only for Hash class; subclasses may override []= */
-        if (mrb_obj_class(mrb, va) != mrb->hash_class) goto setidx_fallback;
+        /* optimize only for Hash class; subclasses/singleton may override []= */
+        if (mrb_obj_ptr(va)->c != mrb->hash_class) goto setidx_fallback;
         mrb_hash_set(mrb, va, vb, vc);
         ci = mrb->c->ci;
         regs[a] = vc;
