@@ -1923,10 +1923,30 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_SETIDX, B) {
-      c = 2;
-      mid = MRB_OPSYM(aset);
-      SET_NIL_VALUE(regs[a+3]);
-      goto L_SENDB_SYM;
+      mrb_value va = regs[a], vb = regs[a+1], vc = regs[a+2];
+      switch (mrb_type(va)) {
+      case MRB_TT_ARRAY:
+        /* optimize only for Array class; subclasses may override []= */
+        if (mrb_obj_class(mrb, va) != mrb->array_class) goto setidx_fallback;
+        if (!mrb_integer_p(vb)) goto setidx_fallback;
+        mrb_ary_set(mrb, va, mrb_integer(vb), vc);
+        ci = mrb->c->ci;
+        regs[a] = vc;
+        NEXT;
+      case MRB_TT_HASH:
+        /* optimize only for Hash class; subclasses may override []= */
+        if (mrb_obj_class(mrb, va) != mrb->hash_class) goto setidx_fallback;
+        mrb_hash_set(mrb, va, vb, vc);
+        ci = mrb->c->ci;
+        regs[a] = vc;
+        NEXT;
+      default:
+      setidx_fallback:
+        c = 2;
+        mid = MRB_OPSYM(aset);
+        SET_NIL_VALUE(regs[a+3]);
+        goto L_SENDB_SYM;
+      }
     }
 
     CASE(OP_GETCONST, BB) {
