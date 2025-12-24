@@ -136,3 +136,28 @@ See also `OP_EXT1`, `OP_EXT2` and `OP_EXT3`.
 | 103 | `OP_EXT2`        | `-`          | `make 2nd operand (b) 16bit`
 | 104 | `OP_EXT3`        | `-`          | `make 1st and 2nd operands 16bit`
 | 105 | `OP_STOP`        | `-`          | `stop VM`
+
+## Notes
+
+### OP_GETIDX / OP_SETIDX Optimization
+
+These instructions optimize `[]` and `[]=` access for Array, Hash, and String.
+
+**OP_GETIDX** uses direct function calls:
+
+- `Array`: `mrb_ary_entry()` (integer index only)
+- `Hash`: `mrb_hash_get()`
+- `String`: `mrb_str_aref()` (integer/string/range index)
+
+**OP_SETIDX** uses direct function calls:
+
+- `Array`: `mrb_ary_set()` (integer index only)
+- `Hash`: `mrb_hash_set()`
+
+**Fallback to method dispatch** occurs when:
+
+- Object is a subclass (e.g., `MyArray < Array`)
+- Object has a singleton class (singleton methods defined)
+- Index type is not supported (e.g., non-integer for Array)
+
+This allows subclasses to override `[]`/`[]=` while base classes remain optimized.
