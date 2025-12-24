@@ -1880,6 +1880,8 @@ RETRY_TRY_BLOCK:
       mrb_value va = regs[a], vb = regs[a+1];
       switch (mrb_type(va)) {
       case MRB_TT_ARRAY:
+        /* optimize only for Array class; subclasses may override [] */
+        if (mrb_obj_class(mrb, va) != mrb->array_class) goto getidx_fallback;
         if (!mrb_integer_p(vb)) goto getidx_fallback;
         else {
           mrb_int idx = mrb_integer(vb);
