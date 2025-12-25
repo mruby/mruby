@@ -726,4 +726,59 @@ class Array
 
     self
   end
+
+  ##
+  # call-seq:
+  #    ary.find(ifnone = nil) { |elem| block } -> obj or nil
+  #    ary.find(ifnone = nil)                  -> Enumerator
+  #
+  # Returns the first element for which the block returns a true value.
+  # If no element matches and +ifnone+ is given, calls +ifnone+ and
+  # returns its result. Otherwise returns +nil+.
+  #
+  # This is an optimized version of Enumerable#find for arrays.
+  #
+  #    [1, 2, 3, 4].find { |x| x > 2 }        #=> 3
+  #    [1, 2, 3, 4].find { |x| x > 10 }       #=> nil
+  #    [1, 2, 3, 4].find(->{0}) { |x| x > 10 } #=> 0
+  #
+  def find(ifnone=nil, &block)
+    return to_enum(:find, ifnone) unless block
+
+    idx = 0
+    len = self.size
+    while idx < len
+      elem = self[idx]
+      return elem if block.call(elem)
+      idx += 1
+    end
+    ifnone&.call
+  end
+
+  ##
+  # call-seq:
+  #    ary.rfind(ifnone = nil) { |elem| block } -> obj or nil
+  #    ary.rfind(ifnone = nil)                  -> Enumerator
+  #
+  # Returns the last element for which the block returns a true value.
+  # Searches from the end of the array to the beginning.
+  # If no element matches and +ifnone+ is given, calls +ifnone+ and
+  # returns its result. Otherwise returns +nil+.
+  #
+  #    [1, 2, 3, 4, 3].rfind { |x| x == 3 }     #=> 3 (the last one)
+  #    [1, 2, 3, 4].rfind { |x| x > 2 }         #=> 4
+  #    [1, 2, 3, 4].rfind { |x| x > 10 }        #=> nil
+  #    [1, 2, 3, 4].rfind(->{0}) { |x| x > 10 } #=> 0
+  #
+  def rfind(ifnone=nil, &block)
+    return to_enum(:rfind, ifnone) unless block
+
+    idx = self.size - 1
+    while idx >= 0
+      elem = self[idx]
+      return elem if block.call(elem)
+      idx -= 1
+    end
+    ifnone&.call
+  end
 end

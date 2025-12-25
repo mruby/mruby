@@ -782,3 +782,68 @@ assert("Array#deconstruct") do
   assert_equal([[1, 2], [3, 4], [5]], result_nested)
   assert_true(result_nested.equal?(d))
 end
+
+assert("Array#find") do
+  # Basic find
+  assert_equal 3, [1, 2, 3, 4, 5].find { |x| x > 2 }
+  assert_equal 1, [1, 2, 3, 4, 5].find { |x| x < 2 }
+
+  # No match returns nil
+  assert_nil [1, 2, 3].find { |x| x > 10 }
+
+  # Empty array
+  assert_nil [].find { |x| x > 0 }
+
+  # With ifnone callable
+  assert_equal 0, [1, 2, 3].find(->{ 0 }) { |x| x > 10 }
+  assert_equal "default", [1, 2, 3].find(->{ "default" }) { |x| x > 10 }
+
+  # ifnone not called when match found
+  called = false
+  [1, 2, 3].find(->{ called = true; 0 }) { |x| x == 2 }
+  assert_false called
+
+  # Returns first match
+  assert_equal 2, [1, 2, 2, 3].find { |x| x == 2 }
+
+  # Works with different types
+  assert_equal "b", ["a", "b", "c"].find { |x| x == "b" }
+  assert_equal :bar, [:foo, :bar, :baz].find { |x| x == :bar }
+end
+
+assert("Array#rfind") do
+  # Basic rfind - finds from end (first match scanning backwards)
+  assert_equal 5, [1, 2, 3, 4, 5].rfind { |x| x > 2 }  # 5 is first match from end
+  assert_equal 5, [1, 2, 3, 4, 5].rfind { |x| x > 0 }  # 5 is first match from end
+
+  # Returns last occurrence when duplicates exist
+  a = [1, 2, 3, 2, 1]
+  assert_equal 2, a.rfind { |x| x == 2 }  # finds the 2 at index 3
+
+  # No match returns nil
+  assert_nil [1, 2, 3].rfind { |x| x > 10 }
+
+  # Empty array
+  assert_nil [].rfind { |x| x > 0 }
+
+  # With ifnone callable
+  assert_equal 0, [1, 2, 3].rfind(->{ 0 }) { |x| x > 10 }
+  assert_equal "default", [1, 2, 3].rfind(->{ "default" }) { |x| x > 10 }
+
+  # ifnone not called when match found
+  called = false
+  [1, 2, 3].rfind(->{ called = true; 0 }) { |x| x == 2 }
+  assert_false called
+
+  # Compare find vs rfind - same result for unique match
+  arr = [1, 2, 3, 4, 3, 2, 1]
+  assert_equal 3, arr.find { |x| x == 3 }   # first 3 (index 2)
+  assert_equal 3, arr.rfind { |x| x == 3 }  # last 3 (index 4), same value
+
+  # Different results with inequality - rfind scans from end
+  assert_equal 3, arr.find { |x| x >= 3 }   # first >= 3 is 3 (at index 2)
+  assert_equal 3, arr.rfind { |x| x >= 3 }  # scanning from end: 1,2,3 - 3 matches first
+
+  # Works with different types
+  assert_equal "b", ["a", "b", "c", "b", "a"].rfind { |x| x > "a" }  # scanning from end: a,b - b matches
+end
