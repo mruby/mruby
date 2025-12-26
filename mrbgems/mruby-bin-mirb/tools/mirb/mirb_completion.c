@@ -22,6 +22,10 @@
 /* Windows compatibility */
 #ifdef _MSC_VER
 #define strdup _strdup
+#endif
+
+/* strndup is not available on Windows (MSVC and MinGW) */
+#ifdef _WIN32
 static char*
 strndup(const char *s, size_t n)
 {
