@@ -676,7 +676,8 @@ refresh_display(mirb_editor *ed)
 
   /* Position column on cursor line (calculate actual prompt length) */
   size_t prompt_len = calc_prompt_len(ed, ed->buf.cursor_line);
-  mirb_term_cursor_col((int)(prompt_len + ed->buf.cursor_col + 1));
+  size_t display_col = mirb_buffer_cursor_display_col(&ed->buf);
+  mirb_term_cursor_col((int)(prompt_len + display_col + 1));
 
   /* Update tracking */
   ed->prev_line_count = ed->buf.line_count;
@@ -942,6 +943,13 @@ handle_key(mirb_editor *ed, int key, mirb_edit_result *result)
         perform_dedent(&ed->buf);
       }
     }
+#ifdef MRB_UTF8_STRING
+    /* Handle UTF-8 multibyte characters (bytes >= 0x80) */
+    else if (key >= 128 && key <= 255) {
+      mirb_history_browse_stop(&ed->hist);
+      mirb_buffer_insert_char(&ed->buf, (char)key);
+    }
+#endif
     return TRUE;
   }
 }

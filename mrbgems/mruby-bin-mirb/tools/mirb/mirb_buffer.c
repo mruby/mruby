@@ -10,6 +10,136 @@
 #include <string.h>
 #include <ctype.h>
 
+#ifdef MRB_UTF8_STRING
+/*
+ * UTF-8 helper functions
+ * These are only compiled when MRB_UTF8_STRING is defined
+ */
+
+/* Check if byte is a UTF-8 lead byte (not a continuation byte) */
+static mrb_bool
+utf8_islead(unsigned char c)
+{
+  return (c & 0xC0) != 0x80;
+}
+
+/* UTF-8 character length table indexed by (first_byte >> 3) */
+static const char utf8_len_table[] = {
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,  /* 0x00-0x7F: ASCII */
+  0, 0, 0, 0, 0, 0, 0, 0,                          /* 0x80-0xBF: continuation (invalid start) */
+  2, 2, 2, 2,                                      /* 0xC0-0xDF: 2-byte sequences */
+  3, 3,                                            /* 0xE0-0xEF: 3-byte sequences */
+  4,                                               /* 0xF0-0xF7: 4-byte sequences */
+  0                                                /* 0xF8-0xFF: invalid */
+};
+
+/*
+ * Get byte length of UTF-8 character at position
+ * Returns 1 for invalid sequences (safe fallback)
+ */
+static size_t
+utf8_char_len(const char *p, const char *end)
+{
+  size_t len;
+  if (p >= end) return 0;
+
+  len = (size_t)utf8_len_table[(unsigned char)p[0] >> 3];
+  if (len == 0 || len > (size_t)(end - p)) return 1;
+
+  /* Validate continuation bytes */
+  switch (len) {
+  case 4:
+    if (!utf8_islead((unsigned char)p[3])) break;  /* continuation expected */
+    return 1;
+  case 3:
+    if (!utf8_islead((unsigned char)p[2])) break;
+    return 1;
+  case 2:
+    if (!utf8_islead((unsigned char)p[1])) break;
+    return 1;
+  }
+  return len;
+}
+
+/*
+ * Find start of previous UTF-8 character
+ * Returns byte offset from start of string to the previous character
+ * If at position 0, returns 0
+ */
+static size_t
+utf8_prev_char_start(const char *str, size_t pos)
+{
+  size_t i;
+  if (pos == 0) return 0;
+
+  /* Scan back to find a lead byte (max 4 bytes back) */
+  for (i = 1; i <= 4 && i <= pos; i++) {
+    if (utf8_islead((unsigned char)str[pos - i])) {
+      return pos - i;
+    }
+  }
+  /* No lead byte found, assume single byte */
+  return pos - 1;
+}
+
+/*
+ * Calculate display width for a UTF-8 character
+ * Returns 2 for CJK/wide characters, 1 for others
+ *
+ * This is a simplified version - proper implementation would use wcwidth()
+ * We detect East Asian Wide characters by their code point ranges:
+ * - CJK Unified Ideographs: U+4E00-U+9FFF (3-byte UTF-8: E4-E9)
+ * - Hiragana/Katakana: U+3040-U+30FF (3-byte UTF-8: E3 81-83)
+ * - Full-width forms: U+FF00-U+FFEF (3-byte UTF-8: EF BC-BF)
+ */
+static int
+utf8_char_width(const char *p, const char *end)
+{
+  unsigned char c = (unsigned char)p[0];
+
+  if (c < 0x80) return 1;  /* ASCII */
+  if (c < 0xE0) return 1;  /* 2-byte (Latin extended, etc.) */
+
+  /* 3-byte sequences - check for wide characters */
+  if (c >= 0xE3 && c <= 0xE9 && (end - p) >= 3) {
+    /* CJK and Japanese ranges are typically double-width */
+    return 2;
+  }
+  if (c == 0xEF && (end - p) >= 3) {
+    unsigned char c2 = (unsigned char)p[1];
+    if (c2 >= 0xBC && c2 <= 0xBF) {
+      /* Full-width ASCII and symbols */
+      return 2;
+    }
+  }
+
+  /* 4-byte sequences (emoji, etc.) - typically double-width */
+  if (c >= 0xF0) return 2;
+
+  return 1;
+}
+
+/*
+ * Calculate display column from byte position
+ * Sums up the display width of all characters before the byte position
+ */
+static size_t
+utf8_display_col(const char *str, size_t byte_pos)
+{
+  size_t col = 0;
+  const char *p = str;
+  const char *end = str + byte_pos;
+
+  while (p < end) {
+    size_t char_len = utf8_char_len(p, str + byte_pos + 4);  /* +4 for safety */
+    if (char_len == 0) break;
+    col += (size_t)utf8_char_width(p, end);
+    p += char_len;
+  }
+  return col;
+}
+#endif /* MRB_UTF8_STRING */
+
 /*
  * Helper: Initialize a single line
  */
@@ -76,6 +206,7 @@ line_insert_at(mirb_line *line, size_t pos, char c)
 /*
  * Helper: Delete character at position in line
  */
+#ifndef MRB_UTF8_STRING
 static mrb_bool
 line_delete_at(mirb_line *line, size_t pos)
 {
@@ -85,6 +216,23 @@ line_delete_at(mirb_line *line, size_t pos)
   line->len--;
   return TRUE;
 }
+#endif
+
+#ifdef MRB_UTF8_STRING
+/*
+ * Helper: Delete N bytes at position in line (for UTF-8 multibyte chars)
+ */
+static mrb_bool
+line_delete_bytes_at(mirb_line *line, size_t pos, size_t count)
+{
+  if (pos >= line->len || count == 0) return FALSE;
+  if (pos + count > line->len) count = line->len - pos;
+
+  memmove(line->data + pos, line->data + pos + count, line->len - pos - count + 1);
+  line->len -= count;
+  return TRUE;
+}
+#endif
 
 /*
  * Helper: Set line content
@@ -336,11 +484,22 @@ mirb_buffer_delete_back(mirb_buffer *buf)
   if (buf->cursor_col > 0) {
     /* Delete within line */
     mirb_line *line = &buf->lines[buf->cursor_line];
+#ifdef MRB_UTF8_STRING
+    /* Find start of previous UTF-8 character and delete entire character */
+    size_t prev_pos = utf8_prev_char_start(line->data, buf->cursor_col);
+    size_t char_len = buf->cursor_col - prev_pos;
+    if (line_delete_bytes_at(line, prev_pos, char_len)) {
+      buf->cursor_col = prev_pos;
+      buf->modified = TRUE;
+      return TRUE;
+    }
+#else
     if (line_delete_at(line, buf->cursor_col - 1)) {
       buf->cursor_col--;
       buf->modified = TRUE;
       return TRUE;
     }
+#endif
   }
   else if (buf->cursor_line > 0) {
     /* Join with previous line */
@@ -378,10 +537,20 @@ mirb_buffer_delete_forward(mirb_buffer *buf)
 
   if (buf->cursor_col < line->len) {
     /* Delete within line */
+#ifdef MRB_UTF8_STRING
+    /* Delete entire UTF-8 character at cursor */
+    size_t char_len = utf8_char_len(line->data + buf->cursor_col,
+                                    line->data + line->len);
+    if (line_delete_bytes_at(line, buf->cursor_col, char_len)) {
+      buf->modified = TRUE;
+      return TRUE;
+    }
+#else
     if (line_delete_at(line, buf->cursor_col)) {
       buf->modified = TRUE;
       return TRUE;
     }
+#endif
   }
   else if (buf->cursor_line < buf->line_count - 1) {
     /* Join with next line */
@@ -497,7 +666,13 @@ mrb_bool
 mirb_buffer_cursor_left(mirb_buffer *buf)
 {
   if (buf->cursor_col > 0) {
+#ifdef MRB_UTF8_STRING
+    /* Move back to start of previous UTF-8 character */
+    mirb_line *line = &buf->lines[buf->cursor_line];
+    buf->cursor_col = utf8_prev_char_start(line->data, buf->cursor_col);
+#else
     buf->cursor_col--;
+#endif
     return TRUE;
   }
   else if (buf->cursor_line > 0) {
@@ -517,7 +692,14 @@ mirb_buffer_cursor_right(mirb_buffer *buf)
   mirb_line *line = &buf->lines[buf->cursor_line];
 
   if (buf->cursor_col < line->len) {
+#ifdef MRB_UTF8_STRING
+    /* Skip entire UTF-8 character */
+    size_t char_len = utf8_char_len(line->data + buf->cursor_col,
+                                    line->data + line->len);
+    buf->cursor_col += char_len;
+#else
     buf->cursor_col++;
+#endif
     return TRUE;
   }
   else if (buf->cursor_line < buf->line_count - 1) {
@@ -834,4 +1016,20 @@ mirb_buffer_line_len(mirb_buffer *buf, size_t index)
 {
   if (index >= buf->line_count) return 0;
   return buf->lines[index].len;
+}
+
+/*
+ * Get cursor display column (visual column for terminal positioning)
+ * When MRB_UTF8_STRING is defined, calculates display width considering
+ * multibyte characters. Otherwise, returns the byte position directly.
+ */
+size_t
+mirb_buffer_cursor_display_col(mirb_buffer *buf)
+{
+#ifdef MRB_UTF8_STRING
+  mirb_line *line = &buf->lines[buf->cursor_line];
+  return utf8_display_col(line->data, buf->cursor_col);
+#else
+  return buf->cursor_col;
+#endif
 }

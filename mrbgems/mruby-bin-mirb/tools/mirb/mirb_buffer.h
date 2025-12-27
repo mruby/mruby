@@ -176,4 +176,10 @@ const char *mirb_buffer_line_at(mirb_buffer *buf, size_t index);
  */
 size_t mirb_buffer_line_len(mirb_buffer *buf, size_t index);
 
+/*
+ * Get cursor display column (visual column for terminal positioning)
+ * Handles UTF-8 display width when MRB_UTF8_STRING is defined
+ */
+size_t mirb_buffer_cursor_display_col(mirb_buffer *buf);
+
 #endif /* MIRB_BUFFER_H */
