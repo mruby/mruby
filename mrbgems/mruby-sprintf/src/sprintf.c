@@ -384,7 +384,17 @@ mrb_str_format(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value fm
   p = RSTRING_PTR(fmt);
   end = p + RSTRING_LEN(fmt);
   blen = 0;
-  bsiz = 120;
+  /* Estimate initial buffer size to reduce reallocations:
+   * - format string length (for literal text)
+   * - base headroom (120 bytes)
+   * - per-specifier headroom (24 bytes each)
+   * - capped at 4096 to prevent over-allocation
+   */
+  bsiz = (end - p) + 120;
+  for (const char *scan = p; scan < end; scan++) {
+    if (*scan == '%') bsiz += 24;
+  }
+  if (bsiz > 4096) bsiz = 4096;
   result = mrb_str_new_capa(mrb, bsiz);
   buf = RSTRING_PTR(result);
   memset(buf, 0, bsiz);
