@@ -11,6 +11,7 @@
 #include "mirb_term.h"
 #include "mirb_buffer.h"
 #include "mirb_history.h"
+#include "mirb_highlight.h"
 
 /*
  * Editor result codes
@@ -72,6 +73,8 @@ typedef struct mirb_editor {
 
   mrb_bool initialized;       /* editor is initialized */
   mrb_bool use_color;         /* use colored output */
+
+  mirb_highlighter highlight; /* syntax highlighting state */
 } mirb_editor;
 
 /*

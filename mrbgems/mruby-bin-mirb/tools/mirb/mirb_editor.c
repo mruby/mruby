@@ -340,6 +340,7 @@ mirb_editor_init(mirb_editor *ed)
   ed->prompt_cont_fmt = NULL;
   ed->line_num_base = 1;
   ed->use_color = FALSE;
+  mirb_highlight_init(&ed->highlight, FALSE);
   ed->initialized = TRUE;
 
   return TRUE;
@@ -573,6 +574,7 @@ void
 mirb_editor_set_color(mirb_editor *ed, mrb_bool enable)
 {
   ed->use_color = enable;
+  mirb_highlight_init(&ed->highlight, enable);
 }
 
 /*
@@ -657,10 +659,13 @@ refresh_display(mirb_editor *ed)
   mirb_term_cursor_col(1);
   mirb_term_clear_below();
 
+  /* Reset highlight state for fresh scan */
+  mirb_highlight_reset(&ed->highlight);
+
   /* Redraw all lines */
   for (size_t i = 0; i < ed->buf.line_count; i++) {
     print_prompt(ed, i);
-    printf("%s", mirb_buffer_line_at(&ed->buf, i));
+    mirb_highlight_print_line(&ed->highlight, mirb_buffer_line_at(&ed->buf, i));
 
     if (i < ed->buf.line_count - 1) {
       printf("\r\n");
