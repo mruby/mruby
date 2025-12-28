@@ -54,7 +54,7 @@ to both the Makefile and the Rakefile. Run them with:
 - `make checkupdate` or `rake checkupdate`
 
 To configure `pre-commit` you can modify the config file [.pre-commit-config.yaml](.pre-commit-config.yaml).
-We use [GitHub Actions](.github/workflows/lint.yml) to run `pre-commit` on every pull request.
+We use [GitHub Actions](.github/workflows/pre-commit.yml) to run `pre-commit` on every pull request.
 
 ### pre-commit quick links
 
