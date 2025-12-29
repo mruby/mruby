@@ -6603,13 +6603,14 @@ codegen(codegen_scope *s, node *tree, int val)
       /* Generate pattern matching code */
       codegen_pattern(s, mp->pattern, head, &fail_pos, known_array_len);
 
-      /* Pattern matched */
-      pop();  /* pop the value */
     pattern_fail_handling:
       if (fail_pos != JMPLINK_START) {
         /* Pattern can fail - generate failure handling code */
         uint32_t match_pos;
+        int saved_sp = cursp();  /* save stack pointer before branching */
 
+        /* Success path: pattern matched */
+        pop();  /* pop the value */
         if (val) {
           /* 'in' pattern returns true, '=>' pattern returns nil */
           if (mp->raise_on_fail) {
@@ -6636,7 +6637,8 @@ codegen(codegen_scope *s, node *tree, int val)
           dispatch_linked(s, fail_pos);
         }
 
-        /* Pattern failed */
+        /* Failure path: restore stack pointer (value still on stack at runtime) */
+        s->sp = saved_sp;
         pop();  /* pop the value */
         if (mp->raise_on_fail) {
           /* expr => pattern: raise NoMatchingPatternError */
@@ -6667,7 +6669,8 @@ codegen(codegen_scope *s, node *tree, int val)
         dispatch(s, match_pos);
       }
       else {
-        /* Pattern always matches - push result if needed */
+        /* Pattern always matches - pop value and push result if needed */
+        pop();  /* pop the value */
         if (val) {
           if (mp->raise_on_fail) {
             gen_load_nil(s, 1);  /* '=>' pattern returns nil */
