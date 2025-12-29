@@ -5170,22 +5170,31 @@ codegen_masgn(codegen_scope *s, node *varnode, node *rhs, int sp, int val)
         int regs[16];  /* support up to 16 variables */
         node *lhs = masgn_n->pre;
         node *rhs_elem = t;
-        int count = 0;
+        int rhs_count = 0, lhs_count = 0;
         mrb_bool all_simple = TRUE;
 
+        /* Count lhs variables */
+        while (lhs && lhs_count < 16) {
+          lhs_count++;
+          lhs = lhs->cdr;
+        }
+
         /* Count and check rhs are all simple literals */
-        while (rhs_elem && count < 16) {
+        while (rhs_elem && rhs_count < 16) {
           if (!is_simple_literal(rhs_elem->car)) {
             all_simple = FALSE;
             break;
           }
-          count++;
+          rhs_count++;
           rhs_elem = rhs_elem->cdr;
         }
-        if (all_simple && count > 0 && all_lvar_pre(s, lhs, regs, count)) {
+        /* Only apply when lhs and rhs counts match exactly */
+        lhs = masgn_n->pre;
+        if (all_simple && lhs_count > 0 && lhs_count == rhs_count &&
+            all_lvar_pre(s, lhs, regs, lhs_count)) {
           /* Direct generation: generate literals into target registers */
           rhs_elem = t;
-          for (int i = 0; i < count; i++) {
+          for (int i = 0; i < lhs_count; i++) {
             gen_literal_to_reg(s, rhs_elem->car, regs[i]);
             rhs_elem = rhs_elem->cdr;
           }
