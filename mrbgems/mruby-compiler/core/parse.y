@@ -2153,7 +2153,7 @@ prohibit_literals(parser_state *p, node *n)
 %nonassoc tLOWEST
 %nonassoc tLBRACE_ARG
 
-%nonassoc  modifier_if modifier_unless modifier_while modifier_until
+%nonassoc  modifier_if modifier_unless modifier_while modifier_until keyword_in
 %left  keyword_or keyword_and
 %right keyword_not
 %right '=' tOP_ASGN
@@ -2447,7 +2447,7 @@ expr            : command_call
                       p->in_kwarg--;
                       $$ = new_match_pat(p, $1, $4, FALSE);
                     }
-                | arg
+                | arg   %prec tLOWEST
                 ;
 
 defn_head       : keyword_def fname
