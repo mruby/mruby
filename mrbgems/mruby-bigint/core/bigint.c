@@ -1650,7 +1650,10 @@ mpz_mod_limb(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mp_limb m)
     /* Single limb case - simple modulo */
     mp_limb result = x->p[0] % m;
     mpz_set_int(ctx, r, result);
-    r->sn = x->sn;
+    if (result == 0)
+      r->sn = 0;
+    else
+      r->sn = x->sn;
     return;
   }
 
@@ -2071,7 +2074,10 @@ mpz_mul_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
     else {
       mpz_move(ctx, z, &y);
     }
-    z->sn = sn;
+    if (uzero_p(z))
+      z->sn = 0;
+    else
+      z->sn = sn;
   }
 }
 
