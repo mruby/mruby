@@ -6520,11 +6520,22 @@ codegen(codegen_scope *s, node *tree, int val)
             codegen(s, mp->value, VAL);
             pop();
             gen_move(s, idx, cursp(), 0);  /* peephole optimizes LOADI+MOVE */
-            break;
+            goto match_pat_push_result;
           }
         }
         /* Wildcard pattern - just evaluate value for side effects */
         codegen(s, mp->value, NOVAL);
+      match_pat_push_result:
+        if (val) {
+          /* 'in' pattern returns true, '=>' pattern returns nil */
+          if (mp->raise_on_fail) {
+            gen_load_nil(s, 1);
+          }
+          else {
+            genop_1(s, OP_LOADT, cursp());
+            push();
+          }
+        }
         break;
       }
 
@@ -6561,10 +6572,15 @@ codegen(codegen_scope *s, node *tree, int val)
             if (fail_pos != JMPLINK_START) {
               goto pattern_fail_handling;
             }
-            /* Pattern always matches - for 'in' pattern, return true */
-            if (!mp->raise_on_fail && val) {
-              genop_1(s, OP_LOADT, cursp());
-              push();
+            /* Pattern always matches - push result if needed */
+            if (val) {
+              if (mp->raise_on_fail) {
+                gen_load_nil(s, 1);  /* '=>' pattern returns nil */
+              }
+              else {
+                genop_1(s, OP_LOADT, cursp());  /* 'in' pattern returns true */
+                push();
+              }
             }
             break;
           }
@@ -6595,8 +6611,14 @@ codegen(codegen_scope *s, node *tree, int val)
         uint32_t match_pos;
 
         if (val) {
-          genop_1(s, OP_LOADT, cursp());
-          push();
+          /* 'in' pattern returns true, '=>' pattern returns nil */
+          if (mp->raise_on_fail) {
+            gen_load_nil(s, 1);
+          }
+          else {
+            genop_1(s, OP_LOADT, cursp());
+            push();
+          }
         }
 
         /* Optimize: single JMPNOT can be inverted to JMPIF, eliminating JMP */
@@ -6643,6 +6665,18 @@ codegen(codegen_scope *s, node *tree, int val)
 
         /* End of pattern matching */
         dispatch(s, match_pos);
+      }
+      else {
+        /* Pattern always matches - push result if needed */
+        if (val) {
+          if (mp->raise_on_fail) {
+            gen_load_nil(s, 1);  /* '=>' pattern returns nil */
+          }
+          else {
+            genop_1(s, OP_LOADT, cursp());  /* 'in' pattern returns true */
+            push();
+          }
+        }
       }
     }
     break;
