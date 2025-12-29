@@ -131,6 +131,21 @@ rand_i(rand_state *t, mrb_int max)
 {
   /* return uniform integer in [0, max) without modulo bias */
   if (max <= 0) return 0;
+
+#ifdef MRB_INT64
+  /* For large ranges that exceed 32-bit, use 64-bit random */
+  if (max > (mrb_int)UINT32_MAX) {
+    uint64_t umax = (uint64_t)max;
+    uint64_t threshold = (uint64_t)(-(int64_t)umax) % umax;
+    uint64_t r;
+    do {
+      /* combine two 32-bit randoms into one 64-bit */
+      r = ((uint64_t)rand_uint32(t) << 32) | rand_uint32(t);
+    } while (r < threshold);
+    return (mrb_int)(r % umax);
+  }
+#endif
+
   uint32_t threshold = (uint32_t)(-max) % (uint32_t)max; /* power-of-two fast path => 0 */
   uint32_t r;
   do {
