@@ -17,23 +17,23 @@ mrdb [switches] programfile
 
 ## Debugger Commands
 
-| Command            | Abbreviation | Description                  |
-| ------------------ | ------------ | ---------------------------- |
-| `break`            | `b`          | Set a breakpoint             |
-| `continue`         | `c`          | Continue execution           |
-| `delete`           | `d`          | Delete breakpoints           |
-| `disable`          | `dis`        | Disable breakpoints          |
-| `enable`           | `en`         | Enable breakpoints           |
-| `eval`             | `ev`         | Evaluate expression          |
-| `help`             | `h`          | Show help                    |
-| `info breakpoints` | `i b`        | Show breakpoint information  |
-| `info locals`      | `i l`        | Show local variables         |
-| `list`             | `l`          | List source code             |
-| `print`            | `p`          | Print expression value       |
-| `quit`             | `q`          | Quit debugger                |
-| `run`              | `r`          | Run program                  |
-| `step`             | `s`          | Step into                    |
-| `next`             | `n`          | Step over                    |
+| Command            | Abbreviation | Description                 |
+| ------------------ | ------------ | --------------------------- |
+| `break`            | `b`          | Set a breakpoint            |
+| `continue`         | `c`          | Continue execution          |
+| `delete`           | `d`          | Delete breakpoints          |
+| `disable`          | `dis`        | Disable breakpoints         |
+| `enable`           | `en`         | Enable breakpoints          |
+| `eval`             | `ev`         | Evaluate expression         |
+| `help`             | `h`          | Show help                   |
+| `info breakpoints` | `i b`        | Show breakpoint information |
+| `info locals`      | `i l`        | Show local variables        |
+| `list`             | `l`          | List source code            |
+| `print`            | `p`          | Print expression value      |
+| `quit`             | `q`          | Quit debugger               |
+| `run`              | `r`          | Run program                 |
+| `step`             | `s`          | Step into                   |
+| `next`             | `n`          | Step over                   |
 
 ## Examples
 

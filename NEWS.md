@@ -134,7 +134,7 @@ mruby now supports pattern matching (case/in) syntax:
 - [#6525](https://github.com/mruby/mruby/pull/6525) Skip adding empty input to mirb history
 - [#6526](https://github.com/mruby/mruby/pull/6526) Add build config for Luckfox Pico embedded SBC
 - [#6528](https://github.com/mruby/mruby/pull/6528) misc: fix spelling
-- [#6530](https://github.com/mruby/mruby/pull/6530) Revert "class.c (find_visibility_scope): when callinfo returns, *ep == NULL; #6512"
+- [#6530](https://github.com/mruby/mruby/pull/6530) Revert "class.c (find_visibility_scope): when callinfo returns, \*ep == NULL; #6512"
 - [#6531](https://github.com/mruby/mruby/pull/6531) Improve method table performance by rehashing at 75% load factor
 - [#6532](https://github.com/mruby/mruby/pull/6532) Reverted method table optimizations to prioritize memory savings
 - [#6533](https://github.com/mruby/mruby/pull/6533) Fix calling `extended` callback
