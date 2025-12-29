@@ -3,39 +3,45 @@
 #
 #  contributed by Karl von Laudermann
 #  modified by Jeremy Echols
+#  optimized: while loops instead of for..in to avoid closure overhead
 
 size = 600 # ARGV[0].to_i
 
 puts "P4\n#{size} #{size}"
 
-ITER = 49                           # Iterations - 1 for easy for..in looping
-LIMIT_SQUARED = 4.0                 # Presquared limit
+# Cache constants in local variables to avoid repeated constant lookup
+iter = 49
+limit_squared = 4.0
 
 byte_acc = 0
 bit_num = 0
 
-count_size = size - 1               # Precomputed size for easy for..in looping
+count_size = size - 1
 
-# For..in loops are faster than .upto, .downto, .times, etc.
-for y in 0..count_size
-  for x in 0..count_size
+# Use while loops instead of for..in to avoid closure/upvalue overhead
+y = 0
+while y <= count_size
+  x = 0
+  while x <= count_size
     zr = 0.0
     zi = 0.0
     cr = (2.0*x/size)-1.5
     ci = (2.0*y/size)-1.0
     escape = false
 
-    # To make use of the for..in code, we use a dummy variable,
-    # like one would in C
-    for dummy in 0..ITER
+    # Use while instead of for..in to avoid closure overhead
+    i = 0
+    while i <= iter
       tr = zr*zr - zi*zi + cr
       ti = 2*zr*zi + ci
-      zr, zi = tr, ti
+      zr = tr
+      zi = ti
 
-      if (zr*zr+zi*zi) > LIMIT_SQUARED
+      if (zr*zr+zi*zi) > limit_squared
         escape = true
         break
       end
+      i += 1
     end
 
     byte_acc = (byte_acc << 1) | (escape ? 0b0 : 0b1)
@@ -53,5 +59,7 @@ for y in 0..count_size
       byte_acc = 0
       bit_num = 0
     end
+    x += 1
   end
+  y += 1
 end
