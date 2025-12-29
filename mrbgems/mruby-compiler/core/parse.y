@@ -3986,7 +3986,7 @@ p_value         : p_var
                     }
                 | tSTRING
                     {
-                      $$ = new_pat_value(p, $1);
+                      $$ = new_pat_value(p, new_str(p, list1($1)));
                     }
                 | keyword_nil
                     {

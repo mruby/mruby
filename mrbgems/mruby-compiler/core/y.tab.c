@@ -10540,7 +10540,7 @@ yyreduce:
   case 456: /* p_value: tSTRING  */
 #line 3988 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      (yyval.nd) = new_pat_value(p, (yyvsp[0].nd));
+                      (yyval.nd) = new_pat_value(p, new_str(p, list1((yyvsp[0].nd))));
                     }
 #line 10546 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
