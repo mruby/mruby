@@ -3442,12 +3442,17 @@ mrb_value
 mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_value exp, mrb_value mod)
 {
   mpz_t a, b, c, z;
+  mrb_bool neg_mod = FALSE;
   MPZ_CTX_INIT(mrb, ctx, pool);
 
   bint_as_mpz(RBIGINT(x), &a);
   if (mrb_integer_p(mod)) {
     mrb_int m = mrb_integer(mod);
     if (m == 0) mrb_int_zerodiv(mrb);
+    if (m < 0) {
+      neg_mod = TRUE;
+      m = -m;
+    }
     mpz_init_set_int(ctx, &c, m);
   }
   else {
@@ -3456,7 +3461,29 @@ mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_value exp, mrb_value mod)
     if (zero_p(&c) || uzero_p(&c)) {
       mrb_int_zerodiv(mrb);
     }
+    if (c.sn < 0) {
+      neg_mod = TRUE;
+      c.sn = 1;  /* use absolute value */
+    }
   }
+
+  /* Check for zero base case: 0^n = 0 for n > 0 */
+  if (zero_p(&a) || uzero_p(&a)) {
+    mrb_bool exp_positive;
+    if (mrb_bigint_p(exp)) {
+      bint_as_mpz(RBIGINT(exp), &b);
+      exp_positive = (b.sn > 0) && !uzero_p(&b);
+    }
+    else {
+      exp_positive = mrb_integer(exp) > 0;
+    }
+    if (exp_positive) {
+      /* 0^n mod m = 0 for n > 0 */
+      if (mrb_integer_p(mod)) mpz_clear(ctx, &c);
+      return mrb_fixnum_value(0);
+    }
+  }
+
   mpz_init(ctx, &z);
   if (mrb_bigint_p(exp)) {
     bint_as_mpz(RBIGINT(exp), &b);
@@ -3468,6 +3495,13 @@ mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_value exp, mrb_value mod)
     if (e < 0) goto raise;
     mpz_powm_i(ctx, &z, &a, e, &c);
   }
+
+  /* Apply signed modulo adjustment for negative modulus */
+  /* Ruby: result + m for non-zero result when m is negative */
+  if (neg_mod && !zero_p(&z) && !uzero_p(&z)) {
+    mpz_sub(ctx, &z, &z, &c);  /* z = z - |m| = z + m (since m is negative) */
+  }
+
   if (mrb_integer_p(mod)) mpz_clear(ctx, &c);
   return bint_norm(mrb, bint_new(ctx, &z));
 

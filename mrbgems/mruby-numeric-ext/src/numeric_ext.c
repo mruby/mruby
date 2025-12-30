@@ -180,6 +180,7 @@ int_powm(mrb_state *mrb, mrb_value x)
 {
   mrb_value m, e;
   mrb_int exp, mod, result = 1;
+  mrb_bool neg_mod = FALSE;
 
   if (mrb_get_argc(mrb) == 1) {
     return mrb_int_pow(mrb, x, mrb_get_arg1(mrb));
@@ -204,10 +205,19 @@ int_powm(mrb_state *mrb, mrb_value x)
   if (exp < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "int.pow(n,m): n must be positive");
   if (!mrb_integer_p(m)) mrb_raise(mrb, E_TYPE_ERROR, "int.pow(n,m): m must be integer");
   mod = mrb_integer(m);
-  if (mod < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "int.pow(n,m): m must be positive when 2nd argument specified");
   if (mod == 0) mrb_int_zerodiv(mrb);
+  if (mod < 0) {
+    neg_mod = TRUE;
+    mod = -mod;
+  }
   if (mod == 1) return mrb_fixnum_value(0);
+
+  /* Early return for zero base with positive exponent */
   mrb_int base = mrb_integer(x);
+  if (base == 0 && exp > 0) {
+    return mrb_fixnum_value(0);
+  }
+
   for (;;) {
     mrb_int tmp;
     if (exp & 1) {
@@ -236,6 +246,12 @@ int_powm(mrb_state *mrb, mrb_value x)
       }
     }
     base = tmp % mod;
+  }
+
+  /* Apply signed modulo adjustment for negative modulus */
+  /* Ruby: result + m for non-zero result when m is negative */
+  if (neg_mod && result != 0) {
+    result = result - mod;  /* result - |m| = result + m (since m is negative) */
   }
   return mrb_int_value(mrb, result);
 }
