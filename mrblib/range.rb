@@ -74,7 +74,8 @@ class Range
 
   # redefine #hash 15.3.1.3.15
   def hash
-    h = first.hash ^ last.hash
+    # Use self.begin/self.end instead of first/last to handle endless/beginless ranges
+    h = self.begin.hash ^ self.end.hash
     h += 1 if self.exclude_end?
     h
   end
