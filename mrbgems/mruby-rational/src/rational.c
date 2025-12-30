@@ -342,7 +342,8 @@ rational_new_f(mrb_state *mrb, mrb_float f)
 
   if (exp > 0) {
     mrb_int temp;
-    if (mrb_int_mul_overflow(nume, ((mrb_int)1)<<exp, &temp)) {
+    /* Check exp < MRB_INT_BIT to avoid undefined behavior from shifting */
+    if (exp >= MRB_INT_BIT || mrb_int_mul_overflow(nume, ((mrb_int)1)<<exp, &temp)) {
 #ifndef RAT_BIGINT
       rat_overflow(mrb);
 #else
@@ -352,8 +353,17 @@ rational_new_f(mrb_state *mrb, mrb_float f)
     }
     nume = temp;
   }
-  else {
-    deno >>= exp;
+  else if (exp < 0) {
+    /* exp is negative, so we need to multiply denominator by 2^(-exp) */
+    int neg_exp = -exp;
+    if (neg_exp >= MRB_INT_BIT || mrb_int_mul_overflow(deno, ((mrb_int)1)<<neg_exp, &deno)) {
+#ifndef RAT_BIGINT
+      rat_overflow(mrb);
+#else
+      mrb_value d = mrb_bint_lshift(mrb, mrb_bint_new_int(mrb, deno), neg_exp);
+      return rational_new_b(mrb, mrb_int_value(mrb, nume), d);
+#endif
+    }
   }
   return rational_new_i(mrb, nume, deno);
 }
