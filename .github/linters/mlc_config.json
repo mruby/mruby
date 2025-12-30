@@ -1,6 +1,9 @@
 {
   "ignorePatterns": [
     {
+      "pattern": "^https://api.star-history.com"
+    },
+    {
       "pattern": "^https://github.com/mruby/mruby/commit/"
     },
     {
