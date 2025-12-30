@@ -219,8 +219,9 @@ mpz_set_int(mpz_ctx_t *ctx, mpz_t *y, mrb_int v)
   mrb_uint u;
 
   if (v == 0) {
-    y->sn=0;
-    u = 0;
+    y->sn = 0;
+    y->sz = 0;
+    return;
   }
   else if (v > 0) {
     y->sn = 1;
@@ -236,11 +237,13 @@ mpz_set_int(mpz_ctx_t *ctx, mpz_t *y, mrb_int v)
     mpz_realloc(ctx, y, 2);
     y->p[1] = (mp_limb)HIGH(u);
     y->p[0] = (mp_limb)LOW(u);
+    y->sz = 2;
     return;
   }
 #endif
   mpz_realloc(ctx, y, 1);
   y->p[0] = (mp_limb)u;
+  y->sz = 1;
 }
 
 
@@ -253,6 +256,7 @@ mpz_set_uint64(mpz_ctx_t *ctx, mpz_t *y, uint64_t u)
     ;
   y->sn = (u != 0);
   mpz_realloc(ctx, y, len);
+  y->sz = len;
   for (size_t i=0; i<len; i++) {
     y->p[i] = (mp_limb)LOW(u);
     u >>= DIG_SIZE;
@@ -2086,8 +2090,11 @@ mpz_div_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
 {
   short sn = x->sn;
   if (e == 0) {
-    mpz_init_heap(ctx, z, x->sz);
-    mpz_set(ctx, z, x);
+    if (z != x) {
+      mpz_init_heap(ctx, z, x->sz);
+      mpz_set(ctx, z, x);
+    }
+    /* else: z == x, nothing to do */
   }
   else {
     size_t digs = e / DIG_SIZE;
@@ -2639,8 +2646,10 @@ mpz_gcd(mpz_ctx_t *ctx, mpz_t *gg, mpz_t *aa, mpz_t *bb)
     goto cleanup;
   }
 
-  mpz_init_set(ctx, &a, aa);
-  mpz_init_set(ctx, &b, bb);
+  mpz_init(ctx, &a);
+  mpz_abs(ctx, &a, aa);
+  mpz_init(ctx, &b);
+  mpz_abs(ctx, &b, bb);
 
   shift = 0;
   a_zeros = mpz_trailing_zeros(&a);
