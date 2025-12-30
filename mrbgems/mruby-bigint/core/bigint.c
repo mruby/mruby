@@ -2091,6 +2091,7 @@ mpz_div_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
   short sn = x->sn;
   if (e == 0) {
     if (z != x) {
+      mpz_clear(ctx, z);
       mpz_init_heap(ctx, z, x->sz);
       mpz_set(ctx, z, x);
     }
@@ -2113,6 +2114,7 @@ mpz_div_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
     for (size_t i = 0; i < new_size; i++)
       y.p[i] = x->p[i + digs];
     if (bs) {
+      mpz_clear(ctx, z);
       mpz_init_heap(ctx, z, new_size);
       urshift(ctx, z, &y, bs);
       mpz_clear(ctx, &y);
