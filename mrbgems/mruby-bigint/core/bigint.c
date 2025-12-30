@@ -2099,12 +2099,18 @@ mpz_div_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
   else {
     size_t digs = e / DIG_SIZE;
     size_t bs = e % DIG_SIZE;
-    mpz_t y;
 
-    size_t new_size = (digs >= x->sz) ? 1 : x->sz - digs;
+    /* If shifting by more limbs than we have, result is zero */
+    if (digs >= x->sz) {
+      zero(z);
+      return;
+    }
+
+    mpz_t y;
+    size_t new_size = x->sz - digs;
     mpz_init_temp(ctx, &y, new_size);
     mpz_realloc(ctx, &y, new_size);
-    for (size_t i = 0; i < x->sz - digs; i++)
+    for (size_t i = 0; i < new_size; i++)
       y.p[i] = x->p[i + digs];
     if (bs) {
       mpz_init_heap(ctx, z, new_size);
