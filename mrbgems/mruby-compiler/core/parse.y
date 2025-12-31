@@ -6120,6 +6120,11 @@ parser_yylex(parser_state *p)
   enum mrb_lex_state_enum last_state;
   int token_column;
 
+  /* Early termination if too many errors - prevents DoS from malformed input */
+  if (p->nerr > 10) {
+    return 0;  /* EOF */
+  }
+
   if (p->lex_strterm) {
     if (is_strterm_type(p, STR_FUNC_HEREDOC)) {
       if (p->parsing_heredoc != NULL)
