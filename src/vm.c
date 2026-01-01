@@ -3448,3 +3448,4 @@ mrb_top_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, mrb_int st
   }
   return mrb_vm_run(mrb, proc, self, stack_keep);
 }
+#undef CASE

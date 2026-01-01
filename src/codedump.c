@@ -648,3 +648,4 @@ mrb_codedump_all(mrb_state *mrb, struct RProc *proc)
   mrb_codedump_all_file(mrb, proc, stdout);
 #endif
 }
+#undef CASE
