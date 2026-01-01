@@ -37,6 +37,7 @@ load "#{MRUBY_ROOT}/tasks/test.rake"
 load "#{MRUBY_ROOT}/tasks/benchmark.rake"
 load "#{MRUBY_ROOT}/tasks/doc.rake"
 load "#{MRUBY_ROOT}/tasks/install.rake"
+load "#{MRUBY_ROOT}/tasks/amalgam.rake"
 
 ##############################
 # generic build targets, rules
