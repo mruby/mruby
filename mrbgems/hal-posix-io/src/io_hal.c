@@ -41,10 +41,31 @@
 static void
 convert_stat(const struct stat *src, mrb_io_stat *dst)
 {
-  /* Save time values to avoid macro expansion issues */
-  time_t atime = src->st_atime;
-  time_t mtime = src->st_mtime;
-  time_t ctime = src->st_ctime;
+  /* Extract time values FIRST while macros are still defined.
+   * On POSIX systems, st_atime may be a macro for st_atim.tv_sec */
+  time_t atime_val, mtime_val, ctime_val;
+#if defined(st_atime)
+  /* st_atime is a macro - use it to extract from src */
+  atime_val = src->st_atime;
+  mtime_val = src->st_mtime;
+  ctime_val = src->st_ctime;
+#elif defined(__APPLE__) || defined(__FreeBSD__) || \
+      defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
+  /* BSD/macOS: st_atime is typically a direct member */
+  atime_val = src->st_atime;
+  mtime_val = src->st_mtime;
+  ctime_val = src->st_ctime;
+#else
+  /* POSIX.1-2008: use st_atim.tv_sec directly */
+  atime_val = src->st_atim.tv_sec;
+  mtime_val = src->st_mtim.tv_sec;
+  ctime_val = src->st_ctim.tv_sec;
+#endif
+
+  /* Undefine macros to avoid interference with mrb_io_stat fields */
+#undef st_atime
+#undef st_mtime
+#undef st_ctime
 
   dst->st_dev = (uint64_t)src->st_dev;
   dst->st_ino = (uint64_t)src->st_ino;
@@ -54,14 +75,9 @@ convert_stat(const struct stat *src, mrb_io_stat *dst)
   dst->st_gid = (uint32_t)src->st_gid;
   dst->st_rdev = (uint64_t)src->st_rdev;
   dst->st_size = (int64_t)src->st_size;
-
-  /* Assign time values after undefinining macros */
-#undef st_atime
-#undef st_mtime
-#undef st_ctime
-  dst->st_atime = (int64_t)atime;
-  dst->st_mtime = (int64_t)mtime;
-  dst->st_ctime = (int64_t)ctime;
+  dst->st_atime = (int64_t)atime_val;
+  dst->st_mtime = (int64_t)mtime_val;
+  dst->st_ctime = (int64_t)ctime_val;
 
 #ifdef HAVE_STRUCT_STAT_ST_BLKSIZE
   dst->st_blksize = (int64_t)src->st_blksize;

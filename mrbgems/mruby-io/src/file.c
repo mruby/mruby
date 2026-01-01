@@ -90,15 +90,12 @@
 #endif
 
 #if !defined(_WIN32) || defined(MRB_MINGW32_LEGACY)
-typedef struct stat         mrb_stat;
 # define mrb_stat(path, sb) stat(path, sb)
 # define mrb_fstat(fd, sb)  fstat(fd, sb)
 #elif defined MRB_INT32
-typedef struct _stat32      mrb_stat;
 # define mrb_stat(path, sb) _stat32(path, sb)
 # define mrb_fstat(fd, sb)  _fstat32(fd, sb)
 #else
-typedef struct _stat64      mrb_stat;
 # define mrb_stat(path, sb) _stat64(path, sb)
 # define mrb_fstat(fd, sb)  _fstat64(fd, sb)
 #endif
