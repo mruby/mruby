@@ -977,6 +977,7 @@ sym_cmp(mrb_state *mrb, mrb_value s1)
     return mrb_fixnum_value(-1);
   }
 }
+#undef lesser
 
 void
 mrb_init_symbol(mrb_state *mrb)

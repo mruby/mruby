@@ -1226,6 +1226,7 @@ str_casecmp(mrb_state *mrb, mrb_value self)
   if (len1 > len2)  return mrb_fixnum_value(1);
   return mrb_fixnum_value(-1);
 }
+#undef lesser
 
 /*
  * call-seq:

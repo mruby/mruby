@@ -1257,6 +1257,7 @@ mrb_str_cmp(mrb_state *mrb, mrb_value str1, mrb_value str2)
   if (retval > 0) return 1;
   return -1;
 }
+#undef lesser
 
 /* 15.2.10.5.3  */
 
