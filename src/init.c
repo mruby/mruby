@@ -47,3 +47,4 @@ mrb_init_core(mrb_state *mrb)
   mrb_init_version(mrb); DONE;
   mrb_init_mrblib(mrb); DONE;
 }
+#undef DONE
