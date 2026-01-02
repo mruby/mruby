@@ -72,16 +72,13 @@ The following gems work with amalgamation:
 - `mruby-enum-ext`, `mruby-compar-ext`
 - `mruby-error`, `mruby-math`, `mruby-struct`, `mruby-bigint`
 - `mruby-io` (with `hal-posix-io`)
+- `mruby-task` (with `hal-posix-task`)
 
 ### Excluded Gems
 
 Binary gems (`mruby-bin-*`) are automatically excluded as they contain
 their own `main()` function. The amalgamation produces a library, not
 an executable.
-
-### Incompatible Gems
-
-- `mruby-task` - Requires special build configuration (`mrb->task` member)
 
 ## Example Configuration
 
@@ -129,6 +126,12 @@ Typical sizes depend on included gems:
 - X-macro headers (like `mruby/ops.h`) are inlined at each use
 - Local includes (`.cstub` files) are automatically inlined
 - Generated files (`mrblib.c`, `gem_init.c`) are included
+
+### Gem Defines
+
+Gems that add preprocessor defines affecting core structures (like
+`MRB_USE_TASK_SCHEDULER` from mruby-task) are automatically detected
+and included at the top of `mruby.h`.
 
 ### Build Order
 

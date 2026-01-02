@@ -169,6 +169,26 @@ module MRuby
         #include <string.h>
 
       PREAMBLE
+
+      # Add build-level defines from gems (e.g., MRB_USE_TASK_SCHEDULER)
+      gem_defines = collect_gem_defines
+      unless gem_defines.empty?
+        f.puts "/* Gem-required defines */"
+        gem_defines.each do |d|
+          f.puts "#define #{d}"
+        end
+        f.puts
+      end
+    end
+
+    # Collect defines added by gems that affect core headers
+    def collect_gem_defines
+      defines = []
+      @build.defines.each do |d|
+        # Include defines that affect mrb_state or core functionality
+        defines << d if d =~ /^MRB_USE_|^MRB_UTF8_|^HAVE_MRUBY_/
+      end
+      defines.uniq.sort
     end
 
     def write_header_postamble(f)
