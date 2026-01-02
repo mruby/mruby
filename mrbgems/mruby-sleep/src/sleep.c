@@ -108,6 +108,7 @@ static mrb_value
 f_usleep(mrb_state *mrb, mrb_value self)
 {
     mrb_int usec;
+    time_t slp_tm;
 #ifdef _WIN32
     FILETIME st_ft,ed_ft;
     unsigned __int64 st_time = 0;
@@ -142,7 +143,7 @@ f_usleep(mrb_state *mrb, mrb_value self)
     ed_time <<=32;
     ed_time |= ed_ft.dwLowDateTime;
 
-    time_t slp_tm = (ed_time - st_time) / 10;
+    slp_tm = (time_t)((ed_time - st_time) / 10);
 #else
     gettimeofday(&ed_tm, NULL);
 

@@ -104,7 +104,7 @@ mrb_hal_socket_sockaddr_un(mrb_state *mrb, const char *path, size_t pathlen)
   mrb_value s = mrb_str_new_capa(mrb, sizeof(struct sockaddr_un));
   sunp = (struct sockaddr_un*)RSTRING_PTR(s);
 
-#ifdef HAVE_SA_LEN
+#if defined(HAVE_SA_LEN) && HAVE_SA_LEN
   sunp->sun_len = sizeof(struct sockaddr_un);
 #endif
 
