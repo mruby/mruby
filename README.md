@@ -19,6 +19,7 @@
 - [mruby homepage](#mruby-homepage)
 - [Mailing list](#mailing-list)
 - [How to compile, test, and install (mruby and gems)](#how-to-compile-test-and-install-mruby-and-gems)
+- [Amalgamation (single-file build)](#amalgamation-single-file-build)
 - [Building documentation](#building-documentation)
 - [How to customize mruby (mrbgems)](#how-to-customize-mruby-mrbgems)
 - [Index of Document](#index-of-document)
@@ -76,6 +77,21 @@ rake all test
 ```
 
 See the [compile.md](doc/guides/compile.md) file for the detail.
+
+## Amalgamation (single-file build)
+
+mruby supports amalgamation, which combines all source files into a single
+`mruby.c` and `mruby.h` for easy embedding (similar to SQLite).
+
+```console
+rake amalgam
+```
+
+Output files are generated in `build/host/amalgam/`. To use:
+
+```console
+gcc -I./build/host/amalgam your_app.c ./build/host/amalgam/mruby.c -o your_app -lm
+```
 
 ## Building documentation
 
