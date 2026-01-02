@@ -70,7 +70,8 @@ The following gems work with amalgamation:
 - `mruby-numeric-ext`, `mruby-range-ext`, `mruby-symbol-ext`
 - `mruby-proc-ext`, `mruby-kernel-ext`, `mruby-object-ext`, `mruby-class-ext`
 - `mruby-enum-ext`, `mruby-compar-ext`
-- `mruby-error`, `mruby-math`, `mruby-struct`, `mruby-bigint`
+- `mruby-error`, `mruby-math`, `mruby-struct`
+- `mruby-bigint`, `mruby-rational`, `mruby-complex`
 - `mruby-io` (with `hal-posix-io`)
 - `mruby-task` (with `hal-posix-task`)
 
@@ -129,9 +130,9 @@ Typical sizes depend on included gems:
 
 ### Gem Defines
 
-Gems that add preprocessor defines affecting core structures (like
-`MRB_USE_TASK_SCHEDULER` from mruby-task) are automatically detected
-and included at the top of `mruby.h`.
+Gems that add preprocessor defines affecting core structures are
+automatically detected and included at the top of `mruby.h`.
+Supported patterns: `MRB_USE_*`, `MRB_UTF8_*`, `HAVE_MRUBY_*`.
 
 ### Build Order
 
