@@ -2172,9 +2172,13 @@ heapify(mrb_state *mrb, mrb_value ary, mrb_value *a, mrb_int index, mrb_int size
 static void
 insertion_sort(mrb_state *mrb, mrb_value ary, mrb_value *a, mrb_int size, mrb_value blk)
 {
+  int ai = mrb_gc_arena_save(mrb);
   for (mrb_int i = 1; i < size; i++) {
     mrb_value key = a[i];
     mrb_int j = i - 1;
+
+    /* Protect key from GC - it's temporarily out of the array during sort */
+    mrb_gc_protect(mrb, key);
 
     /* Move elements that are greater than key to one position ahead */
     while (j >= 0 && sort_cmp(mrb, ary, a[j], key, blk)) {
@@ -2182,6 +2186,7 @@ insertion_sort(mrb_state *mrb, mrb_value ary, mrb_value *a, mrb_int size, mrb_va
       j--;
     }
     a[j + 1] = key;
+    mrb_gc_arena_restore(mrb, ai);
   }
 }
 
