@@ -6655,7 +6655,7 @@ codegen(codegen_scope *s, node *tree, int val)
           genop_3(s, OP_SEND, exc_reg, sym_idx(s, MRB_SYM_2(s->mrb, new)), 1);
           /* Raise the exception */
           genop_1(s, OP_RAISEIF, exc_reg);
-          if (val) push();
+          /* No push here: RAISEIF never returns, control transfers to rescue handler */
         }
         else {
           /* expr in pattern: return false */
