@@ -361,7 +361,7 @@ rational_new_f(mrb_state *mrb, mrb_float f)
       rat_overflow(mrb);
 #else
       mrb_value d = mrb_bint_lshift(mrb, mrb_bint_new_int(mrb, deno), neg_exp);
-      return rational_new_b(mrb, mrb_int_value(mrb, nume), d);
+      return rational_new_b(mrb, mrb_bint_new_int(mrb, nume), d);
 #endif
     }
   }
