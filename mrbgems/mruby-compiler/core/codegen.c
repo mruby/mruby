@@ -6667,6 +6667,9 @@ codegen(codegen_scope *s, node *tree, int val)
 
         /* End of pattern matching */
         dispatch(s, match_pos);
+        /* Restore sp to match success path value */
+        s->sp = saved_sp - 1;
+        if (val) push();
       }
       else {
         /* Pattern always matches - pop value and push result if needed */
