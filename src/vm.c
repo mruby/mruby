@@ -3123,7 +3123,7 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_STRCAT, B) {
-      mrb_assert(mrb_string_p(regs[a]));
+      mrb_ensure_string_type(mrb, regs[a]);
       mrb_str_concat(mrb, regs[a], regs[a+1]);
       ci = mrb->c->ci;
       NEXT;
