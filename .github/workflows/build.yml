@@ -39,6 +39,30 @@ jobs:
       - name: Build and test
         run: rake -m test:run:serial
 
+  Cosmopolitan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v6
+      - name: Ruby version
+        run: ruby -v
+      - name: Cache cosmocc
+        uses: actions/cache@v4
+        id: cache-cosmocc
+        with:
+          path: ~/cosmo
+          key: cosmocc-${{ runner.os }}-20260104
+      - name: Install cosmocc
+        if: steps.cache-cosmocc.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/cosmo && cd ~/cosmo
+          wget https://cosmo.zip/pub/cosmocc/cosmocc.zip
+          unzip cosmocc.zip
+      - name: Build and test
+        run: |
+          COSMO_ROOT=~/cosmo rake -m test:run:serial MRUBY_CONFIG=cosmopolitan
+
   Windows-VC:
     runs-on: windows-2022
     timeout-minutes: 10
