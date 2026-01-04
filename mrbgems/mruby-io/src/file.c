@@ -100,20 +100,6 @@
 # define mrb_fstat(fd, sb)  _fstat64(fd, sb)
 #endif
 
-#ifdef _WIN32
-static int
-flock(int fd, int operation)
-{
-  HANDLE h = (HANDLE)_get_osfhandle(fd);
-  DWORD flags;
-  flags = ((operation & LOCK_NB) ? LOCKFILE_FAIL_IMMEDIATELY : 0)
-          | ((operation & LOCK_SH) ? LOCKFILE_EXCLUSIVE_LOCK : 0);
-  static const OVERLAPPED zero_ov = {0};
-  OVERLAPPED ov = zero_ov;
-  return LockFileEx(h, flags, 0, 0xffffffff, 0xffffffff, &ov) ? 0 : -1;
-}
-#endif
-
 /*
  * call-seq:
  *   File.umask([mask]) -> integer
