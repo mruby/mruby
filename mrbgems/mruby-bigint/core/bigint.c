@@ -3417,6 +3417,10 @@ mrb_bint_cmp(mrb_state *mrb, mrb_value x, mrb_value y)
   return mpz_cmp(ctx, &a, &b);
 }
 
+/* Maximum bits for power result to prevent resource exhaustion */
+/* 1 million bits = ~125KB per bigint, ~300,000 decimal digits */
+#define MRB_BIGINT_POW_MAX_BITS 1000000
+
 mrb_value
 mrb_bint_pow(mrb_state *mrb, mrb_value x, mrb_value y)
 {
@@ -3432,9 +3436,22 @@ mrb_bint_pow(mrb_state *mrb, mrb_value x, mrb_value y)
     mrb_raisef(mrb, E_TYPE_ERROR, "%Y cannot be convert to integer", y);
   }
 
+  mrb_int exp = mrb_integer(y);
+  if (exp < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative exponent");
+  }
+
+  /* Check if result would be too large */
+  /* result_bits ≈ base_bits * exp */
+  size_t base_bits = mpz_bits(&a);
+  if (base_bits == 0) base_bits = 1;  /* handle 0 and 1 */
+  if (exp > 0 && (size_t)exp > MRB_BIGINT_POW_MAX_BITS / base_bits) {
+    mrb_raise(mrb, E_RANGE_ERROR, "exponent too large");
+  }
+
   mpz_t z;
   MPZ_CTX_INIT(mrb, ctx, pool);
-  mpz_pow(ctx, &z, &a, mrb_integer(y));
+  mpz_pow(ctx, &z, &a, exp);
 
   struct RBigint *b = bint_new(ctx, &z);
   return mrb_obj_value(b);
