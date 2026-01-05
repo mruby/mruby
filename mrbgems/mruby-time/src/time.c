@@ -656,6 +656,10 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
 #define OUTINT(x) 0
 #endif
 
+  /* Check for underflow before adjusting year */
+  if (ayear < MRB_INT_MIN + TM_YEAR_BASE)
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "argument out of range");
+
   /* Adjust year to be relative to TM_YEAR_BASE (1900) for struct tm */
   ayear -= TM_YEAR_BASE;
 
