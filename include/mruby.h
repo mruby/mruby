@@ -1571,7 +1571,8 @@ MRB_API mrb_value mrb_fiber_alive_p(mrb_state *mrb, mrb_value fib);
 MRB_API void mrb_stack_extend(mrb_state*, mrb_int);
 
 /* temporary memory allocation, only effective while GC arena is kept */
-MRB_API void* mrb_alloca(mrb_state *mrb, size_t);
+MRB_API void* mrb_temp_alloc(mrb_state *mrb, size_t);
+#define mrb_alloca(mrb, size) mrb_temp_alloc(mrb, size) /* for compatibility */
 
 MRB_API void mrb_state_atexit(mrb_state *mrb, mrb_atexit_func func);
 

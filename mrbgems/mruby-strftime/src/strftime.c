@@ -12,7 +12,6 @@
 #include <time.h>
 #include <string.h>
 
-#define INITIAL_BUFFER_SIZE 64
 #define MAX_BUFFER_SIZE 4096
 
 /*
@@ -60,12 +59,12 @@ mrb_time_strftime(mrb_state *mrb, mrb_value self)
     /* Process this segment (up to NUL or end of string) */
     if (segment_len > 0) {
       char *segment;
-      size_t buf_size;
       char *buf;
       size_t n;
 
       /* Create null-terminated copy of this segment */
-      segment = (char *)mrb_malloc(mrb, (size_t)segment_len + 1);
+      /* Use mrb_temp_alloc for exception safety - GC will clean up on exception */
+      segment = (char *)mrb_temp_alloc(mrb, (size_t)segment_len + 1);
       memcpy(segment, fmt_ptr, (size_t)segment_len);
       segment[segment_len] = '\0';
 
@@ -74,7 +73,6 @@ mrb_time_strftime(mrb_state *mrb, mrb_value self)
       /* Scan for %- patterns in the format string */
       for (const char *p = segment; *p != '\0'; p++) {
         if (p[0] == '%' && p[1] == '-') {
-          mrb_free(mrb, segment);
           mrb_raisef(mrb, E_ARGUMENT_ERROR,
                      "strftime format flag '%-' not supported on this platform (use '%%#' on Windows)");
         }
@@ -82,33 +80,14 @@ mrb_time_strftime(mrb_state *mrb, mrb_value self)
 #endif
 
       /* Allocate buffer for formatted output */
-      buf_size = INITIAL_BUFFER_SIZE;
-      buf = (char *)mrb_malloc(mrb, buf_size);
+      /* Use mrb_temp_alloc with max size for exception safety */
+      buf = (char *)mrb_temp_alloc(mrb, MAX_BUFFER_SIZE);
 
-      /* Try formatting; grow buffer if needed */
-      while (1) {
-        n = strftime(buf, buf_size, segment, tm);
-
-        /*
-         * strftime returns 0 if:
-         * 1. Buffer is too small (retry with larger buffer)
-         * 2. Format produces empty result (stop retrying)
-         * We distinguish by checking buffer size limit.
-         */
-        if (n > 0 || buf_size >= MAX_BUFFER_SIZE) {
-          break;
-        }
-
-        /* Double buffer size and retry */
-        buf_size *= 2;
-        buf = (char *)mrb_realloc(mrb, buf, buf_size);
-      }
+      /* Try formatting with max buffer size */
+      n = strftime(buf, MAX_BUFFER_SIZE, segment, tm);
 
       /* Append formatted output to result */
       mrb_str_cat(mrb, result, buf, n);
-
-      mrb_free(mrb, buf);
-      mrb_free(mrb, segment);
     }
 
     /* If there was a NUL, append it to result and advance past it */

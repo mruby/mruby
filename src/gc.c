@@ -266,7 +266,7 @@ mrb_free(mrb_state *mrb, void *p)
 }
 
 MRB_API void*
-mrb_alloca(mrb_state *mrb, size_t size)
+mrb_temp_alloc(mrb_state *mrb, size_t size)
 {
   struct RString *s;
   s = MRB_OBJ_ALLOC(mrb, MRB_TT_STRING, NULL);
