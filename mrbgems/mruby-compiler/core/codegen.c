@@ -1242,8 +1242,11 @@ static void
 realloc_pool_str(codegen_scope *s, mrb_irep_pool *p, mrb_int len)
 {
   char *str;
+  mrb_int olen = p->tt >> 2;  /* original length */
   if ((p->tt & 3) == IREP_TT_SSTR) { /* Check if it's a shared/static string */
+    const char *old = p->u.str;
     str = (char*)mrbc_malloc(len+1); /* Allocate new memory if it was shared */
+    memcpy(str, old, olen);  /* Copy original content */
   }
   else { /* It's already a heap-allocated string */
     str = (char*)p->u.str;
