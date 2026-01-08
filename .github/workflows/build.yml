@@ -48,7 +48,7 @@ jobs:
       - name: Ruby version
         run: ruby -v
       - name: Cache cosmocc
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         id: cache-cosmocc
         with:
           path: ~/cosmo
