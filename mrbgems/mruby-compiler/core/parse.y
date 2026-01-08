@@ -4562,11 +4562,15 @@ f_arglist       : f_arglist_paren
 
 f_label         : tIDENTIFIER tLABEL_TAG
                     {
+                      $$ = $1;
                       local_nest(p);
+                      p->lstate = EXPR_ARG;  /* make newlines significant after label */
                     }
                 | tNUMPARAM tLABEL_TAG
                     {
+                      $$ = intern_numparam($1);
                       local_nest(p);
+                      p->lstate = EXPR_ARG;  /* make newlines significant after label */
                     }
                 ;
 
