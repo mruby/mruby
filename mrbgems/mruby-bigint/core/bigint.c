@@ -111,6 +111,11 @@ mpz_init_heap(mpz_ctx_t *ctx, mpz_t *s, size_t hint)
 {
   s->sn = 0;
   if (hint > 0) {
+    /* Check for overflow in size calculation (same check as mpz_realloc) */
+    if (hint > SIZE_MAX / sizeof(mp_limb)) {
+      mrb_state *mrb = MPZ_MRB(ctx);
+      mrb_raise(mrb, E_RUNTIME_ERROR, "bigint size too large");
+    }
     s->p = (mp_limb*)mrb_malloc(MPZ_MRB(ctx), hint * sizeof(mp_limb));
     limb_zero(s->p, hint);
     s->sz = hint;
@@ -1387,6 +1392,15 @@ udiv(mpz_ctx_t *ctx, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
   mrb_assert(yy->sz > 0);       /* divided by zero */
   mrb_assert(!uzero_p(yy));     /* divided by zero */
 
+  /* Pre-check size constraints to avoid memory leaks on exception.
+   * Check both dividend and divisor sizes as ulshift uses size+1 for both.
+   * Fail early before any allocation to prevent leaks. */
+  size_t max_mpz_size = SIZE_MAX / sizeof(mp_limb);
+  if (xx->sz + 1 > max_mpz_size || yy->sz + 1 > max_mpz_size) {
+    mrb_state *mrb = MPZ_MRB(ctx);
+    mrb_raise(mrb, E_RUNTIME_ERROR, "bigint size too large");
+  }
+
   /* Use new context architecture with automatic pool/heap management */
   size_t pool_state = pool_save(ctx);
   mpz_t q, x, y;
@@ -2228,6 +2242,7 @@ mpz_and(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)
     if (z->sn < 0) make_2comp(zv, c3);
     z->p[i] = zv;
   }
+  trim(z);
 }
 
 static void
@@ -2261,6 +2276,7 @@ mpz_or(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient 
     if (z->sn < 0) make_2comp(zv, c3);
     z->p[i] = zv;
   }
+  trim(z);
 }
 
 static void
@@ -2294,6 +2310,7 @@ mpz_xor(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient
     if (z->sn < 0) make_2comp(zv, c3);
     z->p[i] = zv;
   }
+  trim(z);
 }
 
 static void
