@@ -2071,6 +2071,9 @@ mpz_get_int(mpz_t *y, mrb_int *v)
   return TRUE;
 }
 
+/* Maximum bits for bigint operations (128MB of limb data) */
+#define MRB_BIGINT_BIT_LIMIT (128 * 1024 * 1024 * (size_t)8)
+
 static void
 mpz_mul_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
 {
@@ -2082,6 +2085,12 @@ mpz_mul_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
     size_t bs = e % DIG_SIZE;
     mpz_t y;
 
+    /* Check for result size overflow before allocation */
+    size_t result_bits = (size_t)x->sz * DIG_SIZE + (size_t)e;
+    if ((size_t)e > MRB_BIGINT_BIT_LIMIT || result_bits > MRB_BIGINT_BIT_LIMIT) {
+      mrb_state *mrb = MPZ_MRB(ctx);
+      mrb_raise(mrb, E_RANGE_ERROR, "shift width too large");
+    }
     mpz_init_heap(ctx, &y, x->sz+digs);
     for (size_t i=0;i<x->sz;i++)
       y.p[i+digs] = x->p[i];
