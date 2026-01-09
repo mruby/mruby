@@ -1147,6 +1147,32 @@ mpz_all_ones_p(mpz_t *x)
 }
 
 /*
+ * Check if x is a power of 2 (2^n).
+ * Returns n if x = 2^n, or 0 otherwise.
+ * This is the "mostly-zero" pattern common in fuzzing tests.
+ */
+static size_t
+mpz_power_of_2_exp(mpz_t *x)
+{
+  if (x->sn <= 0 || x->sz == 0) return 0;
+
+  /* All limbs except top must be zero */
+  for (size_t i = 0; i + 1 < x->sz; i++) {
+    if (x->p[i] != 0) return 0;
+  }
+
+  /* Top limb must be a power of 2: (v & (v - 1)) == 0 */
+  mp_limb top = x->p[x->sz - 1];
+  if (top == 0 || (top & (top - 1)) != 0) return 0;
+
+  /* Count trailing zeros in top limb to get bit position */
+  size_t bit_pos = 0;
+  while ((top & 1) == 0) { bit_pos++; top >>= 1; }
+
+  return (x->sz - 1) * DIG_SIZE + bit_pos;
+}
+
+/*
  * Multiply two "all ones" numbers using algebraic identity:
  * (2^n - 1) * (2^m - 1) = 2^(n+m) - 2^n - 2^m + 1
  *
@@ -1236,6 +1262,18 @@ mpz_mul(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v)
     mpz_mul_2exp(ctx, &shifted, u, v_ones);
     mpz_sub(ctx, ww, &shifted, u);
     mpz_clear(ctx, &shifted);
+    return;
+  }
+
+  /* Fast path for power of 2: x * 2^n = x << n */
+  size_t u_pow2 = mpz_power_of_2_exp(u);
+  if (u_pow2) {
+    mpz_mul_2exp(ctx, ww, v, u_pow2);
+    return;
+  }
+  size_t v_pow2 = mpz_power_of_2_exp(v);
+  if (v_pow2) {
+    mpz_mul_2exp(ctx, ww, u, v_pow2);
     return;
   }
 
