@@ -432,8 +432,8 @@ uadd(mpz_t *z, mpz_t *x, mpz_t *y)
     c >>= DIG_SIZE;
   }
 
-  /* Store final carry */
-  z->p[y->sz] = (mp_limb)c;
+  /* Store final carry at correct position (after all limbs) */
+  z->p[i] = (mp_limb)c;
 }
 
 /* z = y - x, ignoring sign */
