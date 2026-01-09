@@ -979,6 +979,72 @@ mpz_mul_basic_limbs(mp_limb *result, const mp_limb *x, size_t x_len,
   }
 }
 
+/*
+ * Schoolbook squaring - exploits symmetry for ~1.5x speedup.
+ *
+ * For x = [x0, x1, x2, ...], x^2 has terms:
+ *   - Diagonal: xi^2 (computed once)
+ *   - Off-diagonal: 2*xi*xj for i<j (computed once, doubled)
+ *
+ * This reduces multiplications from n^2 to n(n+1)/2.
+ *
+ * Algorithm:
+ *   1. Compute off-diagonal products xi*xj for i<j
+ *   2. Double the off-diagonal sum
+ *   3. Add diagonal terms xi^2
+ */
+static void
+mpz_sqr_basic_limbs(mp_limb *result, const mp_limb *x, size_t n)
+{
+  size_t result_len = 2 * n;
+  limb_zero(result, result_len);
+
+  /* Step 1: Compute off-diagonal terms xi * xj for i < j */
+  for (size_t i = 0; i < n; i++) {
+    mp_limb xi = x[i];
+    if (xi == 0) continue;
+
+    if (i + 1 < n) {
+      /* Compute xi * x[i+1..n-1] and add at position 2*i+1 */
+      mp_limb carry = limb_addmul_1(result + 2*i + 1, x + i + 1, n - i - 1, xi);
+
+      /* Propagate carry */
+      size_t k = 2*i + 1 + (n - i - 1);
+      while (carry && k < result_len) {
+        mp_dbl_limb sum = (mp_dbl_limb)result[k] + carry;
+        result[k] = LOW(sum);
+        carry = HIGH(sum);
+        k++;
+      }
+    }
+  }
+
+  /* Step 2: Double the off-diagonal sum (shift left by 1) */
+  mp_limb carry = 0;
+  for (size_t i = 0; i < result_len; i++) {
+    mp_dbl_limb val = ((mp_dbl_limb)result[i] << 1) | carry;
+    result[i] = LOW(val);
+    carry = HIGH(val);
+  }
+
+  /* Step 3: Add diagonal terms xi^2 */
+  for (size_t i = 0; i < n; i++) {
+    mp_limb xi = x[i];
+    if (xi == 0) continue;
+
+    mp_dbl_limb sq = (mp_dbl_limb)xi * xi;
+    mp_dbl_limb acc = (mp_dbl_limb)result[2*i] + LOW(sq);
+    result[2*i] = LOW(acc);
+    acc = (acc >> DIG_SIZE) + HIGH(sq);
+
+    for (size_t k = 2*i + 1; acc && k < result_len; k++) {
+      acc += result[k];
+      result[k] = LOW(acc);
+      acc >>= DIG_SIZE;
+    }
+  }
+}
+
 /* Calculate scratch space needed for Karatsuba */
 static size_t
 karatsuba_scratch_size(size_t x_len, size_t y_len)
@@ -1115,6 +1181,113 @@ mpz_mul_karatsuba(mpz_ctx_t *ctx, mp_limb *result,
   limb_add_at(result, result_len, z2, z2_len, 2 * half);
 }
 
+/* Calculate scratch space needed for Karatsuba squaring */
+static size_t
+karatsuba_sqr_scratch_size(size_t n)
+{
+  if (n < KARATSUBA_THRESHOLD) {
+    return 0;
+  }
+
+  size_t half = n / 2;
+  size_t x1_len = n - half;
+  size_t sum_len = x1_len + 1;
+
+  /* z0, z2, z1 for the three recursive results, plus sum_x */
+  size_t z0_len = 2 * half;
+  size_t z2_len = 2 * x1_len;
+  size_t z1_len = 2 * sum_len;
+
+  size_t current = z0_len + z2_len + z1_len + sum_len;
+  size_t sub = karatsuba_sqr_scratch_size(sum_len);
+  size_t sub2 = karatsuba_sqr_scratch_size(x1_len);
+  size_t sub3 = karatsuba_sqr_scratch_size(half);
+  size_t max_sub = sub > sub2 ? sub : sub2;
+  max_sub = max_sub > sub3 ? max_sub : sub3;
+
+  return current + max_sub;
+}
+
+/*
+ * Karatsuba squaring - uses 3 recursive squarings instead of 3 multiplications.
+ *
+ * x = x1 * B + x0
+ * x^2 = x1^2 * B^2 + 2*x1*x0 * B + x0^2
+ *
+ * Using Karatsuba trick:
+ *   z0 = x0^2
+ *   z2 = x1^2
+ *   z1 = (x0 + x1)^2 - z0 - z2  (= 2*x0*x1)
+ *   x^2 = z2 * B^2 + z1 * B + z0
+ */
+static void
+mpz_sqr_karatsuba(mpz_ctx_t *ctx, mp_limb *result, const mp_limb *x, size_t n,
+                  mp_limb *scratch)
+{
+  if (n < KARATSUBA_THRESHOLD) {
+    mpz_sqr_basic_limbs(result, x, n);
+    return;
+  }
+
+  size_t half = n / 2;
+  const mp_limb *x0 = x;
+  const mp_limb *x1 = x + half;
+  size_t x0_len = half;
+  size_t x1_len = n - half;
+
+  /* Partition scratch memory */
+  size_t offset = 0;
+  mp_limb *z0 = scratch + offset; offset += 2 * x0_len;
+  mp_limb *z2 = scratch + offset; offset += 2 * x1_len;
+  mp_limb *sum_x = scratch + offset; offset += x1_len + 1;
+  mp_limb *z1 = scratch + offset;
+  size_t z1_alloc_len = 2 * (x1_len + 1);
+  offset += z1_alloc_len;
+
+  /* Step 1: Compute sum x0 + x1 */
+  mp_limb carry = 0;
+  size_t i;
+  for (i = 0; i < x1_len; i++) {
+    mp_dbl_limb sum = (mp_dbl_limb)(i < x0_len ? x0[i] : 0) + (mp_dbl_limb)x1[i] + carry;
+    sum_x[i] = LOW(sum);
+    carry = HIGH(sum);
+  }
+  sum_x[i] = carry;
+  size_t sum_x_len = x1_len + (carry != 0);
+
+  /* Step 2: Recursive squarings */
+  mp_limb *recursive_scratch = scratch + offset;
+  mpz_sqr_karatsuba(ctx, z0, x0, x0_len, recursive_scratch);
+  mpz_sqr_karatsuba(ctx, z2, x1, x1_len, recursive_scratch);
+  mpz_sqr_karatsuba(ctx, z1, sum_x, sum_x_len, recursive_scratch);
+
+  /* Step 3: Compute z1 = z1 - z0 - z2 */
+  size_t z0_len = 2 * x0_len;
+  size_t z2_len = 2 * x1_len;
+  size_t z1_len = 2 * sum_x_len;
+
+  mp_limb borrow = limb_sub(z1, z0, z0_len);
+  for (i = z0_len; i < z1_len && borrow; i++) {
+    mp_dbl_limb_signed diff = (mp_dbl_limb_signed)z1[i] - borrow;
+    z1[i] = LOW(diff);
+    borrow = (diff < 0) ? 1 : 0;
+  }
+
+  borrow = limb_sub(z1, z2, z2_len);
+  for (i = z2_len; i < z1_len && borrow; i++) {
+    mp_dbl_limb_signed diff = (mp_dbl_limb_signed)z1[i] - borrow;
+    z1[i] = LOW(diff);
+    borrow = (diff < 0) ? 1 : 0;
+  }
+
+  /* Step 4: Final assembly: result = z0 + z1*B + z2*B^2 */
+  size_t result_len = 2 * n;
+  limb_zero(result, result_len);
+  limb_copy(result, z0, z0_len);
+  limb_add_at(result, result_len, z1, z1_len, half);
+  limb_add_at(result, result_len, z2, z2_len, 2 * half);
+}
+
 /*
  * Check if mpz is "all ones" pattern (2^n - 1).
  * For such a number:
@@ -1230,12 +1403,85 @@ mpz_mul_all_ones(mpz_ctx_t *ctx, mpz_t *w, size_t n, size_t m)
   }
 }
 
+/* w = u^2 (squaring - faster than general multiplication) */
+static void
+mpz_sqr(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u)
+{
+  if (zero_p(u)) {
+    zero(ww);
+    return;
+  }
+
+  /* Fast path for power of 2: (2^n)^2 = 2^(2n) */
+  size_t u_pow2 = mpz_power_of_2_exp(u);
+  if (u_pow2) {
+    mpz_t one;
+    mpz_init(ctx, &one);
+    mpz_set_int(ctx, &one, 1);
+    mpz_mul_2exp(ctx, ww, &one, 2 * u_pow2);
+    mpz_clear(ctx, &one);
+    return;
+  }
+
+  /* Fast path for all-ones: (2^n - 1)^2 = 2^(2n) - 2^(n+1) + 1 */
+  size_t u_ones = mpz_all_ones_p(u);
+  if (u_ones) {
+    mpz_mul_all_ones(ctx, ww, u_ones, u_ones);
+    return;
+  }
+
+  /* Use schoolbook squaring for small numbers */
+  if (u->sz < KARATSUBA_THRESHOLD) {
+    mpz_t w;
+    mpz_init_heap(ctx, &w, 2 * u->sz);
+    mpz_sqr_basic_limbs(w.p, u->p, u->sz);
+    w.sz = 2 * u->sz;
+    w.sn = 1;  /* Square is always positive */
+    trim(&w);
+    mpz_move(ctx, ww, &w);
+    return;
+  }
+
+  /* Karatsuba squaring for large numbers */
+  size_t result_size = 2 * u->sz;
+  mpz_realloc(ctx, ww, result_size);
+
+  size_t scratch_size = karatsuba_sqr_scratch_size(u->sz);
+  scratch_size += (scratch_size >> 3) + 16;
+  size_t pool_state = pool_save(ctx);
+  mp_limb *scratch = NULL;
+
+  if (MPZ_HAS_POOL(ctx)) {
+    scratch = pool_alloc(MPZ_POOL(ctx), scratch_size);
+  }
+
+  if (scratch) {
+    mpz_sqr_karatsuba(ctx, ww->p, u->p, u->sz, scratch);
+    pool_restore(ctx, pool_state);
+  }
+  else {
+    scratch = (mp_limb*)mrb_malloc(MPZ_MRB(ctx), scratch_size * sizeof(mp_limb));
+    mpz_sqr_karatsuba(ctx, ww->p, u->p, u->sz, scratch);
+    mrb_free(MPZ_MRB(ctx), scratch);
+  }
+
+  ww->sz = result_size;
+  ww->sn = 1;  /* Square is always positive */
+  trim(ww);
+}
+
 /* w = u * v */
 static void
 mpz_mul(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v)
 {
   if (zero_p(u) || zero_p(v)) {
     zero(ww);
+    return;
+  }
+
+  /* Fast path for squaring: u * u uses optimized squaring algorithm */
+  if (u == v) {
+    mpz_sqr(ctx, ww, u);
     return;
   }
 
