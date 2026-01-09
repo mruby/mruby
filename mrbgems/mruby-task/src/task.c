@@ -264,8 +264,6 @@ task_init_context(mrb_state *mrb, mrb_task *t, const struct RProc *proc)
   mrb_vm_ci_proc_set(ci, proc);
   ci->stack = c->stbase;
   ci->pc = proc->body.irep->iseq;  /* Initialize PC to start of bytecode */
-  ci[1] = ci[0];
-  c->ci++;  /* Push dummy callinfo */
 
   c->status = MRB_TASK_CREATED;
 }
@@ -324,16 +322,8 @@ execute_task(mrb_state *mrb, mrb_task *t)
   t->c.prev = mrb->c;
   mrb->c = &t->c;
 
-  /* If task hasn't started yet, pop dummy callinfo */
-  if (t->c.status == MRB_FIBER_CREATED) {
-    t->c.ci--;
-  }
-
   /* Clear switching flag */
   switching_ = FALSE;
-
-  /* Set status to RUNNING so VM can transition it properly */
-  t->c.status = MRB_FIBER_RUNNING;
 
   /* Save proc and PC to locals before calling mrb_vm_exec */
   const struct RProc *proc = t->c.ci->proc;
@@ -363,7 +353,7 @@ execute_task(mrb_state *mrb, mrb_task *t)
   prev_ci->cci = prev_cci;
 
   /* Handle task termination */
-  if (t->c.status == MRB_FIBER_TERMINATED) {
+  if (t->c.status == MRB_TASK_STOPPED) {
     switching_ = FALSE;
     mrb_task_disable_irq();
     q_delete_task(mrb, t);
@@ -381,7 +371,7 @@ execute_task(mrb_state *mrb, mrb_task *t)
 }
 
 /* Tick handler - called by timer interrupt */
-void
+MRB_API void
 mrb_tick(mrb_state *mrb)
 {
   mrb_task *t;
@@ -429,7 +419,7 @@ mrb_tick(mrb_state *mrb)
 }
 
 /* Main scheduler loop */
-mrb_value
+MRB_API mrb_value
 mrb_task_run(mrb_state *mrb)
 {
   mrb_task *t;
@@ -449,7 +439,7 @@ mrb_task_run(mrb_state *mrb)
     }
 
     /* Safety check - don't execute terminated tasks */
-    if (t->status == MRB_TASK_STATUS_DORMANT || t->c.status == MRB_FIBER_TERMINATED) {
+    if (t->status == MRB_TASK_STATUS_DORMANT || t->c.status == MRB_TASK_STOPPED) {
       /* Task is terminated but still in queue - remove it */
       mrb_task_disable_irq();
       q_delete_task(mrb, t);
@@ -476,6 +466,46 @@ mrb_task_run(mrb_state *mrb)
   }
 
   return mrb_nil_value();
+}
+
+/* Single-step task execution for WASM event loop integration */
+MRB_API mrb_value
+mrb_task_run_once(mrb_state *mrb)
+{
+  mrb_task *t = q_ready_;
+
+  /* No task ready */
+  if (!t) {
+    return mrb_nil_value();
+  }
+
+  /* Safety check - don't execute terminated tasks */
+  if (t->status == MRB_TASK_STATUS_DORMANT || t->c.status == MRB_TASK_STOPPED) {
+    /* Task is terminated but still in queue - remove it */
+    mrb_task_disable_irq();
+    q_delete_task(mrb, t);
+    if (t->status != MRB_TASK_STATUS_DORMANT) {
+      t->status = MRB_TASK_STATUS_DORMANT;
+      q_insert_task(mrb, t);
+    }
+    mrb_task_enable_irq();
+    return mrb_true_value();
+  }
+
+  /* Execute task using core logic */
+  execute_task(mrb, t);
+
+  /* Move to end of ready queue if still ready (round-robin) */
+  if (t->status == MRB_TASK_STATUS_READY) {
+    task_change_state(mrb, t, MRB_TASK_STATUS_READY);
+  }
+
+  /* Run incremental GC if active */
+  if (mrb->gc.state != MRB_GC_STATE_ROOT) {
+    mrb_incremental_gc(mrb);
+  }
+
+  return mrb_true_value();
 }
 
 /*
@@ -745,7 +775,7 @@ task_run_one_iteration(mrb_state *mrb)
   }
 
   /* Skip terminated tasks */
-  if (t->status == MRB_TASK_STATUS_DORMANT || t->c.status == MRB_FIBER_TERMINATED) {
+  if (t->status == MRB_TASK_STATUS_DORMANT || t->c.status == MRB_TASK_STOPPED) {
     mrb_task_disable_irq();
     q_delete_task(mrb, t);
     if (t->status != MRB_TASK_STATUS_DORMANT) {
@@ -839,7 +869,7 @@ mrb_task_s_get(mrb_state *mrb, mrb_value self)
 {
   mrb_value name;
 
-  mrb_get_args(mrb, "o", &name);
+  mrb_get_args(mrb, "S", &name);
 
   /* Search all queues for task with matching name */
   for (int i = 0; i < MRB_NUM_TASK_QUEUE; i++) {
@@ -859,7 +889,7 @@ mrb_task_s_get(mrb_state *mrb, mrb_value self)
  * Task instance methods
  */
 
-static mrb_value
+MRB_API mrb_value
 mrb_task_status(mrb_state *mrb, mrb_value self)
 {
   mrb_task *t;
@@ -1002,15 +1032,23 @@ mrb_task_suspend(mrb_state *mrb, mrb_value self)
 
   TASK_GET_PTR_OR_RAISE(t, self);
 
-  /* Can only suspend ready or running tasks */
-  if (t->status != MRB_TASK_STATUS_READY && t->status != MRB_TASK_STATUS_RUNNING) {
-    return self;
-  }
+  /*
+   * WAITING task should also be suspended:
+   *   Suspend trigger possible happens when it is sleeping (WAITING).
+   * As in, DORMANT task should also be suspended:
+   *   IRB in PicoRuby suspends a DORMANT task to use it again.
+   */
+
+  /*
+   * Determine if context switch is needed BEFORE changing state.
+   * Context switch is needed when suspending a RUNNING task or
+   * the current ready task.
+   */
+  mrb_bool need_switch = (t == q_ready_ || t->status == MRB_TASK_STATUS_RUNNING);
 
   task_change_state(mrb, t, MRB_TASK_STATUS_SUSPENDED);
 
-  /* If suspending self, trigger context switch */
-  if (t == q_ready_ || t->status == MRB_TASK_STATUS_RUNNING) {
+  if (need_switch) {
     switching_ = TRUE;
   }
 
@@ -1113,6 +1151,338 @@ mrb_task_join(mrb_state *mrb, mrb_value self)
 }
 
 /*
+ * Synchronous execution
+ */
+
+/* Execute a proc synchronously without context switching
+ *
+ * This function creates a temporary task, executes it to completion,
+ * and returns the result. The scheduler_lock prevents any asynchronous
+ * task operations during execution.
+ */
+MRB_API mrb_value
+mrb_execute_proc_synchronously(mrb_state *mrb, mrb_value proc_val, mrb_int argc, const mrb_value *argv)
+{
+  struct RProc *proc = mrb_proc_ptr(proc_val);
+
+  /* 1. Lock scheduler and save context */
+  mrb_assert(mrb->task.scheduler_lock < 254);  /* Prevent overflow */
+  mrb->task.scheduler_lock++;
+  struct mrb_context *original_c = mrb->c;
+
+  /* 2. Create a temporary task */
+  mrb_task *t = task_alloc(mrb);
+  t->priority = 0;  /* Highest priority */
+  t->status = MRB_TASK_STATUS_DORMANT;
+  t->reason = MRB_TASK_REASON_NONE;
+  t->name = mrb_str_new_lit(mrb, "(sync)");
+
+  /* Initialize task context */
+  task_init_context(mrb, t, proc);
+
+  /* Create wrapper object (not registered with GC as we'll free it manually) */
+  struct RClass *task_class = mrb_class_get(mrb, "Task");
+  mrb_value task_obj = mrb_obj_value(mrb_data_object_alloc(mrb, task_class, t, &mrb_task_type));
+  t->self = task_obj;
+
+  /* Arguments are currently unused in this implementation */
+  (void)argc;
+  (void)argv;
+
+  /* 3. Move task from DORMANT to READY */
+  mrb_task_disable_irq();
+  t->status = MRB_TASK_STATUS_READY;
+  q_insert_task(mrb, t);
+  mrb_task_enable_irq();
+
+  /* 4. Execute the task in a dedicated loop (no context switching) */
+  t->status = MRB_TASK_STATUS_RUNNING;
+  mrb->c = &t->c;
+
+  while (t->c.status != MRB_TASK_STOPPED) {
+    t->state.result = mrb_vm_exec(mrb, mrb->c->ci->proc, mrb->c->ci->pc);
+  }
+
+  /* If there's an unhandled exception after VM stops, save it as result */
+  if (mrb->exc) {
+    t->state.result = mrb_obj_value(mrb->exc);
+  }
+
+  /* 5. Get result and clean up */
+  mrb_value result = t->state.result;
+  if (mrb_obj_ptr(result) == mrb->exc) {
+    mrb->exc = NULL;  /* Clear exception */
+  }
+
+  /* 6. Free the temporary task's resources */
+  mrb_task_disable_irq();
+  q_delete_task(mrb, t);
+  mrb_task_enable_irq();
+
+  /* Free context resources directly (bypass GC since we own this task) */
+  if (t->c.stbase) {
+    mrb_free(mrb, t->c.stbase);
+    t->c.stbase = NULL;
+  }
+  if (t->c.cibase) {
+    mrb_free(mrb, t->c.cibase);
+    t->c.cibase = NULL;
+  }
+  mrb_free(mrb, t);
+
+  /* 7. Restore context and unlock */
+  mrb->c = original_c;
+  mrb->task.scheduler_lock--;
+
+  return result;
+}
+
+/*
+ * Task.tick class method
+ */
+static mrb_value
+mrb_task_s_tick(mrb_state *mrb, mrb_value self)
+{
+  return mrb_int_value(mrb, tick_ * MRB_TICK_UNIT);
+}
+
+/*
+ * Create a task from a proc
+ * This is called from mrc_create_task() in mrc_utils.c
+ */
+MRB_API mrb_value
+mrb_create_task(mrb_state *mrb, struct RProc *proc, mrb_value name, mrb_value priority, mrb_value top_self)
+{
+  /* Check scheduler lock */
+  if (mrb->task.scheduler_lock > 0) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "Cannot create task during synchronous execution");
+  }
+
+  /* Validate/default priority */
+  mrb_int prio = 128;  /* Default priority */
+  if (!mrb_nil_p(priority)) {
+    if (!mrb_integer_p(priority)) {
+      mrb_raise(mrb, E_TYPE_ERROR, "priority must be an Integer");
+    }
+    prio = mrb_integer(priority);
+    if (prio < 0 || prio > 255) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "priority must be 0-255");
+    }
+  }
+
+  /* Validate/default name */
+  mrb_value name_val = mrb_nil_p(name) ? mrb_str_new_lit(mrb, "(noname)") : name;
+
+  /* Allocate and initialize task */
+  mrb_task *t = task_alloc(mrb);
+  t->priority = (uint8_t)prio;
+  t->status = MRB_TASK_STATUS_READY;
+  t->reason = MRB_TASK_REASON_NONE;
+  t->name = name_val;
+
+  /* Create Ruby object to hold task */
+  mrb_value task_obj = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_get(mrb, "Task"),
+                                                           t, &mrb_task_type));
+  t->self = task_obj;
+
+  /* Register with GC to protect task object from collection */
+  mrb_gc_register(mrb, task_obj);
+
+  /* Initialize task context */
+  task_init_context(mrb, t, proc);
+
+  /* Set top_self if provided */
+  if (!mrb_nil_p(top_self)) {
+    t->c.ci->stack[0] = top_self;
+  }
+
+  /* Insert into ready queue */
+  mrb_task_disable_irq();
+  q_insert_task(mrb, t);
+  mrb_task_enable_irq();
+
+  /* Trigger context switch if this task has higher priority than current */
+  if (q_ready_ && q_ready_->status == MRB_TASK_STATUS_RUNNING) {
+    if (t->priority < q_ready_->priority) {
+      switching_ = TRUE;
+    }
+  }
+
+  return task_obj;
+}
+
+/*
+ * Suspend a task
+ */
+MRB_API void
+mrb_suspend_task(mrb_state *mrb, mrb_value task)
+{
+  if (mrb->task.scheduler_lock > 0) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "Cannot use asynchronous Task API during synchronous execution");
+  }
+
+  mrb_task *t = (mrb_task*)mrb_data_check_get_ptr(mrb, task, &mrb_task_type);
+  if (!t) return;
+
+  if (t->status == MRB_TASK_STATUS_SUSPENDED) return;
+
+  task_change_state(mrb, t, MRB_TASK_STATUS_SUSPENDED);
+
+  /* Always trigger context switch when suspending */
+  switching_ = TRUE;
+}
+
+/*
+ * Resume a task
+ */
+MRB_API void
+mrb_resume_task(mrb_state *mrb, mrb_value task)
+{
+  if (mrb->task.scheduler_lock > 0) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "Cannot use asynchronous Task API during synchronous execution");
+  }
+
+  mrb_task *t = (mrb_task*)mrb_data_check_get_ptr(mrb, task, &mrb_task_type);
+  if (!t) return;
+
+  if (t->status != MRB_TASK_STATUS_SUSPENDED) return;
+
+  /* Determine target state based on reason */
+  uint8_t target_status = (t->reason == MRB_TASK_REASON_NONE) ?
+                          MRB_TASK_STATUS_READY : MRB_TASK_STATUS_WAITING;
+
+  task_change_state(mrb, t, target_status);
+
+  /* Trigger context switch if resumed task has higher priority */
+  if (target_status == MRB_TASK_STATUS_READY && q_ready_ &&
+      q_ready_->status == MRB_TASK_STATUS_RUNNING) {
+    if (t->priority < q_ready_->priority) {
+      switching_ = TRUE;
+    }
+  }
+
+  /* Update wakeup_tick if task has sleep reason */
+  if (t->reason == MRB_TASK_REASON_SLEEP) {
+    if ((int32_t)(t->wait.wakeup_tick - wakeup_tick_) < 0) {
+      wakeup_tick_ = t->wait.wakeup_tick;
+    }
+  }
+}
+
+/*
+ * Terminate a task
+ */
+MRB_API void
+mrb_terminate_task(mrb_state *mrb, mrb_value task)
+{
+  mrb_task *t = (mrb_task*)mrb_data_check_get_ptr(mrb, task, &mrb_task_type);
+  if (!t) return;
+
+  if (t->status == MRB_TASK_STATUS_DORMANT) return;
+
+  mrb_task_disable_irq();
+  q_delete_task(mrb, t);
+  t->status = MRB_TASK_STATUS_DORMANT;
+  t->c.status = MRB_TASK_STOPPED;
+  q_insert_task(mrb, t);
+  mrb_task_enable_irq();
+
+  wake_up_join_waiters(mrb, t);
+}
+
+/*
+ * Stop a task (mark as stopped but don't move to dormant)
+ */
+MRB_API mrb_bool
+mrb_stop_task(mrb_state *mrb, mrb_value task)
+{
+  mrb_task *t = (mrb_task*)mrb_data_check_get_ptr(mrb, task, &mrb_task_type);
+  if (!t) return FALSE;
+
+  if (t->c.status == MRB_TASK_STOPPED) {
+    return FALSE;  /* Already stopped */
+  }
+  t->c.status = MRB_TASK_STOPPED;
+  return TRUE;
+}
+
+/*
+ * Get task result value
+ */
+MRB_API mrb_value
+mrb_task_value(mrb_state *mrb, mrb_value task)
+{
+  mrb_task *t = (mrb_task*)mrb_data_check_get_ptr(mrb, task, &mrb_task_type);
+  if (!t) return mrb_nil_value();
+
+  return t->state.result;
+}
+
+/*
+ * Initialize task context with a new proc
+ */
+MRB_API void
+mrb_task_init_context(mrb_state *mrb, mrb_value task, struct RProc *proc)
+{
+  mrb_task *t = (mrb_task*)mrb_data_check_get_ptr(mrb, task, &mrb_task_type);
+  if (!t) return;
+
+  struct mrb_context *c = &t->c;
+
+  /* Cleanup existing context if any */
+  if (c->stbase) {
+    mrb_free(mrb, c->stbase);
+    c->stbase = NULL;
+  }
+  if (c->cibase) {
+    mrb_free(mrb, c->cibase);
+    c->cibase = NULL;
+  }
+
+  /* Re-initialize context */
+  task_init_context(mrb, t, proc);
+}
+
+/*
+ * Reset task context to initial state
+ */
+MRB_API void
+mrb_task_reset_context(mrb_state *mrb, mrb_value task)
+{
+  mrb_task *t = (mrb_task*)mrb_data_check_get_ptr(mrb, task, &mrb_task_type);
+  if (!t) return;
+
+  struct mrb_context *c = &t->c;
+  c->ci = c->cibase;
+  c->status = MRB_TASK_CREATED;
+  if (c->ci) {
+    mrb_vm_ci_target_class_set(c->ci, mrb->object_class);
+  }
+}
+
+/*
+ * Set proc for task
+ */
+MRB_API void
+mrb_task_proc_set(mrb_state *mrb, mrb_value task, struct RProc *proc)
+{
+  mrb_task *t = (mrb_task*)mrb_data_check_get_ptr(mrb, task, &mrb_task_type);
+  if (!t) return;
+
+  /* Handle environment resize if needed */
+  if (t->c.cibase && t->c.cibase->u.env) {
+    struct REnv *e = mrb_vm_ci_env(t->c.cibase);
+    if (e && MRB_ENV_LEN(e) < proc->body.irep->nlocals) {
+      MRB_ENV_SET_LEN(e, proc->body.irep->nlocals);
+    }
+  }
+
+  if (t->c.ci) {
+    mrb_vm_ci_proc_set(t->c.ci, proc);
+  }
+}
+
+/*
  * Initialization
  */
 
@@ -1124,8 +1494,9 @@ mrb_mruby_task_gem_init(mrb_state *mrb)
   /* Initialize HAL (timer and interrupts) */
   mrb_hal_task_init(mrb);
 
-  /* Initialize main task to NULL */
+  /* Initialize main task to NULL and scheduler_lock to 0 */
   mrb->task.main_task = NULL;
+  mrb->task.scheduler_lock = 0;
 
   task_class = mrb_define_class(mrb, "Task", mrb->object_class);
   MRB_SET_INSTANCE_TT(task_class, MRB_TT_DATA);
@@ -1138,6 +1509,7 @@ mrb_mruby_task_gem_init(mrb_state *mrb)
   mrb_define_class_method_id(mrb, task_class, MRB_SYM(stat),    mrb_task_s_stat,    MRB_ARGS_NONE());
   mrb_define_class_method_id(mrb, task_class, MRB_SYM(get),     mrb_task_s_get,     MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, task_class, MRB_SYM(run),     mrb_task_s_run,     MRB_ARGS_NONE());
+  mrb_define_class_method_id(mrb, task_class, MRB_SYM(tick),    mrb_task_s_tick,    MRB_ARGS_NONE());
 
   /* Instance methods */
   mrb_define_method_id(mrb, task_class, MRB_SYM(status),      mrb_task_status,       MRB_ARGS_NONE());

@@ -256,6 +256,7 @@ typedef struct mrb_task_state {
   volatile uint32_t wakeup_tick;    /* Next wakeup tick */
   volatile mrb_bool switching;      /* Context switch pending flag */
   struct mrb_task *main_task;       /* Main task wrapper for root context */
+  uint8_t scheduler_lock;           /* Lock counter for synchronous execution */
 } mrb_task_state;
 #endif
 
