@@ -1345,6 +1345,108 @@ mpz_power_of_2_exp(mpz_t *x)
   return (x->sz - 1) * DIG_SIZE + bit_pos;
 }
 
+/* Count set bits in a limb */
+static int
+limb_popcount(mp_limb x)
+{
+#if defined(__GNUC__) || __has_builtin(__builtin_popcount)
+  if (sizeof(mp_limb) == sizeof(unsigned long long))
+    return __builtin_popcountll(x);
+  else
+    return __builtin_popcount(x);
+#else
+  int count = 0;
+  while (x) {
+    count++;
+    x &= x - 1;  /* Clear lowest set bit */
+  }
+  return count;
+#endif
+}
+
+/*
+ * Count total set bits in mpz.
+ * Returns popcount, or max_count+1 if exceeded (for early exit).
+ */
+static size_t
+mpz_popcount(mpz_t *x, size_t max_count)
+{
+  if (x->sn <= 0 || x->sz == 0) return 0;
+
+  size_t count = 0;
+  for (size_t i = 0; i < x->sz && count <= max_count; i++) {
+    count += limb_popcount(x->p[i]);
+  }
+  return count;
+}
+
+/* Maximum bits for sparse multiplication optimization */
+#define SPARSE_MAX_BITS 8
+
+/*
+ * Check if x is sparse (few bits set) and worth optimizing.
+ * Only worthwhile for large numbers where Karatsuba would be used.
+ * Returns popcount if sparse and optimizable, 0 otherwise.
+ */
+static size_t
+mpz_sparse_p(mpz_t *x)
+{
+  if (x->sn <= 0 || x->sz < KARATSUBA_THRESHOLD) return 0;
+
+  size_t popcount = mpz_popcount(x, SPARSE_MAX_BITS);
+  if (popcount > SPARSE_MAX_BITS) return 0;
+
+  return popcount;
+}
+
+/*
+ * Multiply sparse number by dense number using shift-add.
+ * sparse * dense = sum of (dense << bit_position) for each set bit
+ *
+ * O(k * n) where k = popcount, much faster than Karatsuba when k is small.
+ */
+static void
+mpz_mul_sparse(mpz_ctx_t *ctx, mpz_t *w, mpz_t *sparse, mpz_t *dense)
+{
+  mpz_t shifted, temp;
+
+  mpz_init(ctx, &shifted);
+  mpz_init(ctx, &temp);
+  zero(w);
+
+  for (size_t i = 0; i < sparse->sz; i++) {
+    mp_limb limb = sparse->p[i];
+    size_t base_bit = i * DIG_SIZE;
+
+    while (limb) {
+      /* Find position of lowest set bit */
+      int bit = 0;
+#if defined(__GNUC__) || __has_builtin(__builtin_ctz)
+      if (sizeof(mp_limb) == sizeof(unsigned long long))
+        bit = __builtin_ctzll(limb);
+      else
+        bit = __builtin_ctz(limb);
+#else
+      while ((limb & ((mp_limb)1 << bit)) == 0) bit++;
+#endif
+
+      /* Add dense << (base_bit + bit) to result */
+      mpz_mul_2exp(ctx, &shifted, dense, base_bit + bit);
+      mpz_add(ctx, &temp, w, &shifted);
+      mpz_set(ctx, w, &temp);
+
+      /* Clear this bit */
+      limb &= limb - 1;
+    }
+  }
+
+  /* Handle sign */
+  if (sparse->sn < 0) w->sn = -w->sn;
+
+  mpz_clear(ctx, &shifted);
+  mpz_clear(ctx, &temp);
+}
+
 /*
  * Multiply two "all ones" numbers using algebraic identity:
  * (2^n - 1) * (2^m - 1) = 2^(n+m) - 2^n - 2^m + 1
@@ -1520,6 +1622,18 @@ mpz_mul(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v)
   size_t v_pow2 = mpz_power_of_2_exp(v);
   if (v_pow2) {
     mpz_mul_2exp(ctx, ww, u, v_pow2);
+    return;
+  }
+
+  /* Fast path for sparse numbers (few bits set): use shift-add */
+  size_t u_sparse = mpz_sparse_p(u);
+  if (u_sparse) {
+    mpz_mul_sparse(ctx, ww, u, v);
+    return;
+  }
+  size_t v_sparse = mpz_sparse_p(v);
+  if (v_sparse) {
+    mpz_mul_sparse(ctx, ww, v, u);
     return;
   }
 
