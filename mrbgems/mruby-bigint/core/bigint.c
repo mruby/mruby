@@ -1965,60 +1965,14 @@ udiv(mpz_ctx_t *ctx, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
         rhat = dividend_val % z;
       }
       else {
-        /* Two limbs available - use enhanced estimation */
+        /* Two limbs available - standard Knuth estimation */
         mp_dbl_limb dividend_val = ((mp_dbl_limb)x.p[j+yd] << DIG_SIZE) + x.p[j+yd-1];
         qhat = dividend_val / z;
         rhat = dividend_val % z;
-
-        /* Three-limb pre-adjustment when available */
-        if (yd >= 2 && j+yd-2 < x.sz && y.p[yd-2] != 0) {
-          mp_dbl_limb y_second = y.p[yd-2];
-          mp_dbl_limb x_third = x.p[j+yd-2];
-
-          if (qhat > 0) {
-            mp_dbl_limb left = qhat * y_second;
-            mp_dbl_limb right = (rhat << DIG_SIZE) + x_third;
-
-            if (qhat >= ((mp_dbl_limb)1 << DIG_SIZE) || left > right) {
-              qhat--;
-              rhat += z;
-            }
-          }
-        }
       }
 
-      /* Enhanced qhat refinement step */
-      if (yd > 2) { // Now considering at least 3 limbs of divisor
-        mp_dbl_limb y_second = y.p[yd-2];
-        mp_dbl_limb y_third = y.p[yd-3]; // New: third limb of divisor
-        mp_dbl_limb x_third = (j+yd-2 < x.sz) ? x.p[j+yd-2] : 0;
-        mp_dbl_limb x_fourth = (j+yd-3 < x.sz) ? x.p[j+yd-3] : 0; // New: fourth limb of dividend
-
-        // Initial check with 2 limbs
-        mp_dbl_limb left_side = qhat * y_second;
-        mp_dbl_limb right_side = (rhat << DIG_SIZE) + x_third;
-
-        while (qhat >= ((mp_dbl_limb)1 << DIG_SIZE) || (left_side > right_side)) {
-          qhat--;
-          rhat += z;
-          if (rhat >= ((mp_dbl_limb)1 << DIG_SIZE)) break;
-          left_side -= y_second;
-          right_side = (rhat << DIG_SIZE) + x_third;
-        }
-
-        // Additional check with 3 limbs (new refinement)
-        left_side = qhat * y_third;
-        right_side = (rhat << DIG_SIZE) + x_fourth;
-
-        while (qhat >= ((mp_dbl_limb)1 << DIG_SIZE) || (left_side > right_side)) {
-          qhat--;
-          rhat += z;
-          if (rhat >= ((mp_dbl_limb)1 << DIG_SIZE)) break;
-          left_side -= y_third;
-          right_side = (rhat << DIG_SIZE) + x_fourth;
-        }
-      }
-      else if (yd == 2) { // Original 2-limb check
+      /* Standard Knuth Algorithm D qhat refinement (2-limb check) */
+      if (yd >= 2) {
         mp_dbl_limb y_second = y.p[yd-2];
         mp_dbl_limb x_third = (j+yd-2 < x.sz) ? x.p[j+yd-2] : 0;
         mp_dbl_limb left_side = qhat * y_second;
