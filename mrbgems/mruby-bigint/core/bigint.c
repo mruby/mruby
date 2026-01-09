@@ -2390,6 +2390,155 @@ static const mp_limb base_limit[34*2] = {
 #endif
 };
 
+/*
+ * Divide-and-conquer decimal string conversion.
+ * For numbers with > DC_TO_S_THRESHOLD digits, this is O(n log^2 n)
+ * instead of O(n^2) for the simple algorithm.
+ */
+#define DC_TO_S_THRESHOLD 1000
+
+/*
+ * Recursive D&C conversion helper.
+ * Converts x to decimal string, writing exactly num_digits characters.
+ * The caller must ensure num_digits >= actual digits in x.
+ * Leading zeros are added if x has fewer digits than num_digits.
+ */
+static void
+mpz_to_s_dc_rec(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
+                mpz_t *powers, size_t num_powers)
+{
+  /* Base case: use simple conversion for small numbers */
+  if (num_digits <= DC_TO_S_THRESHOLD || num_powers == 0) {
+    /* Convert to string in reverse order first */
+    size_t pos = num_digits;
+    mpz_t tmp;
+    mpz_init_set(ctx, &tmp, x);
+
+    while (pos > 0 && !zero_p(&tmp)) {
+      mpz_t q;
+      mpz_init_heap(ctx, &q, tmp.sz);
+      mp_dbl_limb r = 0;
+
+      /* Divide by 10 */
+      for (size_t i = tmp.sz; i > 0; i--) {
+        r = (r << DIG_SIZE) | tmp.p[i-1];
+        q.p[i-1] = (mp_limb)(r / 10);
+        r %= 10;
+      }
+      q.sz = tmp.sz;
+      q.sn = tmp.sn;
+      trim(&q);
+
+      s[--pos] = '0' + (char)r;
+      mpz_set(ctx, &tmp, &q);
+      mpz_clear(ctx, &q);
+    }
+
+    /* Fill remaining positions with zeros */
+    while (pos > 0) {
+      s[--pos] = '0';
+    }
+
+    mpz_clear(ctx, &tmp);
+    return;
+  }
+
+  /* Find appropriate power of 10 to split on */
+  /* We want the largest power that gives roughly half the digits */
+  size_t split_idx = 0;
+  size_t split_digits = 1;
+  for (size_t i = 0; i < num_powers; i++) {
+    size_t d = (size_t)1 << i;  /* digits for this power */
+    if (d * 2 <= num_digits) {
+      split_idx = i;
+      split_digits = d;
+    }
+  }
+
+  /* Split: x = hi * 10^split_digits + lo */
+  mpz_t hi, lo;
+  mpz_init(ctx, &hi);
+  mpz_init(ctx, &lo);
+
+  mpz_mdivmod(ctx, &hi, &lo, x, &powers[split_idx]);
+  lo.sn = (lo.sn < 0) ? -lo.sn : lo.sn;  /* lo is always positive */
+
+  /* Recursively convert high part */
+  size_t hi_digits = num_digits - split_digits;
+  mpz_to_s_dc_rec(ctx, s, &hi, hi_digits, powers, split_idx);
+
+  /* Recursively convert low part (exactly split_digits digits with padding) */
+  mpz_to_s_dc_rec(ctx, s + hi_digits, &lo, split_digits, powers, split_idx);
+
+  mpz_clear(ctx, &hi);
+  mpz_clear(ctx, &lo);
+}
+
+/*
+ * D&C decimal string conversion entry point.
+ * Returns pointer to start of string (after optional sign).
+ */
+static char*
+mpz_to_s_dc(mpz_ctx_t *ctx, char *s, mpz_t *x)
+{
+  mrb_state *mrb = MPZ_MRB(ctx);
+
+  /* Handle sign */
+  char *result = s;
+  if (x->sn < 0) {
+    *s++ = '-';
+  }
+
+  /* Calculate number of decimal digits needed */
+  /* Use log10(2) ≈ 0.30103, so bits * 0.30103 + 1 gives upper bound */
+  size_t bits = digits(x) * DIG_SIZE;
+  size_t num_digits = (size_t)(bits * 30103UL / 100000UL) + 2;
+
+  /* Build table of powers of 10: 10^1, 10^2, 10^4, 10^8, ... */
+  size_t max_powers = 32;  /* Enough for 10^(2^32) which is huge */
+  mpz_t *powers = (mpz_t*)mrb_malloc(mrb, max_powers * sizeof(mpz_t));
+  size_t num_powers = 0;
+
+  /* 10^1 */
+  mpz_init(ctx, &powers[0]);
+  mpz_set_int(ctx, &powers[0], 10);
+  num_powers = 1;
+
+  /* Build powers by squaring: 10^(2^k) = (10^(2^(k-1)))^2 */
+  while (num_powers < max_powers) {
+    size_t power_digits = (size_t)1 << num_powers;
+    if (power_digits > num_digits) break;
+
+    mpz_init(ctx, &powers[num_powers]);
+    mpz_sqr(ctx, &powers[num_powers], &powers[num_powers - 1]);
+    num_powers++;
+  }
+
+  /* Make a copy of x for conversion (to preserve original) */
+  mpz_t tmp;
+  mpz_init_set(ctx, &tmp, x);
+  tmp.sn = 1;  /* Work with absolute value */
+
+  /* Do the recursive conversion */
+  mpz_to_s_dc_rec(ctx, s, &tmp, num_digits, powers, num_powers);
+
+  /* Clean up powers table */
+  for (size_t i = 0; i < num_powers; i++) {
+    mpz_clear(ctx, &powers[i]);
+  }
+  mrb_free(mrb, powers);
+  mpz_clear(ctx, &tmp);
+
+  /* Remove leading zeros (but keep at least one digit) */
+  char *p = s;
+  while (*p == '0' && *(p+1) != '\0') p++;
+  if (p > s) {
+    memmove(s, p, strlen(p) + 1);
+  }
+
+  return result;
+}
+
 static char*
 mpz_get_str(mpz_ctx_t *ctx, char *s, mrb_int sz, mrb_int base, mpz_t *x)
 {
@@ -2441,6 +2590,12 @@ mpz_get_str(mpz_ctx_t *ctx, char *s, mrb_int sz, mrb_int base, mpz_t *x)
     /* Check for overflow in size calculation */
     if ((size_t)xlen > SIZE_MAX / sizeof(mp_limb)) {
       mrb_raise(mrb, E_RUNTIME_ERROR, "bigint size too large for string conversion");
+    }
+
+    /* Use D&C algorithm for large base-10 numbers */
+    size_t est_digits = (size_t)(xlen * DIG_SIZE * 30103UL / 100000UL) + 2;
+    if (base == 10 && est_digits > DC_TO_S_THRESHOLD) {
+      return mpz_to_s_dc(ctx, s, x);
     }
 
     mp_limb *t = (mp_limb*)mrb_malloc(mrb, xlen * sizeof(mp_limb));
