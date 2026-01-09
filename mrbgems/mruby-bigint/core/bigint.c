@@ -845,7 +845,7 @@ limb_addmul_1(mp_limb *rp, const mp_limb *s1p, size_t n, mp_limb limb)
 #endif
 }
 
-#define KARATSUBA_THRESHOLD 8
+#define KARATSUBA_THRESHOLD 32
 
 static inline mrb_bool
 should_use_karatsuba(size_t x_len, size_t y_len)
