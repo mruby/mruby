@@ -2408,7 +2408,7 @@ static const mp_limb base_limit[34*2] = {
 #define BATCH_DIGITS 9
 
 static void
-mpz_to_s_dc_rec(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
+mpz_to_s_dc_recur(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
                 mpz_t *powers, size_t num_powers)
 {
   /* Base case: use simple conversion for small numbers */
@@ -2475,10 +2475,10 @@ mpz_to_s_dc_rec(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
 
   /* Recursively convert high part */
   size_t hi_digits = num_digits - split_digits;
-  mpz_to_s_dc_rec(ctx, s, &hi, hi_digits, powers, split_idx);
+  mpz_to_s_dc_recur(ctx, s, &hi, hi_digits, powers, split_idx);
 
   /* Recursively convert low part (exactly split_digits digits with padding) */
-  mpz_to_s_dc_rec(ctx, s + hi_digits, &lo, split_digits, powers, split_idx);
+  mpz_to_s_dc_recur(ctx, s + hi_digits, &lo, split_digits, powers, split_idx);
 
   mpz_clear(ctx, &hi);
   mpz_clear(ctx, &lo);
@@ -2530,7 +2530,7 @@ mpz_to_s_dc(mpz_ctx_t *ctx, char *s, mpz_t *x)
   tmp.sn = 1;  /* Work with absolute value */
 
   /* Do the recursive conversion */
-  mpz_to_s_dc_rec(ctx, s, &tmp, num_digits, powers, num_powers);
+  mpz_to_s_dc_recur(ctx, s, &tmp, num_digits, powers, num_powers);
 
   /* Clean up powers table */
   for (size_t i = 0; i < num_powers; i++) {
