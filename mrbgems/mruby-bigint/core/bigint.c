@@ -2403,13 +2403,17 @@ static const mp_limb base_limit[34*2] = {
  * The caller must ensure num_digits >= actual digits in x.
  * Leading zeros are added if x has fewer digits than num_digits.
  */
+/* Batch divisor: 10^9 for extracting 9 digits at once */
+#define BATCH_DIVISOR 1000000000UL
+#define BATCH_DIGITS 9
+
 static void
 mpz_to_s_dc_rec(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
                 mpz_t *powers, size_t num_powers)
 {
   /* Base case: use simple conversion for small numbers */
   if (num_digits <= DC_TO_S_THRESHOLD || num_powers == 0) {
-    /* Convert to string in reverse order first */
+    /* Convert to string in reverse order using batch extraction */
     size_t pos = num_digits;
     mpz_t tmp;
     mpz_init_set(ctx, &tmp, x);
@@ -2419,17 +2423,23 @@ mpz_to_s_dc_rec(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
       mpz_init_heap(ctx, &q, tmp.sz);
       mp_dbl_limb r = 0;
 
-      /* Divide by 10 */
+      /* Divide by 10^9 to extract 9 digits at once */
       for (size_t i = tmp.sz; i > 0; i--) {
         r = (r << DIG_SIZE) | tmp.p[i-1];
-        q.p[i-1] = (mp_limb)(r / 10);
-        r %= 10;
+        q.p[i-1] = (mp_limb)(r / BATCH_DIVISOR);
+        r %= BATCH_DIVISOR;
       }
       q.sz = tmp.sz;
       q.sn = tmp.sn;
       trim(&q);
 
-      s[--pos] = '0' + (char)r;
+      /* Convert remainder (0-999999999) to 9 digits */
+      mp_limb batch = (mp_limb)r;
+      for (int d = 0; d < BATCH_DIGITS && pos > 0; d++) {
+        s[--pos] = '0' + (char)(batch % 10);
+        batch /= 10;
+      }
+
       mpz_set(ctx, &tmp, &q);
       mpz_clear(ctx, &q);
     }
