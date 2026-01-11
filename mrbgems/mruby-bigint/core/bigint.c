@@ -2407,6 +2407,19 @@ static const mp_limb base_limit[34*2] = {
 #define BATCH_DIVISOR 1000000000UL
 #define BATCH_DIGITS 9
 
+/* Lookup table for fast 2-digit conversion (Lemire's small table technique) */
+static const char digit_pairs[200] =
+  "00010203040506070809"
+  "10111213141516171819"
+  "20212223242526272829"
+  "30313233343536373839"
+  "40414243444546474849"
+  "50515253545556575859"
+  "60616263646566676869"
+  "70717273747576777879"
+  "80818283848586878889"
+  "90919293949596979899";
+
 static void
 mpz_to_s_dc_recur(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
                 mpz_t *powers, size_t num_powers)
@@ -2433,11 +2446,19 @@ mpz_to_s_dc_recur(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
       q.sn = tmp.sn;
       trim(&q);
 
-      /* Convert remainder (0-999999999) to 9 digits */
+      /* Convert remainder (0-999999999) to 9 digits using table lookup */
       mp_limb batch = (mp_limb)r;
-      for (int d = 0; d < BATCH_DIGITS && pos > 0; d++) {
+      /* Extract last digit (9th) separately since 9 is odd */
+      if (pos > 0) {
         s[--pos] = '0' + (char)(batch % 10);
         batch /= 10;
+      }
+      /* Extract remaining 8 digits as 4 pairs using lookup table */
+      for (int d = 0; d < 4 && pos >= 2; d++) {
+        mp_limb pair = batch % 100;
+        batch /= 100;
+        s[--pos] = digit_pairs[pair * 2 + 1];
+        s[--pos] = digit_pairs[pair * 2];
       }
 
       mpz_set(ctx, &tmp, &q);
