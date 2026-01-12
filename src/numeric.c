@@ -2093,8 +2093,21 @@ cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
       else if (x < y) return -1;
       return 0;
     }
+#ifdef MRB_USE_BIGINT
+    if (mrb_bigint_p(v2)) {
+      return -mrb_bint_cmp(mrb, v2, v1);
+    }
+#endif
     x = (mrb_float)mrb_integer(v1);
   }
+#ifdef MRB_USE_BIGINT
+  else if (mrb_bigint_p(v1)) {
+    if (mrb_integer_p(v2) || mrb_bigint_p(v2)) {
+      return mrb_bint_cmp(mrb, v1, v2);
+    }
+    x = mrb_as_float(mrb, v1);
+  }
+#endif
   else {
     x = mrb_as_float(mrb, v1);
   }
