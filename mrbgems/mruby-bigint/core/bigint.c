@@ -1707,6 +1707,67 @@ lzb(mp_limb x)
   return j;
 }
 
+/*
+ * mpn-style low-level shift functions.
+ * These operate directly on limb arrays without mpz_t overhead.
+ */
+
+/*
+ * Right shift limb array by cnt bits (0 < cnt < DIG_SIZE).
+ * rp[0..n-1] = ap[0..n-1] >> cnt
+ * Returns the bits shifted out from the low end.
+ * Supports in-place operation (rp == ap).
+ *
+ * Processing order: LOW to HIGH
+ * - rp[i] depends on ap[i] and ap[i+1]
+ * - Writing rp[i] doesn't affect ap[i+1], so in-place is safe
+ */
+static mp_limb
+mpn_rshift(mp_limb *rp, const mp_limb *ap, size_t n, unsigned int cnt)
+{
+  mp_limb shifted_out;
+  size_t i;
+
+  mrb_assert(cnt > 0 && cnt < DIG_SIZE);
+
+  shifted_out = (ap[0] << (DIG_SIZE - cnt)) & DIG_MASK;
+
+  for (i = 0; i < n - 1; i++) {
+    rp[i] = ((ap[i] >> cnt) | (ap[i + 1] << (DIG_SIZE - cnt))) & DIG_MASK;
+  }
+  rp[n - 1] = (ap[n - 1] >> cnt) & DIG_MASK;
+
+  return shifted_out;
+}
+
+/*
+ * Left shift limb array by cnt bits (0 < cnt < DIG_SIZE).
+ * rp[0..n-1] = ap[0..n-1] << cnt (lower n limbs)
+ * Returns the bits shifted out from the high end (carry).
+ * Supports in-place operation (rp == ap).
+ *
+ * Processing order: HIGH to LOW
+ * - rp[i] depends on ap[i] and ap[i-1]
+ * - Writing rp[i] doesn't affect ap[i-1], so in-place is safe
+ */
+static mp_limb
+mpn_lshift(mp_limb *rp, const mp_limb *ap, size_t n, unsigned int cnt)
+{
+  mp_limb carry;
+  size_t i;
+
+  mrb_assert(cnt > 0 && cnt < DIG_SIZE);
+
+  carry = (ap[n - 1] >> (DIG_SIZE - cnt)) & DIG_MASK;
+
+  for (i = n - 1; i > 0; i--) {
+    rp[i] = ((ap[i] << cnt) | (ap[i - 1] >> (DIG_SIZE - cnt))) & DIG_MASK;
+  }
+  rp[0] = (ap[0] << cnt) & DIG_MASK;
+
+  return carry;
+}
+
 /* c1 = a>>n */
 /* n must be < DIG_SIZE */
 static void
@@ -1722,15 +1783,8 @@ urshift(mpz_ctx_t *ctx, mpz_t *c1, mpz_t *a, size_t n)
     zero(c1);
   }
   else {
-    mp_limb cc = 0;
-    mp_dbl_limb rm = (((mp_dbl_limb)1<<n) - 1);
-
     mpz_realloc(ctx, c1, a->sz);
-    for (size_t i=a->sz-1;; i--) {
-      c1->p[i] = ((a->p[i] >> n) | cc) & DIG_MASK;
-      cc = (a->p[i] & rm) << (DIG_SIZE - n);
-      if (i == 0) break;
-    }
+    mpn_rshift(c1->p, a->p, a->sz, (unsigned int)n);
     c1->sz = a->sz;
     trim(c1);
   }
@@ -1750,18 +1804,13 @@ ulshift(mpz_ctx_t *ctx, mpz_t *c1, mpz_t *a, size_t n)
     zero(c1);
   }
   else {
-    mp_limb cc = 0;
     mpz_t c;
-    mp_limb rm = (((mp_dbl_limb)1<<n) - 1) << (DIG_SIZE-n);
+    mp_limb carry;
 
-    mpz_init_heap(ctx, &c, a->sz+1);
-
-    size_t i;
-    for (i=0; i<a->sz; i++) {
-      c.p[i] = ((a->p[i] << n) | cc) & DIG_MASK;
-      cc = (a->p[i] & rm) >> (DIG_SIZE-n);
-    }
-    c.p[i] = cc;
+    mpz_init_heap(ctx, &c, a->sz + 1);
+    carry = mpn_lshift(c.p, a->p, a->sz, (unsigned int)n);
+    c.p[a->sz] = carry;
+    c.sz = a->sz + 1;
     trim(&c);
     mpz_move(ctx, c1, &c);
   }
