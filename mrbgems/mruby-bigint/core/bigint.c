@@ -364,77 +364,26 @@ trim(mpz_t *x)
 
 /* z = x + y, without regard for sign */
 /* Core addition algorithm for unsigned operands */
+/* Note: mpn_add/mpn_sub are defined later in the file, forward declare here */
+static mp_limb mpn_add(mp_limb*, const mp_limb*, size_t, const mp_limb*, size_t);
+static mp_limb mpn_sub(mp_limb*, const mp_limb*, size_t, const mp_limb*, size_t);
+
 static void
 uadd(mpz_t *z, mpz_t *x, mpz_t *y)
 {
-  /* Core multi-limb addition with carry propagation */
-  mp_dbl_limb c = 0;
-  size_t i;
-  size_t min_sz = (x->sz < y->sz) ? x->sz : y->sz;
+  mp_limb carry;
+  size_t max_sz = (x->sz > y->sz) ? x->sz : y->sz;
 
-  /* Add overlapping limbs from both operands */
-  /* 4x unrolled loop for better performance */
-  for (i = 0; i + 4 <= min_sz; i += 4) {
-    c += (mp_dbl_limb)y->p[i] + (mp_dbl_limb)x->p[i];
-    z->p[i] = LOW(c);
-    c >>= DIG_SIZE;
-
-    c += (mp_dbl_limb)y->p[i+1] + (mp_dbl_limb)x->p[i+1];
-    z->p[i+1] = LOW(c);
-    c >>= DIG_SIZE;
-
-    c += (mp_dbl_limb)y->p[i+2] + (mp_dbl_limb)x->p[i+2];
-    z->p[i+2] = LOW(c);
-    c >>= DIG_SIZE;
-
-    c += (mp_dbl_limb)y->p[i+3] + (mp_dbl_limb)x->p[i+3];
-    z->p[i+3] = LOW(c);
-    c >>= DIG_SIZE;
+  /* Ensure larger array is first argument to mpn_add */
+  if (x->sz >= y->sz) {
+    carry = mpn_add(z->p, x->p, x->sz, y->p, y->sz);
+  }
+  else {
+    carry = mpn_add(z->p, y->p, y->sz, x->p, x->sz);
   }
 
-  /* Handle remaining elements in overlap */
-  for (; i < min_sz; i++) {
-    c += (mp_dbl_limb)y->p[i] + (mp_dbl_limb)x->p[i];
-    z->p[i] = LOW(c);
-    c >>= DIG_SIZE;
-  }
-
-  /* Add remaining limbs from x if it's larger */
-  for (; i < x->sz; i++) {
-    c += x->p[i];
-    z->p[i] = LOW(c);
-    c >>= DIG_SIZE;
-  }
-
-  /* Add remaining limbs from larger operand */
-  /* 4x unrolled loop for better performance */
-  for (; i + 4 <= y->sz; i += 4) {
-    c += y->p[i];
-    z->p[i] = LOW(c);
-    c >>= DIG_SIZE;
-
-    c += y->p[i+1];
-    z->p[i+1] = LOW(c);
-    c >>= DIG_SIZE;
-
-    c += y->p[i+2];
-    z->p[i+2] = LOW(c);
-    c >>= DIG_SIZE;
-
-    c += y->p[i+3];
-    z->p[i+3] = LOW(c);
-    c >>= DIG_SIZE;
-  }
-
-  /* Handle remaining elements */
-  for (; i < y->sz; i++) {
-    c += y->p[i];
-    z->p[i] = LOW(c);
-    c >>= DIG_SIZE;
-  }
-
-  /* Store final carry at correct position (after all limbs) */
-  z->p[i] = (mp_limb)c;
+  /* Store final carry */
+  z->p[max_sz] = carry;
 }
 
 /* z = y - x, ignoring sign */
@@ -443,68 +392,8 @@ uadd(mpz_t *z, mpz_t *x, mpz_t *y)
 static void
 usub(mpz_t *z, mpz_t *y, mpz_t *x)
 {
-  /* Core multi-limb subtraction with borrow propagation */
-  mp_dbl_limb_signed b = 0;
-  size_t i;
-
-  /* Subtract overlapping limbs from both operands */
-  /* 4x unrolled loop for better performance */
-  for (i = 0; i + 4 <= x->sz; i += 4) {
-    b += (mp_dbl_limb_signed)y->p[i];
-    b -= (mp_dbl_limb_signed)x->p[i];
-    z->p[i] = LOW(b);
-    b = HIGH(b);
-
-    b += (mp_dbl_limb_signed)y->p[i+1];
-    b -= (mp_dbl_limb_signed)x->p[i+1];
-    z->p[i+1] = LOW(b);
-    b = HIGH(b);
-
-    b += (mp_dbl_limb_signed)y->p[i+2];
-    b -= (mp_dbl_limb_signed)x->p[i+2];
-    z->p[i+2] = LOW(b);
-    b = HIGH(b);
-
-    b += (mp_dbl_limb_signed)y->p[i+3];
-    b -= (mp_dbl_limb_signed)x->p[i+3];
-    z->p[i+3] = LOW(b);
-    b = HIGH(b);
-  }
-
-  /* Handle remaining elements */
-  for (; i < x->sz; i++) {
-    b += (mp_dbl_limb_signed)y->p[i];
-    b -= (mp_dbl_limb_signed)x->p[i];
-    z->p[i] = LOW(b);
-    b = HIGH(b);
-  }
-
-  /* Process remaining limbs from minuend with borrow */
-  /* 4x unrolled loop for better performance */
-  for (; i + 4 <= y->sz; i += 4) {
-    b += y->p[i];
-    z->p[i] = LOW(b);
-    b = HIGH(b);
-
-    b += y->p[i+1];
-    z->p[i+1] = LOW(b);
-    b = HIGH(b);
-
-    b += y->p[i+2];
-    z->p[i+2] = LOW(b);
-    b = HIGH(b);
-
-    b += y->p[i+3];
-    z->p[i+3] = LOW(b);
-    b = HIGH(b);
-  }
-
-  /* Handle remaining elements */
-  for (; i < y->sz; i++) {
-    b += y->p[i];
-    z->p[i] = LOW(b);
-    b = HIGH(b);
-  }
+  /* y->sz >= x->sz is guaranteed by precondition */
+  mpn_sub(z->p, y->p, y->sz, x->p, x->sz);
 
   /* Normalize result size */
   z->sz = digits(z);
@@ -952,16 +841,13 @@ limb_add_at(mp_limb *dest, size_t dest_len, const mp_limb *src, size_t n, size_t
 }
 
 /* Subtract limbs: dest[0..n-1] -= src[0..n-1], returns borrow */
+/* Forward declaration of mpn_sub_n (defined later) */
+static mp_limb mpn_sub_n(mp_limb*, const mp_limb*, const mp_limb*, size_t);
+
 static mp_limb
 limb_sub(mp_limb *dest, const mp_limb *src, size_t n)
 {
-  mp_dbl_limb_signed borrow = 0;
-  for (size_t i = 0; i < n; i++) {
-    borrow += (mp_dbl_limb_signed)dest[i] - (mp_dbl_limb_signed)src[i];
-    dest[i] = LOW(borrow);
-    borrow = HIGH(borrow);
-  }
-  return (mp_limb)(-borrow);
+  return mpn_sub_n(dest, dest, src, n);
 }
 
 /* Basic multiplication for small operands */
@@ -1766,6 +1652,152 @@ mpn_lshift(mp_limb *rp, const mp_limb *ap, size_t n, unsigned int cnt)
   rp[0] = (ap[0] << cnt) & DIG_MASK;
 
   return carry;
+}
+
+/*
+ * Add two limb arrays of the same size.
+ * rp[0..n-1] = ap[0..n-1] + bp[0..n-1]
+ * Returns carry (0 or 1).
+ * Supports in-place operation (rp == ap or rp == bp).
+ */
+static mp_limb
+mpn_add_n(mp_limb *rp, const mp_limb *ap, const mp_limb *bp, size_t n)
+{
+  mp_dbl_limb carry = 0;
+
+  for (size_t i = 0; i < n; i++) {
+    carry += (mp_dbl_limb)ap[i] + (mp_dbl_limb)bp[i];
+    rp[i] = LOW(carry);
+    carry = HIGH(carry);
+  }
+  return (mp_limb)carry;
+}
+
+/*
+ * Add two limb arrays of different sizes.
+ * rp[0..an-1] = ap[0..an-1] + bp[0..bn-1]
+ * Precondition: an >= bn
+ * Returns carry (0 or 1).
+ * Supports in-place operation (rp == ap).
+ */
+static mp_limb
+mpn_add(mp_limb *rp, const mp_limb *ap, size_t an, const mp_limb *bp, size_t bn)
+{
+  mp_dbl_limb carry;
+
+  mrb_assert(an >= bn);
+
+  /* Add overlapping part */
+  carry = mpn_add_n(rp, ap, bp, bn);
+
+  /* Propagate carry through remaining limbs of ap */
+  for (size_t i = bn; i < an; i++) {
+    carry += (mp_dbl_limb)ap[i];
+    rp[i] = LOW(carry);
+    carry = HIGH(carry);
+  }
+  return (mp_limb)carry;
+}
+
+/*
+ * Add single limb to limb array.
+ * rp[0..n-1] = ap[0..n-1] + b
+ * Returns carry (0 or 1).
+ * Supports in-place operation (rp == ap).
+ */
+static mp_limb
+mpn_add_1(mp_limb *rp, const mp_limb *ap, size_t n, mp_limb b)
+{
+  mp_dbl_limb carry = b;
+
+  for (size_t i = 0; i < n; i++) {
+    carry += (mp_dbl_limb)ap[i];
+    rp[i] = LOW(carry);
+    carry = HIGH(carry);
+    if (carry == 0) {
+      /* No more carry, copy remaining limbs if needed */
+      if (rp != ap) {
+        for (i++; i < n; i++) {
+          rp[i] = ap[i];
+        }
+      }
+      return 0;
+    }
+  }
+  return (mp_limb)carry;
+}
+
+/*
+ * Subtract two limb arrays of the same size.
+ * rp[0..n-1] = ap[0..n-1] - bp[0..n-1]
+ * Returns borrow (0 or 1).
+ * Supports in-place operation (rp == ap).
+ */
+static mp_limb
+mpn_sub_n(mp_limb *rp, const mp_limb *ap, const mp_limb *bp, size_t n)
+{
+  mp_dbl_limb_signed borrow = 0;
+
+  for (size_t i = 0; i < n; i++) {
+    borrow += (mp_dbl_limb_signed)ap[i] - (mp_dbl_limb_signed)bp[i];
+    rp[i] = LOW(borrow);
+    borrow = HIGH(borrow);
+  }
+  return (mp_limb)(-borrow);
+}
+
+/*
+ * Subtract two limb arrays of different sizes.
+ * rp[0..an-1] = ap[0..an-1] - bp[0..bn-1]
+ * Precondition: an >= bn and ap >= bp (result is non-negative)
+ * Returns borrow (0 or 1, should be 0 if precondition met).
+ * Supports in-place operation (rp == ap).
+ */
+static mp_limb
+mpn_sub(mp_limb *rp, const mp_limb *ap, size_t an, const mp_limb *bp, size_t bn)
+{
+  mp_dbl_limb_signed borrow;
+
+  mrb_assert(an >= bn);
+
+  /* Subtract overlapping part */
+  borrow = -(mp_dbl_limb_signed)mpn_sub_n(rp, ap, bp, bn);
+
+  /* Propagate borrow through remaining limbs of ap */
+  for (size_t i = bn; i < an; i++) {
+    borrow += (mp_dbl_limb_signed)ap[i];
+    rp[i] = LOW(borrow);
+    borrow = HIGH(borrow);
+  }
+  return (mp_limb)(-borrow);
+}
+
+/*
+ * Subtract single limb from limb array.
+ * rp[0..n-1] = ap[0..n-1] - b
+ * Returns borrow (0 or 1).
+ * Supports in-place operation (rp == ap).
+ */
+static mp_limb
+mpn_sub_1(mp_limb *rp, const mp_limb *ap, size_t n, mp_limb b)
+{
+  mp_dbl_limb_signed borrow = -(mp_dbl_limb_signed)b;
+
+  for (size_t i = 0; i < n; i++) {
+    borrow += (mp_dbl_limb_signed)ap[i];
+    rp[i] = LOW(borrow);
+    borrow = HIGH(borrow);
+    if (borrow == 0) {
+      /* No more borrow, copy remaining limbs if needed */
+      if (rp != ap) {
+        for (i++; i < n; i++) {
+          rp[i] = ap[i];
+        }
+      }
+      return 0;
+    }
+  }
+  return (mp_limb)(-borrow);
 }
 
 /* c1 = a>>n */
