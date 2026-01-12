@@ -2812,8 +2812,10 @@ mpz_get_int(mpz_t *y, mrb_int *v)
 static void
 mpz_mul_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
 {
-  if (e==0)
+  if (e==0) {
     mpz_set(ctx, z, x);
+    trim(z);
+  }
   else {
     short sn = x->sn;
     size_t digs = e / DIG_SIZE;
@@ -2835,6 +2837,7 @@ mpz_mul_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
     }
     else {
       mpz_move(ctx, z, &y);
+      trim(z);
     }
     if (uzero_p(z))
       z->sn = 0;
@@ -2852,6 +2855,7 @@ mpz_div_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
       mpz_clear(ctx, z);
       mpz_init_heap(ctx, z, x->sz);
       mpz_set(ctx, z, x);
+      trim(z);
     }
     /* else: z == x, nothing to do */
   }
@@ -2879,6 +2883,7 @@ mpz_div_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
     }
     else {
       mpz_move(ctx, z, &y);
+      trim(z);
     }
     if (uzero_p(z))
       z->sn = 0;
