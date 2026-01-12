@@ -9,6 +9,7 @@
 #include <mruby/numeric.h>
 #include <mruby/array.h>
 #include <mruby/string.h>
+#include <mruby/throw.h>
 #include <mruby/internal.h>
 #include <string.h>
 #include "bigint.h"
@@ -2406,7 +2407,7 @@ static const mp_limb base_limit[34*2] = {
 #define BATCH_DIGITS 9
 
 /* Lookup table for fast 2-digit conversion (Lemire's small table technique) */
-static const char digit_pairs[200] =
+static const char digit_pairs[] =
   "00010203040506070809"
   "10111213141516171819"
   "20212223242526272829"
@@ -2420,7 +2421,7 @@ static const char digit_pairs[200] =
 
 static void
 mpz_to_s_dc_recur(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
-                mpz_t *pow10, mpz_t *pow5, size_t num_powers)
+                  mpz_t *pow5, size_t num_powers)
 {
   /* Base case: use simple conversion for small numbers */
   if (num_digits <= DC_TO_S_THRESHOLD || num_powers == 0) {
@@ -2525,10 +2526,10 @@ mpz_to_s_dc_recur(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
 
   /* Recursively convert high part */
   size_t hi_digits = num_digits - split_digits;
-  mpz_to_s_dc_recur(ctx, s, &hi, hi_digits, pow10, pow5, split_idx);
+  mpz_to_s_dc_recur(ctx, s, &hi, hi_digits, pow5, split_idx);
 
   /* Recursively convert low part (exactly split_digits digits with padding) */
-  mpz_to_s_dc_recur(ctx, s + hi_digits, &lo, split_digits, pow10, pow5, split_idx);
+  mpz_to_s_dc_recur(ctx, s + hi_digits, &lo, split_digits, pow5, split_idx);
 
   mpz_clear(ctx, &hi);
   mpz_clear(ctx, &lo);
@@ -2559,46 +2560,63 @@ mpz_to_s_dc(mpz_ctx_t *ctx, char *s, mpz_t *x)
   size_t bits = digits(x) * DIG_SIZE;
   size_t num_digits = (size_t)(bits * 30103UL / 100000UL) + 2;
 
-  /* Build tables of powers: 10^(2^k) and 5^(2^k) for k = 0, 1, 2, ... */
-  size_t max_powers = 32;  /* Enough for 10^(2^32) which is huge */
-  mpz_t *pow10 = (mpz_t*)mrb_malloc(mrb, max_powers * sizeof(mpz_t));
-  mpz_t *pow5 = (mpz_t*)mrb_malloc(mrb, max_powers * sizeof(mpz_t));
+  /* Build table of powers: 5^(2^k) for k = 0, 1, 2, ...
+     (10^k = 2^k * 5^k, and we handle 2^k with bit shifts)
+     Use stack allocation with zero-init to allow safe cleanup on exception.
+     64 levels covers the full range of size_t on 64-bit systems. */
+#define MAX_POWERS 64
+  mpz_t pow5[MAX_POWERS];
+  mpz_t tmp;
   size_t num_powers = 0;
 
-  /* 10^1 and 5^1 */
-  mpz_init(ctx, &pow10[0]);
-  mpz_set_int(ctx, &pow10[0], 10);
-  mpz_init(ctx, &pow5[0]);
-  mpz_set_int(ctx, &pow5[0], 5);
-  num_powers = 1;
+  /* Zero-initialize so mpz_clear is safe on uninitialized entries */
+  memset(pow5, 0, sizeof(pow5));
+  memset(&tmp, 0, sizeof(tmp));
 
-  /* Build powers by squaring: 10^(2^k) = (10^(2^(k-1)))^2 */
-  while (num_powers < max_powers) {
-    size_t power_digits = (size_t)1 << num_powers;
-    if (power_digits > num_digits) break;
+  /* Use exception handling to ensure cleanup on error */
+  struct mrb_jmpbuf *prev_jmp = mrb->jmp;
+  struct mrb_jmpbuf c_jmp;
 
-    mpz_init(ctx, &pow10[num_powers]);
-    mpz_sqr(ctx, &pow10[num_powers], &pow10[num_powers - 1]);
-    mpz_init(ctx, &pow5[num_powers]);
-    mpz_sqr(ctx, &pow5[num_powers], &pow5[num_powers - 1]);
-    num_powers++;
-  }
+  MRB_TRY(&c_jmp) {
+    mrb->jmp = &c_jmp;
 
-  /* Make a copy of x for conversion (to preserve original) */
-  mpz_t tmp;
-  mpz_init_set(ctx, &tmp, x);
-  tmp.sn = 1;  /* Work with absolute value */
+    /* 5^1 */
+    mpz_init(ctx, &pow5[0]);
+    mpz_set_int(ctx, &pow5[0], 5);
+    num_powers = 1;
 
-  /* Do the recursive conversion */
-  mpz_to_s_dc_recur(ctx, s, &tmp, num_digits, pow10, pow5, num_powers);
+    /* Build powers by squaring: 5^(2^k) = (5^(2^(k-1)))^2 */
+    while (num_powers < MAX_POWERS) {
+      size_t power_digits = (size_t)1 << num_powers;
+      if (power_digits > num_digits) break;
 
-  /* Clean up */
+      mpz_init(ctx, &pow5[num_powers]);
+      mpz_sqr(ctx, &pow5[num_powers], &pow5[num_powers - 1]);
+      num_powers++;
+    }
+
+    /* Make a copy of x for conversion (to preserve original) */
+    mpz_init_set(ctx, &tmp, x);
+    tmp.sn = 1;  /* Work with absolute value */
+
+    /* Do the recursive conversion */
+    mpz_to_s_dc_recur(ctx, s, &tmp, num_digits, pow5, num_powers);
+
+    mrb->jmp = prev_jmp;
+  } MRB_CATCH(&c_jmp) {
+    mrb->jmp = prev_jmp;
+    /* Clean up on exception and re-throw */
+    for (size_t i = 0; i < MAX_POWERS; i++) {
+      mpz_clear(ctx, &pow5[i]);
+    }
+    mpz_clear(ctx, &tmp);
+    MRB_THROW(prev_jmp);
+  } MRB_END_EXC(&c_jmp);
+
+  /* Clean up on success */
   for (size_t i = 0; i < num_powers; i++) {
-    mpz_clear(ctx, &pow10[i]);
     mpz_clear(ctx, &pow5[i]);
   }
-  mrb_free(mrb, pow10);
-  mrb_free(mrb, pow5);
   mpz_clear(ctx, &tmp);
 
   /* Remove leading zeros (but keep at least one digit) */
