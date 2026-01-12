@@ -2566,33 +2566,30 @@ mpz_to_s_dc_recur(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
    *   hi = q5 >> k  (right shift by k bits)
    *   lo = (q5 & ((1<<k)-1)) * 5^k + r5
    */
+
+  /* hi and lo must persist through recursive calls, so allocate fresh */
   mpz_t hi, lo;
   mpz_init(ctx, &hi);
   mpz_init(ctx, &lo);
 
-  mpz_t q5, r5;
-  mpz_init(ctx, &q5);
-  mpz_init(ctx, &r5);
+  /* q5, r5, q5_low are only needed for computing hi/lo, reuse from scratch */
+  mpz_t *q5 = &scratch->q5;
+  mpz_t *r5 = &scratch->r5;
+  mpz_t *q5_low = &scratch->q5_low;
 
   /* Step 1: Divide by 5^k (cheaper than dividing by 10^k) */
-  mpz_mdivmod(ctx, &q5, &r5, x, &pow5[split_idx]);
-  r5.sn = (r5.sn < 0) ? -r5.sn : r5.sn;
+  mpz_mdivmod(ctx, q5, r5, x, &pow5[split_idx]);
+  r5->sn = (r5->sn < 0) ? -r5->sn : r5->sn;
 
   /* Step 2: hi = q5 >> split_digits (divide by 2^k using bit shift) */
-  mpz_div_2exp(ctx, &hi, &q5, (mrb_int)split_digits);
+  mpz_div_2exp(ctx, &hi, q5, (mrb_int)split_digits);
 
   /* Step 3: lo = (q5 mod 2^k) * 5^k + r5 */
-  mpz_t q5_low;
-  mpz_init(ctx, &q5_low);
-  mpz_mod_2exp(ctx, &q5_low, &q5, (mrb_int)split_digits);
+  mpz_mod_2exp(ctx, q5_low, q5, (mrb_int)split_digits);
 
-  mpz_mul(ctx, &lo, &q5_low, &pow5[split_idx]);
-  mpz_add(ctx, &lo, &lo, &r5);
+  mpz_mul(ctx, &lo, q5_low, &pow5[split_idx]);
+  mpz_add(ctx, &lo, &lo, r5);
   lo.sn = (lo.sn < 0) ? -lo.sn : lo.sn;
-
-  mpz_clear(ctx, &q5);
-  mpz_clear(ctx, &r5);
-  mpz_clear(ctx, &q5_low);
 
   /* Recursively convert high part */
   size_t hi_digits = num_digits - split_digits;
