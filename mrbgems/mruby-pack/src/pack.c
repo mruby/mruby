@@ -116,7 +116,7 @@ static const int le_idx16[2] = {0, 1};          /* little-endian 16-bit: LSB, MS
 static const int be_idx32[4] = {3, 2, 1, 0};    /* big-endian 32-bit: MSB...LSB */
 static const int le_idx32[4] = {0, 1, 2, 3};    /* little-endian 32-bit: LSB...MSB */
 static const int be_idx64[8] = {7, 6, 5, 4, 3, 2, 1, 0};  /* big-endian 64-bit: MSB...LSB */
-static const int le_idx64[8] = {0, 1, 2, 3, 4, 5, 6, 7};  /* little-endian 64-bit: LSB...MSB */  /* little-endian 64-bit */
+static const int le_idx64[8] = {0, 1, 2, 3, 4, 5, 6, 7};  /* little-endian 64-bit: LSB...MSB */
 /* lookup tables for binary string optimization */
 /* Convert character to bit value (0 or 1) */
 static inline uint8_t char_to_bit(unsigned char c) {
@@ -681,23 +681,24 @@ pack_double(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned i
 {
   union {
     double d;
-    uint8_t bytes[8];
+    uint64_t u;
   } converter;
 
   str = str_len_ensure(mrb, str, sidx + 8);
   converter.d = mrb_float(o);
   char *dptr = RSTRING_PTR(str) + sidx;
 
-  /* use lookup tables to eliminate branching */
+  /* Use bit shifts for endian-independent byte extraction (same as pack_quad) */
+  uint64_t n = converter.u;
   const int *idx = (flags & PACK_FLAG_LITTLEENDIAN) ? le_idx64 : be_idx64;
-  dptr[idx[0]] = converter.bytes[0];
-  dptr[idx[1]] = converter.bytes[1];
-  dptr[idx[2]] = converter.bytes[2];
-  dptr[idx[3]] = converter.bytes[3];
-  dptr[idx[4]] = converter.bytes[4];
-  dptr[idx[5]] = converter.bytes[5];
-  dptr[idx[6]] = converter.bytes[6];
-  dptr[idx[7]] = converter.bytes[7];
+  dptr[idx[0]] = (char)(n & 0xff);
+  dptr[idx[1]] = (char)((n >> 8) & 0xff);
+  dptr[idx[2]] = (char)((n >> 16) & 0xff);
+  dptr[idx[3]] = (char)((n >> 24) & 0xff);
+  dptr[idx[4]] = (char)((n >> 32) & 0xff);
+  dptr[idx[5]] = (char)((n >> 40) & 0xff);
+  dptr[idx[6]] = (char)((n >> 48) & 0xff);
+  dptr[idx[7]] = (char)((n >> 56) & 0xff);
 
   return 8;
 }
@@ -707,19 +708,19 @@ unpack_double(mrb_state *mrb, const unsigned char * src, mrb_int srclen, mrb_val
 {
   union {
     double d;
-    uint8_t bytes[8];
+    uint64_t u;
   } converter;
 
-  /* use lookup tables to eliminate branching */
+  /* Use bit shifts for endian-independent byte assembly (same as unpack_quad) */
   const int *idx = (flags & PACK_FLAG_LITTLEENDIAN) ? le_idx64 : be_idx64;
-  converter.bytes[0] = src[idx[0]];
-  converter.bytes[1] = src[idx[1]];
-  converter.bytes[2] = src[idx[2]];
-  converter.bytes[3] = src[idx[3]];
-  converter.bytes[4] = src[idx[4]];
-  converter.bytes[5] = src[idx[5]];
-  converter.bytes[6] = src[idx[6]];
-  converter.bytes[7] = src[idx[7]];
+  converter.u = ((uint64_t)src[idx[7]] << 56) |
+                ((uint64_t)src[idx[6]] << 48) |
+                ((uint64_t)src[idx[5]] << 40) |
+                ((uint64_t)src[idx[4]] << 32) |
+                ((uint64_t)src[idx[3]] << 24) |
+                ((uint64_t)src[idx[2]] << 16) |
+                ((uint64_t)src[idx[1]] << 8) |
+                ((uint64_t)src[idx[0]]);
 
   mrb_ary_push(mrb, ary, mrb_float_value(mrb, converter.d));
 
@@ -731,19 +732,20 @@ pack_float(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned in
 {
   union {
     float f;
-    uint8_t bytes[4];
+    uint32_t u;
   } converter;
 
   str = str_len_ensure(mrb, str, sidx + 4);
   converter.f = (float)mrb_float(o);
   char *dptr = RSTRING_PTR(str) + sidx;
 
-  /* use lookup tables to eliminate branching */
+  /* Use bit shifts for endian-independent byte extraction (same as pack_long) */
+  uint32_t n = converter.u;
   const int *idx = (flags & PACK_FLAG_LITTLEENDIAN) ? le_idx32 : be_idx32;
-  dptr[idx[0]] = converter.bytes[0];
-  dptr[idx[1]] = converter.bytes[1];
-  dptr[idx[2]] = converter.bytes[2];
-  dptr[idx[3]] = converter.bytes[3];
+  dptr[idx[0]] = (char)(n & 0xff);
+  dptr[idx[1]] = (char)((n >> 8) & 0xff);
+  dptr[idx[2]] = (char)((n >> 16) & 0xff);
+  dptr[idx[3]] = (char)((n >> 24) & 0xff);
 
   return 4;
 }
@@ -753,15 +755,15 @@ unpack_float(mrb_state *mrb, const unsigned char * src, mrb_int srclen, mrb_valu
 {
   union {
     float f;
-    uint8_t bytes[4];
+    uint32_t u;
   } converter;
 
-  /* use lookup tables to eliminate branching */
+  /* Use bit shifts for endian-independent byte assembly (same as unpack_long) */
   const int *idx = (flags & PACK_FLAG_LITTLEENDIAN) ? le_idx32 : be_idx32;
-  converter.bytes[0] = src[idx[0]];
-  converter.bytes[1] = src[idx[1]];
-  converter.bytes[2] = src[idx[2]];
-  converter.bytes[3] = src[idx[3]];
+  converter.u = ((uint32_t)src[idx[3]] << 24) |
+                ((uint32_t)src[idx[2]] << 16) |
+                ((uint32_t)src[idx[1]] << 8) |
+                ((uint32_t)src[idx[0]]);
 
   mrb_ary_push(mrb, ary, mrb_float_value(mrb, converter.f));
 
