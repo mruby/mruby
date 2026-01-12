@@ -2609,6 +2609,10 @@ mpz_to_s_dc_recur(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
         s[--pos] = digit_pairs[pair * 2 + 1];
         s[--pos] = digit_pairs[pair * 2];
       }
+      /* Extract any remaining single digit when pos == 1 */
+      if (pos > 0 && batch > 0) {
+        s[--pos] = '0' + (char)(batch % 10);
+      }
 
       /* Swap tmp and q pointers for next iteration */
       mpz_t *swap = tmp;
