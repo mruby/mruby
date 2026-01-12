@@ -1424,6 +1424,10 @@ mrb_task_value(mrb_state *mrb, mrb_value task)
 MRB_API void
 mrb_task_init_context(mrb_state *mrb, mrb_value task, struct RProc *proc)
 {
+  if (mrb->task.scheduler_lock > 0) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "Cannot use asynchronous Task API during synchronous execution");
+  }
+
   mrb_task *t = (mrb_task*)mrb_data_check_get_ptr(mrb, task, &mrb_task_type);
   if (!t) return;
 
