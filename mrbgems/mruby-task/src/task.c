@@ -48,6 +48,18 @@
 /* Convert microseconds to tick count */
 #define USEC_TO_TICKS(usec) (((usec) / 1000) / MRB_TICK_UNIT)
 
+/* Maximum value for scheduler_lock (uint8_t max) */
+#define MRB_TASK_SCHEDULER_LOCK_MAX 255
+
+/* Check scheduler lock and raise error if locked */
+static inline void
+task_check_scheduler_lock(mrb_state *mrb)
+{
+  if (mrb->task.scheduler_lock > 0) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "Cannot use asynchronous Task API during synchronous execution");
+  }
+}
+
 /*
  * Task data type for GC
  */
@@ -206,6 +218,24 @@ q_delete_task(mrb_state *mrb, mrb_task *t)
     prev = curr;
     curr = curr->next;
   }
+}
+
+/* Cleanup terminated task and move to dormant queue if needed */
+static inline mrb_bool
+task_cleanup_if_stopped(mrb_state *mrb, mrb_task *t)
+{
+  if (t->status == MRB_TASK_STATUS_DORMANT || t->c.status == MRB_TASK_STOPPED) {
+    /* Task is terminated but still in queue - remove it */
+    mrb_task_disable_irq();
+    q_delete_task(mrb, t);
+    if (t->status != MRB_TASK_STATUS_DORMANT) {
+      t->status = MRB_TASK_STATUS_DORMANT;
+      q_insert_task(mrb, t);
+    }
+    mrb_task_enable_irq();
+    return TRUE;
+  }
+  return FALSE;
 }
 
 /*
@@ -439,15 +469,7 @@ mrb_task_run(mrb_state *mrb)
     }
 
     /* Safety check - don't execute terminated tasks */
-    if (t->status == MRB_TASK_STATUS_DORMANT || t->c.status == MRB_TASK_STOPPED) {
-      /* Task is terminated but still in queue - remove it */
-      mrb_task_disable_irq();
-      q_delete_task(mrb, t);
-      if (t->status != MRB_TASK_STATUS_DORMANT) {
-        t->status = MRB_TASK_STATUS_DORMANT;
-        q_insert_task(mrb, t);
-      }
-      mrb_task_enable_irq();
+    if (task_cleanup_if_stopped(mrb, t)) {
       continue;
     }
 
@@ -480,15 +502,7 @@ mrb_task_run_once(mrb_state *mrb)
   }
 
   /* Safety check - don't execute terminated tasks */
-  if (t->status == MRB_TASK_STATUS_DORMANT || t->c.status == MRB_TASK_STOPPED) {
-    /* Task is terminated but still in queue - remove it */
-    mrb_task_disable_irq();
-    q_delete_task(mrb, t);
-    if (t->status != MRB_TASK_STATUS_DORMANT) {
-      t->status = MRB_TASK_STATUS_DORMANT;
-      q_insert_task(mrb, t);
-    }
-    mrb_task_enable_irq();
+  if (task_cleanup_if_stopped(mrb, t)) {
     return mrb_true_value();
   }
 
@@ -775,14 +789,7 @@ task_run_one_iteration(mrb_state *mrb)
   }
 
   /* Skip terminated tasks */
-  if (t->status == MRB_TASK_STATUS_DORMANT || t->c.status == MRB_TASK_STOPPED) {
-    mrb_task_disable_irq();
-    q_delete_task(mrb, t);
-    if (t->status != MRB_TASK_STATUS_DORMANT) {
-      t->status = MRB_TASK_STATUS_DORMANT;
-      q_insert_task(mrb, t);
-    }
-    mrb_task_enable_irq();
+  if (task_cleanup_if_stopped(mrb, t)) {
     return;
   }
 
@@ -1166,7 +1173,9 @@ mrb_execute_proc_synchronously(mrb_state *mrb, mrb_value proc_val, mrb_int argc,
   struct RProc *proc = mrb_proc_ptr(proc_val);
 
   /* 1. Lock scheduler and save context */
-  mrb_assert(mrb->task.scheduler_lock < 254);  /* Prevent overflow */
+  if (mrb->task.scheduler_lock >= MRB_TASK_SCHEDULER_LOCK_MAX) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "scheduler lock overflow");
+  }
   mrb->task.scheduler_lock++;
   struct mrb_context *original_c = mrb->c;
 
@@ -1253,10 +1262,7 @@ mrb_task_s_tick(mrb_state *mrb, mrb_value self)
 MRB_API mrb_value
 mrb_create_task(mrb_state *mrb, struct RProc *proc, mrb_value name, mrb_value priority, mrb_value top_self)
 {
-  /* Check scheduler lock */
-  if (mrb->task.scheduler_lock > 0) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "Cannot create task during synchronous execution");
-  }
+  task_check_scheduler_lock(mrb);
 
   /* Validate/default priority */
   mrb_int prio = 128;  /* Default priority */
@@ -1317,9 +1323,7 @@ mrb_create_task(mrb_state *mrb, struct RProc *proc, mrb_value name, mrb_value pr
 MRB_API void
 mrb_suspend_task(mrb_state *mrb, mrb_value task)
 {
-  if (mrb->task.scheduler_lock > 0) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "Cannot use asynchronous Task API during synchronous execution");
-  }
+  task_check_scheduler_lock(mrb);
 
   mrb_task *t = (mrb_task*)mrb_data_check_get_ptr(mrb, task, &mrb_task_type);
   if (!t) return;
@@ -1338,9 +1342,7 @@ mrb_suspend_task(mrb_state *mrb, mrb_value task)
 MRB_API void
 mrb_resume_task(mrb_state *mrb, mrb_value task)
 {
-  if (mrb->task.scheduler_lock > 0) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "Cannot use asynchronous Task API during synchronous execution");
-  }
+  task_check_scheduler_lock(mrb);
 
   mrb_task *t = (mrb_task*)mrb_data_check_get_ptr(mrb, task, &mrb_task_type);
   if (!t) return;
@@ -1375,6 +1377,8 @@ mrb_resume_task(mrb_state *mrb, mrb_value task)
 MRB_API void
 mrb_terminate_task(mrb_state *mrb, mrb_value task)
 {
+  task_check_scheduler_lock(mrb);
+
   mrb_task *t = (mrb_task*)mrb_data_check_get_ptr(mrb, task, &mrb_task_type);
   if (!t) return;
 
@@ -1396,6 +1400,8 @@ mrb_terminate_task(mrb_state *mrb, mrb_value task)
 MRB_API mrb_bool
 mrb_stop_task(mrb_state *mrb, mrb_value task)
 {
+  task_check_scheduler_lock(mrb);
+
   mrb_task *t = (mrb_task*)mrb_data_check_get_ptr(mrb, task, &mrb_task_type);
   if (!t) return FALSE;
 
@@ -1424,6 +1430,8 @@ mrb_task_value(mrb_state *mrb, mrb_value task)
 MRB_API void
 mrb_task_init_context(mrb_state *mrb, mrb_value task, struct RProc *proc)
 {
+  task_check_scheduler_lock(mrb);
+
   mrb_task *t = (mrb_task*)mrb_data_check_get_ptr(mrb, task, &mrb_task_type);
   if (!t) return;
 
@@ -1449,6 +1457,8 @@ mrb_task_init_context(mrb_state *mrb, mrb_value task, struct RProc *proc)
 MRB_API void
 mrb_task_reset_context(mrb_state *mrb, mrb_value task)
 {
+  task_check_scheduler_lock(mrb);
+
   mrb_task *t = (mrb_task*)mrb_data_check_get_ptr(mrb, task, &mrb_task_type);
   if (!t) return;
 
@@ -1466,6 +1476,8 @@ mrb_task_reset_context(mrb_state *mrb, mrb_value task)
 MRB_API void
 mrb_task_proc_set(mrb_state *mrb, mrb_value task, struct RProc *proc)
 {
+  task_check_scheduler_lock(mrb);
+
   mrb_task *t = (mrb_task*)mrb_data_check_get_ptr(mrb, task, &mrb_task_type);
   if (!t) return;
 
