@@ -2755,6 +2755,9 @@ mpz_to_s_dc(mpz_ctx_t *ctx, char *s, mpz_t *x)
     /* Do the recursive conversion */
     mpz_to_s_dc_recur(ctx, s, &tmp, num_digits, pow5, num_powers, &scratch);
 
+    /* Null-terminate the string */
+    s[num_digits] = '\0';
+
     mrb->jmp = prev_jmp;
   } MRB_CATCH(&c_jmp) {
     mrb->jmp = prev_jmp;
