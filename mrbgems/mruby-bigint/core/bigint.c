@@ -3000,11 +3000,13 @@ mpz_or(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient 
   if (zero_p(x)) {
     mpz_init_heap(ctx, z, y->sz);
     mpz_set(ctx, z, y);
+    trim(z);
     return;
   }
   if (zero_p(y)) {
     mpz_init_heap(ctx, z, x->sz);
     mpz_set(ctx, z, x);
+    trim(z);
     return;
   }
   mrb_assert(x->sz > 0 || y->sz > 0);
@@ -3034,11 +3036,13 @@ mpz_xor(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient
   if (zero_p(x)) {
     mpz_init_heap(ctx, z, y->sz);
     mpz_set(ctx, z, y);
+    trim(z);
     return;
   }
   if (zero_p(y)) {
     mpz_init_heap(ctx, z, x->sz);
     mpz_set(ctx, z, x);
+    trim(z);
     return;
   }
   mrb_assert(x->sz > 0 || y->sz > 0);
