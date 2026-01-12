@@ -1460,50 +1460,63 @@ mpz_mul_sparse(mpz_ctx_t *ctx, mpz_t *w, mpz_t *sparse, mpz_t *dense)
 static void
 mpz_mul_all_ones(mpz_ctx_t *ctx, mpz_t *w, size_t n, size_t m)
 {
-  mpz_t a;
+  struct mrb_jmpbuf *prev_jmp = ctx->mrb->jmp;
+  struct mrb_jmpbuf c_jmp;
+  mpz_t a = {0, 0, 0};
+  mpz_t b = {0, 0, 0};
 
-  if (n == m) {
-    /* Squaring: (2^n - 1)^2 = 2^(2n) - 2^(n+1) + 1 */
-    /* Start with 2^(2n) */
-    mpz_init(ctx, &a);
-    mpz_set_int(ctx, &a, 1);
-    mpz_mul_2exp(ctx, w, &a, 2*n);
+  MRB_TRY(&c_jmp) {
+    ctx->mrb->jmp = &c_jmp;
 
-    /* Subtract 2^(n+1) */
-    mpz_set_int(ctx, &a, 1);
-    mpz_mul_2exp(ctx, &a, &a, n+1);
-    mpz_sub(ctx, w, w, &a);
+    if (n == m) {
+      /* Squaring: (2^n - 1)^2 = 2^(2n) - 2^(n+1) + 1 */
+      /* Start with 2^(2n) */
+      mpz_init(ctx, &a);
+      mpz_set_int(ctx, &a, 1);
+      mpz_mul_2exp(ctx, w, &a, 2*n);
 
-    /* Add 1 */
-    mpz_add_int(ctx, w, 1);
-    mpz_clear(ctx, &a);
-  }
-  else {
-    /* General: (2^n - 1) * (2^m - 1) = 2^(n+m) - 2^n - 2^m + 1 */
-    mpz_t b;
-    mpz_init(ctx, &a);
-    mpz_init(ctx, &b);
+      /* Subtract 2^(n+1) */
+      mpz_set_int(ctx, &a, 1);
+      mpz_mul_2exp(ctx, &a, &a, n+1);
+      mpz_sub(ctx, w, w, &a);
 
-    /* Start with 2^(n+m) */
-    mpz_set_int(ctx, &a, 1);
-    mpz_mul_2exp(ctx, w, &a, n+m);
+      /* Add 1 */
+      mpz_add_int(ctx, w, 1);
+    }
+    else {
+      /* General: (2^n - 1) * (2^m - 1) = 2^(n+m) - 2^n - 2^m + 1 */
+      mpz_init(ctx, &a);
+      mpz_init(ctx, &b);
 
-    /* Subtract 2^n */
-    mpz_set_int(ctx, &a, 1);
-    mpz_mul_2exp(ctx, &a, &a, n);
-    mpz_sub(ctx, w, w, &a);
+      /* Start with 2^(n+m) */
+      mpz_set_int(ctx, &a, 1);
+      mpz_mul_2exp(ctx, w, &a, n+m);
 
-    /* Subtract 2^m */
-    mpz_set_int(ctx, &b, 1);
-    mpz_mul_2exp(ctx, &b, &b, m);
-    mpz_sub(ctx, w, w, &b);
+      /* Subtract 2^n */
+      mpz_set_int(ctx, &a, 1);
+      mpz_mul_2exp(ctx, &a, &a, n);
+      mpz_sub(ctx, w, w, &a);
 
-    /* Add 1 */
-    mpz_add_int(ctx, w, 1);
+      /* Subtract 2^m */
+      mpz_set_int(ctx, &b, 1);
+      mpz_mul_2exp(ctx, &b, &b, m);
+      mpz_sub(ctx, w, w, &b);
 
+      /* Add 1 */
+      mpz_add_int(ctx, w, 1);
+    }
+
+    ctx->mrb->jmp = prev_jmp;
     mpz_clear(ctx, &a);
     mpz_clear(ctx, &b);
   }
+  MRB_CATCH(&c_jmp) {
+    ctx->mrb->jmp = prev_jmp;
+    mpz_clear(ctx, &a);
+    mpz_clear(ctx, &b);
+    MRB_THROW(ctx->mrb->jmp);
+  }
+  MRB_END_EXC(&c_jmp);
 }
 
 /* w = u^2 (squaring - faster than general multiplication) */
