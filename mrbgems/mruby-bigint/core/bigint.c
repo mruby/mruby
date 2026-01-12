@@ -1714,8 +1714,10 @@ urshift(mpz_ctx_t *ctx, mpz_t *c1, mpz_t *a, size_t n)
 {
   mrb_assert(n < DIG_SIZE);
 
-  if (n == 0)
+  if (n == 0) {
     mpz_set(ctx, c1, a);
+    trim(c1);
+  }
   else if (uzero_p(a)) {
     zero(c1);
   }
@@ -1740,8 +1742,10 @@ static void
 ulshift(mpz_ctx_t *ctx, mpz_t *c1, mpz_t *a, size_t n)
 {
   mrb_assert(n < DIG_SIZE);
-  if (n == 0)
+  if (n == 0) {
     mpz_set(ctx, c1, a);
+    trim(c1);
+  }
   else if (uzero_p(a)) {
     zero(c1);
   }
