@@ -2414,6 +2414,52 @@ static const mp_limb base_limit[34*2] = {
 #define DC_TO_S_THRESHOLD 1000
 
 /*
+ * Scratch buffer for D&C to_s to avoid repeated allocations.
+ * Contains preallocated work areas that are resized as needed.
+ */
+typedef struct {
+  mpz_t hi;       /* High part after split */
+  mpz_t lo;       /* Low part after split */
+  mpz_t q5;       /* Quotient from division by 5^k */
+  mpz_t r5;       /* Remainder from division by 5^k */
+  mpz_t q5_low;   /* Low bits of q5 for mod 2^k */
+  mpz_t tmp;      /* Temporary for base case */
+  mpz_t q_base;   /* Quotient for base case loop */
+  mrb_bool initialized;
+} dc_to_s_scratch_t;
+
+static void
+dc_scratch_init(mpz_ctx_t *ctx, dc_to_s_scratch_t *scratch, size_t max_limbs)
+{
+  if (scratch->initialized) return;
+
+  /* Preallocate with estimated sizes */
+  mpz_init_heap(ctx, &scratch->hi, max_limbs);
+  mpz_init_heap(ctx, &scratch->lo, max_limbs);
+  mpz_init_heap(ctx, &scratch->q5, max_limbs);
+  mpz_init_heap(ctx, &scratch->r5, max_limbs);
+  mpz_init_heap(ctx, &scratch->q5_low, max_limbs);
+  mpz_init_heap(ctx, &scratch->tmp, max_limbs);
+  mpz_init_heap(ctx, &scratch->q_base, max_limbs);
+  scratch->initialized = TRUE;
+}
+
+static void
+dc_scratch_clear(mpz_ctx_t *ctx, dc_to_s_scratch_t *scratch)
+{
+  if (!scratch->initialized) return;
+
+  mpz_clear(ctx, &scratch->hi);
+  mpz_clear(ctx, &scratch->lo);
+  mpz_clear(ctx, &scratch->q5);
+  mpz_clear(ctx, &scratch->r5);
+  mpz_clear(ctx, &scratch->q5_low);
+  mpz_clear(ctx, &scratch->tmp);
+  mpz_clear(ctx, &scratch->q_base);
+  scratch->initialized = FALSE;
+}
+
+/*
  * Recursive D&C conversion helper.
  * Converts x to decimal string, writing exactly num_digits characters.
  * The caller must ensure num_digits >= actual digits in x.
@@ -2438,29 +2484,35 @@ static const char digit_pairs[] =
 
 static void
 mpz_to_s_dc_recur(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
-                  mpz_t *pow5, size_t num_powers)
+                  mpz_t *pow5, size_t num_powers, dc_to_s_scratch_t *scratch)
 {
   /* Base case: use simple conversion for small numbers */
   if (num_digits <= DC_TO_S_THRESHOLD || num_powers == 0) {
     /* Convert to string in reverse order using batch extraction */
     size_t pos = num_digits;
-    mpz_t tmp;
-    mpz_init_set(ctx, &tmp, x);
 
-    while (pos > 0 && !zero_p(&tmp)) {
-      mpz_t q;
-      mpz_init_heap(ctx, &q, tmp.sz);
+    /* Use scratch buffers instead of allocating */
+    mpz_t *tmp = &scratch->tmp;
+    mpz_t *q = &scratch->q_base;
+
+    /* Ensure tmp has enough capacity and copy x */
+    mpz_realloc(ctx, tmp, x->sz);
+    mpz_set(ctx, tmp, x);
+
+    while (pos > 0 && !zero_p(tmp)) {
+      /* Ensure q has enough capacity */
+      mpz_realloc(ctx, q, tmp->sz);
       mp_dbl_limb r = 0;
 
       /* Divide by 10^9 to extract 9 digits at once */
-      for (size_t i = tmp.sz; i > 0; i--) {
-        r = (r << DIG_SIZE) | tmp.p[i-1];
-        q.p[i-1] = (mp_limb)(r / BATCH_DIVISOR);
+      for (size_t i = tmp->sz; i > 0; i--) {
+        r = (r << DIG_SIZE) | tmp->p[i-1];
+        q->p[i-1] = (mp_limb)(r / BATCH_DIVISOR);
         r %= BATCH_DIVISOR;
       }
-      q.sz = tmp.sz;
-      q.sn = tmp.sn;
-      trim(&q);
+      q->sz = tmp->sz;
+      q->sn = tmp->sn;
+      trim(q);
 
       /* Convert remainder (0-999999999) to 9 digits using table lookup */
       mp_limb batch = (mp_limb)r;
@@ -2477,8 +2529,10 @@ mpz_to_s_dc_recur(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
         s[--pos] = digit_pairs[pair * 2];
       }
 
-      mpz_set(ctx, &tmp, &q);
-      mpz_clear(ctx, &q);
+      /* Swap tmp and q pointers for next iteration */
+      mpz_t *swap = tmp;
+      tmp = q;
+      q = swap;
     }
 
     /* Fill remaining positions with zeros */
@@ -2486,7 +2540,6 @@ mpz_to_s_dc_recur(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
       s[--pos] = '0';
     }
 
-    mpz_clear(ctx, &tmp);
     return;
   }
 
@@ -2543,10 +2596,10 @@ mpz_to_s_dc_recur(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
 
   /* Recursively convert high part */
   size_t hi_digits = num_digits - split_digits;
-  mpz_to_s_dc_recur(ctx, s, &hi, hi_digits, pow5, split_idx);
+  mpz_to_s_dc_recur(ctx, s, &hi, hi_digits, pow5, split_idx, scratch);
 
   /* Recursively convert low part (exactly split_digits digits with padding) */
-  mpz_to_s_dc_recur(ctx, s + hi_digits, &lo, split_digits, pow5, split_idx);
+  mpz_to_s_dc_recur(ctx, s + hi_digits, &lo, split_digits, pow5, split_idx, scratch);
 
   mpz_clear(ctx, &hi);
   mpz_clear(ctx, &lo);
@@ -2584,11 +2637,13 @@ mpz_to_s_dc(mpz_ctx_t *ctx, char *s, mpz_t *x)
 #define MAX_POWERS 64
   mpz_t pow5[MAX_POWERS];
   mpz_t tmp;
+  dc_to_s_scratch_t scratch;
   size_t num_powers = 0;
 
   /* Zero-initialize so mpz_clear is safe on uninitialized entries */
   memset(pow5, 0, sizeof(pow5));
   memset(&tmp, 0, sizeof(tmp));
+  memset(&scratch, 0, sizeof(scratch));
 
   /* Use exception handling to ensure cleanup on error */
   struct mrb_jmpbuf *prev_jmp = mrb->jmp;
@@ -2616,8 +2671,11 @@ mpz_to_s_dc(mpz_ctx_t *ctx, char *s, mpz_t *x)
     mpz_init_set(ctx, &tmp, x);
     tmp.sn = 1;  /* Work with absolute value */
 
+    /* Initialize scratch buffers for base case optimization */
+    dc_scratch_init(ctx, &scratch, x->sz);
+
     /* Do the recursive conversion */
-    mpz_to_s_dc_recur(ctx, s, &tmp, num_digits, pow5, num_powers);
+    mpz_to_s_dc_recur(ctx, s, &tmp, num_digits, pow5, num_powers, &scratch);
 
     mrb->jmp = prev_jmp;
   } MRB_CATCH(&c_jmp) {
@@ -2627,6 +2685,7 @@ mpz_to_s_dc(mpz_ctx_t *ctx, char *s, mpz_t *x)
       mpz_clear(ctx, &pow5[i]);
     }
     mpz_clear(ctx, &tmp);
+    dc_scratch_clear(ctx, &scratch);
     MRB_THROW(prev_jmp);
   } MRB_END_EXC(&c_jmp);
 
@@ -2635,6 +2694,7 @@ mpz_to_s_dc(mpz_ctx_t *ctx, char *s, mpz_t *x)
     mpz_clear(ctx, &pow5[i]);
   }
   mpz_clear(ctx, &tmp);
+  dc_scratch_clear(ctx, &scratch);
 
   /* Remove leading zeros (but keep at least one digit) */
   char *p = s;
