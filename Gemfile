@@ -6,3 +6,7 @@ gem 'rake'
 gem 'yard'
 gem 'yard-coderay'
 gem 'yard-mruby'
+
+group :development, :test do
+  gem 'bundler-audit', require: false
+end
