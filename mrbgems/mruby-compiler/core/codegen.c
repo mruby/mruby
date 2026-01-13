@@ -6626,10 +6626,12 @@ codegen(codegen_scope *s, node *tree, int val)
         }
 
         /* Optimize: single JMPNOT can be inverted to JMPIF, eliminating JMP */
-        /* Conditions: (1) single entry in fail_pos chain, and
-         * (2) JMPNOT is immediately before current position (no code between) */
+        /* Conditions: (1) single entry in fail_pos chain,
+         * (2) JMPNOT is immediately before current position (no code between), and
+         * (3) the instruction is actually JMPNOT (not JMP from undefined pinned var) */
         if ((int32_t)(fail_pos + 2) + (int16_t)PEEK_S(s->iseq+fail_pos) == 0 &&
-            fail_pos + 2 == s->pc) {
+            fail_pos + 2 == s->pc &&
+            s->iseq[fail_pos - 2] == OP_JMPNOT) {
           /* Single failure point - invert JMPNOT to JMPIF */
           s->iseq[fail_pos - 2] = OP_JMPIF;
           match_pos = fail_pos;
