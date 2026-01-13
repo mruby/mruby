@@ -2515,8 +2515,7 @@ typedef struct {
   mpz_t q5;       /* Quotient from division by 5^k */
   mpz_t r5;       /* Remainder from division by 5^k */
   mpz_t q5_low;   /* Low bits of q5 for mod 2^k */
-  mpz_t tmp;      /* Temporary for base case */
-  mpz_t q_base;   /* Quotient for base case loop */
+  mpz_t tmp;      /* Temporary for base case (in-place division) */
   mrb_bool initialized;
 } dc_to_s_scratch_t;
 
@@ -2535,7 +2534,6 @@ dc_scratch_init(mpz_ctx_t *ctx, dc_to_s_scratch_t *scratch, size_t max_limbs)
   mpz_init_heap(ctx, &scratch->r5, max_limbs);
   mpz_init_heap(ctx, &scratch->q5_low, max_limbs);
   mpz_init_heap(ctx, &scratch->tmp, max_limbs);
-  mpz_init_heap(ctx, &scratch->q_base, max_limbs);
   scratch->initialized = TRUE;
 }
 
@@ -2555,7 +2553,6 @@ dc_scratch_clear(mpz_ctx_t *ctx, dc_to_s_scratch_t *scratch)
   mpz_clear(ctx, &scratch->r5);
   mpz_clear(ctx, &scratch->q5_low);
   mpz_clear(ctx, &scratch->tmp);
-  mpz_clear(ctx, &scratch->q_base);
   scratch->initialized = FALSE;
 }
 
@@ -2568,6 +2565,24 @@ dc_scratch_clear(mpz_ctx_t *ctx, dc_to_s_scratch_t *scratch)
 /* Batch divisor: 10^9 for extracting 9 digits at once */
 #define BATCH_DIVISOR 1000000000UL
 #define BATCH_DIGITS 9
+
+/*
+ * Divide limb array by 10^9 in place, returning remainder.
+ * Used for extracting 9 decimal digits at a time.
+ * Compilers optimize constant division to multiplication+shift.
+ */
+static mp_limb
+mpn_div10_9(mp_limb *p, size_t sz)
+{
+  mp_dbl_limb rem = 0;
+  for (size_t i = sz; i > 0; i--) {
+    mp_dbl_limb n = (rem << DIG_SIZE) | p[i-1];
+    mp_dbl_limb q = n / BATCH_DIVISOR;
+    rem = n - q * BATCH_DIVISOR;
+    p[i-1] = (mp_limb)q;
+  }
+  return (mp_limb)rem;
+}
 
 /* Lookup table for fast 2-digit conversion (Lemire's small table technique) */
 static const char digit_pairs[] =
@@ -2592,31 +2607,19 @@ mpz_to_s_dc_recur(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
     /* Convert to string in reverse order using batch extraction */
     size_t pos = num_digits;
 
-    /* Use scratch buffers instead of allocating */
+    /* Use scratch buffer for working copy */
     mpz_t *tmp = &scratch->tmp;
-    mpz_t *q = &scratch->q_base;
 
     /* Ensure tmp has enough capacity and copy x */
     mpz_realloc(ctx, tmp, x->sz);
     mpz_set(ctx, tmp, x);
 
     while (pos > 0 && !zero_p(tmp)) {
-      /* Ensure q has enough capacity */
-      mpz_realloc(ctx, q, tmp->sz);
-      mp_dbl_limb r = 0;
-
-      /* Divide by 10^9 to extract 9 digits at once */
-      for (size_t i = tmp->sz; i > 0; i--) {
-        r = (r << DIG_SIZE) | tmp->p[i-1];
-        q->p[i-1] = (mp_limb)(r / BATCH_DIVISOR);
-        r %= BATCH_DIVISOR;
-      }
-      q->sz = tmp->sz;
-      q->sn = tmp->sn;
-      trim(q);
+      /* Divide by 10^9 in place, get remainder as 9 digits */
+      mp_limb batch = mpn_div10_9(tmp->p, tmp->sz);
+      trim(tmp);
 
       /* Convert remainder (0-999999999) to 9 digits using table lookup */
-      mp_limb batch = (mp_limb)r;
       /* Extract last digit (9th) separately since 9 is odd */
       if (pos > 0) {
         s[--pos] = '0' + (char)(batch % 10);
@@ -2633,11 +2636,6 @@ mpz_to_s_dc_recur(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
       if (pos > 0 && batch > 0) {
         s[--pos] = '0' + (char)(batch % 10);
       }
-
-      /* Swap tmp and q pointers for next iteration */
-      mpz_t *swap = tmp;
-      tmp = q;
-      q = swap;
     }
 
     /* Fill remaining positions with zeros */
