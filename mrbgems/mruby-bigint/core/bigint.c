@@ -450,10 +450,12 @@ mpz_add(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mpz_t *y)
 {
   if (zero_p(x)) {
     mpz_set(ctx, zz, y);
+    trim(zz);
     return;
   }
   if (zero_p(y)) {
     mpz_set(ctx, zz, x);
+    trim(zz);
     return;
   }
 
@@ -3058,6 +3060,7 @@ mpz_neg(mpz_ctx_t *ctx, mpz_t *x, mpz_t *y)
 {
   mpz_init_heap(ctx, x, y->sz);
   mpz_set(ctx, x, y);
+  trim(x);
   x->sn = -(y->sn);
 }
 
@@ -3082,6 +3085,7 @@ mpz_mod_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
       mpz_clear(ctx, z);
       mpz_init_heap(ctx, z, x->sz);
       mpz_set(ctx, z, x);
+      trim(z);
     }
     return;
   }
