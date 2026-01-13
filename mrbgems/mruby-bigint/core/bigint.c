@@ -9,7 +9,6 @@
 #include <mruby/numeric.h>
 #include <mruby/array.h>
 #include <mruby/string.h>
-#include <mruby/throw.h>
 #include <mruby/internal.h>
 #include <string.h>
 #include "bigint.h"
@@ -1346,63 +1345,49 @@ mpz_mul_sparse(mpz_ctx_t *ctx, mpz_t *w, mpz_t *sparse, mpz_t *dense)
 static void
 mpz_mul_all_ones(mpz_ctx_t *ctx, mpz_t *w, size_t n, size_t m)
 {
-  struct mrb_jmpbuf *prev_jmp = ctx->mrb->jmp;
-  struct mrb_jmpbuf c_jmp;
   mpz_t a = {0, 0, 0};
   mpz_t b = {0, 0, 0};
 
-  MRB_TRY(&c_jmp) {
-    ctx->mrb->jmp = &c_jmp;
+  if (n == m) {
+    /* Squaring: (2^n - 1)^2 = 2^(2n) - 2^(n+1) + 1 */
+    /* Start with 2^(2n) */
+    mpz_init(ctx, &a);
+    mpz_set_int(ctx, &a, 1);
+    mpz_mul_2exp(ctx, w, &a, 2*n);
 
-    if (n == m) {
-      /* Squaring: (2^n - 1)^2 = 2^(2n) - 2^(n+1) + 1 */
-      /* Start with 2^(2n) */
-      mpz_init(ctx, &a);
-      mpz_set_int(ctx, &a, 1);
-      mpz_mul_2exp(ctx, w, &a, 2*n);
+    /* Subtract 2^(n+1) */
+    mpz_set_int(ctx, &a, 1);
+    mpz_mul_2exp(ctx, &a, &a, n+1);
+    mpz_sub(ctx, w, w, &a);
 
-      /* Subtract 2^(n+1) */
-      mpz_set_int(ctx, &a, 1);
-      mpz_mul_2exp(ctx, &a, &a, n+1);
-      mpz_sub(ctx, w, w, &a);
-
-      /* Add 1 */
-      mpz_add_int(ctx, w, 1);
-    }
-    else {
-      /* General: (2^n - 1) * (2^m - 1) = 2^(n+m) - 2^n - 2^m + 1 */
-      mpz_init(ctx, &a);
-      mpz_init(ctx, &b);
-
-      /* Start with 2^(n+m) */
-      mpz_set_int(ctx, &a, 1);
-      mpz_mul_2exp(ctx, w, &a, n+m);
-
-      /* Subtract 2^n */
-      mpz_set_int(ctx, &a, 1);
-      mpz_mul_2exp(ctx, &a, &a, n);
-      mpz_sub(ctx, w, w, &a);
-
-      /* Subtract 2^m */
-      mpz_set_int(ctx, &b, 1);
-      mpz_mul_2exp(ctx, &b, &b, m);
-      mpz_sub(ctx, w, w, &b);
-
-      /* Add 1 */
-      mpz_add_int(ctx, w, 1);
-    }
-
-    ctx->mrb->jmp = prev_jmp;
-    mpz_clear(ctx, &a);
-    mpz_clear(ctx, &b);
+    /* Add 1 */
+    mpz_add_int(ctx, w, 1);
   }
-  MRB_CATCH(&c_jmp) {
-    ctx->mrb->jmp = prev_jmp;
-    mpz_clear(ctx, &a);
-    mpz_clear(ctx, &b);
-    MRB_THROW(ctx->mrb->jmp);
+  else {
+    /* General: (2^n - 1) * (2^m - 1) = 2^(n+m) - 2^n - 2^m + 1 */
+    mpz_init(ctx, &a);
+    mpz_init(ctx, &b);
+
+    /* Start with 2^(n+m) */
+    mpz_set_int(ctx, &a, 1);
+    mpz_mul_2exp(ctx, w, &a, n+m);
+
+    /* Subtract 2^n */
+    mpz_set_int(ctx, &a, 1);
+    mpz_mul_2exp(ctx, &a, &a, n);
+    mpz_sub(ctx, w, w, &a);
+
+    /* Subtract 2^m */
+    mpz_set_int(ctx, &b, 1);
+    mpz_mul_2exp(ctx, &b, &b, m);
+    mpz_sub(ctx, w, w, &b);
+
+    /* Add 1 */
+    mpz_add_int(ctx, w, 1);
   }
-  MRB_END_EXC(&c_jmp);
+
+  mpz_clear(ctx, &a);
+  mpz_clear(ctx, &b);
 }
 
 /* w = u^2 (squaring - faster than general multiplication) */
@@ -2699,8 +2684,6 @@ mpz_to_s_dc_recur(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
 static char*
 mpz_to_s_dc(mpz_ctx_t *ctx, char *s, mpz_t *x)
 {
-  mrb_state *mrb = MPZ_MRB(ctx);
-
   /* Handle sign */
   char *result = s;
   if (x->sn < 0) {
@@ -2714,7 +2697,6 @@ mpz_to_s_dc(mpz_ctx_t *ctx, char *s, mpz_t *x)
 
   /* Build table of powers: 5^(2^k) for k = 0, 1, 2, ...
      (10^k = 2^k * 5^k, and we handle 2^k with bit shifts)
-     Use stack allocation with zero-init to allow safe cleanup on exception.
      64 levels covers the full range of size_t on 64-bit systems. */
 #define MAX_POWERS 64
   mpz_t pow5[MAX_POWERS];
@@ -2727,54 +2709,35 @@ mpz_to_s_dc(mpz_ctx_t *ctx, char *s, mpz_t *x)
   memset(&tmp, 0, sizeof(tmp));
   memset(&scratch, 0, sizeof(scratch));
 
-  /* Use exception handling to ensure cleanup on error */
-  struct mrb_jmpbuf *prev_jmp = mrb->jmp;
-  struct mrb_jmpbuf c_jmp;
+  /* 5^1 */
+  mpz_init(ctx, &pow5[0]);
+  mpz_set_int(ctx, &pow5[0], 5);
+  num_powers = 1;
 
-  MRB_TRY(&c_jmp) {
-    mrb->jmp = &c_jmp;
+  /* Build powers by squaring: 5^(2^k) = (5^(2^(k-1)))^2 */
+  while (num_powers < MAX_POWERS) {
+    size_t power_digits = (size_t)1 << num_powers;
+    if (power_digits > num_digits) break;
 
-    /* 5^1 */
-    mpz_init(ctx, &pow5[0]);
-    mpz_set_int(ctx, &pow5[0], 5);
-    num_powers = 1;
+    mpz_init(ctx, &pow5[num_powers]);
+    mpz_sqr(ctx, &pow5[num_powers], &pow5[num_powers - 1]);
+    num_powers++;
+  }
 
-    /* Build powers by squaring: 5^(2^k) = (5^(2^(k-1)))^2 */
-    while (num_powers < MAX_POWERS) {
-      size_t power_digits = (size_t)1 << num_powers;
-      if (power_digits > num_digits) break;
+  /* Make a copy of x for conversion (to preserve original) */
+  mpz_init_set(ctx, &tmp, x);
+  tmp.sn = 1;  /* Work with absolute value */
 
-      mpz_init(ctx, &pow5[num_powers]);
-      mpz_sqr(ctx, &pow5[num_powers], &pow5[num_powers - 1]);
-      num_powers++;
-    }
+  /* Initialize scratch buffers for base case optimization */
+  dc_scratch_init(ctx, &scratch, x->sz);
 
-    /* Make a copy of x for conversion (to preserve original) */
-    mpz_init_set(ctx, &tmp, x);
-    tmp.sn = 1;  /* Work with absolute value */
+  /* Do the recursive conversion (starting at depth 0) */
+  mpz_to_s_dc_recur(ctx, s, &tmp, num_digits, pow5, num_powers, 0, &scratch);
 
-    /* Initialize scratch buffers for base case optimization */
-    dc_scratch_init(ctx, &scratch, x->sz);
+  /* Null-terminate the string */
+  s[num_digits] = '\0';
 
-    /* Do the recursive conversion (starting at depth 0) */
-    mpz_to_s_dc_recur(ctx, s, &tmp, num_digits, pow5, num_powers, 0, &scratch);
-
-    /* Null-terminate the string */
-    s[num_digits] = '\0';
-
-    mrb->jmp = prev_jmp;
-  } MRB_CATCH(&c_jmp) {
-    mrb->jmp = prev_jmp;
-    /* Clean up on exception and re-throw */
-    for (size_t i = 0; i < MAX_POWERS; i++) {
-      mpz_clear(ctx, &pow5[i]);
-    }
-    mpz_clear(ctx, &tmp);
-    dc_scratch_clear(ctx, &scratch);
-    MRB_THROW(prev_jmp);
-  } MRB_END_EXC(&c_jmp);
-
-  /* Clean up on success */
+  /* Clean up */
   for (size_t i = 0; i < num_powers; i++) {
     mpz_clear(ctx, &pow5[i]);
   }
