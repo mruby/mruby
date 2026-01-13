@@ -2657,12 +2657,7 @@ mpz_to_s_dc_recur(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
    *   lo = (q5 & ((1<<k)-1)) * 5^k + r5
    */
 
-  /* hi and lo must persist through recursive calls, so allocate fresh */
-  mpz_t hi, lo;
-  mpz_init(ctx, &hi);
-  mpz_init(ctx, &lo);
-
-  /* q5, r5, q5_low are only needed for computing hi/lo, reuse from scratch */
+  /* Reuse scratch buffers: q5, r5, q5_low */
   mpz_t *q5 = &scratch->q5;
   mpz_t *r5 = &scratch->r5;
   mpz_t *q5_low = &scratch->q5_low;
@@ -2671,24 +2666,46 @@ mpz_to_s_dc_recur(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
   mpz_mdivmod(ctx, q5, r5, x, &pow5[split_idx]);
   r5->sn = (r5->sn < 0) ? -r5->sn : r5->sn;
 
-  /* Step 2: hi = q5 >> split_digits (divide by 2^k using bit shift) */
-  mpz_div_2exp(ctx, &hi, q5, (mrb_int)split_digits);
-
-  /* Step 3: lo = (q5 mod 2^k) * 5^k + r5 */
+  /* Step 2: Extract q5_low = q5 mod 2^k BEFORE modifying q5 */
   mpz_mod_2exp(ctx, q5_low, q5, (mrb_int)split_digits);
 
+  /* Step 3: hi = q5 >> k - shift q5 in place to reuse as hi */
+  /* This avoids allocating a separate hi buffer */
+  mpz_t *hi = q5;  /* Reuse q5 as hi after shifting */
+  {
+    size_t limb_shift = split_digits / DIG_SIZE;
+    size_t bit_shift = split_digits % DIG_SIZE;
+
+    if (limb_shift >= q5->sz) {
+      zero(q5);
+    }
+    else {
+      size_t new_sz = q5->sz - limb_shift;
+      /* Shift limbs down */
+      memmove(q5->p, q5->p + limb_shift, new_sz * sizeof(mp_limb));
+      q5->sz = new_sz;
+      /* Apply bit shift if needed */
+      if (bit_shift > 0) {
+        mpn_rshift(q5->p, q5->p, q5->sz, (unsigned int)bit_shift);
+      }
+      trim(q5);
+    }
+  }
+
+  /* Step 4: lo = q5_low * 5^k + r5 - allocate fresh for lo */
+  mpz_t lo;
+  mpz_init(ctx, &lo);
   mpz_mul(ctx, &lo, q5_low, &pow5[split_idx]);
   mpz_add(ctx, &lo, &lo, r5);
   lo.sn = (lo.sn < 0) ? -lo.sn : lo.sn;
 
-  /* Recursively convert high part */
+  /* Recursively convert high part (using q5 which now contains hi) */
   size_t hi_digits = num_digits - split_digits;
-  mpz_to_s_dc_recur(ctx, s, &hi, hi_digits, pow5, split_idx, scratch);
+  mpz_to_s_dc_recur(ctx, s, hi, hi_digits, pow5, split_idx, scratch);
 
   /* Recursively convert low part (exactly split_digits digits with padding) */
   mpz_to_s_dc_recur(ctx, s + hi_digits, &lo, split_digits, pow5, split_idx, scratch);
 
-  mpz_clear(ctx, &hi);
   mpz_clear(ctx, &lo);
 }
 
