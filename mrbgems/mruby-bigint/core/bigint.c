@@ -9,6 +9,7 @@
 #include <mruby/numeric.h>
 #include <mruby/array.h>
 #include <mruby/string.h>
+#include <mruby/error.h>
 #include <mruby/internal.h>
 #include <string.h>
 #include "bigint.h"
@@ -1342,52 +1343,77 @@ mpz_mul_sparse(mpz_ctx_t *ctx, mpz_t *w, mpz_t *sparse, mpz_t *dense)
  *
  * This is O(n) instead of O(n^1.585) for Karatsuba.
  */
-static void
-mpz_mul_all_ones(mpz_ctx_t *ctx, mpz_t *w, size_t n, size_t m)
+struct mpz_mul_all_ones_data {
+  mpz_ctx_t *ctx;
+  mpz_t *w;
+  size_t n, m;
+  mpz_t a, b;  /* cleanup targets */
+};
+
+static mrb_value
+mpz_mul_all_ones_body(mrb_state *mrb, void *userdata)
 {
-  mpz_t a = {0, 0, 0};
-  mpz_t b = {0, 0, 0};
+  struct mpz_mul_all_ones_data *d = (struct mpz_mul_all_ones_data *)userdata;
+  mpz_ctx_t *ctx = d->ctx;
+  mpz_t *w = d->w;
+  size_t n = d->n, m = d->m;
 
   if (n == m) {
     /* Squaring: (2^n - 1)^2 = 2^(2n) - 2^(n+1) + 1 */
     /* Start with 2^(2n) */
-    mpz_init(ctx, &a);
-    mpz_set_int(ctx, &a, 1);
-    mpz_mul_2exp(ctx, w, &a, 2*n);
+    mpz_init(ctx, &d->a);
+    mpz_set_int(ctx, &d->a, 1);
+    mpz_mul_2exp(ctx, w, &d->a, 2*n);
 
     /* Subtract 2^(n+1) */
-    mpz_set_int(ctx, &a, 1);
-    mpz_mul_2exp(ctx, &a, &a, n+1);
-    mpz_sub(ctx, w, w, &a);
+    mpz_set_int(ctx, &d->a, 1);
+    mpz_mul_2exp(ctx, &d->a, &d->a, n+1);
+    mpz_sub(ctx, w, w, &d->a);
 
     /* Add 1 */
     mpz_add_int(ctx, w, 1);
   }
   else {
     /* General: (2^n - 1) * (2^m - 1) = 2^(n+m) - 2^n - 2^m + 1 */
-    mpz_init(ctx, &a);
-    mpz_init(ctx, &b);
+    mpz_init(ctx, &d->a);
+    mpz_init(ctx, &d->b);
 
     /* Start with 2^(n+m) */
-    mpz_set_int(ctx, &a, 1);
-    mpz_mul_2exp(ctx, w, &a, n+m);
+    mpz_set_int(ctx, &d->a, 1);
+    mpz_mul_2exp(ctx, w, &d->a, n+m);
 
     /* Subtract 2^n */
-    mpz_set_int(ctx, &a, 1);
-    mpz_mul_2exp(ctx, &a, &a, n);
-    mpz_sub(ctx, w, w, &a);
+    mpz_set_int(ctx, &d->a, 1);
+    mpz_mul_2exp(ctx, &d->a, &d->a, n);
+    mpz_sub(ctx, w, w, &d->a);
 
     /* Subtract 2^m */
-    mpz_set_int(ctx, &b, 1);
-    mpz_mul_2exp(ctx, &b, &b, m);
-    mpz_sub(ctx, w, w, &b);
+    mpz_set_int(ctx, &d->b, 1);
+    mpz_mul_2exp(ctx, &d->b, &d->b, m);
+    mpz_sub(ctx, w, w, &d->b);
 
     /* Add 1 */
     mpz_add_int(ctx, w, 1);
   }
 
-  mpz_clear(ctx, &a);
-  mpz_clear(ctx, &b);
+  return mrb_nil_value();
+}
+
+static void
+mpz_mul_all_ones(mpz_ctx_t *ctx, mpz_t *w, size_t n, size_t m)
+{
+  struct mpz_mul_all_ones_data d = {ctx, w, n, m, {0,0,0}, {0,0,0}};
+  mrb_bool error = FALSE;
+
+  mrb_value exc = mrb_protect_error(MPZ_MRB(ctx), mpz_mul_all_ones_body, &d, &error);
+
+  /* Cleanup always runs (mpz_clear is safe on zero-initialized mpz_t) */
+  mpz_clear(ctx, &d.a);
+  mpz_clear(ctx, &d.b);
+
+  if (error) {
+    mrb_exc_raise(MPZ_MRB(ctx), exc);
+  }
 }
 
 /* w = u^2 (squaring - faster than general multiplication) */
@@ -2681,6 +2707,59 @@ mpz_to_s_dc_recur(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
  * 5^k has fewer bits (2.32k vs 3.32k). The 2^k part is handled
  * with fast bit shifts.
  */
+#define MAX_POWERS 64
+
+struct mpz_to_s_dc_data {
+  mpz_ctx_t *ctx;
+  char *s;          /* output buffer (after sign) */
+  mpz_t *x;
+  size_t num_digits;
+  mpz_t pow5[MAX_POWERS];
+  mpz_t tmp;
+  dc_to_s_scratch_t scratch;
+  size_t num_powers; /* cleanup target count */
+};
+
+static mrb_value
+mpz_to_s_dc_body(mrb_state *mrb, void *userdata)
+{
+  struct mpz_to_s_dc_data *d = (struct mpz_to_s_dc_data *)userdata;
+  mpz_ctx_t *ctx = d->ctx;
+  char *s = d->s;
+  mpz_t *x = d->x;
+  size_t num_digits = d->num_digits;
+
+  /* 5^1 */
+  mpz_init(ctx, &d->pow5[0]);
+  mpz_set_int(ctx, &d->pow5[0], 5);
+  d->num_powers = 1;
+
+  /* Build powers by squaring: 5^(2^k) = (5^(2^(k-1)))^2 */
+  while (d->num_powers < MAX_POWERS) {
+    size_t power_digits = (size_t)1 << d->num_powers;
+    if (power_digits > num_digits) break;
+
+    mpz_init(ctx, &d->pow5[d->num_powers]);
+    mpz_sqr(ctx, &d->pow5[d->num_powers], &d->pow5[d->num_powers - 1]);
+    d->num_powers++;
+  }
+
+  /* Make a copy of x for conversion (to preserve original) */
+  mpz_init_set(ctx, &d->tmp, x);
+  d->tmp.sn = 1;  /* Work with absolute value */
+
+  /* Initialize scratch buffers for base case optimization */
+  dc_scratch_init(ctx, &d->scratch, x->sz);
+
+  /* Do the recursive conversion (starting at depth 0) */
+  mpz_to_s_dc_recur(ctx, s, &d->tmp, num_digits, d->pow5, d->num_powers, 0, &d->scratch);
+
+  /* Null-terminate the string */
+  s[num_digits] = '\0';
+
+  return mrb_nil_value();
+}
+
 static char*
 mpz_to_s_dc(mpz_ctx_t *ctx, char *s, mpz_t *x)
 {
@@ -2695,54 +2774,27 @@ mpz_to_s_dc(mpz_ctx_t *ctx, char *s, mpz_t *x)
   size_t bits = digits(x) * DIG_SIZE;
   size_t num_digits = (size_t)(bits * 30103UL / 100000UL) + 2;
 
-  /* Build table of powers: 5^(2^k) for k = 0, 1, 2, ...
-     (10^k = 2^k * 5^k, and we handle 2^k with bit shifts)
-     64 levels covers the full range of size_t on 64-bit systems. */
-#define MAX_POWERS 64
-  mpz_t pow5[MAX_POWERS];
-  mpz_t tmp;
-  dc_to_s_scratch_t scratch;
-  size_t num_powers = 0;
+  struct mpz_to_s_dc_data d;
+  memset(&d, 0, sizeof(d));
+  d.ctx = ctx;
+  d.s = s;
+  d.x = x;
+  d.num_digits = num_digits;
+  d.num_powers = 0;
 
-  /* Zero-initialize so mpz_clear is safe on uninitialized entries */
-  memset(pow5, 0, sizeof(pow5));
-  memset(&tmp, 0, sizeof(tmp));
-  memset(&scratch, 0, sizeof(scratch));
+  mrb_bool error = FALSE;
+  mrb_value exc = mrb_protect_error(MPZ_MRB(ctx), mpz_to_s_dc_body, &d, &error);
 
-  /* 5^1 */
-  mpz_init(ctx, &pow5[0]);
-  mpz_set_int(ctx, &pow5[0], 5);
-  num_powers = 1;
-
-  /* Build powers by squaring: 5^(2^k) = (5^(2^(k-1)))^2 */
-  while (num_powers < MAX_POWERS) {
-    size_t power_digits = (size_t)1 << num_powers;
-    if (power_digits > num_digits) break;
-
-    mpz_init(ctx, &pow5[num_powers]);
-    mpz_sqr(ctx, &pow5[num_powers], &pow5[num_powers - 1]);
-    num_powers++;
+  /* Cleanup always runs (mpz_clear is safe on zero-initialized mpz_t) */
+  for (size_t i = 0; i < d.num_powers; i++) {
+    mpz_clear(ctx, &d.pow5[i]);
   }
+  mpz_clear(ctx, &d.tmp);
+  dc_scratch_clear(ctx, &d.scratch);
 
-  /* Make a copy of x for conversion (to preserve original) */
-  mpz_init_set(ctx, &tmp, x);
-  tmp.sn = 1;  /* Work with absolute value */
-
-  /* Initialize scratch buffers for base case optimization */
-  dc_scratch_init(ctx, &scratch, x->sz);
-
-  /* Do the recursive conversion (starting at depth 0) */
-  mpz_to_s_dc_recur(ctx, s, &tmp, num_digits, pow5, num_powers, 0, &scratch);
-
-  /* Null-terminate the string */
-  s[num_digits] = '\0';
-
-  /* Clean up */
-  for (size_t i = 0; i < num_powers; i++) {
-    mpz_clear(ctx, &pow5[i]);
+  if (error) {
+    mrb_exc_raise(MPZ_MRB(ctx), exc);
   }
-  mpz_clear(ctx, &tmp);
-  dc_scratch_clear(ctx, &scratch);
 
   /* Remove leading zeros (but keep at least one digit) */
   char *p = s;
