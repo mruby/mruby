@@ -1700,34 +1700,6 @@ mpn_add(mp_limb *rp, const mp_limb *ap, size_t an, const mp_limb *bp, size_t bn)
 }
 
 /*
- * Add single limb to limb array.
- * rp[0..n-1] = ap[0..n-1] + b
- * Returns carry (0 or 1).
- * Supports in-place operation (rp == ap).
- */
-static mp_limb
-mpn_add_1(mp_limb *rp, const mp_limb *ap, size_t n, mp_limb b)
-{
-  mp_dbl_limb carry = b;
-
-  for (size_t i = 0; i < n; i++) {
-    carry += (mp_dbl_limb)ap[i];
-    rp[i] = LOW(carry);
-    carry = HIGH(carry);
-    if (carry == 0) {
-      /* No more carry, copy remaining limbs if needed */
-      if (rp != ap) {
-        for (i++; i < n; i++) {
-          rp[i] = ap[i];
-        }
-      }
-      return 0;
-    }
-  }
-  return (mp_limb)carry;
-}
-
-/*
  * Subtract two limb arrays of the same size.
  * rp[0..n-1] = ap[0..n-1] - bp[0..n-1]
  * Returns borrow (0 or 1).
@@ -1768,34 +1740,6 @@ mpn_sub(mp_limb *rp, const mp_limb *ap, size_t an, const mp_limb *bp, size_t bn)
     borrow += (mp_dbl_limb_signed)ap[i];
     rp[i] = LOW(borrow);
     borrow = HIGH(borrow);
-  }
-  return (mp_limb)(-borrow);
-}
-
-/*
- * Subtract single limb from limb array.
- * rp[0..n-1] = ap[0..n-1] - b
- * Returns borrow (0 or 1).
- * Supports in-place operation (rp == ap).
- */
-static mp_limb
-mpn_sub_1(mp_limb *rp, const mp_limb *ap, size_t n, mp_limb b)
-{
-  mp_dbl_limb_signed borrow = -(mp_dbl_limb_signed)b;
-
-  for (size_t i = 0; i < n; i++) {
-    borrow += (mp_dbl_limb_signed)ap[i];
-    rp[i] = LOW(borrow);
-    borrow = HIGH(borrow);
-    if (borrow == 0) {
-      /* No more borrow, copy remaining limbs if needed */
-      if (rp != ap) {
-        for (i++; i < n; i++) {
-          rp[i] = ap[i];
-        }
-      }
-      return 0;
-    }
   }
   return (mp_limb)(-borrow);
 }
