@@ -2502,10 +2502,16 @@ static const mp_limb base_limit[34*2] = {
 /*
  * Scratch buffer for D&C to_s to avoid repeated allocations.
  * Contains preallocated work areas that are resized as needed.
+ *
+ * The lo_stack provides a separate buffer for each recursion depth,
+ * preventing overwrites between parent and child calls. Each entry
+ * is allocated on first use with appropriate size for that depth.
  */
+#define DC_MAX_DEPTH 32  /* Covers up to 2^32 * 1000 digits */
+
 typedef struct {
-  mpz_t hi;       /* High part after split */
-  mpz_t lo;       /* Low part after split */
+  mpz_t lo_stack[DC_MAX_DEPTH]; /* Depth-indexed lo buffers */
+  mrb_bool lo_init[DC_MAX_DEPTH]; /* Initialized flags per depth */
   mpz_t q5;       /* Quotient from division by 5^k */
   mpz_t r5;       /* Remainder from division by 5^k */
   mpz_t q5_low;   /* Low bits of q5 for mod 2^k */
@@ -2519,9 +2525,12 @@ dc_scratch_init(mpz_ctx_t *ctx, dc_to_s_scratch_t *scratch, size_t max_limbs)
 {
   if (scratch->initialized) return;
 
-  /* Preallocate with estimated sizes */
-  mpz_init_heap(ctx, &scratch->hi, max_limbs);
-  mpz_init_heap(ctx, &scratch->lo, max_limbs);
+  /* lo_stack entries are initialized on demand per depth, not here */
+  for (size_t i = 0; i < DC_MAX_DEPTH; i++) {
+    scratch->lo_init[i] = FALSE;
+  }
+
+  /* Preallocate other scratch buffers with estimated sizes */
   mpz_init_heap(ctx, &scratch->q5, max_limbs);
   mpz_init_heap(ctx, &scratch->r5, max_limbs);
   mpz_init_heap(ctx, &scratch->q5_low, max_limbs);
@@ -2535,8 +2544,13 @@ dc_scratch_clear(mpz_ctx_t *ctx, dc_to_s_scratch_t *scratch)
 {
   if (!scratch->initialized) return;
 
-  mpz_clear(ctx, &scratch->hi);
-  mpz_clear(ctx, &scratch->lo);
+  /* Clear lo_stack entries that were initialized */
+  for (size_t i = 0; i < DC_MAX_DEPTH; i++) {
+    if (scratch->lo_init[i]) {
+      mpz_clear(ctx, &scratch->lo_stack[i]);
+    }
+  }
+
   mpz_clear(ctx, &scratch->q5);
   mpz_clear(ctx, &scratch->r5);
   mpz_clear(ctx, &scratch->q5_low);
@@ -2570,7 +2584,8 @@ static const char digit_pairs[] =
 
 static void
 mpz_to_s_dc_recur(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
-                  mpz_t *pow5, size_t num_powers, dc_to_s_scratch_t *scratch)
+                  mpz_t *pow5, size_t num_powers, size_t depth,
+                  dc_to_s_scratch_t *scratch)
 {
   /* Base case: use simple conversion for small numbers */
   if (num_digits <= DC_TO_S_THRESHOLD || num_powers == 0) {
@@ -2692,21 +2707,42 @@ mpz_to_s_dc_recur(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
     }
   }
 
-  /* Step 4: lo = q5_low * 5^k + r5 - allocate fresh for lo */
-  mpz_t lo;
-  mpz_init(ctx, &lo);
-  mpz_mul(ctx, &lo, q5_low, &pow5[split_idx]);
-  mpz_add(ctx, &lo, &lo, r5);
-  lo.sn = (lo.sn < 0) ? -lo.sn : lo.sn;
+  /* Step 4: lo = q5_low * 5^k + r5 - use depth-indexed lo buffer */
+  if (depth >= DC_MAX_DEPTH) {
+    /* Fallback: allocate fresh if depth exceeds limit (shouldn't happen) */
+    mpz_t lo;
+    mpz_init(ctx, &lo);
+    mpz_mul(ctx, &lo, q5_low, &pow5[split_idx]);
+    mpz_add(ctx, &lo, &lo, r5);
+    lo.sn = (lo.sn < 0) ? -lo.sn : lo.sn;
+
+    size_t hi_digits = num_digits - split_digits;
+    mpz_to_s_dc_recur(ctx, s, hi, hi_digits, pow5, split_idx, depth + 1, scratch);
+    mpz_to_s_dc_recur(ctx, s + hi_digits, &lo, split_digits, pow5, split_idx, depth + 1, scratch);
+    mpz_clear(ctx, &lo);
+    return;
+  }
+
+  /* Initialize lo_stack[depth] on first use at this depth */
+  mpz_t *lo = &scratch->lo_stack[depth];
+  if (!scratch->lo_init[depth]) {
+    /* Allocate with appropriate size for this depth level */
+    /* At depth d, lo is roughly x->sz / 2^(d+1) limbs, plus some margin */
+    size_t est_limbs = (x->sz >> 1) + 2;
+    mpz_init_heap(ctx, lo, est_limbs);
+    scratch->lo_init[depth] = TRUE;
+  }
+
+  mpz_mul(ctx, lo, q5_low, &pow5[split_idx]);
+  mpz_add(ctx, lo, lo, r5);
+  lo->sn = (lo->sn < 0) ? -lo->sn : lo->sn;
 
   /* Recursively convert high part (using q5 which now contains hi) */
   size_t hi_digits = num_digits - split_digits;
-  mpz_to_s_dc_recur(ctx, s, hi, hi_digits, pow5, split_idx, scratch);
+  mpz_to_s_dc_recur(ctx, s, hi, hi_digits, pow5, split_idx, depth + 1, scratch);
 
   /* Recursively convert low part (exactly split_digits digits with padding) */
-  mpz_to_s_dc_recur(ctx, s + hi_digits, &lo, split_digits, pow5, split_idx, scratch);
-
-  mpz_clear(ctx, &lo);
+  mpz_to_s_dc_recur(ctx, s + hi_digits, lo, split_digits, pow5, split_idx, depth + 1, scratch);
 }
 
 /*
@@ -2778,8 +2814,8 @@ mpz_to_s_dc(mpz_ctx_t *ctx, char *s, mpz_t *x)
     /* Initialize scratch buffers for base case optimization */
     dc_scratch_init(ctx, &scratch, x->sz);
 
-    /* Do the recursive conversion */
-    mpz_to_s_dc_recur(ctx, s, &tmp, num_digits, pow5, num_powers, &scratch);
+    /* Do the recursive conversion (starting at depth 0) */
+    mpz_to_s_dc_recur(ctx, s, &tmp, num_digits, pow5, num_powers, 0, &scratch);
 
     /* Null-terminate the string */
     s[num_digits] = '\0';
