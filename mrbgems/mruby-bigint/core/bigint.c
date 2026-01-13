@@ -2086,20 +2086,23 @@ udiv(mpz_ctx_t *ctx, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
 
       if (qhat > 0) {
         /* Subtract qhat * divisor from dividend */
+        /* Use pointers to avoid repeated i+j index calculation */
         mp_dbl_limb_signed borrow = 0;
-        size_t i;
+        mp_limb *xp = x.p + j;
+        mp_limb *xp_end = x.p + x.sz;
+        const mp_limb *yp = y.p;
 
-        for (i = 0; i < yd; i++) {
-          mp_dbl_limb product = qhat * y.p[i];
-          mp_dbl_limb_signed diff = (mp_dbl_limb_signed)x.p[i+j] - (mp_dbl_limb_signed)LOW(product) + borrow;
-          x.p[i+j] = LOW(diff);
+        for (size_t i = 0; i < yd; i++) {
+          mp_dbl_limb product = qhat * *yp++;
+          mp_dbl_limb_signed diff = (mp_dbl_limb_signed)*xp - (mp_dbl_limb_signed)LOW(product) + borrow;
+          *xp++ = LOW(diff);
           borrow = HIGH(diff) - (mp_dbl_limb_signed)HIGH(product);
         }
 
         /* Handle final borrow propagation */
-        if (i+j < x.sz) {
-          borrow += (mp_dbl_limb_signed)x.p[i+j];
-          x.p[i+j] = LOW(borrow);
+        if (xp < xp_end) {
+          borrow += (mp_dbl_limb_signed)*xp;
+          *xp = LOW(borrow);
           borrow = HIGH(borrow);
         }
 
@@ -2107,13 +2110,15 @@ udiv(mpz_ctx_t *ctx, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
         if (borrow < 0) {
           qhat--;
           mp_dbl_limb carry = 0;
-          for (i = 0; i < yd; i++) {
-            carry += (mp_dbl_limb)x.p[i+j] + (mp_dbl_limb)y.p[i];
-            x.p[i+j] = LOW(carry);
+          xp = x.p + j;
+          yp = y.p;
+          for (size_t i = 0; i < yd; i++) {
+            carry += (mp_dbl_limb)*xp + (mp_dbl_limb)*yp++;
+            *xp++ = LOW(carry);
             carry = HIGH(carry);
           }
-          if (i+j < x.sz && carry > 0) {
-            x.p[i+j] += (mp_limb)carry;
+          if (xp < xp_end && carry > 0) {
+            *xp += (mp_limb)carry;
           }
         }
       }
