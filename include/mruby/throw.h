@@ -2,6 +2,30 @@
 ** @file mruby/throw.h - mruby exception throwing handler
 **
 ** See Copyright Notice in mruby.h
+**
+** WARNING: This header is for mruby core internal use only.
+** Do not include this header in user code or mrbgems.
+**
+** When MRB_USE_CXX_EXCEPTION is defined, this header requires C++
+** compilation. C source files that include this header will fail
+** to compile when linked into C++ projects using MRB_USE_CXX_EXCEPTION.
+**
+** For exception-safe code in mrbgems and user code, use the
+** mrb_protect_error() API from <mruby/error.h> instead:
+**
+**   #include <mruby/error.h>
+**
+**   mrb_value my_func_body(mrb_state *mrb, void *data) {
+**     // code that may raise exceptions
+**     return result;
+**   }
+**
+**   void my_func(mrb_state *mrb) {
+**     mrb_bool error;
+**     mrb_value result = mrb_protect_error(mrb, my_func_body, data, &error);
+**     // cleanup code runs here regardless of exception
+**     if (error) mrb_exc_raise(mrb, result);
+**   }
 */
 
 #ifndef MRB_THROW_H
