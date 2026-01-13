@@ -99,7 +99,7 @@ pool_alloc(mpz_pool_t *pool, size_t limbs)
 
 /* Zero n limbs at p */
 static inline void
-limb_zero(mp_limb *p, size_t n)
+mpn_zero(mp_limb *p, size_t n)
 {
   memset(p, 0, n * sizeof(mp_limb));
 }
@@ -124,7 +124,7 @@ mpz_init_heap(mpz_ctx_t *ctx, mpz_t *s, size_t hint)
       mrb_raise(mrb, E_RUNTIME_ERROR, "bigint size too large");
     }
     s->p = (mp_limb*)mrb_malloc(MPZ_MRB(ctx), hint * sizeof(mp_limb));
-    limb_zero(s->p, hint);
+    mpn_zero(s->p, hint);
     s->sz = hint;
   }
   else {
@@ -200,7 +200,7 @@ mpz_realloc(mpz_ctx_t *ctx, mpz_t *x, size_t size)
 #endif
 
     /* Zero-initialize new limbs */
-    limb_zero(x->p + old_sz, size - old_sz);
+    mpn_zero(x->p + old_sz, size - old_sz);
     x->sz = size;
   }
 }
@@ -638,7 +638,7 @@ mpz_sub_int(mpz_ctx_t *ctx, mpz_t *x, mrb_int n)
 
 /* Multiply-and-add: rp[0..n-1] += s1p[0..n-1] * limb; return carry (high limb) */
 static inline mp_limb
-limb_addmul_1(mp_limb *rp, const mp_limb *s1p, size_t n, mp_limb limb)
+mpn_addmul_1(mp_limb *rp, const mp_limb *s1p, size_t n, mp_limb limb)
 {
 #if defined(__SIZEOF_INT128__) && (__SIZEOF_INT128__ == 16)
   /* Use 128-bit arithmetic with 8x unrolling for maximum efficiency */
@@ -743,6 +743,33 @@ limb_addmul_1(mp_limb *rp, const mp_limb *s1p, size_t n, mp_limb limb)
 #endif
 }
 
+/* Multiply-and-subtract: rp[0..n-1] -= s1p[0..n-1] * limb; return borrow */
+static inline mp_limb
+mpn_submul_1(mp_limb *rp, const mp_limb *s1p, size_t n, mp_limb limb)
+{
+  mp_dbl_limb borrow = 0;
+  for (size_t i = 0; i < n; i++) {
+    mp_dbl_limb prod = (mp_dbl_limb)s1p[i] * (mp_dbl_limb)limb;
+    mp_dbl_limb sub = (mp_dbl_limb)rp[i] - LOW(prod) - borrow;
+    rp[i] = LOW(sub);
+    /* Borrow is 1 if sub underflowed, plus HIGH(prod) */
+    borrow = HIGH(prod) + (sub >> (sizeof(mp_dbl_limb) * 8 - 1));
+  }
+  return (mp_limb)borrow;
+}
+
+/* Compare two same-length limb arrays: returns <0, 0, or >0 */
+static inline int
+mpn_cmp(const mp_limb *ap, const mp_limb *bp, size_t n)
+{
+  while (n-- > 0) {
+    if (ap[n] != bp[n]) {
+      return (ap[n] > bp[n]) ? 1 : -1;
+    }
+  }
+  return 0;
+}
+
 #define KARATSUBA_THRESHOLD 32
 
 static inline mrb_bool
@@ -751,7 +778,7 @@ should_use_karatsuba(size_t x_len, size_t y_len)
   return x_len >= KARATSUBA_THRESHOLD && y_len >= KARATSUBA_THRESHOLD;
 }
 
-/* w = u * v (optimized schoolbook using limb_addmul_1) */
+/* w = u * v (optimized schoolbook using mpn_addmul_1) */
 static void
 mpz_mul_basic(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v)
 {
@@ -774,9 +801,9 @@ mpz_mul_basic(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v)
     mp_limb scalar = b->p[0];
     mpz_t w;
     mpz_init_heap(ctx, &w, a->sz + 1);
-    limb_zero(w.p, a->sz + 1);
+    mpn_zero(w.p, a->sz + 1);
 
-    mp_limb carry = limb_addmul_1(w.p, a->p, a->sz, scalar);
+    mp_limb carry = mpn_addmul_1(w.p, a->p, a->sz, scalar);
     w.p[a->sz] = carry;
 
     w.sn = a->sn * b->sn;
@@ -787,13 +814,13 @@ mpz_mul_basic(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v)
 
   mpz_t w;
   mpz_init_heap(ctx, &w, a->sz + b->sz);
-  limb_zero(w.p, a->sz + b->sz);
+  mpn_zero(w.p, a->sz + b->sz);
 
   for (size_t j = 0; j < a->sz; j++) {
     mp_limb a_limb = a->p[j];
     if (a_limb == 0) continue;
 
-    mp_limb carry = limb_addmul_1(w.p + j, b->p, b->sz, a_limb);
+    mp_limb carry = mpn_addmul_1(w.p + j, b->p, b->sz, a_limb);
 
     /* Properly handle carry propagation to avoid overflow */
     size_t k = j + b->sz;
@@ -812,9 +839,9 @@ mpz_mul_basic(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v)
 
 /* Allocation-free Karatsuba helper functions */
 
-/* Copy limbs: dest[0..n-1] = src[0..n-1] */
+/* Copy limbs forward: dest[0..n-1] = src[0..n-1] */
 static void
-limb_copy(mp_limb *dest, const mp_limb *src, size_t n)
+mpn_copyi(mp_limb *dest, const mp_limb *src, size_t n)
 {
   if (n > 0) {
     memcpy(dest, src, n * sizeof(mp_limb));
@@ -857,11 +884,11 @@ static void
 mpz_mul_basic_limbs(mp_limb *result, const mp_limb *x, size_t x_len,
                     const mp_limb *y, size_t y_len)
 {
-  limb_zero(result, x_len + y_len);
+  mpn_zero(result, x_len + y_len);
 
   for (size_t i = 0; i < x_len; i++) {
     if (x[i] == 0) continue;
-    mp_limb carry = limb_addmul_1(result + i, y, y_len, x[i]);
+    mp_limb carry = mpn_addmul_1(result + i, y, y_len, x[i]);
     if (i + y_len < x_len + y_len) {
       result[i + y_len] += carry;
     }
@@ -886,7 +913,7 @@ static void
 mpz_sqr_basic_limbs(mp_limb *result, const mp_limb *x, size_t n)
 {
   size_t result_len = 2 * n;
-  limb_zero(result, result_len);
+  mpn_zero(result, result_len);
 
   /* Step 1: Compute off-diagonal terms xi * xj for i < j */
   for (size_t i = 0; i < n; i++) {
@@ -895,7 +922,7 @@ mpz_sqr_basic_limbs(mp_limb *result, const mp_limb *x, size_t n)
 
     if (i + 1 < n) {
       /* Compute xi * x[i+1..n-1] and add at position 2*i+1 */
-      mp_limb carry = limb_addmul_1(result + 2*i + 1, x + i + 1, n - i - 1, xi);
+      mp_limb carry = mpn_addmul_1(result + 2*i + 1, x + i + 1, n - i - 1, xi);
 
       /* Propagate carry */
       size_t k = 2*i + 1 + (n - i - 1);
@@ -1064,8 +1091,8 @@ mpz_mul_karatsuba(mpz_ctx_t *ctx, mp_limb *result,
 
   /* Step 4: Final assembly: result = z0 + z1*B + z2*B^2 */
   size_t result_len = x_len + y_len;
-  limb_zero(result, result_len);
-  limb_copy(result, z0, z0_len);
+  mpn_zero(result, result_len);
+  mpn_copyi(result, z0, z0_len);
   limb_add_at(result, result_len, z1, z1_len, half);
   limb_add_at(result, result_len, z2, z2_len, 2 * half);
 }
@@ -1171,8 +1198,8 @@ mpz_sqr_karatsuba(mpz_ctx_t *ctx, mp_limb *result, const mp_limb *x, size_t n,
 
   /* Step 4: Final assembly: result = z0 + z1*B + z2*B^2 */
   size_t result_len = 2 * n;
-  limb_zero(result, result_len);
-  limb_copy(result, z0, z0_len);
+  mpn_zero(result, result_len);
+  mpn_copyi(result, z0, z0_len);
   limb_add_at(result, result_len, z1, z1_len, half);
   limb_add_at(result, result_len, z2, z2_len, 2 * half);
 }
@@ -1937,7 +1964,6 @@ div_limb(mpz_ctx_t *ctx, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
 cleanup:
   pool_restore(ctx, pool_state);
 }
-
 
 static void
 udiv(mpz_ctx_t *ctx, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
