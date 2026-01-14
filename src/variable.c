@@ -44,27 +44,30 @@ iv_rehash(mrb_state *mrb, iv_tbl *t)
 {
   int old_alloc = t->alloc;
   int new_alloc = old_alloc > 0 ? old_alloc << 1 : IV_INITIAL_SIZE;
-  mrb_value *old_ptr = t->ptr;
-
-  /* allocate exactly the same total shape as before */
-  t->ptr   = (mrb_value*)mrb_calloc(mrb, new_alloc, sizeof(mrb_value)+sizeof(mrb_sym));
-  /* size remains unchanged, alloc grows */
-  t->alloc = new_alloc;
 
   if (old_alloc == 0) {
-    /* first‐time init: nothing to copy */
+    /* first-time init */
+    t->ptr = (mrb_value*)mrb_calloc(mrb, new_alloc, sizeof(mrb_value)+sizeof(mrb_sym));
+    t->alloc = new_alloc;
     return;
   }
 
-  /* pointers into the old block */
-  mrb_value *old_vals = old_ptr;
-  mrb_sym   *old_keys = (mrb_sym*)&old_ptr[old_alloc];
+  /* realloc may extend in place, avoiding malloc+memcpy+free */
+  size_t new_size = (size_t)new_alloc * (sizeof(mrb_value) + sizeof(mrb_sym));
+  t->ptr = (mrb_value*)mrb_realloc(mrb, t->ptr, new_size);
 
-  /* copy just the live range [0..size-1] */
-  memcpy(t->ptr, old_vals, sizeof(mrb_value)*t->size);
-  memcpy((mrb_sym*)&t->ptr[new_alloc], old_keys, sizeof(mrb_sym)*t->size);
+  /* move keys from old position to new position */
+  mrb_sym *old_keys = (mrb_sym*)&t->ptr[old_alloc];
+  mrb_sym *new_keys = (mrb_sym*)&t->ptr[new_alloc];
+  memmove(new_keys, old_keys, sizeof(mrb_sym) * t->size);
 
-  mrb_free(mrb, old_ptr);
+  /* clear extended value region (where old keys were + new slots) */
+  memset(&t->ptr[old_alloc], 0, sizeof(mrb_value) * (new_alloc - old_alloc));
+
+  /* clear extended key region */
+  memset(&new_keys[t->size], 0, sizeof(mrb_sym) * (new_alloc - t->size));
+
+  t->alloc = new_alloc;
 }
 
 /* Branch-free binary search helper: returns the index where `target` should be inserted/found. */
