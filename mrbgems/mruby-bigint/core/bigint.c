@@ -2165,7 +2165,7 @@ div_limb(mpz_ctx_t *ctx, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
       }
       else {
         size_t new_size = x->sz - limb_shift;
-        mpz_init_heap(ctx, &temp_q, new_size);
+        mpz_init_temp(ctx, &temp_q, new_size);
         mpz_init(ctx, &temp_r);
 
         if (bit_shift == 0) {
@@ -2203,8 +2203,8 @@ div_limb(mpz_ctx_t *ctx, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
   /* General single-limb division */
   if (x->sz == 1) {
     /* Both dividend and divisor are single limb */
-    mpz_init_heap(ctx, &temp_q, 1);
-    mpz_init_heap(ctx, &temp_r, 1);
+    mpz_init_temp(ctx, &temp_q, 1);
+    mpz_init_temp(ctx, &temp_r, 1);
 
     temp_q.p[0] = x->p[0] / d;
     temp_r.p[0] = x->p[0] % d;
@@ -2221,8 +2221,8 @@ div_limb(mpz_ctx_t *ctx, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
 
   /* Multi-limb dividend, single-limb divisor */
   n = x->sz;
-  mpz_init_heap(ctx, &temp_q, n);
-  mpz_init_heap(ctx, &temp_r, 1);
+  mpz_init_temp(ctx, &temp_q, n);
+  mpz_init_temp(ctx, &temp_r, 1);
 
   remainder = 0;
 
