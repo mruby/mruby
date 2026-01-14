@@ -770,14 +770,6 @@ mpn_cmp(const mp_limb *ap, const mp_limb *bp, size_t n)
   return 0;
 }
 
-#define KARATSUBA_THRESHOLD 32
-
-static inline mrb_bool
-should_use_karatsuba(size_t x_len, size_t y_len)
-{
-  return x_len >= KARATSUBA_THRESHOLD && y_len >= KARATSUBA_THRESHOLD;
-}
-
 /* w = u * v (optimized schoolbook using mpn_addmul_1) */
 static void
 mpz_mul_basic(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v)
@@ -837,7 +829,7 @@ mpz_mul_basic(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v)
   mpz_move(ctx, ww, &w);
 }
 
-/* Allocation-free Karatsuba helper functions */
+/* Allocation-free multiplication helper functions */
 
 /* Copy limbs forward: dest[0..n-1] = src[0..n-1] */
 static void
@@ -867,16 +859,6 @@ limb_add_at(mp_limb *dest, size_t dest_len, const mp_limb *src, size_t n, size_t
     carry = HIGH(sum);
     i++;
   }
-}
-
-/* Subtract limbs: dest[0..n-1] -= src[0..n-1], returns borrow */
-/* Forward declaration of mpn_sub_n (defined later) */
-static mp_limb mpn_sub_n(mp_limb*, const mp_limb*, const mp_limb*, size_t);
-
-static mp_limb
-limb_sub(mp_limb *dest, const mp_limb *src, size_t n)
-{
-  return mpn_sub_n(dest, dest, src, n);
 }
 
 /* Basic multiplication for small operands */
@@ -961,247 +943,534 @@ mpz_sqr_basic_limbs(mp_limb *result, const mp_limb *x, size_t n)
   }
 }
 
-/* Calculate scratch space needed for Karatsuba */
-static size_t
-karatsuba_scratch_size(size_t x_len, size_t y_len)
+/*
+ * Toom-3 (Toom-Cook 3-way) Multiplication
+ *
+ * Splits inputs into 3 parts and evaluates at 5 points: 0, 1, -1, 2, ∞
+ * Complexity: O(n^1.465) vs Karatsuba's O(n^1.585)
+ *
+ * For A = a2*B^2 + a1*B + a0 and similarly B:
+ *   - Evaluate polynomials at 5 points
+ *   - Multiply at each point (5 recursive calls)
+ *   - Interpolate to recover result coefficients
+ */
+
+#define TOOM3_THRESHOLD 50
+
+static inline mrb_bool
+should_use_toom3(size_t n)
 {
-  if (!should_use_karatsuba(x_len, y_len)) {
+  return n >= TOOM3_THRESHOLD;
+}
+
+/* Calculate scratch space needed for Toom-3 */
+static size_t
+toom3_scratch_size(size_t n)
+{
+  if (!should_use_toom3(n)) {
     return 0;
   }
 
-  if (x_len < y_len) {
-    size_t tmp = x_len; x_len = y_len; y_len = tmp;
-  }
-
-  size_t half = y_len / 2;
-  size_t x1_len = x_len - half;
-  size_t y1_len = y_len - half;
-
-  size_t sum_x_len = x1_len + 1;
-  size_t sum_y_len = y1_len + 1;
-
-  size_t z0_len = half + half;
-  size_t z2_len = x1_len + y1_len;
-  size_t z1_len = sum_x_len + sum_y_len;
-
-  size_t current_level_scratch = z0_len + z2_len + z1_len + sum_x_len + sum_y_len;
-
-  size_t sub_scratch = karatsuba_scratch_size(sum_x_len, sum_y_len);
-  size_t sub2 = karatsuba_scratch_size(x1_len, y1_len);
-  size_t sub3 = karatsuba_scratch_size(half, half);
-
-  if (sub2 > sub_scratch) sub_scratch = sub2;
-  if (sub3 > sub_scratch) sub_scratch = sub3;
+  size_t third = n / 3;
 
   /*
-   * Add safety margin to prevent buffer overflow in deep recursions.
-   * The exact amount needed depends on recursion depth and operand asymmetry,
-   * but 2 limbs per level provides sufficient headroom while keeping overhead
-   * minimal (< 0.5% for typical multiplications).
+   * Per level storage:
+   * - 6 evaluation results: v1_x, v1_y, vm1_x, vm1_y, v2_x, v2_y
+   *   Each up to (third + 3) limbs for carries
+   * - 5 product results: w0, w1, wm1, w2, winf
+   *   Each up to 2*(third + 3) + 16 limbs (recursive Toom-3 needs extra margin)
+   * - 4 interpolation temps: t4, t5, t6, r2_tmp
+   *   Each up to 2*(third + 3) + 16 limbs (in recursive_scratch area)
    */
-  return current_level_scratch + sub_scratch + 2;
+  size_t eval_len = third + 3;
+  size_t prod_len = 2 * eval_len + 16;
+
+  size_t eval_size = 6 * eval_len;           /* 6 evaluation temps */
+  size_t prod_size = 5 * prod_len;           /* 5 products */
+  size_t interp_size = 4 * prod_len;         /* 4 interpolation temps */
+  size_t current_level = eval_size + prod_size;
+
+  /* Recursive scratch (sequential calls, reuse same buffer) */
+  /* Must be at least interp_size for interpolation temps */
+  size_t sub_n = eval_len;  /* largest sub-multiplication size */
+  size_t sub_scratch = toom3_scratch_size(sub_n);
+  if (sub_scratch < interp_size) {
+    sub_scratch = interp_size;
+  }
+
+  return current_level + sub_scratch + 8;  /* +8 safety margin */
 }
 
-/* Pool-aware Karatsuba - zero intermediate allocations */
-static void
-mpz_mul_karatsuba(mpz_ctx_t *ctx, mp_limb *result,
-                  const mp_limb *x, size_t x_len,
-                  const mp_limb *y, size_t y_len,
-                  mp_limb *scratch)
+/*
+ * Divide limb array by 2 (right shift by 1 bit).
+ * Returns the shifted-out bit (0 or 1).
+ */
+static mp_limb
+mpn_rshift1(mp_limb *rp, const mp_limb *ap, size_t n)
 {
-  /* Base case - use basic multiplication */
-  if (!should_use_karatsuba(x_len, y_len)) {
+  mp_limb carry = 0;
+  for (size_t i = n; i > 0; i--) {
+    mp_limb a = ap[i-1];
+    rp[i-1] = (a >> 1) | (carry << (DIG_SIZE - 1));
+    carry = a & 1;
+  }
+  return carry;
+}
+
+/*
+ * Divide limb array by 3 (exact division).
+ * Precondition: the value is divisible by 3.
+ */
+static void
+mpn_divexact_3(mp_limb *rp, const mp_limb *ap, size_t n)
+{
+  /*
+   * Division by 3 using multiplicative inverse.
+   * For mod 2^32: inverse of 3 is 0xAAAAAAAB
+   * For mod 2^64: inverse of 3 is 0xAAAAAAAAAAAAAAAB
+   * x / 3 = x * inverse (mod 2^bits), with borrow propagation
+   */
+#if DIG_SIZE == 32
+  const mp_limb inv3 = 0xAAAAAAABUL;
+#else
+  const mp_limb inv3 = 0xAAAAAAAAAAAAAAABULL;
+#endif
+
+  mp_limb borrow = 0;
+  for (size_t i = 0; i < n; i++) {
+    mp_limb a = ap[i] - borrow;
+    mp_limb q = a * inv3;
+    rp[i] = q;
+    /* borrow = (q * 3 > a) ? ceil((q*3 - a) / 2^DIG_SIZE) : 0 */
+    /* Simplified: borrow for next iteration */
+    mp_dbl_limb prod = (mp_dbl_limb)q * 3;
+    borrow = (mp_limb)(prod >> DIG_SIZE);
+    if ((mp_limb)prod > ap[i]) borrow++;
+  }
+}
+
+/*
+ * Add with carry, handling different sizes.
+ * rp[0..rn-1] = ap[0..an-1] + bp[0..bn-1]
+ * rn must be >= max(an, bn)
+ * Returns final carry.
+ */
+static mp_limb
+mpn_add_var(mp_limb *rp, const mp_limb *ap, size_t an,
+            const mp_limb *bp, size_t bn, size_t rn)
+{
+  mp_limb carry = 0;
+  size_t i;
+
+  /* Add common part */
+  size_t min_n = (an < bn) ? an : bn;
+  for (i = 0; i < min_n; i++) {
+    mp_dbl_limb sum = (mp_dbl_limb)ap[i] + bp[i] + carry;
+    rp[i] = LOW(sum);
+    carry = HIGH(sum);
+  }
+
+  /* Copy and propagate carry through longer operand */
+  if (an > bn) {
+    for (; i < an; i++) {
+      mp_dbl_limb sum = (mp_dbl_limb)ap[i] + carry;
+      rp[i] = LOW(sum);
+      carry = HIGH(sum);
+    }
+  } else {
+    for (; i < bn; i++) {
+      mp_dbl_limb sum = (mp_dbl_limb)bp[i] + carry;
+      rp[i] = LOW(sum);
+      carry = HIGH(sum);
+    }
+  }
+
+  /* Zero-fill remainder and propagate final carry */
+  for (; i < rn; i++) {
+    rp[i] = carry;
+    carry = 0;
+  }
+
+  return carry;
+}
+
+/*
+ * Subtract with borrow, result may be negative.
+ * rp[0..n-1] = ap[0..n-1] - bp[0..n-1]
+ * Returns 1 if result is negative (borrow out), 0 otherwise.
+ */
+static mp_limb
+mpn_sub_var(mp_limb *rp, const mp_limb *ap, size_t an,
+            const mp_limb *bp, size_t bn, size_t n)
+{
+  mp_dbl_limb_signed borrow = 0;
+  size_t i;
+
+  for (i = 0; i < n; i++) {
+    mp_limb a = (i < an) ? ap[i] : 0;
+    mp_limb b = (i < bn) ? bp[i] : 0;
+    borrow += (mp_dbl_limb_signed)a - (mp_dbl_limb_signed)b;
+    rp[i] = LOW(borrow);
+    borrow = HIGH(borrow);
+  }
+
+  return (borrow < 0) ? 1 : 0;
+}
+
+/*
+ * Negate a limb array (two's complement).
+ * rp[0..n-1] = -ap[0..n-1]
+ */
+static void
+mpn_neg(mp_limb *rp, const mp_limb *ap, size_t n)
+{
+  mp_limb carry = 1;
+  for (size_t i = 0; i < n; i++) {
+    mp_dbl_limb sum = (mp_dbl_limb)(~ap[i]) + carry;
+    rp[i] = LOW(sum);
+    carry = HIGH(sum);
+  }
+}
+
+/* Pool-aware Toom-3 multiplication */
+static void
+mpz_mul_toom3(mpz_ctx_t *ctx, mp_limb *result,
+              const mp_limb *x, size_t x_len,
+              const mp_limb *y, size_t y_len,
+              mp_limb *scratch)
+{
+  /*
+   * Base case - use schoolbook.
+   * Toom-3 requires both operands to be large enough to avoid
+   * buffer overflow when writing at offset 4*third.
+   */
+  size_t min_len = (x_len < y_len) ? x_len : y_len;
+  size_t n = (x_len > y_len) ? x_len : y_len;
+  if (!should_use_toom3(min_len)) {
     mpz_mul_basic_limbs(result, x, x_len, y, y_len);
     return;
   }
 
-  /* Make x the larger operand for consistent partitioning */
-  if (x_len < y_len) {
-    const mp_limb *tmp_ptr = x; x = y; y = tmp_ptr;
-    size_t tmp_len = x_len; x_len = y_len; y_len = tmp_len;
-  }
-
-  /* Partition inputs */
-  size_t half = y_len / 2;
+  /*
+   * Split: x = x2*B^2 + x1*B + x0, y = y2*B^2 + y1*B + y0
+   * where B = base^third
+   */
+  size_t third = n / 3;
+  size_t x0_len = (x_len > third) ? third : x_len;
+  size_t x1_len = (x_len > 2*third) ? third : ((x_len > third) ? x_len - third : 0);
+  size_t x2_len = (x_len > 2*third) ? x_len - 2*third : 0;
+  size_t y0_len = (y_len > third) ? third : y_len;
+  size_t y1_len = (y_len > 2*third) ? third : ((y_len > third) ? y_len - third : 0);
+  size_t y2_len = (y_len > 2*third) ? y_len - 2*third : 0;
 
   const mp_limb *x0 = x;
-  const mp_limb *x1 = x + half;
+  const mp_limb *x1 = x + third;
+  const mp_limb *x2 = x + 2*third;
   const mp_limb *y0 = y;
-  const mp_limb *y1 = y + half;
+  const mp_limb *y1 = y + third;
+  const mp_limb *y2 = y + 2*third;
 
-  size_t x0_len = half;
-  size_t x1_len = x_len - half;
-  size_t y0_len = half;
-  size_t y1_len = y_len - half;
+  /* Allocate scratch space */
+  size_t eval_len = third + 3;  /* max size after evaluation with carries */
+  /*
+   * Product buffers need extra space because recursive Toom-3 calls
+   * write x_len + y_len + 16 limbs. With x_len, y_len <= eval_len,
+   * maximum is 2*eval_len + 16.
+   */
+  size_t prod_len = 2 * eval_len + 16;
 
-  /* Partition scratch memory */
   size_t offset = 0;
-  mp_limb *z0 = scratch + offset; offset += x0_len + y0_len;
-  mp_limb *z2 = scratch + offset; offset += x1_len + y1_len;
-  mp_limb *sum_x = scratch + offset; offset += x1_len + 1;
-  mp_limb *sum_y = scratch + offset; offset += y1_len + 1;
-  mp_limb *z1 = scratch + offset;
-  size_t z1_alloc_len = (x1_len + 1) + (y1_len + 1);
-  offset += z1_alloc_len;
+  mp_limb *v1_x = scratch + offset; offset += eval_len;
+  mp_limb *v1_y = scratch + offset; offset += eval_len;
+  mp_limb *vm1_x = scratch + offset; offset += eval_len;
+  mp_limb *vm1_y = scratch + offset; offset += eval_len;
+  mp_limb *v2_x = scratch + offset; offset += eval_len;
+  mp_limb *v2_y = scratch + offset; offset += eval_len;
 
-  /* Step 1: Compute sums x0+x1 and y0+y1 */
-  mp_limb carry_x = 0;
-  size_t i;
-  for (i = 0; i < x1_len; i++) {
-    mp_dbl_limb sum = (mp_dbl_limb)(i < x0_len ? x0[i] : 0) + (mp_dbl_limb)x1[i] + carry_x;
-    sum_x[i] = LOW(sum);
-    carry_x = HIGH(sum);
-  }
-  sum_x[i] = carry_x;
-  size_t sum_x_len = x1_len + (carry_x != 0);
+  mp_limb *w0 = scratch + offset; offset += prod_len;
+  mp_limb *w1 = scratch + offset; offset += prod_len;
+  mp_limb *wm1 = scratch + offset; offset += prod_len;
+  mp_limb *w2 = scratch + offset; offset += prod_len;
+  mp_limb *winf = scratch + offset; offset += prod_len;
 
-  mp_limb carry_y = 0;
-  for (i = 0; i < y1_len; i++) {
-    mp_dbl_limb sum = (mp_dbl_limb)(i < y0_len ? y0[i] : 0) + (mp_dbl_limb)y1[i] + carry_y;
-    sum_y[i] = LOW(sum);
-    carry_y = HIGH(sum);
-  }
-  sum_y[i] = carry_y;
-  size_t sum_y_len = y1_len + (carry_y != 0);
-
-  /* Step 2: Recursive multiplications */
   mp_limb *recursive_scratch = scratch + offset;
-  mpz_mul_karatsuba(ctx, z0, x0, x0_len, y0, y0_len, recursive_scratch);
-  mpz_mul_karatsuba(ctx, z2, x1, x1_len, y1, y1_len, recursive_scratch);
-  mpz_mul_karatsuba(ctx, z1, sum_x, sum_x_len, sum_y, sum_y_len, recursive_scratch);
 
-  /* Step 3: Compute z1 = z1 - z0 - z2 */
-  size_t z0_len = x0_len + y0_len;
-  size_t z2_len = x1_len + y1_len;
-  size_t z1_len = sum_x_len + sum_y_len;
+  /*
+   * Evaluation at 5 points:
+   * v0 = x0, y0 (reuse input)
+   * v1 = x0 + x1 + x2, y0 + y1 + y2
+   * vm1 = x0 - x1 + x2, y0 - y1 + y2
+   * v2 = x0 + 2*x1 + 4*x2, y0 + 2*y1 + 4*y2
+   * vinf = x2, y2 (reuse input)
+   */
 
-  mp_limb borrow = limb_sub(z1, z0, z0_len);
-  for (i = z0_len; i < z1_len && borrow; i++) {
-    mp_dbl_limb_signed diff = (mp_dbl_limb_signed)z1[i] - borrow;
-    z1[i] = LOW(diff);
-    borrow = (diff < 0) ? 1 : 0;
+  /* v1 = x0 + x1 + x2 */
+  mpn_zero(v1_x, eval_len);
+  mpn_copyi(v1_x, x0, x0_len);
+  if (x1_len > 0) mpn_add(v1_x, v1_x, eval_len, x1, x1_len);
+  if (x2_len > 0) mpn_add(v1_x, v1_x, eval_len, x2, x2_len);
+  size_t v1_x_len = eval_len;
+  while (v1_x_len > 0 && v1_x[v1_x_len-1] == 0) v1_x_len--;
+  if (v1_x_len == 0) v1_x_len = 1;
+
+  mpn_zero(v1_y, eval_len);
+  mpn_copyi(v1_y, y0, y0_len);
+  if (y1_len > 0) mpn_add(v1_y, v1_y, eval_len, y1, y1_len);
+  if (y2_len > 0) mpn_add(v1_y, v1_y, eval_len, y2, y2_len);
+  size_t v1_y_len = eval_len;
+  while (v1_y_len > 0 && v1_y[v1_y_len-1] == 0) v1_y_len--;
+  if (v1_y_len == 0) v1_y_len = 1;
+
+  /* vm1 = x0 - x1 + x2 (may be negative, track sign) */
+  mp_limb vm1_x_neg = 0, vm1_y_neg = 0;
+  {
+    /* t = x0 + x2 */
+    mpn_zero(vm1_x, eval_len);
+    mpn_copyi(vm1_x, x0, x0_len);
+    if (x2_len > 0) mpn_add(vm1_x, vm1_x, eval_len, x2, x2_len);
+    /* vm1_x = t - x1 */
+    if (x1_len > 0) {
+      vm1_x_neg = mpn_sub_var(vm1_x, vm1_x, eval_len, x1, x1_len, eval_len);
+      if (vm1_x_neg) mpn_neg(vm1_x, vm1_x, eval_len);
+    }
+  }
+  size_t vm1_x_len = eval_len;
+  while (vm1_x_len > 0 && vm1_x[vm1_x_len-1] == 0) vm1_x_len--;
+  if (vm1_x_len == 0) vm1_x_len = 1;
+
+  {
+    mpn_zero(vm1_y, eval_len);
+    mpn_copyi(vm1_y, y0, y0_len);
+    if (y2_len > 0) mpn_add(vm1_y, vm1_y, eval_len, y2, y2_len);
+    if (y1_len > 0) {
+      vm1_y_neg = mpn_sub_var(vm1_y, vm1_y, eval_len, y1, y1_len, eval_len);
+      if (vm1_y_neg) mpn_neg(vm1_y, vm1_y, eval_len);
+    }
+  }
+  size_t vm1_y_len = eval_len;
+  while (vm1_y_len > 0 && vm1_y[vm1_y_len-1] == 0) vm1_y_len--;
+  if (vm1_y_len == 0) vm1_y_len = 1;
+
+  /* v2 = x0 + 2*x1 + 4*x2 */
+  {
+    mpn_zero(v2_x, eval_len);
+    mpn_copyi(v2_x, x0, x0_len);
+    /* Add 2*x1 */
+    if (x1_len > 0) {
+      mp_limb carry = 0;
+      for (size_t i = 0; i < x1_len; i++) {
+        mp_dbl_limb val = (mp_dbl_limb)v2_x[i] + ((mp_dbl_limb)x1[i] << 1) + carry;
+        v2_x[i] = LOW(val);
+        carry = HIGH(val);
+      }
+      for (size_t i = x1_len; carry && i < eval_len; i++) {
+        mp_dbl_limb val = (mp_dbl_limb)v2_x[i] + carry;
+        v2_x[i] = LOW(val);
+        carry = HIGH(val);
+      }
+    }
+    /* Add 4*x2 */
+    if (x2_len > 0) {
+      mp_limb carry = 0;
+      for (size_t i = 0; i < x2_len; i++) {
+        mp_dbl_limb val = (mp_dbl_limb)v2_x[i] + ((mp_dbl_limb)x2[i] << 2) + carry;
+        v2_x[i] = LOW(val);
+        carry = HIGH(val);
+      }
+      for (size_t i = x2_len; carry && i < eval_len; i++) {
+        mp_dbl_limb val = (mp_dbl_limb)v2_x[i] + carry;
+        v2_x[i] = LOW(val);
+        carry = HIGH(val);
+      }
+    }
+  }
+  size_t v2_x_len = eval_len;
+  while (v2_x_len > 0 && v2_x[v2_x_len-1] == 0) v2_x_len--;
+  if (v2_x_len == 0) v2_x_len = 1;
+
+  {
+    mpn_zero(v2_y, eval_len);
+    mpn_copyi(v2_y, y0, y0_len);
+    if (y1_len > 0) {
+      mp_limb carry = 0;
+      for (size_t i = 0; i < y1_len; i++) {
+        mp_dbl_limb val = (mp_dbl_limb)v2_y[i] + ((mp_dbl_limb)y1[i] << 1) + carry;
+        v2_y[i] = LOW(val);
+        carry = HIGH(val);
+      }
+      for (size_t i = y1_len; carry && i < eval_len; i++) {
+        mp_dbl_limb val = (mp_dbl_limb)v2_y[i] + carry;
+        v2_y[i] = LOW(val);
+        carry = HIGH(val);
+      }
+    }
+    if (y2_len > 0) {
+      mp_limb carry = 0;
+      for (size_t i = 0; i < y2_len; i++) {
+        mp_dbl_limb val = (mp_dbl_limb)v2_y[i] + ((mp_dbl_limb)y2[i] << 2) + carry;
+        v2_y[i] = LOW(val);
+        carry = HIGH(val);
+      }
+      for (size_t i = y2_len; carry && i < eval_len; i++) {
+        mp_dbl_limb val = (mp_dbl_limb)v2_y[i] + carry;
+        v2_y[i] = LOW(val);
+        carry = HIGH(val);
+      }
+    }
+  }
+  size_t v2_y_len = eval_len;
+  while (v2_y_len > 0 && v2_y[v2_y_len-1] == 0) v2_y_len--;
+  if (v2_y_len == 0) v2_y_len = 1;
+
+  /*
+   * Pointwise multiplication (5 recursive calls)
+   */
+  mpn_zero(w0, prod_len);
+  mpn_zero(w1, prod_len);
+  mpn_zero(wm1, prod_len);
+  mpn_zero(w2, prod_len);
+  mpn_zero(winf, prod_len);
+
+  /* w0 = v0_x * v0_y = x0 * y0 */
+  mpz_mul_toom3(ctx, w0, x0, x0_len, y0, y0_len, recursive_scratch);
+
+  /* w1 = v1_x * v1_y */
+  mpz_mul_toom3(ctx, w1, v1_x, v1_x_len, v1_y, v1_y_len, recursive_scratch);
+
+  /* wm1 = vm1_x * vm1_y (sign = vm1_x_neg XOR vm1_y_neg) */
+  mp_limb wm1_neg = vm1_x_neg ^ vm1_y_neg;
+  mpz_mul_toom3(ctx, wm1, vm1_x, vm1_x_len, vm1_y, vm1_y_len, recursive_scratch);
+
+  /* w2 = v2_x * v2_y */
+  mpz_mul_toom3(ctx, w2, v2_x, v2_x_len, v2_y, v2_y_len, recursive_scratch);
+
+  /* winf = vinf_x * vinf_y = x2 * y2 */
+  if (x2_len > 0 && y2_len > 0) {
+    mpz_mul_toom3(ctx, winf, x2, x2_len, y2, y2_len, recursive_scratch);
   }
 
-  borrow = limb_sub(z1, z2, z2_len);
-  for (i = z2_len; i < z1_len && borrow; i++) {
-    mp_dbl_limb_signed diff = (mp_dbl_limb_signed)z1[i] - borrow;
-    z1[i] = LOW(diff);
-    borrow = (diff < 0) ? 1 : 0;
+  /*
+   * Interpolation to recover r0, r1, r2, r3, r4 where:
+   * result = r0 + r1*B + r2*B^2 + r3*B^3 + r4*B^4
+   *
+   * Using the sequence:
+   * 1. r0 = w0
+   * 2. r4 = winf
+   * 3. t1 = w1 - r0 - r4           (= r1 + r2 + r3)
+   * 4. t2 = wm1 - r0 - r4          (= -r1 + r2 - r3, may need sign adjustment)
+   * 5. r2 = (t1 + t2) / 2
+   * 6. t3 = w2 - r0 - 16*r4        (= 2r1 + 4r2 + 8r3)
+   * 7. t4 = t3 / 2                 (= r1 + 2r2 + 4r3)
+   * 8. t5 = (t1 - t2) / 2          (= r1 + r3)
+   * 9. t6 = t4 - 2*r2              (= r1 + 4r3)
+   * 10. r3 = (t6 - t5) / 3
+   * 11. r1 = t5 - r3
+   */
+
+  /*
+   * Reuse product buffers for interpolation (prod_len sized):
+   * - t1 reuses w1 (we compute t1 = w1 - ...)
+   * - t2 reuses wm1 (we compute t2 = wm1 - ...)
+   * - t3 reuses w2 (we compute t3 = w2 - ...)
+   * - t4, t5, t6 need separate space (use recursive_scratch area)
+   * We keep w0 and winf for final assembly.
+   */
+  size_t w_len = prod_len;
+
+  mp_limb *t1 = w1;   /* reuse w1 */
+  mp_limb *t2 = wm1;  /* reuse wm1 */
+  mp_limb *t3 = w2;   /* reuse w2 */
+  /* t4, t5, t6, r2_tmp use recursive_scratch area */
+  mp_limb *t4 = recursive_scratch;
+  mp_limb *t5 = recursive_scratch + w_len;
+  mp_limb *t6 = recursive_scratch + 2 * w_len;
+  mp_limb *r2_tmp = recursive_scratch + 3 * w_len;
+
+  /* t1 = w1 - w0 - winf (computed in-place in w1) */
+  mpn_sub(t1, t1, w_len, w0, w_len);
+  mpn_sub(t1, t1, w_len, winf, w_len);
+
+  /* t2 = wm1 - w0 - winf (with sign handling, computed in-place in wm1) */
+  if (wm1_neg) {
+    /* t2 = -wm1 - w0 - winf = -(wm1 + w0 + winf) */
+    mpn_add(t2, t2, w_len, w0, w_len);
+    mpn_add(t2, t2, w_len, winf, w_len);
+    mpn_neg(t2, t2, w_len);
+  } else {
+    mpn_sub(t2, t2, w_len, w0, w_len);
+    mpn_sub(t2, t2, w_len, winf, w_len);
   }
 
-  /* Step 4: Final assembly: result = z0 + z1*B + z2*B^2 */
-  size_t result_len = x_len + y_len;
+  /* r2 = (t1 + t2) / 2 */
+  mpn_add_var(r2_tmp, t1, w_len, t2, w_len, w_len);
+  mpn_rshift1(r2_tmp, r2_tmp, w_len);
+
+  /* t3 = w2 - w0 - 16*winf (computed in-place in w2) */
+  mpn_sub(t3, t3, w_len, w0, w_len);
+  /* Subtract 16*winf */
+  {
+    mp_limb borrow = 0;
+    for (size_t i = 0; i < w_len; i++) {
+      mp_dbl_limb_signed diff = (mp_dbl_limb_signed)t3[i]
+                               - ((mp_dbl_limb_signed)winf[i] << 4) - borrow;
+      t3[i] = LOW(diff);
+      borrow = (diff < 0) ? (mp_limb)(-(diff >> DIG_SIZE)) : 0;
+    }
+  }
+
+  /* t4 = t3 / 2 */
+  mpn_rshift1(t4, t3, w_len);
+
+  /* t5 = (t1 - t2) / 2 */
+  mpn_sub_var(t5, t1, w_len, t2, w_len, w_len);
+  mpn_rshift1(t5, t5, w_len);
+
+  /* t6 = t4 - 2*r2 */
+  {
+    mp_limb borrow = 0;
+    for (size_t i = 0; i < w_len; i++) {
+      mp_dbl_limb_signed diff = (mp_dbl_limb_signed)t4[i]
+                               - ((mp_dbl_limb_signed)r2_tmp[i] << 1) - borrow;
+      t6[i] = LOW(diff);
+      borrow = (diff < 0) ? (mp_limb)(-(diff >> DIG_SIZE)) : 0;
+    }
+  }
+
+  /* r3 = (t6 - t5) / 3 */
+  mp_limb *r3 = t4;  /* reuse t4 */
+  mpn_sub(r3, t6, w_len, t5, w_len);
+  mpn_divexact_3(r3, r3, w_len);
+
+  /* r1 = t5 - r3 */
+  mp_limb *r1 = t5;  /* in-place */
+  mpn_sub(r1, t5, w_len, r3, w_len);
+
+  /*
+   * Final assembly: result = r0 + r1*B + r2*B^2 + r3*B^3 + r4*B^4
+   * where B = base^third
+   *
+   * Maximum write position is 4*third + w_len.
+   * With w_len = 2*(third+3) + 16 = 2*n/3 + 22 (for recursion margin),
+   * max position = 4*n/3 + 2*n/3 + 22 = 2*n + 22.
+   * Use 2*n (not x_len + y_len) because third is based on n = max.
+   */
+  size_t result_len = 2 * n + 24;
   mpn_zero(result, result_len);
-  mpn_copyi(result, z0, z0_len);
-  limb_add_at(result, result_len, z1, z1_len, half);
-  limb_add_at(result, result_len, z2, z2_len, 2 * half);
-}
 
-/* Calculate scratch space needed for Karatsuba squaring */
-static size_t
-karatsuba_sqr_scratch_size(size_t n)
-{
-  if (n < KARATSUBA_THRESHOLD) {
-    return 0;
-  }
+  /* r0 at offset 0 */
+  mpn_copyi(result, w0, (2*third < result_len) ? 2*third : result_len);
 
-  size_t half = n / 2;
-  size_t x1_len = n - half;
-  size_t sum_len = x1_len + 1;
+  /* r1 at offset third */
+  limb_add_at(result, result_len, r1, w_len, third);
 
-  /* z0, z2, z1 for the three recursive results, plus sum_x */
-  size_t z0_len = 2 * half;
-  size_t z2_len = 2 * x1_len;
-  size_t z1_len = 2 * sum_len;
+  /* r2 at offset 2*third */
+  limb_add_at(result, result_len, r2_tmp, w_len, 2*third);
 
-  size_t current = z0_len + z2_len + z1_len + sum_len;
-  size_t sub = karatsuba_sqr_scratch_size(sum_len);
-  size_t sub2 = karatsuba_sqr_scratch_size(x1_len);
-  size_t sub3 = karatsuba_sqr_scratch_size(half);
-  size_t max_sub = sub > sub2 ? sub : sub2;
-  max_sub = max_sub > sub3 ? max_sub : sub3;
+  /* r3 at offset 3*third */
+  limb_add_at(result, result_len, r3, w_len, 3*third);
 
-  return current + max_sub;
-}
-
-/*
- * Karatsuba squaring - uses 3 recursive squarings instead of 3 multiplications.
- *
- * x = x1 * B + x0
- * x^2 = x1^2 * B^2 + 2*x1*x0 * B + x0^2
- *
- * Using Karatsuba trick:
- *   z0 = x0^2
- *   z2 = x1^2
- *   z1 = (x0 + x1)^2 - z0 - z2  (= 2*x0*x1)
- *   x^2 = z2 * B^2 + z1 * B + z0
- */
-static void
-mpz_sqr_karatsuba(mpz_ctx_t *ctx, mp_limb *result, const mp_limb *x, size_t n,
-                  mp_limb *scratch)
-{
-  if (n < KARATSUBA_THRESHOLD) {
-    mpz_sqr_basic_limbs(result, x, n);
-    return;
-  }
-
-  size_t half = n / 2;
-  const mp_limb *x0 = x;
-  const mp_limb *x1 = x + half;
-  size_t x0_len = half;
-  size_t x1_len = n - half;
-
-  /* Partition scratch memory */
-  size_t offset = 0;
-  mp_limb *z0 = scratch + offset; offset += 2 * x0_len;
-  mp_limb *z2 = scratch + offset; offset += 2 * x1_len;
-  mp_limb *sum_x = scratch + offset; offset += x1_len + 1;
-  mp_limb *z1 = scratch + offset;
-  size_t z1_alloc_len = 2 * (x1_len + 1);
-  offset += z1_alloc_len;
-
-  /* Step 1: Compute sum x0 + x1 */
-  mp_limb carry = 0;
-  size_t i;
-  for (i = 0; i < x1_len; i++) {
-    mp_dbl_limb sum = (mp_dbl_limb)(i < x0_len ? x0[i] : 0) + (mp_dbl_limb)x1[i] + carry;
-    sum_x[i] = LOW(sum);
-    carry = HIGH(sum);
-  }
-  sum_x[i] = carry;
-  size_t sum_x_len = x1_len + (carry != 0);
-
-  /* Step 2: Recursive squarings */
-  mp_limb *recursive_scratch = scratch + offset;
-  mpz_sqr_karatsuba(ctx, z0, x0, x0_len, recursive_scratch);
-  mpz_sqr_karatsuba(ctx, z2, x1, x1_len, recursive_scratch);
-  mpz_sqr_karatsuba(ctx, z1, sum_x, sum_x_len, recursive_scratch);
-
-  /* Step 3: Compute z1 = z1 - z0 - z2 */
-  size_t z0_len = 2 * x0_len;
-  size_t z2_len = 2 * x1_len;
-  size_t z1_len = 2 * sum_x_len;
-
-  mp_limb borrow = limb_sub(z1, z0, z0_len);
-  for (i = z0_len; i < z1_len && borrow; i++) {
-    mp_dbl_limb_signed diff = (mp_dbl_limb_signed)z1[i] - borrow;
-    z1[i] = LOW(diff);
-    borrow = (diff < 0) ? 1 : 0;
-  }
-
-  borrow = limb_sub(z1, z2, z2_len);
-  for (i = z2_len; i < z1_len && borrow; i++) {
-    mp_dbl_limb_signed diff = (mp_dbl_limb_signed)z1[i] - borrow;
-    z1[i] = LOW(diff);
-    borrow = (diff < 0) ? 1 : 0;
-  }
-
-  /* Step 4: Final assembly: result = z0 + z1*B + z2*B^2 */
-  size_t result_len = 2 * n;
-  mpn_zero(result, result_len);
-  mpn_copyi(result, z0, z0_len);
-  limb_add_at(result, result_len, z1, z1_len, half);
-  limb_add_at(result, result_len, z2, z2_len, 2 * half);
+  /* r4 at offset 4*third */
+  limb_add_at(result, result_len, winf, w_len, 4*third);
 }
 
 /*
@@ -1307,7 +1576,7 @@ mpz_popcount(mpz_t *x, size_t max_count)
 static size_t
 mpz_sparse_p(mpz_t *x)
 {
-  if (x->sn <= 0 || x->sz < KARATSUBA_THRESHOLD) return 0;
+  if (x->sn <= 0 || x->sz < TOOM3_THRESHOLD) return 0;
 
   size_t popcount = mpz_popcount(x, SPARSE_MAX_BITS);
   if (popcount > SPARSE_MAX_BITS) return 0;
@@ -1473,7 +1742,7 @@ mpz_sqr(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u)
   }
 
   /* Use schoolbook squaring for small numbers */
-  if (u->sz < KARATSUBA_THRESHOLD) {
+  if (!should_use_toom3(u->sz)) {
     mpz_t w;
     mpz_init_heap(ctx, &w, 2 * u->sz);
     mpz_sqr_basic_limbs(w.p, u->p, u->sz);
@@ -1484,11 +1753,16 @@ mpz_sqr(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u)
     return;
   }
 
-  /* Karatsuba squaring for large numbers */
-  size_t result_size = 2 * u->sz;
+  /*
+   * Toom-3 squaring: use multiplication (x * x) for large numbers.
+   * Toom-3 writes at offset 4*third with products up to 2*(third+3)+16 limbs.
+   * Maximum write position: 4*n/3 + 2*n/3 + 22 = 2*n + 22.
+   * Add extra space to prevent buffer overflow.
+   */
+  size_t result_size = 2 * u->sz + 24;
   mpz_realloc(ctx, ww, result_size);
 
-  size_t scratch_size = karatsuba_sqr_scratch_size(u->sz);
+  size_t scratch_size = toom3_scratch_size(u->sz);
   scratch_size += (scratch_size >> 3) + 16;
   size_t pool_state = pool_save(ctx);
   mp_limb *scratch = NULL;
@@ -1498,12 +1772,12 @@ mpz_sqr(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u)
   }
 
   if (scratch) {
-    mpz_sqr_karatsuba(ctx, ww->p, u->p, u->sz, scratch);
+    mpz_mul_toom3(ctx, ww->p, u->p, u->sz, u->p, u->sz, scratch);
     pool_restore(ctx, pool_state);
   }
   else {
     scratch = (mp_limb*)mrb_malloc(MPZ_MRB(ctx), scratch_size * sizeof(mp_limb));
-    mpz_sqr_karatsuba(ctx, ww->p, u->p, u->sz, scratch);
+    mpz_mul_toom3(ctx, ww->p, u->p, u->sz, u->p, u->sz, scratch);
     mrb_free(MPZ_MRB(ctx), scratch);
   }
 
@@ -1536,7 +1810,7 @@ mpz_mul(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v)
   }
 
   /* Fast path: (2^n - 1) * y = (y << n) - y */
-  if (u_ones && u_ones >= KARATSUBA_THRESHOLD * DIG_SIZE) {
+  if (u_ones && u_ones >= TOOM3_THRESHOLD * DIG_SIZE) {
     mpz_t shifted;
     mpz_init(ctx, &shifted);
     mpz_mul_2exp(ctx, &shifted, v, u_ones);
@@ -1544,7 +1818,7 @@ mpz_mul(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v)
     mpz_clear(ctx, &shifted);
     return;
   }
-  if (v_ones && v_ones >= KARATSUBA_THRESHOLD * DIG_SIZE) {
+  if (v_ones && v_ones >= TOOM3_THRESHOLD * DIG_SIZE) {
     mpz_t shifted;
     mpz_init(ctx, &shifted);
     mpz_mul_2exp(ctx, &shifted, u, v_ones);
@@ -1577,19 +1851,30 @@ mpz_mul(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v)
     return;
   }
 
-  if (!should_use_karatsuba(u->sz, v->sz)) {
+  /*
+   * Toom-3 requires both operands to be reasonably similar in size.
+   * When operands are highly asymmetric, the algorithm writes beyond
+   * the result buffer (e.g., 4*third > x_len + y_len when y_len << x_len).
+   * Use schoolbook for asymmetric cases where the smaller operand is
+   * below threshold.
+   */
+  size_t min_sz = (u->sz < v->sz) ? u->sz : v->sz;
+  size_t max_sz = (u->sz > v->sz) ? u->sz : v->sz;
+  if (!should_use_toom3(min_sz)) {
     mpz_mul_basic(ctx, ww, u, v);
     return;
   }
 
-  size_t result_size = u->sz + v->sz;
+  /*
+   * Toom-3 writes at offset 4*third with products up to 2*(third+3)+16 limbs.
+   * Maximum write position: 4*n/3 + 2*n/3 + 22 = 2*n + 22, where n = max size.
+   * Use 2*max_sz (not u->sz + v->sz) because third is based on max.
+   */
+  size_t result_size = 2 * max_sz + 24;
   mpz_realloc(ctx, ww, result_size);
 
-  size_t scratch_size = karatsuba_scratch_size(u->sz, v->sz);
-  /* Add safety margin proportional to scratch size.
-   * While the calculation is mathematically exact, empirical testing
-   * (valgrind, oss-fuzz) reveals edge cases requiring extra space.
-   * Proportional margin scales better than fixed for large inputs. */
+  size_t scratch_size = toom3_scratch_size(max_sz);
+  /* Add safety margin proportional to scratch size. */
   scratch_size += (scratch_size >> 3) + 16;
   size_t pool_state = pool_save(ctx);
   mp_limb *scratch = NULL;
@@ -1599,13 +1884,13 @@ mpz_mul(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v)
   }
 
   if (scratch) {
-    mpz_mul_karatsuba(ctx, ww->p, u->p, u->sz, v->p, v->sz, scratch);
+    mpz_mul_toom3(ctx, ww->p, u->p, u->sz, v->p, v->sz, scratch);
     pool_restore(ctx, pool_state);
   }
   else {
     /* Fallback to heap allocation for scratch space if pool fails */
     scratch = (mp_limb*)mrb_malloc(MPZ_MRB(ctx), scratch_size * sizeof(mp_limb));
-    mpz_mul_karatsuba(ctx, ww->p, u->p, u->sz, v->p, v->sz, scratch);
+    mpz_mul_toom3(ctx, ww->p, u->p, u->sz, v->p, v->sz, scratch);
     mrb_free(MPZ_MRB(ctx), scratch);
   }
 
