@@ -1032,33 +1032,22 @@ mrb_task_set_priority(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(priority);
 }
 
+/*
+ * Forward declarations for internal functions
+ */
+static void suspend_task_internal(mrb_state *mrb, mrb_task *t);
+static void resume_task_internal(mrb_state *mrb, mrb_task *t);
+static void terminate_task_internal(mrb_state *mrb, mrb_task *t);
+
 static mrb_value
 mrb_task_suspend(mrb_state *mrb, mrb_value self)
 {
   mrb_task *t;
 
   TASK_GET_PTR_OR_RAISE(t, self);
+  task_check_scheduler_lock(mrb);
 
-  /*
-   * WAITING task should also be suspended:
-   *   Suspend trigger possible happens when it is sleeping (WAITING).
-   * As in, DORMANT task should also be suspended:
-   *   IRB in PicoRuby suspends a DORMANT task to use it again.
-   */
-
-  /*
-   * Determine if context switch is needed BEFORE changing state.
-   * Context switch is needed when suspending a RUNNING task or
-   * the current ready task.
-   */
-  mrb_bool need_switch = (t == q_ready_ || t->status == MRB_TASK_STATUS_RUNNING);
-
-  task_change_state(mrb, t, MRB_TASK_STATUS_SUSPENDED);
-
-  if (need_switch) {
-    switching_ = TRUE;
-  }
-
+  suspend_task_internal(mrb, t);
   return self;
 }
 
@@ -1068,21 +1057,9 @@ mrb_task_resume(mrb_state *mrb, mrb_value self)
   mrb_task *t;
 
   TASK_GET_PTR_OR_RAISE(t, self);
+  task_check_scheduler_lock(mrb);
 
-  /* Can only resume suspended tasks */
-  if (t->status != MRB_TASK_STATUS_SUSPENDED) {
-    return self;
-  }
-
-  task_change_state(mrb, t, MRB_TASK_STATUS_READY);
-
-  /* Trigger context switch if resumed task has higher priority */
-  if (q_ready_ && q_ready_->status == MRB_TASK_STATUS_RUNNING) {
-    if (t->priority < q_ready_->priority) {
-      switching_ = TRUE;
-    }
-  }
-
+  resume_task_internal(mrb, t);
   return self;
 }
 
@@ -1092,30 +1069,9 @@ mrb_task_terminate(mrb_state *mrb, mrb_value self)
   mrb_task *t;
 
   TASK_GET_PTR_OR_RAISE(t, self);
+  task_check_scheduler_lock(mrb);
 
-  /* Don't terminate already dormant tasks */
-  if (t->status == MRB_TASK_STATUS_DORMANT) {
-    return self;
-  }
-
-  mrb_task_disable_irq();
-
-  /* Move to dormant queue */
-  q_delete_task(mrb, t);
-  t->status = MRB_TASK_STATUS_DORMANT;
-  t->c.status = MRB_TASK_STOPPED;
-  q_insert_task(mrb, t);
-
-  mrb_task_enable_irq();
-
-  /* Wake up tasks waiting on join */
-  wake_up_join_waiters(mrb, t);
-
-  /* If terminating self, trigger context switch */
-  if (t == q_ready_) {
-    switching_ = TRUE;
-  }
-
+  terminate_task_internal(mrb, t);
   return self;
 }
 
@@ -1324,6 +1280,28 @@ mrb_create_task(mrb_state *mrb, struct RProc *proc, mrb_value name, mrb_value pr
 }
 
 /*
+ * Internal: Suspend a task (no validation, no scheduler_lock check)
+ */
+static void
+suspend_task_internal(mrb_state *mrb, mrb_task *t)
+{
+  if (t->status == MRB_TASK_STATUS_SUSPENDED) return;
+
+  /*
+   * Determine if context switch is needed BEFORE changing state.
+   * Context switch is needed when suspending a RUNNING task or
+   * the current ready task.
+   */
+  mrb_bool need_switch = (t == q_ready_ || t->status == MRB_TASK_STATUS_RUNNING);
+
+  task_change_state(mrb, t, MRB_TASK_STATUS_SUSPENDED);
+
+  if (need_switch) {
+    switching_ = TRUE;
+  }
+}
+
+/*
  * Suspend a task
  */
 MRB_API void
@@ -1334,25 +1312,15 @@ mrb_suspend_task(mrb_state *mrb, mrb_value task)
   mrb_task *t = (mrb_task*)mrb_data_check_get_ptr(mrb, task, &mrb_task_type);
   if (!t) return;
 
-  if (t->status == MRB_TASK_STATUS_SUSPENDED) return;
-
-  task_change_state(mrb, t, MRB_TASK_STATUS_SUSPENDED);
-
-  /* Always trigger context switch when suspending */
-  switching_ = TRUE;
+  suspend_task_internal(mrb, t);
 }
 
 /*
- * Resume a task
+ * Internal: Resume a task (no validation, no scheduler_lock check)
  */
-MRB_API void
-mrb_resume_task(mrb_state *mrb, mrb_value task)
+static void
+resume_task_internal(mrb_state *mrb, mrb_task *t)
 {
-  task_check_scheduler_lock(mrb);
-
-  mrb_task *t = (mrb_task*)mrb_data_check_get_ptr(mrb, task, &mrb_task_type);
-  if (!t) return;
-
   if (t->status != MRB_TASK_STATUS_SUSPENDED) return;
 
   /* Determine target state based on reason */
@@ -1378,16 +1346,25 @@ mrb_resume_task(mrb_state *mrb, mrb_value task)
 }
 
 /*
- * Terminate a task
+ * Resume a task
  */
 MRB_API void
-mrb_terminate_task(mrb_state *mrb, mrb_value task)
+mrb_resume_task(mrb_state *mrb, mrb_value task)
 {
   task_check_scheduler_lock(mrb);
 
   mrb_task *t = (mrb_task*)mrb_data_check_get_ptr(mrb, task, &mrb_task_type);
   if (!t) return;
 
+  resume_task_internal(mrb, t);
+}
+
+/*
+ * Internal: Terminate a task (no validation, no scheduler_lock check)
+ */
+static void
+terminate_task_internal(mrb_state *mrb, mrb_task *t)
+{
   if (t->status == MRB_TASK_STATUS_DORMANT) return;
 
   mrb_task_disable_irq();
@@ -1398,6 +1375,25 @@ mrb_terminate_task(mrb_state *mrb, mrb_value task)
   mrb_task_enable_irq();
 
   wake_up_join_waiters(mrb, t);
+
+  /* If terminating self, trigger context switch */
+  if (t == q_ready_) {
+    switching_ = TRUE;
+  }
+}
+
+/*
+ * Terminate a task
+ */
+MRB_API void
+mrb_terminate_task(mrb_state *mrb, mrb_value task)
+{
+  task_check_scheduler_lock(mrb);
+
+  mrb_task *t = (mrb_task*)mrb_data_check_get_ptr(mrb, task, &mrb_task_type);
+  if (!t) return;
+
+  terminate_task_internal(mrb, t);
 }
 
 /*
