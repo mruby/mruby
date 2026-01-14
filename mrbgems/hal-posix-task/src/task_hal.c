@@ -115,9 +115,6 @@ mrb_hal_task_init(mrb_state *mrb)
 
   /* Unblock SIGALRM */
   sigprocmask(SIG_UNBLOCK, &alarm_mask, NULL);
-#else
-  /* WASM: JavaScript handles tick calls via setInterval, no timer needed here */
-  (void)i;
 #endif
 }
 
