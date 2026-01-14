@@ -3373,8 +3373,29 @@ mpz_div_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
       return;
     }
 
-    mpz_t y;
     size_t new_size = x->sz - digs;
+
+    /* In-place optimization: when z == x, no allocation needed */
+    if (z == x) {
+      /* Shift by whole limbs: memmove in place */
+      if (digs > 0) {
+        memmove(z->p, z->p + digs, new_size * sizeof(mp_limb));
+      }
+      z->sz = new_size;
+      /* Shift by remaining bits: mpn_rshift supports in-place */
+      if (bs) {
+        mpn_rshift(z->p, z->p, new_size, (unsigned int)bs);
+      }
+      trim(z);
+      if (uzero_p(z))
+        z->sn = 0;
+      else
+        z->sn = sn;
+      return;
+    }
+
+    /* General case: z != x, use temporary */
+    mpz_t y;
     mpz_init_temp(ctx, &y, new_size);
     mpz_realloc(ctx, &y, new_size);
     for (size_t i = 0; i < new_size; i++)
