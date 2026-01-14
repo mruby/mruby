@@ -2477,13 +2477,13 @@ static const mp_limb base_limit[34*2] = {
 
 /*
  * Divide-and-conquer decimal string conversion.
- * For numbers with > DC_TO_S_THRESHOLD digits, this is O(n log^2 n)
+ * For numbers with > DC_GET_STR_THRESHOLD digits, this is O(n log^2 n)
  * instead of O(n^2) for the simple algorithm.
  */
-#define DC_TO_S_THRESHOLD 1000
+#define DC_GET_STR_THRESHOLD 1000
 
 /*
- * Scratch buffer for D&C to_s to avoid repeated allocations.
+ * Scratch buffer for D&C get_str to avoid repeated allocations.
  * Contains preallocated work areas that are resized as needed.
  *
  * The lo_stack provides a separate buffer for each recursion depth,
@@ -2500,10 +2500,10 @@ typedef struct {
   mpz_t q5_low;   /* Low bits of q5 for mod 2^k */
   mpz_t tmp;      /* Temporary for base case (in-place division) */
   mrb_bool initialized;
-} dc_to_s_scratch_t;
+} dc_get_str_scratch_t;
 
 static void
-dc_scratch_init(mpz_ctx_t *ctx, dc_to_s_scratch_t *scratch, size_t max_limbs)
+dc_scratch_init(mpz_ctx_t *ctx, dc_get_str_scratch_t *scratch, size_t max_limbs)
 {
   if (scratch->initialized) return;
 
@@ -2521,7 +2521,7 @@ dc_scratch_init(mpz_ctx_t *ctx, dc_to_s_scratch_t *scratch, size_t max_limbs)
 }
 
 static void
-dc_scratch_clear(mpz_ctx_t *ctx, dc_to_s_scratch_t *scratch)
+dc_scratch_clear(mpz_ctx_t *ctx, dc_get_str_scratch_t *scratch)
 {
   if (!scratch->initialized) return;
 
@@ -2590,10 +2590,10 @@ static const char digit_pairs[] =
 static void
 mpz_get_str_dc_recur(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
                   mpz_t *pow5, size_t num_powers, size_t depth,
-                  dc_to_s_scratch_t *scratch)
+                  dc_get_str_scratch_t *scratch)
 {
   /* Base case: use simple conversion for small numbers */
-  if (num_digits <= DC_TO_S_THRESHOLD || num_powers == 0) {
+  if (num_digits <= DC_GET_STR_THRESHOLD || num_powers == 0) {
     /* Convert to string in reverse order using batch extraction */
     size_t pos = num_digits;
 
@@ -2753,7 +2753,7 @@ struct mpz_get_str_dc_data {
   size_t num_digits;
   mpz_t pow5[MAX_POWERS];
   mpz_t tmp;
-  dc_to_s_scratch_t scratch;
+  dc_get_str_scratch_t scratch;
   size_t num_powers; /* cleanup target count */
 };
 
@@ -2898,7 +2898,7 @@ mpz_get_str(mpz_ctx_t *ctx, char *s, mrb_int sz, mrb_int base, mpz_t *x)
 
     /* Use D&C algorithm for large base-10 numbers */
     size_t est_digits = (size_t)(xlen * DIG_SIZE * 30103UL / 100000UL) + 2;
-    if (base == 10 && est_digits > DC_TO_S_THRESHOLD) {
+    if (base == 10 && est_digits > DC_GET_STR_THRESHOLD) {
       return mpz_get_str_dc(ctx, s, x);
     }
 
