@@ -2555,7 +2555,7 @@ dc_scratch_clear(mpz_ctx_t *ctx, dc_to_s_scratch_t *scratch)
  * Compilers optimize constant division to multiplication+shift.
  */
 static mp_limb
-mpn_div10_9(mp_limb *p, size_t sz)
+mpn_div_batch(mp_limb *p, size_t sz)
 {
   mp_dbl_limb rem = 0;
   for (size_t i = sz; i > 0; i--) {
@@ -2581,7 +2581,7 @@ static const char digit_pairs[] =
   "90919293949596979899";
 
 static void
-mpz_to_s_dc_recur(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
+mpz_get_str_dc_recur(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
                   mpz_t *pow5, size_t num_powers, size_t depth,
                   dc_to_s_scratch_t *scratch)
 {
@@ -2599,7 +2599,7 @@ mpz_to_s_dc_recur(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
 
     while (pos > 0 && !zero_p(tmp)) {
       /* Divide by 10^9 in place, get remainder as 9 digits */
-      mp_limb batch = mpn_div10_9(tmp->p, tmp->sz);
+      mp_limb batch = mpn_div_batch(tmp->p, tmp->sz);
       trim(tmp);
 
       /* Convert remainder (0-999999999) to 9 digits using table lookup */
@@ -2698,8 +2698,8 @@ mpz_to_s_dc_recur(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
     lo.sn = (lo.sn < 0) ? -lo.sn : lo.sn;
 
     size_t hi_digits = num_digits - split_digits;
-    mpz_to_s_dc_recur(ctx, s, hi, hi_digits, pow5, split_idx, depth + 1, scratch);
-    mpz_to_s_dc_recur(ctx, s + hi_digits, &lo, split_digits, pow5, split_idx, depth + 1, scratch);
+    mpz_get_str_dc_recur(ctx, s, hi, hi_digits, pow5, split_idx, depth + 1, scratch);
+    mpz_get_str_dc_recur(ctx, s + hi_digits, &lo, split_digits, pow5, split_idx, depth + 1, scratch);
     mpz_clear(ctx, &lo);
     return;
   }
@@ -2720,10 +2720,10 @@ mpz_to_s_dc_recur(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
 
   /* Recursively convert high part (using q5 which now contains hi) */
   size_t hi_digits = num_digits - split_digits;
-  mpz_to_s_dc_recur(ctx, s, hi, hi_digits, pow5, split_idx, depth + 1, scratch);
+  mpz_get_str_dc_recur(ctx, s, hi, hi_digits, pow5, split_idx, depth + 1, scratch);
 
   /* Recursively convert low part (exactly split_digits digits with padding) */
-  mpz_to_s_dc_recur(ctx, s + hi_digits, lo, split_digits, pow5, split_idx, depth + 1, scratch);
+  mpz_get_str_dc_recur(ctx, s + hi_digits, lo, split_digits, pow5, split_idx, depth + 1, scratch);
 }
 
 /*
@@ -2737,7 +2737,7 @@ mpz_to_s_dc_recur(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
  */
 #define MAX_POWERS 64
 
-struct mpz_to_s_dc_data {
+struct mpz_get_str_dc_data {
   mpz_ctx_t *ctx;
   char *s;          /* output buffer (after sign) */
   mpz_t *x;
@@ -2749,9 +2749,9 @@ struct mpz_to_s_dc_data {
 };
 
 static mrb_value
-mpz_to_s_dc_body(mrb_state *mrb, void *userdata)
+mpz_get_str_dc_body(mrb_state *mrb, void *userdata)
 {
-  struct mpz_to_s_dc_data *d = (struct mpz_to_s_dc_data *)userdata;
+  struct mpz_get_str_dc_data *d = (struct mpz_get_str_dc_data *)userdata;
   mpz_ctx_t *ctx = d->ctx;
   char *s = d->s;
   mpz_t *x = d->x;
@@ -2780,7 +2780,7 @@ mpz_to_s_dc_body(mrb_state *mrb, void *userdata)
   dc_scratch_init(ctx, &d->scratch, x->sz);
 
   /* Do the recursive conversion (starting at depth 0) */
-  mpz_to_s_dc_recur(ctx, s, &d->tmp, num_digits, d->pow5, d->num_powers, 0, &d->scratch);
+  mpz_get_str_dc_recur(ctx, s, &d->tmp, num_digits, d->pow5, d->num_powers, 0, &d->scratch);
 
   /* Null-terminate the string */
   s[num_digits] = '\0';
@@ -2789,7 +2789,7 @@ mpz_to_s_dc_body(mrb_state *mrb, void *userdata)
 }
 
 static char*
-mpz_to_s_dc(mpz_ctx_t *ctx, char *s, mpz_t *x)
+mpz_get_str_dc(mpz_ctx_t *ctx, char *s, mpz_t *x)
 {
   /* Handle sign */
   char *result = s;
@@ -2802,7 +2802,7 @@ mpz_to_s_dc(mpz_ctx_t *ctx, char *s, mpz_t *x)
   size_t bits = digits(x) * DIG_SIZE;
   size_t num_digits = (size_t)(bits * 30103UL / 100000UL) + 2;
 
-  struct mpz_to_s_dc_data d;
+  struct mpz_get_str_dc_data d;
   memset(&d, 0, sizeof(d));
   d.ctx = ctx;
   d.s = s;
@@ -2811,7 +2811,7 @@ mpz_to_s_dc(mpz_ctx_t *ctx, char *s, mpz_t *x)
   d.num_powers = 0;
 
   mrb_bool error = FALSE;
-  mrb_value exc = mrb_protect_error(MPZ_MRB(ctx), mpz_to_s_dc_body, &d, &error);
+  mrb_value exc = mrb_protect_error(MPZ_MRB(ctx), mpz_get_str_dc_body, &d, &error);
 
   /* Cleanup always runs (mpz_clear is safe on zero-initialized mpz_t) */
   for (size_t i = 0; i < d.num_powers; i++) {
@@ -2890,7 +2890,7 @@ mpz_get_str(mpz_ctx_t *ctx, char *s, mrb_int sz, mrb_int base, mpz_t *x)
     /* Use D&C algorithm for large base-10 numbers */
     size_t est_digits = (size_t)(xlen * DIG_SIZE * 30103UL / 100000UL) + 2;
     if (base == 10 && est_digits > DC_TO_S_THRESHOLD) {
-      return mpz_to_s_dc(ctx, s, x);
+      return mpz_get_str_dc(ctx, s, x);
     }
 
     mp_limb *t = (mp_limb*)mrb_malloc(mrb, xlen * sizeof(mp_limb));
