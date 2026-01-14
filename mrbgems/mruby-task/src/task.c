@@ -1171,6 +1171,7 @@ MRB_API mrb_value
 mrb_execute_proc_synchronously(mrb_state *mrb, mrb_value proc_val, mrb_int argc, const mrb_value *argv)
 {
   struct RProc *proc = mrb_proc_ptr(proc_val);
+  int ai = mrb_gc_arena_save(mrb);
 
   /* 1. Lock scheduler and save context */
   if (mrb->task.scheduler_lock >= MRB_TASK_SCHEDULER_LOCK_MAX) {
@@ -1228,6 +1229,9 @@ mrb_execute_proc_synchronously(mrb_state *mrb, mrb_value proc_val, mrb_int argc,
   q_delete_task(mrb, t);
   mrb_task_enable_irq();
 
+  /* Prevent double-free: clear Data object's type before freeing task */
+  DATA_TYPE(task_obj) = NULL;
+
   /* Free context resources directly (bypass GC since we own this task) */
   if (t->c.stbase) {
     mrb_free(mrb, t->c.stbase);
@@ -1242,6 +1246,8 @@ mrb_execute_proc_synchronously(mrb_state *mrb, mrb_value proc_val, mrb_int argc,
   /* 7. Restore context and unlock */
   mrb->c = original_c;
   mrb->task.scheduler_lock--;
+
+  mrb_gc_arena_restore(mrb, ai);
 
   return result;
 }
