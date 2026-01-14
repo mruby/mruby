@@ -3459,10 +3459,24 @@ mpz_and(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)
   }
   mrb_assert(x->sz > 0 || y->sz > 0);
 
+  /* Fast path: both positive - just AND the limbs */
+  if (x->sn > 0 && y->sn > 0) {
+    size_t min_sz = (x->sz < y->sz) ? x->sz : y->sz;
+    mpz_init_heap(ctx, z, min_sz);
+    mpz_realloc(ctx, z, min_sz);
+    for (size_t i = 0; i < min_sz; i++) {
+      z->p[i] = x->p[i] & y->p[i];
+    }
+    z->sn = 1;
+    trim(z);
+    return;
+  }
+
+  /* Slow path: at least one negative operand */
   size_t max_sz = (x->sz > y->sz) ? x->sz : y->sz;
   mpz_init_heap(ctx, z, max_sz);
   mpz_realloc(ctx, z, max_sz);
-  z->sn = (x->sn == y->sn) ? x->sn : 1;
+  z->sn = (x->sn < 0 && y->sn < 0) ? -1 : 1;
 
   char c1 = 1, c2 = 1, c3 = 1;
   for (size_t i = 0; i < max_sz; i++) {
@@ -3479,7 +3493,7 @@ mpz_and(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)
 }
 
 static void
-mpz_or(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient way to do this */
+mpz_or(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)
 {
   if (zero_p(x)) {
     mpz_init_heap(ctx, z, y->sz);
@@ -3496,6 +3510,28 @@ mpz_or(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient 
   mrb_assert(x->sz > 0 || y->sz > 0);
 
   size_t max_sz = (x->sz > y->sz) ? x->sz : y->sz;
+
+  /* Fast path: both positive - just OR the limbs */
+  if (x->sn > 0 && y->sn > 0) {
+    mpz_init_heap(ctx, z, max_sz);
+    mpz_realloc(ctx, z, max_sz);
+    size_t min_sz = (x->sz < y->sz) ? x->sz : y->sz;
+    for (size_t i = 0; i < min_sz; i++) {
+      z->p[i] = x->p[i] | y->p[i];
+    }
+    /* Copy remaining limbs from the longer operand */
+    if (x->sz > y->sz) {
+      for (size_t i = min_sz; i < max_sz; i++) z->p[i] = x->p[i];
+    }
+    else {
+      for (size_t i = min_sz; i < max_sz; i++) z->p[i] = y->p[i];
+    }
+    z->sn = 1;
+    trim(z);
+    return;
+  }
+
+  /* Slow path: at least one negative operand */
   mpz_init_heap(ctx, z, max_sz);
   mpz_realloc(ctx, z, max_sz);
   z->sn = (x->sn == y->sn) ? x->sn : -1;
@@ -3515,7 +3551,7 @@ mpz_or(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient 
 }
 
 static void
-mpz_xor(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient way to do this */
+mpz_xor(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)
 {
   if (zero_p(x)) {
     mpz_init_heap(ctx, z, y->sz);
@@ -3532,6 +3568,28 @@ mpz_xor(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient
   mrb_assert(x->sz > 0 || y->sz > 0);
 
   size_t max_sz = (x->sz > y->sz) ? x->sz : y->sz;
+
+  /* Fast path: both positive - just XOR the limbs */
+  if (x->sn > 0 && y->sn > 0) {
+    mpz_init_heap(ctx, z, max_sz);
+    mpz_realloc(ctx, z, max_sz);
+    size_t min_sz = (x->sz < y->sz) ? x->sz : y->sz;
+    for (size_t i = 0; i < min_sz; i++) {
+      z->p[i] = x->p[i] ^ y->p[i];
+    }
+    /* Copy remaining limbs from the longer operand (XOR with 0) */
+    if (x->sz > y->sz) {
+      for (size_t i = min_sz; i < max_sz; i++) z->p[i] = x->p[i];
+    }
+    else {
+      for (size_t i = min_sz; i < max_sz; i++) z->p[i] = y->p[i];
+    }
+    z->sn = 1;
+    trim(z);
+    return;
+  }
+
+  /* Slow path: at least one negative operand */
   mpz_init_heap(ctx, z, max_sz);
   mpz_realloc(ctx, z, max_sz);
   z->sn = (x->sn == y->sn) ? 1 : -1;
