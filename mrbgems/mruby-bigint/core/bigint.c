@@ -2545,13 +2545,20 @@ dc_scratch_clear(mpz_ctx_t *ctx, dc_to_s_scratch_t *scratch)
  * The caller must ensure num_digits >= actual digits in x.
  * Leading zeros are added if x has fewer digits than num_digits.
  */
-/* Batch divisor: 10^9 for extracting 9 digits at once */
+/* Batch divisor for extracting multiple digits at once */
+#ifdef MRB_NO_MPZ64BIT
+/* 16-bit limbs: 10^4 fits in 16 bits */
+#define BATCH_DIVISOR 10000UL
+#define BATCH_DIGITS 4
+#else
+/* 32-bit limbs: 10^9 fits in 32 bits */
 #define BATCH_DIVISOR 1000000000UL
 #define BATCH_DIGITS 9
+#endif
 
 /*
- * Divide limb array by 10^9 in place, returning remainder.
- * Used for extracting 9 decimal digits at a time.
+ * Divide limb array by BATCH_DIVISOR in place, returning remainder.
+ * Used for extracting BATCH_DIGITS decimal digits at a time.
  * Compilers optimize constant division to multiplication+shift.
  */
 static mp_limb
@@ -2598,18 +2605,20 @@ mpz_get_str_dc_recur(mpz_ctx_t *ctx, char *s, mpz_t *x, size_t num_digits,
     mpz_set(ctx, tmp, x);
 
     while (pos > 0 && !zero_p(tmp)) {
-      /* Divide by 10^9 in place, get remainder as 9 digits */
+      /* Divide by BATCH_DIVISOR in place, get remainder as BATCH_DIGITS digits */
       mp_limb batch = mpn_div_batch(tmp->p, tmp->sz);
       trim(tmp);
 
-      /* Convert remainder (0-999999999) to 9 digits using table lookup */
-      /* Extract last digit (9th) separately since 9 is odd */
+      /* Convert remainder to BATCH_DIGITS digits using table lookup */
+#if (BATCH_DIGITS % 2) == 1
+      /* Extract last digit separately since BATCH_DIGITS is odd */
       if (pos > 0) {
         s[--pos] = '0' + (char)(batch % 10);
         batch /= 10;
       }
-      /* Extract remaining 8 digits as 4 pairs using lookup table */
-      for (int d = 0; d < 4 && pos >= 2; d++) {
+#endif
+      /* Extract remaining digits as pairs using lookup table */
+      for (int d = 0; d < BATCH_DIGITS / 2 && pos >= 2; d++) {
         mp_limb pair = batch % 100;
         batch /= 100;
         s[--pos] = digit_pairs[pair * 2 + 1];

@@ -30,10 +30,6 @@
 
 #include <sys/types.h>
 
-#if defined(MRB_INT32) && defined(_WIN32) && !defined(MRB_NO_MPZ64BIT)
-#define MRB_NO_MPZ64BIT
-#endif
-
 #ifdef MRB_NO_MPZ64BIT
 typedef uint16_t mp_limb;
 typedef uint32_t mp_dbl_limb;
