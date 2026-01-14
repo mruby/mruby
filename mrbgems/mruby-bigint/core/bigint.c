@@ -598,29 +598,23 @@ mpz_add_int(mpz_ctx_t *ctx, mpz_t *x, mrb_int n)
   trim(x);
 }
 
-/* z = x - y  -- just use mpz_add - I'm lazy */
+/* z = x - y */
 static void
 mpz_sub(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)
 {
-  mpz_t u;
+  /* In-place optimization: z == x, both positive, x >= y */
+  if (z == x && x->sn > 0 && y->sn > 0 && ucmp(x, y) >= 0) {
+    usub_inplace(x, y);
+    if (x->sz == 0) x->sn = 0;
+    return;
+  }
 
-  /* Initialize u as a view of y with negated sign - no new memory allocated */
+  /* General case: create view of y with negated sign and use mpz_add */
+  mpz_t u;
   u.p = y->p;
   u.sz = y->sz;
   u.sn = -(y->sn);
   mpz_add(ctx, z, x, &u);
-  /* No mpz_clear needed since u.p points to y->p (no separate allocation) */
-}
-
-/* In-place signed subtraction: x -= y */
-/* Precondition: x > 0, y > 0, x >= y (caller must ensure this) */
-/* No allocation when preconditions are met */
-static void
-mpz_sub_inplace(mpz_t *x, mpz_t *y)
-{
-  /* Caller guarantees: x->sn > 0, y->sn > 0, ucmp(x, y) >= 0 */
-  usub_inplace(x, y);
-  if (x->sz == 0) x->sn = 0;
 }
 
 /* x -= n                                              */
@@ -1688,7 +1682,7 @@ mpz_mul_all_ones_body(mrb_state *mrb, void *userdata)
     /* Subtract 2^(n+1) */
     mpz_set_int(ctx, &d->a, 1);
     mpz_mul_2exp(ctx, &d->a, &d->a, n+1);
-    mpz_sub_inplace(w, &d->a);  /* w >= d->a guaranteed */
+    mpz_sub(ctx, w, w, &d->a);
 
     /* Add 1 */
     mpz_add_int(ctx, w, 1);
@@ -1705,12 +1699,12 @@ mpz_mul_all_ones_body(mrb_state *mrb, void *userdata)
     /* Subtract 2^n */
     mpz_set_int(ctx, &d->a, 1);
     mpz_mul_2exp(ctx, &d->a, &d->a, n);
-    mpz_sub_inplace(w, &d->a);  /* w >= d->a guaranteed */
+    mpz_sub(ctx, w, w, &d->a);
 
     /* Subtract 2^m */
     mpz_set_int(ctx, &d->b, 1);
     mpz_mul_2exp(ctx, &d->b, &d->b, m);
-    mpz_sub_inplace(w, &d->b);  /* w >= d->b guaranteed */
+    mpz_sub(ctx, w, w, &d->b);
 
     /* Add 1 */
     mpz_add_int(ctx, w, 1);
