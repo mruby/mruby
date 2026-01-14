@@ -37,7 +37,7 @@ iv_new(mrb_state *mrb)
 
 static void iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val);
 
-#define IV_INITIAL_SIZE 4
+#define IV_INITIAL_SIZE 2
 
 static void
 iv_rehash(mrb_state *mrb, iv_tbl *t)
