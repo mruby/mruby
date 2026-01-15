@@ -3744,7 +3744,6 @@ mpz_mod_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
     /* z != x, need to copy */
     mpz_clear(ctx, z);
     mpz_init_heap(ctx, z, result_sz);
-    mpz_realloc(ctx, z, result_sz);
     z->sn = x->sn;
     z->sz = result_sz;
 
@@ -3779,7 +3778,6 @@ mpz_and(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)
   if (x->sn > 0 && y->sn > 0) {
     size_t min_sz = (x->sz < y->sz) ? x->sz : y->sz;
     mpz_init_heap(ctx, z, min_sz);
-    mpz_realloc(ctx, z, min_sz);
     for (size_t i = 0; i < min_sz; i++) {
       z->p[i] = x->p[i] & y->p[i];
     }
@@ -3791,7 +3789,6 @@ mpz_and(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)
   /* Slow path: at least one negative operand */
   size_t max_sz = (x->sz > y->sz) ? x->sz : y->sz;
   mpz_init_heap(ctx, z, max_sz);
-  mpz_realloc(ctx, z, max_sz);
   z->sn = (x->sn < 0 && y->sn < 0) ? -1 : 1;
 
   char c1 = 1, c2 = 1, c3 = 1;
@@ -3830,7 +3827,6 @@ mpz_or(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)
   /* Fast path: both positive - just OR the limbs */
   if (x->sn > 0 && y->sn > 0) {
     mpz_init_heap(ctx, z, max_sz);
-    mpz_realloc(ctx, z, max_sz);
     size_t min_sz = (x->sz < y->sz) ? x->sz : y->sz;
     for (size_t i = 0; i < min_sz; i++) {
       z->p[i] = x->p[i] | y->p[i];
@@ -3849,7 +3845,6 @@ mpz_or(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)
 
   /* Slow path: at least one negative operand */
   mpz_init_heap(ctx, z, max_sz);
-  mpz_realloc(ctx, z, max_sz);
   z->sn = (x->sn == y->sn) ? x->sn : -1;
 
   char c1 = 1, c2 = 1, c3 = 1;
@@ -3888,7 +3883,6 @@ mpz_xor(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)
   /* Fast path: both positive - just XOR the limbs */
   if (x->sn > 0 && y->sn > 0) {
     mpz_init_heap(ctx, z, max_sz);
-    mpz_realloc(ctx, z, max_sz);
     size_t min_sz = (x->sz < y->sz) ? x->sz : y->sz;
     for (size_t i = 0; i < min_sz; i++) {
       z->p[i] = x->p[i] ^ y->p[i];
@@ -3907,7 +3901,6 @@ mpz_xor(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)
 
   /* Slow path: at least one negative operand */
   mpz_init_heap(ctx, z, max_sz);
-  mpz_realloc(ctx, z, max_sz);
   z->sn = (x->sn == y->sn) ? 1 : -1;
 
   char c1 = 1, c2 = 1, c3 = 1;
@@ -4115,7 +4108,6 @@ mpz_abs(mpz_ctx_t *ctx, mpz_t *x, mpz_t *y)
     return;
   }
   mpz_init_heap(ctx, x, y->sz);
-  mpz_realloc(ctx, x, y->sz);
   mpz_abs_copy(ctx, x, y);
 }
 
