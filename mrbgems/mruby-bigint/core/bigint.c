@@ -3360,7 +3360,7 @@ static const mp_limb base_limit[34*2] = {
  * For numbers with > DC_GET_STR_THRESHOLD digits, this is O(n log^2 n)
  * instead of O(n^2) for the simple algorithm.
  */
-#define DC_GET_STR_THRESHOLD 1000
+#define DC_GET_STR_THRESHOLD 700
 
 /*
  * Scratch buffer for D&C get_str to avoid repeated allocations.
