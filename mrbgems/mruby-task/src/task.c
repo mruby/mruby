@@ -1129,6 +1129,14 @@ mrb_execute_proc_synchronously(mrb_state *mrb, mrb_value proc_val, mrb_int argc,
   struct RProc *proc = mrb_proc_ptr(proc_val);
   int ai = mrb_gc_arena_save(mrb);
 
+  /*
+   * argc/argv are reserved for future use (e.g., passing arguments to
+   * event handlers or callback functions). Currently all callers pass
+   * 0 and NULL.
+   */
+  (void)argc;
+  (void)argv;
+
   /* 1. Lock scheduler and save context */
   if (mrb->task.scheduler_lock >= MRB_TASK_SCHEDULER_LOCK_MAX) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "scheduler lock overflow");
@@ -1150,10 +1158,6 @@ mrb_execute_proc_synchronously(mrb_state *mrb, mrb_value proc_val, mrb_int argc,
   struct RClass *task_class = mrb_class_get(mrb, "Task");
   mrb_value task_obj = mrb_obj_value(mrb_data_object_alloc(mrb, task_class, t, &mrb_task_type));
   t->self = task_obj;
-
-  /* Arguments are currently unused in this implementation */
-  (void)argc;
-  (void)argv;
 
   /* 3. Move task from DORMANT to READY */
   mrb_task_disable_irq();
@@ -1204,6 +1208,7 @@ mrb_execute_proc_synchronously(mrb_state *mrb, mrb_value proc_val, mrb_int argc,
   mrb->task.scheduler_lock--;
 
   mrb_gc_arena_restore(mrb, ai);
+  mrb_gc_protect(mrb, result);
 
   return result;
 }
@@ -1285,6 +1290,12 @@ mrb_create_task(mrb_state *mrb, struct RProc *proc, mrb_value name, mrb_value pr
 static void
 suspend_task_internal(mrb_state *mrb, mrb_task *t)
 {
+  /*
+   * WAITING task should also be suspended:
+   *   Suspend trigger may occur while the task is sleeping (WAITING).
+   * DORMANT task should also be suspended:
+   *   e.g., IRB in PicoRuby suspends a DORMANT task to use it again.
+   */
   if (t->status == MRB_TASK_STATUS_SUSPENDED) return;
 
   /*
