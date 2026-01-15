@@ -972,7 +972,7 @@ mpz_sqr_basic_limbs(mp_limb *result, const mp_limb *x, size_t n)
  *   - Interpolate to recover result coefficients
  */
 
-#define TOOM3_THRESHOLD 50
+#define TOOM3_THRESHOLD 100
 
 static inline mrb_bool
 should_use_toom3(size_t n)
