@@ -1054,14 +1054,15 @@ mpn_divexact_3(mp_limb *rp, const mp_limb *ap, size_t n)
 
   mp_limb borrow = 0;
   for (size_t i = 0; i < n; i++) {
-    mp_limb a = ap[i] - borrow;
+    mp_limb old_a = ap[i];  /* save before potential in-place overwrite */
+    mp_limb a = old_a - borrow;
     mp_limb q = a * inv3;
     rp[i] = q;
     /* borrow = (q * 3 > a) ? ceil((q*3 - a) / 2^DIG_SIZE) : 0 */
     /* Simplified: borrow for next iteration */
     mp_dbl_limb prod = (mp_dbl_limb)q * 3;
     borrow = (mp_limb)(prod >> DIG_SIZE);
-    if ((mp_limb)prod > ap[i]) borrow++;
+    if ((mp_limb)prod > old_a) borrow++;  /* use saved value for in-place safety */
   }
 }
 
