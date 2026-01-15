@@ -83,6 +83,7 @@ static void mpz_mul_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e);
 static void mpz_div_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e);
 static void mpz_mod_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e);
 static void mpz_set_int(mpz_ctx_t *ctx, mpz_t *y, mrb_int v);
+static void mpz_mul(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v);
 
 static mp_limb*
 pool_alloc(mpz_pool_t *pool, size_t limbs)
@@ -2065,6 +2066,93 @@ mpz_sqr(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u)
   trim(ww);
 }
 
+/*
+ * Balance multiplication for asymmetric operands.
+ * When one operand is much larger than the other (max >= 2*min),
+ * split the larger into chunks of size equal to the smaller,
+ * multiply each chunk, and combine with shifts.
+ */
+static void
+mpz_mul_balance(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *a, mpz_t *b)
+{
+  /* Ensure 'a' is the larger operand */
+  if (a->sz < b->sz) {
+    mpz_t *t = a; a = b; b = t;
+  }
+
+  size_t bsize = b->sz;             /* chunk size = smaller operand size */
+  size_t nblocks = a->sz / bsize;   /* number of full chunks */
+
+  size_t pool_state = pool_save(ctx);
+  mpz_t chunk, tmp, result;
+  mpz_init(ctx, &result);
+  mpz_init_heap(ctx, &chunk, bsize);
+  mpz_init(ctx, &tmp);
+
+  size_t j = 0;
+  for (size_t i = 0; i < nblocks; i++) {
+    /* Copy chunk from a */
+    memcpy(chunk.p, a->p + j, bsize * sizeof(mp_limb));
+    chunk.sz = bsize;
+    chunk.sn = 1;
+    trim(&chunk);
+    j += bsize;
+
+    if (!zero_p(&chunk)) {
+      /* Multiply chunk * b */
+      mpz_mul(ctx, &tmp, &chunk, b);
+
+      /* Shift tmp left by (i * bsize) limbs */
+      if (i > 0) {
+        size_t shift_limbs = i * bsize;
+        size_t old_sz = tmp.sz;
+        size_t new_sz = old_sz + shift_limbs;
+        mpz_realloc(ctx, &tmp, new_sz);
+        memmove(tmp.p + shift_limbs, tmp.p, old_sz * sizeof(mp_limb));
+        memset(tmp.p, 0, shift_limbs * sizeof(mp_limb));
+        tmp.sz = new_sz;
+      }
+
+      /* Add to result */
+      mpz_add(ctx, &result, &result, &tmp);
+    }
+  }
+
+  /* Handle leftover (remaining limbs after full chunks) */
+  if (j < a->sz) {
+    size_t remaining = a->sz - j;
+    mpz_realloc(ctx, &chunk, remaining);
+    memcpy(chunk.p, a->p + j, remaining * sizeof(mp_limb));
+    chunk.sz = remaining;
+    chunk.sn = 1;
+    trim(&chunk);
+
+    if (!zero_p(&chunk)) {
+      mpz_mul(ctx, &tmp, &chunk, b);
+
+      /* Shift by j limbs */
+      if (j > 0) {
+        size_t old_sz = tmp.sz;
+        size_t new_sz = old_sz + j;
+        mpz_realloc(ctx, &tmp, new_sz);
+        memmove(tmp.p + j, tmp.p, old_sz * sizeof(mp_limb));
+        memset(tmp.p, 0, j * sizeof(mp_limb));
+        tmp.sz = new_sz;
+      }
+
+      mpz_add(ctx, &result, &result, &tmp);
+    }
+  }
+
+  /* Apply sign: result sign = a->sn * b->sn */
+  result.sn = a->sn * b->sn;
+
+  mpz_move(ctx, ww, &result);
+  mpz_clear(ctx, &chunk);
+  mpz_clear(ctx, &tmp);
+  pool_restore(ctx, pool_state);
+}
+
 /* w = u * v */
 static void
 mpz_mul(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v)
@@ -2130,15 +2218,23 @@ mpz_mul(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v)
     return;
   }
 
-  /*
-   * Toom-3 requires both operands to be reasonably similar in size.
-   * When operands are highly asymmetric, the algorithm writes beyond
-   * the result buffer (e.g., 4*third > x_len + y_len when y_len << x_len).
-   * Use schoolbook for asymmetric cases where the smaller operand is
-   * below threshold.
-   */
   size_t min_sz = (u->sz < v->sz) ? u->sz : v->sz;
   size_t max_sz = (u->sz > v->sz) ? u->sz : v->sz;
+
+  /*
+   * Balance multiplication for highly asymmetric operands.
+   * When max >= 2*min and the smaller is above Toom-3 threshold,
+   * split the larger operand into chunks for better efficiency.
+   */
+  if (max_sz >= 2 * min_sz && should_use_toom3(min_sz)) {
+    mpz_mul_balance(ctx, ww, u, v);
+    return;
+  }
+
+  /*
+   * Toom-3 requires both operands to be reasonably similar in size.
+   * Use schoolbook for cases where the smaller operand is below threshold.
+   */
   if (!should_use_toom3(min_sz)) {
     mpz_mul_basic(ctx, ww, u, v);
     return;
