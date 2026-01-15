@@ -1491,6 +1491,268 @@ mpz_mul_toom3(mpz_ctx_t *ctx, mp_limb *result,
 }
 
 /*
+ * Toom-3 squaring scratch size (smaller than multiplication since no y evaluation).
+ */
+static size_t
+toom3_sqr_scratch_size(size_t n)
+{
+  if (!should_use_toom3(n)) {
+    return 0;
+  }
+
+  size_t third = n / 3;
+
+  /*
+   * Per level storage for squaring:
+   * - 3 evaluation results: v1_x, vm1_x, v2_x (no y needed)
+   *   Each up to (third + 3) limbs for carries
+   * - 5 product results: w0, w1, wm1, w2, winf
+   *   Each up to 2*(third + 3) + 16 limbs
+   * - 4 interpolation temps: t4, t5, t6, r2_tmp
+   *   Each up to 2*(third + 3) + 16 limbs
+   */
+  size_t eval_len = third + 3;
+  size_t prod_len = 2 * eval_len + 16;
+  size_t eval_space = 3 * eval_len;      /* v1_x, vm1_x, v2_x */
+  size_t prod_space = 5 * prod_len;      /* w0, w1, wm1, w2, winf */
+  size_t current_level = eval_space + prod_space;
+
+  /* Interpolation temps (4 * prod_len) are reused with recursive scratch */
+  size_t interp_size = 4 * prod_len;
+
+  /* Recursively calculate sub-squaring scratch size */
+  size_t sub_n = eval_len;
+  size_t sub_scratch = toom3_sqr_scratch_size(sub_n);
+  if (sub_scratch < interp_size) {
+    sub_scratch = interp_size;
+  }
+
+  return current_level + sub_scratch + 8;
+}
+
+/* Toom-3 squaring: optimized squaring for large numbers */
+static void
+mpz_sqr_toom3(mpz_ctx_t *ctx, mp_limb *result,
+              const mp_limb *x, size_t x_len,
+              mp_limb *scratch)
+{
+  /*
+   * Base case - use schoolbook squaring.
+   */
+  if (!should_use_toom3(x_len)) {
+    mpz_sqr_basic_limbs(result, x, x_len);
+    return;
+  }
+
+  /*
+   * Split: x = x2*B^2 + x1*B + x0
+   * where B = base^third
+   */
+  size_t n = x_len;
+  size_t third = n / 3;
+  size_t x0_len = (x_len > third) ? third : x_len;
+  size_t x1_len = (x_len > 2*third) ? third : ((x_len > third) ? x_len - third : 0);
+  size_t x2_len = (x_len > 2*third) ? x_len - 2*third : 0;
+
+  const mp_limb *x0 = x;
+  const mp_limb *x1 = x + third;
+  const mp_limb *x2 = x + 2*third;
+
+  /* Allocate scratch space (fewer buffers than multiplication) */
+  size_t eval_len = third + 3;
+  size_t prod_len = 2 * eval_len + 16;
+
+  size_t offset = 0;
+  mp_limb *v1_x = scratch + offset; offset += eval_len;
+  mp_limb *vm1_x = scratch + offset; offset += eval_len;
+  mp_limb *v2_x = scratch + offset; offset += eval_len;
+
+  mp_limb *w0 = scratch + offset; offset += prod_len;
+  mp_limb *w1 = scratch + offset; offset += prod_len;
+  mp_limb *wm1 = scratch + offset; offset += prod_len;
+  mp_limb *w2 = scratch + offset; offset += prod_len;
+  mp_limb *winf = scratch + offset; offset += prod_len;
+
+  mp_limb *recursive_scratch = scratch + offset;
+
+  /*
+   * Evaluation at 5 points (only x, no y):
+   * v0 = x0 (reuse input)
+   * v1 = x0 + x1 + x2
+   * vm1 = x0 - x1 + x2
+   * v2 = x0 + 2*x1 + 4*x2
+   * vinf = x2 (reuse input)
+   */
+
+  /* v1 = x0 + x1 + x2 */
+  mpn_zero(v1_x, eval_len);
+  mpn_copyi(v1_x, x0, x0_len);
+  if (x1_len > 0) mpn_add(v1_x, v1_x, eval_len, x1, x1_len);
+  if (x2_len > 0) mpn_add(v1_x, v1_x, eval_len, x2, x2_len);
+  size_t v1_x_len = eval_len;
+  while (v1_x_len > 0 && v1_x[v1_x_len-1] == 0) v1_x_len--;
+  if (v1_x_len == 0) v1_x_len = 1;
+
+  /* vm1 = x0 - x1 + x2 (may be negative, track sign) */
+  mp_limb vm1_x_neg = 0;
+  {
+    mpn_zero(vm1_x, eval_len);
+    mpn_copyi(vm1_x, x0, x0_len);
+    if (x2_len > 0) mpn_add(vm1_x, vm1_x, eval_len, x2, x2_len);
+    if (x1_len > 0) {
+      vm1_x_neg = mpn_sub_var(vm1_x, vm1_x, eval_len, x1, x1_len, eval_len);
+      if (vm1_x_neg) mpn_neg(vm1_x, vm1_x, eval_len);
+    }
+  }
+  size_t vm1_x_len = eval_len;
+  while (vm1_x_len > 0 && vm1_x[vm1_x_len-1] == 0) vm1_x_len--;
+  if (vm1_x_len == 0) vm1_x_len = 1;
+
+  /* v2 = x0 + 2*x1 + 4*x2 */
+  {
+    mpn_zero(v2_x, eval_len);
+    mpn_copyi(v2_x, x0, x0_len);
+    if (x1_len > 0) {
+      mp_limb carry = 0;
+      for (size_t i = 0; i < x1_len; i++) {
+        mp_dbl_limb val = (mp_dbl_limb)v2_x[i] + ((mp_dbl_limb)x1[i] << 1) + carry;
+        v2_x[i] = LOW(val);
+        carry = HIGH(val);
+      }
+      for (size_t i = x1_len; carry && i < eval_len; i++) {
+        mp_dbl_limb val = (mp_dbl_limb)v2_x[i] + carry;
+        v2_x[i] = LOW(val);
+        carry = HIGH(val);
+      }
+    }
+    if (x2_len > 0) {
+      mp_limb carry = 0;
+      for (size_t i = 0; i < x2_len; i++) {
+        mp_dbl_limb val = (mp_dbl_limb)v2_x[i] + ((mp_dbl_limb)x2[i] << 2) + carry;
+        v2_x[i] = LOW(val);
+        carry = HIGH(val);
+      }
+      for (size_t i = x2_len; carry && i < eval_len; i++) {
+        mp_dbl_limb val = (mp_dbl_limb)v2_x[i] + carry;
+        v2_x[i] = LOW(val);
+        carry = HIGH(val);
+      }
+    }
+  }
+  size_t v2_x_len = eval_len;
+  while (v2_x_len > 0 && v2_x[v2_x_len-1] == 0) v2_x_len--;
+  if (v2_x_len == 0) v2_x_len = 1;
+
+  /*
+   * Pointwise squaring (5 recursive calls)
+   * Key difference from multiplication: squaring instead of multiplication
+   */
+  mpn_zero(w0, prod_len);
+  mpn_zero(w1, prod_len);
+  mpn_zero(wm1, prod_len);
+  mpn_zero(w2, prod_len);
+  mpn_zero(winf, prod_len);
+
+  /* w0 = v0^2 = x0^2 */
+  mpz_sqr_toom3(ctx, w0, x0, x0_len, recursive_scratch);
+
+  /* w1 = v1^2 */
+  mpz_sqr_toom3(ctx, w1, v1_x, v1_x_len, recursive_scratch);
+
+  /* wm1 = vm1^2 (sign is always positive for squaring!) */
+  (void)vm1_x_neg;  /* squaring ignores sign */
+  mpz_sqr_toom3(ctx, wm1, vm1_x, vm1_x_len, recursive_scratch);
+
+  /* w2 = v2^2 */
+  mpz_sqr_toom3(ctx, w2, v2_x, v2_x_len, recursive_scratch);
+
+  /* winf = vinf^2 = x2^2 */
+  if (x2_len > 0) {
+    mpz_sqr_toom3(ctx, winf, x2, x2_len, recursive_scratch);
+  }
+
+  /*
+   * Interpolation (same as multiplication)
+   * Recover r0, r1, r2, r3, r4 where:
+   * result = r0 + r1*B + r2*B^2 + r3*B^3 + r4*B^4
+   *
+   * For squaring, wm1 is always positive, simplifying step 4.
+   */
+  size_t w_len = prod_len;
+
+  mp_limb *t1 = w1;   /* reuse w1 */
+  mp_limb *t2 = wm1;  /* reuse wm1 */
+  mp_limb *t3 = w2;   /* reuse w2 */
+  mp_limb *t4 = recursive_scratch;
+  mp_limb *t5 = recursive_scratch + w_len;
+  mp_limb *t6 = recursive_scratch + 2 * w_len;
+  mp_limb *r2_tmp = recursive_scratch + 3 * w_len;
+
+  /* t1 = w1 - w0 - winf */
+  mpn_sub(t1, t1, w_len, w0, w_len);
+  mpn_sub(t1, t1, w_len, winf, w_len);
+
+  /* t2 = wm1 - w0 - winf (no sign handling for squaring!) */
+  mpn_sub(t2, t2, w_len, w0, w_len);
+  mpn_sub(t2, t2, w_len, winf, w_len);
+
+  /* r2 = (t1 + t2) / 2 */
+  mpn_add_var(r2_tmp, t1, w_len, t2, w_len, w_len);
+  mpn_rshift1(r2_tmp, r2_tmp, w_len);
+
+  /* t3 = w2 - w0 - 16*winf */
+  mpn_sub(t3, t3, w_len, w0, w_len);
+  {
+    mp_limb borrow = 0;
+    for (size_t i = 0; i < w_len; i++) {
+      mp_dbl_limb_signed diff = (mp_dbl_limb_signed)t3[i]
+                               - ((mp_dbl_limb_signed)winf[i] << 4) - borrow;
+      t3[i] = LOW(diff);
+      borrow = (diff < 0) ? (mp_limb)(-(diff >> DIG_SIZE)) : 0;
+    }
+  }
+
+  /* t4 = t3 / 2 */
+  mpn_rshift1(t4, t3, w_len);
+
+  /* t5 = (t1 - t2) / 2 */
+  mpn_sub_var(t5, t1, w_len, t2, w_len, w_len);
+  mpn_rshift1(t5, t5, w_len);
+
+  /* t6 = t4 - 2*r2 */
+  {
+    mp_limb borrow = 0;
+    for (size_t i = 0; i < w_len; i++) {
+      mp_dbl_limb_signed diff = (mp_dbl_limb_signed)t4[i]
+                               - ((mp_dbl_limb_signed)r2_tmp[i] << 1) - borrow;
+      t6[i] = LOW(diff);
+      borrow = (diff < 0) ? (mp_limb)(-(diff >> DIG_SIZE)) : 0;
+    }
+  }
+
+  /* r3 = (t6 - t5) / 3 */
+  mp_limb *r3 = t4;
+  mpn_sub(r3, t6, w_len, t5, w_len);
+  mpn_divexact_3(r3, r3, w_len);
+
+  /* r1 = t5 - r3 */
+  mp_limb *r1 = t5;
+  mpn_sub(r1, t5, w_len, r3, w_len);
+
+  /*
+   * Final assembly: result = r0 + r1*B + r2*B^2 + r3*B^3 + r4*B^4
+   */
+  size_t result_len = 2 * n + 24;
+  mpn_zero(result, result_len);
+
+  mpn_copyi(result, w0, (2*third < result_len) ? 2*third : result_len);
+  limb_add_at(result, result_len, r1, w_len, third);
+  limb_add_at(result, result_len, r2_tmp, w_len, 2*third);
+  limb_add_at(result, result_len, r3, w_len, 3*third);
+  limb_add_at(result, result_len, winf, w_len, 4*third);
+}
+
+/*
  * Check if mpz is "all ones" pattern (2^n - 1).
  * For such a number:
  *   - All limbs except possibly the top one equal DIG_MASK
@@ -1771,7 +2033,7 @@ mpz_sqr(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u)
   }
 
   /*
-   * Toom-3 squaring: use multiplication (x * x) for large numbers.
+   * Toom-3 squaring: use optimized squaring for large numbers.
    * Toom-3 writes at offset 4*third with products up to 2*(third+3)+16 limbs.
    * Maximum write position: 4*n/3 + 2*n/3 + 22 = 2*n + 22.
    * Add extra space to prevent buffer overflow.
@@ -1779,7 +2041,7 @@ mpz_sqr(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u)
   size_t result_size = 2 * u->sz + 24;
   mpz_realloc(ctx, ww, result_size);
 
-  size_t scratch_size = toom3_scratch_size(u->sz);
+  size_t scratch_size = toom3_sqr_scratch_size(u->sz);
   scratch_size += (scratch_size >> 3) + 16;
   size_t pool_state = pool_save(ctx);
   mp_limb *scratch = NULL;
@@ -1789,12 +2051,12 @@ mpz_sqr(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u)
   }
 
   if (scratch) {
-    mpz_mul_toom3(ctx, ww->p, u->p, u->sz, u->p, u->sz, scratch);
+    mpz_sqr_toom3(ctx, ww->p, u->p, u->sz, scratch);
     pool_restore(ctx, pool_state);
   }
   else {
     scratch = (mp_limb*)mrb_malloc(MPZ_MRB(ctx), scratch_size * sizeof(mp_limb));
-    mpz_mul_toom3(ctx, ww->p, u->p, u->sz, u->p, u->sz, scratch);
+    mpz_sqr_toom3(ctx, ww->p, u->p, u->sz, scratch);
     mrb_free(MPZ_MRB(ctx), scratch);
   }
 
