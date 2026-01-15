@@ -3147,8 +3147,8 @@ mpz_mod(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *y)
     return;
   }
 
-  /* Barrett reduction for moderate-sized moduli */
-  if (y->sz >= 2 && y->sz <= 16 && x->sz >= y->sz + 2) {
+  /* Barrett reduction for moderate-sized moduli (>= 4 limbs where setup is worthwhile) */
+  if (y->sz >= 4 && y->sz <= 16 && x->sz >= y->sz + 2) {
     mpz_t mu;
     mpz_init_temp(ctx, &mu, y->sz + 1);
     mpz_barrett_mu(ctx, &mu, y);
@@ -3723,6 +3723,85 @@ mpz_get_str_dc(mpz_ctx_t *ctx, char *s, mpz_t *x)
   return result;
 }
 
+/*
+ * CPython-style base conversion for decimal strings.
+ *
+ * Converts from base 2^DIG_SIZE to base 10^k (DECIMAL_BASE_CONV).
+ * This is faster than repeated division because:
+ * - Each input limb is processed only once (MSB to LSB)
+ * - The inner loop multiplies/divides by constants (compiler optimizes)
+ * - Fewer total operations than dividing entire number repeatedly
+ *
+ * Returns number of decimal base digits written to decimal_out.
+ */
+#ifdef MRB_NO_MPZ64BIT
+#define DECIMAL_BASE_CONV 10000UL      /* 10^4 for 16-bit limbs */
+#define DECIMAL_DIGITS_CONV 4
+#else
+#define DECIMAL_BASE_CONV 1000000000UL /* 10^9 for 32-bit limbs */
+#define DECIMAL_DIGITS_CONV 9
+#endif
+
+static size_t
+mpz_base_convert_decimal(const mp_limb *limbs, size_t size, mp_limb *decimal_out)
+{
+  size_t decimal_size = 0;
+
+  /* Process input limbs from MSB to LSB */
+  for (size_t i = size; i > 0; i--) {
+    mp_limb hi = limbs[i - 1];
+
+    /* Multiply existing decimal digits by 2^DIG_SIZE and add hi */
+    for (size_t j = 0; j < decimal_size; j++) {
+      mp_dbl_limb z = ((mp_dbl_limb)decimal_out[j] << DIG_SIZE) | hi;
+      hi = (mp_limb)(z / DECIMAL_BASE_CONV);
+      decimal_out[j] = (mp_limb)(z - (mp_dbl_limb)hi * DECIMAL_BASE_CONV);
+    }
+
+    /* Handle remaining carries into new decimal digits */
+    while (hi) {
+      decimal_out[decimal_size++] = hi % DECIMAL_BASE_CONV;
+      hi /= DECIMAL_BASE_CONV;
+    }
+  }
+
+  return decimal_size;
+}
+
+/*
+ * Convert decimal base representation to string.
+ * decimal[]: array of values < DECIMAL_BASE_CONV, LSB first
+ * Returns pointer past last character written.
+ */
+static char*
+mpz_decimal_to_str(const mp_limb *decimal, size_t decimal_size, char *str)
+{
+  if (decimal_size == 0) {
+    *str++ = '0';
+    return str;
+  }
+
+  char *s = str;
+
+  /* Output all but MSB group with exactly DECIMAL_DIGITS_CONV digits each */
+  for (size_t i = 0; i < decimal_size - 1; i++) {
+    mp_limb d = decimal[i];
+    for (int j = 0; j < DECIMAL_DIGITS_CONV; j++) {
+      *s++ = '0' + (char)(d % 10);
+      d /= 10;
+    }
+  }
+
+  /* Output MSB group without leading zeros */
+  mp_limb d = decimal[decimal_size - 1];
+  do {
+    *s++ = '0' + (char)(d % 10);
+    d /= 10;
+  } while (d > 0);
+
+  return s;
+}
+
 static char*
 mpz_get_str(mpz_ctx_t *ctx, char *s, mrb_int sz, mrb_int base, mpz_t *x)
 {
@@ -3782,39 +3861,53 @@ mpz_get_str(mpz_ctx_t *ctx, char *s, mrb_int sz, mrb_int base, mpz_t *x)
       return mpz_get_str_dc(ctx, s, x);
     }
 
-    mp_limb *t = (mp_limb*)mrb_malloc(mrb, xlen * sizeof(mp_limb));
+    if (base == 10) {
+      /* Use CPython-style base conversion for decimal (faster) */
+      size_t decimal_alloc = (size_t)xlen * 2 + 2;
+      mp_limb *decimal = (mp_limb*)mrb_malloc(mrb, decimal_alloc * sizeof(mp_limb));
+      memset(decimal, 0, decimal_alloc * sizeof(mp_limb));
 
-    mp_limb *tend = t + xlen;
-    memcpy(t, x->p, xlen * sizeof(mp_limb));
-    mp_limb b2 = base_limit[base-3];
+      size_t dsz = mpz_base_convert_decimal(x->p, (size_t)xlen, decimal);
+      s = mpz_decimal_to_str(decimal, dsz, s);
 
-    for (;;) {
-      mp_limb *d = tend;
-      mp_dbl_limb a = 0;
-      while (--d >= t) {
-        mp_limb d0 = *d;
-        a = (a<<DIG_SIZE) | d0;
-        *d = (mp_limb)(a / b2);
-        a %= b2;
-      }
-
-      // convert to character
-      for (mp_limb b=b2; b>=base; b/=(mp_limb)base) {
-        char a0 = (char)(a % base);
-        if (a0 < 10) a0 += '0';
-        else a0 += 'a' - 10;
-        if (s == se) break;
-        *s++ = a0;
-        a /= base;
-      }
-
-      // check if number is zero
-      for (d = t; d < tend; d++) {
-        if (*d != 0) break;
-      }
-      if (d == tend) break;
+      mrb_free(mrb, decimal);
     }
-    mrb_free(mrb, t);
+    else {
+      /* Use division-style for other bases */
+      mp_limb *t = (mp_limb*)mrb_malloc(mrb, xlen * sizeof(mp_limb));
+
+      mp_limb *tend = t + xlen;
+      memcpy(t, x->p, xlen * sizeof(mp_limb));
+      mp_limb b2 = base_limit[base-3];
+
+      for (;;) {
+        mp_limb *d = tend;
+        mp_dbl_limb a = 0;
+        while (--d >= t) {
+          mp_limb d0 = *d;
+          a = (a<<DIG_SIZE) | d0;
+          *d = (mp_limb)(a / b2);
+          a %= b2;
+        }
+
+        // convert to character
+        for (mp_limb b=b2; b>=base; b/=(mp_limb)base) {
+          char a0 = (char)(a % base);
+          if (a0 < 10) a0 += '0';
+          else a0 += 'a' - 10;
+          if (s == se) break;
+          *s++ = a0;
+          a /= base;
+        }
+
+        // check if number is zero
+        for (d = t; d < tend; d++) {
+          if (*d != 0) break;
+        }
+        if (d == tend) break;
+      }
+      mrb_free(mrb, t);
+    }
   }
 
   while (ps<s && s[-1]=='0') s--;
@@ -4265,6 +4358,10 @@ mpz_pow(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mrb_int e)
   mpz_clear(ctx, &temp);
 }
 
+/* Forward declaration for Montgomery modular exponentiation */
+static void mpz_powm_montgomery(mpz_ctx_t *ctx, mpz_t *result,
+                                const mpz_t *base, const mpz_t *exp, const mpz_t *n);
+
 static void
 mpz_powm(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
 {
@@ -4278,14 +4375,32 @@ mpz_powm(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
     return;
   }
 
+  /*
+   * Use Montgomery reduction for odd moduli >= 4 limbs.
+   * Montgomery is faster because it replaces division with multiplication.
+   * For smaller moduli, Barrett has less setup overhead.
+   */
+  if (n->sz >= 4 && (n->p[0] & 1) == 1) {
+    mpz_powm_montgomery(ctx, zz, x, ex, n);
+    return;
+  }
+
+  /*
+   * Fall back to Barrett reduction for even moduli or small moduli.
+   * Barrett works for any modulus and is faster than division.
+   */
   size_t pool_state = pool_save(ctx);
   mpz_t t, b;
   mpz_init_set_int(ctx, &t, 1);
   mpz_init_set(ctx, &b, x);
 
-  /* Optimize with Barrett reduction for moderate-sized moduli */
+  /*
+   * Use Barrett reduction for moduli >= 4 limbs.
+   * For smaller moduli (2-3 limbs), simple division is faster because
+   * Barrett's 2 multiplications + overhead exceed 1 division cost.
+   */
   mpz_t mu, temp;
-  int use_barrett = (n->sz >= 2 && n->sz <= 8);
+  int use_barrett = (n->sz >= 4);
   mpz_init_temp(ctx, &temp, n->sz * 2);  /* For intermediate calculations */
   if (use_barrett) {
     mpz_init_temp(ctx, &mu, n->sz + 1);  /* Barrett parameter */
@@ -4338,14 +4453,32 @@ mpz_powm_i(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mrb_int ex, mpz_t *n)
     return;
   }
 
+  /*
+   * Use Montgomery reduction for odd moduli (common in cryptography).
+   * Convert integer exponent to mpz_t and use the main Montgomery implementation.
+   */
+  if (n->sz >= 2 && (n->p[0] & 1) == 1) {
+    mpz_t exp_mpz;
+    mpz_init_set_int(ctx, &exp_mpz, ex);
+    mpz_powm_montgomery(ctx, zz, x, &exp_mpz, n);
+    mpz_clear(ctx, &exp_mpz);
+    return;
+  }
+
+  /*
+   * Fall back to Barrett reduction for even moduli or small moduli.
+   */
   size_t pool_state = pool_save(ctx);
   mpz_t t, b;
   mpz_init_set_int(ctx, &t, 1);
   mpz_init_set(ctx, &b, x);
 
-  /* Optimize with Barrett reduction for moderate-sized moduli */
+  /*
+   * Use Barrett reduction for moduli >= 4 limbs.
+   * For smaller moduli (2-3 limbs), simple division is faster.
+   */
   mpz_t mu, temp;
-  int use_barrett = (n->sz >= 2 && n->sz <= 8);
+  int use_barrett = (n->sz >= 4);
 
   mpz_init_temp(ctx, &temp, n->sz * 2);  /* For intermediate calculations */
   if (use_barrett) {
@@ -4762,6 +4895,206 @@ mpz_sqrt(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x)
 
 
 /* Barrett reduction for efficient modular arithmetic with repeated operations */
+
+/*
+ * Montgomery Reduction
+ *
+ * Montgomery reduction computes x * R^(-1) mod n without division, where
+ * R = 2^(k*64) for a k-limb modulus. This is faster than Barrett for
+ * repeated modular operations with the same modulus (e.g., modular exponentiation).
+ *
+ * Requirements:
+ * - n must be ODD (n[0] & 1 == 1)
+ * - R > n (automatically satisfied since R = 2^(k*64) >= 2^64 > any k-limb number)
+ *
+ * Key insight: Instead of computing x mod n directly, we work in "Montgomery form"
+ * where a' = a * R mod n. Multiplication in Montgomery form:
+ *   a' * b' = (aR)(bR) * R^(-1) mod n = abR mod n = (ab)'
+ */
+
+/*
+ * Compute rho = -n[0]^(-1) mod 2^64 using Newton's method.
+ * This is the Montgomery constant needed for reduction.
+ */
+static mp_limb
+montgomery_setup(mp_limb n0)
+{
+  /* n must be odd for this to work */
+  mrb_assert((n0 & 1) == 1);
+
+  /*
+   * Newton's method for modular inverse:
+   * x_{i+1} = x_i * (2 - n0 * x_i) mod 2^k
+   *
+   * Starting with x = 1 (which satisfies x * n0 ≡ 1 mod 2),
+   * each iteration doubles the number of correct bits.
+   */
+  mp_limb x = 1;
+
+  /* 6 iterations: 1 -> 2 -> 4 -> 8 -> 16 -> 32 -> 64 bits */
+  for (int i = 0; i < 6; i++) {
+    x = x * (2 - n0 * x);  /* Implicit mod 2^64 via overflow */
+  }
+
+  /* Return -x mod 2^64 = negation of modular inverse */
+  return (mp_limb)0 - x;
+}
+
+/*
+ * Montgomery reduction: result = x * R^(-1) mod n
+ *
+ * Algorithm (REDC):
+ *   m = (x mod R) * rho mod R
+ *   t = (x + m * n) / R
+ *   if t >= n: t = t - n
+ *   return t
+ *
+ * The key insight is that (x + m*n) is always divisible by R,
+ * so the division is just a right shift (drop low limbs).
+ */
+static void
+mpz_montgomery_reduce(mpz_ctx_t *ctx, mpz_t *result,
+                      const mpz_t *x, const mpz_t *n, mp_limb rho)
+{
+  size_t k = n->sz;  /* Number of limbs in modulus */
+  size_t x_len = x->sz;
+
+  /* Allocate workspace: need k+1 extra limbs for the product accumulation */
+  size_t work_size = x_len + k + 2;
+  size_t pool_state = pool_save(ctx);
+
+  mp_limb *work = NULL;
+  if (MPZ_HAS_POOL(ctx)) {
+    work = pool_alloc(MPZ_POOL(ctx), work_size);
+  }
+  mrb_bool heap_alloc = (work == NULL);
+  if (heap_alloc) {
+    work = (mp_limb*)mrb_malloc(MPZ_MRB(ctx), work_size * sizeof(mp_limb));
+  }
+
+  /* Copy x to work buffer, zero-extend if necessary */
+  mpn_copyi(work, x->p, x_len);
+  mpn_zero(work + x_len, work_size - x_len);
+
+  /*
+   * Main Montgomery reduction loop:
+   * For i = 0 to k-1:
+   *   m_i = work[i] * rho mod 2^64
+   *   work += m_i * n * 2^(i*64)
+   */
+  for (size_t i = 0; i < k; i++) {
+    mp_limb m = work[i] * rho;
+
+    /* Add m * n at position i */
+    mp_limb carry = mpn_addmul_1(work + i, n->p, k, m);
+
+    /* Propagate carry */
+    for (size_t j = i + k; carry && j < work_size; j++) {
+      mp_dbl_limb sum = (mp_dbl_limb)work[j] + carry;
+      work[j] = LOW(sum);
+      carry = HIGH(sum);
+    }
+  }
+
+  /* Result is work[k..2k-1] (the upper k limbs after dividing by R) */
+  mpz_realloc(ctx, result, k + 1);
+  mpn_copyi(result->p, work + k, k + 1);
+  result->sz = k + 1;
+  result->sn = 1;
+  trim(result);
+
+  /* Final subtraction if result >= n */
+  if (ucmp(result, (mpz_t*)n) >= 0) {
+    mpz_sub(ctx, result, result, (mpz_t*)n);
+  }
+
+  /* Cleanup */
+  if (heap_alloc) {
+    mrb_free(MPZ_MRB(ctx), work);
+  }
+  pool_restore(ctx, pool_state);
+}
+
+/*
+ * Compute R^2 mod n, needed for converting to Montgomery form.
+ * a' = REDC(a * R^2) = a * R mod n
+ */
+static void
+mpz_montgomery_calc_R2(mpz_ctx_t *ctx, mpz_t *R2, const mpz_t *n)
+{
+  size_t k = n->sz;
+
+  /* R = 2^(k*64), so R^2 = 2^(2*k*64) */
+  mpz_init_set_int(ctx, R2, 1);
+  mpz_mul_2exp(ctx, R2, R2, 2 * k * DIG_SIZE);
+
+  /* R2 = R^2 mod n */
+  mpz_mod(ctx, R2, R2, (mpz_t*)n);
+}
+
+/*
+ * Montgomery modular exponentiation: result = base^exp mod n
+ * Requires n to be odd.
+ */
+static void
+mpz_powm_montgomery(mpz_ctx_t *ctx, mpz_t *result,
+                    const mpz_t *base, const mpz_t *exp, const mpz_t *n)
+{
+  size_t pool_state = pool_save(ctx);
+
+  /* Setup Montgomery parameters */
+  mp_limb rho = montgomery_setup(n->p[0]);
+
+  /* Compute R^2 mod n for conversion to Montgomery form */
+  mpz_t R2;
+  mpz_montgomery_calc_R2(ctx, &R2, n);
+
+  /* Compute R mod n = REDC(R^2) for initializing accumulator to 1 in Montgomery form */
+  mpz_t one_mont;
+  mpz_init(ctx, &one_mont);
+  mpz_montgomery_reduce(ctx, &one_mont, &R2, n, rho);
+
+  /* Convert base to Montgomery form: base_mont = base * R mod n = REDC(base * R^2) */
+  mpz_t base_mont, temp;
+  mpz_init(ctx, &base_mont);
+  mpz_init_temp(ctx, &temp, n->sz * 4);
+
+  mpz_mul(ctx, &temp, (mpz_t*)base, &R2);
+  mpz_montgomery_reduce(ctx, &base_mont, &temp, n, rho);
+
+  /* Initialize accumulator to 1 in Montgomery form */
+  mpz_t acc;
+  mpz_init_set(ctx, &acc, &one_mont);
+
+  /* Binary exponentiation in Montgomery form */
+  size_t exp_len = exp->sz;
+  for (size_t i = 0; i < exp_len; i++) {
+    mp_limb e = exp->p[i];
+    for (size_t j = 0; j < sizeof(mp_limb) * 8; j++) {
+      if ((e & 1) == 1) {
+        /* acc = acc * base_mont in Montgomery form */
+        mpz_mul(ctx, &temp, &acc, &base_mont);
+        mpz_montgomery_reduce(ctx, &acc, &temp, n, rho);
+      }
+      e >>= 1;
+
+      /* base_mont = base_mont^2 in Montgomery form */
+      mpz_mul(ctx, &temp, &base_mont, &base_mont);
+      mpz_montgomery_reduce(ctx, &base_mont, &temp, n, rho);
+    }
+  }
+
+  /* Convert result back from Montgomery form: result = REDC(acc) */
+  mpz_montgomery_reduce(ctx, result, &acc, n, rho);
+
+  /* Cleanup */
+  mpz_clear(ctx, &R2);
+  mpz_clear(ctx, &one_mont);
+  mpz_clear(ctx, &base_mont);
+  mpz_clear(ctx, &temp);
+  mpz_clear(ctx, &acc);
+  pool_restore(ctx, pool_state);
+}
 
 /* --- mruby functions --- */
 /* initialize mpz_t from RBigint (not need to clear) */
