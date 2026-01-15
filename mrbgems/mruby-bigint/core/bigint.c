@@ -961,6 +961,175 @@ mpz_sqr_basic_limbs(mp_limb *result, const mp_limb *x, size_t n)
 }
 
 /*
+ * Karatsuba Multiplication
+ *
+ * Splits inputs into 2 parts: A = A1*B^half + A0, B = B1*B^half + B0
+ * Computes: z0 = A0*B0, z2 = A1*B1, z1 = (A0+A1)*(B0+B1) - z0 - z2
+ * Result: z2*B^(2*half) + z1*B^half + z0
+ *
+ * Complexity: O(n^1.585) - trades 4 multiplications for 3 plus additions
+ */
+
+#define KARATSUBA_THRESHOLD 32
+
+static inline mrb_bool
+should_use_karatsuba(size_t n)
+{
+  return n >= KARATSUBA_THRESHOLD;
+}
+
+/* Calculate scratch space needed for Karatsuba */
+static size_t
+karatsuba_scratch_size(size_t n)
+{
+  if (n < KARATSUBA_THRESHOLD) {
+    return 0;
+  }
+
+  size_t half = (n + 1) / 2;
+
+  /*
+   * Per level storage:
+   * - 2 evaluation results: (A0+A1), (B0+B1), each up to (half+1) limbs
+   * - 3 products: z0, z1, z2, each up to 2*(half+1) limbs
+   */
+  size_t eval_len = half + 1;
+  size_t prod_len = 2 * eval_len;
+
+  size_t eval_size = 2 * eval_len;    /* 2 evaluation temps */
+  size_t prod_size = 3 * prod_len;    /* 3 products */
+  size_t current_level = eval_size + prod_size;
+
+  /* Recursive scratch - sequential calls reuse same buffer */
+  size_t sub_scratch = karatsuba_scratch_size(eval_len);
+
+  return current_level + sub_scratch + 8;  /* +8 safety margin */
+}
+
+/* Forward declaration for recursive calls */
+static void
+mpz_mul_karatsuba_limbs(mp_limb *result,
+                        const mp_limb *x, size_t x_len,
+                        const mp_limb *y, size_t y_len,
+                        mp_limb *scratch);
+
+/*
+ * Karatsuba multiplication on raw limb arrays.
+ *
+ * result must have space for x_len + y_len limbs.
+ * scratch must have karatsuba_scratch_size(max(x_len, y_len)) limbs.
+ */
+static void
+mpz_mul_karatsuba_limbs(mp_limb *result,
+                        const mp_limb *x, size_t x_len,
+                        const mp_limb *y, size_t y_len,
+                        mp_limb *scratch)
+{
+  size_t min_len = (x_len < y_len) ? x_len : y_len;
+  size_t max_len = (x_len > y_len) ? x_len : y_len;
+
+  /* Base case - use schoolbook */
+  if (!should_use_karatsuba(min_len)) {
+    mpz_mul_basic_limbs(result, x, x_len, y, y_len);
+    return;
+  }
+
+  /*
+   * Split: x = x1*B^half + x0, y = y1*B^half + y0
+   * where B = base^half
+   */
+  size_t half = (max_len + 1) / 2;
+
+  /* Determine actual lengths of each part */
+  size_t x0_len = (x_len > half) ? half : x_len;
+  size_t x1_len = (x_len > half) ? x_len - half : 0;
+  size_t y0_len = (y_len > half) ? half : y_len;
+  size_t y1_len = (y_len > half) ? y_len - half : 0;
+
+  const mp_limb *x0 = x;
+  const mp_limb *x1 = x + half;
+  const mp_limb *y0 = y;
+  const mp_limb *y1 = y + half;
+
+  /* Allocate scratch space */
+  size_t eval_len = half + 1;
+  size_t prod_len = 2 * eval_len;
+
+  size_t offset = 0;
+  mp_limb *sum_x = scratch + offset; offset += eval_len;  /* x0 + x1 */
+  mp_limb *sum_y = scratch + offset; offset += eval_len;  /* y0 + y1 */
+  mp_limb *z0 = scratch + offset; offset += prod_len;     /* x0 * y0 */
+  mp_limb *z2 = scratch + offset; offset += prod_len;     /* x1 * y1 */
+  mp_limb *z1 = scratch + offset; offset += prod_len;     /* (x0+x1)*(y0+y1) */
+  mp_limb *recursive_scratch = scratch + offset;
+
+  /* Compute sum_x = x0 + x1 */
+  mpn_zero(sum_x, eval_len);
+  mpn_copyi(sum_x, x0, x0_len);
+  if (x1_len > 0) {
+    mpn_add(sum_x, sum_x, eval_len, x1, x1_len);
+  }
+  size_t sum_x_len = eval_len;
+  while (sum_x_len > 1 && sum_x[sum_x_len - 1] == 0) sum_x_len--;
+
+  /* Compute sum_y = y0 + y1 */
+  mpn_zero(sum_y, eval_len);
+  mpn_copyi(sum_y, y0, y0_len);
+  if (y1_len > 0) {
+    mpn_add(sum_y, sum_y, eval_len, y1, y1_len);
+  }
+  size_t sum_y_len = eval_len;
+  while (sum_y_len > 1 && sum_y[sum_y_len - 1] == 0) sum_y_len--;
+
+  /* z0 = x0 * y0 */
+  mpn_zero(z0, prod_len);
+  if (x0_len > 0 && y0_len > 0) {
+    mpz_mul_karatsuba_limbs(z0, x0, x0_len, y0, y0_len, recursive_scratch);
+  }
+
+  /* z2 = x1 * y1 */
+  mpn_zero(z2, prod_len);
+  if (x1_len > 0 && y1_len > 0) {
+    mpz_mul_karatsuba_limbs(z2, x1, x1_len, y1, y1_len, recursive_scratch);
+  }
+
+  /* z1 = (x0 + x1) * (y0 + y1) */
+  mpn_zero(z1, prod_len);
+  mpz_mul_karatsuba_limbs(z1, sum_x, sum_x_len, sum_y, sum_y_len, recursive_scratch);
+
+  /* z1 = z1 - z0 - z2 */
+  mpn_sub(z1, z1, prod_len, z0, prod_len);
+  mpn_sub(z1, z1, prod_len, z2, prod_len);
+
+  /*
+   * Combine: result = z2*B^(2*half) + z1*B^half + z0
+   */
+  size_t result_len = x_len + y_len;
+  mpn_zero(result, result_len);
+
+  /* Add z0 at position 0 */
+  size_t z0_actual_len = prod_len;
+  while (z0_actual_len > 0 && z0[z0_actual_len - 1] == 0) z0_actual_len--;
+  if (z0_actual_len > 0) {
+    mpn_copyi(result, z0, z0_actual_len);
+  }
+
+  /* Add z1 at position half */
+  size_t z1_actual_len = prod_len;
+  while (z1_actual_len > 0 && z1[z1_actual_len - 1] == 0) z1_actual_len--;
+  if (z1_actual_len > 0) {
+    limb_add_at(result, result_len, z1, z1_actual_len, half);
+  }
+
+  /* Add z2 at position 2*half */
+  size_t z2_actual_len = prod_len;
+  while (z2_actual_len > 0 && z2[z2_actual_len - 1] == 0) z2_actual_len--;
+  if (z2_actual_len > 0 && 2 * half < result_len) {
+    limb_add_at(result, result_len, z2, z2_actual_len, 2 * half);
+  }
+}
+
+/*
  * Toom-3 (Toom-Cook 3-way) Multiplication
  *
  * Splits inputs into 3 parts and evaluates at 5 points: 0, 1, -1, 2, ∞
@@ -980,11 +1149,15 @@ should_use_toom3(size_t n)
   return n >= TOOM3_THRESHOLD;
 }
 
-/* Calculate scratch space needed for Toom-3 */
+/* Calculate scratch space needed for Toom-3 (including Karatsuba at base) */
 static size_t
 toom3_scratch_size(size_t n)
 {
   if (!should_use_toom3(n)) {
+    /* For Karatsuba range, return Karatsuba scratch size */
+    if (should_use_karatsuba(n)) {
+      return karatsuba_scratch_size(n);
+    }
     return 0;
   }
 
@@ -1158,14 +1331,19 @@ mpz_mul_toom3(mpz_ctx_t *ctx, mp_limb *result,
               mp_limb *scratch)
 {
   /*
-   * Base case - use schoolbook.
+   * Base case - use Karatsuba or schoolbook.
    * Toom-3 requires both operands to be large enough to avoid
    * buffer overflow when writing at offset 4*third.
    */
   size_t min_len = (x_len < y_len) ? x_len : y_len;
   size_t n = (x_len > y_len) ? x_len : y_len;
   if (!should_use_toom3(min_len)) {
-    mpz_mul_basic_limbs(result, x, x_len, y, y_len);
+    if (should_use_karatsuba(min_len)) {
+      mpz_mul_karatsuba_limbs(result, x, x_len, y, y_len, scratch);
+    }
+    else {
+      mpz_mul_basic_limbs(result, x, x_len, y, y_len);
+    }
     return;
   }
 
@@ -2232,11 +2410,42 @@ mpz_mul(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v)
   }
 
   /*
-   * Toom-3 requires both operands to be reasonably similar in size.
-   * Use schoolbook for cases where the smaller operand is below threshold.
+   * Use schoolbook for small operands below Karatsuba threshold.
+   */
+  if (!should_use_karatsuba(min_sz)) {
+    mpz_mul_basic(ctx, ww, u, v);
+    return;
+  }
+
+  /*
+   * Karatsuba for medium-sized operands (KARATSUBA_THRESHOLD <= min_sz < TOOM3_THRESHOLD).
    */
   if (!should_use_toom3(min_sz)) {
-    mpz_mul_basic(ctx, ww, u, v);
+    size_t result_size = u->sz + v->sz;
+    mpz_realloc(ctx, ww, result_size);
+
+    size_t scratch_size = karatsuba_scratch_size(max_sz);
+    scratch_size += (scratch_size >> 3) + 16;  /* safety margin */
+    size_t pool_state = pool_save(ctx);
+    mp_limb *scratch = NULL;
+
+    if (MPZ_HAS_POOL(ctx)) {
+      scratch = pool_alloc(MPZ_POOL(ctx), scratch_size);
+    }
+
+    if (scratch) {
+      mpz_mul_karatsuba_limbs(ww->p, u->p, u->sz, v->p, v->sz, scratch);
+      pool_restore(ctx, pool_state);
+    }
+    else {
+      scratch = (mp_limb*)mrb_malloc(MPZ_MRB(ctx), scratch_size * sizeof(mp_limb));
+      mpz_mul_karatsuba_limbs(ww->p, u->p, u->sz, v->p, v->sz, scratch);
+      mrb_free(MPZ_MRB(ctx), scratch);
+    }
+
+    ww->sz = result_size;
+    ww->sn = u->sn * v->sn;
+    trim(ww);
     return;
   }
 
