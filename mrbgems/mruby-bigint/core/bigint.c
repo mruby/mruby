@@ -2383,6 +2383,17 @@ ulshift(mpz_ctx_t *ctx, mpz_t *c1, mpz_t *a, size_t n)
   else if (uzero_p(a)) {
     zero(c1);
   }
+  else if (c1 == a) {
+    /* In-place optimization: mpn_lshift works from high to low, safe for aliasing */
+    mp_limb carry;
+    size_t old_sz = a->sz;
+
+    mpz_realloc(ctx, c1, old_sz + 1);
+    carry = mpn_lshift(c1->p, c1->p, old_sz, (unsigned int)n);
+    c1->p[old_sz] = carry;
+    c1->sz = old_sz + 1;
+    trim(c1);
+  }
   else {
     mpz_t c;
     mp_limb carry;
@@ -3678,6 +3689,11 @@ mpz_div_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
 static void
 mpz_neg(mpz_ctx_t *ctx, mpz_t *x, mpz_t *y)
 {
+  /* In-place optimization: just flip the sign */
+  if (x == y) {
+    x->sn = -(y->sn);
+    return;
+  }
   mpz_init_heap(ctx, x, y->sz);
   mpz_set(ctx, x, y);
   trim(x);
@@ -4093,6 +4109,11 @@ mpz_abs_copy(mpz_ctx_t *ctx, mpz_t *result, mpz_t *operand) {
 static void
 mpz_abs(mpz_ctx_t *ctx, mpz_t *x, mpz_t *y)
 {
+  /* In-place optimization: just make sign positive */
+  if (x == y) {
+    if (x->sn < 0) x->sn = -x->sn;
+    return;
+  }
   mpz_init_heap(ctx, x, y->sz);
   mpz_realloc(ctx, x, y->sz);
   mpz_abs_copy(ctx, x, y);
