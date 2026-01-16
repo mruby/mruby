@@ -400,6 +400,18 @@ usub(mpz_t *z, mpz_t *y, mpz_t *x)
   z->sz = digits(z);
 }
 
+/* Compare two same-length limb arrays: returns <0, 0, or >0 */
+static inline int
+mpn_cmp(const mp_limb *ap, const mp_limb *bp, size_t n)
+{
+  while (n-- > 0) {
+    if (ap[n] != bp[n]) {
+      return (ap[n] > bp[n]) ? 1 : -1;
+    }
+  }
+  return 0;
+}
+
 /* compare abs(x) and abs(y) */
 static int
 ucmp(mpz_t *y, mpz_t *x)
@@ -407,14 +419,7 @@ ucmp(mpz_t *y, mpz_t *x)
   if (y->sz < x->sz) return -1;
   if (y->sz > x->sz) return 1;
   if (x->sz == 0) return 0;
-  for (size_t i=x->sz-1;; i--) {
-    mp_limb a = y->p[i];
-    mp_limb b = x->p[i];
-    if (a > b) return 1;
-    if (a < b) return -1;
-    if (i == 0) break;
-  }
-  return 0;
+  return mpn_cmp(y->p, x->p, x->sz);
 }
 
 #define zero_p(x) ((x)->sn == 0)
@@ -748,18 +753,6 @@ mpn_addmul_1(mp_limb *rp, const mp_limb *s1p, size_t n, mp_limb limb)
 
   return (mp_limb)acc;
 #endif
-}
-
-/* Compare two same-length limb arrays: returns <0, 0, or >0 */
-static inline int
-mpn_cmp(const mp_limb *ap, const mp_limb *bp, size_t n)
-{
-  while (n-- > 0) {
-    if (ap[n] != bp[n]) {
-      return (ap[n] > bp[n]) ? 1 : -1;
-    }
-  }
-  return 0;
 }
 
 /* w = u * v (optimized schoolbook using mpn_addmul_1) */
