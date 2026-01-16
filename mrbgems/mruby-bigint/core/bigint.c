@@ -3473,7 +3473,7 @@ dc_scratch_clear(mpz_ctx_t *ctx, dc_get_str_scratch_t *scratch)
  * Used for extracting BATCH_DIGITS decimal digits at a time.
  * Compilers optimize constant division to multiplication+shift.
  */
-static mp_limb
+static inline mp_limb
 mpn_div_batch(mp_limb *p, size_t sz)
 {
   mp_dbl_limb rem = 0;
