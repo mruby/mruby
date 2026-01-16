@@ -750,21 +750,6 @@ mpn_addmul_1(mp_limb *rp, const mp_limb *s1p, size_t n, mp_limb limb)
 #endif
 }
 
-/* Multiply-and-subtract: rp[0..n-1] -= s1p[0..n-1] * limb; return borrow */
-static inline mp_limb
-mpn_submul_1(mp_limb *rp, const mp_limb *s1p, size_t n, mp_limb limb)
-{
-  mp_dbl_limb borrow = 0;
-  for (size_t i = 0; i < n; i++) {
-    mp_dbl_limb prod = (mp_dbl_limb)s1p[i] * (mp_dbl_limb)limb;
-    mp_dbl_limb sub = (mp_dbl_limb)rp[i] - LOW(prod) - borrow;
-    rp[i] = LOW(sub);
-    /* Borrow is 1 if sub underflowed, plus HIGH(prod) */
-    borrow = HIGH(prod) + (sub >> (sizeof(mp_dbl_limb) * 8 - 1));
-  }
-  return (mp_limb)borrow;
-}
-
 /* Compare two same-length limb arrays: returns <0, 0, or >0 */
 static inline int
 mpn_cmp(const mp_limb *ap, const mp_limb *bp, size_t n)
