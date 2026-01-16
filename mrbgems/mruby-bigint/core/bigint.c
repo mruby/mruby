@@ -400,17 +400,6 @@ usub(mpz_t *z, mpz_t *y, mpz_t *x)
   z->sz = digits(z);
 }
 
-/* In-place unsigned subtraction: a -= b */
-/* Precondition: abs(a) >= abs(b), no allocation needed */
-static void
-usub_inplace(mpz_t *a, mpz_t *b)
-{
-  /* a->sz >= b->sz is guaranteed by precondition */
-  mpn_sub(a->p, a->p, a->sz, b->p, b->sz);
-  /* Normalize: find actual size after subtraction */
-  a->sz = digits(a);
-}
-
 /* compare abs(x) and abs(y) */
 static int
 ucmp(mpz_t *y, mpz_t *x)
@@ -605,7 +594,8 @@ mpz_sub(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)
 {
   /* In-place optimization: z == x, both positive, x >= y */
   if (z == x && x->sn > 0 && y->sn > 0 && ucmp(x, y) >= 0) {
-    usub_inplace(x, y);
+    mpn_sub(x->p, x->p, x->sz, y->p, y->sz);
+    x->sz = digits(x);
     if (x->sz == 0) x->sn = 0;
     return;
   }
