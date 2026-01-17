@@ -1397,8 +1397,8 @@ find_class_sym(mrb_state *mrb, struct RClass *outer, struct RClass *c)
   return arg.sym;
 }
 
-static struct RClass*
-outer_class(mrb_state *mrb, struct RClass *c)
+MRB_API struct RClass*
+mrb_class_outer(mrb_state *mrb, struct RClass *c)
 {
   mrb_value ov = mrb_obj_iv_get(mrb, (struct RObject*)c, MRB_SYM(__outer__));
   if (mrb_nil_p(ov)) return NULL;
@@ -1420,10 +1420,10 @@ detect_outer_loop(mrb_state *mrb, struct RClass *c)
 
   for (;;) {
     if (h == NULL) return FALSE;
-    h = outer_class(mrb, h);
+    h = mrb_class_outer(mrb, h);
     if (h == NULL) return FALSE;
-    h = outer_class(mrb, h);
-    t = outer_class(mrb, t);
+    h = mrb_class_outer(mrb, h);
+    t = mrb_class_outer(mrb, t);
     if (t == h) return TRUE;
   }
 }
@@ -1432,7 +1432,7 @@ mrb_value
 mrb_class_find_path(mrb_state *mrb, struct RClass *c)
 {
   if (detect_outer_loop(mrb, c)) return mrb_nil_value();
-  struct RClass *outer = outer_class(mrb, c);
+  struct RClass *outer = mrb_class_outer(mrb, c);
   if (outer == NULL) return mrb_nil_value();
 
   mrb_sym name = find_class_sym(mrb, outer, c);

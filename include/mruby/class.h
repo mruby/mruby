@@ -88,6 +88,7 @@ MRB_API mrb_method_t mrb_method_search_vm(mrb_state*, struct RClass**, mrb_sym);
 MRB_API mrb_method_t mrb_method_search(mrb_state*, struct RClass*, mrb_sym);
 
 MRB_API struct RClass* mrb_class_real(struct RClass* cl);
+MRB_API struct RClass* mrb_class_outer(mrb_state *mrb, struct RClass *c);
 
 #ifndef MRB_NO_METHOD_CACHE
 void mrb_mc_clear_by_class(mrb_state *mrb, struct RClass* c);
