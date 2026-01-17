@@ -1957,7 +1957,7 @@ mpz_power_of_2_exp(mpz_t *x)
 }
 
 /* Count set bits in a limb */
-static int
+static inline int
 limb_popcount(mp_limb x)
 {
 #if defined(__GNUC__) || __has_builtin(__builtin_popcount)
