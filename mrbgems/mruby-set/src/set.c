@@ -14,22 +14,58 @@
 #include <mruby/data.h>
 #include <mruby/internal.h>
 #include <mruby/presym.h>
+#include <mruby/error.h>
 #include <mruby/khash.h>
 
 /* Use khash.h for set implementation - set mode (no values, only keys) */
 KHASH_DECLARE(set_val, mrb_value, char, FALSE)  /* FALSE = set mode */
 
+/* Helper for protected hash computation */
+static mrb_value
+kset_hash_body(mrb_state *mrb, void *data)
+{
+  mrb_value *key = (mrb_value*)data;
+  return mrb_int_value(mrb, mrb_obj_hash_code(mrb, *key));
+}
+
+/* Helper for protected equality check */
+struct kset_eql_data {
+  mrb_value a;
+  mrb_value b;
+};
+
+static mrb_value
+kset_eql_body(mrb_state *mrb, void *data)
+{
+  struct kset_eql_data *d = (struct kset_eql_data*)data;
+  return mrb_bool_value(mrb_eql(mrb, d->a, d->b));
+}
+
 /* Hash and equality functions for mrb_value keys */
+/* These use mrb_protect_error to catch exceptions and prevent leaks in khash rebuild */
 static inline khint_t
 kset_hash_value(mrb_state *mrb, mrb_value key)
 {
-  return (khint_t)mrb_obj_hash_code(mrb, key);
+  mrb_bool error;
+  mrb_value result = mrb_protect_error(mrb, kset_hash_body, &key, &error);
+  if (error) {
+    mrb->exc = mrb_obj_ptr(result);  /* Store exception to raise later */
+    return 0;  /* Return default hash value */
+  }
+  return (khint_t)mrb_integer(result);
 }
 
 static inline mrb_bool
 kset_equal_value(mrb_state *mrb, mrb_value a, mrb_value b)
 {
-  return mrb_eql(mrb, a, b);
+  struct kset_eql_data data = { a, b };
+  mrb_bool error;
+  mrb_value result = mrb_protect_error(mrb, kset_eql_body, &data, &error);
+  if (error) {
+    mrb->exc = mrb_obj_ptr(result);  /* Store exception to raise later */
+    return FALSE;  /* Return not-equal */
+  }
+  return mrb_test(result);
 }
 
 KHASH_DEFINE(set_val, mrb_value, char, FALSE, kset_hash_value, kset_equal_value)
