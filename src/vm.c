@@ -2691,6 +2691,15 @@ RETRY_TRY_BLOCK:
           return v;
         }
 
+#ifdef MRB_USE_TASK_SCHEDULER
+        if (mrb->c->status == MRB_TASK_CREATED) {
+          mrb_gc_arena_restore(mrb, ai);
+          mrb->jmp = prev_jmp;
+          TASK_STOP(mrb);
+          return v;
+        }
+#endif
+
         fiber_terminate(mrb, c, ci);
         if (c->vmexec ||
             (mrb->c == mrb->root_c && mrb->c->ci == mrb->c->cibase) /* case using Fiber#transfer in mrb_fiber_resume() */) {

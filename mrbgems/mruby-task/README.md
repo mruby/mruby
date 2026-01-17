@@ -125,6 +125,15 @@ Task.run
   Task.run  # Run scheduler until tasks complete
   ```
 
+- **`Task.tick`**: Returns the current tick count in milliseconds. This is the elapsed time since the scheduler started, measured in tick units.
+
+  ```ruby
+  start_tick = Task.tick
+  do_work
+  elapsed = Task.tick - start_tick
+  puts "Work took #{elapsed} ms"
+  ```
+
 ### Task Instance Methods
 
 - **`#status`**: Returns the task status as a symbol (`:DORMANT`, `:READY`, `:RUNNING`, `:WAITING`, `:SUSPENDED`).
@@ -261,6 +270,7 @@ The task scheduler uses a Hardware Abstraction Layer (HAL) to support different 
 - Uses `sigprocmask()` for interrupt protection
 - Uses `SA_RESTART` to prevent `EINTR` on system calls
 - Supports multiple VMs per process
+- **WASM/Emscripten support**: When compiled with Emscripten (`__EMSCRIPTEN__` defined), the SIGALRM timer is automatically disabled. JavaScript handles tick calls via `setInterval`, preventing double-increment of the tick counter
 
 **hal-win-task** - For Windows
 
@@ -424,6 +434,134 @@ void mrb_hal_myplatform_task_gem_final(mrb_state *mrb)
 ```
 
 See `hal-posix-task` and `hal-win-task` source code for complete reference implementations.
+
+## C API
+
+The task scheduler provides a C API for integrating with C code and embedding environments. All exported functions are marked with `MRB_API` for external linkage.
+
+### Core Scheduler API
+
+```c
+/* Tick handler - called by timer interrupt */
+MRB_API void mrb_tick(mrb_state *mrb);
+
+/* Main scheduler loop - blocks until all tasks complete */
+MRB_API mrb_value mrb_task_run(mrb_state *mrb);
+
+/* Single-step task execution for event loop integration */
+MRB_API mrb_value mrb_task_run_once(mrb_state *mrb);
+```
+
+**`mrb_task_run_once()`** executes one ready task and returns. This is designed for WASM/JavaScript event loop integration where the scheduler should yield control back to the browser between task executions.
+
+### Task Creation API
+
+```c
+/* Create a task from a proc */
+MRB_API mrb_value mrb_create_task(mrb_state *mrb, struct RProc *proc,
+                                  mrb_value name, mrb_value priority,
+                                  mrb_value top_self);
+```
+
+Creates a new task from a `RProc` object. The `name` should be a String or `mrb_nil_value()`, `priority` should be an Integer (0-255) or `mrb_nil_value()` for default priority (128), and `top_self` sets the task's self object (or `mrb_nil_value()` to use default).
+
+### Task Control API
+
+```c
+/* Suspend a task - prevents it from running until resumed */
+MRB_API void mrb_suspend_task(mrb_state *mrb, mrb_value task);
+
+/* Resume a suspended task - moves it back to ready/waiting queue */
+MRB_API void mrb_resume_task(mrb_state *mrb, mrb_value task);
+
+/* Terminate a task immediately - moves to dormant state */
+MRB_API void mrb_terminate_task(mrb_state *mrb, mrb_value task);
+
+/* Stop a task - marks as stopped without moving to dormant */
+MRB_API mrb_bool mrb_stop_task(mrb_state *mrb, mrb_value task);
+
+/* Get task result value */
+MRB_API mrb_value mrb_task_value(mrb_state *mrb, mrb_value task);
+
+/* Get task status symbol */
+MRB_API mrb_value mrb_task_status(mrb_state *mrb, mrb_value task);
+```
+
+**Note**: These functions raise `E_RUNTIME_ERROR` if called during synchronous execution (when `scheduler_lock > 0`).
+
+### Synchronous Execution API
+
+```c
+/* Execute a proc synchronously without context switching */
+MRB_API mrb_value mrb_execute_proc_synchronously(mrb_state *mrb,
+                                                  mrb_value proc,
+                                                  mrb_int argc,
+                                                  const mrb_value *argv);
+```
+
+This function creates a temporary task, executes it to completion, and returns the result. During execution, the scheduler is locked (`scheduler_lock++`), preventing any asynchronous task operations. This is designed for **picoruby-wasm** to execute Ruby code synchronously from JavaScript without triggering task switches.
+
+**Key characteristics**:
+
+- Blocks until the proc completes execution
+- No context switching occurs during execution
+- Other tasks cannot be created, suspended, or resumed while locked
+- Temporary task is automatically freed after execution
+- If the proc raises an exception, it's returned as the result
+
+### Task Context Management API
+
+```c
+/* Initialize task context with a new proc */
+MRB_API void mrb_task_init_context(mrb_state *mrb, mrb_value task,
+                                   struct RProc *proc);
+
+/* Reset task context to initial state */
+MRB_API void mrb_task_reset_context(mrb_state *mrb, mrb_value task);
+
+/* Set proc for task (without full reinitialization) */
+MRB_API void mrb_task_proc_set(mrb_state *mrb, mrb_value task,
+                               struct RProc *proc);
+```
+
+These functions are designed for **picoruby-sandbox** to reuse task objects for multiple executions without reallocating memory. `mrb_task_init_context()` fully reinitializes the context, while `mrb_task_proc_set()` only updates the proc pointer.
+
+### Example: Event Loop Integration (WASM)
+
+```c
+/* JavaScript calls this function periodically via setInterval */
+void js_tick_callback(void) {
+  mrb_tick(mrb);
+}
+
+/* Main loop - called from JavaScript event loop */
+mrb_value js_run_task_once(void) {
+  return mrb_task_run_once(mrb);
+}
+
+/* Execute Ruby code synchronously from JavaScript */
+mrb_value js_eval_sync(const char *code) {
+  struct RProc *proc = mrb_generate_code(mrb, code);
+  return mrb_execute_proc_synchronously(mrb, mrb_obj_value(proc), 0, NULL);
+}
+```
+
+### Example: Task Creation from C
+
+```c
+/* Create a background task */
+static mrb_value my_background_proc(mrb_state *mrb, mrb_value self) {
+  /* Task code here */
+  return mrb_nil_value();
+}
+
+void create_background_task(mrb_state *mrb) {
+  struct RProc *proc = mrb_proc_new_cfunc(mrb, my_background_proc);
+  mrb_value name = mrb_str_new_cstr(mrb, "background");
+  mrb_value priority = mrb_fixnum_value(128);
+  mrb_value task = mrb_create_task(mrb, proc, name, priority, mrb_nil_value());
+}
+```
 
 ## Examples
 
@@ -603,6 +741,15 @@ When a task is in WAITING state, the reason indicates why:
 5. Run incremental GC if needed
 6. Requeue task to READY (if still running) or appropriate queue
 7. Repeat from step 1
+
+### Scheduler Lock
+
+The scheduler includes a lock counter (`mrb->task.scheduler_lock`) that prevents asynchronous task operations during synchronous execution:
+
+- When `scheduler_lock > 0`, asynchronous APIs (`mrb_create_task`, `mrb_suspend_task`, `mrb_resume_task`) raise `E_RUNTIME_ERROR`
+- This ensures that synchronous execution (via `mrb_execute_proc_synchronously`) completes without interference
+- The lock is incremented when entering synchronous execution and decremented when exiting
+- Maximum lock depth is 254 to prevent overflow
 
 ## Future Enhancements
 
