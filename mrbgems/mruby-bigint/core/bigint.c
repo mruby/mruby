@@ -2537,7 +2537,7 @@ mpn_lshift(mp_limb *rp, const mp_limb *ap, size_t n, unsigned int cnt)
  * Returns carry (0 or 1).
  * Supports in-place operation (rp == ap or rp == bp).
  */
-static mp_limb
+static inline mp_limb
 mpn_add_n(mp_limb *rp, const mp_limb *ap, const mp_limb *bp, size_t n)
 {
   mp_dbl_limb carry = 0;
@@ -2582,7 +2582,7 @@ mpn_add(mp_limb *rp, const mp_limb *ap, size_t an, const mp_limb *bp, size_t bn)
  * Returns borrow (0 or 1).
  * Supports in-place operation (rp == ap).
  */
-static mp_limb
+static inline mp_limb
 mpn_sub_n(mp_limb *rp, const mp_limb *ap, const mp_limb *bp, size_t n)
 {
   mp_dbl_limb_signed borrow = 0;
