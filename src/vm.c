@@ -1878,29 +1878,48 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_GETIDX, B) {
       mrb_value va = regs[a], vb = regs[a+1];
-      switch (mrb_type(va)) {
-      case MRB_TT_ARRAY:
+      enum mrb_vtype tt = mrb_type(va);
+
+      /* Array case is most common - check first with branch hint */
+      if (mrb_likely(tt == MRB_TT_ARRAY)) {
+        struct RArray *ary = mrb_ary_ptr(va);
         /* optimize only for Array class; subclasses/singleton may override [] */
-        if (mrb_obj_ptr(va)->c != mrb->array_class) goto getidx_fallback;
-        if (!mrb_integer_p(vb)) goto getidx_fallback;
-        else {
+        if (mrb_unlikely(ary->c != mrb->array_class)) goto getidx_fallback;
+        if (mrb_likely(mrb_integer_p(vb))) {
           mrb_int idx = mrb_integer(vb);
-          if (0 <= idx && idx < RARRAY_LEN(va)) {
-            regs[a] = RARRAY_PTR(va)[idx];
+          mrb_int len;
+          mrb_value *ptr;
+
+          /* Single ARY_EMBED_P check instead of two */
+          if (ARY_EMBED_P(ary)) {
+            len = ARY_EMBED_LEN(ary);
+            ptr = ary->as.ary;
+          }
+          else {
+            len = ary->as.heap.len;
+            ptr = ary->as.heap.ptr;
+          }
+
+          /* Unsigned comparison: handles negative idx as large positive */
+          if (mrb_likely((mrb_uint)idx < (mrb_uint)len)) {
+            regs[a] = ptr[idx];
           }
           else {
             regs[a] = mrb_ary_entry(va, idx);
           }
+          NEXT;
         }
-        break;
-      case MRB_TT_HASH:
+        goto getidx_fallback;
+      }
+      else if (tt == MRB_TT_HASH) {
         /* optimize only for Hash class; subclasses/singleton may override [] */
         if (mrb_obj_ptr(va)->c != mrb->hash_class) goto getidx_fallback;
         va = mrb_hash_get(mrb, va, vb);
         ci = mrb->c->ci;
         regs[a] = va;
-        break;
-      case MRB_TT_STRING:
+        NEXT;
+      }
+      else if (tt == MRB_TT_STRING) {
         /* optimize only for String class; subclasses/singleton may override [] */
         if (mrb_obj_ptr(va)->c != mrb->string_class) goto getidx_fallback;
         switch (mrb_type(vb)) {
@@ -1909,17 +1928,14 @@ RETRY_TRY_BLOCK:
         case MRB_TT_RANGE:
           va = mrb_str_aref(mrb, va, vb, mrb_undef_value());
           regs[a] = va;
-          break;
+          NEXT;
         default:
-          goto getidx_fallback;
+          break;
         }
-        break;
-      default:
-      getidx_fallback:
-        mid = MRB_OPSYM(aref);
-        goto L_SEND_SYM;
       }
-      NEXT;
+    getidx_fallback:
+      mid = MRB_OPSYM(aref);
+      goto L_SEND_SYM;
     }
 
     CASE(OP_SETIDX, B) {
