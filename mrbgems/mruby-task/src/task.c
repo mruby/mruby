@@ -613,7 +613,7 @@ mrb_task_s_new(mrb_state *mrb, mrb_value self)
   mrb_value name_val = mrb_nil_value();
   mrb_int priority = 128;  /* Default middle priority */
   mrb_value kw_values[2] = {mrb_undef_value(), mrb_undef_value()};
-  mrb_sym kw_names[2] = {mrb_intern_lit(mrb, "name"), mrb_intern_lit(mrb, "priority")};
+  mrb_sym kw_names[2] = {MRB_SYM(name), MRB_SYM(priority)};
   const mrb_kwargs kwargs = {
     2, 0, kw_names, kw_values, NULL
   };
@@ -655,7 +655,7 @@ mrb_task_s_new(mrb_state *mrb, mrb_value self)
   /* Note: proc is stored in t->c.ci->proc and marked via callinfo GC */
 
   /* Create Ruby object to hold task */
-  mrb_value task_obj = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_get(mrb, "Task"),
+  mrb_value task_obj = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_get_id(mrb, MRB_SYM(Task)),
                                                            t, &mrb_task_type));
   t->self = task_obj;
 
@@ -1127,7 +1127,7 @@ mrb_mruby_task_gem_init(mrb_state *mrb)
   /* Initialize main task to NULL */
   mrb->task.main_task = NULL;
 
-  task_class = mrb_define_class(mrb, "Task", mrb->object_class);
+  task_class = mrb_define_class_id(mrb, MRB_SYM(Task), mrb->object_class);
   MRB_SET_INSTANCE_TT(task_class, MRB_TT_DATA);
 
   /* Class methods */
