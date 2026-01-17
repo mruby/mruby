@@ -63,9 +63,6 @@ typedef khint_t kset_iter_t;
 #define kset_is_uninitialized(s) ((s)->data == NULL)
 #define kset_is_empty(s) (kset_is_uninitialized(s) || kset_size(s) == 0)
 
-/* Flag to detect recursive hash computation */
-#define MRB_SET_HASH_RUNNING (1 << 19)
-
 /* Embedded set structure in RSet - exactly 3 pointers */
 struct RSet {
   MRB_OBJECT_HEADER;
@@ -659,14 +656,7 @@ set_equal(mrb_state *mrb, mrb_value self)
 static mrb_value
 set_hash_m(mrb_state *mrb, mrb_value self)
 {
-  struct RSet *s = mrb_set_ptr(self);
-  kset_t *set = &s->set;
-
-  /* Detect recursive hash computation (e.g., Set containing itself) */
-  if (MRB_FLAG_TEST(s, MRB_SET_HASH_RUNNING)) {
-    /* Return 0 for recursive reference, similar to Ruby's behavior */
-    return mrb_fixnum_value(0);
-  }
+  kset_t *set = set_get_kset(mrb, self);
 
   /* Use order-independent hash algorithm for sets */
   uint64_t hash = 0; /* Start with zero for XOR accumulation */
@@ -676,9 +666,6 @@ set_hash_m(mrb_state *mrb, mrb_value self)
   hash ^= size * GOLDEN_RATIO_PRIME;
 
   if (!kset_is_uninitialized(set) && size > 0) {
-    /* Mark as computing hash to detect recursion */
-    s->flags |= MRB_SET_HASH_RUNNING;
-
     /* Process each element - order independent using XOR */
     int ai = mrb_gc_arena_save(mrb);
     KSET_FOREACH(set, k) {
@@ -690,9 +677,6 @@ set_hash_m(mrb_state *mrb, mrb_value self)
 
       mrb_gc_arena_restore(mrb, ai);
     }
-
-    /* Clear the flag */
-    s->flags &= ~MRB_SET_HASH_RUNNING;
   }
 
   /* Final mixing to improve distribution */
