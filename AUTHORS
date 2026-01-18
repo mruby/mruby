@@ -1,14 +1,14 @@
 # Authors of mruby (mruby developers)
 
-## The List of Contributors sorted by number of commits (as of 2025-12-01 127ef7f)
+## The List of Contributors sorted by number of commits (as of 2026-01-17 6ef818a)
 
-   7127 Yukihiro "Matz" Matsumoto (@matz)*
+   7351 Yukihiro "Matz" Matsumoto (@matz)*
     706 dearblue (@dearblue)*
     587 KOBAYASHI Shuji (@shuujii)
     353 Daniel Bovensiepen (@bovi)*
     345 Takeshi Watanabe (@take-cheeze)*
     333 Masaki Muranaka (@monaka)
-    248 John Bampton (@jbampton)
+    255 John Bampton (@jbampton)
     234 Jun Hiroe (@suzukaze)
     228 Tomoyuki Sahara (@tsahara)*
     220 Cremno (@cremno)*
@@ -69,7 +69,7 @@
      12 SiZiOUS (@suzious)
      12 Takashi Sawanaka (@sdottaka)*
      12 Ukrainskiy Sergey (@ukrainskiysergey)
-     12 Xuejie "Rafael" suziousXiao (@xxuejie)*
+     12 Xuejie "Rafael" Xiao (@xxuejie)*
      11 Julien Ammous (@schmurfy)
      11 Kazuho Oku (@kazuho)
      11 RIZAL Reckordp (@Reckordp)+
@@ -96,11 +96,12 @@
       6 Beoran (@beoran)
       6 David Siaw (@davidsiaw)*
       6 Frederick John Milens III (@fjmilens3)
-      6 Hiro Asari (@BanzaiMan)
       6 Hendrik (@Asmod4n)
+      6 Hiro Asari (@BanzaiMan)
       6 INOUE Yasuyuki (@yasuyuki)
       6 Junji Sawada (@junjis0203)
       6 Kenji Okimoto (@okkez)+
+      6 Paweł Świątkowski (@katafrakt)
       6 Selman ULUG (@selman)
       6 Yusuke Endoh (@mame)*
       6 buty4649 (@buty4649)
@@ -131,7 +132,6 @@
       4 Marcus Stollsteimer (@stomar)
       4 Mark Delk (@jethrodaniel)
       4 NARUSE, Yui (@nurse)
-      4 Paweł Świątkowski (@katafrakt)
       4 Ravil Bayramgalin (@brainopia)*+
       4 Satoshi Odawara (@SatoshiOdawara)
       4 Yuhei Okazaki (@Yuuhei-Okazaki)*
@@ -141,6 +141,7 @@
       3 Anton Davydov (@davydovanton)
       3 Aurora Nockert (@auroranockert)
       3 Carlo Prelz (@asfluido)*
+      3 Chris Hasiński (@khasinski)
       3 Daniel K. Sierpiński (@513ry)+
       3 David Turnbull (@AE9RB)
       3 Franck Verrot (@franckverrot)
