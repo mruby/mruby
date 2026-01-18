@@ -1027,7 +1027,9 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
   }
 
   int flags = MT_KEY_FLG(m.flags);
-  if (mid == MRB_SYM(initialize)) {
+  if (mid == MRB_SYM(initialize) ||
+      mid == MRB_SYM(initialize_copy) ||
+      mid == MRB_SYM_Q(respond_to_missing)) {
     MRB_SET_VISIBILITY_FLAGS(flags, MT_PRIVATE);
   }
   else if ((flags & MT_VMASK) == MT_VDEFAULT) {
