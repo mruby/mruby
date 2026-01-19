@@ -996,17 +996,22 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
         if (data0.insn != OP_MOVE || data0.a != data.a || data0.b != dst) break;
         if (addr_pc(s, data0.addr) != s->lastlabel) {
           /* constant folding */
-          data0 = mrb_decode_insn(mrb_prev_pc(s, data0.addr));
+          struct mrb_insn_data data1 = mrb_decode_insn(mrb_prev_pc(s, data0.addr));
           mrb_int n;
-          if (data0.a == dst && get_int_operand(s, &data0, &n)) {
+          if (data1.a == dst && get_int_operand(s, &data1, &n)) {
             if ((data.insn == OP_ADDI && !mrb_int_add_overflow(n, data.b, &n)) ||
                 (data.insn == OP_SUBI && !mrb_int_sub_overflow(n, data.b, &n))) {
-              s->pc = addr_pc(s, data0.addr);
+              s->pc = addr_pc(s, data1.addr);
               gen_int(s, dst, n);
               return;
             }
           }
         }
+        /* ADDILV/SUBILV fusion: MOVE temp local; ADDI temp imm; MOVE local temp */
+        /* -> ADDILV local temp imm (temp is working space for method fallback) */
+        s->pc = addr_pc(s, data0.addr);
+        genop_3(s, data.insn == OP_ADDI ? OP_ADDILV : OP_SUBILV, dst, data.a, data.b);
+        return;
       }
       break;
     default:

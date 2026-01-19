@@ -78,6 +78,8 @@ OPCODE(ADD,        B)        /* R[a] = R[a]+R[a+1] */
 OPCODE(ADDI,       BB)       /* R[a] = R[a]+mrb_int(b) */
 OPCODE(SUB,        B)        /* R[a] = R[a]-R[a+1] */
 OPCODE(SUBI,       BB)       /* R[a] = R[a]-mrb_int(b) */
+OPCODE(ADDILV,     BBB)      /* R[a] = R[a]+mrb_int(c); R[b],R[b+1] for method call */
+OPCODE(SUBILV,     BBB)      /* R[a] = R[a]-mrb_int(c); R[b],R[b+1] for method call */
 OPCODE(MUL,        B)        /* R[a] = R[a]*R[a+1] */
 OPCODE(DIV,        B)        /* R[a] = R[a]/R[a+1] */
 OPCODE(EQ,         B)        /* R[a] = R[a]==R[a+1] */

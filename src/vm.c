@@ -2937,6 +2937,51 @@ RETRY_TRY_BLOCK:
       OP_MATHI(sub);
     }
 
+#ifdef MRB_NO_FLOAT
+#define OP_MATHILV_CASE_FLOAT(op_name) (void)0
+#else
+#define OP_MATHILV_CASE_FLOAT(op_name)                                      \
+  case MRB_TT_FLOAT:                                                        \
+    {                                                                       \
+      mrb_float z = mrb_float(regs[a]) OP_MATH_OP_##op_name c;              \
+      SET_FLOAT_VALUE(mrb, regs[a], z);                                     \
+    }                                                                       \
+    break
+#endif
+#define OP_MATHILV(op_name)                                                 \
+  /* a=local, b=working space, c=immediate */                               \
+  switch (mrb_type(regs[a])) {                                              \
+    case MRB_TT_INTEGER:                                                    \
+      {                                                                     \
+        mrb_int x = mrb_integer(regs[a]), y = (mrb_int)c, z;                \
+        if (mrb_int_##op_name##_overflow(x, y, &z)) {                       \
+          OP_MATH_OVERFLOW_INT(op_name,x,y);                                \
+        }                                                                   \
+        else {                                                              \
+          SET_INT_VALUE(mrb,regs[a], z);                                    \
+        }                                                                   \
+      }                                                                     \
+      break;                                                                \
+    OP_MATHILV_CASE_FLOAT(op_name);                                         \
+    default:                                                                \
+      {                                                                     \
+        mrb_value arg = mrb_int_value(mrb, c);                              \
+        mrb_sym mid = MRB_OPSYM(op_name);                                   \
+        regs[a] = mrb_funcall_argv(mrb, regs[a], mid, 1, &arg);             \
+        mrb_gc_arena_restore(mrb, ai);                                      \
+      }                                                                     \
+      break;                                                                \
+  }                                                                         \
+  NEXT
+
+    CASE(OP_ADDILV, BBB) {
+      OP_MATHILV(add);
+    }
+
+    CASE(OP_SUBILV, BBB) {
+      OP_MATHILV(sub);
+    }
+
 #define OP_CMP_BODY(op,v1,v2) (v1(regs[a]) op v2(regs[a+1]))
 
 #ifdef MRB_NO_FLOAT

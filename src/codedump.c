@@ -444,6 +444,14 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
       fprintf(out, "SUBI\t\tR%d\t%d", a, b);
       print_lv_a(mrb, irep, a, out);
       break;
+    CASE(OP_ADDILV, BBB):
+      fprintf(out, "ADDILV\tR%d\tR%d\t%d", a, b, c);
+      print_lv_a(mrb, irep, a, out);
+      break;
+    CASE(OP_SUBILV, BBB):
+      fprintf(out, "SUBILV\tR%d\tR%d\t%d", a, b, c);
+      print_lv_a(mrb, irep, a, out);
+      break;
     CASE(OP_MUL, B):
       fprintf(out, "MUL\t\tR%d\t(R%d)\n", a, a+1);
       break;
