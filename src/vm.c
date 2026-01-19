@@ -2167,6 +2167,10 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
+    CASE(OP_MATCHERR, Z) {
+      RAISE_LIT(mrb, mrb_exc_get_id(mrb, MRB_ERROR_SYM(NoMatchingPatternError)), "pattern not matched");
+    }
+
     CASE(OP_SSEND, BBB) {
       regs[a] = regs[0];
     }

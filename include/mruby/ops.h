@@ -57,6 +57,7 @@ OPCODE(JMPUW,      S)        /* unwind_and_jump_to(a) */
 OPCODE(EXCEPT,     B)        /* R[a] = exc */
 OPCODE(RESCUE,     BB)       /* R[b] = R[a].isa?(R[b]) */
 OPCODE(RAISEIF,    B)        /* raise(R[a]) if R[a] */
+OPCODE(MATCHERR,   Z)        /* raise NoMatchingPatternError */
 OPCODE(SSEND,      BBB)      /* R[a] = self.send(Syms[b],R[a+1]..,R[a+n+1]:R[a+n+2]..) (c=n|k<<4) */
 OPCODE(SSENDB,     BBB)      /* R[a] = self.send(Syms[b],R[a+1]..,R[a+n+1]:R[a+n+2]..,&R[a+n+2k+1]) */
 OPCODE(SEND,       BBB)      /* R[a] = R[a].send(Syms[b],R[a+1]..,R[a+n+1]:R[a+n+2]..) (c=n|k<<4) */

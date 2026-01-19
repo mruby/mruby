@@ -6647,20 +6647,7 @@ codegen(codegen_scope *s, node *tree, int val)
         pop();  /* pop the value */
         if (mp->raise_on_fail) {
           /* expr => pattern: raise NoMatchingPatternError */
-          int msg_off = new_lit_cstr(s, "pattern not matched");
-          int exc_reg = cursp();
-          /* Get NoMatchingPatternError class */
-          genop_2(s, OP_GETCONST, exc_reg, sym_idx(s, MRB_SYM_2(s->mrb, NoMatchingPatternError)));
-          push();
-          /* Create message string */
-          genop_2(s, OP_STRING, cursp(), msg_off);
-          push();
-          /* Call NoMatchingPatternError.new(message) */
-          pop();  /* pop argument */
-          genop_3(s, OP_SEND, exc_reg, sym_idx(s, MRB_SYM_2(s->mrb, new)), 1);
-          /* Raise the exception */
-          genop_1(s, OP_RAISEIF, exc_reg);
-          /* No push here: RAISEIF never returns, control transfers to rescue handler */
+          genop_0(s, OP_MATCHERR);
         }
         else {
           /* expr in pattern: return false */
