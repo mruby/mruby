@@ -390,6 +390,9 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
       fprintf(out, "RETURN_BLK\tR%d\t", a);
       print_lv_a(mrb, irep, a, out);
       break;
+    CASE(OP_RETSELF, Z):
+      fprintf(out, "RETSELF\n");
+      break;
     CASE(OP_BREAK, B):
       fprintf(out, "BREAK\t\tR%d\t", a);
       print_lv_a(mrb, irep, a, out);

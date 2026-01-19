@@ -1141,7 +1141,12 @@ gen_return(codegen_scope *s, uint8_t op, uint16_t src)
       rewind_pc(s);
       genop_1(s, op, data.b);
     }
-    else if (data.insn != OP_RETURN) {
+    else if (data.insn == OP_LOADSELF && src == data.a && op == OP_RETURN) {
+      /* LOADSELF + RETURN -> RETSELF */
+      rewind_pc(s);
+      genop_0(s, OP_RETSELF);
+    }
+    else if (data.insn != OP_RETURN && data.insn != OP_RETSELF) {
       genop_1(s, op, src);
     }
   }

@@ -2661,6 +2661,10 @@ RETRY_TRY_BLOCK:
       RAISE_LIT(mrb, E_LOCALJUMP_ERROR, "unexpected return");
       /* not reached */
     }
+    CASE(OP_RETSELF, Z) {
+      a = 0;
+      goto NORMAL_RETURN;
+    }
     CASE(OP_RETURN, B) {
       mrb_int acc;
       mrb_value v;
