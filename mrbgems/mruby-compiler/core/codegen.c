@@ -6625,14 +6625,24 @@ codegen(codegen_scope *s, node *tree, int val)
           }
         }
 
-        /* Optimize: single JMPNOT can be inverted to JMPIF, eliminating JMP */
+        /* Optimize: single JMPNOT can be replaced with MATCHERR for raise_on_fail */
         /* Conditions: (1) single entry in fail_pos chain,
          * (2) JMPNOT is immediately before current position (no code between), and
          * (3) the instruction is actually JMPNOT (not JMP from undefined pinned var) */
         if ((int32_t)(fail_pos + 2) + (int16_t)PEEK_S(s->iseq+fail_pos) == 0 &&
             fail_pos + 2 == s->pc &&
             s->iseq[fail_pos - 2] == OP_JMPNOT) {
-          /* Single failure point - invert JMPNOT to JMPIF */
+          if (mp->raise_on_fail) {
+            /* Single failure point with raise - replace JMPNOT with MATCHERR */
+            int reg = s->iseq[fail_pos - 1];  /* Register from JMPNOT */
+            s->pc = fail_pos - 2;  /* Rewind past JMPNOT */
+            s->lastpc = s->pc;
+            genop_1(s, OP_MATCHERR, reg);  /* Emit MATCHERR with the register */
+            s->sp = saved_sp - 1;
+            if (val) push();
+            break;  /* Pattern matching complete */
+          }
+          /* Single failure point with 'in' pattern - invert JMPNOT to JMPIF */
           s->iseq[fail_pos - 2] = OP_JMPIF;
           match_pos = fail_pos;
         }
@@ -6647,7 +6657,8 @@ codegen(codegen_scope *s, node *tree, int val)
         pop();  /* pop the value */
         if (mp->raise_on_fail) {
           /* expr => pattern: raise NoMatchingPatternError */
-          genop_0(s, OP_MATCHERR);
+          genop_1(s, OP_LOADF, cursp());  /* Load false for MATCHERR */
+          genop_1(s, OP_MATCHERR, cursp());
         }
         else {
           /* expr in pattern: return false */

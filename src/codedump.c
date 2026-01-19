@@ -572,8 +572,8 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
       fprintf(out, "RAISEIF\tR%d\t", a);
       print_lv_a(mrb, irep, a, out);
       break;
-    CASE(OP_MATCHERR, Z):
-      fprintf(out, "MATCHERR\n");
+    CASE(OP_MATCHERR, B):
+      fprintf(out, "MATCHERR\tR%d\n", a);
       break;
 
     CASE(OP_DEBUG, BBB):
