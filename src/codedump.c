@@ -303,6 +303,9 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
     CASE(OP_GETIDX, B):
       fprintf(out, "GETIDX\tR%d\t(R%d)\n", a, a+1);
       break;
+    CASE(OP_GETIDX0, BB):
+      fprintf(out, "GETIDX0\tR%d\tR%d[0]\n", a, b);
+      break;
     CASE(OP_SETIDX, B):
       fprintf(out, "SETIDX\tR%d\t(R%d)\t(R%d)\n", a, a+1, a+2);
       break;

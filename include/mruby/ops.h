@@ -48,6 +48,7 @@ OPCODE(SETMCNST,   BB)       /* R[a+1]::Syms[b] = R[a] */
 OPCODE(GETUPVAR,   BBB)      /* R[a] = uvget(b,c) */
 OPCODE(SETUPVAR,   BBB)      /* uvset(b,c,R[a]) */
 OPCODE(GETIDX,     B)        /* R[a] = R[a][R[a+1]] */
+OPCODE(GETIDX0,    BB)       /* R[a] = R[b][0]; a+1 for method call */
 OPCODE(SETIDX,     B)        /* R[a][R[a+1]] = R[a+2] */
 OPCODE(JMP,        S)        /* pc+=a */
 OPCODE(JMPIF,      BS)       /* if R[a] pc+=b */

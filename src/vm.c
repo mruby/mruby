@@ -1938,6 +1938,33 @@ RETRY_TRY_BLOCK:
       goto L_SEND_SYM;
     }
 
+    CASE(OP_GETIDX0, BB) {
+      mrb_value recv = regs[b];
+      enum mrb_vtype tt = mrb_type(recv);
+
+      if (mrb_likely(tt == MRB_TT_ARRAY)) {
+        struct RArray *ary = mrb_ary_ptr(recv);
+        if (mrb_unlikely(ary->c != mrb->array_class)) goto getidx0_fallback;
+        if (ARY_EMBED_P(ary)) {
+          regs[a] = ARY_EMBED_LEN(ary) > 0 ? ary->as.ary[0] : mrb_nil_value();
+        }
+        else {
+          regs[a] = ary->as.heap.len > 0 ? ary->as.heap.ptr[0] : mrb_nil_value();
+        }
+        NEXT;
+      }
+      else if (tt == MRB_TT_HASH) {
+        if (mrb_obj_ptr(recv)->c != mrb->hash_class) goto getidx0_fallback;
+        regs[a] = mrb_hash_get(mrb, recv, mrb_fixnum_value(0));
+        NEXT;
+      }
+    getidx0_fallback:
+      regs[a] = recv;
+      SET_FIXNUM_VALUE(regs[a+1], 0);
+      mid = MRB_OPSYM(aref);
+      goto L_SEND_SYM;
+    }
+
     CASE(OP_SETIDX, B) {
       mrb_value va = regs[a], vb = regs[a+1], vc = regs[a+2];
       switch (mrb_type(va)) {
