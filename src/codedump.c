@@ -427,6 +427,12 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
     CASE(OP_DEF, BB):
       fprintf(out, "DEF\t\tR%d\t:%s\t(R%d)\n", a, mrb_sym_dump(mrb, irep->syms[b]),a+1);
       break;
+    CASE(OP_TDEF, BBB):
+      fprintf(out, "TDEF\t\tR%d\t:%s\tI[%d]\n", a, mrb_sym_dump(mrb, irep->syms[b]), c);
+      break;
+    CASE(OP_SDEF, BBB):
+      fprintf(out, "SDEF\t\tR%d\t:%s\tI[%d]\n", a, mrb_sym_dump(mrb, irep->syms[b]), c);
+      break;
     CASE(OP_UNDEF, B):
       fprintf(out, "UNDEF\t\t:%s\n", mrb_sym_dump(mrb, irep->syms[a]));
       break;

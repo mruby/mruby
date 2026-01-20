@@ -3396,6 +3396,42 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
+    CASE(OP_TDEF, BBB) {
+      struct RClass *target = check_target_class(mrb);
+      if (!target) goto L_RAISE;
+      struct RProc *p = mrb_proc_new(mrb, irep->reps[c]);
+      mrb_method_t m;
+      mrb_sym mid = irep->syms[b];
+
+      p->flags |= MRB_PROC_SCOPE | MRB_PROC_STRICT;
+      MRB_METHOD_FROM_PROC(m, p);
+      MRB_METHOD_SET_VISIBILITY(m, MRB_METHOD_VDEFAULT_FL);
+      mrb_define_method_raw(mrb, target, mid, m);
+      mrb_method_added(mrb, target, mid);
+      ci = mrb->c->ci;
+      mrb_gc_arena_restore(mrb, ai);
+      regs[a] = mrb_symbol_value(mid);
+      NEXT;
+    }
+
+    CASE(OP_SDEF, BBB) {
+      mrb_value recv = regs[a];
+      struct RClass *target = mrb_class_ptr(mrb_singleton_class(mrb, recv));
+      struct RProc *p = mrb_proc_new(mrb, irep->reps[c]);
+      mrb_method_t m;
+      mrb_sym mid = irep->syms[b];
+
+      p->flags |= MRB_PROC_SCOPE | MRB_PROC_STRICT;
+      MRB_METHOD_FROM_PROC(m, p);
+      MRB_METHOD_SET_VISIBILITY(m, MRB_METHOD_VDEFAULT_FL);
+      mrb_define_method_raw(mrb, target, mid, m);
+      mrb_method_added(mrb, target, mid);
+      ci = mrb->c->ci;
+      mrb_gc_arena_restore(mrb, ai);
+      regs[a] = mrb_symbol_value(mid);
+      NEXT;
+    }
+
     CASE(OP_SCLASS, B) {
       regs[a] = mrb_singleton_class(mrb, regs[a]);
       mrb_gc_arena_restore(mrb, ai);

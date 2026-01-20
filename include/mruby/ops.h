@@ -113,6 +113,8 @@ OPCODE(CLASS,      BB)       /* R[a] = newclass(R[a],Syms[b],R[a+1]) */
 OPCODE(MODULE,     BB)       /* R[a] = newmodule(R[a],Syms[b]) */
 OPCODE(EXEC,       BB)       /* R[a] = blockexec(R[a],Irep[b]) */
 OPCODE(DEF,        BB)       /* R[a].newmethod(Syms[b],R[a+1]); R[a] = Syms[b] */
+OPCODE(TDEF,       BBB)      /* target_class.newmethod(Syms[b],Irep[c]); R[a] = Syms[b] */
+OPCODE(SDEF,       BBB)      /* R[a].singleton_class.newmethod(Syms[b],Irep[c]); R[a] = Syms[b] */
 OPCODE(ALIAS,      BB)       /* alias_method(target_class,Syms[a],Syms[b]) */
 OPCODE(UNDEF,      B)        /* undef_method(target_class,Syms[a]) */
 OPCODE(SCLASS,     B)        /* R[a] = R[a].singleton_class */

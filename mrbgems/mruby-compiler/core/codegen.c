@@ -5017,12 +5017,18 @@ codegen_def(codegen_scope *s, node *varnode, int val)
   /* For NODE_DEF, args should contain the full locals structure from defn_setup */
   int idx = lambda_body(s, def_n->locals, def_n->args, def_n->body, 0);
 
-  genop_1(s, OP_TCLASS, cursp());
-  push();
-  genop_2(s, OP_METHOD, cursp(), idx);
-  push(); pop();
-  pop();
-  genop_2(s, OP_DEF, cursp(), sym);
+  if (idx <= 0xff) {
+    /* TDEF fusion: TCLASS + METHOD + DEF -> TDEF */
+    genop_3(s, OP_TDEF, cursp(), sym, idx);
+  }
+  else {
+    genop_1(s, OP_TCLASS, cursp());
+    push();
+    genop_2(s, OP_METHOD, cursp(), idx);
+    push(); pop();
+    pop();
+    genop_2(s, OP_DEF, cursp(), sym);
+  }
   if (val) push();
 }
 
@@ -6400,12 +6406,18 @@ codegen_sdef(codegen_scope *s, const node *varnode, int val)
 
   codegen(s, recv, VAL);
   pop();
-  genop_1(s, OP_SCLASS, cursp());
-  push();
-  genop_2(s, OP_METHOD, cursp(), idx);
-  push(); pop();
-  pop();
-  genop_2(s, OP_DEF, cursp(), sym);
+  if (idx <= 0xff) {
+    /* SDEF fusion: SCLASS + METHOD + DEF -> SDEF */
+    genop_3(s, OP_SDEF, cursp(), sym, idx);
+  }
+  else {
+    genop_1(s, OP_SCLASS, cursp());
+    push();
+    genop_2(s, OP_METHOD, cursp(), idx);
+    push(); pop();
+    pop();
+    genop_2(s, OP_DEF, cursp(), sym);
+  }
   if (val) push();
 }
 
