@@ -101,10 +101,43 @@ void mrb_task_disable_irq(void);
 void mrb_task_hal_idle_cpu(mrb_state *mrb);
 
 /*
+ * GC integration
+ */
+void mrb_task_mark_all(mrb_state *mrb);
+
+/*
  * Core task scheduler API
  */
-void mrb_tick(mrb_state *mrb);
-mrb_value mrb_task_run(mrb_state *mrb);
-void mrb_task_mark_all(mrb_state *mrb);
+MRB_API void mrb_tick(mrb_state *mrb);
+MRB_API mrb_value mrb_task_run(mrb_state *mrb);
+MRB_API mrb_value mrb_task_run_once(mrb_state *mrb);
+
+/*
+ * Task creation API
+ */
+MRB_API mrb_value mrb_create_task(mrb_state *mrb, struct RProc *proc, mrb_value name, mrb_value priority, mrb_value top_self);
+
+/*
+ * Synchronous execution API (for picoruby-wasm)
+ */
+MRB_API mrb_value mrb_execute_proc_synchronously(mrb_state *mrb, mrb_value proc, mrb_int argc, const mrb_value *argv);
+
+/*
+ * Task control API
+ * Note: mrb_task_run is the main scheduler loop (for picoruby-sandbox and picoruby-wasm)
+ */
+MRB_API void mrb_suspend_task(mrb_state *mrb, mrb_value task);
+MRB_API void mrb_resume_task(mrb_state *mrb, mrb_value task);
+MRB_API void mrb_terminate_task(mrb_state *mrb, mrb_value task);
+MRB_API mrb_bool mrb_stop_task(mrb_state *mrb, mrb_value task);
+MRB_API mrb_value mrb_task_value(mrb_state *mrb, mrb_value task);
+MRB_API mrb_value mrb_task_status(mrb_state *mrb, mrb_value self);
+
+/*
+ * Task context management API (for picoruby-sandbox)
+ */
+MRB_API void mrb_task_init_context(mrb_state *mrb, mrb_value task, struct RProc *proc);
+MRB_API void mrb_task_reset_context(mrb_state *mrb, mrb_value task);
+MRB_API void mrb_task_proc_set(mrb_state *mrb, mrb_value task, struct RProc *proc);
 
 #endif /* MRUBY_TASK_H */

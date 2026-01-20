@@ -7,12 +7,18 @@
 ** and sigprocmask() for interrupt protection.
 **
 ** Supported platforms: Linux, macOS, BSD, Unix
+**
+** Note: When compiled for Emscripten/WASM, the SIGALRM timer is disabled
+** because JavaScript handles tick calls via setInterval. Using both would
+** cause tick_ to increment twice as fast, making sleep wake up early.
 */
 
 #include <mruby.h>
 #include "task_hal.h"
+#ifndef __EMSCRIPTEN__
 #include <signal.h>
 #include <sys/time.h>
+#endif
 #include <time.h>
 #include <unistd.h>
 #include <stdint.h>
@@ -22,6 +28,7 @@
 #define NSEC_PER_SEC  1000000000ULL
 #define USEC_PER_MSEC 1000ULL
 
+#ifndef __EMSCRIPTEN__
 /* Multi-VM support */
 static mrb_state *vm_list[MRB_TASK_MAX_VMS];
 static volatile sig_atomic_t vm_count = 0;
@@ -40,6 +47,7 @@ sigalrm_handler(int sig)
     }
   }
 }
+#endif /* __EMSCRIPTEN__ */
 
 /*
  * HAL Interface Implementation
@@ -48,10 +56,7 @@ sigalrm_handler(int sig)
 void
 mrb_hal_task_init(mrb_state *mrb)
 {
-  struct sigaction sa;
-  struct itimerval timer;
   int i;
-  int vm_index = -1;
 
   /* Initialize task state */
   for (i = 0; i < 4; i++) {
@@ -60,6 +65,12 @@ mrb_hal_task_init(mrb_state *mrb)
   mrb->task.tick = 0;
   mrb->task.wakeup_tick = UINT32_MAX;
   mrb->task.switching = FALSE;
+
+#ifndef __EMSCRIPTEN__
+  /* POSIX: Set up SIGALRM timer for tick handling */
+  struct sigaction sa;
+  struct itimerval timer;
+  int vm_index = -1;
 
   /* Block SIGALRM during registration to avoid race */
   sigemptyset(&alarm_mask);
@@ -104,18 +115,23 @@ mrb_hal_task_init(mrb_state *mrb)
 
   /* Unblock SIGALRM */
   sigprocmask(SIG_UNBLOCK, &alarm_mask, NULL);
+#endif
 }
 
 void
 mrb_task_enable_irq(void)
 {
+#ifndef __EMSCRIPTEN__
   sigprocmask(SIG_UNBLOCK, &alarm_mask, NULL);
+#endif
 }
 
 void
 mrb_task_disable_irq(void)
 {
+#ifndef __EMSCRIPTEN__
   sigprocmask(SIG_BLOCK, &alarm_mask, NULL);
+#endif
 }
 
 void
@@ -180,6 +196,7 @@ mrb_hal_task_sleep_us(mrb_state *mrb, mrb_int usec)
 void
 mrb_hal_task_final(mrb_state *mrb)
 {
+#ifndef __EMSCRIPTEN__
   struct itimerval timer;
   int i, j;
 
@@ -210,6 +227,10 @@ mrb_hal_task_final(mrb_state *mrb)
 
   /* Unblock SIGALRM */
   sigprocmask(SIG_UNBLOCK, &alarm_mask, NULL);
+#else
+  /* WASM: No timer cleanup needed */
+  (void)mrb;
+#endif
 }
 
 /*
