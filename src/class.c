@@ -1033,11 +1033,17 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
     MRB_SET_VISIBILITY_FLAGS(flags, MT_PRIVATE);
   }
   else if ((flags & MT_VMASK) == MT_VDEFAULT) {
-    mrb_callinfo *ci;
-    struct REnv *e;
-    find_visibility_scope(mrb, c, 0, &ci, &e);
-    mrb_assert(ci || e);
-    MRB_SET_VISIBILITY_FLAGS(flags, (e ? MRB_ENV_VISIBILITY(e) : MRB_CI_VISIBILITY(ci)));
+    /* singleton methods are always public */
+    if (c->tt == MRB_TT_SCLASS) {
+      MRB_SET_VISIBILITY_FLAGS(flags, MT_PUBLIC);
+    }
+    else {
+      mrb_callinfo *ci;
+      struct REnv *e;
+      find_visibility_scope(mrb, c, 0, &ci, &e);
+      mrb_assert(ci || e);
+      MRB_SET_VISIBILITY_FLAGS(flags, (e ? MRB_ENV_VISIBILITY(e) : MRB_CI_VISIBILITY(ci)));
+    }
   }
   mt_put(mrb, h, mid, flags, ptr);
   if (!mrb->bootstrapping) mc_clear_by_id(mrb, mid);
