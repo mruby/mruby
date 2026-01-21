@@ -17,7 +17,7 @@ class Array
 
     idx = 0
     while idx < length
-      block.call(self[idx])
+      yield self[idx]
       idx += 1
     end
     self
@@ -37,7 +37,7 @@ class Array
 
     idx = 0
     while idx < length
-      block.call(idx)
+      yield idx
       idx += 1
     end
     self

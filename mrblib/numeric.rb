@@ -49,7 +49,7 @@ class Integer
 
     i = self.to_i
     while i >= num
-      block.call(i)
+      yield i
       i -= 1
     end
     self
@@ -74,7 +74,7 @@ class Integer
 
     i = 0
     while i < self
-      block.call(i)
+      yield i
       i += 1
     end
     self
@@ -90,7 +90,7 @@ class Integer
 
     i = self.to_i
     while i <= num
-      block.call(i)
+      yield i
       i += 1
     end
     self
