@@ -84,6 +84,7 @@ New super-instructions that fuse common opcode sequences to reduce bytecode size
 - `OP_ADDILV`/`OP_SUBILV`: Local variable increment/decrement fusion for `i += n` patterns ([43f64b9](https://github.com/mruby/mruby/commit/43f64b9))
 - `OP_RETSELF`: Single-byte instruction for `return self` pattern ([a71db8c](https://github.com/mruby/mruby/commit/a71db8c))
 - `OP_MATCHERR`: Pattern matching error with conditional execution for `in` patterns ([944168a](https://github.com/mruby/mruby/commit/944168a), [e9a9ba4](https://github.com/mruby/mruby/commit/e9a9ba4))
+- `OP_BLKCALL`: Direct block call for `yield`, bypassing method dispatch (13-17% faster)
 
 # Fixed GitHub Issues
 

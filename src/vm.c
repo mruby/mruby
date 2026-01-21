@@ -2380,6 +2380,57 @@ RETRY_TRY_BLOCK:
       JUMP;
     }
 
+    CASE(OP_BLKCALL, BB) {
+      /* Direct block call: R[a] = R[a].call(R[a+1],...,R[a+b]) */
+      /* Skip method dispatch - directly invoke the proc */
+      mrb_value recv = regs[a];
+      const struct RProc *p;
+
+      if (mrb_unlikely(!mrb_proc_p(recv))) {
+        mrb_raisef(mrb, E_TYPE_ERROR, "wrong type %T (expected Proc)", recv);
+      }
+      p = mrb_proc_ptr(recv);
+
+      /* push callinfo */
+      ci = cipush(mrb, a, CINFO_DIRECT, NULL, NULL, NULL, 0, b);
+      ci->cci = CINFO_NONE;  /* mark as VM-to-VM call for proper break handling */
+
+      /* handle alias */
+      MRB_PROC_RESOLVE_ALIAS(ci, p);
+      if (MRB_PROC_ENV_P(p)) {
+        ci->mid = MRB_PROC_ENV(p)->mid;
+      }
+      ci->u.target_class = MRB_PROC_TARGET_CLASS(p);
+      CI_PROC_SET(ci, p);
+
+      if (MRB_PROC_CFUNC_P(p)) {
+        recv = MRB_PROC_CFUNC(p)(mrb, recv);
+        mrb_gc_arena_shrink(mrb, ai);
+        if (mrb_unlikely(mrb->exc)) goto L_RAISE;
+        ci = cipop(mrb);
+        ci[1].stack[0] = recv;
+        irep = ci->proc->body.irep;
+      }
+      else {
+        irep = p->body.irep;
+        if (!irep) {
+          ci->stack[0] = mrb_nil_value();
+          a = 0;
+          goto L_OP_RETURN_BODY;
+        }
+        mrb_int nargs = b + 1;  /* args + self */
+        if (nargs < irep->nregs) {
+          stack_extend(mrb, irep->nregs);
+          stack_clear(regs+nargs, irep->nregs-nargs);
+        }
+        if (MRB_PROC_ENV_P(p)) {
+          regs[0] = MRB_PROC_ENV(p)->stack[0];
+        }
+        ci->pc = irep->iseq;
+      }
+      JUMP;
+    }
+
     CASE(OP_SUPER, BB) {
       mrb_value recv;
       struct RClass* target_class = CI_TARGET_CLASS(ci);

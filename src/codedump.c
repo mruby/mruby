@@ -351,6 +351,9 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
     CASE(OP_CALL, Z):
       fprintf(out, "CALL\n");
       break;
+    CASE(OP_BLKCALL, BB):
+      fprintf(out, "BLKCALL\t\tR%d\t%d\n", a, b);
+      break;
     CASE(OP_SUPER, BB):
       fprintf(out, "SUPER\t\tR%d\t", a);
       print_args(b, out);

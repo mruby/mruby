@@ -5582,7 +5582,14 @@ codegen_yield(codegen_scope *s, node *varnode, int val)
   pop_n(n + (nk == 15 ? 1 : nk * 2) + 1);
   genop_2S(s, OP_BLKPUSH, cursp(), (ainfo<<4)|(lv & 0xf));
   if (sendv) n = CALL_MAXARGS;
-  genop_3(s, OP_SEND, cursp(), sym_idx(s, MRB_SYM_2(s->mrb, call)), n|(nk<<4));
+  if (nk == 0 && n < 15) {
+    /* fast path: direct block call without method dispatch */
+    genop_2(s, OP_BLKCALL, cursp(), n);
+  }
+  else {
+    /* fallback: use SEND for keyword args or splat */
+    genop_3(s, OP_SEND, cursp(), sym_idx(s, MRB_SYM_2(s->mrb, call)), n|(nk<<4));
+  }
   if (val) push();
 }
 
