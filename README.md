@@ -31,6 +31,8 @@
 
 ## What is mruby
 
+[![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/mruby/mruby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 mruby is the lightweight implementation of the Ruby language complying to (part
 of) the [ISO standard][ISO-standard] with more recent features provided by Ruby 3.x.
 Also, its syntax is Ruby 3.x compatible except for pattern matching.
