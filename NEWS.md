@@ -75,6 +75,16 @@ mruby now supports pattern matching (case/in) syntax:
 - Optimized masgn to generate literals directly into target registers ([fb5d966](https://github.com/mruby/mruby/commit/fb5d966))
 - Optimized splat of literal arrays in args/literals ([1cb8d73](https://github.com/mruby/mruby/commit/1cb8d73))
 
+# VM Optimizations
+
+New super-instructions that fuse common opcode sequences to reduce bytecode size and improve performance:
+
+- `OP_TDEF`/`OP_SDEF`: Fused method definition combining TCLASS/SCLASS+METHOD+DEF into single instruction, saving 4 bytes per method ([8d4f47e](https://github.com/mruby/mruby/commit/8d4f47e))
+- `OP_GETIDX0`: Fast path for `array[0]` and `Array#first` access ([680f7ec](https://github.com/mruby/mruby/commit/680f7ec))
+- `OP_ADDILV`/`OP_SUBILV`: Local variable increment/decrement fusion for `i += n` patterns ([43f64b9](https://github.com/mruby/mruby/commit/43f64b9))
+- `OP_RETSELF`: Single-byte instruction for `return self` pattern ([a71db8c](https://github.com/mruby/mruby/commit/a71db8c))
+- `OP_MATCHERR`: Pattern matching error with conditional execution for `in` patterns ([944168a](https://github.com/mruby/mruby/commit/944168a), [e9a9ba4](https://github.com/mruby/mruby/commit/e9a9ba4))
+
 # Fixed GitHub Issues
 
 - [#6675](https://github.com/mruby/mruby/issues/6675) Allow Hash#[] to be aliased again
