@@ -194,7 +194,7 @@ stack_extend_alloc(mrb_state *mrb, mrb_int room)
 static inline void
 stack_extend(mrb_state *mrb, mrb_int room)
 {
-  if (!mrb->c->ci->stack || mrb->c->ci->stack + room >= mrb->c->stend) {
+  if (mrb_unlikely(!mrb->c->ci->stack || mrb->c->ci->stack + room >= mrb->c->stend)) {
     stack_extend_alloc(mrb, room);
   }
 }
@@ -1691,7 +1691,7 @@ RETRY_TRY_BLOCK:
 
   MRB_TRY(&c_jmp) {
 
-  if (mrb->exc) {
+  if (mrb_unlikely(mrb->exc)) {
     mrb_gc_arena_restore(mrb, ai);
     if (mrb->exc->tt == MRB_TT_BREAK)
       goto L_BREAK;
@@ -2137,7 +2137,7 @@ RETRY_TRY_BLOCK:
     CASE(OP_RAISEIF, B) {
       mrb_value exc;
       exc = regs[a];
-      if (mrb_nil_p(exc)) {
+      if (mrb_likely(mrb_nil_p(exc))) {
         mrb->exc = NULL;
       }
       else if (mrb_break_p(exc)) {
@@ -2176,7 +2176,7 @@ RETRY_TRY_BLOCK:
             struct mrb_context *c = mrb->c;
 
             fiber_terminate(mrb, c, ci);
-            if (!c->vmexec) goto L_RAISE;
+            if (mrb_unlikely(!c->vmexec)) goto L_RAISE;
             mrb->jmp = prev_jmp;
             if (!prev_jmp) return mrb_obj_value(mrb->exc);
             MRB_THROW(prev_jmp);
@@ -2195,7 +2195,7 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_MATCHERR, B) {
-      if (!mrb_test(regs[a])) {
+      if (mrb_unlikely(!mrb_test(regs[a]))) {
         RAISE_LIT(mrb, mrb_exc_get_id(mrb, MRB_ERROR_SYM(NoMatchingPatternError)), "pattern not matched");
       }
       NEXT;
@@ -2229,7 +2229,7 @@ RETRY_TRY_BLOCK:
       mrb_value recv, blk;
       mrb_int bidx, new_bidx;
 
-      if (c < CALL_MAXARGS) {
+      if (mrb_likely(c < CALL_MAXARGS)) {
         /* fast path limited to fixed length arguments of less than 15 */
         bidx = a + c + 1 /* self */;
         new_bidx = bidx;
@@ -2269,7 +2269,7 @@ RETRY_TRY_BLOCK:
       recv = regs[0];
       ci->u.target_class = (insn == OP_SUPER) ? CI_TARGET_CLASS(ci - 1)->super : mrb_class(mrb, recv);
       m = mrb_vm_find_method(mrb, ci->u.target_class, &ci->u.target_class, mid);
-      if (MRB_METHOD_UNDEF_P(m)) {
+      if (mrb_unlikely(MRB_METHOD_UNDEF_P(m))) {
         m = prepare_missing(mrb, ci, recv, mid, blk, (insn == OP_SUPER));
       }
       else {
@@ -2317,7 +2317,7 @@ RETRY_TRY_BLOCK:
 
       /* cfunc epilogue */
       mrb_gc_arena_shrink(mrb, ai);
-      if (mrb->exc) goto L_RAISE;
+      if (mrb_unlikely(mrb->exc)) goto L_RAISE;
       ci = mrb->c->ci;
       if (!ci->u.keep_context) { /* return from context modifying method (resume/yield) */
         if (ci->cci == CINFO_RESUMED) {
@@ -2353,7 +2353,7 @@ RETRY_TRY_BLOCK:
       if (MRB_PROC_CFUNC_P(p)) {
         recv = MRB_PROC_CFUNC(p)(mrb, recv);
         mrb_gc_arena_shrink(mrb, ai);
-        if (mrb->exc) goto L_RAISE;
+        if (mrb_unlikely(mrb->exc)) goto L_RAISE;
         /* pop stackpos */
         ci = cipop(mrb);
         ci[1].stack[0] = recv;
@@ -2468,7 +2468,7 @@ RETRY_TRY_BLOCK:
 
        /* no other args */
       if ((a & ~0x7c0001) == 0 && argc < 15 && MRB_PROC_STRICT_P(ci->proc)) {
-        if (argc+(ci->nk==15) != m1) { /* count kdict too */
+        if (mrb_unlikely(argc+(ci->nk==15) != m1)) { /* count kdict too */
           argnum_error(mrb, m1);
           goto L_RAISE;
         }
@@ -2533,7 +2533,7 @@ RETRY_TRY_BLOCK:
 
       /* strict argument check */
       if (ci->proc && MRB_PROC_STRICT_P(ci->proc)) {
-        if (argc < m1 + m2 || (r == 0 && argc > len)) {
+        if (mrb_unlikely(argc < m1 + m2 || (r == 0 && argc > len))) {
           argnum_error(mrb, m1+m2);
           goto L_RAISE;
         }
@@ -2817,10 +2817,18 @@ RETRY_TRY_BLOCK:
 #endif
 
 #define TYPES2(a,b) ((((uint16_t)(a))<<8)|(((uint16_t)(b))&0xff))
-#define OP_MATH(op_name)                                                    \
+#define OP_MATH(op_name) do {                                               \
   /* need to check if op is overridden */                                   \
-  switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {                  \
-    OP_MATH_CASE_INTEGER(op_name);                                          \
+  uint16_t tt = TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]));              \
+  if (mrb_likely(tt == TYPES2(MRB_TT_INTEGER, MRB_TT_INTEGER))) {           \
+    mrb_int x = mrb_integer(regs[a]), y = mrb_integer(regs[a+1]), z;        \
+    if (mrb_int_##op_name##_overflow(x, y, &z)) {                           \
+      OP_MATH_OVERFLOW_INT(op_name,x,y);                                    \
+    }                                                                       \
+    else                                                                    \
+      SET_INT_VALUE(mrb,regs[a], z);                                        \
+  }                                                                         \
+  else switch (tt) {                                                        \
     OP_MATH_CASE_FLOAT(op_name, integer, float);                            \
     OP_MATH_CASE_FLOAT(op_name, float,  integer);                           \
     OP_MATH_CASE_FLOAT(op_name, float,  float);                             \
@@ -2829,6 +2837,7 @@ RETRY_TRY_BLOCK:
       mid = MRB_OPSYM(op_name);                                             \
       goto L_SEND_SYM;                                                      \
   }                                                                         \
+} while(0);                                                                 \
   NEXT;
 #define OP_MATH_CASE_INTEGER(op_name)                                       \
   case TYPES2(MRB_TT_INTEGER, MRB_TT_INTEGER):                              \
@@ -2922,16 +2931,24 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
-#define OP_MATHI(op_name)                                                   \
+#define OP_MATHI(op_name) do {                                              \
   /* need to check if op is overridden */                                   \
-  switch (mrb_type(regs[a])) {                                              \
-    OP_MATHI_CASE_INTEGER(op_name);                                         \
+  if (mrb_likely(mrb_integer_p(regs[a]))) {                                 \
+    mrb_int x = mrb_integer(regs[a]), y = (mrb_int)b, z;                    \
+    if (mrb_int_##op_name##_overflow(x, y, &z)) {                           \
+      OP_MATH_OVERFLOW_INT(op_name,x,y);                                    \
+    }                                                                       \
+    else                                                                    \
+      SET_INT_VALUE(mrb,regs[a], z);                                        \
+  }                                                                         \
+  else switch (mrb_type(regs[a])) {                                         \
     OP_MATHI_CASE_FLOAT(op_name);                                           \
     default:                                                                \
       SET_INT_VALUE(mrb,regs[a+1], b);                                      \
       mid = MRB_OPSYM(op_name);                                             \
       goto L_SEND_SYM;                                                      \
   }                                                                         \
+} while(0);                                                                 \
   NEXT;
 #define OP_MATHI_CASE_INTEGER(op_name)                                      \
   case MRB_TT_INTEGER:                                                      \
@@ -3014,12 +3031,12 @@ RETRY_TRY_BLOCK:
 #ifdef MRB_NO_FLOAT
 #define OP_CMP(op,sym) do {\
   int result;\
-  /* need to check if - is overridden */\
-  switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {\
-  case TYPES2(MRB_TT_INTEGER,MRB_TT_INTEGER):\
+  /* need to check if op is overridden */\
+  if (mrb_likely(TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1])) == \
+                 TYPES2(MRB_TT_INTEGER,MRB_TT_INTEGER))) {\
     result = OP_CMP_BODY(op,mrb_fixnum,mrb_fixnum);\
-    break;\
-  default:\
+  }\
+  else {\
     mid = MRB_OPSYM(sym);\
     goto L_SEND_SYM;\
   }\
@@ -3033,11 +3050,12 @@ RETRY_TRY_BLOCK:
 #else
 #define OP_CMP(op, sym) do {\
   int result;\
-  /* need to check if - is overridden */\
-  switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {\
-  case TYPES2(MRB_TT_INTEGER,MRB_TT_INTEGER):\
+  /* need to check if op is overridden */\
+  uint16_t tt = TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]));\
+  if (mrb_likely(tt == TYPES2(MRB_TT_INTEGER,MRB_TT_INTEGER))) {\
     result = OP_CMP_BODY(op,mrb_integer,mrb_integer);\
-    break;\
+  }\
+  else switch (tt) {\
   case TYPES2(MRB_TT_INTEGER,MRB_TT_FLOAT):\
     result = OP_CMP_BODY(op,mrb_integer,mrb_float);\
     break;\
@@ -3398,7 +3416,7 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_TDEF, BBB) {
       struct RClass *target = check_target_class(mrb);
-      if (!target) goto L_RAISE;
+      if (mrb_unlikely(!target)) goto L_RAISE;
       struct RProc *p = mrb_proc_new(mrb, irep->reps[c]);
       mrb_method_t m;
       mrb_sym mid = irep->syms[b];
@@ -3440,7 +3458,7 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_TCLASS, B) {
       struct RClass *target = check_target_class(mrb);
-      if (!target) goto L_RAISE;
+      if (mrb_unlikely(!target)) goto L_RAISE;
       regs[a] = mrb_obj_value(target);
       NEXT;
     }
@@ -3448,7 +3466,7 @@ RETRY_TRY_BLOCK:
     CASE(OP_ALIAS, BB) {
       struct RClass *target = check_target_class(mrb);
 
-      if (!target) goto L_RAISE;
+      if (mrb_unlikely(!target)) goto L_RAISE;
       mrb_alias_method(mrb, target, irep->syms[a], irep->syms[b]);
       mrb_method_added(mrb, target, irep->syms[a]);
       ci = mrb->c->ci;
@@ -3457,7 +3475,7 @@ RETRY_TRY_BLOCK:
     CASE(OP_UNDEF, B) {
       struct RClass *target = check_target_class(mrb);
 
-      if (!target) goto L_RAISE;
+      if (mrb_unlikely(!target)) goto L_RAISE;
       mrb_undef_method_id(mrb, target, irep->syms[a]);
       ci = mrb->c->ci;
       NEXT;
