@@ -25,6 +25,24 @@ repos:
         language: node
         additional_dependencies: ["prettier@3.7.4"]
         stages: [manual]
+      - id: bundle-install
+        name: bundle-install
+        description: >-
+          Ensures that the local Ruby environment stays in sync by running 'bundle install'
+          whenever the Gemfile or Gemfile.lock is modified.
+        entry: bash -c 'bundle check || bundle install || { echo "bundle install failed"; exit 1; }'
+        language: system
+        stages: [manual]
+        files: ^(Gemfile|Gemfile\.lock)$
+      - id: bundle-audit
+        name: bundle-audit
+        description: >-
+          Updates the ruby-advisory-db and scans Gemfile.lock for known security
+          vulnerabilities in dependencies.
+        entry: bash -c 'bundle exec bundle-audit check --update'
+        language: system
+        stages: [manual]
+        files: ^Gemfile\.lock$
       - id: check-zip-file-is-not-committed
         name: disallow zip files
         description: Zip files are not allowed in the repository
