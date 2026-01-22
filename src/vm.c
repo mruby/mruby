@@ -2744,6 +2744,10 @@ RETRY_TRY_BLOCK:
       a = 0;
       goto NORMAL_RETURN;
     }
+    CASE(OP_RETNIL, Z) {
+      a = 0;
+      goto L_RETURN_NIL;
+    }
     CASE(OP_RETURN, B) {
       mrb_int acc;
       mrb_value v;
@@ -2751,6 +2755,10 @@ RETRY_TRY_BLOCK:
 
     NORMAL_RETURN:
       v = regs[a];
+      goto L_RETURN;
+    L_RETURN_NIL:
+      v = mrb_nil_value();
+    L_RETURN:
       mrb_gc_protect(mrb, v);
       return_ci = ci;
       CHECKPOINT_RESTORE(RBREAK_TAG_BREAK) {

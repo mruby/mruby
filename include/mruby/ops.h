@@ -74,6 +74,7 @@ OPCODE(KARG,       BB)       /* R[a] = kdict[Syms[b]]; kdict.delete(Syms[b]) */
 OPCODE(RETURN,     B)        /* return R[a] (normal) */
 OPCODE(RETURN_BLK, B)        /* return R[a] (in-block return) */
 OPCODE(RETSELF,    Z)        /* return self */
+OPCODE(RETNIL,     Z)        /* return nil */
 OPCODE(BREAK,      B)        /* break R[a] */
 OPCODE(BLKPUSH,    BS)       /* R[a] = block (16=m5:r1:m5:d1:lv4) */
 OPCODE(ADD,        B)        /* R[a] = R[a]+R[a+1] */
