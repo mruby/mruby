@@ -1671,6 +1671,7 @@ mrb_vm_exec(mrb_state *mrb, const struct RProc *begin_proc, const mrb_code *iseq
   uint16_t b;
   uint16_t c;
   mrb_sym mid;
+  struct RClass *tc;  /* target class for OP_TDEF/OP_SDEF */
   const struct mrb_irep_catch_handler *ch;
 
 #ifndef MRB_USE_VM_SWITCH_DISPATCH
@@ -3466,35 +3467,25 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_TDEF, BBB) {
-      struct RClass *target = check_target_class(mrb);
-      if (mrb_unlikely(!target)) goto L_RAISE;
-      struct RProc *p = mrb_proc_new(mrb, irep->reps[c]);
-      mrb_method_t m;
-      mrb_sym mid = irep->syms[b];
-
-      p->flags |= MRB_PROC_SCOPE | MRB_PROC_STRICT;
-      MRB_METHOD_FROM_PROC(m, p);
-      MRB_METHOD_SET_VISIBILITY(m, MRB_METHOD_VDEFAULT_FL);
-      mrb_define_method_raw(mrb, target, mid, m);
-      mrb_method_added(mrb, target, mid);
-      ci = mrb->c->ci;
-      mrb_gc_arena_restore(mrb, ai);
-      regs[a] = mrb_symbol_value(mid);
-      NEXT;
+      tc = check_target_class(mrb);
+      if (mrb_unlikely(!tc)) goto L_RAISE;
     }
+    goto L_DEF_METHOD;
 
     CASE(OP_SDEF, BBB) {
-      mrb_value recv = regs[a];
-      struct RClass *target = mrb_class_ptr(mrb_singleton_class(mrb, recv));
+      tc = mrb_class_ptr(mrb_singleton_class(mrb, regs[a]));
+    }
+    L_DEF_METHOD:
+    {
       struct RProc *p = mrb_proc_new(mrb, irep->reps[c]);
       mrb_method_t m;
-      mrb_sym mid = irep->syms[b];
 
+      mid = irep->syms[b];
       p->flags |= MRB_PROC_SCOPE | MRB_PROC_STRICT;
       MRB_METHOD_FROM_PROC(m, p);
       MRB_METHOD_SET_VISIBILITY(m, MRB_METHOD_VDEFAULT_FL);
-      mrb_define_method_raw(mrb, target, mid, m);
-      mrb_method_added(mrb, target, mid);
+      mrb_define_method_raw(mrb, tc, mid, m);
+      mrb_method_added(mrb, tc, mid);
       ci = mrb->c->ci;
       mrb_gc_arena_restore(mrb, ai);
       regs[a] = mrb_symbol_value(mid);
