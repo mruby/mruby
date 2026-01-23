@@ -31,8 +31,8 @@ OPCODE(LOADI32,    BSS)      /* R[a] = mrb_int((b<<16)+c) */
 OPCODE(LOADSYM,    BB)       /* R[a] = Syms[b] */
 OPCODE(LOADNIL,    B)        /* R[a] = nil */
 OPCODE(LOADSELF,   B)        /* R[a] = self */
-OPCODE(LOADT,      B)        /* R[a] = true */
-OPCODE(LOADF,      B)        /* R[a] = false */
+OPCODE(LOADTRUE,   B)        /* R[a] = true */
+OPCODE(LOADFALSE,  B)        /* R[a] = false */
 OPCODE(GETGV,      BB)       /* R[a] = getglobal(Syms[b]) */
 OPCODE(SETGV,      BB)       /* setglobal(Syms[b], R[a]) */
 OPCODE(GETSV,      BB)       /* R[a] = Special[Syms[b]] */

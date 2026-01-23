@@ -13,6 +13,10 @@ enum mrb_insn {
 #undef OPCODE
 };
 
+/* backward compatibility aliases */
+#define OP_LOADT OP_LOADTRUE
+#define OP_LOADF OP_LOADFALSE
+
 #define OP_L_STRICT  1
 #define OP_L_CAPTURE 2
 #define OP_L_METHOD  OP_L_STRICT

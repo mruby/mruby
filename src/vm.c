@@ -1815,12 +1815,12 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
-    CASE(OP_LOADT, B) {
+    CASE(OP_LOADTRUE, B) {
       SET_TRUE_VALUE(regs[a]);
       NEXT;
     }
 
-    CASE(OP_LOADF, B) {
+    CASE(OP_LOADFALSE, B) {
       SET_FALSE_VALUE(regs[a]);
       NEXT;
     }

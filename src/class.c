@@ -4224,9 +4224,9 @@ static const mrb_code neq_iseq[] = {
   OP_ENTER, 0x4, 0, 0,       // 000 OP_ENTER     1:0:0:0:0:0:0
   OP_EQ, 0,                  // 004 OP_EQ        R0  (R1)
   OP_JMPNOT, 0, 0, 5,        // 006 OP_JMPNOT    R0  015
-  OP_LOADF, 0,               // 010 OP_LOADF     R0  (false)
+  OP_LOADFALSE, 0,               // 010 OP_LOADFALSE     R0  (false)
   OP_JMP, 0, 2,              // 012 OP_JMP       017
-  OP_LOADT, 0,               // 015 OP_LOADT     R0  (true)
+  OP_LOADTRUE, 0,               // 015 OP_LOADTRUE     R0  (true)
   OP_RETURN, 0               // 017 OP_RETURN    R0
 };
 

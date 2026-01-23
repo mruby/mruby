@@ -841,7 +841,7 @@ genjmp2(codegen_scope *s, mrb_code i, uint16_t a, uint32_t pc, int val)
       }
       break;
     case OP_LOADNIL:
-    case OP_LOADF:
+    case OP_LOADFALSE:
       if (data.a == a || data.a > s->nlocals) {
         s->pc = addr_pc(s, data.addr);
         if (i == OP_JMPNOT || (i == OP_JMPNIL && data.insn == OP_LOADNIL)) {
@@ -852,7 +852,7 @@ genjmp2(codegen_scope *s, mrb_code i, uint16_t a, uint32_t pc, int val)
         }
       }
       break;
-    case OP_LOADT: case OP_LOADI8: case OP_LOADINEG: case OP_LOADI__1:
+    case OP_LOADTRUE: case OP_LOADI8: case OP_LOADINEG: case OP_LOADI__1:
     case OP_LOADI_0: case OP_LOADI_1: case OP_LOADI_2: case OP_LOADI_3:
     case OP_LOADI_4: case OP_LOADI_5: case OP_LOADI_6: case OP_LOADI_7:
       if (data.a == a || data.a > s->nlocals) {
@@ -937,7 +937,7 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
         return;
       }
       break;
-    case OP_LOADNIL: case OP_LOADSELF: case OP_LOADT: case OP_LOADF:
+    case OP_LOADNIL: case OP_LOADSELF: case OP_LOADTRUE: case OP_LOADFALSE:
     case OP_LOADI__1:
     case OP_LOADI_0: case OP_LOADI_1: case OP_LOADI_2: case OP_LOADI_3:
     case OP_LOADI_4: case OP_LOADI_5: case OP_LOADI_6: case OP_LOADI_7:
@@ -2733,10 +2733,10 @@ gen_literal_to_reg(codegen_scope *s, node *n, int reg)
     genop_1(s, OP_LOADNIL, reg);
     break;
   case NODE_TRUE:
-    genop_1(s, OP_LOADT, reg);
+    genop_1(s, OP_LOADTRUE, reg);
     break;
   case NODE_FALSE:
-    genop_1(s, OP_LOADF, reg);
+    genop_1(s, OP_LOADFALSE, reg);
     break;
   default:
     break;
@@ -5409,7 +5409,7 @@ codegen_op_asgn(codegen_scope *s, node *varnode, int val)
       lp->type = LOOP_RESCUE;
       catch_handler_set(s, catch_entry, MRB_CATCH_RESCUE, begin, end, s->pc);
       genop_1(s, OP_EXCEPT, exc);
-      genop_1(s, OP_LOADF, exc);
+      genop_1(s, OP_LOADFALSE, exc);
       dispatch(s, noexc);
       loop_pop(s, NOVAL);
     }
@@ -5728,15 +5728,15 @@ codegen_nil(codegen_scope *s, node *varnode, int val)
 static void
 codegen_true(codegen_scope *s, node *varnode, int val)
 {
-  /* Generate OP_LOADT instruction for true literal */
-  gen_load_op1(s, OP_LOADT, val);
+  /* Generate OP_LOADTRUE instruction for true literal */
+  gen_load_op1(s, OP_LOADTRUE, val);
 }
 
 static void
 codegen_false(codegen_scope *s, node *varnode, int val)
 {
-  /* Generate OP_LOADF instruction for false literal */
-  gen_load_op1(s, OP_LOADF, val);
+  /* Generate OP_LOADFALSE instruction for false literal */
+  gen_load_op1(s, OP_LOADFALSE, val);
 }
 
 static void
@@ -6579,7 +6579,7 @@ codegen(codegen_scope *s, node *tree, int val)
             gen_load_nil(s, 1);
           }
           else {
-            genop_1(s, OP_LOADT, cursp());
+            genop_1(s, OP_LOADTRUE, cursp());
             push();
           }
         }
@@ -6625,7 +6625,7 @@ codegen(codegen_scope *s, node *tree, int val)
                 gen_load_nil(s, 1);  /* '=>' pattern returns nil */
               }
               else {
-                genop_1(s, OP_LOADT, cursp());  /* 'in' pattern returns true */
+                genop_1(s, OP_LOADTRUE, cursp());  /* 'in' pattern returns true */
                 push();
               }
             }
@@ -6664,7 +6664,7 @@ codegen(codegen_scope *s, node *tree, int val)
             gen_load_nil(s, 1);
           }
           else {
-            genop_1(s, OP_LOADT, cursp());
+            genop_1(s, OP_LOADTRUE, cursp());
             push();
           }
         }
@@ -6701,13 +6701,13 @@ codegen(codegen_scope *s, node *tree, int val)
         pop();  /* pop the value */
         if (mp->raise_on_fail) {
           /* expr => pattern: raise NoMatchingPatternError */
-          genop_1(s, OP_LOADF, cursp());  /* Load false for MATCHERR */
+          genop_1(s, OP_LOADFALSE, cursp());  /* Load false for MATCHERR */
           genop_1(s, OP_MATCHERR, cursp());
         }
         else {
           /* expr in pattern: return false */
           if (val) {
-            genop_1(s, OP_LOADF, cursp());
+            genop_1(s, OP_LOADFALSE, cursp());
             push();
           }
         }
@@ -6726,7 +6726,7 @@ codegen(codegen_scope *s, node *tree, int val)
             gen_load_nil(s, 1);  /* '=>' pattern returns nil */
           }
           else {
-            genop_1(s, OP_LOADT, cursp());  /* 'in' pattern returns true */
+            genop_1(s, OP_LOADTRUE, cursp());  /* 'in' pattern returns true */
             push();
           }
         }

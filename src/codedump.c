@@ -236,12 +236,12 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
       fprintf(out, "LOADSELF\tR%d\t(R0)", a);
       print_lv_a(mrb, irep, a, out);
       break;
-    CASE(OP_LOADT, B):
-      fprintf(out, "LOADT\t\tR%d\t(true)", a);
+    CASE(OP_LOADTRUE, B):
+      fprintf(out, "LOADTRUE\tR%d\t(true)", a);
       print_lv_a(mrb, irep, a, out);
       break;
-    CASE(OP_LOADF, B):
-      fprintf(out, "LOADF\t\tR%d\t(false)", a);
+    CASE(OP_LOADFALSE, B):
+      fprintf(out, "LOADFALSE\tR%d\t(false)", a);
       print_lv_a(mrb, irep, a, out);
       break;
     CASE(OP_GETGV, BB):
