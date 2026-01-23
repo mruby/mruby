@@ -61,12 +61,12 @@ end
 `MRB_STACK_EXTEND_DOUBLING`
 
 - If defined doubles the stack size when extending it.
-- Otherwise extends stack with `MRB_STACK_GROWTH`.
+- Otherwise extends stack with 1.5x growth (minimum `MRB_STACK_GROWTH`).
 
 `MRB_STACK_GROWTH`
 
 - Default value is `128`.
-- Used in stack extending.
+- Minimum stack growth size when extending.
 - Ignored when `MRB_STACK_EXTEND_DOUBLING` is defined.
 
 `MRB_STACK_MAX`

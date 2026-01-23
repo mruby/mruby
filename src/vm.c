@@ -169,13 +169,17 @@ stack_extend_alloc(mrb_state *mrb, mrb_int room)
   else
     size += room;
 #else
-  /* Use linear stack growth.
+  /* Use 1.5x stack growth.
      It is slightly slower than doubling the stack space,
      but it saves memory on small devices. */
-  if (room <= MRB_STACK_GROWTH)
-    size += MRB_STACK_GROWTH;
-  else
-    size += room;
+  {
+    size_t newsize = size + (size >> 1); /* 1.5x growth */
+    if (newsize < size + MRB_STACK_GROWTH)
+      newsize = size + MRB_STACK_GROWTH;
+    if (newsize < size + (size_t)room)
+      newsize = size + room;
+    size = newsize;
+  }
 #endif
 
   mrb_value *newstack = (mrb_value*)mrb_realloc(mrb, mrb->c->stbase, sizeof(mrb_value) * size);
