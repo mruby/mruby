@@ -1156,7 +1156,18 @@ gen_return(codegen_scope *s, uint8_t op, uint16_t src)
       rewind_pc(s);
       genop_0(s, OP_RETNIL);
     }
-    else if (data.insn != OP_RETURN && data.insn != OP_RETSELF && data.insn != OP_RETNIL) {
+    else if (data.insn == OP_LOADTRUE && src == data.a && op == OP_RETURN) {
+      /* LOADTRUE + RETURN -> RETTRUE */
+      rewind_pc(s);
+      genop_0(s, OP_RETTRUE);
+    }
+    else if (data.insn == OP_LOADFALSE && src == data.a && op == OP_RETURN) {
+      /* LOADFALSE + RETURN -> RETFALSE */
+      rewind_pc(s);
+      genop_0(s, OP_RETFALSE);
+    }
+    else if (data.insn != OP_RETURN && data.insn != OP_RETSELF && data.insn != OP_RETNIL &&
+             data.insn != OP_RETTRUE && data.insn != OP_RETFALSE) {
       genop_1(s, op, src);
     }
   }

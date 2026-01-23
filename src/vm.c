@@ -2748,6 +2748,14 @@ RETRY_TRY_BLOCK:
       a = 0;
       goto L_RETURN_NIL;
     }
+    CASE(OP_RETTRUE, Z) {
+      a = 0;
+      goto L_RETURN_TRUE;
+    }
+    CASE(OP_RETFALSE, Z) {
+      a = 0;
+      goto L_RETURN_FALSE;
+    }
     CASE(OP_RETURN, B) {
       mrb_int acc;
       mrb_value v;
@@ -2758,6 +2766,12 @@ RETRY_TRY_BLOCK:
       goto L_RETURN;
     L_RETURN_NIL:
       v = mrb_nil_value();
+      goto L_RETURN;
+    L_RETURN_TRUE:
+      v = mrb_true_value();
+      goto L_RETURN;
+    L_RETURN_FALSE:
+      v = mrb_false_value();
     L_RETURN:
       mrb_gc_protect(mrb, v);
       return_ci = ci;

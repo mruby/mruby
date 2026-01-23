@@ -402,6 +402,12 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
     CASE(OP_RETNIL, Z):
       fprintf(out, "RETNIL\n");
       break;
+    CASE(OP_RETTRUE, Z):
+      fprintf(out, "RETTRUE\n");
+      break;
+    CASE(OP_RETFALSE, Z):
+      fprintf(out, "RETFALSE\n");
+      break;
     CASE(OP_BREAK, B):
       fprintf(out, "BREAK\t\tR%d\t", a);
       print_lv_a(mrb, irep, a, out);
