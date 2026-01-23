@@ -86,7 +86,7 @@ New super-instructions that fuse common opcode sequences to reduce bytecode size
 - `OP_MATCHERR`: Pattern matching error with conditional execution for `in` patterns ([944168a](https://github.com/mruby/mruby/commit/944168a), [e9a9ba4](https://github.com/mruby/mruby/commit/e9a9ba4))
 - `OP_BLKCALL`: Direct block call for `yield`, bypassing method dispatch (13-17% faster) ([3aa2872](https://github.com/mruby/mruby/commit/3aa2872))
 - `OP_RETNIL`: Single-byte instruction for `return nil` pattern ([64e30bf](https://github.com/mruby/mruby/commit/64e30bf))
-- `OP_RETTRUE`/`OP_RETFALSE`: Single-byte instructions for `return true`/`return false` patterns
+- `OP_RETTRUE`/`OP_RETFALSE`: Single-byte instructions for `return true`/`return false` patterns ([0b15727](https://github.com/mruby/mruby/commit/0b15727))
 
 # Fixed GitHub Issues
 
