@@ -252,11 +252,11 @@ binding_eval_prepare(mrb_state *mrb, mrb_value binding, const char *expr, mrb_in
   d.cxt->upper = proc;
   d.pstate = mrb_parse_nstring(mrb, expr, exprlen, d.cxt);
 
-  mrb_bool error;
-  mrb_value ret = mrb_protect_error(mrb, binding_eval_prepare_body, &d, &error);
-  if (d.pstate) mrb_parser_free(d.pstate);
-  if (d.cxt) mrb_ccontext_free(mrb, d.cxt);
-  if (error) mrb_exc_raise(mrb, ret);
+  mrb_value ret;
+  MRB_ENSURE(mrb, ret, binding_eval_prepare_body, &d) {
+    if (d.pstate) mrb_parser_free(d.pstate);
+    if (d.cxt) mrb_ccontext_free(mrb, d.cxt);
+  }
 }
 
 /*

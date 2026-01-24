@@ -2127,16 +2127,11 @@ static void
 mpz_mul_all_ones(mpz_ctx_t *ctx, mpz_t *w, size_t n, size_t m)
 {
   struct mpz_mul_all_ones_data d = {ctx, w, n, m, {0,0,0}, {0,0,0}};
-  mrb_bool error = FALSE;
-
-  mrb_value exc = mrb_protect_error(MPZ_MRB(ctx), mpz_mul_all_ones_body, &d, &error);
-
-  /* Cleanup always runs (mpz_clear is safe on zero-initialized mpz_t) */
-  mpz_clear(ctx, &d.a);
-  mpz_clear(ctx, &d.b);
-
-  if (error) {
-    mrb_exc_raise(MPZ_MRB(ctx), exc);
+  mrb_value exc;
+  MRB_ENSURE(MPZ_MRB(ctx), exc, mpz_mul_all_ones_body, &d) {
+    /* Cleanup always runs (mpz_clear is safe on zero-initialized mpz_t) */
+    mpz_clear(ctx, &d.a);
+    mpz_clear(ctx, &d.b);
   }
 }
 
@@ -3731,18 +3726,14 @@ mpz_get_str_dc(mpz_ctx_t *ctx, char *s, mpz_t *x)
   d.num_digits = num_digits;
   d.num_powers = 0;
 
-  mrb_bool error = FALSE;
-  mrb_value exc = mrb_protect_error(MPZ_MRB(ctx), mpz_get_str_dc_body, &d, &error);
-
-  /* Cleanup always runs (mpz_clear is safe on zero-initialized mpz_t) */
-  for (size_t i = 0; i < d.num_powers; i++) {
-    mpz_clear(ctx, &d.pow5[i]);
-  }
-  mpz_clear(ctx, &d.tmp);
-  dc_scratch_clear(ctx, &d.scratch);
-
-  if (error) {
-    mrb_exc_raise(MPZ_MRB(ctx), exc);
+  mrb_value exc;
+  MRB_ENSURE(MPZ_MRB(ctx), exc, mpz_get_str_dc_body, &d) {
+    /* Cleanup always runs (mpz_clear is safe on zero-initialized mpz_t) */
+    for (size_t i = 0; i < d.num_powers; i++) {
+      mpz_clear(ctx, &d.pow5[i]);
+    }
+    mpz_clear(ctx, &d.tmp);
+    dc_scratch_clear(ctx, &d.scratch);
   }
 
   /* Remove leading zeros (but keep at least one digit) */
