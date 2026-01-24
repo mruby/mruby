@@ -336,6 +336,9 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
       fprintf(out, "SSEND\t\tR%d\t:%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
       print_args(c, out);
       break;
+    CASE(OP_SSEND0, BB):
+      fprintf(out, "SSEND0\tR%d\t:%s\n", a, mrb_sym_dump(mrb, irep->syms[b]));
+      break;
     CASE(OP_SSENDB, BBB):
       fprintf(out, "SSENDB\tR%d\t:%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
       print_args(c, out);
@@ -343,6 +346,9 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
     CASE(OP_SEND, BBB):
       fprintf(out, "SEND\t\tR%d\t:%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
       print_args(c, out);
+      break;
+    CASE(OP_SEND0, BB):
+      fprintf(out, "SEND0\t\tR%d\t:%s\n", a, mrb_sym_dump(mrb, irep->syms[b]));
       break;
     CASE(OP_SENDB, BBB):
       fprintf(out, "SENDB\t\tR%d\t:%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));

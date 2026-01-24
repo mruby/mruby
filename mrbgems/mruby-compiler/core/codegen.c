@@ -3643,7 +3643,15 @@ codegen_call(codegen_scope *s, node *varnode, int val)
     /* constant folding succeeded */
   }
   else if (noself) {
-    genop_3(s, blk ? OP_SSENDB : OP_SSEND, cursp(), sym_idx(s, sym), n|(nk<<4));
+    if (!blk && n == 0 && nk == 0) {
+      genop_2(s, OP_SSEND0, cursp(), sym_idx(s, sym));
+    }
+    else {
+      genop_3(s, blk ? OP_SSENDB : OP_SSEND, cursp(), sym_idx(s, sym), n|(nk<<4));
+    }
+  }
+  else if (!blk && n == 0 && nk == 0) {
+    genop_2(s, OP_SEND0, cursp(), sym_idx(s, sym));
   }
   else {
     genop_3(s, blk ? OP_SENDB : OP_SEND, cursp(), sym_idx(s, sym), n|(nk<<4));

@@ -2211,12 +2211,23 @@ RETRY_TRY_BLOCK:
     }
     goto L_SENDB;
 
+    CASE(OP_SSEND0, BB) {
+      regs[a] = regs[0];
+      c = 0;
+    }
+    goto L_SENDB;
+
     CASE(OP_SSENDB, BBB) {
       regs[a] = regs[0];
     }
     goto L_SENDB;
 
     CASE(OP_SEND, BBB)
+    goto L_SENDB;
+
+    CASE(OP_SEND0, BB) {
+      c = 0;
+    }
     goto L_SENDB;
 
     L_SEND_SYM:
@@ -2259,7 +2270,7 @@ RETRY_TRY_BLOCK:
       }
 
       mrb_assert(bidx < irep->nregs);
-      if (insn == OP_SEND || insn == OP_SSEND) {
+      if (insn == OP_SEND || insn == OP_SEND0 || insn == OP_SSEND || insn == OP_SSEND0) {
         /* clear block argument */
         SET_NIL_VALUE(regs[new_bidx]);
         SET_NIL_VALUE(blk);
@@ -2280,7 +2291,7 @@ RETRY_TRY_BLOCK:
       else {
         ci->mid = mid;
       }
-      if (insn == OP_SEND || insn == OP_SENDB) {
+      if (insn == OP_SEND || insn == OP_SEND0 || insn == OP_SENDB) {
         mrb_bool priv = TRUE;
         if (m.flags & MRB_METHOD_PRIVATE_FL) {
         vis_err:;
