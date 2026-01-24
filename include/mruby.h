@@ -1615,6 +1615,10 @@ mrbmemset(void *s, int c, size_t n)
 
 #define mrb_int_hash_func(mrb,key) (uint32_t)((key)^((key)<<2)^((key)>>2))
 
+#define MRB_UNIQNAME(name)         MRB_UNIQNAME_1(name, __LINE__)
+#define MRB_UNIQNAME_1(name, line) MRB_UNIQNAME_2(name, line)
+#define MRB_UNIQNAME_2(name, line) name##line
+
 MRB_END_DECL
 
 #endif  /* MRUBY_H */
