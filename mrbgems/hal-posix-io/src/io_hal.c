@@ -519,6 +519,10 @@ void
 mrb_hal_io_fdset_set(mrb_state *mrb, int fd, mrb_io_fdset *fdset)
 {
   (void)mrb;
+  if (fd >= FD_SETSIZE) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "fd is larger than FD_SETSIZE");
+    return;
+  }
   if (fdset) {
     FD_SET(fd, &fdset->fds);
   }
@@ -528,6 +532,10 @@ int
 mrb_hal_io_fdset_isset(mrb_state *mrb, int fd, mrb_io_fdset *fdset)
 {
   (void)mrb;
+  if (fd >= FD_SETSIZE) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "fd is larger than FD_SETSIZE");
+    return 0;
+  }
   if (fdset) {
     return FD_ISSET(fd, &fdset->fds);
   }
