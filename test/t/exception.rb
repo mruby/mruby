@@ -46,7 +46,7 @@ assert('NameError', '15.2.31') do
     raise NameError.new
   end
 
-  e = NameError.new "msg", "name"
+  e = NameError.new("msg", "name")
   assert_equal "msg", e.message
   assert_equal "name", e.name
 end

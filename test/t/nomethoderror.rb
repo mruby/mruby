@@ -9,7 +9,7 @@ assert('NoMethodError', '15.2.32') do
 end
 
 assert('NoMethodError#args', '15.2.32.2.1') do
-  a = NoMethodError.new 'test', :test, [1, 2]
+  a = NoMethodError.new('test', :test, [1, 2])
   assert_equal [1, 2], a.args
 
   assert_nothing_raised do

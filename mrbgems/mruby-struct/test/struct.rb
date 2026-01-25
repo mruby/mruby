@@ -197,7 +197,7 @@ assert("Struct.new generates subclass of Struct") do
 end
 
 assert 'Struct#freeze' do
-  c = Struct.new :m
+  c = Struct.new(:m)
 
   o = c.new
   o.m = :test
@@ -210,7 +210,7 @@ assert 'Struct#freeze' do
 end
 
 assert 'method visibility with Struct' do
-  c = Struct.new :r, :g, :b do
+  c = Struct.new(:r, :g, :b) do
     def good!
       "GOOD!"
     end

@@ -290,7 +290,7 @@ end
 
 assert('IO.sysopen, IO#sysread') do
   fd = IO.sysopen $mrbtest_io_rfname
-  io = IO.new fd
+  io = IO.new(fd)
   str1 = "     "
   str2 = io.sysread(5, str1)
   assert_equal $mrbtest_io_msg[0,5], str1
@@ -311,14 +311,14 @@ assert('IO.sysopen, IO#sysread') do
   io.closed?
 
   fd = IO.sysopen $mrbtest_io_wfname, "w"
-  io = IO.new fd, "w"
+  io = IO.new(fd, "w")
   assert_raise(IOError) { io.sysread(1) }
   io.close
 end
 
 assert('IO.sysopen, IO#syswrite') do
   fd = IO.sysopen $mrbtest_io_wfname, "w"
-  io = IO.new fd, "w"
+  io = IO.new(fd, "w")
   str = "abcdefg"
   len = io.syswrite(str)
   assert_equal str.size, len
@@ -358,7 +358,7 @@ end
 
 assert('IO#pos=, IO#seek') do
   fd = IO.sysopen $mrbtest_io_rfname
-  io = IO.new fd
+  io = IO.new(fd)
   def io._buf
     @buf
   end
@@ -371,7 +371,7 @@ end
 
 assert('IO#rewind') do
   fd = IO.sysopen $mrbtest_io_rfname
-  io = IO.new fd
+  io = IO.new(fd)
   assert_equal 'm', io.getc
   assert_equal 1, io.pos
   assert_equal 0, io.rewind
@@ -381,7 +381,7 @@ end
 
 assert('IO#gets') do
   fd = IO.sysopen $mrbtest_io_rfname
-  io = IO.new fd
+  io = IO.new(fd)
 
   # gets without arguments
   assert_equal $mrbtest_io_msg, io.gets, "gets without arguments"
@@ -404,14 +404,14 @@ assert('IO#gets') do
 
   # reading many-lines file.
   fd = IO.sysopen $mrbtest_io_wfname, "w"
-  io = IO.new fd, "w"
+  io = IO.new(fd, "w")
   io.write "0123456789" * 2 + "\na"
   assert_equal 22 + $cr, io.pos
   io.close
   assert_equal true, io.closed?
 
   fd = IO.sysopen $mrbtest_io_wfname
-  io = IO.new fd
+  io = IO.new(fd)
   line = io.gets
 
   # gets first line
@@ -430,7 +430,7 @@ end
 
 assert('IO#gets - paragraph mode') do
   fd = IO.sysopen $mrbtest_io_wfname, "w"
-  io = IO.new fd, "w"
+  io = IO.new(fd, "w")
   io.write "0" * 10 + "\n"
   io.write "1" * 10 + "\n\n"
   io.write "2" * 10 + "\n"
@@ -438,7 +438,7 @@ assert('IO#gets - paragraph mode') do
   io.close
 
   fd = IO.sysopen $mrbtest_io_wfname
-  io = IO.new fd
+  io = IO.new(fd)
   para1 = "#{'0' * 10}\n#{'1' * 10}\n\n"
   text1 = io.gets("")
   assert_equal para1, text1
@@ -513,14 +513,14 @@ end
 assert('IO.read') do
   # empty file
   fd = IO.sysopen $mrbtest_io_wfname, "w"
-  io = IO.new fd, "w"
+  io = IO.new(fd, "w")
   io.close
   assert_equal "",  IO.read($mrbtest_io_wfname)
   assert_equal nil, IO.read($mrbtest_io_wfname, 1)
 
   # one byte file
   fd = IO.sysopen $mrbtest_io_wfname, "w"
-  io = IO.new fd, "w"
+  io = IO.new(fd, "w")
   io.write "123"
   io.close
   assert_equal "123", IO.read($mrbtest_io_wfname)
@@ -535,7 +535,7 @@ end
 
 assert('IO#fileno') do
   fd = IO.sysopen $mrbtest_io_rfname
-  io = IO.new fd
+  io = IO.new(fd)
   assert_equal io.fileno, fd
   assert_equal io.to_i, fd
   io.close
@@ -543,7 +543,7 @@ end
 
 assert('IO#close_on_exec') do
   fd = IO.sysopen $mrbtest_io_wfname, "w"
-  io = IO.new fd, "w"
+  io = IO.new(fd, "w")
   begin
     # IO.sysopen opens a file descriptor with O_CLOEXEC flag.
     assert_true io.close_on_exec?
