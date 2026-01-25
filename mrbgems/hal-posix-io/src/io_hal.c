@@ -519,8 +519,8 @@ void
 mrb_hal_io_fdset_set(mrb_state *mrb, int fd, mrb_io_fdset *fdset)
 {
   (void)mrb;
-  if (fd >= FD_SETSIZE) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "fd is larger than FD_SETSIZE");
+  if (fd < 0 || fd >= FD_SETSIZE) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "fd is out of range");
     return;
   }
   if (fdset) {
@@ -532,8 +532,8 @@ int
 mrb_hal_io_fdset_isset(mrb_state *mrb, int fd, mrb_io_fdset *fdset)
 {
   (void)mrb;
-  if (fd >= FD_SETSIZE) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "fd is larger than FD_SETSIZE");
+  if (fd < 0 || fd >= FD_SETSIZE) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "fd is out of range");
     return 0;
   }
   if (fdset) {
