@@ -4656,6 +4656,10 @@ opt_args_tail   : ',' args_tail
                     {
                       $$ = $2;
                     }
+                | ','
+                    {
+                      $$ = new_args_tail(p, 0, 0, 0);
+                    }
                 | /* none */
                     {
                       $$ = new_args_tail(p, 0, 0, 0);
@@ -4866,6 +4870,10 @@ f_block_arg     : blkarg_mark tIDENTIFIER
 opt_f_block_arg : ',' f_block_arg
                     {
                       $$ = $2;
+                    }
+                | ','
+                    {
+                      $$ = 0;
                     }
                 | none
                     {
