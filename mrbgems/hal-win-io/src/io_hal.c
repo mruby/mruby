@@ -562,6 +562,11 @@ void
 mrb_hal_io_fdset_set(mrb_state *mrb, int fd, mrb_io_fdset *fdset)
 {
   (void)mrb;
+  if (fdset->fds.fd_count >= FD_SETSIZE) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "too many sockets for fd_set");
+      return;
+  }
+
   if (fdset) {
     FD_SET(fd, &fdset->fds);
   }
