@@ -5596,7 +5596,7 @@ codegen_yield(codegen_scope *s, node *varnode, int val)
       }
     }
     if (callargs->keyword_args) {
-      nk = gen_hash(s, callargs->keyword_args->cdr, VAL, 14);
+      nk = gen_hash(s, callargs->keyword_args, VAL, 14);
       if (nk < 0) {
         nk = 15;
       }
@@ -5648,7 +5648,7 @@ codegen_super(codegen_scope *s, node *varnode, int val)
 
       /* Keyword arguments */
       if (callargs->keyword_args) {
-        nk = gen_hash(s, callargs->keyword_args->cdr, VAL, 14);
+        nk = gen_hash(s, callargs->keyword_args, VAL, 14);
         if (nk < 0) {st++; nk = 15;}
         else st += nk*2;
         n |= nk<<4;
