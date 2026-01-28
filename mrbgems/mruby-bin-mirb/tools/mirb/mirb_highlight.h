@@ -59,10 +59,16 @@ void mirb_highlight_init(mirb_highlighter *hl, mrb_bool enabled);
 void mirb_highlight_set_theme(mirb_highlighter *hl, mirb_theme theme);
 
 /*
- * Detect theme from environment variables
+ * Detect theme from environment variables and terminal query
  * Returns MIRB_THEME_DARK if cannot detect
  */
 mirb_theme mirb_highlight_detect_theme(void);
+
+/*
+ * Pre-query terminal background color (call before any output)
+ * This caches the result for later use by mirb_highlight_detect_theme()
+ */
+void mirb_highlight_query_terminal(void);
 
 /*
  * Print a line with syntax highlighting

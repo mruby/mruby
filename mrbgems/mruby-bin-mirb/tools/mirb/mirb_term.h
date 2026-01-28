@@ -118,4 +118,20 @@ void mirb_term_get_size(mirb_term *term);
  */
 void mirb_term_flush(void);
 
+/*
+ * Background color detection result
+ */
+typedef enum mirb_bg_color {
+  MIRB_BG_UNKNOWN,   /* could not detect */
+  MIRB_BG_DARK,      /* dark background (luminance < 0.5) */
+  MIRB_BG_LIGHT      /* light background (luminance >= 0.5) */
+} mirb_bg_color;
+
+/*
+ * Query terminal background color using OSC 11
+ * Returns MIRB_BG_UNKNOWN if terminal doesn't respond within timeout
+ * timeout_ms: timeout in milliseconds (recommended: 100)
+ */
+mirb_bg_color mirb_term_query_bg_color(int timeout_ms);
+
 #endif /* MIRB_TERM_H */

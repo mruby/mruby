@@ -37,6 +37,7 @@
 
 #include "mirb_editor.h"
 #include "mirb_completion.h"
+#include "mirb_highlight.h"
 
 /* obsolete configuration */
 #ifdef DISABLE_MIRB_UNDERSCORE
@@ -519,6 +520,11 @@ main(int argc, char **argv)
   }
   mrb_define_global_const(mrb, "ARGV", ARGV);
   mrb_gv_set(mrb, mrb_intern_lit(mrb, "$DEBUG"), mrb_bool_value(args.debug));
+
+  /* Query terminal background color before any output */
+  if (isatty(fileno(stdin)) && isatty(fileno(stdout))) {
+    mirb_highlight_query_terminal();
+  }
 
   print_hint();
 

@@ -5,6 +5,8 @@
 */
 
 #include "mirb_highlight.h"
+#include "mirb_term.h"
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -140,35 +142,66 @@ print_colored(mirb_highlighter *hl, const char *start, size_t len, mirb_token_ty
   if (*color) printf("%s", reset);
 }
 
+/* Cached terminal background color from pre-query */
+static mirb_bg_color cached_bg_color = MIRB_BG_UNKNOWN;
+static mrb_bool bg_color_queried = FALSE;
+
 /*
- * Detect theme from environment
+ * Pre-query terminal background color
+ * Must be called before any output to avoid response appearing on screen
+ */
+void
+mirb_highlight_query_terminal(void)
+{
+  if (!bg_color_queried) {
+    cached_bg_color = mirb_term_query_bg_color(500);  /* 500ms timeout */
+    bg_color_queried = TRUE;
+  }
+}
+
+/*
+ * Detect theme from terminal background color
+ *
+ * Priority:
+ *   1. MIRB_THEME environment variable (explicit override)
+ *   2. Cached OSC 11 result (from mirb_highlight_query_terminal)
+ *   3. COLORFGBG environment variable (rxvt, some xterm)
+ *   4. Default to dark theme
  */
 mirb_theme
 mirb_highlight_detect_theme(void)
 {
   const char *env;
 
-  /* Check explicit MIRB_THEME first */
+  /* 1. Check explicit MIRB_THEME first (user override) */
   env = getenv("MIRB_THEME");
   if (env) {
     if (strcmp(env, "light") == 0) return MIRB_THEME_LIGHT;
     if (strcmp(env, "dark") == 0) return MIRB_THEME_DARK;
   }
 
-  /* Check COLORFGBG (format: "fg;bg" where bg > 6 usually means light) */
+  /* 2. Use cached OSC 11 result (must call mirb_highlight_query_terminal first) */
+  if (cached_bg_color == MIRB_BG_LIGHT) return MIRB_THEME_LIGHT;
+  if (cached_bg_color == MIRB_BG_DARK) return MIRB_THEME_DARK;
+
+  /* 3. Check COLORFGBG (format: "fg;bg" where bg > 6 usually means light) */
   env = getenv("COLORFGBG");
   if (env) {
     const char *semi = strchr(env, ';');
     if (semi) {
-      int bg = atoi(semi + 1);
+      int bg_color = atoi(semi + 1);
       /* Background colors 7, 15, or high values typically mean light theme */
-      if (bg == 7 || bg == 15 || (bg >= 230 && bg <= 255)) {
+      if (bg_color == 7 || bg_color == 15 || (bg_color >= 230 && bg_color <= 255)) {
         return MIRB_THEME_LIGHT;
+      }
+      /* Low values (0-6, 8) typically mean dark theme */
+      if (bg_color <= 8) {
+        return MIRB_THEME_DARK;
       }
     }
   }
 
-  /* Default to dark theme (more common in terminals) */
+  /* 4. Default to dark theme (more common in terminals) */
   return MIRB_THEME_DARK;
 }
 

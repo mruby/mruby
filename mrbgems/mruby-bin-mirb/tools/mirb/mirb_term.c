@@ -348,3 +348,144 @@ mirb_term_clear_below(void)
 {
   printf("\033[J");
 }
+
+#if !defined(_WIN32) && !defined(_WIN64)
+/*
+ * Query terminal background color using OSC 11 escape sequence
+ *
+ * Protocol:
+ *   Send: ESC ] 11 ; ? ESC \   (or BEL instead of ESC \)
+ *   Recv: ESC ] 11 ; rgb:RRRR/GGGG/BBBB ESC \
+ *
+ * The response uses 16-bit color values (0000-FFFF per component).
+ * Some terminals use 8-bit (00-FF) format instead.
+ */
+mirb_bg_color
+mirb_term_query_bg_color(int timeout_ms)
+{
+  struct termios old_term, new_term;
+  char buf[64];
+  size_t total = 0;
+  ssize_t n;
+  int r, g, b;
+  mirb_bg_color result = MIRB_BG_UNKNOWN;
+  fd_set fds;
+  struct timeval tv;
+  const char *p;
+
+  /* Must be a terminal */
+  if (!isatty(STDIN_FILENO) || !isatty(STDOUT_FILENO)) {
+    return MIRB_BG_UNKNOWN;
+  }
+
+  /* Save original terminal settings */
+  if (tcgetattr(STDIN_FILENO, &old_term) < 0) {
+    return MIRB_BG_UNKNOWN;
+  }
+
+  /* Flush any pending input first */
+  tcflush(STDIN_FILENO, TCIFLUSH);
+
+  /* Disable echo and canonical mode for raw read */
+  new_term = old_term;
+  new_term.c_lflag &= ~(ICANON | ECHO | ECHOE | ECHOK | ECHONL);
+  new_term.c_iflag &= ~(IXON | IXOFF | ICRNL);
+  new_term.c_cc[VMIN] = 0;
+  new_term.c_cc[VTIME] = 0;
+
+  /* TCSAFLUSH: flush I/O and apply settings */
+  if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &new_term) < 0) {
+    return MIRB_BG_UNKNOWN;
+  }
+
+  /* Wait for terminal settings to take effect */
+  tcdrain(STDOUT_FILENO);
+
+  /* Send OSC 11 query: ESC ] 11 ; ? ESC \ */
+  if (write(STDOUT_FILENO, "\033]11;?\033\\", 8) != 8) {
+    goto restore;
+  }
+  /* Ensure query is sent to terminal */
+  tcdrain(STDOUT_FILENO);
+  /* Give terminal time to process and respond */
+  usleep(50000);  /* 50ms */
+
+  /* Read response with timeout - loop to get complete response */
+  while (total < sizeof(buf) - 1) {
+    int sel;
+    FD_ZERO(&fds);
+    FD_SET(STDIN_FILENO, &fds);
+    tv.tv_sec = timeout_ms / 1000;
+    tv.tv_usec = (timeout_ms % 1000) * 1000;
+
+    sel = select(STDIN_FILENO + 1, &fds, NULL, NULL, &tv);
+    if (sel < 0) {
+      if (errno == EINTR) continue;  /* Retry on signal interrupt */
+      break;  /* Other error */
+    }
+    if (sel == 0) break;  /* Timeout */
+
+    n = read(STDIN_FILENO, buf + total, sizeof(buf) - 1 - total);
+    if (n <= 0) {
+      if (n < 0 && errno == EINTR) continue;  /* Retry on signal interrupt */
+      break;
+    }
+    total += (size_t)n;
+
+    /* Check for terminator: ESC \ (0x1b 0x5c) or BEL (0x07) */
+    if (total >= 2 && buf[total-2] == '\033' && buf[total-1] == '\\') break;
+    if (total >= 1 && buf[total-1] == '\007') break;
+
+    /* Reduce timeout for subsequent reads */
+    timeout_ms = 10;
+  }
+
+  if (total == 0) {
+    goto restore;
+  }
+  buf[total] = '\0';
+
+  /* Parse response: look for "rgb:" followed by hex values */
+  p = strstr(buf, "rgb:");
+  if (p) {
+    p += 4;
+    /* Try 16-bit format: rgb:RRRR/GGGG/BBBB */
+    if (sscanf(p, "%4x/%4x/%4x", &r, &g, &b) == 3) {
+      /* Normalize to 8-bit range */
+      r >>= 8; g >>= 8; b >>= 8;
+    }
+    /* Try 8-bit format: rgb:RR/GG/BB */
+    else if (sscanf(p, "%2x/%2x/%2x", &r, &g, &b) == 3) {
+      /* Already 8-bit */
+    }
+    else {
+      goto restore;
+    }
+
+    /* Calculate relative luminance (ITU-R BT.709 simplified) */
+    /* Y = 0.2126*R + 0.7152*G + 0.0722*B */
+    /* Scale: 0-255 input, threshold at ~127.5 */
+    int luminance = (2126 * r + 7152 * g + 722 * b) / 10000;
+    result = (luminance < 128) ? MIRB_BG_DARK : MIRB_BG_LIGHT;
+  }
+
+restore:
+  /* Flush any remaining input before restoring terminal */
+  tcflush(STDIN_FILENO, TCIFLUSH);
+  tcsetattr(STDIN_FILENO, TCSAFLUSH, &old_term);
+  return result;
+}
+
+#else /* Windows */
+
+mirb_bg_color
+mirb_term_query_bg_color(int timeout_ms)
+{
+  (void)timeout_ms;
+  /* Windows Terminal supports OSC 11, but implementation requires
+   * different I/O handling. For now, return unknown and rely on
+   * fallback detection methods. */
+  return MIRB_BG_UNKNOWN;
+}
+
+#endif /* _WIN32 */
