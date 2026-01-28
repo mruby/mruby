@@ -86,6 +86,35 @@ sym_validate_len(mrb_state *mrb, size_t len)
   }
 }
 
+/* Chunk-based string pool for heap-allocated symbol names */
+#define MRB_SYM_POOL_CHUNK_SIZE 4096
+
+struct sym_pool_chunk {
+  struct sym_pool_chunk *next;
+  size_t used;
+  char buf[];  /* flexible array */
+};
+
+static char*
+sym_pool_alloc(mrb_state *mrb, size_t size)
+{
+  /* round up to even size to keep pointers even-aligned (LSB tagging) */
+  size_t asize = (size + 1) & ~(size_t)1;
+  struct sym_pool_chunk *chunk = (struct sym_pool_chunk*)mrb->sym_pool;
+  if (chunk && chunk->used + asize <= MRB_SYM_POOL_CHUNK_SIZE) {
+    char *p = chunk->buf + chunk->used;
+    chunk->used += asize;
+    return p;
+  }
+  size_t csize = asize > MRB_SYM_POOL_CHUNK_SIZE ? asize : MRB_SYM_POOL_CHUNK_SIZE;
+  chunk = (struct sym_pool_chunk*)mrb_malloc(mrb,
+    offsetof(struct sym_pool_chunk, buf) + csize);
+  chunk->next = (struct sym_pool_chunk*)mrb->sym_pool;
+  chunk->used = asize;
+  mrb->sym_pool = (void*)chunk;
+  return chunk->buf;
+}
+
 /* Hash table for symbols (allocated on demand when symbols exceed threshold) */
 struct mrb_sym_hash_table {
   uint8_t *symlink;         /* collision resolution chains */
@@ -316,7 +345,7 @@ sym_intern_common(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
     /* Always heap-allocate when not explicitly literal */
     uint32_t ulen = (uint32_t)len;
     size_t ilen = mrb_packed_int_len(ulen);
-    char *p = (char*)mrb_malloc(mrb, len+ilen+1);
+    char *p = sym_pool_alloc(mrb, len+ilen+1);
     mrb_packed_int_encode(ulen, (uint8_t*)p);
     memcpy(p+ilen, name, len);
     p[ilen+len] = 0;
@@ -604,16 +633,15 @@ mrb_sym_name_len(mrb_state *mrb, mrb_sym sym, mrb_int *lenp)
 void
 mrb_free_symtbl(mrb_state *mrb)
 {
-  mrb_sym i, lim;
-
-  for (i=1,lim=mrb->symidx+1; i<lim; i++) {
-    const char *tagged_ptr = mrb->symtbl[i];
-    if (!symtbl_is_literal(tagged_ptr)) {
-      /* CRITICAL: Untag before mrb_free */
-      const char *clean_ptr = symtbl_get_ptr(tagged_ptr);
-      mrb_free(mrb, (char*)clean_ptr);
-    }
+  /* Free symbol string pool chunks */
+  struct sym_pool_chunk *chunk = (struct sym_pool_chunk*)mrb->sym_pool;
+  while (chunk) {
+    struct sym_pool_chunk *next = chunk->next;
+    mrb_free(mrb, chunk);
+    chunk = next;
   }
+  mrb->sym_pool = NULL;
+
   mrb_free(mrb, (void*)mrb->symtbl);
 
   /* Free hash table if allocated */
@@ -629,6 +657,7 @@ mrb_init_symtbl(mrb_state *mrb)
 {
   /* Initialize in linear mode - hash table allocated on demand */
   mrb->symhash = NULL;
+  mrb->sym_pool = NULL;
 }
 
 /**********************************************************************

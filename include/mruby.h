@@ -301,6 +301,7 @@ typedef struct mrb_state {
   const char **symtbl;
   size_t symcapa;
   struct mrb_sym_hash_table *symhash;
+  void *sym_pool;
 #ifndef MRB_USE_ALL_SYMBOLS
   char symbuf[8];                         /* buffer for small symbol names */
 #endif
