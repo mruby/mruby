@@ -71,6 +71,7 @@ struct RArray {
 #define ARY_PTR(a) (ARY_EMBED_P(a)?ARY_EMBED_PTR(a):(a)->as.heap.ptr)
 #define RARRAY_LEN(a) ARY_LEN(RARRAY(a))
 #define RARRAY_PTR(a) ARY_PTR(RARRAY(a))
+#define RARRAY_GETMEM(a, ptr, len) ARY_GETMEM(RARRAY(a), ptr, len)
 #define ARY_SET_LEN(a,n) do {\
   if (ARY_EMBED_P(a)) {\
     mrb_assert((n) <= MRB_ARY_EMBED_LEN_MAX); \
@@ -84,6 +85,17 @@ struct RArray {
 #define ARY_SHARED_P(a) ((a)->flags & MRB_ARY_SHARED)
 #define ARY_SET_SHARED_FLAG(a) ((a)->flags |= MRB_ARY_SHARED)
 #define ARY_UNSET_SHARED_FLAG(a) ((a)->flags &= ~MRB_ARY_SHARED)
+#define ARY_GETMEM(a, ptr, len) do { \
+  struct RArray *MRB_UNIQNAME(_a_) = (a); \
+  if (ARY_EMBED_P(MRB_UNIQNAME(_a_))) { \
+    (len) = ARY_EMBED_LEN(MRB_UNIQNAME(_a_)); \
+    (ptr) = ARY_EMBED_PTR(MRB_UNIQNAME(_a_)); \
+  } \
+  else { \
+    (len) = MRB_UNIQNAME(_a_)->as.heap.len; \
+    (ptr) = MRB_UNIQNAME(_a_)->as.heap.ptr; \
+  } \
+} while (0)
 
 MRB_API void mrb_ary_modify(mrb_state*, struct RArray*);
 MRB_API mrb_value mrb_ary_dup(mrb_state*, mrb_value ary);

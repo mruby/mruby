@@ -1895,15 +1895,7 @@ RETRY_TRY_BLOCK:
           mrb_int len;
           mrb_value *ptr;
 
-          /* Single ARY_EMBED_P check instead of two */
-          if (ARY_EMBED_P(ary)) {
-            len = ARY_EMBED_LEN(ary);
-            ptr = ARY_EMBED_PTR(ary);
-          }
-          else {
-            len = ary->as.heap.len;
-            ptr = ary->as.heap.ptr;
-          }
+          ARY_GETMEM(ary, ptr, len);
 
           /* Unsigned comparison: handles negative idx as large positive */
           if (mrb_likely((mrb_uint)idx < (mrb_uint)len)) {
