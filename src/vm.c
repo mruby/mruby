@@ -1895,15 +1895,7 @@ RETRY_TRY_BLOCK:
           mrb_int len;
           mrb_value *ptr;
 
-          /* Single ARY_EMBED_P check instead of two */
-          if (ARY_EMBED_P(ary)) {
-            len = ARY_EMBED_LEN(ary);
-            ptr = ary->as.ary;
-          }
-          else {
-            len = ary->as.heap.len;
-            ptr = ary->as.heap.ptr;
-          }
+          ARY_GETMEM(ary, ptr, len);
 
           /* Unsigned comparison: handles negative idx as large positive */
           if (mrb_likely((mrb_uint)idx < (mrb_uint)len)) {
@@ -1951,7 +1943,7 @@ RETRY_TRY_BLOCK:
         struct RArray *ary = mrb_ary_ptr(recv);
         if (mrb_unlikely(ary->c != mrb->array_class)) goto getidx0_fallback;
         if (ARY_EMBED_P(ary)) {
-          regs[a] = ARY_EMBED_LEN(ary) > 0 ? ary->as.ary[0] : mrb_nil_value();
+          regs[a] = ARY_EMBED_LEN(ary) > 0 ? ARY_EMBED_PTR(ary)[0] : mrb_nil_value();
         }
         else {
           regs[a] = ary->as.heap.len > 0 ? ary->as.heap.ptr[0] : mrb_nil_value();
