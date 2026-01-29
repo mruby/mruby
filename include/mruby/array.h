@@ -57,7 +57,7 @@ struct RArray {
 #define ARY_UNSET_EMBED_FLAG(a) (void)0
 #define ARY_EMBED_LEN(a) 0
 #define ARY_SET_EMBED_LEN(a,len) (void)0
-#define ARY_EMBED_PTR(a) 0
+#define ARY_EMBED_PTR(a) ((mrb_value*)NULL)
 #else
 #define MRB_ARY_EMBED_MASK  7
 #define ARY_EMBED_P(a) ((a)->flags & MRB_ARY_EMBED_MASK)
