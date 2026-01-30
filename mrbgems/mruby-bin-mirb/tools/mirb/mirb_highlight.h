@@ -81,4 +81,15 @@ void mirb_highlight_print_line(mirb_highlighter *hl, const char *line);
  */
 void mirb_highlight_reset(mirb_highlighter *hl);
 
+/*
+ * Print result value with highlighting
+ * Prints " => " prefix and the result string with appropriate colors
+ */
+void mirb_highlight_print_result(mirb_highlighter *hl, const char *result);
+
+/*
+ * Print error message with highlighting
+ */
+void mirb_highlight_print_error(mirb_highlighter *hl, const char *error);
+
 #endif /* MIRB_HIGHLIGHT_H */

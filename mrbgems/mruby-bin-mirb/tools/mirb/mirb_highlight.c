@@ -23,6 +23,9 @@
 #define DARK_IVAR      "\033[34m"    /* blue */
 #define DARK_GVAR      "\033[1;34m"  /* bold blue */
 #define DARK_REGEXP    "\033[31m"    /* red */
+#define DARK_RESULT    "\033[36m"    /* cyan (same as number) */
+#define DARK_ERROR     "\033[1;31m"  /* bold red */
+#define DARK_ARROW     "\033[90m"    /* gray */
 
 /* Light theme colors (dark colors on light background) */
 #define LIGHT_KEYWORD  "\033[35m"    /* magenta */
@@ -34,6 +37,9 @@
 #define LIGHT_IVAR     "\033[34m"    /* blue */
 #define LIGHT_GVAR     "\033[34m"    /* blue */
 #define LIGHT_REGEXP   "\033[31m"    /* red */
+#define LIGHT_RESULT   "\033[36m"    /* cyan */
+#define LIGHT_ERROR    "\033[31m"    /* red */
+#define LIGHT_ARROW    "\033[90m"    /* gray */
 
 #define COLOR_RESET    "\033[0m"
 
@@ -455,4 +461,51 @@ mirb_highlight_print_line(mirb_highlighter *hl, const char *line)
     /* Default: just output character */
     putchar(*p++);
   }
+}
+
+/*
+ * Print result value with highlighting
+ */
+void
+mirb_highlight_print_result(mirb_highlighter *hl, const char *result)
+{
+  if (!hl->enabled) {
+    fputs(" => ", stdout);
+    fputs(result, stdout);
+    putchar('\n');
+    return;
+  }
+
+  if (hl->theme == MIRB_THEME_DARK) {
+    fputs(DARK_ARROW " => " COLOR_RESET, stdout);
+    fputs(DARK_RESULT, stdout);
+  }
+  else {
+    fputs(LIGHT_ARROW " => " COLOR_RESET, stdout);
+    fputs(LIGHT_RESULT, stdout);
+  }
+  fputs(result, stdout);
+  fputs(COLOR_RESET "\n", stdout);
+}
+
+/*
+ * Print error message with highlighting
+ */
+void
+mirb_highlight_print_error(mirb_highlighter *hl, const char *error)
+{
+  if (!hl->enabled) {
+    fputs(error, stdout);
+    putchar('\n');
+    return;
+  }
+
+  if (hl->theme == MIRB_THEME_DARK) {
+    fputs(DARK_ERROR, stdout);
+  }
+  else {
+    fputs(LIGHT_ERROR, stdout);
+  }
+  fputs(error, stdout);
+  fputs(COLOR_RESET "\n", stdout);
 }
