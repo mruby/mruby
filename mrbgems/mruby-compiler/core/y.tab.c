@@ -14950,7 +14950,13 @@ mrb_load_exec(mrb_state *mrb, struct mrb_parser_state *p, mrb_ccontext *c)
   mrb_int keep = 0;
 
   if (!p) {
-    return mrb_undef_value();
+    if (mrb->gc.out_of_memory) {
+      mrb->exc = mrb->nomem_err;
+    }
+    else {
+      mrb->exc = mrb_obj_ptr(mrb_exc_new_lit(mrb, E_RUNTIME_ERROR, "wrong NULL as parser_state"));
+    }
+    return mrb_nil_value();
   }
   if (!p->tree || p->nerr) {
     if (c) c->parser_nerr = p->nerr;
@@ -14963,14 +14969,14 @@ mrb_load_exec(mrb_state *mrb, struct mrb_parser_state *p, mrb_ccontext *c)
       strncat(buf, p->error_buffer[0].message, sizeof(buf) - strlen(buf) - 1);
       mrb->exc = mrb_obj_ptr(mrb_exc_new(mrb, E_SYNTAX_ERROR, buf, strlen(buf)));
       mrb_parser_free(p);
-      return mrb_undef_value();
+      return mrb_nil_value();
     }
     else {
       if (mrb->exc == NULL) {
         mrb->exc = mrb_obj_ptr(mrb_exc_new_lit(mrb, E_SYNTAX_ERROR, "syntax error"));
       }
       mrb_parser_free(p);
-      return mrb_undef_value();
+      return mrb_nil_value();
     }
   }
   proc = mrb_generate_code(mrb, p);
@@ -14979,7 +14985,7 @@ mrb_load_exec(mrb_state *mrb, struct mrb_parser_state *p, mrb_ccontext *c)
     if (mrb->exc == NULL) {
       mrb->exc = mrb_obj_ptr(mrb_exc_new_lit(mrb, E_SCRIPT_ERROR, "codegen error"));
     }
-    return mrb_undef_value();
+    return mrb_nil_value();
   }
   if (c) {
     if (c->dump_result) mrb_codedump_all(mrb, proc);
