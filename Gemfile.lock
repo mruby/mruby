@@ -1,8 +1,12 @@
 GEM
   remote: https://rubygems.org/
   specs:
+    bundler-audit (0.9.3)
+      bundler (>= 1.2.0)
+      thor (~> 1.0)
     coderay (1.1.3)
     rake (13.3.1)
+    thor (1.4.0)
     yard (0.9.38)
     yard-coderay (0.1.0)
       coderay
@@ -12,14 +16,23 @@ GEM
 
 PLATFORMS
   ruby
-  x86_64-darwin-21
   x86_64-linux
 
 DEPENDENCIES
+  bundler-audit
   rake
   yard
   yard-coderay
   yard-mruby
 
+CHECKSUMS
+  bundler-audit (0.9.3) sha256=81c8766c71e47d0d28a0f98c7eed028539f21a6ea3cd8f685eb6f42333c9b4e9
+  coderay (1.1.3) sha256=dc530018a4684512f8f38143cd2a096c9f02a1fc2459edcfe534787a7fc77d4b
+  rake (13.3.1) sha256=8c9e89d09f66a26a01264e7e3480ec0607f0c497a861ef16063604b1b08eb19c
+  thor (1.4.0) sha256=8763e822ccb0f1d7bee88cde131b19a65606657b847cc7b7b4b82e772bcd8a3d
+  yard (0.9.38) sha256=721fb82afb10532aa49860655f6cc2eaa7130889df291b052e1e6b268283010f
+  yard-coderay (0.1.0) sha256=38bb59aea471f14f4cc62085f4d7e5ac0338a10c115355d32977f73d5015163f
+  yard-mruby (0.3.0) sha256=f950f3e5c8bde7a4fee73bcf0e7c20f2365540deca8b60590f2e2eb069d264ef
+
 BUNDLED WITH
-   2.4.10
+  4.0.3
