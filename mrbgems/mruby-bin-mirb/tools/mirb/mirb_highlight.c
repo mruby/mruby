@@ -443,7 +443,12 @@ mirb_highlight_print_line(mirb_highlighter *hl, const char *line)
 
       size_t len = (size_t)(p - token_start);
 
-      if (is_const) {
+      /* Check for hash key symbol syntax: identifier followed by ': ' */
+      if (*p == ':' && (p[1] == ' ' || p[1] == '\0' || p[1] == ',' || p[1] == '}')) {
+        p++;  /* include the colon */
+        print_colored(hl, token_start, (size_t)(p - token_start), MIRB_TOK_SYMBOL);
+      }
+      else if (is_const) {
         print_colored(hl, token_start, len, MIRB_TOK_CONSTANT);
       }
       else if (!after_dot && is_keyword(token_start, len)) {
@@ -476,16 +481,16 @@ mirb_highlight_print_result(mirb_highlighter *hl, const char *result)
     return;
   }
 
+  /* Print arrow in gray */
   if (hl->theme == MIRB_THEME_DARK) {
     fputs(DARK_ARROW " => " COLOR_RESET, stdout);
-    fputs(DARK_RESULT, stdout);
   }
   else {
     fputs(LIGHT_ARROW " => " COLOR_RESET, stdout);
-    fputs(LIGHT_RESULT, stdout);
   }
-  fputs(result, stdout);
-  fputs(COLOR_RESET "\n", stdout);
+  /* Syntax highlight the result value */
+  mirb_highlight_print_line(hl, result);
+  putchar('\n');
 }
 
 /*
