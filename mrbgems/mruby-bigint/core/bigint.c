@@ -2016,13 +2016,25 @@ mpz_sparse_p(mpz_t *x)
  *
  * O(k * n) where k = popcount, much faster than Karatsuba when k is small.
  */
-static void
-mpz_mul_sparse(mpz_ctx_t *ctx, mpz_t *w, mpz_t *sparse, mpz_t *dense)
-{
-  mpz_t shifted, temp;
+struct mpz_mul_sparse_data {
+  mpz_ctx_t *ctx;
+  mpz_t *w;
+  mpz_t *sparse;
+  mpz_t *dense;
+  mpz_t shifted, temp;  /* cleanup targets */
+};
 
-  mpz_init(ctx, &shifted);
-  mpz_init(ctx, &temp);
+static mrb_value
+mpz_mul_sparse_body(mrb_state *mrb, void *userdata)
+{
+  struct mpz_mul_sparse_data *d = (struct mpz_mul_sparse_data *)userdata;
+  mpz_ctx_t *ctx = d->ctx;
+  mpz_t *w = d->w;
+  mpz_t *sparse = d->sparse;
+  mpz_t *dense = d->dense;
+
+  mpz_init(ctx, &d->shifted);
+  mpz_init(ctx, &d->temp);
   zero(w);
 
   for (size_t i = 0; i < sparse->sz; i++) {
@@ -2042,9 +2054,9 @@ mpz_mul_sparse(mpz_ctx_t *ctx, mpz_t *w, mpz_t *sparse, mpz_t *dense)
 #endif
 
       /* Add dense << (base_bit + bit) to result */
-      mpz_mul_2exp(ctx, &shifted, dense, base_bit + bit);
-      mpz_add(ctx, &temp, w, &shifted);
-      mpz_set(ctx, w, &temp);
+      mpz_mul_2exp(ctx, &d->shifted, dense, base_bit + bit);
+      mpz_add(ctx, &d->temp, w, &d->shifted);
+      mpz_set(ctx, w, &d->temp);
 
       /* Clear this bit */
       limb &= limb - 1;
@@ -2054,8 +2066,19 @@ mpz_mul_sparse(mpz_ctx_t *ctx, mpz_t *w, mpz_t *sparse, mpz_t *dense)
   /* Handle sign */
   if (sparse->sn < 0) w->sn = -w->sn;
 
-  mpz_clear(ctx, &shifted);
-  mpz_clear(ctx, &temp);
+  return mrb_nil_value();
+}
+
+static void
+mpz_mul_sparse(mpz_ctx_t *ctx, mpz_t *w, mpz_t *sparse, mpz_t *dense)
+{
+  struct mpz_mul_sparse_data d = {ctx, w, sparse, dense, {0,0,0}, {0,0,0}};
+  mrb_value exc;
+  MRB_ENSURE(MPZ_MRB(ctx), exc, mpz_mul_sparse_body, &d) {
+    /* Cleanup always runs (mpz_clear is safe on zero-initialized mpz_t) */
+    mpz_clear(ctx, &d.shifted);
+    mpz_clear(ctx, &d.temp);
+  }
 }
 
 /*
@@ -5576,19 +5599,41 @@ mrb_bint_sub(mrb_state *mrb, mrb_value x, mrb_value y)
   return bint_norm(mrb, RBIGINT(x));
 }
 
+struct bint_mul_data {
+  mpz_ctx_t *ctx;
+  mpz_t *a;
+  mpz_t *b;
+  mpz_t z;  /* cleanup target */
+};
+
+static mrb_value
+bint_mul_body(mrb_state *mrb, void *userdata)
+{
+  struct bint_mul_data *d = (struct bint_mul_data *)userdata;
+  mpz_init(d->ctx, &d->z);
+  mpz_mul(d->ctx, &d->z, d->a, d->b);
+  return mrb_nil_value();
+}
+
 static struct RBigint*
 bint_mul(mrb_state *mrb, mrb_value x, mrb_value y)
 {
-  mpz_t a, b, z;
+  mpz_t a, b;
 
   y = mrb_as_bint(mrb, y);
   bint_as_mpz(RBIGINT(x), &a);
   bint_as_mpz(RBIGINT(y), &b);
 
   MPZ_CTX_INIT(mrb, ctx, pool);
-  mpz_init(ctx, &z);
-  mpz_mul(ctx, &z, &a, &b);
-  return bint_new(ctx, &z);
+  struct bint_mul_data d = {ctx, &a, &b, {0,0,0}};
+  mrb_value exc;
+  MRB_ENSURE(mrb, exc, bint_mul_body, &d) {
+    /* On exception, cleanup z (mpz_clear is safe on zero-initialized mpz_t) */
+    if (mrb->exc) {
+      mpz_clear(ctx, &d.z);
+    }
+  }
+  return bint_new(ctx, &d.z);
 }
 
 mrb_value
