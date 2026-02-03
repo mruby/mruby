@@ -5098,8 +5098,10 @@ mpz_montgomery_reduce(mpz_ctx_t *ctx, mpz_t *result,
   size_t k = n->sz;  /* Number of limbs in modulus */
   size_t x_len = x->sz;
 
-  /* Allocate workspace: need k+1 extra limbs for the product accumulation */
-  size_t work_size = x_len + k + 2;
+  /* Allocate workspace: Montgomery reduction writes k limbs at work[i] for i=0..k-1,
+   * so the maximum index accessed is work[2k-1] (from carry propagation).
+   * We need at least 2k limbs, plus extra if x_len > k. */
+  size_t work_size = (x_len > k) ? (x_len + k + 2) : (2 * k + 2);
   size_t pool_state = pool_save(ctx);
 
   mp_limb *work = NULL;
@@ -5263,6 +5265,7 @@ bint_set(mpz_ctx_t *ctx, struct RBigint *b, mpz_t *x)
   }
   else {
     RBIGINT_SET_HEAP(b);
+    mpz_init(ctx, &b->as.heap);  /* Initialize before mpz_move */
     mpz_move(ctx, &b->as.heap, x);
   }
 }
