@@ -4498,9 +4498,12 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos,
        * 1. Left pattern is not another NODE_PAT_ALT (avoid recursion issues)
        * 2. Left pattern generated at least one JMPNOT
        * 3. The last JMPNOT is immediately before current position
+       * 4. The instruction is actually OP_JMPNOT (not OP_JMP which has
+       *    different format S vs BS - converting OP_JMP would corrupt bytecode)
        * In this case, convert JMPNOT to JMPIF and skip generating JMP */
       if (node_type(pat_alt->left) != NODE_PAT_ALT &&
-          left_fail != JMPLINK_START && left_fail + 2 == s->pc) {
+          left_fail != JMPLINK_START && left_fail + 2 == s->pc &&
+          s->iseq[left_fail - 2] == OP_JMPNOT) {
         /* Extract the previous link from the JMPNOT chain.
          * The chain uses relative offsets where the end is marked by
          * an offset that points to address 0 (i.e., (pos+2)+offset == 0) */
