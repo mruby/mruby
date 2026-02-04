@@ -4514,6 +4514,15 @@ mpz_powm(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
     return;
   }
 
+  /* Check modulus size before allocating large temporaries. */
+  {
+    size_t mod_bits = (size_t)n->sz * DIG_SIZE;
+    if (mod_bits > MRB_BIGINT_BIT_LIMIT / 2) {
+      mrb_state *mrb = MPZ_MRB(ctx);
+      mrb_raise(mrb, E_RANGE_ERROR, "modulus too large");
+    }
+  }
+
   /*
    * Use Montgomery reduction for odd moduli >= 4 limbs.
    * Montgomery is faster because it replaces division with multiplication.
@@ -4590,6 +4599,17 @@ mpz_powm_i(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mrb_int ex, mpz_t *n)
 
   if (ex < 0) {
     return;
+  }
+
+  /* Check modulus size before allocating large temporaries.
+   * Both Barrett and Montgomery need 2^(2k) internally,
+   * which would exceed MRB_BIGINT_BIT_LIMIT for large moduli. */
+  {
+    size_t mod_bits = (size_t)n->sz * DIG_SIZE;
+    if (mod_bits > MRB_BIGINT_BIT_LIMIT / 2) {
+      mrb_state *mrb = MPZ_MRB(ctx);
+      mrb_raise(mrb, E_RANGE_ERROR, "modulus too large");
+    }
   }
 
   /*
