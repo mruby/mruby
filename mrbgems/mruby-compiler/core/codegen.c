@@ -4567,9 +4567,11 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos,
         *fail_pos = tmp;
       }
       else {
-        /* Variable not found - this is an error case, but for robustness fail the match */
-        tmp = genjmp(s, OP_JMP, *fail_pos);
-        *fail_pos = tmp;
+        /* Variable not found - raise compile error like CRuby */
+        const char *name = mrb_sym_name_len(s->mrb, pat_pin->name, NULL);
+        char buf[256];
+        snprintf(buf, sizeof(buf), "%.200s: no such local variable", name);
+        codegen_error(s, buf);
       }
     }
     break;
