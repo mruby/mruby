@@ -40,7 +40,7 @@ const char mrb_digitmap[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 static void
 str_check_length(mrb_state *mrb, mrb_int len)
 {
-  if (len < 0) {
+  if (len < 0 || len == MRB_INT_MAX) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "negative (or overflowed) string size");
   }
 #if MRB_STR_LENGTH_MAX != 0
