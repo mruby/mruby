@@ -3560,12 +3560,9 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
-    CASE(OP_DEBUG, Z) {
-      const mrb_code *pc = ci->pc;
-      FETCH_BBB();
-      ci->pc = pc;
+    CASE(OP_DEBUG, BBB) {
 #ifdef MRB_USE_DEBUG_HOOK
-      mrb->debug_op_hook(mrb, irep, ci->pc, regs);
+      if (mrb->debug_op_hook) mrb->debug_op_hook(mrb, irep, ci->pc, regs);
 #else
 #ifndef MRB_NO_STDIO
       printf("OP_DEBUG %d %d %d\n", a, b, c);
