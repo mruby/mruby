@@ -358,6 +358,7 @@ mrb_proc_eql(mrb_state *mrb, mrb_value self, mrb_value other)
   }
   else if (MRB_PROC_CFUNC_P(p2)) return FALSE;
   else if (p1->body.irep != p2->body.irep) return FALSE;
+  else if (MRB_PROC_ENV(p1) != MRB_PROC_ENV(p2)) return FALSE;
   return TRUE;
 }
 
@@ -371,7 +372,7 @@ static mrb_value
 proc_hash(mrb_state *mrb, mrb_value self)
 {
   const struct RProc *p = mrb_proc_ptr(self);
-  return mrb_int_value(mrb, (mrb_int)(((intptr_t)p->body.irep)^MRB_TT_PROC));
+  return mrb_int_value(mrb, (mrb_int)((intptr_t)p->body.irep^((intptr_t)MRB_PROC_ENV(p)>>2)^MRB_TT_PROC));
 }
 
 /* 15.3.1.2.6  */
