@@ -6701,11 +6701,12 @@ codegen(codegen_scope *s, node *tree, int val)
             fail_pos + 2 == s->pc &&
             s->iseq[fail_pos - 2] == OP_JMPNOT) {
           if (mp->raise_on_fail) {
-            /* Single failure point with raise - replace JMPNOT with MATCHERR */
-            int reg = s->iseq[fail_pos - 1];  /* Register from JMPNOT */
-            s->pc = fail_pos - 2;  /* Rewind past JMPNOT */
-            s->lastpc = s->pc;
-            genop_1(s, OP_MATCHERR, reg);  /* Emit MATCHERR with the register */
+            /* Replace JMPNOT(BS,4bytes) with MATCHERR(B,2bytes)+NOP+NOP;
+             * keep the same size so that any jump targeting s->pc stays valid */
+            s->iseq[fail_pos - 2] = OP_MATCHERR;
+            /* fail_pos-1 already holds the register operand */
+            s->iseq[fail_pos] = OP_NOP;
+            s->iseq[fail_pos + 1] = OP_NOP;
             s->sp = saved_sp - 1;
             if (val) push();
             break;  /* Pattern matching complete */
