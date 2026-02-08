@@ -1,4 +1,4 @@
-# https://pre-commit.com/
+# https://github.com/j178/prek
 name: pre-commit
 
 on: [pull_request]
@@ -13,17 +13,8 @@ jobs:
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v6
-      - name: Install
-        run: |
-          python -m pip install --upgrade pip
-          pip install pre-commit
-      - name: Set PY
-        run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> "$GITHUB_ENV"
-      - uses: actions/cache@v5
+      - uses: j178/prek-action@v1
         with:
-          path: ~/.cache/pre-commit
-          key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
-      - name: Run pre-commit
-        run: pre-commit run --color=always --all-files
+          extra-args: --color=always --all-files
       - name: Run manual pre-commit hooks
-        run: pre-commit run --color=always --all-files --hook-stage manual
+        run: prek run --color=always --all-files --hook-stage manual

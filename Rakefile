@@ -78,22 +78,22 @@ end
 
 desc "run all pre-commit hooks against all files"
 task :check do
-  sh "pre-commit run --all-files"
+  sh "prek run --all-files"
 end
 
 desc "install the pre-commit hooks"
 task :checkinstall do
-  sh "pre-commit install"
+  sh "prek install"
 end
 
 desc "check the pre-commit hooks for updates"
 task :checkupdate do
-  sh "pre-commit autoupdate"
+  sh "prek autoupdate"
 end
 
 desc "run all pre-commit hooks against all files with docker-compose"
 task :composecheck do
-  sh "docker-compose -p mruby run test pre-commit run --all-files"
+  sh "docker-compose -p mruby run test prek run --all-files"
 end
 
 desc "build and run all mruby tests with docker-compose"

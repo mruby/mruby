@@ -2,7 +2,7 @@
 
 RAKE = rake
 DOCKER_COMPOSE = docker-compose
-PRE_COMMIT = pre-commit
+PRE_COMMIT = prek
 
 define check_command
 	@command -v $(1) >/dev/null 2>&1 || { \
