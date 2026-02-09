@@ -1,5 +1,5 @@
 ---
-# https://pre-commit.com/
+# https://github.com/j178/prek
 default_stages: [pre-commit, pre-push]
 default_language_version:
   python: python3

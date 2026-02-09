@@ -27,41 +27,41 @@ If you discover a security vulnerability:
 
 For detailed guidance on what qualifies as a security issue and what doesn't, see [SECURITY.md](SECURITY.md).
 
-## pre-commit
+## prek
 
-A framework for managing and maintaining multi-language `pre-commit` hooks.
-`pre-commit` can be [installed](https://pre-commit.com/#installation) with `pip`, `curl`, `brew` or `conda`.
+We use [prek](https://github.com/j178/prek), a fast Rust-based pre-commit hook manager.
+It reads the standard `.pre-commit-config.yaml` format.
 
-You need to first install `pre-commit` and then install the `pre-commit` hooks with `pre-commit install`.
-Now `pre-commit` will run automatically on git commit!
+Install `prek` following the [installation guide](https://github.com/j178/prek#installation),
+then install the hooks with `prek install`.
+Now `prek` will run automatically on git commit!
 
-It's usually a good idea to run the hooks against all the files when adding new hooks (usually `pre-commit`
-will only run on the changed files during git hooks). Use `pre-commit run --all-files` to check all files.
+It's usually a good idea to run the hooks against all the files when adding new hooks (usually `prek`
+will only run on the changed files during git hooks). Use `prek run --all-files` to check all files.
 
-To run a single hook use `pre-commit run --all-files <hook_id>`
+To run a single hook use `prek run --all-files <hook_id>`
 
-To update use `pre-commit autoupdate`
+To update use `prek autoupdate`
 
 Sometimes you might need to skip one or more hooks which can be done with the `SKIP` environment variable.
 
 `$ SKIP=yamllint git commit -m "foo"`
 
-For convenience, we have added `pre-commit run --all-files`, `pre-commit install` and `pre-commit autoupdate`
+For convenience, we have added `prek run --all-files`, `prek install` and `prek autoupdate`
 to both the Makefile and the Rakefile. Run them with:
 
 - `make check` or `rake check`
 - `make checkinstall` or `rake checkinstall`
 - `make checkupdate` or `rake checkupdate`
 
-To configure `pre-commit` you can modify the config file [.pre-commit-config.yaml](.pre-commit-config.yaml).
-We use [GitHub Actions](.github/workflows/pre-commit.yml) to run `pre-commit` on every pull request.
+To configure hooks you can modify the config file [.pre-commit-config.yaml](.pre-commit-config.yaml).
+We use [GitHub Actions](.github/workflows/pre-commit.yml) to run `prek` on every pull request.
 
-### pre-commit quick links
+### prek quick links
 
-- [Quick start](https://pre-commit.com/#quick-start)
-- [Usage](https://pre-commit.com/#usage)
-- [pre-commit autoupdate](https://pre-commit.com/#pre-commit-autoupdate)
-- [Temporarily disabling hooks](https://pre-commit.com/#temporarily-disabling-hooks)
+- [prek GitHub](https://github.com/j178/prek)
+- [Installation](https://github.com/j178/prek#installation)
+- [Usage](https://github.com/j178/prek#usage)
 
 ## Docker
 
@@ -97,20 +97,19 @@ mruby-test   latest    ec60f9536948   29 seconds ago   1.29GB
 ```
 
 You can also run any custom `docker-compose` command which will override
-the default. For example to run `pre-commit run --all-files` type:
+the default. For example to run `prek run --all-files` type:
 
-`$ docker-compose -p mruby run test pre-commit run --all-files`
+`$ docker-compose -p mruby run test prek run --all-files`
 
-For convenience, you can also run `pre-commit` with:
+For convenience, you can also run `prek` with:
 
 - `make composecheck`
 - `rake composecheck`
 
-The bonus of running `pre-commit` with `docker-compose` is that you won't need
-to install `pre-commit` and the hooks on your local machine. And that also
-means you won't need to install `brew`, `conda` or `pip`.
+The bonus of running `prek` with `docker-compose` is that you won't need
+to install `prek` and the hooks on your local machine.
 
-Note limitation: currently running `pre-commit` with `docker-compose` we
+Note limitation: currently running `prek` with `docker-compose` we
 skip the `check-executables-have-shebangs` hook.
 
 Two more examples of custom `docker-compose` commands are:
@@ -128,7 +127,7 @@ can use the `-f` flag:
 
 ## Spell Checking
 
-We are using `pre-commit` to run [codespell](https://github.com/codespell-project/codespell)
+We are using `prek` to run [codespell](https://github.com/codespell-project/codespell)
 to check code for common misspellings. We have a small custom dictionary file [codespell.txt](.github/linters/codespell.txt).
 
 ## Coding conventions
