@@ -651,7 +651,7 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
   struct tm nowtime = { 0 };
 
 #if MRB_INT_MAX > INT_MAX
-#define OUTINT(x) (((MRB_TIME_T_UINT ? 0 : INT_MIN) > (x)) || (x) > INT_MAX)
+#define OUTINT(x) (((MRB_TIME_T_UINT ? 0 : INT_MIN) > (x)) || (x) > INT_MAX - TM_YEAR_BASE)
 #else
 #define OUTINT(x) 0
 #endif
