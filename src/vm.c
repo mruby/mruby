@@ -2583,9 +2583,6 @@ RETRY_TRY_BLOCK:
         kdict = mrb_nil_value();
         ci->nk = 0;
       }
-      else if (MRB_ASPEC_KEY(a) > 0 && !mrb_nil_p(kdict)) {
-        kdict = mrb_hash_dup(mrb, kdict);
-      }
       else if (!mrb_nil_p(kdict)) {
         mrb_gc_protect(mrb, kdict);
       }
