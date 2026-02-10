@@ -1633,7 +1633,7 @@ get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list *ap)
 
     case ':':
       {
-        mrb_value ksrc = mrb_hash_p(kdict) ? mrb_hash_dup(mrb, kdict) : mrb_hash_new(mrb);
+        mrb_value ksrc = mrb_hash_p(kdict) ? kdict : mrb_hash_new(mrb);
         const mrb_kwargs *kwargs = GET_ARG(const mrb_kwargs*);
         mrb_value *rest;
 
