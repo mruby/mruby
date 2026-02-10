@@ -477,6 +477,8 @@ main(int argc, char **argv)
   mirb_editor editor;
   mirb_check_data check_data;
   mrb_bool use_editor = FALSE;
+
+  memset(&editor, 0, sizeof(editor));
   mrb_ccontext *cxt;
   struct mrb_parser_state *parser;
   mrb_state *mrb;
