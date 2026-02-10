@@ -231,7 +231,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, const uint8_t *end, size_
         continue;
       }
 
-      if (src + snl > end) return FALSE;
+      if (src + snl + 1 > end) return FALSE;
       if (flags & FLAG_SRC_MALLOC) {
         syms[i] = mrb_intern(mrb, (char*)src, snl);
       }
