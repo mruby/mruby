@@ -189,7 +189,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, const uint8_t *end, size_
       case IREP_TT_STR:
         pool_data_len = bin_to_uint16(src); /* pool data length */
         src += sizeof(uint16_t);
-        if (src + pool_data_len > end) return FALSE;
+        if (src + pool_data_len + 1 > end) return FALSE;
         if (st) {
           pool[i].tt = (pool_data_len<<2) | IREP_TT_SSTR;
           pool[i].u.str = (const char*)src;
