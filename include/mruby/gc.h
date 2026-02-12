@@ -28,6 +28,10 @@ MRB_API void mrb_free_context(struct mrb_state *mrb, struct mrb_context *c);
 #define MRB_GC_ARENA_SIZE 100
 #endif
 
+#ifndef MRB_GRAY_STACK_SIZE
+#define MRB_GRAY_STACK_SIZE 1024
+#endif
+
 typedef enum {
   MRB_GC_STATE_ROOT = 0,
   MRB_GC_STATE_MARK,
@@ -38,8 +42,9 @@ typedef struct mrb_gc {
   struct mrb_heap_page *heaps;     /* all heaps pages */
   struct mrb_heap_page *free_heaps;/* heaps for allocation */
   struct mrb_heap_page *sweeps;    /* page where sweep starts */
-  struct RBasic *gray_list;        /* list of gray objects to be traversed incrementally */
-  struct RBasic *atomic_gray_list; /* list of objects to be traversed atomically */
+  struct RBasic *gray_stack[MRB_GRAY_STACK_SIZE]; /* stack of gray objects */
+  size_t gray_stack_top;           /* top index of gray stack */
+  mrb_bool gray_overflow:1;        /* gray stack overflowed; needs heap rescan */
   size_t live;                     /* count of live objects */
   size_t live_after_mark;          /* old generation objects */
   size_t threshold;                /* threshold to start GC */

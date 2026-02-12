@@ -121,7 +121,7 @@ struct free_obj {
 
 struct RVALUE_initializer {
   MRB_OBJECT_HEADER;
-  char padding[sizeof(void*) * 4 - sizeof(uint32_t)];
+  char padding[sizeof(void*) * 3];
 };
 
 struct RVALUE {
@@ -531,8 +531,12 @@ add_gray_list(mrb_gc *gc, struct RBasic *obj)
   }
 #endif
   paint_gray(obj);
-  obj->gcnext = gc->gray_list;
-  gc->gray_list = obj;
+  if (gc->gray_stack_top < MRB_GRAY_STACK_SIZE) {
+    gc->gray_stack[gc->gray_stack_top++] = obj;
+  }
+  else {
+    gc->gray_overflow = TRUE;
+  }
 }
 
 static void
@@ -914,8 +918,8 @@ root_scan_phase(mrb_state *mrb, mrb_gc *gc)
   int i, e;
 
   if (!is_minor_gc(gc)) {
-    gc->gray_list = NULL;
-    gc->atomic_gray_list = NULL;
+    gc->gray_stack_top = 0;
+    gc->gray_overflow = FALSE;
   }
 
   mrb_gc_mark_gv(mrb);
@@ -965,12 +969,36 @@ root_scan_phase(mrb_state *mrb, mrb_gc *gc)
 }
 
 static void
+gc_gray_rescan(mrb_state *mrb, mrb_gc *gc)
+{
+  mrb_heap_page *page = gc->heaps;
+
+  gc->gray_overflow = FALSE;
+  while (page) {
+    RVALUE *p = page->objects;
+    RVALUE *e = p + MRB_HEAP_PAGE_SIZE;
+    for (; p < e; p++) {
+      if (is_gray(&p->as.basic) && p->as.basic.tt != MRB_TT_FREE) {
+        if (gc->gray_stack_top >= MRB_GRAY_STACK_SIZE) {
+          gc->gray_overflow = TRUE;
+          return;
+        }
+        gc->gray_stack[gc->gray_stack_top++] = &p->as.basic;
+      }
+    }
+    page = page->next;
+  }
+}
+
+static void
 gc_mark_gray_list(mrb_state *mrb, mrb_gc *gc) {
-  while (gc->gray_list) {
-    struct RBasic *obj = gc->gray_list;
-    gc->gray_list = obj->gcnext;
-    obj->gcnext = NULL;
-    gc_mark_children(mrb, gc, obj);
+  for (;;) {
+    while (gc->gray_stack_top > 0) {
+      struct RBasic *obj = gc->gray_stack[--gc->gray_stack_top];
+      gc_mark_children(mrb, gc, obj);
+    }
+    if (!gc->gray_overflow) break;
+    gc_gray_rescan(mrb, gc);
   }
 }
 
@@ -979,11 +1007,18 @@ incremental_marking_phase(mrb_state *mrb, mrb_gc *gc, size_t limit)
 {
   size_t tried_marks = 0;
 
-  while (gc->gray_list && tried_marks < limit) {
-    struct RBasic *obj = gc->gray_list;
-    gc->gray_list = obj->gcnext;
-    obj->gcnext = NULL;
-    tried_marks += gc_mark_children(mrb, gc, obj);
+  while (tried_marks < limit) {
+    if (gc->gray_stack_top > 0) {
+      struct RBasic *obj = gc->gray_stack[--gc->gray_stack_top];
+      tried_marks += gc_mark_children(mrb, gc, obj);
+    }
+    else if (gc->gray_overflow) {
+      gc_gray_rescan(mrb, gc);
+      if (gc->gray_stack_top == 0) break;
+    }
+    else {
+      break;
+    }
   }
 
   return tried_marks;
@@ -1027,18 +1062,12 @@ final_marking_phase(mrb_state *mrb, mrb_gc *gc)
 #endif
 
   gc_mark_gray_list(mrb, gc);
-  mrb_assert(gc->gray_list == NULL);
-  gc->gray_list = gc->atomic_gray_list;
-  gc->atomic_gray_list = NULL;
-  gc_mark_gray_list(mrb, gc);
-  mrb_assert(gc->gray_list == NULL);
 }
 
 static void
 prepare_incremental_sweep(mrb_state *mrb, mrb_gc *gc)
 {
-  //  mrb_assert(gc->atomic_gray_list == NULL);
-  //  mrb_assert(gc->gray_list == NULL);
+  //  mrb_assert(gc->gray_stack_top == 0);
   gc->state = MRB_GC_STATE_SWEEP;
   gc->sweeps = NULL;
   gc->live_after_mark = gc->live;
@@ -1131,7 +1160,7 @@ incremental_gc(mrb_state *mrb, mrb_gc *gc, size_t limit)
     flip_white_part(gc);
     return 0;
   case MRB_GC_STATE_MARK:
-    if (gc->gray_list) {
+    if (gc->gray_stack_top > 0 || gc->gray_overflow) {
       return incremental_marking_phase(mrb, gc, limit);
     }
     else {
@@ -1190,7 +1219,8 @@ clear_all_old(mrb_state *mrb, mrb_gc *gc)
   incremental_gc_finish(mrb, gc);
   gc->generational = TRUE;
   /* The gray objects have already been painted as white */
-  gc->atomic_gray_list = gc->gray_list = NULL;
+  gc->gray_stack_top = 0;
+  gc->gray_overflow = FALSE;
 }
 
 MRB_API void
@@ -1318,8 +1348,12 @@ mrb_write_barrier(mrb_state *mrb, struct RBasic *obj)
   mrb_assert(!is_dead(gc, obj));
   mrb_assert(is_generational(gc) || gc->state != MRB_GC_STATE_ROOT);
   paint_gray(obj);
-  obj->gcnext = gc->atomic_gray_list;
-  gc->atomic_gray_list = obj;
+  if (gc->gray_stack_top < MRB_GRAY_STACK_SIZE) {
+    gc->gray_stack[gc->gray_stack_top++] = obj;
+  }
+  else {
+    gc->gray_overflow = TRUE;
+  }
 }
 
 /*

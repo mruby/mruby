@@ -9,7 +9,6 @@
 
 #define MRB_OBJECT_HEADER \
   struct RClass *c;       \
-  struct RBasic *gcnext;  \
   enum mrb_vtype tt:8;    \
   unsigned int gc_color:3; \
   unsigned int frozen:1;  \
@@ -39,7 +38,7 @@ struct RFiber {
 };
 
 #define mrb_static_assert_object_size(st) \
-  mrb_static_assert(sizeof(st) <= sizeof(void*) * 6, \
-                    #st " size must be within 6 words")
+  mrb_static_assert(sizeof(st) <= sizeof(void*) * 5, \
+                    #st " size must be within 5 words")
 
 #endif  /* MRUBY_OBJECT_H */
