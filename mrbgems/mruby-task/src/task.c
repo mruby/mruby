@@ -278,8 +278,8 @@ task_init_context(mrb_state *mrb, mrb_task *t, const struct RProc *proc)
     }
   }
 
-  /* Copy receiver from current context */
-  c->stbase[0] = mrb->c->ci->stack[0];
+  /* Set receiver to top self */
+  c->stbase[0] = mrb_top_self(mrb);
 
   /* Initialize callinfo stack */
   static const mrb_callinfo ci_zero = { 0 };
