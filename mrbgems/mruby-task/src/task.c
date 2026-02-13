@@ -460,9 +460,9 @@ mrb_task_run(mrb_state *mrb)
     /* No task ready - check if all tasks are done */
     if (!t) {
       mrb_task_disable_irq();
-      mrb_bool exitting = !q_ready_ && !q_waiting_ && !q_suspended_;
+      mrb_bool exiting = !q_ready_ && !q_waiting_ && !q_suspended_;
       mrb_task_enable_irq();
-      if (exitting) {
+      if (exiting) {
         /* All tasks are dormant - scheduler done */
         break;
       }
