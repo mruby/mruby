@@ -459,13 +459,16 @@ mrb_task_run(mrb_state *mrb)
 
     /* No task ready - check if all tasks are done */
     if (!t) {
-      /* If there are tasks waiting or suspended, idle */
-      if (q_waiting_ || q_suspended_) {
-        mrb_hal_task_idle_cpu(mrb);
-        continue;
+      mrb_task_disable_irq();
+      mrb_bool exitting = !q_ready_ && !q_waiting_ && !q_suspended_;
+      mrb_task_enable_irq();
+      if (exitting) {
+        /* All tasks are dormant - scheduler done */
+        break;
       }
-      /* All tasks are dormant - scheduler done */
-      break;
+      /* If there are tasks waiting or suspended, idle */
+      mrb_hal_task_idle_cpu(mrb);
+      continue;
     }
 
     /* Safety check - don't execute terminated tasks */
