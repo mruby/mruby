@@ -25,6 +25,15 @@ repos:
         language: node
         additional_dependencies: ["prettier@3.7.4"]
         stages: [manual]
+      - id: check-makefile-indentation
+        name: check Makefiles are indented with tabs
+        description: ensures that Makefiles are indented with tabs
+        entry: ./scripts/check_makefiles_for_tabs.sh
+        language: system
+        files: "(?i)^makefile$"
+        pass_filenames: true # <-- Crucial change: pass filenames to the script
+        types: [file] # Ensure only regular files are passed, not directories
+        stages: [manual]
       - id: check-zip-file-is-not-committed
         name: disallow zip files
         description: Zip files are not allowed in the repository
