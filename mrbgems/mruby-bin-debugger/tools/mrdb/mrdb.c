@@ -714,7 +714,7 @@ main(int argc, char **argv)
     v = mrb_load_file_cxt(mrb, args.rfp, cc);
     mrb_ccontext_free(mrb, cc);
   }
-  if (mrdb->dbg->xm == DBG_QUIT && !mrb_undef_p(v) && mrb->exc) {
+  if (mrdb->dbg->xm == DBG_QUIT && mrb->exc) {
     const char *classname = mrb_obj_classname(mrb, mrb_obj_value(mrb->exc));
     if (!strcmp(classname, "DebuggerExit")) {
       cleanup(mrb, &args);
@@ -738,14 +738,12 @@ main(int argc, char **argv)
   }
   puts("mruby application exited.");
   mrdb->dbg->xphase = DBG_PHASE_AFTER_RUN;
-  if (!mrb_undef_p(v)) {
-    if (mrb->exc) {
-      mrb_print_error(mrb);
-    }
-    else {
-      printf(" => ");
-      mrb_p(mrb, v);
-    }
+  if (mrb->exc) {
+    mrb_print_error(mrb);
+  }
+  else {
+    printf(" => ");
+    mrb_p(mrb, v);
   }
 
   mrdb->dbg->prvfile = "-";
