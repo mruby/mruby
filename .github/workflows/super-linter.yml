@@ -22,10 +22,14 @@ jobs:
       - name: Lint Code Base
         uses: super-linter/super-linter/slim@v8.4.0
         env:
-          # VALIDATE_BASH_EXEC: true
-          VALIDATE_DOCKERFILE_HADOLINT: true
-          # VALIDATE_EDITORCONFIG: true
-          # VALIDATE_SHELL_SHFMT: true
           DEFAULT_BRANCH: master
+          FILTER_REGEX_EXCLUDE: ^tools/lrama/
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VALIDATE_ALL_CODEBASE: true
+          VALIDATE_BASH_EXEC: false
+          VALIDATE_CLANG_FORMAT: false
+          VALIDATE_CPP: false
+          VALIDATE_DOCKERFILE_HADOLINT: false
+          VALIDATE_EDITORCONFIG: false
+          VALIDATE_RUBY: false
+          VALIDATE_SHELL_SHFMT: false
