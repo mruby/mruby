@@ -24,6 +24,7 @@ repos:
         files: \.(json|md|ya?ml)$
         language: node
         additional_dependencies: ["prettier@3.7.4"]
+        pass_filenames: false
         stages: [manual]
       - id: check-zip-file-is-not-committed
         name: disallow zip files
