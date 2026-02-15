@@ -162,7 +162,11 @@ int_lcm(mrb_state *mrb, mrb_value x)
   if (a < 0) a = -a;
   if (b < 0) b = -b;
 
-  return mrb_int_value(mrb, (a / gcd_val) * b);
+  mrb_int lcm_val;
+  if (mrb_int_mul_overflow(a / gcd_val, b, &lcm_val)) {
+    mrb_int_overflow(mrb, "lcm");
+  }
+  return mrb_int_value(mrb, lcm_val);
 }
 
 /*
