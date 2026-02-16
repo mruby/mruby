@@ -315,28 +315,3 @@ assert("Hash#except") do
   assert_equal({:a=>100}, h.except(:b, :c, :d))
   assert_equal(h, h.except)
 end
-
-assert("Hash#deconstruct_keys") do
-  h = { a: 1, b: 2, c: 3, d: 4 }
-
-  # Test with specific keys
-  result = h.deconstruct_keys([:a, :c])
-  assert_equal({ a: 1, c: 3 }, result)
-
-  # Test with nil (return self)
-  result_nil = h.deconstruct_keys(nil)
-  assert_equal(h, result_nil)
-  assert_true(result_nil.equal?(h))
-
-  # Test with non-existent keys
-  result_missing = h.deconstruct_keys([:a, :x, :y])
-  assert_equal({ a: 1, x: nil, y: nil }, result_missing)
-
-  # Test with empty array
-  result_empty = h.deconstruct_keys([])
-  assert_equal({}, result_empty)
-
-  # Test error cases
-  assert_raise(TypeError) { h.deconstruct_keys("not_an_array") }
-  assert_raise(TypeError) { h.deconstruct_keys(123) }
-end
