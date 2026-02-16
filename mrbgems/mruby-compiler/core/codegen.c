@@ -4944,7 +4944,6 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos,
       for (pair = pat_hash->pairs; pair; pair = pair->cdr) num_keys++;
 
       /* Build array of keys to pass to deconstruct_keys */
-      /* Generate: target.deconstruct_keys([key1, key2, ...]) */
       gen_move(s, cursp(), target, 0);
       push();
       if (pat_hash->rest == (node*)-1) {
@@ -4961,13 +4960,11 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos,
             genop_2(s, OP_LOADSYM, cursp(), sym_idx(s, sym_node(key)->symbol));
           }
           else {
-            /* String or other key - codegen it */
             codegen(s, key, VAL);
           }
           push();
         }
         genop_2(s, OP_ARRAY, cursp() - num_keys, num_keys);
-        /* Adjust stack: we pushed num_keys items, now just need 1 for array */
         for (i = 1; i < num_keys; i++) pop();
       }
       else {
@@ -4984,7 +4981,21 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos,
         node *key = pair->car->car;
         node *pat = pair->car->cdr;
 
-        /* Generate: hash[key] */
+        /* Check key existence: hash.key?(key) */
+        gen_move(s, cursp(), hash_reg, 0);
+        push();
+        if (node_type(key) == NODE_SYM) {
+          genop_2(s, OP_LOADSYM, cursp(), sym_idx(s, sym_node(key)->symbol));
+        }
+        else {
+          codegen(s, key, VAL);
+        }
+        push(); push(); pop(); pop(); pop();
+        genop_3(s, OP_SEND, cursp(), sym_idx(s, MRB_SYM_Q_2(s->mrb, key)), 1);
+        tmp = genjmp2(s, OP_JMPNOT, cursp(), *fail_pos, 1);
+        *fail_pos = tmp;
+
+        /* Get value: hash[key] */
         gen_move(s, cursp(), hash_reg, 0);
         push();
         if (node_type(key) == NODE_SYM) {
@@ -5003,26 +5014,49 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos,
       }
 
       /* Handle rest pattern */
-      if (pat_hash->rest == (node*)-1) {
-        /* **nil: verify no extra keys (already handled by deconstruct_keys returning nil for unknown keys) */
-        /* The exact match behavior depends on deconstruct_keys implementation */
+      if (pat_hash->rest == (node*)-1 || (num_keys == 0 && pat_hash->rest == NULL)) {
+        /* **nil or empty {}: exact match - verify hash.size == num_keys */
+        gen_move(s, cursp(), hash_reg, 0);
+        push();
+        genop_3(s, OP_SEND, cursp() - 1, sym_idx(s, MRB_SYM_2(s->mrb, size)), 0);
+        gen_int(s, cursp(), num_keys);
+        genop_1(s, OP_EQ, cursp() - 1);
+        tmp = genjmp2(s, OP_JMPNOT, cursp() - 1, *fail_pos, 1);
+        *fail_pos = tmp;
+        pop();
       }
       else if (pat_hash->rest && pat_hash->rest != (node*)-2) {
-        /* **var: capture remaining keys into a variable */
-        /* This requires computing: hash.reject {|k,v| [key1, key2, ...].include?(k) } */
-        /* For now, this is a more complex operation - we'll implement basic support */
+        /* **var: capture remaining keys (hash minus matched keys) */
         struct mrb_ast_pat_var_node *rest_var = pat_var_node(pat_hash->rest);
         if (rest_var->name) {
           int var_idx = lv_idx(s, rest_var->name);
-          /* Simplified: just copy the hash for now */
-          /* Full implementation would filter out matched keys */
+          int rest_reg = cursp();
+          /* rest = hash.dup */
           gen_move(s, cursp(), hash_reg, 0);
-          if (var_idx > 0) {
-            gen_move(s, var_idx, cursp(), 1);
+          push();
+          genop_3(s, OP_SEND, rest_reg, sym_idx(s, MRB_SYM_2(s->mrb, dup)), 0);
+          /* Delete each matched key from the copy */
+          for (pair = pat_hash->pairs; pair; pair = pair->cdr) {
+            node *key = pair->car->car;
+            gen_move(s, cursp(), rest_reg, 0);
+            push();
+            if (node_type(key) == NODE_SYM) {
+              genop_2(s, OP_LOADSYM, cursp(), sym_idx(s, sym_node(key)->symbol));
+            }
+            else {
+              codegen(s, key, VAL);
+            }
+            push(); push(); pop(); pop(); pop();
+            genop_3(s, OP_SEND, cursp(), sym_idx(s, MRB_SYM_2(s->mrb, __delete)), 1);
           }
+          /* Assign to variable */
+          if (var_idx > 0) {
+            gen_move(s, var_idx, rest_reg, 1);
+          }
+          pop();  /* rest_reg */
         }
       }
-      /* **  (anonymous rest) - nothing to capture */
+      /* ** (anonymous rest) or partial match: nothing extra */
 
       pop();  /* Pop hash_reg */
     }

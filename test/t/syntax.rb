@@ -1082,12 +1082,11 @@ assert('pattern matching - hash patterns') do
     assert_equal 1, x
   end
 
-  # hash pattern with rest (captures all keys currently)
+  # hash pattern with rest (captures unmatched keys)
   case {a: 1, b: 2, c: 3}
   in {a:, **rest}
     assert_equal 1, a
-    # Note: **rest currently captures all keys including matched ones
-    assert_equal({a: 1, b: 2, c: 3}, rest)
+    assert_equal({b: 2, c: 3}, rest)
   end
 
   # hash value extraction
