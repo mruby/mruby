@@ -6288,42 +6288,36 @@ mrb_bint_gcd(mrb_state *mrb, mrb_value x, mrb_value y)
 mrb_value
 mrb_bint_lcm(mrb_state *mrb, mrb_value x, mrb_value y)
 {
-  mpz_t gcd_val, x_mpz, y_mpz, abs_x, abs_y, product, result_mpz;
-  mrb_value zero = mrb_bint_new_int(mrb, 0);
-
-  if (mrb_bint_cmp(mrb, x, zero) == 0 || mrb_bint_cmp(mrb, y, zero) == 0) {
-    return zero;
-  }
-
-  MPZ_CTX_INIT(mrb, ctx, pool);
-  /* Get input operand sizes for size estimation */
-  size_t x_size = RBIGINT_EMBED_P(RBIGINT(x)) ? RBIGINT_EMBED_SIZE(RBIGINT(x)) : RBIGINT(x)->as.heap.sz;
-  size_t y_size = RBIGINT_EMBED_P(RBIGINT(y)) ? RBIGINT_EMBED_SIZE(RBIGINT(y)) : RBIGINT(y)->as.heap.sz;
-  size_t max_size = (x_size > y_size) ? x_size : y_size;
-
-  mpz_init_temp(ctx, &gcd_val, max_size);
-  mpz_init_temp(ctx, &abs_x, x_size);
-  mpz_init_temp(ctx, &abs_y, y_size);
-  mpz_init_temp(ctx, &product, x_size + y_size + 1);
-  mpz_init_temp(ctx, &result_mpz, x_size + y_size + 1);
+  mpz_t gcd_val, x_mpz, y_mpz, abs_x, abs_y, quotient, result_mpz;
 
   bint_as_mpz(RBIGINT(x), &x_mpz);
   bint_as_mpz(RBIGINT(y), &y_mpz);
 
+  if (zero_p(&x_mpz) || zero_p(&y_mpz)) {
+    return mrb_fixnum_value(0);
+  }
+
+  MPZ_CTX_INIT(mrb, ctx, pool);
+
   mpz_abs(ctx, &abs_x, &x_mpz);
   mpz_abs(ctx, &abs_y, &y_mpz);
 
+  mpz_init(ctx, &gcd_val);
   mpz_gcd(ctx, &gcd_val, &abs_x, &abs_y);
-  mpz_mul(ctx, &product, &abs_x, &abs_y);
-  mpz_mdiv(ctx, &result_mpz, &product, &gcd_val);
+
+  /* LCM = (abs_x / gcd) * abs_y — divide first to reduce intermediate size */
+  mpz_init(ctx, &quotient);
+  mpz_mdiv(ctx, &quotient, &abs_x, &gcd_val);
+  mpz_init(ctx, &result_mpz);
+  mpz_mul(ctx, &result_mpz, &quotient, &abs_y);
 
   mpz_clear(ctx, &gcd_val);
   mpz_clear(ctx, &abs_x);
   mpz_clear(ctx, &abs_y);
-  mpz_clear(ctx, &product);
+  mpz_clear(ctx, &quotient);
 
   struct RBigint *result = bint_new(ctx, &result_mpz);
-  return mrb_obj_value(result);
+  return bint_norm(mrb, result);
 }
 
 mrb_value
