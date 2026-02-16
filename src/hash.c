@@ -2043,6 +2043,39 @@ mrb_hash_compact(mrb_state *mrb, mrb_value hash)
 }
 
 /*
+ * Internal method for pattern matching **rest.
+ * Returns a new hash excluding specified keys.
+ *
+ *   {a: 1, b: 2, c: 3}.__except(:a, :c)  #=> {b: 2}
+ */
+static mrb_value
+mrb_hash_except_keys(mrb_state *mrb, mrb_value hash)
+{
+  const mrb_value *argv;
+  mrb_int argc;
+  mrb_get_args(mrb, "*", &argv, &argc);
+
+  mrb_value result = mrb_hash_new(mrb);
+  struct RHash *h = mrb_hash_ptr(hash);
+  int ai = mrb_gc_arena_save(mrb);
+
+  H_EACH(h, entry) {
+    mrb_bool found = FALSE;
+    for (mrb_int i = 0; i < argc; i++) {
+      if (mrb_equal(mrb, entry->key, argv[i])) {
+        found = TRUE;
+        break;
+      }
+    }
+    if (!found) {
+      mrb_hash_set(mrb, result, entry->key, entry->val);
+    }
+    mrb_gc_arena_restore(mrb, ai);
+  }
+  return result;
+}
+
+/*
  * call-seq:
  *    hash.to_s    -> string
  *    hash.inspect -> string
@@ -2280,5 +2313,6 @@ mrb_init_hash(mrb_state *mrb)
   mrb_define_method_id(mrb, h, MRB_SYM(rassoc),          mrb_hash_rassoc,      MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, h, MRB_SYM(__merge),         mrb_hash_merge_m,     MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, h, MRB_SYM(__compact),       mrb_hash_compact,     MRB_ARGS_NONE()); /* implementation of Hash#compact! */
+  mrb_define_method_id(mrb, h, MRB_SYM(__except),        mrb_hash_except_keys, MRB_ARGS_ANY());  /* for pattern matching **rest */
 }
 #undef lesser

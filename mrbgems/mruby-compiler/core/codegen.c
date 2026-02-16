@@ -5026,34 +5026,38 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos,
         pop();
       }
       else if (pat_hash->rest && pat_hash->rest != (node*)-2) {
-        /* **var: capture remaining keys (hash minus matched keys) */
+        /* **var: capture remaining keys via hash.__except(key1, key2, ...) */
         struct mrb_ast_pat_var_node *rest_var = pat_var_node(pat_hash->rest);
         if (rest_var->name) {
           int var_idx = lv_idx(s, rest_var->name);
-          int rest_reg = cursp();
-          /* rest = hash.dup */
-          gen_move(s, cursp(), hash_reg, 0);
+          int recv = cursp();
+          gen_move(s, recv, hash_reg, 0);
           push();
-          genop_3(s, OP_SEND, rest_reg, sym_idx(s, MRB_SYM_2(s->mrb, dup)), 0);
-          /* Delete each matched key from the copy */
-          for (pair = pat_hash->pairs; pair; pair = pair->cdr) {
-            node *key = pair->car->car;
-            gen_move(s, cursp(), rest_reg, 0);
-            push();
-            if (node_type(key) == NODE_SYM) {
-              genop_2(s, OP_LOADSYM, cursp(), sym_idx(s, sym_node(key)->symbol));
+          if (num_keys > 0) {
+            /* Pass matched keys directly as arguments */
+            int i = 0;
+            for (pair = pat_hash->pairs; pair; pair = pair->cdr, i++) {
+              node *key = pair->car->car;
+              if (node_type(key) == NODE_SYM) {
+                genop_2(s, OP_LOADSYM, cursp(), sym_idx(s, sym_node(key)->symbol));
+              }
+              else {
+                codegen(s, key, VAL);
+              }
+              push();
             }
-            else {
-              codegen(s, key, VAL);
-            }
-            push(); push(); pop(); pop(); pop();
-            genop_3(s, OP_SEND, cursp(), sym_idx(s, MRB_SYM_2(s->mrb, __delete)), 1);
+            genop_3(s, OP_SEND, recv, sym_idx(s, MRB_SYM_2(s->mrb, __except)), num_keys);
+            for (i = 0; i < num_keys; i++) pop();
+          }
+          else {
+            /* No keys to exclude: rest = hash.dup */
+            genop_3(s, OP_SEND, recv, sym_idx(s, MRB_SYM_2(s->mrb, dup)), 0);
           }
           /* Assign to variable */
           if (var_idx > 0) {
-            gen_move(s, var_idx, rest_reg, 1);
+            gen_move(s, var_idx, recv, 1);
           }
-          pop();  /* rest_reg */
+          pop();  /* recv */
         }
       }
       /* ** (anonymous rest) or partial match: nothing extra */
