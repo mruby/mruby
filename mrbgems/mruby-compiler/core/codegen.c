@@ -5034,7 +5034,7 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos,
           gen_move(s, recv, hash_reg, 0);
           push();
           if (num_keys > 0) {
-            /* Pass matched keys directly as arguments */
+            /* Pass matched keys as arguments */
             int i = 0;
             for (pair = pat_hash->pairs; pair; pair = pair->cdr, i++) {
               node *key = pair->car->car;
@@ -5046,8 +5046,18 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos,
               }
               push();
             }
-            genop_3(s, OP_SEND, recv, sym_idx(s, MRB_SYM_2(s->mrb, __except)), num_keys);
-            for (i = 0; i < num_keys; i++) pop();
+            if (num_keys < CALL_MAXARGS) {
+              /* Direct arguments */
+              genop_3(s, OP_SEND, recv, sym_idx(s, MRB_SYM_2(s->mrb, __except)), num_keys);
+              for (i = 0; i < num_keys; i++) pop();
+            }
+            else {
+              /* Too many keys: pack into array */
+              genop_2(s, OP_ARRAY, recv + 1, num_keys);
+              for (i = 1; i < num_keys; i++) pop();
+              genop_3(s, OP_SEND, recv, sym_idx(s, MRB_SYM_2(s->mrb, __except)), CALL_MAXARGS);
+              pop();
+            }
           }
           else {
             /* No keys to exclude: rest = hash.dup */
