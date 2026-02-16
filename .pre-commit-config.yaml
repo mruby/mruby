@@ -15,6 +15,9 @@ repos:
       - id: check-hooks-apply
         name: run check-hooks-apply
         description: check hooks apply to the repository
+      - id: check-useless-excludes
+        name: run check-useless-excludes
+        description: clean up unnecessary exclusion patterns
   - repo: local
     hooks:
       - id: prettier
