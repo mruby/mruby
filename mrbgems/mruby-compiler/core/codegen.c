@@ -5026,7 +5026,7 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos,
         pop();
       }
       else if (pat_hash->rest && pat_hash->rest != (node*)-2) {
-        /* **var: capture remaining keys via hash.__except(key1, key2, ...) */
+        /* **var: capture remaining keys via hash.__except(keys_array) */
         struct mrb_ast_pat_var_node *rest_var = pat_var_node(pat_hash->rest);
         if (rest_var->name) {
           int var_idx = lv_idx(s, rest_var->name);
@@ -5034,7 +5034,7 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos,
           gen_move(s, recv, hash_reg, 0);
           push();
           if (num_keys > 0) {
-            /* Pass matched keys as arguments */
+            /* Build array of matched keys */
             int i = 0;
             for (pair = pat_hash->pairs; pair; pair = pair->cdr, i++) {
               node *key = pair->car->car;
@@ -5046,18 +5046,10 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos,
               }
               push();
             }
-            if (num_keys < CALL_MAXARGS) {
-              /* Direct arguments */
-              genop_3(s, OP_SEND, recv, sym_idx(s, MRB_SYM_2(s->mrb, __except)), num_keys);
-              for (i = 0; i < num_keys; i++) pop();
-            }
-            else {
-              /* Too many keys: pack into array */
-              genop_2(s, OP_ARRAY, recv + 1, num_keys);
-              for (i = 1; i < num_keys; i++) pop();
-              genop_3(s, OP_SEND, recv, sym_idx(s, MRB_SYM_2(s->mrb, __except)), CALL_MAXARGS);
-              pop();
-            }
+            genop_2(s, OP_ARRAY, recv + 1, num_keys);
+            for (i = 1; i < num_keys; i++) pop();
+            genop_3(s, OP_SEND, recv, sym_idx(s, MRB_SYM_2(s->mrb, __except)), 1);
+            pop();
           }
           else {
             /* No keys to exclude: rest = hash.dup */
