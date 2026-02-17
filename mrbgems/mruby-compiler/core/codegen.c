@@ -4463,6 +4463,20 @@ gen_pat_key(codegen_scope *s, node *key)
   }
 }
 
+/* generate OP_ARRAY of hash pattern keys on the stack */
+static void
+gen_pat_keys_ary(codegen_scope *s, node *pairs, int num_keys)
+{
+  int i = 0;
+  node *pair;
+  for (pair = pairs; pair; pair = pair->cdr, i++) {
+    gen_pat_key(s, pair->car->car);
+    push();
+  }
+  genop_2(s, OP_ARRAY, cursp() - num_keys, num_keys);
+  for (i = 1; i < num_keys; i++) pop();
+}
+
 static void
 codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos, int known_array_len)
 {
@@ -4962,13 +4976,7 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos,
       push();
       if (pat_hash->rest == NULL && num_keys > 0) {
         /* Partial match: pass keys array */
-        int i = 0;
-        for (pair = pat_hash->pairs; pair; pair = pair->cdr, i++) {
-          gen_pat_key(s, pair->car->car);
-          push();
-        }
-        genop_2(s, OP_ARRAY, cursp() - num_keys, num_keys);
-        for (i = 1; i < num_keys; i++) pop();
+        gen_pat_keys_ary(s, pat_hash->pairs, num_keys);
       }
       else {
         genop_1(s, OP_LOADNIL, cursp());
@@ -5025,13 +5033,7 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos,
           gen_move(s, recv, hash_reg, 0);
           push();
           if (num_keys > 0) {
-            int i = 0;
-            for (pair = pat_hash->pairs; pair; pair = pair->cdr, i++) {
-              gen_pat_key(s, pair->car->car);
-              push();
-            }
-            genop_2(s, OP_ARRAY, recv + 1, num_keys);
-            for (i = 1; i < num_keys; i++) pop();
+            gen_pat_keys_ary(s, pat_hash->pairs, num_keys);
             genop_3(s, OP_SEND, recv, sym_idx(s, MRB_SYM_2(s->mrb, __except)), 1);
             pop();
           }
