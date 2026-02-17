@@ -4451,6 +4451,18 @@ codegen_case_match(codegen_scope *s, node *varnode, int val)
  * fail_pos: linked list of jump positions for pattern match failure
  * known_array_len: -1 if unknown, >= 0 if target is known to be an array of that length
  */
+/* generate code to load a hash pattern key onto the stack */
+static void
+gen_pat_key(codegen_scope *s, node *key)
+{
+  if (node_type(key) == NODE_SYM) {
+    genop_2(s, OP_LOADSYM, cursp(), sym_idx(s, sym_node(key)->symbol));
+  }
+  else {
+    codegen(s, key, VAL);
+  }
+}
+
 static void
 codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos, int known_array_len)
 {
@@ -4952,13 +4964,7 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos,
         /* Partial match: pass keys array */
         int i = 0;
         for (pair = pat_hash->pairs; pair; pair = pair->cdr, i++) {
-          node *key = pair->car->car;
-          if (node_type(key) == NODE_SYM) {
-            genop_2(s, OP_LOADSYM, cursp(), sym_idx(s, sym_node(key)->symbol));
-          }
-          else {
-            codegen(s, key, VAL);
-          }
+          gen_pat_key(s, pair->car->car);
           push();
         }
         genop_2(s, OP_ARRAY, cursp() - num_keys, num_keys);
@@ -4979,12 +4985,7 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos,
         /* Check key existence: hash.key?(key) */
         gen_move(s, cursp(), hash_reg, 0);
         push();
-        if (node_type(key) == NODE_SYM) {
-          genop_2(s, OP_LOADSYM, cursp(), sym_idx(s, sym_node(key)->symbol));
-        }
-        else {
-          codegen(s, key, VAL);
-        }
+        gen_pat_key(s, key);
         push(); push(); pop(); pop(); pop();
         genop_3(s, OP_SEND, cursp(), sym_idx(s, MRB_SYM_Q_2(s->mrb, key)), 1);
         tmp = genjmp2(s, OP_JMPNOT, cursp(), *fail_pos, 1);
@@ -4993,12 +4994,7 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos,
         /* Get value: hash[key] */
         gen_move(s, cursp(), hash_reg, 0);
         push();
-        if (node_type(key) == NODE_SYM) {
-          genop_2(s, OP_LOADSYM, cursp(), sym_idx(s, sym_node(key)->symbol));
-        }
-        else {
-          codegen(s, key, VAL);
-        }
+        gen_pat_key(s, key);
         push(); push(); pop(); pop(); pop();
         genop_3(s, OP_SEND, cursp(), sym_idx(s, MRB_OPSYM_2(s->mrb, aref)), 1);
         push();
@@ -5031,13 +5027,7 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos,
           if (num_keys > 0) {
             int i = 0;
             for (pair = pat_hash->pairs; pair; pair = pair->cdr, i++) {
-              node *key = pair->car->car;
-              if (node_type(key) == NODE_SYM) {
-                genop_2(s, OP_LOADSYM, cursp(), sym_idx(s, sym_node(key)->symbol));
-              }
-              else {
-                codegen(s, key, VAL);
-              }
+              gen_pat_key(s, pair->car->car);
               push();
             }
             genop_2(s, OP_ARRAY, recv + 1, num_keys);
