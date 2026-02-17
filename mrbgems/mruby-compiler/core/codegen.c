@@ -4985,31 +4985,34 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos,
       genop_3(s, OP_SEND, hash_reg, sym_idx(s, MRB_SYM_2(s->mrb, deconstruct_keys)), 1);
       pop();
 
-      /* Match each key-pattern pair */
-      for (pair = pat_hash->pairs; pair; pair = pair->cdr) {
-        node *key = pair->car->car;
-        node *pat = pair->car->cdr;
-
-        /* Check key existence: hash.key?(key) */
-        gen_move(s, cursp(), hash_reg, 0);
+      /* Check all keys exist and get values via __pat_values */
+      if (num_keys > 0) {
+        int vals_reg = cursp();
+        gen_move(s, vals_reg, hash_reg, 0);
         push();
-        gen_pat_key(s, key);
-        push(); push(); pop(); pop(); pop();
-        genop_3(s, OP_SEND, cursp(), sym_idx(s, MRB_SYM_Q_2(s->mrb, key)), 1);
-        tmp = genjmp2(s, OP_JMPNOT, cursp(), *fail_pos, 1);
+        gen_pat_keys_ary(s, pat_hash->pairs, num_keys);
+        genop_3(s, OP_SEND, vals_reg, sym_idx(s, MRB_SYM_2(s->mrb, __pat_values)), 1);
+        pop();  /* keys_ary */
+        /* vals_reg = values array or false; fail if false */
+        tmp = genjmp2(s, OP_JMPNOT, vals_reg, *fail_pos, 1);
         *fail_pos = tmp;
 
-        /* Get value: hash[key] */
-        gen_move(s, cursp(), hash_reg, 0);
-        push();
-        gen_pat_key(s, key);
-        push(); push(); pop(); pop(); pop();
-        genop_3(s, OP_SEND, cursp(), sym_idx(s, MRB_OPSYM_2(s->mrb, aref)), 1);
-        push();
+        /* Match each value against its pattern */
+        int i = 0;
+        for (pair = pat_hash->pairs; pair; pair = pair->cdr, i++) {
+          node *pat = pair->car->cdr;
 
-        /* Match pattern against value */
-        codegen_pattern(s, pat, cursp() - 1, fail_pos, -1);
-        pop();
+          gen_move(s, cursp(), vals_reg, 0);
+          push();
+          gen_int(s, cursp(), i);
+          push(); push(); pop(); pop(); pop();
+          genop_3(s, OP_SEND, cursp(), sym_idx(s, MRB_OPSYM_2(s->mrb, aref)), 1);
+          push();
+
+          codegen_pattern(s, pat, cursp() - 1, fail_pos, -1);
+          pop();
+        }
+        pop();  /* vals_reg */
       }
 
       /* Handle rest pattern */
