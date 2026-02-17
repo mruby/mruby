@@ -4943,16 +4943,13 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos,
       /* Count keys */
       for (pair = pat_hash->pairs; pair; pair = pair->cdr) num_keys++;
 
-      /* Build array of keys to pass to deconstruct_keys */
+      /* Call deconstruct_keys.
+       * Pass nil when all keys are needed (rest or exact match).
+       * Pass keys array only for partial match (optimization for custom classes). */
       gen_move(s, cursp(), target, 0);
       push();
-      if (pat_hash->rest == (node*)-1) {
-        /* **nil: pass nil to deconstruct_keys (exact match) */
-        genop_1(s, OP_LOADNIL, cursp());
-        push();
-      }
-      else if (num_keys > 0) {
-        /* Build array of expected keys */
+      if (pat_hash->rest == NULL && num_keys > 0) {
+        /* Partial match: pass keys array */
         int i = 0;
         for (pair = pat_hash->pairs; pair; pair = pair->cdr, i++) {
           node *key = pair->car->car;
@@ -4968,13 +4965,11 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos,
         for (i = 1; i < num_keys; i++) pop();
       }
       else {
-        /* Empty hash pattern or ** only: pass empty array */
-        genop_2(s, OP_ARRAY, cursp(), 0);
+        genop_1(s, OP_LOADNIL, cursp());
         push();
       }
       genop_3(s, OP_SEND, hash_reg, sym_idx(s, MRB_SYM_2(s->mrb, deconstruct_keys)), 1);
-      pop();  /* Pop argument */
-      /* hash_reg now contains the deconstructed hash */
+      pop();
 
       /* Match each key-pattern pair */
       for (pair = pat_hash->pairs; pair; pair = pair->cdr) {
@@ -5006,11 +5001,11 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos,
         }
         push(); push(); pop(); pop(); pop();
         genop_3(s, OP_SEND, cursp(), sym_idx(s, MRB_OPSYM_2(s->mrb, aref)), 1);
-        push();  /* Preserve value for codegen_pattern */
+        push();
 
         /* Match pattern against value */
         codegen_pattern(s, pat, cursp() - 1, fail_pos, -1);
-        pop();  /* Clean up value slot */
+        pop();
       }
 
       /* Handle rest pattern */
@@ -5034,7 +5029,6 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos,
           gen_move(s, recv, hash_reg, 0);
           push();
           if (num_keys > 0) {
-            /* Build array of matched keys */
             int i = 0;
             for (pair = pat_hash->pairs; pair; pair = pair->cdr, i++) {
               node *key = pair->car->car;
@@ -5052,19 +5046,16 @@ codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos,
             pop();
           }
           else {
-            /* No keys to exclude: rest = hash.dup */
             genop_3(s, OP_SEND, recv, sym_idx(s, MRB_SYM_2(s->mrb, dup)), 0);
           }
-          /* Assign to variable */
           if (var_idx > 0) {
             gen_move(s, var_idx, recv, 1);
           }
-          pop();  /* recv */
+          pop();
         }
       }
-      /* ** (anonymous rest) or partial match: nothing extra */
 
-      pop();  /* Pop hash_reg */
+      pop();  /* hash_reg */
     }
     break;
 
