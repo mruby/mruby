@@ -565,6 +565,54 @@ mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp,
   return MRB_RANGE_OK;
 }
 
+/* ---------------------------*/
+#ifndef MRB_NO_PRESYM
+#define RANGE_ROM_MT_SIZE 15
+static struct {
+  union mt_ptr vals[RANGE_ROM_MT_SIZE];
+  mrb_sym keys[RANGE_ROM_MT_SIZE];
+} range_rom_data = {
+  .vals = {
+    { .func = range_beg },
+    { .func = range_end },
+    { .func = range_eq },
+    { .func = range_include },
+    { .func = range_excl },
+    { .func = range_beg },
+    { .func = range_include },
+    { .func = range_initialize },
+    { .func = range_end },
+    { .func = range_include },
+    { .func = range_to_s },
+    { .func = range_inspect },
+    { .func = range_eql },
+    { .func = range_initialize_copy },
+    { .func = range_num_to_a },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM(begin),           MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(end),             MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(eq),            MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(eqq),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(exclude_end),   MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(first),           MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(include),       MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(initialize),      MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(last),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(member),        MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(to_s),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(inspect),         MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(eql),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(initialize_copy), MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(__num_to_a),      MT_FUNC|MT_NOARG|MT_PUBLIC),
+  }
+};
+static mt_tbl range_rom_mt = {
+  RANGE_ROM_MT_SIZE, RANGE_ROM_MT_SIZE,
+  (union mt_ptr*)&range_rom_data, NULL
+};
+#endif /* !MRB_NO_PRESYM */
+
 void
 mrb_init_range(mrb_state *mrb)
 {
@@ -574,6 +622,9 @@ mrb_init_range(mrb_state *mrb)
   mrb->range_class = r;
   MRB_SET_INSTANCE_TT(r, MRB_TT_RANGE);
 
+#ifndef MRB_NO_PRESYM
+  mrb_mt_init_rom(r, &range_rom_mt);
+#else
   mrb_define_method_id(mrb, r, MRB_SYM(begin),           range_beg,             MRB_ARGS_NONE()); /* 15.2.14.4.3  */
   mrb_define_method_id(mrb, r, MRB_SYM(end),             range_end,             MRB_ARGS_NONE()); /* 15.2.14.4.5  */
   mrb_define_method_id(mrb, r, MRB_OPSYM(eq),            range_eq,              MRB_ARGS_REQ(1)); /* 15.2.14.4.1  */
@@ -589,4 +640,5 @@ mrb_init_range(mrb_state *mrb)
   mrb_define_method_id(mrb, r, MRB_SYM_Q(eql),           range_eql,             MRB_ARGS_REQ(1)); /* 15.2.14.4.14(x) */
   mrb_define_private_method_id(mrb, r, MRB_SYM(initialize_copy), range_initialize_copy, MRB_ARGS_REQ(1)); /* 15.2.14.4.15(x) */
   mrb_define_method_id(mrb, r, MRB_SYM(__num_to_a),      range_num_to_a,        MRB_ARGS_NONE());
+#endif
 }
