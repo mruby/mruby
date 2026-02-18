@@ -1,5 +1,6 @@
 # Ignore artifacts:
 build
 coverage
+doc/guides/pre-commit-hooks.md
 doc/internal/opcode.md
 tools/lrama
