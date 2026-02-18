@@ -46,14 +46,19 @@ union mt_ptr {
 /* method table structure */
 typedef struct mt_tbl {
   int             size;  /* # of used entries */
-  int             alloc; /* capacity */
+  int             alloc; /* capacity (bit 30: MT_READONLY_BIT) */
   union mt_ptr   *ptr;   /* block: [ ptr[0...alloc] | keys[0...alloc] ] */
+  struct mt_tbl  *next;  /* next (lower-priority) layer, or NULL */
 } mt_tbl;
+
+#define MT_READONLY_BIT  (1 << 30)
+#define MT_ALLOC(t)      ((t)->alloc & ~MT_READONLY_BIT)
+#define mt_readonly_p(t) ((t)->alloc & MT_READONLY_BIT)
 
 /* Helper to get keys array from method table */
 static inline mrb_sym*
 mt_keys(mt_tbl *t) {
-  return (mrb_sym*)&t->ptr[t->alloc];
+  return (mrb_sym*)&t->ptr[MT_ALLOC(t)];
 }
 
 /* Helper to get values array from method table */
@@ -66,7 +71,7 @@ mt_vals(mt_tbl *t) {
 static void
 mt_grow(mrb_state *mrb, mt_tbl *t, int new_alloc)
 {
-  int old_alloc = t->alloc;
+  int old_alloc = MT_ALLOC(t);
   size_t new_block = new_alloc * (sizeof(union mt_ptr) + sizeof(mrb_sym));
 
   t->ptr = (union mt_ptr*)mrb_realloc(mrb, t->ptr, new_block);
@@ -92,6 +97,7 @@ mt_new(mrb_state *mrb)
   t->size = 0;
   t->alloc = 0;
   t->ptr = NULL;
+  t->next = NULL;
 
   return t;
 }
@@ -129,11 +135,11 @@ mt_put(mrb_state *mrb, mt_tbl *t, mrb_sym sym, mrb_sym flags, union mt_ptr ptrva
   mrb_sym key = MT_KEY(sym, flags);
 
   /* Ensure there is capacity */
-  if (t->alloc == 0) {
+  if (MT_ALLOC(t) == 0) {
     mt_grow(mrb, t, 8);
   }
-  else if (t->size == t->alloc) {
-    mt_grow(mrb, t, t->alloc * 2);
+  else if (t->size == MT_ALLOC(t)) {
+    mt_grow(mrb, t, MT_ALLOC(t) * 2);
   }
 
   mrb_sym      *keys = mt_keys(t);
@@ -165,26 +171,22 @@ mt_put(mrb_state *mrb, mt_tbl *t, mrb_sym sym, mrb_sym flags, union mt_ptr ptrva
   t->size++;
 }
 
-/* Retrieves a value from the method table */
+/* Retrieves a value from the method table (walks chain) */
 static mrb_sym
 mt_get(mrb_state *mrb, mt_tbl *t, mrb_sym sym, union mt_ptr *pp)
 {
-  /* Return 0 if table is empty or null */
-  if (!t || t->size == 0) return 0;
-
-  mrb_sym      *keys = mt_keys(t);
-  union mt_ptr *vals = mt_vals(t);
-
-  /* Find the position in a branch-free manner */
-  int lo = mt_bsearch_idx(keys, t->size, sym);
-
-  /* If found, set *pp to the value and return the full key */
-  if (lo < t->size && MT_KEY_SYM(keys[lo]) == sym) {
-    *pp = vals[lo];
-    return keys[lo];
+  while (t) {
+    if (t->size > 0) {
+      mrb_sym *keys = mt_keys(t);
+      union mt_ptr *vals = mt_vals(t);
+      int lo = mt_bsearch_idx(keys, t->size, sym);
+      if (lo < t->size && MT_KEY_SYM(keys[lo]) == sym) {
+        *pp = vals[lo];
+        return keys[lo];
+      }
+    }
+    t = t->next;
   }
-
-  /* Not found */
   return 0;
 }
 
@@ -215,26 +217,85 @@ mt_del(mrb_state *mrb, mt_tbl *t, mrb_sym sym)
   return FALSE;
 }
 
+/* Checks if any layer in the chain contains the given symbol */
+static mrb_bool
+mt_chain_has(mt_tbl *t, mrb_sym sym)
+{
+  while (t) {
+    if (t->size > 0) {
+      mrb_sym *keys = mt_keys(t);
+      int lo = mt_bsearch_idx(keys, t->size, sym);
+      if (lo < t->size && MT_KEY_SYM(keys[lo]) == sym) return TRUE;
+    }
+    t = t->next;
+  }
+  return FALSE;
+}
+
+/* Flattens all chain layers into a single mutable table */
+static void
+mt_flatten(mrb_state *mrb, struct RClass *c)
+{
+  mt_tbl *t = c->mt;
+  if (!t || (!t->next && !mt_readonly_p(t))) return;
+
+  mt_tbl *flat = mt_new(mrb);
+  /* collect all layers into an array, then iterate backwards */
+  mt_tbl *layers[16];
+  int n = 0;
+  for (mt_tbl *l = t; l && n < 16; l = l->next)
+    layers[n++] = l;
+  for (int i = n - 1; i >= 0; i--) {
+    mt_tbl *l = layers[i];
+    mrb_sym *keys = mt_keys(l);
+    union mt_ptr *vals = mt_vals(l);
+    for (int j = 0; j < l->size; j++)
+      mt_put(mrb, flat, MT_KEY_SYM(keys[j]), MT_KEY_FLG(keys[j]), vals[j]);
+  }
+  /* free only mutable layers */
+  for (mt_tbl *l = t; l && !mt_readonly_p(l); ) {
+    mt_tbl *next = l->next;
+    mrb_free(mrb, l->ptr);
+    mrb_free(mrb, l);
+    l = next;
+  }
+  c->mt = flat;
+}
+
 /* Creates a copy of the method table */
 static mt_tbl*
 mt_copy(mrb_state *mrb, mt_tbl *t)
 {
-  if (!t || t->size == 0) return NULL;
+  if (!t) return NULL;
+  if (mt_readonly_p(t)) {
+    /* source is ROM — new class gets empty mutable top + shared ROM chain */
+    if (t->size == 0 && !t->next) return NULL;
+    mt_tbl *t2 = mt_new(mrb);
+    t2->next = t;
+    return t2;
+  }
+  if (t->size == 0 && !t->next) return NULL;
   mt_tbl *t2 = mt_new(mrb);
-  mt_grow(mrb, t2, t->size);
-  /* copy used entries */
-  memcpy(mt_vals(t2), mt_vals(t), t->size * sizeof(union mt_ptr));
-  memcpy(mt_keys(t2), mt_keys(t), t->size * sizeof(mrb_sym));
-  t2->size = t->size;
+  if (t->size > 0) {
+    mt_grow(mrb, t2, t->size);
+    memcpy(mt_vals(t2), mt_vals(t), t->size * sizeof(union mt_ptr));
+    memcpy(mt_keys(t2), mt_keys(t), t->size * sizeof(mrb_sym));
+    t2->size = t->size;
+  }
+  t2->next = t->next;  /* share ROM chain */
   return t2;
 }
 
-/* Frees memory of the method table */
+/* Frees memory of the method table (skips readonly/ROM layers) */
 static void
 mt_free(mrb_state *mrb, mt_tbl *t)
 {
-  mrb_free(mrb, t->ptr);
-  mrb_free(mrb, t);
+  while (t && !mt_readonly_p(t)) {
+    mt_tbl *next = t->next;
+    mrb_free(mrb, t->ptr);
+    mrb_free(mrb, t);
+    t = next;
+  }
 }
 
 /* Creates a method value structure from key and pointer */
@@ -250,14 +311,43 @@ MRB_API void
 mrb_mt_foreach(mrb_state *mrb, struct RClass *c, mrb_mt_foreach_func *fn, void *p)
 {
   mt_tbl *t = c->mt;
-  if (!t || t->size == 0) return;
+  if (!t) return;
 
-  for (int i=0; i<t->size; i++) {
-    union mt_ptr *vals = mt_vals(t);
-    mrb_sym      *keys = mt_keys(t);
-    mrb_sym key = keys[i];
-    if (fn(mrb, MT_KEY_SYM(key), create_method_value(mrb, key, vals[i]), p) != 0) {
-      return;
+  /* fast path: single layer */
+  if (!t->next) {
+    for (int i = 0; i < t->size; i++) {
+      union mt_ptr *vals = mt_vals(t);
+      mrb_sym *keys = mt_keys(t);
+      if (fn(mrb, MT_KEY_SYM(keys[i]),
+             create_method_value(mrb, keys[i], vals[i]), p) != 0)
+        return;
+    }
+    return;
+  }
+
+  /* multi-layer: iterate each layer, skip if shadowed by a higher one */
+  for (mt_tbl *layer = t; layer; layer = layer->next) {
+    mrb_sym *keys = mt_keys(layer);
+    union mt_ptr *vals = mt_vals(layer);
+    for (int i = 0; i < layer->size; i++) {
+      mrb_sym sym = MT_KEY_SYM(keys[i]);
+      /* check if shadowed by a higher layer */
+      if (layer != t) {
+        mrb_bool shadowed = FALSE;
+        for (mt_tbl *upper = t; upper != layer; upper = upper->next) {
+          if (upper->size > 0) {
+            mrb_sym *ukeys = mt_keys(upper);
+            int lo = mt_bsearch_idx(ukeys, upper->size, sym);
+            if (lo < upper->size && MT_KEY_SYM(ukeys[lo]) == sym) {
+              shadowed = TRUE;
+              break;
+            }
+          }
+        }
+        if (shadowed) continue;
+      }
+      if (fn(mrb, sym, create_method_value(mrb, keys[i], vals[i]), p) != 0)
+        return;
     }
   }
 }
@@ -266,30 +356,31 @@ mrb_mt_foreach(mrb_state *mrb, struct RClass *c, mrb_mt_foreach_func *fn, void *
 size_t
 mrb_gc_mark_mt(mrb_state *mrb, struct RClass *c)
 {
-  mt_tbl *t = c->mt;
-
-  if (!t || t->size == 0) return 0;
-
-  mrb_sym *keys = mt_keys(t);
-  union mt_ptr *vals = mt_vals(t);
-  for (int i=0; i<t->size; i++) {
-    if (MT_KEY_P(keys[i]) && (keys[i] & MT_FUNC) == 0) { /* Proc pointer */
-      const struct RProc *p = vals[i].proc;
-      mrb_gc_mark(mrb, (struct RBasic*)p);
+  size_t children = 0;
+  for (mt_tbl *t = c->mt; t; t = t->next) {
+    if (mt_readonly_p(t)) continue; /* ROM layers need no GC marking */
+    if (t->size == 0) continue;
+    mrb_sym *keys = mt_keys(t);
+    union mt_ptr *vals = mt_vals(t);
+    for (int i = 0; i < t->size; i++) {
+      if (MT_KEY_P(keys[i]) && (keys[i] & MT_FUNC) == 0) {
+        mrb_gc_mark(mrb, (struct RBasic*)vals[i].proc);
+      }
     }
+    children += (size_t)t->size;
   }
-  if (!t) return 0;
-  return (size_t)t->size;
+  return children;
 }
 
-/* Returns memory size of class method table */
+/* Returns memory size of class method table (mutable layers only) */
 size_t
 mrb_class_mt_memsize(mrb_state *mrb, struct RClass *c)
 {
-  struct mt_tbl *h = c->mt;
-
-  if (!h) return 0;
-  return sizeof(struct mt_tbl) + (size_t)h->size * sizeof(mrb_method_t);
+  size_t total = 0;
+  for (mt_tbl *h = c->mt; h && !mt_readonly_p(h); h = h->next)
+    total += sizeof(mt_tbl) + (size_t)MT_ALLOC(h) *
+             (sizeof(union mt_ptr) + sizeof(mrb_sym));
+  return total;
 }
 
 /* Frees class method table for garbage collection */
@@ -1002,7 +1093,15 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
   else {
     mrb_check_frozen(mrb, c);
   }
-  if (!h) h = c->mt = mt_new(mrb);
+  if (!h) {
+    h = c->mt = mt_new(mrb);
+  }
+  else if (mt_readonly_p(h)) {
+    /* COW: create mutable top layer, chain to ROM */
+    mt_tbl *top = mt_new(mrb);
+    top->next = h;
+    h = c->mt = top;
+  }
   if (MRB_METHOD_PROC_P(m)) {
     struct RProc *p = (struct RProc*)MRB_METHOD_PROC(m);
 
@@ -3553,7 +3652,9 @@ mrb_remove_method(mrb_state *mrb, struct RClass *c0, mrb_sym mid)
   MRB_CLASS_ORIGIN(c);
   mt_tbl *h = c->mt;
 
-  if (h && mt_del(mrb, h, mid)) {
+  if ((h && mt_del(mrb, h, mid)) ||
+      (h && h->next && mt_chain_has(h->next, mid) &&
+       (mt_flatten(mrb, c), mt_del(mrb, c->mt, mid)))) {
     mrb_sym removed;
     mrb_value recv;
 
