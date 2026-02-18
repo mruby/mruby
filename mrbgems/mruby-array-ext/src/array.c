@@ -5,6 +5,7 @@
 #include <mruby/range.h>
 #include <mruby/hash.h>
 #include <mruby/data.h>
+#include <mruby/class.h>
 #include <mruby/internal.h>
 #include <mruby/presym.h>
 #include <mruby/khash.h>
@@ -1535,11 +1536,90 @@ ary_combination_next(mrb_state *mrb, mrb_value self)
   return result;
 }
 
+/* ---------------------------*/
+#ifndef MRB_NO_PRESYM
+#define ARRAY_EXT_ROM_MT_SIZE 29
+static struct {
+  union mt_ptr vals[ARRAY_EXT_ROM_MT_SIZE];
+  mrb_sym keys[ARRAY_EXT_ROM_MT_SIZE];
+} array_ext_rom_data = {
+  .vals = {
+    { .func = ary_assoc },
+    { .func = ary_at },
+    { .func = ary_rassoc },
+    { .func = ary_values_at },
+    { .func = ary_slice_bang },
+    { .func = ary_compact },
+    { .func = ary_compact_bang },
+    { .func = ary_rotate },
+    { .func = ary_rotate_bang },
+    { .func = ary_sub },
+    { .func = ary_difference },
+    { .func = ary_union },
+    { .func = ary_union_multi },
+    { .func = ary_intersection },
+    { .func = ary_intersection_multi },
+    { .func = ary_intersect_p },
+    { .func = ary_fill_parse_arg },
+    { .func = ary_fill_exec },
+    { .func = ary_uniq },
+    { .func = ary_uniq_bang },
+    { .func = ary_flatten },
+    { .func = ary_flatten_bang },
+    { .func = ary_normalize_index },
+    { .func = ary_fetch },
+    { .func = ary_insert },
+    { .func = ary_deconstruct },
+    { .func = ary_product_group },
+    { .func = ary_combination_init },
+    { .func = ary_combination_next },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM(assoc),              MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(at),                 MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(rassoc),             MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(values_at),          MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_B(slice),            MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(compact),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_B(compact),          MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(rotate),             MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_B(rotate),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(sub),              MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(difference),         MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(or),               MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(union),              MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(and),              MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(intersection),       MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(intersect),        MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(__fill_parse_arg),   MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(__fill_exec),        MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(__uniq),             MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_B(__uniq),           MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(flatten),            MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_B(flatten),          MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(__normalize_index),  MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(__fetch),            MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(insert),             MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(deconstruct),        MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(__product_group),    MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(__combination_init), MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(__combination_next), MT_FUNC|MT_PUBLIC),
+  }
+};
+static mt_tbl array_ext_rom_mt = {
+  ARRAY_EXT_ROM_MT_SIZE, ARRAY_EXT_ROM_MT_SIZE,
+  (union mt_ptr*)&array_ext_rom_data, NULL
+};
+#endif /* !MRB_NO_PRESYM */
+
 void
 mrb_mruby_array_ext_gem_init(mrb_state* mrb)
 {
   struct RClass * a = mrb->array_class;
 
+#ifndef MRB_NO_PRESYM
+  mrb_mt_init_rom(a, &array_ext_rom_mt);
+#else
   mrb_define_method_id(mrb, a, MRB_SYM(assoc), ary_assoc,  MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, a, MRB_SYM(at), ary_at,     MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, a, MRB_SYM(rassoc), ary_rassoc, MRB_ARGS_REQ(1));
@@ -1569,6 +1649,7 @@ mrb_mruby_array_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, a, MRB_SYM(__product_group), ary_product_group, MRB_ARGS_REQ(4));
   mrb_define_method_id(mrb, a, MRB_SYM(__combination_init), ary_combination_init, MRB_ARGS_REQ(2));
   mrb_define_method_id(mrb, a, MRB_SYM(__combination_next), ary_combination_next, MRB_ARGS_REQ(1));
+#endif
 }
 
 void
