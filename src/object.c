@@ -321,6 +321,86 @@ false_to_s(mrb_state *mrb, mrb_value obj)
   return str;
 }
 
+/* ---------------------------*/
+#ifndef MRB_NO_PRESYM
+#define NIL_ROM_MT_SIZE 6
+static struct {
+  union mt_ptr vals[NIL_ROM_MT_SIZE];
+  mrb_sym keys[NIL_ROM_MT_SIZE];
+} nil_rom_data = {
+  .vals = {
+    { .func = false_and },
+    { .func = false_or },
+    { .func = false_xor },
+    { .func = mrb_true },
+    { .func = nil_to_s },
+    { .func = nil_inspect },
+  },
+  .keys = {
+    MT_KEY(MRB_OPSYM(and),    MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(or),     MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(xor),    MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(nil),    MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(to_s),     MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(inspect),  MT_FUNC|MT_NOARG|MT_PUBLIC),
+  }
+};
+static mt_tbl nil_rom_mt = {
+  NIL_ROM_MT_SIZE, NIL_ROM_MT_SIZE,
+  (union mt_ptr*)&nil_rom_data, NULL
+};
+
+#define TRUE_ROM_MT_SIZE 5
+static struct {
+  union mt_ptr vals[TRUE_ROM_MT_SIZE];
+  mrb_sym keys[TRUE_ROM_MT_SIZE];
+} true_rom_data = {
+  .vals = {
+    { .func = true_and },
+    { .func = true_or },
+    { .func = true_xor },
+    { .func = true_to_s },
+    { .func = true_to_s },
+  },
+  .keys = {
+    MT_KEY(MRB_OPSYM(and),    MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(or),     MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(xor),    MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(to_s),     MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(inspect),  MT_FUNC|MT_NOARG|MT_PUBLIC),
+  }
+};
+static mt_tbl true_rom_mt = {
+  TRUE_ROM_MT_SIZE, TRUE_ROM_MT_SIZE,
+  (union mt_ptr*)&true_rom_data, NULL
+};
+
+#define FALSE_ROM_MT_SIZE 5
+static struct {
+  union mt_ptr vals[FALSE_ROM_MT_SIZE];
+  mrb_sym keys[FALSE_ROM_MT_SIZE];
+} false_rom_data = {
+  .vals = {
+    { .func = false_and },
+    { .func = false_or },
+    { .func = false_xor },
+    { .func = false_to_s },
+    { .func = false_to_s },
+  },
+  .keys = {
+    MT_KEY(MRB_OPSYM(and),    MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(or),     MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(xor),    MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(to_s),     MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(inspect),  MT_FUNC|MT_NOARG|MT_PUBLIC),
+  }
+};
+static mt_tbl false_rom_mt = {
+  FALSE_ROM_MT_SIZE, FALSE_ROM_MT_SIZE,
+  (union mt_ptr*)&false_rom_data, NULL
+};
+#endif /* !MRB_NO_PRESYM */
+
 void
 mrb_init_object(mrb_state *mrb)
 {
@@ -331,30 +411,42 @@ mrb_init_object(mrb_state *mrb)
   mrb->nil_class = n = mrb_define_class_id(mrb, MRB_SYM(NilClass), mrb->object_class);
   MRB_SET_INSTANCE_TT(n, MRB_TT_FALSE);
   mrb_undef_class_method_id(mrb, n, MRB_SYM(new));
+#ifndef MRB_NO_PRESYM
+  mrb_mt_init_rom(n, &nil_rom_mt);
+#else
   mrb_define_method_id(mrb, n, MRB_OPSYM(and),  false_and,      MRB_ARGS_REQ(1));  /* 15.2.4.3.1  */
   mrb_define_method_id(mrb, n, MRB_OPSYM(or),   false_or,       MRB_ARGS_REQ(1));  /* 15.2.4.3.2  */
   mrb_define_method_id(mrb, n, MRB_OPSYM(xor),  false_xor,      MRB_ARGS_REQ(1));  /* 15.2.4.3.3  */
   mrb_define_method_id(mrb, n, MRB_SYM_Q(nil),  mrb_true,       MRB_ARGS_NONE());  /* 15.2.4.3.4  */
   mrb_define_method_id(mrb, n, MRB_SYM(to_s),   nil_to_s,       MRB_ARGS_NONE());  /* 15.2.4.3.5  */
   mrb_define_method_id(mrb, n, MRB_SYM(inspect), nil_inspect, MRB_ARGS_NONE());
+#endif
 
   mrb->true_class = t = mrb_define_class_id(mrb, MRB_SYM(TrueClass), mrb->object_class);
   MRB_SET_INSTANCE_TT(t, MRB_TT_TRUE);
   mrb_undef_class_method_id(mrb, t, MRB_SYM(new));
+#ifndef MRB_NO_PRESYM
+  mrb_mt_init_rom(t, &true_rom_mt);
+#else
   mrb_define_method_id(mrb, t, MRB_OPSYM(and),  true_and,       MRB_ARGS_REQ(1));  /* 15.2.5.3.1  */
   mrb_define_method_id(mrb, t, MRB_OPSYM(or),   true_or,        MRB_ARGS_REQ(1));  /* 15.2.5.3.2  */
   mrb_define_method_id(mrb, t, MRB_OPSYM(xor),  true_xor,       MRB_ARGS_REQ(1));  /* 15.2.5.3.3  */
   mrb_define_method_id(mrb, t, MRB_SYM(to_s),   true_to_s,      MRB_ARGS_NONE());  /* 15.2.5.3.4  */
   mrb_define_method_id(mrb, t, MRB_SYM(inspect), true_to_s,   MRB_ARGS_NONE());
+#endif
 
   mrb->false_class = f = mrb_define_class_id(mrb, MRB_SYM(FalseClass), mrb->object_class);
   MRB_SET_INSTANCE_TT(f, MRB_TT_FALSE);
   mrb_undef_class_method_id(mrb, f, MRB_SYM(new));
+#ifndef MRB_NO_PRESYM
+  mrb_mt_init_rom(f, &false_rom_mt);
+#else
   mrb_define_method_id(mrb, f, MRB_OPSYM(and),  false_and,      MRB_ARGS_REQ(1));  /* 15.2.6.3.1  */
   mrb_define_method_id(mrb, f, MRB_OPSYM(or),   false_or,       MRB_ARGS_REQ(1));  /* 15.2.6.3.2  */
   mrb_define_method_id(mrb, f, MRB_OPSYM(xor),  false_xor,      MRB_ARGS_REQ(1));  /* 15.2.6.3.3  */
   mrb_define_method_id(mrb, f, MRB_SYM(to_s),   false_to_s,     MRB_ARGS_NONE());  /* 15.2.6.3.4  */
   mrb_define_method_id(mrb, f, MRB_SYM(inspect), false_to_s,  MRB_ARGS_NONE());
+#endif
 }
 
 static const char*
