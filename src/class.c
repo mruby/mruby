@@ -21,37 +21,18 @@
 
 #define METHOD_MID(m) MT_KEY_SYM((m).flags)
 
-union mt_ptr {
-  const struct RProc *proc;
-  mrb_func_t func;
-};
-
-#define MT_KEY_SHIFT 4
+/* mt_tbl, union mt_ptr, MT_KEY(), MT_READONLY_BIT, etc. defined in internal.h */
 #define MT_KEY_MASK  ((1<<MT_KEY_SHIFT)-1)
 #define MT_KEY_P(k) (((k)>>MT_KEY_SHIFT) != 0)
-#define MT_FUNC MRB_METHOD_FUNC_FL
-#define MT_NOARG MRB_METHOD_NOARG_FL
-#define MT_PUBLIC MRB_METHOD_PUBLIC_FL
-#define MT_PRIVATE MRB_METHOD_PRIVATE_FL
 #define MT_PROTECTED MRB_METHOD_PROTECTED_FL
 #define MT_VDEFAULT MRB_METHOD_VDEFAULT_FL
 #define MT_VMASK MRB_METHOD_VISIBILITY_MASK
 #define MT_EMPTY 0
 #define MT_DELETED 1
 
-#define MT_KEY(sym, flags) ((sym)<<MT_KEY_SHIFT|(flags))
 #define MT_KEY_SYM(k) ((k)>>MT_KEY_SHIFT)
 #define MT_KEY_FLG(k) ((k)&MT_KEY_MASK)
 
-/* method table structure */
-typedef struct mt_tbl {
-  int             size;  /* # of used entries */
-  int             alloc; /* capacity (bit 30: MT_READONLY_BIT) */
-  union mt_ptr   *ptr;   /* block: [ ptr[0...alloc] | keys[0...alloc] ] */
-  struct mt_tbl  *next;  /* next (lower-priority) layer, or NULL */
-} mt_tbl;
-
-#define MT_READONLY_BIT  (1 << 30)
 #define MT_ALLOC(t)      ((t)->alloc & ~MT_READONLY_BIT)
 #define mt_readonly_p(t) ((t)->alloc & MT_READONLY_BIT)
 
@@ -295,6 +276,46 @@ mt_free(mrb_state *mrb, mt_tbl *t)
     mrb_free(mrb, t->ptr);
     mrb_free(mrb, t);
     t = next;
+  }
+}
+
+/* Sorts parallel vals/keys arrays by key symbol (insertion sort) */
+static void
+mt_sort(union mt_ptr *vals, mrb_sym *keys, int n)
+{
+  for (int i = 1; i < n; i++) {
+    mrb_sym key = keys[i];
+    union mt_ptr val = vals[i];
+    mrb_sym sym = MT_KEY_SYM(key);
+    int j = i;
+    while (j > 0 && MT_KEY_SYM(keys[j-1]) > sym) {
+      keys[j] = keys[j-1];
+      vals[j] = vals[j-1];
+      j--;
+    }
+    keys[j] = key;
+    vals[j] = val;
+  }
+}
+
+/* Sorts a static ROM table, sets readonly flag, and pushes it to the class */
+void
+mrb_mt_init_rom(struct RClass *c, mt_tbl *rom)
+{
+  union mt_ptr *vals = rom->ptr;
+  mrb_sym *keys = (mrb_sym*)&vals[rom->size];
+  mt_sort(vals, keys, rom->size);
+  rom->alloc = rom->size | MT_READONLY_BIT;
+
+  /* push ROM layer */
+  mt_tbl *t = c->mt;
+  if (!t || mt_readonly_p(t)) {
+    rom->next = t;
+    c->mt = rom;
+  }
+  else {
+    rom->next = t->next;
+    t->next = rom;
   }
 }
 

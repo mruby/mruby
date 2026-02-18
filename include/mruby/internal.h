@@ -27,6 +27,29 @@ mrb_value mrb_mod_const_missing(mrb_state *mrb, mrb_value mod);
 mrb_value mrb_const_missing(mrb_state *mrb, mrb_value mod, mrb_sym sym);
 size_t mrb_class_mt_memsize(mrb_state*, struct RClass*);
 mrb_value mrb_obj_extend(mrb_state*, mrb_value obj);
+
+/* ROM method table types for static method registration */
+union mt_ptr {
+  const struct RProc *proc;
+  mrb_func_t func;
+};
+
+typedef struct mt_tbl {
+  int             size;
+  int             alloc;  /* bit 30: MT_READONLY_BIT */
+  union mt_ptr   *ptr;
+  struct mt_tbl  *next;
+} mt_tbl;
+
+#define MT_READONLY_BIT  (1 << 30)
+#define MT_KEY_SHIFT 4
+#define MT_KEY(sym, flags) ((sym)<<MT_KEY_SHIFT|(flags))
+#define MT_FUNC    8    /* MRB_METHOD_FUNC_FL */
+#define MT_NOARG   4    /* MRB_METHOD_NOARG_FL */
+#define MT_PUBLIC  0    /* MRB_METHOD_PUBLIC_FL */
+#define MT_PRIVATE 1    /* MRB_METHOD_PRIVATE_FL */
+
+void mrb_mt_init_rom(struct RClass *c, mt_tbl *rom);
 #endif
 
 mrb_value mrb_obj_equal_m(mrb_state *mrb, mrb_value);

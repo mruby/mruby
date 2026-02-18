@@ -3508,6 +3508,115 @@ mrb_encoding(mrb_state *mrb, mrb_value self)
 }
 
 /* ---------------------------*/
+#ifndef MRB_NO_PRESYM
+#define STRING_ROM_MT_SIZE 46
+static struct {
+  union mt_ptr vals[STRING_ROM_MT_SIZE];
+  mrb_sym keys[STRING_ROM_MT_SIZE];
+} string_rom_data = {
+  .vals = {
+    { .func = mrb_str_bytesize },
+    { .func = mrb_str_cmp_m },
+    { .func = mrb_str_equal_m },
+    { .func = mrb_str_plus_m },
+    { .func = mrb_str_times },
+    { .func = mrb_str_aref_m },
+    { .func = mrb_str_aset_m },
+    { .func = mrb_str_capitalize },
+    { .func = mrb_str_capitalize_bang },
+    { .func = mrb_str_chomp },
+    { .func = mrb_str_chomp_bang },
+    { .func = mrb_str_chop },
+    { .func = mrb_str_chop_bang },
+    { .func = mrb_str_downcase },
+    { .func = mrb_str_downcase_bang },
+    { .func = mrb_str_empty_p },
+    { .func = mrb_str_eql },
+    { .func = mrb_str_hash_m },
+    { .func = mrb_str_include },
+    { .func = mrb_str_index_m },
+    { .func = mrb_str_init },
+    { .func = mrb_str_replace },
+    { .func = mrb_str_intern },
+    { .func = mrb_str_size },
+    { .func = mrb_str_replace },
+    { .func = mrb_str_reverse },
+    { .func = mrb_str_reverse_bang },
+    { .func = mrb_str_rindex_m },
+    { .func = mrb_str_size },
+    { .func = mrb_str_aref_m },
+    { .func = mrb_str_split_m },
+    { .func = mrb_str_to_i },
+    { .func = mrb_str_to_s },
+    { .func = mrb_str_to_s },
+    { .func = mrb_str_intern },
+    { .func = mrb_str_upcase },
+    { .func = mrb_str_upcase_bang },
+    { .func = mrb_str_inspect },
+    { .func = mrb_str_bytes },
+    { .func = mrb_str_getbyte },
+    { .func = mrb_str_setbyte },
+    { .func = mrb_str_byteindex_m },
+    { .func = mrb_str_byterindex_m },
+    { .func = mrb_str_byteslice },
+    { .func = mrb_str_bytesplice },
+    { .func = sub_replace },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM(bytesize),        MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(cmp),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(eq),            MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(add),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(mul),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(aref),          MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(aset),          MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(capitalize),      MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_B(capitalize),    MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(chomp),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_B(chomp),         MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(chop),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_B(chop),          MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(downcase),        MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_B(downcase),      MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(empty),         MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(eql),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(hash),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(include),       MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(index),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(initialize),      MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(initialize_copy), MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(intern),          MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(length),          MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(replace),         MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(reverse),         MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_B(reverse),       MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(rindex),          MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(size),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(slice),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(split),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(to_i),            MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(to_s),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(to_str),          MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(to_sym),          MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(upcase),          MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_B(upcase),        MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(inspect),         MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(bytes),           MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(getbyte),         MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(setbyte),         MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(byteindex),       MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(byterindex),      MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(byteslice),       MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(bytesplice),      MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(__sub_replace),   MT_FUNC|MT_PUBLIC),
+  }
+};
+static mt_tbl string_rom_mt = {
+  STRING_ROM_MT_SIZE, STRING_ROM_MT_SIZE,
+  (union mt_ptr*)&string_rom_data, NULL
+};
+#endif /* !MRB_NO_PRESYM */
+
 void
 mrb_init_string(mrb_state *mrb)
 {
@@ -3519,60 +3628,63 @@ mrb_init_string(mrb_state *mrb)
   mrb->string_class = s = mrb_define_class_id(mrb, MRB_SYM(String), mrb->object_class);             /* 15.2.10 */
   MRB_SET_INSTANCE_TT(s, MRB_TT_STRING);
 
+#ifndef MRB_NO_PRESYM
+  mrb_mt_init_rom(s, &string_rom_mt);
+#else
   mrb_define_method_id(mrb, s, MRB_SYM(bytesize),        mrb_str_bytesize,        MRB_ARGS_NONE());
-
-  mrb_define_method_id(mrb, s, MRB_OPSYM(cmp),           mrb_str_cmp_m,           MRB_ARGS_REQ(1)); /* 15.2.10.5.1  */
-  mrb_define_method_id(mrb, s, MRB_OPSYM(eq),            mrb_str_equal_m,         MRB_ARGS_REQ(1)); /* 15.2.10.5.2  */
-  mrb_define_method_id(mrb, s, MRB_OPSYM(add),           mrb_str_plus_m,          MRB_ARGS_REQ(1)); /* 15.2.10.5.4  */
-  mrb_define_method_id(mrb, s, MRB_OPSYM(mul),           mrb_str_times,           MRB_ARGS_REQ(1)); /* 15.2.10.5.5  */
-  mrb_define_method_id(mrb, s, MRB_OPSYM(aref),          mrb_str_aref_m,          MRB_ARGS_ANY());  /* 15.2.10.5.6  */
+  mrb_define_method_id(mrb, s, MRB_OPSYM(cmp),           mrb_str_cmp_m,           MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_OPSYM(eq),            mrb_str_equal_m,         MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_OPSYM(add),           mrb_str_plus_m,          MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_OPSYM(mul),           mrb_str_times,           MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_OPSYM(aref),          mrb_str_aref_m,          MRB_ARGS_ANY());
   mrb_define_method_id(mrb, s, MRB_OPSYM(aset),          mrb_str_aset_m,          MRB_ARGS_ANY());
-  mrb_define_method_id(mrb, s, MRB_SYM(capitalize),      mrb_str_capitalize,      MRB_ARGS_NONE()); /* 15.2.10.5.7  */
-  mrb_define_method_id(mrb, s, MRB_SYM_B(capitalize),    mrb_str_capitalize_bang, MRB_ARGS_NONE()); /* 15.2.10.5.8  */
-  mrb_define_method_id(mrb, s, MRB_SYM(chomp),           mrb_str_chomp,           MRB_ARGS_ANY());  /* 15.2.10.5.9  */
-  mrb_define_method_id(mrb, s, MRB_SYM_B(chomp),         mrb_str_chomp_bang,      MRB_ARGS_ANY());  /* 15.2.10.5.10 */
-  mrb_define_method_id(mrb, s, MRB_SYM(chop),            mrb_str_chop,            MRB_ARGS_NONE()); /* 15.2.10.5.11 */
-  mrb_define_method_id(mrb, s, MRB_SYM_B(chop),          mrb_str_chop_bang,       MRB_ARGS_NONE()); /* 15.2.10.5.12 */
-  mrb_define_method_id(mrb, s, MRB_SYM(downcase),        mrb_str_downcase,        MRB_ARGS_NONE()); /* 15.2.10.5.13 */
-  mrb_define_method_id(mrb, s, MRB_SYM_B(downcase),      mrb_str_downcase_bang,   MRB_ARGS_NONE()); /* 15.2.10.5.14 */
-  mrb_define_method_id(mrb, s, MRB_SYM_Q(empty),         mrb_str_empty_p,         MRB_ARGS_NONE()); /* 15.2.10.5.16 */
-  mrb_define_method_id(mrb, s, MRB_SYM_Q(eql),           mrb_str_eql,             MRB_ARGS_REQ(1)); /* 15.2.10.5.17 */
+  mrb_define_method_id(mrb, s, MRB_SYM(capitalize),      mrb_str_capitalize,      MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM_B(capitalize),    mrb_str_capitalize_bang, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM(chomp),           mrb_str_chomp,           MRB_ARGS_ANY());
+  mrb_define_method_id(mrb, s, MRB_SYM_B(chomp),         mrb_str_chomp_bang,      MRB_ARGS_ANY());
+  mrb_define_method_id(mrb, s, MRB_SYM(chop),            mrb_str_chop,            MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM_B(chop),          mrb_str_chop_bang,       MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM(downcase),        mrb_str_downcase,        MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM_B(downcase),      mrb_str_downcase_bang,   MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM_Q(empty),         mrb_str_empty_p,         MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM_Q(eql),           mrb_str_eql,             MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_SYM(hash),            mrb_str_hash_m,          MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM_Q(include),       mrb_str_include,         MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_SYM(index),           mrb_str_index_m,         MRB_ARGS_ARG(1,1));
+  mrb_define_method_id(mrb, s, MRB_SYM(initialize),      mrb_str_init,            MRB_ARGS_REQ(1));
+  mrb_define_private_method_id(mrb, s, MRB_SYM(initialize_copy), mrb_str_replace, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_SYM(intern),          mrb_str_intern,          MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM(length),          mrb_str_size,            MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM(replace),         mrb_str_replace,         MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_SYM(reverse),         mrb_str_reverse,         MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM_B(reverse),       mrb_str_reverse_bang,    MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM(rindex),          mrb_str_rindex_m,        MRB_ARGS_ANY());
+  mrb_define_method_id(mrb, s, MRB_SYM(size),            mrb_str_size,            MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM(slice),           mrb_str_aref_m,          MRB_ARGS_ANY());
+  mrb_define_method_id(mrb, s, MRB_SYM(split),           mrb_str_split_m,         MRB_ARGS_ANY());
+#endif
 
-  mrb_define_method_id(mrb, s, MRB_SYM(hash),            mrb_str_hash_m,          MRB_ARGS_NONE()); /* 15.2.10.5.20 */
-  mrb_define_method_id(mrb, s, MRB_SYM_Q(include),       mrb_str_include,         MRB_ARGS_REQ(1)); /* 15.2.10.5.21 */
-  mrb_define_method_id(mrb, s, MRB_SYM(index),           mrb_str_index_m,         MRB_ARGS_ARG(1,1));  /* 15.2.10.5.22 */
-  mrb_define_method_id(mrb, s, MRB_SYM(initialize),      mrb_str_init,            MRB_ARGS_REQ(1)); /* 15.2.10.5.23 */
-  mrb_define_private_method_id(mrb, s, MRB_SYM(initialize_copy), mrb_str_replace, MRB_ARGS_REQ(1)); /* 15.2.10.5.24 */
-  mrb_define_method_id(mrb, s, MRB_SYM(intern),          mrb_str_intern,          MRB_ARGS_NONE()); /* 15.2.10.5.25 */
-  mrb_define_method_id(mrb, s, MRB_SYM(length),          mrb_str_size,            MRB_ARGS_NONE()); /* 15.2.10.5.26 */
-  mrb_define_method_id(mrb, s, MRB_SYM(replace),         mrb_str_replace,         MRB_ARGS_REQ(1)); /* 15.2.10.5.28 */
-  mrb_define_method_id(mrb, s, MRB_SYM(reverse),         mrb_str_reverse,         MRB_ARGS_NONE()); /* 15.2.10.5.29 */
-  mrb_define_method_id(mrb, s, MRB_SYM_B(reverse),       mrb_str_reverse_bang,    MRB_ARGS_NONE()); /* 15.2.10.5.30 */
-  mrb_define_method_id(mrb, s, MRB_SYM(rindex),          mrb_str_rindex_m,        MRB_ARGS_ANY());  /* 15.2.10.5.31 */
-  mrb_define_method_id(mrb, s, MRB_SYM(size),            mrb_str_size,            MRB_ARGS_NONE()); /* 15.2.10.5.33 */
-  mrb_define_method_id(mrb, s, MRB_SYM(slice),           mrb_str_aref_m,          MRB_ARGS_ANY());  /* 15.2.10.5.34 */
-  mrb_define_method_id(mrb, s, MRB_SYM(split),           mrb_str_split_m,         MRB_ARGS_ANY());  /* 15.2.10.5.35 */
-
+  /* conditional methods not in ROM table */
 #ifndef MRB_NO_FLOAT
   mrb_define_method_id(mrb, s, MRB_SYM(to_f),            mrb_str_to_f,            MRB_ARGS_NONE()); /* 15.2.10.5.38 */
 #endif
-  mrb_define_method_id(mrb, s, MRB_SYM(to_i),            mrb_str_to_i,            MRB_ARGS_ANY());  /* 15.2.10.5.39 */
-  mrb_define_method_id(mrb, s, MRB_SYM(to_s),            mrb_str_to_s,            MRB_ARGS_NONE()); /* 15.2.10.5.40 */
+#ifdef MRB_NO_PRESYM
+  mrb_define_method_id(mrb, s, MRB_SYM(to_i),            mrb_str_to_i,            MRB_ARGS_ANY());
+  mrb_define_method_id(mrb, s, MRB_SYM(to_s),            mrb_str_to_s,            MRB_ARGS_NONE());
   mrb_define_method_id(mrb, s, MRB_SYM(to_str),          mrb_str_to_s,            MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, s, MRB_SYM(to_sym),          mrb_str_intern,          MRB_ARGS_NONE()); /* 15.2.10.5.41 */
-  mrb_define_method_id(mrb, s, MRB_SYM(upcase),          mrb_str_upcase,          MRB_ARGS_NONE()); /* 15.2.10.5.42 */
-  mrb_define_method_id(mrb, s, MRB_SYM_B(upcase),        mrb_str_upcase_bang,     MRB_ARGS_NONE()); /* 15.2.10.5.43 */
-  mrb_define_method_id(mrb, s, MRB_SYM(inspect),         mrb_str_inspect,         MRB_ARGS_NONE()); /* 15.2.10.5.46(x) */
+  mrb_define_method_id(mrb, s, MRB_SYM(to_sym),          mrb_str_intern,          MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM(upcase),          mrb_str_upcase,          MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM_B(upcase),        mrb_str_upcase_bang,     MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM(inspect),         mrb_str_inspect,         MRB_ARGS_NONE());
   mrb_define_method_id(mrb, s, MRB_SYM(bytes),           mrb_str_bytes,           MRB_ARGS_NONE());
-
   mrb_define_method_id(mrb, s, MRB_SYM(getbyte),         mrb_str_getbyte,         MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, s, MRB_SYM(setbyte),         mrb_str_setbyte,         MRB_ARGS_REQ(2));
   mrb_define_method_id(mrb, s, MRB_SYM(byteindex),       mrb_str_byteindex_m,     MRB_ARGS_ARG(1,1));
   mrb_define_method_id(mrb, s, MRB_SYM(byterindex),      mrb_str_byterindex_m,    MRB_ARGS_ARG(1,1));
   mrb_define_method_id(mrb, s, MRB_SYM(byteslice),       mrb_str_byteslice,       MRB_ARGS_ARG(1,1));
   mrb_define_method_id(mrb, s, MRB_SYM(bytesplice),      mrb_str_bytesplice,      MRB_ARGS_ANY());
-
-  mrb_define_method_id(mrb, s, MRB_SYM(__sub_replace),   sub_replace,             MRB_ARGS_REQ(3)); /* internal */
+  mrb_define_method_id(mrb, s, MRB_SYM(__sub_replace),   sub_replace,             MRB_ARGS_REQ(3));
+#endif
 
   mrb_define_method_id(mrb, mrb->kernel_module, MRB_SYM(__ENCODING__), mrb_encoding, MRB_ARGS_NONE());
 }
