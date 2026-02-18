@@ -28,3 +28,6 @@ indent_style = tab
 [*.bat]
 end_of_line = crlf
 #max_line_length = 80
+
+[*.sha256]
+insert_final_newline = false
