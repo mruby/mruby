@@ -665,6 +665,78 @@ mrb_p_m(mrb_state *mrb, mrb_value self)
 }
 #endif
 
+/* ---------------------------*/
+#ifndef MRB_NO_PRESYM
+#define KERNEL_ROM_MT_SIZE 27
+static struct {
+  union mt_ptr vals[KERNEL_ROM_MT_SIZE];
+  mrb_sym keys[KERNEL_ROM_MT_SIZE];
+} kernel_rom_data = {
+  .vals = {
+    { .func = mrb_eqq_m },
+    { .func = mrb_cmp_m },
+    { .func = mrb_f_block_given_p_m },
+    { .func = mrb_obj_class_m },
+    { .func = mrb_obj_clone },
+    { .func = mrb_obj_dup },
+    { .func = mrb_obj_equal_m },
+    { .func = mrb_obj_freeze },
+    { .func = mrb_obj_frozen },
+    { .func = mrb_obj_extend },
+    { .func = mrb_obj_hash },
+    { .func = mrb_obj_init_copy },
+    { .func = mrb_obj_inspect },
+    { .func = obj_is_instance_of },
+    { .func = mrb_obj_is_kind_of_m },
+    { .func = mrb_f_block_given_p_m },
+    { .func = mrb_obj_is_kind_of_m },
+    { .func = mrb_false },
+    { .func = mrb_obj_id_m },
+    { .func = mrb_f_raise },
+    { .func = mrb_obj_remove_instance_variable },
+    { .func = obj_respond_to },
+    { .func = mrb_any_to_s },
+    { .func = mrb_obj_ceqq },
+    { .func = mrb_ensure_int_type },
+    { .func = mrb_false },
+    { .func = mrb_obj_method_recursive_p },
+  },
+  .keys = {
+    MT_KEY(MRB_OPSYM(eqq),                      MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(cmp),                       MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(block_given),               MT_FUNC|MT_NOARG|MT_PRIVATE),
+    MT_KEY(MRB_SYM(class),                        MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(clone),                        MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(dup),                          MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(eql),                        MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(freeze),                       MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(frozen),                     MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(extend),                       MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(hash),                         MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(initialize_copy),              MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(inspect),                      MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(instance_of),                MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(is_a),                       MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(iterator),                   MT_FUNC|MT_NOARG|MT_PRIVATE),
+    MT_KEY(MRB_SYM_Q(kind_of),                    MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(nil),                        MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(object_id),                    MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(raise),                        MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(remove_instance_variable),     MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(respond_to),                 MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(to_s),                         MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(__case_eqq),                   MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(__to_int),                     MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(respond_to_missing),         MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM_Q(__method_recursive),         MT_FUNC|MT_PUBLIC),
+  }
+};
+static mt_tbl kernel_rom_mt = {
+  KERNEL_ROM_MT_SIZE, KERNEL_ROM_MT_SIZE,
+  (union mt_ptr*)&kernel_rom_data, NULL
+};
+#endif /* !MRB_NO_PRESYM */
+
 void
 mrb_init_kernel(mrb_state *mrb)
 {
@@ -677,6 +749,9 @@ mrb_init_kernel(mrb_state *mrb)
 #endif
   mrb_define_class_method_id(mrb, krn, MRB_SYM(raise),                mrb_f_raise,                     MRB_ARGS_OPT(2));    /* 15.3.1.2.12 */
 
+#ifndef MRB_NO_PRESYM
+  mrb_mt_init_rom(krn, &kernel_rom_mt);
+#else
   mrb_define_method_id(mrb, krn, MRB_OPSYM(eqq),                      mrb_eqq_m,                       MRB_ARGS_REQ(1));    /* 15.3.1.3.2  */
   mrb_define_method_id(mrb, krn, MRB_OPSYM(cmp),                      mrb_cmp_m,                       MRB_ARGS_REQ(1));
   mrb_define_private_method_id(mrb, krn, MRB_SYM_Q(block_given),      mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.3.6  */
@@ -691,16 +766,11 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_private_method_id(mrb, krn, MRB_SYM(initialize_copy),    mrb_obj_init_copy,               MRB_ARGS_REQ(1));    /* 15.3.1.3.16 */
   mrb_define_method_id(mrb, krn, MRB_SYM(inspect),                    mrb_obj_inspect,                 MRB_ARGS_NONE());    /* 15.3.1.3.17 */
   mrb_define_method_id(mrb, krn, MRB_SYM_Q(instance_of),              obj_is_instance_of,              MRB_ARGS_REQ(1));    /* 15.3.1.3.19 */
-
   mrb_define_method_id(mrb, krn, MRB_SYM_Q(is_a),                     mrb_obj_is_kind_of_m,            MRB_ARGS_REQ(1));    /* 15.3.1.3.24 */
   mrb_define_private_method_id(mrb, krn, MRB_SYM_Q(iterator),         mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.3.25 */
   mrb_define_method_id(mrb, krn, MRB_SYM_Q(kind_of),                  mrb_obj_is_kind_of_m,            MRB_ARGS_REQ(1));    /* 15.3.1.3.26 */
   mrb_define_method_id(mrb, krn, MRB_SYM_Q(nil),                      mrb_false,                       MRB_ARGS_NONE());    /* 15.3.1.3.32 */
   mrb_define_method_id(mrb, krn, MRB_SYM(object_id),                  mrb_obj_id_m,                    MRB_ARGS_NONE());    /* 15.3.1.3.33 */
-#ifndef HAVE_MRUBY_IO_GEM
-  mrb_define_private_method_id(mrb, krn, MRB_SYM(p),                  mrb_p_m,                         MRB_ARGS_ANY());     /* 15.3.1.3.34 */
-  mrb_define_private_method_id(mrb, krn, MRB_SYM(print),              mrb_print_m,                     MRB_ARGS_ANY());     /* 15.3.1.3.35 */
-#endif
   mrb_define_private_method_id(mrb, krn, MRB_SYM(raise),              mrb_f_raise,                     MRB_ARGS_OPT(2));    /* 15.3.1.3.40 */
   mrb_define_method_id(mrb, krn, MRB_SYM(remove_instance_variable),   mrb_obj_remove_instance_variable,MRB_ARGS_REQ(1));    /* 15.3.1.3.41 */
   mrb_define_method_id(mrb, krn, MRB_SYM_Q(respond_to),               obj_respond_to,                  MRB_ARGS_ARG(1,1));  /* 15.3.1.3.43 */
@@ -709,6 +779,13 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method_id(mrb, krn, MRB_SYM(__to_int),                   mrb_ensure_int_type,             MRB_ARGS_NONE());    /* internal */
   mrb_define_private_method_id(mrb, krn, MRB_SYM_Q(respond_to_missing), mrb_false,                     MRB_ARGS_ARG(1,1));
   mrb_define_method_id(mrb, krn, MRB_SYM_Q(__method_recursive),       mrb_obj_method_recursive_p,      MRB_ARGS_ARG(1,1));
+#endif
+
+  /* conditional methods not in ROM table */
+#ifndef HAVE_MRUBY_IO_GEM
+  mrb_define_private_method_id(mrb, krn, MRB_SYM(p),                  mrb_p_m,                         MRB_ARGS_ANY());     /* 15.3.1.3.34 */
+  mrb_define_private_method_id(mrb, krn, MRB_SYM(print),              mrb_print_m,                     MRB_ARGS_ANY());     /* 15.3.1.3.35 */
+#endif
 
   mrb_include_module(mrb, mrb->object_class, mrb->kernel_module);
 }
