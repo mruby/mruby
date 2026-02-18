@@ -4364,6 +4364,152 @@ static const struct RProc neq_proc = {
   { &neq_irep }, NULL, { NULL }
 };
 
+/* ---------------------------*/
+#ifndef MRB_NO_PRESYM
+#define BOB_ROM_MT_SIZE 11
+static struct {
+  union mt_ptr vals[BOB_ROM_MT_SIZE];
+  mrb_sym keys[BOB_ROM_MT_SIZE];
+} bob_rom_data = {
+  .vals = {
+    { .func = mrb_obj_equal_m },
+    { .func = mrb_bob_not },
+    { .func = mrb_obj_id_m },
+    { .func = mrb_f_send },
+    { .func = mrb_obj_equal_m },
+    { .func = mrb_do_nothing },
+    { .func = mrb_obj_instance_eval },
+    { .func = mrb_obj_missing },
+    { .func = mrb_do_nothing },
+    { .func = mrb_do_nothing },
+    { .func = mrb_do_nothing },
+  },
+  .keys = {
+    MT_KEY(MRB_OPSYM(eq),                       MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(not),                      MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(__id__),                     MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(__send__),                   MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(equal),                    MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(initialize),                 MT_FUNC|MT_NOARG|MT_PRIVATE),
+    MT_KEY(MRB_SYM(instance_eval),              MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(method_missing),             MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(singleton_method_added),     MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(singleton_method_removed),   MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(singleton_method_undefined), MT_FUNC|MT_PRIVATE),
+  }
+};
+static mt_tbl bob_rom_mt = {
+  BOB_ROM_MT_SIZE, BOB_ROM_MT_SIZE,
+  (union mt_ptr*)&bob_rom_data, NULL
+};
+
+#define CLS_ROM_MT_SIZE 4
+static struct {
+  union mt_ptr vals[CLS_ROM_MT_SIZE];
+  mrb_sym keys[CLS_ROM_MT_SIZE];
+} cls_rom_data = {
+  .vals = {
+    { .func = mrb_instance_alloc },
+    { .func = mrb_do_nothing },
+    { .func = mrb_class_initialize },
+    { .func = mrb_class_superclass },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM(allocate),   MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(inherited),  MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(initialize), MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(superclass), MT_FUNC|MT_NOARG|MT_PUBLIC),
+  }
+};
+static mt_tbl cls_rom_mt = {
+  CLS_ROM_MT_SIZE, CLS_ROM_MT_SIZE,
+  (union mt_ptr*)&cls_rom_data, NULL
+};
+
+#define MOD_ROM_MT_SIZE 34
+static struct {
+  union mt_ptr vals[MOD_ROM_MT_SIZE];
+  mrb_sym keys[MOD_ROM_MT_SIZE];
+} mod_rom_data = {
+  .vals = {
+    { .func = mrb_mod_eqq },
+    { .func = mrb_mod_alias },
+    { .func = mrb_mod_ancestors },
+    { .func = mrb_mod_attr_accessor },
+    { .func = mrb_mod_attr_reader },
+    { .func = mrb_mod_attr_writer },
+    { .func = mrb_mod_module_eval },
+    { .func = mrb_do_nothing },
+    { .func = mrb_mod_const_defined },
+    { .func = mrb_mod_const_get },
+    { .func = mrb_mod_const_missing },
+    { .func = mrb_mod_const_set },
+    { .func = mod_define_method },
+    { .func = mrb_mod_dup },
+    { .func = mrb_do_nothing },
+    { .func = mrb_mod_include },
+    { .func = mrb_mod_include_p },
+    { .func = mrb_do_nothing },
+    { .func = mrb_mod_initialize },
+    { .func = mrb_mod_to_s },
+    { .func = mrb_do_nothing },
+    { .func = mrb_do_nothing },
+    { .func = mrb_mod_method_defined },
+    { .func = mrb_do_nothing },
+    { .func = mrb_mod_module_eval },
+    { .func = mrb_mod_module_function },
+    { .func = mrb_mod_prepend },
+    { .func = mrb_do_nothing },
+    { .func = mrb_mod_private },
+    { .func = mrb_mod_protected },
+    { .func = mrb_mod_public },
+    { .func = mrb_mod_remove_const },
+    { .func = mrb_mod_to_s },
+    { .func = mrb_mod_undef },
+  },
+  .keys = {
+    MT_KEY(MRB_OPSYM(eqq),              MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(alias_method),       MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(ancestors),          MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(attr_accessor),      MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(attr_reader),        MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(attr_writer),        MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(class_eval),         MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(const_added),        MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM_Q(const_defined),    MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(const_get),          MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(const_missing),      MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(const_set),          MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(define_method),      MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(dup),               MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(extended),           MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(include),            MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(include),          MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(included),           MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(initialize),         MT_FUNC|MT_NOARG|MT_PRIVATE),
+    MT_KEY(MRB_SYM(inspect),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(method_added),       MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(method_removed),     MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM_Q(method_defined),   MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(method_undefined),   MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(module_eval),        MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(module_function),    MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(prepend),            MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(prepended),          MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(private),            MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(protected),          MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(public),             MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(remove_const),       MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(to_s),              MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(undef_method),       MT_FUNC|MT_PUBLIC),
+  }
+};
+static mt_tbl mod_rom_mt = {
+  MOD_ROM_MT_SIZE, MOD_ROM_MT_SIZE,
+  (union mt_ptr*)&mod_rom_data, NULL
+};
+#endif /* !MRB_NO_PRESYM */
+
 void
 mrb_init_class(mrb_state *mrb)
 {
@@ -4397,6 +4543,9 @@ mrb_init_class(mrb_state *mrb)
   mrb_class_name_class(mrb, NULL, mod, MRB_SYM(Module)); /* 15.2.2 */
   mrb_class_name_class(mrb, NULL, cls, MRB_SYM(Class));  /* 15.2.3 */
 
+#ifndef MRB_NO_PRESYM
+  mrb_mt_init_rom(bob, &bob_rom_mt);
+#else
   mrb_define_method_id(mrb, bob, MRB_SYM(initialize),                      mrb_do_nothing,           MRB_ARGS_NONE());
   mrb_define_method_id(mrb, bob, MRB_OPSYM(not),                           mrb_bob_not,              MRB_ARGS_NONE());
   mrb_define_method_id(mrb, bob, MRB_OPSYM(eq),                            mrb_obj_equal_m,          MRB_ARGS_REQ(1)); /* 15.3.1.3.1  */
@@ -4408,25 +4557,32 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_private_method_id(mrb, bob, MRB_SYM(singleton_method_removed),mrb_do_nothing,           MRB_ARGS_REQ(1));
   mrb_define_private_method_id(mrb, bob, MRB_SYM(singleton_method_undefined),mrb_do_nothing,         MRB_ARGS_REQ(1));
   mrb_define_private_method_id(mrb, bob, MRB_SYM(method_missing),          mrb_obj_missing,          MRB_ARGS_ANY());  /* 15.3.1.3.30 */
+#endif
 
   mrb_method_t m;
   MRB_METHOD_FROM_PROC(m, &neq_proc);
   mrb_define_method_raw(mrb, bob, MRB_OPSYM(neq), m);
 
   mrb_define_class_method_id(mrb, cls, MRB_SYM(new),                       mrb_class_new_class,      MRB_ARGS_OPT(1)|MRB_ARGS_BLOCK());
+#ifndef MRB_NO_PRESYM
+  mrb_mt_init_rom(cls, &cls_rom_mt);
+#else
   mrb_define_method_id(mrb, cls, MRB_SYM(allocate),                        mrb_instance_alloc,       MRB_ARGS_NONE());
   mrb_define_method_id(mrb, cls, MRB_SYM(superclass),                      mrb_class_superclass,     MRB_ARGS_NONE()); /* 15.2.3.3.4 */
   mrb_define_method_id(mrb, cls, MRB_SYM(initialize),                      mrb_class_initialize,     MRB_ARGS_OPT(1)); /* 15.2.3.3.1 */
   mrb_define_private_method_id(mrb, cls, MRB_SYM(inherited),               mrb_do_nothing,           MRB_ARGS_REQ(1));
+#endif
 
   init_class_new(mrb, cls);
 
+#ifndef MRB_NO_PRESYM
+  mrb_mt_init_rom(mod, &mod_rom_mt);
+#else
   mrb_define_private_method_id(mrb, mod, MRB_SYM(extended),                mrb_do_nothing,           MRB_ARGS_REQ(1)); /* 15.2.2.4.26 */
   mrb_define_private_method_id(mrb, mod, MRB_SYM(prepended),               mrb_do_nothing,           MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, mod, MRB_SYM_Q(include),                       mrb_mod_include_p,        MRB_ARGS_REQ(1)); /* 15.2.2.4.28 */
-
   mrb_define_method_id(mrb, mod, MRB_SYM(include),                         mrb_mod_include,          MRB_ARGS_REQ(1)); /* 15.2.2.4.27 */
-  mrb_define_method_id(mrb, mod, MRB_SYM(prepend),                         mrb_mod_prepend, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, mod, MRB_SYM(prepend),                         mrb_mod_prepend,          MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, mod, MRB_SYM(class_eval),                      mrb_mod_module_eval,      MRB_ARGS_ANY());  /* 15.2.2.4.15 */
   mrb_define_private_method_id(mrb, mod, MRB_SYM(included),                mrb_do_nothing,           MRB_ARGS_REQ(1)); /* 15.2.2.4.29 */
   mrb_define_method_id(mrb, mod, MRB_SYM(initialize),                      mrb_mod_initialize,       MRB_ARGS_NONE()); /* 15.2.2.4.31 */
@@ -4438,7 +4594,6 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method_id(mrb, mod, MRB_SYM(attr_accessor),                   mrb_mod_attr_accessor,    MRB_ARGS_ANY());  /* 15.2.2.4.12 */
   mrb_define_method_id(mrb, mod, MRB_SYM(attr_reader),                     mrb_mod_attr_reader,      MRB_ARGS_ANY());  /* 15.2.2.4.13 */
   mrb_define_method_id(mrb, mod, MRB_SYM(attr_writer),                     mrb_mod_attr_writer,      MRB_ARGS_ANY());  /* 15.2.2.4.14 */
-  mrb_define_alias_id(mrb, mod, MRB_SYM(attr), MRB_SYM(attr_reader));                                                  /* 15.2.2.4.11 */
   mrb_define_method_id(mrb, mod, MRB_SYM(to_s),                            mrb_mod_to_s,             MRB_ARGS_NONE());
   mrb_define_method_id(mrb, mod, MRB_SYM(inspect),                         mrb_mod_to_s,             MRB_ARGS_NONE());
   mrb_define_method_id(mrb, mod, MRB_SYM(alias_method),                    mrb_mod_alias,            MRB_ARGS_ANY());  /* 15.2.2.4.8 */
@@ -4457,6 +4612,8 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_private_method_id(mrb, mod, MRB_SYM(method_removed),          mrb_do_nothing,           MRB_ARGS_REQ(1));
   mrb_define_private_method_id(mrb, mod, MRB_SYM(method_undefined),        mrb_do_nothing,           MRB_ARGS_REQ(1));
   mrb_define_private_method_id(mrb, mod, MRB_SYM(const_added),             mrb_do_nothing,           MRB_ARGS_REQ(1));
+#endif
+  mrb_define_alias_id(mrb, mod, MRB_SYM(attr), MRB_SYM(attr_reader));                                                  /* 15.2.2.4.11 */
 
   mrb_undef_method_id(mrb, cls, MRB_SYM(module_function));
 
