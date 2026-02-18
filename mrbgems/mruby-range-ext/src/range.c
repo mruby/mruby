@@ -1,5 +1,7 @@
 #include <mruby.h>
 #include <mruby/range.h>
+#include <mruby/class.h>
+#include <mruby/internal.h>
 #include <mruby/presym.h>
 
 static mrb_bool
@@ -214,14 +216,41 @@ range_empty_p(mrb_state *mrb, mrb_value range)
   return mrb_bool_value(comp == -2 || comp > 0 || (comp == 0 && excl));
 }
 
+#ifndef MRB_NO_PRESYM
+#define RANGE_EXT_ROM_MT_SIZE 3
+static struct {
+  union mt_ptr vals[RANGE_EXT_ROM_MT_SIZE];
+  mrb_sym keys[RANGE_EXT_ROM_MT_SIZE];
+} range_ext_rom_data = {
+  .vals = {
+    { .func = range_cover },
+    { .func = range_size },
+    { .func = range_empty_p },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM_Q(cover),          MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(size),             MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(__empty_range),  MT_FUNC|MT_PUBLIC),
+  }
+};
+static mt_tbl range_ext_rom_mt = {
+  RANGE_EXT_ROM_MT_SIZE, RANGE_EXT_ROM_MT_SIZE,
+  (union mt_ptr*)&range_ext_rom_data, NULL
+};
+#endif /* !MRB_NO_PRESYM */
+
 void
 mrb_mruby_range_ext_gem_init(mrb_state* mrb)
 {
   struct RClass *s = mrb->range_class;
 
+#ifndef MRB_NO_PRESYM
+  mrb_mt_init_rom(s, &range_ext_rom_mt);
+#else
   mrb_define_method_id(mrb, s, MRB_SYM_Q(cover), range_cover, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, s, MRB_SYM(size), range_size,  MRB_ARGS_NONE());
   mrb_define_method_id(mrb, s, MRB_SYM_Q(__empty_range), range_empty_p,  MRB_ARGS_REQ(3));
+#endif
 }
 
 void
