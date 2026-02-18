@@ -8,6 +8,7 @@
 #include <mruby/array.h>
 #include <mruby/hash.h>
 #include <mruby/class.h>
+#include <mruby/internal.h>
 #include <mruby/presym.h>
 
 /*
@@ -366,18 +367,51 @@ hash_merge(mrb_state *mrb, mrb_value hash)
   return hash;
 }
 
+#ifndef MRB_NO_PRESYM
+#define HASH_EXT_ROM_MT_SIZE 6
+static struct {
+  union mt_ptr vals[HASH_EXT_ROM_MT_SIZE];
+  mrb_sym keys[HASH_EXT_ROM_MT_SIZE];
+} hash_ext_rom_data = {
+  .vals = {
+    { .func = hash_values_at },
+    { .func = hash_slice },
+    { .func = hash_slice_bang },
+    { .func = hash_except },
+    { .func = hash_key },
+    { .func = hash_merge },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM(values_at), MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(slice),     MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_B(slice),   MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(except),    MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(key),       MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(__merge),   MT_FUNC|MT_PUBLIC),
+  }
+};
+static mt_tbl hash_ext_rom_mt = {
+  HASH_EXT_ROM_MT_SIZE, HASH_EXT_ROM_MT_SIZE,
+  (union mt_ptr*)&hash_ext_rom_data, NULL
+};
+#endif /* !MRB_NO_PRESYM */
+
 void
 mrb_mruby_hash_ext_gem_init(mrb_state *mrb)
 {
   struct RClass *h;
 
   h = mrb->hash_class;
+#ifndef MRB_NO_PRESYM
+  mrb_mt_init_rom(h, &hash_ext_rom_mt);
+#else
   mrb_define_method_id(mrb, h, MRB_SYM(values_at), hash_values_at, MRB_ARGS_ANY());
   mrb_define_method_id(mrb, h, MRB_SYM(slice),     hash_slice, MRB_ARGS_ANY());
   mrb_define_method_id(mrb, h, MRB_SYM_B(slice),    hash_slice_bang, MRB_ARGS_ANY());
   mrb_define_method_id(mrb, h, MRB_SYM(except),    hash_except, MRB_ARGS_ANY());
   mrb_define_method_id(mrb, h, MRB_SYM(key),       hash_key, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, h, MRB_SYM(__merge),   hash_merge, MRB_ARGS_ANY());
+#endif
   mrb_define_class_method_id(mrb, h, MRB_OPSYM(aref), hash_s_create, MRB_ARGS_ANY());
 }
 
