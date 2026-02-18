@@ -891,12 +891,47 @@ mrb_check_error(mrb_state *mrb)
   return FALSE;
 }
 
+/* ---------------------------*/
+#ifndef MRB_NO_PRESYM
+#define EXCEPTION_ROM_MT_SIZE 7
+static struct {
+  union mt_ptr vals[EXCEPTION_ROM_MT_SIZE];
+  mrb_sym keys[EXCEPTION_ROM_MT_SIZE];
+} exception_rom_data = {
+  .vals = {
+    { .func = exc_exception },
+    { .func = exc_initialize },
+    { .func = exc_to_s },
+    { .func = exc_to_s },
+    { .func = mrb_exc_inspect },
+    { .func = mrb_exc_backtrace },
+    { .func = exc_set_backtrace },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM(exception),      MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(initialize),     MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(to_s),           MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(message),        MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(inspect),        MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(backtrace),      MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(set_backtrace),  MT_FUNC|MT_PUBLIC),
+  }
+};
+static mt_tbl exception_rom_mt = {
+  EXCEPTION_ROM_MT_SIZE, EXCEPTION_ROM_MT_SIZE,
+  (union mt_ptr*)&exception_rom_data, NULL
+};
+#endif /* !MRB_NO_PRESYM */
+
 void
 mrb_init_exception(mrb_state *mrb)
 {
   struct RClass *exception = mrb->eException_class = mrb_define_class_id(mrb, MRB_SYM(Exception), mrb->object_class); /* 15.2.22 */
   MRB_SET_INSTANCE_TT(exception, MRB_TT_EXCEPTION);
   mrb_define_class_method_id(mrb, exception, MRB_SYM(exception), mrb_instance_new,  MRB_ARGS_OPT(1));
+#ifndef MRB_NO_PRESYM
+  mrb_mt_init_rom(exception, &exception_rom_mt);
+#else
   mrb_define_method_id(mrb, exception, MRB_SYM(exception),       exc_exception,     MRB_ARGS_OPT(1));
   mrb_define_method_id(mrb, exception, MRB_SYM(initialize),      exc_initialize,    MRB_ARGS_OPT(1));
   mrb_define_method_id(mrb, exception, MRB_SYM(to_s),            exc_to_s,          MRB_ARGS_NONE());
@@ -904,6 +939,7 @@ mrb_init_exception(mrb_state *mrb)
   mrb_define_method_id(mrb, exception, MRB_SYM(inspect),         mrb_exc_inspect,   MRB_ARGS_NONE());
   mrb_define_method_id(mrb, exception, MRB_SYM(backtrace),       mrb_exc_backtrace, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, exception, MRB_SYM(set_backtrace),   exc_set_backtrace, MRB_ARGS_REQ(1));
+#endif
 
   mrb->eStandardError_class = mrb_define_class_id(mrb, MRB_SYM(StandardError), mrb->eException_class); /* 15.2.23 */
   mrb_define_class_id(mrb, MRB_SYM(ArgumentError), E_STANDARD_ERROR);                                  /* 15.2.24 */
