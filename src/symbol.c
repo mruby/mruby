@@ -1008,6 +1008,36 @@ sym_cmp(mrb_state *mrb, mrb_value s1)
 }
 #undef lesser
 
+/* ---------------------------*/
+#ifndef MRB_NO_PRESYM
+#define SYMBOL_ROM_MT_SIZE 6
+static struct {
+  union mt_ptr vals[SYMBOL_ROM_MT_SIZE];
+  mrb_sym keys[SYMBOL_ROM_MT_SIZE];
+} symbol_rom_data = {
+  .vals = {
+    { .func = sym_to_s },
+    { .func = sym_name },
+    { .func = mrb_obj_itself },
+    { .func = sym_inspect },
+    { .func = sym_cmp },
+    { .func = mrb_obj_equal_m },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM(to_s),    MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(name),    MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(to_sym),  MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(inspect), MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(cmp),   MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(eq),    MT_FUNC|MT_PUBLIC),
+  }
+};
+static mt_tbl symbol_rom_mt = {
+  SYMBOL_ROM_MT_SIZE, SYMBOL_ROM_MT_SIZE,
+  (union mt_ptr*)&symbol_rom_data, NULL
+};
+#endif /* !MRB_NO_PRESYM */
+
 void
 mrb_init_symbol(mrb_state *mrb)
 {
@@ -1017,10 +1047,14 @@ mrb_init_symbol(mrb_state *mrb)
   MRB_SET_INSTANCE_TT(sym, MRB_TT_SYMBOL);
   mrb_undef_class_method_id(mrb,  sym, MRB_SYM(new));
 
+#ifndef MRB_NO_PRESYM
+  mrb_mt_init_rom(sym, &symbol_rom_mt);
+#else
   mrb_define_method_id(mrb, sym, MRB_SYM(to_s),    sym_to_s,    MRB_ARGS_NONE());          /* 15.2.11.3.3 */
   mrb_define_method_id(mrb, sym, MRB_SYM(name),    sym_name,    MRB_ARGS_NONE());
   mrb_define_method_id(mrb, sym, MRB_SYM(to_sym),  mrb_obj_itself,  MRB_ARGS_NONE());      /* 15.2.11.3.4 */
   mrb_define_method_id(mrb, sym, MRB_SYM(inspect), sym_inspect, MRB_ARGS_NONE());          /* 15.2.11.3.5(x) */
   mrb_define_method_id(mrb, sym, MRB_OPSYM(cmp),   sym_cmp,     MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, sym, MRB_OPSYM(eq),    mrb_obj_equal_m,      MRB_ARGS_REQ(1));
+#endif
 }
