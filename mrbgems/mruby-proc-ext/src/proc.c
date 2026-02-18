@@ -1,9 +1,11 @@
 #include <mruby.h>
+#include <mruby/class.h>
 #include <mruby/proc.h>
 #include <mruby/opcode.h>
 #include <mruby/array.h>
 #include <mruby/string.h>
 #include <mruby/debug.h>
+#include <mruby/internal.h>
 #include <mruby/presym.h>
 
 /*
@@ -241,10 +243,60 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
   return parameters;
 }
 
+/* ---------------------------*/
+#ifndef MRB_NO_PRESYM
+#define PROC_EXT_ROM_MT_SIZE 5
+static struct {
+  union mt_ptr vals[PROC_EXT_ROM_MT_SIZE];
+  mrb_sym keys[PROC_EXT_ROM_MT_SIZE];
+} proc_ext_rom_data = {
+  .vals = {
+    { .func = proc_inspect },
+    { .func = proc_lambda_p },
+    { .func = mrb_proc_parameters },
+    { .func = proc_source_location },
+    { .func = proc_inspect },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM(inspect),         MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(lambda),        MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(parameters),      MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(source_location), MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(to_s),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+  }
+};
+static mt_tbl proc_ext_rom_mt = {
+  PROC_EXT_ROM_MT_SIZE, PROC_EXT_ROM_MT_SIZE,
+  (union mt_ptr*)&proc_ext_rom_data, NULL
+};
+
+#define KERNEL_EXT_ROM_MT_SIZE 1
+static struct {
+  union mt_ptr vals[KERNEL_EXT_ROM_MT_SIZE];
+  mrb_sym keys[KERNEL_EXT_ROM_MT_SIZE];
+} kernel_ext_rom_data = {
+  .vals = {
+    { .func = kernel_proc },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM(proc), MT_FUNC|MT_PRIVATE),
+  }
+};
+static mt_tbl kernel_ext_rom_mt = {
+  KERNEL_EXT_ROM_MT_SIZE, KERNEL_EXT_ROM_MT_SIZE,
+  (union mt_ptr*)&kernel_ext_rom_data, NULL
+};
+#endif /* !MRB_NO_PRESYM */
+
 void
 mrb_mruby_proc_ext_gem_init(mrb_state* mrb)
 {
   struct RClass *p = mrb->proc_class;
+
+#ifndef MRB_NO_PRESYM
+  mrb_mt_init_rom(p, &proc_ext_rom_mt);
+  mrb_mt_init_rom(mrb->kernel_module, &kernel_ext_rom_mt);
+#else
   mrb_define_method_id(mrb, p, MRB_SYM_Q(lambda),        proc_lambda_p,        MRB_ARGS_NONE());
   mrb_define_method_id(mrb, p, MRB_SYM(source_location), proc_source_location, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, p, MRB_SYM(to_s),            proc_inspect,         MRB_ARGS_NONE());
@@ -252,6 +304,7 @@ mrb_mruby_proc_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, p, MRB_SYM(parameters),      mrb_proc_parameters,  MRB_ARGS_NONE());
 
   mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(proc), kernel_proc,  MRB_ARGS_NONE()|MRB_ARGS_BLOCK());
+#endif
 }
 
 void
