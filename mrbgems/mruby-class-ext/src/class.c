@@ -334,6 +334,61 @@ mrb_mod_cmp(mrb_state *mrb, mrb_value self)
   }
 }
 
+/* ---------------------------*/
+#ifndef MRB_NO_PRESYM
+#define MOD_EXT_ROM_MT_SIZE 9
+static struct {
+  union mt_ptr vals[MOD_EXT_ROM_MT_SIZE];
+  mrb_sym keys[MOD_EXT_ROM_MT_SIZE];
+} mod_ext_rom_data = {
+  .vals = {
+    { .func = mrb_mod_lt },
+    { .func = mrb_mod_le },
+    { .func = mrb_mod_cmp },
+    { .func = mrb_mod_gt },
+    { .func = mrb_mod_ge },
+    { .func = mod_module_exec },
+    { .func = mod_module_exec },
+    { .func = mod_name },
+    { .func = mod_singleton_class_p },
+  },
+  .keys = {
+    MT_KEY(MRB_OPSYM(lt),              MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(le),              MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(cmp),             MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(gt),              MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(ge),              MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(class_exec),        MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(module_exec),       MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(name),             MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(singleton_class), MT_FUNC|MT_NOARG|MT_PUBLIC),
+  }
+};
+static mt_tbl mod_ext_rom_mt = {
+  MOD_EXT_ROM_MT_SIZE, MOD_EXT_ROM_MT_SIZE,
+  (union mt_ptr*)&mod_ext_rom_data, NULL
+};
+
+#define CLS_EXT_ROM_MT_SIZE 2
+static struct {
+  union mt_ptr vals[CLS_EXT_ROM_MT_SIZE];
+  mrb_sym keys[CLS_EXT_ROM_MT_SIZE];
+} cls_ext_rom_data = {
+  .vals = {
+    { .func = class_attached_object },
+    { .func = class_subclasses },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM(attached_object), MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(subclasses),      MT_FUNC|MT_NOARG|MT_PUBLIC),
+  }
+};
+static mt_tbl cls_ext_rom_mt = {
+  CLS_EXT_ROM_MT_SIZE, CLS_EXT_ROM_MT_SIZE,
+  (union mt_ptr*)&cls_ext_rom_data, NULL
+};
+#endif /* !MRB_NO_PRESYM */
+
 /*
  * Initialize the mruby-class-ext gem.
  *
@@ -347,7 +402,12 @@ void
 mrb_mruby_class_ext_gem_init(mrb_state *mrb)
 {
   struct RClass *mod = mrb->module_class;
+  struct RClass *cls = mrb->class_class;
 
+#ifndef MRB_NO_PRESYM
+  mrb_mt_init_rom(mod, &mod_ext_rom_mt);
+  mrb_mt_init_rom(cls, &cls_ext_rom_mt);
+#else
   /* Module methods */
   mrb_define_method_id(mrb, mod, MRB_SYM(name), mod_name, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, mod, MRB_SYM_Q(singleton_class), mod_singleton_class_p, MRB_ARGS_NONE());
@@ -362,9 +422,9 @@ mrb_mruby_class_ext_gem_init(mrb_state *mrb)
   mrb_define_method_id(mrb, mod, MRB_OPSYM(cmp), mrb_mod_cmp, MRB_ARGS_REQ(1));
 
   /* Class-specific methods */
-  struct RClass *cls = mrb->class_class;
   mrb_define_method_id(mrb, cls, MRB_SYM(subclasses), class_subclasses, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, cls, MRB_SYM(attached_object), class_attached_object, MRB_ARGS_NONE());
+#endif
 }
 
 void
