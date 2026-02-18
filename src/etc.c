@@ -198,11 +198,24 @@ mrb_obj_id(mrb_value obj)
  * The addend shifts the exponent so that biased exponents [768, 1279]
  * (actual [-255, +256]) produce the correct tag pattern after rotation.
  * This covers all practical float values with full precision.
+ *
+ * Special values (0.0, -0.0, +Inf, -Inf) are encoded as small sentinel
+ * constants that also have bottom 2 bits == 10.  This avoids heap
+ * allocation for these common values.  The 4 obscure floats whose
+ * rotation would collide with a sentinel are heap-allocated instead.
  */
 #define WORDBOX_FLOAT_ROTATE      3
 #define WORDBOX_FLOAT_EXP_MIN     (1023 - 255)  /* 768 */
 #define WORDBOX_FLOAT_EXP_MAX     (1023 + 256)  /* 1279 */
 #define WORDBOX_FLOAT_ADDEND      ((uint64_t)((int64_t)(WORDBOX_FLOAT_EXP_MIN - (WORDBOX_FLOAT_FLAG << 9)) << 52))
+
+/* sentinel values for special floats (all have & 3 == 2) */
+#define WORDBOX_FLOAT_PZERO       0x02  /* +0.0 */
+#define WORDBOX_FLOAT_NZERO       0x06  /* -0.0 */
+#define WORDBOX_FLOAT_PINF        0x0a  /* +Infinity */
+#define WORDBOX_FLOAT_NINF        0x0e  /* -Infinity */
+#define WORDBOX_FLOAT_NAN         0x12  /* NaN (all NaN bit patterns normalize to this) */
+#define WORDBOX_FLOAT_SENTINEL_MAX  WORDBOX_FLOAT_NAN
 
 static uint64_t
 wordbox_rotl64(uint64_t a, int n)
@@ -244,10 +257,30 @@ mrb_word_boxing_float_value(mrb_state *mrb, mrb_float f)
   {
     uint64_t bits = wordbox_float64_to_u64((double)f);
     uint64_t exp = (bits >> 52) & 0x7FF;
-    if (exp >= WORDBOX_FLOAT_EXP_MIN && exp <= WORDBOX_FLOAT_EXP_MAX) {
-      v.w = (uintptr_t)wordbox_rotl64(bits - WORDBOX_FLOAT_ADDEND, WORDBOX_FLOAT_ROTATE);
+    if (exp == 0) {
+      /* +0.0 or -0.0 (subnormals also fall here, go to heap) */
+      if (bits == UINT64_C(0))
+        v.w = WORDBOX_FLOAT_PZERO;
+      else if (bits == UINT64_C(0x8000000000000000))
+        v.w = WORDBOX_FLOAT_NZERO;
+      else goto float_heap;
+    }
+    else if (exp == 0x7FF) {
+      /* +Inf, -Inf, or NaN */
+      if (bits == UINT64_C(0x7FF0000000000000))
+        v.w = WORDBOX_FLOAT_PINF;
+      else if (bits == UINT64_C(0xFFF0000000000000))
+        v.w = WORDBOX_FLOAT_NINF;
+      else
+        v.w = WORDBOX_FLOAT_NAN;
+    }
+    else if (exp >= WORDBOX_FLOAT_EXP_MIN && exp <= WORDBOX_FLOAT_EXP_MAX) {
+      uintptr_t w = (uintptr_t)wordbox_rotl64(bits - WORDBOX_FLOAT_ADDEND, WORDBOX_FLOAT_ROTATE);
+      if (w <= WORDBOX_FLOAT_SENTINEL_MAX) goto float_heap;
+      v.w = w;
     }
     else {
+    float_heap:
       v.p = mrb_obj_alloc(mrb, MRB_TT_FLOAT, mrb->float_class);
       v.fp->f = f;
       v.bp->frozen = 1;
@@ -279,6 +312,16 @@ mrb_word_boxing_value_float(mrb_value v)
   return u.f;
 #elif defined(MRB_64BIT)
   if ((v.w & WORDBOX_FLOAT_MASK) == WORDBOX_FLOAT_FLAG) {
+    if (v.w <= WORDBOX_FLOAT_SENTINEL_MAX) {
+      switch (v.w) {
+      case WORDBOX_FLOAT_PZERO: return (mrb_float)( 0.0);
+      case WORDBOX_FLOAT_NZERO: return (mrb_float)(-0.0);
+      case WORDBOX_FLOAT_PINF:  return (mrb_float)( INFINITY);
+      case WORDBOX_FLOAT_NINF:  return (mrb_float)(-INFINITY);
+      case WORDBOX_FLOAT_NAN:   return (mrb_float)  NAN;
+      default: break;  /* not reached */
+      }
+    }
     return (mrb_float)wordbox_u64_to_float64(
       wordbox_rotl64((uint64_t)v.w, 64 - WORDBOX_FLOAT_ROTATE) + WORDBOX_FLOAT_ADDEND);
   }
