@@ -11,7 +11,7 @@
 # define MRB_WORDBOX_NO_FLOAT_TRUNCATE
 #endif
 
-#if !defined(MRB_NO_FLOAT) && defined(MRB_WORDBOX_NO_FLOAT_TRUNCATE)
+#ifndef MRB_NO_FLOAT
 struct RFloat {
   MRB_OBJECT_HEADER;
   mrb_float f;
@@ -83,27 +83,22 @@ enum mrb_special_consts {
 /*
  * mrb_value representation:
  *
- * 64-bit word with inline float:
+ * 64-bit word with inline float (rotation encoding, lossless):
  *   nil   : ...0000 0000 (all bits are 0)
  *   false : ...0000 0100 (mrb_fixnum(v) != 0)
  *   true  : ...0000 1100
  *   undef : ...0001 0100
  *   symbol: ...0001 1100 (use only upper 32-bit as symbol value with MRB_64BIT)
  *   fixnum: ...IIII III1
- *   float : ...FFFF FF10 (51 bit significands; require MRB_64BIT)
+ *   float : ...FFFF FF10 (rotl64(float64-ADDEND, 3); exponent [-255,+256])
  *   object: ...PPPP P000
+ *   (floats outside inline range are heap-allocated as RFloat)
  *
- * 32-bit word with inline float:
- *   nil   : ...0000 0000 (all bits are 0)
- *   false : ...0000 0100 (mrb_fixnum(v) != 0)
- *   true  : ...0000 1100
- *   undef : ...0001 0100
- *   symbol: ...SSS1 0100 (symbol occupies 20bits)
- *   fixnum: ...IIII III1
- *   float : ...FFFF FF10 (22 bit significands; require MRB_64BIT)
- *   object: ...PPPP P000
+ * 64-bit word with inline float32 (MRB_USE_FLOAT32):
+ *   float : ...FFFF FF10 (float32 shifted left by 2)
+ *   (other values same as above)
  *
- * and word boxing without inline float (MRB_WORDBOX_NO_FLOAT_TRUNCATE):
+ * word boxing without inline float (MRB_WORDBOX_NO_FLOAT_TRUNCATE):
  *   nil   : ...0000 0000 (all bits are 0)
  *   false : ...0000 0100 (mrb_fixnum(v) != 0)
  *   true  : ...0000 1100
@@ -120,10 +115,9 @@ union mrb_value_ {
   void *p;
   struct RBasic *bp;
 #ifndef MRB_NO_FLOAT
-#ifndef MRB_WORDBOX_NO_FLOAT_TRUNCATE
-  mrb_float f;
-#else
   struct RFloat *fp;
+#if !defined(MRB_WORDBOX_NO_FLOAT_TRUNCATE) && defined(MRB_USE_FLOAT32)
+  mrb_float f;
 #endif
 #endif
   struct RInteger *ip;
@@ -182,10 +176,13 @@ mrb_integer_func(mrb_value o) {
 #define mrb_false_p(o) ((o).w == MRB_Qfalse)
 #define mrb_true_p(o)  ((o).w == MRB_Qtrue)
 #ifndef MRB_NO_FLOAT
-#ifndef MRB_WORDBOX_NO_FLOAT_TRUNCATE
+#ifdef MRB_WORDBOX_NO_FLOAT_TRUNCATE
+#define mrb_float_p(o) WORDBOX_OBJ_TYPE_P(o, FLOAT)
+#elif defined(MRB_USE_FLOAT32)
 #define mrb_float_p(o) WORDBOX_SHIFT_VALUE_P(o, FLOAT)
 #else
-#define mrb_float_p(o) WORDBOX_OBJ_TYPE_P(o, FLOAT)
+/* rotation encoding: most floats inline, edge cases on heap */
+#define mrb_float_p(o) (WORDBOX_SHIFT_VALUE_P(o, FLOAT) || WORDBOX_OBJ_TYPE_P(o, FLOAT))
 #endif
 #else
 #define mrb_float_p(o) FALSE

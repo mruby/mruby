@@ -182,8 +182,51 @@ mrb_obj_id(mrb_value obj)
  *   RFloat object on the heap.
  * - If `MRB_64BIT` and `MRB_USE_FLOAT32` are defined, it stores the float
  *   in the lower bits of the word, shifted and tagged.
- * - Otherwise, it stores the float directly in the word, tagged.
+ * - Otherwise (64-bit float64), it uses rotation encoding to store the
+ *   float losslessly inline. Floats outside the inline exponent range
+ *   [-255, +256] are heap-allocated as RFloat.
  */
+
+#if !defined(MRB_WORDBOX_NO_FLOAT_TRUNCATE) && !defined(MRB_USE_FLOAT32)
+/*
+ * Rotation-based float encoding for 64-bit + float64.
+ *
+ * Encode: rotl64(float64_bits - ADDEND, 3) produces a tagged value
+ *         with bottom 2 bits == 10 (WORDBOX_FLOAT_FLAG).
+ * Decode: rotl64(tagged_value, 61) + ADDEND recovers the original bits.
+ *
+ * The addend shifts the exponent so that biased exponents [768, 1279]
+ * (actual [-255, +256]) produce the correct tag pattern after rotation.
+ * This covers all practical float values with full precision.
+ */
+#define WORDBOX_FLOAT_ROTATE      3
+#define WORDBOX_FLOAT_EXP_MIN     (1023 - 255)  /* 768 */
+#define WORDBOX_FLOAT_EXP_MAX     (1023 + 256)  /* 1279 */
+#define WORDBOX_FLOAT_ADDEND      ((uint64_t)((int64_t)(WORDBOX_FLOAT_EXP_MIN - (WORDBOX_FLOAT_FLAG << 9)) << 52))
+
+static uint64_t
+wordbox_rotl64(uint64_t a, int n)
+{
+  return (a << n) | (a >> (64 - n));
+}
+
+static uint64_t
+wordbox_float64_to_u64(double d)
+{
+  union { double d; uint64_t u; } u;
+  u.d = d;
+  return u.u;
+}
+
+static double
+wordbox_u64_to_float64(uint64_t v)
+{
+  union { double d; uint64_t u; } u;
+  u.u = v;
+  return u.d;
+}
+#endif
+
 MRB_API mrb_value
 mrb_word_boxing_float_value(mrb_state *mrb, mrb_float f)
 {
@@ -197,7 +240,21 @@ mrb_word_boxing_float_value(mrb_state *mrb, mrb_float f)
   v.w = 0;
   v.f = f;
   v.w = (v.w<<2) | 2;
+#elif defined(MRB_64BIT)
+  {
+    uint64_t bits = wordbox_float64_to_u64((double)f);
+    uint64_t exp = (bits >> 52) & 0x7FF;
+    if (exp >= WORDBOX_FLOAT_EXP_MIN && exp <= WORDBOX_FLOAT_EXP_MAX) {
+      v.w = (uintptr_t)wordbox_rotl64(bits - WORDBOX_FLOAT_ADDEND, WORDBOX_FLOAT_ROTATE);
+    }
+    else {
+      v.p = mrb_obj_alloc(mrb, MRB_TT_FLOAT, mrb->float_class);
+      v.fp->f = f;
+      v.bp->frozen = 1;
+    }
+  }
 #else
+  /* 32-bit + float32: truncate bottom 2 bits */
   v.f = f;
   v.w = (v.w & ~3) | 2;
 #endif
@@ -207,26 +264,36 @@ mrb_word_boxing_float_value(mrb_state *mrb, mrb_float f)
 
 #ifndef MRB_WORDBOX_NO_FLOAT_TRUNCATE
 /*
- * Unboxes an `mrb_value` to an `mrb_float` when word boxing is used and
- * float truncation (`MRB_WORDBOX_NO_FLOAT_TRUNCATE`) is not disabled.
- * The function extracts the float value from the `mrb_value`'s union
- * representation (`u.value`).
- * - If `MRB_64BIT` and `MRB_USE_FLOAT32` are defined, the word (`u.w`)
- *   is right-shifted by 2 bits to retrieve the float.
- * - Otherwise, the lower 2 bits of the word (`u.w`) are cleared to
- *   retrieve the float.
+ * Unboxes an `mrb_value` to an `mrb_float`.
+ * - If `MRB_USE_FLOAT32`: right-shift by 2 to retrieve the float.
+ * - Otherwise (rotation encoding): decode inline floats via rotation,
+ *   or read from heap RFloat for edge cases.
  */
 MRB_API mrb_float
 mrb_word_boxing_value_float(mrb_value v)
 {
+#if defined(MRB_64BIT) && defined(MRB_USE_FLOAT32)
   union mrb_value_ u;
   u.value = v;
-#if defined(MRB_64BIT) && defined(MRB_USE_FLOAT32)
   u.w >>= 2;
-#else
-  u.w &= ~3;
-#endif
   return u.f;
+#elif defined(MRB_64BIT)
+  if ((v.w & WORDBOX_FLOAT_MASK) == WORDBOX_FLOAT_FLAG) {
+    return (mrb_float)wordbox_u64_to_float64(
+      wordbox_rotl64((uint64_t)v.w, 64 - WORDBOX_FLOAT_ROTATE) + WORDBOX_FLOAT_ADDEND);
+  }
+  else {
+    union mrb_value_ u;
+    u.value = v;
+    return u.fp->f;
+  }
+#else
+  /* 32-bit + float32: clear tag bits */
+  union mrb_value_ u;
+  u.value = v;
+  u.w &= ~3;
+  return u.f;
+#endif
 }
 #endif
 #endif  /* MRB_NO_FLOAT */
