@@ -11,6 +11,9 @@
     },
     {
       "pattern": "^mailto:"
+    },
+    {
+      "pattern": "^https://www.iso.org/"
     }
   ]
 }

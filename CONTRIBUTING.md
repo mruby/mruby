@@ -176,7 +176,7 @@ language itself. Please note the following hints for your Ruby code:
 #### Comply with the Ruby standard (ISO/IEC 30170:2012)
 
 mruby is currently targeting to execute Ruby code which complies to ISO/IEC
-30170:2012 (<https://www.iso.org/iso/iso_catalogue/catalogue_tc/catalogue_detail.htm?csnumber=59579>),
+30170:2012 (<https://www.iso.org/standard/59579.html>),
 unless there's a clear reason, e.g. the latest Ruby has changed behavior from ISO.
 
 ## Building documentation

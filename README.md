@@ -176,5 +176,5 @@ By contributing, you grant non-exclusive rights to your code under the MIT Licen
 
 [![mruby Contributors](https://contrib.rocks/image?repo=mruby/mruby&anon=1&max=500)](https://github.com/mruby/mruby/graphs/contributors)
 
-[ISO-standard]: https://www.iso.org/iso/iso_catalogue/catalogue_tc/catalogue_detail.htm?csnumber=59579
+[ISO-standard]: https://www.iso.org/standard/59579.html
 [contribution-guidelines]: CONTRIBUTING.md
