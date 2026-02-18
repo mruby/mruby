@@ -2218,11 +2218,156 @@ str_prepend(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/* ---------------------------*/
+#ifndef MRB_NO_PRESYM
+#define STRING_EXT_ROM_MT_SIZE 53
+static struct {
+  union mt_ptr vals[STRING_EXT_ROM_MT_SIZE];
+  mrb_sym keys[STRING_EXT_ROM_MT_SIZE];
+} string_ext_rom_data = {
+  .vals = {
+    { .func = mrb_str_dump },
+    { .func = str_swapcase_bang },
+    { .func = mrb_str_slice_bang },
+    { .func = str_swapcase },
+    { .func = str_clear },
+    { .func = str_concat_m },
+    { .func = str_concat_m },
+    { .func = str_append_as_bytes },
+    { .func = str_count },
+    { .func = str_tr_m },
+    { .func = str_partition },
+    { .func = str_rpartition },
+    { .func = str_insert },
+    { .func = str_prepend },
+    { .func = str_tr_bang },
+    { .func = str_tr_s },
+    { .func = str_tr_s_bang },
+    { .func = str_squeeze_m },
+    { .func = str_squeeze_bang },
+    { .func = str_delete_m },
+    { .func = str_delete_bang },
+    { .func = str_start_with },
+    { .func = str_end_with },
+    { .func = str_hex },
+    { .func = str_oct },
+    { .func = str_chr },
+    { .func = str_succ },
+    { .func = str_succ_bang },
+    { .func = str_succ },
+    { .func = str_succ_bang },
+    { .func = str_ord },
+    { .func = str_del_prefix_bang },
+    { .func = str_del_prefix },
+    { .func = str_del_suffix_bang },
+    { .func = str_del_suffix },
+    { .func = str_casecmp },
+    { .func = str_casecmp_p },
+    { .func = str_uplus },
+    { .func = str_uminus },
+    { .func = str_ascii_only_p },
+    { .func = str_b },
+    { .func = str_lines },
+    { .func = str_codepoints },
+    { .func = str_lstrip },
+    { .func = str_rstrip },
+    { .func = str_strip },
+    { .func = str_lstrip_bang },
+    { .func = str_rstrip_bang },
+    { .func = str_strip_bang },
+    { .func = str_chars_ary },
+    { .func = str_ljust_core },
+    { .func = str_rjust_core },
+    { .func = str_center_core },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM(dump),             MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_B(swapcase),       MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_B(slice),          MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(swapcase),         MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(clear),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(lshift),         MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(concat),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(append_as_bytes),  MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(count),            MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(tr),               MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(partition),        MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(rpartition),       MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(insert),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(prepend),          MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_B(tr),             MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(tr_s),             MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_B(tr_s),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(squeeze),          MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_B(squeeze),        MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(delete),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_B(delete),         MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(start_with),     MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(end_with),       MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(hex),              MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(oct),              MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(chr),              MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(succ),             MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_B(succ),           MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(next),             MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_B(next),           MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(ord),              MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_B(delete_prefix),  MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(delete_prefix),    MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_B(delete_suffix),  MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(delete_suffix),    MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(casecmp),          MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(casecmp),        MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(plus),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(minus),          MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(ascii_only),     MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(b),                MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(__lines),          MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(__codepoints),     MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(lstrip),           MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(rstrip),           MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(strip),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_B(lstrip),         MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_B(rstrip),         MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_B(strip),          MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(__chars),          MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(ljust),            MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(rjust),            MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(center),           MT_FUNC|MT_PUBLIC),
+  }
+};
+static mt_tbl string_ext_rom_mt = {
+  STRING_EXT_ROM_MT_SIZE, STRING_EXT_ROM_MT_SIZE,
+  (union mt_ptr*)&string_ext_rom_data, NULL
+};
+
+#define INTEGER_CHR_ROM_MT_SIZE 1
+static struct {
+  union mt_ptr vals[INTEGER_CHR_ROM_MT_SIZE];
+  mrb_sym keys[INTEGER_CHR_ROM_MT_SIZE];
+} integer_chr_rom_data = {
+  .vals = {
+    { .func = int_chr },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM(chr), MT_FUNC|MT_PUBLIC),
+  }
+};
+static mt_tbl integer_chr_rom_mt = {
+  INTEGER_CHR_ROM_MT_SIZE, INTEGER_CHR_ROM_MT_SIZE,
+  (union mt_ptr*)&integer_chr_rom_data, NULL
+};
+#endif /* !MRB_NO_PRESYM */
+
 void
 mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 {
   struct RClass *s = mrb->string_class;
 
+#ifndef MRB_NO_PRESYM
+  mrb_mt_init_rom(s, &string_ext_rom_mt);
+  mrb_mt_init_rom(mrb->integer_class, &integer_chr_rom_mt);
+#else
   mrb_define_method_id(mrb, s, MRB_SYM(dump),             mrb_str_dump,        MRB_ARGS_NONE());
   mrb_define_method_id(mrb, s, MRB_SYM_B(swapcase),       str_swapcase_bang,   MRB_ARGS_NONE());
   mrb_define_method_id(mrb, s, MRB_SYM_B(slice), mrb_str_slice_bang, MRB_ARGS_ARG(1, 1));
@@ -2268,7 +2413,6 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, s, MRB_SYM(__lines),          str_lines,           MRB_ARGS_NONE());
   mrb_define_method_id(mrb, s, MRB_SYM(__codepoints),     str_codepoints,      MRB_ARGS_NONE());
 
-  /* Optimized strip methods implemented in C */
   mrb_define_method_id(mrb, s, MRB_SYM(lstrip),           str_lstrip,          MRB_ARGS_NONE());
   mrb_define_method_id(mrb, s, MRB_SYM(rstrip),           str_rstrip,          MRB_ARGS_NONE());
   mrb_define_method_id(mrb, s, MRB_SYM(strip),            str_strip,           MRB_ARGS_NONE());
@@ -2276,15 +2420,14 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, s, MRB_SYM_B(rstrip),         str_rstrip_bang,     MRB_ARGS_NONE());
   mrb_define_method_id(mrb, s, MRB_SYM_B(strip),          str_strip_bang,      MRB_ARGS_NONE());
 
-  /* Fast path for chars method implemented in C */
   mrb_define_method_id(mrb, s, MRB_SYM(__chars),          str_chars_ary,       MRB_ARGS_NONE());
 
-  /* Padding methods implemented in C */
   mrb_define_method_id(mrb, s, MRB_SYM(ljust),            str_ljust_core,      MRB_ARGS_ARG(1,1));
   mrb_define_method_id(mrb, s, MRB_SYM(rjust),            str_rjust_core,      MRB_ARGS_ARG(1,1));
   mrb_define_method_id(mrb, s, MRB_SYM(center),           str_center_core,     MRB_ARGS_ARG(1,1));
 
   mrb_define_method_id(mrb, mrb->integer_class, MRB_SYM(chr), int_chr, MRB_ARGS_OPT(1));
+#endif
 }
 
 void
