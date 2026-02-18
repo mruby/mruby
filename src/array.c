@@ -2248,6 +2248,96 @@ mrb_ary_to_a(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/* ---------------------------*/
+#ifndef MRB_NO_PRESYM
+#define ARRAY_ROM_MT_SIZE 36
+static struct {
+  union mt_ptr vals[ARRAY_ROM_MT_SIZE];
+  mrb_sym keys[ARRAY_ROM_MT_SIZE];
+} array_rom_data = {
+  .vals = {
+    { .func = mrb_ary_plus },
+    { .func = mrb_ary_times },
+    { .func = mrb_ary_push_m },
+    { .func = mrb_ary_aget },
+    { .func = mrb_ary_aset },
+    { .func = mrb_ary_clear },
+    { .func = mrb_ary_cmp },
+    { .func = mrb_ary_concat_m },
+    { .func = mrb_ary_delete },
+    { .func = mrb_ary_delete_at },
+    { .func = mrb_ary_empty_p },
+    { .func = mrb_ary_eq },
+    { .func = mrb_ary_eql },
+    { .func = mrb_ary_first },
+    { .func = mrb_ary_index_m },
+    { .func = mrb_ary_init },
+    { .func = mrb_ary_replace_m },
+    { .func = mrb_ary_join_m },
+    { .func = mrb_ary_last },
+    { .func = mrb_ary_size },
+    { .func = mrb_ary_pop },
+    { .func = mrb_ary_push_m },
+    { .func = mrb_ary_replace_m },
+    { .func = mrb_ary_reverse },
+    { .func = mrb_ary_reverse_bang },
+    { .func = mrb_ary_rindex_m },
+    { .func = mrb_ary_shift_m },
+    { .func = mrb_ary_size },
+    { .func = mrb_ary_aget },
+    { .func = mrb_ary_unshift_m },
+    { .func = mrb_ary_to_a },
+    { .func = mrb_ary_to_a },
+    { .func = mrb_ary_to_s },
+    { .func = mrb_ary_to_s },
+    { .func = mrb_ary_sort_bang },
+    { .func = mrb_ary_svalue },
+  },
+  .keys = {
+    MT_KEY(MRB_OPSYM(add),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(mul),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(lshift),        MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(aref),          MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(aset),          MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(clear),           MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(cmp),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(concat),          MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(delete),          MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(delete_at),       MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(empty),         MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(eq),            MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(eql),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(first),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(index),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(initialize),      MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(initialize_copy), MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(join),            MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(last),            MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(length),          MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(pop),             MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(push),            MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(replace),         MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(reverse),         MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_B(reverse),       MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(rindex),          MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(shift),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(size),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(slice),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(unshift),         MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(to_a),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(entries),         MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(to_s),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(inspect),         MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_B(sort),          MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(__svalue),        MT_FUNC|MT_NOARG|MT_PUBLIC),
+  }
+};
+static mt_tbl array_rom_mt = {
+  ARRAY_ROM_MT_SIZE, ARRAY_ROM_MT_SIZE,
+  (union mt_ptr*)&array_rom_data, NULL
+};
+#endif /* !MRB_NO_PRESYM */
+
 void
 mrb_init_array(mrb_state *mrb)
 {
@@ -2258,6 +2348,9 @@ mrb_init_array(mrb_state *mrb)
 
   mrb_define_class_method_id(mrb, a, MRB_OPSYM(aref),    mrb_ary_s_create,     MRB_ARGS_ANY());    /* 15.2.12.4.1 */
 
+#ifndef MRB_NO_PRESYM
+  mrb_mt_init_rom(a, &array_rom_mt);
+#else
   mrb_define_method_id(mrb, a, MRB_OPSYM(add),           mrb_ary_plus,         MRB_ARGS_REQ(1));   /* 15.2.12.5.1  */
   mrb_define_method_id(mrb, a, MRB_OPSYM(mul),           mrb_ary_times,        MRB_ARGS_REQ(1));   /* 15.2.12.5.2  */
   mrb_define_method_id(mrb, a, MRB_OPSYM(lshift),        mrb_ary_push_m,       MRB_ARGS_REQ(1));   /* 15.2.12.5.3  */
@@ -2293,6 +2386,6 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method_id(mrb, a, MRB_SYM(to_s),            mrb_ary_to_s,         MRB_ARGS_NONE());
   mrb_define_method_id(mrb, a, MRB_SYM(inspect),         mrb_ary_to_s,         MRB_ARGS_NONE());
   mrb_define_method_id(mrb, a, MRB_SYM_B(sort),          mrb_ary_sort_bang,    MRB_ARGS_NONE());
-
   mrb_define_method_id(mrb, a, MRB_SYM(__svalue),        mrb_ary_svalue,       MRB_ARGS_NONE());
+#endif
 }
