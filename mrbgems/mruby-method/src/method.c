@@ -831,6 +831,127 @@ method_name(mrb_state *mrb, mrb_value self)
   return mrb_iv_get(mrb, self, MRB_SYM(_name));
 }
 
+/* ---------------------------*/
+#ifndef MRB_NO_PRESYM
+#define METHOD_UBM_ROM_MT_SIZE 12
+static struct {
+  union mt_ptr vals[METHOD_UBM_ROM_MT_SIZE];
+  mrb_sym keys[METHOD_UBM_ROM_MT_SIZE];
+} method_ubm_rom_data = {
+  .vals = {
+    { .func = unbound_method_bind },
+    { .func = method_super_method },
+    { .func = method_eql },
+    { .func = method_eql },
+    { .func = method_to_s },
+    { .func = method_to_s },
+    { .func = method_arity },
+    { .func = method_source_location },
+    { .func = method_parameters },
+    { .func = method_bcall },
+    { .func = method_owner },
+    { .func = method_name },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM(bind),            MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(super_method),    MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(eq),            MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(eql),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(to_s),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(inspect),         MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(arity),           MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(source_location), MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(parameters),      MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(bind_call),       MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(owner),           MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(name),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+  }
+};
+static mt_tbl method_ubm_rom_mt = {
+  METHOD_UBM_ROM_MT_SIZE, METHOD_UBM_ROM_MT_SIZE,
+  (union mt_ptr*)&method_ubm_rom_data, NULL
+};
+
+#define METHOD_MTD_ROM_MT_SIZE 14
+static struct {
+  union mt_ptr vals[METHOD_MTD_ROM_MT_SIZE];
+  mrb_sym keys[METHOD_MTD_ROM_MT_SIZE];
+} method_mtd_rom_data = {
+  .vals = {
+    { .func = method_eql },
+    { .func = method_eql },
+    { .func = method_to_s },
+    { .func = method_to_s },
+    { .func = method_call },
+    { .func = method_call },
+    { .func = method_unbind },
+    { .func = method_super_method },
+    { .func = method_arity },
+    { .func = method_source_location },
+    { .func = method_parameters },
+    { .func = method_owner },
+    { .func = method_receiver },
+    { .func = method_name },
+  },
+  .keys = {
+    MT_KEY(MRB_OPSYM(eq),            MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(eql),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(to_s),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(inspect),         MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(call),            MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(aref),          MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(unbind),          MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(super_method),    MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(arity),           MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(source_location), MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(parameters),      MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(owner),           MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(receiver),        MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(name),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+  }
+};
+static mt_tbl method_mtd_rom_mt = {
+  METHOD_MTD_ROM_MT_SIZE, METHOD_MTD_ROM_MT_SIZE,
+  (union mt_ptr*)&method_mtd_rom_data, NULL
+};
+
+#define METHOD_KRN_ROM_MT_SIZE 2
+static struct {
+  union mt_ptr vals[METHOD_KRN_ROM_MT_SIZE];
+  mrb_sym keys[METHOD_KRN_ROM_MT_SIZE];
+} method_krn_rom_data = {
+  .vals = {
+    { .func = mrb_kernel_method },
+    { .func = mrb_kernel_singleton_method },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM(method),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(singleton_method), MT_FUNC|MT_PUBLIC),
+  }
+};
+static mt_tbl method_krn_rom_mt = {
+  METHOD_KRN_ROM_MT_SIZE, METHOD_KRN_ROM_MT_SIZE,
+  (union mt_ptr*)&method_krn_rom_data, NULL
+};
+
+#define METHOD_MOD_ROM_MT_SIZE 1
+static struct {
+  union mt_ptr vals[METHOD_MOD_ROM_MT_SIZE];
+  mrb_sym keys[METHOD_MOD_ROM_MT_SIZE];
+} method_mod_rom_data = {
+  .vals = {
+    { .func = mrb_module_instance_method },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM(instance_method), MT_FUNC|MT_PUBLIC),
+  }
+};
+static mt_tbl method_mod_rom_mt = {
+  METHOD_MOD_ROM_MT_SIZE, METHOD_MOD_ROM_MT_SIZE,
+  (union mt_ptr*)&method_mod_rom_data, NULL
+};
+#endif /* !MRB_NO_PRESYM */
+
 void
 mrb_mruby_method_gem_init(mrb_state* mrb)
 {
@@ -840,6 +961,9 @@ mrb_mruby_method_gem_init(mrb_state* mrb)
   MRB_SET_INSTANCE_TT(unbound_method, MRB_TT_OBJECT);
   MRB_UNDEF_ALLOCATOR(unbound_method);
   mrb_undef_class_method_id(mrb, unbound_method, MRB_SYM(new));
+#ifndef MRB_NO_PRESYM
+  mrb_mt_init_rom(unbound_method, &method_ubm_rom_mt);
+#else
   mrb_define_method_id(mrb, unbound_method, MRB_SYM(bind), unbound_method_bind, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, unbound_method, MRB_SYM(super_method), method_super_method, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, unbound_method, MRB_OPSYM(eq), method_eql, MRB_ARGS_REQ(1));
@@ -852,10 +976,16 @@ mrb_mruby_method_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, unbound_method, MRB_SYM(bind_call), method_bcall, MRB_ARGS_REQ(1)|MRB_ARGS_ANY());
   mrb_define_method_id(mrb, unbound_method, MRB_SYM(owner), method_owner, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, unbound_method, MRB_SYM(name), method_name, MRB_ARGS_NONE());
+#endif
 
   MRB_SET_INSTANCE_TT(method, MRB_TT_OBJECT);
   MRB_UNDEF_ALLOCATOR(method);
   mrb_undef_class_method_id(mrb, method, MRB_SYM(new));
+#ifndef MRB_NO_PRESYM
+  mrb_mt_init_rom(method, &method_mtd_rom_mt);
+  mrb_mt_init_rom(mrb->kernel_module, &method_krn_rom_mt);
+  mrb_mt_init_rom(mrb->module_class, &method_mod_rom_mt);
+#else
   mrb_define_method_id(mrb, method, MRB_OPSYM(eq), method_eql, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, method, MRB_SYM_Q(eql), method_eql, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, method, MRB_SYM(to_s), method_to_s, MRB_ARGS_NONE());
@@ -875,6 +1005,7 @@ mrb_mruby_method_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, mrb->kernel_module, MRB_SYM(singleton_method), mrb_kernel_singleton_method, MRB_ARGS_REQ(1));
 
   mrb_define_method_id(mrb, mrb->module_class, MRB_SYM(instance_method), mrb_module_instance_method, MRB_ARGS_REQ(1));
+#endif
 }
 
 void
