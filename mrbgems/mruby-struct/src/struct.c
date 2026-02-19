@@ -775,6 +775,54 @@ mrb_struct_to_s(mrb_state *mrb, mrb_value self)
  *  to a symbol, which is either a quoted string or a
  *  `Symbol` (such as `:name`).
  */
+/* ---------------------------*/
+#ifndef MRB_NO_PRESYM
+#define STRUCT_ROM_MT_SIZE 15
+static struct {
+  union mt_ptr vals[STRUCT_ROM_MT_SIZE];
+  mrb_sym keys[STRUCT_ROM_MT_SIZE];
+} struct_rom_data = {
+  .vals = {
+    { .func = mrb_struct_equal },
+    { .func = mrb_struct_aref },
+    { .func = mrb_struct_aset },
+    { .func = mrb_struct_members },
+    { .func = mrb_struct_initialize },
+    { .func = mrb_struct_init_copy },
+    { .func = mrb_struct_eql },
+    { .func = mrb_struct_to_s },
+    { .func = mrb_struct_to_s },
+    { .func = mrb_struct_len },
+    { .func = mrb_struct_len },
+    { .func = mrb_struct_to_a },
+    { .func = mrb_struct_to_a },
+    { .func = mrb_struct_to_h },
+    { .func = mrb_struct_values_at },
+  },
+  .keys = {
+    MT_KEY(MRB_OPSYM(eq),            MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(aref),          MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(aset),          MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(members),         MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(initialize),      MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(initialize_copy), MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM_Q(eql),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(to_s),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(inspect),         MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(size),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(length),          MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(to_a),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(values),          MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(to_h),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(values_at),       MT_FUNC|MT_PUBLIC),
+  }
+};
+static mt_tbl struct_rom_mt = {
+  STRUCT_ROM_MT_SIZE, STRUCT_ROM_MT_SIZE,
+  (union mt_ptr*)&struct_rom_data, NULL
+};
+#endif /* !MRB_NO_PRESYM */
+
 void
 mrb_mruby_struct_gem_init(mrb_state* mrb)
 {
@@ -784,6 +832,9 @@ mrb_mruby_struct_gem_init(mrb_state* mrb)
 
   mrb_define_class_method_id(mrb, st, MRB_SYM(new), mrb_struct_s_def, MRB_ARGS_ANY());  /* 15.2.18.3.1  */
 
+#ifndef MRB_NO_PRESYM
+  mrb_mt_init_rom(st, &struct_rom_mt);
+#else
   mrb_define_method_id(mrb, st, MRB_OPSYM(eq),            mrb_struct_equal,       MRB_ARGS_REQ(1)); /* 15.2.18.4.1  */
   mrb_define_method_id(mrb, st, MRB_OPSYM(aref),          mrb_struct_aref,        MRB_ARGS_REQ(1)); /* 15.2.18.4.2  */
   mrb_define_method_id(mrb, st, MRB_OPSYM(aset),          mrb_struct_aset,        MRB_ARGS_REQ(2)); /* 15.2.18.4.3  */
@@ -800,6 +851,7 @@ mrb_mruby_struct_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, st, MRB_SYM(values),          mrb_struct_to_a,        MRB_ARGS_NONE());
   mrb_define_method_id(mrb, st, MRB_SYM(to_h),            mrb_struct_to_h,        MRB_ARGS_NONE());
   mrb_define_method_id(mrb, st, MRB_SYM(values_at),       mrb_struct_values_at,   MRB_ARGS_ANY());
+#endif
 }
 
 void
