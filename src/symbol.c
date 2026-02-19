@@ -12,8 +12,6 @@
 #include <mruby/internal.h>
 #include <mruby/presym.h>
 
-#ifndef MRB_NO_PRESYM
-
 #ifndef MRB_PRESYM_SCANNING
 /* const uint16_t presym_length_table[]   */
 /* const char * const presym_name_table[] */
@@ -48,8 +46,6 @@ presym_sym2name(mrb_sym sym, mrb_int *lenp)
   if (lenp) *lenp = presym_length_table[sym-1];
   return presym_name_table[sym-1];
 }
-
-#endif  /* MRB_NO_PRESYM */
 
 /* ------------------------------------------------------ */
 
@@ -248,11 +244,9 @@ find_symbol(mrb_state *mrb, const char *name, size_t len, uint8_t *hashp)
 {
   mrb_sym i;
 
-#ifndef MRB_NO_PRESYM
   /* presym */
   i = presym_find(name, len);
   if (i > 0) return i;
-#endif
 
   /* inline symbol */
   i = sym_inline_pack(name, len);
@@ -580,12 +574,10 @@ sym2name_len(mrb_state *mrb, mrb_sym sym, char *buf, mrb_int *lenp)
   if (sym == 0) goto outofsym;
   if (SYMBOL_INLINE_P(sym)) return sym_inline_unpack(sym, buf, lenp);
 
-#ifndef MRB_NO_PRESYM
   {
     const char *name = presym_sym2name(sym, lenp);
     if (name) return name;
   }
-#endif
   sym -= MRB_PRESYM_MAX;
 
   if (mrb->symidx < sym) {
@@ -1009,7 +1001,6 @@ sym_cmp(mrb_state *mrb, mrb_value s1)
 #undef lesser
 
 /* ---------------------------*/
-#ifndef MRB_NO_PRESYM
 #define SYMBOL_ROM_MT_SIZE 6
 static struct {
   union mt_ptr vals[SYMBOL_ROM_MT_SIZE];
@@ -1036,7 +1027,6 @@ static mt_tbl symbol_rom_mt = {
   SYMBOL_ROM_MT_SIZE, SYMBOL_ROM_MT_SIZE,
   (union mt_ptr*)&symbol_rom_data, NULL
 };
-#endif /* !MRB_NO_PRESYM */
 
 void
 mrb_init_symbol(mrb_state *mrb)
@@ -1047,14 +1037,5 @@ mrb_init_symbol(mrb_state *mrb)
   MRB_SET_INSTANCE_TT(sym, MRB_TT_SYMBOL);
   mrb_undef_class_method_id(mrb,  sym, MRB_SYM(new));
 
-#ifndef MRB_NO_PRESYM
   mrb_mt_init_rom(sym, &symbol_rom_mt);
-#else
-  mrb_define_method_id(mrb, sym, MRB_SYM(to_s),    sym_to_s,    MRB_ARGS_NONE());          /* 15.2.11.3.3 */
-  mrb_define_method_id(mrb, sym, MRB_SYM(name),    sym_name,    MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, sym, MRB_SYM(to_sym),  mrb_obj_itself,  MRB_ARGS_NONE());      /* 15.2.11.3.4 */
-  mrb_define_method_id(mrb, sym, MRB_SYM(inspect), sym_inspect, MRB_ARGS_NONE());          /* 15.2.11.3.5(x) */
-  mrb_define_method_id(mrb, sym, MRB_OPSYM(cmp),   sym_cmp,     MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, sym, MRB_OPSYM(eq),    mrb_obj_equal_m,      MRB_ARGS_REQ(1));
-#endif
 }
