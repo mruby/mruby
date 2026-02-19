@@ -31,8 +31,9 @@
  * excluding leading and ending punctuation.
  *
  * These macros are expanded to compile-time integer constants.
- * The `_2` suffix variants (e.g., `MRB_SYM_2`) accept an explicit
- * mruby state parameter but currently ignore it.
+ * The `_2` suffix variants (e.g., `MRB_SYM_2`) are kept for backward
+ * compatibility only; they accept an explicit `mrb_state*` parameter
+ * but ignore it. New code should use the standard macros above.
  */
 
 #endif  /* MRUBY_PRESYM_H */

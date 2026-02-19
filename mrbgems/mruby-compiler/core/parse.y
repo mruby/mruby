@@ -91,7 +91,7 @@ intern_gen(parser_state *p, const char *s, size_t len)
 }
 #define intern(s,len) intern_gen(p,(s),(len))
 
-#define intern_op(op) MRB_OPSYM_2(p->mrb, op)
+#define intern_op(op) MRB_OPSYM(op)
 
 static mrb_sym
 intern_numparam_gen(parser_state *p, int num)
@@ -1414,14 +1414,14 @@ new_int_n(parser_state *p, int32_t val)
 static node*
 new_imaginary(parser_state *p, node *imaginary)
 {
-  return new_fcall(p, MRB_SYM_2(p->mrb, Complex),
+  return new_fcall(p, MRB_SYM(Complex),
                    new_callargs(p, list2(new_int_n(p, 0), imaginary), 0, 0));
 }
 
 static node*
 new_rational(parser_state *p, node *rational)
 {
-  return new_fcall(p, MRB_SYM_2(p->mrb, Rational), new_callargs(p, list1(rational), 0, 0));
+  return new_fcall(p, MRB_SYM(Rational), new_callargs(p, list1(rational), 0, 0));
 }
 
 /* Read integer into int32_t with overflow detection */
@@ -3805,11 +3805,11 @@ method_call     : operation paren_args
                     }
                 | primary_value call_op paren_args
                     {
-                      $$ = new_call(p, $1, MRB_SYM_2(p->mrb, call), $3, $2);
+                      $$ = new_call(p, $1, MRB_SYM(call), $3, $2);
                     }
                 | primary_value tCOLON2 paren_args
                     {
-                      $$ = new_call(p, $1, MRB_SYM_2(p->mrb, call), $3, tCOLON2);
+                      $$ = new_call(p, $1, MRB_SYM(call), $3, tCOLON2);
                     }
                 | keyword_super paren_args
                     {
@@ -4496,7 +4496,7 @@ var_ref         : variable
                     }
                 | keyword__ENCODING__
                     {
-                      $$ = new_fcall(p, MRB_SYM_2(p->mrb, __ENCODING__), 0);
+                      $$ = new_fcall(p, MRB_SYM(__ENCODING__), 0);
                     }
                 ;
 

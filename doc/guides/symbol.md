@@ -74,5 +74,6 @@ can be specified for it). Other than that, describe only word characters
 excluding leading and ending punctuation.
 
 These macros are converted to static symbol IDs at compile time.
-The `_2` suffix variants (e.g., `MRB_SYM_2`) accept an explicit
-`mrb_state*` parameter but currently ignore it.
+The `_2` suffix variants (e.g., `MRB_SYM_2`) are kept for backward
+compatibility only; they accept an explicit `mrb_state*` parameter
+but ignore it. New code should use the standard macros above.

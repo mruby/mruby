@@ -153,7 +153,7 @@ intern_gen(parser_state *p, const char *s, size_t len)
 }
 #define intern(s,len) intern_gen(p,(s),(len))
 
-#define intern_op(op) MRB_OPSYM_2(p->mrb, op)
+#define intern_op(op) MRB_OPSYM(op)
 
 static mrb_sym
 intern_numparam_gen(parser_state *p, int num)
@@ -1476,14 +1476,14 @@ new_int_n(parser_state *p, int32_t val)
 static node*
 new_imaginary(parser_state *p, node *imaginary)
 {
-  return new_fcall(p, MRB_SYM_2(p->mrb, Complex),
+  return new_fcall(p, MRB_SYM(Complex),
                    new_callargs(p, list2(new_int_n(p, 0), imaginary), 0, 0));
 }
 
 static node*
 new_rational(parser_state *p, node *rational)
 {
-  return new_fcall(p, MRB_SYM_2(p->mrb, Rational), new_callargs(p, list1(rational), 0, 0));
+  return new_fcall(p, MRB_SYM(Rational), new_callargs(p, list1(rational), 0, 0));
 }
 
 /* Read integer into int32_t with overflow detection */
@@ -10219,7 +10219,7 @@ yyreduce:
   case 417: /* method_call: primary_value call_op paren_args  */
 #line 3807 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      (yyval.nd) = new_call(p, (yyvsp[-2].nd), MRB_SYM_2(p->mrb, call), (yyvsp[0].nd), (yyvsp[-1].num));
+                      (yyval.nd) = new_call(p, (yyvsp[-2].nd), MRB_SYM(call), (yyvsp[0].nd), (yyvsp[-1].num));
                     }
 #line 10225 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
@@ -10227,7 +10227,7 @@ yyreduce:
   case 418: /* method_call: primary_value "::" paren_args  */
 #line 3811 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      (yyval.nd) = new_call(p, (yyvsp[-2].nd), MRB_SYM_2(p->mrb, call), (yyvsp[0].nd), tCOLON2);
+                      (yyval.nd) = new_call(p, (yyvsp[-2].nd), MRB_SYM(call), (yyvsp[0].nd), tCOLON2);
                     }
 #line 10233 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
@@ -11244,7 +11244,7 @@ yyreduce:
   case 565: /* var_ref: "'__ENCODING__'"  */
 #line 4498 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      (yyval.nd) = new_fcall(p, MRB_SYM_2(p->mrb, __ENCODING__), 0);
+                      (yyval.nd) = new_fcall(p, MRB_SYM(__ENCODING__), 0);
                     }
 #line 11250 "mrbgems/mruby-compiler/core/y.tab.c"
     break;

@@ -38,6 +38,7 @@
 #define MRB_SYM_E(name) MRB_PRESYM_SCANNING_TAGGED(#name "=")
 #define MRB_SYM(name) MRB_PRESYM_SCANNING_TAGGED(#name)
 
+/* backward compatibility: _2 variants accept but ignore mrb_state* */
 #define MRB_OPSYM_2(mrb, name) MRB_OPSYM__##name(mrb)
 #define MRB_GVSYM_2(mrb, name) MRB_PRESYM_SCANNING_TAGGED("$" #name)
 #define MRB_CVSYM_2(mrb, name) MRB_PRESYM_SCANNING_TAGGED("@@" #name)
