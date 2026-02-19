@@ -666,74 +666,36 @@ mrb_p_m(mrb_state *mrb, mrb_value self)
 #endif
 
 /* ---------------------------*/
-#define KERNEL_ROM_MT_SIZE 27
-static struct {
-  union mrb_mt_ptr vals[KERNEL_ROM_MT_SIZE];
-  mrb_sym keys[KERNEL_ROM_MT_SIZE];
-} kernel_rom_data = {
-  .vals = {
-    { .func = mrb_eqq_m },
-    { .func = mrb_cmp_m },
-    { .func = mrb_f_block_given_p_m },
-    { .func = mrb_obj_class_m },
-    { .func = mrb_obj_clone },
-    { .func = mrb_obj_dup },
-    { .func = mrb_obj_equal_m },
-    { .func = mrb_obj_freeze },
-    { .func = mrb_obj_frozen },
-    { .func = mrb_obj_extend },
-    { .func = mrb_obj_hash },
-    { .func = mrb_obj_init_copy },
-    { .func = mrb_obj_inspect },
-    { .func = obj_is_instance_of },
-    { .func = mrb_obj_is_kind_of_m },
-    { .func = mrb_f_block_given_p_m },
-    { .func = mrb_obj_is_kind_of_m },
-    { .func = mrb_false },
-    { .func = mrb_obj_id_m },
-    { .func = mrb_f_raise },
-    { .func = mrb_obj_remove_instance_variable },
-    { .func = obj_respond_to },
-    { .func = mrb_any_to_s },
-    { .func = mrb_obj_ceqq },
-    { .func = mrb_ensure_int_type },
-    { .func = mrb_false },
-    { .func = mrb_obj_method_recursive_p },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_OPSYM(eqq),                      MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(cmp),                       MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM_Q(block_given),               MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PRIVATE),
-    MRB_MT_KEY(MRB_SYM(class),                        MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(clone),                        MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(dup),                          MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM_Q(eql),                        MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(freeze),                       MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM_Q(frozen),                     MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(extend),                       MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(hash),                         MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(initialize_copy),              MRB_MT_FUNC|MRB_MT_PRIVATE),
-    MRB_MT_KEY(MRB_SYM(inspect),                      MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM_Q(instance_of),                MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM_Q(is_a),                       MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM_Q(iterator),                   MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PRIVATE),
-    MRB_MT_KEY(MRB_SYM_Q(kind_of),                    MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM_Q(nil),                        MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(object_id),                    MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(raise),                        MRB_MT_FUNC|MRB_MT_PRIVATE),
-    MRB_MT_KEY(MRB_SYM(remove_instance_variable),     MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM_Q(respond_to),                 MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(to_s),                         MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(__case_eqq),                   MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(__to_int),                     MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM_Q(respond_to_missing),         MRB_MT_FUNC|MRB_MT_PRIVATE),
-    MRB_MT_KEY(MRB_SYM_Q(__method_recursive),         MRB_MT_FUNC|MRB_MT_PUBLIC),
-  }
+static mrb_mt_entry kernel_rom_entries[] = {
+  MRB_MT_ENTRY(mrb_eqq_m,                        MRB_OPSYM(eqq),                      MRB_MT_FUNC),
+  MRB_MT_ENTRY(mrb_cmp_m,                        MRB_OPSYM(cmp),                       MRB_MT_FUNC),
+  MRB_MT_ENTRY(mrb_f_block_given_p_m,            MRB_SYM_Q(block_given),               MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_obj_class_m,                  MRB_SYM(class),                        MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_obj_clone,                    MRB_SYM(clone),                        MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_obj_dup,                      MRB_SYM(dup),                          MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_obj_equal_m,                  MRB_SYM_Q(eql),                        MRB_MT_FUNC),
+  MRB_MT_ENTRY(mrb_obj_freeze,                   MRB_SYM(freeze),                       MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_obj_frozen,                   MRB_SYM_Q(frozen),                     MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_obj_extend,                   MRB_SYM(extend),                       MRB_MT_FUNC),
+  MRB_MT_ENTRY(mrb_obj_hash,                     MRB_SYM(hash),                         MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_obj_init_copy,                MRB_SYM(initialize_copy),              MRB_MT_FUNC|MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_obj_inspect,                  MRB_SYM(inspect),                      MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(obj_is_instance_of,               MRB_SYM_Q(instance_of),                MRB_MT_FUNC),
+  MRB_MT_ENTRY(mrb_obj_is_kind_of_m,             MRB_SYM_Q(is_a),                       MRB_MT_FUNC),
+  MRB_MT_ENTRY(mrb_f_block_given_p_m,            MRB_SYM_Q(iterator),                   MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_obj_is_kind_of_m,             MRB_SYM_Q(kind_of),                    MRB_MT_FUNC),
+  MRB_MT_ENTRY(mrb_false,                        MRB_SYM_Q(nil),                        MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_obj_id_m,                     MRB_SYM(object_id),                    MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_f_raise,                      MRB_SYM(raise),                        MRB_MT_FUNC|MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_obj_remove_instance_variable, MRB_SYM(remove_instance_variable),     MRB_MT_FUNC),
+  MRB_MT_ENTRY(obj_respond_to,                   MRB_SYM_Q(respond_to),                 MRB_MT_FUNC),
+  MRB_MT_ENTRY(mrb_any_to_s,                     MRB_SYM(to_s),                         MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_obj_ceqq,                     MRB_SYM(__case_eqq),                   MRB_MT_FUNC),
+  MRB_MT_ENTRY(mrb_ensure_int_type,              MRB_SYM(__to_int),                     MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_false,                        MRB_SYM_Q(respond_to_missing),         MRB_MT_FUNC|MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_obj_method_recursive_p,       MRB_SYM_Q(__method_recursive),         MRB_MT_FUNC),
 };
-static mrb_mt_tbl kernel_rom_mt = {
-  KERNEL_ROM_MT_SIZE, KERNEL_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&kernel_rom_data, NULL
-};
+static mrb_mt_tbl kernel_rom_mt = MRB_MT_ROM_TAB(kernel_rom_entries);
 
 void
 mrb_init_kernel(mrb_state *mrb)

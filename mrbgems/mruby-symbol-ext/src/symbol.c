@@ -58,24 +58,11 @@ mrb_sym_length(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(len);
 }
 
-#define SYMBOL_EXT_ROM_MT_SIZE 2
-static struct {
-  union mrb_mt_ptr vals[SYMBOL_EXT_ROM_MT_SIZE];
-  mrb_sym keys[SYMBOL_EXT_ROM_MT_SIZE];
-} symbol_ext_rom_data = {
-  .vals = {
-    { .func = mrb_sym_length },
-    { .func = mrb_sym_length },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_SYM(length), MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(size),   MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-  }
+static mrb_mt_entry symbol_ext_rom_entries[] = {
+  MRB_MT_ENTRY(mrb_sym_length, MRB_SYM(length), MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_sym_length, MRB_SYM(size),   MRB_MT_FUNC|MRB_MT_NOARG),
 };
-static mrb_mt_tbl symbol_ext_rom_mt = {
-  SYMBOL_EXT_ROM_MT_SIZE, SYMBOL_EXT_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&symbol_ext_rom_data, NULL
-};
+static mrb_mt_tbl symbol_ext_rom_mt = MRB_MT_ROM_TAB(symbol_ext_rom_entries);
 
 void
 mrb_mruby_symbol_ext_gem_init(mrb_state* mrb)

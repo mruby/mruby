@@ -97,60 +97,22 @@ obj_instance_exec(mrb_state *mrb, mrb_value self)
   return mrb_object_exec(mrb, self, mrb_singleton_class_ptr(mrb, self));
 }
 
-#define NIL_EXT_ROM_MT_SIZE 3
-static struct {
-  union mrb_mt_ptr vals[NIL_EXT_ROM_MT_SIZE];
-  mrb_sym keys[NIL_EXT_ROM_MT_SIZE];
-} nil_ext_rom_data = {
-  .vals = {
-    { .func = nil_to_a },
-    { .func = nil_to_h },
-    { .func = nil_to_i },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_SYM(to_a), MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(to_h), MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(to_i), MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-  }
+static mrb_mt_entry nil_ext_rom_entries[] = {
+  MRB_MT_ENTRY(nil_to_a, MRB_SYM(to_a), MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(nil_to_h, MRB_SYM(to_h), MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(nil_to_i, MRB_SYM(to_i), MRB_MT_FUNC|MRB_MT_NOARG),
 };
-static mrb_mt_tbl nil_ext_rom_mt = {
-  NIL_EXT_ROM_MT_SIZE, NIL_EXT_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&nil_ext_rom_data, NULL
-};
+static mrb_mt_tbl nil_ext_rom_mt = MRB_MT_ROM_TAB(nil_ext_rom_entries);
 
-#define KERNEL_EXT_ROM_MT_SIZE 1
-static struct {
-  union mrb_mt_ptr vals[KERNEL_EXT_ROM_MT_SIZE];
-  mrb_sym keys[KERNEL_EXT_ROM_MT_SIZE];
-} kernel_ext_rom_data = {
-  .vals = {
-    { .func = mrb_obj_itself },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_SYM(itself), MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-  }
+static mrb_mt_entry kernel_ext_rom_entries[] = {
+  MRB_MT_ENTRY(mrb_obj_itself, MRB_SYM(itself), MRB_MT_FUNC|MRB_MT_NOARG),
 };
-static mrb_mt_tbl kernel_ext_rom_mt = {
-  KERNEL_EXT_ROM_MT_SIZE, KERNEL_EXT_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&kernel_ext_rom_data, NULL
-};
+static mrb_mt_tbl kernel_ext_rom_mt = MRB_MT_ROM_TAB(kernel_ext_rom_entries);
 
-#define BOB_EXT_ROM_MT_SIZE 1
-static struct {
-  union mrb_mt_ptr vals[BOB_EXT_ROM_MT_SIZE];
-  mrb_sym keys[BOB_EXT_ROM_MT_SIZE];
-} bob_ext_rom_data = {
-  .vals = {
-    { .func = obj_instance_exec },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_SYM(instance_exec), MRB_MT_FUNC|MRB_MT_PUBLIC),
-  }
+static mrb_mt_entry bob_ext_rom_entries[] = {
+  MRB_MT_ENTRY(obj_instance_exec, MRB_SYM(instance_exec), MRB_MT_FUNC),
 };
-static mrb_mt_tbl bob_ext_rom_mt = {
-  BOB_EXT_ROM_MT_SIZE, BOB_EXT_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&bob_ext_rom_data, NULL
-};
+static mrb_mt_tbl bob_ext_rom_mt = MRB_MT_ROM_TAB(bob_ext_rom_entries);
 
 void
 mrb_mruby_object_ext_gem_init(mrb_state* mrb)

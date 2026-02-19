@@ -558,80 +558,32 @@ complex_pow(mrb_state *mrb, mrb_value self)
 }
 
 /* ---------------------------*/
-#define COMPLEX_ROM_MT_SIZE 13
-static struct {
-  union mrb_mt_ptr vals[COMPLEX_ROM_MT_SIZE];
-  mrb_sym keys[COMPLEX_ROM_MT_SIZE];
-} complex_rom_data = {
-  .vals = {
-    { .func = complex_real },
-    { .func = complex_imaginary },
-    { .func = mrb_complex_to_f },
-    { .func = mrb_complex_to_i },
-    { .func = mrb_obj_itself },
-    { .func = complex_add },
-    { .func = complex_sub },
-    { .func = complex_mul },
-    { .func = complex_div },
-    { .func = complex_div },
-    { .func = complex_eq },
-    { .func = complex_hash },
-    { .func = complex_pow },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_SYM(real),      MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(imaginary), MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(to_f),      MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(to_i),      MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(to_c),      MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(add),     MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(sub),     MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(mul),     MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(div),     MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(quo),       MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(eq),      MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(hash),      MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(pow),     MRB_MT_FUNC|MRB_MT_PUBLIC),
-  }
+static mrb_mt_entry complex_rom_entries[] = {
+  MRB_MT_ENTRY(complex_real,      MRB_SYM(real),      MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(complex_imaginary, MRB_SYM(imaginary), MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_complex_to_f,  MRB_SYM(to_f),      MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_complex_to_i,  MRB_SYM(to_i),      MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_obj_itself,    MRB_SYM(to_c),      MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(complex_add,       MRB_OPSYM(add),     MRB_MT_FUNC),
+  MRB_MT_ENTRY(complex_sub,       MRB_OPSYM(sub),     MRB_MT_FUNC),
+  MRB_MT_ENTRY(complex_mul,       MRB_OPSYM(mul),     MRB_MT_FUNC),
+  MRB_MT_ENTRY(complex_div,       MRB_OPSYM(div),     MRB_MT_FUNC),
+  MRB_MT_ENTRY(complex_div,       MRB_SYM(quo),       MRB_MT_FUNC),
+  MRB_MT_ENTRY(complex_eq,        MRB_OPSYM(eq),      MRB_MT_FUNC),
+  MRB_MT_ENTRY(complex_hash,      MRB_SYM(hash),      MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(complex_pow,       MRB_OPSYM(pow),     MRB_MT_FUNC),
 };
-static mrb_mt_tbl complex_rom_mt = {
-  COMPLEX_ROM_MT_SIZE, COMPLEX_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&complex_rom_data, NULL
-};
+static mrb_mt_tbl complex_rom_mt = MRB_MT_ROM_TAB(complex_rom_entries);
 
-#define NIL_TO_C_ROM_MT_SIZE 1
-static struct {
-  union mrb_mt_ptr vals[NIL_TO_C_ROM_MT_SIZE];
-  mrb_sym keys[NIL_TO_C_ROM_MT_SIZE];
-} nil_to_c_rom_data = {
-  .vals = {
-    { .func = nil_to_c },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_SYM(to_c), MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-  }
+static mrb_mt_entry nil_to_c_rom_entries[] = {
+  MRB_MT_ENTRY(nil_to_c, MRB_SYM(to_c), MRB_MT_FUNC|MRB_MT_NOARG),
 };
-static mrb_mt_tbl nil_to_c_rom_mt = {
-  NIL_TO_C_ROM_MT_SIZE, NIL_TO_C_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&nil_to_c_rom_data, NULL
-};
+static mrb_mt_tbl nil_to_c_rom_mt = MRB_MT_ROM_TAB(nil_to_c_rom_entries);
 
-#define KERNEL_COMPLEX_ROM_MT_SIZE 1
-static struct {
-  union mrb_mt_ptr vals[KERNEL_COMPLEX_ROM_MT_SIZE];
-  mrb_sym keys[KERNEL_COMPLEX_ROM_MT_SIZE];
-} kernel_complex_rom_data = {
-  .vals = {
-    { .func = complex_s_rect },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_SYM(Complex), MRB_MT_FUNC|MRB_MT_PRIVATE),
-  }
+static mrb_mt_entry kernel_complex_rom_entries[] = {
+  MRB_MT_ENTRY(complex_s_rect, MRB_SYM(Complex), MRB_MT_FUNC|MRB_MT_PRIVATE),
 };
-static mrb_mt_tbl kernel_complex_rom_mt = {
-  KERNEL_COMPLEX_ROM_MT_SIZE, KERNEL_COMPLEX_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&kernel_complex_rom_data, NULL
-};
+static mrb_mt_tbl kernel_complex_rom_mt = MRB_MT_ROM_TAB(kernel_complex_rom_entries);
 
 void mrb_mruby_complex_gem_init(mrb_state *mrb)
 {

@@ -892,34 +892,16 @@ mrb_check_error(mrb_state *mrb)
 }
 
 /* ---------------------------*/
-#define EXCEPTION_ROM_MT_SIZE 7
-static struct {
-  union mrb_mt_ptr vals[EXCEPTION_ROM_MT_SIZE];
-  mrb_sym keys[EXCEPTION_ROM_MT_SIZE];
-} exception_rom_data = {
-  .vals = {
-    { .func = exc_exception },
-    { .func = exc_initialize },
-    { .func = exc_to_s },
-    { .func = exc_to_s },
-    { .func = mrb_exc_inspect },
-    { .func = mrb_exc_backtrace },
-    { .func = exc_set_backtrace },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_SYM(exception),      MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(initialize),     MRB_MT_FUNC|MRB_MT_PRIVATE),
-    MRB_MT_KEY(MRB_SYM(to_s),           MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(message),        MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(inspect),        MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(backtrace),      MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(set_backtrace),  MRB_MT_FUNC|MRB_MT_PUBLIC),
-  }
+static mrb_mt_entry exception_rom_entries[] = {
+  MRB_MT_ENTRY(exc_exception,     MRB_SYM(exception),      MRB_MT_FUNC),
+  MRB_MT_ENTRY(exc_initialize,    MRB_SYM(initialize),     MRB_MT_FUNC|MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(exc_to_s,          MRB_SYM(to_s),           MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(exc_to_s,          MRB_SYM(message),        MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_exc_inspect,   MRB_SYM(inspect),        MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_exc_backtrace, MRB_SYM(backtrace),      MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(exc_set_backtrace, MRB_SYM(set_backtrace),  MRB_MT_FUNC),
 };
-static mrb_mt_tbl exception_rom_mt = {
-  EXCEPTION_ROM_MT_SIZE, EXCEPTION_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&exception_rom_data, NULL
-};
+static mrb_mt_tbl exception_rom_mt = MRB_MT_ROM_TAB(exception_rom_entries);
 
 void
 mrb_init_exception(mrb_state *mrb)

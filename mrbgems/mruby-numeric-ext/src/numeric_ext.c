@@ -480,38 +480,18 @@ int_sqrt(mrb_state *mrb, mrb_value self)
   }
 }
 
-#define INTEGER_EXT_ROM_MT_SIZE 9
-static struct {
-  union mrb_mt_ptr vals[INTEGER_EXT_ROM_MT_SIZE];
-  mrb_sym keys[INTEGER_EXT_ROM_MT_SIZE];
-} integer_ext_rom_data = {
-  .vals = {
-    { .func = int_remainder },
-    { .func = int_powm },
-    { .func = int_digits },
-    { .func = int_size },
-    { .func = int_bit_length },
-    { .func = int_odd },
-    { .func = int_even },
-    { .func = int_gcd },
-    { .func = int_lcm },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_SYM(remainder),  MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(pow),        MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(digits),     MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(size),       MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(bit_length), MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM_Q(odd),      MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM_Q(even),     MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(gcd),        MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(lcm),        MRB_MT_FUNC|MRB_MT_PUBLIC),
-  }
+static mrb_mt_entry integer_ext_rom_entries[] = {
+  MRB_MT_ENTRY(int_remainder,  MRB_SYM(remainder),  MRB_MT_FUNC),
+  MRB_MT_ENTRY(int_powm,       MRB_SYM(pow),        MRB_MT_FUNC),
+  MRB_MT_ENTRY(int_digits,     MRB_SYM(digits),     MRB_MT_FUNC),
+  MRB_MT_ENTRY(int_size,       MRB_SYM(size),       MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(int_bit_length, MRB_SYM(bit_length), MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(int_odd,        MRB_SYM_Q(odd),      MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(int_even,       MRB_SYM_Q(even),     MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(int_gcd,        MRB_SYM(gcd),        MRB_MT_FUNC),
+  MRB_MT_ENTRY(int_lcm,        MRB_SYM(lcm),        MRB_MT_FUNC),
 };
-static mrb_mt_tbl integer_ext_rom_mt = {
-  INTEGER_EXT_ROM_MT_SIZE, INTEGER_EXT_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&integer_ext_rom_data, NULL
-};
+static mrb_mt_tbl integer_ext_rom_mt = MRB_MT_ROM_TAB(integer_ext_rom_entries);
 
 void
 mrb_mruby_numeric_ext_gem_init(mrb_state* mrb)

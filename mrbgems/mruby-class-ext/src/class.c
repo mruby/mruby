@@ -335,57 +335,24 @@ mrb_mod_cmp(mrb_state *mrb, mrb_value self)
 }
 
 /* ---------------------------*/
-#define MOD_EXT_ROM_MT_SIZE 9
-static struct {
-  union mrb_mt_ptr vals[MOD_EXT_ROM_MT_SIZE];
-  mrb_sym keys[MOD_EXT_ROM_MT_SIZE];
-} mod_ext_rom_data = {
-  .vals = {
-    { .func = mrb_mod_lt },
-    { .func = mrb_mod_le },
-    { .func = mrb_mod_cmp },
-    { .func = mrb_mod_gt },
-    { .func = mrb_mod_ge },
-    { .func = mod_module_exec },
-    { .func = mod_module_exec },
-    { .func = mod_name },
-    { .func = mod_singleton_class_p },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_OPSYM(lt),              MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(le),              MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(cmp),             MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(gt),              MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(ge),              MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(class_exec),        MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(module_exec),       MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(name),             MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM_Q(singleton_class), MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-  }
+static mrb_mt_entry mod_ext_rom_entries[] = {
+  MRB_MT_ENTRY(mrb_mod_lt,            MRB_OPSYM(lt),              MRB_MT_FUNC),
+  MRB_MT_ENTRY(mrb_mod_le,            MRB_OPSYM(le),              MRB_MT_FUNC),
+  MRB_MT_ENTRY(mrb_mod_cmp,           MRB_OPSYM(cmp),             MRB_MT_FUNC),
+  MRB_MT_ENTRY(mrb_mod_gt,            MRB_OPSYM(gt),              MRB_MT_FUNC),
+  MRB_MT_ENTRY(mrb_mod_ge,            MRB_OPSYM(ge),              MRB_MT_FUNC),
+  MRB_MT_ENTRY(mod_module_exec,       MRB_SYM(class_exec),        MRB_MT_FUNC),
+  MRB_MT_ENTRY(mod_module_exec,       MRB_SYM(module_exec),       MRB_MT_FUNC),
+  MRB_MT_ENTRY(mod_name,              MRB_SYM(name),              MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(mod_singleton_class_p, MRB_SYM_Q(singleton_class), MRB_MT_FUNC|MRB_MT_NOARG),
 };
-static mrb_mt_tbl mod_ext_rom_mt = {
-  MOD_EXT_ROM_MT_SIZE, MOD_EXT_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&mod_ext_rom_data, NULL
-};
+static mrb_mt_tbl mod_ext_rom_mt = MRB_MT_ROM_TAB(mod_ext_rom_entries);
 
-#define CLS_EXT_ROM_MT_SIZE 2
-static struct {
-  union mrb_mt_ptr vals[CLS_EXT_ROM_MT_SIZE];
-  mrb_sym keys[CLS_EXT_ROM_MT_SIZE];
-} cls_ext_rom_data = {
-  .vals = {
-    { .func = class_attached_object },
-    { .func = class_subclasses },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_SYM(attached_object), MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(subclasses),      MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-  }
+static mrb_mt_entry cls_ext_rom_entries[] = {
+  MRB_MT_ENTRY(class_attached_object, MRB_SYM(attached_object), MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(class_subclasses,      MRB_SYM(subclasses),      MRB_MT_FUNC|MRB_MT_NOARG),
 };
-static mrb_mt_tbl cls_ext_rom_mt = {
-  CLS_EXT_ROM_MT_SIZE, CLS_EXT_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&cls_ext_rom_data, NULL
-};
+static mrb_mt_tbl cls_ext_rom_mt = MRB_MT_ROM_TAB(cls_ext_rom_entries);
 
 /*
  * Initialize the mruby-class-ext gem.

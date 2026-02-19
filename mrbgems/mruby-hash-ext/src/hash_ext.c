@@ -367,32 +367,15 @@ hash_merge(mrb_state *mrb, mrb_value hash)
   return hash;
 }
 
-#define HASH_EXT_ROM_MT_SIZE 6
-static struct {
-  union mrb_mt_ptr vals[HASH_EXT_ROM_MT_SIZE];
-  mrb_sym keys[HASH_EXT_ROM_MT_SIZE];
-} hash_ext_rom_data = {
-  .vals = {
-    { .func = hash_values_at },
-    { .func = hash_slice },
-    { .func = hash_slice_bang },
-    { .func = hash_except },
-    { .func = hash_key },
-    { .func = hash_merge },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_SYM(values_at), MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(slice),     MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM_B(slice),   MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(except),    MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(key),       MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(__merge),   MRB_MT_FUNC|MRB_MT_PUBLIC),
-  }
+static mrb_mt_entry hash_ext_rom_entries[] = {
+  MRB_MT_ENTRY(hash_values_at, MRB_SYM(values_at), MRB_MT_FUNC),
+  MRB_MT_ENTRY(hash_slice,     MRB_SYM(slice),     MRB_MT_FUNC),
+  MRB_MT_ENTRY(hash_slice_bang, MRB_SYM_B(slice),  MRB_MT_FUNC),
+  MRB_MT_ENTRY(hash_except,    MRB_SYM(except),    MRB_MT_FUNC),
+  MRB_MT_ENTRY(hash_key,       MRB_SYM(key),       MRB_MT_FUNC),
+  MRB_MT_ENTRY(hash_merge,     MRB_SYM(__merge),   MRB_MT_FUNC),
 };
-static mrb_mt_tbl hash_ext_rom_mt = {
-  HASH_EXT_ROM_MT_SIZE, HASH_EXT_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&hash_ext_rom_data, NULL
-};
+static mrb_mt_tbl hash_ext_rom_mt = MRB_MT_ROM_TAB(hash_ext_rom_entries);
 
 void
 mrb_mruby_hash_ext_gem_init(mrb_state *mrb)

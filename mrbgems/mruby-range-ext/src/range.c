@@ -216,26 +216,12 @@ range_empty_p(mrb_state *mrb, mrb_value range)
   return mrb_bool_value(comp == -2 || comp > 0 || (comp == 0 && excl));
 }
 
-#define RANGE_EXT_ROM_MT_SIZE 3
-static struct {
-  union mrb_mt_ptr vals[RANGE_EXT_ROM_MT_SIZE];
-  mrb_sym keys[RANGE_EXT_ROM_MT_SIZE];
-} range_ext_rom_data = {
-  .vals = {
-    { .func = range_cover },
-    { .func = range_size },
-    { .func = range_empty_p },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_SYM_Q(cover),          MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(size),             MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM_Q(__empty_range),  MRB_MT_FUNC|MRB_MT_PUBLIC),
-  }
+static mrb_mt_entry range_ext_rom_entries[] = {
+  MRB_MT_ENTRY(range_cover,   MRB_SYM_Q(cover),          MRB_MT_FUNC),
+  MRB_MT_ENTRY(range_size,    MRB_SYM(size),             MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(range_empty_p, MRB_SYM_Q(__empty_range),  MRB_MT_FUNC),
 };
-static mrb_mt_tbl range_ext_rom_mt = {
-  RANGE_EXT_ROM_MT_SIZE, RANGE_EXT_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&range_ext_rom_data, NULL
-};
+static mrb_mt_tbl range_ext_rom_mt = MRB_MT_ROM_TAB(range_ext_rom_entries);
 
 void
 mrb_mruby_range_ext_gem_init(mrb_state* mrb)

@@ -1228,99 +1228,38 @@ rational_hash(mrb_state *mrb, mrb_value rat)
 }
 
 /* ---------------------------*/
-#define RATIONAL_ROM_MT_SIZE 14
-static struct {
-  union mrb_mt_ptr vals[RATIONAL_ROM_MT_SIZE];
-  mrb_sym keys[RATIONAL_ROM_MT_SIZE];
-} rational_rom_data = {
-  .vals = {
-    { .func = rational_numerator },
-    { .func = rational_denominator },
-    { .func = mrb_rational_to_i },
-    { .func = mrb_obj_itself },
-    { .func = rational_negative_p },
-    { .func = rational_eq },
-    { .func = rational_minus },
-    { .func = rational_add },
-    { .func = rational_sub },
-    { .func = rational_mul },
-    { .func = rational_div },
-    { .func = rational_div },
-    { .func = rational_pow },
-    { .func = rational_hash },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_SYM(numerator),   MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(denominator), MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(to_i),        MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(to_r),        MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM_Q(negative),  MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(eq),        MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(minus),     MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(add),       MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(sub),       MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(mul),       MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(div),       MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(quo),         MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(pow),       MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(hash),        MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-  }
+static mrb_mt_entry rational_rom_entries[] = {
+  MRB_MT_ENTRY(rational_numerator,   MRB_SYM(numerator),   MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(rational_denominator, MRB_SYM(denominator), MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_rational_to_i,    MRB_SYM(to_i),        MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_obj_itself,       MRB_SYM(to_r),        MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(rational_negative_p,  MRB_SYM_Q(negative),  MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(rational_eq,          MRB_OPSYM(eq),        MRB_MT_FUNC),
+  MRB_MT_ENTRY(rational_minus,       MRB_OPSYM(minus),     MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(rational_add,         MRB_OPSYM(add),       MRB_MT_FUNC),
+  MRB_MT_ENTRY(rational_sub,         MRB_OPSYM(sub),       MRB_MT_FUNC),
+  MRB_MT_ENTRY(rational_mul,         MRB_OPSYM(mul),       MRB_MT_FUNC),
+  MRB_MT_ENTRY(rational_div,         MRB_OPSYM(div),       MRB_MT_FUNC),
+  MRB_MT_ENTRY(rational_div,         MRB_SYM(quo),         MRB_MT_FUNC),
+  MRB_MT_ENTRY(rational_pow,         MRB_OPSYM(pow),       MRB_MT_FUNC),
+  MRB_MT_ENTRY(rational_hash,        MRB_SYM(hash),        MRB_MT_FUNC|MRB_MT_NOARG),
 };
-static mrb_mt_tbl rational_rom_mt = {
-  RATIONAL_ROM_MT_SIZE, RATIONAL_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&rational_rom_data, NULL
-};
+static mrb_mt_tbl rational_rom_mt = MRB_MT_ROM_TAB(rational_rom_entries);
 
-#define INTEGER_TO_R_ROM_MT_SIZE 1
-static struct {
-  union mrb_mt_ptr vals[INTEGER_TO_R_ROM_MT_SIZE];
-  mrb_sym keys[INTEGER_TO_R_ROM_MT_SIZE];
-} integer_to_r_rom_data = {
-  .vals = {
-    { .func = int_to_r },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_SYM(to_r), MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-  }
+static mrb_mt_entry integer_to_r_rom_entries[] = {
+  MRB_MT_ENTRY(int_to_r, MRB_SYM(to_r), MRB_MT_FUNC|MRB_MT_NOARG),
 };
-static mrb_mt_tbl integer_to_r_rom_mt = {
-  INTEGER_TO_R_ROM_MT_SIZE, INTEGER_TO_R_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&integer_to_r_rom_data, NULL
-};
+static mrb_mt_tbl integer_to_r_rom_mt = MRB_MT_ROM_TAB(integer_to_r_rom_entries);
 
-#define NIL_TO_R_ROM_MT_SIZE 1
-static struct {
-  union mrb_mt_ptr vals[NIL_TO_R_ROM_MT_SIZE];
-  mrb_sym keys[NIL_TO_R_ROM_MT_SIZE];
-} nil_to_r_rom_data = {
-  .vals = {
-    { .func = nil_to_r },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_SYM(to_r), MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-  }
+static mrb_mt_entry nil_to_r_rom_entries[] = {
+  MRB_MT_ENTRY(nil_to_r, MRB_SYM(to_r), MRB_MT_FUNC|MRB_MT_NOARG),
 };
-static mrb_mt_tbl nil_to_r_rom_mt = {
-  NIL_TO_R_ROM_MT_SIZE, NIL_TO_R_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&nil_to_r_rom_data, NULL
-};
+static mrb_mt_tbl nil_to_r_rom_mt = MRB_MT_ROM_TAB(nil_to_r_rom_entries);
 
-#define KERNEL_RATIONAL_ROM_MT_SIZE 1
-static struct {
-  union mrb_mt_ptr vals[KERNEL_RATIONAL_ROM_MT_SIZE];
-  mrb_sym keys[KERNEL_RATIONAL_ROM_MT_SIZE];
-} kernel_rational_rom_data = {
-  .vals = {
-    { .func = rational_m },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_SYM(Rational), MRB_MT_FUNC|MRB_MT_PRIVATE),
-  }
+static mrb_mt_entry kernel_rational_rom_entries[] = {
+  MRB_MT_ENTRY(rational_m, MRB_SYM(Rational), MRB_MT_FUNC|MRB_MT_PRIVATE),
 };
-static mrb_mt_tbl kernel_rational_rom_mt = {
-  KERNEL_RATIONAL_ROM_MT_SIZE, KERNEL_RATIONAL_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&kernel_rational_rom_data, NULL
-};
+static mrb_mt_tbl kernel_rational_rom_mt = MRB_MT_ROM_TAB(kernel_rational_rom_entries);
 
 void mrb_mruby_rational_gem_init(mrb_state *mrb)
 {

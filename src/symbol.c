@@ -1001,32 +1001,15 @@ sym_cmp(mrb_state *mrb, mrb_value s1)
 #undef lesser
 
 /* ---------------------------*/
-#define SYMBOL_ROM_MT_SIZE 6
-static struct {
-  union mrb_mt_ptr vals[SYMBOL_ROM_MT_SIZE];
-  mrb_sym keys[SYMBOL_ROM_MT_SIZE];
-} symbol_rom_data = {
-  .vals = {
-    { .func = sym_to_s },
-    { .func = sym_name },
-    { .func = mrb_obj_itself },
-    { .func = sym_inspect },
-    { .func = sym_cmp },
-    { .func = mrb_obj_equal_m },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_SYM(to_s),    MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(name),    MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(to_sym),  MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(inspect), MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(cmp),   MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(eq),    MRB_MT_FUNC|MRB_MT_PUBLIC),
-  }
+static mrb_mt_entry symbol_rom_entries[] = {
+  MRB_MT_ENTRY(sym_to_s,         MRB_SYM(to_s),    MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(sym_name,         MRB_SYM(name),    MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_obj_itself,   MRB_SYM(to_sym),  MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(sym_inspect,      MRB_SYM(inspect), MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(sym_cmp,          MRB_OPSYM(cmp),   MRB_MT_FUNC),
+  MRB_MT_ENTRY(mrb_obj_equal_m,  MRB_OPSYM(eq),    MRB_MT_FUNC),
 };
-static mrb_mt_tbl symbol_rom_mt = {
-  SYMBOL_ROM_MT_SIZE, SYMBOL_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&symbol_rom_data, NULL
-};
+static mrb_mt_tbl symbol_rom_mt = MRB_MT_ROM_TAB(symbol_rom_entries);
 
 void
 mrb_init_symbol(mrb_state *mrb)

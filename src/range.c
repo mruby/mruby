@@ -566,50 +566,24 @@ mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp,
 }
 
 /* ---------------------------*/
-#define RANGE_ROM_MT_SIZE 15
-static struct {
-  union mrb_mt_ptr vals[RANGE_ROM_MT_SIZE];
-  mrb_sym keys[RANGE_ROM_MT_SIZE];
-} range_rom_data = {
-  .vals = {
-    { .func = range_beg },
-    { .func = range_end },
-    { .func = range_eq },
-    { .func = range_include },
-    { .func = range_excl },
-    { .func = range_beg },
-    { .func = range_include },
-    { .func = range_initialize },
-    { .func = range_end },
-    { .func = range_include },
-    { .func = range_to_s },
-    { .func = range_inspect },
-    { .func = range_eql },
-    { .func = range_initialize_copy },
-    { .func = range_num_to_a },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_SYM(begin),           MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(end),             MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(eq),            MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(eqq),           MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM_Q(exclude_end),   MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(first),           MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM_Q(include),       MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(initialize),      MRB_MT_FUNC|MRB_MT_PRIVATE),
-    MRB_MT_KEY(MRB_SYM(last),            MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM_Q(member),        MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(to_s),            MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(inspect),         MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM_Q(eql),           MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(initialize_copy), MRB_MT_FUNC|MRB_MT_PRIVATE),
-    MRB_MT_KEY(MRB_SYM(__num_to_a),      MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-  }
+static mrb_mt_entry range_rom_entries[] = {
+  MRB_MT_ENTRY(range_beg,             MRB_SYM(begin),           MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(range_end,             MRB_SYM(end),             MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(range_eq,              MRB_OPSYM(eq),            MRB_MT_FUNC),
+  MRB_MT_ENTRY(range_include,         MRB_OPSYM(eqq),           MRB_MT_FUNC),
+  MRB_MT_ENTRY(range_excl,            MRB_SYM_Q(exclude_end),   MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(range_beg,             MRB_SYM(first),           MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(range_include,         MRB_SYM_Q(include),       MRB_MT_FUNC),
+  MRB_MT_ENTRY(range_initialize,      MRB_SYM(initialize),      MRB_MT_FUNC|MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(range_end,             MRB_SYM(last),            MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(range_include,         MRB_SYM_Q(member),        MRB_MT_FUNC),
+  MRB_MT_ENTRY(range_to_s,            MRB_SYM(to_s),            MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(range_inspect,         MRB_SYM(inspect),         MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(range_eql,             MRB_SYM_Q(eql),           MRB_MT_FUNC),
+  MRB_MT_ENTRY(range_initialize_copy, MRB_SYM(initialize_copy), MRB_MT_FUNC|MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(range_num_to_a,        MRB_SYM(__num_to_a),      MRB_MT_FUNC|MRB_MT_NOARG),
 };
-static mrb_mt_tbl range_rom_mt = {
-  RANGE_ROM_MT_SIZE, RANGE_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&range_rom_data, NULL
-};
+static mrb_mt_tbl range_rom_mt = MRB_MT_ROM_TAB(range_rom_entries);
 
 void
 mrb_init_range(mrb_state *mrb)

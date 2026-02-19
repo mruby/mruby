@@ -34,10 +34,16 @@ union mrb_mt_ptr {
   mrb_func_t func;
 };
 
+/* entry combining function pointer and key */
+typedef struct mrb_mt_entry {
+  union mrb_mt_ptr val;
+  mrb_sym key;
+} mrb_mt_entry;
+
 typedef struct mrb_mt_tbl {
   int               size;
   int               alloc;  /* bit 30: MRB_MT_READONLY_BIT, bit 29: MRB_MT_FROZEN_BIT */
-  union mrb_mt_ptr *ptr;
+  mrb_mt_entry     *ptr;
   struct mrb_mt_tbl *next;
 } mrb_mt_tbl;
 
@@ -50,12 +56,22 @@ typedef struct mrb_mt_tbl {
 #define MRB_MT_PUBLIC  0    /* MRB_METHOD_PUBLIC_FL */
 #define MRB_MT_PRIVATE 1    /* MRB_METHOD_PRIVATE_FL */
 
+/* ROM table entry: { {.func=fn}, MRB_MT_KEY(sym, flags) } */
+#define MRB_MT_ENTRY(fn, sym, flags) \
+  { { .func = (fn) }, MRB_MT_KEY((sym), (flags)) }
+
+/* ROM table initializer from entries array (auto-computes size) */
+#define MRB_MT_ROM_TAB(entries) { \
+  (int)(sizeof(entries)/sizeof(entries[0])), \
+  (int)(sizeof(entries)/sizeof(entries[0])), \
+  (entries), NULL }
+
 /* "removed" tombstone: MRB_MT_FUNC flag set with NULL function pointer.
    This combination never occurs naturally (C functions are never NULL).
    Unlike undef (proc=NULL without MRB_MT_FUNC), a removed marker makes
    mt_get() return 0 ("not found"), blocking ROM chain walk while
    allowing superclass lookup. */
-#define MRB_MT_REMOVED_P(key, val) (((key)&MRB_MT_FUNC) && (val).func==NULL)
+#define MRB_MT_REMOVED_P(e) (((e).key&MRB_MT_FUNC) && (e).val.func==NULL)
 
 void mrb_mt_init_rom(struct RClass *c, mrb_mt_tbl *rom);
 #endif

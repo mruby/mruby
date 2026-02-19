@@ -545,30 +545,14 @@ mrb_proc_merge_lvar(mrb_state *mrb, mrb_irep *irep, struct REnv *env, int num, c
 }
 
 /* ---------------------------*/
-#define PROC_ROM_MT_SIZE 5
-static struct {
-  union mrb_mt_ptr vals[PROC_ROM_MT_SIZE];
-  mrb_sym keys[PROC_ROM_MT_SIZE];
-} proc_rom_data = {
-  .vals = {
-    { .func = mrb_proc_init_copy },
-    { .func = proc_arity },
-    { .func = proc_eql },
-    { .func = proc_eql },
-    { .func = proc_hash },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_SYM(initialize_copy), MRB_MT_FUNC|MRB_MT_PRIVATE),
-    MRB_MT_KEY(MRB_SYM(arity),           MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(eq),            MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM_Q(eql),           MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(hash),            MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-  }
+static mrb_mt_entry proc_rom_entries[] = {
+  MRB_MT_ENTRY(mrb_proc_init_copy, MRB_SYM(initialize_copy), MRB_MT_FUNC|MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(proc_arity,         MRB_SYM(arity),           MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(proc_eql,           MRB_OPSYM(eq),            MRB_MT_FUNC),
+  MRB_MT_ENTRY(proc_eql,           MRB_SYM_Q(eql),           MRB_MT_FUNC),
+  MRB_MT_ENTRY(proc_hash,          MRB_SYM(hash),            MRB_MT_FUNC|MRB_MT_NOARG),
 };
-static mrb_mt_tbl proc_rom_mt = {
-  PROC_ROM_MT_SIZE, PROC_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&proc_rom_data, NULL
-};
+static mrb_mt_tbl proc_rom_mt = MRB_MT_ROM_TAB(proc_rom_entries);
 
 void
 mrb_init_proc(mrb_state *mrb)

@@ -322,82 +322,33 @@ false_to_s(mrb_state *mrb, mrb_value obj)
 }
 
 /* ---------------------------*/
-#define NIL_ROM_MT_SIZE 6
-static struct {
-  union mrb_mt_ptr vals[NIL_ROM_MT_SIZE];
-  mrb_sym keys[NIL_ROM_MT_SIZE];
-} nil_rom_data = {
-  .vals = {
-    { .func = false_and },
-    { .func = false_or },
-    { .func = false_xor },
-    { .func = mrb_true },
-    { .func = nil_to_s },
-    { .func = nil_inspect },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_OPSYM(and),    MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(or),     MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(xor),    MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM_Q(nil),    MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(to_s),     MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(inspect),  MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-  }
+static mrb_mt_entry nil_rom_entries[] = {
+  MRB_MT_ENTRY(false_and,   MRB_OPSYM(and),    MRB_MT_FUNC),
+  MRB_MT_ENTRY(false_or,    MRB_OPSYM(or),     MRB_MT_FUNC),
+  MRB_MT_ENTRY(false_xor,   MRB_OPSYM(xor),    MRB_MT_FUNC),
+  MRB_MT_ENTRY(mrb_true,    MRB_SYM_Q(nil),    MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(nil_to_s,    MRB_SYM(to_s),     MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(nil_inspect, MRB_SYM(inspect),  MRB_MT_FUNC|MRB_MT_NOARG),
 };
-static mrb_mt_tbl nil_rom_mt = {
-  NIL_ROM_MT_SIZE, NIL_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&nil_rom_data, NULL
-};
+static mrb_mt_tbl nil_rom_mt = MRB_MT_ROM_TAB(nil_rom_entries);
 
-#define TRUE_ROM_MT_SIZE 5
-static struct {
-  union mrb_mt_ptr vals[TRUE_ROM_MT_SIZE];
-  mrb_sym keys[TRUE_ROM_MT_SIZE];
-} true_rom_data = {
-  .vals = {
-    { .func = true_and },
-    { .func = true_or },
-    { .func = true_xor },
-    { .func = true_to_s },
-    { .func = true_to_s },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_OPSYM(and),    MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(or),     MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(xor),    MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(to_s),     MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(inspect),  MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-  }
+static mrb_mt_entry true_rom_entries[] = {
+  MRB_MT_ENTRY(true_and,  MRB_OPSYM(and),    MRB_MT_FUNC),
+  MRB_MT_ENTRY(true_or,   MRB_OPSYM(or),     MRB_MT_FUNC),
+  MRB_MT_ENTRY(true_xor,  MRB_OPSYM(xor),    MRB_MT_FUNC),
+  MRB_MT_ENTRY(true_to_s, MRB_SYM(to_s),     MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(true_to_s, MRB_SYM(inspect),  MRB_MT_FUNC|MRB_MT_NOARG),
 };
-static mrb_mt_tbl true_rom_mt = {
-  TRUE_ROM_MT_SIZE, TRUE_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&true_rom_data, NULL
-};
+static mrb_mt_tbl true_rom_mt = MRB_MT_ROM_TAB(true_rom_entries);
 
-#define FALSE_ROM_MT_SIZE 5
-static struct {
-  union mrb_mt_ptr vals[FALSE_ROM_MT_SIZE];
-  mrb_sym keys[FALSE_ROM_MT_SIZE];
-} false_rom_data = {
-  .vals = {
-    { .func = false_and },
-    { .func = false_or },
-    { .func = false_xor },
-    { .func = false_to_s },
-    { .func = false_to_s },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_OPSYM(and),    MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(or),     MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(xor),    MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(to_s),     MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(inspect),  MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-  }
+static mrb_mt_entry false_rom_entries[] = {
+  MRB_MT_ENTRY(false_and,  MRB_OPSYM(and),    MRB_MT_FUNC),
+  MRB_MT_ENTRY(false_or,   MRB_OPSYM(or),     MRB_MT_FUNC),
+  MRB_MT_ENTRY(false_xor,  MRB_OPSYM(xor),    MRB_MT_FUNC),
+  MRB_MT_ENTRY(false_to_s, MRB_SYM(to_s),     MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(false_to_s, MRB_SYM(inspect),  MRB_MT_FUNC|MRB_MT_NOARG),
 };
-static mrb_mt_tbl false_rom_mt = {
-  FALSE_ROM_MT_SIZE, FALSE_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&false_rom_data, NULL
-};
+static mrb_mt_tbl false_rom_mt = MRB_MT_ROM_TAB(false_rom_entries);
 
 void
 mrb_init_object(mrb_state *mrb)

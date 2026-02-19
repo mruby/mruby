@@ -832,123 +832,50 @@ method_name(mrb_state *mrb, mrb_value self)
 }
 
 /* ---------------------------*/
-#define METHOD_UBM_ROM_MT_SIZE 12
-static struct {
-  union mrb_mt_ptr vals[METHOD_UBM_ROM_MT_SIZE];
-  mrb_sym keys[METHOD_UBM_ROM_MT_SIZE];
-} method_ubm_rom_data = {
-  .vals = {
-    { .func = unbound_method_bind },
-    { .func = method_super_method },
-    { .func = method_eql },
-    { .func = method_eql },
-    { .func = method_to_s },
-    { .func = method_to_s },
-    { .func = method_arity },
-    { .func = method_source_location },
-    { .func = method_parameters },
-    { .func = method_bcall },
-    { .func = method_owner },
-    { .func = method_name },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_SYM(bind),            MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(super_method),    MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(eq),            MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM_Q(eql),           MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(to_s),            MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(inspect),         MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(arity),           MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(source_location), MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(parameters),      MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(bind_call),       MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(owner),           MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(name),            MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-  }
+static mrb_mt_entry method_ubm_rom_entries[] = {
+  MRB_MT_ENTRY(unbound_method_bind,  MRB_SYM(bind),            MRB_MT_FUNC),
+  MRB_MT_ENTRY(method_super_method,  MRB_SYM(super_method),    MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_eql,           MRB_OPSYM(eq),            MRB_MT_FUNC),
+  MRB_MT_ENTRY(method_eql,           MRB_SYM_Q(eql),           MRB_MT_FUNC),
+  MRB_MT_ENTRY(method_to_s,          MRB_SYM(to_s),            MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_to_s,          MRB_SYM(inspect),         MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_arity,         MRB_SYM(arity),           MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_source_location, MRB_SYM(source_location), MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_parameters,    MRB_SYM(parameters),      MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_bcall,         MRB_SYM(bind_call),       MRB_MT_FUNC),
+  MRB_MT_ENTRY(method_owner,         MRB_SYM(owner),           MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_name,          MRB_SYM(name),            MRB_MT_FUNC|MRB_MT_NOARG),
 };
-static mrb_mt_tbl method_ubm_rom_mt = {
-  METHOD_UBM_ROM_MT_SIZE, METHOD_UBM_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&method_ubm_rom_data, NULL
-};
+static mrb_mt_tbl method_ubm_rom_mt = MRB_MT_ROM_TAB(method_ubm_rom_entries);
 
-#define METHOD_MTD_ROM_MT_SIZE 14
-static struct {
-  union mrb_mt_ptr vals[METHOD_MTD_ROM_MT_SIZE];
-  mrb_sym keys[METHOD_MTD_ROM_MT_SIZE];
-} method_mtd_rom_data = {
-  .vals = {
-    { .func = method_eql },
-    { .func = method_eql },
-    { .func = method_to_s },
-    { .func = method_to_s },
-    { .func = method_call },
-    { .func = method_call },
-    { .func = method_unbind },
-    { .func = method_super_method },
-    { .func = method_arity },
-    { .func = method_source_location },
-    { .func = method_parameters },
-    { .func = method_owner },
-    { .func = method_receiver },
-    { .func = method_name },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_OPSYM(eq),            MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM_Q(eql),           MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(to_s),            MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(inspect),         MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(call),            MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(aref),          MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(unbind),          MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(super_method),    MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(arity),           MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(source_location), MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(parameters),      MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(owner),           MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(receiver),        MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(name),            MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-  }
+static mrb_mt_entry method_mtd_rom_entries[] = {
+  MRB_MT_ENTRY(method_eql,            MRB_OPSYM(eq),            MRB_MT_FUNC),
+  MRB_MT_ENTRY(method_eql,            MRB_SYM_Q(eql),           MRB_MT_FUNC),
+  MRB_MT_ENTRY(method_to_s,           MRB_SYM(to_s),            MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_to_s,           MRB_SYM(inspect),         MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_call,           MRB_SYM(call),            MRB_MT_FUNC),
+  MRB_MT_ENTRY(method_call,           MRB_OPSYM(aref),          MRB_MT_FUNC),
+  MRB_MT_ENTRY(method_unbind,         MRB_SYM(unbind),          MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_super_method,   MRB_SYM(super_method),    MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_arity,          MRB_SYM(arity),           MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_source_location, MRB_SYM(source_location), MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_parameters,     MRB_SYM(parameters),      MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_owner,          MRB_SYM(owner),           MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_receiver,       MRB_SYM(receiver),        MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_name,           MRB_SYM(name),            MRB_MT_FUNC|MRB_MT_NOARG),
 };
-static mrb_mt_tbl method_mtd_rom_mt = {
-  METHOD_MTD_ROM_MT_SIZE, METHOD_MTD_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&method_mtd_rom_data, NULL
-};
+static mrb_mt_tbl method_mtd_rom_mt = MRB_MT_ROM_TAB(method_mtd_rom_entries);
 
-#define METHOD_KRN_ROM_MT_SIZE 2
-static struct {
-  union mrb_mt_ptr vals[METHOD_KRN_ROM_MT_SIZE];
-  mrb_sym keys[METHOD_KRN_ROM_MT_SIZE];
-} method_krn_rom_data = {
-  .vals = {
-    { .func = mrb_kernel_method },
-    { .func = mrb_kernel_singleton_method },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_SYM(method),           MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(singleton_method), MRB_MT_FUNC|MRB_MT_PUBLIC),
-  }
+static mrb_mt_entry method_krn_rom_entries[] = {
+  MRB_MT_ENTRY(mrb_kernel_method,           MRB_SYM(method),           MRB_MT_FUNC),
+  MRB_MT_ENTRY(mrb_kernel_singleton_method, MRB_SYM(singleton_method), MRB_MT_FUNC),
 };
-static mrb_mt_tbl method_krn_rom_mt = {
-  METHOD_KRN_ROM_MT_SIZE, METHOD_KRN_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&method_krn_rom_data, NULL
-};
+static mrb_mt_tbl method_krn_rom_mt = MRB_MT_ROM_TAB(method_krn_rom_entries);
 
-#define METHOD_MOD_ROM_MT_SIZE 1
-static struct {
-  union mrb_mt_ptr vals[METHOD_MOD_ROM_MT_SIZE];
-  mrb_sym keys[METHOD_MOD_ROM_MT_SIZE];
-} method_mod_rom_data = {
-  .vals = {
-    { .func = mrb_module_instance_method },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_SYM(instance_method), MRB_MT_FUNC|MRB_MT_PUBLIC),
-  }
+static mrb_mt_entry method_mod_rom_entries[] = {
+  MRB_MT_ENTRY(mrb_module_instance_method, MRB_SYM(instance_method), MRB_MT_FUNC),
 };
-static mrb_mt_tbl method_mod_rom_mt = {
-  METHOD_MOD_ROM_MT_SIZE, METHOD_MOD_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&method_mod_rom_data, NULL
-};
+static mrb_mt_tbl method_mod_rom_mt = MRB_MT_ROM_TAB(method_mod_rom_entries);
 
 void
 mrb_mruby_method_gem_init(mrb_state* mrb)

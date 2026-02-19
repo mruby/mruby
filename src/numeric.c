@@ -2299,177 +2299,81 @@ flo_hash(mrb_state *mrb, mrb_value flo)
 #endif
 
 /* ------------------------------------------------------------------------*/
-#define NUMERIC_ROM_MT_SIZE 3
-static struct {
-  union mrb_mt_ptr vals[NUMERIC_ROM_MT_SIZE];
-  mrb_sym keys[NUMERIC_ROM_MT_SIZE];
-} numeric_rom_data = {
-  .vals = {
-    { .func = num_finite_p },
-    { .func = num_infinite_p },
-    { .func = num_eql },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_SYM_Q(finite),   MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM_Q(infinite), MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM_Q(eql),      MRB_MT_FUNC|MRB_MT_PUBLIC),
-  }
+static mrb_mt_entry numeric_rom_entries[] = {
+  MRB_MT_ENTRY(num_finite_p,   MRB_SYM_Q(finite),   MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(num_infinite_p, MRB_SYM_Q(infinite), MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(num_eql,        MRB_SYM_Q(eql),      MRB_MT_FUNC),
 };
-static mrb_mt_tbl numeric_rom_mt = {
-  NUMERIC_ROM_MT_SIZE, NUMERIC_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&numeric_rom_data, NULL
-};
+static mrb_mt_tbl numeric_rom_mt = MRB_MT_ROM_TAB(numeric_rom_entries);
 
-#define INTEGER_ROM_MT_SIZE 31
-static struct {
-  union mrb_mt_ptr vals[INTEGER_ROM_MT_SIZE];
-  mrb_sym keys[INTEGER_ROM_MT_SIZE];
-} integer_rom_data = {
-  .vals = {
-    { .func = int_pow },
-    { .func = num_cmp },
-    { .func = num_lt },
-    { .func = num_le },
-    { .func = num_gt },
-    { .func = num_ge },
-    { .func = mrb_obj_itself },
-    { .func = mrb_obj_itself },
-    { .func = int_add },
-    { .func = int_sub },
-    { .func = int_mul },
-    { .func = int_mod },
-    { .func = int_div },
-    { .func = int_quo },
-    { .func = int_idiv },
-    { .func = int_equal },
-    { .func = int_rev },
-    { .func = int_and },
-    { .func = int_or },
-    { .func = int_xor },
-    { .func = int_lshift },
-    { .func = int_rshift },
-    { .func = int_ceil },
-    { .func = int_floor },
-    { .func = int_round },
-    { .func = int_truncate },
-    { .func = int_hash },
-    { .func = int_to_s },
-    { .func = int_to_s },
-    { .func = int_divmod },
-    { .func = coerce_step_counter },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_OPSYM(pow),                  MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(cmp),                  MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(lt),                   MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(le),                   MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(gt),                   MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(ge),                   MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(to_i),                   MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(to_int),                 MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(add),                  MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(sub),                  MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(mul),                  MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(mod),                  MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(div),                  MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(quo),                    MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(div),                    MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(eq),                   MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(neg),                  MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(and),                  MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(or),                   MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(xor),                  MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(lshift),               MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(rshift),               MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(ceil),                   MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(floor),                  MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(round),                  MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(truncate),               MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(hash),                   MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(to_s),                   MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(inspect),                MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(divmod),                 MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(__coerce_step_counter),  MRB_MT_FUNC|MRB_MT_PUBLIC),
-  }
+static mrb_mt_entry integer_rom_entries[] = {
+  MRB_MT_ENTRY(int_pow,              MRB_OPSYM(pow),                  MRB_MT_FUNC),
+  MRB_MT_ENTRY(num_cmp,              MRB_OPSYM(cmp),                  MRB_MT_FUNC),
+  MRB_MT_ENTRY(num_lt,               MRB_OPSYM(lt),                   MRB_MT_FUNC),
+  MRB_MT_ENTRY(num_le,               MRB_OPSYM(le),                   MRB_MT_FUNC),
+  MRB_MT_ENTRY(num_gt,               MRB_OPSYM(gt),                   MRB_MT_FUNC),
+  MRB_MT_ENTRY(num_ge,               MRB_OPSYM(ge),                   MRB_MT_FUNC),
+  MRB_MT_ENTRY(mrb_obj_itself,       MRB_SYM(to_i),                   MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_obj_itself,       MRB_SYM(to_int),                 MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(int_add,              MRB_OPSYM(add),                  MRB_MT_FUNC),
+  MRB_MT_ENTRY(int_sub,              MRB_OPSYM(sub),                  MRB_MT_FUNC),
+  MRB_MT_ENTRY(int_mul,              MRB_OPSYM(mul),                  MRB_MT_FUNC),
+  MRB_MT_ENTRY(int_mod,              MRB_OPSYM(mod),                  MRB_MT_FUNC),
+  MRB_MT_ENTRY(int_div,              MRB_OPSYM(div),                  MRB_MT_FUNC),
+  MRB_MT_ENTRY(int_quo,              MRB_SYM(quo),                    MRB_MT_FUNC),
+  MRB_MT_ENTRY(int_idiv,             MRB_SYM(div),                    MRB_MT_FUNC),
+  MRB_MT_ENTRY(int_equal,            MRB_OPSYM(eq),                   MRB_MT_FUNC),
+  MRB_MT_ENTRY(int_rev,              MRB_OPSYM(neg),                  MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(int_and,              MRB_OPSYM(and),                  MRB_MT_FUNC),
+  MRB_MT_ENTRY(int_or,               MRB_OPSYM(or),                   MRB_MT_FUNC),
+  MRB_MT_ENTRY(int_xor,              MRB_OPSYM(xor),                  MRB_MT_FUNC),
+  MRB_MT_ENTRY(int_lshift,           MRB_OPSYM(lshift),               MRB_MT_FUNC),
+  MRB_MT_ENTRY(int_rshift,           MRB_OPSYM(rshift),               MRB_MT_FUNC),
+  MRB_MT_ENTRY(int_ceil,             MRB_SYM(ceil),                   MRB_MT_FUNC),
+  MRB_MT_ENTRY(int_floor,            MRB_SYM(floor),                  MRB_MT_FUNC),
+  MRB_MT_ENTRY(int_round,            MRB_SYM(round),                  MRB_MT_FUNC),
+  MRB_MT_ENTRY(int_truncate,         MRB_SYM(truncate),               MRB_MT_FUNC),
+  MRB_MT_ENTRY(int_hash,             MRB_SYM(hash),                   MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(int_to_s,             MRB_SYM(to_s),                   MRB_MT_FUNC),
+  MRB_MT_ENTRY(int_to_s,             MRB_SYM(inspect),                MRB_MT_FUNC),
+  MRB_MT_ENTRY(int_divmod,           MRB_SYM(divmod),                 MRB_MT_FUNC),
+  MRB_MT_ENTRY(coerce_step_counter,  MRB_SYM(__coerce_step_counter),  MRB_MT_FUNC),
 };
-static mrb_mt_tbl integer_rom_mt = {
-  INTEGER_ROM_MT_SIZE, INTEGER_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&integer_rom_data, NULL
-};
+static mrb_mt_tbl integer_rom_mt = MRB_MT_ROM_TAB(integer_rom_entries);
 
 #ifndef MRB_NO_FLOAT
-#define FLOAT_ROM_MT_SIZE 29
-static struct {
-  union mrb_mt_ptr vals[FLOAT_ROM_MT_SIZE];
-  mrb_sym keys[FLOAT_ROM_MT_SIZE];
-} float_rom_data = {
-  .vals = {
-    { .func = flo_pow },
-    { .func = flo_div },
-    { .func = flo_div },
-    { .func = flo_div },
-    { .func = flo_idiv },
-    { .func = flo_add },
-    { .func = flo_sub },
-    { .func = flo_mul },
-    { .func = flo_mod },
-    { .func = num_cmp },
-    { .func = num_lt },
-    { .func = num_le },
-    { .func = num_gt },
-    { .func = num_ge },
-    { .func = flo_eq },
-    { .func = flo_ceil },
-    { .func = flo_finite_p },
-    { .func = flo_floor },
-    { .func = flo_infinite_p },
-    { .func = flo_round },
-    { .func = mrb_obj_itself },
-    { .func = flo_to_i },
-    { .func = flo_truncate },
-    { .func = flo_divmod },
-    { .func = flo_to_s },
-    { .func = flo_to_s },
-    { .func = flo_nan_p },
-    { .func = flo_abs },
-    { .func = flo_hash },
-  },
-  .keys = {
-    MRB_MT_KEY(MRB_OPSYM(pow),       MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(div),       MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(quo),         MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(fdiv),        MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(div),         MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(add),       MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(sub),       MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(mul),       MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(mod),       MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(cmp),       MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(lt),        MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(le),        MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(gt),        MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(ge),        MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_OPSYM(eq),        MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(ceil),        MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM_Q(finite),    MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(floor),       MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM_Q(infinite),  MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(round),       MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(to_f),        MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(to_i),        MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(truncate),    MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(divmod),      MRB_MT_FUNC|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(to_s),        MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(inspect),     MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM_Q(nan),       MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(abs),         MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-    MRB_MT_KEY(MRB_SYM(hash),        MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
-  }
+static mrb_mt_entry float_rom_entries[] = {
+  MRB_MT_ENTRY(flo_pow,        MRB_OPSYM(pow),       MRB_MT_FUNC),
+  MRB_MT_ENTRY(flo_div,        MRB_OPSYM(div),       MRB_MT_FUNC),
+  MRB_MT_ENTRY(flo_div,        MRB_SYM(quo),         MRB_MT_FUNC),
+  MRB_MT_ENTRY(flo_div,        MRB_SYM(fdiv),        MRB_MT_FUNC),
+  MRB_MT_ENTRY(flo_idiv,       MRB_SYM(div),         MRB_MT_FUNC),
+  MRB_MT_ENTRY(flo_add,        MRB_OPSYM(add),       MRB_MT_FUNC),
+  MRB_MT_ENTRY(flo_sub,        MRB_OPSYM(sub),       MRB_MT_FUNC),
+  MRB_MT_ENTRY(flo_mul,        MRB_OPSYM(mul),       MRB_MT_FUNC),
+  MRB_MT_ENTRY(flo_mod,        MRB_OPSYM(mod),       MRB_MT_FUNC),
+  MRB_MT_ENTRY(num_cmp,        MRB_OPSYM(cmp),       MRB_MT_FUNC),
+  MRB_MT_ENTRY(num_lt,         MRB_OPSYM(lt),        MRB_MT_FUNC),
+  MRB_MT_ENTRY(num_le,         MRB_OPSYM(le),        MRB_MT_FUNC),
+  MRB_MT_ENTRY(num_gt,         MRB_OPSYM(gt),        MRB_MT_FUNC),
+  MRB_MT_ENTRY(num_ge,         MRB_OPSYM(ge),        MRB_MT_FUNC),
+  MRB_MT_ENTRY(flo_eq,         MRB_OPSYM(eq),        MRB_MT_FUNC),
+  MRB_MT_ENTRY(flo_ceil,       MRB_SYM(ceil),        MRB_MT_FUNC),
+  MRB_MT_ENTRY(flo_finite_p,   MRB_SYM_Q(finite),    MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(flo_floor,      MRB_SYM(floor),       MRB_MT_FUNC),
+  MRB_MT_ENTRY(flo_infinite_p, MRB_SYM_Q(infinite),  MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(flo_round,      MRB_SYM(round),       MRB_MT_FUNC),
+  MRB_MT_ENTRY(mrb_obj_itself, MRB_SYM(to_f),        MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(flo_to_i,       MRB_SYM(to_i),        MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(flo_truncate,   MRB_SYM(truncate),    MRB_MT_FUNC),
+  MRB_MT_ENTRY(flo_divmod,     MRB_SYM(divmod),      MRB_MT_FUNC),
+  MRB_MT_ENTRY(flo_to_s,       MRB_SYM(to_s),        MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(flo_to_s,       MRB_SYM(inspect),     MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(flo_nan_p,      MRB_SYM_Q(nan),       MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(flo_abs,        MRB_SYM(abs),         MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(flo_hash,       MRB_SYM(hash),        MRB_MT_FUNC|MRB_MT_NOARG),
 };
-static mrb_mt_tbl float_rom_mt = {
-  FLOAT_ROM_MT_SIZE, FLOAT_ROM_MT_SIZE,
-  (union mrb_mt_ptr*)&float_rom_data, NULL
-};
+static mrb_mt_tbl float_rom_mt = MRB_MT_ROM_TAB(float_rom_entries);
 #endif /* !MRB_NO_FLOAT */
 
 void
