@@ -12,13 +12,8 @@
 #include <string.h>
 
 static const struct {
-#ifdef MRB_NO_PRESYM
-#define itsdefined(name, sym)   { #name, name },
-  const char *name;
-#else
 #define itsdefined(name, sym)   { sym, name },
   mrb_sym sym;
-#endif
   int eno;
 } e2c[] = {
 #define itsnotdefined(name, sym)
@@ -28,13 +23,8 @@ static const struct {
 };
 
 static const struct {
-#ifdef MRB_NO_PRESYM
-#define itsnotdefined(name, sym)   { #name },
-  const char *name;
-#else
 #define itsnotdefined(name, sym)   { sym },
   mrb_sym sym;
-#endif
 } noe2c[] = {
 #define itsdefined(name, sym)
 #include "known_errors_def.cstub"
@@ -42,11 +32,7 @@ static const struct {
 #undef itsnotdefined
 };
 
-#ifdef MRB_NO_PRESYM
-#define ENTRY_SYM(e)    mrb_intern_static(mrb, (e).name, strlen((e).name))
-#else
 #define ENTRY_SYM(e)    (e).sym
-#endif
 
 #define E2C_LEN         (sizeof(e2c) / sizeof(e2c[0]))
 #define NOE2C_LEN       (sizeof(noe2c) / sizeof(noe2c[0]))
@@ -71,38 +57,9 @@ mrb_errno_define_exxx(mrb_state *mrb, mrb_sym name, int eno)
   return e;
 }
 
-#ifndef MRB_NO_PRESYM
 typedef mrb_sym sym_ref;
 #define sym_ref_init(mrb, id) (id)
 #define errno_name_matched_p(errentry, ref) ((errentry).sym == *(ref))
-
-#else
-typedef struct {
-  const char *name;
-  size_t len;
-} sym_ref;
-
-static sym_ref
-sym_ref_init(mrb_state *mrb, mrb_sym id)
-{
-  mrb_int len = 0;
-  const char *name = mrb_sym_name_len(mrb, id, &len);
-  sym_ref ename = { name, (size_t)len };
-  return ename;
-}
-
-#define errno_name_matched_p(errentry, ref) errno_name_matched_p_0((errentry).name, (ref))
-static mrb_bool
-errno_name_matched_p_0(const char *name, const sym_ref *ref)
-{
-  if (ref->len == strlen(name) && memcmp(ref->name, name, ref->len) == 0) {
-    return TRUE;
-  }
-  else {
-    return FALSE;
-  }
-}
-#endif // MRB_NO_PRESYM
 
 static mrb_bool
 ary_included_in_head(mrb_state *mrb, mrb_value ary, mrb_value obj, mrb_ssize head)
