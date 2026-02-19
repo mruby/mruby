@@ -49,6 +49,13 @@ typedef struct mt_tbl {
 #define MT_PUBLIC  0    /* MRB_METHOD_PUBLIC_FL */
 #define MT_PRIVATE 1    /* MRB_METHOD_PRIVATE_FL */
 
+/* "removed" tombstone: MT_FUNC flag set with NULL function pointer.
+   This combination never occurs naturally (C functions are never NULL).
+   Unlike undef (proc=NULL without MT_FUNC), a removed marker makes
+   mt_get() return 0 ("not found"), blocking ROM chain walk while
+   allowing superclass lookup. */
+#define MT_REMOVED_P(key, val) (((key)&MT_FUNC) && (val).func==NULL)
+
 void mrb_mt_init_rom(struct RClass *c, mt_tbl *rom);
 #endif
 

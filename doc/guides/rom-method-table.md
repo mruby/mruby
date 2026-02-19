@@ -325,10 +325,17 @@ end
 
 ### Method Removal
 
-`remove_method` and `undef_method` work on ROM methods. If the target
-method is only in a ROM layer, the chain is flattened into a single
-mutable table first, then the entry is deleted. This is an O(n)
-operation but is extremely rare for built-in methods.
+`remove_method` works on ROM methods using a tombstone marker. When a
+method in a ROM layer is removed, a special entry (`MT_FUNC` flag with
+`func=NULL`) is inserted into the mutable layer. The `mt_get()` lookup
+treats this marker as "not found" and stops searching the chain,
+effectively hiding the ROM entry. Unlike `undef_method` (which blocks
+superclass lookup), `remove_method`'s tombstone allows the superclass
+method to be found.
+
+`undef_method` uses a different tombstone (`proc=NULL` without
+`MT_FUNC`), which is returned by `mt_get()` so the caller raises
+NoMethodError without searching the superclass.
 
 ### Class Duplication
 

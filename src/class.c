@@ -162,6 +162,7 @@ mt_get(mrb_state *mrb, mt_tbl *t, mrb_sym sym, union mt_ptr *pp)
       union mt_ptr *vals = mt_vals(t);
       int lo = mt_bsearch_idx(keys, t->size, sym);
       if (lo < t->size && MT_KEY_SYM(keys[lo]) == sym) {
+        if (MT_REMOVED_P(keys[lo], vals[lo])) return 0; /* removed tombstone */
         *pp = vals[lo];
         return keys[lo];
       }
@@ -211,36 +212,6 @@ mt_chain_has(mt_tbl *t, mrb_sym sym)
     t = t->next;
   }
   return FALSE;
-}
-
-/* Flattens all chain layers into a single mutable table */
-static void
-mt_flatten(mrb_state *mrb, struct RClass *c)
-{
-  mt_tbl *t = c->mt;
-  if (!t || (!t->next && !mt_readonly_p(t))) return;
-
-  mt_tbl *flat = mt_new(mrb);
-  /* collect all layers into an array, then iterate backwards */
-  mt_tbl *layers[16];
-  int n = 0;
-  for (mt_tbl *l = t; l && n < 16; l = l->next)
-    layers[n++] = l;
-  for (int i = n - 1; i >= 0; i--) {
-    mt_tbl *l = layers[i];
-    mrb_sym *keys = mt_keys(l);
-    union mt_ptr *vals = mt_vals(l);
-    for (int j = 0; j < l->size; j++)
-      mt_put(mrb, flat, MT_KEY_SYM(keys[j]), MT_KEY_FLG(keys[j]), vals[j]);
-  }
-  /* free only mutable layers */
-  for (mt_tbl *l = t; l && !mt_readonly_p(l); ) {
-    mt_tbl *next = l->next;
-    mrb_free(mrb, l->ptr);
-    mrb_free(mrb, l);
-    l = next;
-  }
-  c->mt = flat;
 }
 
 /* Creates a copy of the method table */
@@ -339,6 +310,7 @@ mrb_mt_foreach(mrb_state *mrb, struct RClass *c, mrb_mt_foreach_func *fn, void *
     for (int i = 0; i < t->size; i++) {
       union mt_ptr *vals = mt_vals(t);
       mrb_sym *keys = mt_keys(t);
+      if (MT_REMOVED_P(keys[i], vals[i])) continue;
       if (fn(mrb, MT_KEY_SYM(keys[i]),
              create_method_value(mrb, keys[i], vals[i]), p) != 0)
         return;
@@ -351,6 +323,7 @@ mrb_mt_foreach(mrb_state *mrb, struct RClass *c, mrb_mt_foreach_func *fn, void *
     mrb_sym *keys = mt_keys(layer);
     union mt_ptr *vals = mt_vals(layer);
     for (int i = 0; i < layer->size; i++) {
+      if (MT_REMOVED_P(keys[i], vals[i])) continue;
       mrb_sym sym = MT_KEY_SYM(keys[i]);
       /* check if shadowed by a higher layer */
       if (layer != t) {
@@ -3670,31 +3643,45 @@ MRB_API void
 mrb_remove_method(mrb_state *mrb, struct RClass *c0, mrb_sym mid)
 {
   struct RClass *c = c0;
+  mrb_bool found = FALSE;
+
   MRB_CLASS_ORIGIN(c);
   mt_tbl *h = c->mt;
-
-  if ((h && mt_del(mrb, h, mid)) ||
-      (h && h->next && mt_chain_has(h->next, mid) &&
-       (mt_flatten(mrb, c), mt_del(mrb, c->mt, mid)))) {
-    mrb_sym removed;
-    mrb_value recv;
-
-    mc_clear_by_id(mrb, mid);
-    if (c0->tt == MRB_TT_SCLASS) {
-      removed = MRB_SYM(singleton_method_removed);
-      recv = mrb_iv_get(mrb, mrb_obj_value(c0), MRB_SYM(__attached__));
+  if (h) {
+    found = mt_del(mrb, h, mid);
+    /* insert removed tombstone to block ROM chain lookup */
+    if (h->next && mt_chain_has(h->next, mid)) {
+      union mt_ptr tombstone;
+      tombstone.func = NULL;
+      found = TRUE;
+      if (mt_readonly_p(h)) {
+        mt_tbl *top = mt_new(mrb);
+        top->next = h;
+        h = c->mt = top;
+      }
+      mt_put(mrb, h, mid, MT_FUNC, tombstone);
     }
-    else {
-      removed = MRB_SYM(method_removed);
-      recv = mrb_obj_value(c0);
-    }
-    if (!mrb_func_basic_p(mrb, recv, removed, mrb_do_nothing)) {
-      mrb_value sym = mrb_symbol_value(mid);
-      mrb_funcall_argv(mrb, recv, removed, 1, &sym);
-    }
-    return;
   }
-  mrb_name_error(mrb, mid, "method '%n' not defined in %C", mid, c);
+  if (!found) {
+    mrb_name_error(mrb, mid, "method '%n' not defined in %C", mid, c);
+  }
+  mc_clear_by_id(mrb, mid);
+  if (c0->tt == MRB_TT_SCLASS) {
+    mrb_sym cb = MRB_SYM(singleton_method_removed);
+    mrb_value recv = mrb_iv_get(mrb, mrb_obj_value(c0), MRB_SYM(__attached__));
+    if (!mrb_func_basic_p(mrb, recv, cb, mrb_do_nothing)) {
+      mrb_value sym = mrb_symbol_value(mid);
+      mrb_funcall_argv(mrb, recv, cb, 1, &sym);
+    }
+  }
+  else {
+    mrb_sym cb = MRB_SYM(method_removed);
+    mrb_value recv = mrb_obj_value(c0);
+    if (!mrb_func_basic_p(mrb, recv, cb, mrb_do_nothing)) {
+      mrb_value sym = mrb_symbol_value(mid);
+      mrb_funcall_argv(mrb, recv, cb, 1, &sym);
+    }
+  }
 }
 
 static mrb_value
