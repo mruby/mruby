@@ -1227,19 +1227,123 @@ rational_hash(mrb_state *mrb, mrb_value rat)
   return mrb_int_value(mrb, hash);
 }
 
+/* ---------------------------*/
+#ifndef MRB_NO_PRESYM
+#define RATIONAL_ROM_MT_SIZE 14
+static struct {
+  union mt_ptr vals[RATIONAL_ROM_MT_SIZE];
+  mrb_sym keys[RATIONAL_ROM_MT_SIZE];
+} rational_rom_data = {
+  .vals = {
+    { .func = rational_numerator },
+    { .func = rational_denominator },
+    { .func = mrb_rational_to_i },
+    { .func = mrb_obj_itself },
+    { .func = rational_negative_p },
+    { .func = rational_eq },
+    { .func = rational_minus },
+    { .func = rational_add },
+    { .func = rational_sub },
+    { .func = rational_mul },
+    { .func = rational_div },
+    { .func = rational_div },
+    { .func = rational_pow },
+    { .func = rational_hash },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM(numerator),   MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(denominator), MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(to_i),        MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(to_r),        MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(negative),  MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(eq),        MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(minus),     MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(add),       MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(sub),       MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(mul),       MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(div),       MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(quo),         MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(pow),       MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(hash),        MT_FUNC|MT_NOARG|MT_PUBLIC),
+  }
+};
+static mt_tbl rational_rom_mt = {
+  RATIONAL_ROM_MT_SIZE, RATIONAL_ROM_MT_SIZE,
+  (union mt_ptr*)&rational_rom_data, NULL
+};
+
+#define INTEGER_TO_R_ROM_MT_SIZE 1
+static struct {
+  union mt_ptr vals[INTEGER_TO_R_ROM_MT_SIZE];
+  mrb_sym keys[INTEGER_TO_R_ROM_MT_SIZE];
+} integer_to_r_rom_data = {
+  .vals = {
+    { .func = int_to_r },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM(to_r), MT_FUNC|MT_NOARG|MT_PUBLIC),
+  }
+};
+static mt_tbl integer_to_r_rom_mt = {
+  INTEGER_TO_R_ROM_MT_SIZE, INTEGER_TO_R_ROM_MT_SIZE,
+  (union mt_ptr*)&integer_to_r_rom_data, NULL
+};
+
+#define NIL_TO_R_ROM_MT_SIZE 1
+static struct {
+  union mt_ptr vals[NIL_TO_R_ROM_MT_SIZE];
+  mrb_sym keys[NIL_TO_R_ROM_MT_SIZE];
+} nil_to_r_rom_data = {
+  .vals = {
+    { .func = nil_to_r },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM(to_r), MT_FUNC|MT_NOARG|MT_PUBLIC),
+  }
+};
+static mt_tbl nil_to_r_rom_mt = {
+  NIL_TO_R_ROM_MT_SIZE, NIL_TO_R_ROM_MT_SIZE,
+  (union mt_ptr*)&nil_to_r_rom_data, NULL
+};
+
+#define KERNEL_RATIONAL_ROM_MT_SIZE 1
+static struct {
+  union mt_ptr vals[KERNEL_RATIONAL_ROM_MT_SIZE];
+  mrb_sym keys[KERNEL_RATIONAL_ROM_MT_SIZE];
+} kernel_rational_rom_data = {
+  .vals = {
+    { .func = rational_m },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM(Rational), MT_FUNC|MT_PRIVATE),
+  }
+};
+static mt_tbl kernel_rational_rom_mt = {
+  KERNEL_RATIONAL_ROM_MT_SIZE, KERNEL_RATIONAL_ROM_MT_SIZE,
+  (union mt_ptr*)&kernel_rational_rom_data, NULL
+};
+#endif /* !MRB_NO_PRESYM */
+
 void mrb_mruby_rational_gem_init(mrb_state *mrb)
 {
   struct RClass *rat = mrb_define_class_id(mrb, MRB_SYM(Rational), mrb_class_get_id(mrb, MRB_SYM(Numeric)));
   MRB_SET_INSTANCE_TT(rat, MRB_TT_RATIONAL);
   MRB_UNDEF_ALLOCATOR(rat);
   mrb_undef_class_method_id(mrb, rat, MRB_SYM(new));
-  mrb_define_method_id(mrb, rat, MRB_SYM(numerator), rational_numerator, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, rat, MRB_SYM(denominator), rational_denominator, MRB_ARGS_NONE());
 #ifndef MRB_NO_FLOAT
   mrb_define_method_id(mrb, rat, MRB_SYM(to_f), mrb_rational_to_f, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, mrb->float_class, MRB_SYM(to_r), float_to_r, MRB_ARGS_NONE());
 #endif
+#ifndef MRB_NO_PRESYM
+  mrb_mt_init_rom(rat, &rational_rom_mt);
+  mrb_mt_init_rom(mrb->integer_class, &integer_to_r_rom_mt);
+  mrb_mt_init_rom(mrb->nil_class, &nil_to_r_rom_mt);
+  mrb_mt_init_rom(mrb->kernel_module, &kernel_rational_rom_mt);
+#else
+  mrb_define_method_id(mrb, rat, MRB_SYM(numerator), rational_numerator, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, rat, MRB_SYM(denominator), rational_denominator, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, rat, MRB_SYM(to_i), mrb_rational_to_i, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, rat, MRB_SYM(to_r), mrb_obj_itself, MRB_ARGS_NONE()); /* Returns self - already a rational */
+  mrb_define_method_id(mrb, rat, MRB_SYM(to_r), mrb_obj_itself, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, rat, MRB_SYM_Q(negative), rational_negative_p, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, rat, MRB_OPSYM(eq), rational_eq, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, rat, MRB_OPSYM(minus), rational_minus, MRB_ARGS_NONE());
@@ -1250,12 +1354,10 @@ void mrb_mruby_rational_gem_init(mrb_state *mrb)
   mrb_define_method_id(mrb, rat, MRB_SYM(quo), rational_div, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, rat, MRB_OPSYM(pow), rational_pow, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, rat, MRB_SYM(hash), rational_hash, MRB_ARGS_NONE());
-#ifndef MRB_NO_FLOAT
-  mrb_define_method_id(mrb, mrb->float_class, MRB_SYM(to_r), float_to_r, MRB_ARGS_NONE());
-#endif
   mrb_define_method_id(mrb, mrb->integer_class, MRB_SYM(to_r), int_to_r, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, mrb->nil_class, MRB_SYM(to_r), nil_to_r, MRB_ARGS_NONE());
   mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(Rational), rational_m, MRB_ARGS_ARG(1,1));
+#endif
 }
 
 void
