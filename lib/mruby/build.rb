@@ -156,11 +156,7 @@ module MRuby
         current.instance_eval(&block)
       ensure
         if current.libmruby_enabled? && !current.mrbcfile_external?
-          if current.presym_enabled?
-            current.create_mrbc_build if current.host? || current.gems["mruby-bin-mrbc"]
-          elsif current.host?
-            current.build_mrbc_exec
-          end
+          current.create_mrbc_build if current.host? || current.gems["mruby-bin-mrbc"]
         end
         current.presym = Presym.new(current) if current.presym_enabled?
       end
@@ -190,13 +186,6 @@ module MRuby
 
     def presym_enabled?
       @enable_presym
-    end
-
-    def disable_presym
-      if @enable_presym
-        @enable_presym = false
-        compilers.each{|c| c.defines << "MRB_NO_PRESYM"}
-      end
     end
 
     def disable_lock
@@ -569,7 +558,7 @@ EOS
       end
       build.build_mrbc_exec
       build.disable_libmruby
-      build.disable_presym
+      build.presym = Presym.new(build) if build.presym_enabled?
       @mrbc_build = build
       self.mrbcfile = build.mrbcfile
       build
@@ -592,7 +581,6 @@ EOS
           conf.toolchain
           conf.build_mrbc_exec
           conf.disable_libmruby
-          conf.disable_presym
         end
       end
     end
