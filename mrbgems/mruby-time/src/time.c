@@ -1663,30 +1663,133 @@ time_utc_offset(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(offset_seconds);
 }
 
+/* ---------------------------*/
+#ifndef MRB_NO_PRESYM
+#define TIME_ROM_MT_SIZE 46
+static struct {
+  union mt_ptr vals[TIME_ROM_MT_SIZE];
+  mrb_sym keys[TIME_ROM_MT_SIZE];
+} time_rom_data = {
+  .vals = {
+    { .func = time_hash },
+    { .func = time_eq },
+    { .func = time_eq },
+    { .func = time_cmp },
+    { .func = time_plus },
+    { .func = time_minus },
+    { .func = time_to_s },
+    { .func = time_to_s },
+    { .func = time_asctime },
+    { .func = time_asctime },
+    { .func = time_day },
+    { .func = time_dst_p },
+    { .func = time_getutc },
+    { .func = time_getlocal },
+    { .func = time_getutc },
+    { .func = time_utc_p },
+    { .func = time_utc },
+    { .func = time_hour },
+    { .func = time_localtime },
+    { .func = time_day },
+    { .func = time_min },
+    { .func = time_mon },
+    { .func = time_mon },
+    { .func = time_sec },
+    { .func = time_to_i },
+    { .func = time_usec },
+    { .func = time_nsec },
+    { .func = time_nsec },
+    { .func = time_utc },
+    { .func = time_utc_p },
+    { .func = time_wday },
+    { .func = time_yday },
+    { .func = time_year },
+    { .func = time_zone },
+    { .func = time_init },
+    { .func = time_init_copy },
+    { .func = time_sunday },
+    { .func = time_monday },
+    { .func = time_tuesday },
+    { .func = time_wednesday },
+    { .func = time_thursday },
+    { .func = time_friday },
+    { .func = time_saturday },
+    { .func = time_utc_offset },
+    { .func = time_utc_offset },
+    { .func = time_utc_offset },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM(hash),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(eql),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(eq),            MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(cmp),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(add),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(sub),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(to_s),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(inspect),         MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(asctime),         MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(ctime),           MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(day),             MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(dst),           MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(getgm),           MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(getlocal),        MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(getutc),          MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(gmt),           MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(gmtime),          MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(hour),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(localtime),       MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(mday),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(min),             MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(mon),             MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(month),           MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(sec),             MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(to_i),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(usec),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(nsec),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(tv_nsec),         MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(utc),             MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(utc),           MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(wday),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(yday),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(year),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(zone),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(initialize),      MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(initialize_copy), MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM_Q(sunday),        MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(monday),        MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(tuesday),       MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(wednesday),     MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(thursday),      MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(friday),        MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(saturday),      MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(gmt_offset),      MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(gmtoff),          MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(utc_offset),      MT_FUNC|MT_NOARG|MT_PUBLIC),
+  }
+};
+static mt_tbl time_rom_mt = {
+  TIME_ROM_MT_SIZE, TIME_ROM_MT_SIZE,
+  (union mt_ptr*)&time_rom_data, NULL
+};
+#endif /* !MRB_NO_PRESYM */
+
 void
 mrb_mruby_time_gem_init(mrb_state* mrb)
 {
-  /*
-   * Initializes the Time class in the mruby state.
-   * - Defines the Time class (ISO 15.2.19.2).
-   * - Sets its instance type to MRB_TT_CDATA, meaning instances carry a C data pointer.
-   * - Includes the Comparable module.
-   * - Defines class methods (e.g., Time.at, Time.now, Time.gm, Time.local).
-   * - Defines instance methods (e.g., +, -, <=>, to_s, year, month, day, etc.).
-   *   Many instance methods are aliased (e.g., day and mday).
-   *   Ruby standard library method references (e.g., 15.2.19.6.1) are from an older ISO Ruby spec.
-   */
   /* ISO 15.2.19.2 */
   struct RClass *tc = mrb_define_class_id(mrb, MRB_SYM(Time), mrb->object_class);
-  MRB_SET_INSTANCE_TT(tc, MRB_TT_CDATA); /* Time instances will hold a C pointer (struct mrb_time) */
-  mrb_include_module(mrb, tc, mrb_module_get_id(mrb, MRB_SYM(Comparable))); /* Include Comparable module */
+  MRB_SET_INSTANCE_TT(tc, MRB_TT_CDATA);
+  mrb_include_module(mrb, tc, mrb_module_get_id(mrb, MRB_SYM(Comparable)));
   mrb_define_class_method_id(mrb, tc, MRB_SYM(at), time_at_m, MRB_ARGS_ARG(1, 1));    /* 15.2.19.6.1 */
   mrb_define_class_method_id(mrb, tc, MRB_SYM(gm), time_gm, MRB_ARGS_ARG(1,6));       /* 15.2.19.6.2 */
-  mrb_define_class_method_id(mrb, tc, MRB_SYM(local), time_local, MRB_ARGS_ARG(1,6)); /* 15.2.19.6.3 */
-  mrb_define_class_method_id(mrb, tc, MRB_SYM(mktime), time_local, MRB_ARGS_ARG(1,6));/* 15.2.19.6.4 */
-  mrb_define_class_method_id(mrb, tc, MRB_SYM(now), time_now, MRB_ARGS_NONE());       /* 15.2.19.6.5 */
+  mrb_define_class_method_id(mrb, tc, MRB_SYM(local), time_local, MRB_ARGS_ARG(1,6));  /* 15.2.19.6.3 */
+  mrb_define_class_method_id(mrb, tc, MRB_SYM(mktime), time_local, MRB_ARGS_ARG(1,6)); /* 15.2.19.6.4 */
+  mrb_define_class_method_id(mrb, tc, MRB_SYM(now), time_now, MRB_ARGS_NONE());        /* 15.2.19.6.5 */
   mrb_define_class_method_id(mrb, tc, MRB_SYM(utc), time_gm, MRB_ARGS_ARG(1,6));      /* 15.2.19.6.6 */
 
+#ifndef MRB_NO_PRESYM
+  mrb_mt_init_rom(tc, &time_rom_mt);
+#else
   mrb_define_method_id(mrb, tc, MRB_SYM(hash), time_hash   , MRB_ARGS_NONE());
   mrb_define_method_id(mrb, tc, MRB_SYM_Q(eql), time_eq     , MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, tc, MRB_OPSYM(eq), time_eq     , MRB_ARGS_REQ(1));
@@ -1708,15 +1811,10 @@ mrb_mruby_time_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, tc, MRB_SYM(localtime), time_localtime, MRB_ARGS_NONE()); /* 15.2.19.7.18 */
   mrb_define_method_id(mrb, tc, MRB_SYM(mday), time_day, MRB_ARGS_NONE());    /* 15.2.19.7.19 */
   mrb_define_method_id(mrb, tc, MRB_SYM(min), time_min, MRB_ARGS_NONE());     /* 15.2.19.7.20 */
-
   mrb_define_method_id(mrb, tc, MRB_SYM(mon), time_mon, MRB_ARGS_NONE());       /* 15.2.19.7.21 */
   mrb_define_method_id(mrb, tc, MRB_SYM(month), time_mon, MRB_ARGS_NONE());       /* 15.2.19.7.22 */
-
   mrb_define_method_id(mrb, tc, MRB_SYM(sec), time_sec, MRB_ARGS_NONE());        /* 15.2.19.7.23 */
   mrb_define_method_id(mrb, tc, MRB_SYM(to_i), time_to_i, MRB_ARGS_NONE());       /* 15.2.19.7.25 */
-#ifndef MRB_NO_FLOAT
-  mrb_define_method_id(mrb, tc, MRB_SYM(to_f), time_to_f, MRB_ARGS_NONE());       /* 15.2.19.7.24 */
-#endif
   mrb_define_method_id(mrb, tc, MRB_SYM(usec), time_usec, MRB_ARGS_NONE());       /* 15.2.19.7.26 */
   mrb_define_method_id(mrb, tc, MRB_SYM(nsec), time_nsec, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, tc, MRB_SYM(tv_nsec), time_nsec, MRB_ARGS_NONE());
@@ -1726,10 +1824,8 @@ mrb_mruby_time_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, tc, MRB_SYM(yday), time_yday, MRB_ARGS_NONE());       /* 15.2.19.7.31 */
   mrb_define_method_id(mrb, tc, MRB_SYM(year), time_year, MRB_ARGS_NONE());       /* 15.2.19.7.32 */
   mrb_define_method_id(mrb, tc, MRB_SYM(zone), time_zone, MRB_ARGS_NONE());       /* 15.2.19.7.33 */
-
   mrb_define_method_id(mrb, tc, MRB_SYM(initialize), time_init, MRB_ARGS_REQ(1)); /* 15.2.19.7.16 */
   mrb_define_private_method_id(mrb, tc, MRB_SYM(initialize_copy), time_init_copy, MRB_ARGS_REQ(1)); /* 15.2.19.7.17 */
-
   mrb_define_method_id(mrb, tc, MRB_SYM_Q(sunday), time_sunday, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, tc, MRB_SYM_Q(monday), time_monday, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, tc, MRB_SYM_Q(tuesday), time_tuesday, MRB_ARGS_NONE());
@@ -1737,10 +1833,13 @@ mrb_mruby_time_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, tc, MRB_SYM_Q(thursday), time_thursday, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, tc, MRB_SYM_Q(friday), time_friday, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, tc, MRB_SYM_Q(saturday), time_saturday, MRB_ARGS_NONE());
-
   mrb_define_method_id(mrb, tc, MRB_SYM(gmt_offset), time_utc_offset, MRB_ARGS_NONE()); /* 15.2.19.7.12 */
   mrb_define_method_id(mrb, tc, MRB_SYM(gmtoff), time_utc_offset, MRB_ARGS_NONE());    /* 15.2.19.7.14 */
   mrb_define_method_id(mrb, tc, MRB_SYM(utc_offset), time_utc_offset, MRB_ARGS_NONE()); /* 15.2.19.7.29 */
+#endif
+#ifndef MRB_NO_FLOAT
+  mrb_define_method_id(mrb, tc, MRB_SYM(to_f), time_to_f, MRB_ARGS_NONE());       /* 15.2.19.7.24 */
+#endif
 }
 
 void
