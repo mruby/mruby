@@ -6,6 +6,7 @@
 #include <mruby/string.h>
 #include <mruby/numeric.h>
 #include <mruby/proc.h>
+#include <mruby/class.h>
 #include <mruby/internal.h>
 #include <mruby/presym.h>
 
@@ -287,22 +288,59 @@ mrb_f_hash(mrb_state *mrb, mrb_value self)
   return arg;
 }
 
+#ifndef MRB_NO_PRESYM
+#define KERNEL_EXT_ROM_MT_SIZE 7
+static struct {
+  union mt_ptr vals[KERNEL_EXT_ROM_MT_SIZE];
+  mrb_sym keys[KERNEL_EXT_ROM_MT_SIZE];
+} kernel_ext_rom_data = {
+  .vals = {
+    { .func = mrb_f_raise },
+    { .func = mrb_f_caller },
+    { .func = mrb_f_method },
+    { .func = mrb_f_callee },
+    { .func = mrb_f_integer },
+    { .func = mrb_f_string },
+    { .func = mrb_f_array },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM(fail),       MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(caller),     MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(__method__), MT_FUNC|MT_NOARG|MT_PRIVATE),
+    MT_KEY(MRB_SYM(__callee__), MT_FUNC|MT_NOARG|MT_PRIVATE),
+    MT_KEY(MRB_SYM(Integer),    MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(String),     MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(Array),      MT_FUNC|MT_PRIVATE),
+  }
+};
+static mt_tbl kernel_ext_rom_mt = {
+  KERNEL_EXT_ROM_MT_SIZE, KERNEL_EXT_ROM_MT_SIZE,
+  (union mt_ptr*)&kernel_ext_rom_data, NULL
+};
+#endif
+
 void
 mrb_mruby_kernel_ext_gem_init(mrb_state *mrb)
 {
   struct RClass *krn = mrb->kernel_module;
 
+#ifndef MRB_NO_FLOAT
+  mrb_define_private_method_id(mrb, krn, MRB_SYM(Float), mrb_f_float, MRB_ARGS_REQ(1));
+#endif
+  /* Hash stays as runtime (depends on mrb_ensure_hash_type availability) */
+  mrb_define_private_method_id(mrb, krn, MRB_SYM(Hash), mrb_f_hash, MRB_ARGS_REQ(1));
+#ifndef MRB_NO_PRESYM
+  mrb_mt_init_rom(krn, &kernel_ext_rom_mt);
+#else
   mrb_define_private_method_id(mrb, krn, MRB_SYM(fail), mrb_f_raise, MRB_ARGS_OPT(2));
   mrb_define_private_method_id(mrb, krn, MRB_SYM(caller), mrb_f_caller, MRB_ARGS_OPT(2));
   mrb_define_private_method_id(mrb, krn, MRB_SYM(__method__), mrb_f_method, MRB_ARGS_NONE());
   mrb_define_private_method_id(mrb, krn, MRB_SYM(__callee__), mrb_f_callee, MRB_ARGS_NONE());
   mrb_define_private_method_id(mrb, krn, MRB_SYM(Integer), mrb_f_integer, MRB_ARGS_ARG(1,1));
-#ifndef MRB_NO_FLOAT
-  mrb_define_private_method_id(mrb, krn, MRB_SYM(Float), mrb_f_float, MRB_ARGS_REQ(1));
-#endif
   mrb_define_private_method_id(mrb, krn, MRB_SYM(String), mrb_f_string, MRB_ARGS_REQ(1));
   mrb_define_private_method_id(mrb, krn, MRB_SYM(Array), mrb_f_array, MRB_ARGS_REQ(1));
   mrb_define_private_method_id(mrb, krn, MRB_SYM(Hash), mrb_f_hash, MRB_ARGS_REQ(1));
+#endif
 }
 
 void
