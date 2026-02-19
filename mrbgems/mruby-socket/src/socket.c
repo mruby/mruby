@@ -1270,6 +1270,117 @@ mrb_win32_basicsocket_syswrite(mrb_state *mrb, mrb_value self)
 
 #endif
 
+/* ---------------------------*/
+#ifndef MRB_NO_PRESYM
+#define ADDRINFO_ROM_MT_SIZE 2
+static struct {
+  union mt_ptr vals[ADDRINFO_ROM_MT_SIZE];
+  mrb_sym keys[ADDRINFO_ROM_MT_SIZE];
+} addrinfo_rom_data = {
+  .vals = {
+    { .func = mrb_addrinfo_getnameinfo },
+    { .func = mrb_addrinfo_unix_path },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM(getnameinfo), MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(unix_path),   MT_FUNC|MT_NOARG|MT_PUBLIC),
+  }
+};
+static mt_tbl addrinfo_rom_mt = {
+  ADDRINFO_ROM_MT_SIZE, ADDRINFO_ROM_MT_SIZE,
+  (union mt_ptr*)&addrinfo_rom_data, NULL
+};
+
+#define BASICSOCKET_ROM_MT_SIZE 11
+static struct {
+  union mt_ptr vals[BASICSOCKET_ROM_MT_SIZE];
+  mrb_sym keys[BASICSOCKET_ROM_MT_SIZE];
+} basicsocket_rom_data = {
+  .vals = {
+    { .func = mrb_basicsocket_recvfrom },
+    { .func = mrb_basicsocket_setnonblock },
+    { .func = mrb_basicsocket_getpeereid },
+    { .func = mrb_basicsocket_getpeername },
+    { .func = mrb_basicsocket_getsockname },
+    { .func = mrb_basicsocket_getsockopt },
+    { .func = mrb_basicsocket_recv },
+    { .func = mrb_basicsocket_send },
+    { .func = mrb_basicsocket_setsockopt },
+    { .func = mrb_basicsocket_shutdown },
+    { .func = mrb_basicsocket_set_is_socket },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM(_recvfrom),     MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(_setnonblock),  MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(getpeereid),    MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(getpeername),   MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(getsockname),   MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(getsockopt),    MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(recv),          MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(send),          MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(setsockopt),    MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(shutdown),      MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_E(_is_socket),  MT_FUNC|MT_PUBLIC),
+  }
+};
+static mt_tbl basicsocket_rom_mt = {
+  BASICSOCKET_ROM_MT_SIZE, BASICSOCKET_ROM_MT_SIZE,
+  (union mt_ptr*)&basicsocket_rom_data, NULL
+};
+
+#define IPSOCKET_ROM_MT_SIZE 1
+static struct {
+  union mt_ptr vals[IPSOCKET_ROM_MT_SIZE];
+  mrb_sym keys[IPSOCKET_ROM_MT_SIZE];
+} ipsocket_rom_data = {
+  .vals = {
+    { .func = mrb_ipsocket_recvfrom },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM(recvfrom), MT_FUNC|MT_PUBLIC),
+  }
+};
+static mt_tbl ipsocket_rom_mt = {
+  IPSOCKET_ROM_MT_SIZE, IPSOCKET_ROM_MT_SIZE,
+  (union mt_ptr*)&ipsocket_rom_data, NULL
+};
+
+#define SOCKET_OPTION_ROM_MT_SIZE 10
+static struct {
+  union mt_ptr vals[SOCKET_OPTION_ROM_MT_SIZE];
+  mrb_sym keys[SOCKET_OPTION_ROM_MT_SIZE];
+} socket_option_rom_data = {
+  .vals = {
+    { .func = socket_option_init },
+    { .func = socket_option_inspect },
+    { .func = socket_option_family },
+    { .func = socket_option_level },
+    { .func = socket_option_optname },
+    { .func = socket_option_data },
+    { .func = socket_option_bool },
+    { .func = socket_option_int },
+    { .func = socket_option_notimp },
+    { .func = socket_option_notimp },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM(initialize), MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(inspect),    MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(family),     MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(level),      MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(optname),    MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(data),       MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(bool),       MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(int),        MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(linger),     MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(unpack),     MT_FUNC|MT_PUBLIC),
+  }
+};
+static mt_tbl socket_option_rom_mt = {
+  SOCKET_OPTION_ROM_MT_SIZE, SOCKET_OPTION_ROM_MT_SIZE,
+  (union mt_ptr*)&socket_option_rom_data, NULL
+};
+#endif /* !MRB_NO_PRESYM */
+
 void
 mrb_mruby_socket_gem_init(mrb_state* mrb)
 {
@@ -1277,28 +1388,14 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
 
   struct RClass *ainfo = mrb_define_class_id(mrb, MRB_SYM(Addrinfo), mrb->object_class);
   mrb_define_class_method_id(mrb, ainfo, MRB_SYM(getaddrinfo), mrb_addrinfo_getaddrinfo, MRB_ARGS_REQ(2)|MRB_ARGS_OPT(4));
-  mrb_define_method_id(mrb, ainfo, MRB_SYM(getnameinfo), mrb_addrinfo_getnameinfo, MRB_ARGS_OPT(1));
-  mrb_define_method_id(mrb, ainfo, MRB_SYM(unix_path), mrb_addrinfo_unix_path, MRB_ARGS_NONE());
 
   struct RClass *io = mrb_class_get_id(mrb, MRB_SYM(IO));
 
   struct RClass *bsock = mrb_define_class_id(mrb, MRB_SYM(BasicSocket), io);
-  mrb_define_method_id(mrb, bsock, MRB_SYM(_recvfrom), mrb_basicsocket_recvfrom, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
-  mrb_define_method_id(mrb, bsock, MRB_SYM(_setnonblock), mrb_basicsocket_setnonblock, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, bsock, MRB_SYM(getpeereid), mrb_basicsocket_getpeereid, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, bsock, MRB_SYM(getpeername), mrb_basicsocket_getpeername, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, bsock, MRB_SYM(getsockname), mrb_basicsocket_getsockname, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, bsock, MRB_SYM(getsockopt), mrb_basicsocket_getsockopt, MRB_ARGS_REQ(2));
-  mrb_define_method_id(mrb, bsock, MRB_SYM(recv), mrb_basicsocket_recv, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
-  mrb_define_method_id(mrb, bsock, MRB_SYM(send), mrb_basicsocket_send, MRB_ARGS_REQ(2)|MRB_ARGS_OPT(1));
-  mrb_define_method_id(mrb, bsock, MRB_SYM(setsockopt), mrb_basicsocket_setsockopt, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(2));
-  mrb_define_method_id(mrb, bsock, MRB_SYM(shutdown), mrb_basicsocket_shutdown, MRB_ARGS_OPT(1));
-  mrb_define_method_id(mrb, bsock, MRB_SYM_E(_is_socket), mrb_basicsocket_set_is_socket, MRB_ARGS_REQ(1));
 
   struct RClass *ipsock = mrb_define_class_id(mrb, MRB_SYM(IPSocket), bsock);
   mrb_define_class_method_id(mrb, ipsock, MRB_SYM(ntop), mrb_ipsocket_ntop, MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, ipsock, MRB_SYM(pton), mrb_ipsocket_pton, MRB_ARGS_REQ(2));
-  mrb_define_method_id(mrb, ipsock, MRB_SYM(recvfrom), mrb_ipsocket_recvfrom, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
 
   struct RClass *tcpsock = mrb_define_class_id(mrb, MRB_SYM(TCPSocket), ipsock);
   mrb_define_class_method_id(mrb, tcpsock, MRB_SYM(_allocate), mrb_tcpsocket_allocate, MRB_ARGS_NONE());
@@ -1328,6 +1425,30 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
   struct RClass *option = mrb_define_class_under_id(mrb, sock, MRB_SYM(Option), mrb->object_class);
   mrb_define_class_method_id(mrb, option, MRB_SYM(bool), socket_option_s_bool, MRB_ARGS_REQ(4));
   mrb_define_class_method_id(mrb, option, MRB_SYM(int), socket_option_s_int, MRB_ARGS_REQ(4));
+
+#ifndef MRB_NO_PRESYM
+  mrb_mt_init_rom(ainfo, &addrinfo_rom_mt);
+  mrb_mt_init_rom(bsock, &basicsocket_rom_mt);
+  mrb_mt_init_rom(ipsock, &ipsocket_rom_mt);
+  mrb_mt_init_rom(option, &socket_option_rom_mt);
+#else
+  mrb_define_method_id(mrb, ainfo, MRB_SYM(getnameinfo), mrb_addrinfo_getnameinfo, MRB_ARGS_OPT(1));
+  mrb_define_method_id(mrb, ainfo, MRB_SYM(unix_path), mrb_addrinfo_unix_path, MRB_ARGS_NONE());
+
+  mrb_define_method_id(mrb, bsock, MRB_SYM(_recvfrom), mrb_basicsocket_recvfrom, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
+  mrb_define_method_id(mrb, bsock, MRB_SYM(_setnonblock), mrb_basicsocket_setnonblock, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, bsock, MRB_SYM(getpeereid), mrb_basicsocket_getpeereid, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, bsock, MRB_SYM(getpeername), mrb_basicsocket_getpeername, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, bsock, MRB_SYM(getsockname), mrb_basicsocket_getsockname, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, bsock, MRB_SYM(getsockopt), mrb_basicsocket_getsockopt, MRB_ARGS_REQ(2));
+  mrb_define_method_id(mrb, bsock, MRB_SYM(recv), mrb_basicsocket_recv, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
+  mrb_define_method_id(mrb, bsock, MRB_SYM(send), mrb_basicsocket_send, MRB_ARGS_REQ(2)|MRB_ARGS_OPT(1));
+  mrb_define_method_id(mrb, bsock, MRB_SYM(setsockopt), mrb_basicsocket_setsockopt, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(2));
+  mrb_define_method_id(mrb, bsock, MRB_SYM(shutdown), mrb_basicsocket_shutdown, MRB_ARGS_OPT(1));
+  mrb_define_method_id(mrb, bsock, MRB_SYM_E(_is_socket), mrb_basicsocket_set_is_socket, MRB_ARGS_REQ(1));
+
+  mrb_define_method_id(mrb, ipsock, MRB_SYM(recvfrom), mrb_ipsocket_recvfrom, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
+
   mrb_define_method_id(mrb, option, MRB_SYM(initialize), socket_option_init, MRB_ARGS_REQ(4));
   mrb_define_method_id(mrb, option, MRB_SYM(inspect), socket_option_inspect, MRB_ARGS_REQ(0));
   mrb_define_method_id(mrb, option, MRB_SYM(family), socket_option_family, MRB_ARGS_REQ(0));
@@ -1336,9 +1457,9 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, option, MRB_SYM(data), socket_option_data, MRB_ARGS_REQ(0));
   mrb_define_method_id(mrb, option, MRB_SYM(bool), socket_option_bool, MRB_ARGS_REQ(0));
   mrb_define_method_id(mrb, option, MRB_SYM(int), socket_option_int, MRB_ARGS_REQ(0));
-
   mrb_define_method_id(mrb, option, MRB_SYM(linger), socket_option_notimp, MRB_ARGS_REQ(0));
   mrb_define_method_id(mrb, option, MRB_SYM(unpack), socket_option_notimp, MRB_ARGS_REQ(1));
+#endif
 
   struct RClass *constants = mrb_define_module_under_id(mrb, sock, MRB_SYM(Constants));
 
