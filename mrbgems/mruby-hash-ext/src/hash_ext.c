@@ -369,7 +369,7 @@ hash_merge(mrb_state *mrb, mrb_value hash)
 
 #define HASH_EXT_ROM_MT_SIZE 6
 static struct {
-  union mt_ptr vals[HASH_EXT_ROM_MT_SIZE];
+  union mrb_mt_ptr vals[HASH_EXT_ROM_MT_SIZE];
   mrb_sym keys[HASH_EXT_ROM_MT_SIZE];
 } hash_ext_rom_data = {
   .vals = {
@@ -381,17 +381,17 @@ static struct {
     { .func = hash_merge },
   },
   .keys = {
-    MT_KEY(MRB_SYM(values_at), MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(slice),     MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM_B(slice),   MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(except),    MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(key),       MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(__merge),   MT_FUNC|MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(values_at), MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(slice),     MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_B(slice),   MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(except),    MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(key),       MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(__merge),   MRB_MT_FUNC|MRB_MT_PUBLIC),
   }
 };
-static mt_tbl hash_ext_rom_mt = {
+static mrb_mt_tbl hash_ext_rom_mt = {
   HASH_EXT_ROM_MT_SIZE, HASH_EXT_ROM_MT_SIZE,
-  (union mt_ptr*)&hash_ext_rom_data, NULL
+  (union mrb_mt_ptr*)&hash_ext_rom_data, NULL
 };
 
 void

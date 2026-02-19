@@ -218,7 +218,7 @@ range_empty_p(mrb_state *mrb, mrb_value range)
 
 #define RANGE_EXT_ROM_MT_SIZE 3
 static struct {
-  union mt_ptr vals[RANGE_EXT_ROM_MT_SIZE];
+  union mrb_mt_ptr vals[RANGE_EXT_ROM_MT_SIZE];
   mrb_sym keys[RANGE_EXT_ROM_MT_SIZE];
 } range_ext_rom_data = {
   .vals = {
@@ -227,14 +227,14 @@ static struct {
     { .func = range_empty_p },
   },
   .keys = {
-    MT_KEY(MRB_SYM_Q(cover),          MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(size),             MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM_Q(__empty_range),  MT_FUNC|MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_Q(cover),          MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(size),             MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_Q(__empty_range),  MRB_MT_FUNC|MRB_MT_PUBLIC),
   }
 };
-static mt_tbl range_ext_rom_mt = {
+static mrb_mt_tbl range_ext_rom_mt = {
   RANGE_EXT_ROM_MT_SIZE, RANGE_EXT_ROM_MT_SIZE,
-  (union mt_ptr*)&range_ext_rom_data, NULL
+  (union mrb_mt_ptr*)&range_ext_rom_data, NULL
 };
 
 void

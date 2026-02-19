@@ -1273,7 +1273,7 @@ mrb_win32_basicsocket_syswrite(mrb_state *mrb, mrb_value self)
 /* ---------------------------*/
 #define ADDRINFO_ROM_MT_SIZE 2
 static struct {
-  union mt_ptr vals[ADDRINFO_ROM_MT_SIZE];
+  union mrb_mt_ptr vals[ADDRINFO_ROM_MT_SIZE];
   mrb_sym keys[ADDRINFO_ROM_MT_SIZE];
 } addrinfo_rom_data = {
   .vals = {
@@ -1281,18 +1281,18 @@ static struct {
     { .func = mrb_addrinfo_unix_path },
   },
   .keys = {
-    MT_KEY(MRB_SYM(getnameinfo), MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(unix_path),   MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(getnameinfo), MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(unix_path),   MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
   }
 };
-static mt_tbl addrinfo_rom_mt = {
+static mrb_mt_tbl addrinfo_rom_mt = {
   ADDRINFO_ROM_MT_SIZE, ADDRINFO_ROM_MT_SIZE,
-  (union mt_ptr*)&addrinfo_rom_data, NULL
+  (union mrb_mt_ptr*)&addrinfo_rom_data, NULL
 };
 
 #define BASICSOCKET_ROM_MT_SIZE 11
 static struct {
-  union mt_ptr vals[BASICSOCKET_ROM_MT_SIZE];
+  union mrb_mt_ptr vals[BASICSOCKET_ROM_MT_SIZE];
   mrb_sym keys[BASICSOCKET_ROM_MT_SIZE];
 } basicsocket_rom_data = {
   .vals = {
@@ -1309,44 +1309,44 @@ static struct {
     { .func = mrb_basicsocket_set_is_socket },
   },
   .keys = {
-    MT_KEY(MRB_SYM(_recvfrom),     MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(_setnonblock),  MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(getpeereid),    MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(getpeername),   MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(getsockname),   MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(getsockopt),    MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(recv),          MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(send),          MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(setsockopt),    MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(shutdown),      MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM_E(_is_socket),  MT_FUNC|MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(_recvfrom),     MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(_setnonblock),  MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(getpeereid),    MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(getpeername),   MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(getsockname),   MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(getsockopt),    MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(recv),          MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(send),          MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(setsockopt),    MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(shutdown),      MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_E(_is_socket),  MRB_MT_FUNC|MRB_MT_PUBLIC),
   }
 };
-static mt_tbl basicsocket_rom_mt = {
+static mrb_mt_tbl basicsocket_rom_mt = {
   BASICSOCKET_ROM_MT_SIZE, BASICSOCKET_ROM_MT_SIZE,
-  (union mt_ptr*)&basicsocket_rom_data, NULL
+  (union mrb_mt_ptr*)&basicsocket_rom_data, NULL
 };
 
 #define IPSOCKET_ROM_MT_SIZE 1
 static struct {
-  union mt_ptr vals[IPSOCKET_ROM_MT_SIZE];
+  union mrb_mt_ptr vals[IPSOCKET_ROM_MT_SIZE];
   mrb_sym keys[IPSOCKET_ROM_MT_SIZE];
 } ipsocket_rom_data = {
   .vals = {
     { .func = mrb_ipsocket_recvfrom },
   },
   .keys = {
-    MT_KEY(MRB_SYM(recvfrom), MT_FUNC|MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(recvfrom), MRB_MT_FUNC|MRB_MT_PUBLIC),
   }
 };
-static mt_tbl ipsocket_rom_mt = {
+static mrb_mt_tbl ipsocket_rom_mt = {
   IPSOCKET_ROM_MT_SIZE, IPSOCKET_ROM_MT_SIZE,
-  (union mt_ptr*)&ipsocket_rom_data, NULL
+  (union mrb_mt_ptr*)&ipsocket_rom_data, NULL
 };
 
 #define SOCKET_OPTION_ROM_MT_SIZE 10
 static struct {
-  union mt_ptr vals[SOCKET_OPTION_ROM_MT_SIZE];
+  union mrb_mt_ptr vals[SOCKET_OPTION_ROM_MT_SIZE];
   mrb_sym keys[SOCKET_OPTION_ROM_MT_SIZE];
 } socket_option_rom_data = {
   .vals = {
@@ -1362,21 +1362,21 @@ static struct {
     { .func = socket_option_notimp },
   },
   .keys = {
-    MT_KEY(MRB_SYM(initialize), MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(inspect),    MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(family),     MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(level),      MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(optname),    MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(data),       MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(bool),       MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(int),        MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(linger),     MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(unpack),     MT_FUNC|MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(initialize), MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(inspect),    MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(family),     MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(level),      MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(optname),    MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(data),       MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(bool),       MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(int),        MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(linger),     MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(unpack),     MRB_MT_FUNC|MRB_MT_PUBLIC),
   }
 };
-static mt_tbl socket_option_rom_mt = {
+static mrb_mt_tbl socket_option_rom_mt = {
   SOCKET_OPTION_ROM_MT_SIZE, SOCKET_OPTION_ROM_MT_SIZE,
-  (union mt_ptr*)&socket_option_rom_data, NULL
+  (union mrb_mt_ptr*)&socket_option_rom_data, NULL
 };
 
 void

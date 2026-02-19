@@ -2305,7 +2305,7 @@ mrb_hash_eql(mrb_state *mrb, mrb_value hash)
 /* ---------------------------*/
 #define HASH_ROM_MT_SIZE 36
 static struct {
-  union mt_ptr vals[HASH_ROM_MT_SIZE];
+  union mrb_mt_ptr vals[HASH_ROM_MT_SIZE];
   mrb_sym keys[HASH_ROM_MT_SIZE];
 } hash_rom_data = {
   .vals = {
@@ -2347,47 +2347,47 @@ static struct {
     { .func = mrb_hash_except_keys },
   },
   .keys = {
-    MT_KEY(MRB_OPSYM(eq),            MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_OPSYM(aref),          MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_OPSYM(aset),          MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(clear),           MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(default),         MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM_E(default),       MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(default_proc),    MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM_E(default_proc),  MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(__delete),        MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM_Q(eql),           MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM_Q(empty),         MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM_Q(has_key),       MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM_Q(has_value),     MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM_Q(include),       MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(initialize),      MT_FUNC|MT_PRIVATE),
-    MT_KEY(MRB_SYM(initialize_copy), MT_FUNC|MT_PRIVATE),
-    MT_KEY(MRB_SYM_Q(key),           MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(keys),            MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(length),          MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM_Q(member),        MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(replace),         MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(shift),           MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(size),            MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(store),           MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM_Q(value),         MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(values),          MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(to_s),            MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(inspect),         MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(rehash),          MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(to_hash),         MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(assoc),           MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(rassoc),          MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(__merge),         MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(__compact),       MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(__pat_values),    MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(__except),        MT_FUNC|MT_PUBLIC),
+    MRB_MT_KEY(MRB_OPSYM(eq),            MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_OPSYM(aref),          MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_OPSYM(aset),          MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(clear),           MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(default),         MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_E(default),       MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(default_proc),    MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_E(default_proc),  MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(__delete),        MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_Q(eql),           MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_Q(empty),         MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_Q(has_key),       MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_Q(has_value),     MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_Q(include),       MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(initialize),      MRB_MT_FUNC|MRB_MT_PRIVATE),
+    MRB_MT_KEY(MRB_SYM(initialize_copy), MRB_MT_FUNC|MRB_MT_PRIVATE),
+    MRB_MT_KEY(MRB_SYM_Q(key),           MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(keys),            MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(length),          MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_Q(member),        MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(replace),         MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(shift),           MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(size),            MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(store),           MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_Q(value),         MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(values),          MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(to_s),            MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(inspect),         MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(rehash),          MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(to_hash),         MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(assoc),           MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(rassoc),          MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(__merge),         MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(__compact),       MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(__pat_values),    MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(__except),        MRB_MT_FUNC|MRB_MT_PUBLIC),
   }
 };
-static mt_tbl hash_rom_mt = {
+static mrb_mt_tbl hash_rom_mt = {
   HASH_ROM_MT_SIZE, HASH_ROM_MT_SIZE,
-  (union mt_ptr*)&hash_rom_data, NULL
+  (union mrb_mt_ptr*)&hash_rom_data, NULL
 };
 
 void

@@ -2199,7 +2199,7 @@ io_flush(mrb_state *mrb, mrb_value io)
 /* ---------------------------*/
 #define IO_ROM_MT_SIZE 36
 static struct {
-  union mt_ptr vals[IO_ROM_MT_SIZE];
+  union mrb_mt_ptr vals[IO_ROM_MT_SIZE];
   mrb_sym keys[IO_ROM_MT_SIZE];
 } io_rom_data = {
   .vals = {
@@ -2241,47 +2241,47 @@ static struct {
     { .func = io_readbyte },
   },
   .keys = {
-    MT_KEY(MRB_SYM(initialize),       MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(initialize_copy),  MT_FUNC|MT_PRIVATE),
-    MT_KEY(MRB_SYM(isatty),           MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM_Q(eof),            MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(getc),             MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(gets),             MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(read),             MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(readchar),         MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(readline),         MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(readlines),        MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(sync),             MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM_E(sync),           MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(sysread),          MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(sysseek),          MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(syswrite),         MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(seek),             MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(close),            MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(close_write),      MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM_E(close_on_exec),  MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM_Q(close_on_exec),  MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM_Q(closed),         MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(flush),            MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(ungetc),           MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(ungetbyte),        MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(pos),              MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(pid),              MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(fileno),           MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(write),            MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(puts),             MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(print),            MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(putc),             MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_OPSYM(lshift),         MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(pread),            MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(pwrite),           MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(getbyte),          MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(readbyte),         MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(initialize),       MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(initialize_copy),  MRB_MT_FUNC|MRB_MT_PRIVATE),
+    MRB_MT_KEY(MRB_SYM(isatty),           MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_Q(eof),            MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(getc),             MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(gets),             MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(read),             MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(readchar),         MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(readline),         MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(readlines),        MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(sync),             MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_E(sync),           MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(sysread),          MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(sysseek),          MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(syswrite),         MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(seek),             MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(close),            MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(close_write),      MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_E(close_on_exec),  MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_Q(close_on_exec),  MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_Q(closed),         MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(flush),            MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(ungetc),           MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(ungetbyte),        MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(pos),              MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(pid),              MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(fileno),           MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(write),            MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(puts),             MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(print),            MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(putc),             MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_OPSYM(lshift),         MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(pread),            MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(pwrite),           MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(getbyte),          MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(readbyte),         MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
   }
 };
-static mt_tbl io_rom_mt = {
+static mrb_mt_tbl io_rom_mt = {
   IO_ROM_MT_SIZE, IO_ROM_MT_SIZE,
-  (union mt_ptr*)&io_rom_data, NULL
+  (union mrb_mt_ptr*)&io_rom_data, NULL
 };
 
 void

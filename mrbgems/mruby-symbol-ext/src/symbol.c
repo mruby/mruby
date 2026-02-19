@@ -60,7 +60,7 @@ mrb_sym_length(mrb_state *mrb, mrb_value self)
 
 #define SYMBOL_EXT_ROM_MT_SIZE 2
 static struct {
-  union mt_ptr vals[SYMBOL_EXT_ROM_MT_SIZE];
+  union mrb_mt_ptr vals[SYMBOL_EXT_ROM_MT_SIZE];
   mrb_sym keys[SYMBOL_EXT_ROM_MT_SIZE];
 } symbol_ext_rom_data = {
   .vals = {
@@ -68,13 +68,13 @@ static struct {
     { .func = mrb_sym_length },
   },
   .keys = {
-    MT_KEY(MRB_SYM(length), MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(size),   MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(length), MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(size),   MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
   }
 };
-static mt_tbl symbol_ext_rom_mt = {
+static mrb_mt_tbl symbol_ext_rom_mt = {
   SYMBOL_EXT_ROM_MT_SIZE, SYMBOL_EXT_ROM_MT_SIZE,
-  (union mt_ptr*)&symbol_ext_rom_data, NULL
+  (union mrb_mt_ptr*)&symbol_ext_rom_data, NULL
 };
 
 void

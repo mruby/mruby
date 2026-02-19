@@ -668,7 +668,7 @@ mrb_p_m(mrb_state *mrb, mrb_value self)
 /* ---------------------------*/
 #define KERNEL_ROM_MT_SIZE 27
 static struct {
-  union mt_ptr vals[KERNEL_ROM_MT_SIZE];
+  union mrb_mt_ptr vals[KERNEL_ROM_MT_SIZE];
   mrb_sym keys[KERNEL_ROM_MT_SIZE];
 } kernel_rom_data = {
   .vals = {
@@ -701,38 +701,38 @@ static struct {
     { .func = mrb_obj_method_recursive_p },
   },
   .keys = {
-    MT_KEY(MRB_OPSYM(eqq),                      MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_OPSYM(cmp),                       MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM_Q(block_given),               MT_FUNC|MT_NOARG|MT_PRIVATE),
-    MT_KEY(MRB_SYM(class),                        MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(clone),                        MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(dup),                          MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM_Q(eql),                        MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(freeze),                       MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM_Q(frozen),                     MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(extend),                       MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(hash),                         MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(initialize_copy),              MT_FUNC|MT_PRIVATE),
-    MT_KEY(MRB_SYM(inspect),                      MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM_Q(instance_of),                MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM_Q(is_a),                       MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM_Q(iterator),                   MT_FUNC|MT_NOARG|MT_PRIVATE),
-    MT_KEY(MRB_SYM_Q(kind_of),                    MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM_Q(nil),                        MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(object_id),                    MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(raise),                        MT_FUNC|MT_PRIVATE),
-    MT_KEY(MRB_SYM(remove_instance_variable),     MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM_Q(respond_to),                 MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(to_s),                         MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(__case_eqq),                   MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(__to_int),                     MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM_Q(respond_to_missing),         MT_FUNC|MT_PRIVATE),
-    MT_KEY(MRB_SYM_Q(__method_recursive),         MT_FUNC|MT_PUBLIC),
+    MRB_MT_KEY(MRB_OPSYM(eqq),                      MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_OPSYM(cmp),                       MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_Q(block_given),               MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PRIVATE),
+    MRB_MT_KEY(MRB_SYM(class),                        MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(clone),                        MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(dup),                          MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_Q(eql),                        MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(freeze),                       MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_Q(frozen),                     MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(extend),                       MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(hash),                         MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(initialize_copy),              MRB_MT_FUNC|MRB_MT_PRIVATE),
+    MRB_MT_KEY(MRB_SYM(inspect),                      MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_Q(instance_of),                MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_Q(is_a),                       MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_Q(iterator),                   MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PRIVATE),
+    MRB_MT_KEY(MRB_SYM_Q(kind_of),                    MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_Q(nil),                        MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(object_id),                    MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(raise),                        MRB_MT_FUNC|MRB_MT_PRIVATE),
+    MRB_MT_KEY(MRB_SYM(remove_instance_variable),     MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_Q(respond_to),                 MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(to_s),                         MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(__case_eqq),                   MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(__to_int),                     MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_Q(respond_to_missing),         MRB_MT_FUNC|MRB_MT_PRIVATE),
+    MRB_MT_KEY(MRB_SYM_Q(__method_recursive),         MRB_MT_FUNC|MRB_MT_PUBLIC),
   }
 };
-static mt_tbl kernel_rom_mt = {
+static mrb_mt_tbl kernel_rom_mt = {
   KERNEL_ROM_MT_SIZE, KERNEL_ROM_MT_SIZE,
-  (union mt_ptr*)&kernel_rom_data, NULL
+  (union mrb_mt_ptr*)&kernel_rom_data, NULL
 };
 
 void

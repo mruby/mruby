@@ -290,7 +290,7 @@ mrb_f_hash(mrb_state *mrb, mrb_value self)
 
 #define KERNEL_EXT_ROM_MT_SIZE 7
 static struct {
-  union mt_ptr vals[KERNEL_EXT_ROM_MT_SIZE];
+  union mrb_mt_ptr vals[KERNEL_EXT_ROM_MT_SIZE];
   mrb_sym keys[KERNEL_EXT_ROM_MT_SIZE];
 } kernel_ext_rom_data = {
   .vals = {
@@ -303,18 +303,18 @@ static struct {
     { .func = mrb_f_array },
   },
   .keys = {
-    MT_KEY(MRB_SYM(fail),       MT_FUNC|MT_PRIVATE),
-    MT_KEY(MRB_SYM(caller),     MT_FUNC|MT_PRIVATE),
-    MT_KEY(MRB_SYM(__method__), MT_FUNC|MT_NOARG|MT_PRIVATE),
-    MT_KEY(MRB_SYM(__callee__), MT_FUNC|MT_NOARG|MT_PRIVATE),
-    MT_KEY(MRB_SYM(Integer),    MT_FUNC|MT_PRIVATE),
-    MT_KEY(MRB_SYM(String),     MT_FUNC|MT_PRIVATE),
-    MT_KEY(MRB_SYM(Array),      MT_FUNC|MT_PRIVATE),
+    MRB_MT_KEY(MRB_SYM(fail),       MRB_MT_FUNC|MRB_MT_PRIVATE),
+    MRB_MT_KEY(MRB_SYM(caller),     MRB_MT_FUNC|MRB_MT_PRIVATE),
+    MRB_MT_KEY(MRB_SYM(__method__), MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PRIVATE),
+    MRB_MT_KEY(MRB_SYM(__callee__), MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PRIVATE),
+    MRB_MT_KEY(MRB_SYM(Integer),    MRB_MT_FUNC|MRB_MT_PRIVATE),
+    MRB_MT_KEY(MRB_SYM(String),     MRB_MT_FUNC|MRB_MT_PRIVATE),
+    MRB_MT_KEY(MRB_SYM(Array),      MRB_MT_FUNC|MRB_MT_PRIVATE),
   }
 };
-static mt_tbl kernel_ext_rom_mt = {
+static mrb_mt_tbl kernel_ext_rom_mt = {
   KERNEL_EXT_ROM_MT_SIZE, KERNEL_EXT_ROM_MT_SIZE,
-  (union mt_ptr*)&kernel_ext_rom_data, NULL
+  (union mrb_mt_ptr*)&kernel_ext_rom_data, NULL
 };
 
 void

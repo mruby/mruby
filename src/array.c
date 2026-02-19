@@ -2251,7 +2251,7 @@ mrb_ary_to_a(mrb_state *mrb, mrb_value self)
 /* ---------------------------*/
 #define ARRAY_ROM_MT_SIZE 36
 static struct {
-  union mt_ptr vals[ARRAY_ROM_MT_SIZE];
+  union mrb_mt_ptr vals[ARRAY_ROM_MT_SIZE];
   mrb_sym keys[ARRAY_ROM_MT_SIZE];
 } array_rom_data = {
   .vals = {
@@ -2293,47 +2293,47 @@ static struct {
     { .func = mrb_ary_svalue },
   },
   .keys = {
-    MT_KEY(MRB_OPSYM(add),           MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_OPSYM(mul),           MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_OPSYM(lshift),        MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_OPSYM(aref),          MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_OPSYM(aset),          MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(clear),           MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_OPSYM(cmp),           MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(concat),          MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(delete),          MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(delete_at),       MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM_Q(empty),         MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_OPSYM(eq),            MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM_Q(eql),           MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(first),           MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(index),           MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(initialize),      MT_FUNC|MT_PRIVATE),
-    MT_KEY(MRB_SYM(initialize_copy), MT_FUNC|MT_PRIVATE),
-    MT_KEY(MRB_SYM(join),            MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(last),            MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(length),          MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(pop),             MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(push),            MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(replace),         MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(reverse),         MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM_B(reverse),       MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(rindex),          MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(shift),           MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(size),            MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(slice),           MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(unshift),         MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(to_a),            MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(entries),         MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(to_s),            MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(inspect),         MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM_B(sort),          MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(__svalue),        MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MRB_MT_KEY(MRB_OPSYM(add),           MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_OPSYM(mul),           MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_OPSYM(lshift),        MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_OPSYM(aref),          MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_OPSYM(aset),          MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(clear),           MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_OPSYM(cmp),           MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(concat),          MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(delete),          MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(delete_at),       MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_Q(empty),         MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_OPSYM(eq),            MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_Q(eql),           MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(first),           MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(index),           MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(initialize),      MRB_MT_FUNC|MRB_MT_PRIVATE),
+    MRB_MT_KEY(MRB_SYM(initialize_copy), MRB_MT_FUNC|MRB_MT_PRIVATE),
+    MRB_MT_KEY(MRB_SYM(join),            MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(last),            MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(length),          MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(pop),             MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(push),            MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(replace),         MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(reverse),         MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_B(reverse),       MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(rindex),          MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(shift),           MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(size),            MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(slice),           MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(unshift),         MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(to_a),            MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(entries),         MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(to_s),            MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(inspect),         MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_B(sort),          MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(__svalue),        MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
   }
 };
-static mt_tbl array_rom_mt = {
+static mrb_mt_tbl array_rom_mt = {
   ARRAY_ROM_MT_SIZE, ARRAY_ROM_MT_SIZE,
-  (union mt_ptr*)&array_rom_data, NULL
+  (union mrb_mt_ptr*)&array_rom_data, NULL
 };
 
 void

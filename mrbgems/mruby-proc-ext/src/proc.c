@@ -246,7 +246,7 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
 /* ---------------------------*/
 #define PROC_EXT_ROM_MT_SIZE 5
 static struct {
-  union mt_ptr vals[PROC_EXT_ROM_MT_SIZE];
+  union mrb_mt_ptr vals[PROC_EXT_ROM_MT_SIZE];
   mrb_sym keys[PROC_EXT_ROM_MT_SIZE];
 } proc_ext_rom_data = {
   .vals = {
@@ -257,33 +257,33 @@ static struct {
     { .func = proc_inspect },
   },
   .keys = {
-    MT_KEY(MRB_SYM(inspect),         MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM_Q(lambda),        MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(parameters),      MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(source_location), MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(to_s),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(inspect),         MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_Q(lambda),        MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(parameters),      MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(source_location), MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(to_s),            MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
   }
 };
-static mt_tbl proc_ext_rom_mt = {
+static mrb_mt_tbl proc_ext_rom_mt = {
   PROC_EXT_ROM_MT_SIZE, PROC_EXT_ROM_MT_SIZE,
-  (union mt_ptr*)&proc_ext_rom_data, NULL
+  (union mrb_mt_ptr*)&proc_ext_rom_data, NULL
 };
 
 #define KERNEL_EXT_ROM_MT_SIZE 1
 static struct {
-  union mt_ptr vals[KERNEL_EXT_ROM_MT_SIZE];
+  union mrb_mt_ptr vals[KERNEL_EXT_ROM_MT_SIZE];
   mrb_sym keys[KERNEL_EXT_ROM_MT_SIZE];
 } kernel_ext_rom_data = {
   .vals = {
     { .func = kernel_proc },
   },
   .keys = {
-    MT_KEY(MRB_SYM(proc), MT_FUNC|MT_PRIVATE),
+    MRB_MT_KEY(MRB_SYM(proc), MRB_MT_FUNC|MRB_MT_PRIVATE),
   }
 };
-static mt_tbl kernel_ext_rom_mt = {
+static mrb_mt_tbl kernel_ext_rom_mt = {
   KERNEL_EXT_ROM_MT_SIZE, KERNEL_EXT_ROM_MT_SIZE,
-  (union mt_ptr*)&kernel_ext_rom_data, NULL
+  (union mrb_mt_ptr*)&kernel_ext_rom_data, NULL
 };
 
 void

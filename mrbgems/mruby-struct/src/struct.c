@@ -778,7 +778,7 @@ mrb_struct_to_s(mrb_state *mrb, mrb_value self)
 /* ---------------------------*/
 #define STRUCT_ROM_MT_SIZE 15
 static struct {
-  union mt_ptr vals[STRUCT_ROM_MT_SIZE];
+  union mrb_mt_ptr vals[STRUCT_ROM_MT_SIZE];
   mrb_sym keys[STRUCT_ROM_MT_SIZE];
 } struct_rom_data = {
   .vals = {
@@ -799,26 +799,26 @@ static struct {
     { .func = mrb_struct_values_at },
   },
   .keys = {
-    MT_KEY(MRB_OPSYM(eq),            MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_OPSYM(aref),          MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_OPSYM(aset),          MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(members),         MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(initialize),      MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(initialize_copy), MT_FUNC|MT_PRIVATE),
-    MT_KEY(MRB_SYM_Q(eql),           MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(to_s),            MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(inspect),         MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(size),            MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(length),          MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(to_a),            MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(values),          MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(to_h),            MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(values_at),       MT_FUNC|MT_PUBLIC),
+    MRB_MT_KEY(MRB_OPSYM(eq),            MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_OPSYM(aref),          MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_OPSYM(aset),          MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(members),         MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(initialize),      MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(initialize_copy), MRB_MT_FUNC|MRB_MT_PRIVATE),
+    MRB_MT_KEY(MRB_SYM_Q(eql),           MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(to_s),            MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(inspect),         MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(size),            MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(length),          MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(to_a),            MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(values),          MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(to_h),            MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(values_at),       MRB_MT_FUNC|MRB_MT_PUBLIC),
   }
 };
-static mt_tbl struct_rom_mt = {
+static mrb_mt_tbl struct_rom_mt = {
   STRUCT_ROM_MT_SIZE, STRUCT_ROM_MT_SIZE,
-  (union mt_ptr*)&struct_rom_data, NULL
+  (union mrb_mt_ptr*)&struct_rom_data, NULL
 };
 
 void

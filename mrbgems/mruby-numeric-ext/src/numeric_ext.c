@@ -482,7 +482,7 @@ int_sqrt(mrb_state *mrb, mrb_value self)
 
 #define INTEGER_EXT_ROM_MT_SIZE 9
 static struct {
-  union mt_ptr vals[INTEGER_EXT_ROM_MT_SIZE];
+  union mrb_mt_ptr vals[INTEGER_EXT_ROM_MT_SIZE];
   mrb_sym keys[INTEGER_EXT_ROM_MT_SIZE];
 } integer_ext_rom_data = {
   .vals = {
@@ -497,20 +497,20 @@ static struct {
     { .func = int_lcm },
   },
   .keys = {
-    MT_KEY(MRB_SYM(remainder),  MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(pow),        MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(digits),     MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(size),       MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(bit_length), MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM_Q(odd),      MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM_Q(even),     MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(gcd),        MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(lcm),        MT_FUNC|MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(remainder),  MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(pow),        MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(digits),     MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(size),       MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(bit_length), MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_Q(odd),      MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_Q(even),     MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(gcd),        MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(lcm),        MRB_MT_FUNC|MRB_MT_PUBLIC),
   }
 };
-static mt_tbl integer_ext_rom_mt = {
+static mrb_mt_tbl integer_ext_rom_mt = {
   INTEGER_EXT_ROM_MT_SIZE, INTEGER_EXT_ROM_MT_SIZE,
-  (union mt_ptr*)&integer_ext_rom_data, NULL
+  (union mrb_mt_ptr*)&integer_ext_rom_data, NULL
 };
 
 void

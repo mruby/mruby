@@ -29,34 +29,34 @@ size_t mrb_class_mt_memsize(mrb_state*, struct RClass*);
 mrb_value mrb_obj_extend(mrb_state*, mrb_value obj);
 
 /* ROM method table types for static method registration */
-union mt_ptr {
+union mrb_mt_ptr {
   const struct RProc *proc;
   mrb_func_t func;
 };
 
-typedef struct mt_tbl {
-  int             size;
-  int             alloc;  /* bit 30: MT_READONLY_BIT */
-  union mt_ptr   *ptr;
-  struct mt_tbl  *next;
-} mt_tbl;
+typedef struct mrb_mt_tbl {
+  int               size;
+  int               alloc;  /* bit 30: MRB_MT_READONLY_BIT */
+  union mrb_mt_ptr *ptr;
+  struct mrb_mt_tbl *next;
+} mrb_mt_tbl;
 
-#define MT_READONLY_BIT  (1 << 30)
-#define MT_KEY_SHIFT 4
-#define MT_KEY(sym, flags) ((sym)<<MT_KEY_SHIFT|(flags))
-#define MT_FUNC    8    /* MRB_METHOD_FUNC_FL */
-#define MT_NOARG   4    /* MRB_METHOD_NOARG_FL */
-#define MT_PUBLIC  0    /* MRB_METHOD_PUBLIC_FL */
-#define MT_PRIVATE 1    /* MRB_METHOD_PRIVATE_FL */
+#define MRB_MT_READONLY_BIT  (1 << 30)
+#define MRB_MT_KEY_SHIFT 4
+#define MRB_MT_KEY(sym, flags) ((sym)<<MRB_MT_KEY_SHIFT|(flags))
+#define MRB_MT_FUNC    8    /* MRB_METHOD_FUNC_FL */
+#define MRB_MT_NOARG   4    /* MRB_METHOD_NOARG_FL */
+#define MRB_MT_PUBLIC  0    /* MRB_METHOD_PUBLIC_FL */
+#define MRB_MT_PRIVATE 1    /* MRB_METHOD_PRIVATE_FL */
 
-/* "removed" tombstone: MT_FUNC flag set with NULL function pointer.
+/* "removed" tombstone: MRB_MT_FUNC flag set with NULL function pointer.
    This combination never occurs naturally (C functions are never NULL).
-   Unlike undef (proc=NULL without MT_FUNC), a removed marker makes
+   Unlike undef (proc=NULL without MRB_MT_FUNC), a removed marker makes
    mt_get() return 0 ("not found"), blocking ROM chain walk while
    allowing superclass lookup. */
-#define MT_REMOVED_P(key, val) (((key)&MT_FUNC) && (val).func==NULL)
+#define MRB_MT_REMOVED_P(key, val) (((key)&MRB_MT_FUNC) && (val).func==NULL)
 
-void mrb_mt_init_rom(struct RClass *c, mt_tbl *rom);
+void mrb_mt_init_rom(struct RClass *c, mrb_mt_tbl *rom);
 #endif
 
 mrb_value mrb_obj_equal_m(mrb_state *mrb, mrb_value);

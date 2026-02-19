@@ -570,7 +570,7 @@ random_f_bytes(mrb_state *mrb, mrb_value self)
 
 #define KERNEL_RAND_ROM_MT_SIZE 2
 static struct {
-  union mt_ptr vals[KERNEL_RAND_ROM_MT_SIZE];
+  union mrb_mt_ptr vals[KERNEL_RAND_ROM_MT_SIZE];
   mrb_sym keys[KERNEL_RAND_ROM_MT_SIZE];
 } kernel_rand_rom_data = {
   .vals = {
@@ -578,18 +578,18 @@ static struct {
     { .func = random_f_srand },
   },
   .keys = {
-    MT_KEY(MRB_SYM(rand),  MT_FUNC|MT_PRIVATE),
-    MT_KEY(MRB_SYM(srand), MT_FUNC|MT_PRIVATE),
+    MRB_MT_KEY(MRB_SYM(rand),  MRB_MT_FUNC|MRB_MT_PRIVATE),
+    MRB_MT_KEY(MRB_SYM(srand), MRB_MT_FUNC|MRB_MT_PRIVATE),
   }
 };
-static mt_tbl kernel_rand_rom_mt = {
+static mrb_mt_tbl kernel_rand_rom_mt = {
   KERNEL_RAND_ROM_MT_SIZE, KERNEL_RAND_ROM_MT_SIZE,
-  (union mt_ptr*)&kernel_rand_rom_data, NULL
+  (union mrb_mt_ptr*)&kernel_rand_rom_data, NULL
 };
 
 #define RANDOM_ROM_MT_SIZE 4
 static struct {
-  union mt_ptr vals[RANDOM_ROM_MT_SIZE];
+  union mrb_mt_ptr vals[RANDOM_ROM_MT_SIZE];
   mrb_sym keys[RANDOM_ROM_MT_SIZE];
 } random_rom_data = {
   .vals = {
@@ -599,20 +599,20 @@ static struct {
     { .func = random_m_bytes },
   },
   .keys = {
-    MT_KEY(MRB_SYM(initialize), MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(rand),       MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(srand),      MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(bytes),      MT_FUNC|MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(initialize), MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(rand),       MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(srand),      MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(bytes),      MRB_MT_FUNC|MRB_MT_PUBLIC),
   }
 };
-static mt_tbl random_rom_mt = {
+static mrb_mt_tbl random_rom_mt = {
   RANDOM_ROM_MT_SIZE, RANDOM_ROM_MT_SIZE,
-  (union mt_ptr*)&random_rom_data, NULL
+  (union mrb_mt_ptr*)&random_rom_data, NULL
 };
 
 #define ARRAY_RAND_ROM_MT_SIZE 3
 static struct {
-  union mt_ptr vals[ARRAY_RAND_ROM_MT_SIZE];
+  union mrb_mt_ptr vals[ARRAY_RAND_ROM_MT_SIZE];
   mrb_sym keys[ARRAY_RAND_ROM_MT_SIZE];
 } array_rand_rom_data = {
   .vals = {
@@ -621,14 +621,14 @@ static struct {
     { .func = mrb_ary_sample },
   },
   .keys = {
-    MT_KEY(MRB_SYM(shuffle),    MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM_B(shuffle),  MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(sample),     MT_FUNC|MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(shuffle),    MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_B(shuffle),  MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(sample),     MRB_MT_FUNC|MRB_MT_PUBLIC),
   }
 };
-static mt_tbl array_rand_rom_mt = {
+static mrb_mt_tbl array_rand_rom_mt = {
   ARRAY_RAND_ROM_MT_SIZE, ARRAY_RAND_ROM_MT_SIZE,
-  (union mt_ptr*)&array_rand_rom_data, NULL
+  (union mrb_mt_ptr*)&array_rand_rom_data, NULL
 };
 
 void mrb_mruby_random_gem_init(mrb_state *mrb)

@@ -9,12 +9,12 @@
 #include <mruby/khash.h>
 #include <mruby/presym.h>
 
-#undef MT_PUBLIC
-#undef MT_PRIVATE
-#define MT_PUBLIC MRB_METHOD_PUBLIC_FL
-#define MT_PRIVATE MRB_METHOD_PRIVATE_FL
+#undef MRB_MT_PUBLIC
+#undef MRB_MT_PRIVATE
+#define MRB_MT_PUBLIC MRB_METHOD_PUBLIC_FL
+#define MRB_MT_PRIVATE MRB_METHOD_PRIVATE_FL
 #define MT_PROTECTED MRB_METHOD_PROTECTED_FL
-#define MT_NOPRIV (MT_PRIVATE|MT_PROTECTED)
+#define MT_NOPRIV (MRB_MT_PRIVATE|MT_PROTECTED)
 
 static mrb_value
 mrb_f_nil(mrb_state *mrb, mrb_value cv)
@@ -139,7 +139,7 @@ struct mt_set {
   khash_t(st) *set;
 };
 
-#define vicheck(flags, visi) (((visi)==MT_NOPRIV) ? (((flags)&0x3)!=MT_PRIVATE) : (((flags)&0x3)==(visi)))
+#define vicheck(flags, visi) (((visi)==MT_NOPRIV) ? (((flags)&0x3)!=MRB_MT_PRIVATE) : (((flags)&0x3)==(visi)))
 
 static int
 method_entry_i(mrb_state *mrb, mrb_sym mid, mrb_method_t m, void *p)
@@ -243,7 +243,7 @@ mrb_obj_methods_m(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_obj_private_methods(mrb_state *mrb, mrb_value self)
 {
-  return mrb_obj_methods(mrb, self, MT_PRIVATE);
+  return mrb_obj_methods(mrb, self, MRB_MT_PRIVATE);
 }
 
 /* 15.3.1.3.37 */
@@ -273,7 +273,7 @@ mrb_obj_protected_methods(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_obj_public_methods(mrb_state *mrb, mrb_value self)
 {
-  return mrb_obj_methods(mrb, self, MT_PUBLIC);
+  return mrb_obj_methods(mrb, self, MRB_MT_PUBLIC);
 }
 
 static mrb_value
@@ -286,12 +286,12 @@ mrb_obj_singleton_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj)
   klass = mrb_class(mrb, obj);
 
   if (klass && (klass->tt == MRB_TT_SCLASS)) {
-      method_entry_loop(mrb, klass, set, MT_PUBLIC);
+      method_entry_loop(mrb, klass, set, MRB_MT_PUBLIC);
       klass = klass->super;
   }
   if (recur) {
       while (klass && ((klass->tt == MRB_TT_SCLASS) || (klass->tt == MRB_TT_ICLASS))) {
-        method_entry_loop(mrb, klass, set, MT_PUBLIC);
+        method_entry_loop(mrb, klass, set, MRB_MT_PUBLIC);
         klass = klass->super;
       }
   }
@@ -563,13 +563,13 @@ mrb_mod_instance_methods(mrb_state *mrb, mrb_value mod)
 static mrb_value
 mrb_mod_public_instance_methods(mrb_state *mrb, mrb_value mod)
 {
-  return mod_instance_methods(mrb, mod, MT_PUBLIC);
+  return mod_instance_methods(mrb, mod, MRB_MT_PUBLIC);
 }
 
 static mrb_value
 mrb_mod_private_instance_methods(mrb_state *mrb, mrb_value mod)
 {
-  return mod_instance_methods(mrb, mod, MT_PRIVATE);
+  return mod_instance_methods(mrb, mod, MRB_MT_PRIVATE);
 }
 
 static mrb_value
@@ -692,7 +692,7 @@ mrb_mod_s_nesting(mrb_state *mrb, mrb_value mod)
 /* ---------------------------*/
 #define METAPROG_KRN_ROM_MT_SIZE 15
 static struct {
-  union mt_ptr vals[METAPROG_KRN_ROM_MT_SIZE];
+  union mrb_mt_ptr vals[METAPROG_KRN_ROM_MT_SIZE];
   mrb_sym keys[METAPROG_KRN_ROM_MT_SIZE];
 } metaprog_krn_rom_data = {
   .vals = {
@@ -713,31 +713,31 @@ static struct {
     { .func = mrb_f_public_send },
   },
   .keys = {
-    MT_KEY(MRB_SYM(global_variables),            MT_FUNC|MT_NOARG|MT_PRIVATE),
-    MT_KEY(MRB_SYM(local_variables),             MT_FUNC|MT_NOARG|MT_PRIVATE),
-    MT_KEY(MRB_SYM(singleton_class),             MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM_Q(instance_variable_defined), MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(instance_variable_get),       MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(instance_variable_set),       MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(instance_variables),          MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(methods),                     MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(private_methods),             MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(protected_methods),           MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(public_methods),              MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(singleton_methods),           MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(define_singleton_method),     MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(send),                        MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(public_send),                 MT_FUNC|MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(global_variables),            MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PRIVATE),
+    MRB_MT_KEY(MRB_SYM(local_variables),             MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PRIVATE),
+    MRB_MT_KEY(MRB_SYM(singleton_class),             MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_Q(instance_variable_defined), MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(instance_variable_get),       MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(instance_variable_set),       MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(instance_variables),          MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(methods),                     MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(private_methods),             MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(protected_methods),           MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(public_methods),              MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(singleton_methods),           MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(define_singleton_method),     MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(send),                        MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(public_send),                 MRB_MT_FUNC|MRB_MT_PUBLIC),
   }
 };
-static mt_tbl metaprog_krn_rom_mt = {
+static mrb_mt_tbl metaprog_krn_rom_mt = {
   METAPROG_KRN_ROM_MT_SIZE, METAPROG_KRN_ROM_MT_SIZE,
-  (union mt_ptr*)&metaprog_krn_rom_data, NULL
+  (union mrb_mt_ptr*)&metaprog_krn_rom_data, NULL
 };
 
 #define METAPROG_MOD_ROM_MT_SIZE 14
 static struct {
-  union mt_ptr vals[METAPROG_MOD_ROM_MT_SIZE];
+  union mrb_mt_ptr vals[METAPROG_MOD_ROM_MT_SIZE];
   mrb_sym keys[METAPROG_MOD_ROM_MT_SIZE];
 } metaprog_mod_rom_data = {
   .vals = {
@@ -757,25 +757,25 @@ static struct {
     { .func = mrb_mod_constants },
   },
   .keys = {
-    MT_KEY(MRB_SYM(class_variables),             MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(remove_class_variable),       MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM_Q(class_variable_defined),    MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(class_variable_get),          MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(class_variable_set),          MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(included_modules),            MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(instance_methods),            MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(public_instance_methods),     MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(private_instance_methods),    MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(protected_instance_methods),  MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(undefined_instance_methods),  MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(remove_method),               MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(method_removed),              MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(constants),                   MT_FUNC|MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(class_variables),             MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(remove_class_variable),       MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM_Q(class_variable_defined),    MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(class_variable_get),          MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(class_variable_set),          MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(included_modules),            MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(instance_methods),            MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(public_instance_methods),     MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(private_instance_methods),    MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(protected_instance_methods),  MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(undefined_instance_methods),  MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(remove_method),               MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(method_removed),              MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(constants),                   MRB_MT_FUNC|MRB_MT_PUBLIC),
   }
 };
-static mt_tbl metaprog_mod_rom_mt = {
+static mrb_mt_tbl metaprog_mod_rom_mt = {
   METAPROG_MOD_ROM_MT_SIZE, METAPROG_MOD_ROM_MT_SIZE,
-  (union mt_ptr*)&metaprog_mod_rom_data, NULL
+  (union mrb_mt_ptr*)&metaprog_mod_rom_data, NULL
 };
 
 void

@@ -1124,7 +1124,7 @@ mrb_file_join(mrb_state *mrb, mrb_value klass)
 /* ---------------------------*/
 #define FILE_ROM_MT_SIZE 6
 static struct {
-  union mt_ptr vals[FILE_ROM_MT_SIZE];
+  union mrb_mt_ptr vals[FILE_ROM_MT_SIZE];
   mrb_sym keys[FILE_ROM_MT_SIZE];
 } file_rom_data = {
   .vals = {
@@ -1136,17 +1136,17 @@ static struct {
     { .func = mrb_file_truncate },
   },
   .keys = {
-    MT_KEY(MRB_SYM(flock),    MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(_atime),   MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(_ctime),   MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(_mtime),   MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(size),     MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_SYM(truncate), MT_FUNC|MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(flock),    MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(_atime),   MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(_ctime),   MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(_mtime),   MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(size),     MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(truncate), MRB_MT_FUNC|MRB_MT_PUBLIC),
   }
 };
-static mt_tbl file_rom_mt = {
+static mrb_mt_tbl file_rom_mt = {
   FILE_ROM_MT_SIZE, FILE_ROM_MT_SIZE,
-  (union mt_ptr*)&file_rom_data, NULL
+  (union mrb_mt_ptr*)&file_rom_data, NULL
 };
 
 void

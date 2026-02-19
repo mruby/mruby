@@ -22,7 +22,7 @@ reopening a class to add methods) trigger heap allocation.
 ### Chained Layers
 
 Each class has a method table (`mt`) pointer to a linked list of
-`mt_tbl` layers:
+`mrb_mt_tbl` layers:
 
 ```
 String.mt -> [mutable layer] -> [string_ext ROM] -> [string_core ROM] -> NULL
@@ -45,16 +45,16 @@ After String.define_method(:foo):
 
 ### Memory Layout
 
-Each `mt_tbl` stores method entries as parallel arrays in a single
+Each `mrb_mt_tbl` stores method entries as parallel arrays in a single
 contiguous block:
 
 ```
 ptr -> [ vals[0] vals[1] ... vals[N-1] | keys[0] keys[1] ... keys[N-1] ]
-       |<--- union mt_ptr array ------>|<--- mrb_sym (encoded) array -->|
+       |<--- union mrb_mt_ptr array ------>|<--- mrb_sym (encoded) array -->|
 ```
 
-Values are `union mt_ptr` (function pointer or proc pointer). Keys are
-`mrb_sym` with flags packed into the lower bits using `MT_KEY()`.
+Values are `union mrb_mt_ptr` (function pointer or proc pointer). Keys are
+`mrb_sym` with flags packed into the lower bits using `MRB_MT_KEY()`.
 
 Keys must be sorted by symbol ID for binary search. The
 `mrb_mt_init_rom()` function handles sorting at startup, so the
@@ -64,8 +64,8 @@ source code order does not matter.
 
 ### Step 1: Define the Static Data
 
-Include `<mruby/internal.h>` (which provides `mt_tbl`, `union mt_ptr`,
-`MT_KEY()`, and flag constants) and define the ROM data structure:
+Include `<mruby/internal.h>` (which provides `mrb_mt_tbl`, `union mrb_mt_ptr`,
+`MRB_MT_KEY()`, and flag constants) and define the ROM data structure:
 
 ```c
 #include <mruby/internal.h>
@@ -73,7 +73,7 @@ Include `<mruby/internal.h>` (which provides `mt_tbl`, `union mt_ptr`,
 
 #define MY_ROM_MT_SIZE 3
 static struct {
-  union mt_ptr vals[MY_ROM_MT_SIZE];
+  union mrb_mt_ptr vals[MY_ROM_MT_SIZE];
   mrb_sym keys[MY_ROM_MT_SIZE];
 } my_rom_data = {
   .vals = {
@@ -82,14 +82,14 @@ static struct {
     { .func = my_method_c },
   },
   .keys = {
-    MT_KEY(MRB_SYM(method_a), MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(method_b), MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_OPSYM(eq),     MT_FUNC|MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(method_a), MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(method_b), MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_OPSYM(eq),     MRB_MT_FUNC|MRB_MT_PUBLIC),
   }
 };
-static mt_tbl my_rom_mt = {
+static mrb_mt_tbl my_rom_mt = {
   MY_ROM_MT_SIZE, MY_ROM_MT_SIZE,
-  (union mt_ptr*)&my_rom_data, NULL
+  (union mrb_mt_ptr*)&my_rom_data, NULL
 };
 ```
 
@@ -122,43 +122,43 @@ to Ruby code.
 Defined in `include/mruby/internal.h`:
 
 ```c
-union mt_ptr {
+union mrb_mt_ptr {
   const struct RProc *proc;
   mrb_func_t func;
 };
 
-typedef struct mt_tbl {
+typedef struct mrb_mt_tbl {
   int             size;
-  int             alloc;    /* bit 30: MT_READONLY_BIT */
-  union mt_ptr   *ptr;
-  struct mt_tbl  *next;     /* next (lower-priority) layer, or NULL */
-} mt_tbl;
+  int             alloc;    /* bit 30: MRB_MT_READONLY_BIT */
+  union mrb_mt_ptr   *ptr;
+  struct mrb_mt_tbl  *next;     /* next (lower-priority) layer, or NULL */
+} mrb_mt_tbl;
 ```
 
 ### Key Encoding
 
 ```c
-#define MT_KEY(sym, flags)  ((sym) << MT_KEY_SHIFT | (flags))
+#define MRB_MT_KEY(sym, flags)  ((sym) << MRB_MT_KEY_SHIFT | (flags))
 ```
 
 ### Flags
 
-| Flag         | Value | Description                                    |
-| ------------ | ----- | ---------------------------------------------- |
-| `MT_FUNC`    | 8     | Entry is a C function pointer (not an RProc)   |
-| `MT_NOARG`   | 4     | Method takes no arguments (optimization hint)  |
-| `MT_PUBLIC`  | 0     | Public visibility                              |
-| `MT_PRIVATE` | 1     | Private visibility                             |
+| Flag             | Value | Description                                   |
+| ---------------- | ----- | --------------------------------------------- |
+| `MRB_MT_FUNC`    | 8     | Entry is a C function pointer (not an RProc)  |
+| `MRB_MT_NOARG`   | 4     | Method takes no arguments (optimization hint) |
+| `MRB_MT_PUBLIC`  | 0     | Public visibility                             |
+| `MRB_MT_PRIVATE` | 1     | Private visibility                            |
 
-Most ROM entries use `MT_FUNC|MT_PUBLIC` or `MT_FUNC|MT_NOARG|MT_PUBLIC`.
+Most ROM entries use `MRB_MT_FUNC|MRB_MT_PUBLIC` or `MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC`.
 
 **How to choose flags:**
 
-- **`MT_FUNC`**: Always set for C function methods. Omit only for
+- **`MRB_MT_FUNC`**: Always set for C function methods. Omit only for
   RProc-based methods (rare in ROM tables).
-- **`MT_NOARG`**: Set when the original `mrb_define_method_id()` used
+- **`MRB_MT_NOARG`**: Set when the original `mrb_define_method_id()` used
   `MRB_ARGS_NONE()`. This enables an optimized call path in the VM.
-- **`MT_PUBLIC` / `MT_PRIVATE`**: Match the intended visibility. Almost
+- **`MRB_MT_PUBLIC` / `MRB_MT_PRIVATE`**: Match the intended visibility. Almost
   all methods are public.
 
 ### Symbol Macros
@@ -182,7 +182,7 @@ MRB_IVSYM(name)     /* @name */
 ### API
 
 ```c
-void mrb_mt_init_rom(struct RClass *c, mt_tbl *rom);
+void mrb_mt_init_rom(struct RClass *c, mrb_mt_tbl *rom);
 ```
 
 Sorts the ROM table, sets the readonly flag, and pushes it onto the
@@ -206,8 +206,8 @@ separate entries sharing the same function pointer:
   { .func = mrb_str_size },   /* length (alias) */
 },
 .keys = {
-  MT_KEY(MRB_SYM(size),   MT_FUNC|MT_NOARG|MT_PUBLIC),
-  MT_KEY(MRB_SYM(length), MT_FUNC|MT_NOARG|MT_PUBLIC),
+  MRB_MT_KEY(MRB_SYM(size),   MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+  MRB_MT_KEY(MRB_SYM(length), MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
 }
 ```
 
@@ -223,7 +223,7 @@ blocks):
 #ifndef MRB_NO_FLOAT
 #define FLOAT_ROM_MT_SIZE 29
 static struct { ... } float_rom_data = { ... };
-static mt_tbl float_rom_mt = { ... };
+static mrb_mt_tbl float_rom_mt = { ... };
 #endif
 
 void mrb_init_numeric(mrb_state *mrb) {
@@ -261,7 +261,7 @@ ROM layer in front of the core ROM layer:
 
 #define STRING_EXT_ROM_MT_SIZE 53
 static struct { ... } string_ext_rom_data = { ... };
-static mt_tbl string_ext_rom_mt = { ... };
+static mrb_mt_tbl string_ext_rom_mt = { ... };
 
 void mrb_mruby_string_ext_gem_init(mrb_state *mrb)
 {
@@ -326,7 +326,7 @@ end
 ### Method Removal
 
 `remove_method` works on ROM methods using a tombstone marker. When a
-method in a ROM layer is removed, a special entry (`MT_FUNC` flag with
+method in a ROM layer is removed, a special entry (`MRB_MT_FUNC` flag with
 `func=NULL`) is inserted into the mutable layer. The `mt_get()` lookup
 treats this marker as "not found" and stops searching the chain,
 effectively hiding the ROM entry. Unlike `undef_method` (which blocks
@@ -334,7 +334,7 @@ superclass lookup), `remove_method`'s tombstone allows the superclass
 method to be found.
 
 `undef_method` uses a different tombstone (`proc=NULL` without
-`MT_FUNC`), which is returned by `mt_get()` so the caller raises
+`MRB_MT_FUNC`), which is returned by `mt_get()` so the caller raises
 NoMethodError without searching the superclass.
 
 ### Class Duplication
@@ -364,10 +364,10 @@ To convert existing `mrb_define_method_id()` calls to a ROM table:
 
 3. **Move** each `mrb_define_method_id()` call into the ROM table:
    - The second-to-last argument (function pointer) goes into `.vals`.
-   - The third argument (symbol) goes into `.keys` via `MT_KEY()`.
+   - The third argument (symbol) goes into `.keys` via `MRB_MT_KEY()`.
    - Map the `MRB_ARGS_*` macro to flags:
-     - `MRB_ARGS_NONE()` -> `MT_FUNC|MT_NOARG|MT_PUBLIC`
-     - Anything else -> `MT_FUNC|MT_PUBLIC`
+     - `MRB_ARGS_NONE()` -> `MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC`
+     - Anything else -> `MRB_MT_FUNC|MRB_MT_PUBLIC`
 
 4. **Replace** the calls with `mrb_mt_init_rom(c, &my_rom_mt)`.
 
@@ -392,7 +392,7 @@ void mrb_mruby_foo_gem_init(mrb_state *mrb) {
 ```c
 #define FOO_ROM_MT_SIZE 3
 static struct {
-  union mt_ptr vals[FOO_ROM_MT_SIZE];
+  union mrb_mt_ptr vals[FOO_ROM_MT_SIZE];
   mrb_sym keys[FOO_ROM_MT_SIZE];
 } foo_rom_data = {
   .vals = {
@@ -401,14 +401,14 @@ static struct {
     { .func = foo_eq },
   },
   .keys = {
-    MT_KEY(MRB_SYM(bar),   MT_FUNC|MT_PUBLIC),
-    MT_KEY(MRB_SYM(baz),   MT_FUNC|MT_NOARG|MT_PUBLIC),
-    MT_KEY(MRB_OPSYM(eq),  MT_FUNC|MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(bar),   MRB_MT_FUNC|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_SYM(baz),   MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PUBLIC),
+    MRB_MT_KEY(MRB_OPSYM(eq),  MRB_MT_FUNC|MRB_MT_PUBLIC),
   }
 };
-static mt_tbl foo_rom_mt = {
+static mrb_mt_tbl foo_rom_mt = {
   FOO_ROM_MT_SIZE, FOO_ROM_MT_SIZE,
-  (union mt_ptr*)&foo_rom_data, NULL
+  (union mrb_mt_ptr*)&foo_rom_data, NULL
 };
 
 void mrb_mruby_foo_gem_init(mrb_state *mrb) {
