@@ -335,7 +335,7 @@ mrb_mod_cmp(mrb_state *mrb, mrb_value self)
 }
 
 /* ---------------------------*/
-static mrb_mt_entry mod_ext_rom_entries[] = {
+static const mrb_mt_entry mod_ext_rom_entries[] = {
   MRB_MT_ENTRY(mrb_mod_lt,            MRB_OPSYM(lt),              MRB_MT_FUNC),
   MRB_MT_ENTRY(mrb_mod_le,            MRB_OPSYM(le),              MRB_MT_FUNC),
   MRB_MT_ENTRY(mrb_mod_cmp,           MRB_OPSYM(cmp),             MRB_MT_FUNC),
@@ -348,7 +348,7 @@ static mrb_mt_entry mod_ext_rom_entries[] = {
 };
 static mrb_mt_tbl mod_ext_rom_mt = MRB_MT_ROM_TAB(mod_ext_rom_entries);
 
-static mrb_mt_entry cls_ext_rom_entries[] = {
+static const mrb_mt_entry cls_ext_rom_entries[] = {
   MRB_MT_ENTRY(class_attached_object, MRB_SYM(attached_object), MRB_MT_FUNC|MRB_MT_NOARG),
   MRB_MT_ENTRY(class_subclasses,      MRB_SYM(subclasses),      MRB_MT_FUNC|MRB_MT_NOARG),
 };

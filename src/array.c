@@ -2249,7 +2249,7 @@ mrb_ary_to_a(mrb_state *mrb, mrb_value self)
 }
 
 /* ---------------------------*/
-static mrb_mt_entry array_rom_entries[] = {
+static const mrb_mt_entry array_rom_entries[] = {
   MRB_MT_ENTRY(mrb_ary_plus,        MRB_OPSYM(add),           MRB_MT_FUNC),
   MRB_MT_ENTRY(mrb_ary_times,       MRB_OPSYM(mul),           MRB_MT_FUNC),
   MRB_MT_ENTRY(mrb_ary_push_m,      MRB_OPSYM(lshift),        MRB_MT_FUNC),

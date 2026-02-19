@@ -1464,7 +1464,7 @@ set_s_create(mrb_state *mrb, mrb_value klass)
   return set;
 }
 
-static mrb_mt_entry set_rom_entries[] = {
+static const mrb_mt_entry set_rom_entries[] = {
   MRB_MT_ENTRY(set_size,              MRB_SYM(size),              MRB_MT_FUNC|MRB_MT_NOARG),
   MRB_MT_ENTRY(set_size,              MRB_SYM(length),            MRB_MT_FUNC|MRB_MT_NOARG),
   MRB_MT_ENTRY(set_empty_p,           MRB_SYM_Q(empty),           MRB_MT_FUNC|MRB_MT_NOARG),

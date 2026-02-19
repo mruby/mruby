@@ -776,7 +776,7 @@ mrb_struct_to_s(mrb_state *mrb, mrb_value self)
  *  `Symbol` (such as `:name`).
  */
 /* ---------------------------*/
-static mrb_mt_entry struct_rom_entries[] = {
+static const mrb_mt_entry struct_rom_entries[] = {
   MRB_MT_ENTRY(mrb_struct_equal,      MRB_OPSYM(eq),            MRB_MT_FUNC),
   MRB_MT_ENTRY(mrb_struct_aref,       MRB_OPSYM(aref),          MRB_MT_FUNC),
   MRB_MT_ENTRY(mrb_struct_aset,       MRB_OPSYM(aset),          MRB_MT_FUNC),

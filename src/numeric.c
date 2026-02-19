@@ -2299,14 +2299,14 @@ flo_hash(mrb_state *mrb, mrb_value flo)
 #endif
 
 /* ------------------------------------------------------------------------*/
-static mrb_mt_entry numeric_rom_entries[] = {
+static const mrb_mt_entry numeric_rom_entries[] = {
   MRB_MT_ENTRY(num_finite_p,   MRB_SYM_Q(finite),   MRB_MT_FUNC|MRB_MT_NOARG),
   MRB_MT_ENTRY(num_infinite_p, MRB_SYM_Q(infinite), MRB_MT_FUNC|MRB_MT_NOARG),
   MRB_MT_ENTRY(num_eql,        MRB_SYM_Q(eql),      MRB_MT_FUNC),
 };
 static mrb_mt_tbl numeric_rom_mt = MRB_MT_ROM_TAB(numeric_rom_entries);
 
-static mrb_mt_entry integer_rom_entries[] = {
+static const mrb_mt_entry integer_rom_entries[] = {
   MRB_MT_ENTRY(int_pow,              MRB_OPSYM(pow),                  MRB_MT_FUNC),
   MRB_MT_ENTRY(num_cmp,              MRB_OPSYM(cmp),                  MRB_MT_FUNC),
   MRB_MT_ENTRY(num_lt,               MRB_OPSYM(lt),                   MRB_MT_FUNC),
@@ -2342,7 +2342,7 @@ static mrb_mt_entry integer_rom_entries[] = {
 static mrb_mt_tbl integer_rom_mt = MRB_MT_ROM_TAB(integer_rom_entries);
 
 #ifndef MRB_NO_FLOAT
-static mrb_mt_entry float_rom_entries[] = {
+static const mrb_mt_entry float_rom_entries[] = {
   MRB_MT_ENTRY(flo_pow,        MRB_OPSYM(pow),       MRB_MT_FUNC),
   MRB_MT_ENTRY(flo_div,        MRB_OPSYM(div),       MRB_MT_FUNC),
   MRB_MT_ENTRY(flo_div,        MRB_SYM(quo),         MRB_MT_FUNC),

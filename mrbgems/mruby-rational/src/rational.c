@@ -1228,7 +1228,7 @@ rational_hash(mrb_state *mrb, mrb_value rat)
 }
 
 /* ---------------------------*/
-static mrb_mt_entry rational_rom_entries[] = {
+static const mrb_mt_entry rational_rom_entries[] = {
   MRB_MT_ENTRY(rational_numerator,   MRB_SYM(numerator),   MRB_MT_FUNC|MRB_MT_NOARG),
   MRB_MT_ENTRY(rational_denominator, MRB_SYM(denominator), MRB_MT_FUNC|MRB_MT_NOARG),
   MRB_MT_ENTRY(mrb_rational_to_i,    MRB_SYM(to_i),        MRB_MT_FUNC|MRB_MT_NOARG),
@@ -1246,17 +1246,17 @@ static mrb_mt_entry rational_rom_entries[] = {
 };
 static mrb_mt_tbl rational_rom_mt = MRB_MT_ROM_TAB(rational_rom_entries);
 
-static mrb_mt_entry integer_to_r_rom_entries[] = {
+static const mrb_mt_entry integer_to_r_rom_entries[] = {
   MRB_MT_ENTRY(int_to_r, MRB_SYM(to_r), MRB_MT_FUNC|MRB_MT_NOARG),
 };
 static mrb_mt_tbl integer_to_r_rom_mt = MRB_MT_ROM_TAB(integer_to_r_rom_entries);
 
-static mrb_mt_entry nil_to_r_rom_entries[] = {
+static const mrb_mt_entry nil_to_r_rom_entries[] = {
   MRB_MT_ENTRY(nil_to_r, MRB_SYM(to_r), MRB_MT_FUNC|MRB_MT_NOARG),
 };
 static mrb_mt_tbl nil_to_r_rom_mt = MRB_MT_ROM_TAB(nil_to_r_rom_entries);
 
-static mrb_mt_entry kernel_rational_rom_entries[] = {
+static const mrb_mt_entry kernel_rational_rom_entries[] = {
   MRB_MT_ENTRY(rational_m, MRB_SYM(Rational), MRB_MT_FUNC|MRB_MT_PRIVATE),
 };
 static mrb_mt_tbl kernel_rational_rom_mt = MRB_MT_ROM_TAB(kernel_rational_rom_entries);

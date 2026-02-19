@@ -558,7 +558,7 @@ complex_pow(mrb_state *mrb, mrb_value self)
 }
 
 /* ---------------------------*/
-static mrb_mt_entry complex_rom_entries[] = {
+static const mrb_mt_entry complex_rom_entries[] = {
   MRB_MT_ENTRY(complex_real,      MRB_SYM(real),      MRB_MT_FUNC|MRB_MT_NOARG),
   MRB_MT_ENTRY(complex_imaginary, MRB_SYM(imaginary), MRB_MT_FUNC|MRB_MT_NOARG),
   MRB_MT_ENTRY(mrb_complex_to_f,  MRB_SYM(to_f),      MRB_MT_FUNC|MRB_MT_NOARG),
@@ -575,12 +575,12 @@ static mrb_mt_entry complex_rom_entries[] = {
 };
 static mrb_mt_tbl complex_rom_mt = MRB_MT_ROM_TAB(complex_rom_entries);
 
-static mrb_mt_entry nil_to_c_rom_entries[] = {
+static const mrb_mt_entry nil_to_c_rom_entries[] = {
   MRB_MT_ENTRY(nil_to_c, MRB_SYM(to_c), MRB_MT_FUNC|MRB_MT_NOARG),
 };
 static mrb_mt_tbl nil_to_c_rom_mt = MRB_MT_ROM_TAB(nil_to_c_rom_entries);
 
-static mrb_mt_entry kernel_complex_rom_entries[] = {
+static const mrb_mt_entry kernel_complex_rom_entries[] = {
   MRB_MT_ENTRY(complex_s_rect, MRB_SYM(Complex), MRB_MT_FUNC|MRB_MT_PRIVATE),
 };
 static mrb_mt_tbl kernel_complex_rom_mt = MRB_MT_ROM_TAB(kernel_complex_rom_entries);

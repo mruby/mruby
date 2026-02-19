@@ -57,9 +57,9 @@ Values are `union mrb_mt_ptr` (function pointer or proc pointer). Keys
 are pure `mrb_sym` (no flag encoding). Flags are a separate `uint32_t`
 field that stores visibility, func/proc type, and argument spec.
 
-Entries must be sorted by symbol ID for binary search. The
-`mrb_mt_init_rom()` function handles sorting at startup, so the
-source code order does not matter.
+Entries are searched linearly, so source code order does not matter.
+The method cache makes repeated lookups O(1), so the linear scan
+only occurs on cache misses.
 
 ## How to Define a ROM Method Table
 
@@ -73,7 +73,7 @@ constants) and define the ROM entries:
 #include <mruby/internal.h>
 #include <mruby/presym.h>
 
-static mrb_mt_entry my_rom_entries[] = {
+static const mrb_mt_entry my_rom_entries[] = {
   MRB_MT_ENTRY(my_method_a, MRB_SYM(method_a), MRB_MT_FUNC),
   MRB_MT_ENTRY(my_method_b, MRB_SYM(method_b), MRB_MT_FUNC|MRB_MT_NOARG),
   MRB_MT_ENTRY(my_method_eq, MRB_OPSYM(eq),    MRB_MT_FUNC),
@@ -95,8 +95,8 @@ mrb_mruby_mygem_gem_init(mrb_state *mrb)
 }
 ```
 
-`mrb_mt_init_rom()` sorts the entries by symbol ID, sets the readonly
-flag, and pushes the ROM layer onto the class's method table chain.
+`mrb_mt_init_rom()` pushes the ROM layer onto the class's method
+table chain.
 
 ### Step 3: Verify
 
@@ -187,22 +187,23 @@ MRB_IVSYM(name)     /* @name */
 void mrb_mt_init_rom(struct RClass *c, mrb_mt_tbl *rom);
 ```
 
-Sorts the ROM table, sets the readonly flag, and pushes it onto the
-class's method table chain. Multiple calls push additional layers,
-which is how extension gems add methods to core classes.
+Pushes the ROM layer onto the class's method table chain. The
+readonly flag is already set by `MRB_MT_ROM_TAB()`. Multiple calls
+push additional layers, which is how extension gems add methods to
+core classes.
 
 ## Entry Correspondence
 
 Each `MRB_MT_ENTRY()` bundles a function pointer with its method name
 and flags in a single line. Their order in the source code does not
-matter (they are sorted at init time), but keeping related methods
+matter, but keeping related methods
 together improves readability.
 
 **Method aliases** (two names for the same function) are expressed as
 separate entries sharing the same function pointer:
 
 ```c
-static mrb_mt_entry str_rom_entries[] = {
+static const mrb_mt_entry str_rom_entries[] = {
   MRB_MT_ENTRY(mrb_str_size, MRB_SYM(size),   MRB_MT_FUNC|MRB_MT_NOARG),
   MRB_MT_ENTRY(mrb_str_size, MRB_SYM(length), MRB_MT_FUNC|MRB_MT_NOARG),
 };
@@ -218,7 +219,7 @@ blocks):
 
 ```c
 #ifndef MRB_NO_FLOAT
-static mrb_mt_entry float_rom_entries[] = { ... };
+static const mrb_mt_entry float_rom_entries[] = { ... };
 static mrb_mt_tbl float_rom_mt = MRB_MT_ROM_TAB(float_rom_entries);
 #endif
 
@@ -255,7 +256,7 @@ ROM layer in front of the core ROM layer:
 ```c
 /* mrbgems/mruby-string-ext/src/string.c */
 
-static mrb_mt_entry string_ext_rom_entries[] = { ... };
+static const mrb_mt_entry string_ext_rom_entries[] = { ... };
 static mrb_mt_tbl string_ext_rom_mt = MRB_MT_ROM_TAB(string_ext_rom_entries);
 
 void mrb_mruby_string_ext_gem_init(mrb_state *mrb)
@@ -389,7 +390,7 @@ void mrb_mruby_foo_gem_init(mrb_state *mrb) {
 ### After
 
 ```c
-static mrb_mt_entry foo_rom_entries[] = {
+static const mrb_mt_entry foo_rom_entries[] = {
   MRB_MT_ENTRY(foo_bar, MRB_SYM(bar),  MRB_MT_FUNC),
   MRB_MT_ENTRY(foo_baz, MRB_SYM(baz),  MRB_MT_FUNC|MRB_MT_NOARG),
   MRB_MT_ENTRY(foo_eq,  MRB_OPSYM(eq), MRB_MT_FUNC),

@@ -1001,7 +1001,7 @@ sym_cmp(mrb_state *mrb, mrb_value s1)
 #undef lesser
 
 /* ---------------------------*/
-static mrb_mt_entry symbol_rom_entries[] = {
+static const mrb_mt_entry symbol_rom_entries[] = {
   MRB_MT_ENTRY(sym_to_s,         MRB_SYM(to_s),    MRB_MT_FUNC|MRB_MT_NOARG),
   MRB_MT_ENTRY(sym_name,         MRB_SYM(name),    MRB_MT_FUNC|MRB_MT_NOARG),
   MRB_MT_ENTRY(mrb_obj_itself,   MRB_SYM(to_sym),  MRB_MT_FUNC|MRB_MT_NOARG),

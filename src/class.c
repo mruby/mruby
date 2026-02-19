@@ -53,85 +53,48 @@ mt_new(mrb_state *mrb)
   return t;
 }
 
-/* Branch-free binary search helper for method table entries */
-static inline int
-mt_bsearch_idx(mrb_mt_entry *entries, int size, mrb_sym target)
-{
-  if (size == 0) return 0;
-  int n = size;
-  mrb_mt_entry *p = entries;
-  /* While more than one element remains, halve the range each iteration */
-  while (n > 1) {
-    int half = n >> 1;
-    MRB_MEM_PREFETCH(p + (half >> 1));
-    MRB_MEM_PREFETCH(p + half + (half >> 1));
-    /*
-     * Update pointer p without a branch:
-     * If key < target, move p forward by half; otherwise keep p unchanged.
-     * Compiler will emit a CMOV or equivalent.
-     */
-    p = (p[half].key < target) ? p + half : p;
-    n -= half;
-  }
-  /* Final adjustment: if the remaining element is still less than target, advance by one */
-  int offset = (p->key < target);
-  return (int)(p - entries) + offset;
-}
-
-/* Inserts or updates an entry in the method table */
+/* Inserts or updates an entry in the method table (linear scan) */
 static void
 mt_put(mrb_state *mrb, mrb_mt_tbl *t, mrb_sym sym, uint32_t flags, union mrb_mt_ptr ptrval)
 {
-  /* Ensure there is capacity */
+  mrb_mt_entry *entries = t->ptr;
+
+  /* Linear scan for existing key */
+  for (int i = 0; i < t->size; i++) {
+    if (entries[i].key == sym) {
+      entries[i].flags = flags;
+      entries[i].val = ptrval;
+      return;
+    }
+  }
+
+  /* Not found — append to end */
   if (MT_ALLOC(t) == 0) {
     mt_grow(mrb, t, 8);
   }
   else if (t->size == MT_ALLOC(t)) {
     mt_grow(mrb, t, MT_ALLOC(t) * 2);
   }
-
-  mrb_mt_entry *entries = t->ptr;
-
-  /*
-   * If table is empty, insertion index is 0.
-   * Otherwise, find the insertion/update position branch-free.
-   */
-  int lo = mt_bsearch_idx(entries, t->size, sym);
-
-  /* If the key already exists, update its value and return */
-  if (lo < t->size && entries[lo].key == sym) {
-    entries[lo].flags = flags;
-    entries[lo].val = ptrval;
-    return;
-  }
-
-  /* Shift existing entries to make room at index lo */
-  if (t->size > lo) {
-    memmove(&entries[lo+1], &entries[lo],
-            (t->size - lo) * sizeof(mrb_mt_entry));
-  }
-
-  /* Insert the new entry */
-  entries[lo].key = sym;
-  entries[lo].flags = flags;
-  entries[lo].val = ptrval;
+  entries = t->ptr;
+  entries[t->size].key = sym;
+  entries[t->size].flags = flags;
+  entries[t->size].val = ptrval;
   t->size++;
 }
 
-/* Retrieves a value from the method table (walks chain).
+/* Retrieves a value from the method table (walks chain, linear scan).
    Returns TRUE if found, FALSE if not found.
    On success, *pp and *fp are set. */
 static mrb_bool
 mt_get(mrb_state *mrb, mrb_mt_tbl *t, mrb_sym sym, union mrb_mt_ptr *pp, uint32_t *fp)
 {
   while (t) {
-    if (t->size > 0) {
-      mrb_mt_entry *entries = t->ptr;
-      int lo = mt_bsearch_idx(entries, t->size, sym);
-      if (lo < t->size && entries[lo].key == sym) {
-        if (MRB_MT_REMOVED_P(entries[lo])) return FALSE; /* removed tombstone */
-        *pp = entries[lo].val;
-        *fp = entries[lo].flags;
+    mrb_mt_entry *entries = t->ptr;
+    for (int i = 0; i < t->size; i++) {
+      if (entries[i].key == sym) {
+        if (MRB_MT_REMOVED_P(entries[i])) return FALSE;
+        *pp = entries[i].val;
+        *fp = entries[i].flags;
         return TRUE;
       }
     }
@@ -140,27 +103,22 @@ mt_get(mrb_state *mrb, mrb_mt_tbl *t, mrb_sym sym, union mrb_mt_ptr *pp, uint32_
   return FALSE;
 }
 
-/* Deletes an entry from the method table */
+/* Deletes an entry from the method table (swap with last) */
 static mrb_bool
 mt_del(mrb_state *mrb, mrb_mt_tbl *t, mrb_sym sym)
 {
-  /* Return FALSE if table is null or empty */
   if (!t || t->size == 0) return FALSE;
 
   mrb_mt_entry *entries = t->ptr;
-
-  /* Find the index of `sym` in a branch-free manner */
-  int lo = mt_bsearch_idx(entries, t->size, sym);
-
-  /* If the key exists at index lo, remove it by shifting left */
-  if (lo < t->size && entries[lo].key == sym) {
-    memmove(&entries[lo], &entries[lo + 1],
-            (t->size - lo - 1) * sizeof(mrb_mt_entry));
-    t->size--;
-    return TRUE;
+  for (int i = 0; i < t->size; i++) {
+    if (entries[i].key == sym) {
+      t->size--;
+      if (i < t->size) {
+        entries[i] = entries[t->size];
+      }
+      return TRUE;
+    }
   }
-
-  /* Key not found */
   return FALSE;
 }
 
@@ -169,10 +127,9 @@ static mrb_bool
 mt_chain_has(mrb_mt_tbl *t, mrb_sym sym)
 {
   while (t) {
-    if (t->size > 0) {
-      mrb_mt_entry *entries = t->ptr;
-      int lo = mt_bsearch_idx(entries, t->size, sym);
-      if (lo < t->size && entries[lo].key == sym) return TRUE;
+    mrb_mt_entry *entries = t->ptr;
+    for (int i = 0; i < t->size; i++) {
+      if (entries[i].key == sym) return TRUE;
     }
     t = t->next;
   }
@@ -214,29 +171,11 @@ mt_free(mrb_state *mrb, mrb_mt_tbl *t)
   }
 }
 
-/* Sorts entries array by key symbol (insertion sort) */
-static void
-mt_sort(mrb_mt_entry *entries, int n)
-{
-  for (int i = 1; i < n; i++) {
-    mrb_mt_entry e = entries[i];
-    mrb_sym sym = e.key;
-    int j = i;
-    while (j > 0 && entries[j-1].key > sym) {
-      entries[j] = entries[j-1];
-      j--;
-    }
-    entries[j] = e;
-  }
-}
-
-/* Sorts a static ROM table, sets readonly flag, and pushes it to the class */
+/* Pushes a ROM table layer onto the class's method table chain.
+   The readonly flag is already set by MRB_MT_ROM_TAB(). */
 void
 mrb_mt_init_rom(struct RClass *c, mrb_mt_tbl *rom)
 {
-  mt_sort(rom->ptr, rom->size);
-  rom->alloc = rom->size | MRB_MT_READONLY_BIT;
-
   /* push ROM layer */
   mrb_mt_tbl *t = c->mt;
   if (!t || mt_readonly_p(t)) {
@@ -290,13 +229,14 @@ mrb_mt_foreach(mrb_state *mrb, struct RClass *c, mrb_mt_foreach_func *fn, void *
       if (layer != t) {
         mrb_bool shadowed = FALSE;
         for (mrb_mt_tbl *upper = t; upper != layer; upper = upper->next) {
-          if (upper->size > 0) {
-            int lo = mt_bsearch_idx(upper->ptr, upper->size, sym);
-            if (lo < upper->size && upper->ptr[lo].key == sym) {
+          mrb_mt_entry *up = upper->ptr;
+          for (int j = 0; j < upper->size; j++) {
+            if (up[j].key == sym) {
               shadowed = TRUE;
               break;
             }
           }
+          if (shadowed) break;
         }
         if (shadowed) continue;
       }
@@ -4319,7 +4259,7 @@ static const struct RProc neq_proc = {
 };
 
 /* ---------------------------*/
-static mrb_mt_entry bob_rom_entries[] = {
+static const mrb_mt_entry bob_rom_entries[] = {
   MRB_MT_ENTRY(mrb_obj_equal_m,    MRB_OPSYM(eq),                       MRB_MT_FUNC),
   MRB_MT_ENTRY(mrb_bob_not,        MRB_OPSYM(not),                      MRB_MT_FUNC|MRB_MT_NOARG),
   MRB_MT_ENTRY(mrb_obj_id_m,       MRB_SYM(__id__),                     MRB_MT_FUNC|MRB_MT_NOARG),
@@ -4334,7 +4274,7 @@ static mrb_mt_entry bob_rom_entries[] = {
 };
 static mrb_mt_tbl bob_rom_mt = MRB_MT_ROM_TAB(bob_rom_entries);
 
-static mrb_mt_entry cls_rom_entries[] = {
+static const mrb_mt_entry cls_rom_entries[] = {
   MRB_MT_ENTRY(mrb_instance_alloc,    MRB_SYM(allocate),   MRB_MT_FUNC|MRB_MT_NOARG),
   MRB_MT_ENTRY(mrb_do_nothing,        MRB_SYM(inherited),  MRB_MT_FUNC|MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_class_initialize,  MRB_SYM(initialize), MRB_MT_FUNC|MRB_MT_PRIVATE),
@@ -4342,7 +4282,7 @@ static mrb_mt_entry cls_rom_entries[] = {
 };
 static mrb_mt_tbl cls_rom_mt = MRB_MT_ROM_TAB(cls_rom_entries);
 
-static mrb_mt_entry mod_rom_entries[] = {
+static const mrb_mt_entry mod_rom_entries[] = {
   MRB_MT_ENTRY(mrb_mod_eqq,            MRB_OPSYM(eqq),            MRB_MT_FUNC),
   MRB_MT_ENTRY(mrb_mod_alias,          MRB_SYM(alias_method),     MRB_MT_FUNC),
   MRB_MT_ENTRY(mrb_mod_ancestors,      MRB_SYM(ancestors),        MRB_MT_FUNC|MRB_MT_NOARG),

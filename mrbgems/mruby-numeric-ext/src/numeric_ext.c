@@ -480,7 +480,7 @@ int_sqrt(mrb_state *mrb, mrb_value self)
   }
 }
 
-static mrb_mt_entry integer_ext_rom_entries[] = {
+static const mrb_mt_entry integer_ext_rom_entries[] = {
   MRB_MT_ENTRY(int_remainder,  MRB_SYM(remainder),  MRB_MT_FUNC),
   MRB_MT_ENTRY(int_powm,       MRB_SYM(pow),        MRB_MT_FUNC),
   MRB_MT_ENTRY(int_digits,     MRB_SYM(digits),     MRB_MT_FUNC),

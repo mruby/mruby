@@ -3508,7 +3508,7 @@ mrb_encoding(mrb_state *mrb, mrb_value self)
 }
 
 /* ---------------------------*/
-static mrb_mt_entry string_rom_entries[] = {
+static const mrb_mt_entry string_rom_entries[] = {
   MRB_MT_ENTRY(mrb_str_bytesize,       MRB_SYM(bytesize),        MRB_MT_FUNC|MRB_MT_NOARG),
   MRB_MT_ENTRY(mrb_str_cmp_m,          MRB_OPSYM(cmp),           MRB_MT_FUNC),
   MRB_MT_ENTRY(mrb_str_equal_m,        MRB_OPSYM(eq),            MRB_MT_FUNC),

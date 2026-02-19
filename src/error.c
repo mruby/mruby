@@ -892,7 +892,7 @@ mrb_check_error(mrb_state *mrb)
 }
 
 /* ---------------------------*/
-static mrb_mt_entry exception_rom_entries[] = {
+static const mrb_mt_entry exception_rom_entries[] = {
   MRB_MT_ENTRY(exc_exception,     MRB_SYM(exception),      MRB_MT_FUNC),
   MRB_MT_ENTRY(exc_initialize,    MRB_SYM(initialize),     MRB_MT_FUNC|MRB_MT_PRIVATE),
   MRB_MT_ENTRY(exc_to_s,          MRB_SYM(to_s),           MRB_MT_FUNC|MRB_MT_NOARG),

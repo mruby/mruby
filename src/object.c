@@ -322,7 +322,7 @@ false_to_s(mrb_state *mrb, mrb_value obj)
 }
 
 /* ---------------------------*/
-static mrb_mt_entry nil_rom_entries[] = {
+static const mrb_mt_entry nil_rom_entries[] = {
   MRB_MT_ENTRY(false_and,   MRB_OPSYM(and),    MRB_MT_FUNC),
   MRB_MT_ENTRY(false_or,    MRB_OPSYM(or),     MRB_MT_FUNC),
   MRB_MT_ENTRY(false_xor,   MRB_OPSYM(xor),    MRB_MT_FUNC),
@@ -332,7 +332,7 @@ static mrb_mt_entry nil_rom_entries[] = {
 };
 static mrb_mt_tbl nil_rom_mt = MRB_MT_ROM_TAB(nil_rom_entries);
 
-static mrb_mt_entry true_rom_entries[] = {
+static const mrb_mt_entry true_rom_entries[] = {
   MRB_MT_ENTRY(true_and,  MRB_OPSYM(and),    MRB_MT_FUNC),
   MRB_MT_ENTRY(true_or,   MRB_OPSYM(or),     MRB_MT_FUNC),
   MRB_MT_ENTRY(true_xor,  MRB_OPSYM(xor),    MRB_MT_FUNC),
@@ -341,7 +341,7 @@ static mrb_mt_entry true_rom_entries[] = {
 };
 static mrb_mt_tbl true_rom_mt = MRB_MT_ROM_TAB(true_rom_entries);
 
-static mrb_mt_entry false_rom_entries[] = {
+static const mrb_mt_entry false_rom_entries[] = {
   MRB_MT_ENTRY(false_and,  MRB_OPSYM(and),    MRB_MT_FUNC),
   MRB_MT_ENTRY(false_or,   MRB_OPSYM(or),     MRB_MT_FUNC),
   MRB_MT_ENTRY(false_xor,  MRB_OPSYM(xor),    MRB_MT_FUNC),

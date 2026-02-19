@@ -832,7 +832,7 @@ method_name(mrb_state *mrb, mrb_value self)
 }
 
 /* ---------------------------*/
-static mrb_mt_entry method_ubm_rom_entries[] = {
+static const mrb_mt_entry method_ubm_rom_entries[] = {
   MRB_MT_ENTRY(unbound_method_bind,  MRB_SYM(bind),            MRB_MT_FUNC),
   MRB_MT_ENTRY(method_super_method,  MRB_SYM(super_method),    MRB_MT_FUNC|MRB_MT_NOARG),
   MRB_MT_ENTRY(method_eql,           MRB_OPSYM(eq),            MRB_MT_FUNC),
@@ -848,7 +848,7 @@ static mrb_mt_entry method_ubm_rom_entries[] = {
 };
 static mrb_mt_tbl method_ubm_rom_mt = MRB_MT_ROM_TAB(method_ubm_rom_entries);
 
-static mrb_mt_entry method_mtd_rom_entries[] = {
+static const mrb_mt_entry method_mtd_rom_entries[] = {
   MRB_MT_ENTRY(method_eql,            MRB_OPSYM(eq),            MRB_MT_FUNC),
   MRB_MT_ENTRY(method_eql,            MRB_SYM_Q(eql),           MRB_MT_FUNC),
   MRB_MT_ENTRY(method_to_s,           MRB_SYM(to_s),            MRB_MT_FUNC|MRB_MT_NOARG),
@@ -866,13 +866,13 @@ static mrb_mt_entry method_mtd_rom_entries[] = {
 };
 static mrb_mt_tbl method_mtd_rom_mt = MRB_MT_ROM_TAB(method_mtd_rom_entries);
 
-static mrb_mt_entry method_krn_rom_entries[] = {
+static const mrb_mt_entry method_krn_rom_entries[] = {
   MRB_MT_ENTRY(mrb_kernel_method,           MRB_SYM(method),           MRB_MT_FUNC),
   MRB_MT_ENTRY(mrb_kernel_singleton_method, MRB_SYM(singleton_method), MRB_MT_FUNC),
 };
 static mrb_mt_tbl method_krn_rom_mt = MRB_MT_ROM_TAB(method_krn_rom_entries);
 
-static mrb_mt_entry method_mod_rom_entries[] = {
+static const mrb_mt_entry method_mod_rom_entries[] = {
   MRB_MT_ENTRY(mrb_module_instance_method, MRB_SYM(instance_method), MRB_MT_FUNC),
 };
 static mrb_mt_tbl method_mod_rom_mt = MRB_MT_ROM_TAB(method_mod_rom_entries);

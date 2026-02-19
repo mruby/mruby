@@ -58,7 +58,7 @@ mrb_sym_length(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(len);
 }
 
-static mrb_mt_entry symbol_ext_rom_entries[] = {
+static const mrb_mt_entry symbol_ext_rom_entries[] = {
   MRB_MT_ENTRY(mrb_sym_length, MRB_SYM(length), MRB_MT_FUNC|MRB_MT_NOARG),
   MRB_MT_ENTRY(mrb_sym_length, MRB_SYM(size),   MRB_MT_FUNC|MRB_MT_NOARG),
 };

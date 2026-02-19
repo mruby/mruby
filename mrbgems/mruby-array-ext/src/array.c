@@ -1537,7 +1537,7 @@ ary_combination_next(mrb_state *mrb, mrb_value self)
 }
 
 /* ---------------------------*/
-static mrb_mt_entry array_ext_rom_entries[] = {
+static const mrb_mt_entry array_ext_rom_entries[] = {
   MRB_MT_ENTRY(ary_assoc,             MRB_SYM(assoc),              MRB_MT_FUNC),
   MRB_MT_ENTRY(ary_at,                MRB_SYM(at),                 MRB_MT_FUNC),
   MRB_MT_ENTRY(ary_rassoc,            MRB_SYM(rassoc),             MRB_MT_FUNC),

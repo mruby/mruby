@@ -288,7 +288,7 @@ mrb_f_hash(mrb_state *mrb, mrb_value self)
   return arg;
 }
 
-static mrb_mt_entry kernel_ext_rom_entries[] = {
+static const mrb_mt_entry kernel_ext_rom_entries[] = {
   MRB_MT_ENTRY(mrb_f_raise,   MRB_SYM(fail),       MRB_MT_FUNC|MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_f_caller,  MRB_SYM(caller),     MRB_MT_FUNC|MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_f_method,  MRB_SYM(__method__), MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PRIVATE),

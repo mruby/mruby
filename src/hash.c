@@ -2303,7 +2303,7 @@ mrb_hash_eql(mrb_state *mrb, mrb_value hash)
 }
 
 /* ---------------------------*/
-static mrb_mt_entry hash_rom_entries[] = {
+static const mrb_mt_entry hash_rom_entries[] = {
   MRB_MT_ENTRY(mrb_hash_equal,           MRB_OPSYM(eq),            MRB_MT_FUNC),
   MRB_MT_ENTRY(mrb_hash_aget,            MRB_OPSYM(aref),          MRB_MT_FUNC),
   MRB_MT_ENTRY(mrb_hash_aset,            MRB_OPSYM(aset),          MRB_MT_FUNC),

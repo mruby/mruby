@@ -1122,7 +1122,7 @@ mrb_file_join(mrb_state *mrb, mrb_value klass)
 }
 
 /* ---------------------------*/
-static mrb_mt_entry file_rom_entries[] = {
+static const mrb_mt_entry file_rom_entries[] = {
   MRB_MT_ENTRY(mrb_file_flock,    MRB_SYM(flock),    MRB_MT_FUNC),
   MRB_MT_ENTRY(mrb_file_atime,    MRB_SYM(_atime),   MRB_MT_FUNC|MRB_MT_NOARG),
   MRB_MT_ENTRY(mrb_file_ctime,    MRB_SYM(_ctime),   MRB_MT_FUNC|MRB_MT_NOARG),

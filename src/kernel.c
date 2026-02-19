@@ -666,7 +666,7 @@ mrb_p_m(mrb_state *mrb, mrb_value self)
 #endif
 
 /* ---------------------------*/
-static mrb_mt_entry kernel_rom_entries[] = {
+static const mrb_mt_entry kernel_rom_entries[] = {
   MRB_MT_ENTRY(mrb_eqq_m,                        MRB_OPSYM(eqq),                      MRB_MT_FUNC),
   MRB_MT_ENTRY(mrb_cmp_m,                        MRB_OPSYM(cmp),                       MRB_MT_FUNC),
   MRB_MT_ENTRY(mrb_f_block_given_p_m,            MRB_SYM_Q(block_given),               MRB_MT_FUNC|MRB_MT_NOARG|MRB_MT_PRIVATE),

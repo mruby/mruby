@@ -1271,13 +1271,13 @@ mrb_win32_basicsocket_syswrite(mrb_state *mrb, mrb_value self)
 #endif
 
 /* ---------------------------*/
-static mrb_mt_entry addrinfo_rom_entries[] = {
+static const mrb_mt_entry addrinfo_rom_entries[] = {
   MRB_MT_ENTRY(mrb_addrinfo_getnameinfo, MRB_SYM(getnameinfo), MRB_MT_FUNC),
   MRB_MT_ENTRY(mrb_addrinfo_unix_path,   MRB_SYM(unix_path),   MRB_MT_FUNC|MRB_MT_NOARG),
 };
 static mrb_mt_tbl addrinfo_rom_mt = MRB_MT_ROM_TAB(addrinfo_rom_entries);
 
-static mrb_mt_entry basicsocket_rom_entries[] = {
+static const mrb_mt_entry basicsocket_rom_entries[] = {
   MRB_MT_ENTRY(mrb_basicsocket_recvfrom,      MRB_SYM(_recvfrom),     MRB_MT_FUNC),
   MRB_MT_ENTRY(mrb_basicsocket_setnonblock,   MRB_SYM(_setnonblock),  MRB_MT_FUNC),
   MRB_MT_ENTRY(mrb_basicsocket_getpeereid,    MRB_SYM(getpeereid),    MRB_MT_FUNC|MRB_MT_NOARG),
@@ -1292,12 +1292,12 @@ static mrb_mt_entry basicsocket_rom_entries[] = {
 };
 static mrb_mt_tbl basicsocket_rom_mt = MRB_MT_ROM_TAB(basicsocket_rom_entries);
 
-static mrb_mt_entry ipsocket_rom_entries[] = {
+static const mrb_mt_entry ipsocket_rom_entries[] = {
   MRB_MT_ENTRY(mrb_ipsocket_recvfrom, MRB_SYM(recvfrom), MRB_MT_FUNC),
 };
 static mrb_mt_tbl ipsocket_rom_mt = MRB_MT_ROM_TAB(ipsocket_rom_entries);
 
-static mrb_mt_entry socket_option_rom_entries[] = {
+static const mrb_mt_entry socket_option_rom_entries[] = {
   MRB_MT_ENTRY(socket_option_init,    MRB_SYM(initialize), MRB_MT_FUNC),
   MRB_MT_ENTRY(socket_option_inspect, MRB_SYM(inspect),    MRB_MT_FUNC|MRB_MT_NOARG),
   MRB_MT_ENTRY(socket_option_family,  MRB_SYM(family),     MRB_MT_FUNC|MRB_MT_NOARG),

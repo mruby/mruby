@@ -59,11 +59,13 @@ typedef struct mrb_mt_tbl {
 #define MRB_MT_ENTRY(fn, sym, flags) \
   { { .func = (fn) }, (sym), (flags) }
 
-/* ROM table initializer from entries array (auto-computes size) */
+/* ROM table initializer from const entries array (auto-computes size).
+   Casts away const because mrb_mt_tbl.ptr is shared with mutable layers;
+   the MRB_MT_READONLY_BIT prevents writes. */
 #define MRB_MT_ROM_TAB(entries) { \
   (int)(sizeof(entries)/sizeof(entries[0])), \
-  (int)(sizeof(entries)/sizeof(entries[0])), \
-  (entries), NULL }
+  (int)(sizeof(entries)/sizeof(entries[0])) | MRB_MT_READONLY_BIT, \
+  (mrb_mt_entry*)(entries), NULL }
 
 /* "removed" tombstone: MRB_MT_FUNC flag set with NULL function pointer.
    This combination never occurs naturally (C functions are never NULL).

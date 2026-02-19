@@ -97,19 +97,19 @@ obj_instance_exec(mrb_state *mrb, mrb_value self)
   return mrb_object_exec(mrb, self, mrb_singleton_class_ptr(mrb, self));
 }
 
-static mrb_mt_entry nil_ext_rom_entries[] = {
+static const mrb_mt_entry nil_ext_rom_entries[] = {
   MRB_MT_ENTRY(nil_to_a, MRB_SYM(to_a), MRB_MT_FUNC|MRB_MT_NOARG),
   MRB_MT_ENTRY(nil_to_h, MRB_SYM(to_h), MRB_MT_FUNC|MRB_MT_NOARG),
   MRB_MT_ENTRY(nil_to_i, MRB_SYM(to_i), MRB_MT_FUNC|MRB_MT_NOARG),
 };
 static mrb_mt_tbl nil_ext_rom_mt = MRB_MT_ROM_TAB(nil_ext_rom_entries);
 
-static mrb_mt_entry kernel_ext_rom_entries[] = {
+static const mrb_mt_entry kernel_ext_rom_entries[] = {
   MRB_MT_ENTRY(mrb_obj_itself, MRB_SYM(itself), MRB_MT_FUNC|MRB_MT_NOARG),
 };
 static mrb_mt_tbl kernel_ext_rom_mt = MRB_MT_ROM_TAB(kernel_ext_rom_entries);
 
-static mrb_mt_entry bob_ext_rom_entries[] = {
+static const mrb_mt_entry bob_ext_rom_entries[] = {
   MRB_MT_ENTRY(obj_instance_exec, MRB_SYM(instance_exec), MRB_MT_FUNC),
 };
 static mrb_mt_tbl bob_ext_rom_mt = MRB_MT_ROM_TAB(bob_ext_rom_entries);

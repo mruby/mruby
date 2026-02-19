@@ -2219,7 +2219,7 @@ str_prepend(mrb_state *mrb, mrb_value self)
 }
 
 /* ---------------------------*/
-static mrb_mt_entry string_ext_rom_entries[] = {
+static const mrb_mt_entry string_ext_rom_entries[] = {
   MRB_MT_ENTRY(mrb_str_dump,        MRB_SYM(dump),             MRB_MT_FUNC|MRB_MT_NOARG),
   MRB_MT_ENTRY(str_swapcase_bang,   MRB_SYM_B(swapcase),       MRB_MT_FUNC|MRB_MT_NOARG),
   MRB_MT_ENTRY(mrb_str_slice_bang,  MRB_SYM_B(slice),          MRB_MT_FUNC),
@@ -2276,7 +2276,7 @@ static mrb_mt_entry string_ext_rom_entries[] = {
 };
 static mrb_mt_tbl string_ext_rom_mt = MRB_MT_ROM_TAB(string_ext_rom_entries);
 
-static mrb_mt_entry integer_chr_rom_entries[] = {
+static const mrb_mt_entry integer_chr_rom_entries[] = {
   MRB_MT_ENTRY(int_chr, MRB_SYM(chr), MRB_MT_FUNC),
 };
 static mrb_mt_tbl integer_chr_rom_mt = MRB_MT_ROM_TAB(integer_chr_rom_entries);
