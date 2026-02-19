@@ -2196,6 +2196,96 @@ io_flush(mrb_state *mrb, mrb_value io)
   return io;
 }
 
+/* ---------------------------*/
+#ifndef MRB_NO_PRESYM
+#define IO_ROM_MT_SIZE 36
+static struct {
+  union mt_ptr vals[IO_ROM_MT_SIZE];
+  mrb_sym keys[IO_ROM_MT_SIZE];
+} io_rom_data = {
+  .vals = {
+    { .func = io_init },
+    { .func = io_init_copy },
+    { .func = io_isatty },
+    { .func = io_eof },
+    { .func = io_getc },
+    { .func = io_gets },
+    { .func = io_read },
+    { .func = io_readchar },
+    { .func = io_readline },
+    { .func = io_readlines },
+    { .func = io_sync },
+    { .func = io_set_sync },
+    { .func = io_sysread },
+    { .func = io_sysseek },
+    { .func = io_syswrite },
+    { .func = io_seek },
+    { .func = io_close },
+    { .func = io_close_write },
+    { .func = io_set_close_on_exec },
+    { .func = io_close_on_exec_p },
+    { .func = io_closed },
+    { .func = io_flush },
+    { .func = io_ungetc },
+    { .func = io_ungetbyte },
+    { .func = io_pos },
+    { .func = io_pid },
+    { .func = io_fileno },
+    { .func = io_write },
+    { .func = io_puts },
+    { .func = io_print },
+    { .func = io_putc },
+    { .func = io_lshift },
+    { .func = io_pread },
+    { .func = io_pwrite },
+    { .func = io_getbyte },
+    { .func = io_readbyte },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM(initialize),       MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(initialize_copy),  MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(isatty),           MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(eof),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(getc),             MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(gets),             MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(read),             MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(readchar),         MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(readline),         MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(readlines),        MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(sync),             MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_E(sync),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(sysread),          MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(sysseek),          MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(syswrite),         MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(seek),             MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(close),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(close_write),      MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_E(close_on_exec),  MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(close_on_exec),  MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(closed),         MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(flush),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(ungetc),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(ungetbyte),        MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(pos),              MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(pid),              MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(fileno),           MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(write),            MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(puts),             MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(print),            MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(putc),             MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(lshift),         MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(pread),            MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(pwrite),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(getbyte),          MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(readbyte),         MT_FUNC|MT_NOARG|MT_PUBLIC),
+  }
+};
+static mt_tbl io_rom_mt = {
+  IO_ROM_MT_SIZE, IO_ROM_MT_SIZE,
+  (union mt_ptr*)&io_rom_data, NULL
+};
+#endif /* !MRB_NO_PRESYM */
+
 void
 mrb_init_io(mrb_state *mrb)
 {
@@ -2212,6 +2302,9 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_class_method_id(mrb, io, MRB_SYM(_pipe), io_s_pipe, MRB_ARGS_NONE());
 #endif
 
+#ifndef MRB_NO_PRESYM
+  mrb_mt_init_rom(io, &io_rom_mt);
+#else
   mrb_define_method_id(mrb, io, MRB_SYM(initialize),      io_init, MRB_ARGS_ARG(1,2));
   mrb_define_private_method_id(mrb, io, MRB_SYM(initialize_copy), io_init_copy, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, io, MRB_SYM(isatty),     io_isatty,     MRB_ARGS_NONE());
@@ -2248,6 +2341,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method_id(mrb, io, MRB_SYM(pwrite),     io_pwrite,     MRB_ARGS_ANY());    /* Ruby 2.5 feature */
   mrb_define_method_id(mrb, io, MRB_SYM(getbyte),    io_getbyte,    MRB_ARGS_NONE());
   mrb_define_method_id(mrb, io, MRB_SYM(readbyte),   io_readbyte,   MRB_ARGS_NONE());
+#endif
 
   mrb_define_const_id(mrb, io, MRB_SYM(SEEK_SET), mrb_fixnum_value(SEEK_SET));
   mrb_define_const_id(mrb, io, MRB_SYM(SEEK_CUR), mrb_fixnum_value(SEEK_CUR));
