@@ -19,19 +19,10 @@
 #include <mruby/internal.h>
 #include <mruby/presym.h>
 
-#define METHOD_MID(m) MT_KEY_SYM((m).flags)
-
-/* mrb_mt_tbl, union mrb_mt_ptr, MRB_MT_KEY(), etc. defined in internal.h */
-#define MT_KEY_MASK  ((1<<MRB_MT_KEY_SHIFT)-1)
-#define MT_KEY_P(k) (((k)>>MRB_MT_KEY_SHIFT) != 0)
+/* mrb_mt_tbl, union mrb_mt_ptr, mrb_mt_entry defined in internal.h */
 #define MT_PROTECTED MRB_METHOD_PROTECTED_FL
 #define MT_VDEFAULT MRB_METHOD_VDEFAULT_FL
 #define MT_VMASK MRB_METHOD_VISIBILITY_MASK
-#define MT_EMPTY 0
-#define MT_DELETED 1
-
-#define MT_KEY_SYM(k) ((k)>>MRB_MT_KEY_SHIFT)
-#define MT_KEY_FLG(k) ((k)&MT_KEY_MASK)
 
 #define MRB_MT_FLAG_BITS (MRB_MT_READONLY_BIT | MRB_MT_FROZEN_BIT)
 #define MT_ALLOC(t)      ((t)->alloc & ~MRB_MT_FLAG_BITS)
@@ -74,26 +65,23 @@ mt_bsearch_idx(mrb_mt_entry *entries, int size, mrb_sym target)
     int half = n >> 1;
     MRB_MEM_PREFETCH(p + (half >> 1));
     MRB_MEM_PREFETCH(p + half + (half >> 1));
-    mrb_sym mid_sym = MT_KEY_SYM(p[half].key);
     /*
      * Update pointer p without a branch:
-     * If mid_sym < target, move p forward by half; otherwise keep p unchanged.
+     * If key < target, move p forward by half; otherwise keep p unchanged.
      * Compiler will emit a CMOV or equivalent.
      */
-    p = (mid_sym < target) ? p + half : p;
+    p = (p[half].key < target) ? p + half : p;
     n -= half;
   }
   /* Final adjustment: if the remaining element is still less than target, advance by one */
-  int offset = (MT_KEY_SYM(p->key) < target);
+  int offset = (p->key < target);
   return (int)(p - entries) + offset;
 }
 
 /* Inserts or updates an entry in the method table */
 static void
-mt_put(mrb_state *mrb, mrb_mt_tbl *t, mrb_sym sym, mrb_sym flags, union mrb_mt_ptr ptrval)
+mt_put(mrb_state *mrb, mrb_mt_tbl *t, mrb_sym sym, uint32_t flags, union mrb_mt_ptr ptrval)
 {
-  mrb_sym key = MRB_MT_KEY(sym, flags);
-
   /* Ensure there is capacity */
   if (MT_ALLOC(t) == 0) {
     mt_grow(mrb, t, 8);
@@ -111,8 +99,8 @@ mt_put(mrb_state *mrb, mrb_mt_tbl *t, mrb_sym sym, mrb_sym flags, union mrb_mt_p
   int lo = mt_bsearch_idx(entries, t->size, sym);
 
   /* If the key already exists, update its value and return */
-  if (lo < t->size && MT_KEY_SYM(entries[lo].key) == sym) {
-    entries[lo].key = key;
+  if (lo < t->size && entries[lo].key == sym) {
+    entries[lo].flags = flags;
     entries[lo].val = ptrval;
     return;
   }
@@ -124,28 +112,32 @@ mt_put(mrb_state *mrb, mrb_mt_tbl *t, mrb_sym sym, mrb_sym flags, union mrb_mt_p
   }
 
   /* Insert the new entry */
-  entries[lo].key = key;
+  entries[lo].key = sym;
+  entries[lo].flags = flags;
   entries[lo].val = ptrval;
   t->size++;
 }
 
-/* Retrieves a value from the method table (walks chain) */
-static mrb_sym
-mt_get(mrb_state *mrb, mrb_mt_tbl *t, mrb_sym sym, union mrb_mt_ptr *pp)
+/* Retrieves a value from the method table (walks chain).
+   Returns TRUE if found, FALSE if not found.
+   On success, *pp and *fp are set. */
+static mrb_bool
+mt_get(mrb_state *mrb, mrb_mt_tbl *t, mrb_sym sym, union mrb_mt_ptr *pp, uint32_t *fp)
 {
   while (t) {
     if (t->size > 0) {
       mrb_mt_entry *entries = t->ptr;
       int lo = mt_bsearch_idx(entries, t->size, sym);
-      if (lo < t->size && MT_KEY_SYM(entries[lo].key) == sym) {
-        if (MRB_MT_REMOVED_P(entries[lo])) return 0; /* removed tombstone */
+      if (lo < t->size && entries[lo].key == sym) {
+        if (MRB_MT_REMOVED_P(entries[lo])) return FALSE; /* removed tombstone */
         *pp = entries[lo].val;
-        return entries[lo].key;
+        *fp = entries[lo].flags;
+        return TRUE;
       }
     }
     t = t->next;
   }
-  return 0;
+  return FALSE;
 }
 
 /* Deletes an entry from the method table */
@@ -161,7 +153,7 @@ mt_del(mrb_state *mrb, mrb_mt_tbl *t, mrb_sym sym)
   int lo = mt_bsearch_idx(entries, t->size, sym);
 
   /* If the key exists at index lo, remove it by shifting left */
-  if (lo < t->size && MT_KEY_SYM(entries[lo].key) == sym) {
+  if (lo < t->size && entries[lo].key == sym) {
     memmove(&entries[lo], &entries[lo + 1],
             (t->size - lo - 1) * sizeof(mrb_mt_entry));
     t->size--;
@@ -180,7 +172,7 @@ mt_chain_has(mrb_mt_tbl *t, mrb_sym sym)
     if (t->size > 0) {
       mrb_mt_entry *entries = t->ptr;
       int lo = mt_bsearch_idx(entries, t->size, sym);
-      if (lo < t->size && MT_KEY_SYM(entries[lo].key) == sym) return TRUE;
+      if (lo < t->size && entries[lo].key == sym) return TRUE;
     }
     t = t->next;
   }
@@ -228,9 +220,9 @@ mt_sort(mrb_mt_entry *entries, int n)
 {
   for (int i = 1; i < n; i++) {
     mrb_mt_entry e = entries[i];
-    mrb_sym sym = MT_KEY_SYM(e.key);
+    mrb_sym sym = e.key;
     int j = i;
-    while (j > 0 && MT_KEY_SYM(entries[j-1].key) > sym) {
+    while (j > 0 && entries[j-1].key > sym) {
       entries[j] = entries[j-1];
       j--;
     }
@@ -261,11 +253,11 @@ mrb_mt_init_rom(struct RClass *c, mrb_mt_tbl *rom)
   }
 }
 
-/* Creates a method value structure from key and pointer */
+/* Creates a method value structure from flags and pointer */
 static inline mrb_method_t
-create_method_value(mrb_state *mrb, mrb_sym key, union mrb_mt_ptr val)
+create_method_value(mrb_state *mrb, uint32_t flags, union mrb_mt_ptr val)
 {
-  mrb_method_t m = { key, { val.proc } };
+  mrb_method_t m = { flags, { val.proc } };
   return m;
 }
 
@@ -281,8 +273,8 @@ mrb_mt_foreach(mrb_state *mrb, struct RClass *c, mrb_mt_foreach_func *fn, void *
     mrb_mt_entry *entries = t->ptr;
     for (int i = 0; i < t->size; i++) {
       if (MRB_MT_REMOVED_P(entries[i])) continue;
-      if (fn(mrb, MT_KEY_SYM(entries[i].key),
-             create_method_value(mrb, entries[i].key, entries[i].val), p) != 0)
+      if (fn(mrb, entries[i].key,
+             create_method_value(mrb, entries[i].flags, entries[i].val), p) != 0)
         return;
     }
     return;
@@ -293,14 +285,14 @@ mrb_mt_foreach(mrb_state *mrb, struct RClass *c, mrb_mt_foreach_func *fn, void *
     mrb_mt_entry *entries = layer->ptr;
     for (int i = 0; i < layer->size; i++) {
       if (MRB_MT_REMOVED_P(entries[i])) continue;
-      mrb_sym sym = MT_KEY_SYM(entries[i].key);
+      mrb_sym sym = entries[i].key;
       /* check if shadowed by a higher layer */
       if (layer != t) {
         mrb_bool shadowed = FALSE;
         for (mrb_mt_tbl *upper = t; upper != layer; upper = upper->next) {
           if (upper->size > 0) {
             int lo = mt_bsearch_idx(upper->ptr, upper->size, sym);
-            if (lo < upper->size && MT_KEY_SYM(upper->ptr[lo].key) == sym) {
+            if (lo < upper->size && upper->ptr[lo].key == sym) {
               shadowed = TRUE;
               break;
             }
@@ -308,7 +300,7 @@ mrb_mt_foreach(mrb_state *mrb, struct RClass *c, mrb_mt_foreach_func *fn, void *
         }
         if (shadowed) continue;
       }
-      if (fn(mrb, sym, create_method_value(mrb, entries[i].key, entries[i].val), p) != 0)
+      if (fn(mrb, sym, create_method_value(mrb, entries[i].flags, entries[i].val), p) != 0)
         return;
     }
   }
@@ -324,7 +316,7 @@ mrb_gc_mark_mt(mrb_state *mrb, struct RClass *c)
     if (t->size == 0) continue;
     mrb_mt_entry *entries = t->ptr;
     for (int i = 0; i < t->size; i++) {
-      if (MT_KEY_P(entries[i].key) && (entries[i].key & MRB_MT_FUNC) == 0) {
+      if (entries[i].key != 0 && (entries[i].flags & MRB_MT_FUNC) == 0) {
         mrb_gc_mark(mrb, (struct RBasic*)entries[i].val.proc);
       }
     }
@@ -1090,7 +1082,7 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
     ptr.func = MRB_METHOD_FUNC(m);
   }
 
-  int flags = MT_KEY_FLG(m.flags);
+  int flags = m.flags;
   if (mid == MRB_SYM(initialize) ||
       mid == MRB_SYM(initialize_copy) ||
       mid == MRB_SYM_Q(respond_to_missing)) {
@@ -2352,7 +2344,7 @@ mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int vis)
       else {
         ptr.func = MRB_METHOD_FUNC(m);
       }
-      mt_put(mrb, h, mid, MT_KEY_FLG(m.flags), ptr);
+      mt_put(mrb, h, mid, m.flags, ptr);
       mc_clear_by_id(mrb, mid);
     }
   }
@@ -2661,7 +2653,7 @@ mc_clear_by_id(mrb_state *mrb, mrb_sym id)
   struct mrb_cache_entry *mc = mrb->cache;
 
   for (int i=0; i<MRB_METHOD_CACHE_SIZE; mc++,i++) {
-    if (METHOD_MID(mc->m) == id) mc->c = NULL;
+    if (mc->mid == id) mc->c = NULL;
   }
 }
 #endif // MRB_NO_METHOD_CACHE
@@ -2675,7 +2667,7 @@ mrb_vm_find_method(mrb_state *mrb, struct RClass *c, struct RClass **cp, mrb_sym
   int h = mrb_int_hash_func(mrb, ((intptr_t)oc) ^ mid) & (MRB_METHOD_CACHE_SIZE-1);
   struct mrb_cache_entry *mc = &mrb->cache[h];
 
-  if (mc->c == c && METHOD_MID(mc->m) == mid) {
+  if (mc->c == c && mc->mid == mid) {
     *cp = mc->c0;
     return mc->m;
   }
@@ -2686,14 +2678,15 @@ mrb_vm_find_method(mrb_state *mrb, struct RClass *c, struct RClass **cp, mrb_sym
 
     if (h) {
       union mrb_mt_ptr ptr;
-      mrb_sym ret = mt_get(mrb, h, mid, &ptr);
-      if (ret) {
+      uint32_t flags;
+      if (mt_get(mrb, h, mid, &ptr, &flags)) {
         if (ptr.proc == 0) break;
         *cp = c;
-        m = create_method_value(mrb, ret, ptr);
+        m = create_method_value(mrb, flags, ptr);
 #ifndef MRB_NO_METHOD_CACHE
         mc->c = oc;
         mc->c0 = c;
+        mc->mid = mid;
         mc->m = m;
 #endif
         return m;

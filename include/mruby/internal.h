@@ -34,10 +34,11 @@ union mrb_mt_ptr {
   mrb_func_t func;
 };
 
-/* entry combining function pointer and key */
+/* entry combining function pointer, symbol key, and flags */
 typedef struct mrb_mt_entry {
   union mrb_mt_ptr val;
-  mrb_sym key;
+  mrb_sym key;              /* pure symbol ID (no flags packed) */
+  uint32_t flags;           /* method flags + aspec */
 } mrb_mt_entry;
 
 typedef struct mrb_mt_tbl {
@@ -49,16 +50,14 @@ typedef struct mrb_mt_tbl {
 
 #define MRB_MT_READONLY_BIT  (1 << 30)
 #define MRB_MT_FROZEN_BIT    (1 << 29)
-#define MRB_MT_KEY_SHIFT 4
-#define MRB_MT_KEY(sym, flags) ((sym)<<MRB_MT_KEY_SHIFT|(flags))
 #define MRB_MT_FUNC    8    /* MRB_METHOD_FUNC_FL */
 #define MRB_MT_NOARG   4    /* MRB_METHOD_NOARG_FL */
 #define MRB_MT_PUBLIC  0    /* MRB_METHOD_PUBLIC_FL */
 #define MRB_MT_PRIVATE 1    /* MRB_METHOD_PRIVATE_FL */
 
-/* ROM table entry: { {.func=fn}, MRB_MT_KEY(sym, flags) } */
+/* ROM table entry: { {.func=fn}, sym, flags } */
 #define MRB_MT_ENTRY(fn, sym, flags) \
-  { { .func = (fn) }, MRB_MT_KEY((sym), (flags)) }
+  { { .func = (fn) }, (sym), (flags) }
 
 /* ROM table initializer from entries array (auto-computes size) */
 #define MRB_MT_ROM_TAB(entries) { \
@@ -71,7 +70,7 @@ typedef struct mrb_mt_tbl {
    Unlike undef (proc=NULL without MRB_MT_FUNC), a removed marker makes
    mt_get() return 0 ("not found"), blocking ROM chain walk while
    allowing superclass lookup. */
-#define MRB_MT_REMOVED_P(e) (((e).key&MRB_MT_FUNC) && (e).val.func==NULL)
+#define MRB_MT_REMOVED_P(e) (((e).flags&MRB_MT_FUNC) && (e).val.func==NULL)
 
 void mrb_mt_init_rom(struct RClass *c, mrb_mt_tbl *rom);
 #endif

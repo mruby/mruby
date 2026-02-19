@@ -46,16 +46,16 @@ After String.define_method(:foo):
 ### Memory Layout
 
 Each `mrb_mt_tbl` stores method entries as an array of `mrb_mt_entry`
-structs, each combining a function pointer and an encoded key:
+structs, each combining a function pointer, a symbol key, and flags:
 
 ```
 ptr -> [ entry[0] | entry[1] | ... | entry[N-1] ]
-       |<--- mrb_mt_entry: { val, key } each ---->|
+       |<-- mrb_mt_entry: { val, key, flags } -->|
 ```
 
 Values are `union mrb_mt_ptr` (function pointer or proc pointer). Keys
-are `mrb_sym` with flags packed into the lower bits using
-`MRB_MT_KEY()`.
+are pure `mrb_sym` (no flag encoding). Flags are a separate `uint32_t`
+field that stores visibility, func/proc type, and argument spec.
 
 Entries must be sorted by symbol ID for binary search. The
 `mrb_mt_init_rom()` function handles sorting at startup, so the
@@ -117,7 +117,8 @@ union mrb_mt_ptr {
 
 typedef struct mrb_mt_entry {
   union mrb_mt_ptr val;
-  mrb_sym key;
+  mrb_sym key;              /* pure symbol ID (no flags packed) */
+  uint32_t flags;           /* method flags */
 } mrb_mt_entry;
 
 typedef struct mrb_mt_tbl {
@@ -131,21 +132,15 @@ typedef struct mrb_mt_tbl {
 ### Macros
 
 ```c
-/* ROM table entry: bundles function pointer with encoded key */
+/* ROM table entry: { {.func=fn}, sym, flags } */
 #define MRB_MT_ENTRY(fn, sym, flags) \
-  { { .func = (fn) }, MRB_MT_KEY((sym), (flags)) }
+  { { .func = (fn) }, (sym), (flags) }
 
 /* ROM table initializer (auto-computes size from entries array) */
 #define MRB_MT_ROM_TAB(entries) { \
   (int)(sizeof(entries)/sizeof(entries[0])), \
   (int)(sizeof(entries)/sizeof(entries[0])), \
   (entries), NULL }
-```
-
-### Key Encoding
-
-```c
-#define MRB_MT_KEY(sym, flags)  ((sym) << MRB_MT_KEY_SHIFT | (flags))
 ```
 
 ### Flags
