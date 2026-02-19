@@ -8,7 +8,6 @@ end
 
 MRuby.each_target do |build|
   gensym_task = task(:gensym)
-  next unless build.presym_enabled?
 
   presym = build.presym
 
