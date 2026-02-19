@@ -58,7 +58,6 @@ mrb_sym_length(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(len);
 }
 
-#ifndef MRB_NO_PRESYM
 #define SYMBOL_EXT_ROM_MT_SIZE 2
 static struct {
   union mt_ptr vals[SYMBOL_EXT_ROM_MT_SIZE];
@@ -77,7 +76,6 @@ static mt_tbl symbol_ext_rom_mt = {
   SYMBOL_EXT_ROM_MT_SIZE, SYMBOL_EXT_ROM_MT_SIZE,
   (union mt_ptr*)&symbol_ext_rom_data, NULL
 };
-#endif /* !MRB_NO_PRESYM */
 
 void
 mrb_mruby_symbol_ext_gem_init(mrb_state* mrb)
@@ -86,12 +84,7 @@ mrb_mruby_symbol_ext_gem_init(mrb_state* mrb)
 #ifdef MRB_USE_ALL_SYMBOLS
   mrb_define_class_method_id(mrb, s, MRB_SYM(all_symbols), mrb_sym_all_symbols, MRB_ARGS_NONE());
 #endif
-#ifndef MRB_NO_PRESYM
   mrb_mt_init_rom(s, &symbol_ext_rom_mt);
-#else
-  mrb_define_method_id(mrb, s, MRB_SYM(length), mrb_sym_length, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, s, MRB_SYM(size), mrb_sym_length, MRB_ARGS_NONE());
-#endif
 }
 
 void

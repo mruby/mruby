@@ -1537,7 +1537,6 @@ ary_combination_next(mrb_state *mrb, mrb_value self)
 }
 
 /* ---------------------------*/
-#ifndef MRB_NO_PRESYM
 #define ARRAY_EXT_ROM_MT_SIZE 29
 static struct {
   union mt_ptr vals[ARRAY_EXT_ROM_MT_SIZE];
@@ -1610,46 +1609,13 @@ static mt_tbl array_ext_rom_mt = {
   ARRAY_EXT_ROM_MT_SIZE, ARRAY_EXT_ROM_MT_SIZE,
   (union mt_ptr*)&array_ext_rom_data, NULL
 };
-#endif /* !MRB_NO_PRESYM */
 
 void
 mrb_mruby_array_ext_gem_init(mrb_state* mrb)
 {
   struct RClass * a = mrb->array_class;
 
-#ifndef MRB_NO_PRESYM
   mrb_mt_init_rom(a, &array_ext_rom_mt);
-#else
-  mrb_define_method_id(mrb, a, MRB_SYM(assoc), ary_assoc,  MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, a, MRB_SYM(at), ary_at,     MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, a, MRB_SYM(rassoc), ary_rassoc, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, a, MRB_SYM(values_at), ary_values_at, MRB_ARGS_ANY());
-  mrb_define_method_id(mrb, a, MRB_SYM_B(slice), ary_slice_bang, MRB_ARGS_ARG(1,1));
-  mrb_define_method_id(mrb, a, MRB_SYM(compact), ary_compact, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, a, MRB_SYM_B(compact), ary_compact_bang, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, a, MRB_SYM(rotate), ary_rotate, MRB_ARGS_OPT(1));
-  mrb_define_method_id(mrb, a, MRB_SYM_B(rotate), ary_rotate_bang, MRB_ARGS_OPT(1));
-  mrb_define_method_id(mrb, a, MRB_OPSYM(sub), ary_sub, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, a, MRB_SYM(difference), ary_difference, MRB_ARGS_ANY());
-  mrb_define_method_id(mrb, a, MRB_OPSYM(or), ary_union, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, a, MRB_SYM(union), ary_union_multi, MRB_ARGS_ANY());
-  mrb_define_method_id(mrb, a, MRB_OPSYM(and), ary_intersection, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, a, MRB_SYM(intersection), ary_intersection_multi, MRB_ARGS_ANY());
-  mrb_define_method_id(mrb, a, MRB_SYM_Q(intersect), ary_intersect_p, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, a, MRB_SYM(__fill_parse_arg), ary_fill_parse_arg, MRB_ARGS_ARG(0,4));
-  mrb_define_method_id(mrb, a, MRB_SYM(__fill_exec), ary_fill_exec, MRB_ARGS_REQ(3));
-  mrb_define_method_id(mrb, a, MRB_SYM(__uniq), ary_uniq, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, a, MRB_SYM_B(__uniq), ary_uniq_bang, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, a, MRB_SYM(flatten), ary_flatten, MRB_ARGS_OPT(1));
-  mrb_define_method_id(mrb, a, MRB_SYM_B(flatten), ary_flatten_bang, MRB_ARGS_OPT(1));
-  mrb_define_method_id(mrb, a, MRB_SYM(__normalize_index), ary_normalize_index, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, a, MRB_SYM(__fetch), ary_fetch, MRB_ARGS_REQ(3));
-  mrb_define_method_id(mrb, a, MRB_SYM(insert), ary_insert, MRB_ARGS_ARG(1, -1));
-  mrb_define_method_id(mrb, a, MRB_SYM(deconstruct), ary_deconstruct, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, a, MRB_SYM(__product_group), ary_product_group, MRB_ARGS_REQ(4));
-  mrb_define_method_id(mrb, a, MRB_SYM(__combination_init), ary_combination_init, MRB_ARGS_REQ(2));
-  mrb_define_method_id(mrb, a, MRB_SYM(__combination_next), ary_combination_next, MRB_ARGS_REQ(1));
-#endif
 }
 
 void

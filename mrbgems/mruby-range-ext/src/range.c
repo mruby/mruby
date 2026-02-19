@@ -216,7 +216,6 @@ range_empty_p(mrb_state *mrb, mrb_value range)
   return mrb_bool_value(comp == -2 || comp > 0 || (comp == 0 && excl));
 }
 
-#ifndef MRB_NO_PRESYM
 #define RANGE_EXT_ROM_MT_SIZE 3
 static struct {
   union mt_ptr vals[RANGE_EXT_ROM_MT_SIZE];
@@ -237,20 +236,13 @@ static mt_tbl range_ext_rom_mt = {
   RANGE_EXT_ROM_MT_SIZE, RANGE_EXT_ROM_MT_SIZE,
   (union mt_ptr*)&range_ext_rom_data, NULL
 };
-#endif /* !MRB_NO_PRESYM */
 
 void
 mrb_mruby_range_ext_gem_init(mrb_state* mrb)
 {
   struct RClass *s = mrb->range_class;
 
-#ifndef MRB_NO_PRESYM
   mrb_mt_init_rom(s, &range_ext_rom_mt);
-#else
-  mrb_define_method_id(mrb, s, MRB_SYM_Q(cover), range_cover, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, s, MRB_SYM(size), range_size,  MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, s, MRB_SYM_Q(__empty_range), range_empty_p,  MRB_ARGS_REQ(3));
-#endif
 }
 
 void

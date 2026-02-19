@@ -480,7 +480,6 @@ int_sqrt(mrb_state *mrb, mrb_value self)
   }
 }
 
-#ifndef MRB_NO_PRESYM
 #define INTEGER_EXT_ROM_MT_SIZE 9
 static struct {
   union mt_ptr vals[INTEGER_EXT_ROM_MT_SIZE];
@@ -513,7 +512,6 @@ static mt_tbl integer_ext_rom_mt = {
   INTEGER_EXT_ROM_MT_SIZE, INTEGER_EXT_ROM_MT_SIZE,
   (union mt_ptr*)&integer_ext_rom_data, NULL
 };
-#endif /* !MRB_NO_PRESYM */
 
 void
 mrb_mruby_numeric_ext_gem_init(mrb_state* mrb)
@@ -521,19 +519,7 @@ mrb_mruby_numeric_ext_gem_init(mrb_state* mrb)
   struct RClass *ic = mrb->integer_class;
 
   mrb_define_alias_id(mrb, ic, MRB_SYM(modulo), MRB_OPSYM(mod));
-#ifndef MRB_NO_PRESYM
   mrb_mt_init_rom(ic, &integer_ext_rom_mt);
-#else
-  mrb_define_method_id(mrb, ic, MRB_SYM(remainder), int_remainder, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, ic, MRB_SYM(pow), int_powm, MRB_ARGS_ARG(1,1));
-  mrb_define_method_id(mrb, ic, MRB_SYM(digits), int_digits, MRB_ARGS_OPT(1));
-  mrb_define_method_id(mrb, ic, MRB_SYM(size), int_size, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, ic, MRB_SYM(bit_length), int_bit_length, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, ic, MRB_SYM_Q(odd), int_odd, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, ic, MRB_SYM_Q(even), int_even, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, ic, MRB_SYM(gcd), int_gcd, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, ic, MRB_SYM(lcm), int_lcm, MRB_ARGS_REQ(1));
-#endif
   mrb_define_class_method_id(mrb, ic, MRB_SYM(sqrt), int_sqrt, MRB_ARGS_REQ(1));
 
 #ifndef MRB_NO_FLOAT

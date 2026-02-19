@@ -335,7 +335,6 @@ mrb_mod_cmp(mrb_state *mrb, mrb_value self)
 }
 
 /* ---------------------------*/
-#ifndef MRB_NO_PRESYM
 #define MOD_EXT_ROM_MT_SIZE 9
 static struct {
   union mt_ptr vals[MOD_EXT_ROM_MT_SIZE];
@@ -387,7 +386,6 @@ static mt_tbl cls_ext_rom_mt = {
   CLS_EXT_ROM_MT_SIZE, CLS_EXT_ROM_MT_SIZE,
   (union mt_ptr*)&cls_ext_rom_data, NULL
 };
-#endif /* !MRB_NO_PRESYM */
 
 /*
  * Initialize the mruby-class-ext gem.
@@ -404,27 +402,8 @@ mrb_mruby_class_ext_gem_init(mrb_state *mrb)
   struct RClass *mod = mrb->module_class;
   struct RClass *cls = mrb->class_class;
 
-#ifndef MRB_NO_PRESYM
   mrb_mt_init_rom(mod, &mod_ext_rom_mt);
   mrb_mt_init_rom(cls, &cls_ext_rom_mt);
-#else
-  /* Module methods */
-  mrb_define_method_id(mrb, mod, MRB_SYM(name), mod_name, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, mod, MRB_SYM_Q(singleton_class), mod_singleton_class_p, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, mod, MRB_SYM(module_exec), mod_module_exec, MRB_ARGS_ANY()|MRB_ARGS_BLOCK());
-  mrb_define_method_id(mrb, mod, MRB_SYM(class_exec), mod_module_exec, MRB_ARGS_ANY()|MRB_ARGS_BLOCK());
-
-  /* Module comparison operators */
-  mrb_define_method_id(mrb, mod, MRB_OPSYM(lt), mrb_mod_lt, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, mod, MRB_OPSYM(le), mrb_mod_le, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, mod, MRB_OPSYM(gt), mrb_mod_gt, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, mod, MRB_OPSYM(ge), mrb_mod_ge, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, mod, MRB_OPSYM(cmp), mrb_mod_cmp, MRB_ARGS_REQ(1));
-
-  /* Class-specific methods */
-  mrb_define_method_id(mrb, cls, MRB_SYM(subclasses), class_subclasses, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, cls, MRB_SYM(attached_object), class_attached_object, MRB_ARGS_NONE());
-#endif
 }
 
 void
