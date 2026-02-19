@@ -7,6 +7,7 @@
 #include <mruby.h>
 #include <mruby/variable.h>
 #include <mruby/class.h>
+#include <mruby/internal.h>
 #include <mruby/data.h>
 #include <mruby/array.h>
 #include <mruby/istruct.h>
@@ -567,30 +568,99 @@ random_f_bytes(mrb_state *mrb, mrb_value self)
 }
 
 
+#ifndef MRB_NO_PRESYM
+#define KERNEL_RAND_ROM_MT_SIZE 2
+static struct {
+  union mt_ptr vals[KERNEL_RAND_ROM_MT_SIZE];
+  mrb_sym keys[KERNEL_RAND_ROM_MT_SIZE];
+} kernel_rand_rom_data = {
+  .vals = {
+    { .func = random_f_rand },
+    { .func = random_f_srand },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM(rand),  MT_FUNC|MT_PRIVATE),
+    MT_KEY(MRB_SYM(srand), MT_FUNC|MT_PRIVATE),
+  }
+};
+static mt_tbl kernel_rand_rom_mt = {
+  KERNEL_RAND_ROM_MT_SIZE, KERNEL_RAND_ROM_MT_SIZE,
+  (union mt_ptr*)&kernel_rand_rom_data, NULL
+};
+
+#define RANDOM_ROM_MT_SIZE 4
+static struct {
+  union mt_ptr vals[RANDOM_ROM_MT_SIZE];
+  mrb_sym keys[RANDOM_ROM_MT_SIZE];
+} random_rom_data = {
+  .vals = {
+    { .func = random_m_init },
+    { .func = random_m_rand },
+    { .func = random_m_srand },
+    { .func = random_m_bytes },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM(initialize), MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(rand),       MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(srand),      MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(bytes),      MT_FUNC|MT_PUBLIC),
+  }
+};
+static mt_tbl random_rom_mt = {
+  RANDOM_ROM_MT_SIZE, RANDOM_ROM_MT_SIZE,
+  (union mt_ptr*)&random_rom_data, NULL
+};
+
+#define ARRAY_RAND_ROM_MT_SIZE 3
+static struct {
+  union mt_ptr vals[ARRAY_RAND_ROM_MT_SIZE];
+  mrb_sym keys[ARRAY_RAND_ROM_MT_SIZE];
+} array_rand_rom_data = {
+  .vals = {
+    { .func = mrb_ary_shuffle },
+    { .func = mrb_ary_shuffle_bang },
+    { .func = mrb_ary_sample },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM(shuffle),    MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_B(shuffle),  MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(sample),     MT_FUNC|MT_PUBLIC),
+  }
+};
+static mt_tbl array_rand_rom_mt = {
+  ARRAY_RAND_ROM_MT_SIZE, ARRAY_RAND_ROM_MT_SIZE,
+  (union mt_ptr*)&array_rand_rom_data, NULL
+};
+#endif
+
 void mrb_mruby_random_gem_init(mrb_state *mrb)
 {
   struct RClass *array = mrb->array_class;
 
   mrb_static_assert(sizeof(rand_state) <= ISTRUCT_DATA_SIZE);
 
-  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(rand), random_f_rand, MRB_ARGS_OPT(1));
-  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(srand), random_f_srand, MRB_ARGS_OPT(1));
-
   struct RClass *random = mrb_define_class_id(mrb, MRB_SYM(Random), mrb->object_class);
-  mrb_const_set(mrb, mrb_obj_value(mrb->object_class), ID_RANDOM, mrb_obj_value(random)); // for class check
+  mrb_const_set(mrb, mrb_obj_value(mrb->object_class), ID_RANDOM, mrb_obj_value(random));
   MRB_SET_INSTANCE_TT(random, MRB_TT_ISTRUCT);
   mrb_define_class_method_id(mrb, random, MRB_SYM(rand), random_f_rand, MRB_ARGS_OPT(1));
   mrb_define_class_method_id(mrb, random, MRB_SYM(srand), random_f_srand, MRB_ARGS_OPT(1));
   mrb_define_class_method_id(mrb, random, MRB_SYM(bytes), random_f_bytes, MRB_ARGS_REQ(1));
 
+#ifndef MRB_NO_PRESYM
+  mrb_mt_init_rom(mrb->kernel_module, &kernel_rand_rom_mt);
+  mrb_mt_init_rom(random, &random_rom_mt);
+  mrb_mt_init_rom(array, &array_rand_rom_mt);
+#else
+  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(rand), random_f_rand, MRB_ARGS_OPT(1));
+  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(srand), random_f_srand, MRB_ARGS_OPT(1));
   mrb_define_method_id(mrb, random, MRB_SYM(initialize), random_m_init, MRB_ARGS_OPT(1));
   mrb_define_method_id(mrb, random, MRB_SYM(rand), random_m_rand, MRB_ARGS_OPT(1));
   mrb_define_method_id(mrb, random, MRB_SYM(srand), random_m_srand, MRB_ARGS_OPT(1));
   mrb_define_method_id(mrb, random, MRB_SYM(bytes), random_m_bytes, MRB_ARGS_REQ(1));
-
   mrb_define_method_id(mrb, array, MRB_SYM(shuffle), mrb_ary_shuffle, MRB_ARGS_OPT(1));
   mrb_define_method_id(mrb, array, MRB_SYM_B(shuffle), mrb_ary_shuffle_bang, MRB_ARGS_OPT(1));
   mrb_define_method_id(mrb, array, MRB_SYM(sample), mrb_ary_sample, MRB_ARGS_OPT(2));
+#endif
 
   mrb_value d = mrb_obj_new(mrb, random, 0, NULL);
   rand_state *t = random_ptr(d);
