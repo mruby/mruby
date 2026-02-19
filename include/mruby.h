@@ -923,6 +923,11 @@ MRB_API struct RClass* mrb_define_module_under_id(mrb_state *mrb, struct RClass 
 #define MRB_ARGS_BLOCK()    ((mrb_aspec)1)
 
 /**
+ * Function does not accept a block (&nil)
+ */
+#define MRB_ARGS_NOBLOCK()  ((mrb_aspec)(1 << 23))
+
+/**
  * Function accepts any number of arguments
  */
 #define MRB_ARGS_ANY()      MRB_ARGS_REST()

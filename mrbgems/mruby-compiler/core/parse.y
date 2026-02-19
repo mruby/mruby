@@ -1215,7 +1215,7 @@ new_args_tail(parser_state *p, node *kws, mrb_sym kwrest, mrb_sym blk)
   }
 
   local_add_blk(p);
-  if (blk) local_add_f(p, blk);
+  if (blk && blk != MRB_SYM(nil)) local_add_f(p, blk);
 
   /* allocate register for keywords arguments */
   /* order is for Proc#parameters */
@@ -4861,6 +4861,10 @@ f_block_arg     : blkarg_mark tIDENTIFIER
                     {
                       $$ = $2;
                     }
+                | blkarg_mark keyword_nil
+                    {
+                      $$ = MRB_SYM(nil);
+                    }
                 | blkarg_mark
                     {
                       $$ = intern_op(and);
@@ -8047,6 +8051,8 @@ dump_args(mrb_state *mrb, struct mrb_ast_args *args, int offset, uint16_t lineno
     dump_prefix(offset, lineno);
     if (blk == MRB_OPSYM(and))
       printf("blk=&\n");
+    else if (blk == MRB_SYM(nil))
+      printf("blk=&nil\n");
     else
       printf("blk=&%s\n", mrb_sym_name(mrb, blk));
   }

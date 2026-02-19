@@ -374,14 +374,15 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
       print_lv_a(mrb, irep, a, out);
       break;
     CASE(OP_ENTER, W):
-      fprintf(out, "ENTER\t\t%d:%d:%d:%d:%d:%d:%d (0x%x)\n",
+      fprintf(out, "ENTER\t\t%d:%d:%d:%d:%d:%d:%d:%d (0x%x)\n",
               MRB_ASPEC_REQ(a),
               MRB_ASPEC_OPT(a),
               MRB_ASPEC_REST(a),
               MRB_ASPEC_POST(a),
               MRB_ASPEC_KEY(a),
               MRB_ASPEC_KDICT(a),
-              MRB_ASPEC_BLOCK(a), a);
+              MRB_ASPEC_BLOCK(a),
+              MRB_ASPEC_NOBLOCK(a), a);
       break;
     CASE(OP_KEY_P, BB):
       fprintf(out, "KEY_P\t\tR%d\t:%s", a, mrb_sym_dump(mrb, irep->syms[b]));

@@ -2401,13 +2401,16 @@ lambda_body(codegen_scope *s, node *locals, struct mrb_ast_args *args, node *bod
     /* keyword arguments */
     ka = args->keyword_args ? node_len(args->keyword_args) : 0;
     kd = args->kwrest_arg ? 1 : 0;
-    ba = args->block_arg ? 1 : 0;
+    /* &nil: no block accepted (noblock flag in aspec) */
+    mrb_bool noblock = args->block_arg == MRB_SYM(nil);
+    ba = (args->block_arg && !noblock) ? 1 : 0;
 
     if (ma > 0x1f || oa > 0x1f || pa > 0x1f || ka > 0x1f) {
       codegen_error(s, "too many formal arguments");
     }
-    /* (23bits = 5:5:1:5:5:1:1) */
-    a = MRB_ARGS_REQ(ma)
+    /* (24bits = 1:5:5:1:5:5:1:1) */
+    a = (noblock ? MRB_ARGS_NOBLOCK() : 0)
+      | MRB_ARGS_REQ(ma)
       | MRB_ARGS_OPT(oa)
       | (ra ? MRB_ARGS_REST() : 0)
       | MRB_ARGS_POST(pa)

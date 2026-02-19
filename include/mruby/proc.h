@@ -72,6 +72,7 @@ struct RProc {
 #define MRB_ASPEC_KEY(a)          (((a) >> 2) & 0x1f)
 #define MRB_ASPEC_KDICT(a)        (((a) >> 1) & 0x1)
 #define MRB_ASPEC_BLOCK(a)        ((a) & 1)
+#define MRB_ASPEC_NOBLOCK(a)      (((a) >> 23) & 0x1)
 
 #define MRB_PROC_CFUNC_FL 128
 #define MRB_PROC_CFUNC_P(p) (((p)->flags & MRB_PROC_CFUNC_FL) != 0)

@@ -2558,6 +2558,12 @@ RETRY_TRY_BLOCK:
 
       mrb_value * const argv0 = argv;
       mrb_value blk = regs[ci_bidx(ci)];
+
+      /* &nil: reject block */
+      if (MRB_ASPEC_NOBLOCK(a) && !mrb_nil_p(blk)) {
+        RAISE_LIT(mrb, E_ARGUMENT_ERROR, "no block accepted");
+      }
+
       mrb_value kdict = mrb_nil_value();
 
       /* keyword arguments */
