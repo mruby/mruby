@@ -1263,7 +1263,7 @@ int_divmod(mrb_state *mrb, mrb_value x)
 #ifdef MRB_NO_FLOAT
   mrb_raise(mrb, E_TYPE_ERROR, "non integer divmod");
 #else
-  return flo_divmod(mrb, x);
+  return flo_divmod(mrb, mrb_ensure_float_type(mrb, x));
 #endif
 }
 
