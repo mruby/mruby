@@ -1464,6 +1464,109 @@ set_s_create(mrb_state *mrb, mrb_value klass)
   return set;
 }
 
+#ifndef MRB_NO_PRESYM
+#define SET_ROM_MT_SIZE 43
+static struct {
+  union mt_ptr vals[SET_ROM_MT_SIZE];
+  mrb_sym keys[SET_ROM_MT_SIZE];
+} set_rom_data = {
+  .vals = {
+    { .func = set_size },
+    { .func = set_size },
+    { .func = set_empty_p },
+    { .func = set_clear },
+    { .func = set_to_a },
+    { .func = set_include_p },
+    { .func = set_include_p },
+    { .func = set_include_p },
+    { .func = set_add },
+    { .func = set_add },
+    { .func = set_add_p },
+    { .func = set_delete },
+    { .func = set_delete_p },
+    { .func = set_init },
+    { .func = set_core_merge },
+    { .func = set_core_subtract },
+    { .func = set_core_union },
+    { .func = set_core_difference },
+    { .func = set_core_intersection },
+    { .func = set_core_xor },
+    { .func = set_equal },
+    { .func = set_hash_m },
+    { .func = set_join },
+    { .func = set_inspect },
+    { .func = set_inspect },
+    { .func = set_reset },
+    { .func = set_add_all },
+    { .func = set_delete_all },
+    { .func = set_include_all_p },
+    { .func = set_include_any_p },
+    { .func = set_superset_p },
+    { .func = set_superset_p },
+    { .func = set_proper_superset_p },
+    { .func = set_proper_superset_p },
+    { .func = set_subset_p },
+    { .func = set_subset_p },
+    { .func = set_proper_subset_p },
+    { .func = set_proper_subset_p },
+    { .func = set_intersect_p },
+    { .func = set_disjoint_p },
+    { .func = set_cmp },
+    { .func = set_flatten },
+    { .func = set_flatten_bang },
+  },
+  .keys = {
+    MT_KEY(MRB_SYM(size),              MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(length),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(empty),           MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(clear),             MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(to_a),              MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(include),         MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(member),          MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(eqq),             MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(add),               MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(lshift),          MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(add),             MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(delete),            MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(delete),          MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(__init),            MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(__merge),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(__subtract),        MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(__union),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(__difference),      MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(__intersection),    MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(__xor),             MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(eq),              MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(hash),              MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(join),              MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(inspect),           MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(to_s),              MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(reset),             MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM(add_all),           MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(delete_all),        MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(include_all),     MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(include_any),     MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(superset),        MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(ge),              MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(proper_superset), MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(gt),              MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(subset),          MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(le),              MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(proper_subset),   MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(lt),              MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(intersect),       MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM_Q(disjoint),        MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_OPSYM(cmp),             MT_FUNC|MT_PUBLIC),
+    MT_KEY(MRB_SYM(flatten),           MT_FUNC|MT_NOARG|MT_PUBLIC),
+    MT_KEY(MRB_SYM_B(flatten),         MT_FUNC|MT_NOARG|MT_PUBLIC),
+  }
+};
+static mt_tbl set_rom_mt = {
+  SET_ROM_MT_SIZE, SET_ROM_MT_SIZE,
+  (union mt_ptr*)&set_rom_data, NULL
+};
+#endif /* !MRB_NO_PRESYM */
+
 void
 mrb_mruby_set_gem_init(mrb_state *mrb)
 {
@@ -1478,6 +1581,9 @@ mrb_mruby_set_gem_init(mrb_state *mrb)
 
   mrb_define_private_method(mrb, set, "initialize_copy", set_init_copy, MRB_ARGS_REQ(1));
 
+#ifndef MRB_NO_PRESYM
+  mrb_mt_init_rom(set, &set_rom_mt);
+#else
   mrb_define_method_id(mrb, set, MRB_SYM(size), set_size, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, set, MRB_SYM(length), set_size, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, set, MRB_SYM_Q(empty), set_empty_p, MRB_ARGS_NONE());
@@ -1508,7 +1614,6 @@ mrb_mruby_set_gem_init(mrb_state *mrb)
 
   mrb_define_method_id(mrb, set, MRB_OPSYM(eq), set_equal, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, set, MRB_SYM(hash), set_hash_m, MRB_ARGS_NONE());
-  mrb_define_alias(mrb, set, "eql?", "==");
 
   mrb_define_method_id(mrb, set, MRB_SYM(join), set_join, MRB_ARGS_OPT(1));
   mrb_define_method_id(mrb, set, MRB_SYM(inspect), set_inspect, MRB_ARGS_NONE());
@@ -1516,13 +1621,11 @@ mrb_mruby_set_gem_init(mrb_state *mrb)
 
   mrb_define_method_id(mrb, set, MRB_SYM(reset), set_reset, MRB_ARGS_NONE());
 
-  /* Bulk operation methods */
   mrb_define_method_id(mrb, set, MRB_SYM(add_all), set_add_all, MRB_ARGS_ANY());
   mrb_define_method_id(mrb, set, MRB_SYM(delete_all), set_delete_all, MRB_ARGS_ANY());
   mrb_define_method_id(mrb, set, MRB_SYM_Q(include_all), set_include_all_p, MRB_ARGS_ANY());
   mrb_define_method_id(mrb, set, MRB_SYM_Q(include_any), set_include_any_p, MRB_ARGS_ANY());
 
-  /* Register our new C implementations */
   mrb_define_method_id(mrb, set, MRB_SYM_Q(superset), set_superset_p, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, set, MRB_OPSYM(ge), set_superset_p, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, set, MRB_SYM_Q(proper_superset), set_proper_superset_p, MRB_ARGS_REQ(1));
@@ -1540,6 +1643,9 @@ mrb_mruby_set_gem_init(mrb_state *mrb)
 
   mrb_define_method_id(mrb, set, MRB_SYM(flatten), set_flatten, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, set, MRB_SYM_B(flatten), set_flatten_bang, MRB_ARGS_NONE());
+#endif
+
+  mrb_define_alias(mrb, set, "eql?", "==");
 }
 
 void
