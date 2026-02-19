@@ -207,7 +207,7 @@ mrb_obj_id(mrb_value obj)
 #define WORDBOX_FLOAT_ROTATE      3
 #define WORDBOX_FLOAT_EXP_MIN     (1023 - 255)  /* 768 */
 #define WORDBOX_FLOAT_EXP_MAX     (1023 + 256)  /* 1279 */
-#define WORDBOX_FLOAT_ADDEND      ((uint64_t)((int64_t)(WORDBOX_FLOAT_EXP_MIN - (WORDBOX_FLOAT_FLAG << 9)) << 52))
+#define WORDBOX_FLOAT_ADDEND      ((uint64_t)(WORDBOX_FLOAT_EXP_MIN - (WORDBOX_FLOAT_FLAG << 9)) << 52)
 
 /* sentinel values for special floats (all have & 3 == 2) */
 #define WORDBOX_FLOAT_PZERO       0x02  /* +0.0 */
