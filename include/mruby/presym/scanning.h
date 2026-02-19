@@ -39,14 +39,14 @@
 #define MRB_SYM(name) MRB_PRESYM_SCANNING_TAGGED(#name)
 
 /* backward compatibility: _2 variants accept but ignore mrb_state* */
-#define MRB_OPSYM_2(mrb, name) MRB_OPSYM__##name(mrb)
-#define MRB_GVSYM_2(mrb, name) MRB_PRESYM_SCANNING_TAGGED("$" #name)
-#define MRB_CVSYM_2(mrb, name) MRB_PRESYM_SCANNING_TAGGED("@@" #name)
-#define MRB_IVSYM_2(mrb, name) MRB_PRESYM_SCANNING_TAGGED("@" #name)
-#define MRB_SYM_B_2(mrb, name) MRB_PRESYM_SCANNING_TAGGED(#name "!")
-#define MRB_SYM_Q_2(mrb, name) MRB_PRESYM_SCANNING_TAGGED(#name "?")
-#define MRB_SYM_E_2(mrb, name) MRB_PRESYM_SCANNING_TAGGED(#name "=")
-#define MRB_SYM_2(mrb, name) MRB_PRESYM_SCANNING_TAGGED(#name)
+#define MRB_OPSYM_2(mrb, name) MRB_OPSYM(name)
+#define MRB_GVSYM_2(mrb, name) MRB_GVSYM(name)
+#define MRB_CVSYM_2(mrb, name) MRB_CVSYM(name)
+#define MRB_IVSYM_2(mrb, name) MRB_IVSYM(name)
+#define MRB_SYM_B_2(mrb, name) MRB_SYM_B(name)
+#define MRB_SYM_Q_2(mrb, name) MRB_SYM_Q(name)
+#define MRB_SYM_E_2(mrb, name) MRB_SYM_E(name)
+#define MRB_SYM_2(mrb, name) MRB_SYM(name)
 
 #define MRB_OPSYM__not(mrb) MRB_PRESYM_SCANNING_TAGGED("!")
 #define MRB_OPSYM__mod(mrb) MRB_PRESYM_SCANNING_TAGGED("%")
