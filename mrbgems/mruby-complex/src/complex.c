@@ -558,7 +558,6 @@ complex_pow(mrb_state *mrb, mrb_value self)
 }
 
 /* ---------------------------*/
-#ifndef MRB_NO_PRESYM
 #define COMPLEX_ROM_MT_SIZE 13
 static struct {
   union mt_ptr vals[COMPLEX_ROM_MT_SIZE];
@@ -633,7 +632,6 @@ static mt_tbl kernel_complex_rom_mt = {
   KERNEL_COMPLEX_ROM_MT_SIZE, KERNEL_COMPLEX_ROM_MT_SIZE,
   (union mt_ptr*)&kernel_complex_rom_data, NULL
 };
-#endif /* !MRB_NO_PRESYM */
 
 void mrb_mruby_complex_gem_init(mrb_state *mrb)
 {
@@ -647,27 +645,9 @@ void mrb_mruby_complex_gem_init(mrb_state *mrb)
   mrb_define_class_method_id(mrb, comp, MRB_SYM(rectangular), complex_s_rect, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_class_method_id(mrb, comp, MRB_SYM(rect), complex_s_rect, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
 
-#ifndef MRB_NO_PRESYM
   mrb_mt_init_rom(comp, &complex_rom_mt);
   mrb_mt_init_rom(mrb->nil_class, &nil_to_c_rom_mt);
   mrb_mt_init_rom(mrb->kernel_module, &kernel_complex_rom_mt);
-#else
-  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(Complex), complex_s_rect, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
-  mrb_define_method_id(mrb, comp, MRB_SYM(real), complex_real, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, comp, MRB_SYM(imaginary), complex_imaginary, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, comp, MRB_SYM(to_f), mrb_complex_to_f, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, comp, MRB_SYM(to_i), mrb_complex_to_i, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, comp, MRB_SYM(to_c), mrb_obj_itself, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, comp, MRB_OPSYM(add), complex_add, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, comp, MRB_OPSYM(sub), complex_sub, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, comp, MRB_OPSYM(mul), complex_mul, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, comp, MRB_OPSYM(div), complex_div, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, comp, MRB_SYM(quo), complex_div, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, comp, MRB_OPSYM(eq), complex_eq, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, comp, MRB_SYM(hash), complex_hash, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, comp, MRB_OPSYM(pow), complex_pow, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, mrb->nil_class, MRB_SYM(to_c), nil_to_c, MRB_ARGS_NONE());
-#endif
 }
 
 void

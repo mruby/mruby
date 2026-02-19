@@ -1228,7 +1228,6 @@ rational_hash(mrb_state *mrb, mrb_value rat)
 }
 
 /* ---------------------------*/
-#ifndef MRB_NO_PRESYM
 #define RATIONAL_ROM_MT_SIZE 14
 static struct {
   union mt_ptr vals[RATIONAL_ROM_MT_SIZE];
@@ -1322,7 +1321,6 @@ static mt_tbl kernel_rational_rom_mt = {
   KERNEL_RATIONAL_ROM_MT_SIZE, KERNEL_RATIONAL_ROM_MT_SIZE,
   (union mt_ptr*)&kernel_rational_rom_data, NULL
 };
-#endif /* !MRB_NO_PRESYM */
 
 void mrb_mruby_rational_gem_init(mrb_state *mrb)
 {
@@ -1334,30 +1332,10 @@ void mrb_mruby_rational_gem_init(mrb_state *mrb)
   mrb_define_method_id(mrb, rat, MRB_SYM(to_f), mrb_rational_to_f, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, mrb->float_class, MRB_SYM(to_r), float_to_r, MRB_ARGS_NONE());
 #endif
-#ifndef MRB_NO_PRESYM
   mrb_mt_init_rom(rat, &rational_rom_mt);
   mrb_mt_init_rom(mrb->integer_class, &integer_to_r_rom_mt);
   mrb_mt_init_rom(mrb->nil_class, &nil_to_r_rom_mt);
   mrb_mt_init_rom(mrb->kernel_module, &kernel_rational_rom_mt);
-#else
-  mrb_define_method_id(mrb, rat, MRB_SYM(numerator), rational_numerator, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, rat, MRB_SYM(denominator), rational_denominator, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, rat, MRB_SYM(to_i), mrb_rational_to_i, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, rat, MRB_SYM(to_r), mrb_obj_itself, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, rat, MRB_SYM_Q(negative), rational_negative_p, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, rat, MRB_OPSYM(eq), rational_eq, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, rat, MRB_OPSYM(minus), rational_minus, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, rat, MRB_OPSYM(add), rational_add, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, rat, MRB_OPSYM(sub), rational_sub, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, rat, MRB_OPSYM(mul), rational_mul, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, rat, MRB_OPSYM(div), rational_div, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, rat, MRB_SYM(quo), rational_div, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, rat, MRB_OPSYM(pow), rational_pow, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, rat, MRB_SYM(hash), rational_hash, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, mrb->integer_class, MRB_SYM(to_r), int_to_r, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, mrb->nil_class, MRB_SYM(to_r), nil_to_r, MRB_ARGS_NONE());
-  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(Rational), rational_m, MRB_ARGS_ARG(1,1));
-#endif
 }
 
 void

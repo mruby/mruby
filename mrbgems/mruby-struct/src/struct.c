@@ -776,7 +776,6 @@ mrb_struct_to_s(mrb_state *mrb, mrb_value self)
  *  `Symbol` (such as `:name`).
  */
 /* ---------------------------*/
-#ifndef MRB_NO_PRESYM
 #define STRUCT_ROM_MT_SIZE 15
 static struct {
   union mt_ptr vals[STRUCT_ROM_MT_SIZE];
@@ -821,7 +820,6 @@ static mt_tbl struct_rom_mt = {
   STRUCT_ROM_MT_SIZE, STRUCT_ROM_MT_SIZE,
   (union mt_ptr*)&struct_rom_data, NULL
 };
-#endif /* !MRB_NO_PRESYM */
 
 void
 mrb_mruby_struct_gem_init(mrb_state* mrb)
@@ -832,26 +830,7 @@ mrb_mruby_struct_gem_init(mrb_state* mrb)
 
   mrb_define_class_method_id(mrb, st, MRB_SYM(new), mrb_struct_s_def, MRB_ARGS_ANY());  /* 15.2.18.3.1  */
 
-#ifndef MRB_NO_PRESYM
   mrb_mt_init_rom(st, &struct_rom_mt);
-#else
-  mrb_define_method_id(mrb, st, MRB_OPSYM(eq),            mrb_struct_equal,       MRB_ARGS_REQ(1)); /* 15.2.18.4.1  */
-  mrb_define_method_id(mrb, st, MRB_OPSYM(aref),          mrb_struct_aref,        MRB_ARGS_REQ(1)); /* 15.2.18.4.2  */
-  mrb_define_method_id(mrb, st, MRB_OPSYM(aset),          mrb_struct_aset,        MRB_ARGS_REQ(2)); /* 15.2.18.4.3  */
-  mrb_define_method_id(mrb, st, MRB_SYM(members),         mrb_struct_members,     MRB_ARGS_NONE()); /* 15.2.18.4.6  */
-  mrb_define_method_id(mrb, st, MRB_SYM(initialize),      mrb_struct_initialize,  MRB_ARGS_ANY());  /* 15.2.18.4.8  */
-  mrb_define_private_method_id(mrb, st, MRB_SYM(initialize_copy), mrb_struct_init_copy,   MRB_ARGS_REQ(1)); /* 15.2.18.4.9  */
-  mrb_define_method_id(mrb, st, MRB_SYM_Q(eql),           mrb_struct_eql,         MRB_ARGS_REQ(1)); /* 15.2.18.4.12(x)  */
-  mrb_define_method_id(mrb, st, MRB_SYM(to_s),            mrb_struct_to_s,        MRB_ARGS_NONE()); /* 15.2.18.4.11(x) */
-  mrb_define_method_id(mrb, st, MRB_SYM(inspect),         mrb_struct_to_s,        MRB_ARGS_NONE()); /* 15.2.18.4.10(x) */
-
-  mrb_define_method_id(mrb, st, MRB_SYM(size),            mrb_struct_len,         MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, st, MRB_SYM(length),          mrb_struct_len,         MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, st, MRB_SYM(to_a),            mrb_struct_to_a,        MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, st, MRB_SYM(values),          mrb_struct_to_a,        MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, st, MRB_SYM(to_h),            mrb_struct_to_h,        MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, st, MRB_SYM(values_at),       mrb_struct_values_at,   MRB_ARGS_ANY());
-#endif
 }
 
 void

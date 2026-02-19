@@ -568,7 +568,6 @@ random_f_bytes(mrb_state *mrb, mrb_value self)
 }
 
 
-#ifndef MRB_NO_PRESYM
 #define KERNEL_RAND_ROM_MT_SIZE 2
 static struct {
   union mt_ptr vals[KERNEL_RAND_ROM_MT_SIZE];
@@ -631,7 +630,6 @@ static mt_tbl array_rand_rom_mt = {
   ARRAY_RAND_ROM_MT_SIZE, ARRAY_RAND_ROM_MT_SIZE,
   (union mt_ptr*)&array_rand_rom_data, NULL
 };
-#endif
 
 void mrb_mruby_random_gem_init(mrb_state *mrb)
 {
@@ -646,21 +644,9 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
   mrb_define_class_method_id(mrb, random, MRB_SYM(srand), random_f_srand, MRB_ARGS_OPT(1));
   mrb_define_class_method_id(mrb, random, MRB_SYM(bytes), random_f_bytes, MRB_ARGS_REQ(1));
 
-#ifndef MRB_NO_PRESYM
   mrb_mt_init_rom(mrb->kernel_module, &kernel_rand_rom_mt);
   mrb_mt_init_rom(random, &random_rom_mt);
   mrb_mt_init_rom(array, &array_rand_rom_mt);
-#else
-  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(rand), random_f_rand, MRB_ARGS_OPT(1));
-  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(srand), random_f_srand, MRB_ARGS_OPT(1));
-  mrb_define_method_id(mrb, random, MRB_SYM(initialize), random_m_init, MRB_ARGS_OPT(1));
-  mrb_define_method_id(mrb, random, MRB_SYM(rand), random_m_rand, MRB_ARGS_OPT(1));
-  mrb_define_method_id(mrb, random, MRB_SYM(srand), random_m_srand, MRB_ARGS_OPT(1));
-  mrb_define_method_id(mrb, random, MRB_SYM(bytes), random_m_bytes, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, array, MRB_SYM(shuffle), mrb_ary_shuffle, MRB_ARGS_OPT(1));
-  mrb_define_method_id(mrb, array, MRB_SYM_B(shuffle), mrb_ary_shuffle_bang, MRB_ARGS_OPT(1));
-  mrb_define_method_id(mrb, array, MRB_SYM(sample), mrb_ary_sample, MRB_ARGS_OPT(2));
-#endif
 
   mrb_value d = mrb_obj_new(mrb, random, 0, NULL);
   rand_state *t = random_ptr(d);

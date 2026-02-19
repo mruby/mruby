@@ -1271,7 +1271,6 @@ mrb_win32_basicsocket_syswrite(mrb_state *mrb, mrb_value self)
 #endif
 
 /* ---------------------------*/
-#ifndef MRB_NO_PRESYM
 #define ADDRINFO_ROM_MT_SIZE 2
 static struct {
   union mt_ptr vals[ADDRINFO_ROM_MT_SIZE];
@@ -1379,7 +1378,6 @@ static mt_tbl socket_option_rom_mt = {
   SOCKET_OPTION_ROM_MT_SIZE, SOCKET_OPTION_ROM_MT_SIZE,
   (union mt_ptr*)&socket_option_rom_data, NULL
 };
-#endif /* !MRB_NO_PRESYM */
 
 void
 mrb_mruby_socket_gem_init(mrb_state* mrb)
@@ -1426,40 +1424,10 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
   mrb_define_class_method_id(mrb, option, MRB_SYM(bool), socket_option_s_bool, MRB_ARGS_REQ(4));
   mrb_define_class_method_id(mrb, option, MRB_SYM(int), socket_option_s_int, MRB_ARGS_REQ(4));
 
-#ifndef MRB_NO_PRESYM
   mrb_mt_init_rom(ainfo, &addrinfo_rom_mt);
   mrb_mt_init_rom(bsock, &basicsocket_rom_mt);
   mrb_mt_init_rom(ipsock, &ipsocket_rom_mt);
   mrb_mt_init_rom(option, &socket_option_rom_mt);
-#else
-  mrb_define_method_id(mrb, ainfo, MRB_SYM(getnameinfo), mrb_addrinfo_getnameinfo, MRB_ARGS_OPT(1));
-  mrb_define_method_id(mrb, ainfo, MRB_SYM(unix_path), mrb_addrinfo_unix_path, MRB_ARGS_NONE());
-
-  mrb_define_method_id(mrb, bsock, MRB_SYM(_recvfrom), mrb_basicsocket_recvfrom, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
-  mrb_define_method_id(mrb, bsock, MRB_SYM(_setnonblock), mrb_basicsocket_setnonblock, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, bsock, MRB_SYM(getpeereid), mrb_basicsocket_getpeereid, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, bsock, MRB_SYM(getpeername), mrb_basicsocket_getpeername, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, bsock, MRB_SYM(getsockname), mrb_basicsocket_getsockname, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, bsock, MRB_SYM(getsockopt), mrb_basicsocket_getsockopt, MRB_ARGS_REQ(2));
-  mrb_define_method_id(mrb, bsock, MRB_SYM(recv), mrb_basicsocket_recv, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
-  mrb_define_method_id(mrb, bsock, MRB_SYM(send), mrb_basicsocket_send, MRB_ARGS_REQ(2)|MRB_ARGS_OPT(1));
-  mrb_define_method_id(mrb, bsock, MRB_SYM(setsockopt), mrb_basicsocket_setsockopt, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(2));
-  mrb_define_method_id(mrb, bsock, MRB_SYM(shutdown), mrb_basicsocket_shutdown, MRB_ARGS_OPT(1));
-  mrb_define_method_id(mrb, bsock, MRB_SYM_E(_is_socket), mrb_basicsocket_set_is_socket, MRB_ARGS_REQ(1));
-
-  mrb_define_method_id(mrb, ipsock, MRB_SYM(recvfrom), mrb_ipsocket_recvfrom, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
-
-  mrb_define_method_id(mrb, option, MRB_SYM(initialize), socket_option_init, MRB_ARGS_REQ(4));
-  mrb_define_method_id(mrb, option, MRB_SYM(inspect), socket_option_inspect, MRB_ARGS_REQ(0));
-  mrb_define_method_id(mrb, option, MRB_SYM(family), socket_option_family, MRB_ARGS_REQ(0));
-  mrb_define_method_id(mrb, option, MRB_SYM(level), socket_option_level, MRB_ARGS_REQ(0));
-  mrb_define_method_id(mrb, option, MRB_SYM(optname), socket_option_optname, MRB_ARGS_REQ(0));
-  mrb_define_method_id(mrb, option, MRB_SYM(data), socket_option_data, MRB_ARGS_REQ(0));
-  mrb_define_method_id(mrb, option, MRB_SYM(bool), socket_option_bool, MRB_ARGS_REQ(0));
-  mrb_define_method_id(mrb, option, MRB_SYM(int), socket_option_int, MRB_ARGS_REQ(0));
-  mrb_define_method_id(mrb, option, MRB_SYM(linger), socket_option_notimp, MRB_ARGS_REQ(0));
-  mrb_define_method_id(mrb, option, MRB_SYM(unpack), socket_option_notimp, MRB_ARGS_REQ(1));
-#endif
 
   struct RClass *constants = mrb_define_module_under_id(mrb, sock, MRB_SYM(Constants));
 

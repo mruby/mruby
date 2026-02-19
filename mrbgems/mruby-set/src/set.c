@@ -1464,7 +1464,6 @@ set_s_create(mrb_state *mrb, mrb_value klass)
   return set;
 }
 
-#ifndef MRB_NO_PRESYM
 #define SET_ROM_MT_SIZE 43
 static struct {
   union mt_ptr vals[SET_ROM_MT_SIZE];
@@ -1565,7 +1564,6 @@ static mt_tbl set_rom_mt = {
   SET_ROM_MT_SIZE, SET_ROM_MT_SIZE,
   (union mt_ptr*)&set_rom_data, NULL
 };
-#endif /* !MRB_NO_PRESYM */
 
 void
 mrb_mruby_set_gem_init(mrb_state *mrb)
@@ -1581,69 +1579,7 @@ mrb_mruby_set_gem_init(mrb_state *mrb)
 
   mrb_define_private_method(mrb, set, "initialize_copy", set_init_copy, MRB_ARGS_REQ(1));
 
-#ifndef MRB_NO_PRESYM
   mrb_mt_init_rom(set, &set_rom_mt);
-#else
-  mrb_define_method_id(mrb, set, MRB_SYM(size), set_size, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, set, MRB_SYM(length), set_size, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, set, MRB_SYM_Q(empty), set_empty_p, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, set, MRB_SYM(clear), set_clear, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, set, MRB_SYM(to_a), set_to_a, MRB_ARGS_NONE());
-
-  mrb_define_method_id(mrb, set, MRB_SYM_Q(include), set_include_p, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, set, MRB_SYM_Q(member), set_include_p, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, set, MRB_OPSYM(eqq), set_include_p, MRB_ARGS_REQ(1));
-
-  mrb_define_method_id(mrb, set, MRB_SYM(add), set_add, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, set, MRB_OPSYM(lshift), set_add, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, set, MRB_SYM_Q(add), set_add_p, MRB_ARGS_REQ(1));
-
-  mrb_define_method_id(mrb, set, MRB_SYM(delete), set_delete, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, set, MRB_SYM_Q(delete), set_delete_p, MRB_ARGS_REQ(1));
-
-  mrb_define_method_id(mrb, set, MRB_SYM(__init), set_init, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, set, MRB_SYM(__merge), set_core_merge, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, set, MRB_SYM(__subtract), set_core_subtract, MRB_ARGS_REQ(1));
-
-  mrb_define_method_id(mrb, set, MRB_SYM(__union), set_core_union, MRB_ARGS_REQ(1));
-
-  mrb_define_method_id(mrb, set, MRB_SYM(__difference), set_core_difference, MRB_ARGS_REQ(1));
-
-  mrb_define_method_id(mrb, set, MRB_SYM(__intersection), set_core_intersection, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, set, MRB_SYM(__xor), set_core_xor, MRB_ARGS_REQ(1));
-
-  mrb_define_method_id(mrb, set, MRB_OPSYM(eq), set_equal, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, set, MRB_SYM(hash), set_hash_m, MRB_ARGS_NONE());
-
-  mrb_define_method_id(mrb, set, MRB_SYM(join), set_join, MRB_ARGS_OPT(1));
-  mrb_define_method_id(mrb, set, MRB_SYM(inspect), set_inspect, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, set, MRB_SYM(to_s), set_inspect, MRB_ARGS_NONE());
-
-  mrb_define_method_id(mrb, set, MRB_SYM(reset), set_reset, MRB_ARGS_NONE());
-
-  mrb_define_method_id(mrb, set, MRB_SYM(add_all), set_add_all, MRB_ARGS_ANY());
-  mrb_define_method_id(mrb, set, MRB_SYM(delete_all), set_delete_all, MRB_ARGS_ANY());
-  mrb_define_method_id(mrb, set, MRB_SYM_Q(include_all), set_include_all_p, MRB_ARGS_ANY());
-  mrb_define_method_id(mrb, set, MRB_SYM_Q(include_any), set_include_any_p, MRB_ARGS_ANY());
-
-  mrb_define_method_id(mrb, set, MRB_SYM_Q(superset), set_superset_p, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, set, MRB_OPSYM(ge), set_superset_p, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, set, MRB_SYM_Q(proper_superset), set_proper_superset_p, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, set, MRB_OPSYM(gt), set_proper_superset_p, MRB_ARGS_REQ(1));
-
-  mrb_define_method_id(mrb, set, MRB_SYM_Q(subset), set_subset_p, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, set, MRB_OPSYM(le), set_subset_p, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, set, MRB_SYM_Q(proper_subset), set_proper_subset_p, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, set, MRB_OPSYM(lt), set_proper_subset_p, MRB_ARGS_REQ(1));
-
-  mrb_define_method_id(mrb, set, MRB_SYM_Q(intersect), set_intersect_p, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, set, MRB_SYM_Q(disjoint), set_disjoint_p, MRB_ARGS_REQ(1));
-
-  mrb_define_method_id(mrb, set, MRB_OPSYM(cmp), set_cmp, MRB_ARGS_REQ(1));
-
-  mrb_define_method_id(mrb, set, MRB_SYM(flatten), set_flatten, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, set, MRB_SYM_B(flatten), set_flatten_bang, MRB_ARGS_NONE());
-#endif
 
   mrb_define_alias(mrb, set, "eql?", "==");
 }
