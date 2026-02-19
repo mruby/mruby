@@ -7,9 +7,7 @@
 #ifndef MRUBY_PRESYM_H
 #define MRUBY_PRESYM_H
 
-#if defined(MRB_NO_PRESYM)
-# include <mruby/presym/disable.h>
-#elif !defined(MRB_PRESYM_SCANNING)
+#if !defined(MRB_PRESYM_SCANNING)
 # include <mruby/presym/enable.h>
 #endif
 
@@ -32,10 +30,9 @@
  * can be specified for it). Other than that, describe only word characters
  * excluding leading and ending punctuation.
  *
- * These macros are expanded to `mrb_intern_lit` if presym is disabled,
- * therefore the mruby state variable is required. The above macros can be
- * used when the variable name is `mrb`. If you want to use other variable
- * names, you need to use macros with `_2` suffix, such as `MRB_SYM_2`.
+ * These macros are expanded to compile-time integer constants.
+ * The `_2` suffix variants (e.g., `MRB_SYM_2`) accept an explicit
+ * mruby state parameter but currently ignore it.
  */
 
 #endif  /* MRUBY_PRESYM_H */
