@@ -33,8 +33,10 @@
 #define MT_KEY_SYM(k) ((k)>>MRB_MT_KEY_SHIFT)
 #define MT_KEY_FLG(k) ((k)&MT_KEY_MASK)
 
-#define MT_ALLOC(t)      ((t)->alloc & ~MRB_MT_READONLY_BIT)
+#define MRB_MT_FLAG_BITS (MRB_MT_READONLY_BIT | MRB_MT_FROZEN_BIT)
+#define MT_ALLOC(t)      ((t)->alloc & ~MRB_MT_FLAG_BITS)
 #define mt_readonly_p(t) ((t)->alloc & MRB_MT_READONLY_BIT)
+#define mt_frozen_p(t)   ((t)->alloc & MRB_MT_FROZEN_BIT)
 
 /* Helper to get keys array from method table */
 static inline mrb_sym*
@@ -65,7 +67,7 @@ mt_grow(mrb_state *mrb, mrb_mt_tbl *t, int new_alloc)
     /* move the old key array up to its new position */
     memmove(new_keys, old_keys, old_alloc * sizeof(mrb_sym));
   }
-  t->alloc = new_alloc;
+  t->alloc = (t->alloc & MRB_MT_FLAG_BITS) | new_alloc;
 }
 
 /* Creates a new empty method table */
@@ -285,6 +287,10 @@ mrb_mt_init_rom(struct RClass *c, mrb_mt_tbl *rom)
     c->mt = rom;
   }
   else {
+    /* freeze mutable top, insert ROM behind it;
+     * c->mt must not change because iclasses (module inclusion)
+     * hold a copy of the mt pointer */
+    t->alloc |= MRB_MT_FROZEN_BIT;
     rom->next = t->next;
     t->next = rom;
   }
@@ -1089,6 +1095,11 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
   }
   if (!h) {
     h = c->mt = mt_new(mrb);
+  }
+  else if (mt_frozen_p(h)) {
+    /* unfreeze heap-allocated frozen layer to preserve c->mt pointer
+     * (iclasses hold a copy of the mt pointer for included modules) */
+    h->alloc &= ~MRB_MT_FROZEN_BIT;
   }
   else if (mt_readonly_p(h)) {
     /* COW: create mutable top layer, chain to ROM */
@@ -3654,7 +3665,10 @@ mrb_remove_method(mrb_state *mrb, struct RClass *c0, mrb_sym mid)
       union mrb_mt_ptr tombstone;
       tombstone.func = NULL;
       found = TRUE;
-      if (mt_readonly_p(h)) {
+      if (mt_frozen_p(h)) {
+        h->alloc &= ~MRB_MT_FROZEN_BIT;
+      }
+      else if (mt_readonly_p(h)) {
         mrb_mt_tbl *top = mt_new(mrb);
         top->next = h;
         h = c->mt = top;

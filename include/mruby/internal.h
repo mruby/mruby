@@ -36,12 +36,13 @@ union mrb_mt_ptr {
 
 typedef struct mrb_mt_tbl {
   int               size;
-  int               alloc;  /* bit 30: MRB_MT_READONLY_BIT */
+  int               alloc;  /* bit 30: MRB_MT_READONLY_BIT, bit 29: MRB_MT_FROZEN_BIT */
   union mrb_mt_ptr *ptr;
   struct mrb_mt_tbl *next;
 } mrb_mt_tbl;
 
 #define MRB_MT_READONLY_BIT  (1 << 30)
+#define MRB_MT_FROZEN_BIT    (1 << 29)
 #define MRB_MT_KEY_SHIFT 4
 #define MRB_MT_KEY(sym, flags) ((sym)<<MRB_MT_KEY_SHIFT|(flags))
 #define MRB_MT_FUNC    8    /* MRB_METHOD_FUNC_FL */
