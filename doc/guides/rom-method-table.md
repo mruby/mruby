@@ -132,15 +132,13 @@ typedef struct mrb_mt_tbl {
 ### Macros
 
 ```c
-/* ROM table entry: MRB_MT_FUNC auto-set, MRB_MT_NOARG auto-derived from aspec==0 */
+/* ROM table entry: stores aspec in bits 4+, auto-sets MRB_MT_FUNC */
 #define MRB_MT_ENTRY(fn, sym, aspec) \
-  { { .func = (fn) }, (sym), \
-    ((aspec) << 4) | MRB_MT_FUNC | (((aspec)==0)?MRB_MT_NOARG:0) }
+  { { .func = (fn) }, (sym), ((aspec) << 4) | MRB_MT_FUNC }
 
 /* ROM table entry for private methods */
 #define MRB_MT_ENTRY_PRIVATE(fn, sym, aspec) \
-  { { .func = (fn) }, (sym), \
-    ((aspec) << 4) | MRB_MT_FUNC | MRB_MT_PRIVATE | (((aspec)==0)?MRB_MT_NOARG:0) }
+  { { .func = (fn) }, (sym), ((aspec) << 4) | MRB_MT_FUNC | MRB_MT_PRIVATE }
 
 /* Extract aspec from combined flags */
 #define MRB_MT_ASPEC(flags) ((mrb_aspec)((flags) >> 4))
@@ -154,16 +152,15 @@ typedef struct mrb_mt_tbl {
 
 ### Flags (bits 0-3 of uint32_t)
 
-| Flag              | Value | Description                              |
-| ----------------- | ----- | ---------------------------------------- |
-| `MRB_MT_FUNC`     | 8     | C function (auto-set by macros)          |
-| `MRB_MT_NOARG`    | 4     | Method takes no arguments (auto-derived) |
-| `MRB_MT_PUBLIC`   | 0     | Public visibility (default)              |
-| `MRB_MT_PRIVATE`  | 1     | Private visibility                       |
+| Flag             | Value | Description                     |
+| ---------------- | ----- | ------------------------------- |
+| `MRB_MT_FUNC`    | 8     | C function (auto-set by macros) |
+| `MRB_MT_PUBLIC`  | 0     | Public visibility (default)     |
+| `MRB_MT_PRIVATE` | 1     | Private visibility              |
 
 Bits 4-27 store the `mrb_aspec` argument specification (shifted left
-by 4). Both `MRB_MT_FUNC` and `MRB_MT_NOARG` are set automatically
-by the macros; `MRB_MT_NOARG` is derived from `aspec == 0`
+by 4). `MRB_MT_FUNC` is set automatically by the macros. The no-arg
+optimization is derived at runtime from `aspec == 0`
 (`MRB_ARGS_NONE()`).
 
 **How to write entries:**
