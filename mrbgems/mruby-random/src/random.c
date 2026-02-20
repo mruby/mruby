@@ -170,7 +170,7 @@ static mrb_value
 rand_range_float(mrb_state *mrb, rand_state *t,
                  mrb_float begin, mrb_float end,
                  mrb_bool excl) {
-  mrb_float span = end - begin + (excl ? 0.0 : 1.0);
+  mrb_float span = end - begin;
   if (span <= 0.0)
     return mrb_nil_value();
 
