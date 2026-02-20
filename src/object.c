@@ -323,30 +323,30 @@ false_to_s(mrb_state *mrb, mrb_value obj)
 
 /* ---------------------------*/
 static const mrb_mt_entry nil_rom_entries[] = {
-  MRB_MT_ENTRY(false_and,   MRB_OPSYM(and),    MRB_MT_FUNC),
-  MRB_MT_ENTRY(false_or,    MRB_OPSYM(or),     MRB_MT_FUNC),
-  MRB_MT_ENTRY(false_xor,   MRB_OPSYM(xor),    MRB_MT_FUNC),
-  MRB_MT_ENTRY(mrb_true,    MRB_SYM_Q(nil),    MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(nil_to_s,    MRB_SYM(to_s),     MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(nil_inspect, MRB_SYM(inspect),  MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(false_and,   MRB_OPSYM(and),    0),
+  MRB_MT_ENTRY(false_or,    MRB_OPSYM(or),     0),
+  MRB_MT_ENTRY(false_xor,   MRB_OPSYM(xor),    0),
+  MRB_MT_ENTRY(mrb_true,    MRB_SYM_Q(nil),    MRB_MT_NOARG),
+  MRB_MT_ENTRY(nil_to_s,    MRB_SYM(to_s),     MRB_MT_NOARG),
+  MRB_MT_ENTRY(nil_inspect, MRB_SYM(inspect),  MRB_MT_NOARG),
 };
 static mrb_mt_tbl nil_rom_mt = MRB_MT_ROM_TAB(nil_rom_entries);
 
 static const mrb_mt_entry true_rom_entries[] = {
-  MRB_MT_ENTRY(true_and,  MRB_OPSYM(and),    MRB_MT_FUNC),
-  MRB_MT_ENTRY(true_or,   MRB_OPSYM(or),     MRB_MT_FUNC),
-  MRB_MT_ENTRY(true_xor,  MRB_OPSYM(xor),    MRB_MT_FUNC),
-  MRB_MT_ENTRY(true_to_s, MRB_SYM(to_s),     MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(true_to_s, MRB_SYM(inspect),  MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(true_and,  MRB_OPSYM(and),    0),
+  MRB_MT_ENTRY(true_or,   MRB_OPSYM(or),     0),
+  MRB_MT_ENTRY(true_xor,  MRB_OPSYM(xor),    0),
+  MRB_MT_ENTRY(true_to_s, MRB_SYM(to_s),     MRB_MT_NOARG),
+  MRB_MT_ENTRY(true_to_s, MRB_SYM(inspect),  MRB_MT_NOARG),
 };
 static mrb_mt_tbl true_rom_mt = MRB_MT_ROM_TAB(true_rom_entries);
 
 static const mrb_mt_entry false_rom_entries[] = {
-  MRB_MT_ENTRY(false_and,  MRB_OPSYM(and),    MRB_MT_FUNC),
-  MRB_MT_ENTRY(false_or,   MRB_OPSYM(or),     MRB_MT_FUNC),
-  MRB_MT_ENTRY(false_xor,  MRB_OPSYM(xor),    MRB_MT_FUNC),
-  MRB_MT_ENTRY(false_to_s, MRB_SYM(to_s),     MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(false_to_s, MRB_SYM(inspect),  MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(false_and,  MRB_OPSYM(and),    0),
+  MRB_MT_ENTRY(false_or,   MRB_OPSYM(or),     0),
+  MRB_MT_ENTRY(false_xor,  MRB_OPSYM(xor),    0),
+  MRB_MT_ENTRY(false_to_s, MRB_SYM(to_s),     MRB_MT_NOARG),
+  MRB_MT_ENTRY(false_to_s, MRB_SYM(inspect),  MRB_MT_NOARG),
 };
 static mrb_mt_tbl false_rom_mt = MRB_MT_ROM_TAB(false_rom_entries);
 

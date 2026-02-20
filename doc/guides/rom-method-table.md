@@ -74,9 +74,9 @@ constants) and define the ROM entries:
 #include <mruby/presym.h>
 
 static const mrb_mt_entry my_rom_entries[] = {
-  MRB_MT_ENTRY(my_method_a, MRB_SYM(method_a), MRB_MT_FUNC),
-  MRB_MT_ENTRY(my_method_b, MRB_SYM(method_b), MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(my_method_eq, MRB_OPSYM(eq),    MRB_MT_FUNC),
+  MRB_MT_ENTRY(my_method_a, MRB_SYM(method_a), 0),
+  MRB_MT_ENTRY(my_method_b, MRB_SYM(method_b), MRB_MT_NOARG),
+  MRB_MT_ENTRY(my_method_eq, MRB_OPSYM(eq),    0),
 };
 static mrb_mt_tbl my_rom_mt = MRB_MT_ROM_TAB(my_rom_entries);
 ```
@@ -132,33 +132,31 @@ typedef struct mrb_mt_tbl {
 ### Macros
 
 ```c
-/* ROM table entry: { {.func=fn}, sym, flags } */
+/* ROM table entry: MRB_MT_FUNC is set automatically */
 #define MRB_MT_ENTRY(fn, sym, flags) \
-  { { .func = (fn) }, (sym), (flags) }
+  { { .func = (fn) }, (sym), (flags) | MRB_MT_FUNC }
 
 /* ROM table initializer (auto-computes size from entries array) */
 #define MRB_MT_ROM_TAB(entries) { \
   (int)(sizeof(entries)/sizeof(entries[0])), \
-  (int)(sizeof(entries)/sizeof(entries[0])), \
-  (entries), NULL }
+  (int)(sizeof(entries)/sizeof(entries[0])) | MRB_MT_READONLY_BIT, \
+  (mrb_mt_entry*)(entries), NULL }
 ```
 
 ### Flags
 
 | Flag             | Value | Description                                   |
 | ---------------- | ----- | --------------------------------------------- |
-| `MRB_MT_FUNC`    | 8     | Entry is a C function pointer (not an RProc)  |
 | `MRB_MT_NOARG`   | 4     | Method takes no arguments (optimization hint) |
-| `MRB_MT_PUBLIC`  | 0     | Public visibility                             |
+| `MRB_MT_PUBLIC`  | 0     | Public visibility (default, can be omitted)   |
 | `MRB_MT_PRIVATE` | 1     | Private visibility                            |
 
-Most ROM entries use `MRB_MT_FUNC` or `MRB_MT_FUNC|MRB_MT_NOARG`.
-Since `MRB_MT_PUBLIC` is 0, it can be omitted.
+`MRB_MT_FUNC` is set automatically by `MRB_MT_ENTRY()`. Pass `0`
+for a public method that takes arguments.
 
 **How to choose flags:**
 
-- **`MRB_MT_FUNC`**: Always set for C function methods. Omit only for
-  RProc-based methods (rare in ROM tables).
+- **`0`**: Public method that takes arguments (most common).
 - **`MRB_MT_NOARG`**: Set when the original `mrb_define_method_id()` used
   `MRB_ARGS_NONE()`. This enables an optimized call path in the VM.
 - **`MRB_MT_PRIVATE`**: Set for private methods (e.g., `initialize`).
@@ -204,8 +202,8 @@ separate entries sharing the same function pointer:
 
 ```c
 static const mrb_mt_entry str_rom_entries[] = {
-  MRB_MT_ENTRY(mrb_str_size, MRB_SYM(size),   MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(mrb_str_size, MRB_SYM(length), MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_str_size, MRB_SYM(size),   MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_str_size, MRB_SYM(length), MRB_MT_NOARG),
 };
 ```
 
@@ -363,8 +361,8 @@ To convert existing `mrb_define_method_id()` calls to a ROM table:
      - `func` is the function pointer
      - `sym` is the symbol macro (e.g., `MRB_SYM(name)`)
      - `flags` are:
-       - `MRB_ARGS_NONE()` -> `MRB_MT_FUNC|MRB_MT_NOARG`
-       - Anything else -> `MRB_MT_FUNC`
+       - `MRB_ARGS_NONE()` -> `MRB_MT_NOARG`
+       - Anything else -> `0`
        - Add `MRB_MT_PRIVATE` for private methods
 
 4. **Create** the table with `MRB_MT_ROM_TAB(entries)`.
@@ -391,9 +389,9 @@ void mrb_mruby_foo_gem_init(mrb_state *mrb) {
 
 ```c
 static const mrb_mt_entry foo_rom_entries[] = {
-  MRB_MT_ENTRY(foo_bar, MRB_SYM(bar),  MRB_MT_FUNC),
-  MRB_MT_ENTRY(foo_baz, MRB_SYM(baz),  MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(foo_eq,  MRB_OPSYM(eq), MRB_MT_FUNC),
+  MRB_MT_ENTRY(foo_bar, MRB_SYM(bar),  0),
+  MRB_MT_ENTRY(foo_baz, MRB_SYM(baz),  MRB_MT_NOARG),
+  MRB_MT_ENTRY(foo_eq,  MRB_OPSYM(eq), 0),
 };
 static mrb_mt_tbl foo_rom_mt = MRB_MT_ROM_TAB(foo_rom_entries);
 

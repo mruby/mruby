@@ -546,11 +546,11 @@ mrb_proc_merge_lvar(mrb_state *mrb, mrb_irep *irep, struct REnv *env, int num, c
 
 /* ---------------------------*/
 static const mrb_mt_entry proc_rom_entries[] = {
-  MRB_MT_ENTRY(mrb_proc_init_copy, MRB_SYM(initialize_copy), MRB_MT_FUNC|MRB_MT_PRIVATE),
-  MRB_MT_ENTRY(proc_arity,         MRB_SYM(arity),           MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(proc_eql,           MRB_OPSYM(eq),            MRB_MT_FUNC),
-  MRB_MT_ENTRY(proc_eql,           MRB_SYM_Q(eql),           MRB_MT_FUNC),
-  MRB_MT_ENTRY(proc_hash,          MRB_SYM(hash),            MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_proc_init_copy, MRB_SYM(initialize_copy), MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(proc_arity,         MRB_SYM(arity),           MRB_MT_NOARG),
+  MRB_MT_ENTRY(proc_eql,           MRB_OPSYM(eq),            0),
+  MRB_MT_ENTRY(proc_eql,           MRB_SYM_Q(eql),           0),
+  MRB_MT_ENTRY(proc_hash,          MRB_SYM(hash),            MRB_MT_NOARG),
 };
 static mrb_mt_tbl proc_rom_mt = MRB_MT_ROM_TAB(proc_rom_entries);
 

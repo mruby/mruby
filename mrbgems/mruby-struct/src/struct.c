@@ -777,21 +777,21 @@ mrb_struct_to_s(mrb_state *mrb, mrb_value self)
  */
 /* ---------------------------*/
 static const mrb_mt_entry struct_rom_entries[] = {
-  MRB_MT_ENTRY(mrb_struct_equal,      MRB_OPSYM(eq),            MRB_MT_FUNC),
-  MRB_MT_ENTRY(mrb_struct_aref,       MRB_OPSYM(aref),          MRB_MT_FUNC),
-  MRB_MT_ENTRY(mrb_struct_aset,       MRB_OPSYM(aset),          MRB_MT_FUNC),
-  MRB_MT_ENTRY(mrb_struct_members,    MRB_SYM(members),         MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(mrb_struct_initialize, MRB_SYM(initialize),      MRB_MT_FUNC),
-  MRB_MT_ENTRY(mrb_struct_init_copy,  MRB_SYM(initialize_copy), MRB_MT_FUNC|MRB_MT_PRIVATE),
-  MRB_MT_ENTRY(mrb_struct_eql,        MRB_SYM_Q(eql),           MRB_MT_FUNC),
-  MRB_MT_ENTRY(mrb_struct_to_s,       MRB_SYM(to_s),            MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(mrb_struct_to_s,       MRB_SYM(inspect),         MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(mrb_struct_len,        MRB_SYM(size),            MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(mrb_struct_len,        MRB_SYM(length),          MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(mrb_struct_to_a,       MRB_SYM(to_a),            MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(mrb_struct_to_a,       MRB_SYM(values),          MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(mrb_struct_to_h,       MRB_SYM(to_h),            MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(mrb_struct_values_at,  MRB_SYM(values_at),       MRB_MT_FUNC),
+  MRB_MT_ENTRY(mrb_struct_equal,      MRB_OPSYM(eq),            0),
+  MRB_MT_ENTRY(mrb_struct_aref,       MRB_OPSYM(aref),          0),
+  MRB_MT_ENTRY(mrb_struct_aset,       MRB_OPSYM(aset),          0),
+  MRB_MT_ENTRY(mrb_struct_members,    MRB_SYM(members),         MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_struct_initialize, MRB_SYM(initialize),      0),
+  MRB_MT_ENTRY(mrb_struct_init_copy,  MRB_SYM(initialize_copy), MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_struct_eql,        MRB_SYM_Q(eql),           0),
+  MRB_MT_ENTRY(mrb_struct_to_s,       MRB_SYM(to_s),            MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_struct_to_s,       MRB_SYM(inspect),         MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_struct_len,        MRB_SYM(size),            MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_struct_len,        MRB_SYM(length),          MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_struct_to_a,       MRB_SYM(to_a),            MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_struct_to_a,       MRB_SYM(values),          MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_struct_to_h,       MRB_SYM(to_h),            MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_struct_values_at,  MRB_SYM(values_at),       0),
 };
 static mrb_mt_tbl struct_rom_mt = MRB_MT_ROM_TAB(struct_rom_entries);
 

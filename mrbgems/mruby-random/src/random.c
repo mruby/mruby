@@ -569,23 +569,23 @@ random_f_bytes(mrb_state *mrb, mrb_value self)
 
 
 static const mrb_mt_entry kernel_rand_rom_entries[] = {
-  MRB_MT_ENTRY(random_f_rand,  MRB_SYM(rand),  MRB_MT_FUNC|MRB_MT_PRIVATE),
-  MRB_MT_ENTRY(random_f_srand, MRB_SYM(srand), MRB_MT_FUNC|MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(random_f_rand,  MRB_SYM(rand),  MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(random_f_srand, MRB_SYM(srand), MRB_MT_PRIVATE),
 };
 static mrb_mt_tbl kernel_rand_rom_mt = MRB_MT_ROM_TAB(kernel_rand_rom_entries);
 
 static const mrb_mt_entry random_rom_entries[] = {
-  MRB_MT_ENTRY(random_m_init,  MRB_SYM(initialize), MRB_MT_FUNC),
-  MRB_MT_ENTRY(random_m_rand,  MRB_SYM(rand),       MRB_MT_FUNC),
-  MRB_MT_ENTRY(random_m_srand, MRB_SYM(srand),      MRB_MT_FUNC),
-  MRB_MT_ENTRY(random_m_bytes, MRB_SYM(bytes),      MRB_MT_FUNC),
+  MRB_MT_ENTRY(random_m_init,  MRB_SYM(initialize), 0),
+  MRB_MT_ENTRY(random_m_rand,  MRB_SYM(rand),       0),
+  MRB_MT_ENTRY(random_m_srand, MRB_SYM(srand),      0),
+  MRB_MT_ENTRY(random_m_bytes, MRB_SYM(bytes),      0),
 };
 static mrb_mt_tbl random_rom_mt = MRB_MT_ROM_TAB(random_rom_entries);
 
 static const mrb_mt_entry array_rand_rom_entries[] = {
-  MRB_MT_ENTRY(mrb_ary_shuffle,      MRB_SYM(shuffle),    MRB_MT_FUNC),
-  MRB_MT_ENTRY(mrb_ary_shuffle_bang, MRB_SYM_B(shuffle),  MRB_MT_FUNC),
-  MRB_MT_ENTRY(mrb_ary_sample,      MRB_SYM(sample),     MRB_MT_FUNC),
+  MRB_MT_ENTRY(mrb_ary_shuffle,      MRB_SYM(shuffle),    0),
+  MRB_MT_ENTRY(mrb_ary_shuffle_bang, MRB_SYM_B(shuffle),  0),
+  MRB_MT_ENTRY(mrb_ary_sample,      MRB_SYM(sample),     0),
 };
 static mrb_mt_tbl array_rand_rom_mt = MRB_MT_ROM_TAB(array_rand_rom_entries);
 

@@ -893,13 +893,13 @@ mrb_check_error(mrb_state *mrb)
 
 /* ---------------------------*/
 static const mrb_mt_entry exception_rom_entries[] = {
-  MRB_MT_ENTRY(exc_exception,     MRB_SYM(exception),      MRB_MT_FUNC),
-  MRB_MT_ENTRY(exc_initialize,    MRB_SYM(initialize),     MRB_MT_FUNC|MRB_MT_PRIVATE),
-  MRB_MT_ENTRY(exc_to_s,          MRB_SYM(to_s),           MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(exc_to_s,          MRB_SYM(message),        MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(mrb_exc_inspect,   MRB_SYM(inspect),        MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(mrb_exc_backtrace, MRB_SYM(backtrace),      MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(exc_set_backtrace, MRB_SYM(set_backtrace),  MRB_MT_FUNC),
+  MRB_MT_ENTRY(exc_exception,     MRB_SYM(exception),      0),
+  MRB_MT_ENTRY(exc_initialize,    MRB_SYM(initialize),     MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(exc_to_s,          MRB_SYM(to_s),           MRB_MT_NOARG),
+  MRB_MT_ENTRY(exc_to_s,          MRB_SYM(message),        MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_exc_inspect,   MRB_SYM(inspect),        MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_exc_backtrace, MRB_SYM(backtrace),      MRB_MT_NOARG),
+  MRB_MT_ENTRY(exc_set_backtrace, MRB_SYM(set_backtrace),  0),
 };
 static mrb_mt_tbl exception_rom_mt = MRB_MT_ROM_TAB(exception_rom_entries);
 

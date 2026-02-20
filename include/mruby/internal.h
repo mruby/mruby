@@ -55,9 +55,9 @@ typedef struct mrb_mt_tbl {
 #define MRB_MT_PUBLIC  0    /* MRB_METHOD_PUBLIC_FL */
 #define MRB_MT_PRIVATE 1    /* MRB_METHOD_PRIVATE_FL */
 
-/* ROM table entry: { {.func=fn}, sym, flags } */
+/* ROM table entry: MRB_MT_FUNC is set automatically */
 #define MRB_MT_ENTRY(fn, sym, flags) \
-  { { .func = (fn) }, (sym), (flags) }
+  { { .func = (fn) }, (sym), (flags) | MRB_MT_FUNC }
 
 /* ROM table initializer from const entries array (auto-computes size).
    Casts away const because mrb_mt_tbl.ptr is shared with mutable layers;

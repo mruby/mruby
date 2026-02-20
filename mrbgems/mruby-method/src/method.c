@@ -833,47 +833,47 @@ method_name(mrb_state *mrb, mrb_value self)
 
 /* ---------------------------*/
 static const mrb_mt_entry method_ubm_rom_entries[] = {
-  MRB_MT_ENTRY(unbound_method_bind,  MRB_SYM(bind),            MRB_MT_FUNC),
-  MRB_MT_ENTRY(method_super_method,  MRB_SYM(super_method),    MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(method_eql,           MRB_OPSYM(eq),            MRB_MT_FUNC),
-  MRB_MT_ENTRY(method_eql,           MRB_SYM_Q(eql),           MRB_MT_FUNC),
-  MRB_MT_ENTRY(method_to_s,          MRB_SYM(to_s),            MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(method_to_s,          MRB_SYM(inspect),         MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(method_arity,         MRB_SYM(arity),           MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(method_source_location, MRB_SYM(source_location), MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(method_parameters,    MRB_SYM(parameters),      MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(method_bcall,         MRB_SYM(bind_call),       MRB_MT_FUNC),
-  MRB_MT_ENTRY(method_owner,         MRB_SYM(owner),           MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(method_name,          MRB_SYM(name),            MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(unbound_method_bind,  MRB_SYM(bind),            0),
+  MRB_MT_ENTRY(method_super_method,  MRB_SYM(super_method),    MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_eql,           MRB_OPSYM(eq),            0),
+  MRB_MT_ENTRY(method_eql,           MRB_SYM_Q(eql),           0),
+  MRB_MT_ENTRY(method_to_s,          MRB_SYM(to_s),            MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_to_s,          MRB_SYM(inspect),         MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_arity,         MRB_SYM(arity),           MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_source_location, MRB_SYM(source_location), MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_parameters,    MRB_SYM(parameters),      MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_bcall,         MRB_SYM(bind_call),       0),
+  MRB_MT_ENTRY(method_owner,         MRB_SYM(owner),           MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_name,          MRB_SYM(name),            MRB_MT_NOARG),
 };
 static mrb_mt_tbl method_ubm_rom_mt = MRB_MT_ROM_TAB(method_ubm_rom_entries);
 
 static const mrb_mt_entry method_mtd_rom_entries[] = {
-  MRB_MT_ENTRY(method_eql,            MRB_OPSYM(eq),            MRB_MT_FUNC),
-  MRB_MT_ENTRY(method_eql,            MRB_SYM_Q(eql),           MRB_MT_FUNC),
-  MRB_MT_ENTRY(method_to_s,           MRB_SYM(to_s),            MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(method_to_s,           MRB_SYM(inspect),         MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(method_call,           MRB_SYM(call),            MRB_MT_FUNC),
-  MRB_MT_ENTRY(method_call,           MRB_OPSYM(aref),          MRB_MT_FUNC),
-  MRB_MT_ENTRY(method_unbind,         MRB_SYM(unbind),          MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(method_super_method,   MRB_SYM(super_method),    MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(method_arity,          MRB_SYM(arity),           MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(method_source_location, MRB_SYM(source_location), MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(method_parameters,     MRB_SYM(parameters),      MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(method_owner,          MRB_SYM(owner),           MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(method_receiver,       MRB_SYM(receiver),        MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(method_name,           MRB_SYM(name),            MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_eql,            MRB_OPSYM(eq),            0),
+  MRB_MT_ENTRY(method_eql,            MRB_SYM_Q(eql),           0),
+  MRB_MT_ENTRY(method_to_s,           MRB_SYM(to_s),            MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_to_s,           MRB_SYM(inspect),         MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_call,           MRB_SYM(call),            0),
+  MRB_MT_ENTRY(method_call,           MRB_OPSYM(aref),          0),
+  MRB_MT_ENTRY(method_unbind,         MRB_SYM(unbind),          MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_super_method,   MRB_SYM(super_method),    MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_arity,          MRB_SYM(arity),           MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_source_location, MRB_SYM(source_location), MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_parameters,     MRB_SYM(parameters),      MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_owner,          MRB_SYM(owner),           MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_receiver,       MRB_SYM(receiver),        MRB_MT_NOARG),
+  MRB_MT_ENTRY(method_name,           MRB_SYM(name),            MRB_MT_NOARG),
 };
 static mrb_mt_tbl method_mtd_rom_mt = MRB_MT_ROM_TAB(method_mtd_rom_entries);
 
 static const mrb_mt_entry method_krn_rom_entries[] = {
-  MRB_MT_ENTRY(mrb_kernel_method,           MRB_SYM(method),           MRB_MT_FUNC),
-  MRB_MT_ENTRY(mrb_kernel_singleton_method, MRB_SYM(singleton_method), MRB_MT_FUNC),
+  MRB_MT_ENTRY(mrb_kernel_method,           MRB_SYM(method),           0),
+  MRB_MT_ENTRY(mrb_kernel_singleton_method, MRB_SYM(singleton_method), 0),
 };
 static mrb_mt_tbl method_krn_rom_mt = MRB_MT_ROM_TAB(method_krn_rom_entries);
 
 static const mrb_mt_entry method_mod_rom_entries[] = {
-  MRB_MT_ENTRY(mrb_module_instance_method, MRB_SYM(instance_method), MRB_MT_FUNC),
+  MRB_MT_ENTRY(mrb_module_instance_method, MRB_SYM(instance_method), 0),
 };
 static mrb_mt_tbl method_mod_rom_mt = MRB_MT_ROM_TAB(method_mod_rom_entries);
 

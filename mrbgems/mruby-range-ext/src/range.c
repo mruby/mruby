@@ -217,9 +217,9 @@ range_empty_p(mrb_state *mrb, mrb_value range)
 }
 
 static const mrb_mt_entry range_ext_rom_entries[] = {
-  MRB_MT_ENTRY(range_cover,   MRB_SYM_Q(cover),          MRB_MT_FUNC),
-  MRB_MT_ENTRY(range_size,    MRB_SYM(size),             MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(range_empty_p, MRB_SYM_Q(__empty_range),  MRB_MT_FUNC),
+  MRB_MT_ENTRY(range_cover,   MRB_SYM_Q(cover),          0),
+  MRB_MT_ENTRY(range_size,    MRB_SYM(size),             MRB_MT_NOARG),
+  MRB_MT_ENTRY(range_empty_p, MRB_SYM_Q(__empty_range),  0),
 };
 static mrb_mt_tbl range_ext_rom_mt = MRB_MT_ROM_TAB(range_ext_rom_entries);
 

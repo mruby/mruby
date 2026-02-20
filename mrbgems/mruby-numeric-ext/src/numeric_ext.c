@@ -481,15 +481,15 @@ int_sqrt(mrb_state *mrb, mrb_value self)
 }
 
 static const mrb_mt_entry integer_ext_rom_entries[] = {
-  MRB_MT_ENTRY(int_remainder,  MRB_SYM(remainder),  MRB_MT_FUNC),
-  MRB_MT_ENTRY(int_powm,       MRB_SYM(pow),        MRB_MT_FUNC),
-  MRB_MT_ENTRY(int_digits,     MRB_SYM(digits),     MRB_MT_FUNC),
-  MRB_MT_ENTRY(int_size,       MRB_SYM(size),       MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(int_bit_length, MRB_SYM(bit_length), MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(int_odd,        MRB_SYM_Q(odd),      MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(int_even,       MRB_SYM_Q(even),     MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(int_gcd,        MRB_SYM(gcd),        MRB_MT_FUNC),
-  MRB_MT_ENTRY(int_lcm,        MRB_SYM(lcm),        MRB_MT_FUNC),
+  MRB_MT_ENTRY(int_remainder,  MRB_SYM(remainder),  0),
+  MRB_MT_ENTRY(int_powm,       MRB_SYM(pow),        0),
+  MRB_MT_ENTRY(int_digits,     MRB_SYM(digits),     0),
+  MRB_MT_ENTRY(int_size,       MRB_SYM(size),       MRB_MT_NOARG),
+  MRB_MT_ENTRY(int_bit_length, MRB_SYM(bit_length), MRB_MT_NOARG),
+  MRB_MT_ENTRY(int_odd,        MRB_SYM_Q(odd),      MRB_MT_NOARG),
+  MRB_MT_ENTRY(int_even,       MRB_SYM_Q(even),     MRB_MT_NOARG),
+  MRB_MT_ENTRY(int_gcd,        MRB_SYM(gcd),        0),
+  MRB_MT_ENTRY(int_lcm,        MRB_SYM(lcm),        0),
 };
 static mrb_mt_tbl integer_ext_rom_mt = MRB_MT_ROM_TAB(integer_ext_rom_entries);
 

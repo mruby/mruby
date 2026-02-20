@@ -1229,35 +1229,35 @@ rational_hash(mrb_state *mrb, mrb_value rat)
 
 /* ---------------------------*/
 static const mrb_mt_entry rational_rom_entries[] = {
-  MRB_MT_ENTRY(rational_numerator,   MRB_SYM(numerator),   MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(rational_denominator, MRB_SYM(denominator), MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(mrb_rational_to_i,    MRB_SYM(to_i),        MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(mrb_obj_itself,       MRB_SYM(to_r),        MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(rational_negative_p,  MRB_SYM_Q(negative),  MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(rational_eq,          MRB_OPSYM(eq),        MRB_MT_FUNC),
-  MRB_MT_ENTRY(rational_minus,       MRB_OPSYM(minus),     MRB_MT_FUNC|MRB_MT_NOARG),
-  MRB_MT_ENTRY(rational_add,         MRB_OPSYM(add),       MRB_MT_FUNC),
-  MRB_MT_ENTRY(rational_sub,         MRB_OPSYM(sub),       MRB_MT_FUNC),
-  MRB_MT_ENTRY(rational_mul,         MRB_OPSYM(mul),       MRB_MT_FUNC),
-  MRB_MT_ENTRY(rational_div,         MRB_OPSYM(div),       MRB_MT_FUNC),
-  MRB_MT_ENTRY(rational_div,         MRB_SYM(quo),         MRB_MT_FUNC),
-  MRB_MT_ENTRY(rational_pow,         MRB_OPSYM(pow),       MRB_MT_FUNC),
-  MRB_MT_ENTRY(rational_hash,        MRB_SYM(hash),        MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(rational_numerator,   MRB_SYM(numerator),   MRB_MT_NOARG),
+  MRB_MT_ENTRY(rational_denominator, MRB_SYM(denominator), MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_rational_to_i,    MRB_SYM(to_i),        MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_obj_itself,       MRB_SYM(to_r),        MRB_MT_NOARG),
+  MRB_MT_ENTRY(rational_negative_p,  MRB_SYM_Q(negative),  MRB_MT_NOARG),
+  MRB_MT_ENTRY(rational_eq,          MRB_OPSYM(eq),        0),
+  MRB_MT_ENTRY(rational_minus,       MRB_OPSYM(minus),     MRB_MT_NOARG),
+  MRB_MT_ENTRY(rational_add,         MRB_OPSYM(add),       0),
+  MRB_MT_ENTRY(rational_sub,         MRB_OPSYM(sub),       0),
+  MRB_MT_ENTRY(rational_mul,         MRB_OPSYM(mul),       0),
+  MRB_MT_ENTRY(rational_div,         MRB_OPSYM(div),       0),
+  MRB_MT_ENTRY(rational_div,         MRB_SYM(quo),         0),
+  MRB_MT_ENTRY(rational_pow,         MRB_OPSYM(pow),       0),
+  MRB_MT_ENTRY(rational_hash,        MRB_SYM(hash),        MRB_MT_NOARG),
 };
 static mrb_mt_tbl rational_rom_mt = MRB_MT_ROM_TAB(rational_rom_entries);
 
 static const mrb_mt_entry integer_to_r_rom_entries[] = {
-  MRB_MT_ENTRY(int_to_r, MRB_SYM(to_r), MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(int_to_r, MRB_SYM(to_r), MRB_MT_NOARG),
 };
 static mrb_mt_tbl integer_to_r_rom_mt = MRB_MT_ROM_TAB(integer_to_r_rom_entries);
 
 static const mrb_mt_entry nil_to_r_rom_entries[] = {
-  MRB_MT_ENTRY(nil_to_r, MRB_SYM(to_r), MRB_MT_FUNC|MRB_MT_NOARG),
+  MRB_MT_ENTRY(nil_to_r, MRB_SYM(to_r), MRB_MT_NOARG),
 };
 static mrb_mt_tbl nil_to_r_rom_mt = MRB_MT_ROM_TAB(nil_to_r_rom_entries);
 
 static const mrb_mt_entry kernel_rational_rom_entries[] = {
-  MRB_MT_ENTRY(rational_m, MRB_SYM(Rational), MRB_MT_FUNC|MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(rational_m, MRB_SYM(Rational), MRB_MT_PRIVATE),
 };
 static mrb_mt_tbl kernel_rational_rom_mt = MRB_MT_ROM_TAB(kernel_rational_rom_entries);
 
