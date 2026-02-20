@@ -793,7 +793,6 @@ static const mrb_mt_entry struct_rom_entries[] = {
   MRB_MT_ENTRY(mrb_struct_to_h,       MRB_SYM(to_h),         MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_struct_values_at,  MRB_SYM(values_at), MRB_ARGS_ANY()),
 };
-static mrb_mt_tbl struct_rom_mt = MRB_MT_ROM_TAB(struct_rom_entries);
 
 void
 mrb_mruby_struct_gem_init(mrb_state* mrb)
@@ -804,7 +803,7 @@ mrb_mruby_struct_gem_init(mrb_state* mrb)
 
   mrb_define_class_method_id(mrb, st, MRB_SYM(new), mrb_struct_s_def, MRB_ARGS_ANY());  /* 15.2.18.3.1  */
 
-  mrb_mt_init_rom(st, &struct_rom_mt);
+  MRB_MT_INIT_ROM(mrb, st, struct_rom_entries);
 }
 
 void

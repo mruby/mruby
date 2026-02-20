@@ -159,7 +159,10 @@ mt_copy(mrb_state *mrb, mrb_mt_tbl *t)
   return t2;
 }
 
-/* Frees memory of the method table (skips readonly/ROM layers) */
+/* Frees memory of the method table (mutable layers only).
+   Stops at the first readonly (ROM) layer; ROM wrappers are
+   shared (by iclasses, dup, etc.) and freed via mrb->rom_mt
+   at state close. */
 static void
 mt_free(mrb_state *mrb, mrb_mt_tbl *t)
 {
@@ -171,11 +174,27 @@ mt_free(mrb_state *mrb, mrb_mt_tbl *t)
   }
 }
 
-/* Pushes a ROM table layer onto the class's method table chain.
-   The readonly flag is already set by MRB_MT_ROM_TAB(). */
+/* Allocates a per-state ROM wrapper for the const entries array
+   and pushes it onto the class's method table chain.
+   The wrapper is also registered in mrb->rom_mt for cleanup
+   at mrb_close, since ROM layers are shared and must not be
+   freed by mt_free during normal GC. */
 void
-mrb_mt_init_rom(struct RClass *c, mrb_mt_tbl *rom)
+mrb_mt_init_rom(mrb_state *mrb, struct RClass *c,
+                const mrb_mt_entry *entries, int size)
 {
+  mrb_mt_tbl *rom = (mrb_mt_tbl*)mrb_malloc(mrb, sizeof(mrb_mt_tbl));
+  rom->size = size;
+  rom->alloc = size | MRB_MT_READONLY_BIT;
+  rom->ptr = (mrb_mt_entry*)entries;
+
+  /* register for cleanup at mrb_close */
+  struct mrb_mt_rom_list *node =
+    (struct mrb_mt_rom_list*)mrb_malloc(mrb, sizeof(struct mrb_mt_rom_list));
+  node->tbl = rom;
+  node->next = mrb->rom_mt;
+  mrb->rom_mt = node;
+
   /* push ROM layer */
   mrb_mt_tbl *t = c->mt;
   if (!t || mt_readonly_p(t)) {
@@ -275,7 +294,8 @@ mrb_class_mt_memsize(mrb_state *mrb, struct RClass *c)
   return total;
 }
 
-/* Frees class method table for garbage collection */
+/* Frees mutable layers of the class method table for GC.
+   ROM layers are left intact (freed via mrb->rom_mt at close). */
 void
 mrb_gc_free_mt(mrb_state *mrb, struct RClass *c)
 {
@@ -4270,7 +4290,6 @@ static const mrb_mt_entry bob_rom_entries[] = {
   MRB_MT_ENTRY(mrb_do_nothing,        MRB_SYM(singleton_method_removed),   MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_do_nothing,        MRB_SYM(singleton_method_undefined), MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
 };
-static mrb_mt_tbl bob_rom_mt = MRB_MT_ROM_TAB(bob_rom_entries);
 
 static const mrb_mt_entry cls_rom_entries[] = {
   MRB_MT_ENTRY(mrb_instance_alloc,   MRB_SYM(allocate),   MRB_ARGS_NONE()),
@@ -4278,7 +4297,6 @@ static const mrb_mt_entry cls_rom_entries[] = {
   MRB_MT_ENTRY(mrb_class_initialize, MRB_SYM(initialize), MRB_ARGS_OPT(1) | MRB_MT_PRIVATE),  /* 15.2.3.3.1 */
   MRB_MT_ENTRY(mrb_class_superclass, MRB_SYM(superclass), MRB_ARGS_NONE()),                   /* 15.2.3.3.4 */
 };
-static mrb_mt_tbl cls_rom_mt = MRB_MT_ROM_TAB(cls_rom_entries);
 
 static const mrb_mt_entry mod_rom_entries[] = {
   MRB_MT_ENTRY(mrb_mod_eqq,             MRB_OPSYM(eqq),            MRB_ARGS_REQ(1)),                   /* 15.2.2.4.7 */
@@ -4316,7 +4334,6 @@ static const mrb_mt_entry mod_rom_entries[] = {
   MRB_MT_ENTRY(mrb_mod_to_s,            MRB_SYM(to_s),             MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_mod_undef,           MRB_SYM(undef_method),     MRB_ARGS_ANY()),                    /* 15.2.2.4.41 */
 };
-static mrb_mt_tbl mod_rom_mt = MRB_MT_ROM_TAB(mod_rom_entries);
 
 void
 mrb_init_class(mrb_state *mrb)
@@ -4351,18 +4368,18 @@ mrb_init_class(mrb_state *mrb)
   mrb_class_name_class(mrb, NULL, mod, MRB_SYM(Module)); /* 15.2.2 */
   mrb_class_name_class(mrb, NULL, cls, MRB_SYM(Class));  /* 15.2.3 */
 
-  mrb_mt_init_rom(bob, &bob_rom_mt);
+  MRB_MT_INIT_ROM(mrb, bob, bob_rom_entries);
 
   mrb_method_t m;
   MRB_METHOD_FROM_PROC(m, &neq_proc);
   mrb_define_method_raw(mrb, bob, MRB_OPSYM(neq), m);
 
   mrb_define_class_method_id(mrb, cls, MRB_SYM(new),                       mrb_class_new_class,      MRB_ARGS_OPT(1)|MRB_ARGS_BLOCK());
-  mrb_mt_init_rom(cls, &cls_rom_mt);
+  MRB_MT_INIT_ROM(mrb, cls, cls_rom_entries);
 
   init_class_new(mrb, cls);
 
-  mrb_mt_init_rom(mod, &mod_rom_mt);
+  MRB_MT_INIT_ROM(mrb, mod, mod_rom_entries);
   mrb_define_alias_id(mrb, mod, MRB_SYM(attr), MRB_SYM(attr_reader));                                                  /* 15.2.2.4.11 */
 
   mrb_undef_method_id(mrb, cls, MRB_SYM(module_function));

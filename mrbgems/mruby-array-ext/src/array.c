@@ -1568,14 +1568,13 @@ static const mrb_mt_entry array_ext_rom_entries[] = {
   MRB_MT_ENTRY(ary_combination_init,   MRB_SYM(__combination_init), MRB_ARGS_REQ(2)),
   MRB_MT_ENTRY(ary_combination_next,   MRB_SYM(__combination_next), MRB_ARGS_REQ(1)),
 };
-static mrb_mt_tbl array_ext_rom_mt = MRB_MT_ROM_TAB(array_ext_rom_entries);
 
 void
 mrb_mruby_array_ext_gem_init(mrb_state* mrb)
 {
   struct RClass * a = mrb->array_class;
 
-  mrb_mt_init_rom(a, &array_ext_rom_mt);
+  MRB_MT_INIT_ROM(mrb, a, array_ext_rom_entries);
 }
 
 void

@@ -1715,7 +1715,6 @@ static const mrb_mt_entry time_rom_entries[] = {
   MRB_MT_ENTRY(time_to_f,       MRB_SYM(to_f),            MRB_ARGS_NONE()),                   /* 15.2.19.7.24 */
 #endif
 };
-static mrb_mt_tbl time_rom_mt = MRB_MT_ROM_TAB(time_rom_entries);
 
 void
 mrb_mruby_time_gem_init(mrb_state* mrb)
@@ -1731,7 +1730,7 @@ mrb_mruby_time_gem_init(mrb_state* mrb)
   mrb_define_class_method_id(mrb, tc, MRB_SYM(now), time_now, MRB_ARGS_NONE());        /* 15.2.19.6.5 */
   mrb_define_class_method_id(mrb, tc, MRB_SYM(utc), time_gm, MRB_ARGS_ARG(1,6));      /* 15.2.19.6.6 */
 
-  mrb_mt_init_rom(tc, &time_rom_mt);
+  MRB_MT_INIT_ROM(mrb, tc, time_rom_entries);
 }
 
 void

@@ -2274,14 +2274,13 @@ static const mrb_mt_entry string_ext_rom_entries[] = {
   MRB_MT_ENTRY(str_rjust_core,      MRB_SYM(rjust),           MRB_ARGS_ARG(1,1)),
   MRB_MT_ENTRY(str_center_core,     MRB_SYM(center),          MRB_ARGS_ARG(1,1)),
 };
-static mrb_mt_tbl string_ext_rom_mt = MRB_MT_ROM_TAB(string_ext_rom_entries);
 
 void
 mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 {
   struct RClass *s = mrb->string_class;
 
-  mrb_mt_init_rom(s, &string_ext_rom_mt);
+  MRB_MT_INIT_ROM(mrb, s, string_ext_rom_entries);
   mrb_define_method_id(mrb, mrb->integer_class, MRB_SYM(chr), int_chr, MRB_ARGS_NONE()|MRB_ARGS_OPT(1));
 }
 

@@ -105,23 +105,21 @@ static const mrb_mt_entry nil_ext_rom_entries[] = {
   MRB_MT_ENTRY(nil_to_f, MRB_SYM(to_f), MRB_ARGS_NONE()),
 #endif
 };
-static mrb_mt_tbl nil_ext_rom_mt = MRB_MT_ROM_TAB(nil_ext_rom_entries);
 
 static const mrb_mt_entry bob_ext_rom_entries[] = {
   MRB_MT_ENTRY(obj_instance_exec, MRB_SYM(instance_exec), MRB_ARGS_ANY()|MRB_ARGS_BLOCK()),
 };
-static mrb_mt_tbl bob_ext_rom_mt = MRB_MT_ROM_TAB(bob_ext_rom_entries);
 
 void
 mrb_mruby_object_ext_gem_init(mrb_state* mrb)
 {
   struct RClass * n = mrb->nil_class;
 
-  mrb_mt_init_rom(n, &nil_ext_rom_mt);
+  MRB_MT_INIT_ROM(mrb, n, nil_ext_rom_entries);
 
   mrb_define_method_id(mrb, mrb->kernel_module, MRB_SYM(itself), mrb_obj_itself, MRB_ARGS_NONE());
 
-  mrb_mt_init_rom(mrb_class_get_id(mrb, MRB_SYM(BasicObject)), &bob_ext_rom_mt);
+  MRB_MT_INIT_ROM(mrb, mrb_class_get_id(mrb, MRB_SYM(BasicObject)), bob_ext_rom_entries);
 }
 
 void

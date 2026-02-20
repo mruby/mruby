@@ -703,7 +703,6 @@ static const mrb_mt_entry metaprog_krn_rom_entries[] = {
   MRB_MT_ENTRY(mrb_f_send,               MRB_SYM(send), MRB_ARGS_REQ(1)|MRB_ARGS_REST()|MRB_ARGS_BLOCK()),  /* 15.3.1.3.44 */
   MRB_MT_ENTRY(mrb_f_public_send,        MRB_SYM(public_send), MRB_ARGS_REQ(1)|MRB_ARGS_REST()|MRB_ARGS_BLOCK()),
 };
-static mrb_mt_tbl metaprog_krn_rom_mt = MRB_MT_ROM_TAB(metaprog_krn_rom_entries);
 
 static const mrb_mt_entry metaprog_mod_rom_entries[] = {
   MRB_MT_ENTRY(mrb_mod_class_variables,          MRB_SYM(class_variables), MRB_ARGS_OPT(1)),  /* 15.2.2.4.19 */
@@ -721,7 +720,6 @@ static const mrb_mt_entry metaprog_mod_rom_entries[] = {
   MRB_MT_ENTRY(mrb_f_nil,                        MRB_SYM(method_removed), MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(mrb_mod_constants,                MRB_SYM(constants),     MRB_ARGS_OPT(1)),  /* 15.2.2.4.24 */
 };
-static mrb_mt_tbl metaprog_mod_rom_mt = MRB_MT_ROM_TAB(metaprog_mod_rom_entries);
 
 void
 mrb_mruby_metaprog_gem_init(mrb_state* mrb)
@@ -729,8 +727,8 @@ mrb_mruby_metaprog_gem_init(mrb_state* mrb)
   struct RClass *krn = mrb->kernel_module;
   struct RClass *mod = mrb->module_class;
 
-  mrb_mt_init_rom(krn, &metaprog_krn_rom_mt);
-  mrb_mt_init_rom(mod, &metaprog_mod_rom_mt);
+  MRB_MT_INIT_ROM(mrb, krn, metaprog_krn_rom_entries);
+  MRB_MT_INIT_ROM(mrb, mod, metaprog_mod_rom_entries);
   mrb_define_class_method_id(mrb, mod, MRB_SYM(constants), mrb_mod_s_constants, MRB_ARGS_ANY()); /* 15.2.2.3.1 */
   mrb_define_class_method_id(mrb, mod, MRB_SYM(nesting), mrb_mod_s_nesting, MRB_ARGS_NONE()); /* 15.2.2.3.2 */
 }

@@ -187,6 +187,18 @@ mrb_close(mrb_state *mrb)
   mrb_gc_destroy(mrb, &mrb->gc);
   mrb_free_context(mrb, mrb->root_c);
   mrb_free_symtbl(mrb);
+
+  /* free heap-allocated ROM method table wrappers */
+  {
+    struct mrb_mt_rom_list *node = mrb->rom_mt;
+    while (node) {
+      struct mrb_mt_rom_list *next = node->next;
+      mrb_free(mrb, node->tbl);
+      mrb_free(mrb, node);
+      node = next;
+    }
+  }
+
   mrb_free(mrb, mrb);
 }
 

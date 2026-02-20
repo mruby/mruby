@@ -2307,7 +2307,6 @@ static const mrb_mt_entry numeric_rom_entries[] = {
   MRB_MT_ENTRY(num_fdiv, MRB_SYM(fdiv), MRB_ARGS_REQ(1)),
 #endif
 };
-static mrb_mt_tbl numeric_rom_mt = MRB_MT_ROM_TAB(numeric_rom_entries);
 
 static const mrb_mt_entry integer_rom_entries[] = {
   MRB_MT_ENTRY(int_pow,              MRB_OPSYM(pow),    MRB_ARGS_REQ(1)),
@@ -2346,7 +2345,6 @@ static const mrb_mt_entry integer_rom_entries[] = {
   MRB_MT_ENTRY(int_to_f, MRB_SYM(to_f), MRB_ARGS_NONE()),  /* 15.2.8.3.23 */
 #endif
 };
-static mrb_mt_tbl integer_rom_mt = MRB_MT_ROM_TAB(integer_rom_entries);
 
 #ifndef MRB_NO_FLOAT
 static const mrb_mt_entry float_rom_entries[] = {
@@ -2380,7 +2378,6 @@ static const mrb_mt_entry float_rom_entries[] = {
   MRB_MT_ENTRY(flo_abs,        MRB_SYM(abs),      MRB_ARGS_NONE()),  /* 15.2.7.4.3 */
   MRB_MT_ENTRY(flo_hash,       MRB_SYM(hash),     MRB_ARGS_NONE()),
 };
-static mrb_mt_tbl float_rom_mt = MRB_MT_ROM_TAB(float_rom_entries);
 #endif /* !MRB_NO_FLOAT */
 
 void
@@ -2393,14 +2390,14 @@ mrb_init_numeric(mrb_state *mrb)
 
   /* Numeric Class */
   numeric = mrb_define_class_id(mrb, MRB_SYM(Numeric), mrb->object_class);                  /* 15.2.7 */
-  mrb_mt_init_rom(numeric, &numeric_rom_mt);
+  MRB_MT_INIT_ROM(mrb, numeric, numeric_rom_entries);
 
   /* Integer Class */
   mrb->integer_class = integer = mrb_define_class_id(mrb, MRB_SYM(Integer),  numeric);     /* 15.2.8 */
   MRB_SET_INSTANCE_TT(integer, MRB_TT_INTEGER);
   MRB_UNDEF_ALLOCATOR(integer);
   mrb_undef_class_method_id(mrb, integer, MRB_SYM(new));
-  mrb_mt_init_rom(integer, &integer_rom_mt);
+  MRB_MT_INIT_ROM(mrb, integer, integer_rom_entries);
 
   /* Fixnum Class for compatibility */
   mrb_define_const_id(mrb, mrb->object_class, MRB_SYM(Fixnum), mrb_obj_value(integer));
@@ -2411,7 +2408,7 @@ mrb_init_numeric(mrb_state *mrb)
   MRB_SET_INSTANCE_TT(fl, MRB_TT_FLOAT);
   MRB_UNDEF_ALLOCATOR(fl);
   mrb_undef_class_method(mrb,  fl, "new");
-  mrb_mt_init_rom(fl, &float_rom_mt);
+  MRB_MT_INIT_ROM(mrb, fl, float_rom_entries);
 
 #ifdef INFINITY
   mrb_define_const_id(mrb, fl, MRB_SYM(INFINITY), mrb_float_value(mrb, INFINITY));

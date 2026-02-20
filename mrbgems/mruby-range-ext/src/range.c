@@ -221,14 +221,13 @@ static const mrb_mt_entry range_ext_rom_entries[] = {
   MRB_MT_ENTRY(range_size,    MRB_SYM(size),          MRB_ARGS_NONE()),
   MRB_MT_ENTRY(range_empty_p, MRB_SYM_Q(__empty_range), MRB_ARGS_REQ(3)),
 };
-static mrb_mt_tbl range_ext_rom_mt = MRB_MT_ROM_TAB(range_ext_rom_entries);
 
 void
 mrb_mruby_range_ext_gem_init(mrb_state* mrb)
 {
   struct RClass *s = mrb->range_class;
 
-  mrb_mt_init_rom(s, &range_ext_rom_mt);
+  MRB_MT_INIT_ROM(mrb, s, range_ext_rom_entries);
 }
 
 void

@@ -491,7 +491,6 @@ static const mrb_mt_entry integer_ext_rom_entries[] = {
   MRB_MT_ENTRY(int_gcd,        MRB_SYM(gcd), MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(int_lcm,        MRB_SYM(lcm), MRB_ARGS_REQ(1)),
 };
-static mrb_mt_tbl integer_ext_rom_mt = MRB_MT_ROM_TAB(integer_ext_rom_entries);
 
 
 void
@@ -500,7 +499,7 @@ mrb_mruby_numeric_ext_gem_init(mrb_state* mrb)
   struct RClass *ic = mrb->integer_class;
 
   mrb_define_alias_id(mrb, ic, MRB_SYM(modulo), MRB_OPSYM(mod));
-  mrb_mt_init_rom(ic, &integer_ext_rom_mt);
+  MRB_MT_INIT_ROM(mrb, ic, integer_ext_rom_entries);
   mrb_define_class_method_id(mrb, ic, MRB_SYM(sqrt), int_sqrt, MRB_ARGS_REQ(1));
 
 #ifndef MRB_NO_FLOAT

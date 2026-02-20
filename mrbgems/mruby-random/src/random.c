@@ -574,7 +574,6 @@ static const mrb_mt_entry random_rom_entries[] = {
   MRB_MT_ENTRY(random_m_srand, MRB_SYM(srand), MRB_ARGS_OPT(1)),
   MRB_MT_ENTRY(random_m_bytes, MRB_SYM(bytes), MRB_ARGS_REQ(1)),
 };
-static mrb_mt_tbl random_rom_mt = MRB_MT_ROM_TAB(random_rom_entries);
 
 void mrb_mruby_random_gem_init(mrb_state *mrb)
 {
@@ -591,7 +590,7 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
 
   mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(rand), random_f_rand, MRB_ARGS_OPT(1));
   mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(srand), random_f_srand, MRB_ARGS_OPT(1));
-  mrb_mt_init_rom(random, &random_rom_mt);
+  MRB_MT_INIT_ROM(mrb, random, random_rom_entries);
   mrb_define_method_id(mrb, array, MRB_SYM(shuffle), mrb_ary_shuffle, MRB_ARGS_OPT(1));
   mrb_define_method_id(mrb, array, MRB_SYM_B(shuffle), mrb_ary_shuffle_bang, MRB_ARGS_OPT(1));
   mrb_define_method_id(mrb, array, MRB_SYM(sample), mrb_ary_sample, MRB_ARGS_OPT(2));

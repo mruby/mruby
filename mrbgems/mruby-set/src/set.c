@@ -1509,7 +1509,6 @@ static const mrb_mt_entry set_rom_entries[] = {
   MRB_MT_ENTRY(set_flatten,           MRB_SYM(flatten),        MRB_ARGS_NONE()),
   MRB_MT_ENTRY(set_flatten_bang,      MRB_SYM_B(flatten),      MRB_ARGS_NONE()),
 };
-static mrb_mt_tbl set_rom_mt = MRB_MT_ROM_TAB(set_rom_entries);
 
 void
 mrb_mruby_set_gem_init(mrb_state *mrb)
@@ -1525,7 +1524,7 @@ mrb_mruby_set_gem_init(mrb_state *mrb)
 
   mrb_define_private_method(mrb, set, "initialize_copy", set_init_copy, MRB_ARGS_REQ(1));
 
-  mrb_mt_init_rom(set, &set_rom_mt);
+  MRB_MT_INIT_ROM(mrb, set, set_rom_entries);
 
   mrb_define_alias(mrb, set, "eql?", "==");
 }

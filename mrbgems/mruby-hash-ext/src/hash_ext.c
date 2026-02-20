@@ -375,7 +375,6 @@ static const mrb_mt_entry hash_ext_rom_entries[] = {
   MRB_MT_ENTRY(hash_key,       MRB_SYM(key), MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(hash_merge,     MRB_SYM(__merge), MRB_ARGS_ANY()),
 };
-static mrb_mt_tbl hash_ext_rom_mt = MRB_MT_ROM_TAB(hash_ext_rom_entries);
 
 void
 mrb_mruby_hash_ext_gem_init(mrb_state *mrb)
@@ -383,7 +382,7 @@ mrb_mruby_hash_ext_gem_init(mrb_state *mrb)
   struct RClass *h;
 
   h = mrb->hash_class;
-  mrb_mt_init_rom(h, &hash_ext_rom_mt);
+  MRB_MT_INIT_ROM(mrb, h, hash_ext_rom_entries);
   mrb_define_class_method_id(mrb, h, MRB_OPSYM(aref), hash_s_create, MRB_ARGS_ANY());
 }
 

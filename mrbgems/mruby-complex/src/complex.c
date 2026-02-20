@@ -573,7 +573,6 @@ static const mrb_mt_entry complex_rom_entries[] = {
   MRB_MT_ENTRY(complex_hash,      MRB_SYM(hash),   MRB_ARGS_NONE()),
   MRB_MT_ENTRY(complex_pow,       MRB_OPSYM(pow), MRB_ARGS_REQ(1)),
 };
-static mrb_mt_tbl complex_rom_mt = MRB_MT_ROM_TAB(complex_rom_entries);
 
 void mrb_mruby_complex_gem_init(mrb_state *mrb)
 {
@@ -587,7 +586,7 @@ void mrb_mruby_complex_gem_init(mrb_state *mrb)
   mrb_define_class_method_id(mrb, comp, MRB_SYM(rectangular), complex_s_rect, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_class_method_id(mrb, comp, MRB_SYM(rect), complex_s_rect, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
 
-  mrb_mt_init_rom(comp, &complex_rom_mt);
+  MRB_MT_INIT_ROM(mrb, comp, complex_rom_entries);
   mrb_define_method_id(mrb, mrb->nil_class, MRB_SYM(to_c), nil_to_c, MRB_ARGS_NONE());
   mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(Complex), complex_s_rect, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
 }

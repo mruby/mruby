@@ -1275,7 +1275,6 @@ static const mrb_mt_entry addrinfo_rom_entries[] = {
   MRB_MT_ENTRY(mrb_addrinfo_getnameinfo, MRB_SYM(getnameinfo), MRB_ARGS_OPT(1)),
   MRB_MT_ENTRY(mrb_addrinfo_unix_path,   MRB_SYM(unix_path), MRB_ARGS_NONE()),
 };
-static mrb_mt_tbl addrinfo_rom_mt = MRB_MT_ROM_TAB(addrinfo_rom_entries);
 
 static const mrb_mt_entry basicsocket_rom_entries[] = {
   MRB_MT_ENTRY(mrb_basicsocket_recvfrom,      MRB_SYM(_recvfrom), MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1)),
@@ -1298,12 +1297,10 @@ static const mrb_mt_entry basicsocket_rom_entries[] = {
   MRB_MT_ENTRY(mrb_win32_basicsocket_syswrite, MRB_SYM(write), MRB_ARGS_REQ(1)),
 #endif
 };
-static mrb_mt_tbl basicsocket_rom_mt = MRB_MT_ROM_TAB(basicsocket_rom_entries);
 
 static const mrb_mt_entry ipsocket_rom_entries[] = {
   MRB_MT_ENTRY(mrb_ipsocket_recvfrom, MRB_SYM(recvfrom), MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1)),
 };
-static mrb_mt_tbl ipsocket_rom_mt = MRB_MT_ROM_TAB(ipsocket_rom_entries);
 
 static const mrb_mt_entry socket_option_rom_entries[] = {
   MRB_MT_ENTRY(socket_option_init,    MRB_SYM(initialize), MRB_ARGS_REQ(4)),
@@ -1317,7 +1314,6 @@ static const mrb_mt_entry socket_option_rom_entries[] = {
   MRB_MT_ENTRY(socket_option_notimp,  MRB_SYM(linger),  MRB_ARGS_REQ(0)),
   MRB_MT_ENTRY(socket_option_notimp,  MRB_SYM(unpack), MRB_ARGS_REQ(1)),
 };
-static mrb_mt_tbl socket_option_rom_mt = MRB_MT_ROM_TAB(socket_option_rom_entries);
 
 void
 mrb_mruby_socket_gem_init(mrb_state* mrb)
@@ -1354,10 +1350,10 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
   mrb_define_class_method_id(mrb, option, MRB_SYM(bool), socket_option_s_bool, MRB_ARGS_REQ(4));
   mrb_define_class_method_id(mrb, option, MRB_SYM(int), socket_option_s_int, MRB_ARGS_REQ(4));
 
-  mrb_mt_init_rom(ainfo, &addrinfo_rom_mt);
-  mrb_mt_init_rom(bsock, &basicsocket_rom_mt);
-  mrb_mt_init_rom(ipsock, &ipsocket_rom_mt);
-  mrb_mt_init_rom(option, &socket_option_rom_mt);
+  MRB_MT_INIT_ROM(mrb, ainfo, addrinfo_rom_entries);
+  MRB_MT_INIT_ROM(mrb, bsock, basicsocket_rom_entries);
+  MRB_MT_INIT_ROM(mrb, ipsock, ipsocket_rom_entries);
+  MRB_MT_INIT_ROM(mrb, option, socket_option_rom_entries);
 
   struct RClass *constants = mrb_define_module_under_id(mrb, sock, MRB_SYM(Constants));
 

@@ -2341,7 +2341,6 @@ static const mrb_mt_entry hash_rom_entries[] = {
   MRB_MT_ENTRY(mrb_hash_pat_values,       MRB_SYM(__pat_values),    MRB_ARGS_REQ(1)),                                    /* for pattern matching keys */
   MRB_MT_ENTRY(mrb_hash_except_keys,      MRB_SYM(__except),        MRB_ARGS_REQ(1)),                                    /* for pattern matching **rest */
 };
-static mrb_mt_tbl hash_rom_mt = MRB_MT_ROM_TAB(hash_rom_entries);
 
 void
 mrb_init_hash(mrb_state *mrb)
@@ -2351,6 +2350,6 @@ mrb_init_hash(mrb_state *mrb)
   mrb->hash_class = h = mrb_define_class_id(mrb, MRB_SYM(Hash), mrb->object_class);              /* 15.2.13 */
   MRB_SET_INSTANCE_TT(h, MRB_TT_HASH);
 
-  mrb_mt_init_rom(h, &hash_rom_mt);
+  MRB_MT_INIT_ROM(mrb, h, hash_rom_entries);
 }
 #undef lesser

@@ -2287,7 +2287,6 @@ static const mrb_mt_entry array_rom_entries[] = {
   MRB_MT_ENTRY(mrb_ary_sort_bang,    MRB_SYM_B(sort),          MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_ary_svalue,       MRB_SYM(__svalue),        MRB_ARGS_NONE()),
 };
-static mrb_mt_tbl array_rom_mt = MRB_MT_ROM_TAB(array_rom_entries);
 
 void
 mrb_init_array(mrb_state *mrb)
@@ -2299,5 +2298,5 @@ mrb_init_array(mrb_state *mrb)
 
   mrb_define_class_method_id(mrb, a, MRB_OPSYM(aref),    mrb_ary_s_create,     MRB_ARGS_ANY());    /* 15.2.12.4.1 */
 
-  mrb_mt_init_rom(a, &array_rom_mt);
+  MRB_MT_INIT_ROM(mrb, a, array_rom_entries);
 }

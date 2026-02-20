@@ -2235,7 +2235,6 @@ static const mrb_mt_entry io_rom_entries[] = {
   MRB_MT_ENTRY(io_getbyte,           MRB_SYM(getbyte),       MRB_ARGS_NONE()),
   MRB_MT_ENTRY(io_readbyte,          MRB_SYM(readbyte),      MRB_ARGS_NONE()),
 };
-static mrb_mt_tbl io_rom_mt = MRB_MT_ROM_TAB(io_rom_entries);
 
 void
 mrb_init_io(mrb_state *mrb)
@@ -2253,7 +2252,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_class_method_id(mrb, io, MRB_SYM(_pipe), io_s_pipe, MRB_ARGS_NONE());
 #endif
 
-  mrb_mt_init_rom(io, &io_rom_mt);
+  MRB_MT_INIT_ROM(mrb, io, io_rom_entries);
 
   mrb_define_const_id(mrb, io, MRB_SYM(SEEK_SET), mrb_fixnum_value(SEEK_SET));
   mrb_define_const_id(mrb, io, MRB_SYM(SEEK_CUR), mrb_fixnum_value(SEEK_CUR));

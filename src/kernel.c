@@ -699,7 +699,6 @@ static const mrb_mt_entry kernel_rom_entries[] = {
   MRB_MT_ENTRY(mrb_print_m, MRB_SYM(print), MRB_ARGS_ANY() | MRB_MT_PRIVATE),  /* 15.3.1.3.35 */
 #endif
 };
-static mrb_mt_tbl kernel_rom_mt = MRB_MT_ROM_TAB(kernel_rom_entries);
 
 void
 mrb_init_kernel(mrb_state *mrb)
@@ -713,7 +712,7 @@ mrb_init_kernel(mrb_state *mrb)
 #endif
   mrb_define_class_method_id(mrb, krn, MRB_SYM(raise),                mrb_f_raise,                     MRB_ARGS_OPT(2));    /* 15.3.1.2.12 */
 
-  mrb_mt_init_rom(krn, &kernel_rom_mt);
+  MRB_MT_INIT_ROM(mrb, krn, kernel_rom_entries);
 
   mrb_include_module(mrb, mrb->object_class, mrb->kernel_module);
 }

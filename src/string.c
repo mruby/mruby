@@ -3559,7 +3559,6 @@ static const mrb_mt_entry string_rom_entries[] = {
   MRB_MT_ENTRY(mrb_str_to_f,            MRB_SYM(to_f),            MRB_ARGS_NONE()),                   /* 15.2.10.5.38 */
 #endif
 };
-static mrb_mt_tbl string_rom_mt = MRB_MT_ROM_TAB(string_rom_entries);
 
 void
 mrb_init_string(mrb_state *mrb)
@@ -3572,7 +3571,7 @@ mrb_init_string(mrb_state *mrb)
   mrb->string_class = s = mrb_define_class_id(mrb, MRB_SYM(String), mrb->object_class);             /* 15.2.10 */
   MRB_SET_INSTANCE_TT(s, MRB_TT_STRING);
 
-  mrb_mt_init_rom(s, &string_rom_mt);
+  MRB_MT_INIT_ROM(mrb, s, string_rom_entries);
 
   mrb_define_method_id(mrb, mrb->kernel_module, MRB_SYM(__ENCODING__), mrb_encoding, MRB_ARGS_NONE());
 }

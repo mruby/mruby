@@ -1247,7 +1247,6 @@ static const mrb_mt_entry rational_rom_entries[] = {
   MRB_MT_ENTRY(mrb_rational_to_f,   MRB_SYM(to_f),     MRB_ARGS_NONE()),
 #endif
 };
-static mrb_mt_tbl rational_rom_mt = MRB_MT_ROM_TAB(rational_rom_entries);
 
 void mrb_mruby_rational_gem_init(mrb_state *mrb)
 {
@@ -1255,7 +1254,7 @@ void mrb_mruby_rational_gem_init(mrb_state *mrb)
   MRB_SET_INSTANCE_TT(rat, MRB_TT_RATIONAL);
   MRB_UNDEF_ALLOCATOR(rat);
   mrb_undef_class_method_id(mrb, rat, MRB_SYM(new));
-  mrb_mt_init_rom(rat, &rational_rom_mt);
+  MRB_MT_INIT_ROM(mrb, rat, rational_rom_entries);
   mrb_define_method_id(mrb, mrb->integer_class, MRB_SYM(to_r), int_to_r, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, mrb->nil_class, MRB_SYM(to_r), nil_to_r, MRB_ARGS_NONE());
   mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(Rational), rational_m, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));

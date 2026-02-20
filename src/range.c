@@ -583,7 +583,6 @@ static const mrb_mt_entry range_rom_entries[] = {
   MRB_MT_ENTRY(range_initialize_copy, MRB_SYM(initialize_copy), MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),  /* 15.2.14.4.15(x) */
   MRB_MT_ENTRY(range_num_to_a,        MRB_SYM(__num_to_a),   MRB_ARGS_NONE()),
 };
-static mrb_mt_tbl range_rom_mt = MRB_MT_ROM_TAB(range_rom_entries);
 
 void
 mrb_init_range(mrb_state *mrb)
@@ -594,5 +593,5 @@ mrb_init_range(mrb_state *mrb)
   mrb->range_class = r;
   MRB_SET_INSTANCE_TT(r, MRB_TT_RANGE);
 
-  mrb_mt_init_rom(r, &range_rom_mt);
+  MRB_MT_INIT_ROM(mrb, r, range_rom_entries);
 }

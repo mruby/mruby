@@ -131,14 +131,6 @@ typedef struct mrb_mt_tbl {
   { { .func = (fn) }, (sym), (flags) | MRB_MT_FUNC }
 #define MRB_MT_ASPEC(flags) ((mrb_aspec)((flags) & 0xffffff))
 
-/* ROM table initializer from const entries array (auto-computes size).
-   Casts away const because mrb_mt_tbl.ptr is shared with mutable layers;
-   the MRB_MT_READONLY_BIT prevents writes. */
-#define MRB_MT_ROM_TAB(entries) { \
-  (int)(sizeof(entries)/sizeof(entries[0])), \
-  (int)(sizeof(entries)/sizeof(entries[0])) | MRB_MT_READONLY_BIT, \
-  (mrb_mt_entry*)(entries), NULL }
-
 /* "removed" tombstone: MRB_MT_FUNC flag set with NULL function pointer.
    This combination never occurs naturally (C functions are never NULL).
    Unlike undef (proc=NULL without MRB_MT_FUNC), a removed marker makes
@@ -146,7 +138,19 @@ typedef struct mrb_mt_tbl {
    allowing superclass lookup. */
 #define MRB_MT_REMOVED_P(e) (((e).flags&MRB_MT_FUNC) && (e).val.func==NULL)
 
-void mrb_mt_init_rom(struct RClass *c, mrb_mt_tbl *rom);
+/* Singly-linked list node for tracking heap-allocated ROM wrappers. */
+struct mrb_mt_rom_list {
+  mrb_mt_tbl *tbl;
+  struct mrb_mt_rom_list *next;
+};
+
+/* Allocate a per-state ROM layer wrapping the const entries array,
+   and push it onto the class's method table chain. */
+void mrb_mt_init_rom(mrb_state *mrb, struct RClass *c,
+                     const mrb_mt_entry *entries, int size);
+#define MRB_MT_INIT_ROM(mrb, cls, entries) \
+  mrb_mt_init_rom(mrb, cls, entries, \
+                  (int)(sizeof(entries)/sizeof(entries[0])))
 
 MRB_END_DECL
 

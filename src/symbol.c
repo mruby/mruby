@@ -1009,7 +1009,6 @@ static const mrb_mt_entry symbol_rom_entries[] = {
   MRB_MT_ENTRY(sym_cmp,          MRB_OPSYM(cmp), MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(mrb_obj_equal_m,  MRB_OPSYM(eq), MRB_ARGS_REQ(1)),
 };
-static mrb_mt_tbl symbol_rom_mt = MRB_MT_ROM_TAB(symbol_rom_entries);
 
 void
 mrb_init_symbol(mrb_state *mrb)
@@ -1020,5 +1019,5 @@ mrb_init_symbol(mrb_state *mrb)
   MRB_SET_INSTANCE_TT(sym, MRB_TT_SYMBOL);
   mrb_undef_class_method_id(mrb,  sym, MRB_SYM(new));
 
-  mrb_mt_init_rom(sym, &symbol_rom_mt);
+  MRB_MT_INIT_ROM(mrb, sym, symbol_rom_entries);
 }

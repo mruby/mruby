@@ -62,7 +62,6 @@ static const mrb_mt_entry symbol_ext_rom_entries[] = {
   MRB_MT_ENTRY(mrb_sym_length, MRB_SYM(length), MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_sym_length, MRB_SYM(size), MRB_ARGS_NONE()),
 };
-static mrb_mt_tbl symbol_ext_rom_mt = MRB_MT_ROM_TAB(symbol_ext_rom_entries);
 
 void
 mrb_mruby_symbol_ext_gem_init(mrb_state* mrb)
@@ -71,7 +70,7 @@ mrb_mruby_symbol_ext_gem_init(mrb_state* mrb)
 #ifdef MRB_USE_ALL_SYMBOLS
   mrb_define_class_method_id(mrb, s, MRB_SYM(all_symbols), mrb_sym_all_symbols, MRB_ARGS_NONE());
 #endif
-  mrb_mt_init_rom(s, &symbol_ext_rom_mt);
+  MRB_MT_INIT_ROM(mrb, s, symbol_ext_rom_entries);
 }
 
 void

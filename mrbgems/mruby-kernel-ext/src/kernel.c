@@ -301,14 +301,13 @@ static const mrb_mt_entry kernel_ext_rom_entries[] = {
 #endif
   MRB_MT_ENTRY(mrb_f_hash, MRB_SYM(Hash),      MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
 };
-static mrb_mt_tbl kernel_ext_rom_mt = MRB_MT_ROM_TAB(kernel_ext_rom_entries);
 
 void
 mrb_mruby_kernel_ext_gem_init(mrb_state *mrb)
 {
   struct RClass *krn = mrb->kernel_module;
 
-  mrb_mt_init_rom(krn, &kernel_ext_rom_mt);
+  MRB_MT_INIT_ROM(mrb, krn, kernel_ext_rom_entries);
 }
 
 void
