@@ -559,19 +559,19 @@ complex_pow(mrb_state *mrb, mrb_value self)
 
 /* ---------------------------*/
 static const mrb_mt_entry complex_rom_entries[] = {
-  MRB_MT_ENTRY(complex_real,      MRB_SYM(real),      MRB_MT_NOARG),
-  MRB_MT_ENTRY(complex_imaginary, MRB_SYM(imaginary), MRB_MT_NOARG),
-  MRB_MT_ENTRY(mrb_complex_to_f,  MRB_SYM(to_f),      MRB_MT_NOARG),
-  MRB_MT_ENTRY(mrb_complex_to_i,  MRB_SYM(to_i),      MRB_MT_NOARG),
-  MRB_MT_ENTRY(mrb_obj_itself,    MRB_SYM(to_c),      MRB_MT_NOARG),
-  MRB_MT_ENTRY(complex_add,       MRB_OPSYM(add),     0),
-  MRB_MT_ENTRY(complex_sub,       MRB_OPSYM(sub),     0),
-  MRB_MT_ENTRY(complex_mul,       MRB_OPSYM(mul),     0),
-  MRB_MT_ENTRY(complex_div,       MRB_OPSYM(div),     0),
-  MRB_MT_ENTRY(complex_div,       MRB_SYM(quo),       0),
-  MRB_MT_ENTRY(complex_eq,        MRB_OPSYM(eq),      0),
-  MRB_MT_ENTRY(complex_hash,      MRB_SYM(hash),      MRB_MT_NOARG),
-  MRB_MT_ENTRY(complex_pow,       MRB_OPSYM(pow),     0),
+  MRB_MT_ENTRY(complex_real,      MRB_SYM(real),   MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(complex_imaginary, MRB_SYM(imaginary), MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_complex_to_f,  MRB_SYM(to_f),   MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_complex_to_i,  MRB_SYM(to_i),   MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_obj_itself,    MRB_SYM(to_c),   MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(complex_add,       MRB_OPSYM(add), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(complex_sub,       MRB_OPSYM(sub), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(complex_mul,       MRB_OPSYM(mul), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(complex_div,       MRB_OPSYM(div), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(complex_div,       MRB_SYM(quo), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(complex_eq,        MRB_OPSYM(eq), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(complex_hash,      MRB_SYM(hash),   MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(complex_pow,       MRB_OPSYM(pow), MRB_ARGS_REQ(1)),
 };
 static mrb_mt_tbl complex_rom_mt = MRB_MT_ROM_TAB(complex_rom_entries);
 

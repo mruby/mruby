@@ -569,10 +569,10 @@ random_f_bytes(mrb_state *mrb, mrb_value self)
 
 
 static const mrb_mt_entry random_rom_entries[] = {
-  MRB_MT_ENTRY(random_m_init,  MRB_SYM(initialize), 0),
-  MRB_MT_ENTRY(random_m_rand,  MRB_SYM(rand),       0),
-  MRB_MT_ENTRY(random_m_srand, MRB_SYM(srand),      0),
-  MRB_MT_ENTRY(random_m_bytes, MRB_SYM(bytes),      0),
+  MRB_MT_ENTRY(random_m_init,  MRB_SYM(initialize), MRB_ARGS_OPT(1)),
+  MRB_MT_ENTRY(random_m_rand,  MRB_SYM(rand), MRB_ARGS_OPT(1)),
+  MRB_MT_ENTRY(random_m_srand, MRB_SYM(srand), MRB_ARGS_OPT(1)),
+  MRB_MT_ENTRY(random_m_bytes, MRB_SYM(bytes), MRB_ARGS_REQ(1)),
 };
 static mrb_mt_tbl random_rom_mt = MRB_MT_ROM_TAB(random_rom_entries);
 

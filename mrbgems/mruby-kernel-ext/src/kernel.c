@@ -289,17 +289,17 @@ mrb_f_hash(mrb_state *mrb, mrb_value self)
 }
 
 static const mrb_mt_entry kernel_ext_rom_entries[] = {
-  MRB_MT_ENTRY(mrb_f_raise,   MRB_SYM(fail),       MRB_MT_PRIVATE),
-  MRB_MT_ENTRY(mrb_f_caller,  MRB_SYM(caller),     MRB_MT_PRIVATE),
-  MRB_MT_ENTRY(mrb_f_method,  MRB_SYM(__method__), MRB_MT_NOARG|MRB_MT_PRIVATE),
-  MRB_MT_ENTRY(mrb_f_callee,  MRB_SYM(__callee__), MRB_MT_NOARG|MRB_MT_PRIVATE),
-  MRB_MT_ENTRY(mrb_f_integer, MRB_SYM(Integer),    MRB_MT_PRIVATE),
-  MRB_MT_ENTRY(mrb_f_string,  MRB_SYM(String),     MRB_MT_PRIVATE),
-  MRB_MT_ENTRY(mrb_f_array,   MRB_SYM(Array),      MRB_MT_PRIVATE),
+  MRB_MT_ENTRY_PRIVATE(mrb_f_raise, MRB_SYM(fail),      MRB_ARGS_OPT(2)),
+  MRB_MT_ENTRY_PRIVATE(mrb_f_caller, MRB_SYM(caller),    MRB_ARGS_OPT(2)),
+  MRB_MT_ENTRY_PRIVATE(mrb_f_method, MRB_SYM(__method__),             MRB_ARGS_NONE()),
+  MRB_MT_ENTRY_PRIVATE(mrb_f_callee, MRB_SYM(__callee__),             MRB_ARGS_NONE()),
+  MRB_MT_ENTRY_PRIVATE(mrb_f_integer, MRB_SYM(Integer), MRB_ARGS_ARG(1,1)),
+  MRB_MT_ENTRY_PRIVATE(mrb_f_string, MRB_SYM(String),    MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY_PRIVATE(mrb_f_array, MRB_SYM(Array),     MRB_ARGS_REQ(1)),
 #ifndef MRB_NO_FLOAT
-  MRB_MT_ENTRY(mrb_f_float,   MRB_SYM(Float),      MRB_MT_PRIVATE),
+  MRB_MT_ENTRY_PRIVATE(mrb_f_float, MRB_SYM(Float),     MRB_ARGS_REQ(1)),
 #endif
-  MRB_MT_ENTRY(mrb_f_hash,    MRB_SYM(Hash),       MRB_MT_PRIVATE),
+  MRB_MT_ENTRY_PRIVATE(mrb_f_hash, MRB_SYM(Hash),      MRB_ARGS_REQ(1)),
 };
 static mrb_mt_tbl kernel_ext_rom_mt = MRB_MT_ROM_TAB(kernel_ext_rom_entries);
 

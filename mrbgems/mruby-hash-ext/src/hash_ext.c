@@ -368,12 +368,12 @@ hash_merge(mrb_state *mrb, mrb_value hash)
 }
 
 static const mrb_mt_entry hash_ext_rom_entries[] = {
-  MRB_MT_ENTRY(hash_values_at, MRB_SYM(values_at), 0),
-  MRB_MT_ENTRY(hash_slice,     MRB_SYM(slice),     0),
-  MRB_MT_ENTRY(hash_slice_bang, MRB_SYM_B(slice),  0),
-  MRB_MT_ENTRY(hash_except,    MRB_SYM(except),    0),
-  MRB_MT_ENTRY(hash_key,       MRB_SYM(key),       0),
-  MRB_MT_ENTRY(hash_merge,     MRB_SYM(__merge),   0),
+  MRB_MT_ENTRY(hash_values_at, MRB_SYM(values_at), MRB_ARGS_ANY()),
+  MRB_MT_ENTRY(hash_slice,     MRB_SYM(slice), MRB_ARGS_ANY()),
+  MRB_MT_ENTRY(hash_slice_bang, MRB_SYM_B(slice), MRB_ARGS_ANY()),
+  MRB_MT_ENTRY(hash_except,    MRB_SYM(except), MRB_ARGS_ANY()),
+  MRB_MT_ENTRY(hash_key,       MRB_SYM(key), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(hash_merge,     MRB_SYM(__merge), MRB_ARGS_ANY()),
 };
 static mrb_mt_tbl hash_ext_rom_mt = MRB_MT_ROM_TAB(hash_ext_rom_entries);
 

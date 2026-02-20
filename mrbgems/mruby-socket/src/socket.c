@@ -1272,50 +1272,50 @@ mrb_win32_basicsocket_syswrite(mrb_state *mrb, mrb_value self)
 
 /* ---------------------------*/
 static const mrb_mt_entry addrinfo_rom_entries[] = {
-  MRB_MT_ENTRY(mrb_addrinfo_getnameinfo, MRB_SYM(getnameinfo), 0),
-  MRB_MT_ENTRY(mrb_addrinfo_unix_path,   MRB_SYM(unix_path),   MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_addrinfo_getnameinfo, MRB_SYM(getnameinfo), MRB_ARGS_OPT(1)),
+  MRB_MT_ENTRY(mrb_addrinfo_unix_path,   MRB_SYM(unix_path), MRB_ARGS_NONE()),
 };
 static mrb_mt_tbl addrinfo_rom_mt = MRB_MT_ROM_TAB(addrinfo_rom_entries);
 
 static const mrb_mt_entry basicsocket_rom_entries[] = {
-  MRB_MT_ENTRY(mrb_basicsocket_recvfrom,      MRB_SYM(_recvfrom),     0),
-  MRB_MT_ENTRY(mrb_basicsocket_setnonblock,   MRB_SYM(_setnonblock),  0),
-  MRB_MT_ENTRY(mrb_basicsocket_getpeereid,    MRB_SYM(getpeereid),    MRB_MT_NOARG),
-  MRB_MT_ENTRY(mrb_basicsocket_getpeername,   MRB_SYM(getpeername),   MRB_MT_NOARG),
-  MRB_MT_ENTRY(mrb_basicsocket_getsockname,   MRB_SYM(getsockname),   MRB_MT_NOARG),
-  MRB_MT_ENTRY(mrb_basicsocket_getsockopt,    MRB_SYM(getsockopt),    0),
-  MRB_MT_ENTRY(mrb_basicsocket_recv,          MRB_SYM(recv),          0),
-  MRB_MT_ENTRY(mrb_basicsocket_send,          MRB_SYM(send),          0),
-  MRB_MT_ENTRY(mrb_basicsocket_setsockopt,    MRB_SYM(setsockopt),    0),
-  MRB_MT_ENTRY(mrb_basicsocket_shutdown,      MRB_SYM(shutdown),      0),
-  MRB_MT_ENTRY(mrb_basicsocket_set_is_socket, MRB_SYM_E(_is_socket),  0),
+  MRB_MT_ENTRY(mrb_basicsocket_recvfrom,      MRB_SYM(_recvfrom), MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1)),
+  MRB_MT_ENTRY(mrb_basicsocket_setnonblock,   MRB_SYM(_setnonblock), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(mrb_basicsocket_getpeereid,    MRB_SYM(getpeereid), MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_basicsocket_getpeername,   MRB_SYM(getpeername), MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_basicsocket_getsockname,   MRB_SYM(getsockname), MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_basicsocket_getsockopt,    MRB_SYM(getsockopt), MRB_ARGS_REQ(2)),
+  MRB_MT_ENTRY(mrb_basicsocket_recv,          MRB_SYM(recv), MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1)),
+  MRB_MT_ENTRY(mrb_basicsocket_send,          MRB_SYM(send), MRB_ARGS_REQ(2)|MRB_ARGS_OPT(1)),
+  MRB_MT_ENTRY(mrb_basicsocket_setsockopt,    MRB_SYM(setsockopt), MRB_ARGS_REQ(1)|MRB_ARGS_OPT(2)),
+  MRB_MT_ENTRY(mrb_basicsocket_shutdown,      MRB_SYM(shutdown), MRB_ARGS_OPT(1)),
+  MRB_MT_ENTRY(mrb_basicsocket_set_is_socket, MRB_SYM_E(_is_socket), MRB_ARGS_REQ(1)),
 #ifdef _WIN32
-  MRB_MT_ENTRY(mrb_win32_basicsocket_close,    MRB_SYM(close),    MRB_MT_NOARG),
-  MRB_MT_ENTRY(mrb_win32_basicsocket_sysread,  MRB_SYM(sysread),  0),
-  MRB_MT_ENTRY(mrb_win32_basicsocket_sysseek,  MRB_SYM(sysseek),  0),
-  MRB_MT_ENTRY(mrb_win32_basicsocket_syswrite, MRB_SYM(syswrite), 0),
-  MRB_MT_ENTRY(mrb_win32_basicsocket_sysread,  MRB_SYM(read),     0),
-  MRB_MT_ENTRY(mrb_win32_basicsocket_syswrite, MRB_SYM(write),    0),
+  MRB_MT_ENTRY(mrb_win32_basicsocket_close,    MRB_SYM(close), MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_win32_basicsocket_sysread,  MRB_SYM(sysread), MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1)),
+  MRB_MT_ENTRY(mrb_win32_basicsocket_sysseek,  MRB_SYM(sysseek), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(mrb_win32_basicsocket_syswrite, MRB_SYM(syswrite), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(mrb_win32_basicsocket_sysread,  MRB_SYM(read), MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1)),
+  MRB_MT_ENTRY(mrb_win32_basicsocket_syswrite, MRB_SYM(write), MRB_ARGS_REQ(1)),
 #endif
 };
 static mrb_mt_tbl basicsocket_rom_mt = MRB_MT_ROM_TAB(basicsocket_rom_entries);
 
 static const mrb_mt_entry ipsocket_rom_entries[] = {
-  MRB_MT_ENTRY(mrb_ipsocket_recvfrom, MRB_SYM(recvfrom), 0),
+  MRB_MT_ENTRY(mrb_ipsocket_recvfrom, MRB_SYM(recvfrom), MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1)),
 };
 static mrb_mt_tbl ipsocket_rom_mt = MRB_MT_ROM_TAB(ipsocket_rom_entries);
 
 static const mrb_mt_entry socket_option_rom_entries[] = {
-  MRB_MT_ENTRY(socket_option_init,    MRB_SYM(initialize), 0),
-  MRB_MT_ENTRY(socket_option_inspect, MRB_SYM(inspect),    MRB_MT_NOARG),
-  MRB_MT_ENTRY(socket_option_family,  MRB_SYM(family),     MRB_MT_NOARG),
-  MRB_MT_ENTRY(socket_option_level,   MRB_SYM(level),      MRB_MT_NOARG),
-  MRB_MT_ENTRY(socket_option_optname, MRB_SYM(optname),    MRB_MT_NOARG),
-  MRB_MT_ENTRY(socket_option_data,    MRB_SYM(data),       MRB_MT_NOARG),
-  MRB_MT_ENTRY(socket_option_bool,    MRB_SYM(bool),       MRB_MT_NOARG),
-  MRB_MT_ENTRY(socket_option_int,     MRB_SYM(int),        MRB_MT_NOARG),
-  MRB_MT_ENTRY(socket_option_notimp,  MRB_SYM(linger),     MRB_MT_NOARG),
-  MRB_MT_ENTRY(socket_option_notimp,  MRB_SYM(unpack),     0),
+  MRB_MT_ENTRY(socket_option_init,    MRB_SYM(initialize), MRB_ARGS_REQ(4)),
+  MRB_MT_ENTRY(socket_option_inspect, MRB_SYM(inspect), MRB_ARGS_REQ(0)),
+  MRB_MT_ENTRY(socket_option_family,  MRB_SYM(family),  MRB_ARGS_REQ(0)),
+  MRB_MT_ENTRY(socket_option_level,   MRB_SYM(level),   MRB_ARGS_REQ(0)),
+  MRB_MT_ENTRY(socket_option_optname, MRB_SYM(optname), MRB_ARGS_REQ(0)),
+  MRB_MT_ENTRY(socket_option_data,    MRB_SYM(data),    MRB_ARGS_REQ(0)),
+  MRB_MT_ENTRY(socket_option_bool,    MRB_SYM(bool),    MRB_ARGS_REQ(0)),
+  MRB_MT_ENTRY(socket_option_int,     MRB_SYM(int),     MRB_ARGS_REQ(0)),
+  MRB_MT_ENTRY(socket_option_notimp,  MRB_SYM(linger),  MRB_ARGS_REQ(0)),
+  MRB_MT_ENTRY(socket_option_notimp,  MRB_SYM(unpack), MRB_ARGS_REQ(1)),
 };
 static mrb_mt_tbl socket_option_rom_mt = MRB_MT_ROM_TAB(socket_option_rom_entries);
 

@@ -1002,12 +1002,12 @@ sym_cmp(mrb_state *mrb, mrb_value s1)
 
 /* ---------------------------*/
 static const mrb_mt_entry symbol_rom_entries[] = {
-  MRB_MT_ENTRY(sym_to_s,         MRB_SYM(to_s),    MRB_MT_NOARG),
-  MRB_MT_ENTRY(sym_name,         MRB_SYM(name),    MRB_MT_NOARG),
-  MRB_MT_ENTRY(mrb_obj_itself,   MRB_SYM(to_sym),  MRB_MT_NOARG),
-  MRB_MT_ENTRY(sym_inspect,      MRB_SYM(inspect), MRB_MT_NOARG),
-  MRB_MT_ENTRY(sym_cmp,          MRB_OPSYM(cmp),   0),
-  MRB_MT_ENTRY(mrb_obj_equal_m,  MRB_OPSYM(eq),    0),
+  MRB_MT_ENTRY(sym_to_s,         MRB_SYM(to_s), MRB_ARGS_NONE()),  /* 15.2.11.3.3 */
+  MRB_MT_ENTRY(sym_name,         MRB_SYM(name), MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_obj_itself,   MRB_SYM(to_sym), MRB_ARGS_NONE()),  /* 15.2.11.3.4 */
+  MRB_MT_ENTRY(sym_inspect,      MRB_SYM(inspect), MRB_ARGS_NONE()),  /* 15.2.11.3.5(x) */
+  MRB_MT_ENTRY(sym_cmp,          MRB_OPSYM(cmp), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(mrb_obj_equal_m,  MRB_OPSYM(eq), MRB_ARGS_REQ(1)),
 };
 static mrb_mt_tbl symbol_rom_mt = MRB_MT_ROM_TAB(symbol_rom_entries);
 

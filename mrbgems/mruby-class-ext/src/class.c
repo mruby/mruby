@@ -336,21 +336,21 @@ mrb_mod_cmp(mrb_state *mrb, mrb_value self)
 
 /* ---------------------------*/
 static const mrb_mt_entry mod_ext_rom_entries[] = {
-  MRB_MT_ENTRY(mrb_mod_lt,            MRB_OPSYM(lt),              0),
-  MRB_MT_ENTRY(mrb_mod_le,            MRB_OPSYM(le),              0),
-  MRB_MT_ENTRY(mrb_mod_cmp,           MRB_OPSYM(cmp),             0),
-  MRB_MT_ENTRY(mrb_mod_gt,            MRB_OPSYM(gt),              0),
-  MRB_MT_ENTRY(mrb_mod_ge,            MRB_OPSYM(ge),              0),
-  MRB_MT_ENTRY(mod_module_exec,       MRB_SYM(class_exec),        0),
-  MRB_MT_ENTRY(mod_module_exec,       MRB_SYM(module_exec),       0),
-  MRB_MT_ENTRY(mod_name,              MRB_SYM(name),              MRB_MT_NOARG),
-  MRB_MT_ENTRY(mod_singleton_class_p, MRB_SYM_Q(singleton_class), MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_mod_lt,            MRB_OPSYM(lt), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(mrb_mod_le,            MRB_OPSYM(le), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(mrb_mod_cmp,           MRB_OPSYM(cmp), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(mrb_mod_gt,            MRB_OPSYM(gt), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(mrb_mod_ge,            MRB_OPSYM(ge), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(mod_module_exec,       MRB_SYM(class_exec), MRB_ARGS_ANY()|MRB_ARGS_BLOCK()),
+  MRB_MT_ENTRY(mod_module_exec,       MRB_SYM(module_exec), MRB_ARGS_ANY()|MRB_ARGS_BLOCK()),
+  MRB_MT_ENTRY(mod_name,              MRB_SYM(name),           MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mod_singleton_class_p, MRB_SYM_Q(singleton_class), MRB_ARGS_NONE()),
 };
 static mrb_mt_tbl mod_ext_rom_mt = MRB_MT_ROM_TAB(mod_ext_rom_entries);
 
 static const mrb_mt_entry cls_ext_rom_entries[] = {
-  MRB_MT_ENTRY(class_attached_object, MRB_SYM(attached_object), MRB_MT_NOARG),
-  MRB_MT_ENTRY(class_subclasses,      MRB_SYM(subclasses),      MRB_MT_NOARG),
+  MRB_MT_ENTRY(class_attached_object, MRB_SYM(attached_object), MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(class_subclasses,      MRB_SYM(subclasses),   MRB_ARGS_NONE()),
 };
 static mrb_mt_tbl cls_ext_rom_mt = MRB_MT_ROM_TAB(cls_ext_rom_entries);
 

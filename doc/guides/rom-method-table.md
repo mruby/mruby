@@ -74,9 +74,9 @@ constants) and define the ROM entries:
 #include <mruby/presym.h>
 
 static const mrb_mt_entry my_rom_entries[] = {
-  MRB_MT_ENTRY(my_method_a, MRB_SYM(method_a), 0),
-  MRB_MT_ENTRY(my_method_b, MRB_SYM(method_b), MRB_MT_NOARG),
-  MRB_MT_ENTRY(my_method_eq, MRB_OPSYM(eq),    0),
+  MRB_MT_ENTRY(my_method_a,  MRB_SYM(method_a), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(my_method_b,  MRB_SYM(method_b), MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(my_method_eq, MRB_OPSYM(eq),     MRB_ARGS_REQ(1)),
 };
 static mrb_mt_tbl my_rom_mt = MRB_MT_ROM_TAB(my_rom_entries);
 ```
@@ -118,7 +118,7 @@ union mrb_mt_ptr {
 typedef struct mrb_mt_entry {
   union mrb_mt_ptr val;
   mrb_sym key;              /* pure symbol ID (no flags packed) */
-  uint32_t flags;           /* method flags */
+  uint32_t flags;           /* method flags + aspec */
 } mrb_mt_entry;
 
 typedef struct mrb_mt_tbl {
@@ -132,9 +132,18 @@ typedef struct mrb_mt_tbl {
 ### Macros
 
 ```c
-/* ROM table entry: MRB_MT_FUNC is set automatically */
-#define MRB_MT_ENTRY(fn, sym, flags) \
-  { { .func = (fn) }, (sym), (flags) | MRB_MT_FUNC }
+/* ROM table entry: MRB_MT_FUNC auto-set, MRB_MT_NOARG auto-derived from aspec==0 */
+#define MRB_MT_ENTRY(fn, sym, aspec) \
+  { { .func = (fn) }, (sym), \
+    ((aspec) << 4) | MRB_MT_FUNC | (((aspec)==0)?MRB_MT_NOARG:0) }
+
+/* ROM table entry for private methods */
+#define MRB_MT_ENTRY_PRIVATE(fn, sym, aspec) \
+  { { .func = (fn) }, (sym), \
+    ((aspec) << 4) | MRB_MT_FUNC | MRB_MT_PRIVATE | (((aspec)==0)?MRB_MT_NOARG:0) }
+
+/* Extract aspec from combined flags */
+#define MRB_MT_ASPEC(flags) ((mrb_aspec)((flags) >> 4))
 
 /* ROM table initializer (auto-computes size from entries array) */
 #define MRB_MT_ROM_TAB(entries) { \
@@ -143,23 +152,25 @@ typedef struct mrb_mt_tbl {
   (mrb_mt_entry*)(entries), NULL }
 ```
 
-### Flags
+### Flags (bits 0-3 of uint32_t)
 
-| Flag             | Value | Description                                   |
-| ---------------- | ----- | --------------------------------------------- |
-| `MRB_MT_NOARG`   | 4     | Method takes no arguments (optimization hint) |
-| `MRB_MT_PUBLIC`  | 0     | Public visibility (default, can be omitted)   |
-| `MRB_MT_PRIVATE` | 1     | Private visibility                            |
+| Flag              | Value | Description                              |
+| ----------------- | ----- | ---------------------------------------- |
+| `MRB_MT_FUNC`     | 8     | C function (auto-set by macros)          |
+| `MRB_MT_NOARG`    | 4     | Method takes no arguments (auto-derived) |
+| `MRB_MT_PUBLIC`   | 0     | Public visibility (default)              |
+| `MRB_MT_PRIVATE`  | 1     | Private visibility                       |
 
-`MRB_MT_FUNC` is set automatically by `MRB_MT_ENTRY()`. Pass `0`
-for a public method that takes arguments.
+Bits 4-27 store the `mrb_aspec` argument specification (shifted left
+by 4). Both `MRB_MT_FUNC` and `MRB_MT_NOARG` are set automatically
+by the macros; `MRB_MT_NOARG` is derived from `aspec == 0`
+(`MRB_ARGS_NONE()`).
 
-**How to choose flags:**
+**How to write entries:**
 
-- **`0`**: Public method that takes arguments (most common).
-- **`MRB_MT_NOARG`**: Set when the original `mrb_define_method_id()` used
-  `MRB_ARGS_NONE()`. This enables an optimized call path in the VM.
-- **`MRB_MT_PRIVATE`**: Set for private methods (e.g., `initialize`).
+- **`MRB_MT_ENTRY(fn, sym, MRB_ARGS_*(...))`**: Public method.
+- **`MRB_MT_ENTRY_PRIVATE(fn, sym, MRB_ARGS_*(...))`**: Private method.
+- Use the same `MRB_ARGS_*()` macros as `mrb_define_method_id()`.
 
 ### Symbol Macros
 
@@ -202,8 +213,8 @@ separate entries sharing the same function pointer:
 
 ```c
 static const mrb_mt_entry str_rom_entries[] = {
-  MRB_MT_ENTRY(mrb_str_size, MRB_SYM(size),   MRB_MT_NOARG),
-  MRB_MT_ENTRY(mrb_str_size, MRB_SYM(length), MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_str_size, MRB_SYM(size),   MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_str_size, MRB_SYM(length), MRB_ARGS_NONE()),
 };
 ```
 
@@ -216,10 +227,10 @@ that survive preprocessing:
 
 ```c
 static const mrb_mt_entry integer_rom_entries[] = {
-  MRB_MT_ENTRY(int_to_s, MRB_SYM(to_s), 0),
-  MRB_MT_ENTRY(int_add,  MRB_OPSYM(add), 0),
+  MRB_MT_ENTRY(int_to_s, MRB_SYM(to_s), MRB_ARGS_OPT(1)),
+  MRB_MT_ENTRY(int_add,  MRB_OPSYM(add), MRB_ARGS_REQ(1)),
 #ifndef MRB_NO_FLOAT
-  MRB_MT_ENTRY(int_to_f, MRB_SYM(to_f), MRB_MT_NOARG),
+  MRB_MT_ENTRY(int_to_f, MRB_SYM(to_f), MRB_ARGS_NONE()),
 #endif
 };
 static mrb_mt_tbl integer_rom_mt = MRB_MT_ROM_TAB(integer_rom_entries);
@@ -359,13 +370,11 @@ To convert existing `mrb_define_method_id()` calls to a ROM table:
 2. **Create** the ROM entries array using `MRB_MT_ENTRY()`.
 
 3. **Move** each `mrb_define_method_id()` call into the entries:
-   - `MRB_MT_ENTRY(func, sym, flags)` where:
+   - `MRB_MT_ENTRY(func, sym, aspec)` where:
      - `func` is the function pointer
      - `sym` is the symbol macro (e.g., `MRB_SYM(name)`)
-     - `flags` are:
-       - `MRB_ARGS_NONE()` -> `MRB_MT_NOARG`
-       - Anything else -> `0`
-       - Add `MRB_MT_PRIVATE` for private methods
+     - `aspec` is the original `MRB_ARGS_*()` macro
+   - Use `MRB_MT_ENTRY_PRIVATE()` for private methods
 
 4. **Create** the table with `MRB_MT_ROM_TAB(entries)`.
 
@@ -391,9 +400,9 @@ void mrb_mruby_foo_gem_init(mrb_state *mrb) {
 
 ```c
 static const mrb_mt_entry foo_rom_entries[] = {
-  MRB_MT_ENTRY(foo_bar, MRB_SYM(bar),  0),
-  MRB_MT_ENTRY(foo_baz, MRB_SYM(baz),  MRB_MT_NOARG),
-  MRB_MT_ENTRY(foo_eq,  MRB_OPSYM(eq), 0),
+  MRB_MT_ENTRY(foo_bar, MRB_SYM(bar),  MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(foo_baz, MRB_SYM(baz),  MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(foo_eq,  MRB_OPSYM(eq), MRB_ARGS_REQ(1)),
 };
 static mrb_mt_tbl foo_rom_mt = MRB_MT_ROM_TAB(foo_rom_entries);
 

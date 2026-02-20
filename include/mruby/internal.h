@@ -55,9 +55,14 @@ typedef struct mrb_mt_tbl {
 #define MRB_MT_PUBLIC  0    /* MRB_METHOD_PUBLIC_FL */
 #define MRB_MT_PRIVATE 1    /* MRB_METHOD_PRIVATE_FL */
 
-/* ROM table entry: MRB_MT_FUNC is set automatically */
-#define MRB_MT_ENTRY(fn, sym, flags) \
-  { { .func = (fn) }, (sym), (flags) | MRB_MT_FUNC }
+/* ROM table entry: MRB_MT_FUNC auto-set, MRB_MT_NOARG auto-derived from aspec==0 */
+#define MRB_MT_ENTRY(fn, sym, aspec) \
+  { { .func = (fn) }, (sym), \
+    ((aspec) << 4) | MRB_MT_FUNC | (((aspec)==0)?MRB_MT_NOARG:0) }
+#define MRB_MT_ENTRY_PRIVATE(fn, sym, aspec) \
+  { { .func = (fn) }, (sym), \
+    ((aspec) << 4) | MRB_MT_FUNC | MRB_MT_PRIVATE | (((aspec)==0)?MRB_MT_NOARG:0) }
+#define MRB_MT_ASPEC(flags) ((mrb_aspec)((flags) >> 4))
 
 /* ROM table initializer from const entries array (auto-computes size).
    Casts away const because mrb_mt_tbl.ptr is shared with mutable layers;
