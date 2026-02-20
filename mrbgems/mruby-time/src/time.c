@@ -1665,54 +1665,54 @@ time_utc_offset(mrb_state *mrb, mrb_value self)
 
 /* ---------------------------*/
 static const mrb_mt_entry time_rom_entries[] = {
-  MRB_MT_ENTRY(time_hash,      MRB_SYM(hash),         MRB_ARGS_NONE()),
-  MRB_MT_ENTRY(time_eq,        MRB_SYM_Q(eql), MRB_ARGS_REQ(1)),
-  MRB_MT_ENTRY(time_eq,        MRB_OPSYM(eq), MRB_ARGS_REQ(1)),
-  MRB_MT_ENTRY(time_cmp,       MRB_OPSYM(cmp), MRB_ARGS_REQ(1)),  /* 15.2.19.7.1 */
-  MRB_MT_ENTRY(time_plus,      MRB_OPSYM(add), MRB_ARGS_REQ(1)),  /* 15.2.19.7.2 */
-  MRB_MT_ENTRY(time_minus,     MRB_OPSYM(sub), MRB_ARGS_REQ(1)),  /* 15.2.19.7.3 */
-  MRB_MT_ENTRY(time_to_s,      MRB_SYM(to_s),         MRB_ARGS_NONE()),
-  MRB_MT_ENTRY(time_to_s,      MRB_SYM(inspect),      MRB_ARGS_NONE()),
-  MRB_MT_ENTRY(time_asctime,   MRB_SYM(asctime),      MRB_ARGS_NONE()),  /* 15.2.19.7.4 */
-  MRB_MT_ENTRY(time_asctime,   MRB_SYM(ctime),        MRB_ARGS_NONE()),  /* 15.2.19.7.5 */
-  MRB_MT_ENTRY(time_day,       MRB_SYM(day),          MRB_ARGS_NONE()),  /* 15.2.19.7.6 */
-  MRB_MT_ENTRY(time_dst_p,     MRB_SYM_Q(dst),        MRB_ARGS_NONE()),  /* 15.2.19.7.7 */
-  MRB_MT_ENTRY(time_getutc,    MRB_SYM(getgm),        MRB_ARGS_NONE()),  /* 15.2.19.7.8 */
-  MRB_MT_ENTRY(time_getlocal,  MRB_SYM(getlocal),     MRB_ARGS_NONE()),  /* 15.2.19.7.9 */
-  MRB_MT_ENTRY(time_getutc,    MRB_SYM(getutc),       MRB_ARGS_NONE()),  /* 15.2.19.7.10 */
-  MRB_MT_ENTRY(time_utc_p,     MRB_SYM_Q(gmt),        MRB_ARGS_NONE()),  /* 15.2.19.7.11 */
-  MRB_MT_ENTRY(time_utc,       MRB_SYM(gmtime),       MRB_ARGS_NONE()),  /* 15.2.19.7.13 */
-  MRB_MT_ENTRY(time_hour,      MRB_SYM(hour),         MRB_ARGS_NONE()),  /* 15.2.19.7.15 */
-  MRB_MT_ENTRY(time_localtime, MRB_SYM(localtime),    MRB_ARGS_NONE()),  /* 15.2.19.7.18 */
-  MRB_MT_ENTRY(time_day,       MRB_SYM(mday),         MRB_ARGS_NONE()),  /* 15.2.19.7.19 */
-  MRB_MT_ENTRY(time_min,       MRB_SYM(min),          MRB_ARGS_NONE()),  /* 15.2.19.7.20 */
-  MRB_MT_ENTRY(time_mon,       MRB_SYM(mon),          MRB_ARGS_NONE()),  /* 15.2.19.7.21 */
-  MRB_MT_ENTRY(time_mon,       MRB_SYM(month),        MRB_ARGS_NONE()),  /* 15.2.19.7.22 */
-  MRB_MT_ENTRY(time_sec,       MRB_SYM(sec),          MRB_ARGS_NONE()),  /* 15.2.19.7.23 */
-  MRB_MT_ENTRY(time_to_i,      MRB_SYM(to_i),         MRB_ARGS_NONE()),  /* 15.2.19.7.25 */
-  MRB_MT_ENTRY(time_usec,      MRB_SYM(usec),         MRB_ARGS_NONE()),  /* 15.2.19.7.26 */
-  MRB_MT_ENTRY(time_nsec,      MRB_SYM(nsec),         MRB_ARGS_NONE()),
-  MRB_MT_ENTRY(time_nsec,      MRB_SYM(tv_nsec),      MRB_ARGS_NONE()),
-  MRB_MT_ENTRY(time_utc,       MRB_SYM(utc),          MRB_ARGS_NONE()),  /* 15.2.19.7.27 */
-  MRB_MT_ENTRY(time_utc_p,     MRB_SYM_Q(utc),        MRB_ARGS_NONE()),  /* 15.2.19.7.28 */
-  MRB_MT_ENTRY(time_wday,      MRB_SYM(wday),         MRB_ARGS_NONE()),  /* 15.2.19.7.30 */
-  MRB_MT_ENTRY(time_yday,      MRB_SYM(yday),         MRB_ARGS_NONE()),  /* 15.2.19.7.31 */
-  MRB_MT_ENTRY(time_year,      MRB_SYM(year),         MRB_ARGS_NONE()),  /* 15.2.19.7.32 */
-  MRB_MT_ENTRY(time_zone,      MRB_SYM(zone),         MRB_ARGS_NONE()),  /* 15.2.19.7.33 */
-  MRB_MT_ENTRY(time_init, MRB_SYM(initialize),     MRB_ARGS_OPT(7) | MRB_MT_PRIVATE),  /* 15.2.19.7.16 */
-  MRB_MT_ENTRY(time_init_copy, MRB_SYM(initialize_copy), MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),  /* 15.2.19.7.17 */
-  MRB_MT_ENTRY(time_sunday,    MRB_SYM_Q(sunday),     MRB_ARGS_NONE()),
-  MRB_MT_ENTRY(time_monday,    MRB_SYM_Q(monday),     MRB_ARGS_NONE()),
-  MRB_MT_ENTRY(time_tuesday,   MRB_SYM_Q(tuesday),    MRB_ARGS_NONE()),
-  MRB_MT_ENTRY(time_wednesday, MRB_SYM_Q(wednesday),  MRB_ARGS_NONE()),
-  MRB_MT_ENTRY(time_thursday,  MRB_SYM_Q(thursday),   MRB_ARGS_NONE()),
-  MRB_MT_ENTRY(time_friday,    MRB_SYM_Q(friday),     MRB_ARGS_NONE()),
-  MRB_MT_ENTRY(time_saturday,  MRB_SYM_Q(saturday),   MRB_ARGS_NONE()),
-  MRB_MT_ENTRY(time_utc_offset, MRB_SYM(gmt_offset),  MRB_ARGS_NONE()),  /* 15.2.19.7.12 */
-  MRB_MT_ENTRY(time_utc_offset, MRB_SYM(gmtoff),      MRB_ARGS_NONE()),  /* 15.2.19.7.14 */
-  MRB_MT_ENTRY(time_utc_offset, MRB_SYM(utc_offset),  MRB_ARGS_NONE()),  /* 15.2.19.7.29 */
+  MRB_MT_ENTRY(time_hash,       MRB_SYM(hash),            MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(time_eq,         MRB_SYM_Q(eql),           MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(time_eq,         MRB_OPSYM(eq),            MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(time_cmp,        MRB_OPSYM(cmp),           MRB_ARGS_REQ(1)),                   /* 15.2.19.7.1 */
+  MRB_MT_ENTRY(time_plus,       MRB_OPSYM(add),           MRB_ARGS_REQ(1)),                   /* 15.2.19.7.2 */
+  MRB_MT_ENTRY(time_minus,      MRB_OPSYM(sub),           MRB_ARGS_REQ(1)),                   /* 15.2.19.7.3 */
+  MRB_MT_ENTRY(time_to_s,       MRB_SYM(to_s),            MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(time_to_s,       MRB_SYM(inspect),         MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(time_asctime,    MRB_SYM(asctime),         MRB_ARGS_NONE()),                   /* 15.2.19.7.4 */
+  MRB_MT_ENTRY(time_asctime,    MRB_SYM(ctime),           MRB_ARGS_NONE()),                   /* 15.2.19.7.5 */
+  MRB_MT_ENTRY(time_day,        MRB_SYM(day),             MRB_ARGS_NONE()),                   /* 15.2.19.7.6 */
+  MRB_MT_ENTRY(time_dst_p,      MRB_SYM_Q(dst),           MRB_ARGS_NONE()),                   /* 15.2.19.7.7 */
+  MRB_MT_ENTRY(time_getutc,     MRB_SYM(getgm),           MRB_ARGS_NONE()),                   /* 15.2.19.7.8 */
+  MRB_MT_ENTRY(time_getlocal,   MRB_SYM(getlocal),        MRB_ARGS_NONE()),                   /* 15.2.19.7.9 */
+  MRB_MT_ENTRY(time_getutc,     MRB_SYM(getutc),          MRB_ARGS_NONE()),                   /* 15.2.19.7.10 */
+  MRB_MT_ENTRY(time_utc_p,      MRB_SYM_Q(gmt),           MRB_ARGS_NONE()),                   /* 15.2.19.7.11 */
+  MRB_MT_ENTRY(time_utc,        MRB_SYM(gmtime),          MRB_ARGS_NONE()),                   /* 15.2.19.7.13 */
+  MRB_MT_ENTRY(time_hour,       MRB_SYM(hour),            MRB_ARGS_NONE()),                   /* 15.2.19.7.15 */
+  MRB_MT_ENTRY(time_localtime,  MRB_SYM(localtime),       MRB_ARGS_NONE()),                   /* 15.2.19.7.18 */
+  MRB_MT_ENTRY(time_day,        MRB_SYM(mday),            MRB_ARGS_NONE()),                   /* 15.2.19.7.19 */
+  MRB_MT_ENTRY(time_min,        MRB_SYM(min),             MRB_ARGS_NONE()),                   /* 15.2.19.7.20 */
+  MRB_MT_ENTRY(time_mon,        MRB_SYM(mon),             MRB_ARGS_NONE()),                   /* 15.2.19.7.21 */
+  MRB_MT_ENTRY(time_mon,        MRB_SYM(month),           MRB_ARGS_NONE()),                   /* 15.2.19.7.22 */
+  MRB_MT_ENTRY(time_sec,        MRB_SYM(sec),             MRB_ARGS_NONE()),                   /* 15.2.19.7.23 */
+  MRB_MT_ENTRY(time_to_i,       MRB_SYM(to_i),            MRB_ARGS_NONE()),                   /* 15.2.19.7.25 */
+  MRB_MT_ENTRY(time_usec,       MRB_SYM(usec),            MRB_ARGS_NONE()),                   /* 15.2.19.7.26 */
+  MRB_MT_ENTRY(time_nsec,       MRB_SYM(nsec),            MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(time_nsec,       MRB_SYM(tv_nsec),         MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(time_utc,        MRB_SYM(utc),             MRB_ARGS_NONE()),                   /* 15.2.19.7.27 */
+  MRB_MT_ENTRY(time_utc_p,      MRB_SYM_Q(utc),           MRB_ARGS_NONE()),                   /* 15.2.19.7.28 */
+  MRB_MT_ENTRY(time_wday,       MRB_SYM(wday),            MRB_ARGS_NONE()),                   /* 15.2.19.7.30 */
+  MRB_MT_ENTRY(time_yday,       MRB_SYM(yday),            MRB_ARGS_NONE()),                   /* 15.2.19.7.31 */
+  MRB_MT_ENTRY(time_year,       MRB_SYM(year),            MRB_ARGS_NONE()),                   /* 15.2.19.7.32 */
+  MRB_MT_ENTRY(time_zone,       MRB_SYM(zone),            MRB_ARGS_NONE()),                   /* 15.2.19.7.33 */
+  MRB_MT_ENTRY(time_init,       MRB_SYM(initialize),      MRB_ARGS_OPT(7) | MRB_MT_PRIVATE),  /* 15.2.19.7.16 */
+  MRB_MT_ENTRY(time_init_copy,  MRB_SYM(initialize_copy), MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),  /* 15.2.19.7.17 */
+  MRB_MT_ENTRY(time_sunday,     MRB_SYM_Q(sunday),        MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(time_monday,     MRB_SYM_Q(monday),        MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(time_tuesday,    MRB_SYM_Q(tuesday),       MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(time_wednesday,  MRB_SYM_Q(wednesday),     MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(time_thursday,   MRB_SYM_Q(thursday),      MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(time_friday,     MRB_SYM_Q(friday),        MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(time_saturday,   MRB_SYM_Q(saturday),      MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(time_utc_offset, MRB_SYM(gmt_offset),      MRB_ARGS_NONE()),                   /* 15.2.19.7.12 */
+  MRB_MT_ENTRY(time_utc_offset, MRB_SYM(gmtoff),          MRB_ARGS_NONE()),                   /* 15.2.19.7.14 */
+  MRB_MT_ENTRY(time_utc_offset, MRB_SYM(utc_offset),      MRB_ARGS_NONE()),                   /* 15.2.19.7.29 */
 #ifndef MRB_NO_FLOAT
-  MRB_MT_ENTRY(time_to_f,      MRB_SYM(to_f),         MRB_ARGS_NONE()),  /* 15.2.19.7.24 */
+  MRB_MT_ENTRY(time_to_f,       MRB_SYM(to_f),            MRB_ARGS_NONE()),                   /* 15.2.19.7.24 */
 #endif
 };
 static mrb_mt_tbl time_rom_mt = MRB_MT_ROM_TAB(time_rom_entries);

@@ -3509,54 +3509,54 @@ mrb_encoding(mrb_state *mrb, mrb_value self)
 
 /* ---------------------------*/
 static const mrb_mt_entry string_rom_entries[] = {
-  MRB_MT_ENTRY(mrb_str_bytesize,       MRB_SYM(bytesize),     MRB_ARGS_NONE()),
-  MRB_MT_ENTRY(mrb_str_cmp_m,          MRB_OPSYM(cmp), MRB_ARGS_REQ(1)),  /* 15.2.10.5.1  */
-  MRB_MT_ENTRY(mrb_str_equal_m,        MRB_OPSYM(eq), MRB_ARGS_REQ(1)),  /* 15.2.10.5.2  */
-  MRB_MT_ENTRY(mrb_str_plus_m,         MRB_OPSYM(add), MRB_ARGS_REQ(1)),  /* 15.2.10.5.4  */
-  MRB_MT_ENTRY(mrb_str_times,          MRB_OPSYM(mul), MRB_ARGS_REQ(1)),  /* 15.2.10.5.5  */
-  MRB_MT_ENTRY(mrb_str_aref_m,         MRB_OPSYM(aref), MRB_ARGS_ANY()),  /* 15.2.10.5.6  */
-  MRB_MT_ENTRY(mrb_str_aset_m,         MRB_OPSYM(aset), MRB_ARGS_ANY()),
-  MRB_MT_ENTRY(mrb_str_capitalize,     MRB_SYM(capitalize),   MRB_ARGS_NONE()),  /* 15.2.10.5.7  */
-  MRB_MT_ENTRY(mrb_str_capitalize_bang, MRB_SYM_B(capitalize), MRB_ARGS_NONE()),  /* 15.2.10.5.8  */
-  MRB_MT_ENTRY(mrb_str_chomp,          MRB_SYM(chomp), MRB_ARGS_ANY()),  /* 15.2.10.5.9  */
-  MRB_MT_ENTRY(mrb_str_chomp_bang,     MRB_SYM_B(chomp), MRB_ARGS_ANY()),  /* 15.2.10.5.10 */
-  MRB_MT_ENTRY(mrb_str_chop,           MRB_SYM(chop),         MRB_ARGS_NONE()),  /* 15.2.10.5.11 */
-  MRB_MT_ENTRY(mrb_str_chop_bang,      MRB_SYM_B(chop),       MRB_ARGS_NONE()),  /* 15.2.10.5.12 */
-  MRB_MT_ENTRY(mrb_str_downcase,       MRB_SYM(downcase),     MRB_ARGS_NONE()),  /* 15.2.10.5.13 */
-  MRB_MT_ENTRY(mrb_str_downcase_bang,  MRB_SYM_B(downcase),   MRB_ARGS_NONE()),  /* 15.2.10.5.14 */
-  MRB_MT_ENTRY(mrb_str_empty_p,        MRB_SYM_Q(empty),      MRB_ARGS_NONE()),  /* 15.2.10.5.16 */
-  MRB_MT_ENTRY(mrb_str_eql,            MRB_SYM_Q(eql), MRB_ARGS_REQ(1)),  /* 15.2.10.5.17 */
-  MRB_MT_ENTRY(mrb_str_hash_m,         MRB_SYM(hash),         MRB_ARGS_NONE()),  /* 15.2.10.5.20 */
-  MRB_MT_ENTRY(mrb_str_include,        MRB_SYM_Q(include), MRB_ARGS_REQ(1)),  /* 15.2.10.5.21 */
-  MRB_MT_ENTRY(mrb_str_index_m,        MRB_SYM(index), MRB_ARGS_ARG(1,1)),  /* 15.2.10.5.22 */
-  MRB_MT_ENTRY(mrb_str_init,   MRB_SYM(initialize),     MRB_ARGS_OPT(1) | MRB_MT_PRIVATE),  /* 15.2.10.5.23 */
-  MRB_MT_ENTRY(mrb_str_replace, MRB_SYM(initialize_copy), MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),  /* 15.2.10.5.24 */
-  MRB_MT_ENTRY(mrb_str_intern,         MRB_SYM(intern),       MRB_ARGS_NONE()),  /* 15.2.10.5.25 */
-  MRB_MT_ENTRY(mrb_str_size,           MRB_SYM(length),       MRB_ARGS_NONE()),  /* 15.2.10.5.26 */
-  MRB_MT_ENTRY(mrb_str_replace,        MRB_SYM(replace), MRB_ARGS_REQ(1)),  /* 15.2.10.5.28 */
-  MRB_MT_ENTRY(mrb_str_reverse,        MRB_SYM(reverse),      MRB_ARGS_NONE()),  /* 15.2.10.5.29 */
-  MRB_MT_ENTRY(mrb_str_reverse_bang,   MRB_SYM_B(reverse),    MRB_ARGS_NONE()),  /* 15.2.10.5.30 */
-  MRB_MT_ENTRY(mrb_str_rindex_m,       MRB_SYM(rindex), MRB_ARGS_ANY()),  /* 15.2.10.5.31 */
-  MRB_MT_ENTRY(mrb_str_size,           MRB_SYM(size),         MRB_ARGS_NONE()),  /* 15.2.10.5.33 */
-  MRB_MT_ENTRY(mrb_str_aref_m,         MRB_SYM(slice), MRB_ARGS_ANY()),  /* 15.2.10.5.34 */
-  MRB_MT_ENTRY(mrb_str_split_m,        MRB_SYM(split), MRB_ARGS_ANY()),  /* 15.2.10.5.35 */
-  MRB_MT_ENTRY(mrb_str_to_i,           MRB_SYM(to_i), MRB_ARGS_ANY()),  /* 15.2.10.5.39 */
-  MRB_MT_ENTRY(mrb_str_to_s,           MRB_SYM(to_s),         MRB_ARGS_NONE()),  /* 15.2.10.5.40 */
-  MRB_MT_ENTRY(mrb_str_to_s,           MRB_SYM(to_str),       MRB_ARGS_NONE()),
-  MRB_MT_ENTRY(mrb_str_intern,         MRB_SYM(to_sym),       MRB_ARGS_NONE()),  /* 15.2.10.5.41 */
-  MRB_MT_ENTRY(mrb_str_upcase,         MRB_SYM(upcase),       MRB_ARGS_NONE()),  /* 15.2.10.5.42 */
-  MRB_MT_ENTRY(mrb_str_upcase_bang,    MRB_SYM_B(upcase),     MRB_ARGS_NONE()),  /* 15.2.10.5.43 */
-  MRB_MT_ENTRY(mrb_str_inspect,        MRB_SYM(inspect),      MRB_ARGS_NONE()),  /* 15.2.10.5.46(x) */
-  MRB_MT_ENTRY(mrb_str_bytes,          MRB_SYM(bytes),        MRB_ARGS_NONE()),
-  MRB_MT_ENTRY(mrb_str_getbyte,        MRB_SYM(getbyte), MRB_ARGS_REQ(1)),
-  MRB_MT_ENTRY(mrb_str_setbyte,        MRB_SYM(setbyte), MRB_ARGS_REQ(2)),
-  MRB_MT_ENTRY(mrb_str_byteindex_m,    MRB_SYM(byteindex), MRB_ARGS_ARG(1,1)),
-  MRB_MT_ENTRY(mrb_str_byterindex_m,   MRB_SYM(byterindex), MRB_ARGS_ARG(1,1)),
-  MRB_MT_ENTRY(mrb_str_byteslice,      MRB_SYM(byteslice), MRB_ARGS_ARG(1,1)),
-  MRB_MT_ENTRY(mrb_str_bytesplice,     MRB_SYM(bytesplice), MRB_ARGS_ANY()),
-  MRB_MT_ENTRY(sub_replace,            MRB_SYM(__sub_replace), MRB_ARGS_REQ(3)),  /* internal */
+  MRB_MT_ENTRY(mrb_str_bytesize,        MRB_SYM(bytesize),        MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_str_cmp_m,           MRB_OPSYM(cmp),           MRB_ARGS_REQ(1)),                   /* 15.2.10.5.1  */
+  MRB_MT_ENTRY(mrb_str_equal_m,         MRB_OPSYM(eq),            MRB_ARGS_REQ(1)),                   /* 15.2.10.5.2  */
+  MRB_MT_ENTRY(mrb_str_plus_m,          MRB_OPSYM(add),           MRB_ARGS_REQ(1)),                   /* 15.2.10.5.4  */
+  MRB_MT_ENTRY(mrb_str_times,           MRB_OPSYM(mul),           MRB_ARGS_REQ(1)),                   /* 15.2.10.5.5  */
+  MRB_MT_ENTRY(mrb_str_aref_m,          MRB_OPSYM(aref),          MRB_ARGS_ANY()),                    /* 15.2.10.5.6  */
+  MRB_MT_ENTRY(mrb_str_aset_m,          MRB_OPSYM(aset),          MRB_ARGS_ANY()),
+  MRB_MT_ENTRY(mrb_str_capitalize,      MRB_SYM(capitalize),      MRB_ARGS_NONE()),                   /* 15.2.10.5.7  */
+  MRB_MT_ENTRY(mrb_str_capitalize_bang, MRB_SYM_B(capitalize),    MRB_ARGS_NONE()),                   /* 15.2.10.5.8  */
+  MRB_MT_ENTRY(mrb_str_chomp,           MRB_SYM(chomp),           MRB_ARGS_ANY()),                    /* 15.2.10.5.9  */
+  MRB_MT_ENTRY(mrb_str_chomp_bang,      MRB_SYM_B(chomp),         MRB_ARGS_ANY()),                    /* 15.2.10.5.10 */
+  MRB_MT_ENTRY(mrb_str_chop,            MRB_SYM(chop),            MRB_ARGS_NONE()),                   /* 15.2.10.5.11 */
+  MRB_MT_ENTRY(mrb_str_chop_bang,       MRB_SYM_B(chop),          MRB_ARGS_NONE()),                   /* 15.2.10.5.12 */
+  MRB_MT_ENTRY(mrb_str_downcase,        MRB_SYM(downcase),        MRB_ARGS_NONE()),                   /* 15.2.10.5.13 */
+  MRB_MT_ENTRY(mrb_str_downcase_bang,   MRB_SYM_B(downcase),      MRB_ARGS_NONE()),                   /* 15.2.10.5.14 */
+  MRB_MT_ENTRY(mrb_str_empty_p,         MRB_SYM_Q(empty),         MRB_ARGS_NONE()),                   /* 15.2.10.5.16 */
+  MRB_MT_ENTRY(mrb_str_eql,             MRB_SYM_Q(eql),           MRB_ARGS_REQ(1)),                   /* 15.2.10.5.17 */
+  MRB_MT_ENTRY(mrb_str_hash_m,          MRB_SYM(hash),            MRB_ARGS_NONE()),                   /* 15.2.10.5.20 */
+  MRB_MT_ENTRY(mrb_str_include,         MRB_SYM_Q(include),       MRB_ARGS_REQ(1)),                   /* 15.2.10.5.21 */
+  MRB_MT_ENTRY(mrb_str_index_m,         MRB_SYM(index),           MRB_ARGS_ARG(1,1)),                 /* 15.2.10.5.22 */
+  MRB_MT_ENTRY(mrb_str_init,            MRB_SYM(initialize),      MRB_ARGS_OPT(1) | MRB_MT_PRIVATE),  /* 15.2.10.5.23 */
+  MRB_MT_ENTRY(mrb_str_replace,         MRB_SYM(initialize_copy), MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),  /* 15.2.10.5.24 */
+  MRB_MT_ENTRY(mrb_str_intern,          MRB_SYM(intern),          MRB_ARGS_NONE()),                   /* 15.2.10.5.25 */
+  MRB_MT_ENTRY(mrb_str_size,            MRB_SYM(length),          MRB_ARGS_NONE()),                   /* 15.2.10.5.26 */
+  MRB_MT_ENTRY(mrb_str_replace,         MRB_SYM(replace),         MRB_ARGS_REQ(1)),                   /* 15.2.10.5.28 */
+  MRB_MT_ENTRY(mrb_str_reverse,         MRB_SYM(reverse),         MRB_ARGS_NONE()),                   /* 15.2.10.5.29 */
+  MRB_MT_ENTRY(mrb_str_reverse_bang,    MRB_SYM_B(reverse),       MRB_ARGS_NONE()),                   /* 15.2.10.5.30 */
+  MRB_MT_ENTRY(mrb_str_rindex_m,        MRB_SYM(rindex),          MRB_ARGS_ANY()),                    /* 15.2.10.5.31 */
+  MRB_MT_ENTRY(mrb_str_size,            MRB_SYM(size),            MRB_ARGS_NONE()),                   /* 15.2.10.5.33 */
+  MRB_MT_ENTRY(mrb_str_aref_m,          MRB_SYM(slice),           MRB_ARGS_ANY()),                    /* 15.2.10.5.34 */
+  MRB_MT_ENTRY(mrb_str_split_m,         MRB_SYM(split),           MRB_ARGS_ANY()),                    /* 15.2.10.5.35 */
+  MRB_MT_ENTRY(mrb_str_to_i,            MRB_SYM(to_i),            MRB_ARGS_ANY()),                    /* 15.2.10.5.39 */
+  MRB_MT_ENTRY(mrb_str_to_s,            MRB_SYM(to_s),            MRB_ARGS_NONE()),                   /* 15.2.10.5.40 */
+  MRB_MT_ENTRY(mrb_str_to_s,            MRB_SYM(to_str),          MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_str_intern,          MRB_SYM(to_sym),          MRB_ARGS_NONE()),                   /* 15.2.10.5.41 */
+  MRB_MT_ENTRY(mrb_str_upcase,          MRB_SYM(upcase),          MRB_ARGS_NONE()),                   /* 15.2.10.5.42 */
+  MRB_MT_ENTRY(mrb_str_upcase_bang,     MRB_SYM_B(upcase),        MRB_ARGS_NONE()),                   /* 15.2.10.5.43 */
+  MRB_MT_ENTRY(mrb_str_inspect,         MRB_SYM(inspect),         MRB_ARGS_NONE()),                   /* 15.2.10.5.46(x) */
+  MRB_MT_ENTRY(mrb_str_bytes,           MRB_SYM(bytes),           MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_str_getbyte,         MRB_SYM(getbyte),         MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(mrb_str_setbyte,         MRB_SYM(setbyte),         MRB_ARGS_REQ(2)),
+  MRB_MT_ENTRY(mrb_str_byteindex_m,     MRB_SYM(byteindex),       MRB_ARGS_ARG(1,1)),
+  MRB_MT_ENTRY(mrb_str_byterindex_m,    MRB_SYM(byterindex),      MRB_ARGS_ARG(1,1)),
+  MRB_MT_ENTRY(mrb_str_byteslice,       MRB_SYM(byteslice),       MRB_ARGS_ARG(1,1)),
+  MRB_MT_ENTRY(mrb_str_bytesplice,      MRB_SYM(bytesplice),      MRB_ARGS_ANY()),
+  MRB_MT_ENTRY(sub_replace,             MRB_SYM(__sub_replace),   MRB_ARGS_REQ(3)),                   /* internal */
 #ifndef MRB_NO_FLOAT
-  MRB_MT_ENTRY(mrb_str_to_f, MRB_SYM(to_f), MRB_ARGS_NONE()),  /* 15.2.10.5.38 */
+  MRB_MT_ENTRY(mrb_str_to_f,            MRB_SYM(to_f),            MRB_ARGS_NONE()),                   /* 15.2.10.5.38 */
 #endif
 };
 static mrb_mt_tbl string_rom_mt = MRB_MT_ROM_TAB(string_rom_entries);
