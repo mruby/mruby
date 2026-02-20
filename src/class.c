@@ -4296,7 +4296,7 @@ static const mrb_mt_entry mod_rom_entries[] = {
   MRB_MT_ENTRY(mod_define_method,      MRB_SYM(define_method), MRB_ARGS_ARG(1,1)),
   MRB_MT_ENTRY(mrb_mod_dup,            MRB_SYM(dup),           MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_do_nothing, MRB_SYM(extended),        MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),  /* 15.2.2.4.26 */
-  MRB_MT_ENTRY(mrb_mod_include,        MRB_SYM(include), MRB_ARGS_REQ(1)),  /* 15.2.2.4.27 */
+  MRB_MT_ENTRY(mrb_mod_include,        MRB_SYM(include), MRB_ARGS_ANY()),  /* 15.2.2.4.27 */
   MRB_MT_ENTRY(mrb_mod_include_p,      MRB_SYM_Q(include), MRB_ARGS_REQ(1)),  /* 15.2.2.4.28 */
   MRB_MT_ENTRY(mrb_do_nothing, MRB_SYM(included),        MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),  /* 15.2.2.4.29 */
   MRB_MT_ENTRY(mrb_mod_initialize, MRB_SYM(initialize),                   MRB_ARGS_NONE() | MRB_MT_PRIVATE),  /* 15.2.2.4.31 */
@@ -4307,7 +4307,7 @@ static const mrb_mt_entry mod_rom_entries[] = {
   MRB_MT_ENTRY(mrb_do_nothing, MRB_SYM(method_undefined), MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_mod_module_eval,    MRB_SYM(module_eval), MRB_ARGS_ANY()),  /* 15.2.2.4.35 */
   MRB_MT_ENTRY(mrb_mod_module_function, MRB_SYM(module_function), MRB_ARGS_ANY() | MRB_MT_PRIVATE),
-  MRB_MT_ENTRY(mrb_mod_prepend,        MRB_SYM(prepend), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(mrb_mod_prepend,        MRB_SYM(prepend), MRB_ARGS_ANY()),
   MRB_MT_ENTRY(mrb_do_nothing, MRB_SYM(prepended),       MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_mod_private, MRB_SYM(private),          MRB_ARGS_ANY() | MRB_MT_PRIVATE),  /* 15.2.2.4.36 */
   MRB_MT_ENTRY(mrb_mod_protected, MRB_SYM(protected),        MRB_ARGS_ANY() | MRB_MT_PRIVATE),  /* 15.2.2.4.37 */

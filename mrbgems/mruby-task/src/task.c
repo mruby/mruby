@@ -1530,7 +1530,7 @@ mrb_mruby_task_gem_init(mrb_state *mrb)
   MRB_SET_INSTANCE_TT(task_class, MRB_TT_DATA);
 
   /* Class methods */
-  mrb_define_class_method_id(mrb, task_class, MRB_SYM(new),     mrb_task_s_new,     MRB_ARGS_BLOCK());
+  mrb_define_class_method_id(mrb, task_class, MRB_SYM(new),     mrb_task_s_new,     MRB_ARGS_KEY(2,0)|MRB_ARGS_BLOCK());
   mrb_define_class_method_id(mrb, task_class, MRB_SYM(current), mrb_task_s_current, MRB_ARGS_NONE());
   mrb_define_class_method_id(mrb, task_class, MRB_SYM(list),    mrb_task_s_list,    MRB_ARGS_NONE());
   mrb_define_class_method_id(mrb, task_class, MRB_SYM(pass),    mrb_task_s_pass,    MRB_ARGS_NONE());

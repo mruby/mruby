@@ -1146,7 +1146,7 @@ mrb_init_file(mrb_state *mrb)
   mrb_define_class_method_id(mrb, file, MRB_SYM(chmod), mrb_file_s_chmod, MRB_ARGS_REQ(1) | MRB_ARGS_REST());
   mrb_define_class_method_id(mrb, file, MRB_SYM(readlink), mrb_file_s_readlink, MRB_ARGS_REQ(1));
 
-  mrb_define_class_method_id(mrb, file, MRB_SYM(dirname),   mrb_file_dirname,    MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, file, MRB_SYM(dirname),   mrb_file_dirname,    MRB_ARGS_ARG(1,1));
   mrb_define_class_method_id(mrb, file, MRB_SYM(basename),  mrb_file_basename,   MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM(extname),   mrb_file_extname,    MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM(join),      mrb_file_join,       MRB_ARGS_ANY());

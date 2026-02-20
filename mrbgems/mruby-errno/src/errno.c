@@ -314,7 +314,7 @@ mrb_mruby_errno_gem_init(mrb_state *mrb)
   struct RClass *sce = mrb_define_class_id(mrb, MRB_SYM(SystemCallError), E_STANDARD_ERROR);
   mrb_define_class_method_id(mrb, sce, MRB_SYM(_sys_fail), mrb_sce_sys_fail, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, sce, MRB_SYM(errno), mrb_sce_errno, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, sce, MRB_SYM(initialize), mrb_sce_init_m, MRB_ARGS_ARG(1, 1));
+  mrb_define_method_id(mrb, sce, MRB_SYM(initialize), mrb_sce_init_m, MRB_ARGS_OPT(2));
 
   struct RClass *eno = mrb_define_module_id(mrb, MRB_SYM(Errno));
   mrb_define_class_method_id(mrb, eno, MRB_SYM_Q(__errno_defined), mrb_errno_defined_p, MRB_ARGS_REQ(1));

@@ -394,7 +394,7 @@ method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
     return MRB_METHOD_PROC(m);
 
   struct RProc *proc = mrb_proc_new_cfunc(mrb, MRB_METHOD_FUNC(m));
-  if (MRB_METHOD_NOARG_P(m)) {
+  if (MRB_MT_ASPEC(m.flags) == 0) {
     proc->flags |= MRB_PROC_NOARG;
   }
   return proc;

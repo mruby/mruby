@@ -870,17 +870,23 @@ mrb_funcall_argv(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc, cons
 }
 
 static void
-check_method_noarg(mrb_state *mrb, const mrb_callinfo *ci)
+check_argument_count(mrb_state *mrb, const mrb_callinfo *ci, mrb_aspec aspec)
 {
-  mrb_int argc = ci->n == CALL_MAXARGS ? RARRAY_LEN(ci->stack[1]) : ci->n;
-  if (ci->nk > 0) {
+  mrb_int argc = ci->n;
+  if (mrb_unlikely(argc == CALL_MAXARGS)) {
+    argc = RARRAY_LEN(ci->stack[1]);
+  }
+  /* keyword hash counts as positional if method doesn't accept keywords */
+  if (ci->nk > 0 && MRB_ASPEC_KEY(aspec) == 0 && !MRB_ASPEC_KDICT(aspec)) {
     mrb_value kdict = ci->stack[mrb_ci_kidx(ci)];
-    if (!(mrb_hash_p(kdict) && mrb_hash_empty_p(mrb, kdict))) {
+    if (mrb_hash_p(kdict) && !mrb_hash_empty_p(mrb, kdict)) {
       argc++;
     }
   }
-  if (argc > 0) {
-    mrb_argnum_error(mrb, argc, 0, 0);
+  int min = MRB_ASPEC_REQ(aspec) + MRB_ASPEC_POST(aspec);
+  int max = MRB_ASPEC_REST(aspec) ? -1 : min + MRB_ASPEC_OPT(aspec);
+  if (mrb_unlikely(argc < min || (max >= 0 && argc > max))) {
+    mrb_argnum_error(mrb, argc, min, max);
   }
 }
 
@@ -895,7 +901,7 @@ exec_irep(mrb_state *mrb, mrb_value self, const struct RProc *p)
   CI_PROC_SET(ci, p);
   if (MRB_PROC_CFUNC_P(p)) {
     if (MRB_PROC_NOARG_P(p) && (ci->n > 0 || ci->nk > 0)) {
-      check_method_noarg(mrb, ci);
+      check_argument_count(mrb, ci, 0);
     }
     return MRB_PROC_CFUNC(p)(mrb, self);
   }
@@ -925,7 +931,7 @@ mrb_exec_irep(mrb_state *mrb, mrb_value self, const struct RProc *p)
     mrb_value ret;
     if (MRB_PROC_CFUNC_P(p)) {
       if (MRB_PROC_NOARG_P(p) && (ci->n > 0 || ci->nk > 0)) {
-        check_method_noarg(mrb, ci);
+        check_argument_count(mrb, ci, 0);
       }
       ci = cipush(mrb, 0, CINFO_DIRECT, CI_TARGET_CLASS(ci), p, NULL, ci->mid, ci->n|(ci->nk<<4));
       mrb->exc = NULL;
@@ -1037,18 +1043,18 @@ send_method(mrb_state *mrb, mrb_value self, mrb_bool pub)
     ci->n--;
   }
 
-  const struct RProc *p;
-  if (MRB_METHOD_PROC_P(m)) {
-    p = MRB_METHOD_PROC(m);
-    /* handle alias */
-    MRB_PROC_RESOLVE_ALIAS(ci, p);
-    CI_PROC_SET(ci, p);
+  if (MRB_METHOD_FUNC_P(m)) {
+    check_argument_count(mrb, ci, MRB_MT_ASPEC(m.flags));
+    return MRB_METHOD_FUNC(m)(mrb, self);
   }
-  if (MRB_METHOD_CFUNC_P(m)) {
-    if (MRB_METHOD_NOARG_P(m) && (ci->n > 0 || ci->nk > 0)) {
-      check_method_noarg(mrb, ci);
+  const struct RProc *p = MRB_METHOD_PROC(m);
+  MRB_PROC_RESOLVE_ALIAS(ci, p);
+  CI_PROC_SET(ci, p);
+  if (MRB_PROC_CFUNC_P(p)) {
+    if (MRB_PROC_NOARG_P(p) && (ci->n > 0 || ci->nk > 0)) {
+      check_argument_count(mrb, ci, 0);
     }
-    return MRB_METHOD_CFUNC(m)(mrb, self);
+    return MRB_PROC_CFUNC(p)(mrb, self);
   }
   return exec_irep(mrb, self, p);
 }
@@ -2319,15 +2325,13 @@ RETRY_TRY_BLOCK:
         }
         else {
           if (MRB_PROC_NOARG_P(p) && (ci->n > 0 || ci->nk > 0)) {
-            check_method_noarg(mrb, ci);
+            check_argument_count(mrb, ci, 0);
           }
           recv = MRB_PROC_CFUNC(p)(mrb, recv);
         }
       }
       else {
-        if (MRB_METHOD_NOARG_P(m) && (ci->n > 0 || ci->nk > 0)) {
-          check_method_noarg(mrb, ci);
-        }
+        check_argument_count(mrb, ci, MRB_MT_ASPEC(m.flags));
         recv = MRB_METHOD_FUNC(m)(mrb, recv);
       }
 

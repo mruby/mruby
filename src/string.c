@@ -3529,7 +3529,7 @@ static const mrb_mt_entry string_rom_entries[] = {
   MRB_MT_ENTRY(mrb_str_hash_m,         MRB_SYM(hash),         MRB_ARGS_NONE()),  /* 15.2.10.5.20 */
   MRB_MT_ENTRY(mrb_str_include,        MRB_SYM_Q(include), MRB_ARGS_REQ(1)),  /* 15.2.10.5.21 */
   MRB_MT_ENTRY(mrb_str_index_m,        MRB_SYM(index), MRB_ARGS_ARG(1,1)),  /* 15.2.10.5.22 */
-  MRB_MT_ENTRY(mrb_str_init,   MRB_SYM(initialize),     MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),  /* 15.2.10.5.23 */
+  MRB_MT_ENTRY(mrb_str_init,   MRB_SYM(initialize),     MRB_ARGS_OPT(1) | MRB_MT_PRIVATE),  /* 15.2.10.5.23 */
   MRB_MT_ENTRY(mrb_str_replace, MRB_SYM(initialize_copy), MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),  /* 15.2.10.5.24 */
   MRB_MT_ENTRY(mrb_str_intern,         MRB_SYM(intern),       MRB_ARGS_NONE()),  /* 15.2.10.5.25 */
   MRB_MT_ENTRY(mrb_str_size,           MRB_SYM(length),       MRB_ARGS_NONE()),  /* 15.2.10.5.26 */

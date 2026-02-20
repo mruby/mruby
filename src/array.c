@@ -2264,7 +2264,7 @@ static const mrb_mt_entry array_rom_entries[] = {
   MRB_MT_ENTRY(mrb_ary_eq,          MRB_OPSYM(eq), MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(mrb_ary_eql,         MRB_SYM_Q(eql), MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(mrb_ary_first,       MRB_SYM(first), MRB_ARGS_OPT(1)),  /* 15.2.12.5.13 */
-  MRB_MT_ENTRY(mrb_ary_index_m,     MRB_SYM(index), MRB_ARGS_REQ(1)),  /* 15.2.12.5.14 */
+  MRB_MT_ENTRY(mrb_ary_index_m,     MRB_SYM(index), MRB_ARGS_OPT(1)),  /* 15.2.12.5.14 */
   MRB_MT_ENTRY(mrb_ary_init, MRB_SYM(initialize),     MRB_ARGS_OPT(2) | MRB_MT_PRIVATE),  /* 15.2.12.5.15 */
   MRB_MT_ENTRY(mrb_ary_replace_m, MRB_SYM(initialize_copy), MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),  /* 15.2.12.5.16 */
   MRB_MT_ENTRY(mrb_ary_join_m,      MRB_SYM(join), MRB_ARGS_OPT(1)),  /* 15.2.12.5.17 */
@@ -2275,7 +2275,7 @@ static const mrb_mt_entry array_rom_entries[] = {
   MRB_MT_ENTRY(mrb_ary_replace_m,   MRB_SYM(replace), MRB_ARGS_REQ(1)),  /* 15.2.12.5.23 */
   MRB_MT_ENTRY(mrb_ary_reverse,     MRB_SYM(reverse),      MRB_ARGS_NONE()),  /* 15.2.12.5.24 */
   MRB_MT_ENTRY(mrb_ary_reverse_bang, MRB_SYM_B(reverse),   MRB_ARGS_NONE()),  /* 15.2.12.5.25 */
-  MRB_MT_ENTRY(mrb_ary_rindex_m,    MRB_SYM(rindex), MRB_ARGS_REQ(1)),  /* 15.2.12.5.26 */
+  MRB_MT_ENTRY(mrb_ary_rindex_m,    MRB_SYM(rindex), MRB_ARGS_OPT(1)),  /* 15.2.12.5.26 */
   MRB_MT_ENTRY(mrb_ary_shift_m,     MRB_SYM(shift), MRB_ARGS_OPT(1)),  /* 15.2.12.5.27 */
   MRB_MT_ENTRY(mrb_ary_size,        MRB_SYM(size),         MRB_ARGS_NONE()),  /* 15.2.12.5.28 */
   MRB_MT_ENTRY(mrb_ary_aget,        MRB_SYM(slice), MRB_ARGS_ARG(1,1)),  /* 15.2.12.5.29 */

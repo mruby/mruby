@@ -1341,8 +1341,8 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
   struct RClass *sock = mrb_define_class_id(mrb, MRB_SYM(Socket), bsock);
   mrb_define_class_method_id(mrb, sock, MRB_SYM(_accept), mrb_socket_accept, MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, sock, MRB_SYM(_accept2), mrb_socket_accept2, MRB_ARGS_REQ(1));
-  mrb_define_class_method_id(mrb, sock, MRB_SYM(_bind), mrb_socket_bind, MRB_ARGS_REQ(3));
-  mrb_define_class_method_id(mrb, sock, MRB_SYM(_connect), mrb_socket_connect, MRB_ARGS_REQ(3));
+  mrb_define_class_method_id(mrb, sock, MRB_SYM(_bind), mrb_socket_bind, MRB_ARGS_REQ(2));
+  mrb_define_class_method_id(mrb, sock, MRB_SYM(_connect), mrb_socket_connect, MRB_ARGS_REQ(2));
   mrb_define_class_method_id(mrb, sock, MRB_SYM(_listen), mrb_socket_listen, MRB_ARGS_REQ(2));
   mrb_define_class_method_id(mrb, sock, MRB_SYM(_sockaddr_family), mrb_socket_sockaddr_family, MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, sock, MRB_SYM(_socket), mrb_socket_socket, MRB_ARGS_REQ(3));

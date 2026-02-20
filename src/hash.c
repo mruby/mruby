@@ -2336,7 +2336,7 @@ static const mrb_mt_entry hash_rom_entries[] = {
   MRB_MT_ENTRY(mrb_hash_to_hash,         MRB_SYM(to_hash),      MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_hash_assoc,           MRB_SYM(assoc), MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(mrb_hash_rassoc,          MRB_SYM(rassoc), MRB_ARGS_REQ(1)),
-  MRB_MT_ENTRY(mrb_hash_merge_m,         MRB_SYM(__merge), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(mrb_hash_merge_m,         MRB_SYM(__merge), MRB_ARGS_ANY()),
   MRB_MT_ENTRY(mrb_hash_compact,         MRB_SYM(__compact),    MRB_ARGS_NONE()),  /* implementation of Hash#compact! */
   MRB_MT_ENTRY(mrb_hash_pat_values,      MRB_SYM(__pat_values), MRB_ARGS_REQ(1)),  /* for pattern matching keys */
   MRB_MT_ENTRY(mrb_hash_except_keys,     MRB_SYM(__except), MRB_ARGS_REQ(1)),  /* for pattern matching **rest */

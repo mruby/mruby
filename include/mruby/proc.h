@@ -122,7 +122,6 @@ MRB_API mrb_value mrb_proc_cfunc_env_get(mrb_state *mrb, mrb_int idx);
 #define MRB_METHOD_VISIBILITY_MASK ((1 << 25) | (1 << 26))
 
 #define MRB_METHOD_FUNC_P(m) ((m).flags&MRB_METHOD_FUNC_FL)
-#define MRB_METHOD_NOARG_P(m) (((m).flags&0xffffff)==0)
 #define MRB_METHOD_FUNC(m) ((m).as.func)
 #define MRB_METHOD_FROM_FUNC(m,fn) do{(m).flags=MRB_METHOD_FUNC_FL;(m).as.func=(fn);}while(0)
 #define MRB_METHOD_FROM_PROC(m,pr) do{(m).flags=0;(m).as.proc=(pr);}while(0)

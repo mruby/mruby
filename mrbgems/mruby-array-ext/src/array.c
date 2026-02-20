@@ -1564,7 +1564,7 @@ static const mrb_mt_entry array_ext_rom_entries[] = {
   MRB_MT_ENTRY(ary_fetch,             MRB_SYM(__fetch), MRB_ARGS_REQ(3)),
   MRB_MT_ENTRY(ary_insert,            MRB_SYM(insert), MRB_ARGS_ARG(1,-1)),
   MRB_MT_ENTRY(ary_deconstruct,       MRB_SYM(deconstruct),     MRB_ARGS_NONE()),
-  MRB_MT_ENTRY(ary_product_group,     MRB_SYM(__product_group), MRB_ARGS_REQ(4)),
+  MRB_MT_ENTRY(ary_product_group,     MRB_SYM(__product_group), MRB_ARGS_REQ(3)),
   MRB_MT_ENTRY(ary_combination_init,  MRB_SYM(__combination_init), MRB_ARGS_REQ(2)),
   MRB_MT_ENTRY(ary_combination_next,  MRB_SYM(__combination_next), MRB_ARGS_REQ(1)),
 };

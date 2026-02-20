@@ -1699,7 +1699,7 @@ static const mrb_mt_entry time_rom_entries[] = {
   MRB_MT_ENTRY(time_yday,      MRB_SYM(yday),         MRB_ARGS_NONE()),  /* 15.2.19.7.31 */
   MRB_MT_ENTRY(time_year,      MRB_SYM(year),         MRB_ARGS_NONE()),  /* 15.2.19.7.32 */
   MRB_MT_ENTRY(time_zone,      MRB_SYM(zone),         MRB_ARGS_NONE()),  /* 15.2.19.7.33 */
-  MRB_MT_ENTRY(time_init, MRB_SYM(initialize),     MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),  /* 15.2.19.7.16 */
+  MRB_MT_ENTRY(time_init, MRB_SYM(initialize),     MRB_ARGS_OPT(7) | MRB_MT_PRIVATE),  /* 15.2.19.7.16 */
   MRB_MT_ENTRY(time_init_copy, MRB_SYM(initialize_copy), MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),  /* 15.2.19.7.17 */
   MRB_MT_ENTRY(time_sunday,    MRB_SYM_Q(sunday),     MRB_ARGS_NONE()),
   MRB_MT_ENTRY(time_monday,    MRB_SYM_Q(monday),     MRB_ARGS_NONE()),
