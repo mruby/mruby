@@ -782,7 +782,7 @@ static const mrb_mt_entry struct_rom_entries[] = {
   MRB_MT_ENTRY(mrb_struct_aset,       MRB_OPSYM(aset), MRB_ARGS_REQ(2)),  /* 15.2.18.4.3  */
   MRB_MT_ENTRY(mrb_struct_members,    MRB_SYM(members),      MRB_ARGS_NONE()),  /* 15.2.18.4.6  */
   MRB_MT_ENTRY(mrb_struct_initialize, MRB_SYM(initialize), MRB_ARGS_ANY()),  /* 15.2.18.4.8  */
-  MRB_MT_ENTRY_PRIVATE(mrb_struct_init_copy, MRB_SYM(initialize_copy), MRB_ARGS_REQ(1)),  /* 15.2.18.4.9  */
+  MRB_MT_ENTRY(mrb_struct_init_copy, MRB_SYM(initialize_copy), MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),  /* 15.2.18.4.9  */
   MRB_MT_ENTRY(mrb_struct_eql,        MRB_SYM_Q(eql), MRB_ARGS_REQ(1)),  /* 15.2.18.4.12(x)  */
   MRB_MT_ENTRY(mrb_struct_to_s,       MRB_SYM(to_s),         MRB_ARGS_NONE()),  /* 15.2.18.4.11(x) */
   MRB_MT_ENTRY(mrb_struct_to_s,       MRB_SYM(inspect),      MRB_ARGS_NONE()),  /* 15.2.18.4.10(x) */

@@ -2318,8 +2318,8 @@ static const mrb_mt_entry hash_rom_entries[] = {
   MRB_MT_ENTRY(mrb_hash_has_key,         MRB_SYM_Q(has_key), MRB_ARGS_REQ(1)),  /* 15.2.13.4.13 */
   MRB_MT_ENTRY(mrb_hash_has_value,       MRB_SYM_Q(has_value), MRB_ARGS_REQ(1)),  /* 15.2.13.4.14 */
   MRB_MT_ENTRY(mrb_hash_has_key,         MRB_SYM_Q(include), MRB_ARGS_REQ(1)),  /* 15.2.13.4.15 */
-  MRB_MT_ENTRY_PRIVATE(mrb_hash_init,    MRB_SYM(initialize), MRB_ARGS_OPT(1)|MRB_ARGS_BLOCK()),  /* 15.2.13.4.16 */
-  MRB_MT_ENTRY_PRIVATE(mrb_hash_init_copy, MRB_SYM(initialize_copy), MRB_ARGS_REQ(1)),  /* 15.2.13.4.17 */
+  MRB_MT_ENTRY(mrb_hash_init,    MRB_SYM(initialize), MRB_ARGS_OPT(1)|MRB_ARGS_BLOCK() | MRB_MT_PRIVATE),  /* 15.2.13.4.16 */
+  MRB_MT_ENTRY(mrb_hash_init_copy, MRB_SYM(initialize_copy), MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),  /* 15.2.13.4.17 */
   MRB_MT_ENTRY(mrb_hash_has_key,         MRB_SYM_Q(key), MRB_ARGS_REQ(1)),  /* 15.2.13.4.18 */
   MRB_MT_ENTRY(mrb_hash_keys,            MRB_SYM(keys),         MRB_ARGS_NONE()),  /* 15.2.13.4.19 */
   MRB_MT_ENTRY(mrb_hash_size_m,          MRB_SYM(length),       MRB_ARGS_NONE()),  /* 15.2.13.4.20 */

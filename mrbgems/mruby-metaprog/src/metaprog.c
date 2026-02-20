@@ -9,12 +9,8 @@
 #include <mruby/khash.h>
 #include <mruby/presym.h>
 
-#undef MRB_MT_PUBLIC
-#undef MRB_MT_PRIVATE
-#define MRB_MT_PUBLIC MRB_METHOD_PUBLIC_FL
-#define MRB_MT_PRIVATE MRB_METHOD_PRIVATE_FL
 #define MT_PROTECTED MRB_METHOD_PROTECTED_FL
-#define MT_NOPRIV (MRB_MT_PRIVATE|MT_PROTECTED)
+#define MT_NOPRIV (MRB_METHOD_PRIVATE_FL|MT_PROTECTED)
 
 static mrb_value
 mrb_f_nil(mrb_state *mrb, mrb_value cv)
@@ -139,7 +135,7 @@ struct mt_set {
   khash_t(st) *set;
 };
 
-#define vicheck(flags, visi) (((visi)==MT_NOPRIV) ? (((flags)&0x3)!=MRB_MT_PRIVATE) : (((flags)&0x3)==(visi)))
+#define vicheck(flags, visi) (((visi)==MT_NOPRIV) ? (((flags)&MRB_METHOD_VISIBILITY_MASK)!=MRB_METHOD_PRIVATE_FL) : (((flags)&MRB_METHOD_VISIBILITY_MASK)==(visi)))
 
 static int
 method_entry_i(mrb_state *mrb, mrb_sym mid, mrb_method_t m, void *p)
@@ -243,7 +239,7 @@ mrb_obj_methods_m(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_obj_private_methods(mrb_state *mrb, mrb_value self)
 {
-  return mrb_obj_methods(mrb, self, MRB_MT_PRIVATE);
+  return mrb_obj_methods(mrb, self, MRB_METHOD_PRIVATE_FL);
 }
 
 /* 15.3.1.3.37 */
@@ -569,7 +565,7 @@ mrb_mod_public_instance_methods(mrb_state *mrb, mrb_value mod)
 static mrb_value
 mrb_mod_private_instance_methods(mrb_state *mrb, mrb_value mod)
 {
-  return mod_instance_methods(mrb, mod, MRB_MT_PRIVATE);
+  return mod_instance_methods(mrb, mod, MRB_METHOD_PRIVATE_FL);
 }
 
 static mrb_value
@@ -691,8 +687,8 @@ mrb_mod_s_nesting(mrb_state *mrb, mrb_value mod)
 
 /* ---------------------------*/
 static const mrb_mt_entry metaprog_krn_rom_entries[] = {
-  MRB_MT_ENTRY_PRIVATE(mrb_f_global_variables, MRB_SYM(global_variables),                        MRB_ARGS_NONE()),  /* 15.3.1.3.14 (15.3.1.2.4) */
-  MRB_MT_ENTRY_PRIVATE(mrb_local_variables, MRB_SYM(local_variables),                         MRB_ARGS_NONE()),  /* 15.3.1.3.28 (15.3.1.2.7) */
+  MRB_MT_ENTRY(mrb_f_global_variables, MRB_SYM(global_variables),                        MRB_ARGS_NONE() | MRB_MT_PRIVATE),  /* 15.3.1.3.14 (15.3.1.2.4) */
+  MRB_MT_ENTRY(mrb_local_variables, MRB_SYM(local_variables),                         MRB_ARGS_NONE() | MRB_MT_PRIVATE),  /* 15.3.1.3.28 (15.3.1.2.7) */
   MRB_MT_ENTRY(mrb_singleton_class,       MRB_SYM(singleton_class),          MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_obj_ivar_defined,      MRB_SYM_Q(instance_variable_defined), MRB_ARGS_REQ(1)),  /* 15.3.1.3.20 */
   MRB_MT_ENTRY(mrb_obj_ivar_get,          MRB_SYM(instance_variable_get), MRB_ARGS_REQ(1)),  /* 15.3.1.3.21 */

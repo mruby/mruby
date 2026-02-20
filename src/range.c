@@ -574,13 +574,13 @@ static const mrb_mt_entry range_rom_entries[] = {
   MRB_MT_ENTRY(range_excl,            MRB_SYM_Q(exclude_end), MRB_ARGS_NONE()),  /* 15.2.14.4.6  */
   MRB_MT_ENTRY(range_beg,             MRB_SYM(first),        MRB_ARGS_NONE()),  /* 15.2.14.4.7  */
   MRB_MT_ENTRY(range_include,         MRB_SYM_Q(include), MRB_ARGS_REQ(1)),  /* 15.2.14.4.8  */
-  MRB_MT_ENTRY_PRIVATE(range_initialize, MRB_SYM(initialize),      MRB_ARGS_ANY()),  /* 15.2.14.4.9  */
+  MRB_MT_ENTRY(range_initialize, MRB_SYM(initialize),      MRB_ARGS_ANY() | MRB_MT_PRIVATE),  /* 15.2.14.4.9  */
   MRB_MT_ENTRY(range_end,             MRB_SYM(last),         MRB_ARGS_NONE()),  /* 15.2.14.4.10 */
   MRB_MT_ENTRY(range_include,         MRB_SYM_Q(member), MRB_ARGS_REQ(1)),  /* 15.2.14.4.11 */
   MRB_MT_ENTRY(range_to_s,            MRB_SYM(to_s),         MRB_ARGS_NONE()),  /* 15.2.14.4.12(x) */
   MRB_MT_ENTRY(range_inspect,         MRB_SYM(inspect),      MRB_ARGS_NONE()),  /* 15.2.14.4.13(x) */
   MRB_MT_ENTRY(range_eql,             MRB_SYM_Q(eql), MRB_ARGS_REQ(1)),  /* 15.2.14.4.14(x) */
-  MRB_MT_ENTRY_PRIVATE(range_initialize_copy, MRB_SYM(initialize_copy), MRB_ARGS_REQ(1)),  /* 15.2.14.4.15(x) */
+  MRB_MT_ENTRY(range_initialize_copy, MRB_SYM(initialize_copy), MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),  /* 15.2.14.4.15(x) */
   MRB_MT_ENTRY(range_num_to_a,        MRB_SYM(__num_to_a),   MRB_ARGS_NONE()),
 };
 static mrb_mt_tbl range_rom_mt = MRB_MT_ROM_TAB(range_rom_entries);

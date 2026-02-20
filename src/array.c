@@ -2265,8 +2265,8 @@ static const mrb_mt_entry array_rom_entries[] = {
   MRB_MT_ENTRY(mrb_ary_eql,         MRB_SYM_Q(eql), MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(mrb_ary_first,       MRB_SYM(first), MRB_ARGS_OPT(1)),  /* 15.2.12.5.13 */
   MRB_MT_ENTRY(mrb_ary_index_m,     MRB_SYM(index), MRB_ARGS_REQ(1)),  /* 15.2.12.5.14 */
-  MRB_MT_ENTRY_PRIVATE(mrb_ary_init, MRB_SYM(initialize),     MRB_ARGS_OPT(2)),  /* 15.2.12.5.15 */
-  MRB_MT_ENTRY_PRIVATE(mrb_ary_replace_m, MRB_SYM(initialize_copy), MRB_ARGS_REQ(1)),  /* 15.2.12.5.16 */
+  MRB_MT_ENTRY(mrb_ary_init, MRB_SYM(initialize),     MRB_ARGS_OPT(2) | MRB_MT_PRIVATE),  /* 15.2.12.5.15 */
+  MRB_MT_ENTRY(mrb_ary_replace_m, MRB_SYM(initialize_copy), MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),  /* 15.2.12.5.16 */
   MRB_MT_ENTRY(mrb_ary_join_m,      MRB_SYM(join), MRB_ARGS_OPT(1)),  /* 15.2.12.5.17 */
   MRB_MT_ENTRY(mrb_ary_last,        MRB_SYM(last), MRB_ARGS_OPT(1)),  /* 15.2.12.5.18 */
   MRB_MT_ENTRY(mrb_ary_size,        MRB_SYM(length),       MRB_ARGS_NONE()),  /* 15.2.12.5.19 */

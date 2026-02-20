@@ -128,7 +128,7 @@ stack_init(mrb_state *mrb)
   c->ci = c->cibase;
   c->ci->u.target_class = mrb->object_class;
   c->ci->stack = c->stbase;
-  c->ci->vis = MRB_METHOD_PRIVATE_FL;
+  c->ci->vis = 1;                     /* private (2-bit packed) */
 }
 
 static inline void

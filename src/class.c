@@ -1026,19 +1026,19 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
   if (mid == MRB_SYM(initialize) ||
       mid == MRB_SYM(initialize_copy) ||
       mid == MRB_SYM_Q(respond_to_missing)) {
-    MRB_SET_VISIBILITY_FLAGS(flags, MRB_MT_PRIVATE);
+    MRB_SET_VISIBILITY_FLAGS(flags, MRB_METHOD_PRIVATE_FL);
   }
   else if ((flags & MT_VMASK) == MT_VDEFAULT) {
     /* singleton methods are always public */
     if (c->tt == MRB_TT_SCLASS) {
-      MRB_SET_VISIBILITY_FLAGS(flags, MRB_MT_PUBLIC);
+      MRB_SET_VISIBILITY_FLAGS(flags, MRB_METHOD_PUBLIC_FL);
     }
     else {
       mrb_callinfo *ci;
       struct REnv *e;
       find_visibility_scope(mrb, c, 0, &ci, &e);
       mrb_assert(ci || e);
-      MRB_SET_VISIBILITY_FLAGS(flags, (e ? MRB_ENV_VISIBILITY(e) : MRB_CI_VISIBILITY(ci)));
+      MRB_SET_VISIBILITY_FLAGS(flags, (uint32_t)(e ? MRB_ENV_VISIBILITY(e) : MRB_CI_VISIBILITY(ci)) << 25);
     }
   }
   mt_put(mrb, h, mid, flags, ptr);
@@ -1052,7 +1052,7 @@ define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t func,
   int ai = mrb_gc_arena_save(mrb);
 
   MRB_METHOD_FROM_FUNC(m, func);
-  m.flags |= (aspec << 4);
+  m.flags |= aspec;
   MRB_METHOD_SET_VISIBILITY(m, vis);
   mrb_define_method_raw(mrb, c, mid, m);
   mrb_gc_arena_restore(mrb, ai);
@@ -1072,7 +1072,7 @@ define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t func,
 MRB_API void
 mrb_define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t func, mrb_aspec aspec)
 {
-  define_method_id(mrb, c, mid, func, aspec, MRB_MT_PUBLIC);
+  define_method_id(mrb, c, mid, func, aspec, MRB_METHOD_PUBLIC_FL);
 }
 
 /*
@@ -1107,7 +1107,7 @@ mrb_define_method(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t
 MRB_API void
 mrb_define_private_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t func, mrb_aspec aspec)
 {
-  define_method_id(mrb, c, mid, func, aspec, MRB_MT_PRIVATE);
+  define_method_id(mrb, c, mid, func, aspec, MRB_METHOD_PRIVATE_FL);
 }
 
 /*
@@ -2262,10 +2262,10 @@ mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int vis)
     struct REnv *e;
     find_visibility_scope(mrb, NULL, 1, &ci, &e);
     if (e) {
-      MRB_ENV_SET_VISIBILITY(e, vis);
+      MRB_ENV_SET_VISIBILITY(e, vis >> 25);
     }
     else {
-      MRB_CI_SET_VISIBILITY(ci, vis);
+      MRB_CI_SET_VISIBILITY(ci, vis >> 25);
     }
   }
   else {
@@ -2291,14 +2291,14 @@ mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int vis)
 static mrb_value
 mrb_mod_public(mrb_state *mrb, mrb_value mod)
 {
-  mrb_mod_visibility(mrb, mod, MRB_MT_PUBLIC);
+  mrb_mod_visibility(mrb, mod, MRB_METHOD_PUBLIC_FL);
   return mod;
 }
 
 static mrb_value
 mrb_mod_private(mrb_state *mrb, mrb_value mod)
 {
-  mrb_mod_visibility(mrb, mod, MRB_MT_PRIVATE);
+  mrb_mod_visibility(mrb, mod, MRB_METHOD_PRIVATE_FL);
   return mod;
 }
 
@@ -2313,7 +2313,7 @@ static mrb_value
 top_public(mrb_state *mrb, mrb_value self)
 {
   self = mrb_obj_value(mrb->object_class);
-  mrb_mod_visibility(mrb, self, MRB_MT_PUBLIC);
+  mrb_mod_visibility(mrb, self, MRB_METHOD_PUBLIC_FL);
   return self;
 }
 
@@ -2321,7 +2321,7 @@ static mrb_value
 top_private(mrb_state *mrb, mrb_value self)
 {
   self = mrb_obj_value(mrb->object_class);
-  mrb_mod_visibility(mrb, self, MRB_MT_PRIVATE);
+  mrb_mod_visibility(mrb, self, MRB_METHOD_PRIVATE_FL);
   return self;
 }
 
@@ -3812,7 +3812,7 @@ define_method_m(mrb_state *mrb, struct RClass *c, int vis)
 mrb_value
 mrb_mod_define_method_m(mrb_state *mrb, struct RClass *c)
 {
-  return define_method_m(mrb, c, MRB_MT_PUBLIC);
+  return define_method_m(mrb, c, MRB_METHOD_PUBLIC_FL);
 }
 
 static mrb_value
@@ -3824,7 +3824,7 @@ mod_define_method(mrb_state *mrb, mrb_value self)
 static mrb_value
 top_define_method(mrb_state *mrb, mrb_value self)
 {
-  return define_method_m(mrb, mrb->object_class, MRB_MT_PRIVATE);
+  return define_method_m(mrb, mrb->object_class, MRB_METHOD_PRIVATE_FL);
 }
 
 static mrb_value
@@ -3870,7 +3870,7 @@ mrb_mod_module_function(mrb_state *mrb, mrb_value mod)
     mrb_method_t m = mrb_method_search(mrb, rclass, mid);
 
     prepare_singleton_class(mrb, (struct RBasic*)rclass);
-    MRB_METHOD_SET_VISIBILITY(m, MRB_MT_PUBLIC);
+    MRB_METHOD_SET_VISIBILITY(m, MRB_METHOD_PUBLIC_FL);
     mrb_define_method_raw(mrb, rclass->c, mid, m);
     mrb_gc_arena_restore(mrb, ai);
   }
@@ -4263,19 +4263,19 @@ static const mrb_mt_entry bob_rom_entries[] = {
   MRB_MT_ENTRY(mrb_obj_id_m,       MRB_SYM(__id__),                  MRB_ARGS_NONE()),  /* 15.3.1.3.4  */
   MRB_MT_ENTRY(mrb_f_send,         MRB_SYM(__send__), MRB_ARGS_REQ(1)|MRB_ARGS_REST()|MRB_ARGS_BLOCK()),  /* 15.3.1.3.5  */
   MRB_MT_ENTRY(mrb_obj_equal_m,    MRB_SYM_Q(equal),      MRB_ARGS_REQ(1)),  /* 15.3.1.3.11 */
-  MRB_MT_ENTRY_PRIVATE(mrb_do_nothing, MRB_SYM(initialize),                             MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_do_nothing, MRB_SYM(initialize),                             MRB_ARGS_NONE() | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_obj_instance_eval, MRB_SYM(instance_eval), MRB_ARGS_OPT(1)|MRB_ARGS_BLOCK()),  /* 15.3.1.3.18 */
-  MRB_MT_ENTRY_PRIVATE(mrb_obj_missing, MRB_SYM(method_missing),             MRB_ARGS_ANY()),  /* 15.3.1.3.30 */
-  MRB_MT_ENTRY_PRIVATE(mrb_do_nothing, MRB_SYM(singleton_method_added),    MRB_ARGS_REQ(1)),
-  MRB_MT_ENTRY_PRIVATE(mrb_do_nothing, MRB_SYM(singleton_method_removed),  MRB_ARGS_REQ(1)),
-  MRB_MT_ENTRY_PRIVATE(mrb_do_nothing, MRB_SYM(singleton_method_undefined), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(mrb_obj_missing, MRB_SYM(method_missing),             MRB_ARGS_ANY() | MRB_MT_PRIVATE),  /* 15.3.1.3.30 */
+  MRB_MT_ENTRY(mrb_do_nothing, MRB_SYM(singleton_method_added),    MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_do_nothing, MRB_SYM(singleton_method_removed),  MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_do_nothing, MRB_SYM(singleton_method_undefined), MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
 };
 static mrb_mt_tbl bob_rom_mt = MRB_MT_ROM_TAB(bob_rom_entries);
 
 static const mrb_mt_entry cls_rom_entries[] = {
   MRB_MT_ENTRY(mrb_instance_alloc,    MRB_SYM(allocate), MRB_ARGS_NONE()),
-  MRB_MT_ENTRY_PRIVATE(mrb_do_nothing, MRB_SYM(inherited), MRB_ARGS_REQ(1)),
-  MRB_MT_ENTRY_PRIVATE(mrb_class_initialize, MRB_SYM(initialize), MRB_ARGS_OPT(1)),  /* 15.2.3.3.1 */
+  MRB_MT_ENTRY(mrb_do_nothing, MRB_SYM(inherited), MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_class_initialize, MRB_SYM(initialize), MRB_ARGS_OPT(1) | MRB_MT_PRIVATE),  /* 15.2.3.3.1 */
   MRB_MT_ENTRY(mrb_class_superclass,  MRB_SYM(superclass), MRB_ARGS_NONE()),  /* 15.2.3.3.4 */
 };
 static mrb_mt_tbl cls_rom_mt = MRB_MT_ROM_TAB(cls_rom_entries);
@@ -4288,31 +4288,31 @@ static const mrb_mt_entry mod_rom_entries[] = {
   MRB_MT_ENTRY(mrb_mod_attr_reader,    MRB_SYM(attr_reader), MRB_ARGS_ANY()),  /* 15.2.2.4.13 */
   MRB_MT_ENTRY(mrb_mod_attr_writer,    MRB_SYM(attr_writer), MRB_ARGS_ANY()),  /* 15.2.2.4.14 */
   MRB_MT_ENTRY(mrb_mod_module_eval,    MRB_SYM(class_eval), MRB_ARGS_ANY()),  /* 15.2.2.4.15 */
-  MRB_MT_ENTRY_PRIVATE(mrb_do_nothing, MRB_SYM(const_added),     MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(mrb_do_nothing, MRB_SYM(const_added),     MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_mod_const_defined,  MRB_SYM_Q(const_defined), MRB_ARGS_ARG(1,1)),  /* 15.2.2.4.20 */
   MRB_MT_ENTRY(mrb_mod_const_get,      MRB_SYM(const_get), MRB_ARGS_REQ(1)),  /* 15.2.2.4.21 */
   MRB_MT_ENTRY(mrb_mod_const_missing,  MRB_SYM(const_missing), MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(mrb_mod_const_set,      MRB_SYM(const_set), MRB_ARGS_REQ(2)),  /* 15.2.2.4.23 */
   MRB_MT_ENTRY(mod_define_method,      MRB_SYM(define_method), MRB_ARGS_ARG(1,1)),
   MRB_MT_ENTRY(mrb_mod_dup,            MRB_SYM(dup),           MRB_ARGS_NONE()),
-  MRB_MT_ENTRY_PRIVATE(mrb_do_nothing, MRB_SYM(extended),        MRB_ARGS_REQ(1)),  /* 15.2.2.4.26 */
+  MRB_MT_ENTRY(mrb_do_nothing, MRB_SYM(extended),        MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),  /* 15.2.2.4.26 */
   MRB_MT_ENTRY(mrb_mod_include,        MRB_SYM(include), MRB_ARGS_REQ(1)),  /* 15.2.2.4.27 */
   MRB_MT_ENTRY(mrb_mod_include_p,      MRB_SYM_Q(include), MRB_ARGS_REQ(1)),  /* 15.2.2.4.28 */
-  MRB_MT_ENTRY_PRIVATE(mrb_do_nothing, MRB_SYM(included),        MRB_ARGS_REQ(1)),  /* 15.2.2.4.29 */
-  MRB_MT_ENTRY_PRIVATE(mrb_mod_initialize, MRB_SYM(initialize),                   MRB_ARGS_NONE()),  /* 15.2.2.4.31 */
+  MRB_MT_ENTRY(mrb_do_nothing, MRB_SYM(included),        MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),  /* 15.2.2.4.29 */
+  MRB_MT_ENTRY(mrb_mod_initialize, MRB_SYM(initialize),                   MRB_ARGS_NONE() | MRB_MT_PRIVATE),  /* 15.2.2.4.31 */
   MRB_MT_ENTRY(mrb_mod_to_s,           MRB_SYM(inspect),       MRB_ARGS_NONE()),
-  MRB_MT_ENTRY_PRIVATE(mrb_do_nothing, MRB_SYM(method_added),    MRB_ARGS_REQ(1)),
-  MRB_MT_ENTRY_PRIVATE(mrb_do_nothing, MRB_SYM(method_removed),  MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(mrb_do_nothing, MRB_SYM(method_added),    MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_do_nothing, MRB_SYM(method_removed),  MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_mod_method_defined, MRB_SYM_Q(method_defined), MRB_ARGS_REQ(1)),  /* 15.2.2.4.34 */
-  MRB_MT_ENTRY_PRIVATE(mrb_do_nothing, MRB_SYM(method_undefined), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(mrb_do_nothing, MRB_SYM(method_undefined), MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_mod_module_eval,    MRB_SYM(module_eval), MRB_ARGS_ANY()),  /* 15.2.2.4.35 */
-  MRB_MT_ENTRY_PRIVATE(mrb_mod_module_function, MRB_SYM(module_function), MRB_ARGS_ANY()),
+  MRB_MT_ENTRY(mrb_mod_module_function, MRB_SYM(module_function), MRB_ARGS_ANY() | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_mod_prepend,        MRB_SYM(prepend), MRB_ARGS_REQ(1)),
-  MRB_MT_ENTRY_PRIVATE(mrb_do_nothing, MRB_SYM(prepended),       MRB_ARGS_REQ(1)),
-  MRB_MT_ENTRY_PRIVATE(mrb_mod_private, MRB_SYM(private),          MRB_ARGS_ANY()),  /* 15.2.2.4.36 */
-  MRB_MT_ENTRY_PRIVATE(mrb_mod_protected, MRB_SYM(protected),        MRB_ARGS_ANY()),  /* 15.2.2.4.37 */
-  MRB_MT_ENTRY_PRIVATE(mrb_mod_public, MRB_SYM(public),           MRB_ARGS_ANY()),  /* 15.2.2.4.38 */
-  MRB_MT_ENTRY_PRIVATE(mrb_mod_remove_const, MRB_SYM(remove_const),    MRB_ARGS_REQ(1)),  /* 15.2.2.4.40 */
+  MRB_MT_ENTRY(mrb_do_nothing, MRB_SYM(prepended),       MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_mod_private, MRB_SYM(private),          MRB_ARGS_ANY() | MRB_MT_PRIVATE),  /* 15.2.2.4.36 */
+  MRB_MT_ENTRY(mrb_mod_protected, MRB_SYM(protected),        MRB_ARGS_ANY() | MRB_MT_PRIVATE),  /* 15.2.2.4.37 */
+  MRB_MT_ENTRY(mrb_mod_public, MRB_SYM(public),           MRB_ARGS_ANY() | MRB_MT_PRIVATE),  /* 15.2.2.4.38 */
+  MRB_MT_ENTRY(mrb_mod_remove_const, MRB_SYM(remove_const),    MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),  /* 15.2.2.4.40 */
   MRB_MT_ENTRY(mrb_mod_to_s,           MRB_SYM(to_s),          MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_mod_undef,          MRB_SYM(undef_method), MRB_ARGS_ANY()),  /* 15.2.2.4.41 */
 };

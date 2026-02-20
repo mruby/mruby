@@ -669,7 +669,7 @@ mrb_p_m(mrb_state *mrb, mrb_value self)
 static const mrb_mt_entry kernel_rom_entries[] = {
   MRB_MT_ENTRY(mrb_eqq_m,                        MRB_OPSYM(eqq),        MRB_ARGS_REQ(1)),  /* 15.3.1.3.2  */
   MRB_MT_ENTRY(mrb_cmp_m,                        MRB_OPSYM(cmp),         MRB_ARGS_REQ(1)),
-  MRB_MT_ENTRY_PRIVATE(mrb_f_block_given_p_m,    MRB_SYM_Q(block_given),                           MRB_ARGS_NONE()),  /* 15.3.1.3.6  */
+  MRB_MT_ENTRY(mrb_f_block_given_p_m,    MRB_SYM_Q(block_given),                           MRB_ARGS_NONE() | MRB_MT_PRIVATE),  /* 15.3.1.3.6  */
   MRB_MT_ENTRY(mrb_obj_class_m,                  MRB_SYM(class),                     MRB_ARGS_NONE()),  /* 15.3.1.3.7  */
   MRB_MT_ENTRY(mrb_obj_clone,                    MRB_SYM(clone),                     MRB_ARGS_NONE()),  /* 15.3.1.3.8  */
   MRB_MT_ENTRY(mrb_obj_dup,                      MRB_SYM(dup),                       MRB_ARGS_NONE()),  /* 15.3.1.3.9  */
@@ -678,25 +678,25 @@ static const mrb_mt_entry kernel_rom_entries[] = {
   MRB_MT_ENTRY(mrb_obj_frozen,                   MRB_SYM_Q(frozen),                  MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_obj_extend,                   MRB_SYM(extend),          MRB_ARGS_ANY()),  /* 15.3.1.3.13 */
   MRB_MT_ENTRY(mrb_obj_hash,                     MRB_SYM(hash),                      MRB_ARGS_NONE()),  /* 15.3.1.3.15 */
-  MRB_MT_ENTRY_PRIVATE(mrb_obj_init_copy,        MRB_SYM(initialize_copy),             MRB_ARGS_REQ(1)),  /* 15.3.1.3.16 */
+  MRB_MT_ENTRY(mrb_obj_init_copy,        MRB_SYM(initialize_copy),             MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),  /* 15.3.1.3.16 */
   MRB_MT_ENTRY(mrb_obj_inspect,                  MRB_SYM(inspect),                   MRB_ARGS_NONE()),  /* 15.3.1.3.17 */
   MRB_MT_ENTRY(obj_is_instance_of,               MRB_SYM_Q(instance_of),  MRB_ARGS_REQ(1)),  /* 15.3.1.3.19 */
   MRB_MT_ENTRY(mrb_obj_is_kind_of_m,             MRB_SYM_Q(is_a),         MRB_ARGS_REQ(1)),  /* 15.3.1.3.24 */
-  MRB_MT_ENTRY_PRIVATE(mrb_f_block_given_p_m,    MRB_SYM_Q(iterator),                               MRB_ARGS_NONE()),  /* 15.3.1.3.25 */
+  MRB_MT_ENTRY(mrb_f_block_given_p_m,    MRB_SYM_Q(iterator),                               MRB_ARGS_NONE() | MRB_MT_PRIVATE),  /* 15.3.1.3.25 */
   MRB_MT_ENTRY(mrb_obj_is_kind_of_m,             MRB_SYM_Q(kind_of),      MRB_ARGS_REQ(1)),  /* 15.3.1.3.26 */
   MRB_MT_ENTRY(mrb_false,                        MRB_SYM_Q(nil),                     MRB_ARGS_NONE()),  /* 15.3.1.3.32 */
   MRB_MT_ENTRY(mrb_obj_id_m,                     MRB_SYM(object_id),                 MRB_ARGS_NONE()),  /* 15.3.1.3.33 */
-  MRB_MT_ENTRY_PRIVATE(mrb_f_raise,              MRB_SYM(raise),                       MRB_ARGS_OPT(2)),  /* 15.3.1.3.40 */
+  MRB_MT_ENTRY(mrb_f_raise,              MRB_SYM(raise),                       MRB_ARGS_OPT(2) | MRB_MT_PRIVATE),  /* 15.3.1.3.40 */
   MRB_MT_ENTRY(mrb_obj_remove_instance_variable, MRB_SYM(remove_instance_variable), MRB_ARGS_REQ(1)),  /* 15.3.1.3.41 */
   MRB_MT_ENTRY(obj_respond_to,                   MRB_SYM_Q(respond_to), MRB_ARGS_ARG(1,1)),  /* 15.3.1.3.43 */
   MRB_MT_ENTRY(mrb_any_to_s,                     MRB_SYM(to_s),                      MRB_ARGS_NONE()),  /* 15.3.1.3.46 */
   MRB_MT_ENTRY(mrb_obj_ceqq,                     MRB_SYM(__case_eqq),     MRB_ARGS_REQ(1)),  /* internal */
   MRB_MT_ENTRY(mrb_ensure_int_type,              MRB_SYM(__to_int),                  MRB_ARGS_NONE()),  /* internal */
-  MRB_MT_ENTRY_PRIVATE(mrb_false,                MRB_SYM_Q(respond_to_missing),      MRB_ARGS_ARG(1,1)),
+  MRB_MT_ENTRY(mrb_false,                MRB_SYM_Q(respond_to_missing),      MRB_ARGS_ARG(1,1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_obj_method_recursive_p,       MRB_SYM_Q(__method_recursive), MRB_ARGS_ARG(1,1)),
 #ifndef HAVE_MRUBY_IO_GEM
-  MRB_MT_ENTRY_PRIVATE(mrb_p_m, MRB_SYM(p),     MRB_ARGS_ANY()),  /* 15.3.1.3.34 */
-  MRB_MT_ENTRY_PRIVATE(mrb_print_m, MRB_SYM(print), MRB_ARGS_ANY()),  /* 15.3.1.3.35 */
+  MRB_MT_ENTRY(mrb_p_m, MRB_SYM(p),     MRB_ARGS_ANY() | MRB_MT_PRIVATE),  /* 15.3.1.3.34 */
+  MRB_MT_ENTRY(mrb_print_m, MRB_SYM(print), MRB_ARGS_ANY() | MRB_MT_PRIVATE),  /* 15.3.1.3.35 */
 #endif
 };
 static mrb_mt_tbl kernel_rom_mt = MRB_MT_ROM_TAB(kernel_rom_entries);

@@ -132,16 +132,13 @@ typedef struct mrb_mt_tbl {
 ### Macros
 
 ```c
-/* ROM table entry: stores aspec in bits 4+, auto-sets MRB_MT_FUNC */
-#define MRB_MT_ENTRY(fn, sym, aspec) \
-  { { .func = (fn) }, (sym), ((aspec) << 4) | MRB_MT_FUNC }
-
-/* ROM table entry for private methods */
-#define MRB_MT_ENTRY_PRIVATE(fn, sym, aspec) \
-  { { .func = (fn) }, (sym), ((aspec) << 4) | MRB_MT_FUNC | MRB_MT_PRIVATE }
+/* ROM table entry: 3rd param is MRB_ARGS_*() optionally OR'd with
+   MRB_MT_PRIVATE.  The macro OR's in MRB_MT_FUNC automatically. */
+#define MRB_MT_ENTRY(fn, sym, flags) \
+  { { .func = (fn) }, (sym), (flags) | MRB_MT_FUNC }
 
 /* Extract aspec from combined flags */
-#define MRB_MT_ASPEC(flags) ((mrb_aspec)((flags) >> 4))
+#define MRB_MT_ASPEC(flags) ((mrb_aspec)((flags) & 0xffffff))
 
 /* ROM table initializer (auto-computes size from entries array) */
 #define MRB_MT_ROM_TAB(entries) { \
@@ -150,23 +147,26 @@ typedef struct mrb_mt_tbl {
   (mrb_mt_entry*)(entries), NULL }
 ```
 
-### Flags (bits 0-3 of uint32_t)
+### Flags
 
-| Flag             | Value | Description                     |
-| ---------------- | ----- | ------------------------------- |
-| `MRB_MT_FUNC`    | 8     | C function (auto-set by macros) |
-| `MRB_MT_PUBLIC`  | 0     | Public visibility (default)     |
-| `MRB_MT_PRIVATE` | 1     | Private visibility              |
+| Flag             | Value    | Description                         |
+| ---------------- | -------- | ----------------------------------- |
+| `MRB_MT_FUNC`    | (1<<24)  | C function (auto-set by macro)      |
+| `MRB_MT_PUBLIC`  | 0        | Public visibility (default)         |
+| `MRB_MT_PRIVATE` | (1<<25)  | Private visibility (in entry param) |
 
-Bits 4-27 store the `mrb_aspec` argument specification (shifted left
-by 4). `MRB_MT_FUNC` is set automatically by the macros. The no-arg
-optimization is derived at runtime from `aspec == 0`
-(`MRB_ARGS_NONE()`).
+The third parameter to `MRB_MT_ENTRY()` is an `MRB_ARGS_*()`
+expression optionally OR'd with `MRB_MT_PRIVATE`. The aspec value
+occupies bits 0-23 and the visibility flag occupies bit 25; these
+ranges do not overlap, so the values are simply OR'd together.
+`MRB_MT_FUNC` is set automatically. The no-arg optimization is
+derived at runtime from `aspec == 0` (`MRB_ARGS_NONE()`).
 
 **How to write entries:**
 
 - **`MRB_MT_ENTRY(fn, sym, MRB_ARGS_*(...))`**: Public method.
-- **`MRB_MT_ENTRY_PRIVATE(fn, sym, MRB_ARGS_*(...))`**: Private method.
+- **`MRB_MT_ENTRY(fn, sym, MRB_ARGS_*(...) | MRB_MT_PRIVATE)`**:
+  Private method.
 - Use the same `MRB_ARGS_*()` macros as `mrb_define_method_id()`.
 
 ### Symbol Macros
@@ -371,7 +371,8 @@ To convert existing `mrb_define_method_id()` calls to a ROM table:
      - `func` is the function pointer
      - `sym` is the symbol macro (e.g., `MRB_SYM(name)`)
      - `aspec` is the original `MRB_ARGS_*()` macro
-   - Use `MRB_MT_ENTRY_PRIVATE()` for private methods
+   - For private methods, OR `MRB_MT_PRIVATE` into the aspec:
+     `MRB_MT_ENTRY(func, sym, aspec | MRB_MT_PRIVATE)`
 
 4. **Create** the table with `MRB_MT_ROM_TAB(entries)`.
 

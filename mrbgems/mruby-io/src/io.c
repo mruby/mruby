@@ -2199,7 +2199,7 @@ io_flush(mrb_state *mrb, mrb_value io)
 /* ---------------------------*/
 static const mrb_mt_entry io_rom_entries[] = {
   MRB_MT_ENTRY(io_init,              MRB_SYM(initialize), MRB_ARGS_ARG(1,2)),
-  MRB_MT_ENTRY_PRIVATE(io_init_copy, MRB_SYM(initialize_copy), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(io_init_copy, MRB_SYM(initialize_copy), MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(io_isatty,            MRB_SYM(isatty),        MRB_ARGS_NONE()),
   MRB_MT_ENTRY(io_eof,               MRB_SYM_Q(eof),         MRB_ARGS_NONE()),  /* 15.2.20.5.6 */
   MRB_MT_ENTRY(io_getc,              MRB_SYM(getc),          MRB_ARGS_NONE()),  /* 15.2.20.5.8 */

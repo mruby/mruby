@@ -894,7 +894,7 @@ mrb_check_error(mrb_state *mrb)
 /* ---------------------------*/
 static const mrb_mt_entry exception_rom_entries[] = {
   MRB_MT_ENTRY(exc_exception,     MRB_SYM(exception), MRB_ARGS_OPT(1)),
-  MRB_MT_ENTRY_PRIVATE(exc_initialize, MRB_SYM(initialize),    MRB_ARGS_OPT(1)),
+  MRB_MT_ENTRY(exc_initialize, MRB_SYM(initialize),    MRB_ARGS_OPT(1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(exc_to_s,          MRB_SYM(to_s),        MRB_ARGS_NONE()),
   MRB_MT_ENTRY(exc_to_s,          MRB_SYM(message),     MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_exc_inspect,   MRB_SYM(inspect),     MRB_ARGS_NONE()),

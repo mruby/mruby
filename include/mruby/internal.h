@@ -50,16 +50,14 @@ typedef struct mrb_mt_tbl {
 
 #define MRB_MT_READONLY_BIT  (1 << 30)
 #define MRB_MT_FROZEN_BIT    (1 << 29)
-#define MRB_MT_FUNC    8    /* MRB_METHOD_FUNC_FL */
-#define MRB_MT_PUBLIC  0    /* MRB_METHOD_PUBLIC_FL */
-#define MRB_MT_PRIVATE 1    /* MRB_METHOD_PRIVATE_FL */
+#define MRB_MT_FUNC    (1 << 24)  /* MRB_METHOD_FUNC_FL */
+#define MRB_MT_PUBLIC  0
+#define MRB_MT_PRIVATE (1 << 25)  /* MRB_METHOD_PRIVATE_FL */
 
-/* ROM table entry: stores aspec in bits 4+, auto-sets MRB_MT_FUNC */
-#define MRB_MT_ENTRY(fn, sym, aspec) \
-  { { .func = (fn) }, (sym), ((aspec) << 4) | MRB_MT_FUNC }
-#define MRB_MT_ENTRY_PRIVATE(fn, sym, aspec) \
-  { { .func = (fn) }, (sym), ((aspec) << 4) | MRB_MT_FUNC | MRB_MT_PRIVATE }
-#define MRB_MT_ASPEC(flags) ((mrb_aspec)((flags) >> 4))
+/* ROM table entry: 3rd param is MRB_ARGS_*() optionally OR'd with MRB_MT_PRIVATE. */
+#define MRB_MT_ENTRY(fn, sym, flags) \
+  { { .func = (fn) }, (sym), (flags) | MRB_MT_FUNC }
+#define MRB_MT_ASPEC(flags) ((mrb_aspec)((flags) & 0xffffff))
 
 /* ROM table initializer from const entries array (auto-computes size).
    Casts away const because mrb_mt_tbl.ptr is shared with mutable layers;
