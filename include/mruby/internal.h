@@ -27,54 +27,6 @@ mrb_value mrb_mod_const_missing(mrb_state *mrb, mrb_value mod);
 mrb_value mrb_const_missing(mrb_state *mrb, mrb_value mod, mrb_sym sym);
 size_t mrb_class_mt_memsize(mrb_state*, struct RClass*);
 mrb_value mrb_obj_extend(mrb_state*, mrb_value obj);
-
-/* ROM method table types for static method registration */
-union mrb_mt_ptr {
-  const struct RProc *proc;
-  mrb_func_t func;
-};
-
-/* entry combining function pointer, symbol key, and flags */
-typedef struct mrb_mt_entry {
-  union mrb_mt_ptr val;
-  mrb_sym key;              /* pure symbol ID (no flags packed) */
-  uint32_t flags;           /* method flags + aspec */
-} mrb_mt_entry;
-
-typedef struct mrb_mt_tbl {
-  int               size;
-  int               alloc;  /* bit 30: MRB_MT_READONLY_BIT, bit 29: MRB_MT_FROZEN_BIT */
-  mrb_mt_entry     *ptr;
-  struct mrb_mt_tbl *next;
-} mrb_mt_tbl;
-
-#define MRB_MT_READONLY_BIT  (1 << 30)
-#define MRB_MT_FROZEN_BIT    (1 << 29)
-#define MRB_MT_FUNC    (1 << 24)  /* MRB_METHOD_FUNC_FL */
-#define MRB_MT_PUBLIC  0
-#define MRB_MT_PRIVATE (1 << 25)  /* MRB_METHOD_PRIVATE_FL */
-
-/* ROM table entry: 3rd param is MRB_ARGS_*() optionally OR'd with MRB_MT_PRIVATE. */
-#define MRB_MT_ENTRY(fn, sym, flags) \
-  { { .func = (fn) }, (sym), (flags) | MRB_MT_FUNC }
-#define MRB_MT_ASPEC(flags) ((mrb_aspec)((flags) & 0xffffff))
-
-/* ROM table initializer from const entries array (auto-computes size).
-   Casts away const because mrb_mt_tbl.ptr is shared with mutable layers;
-   the MRB_MT_READONLY_BIT prevents writes. */
-#define MRB_MT_ROM_TAB(entries) { \
-  (int)(sizeof(entries)/sizeof(entries[0])), \
-  (int)(sizeof(entries)/sizeof(entries[0])) | MRB_MT_READONLY_BIT, \
-  (mrb_mt_entry*)(entries), NULL }
-
-/* "removed" tombstone: MRB_MT_FUNC flag set with NULL function pointer.
-   This combination never occurs naturally (C functions are never NULL).
-   Unlike undef (proc=NULL without MRB_MT_FUNC), a removed marker makes
-   mt_get() return 0 ("not found"), blocking ROM chain walk while
-   allowing superclass lookup. */
-#define MRB_MT_REMOVED_P(e) (((e).flags&MRB_MT_FUNC) && (e).val.func==NULL)
-
-void mrb_mt_init_rom(struct RClass *c, mrb_mt_tbl *rom);
 #endif
 
 mrb_value mrb_obj_equal_m(mrb_state *mrb, mrb_value);
