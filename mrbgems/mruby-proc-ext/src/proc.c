@@ -253,18 +253,13 @@ static const mrb_mt_entry proc_ext_rom_entries[] = {
 };
 static mrb_mt_tbl proc_ext_rom_mt = MRB_MT_ROM_TAB(proc_ext_rom_entries);
 
-static const mrb_mt_entry kernel_ext_rom_entries[] = {
-  MRB_MT_ENTRY(kernel_proc, MRB_SYM(proc), MRB_MT_PRIVATE),
-};
-static mrb_mt_tbl kernel_ext_rom_mt = MRB_MT_ROM_TAB(kernel_ext_rom_entries);
-
 void
 mrb_mruby_proc_ext_gem_init(mrb_state* mrb)
 {
   struct RClass *p = mrb->proc_class;
 
   mrb_mt_init_rom(p, &proc_ext_rom_mt);
-  mrb_mt_init_rom(mrb->kernel_module, &kernel_ext_rom_mt);
+  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(proc), kernel_proc, MRB_ARGS_BLOCK());
 }
 
 void

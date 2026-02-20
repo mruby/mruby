@@ -694,6 +694,10 @@ static const mrb_mt_entry kernel_rom_entries[] = {
   MRB_MT_ENTRY(mrb_ensure_int_type,              MRB_SYM(__to_int),                     MRB_MT_NOARG),
   MRB_MT_ENTRY(mrb_false,                        MRB_SYM_Q(respond_to_missing),         MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_obj_method_recursive_p,       MRB_SYM_Q(__method_recursive),         0),
+#ifndef HAVE_MRUBY_IO_GEM
+  MRB_MT_ENTRY(mrb_p_m,     MRB_SYM(p),     MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_print_m, MRB_SYM(print), MRB_MT_PRIVATE),
+#endif
 };
 static mrb_mt_tbl kernel_rom_mt = MRB_MT_ROM_TAB(kernel_rom_entries);
 
@@ -710,12 +714,6 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_class_method_id(mrb, krn, MRB_SYM(raise),                mrb_f_raise,                     MRB_ARGS_OPT(2));    /* 15.3.1.2.12 */
 
   mrb_mt_init_rom(krn, &kernel_rom_mt);
-
-  /* conditional methods not in ROM table */
-#ifndef HAVE_MRUBY_IO_GEM
-  mrb_define_private_method_id(mrb, krn, MRB_SYM(p),                  mrb_p_m,                         MRB_ARGS_ANY());     /* 15.3.1.3.34 */
-  mrb_define_private_method_id(mrb, krn, MRB_SYM(print),              mrb_print_m,                     MRB_ARGS_ANY());     /* 15.3.1.3.35 */
-#endif
 
   mrb_include_module(mrb, mrb->object_class, mrb->kernel_module);
 }

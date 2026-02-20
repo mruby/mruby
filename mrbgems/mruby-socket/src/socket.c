@@ -1289,6 +1289,14 @@ static const mrb_mt_entry basicsocket_rom_entries[] = {
   MRB_MT_ENTRY(mrb_basicsocket_setsockopt,    MRB_SYM(setsockopt),    0),
   MRB_MT_ENTRY(mrb_basicsocket_shutdown,      MRB_SYM(shutdown),      0),
   MRB_MT_ENTRY(mrb_basicsocket_set_is_socket, MRB_SYM_E(_is_socket),  0),
+#ifdef _WIN32
+  MRB_MT_ENTRY(mrb_win32_basicsocket_close,    MRB_SYM(close),    MRB_MT_NOARG),
+  MRB_MT_ENTRY(mrb_win32_basicsocket_sysread,  MRB_SYM(sysread),  0),
+  MRB_MT_ENTRY(mrb_win32_basicsocket_sysseek,  MRB_SYM(sysseek),  0),
+  MRB_MT_ENTRY(mrb_win32_basicsocket_syswrite, MRB_SYM(syswrite), 0),
+  MRB_MT_ENTRY(mrb_win32_basicsocket_sysread,  MRB_SYM(read),     0),
+  MRB_MT_ENTRY(mrb_win32_basicsocket_syswrite, MRB_SYM(write),    0),
+#endif
 };
 static mrb_mt_tbl basicsocket_rom_mt = MRB_MT_ROM_TAB(basicsocket_rom_entries);
 
@@ -1341,16 +1349,6 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
   mrb_define_class_method_id(mrb, sock, MRB_SYM(gethostname), mrb_socket_gethostname, MRB_ARGS_NONE());
   mrb_define_class_method_id(mrb, sock, MRB_SYM(sockaddr_un), mrb_socket_sockaddr_un, MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, sock, MRB_SYM(socketpair), mrb_socket_socketpair, MRB_ARGS_REQ(3));
-
-  /* Windows IO Methods Overridden on BasicSocket */
-#ifdef _WIN32
-  mrb_define_method_id(mrb, bsock, MRB_SYM(close), mrb_win32_basicsocket_close, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, bsock, MRB_SYM(sysread), mrb_win32_basicsocket_sysread, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
-  mrb_define_method_id(mrb, bsock, MRB_SYM(sysseek), mrb_win32_basicsocket_sysseek, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, bsock, MRB_SYM(syswrite), mrb_win32_basicsocket_syswrite, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, bsock, MRB_SYM(read), mrb_win32_basicsocket_sysread, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
-  mrb_define_method_id(mrb, bsock, MRB_SYM(write), mrb_win32_basicsocket_syswrite, MRB_ARGS_REQ(1));
-#endif
 
   struct RClass *option = mrb_define_class_under_id(mrb, sock, MRB_SYM(Option), mrb->object_class);
   mrb_define_class_method_id(mrb, option, MRB_SYM(bool), socket_option_s_bool, MRB_ARGS_REQ(4));

@@ -575,16 +575,6 @@ static const mrb_mt_entry complex_rom_entries[] = {
 };
 static mrb_mt_tbl complex_rom_mt = MRB_MT_ROM_TAB(complex_rom_entries);
 
-static const mrb_mt_entry nil_to_c_rom_entries[] = {
-  MRB_MT_ENTRY(nil_to_c, MRB_SYM(to_c), MRB_MT_NOARG),
-};
-static mrb_mt_tbl nil_to_c_rom_mt = MRB_MT_ROM_TAB(nil_to_c_rom_entries);
-
-static const mrb_mt_entry kernel_complex_rom_entries[] = {
-  MRB_MT_ENTRY(complex_s_rect, MRB_SYM(Complex), MRB_MT_PRIVATE),
-};
-static mrb_mt_tbl kernel_complex_rom_mt = MRB_MT_ROM_TAB(kernel_complex_rom_entries);
-
 void mrb_mruby_complex_gem_init(mrb_state *mrb)
 {
   struct RClass *comp;
@@ -598,8 +588,8 @@ void mrb_mruby_complex_gem_init(mrb_state *mrb)
   mrb_define_class_method_id(mrb, comp, MRB_SYM(rect), complex_s_rect, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
 
   mrb_mt_init_rom(comp, &complex_rom_mt);
-  mrb_mt_init_rom(mrb->nil_class, &nil_to_c_rom_mt);
-  mrb_mt_init_rom(mrb->kernel_module, &kernel_complex_rom_mt);
+  mrb_define_method_id(mrb, mrb->nil_class, MRB_SYM(to_c), nil_to_c, MRB_ARGS_NONE());
+  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(Complex), complex_s_rect, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
 }
 
 void

@@ -2303,6 +2303,9 @@ static const mrb_mt_entry numeric_rom_entries[] = {
   MRB_MT_ENTRY(num_finite_p,   MRB_SYM_Q(finite),   MRB_MT_NOARG),
   MRB_MT_ENTRY(num_infinite_p, MRB_SYM_Q(infinite), MRB_MT_NOARG),
   MRB_MT_ENTRY(num_eql,        MRB_SYM_Q(eql),      0),
+#ifndef MRB_NO_FLOAT
+  MRB_MT_ENTRY(num_fdiv, MRB_SYM(fdiv), 0),
+#endif
 };
 static mrb_mt_tbl numeric_rom_mt = MRB_MT_ROM_TAB(numeric_rom_entries);
 
@@ -2338,6 +2341,10 @@ static const mrb_mt_entry integer_rom_entries[] = {
   MRB_MT_ENTRY(int_to_s,             MRB_SYM(inspect),                0),
   MRB_MT_ENTRY(int_divmod,           MRB_SYM(divmod),                 0),
   MRB_MT_ENTRY(coerce_step_counter,  MRB_SYM(__coerce_step_counter),  0),
+#ifndef MRB_NO_FLOAT
+  MRB_MT_ENTRY(int_fdiv, MRB_SYM(fdiv), 0),
+  MRB_MT_ENTRY(int_to_f, MRB_SYM(to_f), MRB_MT_NOARG),
+#endif
 };
 static mrb_mt_tbl integer_rom_mt = MRB_MT_ROM_TAB(integer_rom_entries);
 
@@ -2387,9 +2394,6 @@ mrb_init_numeric(mrb_state *mrb)
   /* Numeric Class */
   numeric = mrb_define_class_id(mrb, MRB_SYM(Numeric), mrb->object_class);                  /* 15.2.7 */
   mrb_mt_init_rom(numeric, &numeric_rom_mt);
-#ifndef MRB_NO_FLOAT
-  mrb_define_method_id(mrb, numeric, MRB_SYM(fdiv),      num_fdiv,        MRB_ARGS_REQ(1));
-#endif
 
   /* Integer Class */
   mrb->integer_class = integer = mrb_define_class_id(mrb, MRB_SYM(Integer),  numeric);     /* 15.2.8 */
@@ -2397,10 +2401,6 @@ mrb_init_numeric(mrb_state *mrb)
   MRB_UNDEF_ALLOCATOR(integer);
   mrb_undef_class_method_id(mrb, integer, MRB_SYM(new));
   mrb_mt_init_rom(integer, &integer_rom_mt);
-#ifndef MRB_NO_FLOAT
-  mrb_define_method_id(mrb, integer, MRB_SYM(fdiv),     int_fdiv,        MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, integer, MRB_SYM(to_f),     int_to_f,        MRB_ARGS_NONE()); /* 15.2.8.3.23 */
-#endif
 
   /* Fixnum Class for compatibility */
   mrb_define_const_id(mrb, mrb->object_class, MRB_SYM(Fixnum), mrb_obj_value(integer));

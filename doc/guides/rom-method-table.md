@@ -210,10 +210,23 @@ static const mrb_mt_entry str_rom_entries[] = {
 ## Conditional Methods
 
 Methods that depend on build configuration (e.g., `MRB_NO_FLOAT`) can
-be handled in two ways:
+use `#ifdef` directly inside the ROM entries array. The `sizeof` in
+`MRB_MT_ROM_TAB()` automatically adjusts to the number of entries
+that survive preprocessing:
 
-**Option A: Separate ROM table under `#ifdef`** (preferred for large
-blocks):
+```c
+static const mrb_mt_entry integer_rom_entries[] = {
+  MRB_MT_ENTRY(int_to_s, MRB_SYM(to_s), 0),
+  MRB_MT_ENTRY(int_add,  MRB_OPSYM(add), 0),
+#ifndef MRB_NO_FLOAT
+  MRB_MT_ENTRY(int_to_f, MRB_SYM(to_f), MRB_MT_NOARG),
+#endif
+};
+static mrb_mt_tbl integer_rom_mt = MRB_MT_ROM_TAB(integer_rom_entries);
+```
+
+For conditional methods on a **different class**, use a separate ROM
+table wrapped in the `#ifdef`:
 
 ```c
 #ifndef MRB_NO_FLOAT
@@ -228,22 +241,6 @@ void mrb_init_numeric(mrb_state *mrb) {
 #endif
 }
 ```
-
-**Option B: Keep as `mrb_define_method_id()`** (preferred for a few
-conditional methods):
-
-```c
-void mrb_init_numeric(mrb_state *mrb) {
-  mrb_mt_init_rom(integer, &integer_rom_mt);
-#ifndef MRB_NO_FLOAT
-  mrb_define_method_id(mrb, integer, MRB_SYM(to_f), int_to_f, MRB_ARGS_NONE());
-#endif
-}
-```
-
-Both approaches work correctly. The ROM layer and the
-`mrb_define_method_id()` calls coexist: method lookup walks the
-mutable layer first, then the ROM chain.
 
 ## Extension Gems
 
@@ -295,6 +292,11 @@ Some methods must remain as `mrb_define_method_id()` calls:
 - **Methods on dynamically created classes**: Classes created at
   init time (not stored in `mrb->xxx_class`) that require
   `mrb_define_class()` to obtain the class pointer.
+- **Cross-class methods** (methods on a class the gem does not own):
+  Each ROM table adds a 16-byte `mrb_mt_tbl` layer to the target
+  class's chain. For 1-2 methods, this overhead exceeds the savings.
+  Use `mrb_define_method_id()` instead — cross-class methods share
+  the target class's existing mutable layer.
 
 These methods are added after `mrb_mt_init_rom()` and go into the
 mutable layer that sits in front of the ROM chain.

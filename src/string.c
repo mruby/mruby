@@ -3555,6 +3555,9 @@ static const mrb_mt_entry string_rom_entries[] = {
   MRB_MT_ENTRY(mrb_str_byteslice,      MRB_SYM(byteslice),       0),
   MRB_MT_ENTRY(mrb_str_bytesplice,     MRB_SYM(bytesplice),      0),
   MRB_MT_ENTRY(sub_replace,            MRB_SYM(__sub_replace),   0),
+#ifndef MRB_NO_FLOAT
+  MRB_MT_ENTRY(mrb_str_to_f, MRB_SYM(to_f), MRB_MT_NOARG),
+#endif
 };
 static mrb_mt_tbl string_rom_mt = MRB_MT_ROM_TAB(string_rom_entries);
 
@@ -3571,9 +3574,5 @@ mrb_init_string(mrb_state *mrb)
 
   mrb_mt_init_rom(s, &string_rom_mt);
 
-  /* conditional methods not in ROM table */
-#ifndef MRB_NO_FLOAT
-  mrb_define_method_id(mrb, s, MRB_SYM(to_f),            mrb_str_to_f,            MRB_ARGS_NONE()); /* 15.2.10.5.38 */
-#endif
   mrb_define_method_id(mrb, mrb->kernel_module, MRB_SYM(__ENCODING__), mrb_encoding, MRB_ARGS_NONE());
 }

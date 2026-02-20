@@ -1243,23 +1243,11 @@ static const mrb_mt_entry rational_rom_entries[] = {
   MRB_MT_ENTRY(rational_div,         MRB_SYM(quo),         0),
   MRB_MT_ENTRY(rational_pow,         MRB_OPSYM(pow),       0),
   MRB_MT_ENTRY(rational_hash,        MRB_SYM(hash),        MRB_MT_NOARG),
+#ifndef MRB_NO_FLOAT
+  MRB_MT_ENTRY(mrb_rational_to_f,   MRB_SYM(to_f),        MRB_MT_NOARG),
+#endif
 };
 static mrb_mt_tbl rational_rom_mt = MRB_MT_ROM_TAB(rational_rom_entries);
-
-static const mrb_mt_entry integer_to_r_rom_entries[] = {
-  MRB_MT_ENTRY(int_to_r, MRB_SYM(to_r), MRB_MT_NOARG),
-};
-static mrb_mt_tbl integer_to_r_rom_mt = MRB_MT_ROM_TAB(integer_to_r_rom_entries);
-
-static const mrb_mt_entry nil_to_r_rom_entries[] = {
-  MRB_MT_ENTRY(nil_to_r, MRB_SYM(to_r), MRB_MT_NOARG),
-};
-static mrb_mt_tbl nil_to_r_rom_mt = MRB_MT_ROM_TAB(nil_to_r_rom_entries);
-
-static const mrb_mt_entry kernel_rational_rom_entries[] = {
-  MRB_MT_ENTRY(rational_m, MRB_SYM(Rational), MRB_MT_PRIVATE),
-};
-static mrb_mt_tbl kernel_rational_rom_mt = MRB_MT_ROM_TAB(kernel_rational_rom_entries);
 
 void mrb_mruby_rational_gem_init(mrb_state *mrb)
 {
@@ -1267,14 +1255,13 @@ void mrb_mruby_rational_gem_init(mrb_state *mrb)
   MRB_SET_INSTANCE_TT(rat, MRB_TT_RATIONAL);
   MRB_UNDEF_ALLOCATOR(rat);
   mrb_undef_class_method_id(mrb, rat, MRB_SYM(new));
+  mrb_mt_init_rom(rat, &rational_rom_mt);
+  mrb_define_method_id(mrb, mrb->integer_class, MRB_SYM(to_r), int_to_r, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, mrb->nil_class, MRB_SYM(to_r), nil_to_r, MRB_ARGS_NONE());
+  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(Rational), rational_m, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
 #ifndef MRB_NO_FLOAT
-  mrb_define_method_id(mrb, rat, MRB_SYM(to_f), mrb_rational_to_f, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, mrb->float_class, MRB_SYM(to_r), float_to_r, MRB_ARGS_NONE());
 #endif
-  mrb_mt_init_rom(rat, &rational_rom_mt);
-  mrb_mt_init_rom(mrb->integer_class, &integer_to_r_rom_mt);
-  mrb_mt_init_rom(mrb->nil_class, &nil_to_r_rom_mt);
-  mrb_mt_init_rom(mrb->kernel_module, &kernel_rational_rom_mt);
 }
 
 void

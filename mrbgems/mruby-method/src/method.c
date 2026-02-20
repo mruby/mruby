@@ -866,17 +866,6 @@ static const mrb_mt_entry method_mtd_rom_entries[] = {
 };
 static mrb_mt_tbl method_mtd_rom_mt = MRB_MT_ROM_TAB(method_mtd_rom_entries);
 
-static const mrb_mt_entry method_krn_rom_entries[] = {
-  MRB_MT_ENTRY(mrb_kernel_method,           MRB_SYM(method),           0),
-  MRB_MT_ENTRY(mrb_kernel_singleton_method, MRB_SYM(singleton_method), 0),
-};
-static mrb_mt_tbl method_krn_rom_mt = MRB_MT_ROM_TAB(method_krn_rom_entries);
-
-static const mrb_mt_entry method_mod_rom_entries[] = {
-  MRB_MT_ENTRY(mrb_module_instance_method, MRB_SYM(instance_method), 0),
-};
-static mrb_mt_tbl method_mod_rom_mt = MRB_MT_ROM_TAB(method_mod_rom_entries);
-
 void
 mrb_mruby_method_gem_init(mrb_state* mrb)
 {
@@ -892,8 +881,9 @@ mrb_mruby_method_gem_init(mrb_state* mrb)
   MRB_UNDEF_ALLOCATOR(method);
   mrb_undef_class_method_id(mrb, method, MRB_SYM(new));
   mrb_mt_init_rom(method, &method_mtd_rom_mt);
-  mrb_mt_init_rom(mrb->kernel_module, &method_krn_rom_mt);
-  mrb_mt_init_rom(mrb->module_class, &method_mod_rom_mt);
+  mrb_define_method_id(mrb, mrb->kernel_module, MRB_SYM(method), mrb_kernel_method, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, mrb->kernel_module, MRB_SYM(singleton_method), mrb_kernel_singleton_method, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, mrb->module_class, MRB_SYM(instance_method), mrb_module_instance_method, MRB_ARGS_REQ(1));
 }
 
 void

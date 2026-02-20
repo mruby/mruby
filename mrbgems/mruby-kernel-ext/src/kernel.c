@@ -296,6 +296,10 @@ static const mrb_mt_entry kernel_ext_rom_entries[] = {
   MRB_MT_ENTRY(mrb_f_integer, MRB_SYM(Integer),    MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_f_string,  MRB_SYM(String),     MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_f_array,   MRB_SYM(Array),      MRB_MT_PRIVATE),
+#ifndef MRB_NO_FLOAT
+  MRB_MT_ENTRY(mrb_f_float,   MRB_SYM(Float),      MRB_MT_PRIVATE),
+#endif
+  MRB_MT_ENTRY(mrb_f_hash,    MRB_SYM(Hash),       MRB_MT_PRIVATE),
 };
 static mrb_mt_tbl kernel_ext_rom_mt = MRB_MT_ROM_TAB(kernel_ext_rom_entries);
 
@@ -304,11 +308,6 @@ mrb_mruby_kernel_ext_gem_init(mrb_state *mrb)
 {
   struct RClass *krn = mrb->kernel_module;
 
-#ifndef MRB_NO_FLOAT
-  mrb_define_private_method_id(mrb, krn, MRB_SYM(Float), mrb_f_float, MRB_ARGS_REQ(1));
-#endif
-  /* Hash stays as runtime (depends on mrb_ensure_hash_type availability) */
-  mrb_define_private_method_id(mrb, krn, MRB_SYM(Hash), mrb_f_hash, MRB_ARGS_REQ(1));
   mrb_mt_init_rom(krn, &kernel_ext_rom_mt);
 }
 

@@ -493,6 +493,7 @@ static const mrb_mt_entry integer_ext_rom_entries[] = {
 };
 static mrb_mt_tbl integer_ext_rom_mt = MRB_MT_ROM_TAB(integer_ext_rom_entries);
 
+
 void
 mrb_mruby_numeric_ext_gem_init(mrb_state* mrb)
 {
