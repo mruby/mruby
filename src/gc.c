@@ -131,6 +131,12 @@ struct RVALUE {
     struct RBasic basic;
     struct RObject object;
     struct RClass klass;
+#if defined(MRB_WORD_BOXING) || (defined(MRB_NAN_BOXING) && defined(MRB_INT64))
+    struct RInteger integer;
+#endif
+#if defined(MRB_WORD_BOXING) && !defined(MRB_NO_FLOAT) && defined(MRB_WORDBOX_NO_FLOAT_TRUNCATE)
+    struct RFloat flt;
+#endif
     struct RString string;
     struct RArray array;
     struct RHash hash;
