@@ -1558,11 +1558,8 @@ gc_each_objects(mrb_state *mrb, mrb_gc *gc, mrb_each_object_callback *callback, 
 void
 mrb_objspace_each_objects(mrb_state *mrb, mrb_each_object_callback *callback, void *data)
 {
-  mrb_bool iterating = mrb->gc.iterating;
-
   mrb_full_gc(mrb);
-  mrb->gc.iterating = TRUE;
-  if (iterating) {
+  if (mrb->gc.iterating) {
     gc_each_objects(mrb, &mrb->gc, callback, data);
   }
   else {
@@ -1571,11 +1568,12 @@ mrb_objspace_each_objects(mrb_state *mrb, mrb_each_object_callback *callback, vo
 
     MRB_TRY(&c_jmp) {
       mrb->jmp = &c_jmp;
+      mrb->gc.iterating = TRUE;
       gc_each_objects(mrb, &mrb->gc, callback, data);
       mrb->jmp = prev_jmp;
-      mrb->gc.iterating = iterating;
+      mrb->gc.iterating = FALSE;
     } MRB_CATCH(&c_jmp) {
-      mrb->gc.iterating = iterating;
+      mrb->gc.iterating = FALSE;
       mrb->jmp = prev_jmp;
       MRB_THROW(prev_jmp);
     } MRB_END_EXC(&c_jmp);
