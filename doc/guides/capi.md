@@ -402,12 +402,18 @@ safe_operation(mrb_state *mrb, mrb_value data)
 mrb_bool error;
 mrb_value result = mrb_protect(mrb, safe_operation, data, &error);
 if (error) {
-  /* result contains the exception object */
-  mrb_print_error(mrb);
+  /* result contains the exception object; mrb->exc is cleared */
+  mrb_value inspect = mrb_inspect(mrb, result);
+  fprintf(stderr, "Error: %s\n", mrb_str_to_cstr(mrb, inspect));
 }
 ```
 
-For lower-level protection without `mrb_value` callback signature:
+**Note:** `mrb_protect` clears `mrb->exc` after catching the
+exception. The exception is returned as `result`. Do not use
+`mrb_print_error()` after `mrb_protect` — it reads `mrb->exc`
+which is already `NULL`.
+
+For lower-level protection with a `void*` callback:
 
 ```c
 static mrb_value
@@ -561,12 +567,22 @@ mrb_value fiber = mrb_fiber_new(mrb, proc);
 mrb_value args[] = { mrb_fixnum_value(1) };
 mrb_value result = mrb_fiber_resume(mrb, fiber, 1, args);
 
-/* Yield from within a fiber (typically called from Ruby code) */
-mrb_value yield_args[] = { mrb_str_new_lit(mrb, "yielded") };
-mrb_fiber_yield(mrb, 1, yield_args);
-
 /* Check if fiber is still alive */
 mrb_bool alive = mrb_test(mrb_fiber_alive_p(mrb, fiber));
+```
+
+### Yielding from C
+
+`mrb_fiber_yield()` can only be used as the return value of a C
+function — no code may execute after it:
+
+```c
+static mrb_value
+my_yield_method(mrb_state *mrb, mrb_value self)
+{
+  mrb_value yield_args[] = { mrb_str_new_lit(mrb, "yielded") };
+  return mrb_fiber_yield(mrb, 1, yield_args);  /* must be returned directly */
+}
 ```
 
 ### Fiber States

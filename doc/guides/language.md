@@ -252,76 +252,75 @@ These classes are always available in mruby (no gem required):
 ## Standard Library (via gemboxes)
 
 mruby's standard library is organized into gemboxes. The `default`
-gembox includes all of the below.
+gembox includes all of the below. Use this table to find which
+gembox provides the class or feature you need:
 
-### stdlib gembox
+### Classes and Modules
 
-Extensions to core classes and additional modules:
+| Class/Module | Gembox | Gem |
+| ------------ | ------ | --- |
+| Fiber | stdlib | mruby-fiber |
+| Enumerator | stdlib | mruby-enumerator |
+| Enumerator::Lazy | stdlib | mruby-enum-lazy |
+| Set | stdlib | mruby-set |
+| ObjectSpace | stdlib | mruby-objectspace |
+| Time | stdlib-ext | mruby-time |
+| Struct | stdlib-ext | mruby-struct |
+| Data | stdlib-ext | mruby-data |
+| Random | stdlib-ext | mruby-random |
+| IO, File | stdlib-io | mruby-io |
+| Socket | stdlib-io | mruby-socket |
+| Dir | stdlib-io | mruby-dir |
+| Errno | stdlib-io | mruby-errno |
+| Math | math | mruby-math |
+| Rational | math | mruby-rational |
+| Complex | math | mruby-complex |
+| Bigint | math | mruby-bigint |
+| Method, UnboundMethod | metaprog | mruby-method |
 
-| Gem | Provides |
-| --- | -------- |
-| mruby-compar-ext | `Comparable#clamp` |
-| mruby-enum-ext | `Enumerable#sort_by`, `#min_by`, etc. |
-| mruby-string-ext | `String#encode`, `#bytes`, etc. |
-| mruby-numeric-ext | `Integer#digits`, etc. |
-| mruby-array-ext | `Array#dig`, `#union`, etc. |
-| mruby-hash-ext | `Hash#dig`, `#transform_keys`, etc. |
-| mruby-range-ext | `Range#size`, `#cover?`, etc. |
-| mruby-proc-ext | `Proc#<<`, `#>>`, etc. |
-| mruby-symbol-ext | `Symbol#to_proc` |
-| mruby-object-ext | `Object#then`, `#yield_self` |
-| mruby-objectspace | `ObjectSpace.count_objects` |
-| mruby-set | `Set` class |
-| mruby-fiber | `Fiber` class (coroutines) |
-| mruby-enumerator | `Enumerator` class |
-| mruby-enum-lazy | `Enumerator::Lazy` |
-| mruby-enum-chain | `Enumerator::Chain` |
-| mruby-toplevel-ext | Top-level `define_method` |
-| mruby-kernel-ext | `Kernel#__method__` |
-| mruby-class-ext | `Module#name`, etc. |
-| mruby-catch | `catch`/`throw` |
+### Methods and Features
 
-### stdlib-ext gembox
+| Feature | Gembox | Gem |
+| ------- | ------ | --- |
+| `catch`/`throw` | stdlib | mruby-catch |
+| `Kernel#sprintf`, `String#%` | stdlib-ext | mruby-sprintf |
+| `Array#pack`, `String#unpack` | stdlib-ext | mruby-pack |
+| `Kernel#rand` | stdlib-ext | mruby-random |
+| `Kernel#eval` | metaprog | mruby-eval |
+| `Kernel#binding` | metaprog | mruby-binding |
+| `Proc#binding` | metaprog | mruby-proc-binding |
+| Runtime compiler | metaprog | mruby-compiler |
 
-| Gem | Provides |
-| --- | -------- |
-| mruby-pack | `Array#pack`, `String#unpack` |
-| mruby-sprintf | `Kernel#sprintf`, `String#%` |
-| mruby-time | `Time` class |
-| mruby-struct | `Struct` class |
-| mruby-data | `Data` class |
-| mruby-random | `Random` class, `Kernel#rand` |
+### Core Class Extensions
 
-### stdlib-io gembox
+The `stdlib` gembox also extends built-in classes with additional
+methods. These are included by default:
 
-Requires `stdio` support (not available with `MRB_NO_STDIO`).
+| Extension | Examples |
+| --------- | -------- |
+| Array extensions | `#dig`, `#union`, `#difference` |
+| Hash extensions | `#dig`, `#transform_keys`, `#transform_values` |
+| String extensions | `#encode`, `#bytes`, `#chars` |
+| Numeric extensions | `Integer#digits`, `Integer#pow` |
+| Comparable extensions | `#clamp` |
+| Enumerable extensions | `#sort_by`, `#min_by`, `#max_by`, `#tally` |
+| Range extensions | `#size`, `#cover?` |
+| Proc extensions | `#<<`, `#>>` (composition) |
+| Symbol extensions | `#to_proc` |
+| Object extensions | `#then`, `#yield_self` |
+| Kernel extensions | `#__method__` |
+| Class/Module extensions | `Module#name` |
 
-| Gem | Provides |
-| --- | -------- |
-| mruby-io | `IO`, `File` classes |
-| mruby-socket | `Socket` classes |
-| mruby-errno | `Errno` module |
-| mruby-dir | `Dir` class |
+### Gembox Summary
 
-### math gembox
-
-| Gem | Provides |
-| --- | -------- |
-| mruby-math | `Math` module (`sin`, `cos`, `sqrt`, `PI`, etc.) |
-| mruby-rational | `Rational` class |
-| mruby-complex | `Complex` class |
-| mruby-bigint | Arbitrary-precision `Integer` |
-
-### metaprog gembox
-
-| Gem | Provides |
-| --- | -------- |
-| mruby-metaprog | `respond_to_missing?`, etc. |
-| mruby-method | `Method`, `UnboundMethod` classes |
-| mruby-eval | `Kernel#eval` |
-| mruby-binding | `Kernel#binding` |
-| mruby-proc-binding | `Proc#binding` |
-| mruby-compiler | Runtime compiler access |
+| Gembox | Contents | Notes |
+| ------ | -------- | ----- |
+| `stdlib` | Core class extensions, Fiber, Enumerator, Set | Works with `MRB_NO_STDIO` and `MRB_NO_FLOAT` |
+| `stdlib-ext` | Time, Struct, Data, Random, sprintf, pack | Works with `MRB_NO_STDIO` and `MRB_NO_FLOAT` |
+| `stdlib-io` | IO, File, Dir, Socket, Errno | Requires stdio |
+| `math` | Math, Rational, Complex, Bigint | Works with `MRB_NO_STDIO` |
+| `metaprog` | eval, binding, Method, compiler | Works with `MRB_NO_STDIO` and `MRB_NO_FLOAT` |
+| `default` | All of the above + CLI tools | Full installation |
 
 ## Key Differences from CRuby
 

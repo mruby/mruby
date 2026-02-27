@@ -5,6 +5,10 @@
 This document describes mruby's virtual machine for developers
 working on `src/vm.c` and related code.
 
+**Read this if you are:** debugging method dispatch or call frame
+issues, working on exception handling, implementing new opcodes,
+modifying fiber/coroutine behavior, or optimizing the dispatch loop.
+
 For the instruction set, see [opcode.md](opcode.md). For the
 compiler that generates bytecode, see [compiler.md](compiler.md).
 

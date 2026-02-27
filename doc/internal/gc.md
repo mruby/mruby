@@ -5,9 +5,14 @@
 This document describes the internals of mruby's garbage collector
 for developers working on `src/gc.c` and related code.
 
-For user-facing GC documentation, see
-[gc-arena-howto.md](../guides/gc-arena-howto.md) and
-[memory.md](../guides/memory.md).
+**Read this if you are:** modifying core data structures that hold
+object references (and need to add write barriers), debugging
+memory leaks or GC-related crashes, tuning GC performance for an
+embedded target, or working on the GC code itself.
+
+**For user-facing GC docs**, see
+[gc-arena-howto.md](../guides/gc-arena-howto.md) (arena usage in C
+extensions) and [memory.md](../guides/memory.md) (heap regions).
 
 ## Overview
 

@@ -5,6 +5,11 @@
 This document describes mruby's compilation pipeline for developers
 working on the parser, code generator, or bytecode format.
 
+**Read this if you are:** adding new syntax or modifying the parser,
+debugging codegen issues (wrong registers, missing opcodes),
+working with the `.mrb` binary format, or understanding how Ruby
+constructs map to bytecode.
+
 ## Pipeline Overview
 
 ```text
