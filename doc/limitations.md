@@ -28,11 +28,11 @@ rescue
 end
 ```
 
-#### Ruby [ruby 2.0.0p645 (2015-04-13 revision 50299)]
+#### CRuby
 
 `ZeroDivisionError` is raised.
 
-#### mruby [3.1.0 (2022-05-12)]
+#### mruby
 
 `RuntimeError` is raised instead of `ZeroDivisionError`. To re-raise the exception, you have to do:
 
@@ -64,11 +64,11 @@ end
 p Liste.new "foobar"
 ```
 
-#### Ruby [ruby 2.0.0p645 (2015-04-13 revision 50299)]
+#### CRuby
 
 `[]`
 
-#### mruby [3.1.0 (2022-05-12)]
+#### mruby
 
 `ArgumentError` is raised.
 
@@ -82,13 +82,13 @@ other reflection methods instead.
 defined?(Foo)
 ```
 
-#### Ruby [ruby 2.0.0p645 (2015-04-13 revision 50299)]
+#### CRuby
 
 ```
 nil
 ```
 
-#### mruby [3.1.0 (2022-05-12)]
+#### mruby
 
 `NameError` is raised.
 
@@ -101,11 +101,11 @@ of the ISO standard.
 alias $a $__a__
 ```
 
-#### Ruby [ruby 2.0.0p645 (2015-04-13 revision 50299)]
+#### CRuby
 
 `nil`
 
-#### mruby [3.1.0 (2022-05-12)]
+#### mruby
 
 Syntax error
 
@@ -122,26 +122,21 @@ end
 'a' + 'b'
 ```
 
-#### Ruby [ruby 2.0.0p645 (2015-04-13 revision 50299)]
+#### CRuby
 
 `ArgumentError` is raised.
 The re-defined `+` operator does not accept any arguments.
 
-#### mruby [3.1.0 (2022-05-12)]
+#### mruby
 
 `'ab'`
 Behavior of the operator wasn't changed.
 
-## `Kernel#binding` is not supported until [3.0.0 (2021-03-05)]
+## `Kernel#binding` is not supported without mruby-binding gem
 
-`Kernel#binding` method is not supported.
-
-#### Ruby [ruby 2.5.1p57 (2018-03-29 revision 63029)]
-
-```shell
-$ ruby -e 'puts Proc.new {}.binding'
-#<Binding:0x00000e9deabb9950>
-```
+`Kernel#binding` method requires the `mruby-binding` gem (included
+in the `metaprog` gembox). Without this gem, `binding` is not
+available.
 
 ## `nil?` redefinition in conditional expressions
 
@@ -263,3 +258,34 @@ The following are **not supported**:
 - Boolean pattern check: `value in pattern`
 
 Note: mruby does provide `Array#deconstruct` and `Hash#deconstruct_keys` methods for future pattern matching compatibility.
+
+## No Refinements
+
+Module refinements (`refine`, `using`) are not supported in mruby.
+
+## No `Encoding` Class
+
+mruby does not have an `Encoding` class. Strings are treated as
+byte sequences by default. UTF-8 aware string operations can be
+enabled with the `MRB_UTF8_STRING` compile flag.
+
+## Integer Precision Varies by Boxing Mode
+
+Integer size depends on the value boxing configuration:
+
+| Configuration | Integer range |
+| ------------- | ------------- |
+| Word boxing, 64-bit (default) | roughly +/- 2^62 |
+| Word boxing, 32-bit (default) | roughly +/- 2^30 |
+| NaN boxing (64-bit only) | -2^31 to 2^31-1 |
+
+Code relying on 64-bit integer precision may behave differently
+across configurations. The `mruby-bigint` gem provides
+arbitrary-precision integers when included.
+
+## No `ObjectSpace.each_object` by Default
+
+`ObjectSpace` is only available via the `mruby-objectspace` gem
+(included in the `stdlib` gembox). Even with the gem,
+`ObjectSpace.each_object` has limited functionality compared
+to CRuby.
