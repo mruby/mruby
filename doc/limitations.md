@@ -201,11 +201,11 @@ class C
 end
 ```
 
-#### Ruby [ruby 3.5.0dev (2025-04-21 85bab61565))]
+#### CRuby
 
 Prints `:append`.
 
-#### mruby [3.5.0 (2025-04-28)]
+#### mruby
 
 Nothing printed (since `include` does not call `append_features` internally).
 
@@ -221,7 +221,7 @@ Pattern matching is only partially supported in mruby. Currently, only the right
 expr => var  # Supported: assigns expr to var
 ```
 
-#### Ruby [ruby 3.0.0+]
+#### CRuby
 
 Full pattern matching with `case/in` syntax and various pattern types:
 
@@ -237,7 +237,7 @@ in {name:, age:}
 end
 ```
 
-#### mruby [current]
+#### mruby
 
 Only rightward assignment with simple variable binding:
 

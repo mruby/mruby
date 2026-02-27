@@ -4,6 +4,27 @@
 
 This document covers the mruby C API for embedding and extending mruby.
 
+**Contents:**
+[Headers](#headers) |
+[State Management](#state-management) |
+[Values](#values) |
+[Defining Classes and Modules](#defining-classes-and-modules) |
+[Defining Methods](#defining-methods) |
+[Parsing Arguments](#parsing-arguments) |
+[Calling Ruby Methods from C](#calling-ruby-methods-from-c) |
+[String Operations](#string-operations) |
+[Array Operations](#array-operations) |
+[Hash Operations](#hash-operations) |
+[Wrapping C Structures](#wrapping-c-structures) |
+[Exception Handling](#exception-handling) |
+[Method Visibility](#method-visibility) |
+[Proc and Block Handling](#proc-and-block-handling) |
+[Fiber API](#fiber-api) |
+[Compilation Contexts](#compilation-contexts) |
+[Precompiled Bytecode](#precompiled-bytecode) |
+[GC Arena](#gc-arena) |
+[Memory Allocation](#memory-allocation)
+
 ## Headers
 
 ```c
