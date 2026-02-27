@@ -383,13 +383,303 @@ if (mrb->exc) {
   mrb_print_error(mrb);
   mrb->exc = NULL;  /* clear exception */
 }
+```
 
-/* Protected call */
-mrb_bool error;
-mrb_value result = mrb_protect(mrb, my_func, data, &error);
-if (error) {
-  /* result contains the exception */
+### Protected Execution
+
+`mrb_protect()` executes a function under protection. If an
+exception is raised, it is captured as a return value instead of
+propagating:
+
+```c
+static mrb_value
+safe_operation(mrb_state *mrb, mrb_value data)
+{
+  /* This function might raise an exception */
+  return mrb_funcall(mrb, data, "do_something", 0);
 }
+
+mrb_bool error;
+mrb_value result = mrb_protect(mrb, safe_operation, data, &error);
+if (error) {
+  /* result contains the exception object */
+  mrb_print_error(mrb);
+}
+```
+
+For lower-level protection without `mrb_value` callback signature:
+
+```c
+static mrb_value
+body(mrb_state *mrb, void *userdata)
+{
+  /* ... */
+}
+
+mrb_bool error;
+mrb_value result = mrb_protect_error(mrb, body, userdata, &error);
+```
+
+### Rescue
+
+`mrb_rescue()` catches `StandardError` (like Ruby's `rescue`):
+
+```c
+static mrb_value
+body_func(mrb_state *mrb, mrb_value body_data)
+{
+  return mrb_funcall(mrb, body_data, "risky_method", 0);
+}
+
+static mrb_value
+rescue_func(mrb_state *mrb, mrb_value rescue_data)
+{
+  /* handle error, rescue_data is the data passed in */
+  return mrb_nil_value();
+}
+
+mrb_value result = mrb_rescue(mrb, body_func, body_data,
+                              rescue_func, rescue_data);
+```
+
+To rescue specific exception classes:
+
+```c
+struct RClass *classes[] = {
+  E_ARGUMENT_ERROR,
+  mrb_class_get(mrb, "IOError")
+};
+mrb_value result = mrb_rescue_exceptions(mrb, body_func, body_data,
+                                         rescue_func, rescue_data,
+                                         2, classes);
+```
+
+### Ensure
+
+`mrb_ensure()` guarantees cleanup runs regardless of exceptions
+(like Ruby's `ensure`):
+
+```c
+static mrb_value
+body_func(mrb_state *mrb, mrb_value data)
+{
+  return mrb_funcall(mrb, data, "process", 0);
+}
+
+static mrb_value
+cleanup_func(mrb_state *mrb, mrb_value data)
+{
+  mrb_funcall(mrb, data, "close", 0);
+  return mrb_nil_value();
+}
+
+mrb_value result = mrb_ensure(mrb, body_func, body_data,
+                              cleanup_func, cleanup_data);
+```
+
+The ensure function always executes. If the body raises an
+exception, the ensure runs and then the exception is re-raised.
+
+### Error State Management
+
+```c
+mrb_bool mrb_check_error(mrb_state *mrb);  /* check and clear mrb->exc */
+void mrb_clear_error(mrb_state *mrb);      /* clear mrb->exc */
+```
+
+## Method Visibility
+
+```c
+/* Public (default) */
+mrb_define_method(mrb, klass, "name", func, MRB_ARGS_NONE());
+
+/* Private - only callable without explicit receiver */
+mrb_define_private_method(mrb, klass, "name", func, MRB_ARGS_NONE());
+
+/* Class method (singleton method on the class object) */
+mrb_define_class_method(mrb, klass, "name", func, MRB_ARGS_NONE());
+
+/* Module function (both module method and private instance method) */
+mrb_define_module_function(mrb, mod, "name", func, MRB_ARGS_NONE());
+
+/* Singleton method on a specific object */
+mrb_define_singleton_method(mrb, obj, "name", func, MRB_ARGS_NONE());
+
+/* Method alias: alias new_name old_name */
+mrb_define_alias(mrb, klass, "new_name", "old_name");
+
+/* Remove a method */
+mrb_undef_method(mrb, klass, "name");
+mrb_undef_class_method(mrb, klass, "name");
+```
+
+All `_method` variants have `_id` counterparts that accept
+`mrb_sym` instead of `const char*` for better performance.
+
+## Proc and Block Handling
+
+### Creating Procs from C Functions
+
+```c
+/* Simple C function proc */
+struct RProc *proc = mrb_proc_new_cfunc(mrb, my_func);
+
+/* C closure with captured local variables */
+struct RProc *proc = mrb_closure_new_cfunc(mrb, my_func, nlocals);
+```
+
+### C Functions with Environment (requires mruby-proc-ext)
+
+Store values in a proc's environment, accessible from the C
+function:
+
+```c
+mrb_value env_values[] = { mrb_fixnum_value(42) };
+struct RProc *proc = mrb_proc_new_cfunc_with_env(mrb, my_func, 1, env_values);
+
+/* Inside my_func, retrieve environment values */
+static mrb_value my_func(mrb_state *mrb, mrb_value self)
+{
+  mrb_value val = mrb_proc_cfunc_env_get(mrb, 0); /* index 0 */
+  return val;
+}
+```
+
+## Fiber API
+
+```c
+#include <mruby.h>    /* fiber types and functions */
+```
+
+### Creating and Using Fibers
+
+```c
+/* Create a fiber from a proc */
+mrb_value fiber = mrb_fiber_new(mrb, proc);
+
+/* Resume the fiber with arguments */
+mrb_value args[] = { mrb_fixnum_value(1) };
+mrb_value result = mrb_fiber_resume(mrb, fiber, 1, args);
+
+/* Yield from within a fiber (typically called from Ruby code) */
+mrb_value yield_args[] = { mrb_str_new_lit(mrb, "yielded") };
+mrb_fiber_yield(mrb, 1, yield_args);
+
+/* Check if fiber is still alive */
+mrb_bool alive = mrb_test(mrb_fiber_alive_p(mrb, fiber));
+```
+
+### Fiber States
+
+| State | Meaning |
+| ----- | ------- |
+| `MRB_FIBER_CREATED` | Created but not yet resumed |
+| `MRB_FIBER_RUNNING` | Currently executing |
+| `MRB_FIBER_RESUMED` | Resumed another fiber |
+| `MRB_FIBER_SUSPENDED` | Yielded, waiting to resume |
+| `MRB_FIBER_TRANSFERRED` | Transferred via `Fiber#transfer` |
+| `MRB_FIBER_TERMINATED` | Finished execution |
+
+**Limitation:** fibers cannot yield across C function boundaries.
+You cannot call `mrb_fiber_yield` from within a C-implemented
+method, except via `mrb_fiber_yield` at function return.
+
+## Compilation Contexts
+
+For advanced compilation control, use `mrb_ccontext`:
+
+```c
+#include <mruby/compile.h>
+
+mrb_ccontext *cxt = mrb_ccontext_new(mrb);
+
+/* Set source filename for error messages and debug info */
+mrb_ccontext_filename(mrb, cxt, "my_script.rb");
+
+/* Compile and execute with context */
+mrb_value result = mrb_load_string_cxt(mrb, "1 + 2", cxt);
+
+/* Clean up */
+mrb_ccontext_free(mrb, cxt);
+```
+
+### Context Options
+
+The `mrb_ccontext` structure provides several flags:
+
+| Field | Purpose |
+| ----- | ------- |
+| `capture_errors` | Collect parse errors instead of raising |
+| `no_exec` | Compile without executing (get RProc) |
+| `no_optimize` | Disable peephole optimizations |
+| `no_ext_ops` | Disable extended operand instructions |
+| `keep_lv` | Preserve local variables across loads |
+
+### Loading with Context
+
+```c
+mrb_load_string_cxt(mrb, code, cxt);         /* string + context */
+mrb_load_nstring_cxt(mrb, code, len, cxt);   /* with explicit length */
+mrb_load_file_cxt(mrb, fp, cxt);             /* file + context */
+mrb_load_detect_file_cxt(mrb, fp, cxt);      /* auto-detect .mrb or .rb */
+```
+
+## Precompiled Bytecode
+
+Load `.mrb` files compiled by `mrbc`:
+
+```c
+#include <mruby/irep.h>
+
+/* From byte array (generated by mrbc -B) */
+mrb_value result = mrb_load_irep(mrb, bytecode);
+
+/* From buffer with explicit size (safer, bounds-checked) */
+mrb_value result = mrb_load_irep_buf(mrb, buf, size);
+
+/* From file */
+FILE *fp = fopen("script.mrb", "rb");
+mrb_value result = mrb_load_irep_file(mrb, fp);
+fclose(fp);
+
+/* Load without executing (returns irep for inspection) */
+mrb_irep *irep = mrb_read_irep(mrb, bytecode);
+```
+
+All `_irep` loading functions have `_cxt` variants that accept
+a compilation context.
+
+### Deployment Pattern
+
+Ahead-of-time compilation eliminates the need for the compiler gem
+at runtime:
+
+```shell
+# Compile to C array
+mrbc -Bscript_bytecode script.rb
+
+# This generates a C header with:
+# const uint8_t script_bytecode[];
+```
+
+```c
+#include "script.mrb.h"
+
+mrb_state *mrb = mrb_open_core();  /* no compiler needed */
+mrb_load_irep(mrb, script_bytecode);
+```
+
+**Important:** wrap bytecode loading in arena save/restore when
+loading multiple scripts:
+
+```c
+int ai = mrb_gc_arena_save(mrb);
+mrb_load_irep(mrb, script1);
+mrb_gc_arena_restore(mrb, ai);
+
+ai = mrb_gc_arena_save(mrb);
+mrb_load_irep(mrb, script2);
+mrb_gc_arena_restore(mrb, ai);
 ```
 
 ## Symbols
