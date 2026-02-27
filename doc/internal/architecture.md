@@ -51,172 +51,61 @@ Objects must fit within 5 words (`mrb_static_assert_object_size`).
 
 ## Virtual Machine
 
-### Execution Context
+The VM is register-based, using two stacks: a **value stack** for
+registers (locals, temporaries, arguments) and a **call info stack**
+for tracking method/block call frames. Each method call pushes a
+`mrb_callinfo` frame with the method symbol, proc, PC, and argument
+counts.
 
-The VM uses two stacks stored in `mrb_context`:
+The dispatch loop in `mrb_vm_run()` decodes opcodes and operates on
+registers. Method dispatch looks up the receiver's class method table
+(with a per-state method cache), then either calls a C function
+directly or pushes a new call frame for Ruby methods.
 
-```text
-mrb_context
-├── stbase..stend     value stack (mrb_value[])
-├── cibase..ciend     call info stack (mrb_callinfo[])
-├── ci                current call frame (→ cibase[n])
-└── status            fiber state
-```
+Exception handling uses `setjmp`/`longjmp` (or C++ exceptions if
+configured). Rescue/ensure handler tables are stored in each irep
+and searched during stack unwinding.
 
-Each method call pushes a `mrb_callinfo` frame:
-
-```text
-mrb_callinfo
-├── mid        method symbol
-├── proc       current RProc
-├── stack      pointer into value stack
-├── pc         program counter (bytecode position)
-├── n, nk      argument counts
-├── cci        nonzero if called from C
-└── u.env / u.target_class
-```
-
-The value stack is register-based: local variables and temporaries
-occupy fixed register slots (determined at compile time by `nregs`).
-
-### Dispatch Loop
-
-The main loop in `mrb_vm_run()` (`src/vm.c`) decodes and dispatches
-opcodes. Each opcode operates on registers:
-
-```text
-OP_MOVE     R(a) = R(b)
-OP_LOADI    R(a) = integer
-OP_ADD      R(a) = R(a) + R(a+1)
-OP_SEND     R(a) = call R(a).method(R(a+1)..R(a+n))
-OP_RETURN   return R(a)
-```
-
-See [opcode.md](opcode.md) for the full instruction set.
-
-### Method Dispatch
-
-When `OP_SEND` executes:
-
-1. Look up method in receiver's class method table (`mt`)
-2. Walk superclass chain if not found
-3. If method is a C function (`MRB_METHOD_CFUNC_P`), call directly
-4. If method is Ruby (irep-based), push new `mrb_callinfo` and jump
-
-Method tables use a hash map (`mrb_mt_tbl`). A per-state method cache
-speeds up repeated lookups.
-
-### Exception Handling
-
-mruby uses `setjmp`/`longjmp` for exception unwinding (or C++ exceptions
-if `enable_cxx_exception` is configured). The `rescue`/`ensure` entries
-are tracked in `mrb_callinfo` entries and unwound when an exception
-propagates.
+See [vm.md](vm.md) for detailed VM internals, [opcode.md](opcode.md)
+for the full instruction set.
 
 ## Garbage Collector
 
-### Tri-Color Mark-and-Sweep
+The GC uses **tri-color incremental mark-and-sweep** with an optional
+**generational mode**. Objects are colored white (unmarked), gray
+(marked, children pending), black (fully marked), or red (static/ROM).
 
-The GC uses tri-color marking with incremental execution:
+The three-phase cycle (root scan, incremental marking, sweep) runs
+in small steps between VM instructions to avoid long pauses. Write
+barriers (`mrb_field_write_barrier`, `mrb_write_barrier`) maintain
+correctness during incremental marking.
 
-| Color | Meaning |
-| ----- | ------- |
-| White | Unmarked — candidate for collection |
-| Gray | Marked but children not yet scanned |
-| Black | Fully marked (reachable) |
-| Red | Static/ROM — never collected |
+The GC arena protects newly created objects in C code. Heap regions
+(`mrb_gc_add_region`) support embedded systems with fixed memory banks.
 
-### GC Phases
-
-```text
-GC_STATE_ROOT → GC_STATE_MARK → GC_STATE_SWEEP → GC_STATE_ROOT
-```
-
-1. **Root marking**: marks objects directly reachable from the VM
-   (stack, globals, arena)
-2. **Incremental marking**: processes gray objects from `gray_stack[]`,
-   marking their children. Runs in small steps between VM instructions.
-3. **Sweep**: iterates heap pages, freeing white objects and flipping
-   the white bit for the next cycle
-
-### Write Barriers
-
-When a black object stores a reference to a white object, a write
-barrier is required to prevent premature collection:
-
-```c
-mrb_field_write_barrier(mrb, parent, child);  /* specific field */
-mrb_write_barrier(mrb, obj);                  /* general */
-```
-
-The barrier paints the parent gray, adding it back to the scan queue.
-
-### GC Arena
-
-The arena (`gc.arena[]`) protects newly created objects from collection
-before they are stored in a reachable location. C extensions must save
-and restore the arena index when creating many temporary objects:
-
-```c
-int ai = mrb_gc_arena_save(mrb);
-/* ... create temporary objects ... */
-mrb_gc_arena_restore(mrb, ai);
-```
-
-See [../guides/gc-arena-howto.md](../guides/gc-arena-howto.md) for details.
-
-### Heap Structure
-
-Objects are allocated from fixed-size heap pages (`HEAP_PAGE_SIZE`
-objects per page). Each page maintains a freelist of available slots.
-Dead objects are returned to their page's freelist during sweep.
-
-The `mrb_gc_add_region()` API allows pre-allocating contiguous heap
-regions for reduced fragmentation and faster allocation.
-
-### Generational Mode
-
-Optional generational GC (`mrb_gc_generational_mode_set`) treats
-objects surviving a full GC as "old generation" and performs minor
-collections that only scan young objects.
+See [gc.md](gc.md) for detailed GC internals,
+[../guides/gc-arena-howto.md](../guides/gc-arena-howto.md) for arena
+usage patterns, [../guides/memory.md](../guides/memory.md) for memory
+management.
 
 ## Compiler Pipeline
 
-### Stage 1: Parser (`mrbgems/mruby-compiler/core/parse.y`)
+The compiler transforms Ruby source code through three stages:
 
-The yacc/bison grammar (~16K lines) produces an AST of `mrb_ast_node`
-linked structures. The parser tracks lexer state (expression context,
-heredocs, string interpolation) and local variable scopes.
+1. **Parser** (`parse.y`): Lrama/Bison grammar produces an AST of
+   `mrb_ast_node` structures, tracking lexer state and local scopes.
+2. **Code Generator** (`codegen.c`): walks the AST and emits bytecode
+   into `mrb_irep` structures (instruction sequence, literal pool,
+   symbol table, child ireps).
+3. **Execution**: the irep is wrapped in an `RProc` and executed by
+   the VM, or serialized to `.mrb` binary format.
 
-### Stage 2: Code Generator (`mrbgems/mruby-compiler/core/codegen.c`)
+Alternative loading paths include `mrb_load_string()` (compile and
+run), `mrb_load_irep()` (load precompiled bytecode), and `mrbc`
+(ahead-of-time compilation).
 
-Walks the AST and emits bytecode into `mrb_irep` structures:
-
-```text
-mrb_irep
-├── iseq[]    instruction stream (bytecode)
-├── pool[]    constant pool (strings, numbers)
-├── syms[]    symbol table (method names, variable names)
-├── reps[]    child ireps (nested methods, blocks)
-├── nlocals   local variable count
-└── nregs     register count (locals + temporaries)
-```
-
-The code generator:
-
-- Assigns register slots for local variables and temporaries
-- Emits instructions for each AST node type
-- Builds jump tables for control flow (if/unless/while/for)
-- Encodes exception handler ranges for rescue/ensure
-
-### Stage 3: Execution
-
-The irep is wrapped in an `RProc` and executed by the VM. Alternative
-loading paths:
-
-- `mrb_load_string()` — compile from source and execute
-- `mrb_load_irep()` — load precompiled `.mrb` bytecode
-- `mrbc` tool — ahead-of-time compilation to `.mrb` or C array
+See [compiler.md](compiler.md) for detailed compiler internals,
+[opcode.md](opcode.md) for the instruction set.
 
 ## Source File Map
 
