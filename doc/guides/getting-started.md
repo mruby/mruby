@@ -273,6 +273,8 @@ See [amalgamation.md](amalgamation.md) for details.
 
 ## What's Next
 
+- [Language Features](language.md) — Ruby subset supported by mruby
+- [C API Reference](capi.md) — values, classes, methods, error handling
 - [Compile](compile.md) — full build system reference
 - [mrbgems](mrbgems.md) — creating and using gems
 - [Linking](link.md) — linking `libmruby` to applications
