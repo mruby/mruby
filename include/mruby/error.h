@@ -8,6 +8,7 @@
 #define MRUBY_ERROR_H
 
 #include "common.h"
+#include <string.h>
 
 /**
  * mruby error handling.
@@ -53,7 +54,11 @@ struct RBreak {
 #ifndef MRB_USE_RBREAK_VALUE_UNION
   mrb_value val;
 #else
-  union mrb_value_union value;
+  /* Store value as uint32_t words instead of union mrb_value_union
+     to avoid 8-byte alignment of int64_t/double on 32-bit platforms
+     (e.g., ARM, MIPS, PowerPC) which would inflate struct size beyond
+     the 5-word RVALUE limit due to padding. */
+  uint32_t value[sizeof(union mrb_value_union) / sizeof(uint32_t)];
 #endif
 };
 
@@ -66,14 +71,14 @@ static inline mrb_value
 mrb_break_value_get(struct RBreak *brk)
 {
   mrb_value val;
-  val.value = brk->value;
+  memcpy(&val.value, brk->value, sizeof(val.value));
   val.tt = (enum mrb_vtype)(brk->flags & RBREAK_VALUE_TT_MASK);
   return val;
 }
 static inline void
 mrb_break_value_set(struct RBreak *brk, mrb_value val)
 {
-  brk->value = val.value;
+  memcpy(brk->value, &val.value, sizeof(val.value));
   brk->flags &= ~RBREAK_VALUE_TT_MASK;
   brk->flags |= val.tt;
 }
