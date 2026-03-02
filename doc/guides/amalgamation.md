@@ -11,6 +11,7 @@ Amalgamation combines all mruby source files into a single `mruby.c` and
 - **Single compilation unit**: Enables better compiler optimization
 - **No build system required**: Compile directly with any C compiler
 - **Portable**: No external dependencies beyond standard C library
+  (but see [Platform-Dependent Gems](#platform-dependent-gems) below)
 
 ## Generating Amalgamation
 
@@ -74,6 +75,16 @@ The following gems work with amalgamation:
 - `mruby-bigint`, `mruby-rational`, `mruby-complex`
 - `mruby-io` (with `hal-posix-io`)
 - `mruby-task` (with `hal-posix-task`)
+
+### Platform-Dependent Gems
+
+Gems that use a HAL (Hardware Abstraction Layer) include
+platform-specific code in the amalgamation. For example, if
+`mruby-io` selects `hal-posix-io` on Linux, the generated `mruby.c`
+contains POSIX-specific code and cannot be compiled on Windows.
+
+If you need amalgamated files for multiple platforms, generate them
+separately for each target platform (or cross-build configuration).
 
 ### Excluded Gems
 
