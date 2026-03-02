@@ -43,17 +43,16 @@ MRuby.each_target do |build|
     end
   end
 
-  # Internal sub-builds (e.g., mrbc) may be compiled within another
-  # build's presym scanning chain, before :gensym completes.
-  # They need explicit .o -> presym.list_path dependencies.
-  # Regular builds don't need this since :all => :gensym => :build
-  # already guarantees ordering, and .d files track header changes.
-  if build.internal?
-    prereqs.each_key do |prereq|
-      next unless File.extname(prereq) == build.exts.object
-      next unless prereq.start_with?(build_dir)
-      file prereq => presym.list_path
-    end
+  # Ensure .o files depend on presym headers being generated.
+  # This is critical when a build's .o files are compiled during another
+  # build's presym scanning chain (before :gensym completes), e.g.:
+  #   - internal sub-builds (mrbc) triggered by their parent build
+  #   - the implicit host build triggered by a cross build needing mrbc
+  prereqs.each_key do |prereq|
+    next unless File.extname(prereq) == build.exts.object
+    next unless prereq.start_with?(build_dir)
+    next if mrbc_build_dir && prereq.start_with?(mrbc_build_dir)
+    file prereq => presym.list_path
   end
 
   gensym_task.enhance([presym.list_path])
