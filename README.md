@@ -32,8 +32,8 @@
 ## What is mruby
 
 mruby is the lightweight implementation of the Ruby language complying to (part
-of) the [ISO standard][ISO-standard] with more recent features provided by Ruby 3.x.
-Also, its syntax is Ruby 3.x compatible except for pattern matching.
+of) the [ISO standard][ISO-standard] with more recent features provided by Ruby 4.x.
+Also, its syntax is Ruby 4.x compatible.
 
 You can link and embed mruby within your application. The "mruby" interpreter
 program and the interactive "mirb" shell are provided as examples. You can also
@@ -47,7 +47,7 @@ of the Ministry of Economy, Trade and Industry of Japan.
 
 ## How to get mruby
 
-To get mruby, you can download the stable version 3.4.0 from the official mruby
+To get mruby, you can download the stable version 4.0.0 from the official mruby
 GitHub repository or clone the trunk of the mruby source tree with the "git
 clone" command. You can also install and compile mruby using [ruby-install](https://github.com/postmodern/ruby-install), [ruby-build](https://github.com/rbenv/ruby-build), [rvm](https://github.com/rvm/rvm), [conda](https://anaconda.org/channels/conda-forge/packages/mruby/overview) or [Homebrew](https://formulae.brew.sh/formula/mruby).
 
