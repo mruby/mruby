@@ -243,6 +243,24 @@ struct mrb_cache_entry {
 };
 #endif
 
+#ifdef MRB_CONST_CACHE_SIZE
+# undef MRB_NO_CONST_CACHE
+mrb_static_assert_powerof2(MRB_CONST_CACHE_SIZE);
+#else
+/* default constant cache size: 64 */
+/* cache size needs to be power of 2 */
+# define MRB_CONST_CACHE_SIZE (1<<6)
+#endif
+
+#ifndef MRB_NO_CONST_CACHE
+struct mrb_const_cache_entry {
+  const struct mrb_irep *irep;
+  mrb_sym sym;
+  uint32_t generation;
+  mrb_value value;
+};
+#endif
+
 struct mrb_jmpbuf;
 
 typedef void (*mrb_atexit_func)(mrb_state*);
@@ -295,6 +313,11 @@ struct mrb_state {
 
 #ifndef MRB_NO_METHOD_CACHE
   struct mrb_cache_entry cache[MRB_METHOD_CACHE_SIZE];
+#endif
+
+#ifndef MRB_NO_CONST_CACHE
+  uint32_t const_generation;
+  struct mrb_const_cache_entry const_cache[MRB_CONST_CACHE_SIZE];
 #endif
 
   mrb_sym symidx;

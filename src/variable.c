@@ -1431,6 +1431,9 @@ mrb_const_set(mrb_state *mrb, mrb_value mod, mrb_sym sym, mrb_value v)
     mrb_class_name_class(mrb, mrb_class_ptr(mod), mrb_class_ptr(v), sym);
   }
   mrb_obj_iv_set(mrb, mrb_obj_ptr(mod), sym, v);
+#ifndef MRB_NO_CONST_CACHE
+  mrb->const_generation++;
+#endif
 
   if (!mrb->bootstrapping) {
     mrb_value name = mrb_symbol_value(sym);
@@ -1457,6 +1460,9 @@ mrb_const_remove(mrb_state *mrb, mrb_value mod, mrb_sym sym)
 {
   mod_const_check(mrb, mod);
   mrb_iv_remove(mrb, mod, sym);
+#ifndef MRB_NO_CONST_CACHE
+  mrb->const_generation++;
+#endif
 }
 
 /*
@@ -1474,6 +1480,9 @@ MRB_API void
 mrb_define_const_id(mrb_state *mrb, struct RClass *mod, mrb_sym name, mrb_value v)
 {
   mrb_obj_iv_set(mrb, (struct RObject*)mod, name, v);
+#ifndef MRB_NO_CONST_CACHE
+  mrb->const_generation++;
+#endif
 }
 
 /*

@@ -2028,9 +2028,26 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_GETCONST, BB) {
-      mrb_value v = mrb_vm_const_get(mrb, irep->syms[b]);
-      ci = mrb->c->ci;
-      regs[a] = v;
+#ifndef MRB_NO_CONST_CACHE
+      mrb_sym sym = irep->syms[b];
+      uint32_t h = mrb_int_hash_func(mrb, ((intptr_t)irep) ^ sym) & (MRB_CONST_CACHE_SIZE-1);
+      struct mrb_const_cache_entry *cc = &mrb->const_cache[h];
+      if (cc->irep == irep && cc->sym == sym && cc->generation == mrb->const_generation) {
+        regs[a] = cc->value;
+        NEXT;
+      }
+#endif
+      {
+        mrb_value v = mrb_vm_const_get(mrb, irep->syms[b]);
+        ci = mrb->c->ci;
+        regs[a] = v;
+#ifndef MRB_NO_CONST_CACHE
+        cc->irep = irep;
+        cc->sym = sym;
+        cc->generation = mrb->const_generation;
+        cc->value = v;
+#endif
+      }
       NEXT;
     }
 
