@@ -111,7 +111,7 @@ Syntax error
 
 ## Operator modification
 
-Operators on some of the primitive classes cannot be overriden, as they are
+Operators on some of the primitive classes cannot be overridden, as they are
 optimized in the VM.
 
 ```ruby

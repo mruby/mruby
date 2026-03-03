@@ -373,7 +373,7 @@ function return is supported.
 
 ### Array and String Subclasses
 
-`Array` and `String` does not support instance variables to reduce memory.
+`Array` and `String` do not support instance variables to reduce memory.
 This means subclassing `Array` or `String` and adding `@fields` will raise an error.
 
 ### Operator Overriding
