@@ -111,7 +111,8 @@ Syntax error
 
 ## Operator modification
 
-An operator can't be overwritten by the user.
+Operators on some of the primitive classes cannot be overriden, as they are
+optimized in the VM.
 
 ```ruby
 class String
