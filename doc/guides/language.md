@@ -371,15 +371,15 @@ Fibers cannot cross C function boundaries. You cannot yield from a
 fiber inside a C-implemented method. Only `mrb_fiber_yield` at
 function return is supported.
 
-### Array Subclasses
+### Array and String Subclasses
 
-`Array` does not support instance variables to reduce memory. This
-means subclassing `Array` and adding `@fields` will raise an error.
+`Array` and `String` do not support instance variables to reduce memory.
+This means subclassing `Array` or `String` and adding `@fields` will raise an error.
 
 ### Operator Overriding
 
-Operators cannot be overridden by user code. Redefining `+` on
-`String` has no effect on the behavior of the `+` operator.
+Operators of primitive classes cannot be overridden by user code. 
+Redefining `String#+` has no effect on the behavior of the `+` __operator__.
 
 ### Module Loading Hooks
 
