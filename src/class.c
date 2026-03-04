@@ -2621,9 +2621,16 @@ mrb_vm_find_method(mrb_state *mrb, struct RClass *c, struct RClass **cp, mrb_sym
   mrb_method_t m;
 #ifndef MRB_NO_METHOD_CACHE
   struct RClass *oc = c;
-  int h = mrb_int_hash_func(mrb, ((intptr_t)oc) ^ mid) & (MRB_METHOD_CACHE_SIZE-1);
-  struct mrb_cache_entry *mc = &mrb->cache[h];
+  int h = mrb_int_hash_func(mrb, ((intptr_t)oc >> 4) ^ mid) & (MRB_METHOD_CACHE_SIZE/2-1);
+  struct mrb_cache_entry *mc = &mrb->cache[h * 2];
 
+  /* check way 0 */
+  if (mc->c == c && mc->mid == mid) {
+    *cp = mc->c0;
+    return mc->m;
+  }
+  /* check way 1 */
+  mc++;
   if (mc->c == c && mc->mid == mid) {
     *cp = mc->c0;
     return mc->m;
@@ -2641,6 +2648,9 @@ mrb_vm_find_method(mrb_state *mrb, struct RClass *c, struct RClass **cp, mrb_sym
         *cp = c;
         m = create_method_value(mrb, flags, ptr);
 #ifndef MRB_NO_METHOD_CACHE
+        mc--;  /* back to way 0 */
+        if (mc->c != NULL && mc[1].c == NULL)
+          mc++;  /* way 1 is empty, use it */
         mc->c = oc;
         mc->c0 = c;
         mc->mid = mid;
