@@ -256,7 +256,6 @@ mrb_static_assert_powerof2(MRB_CONST_CACHE_SIZE);
 struct mrb_const_cache_entry {
   const struct mrb_irep *irep;
   mrb_sym sym;
-  uint32_t generation;
   mrb_value value;
 };
 #endif
@@ -316,7 +315,6 @@ struct mrb_state {
 #endif
 
 #ifndef MRB_NO_CONST_CACHE
-  uint32_t const_generation;
   struct mrb_const_cache_entry const_cache[MRB_CONST_CACHE_SIZE];
 #endif
 
@@ -1306,6 +1304,11 @@ MRB_API void mrb_close(mrb_state *mrb);
 MRB_API void mrb_method_cache_clear(mrb_state *mrb);
 #else
 #define mrb_method_cache_clear(mrb) ((void)0)
+#endif
+#ifndef MRB_NO_CONST_CACHE
+void mrb_const_cache_clear(mrb_state *mrb);
+#else
+#define mrb_const_cache_clear(mrb) ((void)0)
 #endif
 
 /**

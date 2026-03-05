@@ -2032,7 +2032,7 @@ RETRY_TRY_BLOCK:
       mrb_sym sym = irep->syms[b];
       uint32_t h = mrb_int_hash_func(mrb, ((intptr_t)irep) ^ sym) & (MRB_CONST_CACHE_SIZE-1);
       struct mrb_const_cache_entry *cc = &mrb->const_cache[h];
-      if (cc->irep == irep && cc->sym == sym && cc->generation == mrb->const_generation) {
+      if (cc->irep == irep && cc->sym == sym) {
         regs[a] = cc->value;
         NEXT;
       }
@@ -2044,7 +2044,6 @@ RETRY_TRY_BLOCK:
 #ifndef MRB_NO_CONST_CACHE
         cc->irep = irep;
         cc->sym = sym;
-        cc->generation = mrb->const_generation;
         cc->value = v;
 #endif
       }

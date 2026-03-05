@@ -1423,6 +1423,18 @@ mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
  * Raises:
  *   E_TYPE_ERROR: If `mod` is not a class or module.
  */
+#ifndef MRB_NO_CONST_CACHE
+void
+mrb_const_cache_clear(mrb_state *mrb)
+{
+  struct mrb_const_cache_entry *cc = mrb->const_cache;
+
+  for (int i=0; i<MRB_CONST_CACHE_SIZE; cc++,i++) {
+    cc->irep = NULL;
+  }
+}
+#endif
+
 MRB_API void
 mrb_const_set(mrb_state *mrb, mrb_value mod, mrb_sym sym, mrb_value v)
 {
@@ -1432,7 +1444,7 @@ mrb_const_set(mrb_state *mrb, mrb_value mod, mrb_sym sym, mrb_value v)
   }
   mrb_obj_iv_set(mrb, mrb_obj_ptr(mod), sym, v);
 #ifndef MRB_NO_CONST_CACHE
-  mrb->const_generation++;
+  mrb_const_cache_clear(mrb);
 #endif
 
   if (!mrb->bootstrapping) {
@@ -1461,7 +1473,7 @@ mrb_const_remove(mrb_state *mrb, mrb_value mod, mrb_sym sym)
   mod_const_check(mrb, mod);
   mrb_iv_remove(mrb, mod, sym);
 #ifndef MRB_NO_CONST_CACHE
-  mrb->const_generation++;
+  mrb_const_cache_clear(mrb);
 #endif
 }
 
@@ -1481,7 +1493,7 @@ mrb_define_const_id(mrb_state *mrb, struct RClass *mod, mrb_sym name, mrb_value 
 {
   mrb_obj_iv_set(mrb, (struct RObject*)mod, name, v);
 #ifndef MRB_NO_CONST_CACHE
-  mrb->const_generation++;
+  mrb_const_cache_clear(mrb);
 #endif
 }
 
