@@ -69,7 +69,7 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
           unless g.test_args.empty?
             f.puts %Q[  mrb_value test_args_hash;]
           end
-          f.puts %Q[  mrb_state *mrb2 = mrb_open_core(mrb_default_allocf, NULL);]
+          f.puts %Q[  mrb_state *mrb2 = mrb_open_core();]
           f.puts %Q[  if (mrb2 == NULL) {]
           f.puts %Q[    fprintf(stderr, "Invalid mrb_state, exiting \%s", __func__);]
           f.puts %Q[    exit(EXIT_FAILURE);]

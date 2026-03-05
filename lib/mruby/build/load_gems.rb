@@ -32,14 +32,21 @@ module MRuby
       gemrake = File.join(checkout.full_gemdir, "mrbgem.rake")
       fail "Can't find #{gemrake}" unless File.exist?(gemrake)
 
+      current_build = MRuby::Build.current
+      build = self.is_a?(MRuby::Build) ? self : MRuby::Build.current
+      MRuby::Build.current = build
       Gem.current = nil
-      load gemrake
+      begin
+        load gemrake
+      ensure
+        MRuby::Build.current = current_build
+      end
       return nil unless Gem.current
       current = Gem.current
 
       # Add it to gems
       current.dir = checkout.full_gemdir
-      current.build = self.is_a?(MRuby::Build) ? self : MRuby::Build.current
+      current.build = build
       current.build_config_initializer = block
       gems << current
 

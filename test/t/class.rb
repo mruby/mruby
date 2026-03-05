@@ -477,3 +477,29 @@ assert('class with non-class/module outer raises TypeError') do
   assert_raise(TypeError) { class 0::C1; end }
   assert_raise(TypeError) { class []::C2; end }
 end
+
+assert('module with extended callback') do
+  module FooWithExtended
+    @@extended = []
+
+    def self.extended(base)
+      @@extended << base
+    end
+
+    def self.extended_classes
+      @@extended
+    end
+
+    def answer
+      42
+    end
+  end
+
+  class BarBeingExtended
+    extend FooWithExtended
+  end
+
+  assert_equal [BarBeingExtended], FooWithExtended.extended_classes
+  assert_true BarBeingExtended.respond_to?(:answer)
+  assert_equal 42, BarBeingExtended.answer
+end

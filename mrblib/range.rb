@@ -10,12 +10,12 @@ class Range
   include Enumerable
 
   ##
-  # Calls the given block for each element of +self+
+  # Calls the given block for each element of `self`
   # and pass the respective element.
   #
   # ISO 15.2.14.4.4
   def each(&block)
-    return to_enum :each unless block
+    return to_enum(:each) unless block
 
     val = self.begin
     last = self.end
@@ -74,7 +74,8 @@ class Range
 
   # redefine #hash 15.3.1.3.15
   def hash
-    h = first.hash ^ last.hash
+    # Use self.begin/self.end instead of first/last to handle endless/beginless ranges
+    h = self.begin.hash ^ self.end.hash
     h += 1 if self.exclude_end?
     h
   end

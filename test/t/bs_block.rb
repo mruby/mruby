@@ -330,7 +330,8 @@ assert('BS Block 27') do
   3.times{|ib|
     2.times{|jb|
       sum += ib + jb
-    }}
+    }
+  }
   assert_equal sum, 9
 end
 

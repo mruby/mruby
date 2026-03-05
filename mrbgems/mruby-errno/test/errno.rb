@@ -24,7 +24,7 @@ assert('SystemCallError#errno') do
 end
 
 assert('SystemCallError#inspect') do
-  assert_equal("unknown error - a (SystemCallError)", SystemCallError.new("a").inspect)
+  assert_equal("#<SystemCallError: unknown error - a>", SystemCallError.new("a").inspect)
 end
 
 assert('Errno::NOERROR') do
@@ -50,9 +50,8 @@ assert('Errno::EPERM#message') do
 end
 
 assert('Errno::EPERM#inspect') do
-  msg = Errno::EPERM.new.message
-  assert_equal("#{msg} (Errno::EPERM)", Errno::EPERM.new.inspect)
-
-  msg = Errno::EPERM.new.message
-  assert_equal("#{msg} - a (Errno::EPERM)", Errno::EPERM.new("a").inspect)
+  e = Errno::EPERM.new
+  msg = e.message
+  assert_equal("#<Errno::EPERM: #{msg}>", e.inspect)
+  assert_equal("#<Errno::EPERM: #{msg} - a>", Errno::EPERM.new("a").inspect)
 end

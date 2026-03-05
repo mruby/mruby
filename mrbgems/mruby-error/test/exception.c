@@ -12,9 +12,10 @@ static mrb_value
 run_protect(mrb_state *mrb, mrb_value self)
 {
   mrb_value b;
-  mrb_value ret[2];
-  mrb_bool state;
   mrb_get_args(mrb, "&", &b);
+
+  mrb_bool state;
+  mrb_value ret[2];
   ret[0] = mrb_protect(mrb, protect_cb, b, &state);
   ret[1] = mrb_bool_value(state);
   return mrb_ary_new_from_values(mrb, 2, ret);

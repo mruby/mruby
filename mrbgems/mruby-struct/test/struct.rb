@@ -169,7 +169,7 @@ assert("Struct#initialize_copy requires struct to be the same type") do
     Struct.__send__(:remove_const,:Test)
     Struct.new("Test", :a, :b)
     assert_raise(TypeError) do
-      a.initialize_copy(Struct::Test.new("a", "b"))
+      a.__send__(:initialize_copy, Struct::Test.new("a", "b"))
     end
   ensure
     Struct.__send__(:remove_const,:Test)
@@ -197,7 +197,7 @@ assert("Struct.new generates subclass of Struct") do
 end
 
 assert 'Struct#freeze' do
-  c = Struct.new :m
+  c = Struct.new(:m)
 
   o = c.new
   o.m = :test
@@ -207,4 +207,97 @@ assert 'Struct#freeze' do
   assert_raise(FrozenError) { o.m = :modify }
   assert_raise(FrozenError) { o[:m] = :modify }
   assert_equal :test, o.m
+end
+
+assert 'method visibility with Struct' do
+  c = Struct.new(:r, :g, :b) do
+    def good!
+      "GOOD!"
+    end
+
+    private
+    def bad!
+      "BAD!"
+    end
+  end
+
+  assert_equal "GOOD!" do
+    c.new.good!
+  end
+
+  assert_raise NoMethodError do
+    c.new.bad!
+  end
+end
+
+assert "Struct initialize with keyword arguments" do
+  c = Struct.new(:foo, :bar)
+
+  o = c.new(foo: 1, bar: 2)
+  assert_equal 1, o.foo
+  assert_equal 2, o.bar
+
+  o2 = c.new(bar: 1, foo: 2)
+  assert_equal 2, o2.foo
+  assert_equal 1, o2.bar
+
+  o3 = c.new(foo: :test)
+  assert_equal :test, o3.foo
+  assert_equal nil, o3.bar
+
+  o4 = c.new
+  assert_equal nil, o4.foo
+  assert_equal nil, o4.bar
+
+  assert_raise_with_message_pattern(ArgumentError, "unknown keywords: roo, baq") do
+    c.new(foo: 1, roo: nil, baq: :test)
+  end
+end
+
+assert "Struct initialize when :keyword_init is true" do
+  c = Struct.new(:foo, :bar, keyword_init: true)
+
+  o = c.new(foo: 1, bar: 2)
+  assert_equal 1, o.foo
+  assert_equal 2, o.bar
+
+  o2 = c.new
+  assert_equal nil, o2.foo
+  assert_equal nil, o2.bar
+
+  assert_raise(ArgumentError) do
+    c.new(1, 2)
+  end
+
+  assert_raise(ArgumentError) do
+    c.new({foo: 1}, {bar: 2})
+  end
+end
+
+assert "Struct initialize when :keyword_init is false" do
+  c = Struct.new(:foo, :bar, keyword_init: false)
+
+  o = c.new(1, 2)
+  assert_equal 1, o.foo
+  assert_equal 2, o.bar
+
+  o2 = c.new(foo: 1, bar: 2)
+  assert_equal({foo: 1, bar: 2}, o2.foo)
+  assert_equal nil, o2.bar
+
+  o3 = c.new
+  assert_equal nil, o3.foo
+  assert_equal nil, o3.bar
+end
+
+assert "Struct initialize when :keyword_init is non-boolean value (treat as true)" do
+  c = Struct.new(:foo, :bar, keyword_init: 12)
+
+  o = c.new(foo: 1, bar: 2)
+  assert_equal 1, o.foo
+  assert_equal 2, o.bar
+
+  assert_raise(ArgumentError) do
+    c.new(1, 2)
+  end
 end

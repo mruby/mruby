@@ -12,11 +12,28 @@
   </a>
 </div>
 
+### Table of contents
+
+- [What is mruby](#what-is-mruby)
+- [How to get mruby](#how-to-get-mruby)
+- [mruby homepage](#mruby-homepage)
+- [Mailing list](#mailing-list)
+- [How to compile, test, and install (mruby and gems)](#how-to-compile-test-and-install-mruby-and-gems)
+- [Amalgamation (single-file build)](#amalgamation-single-file-build)
+- [Building documentation](#building-documentation)
+- [How to customize mruby (mrbgems)](#how-to-customize-mruby-mrbgems)
+- [Index of Document](#index-of-document)
+- [License](#license)
+- [Note for License](#note-for-license)
+- [How to Contribute](#how-to-contribute)
+- [Star History](#star-history)
+- [Contributors](#contributors)
+
 ## What is mruby
 
 mruby is the lightweight implementation of the Ruby language complying to (part
-of) the [ISO standard][ISO-standard] with more recent features provided by Ruby 3.x.
-Also, its syntax is Ruby 3.x compatible except for pattern matching.
+of) the [ISO standard][ISO-standard] with more recent features provided by Ruby 4.x.
+Also, its syntax is Ruby 4.x compatible.
 
 You can link and embed mruby within your application. The "mruby" interpreter
 program and the interactive "mirb" shell are provided as examples. You can also
@@ -30,9 +47,9 @@ of the Ministry of Economy, Trade and Industry of Japan.
 
 ## How to get mruby
 
-To get mruby, you can download the stable version 3.4.0 from the official mruby
+To get mruby, you can download the stable version 4.0.0 from the official mruby
 GitHub repository or clone the trunk of the mruby source tree with the "git
-clone" command. You can also install and compile mruby using [ruby-install](https://github.com/postmodern/ruby-install), [ruby-build](https://github.com/rbenv/ruby-build) or [rvm](https://github.com/rvm/rvm).
+clone" command. You can also install and compile mruby using [ruby-install](https://github.com/postmodern/ruby-install), [ruby-build](https://github.com/rbenv/ruby-build), [rvm](https://github.com/rvm/rvm), [conda](https://anaconda.org/channels/conda-forge/packages/mruby/overview) or [Homebrew](https://formulae.brew.sh/formula/mruby).
 
 The latest development version of mruby can be downloaded via the following URL: [https://github.com/mruby/mruby/zipball/master](https://github.com/mruby/mruby/zipball/master)
 
@@ -60,6 +77,21 @@ rake all test
 ```
 
 See the [compile.md](doc/guides/compile.md) file for the detail.
+
+## Amalgamation (single-file build)
+
+mruby supports amalgamation, which combines all source files into a single
+`mruby.c` and `mruby.h` for easy embedding (similar to SQLite).
+
+```console
+rake amalgam
+```
+
+Output files are generated in `build/host/amalgam/`. To use:
+
+```console
+gcc -I./build/host/amalgam your_app.c ./build/host/amalgam/mruby.c -o your_app -lm
+```
 
 ## Building documentation
 
@@ -95,15 +127,20 @@ extensions in C and/or Ruby. For a guide on how to use mrbgems, consult the
 <!-- BEGIN OF MRUBY DOCUMENT INDEX -->
 
 - [About the Limitations of mruby](doc/limitations.md)
+- [About Amalgamation (Single-File Build)](doc/guides/amalgamation.md)
+- [C API Reference](doc/guides/capi.md)
 - [About the Compile](doc/guides/compile.md)
 - [About the Debugger with the `mrdb` Command](doc/guides/debugger.md)
 - [About GC Arena](doc/guides/gc-arena-howto.md)
+- [Getting Started with mruby](doc/guides/getting-started.md)
 - [About the mruby directory structure](doc/guides/hier.md)
 - [About Linking with `libmruby`](doc/guides/link.md)
-- [About Memory Allocator Customization](doc/guides/memory.md)
+- [About Memory Allocator Customization and Heap Regions](doc/guides/memory.md)
 - [About Build-time Configurations](doc/guides/mrbconf.md)
 - [About the Build-time Library Manager](doc/guides/mrbgems.md)
+- [ROM Method Tables for Memory-Efficient Method Registration](doc/guides/rom-method-table.md)
 - [About the Symbols](doc/guides/symbol.md)
+- [Internal Implementation / About mruby Architecture](doc/internal/architecture.md)
 - [Internal Implementation / About Value Boxing](doc/internal/boxing.md)
 - [Internal Implementation / About mruby Virtual Machine Instructions](doc/internal/opcode.md)
 
@@ -135,5 +172,13 @@ Please ask us if you want to distribute your code under another license.
 To contribute to mruby, please refer to the [contribution guidelines][contribution-guidelines] and send a pull request to the [mruby GitHub repository](https://github.com/mruby/mruby).
 By contributing, you grant non-exclusive rights to your code under the MIT License.
 
-[ISO-standard]: https://www.iso.org/iso/iso_catalogue/catalogue_tc/catalogue_detail.htm?csnumber=59579
+## Star History
+
+[![mruby Star History](https://api.star-history.com/svg?repos=mruby/mruby&type=Date)](https://www.star-history.com/#mruby/mruby&Date)
+
+## Contributors
+
+[![mruby Contributors](https://contrib.rocks/image?repo=mruby/mruby&anon=1&max=500)](https://github.com/mruby/mruby/graphs/contributors)
+
+[ISO-standard]: https://www.iso.org/standard/59579.html
 [contribution-guidelines]: CONTRIBUTING.md

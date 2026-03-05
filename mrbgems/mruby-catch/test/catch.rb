@@ -1,6 +1,6 @@
 assert "return throw value" do
   val = ["val"]
-  result = catch :foo do
+  result = catch(:foo) do
     loop do
       loop do
         begin
@@ -22,7 +22,7 @@ assert "no throw" do
 end
 
 assert "no throw value" do
-  result = catch :foo do
+  result = catch(:foo) do
     throw :foo
     1
   end

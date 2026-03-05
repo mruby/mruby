@@ -19,299 +19,290 @@
 #include <mruby/internal.h>
 #include <mruby/presym.h>
 
-#define METHOD_MID(m) MT_KEY_SYM((m).flags)
-
-union mt_ptr {
-  const struct RProc *proc;
-  mrb_func_t func;
-};
-
-#define MT_KEY_SHIFT 4
-#define MT_KEY_MASK  ((1<<MT_KEY_SHIFT)-1)
-#define MT_KEY_P(k) (((k)>>MT_KEY_SHIFT) != 0)
-#define MT_FUNC MRB_METHOD_FUNC_FL
-#define MT_NOARG MRB_METHOD_NOARG_FL
-#define MT_PUBLIC MRB_METHOD_PUBLIC_FL
-#define MT_PRIVATE MRB_METHOD_PRIVATE_FL
+/* mrb_mt_tbl, union mrb_mt_ptr, mrb_mt_entry defined in internal.h */
 #define MT_PROTECTED MRB_METHOD_PROTECTED_FL
 #define MT_VDEFAULT MRB_METHOD_VDEFAULT_FL
 #define MT_VMASK MRB_METHOD_VISIBILITY_MASK
-#define MT_EMPTY 0
-#define MT_DELETED 1
 
-#define MT_KEY(sym, flags) ((sym)<<MT_KEY_SHIFT|(flags))
-#define MT_KEY_SYM(k) ((k)>>MT_KEY_SHIFT)
-#define MT_KEY_FLG(k) ((k)&MT_KEY_MASK)
+#define MRB_MT_FLAG_BITS (MRB_MT_READONLY_BIT | MRB_MT_FROZEN_BIT)
+#define MT_ALLOC(t)      ((t)->alloc & ~MRB_MT_FLAG_BITS)
+#define mt_readonly_p(t) ((t)->alloc & MRB_MT_READONLY_BIT)
+#define mt_frozen_p(t)   ((t)->alloc & MRB_MT_FROZEN_BIT)
 
-/* method table structure */
-typedef struct mt_tbl {
-  int size;
-  int alloc;
-  union mt_ptr *ptr;
-} mt_tbl;
+/* Allocates or grows the method table to exactly new_alloc entries */
+static void
+mt_grow(mrb_state *mrb, mrb_mt_tbl *t, int new_alloc)
+{
+  t->ptr = (mrb_mt_entry*)mrb_realloc(mrb, t->ptr,
+                                       new_alloc * sizeof(mrb_mt_entry));
+  t->alloc = (t->alloc & MRB_MT_FLAG_BITS) | new_alloc;
+}
 
-#ifdef MRB_USE_INLINE_METHOD_CACHE
-#define MT_INLINE_CACHE_SIZE 256
-static uint8_t mt_cache[MT_INLINE_CACHE_SIZE];
-#endif
-
-/* Creates the method table. */
-static mt_tbl*
+/* Creates a new empty method table */
+static mrb_mt_tbl*
 mt_new(mrb_state *mrb)
 {
-  mt_tbl *t;
+  mrb_mt_tbl *t;
 
-  t = (mt_tbl*)mrb_malloc(mrb, sizeof(mt_tbl));
+  t = (mrb_mt_tbl*)mrb_malloc(mrb, sizeof(mrb_mt_tbl));
   t->size = 0;
   t->alloc = 0;
   t->ptr = NULL;
+  t->next = NULL;
 
   return t;
 }
 
-static void mt_put(mrb_state *mrb, mt_tbl *t, mrb_sym sym, mrb_sym flags, union mt_ptr ptr);
-
+/* Inserts or updates an entry in the method table (linear scan) */
 static void
-mt_rehash(mrb_state *mrb, mt_tbl *t)
+mt_put(mrb_state *mrb, mrb_mt_tbl *t, mrb_sym sym, uint32_t flags, union mrb_mt_ptr ptrval)
 {
-  int old_alloc = t->alloc;
-  int new_alloc = old_alloc > 0 ? old_alloc << 1 : 8;
-  union mt_ptr *old_ptr = t->ptr;
+  mrb_mt_entry *entries = t->ptr;
 
-  t->ptr = (union mt_ptr*)mrb_calloc(mrb, sizeof(union mt_ptr)+sizeof(mrb_sym), new_alloc);
-  t->alloc = new_alloc;
-  t->size = 0;
-  if (old_alloc == 0) return;
-
-  mrb_sym *keys = (mrb_sym*)&old_ptr[old_alloc];
-  union mt_ptr *vals = old_ptr;
-  for (int i = 0; i < old_alloc; i++) {
-    mrb_sym key = keys[i];
-    if (MT_KEY_P(key)) {
-      mt_put(mrb, t, MT_KEY_SYM(key), MT_KEY_FLG(key), vals[i]);
-    }
-  }
-  mrb_free(mrb, old_ptr);
-}
-
-#define slot_empty_p(slot) ((slot)->key == 0 && (slot)->func_p == 0)
-
-/* Set the value for the symbol in the method table. */
-static void
-mt_put(mrb_state *mrb, mt_tbl *t, mrb_sym sym, mrb_sym flags, union mt_ptr ptr)
-{
-  int pos, start, dpos = -1;
-
-  if (t->alloc == 0) {
-    mt_rehash(mrb, t);
-  }
-
-  mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
-  union mt_ptr *vals = t->ptr;
-  int hash = mrb_int_hash_func(mrb, sym);
-  start = pos = hash & (t->alloc-1);
-  for (;;) {
-    mrb_sym key = keys[pos];
-    if (MT_KEY_SYM(key) == sym) {
-    value_set:
-      keys[pos] = MT_KEY(sym, flags);
-      vals[pos] = ptr;
+  /* Linear scan for existing key */
+  for (int i = 0; i < t->size; i++) {
+    if (entries[i].key == sym) {
+      entries[i].flags = flags;
+      entries[i].val = ptrval;
       return;
     }
-    else if (key == MT_EMPTY) {
-      t->size++;
-      goto value_set;
-    }
-    else if (key == MT_DELETED && dpos < 0) {
-      dpos = pos;
-    }
-    pos = (pos+1) & (t->alloc-1);
-    if (pos == start) {         /* not found */
-      if (dpos > 0) {
-        t->size++;
-        pos = dpos;
-        goto value_set;
-      }
-      /* no room */
-      mt_rehash(mrb, t);
-      start = pos = hash & (t->alloc-1);
-      keys = (mrb_sym*)&t->ptr[t->alloc];
-      vals = t->ptr;
-    }
   }
+
+  /* Not found — append to end */
+  if (MT_ALLOC(t) == 0) {
+    mt_grow(mrb, t, 8);
+  }
+  else if (t->size == MT_ALLOC(t)) {
+    mt_grow(mrb, t, MT_ALLOC(t) * 2);
+  }
+  entries = t->ptr;
+  entries[t->size].key = sym;
+  entries[t->size].flags = flags;
+  entries[t->size].val = ptrval;
+  t->size++;
 }
 
-/* Get a value for a symbol from the method table. */
-static mrb_sym
-mt_get(mrb_state *mrb, mt_tbl *t, mrb_sym sym, union mt_ptr *pp)
-{
-  int pos;
-
-  if (t == NULL) return 0;
-  if (t->alloc == 0) return 0;
-  if (t->size == 0) return 0;
-
-  mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
-  union mt_ptr *vals = t->ptr;
-  int hash = mrb_int_hash_func(mrb, sym);
-#ifdef MRB_USE_INLINE_METHOD_CACHE
-  int cpos = (hash^(uintptr_t)t) % MT_INLINE_CACHE_SIZE;
-  pos = mt_cache[cpos];
-  if (pos < t->alloc) {
-    mrb_sym key = keys[pos];
-    if (key) {
-      if (MT_KEY_SYM(key) == sym) {
-        *pp = vals[pos];
-        return key;
-      }
-    }
-  }
-#endif
-  int start = pos = hash & (t->alloc-1);
-  for (;;) {
-    mrb_sym key = keys[pos];
-    if (MT_KEY_SYM(key) == sym) {
-      *pp = vals[pos];
-#ifdef MRB_USE_INLINE_METHOD_CACHE
-      if (pos < 0x100) {
-        mt_cache[cpos] = pos;
-      }
-#endif
-      return key;
-    }
-    else if (key == MT_EMPTY) {
-      return 0;
-    }
-    pos = (pos+1) & (t->alloc-1);
-    if (pos == start) {         /* not found */
-      return 0;
-    }
-  }
-}
-
-/* Deletes the value for the symbol from the method table. */
+/* Retrieves a value from the method table (walks chain, linear scan).
+   Returns TRUE if found, FALSE if not found.
+   On success, *pp and *fp are set. */
 static mrb_bool
-mt_del(mrb_state *mrb, mt_tbl *t, mrb_sym sym)
+mt_get(mrb_state *mrb, mrb_mt_tbl *t, mrb_sym sym, union mrb_mt_ptr *pp, uint32_t *fp)
 {
-  int pos, start;
+  while (t) {
+    mrb_mt_entry *entries = t->ptr;
+    for (int i = 0; i < t->size; i++) {
+      if (entries[i].key == sym) {
+        if (MRB_MT_REMOVED_P(entries[i])) return FALSE;
+        *pp = entries[i].val;
+        *fp = entries[i].flags;
+        return TRUE;
+      }
+    }
+    t = t->next;
+  }
+  return FALSE;
+}
 
-  if (t == NULL) return FALSE;
-  if (t->alloc == 0) return  FALSE;
-  if (t->size == 0) return FALSE;
+/* Deletes an entry from the method table (swap with last) */
+static mrb_bool
+mt_del(mrb_state *mrb, mrb_mt_tbl *t, mrb_sym sym)
+{
+  if (!t || t->size == 0) return FALSE;
 
-  mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
-  int hash = mrb_int_hash_func(mrb, sym);
-  start = pos = hash & (t->alloc-1);
-  for (;;) {
-    mrb_sym key = keys[pos];
-    if (MT_KEY_SYM(key) == sym) {
+  mrb_mt_entry *entries = t->ptr;
+  for (int i = 0; i < t->size; i++) {
+    if (entries[i].key == sym) {
       t->size--;
-      keys[pos] = MT_DELETED;
+      if (i < t->size) {
+        entries[i] = entries[t->size];
+      }
       return TRUE;
     }
-    else if (key == MT_EMPTY) {
-      return FALSE;
-    }
-    pos = (pos+1) & (t->alloc-1);
-    if (pos == start) {         /* not found */
-      return FALSE;
-    }
   }
+  return FALSE;
 }
 
-/* Copy the method table. */
-static struct mt_tbl*
-mt_copy(mrb_state *mrb, mt_tbl *t)
+/* Checks if any layer in the chain contains the given symbol */
+static mrb_bool
+mt_chain_has(mrb_mt_tbl *t, mrb_sym sym)
 {
-  mt_tbl *t2;
-
-  if (t == NULL) return NULL;
-  if (t->alloc == 0) return NULL;
-  if (t->size == 0) return NULL;
-
-  t2 = mt_new(mrb);
-  mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
-  union mt_ptr *vals = t->ptr;
-  for (int i=0; i<t->alloc; i++) {
-    if (MT_KEY_P(keys[i])) {
-      mt_put(mrb, t2, MT_KEY_SYM(keys[i]), MT_KEY_FLG(keys[i]), vals[i]);
+  while (t) {
+    mrb_mt_entry *entries = t->ptr;
+    for (int i = 0; i < t->size; i++) {
+      if (entries[i].key == sym) return TRUE;
     }
+    t = t->next;
   }
+  return FALSE;
+}
+
+/* Creates a copy of the method table */
+static mrb_mt_tbl*
+mt_copy(mrb_state *mrb, mrb_mt_tbl *t)
+{
+  if (!t) return NULL;
+  if (mt_readonly_p(t)) {
+    /* source is ROM — new class gets empty mutable top + shared ROM chain */
+    if (t->size == 0 && !t->next) return NULL;
+    mrb_mt_tbl *t2 = mt_new(mrb);
+    t2->next = t;
+    return t2;
+  }
+  if (t->size == 0 && !t->next) return NULL;
+  mrb_mt_tbl *t2 = mt_new(mrb);
+  if (t->size > 0) {
+    mt_grow(mrb, t2, t->size);
+    memcpy(t2->ptr, t->ptr, t->size * sizeof(mrb_mt_entry));
+    t2->size = t->size;
+  }
+  t2->next = t->next;  /* share ROM chain */
   return t2;
 }
 
-/* Free memory of the method table. */
+/* Frees memory of the method table (mutable layers only).
+   Stops at the first readonly (ROM) layer; ROM wrappers are
+   shared (by iclasses, dup, etc.) and freed via mrb->rom_mt
+   at state close. */
 static void
-mt_free(mrb_state *mrb, mt_tbl *t)
+mt_free(mrb_state *mrb, mrb_mt_tbl *t)
 {
-  mrb_free(mrb, t->ptr);
-  mrb_free(mrb, t);
+  while (t && !mt_readonly_p(t)) {
+    mrb_mt_tbl *next = t->next;
+    mrb_free(mrb, t->ptr);
+    mrb_free(mrb, t);
+    t = next;
+  }
 }
 
-static inline mrb_method_t
-create_method_value(mrb_state *mrb, mrb_sym key, union mt_ptr val)
+/* Allocates a per-state ROM wrapper for the const entries array
+   and pushes it onto the class's method table chain.
+   The wrapper is also registered in mrb->rom_mt for cleanup
+   at mrb_close, since ROM layers are shared and must not be
+   freed by mt_free during normal GC. */
+void
+mrb_mt_init_rom(mrb_state *mrb, struct RClass *c,
+                const mrb_mt_entry *entries, int size)
 {
-  mrb_method_t m = { key, { val.proc } };
+  mrb_mt_tbl *rom = (mrb_mt_tbl*)mrb_malloc(mrb, sizeof(mrb_mt_tbl));
+  rom->size = size;
+  rom->alloc = size | MRB_MT_READONLY_BIT;
+  rom->ptr = (mrb_mt_entry*)entries;
+
+  /* register for cleanup at mrb_close */
+  struct mrb_mt_rom_list *node =
+    (struct mrb_mt_rom_list*)mrb_malloc(mrb, sizeof(struct mrb_mt_rom_list));
+  node->tbl = rom;
+  node->next = mrb->rom_mt;
+  mrb->rom_mt = node;
+
+  /* push ROM layer */
+  mrb_mt_tbl *t = c->mt;
+  if (!t || mt_readonly_p(t)) {
+    rom->next = t;
+    c->mt = rom;
+  }
+  else {
+    /* freeze mutable top, insert ROM behind it;
+     * c->mt must not change because iclasses (module inclusion)
+     * hold a copy of the mt pointer */
+    t->alloc |= MRB_MT_FROZEN_BIT;
+    rom->next = t->next;
+    t->next = rom;
+  }
+}
+
+/* Creates a method value structure from flags and pointer */
+static inline mrb_method_t
+create_method_value(mrb_state *mrb, uint32_t flags, union mrb_mt_ptr val)
+{
+  mrb_method_t m = { flags, { val.proc } };
   return m;
 }
 
+/* Iterates over methods in a class's method table with callback function */
 MRB_API void
 mrb_mt_foreach(mrb_state *mrb, struct RClass *c, mrb_mt_foreach_func *fn, void *p)
 {
-  mt_tbl *t = c->mt;
+  mrb_mt_tbl *t = c->mt;
+  if (!t) return;
 
-  if (t == NULL) return;
-  if (t->alloc == 0) return;
-  if (t->size == 0) return;
+  /* fast path: single layer */
+  if (!t->next) {
+    mrb_mt_entry *entries = t->ptr;
+    for (int i = 0; i < t->size; i++) {
+      if (MRB_MT_REMOVED_P(entries[i])) continue;
+      if (fn(mrb, entries[i].key,
+             create_method_value(mrb, entries[i].flags, entries[i].val), p) != 0)
+        return;
+    }
+    return;
+  }
 
-  mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
-  union mt_ptr *vals = t->ptr;
-  for (int i=0; i<t->alloc; i++) {
-    mrb_sym key = keys[i];
-    if (MT_KEY_SYM(key)) {
-      if (fn(mrb, MT_KEY_SYM(key), create_method_value(mrb, key, vals[i]), p) != 0)
+  /* multi-layer: iterate each layer, skip if shadowed by a higher one */
+  for (mrb_mt_tbl *layer = t; layer; layer = layer->next) {
+    mrb_mt_entry *entries = layer->ptr;
+    for (int i = 0; i < layer->size; i++) {
+      if (MRB_MT_REMOVED_P(entries[i])) continue;
+      mrb_sym sym = entries[i].key;
+      /* check if shadowed by a higher layer */
+      if (layer != t) {
+        mrb_bool shadowed = FALSE;
+        for (mrb_mt_tbl *upper = t; upper != layer; upper = upper->next) {
+          mrb_mt_entry *up = upper->ptr;
+          for (int j = 0; j < upper->size; j++) {
+            if (up[j].key == sym) {
+              shadowed = TRUE;
+              break;
+            }
+          }
+          if (shadowed) break;
+        }
+        if (shadowed) continue;
+      }
+      if (fn(mrb, sym, create_method_value(mrb, entries[i].flags, entries[i].val), p) != 0)
         return;
     }
   }
-  return;
 }
 
+/* Marks method table entries for garbage collection */
 size_t
 mrb_gc_mark_mt(mrb_state *mrb, struct RClass *c)
 {
-  mt_tbl *t = c->mt;
-
-  if (t == NULL) return 0;
-  if (t->alloc == 0) return 0;
-  if (t->size == 0) return 0;
-
-  mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
-  union mt_ptr *vals = t->ptr;
-  for (int i=0; i<t->alloc; i++) {
-    if (MT_KEY_P(keys[i]) && (keys[i] & MT_FUNC) == 0) { /* Proc pointer */
-      const struct RProc *p = vals[i].proc;
-      mrb_gc_mark(mrb, (struct RBasic*)p);
+  size_t children = 0;
+  for (mrb_mt_tbl *t = c->mt; t; t = t->next) {
+    if (mt_readonly_p(t)) continue; /* ROM layers need no GC marking */
+    if (t->size == 0) continue;
+    mrb_mt_entry *entries = t->ptr;
+    for (int i = 0; i < t->size; i++) {
+      if (entries[i].key != 0 && (entries[i].flags & MRB_MT_FUNC) == 0) {
+        mrb_gc_mark(mrb, (struct RBasic*)entries[i].val.proc);
+      }
     }
+    children += (size_t)t->size;
   }
-  if (!t) return 0;
-  return (size_t)t->size;
+  return children;
 }
 
+/* Returns memory size of class method table (mutable layers only) */
 size_t
 mrb_class_mt_memsize(mrb_state *mrb, struct RClass *c)
 {
-  struct mt_tbl *h = c->mt;
-
-  if (!h) return 0;
-  return sizeof(struct mt_tbl) + (size_t)h->size * sizeof(mrb_method_t);
+  size_t total = 0;
+  for (mrb_mt_tbl *h = c->mt; h && !mt_readonly_p(h); h = h->next)
+    total += sizeof(mrb_mt_tbl) + (size_t)MT_ALLOC(h) * sizeof(mrb_mt_entry);
+  return total;
 }
 
+/* Frees mutable layers of the class method table for GC.
+   ROM layers are left intact (freed via mrb->rom_mt at close). */
 void
 mrb_gc_free_mt(mrb_state *mrb, struct RClass *c)
 {
   if (c->mt) mt_free(mrb, c->mt);
 }
 
+/* Sets the name of a class within an outer namespace */
 void
 mrb_class_name_class(mrb_state *mrb, struct RClass *outer, struct RClass *c, mrb_sym id)
 {
@@ -342,21 +333,23 @@ mrb_class_name_class(mrb_state *mrb, struct RClass *outer, struct RClass *c, mrb
   mrb_obj_iv_set_force(mrb, (struct RObject*)c, nsym, name);
 }
 
+/* Checks if a name is a valid constant name */
 mrb_bool
 mrb_const_name_p(mrb_state *mrb, const char *name, mrb_int len)
 {
   return len > 0 && ISUPPER(name[0]) && mrb_ident_p(name+1, len-1);
 }
 
+/* Sets up a class by defining it as a constant in the outer namespace */
 static void
 setup_class(mrb_state *mrb, struct RClass *outer, struct RClass *c, mrb_sym id)
 {
-  mrb_class_name_class(mrb, outer, c, id);
-  mrb_obj_iv_set(mrb, (struct RObject*)outer, id, mrb_obj_value(c));
+  mrb_const_set(mrb, mrb_obj_value(outer), id, mrb_obj_value(c));
 }
 
 #define make_metaclass(mrb, c) prepare_singleton_class((mrb), (struct RBasic*)(c))
 
+/* Prepares and creates a singleton class for an object */
 static void
 prepare_singleton_class(mrb_state *mrb, struct RBasic *o)
 {
@@ -394,6 +387,7 @@ prepare_singleton_class(mrb_state *mrb, struct RBasic *o)
   sc->frozen = o->frozen;
 }
 
+/* Returns a string representation of a class name */
 static mrb_value
 class_name_str(mrb_state *mrb, struct RClass* c)
 {
@@ -407,6 +401,7 @@ class_name_str(mrb_state *mrb, struct RClass* c)
   return path;
 }
 
+/* Gets a class from a constant symbol, ensuring it's a class */
 static struct RClass*
 class_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym id)
 {
@@ -416,6 +411,7 @@ class_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym id)
   return mrb_class_ptr(c);
 }
 
+/* Gets a module from a constant symbol, ensuring it's a module */
 static struct RClass*
 module_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym id)
 {
@@ -425,6 +421,7 @@ module_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym id)
   return mrb_class_ptr(c);
 }
 
+/* Checks if an object is a class or module */
 static mrb_bool
 class_ptr_p(mrb_value obj)
 {
@@ -438,6 +435,7 @@ class_ptr_p(mrb_value obj)
   }
 }
 
+/* Checks if object is class/module and raises TypeError if not */
 static void
 check_if_class_or_module(mrb_state *mrb, mrb_value obj)
 {
@@ -446,6 +444,7 @@ check_if_class_or_module(mrb_state *mrb, mrb_value obj)
   }
 }
 
+/* Defines a new module or returns existing one */
 static struct RClass*
 define_module(mrb_state *mrb, mrb_sym name, struct RClass *outer)
 {
@@ -458,12 +457,30 @@ define_module(mrb_state *mrb, mrb_sym name, struct RClass *outer)
   return m;
 }
 
+/*
+ * Defines a new module in the top-level scope (Object) using a symbol for the name.
+ *
+ * @param mrb The mruby state.
+ * @param name The symbol representing the name of the module to define.
+ * @return A pointer to the newly defined or existing RClass structure for the module.
+ * @sideeffect Creates a new module or returns an existing one if already defined.
+ *             The module is set as a constant in Object.
+ */
 MRB_API struct RClass*
 mrb_define_module_id(mrb_state *mrb, mrb_sym name)
 {
   return define_module(mrb, name, mrb->object_class);
 }
 
+/*
+ * Defines a new module in the top-level scope (Object).
+ *
+ * @param mrb The mruby state.
+ * @param name The name of the module to define.
+ * @return A pointer to the newly defined or existing RClass structure for the module.
+ * @sideeffect Creates a new module or returns an existing one if already defined.
+ *             The module is set as a constant in Object.
+ */
 MRB_API struct RClass*
 mrb_define_module(mrb_state *mrb, const char *name)
 {
@@ -485,6 +502,16 @@ mrb_vm_define_module(mrb_state *mrb, mrb_value outer, mrb_sym id)
   return define_module(mrb, id, mrb_class_ptr(outer));
 }
 
+/*
+ * Defines a new module under the given outer module/class using a symbol for the name.
+ *
+ * @param mrb The mruby state.
+ * @param outer A pointer to the RClass structure of the outer module/class.
+ * @param name The symbol representing the name of the module to define.
+ * @return A pointer to the newly defined or existing RClass structure for the module.
+ * @sideeffect Creates a new module or returns an existing one if already defined under `outer`.
+ *             The module is set as a constant in `outer`.
+ */
 MRB_API struct RClass*
 mrb_define_module_under_id(mrb_state *mrb, struct RClass *outer, mrb_sym name)
 {
@@ -494,6 +521,16 @@ mrb_define_module_under_id(mrb_state *mrb, struct RClass *outer, mrb_sym name)
   return c;
 }
 
+/*
+ * Defines a new module under the given outer module/class using a C string for the name.
+ *
+ * @param mrb The mruby state.
+ * @param outer A pointer to the RClass structure of the outer module/class.
+ * @param name The C string representing the name of the module to define.
+ * @return A pointer to the newly defined or existing RClass structure for the module.
+ * @sideeffect Creates a new module or returns an existing one if already defined under `outer`.
+ *             The module is set as a constant in `outer`.
+ */
 MRB_API struct RClass*
 mrb_define_module_under(mrb_state *mrb, struct RClass *outer, const char *name)
 {
@@ -532,6 +569,18 @@ define_class(mrb_state *mrb, mrb_sym name, struct RClass *super, struct RClass *
   return c;
 }
 
+/*
+ * Defines a new class in the top-level scope (Object) using a symbol for the name.
+ *
+ * @param mrb The mruby state.
+ * @param name The symbol representing the name of the class to define.
+ * @param super A pointer to the RClass structure of the superclass.
+ *              If NULL, Object is assumed as the superclass, and a warning is issued.
+ * @return A pointer to the newly defined or existing RClass structure for the class.
+ * @sideeffect Creates a new class or returns an existing one if already defined.
+ *             The class is set as a constant in Object.
+ *             Issues a warning if `super` is NULL.
+ */
 MRB_API struct RClass*
 mrb_define_class_id(mrb_state *mrb, mrb_sym name, struct RClass *super)
 {
@@ -541,6 +590,17 @@ mrb_define_class_id(mrb_state *mrb, mrb_sym name, struct RClass *super)
   return define_class(mrb, name, super, mrb->object_class);
 }
 
+/*
+ * Defines a new class in the top-level scope (Object).
+ *
+ * @param mrb The mruby state.
+ * @param name The name of the class to define.
+ * @param super A pointer to the RClass structure of the superclass.
+ *              If NULL, Object is assumed as the superclass.
+ * @return A pointer to the newly defined or existing RClass structure for the class.
+ * @sideeffect Creates a new class or returns an existing one if already defined.
+ *             The class is set as a constant in Object.
+ */
 MRB_API struct RClass*
 mrb_define_class(mrb_state *mrb, const char *name, struct RClass *super)
 {
@@ -549,7 +609,6 @@ mrb_define_class(mrb_state *mrb, const char *name, struct RClass *super)
 
 static mrb_value mrb_do_nothing(mrb_state *mrb, mrb_value);
 #ifndef MRB_NO_METHOD_CACHE
-static void mc_clear(mrb_state *mrb);
 static void mc_clear_by_id(mrb_state *mrb, mrb_sym mid);
 #else
 #define mc_clear(mrb)
@@ -610,6 +669,14 @@ mrb_vm_define_class(mrb_state *mrb, mrb_value outer, mrb_value super, mrb_sym id
   return c;
 }
 
+/*
+ * Checks if a class is defined in the top-level scope (Object).
+ *
+ * @param mrb The mruby state.
+ * @param name The name of the class to check.
+ * @return TRUE if the class is defined, FALSE otherwise.
+ *         Returns FALSE if the name is not a valid symbol.
+ */
 MRB_API mrb_bool
 mrb_class_defined(mrb_state *mrb, const char *name)
 {
@@ -618,12 +685,28 @@ mrb_class_defined(mrb_state *mrb, const char *name)
   return mrb_const_defined(mrb, mrb_obj_value(mrb->object_class), sym);
 }
 
+/*
+ * Checks if a class is defined in the top-level scope (Object) using a symbol for the name.
+ *
+ * @param mrb The mruby state.
+ * @param name The symbol representing the name of the class to check.
+ * @return TRUE if the class is defined, FALSE otherwise.
+ */
 MRB_API mrb_bool
 mrb_class_defined_id(mrb_state *mrb, mrb_sym name)
 {
   return mrb_const_defined(mrb, mrb_obj_value(mrb->object_class), name);
 }
 
+/*
+ * Checks if a class is defined under the given outer module/class.
+ *
+ * @param mrb The mruby state.
+ * @param outer A pointer to the RClass structure of the outer module/class.
+ * @param name The name of the class to check.
+ * @return TRUE if the class is defined under `outer`, FALSE otherwise.
+ *         Returns FALSE if the name is not a valid symbol.
+ */
 MRB_API mrb_bool
 mrb_class_defined_under(mrb_state *mrb, struct RClass *outer, const char *name)
 {
@@ -632,36 +715,96 @@ mrb_class_defined_under(mrb_state *mrb, struct RClass *outer, const char *name)
   return mrb_const_defined_at(mrb, mrb_obj_value(outer), sym);
 }
 
+/*
+ * Checks if a class is defined under the given outer module/class using a symbol for the name.
+ *
+ * @param mrb The mruby state.
+ * @param outer A pointer to the RClass structure of the outer module/class.
+ * @param name The symbol representing the name of the class to check.
+ * @return TRUE if the class is defined under `outer`, FALSE otherwise.
+ */
 MRB_API mrb_bool
 mrb_class_defined_under_id(mrb_state *mrb, struct RClass *outer, mrb_sym name)
 {
   return mrb_const_defined_at(mrb, mrb_obj_value(outer), name);
 }
 
+/*
+ * Retrieves a class defined under an outer module/class.
+ *
+ * @param mrb The mruby state.
+ * @param outer A pointer to the RClass structure of the outer module/class.
+ *              If NULL, Object is assumed.
+ * @param name The name of the class to retrieve.
+ * @return A pointer to the RClass structure of the found class.
+ * @raise TypeError if the constant found is not a class.
+ * @raise NameError if the constant is not found.
+ */
 MRB_API struct RClass*
 mrb_class_get_under(mrb_state *mrb, struct RClass *outer, const char *name)
 {
   return class_from_sym(mrb, outer, mrb_intern_cstr(mrb, name));
 }
 
+/*
+ * Retrieves a class defined under an outer module/class using a symbol for the name.
+ *
+ * @param mrb The mruby state.
+ * @param outer A pointer to the RClass structure of the outer module/class.
+ *              If NULL, Object is assumed.
+ * @param name The symbol representing the name of the class to retrieve.
+ * @return A pointer to the RClass structure of the found class.
+ * @raise TypeError if the constant found is not a class.
+ * @raise NameError if the constant is not found.
+ */
 MRB_API struct RClass*
 mrb_class_get_under_id(mrb_state *mrb, struct RClass *outer, mrb_sym name)
 {
   return class_from_sym(mrb, outer, name);
 }
 
+/*
+ * Retrieves a class defined in the top-level scope (Object).
+ *
+ * @param mrb The mruby state.
+ * @param name The name of the class to retrieve.
+ * @return A pointer to the RClass structure of the found class.
+ * @raise TypeError if the constant found is not a class.
+ * @raise NameError if the constant is not found.
+ */
 MRB_API struct RClass*
 mrb_class_get(mrb_state *mrb, const char *name)
 {
   return mrb_class_get_under(mrb, mrb->object_class, name);
 }
 
+/*
+ * Retrieves a class defined in the top-level scope (Object) using a symbol for the name.
+ *
+ * @param mrb The mruby state.
+ * @param name The symbol representing the name of the class to retrieve.
+ * @return A pointer to the RClass structure of the found class.
+ * @raise TypeError if the constant found is not a class.
+ * @raise NameError if the constant is not found.
+ */
 MRB_API struct RClass*
 mrb_class_get_id(mrb_state *mrb, mrb_sym name)
 {
   return mrb_class_get_under_id(mrb, mrb->object_class, name);
 }
 
+/*
+ * Retrieves an exception class by its symbol name.
+ * This function specifically searches for exception classes.
+ *
+ * @param mrb The mruby state.
+ * @param name The symbol representing the name of the exception class.
+ * @return A pointer to the RClass structure of the found exception class.
+ * @raise TypeError if the constant found is not a class.
+ * @raise NameError if the constant is not found.
+ * @raise Exception if the found class is not an exception (does not inherit from E_EXCEPTION).
+ * @raise Exception if the exception system is corrupted.
+ */
 MRB_API struct RClass*
 mrb_exc_get_id(mrb_state *mrb, mrb_sym name)
 {
@@ -681,102 +824,180 @@ mrb_exc_get_id(mrb_state *mrb, mrb_sym name)
   return NULL;
 }
 
+/*
+ * Retrieves a module defined under an outer module/class.
+ *
+ * @param mrb The mruby state.
+ * @param outer A pointer to the RClass structure of the outer module/class.
+ * @param name The name of the module to retrieve.
+ * @return A pointer to the RClass structure of the found module.
+ * @raise TypeError if the constant found is not a module.
+ * @raise NameError if the constant is not found.
+ */
 MRB_API struct RClass*
 mrb_module_get_under(mrb_state *mrb, struct RClass *outer, const char *name)
 {
   return module_from_sym(mrb, outer, mrb_intern_cstr(mrb, name));
 }
 
+/*
+ * Retrieves a module defined under an outer module/class using a symbol for the name.
+ *
+ * @param mrb The mruby state.
+ * @param outer A pointer to the RClass structure of the outer module/class.
+ * @param name The symbol representing the name of the module to retrieve.
+ * @return A pointer to the RClass structure of the found module.
+ * @raise TypeError if the constant found is not a module.
+ * @raise NameError if the constant is not found.
+ */
 MRB_API struct RClass*
 mrb_module_get_under_id(mrb_state *mrb, struct RClass *outer, mrb_sym name)
 {
   return module_from_sym(mrb, outer, name);
 }
 
+/*
+ * Retrieves a module defined in the top-level scope (Object).
+ *
+ * @param mrb The mruby state.
+ * @param name The name of the module to retrieve.
+ * @return A pointer to the RClass structure of the found module.
+ * @raise TypeError if the constant found is not a module.
+ * @raise NameError if the constant is not found.
+ */
 MRB_API struct RClass*
 mrb_module_get(mrb_state *mrb, const char *name)
 {
   return mrb_module_get_under(mrb, mrb->object_class, name);
 }
 
+/*
+ * Retrieves a module defined in the top-level scope (Object) using a symbol for the name.
+ *
+ * @param mrb The mruby state.
+ * @param name The symbol representing the name of the module to retrieve.
+ * @return A pointer to the RClass structure of the found module.
+ * @raise TypeError if the constant found is not a module.
+ * @raise NameError if the constant is not found.
+ */
 MRB_API struct RClass*
 mrb_module_get_id(mrb_state *mrb, mrb_sym name)
 {
   return mrb_module_get_under_id(mrb, mrb->object_class, name);
 }
 
-/*!
- * Defines a class under the namespace of \a outer.
- * \param outer  a class which contains the new class.
- * \param name     name of the new class
- * \param super  a class from which the new class will derive.
- *               NULL means \c Object class.
- * \return the created class
- * \throw TypeError if the constant name \a name is already taken but
- *                  the constant is not a \c Class.
- * \throw NameError if the class is already defined but the class can not
- *                  be reopened because its superclass is not \a super.
- * \post top-level constant named \a name refers the returned class.
+/*
+ * Defines a class under the namespace of outer.
  *
- * \note if a class named \a name is already defined and its superclass is
- *       \a super, the function just returns the defined class.
+ * @param mrb The mruby state.
+ * @param outer A pointer to the RClass structure of the outer module/class.
+ * @param name The symbol representing the name of the class to define.
+ * @param super A pointer to the RClass structure of the superclass.
+ *              If NULL, Object is assumed as the superclass.
+ * @return A pointer to the newly defined or existing RClass structure for the class.
+ * @raise TypeError if a constant with the same name exists but is not a class.
+ * @raise NameError if the class is already defined but with a different superclass.
+ * @sideeffect Creates a new class or returns an existing one if compatible.
+ *             The class is set as a constant in `outer`.
+ *             If a class with the same name is already defined and its superclass
+ *             matches `super`, the existing class is returned.
  */
 MRB_API struct RClass*
 mrb_define_class_under_id(mrb_state *mrb, struct RClass *outer, mrb_sym name, struct RClass *super)
 {
   struct RClass * c;
 
-#if 0
+#if 0  /* Warning is disabled by default, but can be enabled for debugging. */
   if (!super) {
-    mrb_warn(mrb, "no super class for '%C::%n', Object assumed", outer, id);
+    /* Emits a warning if no superclass is provided, assuming Object. */
+    mrb_warn(mrb, "no super class for '%C::%n', Object assumed", outer, name);
   }
 #endif
   c = define_class(mrb, name, super, outer);
-  setup_class(mrb, outer, c, name);
+  setup_class(mrb, outer, c, name); /* This sets the constant in outer */
   return c;
 }
 
+/*
+ * Defines a class under the namespace of outer using a C string for the name.
+ *
+ * @param mrb The mruby state.
+ * @param outer A pointer to the RClass structure of the outer module/class.
+ * @param name The C string representing the name of the class to define.
+ * @param super A pointer to the RClass structure of the superclass.
+ *              If NULL, Object is assumed as the superclass.
+ * @return A pointer to the newly defined or existing RClass structure for the class.
+ * @raise TypeError if a constant with the same name exists but is not a class.
+ * @raise NameError if the class is already defined but with a different superclass.
+ * @sideeffect Creates a new class or returns an existing one if compatible.
+ *             The class is set as a constant in `outer`.
+ */
 MRB_API struct RClass*
 mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, struct RClass *super)
 {
   return mrb_define_class_under_id(mrb, outer, mrb_intern_cstr(mrb, name), super);
 }
 
-static mrb_callinfo*
-find_visibility_ci(mrb_state *mrb, const struct RClass *c, int n)
+static mrb_bool
+check_visibility_break(const struct RProc *p, const struct RClass *c, mrb_callinfo *ci, struct REnv *env)
 {
-  mrb_callinfo *ci = mrb->c->ci - n;
-  const mrb_callinfo *cibase = mrb->c->cibase;
-  const struct RProc *p = ci->proc;
-
-  mrb_assert(p != NULL);
-  if (c == NULL) c = mrb_vm_ci_target_class(ci);
-  while (p->upper && cibase < ci) {
-    p = p->upper;
-
-    mrb_callinfo *upper_ci = ci - 1;
-    while (cibase < upper_ci) {
-      if (upper_ci->proc == p) {
-        if (mrb_vm_ci_target_class(upper_ci) != c) {
-          return ci;
-        }
-        ci = upper_ci;
-        break;
-      }
-      upper_ci--;
-    }
+  if (!p || p->upper == NULL || MRB_PROC_SCOPE_P(p) || p->e.env == NULL || !MRB_PROC_ENV_P(p)) {
+    return TRUE;
   }
-  return ci;
+  if (env) {
+    return p->e.env->c != c || MRB_ENV_VISIBILITY_BREAK_P(env);
+  }
+  return mrb_vm_ci_target_class(ci) != c || MRB_CI_VISIBILITY_BREAK_P(ci);
 }
 
+static void
+find_visibility_scope(mrb_state *mrb, const struct RClass *c, int n, mrb_callinfo **cp, struct REnv **ep)
+{
+  const struct mrb_context *ec = mrb->c;
+  mrb_callinfo *ci = ec->ci - n;
+  const struct RProc *p = ci->proc;
+
+  if (c == NULL) c = mrb_vm_ci_target_class(ci);
+
+  if (check_visibility_break(p, c, ci, NULL)) {
+    *ep = (ci->u.env && ci->u.env->tt == MRB_TT_ENV) ? ci->u.env : NULL;
+    *cp = ci;
+    return;
+  }
+
+  for (;;) {
+    struct REnv *env = p->e.env;
+    p = p->upper;
+    if (check_visibility_break(p, c, ci, env)) {
+      *ep = env;
+      *cp = NULL;
+      return;
+    }
+  }
+}
+
+/*
+ * Defines a method with raw mrb_method_t structure.
+ * This is a low-level function for method definition.
+ *
+ * @param mrb The mruby state.
+ * @param c The class/module in which to define the method.
+ * @param mid The symbol ID of the method name.
+ * @param m The mrb_method_t structure representing the method.
+ * @sideeffect Modifies the method table of the class/module `c`.
+ *             Clears the method cache for `mid`.
+ *             If `mid` is `initialize`, the method is automatically set to private.
+ *             If the method visibility is default, it's determined by the current scope.
+ * @raise TypeError if the class/module or its attached object (for singleton classes) is frozen.
+ */
 MRB_API void
 mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_t m)
 {
-  union mt_ptr ptr;
+  union mrb_mt_ptr ptr;
 
   MRB_CLASS_ORIGIN(c);
 
-  mt_tbl *h = c->mt;
+  mrb_mt_tbl *h = c->mt;
   if (c->tt == MRB_TT_SCLASS && mrb_frozen_p(c)) {
     mrb_value v = mrb_iv_get(mrb, mrb_obj_value(c), MRB_SYM(__attached__));
     mrb_check_frozen_value(mrb, v);
@@ -784,7 +1005,20 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
   else {
     mrb_check_frozen(mrb, c);
   }
-  if (!h) h = c->mt = mt_new(mrb);
+  if (!h) {
+    h = c->mt = mt_new(mrb);
+  }
+  else if (mt_frozen_p(h)) {
+    /* unfreeze heap-allocated frozen layer to preserve c->mt pointer
+     * (iclasses hold a copy of the mt pointer for included modules) */
+    h->alloc &= ~MRB_MT_FROZEN_BIT;
+  }
+  else if (mt_readonly_p(h)) {
+    /* COW: create mutable top layer, chain to ROM */
+    mrb_mt_tbl *top = mt_new(mrb);
+    top->next = h;
+    h = c->mt = top;
+  }
   if (MRB_METHOD_PROC_P(m)) {
     struct RProc *p = (struct RProc*)MRB_METHOD_PROC(m);
 
@@ -808,16 +1042,27 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
     ptr.func = MRB_METHOD_FUNC(m);
   }
 
-  int flags = MT_KEY_FLG(m.flags);
-  if (mid == MRB_SYM(initialize)) {
-    MRB_SET_VISIBILITY(flags, MT_PRIVATE);
+  int flags = m.flags;
+  if (mid == MRB_SYM(initialize) ||
+      mid == MRB_SYM(initialize_copy) ||
+      mid == MRB_SYM_Q(respond_to_missing)) {
+    MRB_SET_VISIBILITY_FLAGS(flags, MRB_METHOD_PRIVATE_FL);
   }
   else if ((flags & MT_VMASK) == MT_VDEFAULT) {
-    mrb_callinfo *ci = find_visibility_ci(mrb, c, 0);
-    MRB_SET_VISIBILITY(flags, ci->vis);
+    /* singleton methods are always public */
+    if (c->tt == MRB_TT_SCLASS) {
+      MRB_SET_VISIBILITY_FLAGS(flags, MRB_METHOD_PUBLIC_FL);
+    }
+    else {
+      mrb_callinfo *ci;
+      struct REnv *e;
+      find_visibility_scope(mrb, c, 0, &ci, &e);
+      mrb_assert(ci || e);
+      MRB_SET_VISIBILITY_FLAGS(flags, (uint32_t)(e ? MRB_ENV_VISIBILITY(e) : MRB_CI_VISIBILITY(ci)) << 25);
+    }
   }
   mt_put(mrb, h, mid, flags, ptr);
-  mc_clear_by_id(mrb, mid);
+  if (!mrb->bootstrapping) mc_clear_by_id(mrb, mid);
 }
 
 static void
@@ -827,39 +1072,92 @@ define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t func,
   int ai = mrb_gc_arena_save(mrb);
 
   MRB_METHOD_FROM_FUNC(m, func);
-  if (aspec == MRB_ARGS_NONE()) {
-    MRB_METHOD_NOARG_SET(m);
-  }
+  m.flags |= aspec;
   MRB_METHOD_SET_VISIBILITY(m, vis);
   mrb_define_method_raw(mrb, c, mid, m);
   mrb_gc_arena_restore(mrb, ai);
 }
 
+/*
+ * Defines a public C function as a method for a class/module using a symbol for the name.
+ *
+ * @param mrb The mruby state.
+ * @param c The class/module in which to define the method.
+ * @param mid The symbol ID of the method name.
+ * @param func The C function pointer (mrb_func_t) for the method body.
+ * @param aspec The argument specification for the method (e.g., MRB_ARGS_REQ(1)).
+ * @sideeffect Modifies the method table of the class/module `c`.
+ *             Clears the method cache for `mid`.
+ */
 MRB_API void
 mrb_define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t func, mrb_aspec aspec)
 {
-  define_method_id(mrb, c, mid, func, aspec, MT_PUBLIC);
+  define_method_id(mrb, c, mid, func, aspec, MRB_METHOD_PUBLIC_FL);
 }
 
+/*
+ * Defines a public C function as a method for a class/module.
+ *
+ * @param mrb The mruby state.
+ * @param c The class/module in which to define the method.
+ * @param name The C string name of the method.
+ * @param func The C function pointer (mrb_func_t) for the method body.
+ * @param aspec The argument specification for the method (e.g., MRB_ARGS_REQ(1)).
+ * @sideeffect Modifies the method table of the class/module `c`.
+ *             Interns the method name string.
+ *             Clears the method cache for the interned method name.
+ */
 MRB_API void
 mrb_define_method(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t func, mrb_aspec aspec)
 {
   mrb_define_method_id(mrb, c, mrb_intern_cstr(mrb, name), func, aspec);
 }
 
+/*
+ * Defines a private C function as a method for a class/module using a symbol for the name.
+ *
+ * @param mrb The mruby state.
+ * @param c The class/module in which to define the method.
+ * @param mid The symbol ID of the method name.
+ * @param func The C function pointer (mrb_func_t) for the method body.
+ * @param aspec The argument specification for the method (e.g., MRB_ARGS_REQ(1)).
+ * @sideeffect Modifies the method table of the class/module `c`.
+ *             Clears the method cache for `mid`.
+ */
 MRB_API void
 mrb_define_private_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t func, mrb_aspec aspec)
 {
-  define_method_id(mrb, c, mid, func, aspec, MT_PRIVATE);
+  define_method_id(mrb, c, mid, func, aspec, MRB_METHOD_PRIVATE_FL);
 }
 
+/*
+ * Defines a private C function as a method for a class/module.
+ *
+ * @param mrb The mruby state.
+ * @param c The class/module in which to define the method.
+ * @param name The C string name of the method.
+ * @param func The C function pointer (mrb_func_t) for the method body.
+ * @param aspec The argument specification for the method (e.g., MRB_ARGS_REQ(1)).
+ * @sideeffect Modifies the method table of the class/module `c`.
+ *             Interns the method name string.
+ *             Clears the method cache for the interned method name.
+ */
 MRB_API void
 mrb_define_private_method(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t func, mrb_aspec aspec)
 {
   mrb_define_private_method_id(mrb, c, mrb_intern_cstr(mrb, name), func, aspec);
 }
 
-/* a function to raise NotImplementedError with current method name */
+/*
+ * Raises a NotImplementedError, typically indicating that the C function
+ * called by Ruby is not implemented for the current platform or build.
+ * The error message will include the name of the Ruby method that called this C function.
+ *
+ * @param mrb The mruby state.
+ * @sideeffect Raises a NotImplementedError exception. This function does not return.
+ *             If a method name is available from the callinfo, it's included
+ *             in the error message (e.g., "foo() function is unimplemented on this machine").
+ */
 MRB_API void
 mrb_notimplement(mrb_state *mrb)
 {
@@ -870,7 +1168,15 @@ mrb_notimplement(mrb_state *mrb)
   }
 }
 
-/* a function to be replacement of unimplemented method */
+/*
+ * A C function suitable for use as a method body (mrb_func_t)
+ * that raises a NotImplementedError.
+ *
+ * @param mrb The mruby state.
+ * @param self The receiver of the method call (unused).
+ * @return This function does not return, as it raises an exception.
+ * @sideeffect Raises a NotImplementedError exception via `mrb_notimplement`.
+ */
 MRB_API mrb_value
 mrb_notimplement_m(mrb_state *mrb, mrb_value self)
 {
@@ -889,6 +1195,17 @@ ensure_class_type(mrb_state *mrb, mrb_value val)
 
 #define to_sym(mrb, ss) mrb_obj_to_sym(mrb, ss)
 
+/*
+ * Gets the number of arguments passed to the current C function call.
+ *
+ * This function retrieves the argument count from the current callinfo (`ci`)
+ * in the mruby state. It correctly handles the case where arguments might be
+ * packed into an array by the caller (indicated by `ci->n == 15`), in which
+ * case it gets the length of that array.
+ *
+ * @param mrb The mruby state.
+ * @return The number of arguments passed to the C function.
+ */
 MRB_API mrb_int
 mrb_get_argc(mrb_state *mrb)
 {
@@ -903,6 +1220,20 @@ mrb_get_argc(mrb_state *mrb)
   return argc;
 }
 
+/*
+ * Gets a pointer to the array of arguments passed to the current C function call.
+ *
+ * This function retrieves the arguments from the current callinfo stack.
+ * It handles the case where arguments might be packed into an array
+ * (when `ci->n == 15`), returning a pointer to the elements of that array.
+ * Otherwise, it returns a pointer to the arguments on the stack.
+ *
+ * @param mrb The mruby state.
+ * @return A const pointer to the array of mrb_value arguments.
+ *         The caller should not modify the contents of this array.
+ * @note If arguments were packed, the RArray object on stack has its class pointer
+ *       temporarily set to NULL to hide it from `ObjectSpace.each_object`.
+ */
 MRB_API const mrb_value*
 mrb_get_argv(mrb_state *mrb)
 {
@@ -917,6 +1248,19 @@ mrb_get_argv(mrb_state *mrb)
   return array_argv;
 }
 
+/*
+ * Gets the first argument passed to the current C function call.
+ *
+ * This is a convenience function for directly accessing the first argument.
+ * It handles cases where arguments might be packed into an array or
+ * if the first argument is a keyword hash.
+ *
+ * @param mrb The mruby state.
+ * @return The first mrb_value argument.
+ * @raise ArgumentError if the number of positional arguments is not 1,
+ *        unless there are no positional arguments but a keyword hash is present,
+ *        in which case the keyword hash is returned.
+ */
 MRB_API mrb_value
 mrb_get_arg1(mrb_state *mrb)
 {
@@ -940,6 +1284,14 @@ mrb_get_arg1(mrb_state *mrb)
   return array_argv[0];
 }
 
+/*
+ * Checks if a block was passed to the current C function call.
+ *
+ * It inspects the current callinfo stack for a block argument.
+ *
+ * @param mrb The mruby state.
+ * @return TRUE if a block is present (i.e., not nil), FALSE otherwise.
+ */
 MRB_API mrb_bool
 mrb_block_given_p(mrb_state *mrb)
 {
@@ -1295,7 +1647,7 @@ get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list *ap)
 
     case ':':
       {
-        mrb_value ksrc = mrb_hash_p(kdict) ? mrb_hash_dup(mrb, kdict) : mrb_hash_new(mrb);
+        mrb_value ksrc = mrb_hash_p(kdict) ? kdict : mrb_hash_new(mrb);
         const mrb_kwargs *kwargs = GET_ARG(const mrb_kwargs*);
         mrb_value *rest;
 
@@ -1307,7 +1659,6 @@ get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list *ap)
           mrb_int required = kwargs->required;
           const mrb_sym *kname = kwargs->table;
           mrb_value *values = kwargs->values;
-          mrb_int j;
           const mrb_int keyword_max = 40;
 
           mrb_assert(kwnum >= 0);
@@ -1316,7 +1667,7 @@ get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list *ap)
             mrb_raise(mrb, E_ARGUMENT_ERROR, "keyword number is too large");
           }
 
-          for (j = required; j > 0; j--, kname++, values++) {
+          for (mrb_int j = required; j > 0; j--, kname++, values++) {
             mrb_value k = mrb_symbol_value(*kname);
             if (!mrb_hash_key_p(mrb, ksrc, k)) {
               mrb_raisef(mrb, E_ARGUMENT_ERROR, "missing keyword: %n", *kname);
@@ -1325,7 +1676,7 @@ get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list *ap)
             mrb_gc_protect(mrb, *values);
           }
 
-          for (j = kwnum - required; j > 0; j--, kname++, values++) {
+          for (mrb_int j = kwnum - required; j > 0; j--, kname++, values++) {
             mrb_value k = mrb_symbol_value(*kname);
             if (mrb_hash_key_p(mrb, ksrc, k)) {
               *values = mrb_hash_delete_key(mrb, ksrc, k);
@@ -1401,6 +1752,58 @@ finish:
     !:      Switch to the alternate mode; The behaviour changes depending on the specifier
     +:      Request a not frozen object; However, except nil value
  */
+/*
+ * Retrieves and parses arguments passed to a C function based on a given format string.
+ * This is the primary and most flexible way for C extensions to handle arguments
+ * passed from Ruby method calls.
+ *
+ * @param mrb The mruby state.
+ * @param format A C string that specifies the expected arguments and their types.
+ *        See below for detailed format specifiers and modifiers.
+ * @param ... A variable number of pointer arguments, corresponding to the types
+ *        specified in the format string, where the parsed values will be stored.
+ * @return The number of arguments successfully parsed and assigned from the Ruby stack
+ *         to the C variables.
+ * @raise ArgumentError if the passed arguments do not match the format string,
+ *        if there are type mismatches, or if required arguments are missing.
+ * @sideeffect Arguments from the mruby stack are converted and stored in the C variables
+ *             provided via `...`. The mruby garbage collector arena might be saved
+ *             and restored during this process. Keyword argument processing might
+ *             involve hash duplication or key deletion.
+ *
+ * Format Specifiers (within the `format` string):
+ *   'o': Object (expects mrb_value*)
+ *   'C': Class/Module (expects mrb_value*). Use 'c' for `struct RClass*`.
+ *   'S': String (expects mrb_value*)
+ *   'A': Array (expects mrb_value*)
+ *   'H': Hash (expects mrb_value*)
+ *   's': String (expects const char**, mrb_int* for pointer and length)
+ *   'z': String (expects const char** for a NUL-terminated string)
+ *   'a': Array (expects const mrb_value**, mrb_int* for pointer and length)
+ *   'c': Class/Module (expects struct RClass**)
+ *   'f': Float (expects mrb_float*) - available if MRB_NO_FLOAT is not defined.
+ *   'i': Integer (expects mrb_int*)
+ *   'b': Boolean (expects mrb_bool*)
+ *   'n': Symbol (expects mrb_sym*) - converts from String or Symbol argument.
+ *   'd': Data (expects void**, const struct mrb_data_type*). The second argument is used
+ *        for type checking and is not modified.
+ *   '&': Block (expects mrb_value*) - retrieves the block passed to the method.
+ *   '*': Rest arguments (expects const mrb_value**, mrb_int*) - captures all remaining
+ *        positional arguments into an array.
+ *   '|': Optional arguments separator. Arguments following this are optional.
+ *   '?': Optional given (expects mrb_bool*) - sets to TRUE if the preceding optional
+ *        argument was provided, FALSE otherwise.
+ *   ':': Keyword arguments (expects const mrb_kwargs*). Used to retrieve keyword arguments.
+ *        See mrb_kwargs structure for details.
+ *
+ * Format Modifiers (prefix the specifier, e.g., "!s" or "c!"):
+ *   '!': Alternate mode. Behavior changes depending on the specifier.
+ *        For example, 's!' gives (NULL, 0) for a nil string. 'c!' gives NULL for nil.
+ *        '&!' raises an ArgumentError if no block is given.
+ *        '*!' avoids copying the rest arguments from the stack if possible.
+ *   '+': Request a modifiable (not frozen) object. Raises a FrozenError if the
+ *        retrieved object is frozen (this check does not apply to nil values).
+ */
 MRB_API mrb_int
 mrb_get_args(mrb_state *mrb, mrb_args_format format, ...)
 {
@@ -1411,6 +1814,26 @@ mrb_get_args(mrb_state *mrb, mrb_args_format format, ...)
   return rc;
 }
 
+/*
+ * Retrieves and parses arguments passed to a C function according to a format string,
+ * taking a `void**` array for the output variables instead of `va_list`.
+ * This version is useful when the argument parsing needs to be done in a more
+ * programmatic way, or when wrapping `mrb_get_args`.
+ *
+ * @param mrb The mruby state.
+ * @param format A C string specifying the expected arguments. See `mrb_get_args`
+ *        documentation for format specifiers and modifiers.
+ * @param args An array of `void*` pointers to variables where the parsed arguments
+ *        will be stored. The types of these variables must correspond to the
+ *        specifiers in the `format` string.
+ * @return The number of arguments successfully parsed and assigned.
+ * @raise ArgumentError if arguments do not match the format string, or if there are
+ *        type mismatches.
+ * @sideeffect Arguments from the mruby stack are converted and stored in the C variables
+ *             pointed to by the elements of the `args` array.
+ *             (See `mrb_get_args` for more details on side effects like GC arena handling
+ *             and keyword argument processing).
+ */
 MRB_API mrb_int
 mrb_get_args_a(mrb_state *mrb, mrb_args_format format, void **args)
 {
@@ -1418,9 +1841,10 @@ mrb_get_args_a(mrb_state *mrb, mrb_args_format format, void **args)
 }
 
 static struct RClass*
-boot_defclass(mrb_state *mrb, struct RClass *super)
+boot_defclass(mrb_state *mrb, struct RClass *super, enum mrb_vtype tt)
 {
   struct RClass *c = MRB_OBJ_ALLOC(mrb, MRB_TT_CLASS, mrb->class_class);
+  MRB_SET_INSTANCE_TT(c, tt);
 
   if (super) {
     c->super = super;
@@ -1428,7 +1852,8 @@ boot_defclass(mrb_state *mrb, struct RClass *super)
     c->flags |= MRB_FL_CLASS_IS_INHERITED;
   }
   else {
-    c->super = mrb->object_class;
+    // limited to cases where BasicObject class is defined during mruby initialization
+    mrb_assert(mrb->object_class == NULL);
   }
   c->mt = mt_new(mrb);
   return c;
@@ -1503,7 +1928,7 @@ include_module_at(mrb_state *mrb, struct RClass *c, struct RClass *ins_pos, stru
   skip:
     m = m->super;
   }
-  mc_clear(mrb);
+  if (!mrb->bootstrapping) mrb_method_cache_clear(mrb);
   return 0;
 }
 
@@ -1519,6 +1944,23 @@ fix_include_module(mrb_state *mrb, struct RBasic *obj, void *data)
   return MRB_EACH_OBJ_OK;
 }
 
+/*
+ * Includes a module into a class or another module.
+ * This adds the methods and constants of module `m` to class `c` (or module `c`).
+ * The included module's instance methods become instance methods of `c`.
+ *
+ * @param mrb The mruby state.
+ * @param c The target class or module into which module `m` will be included.
+ * @param m The module to include. Must be a module (MRB_TT_MODULE).
+ * @raise ArgumentError if `m` is not a module or if a cyclic include is detected.
+ * @raise FrozenError if class/module `c` is frozen.
+ * @sideeffect Modifies the ancestor chain of `c` by inserting an ICLASS (inclusion class)
+ *             that references `m`'s method table.
+ *             Clears the method cache.
+ *             If `m` defines an `included` hook, it will be called with `c` as an argument.
+ *             If `c` is a module that has itself been included in other classes/modules,
+ *             this operation will also propagate the inclusion of `m` to those descendants.
+ */
 MRB_API void
 mrb_include_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
 {
@@ -1560,6 +2002,24 @@ fix_prepend_module(mrb_state *mrb, struct RBasic *obj, void *data)
   return MRB_EACH_OBJ_OK;
 }
 
+/*
+ * Prepends a module to a class or another module.
+ * Methods in the prepended module `m` will override methods of the same name in `c`.
+ * In the ancestor chain, the prepended module appears before the class/module itself.
+ *
+ * @param mrb The mruby state.
+ * @param c The target class or module to which module `m` will be prepended.
+ * @param m The module to prepend. Must be a module (MRB_TT_MODULE).
+ * @raise ArgumentError if `m` is not a module or if a cyclic prepend is detected.
+ * @raise FrozenError if class/module `c` is frozen.
+ * @sideeffect Modifies the ancestor chain of `c`. If `c` hasn't been prepended before,
+ *             an "origin" ICLASS is created to hold `c`'s original methods, and `c`'s
+ *             method table is cleared. Then, an ICLASS for `m` is inserted above `c`.
+ *             Clears the method cache.
+ *             If `m` defines a `prepended` hook, it will be called with `c` as an argument.
+ *             If `c` is a module that has been included/prepended elsewhere, this
+ *             operation propagates the prepending of `m` to those descendants.
+ */
 MRB_API void
 mrb_prepend_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
 {
@@ -1586,26 +2046,141 @@ mrb_prepend_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
   }
 }
 
+/*
+ *  call-seq:
+ *     mod.prepend(module, ...) -> self
+ *
+ *  Invokes Module.prepend_features on each parameter in reverse order.
+ *
+ *     module Mod
+ *       def hello
+ *         "Hello from Mod.\n"
+ *       end
+ *     end
+ *
+ *     class Klass
+ *       def hello
+ *         "Hello from Klass.\n"
+ *       end
+ *       prepend Mod
+ *     end
+ *     Klass.new.hello   #=> "Hello from Mod.\n"
+ */
 static mrb_value
-mrb_mod_prepend_features(mrb_state *mrb, mrb_value mod)
+mrb_mod_prepend(mrb_state *mrb, mrb_value mod)
 {
-  struct RClass *c;
+  struct RClass *c = mrb_class_ptr(mod);
+  mrb_int argc;
+  mrb_value *argv;
+  mrb_sym prepended = MRB_SYM(prepended);
 
-  mrb_check_type(mrb, mod, MRB_TT_MODULE);
-  mrb_get_args(mrb, "c", &c);
-  mrb_prepend_module(mrb, c, mrb_class_ptr(mod));
+  mrb_get_args(mrb, "*", &argv, &argc);
+  while (argc--) {
+    mrb_value m = argv[argc];
+    mrb_check_type(mrb, m, MRB_TT_MODULE);
+    mrb_prepend_module(mrb, c, mrb_class_ptr(m));
+    if (!mrb_func_basic_p(mrb, m, prepended, mrb_do_nothing)) {
+      mrb_funcall_argv(mrb, m, prepended, 1, &mod);
+    }
+  }
   return mod;
 }
 
+/*
+ *  call-seq:
+ *     mod.include(module, ...) -> self
+ *
+ *  Invokes Module.append_features on each parameter in reverse order.
+ *
+ *     module Mod
+ *       def hello
+ *         "Hello from Mod.\n"
+ *       end
+ *     end
+ *
+ *     class Klass
+ *       include Mod
+ *     end
+ *     Klass.new.hello   #=> "Hello from Mod.\n"
+ */
 static mrb_value
-mrb_mod_append_features(mrb_state *mrb, mrb_value mod)
+mrb_mod_include(mrb_state *mrb, mrb_value mod)
 {
-  struct RClass *c;
+  struct RClass *c = mrb_class_ptr(mod);
+  mrb_int argc;
+  mrb_value *argv;
+  mrb_sym included = MRB_SYM(included);
 
-  mrb_check_type(mrb, mod, MRB_TT_MODULE);
-  mrb_get_args(mrb, "c", &c);
-  mrb_include_module(mrb, c, mrb_class_ptr(mod));
+  mrb_get_args(mrb, "*", &argv, &argc);
+  while (argc--) {
+    mrb_value m = argv[argc];
+    mrb_check_type(mrb, m, MRB_TT_MODULE);
+    mrb_include_module(mrb, c, mrb_class_ptr(m));
+    if (!mrb_func_basic_p(mrb, m, included, mrb_do_nothing)) {
+      mrb_funcall_argv(mrb, m, included, 1, &mod);
+    }
+  }
   return mod;
+}
+
+/* 15.3.1.3.13 */
+/*
+ *  call-seq:
+ *    obj.extend(module, ...)    -> obj
+ *
+ *  Adds to _obj_ the instance methods from each module given as a
+ *  parameter.
+ *
+ *     module Mod
+ *      def hello
+ *         "Hello from Mod.\n"
+ *      end
+ *     end
+ *
+ *     class Klass
+ *       def hello
+ *         "Hello from Klass.\n"
+ *       end
+ *     end
+ *
+ *     k = Klass.new
+ *     k.hello         #=> "Hello from Klass.\n"
+ *     k.extend(Mod)   #=> #<Klass:0x401b3bc8>
+ *     k.hello         #=> "Hello from Mod.\n"
+ *
+ */
+/*
+ * Adds the instance methods from one or more modules to the given object `obj`.
+ * This is achieved by including the specified modules into `obj`'s singleton class.
+ *
+ * @param mrb The mruby state.
+ * @param obj The object to extend.
+ * @return The extended object `obj`.
+ * @raise TypeError if any of the arguments passed for extension are not modules.
+ * @sideeffect Modifies the singleton class of `obj`. If the singleton class doesn't exist,
+ *             it is created. The given modules are included into this singleton class.
+ *             If any of the included modules define an `extended` hook, it is called
+ *             with `obj` as an argument.
+ */
+mrb_value
+mrb_obj_extend(mrb_state *mrb, mrb_value obj)
+{
+  mrb_int argc;
+  mrb_value *argv;
+  mrb_sym extended = MRB_SYM(extended);
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+
+  mrb_value cc = mrb_singleton_class(mrb, obj);
+  while (argc--) {
+    mrb_value mod = argv[argc];
+    mrb_check_type(mrb, mod, MRB_TT_MODULE);
+    mrb_include_module(mrb, mrb_class_ptr(cc), mrb_class_ptr(mod));
+    if (!mrb_func_basic_p(mrb, mod, extended, mrb_do_nothing)) {
+      mrb_funcall_argv(mrb, mod, extended, 1, &obj);
+    }
+  }
+  return obj;
 }
 
 /* 15.2.2.4.28 */
@@ -1613,8 +2188,8 @@ mrb_mod_append_features(mrb_state *mrb, mrb_value mod)
  *  call-seq:
  *     mod.include?(module)    -> true or false
  *
- *  Returns <code>true</code> if <i>module</i> is included in
- *  <i>mod</i> or one of <i>mod</i>'s ancestors.
+ *  Returns `true` if *module* is included in
+ *  *mod* or one of *mod*'s ancestors.
  *
  *     module A
  *     end
@@ -1645,6 +2220,22 @@ mrb_mod_include_p(mrb_state *mrb, mrb_value mod)
   return mrb_false_value();
 }
 
+/*
+ *  call-seq:
+ *     mod.ancestors -> array
+ *
+ *  Returns a list of modules included/prepended in mod (including mod itself).
+ *
+ *     module Mod
+ *       include Math
+ *       include Comparable
+ *       prepend Enumerable
+ *     end
+ *
+ *     Mod.ancestors        #=> [Enumerable, Mod, Comparable, Math]
+ *     Math.ancestors       #=> [Math]
+ *     Numeric.ancestors    #=> [Numeric, Comparable]
+ */
 static mrb_value
 mrb_mod_ancestors(mrb_state *mrb, mrb_value self)
 {
@@ -1662,16 +2253,6 @@ mrb_mod_ancestors(mrb_state *mrb, mrb_value self)
   }
 
   return result;
-}
-
-static mrb_value
-mrb_mod_extend_object(mrb_state *mrb, mrb_value mod)
-{
-  mrb_value obj = mrb_get_arg1(mrb);
-
-  mrb_check_type(mrb, mod, MRB_TT_MODULE);
-  mrb_include_module(mrb, mrb_class_ptr(mrb_singleton_class(mrb, obj)), mrb_class_ptr(mod));
-  return mod;
 }
 
 static mrb_value
@@ -1697,24 +2278,31 @@ mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int vis)
 
   mrb_get_args(mrb, "*!", &argv, &argc);
   if (argc == 0) {
-    mrb_callinfo *ci = find_visibility_ci(mrb, NULL, 1);
-    ci->vis = vis;
+    mrb_callinfo *ci;
+    struct REnv *e;
+    find_visibility_scope(mrb, NULL, 1, &ci, &e);
+    if (e) {
+      MRB_ENV_SET_VISIBILITY(e, vis >> 25);
+    }
+    else {
+      MRB_CI_SET_VISIBILITY(ci, vis >> 25);
+    }
   }
   else {
-    mt_tbl *h = c->mt;
+    mrb_mt_tbl *h = c->mt;
     for (int i=0; i<argc; i++) {
       mrb_check_type(mrb, argv[i], MRB_TT_SYMBOL);
       mrb_sym mid = mrb_symbol(argv[i]);
       mrb_method_t m = mrb_method_search(mrb, c, mid);
       MRB_METHOD_SET_VISIBILITY(m, vis);
-      union mt_ptr ptr;
+      union mrb_mt_ptr ptr;
       if (MRB_METHOD_PROC_P(m)) {
         ptr.proc = MRB_METHOD_PROC(m);
       }
       else {
         ptr.func = MRB_METHOD_FUNC(m);
       }
-      mt_put(mrb, h, mid, MT_KEY_FLG(m.flags), ptr);
+      mt_put(mrb, h, mid, m.flags, ptr);
       mc_clear_by_id(mrb, mid);
     }
   }
@@ -1723,14 +2311,14 @@ mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int vis)
 static mrb_value
 mrb_mod_public(mrb_state *mrb, mrb_value mod)
 {
-  mrb_mod_visibility(mrb, mod, MT_PUBLIC);
+  mrb_mod_visibility(mrb, mod, MRB_METHOD_PUBLIC_FL);
   return mod;
 }
 
 static mrb_value
 mrb_mod_private(mrb_state *mrb, mrb_value mod)
 {
-  mrb_mod_visibility(mrb, mod, MT_PRIVATE);
+  mrb_mod_visibility(mrb, mod, MRB_METHOD_PRIVATE_FL);
   return mod;
 }
 
@@ -1745,7 +2333,7 @@ static mrb_value
 top_public(mrb_state *mrb, mrb_value self)
 {
   self = mrb_obj_value(mrb->object_class);
-  mrb_mod_visibility(mrb, self, MT_PUBLIC);
+  mrb_mod_visibility(mrb, self, MRB_METHOD_PUBLIC_FL);
   return self;
 }
 
@@ -1753,7 +2341,7 @@ static mrb_value
 top_private(mrb_state *mrb, mrb_value self)
 {
   self = mrb_obj_value(mrb->object_class);
-  mrb_mod_visibility(mrb, self, MT_PRIVATE);
+  mrb_mod_visibility(mrb, self, MRB_METHOD_PRIVATE_FL);
   return self;
 }
 
@@ -1765,6 +2353,32 @@ top_protected(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ * Retrieves a pointer to the singleton class (also known as metaclass or eigenclass)
+ * of a given object `v`. If the singleton class does not yet exist, it is created.
+ *
+ * Singleton classes are anonymous classes associated with a specific object,
+ * allowing that object to have its own unique methods.
+ *
+ * @param mrb The mruby state.
+ * @param v The `mrb_value` for which to get the singleton class.
+ * @return A pointer to the `RClass` structure of the singleton class.
+ *         Returns `NULL` for immediate values (e.g., Symbols, Integers,
+ *         Floats if not word-boxed, C pointers) as they cannot have singleton classes.
+ *         For `nil`, `true`, and `false`, it returns their respective predefined
+ *         classes (`mrb->nil_class`, `mrb->true_class`, `mrb->false_class`),
+ *         which effectively act as their singleton classes.
+ * @sideeffect If the singleton class doesn't exist for `v` (and `v` can have one,
+ *             i.e., it's not an immediate value or one of the special singletons),
+ *             this function will:
+ *             1. Allocate a new `RClass` of type `MRB_TT_SCLASS`.
+ *             2. Set its superclass appropriately (e.g., the object's original class,
+ *                or the class of the superclass for class singletons).
+ *             3. Link this new singleton class to the object `v`.
+ *             4. Set an internal `__attached__` instance variable on the singleton
+ *                class to point back to `v`.
+ *             5. The `MRB_FL_CLASS_IS_INHERITED` flag is set on the new singleton class.
+ */
 MRB_API struct RClass*
 mrb_singleton_class_ptr(mrb_state *mrb, mrb_value v)
 {
@@ -1793,6 +2407,24 @@ mrb_singleton_class_ptr(mrb_state *mrb, mrb_value v)
   return obj->c;
 }
 
+/*
+ * Retrieves the singleton class (also known as metaclass or eigenclass) of a given object
+ * as an mrb_value. If the singleton class does not exist, it is created.
+ *
+ * This function is a wrapper around `mrb_singleton_class_ptr` that returns the
+ * singleton class as an `mrb_value`.
+ *
+ * @param mrb The mruby state.
+ * @param v The `mrb_value` for which to get the singleton class.
+ * @return An `mrb_value` representing the singleton class.
+ * @raise TypeError if `v` is an object that cannot have a singleton class
+ *        (e.g., immediate values like Symbols or Integers under certain configurations,
+ *        or C pointers). This exception is raised by the underlying
+ *        `mrb_singleton_class_ptr` if it returns NULL.
+ * @sideeffect If the singleton class doesn't exist for `v` (and `v` can have one),
+ *             it will be created via `mrb_singleton_class_ptr`, which involves
+ *             memory allocation and modification of the object's class pointer.
+ */
 MRB_API mrb_value
 mrb_singleton_class(mrb_state *mrb, mrb_value v)
 {
@@ -1804,6 +2436,25 @@ mrb_singleton_class(mrb_state *mrb, mrb_value v)
   return mrb_obj_value(c);
 }
 
+/*
+ * Defines a singleton method for a specific object `o`.
+ * A singleton method is a method that belongs only to a single object,
+ * not to all instances of its class. It's defined in the object's singleton class.
+ *
+ * @param mrb The mruby state.
+ * @param o A pointer to the RObject for which the singleton method is being defined.
+ * @param name The C string name of the method.
+ * @param func The C function (mrb_func_t) that implements the method.
+ * @param aspec The argument specification for the method (e.g., MRB_ARGS_REQ(1)).
+ * @sideeffect
+ *   1. Ensures that the singleton class for object `o` exists, creating it if necessary.
+ *      This might involve memory allocation.
+ *   2. Defines the method specified by `name`, `func`, and `aspec` into this
+ *      singleton class.
+ *   3. The method name `name` is interned into a symbol.
+ *   4. The method cache for the newly defined method is cleared.
+ * @raise TypeError if `o` is an object that cannot have a singleton class (e.g., immediate values).
+ */
 MRB_API void
 mrb_define_singleton_method(mrb_state *mrb, struct RObject *o, const char *name, mrb_func_t func, mrb_aspec aspec)
 {
@@ -1811,6 +2462,24 @@ mrb_define_singleton_method(mrb_state *mrb, struct RObject *o, const char *name,
   mrb_define_method_id(mrb, o->c, mrb_intern_cstr(mrb, name), func, aspec);
 }
 
+/*
+ * Defines a singleton method for a specific object `o` using a symbol for the method name.
+ * A singleton method is a method that belongs only to a single object,
+ * not to all instances of its class. It's defined in the object's singleton class.
+ *
+ * @param mrb The mruby state.
+ * @param o A pointer to the RObject for which the singleton method is being defined.
+ * @param name The symbol ID (`mrb_sym`) of the method name.
+ * @param func The C function (mrb_func_t) that implements the method.
+ * @param aspec The argument specification for the method (e.g., MRB_ARGS_REQ(1)).
+ * @sideeffect
+ *   1. Ensures that the singleton class for object `o` exists, creating it if necessary.
+ *      This might involve memory allocation.
+ *   2. Defines the method specified by `name`, `func`, and `aspec` into this
+ *      singleton class.
+ *   3. The method cache for the method `name` is cleared.
+ * @raise TypeError if `o` is an object that cannot have a singleton class (e.g., immediate values).
+ */
 MRB_API void
 mrb_define_singleton_method_id(mrb_state *mrb, struct RObject *o, mrb_sym name, mrb_func_t func, mrb_aspec aspec)
 {
@@ -1818,18 +2487,69 @@ mrb_define_singleton_method_id(mrb_state *mrb, struct RObject *o, mrb_sym name, 
   mrb_define_method_id(mrb, o->c, name, func, aspec);
 }
 
+/*
+ * Defines a class method for a class/module `c`.
+ * Class methods are effectively singleton methods defined on the class object itself.
+ *
+ * @param mrb The mruby state.
+ * @param c The class/module (`RClass*`) for which to define the class method.
+ * @param name The C string name of the class method.
+ * @param func The C function (mrb_func_t) that implements the method.
+ * @param aspec The argument specification for the method.
+ * @sideeffect This function internally calls `mrb_define_singleton_method` on the
+ *             class object `c`. This involves:
+ *             1. Ensuring `c`'s singleton class exists (creating it if needed).
+ *             2. Defining the method in `c`'s singleton class.
+ *             3. Interning the `name` string.
+ *             4. Clearing the relevant method cache.
+ * @raise TypeError if `c` itself is an object that cannot have a singleton class (highly unlikely for RClass).
+ */
 MRB_API void
 mrb_define_class_method(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t func, mrb_aspec aspec)
 {
   mrb_define_singleton_method(mrb, (struct RObject*)c, name, func, aspec);
 }
 
+/*
+ * Defines a class method for a class/module `c` using a symbol for the method name.
+ * Class methods are effectively singleton methods defined on the class object itself.
+ *
+ * @param mrb The mruby state.
+ * @param c The class/module (`RClass*`) for which to define the class method.
+ * @param name The symbol ID (`mrb_sym`) of the class method name.
+ * @param func The C function (mrb_func_t) that implements the method.
+ * @param aspec The argument specification for the method.
+ * @sideeffect This function internally calls `mrb_define_singleton_method_id` on the
+ *             class object `c`. This involves:
+ *             1. Ensuring `c`'s singleton class exists (creating it if needed).
+ *             2. Defining the method in `c`'s singleton class.
+ *             3. Clearing the relevant method cache.
+ * @raise TypeError if `c` itself is an object that cannot have a singleton class (highly unlikely for RClass).
+ */
 MRB_API void
 mrb_define_class_method_id(mrb_state *mrb, struct RClass *c, mrb_sym name, mrb_func_t func, mrb_aspec aspec)
 {
   mrb_define_singleton_method_id(mrb, (struct RObject*)c, name, func, aspec);
 }
 
+/*
+ * Defines a module function for a module `c` using a symbol for the name.
+ * A module function is a shorthand for defining a method that is both a
+ * public class method (callable on the module itself) and a private
+ * instance method (callable within the context of classes that include the module).
+ *
+ * @param mrb The mruby state.
+ * @param c The module (`RClass*` where `c->tt` should be `MRB_TT_MODULE`)
+ *          for which to define the module function.
+ * @param name The symbol ID (`mrb_sym`) of the module function name.
+ * @param func The C function (mrb_func_t) that implements the function.
+ * @param aspec The argument specification for the function.
+ * @sideeffect
+ *   1. Defines a public class method on `c` with the given `name`, `func`, and `aspec`.
+ *      This involves creating/accessing `c`'s singleton class.
+ *   2. Defines a private instance method on `c` with the same `name`, `func`, and `aspec`.
+ *   3. Clears the method cache for `name` in both contexts.
+ */
 MRB_API void
 mrb_define_module_function_id(mrb_state *mrb, struct RClass *c, mrb_sym name, mrb_func_t func, mrb_aspec aspec)
 {
@@ -1837,6 +2557,25 @@ mrb_define_module_function_id(mrb_state *mrb, struct RClass *c, mrb_sym name, mr
   mrb_define_private_method_id(mrb, c, name, func, aspec);
 }
 
+/*
+ * Defines a module function for a module `c` using a C string for the name.
+ * A module function is a shorthand for defining a method that is both a
+ * public class method (callable on the module itself) and a private
+ * instance method (callable within the context of classes that include the module).
+ *
+ * @param mrb The mruby state.
+ * @param c The module (`RClass*` where `c->tt` should be `MRB_TT_MODULE`)
+ *          for which to define the module function.
+ * @param name The C string name of the module function. This name will be interned.
+ * @param func The C function (mrb_func_t) that implements the function.
+ * @param aspec The argument specification for the function.
+ * @sideeffect
+ *   1. Interns the `name` string to a symbol.
+ *   2. Calls `mrb_define_module_function_id` with the interned symbol, which in turn:
+ *      a. Defines a public class method on `c`.
+ *      b. Defines a private instance method on `c`.
+ *   3. Clears the method cache for the method name in both contexts.
+ */
 MRB_API void
 mrb_define_module_function(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t func, mrb_aspec aspec)
 {
@@ -1845,8 +2584,8 @@ mrb_define_module_function(mrb_state *mrb, struct RClass *c, const char *name, m
 
 #ifndef MRB_NO_METHOD_CACHE
 /* clear whole method cache table */
-static void
-mc_clear(mrb_state *mrb)
+MRB_API void
+mrb_method_cache_clear(mrb_state *mrb)
 {
   static const struct mrb_cache_entry ce_zero ={0};
 
@@ -1872,7 +2611,7 @@ mc_clear_by_id(mrb_state *mrb, mrb_sym id)
   struct mrb_cache_entry *mc = mrb->cache;
 
   for (int i=0; i<MRB_METHOD_CACHE_SIZE; mc++,i++) {
-    if (METHOD_MID(mc->m) == id) mc->c = NULL;
+    if (mc->mid == id) mc->c = NULL;
   }
 }
 #endif // MRB_NO_METHOD_CACHE
@@ -1886,25 +2625,26 @@ mrb_vm_find_method(mrb_state *mrb, struct RClass *c, struct RClass **cp, mrb_sym
   int h = mrb_int_hash_func(mrb, ((intptr_t)oc) ^ mid) & (MRB_METHOD_CACHE_SIZE-1);
   struct mrb_cache_entry *mc = &mrb->cache[h];
 
-  if (mc->c == c && METHOD_MID(mc->m) == mid) {
+  if (mc->c == c && mc->mid == mid) {
     *cp = mc->c0;
     return mc->m;
   }
 #endif
 
   while (c) {
-    mt_tbl *h = c->mt;
+    mrb_mt_tbl *h = c->mt;
 
     if (h) {
-      union mt_ptr ptr;
-      mrb_sym ret = mt_get(mrb, h, mid, &ptr);
-      if (ret) {
+      union mrb_mt_ptr ptr;
+      uint32_t flags;
+      if (mt_get(mrb, h, mid, &ptr, &flags)) {
         if (ptr.proc == 0) break;
         *cp = c;
-        m = create_method_value(mrb, ret, ptr);
+        m = create_method_value(mrb, flags, ptr);
 #ifndef MRB_NO_METHOD_CACHE
         mc->c = oc;
         mc->c0 = c;
+        mc->mid = mid;
         mc->m = m;
 #endif
         return m;
@@ -1916,12 +2656,43 @@ mrb_vm_find_method(mrb_state *mrb, struct RClass *c, struct RClass **cp, mrb_sym
   return m;                  /* no method */
 }
 
+/*
+ * Searches for a method in the method table of a class and its ancestors
+ * within the context of the current virtual machine.
+ * This function is primarily used internally by the VM and dispatch mechanism.
+ *
+ * @param mrb The mruby state.
+ * @param cp  A pointer to a pointer to the class (`RClass*`) from which to start
+ *            the method search. On successful find, the `RClass*` pointed to by `cp`
+ *            is updated to the class where the method was actually found.
+ * @param mid The symbol ID of the method name to search for.
+ * @return An `mrb_method_t` structure representing the found method.
+ *         If the method is not found or is undefined, the returned `mrb_method_t`
+ *         will have its `proc` field set to NULL (use `MRB_METHOD_UNDEF_P` to check).
+ * @sideeffect If the method is found and method caching is enabled (i.e.,
+ *             `MRB_NO_METHOD_CACHE` is not defined), this function will update
+ *             the VM's method cache with the found method for the original class
+ *             in `*cp` and the method ID `mid`.
+ */
 MRB_API mrb_method_t
 mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
 {
   return mrb_vm_find_method(mrb, *cp, cp, mid);
 }
 
+/*
+ * Searches for a method in a class `c` and its ancestors.
+ * This is a higher-level wrapper around `mrb_method_search_vm`.
+ *
+ * @param mrb The mruby state.
+ * @param c The class (`RClass*`) in which to start the search.
+ * @param mid The symbol ID (`mrb_sym`) of the method name.
+ * @return An `mrb_method_t` structure for the found method.
+ * @raise NameError if the method specified by `mid` is not found or is undefined
+ *        in class `c` or its ancestors.
+ * @sideeffect May update the method cache if the method is found (via the
+ *             internal call to `mrb_method_search_vm`).
+ */
 MRB_API mrb_method_t
 mrb_method_search(mrb_state *mrb, struct RClass *c, mrb_sym mid)
 {
@@ -1988,18 +2759,14 @@ mod_attr_define(mrb_state *mrb, mrb_value mod, mrb_value (*accessor)(mrb_state*,
 
   int ai = mrb_gc_arena_save(mrb);
   for (int i=0; i<argc; i++) {
-    mrb_value name;
-    mrb_sym method;
-    struct RProc *p;
-    mrb_method_t m;
-
-    method = to_sym(mrb, argv[i]);
-    name = prepare_ivar_name(mrb, method);
+    mrb_sym method = to_sym(mrb, argv[i]);
+    mrb_value name = prepare_ivar_name(mrb, method);
     if (access_name) {
       method = access_name(mrb, method);
     }
 
-    p = mrb_proc_new_cfunc_with_env(mrb, accessor, 1, &name);
+    struct RProc *p = mrb_proc_new_cfunc_with_env(mrb, accessor, 1, &name);
+    mrb_method_t m;
     MRB_METHOD_FROM_PROC(m, p);
     mrb_define_method_raw(mrb, c, method, m);
     mrb_gc_arena_restore(mrb, ai);
@@ -2073,9 +2840,9 @@ mrb_instance_alloc(mrb_state *mrb, mrb_value cv)
  *  call-seq:
  *     class.new(args, ...)    ->  obj
  *
- *  Creates a new object of <i>class</i>'s class, then
- *  invokes that object's <code>initialize</code> method,
- *  passing it <i>args</i>. This is the method that ends
+ *  Creates a new object of *class*'s class, then
+ *  invokes that object's `initialize` method,
+ *  passing it *args*. This is the method that ends
  *  up getting called whenever an object is constructed using
  *  `.new`.
  *
@@ -2087,17 +2854,37 @@ mrb_instance_new(mrb_state *mrb, mrb_value cv)
   const mrb_value *argv;
   mrb_int argc;
   mrb_value blk;
-  mrb_sym init;
 
   mrb_get_args(mrb, "*!&", &argv, &argc, &blk);
   mrb_value obj = mrb_instance_alloc(mrb, cv);
-  init = MRB_SYM(initialize);
+  mrb_sym init = MRB_SYM(initialize);
   if (!mrb_func_basic_p(mrb, obj, init, mrb_do_nothing)) {
     mrb_funcall_with_block(mrb, obj, init, argc, argv, blk);
   }
   return obj;
 }
 
+/*
+ * Creates a new instance of class `c` and initializes it by calling its `initialize` method.
+ *
+ * This function first allocates a new object of the given class `c`.
+ * Then, it calls the `initialize` method on this new object, passing
+ * `argc` and `argv` as arguments. If the `initialize` method is not
+ * explicitly defined or is the default (empty) one, it is not called.
+ *
+ * @param mrb The mruby state.
+ * @param c A pointer to the `RClass` structure of the class to instantiate.
+ * @param argc The number of arguments to pass to the `initialize` method.
+ * @param argv A pointer to an array of `mrb_value` arguments for `initialize`.
+ * @return The newly created and initialized `mrb_value` object.
+ * @raise TypeError if `c` is a singleton class, or if its allocator is undefined,
+ *                  or if it's a built-in type that cannot be instantiated this way
+ *                  (e.g., `MRB_TT_CPTR`). This check occurs in `mrb_instance_alloc`.
+ * @sideeffect
+ *   1. Allocates a new object on the mruby heap.
+ *   2. Calls the `initialize` method of the new object if it's a user-defined one.
+ *      This `initialize` call can have arbitrary side effects.
+ */
 MRB_API mrb_value
 mrb_obj_new(mrb_state *mrb, struct RClass *c, mrb_int argc, const mrb_value *argv)
 {
@@ -2182,24 +2969,24 @@ mrb_bob_not(mrb_state *mrb, mrb_value cv)
  *     obj.equal?(other)   -> true or false
  *     obj.eql?(other)     -> true or false
  *
- *  Equality---At the <code>Object</code> level, <code>==</code> returns
- *  <code>true</code> only if <i>obj</i> and <i>other</i> are the
+ *  Equality---At the `Object` level, `==` returns
+ *  `true` only if *obj* and *other* are the
  *  same object. Typically, this method is overridden in descendant
  *  classes to provide class-specific meaning.
  *
- *  Unlike <code>==</code>, the <code>equal?</code> method should never be
+ *  Unlike `==`, the `equal?` method should never be
  *  overridden by subclasses: it is used to determine object identity
- *  (that is, <code>a.equal?(b)</code> iff <code>a</code> is the same
- *  object as <code>b</code>).
+ *  (that is, `a.equal?(b)` iff `a` is the same
+ *  object as `b`).
  *
- *  The <code>eql?</code> method returns <code>true</code> if
- *  <i>obj</i> and <i>anObject</i> have the same value. Used by
- *  <code>Hash</code> to test members for equality.  For objects of
- *  class <code>Object</code>, <code>eql?</code> is synonymous with
- *  <code>==</code>. Subclasses normally continue this tradition, but
- *  there are exceptions. <code>Numeric</code> types, for example,
- *  perform type conversion across <code>==</code>, but not across
- *  <code>eql?</code>, so:
+ *  The `eql?` method returns `true` if
+ *  *obj* and *anObject* have the same value. Used by
+ *  `Hash` to test members for equality.  For objects of
+ *  class `Object`, `eql?` is synonymous with
+ *  `==`. Subclasses normally continue this tradition, but
+ *  there are exceptions. `Numeric` types, for example,
+ *  perform type conversion across `==`, but not across
+ *  `eql?`, so:
  *
  *     1 == 1.0     #=> true
  *     1.eql? 1.0   #=> false
@@ -2212,6 +2999,21 @@ mrb_obj_equal_m(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(mrb_obj_equal(mrb, self, arg));
 }
 
+/*
+ * Checks if instances of a class `c` (or its ancestors) respond to a given method.
+ *
+ * This function searches for the method `mid` in the method table of class `c`
+ * and its ancestor classes and included modules.
+ *
+ * @param mrb The mruby state.
+ * @param c The `RClass*` representing the class of the object.
+ * @param mid The symbol ID (`mrb_sym`) of the method name.
+ * @return `TRUE` if an object of class `c` would respond to the method `mid`
+ *         (i.e., the method is found and not undefined).
+ *         `FALSE` otherwise.
+ * @sideeffect May update the method cache if the method is found (due to the
+ *             internal call to `mrb_method_search_vm`).
+ */
 MRB_API mrb_bool
 mrb_obj_respond_to(mrb_state *mrb, struct RClass* c, mrb_sym mid)
 {
@@ -2223,12 +3025,48 @@ mrb_obj_respond_to(mrb_state *mrb, struct RClass* c, mrb_sym mid)
   return TRUE;
 }
 
+/*
+ * Checks if a given mruby object `obj` responds to a method specified by `mid`.
+ *
+ * This function first determines the class of `obj` and then calls
+ * `mrb_obj_respond_to` to perform the method lookup.
+ *
+ * @param mrb The mruby state.
+ * @param obj The `mrb_value` object to check.
+ * @param mid The symbol ID (`mrb_sym`) of the method name.
+ * @return `TRUE` if the object `obj` responds to the method `mid`, `FALSE` otherwise.
+ * @sideeffect This function calls `mrb_class(mrb, obj)` which might have side effects
+ *             if `obj` is a proxy object or has unusual class resolution.
+ *             It also has the side effects of `mrb_obj_respond_to` (e.g., method
+ *             cache updates).
+ */
 MRB_API mrb_bool
 mrb_respond_to(mrb_state *mrb, mrb_value obj, mrb_sym mid)
 {
   return mrb_obj_respond_to(mrb, mrb_class(mrb, obj), mid);
 }
 
+/*
+ * Returns the name (path) of a class or module `c`.
+ *
+ * If the class/module has a cached name (typically set when it's assigned to a
+ * constant), that name is returned.
+ * For top-level classes/modules, this is their direct name.
+ * For nested classes/modules, it's the fully qualified name (e.g., `Outer::Inner`).
+ * If no name is cached (e.g., for anonymous classes/modules), this function
+ * attempts to find or construct a path representation (e.g., `#<Class:0xPTR>`).
+ *
+ * @param mrb The mruby state.
+ * @param c The `RClass*` structure of the class or module.
+ * @return An `mrb_value` (String) representing the path of the class/module.
+ *         - If a name is cached as a symbol (toplevel), it returns the symbol's string representation.
+ *         - If a name is cached as a string (nested), it returns a duplicate of that string.
+ *         - If no name is cached, it calls `mrb_class_find_path` to get or construct one.
+ *         The returned string is suitable for modification by the caller as it's either
+ *         a new string or a duplicate of an internal one.
+ * @sideeffect May allocate a new string on the mruby heap if duplication or construction
+ *             of the path string is necessary.
+ */
 MRB_API mrb_value
 mrb_class_path(mrb_state *mrb, struct RClass *c)
 {
@@ -2246,6 +3084,21 @@ mrb_class_path(mrb_state *mrb, struct RClass *c)
   return mrb_str_dup(mrb, path);
 }
 
+/*
+ * Returns the "real" class of a given class pointer `cl`.
+ *
+ * The "real" class is the underlying, non-singleton, non-iclass `RClass`.
+ * This function traverses up the superclass chain, skipping any `MRB_TT_SCLASS`
+ * (singleton class) or `MRB_TT_ICLASS` (module inclusion class / i-class)
+ * encountered, until it finds an `RClass` that is a `MRB_TT_CLASS` or
+ * `MRB_TT_MODULE`.
+ *
+ * @param cl A pointer to an `RClass` structure.
+ * @return A pointer to the "real" `RClass` structure.
+ *         Returns `NULL` if the input `cl` is `NULL` or if the superclass
+ *         chain leads to `NULL` before a real class is found (which typically
+ *         should not happen for valid class structures).
+ */
 MRB_API struct RClass*
 mrb_class_real(struct RClass* cl)
 {
@@ -2257,6 +3110,26 @@ mrb_class_real(struct RClass* cl)
   return cl;
 }
 
+/*
+ * Returns the name of a class/module `c` as a C string.
+ *
+ * This function provides a C string representation of the class/module name.
+ * It typically calls `mrb_class_path` internally and then returns a pointer
+ * to the string data of the resulting `mrb_value`.
+ *
+ * @param mrb The mruby state.
+ * @param c The `RClass*` structure of the class or module.
+ * @return A `const char*` pointing to the name of the class/module.
+ *         This could be the class name, a fully qualified name for nested
+ *         modules/classes, or a representation like "#<Class:0xPTR>" for
+ *         anonymous ones. Returns `NULL` if `c` is `NULL`.
+ * @sideeffect This function may allocate memory on the mruby heap if `mrb_class_path`
+ *             needs to construct the name string (e.g., for anonymous classes or
+ *             if the name is not cached). The returned pointer is to the internal
+ *             buffer of an `mrb_value` string; its validity is tied to the lifetime
+ *             of that string value, which is subject to garbage collection unless
+ *             explicitly protected.
+ */
 MRB_API const char*
 mrb_class_name(mrb_state *mrb, struct RClass* c)
 {
@@ -2266,13 +3139,31 @@ mrb_class_name(mrb_state *mrb, struct RClass* c)
   return RSTRING_PTR(name);
 }
 
+/*
+ * Returns the class name of a given mruby object `obj` as a C string.
+ *
+ * This function first retrieves the class of the object using `mrb_obj_class`
+ * (which gets the "real" class, traversing SCLASS/ICLASS), and then
+ * gets the name of that class using `mrb_class_name`.
+ *
+ * @param mrb The mruby state.
+ * @param obj The `mrb_value` object whose class name is to be retrieved.
+ * @return A `const char*` pointing to the name of the object's class.
+ *         See `mrb_class_name` for details on the format of the name.
+ * @sideeffect This function has the combined side effects of `mrb_obj_class`
+ *             and `mrb_class_name`. This may include memory allocation on the
+ *             mruby heap for constructing the class name string or for class
+ *             structure creation if the object's class or metaclass components
+ *             are not yet fully initialized. The lifetime of the returned pointer
+ *             is tied to the underlying string `mrb_value`.
+ */
 MRB_API const char*
 mrb_obj_classname(mrb_state *mrb, mrb_value obj)
 {
   return mrb_class_name(mrb, mrb_obj_class(mrb, obj));
 }
 
-/*!
+/*
  * Ensures a class can be derived from super.
  *
  * \param super a reference to an object.
@@ -2292,11 +3183,28 @@ mrb_check_inheritable(mrb_state *mrb, struct RClass *super)
   }
 }
 
-/*!
- * Creates a new class.
- * \param super     a class from which the new class derives.
- * \exception TypeError \a super is not inheritable.
- * \exception TypeError \a super is the Class class.
+/*
+ * Creates a new, unnamed class.
+ *
+ * This function is the core mechanism for creating new classes in mruby.
+ * The created class will not have a name (i.e., it's anonymous) until it is
+ * assigned to a constant.
+ *
+ * @param mrb The mruby state.
+ * @param super A pointer to the `RClass` structure of the superclass.
+ *              If `super` is `NULL`, `Object` (mrb->object_class) will be used
+ *              as the superclass by default (though `boot_defclass` handles this).
+ * @return A pointer to the `RClass` structure of the newly created class.
+ * @raise TypeError if `super` is not a valid class to inherit from (e.g., it's a
+ *                  singleton class, or it's the `Class` class itself).
+ *                  This check is performed by `mrb_check_inheritable`.
+ * @sideeffect
+ *   1. Allocates a new `RClass` object on the mruby heap.
+ *   2. Initializes its method table (`mt`).
+ *   3. Sets its superclass to the provided `super` (or `Object` if `super` is `NULL`).
+ *   4. Copies instance type information (`MRB_INSTANCE_TT`) and the
+ *      `MRB_FL_UNDEF_ALLOCATE` flag from the superclass if `super` is provided.
+ *   5. Creates and attaches a metaclass (singleton class) to the new class.
  */
 MRB_API struct RClass*
 mrb_class_new(mrb_state *mrb, struct RClass *super)
@@ -2304,19 +3212,31 @@ mrb_class_new(mrb_state *mrb, struct RClass *super)
   if (super) {
     mrb_check_inheritable(mrb, super);
   }
-
-  struct RClass *c = boot_defclass(mrb, super);
-  if (super) {
-    MRB_SET_INSTANCE_TT(c, MRB_INSTANCE_TT(super));
-    c->flags |= super->flags & MRB_FL_UNDEF_ALLOCATE;
+  else {
+    super = mrb->object_class;
   }
+
+  struct RClass *c = boot_defclass(mrb, super, MRB_INSTANCE_TT(super));
+  c->flags |= super->flags & MRB_FL_UNDEF_ALLOCATE;
   make_metaclass(mrb, c);
 
   return c;
 }
 
-/*!
- * Creates a new module.
+/*
+ * Creates a new, unnamed module.
+ *
+ * This function is the core mechanism for creating new modules in mruby.
+ * The created module will not have a name (i.e., it's anonymous) until it is
+ * assigned to a constant.
+ *
+ * @param mrb The mruby state.
+ * @return A pointer to the `RClass` structure of the newly created module.
+ *         The `tt` field of this `RClass` will be `MRB_TT_MODULE`.
+ * @sideeffect
+ *   1. Allocates a new `RClass` object on the mruby heap.
+ *   2. Sets its class to `mrb->module_class`.
+ *   3. Initializes its method table (`mt`).
  */
 MRB_API struct RClass*
 mrb_module_new(mrb_state *mrb)
@@ -2330,22 +3250,65 @@ mrb_module_new(mrb_state *mrb)
  *  call-seq:
  *     obj.class    => class
  *
- *  Returns the class of <i>obj</i>, now preferred over
- *  <code>Object#type</code>, as an object's type in Ruby is only
+ *  Returns the class of *obj*, now preferred over
+ *  `Object#type`, as an object's type in Ruby is only
  *  loosely tied to that object's class. This method must always be
- *  called with an explicit receiver, as <code>class</code> is also a
+ *  called with an explicit receiver, as `class` is also a
  *  reserved word in Ruby.
  *
  *     1.class      #=> Integer
  *     self.class   #=> Object
  */
 
+/*
+ * Returns the "real" class of an object.
+ * This is the preferred way to get the class of an object in C extension code.
+ * It correctly handles various mruby internal object structures by first calling
+ * `mrb_class` (which gets the direct class, potentially a singleton or i-class)
+ * and then `mrb_class_real` to resolve it to the actual user-facing class.
+ *
+ * @param mrb The mruby state.
+ * @param obj The `mrb_value` object whose class is to be retrieved.
+ * @return A pointer to the `RClass` structure of the object's "real" class.
+ *         For example, for an instance of a regular class, it returns the class itself.
+ *         For an instance of a class that includes modules, it still returns the class itself,
+ *         not the i-classes. For a class object, it returns `Class`.
+ * @sideeffect This function itself has minimal side effects, but the underlying
+ *             `mrb_class` and `mrb_class_real` might perform lookups or traversals.
+ */
 MRB_API struct RClass*
 mrb_obj_class(mrb_state *mrb, mrb_value obj)
 {
   return mrb_class_real(mrb_class(mrb, obj));
 }
 
+/*
+ * Defines an alias for an existing method within a class or module `c`.
+ * The new method `a` will be an alias of the old method `b`.
+ *
+ * @param mrb The mruby state.
+ * @param c The class or module (`RClass*`) in which to define the alias.
+ * @param a The symbol ID (`mrb_sym`) for the new method name (the alias).
+ * @param b The symbol ID (`mrb_sym`) for the original method name to be aliased.
+ * @return This function does not return a value.
+ * @raise NameError if the original method `b` is not found in class `c` or its ancestors.
+ * @sideeffect
+ *   1. Searches for the original method `b` in class `c` and its ancestors.
+ *   2. If `b` is found:
+ *      a. If `b` is a C function (`MRB_METHOD_CFUNC_P` is true), or if `b` is already
+ *         an alias proc (`MRB_PROC_ALIAS_P` is true for the proc body), the method `m`
+ *         (representing `b`) is directly used for the new alias `a`.
+ *      b. If `b` is a Ruby-defined method (a non-CFUNC, non-alias `RProc`), a new `RProc`
+ *         of type `MRB_PROC_ALIAS` is created. This new proc stores the original
+ *         method's symbol `b` and its `RProc` as its `upper`. This ensures that
+ *         the alias `a` continues to point to the definition of `b` at the time of
+ *         aliasing, even if `b` is later redefined. The visibility of `b` is copied
+ *         to this new alias proc.
+ *      c. The method (either the original `m` or the new alias proc) is then defined
+ *         in class `c` under the new name `a` using `mrb_define_method_raw`.
+ *   3. The method cache for the new alias name `a` is cleared.
+ *   4. If `a` and `b` are the same, the function does nothing and returns early.
+ */
 MRB_API void
 mrb_alias_method(mrb_state *mrb, struct RClass *c, mrb_sym a, mrb_sym b)
 {
@@ -2369,12 +3332,21 @@ mrb_alias_method(mrb_state *mrb, struct RClass *c, mrb_sym a, mrb_sym b)
   mrb_define_method_raw(mrb, c, a, m);
 }
 
-/*!
- * Defines an alias of a method.
- * \param mrb    the mruby state
- * \param klass  the class which the original method belongs to
- * \param name1  a new name for the method
- * \param name2  the original name of the method
+/*
+ * Defines an alias for an existing method within a class or module `klass`.
+ * This version takes C string names for both the new alias and the original method.
+ *
+ * @param mrb The mruby state.
+ * @param klass The class or module (`RClass*`) in which to define the alias.
+ * @param name1 The C string for the new method name (the alias).
+ * @param name2 The C string for the original method name to be aliased.
+ * @return This function does not return a value.
+ * @raise NameError if the original method `name2` (after being interned) is not found.
+ * @sideeffect
+ *   1. Interns both `name1` and `name2` to get their `mrb_sym` IDs.
+ *   2. Calls `mrb_alias_method` with the class `klass` and the obtained symbols.
+ *   (See `mrb_alias_method` for further side effects like method table modification
+ *   and cache clearing).
  */
 MRB_API void
 mrb_define_alias(mrb_state *mrb, struct RClass *klass, const char *name1, const char *name2)
@@ -2382,6 +3354,22 @@ mrb_define_alias(mrb_state *mrb, struct RClass *klass, const char *name1, const 
   mrb_alias_method(mrb, klass, mrb_intern_cstr(mrb, name1), mrb_intern_cstr(mrb, name2));
 }
 
+/*
+ * Defines an alias for an existing method within a class or module `klass`,
+ * using symbol IDs for both names.
+ *
+ * This function is a direct call to `mrb_alias_method`.
+ *
+ * @param mrb The mruby state.
+ * @param klass The class or module (`RClass*`) in which to define the alias.
+ * @param a The symbol ID (`mrb_sym`) for the new method name (the alias).
+ * @param b The symbol ID (`mrb_sym`) for the original method name to be aliased.
+ * @return This function does not return a value.
+ * @raise NameError if the original method `b` is not found in `klass` or its ancestors.
+ * @sideeffect Calls `mrb_alias_method`, which modifies the method table of `klass`
+ *             and clears the method cache for the new alias `a`.
+ *             (See `mrb_alias_method` for more detailed side effects).
+ */
 MRB_API void
 mrb_define_alias_id(mrb_state *mrb, struct RClass *klass, mrb_sym a, mrb_sym b)
 {
@@ -2432,9 +3420,9 @@ mrb_mod_alias(mrb_state *mrb, mrb_value mod)
 static void
 undef_method(mrb_state *mrb, struct RClass *c, mrb_sym a)
 {
-  mrb_method_t m;
   mrb_sym undefined;
   mrb_value recv;
+  mrb_method_t m;
 
   MRB_METHOD_FROM_PROC(m, NULL);
   mrb_define_method_raw(mrb, c, a, m);
@@ -2452,6 +3440,27 @@ undef_method(mrb_state *mrb, struct RClass *c, mrb_sym a)
   }
 }
 
+/*
+ * Undefines a method specified by symbol `a` in class/module `c`.
+ *
+ * This action prevents objects of class `c` (or classes including module `c`)
+ * from responding to the method `a`. If the method was inherited, the version
+ * in the superclass will no longer be accessible through `c`.
+ * A special "undefined" entry is added to `c`'s method table for `a`.
+ *
+ * @param mrb The mruby state.
+ * @param c The class or module (`RClass*`) in which to undefine the method.
+ * @param a The symbol ID (`mrb_sym`) of the method to undefine.
+ * @return This function does not return a value.
+ * @raise NameError if the method `a` is not defined in `c` or its ancestors
+ *        (i.e., if `c` does not respond to `a` before undefinition).
+ * @sideeffect
+ *   1. Modifies the method table of `c` by adding an entry that marks `a` as undefined.
+ *   2. Triggers `method_undefined` (for regular classes/modules) or
+ *      `singleton_method_undefined` (for singleton classes) callbacks on `c`
+ *      or its attached object, if these hooks are defined.
+ *   3. Clears the method cache for the method symbol `a`.
+ */
 MRB_API void
 mrb_undef_method_id(mrb_state *mrb, struct RClass *c, mrb_sym a)
 {
@@ -2461,51 +3470,143 @@ mrb_undef_method_id(mrb_state *mrb, struct RClass *c, mrb_sym a)
   undef_method(mrb, c, a);
 }
 
+/*
+ * Undefines a method specified by a C string `name` in class/module `c`.
+ *
+ * This function interns the C string `name` to a symbol and then calls
+ * `mrb_undef_method_id` to perform the undefinition.
+ *
+ * @param mrb The mruby state.
+ * @param c The class or module (`RClass*`) in which to undefine the method.
+ * @param name The C string name of the method to undefine.
+ * @return This function does not return a value.
+ * @raise NameError if the method `name` (after interned to a symbol) is not
+ *        defined in `c` or its ancestors.
+ * @sideeffect
+ *   1. Interns the `name` string.
+ *   2. All side effects of `mrb_undef_method_id` apply (method table modification,
+ *      callback triggering, cache clearing).
+ */
 MRB_API void
 mrb_undef_method(mrb_state *mrb, struct RClass *c, const char *name)
 {
   undef_method(mrb, c, mrb_intern_cstr(mrb, name));
 }
 
+/*
+ * Undefines a class method specified by symbol `name` for class/module `c`.
+ *
+ * Class methods are singleton methods of the class object. This function
+ * retrieves the singleton class of `c` and then undefines the method there.
+ *
+ * @param mrb The mruby state.
+ * @param c The class or module (`RClass*`) whose class method is to be undefined.
+ * @param name The symbol ID (`mrb_sym`) of the class method to undefine.
+ * @return This function does not return a value.
+ * @raise TypeError if `c` cannot have a singleton class (e.g., if it's an
+ *        immediate value, though highly unlikely for an `RClass*`).
+ * @raise NameError if the class method `name` is not defined on `c`.
+ * @sideeffect
+ *   1. Retrieves or creates the singleton class of `c`.
+ *   2. All side effects of `mrb_undef_method_id` apply to this singleton class
+ *      (method table modification, callback triggering, cache clearing).
+ */
 MRB_API void
 mrb_undef_class_method_id(mrb_state *mrb, struct RClass *c, mrb_sym name)
 {
   mrb_undef_method_id(mrb,  mrb_class_ptr(mrb_singleton_class(mrb, mrb_obj_value(c))), name);
 }
 
+/*
+ * Undefines a class method specified by a C string `name` for class/module `c`.
+ *
+ * This function interns the C string `name` to a symbol and then calls
+ * `mrb_undef_class_method_id` (which undefines the method on `c`'s singleton class).
+ *
+ * @param mrb The mruby state.
+ * @param c The class or module (`RClass*`) whose class method is to be undefined.
+ * @param name The C string name of the class method to undefine.
+ * @return This function does not return a value.
+ * @raise TypeError if `c` cannot have a singleton class.
+ * @raise NameError if the class method `name` (after interned) is not defined on `c`.
+ * @sideeffect
+ *   1. Interns the `name` string.
+ *   2. Retrieves or creates the singleton class of `c`.
+ *   3. All side effects of `mrb_undef_method_id` apply to this singleton class.
+ */
 MRB_API void
 mrb_undef_class_method(mrb_state *mrb, struct RClass *c, const char *name)
 {
   mrb_undef_method(mrb,  mrb_class_ptr(mrb_singleton_class(mrb, mrb_obj_value(c))), name);
 }
 
+/*
+ * Removes a method specified by symbol `mid` directly from class/module `c0`.
+ *
+ * Unlike `mrb_undef_method_id`, this function only removes the method definition
+ * from the specified class/module `c0`. If the method is defined in an ancestor,
+ * that inherited method will become active after the removal from `c0`.
+ *
+ * @param mrb The mruby state.
+ * @param c0 The class or module (`RClass*`) from which to remove the method.
+ *           The method is removed from the "origin" of this class if it's an ICLASS/SCLASS.
+ * @param mid The symbol ID (`mrb_sym`) of the method to remove.
+ * @return This function does not return a value.
+ * @raise NameError if the method `mid` is not defined directly in the method
+ *        table of `c0` (or its origin).
+ * @sideeffect
+ *   1. Removes the method entry for `mid` from `c0`'s (or its origin's) method table.
+ *   2. Triggers `method_removed` (for regular classes/modules) or
+ *      `singleton_method_removed` (for singleton classes) callbacks on `c0`
+ *      or its attached object, if these hooks are defined.
+ *   3. Clears the method cache for the method symbol `mid`.
+ */
 MRB_API void
 mrb_remove_method(mrb_state *mrb, struct RClass *c0, mrb_sym mid)
 {
   struct RClass *c = c0;
+  mrb_bool found = FALSE;
+
   MRB_CLASS_ORIGIN(c);
-  mt_tbl *h = c->mt;
-
-  if (h && mt_del(mrb, h, mid)) {
-    mrb_sym removed;
-    mrb_value recv;
-
-    mc_clear_by_id(mrb, mid);
-    if (c0->tt == MRB_TT_SCLASS) {
-      removed = MRB_SYM(singleton_method_removed);
-      recv = mrb_iv_get(mrb, mrb_obj_value(c0), MRB_SYM(__attached__));
+  mrb_mt_tbl *h = c->mt;
+  if (h) {
+    found = mt_del(mrb, h, mid);
+    /* insert removed tombstone to block ROM chain lookup */
+    if (h->next && mt_chain_has(h->next, mid)) {
+      union mrb_mt_ptr tombstone;
+      tombstone.func = NULL;
+      found = TRUE;
+      if (mt_frozen_p(h)) {
+        h->alloc &= ~MRB_MT_FROZEN_BIT;
+      }
+      else if (mt_readonly_p(h)) {
+        mrb_mt_tbl *top = mt_new(mrb);
+        top->next = h;
+        h = c->mt = top;
+      }
+      mt_put(mrb, h, mid, MRB_MT_FUNC, tombstone);
     }
-    else {
-      removed = MRB_SYM(method_removed);
-      recv = mrb_obj_value(c0);
-    }
-    if (!mrb_func_basic_p(mrb, recv, removed, mrb_do_nothing)) {
-      mrb_value sym = mrb_symbol_value(mid);
-      mrb_funcall_argv(mrb, recv, removed, 1, &sym);
-    }
-    return;
   }
-  mrb_name_error(mrb, mid, "method '%n' not defined in %C", mid, c);
+  if (!found) {
+    mrb_name_error(mrb, mid, "method '%n' not defined in %C", mid, c);
+  }
+  mc_clear_by_id(mrb, mid);
+  if (c0->tt == MRB_TT_SCLASS) {
+    mrb_sym cb = MRB_SYM(singleton_method_removed);
+    mrb_value recv = mrb_iv_get(mrb, mrb_obj_value(c0), MRB_SYM(__attached__));
+    if (!mrb_func_basic_p(mrb, recv, cb, mrb_do_nothing)) {
+      mrb_value sym = mrb_symbol_value(mid);
+      mrb_funcall_argv(mrb, recv, cb, 1, &sym);
+    }
+  }
+  else {
+    mrb_sym cb = MRB_SYM(method_removed);
+    mrb_value recv = mrb_obj_value(c0);
+    if (!mrb_func_basic_p(mrb, recv, cb, mrb_do_nothing)) {
+      mrb_value sym = mrb_symbol_value(mid);
+      mrb_funcall_argv(mrb, recv, cb, 1, &sym);
+    }
+  }
 }
 
 static mrb_value
@@ -2644,7 +3745,7 @@ mrb_mod_const_missing(mrb_state *mrb, mrb_value mod)
  *  call-seq:
  *     mod.method_defined?(symbol)    -> true or false
  *
- *  Returns +true+ if the named method is defined by
+ *  Returns `true` if the named method is defined by
  *  _mod_ (or its included modules and, if _mod_ is a class,
  *  its ancestors). Public and protected methods are matched.
  *
@@ -2731,7 +3832,7 @@ define_method_m(mrb_state *mrb, struct RClass *c, int vis)
 mrb_value
 mrb_mod_define_method_m(mrb_state *mrb, struct RClass *c)
 {
-  return define_method_m(mrb, c, MT_PUBLIC);
+  return define_method_m(mrb, c, MRB_METHOD_PUBLIC_FL);
 }
 
 static mrb_value
@@ -2743,7 +3844,7 @@ mod_define_method(mrb_state *mrb, mrb_value self)
 static mrb_value
 top_define_method(mrb_state *mrb, mrb_value self)
 {
-  return define_method_m(mrb, mrb->object_class, MT_PRIVATE);
+  return define_method_m(mrb, mrb->object_class, MRB_METHOD_PRIVATE_FL);
 }
 
 static mrb_value
@@ -2789,7 +3890,7 @@ mrb_mod_module_function(mrb_state *mrb, mrb_value mod)
     mrb_method_t m = mrb_method_search(mrb, rclass, mid);
 
     prepare_singleton_class(mrb, (struct RBasic*)rclass);
-    MRB_METHOD_SET_VISIBILITY(m, MT_PUBLIC);
+    MRB_METHOD_SET_VISIBILITY(m, MRB_METHOD_PUBLIC_FL);
     mrb_define_method_raw(mrb, rclass->c, mid, m);
     mrb_gc_arena_restore(mrb, ai);
   }
@@ -2892,11 +3993,11 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
     case MRB_TT_ISTRUCT:
       mrb_istruct_copy(dest, obj);
       break;
-#if !defined(MRB_NO_FLOAT) && defined(MRB_WORDBOX_NO_FLOAT_TRUNCATE)
+#if !defined(MRB_NO_FLOAT) && defined(MRB_WORD_BOXING)
     case MRB_TT_FLOAT:
       {
         struct RFloat *f = (struct RFloat*)mrb_obj_ptr(dest);
-        f->f = mrb_float(obj);
+        mrb_rfloat_set(f, mrb_float(obj));
       }
       break;
 #endif
@@ -2929,10 +4030,10 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
  *  call-seq:
  *     obj.clone -> an_object
  *
- *  Produces a shallow copy of <i>obj</i>---the instance variables of
- *  <i>obj</i> are copied, but not the objects they reference. Copies
- *  the frozen state of <i>obj</i>. See also the discussion
- *  under <code>Object#dup</code>.
+ *  Produces a shallow copy of *obj*---the instance variables of
+ *  *obj* are copied, but not the objects they reference. Copies
+ *  the frozen state of *obj*. See also the discussion
+ *  under `Object#dup`.
  *
  *     class Klass
  *        attr_accessor :str
@@ -2945,10 +4046,36 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
  *     s2.inspect          #=> "#<Klass:0x401b3998 @str=\"Hi\">"
  *
  *  This method may have class-specific behavior.  If so, that
- *  behavior will be documented under the #+initialize_copy+ method of
+ *  behavior will be documented under the #`initialize_copy` method of
  *  the class.
  *
  *  Some Class(True False Nil Symbol Integer Float) Object  cannot clone.
+ */
+/*
+ * Creates a shallow copy of the given object `self`.
+ *
+ * This function performs a shallow copy, meaning instance variables are copied,
+ * but the objects they refer to are not duplicated. The frozen state of the
+ * original object is also copied to the clone. If the object has a singleton
+ * class, that singleton class is also cloned and associated with the new object.
+ * After the new object is created and its basic state is copied, its
+ * `initialize_copy` method is called with the original object as an argument,
+ * allowing for class-specific adjustments to the cloning process.
+ *
+ * @param mrb The mruby state.
+ * @param self The `mrb_value` object to clone.
+ * @return A new `mrb_value` which is a clone of `self`.
+ * @raise TypeError if `self` is an immediate value (e.g., Fixnum, Symbol in some
+ *                  configurations) or if `self` is a singleton class itself, as these
+ *                  cannot be cloned.
+ * @sideeffect
+ *   1. Allocates a new object on the mruby heap.
+ *   2. Copies instance variables from `self` to the new object.
+ *   3. If `self` has a singleton class, it is cloned and assigned to the new object.
+ *      This involves further allocations and setup for the new singleton class.
+ *   4. The `frozen` state of `self` is propagated to the clone.
+ *   5. Calls the `initialize_copy` method on the newly created clone, passing `self`
+ *      as an argument. This method can have arbitrary side effects.
  */
 MRB_API mrb_value
 mrb_obj_clone(mrb_state *mrb, mrb_value self)
@@ -2975,20 +4102,44 @@ mrb_obj_clone(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     obj.dup -> an_object
  *
- *  Produces a shallow copy of <i>obj</i>---the instance variables of
- *  <i>obj</i> are copied, but not the objects they reference.
- *  <code>dup</code> copies the frozen state of <i>obj</i>. See also
- *  the discussion under <code>Object#clone</code>. In general,
- *  <code>clone</code> and <code>dup</code> may have different semantics
- *  in descendant classes. While <code>clone</code> is used to duplicate
- *  an object, including its internal state, <code>dup</code> typically
+ *  Produces a shallow copy of *obj*---the instance variables of
+ *  *obj* are copied, but not the objects they reference.
+ *  `dup` copies the frozen state of *obj*. See also
+ *  the discussion under `Object#clone`. In general,
+ *  `clone` and `dup` may have different semantics
+ *  in descendant classes. While `clone` is used to duplicate
+ *  an object, including its internal state, `dup` typically
  *  uses the class of the descendant object to create the new instance.
  *
  *  This method may have class-specific behavior.  If so, that
- *  behavior will be documented under the #+initialize_copy+ method of
+ *  behavior will be documented under the #`initialize_copy` method of
  *  the class.
  */
 
+/*
+ * Creates a shallow copy of the given object `obj`.
+ *
+ * This function performs a shallow copy, meaning instance variables are copied,
+ * but the objects they refer to are not duplicated. Unlike `mrb_obj_clone`,
+ * `mrb_obj_dup` does *not* copy the frozen state of the original object; the
+ * duplicated object is always unfrozen. Also, it does not copy the singleton class.
+ * After the new object is created and its basic state is copied, its
+ * `initialize_copy` method is called with the original object as an argument.
+ *
+ * @param mrb The mruby state.
+ * @param obj The `mrb_value` object to duplicate.
+ * @return A new `mrb_value` which is a duplicate of `obj`.
+ * @raise TypeError if `obj` is an immediate value (e.g., Fixnum, Symbol in some
+ *                  configurations) or if `obj` is a singleton class itself, as these
+ *                  cannot be duplicated.
+ * @sideeffect
+ *   1. Allocates a new object on the mruby heap with the same class as `obj`.
+ *   2. Copies instance variables from `obj` to the new object.
+ *   3. The new object is *not* frozen, regardless of `obj`'s frozen state.
+ *   4. The singleton class of `obj` (if any) is *not* copied.
+ *   5. Calls the `initialize_copy` method on the newly created duplicate, passing `obj`
+ *      as an argument. This method can have arbitrary side effects.
+ */
 MRB_API mrb_value
 mrb_obj_dup(mrb_state *mrb, mrb_value obj)
 {
@@ -3020,16 +4171,16 @@ mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value args)
  *  call-seq:
  *     obj.method_missing(symbol [, *args] )   -> result
  *
- *  Invoked by Ruby when <i>obj</i> is sent a message it cannot handle.
- *  <i>symbol</i> is the symbol for the method called, and <i>args</i>
+ *  Invoked by Ruby when *obj* is sent a message it cannot handle.
+ *  *symbol* is the symbol for the method called, and *args*
  *  are any arguments that were passed to it. By default, the interpreter
  *  raises an error when this method is called. However, it is possible
  *  to override the method to provide more dynamic behavior.
  *  If it is decided that a particular method should not be handled, then
- *  <i>super</i> should be called, so that ancestors can pick up the
+ *  *super* should be called, so that ancestors can pick up the
  *  missing method.
  *  The example below creates
- *  a class <code>Roman</code>, which responds to methods with names
+ *  a class `Roman`, which responds to methods with names
  *  consisting of roman numerals, returning the corresponding integer
  *  values.
  *
@@ -3069,14 +4220,14 @@ inspect_main(mrb_state *mrb, mrb_value mod)
 }
 
 static const mrb_code new_iseq[] = {
-  OP_ENTER, 0x0, 0x10, 0x3,  // OP_ENTER     0:0:1:0:0:1:1
-  OP_SSEND, 4, 0, 0,         // OP_SSEND     R4  :allocate  n=0
-  OP_MOVE, 0, 4,             // OP_MOVE      R0  R4
-  OP_MOVE, 4, 3,             // OP_MOVE      R4  R3 (&)
-  OP_MOVE, 3, 2,             // OP_MOVE      R3  R2 (**)
-  OP_MOVE, 2, 1,             // OP_MOVE      R2  R1 (*)
-  OP_SSENDB, 1, 1, 255,      // OP_SSENDB    R1  :initialize n=*|nk=*
-  OP_RETURN, 0               // OP_RETURN    R0
+  OP_ENTER, 0x0, 0x10, 0x3,  // 000 OP_ENTER     0:0:1:0:0:1:1
+  OP_SSEND, 4, 0, 0,         // 004 OP_SSEND     R4  :allocate  n=0
+  OP_MOVE, 0, 4,             // 008 OP_MOVE      R0  R4
+  OP_MOVE, 4, 3,             // 011 OP_MOVE      R4  R3         ; &
+  OP_MOVE, 3, 2,             // 014 OP_MOVE      R3  R2         ; **
+  OP_MOVE, 2, 1,             // 017 OP_MOVE      R2  R1         ; *
+  OP_SSENDB, 1, 1, 255,      // 020 OP_SSENDB    R1  :initialize n=*|nk=*
+  OP_RETURN, 0               // 024 OP_RETURN    R0
 };
 
 MRB_PRESYM_DEFINE_VAR_AND_INITER(new_syms, 2, MRB_SYM(allocate), MRB_SYM(initialize))
@@ -3089,7 +4240,7 @@ static const mrb_irep new_irep = {
 
 mrb_alignas(8)
 static const struct RProc new_proc = {
-  NULL, NULL, MRB_TT_PROC, MRB_GC_RED, MRB_OBJ_IS_FROZEN, MRB_PROC_SCOPE | MRB_PROC_STRICT,
+  NULL, MRB_TT_PROC, MRB_GC_RED, MRB_OBJ_IS_FROZEN, MRB_PROC_SCOPE | MRB_PROC_STRICT,
   { &new_irep }, NULL, { NULL }
 };
 
@@ -3103,6 +4254,87 @@ init_class_new(mrb_state *mrb, struct RClass *cls)
   mrb_define_method_raw(mrb, cls, MRB_SYM(new), m);
 }
 
+static const mrb_code neq_iseq[] = {
+  OP_ENTER, 0x4, 0, 0,       // 000 OP_ENTER     1:0:0:0:0:0:0
+  OP_EQ, 0,                  // 004 OP_EQ        R0  (R1)
+  OP_JMPNOT, 0, 0, 5,        // 006 OP_JMPNOT    R0  015
+  OP_LOADFALSE, 0,               // 010 OP_LOADFALSE     R0  (false)
+  OP_JMP, 0, 2,              // 012 OP_JMP       017
+  OP_LOADTRUE, 0,               // 015 OP_LOADTRUE     R0  (true)
+  OP_RETURN, 0               // 017 OP_RETURN    R0
+};
+
+static const mrb_irep neq_irep = {
+  4, 6, 0, MRB_IREP_STATIC,
+  neq_iseq, NULL, NULL, NULL, NULL, NULL,
+  sizeof(neq_iseq), 0, 2, 0, 0,
+};
+
+mrb_alignas(8)
+static const struct RProc neq_proc = {
+  NULL, MRB_TT_PROC, MRB_GC_RED, MRB_OBJ_IS_FROZEN, MRB_PROC_SCOPE | MRB_PROC_STRICT,
+  { &neq_irep }, NULL, { NULL }
+};
+
+/* ---------------------------*/
+static const mrb_mt_entry bob_rom_entries[] = {
+  MRB_MT_ENTRY(mrb_obj_equal_m,       MRB_OPSYM(eq),                       MRB_ARGS_REQ(1)),                                   /* 15.3.1.3.1  */
+  MRB_MT_ENTRY(mrb_bob_not,           MRB_OPSYM(not),                      MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_obj_id_m,          MRB_SYM(__id__),                     MRB_ARGS_NONE()),                                   /* 15.3.1.3.4  */
+  MRB_MT_ENTRY(mrb_f_send,            MRB_SYM(__send__),                   MRB_ARGS_REQ(1)|MRB_ARGS_REST()|MRB_ARGS_BLOCK()),  /* 15.3.1.3.5  */
+  MRB_MT_ENTRY(mrb_obj_equal_m,       MRB_SYM_Q(equal),                    MRB_ARGS_REQ(1)),                                   /* 15.3.1.3.11 */
+  MRB_MT_ENTRY(mrb_do_nothing,        MRB_SYM(initialize),                 MRB_ARGS_NONE() | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_obj_instance_eval, MRB_SYM(instance_eval),              MRB_ARGS_OPT(1)|MRB_ARGS_BLOCK()),                  /* 15.3.1.3.18 */
+  MRB_MT_ENTRY(mrb_obj_missing,       MRB_SYM(method_missing),             MRB_ARGS_ANY() | MRB_MT_PRIVATE),                   /* 15.3.1.3.30 */
+  MRB_MT_ENTRY(mrb_do_nothing,        MRB_SYM(singleton_method_added),     MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_do_nothing,        MRB_SYM(singleton_method_removed),   MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_do_nothing,        MRB_SYM(singleton_method_undefined), MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
+};
+
+static const mrb_mt_entry cls_rom_entries[] = {
+  MRB_MT_ENTRY(mrb_instance_alloc,   MRB_SYM(allocate),   MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_do_nothing,       MRB_SYM(inherited),  MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_class_initialize, MRB_SYM(initialize), MRB_ARGS_OPT(1) | MRB_MT_PRIVATE),  /* 15.2.3.3.1 */
+  MRB_MT_ENTRY(mrb_class_superclass, MRB_SYM(superclass), MRB_ARGS_NONE()),                   /* 15.2.3.3.4 */
+};
+
+static const mrb_mt_entry mod_rom_entries[] = {
+  MRB_MT_ENTRY(mrb_mod_eqq,             MRB_OPSYM(eqq),            MRB_ARGS_REQ(1)),                   /* 15.2.2.4.7 */
+  MRB_MT_ENTRY(mrb_mod_alias,           MRB_SYM(alias_method),     MRB_ARGS_ANY()),                    /* 15.2.2.4.8 */
+  MRB_MT_ENTRY(mrb_mod_ancestors,       MRB_SYM(ancestors),        MRB_ARGS_NONE()),                   /* 15.2.2.4.9 */
+  MRB_MT_ENTRY(mrb_mod_attr_accessor,   MRB_SYM(attr_accessor),    MRB_ARGS_ANY()),                    /* 15.2.2.4.12 */
+  MRB_MT_ENTRY(mrb_mod_attr_reader,     MRB_SYM(attr_reader),      MRB_ARGS_ANY()),                    /* 15.2.2.4.13 */
+  MRB_MT_ENTRY(mrb_mod_attr_writer,     MRB_SYM(attr_writer),      MRB_ARGS_ANY()),                    /* 15.2.2.4.14 */
+  MRB_MT_ENTRY(mrb_mod_module_eval,     MRB_SYM(class_eval),       MRB_ARGS_ANY()),                    /* 15.2.2.4.15 */
+  MRB_MT_ENTRY(mrb_do_nothing,          MRB_SYM(const_added),      MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_mod_const_defined,   MRB_SYM_Q(const_defined),  MRB_ARGS_ARG(1,1)),                 /* 15.2.2.4.20 */
+  MRB_MT_ENTRY(mrb_mod_const_get,       MRB_SYM(const_get),        MRB_ARGS_REQ(1)),                   /* 15.2.2.4.21 */
+  MRB_MT_ENTRY(mrb_mod_const_missing,   MRB_SYM(const_missing),    MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(mrb_mod_const_set,       MRB_SYM(const_set),        MRB_ARGS_REQ(2)),                   /* 15.2.2.4.23 */
+  MRB_MT_ENTRY(mod_define_method,       MRB_SYM(define_method),    MRB_ARGS_ARG(1,1)),
+  MRB_MT_ENTRY(mrb_mod_dup,             MRB_SYM(dup),              MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_do_nothing,          MRB_SYM(extended),         MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),  /* 15.2.2.4.26 */
+  MRB_MT_ENTRY(mrb_mod_include,         MRB_SYM(include),          MRB_ARGS_ANY()),                    /* 15.2.2.4.27 */
+  MRB_MT_ENTRY(mrb_mod_include_p,       MRB_SYM_Q(include),        MRB_ARGS_REQ(1)),                   /* 15.2.2.4.28 */
+  MRB_MT_ENTRY(mrb_do_nothing,          MRB_SYM(included),         MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),  /* 15.2.2.4.29 */
+  MRB_MT_ENTRY(mrb_mod_initialize,      MRB_SYM(initialize),       MRB_ARGS_NONE() | MRB_MT_PRIVATE),  /* 15.2.2.4.31 */
+  MRB_MT_ENTRY(mrb_mod_to_s,            MRB_SYM(inspect),          MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_do_nothing,          MRB_SYM(method_added),     MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_do_nothing,          MRB_SYM(method_removed),   MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_mod_method_defined,  MRB_SYM_Q(method_defined), MRB_ARGS_REQ(1)),                   /* 15.2.2.4.34 */
+  MRB_MT_ENTRY(mrb_do_nothing,          MRB_SYM(method_undefined), MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_mod_module_eval,     MRB_SYM(module_eval),      MRB_ARGS_ANY()),                    /* 15.2.2.4.35 */
+  MRB_MT_ENTRY(mrb_mod_module_function, MRB_SYM(module_function),  MRB_ARGS_ANY() | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_mod_prepend,         MRB_SYM(prepend),          MRB_ARGS_ANY()),
+  MRB_MT_ENTRY(mrb_do_nothing,          MRB_SYM(prepended),        MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_mod_private,         MRB_SYM(private),          MRB_ARGS_ANY() | MRB_MT_PRIVATE),   /* 15.2.2.4.36 */
+  MRB_MT_ENTRY(mrb_mod_protected,       MRB_SYM(protected),        MRB_ARGS_ANY() | MRB_MT_PRIVATE),   /* 15.2.2.4.37 */
+  MRB_MT_ENTRY(mrb_mod_public,          MRB_SYM(public),           MRB_ARGS_ANY() | MRB_MT_PRIVATE),   /* 15.2.2.4.38 */
+  MRB_MT_ENTRY(mrb_mod_remove_const,    MRB_SYM(remove_const),     MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),  /* 15.2.2.4.40 */
+  MRB_MT_ENTRY(mrb_mod_to_s,            MRB_SYM(to_s),             MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_mod_undef,           MRB_SYM(undef_method),     MRB_ARGS_ANY()),                    /* 15.2.2.4.41 */
+};
+
 void
 mrb_init_class(mrb_state *mrb)
 {
@@ -3112,10 +4344,11 @@ mrb_init_class(mrb_state *mrb)
   struct RClass *cls;           /* Class */
 
   /* boot class hierarchy */
-  bob = boot_defclass(mrb, 0);
-  obj = boot_defclass(mrb, bob); mrb->object_class = obj;
-  mod = boot_defclass(mrb, obj); mrb->module_class = mod;/* obj -> mod */
-  cls = boot_defclass(mrb, mod); mrb->class_class = cls; /* obj -> cls */
+  bob = boot_defclass(mrb, 0, MRB_TT_OBJECT);
+  obj = boot_defclass(mrb, bob, MRB_TT_OBJECT); mrb->object_class = obj;
+  mod = boot_defclass(mrb, obj, MRB_TT_MODULE); mrb->module_class = mod;/* obj -> mod */
+  cls = boot_defclass(mrb, mod, MRB_TT_CLASS);  mrb->class_class = cls; /* obj -> cls */
+
   /* fix-up loose ends */
   bob->c = obj->c = mod->c = cls->c = cls;
   make_metaclass(mrb, bob);
@@ -3135,66 +4368,20 @@ mrb_init_class(mrb_state *mrb)
   mrb_class_name_class(mrb, NULL, mod, MRB_SYM(Module)); /* 15.2.2 */
   mrb_class_name_class(mrb, NULL, cls, MRB_SYM(Class));  /* 15.2.3 */
 
-  MRB_SET_INSTANCE_TT(cls, MRB_TT_CLASS);
-  mrb_define_method_id(mrb, bob, MRB_SYM(initialize),                      mrb_do_nothing,           MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, bob, MRB_OPSYM(not),                           mrb_bob_not,              MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, bob, MRB_OPSYM(eq),                            mrb_obj_equal_m,          MRB_ARGS_REQ(1)); /* 15.3.1.3.1  */
-  mrb_define_method_id(mrb, bob, MRB_SYM(__id__),                          mrb_obj_id_m,             MRB_ARGS_NONE()); /* 15.3.1.3.4  */
-  mrb_define_method_id(mrb, bob, MRB_SYM(__send__),                        mrb_f_send,               MRB_ARGS_REQ(1)|MRB_ARGS_REST()|MRB_ARGS_BLOCK());  /* 15.3.1.3.5  */
-  mrb_define_method_id(mrb, bob, MRB_SYM_Q(equal),                         mrb_obj_equal_m,          MRB_ARGS_REQ(1)); /* 15.3.1.3.11 */
-  mrb_define_method_id(mrb, bob, MRB_SYM(instance_eval),                   mrb_obj_instance_eval,    MRB_ARGS_OPT(1)|MRB_ARGS_BLOCK());  /* 15.3.1.3.18 */
-  mrb_define_private_method_id(mrb, bob, MRB_SYM(singleton_method_added),  mrb_do_nothing,           MRB_ARGS_REQ(1));
-  mrb_define_private_method_id(mrb, bob, MRB_SYM(singleton_method_removed),mrb_do_nothing,           MRB_ARGS_REQ(1));
-  mrb_define_private_method_id(mrb, bob, MRB_SYM(singleton_method_undefined),mrb_do_nothing,         MRB_ARGS_REQ(1));
-  mrb_define_private_method_id(mrb, bob, MRB_SYM(method_missing),          mrb_obj_missing,          MRB_ARGS_ANY());  /* 15.3.1.3.30 */
+  MRB_MT_INIT_ROM(mrb, bob, bob_rom_entries);
+
+  mrb_method_t m;
+  MRB_METHOD_FROM_PROC(m, &neq_proc);
+  mrb_define_method_raw(mrb, bob, MRB_OPSYM(neq), m);
 
   mrb_define_class_method_id(mrb, cls, MRB_SYM(new),                       mrb_class_new_class,      MRB_ARGS_OPT(1)|MRB_ARGS_BLOCK());
-  mrb_define_method_id(mrb, cls, MRB_SYM(allocate),                        mrb_instance_alloc,       MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, cls, MRB_SYM(superclass),                      mrb_class_superclass,     MRB_ARGS_NONE()); /* 15.2.3.3.4 */
-  mrb_define_method_id(mrb, cls, MRB_SYM(initialize),                      mrb_class_initialize,     MRB_ARGS_OPT(1)); /* 15.2.3.3.1 */
-  mrb_define_private_method_id(mrb, cls, MRB_SYM(inherited),               mrb_do_nothing,           MRB_ARGS_REQ(1));
+  MRB_MT_INIT_ROM(mrb, cls, cls_rom_entries);
 
   init_class_new(mrb, cls);
 
-  MRB_SET_INSTANCE_TT(mod, MRB_TT_MODULE);
-  mrb_define_private_method_id(mrb, mod, MRB_SYM(extend_object),           mrb_mod_extend_object,    MRB_ARGS_REQ(1)); /* 15.2.2.4.25 */
-  mrb_define_private_method_id(mrb, mod, MRB_SYM(extended),                mrb_do_nothing,           MRB_ARGS_REQ(1)); /* 15.2.2.4.26 */
-  mrb_define_private_method_id(mrb, mod, MRB_SYM(prepended),               mrb_do_nothing,           MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, mod, MRB_SYM_Q(include),                       mrb_mod_include_p,        MRB_ARGS_REQ(1)); /* 15.2.2.4.28 */
-  mrb_define_private_method_id(mrb, mod, MRB_SYM(append_features),         mrb_mod_append_features,  MRB_ARGS_REQ(1)); /* 15.2.2.4.10 */
-  mrb_define_private_method_id(mrb, mod, MRB_SYM(prepend_features),        mrb_mod_prepend_features, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, mod, MRB_SYM(class_eval),                      mrb_mod_module_eval,      MRB_ARGS_ANY());  /* 15.2.2.4.15 */
-  mrb_define_private_method_id(mrb, mod, MRB_SYM(included),                mrb_do_nothing,           MRB_ARGS_REQ(1)); /* 15.2.2.4.29 */
-  mrb_define_method_id(mrb, mod, MRB_SYM(initialize),                      mrb_mod_initialize,       MRB_ARGS_NONE()); /* 15.2.2.4.31 */
-  mrb_define_method_id(mrb, mod, MRB_SYM(module_eval),                     mrb_mod_module_eval,      MRB_ARGS_ANY());  /* 15.2.2.4.35 */
-  mrb_define_private_method_id(mrb, mod, MRB_SYM(module_function),         mrb_mod_module_function,  MRB_ARGS_ANY());
-  mrb_define_private_method_id(mrb, mod, MRB_SYM(private),                 mrb_mod_private,          MRB_ARGS_ANY());  /* 15.2.2.4.36 */
-  mrb_define_private_method_id(mrb, mod, MRB_SYM(protected),               mrb_mod_protected,        MRB_ARGS_ANY());  /* 15.2.2.4.37 */
-  mrb_define_private_method_id(mrb, mod, MRB_SYM(public),                  mrb_mod_public,           MRB_ARGS_ANY());  /* 15.2.2.4.38 */
-  mrb_define_method_id(mrb, mod, MRB_SYM(attr_accessor),                   mrb_mod_attr_accessor,    MRB_ARGS_ANY());  /* 15.2.2.4.12 */
-  mrb_define_method_id(mrb, mod, MRB_SYM(attr_reader),                     mrb_mod_attr_reader,      MRB_ARGS_ANY());  /* 15.2.2.4.13 */
-  mrb_define_method_id(mrb, mod, MRB_SYM(attr_writer),                     mrb_mod_attr_writer,      MRB_ARGS_ANY());  /* 15.2.2.4.14 */
-  mrb_define_method_id(mrb, mod, MRB_SYM(to_s),                            mrb_mod_to_s,             MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, mod, MRB_SYM(inspect),                         mrb_mod_to_s,             MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, mod, MRB_SYM(alias_method),                    mrb_mod_alias,            MRB_ARGS_ANY());  /* 15.2.2.4.8 */
-  mrb_define_method_id(mrb, mod, MRB_SYM(ancestors),                       mrb_mod_ancestors,        MRB_ARGS_NONE()); /* 15.2.2.4.9 */
-  mrb_define_method_id(mrb, mod, MRB_SYM(undef_method),                    mrb_mod_undef,            MRB_ARGS_ANY());  /* 15.2.2.4.41 */
-  mrb_define_method_id(mrb, mod, MRB_SYM_Q(const_defined),                 mrb_mod_const_defined,    MRB_ARGS_ARG(1,1)); /* 15.2.2.4.20 */
-  mrb_define_method_id(mrb, mod, MRB_SYM(const_get),                       mrb_mod_const_get,        MRB_ARGS_REQ(1)); /* 15.2.2.4.21 */
-  mrb_define_method_id(mrb, mod, MRB_SYM(const_set),                       mrb_mod_const_set,        MRB_ARGS_REQ(2)); /* 15.2.2.4.23 */
-  mrb_define_private_method_id(mrb, mod, MRB_SYM(remove_const),            mrb_mod_remove_const,     MRB_ARGS_REQ(1)); /* 15.2.2.4.40 */
-  mrb_define_method_id(mrb, mod, MRB_SYM(const_missing),                   mrb_mod_const_missing,    MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, mod, MRB_SYM_Q(method_defined),                mrb_mod_method_defined,   MRB_ARGS_REQ(1)); /* 15.2.2.4.34 */
-  mrb_define_method_id(mrb, mod, MRB_SYM(define_method),                   mod_define_method,        MRB_ARGS_ARG(1,1));
-  mrb_define_method_id(mrb, mod, MRB_OPSYM(eqq),                           mrb_mod_eqq,              MRB_ARGS_REQ(1)); /* 15.2.2.4.7 */
-  mrb_define_method_id(mrb, mod, MRB_SYM(dup),                             mrb_mod_dup,              MRB_ARGS_NONE());
-  mrb_define_private_method_id(mrb, mod, MRB_SYM(method_added),            mrb_do_nothing,           MRB_ARGS_REQ(1));
-  mrb_define_private_method_id(mrb, mod, MRB_SYM(method_removed),          mrb_do_nothing,           MRB_ARGS_REQ(1));
-  mrb_define_private_method_id(mrb, mod, MRB_SYM(method_undefined),        mrb_do_nothing,           MRB_ARGS_REQ(1));
+  MRB_MT_INIT_ROM(mrb, mod, mod_rom_entries);
+  mrb_define_alias_id(mrb, mod, MRB_SYM(attr), MRB_SYM(attr_reader));                                                  /* 15.2.2.4.11 */
 
-  mrb_undef_method_id(mrb, cls, MRB_SYM(append_features));
-  mrb_undef_method_id(mrb, cls, MRB_SYM(prepend_features));
-  mrb_undef_method_id(mrb, cls, MRB_SYM(extend_object));
   mrb_undef_method_id(mrb, cls, MRB_SYM(module_function));
 
   mrb->top_self = MRB_OBJ_ALLOC(mrb, MRB_TT_OBJECT, mrb->object_class);

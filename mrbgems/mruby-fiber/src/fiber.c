@@ -11,7 +11,7 @@
 #define fiber_ptr(o) ((struct RFiber*)mrb_ptr(o))
 
 #define FIBER_STACK_INIT_SIZE 64
-#define FIBER_CI_INIT_SIZE 8
+#define FIBER_CI_INIT_SIZE 4
 /* copied from vm.c */
 #define CINFO_RESUMED 3
 
@@ -79,10 +79,10 @@ init_fiber(mrb_state *mrb, struct RFiber *f, const struct RProc *p)
  *     Fiber.new{...} -> obj
  *
  *  Creates a fiber, whose execution is suspended until it is explicitly
- *  resumed using <code>Fiber#resume</code> method.
+ *  resumed using `Fiber#resume` method.
  *  The code running inside the fiber can give up control by calling
- *  <code>Fiber.yield</code> in which case it yields control back to caller
- *  (the caller of the <code>Fiber#resume</code>).
+ *  `Fiber.yield` in which case it yields control back to caller
+ *  (the caller of the `Fiber#resume`).
  *
  *  Upon yielding or termination the Fiber returns the value of the last
  *  executed expression
@@ -104,10 +104,10 @@ init_fiber(mrb_state *mrb, struct RFiber *f, const struct RProc *p)
  *    2
  *    resuming dead fiber (FiberError)
  *
- *  The <code>Fiber#resume</code> method accepts an arbitrary number of
- *  parameters, if it is the first call to <code>resume</code> then they
+ *  The `Fiber#resume` method accepts an arbitrary number of
+ *  parameters, if it is the first call to `resume` then they
  *  will be passed as block arguments. Otherwise they will be the return
- *  value of the call to <code>Fiber.yield</code>
+ *  value of the call to `Fiber.yield`
  *
  *  Example:
  *
@@ -306,16 +306,16 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
  *  call-seq:
  *     fiber.resume(args, ...) -> obj
  *
- *  Resumes the fiber from the point at which the last <code>Fiber.yield</code>
+ *  Resumes the fiber from the point at which the last `Fiber.yield`
  *  was called, or starts running it if it is the first call to
- *  <code>resume</code>. Arguments passed to resume will be the value of
- *  the <code>Fiber.yield</code> expression or will be passed as block
- *  parameters to the fiber's block if this is the first <code>resume</code>.
+ *  `resume`. Arguments passed to resume will be the value of
+ *  the `Fiber.yield` expression or will be passed as block
+ *  parameters to the fiber's block if this is the first `resume`.
  *
  *  Alternatively, when resume is called it evaluates to the arguments passed
- *  to the next <code>Fiber.yield</code> statement inside the fiber's block
+ *  to the next `Fiber.yield` statement inside the fiber's block
  *  or to the block value if it runs to completion without any
- *  <code>Fiber.yield</code>
+ *  `Fiber.yield`
  */
 static mrb_value
 fiber_resume(mrb_state *mrb, mrb_value self)
@@ -379,7 +379,13 @@ fiber_to_s(mrb_state *mrb, mrb_value self)
   fiber_check(mrb, self);
   const struct RFiber *f = fiber_ptr(self);
 
-  mrb_value s = mrb_str_new_lit(mrb, "#<");
+  /* Cache status to avoid redundant lookups */
+  enum mrb_fiber_state status = f->cxt->status;
+
+  /* Pre-allocate buffer - 150 bytes handles typical fiber strings */
+  mrb_value s = mrb_str_buf_new(mrb, 150);
+
+  mrb_str_cat_lit(mrb, s, "#<");
   mrb_value cname = mrb_class_path(mrb, mrb_class_real(mrb_class(mrb, self)));
   if (mrb_nil_p(cname)) {
     mrb_str_cat_lit(mrb, s, "Fiber:");
@@ -393,7 +399,7 @@ fiber_to_s(mrb_state *mrb, mrb_value self)
   const char *file;
   int32_t line;
   const struct RProc *p;
-  if (f->cxt->status != MRB_FIBER_TERMINATED &&
+  if (status != MRB_FIBER_TERMINATED &&
       !MRB_PROC_CFUNC_P(p = f->cxt->cibase->proc) && !MRB_PROC_ALIAS_P(p) &&
       mrb_debug_get_position(mrb, p->body.irep, 0, &line, &file)) {
     mrb_str_cat_lit(mrb, s, " ");
@@ -404,7 +410,7 @@ fiber_to_s(mrb_state *mrb, mrb_value self)
   }
 
   const char *st;
-  switch (fiber_ptr(self)->cxt->status) {
+  switch (status) {
   case MRB_FIBER_CREATED:       st = "created"; break;
   case MRB_FIBER_RUNNING:       st = "resumed"; break;
   case MRB_FIBER_RESUMED:       st = "suspended by resuming"; break;
@@ -425,12 +431,12 @@ fiber_to_s(mrb_state *mrb, mrb_value self)
  *     fiber.transfer(args, ...) -> obj
  *
  *  Transfers control to receiver fiber of the method call.
- *  Unlike <code>resume</code> the receiver wouldn't be pushed to call
+ *  Unlike `resume` the receiver wouldn't be pushed to call
  * stack of fibers. Instead it will switch to the call stack of
  * transferring fiber.
  *  When resuming a fiber that was transferred to another fiber it would
  * cause double resume error. Though when the fiber is re-transferred
- * and <code>Fiber.yield</code> is called, the fiber would be resumable.
+ * and `Fiber.yield` is called, the fiber would be resumable.
  */
 static mrb_value
 fiber_transfer(mrb_state *mrb, mrb_value self)
@@ -493,14 +499,14 @@ mrb_fiber_yield(mrb_state *mrb, mrb_int len, const mrb_value *a)
  *
  *  Yields control back to the context that resumed the fiber, passing
  *  along any arguments that were passed to it. The fiber will resume
- *  processing at this point when <code>resume</code> is called next.
- *  Any arguments passed to the next <code>resume</code> will be the
+ *  processing at this point when `resume` is called next.
+ *  Any arguments passed to the next `resume` will be the
  *
  *  mruby limitation: Fiber resume/yield cannot cross C function boundary.
  *  thus you cannot yield from #initialize which is called by mrb_funcall().
  *
- *  This method cannot be called from C using <code>mrb_funcall()</code>.
- *  Use <code>mrb_fiber_yield()</code> function instead.
+ *  This method cannot be called from C using `mrb_funcall()`.
+ *  Use `mrb_fiber_yield()` function instead.
  */
 static mrb_value
 fiber_yield(mrb_state *mrb, mrb_value self)

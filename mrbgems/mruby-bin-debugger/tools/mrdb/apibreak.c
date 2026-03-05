@@ -65,20 +65,31 @@ static int32_t
 get_break_index(mrb_debug_context *dbg, uint32_t bpno)
 {
   uint32_t i;
-  int32_t index;
-  char hit = FALSE;
 
   for (i = 0; i < dbg->bpnum; i++) {
-    if (dbg->bp[i].bpno == bpno) {
-      hit = TRUE;
-      index = i;
-      break;
-    }
+    if (dbg->bp[i].bpno == bpno) return i;
+  }
+  return MRB_DEBUG_BREAK_INVALID_NO;
+}
+
+static int32_t
+alloc_breakpoint(mrb_debug_context *dbg, mrb_debug_bptype type)
+{
+  int32_t index;
+
+  if (dbg->bpnum >= MAX_BREAKPOINT) {
+    return MRB_DEBUG_BREAK_NUM_OVER;
+  }
+  if (dbg->next_bpno > MAX_BREAKPOINTNO) {
+    return MRB_DEBUG_BREAK_NO_OVER;
   }
 
-  if (hit == FALSE) {
-    return MRB_DEBUG_BREAK_INVALID_NO;
-  }
+  index = dbg->bpnum;
+  dbg->bp[index].bpno = dbg->next_bpno;
+  dbg->next_bpno++;
+  dbg->bp[index].enable = TRUE;
+  dbg->bp[index].type = type;
+  dbg->bpnum++;
 
   return index;
 }
@@ -189,19 +200,10 @@ int32_t
 mrb_debug_set_break_line(mrb_state *mrb, mrb_debug_context *dbg, const char *file, uint16_t lineno)
 {
   int32_t index;
-  char* set_file;
   uint16_t result;
 
   if ((mrb == NULL)||(dbg == NULL)||(file == NULL)) {
     return MRB_DEBUG_INVALID_ARGUMENT;
-  }
-
-  if (dbg->bpnum >= MAX_BREAKPOINT) {
-    return MRB_DEBUG_BREAK_NUM_OVER;
-  }
-
-  if (dbg->next_bpno > MAX_BREAKPOINTNO) {
-    return MRB_DEBUG_BREAK_NO_OVER;
   }
 
   /* file and lineno check. */
@@ -213,17 +215,11 @@ mrb_debug_set_break_line(mrb_state *mrb, mrb_debug_context *dbg, const char *fil
     return MRB_DEBUG_BREAK_INVALID_LINENO;
   }
 
-  set_file = mrdb_strdup(mrb, file);
+  index = alloc_breakpoint(dbg, MRB_DEBUG_BPTYPE_LINE);
+  if (index < 0) return index;
 
-  index = dbg->bpnum;
-  dbg->bp[index].bpno = dbg->next_bpno;
-  dbg->next_bpno++;
-  dbg->bp[index].enable = TRUE;
-  dbg->bp[index].type = MRB_DEBUG_BPTYPE_LINE;
+  dbg->bp[index].point.linepoint.file = mrdb_strdup(mrb, file);
   dbg->bp[index].point.linepoint.lineno = lineno;
-  dbg->bpnum++;
-
-  dbg->bp[index].point.linepoint.file = set_file;
 
   return dbg->bp[index].bpno;
 }
@@ -239,34 +235,21 @@ mrb_debug_set_break_method(mrb_state *mrb, mrb_debug_context *dbg, const char *c
     return MRB_DEBUG_INVALID_ARGUMENT;
   }
 
-  if (dbg->bpnum >= MAX_BREAKPOINT) {
-    return MRB_DEBUG_BREAK_NUM_OVER;
-  }
-
-  if (dbg->next_bpno > MAX_BREAKPOINTNO) {
-    return MRB_DEBUG_BREAK_NO_OVER;
-  }
-
-  if (class_name != NULL) {
-    set_class = mrdb_strdup(mrb, class_name);
-  }
-  else {
-    set_class = NULL;
-  }
-
+  set_class = class_name != NULL ? mrdb_strdup(mrb, class_name) : NULL;
   set_method = mrdb_strdup(mrb, method_name);
   if (set_method == NULL) {
     mrb_free(mrb, set_class);
   }
 
-  index = dbg->bpnum;
-  dbg->bp[index].bpno = dbg->next_bpno;
-  dbg->next_bpno++;
-  dbg->bp[index].enable = TRUE;
-  dbg->bp[index].type = MRB_DEBUG_BPTYPE_METHOD;
+  index = alloc_breakpoint(dbg, MRB_DEBUG_BPTYPE_METHOD);
+  if (index < 0) {
+    mrb_free(mrb, set_method);
+    mrb_free(mrb, set_class);
+    return index;
+  }
+
   dbg->bp[index].point.methodpoint.method_name = set_method;
   dbg->bp[index].point.methodpoint.class_name = set_class;
-  dbg->bpnum++;
 
   return dbg->bp[index].bpno;
 }

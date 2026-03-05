@@ -12,13 +12,8 @@
 #include <string.h>
 
 static const struct {
-#ifdef MRB_NO_PRESYM
-#define itsdefined(name, sym)   { #name, name },
-  const char *name;
-#else
 #define itsdefined(name, sym)   { sym, name },
   mrb_sym sym;
-#endif
   int eno;
 } e2c[] = {
 #define itsnotdefined(name, sym)
@@ -28,13 +23,8 @@ static const struct {
 };
 
 static const struct {
-#ifdef MRB_NO_PRESYM
-#define itsnotdefined(name, sym)   { #name },
-  const char *name;
-#else
 #define itsnotdefined(name, sym)   { sym },
   mrb_sym sym;
-#endif
 } noe2c[] = {
 #define itsdefined(name, sym)
 #include "known_errors_def.cstub"
@@ -42,11 +32,7 @@ static const struct {
 #undef itsnotdefined
 };
 
-#ifdef MRB_NO_PRESYM
-#define ENTRY_SYM(e)    mrb_intern_static(mrb, (e).name, strlen((e).name))
-#else
 #define ENTRY_SYM(e)    (e).sym
-#endif
 
 #define E2C_LEN         (sizeof(e2c) / sizeof(e2c[0]))
 #define NOE2C_LEN       (sizeof(noe2c) / sizeof(noe2c[0]))
@@ -71,38 +57,9 @@ mrb_errno_define_exxx(mrb_state *mrb, mrb_sym name, int eno)
   return e;
 }
 
-#ifndef MRB_NO_PRESYM
 typedef mrb_sym sym_ref;
 #define sym_ref_init(mrb, id) (id)
 #define errno_name_matched_p(errentry, ref) ((errentry).sym == *(ref))
-
-#else
-typedef struct {
-  const char *name;
-  size_t len;
-} sym_ref;
-
-static sym_ref
-sym_ref_init(mrb_state *mrb, mrb_sym id)
-{
-  mrb_int len = 0;
-  const char *name = mrb_sym_name_len(mrb, id, &len);
-  sym_ref ename = { name, (size_t)len };
-  return ename;
-}
-
-#define errno_name_matched_p(errentry, ref) errno_name_matched_p_0((errentry).name, (ref))
-static mrb_bool
-errno_name_matched_p_0(const char *name, const sym_ref *ref)
-{
-  if (ref->len == strlen(name) && memcmp(ref->name, name, ref->len) == 0) {
-    return TRUE;
-  }
-  else {
-    return FALSE;
-  }
-}
-#endif // MRB_NO_PRESYM
 
 static mrb_bool
 ary_included_in_head(mrb_state *mrb, mrb_value ary, mrb_value obj, mrb_ssize head)
@@ -118,6 +75,10 @@ ary_included_in_head(mrb_state *mrb, mrb_value ary, mrb_value obj, mrb_ssize hea
   return FALSE;
 }
 
+/*
+ * Internal method used by the Errno module to check if a specific
+ * error constant exists on this platform.
+ */
 static mrb_value
 mrb_errno_defined_p(mrb_state *mrb, mrb_value self)
 {
@@ -140,6 +101,10 @@ mrb_errno_defined_p(mrb_state *mrb, mrb_value self)
   return mrb_false_value();
 }
 
+/*
+ * Internal method used by the Errno module to define errno classes
+ * for error constants that exist on this platform.
+ */
 static mrb_value
 mrb_errno_define(mrb_state *mrb, mrb_value self)
 {
@@ -163,6 +128,10 @@ mrb_errno_define(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
+/*
+ * Internal method used by the Errno module to populate an array
+ * with all errno symbols available on this platform.
+ */
 static mrb_value
 mrb_errno_list(mrb_state *mrb, mrb_value self)
 {
@@ -223,6 +192,16 @@ mrb_sce_init(mrb_state *mrb, mrb_value self, mrb_value m, mrb_value no)
   mrb_exc_mesg_set(mrb, mrb_exc_ptr(self), str);
 }
 
+/*
+ * call-seq:
+ *   errno_class.new(message = nil) -> errno_exception
+ *
+ * Creates a new instance of a specific errno exception class.
+ * The optional message parameter provides additional context.
+ *
+ *   Errno::ENOENT.new                    #=> #<Errno::ENOENT: No such file or directory>
+ *   Errno::ENOENT.new("custom message")  #=> #<Errno::ENOENT: No such file or directory - custom message>
+ */
 static mrb_value
 mrb_exxx_init(mrb_state *mrb, mrb_value self)
 {
@@ -233,6 +212,21 @@ mrb_exxx_init(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ * call-seq:
+ *   SystemCallError.new(message)           -> system_call_error
+ *   SystemCallError.new(errno)             -> system_call_error
+ *   SystemCallError.new(message, errno)    -> system_call_error
+ *
+ * Creates a new SystemCallError exception. Can be called with:
+ * - A message string only
+ * - An errno number only
+ * - Both a message string and errno number
+ *
+ *   SystemCallError.new("custom error")     #=> #<SystemCallError: custom error>
+ *   SystemCallError.new(2)                  #=> #<SystemCallError: No such file or directory>
+ *   SystemCallError.new("failed", 2)        #=> #<SystemCallError: No such file or directory - failed>
+ */
 static mrb_value
 mrb_sce_init_m(mrb_state *mrb, mrb_value self)
 {
@@ -255,6 +249,19 @@ mrb_sce_init_m(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ * call-seq:
+ *   system_call_error.errno -> integer or nil
+ *
+ * Returns the errno number associated with this SystemCallError.
+ * Returns nil if no errno was set.
+ *
+ *   begin
+ *     File.open("/nonexistent")
+ *   rescue SystemCallError => e
+ *     e.errno  #=> 2 (ENOENT)
+ *   end
+ */
 static mrb_value
 mrb_sce_errno(mrb_state *mrb, mrb_value self)
 {
@@ -272,16 +279,24 @@ mrb_sce_errno(mrb_state *mrb, mrb_value self)
   }
 }
 
+/*
+ * call-seq:
+ *   SystemCallError._sys_fail(errno, message = nil)
+ *
+ * Internal method that raises a SystemCallError with the given errno
+ * and optional message. This method does not return as it raises an exception.
+ *
+ *   SystemCallError._sys_fail(2)              # raises Errno::ENOENT
+ *   SystemCallError._sys_fail(2, "failed")    # raises Errno::ENOENT with message
+ */
 static mrb_value
 mrb_sce_sys_fail(mrb_state *mrb, mrb_value cls)
 {
-  struct RClass *sce;
   mrb_value msg, no;
-  mrb_int argc;
 
   mrb->c->ci->mid = 0;
-  sce = mrb_class_ptr(cls);
-  argc = mrb_get_args(mrb, "o|S", &no, &msg);
+  struct RClass *sce = mrb_class_ptr(cls);
+  mrb_int argc = mrb_get_args(mrb, "o|S", &no, &msg);
 
   struct RBasic* e = mrb_obj_alloc(mrb, MRB_TT_EXCEPTION, sce);
   mrb_value exc = mrb_obj_value(e);
@@ -299,7 +314,7 @@ mrb_mruby_errno_gem_init(mrb_state *mrb)
   struct RClass *sce = mrb_define_class_id(mrb, MRB_SYM(SystemCallError), E_STANDARD_ERROR);
   mrb_define_class_method_id(mrb, sce, MRB_SYM(_sys_fail), mrb_sce_sys_fail, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, sce, MRB_SYM(errno), mrb_sce_errno, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, sce, MRB_SYM(initialize), mrb_sce_init_m, MRB_ARGS_ARG(1, 1));
+  mrb_define_method_id(mrb, sce, MRB_SYM(initialize), mrb_sce_init_m, MRB_ARGS_OPT(2));
 
   struct RClass *eno = mrb_define_module_id(mrb, MRB_SYM(Errno));
   mrb_define_class_method_id(mrb, eno, MRB_SYM_Q(__errno_defined), mrb_errno_defined_p, MRB_ARGS_REQ(1));

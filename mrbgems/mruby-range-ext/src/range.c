@@ -1,5 +1,7 @@
 #include <mruby.h>
 #include <mruby/range.h>
+#include <mruby/class.h>
+#include <mruby/internal.h>
 #include <mruby/presym.h>
 
 static mrb_bool
@@ -19,14 +21,14 @@ r_less(mrb_state *mrb, mrb_value a, mrb_value b, mrb_bool excl)
 
 /*
  *  call-seq:
- *     rng.cover?(obj)  ->  true or false
+ *     rng.cover?(obj)   -> true or false
  *     rng.cover?(range) -> true or false
  *
- *  Returns +true+ if the given argument is within +self+, +false+ otherwise.
+ *  Returns true if the given argument is within self, false otherwise.
  *
- *  With non-range argument +object+, evaluates with <tt><=</tt> and <tt><</tt>.
+ *  With non-range argument object, evaluates with <= and <.
  *
- *  For range +self+ with included end value (<tt>#exclude_end? == false</tt>),
+ *  For range self with included end value (exclude_end? == false),
  *  evaluates thus:
  *
  *    self.begin <= object <= self.end
@@ -193,6 +195,13 @@ range_size(mrb_state *mrb, mrb_value range)
 }
 #endif /* MRB_NO_FLOAT */
 
+/*
+ * Internal helper method to check if a range would be empty given
+ * the specified begin, end, and exclude_end parameters.
+ * Returns true if the range would be empty, false otherwise.
+ * Used internally by overlap? and other range methods.
+ */
+
 static mrb_value
 range_empty_p(mrb_state *mrb, mrb_value range)
 {
@@ -207,14 +216,18 @@ range_empty_p(mrb_state *mrb, mrb_value range)
   return mrb_bool_value(comp == -2 || comp > 0 || (comp == 0 && excl));
 }
 
+static const mrb_mt_entry range_ext_rom_entries[] = {
+  MRB_MT_ENTRY(range_cover,   MRB_SYM_Q(cover), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(range_size,    MRB_SYM(size),          MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(range_empty_p, MRB_SYM_Q(__empty_range), MRB_ARGS_REQ(3)),
+};
+
 void
 mrb_mruby_range_ext_gem_init(mrb_state* mrb)
 {
   struct RClass *s = mrb->range_class;
 
-  mrb_define_method_id(mrb, s, MRB_SYM_Q(cover), range_cover, MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, s, MRB_SYM(size), range_size,  MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, s, MRB_SYM_Q(__empty_range), range_empty_p,  MRB_ARGS_REQ(3));
+  MRB_MT_INIT_ROM(mrb, s, range_ext_rom_entries);
 }
 
 void

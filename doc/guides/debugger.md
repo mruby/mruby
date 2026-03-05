@@ -52,7 +52,7 @@ To invoke the mruby debugger, just type `mrdb`.
 To specify the script file:
 
 ```bash
-$ mrdb [option] file name
+$ mrdb [option] filename
 ```
 
 For example: Debugging sample.rb
@@ -121,7 +121,7 @@ Be aware that the breakpoint command will not check the validity of the class na
 
 You can get the current breakpoint information by the following options.
 
-breakpoint breakpoint number : file name. line number
+breakpoint breakpoint number : filename. line number
 
 breakpoint breakpoint number : [class name,] method name
 
@@ -267,7 +267,7 @@ Example:
 ```
 (sample.rb:1) info breakpoints
 Num     Type           Enb What
-1       breakpoint     y   at sample.rb:3                      -> file name,line number
+1       breakpoint     y   at sample.rb:3                      -> filename,line number
 2       breakpoint     n   in Sample_class:sample_class_method -> [class:]method name
 3       breakpoint     y   in sample_global_method
 ```
@@ -301,11 +301,11 @@ When you do not specify both the `first` and `last` options, you will receive th
 Example:
 
 ```
-Specifying file name and first row number
+Specifying filename and first row number
 sample.rb:1) list sample2.rb:5
 ```
 
-Specifying the file name and the first and last row number:
+Specifying the filename and the first and last row number:
 
 ```
 (sample.rb:1) list sample2.rb:6,7

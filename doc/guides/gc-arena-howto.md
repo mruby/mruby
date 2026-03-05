@@ -96,54 +96,31 @@ In mruby, C function calls are surrounded by this save/restore, but we
 can further optimize memory usage by surrounding save/restore, and can
 avoid creating arena overflow bugs.
 
-Let's take a real example. Here is the source code of `Array#inspect`:
+Let's take a real example. Here is the source code of `Array#inspect`
+(from `src/array.c`):
 
 ```c
 static mrb_value
-inspect_ary(mrb_state *mrb, mrb_value ary, mrb_value list)
+mrb_ary_to_s(mrb_state *mrb, mrb_value self)
 {
-  mrb_int i;
-  mrb_value s, arystr;
-  char head[] = { '[' };
-  char sep[] = { ',', ' ' };
-  char tail[] = { ']' };
-
-  /* check recursive */
-  for (i=0; i<RARRAY_LEN(list); i++) {
-    if (mrb_obj_equal(mrb, ary, RARRAY_PTR(list)[i])) {
-      return mrb_str_new(mrb, "[...]", 5);
-    }
+  mrb->c->ci->mid = MRB_SYM(inspect);
+  mrb_value ret = mrb_str_new_lit(mrb, "[");
+  int ai = mrb_gc_arena_save(mrb);
+  if (MRB_RECURSIVE_UNARY_P(mrb, MRB_SYM(inspect), self)) {
+    mrb_str_cat_lit(mrb, ret, "...]");
+    return ret;
   }
-
-  mrb_ary_push(mrb, list, ary);
-
-  arystr = mrb_str_new_capa(mrb, 64);
-  mrb_str_cat(mrb, arystr, head, sizeof(head));
-
-  for (i=0; i<RARRAY_LEN(ary); i++) {
-    int ai = mrb_gc_arena_save(mrb);
-
-    if (i > 0) {
-      mrb_str_cat(mrb, arystr, sep, sizeof(sep));
-    }
-    if (mrb_array_p(RARRAY_PTR(ary)[i])) {
-      s = inspect_ary(mrb, RARRAY_PTR(ary)[i], list);
-    }
-    else {
-      s = mrb_inspect(mrb, RARRAY_PTR(ary)[i]);
-    }
-    mrb_str_cat(mrb, arystr, RSTRING_PTR(s), RSTRING_LEN(s));
+  for (mrb_int i=0; i<RARRAY_LEN(self); i++) {
+    if (i>0) mrb_str_cat_lit(mrb, ret, ", ");
+    mrb_str_cat_str(mrb, ret, mrb_inspect(mrb, RARRAY_PTR(self)[i]));
     mrb_gc_arena_restore(mrb, ai);
   }
+  mrb_str_cat_lit(mrb, ret, "]");
 
-  mrb_str_cat(mrb, arystr, tail, sizeof(tail));
-  mrb_ary_pop(mrb, list);
-
-  return arystr;
+  return ret;
 }
 ```
 
-This is a real example, so slightly complicated, but bear with me.
 The essence of `Array#inspect` is that after stringifying each element
 of array using `inspect` method, we join them together so that we can
 get `inspect` representation of the entire array.
@@ -152,7 +129,7 @@ After the `inspect` representation is created, we no longer require the
 individual string representation. This means that we don't have to register
 these temporal objects into GC arena.
 
-Therefore, in order to keep the arena size small; the `ary_inspect()` function
+Therefore, in order to keep the arena size small; the function
 will do the following:
 
 - save the position of the stack top using `mrb_gc_arena_save()`.
@@ -166,7 +143,7 @@ required temporal object may be deleted by GC.
 
 We may have an usecase where after creating many temporal objects, we'd
 like to keep some of them. In this case, we cannot use the same idea
-in `ary_inspect()` like appending objects to existing one.
+in `mrb_ary_to_s()` like appending objects to existing one.
 Instead, after `mrb_gc_arena_restore()`, we must re-register the objects we
 want to keep in the arena using `mrb_gc_protect(mrb, obj)`.
 Use `mrb_gc_protect()` with caution because it could also lead to an "arena

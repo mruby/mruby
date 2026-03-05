@@ -1,6 +1,8 @@
 #include <mruby.h>
 #include <mruby/numeric.h>
 #include <mruby/array.h>
+#include <mruby/string.h>
+#include <mruby/class.h>
 #include <mruby/internal.h>
 #include <mruby/presym.h>
 
@@ -10,9 +12,43 @@ static mrb_value flo_remainder(mrb_state *mrb, mrb_value self);
 
 /*
  *  call-seq:
+ *     int.bit_length -> integer
+ *
+ *  Returns the number of bits of the absolute value of self in binary representation.
+ *  For zero, returns 0. For negative integers, behaves as (~self).bit_length
+ *  (e.g., (-1).bit_length => 0, (-2).bit_length => 1).
+ */
+static mrb_value
+int_bit_length(mrb_state *mrb, mrb_value self)
+{
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(self)) {
+    mrb_int sign = mrb_bint_sign(mrb, self);
+    if (sign == 0) return mrb_fixnum_value(0);
+    mrb_value v = self;
+    if (sign < 0) v = mrb_bint_rev(mrb, self); /* ~self = -self-1 */
+    mrb_value s = mrb_bint_to_s(mrb, v, 2);
+    return mrb_int_value(mrb, (mrb_int)RSTRING_LEN(s));
+  }
+#endif
+  mrb_int x = mrb_integer(self);
+  if (x == 0) return mrb_fixnum_value(0);
+
+  /* for negative fixnums, use ~x */
+  mrb_uint ux = (mrb_uint)(x < 0 ? ~x : x);
+  mrb_int bits = 0;
+  while (ux) {
+    bits++;
+    ux >>= 1;
+  }
+  return mrb_int_value(mrb, bits);
+}
+
+/*
+ *  call-seq:
  *     num.remainder(numeric)  ->  real
  *
- *  <code>x.remainder(y)</code> means <code>x-y*(x/y).truncate</code>.
+ *  `x.remainder(y)` means `x-y*(x/y).truncate`.
  *
  *  See Numeric#divmod.
  */
@@ -46,6 +82,94 @@ int_remainder(mrb_state *mrb, mrb_value x)
 
 mrb_value mrb_int_pow(mrb_state *mrb, mrb_value x, mrb_value y);
 
+static mrb_int
+mrb_int_gcd(mrb_int x, mrb_int y)
+{
+  if (x < 0) x = -x;
+  if (y < 0) y = -y;
+
+  while (y != 0) {
+    mrb_int temp = y;
+    y = x % y;
+    x = temp;
+  }
+
+  return x;
+}
+
+/*
+ * call-seq:
+ *     int.gcd(other_int)  ->  integer
+ *
+ * Returns the greatest common divisor of the two integers.
+ * The result is always positive.
+ */
+static mrb_value
+int_gcd(mrb_state *mrb, mrb_value x)
+{
+  mrb_value y = mrb_get_arg1(mrb);
+
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x) || mrb_bigint_p(y)) {
+    if (!mrb_integer_p(y) && !mrb_bigint_p(y)) {
+      mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %Y into Integer", y);
+    }
+    if (!mrb_bigint_p(x)) x = mrb_bint_new_int(mrb, mrb_integer(x));
+    if (!mrb_bigint_p(y)) y = mrb_bint_new_int(mrb, mrb_integer(y));
+    return mrb_bint_gcd(mrb, x, y);
+  }
+#endif
+
+  if (!mrb_integer_p(y)) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %Y into Integer", y);
+  }
+  return mrb_int_value(mrb, mrb_int_gcd(mrb_integer(x), mrb_integer(y)));
+}
+
+/*
+ * call-seq:
+ *     int.lcm(other_int)  ->  integer
+ *
+ * Returns the least common multiple of the two integers.
+ * The result is always positive.
+ */
+static mrb_value
+int_lcm(mrb_state *mrb, mrb_value x)
+{
+  mrb_value y = mrb_get_arg1(mrb);
+  mrb_int a, b, gcd_val;
+
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x) || mrb_bigint_p(y)) {
+    if (!mrb_integer_p(y) && !mrb_bigint_p(y)) {
+      mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %Y into Integer", y);
+    }
+    if (!mrb_bigint_p(x)) x = mrb_bint_new_int(mrb, mrb_integer(x));
+    if (!mrb_bigint_p(y)) y = mrb_bint_new_int(mrb, mrb_integer(y));
+    return mrb_bint_lcm(mrb, x, y);
+  }
+#endif
+
+  if (!mrb_integer_p(y)) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %Y into Integer", y);
+  }
+
+  a = mrb_integer(x);
+  b = mrb_integer(y);
+
+  if (a == 0 || b == 0) return mrb_int_value(mrb, 0);
+
+  gcd_val = mrb_int_gcd(a, b);
+  if (a < 0) a = -a;
+  if (b < 0) b = -b;
+
+  mrb_int lcm_val;
+  if (mrb_int_mul_overflow(a / gcd_val, b, &lcm_val)) {
+    mrb_int_overflow(mrb, "lcm");
+  }
+  return mrb_int_value(mrb, lcm_val);
+}
+
 /*
  * call-seq:
  *    integer.pow(numeric)           ->  numeric
@@ -61,6 +185,7 @@ int_powm(mrb_state *mrb, mrb_value x)
 {
   mrb_value m, e;
   mrb_int exp, mod, result = 1;
+  mrb_bool neg_mod = FALSE;
 
   if (mrb_get_argc(mrb) == 1) {
     return mrb_int_pow(mrb, x, mrb_get_arg1(mrb));
@@ -85,10 +210,19 @@ int_powm(mrb_state *mrb, mrb_value x)
   if (exp < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "int.pow(n,m): n must be positive");
   if (!mrb_integer_p(m)) mrb_raise(mrb, E_TYPE_ERROR, "int.pow(n,m): m must be integer");
   mod = mrb_integer(m);
-  if (mod < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "int.pow(n,m): m must be positive when 2nd argument specified");
   if (mod == 0) mrb_int_zerodiv(mrb);
+  if (mod < 0) {
+    neg_mod = TRUE;
+    mod = -mod;
+  }
   if (mod == 1) return mrb_fixnum_value(0);
+
+  /* Early return for zero base with positive exponent */
   mrb_int base = mrb_integer(x);
+  if (base == 0 && exp > 0) {
+    return mrb_fixnum_value(0);
+  }
+
   for (;;) {
     mrb_int tmp;
     if (exp & 1) {
@@ -118,6 +252,12 @@ int_powm(mrb_state *mrb, mrb_value x)
     }
     base = tmp % mod;
   }
+
+  /* Apply signed modulo adjustment for negative modulus */
+  /* Ruby: result + m for non-zero result when m is negative */
+  if (neg_mod && result != 0) {
+    result = result - mod;  /* result - |m| = result + m (since m is negative) */
+  }
   return mrb_int_value(mrb, result);
 }
 
@@ -125,15 +265,15 @@ int_powm(mrb_state *mrb, mrb_value x)
  *  call-seq:
  *    digits(base = 10) -> array_of_integers
  *
- *  Returns an array of integers representing the +base+-radix
- *  digits of +self+;
+ *  Returns an array of integers representing the `base`-radix
+ *  digits of `self`;
  *  the first element of the array represents the least significant digit:
  *
  *    12345.digits      # => [5, 4, 3, 2, 1]
  *    12345.digits(7)   # => [4, 6, 6, 0, 5]
  *    12345.digits(100) # => [45, 23, 1]
  *
- *  Raises an exception if +self+ is negative or +base+ is less than 2.
+ *  Raises an exception if `self` is negative or `base` is less than 2.
  *
  */
 
@@ -227,6 +367,12 @@ int_size(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value((mrb_int)size);
 }
 
+/*
+ *  call-seq:
+ *    int.even? -> true or false
+ *
+ *  Returns `true` if `int` is an even number.
+ */
 static mrb_value
 int_even(mrb_state *mrb, mrb_value self)
 {
@@ -240,6 +386,12 @@ int_even(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(mrb_integer(self) % 2 == 0);
 }
 
+/*
+ *  call-seq:
+ *    int.odd? -> true or false
+ *
+ *  Returns `true` if `int` is an odd number.
+ */
 static mrb_value
 int_odd(mrb_state *mrb, mrb_value self)
 {
@@ -249,6 +401,14 @@ int_odd(mrb_state *mrb, mrb_value self)
 }
 
 #ifndef MRB_NO_FLOAT
+/*
+ *  call-seq:
+ *     num.remainder(numeric)  ->  real
+ *
+ *  `x.remainder(y)` means `x-y*(x/y).truncate`.
+ *
+ *  See Numeric#divmod.
+ */
 static mrb_value
 flo_remainder(mrb_state *mrb, mrb_value self)
 {
@@ -262,6 +422,11 @@ flo_remainder(mrb_state *mrb, mrb_value self)
 }
 #endif
 
+/*
+ * Integer square root implementation using the Babylonian method.
+ * This is an efficient integer-only algorithm to find the largest
+ * integer `x` such that `x*x <= n`.
+ */
 static mrb_int
 isqrt(mrb_int n)
 {
@@ -280,6 +445,19 @@ isqrt(mrb_int n)
   return x;
 }
 
+/*
+ *  call-seq:
+ *    Integer.sqrt(n) -> integer
+ *
+ *  Returns the integer square root of the non-negative integer `n`,
+ *  which is the largest integer `i` such that `i*i <= n`.
+ *
+ *    Integer.sqrt(0)    # => 0
+ *    Integer.sqrt(1)    # => 1
+ *    Integer.sqrt(24)   # => 4
+ *    Integer.sqrt(25)   # => 5
+ *    Integer.sqrt(10**40) # => 10**20
+ */
 static mrb_value
 int_sqrt(mrb_state *mrb, mrb_value self)
 {
@@ -302,19 +480,26 @@ int_sqrt(mrb_state *mrb, mrb_value self)
   }
 }
 
+static const mrb_mt_entry integer_ext_rom_entries[] = {
+  MRB_MT_ENTRY(int_remainder,  MRB_SYM(remainder), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(int_powm,       MRB_SYM(pow), MRB_ARGS_ARG(1,1)),
+  MRB_MT_ENTRY(int_digits,     MRB_SYM(digits), MRB_ARGS_OPT(1)),
+  MRB_MT_ENTRY(int_size,       MRB_SYM(size),    MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(int_bit_length, MRB_SYM(bit_length), MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(int_odd,        MRB_SYM_Q(odd),   MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(int_even,       MRB_SYM_Q(even),  MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(int_gcd,        MRB_SYM(gcd), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(int_lcm,        MRB_SYM(lcm), MRB_ARGS_REQ(1)),
+};
+
+
 void
 mrb_mruby_numeric_ext_gem_init(mrb_state* mrb)
 {
   struct RClass *ic = mrb->integer_class;
 
   mrb_define_alias_id(mrb, ic, MRB_SYM(modulo), MRB_OPSYM(mod));
-  mrb_define_method_id(mrb, ic, MRB_SYM(remainder), int_remainder, MRB_ARGS_REQ(1));
-
-  mrb_define_method_id(mrb, ic, MRB_SYM(pow), int_powm, MRB_ARGS_ARG(1,1));
-  mrb_define_method_id(mrb, ic, MRB_SYM(digits), int_digits, MRB_ARGS_OPT(1));
-  mrb_define_method_id(mrb, ic, MRB_SYM(size), int_size, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, ic, MRB_SYM_Q(odd), int_odd, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, ic, MRB_SYM_Q(even), int_even, MRB_ARGS_NONE());
+  MRB_MT_INIT_ROM(mrb, ic, integer_ext_rom_entries);
   mrb_define_class_method_id(mrb, ic, MRB_SYM(sqrt), int_sqrt, MRB_ARGS_REQ(1));
 
 #ifndef MRB_NO_FLOAT

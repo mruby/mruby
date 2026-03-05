@@ -119,12 +119,12 @@ mrb_int_mul_overflow(mrb_int a, mrb_int b, mrb_int *c)
   *c = (mrb_int)n;
   return n > MRB_INT_MAX || n < MRB_INT_MIN;
 #else /* MRB_INT64 */
+  *c = a * b;
   if (a > 0 && b > 0 && a > MRB_INT_MAX / b) return TRUE;
   if (a < 0 && b > 0 && a < MRB_INT_MIN / b) return TRUE;
   if (a > 0 && b < 0 && b < MRB_INT_MIN / a) return TRUE;
   if (a < 0 && b < 0 && (a <= MRB_INT_MIN || b <= MRB_INT_MIN || -a > MRB_INT_MAX / -b))
     return TRUE;
-  *c = a * b;
   return FALSE;
 #endif
 }

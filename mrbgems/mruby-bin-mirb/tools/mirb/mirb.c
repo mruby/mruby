@@ -24,115 +24,82 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
-
 #include <signal.h>
-#include <setjmp.h>
+
+#ifdef _WIN32
+#include <io.h>
+#define isatty(fd) _isatty(fd)
+#else
+#include <unistd.h>
+#endif
+
+#include "mirb_editor.h"
+#include "mirb_completion.h"
+#include "mirb_highlight.h"
 
 /* obsolete configuration */
-#ifdef ENABLE_READLINE
-# define MRB_USE_READLINE
-#endif
-#ifdef ENABLE_LINENOISE
-# define MRB_USE_LINENOISE
-#endif
 #ifdef DISABLE_MIRB_UNDERSCORE
 # define MRB_NO_MIRB_UNDERSCORE
 #endif
 
-#ifdef MRB_USE_READLINE
-#include MRB_READLINE_HEADER
-#include MRB_READLINE_HISTORY
-#define MIRB_ADD_HISTORY(line) add_history(line)
-#define MIRB_READLINE(ch) readline(ch)
-#if !defined(RL_READLINE_VERSION) || RL_READLINE_VERSION < 0x600
-/* libedit & older readline do not have rl_free() */
-#define MIRB_LINE_FREE(line) free(line)
-#else
-#define MIRB_LINE_FREE(line) rl_free(line)
-#endif
-#define MIRB_WRITE_HISTORY(path) write_history(path)
-#define MIRB_READ_HISTORY(path) read_history(path)
-#define MIRB_USING_HISTORY() using_history()
-#elif defined(MRB_USE_LINENOISE)
-#define MRB_USE_READLINE
-#include <linenoise.h>
-#define MIRB_ADD_HISTORY(line) linenoiseHistoryAdd(line)
-#define MIRB_READLINE(ch) linenoise(ch)
-#define MIRB_LINE_FREE(line) linenoiseFree(line)
-#define MIRB_WRITE_HISTORY(path) linenoiseHistorySave(path)
-#define MIRB_READ_HISTORY(path) linenoiseHistoryLoad(history_path)
-#define MIRB_USING_HISTORY()
-#endif
-
-#if !defined(_WIN32) && defined(_POSIX_C_SOURCE)
-#define MIRB_SIGSETJMP(env) sigsetjmp(env, 1)
-#define MIRB_SIGLONGJMP(env, val) siglongjmp(env, val)
-#define SIGJMP_BUF sigjmp_buf
-#else
-#define MIRB_SIGSETJMP(env) setjmp(env)
-#define MIRB_SIGLONGJMP(env, val) longjmp(env, val)
-#define SIGJMP_BUF jmp_buf
-#endif
-
-#ifdef MRB_USE_READLINE
-
-static const char history_file_name[] = ".mirb_history";
-
-static char *
-get_history_path(mrb_state *mrb)
+static void
+p(mrb_state *mrb, mrb_value obj, mirb_highlighter *hl)
 {
-  char *path = NULL;
-  const char *home = getenv("HOME");
-
-#ifdef _WIN32
-  if (home != NULL) {
-    home = getenv("USERPROFILE");
+  mrb_value val = mrb_funcall_argv(mrb, obj, MRB_SYM(inspect), 0, NULL);
+  if (mrb->exc) {
+    val = mrb_exc_get_output(mrb, mrb->exc);
   }
-#endif
+  if (!mrb_string_p(val)) {
+    val = mrb_obj_as_string(mrb, obj);
+  }
+  char* msg = mrb_locale_from_utf8(RSTRING_PTR(val), (int)RSTRING_LEN(val));
+  mirb_highlight_print_result(hl, msg);
+  mrb_locale_free(msg);
+}
 
-  if (home != NULL) {
-    int len = snprintf(NULL, 0, "%s/%s", home, history_file_name);
-    if (len >= 0) {
-      size_t size = len + 1;
-      path = (char*)mrb_malloc_simple(mrb, size);
-      if (path != NULL) {
-        int n = snprintf(path, size, "%s/%s", home, history_file_name);
-        if (n != len) {
-          mrb_free(mrb, path);
-          path = NULL;
+static void
+p_error(mrb_state *mrb, struct RObject* exc, mrb_ccontext *cxt, mirb_highlighter *hl)
+{
+  mrb_value val = mrb_exc_get_output(mrb, exc);
+  if (!mrb_string_p(val)) {
+    val = mrb_obj_as_string(mrb, val);
+  }
+
+  /* get first line of backtrace for location info */
+  mrb_value bt = mrb_exc_backtrace(mrb, mrb_obj_value(exc));
+  if (mrb_array_p(bt) && RARRAY_LEN(bt) > 0) {
+    mrb_value location = RARRAY_PTR(bt)[0];
+    if (mrb_string_p(location)) {
+      const char *loc_str = RSTRING_PTR(location);
+
+      /* parse location string: "(mirb):LINE" or "(mirb):LINE:in method" */
+      const char *colon = strchr(loc_str, ':');
+      if (colon && colon[1] >= '0' && colon[1] <= '9') {
+        /* check if there's a method name - this means error is from previous code */
+        const char *in_pos = strstr(colon + 1, ":in ");
+        if (in_pos) {
+          /* error inside a previously defined method */
+          char* loc_msg = mrb_locale_from_utf8(in_pos, (int)RSTRING_LEN(location) - (int)(in_pos - loc_str));
+          printf("(mirb)%s: ", loc_msg);
+          mrb_locale_free(loc_msg);
+        }
+        else {
+          /* no method name - could be current or previous top-level code */
+          int err_line = atoi(colon + 1);
+          if (err_line >= cxt->lineno) {
+            /* error in current input - show relative line number */
+            int relative_line = err_line - cxt->lineno + 1;
+            printf("line %d: ", relative_line);
+          }
+          /* else: error from top-level previous code, no location shown */
         }
       }
     }
   }
 
-  return path;
-}
-
-#endif
-
-static void
-p(mrb_state *mrb, mrb_value obj, int prompt)
-{
-  mrb_value val;
-  char* msg;
-
-  val = mrb_funcall_argv(mrb, obj, MRB_SYM(inspect), 0, NULL);
-  if (prompt) {
-    if (!mrb->exc) {
-      fputs(" => ", stdout);
-    }
-    else {
-      val = mrb_funcall_id(mrb, mrb_obj_value(mrb->exc), MRB_SYM(inspect), 0);
-    }
-  }
-  if (!mrb_string_p(val)) {
-    val = mrb_obj_as_string(mrb, obj);
-  }
-  msg = mrb_locale_from_utf8(RSTRING_PTR(val), (int)RSTRING_LEN(val));
-  fwrite(msg, strlen(msg), 1, stdout);
+  char* msg = mrb_locale_from_utf8(RSTRING_PTR(val), (int)RSTRING_LEN(val));
+  mirb_highlight_print_error(hl, msg);
   mrb_locale_free(msg);
-  putc('\n', stdout);
 }
 
 /* Guess if the user might want to enter more
@@ -344,21 +311,6 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
   return EXIT_SUCCESS;
 }
 
-static void
-cleanup(mrb_state *mrb, struct _args *args)
-{
-  if (args->rfp)
-    fclose(args->rfp);
-  mrb_free(mrb, args->argv);
-  if (args->libc) {
-    while (args->libc--) {
-      mrb_free(mrb, args->libv[args->libc]);
-    }
-    mrb_free(mrb, args->libv);
-  }
-  mrb_close(mrb);
-}
-
 /* Print a short remark for the user */
 static void
 print_hint(void)
@@ -366,20 +318,40 @@ print_hint(void)
   printf("mirb - Embeddable Interactive Ruby Shell\n\n");
 }
 
-#ifndef MRB_USE_READLINE
+/* Extract a specific line from source code */
+static const char*
+extract_line(const char *str, int target_line, size_t *line_len)
+{
+  const char *line_start = str;
+  const char *p = str;
+  int current_line = 1;
+
+  /* skip to target line */
+  while (current_line < target_line && *p) {
+    if (*p == '\n') {
+      current_line++;
+      line_start = p + 1;
+    }
+    p++;
+  }
+
+  /* find line end */
+  const char *line_end = line_start;
+  while (*line_end && *line_end != '\n') {
+    line_end++;
+  }
+
+  *line_len = line_end - line_start;
+  return line_start;
+}
+
 /* Print the command line prompt of the REPL */
 static void
-print_cmdline(int code_block_open)
+print_cmdline(int code_block_open, int line_num)
 {
-  if (code_block_open) {
-    printf("* ");
-  }
-  else {
-    printf("> ");
-  }
+  printf("%d%c ", line_num, code_block_open ? '*' : '>');
   fflush(stdout);
 }
-#endif
 
 static int
 check_keyword(const char *buf, const char *word)
@@ -404,25 +376,62 @@ check_keyword(const char *buf, const char *word)
   return 1;
 }
 
-
-#ifndef MRB_USE_READLINE
 volatile sig_atomic_t input_canceled = 0;
-void
+
+/* Data for completion checker callback */
+typedef struct {
+  mrb_state *mrb;
+  mrb_ccontext *cxt;
+} mirb_check_data;
+
+/* Check if code is syntactically complete (for multi-line editor) */
+static mrb_bool
+mirb_check_code_complete(const char *code, void *user_data)
+{
+  mirb_check_data *data = (mirb_check_data *)user_data;
+  struct mrb_parser_state *parser;
+  mrb_bool complete;
+
+  parser = mrb_parser_new(data->mrb);
+  if (parser == NULL) return TRUE;  /* error - accept input */
+
+  parser->s = code;
+  parser->send = code + strlen(code);
+  parser->lineno = data->cxt->lineno;
+  mrb_parser_parse(parser, data->cxt);
+  complete = !is_code_block_open(parser);
+  mrb_parser_free(parser);
+
+  return complete;
+}
+
+/* Tab completion callback for editor */
+static int
+mirb_tab_complete(const char *line, int cursor_pos,
+                  char ***completions_out, int *prefix_len_out,
+                  void *user_data)
+{
+  (void)user_data;
+  return mirb_get_completions(line, cursor_pos, completions_out, prefix_len_out);
+}
+
+/* Free tab completions */
+static void
+mirb_tab_complete_free(char **completions, int count, void *user_data)
+{
+  (void)user_data;
+  mirb_free_completions(completions, count);
+}
+
+static void
 ctrl_c_handler(int signo)
 {
   input_canceled = 1;
 }
-#else
-SIGJMP_BUF ctrl_c_buf;
-void
-ctrl_c_handler(int signo)
-{
-  MIRB_SIGLONGJMP(ctrl_c_buf, 1);
-}
-#endif
 
 #ifndef MRB_NO_MIRB_UNDERSCORE
-void decl_lv_underscore(mrb_state *mrb, mrb_ccontext *cxt)
+static void
+decl_lv_underscore(mrb_state *mrb, mrb_ccontext *cxt)
 {
   struct RProc *proc;
   struct mrb_parser_state *parser;
@@ -446,37 +455,38 @@ main(int argc, char **argv)
 {
   char ruby_code[4096] = { 0 };
   char last_code_line[1024] = { 0 };
-#ifndef MRB_USE_READLINE
   int last_char;
   size_t char_index;
-#else
-  char *history_path;
-  char* line;
-#endif
-  mrb_ccontext *cxt;
+  mirb_editor editor;
+  mirb_check_data check_data;
+  mrb_bool use_editor = FALSE;
+
+  memset(&editor, 0, sizeof(editor));
+  mrb_ccontext *cxt = NULL;
   struct mrb_parser_state *parser;
   mrb_state *mrb;
   mrb_value result;
   struct _args args;
   mrb_value ARGV;
-  int n;
+  int ret = EXIT_SUCCESS;
   int i;
   mrb_bool code_block_open = FALSE;
+  int line_num = 1;
   int ai;
   unsigned int stack_keep = 0;
 
   /* new interpreter instance */
   mrb = mrb_open();
-  if (mrb == NULL) {
-    fputs("Invalid mrb interpreter, exiting mirb\n", stderr);
+  if (MRB_OPEN_FAILURE(mrb)) {
+    mrb_print_error(mrb);  /* handles NULL */
+    mrb_close(mrb);        /* handles NULL */
     return EXIT_FAILURE;
   }
 
-  n = parse_args(mrb, argc, argv, &args);
-  if (n == EXIT_FAILURE) {
-    cleanup(mrb, &args);
+  ret = parse_args(mrb, argc, argv, &args);
+  if (ret == EXIT_FAILURE) {
     usage(argv[0]);
-    return n;
+    goto cleanup;
   }
 
   ARGV = mrb_ary_new_capa(mrb, args.argc);
@@ -490,17 +500,10 @@ main(int argc, char **argv)
   mrb_define_global_const(mrb, "ARGV", ARGV);
   mrb_gv_set(mrb, mrb_intern_lit(mrb, "$DEBUG"), mrb_bool_value(args.debug));
 
-#ifdef MRB_USE_READLINE
-  history_path = get_history_path(mrb);
-  if (history_path == NULL) {
-    fputs("failed to get history path\n", stderr);
-    mrb_close(mrb);
-    return EXIT_FAILURE;
+  /* Query terminal background color before any output */
+  if (isatty(fileno(stdin)) && isatty(fileno(stdout))) {
+    mirb_highlight_query_terminal();
   }
-
-  MIRB_USING_HISTORY();
-  MIRB_READ_HISTORY(history_path);
-#endif
 
   print_hint();
 
@@ -511,13 +514,13 @@ main(int argc, char **argv)
     FILE *lfp = fopen(args.libv[i], "r");
     if (lfp == NULL) {
       printf("Cannot open library file. (%s)\n", args.libv[i]);
-      cleanup(mrb, &args);
-      return EXIT_FAILURE;
+      ret = EXIT_FAILURE;
+      goto cleanup;
     }
     mrb_load_file_cxt(mrb, lfp, cxt);
     fclose(lfp);
     mrb_vm_ci_env_clear(mrb, mrb->c->cibase);
-    mrb_ccontext_cleanup_local_variables(mrb, cxt);
+    mrb_ccontext_cleanup_local_variables(cxt);
   }
 
 #ifndef MRB_NO_MIRB_UNDERSCORE
@@ -528,6 +531,24 @@ main(int argc, char **argv)
   cxt->lineno = 1;
   mrb_ccontext_filename(mrb, cxt, "(mirb)");
   if (args.verbose) cxt->dump_result = TRUE;
+
+  /* Initialize multi-line editor */
+  if (isatty(fileno(stdin)) && mirb_editor_init(&editor)) {
+    use_editor = TRUE;
+    check_data.mrb = mrb;
+    check_data.cxt = cxt;
+    mirb_editor_set_check_complete(&editor, mirb_check_code_complete, &check_data);
+    /* Setup tab completion */
+    mirb_setup_editor_completion(mrb, cxt);
+    mirb_editor_set_tab_complete(&editor, mirb_tab_complete, mirb_tab_complete_free, NULL);
+    /* Enable colored prompts if terminal supports it */
+    if (isatty(fileno(stdout))) {
+      const char *term = getenv("TERM");
+      if (term && strcmp(term, "dumb") != 0 && !getenv("NO_COLOR")) {
+        mirb_editor_set_color(&editor, TRUE);
+      }
+    }
+  }
 
   ai = mrb_gc_arena_save(mrb);
 
@@ -540,62 +561,85 @@ main(int argc, char **argv)
       break;
     }
 
-#ifndef MRB_USE_READLINE
-    print_cmdline(code_block_open);
+    if (use_editor && mirb_editor_supported(&editor)) {
+      /* Use multi-line editor */
+      char *input;
+      mirb_edit_result res;
 
-    signal(SIGINT, ctrl_c_handler);
-    char_index = 0;
-    while ((last_char = getchar()) != '\n') {
-      if (last_char == EOF) break;
-      if (char_index >= sizeof(last_code_line)-2) {
-        fputs("input string too long\n", stderr);
+      mirb_editor_set_prompt_format(&editor, "%d> ", "%d* ", line_num);
+
+      res = mirb_editor_read(&editor, &input);
+
+      if (res == MIRB_EDIT_EOF) {
+        break;
+      }
+      if (res == MIRB_EDIT_INTERRUPT) {
+        puts("^C");
         continue;
       }
-      last_code_line[char_index++] = last_char;
-    }
-    signal(SIGINT, SIG_DFL);
-    if (input_canceled) {
-      ruby_code[0] = '\0';
-      last_code_line[0] = '\0';
-      code_block_open = FALSE;
-      puts("^C");
-      input_canceled = 0;
-      continue;
-    }
-    if (last_char == EOF) {
-      fputs("\n", stdout);
-      break;
-    }
+      if (res != MIRB_EDIT_OK || input == NULL) {
+        continue;
+      }
 
-    last_code_line[char_index++] = '\n';
-    last_code_line[char_index] = '\0';
-#else
-    if (MIRB_SIGSETJMP(ctrl_c_buf) == 0) {
-      ;
+      /* The editor returns complete multi-line input */
+      if (strlen(input) >= sizeof(ruby_code) - 1) {
+        fputs("input string too long\n", stderr);
+        free(input);
+        continue;
+      }
+      strcpy(ruby_code, input);
+      free(input);
+
+      /* Count lines for line number update */
+      {
+        const char *p = ruby_code;
+        while (*p) {
+          if (*p++ == '\n') line_num++;
+        }
+      }
+
+      /* Check for quit/exit commands */
+      if (check_keyword(ruby_code, "quit") || check_keyword(ruby_code, "exit")) {
+        break;
+      }
+
+      /* Skip to evaluation (editor already handles multi-line) */
+      code_block_open = FALSE;
+      goto evaluate;
     }
     else {
-      ruby_code[0] = '\0';
-      last_code_line[0] = '\0';
-      code_block_open = FALSE;
-      puts("^C");
-    }
-    signal(SIGINT, ctrl_c_handler);
-    line = MIRB_READLINE(code_block_open ? "* " : "> ");
-    signal(SIGINT, SIG_DFL);
+      /* Fallback to simple line-by-line input */
+      print_cmdline(code_block_open, line_num);
 
-    if (line == NULL) {
-      printf("\n");
-      break;
+      signal(SIGINT, ctrl_c_handler);
+      char_index = 0;
+      while ((last_char = getchar()) != '\n') {
+        if (last_char == EOF) break;
+        if (char_index >= sizeof(last_code_line)-2) {
+          fputs("input string too long\n", stderr);
+          continue;
+        }
+        last_code_line[char_index++] = last_char;
+      }
+      signal(SIGINT, SIG_DFL);
+      if (input_canceled) {
+        ruby_code[0] = '\0';
+        last_code_line[0] = '\0';
+        code_block_open = FALSE;
+        line_num = 1;
+        puts("^C");
+        input_canceled = 0;
+        continue;
+      }
+      if (last_char == EOF) {
+        fputs("\n", stdout);
+        break;
+      }
+
+      last_code_line[char_index++] = '\n';
+      last_code_line[char_index] = '\0';
     }
-    if (strlen(line) > sizeof(last_code_line)-2) {
-      fputs("input string too long\n", stderr);
-      continue;
-    }
-    strcpy(last_code_line, line);
-    strcat(last_code_line, "\n");
-    MIRB_ADD_HISTORY(line);
-    MIRB_LINE_FREE(line);
-#endif
+    line_num++;
 
   done:
     if (code_block_open) {
@@ -612,6 +656,7 @@ main(int argc, char **argv)
       strcpy(ruby_code, last_code_line);
     }
 
+  evaluate:
     utf8 = mrb_utf8_from_locale(ruby_code, -1);
     if (!utf8) abort();
 
@@ -635,14 +680,38 @@ main(int argc, char **argv)
       if (0 < parser->nwarn) {
         /* warning */
         char* msg = mrb_locale_from_utf8(parser->warn_buffer[0].message, -1);
-        printf("line %d: %s\n", parser->warn_buffer[0].lineno, msg);
+        printf("warning: line %d: %s\n", parser->warn_buffer[0].lineno, msg);
         mrb_locale_free(msg);
       }
       if (0 < parser->nerr) {
         /* syntax error */
+        int err_line = parser->error_buffer[0].lineno;
+        int err_col = parser->error_buffer[0].column;
         char* msg = mrb_locale_from_utf8(parser->error_buffer[0].message, -1);
-        printf("line %d: %s\n", parser->error_buffer[0].lineno, msg);
+
+        /* convert absolute line number to relative line within ruby_code */
+        int relative_line = err_line - cxt->lineno + 1;
+
+        /* show error with line:column (using relative line number) */
+        printf("line %d:%d: %s\n", relative_line, err_col, msg);
+
+        /* show source line and caret if available */
+        if (ruby_code[0] != '\0') {
+          size_t line_len;
+          const char *line_start = extract_line(ruby_code, relative_line, &line_len);
+
+          if (line_len > 0) {
+            printf("  %.*s\n", (int)line_len, line_start);
+            printf("  ");
+            for (int j = 0; j < err_col; j++) {
+              printf(" ");
+            }
+            printf("^\n");
+          }
+        }
+
         mrb_locale_free(msg);
+        line_num = 1;
       }
       else {
         /* generate bytecode */
@@ -672,7 +741,7 @@ main(int argc, char **argv)
         /* did an exception occur? */
         if (mrb->exc) {
           MRB_EXC_CHECK_EXIT(mrb, mrb->exc);
-          p(mrb, mrb_obj_value(mrb->exc), 0);
+          p_error(mrb, mrb->exc, cxt, &editor.highlight);
           mrb->exc = 0;
         }
         else {
@@ -680,25 +749,26 @@ main(int argc, char **argv)
           if (!mrb_respond_to(mrb, result, MRB_SYM(inspect))){
             result = mrb_any_to_s(mrb, result);
           }
-          p(mrb, result, 1);
+          p(mrb, result, &editor.highlight);
 #ifndef MRB_NO_MIRB_UNDERSCORE
           *(mrb->c->ci->stack + 1) = result;
 #endif
         }
+        /* Add to history after evaluation (success or error) */
+        if (use_editor) {
+          mirb_editor_history_add(&editor, ruby_code);
+        }
       }
       ruby_code[0] = '\0';
       last_code_line[0] = '\0';
+      line_num = 1;
       mrb_gc_arena_restore(mrb, ai);
     }
     mrb_parser_free(parser);
     cxt->lineno++;
   }
 
-#ifdef MRB_USE_READLINE
-  MIRB_WRITE_HISTORY(history_path);
-  mrb_free(mrb, history_path);
-#endif
-
+cleanup:
   if (args.rfp) fclose(args.rfp);
   mrb_free(mrb, args.argv);
   if (args.libv) {
@@ -707,8 +777,12 @@ main(int argc, char **argv)
     }
     mrb_free(mrb, args.libv);
   }
-  mrb_ccontext_free(mrb, cxt);
+  if (cxt) mrb_ccontext_free(mrb, cxt);
+  if (use_editor) {
+    mirb_cleanup_completion();
+    mirb_editor_cleanup(&editor);
+  }
   mrb_close(mrb);
 
-  return 0;
+  return ret;
 }

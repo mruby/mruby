@@ -176,7 +176,7 @@ If you need an include path of header file use `search_header_path`:
 fail 'iconv.h not found' unless conf.cc.search_header_path 'iconv.h'
 ```
 
-If you need a full file name of header file use `search_header`:
+If you need a full filename of header file use `search_header`:
 
 ```ruby
 # Searches `iconv.h`.
@@ -261,12 +261,9 @@ end
 
 ### Preallocated Symbols
 
-By far, preallocated symbols are highly compatible with the previous versions, so
-we expect you won't see any problem with them. But just in case you face any
-issue, you can disable preallocated symbols by specifying `conf.disable_presym`.
-
-In the build process, `mrbc` under cross compiling environment will be compiled
-with this configuration.
+Preallocated symbols are always enabled. Symbol IDs used in C source code
+(via `MRB_SYM()` etc.) are resolved to compile-time constants during the
+build process.
 
 ### Mrbgems
 

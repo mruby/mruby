@@ -50,7 +50,7 @@ I hereby place this file and all of FGMP in the public domain.
 
 Thanks to Paul Rouse <par@r-cube.demon.co.uk> for changes to get fgmp
 to work on a 286 MS-DOS compiler, the functions mpz_sqrt and
-mpz_sqrtrem, plus other general bug fixes.
+mpz_sqrtrem, plus other general bugfixes.
 
 Thanks also to Erick Gallesio <eg@kaolin.unice.fr> for a fix
 to mpz_init_set_str

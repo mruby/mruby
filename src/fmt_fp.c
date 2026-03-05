@@ -222,6 +222,12 @@ mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, ch
         f *= *neg_pow;
       }
     }
+    // correct for FP rounding errors in the power-of-10 loop
+    // (e.g. x87 extended precision can leave f >= 10.0)
+    if (f >= 10.0) {
+      f *= 0.1;
+      e++;
+    }
 
     // If the user specified fixed format (fmt == 'f') and e makes the
     // number too big to fit into the available buffer, then we'll
@@ -284,7 +290,9 @@ mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, ch
 
   // Print the digits of the mantissa
   for (int i = 0; i < num_digits; i++,dec--) {
-    int8_t d = (int8_t)((int)f)%10;
+    int8_t d = (int8_t)f;
+    if (d > 9) d = 9;
+    if (d < 0) d = 0;
     *s++ = '0' + d;
     if (dec == 0 && (prec > 0 || alt_form)) {
       *s++ = '.';

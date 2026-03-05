@@ -9,56 +9,15 @@ class Hash
   # ISO 15.2.13.3
   include Enumerable
 
-  ##
-  # call-seq:
-  #   hash == object -> true or false
-  #
-  #  Equality---Two hashes are equal if they each contain the same number
-  #  of keys and if each key-value pair is equal to (according to
-  #  <code>Object#==</code>) the corresponding elements in the other
-  #  hash.
-  #
-  # ISO 15.2.13.4.1
-  def ==(hash)
-    return true if self.equal?(hash)
-    unless Hash === hash
-      return false
-    end
-    return false if self.size != hash.size
-    self.each do |k,v|
-      return false unless hash.key?(k)
-      return false unless self[k] == hash[k]
-    end
-    return true
-  end
 
-  ##
-  # call-seq:
-  #   hash.eql? object -> true or false
-  #
-  # Returns <code>true</code> if <i>hash</i> and <i>other</i> are
-  # both hashes with the same content compared by eql?.
-  #
-  def eql?(hash)
-    return true if self.equal?(hash)
-    unless Hash === hash
-      return false
-    end
-    return false if self.size != hash.size
-    self.each do |k,v|
-      return false unless hash.key?(k)
-      return false unless self[k].eql?(hash[k])
-    end
-    return true
-  end
 
   ##
   # call-seq:
   #   hash.delete(key) -> value or nil
   #   hash.delete(key) {|key| ... } -> object
   #
-  # Delete the element with the key +key+.
-  # Return the value of the element if +key+
+  # Delete the element with the key `key`.
+  # Return the value of the element if `key`
   # was found. Return nil if nothing was
   # found. If a block is given, call the
   # block with the value of the element.
@@ -78,7 +37,7 @@ class Hash
   #   hsh.each                              -> an_enumerator
   #   hsh.each_pair                         -> an_enumerator
   #
-  # Calls the given block for each element of +self+
+  # Calls the given block for each element of `self`
   # and pass the key and value of each element.
   #
   # If no block is given, an enumerator is returned instead.
@@ -93,14 +52,14 @@ class Hash
   #
   # ISO 15.2.13.4.9
   def each(&block)
-    return to_enum :each unless block
+    return to_enum(:each) unless block
 
     keys = self.keys
     vals = self.values
     len = self.size
     i = 0
     while i < len
-      block.call [keys[i], vals[i]]
+      block.call([keys[i], vals[i]])
       i += 1
     end
     self
@@ -111,7 +70,7 @@ class Hash
   #   hsh.each_key {| key | block } -> hsh
   #   hsh.each_key                  -> an_enumerator
   #
-  # Calls the given block for each element of +self+
+  # Calls the given block for each element of `self`
   # and pass the key of each element.
   #
   # If no block is given, an enumerator is returned instead.
@@ -126,9 +85,9 @@ class Hash
   #
   # ISO 15.2.13.4.10
   def each_key(&block)
-    return to_enum :each_key unless block
+    return to_enum(:each_key) unless block
 
-    self.keys.each{|k| block.call(k)}
+    self.keys.each {|k| block.call(k)}
     self
   end
 
@@ -137,7 +96,7 @@ class Hash
   #   hsh.each_value {| value | block } -> self
   #   hsh.each_value                    -> an_enumerator
   #
-  # Calls the given block with each value; returns +self+:
+  # Calls the given block with each value; returns `self`:
   #
   # If no block is given, an enumerator is returned instead.
   #
@@ -151,9 +110,9 @@ class Hash
   #
   # ISO 15.2.13.4.11
   def each_value(&block)
-    return to_enum :each_value unless block
+    return to_enum(:each_value) unless block
 
-    self.values.each{|v| block.call(v)}
+    self.values.each {|v| block.call(v)}
     self
   end
 
@@ -162,10 +121,10 @@ class Hash
   #     hsh.merge(other_hash..)                                 -> hsh
   #     hsh.merge(other_hash..){|key, oldval, newval| block}    -> hsh
   #
-  #  Returns the new \Hash formed by merging each of +other_hashes+
-  #  into a copy of +self+.
+  #  Returns the new \Hash formed by merging each of `other_hashes`
+  #  into a copy of `self`.
   #
-  #  Each argument in +other_hashes+ must be a \Hash.
+  #  Each argument in `other_hashes` must be a \Hash.
   #  Adds the contents of _other_hash_ to _hsh_. If no block is specified,
   #  entries with duplicate keys are overwritten with the values from
   #  _other_hash_, otherwise the value of each duplicate key is determined by
@@ -188,7 +147,7 @@ class Hash
       other = others[i]
       i += 1
       raise TypeError, "Hash required (#{other.class} given)" unless Hash === other
-      other.each_key{|k|
+      other.each_key {|k|
         h[k] = (self.has_key?(k))? block.call(k, self[k], other[k]): other[k]
       }
     end
@@ -200,22 +159,22 @@ class Hash
   #     hsh.reject! {| key, value | block }  -> hsh or nil
   #     hsh.reject!                          -> an_enumerator
   #
-  #  Equivalent to <code>Hash#delete_if</code>, but returns
-  #  <code>nil</code> if no changes were made.
+  #  Equivalent to `Hash#delete_if`, but returns
+  #  `nil` if no changes were made.
   #
   #  1.8/1.9 Hash#reject! returns Hash; ISO says nothing.
   #
   def reject!(&block)
-    return to_enum :reject! unless block
+    return to_enum(:reject!) unless block
 
     keys = []
-    self.each{|k,v|
+    self.each {|k,v|
       if block.call([k, v])
         keys.push(k)
       end
     }
     return nil if keys.size == 0
-    keys.each{|k|
+    keys.each {|k|
       self.delete(k)
     }
     self
@@ -237,10 +196,10 @@ class Hash
   #  1.8/1.9 Hash#reject returns Hash; ISO says nothing.
   #
   def reject(&block)
-    return to_enum :reject unless block
+    return to_enum(:reject) unless block
 
     h = {}
-    self.each{|k,v|
+    self.each {|k,v|
       unless block.call([k, v])
         h[k] = v
       end
@@ -253,22 +212,22 @@ class Hash
   #     hsh.select! {| key, value | block }  -> hsh or nil
   #     hsh.select!                          -> an_enumerator
   #
-  #  Equivalent to <code>Hash#keep_if</code>, but returns
-  #  <code>nil</code> if no changes were made.
+  #  Equivalent to `Hash#keep_if`, but returns
+  #  `nil` if no changes were made.
   #
   #  1.9 Hash#select! returns Hash; ISO says nothing.
   #
   def select!(&block)
-    return to_enum :select! unless block
+    return to_enum(:select!) unless block
 
     keys = []
-    self.each{|k,v|
+    self.each {|k,v|
       unless block.call([k, v])
         keys.push(k)
       end
     }
     return nil if keys.size == 0
-    keys.each{|k|
+    keys.each {|k|
       self.delete(k)
     }
     self
@@ -290,14 +249,28 @@ class Hash
   #  1.9 Hash#select returns Hash; ISO says nothing
   #
   def select(&block)
-    return to_enum :select unless block
+    return to_enum(:select) unless block
 
     h = {}
-    self.each{|k,v|
+    self.each {|k,v|
       if block.call([k, v])
         h[k] = v
       end
     }
     h
+  end
+
+  ##
+  # call-seq:
+  #   hash.deconstruct_keys(keys) -> hash
+  #
+  # Returns +self+. This method is called by pattern matching to
+  # deconstruct the hash for matching.
+  #
+  # The +keys+ argument is an array of keys the pattern expects,
+  # or +nil+ for exact matching (when +**nil+ is used).
+  #
+  def deconstruct_keys(_keys)
+    self
   end
 end

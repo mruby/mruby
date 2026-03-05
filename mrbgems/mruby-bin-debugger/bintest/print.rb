@@ -2,7 +2,7 @@ require 'open3'
 require 'tempfile'
 require 'strscan'
 
-class BinTest_MrubyBinDebugger
+class BinTest_MRubyBinDebugger
 #  @debug1=false
 #  @debug2=true
   def self.test(rubysource, testcase)
@@ -64,7 +64,7 @@ assert('mruby-bin-debugger(print) invalid arguments') do
   tc = []
   tc << {:cmd=>"p",   :exp=>"Parameter not specified."}
 
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 end
 
 assert('mruby-bin-debugger(print) normal') do
@@ -84,7 +84,7 @@ SRC
   tc << {:cmd=>"s"}
   tc << {:cmd=>"p bar",     :exp=>'$4 = "foofoo"'}
 
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 end
 
 assert('mruby-bin-debugger(print) error') do
@@ -96,7 +96,7 @@ assert('mruby-bin-debugger(print) error') do
   tc << {:cmd=>"p (1+2",  :exp=>'$1 = line 1: syntax error'}
   tc << {:cmd=>"p bar",   :exp=>'$2 = undefined method'}
 
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 end
 
 # Kernel#instance_eval(string) doesn't work multiple statements.
@@ -116,7 +116,7 @@ SRC
   tc << {:cmd=>"s",}
   tc << {:cmd=>"p x",         :exp=>"3"}
 
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 end
 =end
 
@@ -128,7 +128,7 @@ assert('mruby-bin-debugger(print) scope:top') do
   tc = []
   tc << {:cmd=>"p self",  :exp=>'$1 = main'}
 
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 end
 
 assert('mruby-bin-debugger(print) scope:class') do
@@ -144,7 +144,7 @@ SRC
   tc << {:cmd=>"s"}
   tc << {:cmd=>"p self",  :exp=>'$1 = TestClassScope'}
 
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 end
 
 assert('mruby-bin-debugger(print) scope:module') do
@@ -160,7 +160,7 @@ SRC
   tc << {:cmd=>"s"}
   tc << {:cmd=>"p self",  :exp=>'$1 = TestModuleScope'}
 
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 end
 
 assert('mruby-bin-debugger(print) scope:instance method') do
@@ -179,7 +179,7 @@ SRC
   tc << {:cmd=>"r"}
   tc << {:cmd=>"p self",  :exp=>'$1 = #<TestMethodScope:'}
 
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 end
 
 assert('mruby-bin-debugger(print) scope:class method') do
@@ -198,7 +198,7 @@ SRC
   tc << {:cmd=>"r"}
   tc << {:cmd=>"p self",  :exp=>'$1 = TestClassMethodScope'}
 
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 end
 
 assert('mruby-bin-debugger(print) scope:block') do
@@ -231,7 +231,7 @@ SRC
   tc << {:cmd=>"c"}
   tc << {:cmd=>"p self", :exp=>'$3 = #<TestBlockScope:'}
 
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 end
 
 assert('mruby-bin-debugger(print) same name:local variable') do
@@ -261,7 +261,7 @@ SRC
   tc << {:cmd=>"c"}
   tc << {:cmd=>"p lv", :exp=>'$3 = "top"'}
 
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 end
 
 assert('mruby-bin-debugger(print) same name:instance variable') do
@@ -293,7 +293,7 @@ SRC
   tc << {:cmd=>"c"}
   tc << {:cmd=>"p @iv", :exp=>'$3 = "top"'}
 
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 end
 
 # Kernel#instance_eval(string) doesn't work const.
@@ -329,7 +329,7 @@ SRC
   1.times { tc << {:cmd=>"s"} }
   tc << {:cmd=>"p CONST", :exp=>"top"}
 
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 end
 =end
 
@@ -353,7 +353,7 @@ assert('mruby-bin-debugger(print) Literal:Numeric') do
   tc << {:cmd=>"p 1e4",     :exp=>'$11 = 10000'}
   tc << {:cmd=>"p -0.1e-2", :exp=>'$12 = -0.001'}
 
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 end
 
 assert('mruby-bin-debugger(print) Literal:String') do
@@ -394,7 +394,7 @@ SRC
   tc << {:cmd=>'p %q!\\C-a\\C-z!',   :exp=>'$19 = "\\\\C-a\\\\C-z"'}
   tc << {:cmd=>'p %q!#{foo+bar}!',   :exp=>'$20 = "\\#{foo+bar}"'}
 
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 end
 
 assert('mruby-bin-debugger(print) Literal:Array') do
@@ -416,7 +416,7 @@ SRC
   tc << {:cmd=>'p %w[3.14 A\ &\ B #{foo}]', :exp=>'$4 = ["3.14", "A & B", "\#{foo}"]'}
   tc << {:cmd=>'p %W[3.14 A\ &\ B #{foo}]', :exp=>'$5 = ["3.14", "A & B", "foo"]'}
 
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 end
 
 assert('mruby-bin-debugger(print) Literal:Hash') do
@@ -439,7 +439,7 @@ SRC
   tc << {:cmd=>'p {"one"=>1, zwei: 2, tres: 3}',    :exp=>'$5 = {"one" => 1, zwei: 2, tres: 3}'}
   tc << {:cmd=>'p {foo: "#{foo}",bar: "#{bar}"}',   :exp=>'$6 = {foo: "foo", bar: "bar"}'}
 
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 end
 
 assert('mruby-bin-debugger(print) Literal:Range') do
@@ -456,7 +456,7 @@ assert('mruby-bin-debugger(print) Literal:Range') do
   tc << {:cmd=>'p "1" .. "9"',  :exp=>'$5 = "1".."9"'}
   tc << {:cmd=>'p "A" ... "Z"', :exp=>'$6 = "A"..."Z"'}
 
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 end
 
 assert('mruby-bin-debugger(print) Literal:Symbol') do
@@ -479,7 +479,7 @@ SRC
   tc << {:cmd=>'p :"#{foo} baz"', :exp=>'$5 = :"foo baz"'}
   tc << {:cmd=>'p %s!symsym!',    :exp=>'$6 = :symsym'}
 
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 end
 
 assert('mruby-bin-debugger(print) Unary operation') do
@@ -495,7 +495,7 @@ assert('mruby-bin-debugger(print) Unary operation') do
   tc << {:cmd=>'p !nil',   :exp=>'$5 = true'}
   tc << {:cmd=>'p !1',     :exp=>'$6 = false'}
 
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 end
 
 assert('mruby-bin-debugger(print) Binary operation') do
@@ -545,7 +545,7 @@ SRC
   tc << {:cmd=>'p false or true',  :exp=>'$24 = true'}
   tc << {:cmd=>'p false and true', :exp=>'$25 = false'}
 
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 end
 
 assert('mruby-bin-debugger(print) Ternary operation') do
@@ -569,7 +569,7 @@ SRC
   tc << {:cmd=>'p false ? "true" : "false"', :exp=>'$4 = "false"'}
   tc << {:cmd=>'p nil ? "true" : "false"',   :exp=>'$5 = "false"'}
 
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 end
 
 assert('mruby-bin-debugger(print) Substitution:simple') do
@@ -593,7 +593,7 @@ SRC
   tc << {:cmd=>'p undefined=-1',      :exp=>'$3 = -1'}
   tc << {:cmd=>'p "#{undefined}"',    :exp=>'$4 = undefined method'}
 
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 end
 
 assert('mruby-bin-debugger(print) Substitution:self') do
@@ -631,7 +631,7 @@ SRC
   tc << {:cmd=>'p undefined=-1',    :exp=>'$14 = -1'}
   tc << {:cmd=>'p "#{undefined}"',  :exp=>'$15 = undefined method'}
 
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 end
 
 assert('mruby-bin-debugger(print) Substitution:multiple') do
@@ -661,7 +661,7 @@ SRC
 #  tc << {:cmd=>'p a,*b=[123, 456, 789]'}
 #  tc << {:cmd=>'p [a,b]',       :exp=>'[123, [456, 789]]'}
 
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 end
 
 assert('mruby-bin-debugger(print) Substitution:self') do
@@ -699,5 +699,5 @@ SRC
   tc << {:cmd=>'p undefined=-1',    :exp=>'$14 = -1'}
   tc << {:cmd=>'p "#{undefined}"',  :exp=>'$15 = undefined method'}
 
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 end

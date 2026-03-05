@@ -14,7 +14,7 @@
  */
 MRB_BEGIN_DECL
 
-/* offset of `iv` must be 3 words */
+/* offset of `iv` must match struct RObject */
 struct RHash {
   MRB_OBJECT_HEADER;
 #ifdef MRB_64BIT

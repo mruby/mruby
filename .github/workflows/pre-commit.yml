@@ -1,0 +1,20 @@
+# https://github.com/j178/prek
+name: pre-commit
+
+on: [pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  pre-commit:
+    name: Run pre-commit
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v6
+      - uses: j178/prek-action@v1
+        with:
+          extra-args: --all-files
+      - name: Run manual pre-commit hooks
+        run: prek run --color=always --all-files --hook-stage manual

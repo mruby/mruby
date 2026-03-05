@@ -13,6 +13,7 @@ mrb_mruby_io_gem_init(mrb_state* mrb)
   mrb_init_file(mrb); DONE;
   mrb_init_file_test(mrb); DONE;
 }
+#undef DONE
 
 void
 mrb_mruby_io_gem_final(mrb_state* mrb)

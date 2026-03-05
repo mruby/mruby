@@ -7,6 +7,12 @@
 #ifndef MRUBY_VARIABLE_H
 #define MRUBY_VARIABLE_H
 
+#if defined(__GNUC__) || defined(__clang__)
+#define MRB_MEM_PREFETCH(addr) __builtin_prefetch(addr, 0, 1)
+#else
+#define MRB_MEM_PREFETCH(addr)
+#endif
+
 #include "common.h"
 
 /**

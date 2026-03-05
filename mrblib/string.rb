@@ -43,9 +43,9 @@ class String
   end
 
   ##
-  # Replace all matches of +pattern+ with +replacement+.
+  # Replace all matches of `pattern` with `replacement`.
   # Call block (if given) for each match and replace
-  # +pattern+ with the value of the block. Return the
+  # `pattern` with the value of the block. Return the
   # final value.
   #
   # ISO 15.2.10.5.18
@@ -78,10 +78,10 @@ class String
   end
 
   ##
-  # Replace all matches of +pattern+ with +replacement+.
+  # Replace all matches of `pattern` with `replacement`.
   # Call block (if given) for each match and replace
-  # +pattern+ with the value of the block. Modify
-  # +self+ with the final value.
+  # `pattern` with the value of the block. Modify
+  # `self` with the final value.
   #
   # ISO 15.2.10.5.19
   def gsub!(*args, &block)
@@ -93,9 +93,9 @@ class String
   end
 
 #  ##
-#  # Calls the given block for each match of +pattern+
+#  # Calls the given block for each match of `pattern`
 #  # If no block is given return an array with all
-#  # matches of +pattern+.
+#  # matches of `pattern`.
 #  #
 #  # ISO 15.2.10.5.32
 #  def scan(pattern, &block)
@@ -103,9 +103,9 @@ class String
 #  end
 
   ##
-  # Replace only the first match of +pattern+ with
-  # +replacement+. Call block (if given) for each
-  # match and replace +pattern+ with the value of the
+  # Replace only the first match of `pattern` with
+  # `replacement`. Call block (if given) for each
+  # match and replace `pattern` with the value of the
   # block. Return the final value.
   #
   # ISO 15.2.10.5.36
@@ -133,10 +133,10 @@ class String
   end
 
   ##
-  # Replace only the first match of +pattern+ with
-  # +replacement+. Call block (if given) for each
-  # match and replace +pattern+ with the value of the
-  # block. Modify +self+ with the final value.
+  # Replace only the first match of `pattern` with
+  # `replacement`. Call block (if given) for each
+  # match and replace `pattern` with the value of the
+  # block. Modify `self` with the final value.
   #
   # ISO 15.2.10.5.37
   def sub!(*args, &block)
@@ -147,7 +147,7 @@ class String
   end
 
   ##
-  # Call the given block for each byte of +self+.
+  # Call the given block for each byte of `self`.
   def each_byte(&block)
     return to_enum(:each_byte, &block) unless block
     pos = 0

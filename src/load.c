@@ -59,6 +59,95 @@ str_to_double(mrb_state *mrb, const char *p)
 }
 #endif
 
+#define ALIGN_UP(x, a) (((x) + (a) - 1) & ~((size_t)(a) - 1))
+
+/*
+ * Lightweight prescan of pool/syms binary data to learn plen and slen
+ * without allocating. Must stay in sync with the pool/syms parsing
+ * in read_irep_record_1().
+ */
+static mrb_bool
+prescan_pool_syms(const uint8_t *src, const uint8_t *end, uint16_t *plenp, uint16_t *slenp)
+{
+  uint16_t plen;
+  int i;
+
+  if (src + sizeof(uint16_t) > end) return FALSE;
+  plen = bin_to_uint16(src);
+  src += sizeof(uint16_t);
+
+  for (i = 0; i < plen; i++) {
+    if (src >= end) return FALSE;
+    switch (*src++) {
+    case IREP_TT_INT32:
+      src += sizeof(uint32_t);
+      break;
+    case IREP_TT_INT64:
+      src += sizeof(uint32_t) * 2;
+      break;
+    case IREP_TT_BIGINT:
+      if (src >= end) return FALSE;
+      src += bin_to_uint8(src) + 2;
+      break;
+    case IREP_TT_FLOAT:
+      src += sizeof(double);
+      break;
+    case IREP_TT_STR:
+      if (src + sizeof(uint16_t) > end) return FALSE;
+      src += sizeof(uint16_t) + bin_to_uint16(src) + 1;
+      break;
+    default:
+      return FALSE;
+    }
+    if (src > end) return FALSE;
+  }
+
+  if (src + sizeof(uint16_t) > end) return FALSE;
+  *plenp = plen;
+  *slenp = bin_to_uint16(src);
+  return TRUE;
+}
+
+/*
+ * Single consolidated allocation for irep struct + pool + syms + reps arrays.
+ * Memory layout: [mrb_irep] [mrb_irep_pool[plen]] [mrb_irep*[rlen]] [mrb_sym[slen]]
+ * Ordered by descending alignment to minimize inter-array padding.
+ */
+static mrb_irep*
+irep_alloc_consolidated(mrb_state *mrb, uint16_t plen, uint16_t slen, uint16_t rlen)
+{
+  size_t off = sizeof(mrb_irep);
+  size_t pool_off = 0, syms_off = 0, reps_off = 0;
+  uint8_t *block;
+  mrb_irep *irep;
+
+  /* pool (8-byte aligned: contains int64_t/double in union) */
+  if (plen > 0) {
+    pool_off = ALIGN_UP(off, 8);
+    off = pool_off + sizeof(mrb_irep_pool) * plen;
+  }
+  /* reps (pointer-aligned: naturally follows 8-byte-aligned pool) */
+  if (rlen > 0) {
+    reps_off = ALIGN_UP(off, sizeof(void*));
+    off = reps_off + sizeof(mrb_irep*) * rlen;
+  }
+  /* syms (4-byte aligned: naturally follows pointer-aligned reps) */
+  if (slen > 0) {
+    syms_off = ALIGN_UP(off, sizeof(mrb_sym));
+    off = syms_off + sizeof(mrb_sym) * slen;
+  }
+
+  block = (uint8_t*)mrb_calloc(mrb, 1, off);
+  irep = (mrb_irep*)block;
+  irep->flags = MRB_IREP_CONSOLIDATED;
+  irep->refcnt = 1;
+  if (plen > 0) irep->pool = (const mrb_irep_pool*)(block + pool_off);
+  if (slen > 0) irep->syms = (const mrb_sym*)(block + syms_off);
+  if (rlen > 0) irep->reps = (const struct mrb_irep *const*)(block + reps_off);
+
+  return irep;
+}
+
 static mrb_bool
 read_irep_record_1(mrb_state *mrb, const uint8_t *bin, const uint8_t *end, size_t *len, uint8_t flags, mrb_irep **irepp)
 {
@@ -66,43 +155,58 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, const uint8_t *end, size_
   const uint8_t *src = bin;
   ptrdiff_t diff;
   uint16_t tt, pool_data_len, snl;
+  uint16_t nlocals, nregs, rlen, clen;
+  uint32_t ilen;
   int plen;
   mrb_irep_pool *pool;
   mrb_sym *syms;
+  mrb_irep *irep;
   int ai = mrb_gc_arena_save(mrb);
-  mrb_irep *irep = mrb_add_irep(mrb);
-
-  *irepp = irep;
 
   /* skip record size */
   src += sizeof(uint32_t);
 
-  /* number of local variable */
-  irep->nlocals = bin_to_uint16(src);
+  /* parse header into local variables */
+  nlocals = bin_to_uint16(src);
   src += sizeof(uint16_t);
-
-  /* number of register variable */
-  irep->nregs = bin_to_uint16(src);
+  nregs = bin_to_uint16(src);
   src += sizeof(uint16_t);
-
-  /* number of child irep */
-  irep->rlen = bin_to_uint16(src);
+  rlen = bin_to_uint16(src);
   src += sizeof(uint16_t);
 
   /* Binary Data Section */
   /* ISEQ BLOCK (and CATCH HANDLER TABLE BLOCK) */
-  irep->clen = bin_to_uint16(src);  /* number of catch handler */
+  clen = bin_to_uint16(src);  /* number of catch handler */
   src += sizeof(uint16_t);
-  irep->ilen = bin_to_uint32(src);
+  ilen = bin_to_uint32(src);
   src += sizeof(uint32_t);
+
+  /* prescan pool/syms to learn counts for consolidated allocation */
+  {
+    const uint8_t *pool_start = src;
+    uint16_t pre_plen, pre_slen;
+    if (ilen > 0) {
+      size_t iseq_len;
+      if (SIZE_ERROR_MUL(ilen, sizeof(mrb_code))) return FALSE;
+      iseq_len = sizeof(mrb_code) * ilen +
+                 sizeof(struct mrb_irep_catch_handler) * clen;
+      if (src + iseq_len > end) return FALSE;
+      pool_start = src + iseq_len;
+    }
+    if (!prescan_pool_syms(pool_start, end, &pre_plen, &pre_slen)) return FALSE;
+    irep = irep_alloc_consolidated(mrb, pre_plen, pre_slen, rlen);
+  }
+  *irepp = irep;
+  irep->nlocals = nlocals;
+  irep->nregs = nregs;
+  irep->rlen = rlen;
+  irep->clen = clen;
+  irep->ilen = ilen;
 
   if (irep->ilen > 0) {
     size_t data_len = sizeof(mrb_code) * irep->ilen +
                       sizeof(struct mrb_irep_catch_handler) * irep->clen;
     mrb_static_assert(sizeof(struct mrb_irep_catch_handler) == 13);
-    if (SIZE_ERROR_MUL(irep->ilen, sizeof(mrb_code))) {
-      return FALSE;
-    }
     if (src + data_len > end) return FALSE;
     if ((flags & FLAG_SRC_MALLOC) == 0) {
       irep->iseq = (mrb_code*)src;
@@ -121,10 +225,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, const uint8_t *end, size_
   src += sizeof(uint16_t);
   if (src > end) return FALSE;
   if (plen > 0) {
-    if (SIZE_ERROR_MUL(plen, sizeof(mrb_value))) {
-      return FALSE;
-    }
-    irep->pool = pool = (mrb_irep_pool*)mrb_calloc(mrb, sizeof(mrb_irep_pool), plen);
+    pool = (mrb_irep_pool*)irep->pool; /* in consolidated block */
 
     for (i = 0; i < plen; i++) {
       mrb_bool st = (flags & FLAG_SRC_MALLOC)==0;
@@ -189,7 +290,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, const uint8_t *end, size_
       case IREP_TT_STR:
         pool_data_len = bin_to_uint16(src); /* pool data length */
         src += sizeof(uint16_t);
-        if (src + pool_data_len > end) return FALSE;
+        if (src + pool_data_len + 1 > end) return FALSE;
         if (st) {
           pool[i].tt = (pool_data_len<<2) | IREP_TT_SSTR;
           pool[i].u.str = (const char*)src;
@@ -217,10 +318,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, const uint8_t *end, size_
   src += sizeof(uint16_t);
   if (src > end) return FALSE;
   if (irep->slen > 0) {
-    if (SIZE_ERROR_MUL(irep->slen, sizeof(mrb_sym))) {
-      return FALSE;
-    }
-    irep->syms = syms = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym) * irep->slen);
+    syms = (mrb_sym*)irep->syms; /* in consolidated block */
 
     for (i = 0; i < irep->slen; i++) {
       snl = bin_to_uint16(src);               /* symbol name length */
@@ -231,7 +329,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, const uint8_t *end, size_
         continue;
       }
 
-      if (src + snl > end) return FALSE;
+      if (src + snl + 1 > end) return FALSE;
       if (flags & FLAG_SRC_MALLOC) {
         syms[i] = mrb_intern(mrb, (char*)src, snl);
       }
@@ -263,8 +361,7 @@ read_irep_record(mrb_state *mrb, const uint8_t *bin, const uint8_t *end, size_t 
     return FALSE;
   }
 
-  reps = (mrb_irep**)mrb_calloc(mrb, (*irepp)->rlen, sizeof(mrb_irep*));
-  (*irepp)->reps = (const mrb_irep**)reps;
+  reps = (mrb_irep**)(*irepp)->reps;  /* in consolidated block */
 
   bin += *len;
   for (i=0; i<(*irepp)->rlen; i++) {
@@ -415,27 +512,21 @@ read_debug_record(mrb_state *mrb, const uint8_t *start, const uint8_t *end, mrb_
 static int
 read_section_debug(mrb_state *mrb, const uint8_t *start, size_t size, mrb_irep *irep, uint8_t flags)
 {
-  const uint8_t *bin;
   const uint8_t *end = start + size;
   ptrdiff_t diff;
-  struct rite_section_debug_header *header;
-  uint16_t i;
   size_t len = 0;
   int result;
-  uint16_t filenames_len;
-  mrb_sym *filenames;
-  mrb_value filenames_obj;
 
-  bin = start;
-  header = (struct rite_section_debug_header*)bin;
+  const uint8_t *bin = start;
+  struct rite_section_debug_header *header = (struct rite_section_debug_header*)bin;
   bin += sizeof(struct rite_section_debug_header);
 
-  filenames_len = bin_to_uint16(bin);
+  uint16_t filenames_len = bin_to_uint16(bin);
   bin += sizeof(uint16_t);
   if (bin > end) return MRB_DUMP_GENERAL_FAILURE;
-  filenames_obj = mrb_str_new(mrb, NULL, sizeof(mrb_sym) * (size_t)filenames_len);
-  filenames = (mrb_sym*)RSTRING_PTR(filenames_obj);
-  for (i = 0; i < filenames_len; i++) {
+  mrb_value filenames_obj = mrb_str_new(mrb, NULL, sizeof(mrb_sym) * (size_t)filenames_len);
+  mrb_sym *filenames = (mrb_sym*)RSTRING_PTR(filenames_obj);
+  for (uint16_t i = 0; i < filenames_len; i++) {
     uint16_t f_len = bin_to_uint16(bin);
     bin += sizeof(uint16_t);
     if (bin + f_len > end) {
@@ -470,14 +561,12 @@ static int
 read_lv_record(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, size_t *record_len, mrb_sym const *syms, uint32_t syms_len)
 {
   const uint8_t *bin = start;
-  mrb_sym *lv;
-  ptrdiff_t diff;
-  int i;
 
   if (irep->nlocals == 0) return MRB_DUMP_GENERAL_FAILURE;
-  irep->lv = lv = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym) * (irep->nlocals - 1));
+  mrb_sym *lv = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym) * (irep->nlocals - 1));
+  irep->lv = lv;
 
-  for (i = 0; i + 1 < irep->nlocals; i++) {
+  for (int i = 0; i + 1 < irep->nlocals; i++) {
     uint16_t const sym_idx = bin_to_uint16(bin);
     bin += sizeof(uint16_t);
     if (sym_idx == RITE_LV_NULL_MARK) {
@@ -491,7 +580,7 @@ read_lv_record(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, size_t *rec
     }
   }
 
-  for (i = 0; i < irep->rlen; i++) {
+  for (int i = 0; i < irep->rlen; i++) {
     size_t len;
     int ret;
 
@@ -500,7 +589,7 @@ read_lv_record(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, size_t *rec
     bin += len;
   }
 
-  diff = bin - start;
+  ptrdiff_t diff = bin - start;
   mrb_assert_int_fit(ptrdiff_t, diff, size_t, SIZE_MAX);
   *record_len = (size_t)diff;
 

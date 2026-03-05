@@ -8,7 +8,6 @@ end
 
 MRuby.each_target do |build|
   gensym_task = task(:gensym)
-  next unless build.presym_enabled?
 
   presym = build.presym
 
@@ -42,6 +41,18 @@ MRuby.each_target do |build|
       next if !update && File.exist?(presym.send("#{type}_header_path"))
       presym.send("write_#{type}_header", presyms)
     end
+  end
+
+  # Ensure .o files depend on presym headers being generated.
+  # This is critical when a build's .o files are compiled during another
+  # build's presym scanning chain (before :gensym completes), e.g.:
+  #   - internal sub-builds (mrbc) triggered by their parent build
+  #   - the implicit host build triggered by a cross build needing mrbc
+  prereqs.each_key do |prereq|
+    next unless File.extname(prereq) == build.exts.object
+    next unless prereq.start_with?(build_dir)
+    next if mrbc_build_dir && prereq.start_with?(mrbc_build_dir)
+    file prereq => presym.list_path
   end
 
   gensym_task.enhance([presym.list_path])

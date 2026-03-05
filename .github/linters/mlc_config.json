@@ -1,10 +1,26 @@
 {
+  "retryOn429": true,
+  "retryCount": 3,
+  "aliveStatusCodes": [
+    200,
+    206,
+    502
+  ],
   "ignorePatterns": [
     {
       "pattern": "^https://github.com/mruby/mruby/commit/"
     },
     {
+      "pattern": "^http://jp.rubyist.net/magazine/\\?0034-Enumerable_lz"
+    },
+    {
+      "pattern": "^https://ruby-doc.org/core-2.3.3"
+    },
+    {
       "pattern": "^mailto:"
+    },
+    {
+      "pattern": "^https://www.iso.org/"
     }
   ]
 }

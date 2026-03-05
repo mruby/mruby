@@ -53,10 +53,8 @@ module MRuby
         return if defined?(@bins)  # return if already set up
 
         MRuby::Gem.current = self
-        MRuby::Build::COMMANDS.each do |command|
-          instance_variable_set("@#{command}", @build.send(command).clone)
-        end
-        @linker.run_attrs.each(&:clear)
+        reset_commands # for backward compatibility, reset the commands from the beginning.
+        @build_settings = nil
 
         @rbfiles = Dir.glob("#{@dir}/mrblib/**/*.rb").sort
         @objs = srcs_to_objs("src")
@@ -70,7 +68,10 @@ module MRuby
 
         @requirements = []
         @export_include_paths = []
-        @export_include_paths << "#{dir}/include" if File.directory? "#{dir}/include"
+        # Headers in include/ are for inter-gem use only
+        # Headers in include/export/ are exported to external users via mruby-config
+        export_dir = "#{dir}/include/export"
+        @export_include_paths << export_dir if File.directory?(export_dir)
 
         instance_eval(&@initializer)
 
@@ -95,7 +96,7 @@ module MRuby
 
       def setup_compilers
         (core? ? [@cc, *(@cxx if build.cxx_exception_enabled?)] : compilers).each do |compiler|
-          compiler.define_rules build_dir, @dir, @build.exts.presym_preprocessed if build.presym_enabled?
+          compiler.define_rules build_dir, @dir, @build.exts.presym_preprocessed
           compiler.define_rules build_dir, @dir, @build.exts.object
           compiler.defines << %Q[MRBGEM_#{funcname.upcase}_VERSION=#{version}]
           compiler.include_paths << "#{@dir}/include" if File.directory? "#{@dir}/include"
@@ -118,7 +119,7 @@ module MRuby
       end
 
       def cdump?
-        build.presym_enabled? && @cdump
+        @cdump
       end
 
       def core?
@@ -189,6 +190,19 @@ module MRuby
         exts = compilers.flat_map{|c| c.source_exts} * ","
         Dir["#{@dir}/#{src_dir_from_gem_dir}/*{#{exts}}"].map do |f|
           objfile(f.relative_path_from(@dir).to_s.pathmap("#{build_dir}/%X"))
+        end
+      end
+
+      def build_settings(&blk)
+        @build_settings = blk
+      end
+
+      def setup_build
+        if @build_settings
+          # by this point, build.cc or other commands may have been modified.
+          # therefore, reset the commands again before calling build_settings.
+          reset_commands
+          @build_settings.call(self)
         end
       end
 
@@ -303,6 +317,13 @@ module MRuby
 
         self
       end
+
+      private def reset_commands
+        MRuby::Build::COMMANDS.each do |command|
+          instance_variable_set("@#{command}", @build.send(command).clone)
+        end
+        @linker.run_attrs.each(&:clear)
+      end
     end # Specification
 
     class Version
@@ -401,7 +422,21 @@ module MRuby
         end
       end
 
-      def generate_gem_table build
+      def setup(build)
+        gemset = nil
+        begin
+          gemset_prev = gemset
+          self.each(&:setup)
+          gemset = self.setup_dependencies(build).keys.sort
+        end until gemset == gemset_prev
+      end
+
+      def setup_build
+        each(&:setup_build)
+        self
+      end
+
+      def setup_dependencies(build)
         gem_table = each_with_object({}) { |spec, h| h[spec.name] = spec }
 
         default_gems = {}
@@ -423,6 +458,12 @@ module MRuby
             default_gems[dep[:gem]] ||= default_gem_params(dep)
           end
         end
+
+        gem_table
+      end
+
+      def generate_gem_table(build)
+        gem_table = setup_dependencies(build)
 
         each do |g|
           g.dependencies.each do |dep|
@@ -504,6 +545,16 @@ module MRuby
           # as circular dependency has already detected in the caller.
           import_include_paths(dep_g)
 
+          # Add dependency's include/ to compiler paths (for inter-gem use)
+          dep_include = "#{dep_g.dir}/include"
+          if File.directory?(dep_include)
+            g.compilers.each do |compiler|
+              compiler.include_paths << dep_include
+              compiler.include_paths.uniq!
+            end
+          end
+
+          # Propagate any explicitly set export_include_paths
           dep_g.export_include_paths.uniq!
           g.compilers.each do |compiler|
             compiler.include_paths += dep_g.export_include_paths

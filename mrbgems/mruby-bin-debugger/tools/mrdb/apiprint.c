@@ -11,6 +11,7 @@
 #include <mruby/error.h>
 #include <mruby/numeric.h>
 #include <mruby/string.h>
+#include <mruby/internal.h>
 #include <mruby/presym.h>
 #include "apiprint.h"
 
@@ -70,12 +71,15 @@ mrb_debug_eval(mrb_state *mrb, mrb_debug_context *dbg, const char *expr, size_t 
 
     v =  mrb_funcall_argv(mrb, recv, MRB_SYM(instance_eval), 1, &ruby_code);
   }
-
-  if (exc) {
-    *exc = mrb_obj_is_kind_of(mrb, v, E_EXCEPTION);
+  mrb_bool is_exc = mrb_obj_is_kind_of(mrb, v, E_EXCEPTION);
+  if (is_exc) {
+    s = mrb_exc_get_output(mrb, mrb_obj_ptr(v));
+  }
+  else {
+    s = mrb_inspect(mrb, v);
   }
 
-  s = mrb_inspect(mrb, v);
+  if (exc) *exc = is_exc;
 
   /* enable code_fetch_hook */
   mrb->code_fetch_hook = tmp;

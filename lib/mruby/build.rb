@@ -60,7 +60,11 @@ module MRuby
       def mruby_config_path
         path = ENV['MRUBY_CONFIG'] || ENV['CONFIG']
         if path.nil? || path.empty?
-          path = "#{MRUBY_ROOT}/build_config/default.rb"
+          path = if Dir.pwd != MRUBY_ROOT && File.file?("./build_config.rb")
+            "./build_config.rb"
+          else
+            "#{MRUBY_ROOT}/build_config/default.rb"
+          end
         elsif !File.file?(path) && !Pathname.new(path).absolute?
           f = "#{MRUBY_ROOT}/build_config/#{path}.rb"
           path = File.exist?(f) ? f : File.extname(path).empty? ? f : path
@@ -130,7 +134,6 @@ module MRuby
         @enable_bintest = false
         @enable_test = false
         @enable_lock = true
-        @enable_presym = true
         @enable_benchmark = true
         @mrbcfile_external = false
         @internal = internal
@@ -152,13 +155,9 @@ module MRuby
         current.instance_eval(&block)
       ensure
         if current.libmruby_enabled? && !current.mrbcfile_external?
-          if current.presym_enabled?
-            current.create_mrbc_build if current.host? || current.gems["mruby-bin-mrbc"]
-          elsif current.host?
-            current.build_mrbc_exec
-          end
+          current.create_mrbc_build if current.host? || current.gems["mruby-bin-mrbc"]
         end
-        current.presym = Presym.new(current) if current.presym_enabled?
+        current.presym = Presym.new(current)
       end
     end
 
@@ -182,17 +181,6 @@ module MRuby
       @mrbc.compile_options += ' -g'
 
       @enable_debug = true
-    end
-
-    def presym_enabled?
-      @enable_presym
-    end
-
-    def disable_presym
-      if @enable_presym
-        @enable_presym = false
-        compilers.each{|c| c.defines << "MRB_NO_PRESYM"}
-      end
     end
 
     def disable_lock
@@ -265,7 +253,7 @@ module MRuby
       if cxx_src
         obj ||= cxx_src + @exts.object
         dsts = [obj]
-        dsts << (cxx_src + @exts.presym_preprocessed) if presym_enabled?
+        dsts << (cxx_src + @exts.presym_preprocessed)
         defines = []
         include_paths = ["#{MRUBY_ROOT}/src", *includes]
         dsts.each do |dst|
@@ -379,7 +367,7 @@ EOS
       end
       [@cc, *(@cxx if cxx_exception_enabled?)].each do |compiler|
         compiler.define_rules(@build_dir, MRUBY_ROOT, @exts.object)
-        compiler.define_rules(@build_dir, MRUBY_ROOT, @exts.presym_preprocessed) if presym_enabled?
+        compiler.define_rules(@build_dir, MRUBY_ROOT, @exts.presym_preprocessed)
       end
     end
 
@@ -565,7 +553,7 @@ EOS
       end
       build.build_mrbc_exec
       build.disable_libmruby
-      build.disable_presym
+      build.presym = Presym.new(build)
       @mrbc_build = build
       self.mrbcfile = build.mrbcfile
       build
@@ -588,7 +576,6 @@ EOS
           conf.toolchain
           conf.build_mrbc_exec
           conf.disable_libmruby
-          conf.disable_presym
         end
       end
     end
@@ -612,9 +599,6 @@ EOS
       puts ">>> Bintest #{name} <<<"
       targets = @gems.select { |v| File.directory? "#{v.dir}/bintest" }.map { |v| filename v.dir }
       mrbc = @gems["mruby-bin-mrbc"] ? exefile("#{@build_dir}/bin/mrbc") : mrbcfile
-
-      emulator = @test_runner.command
-      emulator = @test_runner.shellquote(emulator) if emulator
 
       env = {
         "BUILD_DIR" => @build_dir,

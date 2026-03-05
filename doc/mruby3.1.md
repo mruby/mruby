@@ -20,7 +20,7 @@ Keyword arguments are basically separated from ordinal arguments.
 
 Some configuration macros are available:
 
-- `MRB_WORDBOX_NO_FLOAT_TRUNCATE`: by default, float values are packed in the word if possible, but define this macro to allocate float values in the heap.
+- `MRB_WORDBOX_NO_INLINE_FLOAT` (formerly `MRB_WORDBOX_NO_FLOAT_TRUNCATE`): by default, float values are packed in the word if possible, but define this macro to allocate float values in the heap.
 - `MRB_USE_RO_DATA_P_ETEXT`: define this macro if `_etext` is available on your platform.
 - `MRB_NO_DEFAULT_RO_DATA_P`: define this macro to avoid using predefined `mrb_ro_data_p()` function
 
@@ -156,7 +156,7 @@ Now takes 2 operands and pushes multiple entries to an array.
 ### Word Boxing
 
 `MRB_WORD_BOXING` now packs floating-point numbers in the word, if the size of `mrb_float` is equal or smaller than the size of `mrb_int` by default.
-If the size of `mrb_float` and `mrb_int` are same, the last 2 bits in the `mrb_float` are trimmed and used as flags. If you need full precision, you need to define `MRB_WORDBOX_NO_FLOAT_TRUNCATE` as described above.
+If the size of `mrb_float` and `mrb_int` are same, the last 2 bits in the `mrb_float` are trimmed and used as flags. If you need full precision, you need to define `MRB_WORDBOX_NO_INLINE_FLOAT` (formerly `MRB_WORDBOX_NO_FLOAT_TRUNCATE`) as described above.
 
 ### NaN Boxing
 
@@ -197,7 +197,7 @@ For better and faster hash values.
 
 ---
 
-# Major bug fixes
+# Major bugfixes
 
 - Fix infinite recursive call bugs in integer division [98799aa6](https://github.com/mruby/mruby/commit/98799aa6)
 - Fix to raise TypeError with super inside instance_eval / class_eval [#5476](https://github.com/mruby/mruby/pull/5476)

@@ -24,7 +24,7 @@ benchmark/**/*.dat
 benchmark/*.pdf
 benchmark/*.png
 bin
-build
+/build
 doc/api
 doc/capi
 compile_commands.json
@@ -37,4 +37,3 @@ node_modules
 perf.data*
 tags
 !Gemfile.lock
-y.tab.c

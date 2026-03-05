@@ -7,6 +7,7 @@
 #define MRDB_H
 
 #include <mruby.h>
+#include <mruby/class.h>
 
 #include "mrdbconf.h"
 
@@ -135,6 +136,13 @@ typedef struct mrdb_state {
 } mrdb_state;
 
 typedef dbgcmd_state (*debug_command_func)(mrb_state*, mrdb_state*);
+
+static inline mrb_noreturn void
+raise_debugger_exception(mrb_state *mrb, const char *name, const char *msg)
+{
+  struct RClass *exc = mrb_define_class(mrb, name, E_EXCEPTION);
+  mrb_raise(mrb, exc, msg);
+}
 
 /* cmdrun.c */
 dbgcmd_state dbgcmd_run(mrb_state*, mrdb_state*);

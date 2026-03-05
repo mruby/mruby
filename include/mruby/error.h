@@ -8,6 +8,7 @@
 #define MRUBY_ERROR_H
 
 #include "common.h"
+#include <string.h>
 
 /**
  * mruby error handling.
@@ -36,7 +37,7 @@ MRB_API mrb_value mrb_exc_new_str(mrb_state *mrb, struct RClass* c, mrb_value st
 #define mrb_exc_new_lit(mrb, c, lit) mrb_exc_new_str(mrb, c, mrb_str_new_lit(mrb, lit))
 MRB_API mrb_noreturn void mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_value args, const char *fmt, ...);
 
-#if defined(MRB_64BIT) || defined(MRB_USE_FLOAT32) || defined(MRB_NAN_BOXING) || defined(MRB_WORD_BOXING)
+#if defined(MRB_NAN_BOXING) || defined(MRB_WORD_BOXING) || defined(MRB_64BIT)
 #undef MRB_USE_RBREAK_VALUE_UNION
 #else
 #define MRB_USE_RBREAK_VALUE_UNION 1
@@ -53,7 +54,11 @@ struct RBreak {
 #ifndef MRB_USE_RBREAK_VALUE_UNION
   mrb_value val;
 #else
-  union mrb_value_union value;
+  /* Store value as uint32_t words instead of union mrb_value_union
+     to avoid 8-byte alignment of int64_t/double on 32-bit platforms
+     (e.g., ARM, MIPS, PowerPC) which would inflate struct size beyond
+     the 5-word RVALUE limit due to padding. */
+  uint32_t value[sizeof(union mrb_value_union) / sizeof(uint32_t)];
 #endif
 };
 
@@ -66,14 +71,14 @@ static inline mrb_value
 mrb_break_value_get(struct RBreak *brk)
 {
   mrb_value val;
-  val.value = brk->value;
+  memcpy(&val.value, brk->value, sizeof(val.value));
   val.tt = (enum mrb_vtype)(brk->flags & RBREAK_VALUE_TT_MASK);
   return val;
 }
 static inline void
 mrb_break_value_set(struct RBreak *brk, mrb_value val)
 {
-  brk->value = val.value;
+  memcpy(brk->value, &val.value, sizeof(val.value));
   brk->flags &= ~RBREAK_VALUE_TT_MASK;
   brk->flags |= val.tt;
 }
@@ -126,6 +131,42 @@ MRB_API mrb_value mrb_rescue(mrb_state *mrb, mrb_func_t body, mrb_value b_data,
 MRB_API mrb_value mrb_rescue_exceptions(mrb_state *mrb, mrb_func_t body, mrb_value b_data,
                                         mrb_func_t rescue, mrb_value r_data,
                                         mrb_int len, struct RClass **classes);
+
+/**
+ *  Calls `func` via `mrb_protect_error()` and then always executes the user block exactly once.
+ *  Even if a global jump (similar to a Ruby exception) occurs within `func`, the block will be executed,
+ *  and after the block's completion, the global jump will be re-thrown.
+ *
+ *  By checking `mrb->exc != NULL` within the block, you can determine if a global jump occurred in `func`.
+ *
+ *  If you want to suppress the global jump and continue processing, use `mrb_clear_error(mrb); break;`.
+ *
+ *  - `mrb`: The mruby state reference
+ *  - `result_var`: Pre-defined mrb_value type variable (to receive `func`'s return value)
+ *  - `func`: Function to call (compatible with `mrb_protect_error_func`)
+ *  - `data`: User data to pass to `func`
+ *
+ *  Example:
+ *
+ *      mrb_value result;
+ *      MRB_ENSURE(mrb, result, body_func, userdata) {
+ *        // This block is always executed (equivalent to Ruby's ensure)
+ *
+ *        if (mrb->exc) {
+ *          // Post-processing when an exception occurs
+ *        }
+ *
+ *        // To ignore the global jump, use `mrb_clear_error(mrb); break;` here
+ *      }
+ */
+#define MRB_ENSURE(mrb, result_var, func, data) \
+        for (mrb_bool MRB_UNIQNAME(_break_) = FALSE; \
+             !MRB_UNIQNAME(_break_) && \
+                (((result_var) = mrb_protect_error(mrb, func, data, &MRB_UNIQNAME(_break_))), \
+                 ((mrb)->exc = (MRB_UNIQNAME(_break_) ? mrb_obj_ptr((result_var)) : NULL)), \
+                 TRUE); \
+             (void)(MRB_UNIQNAME(_break_) && (mrb)->jmp && (mrb_exc_raise(mrb, result_var), TRUE)), \
+                MRB_UNIQNAME(_break_) = TRUE)
 
 MRB_END_DECL
 

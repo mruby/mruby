@@ -59,6 +59,15 @@ MRB_BEGIN_DECL
 # define mrb_deprecated
 #endif
 
+/** Branch prediction hints for optimization. */
+#if defined(__GNUC__) || defined(__clang__)
+# define mrb_likely(x)   __builtin_expect(!!(x), 1)
+# define mrb_unlikely(x) __builtin_expect(!!(x), 0)
+#else
+# define mrb_likely(x)   (x)
+# define mrb_unlikely(x) (x)
+#endif
+
 /** Declare a type or object as an alignment requirement. */
 #ifndef mrb_alignas
 # if defined(__cplusplus) && __cplusplus >= 201103L

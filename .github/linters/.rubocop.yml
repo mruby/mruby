@@ -1,0 +1,13 @@
+AllCops:
+  DisabledByDefault: true
+  TargetRubyVersion: 3.4
+
+Layout/AssignmentIndentation:
+  Enabled: true
+
+Layout/BlockEndNewline:
+  Enabled: true
+
+Layout/IndentationStyle:
+  Enabled: true
+  EnforcedStyle: spaces

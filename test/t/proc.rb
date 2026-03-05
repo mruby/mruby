@@ -178,3 +178,21 @@ assert('Creation of a proc through the block of a method') do
     m{ break }.call
   end
 end
+
+assert('identity check for proc object') do
+  b = []
+  t = 2
+  while t > 0
+    b << ->{}
+    t -= 1
+  end
+  assert_true b[0] == b[1]
+  assert_equal b[0].hash, b[1].hash
+
+  b = []
+  2.times {
+    b << ->{}
+  }
+  assert_false b[0] == b[1]
+  assert_not_equal b[0].hash, b[1].hash
+end

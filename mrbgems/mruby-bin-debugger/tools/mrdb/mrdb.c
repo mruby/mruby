@@ -322,12 +322,48 @@ pick_out_word(mrb_state *mrb, char **pp)
   return ps;
 }
 
+/* find first command entry matching word1 (ignoring cmd2) */
+static debug_command*
+find_command_by_word1(const char *word1)
+{
+  debug_command *cmd;
+  size_t wlen = strlen(word1);
+
+  for (cmd=(debug_command*)debug_command_list; cmd->cmd1; cmd++) {
+    if (wlen >= cmd->len1 && strncmp(word1, cmd->cmd1, wlen) == 0) {
+      return cmd;
+    }
+  }
+  return NULL;
+}
+
+/* find command entry matching both word1 and word2 */
+static debug_command*
+find_command_by_words(const char *word1, const char *word2)
+{
+  debug_command *cmd;
+  size_t wlen;
+
+  for (cmd=(debug_command*)debug_command_list; cmd->cmd1; cmd++) {
+    wlen = strlen(word1);
+    if (wlen < cmd->len1 || strncmp(word1, cmd->cmd1, wlen)) {
+      continue;
+    }
+    if (!cmd->cmd2) return cmd;       /* word #1 only match */
+    if (word2 == NULL) continue;      /* word #2 not specified */
+    wlen = strlen(word2);
+    if (wlen >= cmd->len2 && strncmp(word2, cmd->cmd2, wlen) == 0) {
+      return cmd;                     /* word #1 and #2 match */
+    }
+  }
+  return NULL;
+}
+
 static debug_command*
 parse_command(mrb_state *mrb, mrdb_state *mrdb, char *buf)
 {
-  debug_command *cmd = NULL;
+  debug_command *cmd;
   char *p = buf;
-  size_t wlen;
 
   /* get word #1 */
   mrdb->words[0] = pick_out_word(mrb, &p);
@@ -342,51 +378,26 @@ parse_command(mrb_state *mrb, mrdb_state *mrdb, char *buf)
     mrdb->words[mrdb->wcnt++] = p;
   }
 
-  /* check word #1 */
-  for (cmd=(debug_command*)debug_command_list; cmd->cmd1; cmd++) {
-    wlen = strlen(mrdb->words[0]);
-    if (wlen >= cmd->len1 &&
-        strncmp(mrdb->words[0], cmd->cmd1, wlen) == 0) {
-      break;
-    }
-  }
+  cmd = find_command_by_word1(mrdb->words[0]);
+  if (!cmd) return NULL;
 
-  if (cmd->cmd2) {
-    if (mrdb->wcnt > 1) {
-      /* get word #2 */
-      mrdb->words[1] = pick_out_word(mrb, &p);
-      if (mrdb->words[1]) {
-        /* update remain parameter */
-        for (; *p && ISBLANK(*p); p++)
-          ;
-        if (*p) {
-          mrdb->words[mrdb->wcnt++] = p;
-        }
+  /* if matched command has a sub-command, try word #1 + #2 */
+  if (cmd->cmd2 && mrdb->wcnt > 1) {
+    mrdb->words[1] = pick_out_word(mrb, &p);
+    if (mrdb->words[1]) {
+      /* update remain parameter */
+      for (; *p && ISBLANK(*p); p++)
+        ;
+      if (*p) {
+        mrdb->words[mrdb->wcnt++] = p;
       }
     }
-
-    /* check word #1,#2 */
-    for (; cmd->cmd1; cmd++) {
-      wlen = strlen(mrdb->words[0]);
-      if (wlen < cmd->len1 ||
-          strncmp(mrdb->words[0], cmd->cmd1, wlen)) {
-        continue;
-      }
-
-      if (!cmd->cmd2) break;          /* word #1 only */
-
-      if (mrdb->wcnt == 1) continue;  /* word #2 not specified */
-
-      wlen = strlen(mrdb->words[1]);
-      if (wlen >= cmd->len2 &&
-          strncmp(mrdb->words[1], cmd->cmd2, wlen) == 0) {
-        break;  /* word #1 and #2 */
-      }
-    }
+    cmd = find_command_by_words(mrdb->words[0], mrdb->words[1]);
+    if (!cmd) return NULL;
   }
 
   /* divide remain parameters */
-  if (cmd->cmd1 && cmd->div) {
+  if (cmd->div) {
     p = mrdb->words[--mrdb->wcnt];
     for (; mrdb->wcnt<MAX_COMMAND_WORD; mrdb->wcnt++) {
       mrdb->words[mrdb->wcnt] = pick_out_word(mrb, &p);
@@ -396,7 +407,7 @@ parse_command(mrb_state *mrb, mrdb_state *mrdb, char *buf)
     }
   }
 
-  return cmd->cmd1 ? cmd : NULL;
+  return cmd;
 }
 
 static void
@@ -548,6 +559,22 @@ check_method_breakpoint(mrb_state *mrb, const mrb_irep *irep, const mrb_code *pc
   return bpno;
 }
 
+static int32_t
+check_breakpoint_hit(mrb_state *mrb, mrb_debug_context *dbg,
+                     const mrb_irep *irep, const mrb_code *pc,
+                     const char *file, int32_t line, mrb_value *regs)
+{
+  int32_t bpno;
+
+  bpno = check_method_breakpoint(mrb, irep, pc, regs);
+  if (bpno > 0) return bpno;
+  if (dbg->prvfile != file || dbg->prvline != line) {
+    bpno = mrb_debug_check_breakpoint_line(mrb, dbg, file, line);
+    if (bpno > 0) return bpno;
+  }
+  return 0;
+}
+
 static void
 mrb_code_fetch_hook(mrb_state *mrb, const mrb_irep *irep, const mrb_code *pc, mrb_value *regs)
 {
@@ -597,23 +624,16 @@ mrb_code_fetch_hook(mrb_state *mrb, const mrb_irep *irep, const mrb_code *pc, mr
     break;
 
   case DBG_RUN:
-    bpno = check_method_breakpoint(mrb, irep, pc, regs);
+    bpno = check_breakpoint_hit(mrb, dbg, irep, pc, file, line, regs);
     if (bpno > 0) {
       dbg->stopped_bpno = bpno;
       dbg->bm = BRK_BREAK;
       break;
     }
-    if (dbg->prvfile != file || dbg->prvline != line) {
-      bpno = mrb_debug_check_breakpoint_line(mrb, dbg, file, line);
-      if (bpno > 0) {
-        dbg->stopped_bpno = bpno;
-        dbg->bm = BRK_BREAK;
-        break;
-      }
-    }
     dbg->prvfile = file;
     dbg->prvline = line;
     return;
+
   case DBG_INIT:
     dbg->root_irep = irep;
     dbg->bm = BRK_INIT;
@@ -673,8 +693,9 @@ main(int argc, char **argv)
 
  l_restart:
 
-  if (mrb == NULL) {
-    fputs("Invalid mrb_state, exiting mruby\n", stderr);
+  if (MRB_OPEN_FAILURE(mrb)) {
+    mrb_print_error(mrb);  /* handles NULL */
+    mrb_close(mrb);        /* handles NULL */
     return EXIT_FAILURE;
   }
 

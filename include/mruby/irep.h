@@ -82,6 +82,7 @@ struct mrb_irep {
 #define MRB_ISEQ_NO_FREE 1
 #define MRB_IREP_NO_FREE 2
 #define MRB_IREP_STATIC (MRB_ISEQ_NO_FREE | MRB_IREP_NO_FREE)
+#define MRB_IREP_CONSOLIDATED 4  /* pool/syms/reps packed with irep struct */
 
 MRB_API mrb_irep *mrb_add_irep(mrb_state *mrb);
 

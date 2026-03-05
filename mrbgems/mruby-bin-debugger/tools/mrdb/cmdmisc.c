@@ -270,35 +270,37 @@ replace_ext(mrb_state *mrb, const char *filename, const char *ext)
   return s;
 }
 
+/* parse: <lineno> | <filename>:<lineno> | <filename> */
+static void
+parse_file_line_spec(mrb_state *mrb, char *arg, listcmd_parser_state *st)
+{
+  char *p = arg;
+
+  if (parse_lineno(mrb, &p, st)) {
+    /* matched <lineno> or <lineno>,<lineno> */
+  }
+  else if (parse_filename(mrb, &p, st)) {
+    if (skip_char(&p, ':') && !parse_lineno(mrb, &p, st)) {
+      st->parse_error = TRUE;
+    }
+  }
+  else {
+    st->parse_error = TRUE;
+  }
+  if (*p != '\0') {
+    st->parse_error = TRUE;
+  }
+}
+
 static mrb_bool
 parse_listcmd_args(mrb_state *mrb, mrdb_state *mrdb, listcmd_parser_state *st)
 {
-  char *p;
-
   switch (mrdb->wcnt) {
   case 2:
-    p = mrdb->words[1];
-
-    /* mrdb->words[1] ::= <lineno> | <filename> ':' <lineno> | <filename> */
-    if (!parse_lineno(mrb, &p, st)) {
-      if (parse_filename(mrb, &p, st)) {
-        if (skip_char(&p, ':')) {
-          if (!parse_lineno(mrb, &p, st)) {
-            st->parse_error = TRUE;
-          }
-        }
-      }
-      else {
-        st->parse_error = TRUE;
-      }
-    }
-    if (*p != '\0') {
-      st->parse_error = TRUE;
-    }
+    parse_file_line_spec(mrb, mrdb->words[1], st);
     break;
   case 1:
   case 0:
-    /* do nothing */
     break;
   default:
     st->parse_error = TRUE;
@@ -501,9 +503,7 @@ dbgcmd_quit(mrb_state *mrb, mrdb_state *mrdb)
   }
 
   if (mrdb->dbg->xm == DBG_QUIT) {
-    struct RClass *exc;
-    exc = mrb_define_class(mrb, "DebuggerExit", E_EXCEPTION);
-    mrb_raise(mrb, exc, "Exit mrdb");
+    raise_debugger_exception(mrb, "DebuggerExit", "Exit mrdb");
   }
   return DBGST_PROMPT;
 }

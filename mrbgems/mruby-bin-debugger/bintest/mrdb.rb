@@ -1,7 +1,7 @@
 require 'open3'
 require 'tempfile'
 
-class BinTest_MrubyBinDebugger
+class BinTest_MRubyBinDebugger
   @debug1=false
   @debug2=true
   @debug3=true
@@ -67,9 +67,9 @@ assert('mruby-bin-debugger(mrdb) command line') do
   cmd = "p a=#{str}"
 
   # test case
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>cmd[0...1023], :unexp=>'command line too long.'}])
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>cmd[0...1024], :unexp=>'command line too long.'}])
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>cmd[0...1025], :exp=>'command line too long.'}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>cmd[0...1023], :unexp=>'command line too long.'}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>cmd[0...1024], :unexp=>'command line too long.'}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>cmd[0...1025], :exp=>'command line too long.'}])
 end
 
 assert('mruby-bin-debugger(mrdb) command: "break"') do
@@ -82,10 +82,10 @@ assert('mruby-bin-debugger(mrdb) command: "break"') do
   tc << {:cmd=>"br",    :unexp=>INVCMD}
   tc << {:cmd=>"brea",  :unexp=>INVCMD}
   tc << {:cmd=>"break", :unexp=>INVCMD}
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"bl",     :exp=>INVCMD}])
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"breaka", :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"bl",     :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"breaka", :exp=>INVCMD}])
 end
 
 assert('mruby-bin-debugger(mrdb) command: "continue"') do
@@ -93,13 +93,13 @@ assert('mruby-bin-debugger(mrdb) command: "continue"') do
   src = "foo = 'foo'\n"
 
   # test case
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"c",         :unexp=>INVCMD}])
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"co",        :unexp=>INVCMD}])
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"continu",   :unexp=>INVCMD}])
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"continue",  :unexp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"c",         :unexp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"co",        :unexp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"continu",   :unexp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"continue",  :unexp=>INVCMD}])
 
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"cn",        :exp=>INVCMD}])
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"continuee", :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"cn",        :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"continuee", :exp=>INVCMD}])
 end
 
 assert('mruby-bin-debugger(mrdb) command: "delete"') do
@@ -112,10 +112,10 @@ assert('mruby-bin-debugger(mrdb) command: "delete"') do
   tc << {:cmd=>"de 1",     :unexp=>INVCMD}
   tc << {:cmd=>"delet 1",  :unexp=>INVCMD}
   tc << {:cmd=>"delete 1", :unexp=>INVCMD}
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"dd 1",      :exp=>INVCMD}])
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"deletee 1", :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"dd 1",      :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"deletee 1", :exp=>INVCMD}])
 end
 
 assert('mruby-bin-debugger(mrdb) command: "disable"') do
@@ -128,11 +128,11 @@ assert('mruby-bin-debugger(mrdb) command: "disable"') do
   tc << {:cmd=>"disa",    :unexp=>INVCMD}
   tc << {:cmd=>"disabl",  :unexp=>INVCMD}
   tc << {:cmd=>"disable", :unexp=>INVCMD}
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"di",       :exp=>INVCMD}])
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"disb",     :exp=>INVCMD}])
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"disablee", :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"di",       :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"disb",     :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"disablee", :exp=>INVCMD}])
 end
 
 assert('mruby-bin-debugger(mrdb) command: "enable"') do
@@ -145,11 +145,11 @@ assert('mruby-bin-debugger(mrdb) command: "enable"') do
   tc << {:cmd=>"ena",    :unexp=>INVCMD}
   tc << {:cmd=>"enabl",  :unexp=>INVCMD}
   tc << {:cmd=>"enable", :unexp=>INVCMD}
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"e",       :exp=>INVCMD}])
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"enb",     :exp=>INVCMD}])
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"enablee", :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"e",       :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"enb",     :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"enablee", :exp=>INVCMD}])
 end
 
 assert('mruby-bin-debugger(mrdb) command: "eval"') do
@@ -161,11 +161,11 @@ assert('mruby-bin-debugger(mrdb) command: "eval"') do
   tc << {:cmd=>"ev",   :unexp=>INVCMD}
   tc << {:cmd=>"eva",  :unexp=>INVCMD}
   tc << {:cmd=>"eval", :unexp=>INVCMD}
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"e",     :exp=>INVCMD}])
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"evl",   :exp=>INVCMD}])
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"evall", :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"e",     :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"evl",   :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"evall", :exp=>INVCMD}])
 end
 
 assert('mruby-bin-debugger(mrdb) command: "help"') do
@@ -178,10 +178,10 @@ assert('mruby-bin-debugger(mrdb) command: "help"') do
   tc << {:cmd=>"he",   :unexp=>INVCMD}
   tc << {:cmd=>"hel",  :unexp=>INVCMD}
   tc << {:cmd=>"help", :unexp=>INVCMD}
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"hl",    :exp=>INVCMD}])
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"helpp", :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"hl",    :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"helpp", :exp=>INVCMD}])
 end
 
 assert('mruby-bin-debugger(mrdb) command: "info breakpoints"') do
@@ -195,12 +195,12 @@ assert('mruby-bin-debugger(mrdb) command: "info breakpoints"') do
   tc << {:cmd=>"i    br",          :unexp=>INVCMD}
   tc << {:cmd=>"inf breakpoint",   :unexp=>INVCMD}
   tc << {:cmd=>"info breakpoints", :unexp=>INVCMD}
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"ii b",              :exp=>INVCMD}])
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"i bb",              :exp=>INVCMD}])
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"infoo breakpoints", :exp=>INVCMD}])
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"info breakpointss", :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"ii b",              :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"i bb",              :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"infoo breakpoints", :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"info breakpointss", :exp=>INVCMD}])
 end
 
 assert('mruby-bin-debugger(mrdb) command: "list"') do
@@ -213,10 +213,10 @@ assert('mruby-bin-debugger(mrdb) command: "list"') do
   tc << {:cmd=>"li",   :unexp=>INVCMD}
   tc << {:cmd=>"lis",  :unexp=>INVCMD}
   tc << {:cmd=>"list", :unexp=>INVCMD}
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"ll",    :exp=>INVCMD}])
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"listt", :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"ll",    :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"listt", :exp=>INVCMD}])
 end
 
 assert('mruby-bin-debugger(mrdb) command: "print"') do
@@ -229,10 +229,10 @@ assert('mruby-bin-debugger(mrdb) command: "print"') do
   tc << {:cmd=>"pr",    :unexp=>INVCMD}
   tc << {:cmd=>"prin",  :unexp=>INVCMD}
   tc << {:cmd=>"print", :unexp=>INVCMD}
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"pp",     :exp=>INVCMD}])
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"printt", :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"pp",     :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"printt", :exp=>INVCMD}])
 end
 
 assert('mruby-bin-debugger(mrdb) command: "quit"') do
@@ -240,13 +240,13 @@ assert('mruby-bin-debugger(mrdb) command: "quit"') do
   src = "foo = 'foo'\n"
 
   # test case
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"q",    :unexp=>INVCMD}])
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"qu",   :unexp=>INVCMD}])
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"qui",  :unexp=>INVCMD}])
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"quit", :unexp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"q",    :unexp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"qu",   :unexp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"qui",  :unexp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"quit", :unexp=>INVCMD}])
 
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"qq",    :exp=>INVCMD}])
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"quitt", :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"qq",    :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"quitt", :exp=>INVCMD}])
 end
 
 assert('mruby-bin-debugger(mrdb) command: "run"') do
@@ -254,12 +254,12 @@ assert('mruby-bin-debugger(mrdb) command: "run"') do
   src = "foo = 'foo'\n"
 
   # test case
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"r",   :unexp=>INVCMD}])
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"ru",  :unexp=>INVCMD}])
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"run", :unexp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"r",   :unexp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"ru",  :unexp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"run", :unexp=>INVCMD}])
 
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"rr",   :exp=>INVCMD}])
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"runn", :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"rr",   :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"runn", :exp=>INVCMD}])
 end
 
 assert('mruby-bin-debugger(mrdb) command: "step"') do
@@ -276,8 +276,8 @@ SRC
   tc << {:cmd=>"st",   :unexp=>INVCMD}
   tc << {:cmd=>"ste",  :unexp=>INVCMD}
   tc << {:cmd=>"step", :unexp=>INVCMD}
-  BinTest_MrubyBinDebugger.test(src, tc)
+  BinTest_MRubyBinDebugger.test(src, tc)
 
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"ss",    :exp=>INVCMD}])
-  BinTest_MrubyBinDebugger.test(src, [{:cmd=>"stepp", :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"ss",    :exp=>INVCMD}])
+  BinTest_MRubyBinDebugger.test(src, [{:cmd=>"stepp", :exp=>INVCMD}])
 end

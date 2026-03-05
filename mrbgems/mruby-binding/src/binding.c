@@ -184,29 +184,34 @@ binding_initialize_copy(mrb_state *mrb, mrb_value binding)
   return binding;
 }
 
+static mrb_noreturn void
+badname_error(mrb_state *mrb, mrb_sym id)
+{
+  mrb_raisef(mrb, E_NAME_ERROR, "wrong local variable name %!n for binding", id);
+}
+
 static void
 binding_local_variable_name_check(mrb_state *mrb, mrb_sym id)
 {
   if (id == 0) {
-  badname:
-    mrb_raisef(mrb, E_NAME_ERROR, "wrong local variable name %!n for binding", id);
+    badname_error(mrb, id);
   }
 
   mrb_int len;
   const char *name = mrb_sym_name_len(mrb, id, &len);
   if (len == 0) {
-    goto badname;
+    badname_error(mrb, id);
   }
 
   if (ISASCII(*name) && !(*name == '_' || ISLOWER(*name))) {
-    goto badname;
+    badname_error(mrb, id);
   }
   len--;
   name++;
 
   for (; len > 0; len--, name++) {
     if (ISASCII(*name) && !(*name == '_' || ISALNUM(*name))) {
-      goto badname;
+      badname_error(mrb, id);
     }
   }
 }
@@ -240,6 +245,23 @@ binding_local_variable_search(mrb_state *mrb, const struct RProc *proc, struct R
 /*
  * call-seq:
  *  local_variable_defined?(symbol) -> bool
+ *
+ * Returns true if a local variable with the given name is defined
+ * in the binding's context, false otherwise.
+ *
+ *   def foo
+ *     a = 1
+ *     b = binding
+ *     b.local_variable_defined?(:a)  #=> true
+ *     b.local_variable_defined?(:c)  #=> false
+ *   end
+ *
+ *   x = 10
+ *   bind = binding
+ *   bind.local_variable_defined?(:x)     #=> true
+ *   bind.local_variable_defined?(:y)     #=> false
+ *   bind.local_variable_set(:y, 20)
+ *   bind.local_variable_defined?(:y)     #=> true
  */
 static mrb_value
 binding_local_variable_defined_p(mrb_state *mrb, mrb_value self)
@@ -261,6 +283,25 @@ binding_local_variable_defined_p(mrb_state *mrb, mrb_value self)
 /*
  * call-seq:
  *  local_variable_get(symbol) -> object
+ *
+ * Returns the value of the local variable with the given name
+ * in the binding's context. Raises NameError if the variable
+ * is not defined.
+ *
+ *   def foo
+ *     a = 42
+ *     b = "hello"
+ *     bind = binding
+ *     bind.local_variable_get(:a)  #=> 42
+ *     bind.local_variable_get(:b)  #=> "hello"
+ *     bind.local_variable_get(:c)  #=> NameError
+ *   end
+ *
+ *   x = [1, 2, 3]
+ *   bind = binding
+ *   bind.local_variable_get(:x)      #=> [1, 2, 3]
+ *   x = "modified"
+ *   bind.local_variable_get(:x)      #=> "modified"
  */
 static mrb_value
 binding_local_variable_get(mrb_state *mrb, mrb_value self)
@@ -278,6 +319,20 @@ binding_local_variable_get(mrb_state *mrb, mrb_value self)
   return *e;
 }
 
+/*
+ * call-seq:
+ *   binding.local_variable_set(symbol, obj) -> obj
+ *
+ * Set local variable named symbol as obj in binding's context.
+ * If the variable is not defined in the binding, it will be created.
+ *
+ *   def foo
+ *     a = 1
+ *     binding.local_variable_set(:a, 2)
+ *     binding.local_variable_set(:b, 3)
+ *     [a, b]  #=> [2, 3]
+ *   end
+ */
 static mrb_value
 binding_local_variable_set(mrb_state *mrb, mrb_value self)
 {
@@ -301,6 +356,19 @@ binding_local_variable_set(mrb_state *mrb, mrb_value self)
   return obj;
 }
 
+/*
+ * call-seq:
+ *   binding.local_variables -> array
+ *
+ * Returns an array of symbols representing the names of the local variables
+ * in the binding.
+ *
+ *   def foo
+ *     a = 1
+ *     b = 2
+ *     binding.local_variables  #=> [:a, :b]
+ *   end
+ */
 static mrb_value
 binding_local_variables(mrb_state *mrb, mrb_value self)
 {
@@ -308,6 +376,19 @@ binding_local_variables(mrb_state *mrb, mrb_value self)
   return mrb_proc_local_variables(mrb, proc);
 }
 
+/*
+ * call-seq:
+ *   binding.receiver -> object
+ *
+ * Returns the bound receiver of the binding object.
+ *
+ *   class Demo
+ *     def get_binding
+ *       binding
+ *     end
+ *   end
+ *   Demo.new.get_binding.receiver  #=> #<Demo:0x...>
+ */
 static mrb_value
 binding_receiver(mrb_state *mrb, mrb_value self)
 {
@@ -374,6 +455,26 @@ mrb_binding_new(mrb_state *mrb, const struct RProc *proc, mrb_value recv, struct
   return mrb_obj_value(binding);
 }
 
+/*
+ * call-seq:
+ *   binding -> binding
+ *
+ * Returns a Binding object, describing the variable and method bindings
+ * at the point of call. This object can be used when calling eval to
+ * execute the evaluated command in this environment.
+ *
+ *   def get_binding(param)
+ *     binding
+ *   end
+ *   b = get_binding("hello")
+ *   b.eval("param")  #=> "hello"
+ */
+static mrb_noreturn void
+caller_error(mrb_state *mrb)
+{
+  mrb_raise(mrb, E_RUNTIME_ERROR, "Cannot create Binding object for non-Ruby caller");
+}
+
 static mrb_value
 mrb_f_binding(mrb_state *mrb, mrb_value self)
 {
@@ -381,12 +482,11 @@ mrb_f_binding(mrb_state *mrb, mrb_value self)
   struct REnv *env;
 
   if (mrb->c->ci->cci != 0) {
-  caller_err:
-    mrb_raise(mrb, E_RUNTIME_ERROR, "Cannot create Binding object for non-Ruby caller");
+    caller_error(mrb);
   }
   proc = (struct RProc*)mrb_proc_get_caller(mrb, &env);
   if (!env || MRB_PROC_CFUNC_P(proc)) {
-    goto caller_err;
+    caller_error(mrb);
   }
   return mrb_binding_new(mrb, proc, self, env);
 }
@@ -402,7 +502,7 @@ mrb_mruby_binding_gem_init(mrb_state *mrb)
 
   mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(binding), mrb_f_binding, MRB_ARGS_NONE());
 
-  mrb_define_method_id(mrb, binding, MRB_SYM(initialize_copy), binding_initialize_copy, MRB_ARGS_REQ(1));
+  mrb_define_private_method_id(mrb, binding, MRB_SYM(initialize_copy), binding_initialize_copy, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, binding, MRB_SYM_Q(local_variable_defined), binding_local_variable_defined_p, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, binding, MRB_SYM(local_variable_get), binding_local_variable_get, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, binding, MRB_SYM(local_variable_set), binding_local_variable_set, MRB_ARGS_REQ(2));

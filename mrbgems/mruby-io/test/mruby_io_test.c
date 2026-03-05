@@ -65,7 +65,7 @@ mkdtemp(char *temp)
 #include <mruby/error.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>
-#include <mruby/ext/io.h>
+#include <mruby/io.h>
 
 static mrb_value
 mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)

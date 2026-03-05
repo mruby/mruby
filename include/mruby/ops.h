@@ -31,8 +31,8 @@ OPCODE(LOADI32,    BSS)      /* R[a] = mrb_int((b<<16)+c) */
 OPCODE(LOADSYM,    BB)       /* R[a] = Syms[b] */
 OPCODE(LOADNIL,    B)        /* R[a] = nil */
 OPCODE(LOADSELF,   B)        /* R[a] = self */
-OPCODE(LOADT,      B)        /* R[a] = true */
-OPCODE(LOADF,      B)        /* R[a] = false */
+OPCODE(LOADTRUE,   B)        /* R[a] = true */
+OPCODE(LOADFALSE,  B)        /* R[a] = false */
 OPCODE(GETGV,      BB)       /* R[a] = getglobal(Syms[b]) */
 OPCODE(SETGV,      BB)       /* setglobal(Syms[b], R[a]) */
 OPCODE(GETSV,      BB)       /* R[a] = Special[Syms[b]] */
@@ -48,6 +48,7 @@ OPCODE(SETMCNST,   BB)       /* R[a+1]::Syms[b] = R[a] */
 OPCODE(GETUPVAR,   BBB)      /* R[a] = uvget(b,c) */
 OPCODE(SETUPVAR,   BBB)      /* uvset(b,c,R[a]) */
 OPCODE(GETIDX,     B)        /* R[a] = R[a][R[a+1]] */
+OPCODE(GETIDX0,    BB)       /* R[a] = R[b][0]; a+1 for method call */
 OPCODE(SETIDX,     B)        /* R[a][R[a+1]] = R[a+2] */
 OPCODE(JMP,        S)        /* pc+=a */
 OPCODE(JMPIF,      BS)       /* if R[a] pc+=b */
@@ -57,25 +58,35 @@ OPCODE(JMPUW,      S)        /* unwind_and_jump_to(a) */
 OPCODE(EXCEPT,     B)        /* R[a] = exc */
 OPCODE(RESCUE,     BB)       /* R[b] = R[a].isa?(R[b]) */
 OPCODE(RAISEIF,    B)        /* raise(R[a]) if R[a] */
+OPCODE(MATCHERR,   B)        /* raise NoMatchingPatternError unless R[a] */
 OPCODE(SSEND,      BBB)      /* R[a] = self.send(Syms[b],R[a+1]..,R[a+n+1]:R[a+n+2]..) (c=n|k<<4) */
+OPCODE(SSEND0,     BB)       /* R[a] = self.send(Syms[b]) (no args) */
 OPCODE(SSENDB,     BBB)      /* R[a] = self.send(Syms[b],R[a+1]..,R[a+n+1]:R[a+n+2]..,&R[a+n+2k+1]) */
 OPCODE(SEND,       BBB)      /* R[a] = R[a].send(Syms[b],R[a+1]..,R[a+n+1]:R[a+n+2]..) (c=n|k<<4) */
+OPCODE(SEND0,      BB)       /* R[a] = R[a].send(Syms[b]) (no args) */
 OPCODE(SENDB,      BBB)      /* R[a] = R[a].send(Syms[b],R[a+1]..,R[a+n+1]:R[a+n+2]..,&R[a+n+2k+1]) */
 OPCODE(CALL,       Z)        /* self.call(*, **, &) (But overlay the current call frame; tailcall) */
+OPCODE(BLKCALL,    BB)       /* R[a] = R[a].call(R[a+1],... ,R[a+b]); direct block call */
 OPCODE(SUPER,      BB)       /* R[a] = super(R[a+1],... ,R[a+b+1]) */
 OPCODE(ARGARY,     BS)       /* R[a] = argument array (16=m5:r1:m5:d1:lv4) */
-OPCODE(ENTER,      W)        /* arg setup according to flags (23=m5:o5:r1:m5:k5:d1:b1) */
+OPCODE(ENTER,      W)        /* arg setup according to flags (24=n1:m5:o5:r1:m5:k5:d1:b1) */
 OPCODE(KEY_P,      BB)       /* R[a] = kdict.key?(Syms[b]) */
 OPCODE(KEYEND,     Z)        /* raise unless kdict.empty? */
 OPCODE(KARG,       BB)       /* R[a] = kdict[Syms[b]]; kdict.delete(Syms[b]) */
 OPCODE(RETURN,     B)        /* return R[a] (normal) */
 OPCODE(RETURN_BLK, B)        /* return R[a] (in-block return) */
+OPCODE(RETSELF,    Z)        /* return self */
+OPCODE(RETNIL,     Z)        /* return nil */
+OPCODE(RETTRUE,    Z)        /* return true */
+OPCODE(RETFALSE,   Z)        /* return false */
 OPCODE(BREAK,      B)        /* break R[a] */
 OPCODE(BLKPUSH,    BS)       /* R[a] = block (16=m5:r1:m5:d1:lv4) */
 OPCODE(ADD,        B)        /* R[a] = R[a]+R[a+1] */
 OPCODE(ADDI,       BB)       /* R[a] = R[a]+mrb_int(b) */
 OPCODE(SUB,        B)        /* R[a] = R[a]-R[a+1] */
 OPCODE(SUBI,       BB)       /* R[a] = R[a]-mrb_int(b) */
+OPCODE(ADDILV,     BBB)      /* R[a] = R[a]+mrb_int(c); R[b],R[b+1] for method call */
+OPCODE(SUBILV,     BBB)      /* R[a] = R[a]-mrb_int(c); R[b],R[b+1] for method call */
 OPCODE(MUL,        B)        /* R[a] = R[a]*R[a+1] */
 OPCODE(DIV,        B)        /* R[a] = R[a]/R[a+1] */
 OPCODE(EQ,         B)        /* R[a] = R[a]==R[a+1] */
@@ -108,6 +119,8 @@ OPCODE(CLASS,      BB)       /* R[a] = newclass(R[a],Syms[b],R[a+1]) */
 OPCODE(MODULE,     BB)       /* R[a] = newmodule(R[a],Syms[b]) */
 OPCODE(EXEC,       BB)       /* R[a] = blockexec(R[a],Irep[b]) */
 OPCODE(DEF,        BB)       /* R[a].newmethod(Syms[b],R[a+1]); R[a] = Syms[b] */
+OPCODE(TDEF,       BBB)      /* target_class.newmethod(Syms[b],Irep[c]); R[a] = Syms[b] */
+OPCODE(SDEF,       BBB)      /* R[a].singleton_class.newmethod(Syms[b],Irep[c]); R[a] = Syms[b] */
 OPCODE(ALIAS,      BB)       /* alias_method(target_class,Syms[a],Syms[b]) */
 OPCODE(UNDEF,      B)        /* undef_method(target_class,Syms[a]) */
 OPCODE(SCLASS,     B)        /* R[a] = R[a].singleton_class */
