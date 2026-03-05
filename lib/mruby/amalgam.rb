@@ -41,7 +41,7 @@ module MRuby
       allocf.c
       readnum.c
       readint.c
-      readfloat.c
+      fp_uscale.c
       state.c
       symbol.c
       class.c
@@ -66,7 +66,6 @@ module MRuby
       cdump.c
       codedump.c
       print.c
-      fmt_fp.c
       debug.c
       etc.c
       version.c
