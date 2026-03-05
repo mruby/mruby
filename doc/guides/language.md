@@ -378,8 +378,8 @@ This means subclassing `Array` or `String` and adding `@fields` will raise an er
 
 ### Operator Overriding
 
-Operators of primitive classes cannot be overridden by user code. 
-Redefining `String#+` has no effect on the behavior of the `+` __operator__.
+Operators of primitive classes cannot be overridden by user code.
+Redefining `String#+` has no effect on the behavior of the `+` operator.
 
 ### Module Loading Hooks
 
