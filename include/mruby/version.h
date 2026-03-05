@@ -57,7 +57,7 @@ MRB_BEGIN_DECL
 /*
  * Patch level string. (optional)
  */
-#define MRUBY_PATCHLEVEL_STR ""
+#define MRUBY_PATCHLEVEL_STR "RC"
 
 #ifndef MRUBY_PATCHLEVEL_STR
 # if MRUBY_PATCHLEVEL < 0
@@ -80,17 +80,17 @@ MRB_BEGIN_DECL
 /*
  * Release year.
  */
-#define MRUBY_RELEASE_YEAR 2025
+#define MRUBY_RELEASE_YEAR 2026
 
 /*
  * Release month.
  */
-#define MRUBY_RELEASE_MONTH 4
+#define MRUBY_RELEASE_MONTH 3
 
 /*
  * Release day.
  */
-#define MRUBY_RELEASE_DAY 20
+#define MRUBY_RELEASE_DAY 5
 
 /*
  * Release date as a string.
