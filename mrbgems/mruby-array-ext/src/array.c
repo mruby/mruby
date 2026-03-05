@@ -7,7 +7,6 @@
 #include <mruby/data.h>
 #include <mruby/class.h>
 #include <mruby/internal.h>
-#include <mruby/presym.h>
 #include <mruby/khash.h>
 #include <mruby/error.h>
 

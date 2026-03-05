@@ -8,7 +8,6 @@
 #include <mruby/proc.h>
 #include <mruby/class.h>
 #include <mruby/internal.h>
-#include <mruby/presym.h>
 
 /*
  * call-seq:

@@ -10,7 +10,6 @@
 #include <mruby/dump.h>
 #include <mruby/class.h>
 #include <mruby/internal.h>
-#include <mruby/presym.h>
 
 #ifndef MRB_PRESYM_SCANNING
 /* const uint16_t presym_length_table[]   */

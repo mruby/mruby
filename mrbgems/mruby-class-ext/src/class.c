@@ -5,7 +5,6 @@
 #include <mruby/proc.h>
 #include <mruby/variable.h>
 #include <mruby/internal.h>
-#include <mruby/presym.h>
 
 /*
  * Get the name of a module/class.

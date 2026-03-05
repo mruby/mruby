@@ -456,7 +456,6 @@ mrb_dump_irep_cstruct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE 
                   "#include <mruby/irep.h>\n"
                   "#include <mruby/debug.h>\n"
                   "#include <mruby/proc.h>\n"
-                  "#include <mruby/presym.h>\n"
                   "\n") < 0) {
     return MRB_DUMP_WRITE_FAULT;
   }

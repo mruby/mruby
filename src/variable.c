@@ -11,7 +11,6 @@
 #include <mruby/string.h>
 #include <mruby/variable.h>
 #include <mruby/internal.h>
-#include <mruby/presym.h>
 
 /* Instance variable table structure */
 typedef struct iv_tbl {

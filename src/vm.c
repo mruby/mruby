@@ -20,7 +20,6 @@
 #include <mruby/throw.h>
 #include <mruby/dump.h>
 #include <mruby/internal.h>
-#include <mruby/presym.h>
 
 #ifdef MRB_NO_STDIO
 #if defined(__cplusplus)

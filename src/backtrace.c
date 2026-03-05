@@ -15,7 +15,6 @@
 #include <mruby/numeric.h>
 #include <mruby/data.h>
 #include <mruby/internal.h>
-#include <mruby/presym.h>
 
 #define MAX_IREP_REFCNT UINT16_MAX
 #define UNKNOWN_LINENO -1

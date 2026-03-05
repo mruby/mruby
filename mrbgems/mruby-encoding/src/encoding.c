@@ -2,7 +2,6 @@
 #include <mruby/string.h>
 #include <mruby/variable.h>
 #include <mruby/internal.h>
-#include <mruby/presym.h>
 
 #define ENC_ASCII_8BIT "ASCII-8BIT"
 #define ENC_BINARY     "BINARY"

@@ -4,7 +4,6 @@
 #include <mruby/error.h>
 #include <mruby/proc.h>
 #include <mruby/opcode.h>
-#include <mruby/presym.h>
 
 /* Pre-defined symbols used by catch implementation */
 MRB_PRESYM_DEFINE_VAR_AND_INITER(catch_syms, 3, MRB_SYM(Object), MRB_SYM(new), MRB_SYM(call))

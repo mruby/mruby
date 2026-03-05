@@ -16,7 +16,6 @@
 #include <mruby/class.h>
 #include <mruby/throw.h>
 #include <mruby/internal.h>
-#include <mruby/presym.h>
 
 void
 mrb_exc_mesg_set(mrb_state *mrb, struct RException *exc, mrb_value mesg)

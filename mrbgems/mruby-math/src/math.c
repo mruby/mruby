@@ -11,7 +11,6 @@
 #endif
 
 #include <mruby/array.h>
-#include <mruby/presym.h>
 
 static void
 domain_error(mrb_state *mrb, const char *func)

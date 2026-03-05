@@ -12,7 +12,6 @@
 #include <mruby/gc.h>
 #include <mruby/hash.h>
 #include <mruby/internal.h>
-#include <mruby/presym.h>
 #include <mruby/proc.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>

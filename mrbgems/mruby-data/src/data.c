@@ -13,7 +13,6 @@
 #include <mruby/hash.h>
 #include <mruby/proc.h>
 #include <mruby/internal.h>
-#include <mruby/presym.h>
 
 #define RDATA_LEN(st) RARRAY_LEN(st)
 #define RDATA_PTR(st) RARRAY_PTR(st)

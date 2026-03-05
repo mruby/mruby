@@ -2,7 +2,6 @@
 #include <mruby.h>
 #include <mruby/error.h>
 #include <mruby/variable.h>
-#include <mruby/presym.h>
 
 #ifndef EXIT_SUCCESS
 # define EXIT_SUCCESS 0

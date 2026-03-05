@@ -12,7 +12,6 @@
 #include <mruby/variable.h>
 #include <mruby/proc.h>
 #include <mruby/error.h>
-#include <mruby/presym.h>
 
 #if defined(_WIN32)
 # include <io.h> /* for setmode */
