@@ -908,6 +908,124 @@ static void fixed_width(double f, int n, uint64_t *d, int *p)
   *p = -(*p);
 }
 
+/*
+ * skewed returns floor(log10(3/4 * 2^e))
+ * Used for shortest-width printing at powers of 2
+ */
+static inline int skewed(int e)
+{
+  return (e * 631305 - 261663) >> 21;
+}
+
+/*
+ * trim_zeros removes trailing zeros from x * 10^p
+ */
+static void trim_zeros(uint64_t *x, int *p)
+{
+  const uint64_t inv5 = 0xcccccccccccccccdULL;
+  const uint64_t inv5p2 = 0x8f5c28f5c28f5c29ULL;
+  const uint64_t inv5p4 = 0xd288ce703afb7e91ULL;
+  const uint64_t inv5p8 = 0xc767074b22e90e21ULL;
+  uint64_t d;
+
+  /* cut 1 zero, or else return */
+  d = (*x * inv5);
+  d = (d >> 1) | (d << 63);
+  if (d <= UINT64_MAX / 10) {
+    *x = d;
+    (*p)++;
+  }
+  else {
+    return;
+  }
+
+  /* cut 8 zeros */
+  d = (*x * inv5p8);
+  d = (d >> 8) | (d << 56);
+  if (d <= UINT64_MAX / 100000000ULL) {
+    *x = d;
+    *p += 8;
+  }
+
+  /* cut 4 zeros */
+  d = (*x * inv5p4);
+  d = (d >> 4) | (d << 60);
+  if (d <= UINT64_MAX / 10000) {
+    *x = d;
+    *p += 4;
+  }
+
+  /* cut 2 zeros */
+  d = (*x * inv5p2);
+  d = (d >> 2) | (d << 62);
+  if (d <= UINT64_MAX / 100) {
+    *x = d;
+    *p += 2;
+  }
+
+  /* cut 1 zero */
+  d = (*x * inv5);
+  d = (d >> 1) | (d << 63);
+  if (d <= UINT64_MAX / 10) {
+    *x = d;
+    (*p)++;
+  }
+}
+
+/*
+ * shortest computes the shortest formatting of f
+ * Returns d and p such that d * 10^p equals f when parsed
+ */
+static void shortest(double f, uint64_t *d, int *p)
+{
+  const int min_exp = -1085;
+  uint64_t m, min, max;
+  int e, z, odd, lp;
+  scaler pre;
+  uint64_t dmin, dmax;
+
+  unpack64(f, &m, &e);
+  z = 11;
+
+  if (m == (1ULL << 63) && e > min_exp) {
+    *p = -skewed(e + z);
+    min = m - (1ULL << (z - 2));
+  }
+  else {
+    if (e < min_exp) {
+      z = 11 + (min_exp - e);
+    }
+    *p = -log10_pow2(e + z);
+    min = m - (1ULL << (z - 1));
+  }
+  max = m + (1ULL << (z - 1));
+  odd = (int)((m >> z) & 1);
+
+  lp = log2_pow10(*p);
+  pre = prescale(e, *p, lp);
+
+  dmin = ur_ceil(ur_nudge(uscale(min, pre), +odd));
+  dmax = ur_floor(ur_nudge(uscale(max, pre), -odd));
+
+  /* check if a multiple of 10 is in range */
+  *d = dmax / 10;
+  if (*d * 10 >= dmin) {
+    int new_p = -(*p - 1);
+    trim_zeros(d, &new_p);
+    *p = new_p;
+    return;
+  }
+
+  /* multiple valid values: pick the rounded one */
+  if (dmin < dmax) {
+    *d = ur_round(uscale(m, pre));
+  }
+  else {
+    *d = dmin;
+  }
+  *p = -(*p);
+}
+
 static double parse_decimal(uint64_t d, int p)
 {
   int b, lp, e;
@@ -1033,10 +1151,16 @@ mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, ch
     }
   }
 
-  if (prec < 0) prec = 6;
-  e_char = 'E' | (fmt & 0x20);
-  fmt |= 0x20;
-  if (fmt == 'g' && prec == 0) prec = 1;
+  {
+    int use_shortest = (prec == -2);
+    if (prec < 0) prec = 6;
+    e_char = 'E' | (fmt & 0x20);
+    fmt |= 0x20;
+    if (fmt == 'g') {
+      if (use_shortest) fmt = 'S';   /* shortest mode */
+      else if (prec == 0) prec = 1;
+    }
+  }
 
   if (f == 0.0) {
     /* zero */
@@ -1074,7 +1198,46 @@ mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, ch
     int p, nd, exp;
     char digs[20];
 
-    if (fmt == 'g') {
+    if (fmt == 'S') {
+      /* shortest representation for to_s */
+      int i;
+      shortest((double)f, &d, &p);
+      nd = count_digits(d);
+      exp = p + nd - 1;
+      format_base10(digs, nd, d);
+
+#ifdef MRB_USE_FLOAT32
+      if (exp < -4 || exp >= 7) {
+#else
+      if (exp < -4 || exp >= 15) {
+#endif
+        /* e format */
+        *s++ = digs[0];
+        if (nd > 1) {
+          *s++ = '.';
+          for (i = 1; i < nd; i++) *s++ = digs[i];
+        }
+        s += emit_exp(s, e_char, exp);
+      }
+      else {
+        /* f format */
+        if (exp < 0) {
+          *s++ = '0';
+          *s++ = '.';
+          for (i = 0; i < -(exp + 1); i++) *s++ = '0';
+          for (i = 0; i < nd; i++) *s++ = digs[i];
+        }
+        else {
+          for (i = 0; i <= exp && i < nd; i++) *s++ = digs[i];
+          for (; i <= exp; i++) *s++ = '0';
+          if (nd > exp + 1) {
+            *s++ = '.';
+            for (i = exp + 1; i < nd; i++) *s++ = digs[i];
+          }
+        }
+      }
+    }
+    else if (fmt == 'g') {
       /* g/G format */
       int fprec;
       fixed_width((double)f, prec, &d, &p);
