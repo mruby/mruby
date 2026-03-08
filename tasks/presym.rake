@@ -7,8 +7,6 @@ all_prerequisites = ->(task_name, prereqs) do
 end
 
 MRuby.each_target do |build|
-  gensym_task = task(:gensym)
-
   presym = build.presym
 
   include_dir = "#{build.build_dir}/include"
@@ -55,5 +53,5 @@ MRuby.each_target do |build|
     file prereq => presym.list_path
   end
 
-  gensym_task.enhance([presym.list_path])
+  task gensym: presym.list_path
 end
