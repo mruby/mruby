@@ -1440,6 +1440,16 @@ catch_handler_find(const mrb_irep *irep, const mrb_code *pc, uint32_t filter)
 #define RAISE_LIT(mrb, c, str)          RAISE_EXC(mrb, mrb_exc_new_lit(mrb, c, str))
 #define RAISE_FORMAT(mrb, c, fmt, ...)  RAISE_EXC(mrb, mrb_exc_new_str(mrb, c, mrb_format(mrb, fmt, __VA_ARGS__)))
 
+/* return codes for extracted opcode handlers */
+#define VM_NEXT   0  /* continue to next instruction */
+#define VM_RAISE  1  /* exception: goto L_RAISE */
+
+#if defined(__GNUC__) || defined(__clang__)
+#define MRB_FLATTEN __attribute__((flatten))
+#else
+#define MRB_FLATTEN
+#endif
+
 static void
 argnum_error(mrb_state *mrb, mrb_int num)
 {
@@ -1660,6 +1670,269 @@ hash_new_from_regs(mrb_state *mrb, mrb_int argc, mrb_int idx)
 
 #define ary_new_from_regs(mrb, argc, idx) mrb_ary_new_from_values(mrb, (argc), &regs[idx]);
 
+/*
+ * Extracted opcode handlers.
+ * These are static functions force-inlined back into mrb_vm_exec via
+ * __attribute__((flatten)). The source stays clean while the compiled
+ * output is identical to having the code inline.
+ *
+ * Return VM_NEXT to continue, VM_RAISE when an exception has been set.
+ */
+
+static int
+vm_op_blkpush(mrb_state *mrb, uint32_t a, uint16_t b)
+{
+  mrb_callinfo *ci = mrb->c->ci;
+  int m1 = (b>>11)&0x3f;
+  int r  = (b>>10)&0x1;
+  int m2 = (b>>5)&0x1f;
+  int kd = (b>>4)&0x1;
+  int lv = (b>>0)&0xf;
+  int offset = m1+r+m2+kd;
+  mrb_value *stack;
+
+  if (lv == 0) stack = regs + 1;
+  else {
+    struct REnv *e = uvenv(mrb, lv-1);
+    if (!e || (!MRB_ENV_ONSTACK_P(e) && e->mid == 0) ||
+        MRB_ENV_LEN(e) <= offset+1) {
+      mrb_exc_set(mrb, mrb_exc_new_lit(mrb, E_LOCALJUMP_ERROR, "unexpected yield"));
+      return VM_RAISE;
+    }
+    stack = e->stack + 1;
+  }
+  if (mrb_nil_p(stack[offset])) {
+    mrb_exc_set(mrb, mrb_exc_new_lit(mrb, E_LOCALJUMP_ERROR, "unexpected yield"));
+    return VM_RAISE;
+  }
+  regs[a] = stack[offset];
+  return VM_NEXT;
+}
+
+static int
+vm_op_argary(mrb_state *mrb, uint32_t a, uint16_t b)
+{
+  mrb_callinfo *ci = mrb->c->ci;
+  mrb_int m1 = (b>>11)&0x3f;
+  mrb_int r  = (b>>10)&0x1;
+  mrb_int m2 = (b>>5)&0x1f;
+  mrb_int kd = (b>>4)&0x1;
+  mrb_int lv = (b>>0)&0xf;
+  mrb_value *stack;
+
+  if (ci->mid == 0 || CI_TARGET_CLASS(ci) == NULL) {
+  L_NOSUPER:
+    mrb_exc_set(mrb, mrb_exc_new_lit(mrb, E_NOMETHOD_ERROR, "super called outside of method"));
+    return VM_RAISE;
+  }
+  if (lv == 0) stack = regs + 1;
+  else {
+    struct REnv *e = uvenv(mrb, lv-1);
+    if (!e) goto L_NOSUPER;
+    if (MRB_ENV_LEN(e) <= m1+r+m2+1)
+      goto L_NOSUPER;
+    stack = e->stack + 1;
+  }
+  if (r == 0) {
+    regs[a] = mrb_ary_new_from_values(mrb, m1+m2, stack);
+  }
+  else {
+    mrb_value *pp = NULL;
+    struct RArray *rest;
+    mrb_int len = 0;
+
+    if (mrb_array_p(stack[m1])) {
+      struct RArray *ary = mrb_ary_ptr(stack[m1]);
+
+      pp = ARY_PTR(ary);
+      len = ARY_LEN(ary);
+    }
+    regs[a] = mrb_ary_new_capa(mrb, m1+len+m2);
+    rest = mrb_ary_ptr(regs[a]);
+    if (m1 > 0) {
+      stack_copy(ARY_PTR(rest), stack, m1);
+    }
+    if (len > 0) {
+      stack_copy(ARY_PTR(rest)+m1, pp, len);
+    }
+    if (m2 > 0) {
+      stack_copy(ARY_PTR(rest)+m1+len, stack+m1+1, m2);
+    }
+    ARY_SET_LEN(rest, m1+len+m2);
+  }
+  if (kd) {
+    regs[a+1] = stack[m1+r+m2];
+    regs[a+2] = stack[m1+r+m2+1];
+  }
+  else {
+    regs[a+1] = stack[m1+r+m2];
+  }
+  return VM_NEXT;
+}
+
+static int
+vm_op_enter(mrb_state *mrb, uint32_t a)
+{
+  mrb_callinfo *ci = mrb->c->ci;
+  const mrb_irep *irep = ci->proc->body.irep;
+  mrb_int argc = ci->n;
+  mrb_value *argv = regs+1;
+
+  mrb_int m1 = MRB_ASPEC_REQ(a);
+
+  /* no other args */
+  if ((a & ~0x7c0001) == 0 && argc < 15 && MRB_PROC_STRICT_P(ci->proc)) {
+    if (mrb_unlikely(argc+(ci->nk==15) != m1)) { /* count kdict too */
+      argnum_error(mrb, m1);
+      return VM_RAISE;
+    }
+    /* clear local (but non-argument) variables */
+    mrb_int pos = m1+2;     /* self+m1+blk */
+    if (irep->nlocals-pos  > 0) {
+      stack_clear(&regs[pos], irep->nlocals-pos);
+    }
+    return VM_NEXT;
+  }
+
+  mrb_int o  = MRB_ASPEC_OPT(a);
+  mrb_int r  = MRB_ASPEC_REST(a);
+  mrb_int m2 = MRB_ASPEC_POST(a);
+  mrb_int kd = (MRB_ASPEC_KEY(a) > 0 || MRB_ASPEC_KDICT(a))? 1 : 0;
+  /* unused
+  int b  = MRB_ASPEC_BLOCK(a);
+  */
+  mrb_int const len = m1 + o + r + m2;
+
+  mrb_value * const argv0 = argv;
+  mrb_value blk = regs[ci_bidx(ci)];
+
+  /* &nil: reject block */
+  if (MRB_ASPEC_NOBLOCK(a) && !mrb_nil_p(blk)) {
+    mrb_exc_set(mrb, mrb_exc_new_lit(mrb, E_ARGUMENT_ERROR, "no block accepted"));
+    return VM_RAISE;
+  }
+
+  mrb_value kdict = mrb_nil_value();
+
+  /* keyword arguments */
+  if (ci->nk == 15) {
+    kdict = regs[mrb_ci_kidx(ci)];
+  }
+  if (!kd) {
+    if (!mrb_nil_p(kdict) && mrb_hash_p(kdict) && mrb_hash_size(mrb, kdict) > 0) {
+      if (argc < 14) {
+        ci->n++;
+        argc++;    /* include kdict in normal arguments */
+      }
+      else if (argc == 14) {
+        /* pack arguments and kdict */
+        regs[1] = mrb_ary_new_from_values(mrb, argc+1, &regs[1]);
+        argc = ci->n = 15;
+      }
+      else {/* argc == 15 */
+        /* push kdict to packed arguments */
+        mrb_ary_push(mrb, regs[1], kdict);
+      }
+    }
+    kdict = mrb_nil_value();
+    ci->nk = 0;
+  }
+  else if (!mrb_nil_p(kdict)) {
+    mrb_gc_protect(mrb, kdict);
+  }
+
+  /* arguments is passed with Array */
+  if (argc == 15) {
+    struct RArray *ary = mrb_ary_ptr(regs[1]);
+    argv = ARY_PTR(ary);
+    argc = (int)ARY_LEN(ary);
+    mrb_gc_protect(mrb, regs[1]);
+  }
+
+  /* strict argument check */
+  if (ci->proc && MRB_PROC_STRICT_P(ci->proc)) {
+    if (mrb_unlikely(argc < m1 + m2 || (r == 0 && argc > len))) {
+      argnum_error(mrb, m1+m2);
+      return VM_RAISE;
+    }
+  }
+  /* extract first argument array to arguments */
+  else if (len > 1 && argc == 1 && mrb_array_p(argv[0])) {
+    mrb_gc_protect(mrb, argv[0]);
+    argc = (int)RARRAY_LEN(argv[0]);
+    argv = RARRAY_PTR(argv[0]);
+  }
+
+  /* rest arguments */
+  mrb_value rest;
+  if (argc < len) {
+    mrb_int mlen = m2;
+    if (argc < m1+m2) {
+      mlen = m1 < argc ? argc - m1 : 0;
+    }
+
+    /* copy mandatory and optional arguments */
+    if (argv0 != argv && argv) {
+      value_move(&regs[1], argv, argc-mlen); /* m1 + o */
+    }
+    if (argc < m1) {
+      stack_clear(&regs[argc+1], m1-argc);
+    }
+    /* copy post mandatory arguments */
+    if (mlen) {
+      value_move(&regs[len-m2+1], &argv[argc-mlen], mlen);
+    }
+    if (mlen < m2) {
+      stack_clear(&regs[len-m2+mlen+1], m2-mlen);
+    }
+    /* initialize rest arguments with empty Array */
+    if (r) {
+      rest = mrb_ary_new_capa(mrb, 0);
+      regs[m1+o+1] = rest;
+    }
+    /* skip initializer of passed arguments */
+    if (o > 0 && argc > m1+m2)
+      ci->pc += (argc - m1 - m2)*3;
+  }
+  else {
+    mrb_int rnum = 0;
+    if (argv0 != argv) {
+      mrb_gc_protect(mrb, blk);
+      value_move(&regs[1], argv, m1+o);
+    }
+    if (r) {
+      rnum = argc-m1-o-m2;
+      rest = mrb_ary_new_from_values(mrb, rnum, argv+m1+o);
+      regs[m1+o+1] = rest;
+    }
+    if (m2 > 0 && argc-m2 > m1) {
+      value_move(&regs[m1+o+r+1], &argv[m1+o+rnum], m2);
+    }
+    ci->pc += o*3;
+  }
+
+  /* need to be update blk first to protect blk from GC */
+  mrb_int const kw_pos = len + kd;    /* where kwhash should be */
+  mrb_int const blk_pos = kw_pos + 1; /* where block should be */
+  regs[blk_pos] = blk;                /* move block */
+  if (kd) {
+    if (mrb_nil_p(kdict)) {
+      kdict = mrb_hash_new_capa(mrb, 0);
+    }
+    regs[kw_pos] = kdict;             /* set kwhash */
+    ci->nk = 15;
+  }
+
+  /* format arguments for generated code */
+  ci->n = (uint8_t)len;
+
+  /* clear local (but non-argument) variables */
+  if (irep->nlocals-blk_pos-1 > 0) {
+    stack_clear(&regs[blk_pos+1], irep->nlocals-blk_pos-1);
+  }
+  return VM_NEXT;
+}
+
 /**
  * @brief Executes a sequence of mruby bytecode instructions.
  *
@@ -1687,7 +1960,7 @@ hash_new_from_regs(mrb_state *mrb, mrb_int argc, mrb_int idx)
  *       when not using switch-based dispatch. It also manages the callinfo
  *       stack (`ci`) for tracking method/block calls.
  */
-MRB_API mrb_value
+MRB_FLATTEN MRB_API mrb_value
 mrb_vm_exec(mrb_state *mrb, const struct RProc *begin_proc, const mrb_code *iseq)
 {
   /* mrb_assert(MRB_PROC_CFUNC_P(begin_proc)) */
@@ -2514,218 +2787,15 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_ARGARY, BS) {
-      mrb_int m1 = (b>>11)&0x3f;
-      mrb_int r  = (b>>10)&0x1;
-      mrb_int m2 = (b>>5)&0x1f;
-      mrb_int kd = (b>>4)&0x1;
-      mrb_int lv = (b>>0)&0xf;
-      mrb_value *stack;
-
-      if (ci->mid == 0 || CI_TARGET_CLASS(ci) == NULL) {
-      L_NOSUPER:
-        RAISE_LIT(mrb, E_NOMETHOD_ERROR, "super called outside of method");
-      }
-      if (lv == 0) stack = regs + 1;
-      else {
-        struct REnv *e = uvenv(mrb, lv-1);
-        if (!e) goto L_NOSUPER;
-        if (MRB_ENV_LEN(e) <= m1+r+m2+1)
-          goto L_NOSUPER;
-        stack = e->stack + 1;
-      }
-      if (r == 0) {
-        regs[a] = mrb_ary_new_from_values(mrb, m1+m2, stack);
-      }
-      else {
-        mrb_value *pp = NULL;
-        struct RArray *rest;
-        mrb_int len = 0;
-
-        if (mrb_array_p(stack[m1])) {
-          struct RArray *ary = mrb_ary_ptr(stack[m1]);
-
-          pp = ARY_PTR(ary);
-          len = ARY_LEN(ary);
-        }
-        regs[a] = mrb_ary_new_capa(mrb, m1+len+m2);
-        rest = mrb_ary_ptr(regs[a]);
-        if (m1 > 0) {
-          stack_copy(ARY_PTR(rest), stack, m1);
-        }
-        if (len > 0) {
-          stack_copy(ARY_PTR(rest)+m1, pp, len);
-        }
-        if (m2 > 0) {
-          stack_copy(ARY_PTR(rest)+m1+len, stack+m1+1, m2);
-        }
-        ARY_SET_LEN(rest, m1+len+m2);
-      }
-      if (kd) {
-        regs[a+1] = stack[m1+r+m2];
-        regs[a+2] = stack[m1+r+m2+1];
-      }
-      else {
-        regs[a+1] = stack[m1+r+m2];
-      }
+      if (vm_op_argary(mrb, a, b) == VM_RAISE) goto L_RAISE;
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
     CASE(OP_ENTER, W) {
-      mrb_int argc = ci->n;
-      mrb_value *argv = regs+1;
-
-      mrb_int m1 = MRB_ASPEC_REQ(a);
-
-       /* no other args */
-      if ((a & ~0x7c0001) == 0 && argc < 15 && MRB_PROC_STRICT_P(ci->proc)) {
-        if (mrb_unlikely(argc+(ci->nk==15) != m1)) { /* count kdict too */
-          argnum_error(mrb, m1);
-          goto L_RAISE;
-        }
-        /* clear local (but non-argument) variables */
-        mrb_int pos = m1+2;     /* self+m1+blk */
-        if (irep->nlocals-pos  > 0) {
-          stack_clear(&regs[pos], irep->nlocals-pos);
-        }
-        NEXT;
-      }
-
-      mrb_int o  = MRB_ASPEC_OPT(a);
-      mrb_int r  = MRB_ASPEC_REST(a);
-      mrb_int m2 = MRB_ASPEC_POST(a);
-      mrb_int kd = (MRB_ASPEC_KEY(a) > 0 || MRB_ASPEC_KDICT(a))? 1 : 0;
-      /* unused
-      int b  = MRB_ASPEC_BLOCK(a);
-      */
-      mrb_int const len = m1 + o + r + m2;
-
-      mrb_value * const argv0 = argv;
-      mrb_value blk = regs[ci_bidx(ci)];
-
-      /* &nil: reject block */
-      if (MRB_ASPEC_NOBLOCK(a) && !mrb_nil_p(blk)) {
-        RAISE_LIT(mrb, E_ARGUMENT_ERROR, "no block accepted");
-      }
-
-      mrb_value kdict = mrb_nil_value();
-
-      /* keyword arguments */
-      if (ci->nk == 15) {
-        kdict = regs[mrb_ci_kidx(ci)];
-      }
-      if (!kd) {
-        if (!mrb_nil_p(kdict) && mrb_hash_p(kdict) && mrb_hash_size(mrb, kdict) > 0) {
-          if (argc < 14) {
-            ci->n++;
-            argc++;    /* include kdict in normal arguments */
-          }
-          else if (argc == 14) {
-            /* pack arguments and kdict */
-            regs[1] = ary_new_from_regs(mrb, argc+1, 1);
-            argc = ci->n = 15;
-          }
-          else {/* argc == 15 */
-            /* push kdict to packed arguments */
-            mrb_ary_push(mrb, regs[1], kdict);
-          }
-        }
-        kdict = mrb_nil_value();
-        ci->nk = 0;
-      }
-      else if (!mrb_nil_p(kdict)) {
-        mrb_gc_protect(mrb, kdict);
-      }
-
-      /* arguments is passed with Array */
-      if (argc == 15) {
-        struct RArray *ary = mrb_ary_ptr(regs[1]);
-        argv = ARY_PTR(ary);
-        argc = (int)ARY_LEN(ary);
-        mrb_gc_protect(mrb, regs[1]);
-      }
-
-      /* strict argument check */
-      if (ci->proc && MRB_PROC_STRICT_P(ci->proc)) {
-        if (mrb_unlikely(argc < m1 + m2 || (r == 0 && argc > len))) {
-          argnum_error(mrb, m1+m2);
-          goto L_RAISE;
-        }
-      }
-      /* extract first argument array to arguments */
-      else if (len > 1 && argc == 1 && mrb_array_p(argv[0])) {
-        mrb_gc_protect(mrb, argv[0]);
-        argc = (int)RARRAY_LEN(argv[0]);
-        argv = RARRAY_PTR(argv[0]);
-      }
-
-      /* rest arguments */
-      mrb_value rest;
-      if (argc < len) {
-        mrb_int mlen = m2;
-        if (argc < m1+m2) {
-          mlen = m1 < argc ? argc - m1 : 0;
-        }
-
-        /* copy mandatory and optional arguments */
-        if (argv0 != argv && argv) {
-          value_move(&regs[1], argv, argc-mlen); /* m1 + o */
-        }
-        if (argc < m1) {
-          stack_clear(&regs[argc+1], m1-argc);
-        }
-        /* copy post mandatory arguments */
-        if (mlen) {
-          value_move(&regs[len-m2+1], &argv[argc-mlen], mlen);
-        }
-        if (mlen < m2) {
-          stack_clear(&regs[len-m2+mlen+1], m2-mlen);
-        }
-        /* initialize rest arguments with empty Array */
-        if (r) {
-          rest = mrb_ary_new_capa(mrb, 0);
-          regs[m1+o+1] = rest;
-        }
-        /* skip initializer of passed arguments */
-        if (o > 0 && argc > m1+m2)
-          ci->pc += (argc - m1 - m2)*3;
-      }
-      else {
-        mrb_int rnum = 0;
-        if (argv0 != argv) {
-          mrb_gc_protect(mrb, blk);
-          value_move(&regs[1], argv, m1+o);
-        }
-        if (r) {
-          rnum = argc-m1-o-m2;
-          rest = mrb_ary_new_from_values(mrb, rnum, argv+m1+o);
-          regs[m1+o+1] = rest;
-        }
-        if (m2 > 0 && argc-m2 > m1) {
-          value_move(&regs[m1+o+r+1], &argv[m1+o+rnum], m2);
-        }
-        ci->pc += o*3;
-      }
-
-      /* need to be update blk first to protect blk from GC */
-      mrb_int const kw_pos = len + kd;    /* where kwhash should be */
-      mrb_int const blk_pos = kw_pos + 1; /* where block should be */
-      regs[blk_pos] = blk;                /* move block */
-      if (kd) {
-        if (mrb_nil_p(kdict)) {
-          kdict = mrb_hash_new_capa(mrb, 0);
-        }
-        regs[kw_pos] = kdict;             /* set kwhash */
-        ci->nk = 15;
-      }
-
-      /* format arguments for generated code */
-      ci->n = (uint8_t)len;
-
-      /* clear local (but non-argument) variables */
-      if (irep->nlocals-blk_pos-1 > 0) {
-        stack_clear(&regs[blk_pos+1], irep->nlocals-blk_pos-1);
-      }
+      if (vm_op_enter(mrb, a) == VM_RAISE) goto L_RAISE;
+      ci = mrb->c->ci;
+      irep = ci->proc->body.irep;
       JUMP;
     }
 
@@ -2922,27 +2992,7 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_BLKPUSH, BS) {
-      int m1 = (b>>11)&0x3f;
-      int r  = (b>>10)&0x1;
-      int m2 = (b>>5)&0x1f;
-      int kd = (b>>4)&0x1;
-      int lv = (b>>0)&0xf;
-      int offset = m1+r+m2+kd;
-      mrb_value *stack;
-
-      if (lv == 0) stack = regs + 1;
-      else {
-        struct REnv *e = uvenv(mrb, lv-1);
-        if (!e || (!MRB_ENV_ONSTACK_P(e) && e->mid == 0) ||
-            MRB_ENV_LEN(e) <= offset+1) {
-          RAISE_LIT(mrb, E_LOCALJUMP_ERROR, "unexpected yield");
-        }
-        stack = e->stack + 1;
-      }
-      if (mrb_nil_p(stack[offset])) {
-        RAISE_LIT(mrb, E_LOCALJUMP_ERROR, "unexpected yield");
-      }
-      regs[a] = stack[offset];
+      if (vm_op_blkpush(mrb, a, b) == VM_RAISE) goto L_RAISE;
       NEXT;
     }
 
