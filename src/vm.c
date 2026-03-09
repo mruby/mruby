@@ -1441,8 +1441,10 @@ catch_handler_find(const mrb_irep *irep, const mrb_code *pc, uint32_t filter)
 #define RAISE_FORMAT(mrb, c, fmt, ...)  RAISE_EXC(mrb, mrb_exc_new_str(mrb, c, mrb_format(mrb, fmt, __VA_ARGS__)))
 
 /* return codes for extracted opcode handlers */
-#define VM_NEXT   0  /* continue to next instruction */
-#define VM_RAISE  1  /* exception: goto L_RAISE */
+#define VM_NEXT       0  /* continue to next instruction */
+#define VM_RAISE      1  /* exception: goto L_RAISE */
+#define VM_SEND_SYM   2  /* fallback send: goto L_SEND_SYM */
+#define VM_SENDB_SYM  3  /* fallback sendb: goto L_SENDB_SYM */
 
 #if defined(__GNUC__) || defined(__clang__)
 #define MRB_FLATTEN __attribute__((flatten))
@@ -1670,6 +1672,9 @@ hash_new_from_regs(mrb_state *mrb, mrb_int argc, mrb_int idx)
 
 #define ary_new_from_regs(mrb, argc, idx) mrb_ary_new_from_values(mrb, (argc), &regs[idx]);
 
+/* type pair for arithmetic/comparison dispatch */
+#define TYPES2(a,b) ((((uint16_t)(a))<<8)|(((uint16_t)(b))&0xff))
+
 /*
  * Extracted opcode handlers.
  * These are static functions force-inlined back into mrb_vm_exec via
@@ -1677,6 +1682,7 @@ hash_new_from_regs(mrb_state *mrb, mrb_int argc, mrb_int idx)
  * output is identical to having the code inline.
  *
  * Return VM_NEXT to continue, VM_RAISE when an exception has been set.
+ * VM_SEND_SYM/VM_SENDB_SYM for method fallback (mid set via out-param).
  */
 
 static int
@@ -1933,6 +1939,179 @@ vm_op_enter(mrb_state *mrb, uint32_t a)
   return VM_NEXT;
 }
 
+static int
+vm_op_getidx(mrb_state *mrb, uint32_t a, mrb_sym *midp)
+{
+  mrb_callinfo *ci = mrb->c->ci;
+  mrb_value va = regs[a], vb = regs[a+1];
+  enum mrb_vtype tt = mrb_type(va);
+
+  /* Array case is most common - check first with branch hint */
+  if (mrb_likely(tt == MRB_TT_ARRAY)) {
+    struct RArray *ary = mrb_ary_ptr(va);
+    /* optimize only for Array class; subclasses/singleton may override [] */
+    if (mrb_unlikely(ary->c != mrb->array_class)) goto getidx_fallback;
+    if (mrb_likely(mrb_integer_p(vb))) {
+      mrb_int idx = mrb_integer(vb);
+      mrb_int len;
+      mrb_value *ptr;
+
+      /* Single ARY_EMBED_P check instead of two */
+#ifndef MRB_ARY_NO_EMBED
+      if (ARY_EMBED_P(ary)) {
+        len = ARY_EMBED_LEN(ary);
+        ptr = ary->as.ary;
+      }
+      else
+#endif
+      {
+        len = ary->as.heap.len;
+        ptr = ary->as.heap.ptr;
+      }
+
+      /* Unsigned comparison: handles negative idx as large positive */
+      if (mrb_likely((mrb_uint)idx < (mrb_uint)len)) {
+        regs[a] = ptr[idx];
+      }
+      else {
+        regs[a] = mrb_ary_entry(va, idx);
+      }
+      return VM_NEXT;
+    }
+    goto getidx_fallback;
+  }
+  else if (tt == MRB_TT_HASH) {
+    /* optimize only for Hash class; subclasses/singleton may override [] */
+    if (mrb_obj_ptr(va)->c != mrb->hash_class) goto getidx_fallback;
+    va = mrb_hash_get(mrb, va, vb);
+    ci = mrb->c->ci;
+    regs[a] = va;
+    return VM_NEXT;
+  }
+  else if (tt == MRB_TT_STRING) {
+    /* optimize only for String class; subclasses/singleton may override [] */
+    if (mrb_obj_ptr(va)->c != mrb->string_class) goto getidx_fallback;
+    switch (mrb_type(vb)) {
+    case MRB_TT_INTEGER:
+    case MRB_TT_STRING:
+    case MRB_TT_RANGE:
+      va = mrb_str_aref(mrb, va, vb, mrb_undef_value());
+      regs[a] = va;
+      return VM_NEXT;
+    default:
+      break;
+    }
+  }
+getidx_fallback:
+  *midp = MRB_OPSYM(aref);
+  return VM_SEND_SYM;
+}
+
+static int
+vm_op_getidx0(mrb_state *mrb, uint32_t a, uint16_t b, mrb_sym *midp)
+{
+  mrb_callinfo *ci = mrb->c->ci;
+  mrb_value recv = regs[b];
+  enum mrb_vtype tt = mrb_type(recv);
+
+  if (mrb_likely(tt == MRB_TT_ARRAY)) {
+    struct RArray *ary = mrb_ary_ptr(recv);
+    if (mrb_unlikely(ary->c != mrb->array_class)) goto getidx0_fallback;
+#ifndef MRB_ARY_NO_EMBED
+    if (ARY_EMBED_P(ary)) {
+      regs[a] = ARY_EMBED_LEN(ary) > 0 ? ary->as.ary[0] : mrb_nil_value();
+    }
+    else
+#endif
+    {
+      regs[a] = ary->as.heap.len > 0 ? ary->as.heap.ptr[0] : mrb_nil_value();
+    }
+    return VM_NEXT;
+  }
+  else if (tt == MRB_TT_HASH) {
+    if (mrb_obj_ptr(recv)->c != mrb->hash_class) goto getidx0_fallback;
+    regs[a] = mrb_hash_get(mrb, recv, mrb_fixnum_value(0));
+    return VM_NEXT;
+  }
+getidx0_fallback:
+  regs[a] = recv;
+  SET_FIXNUM_VALUE(regs[a+1], 0);
+  *midp = MRB_OPSYM(aref);
+  return VM_SEND_SYM;
+}
+
+static int
+vm_op_setidx(mrb_state *mrb, uint32_t a, mrb_sym *midp)
+{
+  mrb_callinfo *ci = mrb->c->ci;
+  mrb_value va = regs[a], vb = regs[a+1], vc = regs[a+2];
+  switch (mrb_type(va)) {
+  case MRB_TT_ARRAY:
+    /* optimize only for Array class; subclasses/singleton may override []= */
+    if (mrb_obj_ptr(va)->c != mrb->array_class) goto setidx_fallback;
+    if (!mrb_integer_p(vb)) goto setidx_fallback;
+    mrb_ary_set(mrb, va, mrb_integer(vb), vc);
+    ci = mrb->c->ci;
+    regs[a] = vc;
+    return VM_NEXT;
+  case MRB_TT_HASH:
+    /* optimize only for Hash class; subclasses/singleton may override []= */
+    if (mrb_obj_ptr(va)->c != mrb->hash_class) goto setidx_fallback;
+    mrb_hash_set(mrb, va, vb, vc);
+    ci = mrb->c->ci;
+    regs[a] = vc;
+    return VM_NEXT;
+  default:
+  setidx_fallback:
+    SET_NIL_VALUE(regs[a+3]);
+    *midp = MRB_OPSYM(aset);
+    return VM_SENDB_SYM;
+  }
+}
+
+static int
+vm_op_div(mrb_state *mrb, uint32_t a, mrb_sym *midp)
+{
+  mrb_callinfo *ci = mrb->c->ci;
+#ifndef MRB_NO_FLOAT
+  mrb_float x, y, f;
+#endif
+
+  /* need to check if op is overridden */
+  switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {
+  case TYPES2(MRB_TT_INTEGER,MRB_TT_INTEGER):
+    {
+      mrb_int x = mrb_integer(regs[a]);
+      mrb_int y = mrb_integer(regs[a+1]);
+      regs[a] = mrb_div_int_value(mrb, x, y);
+    }
+    return VM_NEXT;
+#ifndef MRB_NO_FLOAT
+  case TYPES2(MRB_TT_INTEGER,MRB_TT_FLOAT):
+    x = (mrb_float)mrb_integer(regs[a]);
+    y = mrb_float(regs[a+1]);
+    break;
+  case TYPES2(MRB_TT_FLOAT,MRB_TT_INTEGER):
+    x = mrb_float(regs[a]);
+    y = (mrb_float)mrb_integer(regs[a+1]);
+    break;
+  case TYPES2(MRB_TT_FLOAT,MRB_TT_FLOAT):
+    x = mrb_float(regs[a]);
+    y = mrb_float(regs[a+1]);
+    break;
+#endif
+  default:
+    *midp = MRB_OPSYM(div);
+    return VM_SEND_SYM;
+  }
+
+#ifndef MRB_NO_FLOAT
+  f = mrb_div_float(x, y);
+  SET_FLOAT_VALUE(mrb, regs[a], f);
+#endif
+  return VM_NEXT;
+}
+
 /**
  * @brief Executes a sequence of mruby bytecode instructions.
  *
@@ -2179,125 +2358,24 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_GETIDX, B) {
-      mrb_value va = regs[a], vb = regs[a+1];
-      enum mrb_vtype tt = mrb_type(va);
-
-      /* Array case is most common - check first with branch hint */
-      if (mrb_likely(tt == MRB_TT_ARRAY)) {
-        struct RArray *ary = mrb_ary_ptr(va);
-        /* optimize only for Array class; subclasses/singleton may override [] */
-        if (mrb_unlikely(ary->c != mrb->array_class)) goto getidx_fallback;
-        if (mrb_likely(mrb_integer_p(vb))) {
-          mrb_int idx = mrb_integer(vb);
-          mrb_int len;
-          mrb_value *ptr;
-
-          /* Single ARY_EMBED_P check instead of two */
-#ifndef MRB_ARY_NO_EMBED
-          if (ARY_EMBED_P(ary)) {
-            len = ARY_EMBED_LEN(ary);
-            ptr = ary->as.ary;
-          }
-          else
-#endif
-          {
-            len = ary->as.heap.len;
-            ptr = ary->as.heap.ptr;
-          }
-
-          /* Unsigned comparison: handles negative idx as large positive */
-          if (mrb_likely((mrb_uint)idx < (mrb_uint)len)) {
-            regs[a] = ptr[idx];
-          }
-          else {
-            regs[a] = mrb_ary_entry(va, idx);
-          }
-          NEXT;
-        }
-        goto getidx_fallback;
-      }
-      else if (tt == MRB_TT_HASH) {
-        /* optimize only for Hash class; subclasses/singleton may override [] */
-        if (mrb_obj_ptr(va)->c != mrb->hash_class) goto getidx_fallback;
-        va = mrb_hash_get(mrb, va, vb);
-        ci = mrb->c->ci;
-        regs[a] = va;
-        NEXT;
-      }
-      else if (tt == MRB_TT_STRING) {
-        /* optimize only for String class; subclasses/singleton may override [] */
-        if (mrb_obj_ptr(va)->c != mrb->string_class) goto getidx_fallback;
-        switch (mrb_type(vb)) {
-        case MRB_TT_INTEGER:
-        case MRB_TT_STRING:
-        case MRB_TT_RANGE:
-          va = mrb_str_aref(mrb, va, vb, mrb_undef_value());
-          regs[a] = va;
-          NEXT;
-        default:
-          break;
-        }
-      }
-    getidx_fallback:
-      mid = MRB_OPSYM(aref);
-      goto L_SEND_SYM;
+      int r = vm_op_getidx(mrb, a, &mid);
+      ci = mrb->c->ci;
+      if (r == VM_SEND_SYM) goto L_SEND_SYM;
+      NEXT;
     }
 
     CASE(OP_GETIDX0, BB) {
-      mrb_value recv = regs[b];
-      enum mrb_vtype tt = mrb_type(recv);
-
-      if (mrb_likely(tt == MRB_TT_ARRAY)) {
-        struct RArray *ary = mrb_ary_ptr(recv);
-        if (mrb_unlikely(ary->c != mrb->array_class)) goto getidx0_fallback;
-#ifndef MRB_ARY_NO_EMBED
-        if (ARY_EMBED_P(ary)) {
-          regs[a] = ARY_EMBED_LEN(ary) > 0 ? ary->as.ary[0] : mrb_nil_value();
-        }
-        else
-#endif
-        {
-          regs[a] = ary->as.heap.len > 0 ? ary->as.heap.ptr[0] : mrb_nil_value();
-        }
-        NEXT;
-      }
-      else if (tt == MRB_TT_HASH) {
-        if (mrb_obj_ptr(recv)->c != mrb->hash_class) goto getidx0_fallback;
-        regs[a] = mrb_hash_get(mrb, recv, mrb_fixnum_value(0));
-        NEXT;
-      }
-    getidx0_fallback:
-      regs[a] = recv;
-      SET_FIXNUM_VALUE(regs[a+1], 0);
-      mid = MRB_OPSYM(aref);
-      goto L_SEND_SYM;
+      int r = vm_op_getidx0(mrb, a, b, &mid);
+      ci = mrb->c->ci;
+      if (r == VM_SEND_SYM) goto L_SEND_SYM;
+      NEXT;
     }
 
     CASE(OP_SETIDX, B) {
-      mrb_value va = regs[a], vb = regs[a+1], vc = regs[a+2];
-      switch (mrb_type(va)) {
-      case MRB_TT_ARRAY:
-        /* optimize only for Array class; subclasses/singleton may override []= */
-        if (mrb_obj_ptr(va)->c != mrb->array_class) goto setidx_fallback;
-        if (!mrb_integer_p(vb)) goto setidx_fallback;
-        mrb_ary_set(mrb, va, mrb_integer(vb), vc);
-        ci = mrb->c->ci;
-        regs[a] = vc;
-        NEXT;
-      case MRB_TT_HASH:
-        /* optimize only for Hash class; subclasses/singleton may override []= */
-        if (mrb_obj_ptr(va)->c != mrb->hash_class) goto setidx_fallback;
-        mrb_hash_set(mrb, va, vb, vc);
-        ci = mrb->c->ci;
-        regs[a] = vc;
-        NEXT;
-      default:
-      setidx_fallback:
-        c = 2;
-        mid = MRB_OPSYM(aset);
-        SET_NIL_VALUE(regs[a+3]);
-        goto L_SENDB_SYM;
-      }
+      int r = vm_op_setidx(mrb, a, &mid);
+      ci = mrb->c->ci;
+      if (r == VM_SENDB_SYM) { c = 2; goto L_SENDB_SYM; }
+      NEXT;
     }
 
     CASE(OP_GETCONST, BB) {
@@ -3001,7 +3079,6 @@ RETRY_TRY_BLOCK:
     RAISE_LIT(mrb, E_RANGE_ERROR, "integer overflow");
 #endif
 
-#define TYPES2(a,b) ((((uint16_t)(a))<<8)|(((uint16_t)(b))&0xff))
 #define OP_MATH(op_name) do {                                               \
   /* need to check if op is overridden */                                   \
   uint16_t tt = TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]));              \
@@ -3077,42 +3154,9 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_DIV, B) {
-#ifndef MRB_NO_FLOAT
-      mrb_float x, y, f;
-#endif
-
-      /* need to check if op is overridden */
-      switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {
-      case TYPES2(MRB_TT_INTEGER,MRB_TT_INTEGER):
-        {
-          mrb_int x = mrb_integer(regs[a]);
-          mrb_int y = mrb_integer(regs[a+1]);
-          regs[a] = mrb_div_int_value(mrb, x, y);
-        }
-        NEXT;
-#ifndef MRB_NO_FLOAT
-      case TYPES2(MRB_TT_INTEGER,MRB_TT_FLOAT):
-        x = (mrb_float)mrb_integer(regs[a]);
-        y = mrb_float(regs[a+1]);
-        break;
-      case TYPES2(MRB_TT_FLOAT,MRB_TT_INTEGER):
-        x = mrb_float(regs[a]);
-        y = (mrb_float)mrb_integer(regs[a+1]);
-        break;
-      case TYPES2(MRB_TT_FLOAT,MRB_TT_FLOAT):
-        x = mrb_float(regs[a]);
-        y = mrb_float(regs[a+1]);
-        break;
-#endif
-      default:
-        mid = MRB_OPSYM(div);
-        goto L_SEND_SYM;
-      }
-
-#ifndef MRB_NO_FLOAT
-      f = mrb_div_float(x, y);
-      SET_FLOAT_VALUE(mrb, regs[a], f);
-#endif
+      int r = vm_op_div(mrb, a, &mid);
+      ci = mrb->c->ci;
+      if (r == VM_SEND_SYM) goto L_SEND_SYM;
       NEXT;
     }
 
