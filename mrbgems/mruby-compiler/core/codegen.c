@@ -3821,7 +3821,7 @@ codegen_array(codegen_scope *s, node *varnode, int val)
   node *elements = array->elements;
   int regular_elements = 0;
   int first = 1;
-  int slimit = GEN_VAL_STACK_MAX;
+  int slimit = GEN_LIT_ARY_MAX;
 
   if (!val) return;
 
@@ -3831,7 +3831,7 @@ codegen_array(codegen_scope *s, node *varnode, int val)
     return;
   }
 
-  if (cursp() >= GEN_LIT_ARY_MAX) slimit = INT16_MAX;
+  if (cursp() >= slimit) slimit = GEN_VAL_STACK_MAX;
 
   /* Process each element using cons-list iteration, handling splats */
   node *current = elements;
