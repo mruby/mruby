@@ -1694,6 +1694,37 @@ mrb_objspace_page_slot_size(void)
 }
 
 
+/*
+ *  call-seq:
+ *     GC.stat    -> Hash
+ *
+ *  Returns a Hash with GC statistics.
+ *  Keys: :live, :threshold, :state, :generational, :full
+ *  With MRB_GC_STATS: :total, :minor, :major
+ *
+ */
+
+static mrb_value
+gc_stat(mrb_state *mrb, mrb_value self)
+{
+  mrb_gc *gc = &mrb->gc;
+  mrb_value hash = mrb_hash_new_capa(mrb, 8);
+
+  mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "live")), mrb_int_value(mrb, (mrb_int)gc->live));
+  mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "threshold")), mrb_int_value(mrb, (mrb_int)gc->threshold));
+  mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "state")), mrb_int_value(mrb, (mrb_int)gc->state));
+  mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "generational")), mrb_bool_value(gc->generational));
+  mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "full")), mrb_bool_value(gc->full));
+
+#ifdef MRB_GC_STATS
+  mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "total")), mrb_int_value(mrb, (mrb_int)gc->gc_total_count));
+  mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "minor")), mrb_int_value(mrb, (mrb_int)gc->minor_gc_count));
+  mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "major")), mrb_int_value(mrb, (mrb_int)gc->major_gc_count));
+#endif
+
+  return hash;
+}
+
 void
 mrb_init_gc(mrb_state *mrb)
 {
@@ -1709,6 +1740,7 @@ mrb_init_gc(mrb_state *mrb)
 
   gc = mrb_define_module_id(mrb, MRB_SYM(GC));
 
+  mrb_define_class_method_id(mrb, gc, MRB_SYM(stat), gc_stat, MRB_ARGS_NONE());
   mrb_define_class_method_id(mrb, gc, MRB_SYM(start), gc_start, MRB_ARGS_NONE());
   mrb_define_class_method_id(mrb, gc, MRB_SYM(enable), gc_enable, MRB_ARGS_NONE());
   mrb_define_class_method_id(mrb, gc, MRB_SYM(disable), gc_disable, MRB_ARGS_NONE());
