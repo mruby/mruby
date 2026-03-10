@@ -1,5 +1,4 @@
 #include <mruby.h>
-#include <mruby/presym.h>
 
 static mrb_value
 binding_in_c(mrb_state *mrb, mrb_value self)

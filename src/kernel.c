@@ -14,7 +14,6 @@
 #include <mruby/error.h>
 #include <mruby/istruct.h>
 #include <mruby/internal.h>
-#include <mruby/presym.h>
 
 /*
  * Checks if the method `mid` for object `obj` is implemented by

@@ -79,7 +79,6 @@ Include `<mruby/class.h>` (which provides `mrb_mt_entry`,
 
 ```c
 #include <mruby/class.h>
-#include <mruby/presym.h>
 
 static const mrb_mt_entry my_rom_entries[] = {
   MRB_MT_ENTRY(my_method_a,  MRB_SYM(method_a), MRB_ARGS_REQ(1)),

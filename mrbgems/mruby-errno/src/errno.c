@@ -7,7 +7,6 @@
 #include <mruby/string.h>
 #include <mruby/variable.h>
 #include <mruby/internal.h>
-#include <mruby/presym.h>
 #include <errno.h>
 #include <string.h>
 

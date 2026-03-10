@@ -37,7 +37,6 @@
 #endif
 
 #include <mruby.h>
-#include <mruby/presym.h>
 
 /*
  * call-seq:

@@ -8,7 +8,6 @@
 #include <mruby/string.h>
 #include <mruby/time.h>
 #include <mruby/class.h>
-#include <mruby/presym.h>
 #include <time.h>
 #include <string.h>
 

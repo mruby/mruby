@@ -11,7 +11,6 @@
 #include <mruby/variable.h>
 #include <mruby/endian.h>
 #include <mruby/internal.h>
-#include <mruby/presym.h>
 
 #include <ctype.h>
 #include <string.h>

@@ -7,7 +7,6 @@
 #include <mruby/string.h>
 #include <mruby/internal.h>
 #include <mruby/khash.h>
-#include <mruby/presym.h>
 
 #define MT_PROTECTED MRB_METHOD_PROTECTED_FL
 #define MT_NOPRIV (MRB_METHOD_PRIVATE_FL|MT_PROTECTED)

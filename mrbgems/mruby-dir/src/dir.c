@@ -10,7 +10,6 @@
 #include <mruby/data.h>
 #include <mruby/error.h>
 #include <mruby/string.h>
-#include <mruby/presym.h>
 #include "dir_hal.h"
 
 #include <string.h>

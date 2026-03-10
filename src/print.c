@@ -8,7 +8,6 @@
 #include <mruby/string.h>
 #include <mruby/variable.h>
 #include <mruby/error.h>
-#include <mruby/presym.h>
 #include <string.h>
 #if defined(_WIN32)
 # include <windows.h>

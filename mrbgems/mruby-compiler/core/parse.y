@@ -23,7 +23,6 @@
 #include <mruby/string.h>
 #include <mruby/dump.h>
 #include <mruby/internal.h>
-#include <mruby/presym.h>
 #include "node.h"
 
 #define YYLEX_PARAM p

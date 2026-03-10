@@ -10,7 +10,6 @@
 */
 
 #include <mruby.h>
-#include <mruby/presym.h>
 
 #ifdef MRB_NO_FLOAT
 # error CMath conflicts with 'MRB_NO_FLOAT' configuration

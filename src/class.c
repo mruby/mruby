@@ -17,7 +17,6 @@
 #include <mruby/istruct.h>
 #include <mruby/opcode.h>
 #include <mruby/internal.h>
-#include <mruby/presym.h>
 
 /* mrb_mt_tbl, union mrb_mt_ptr, mrb_mt_entry defined in internal.h */
 #define MT_PROTECTED MRB_METHOD_PROTECTED_FL

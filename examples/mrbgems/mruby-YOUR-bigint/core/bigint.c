@@ -16,11 +16,6 @@
 #include <mruby/internal.h>
 
 /*
- * The "mruby/presym.h" file is placed at the end of the mruby header file.
- */
-#include <mruby/presym.h>
-
-/*
  * Define your own struct RBigint.
  *
  * - Object type must be MRB_TT_BIGINT.

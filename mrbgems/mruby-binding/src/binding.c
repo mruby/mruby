@@ -4,7 +4,6 @@
 #include <mruby/hash.h>
 #include <mruby/proc.h>
 #include <mruby/variable.h>
-#include <mruby/presym.h>
 #include <mruby/opcode.h>
 #include <mruby/debug.h>
 #include <mruby/internal.h>

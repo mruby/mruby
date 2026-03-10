@@ -4,7 +4,6 @@
 #include <mruby/string.h>
 #include <mruby/class.h>
 #include <mruby/internal.h>
-#include <mruby/presym.h>
 
 #ifndef MRB_NO_FLOAT
 static mrb_value flo_remainder(mrb_state *mrb, mrb_value self);
