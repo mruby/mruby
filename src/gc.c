@@ -1322,9 +1322,19 @@ mrb_incremental_gc(mrb_state *mrb)
   if (gc->disabled || gc->iterating) return;
 
   if (is_minor_gc(gc)) {
+#ifdef MRB_GC_STATS
+    gc->gc_total_count++;
+    gc->minor_gc_count++;
+#endif
     incremental_gc_finish(mrb, gc);
   }
   else {
+#ifdef MRB_GC_STATS
+    if (gc->state == MRB_GC_STATE_ROOT) {
+      gc->gc_total_count++;
+      gc->major_gc_count++;
+    }
+#endif
     incremental_gc_step(mrb, gc);
   }
 
@@ -1364,6 +1374,10 @@ mrb_full_gc(mrb_state *mrb)
   if (!mrb->c) return;
   if (gc->disabled || gc->iterating) return;
 
+#ifdef MRB_GC_STATS
+  gc->gc_total_count++;
+  gc->major_gc_count++;
+#endif
   if (is_generational(gc)) {
     /* clear all the old objects back to young */
     clear_all_old(mrb, gc);

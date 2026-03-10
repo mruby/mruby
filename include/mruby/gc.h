@@ -64,6 +64,12 @@ typedef struct mrb_gc {
   int arena_capa;                          /* size of protection array */
 #endif
   int arena_idx;
+
+#ifdef MRB_GC_STATS
+  uint32_t gc_total_count;                 /* total GC invocations */
+  uint32_t minor_gc_count;                 /* minor GC count */
+  uint32_t major_gc_count;                 /* major GC count */
+#endif
 } mrb_gc;
 
 MRB_API mrb_bool mrb_object_dead_p(mrb_state *mrb, struct RBasic *object);
