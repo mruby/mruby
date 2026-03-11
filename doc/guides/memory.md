@@ -202,10 +202,10 @@ any other heap page. The only differences are:
 The page size is controlled by `MRB_HEAP_PAGE_SIZE` (default: 1024 slots).
 Each page occupies:
 
-| Platform | Slot size | Page size (approx)  |
-|----------|-----------|---------------------|
-| 64-bit   | 40 bytes  | ~41 KB              |
-| 32-bit   | 24 bytes  | ~25 KB              |
+| Platform | Slot size | Page size (approx) |
+| -------- | --------- | ------------------ |
+| 64-bit   | 40 bytes  | ~41 KB             |
+| 32-bit   | 24 bytes  | ~25 KB             |
 
 To estimate pages for a given buffer: `pages = buffer_size / sizeof(mrb_heap_page)`.
 Each page provides `MRB_HEAP_PAGE_SIZE` object slots.

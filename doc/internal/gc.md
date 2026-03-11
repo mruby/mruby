@@ -26,12 +26,12 @@ pauses.
 Every heap-allocated object has a color stored in
 `RBasic::gc_color` (3 bits):
 
-| Color | Value | Meaning |
-| ----- | ----- | ------- |
-| White (A or B) | 1 or 2 | Unmarked, candidate for collection |
-| Gray | 0 | Marked, but children not yet scanned |
-| Black | 4 | Fully marked and scanned |
-| Red | 7 | Static/ROM object, never collected |
+| Color          | Value  | Meaning                              |
+| -------------- | ------ | ------------------------------------ |
+| White (A or B) | 1 or 2 | Unmarked, candidate for collection   |
+| Gray           | 0      | Marked, but children not yet scanned |
+| Black          | 4      | Fully marked and scanned             |
+| Red            | 7      | Static/ROM object, never collected   |
 
 The GC uses two white types (A and B) in a flip-flop scheme. At the
 start of each GC cycle, the meaning of "current white" is flipped by
@@ -107,7 +107,7 @@ The GC operates as a three-state machine:
 GC_STATE_ROOT --> GC_STATE_MARK --> GC_STATE_SWEEP --> GC_STATE_ROOT
 ```
 
-### Root Scan (GC\_STATE\_ROOT)
+### Root Scan (GC_STATE_ROOT)
 
 Marks objects directly reachable from the VM:
 
@@ -121,7 +121,7 @@ Marks objects directly reachable from the VM:
 
 After root scanning, the white color is flipped.
 
-### Incremental Marking (GC\_STATE\_MARK)
+### Incremental Marking (GC_STATE_MARK)
 
 Gray objects are popped from the gray stack and their children
 marked. Each step processes a limited number of objects:
@@ -137,7 +137,7 @@ When the gray stack is exhausted, the final marking phase re-marks
 the arena and global variables to catch objects created during
 marking, then transitions to sweep.
 
-### Sweep (GC\_STATE\_SWEEP)
+### Sweep (GC_STATE_SWEEP)
 
 Iterates through heap pages. For each object:
 
@@ -325,15 +325,15 @@ From Ruby: `GC.start`.
 
 ### Compile-Time
 
-| Macro | Default | Description |
-| ----- | ------- | ----------- |
-| `MRB_HEAP_PAGE_SIZE` | 1024 | Objects per heap page |
-| `MRB_GRAY_STACK_SIZE` | 1024 | Gray stack capacity |
-| `MRB_GC_ARENA_SIZE` | 100 | Arena size (fixed mode) or initial size |
-| `MRB_GC_FIXED_ARENA` | off | Use fixed-size arena |
-| `MRB_GC_TURN_OFF_GENERATIONAL` | off | Disable generational mode |
-| `MRB_GC_STRESS` | off | Full GC on every allocation (debug) |
-| `MRB_USE_MALLOC_TRIM` | off | Call `malloc_trim()` after full GC |
+| Macro                          | Default | Description                             |
+| ------------------------------ | ------- | --------------------------------------- |
+| `MRB_HEAP_PAGE_SIZE`           | 1024    | Objects per heap page                   |
+| `MRB_GRAY_STACK_SIZE`          | 1024    | Gray stack capacity                     |
+| `MRB_GC_ARENA_SIZE`            | 100     | Arena size (fixed mode) or initial size |
+| `MRB_GC_FIXED_ARENA`           | off     | Use fixed-size arena                    |
+| `MRB_GC_TURN_OFF_GENERATIONAL` | off     | Disable generational mode               |
+| `MRB_GC_STRESS`                | off     | Full GC on every allocation (debug)     |
+| `MRB_USE_MALLOC_TRIM`          | off     | Call `malloc_trim()` after full GC      |
 
 ### Runtime
 
@@ -350,8 +350,8 @@ GC.disable                 # disable GC
 
 ## Source Files
 
-| File | Contents |
-| ---- | -------- |
-| `src/gc.c` | GC implementation (~1400 lines) |
+| File                 | Contents                          |
+| -------------------- | --------------------------------- |
+| `src/gc.c`           | GC implementation (~1400 lines)   |
 | `include/mruby/gc.h` | `mrb_gc` structure, public GC API |
-| `include/mruby.h` | Arena save/restore macros |
+| `include/mruby.h`    | Arena save/restore macros         |
