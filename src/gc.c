@@ -844,6 +844,31 @@ mrb_gc_mark(mrb_state *mrb, struct RBasic *obj)
   if (!is_white(obj)) return;
   if (is_red(obj)) return;
   mrb_assert((obj)->tt != MRB_TT_FREE);
+  switch (obj->tt) {
+  case MRB_TT_STRING:
+    /* most strings have no children; handle fshared inline */
+    paint_black(obj);
+    mrb_gc_mark(mrb, (struct RBasic*)obj->c);
+    if (RSTR_FSHARED_P(obj)) {
+      struct RString *s = (struct RString*)obj;
+      mrb_gc_mark(mrb, (struct RBasic*)s->as.heap.aux.fshared);
+    }
+    return;
+  case MRB_TT_INTEGER:
+  case MRB_TT_CPTR:
+#ifdef MRB_USE_BIGINT
+  case MRB_TT_BIGINT:
+#endif
+#ifdef MRB_USE_COMPLEX
+  case MRB_TT_COMPLEX:
+#endif
+    /* leaf types: no children besides class */
+    paint_black(obj);
+    mrb_gc_mark(mrb, (struct RBasic*)obj->c);
+    return;
+  default:
+    break;
+  }
   add_gray_list(&mrb->gc, obj);
 }
 
