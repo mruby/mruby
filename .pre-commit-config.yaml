@@ -25,6 +25,16 @@ repos:
         language: node
         additional_dependencies: ["prettier@3.7.4"]
         stages: [manual]
+      - id: check-hook-descriptions
+        name: make sure all pre-commit hooks have descriptions
+        description: >-
+          Validates that every hook in the pre-commit configuration includes a
+          descriptive explanation of at least 15 characters.
+        entry: python3 scripts/pre-commit/check_hook_descriptions.py
+        language: python
+        additional_dependencies: [PyYAML]
+        files: ^\.pre-commit-config\.yaml$
+        pass_filenames: false
       - id: check-zip-file-is-not-committed
         name: disallow zip files
         description: Zip files are not allowed in the repository
@@ -51,29 +61,48 @@ repos:
     rev: v6.0.0
     hooks:
       - id: check-added-large-files
+        description: prevent giant files from being committed
       - id: check-case-conflict
+        description: check for files with names that would conflict on a case-insensitive filesystem like MacOS HFS+ or Windows FAT
       - id: check-executables-have-shebangs
+        description: checks that non-binary executables have a proper shebang
         exclude: ^test/t/lang\.rb$
       - id: check-illegal-windows-names
+        description: check for files that cannot be created on Windows
       - id: pretty-format-json
+        description: checks that all your JSON files are pretty. "Pretty" here means that keys are sorted and indented
         args: [--autofix, --no-sort-keys]
       - id: check-json
+        description: attempts to load all json files to verify syntax
       - id: check-merge-conflict
+        description: check for files that contain merge conflict strings
       - id: check-shebang-scripts-are-executable
+        description: checks that scripts with shebangs are executable
       - id: check-vcs-permalinks
+        description: ensures that links to vcs websites are permalinks
       - id: check-yaml
+        description: attempts to load all yaml files to verify syntax
       - id: destroyed-symlinks
+        description: detects symlinks which are changed to regular files with a content of a path which that symlink was pointing to
       - id: detect-aws-credentials
+        description: checks for the existence of AWS secrets that you have set up with the AWS CLI
         args: [--allow-missing-credentials]
       - id: detect-private-key
+        description: checks for the existence of private keys
       - id: end-of-file-fixer
+        description: makes sure files end in a newline and only a newline
       - id: file-contents-sorter
+        description: sort the lines in specified files (defaults to alphabetical)
         args: [--unique]
         files: ^\.github/linters/codespell\.txt$
       - id: fix-byte-order-marker
+        description: removes UTF-8 byte order marker
       - id: forbid-submodules
+        description: forbids any submodules in the repository
       - id: mixed-line-ending
+        description: replaces or checks mixed line ending
       - id: trailing-whitespace
+        description: trims trailing whitespace
   - repo: https://github.com/Lucas-C/pre-commit-hooks
     rev: v1.5.5
     hooks:
