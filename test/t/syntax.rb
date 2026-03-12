@@ -1246,12 +1246,13 @@ assert('pattern matching - NoMatchingPatternError') do
     assert_true e.message.is_a?(String)
   end
 
-  # case/in without else returns nil (no match)
-  result = case 5
-  in 1 then :one
-  in 2 then :two
+  # case/in without else raises NoMatchingPatternError
+  assert_raise(NoMatchingPatternError) do
+    case 5
+    in 1 then :one
+    in 2 then :two
+    end
   end
-  assert_nil result
 end
 
 assert('pattern matching - complex patterns') do
