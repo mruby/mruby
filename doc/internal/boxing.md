@@ -77,16 +77,16 @@ No boxing represents `mrb_value` by the C struct with `type` and the value union
 
 ## Comparison
 
-| Property               | Word Boxing        | NaN Boxing         | No Boxing            |
-| ---------------------- | ------------------ | ------------------ | -------------------- |
-| `mrb_value` size       | 1 word (4/8 byte)  | 8 bytes            | 2 words (8/16 bytes) |
-| Default on             | most platforms     | (manual opt-in)    | `host-debug`         |
-| Macro                  | `MRB_WORD_BOXING`  | `MRB_NAN_BOXING`   | `MRB_NO_BOXING`      |
-| Inline integers        | yes (31/63 bit)    | yes (32 bit)       | yes (full width)     |
-| Inline floats (64-bit) | yes (rotation)     | yes (native)       | yes (struct field)   |
-| Inline floats (32-bit) | no (heap RFloat)   | yes (native)       | yes (struct field)   |
-| Pointer size limit     | none               | 48 bits            | none                 |
-| Debugger friendly      | no                 | no                 | yes                  |
+| Property               | Word Boxing       | NaN Boxing       | No Boxing            |
+| ---------------------- | ----------------- | ---------------- | -------------------- |
+| `mrb_value` size       | 1 word (4/8 byte) | 8 bytes          | 2 words (8/16 bytes) |
+| Default on             | most platforms    | (manual opt-in)  | `host-debug`         |
+| Macro                  | `MRB_WORD_BOXING` | `MRB_NAN_BOXING` | `MRB_NO_BOXING`      |
+| Inline integers        | yes (31/63 bit)   | yes (32 bit)     | yes (full width)     |
+| Inline floats (64-bit) | yes (rotation)    | yes (native)     | yes (struct field)   |
+| Inline floats (32-bit) | no (heap RFloat)  | yes (native)     | yes (struct field)   |
+| Pointer size limit     | none              | 48 bits          | none                 |
+| Debugger friendly      | no                | no               | yes                  |
 
 ## ABI Compatibility
 

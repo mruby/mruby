@@ -274,11 +274,11 @@ enabled with the `MRB_UTF8_STRING` compile flag.
 
 Integer size depends on the value boxing configuration:
 
-| Configuration | Integer range |
-| ------------- | ------------- |
+| Configuration                 | Integer range    |
+| ----------------------------- | ---------------- |
 | Word boxing, 64-bit (default) | roughly +/- 2^62 |
 | Word boxing, 32-bit (default) | roughly +/- 2^30 |
-| NaN boxing (64-bit only) | -2^31 to 2^31-1 |
+| NaN boxing (64-bit only)      | -2^31 to 2^31-1  |
 
 Code relying on 64-bit integer precision may behave differently
 across configurations. The `mruby-bigint` gem provides
