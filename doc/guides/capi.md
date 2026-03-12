@@ -99,23 +99,23 @@ mrb_str_to_cstr(mrb, v)     /* const char* from String value */
 
 ### Value Types
 
-| `mrb_vtype` | Ruby Class | Notes |
-| ----------- | ---------- | ----- |
-| `MRB_TT_FALSE` | FalseClass/NilClass | `nil` has `MRB_TT_FALSE` |
-| `MRB_TT_TRUE` | TrueClass | |
-| `MRB_TT_INTEGER` | Integer | Immediate value |
-| `MRB_TT_FLOAT` | Float | May be immediate |
-| `MRB_TT_SYMBOL` | Symbol | Immediate value |
-| `MRB_TT_STRING` | String | Heap object |
-| `MRB_TT_ARRAY` | Array | Heap object |
-| `MRB_TT_HASH` | Hash | Heap object |
-| `MRB_TT_OBJECT` | Object | User-defined classes |
-| `MRB_TT_CLASS` | Class | |
-| `MRB_TT_MODULE` | Module | |
-| `MRB_TT_PROC` | Proc | |
-| `MRB_TT_CDATA` | (C data) | Wrapped C structs |
-| `MRB_TT_EXCEPTION` | Exception | |
-| `MRB_TT_FIBER` | Fiber | |
+| `mrb_vtype`        | Ruby Class          | Notes                    |
+| ------------------ | ------------------- | ------------------------ |
+| `MRB_TT_FALSE`     | FalseClass/NilClass | `nil` has `MRB_TT_FALSE` |
+| `MRB_TT_TRUE`      | TrueClass           |                          |
+| `MRB_TT_INTEGER`   | Integer             | Immediate value          |
+| `MRB_TT_FLOAT`     | Float               | May be immediate         |
+| `MRB_TT_SYMBOL`    | Symbol              | Immediate value          |
+| `MRB_TT_STRING`    | String              | Heap object              |
+| `MRB_TT_ARRAY`     | Array               | Heap object              |
+| `MRB_TT_HASH`      | Hash                | Heap object              |
+| `MRB_TT_OBJECT`    | Object              | User-defined classes     |
+| `MRB_TT_CLASS`     | Class               |                          |
+| `MRB_TT_MODULE`    | Module              |                          |
+| `MRB_TT_PROC`      | Proc                |                          |
+| `MRB_TT_CDATA`     | (C data)            | Wrapped C structs        |
+| `MRB_TT_EXCEPTION` | Exception           |                          |
+| `MRB_TT_FIBER`     | Fiber               |                          |
 
 ## Defining Classes and Modules
 
@@ -165,15 +165,15 @@ mrb_define_module_function(mrb, mod, "name", my_method, MRB_ARGS_ANY());
 
 ### Argument Specifiers
 
-| Macro | Meaning |
-| ----- | ------- |
-| `MRB_ARGS_NONE()` | No arguments |
-| `MRB_ARGS_REQ(n)` | `n` required arguments |
-| `MRB_ARGS_OPT(n)` | `n` optional arguments |
-| `MRB_ARGS_ARG(r,o)` | `r` required + `o` optional |
-| `MRB_ARGS_REST()` | Splat (`*args`) |
-| `MRB_ARGS_BLOCK()` | Block (`&block`) |
-| `MRB_ARGS_ANY()` | Any number (same as REST) |
+| Macro                  | Meaning                               |
+| ---------------------- | ------------------------------------- |
+| `MRB_ARGS_NONE()`      | No arguments                          |
+| `MRB_ARGS_REQ(n)`      | `n` required arguments                |
+| `MRB_ARGS_OPT(n)`      | `n` optional arguments                |
+| `MRB_ARGS_ARG(r,o)`    | `r` required + `o` optional           |
+| `MRB_ARGS_REST()`      | Splat (`*args`)                       |
+| `MRB_ARGS_BLOCK()`     | Block (`&block`)                      |
+| `MRB_ARGS_ANY()`       | Any number (same as REST)             |
 | `MRB_ARGS_KEY(n,rest)` | `n` keyword args, `rest`=1 for `**kw` |
 
 These can be combined with `|`:
@@ -192,27 +192,27 @@ mrb_int mrb_get_args(mrb_state *mrb, const char *format, ...);
 
 ### Format Specifiers
 
-| Spec | Ruby Type | C Type(s) | Notes |
-| ---- | --------- | --------- | ----- |
-| `o` | any | `mrb_value` | No type check |
-| `i` | Numeric | `mrb_int` | Coerces to integer |
-| `f` | Numeric | `mrb_float` | Coerces to float |
-| `b` | any | `mrb_bool` | Truthiness |
-| `n` | String/Symbol | `mrb_sym` | Converts to symbol |
-| `s` | String | `const char*, mrb_int` | Pointer + length |
-| `z` | String | `const char*` | Null-terminated |
-| `S` | String | `mrb_value` | String value |
-| `A` | Array | `mrb_value` | Array value |
-| `H` | Hash | `mrb_value` | Hash value |
-| `C` | Class | `mrb_value` | Class/Module value |
-| `c` | Class | `struct RClass*` | Class pointer |
-| `a` | Array | `const mrb_value*, mrb_int` | Array pointer + length |
-| `d` | C Data | `void*` | Requires `mrb_data_type*` |
-| `&` | Block | `mrb_value` | Block argument |
-| `*` | rest | `const mrb_value*, mrb_int` | Rest arguments |
-| `\|` | — | — | Following args are optional |
-| `?` | — | `mrb_bool` | Was previous optional arg given? |
-| `:` | keywords | `mrb_kwargs` | Keyword arguments |
+| Spec | Ruby Type     | C Type(s)                   | Notes                            |
+| ---- | ------------- | --------------------------- | -------------------------------- |
+| `o`  | any           | `mrb_value`                 | No type check                    |
+| `i`  | Numeric       | `mrb_int`                   | Coerces to integer               |
+| `f`  | Numeric       | `mrb_float`                 | Coerces to float                 |
+| `b`  | any           | `mrb_bool`                  | Truthiness                       |
+| `n`  | String/Symbol | `mrb_sym`                   | Converts to symbol               |
+| `s`  | String        | `const char*, mrb_int`      | Pointer + length                 |
+| `z`  | String        | `const char*`               | Null-terminated                  |
+| `S`  | String        | `mrb_value`                 | String value                     |
+| `A`  | Array         | `mrb_value`                 | Array value                      |
+| `H`  | Hash          | `mrb_value`                 | Hash value                       |
+| `C`  | Class         | `mrb_value`                 | Class/Module value               |
+| `c`  | Class         | `struct RClass*`            | Class pointer                    |
+| `a`  | Array         | `const mrb_value*, mrb_int` | Array pointer + length           |
+| `d`  | C Data        | `void*`                     | Requires `mrb_data_type*`        |
+| `&`  | Block         | `mrb_value`                 | Block argument                   |
+| `*`  | rest          | `const mrb_value*, mrb_int` | Rest arguments                   |
+| `\|` | —             | —                           | Following args are optional      |
+| `?`  | —             | `mrb_bool`                  | Was previous optional arg given? |
+| `:`  | keywords      | `mrb_kwargs`                | Keyword arguments                |
 
 Adding `!` to `S`, `A`, `H`, `C`, `c`, `s`, `z`, `a`, `d` allows `nil`
 (returns NULL/zero for nil).
@@ -608,14 +608,14 @@ my_yield_method(mrb_state *mrb, mrb_value self)
 
 ### Fiber States
 
-| State | Meaning |
-| ----- | ------- |
-| `MRB_FIBER_CREATED` | Created but not yet resumed |
-| `MRB_FIBER_RUNNING` | Currently executing |
-| `MRB_FIBER_RESUMED` | Resumed another fiber |
-| `MRB_FIBER_SUSPENDED` | Yielded, waiting to resume |
+| State                   | Meaning                          |
+| ----------------------- | -------------------------------- |
+| `MRB_FIBER_CREATED`     | Created but not yet resumed      |
+| `MRB_FIBER_RUNNING`     | Currently executing              |
+| `MRB_FIBER_RESUMED`     | Resumed another fiber            |
+| `MRB_FIBER_SUSPENDED`   | Yielded, waiting to resume       |
 | `MRB_FIBER_TRANSFERRED` | Transferred via `Fiber#transfer` |
-| `MRB_FIBER_TERMINATED` | Finished execution |
+| `MRB_FIBER_TERMINATED`  | Finished execution               |
 
 **Limitation:** fibers cannot yield across C function boundaries.
 You cannot call `mrb_fiber_yield` from within a C-implemented
@@ -644,13 +644,13 @@ mrb_ccontext_free(mrb, cxt);
 
 The `mrb_ccontext` structure provides several flags:
 
-| Field | Purpose |
-| ----- | ------- |
+| Field            | Purpose                                 |
+| ---------------- | --------------------------------------- |
 | `capture_errors` | Collect parse errors instead of raising |
-| `no_exec` | Compile without executing (get RProc) |
-| `no_optimize` | Disable peephole optimizations |
-| `no_ext_ops` | Disable extended operand instructions |
-| `keep_lv` | Preserve local variables across loads |
+| `no_exec`        | Compile without executing (get RProc)   |
+| `no_optimize`    | Disable peephole optimizations          |
+| `no_ext_ops`     | Disable extended operand instructions   |
+| `keep_lv`        | Preserve local variables across loads   |
 
 ### Loading with Context
 
@@ -843,14 +843,14 @@ $ build/host/bin/mruby-config --libs      # libraries
 
 Key macros that affect ABI:
 
-| Macro | Effect |
-| ----- | ------ |
-| `MRB_NO_BOXING` | Struct-based values (larger, debuggable) |
-| `MRB_WORD_BOXING` | Single-word values (fast, 32-bit safe) |
-| `MRB_NAN_BOXING` | NaN-tagged values (default on 32-bit) |
-| `MRB_NO_FLOAT` | Disable Float support |
-| `MRB_INT64` | 64-bit integers |
-| `MRB_USE_FLOAT32` | 32-bit floats |
+| Macro             | Effect                                   |
+| ----------------- | ---------------------------------------- |
+| `MRB_NO_BOXING`   | Struct-based values (larger, debuggable) |
+| `MRB_WORD_BOXING` | Single-word values (fast, 32-bit safe)   |
+| `MRB_NAN_BOXING`  | NaN-tagged values (default on 32-bit)    |
+| `MRB_NO_FLOAT`    | Disable Float support                    |
+| `MRB_INT64`       | 64-bit integers                          |
+| `MRB_USE_FLOAT32` | 32-bit floats                            |
 
 Mismatching these between library and application causes silent
 data corruption.
