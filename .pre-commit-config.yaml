@@ -20,8 +20,8 @@ repos:
       - id: prettier
         name: run prettier
         description: format files with prettier
-        entry: prettier --write '**/*.json' '**/*.md' '**/*.yaml' '**/*.yml'
-        files: \.(json|md|ya?ml)$
+        entry: prettier --write '**/*.md' '**/*.yaml' '**/*.yml'
+        files: \.(md|ya?ml)$
         language: node
         additional_dependencies: ["prettier@3.7.4"]
         stages: [manual]
