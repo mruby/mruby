@@ -1015,7 +1015,7 @@ typedef const char *mrb_args_format;
  *      mrb_value str, kw_rest;
  *      uint32_t kw_num = 3;
  *      uint32_t kw_required = 1;
- *      // Note that `#include <mruby/presym.h>` is required beforehand because `MRB_SYM()` is used.
+ *      // `MRB_SYM()` is available via `mruby.h` (which includes `mruby/presym.h`).
  *      // If the usage of `MRB_SYM()` is not desired, replace it with `mrb_intern_lit()`.
  *      mrb_sym kw_names[] = { MRB_SYM(x), MRB_SYM(y), MRB_SYM(z) };
  *      mrb_value kw_values[kw_num];
@@ -1594,6 +1594,8 @@ MRB_API mrb_value mrb_format(mrb_state *mrb, const char *format, ...);
 
 #ifdef MRB_PRESYM_SCANNING
 # include <mruby/presym/scanning.h>
+#else
+# include <mruby/presym.h>
 #endif
 
 #if 0

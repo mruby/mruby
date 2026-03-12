@@ -13,7 +13,6 @@
 #include <mruby/proc.h>
 #include <mruby/data.h>
 #include <mruby/internal.h>
-#include <mruby/presym.h>
 #include <mruby/error.h>
 #include <mruby/khash.h>
 

@@ -5,7 +5,6 @@
 #include <mruby/proc.h>
 #include <mruby/string.h>
 #include <mruby/internal.h>
-#include <mruby/presym.h>
 
 // Defined by mruby-proc-ext on which mruby-method depends
 mrb_value mrb_proc_parameters(mrb_state *mrb, mrb_value proc);

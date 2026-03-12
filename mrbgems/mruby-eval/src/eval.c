@@ -6,7 +6,6 @@
 #include <mruby/proc.h>
 #include <mruby/opcode.h>
 #include <mruby/error.h>
-#include <mruby/presym.h>
 #include <mruby/variable.h>
 #include <mruby/internal.h>
 

@@ -11,7 +11,6 @@
 #include <mruby/time.h>
 #include <mruby/string.h>
 #include <mruby/internal.h>
-#include <mruby/presym.h>
 
 #ifdef MRB_NO_STDIO
 #include <string.h>

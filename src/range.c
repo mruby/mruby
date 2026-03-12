@@ -11,7 +11,6 @@
 #include <mruby/array.h>
 #include <mruby/numeric.h>
 #include <mruby/internal.h>
-#include <mruby/presym.h>
 
 #define RANGE_INITIALIZED_FLAG 1
 #define RANGE_INITIALIZED(p) ((p)->flags |= RANGE_INITIALIZED_FLAG)

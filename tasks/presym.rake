@@ -7,8 +7,6 @@ all_prerequisites = ->(task_name, prereqs) do
 end
 
 MRuby.each_target do |build|
-  gensym_task = task(:gensym)
-
   presym = build.presym
 
   include_dir = "#{build.build_dir}/include"
@@ -34,12 +32,12 @@ MRuby.each_target do |build|
   file presym.list_path => ppps do
     presyms = presym.scan(ppps)
     current_presyms = presym.read_list if File.exist?(presym.list_path)
-    update = presyms != current_presyms
-    presym.write_list(presyms) if update
-    mkdir_p presym.header_dir
-    %w[id table].each do |type|
-      next if !update && File.exist?(presym.send("#{type}_header_path"))
-      presym.send("write_#{type}_header", presyms)
+    if presyms != current_presyms
+      mkdir_p presym.header_dir
+      %w[id table].each do |type|
+        presym.send("write_#{type}_header", presyms)
+      end
+      presym.write_list(presyms)
     end
   end
 
@@ -55,5 +53,5 @@ MRuby.each_target do |build|
     file prereq => presym.list_path
   end
 
-  gensym_task.enhance([presym.list_path])
+  task gensym: presym.list_path
 end

@@ -13,7 +13,6 @@
 #include <mruby/variable.h>
 #include <mruby/proc.h>
 #include <mruby/internal.h>
-#include <mruby/presym.h>
 
 
 /*

@@ -20,7 +20,6 @@
 #include <mruby/throw.h>
 #include <mruby/dump.h>
 #include <mruby/internal.h>
-#include <mruby/presym.h>
 
 #ifdef MRB_NO_STDIO
 #if defined(__cplusplus)
@@ -708,7 +707,9 @@ prepare_missing(mrb_state *mrb, mrb_callinfo *ci, mrb_value recv, mrb_sym mid, m
   }
   else {
     mrb_assert(ci->nk == 15);
-    argv[1] = argv[ci->n];
+    if (ci->n != CALL_MAXARGS) {
+      argv[1] = argv[ci->n];    /* keyword arguments */
+    }
     argv[2] = blk;
   }
   argv[0] = args;               /* must be replaced after saving argv[0] as it may be a keyword argument */

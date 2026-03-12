@@ -7,7 +7,6 @@
 #include <mruby.h>
 #include <mruby/numeric.h>
 #include <mruby/internal.h>
-#include <mruby/presym.h>
 
 MRB_API mrb_value
 mrb_num_add(mrb_state *mrb, mrb_value x, mrb_value y)

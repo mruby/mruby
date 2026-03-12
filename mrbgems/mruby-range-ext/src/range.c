@@ -2,7 +2,6 @@
 #include <mruby/range.h>
 #include <mruby/class.h>
 #include <mruby/internal.h>
-#include <mruby/presym.h>
 
 static mrb_bool
 r_less(mrb_state *mrb, mrb_value a, mrb_value b, mrb_bool excl)

@@ -6,7 +6,6 @@
 #include <mruby/numeric.h>
 #include <mruby/proc.h>
 #include <mruby/string.h>
-#include <mruby/presym.h>
 
 #define fiber_ptr(o) ((struct RFiber*)mrb_ptr(o))
 

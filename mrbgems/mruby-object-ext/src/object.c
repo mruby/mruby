@@ -4,7 +4,6 @@
 #include <mruby/hash.h>
 #include <mruby/proc.h>
 #include <mruby/internal.h>
-#include <mruby/presym.h>
 
 /*
  *  call-seq:

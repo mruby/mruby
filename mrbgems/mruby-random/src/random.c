@@ -11,7 +11,6 @@
 #include <mruby/data.h>
 #include <mruby/array.h>
 #include <mruby/istruct.h>
-#include <mruby/presym.h>
 #include <mruby/range.h>
 #include <mruby/string.h>
 #include <mruby/internal.h>

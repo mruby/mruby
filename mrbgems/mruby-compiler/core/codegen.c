@@ -46,7 +46,6 @@
 #include <mruby/numeric.h>
 #include <mruby/string.h>
 #include <mruby/debug.h>
-#include <mruby/presym.h>
 #include "node.h"
 #include <mruby/opcode.h>
 #include <mruby/re.h>
@@ -3176,7 +3175,11 @@ gen_literal_array(codegen_scope *s, node *tree, mrb_bool sym, int val)
 {
   if (val) {
     int array_size = 0;
+    int first = 1;
+    int slimit = GEN_LIT_ARY_MAX;
     node *current = tree;
+
+    if (cursp() >= slimit) slimit = GEN_VAL_STACK_MAX;
 
     /* Process each segment separated by NODE_LITERAL_DELIM */
     while (current) {
@@ -3214,6 +3217,24 @@ gen_literal_array(codegen_scope *s, node *tree, mrb_bool sym, int val)
 
         /* Only process non-empty segments */
         if (!is_empty_segment) {
+          /* Flush accumulated elements when stack is full */
+          if (cursp() >= slimit) {
+            if (array_size > 0) {
+              pop_n(array_size);
+              if (first) {
+                genop_2(s, OP_ARRAY, cursp(), array_size);
+                push();
+                first = 0;
+              }
+              else {
+                pop();
+                genop_2(s, OP_ARYPUSH, cursp(), array_size);
+                push();
+              }
+              array_size = 0;
+            }
+          }
+
           /* Temporarily terminate the segment by saving and clearing the cdr */
           node *saved_cdr = NULL;
           if (segment_prev) {
@@ -3244,8 +3265,14 @@ gen_literal_array(codegen_scope *s, node *tree, mrb_bool sym, int val)
       }
     }
 
-    /* Generate the array from pushed elements */
-    if (array_size > 0) {
+    /* Handle remaining elements */
+    if (!first) {
+      if (array_size > 0) {
+        pop_n(array_size + 1);
+        genop_2(s, OP_ARYPUSH, cursp(), array_size);
+      }
+    }
+    else if (array_size > 0) {
       pop_n(array_size);
       genop_2(s, OP_ARRAY, cursp(), array_size);
     }
@@ -3821,7 +3848,7 @@ codegen_array(codegen_scope *s, node *varnode, int val)
   node *elements = array->elements;
   int regular_elements = 0;
   int first = 1;
-  int slimit = GEN_VAL_STACK_MAX;
+  int slimit = GEN_LIT_ARY_MAX;
 
   if (!val) return;
 
@@ -3831,7 +3858,7 @@ codegen_array(codegen_scope *s, node *varnode, int val)
     return;
   }
 
-  if (cursp() >= GEN_LIT_ARY_MAX) slimit = INT16_MAX;
+  if (cursp() >= slimit) slimit = GEN_VAL_STACK_MAX;
 
   /* Process each element using cons-list iteration, handling splats */
   node *current = elements;
@@ -4428,10 +4455,9 @@ codegen_case_match(codegen_scope *s, node *varnode, int val)
     current_in = current_in->cdr;
   }
 
-  /* No pattern matched - generate nil or error */
-  if (val) {
-    genop_1(s, OP_LOADNIL, cursp());
-  }
+  /* No pattern matched - raise NoMatchingPatternError */
+  genop_1(s, OP_LOADFALSE, cursp());
+  genop_1(s, OP_MATCHERR, cursp());
 
   /* Dispatch all end jumps */
   if (case_end_jumps != JMPLINK_START) {

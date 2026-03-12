@@ -22,7 +22,6 @@
 #include <mruby/error.h>
 #include <mruby/throw.h>
 #include <mruby/internal.h>
-#include <mruby/presym.h>
 
 #ifdef MRB_GC_STRESS
 #include <stdlib.h>

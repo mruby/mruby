@@ -8,7 +8,6 @@
 #include <mruby/string.h>
 #include <mruby/io.h>
 #include <mruby/error.h>
-#include <mruby/presym.h>
 #include <mruby/internal.h>
 #include "io_hal.h"
 

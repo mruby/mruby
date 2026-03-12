@@ -2,7 +2,6 @@
 #include <mruby/class.h>
 #include <mruby/numeric.h>
 #include <mruby/internal.h>
-#include <mruby/presym.h>
 #include <float.h>
 
 #ifdef MRB_NO_FLOAT

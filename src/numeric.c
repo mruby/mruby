@@ -10,7 +10,6 @@
 #include <mruby/string.h>
 #include <mruby/class.h>
 #include <mruby/internal.h>
-#include <mruby/presym.h>
 #include <string.h>
 
 #ifndef MRB_NO_FLOAT

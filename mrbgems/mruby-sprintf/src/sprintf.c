@@ -8,7 +8,6 @@
 #include <mruby/string.h>
 #include <mruby/hash.h>
 #include <mruby/numeric.h>
-#include <mruby/presym.h>
 #include <mruby/internal.h>
 #include <string.h>
 #include <ctype.h>
