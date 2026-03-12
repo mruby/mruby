@@ -4455,10 +4455,9 @@ codegen_case_match(codegen_scope *s, node *varnode, int val)
     current_in = current_in->cdr;
   }
 
-  /* No pattern matched - generate nil or error */
-  if (val) {
-    genop_1(s, OP_LOADNIL, cursp());
-  }
+  /* No pattern matched - raise NoMatchingPatternError */
+  genop_1(s, OP_LOADFALSE, cursp());
+  genop_1(s, OP_MATCHERR, cursp());
 
   /* Dispatch all end jumps */
   if (case_end_jumps != JMPLINK_START) {

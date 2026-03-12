@@ -205,11 +205,11 @@ mruby's numeric type sizes depend on the boxing mode and platform.
 
 ### Integer
 
-| Configuration | Range |
-| ------------- | ----- |
+| Configuration                          | Range            |
+| -------------------------------------- | ---------------- |
 | 64-bit word boxing (default on 64-bit) | roughly +/- 2^62 |
 | 32-bit word boxing (default on 32-bit) | roughly +/- 2^30 |
-| NaN boxing (64-bit only) | -2^31 to 2^31-1 |
+| NaN boxing (64-bit only)               | -2^31 to 2^31-1  |
 
 Integer overflow raises a `RangeError` unless the `mruby-bigint` gem
 is included, in which case integers automatically promote to
@@ -235,32 +235,32 @@ With word boxing on 64-bit, many float values are stored inline
 
 These classes are always available in mruby (no gem required):
 
-| Class | Notes |
-| ----- | ----- |
-| Object | Base class for all objects |
-| Module | Module definition and mixin |
-| Class | Class definition and instantiation |
-| NilClass | Singleton `nil` |
-| TrueClass | Singleton `true` |
-| FalseClass | Singleton `false` |
-| Integer | Fixed-precision integer |
-| Float | Floating-point (unless `MRB_NO_FLOAT`) |
-| Symbol | Interned identifier |
-| String | Mutable byte string |
-| Array | Ordered collection |
-| Hash | Key-value mapping |
-| Range | Interval representation |
-| Proc | Closure / callable object |
-| Exception | Exception hierarchy root |
-| StandardError | Common error base |
+| Class         | Notes                                  |
+| ------------- | -------------------------------------- |
+| Object        | Base class for all objects             |
+| Module        | Module definition and mixin            |
+| Class         | Class definition and instantiation     |
+| NilClass      | Singleton `nil`                        |
+| TrueClass     | Singleton `true`                       |
+| FalseClass    | Singleton `false`                      |
+| Integer       | Fixed-precision integer                |
+| Float         | Floating-point (unless `MRB_NO_FLOAT`) |
+| Symbol        | Interned identifier                    |
+| String        | Mutable byte string                    |
+| Array         | Ordered collection                     |
+| Hash          | Key-value mapping                      |
+| Range         | Interval representation                |
+| Proc          | Closure / callable object              |
+| Exception     | Exception hierarchy root               |
+| StandardError | Common error base                      |
 
 ### Core Modules
 
-| Module | Notes |
-| ------ | ----- |
-| Kernel | Core methods (`puts`, `p`, `raise`, etc.) |
-| Comparable | Comparison operators via `<=>` |
-| Enumerable | Collection iteration methods |
+| Module     | Notes                                     |
+| ---------- | ----------------------------------------- |
+| Kernel     | Core methods (`puts`, `p`, `raise`, etc.) |
+| Comparable | Comparison operators via `<=>`            |
+| Enumerable | Collection iteration methods              |
 
 ## Standard Library (via gemboxes)
 
@@ -270,70 +270,70 @@ gembox provides the class or feature you need:
 
 ### Classes and Modules
 
-| Class/Module | Gembox | Gem |
-| ------------ | ------ | --- |
-| Fiber | stdlib | mruby-fiber |
-| Enumerator | stdlib | mruby-enumerator |
-| Enumerator::Lazy | stdlib | mruby-enum-lazy |
-| Set | stdlib | mruby-set |
-| ObjectSpace | stdlib | mruby-objectspace |
-| Time | stdlib-ext | mruby-time |
-| Struct | stdlib-ext | mruby-struct |
-| Data | stdlib-ext | mruby-data |
-| Random | stdlib-ext | mruby-random |
-| IO, File | stdlib-io | mruby-io |
-| Socket | stdlib-io | mruby-socket |
-| Dir | stdlib-io | mruby-dir |
-| Errno | stdlib-io | mruby-errno |
-| Math | math | mruby-math |
-| Rational | math | mruby-rational |
-| Complex | math | mruby-complex |
-| Bigint | math | mruby-bigint |
-| Method, UnboundMethod | metaprog | mruby-method |
+| Class/Module          | Gembox     | Gem               |
+| --------------------- | ---------- | ----------------- |
+| Fiber                 | stdlib     | mruby-fiber       |
+| Enumerator            | stdlib     | mruby-enumerator  |
+| Enumerator::Lazy      | stdlib     | mruby-enum-lazy   |
+| Set                   | stdlib     | mruby-set         |
+| ObjectSpace           | stdlib     | mruby-objectspace |
+| Time                  | stdlib-ext | mruby-time        |
+| Struct                | stdlib-ext | mruby-struct      |
+| Data                  | stdlib-ext | mruby-data        |
+| Random                | stdlib-ext | mruby-random      |
+| IO, File              | stdlib-io  | mruby-io          |
+| Socket                | stdlib-io  | mruby-socket      |
+| Dir                   | stdlib-io  | mruby-dir         |
+| Errno                 | stdlib-io  | mruby-errno       |
+| Math                  | math       | mruby-math        |
+| Rational              | math       | mruby-rational    |
+| Complex               | math       | mruby-complex     |
+| Bigint                | math       | mruby-bigint      |
+| Method, UnboundMethod | metaprog   | mruby-method      |
 
 ### Methods and Features
 
-| Feature | Gembox | Gem |
-| ------- | ------ | --- |
-| `catch`/`throw` | stdlib | mruby-catch |
-| `Kernel#sprintf`, `String#%` | stdlib-ext | mruby-sprintf |
-| `Array#pack`, `String#unpack` | stdlib-ext | mruby-pack |
-| `Kernel#rand` | stdlib-ext | mruby-random |
-| `Kernel#eval` | metaprog | mruby-eval |
-| `Kernel#binding` | metaprog | mruby-binding |
-| `Proc#binding` | metaprog | mruby-proc-binding |
-| Runtime compiler | metaprog | mruby-compiler |
+| Feature                       | Gembox     | Gem                |
+| ----------------------------- | ---------- | ------------------ |
+| `catch`/`throw`               | stdlib     | mruby-catch        |
+| `Kernel#sprintf`, `String#%`  | stdlib-ext | mruby-sprintf      |
+| `Array#pack`, `String#unpack` | stdlib-ext | mruby-pack         |
+| `Kernel#rand`                 | stdlib-ext | mruby-random       |
+| `Kernel#eval`                 | metaprog   | mruby-eval         |
+| `Kernel#binding`              | metaprog   | mruby-binding      |
+| `Proc#binding`                | metaprog   | mruby-proc-binding |
+| Runtime compiler              | metaprog   | mruby-compiler     |
 
 ### Core Class Extensions
 
 The `stdlib` gembox also extends built-in classes with additional
 methods. These are included by default:
 
-| Extension | Examples |
-| --------- | -------- |
-| Array extensions | `#dig`, `#union`, `#difference` |
-| Hash extensions | `#dig`, `#transform_keys`, `#transform_values` |
-| String extensions | `#encode`, `#bytes`, `#chars` |
-| Numeric extensions | `Integer#digits`, `Integer#pow` |
-| Comparable extensions | `#clamp` |
-| Enumerable extensions | `#sort_by`, `#min_by`, `#max_by`, `#tally` |
-| Range extensions | `#size`, `#cover?` |
-| Proc extensions | `#<<`, `#>>` (composition) |
-| Symbol extensions | `#to_proc` |
-| Object extensions | `#then`, `#yield_self` |
-| Kernel extensions | `#__method__` |
-| Class/Module extensions | `Module#name` |
+| Extension               | Examples                                       |
+| ----------------------- | ---------------------------------------------- |
+| Array extensions        | `#dig`, `#union`, `#difference`                |
+| Hash extensions         | `#dig`, `#transform_keys`, `#transform_values` |
+| String extensions       | `#encode`, `#bytes`, `#chars`                  |
+| Numeric extensions      | `Integer#digits`, `Integer#pow`                |
+| Comparable extensions   | `#clamp`                                       |
+| Enumerable extensions   | `#sort_by`, `#min_by`, `#max_by`, `#tally`     |
+| Range extensions        | `#size`, `#cover?`                             |
+| Proc extensions         | `#<<`, `#>>` (composition)                     |
+| Symbol extensions       | `#to_proc`                                     |
+| Object extensions       | `#then`, `#yield_self`                         |
+| Kernel extensions       | `#__method__`                                  |
+| Class/Module extensions | `Module#name`                                  |
 
 ### Gembox Summary
 
-| Gembox | Contents | Notes |
-| ------ | -------- | ----- |
-| `stdlib` | Core class extensions, Fiber, Enumerator, Set | Works with `MRB_NO_STDIO` and `MRB_NO_FLOAT` |
-| `stdlib-ext` | Time, Struct, Data, Random, sprintf, pack | Works with `MRB_NO_STDIO` and `MRB_NO_FLOAT` |
-| `stdlib-io` | IO, File, Dir, Socket, Errno | Requires stdio |
-| `math` | Math, Rational, Complex, Bigint | Works with `MRB_NO_STDIO` |
-| `metaprog` | eval, binding, Method, compiler | Works with `MRB_NO_STDIO` and `MRB_NO_FLOAT` |
-| `default` | All of the above + CLI tools | Full installation |
+| Gembox       | Contents                                      | Notes                                        |
+| ------------ | --------------------------------------------- | -------------------------------------------- |
+| `stdlib`     | Core class extensions, Fiber, Enumerator, Set | Works with `MRB_NO_STDIO` and `MRB_NO_FLOAT` |
+| `stdlib-ext` | Time, Struct, Data, Random, sprintf, pack     | Works with `MRB_NO_STDIO` and `MRB_NO_FLOAT` |
+| `stdlib-io`  | IO, File, Dir, Socket, Errno                  | Requires stdio                               |
+| `math`       | Math, Rational, Complex, Bigint               | Works with `MRB_NO_STDIO`                    |
+| `metaprog`   | eval, binding, Method, compiler               | Works with `MRB_NO_STDIO` and `MRB_NO_FLOAT` |
+| `default`    | All of the above + CLI tools                  | Full installation                            |
 
 ## Key Differences from CRuby
 
@@ -416,15 +416,15 @@ differently on 32-bit or NaN boxing configurations.
 
 Key compile-time macros that affect language behavior:
 
-| Macro | Effect |
-| ----- | ------ |
-| `MRB_NO_FLOAT` | Remove all float support |
-| `MRB_USE_FLOAT32` | Use 32-bit float instead of double |
-| `MRB_UTF8_STRING` | Enable UTF-8 string handling |
-| `MRB_INT32` | Force 32-bit integer |
-| `MRB_INT64` | Force 64-bit integer |
-| `MRB_STR_LENGTH_MAX` | Max string length (default 1MB) |
-| `MRB_ARY_LENGTH_MAX` | Max array length (default 2^17) |
+| Macro                | Effect                             |
+| -------------------- | ---------------------------------- |
+| `MRB_NO_FLOAT`       | Remove all float support           |
+| `MRB_USE_FLOAT32`    | Use 32-bit float instead of double |
+| `MRB_UTF8_STRING`    | Enable UTF-8 string handling       |
+| `MRB_INT32`          | Force 32-bit integer               |
+| `MRB_INT64`          | Force 64-bit integer               |
+| `MRB_STR_LENGTH_MAX` | Max string length (default 1MB)    |
+| `MRB_ARY_LENGTH_MAX` | Max array length (default 2^17)    |
 
 See [mrbconf.md](mrbconf.md) for the complete list of configuration
 macros.

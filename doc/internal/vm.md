@@ -97,12 +97,12 @@ return n + 1 (skip self)
 
 ### Call Context Info (cci)
 
-| Value | Name | Meaning |
-| ----- | ---- | ------- |
-| 0 | `CINFO_NONE` | Normal VM-to-VM call |
-| 1 | `CINFO_DIRECT` | Explicit VM call (block, lambda.call) |
-| 2 | `CINFO_SKIP` | Skip frame in stack traces |
-| 3 | `CINFO_RESUMED` | Fiber resumed (stop execution) |
+| Value | Name            | Meaning                               |
+| ----- | --------------- | ------------------------------------- |
+| 0     | `CINFO_NONE`    | Normal VM-to-VM call                  |
+| 1     | `CINFO_DIRECT`  | Explicit VM call (block, lambda.call) |
+| 2     | `CINFO_SKIP`    | Skip frame in stack traces            |
+| 3     | `CINFO_RESUMED` | Fiber resumed (stop execution)        |
 
 ## Dispatch Loop
 
@@ -241,13 +241,13 @@ correctness.
 
 ### Proc Types
 
-| Flag | Meaning |
-| ---- | ------- |
-| `MRB_PROC_CFUNC_FL` | C function (not irep-based) |
-| `MRB_PROC_STRICT` | Lambda (strict argument check) |
-| `MRB_PROC_ORPHAN` | No environment attachment |
-| `MRB_PROC_ENVSET` | Has captured environment |
-| `MRB_PROC_SCOPE` | Defines a new variable scope |
+| Flag                | Meaning                        |
+| ------------------- | ------------------------------ |
+| `MRB_PROC_CFUNC_FL` | C function (not irep-based)    |
+| `MRB_PROC_STRICT`   | Lambda (strict argument check) |
+| `MRB_PROC_ORPHAN`   | No environment attachment      |
+| `MRB_PROC_ENVSET`   | Has captured environment       |
+| `MRB_PROC_SCOPE`    | Defines a new variable scope   |
 
 ## Fiber Switching
 
@@ -317,9 +317,9 @@ ensuring the incremental GC correctly tracks live references.
 
 ## Source Files
 
-| File | Contents |
-| ---- | -------- |
-| `src/vm.c` | Dispatch loop, method invocation (~1900 lines) |
-| `include/mruby.h` | `mrb_state`, `mrb_callinfo`, `mrb_context` |
-| `include/mruby/proc.h` | `RProc`, `REnv` structures |
-| `include/mruby/throw.h` | `MRB_TRY`/`MRB_CATCH` macros |
+| File                    | Contents                                       |
+| ----------------------- | ---------------------------------------------- |
+| `src/vm.c`              | Dispatch loop, method invocation (~1900 lines) |
+| `include/mruby.h`       | `mrb_state`, `mrb_callinfo`, `mrb_context`     |
+| `include/mruby/proc.h`  | `RProc`, `REnv` structures                     |
+| `include/mruby/throw.h` | `MRB_TRY`/`MRB_CATCH` macros                   |

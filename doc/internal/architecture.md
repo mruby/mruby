@@ -31,17 +31,17 @@ struct RBasic (8 bytes on 64-bit)
 
 All object structs embed this header via `MRB_OBJECT_HEADER`:
 
-| Struct | Ruby Type | Extra Fields |
-| ------ | --------- | ------------ |
-| `RObject` | Object instances | `iv` (instance variables) |
-| `RClass` | Class/Module | `iv`, `mt` (method table), `super` |
-| `RString` | String | embedded or heap buffer, length |
-| `RArray` | Array | embedded or heap buffer, length |
-| `RHash` | Hash | hash table or k-v array |
-| `RProc` | Proc/Lambda | `irep` or C function, environment |
-| `RData` | C data wrapper | `void *data`, `mrb_data_type` |
-| `RFiber` | Fiber | `mrb_context` |
-| `RException` | Exception | `iv` |
+| Struct       | Ruby Type        | Extra Fields                       |
+| ------------ | ---------------- | ---------------------------------- |
+| `RObject`    | Object instances | `iv` (instance variables)          |
+| `RClass`     | Class/Module     | `iv`, `mt` (method table), `super` |
+| `RString`    | String           | embedded or heap buffer, length    |
+| `RArray`     | Array            | embedded or heap buffer, length    |
+| `RHash`      | Hash             | hash table or k-v array            |
+| `RProc`      | Proc/Lambda      | `irep` or C function, environment  |
+| `RData`      | C data wrapper   | `void *data`, `mrb_data_type`      |
+| `RFiber`     | Fiber            | `mrb_context`                      |
+| `RException` | Exception        | `iv`                               |
 
 Immediate values (Integer, Symbol, `true`, `false`, `nil`) are encoded
 directly in `mrb_value` without heap allocation. The encoding depends on
@@ -111,52 +111,52 @@ See [compiler.md](compiler.md) for detailed compiler internals,
 
 ### Core (`src/`)
 
-| File | Responsibility |
-| ---- | -------------- |
-| `vm.c` | Bytecode dispatch loop, method invocation |
-| `state.c` | `mrb_state` init/close, irep management |
-| `gc.c` | Garbage collector (mark-sweep, incremental) |
-| `class.c` | Class/module definition, method tables |
-| `object.c` | Core object operations |
-| `variable.c` | Instance/class/global variables, object shapes |
-| `proc.c` | Proc/Lambda/closure handling |
-| `array.c` | Array implementation |
-| `string.c` | String implementation (embedded, shared, heap) |
-| `hash.c` | Hash implementation (open addressing) |
-| `numeric.c` | Integer/Float arithmetic |
-| `symbol.c` | Symbol table and interning |
-| `range.c` | Range implementation |
-| `error.c` | Exception creation, raise, backtrace |
-| `kernel.c` | Kernel module methods |
-| `load.c` | `.mrb` bytecode loading |
-| `dump.c` | Bytecode serialization (write `.mrb`) |
-| `print.c` | Print/puts/p output |
-| `backtrace.c` | Stack trace generation |
+| File          | Responsibility                                 |
+| ------------- | ---------------------------------------------- |
+| `vm.c`        | Bytecode dispatch loop, method invocation      |
+| `state.c`     | `mrb_state` init/close, irep management        |
+| `gc.c`        | Garbage collector (mark-sweep, incremental)    |
+| `class.c`     | Class/module definition, method tables         |
+| `object.c`    | Core object operations                         |
+| `variable.c`  | Instance/class/global variables, object shapes |
+| `proc.c`      | Proc/Lambda/closure handling                   |
+| `array.c`     | Array implementation                           |
+| `string.c`    | String implementation (embedded, shared, heap) |
+| `hash.c`      | Hash implementation (open addressing)          |
+| `numeric.c`   | Integer/Float arithmetic                       |
+| `symbol.c`    | Symbol table and interning                     |
+| `range.c`     | Range implementation                           |
+| `error.c`     | Exception creation, raise, backtrace           |
+| `kernel.c`    | Kernel module methods                          |
+| `load.c`      | `.mrb` bytecode loading                        |
+| `dump.c`      | Bytecode serialization (write `.mrb`)          |
+| `print.c`     | Print/puts/p output                            |
+| `backtrace.c` | Stack trace generation                         |
 
 ### Compiler (`mrbgems/mruby-compiler/core/`)
 
-| File | Responsibility |
-| ---- | -------------- |
-| `parse.y` | Yacc grammar → AST |
-| `y.tab.c` | Generated parser (from parse.y) |
-| `codegen.c` | AST → bytecode (irep) |
-| `node.h` | AST node type definitions |
+| File        | Responsibility                  |
+| ----------- | ------------------------------- |
+| `parse.y`   | Yacc grammar → AST              |
+| `y.tab.c`   | Generated parser (from parse.y) |
+| `codegen.c` | AST → bytecode (irep)           |
+| `node.h`    | AST node type definitions       |
 
 ### Key Headers (`include/mruby/`)
 
-| Header | Contents |
-| ------ | -------- |
-| `mruby.h` | `mrb_state`, core API declarations |
-| `value.h` | `mrb_value`, type enums, value macros |
-| `object.h` | `RBasic`, `RObject`, object header |
-| `class.h` | `RClass`, method table types |
-| `string.h` | `RString`, string macros |
-| `array.h` | `RArray`, array macros |
-| `hash.h` | `RHash`, hash API |
-| `data.h` | `RData`, C data wrapping |
-| `irep.h` | `mrb_irep`, bytecode structures |
-| `compile.h` | Compiler context, `mrb_load_string` |
-| `boxing_*.h` | Value boxing implementations |
+| Header       | Contents                              |
+| ------------ | ------------------------------------- |
+| `mruby.h`    | `mrb_state`, core API declarations    |
+| `value.h`    | `mrb_value`, type enums, value macros |
+| `object.h`   | `RBasic`, `RObject`, object header    |
+| `class.h`    | `RClass`, method table types          |
+| `string.h`   | `RString`, string macros              |
+| `array.h`    | `RArray`, array macros                |
+| `hash.h`     | `RHash`, hash API                     |
+| `data.h`     | `RData`, C data wrapping              |
+| `irep.h`     | `mrb_irep`, bytecode structures       |
+| `compile.h`  | Compiler context, `mrb_load_string`   |
+| `boxing_*.h` | Value boxing implementations          |
 
 ## mrbgems System
 
