@@ -30,7 +30,6 @@
 #include <mruby/array.h>
 #include <mruby/dump.h>
 #include <mruby/variable.h>
-#include <mruby/proc.h>
 #include <mruby/error.h>
 
 #if defined(_WIN32)
@@ -41,7 +40,6 @@
 struct mrb_args {
   FILE *rfp;
   char *cmdline;
-  mrb_bool fname   : 1;
   mrb_bool verbose : 1;
   mrb_bool version : 1;
   mrb_bool debug   : 1;
@@ -217,7 +215,6 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct mrb_args *args)
     fprintf(stderr, "%s: Cannot open program file: %s\n", opts->program, argv[0]);
     return EXIT_FAILURE;
   }
-  args->fname = TRUE;
   args->cmdline = argv[0];
   argc--; argv++;
 
@@ -281,10 +278,6 @@ main(int argc, char **argv)
   mrb_define_global_const(mrb, "ARGV", ARGV);
   mrb_gv_set(mrb, mrb_intern_lit(mrb, "$DEBUG"), mrb_bool_value(args.debug));
 
-  mrb_ccontext *c = mrb_ccontext_new(mrb);
-  if (args.verbose)
-    c->dump_result = TRUE;
-
   /* Set $0 */
   const char *cmdline = args.cmdline ? args.cmdline : "-";
   mrb_gv_set(mrb, mrb_intern_lit(mrb, "$0"), mrb_str_new_cstr(mrb, cmdline));
@@ -293,25 +286,18 @@ main(int argc, char **argv)
   for (int i = 0; i < args.libc; i++) {
     FILE *lfp = fopen(args.libv[i], "rb");
     if (lfp == NULL) {
-      fprintf(stderr, "%s: Cannot open library file: %s\n", *argv, args.libv[i]);
-      mrb_ccontext_free(mrb, c);
+      fprintf(stderr, "%s: Cannot open library file: %s\n", cmdline, args.libv[i]);
       cleanup(mrb, &args);
       return EXIT_FAILURE;
     }
-    mrb_ccontext_filename(mrb, c, args.libv[i]);
-    mrb_load_irep_file_cxt(mrb, lfp, c);
+    mrb_load_irep_file(mrb, lfp);
     fclose(lfp);
-    mrb_vm_ci_env_clear(mrb, mrb->c->cibase);
-    mrb_ccontext_cleanup_local_variables(c);
   }
 
   /* Load and execute program (.mrb only) */
-  mrb_ccontext_filename(mrb, c, cmdline);
-  c->no_return_value = TRUE;
-  v = mrb_load_irep_file_cxt(mrb, args.rfp, c);
+  v = mrb_load_irep_file(mrb, args.rfp);
 
   mrb_gc_arena_restore(mrb, ai);
-  mrb_ccontext_free(mrb, c);
   if (mrb->exc) {
     MRB_EXC_CHECK_EXIT(mrb, mrb->exc);
     if (!mrb_undef_p(v)) {
