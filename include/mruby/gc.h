@@ -56,6 +56,9 @@ typedef struct mrb_gc {
   mrb_bool generational  :1;       /* generational GC mode */
   mrb_bool full          :1;       /* major GC mode */
   mrb_bool out_of_memory :1;       /* out-of-memory error occurred */
+  size_t step_limit;               /* 0=unlimited, >0=absolute step cap */
+  size_t malloc_increase;          /* malloc bytes since last GC cycle */
+  size_t malloc_threshold;         /* 0=disabled, >0=bytes to trigger GC */
 
 #ifdef MRB_GC_FIXED_ARENA
   struct RBasic *arena[MRB_GC_ARENA_SIZE]; /* GC protection array */
