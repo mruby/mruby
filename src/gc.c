@@ -598,7 +598,8 @@ mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
 #ifdef MRB_GC_STRESS
   mrb_full_gc(mrb);
 #endif
-  if (gc->threshold < gc->live) {
+  gc->gc_debt++;
+  if (gc->gc_debt > 0) {
     mrb_incremental_gc(mrb);
   }
   gc_arena_keep(mrb, gc);
@@ -1331,7 +1332,7 @@ incremental_gc_step(mrb_state *mrb, mrb_gc *gc)
       break;
   }
 
-  gc->threshold = gc->live + GC_STEP_SIZE;
+  gc->gc_debt -= (mrb_int)GC_STEP_SIZE;
 }
 
 static void
@@ -1380,9 +1381,11 @@ mrb_incremental_gc(mrb_state *mrb)
   if (gc->state == MRB_GC_STATE_ROOT) {
     gc->malloc_increase = 0;
     mrb_assert(gc->live >= gc->live_after_mark);
-    gc->threshold = (gc->live_after_mark/100) * gc->interval_ratio;
-    if (gc->threshold < GC_STEP_SIZE) {
-      gc->threshold = GC_STEP_SIZE;
+    {
+      mrb_int credit = (mrb_int)((gc->live_after_mark/100) * gc->interval_ratio)
+                     - (mrb_int)gc->live_after_mark;
+      if (credit < (mrb_int)GC_STEP_SIZE) credit = (mrb_int)GC_STEP_SIZE;
+      gc->gc_debt = -credit;
     }
 
     if (is_major_gc(gc)) {
@@ -1429,7 +1432,12 @@ mrb_full_gc(mrb_state *mrb)
   }
 
   incremental_gc_finish(mrb, gc);
-  gc->threshold = (gc->live_after_mark/100) * gc->interval_ratio;
+  {
+    mrb_int credit = (mrb_int)((gc->live_after_mark/100) * gc->interval_ratio)
+                   - (mrb_int)gc->live_after_mark;
+    if (credit < (mrb_int)GC_STEP_SIZE) credit = (mrb_int)GC_STEP_SIZE;
+    gc->gc_debt = -credit;
+  }
 
   if (is_generational(gc)) {
     gc->oldgen_threshold = gc->live_after_mark/100 * MAJOR_GC_INC_RATIO;
@@ -1777,7 +1785,8 @@ mrb_objspace_page_slot_size(void)
  *     GC.stat    -> Hash
  *
  *  Returns a Hash with GC statistics.
- *  Keys: :live, :threshold, :state, :generational, :full
+ *  Keys: :live, :debt, :state, :generational, :full,
+ *        :step_limit, :malloc_increase, :malloc_threshold
  *  With MRB_GC_STATS: :total, :minor, :major
  *
  */
@@ -1789,7 +1798,7 @@ gc_stat(mrb_state *mrb, mrb_value self)
   mrb_value hash = mrb_hash_new_capa(mrb, 8);
 
   mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "live")), mrb_int_value(mrb, (mrb_int)gc->live));
-  mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "threshold")), mrb_int_value(mrb, (mrb_int)gc->threshold));
+  mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "debt")), mrb_int_value(mrb, gc->gc_debt));
   mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "state")), mrb_int_value(mrb, (mrb_int)gc->state));
   mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "generational")), mrb_bool_value(gc->generational));
   mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "full")), mrb_bool_value(gc->full));
