@@ -1785,7 +1785,7 @@ mrb_objspace_page_slot_size(void)
  *     GC.stat    -> Hash
  *
  *  Returns a Hash with GC statistics.
- *  Keys: :live, :debt, :state, :generational, :full,
+ *  Keys: :live, :threshold, :state, :generational, :full,
  *        :step_limit, :malloc_increase, :malloc_threshold
  *  With MRB_GC_STATS: :total, :minor, :major
  *
@@ -1798,7 +1798,7 @@ gc_stat(mrb_state *mrb, mrb_value self)
   mrb_value hash = mrb_hash_new_capa(mrb, 8);
 
   mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "live")), mrb_int_value(mrb, (mrb_int)gc->live));
-  mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "debt")), mrb_int_value(mrb, gc->gc_debt));
+  mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "threshold")), mrb_int_value(mrb, -gc->gc_debt));
   mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "state")), mrb_int_value(mrb, (mrb_int)gc->state));
   mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "generational")), mrb_bool_value(gc->generational));
   mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "full")), mrb_bool_value(gc->full));
