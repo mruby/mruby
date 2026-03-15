@@ -131,7 +131,9 @@ limit = (GC_STEP_SIZE / 100) * step_ratio
 ```
 
 With default `step_ratio = 200` and `GC_STEP_SIZE = 1024`, the
-limit is 2048 objects per step.
+limit is 2048 objects per step. After each step, `gc_debt` is
+decremented by the actual number of objects processed, so larger
+steps repay more debt.
 
 When the gray stack is exhausted, the final marking phase re-marks
 the arena and global variables to catch objects created during

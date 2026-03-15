@@ -1332,7 +1332,7 @@ incremental_gc_step(mrb_state *mrb, mrb_gc *gc)
       break;
   }
 
-  gc->gc_debt -= (mrb_int)GC_STEP_SIZE;
+  gc->gc_debt -= (mrb_int)result;
 }
 
 static void
