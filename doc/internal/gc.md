@@ -384,7 +384,7 @@ GC.disable                   # disable GC
 GC.stat
 # => {
 #   :live => 5432,              # live object count
-#   :threshold => 1024,         # GC credit (positive=headroom)
+#   :debt => -1024,             # GC debt (negative=credit, positive=behind)
 #   :state => 0,                # 0=root, 1=marking, 2=sweeping
 #   :generational => true,      # generational mode enabled
 #   :full => false,             # major GC in progress
