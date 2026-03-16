@@ -2112,6 +2112,21 @@ vm_op_div(mrb_state *mrb, uint32_t a, mrb_sym *midp)
   return VM_NEXT;
 }
 
+static mrb_sym
+vm_define_method(mrb_state *mrb, struct RClass *tc, const mrb_irep *irep, uint16_t b, uint16_t c)
+{
+  struct RProc *p = mrb_proc_new(mrb, irep->reps[c]);
+  mrb_sym mid = irep->syms[b];
+  mrb_method_t m;
+
+  p->flags |= MRB_PROC_SCOPE | MRB_PROC_STRICT;
+  MRB_METHOD_FROM_PROC(m, p);
+  MRB_METHOD_SET_VISIBILITY(m, MRB_METHOD_VDEFAULT_FL);
+  mrb_define_method_raw(mrb, tc, mid, m);
+  mrb_method_added(mrb, tc, mid);
+  return mid;
+}
+
 /**
  * @brief Executes a sequence of mruby bytecode instructions.
  *
@@ -3647,17 +3662,8 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_TDEF, BBB) {
       struct RClass *tc = check_target_class(mrb);
-      struct RProc *p;
-      mrb_method_t m;
-
       if (mrb_unlikely(!tc)) goto L_RAISE;
-      p = mrb_proc_new(mrb, irep->reps[c]);
-      mid = irep->syms[b];
-      p->flags |= MRB_PROC_SCOPE | MRB_PROC_STRICT;
-      MRB_METHOD_FROM_PROC(m, p);
-      MRB_METHOD_SET_VISIBILITY(m, MRB_METHOD_VDEFAULT_FL);
-      mrb_define_method_raw(mrb, tc, mid, m);
-      mrb_method_added(mrb, tc, mid);
+      mid = vm_define_method(mrb, tc, irep, b, c);
       ci = mrb->c->ci;
       mrb_gc_arena_restore(mrb, ai);
       regs[a] = mrb_symbol_value(mid);
@@ -3666,15 +3672,7 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_SDEF, BBB) {
       struct RClass *tc = mrb_class_ptr(mrb_singleton_class(mrb, regs[a]));
-      struct RProc *p = mrb_proc_new(mrb, irep->reps[c]);
-      mrb_method_t m;
-
-      mid = irep->syms[b];
-      p->flags |= MRB_PROC_SCOPE | MRB_PROC_STRICT;
-      MRB_METHOD_FROM_PROC(m, p);
-      MRB_METHOD_SET_VISIBILITY(m, MRB_METHOD_VDEFAULT_FL);
-      mrb_define_method_raw(mrb, tc, mid, m);
-      mrb_method_added(mrb, tc, mid);
+      mid = vm_define_method(mrb, tc, irep, b, c);
       ci = mrb->c->ci;
       mrb_gc_arena_restore(mrb, ai);
       regs[a] = mrb_symbol_value(mid);
