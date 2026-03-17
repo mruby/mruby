@@ -3252,15 +3252,9 @@ RETRY_TRY_BLOCK:
       break;                                                                \
     OP_MATHILV_CASE_FLOAT(op_name);                                         \
     default:                                                                \
-      {                                                                     \
-        mrb_value arg = mrb_int_value(mrb, c);                              \
-        mrb_sym mid = MRB_OPSYM(op_name);                                   \
-        mrb_value v = mrb_funcall_argv(mrb, regs[a], mid, 1, &arg);         \
-        ci = mrb->c->ci;                                                    \
-        regs[a] = v;                                                        \
-        mrb_gc_arena_restore(mrb, ai);                                      \
-      }                                                                     \
-      break;                                                                \
+      SET_INT_VALUE(mrb,regs[a+1], c);                                      \
+      mid = MRB_OPSYM(op_name);                                             \
+      goto L_SEND_SYM;                                                      \
   }                                                                         \
   NEXT
 
