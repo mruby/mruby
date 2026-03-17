@@ -490,7 +490,7 @@ struct RClass*
 mrb_vm_define_module(mrb_state *mrb, mrb_value outer, mrb_sym id)
 {
   check_if_class_or_module(mrb, outer);
-  if (mrb_const_defined_at(mrb, outer, id)) {
+  if (mrb_obj_iv_defined(mrb, mrb_obj_ptr(outer), id)) {
     mrb_value old = mrb_const_get(mrb, outer, id);
 
     if (!mrb_module_p(old)) {
@@ -498,7 +498,9 @@ mrb_vm_define_module(mrb_state *mrb, mrb_value outer, mrb_sym id)
     }
     return mrb_class_ptr(old);
   }
-  return define_module(mrb, id, mrb_class_ptr(outer));
+  struct RClass *m = mrb_module_new(mrb);
+  setup_class(mrb, mrb_class_ptr(outer), m, id);
+  return m;
 }
 
 /*
@@ -647,7 +649,7 @@ mrb_vm_define_class(mrb_state *mrb, mrb_value outer, mrb_value super, mrb_sym id
     s = NULL;
   }
   check_if_class_or_module(mrb, outer);
-  if (mrb_const_defined_at(mrb, outer, id)) {
+  if (mrb_obj_iv_defined(mrb, mrb_obj_ptr(outer), id)) {
     mrb_value old = mrb_const_get(mrb, outer, id);
 
     if (!mrb_class_p(old)) {
@@ -662,7 +664,8 @@ mrb_vm_define_class(mrb_state *mrb, mrb_value outer, mrb_value super, mrb_sym id
     }
     return c;
   }
-  c = define_class(mrb, id, s, mrb_class_ptr(outer));
+  c = mrb_class_new(mrb, s);
+  setup_class(mrb, mrb_class_ptr(outer), c, id);
   mrb_class_inherited(mrb, mrb_class_real(c->super), c);
 
   return c;
