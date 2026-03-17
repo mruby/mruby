@@ -1970,6 +1970,7 @@ mrb_include_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
   if (include_module_at(mrb, c, find_origin(c), m, 1) < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "cyclic include detected");
   }
+  mrb_const_cache_clear(mrb);
   if (c->tt == MRB_TT_MODULE && (c->flags & MRB_FL_CLASS_IS_INHERITED)) {
     struct RClass *data[2];
     data[0] = c;
@@ -2039,6 +2040,7 @@ mrb_prepend_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
   if (include_module_at(mrb, c, c, m, 0) < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "cyclic prepend detected");
   }
+  mrb_const_cache_clear(mrb);
   if (c->tt == MRB_TT_MODULE &&
       (c->flags & (MRB_FL_CLASS_IS_INHERITED|MRB_FL_CLASS_IS_PREPENDED))) {
     struct RClass *data[2];
