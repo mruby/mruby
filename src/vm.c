@@ -1445,6 +1445,7 @@ catch_handler_find(const mrb_irep *irep, const mrb_code *pc, uint32_t filter)
 #define VM_RAISE      1  /* exception: goto L_RAISE */
 #define VM_SEND_SYM   2  /* fallback send: goto L_SEND_SYM */
 #define VM_SENDB_SYM  3  /* fallback sendb: goto L_SENDB_SYM */
+#define VM_RETURN_NIL 4  /* nil irep: return nil via L_OP_RETURN */
 
 #if defined(__GNUC__) || defined(__clang__)
 #define MRB_FLATTEN __attribute__((flatten))
@@ -2127,6 +2128,50 @@ vm_define_method(mrb_state *mrb, struct RClass *tc, const mrb_irep *irep, uint16
   return mid;
 }
 
+/* Common proc dispatch for OP_CALL and OP_BLKCALL.
+   Returns VM_NEXT, VM_RAISE, or VM_RETURN_NIL. */
+static int
+vm_call_proc(mrb_state *mrb, const struct RProc *p, mrb_int nargs,
+             const mrb_irep **irepp, int ai)
+{
+  mrb_callinfo *ci = mrb->c->ci;
+  mrb_value recv = ci->stack[0];
+
+  /* handle alias */
+  MRB_PROC_RESOLVE_ALIAS(ci, p);
+  if (MRB_PROC_ENV_P(p)) {
+    ci->mid = MRB_PROC_ENV(p)->mid;
+  }
+  ci->u.target_class = MRB_PROC_TARGET_CLASS(p);
+  CI_PROC_SET(ci, p);
+
+  if (MRB_PROC_CFUNC_P(p)) {
+    recv = MRB_PROC_CFUNC(p)(mrb, recv);
+    mrb_gc_arena_shrink(mrb, ai);
+    if (mrb_unlikely(mrb->exc)) return VM_RAISE;
+    ci = cipop(mrb);
+    ci[1].stack[0] = recv;
+    *irepp = ci->proc->body.irep;
+  }
+  else {
+    const mrb_irep *irep = p->body.irep;
+    if (!irep) {
+      ci->stack[0] = mrb_nil_value();
+      return VM_RETURN_NIL;
+    }
+    if (nargs < irep->nregs) {
+      stack_extend(mrb, irep->nregs);
+      stack_clear(ci->stack+nargs, irep->nregs-nargs);
+    }
+    if (MRB_PROC_ENV_P(p)) {
+      ci->stack[0] = MRB_PROC_ENV(p)->stack[0];
+    }
+    ci->pc = irep->iseq;
+    *irepp = irep;
+  }
+  return VM_NEXT;
+}
+
 /**
  * @brief Executes a sequence of mruby bytecode instructions.
  *
@@ -2763,97 +2808,26 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_CALL, Z) {
-      mrb_value recv = ci->stack[0];
-      const struct RProc *p = mrb_proc_ptr(recv);
-
-      /* handle alias */
-      MRB_PROC_RESOLVE_ALIAS(ci, p);
-      if (MRB_PROC_ENV_P(p)) {
-        ci->mid = MRB_PROC_ENV(p)->mid;
-      }
-      /* replace callinfo */
-      ci->u.target_class = MRB_PROC_TARGET_CLASS(p);
-      CI_PROC_SET(ci, p);
-
-      /* prepare stack */
-      if (MRB_PROC_CFUNC_P(p)) {
-        recv = MRB_PROC_CFUNC(p)(mrb, recv);
-        mrb_gc_arena_shrink(mrb, ai);
-        if (mrb_unlikely(mrb->exc)) goto L_RAISE;
-        /* pop stackpos */
-        ci = cipop(mrb);
-        ci[1].stack[0] = recv;
-        irep = ci->proc->body.irep;
-      }
-      else {
-        /* setup environment for calling method */
-        irep = p->body.irep;
-        if (!irep) {
-          ci->stack[0] = mrb_nil_value();
-          a = 0;
-          goto L_OP_RETURN_BODY;
-        }
-        mrb_int nargs = ci_bidx(ci)+1;
-        if (nargs < irep->nregs) {
-          stack_extend(mrb, irep->nregs);
-          stack_clear(regs+nargs, irep->nregs-nargs);
-        }
-        if (MRB_PROC_ENV_P(p)) {
-          regs[0] = MRB_PROC_ENV(p)->stack[0];
-        }
-        ci->pc = irep->iseq;
-      }
+      const struct RProc *p = mrb_proc_ptr(ci->stack[0]);
+      int r = vm_call_proc(mrb, p, ci_bidx(ci)+1, &irep, ai);
+      ci = mrb->c->ci;
+      if (r == VM_RAISE) goto L_RAISE;
+      if (r == VM_RETURN_NIL) { a = 0; goto L_OP_RETURN_BODY; }
       JUMP;
     }
 
     CASE(OP_BLKCALL, BB) {
       /* Direct block call: R[a] = R[a].call(R[a+1],...,R[a+b]) */
-      /* Skip method dispatch - directly invoke the proc */
-      mrb_value recv = regs[a];
-      const struct RProc *p;
-
-      if (mrb_unlikely(!mrb_proc_p(recv))) {
-        mrb_raisef(mrb, E_TYPE_ERROR, "wrong type %T (expected Proc)", recv);
+      if (mrb_unlikely(!mrb_proc_p(regs[a]))) {
+        mrb_raisef(mrb, E_TYPE_ERROR, "wrong type %T (expected Proc)", regs[a]);
       }
-      p = mrb_proc_ptr(recv);
-
-      /* push callinfo */
+      const struct RProc *p = mrb_proc_ptr(regs[a]);
       ci = cipush(mrb, a, CINFO_DIRECT, NULL, NULL, NULL, 0, b);
       ci->cci = CINFO_NONE;  /* mark as VM-to-VM call for proper break handling */
-
-      /* handle alias */
-      MRB_PROC_RESOLVE_ALIAS(ci, p);
-      if (MRB_PROC_ENV_P(p)) {
-        ci->mid = MRB_PROC_ENV(p)->mid;
-      }
-      ci->u.target_class = MRB_PROC_TARGET_CLASS(p);
-      CI_PROC_SET(ci, p);
-
-      if (MRB_PROC_CFUNC_P(p)) {
-        recv = MRB_PROC_CFUNC(p)(mrb, recv);
-        mrb_gc_arena_shrink(mrb, ai);
-        if (mrb_unlikely(mrb->exc)) goto L_RAISE;
-        ci = cipop(mrb);
-        ci[1].stack[0] = recv;
-        irep = ci->proc->body.irep;
-      }
-      else {
-        irep = p->body.irep;
-        if (!irep) {
-          ci->stack[0] = mrb_nil_value();
-          a = 0;
-          goto L_OP_RETURN_BODY;
-        }
-        mrb_int nargs = b + 1;  /* args + self */
-        if (nargs < irep->nregs) {
-          stack_extend(mrb, irep->nregs);
-          stack_clear(regs+nargs, irep->nregs-nargs);
-        }
-        if (MRB_PROC_ENV_P(p)) {
-          regs[0] = MRB_PROC_ENV(p)->stack[0];
-        }
-        ci->pc = irep->iseq;
-      }
+      int r = vm_call_proc(mrb, p, b+1, &irep, ai);
+      ci = mrb->c->ci;
+      if (r == VM_RAISE) goto L_RAISE;
+      if (r == VM_RETURN_NIL) { a = 0; goto L_OP_RETURN_BODY; }
       JUMP;
     }
 
