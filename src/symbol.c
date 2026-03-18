@@ -6,9 +6,14 @@
 
 #include <string.h>
 #include <mruby.h>
+#include <mruby/array.h>
 #include <mruby/string.h>
 #include <mruby/dump.h>
 #include <mruby/class.h>
+#include <mruby/hash.h>
+#include <mruby/proc.h>
+#include <mruby/variable.h>
+#include <mruby/gc.h>
 #include <mruby/internal.h>
 
 #ifndef MRB_PRESYM_SCANNING
@@ -50,7 +55,11 @@ presym_sym2name(mrb_sym sym, mrb_int *lenp)
 
 /* Per-symbol flags (stored in mrb->sym_flags[]) */
 #define SYM_FL_DYNAMIC  0x01  /* created at runtime (to_sym, send, etc.) */
-#define SYM_FL_MARK     0x02  /* marked during symbol GC (reserved for future) */
+#define SYM_FL_MARK     0x02  /* marked during symbol GC */
+
+#if MRB_SYMBOL_MAX > 0
+static void mrb_symbol_gc(mrb_state *mrb);
+#endif
 
 /* LSB pointer tagging for literal flags */
 #define SYMTBL_LITERAL_FLAG ((uintptr_t)1)
@@ -180,6 +189,7 @@ static mrb_bool
 sym_check(mrb_state *mrb, const char *name, size_t len, mrb_sym i)
 {
   const char *tagged_ptr = mrb->symtbl[i];
+  if (tagged_ptr == NULL) return FALSE;  /* tombstone (freed by symbol GC) */
   const char *symname = symtbl_get_ptr(tagged_ptr);  /* Untag for access */
   size_t symlen;
 
@@ -202,6 +212,7 @@ find_symbol_linear(mrb_state *mrb, const char *name, size_t len)
   mrb_sym i;
 
   for (i = 1; i <= mrb->symidx; i++) {
+    if (mrb->symtbl[i] == NULL) continue;  /* skip tombstones */
     if (sym_check(mrb, name, len, i)) {
       return (i + MRB_PRESYM_MAX);
     }
@@ -409,7 +420,13 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
 
 #if MRB_SYMBOL_MAX > 0
   if (!lit && mrb->dynamic_sym_count >= MRB_SYMBOL_MAX) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "symbol table overflow");
+    mrb_symbol_gc(mrb);
+    /* re-check: the symbol might have been reclaimed and re-interned */
+    sym = find_symbol(mrb, name, len, NULL);
+    if (sym > 0) return sym;
+    if (mrb->dynamic_sym_count >= MRB_SYMBOL_MAX) {
+      mrb_raise(mrb, E_RUNTIME_ERROR, "symbol table overflow");
+    }
   }
 #endif
 
@@ -612,6 +629,7 @@ sym2name_len(mrb_state *mrb, mrb_sym sym, char *buf, mrb_int *lenp)
   }
 
   const char *tagged_ptr = mrb->symtbl[sym];
+  if (tagged_ptr == NULL) goto outofsym;  /* tombstone (freed by symbol GC) */
   const char *symname = symtbl_get_ptr(tagged_ptr);  /* Untag for access */
 
   if (!symtbl_is_literal(tagged_ptr)) {
@@ -647,10 +665,217 @@ mrb_sym_name_len(mrb_state *mrb, mrb_sym sym, mrb_int *lenp)
 #endif
 }
 
+/*
+ * Symbol GC: mark and sweep unreferenced dynamic symbols.
+ * Called lazily when dynamic symbol count reaches MRB_SYMBOL_MAX.
+ */
+#if MRB_SYMBOL_MAX > 0
+
+/* Mark a runtime symbol as live (skip presym/inline) */
+static void
+sym_gc_mark(mrb_state *mrb, mrb_sym sym)
+{
+  if (sym == 0) return;
+  if (SYMBOL_INLINE_P(sym)) return;
+  if (sym <= MRB_PRESYM_MAX) return;
+  mrb_sym idx = sym - MRB_PRESYM_MAX;
+  if (idx > mrb->symidx) return;
+  mrb->sym_flags[idx] |= SYM_FL_MARK;
+}
+
+/* Callback: mark symbols in method table keys */
+static int
+sym_gc_mark_mt(mrb_state *mrb, mrb_sym sym, mrb_method_t m, void *p)
+{
+  sym_gc_mark(mrb, sym);
+  return 0;
+}
+
+/* Callback: mark symbols in IV table keys */
+static int
+sym_gc_mark_iv(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
+{
+  sym_gc_mark(mrb, sym);
+  /* also mark symbol values stored in IV tables */
+  if (mrb_symbol_p(v)) {
+    sym_gc_mark(mrb, mrb_symbol(v));
+  }
+  return 0;
+}
+
+/* Callback: mark symbols in hash keys and values */
+static int
+sym_gc_mark_hash_entry(mrb_state *mrb, mrb_value key, mrb_value val, void *p)
+{
+  if (mrb_symbol_p(key)) sym_gc_mark(mrb, mrb_symbol(key));
+  if (mrb_symbol_p(val)) sym_gc_mark(mrb, mrb_symbol(val));
+  return 0;
+}
+
+/* Mark symbols from a single object */
+static int
+sym_gc_mark_object(mrb_state *mrb, struct RBasic *obj, void *data)
+{
+  if (mrb_object_dead_p(mrb, obj)) return MRB_EACH_OBJ_OK;
+
+  switch (obj->tt) {
+  case MRB_TT_CLASS:
+  case MRB_TT_MODULE:
+  case MRB_TT_SCLASS:
+    mrb_mt_foreach(mrb, (struct RClass*)obj, sym_gc_mark_mt, NULL);
+    /* fall through for IV */
+  case MRB_TT_OBJECT:
+  case MRB_TT_EXCEPTION:
+  case MRB_TT_CDATA:
+    mrb_iv_foreach(mrb, mrb_obj_value(obj), sym_gc_mark_iv, NULL);
+    break;
+  case MRB_TT_ICLASS:
+    if (MRB_FLAG_TEST(obj, MRB_FL_CLASS_IS_ORIGIN)) {
+      mrb_mt_foreach(mrb, (struct RClass*)obj, sym_gc_mark_mt, NULL);
+    }
+    break;
+  case MRB_TT_ENV:
+    {
+      struct REnv *e = (struct REnv*)obj;
+      sym_gc_mark(mrb, e->mid);
+      mrb_int len = MRB_ENV_LEN(e);
+      for (mrb_int i = 0; i < len; i++) {
+        if (mrb_symbol_p(e->stack[i])) {
+          sym_gc_mark(mrb, mrb_symbol(e->stack[i]));
+        }
+      }
+    }
+    break;
+  case MRB_TT_STRUCT:
+  case MRB_TT_ARRAY:
+    {
+      struct RArray *a = (struct RArray*)obj;
+      mrb_int len = ARY_LEN(a);
+      const mrb_value *p = ARY_PTR(a);
+      for (mrb_int i = 0; i < len; i++) {
+        if (mrb_symbol_p(p[i])) {
+          sym_gc_mark(mrb, mrb_symbol(p[i]));
+        }
+      }
+    }
+    break;
+  case MRB_TT_HASH:
+    mrb_iv_foreach(mrb, mrb_obj_value(obj), sym_gc_mark_iv, NULL);
+    mrb_hash_foreach(mrb, (struct RHash*)obj, sym_gc_mark_hash_entry, NULL);
+    break;
+  default:
+    break;
+  }
+  return MRB_EACH_OBJ_OK;
+}
+
+/* Mark symbols from VM stack and callinfo */
+static void
+sym_gc_mark_context(mrb_state *mrb, struct mrb_context *c)
+{
+  if (!c || !c->stbase) return;
+
+  /* Mark symbols on value stack */
+  mrb_value *stend = c->ci ? c->ci->stack + mrb_ci_nregs(c->ci) : c->stbase;
+  if (stend > c->stend) stend = c->stend;
+  for (mrb_value *v = c->stbase; v < stend; v++) {
+    if (mrb_symbol_p(*v)) {
+      sym_gc_mark(mrb, mrb_symbol(*v));
+    }
+  }
+
+  /* Mark method IDs in call stack */
+  if (c->cibase) {
+    for (mrb_callinfo *ci = c->cibase; ci <= c->ci; ci++) {
+      sym_gc_mark(mrb, ci->mid);
+    }
+  }
+}
+
+static void
+mrb_symbol_gc(mrb_state *mrb)
+{
+  static mrb_bool in_symbol_gc = FALSE;
+  mrb_sym i;
+
+  if (mrb->symidx == 0) return;
+  if (in_symbol_gc) return;  /* prevent recursive invocation */
+  in_symbol_gc = TRUE;
+
+  /* Phase 1: clear marks on all dynamic symbols */
+  for (i = 1; i <= mrb->symidx; i++) {
+    mrb->sym_flags[i] &= ~SYM_FL_MARK;
+  }
+
+  /* Phase 2: mark symbols referenced from all objects */
+  /* Note: mrb_objspace_each_objects runs full GC first, then iterates */
+  mrb_objspace_each_objects(mrb, sym_gc_mark_object, NULL);
+
+  /* Mark symbols from root context */
+  sym_gc_mark_context(mrb, mrb->root_c);
+  if (mrb->c != mrb->root_c) {
+    sym_gc_mark_context(mrb, mrb->c);
+  }
+
+  /* Mark symbols from global variable table */
+  if (mrb->globals) {
+    mrb_iv_foreach(mrb, mrb_obj_value(mrb->object_class), sym_gc_mark_iv, NULL);
+  }
+
+  /* Phase 3: sweep unmarked dynamic symbols */
+  mrb_sym freed = 0;
+  for (i = 1; i <= mrb->symidx; i++) {
+    if ((mrb->sym_flags[i] & SYM_FL_DYNAMIC) &&
+        !(mrb->sym_flags[i] & SYM_FL_MARK)) {
+      /* Free individually-allocated string */
+      mrb_free(mrb, (void*)mrb->symtbl[i]);
+      mrb->symtbl[i] = NULL;  /* tombstone */
+      mrb->sym_flags[i] = 0;
+      freed++;
+    }
+  }
+  mrb->dynamic_sym_count -= freed;
+
+  /* Phase 4: rebuild hash table if in hash mode (chains may be broken) */
+  if (freed > 0 && using_hash_table(mrb)) {
+    struct mrb_sym_hash_table *ht = mrb->symhash;
+    memset(ht->buckets, 0, sizeof(ht->buckets));
+    memset(ht->symlink, 0, mrb->symcapa);
+    for (i = 1; i <= mrb->symidx; i++) {
+      if (mrb->symtbl[i] == NULL) continue;  /* skip tombstones */
+      const char *name = symtbl_get_ptr(mrb->symtbl[i]);
+      size_t len;
+      if (symtbl_is_literal(mrb->symtbl[i])) {
+        len = strlen(name);
+      }
+      else {
+        len = mrb_packed_int_decode((const uint8_t*)name, (const uint8_t**)&name);
+      }
+      uint8_t hash = mrb_byte_hash((const uint8_t*)name, len);
+      if (ht->buckets[hash] != 0) {
+        mrb_sym diff = i - ht->buckets[hash];
+        ht->symlink[i] = (diff > 0xff) ? 0xff : (uint8_t)diff;
+      }
+      ht->buckets[hash] = i;
+    }
+  }
+  in_symbol_gc = FALSE;
+}
+#endif /* MRB_SYMBOL_MAX > 0 */
+
 void
 mrb_free_symtbl(mrb_state *mrb)
 {
-  /* Free symbol string pool chunks */
+  /* Free individually-allocated dynamic symbol strings */
+  if (mrb->sym_flags) {
+    for (mrb_sym i = 1; i <= mrb->symidx; i++) {
+      if ((mrb->sym_flags[i] & SYM_FL_DYNAMIC) && mrb->symtbl[i] != NULL) {
+        mrb_free(mrb, (void*)mrb->symtbl[i]);
+      }
+    }
+  }
+
+  /* Free symbol string pool chunks (static symbols) */
   struct sym_pool_chunk *chunk = (struct sym_pool_chunk*)mrb->sym_pool;
   while (chunk) {
     struct sym_pool_chunk *next = chunk->next;
