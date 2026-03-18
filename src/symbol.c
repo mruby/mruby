@@ -341,10 +341,17 @@ sym_intern_common(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
   }
   else {
   heap_allocation:;
-    /* Always heap-allocate when not explicitly literal */
     uint32_t ulen = (uint32_t)len;
     size_t ilen = mrb_packed_int_len(ulen);
-    char *p = sym_pool_alloc(mrb, len+ilen+1);
+    char *p;
+    if (lit) {
+      /* Static symbol from unaligned literal: use pool (not individually freeable) */
+      p = sym_pool_alloc(mrb, len+ilen+1);
+    }
+    else {
+      /* Dynamic symbol: use individual malloc (freeable by symbol GC) */
+      p = (char*)mrb_malloc(mrb, len+ilen+1);
+    }
     mrb_packed_int_encode(ulen, (uint8_t*)p);
     memcpy(p+ilen, name, len);
     p[ilen+len] = 0;
