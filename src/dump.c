@@ -957,40 +957,31 @@ mrb_dump_irep_cfunc(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *f
   }
   size_t bin_size, bin_idx = 0;
   int result = mrb_dump_irep(mrb, irep, flags, &bin, &bin_size);
-  if (result == MRB_DUMP_OK) {
-    if (fprintf(fp, "#include <stdint.h>\n") < 0) { /* for uint8_t under at least Darwin */
-      mrb_free(mrb, bin);
-      return MRB_DUMP_WRITE_FAULT;
-    }
-    if (fprintf(fp,
-          "%s\n"
-          "const uint8_t %s[] = {",
-          (flags & MRB_DUMP_STATIC) ? "static"
-                                    : "#ifdef __cplusplus\n"
-                                      "extern\n"
-                                      "#endif",
-          initname) < 0) {
-      mrb_free(mrb, bin);
-      return MRB_DUMP_WRITE_FAULT;
-    }
-    while (bin_idx < bin_size) {
-      if (bin_idx % 16 == 0) {
-        if (fputs("\n", fp) == EOF) {
-          mrb_free(mrb, bin);
-          return MRB_DUMP_WRITE_FAULT;
-        }
-      }
-      if (fprintf(fp, "0x%02x,", bin[bin_idx++]) < 0) {
-        mrb_free(mrb, bin);
-        return MRB_DUMP_WRITE_FAULT;
-      }
-    }
-    if (fputs("\n};\n", fp) == EOF) {
-      mrb_free(mrb, bin);
-      return MRB_DUMP_WRITE_FAULT;
-    }
-  }
+  if (result != MRB_DUMP_OK) goto exit;
 
+  if (fprintf(fp, "#include <stdint.h>\n") < 0) /* for uint8_t under at least Darwin */
+    goto write_error;
+  if (fprintf(fp,
+        "%s\n"
+        "const uint8_t %s[] = {",
+        (flags & MRB_DUMP_STATIC) ? "static"
+                                  : "#ifdef __cplusplus\n"
+                                    "extern\n"
+                                    "#endif",
+        initname) < 0)
+    goto write_error;
+  while (bin_idx < bin_size) {
+    if (bin_idx % 16 == 0) {
+      if (fputs("\n", fp) == EOF) goto write_error;
+    }
+    if (fprintf(fp, "0x%02x,", bin[bin_idx++]) < 0) goto write_error;
+  }
+  if (fputs("\n};\n", fp) == EOF) goto write_error;
+  goto exit;
+
+write_error:
+  result = MRB_DUMP_WRITE_FAULT;
+exit:
   mrb_free(mrb, bin);
   return result;
 }
