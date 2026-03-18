@@ -4028,16 +4028,16 @@ codegen_if(codegen_scope *s, node *varnode, int val)
   }
 }
 
+/* Shared codegen for while/until pre-tested loops.
+   is_until: FALSE for while (exit on false), TRUE for until (exit on true) */
 static void
-codegen_while(codegen_scope *s, node *varnode, int val)
+codegen_loop(codegen_scope *s, node *varnode, int val, mrb_bool is_until)
 {
-  struct mrb_ast_while_node *while_n = while_node(varnode);
-  node *condition = while_n->condition;
-  node *body = while_n->body;
+  struct mrb_ast_while_node *loop_n = while_node(varnode);
+  node *condition = loop_n->condition;
+  node *body = loop_n->body;
 
-  /* Check for constant conditions first */
-  if (true_always(condition)) {
-    /* while true - infinite loop, don't generate condition check */
+  if (is_until ? false_always(condition) : true_always(condition)) {
     struct loopinfo *lp = loop_push(s, LOOP_NORMAL);
     if (!val) lp->reg = -1;
     lp->pc0 = new_label(s);
@@ -4048,8 +4048,7 @@ codegen_while(codegen_scope *s, node *varnode, int val)
     loop_pop(s, val);
     return;
   }
-  if (false_always(condition)) {
-    /* while false - never execute, just return nil */
+  if (is_until ? true_always(condition) : false_always(condition)) {
     if (val) {
       gen_load_nil(s, 1);
     }
@@ -4063,7 +4062,7 @@ codegen_while(codegen_scope *s, node *varnode, int val)
   lp->pc0 = new_label(s);
   codegen(s, condition, VAL);
   pop();
-  pos = genjmp2_0(s, OP_JMPNOT, cursp(), NOVAL);
+  pos = genjmp2_0(s, is_until ? OP_JMPIF : OP_JMPNOT, cursp(), NOVAL);
   lp->pc1 = new_label(s);
   genop_0(s, OP_NOP); /* for redo */
   codegen(s, body, NOVAL);
@@ -4072,66 +4071,23 @@ codegen_while(codegen_scope *s, node *varnode, int val)
   loop_pop(s, val);
 }
 
+/* Shared codegen for while/until post-tested (modifier) loops.
+   is_until: FALSE for while (exit on false), TRUE for until (exit on true) */
 static void
-codegen_until(codegen_scope *s, node *varnode, int val)
+codegen_loop_mod(codegen_scope *s, node *varnode, int val, mrb_bool is_until)
 {
-  struct mrb_ast_until_node *until_n = until_node(varnode);
-  node *condition = until_n->condition;
-  node *body = until_n->body;
+  struct mrb_ast_while_node *loop_n = while_node(varnode);
+  node *condition = loop_n->condition;
+  node *body = loop_n->body;
 
-  /* Check for constant conditions first */
-  if (true_always(condition)) {
-    /* until true - never execute, just return nil */
-    if (val) {
-      gen_load_nil(s, 1);
-    }
-    return;
-  }
-  if (false_always(condition)) {
-    /* until false - infinite loop, don't generate condition check */
-    struct loopinfo *lp = loop_push(s, LOOP_NORMAL);
-    if (!val) lp->reg = -1;
-    lp->pc0 = new_label(s);
-    lp->pc1 = new_label(s);
-    genop_0(s, OP_NOP); /* for redo */
-    codegen(s, body, NOVAL);
-    genjmp(s, OP_JMP, lp->pc0);
-    loop_pop(s, val);
-    return;
-  }
-
-  struct loopinfo *lp = loop_push(s, LOOP_NORMAL);
-  uint32_t pos;
-
-  if (!val) lp->reg = -1;
-  lp->pc0 = new_label(s);
-  codegen(s, condition, VAL);
-  pop();
-  pos = genjmp2_0(s, OP_JMPIF, cursp(), NOVAL);
-  lp->pc1 = new_label(s);
-  genop_0(s, OP_NOP); /* for redo */
-  codegen(s, body, NOVAL);
-  genjmp(s, OP_JMP, lp->pc0);
-  dispatch(s, pos);
-  loop_pop(s, val);
-}
-
-static void
-codegen_while_mod(codegen_scope *s, node *varnode, int val)
-{
-  struct mrb_ast_while_node *while_n = while_node(varnode);
-  node *condition = while_n->condition;
-  node *body = while_n->body;
-
-  /* Handle special constant cases for post-tested loops */
-  if (false_always(condition)) {
-    /* begin...end while false - execute once then exit */
+  if (is_until ? true_always(condition) : false_always(condition)) {
+    /* execute body once then exit */
     codegen(s, body, val);
     if (val) push();
     return;
   }
-  if (true_always(condition)) {
-    /* begin...end while true - infinite loop after first execution */
+  if (is_until ? false_always(condition) : true_always(condition)) {
+    /* infinite loop after first execution */
     struct loopinfo *lp = loop_push(s, LOOP_NORMAL);
     if (!val) lp->reg = -1;
 
@@ -4146,7 +4102,6 @@ codegen_while_mod(codegen_scope *s, node *varnode, int val)
     return;
   }
 
-  /* Normal post-tested while loop */
   struct loopinfo *lp = loop_push(s, LOOP_NORMAL);
   if (!val) lp->reg = -1;
 
@@ -4154,55 +4109,7 @@ codegen_while_mod(codegen_scope *s, node *varnode, int val)
   lp->pc0 = new_label(s);
   codegen(s, condition, VAL);
   pop();
-  uint32_t pos = genjmp2_0(s, OP_JMPNOT, cursp(), NOVAL);
-  lp->pc1 = new_label(s);
-  genop_0(s, OP_NOP); /* for redo */
-  dispatch(s, pos0);
-  codegen(s, body, NOVAL);
-  genjmp(s, OP_JMP, lp->pc0);
-  dispatch(s, pos);
-  loop_pop(s, val);
-}
-
-static void
-codegen_until_mod(codegen_scope *s, node *varnode, int val)
-{
-  struct mrb_ast_until_node *until_n = until_node(varnode);
-  node *condition = until_n->condition;
-  node *body = until_n->body;
-
-  /* Handle special constant cases for post-tested loops */
-  if (true_always(condition)) {
-    /* begin...end until true - execute once then exit */
-    codegen(s, body, val);
-    if (val) push();
-    return;
-  }
-  if (false_always(condition)) {
-    /* begin...end until false - infinite loop after first execution */
-    struct loopinfo *lp = loop_push(s, LOOP_NORMAL);
-    if (!val) lp->reg = -1;
-
-    uint32_t pos0 = genjmp_0(s, OP_JMP);
-    lp->pc0 = new_label(s);
-    lp->pc1 = new_label(s);
-    genop_0(s, OP_NOP); /* for redo */
-    dispatch(s, pos0);
-    codegen(s, body, NOVAL);
-    genjmp(s, OP_JMP, lp->pc0);
-    loop_pop(s, val);
-    return;
-  }
-
-  /* Normal post-tested until loop */
-  struct loopinfo *lp = loop_push(s, LOOP_NORMAL);
-  if (!val) lp->reg = -1;
-
-  uint32_t pos0 = genjmp_0(s, OP_JMP);
-  lp->pc0 = new_label(s);
-  codegen(s, condition, VAL);
-  pop();
-  uint32_t pos = genjmp2_0(s, OP_JMPIF, cursp(), NOVAL);
+  uint32_t pos = genjmp2_0(s, is_until ? OP_JMPIF : OP_JMPNOT, cursp(), NOVAL);
   lp->pc1 = new_label(s);
   genop_0(s, OP_NOP); /* for redo */
   dispatch(s, pos0);
@@ -6593,11 +6500,11 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
 
   case NODE_WHILE:
-    codegen_while(s, tree, val);
+    codegen_loop(s, tree, val, FALSE);
     break;
 
   case NODE_UNTIL:
-    codegen_until(s, tree, val);
+    codegen_loop(s, tree, val, TRUE);
     break;
 
   case NODE_FOR:
@@ -6911,11 +6818,11 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
 
   case NODE_WHILE_MOD:
-    codegen_while_mod(s, tree, val);
+    codegen_loop_mod(s, tree, val, FALSE);
     break;
 
   case NODE_UNTIL_MOD:
-    codegen_until_mod(s, tree, val);
+    codegen_loop_mod(s, tree, val, TRUE);
     break;
 
   case NODE_XSTR:
