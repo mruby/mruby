@@ -320,9 +320,11 @@ struct mrb_state {
 
   mrb_sym symidx;
   const char **symtbl;
+  uint8_t *sym_flags;                     /* per-symbol flags (SYM_FL_*) */
   size_t symcapa;
   struct mrb_sym_hash_table *symhash;
   void *sym_pool;
+  mrb_sym dynamic_sym_count;              /* count of dynamic (GC-candidate) symbols */
 #ifndef MRB_USE_ALL_SYMBOLS
   char symbuf[8];                         /* buffer for small symbol names */
 #endif

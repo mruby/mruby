@@ -48,6 +48,10 @@ presym_sym2name(mrb_sym sym, mrb_int *lenp)
 
 /* ------------------------------------------------------ */
 
+/* Per-symbol flags (stored in mrb->sym_flags[]) */
+#define SYM_FL_DYNAMIC  0x01  /* created at runtime (to_sym, send, etc.) */
+#define SYM_FL_MARK     0x02  /* marked during symbol GC (reserved for future) */
+
 /* LSB pointer tagging for literal flags */
 #define SYMTBL_LITERAL_FLAG ((uintptr_t)1)
 
@@ -318,6 +322,8 @@ sym_intern_common(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
     if (symcapa == 0) symcapa = 100;
     else symcapa = (size_t)(symcapa * 6 / 5);
     mrb->symtbl = (const char**)mrb_realloc(mrb, (void*)mrb->symtbl, sizeof(char*)*symcapa);
+    mrb->sym_flags = (uint8_t*)mrb_realloc(mrb, mrb->sym_flags, symcapa);
+    memset(mrb->sym_flags + mrb->symcapa, 0, symcapa - mrb->symcapa);
     if (using_hash_table(mrb)) {
       struct mrb_sym_hash_table *ht = mrb->symhash;
       ht->symlink = (uint8_t*)mrb_realloc(mrb, ht->symlink, symcapa);
@@ -346,6 +352,13 @@ sym_intern_common(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
   }
 
   mrb->symidx = sym;
+  if (!lit) {
+    mrb->sym_flags[sym] = SYM_FL_DYNAMIC;
+    mrb->dynamic_sym_count++;
+  }
+  else {
+    mrb->sym_flags[sym] = 0;
+  }
   return sym;
 }
 
@@ -386,6 +399,12 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
   sym_validate_len(mrb, len);
   sym = find_symbol(mrb, name, len, NULL);
   if (sym > 0) return sym;
+
+#if MRB_SYMBOL_MAX > 0
+  if (!lit && mrb->dynamic_sym_count >= MRB_SYMBOL_MAX) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "symbol table overflow");
+  }
+#endif
 
   /* Check if we need to migrate to hash table */
   if (!using_hash_table(mrb) && mrb->symidx >= MRB_SYMBOL_LINEAR_THRESHOLD) {
@@ -634,6 +653,7 @@ mrb_free_symtbl(mrb_state *mrb)
   mrb->sym_pool = NULL;
 
   mrb_free(mrb, (void*)mrb->symtbl);
+  mrb_free(mrb, mrb->sym_flags);
 
   /* Free hash table if allocated */
   if (mrb->symhash) {
