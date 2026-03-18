@@ -5746,7 +5746,7 @@ codegen_str(codegen_scope *s, node *varnode, int val)
 }
 
 static void
-codegen_dot2(codegen_scope *s, node *varnode, int val)
+codegen_range(codegen_scope *s, node *varnode, int val, mrb_bool exclusive)
 {
   node *left = dot2_node(varnode)->left;
   node *right = dot2_node(varnode)->right;
@@ -5755,21 +5755,7 @@ codegen_dot2(codegen_scope *s, node *varnode, int val)
   codegen(s, right, val);
   if (!val) return;
   pop(); pop();
-  genop_1(s, OP_RANGE_INC, cursp());
-  push();
-}
-
-static void
-codegen_dot3(codegen_scope *s, node *varnode, int val)
-{
-  node *left = dot3_node(varnode)->left;
-  node *right = dot3_node(varnode)->right;
-
-  codegen(s, left, val);
-  codegen(s, right, val);
-  if (!val) return;
-  pop(); pop();
-  genop_1(s, OP_RANGE_EXC, cursp());
+  genop_1(s, exclusive ? OP_RANGE_EXC : OP_RANGE_INC, cursp());
   push();
 }
 
@@ -6869,11 +6855,11 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
 
   case NODE_DOT2:
-    codegen_dot2(s, tree, val);
+    codegen_range(s, tree, val, FALSE);
     break;
 
   case NODE_DOT3:
-    codegen_dot3(s, tree, val);
+    codegen_range(s, tree, val, TRUE);
     break;
 
   case NODE_FLOAT:
