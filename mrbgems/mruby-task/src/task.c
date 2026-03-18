@@ -648,6 +648,36 @@ mrb_f_usleep(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(usec);
 }
 
+/* Common task creation logic shared by Task.new and mrb_create_task */
+static mrb_task*
+task_create_common(mrb_state *mrb, const struct RProc *proc,
+                   mrb_value name, uint8_t priority)
+{
+  mrb_task *t = task_alloc(mrb);
+  t->priority = priority;
+  t->status = MRB_TASK_STATUS_READY;
+  t->reason = MRB_TASK_REASON_NONE;
+  t->name = name;
+
+  mrb_value task_obj = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_get(mrb, "Task"),
+                                                           t, &mrb_task_type));
+  t->self = task_obj;
+  mrb_gc_register(mrb, task_obj);
+  task_init_context(mrb, t, proc);
+
+  mrb_task_disable_irq();
+  q_insert_task(mrb, t);
+  mrb_task_enable_irq();
+
+  if (q_ready_ && q_ready_->status == MRB_TASK_STATUS_RUNNING) {
+    if (t->priority < q_ready_->priority) {
+      switching_ = TRUE;
+    }
+  }
+
+  return t;
+}
+
 /*
  * Task class methods
  */
@@ -675,14 +705,12 @@ mrb_task_s_new(mrb_state *mrb, mrb_value self)
 
   /* Parse keyword arguments */
   if (!mrb_undef_p(kw_values[0])) {
-    /* Validate name type - must be String */
     if (!mrb_string_p(kw_values[0])) {
       mrb_raise(mrb, E_TYPE_ERROR, "name must be a String");
     }
     name_val = kw_values[0];
   }
   if (!mrb_undef_p(kw_values[1])) {
-    /* Validate priority type - must be Integer */
     if (!mrb_integer_p(kw_values[1])) {
       mrb_raise(mrb, E_TYPE_ERROR, "priority must be an Integer");
     }
@@ -692,38 +720,8 @@ mrb_task_s_new(mrb_state *mrb, mrb_value self)
     }
   }
 
-  /* Allocate and initialize task */
-  mrb_task *t = task_alloc(mrb);
-  t->priority = (uint8_t)priority;
-  t->status = MRB_TASK_STATUS_READY;
-  t->reason = MRB_TASK_REASON_NONE;
-  t->name = name_val;
-  /* Note: proc is stored in t->c.ci->proc and marked via callinfo GC */
-
-  /* Create Ruby object to hold task */
-  mrb_value task_obj = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_get_id(mrb, MRB_SYM(Task)),
-                                                           t, &mrb_task_type));
-  t->self = task_obj;
-
-  /* Register with GC to protect task object from collection */
-  mrb_gc_register(mrb, task_obj);
-
-  /* Initialize task context */
-  task_init_context(mrb, t, proc);
-
-  /* Insert into ready queue */
-  mrb_task_disable_irq();
-  q_insert_task(mrb, t);
-  mrb_task_enable_irq();
-
-  /* Trigger context switch if this task has higher priority than current */
-  if (q_ready_ && q_ready_->status == MRB_TASK_STATUS_RUNNING) {
-    if (t->priority < q_ready_->priority) {
-      switching_ = TRUE;
-    }
-  }
-
-  return task_obj;
+  mrb_task *t = task_create_common(mrb, proc, name_val, (uint8_t)priority);
+  return t->self;
 }
 
 static mrb_value
@@ -1248,42 +1246,14 @@ mrb_create_task(mrb_state *mrb, struct RProc *proc, mrb_value name, mrb_value pr
   /* Validate/default name */
   mrb_value name_val = mrb_nil_p(name) ? mrb_str_new_lit(mrb, "(noname)") : name;
 
-  /* Allocate and initialize task */
-  mrb_task *t = task_alloc(mrb);
-  t->priority = (uint8_t)prio;
-  t->status = MRB_TASK_STATUS_READY;
-  t->reason = MRB_TASK_REASON_NONE;
-  t->name = name_val;
-
-  /* Create Ruby object to hold task */
-  mrb_value task_obj = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_get(mrb, "Task"),
-                                                           t, &mrb_task_type));
-  t->self = task_obj;
-
-  /* Register with GC to protect task object from collection */
-  mrb_gc_register(mrb, task_obj);
-
-  /* Initialize task context */
-  task_init_context(mrb, t, proc);
+  mrb_task *t = task_create_common(mrb, proc, name_val, (uint8_t)prio);
 
   /* Set top_self if provided */
   if (!mrb_nil_p(top_self)) {
     t->c.ci->stack[0] = top_self;
   }
 
-  /* Insert into ready queue */
-  mrb_task_disable_irq();
-  q_insert_task(mrb, t);
-  mrb_task_enable_irq();
-
-  /* Trigger context switch if this task has higher priority than current */
-  if (q_ready_ && q_ready_->status == MRB_TASK_STATUS_RUNNING) {
-    if (t->priority < q_ready_->priority) {
-      switching_ = TRUE;
-    }
-  }
-
-  return task_obj;
+  return t->self;
 }
 
 /*
