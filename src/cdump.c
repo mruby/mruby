@@ -84,21 +84,9 @@ sym_name_word_p(const char *name, mrb_int len)
 }
 
 static mrb_bool
-sym_name_with_equal_p(const char *name, mrb_int len)
+sym_name_with_suffix_p(const char *name, mrb_int len, char suffix)
 {
-  return len >= 2 && name[len-1] == '=' && sym_name_word_p(name, len-1);
-}
-
-static mrb_bool
-sym_name_with_question_mark_p(const char *name, mrb_int len)
-{
-  return len >= 2 && name[len-1] == '?' && sym_name_word_p(name, len-1);
-}
-
-static mrb_bool
-sym_name_with_bang_p(const char *name, mrb_int len)
-{
-  return len >= 2 && name[len-1] == '!' && sym_name_word_p(name, len-1);
+  return len >= 2 && name[len-1] == suffix && sym_name_word_p(name, len-1);
 }
 
 static mrb_bool
@@ -202,13 +190,13 @@ cdump_sym(mrb_state *mrb, mrb_sym sym, const char *var_name, int idx, mrb_value 
   if (sym_name_word_p(name, len)) {
     fprintf(fp, "MRB_SYM(%s)", name);
   }
-  else if (sym_name_with_equal_p(name, len)) {
+  else if (sym_name_with_suffix_p(name, len, '=')) {
     fprintf(fp, "MRB_SYM_E(%.*s)", (int)(len-1), name);
   }
-  else if (sym_name_with_question_mark_p(name, len)) {
+  else if (sym_name_with_suffix_p(name, len, '?')) {
     fprintf(fp, "MRB_SYM_Q(%.*s)", (int)(len-1), name);
   }
-  else if (sym_name_with_bang_p(name, len)) {
+  else if (sym_name_with_suffix_p(name, len, '!')) {
     fprintf(fp, "MRB_SYM_B(%.*s)", (int)(len-1), name);
   }
   else if (sym_name_ivar_p(name, len)) {
