@@ -64,6 +64,19 @@ assert("Enumerator::Lazy#grep_v") do
   assert_equal [0, 1, 5, 6], lazy_grep_v.first(4)
 end
 
+assert("Enumerator::Lazy#tap_each") do
+  seen = []
+  result = [1, 2, 3, 4, 5].lazy.tap_each{|x| seen << x }.select{|x| x % 2 == 0 }.force
+  assert_equal [2, 4], result
+  assert_equal [1, 2, 3, 4, 5], seen
+end
+
+assert("Enumerator::Lazy#tap_each laziness") do
+  seen = []
+  [1, 2, 3, 4, 5].lazy.tap_each{|x| seen << x }.first(3)
+  assert_equal [1, 2, 3], seen
+end
+
 assert("Enumerator::Lazy#zip with cycle") do
   e1 = [1, 2, 3].cycle
   e2 = [:a, :b].cycle
