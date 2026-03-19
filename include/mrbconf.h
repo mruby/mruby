@@ -138,7 +138,7 @@
 /* turn off generational GC by default */
 //#define MRB_GC_TURN_OFF_GENERATIONAL
 
-/* default size of khash table bucket */
+/* initial size of khash table bucket */
 //#define KHASH_INITIAL_SIZE 32
 
 /* allocated memory address alignment */
