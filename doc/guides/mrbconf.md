@@ -233,10 +233,10 @@ end
 - Specifies 4th argument(`argc`) max value of `mrb_funcall`.
 - Raises `ArgumentError` when the `argc` argument is bigger then this value `mrb_funcall`.
 
-`KHASH_DEFAULT_SIZE`
+`KHASH_INITIAL_SIZE`
 
 - Default value is `32`.
-- Specifies default size of khash table bucket.
+- Specifies initial size of khash table bucket.
 - Used in `kh_init_ ## name` function.
 
 `MRB_NO_METHOD_CACHE`
@@ -272,7 +272,7 @@ deployment targets. Define one of the following:
 `MRB_CONSTRAINED_BASELINE_PROFILE`
 
 - For micro controllers.
-- Enables `MRB_NO_METHOD_CACHE`, reduces `KHASH_DEFAULT_SIZE` to `16`,
+- Enables `MRB_NO_METHOD_CACHE`, reduces `KHASH_INITIAL_SIZE` to `16`,
   and `MRB_HEAP_PAGE_SIZE` to `256`.
 
 `MRB_BASELINE_PROFILE`

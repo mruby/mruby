@@ -30,7 +30,7 @@ MRuby::CrossBuild.new("ArduinoDue") do |conf|
 
     #configuration for low memory environment
     cc.defines << %w(MRB_HEAP_PAGE_SIZE=64)
-    cc.defines << %w(KHASH_DEFAULT_SIZE=8)
+    cc.defines << %w(KHASH_INITIAL_SIZE=8)
     cc.defines << %w(MRB_GC_STRESS)
     #cc.defines << %w(MRB_NO_STDIO) #if you don't need stdio.
     #cc.defines << %w(POOL_PAGE_SIZE=1000) #effective only for use with mruby-eval
