@@ -1395,8 +1395,14 @@ ary_product_group(mrb_state *mrb, mrb_value self_ary)
     mrb_value a = RARRAY_PTR(arys_ary)[j]; // arys[j]
     mrb_check_type(mrb, a, MRB_TT_ARRAY);
     mrb_int b = RARRAY_LEN(a);             // a.size
+    if (b <= 0) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "cannot compute product with an empty array");
+    }
     mrb_ary_set(mrb, group, j + 1, RARRAY_PTR(a)[n % b]);
     n /= b;
+  }
+  if (n >= RARRAY_LEN(self_ary)) {
+    mrb_raise(mrb, E_INDEX_ERROR, "index out of range");
   }
   mrb_ary_set(mrb, group, 0, RARRAY_PTR(self_ary)[n]);
 
