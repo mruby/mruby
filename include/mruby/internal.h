@@ -279,4 +279,7 @@ mrb_value mrb_bint_abs(mrb_state *mrb, mrb_value x);
 void mrb_task_mark_all(mrb_state *mrb);
 #endif
 
+/* Internal object allocation without type validation (gc.c) */
+struct RBasic* mrb_obj_alloc_core(mrb_state*, enum mrb_vtype, struct RClass*);
+
 #endif  /* MRUBY_INTERNAL_H */

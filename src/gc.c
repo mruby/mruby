@@ -563,37 +563,13 @@ mrb_gc_unregister(mrb_state *mrb, mrb_value obj)
   ARY_SET_LEN(a, w);
 }
 
-MRB_API struct RBasic*
-mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
+/* Core allocation without type validation.
+   Used internally by mrb_proc_new, mrb_env_new, etc. */
+struct RBasic*
+mrb_obj_alloc_core(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
 {
   static const RVALUE RVALUE_zero = { { { NULL, MRB_TT_FALSE } } };
   mrb_gc *gc = &mrb->gc;
-
-  if (cls) {
-    enum mrb_vtype tt;
-
-    switch (cls->tt) {
-    case MRB_TT_CLASS:
-    case MRB_TT_SCLASS:
-    case MRB_TT_MODULE:
-    case MRB_TT_ENV:
-      break;
-    default:
-      mrb_raise(mrb, E_TYPE_ERROR, "allocation failure");
-    }
-    tt = MRB_INSTANCE_TT(cls);
-    if (ttype != MRB_TT_SCLASS &&
-        ttype != MRB_TT_ICLASS &&
-        ttype != MRB_TT_ENV &&
-        ttype != MRB_TT_BIGINT &&
-        ttype != tt &&
-        !(cls == mrb->object_class && (ttype == MRB_TT_CPTR || ttype == MRB_TT_CDATA || ttype == MRB_TT_ISTRUCT))) {
-      mrb_raisef(mrb, E_TYPE_ERROR, "allocation failure of %C", cls);
-    }
-  }
-  if (ttype <= MRB_TT_FREE) {
-    mrb_raisef(mrb, E_TYPE_ERROR, "allocation failure of %C (type %d)", cls, (int)ttype);
-  }
 
 #ifdef MRB_GC_STRESS
   mrb_full_gc(mrb);
@@ -623,6 +599,37 @@ mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
   }
   paint_partial_white(gc, &p->as.basic);
   return &p->as.basic;
+}
+
+MRB_API struct RBasic*
+mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
+{
+  if (cls) {
+    enum mrb_vtype tt;
+
+    switch (cls->tt) {
+    case MRB_TT_CLASS:
+    case MRB_TT_SCLASS:
+    case MRB_TT_MODULE:
+    case MRB_TT_ENV:
+      break;
+    default:
+      mrb_raise(mrb, E_TYPE_ERROR, "allocation failure");
+    }
+    tt = MRB_INSTANCE_TT(cls);
+    if (ttype != MRB_TT_SCLASS &&
+        ttype != MRB_TT_ICLASS &&
+        ttype != MRB_TT_ENV &&
+        ttype != MRB_TT_BIGINT &&
+        ttype != tt &&
+        !(cls == mrb->object_class && (ttype == MRB_TT_CPTR || ttype == MRB_TT_CDATA || ttype == MRB_TT_ISTRUCT))) {
+      mrb_raisef(mrb, E_TYPE_ERROR, "allocation failure of %C", cls);
+    }
+  }
+  if (ttype <= MRB_TT_FREE) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "allocation failure of %C (type %d)", cls, (int)ttype);
+  }
+  return mrb_obj_alloc_core(mrb, ttype, cls);
 }
 
 static inline void
