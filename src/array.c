@@ -2155,6 +2155,81 @@ insertion_sort_fixnum(mrb_value *a, mrb_int size)
   }
 }
 
+/* Check if all elements are plain String (not subclass) */
+static mrb_bool
+ary_all_string_p(mrb_state *mrb, const mrb_value *a, mrb_int n)
+{
+  for (mrb_int i = 0; i < n; i++) {
+    if (!mrb_string_p(a[i])) return FALSE;
+    if (mrb_obj_ptr(a[i])->c != mrb->string_class) return FALSE;
+  }
+  return TRUE;
+}
+
+/* String-specialized heapify using mrb_str_cmp directly */
+static void
+heapify_str(mrb_state *mrb, mrb_value *a, mrb_int index, mrb_int size)
+{
+  mrb_value val = a[index];
+
+  while (1) {
+    mrb_int child = 2 * index + 1;
+    if (child >= size) break;
+    if (child + 1 < size && mrb_str_cmp(mrb, a[child + 1], a[child]) > 0) {
+      child++;
+    }
+    if (mrb_str_cmp(mrb, a[child], val) <= 0) break;
+    a[index] = a[child];
+    index = child;
+  }
+  a[index] = val;
+}
+
+/* String-specialized Floyd's bottom-up heap deletion */
+static void
+heap_delete_root_str(mrb_state *mrb, mrb_value *a, mrb_int size)
+{
+  mrb_value last = a[0];
+
+  mrb_int hole = 0;
+  mrb_int child = 1;
+  while (child + 1 < size) {
+    if (mrb_str_cmp(mrb, a[child + 1], a[child]) > 0) {
+      child++;
+    }
+    a[hole] = a[child];
+    hole = child;
+    child = 2 * hole + 1;
+  }
+  if (child < size) {
+    a[hole] = a[child];
+    hole = child;
+  }
+
+  while (hole > 0) {
+    mrb_int parent = (hole - 1) / 2;
+    if (mrb_str_cmp(mrb, a[parent], last) >= 0) break;
+    a[hole] = a[parent];
+    hole = parent;
+  }
+  a[hole] = last;
+}
+
+/* String-specialized insertion sort */
+static void
+insertion_sort_str(mrb_state *mrb, mrb_value *a, mrb_int size)
+{
+  for (mrb_int i = 1; i < size; i++) {
+    mrb_value key = a[i];
+    mrb_int j = i - 1;
+    while (j >= 0 && mrb_str_cmp(mrb, a[j], key) > 0) {
+      a[j + 1] = a[j];
+      j--;
+    }
+    a[j + 1] = key;
+  }
+}
+
 static mrb_bool
 sort_cmp(mrb_state *mrb, mrb_value ary, mrb_value a_val, mrb_value b_val, mrb_value blk)
 {
@@ -2330,6 +2405,25 @@ mrb_ary_sort_bang(mrb_state *mrb, mrb_value ary)
         a[0] = a[i];
         a[i] = tmp;
         heap_delete_root_fixnum(a, i);
+      }
+    }
+    return ary;
+  }
+
+  /* String fast path: no block and all elements are plain String */
+  if (mrb_nil_p(blk) && ary_all_string_p(mrb, a, n)) {
+    if (n <= SMALL_ARRAY_SORT_THRESHOLD) {
+      insertion_sort_str(mrb, a, n);
+    }
+    else {
+      for (mrb_int i = n / 2 - 1; i >= 0; i--) {
+        heapify_str(mrb, a, i, n);
+      }
+      for (mrb_int i = n - 1; i > 0; i--) {
+        mrb_value tmp = a[0];
+        a[0] = a[i];
+        a[i] = tmp;
+        heap_delete_root_str(mrb, a, i);
       }
     }
     return ary;
