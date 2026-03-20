@@ -2703,10 +2703,8 @@ RETRY_TRY_BLOCK:
       if (kidx < 0 || !mrb_hash_p(kdict=regs[kidx]) || !mrb_hash_key_p(mrb, kdict, k)) {
         RAISE_FORMAT(mrb, E_ARGUMENT_ERROR, "missing keyword: %v", k);
       }
-      v = mrb_hash_get(mrb, kdict, k);
-      ci = mrb->c->ci;
+      v = mrb_hash_delete_key(mrb, kdict, k);
       regs[a] = v;
-      mrb_hash_delete_key(mrb, kdict, k);
       ci = mrb->c->ci;
       NEXT;
     }
