@@ -426,6 +426,58 @@ when applications allocate large buffers (strings, data objects)
 that create memory pressure without proportional object count
 increase.
 
+### Practical Tuning Examples
+
+**Allocation-heavy workloads** (many short-lived Procs, closures,
+blocks): GC sweep dominates because of high object churn. Increase
+`interval_ratio` to reduce GC frequency:
+
+```ruby
+GC.interval_ratio = 400  # ~12% faster than default (200)
+```
+
+Higher values (400-600) reduce sweep overhead at the cost of more
+dead objects accumulating before collection. Values above 600 show
+diminishing returns. Peak memory usage increases temporarily, but
+live object count after GC remains the same.
+
+**CPU-intensive workloads** (numeric computation, recursive methods
+with no object allocation): GC parameters have negligible impact
+because GC rarely runs. No tuning needed.
+
+**Real-time or latency-sensitive** applications: Use `step_limit`
+to bound pause times:
+
+```ruby
+GC.step_limit = 256  # cap incremental step to 256 objects
+```
+
+This makes GC pauses more predictable but increases total GC
+overhead (more steps needed per cycle).
+
+**Large buffer workloads** (reading files, building long strings):
+Set `malloc_threshold` to trigger GC when buffer allocations
+accumulate, even if object count is low:
+
+```ruby
+GC.malloc_threshold = 1024 * 1024  # trigger GC per ~1MB allocated
+```
+
+### Diagnosing GC Overhead
+
+Use `GC.stat` to monitor GC behavior at runtime:
+
+```ruby
+s = GC.stat
+puts "live objects: #{s[:live]}"
+puts "GC debt: #{s[:debt]}"     # positive = GC is behind
+puts "GC state: #{s[:state]}"   # 0=idle, 1=marking, 2=sweeping
+```
+
+If `debt` is frequently positive during performance-critical
+sections, increase `interval_ratio`. If memory usage is too high,
+decrease it.
+
 ## Source Files
 
 | File                 | Contents                          |
