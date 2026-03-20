@@ -2137,35 +2137,68 @@ sort_cmp(mrb_state *mrb, mrb_value ary, mrb_value a_val, mrb_value b_val, mrb_va
   return cmp > 0;
 }
 
+/* Hole-style sift-down: save root, move larger children up, write once at end.
+   Reduces assignments from 3 per level (swap) to 1 per level (move). */
 static void
 heapify(mrb_state *mrb, mrb_value ary, mrb_value *a, mrb_int index, mrb_int size, mrb_value blk)
 {
-  /* Iterative heapify to avoid stack overflow on memory-constrained devices */
+  mrb_value val = a[index];  /* save root to hole */
+  mrb_gc_protect(mrb, val);
+
   while (1) {
-    mrb_int max = index;
-    mrb_int left_index = 2 * index + 1;
-    mrb_int right_index = left_index + 1;
+    mrb_int child = 2 * index + 1;
+    if (child >= size) break;
 
-    if (left_index < size && sort_cmp(mrb, ary, a[left_index], a[max], blk)) {
-      max = left_index;
+    /* pick the larger child */
+    if (child + 1 < size && sort_cmp(mrb, ary, a[child + 1], a[child], blk)) {
+      child++;
     }
-    if (right_index < size && sort_cmp(mrb, ary, a[right_index], a[max], blk)) {
-      max = right_index;
-    }
+    /* if hole value >= larger child, done */
+    if (!sort_cmp(mrb, ary, a[child], val, blk)) break;
 
-    if (max == index) {
-      /* Heap property satisfied, no more swaps needed */
-      break;
-    }
-
-    /* Swap elements and continue heapifying down the affected subtree */
-    mrb_value tmp = a[max];
-    a[max] = a[index];
-    a[index] = tmp;
-
-    /* Continue with the affected child subtree */
-    index = max;
+    a[index] = a[child];     /* move child up */
+    index = child;
   }
+  a[index] = val;             /* place saved value */
+}
+
+/* Floyd's bottom-up heap deletion: sift the hole down to a leaf without
+   comparing against the removed root, then sift up from the leaf position.
+   This reduces comparisons from ~2 log n to ~log n per extraction,
+   because most elements end up near the bottom of the heap anyway. */
+static void
+heap_delete_root(mrb_state *mrb, mrb_value ary, mrb_value *a, mrb_int size, mrb_value blk)
+{
+  /* a[0] already holds the value to be re-inserted (set by caller) */
+  mrb_value last = a[0];
+  mrb_gc_protect(mrb, last);
+
+  /* Phase 1: sift the hole down to a leaf (only child-child comparisons) */
+  mrb_int hole = 0;
+  mrb_int child = 1;
+  while (child + 1 < size) {
+    /* pick the larger child - 1 comparison per level */
+    if (sort_cmp(mrb, ary, a[child + 1], a[child], blk)) {
+      child++;
+    }
+    a[hole] = a[child];
+    hole = child;
+    child = 2 * hole + 1;
+  }
+  /* handle single child at bottom */
+  if (child < size) {
+    a[hole] = a[child];
+    hole = child;
+  }
+
+  /* Phase 2: sift up from hole to find correct position for last */
+  while (hole > 0) {
+    mrb_int parent = (hole - 1) / 2;
+    if (!sort_cmp(mrb, ary, last, a[parent], blk)) break;
+    a[hole] = a[parent];
+    hole = parent;
+  }
+  a[hole] = last;
 }
 
 static void
@@ -2216,15 +2249,17 @@ mrb_ary_sort_bang(mrb_state *mrb, mrb_value ary)
     insertion_sort(mrb, ary, a, n, blk);
   }
   else {
-    /* Use heap sort for larger arrays */
+    /* Heap sort with Floyd's bottom-up deletion */
+    /* Phase 1: build max-heap (standard sift-down, hole style) */
     for (mrb_int i = n / 2 - 1; i >= 0; i--) {
       heapify(mrb, ary, a, i, n, blk);
     }
+    /* Phase 2: extract max elements using Floyd's method */
     for (mrb_int i = n - 1; i > 0; i--) {
-      mrb_value tmp = a[0];
-      a[0] = a[i];
-      a[i] = tmp;
-      heapify(mrb, ary, a, 0, i, blk);
+      mrb_value max = a[0];
+      a[0] = a[i];   /* temporary for GC safety */
+      a[i] = max;     /* max goes to final position */
+      heap_delete_root(mrb, ary, a, i, blk);
     }
   }
   return ary;
