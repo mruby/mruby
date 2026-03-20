@@ -19,6 +19,7 @@ jobs:
         with:
           # Full git history is needed to get a proper list of changed files within `super-linter`
           fetch-depth: 0
+          persist-credentials: false
       - name: Lint Code Base
         uses: super-linter/super-linter/slim@v8.5.0
         env:

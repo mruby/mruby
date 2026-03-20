@@ -32,6 +32,8 @@ jobs:
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - name: Ruby version
         run: ruby -v
       - name: Compiler version
@@ -45,6 +47,8 @@ jobs:
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - name: Ruby version
         run: ruby -v
       - name: Cache cosmocc
@@ -71,6 +75,8 @@ jobs:
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - name: Ruby version
         run: ruby -v
       - name: Build and test
