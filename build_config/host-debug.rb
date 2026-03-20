@@ -13,6 +13,9 @@ MRuby::Build.new('host') do |conf|
   # Generate mruby debugger command (require mruby-eval)
   conf.gem :core => "mruby-bin-debugger"
 
+  # Regexp
+  conf.gem :core => "mruby-regexp"
+
   # test
   conf.enable_test
   # bintest
