@@ -21,7 +21,7 @@ typedef uint32_t khint_t;
 typedef khint_t khiter_t;
 
 #ifndef KHASH_INITIAL_SIZE
-# define KHASH_INITIAL_SIZE 8
+# define KHASH_INITIAL_SIZE 32
 #endif
 #define KHASH_MIN_SIZE 8
 #define KHASH_SMALL_LIMIT 4
