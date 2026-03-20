@@ -680,6 +680,20 @@ assert 'keyword arguments' do
   assert_equal [{a: 1}, {b: 2}], m({a: 1}, b: 2)
   assert_raise(ArgumentError) { m({a: 1}, {b: 2}) }
 
+  def m1(a: {}) a end
+  assert_equal({}, m1)
+  assert_equal(:abc, m1(a: :abc))
+
+  def m2(a: +1) a end
+  assert_equal(1, m2)
+
+  assert_nothing_raised do
+    def m3 arg:
+      123
+    end
+  end
+  assert_equal(123, m3(arg: 456))
+
   def m(*, a:) a end
   assert_equal 1, m(a: 1)
   assert_equal 3, m(1, 2, a: 3)
