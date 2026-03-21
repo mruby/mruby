@@ -56,6 +56,7 @@ typedef struct mrb_regexp_pattern {
   uint16_t num_captures;   /* number of capture groups (including group 0) */
   uint32_t flags;
   mrb_bool has_backref;    /* true if pattern uses \1-\9 */
+  mrb_bool has_nongreedy;  /* true if pattern uses *?, +?, ?? */
 } mrb_regexp_pattern;
 
 /* Regexp flags */

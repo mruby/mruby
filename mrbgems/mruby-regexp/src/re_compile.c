@@ -26,6 +26,7 @@ typedef struct {
   uint16_t num_captures;
   uint32_t flags;
   mrb_bool has_backref;
+  mrb_bool has_nongreedy;
 } re_compiler;
 
 static void compile_alt(re_compiler *c);  /* forward */
@@ -427,7 +428,10 @@ compile_quantified(re_compiler *c)
   if (ch == '*' || ch == '+' || ch == '?') {
     next_char(c);
     mrb_bool nongreedy = (peek(c) == '?');
-    if (nongreedy) next_char(c);
+    if (nongreedy) {
+      next_char(c);
+      c->has_nongreedy = TRUE;
+    }
 
 
     if (ch == '*') {
@@ -458,7 +462,10 @@ compile_quantified(re_compiler *c)
       return;  /* not a quantifier */
     }
     mrb_bool nongreedy = (peek(c) == '?');
-    if (nongreedy) next_char(c);
+    if (nongreedy) {
+      next_char(c);
+      c->has_nongreedy = TRUE;
+    }
 
     /* For {n,m}: repeat atom min times, then optional (max-min) times */
     uint32_t atom_end = c->code_len;
@@ -595,6 +602,7 @@ re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags)
   pat->num_captures = c.num_captures;
   pat->flags = flags;
   pat->has_backref = c.has_backref;
+  pat->has_nongreedy = c.has_nongreedy;
 
   return pat;
 }

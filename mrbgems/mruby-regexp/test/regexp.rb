@@ -178,9 +178,9 @@ assert("Regexp - nested captures") do
 end
 
 assert("Regexp - non-greedy quantifiers") do
-  # TODO: non-greedy a+? returns "aaa" instead of "a" (needs priority fix)
-  assert_equal "aaa", /a+?/.match("aaa")[0]
-  # non-greedy a*? test skipped: needs further debugging
+
+  assert_equal "a", /a+?/.match("aaa")[0]
+  assert_equal "", /a*?/.match("aaa")[0]
 end
 
 assert("Regexp - word boundary") do

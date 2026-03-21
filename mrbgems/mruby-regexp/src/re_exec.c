@@ -426,7 +426,7 @@ re_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
         const char *str, mrb_int len, mrb_int start,
         int *captures, int captures_size)
 {
-  if (pat->has_backref) {
+  if (pat->has_backref || pat->has_nongreedy) {
     return backtrack_exec(mrb, pat, str, len, start, captures, captures_size);
   }
   return pike_vm(mrb, pat, str, len, start, captures, captures_size);
