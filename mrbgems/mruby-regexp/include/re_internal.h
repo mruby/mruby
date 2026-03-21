@@ -47,6 +47,13 @@ typedef struct {
   mrb_bool utf8_any;  /* match any non-ASCII byte if true */
 } re_charclass;
 
+/* Named capture entry */
+typedef struct {
+  const char *name;
+  uint16_t name_len;
+  uint16_t group;
+} re_named_capture;
+
 /* Compiled regexp pattern */
 typedef struct mrb_regexp_pattern {
   re_inst *code;          /* bytecode array */
@@ -55,6 +62,8 @@ typedef struct mrb_regexp_pattern {
   uint16_t num_classes;
   uint16_t num_captures;   /* number of capture groups (including group 0) */
   uint32_t flags;
+  re_named_capture *named_captures;
+  uint16_t num_named;
   mrb_bool has_backref;    /* true if pattern uses \1-\9 */
   mrb_bool has_nongreedy;  /* true if pattern uses *?, +?, ?? */
 } mrb_regexp_pattern;

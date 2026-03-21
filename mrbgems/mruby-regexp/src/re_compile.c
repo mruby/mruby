@@ -25,6 +25,8 @@ typedef struct {
   uint16_t class_capa;
   uint16_t num_captures;
   uint32_t flags;
+  re_named_capture *named_captures;
+  uint16_t num_named;
   mrb_bool has_backref;
   mrb_bool has_nongreedy;
 } re_compiler;
@@ -289,9 +291,22 @@ compile_atom(re_compiler *c)
       next_char(c);
       mrb_bool capturing = TRUE;
 
-      if (peek(c) == '?' && c->p + 1 < c->src_end && c->p[1] == ':') {
-        next_char(c); next_char(c);  /* skip ?: */
-        capturing = FALSE;
+      const char *cap_name = NULL;
+      uint16_t cap_name_len = 0;
+
+      if (peek(c) == '?' && c->p + 1 < c->src_end) {
+        if (c->p[1] == ':') {
+          next_char(c); next_char(c);  /* skip ?: */
+          capturing = FALSE;
+        }
+        else if (c->p[1] == '<' && c->p + 2 < c->src_end && c->p[2] != '=' && c->p[2] != '!') {
+          next_char(c); next_char(c);  /* skip ?< */
+          cap_name = c->p;
+          while (peek(c) != '>' && peek(c) >= 0) next_char(c);
+          if (peek(c) != '>') compile_error(c, "unterminated named capture");
+          cap_name_len = (uint16_t)(c->p - cap_name);
+          next_char(c);  /* skip > */
+        }
       }
 
       uint16_t group = 0;
@@ -301,6 +316,15 @@ compile_atom(re_compiler *c)
         }
         group = c->num_captures++;
         emit(c, RE_SAVE, 0, group * 2);
+        if (cap_name) {
+          /* register named capture */
+          c->named_captures = (re_named_capture*)mrb_realloc(c->mrb, c->named_captures,
+            sizeof(re_named_capture) * (c->num_named + 1));
+          c->named_captures[c->num_named].name = cap_name;
+          c->named_captures[c->num_named].name_len = cap_name_len;
+          c->named_captures[c->num_named].group = group;
+          c->num_named++;
+        }
       }
 
       compile_alt(c);
@@ -601,6 +625,8 @@ re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags)
   pat->num_classes = c.num_classes;
   pat->num_captures = c.num_captures;
   pat->flags = flags;
+  pat->named_captures = c.named_captures;
+  pat->num_named = c.num_named;
   pat->has_backref = c.has_backref;
   pat->has_nongreedy = c.has_nongreedy;
 
@@ -613,6 +639,7 @@ re_free(mrb_state *mrb, mrb_regexp_pattern *pat)
   if (pat) {
     mrb_free(mrb, pat->code);
     mrb_free(mrb, pat->classes);
+    mrb_free(mrb, pat->named_captures);
     mrb_free(mrb, pat);
   }
 }

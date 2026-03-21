@@ -234,3 +234,18 @@ end
 assert("Regexp - backreference no match") do
   assert_nil /(\w+) \1/.match("hello world")
 end
+
+assert("Regexp - named captures") do
+  md = /(?<year>\d+)-(?<month>\d+)-(?<day>\d+)/.match("2026-03-21")
+  assert_equal "2026", md[:year]
+  assert_equal "03", md[:month]
+  assert_equal "21", md[:day]
+  assert_equal "2026", md["year"]
+end
+
+assert("MatchData#named_captures") do
+  md = /(?<a>\w+)@(?<b>\w+)/.match("user@host")
+  nc = md.named_captures
+  assert_equal "user", nc["a"]
+  assert_equal "host", nc["b"]
+end

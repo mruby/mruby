@@ -10,6 +10,7 @@
 #include <mruby/string.h>
 #include <mruby/array.h>
 #include <mruby/variable.h>
+#include <mruby/hash.h>
 #include <mruby/error.h>
 #include "re_internal.h"
 
@@ -25,6 +26,7 @@ static const struct mrb_data_type regexp_type = { "Regexp", regexp_free };
 /* MatchData */
 typedef struct {
   mrb_value source;        /* source string */
+  mrb_value regexp;        /* Regexp object (for named captures) */
   int *captures;           /* capture positions [start0,end0,start1,end1,...] */
   int num_captures;        /* number of capture groups (including 0) */
 } mrb_match_data;
@@ -89,22 +91,32 @@ regexp_init(mrb_state *mrb, mrb_value self)
   mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@source"), pattern);
   mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@flags"), mrb_int_value(mrb, (mrb_int)flags));
 
+  /* store named captures as hash */
+  if (pat->num_named > 0) {
+    mrb_value nc = mrb_hash_new_capa(mrb, pat->num_named);
+    for (uint16_t i = 0; i < pat->num_named; i++) {
+      mrb_value name = mrb_str_new(mrb, pat->named_captures[i].name, pat->named_captures[i].name_len);
+      mrb_hash_set(mrb, nc, name, mrb_fixnum_value(pat->named_captures[i].group));
+    }
+    mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@named_captures"), nc);
+  }
+
   return self;
 }
 
 /* Create MatchData from captures */
 static mrb_value
-create_matchdata(mrb_state *mrb, mrb_value str, int *captures, int ncap)
+create_matchdata(mrb_state *mrb, mrb_value regexp, mrb_value str, int *captures, int ncap)
 {
   struct RClass *md_class = mrb_class_get(mrb, "MatchData");
   mrb_match_data *md = (mrb_match_data*)mrb_malloc(mrb, sizeof(mrb_match_data));
   md->source = str;
+  md->regexp = regexp;
   md->num_captures = ncap / 2;
   md->captures = (int*)mrb_malloc(mrb, sizeof(int) * ncap);
   memcpy(md->captures, captures, sizeof(int) * ncap);
 
   mrb_value obj = mrb_obj_value(mrb_data_object_alloc(mrb, md_class, md, &matchdata_type));
-  /* store in $~ */
   mrb_gv_set(mrb, mrb_intern_lit(mrb, "$~"), obj);
   return obj;
 }
@@ -133,7 +145,7 @@ regexp_match(mrb_state *mrb, mrb_value self)
     return mrb_nil_value();
   }
 
-  return create_matchdata(mrb, str, captures, pat->num_captures * 2);
+  return create_matchdata(mrb, self, str, captures, pat->num_captures * 2);
 }
 
 /*
@@ -179,7 +191,7 @@ regexp_match_op(mrb_state *mrb, mrb_value self)
     mrb_gv_set(mrb, mrb_intern_lit(mrb, "$~"), mrb_nil_value());
     return mrb_nil_value();
   }
-  create_matchdata(mrb, str, captures, pat->num_captures * 2);
+  create_matchdata(mrb, self, str, captures, pat->num_captures * 2);
   return mrb_int_value(mrb, captures[0]);
 }
 
@@ -266,12 +278,45 @@ regexp_escape(mrb_state *mrb, mrb_value self)
 static mrb_value
 matchdata_aref(mrb_state *mrb, mrb_value self)
 {
-  mrb_int idx;
-  mrb_get_args(mrb, "i", &idx);
+  mrb_value arg;
+  mrb_get_args(mrb, "o", &arg);
 
   mrb_match_data *md = DATA_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
   if (!md) return mrb_nil_value();
 
+  mrb_int idx;
+  if (mrb_string_p(arg) || mrb_symbol_p(arg)) {
+    /* named capture access */
+    const char *name;
+    mrb_int name_len;
+    if (mrb_symbol_p(arg)) {
+      name = mrb_sym_name_len(mrb, mrb_symbol(arg), &name_len);
+    }
+    else {
+      name = RSTRING_PTR(arg);
+      name_len = RSTRING_LEN(arg);
+    }
+    /* look up name in regexp's named captures */
+    mrb_regexp_pattern *pat = NULL;
+    if (!mrb_nil_p(md->regexp)) {
+      pat = DATA_GET_PTR(mrb, md->regexp, &regexp_type, mrb_regexp_pattern);
+    }
+    if (pat) {
+      for (uint16_t i = 0; i < pat->num_named; i++) {
+        if (pat->named_captures[i].name_len == (uint16_t)name_len &&
+            memcmp(pat->named_captures[i].name, name, name_len) == 0) {
+          idx = pat->named_captures[i].group;
+          goto found;
+        }
+      }
+    }
+    return mrb_nil_value();
+  }
+  else {
+    idx = mrb_as_int(mrb, arg);
+  }
+
+found:
   if (idx < 0 || idx >= md->num_captures) return mrb_nil_value();
   int start = md->captures[idx * 2];
   int end = md->captures[idx * 2 + 1];
@@ -386,6 +431,36 @@ matchdata_length(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(md->num_captures);
 }
 
+/*
+ * MatchData#named_captures
+ */
+static mrb_value
+matchdata_named_captures(mrb_state *mrb, mrb_value self)
+{
+  mrb_match_data *md = DATA_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
+  if (!md) return mrb_hash_new(mrb);
+
+  mrb_regexp_pattern *pat = NULL;
+  if (!mrb_nil_p(md->regexp)) {
+    pat = DATA_GET_PTR(mrb, md->regexp, &regexp_type, mrb_regexp_pattern);
+  }
+  if (!pat || pat->num_named == 0) return mrb_hash_new(mrb);
+
+  mrb_value result = mrb_hash_new_capa(mrb, pat->num_named);
+  for (uint16_t i = 0; i < pat->num_named; i++) {
+    mrb_value name = mrb_str_new(mrb, pat->named_captures[i].name, pat->named_captures[i].name_len);
+    int group = pat->named_captures[i].group;
+    mrb_value val = mrb_nil_value();
+    if (group >= 0 && group < md->num_captures) {
+      int s = md->captures[group * 2];
+      int e = md->captures[group * 2 + 1];
+      if (s >= 0) val = mrb_str_substr(mrb, md->source, s, e - s);
+    }
+    mrb_hash_set(mrb, result, name, val);
+  }
+  return result;
+}
+
 /* --- Gem init --- */
 
 void
@@ -427,6 +502,7 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, md, "end", matchdata_end, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, md, "pre_match", matchdata_pre, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "post_match", matchdata_post, MRB_ARGS_NONE());
+  mrb_define_method(mrb, md, "named_captures", matchdata_named_captures, MRB_ARGS_NONE());
 }
 
 void
