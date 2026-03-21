@@ -254,6 +254,34 @@ regexp_source(mrb_state *mrb, mrb_value self)
 }
 
 /*
+ * Regexp#options - convert internal flags to Ruby constants
+ * Internal: IGNORECASE=1, MULTILINE=2, DOTALL=4, EXTENDED=8
+ * Ruby:     IGNORECASE=1, EXTENDED=2, MULTILINE=4
+ */
+static mrb_value
+regexp_options(mrb_state *mrb, mrb_value self)
+{
+  mrb_value flags_val = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@flags"));
+  uint32_t iflags = mrb_nil_p(flags_val) ? 0 : (uint32_t)mrb_integer(flags_val);
+  mrb_int opts = 0;
+  if (iflags & RE_FLAG_IGNORECASE) opts |= 1;  /* Regexp::IGNORECASE */
+  if (iflags & RE_FLAG_EXTENDED) opts |= 2;     /* Regexp::EXTENDED */
+  if (iflags & RE_FLAG_MULTILINE) opts |= 4;    /* Regexp::MULTILINE */
+  return mrb_fixnum_value(opts);
+}
+
+/*
+ * Regexp#casefold?
+ */
+static mrb_value
+regexp_casefold_p(mrb_state *mrb, mrb_value self)
+{
+  mrb_value flags_val = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@flags"));
+  uint32_t iflags = mrb_nil_p(flags_val) ? 0 : (uint32_t)mrb_integer(flags_val);
+  return mrb_bool_value((iflags & RE_FLAG_IGNORECASE) != 0);
+}
+
+/*
  * Regexp#to_s - CRuby-compatible (?flags:source) format
  */
 static mrb_value
@@ -574,6 +602,8 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, re, "==", regexp_eql, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, re, "eql?", regexp_eql, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, re, "hash", regexp_hash, MRB_ARGS_NONE());
+  mrb_define_method(mrb, re, "options", regexp_options, MRB_ARGS_NONE());
+  mrb_define_method(mrb, re, "casefold?", regexp_casefold_p, MRB_ARGS_NONE());
 
   /* MatchData class */
   struct RClass *md = mrb_define_class(mrb, "MatchData", mrb->object_class);

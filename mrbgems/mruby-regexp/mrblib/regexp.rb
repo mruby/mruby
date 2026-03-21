@@ -8,9 +8,7 @@ class Regexp
     @named_captures || {}
   end
 
-  def options
-    @flags.to_i
-  end
+  # options is implemented in C (internal flags -> Ruby constants conversion)
 
   def self.last_match(n = nil)
     md = $~

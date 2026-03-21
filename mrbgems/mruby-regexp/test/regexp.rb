@@ -149,6 +149,22 @@ assert("Regexp#hash") do
   assert_not_equal r1.hash, r3.hash
 end
 
+assert("Regexp#options") do
+  assert_equal 0, Regexp.new("abc").options
+  assert_equal Regexp::IGNORECASE, Regexp.new("abc", Regexp::IGNORECASE).options
+  assert_equal Regexp::MULTILINE, Regexp.new("abc", Regexp::MULTILINE).options
+  assert_equal Regexp::EXTENDED, Regexp.new("abc", Regexp::EXTENDED).options
+  assert_equal Regexp::IGNORECASE | Regexp::MULTILINE,
+               Regexp.new("abc", Regexp::IGNORECASE | Regexp::MULTILINE).options
+  assert_equal Regexp::IGNORECASE | Regexp::EXTENDED | Regexp::MULTILINE,
+               Regexp.new("abc", Regexp::IGNORECASE | Regexp::EXTENDED | Regexp::MULTILINE).options
+end
+
+assert("Regexp#casefold?") do
+  assert_true Regexp.new("abc", Regexp::IGNORECASE).casefold?
+  assert_false Regexp.new("abc").casefold?
+end
+
 assert("Regexp extended mode (x flag)") do
   # whitespace is ignored
   re = Regexp.new('a b c', Regexp::EXTENDED)
