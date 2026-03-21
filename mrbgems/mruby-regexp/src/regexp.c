@@ -104,6 +104,18 @@ regexp_init(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+static void
+clear_match_globals(mrb_state *mrb)
+{
+  static const char *nth_names[] = {
+    "$1","$2","$3","$4","$5","$6","$7","$8","$9"
+  };
+  mrb_gv_set(mrb, mrb_intern_lit(mrb, "$~"), mrb_nil_value());
+  for (int i = 0; i < 9; i++) {
+    mrb_gv_set(mrb, mrb_intern_cstr(mrb, nth_names[i]), mrb_nil_value());
+  }
+}
+
 /* Create MatchData from captures */
 static mrb_value
 create_matchdata(mrb_state *mrb, mrb_value regexp, mrb_value str, int *captures, int ncap)
@@ -118,6 +130,22 @@ create_matchdata(mrb_state *mrb, mrb_value regexp, mrb_value str, int *captures,
 
   mrb_value obj = mrb_obj_value(mrb_data_object_alloc(mrb, md_class, md, &matchdata_type));
   mrb_gv_set(mrb, mrb_intern_lit(mrb, "$~"), obj);
+
+  /* set $1-$9 from captures */
+  {
+    static const char *nth_names[] = {
+      "$1","$2","$3","$4","$5","$6","$7","$8","$9"
+    };
+    for (int i = 0; i < 9; i++) {
+      mrb_value val = mrb_nil_value();
+      int g = i + 1;
+      if (g < md->num_captures && captures[g*2] >= 0) {
+        val = mrb_str_substr(mrb, str, captures[g*2], captures[g*2+1] - captures[g*2]);
+      }
+      mrb_gv_set(mrb, mrb_intern_cstr(mrb, nth_names[i]), val);
+    }
+  }
+
   return obj;
 }
 
@@ -141,7 +169,7 @@ regexp_match(mrb_state *mrb, mrb_value self)
                      captures, pat->num_captures * 2);
 
   if (ncap == 0) {
-    mrb_gv_set(mrb, mrb_intern_lit(mrb, "$~"), mrb_nil_value());
+    clear_match_globals(mrb);
     return mrb_nil_value();
   }
 
@@ -188,7 +216,7 @@ regexp_match_op(mrb_state *mrb, mrb_value self)
                      captures, pat->num_captures * 2);
 
   if (ncap == 0) {
-    mrb_gv_set(mrb, mrb_intern_lit(mrb, "$~"), mrb_nil_value());
+    clear_match_globals(mrb);
     return mrb_nil_value();
   }
   create_matchdata(mrb, self, str, captures, pat->num_captures * 2);

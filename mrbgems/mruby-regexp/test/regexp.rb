@@ -265,3 +265,17 @@ assert("Regexp - lookahead does not consume") do
   assert_equal "foo", md[0]
   assert_nil /foo(?=baz)/.match("foobar")
 end
+
+assert("$1-$9 global variables") do
+  /(\w+)\s(\w+)/ =~ "hello world"
+  assert_equal "hello", $1
+  assert_equal "world", $2
+  assert_nil $3
+end
+
+assert("$1-$9 cleared on no match") do
+  /(\w+)/ =~ "hello"
+  assert_equal "hello", $1
+  /xyz/ =~ "abc"
+  assert_nil $1
+end
