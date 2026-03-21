@@ -51,6 +51,7 @@ typedef struct {
   const char *str;
   const char *str_end;
   mrb_bool matched;
+  mrb_bool match_only;    /* true: skip capture tracking (match? path) */
   int *result_caps;       /* best match (ncap ints) */
 } pike_state;
 
@@ -97,7 +98,7 @@ add_thread(pike_state *s, re_threadlist *list,
 
     case RE_SPLIT:
       {
-        int cp = pool_copy(s, cap_slot);
+        int cp = s->match_only ? 0 : pool_copy(s, cap_slot);
         add_thread(s, list, inst.offset, cp, sp);
       }
       pc++;
@@ -105,14 +106,16 @@ add_thread(pike_state *s, re_threadlist *list,
 
     case RE_SPLITNG:
       {
-        int cp = pool_copy(s, cap_slot);
+        int cp = s->match_only ? 0 : pool_copy(s, cap_slot);
         add_thread(s, list, pc + 1, cp, sp);
       }
       pc = inst.offset;
       continue;
 
     case RE_SAVE:
-      CAP(s, cap_slot)[inst.offset] = (int)(sp - s->str);
+      if (!s->match_only) {
+        CAP(s, cap_slot)[inst.offset] = (int)(sp - s->str);
+      }
       pc++;
       continue;
 
@@ -158,7 +161,9 @@ add_thread(pike_state *s, re_threadlist *list,
 
     case RE_MATCH:
       s->matched = TRUE;
-      memcpy(s->result_caps, CAP(s, cap_slot), sizeof(int) * s->ncap);
+      if (s->result_caps) {
+        memcpy(s->result_caps, CAP(s, cap_slot), sizeof(int) * s->ncap);
+      }
       return;
 
     default:
@@ -186,6 +191,8 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
 
   int list_capa = (int)pat->code_len * 2 + 16;
 
+  mrb_bool match_only = (captures == NULL || captures_size == 0);
+
   pike_state s;
   s.mrb = mrb;
   s.pat = pat;
@@ -193,12 +200,22 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
   s.str = str;
   s.str_end = str_end;
   s.matched = FALSE;
+  s.match_only = match_only;
   s.gen = 1;
-  s.pool_capa = list_capa * 2;
-  s.pool_next = 0;
-  s.cap_pool = (int*)mrb_malloc(mrb, sizeof(int) * s.pool_capa * ncap);
-  s.result_caps = (int*)mrb_malloc(mrb, sizeof(int) * ncap);
-  memset(s.result_caps, -1, sizeof(int) * ncap);
+  if (match_only) {
+    /* no capture tracking needed; allocate minimal pool (1 dummy slot) */
+    s.pool_capa = 1;
+    s.pool_next = 0;
+    s.cap_pool = (int*)mrb_malloc(mrb, sizeof(int) * ncap);
+    s.result_caps = NULL;
+  }
+  else {
+    s.pool_capa = list_capa * 2;
+    s.pool_next = 0;
+    s.cap_pool = (int*)mrb_malloc(mrb, sizeof(int) * s.pool_capa * ncap);
+    s.result_caps = (int*)mrb_malloc(mrb, sizeof(int) * ncap);
+    memset(s.result_caps, -1, sizeof(int) * ncap);
+  }
   s.visited = (uint32_t*)mrb_calloc(mrb, pat->code_len + 1, sizeof(uint32_t));
 
   re_threadlist curr, next;
@@ -209,8 +226,8 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
 
   for (; sp <= str_end; sp++) {
     if (!s.matched) {
-      int slot = pool_alloc(&s);
-      memset(CAP(&s, slot), -1, sizeof(int) * ncap);
+      int slot = match_only ? 0 : pool_alloc(&s);
+      if (!match_only) memset(CAP(&s, slot), -1, sizeof(int) * ncap);
       s.gen++;
       add_thread(&s, &curr, 0, slot, sp);
       if (s.matched && curr.count == 0) break;
@@ -218,16 +235,17 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
 
     if (sp >= str_end) break;
 
-    /* Reset pool for next step.
-       First, compact: copy live thread captures to the front of the pool. */
-    for (int i = 0; i < curr.count; i++) {
-      if (curr.threads[i].cap_slot != i) {
-        memcpy(CAP(&s, i), CAP(&s, curr.threads[i].cap_slot),
-               sizeof(int) * ncap);
-        curr.threads[i].cap_slot = i;
+    if (!match_only) {
+      /* Compact: copy live thread captures to the front of the pool. */
+      for (int i = 0; i < curr.count; i++) {
+        if (curr.threads[i].cap_slot != i) {
+          memcpy(CAP(&s, i), CAP(&s, curr.threads[i].cap_slot),
+                 sizeof(int) * ncap);
+          curr.threads[i].cap_slot = i;
+        }
       }
+      s.pool_next = curr.count;
     }
-    s.pool_next = curr.count;
 
     s.gen++;
     next.count = 0;
@@ -240,38 +258,32 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
       if (th->pc >= pat->code_len) continue;
 
       re_inst inst = pat->code[th->pc];
+      int cp = match_only ? 0 : pool_copy(&s, th->cap_slot);
       switch (inst.op) {
       case RE_CHAR:
         if (ch == inst.a) {
-          int cp = pool_copy(&s, th->cap_slot);
           add_thread(&s, &next, th->pc + 1, cp, sp + 1);
         }
         break;
 
       case RE_ANY:
         if (ch != '\n') {
-          int cp = pool_copy(&s, th->cap_slot);
           add_thread(&s, &next, th->pc + 1, cp, sp + advance);
         }
         break;
 
       case RE_ANY_NL:
-        {
-          int cp = pool_copy(&s, th->cap_slot);
-          add_thread(&s, &next, th->pc + 1, cp, sp + advance);
-        }
+        add_thread(&s, &next, th->pc + 1, cp, sp + advance);
         break;
 
       case RE_CLASS:
         if (class_match(&pat->classes[inst.a], (uint8_t)ch)) {
-          int cp = pool_copy(&s, th->cap_slot);
           add_thread(&s, &next, th->pc + 1, cp, sp + advance);
         }
         break;
 
       case RE_NCLASS:
         if (!class_match(&pat->classes[inst.a], (uint8_t)ch)) {
-          int cp = pool_copy(&s, th->cap_slot);
           add_thread(&s, &next, th->pc + 1, cp, sp + advance);
         }
         break;
@@ -293,7 +305,7 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
 
   int ret = 0;
   if (s.matched) {
-    if (captures) {
+    if (captures && s.result_caps) {
       int copy = ncap < captures_size ? ncap : captures_size;
       memcpy(captures, s.result_caps, sizeof(int) * copy);
     }
@@ -303,7 +315,7 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
   mrb_free(mrb, curr.threads);
   mrb_free(mrb, next.threads);
   mrb_free(mrb, s.cap_pool);
-  mrb_free(mrb, s.result_caps);
+  if (s.result_caps) mrb_free(mrb, s.result_caps);
   mrb_free(mrb, s.visited);
 
   return ret;
