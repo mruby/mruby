@@ -121,15 +121,31 @@ regexp_init(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/* Pre-interned symbols for $1-$9 (cached on first use) */
+static mrb_sym nth_syms[9];
+
+static void
+ensure_nth_syms(mrb_state *mrb)
+{
+  if (nth_syms[0]) return;
+  nth_syms[0] = mrb_intern_lit(mrb, "$1");
+  nth_syms[1] = mrb_intern_lit(mrb, "$2");
+  nth_syms[2] = mrb_intern_lit(mrb, "$3");
+  nth_syms[3] = mrb_intern_lit(mrb, "$4");
+  nth_syms[4] = mrb_intern_lit(mrb, "$5");
+  nth_syms[5] = mrb_intern_lit(mrb, "$6");
+  nth_syms[6] = mrb_intern_lit(mrb, "$7");
+  nth_syms[7] = mrb_intern_lit(mrb, "$8");
+  nth_syms[8] = mrb_intern_lit(mrb, "$9");
+}
+
 static void
 clear_match_globals(mrb_state *mrb)
 {
-  static const char *nth_names[] = {
-    "$1","$2","$3","$4","$5","$6","$7","$8","$9"
-  };
+  ensure_nth_syms(mrb);
   mrb_gv_set(mrb, mrb_intern_lit(mrb, "$~"), mrb_nil_value());
   for (int i = 0; i < 9; i++) {
-    mrb_gv_set(mrb, mrb_intern_cstr(mrb, nth_names[i]), mrb_nil_value());
+    mrb_gv_set(mrb, nth_syms[i], mrb_nil_value());
   }
 }
 
@@ -137,6 +153,8 @@ clear_match_globals(mrb_state *mrb)
 static mrb_value
 create_matchdata(mrb_state *mrb, mrb_value regexp, mrb_value str, int *captures, int ncap)
 {
+  ensure_nth_syms(mrb);
+
   struct RClass *md_class = mrb_class_get(mrb, "MatchData");
   mrb_match_data *md = (mrb_match_data*)mrb_malloc(mrb, sizeof(mrb_match_data));
   md->source = str;
@@ -149,18 +167,13 @@ create_matchdata(mrb_state *mrb, mrb_value regexp, mrb_value str, int *captures,
   mrb_gv_set(mrb, mrb_intern_lit(mrb, "$~"), obj);
 
   /* set $1-$9 from captures */
-  {
-    static const char *nth_names[] = {
-      "$1","$2","$3","$4","$5","$6","$7","$8","$9"
-    };
-    for (int i = 0; i < 9; i++) {
-      mrb_value val = mrb_nil_value();
-      int g = i + 1;
-      if (g < md->num_captures && captures[g*2] >= 0) {
-        val = mrb_str_substr(mrb, str, captures[g*2], captures[g*2+1] - captures[g*2]);
-      }
-      mrb_gv_set(mrb, mrb_intern_cstr(mrb, nth_names[i]), val);
+  for (int i = 0; i < 9; i++) {
+    mrb_value val = mrb_nil_value();
+    int g = i + 1;
+    if (g < md->num_captures && captures[g*2] >= 0) {
+      val = mrb_str_substr(mrb, str, captures[g*2], captures[g*2+1] - captures[g*2]);
     }
+    mrb_gv_set(mrb, nth_syms[i], val);
   }
 
   return obj;
