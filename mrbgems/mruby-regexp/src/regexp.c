@@ -252,8 +252,24 @@ regexp_source(mrb_state *mrb, mrb_value self)
 }
 
 /*
- * Regexp#inspect
+ * Regexp#to_s - CRuby-compatible (?flags:source) format
  */
+static mrb_value
+regexp_to_s(mrb_state *mrb, mrb_value self)
+{
+  mrb_value src = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@source"));
+  mrb_value flags_val = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@flags"));
+  uint32_t flags = mrb_nil_p(flags_val) ? 0 : (uint32_t)mrb_integer(flags_val);
+
+  mrb_value result = mrb_str_new_lit(mrb, "(?");
+  if (flags & RE_FLAG_IGNORECASE) mrb_str_cat_lit(mrb, result, "i");
+  if (flags & RE_FLAG_MULTILINE) mrb_str_cat_lit(mrb, result, "m");
+  mrb_str_cat_lit(mrb, result, ":");
+  mrb_str_cat_str(mrb, result, src);
+  mrb_str_cat_lit(mrb, result, ")");
+  return result;
+}
+
 static mrb_value
 regexp_inspect(mrb_state *mrb, mrb_value self)
 {
@@ -515,7 +531,7 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, re, "===", regexp_case_match, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, re, "source", regexp_source, MRB_ARGS_NONE());
   mrb_define_method(mrb, re, "inspect", regexp_inspect, MRB_ARGS_NONE());
-  mrb_define_method(mrb, re, "to_s", regexp_inspect, MRB_ARGS_NONE());
+  mrb_define_method(mrb, re, "to_s", regexp_to_s, MRB_ARGS_NONE());
 
   /* MatchData class */
   struct RClass *md = mrb_define_class(mrb, "MatchData", mrb->object_class);

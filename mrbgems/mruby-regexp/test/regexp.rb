@@ -122,6 +122,13 @@ assert("Regexp#inspect") do
   assert_equal "/abc/i", re.inspect
 end
 
+assert("Regexp#to_s") do
+  assert_equal "(?:abc)", Regexp.new("abc").to_s
+  assert_equal "(?i:abc)", Regexp.new("abc", Regexp::IGNORECASE).to_s
+  assert_equal "(?m:abc)", Regexp.new("abc", Regexp::MULTILINE).to_s
+  assert_equal "(?im:abc)", Regexp.new("abc", Regexp::IGNORECASE | Regexp::MULTILINE).to_s
+end
+
 assert("String#match") do
   md = "hello world".match(Regexp.new("(\\w+)\\s(\\w+)"))
   assert_equal "hello", md[1]
