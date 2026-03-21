@@ -228,6 +228,25 @@ assert("String#gsub") do
   assert_equal "h-ll-", "hello".gsub(Regexp.new("[eo]"), "-")
 end
 
+assert("String#sub with \\& \\` \\' specials") do
+  # \& = full match
+  assert_equal "a[bc]d", "abcd".sub(/bc/, '[\\&]')
+  # \` = pre_match
+  assert_equal "a[a]d", "abcd".sub(/bc/, '[\\`]')
+  # \' = post_match
+  assert_equal "a[d]d", "abcd".sub(/bc/, "[\\']")
+  # \+ = last capture
+  assert_equal "a[c]d", "abcd".sub(/(b)(c)/, '[\\+]')
+  # \\ = literal backslash
+  assert_equal "a\\d", "abcd".sub(/bc/, "\\\\")
+  # \1 still works
+  assert_equal "abbd", "abcd".sub(/(b)c/, '\\1\\1')
+end
+
+assert("String#gsub with \\& special") do
+  assert_equal "[a][b][c]", "abc".gsub(/./, '[\\&]')
+end
+
 assert("String#scan") do
   assert_equal ["1", "2", "3"], "a1b2c3".scan(Regexp.new("\\d"))
 end

@@ -13,6 +13,41 @@ class String
     re =~ self
   end
 
+  def __sub_replace(rep, md)
+    return rep unless rep.include?("\\")
+    result = ""
+    i = 0
+    while i < rep.length
+      if rep[i] == "\\" && i + 1 < rep.length
+        c = rep[i + 1]
+        case c
+        when '0'..'9'
+          result += (md[c.to_i] || "")
+        when '&'
+          result += (md[0] || "")
+        when '`'
+          result += md.pre_match
+        when "'"
+          result += md.post_match
+        when '+'
+          # last successful capture
+          last = nil
+          md.captures.each { |c| last = c if c }
+          result += (last || "")
+        when "\\"
+          result += "\\"
+        else
+          result += "\\" + c
+        end
+        i += 2
+      else
+        result += rep[i]
+        i += 1
+      end
+    end
+    result
+  end
+
   def sub(pattern, replacement = nil, &block)
     pattern = Regexp.new(Regexp.escape(pattern)) if pattern.is_a?(String)
     md = pattern.match(self)
@@ -23,9 +58,7 @@ class String
     if block
       rep = block.call(md[0]).to_s
     else
-      rep = replacement.to_s
-      # handle \0, \1, etc. in replacement string
-      rep = rep.gsub(/\\(\d)/) { md[$1.to_i] || "" } if rep.include?("\\")
+      rep = __sub_replace(replacement.to_s, md)
     end
     pre + rep + post
   end
@@ -41,9 +74,7 @@ class String
       if block
         result += block.call(md[0]).to_s
       else
-        rep = replacement.to_s
-        rep = rep.gsub(/\\(\d)/) { md[$1.to_i] || "" } if rep.include?("\\")
-        result += rep
+        result += __sub_replace(replacement.to_s, md)
       end
       matched_len = md[0].length
       if matched_len == 0
