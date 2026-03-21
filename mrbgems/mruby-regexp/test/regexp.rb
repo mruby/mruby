@@ -223,3 +223,14 @@ assert("Regexp - case in when") do
            end
   assert_equal "has digits", result
 end
+
+assert("Regexp - backreference \\1") do
+  # match repeated word
+  md = /(\w+) \1/.match("hello hello world")
+  assert_equal "hello hello", md[0]
+  assert_equal "hello", md[1]
+end
+
+assert("Regexp - backreference no match") do
+  assert_nil /(\w+) \1/.match("hello world")
+end

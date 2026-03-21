@@ -159,8 +159,8 @@ class_match(const re_charclass *cc, uint8_t ch)
 }
 
 /* Pike VM: NFA simulation with submatch tracking */
-int
-re_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
+static int
+pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
         const char *str, mrb_int len, mrb_int start,
         int *captures, int captures_size)
 {
@@ -268,4 +268,166 @@ re_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
     memcpy(captures, result.captures, sizeof(int) * copy);
   }
   return result.matched ? (ncap > 0 ? ncap : 1) : 0;
+}
+
+/*
+ * Backtracking engine for patterns with backreferences.
+ * Recursive: tries each possibility and backtracks on failure.
+ * Step-limited to prevent ReDoS.
+ */
+static mrb_bool
+bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
+         const char *sp, uint32_t pc, int *captures, int *steps)
+{
+  while (pc < pat->code_len) {
+    if (++(*steps) > MRB_REGEXP_STEP_LIMIT) return FALSE;
+
+    re_inst inst = pat->code[pc];
+    switch (inst.op) {
+    case RE_CHAR:
+      if (sp >= str_end || (uint8_t)*sp != inst.a) return FALSE;
+      sp++; pc++;
+      break;
+
+    case RE_ANY:
+      if (sp >= str_end || *sp == '\n') return FALSE;
+      sp += re_utf8_charlen(sp, str_end); pc++;
+      break;
+
+    case RE_ANY_NL:
+      if (sp >= str_end) return FALSE;
+      sp += re_utf8_charlen(sp, str_end); pc++;
+      break;
+
+    case RE_CLASS:
+      if (sp >= str_end || !class_match(&pat->classes[inst.a], (uint8_t)*sp)) return FALSE;
+      sp += re_utf8_charlen(sp, str_end); pc++;
+      break;
+
+    case RE_NCLASS:
+      if (sp >= str_end || class_match(&pat->classes[inst.a], (uint8_t)*sp)) return FALSE;
+      sp += re_utf8_charlen(sp, str_end); pc++;
+      break;
+
+    case RE_MATCH:
+      return TRUE;
+
+    case RE_JMP:
+      pc = inst.offset;
+      break;
+
+    case RE_SPLIT:
+      /* greedy: try pc+1 first */
+      if (bt_match(pat, str, str_end, sp, pc + 1, captures, steps)) return TRUE;
+      pc = inst.offset;
+      break;
+
+    case RE_SPLITNG:
+      /* non-greedy: try offset first */
+      if (bt_match(pat, str, str_end, sp, inst.offset, captures, steps)) return TRUE;
+      pc++;
+      break;
+
+    case RE_SAVE:
+      {
+        int old = captures[inst.offset];
+        captures[inst.offset] = (int)(sp - str);
+        if (bt_match(pat, str, str_end, sp, pc + 1, captures, steps)) return TRUE;
+        captures[inst.offset] = old;  /* restore on backtrack */
+        return FALSE;
+      }
+
+    case RE_BOL:
+      if (sp != str && !(pat->flags & RE_FLAG_MULTILINE && sp > str && sp[-1] == '\n')) return FALSE;
+      pc++;
+      break;
+
+    case RE_EOL:
+      if (sp != str_end && !(pat->flags & RE_FLAG_MULTILINE && *sp == '\n')) return FALSE;
+      pc++;
+      break;
+
+    case RE_BOT:
+      if (sp != str) return FALSE;
+      pc++;
+      break;
+
+    case RE_EOT:
+      if (sp != str_end) return FALSE;
+      pc++;
+      break;
+
+    case RE_WBOUND:
+      {
+        mrb_bool before = (sp > str) && re_is_word_char((uint8_t)sp[-1]);
+        mrb_bool after = (sp < str_end) && re_is_word_char((uint8_t)*sp);
+        if (before == after) return FALSE;
+      }
+      pc++;
+      break;
+
+    case RE_NWBOUND:
+      {
+        mrb_bool before = (sp > str) && re_is_word_char((uint8_t)sp[-1]);
+        mrb_bool after = (sp < str_end) && re_is_word_char((uint8_t)*sp);
+        if (before != after) return FALSE;
+      }
+      pc++;
+      break;
+
+    case RE_BACKREF:
+      {
+        int group = inst.a;
+        int gs = captures[group * 2];
+        int ge = captures[group * 2 + 1];
+        if (gs < 0 || ge < 0) return FALSE;
+        int len = ge - gs;
+        if (sp + len > str_end) return FALSE;
+        if (memcmp(sp, str + gs, len) != 0) return FALSE;
+        sp += len;
+        pc++;
+      }
+      break;
+
+    default:
+      return FALSE;
+    }
+  }
+  return FALSE;
+}
+
+static int
+backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
+               const char *str, mrb_int len, mrb_int start,
+               int *captures, int captures_size)
+{
+  const char *str_end = str + len;
+  int ncap = pat->num_captures * 2;
+
+  for (const char *sp = str + start; sp <= str_end; sp++) {
+    int caps[RE_MAX_CAPTURES * 2];
+    memset(caps, -1, sizeof(caps));
+    int steps = 0;
+
+    if (bt_match(pat, str, str_end, sp, 0, caps, &steps)) {
+      if (captures) {
+        int copy = ncap < captures_size ? ncap : captures_size;
+        memcpy(captures, caps, sizeof(int) * copy);
+      }
+      return ncap > 0 ? ncap : 1;
+    }
+  }
+  return 0;
+}
+
+/* Public entry point: dispatch to Pike VM or backtracking engine */
+int
+re_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
+        const char *str, mrb_int len, mrb_int start,
+        int *captures, int captures_size)
+{
+  if (pat->has_backref) {
+    return backtrack_exec(mrb, pat, str, len, start, captures, captures_size);
+  }
+  return pike_vm(mrb, pat, str, len, start, captures, captures_size);
 }
