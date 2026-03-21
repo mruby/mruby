@@ -6,6 +6,7 @@
 #include <mruby/hash.h>
 #include <mruby/data.h>
 #include <mruby/class.h>
+#include <mruby/numeric.h>
 #include <mruby/internal.h>
 #include <mruby/khash.h>
 #include <mruby/error.h>
@@ -1373,6 +1374,13 @@ ary_insert(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+struct ary_product_generator {
+  mrb_int total;
+  mrb_int cursor;
+};
+
+static struct mrb_data_type ary_product_generator_type = { "ary_product_generator", mrb_free };
+
 /*
  *  Internal helper for Array#product to construct a group array.
  *  Takes the base array (self), the array of other arrays (arys),
@@ -1380,18 +1388,12 @@ ary_insert(mrb_state *mrb, mrb_value self)
  *  of the group array (group_len).
  */
 static mrb_value
-ary_product_group(mrb_state *mrb, mrb_value self_ary)
+ary_product_fetch(mrb_state *mrb, mrb_value self_ary, mrb_value arys_ary, mrb_int n)
 {
-  mrb_value arys_ary;
-  mrb_int current_i, group_len;
-  mrb_get_args(mrb, "Aii", &arys_ary, &current_i, &group_len);
-
-  mrb_value group = mrb_ary_new_capa(mrb, group_len);
   mrb_int j = RARRAY_LEN(arys_ary); // Corresponds to 'size' in Ruby
-  mrb_int n = current_i;
+  mrb_value group = mrb_ary_new_capa(mrb, j + 1 /* self_ary */);
 
-  while (j > 0) {
-    j -= 1;
+  while (j-- > 0) {
     mrb_value a = RARRAY_PTR(arys_ary)[j]; // arys[j]
     mrb_check_type(mrb, a, MRB_TT_ARRAY);
     mrb_int b = RARRAY_LEN(a);             // a.size
@@ -1407,6 +1409,62 @@ ary_product_group(mrb_state *mrb, mrb_value self_ary)
   mrb_ary_set(mrb, group, 0, RARRAY_PTR(self_ary)[n]);
 
   return group;
+}
+
+static mrb_value
+ary_product_generate(mrb_state *mrb, mrb_value self)
+{
+  mrb_value arys_ary, block;
+  mrb_get_args(mrb, "A&", &arys_ary, &block);
+
+  mrb_int total = RARRAY_LEN(self);
+  for (mrb_int i = 0; i < RARRAY_LEN(arys_ary); i++) {
+    mrb_value a = RARRAY_PTR(arys_ary)[i];
+    mrb_check_type(mrb, a, MRB_TT_ARRAY);
+    mrb_int n = RARRAY_LEN(a);
+    if (n == 0) {
+      total = 0;
+      break;
+    }
+    if (mrb_int_mul_overflow(total, n, &total)) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "result too big");
+    }
+  }
+
+  if (mrb_nil_p(block)) {
+    mrb_value result = mrb_ary_new_capa(mrb, total);
+    for (mrb_int i = 0; i < total; i++) {
+      mrb_value group = ary_product_fetch(mrb, self, arys_ary, i);
+      mrb_ary_push(mrb, result, group);
+    }
+    return result;
+  }
+  else if (total > 0) {
+    struct RData *d;
+    struct ary_product_generator *g;
+    Data_Make_Struct(mrb, mrb->object_class, struct ary_product_generator,
+                     &ary_product_generator_type, g, d);
+    g->total = total;
+    g->cursor = 0;
+    return mrb_obj_value(d);
+  }
+  else {
+    return mrb_nil_value();
+  }
+}
+
+static mrb_value
+ary_product_next(mrb_state *mrb, mrb_value self)
+{
+  mrb_value arys;
+  struct ary_product_generator *g;
+  mrb_get_args(mrb, "Ad", &arys, &g, &ary_product_generator_type);
+
+  if (g->cursor >= g->total) {
+    return mrb_nil_value();
+  }
+
+  return ary_product_fetch(mrb, self, arys, g->cursor++);
 }
 
 /*
@@ -1569,7 +1627,8 @@ static const mrb_mt_entry array_ext_rom_entries[] = {
   MRB_MT_ENTRY(ary_fetch,              MRB_SYM(__fetch),            MRB_ARGS_REQ(3)),
   MRB_MT_ENTRY(ary_insert,             MRB_SYM(insert),             MRB_ARGS_ARG(1,-1)),
   MRB_MT_ENTRY(ary_deconstruct,        MRB_SYM(deconstruct),        MRB_ARGS_NONE()),
-  MRB_MT_ENTRY(ary_product_group,      MRB_SYM(__product_group),    MRB_ARGS_REQ(3)),
+  MRB_MT_ENTRY(ary_product_generate,   MRB_SYM(__product_generate), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(ary_product_next,       MRB_SYM(__product_next),     MRB_ARGS_REQ(2)),
   MRB_MT_ENTRY(ary_combination_init,   MRB_SYM(__combination_init), MRB_ARGS_REQ(2)),
   MRB_MT_ENTRY(ary_combination_next,   MRB_SYM(__combination_next), MRB_ARGS_REQ(1)),
 };
