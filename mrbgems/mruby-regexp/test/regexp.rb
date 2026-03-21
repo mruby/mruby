@@ -1,6 +1,14 @@
-assert("Regexp.new") do
+assert("Regexp.new with string") do
   re = Regexp.new("abc")
   assert_kind_of Regexp, re
+end
+
+assert("Regexp.new with regexp") do
+  r1 = Regexp.new("abc", Regexp::IGNORECASE)
+  r2 = Regexp.new(r1)
+  assert_equal r1.source, r2.source
+  assert_equal r1.options, r2.options
+  assert_true r2.match?("ABC")
 end
 
 assert("Regexp#match - simple") do

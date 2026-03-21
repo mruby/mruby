@@ -72,6 +72,7 @@ parse_flags(mrb_state *mrb, mrb_value flags_val)
 
 /*
  * Regexp.new(pattern, flags=nil)
+ * Regexp.new(regexp)
  * Regexp.compile(pattern, flags=nil)
  */
 static mrb_value
@@ -81,9 +82,23 @@ regexp_init(mrb_state *mrb, mrb_value self)
   mrb_value flags_val = mrb_nil_value();
   mrb_regexp_pattern *pat;
 
-  mrb_get_args(mrb, "S|o", &pattern, &flags_val);
+  mrb_get_args(mrb, "o|o", &pattern, &flags_val);
 
-  uint32_t flags = parse_flags(mrb, flags_val);
+  uint32_t flags;
+
+  /* If pattern is a Regexp, copy its source and flags */
+  if (mrb_obj_is_kind_of(mrb, pattern, mrb_class_get(mrb, "Regexp"))) {
+    mrb_value iflags = mrb_iv_get(mrb, pattern, mrb_intern_lit(mrb, "@flags"));
+    flags = mrb_nil_p(iflags) ? 0 : (uint32_t)mrb_integer(iflags);
+    pattern = mrb_iv_get(mrb, pattern, mrb_intern_lit(mrb, "@source"));
+  }
+  else {
+    if (!mrb_string_p(pattern)) {
+      mrb_raise(mrb, E_TYPE_ERROR, "wrong argument type (expected String or Regexp)");
+    }
+    flags = parse_flags(mrb, flags_val);
+  }
+
   pat = re_compile(mrb, RSTRING_PTR(pattern), RSTRING_LEN(pattern), flags);
 
   DATA_TYPE(self) = &regexp_type;
