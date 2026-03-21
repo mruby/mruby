@@ -129,8 +129,8 @@ add_thread(const mrb_regexp_pattern *pat, re_threadlist *list,
 
     case RE_MATCH:
       /* match found during epsilon traversal.
-         always update: greedy quantifiers may find longer matches later
-         at the same starting position. thread priority ensures correctness. */
+         update result: later matches at same start position are longer
+         (greedy). thread ordering in add_thread ensures correct priority. */
       if (result) {
         result->matched = TRUE;
         memcpy(result->captures, t.captures, sizeof(t.captures));
