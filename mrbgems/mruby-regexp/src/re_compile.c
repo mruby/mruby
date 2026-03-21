@@ -29,6 +29,7 @@ typedef struct {
   uint16_t num_named;
   mrb_bool has_backref;
   mrb_bool has_nongreedy;
+  char *stripped;           /* allocated buffer for x-mode preprocessing */
 } re_compiler;
 
 static void compile_alt(re_compiler *c);  /* forward */
@@ -36,6 +37,8 @@ static void compile_alt(re_compiler *c);  /* forward */
 static void
 compile_error(re_compiler *c, const char *msg)
 {
+  if (c->stripped) mrb_free(c->mrb, c->stripped);
+  c->stripped = NULL;
   mrb_raisef(c->mrb, mrb_exc_get_id(c->mrb, MRB_SYM(RegexpError)), "%s: /%s/", msg, c->src);
 }
 
@@ -606,11 +609,63 @@ compile_alt(re_compiler *c)
   }
 }
 
+/*
+ * Strip whitespace and #comments for extended mode (/x flag).
+ * Whitespace inside [...] character classes is preserved.
+ * Escaped characters (\ followed by anything) are preserved.
+ */
+static char*
+strip_extended(mrb_state *mrb, const char *src, mrb_int len, mrb_int *out_len)
+{
+  char *buf = (char*)mrb_malloc(mrb, len);
+  mrb_int o = 0;
+  mrb_bool in_class = FALSE;
+  const char *end = src + len;
+
+  while (src < end) {
+    char ch = *src;
+    if (ch == '\\' && src + 1 < end) {
+      buf[o++] = *src++;
+      buf[o++] = *src++;
+      continue;
+    }
+    if (in_class) {
+      if (ch == ']') in_class = FALSE;
+      buf[o++] = *src++;
+      continue;
+    }
+    if (ch == '[') {
+      in_class = TRUE;
+      buf[o++] = *src++;
+      continue;
+    }
+    if (ch == '#') {
+      /* skip to end of line */
+      while (src < end && *src != '\n') src++;
+      continue;
+    }
+    if (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' || ch == '\f' || ch == '\v') {
+      src++;
+      continue;
+    }
+    buf[o++] = *src++;
+  }
+  *out_len = o;
+  return buf;
+}
+
 mrb_regexp_pattern*
 re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags)
 {
   re_compiler c;
   memset(&c, 0, sizeof(c));
+
+  if (flags & RE_FLAG_EXTENDED) {
+    mrb_int slen;
+    c.stripped = strip_extended(mrb, pattern, len, &slen);
+    pattern = c.stripped;
+    len = slen;
+  }
   c.mrb = mrb;
   c.src = pattern;
   c.src_end = pattern + len;
@@ -643,6 +698,7 @@ re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags)
   pat->has_backref = c.has_backref;
   pat->has_nongreedy = c.has_nongreedy;
 
+  if (c.stripped) mrb_free(mrb, c.stripped);
   return pat;
 }
 

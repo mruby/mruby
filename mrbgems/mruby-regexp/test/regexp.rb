@@ -149,6 +149,31 @@ assert("Regexp#hash") do
   assert_not_equal r1.hash, r3.hash
 end
 
+assert("Regexp extended mode (x flag)") do
+  # whitespace is ignored
+  re = Regexp.new('a b c', Regexp::EXTENDED)
+  assert_true re.match?("abc")
+  assert_false re.match?("a b c")
+
+  # comments are ignored
+  re = Regexp.new("a  # match a\nb  # match b\nc", Regexp::EXTENDED)
+  assert_true re.match?("abc")
+
+  # whitespace inside character class is literal
+  re = Regexp.new('[ ]', Regexp::EXTENDED)
+  assert_true re.match?(" ")
+
+  # escaped whitespace is preserved
+  re = Regexp.new('a\\ b', Regexp::EXTENDED)
+  assert_true re.match?("a b")
+
+  # inspect shows x flag
+  assert_equal "/abc/x", Regexp.new("abc", Regexp::EXTENDED).inspect
+
+  # to_s shows x flag
+  assert_equal "(?x:abc)", Regexp.new("abc", Regexp::EXTENDED).to_s
+end
+
 assert("String#match") do
   md = "hello world".match(Regexp.new("(\\w+)\\s(\\w+)"))
   assert_equal "hello", md[1]

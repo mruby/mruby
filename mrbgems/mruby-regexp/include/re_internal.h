@@ -74,9 +74,10 @@ typedef struct mrb_regexp_pattern {
 #define RE_FLAG_IGNORECASE  1
 #define RE_FLAG_MULTILINE   2  /* ^ and $ match at \n boundaries */
 #define RE_FLAG_DOTALL      4  /* . matches \n (Ruby's /m for dot behavior) */
+#define RE_FLAG_EXTENDED    8  /* ignore whitespace and #comments in pattern */
 
 /* Note: Ruby's /m flag means BOTH multiline anchors AND dotall.
-   Ruby's /i flag is ignorecase. */
+   Ruby's /i flag is ignorecase.  Ruby's /x flag is extended. */
 
 /* Step limit for ReDoS protection */
 #ifndef MRB_REGEXP_STEP_LIMIT

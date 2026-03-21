@@ -50,6 +50,7 @@ parse_flags(mrb_state *mrb, mrb_value flags_val)
   if (mrb_integer_p(flags_val)) {
     mrb_int f = mrb_integer(flags_val);
     if (f & 1) flags |= RE_FLAG_IGNORECASE;
+    if (f & 2) flags |= RE_FLAG_EXTENDED;
     if (f & 4) flags |= RE_FLAG_MULTILINE | RE_FLAG_DOTALL;
     return flags;
   }
@@ -60,7 +61,7 @@ parse_flags(mrb_state *mrb, mrb_value flags_val)
       switch (s[i]) {
       case 'i': flags |= RE_FLAG_IGNORECASE; break;
       case 'm': flags |= RE_FLAG_MULTILINE | RE_FLAG_DOTALL; break;
-      case 'x': break; /* TODO: extended mode */
+      case 'x': flags |= RE_FLAG_EXTENDED; break;
       }
     }
     return flags;
@@ -265,6 +266,7 @@ regexp_to_s(mrb_state *mrb, mrb_value self)
   mrb_value result = mrb_str_new_lit(mrb, "(?");
   if (flags & RE_FLAG_IGNORECASE) mrb_str_cat_lit(mrb, result, "i");
   if (flags & RE_FLAG_MULTILINE) mrb_str_cat_lit(mrb, result, "m");
+  if (flags & RE_FLAG_EXTENDED) mrb_str_cat_lit(mrb, result, "x");
   mrb_str_cat_lit(mrb, result, ":");
   mrb_str_cat_str(mrb, result, src);
   mrb_str_cat_lit(mrb, result, ")");
@@ -283,6 +285,7 @@ regexp_inspect(mrb_state *mrb, mrb_value self)
   mrb_str_cat_lit(mrb, result, "/");
   if (flags & RE_FLAG_IGNORECASE) mrb_str_cat_lit(mrb, result, "i");
   if (flags & RE_FLAG_MULTILINE) mrb_str_cat_lit(mrb, result, "m");
+  if (flags & RE_FLAG_EXTENDED) mrb_str_cat_lit(mrb, result, "x");
   return result;
 }
 
