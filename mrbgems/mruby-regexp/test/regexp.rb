@@ -114,6 +114,22 @@ assert("MatchData#pre_match / #post_match") do
   assert_equal "de", md.post_match
 end
 
+assert("MatchData#string") do
+  md = Regexp.new("bc").match("abcde")
+  assert_equal "abcde", md.string
+end
+
+assert("MatchData#regexp") do
+  re = Regexp.new("bc")
+  md = re.match("abcde")
+  assert_equal re, md.regexp
+end
+
+assert("MatchData#to_s") do
+  md = Regexp.new("bc").match("abcde")
+  assert_equal "bc", md.to_s
+end
+
 assert("MatchData#begin / #end") do
   re = Regexp.new("bc")
   md = re.match("abcde")

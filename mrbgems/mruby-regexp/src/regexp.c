@@ -587,6 +587,41 @@ matchdata_named_captures(mrb_state *mrb, mrb_value self)
   return result;
 }
 
+/*
+ * MatchData#string - the original string (frozen copy)
+ */
+static mrb_value
+matchdata_string(mrb_state *mrb, mrb_value self)
+{
+  mrb_match_data *md = DATA_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
+  if (!md) return mrb_nil_value();
+  return md->source;
+}
+
+/*
+ * MatchData#regexp - the Regexp used
+ */
+static mrb_value
+matchdata_regexp(mrb_state *mrb, mrb_value self)
+{
+  mrb_match_data *md = DATA_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
+  if (!md) return mrb_nil_value();
+  return md->regexp;
+}
+
+/*
+ * MatchData#to_s - full match string
+ */
+static mrb_value
+matchdata_to_s(mrb_state *mrb, mrb_value self)
+{
+  mrb_match_data *md = DATA_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
+  if (!md || md->captures[0] < 0) return mrb_nil_value();
+  int s = md->captures[0];
+  int e = md->captures[1];
+  return mrb_str_substr(mrb, md->source, s, e - s);
+}
+
 /* --- Gem init --- */
 
 void
@@ -634,6 +669,9 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, md, "pre_match", matchdata_pre, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "post_match", matchdata_post, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "named_captures", matchdata_named_captures, MRB_ARGS_NONE());
+  mrb_define_method(mrb, md, "string", matchdata_string, MRB_ARGS_NONE());
+  mrb_define_method(mrb, md, "regexp", matchdata_regexp, MRB_ARGS_NONE());
+  mrb_define_method(mrb, md, "to_s", matchdata_to_s, MRB_ARGS_NONE());
 }
 
 void
