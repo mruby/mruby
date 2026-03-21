@@ -105,6 +105,7 @@ create_matchdata(mrb_state *mrb, mrb_value str, int *captures, int ncap)
 
   mrb_value obj = mrb_obj_value(mrb_data_object_alloc(mrb, md_class, md, &matchdata_type));
   /* store in $~ */
+  mrb_gv_set(mrb, mrb_intern_lit(mrb, "$~"), obj);
   return obj;
 }
 
@@ -127,7 +128,10 @@ regexp_match(mrb_state *mrb, mrb_value self)
   int ncap = re_exec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), pos,
                      captures, pat->num_captures * 2);
 
-  if (ncap == 0) return mrb_nil_value();
+  if (ncap == 0) {
+    mrb_gv_set(mrb, mrb_intern_lit(mrb, "$~"), mrb_nil_value());
+    return mrb_nil_value();
+  }
 
   return create_matchdata(mrb, str, captures, pat->num_captures * 2);
 }
@@ -171,7 +175,11 @@ regexp_match_op(mrb_state *mrb, mrb_value self)
   int ncap = re_exec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), 0,
                      captures, pat->num_captures * 2);
 
-  if (ncap == 0) return mrb_nil_value();
+  if (ncap == 0) {
+    mrb_gv_set(mrb, mrb_intern_lit(mrb, "$~"), mrb_nil_value());
+    return mrb_nil_value();
+  }
+  create_matchdata(mrb, str, captures, pat->num_captures * 2);
   return mrb_int_value(mrb, captures[0]);
 }
 
@@ -393,7 +401,7 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
 
   /* Class methods */
   mrb_define_method(mrb, re, "initialize", regexp_init, MRB_ARGS_ARG(1, 2));
-  mrb_define_class_method(mrb, re, "compile", regexp_init, MRB_ARGS_ARG(1, 2));
+  /* compile is defined in Ruby (mrblib) as alias for new */
   mrb_define_class_method(mrb, re, "escape", regexp_escape, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, re, "quote", regexp_escape, MRB_ARGS_REQ(1));
 

@@ -429,7 +429,6 @@ compile_quantified(re_compiler *c)
     mrb_bool nongreedy = (peek(c) == '?');
     if (nongreedy) next_char(c);
 
-    uint32_t atom_len = c->code_len - start;
 
     if (ch == '*') {
       /* e* → L: SPLIT(body, end); body; JMP L; end:

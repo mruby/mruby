@@ -139,3 +139,27 @@ end
 assert("String#scan") do
   assert_equal ["1", "2", "3"], "a1b2c3".scan(Regexp.new("\\d"))
 end
+
+assert("Regexp literal /regex/") do
+  assert_true /abc/.match?("abc")
+  assert_equal "123", /\d+/.match("abc123")[0]
+  assert_true /hello/i.match?("HELLO")
+end
+
+assert("$~ global variable") do
+  /(\w+)@(\w+)/ =~ "user@host"
+  assert_kind_of MatchData, $~
+  assert_equal "user", $~[1]
+  assert_equal "host", $~[2]
+end
+
+assert("$~ is nil on no match") do
+  /xyz/ =~ "abc"
+  assert_nil $~
+end
+
+assert("Regexp.last_match") do
+  /(\d+)/ =~ "abc123"
+  assert_equal "123", Regexp.last_match(1)
+  assert_equal "123", Regexp.last_match(0)
+end
