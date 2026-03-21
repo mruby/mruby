@@ -65,27 +65,28 @@ class String
 
   def gsub(pattern, replacement = nil, &block)
     pattern = Regexp.new(Regexp.escape(pattern)) if pattern.is_a?(String)
-    result = ""
+    parts = []
     rest = self
     while rest.length > 0
       md = pattern.match(rest)
       break unless md
-      result += md.pre_match
+      parts << md.pre_match
       if block
-        result += block.call(md[0]).to_s
+        parts << block.call(md[0]).to_s
       else
-        result += __sub_replace(replacement.to_s, md)
+        parts << __sub_replace(replacement.to_s, md)
       end
       matched_len = md[0].length
       if matched_len == 0
         # avoid infinite loop on zero-length match
-        result += rest[0] if rest.length > 0
+        parts << rest[0] if rest.length > 0
         rest = rest[1..-1] || ""
       else
         rest = md.post_match
       end
     end
-    result + rest
+    parts << rest
+    parts.join
   end
 
   def scan(pattern)
