@@ -36,6 +36,7 @@ simulation) with backtracking fallback.
 
 - `i` (`Regexp::IGNORECASE`) case-insensitive matching (ASCII)
 - `m` (`Regexp::MULTILINE`) `.` matches newline; `^`/`$` match at line boundaries
+- `x` (`Regexp::EXTENDED`) free-spacing mode; unescaped whitespace ignored, `#` starts comments
 
 ### Ruby API
 
@@ -103,8 +104,6 @@ pattern analysis.
 
 - **No lookbehind**: `(?<=...)` and `(?<!...)` are not supported.
 - **No Unicode properties**: `\p{Alpha}`, `\p{L}`, etc. are not
-  supported.
-- **No extended mode**: The `x` flag (free-spacing mode) is not
   supported.
 - **ASCII case folding only**: The `i` flag handles ASCII letters
   only.
