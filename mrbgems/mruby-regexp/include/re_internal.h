@@ -30,6 +30,8 @@ enum re_opcode {
   RE_WBOUND,     /* assert word boundary (\b) */
   RE_NWBOUND,    /* assert non-word boundary (\B) */
   RE_BACKREF,    /* backreference: operand = group number */
+  RE_LOOKAHEAD,  /* positive lookahead: offset = end of sub-pattern */
+  RE_NEG_LOOKAHEAD, /* negative lookahead: offset = end of sub-pattern */
 };
 
 /* Bytecode instruction (4 bytes each for alignment) */

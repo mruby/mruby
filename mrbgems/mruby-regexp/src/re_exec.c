@@ -389,6 +389,20 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
       }
       break;
 
+    case RE_LOOKAHEAD:
+      /* positive lookahead: sub-pattern must match at current position */
+      if (!bt_match(pat, str, str_end, sp, pc + 1, captures, steps))
+        return FALSE;
+      pc = inst.offset;  /* skip past sub-pattern */
+      break;
+
+    case RE_NEG_LOOKAHEAD:
+      /* negative lookahead: sub-pattern must NOT match */
+      if (bt_match(pat, str, str_end, sp, pc + 1, captures, steps))
+        return FALSE;
+      pc = inst.offset;
+      break;
+
     default:
       return FALSE;
     }

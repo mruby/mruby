@@ -249,3 +249,19 @@ assert("MatchData#named_captures") do
   assert_equal "user", nc["a"]
   assert_equal "host", nc["b"]
 end
+
+assert("Regexp - positive lookahead (?=...)") do
+  md = /\w+(?=@)/.match("user@host")
+  assert_equal "user", md[0]
+end
+
+assert("Regexp - negative lookahead (?!...)") do
+  md = /\d+(?!%)/.match("100%")
+  assert_equal "10", md[0]
+end
+
+assert("Regexp - lookahead does not consume") do
+  md = /foo(?=bar)/.match("foobar")
+  assert_equal "foo", md[0]
+  assert_nil /foo(?=baz)/.match("foobar")
+end

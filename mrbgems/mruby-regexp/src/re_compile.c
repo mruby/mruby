@@ -299,6 +299,19 @@ compile_atom(re_compiler *c)
           next_char(c); next_char(c);  /* skip ?: */
           capturing = FALSE;
         }
+        else if (c->p[1] == '=' || c->p[1] == '!') {
+          /* lookahead (?=...) or (?!...) */
+          mrb_bool negative = (c->p[1] == '!');
+          next_char(c); next_char(c);  /* skip ?= or ?! */
+          uint32_t la_pos = emit(c, negative ? RE_NEG_LOOKAHEAD : RE_LOOKAHEAD, 0, 0);
+          compile_alt(c);
+          emit(c, RE_MATCH, 0, 0);  /* end of lookahead sub-pattern */
+          c->code[la_pos].offset = (uint16_t)c->code_len;  /* patch: skip past sub-pattern */
+          if (peek(c) != ')') compile_error(c, "unmatched '('");
+          next_char(c);
+          c->has_nongreedy = TRUE;  /* needs backtracking engine */
+          break;  /* done with this atom */
+        }
         else if (c->p[1] == '<' && c->p + 2 < c->src_end && c->p[2] != '=' && c->p[2] != '!') {
           next_char(c); next_char(c);  /* skip ?< */
           cap_name = c->p;
