@@ -129,6 +129,26 @@ assert("Regexp#to_s") do
   assert_equal "(?im:abc)", Regexp.new("abc", Regexp::IGNORECASE | Regexp::MULTILINE).to_s
 end
 
+assert("Regexp#== and Regexp#eql?") do
+  r1 = Regexp.new("abc", Regexp::IGNORECASE)
+  r2 = Regexp.new("abc", Regexp::IGNORECASE)
+  r3 = Regexp.new("abc")
+  r4 = Regexp.new("def", Regexp::IGNORECASE)
+  assert_true r1 == r2
+  assert_true r1.eql?(r2)
+  assert_false r1 == r3       # different flags
+  assert_false r1 == r4       # different source
+  assert_false r1 == "abc"    # not a Regexp
+end
+
+assert("Regexp#hash") do
+  r1 = Regexp.new("abc", Regexp::IGNORECASE)
+  r2 = Regexp.new("abc", Regexp::IGNORECASE)
+  r3 = Regexp.new("abc")
+  assert_equal r1.hash, r2.hash
+  assert_not_equal r1.hash, r3.hash
+end
+
 assert("String#match") do
   md = "hello world".match(Regexp.new("(\\w+)\\s(\\w+)"))
   assert_equal "hello", md[1]

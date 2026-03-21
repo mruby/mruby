@@ -12,6 +12,7 @@
 #include <mruby/variable.h>
 #include <mruby/hash.h>
 #include <mruby/error.h>
+#include <mruby/internal.h>
 #include "re_internal.h"
 
 #include <string.h>
@@ -286,6 +287,41 @@ regexp_inspect(mrb_state *mrb, mrb_value self)
 }
 
 /*
+ * Regexp#== (and eql?)
+ */
+static mrb_value
+regexp_eql(mrb_state *mrb, mrb_value self)
+{
+  mrb_value other;
+  mrb_get_args(mrb, "o", &other);
+  if (!mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Regexp"))) {
+    return mrb_false_value();
+  }
+  mrb_value src1 = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@source"));
+  mrb_value src2 = mrb_iv_get(mrb, other, mrb_intern_lit(mrb, "@source"));
+  if (!mrb_str_equal(mrb, src1, src2)) return mrb_false_value();
+  mrb_value f1 = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@flags"));
+  mrb_value f2 = mrb_iv_get(mrb, other, mrb_intern_lit(mrb, "@flags"));
+  mrb_int flags1 = mrb_nil_p(f1) ? 0 : mrb_integer(f1);
+  mrb_int flags2 = mrb_nil_p(f2) ? 0 : mrb_integer(f2);
+  return mrb_bool_value(flags1 == flags2);
+}
+
+/*
+ * Regexp#hash
+ */
+static mrb_value
+regexp_hash(mrb_state *mrb, mrb_value self)
+{
+  mrb_value src = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@source"));
+  mrb_value flags_val = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@flags"));
+  uint32_t flags = mrb_nil_p(flags_val) ? 0 : (uint32_t)mrb_integer(flags_val);
+  uint32_t h = mrb_str_hash(mrb, src);
+  h ^= flags * 0x9e3779b9;  /* mix flags into hash */
+  return mrb_int_value(mrb, (mrb_int)h);
+}
+
+/*
  * Regexp.escape(str)
  */
 static mrb_value
@@ -532,6 +568,9 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, re, "source", regexp_source, MRB_ARGS_NONE());
   mrb_define_method(mrb, re, "inspect", regexp_inspect, MRB_ARGS_NONE());
   mrb_define_method(mrb, re, "to_s", regexp_to_s, MRB_ARGS_NONE());
+  mrb_define_method(mrb, re, "==", regexp_eql, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, re, "eql?", regexp_eql, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, re, "hash", regexp_hash, MRB_ARGS_NONE());
 
   /* MatchData class */
   struct RClass *md = mrb_define_class(mrb, "MatchData", mrb->object_class);
