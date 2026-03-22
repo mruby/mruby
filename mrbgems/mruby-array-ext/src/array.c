@@ -79,11 +79,14 @@ ary_assoc(mrb_state *mrb, mrb_value ary)
 {
   mrb_value k = mrb_get_arg1(mrb);
 
+  int ai = mrb_gc_arena_save(mrb);
   for (mrb_int i = 0; i < RARRAY_LEN(ary); i++) {
     mrb_value v = mrb_check_array_type(mrb, RARRAY_PTR(ary)[i]);
+    mrb_gc_protect(mrb, v); // v may be removed from ary by mrb_equal()
     if (!mrb_nil_p(v) && RARRAY_LEN(v) > 0 &&
         mrb_equal(mrb, RARRAY_PTR(v)[0], k))
       return v;
+    mrb_gc_arena_restore(mrb, ai);
   }
   return mrb_nil_value();
 }
@@ -107,12 +110,15 @@ ary_rassoc(mrb_state *mrb, mrb_value ary)
 {
   mrb_value value = mrb_get_arg1(mrb);
 
+  int ai = mrb_gc_arena_save(mrb);
   for (mrb_int i = 0; i < RARRAY_LEN(ary); i++) {
     mrb_value v = RARRAY_PTR(ary)[i];
+    mrb_gc_protect(mrb, v); // v may be removed from ary by mrb_equal()
     if (mrb_array_p(v) &&
         RARRAY_LEN(v) > 1 &&
         mrb_equal(mrb, RARRAY_PTR(v)[1], value))
       return v;
+    mrb_gc_arena_restore(mrb, ai);
   }
   return mrb_nil_value();
 }
@@ -410,9 +416,12 @@ ary_init_temp_set(mrb_state *mrb, ary_set_t *set, mrb_int capacity)
 static void
 ary_populate_temp_set(mrb_state *mrb, ary_set_t *set, mrb_value ary)
 {
-  mrb_int len = RARRAY_LEN(ary);
-  for (mrb_int i = 0; i < len; i++) {
-    kh_put(ary_set, mrb, set, RARRAY_PTR(ary)[i]);
+  int ai = mrb_gc_arena_save(mrb);
+  for (mrb_int i = 0; i < RARRAY_LEN(ary); i++) {
+    mrb_value p = RARRAY_PTR(ary)[i];
+    mrb_gc_protect(mrb, p); // p may be removed from ary by kh_put(ary_set, ...)
+    kh_put(ary_set, mrb, set, p);
+    mrb_gc_arena_restore(mrb, ai);
   }
 }
 
@@ -461,12 +470,15 @@ ary_subtract_body(mrb_state *mrb, void *data)
     ary_populate_temp_set(mrb, ctx->set, ctx->argv[i]);
   }
 
+  int ai = mrb_gc_arena_save(mrb);
   for (mrb_int i = 0; i < RARRAY_LEN(ctx->self); i++) {
     mrb_value p = RARRAY_PTR(ctx->self)[i];
+    mrb_gc_protect(mrb, p); // p may be removed from self by kh_get(ary_set, ...)
     khiter_t k = kh_get(ary_set, mrb, ctx->set, p);
     if (kh_is_end(ctx->set, k)) {  /* key doesn't exist in any ary */
       mrb_ary_push(mrb, ctx->result, p);
     }
+    mrb_gc_arena_restore(mrb, ai);
   }
 
   return ctx->result;
@@ -500,13 +512,13 @@ ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_va
     }
   }
   else {
-    mrb_int self_len = RARRAY_LEN(self);
-    for (mrb_int i = 0; i < self_len; i++) {
+    int ai = mrb_gc_arena_save(mrb);
+    for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
       mrb_value p = RARRAY_PTR(self)[i];
+      mrb_gc_protect(mrb, p); // p may be removed from self by mrb_equal()
       mrb_bool found = FALSE;
       for (mrb_int j = 0; j < argc; j++) {
-        mrb_int len = RARRAY_LEN(argv[j]);
-        for (mrb_int k = 0; k < len; k++) {
+        for (mrb_int k = 0; k < RARRAY_LEN(argv[j]); k++) {
           if (mrb_equal(mrb, p, RARRAY_PTR(argv[j])[k])) {
             found = TRUE;
             break;
@@ -517,6 +529,7 @@ ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_va
       if (!found) {
         mrb_ary_push(mrb, result, p);
       }
+      mrb_gc_arena_restore(mrb, ai);
     }
   }
 
@@ -560,12 +573,10 @@ ary_difference(mrb_state *mrb, mrb_value self)
   return ary_subtract_internal(mrb, self, argc, argv);
 }
 
-
 static void
 add_uniq(mrb_state *mrb, mrb_value item, mrb_value result)
 {
-  const mrb_int len = RARRAY_LEN(result);
-  for (mrb_int i = 0; i < len; i++) {
+  for (mrb_int i = 0; i < RARRAY_LEN(result); i++) {
     if (mrb_eql(mrb, item, RARRAY_PTR(result)[i])) {
       return;
     }
@@ -585,15 +596,18 @@ static mrb_value
 ary_union_body(mrb_state *mrb, void *data)
 {
   struct ary_union_ctx *ctx = (struct ary_union_ctx *)data;
+  int ai = mrb_gc_arena_save(mrb);
 
   /* Add unique elements from self */
   for (mrb_int i = 0; i < RARRAY_LEN(ctx->self_copy); i++) {
     mrb_value elem = RARRAY_PTR(ctx->self_copy)[i];
+    mrb_gc_protect(mrb, elem); // elem may be removed from self_copy by kh_get(ary_set, ...)
     khiter_t k = kh_get(ary_set, mrb, ctx->set, elem);
     if (kh_is_end(ctx->set, k)) {
       kh_put(ary_set, mrb, ctx->set, elem);
       mrb_ary_push(mrb, ctx->result, elem);
     }
+    mrb_gc_arena_restore(mrb, ai);
   }
 
   /* Add unique elements from others */
@@ -601,11 +615,13 @@ ary_union_body(mrb_state *mrb, void *data)
     mrb_value other = ctx->argv[i];
     for (mrb_int j = 0; j < RARRAY_LEN(other); j++) {
       mrb_value elem = RARRAY_PTR(other)[j];
+      mrb_gc_protect(mrb, elem); // elem may be removed from other by kh_get(ary_set, ...)
       khiter_t k = kh_get(ary_set, mrb, ctx->set, elem);
       if (kh_is_end(ctx->set, k)) {
         kh_put(ary_set, mrb, ctx->set, elem);
         mrb_ary_push(mrb, ctx->result, elem);
       }
+      mrb_gc_arena_restore(mrb, ai);
     }
   }
 
@@ -637,19 +653,25 @@ ary_union_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value
     }
   }
   else {
+    int ai = mrb_gc_arena_save(mrb);
+
     /* Use linear search for small arrays */
     /* Add unique elements from self */
-    mrb_int alen = RARRAY_LEN(self);
-    for (mrb_int i = 0; i < alen; i++) {
-      add_uniq(mrb, RARRAY_PTR(self)[i], result);
+    for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
+      mrb_value p = RARRAY_PTR(self)[i];
+      mrb_gc_protect(mrb, p); // p may be removed from self by add_uniq()
+      add_uniq(mrb, p, result);
+      mrb_gc_arena_restore(mrb, ai);
     }
 
     /* Add unique elements from others */
     for (mrb_int i = 0; i < argc; i++) {
       mrb_value other = argv[i];
-      mrb_int olen = RARRAY_LEN(other);
-      for (mrb_int j = 0; j < olen; j++) {
-        add_uniq(mrb, RARRAY_PTR(other)[j], result);
+      for (mrb_int j = 0; j < RARRAY_LEN(other); j++) {
+        mrb_value p = RARRAY_PTR(other)[j];
+        mrb_gc_protect(mrb, p); // p may be removed from other by add_uniq()
+        add_uniq(mrb, p, result);
+        mrb_gc_arena_restore(mrb, ai);
       }
     }
   }
@@ -712,13 +734,16 @@ ary_intersection_body(mrb_state *mrb, void *data)
     ary_populate_temp_set(mrb, ctx->set, ctx->argv[i]);
   }
 
+  int ai = mrb_gc_arena_save(mrb);
   for (mrb_int i = 0; i < RARRAY_LEN(ctx->self); i++) {
     mrb_value p = RARRAY_PTR(ctx->self)[i];
+    mrb_gc_protect(mrb, p); // p may be removed from self by kh_get(ary_set, ...)
     khiter_t k = kh_get(ary_set, mrb, ctx->set, p);
     if (!kh_is_end(ctx->set, k)) {
       mrb_ary_push(mrb, ctx->result, p);
       kh_del(ary_set, mrb, ctx->set, k);
     }
+    mrb_gc_arena_restore(mrb, ai);
   }
 
   return ctx->result;
@@ -752,15 +777,15 @@ ary_intersection_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mr
     }
   }
   else {
-    mrb_int self_len = RARRAY_LEN(self);
-    for (mrb_int i = 0; i < self_len; i++) {
+    int ai = mrb_gc_arena_save(mrb);
+    for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
       mrb_value p = RARRAY_PTR(self)[i];
+      mrb_gc_protect(mrb, p); // p may be removed from self by mrb_equal()
       mrb_bool found_in_all = TRUE;
 
       for (mrb_int j = 0; j < argc; j++) {
         mrb_bool found_in_current_other = FALSE;
-        mrb_int len = RARRAY_LEN(argv[j]);
-        for (mrb_int k = 0; k < len; k++) {
+        for (mrb_int k = 0; k < RARRAY_LEN(argv[j]); k++) {
           if (mrb_equal(mrb, p, RARRAY_PTR(argv[j])[k])) {
             found_in_current_other = TRUE;
             break;
@@ -774,8 +799,7 @@ ary_intersection_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mr
 
       if (found_in_all) {
         mrb_bool already_added = FALSE;
-        mrb_int result_len = RARRAY_LEN(result);
-        for (mrb_int j = 0; j < result_len; j++) {
+        for (mrb_int j = 0; j < RARRAY_LEN(result); j++) {
           if (mrb_equal(mrb, p, RARRAY_PTR(result)[j])) {
             already_added = TRUE;
             break;
@@ -785,6 +809,7 @@ ary_intersection_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mr
           mrb_ary_push(mrb, result, p);
         }
       }
+      mrb_gc_arena_restore(mrb, ai);
     }
   }
   return result;
@@ -855,8 +880,12 @@ ary_intersect_p_body(mrb_state *mrb, void *data)
 
   ary_populate_temp_set(mrb, ctx->set, ctx->shorter_ary_copy);
 
+  int ai = mrb_gc_arena_save(mrb);
   for (mrb_int i = 0; i < RARRAY_LEN(ctx->longer_ary); i++) {
-    khiter_t k = kh_get(ary_set, mrb, ctx->set, RARRAY_PTR(ctx->longer_ary)[i]);
+    mrb_value p = RARRAY_PTR(ctx->longer_ary)[i];
+    mrb_gc_protect(mrb, p); // p may be removed from longer_ary by kh_get(ary_set, ...)
+    khiter_t k = kh_get(ary_set, mrb, ctx->set, p);
+    mrb_gc_arena_restore(mrb, ai);
     if (!kh_is_end(ctx->set, k)) {
       *ctx->found = TRUE;
       break;
@@ -906,12 +935,16 @@ ary_intersect_p(mrb_state *mrb, mrb_value self)
     }
   }
   else {
+    int ai = mrb_gc_arena_save(mrb);
     for (mrb_int i = 0; i < RARRAY_LEN(longer_ary); i++) {
+      mrb_value p = RARRAY_PTR(longer_ary)[i];
+      mrb_gc_protect(mrb, p); // p may be removed from longer_ary by mrb_equal()
       for (mrb_int j = 0; j < RARRAY_LEN(shorter_ary); j++) {
-        if (mrb_equal(mrb, RARRAY_PTR(longer_ary)[i], RARRAY_PTR(shorter_ary)[j])) {
+        if (mrb_equal(mrb, p, RARRAY_PTR(shorter_ary)[j])) {
           return mrb_true_value();
         }
       }
+      mrb_gc_arena_restore(mrb, ai);
     }
   }
 
@@ -1042,6 +1075,7 @@ ary_fill_exec(mrb_state *mrb, mrb_value self)
   }
 
   /* Fill the array */
+  mrb_ary_modify(mrb, ary);
   mrb_value *ptr = ARY_PTR(ary) + start;
   for (mrb_int i = 0; i < length; i++) {
     ptr[i] = obj;
@@ -1059,7 +1093,6 @@ struct ary_uniq_bang_ctx {
   mrb_value self_copy;
   mrb_value self;
   mrb_int *write_pos;
-  mrb_int len;
 };
 
 static mrb_value
@@ -1069,15 +1102,19 @@ ary_uniq_bang_body(mrb_state *mrb, void *data)
 
   ary_populate_temp_set(mrb, ctx->set, ctx->self_copy);
 
-  for (mrb_int read_pos = 0; read_pos < ctx->len; read_pos++) {
+  int ai = mrb_gc_arena_save(mrb);
+  for (mrb_int read_pos = 0; read_pos < RARRAY_LEN(ctx->self); read_pos++) {
     mrb_value elem = RARRAY_PTR(ctx->self)[read_pos];
+    mrb_gc_protect(mrb, elem); // elem may be removed from self by kh_get(ary_set, ...)
     khiter_t k = kh_get(ary_set, mrb, ctx->set, elem);
     if (!kh_is_end(ctx->set, k)) {
-      if (*ctx->write_pos != read_pos) {
+      if (*ctx->write_pos != read_pos && *ctx->write_pos < RARRAY_LEN(ctx->self)) {
+        mrb_ary_modify(mrb, mrb_ary_ptr(ctx->self));
         RARRAY_PTR(ctx->self)[*ctx->write_pos] = elem;
       }
       (*ctx->write_pos)++;
       kh_del(ary_set, mrb, ctx->set, k);
+      mrb_gc_arena_restore(mrb, ai);
     }
   }
 
@@ -1104,28 +1141,32 @@ ary_uniq_bang(mrb_state *mrb, mrb_value self)
     ary_set_t *set = &set_struct;
     ary_init_temp_set(mrb, set, len);
 
-    struct ary_uniq_bang_ctx ctx = { set, self_copy, self, &write_pos, len };
+    struct ary_uniq_bang_ctx ctx = { set, self_copy, self, &write_pos };
     mrb_value result;
     MRB_ENSURE(mrb, result, ary_uniq_bang_body, &ctx) {
       ary_destroy_temp_set(mrb, set);
     }
   }
   else {
-    for (mrb_int read_pos = 0; read_pos < len; read_pos++) {
+    int ai = mrb_gc_arena_save(mrb);
+    for (mrb_int read_pos = 0; read_pos < RARRAY_LEN(self); read_pos++) {
       mrb_value elem = RARRAY_PTR(self)[read_pos];
+      mrb_gc_protect(mrb, elem); // elem may be removed from self by mrb_equal()
       mrb_bool found = FALSE;
-      for (mrb_int j = 0; j < write_pos; j++) {
+      for (mrb_int j = 0; j < write_pos && j < RARRAY_LEN(self); j++) {
         if (mrb_equal(mrb, elem, RARRAY_PTR(self)[j])) {
           found = TRUE;
           break;
         }
       }
       if (!found) {
-        if (write_pos != read_pos) {
+        if (write_pos != read_pos && write_pos < RARRAY_LEN(self)) {
+          mrb_ary_modify(mrb, mrb_ary_ptr(self));
           RARRAY_PTR(self)[write_pos] = elem;
         }
         write_pos++;
       }
+      mrb_gc_arena_restore(mrb, ai);
     }
   }
 
