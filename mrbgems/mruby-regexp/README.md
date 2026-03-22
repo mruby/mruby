@@ -21,6 +21,8 @@ simulation) with backtracking fallback.
 - `\1`-`\9` backreferences
 - `(?=...)` positive lookahead
 - `(?!...)` negative lookahead
+- `(?<=...)` positive lookbehind (fixed-length only)
+- `(?<!...)` negative lookbehind (fixed-length only)
 
 ### Anchors
 
@@ -102,7 +104,9 @@ pattern analysis.
 
 ## Limitations
 
-- **No lookbehind**: `(?<=...)` and `(?<!...)` are not supported.
+- **Fixed-length lookbehind only**: `(?<=...)` and `(?<!...)`
+  require a fixed-length pattern (no `*`, `+`, `?`, or alternation).
+  Maximum 255 bytes.
 - **No Unicode properties**: `\p{Alpha}`, `\p{L}`, etc. are not
   supported.
 - **ASCII case folding only**: The `i` flag handles ASCII letters

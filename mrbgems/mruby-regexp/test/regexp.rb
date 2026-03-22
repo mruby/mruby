@@ -377,6 +377,41 @@ assert("Regexp - lookahead does not consume") do
   assert_nil /foo(?=baz)/.match("foobar")
 end
 
+assert("Regexp - positive lookbehind (?<=...)") do
+  md = Regexp.new("(?<=@)\\w+").match("user@host")
+  assert_equal "host", md[0]
+  assert_nil Regexp.new("(?<=@)\\w+").match("user_host")
+end
+
+assert("Regexp - negative lookbehind (?<!...)") do
+  md = Regexp.new("(?<!\\d)px").match("12px auto")
+  assert_nil md  # preceded by digit
+  md = Regexp.new("(?<!\\d)em").match("12px 1.5em auto")
+  assert_nil md  # preceded by digit
+  md = Regexp.new("(?<!\\d)px").match("top px")
+  assert_equal "px", md[0]
+end
+
+assert("Regexp - lookbehind with literal string") do
+  md = Regexp.new("(?<=foo)bar").match("foobar")
+  assert_equal "bar", md[0]
+  assert_nil Regexp.new("(?<=foo)bar").match("bazbar")
+end
+
+assert("Regexp - lookbehind at string start") do
+  # lookbehind should fail if not enough text before
+  assert_nil Regexp.new("(?<=abc)d").match("d")
+  # but should work at correct position
+  md = Regexp.new("(?<=abc)d").match("abcd")
+  assert_equal "d", md[0]
+end
+
+assert("Regexp - negative lookbehind at string start") do
+  # negative lookbehind succeeds when not enough text before
+  md = Regexp.new("(?<!x)a").match("a")
+  assert_equal "a", md[0]
+end
+
 assert("$1-$9 global variables") do
   /(\w+)\s(\w+)/ =~ "hello world"
   assert_equal "hello", $1

@@ -32,6 +32,8 @@ enum re_opcode {
   RE_BACKREF,    /* backreference: operand = group number */
   RE_LOOKAHEAD,  /* positive lookahead: offset = end of sub-pattern */
   RE_NEG_LOOKAHEAD, /* negative lookahead: offset = end of sub-pattern */
+  RE_LOOKBEHIND,     /* positive lookbehind: a = byte length, offset = end */
+  RE_NEG_LOOKBEHIND, /* negative lookbehind: a = byte length, offset = end */
 };
 
 /* Bytecode instruction (4 bytes each for alignment) */

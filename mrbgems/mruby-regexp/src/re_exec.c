@@ -452,6 +452,28 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
       pc = inst.offset;
       break;
 
+    case RE_LOOKBEHIND:
+      {
+        int lb_len = inst.a;
+        if (sp - str < lb_len) return FALSE;  /* not enough text before */
+        if (!bt_match(pat, str, str_end, sp - lb_len, pc + 1, captures, ncap, steps))
+          return FALSE;
+        pc = inst.offset;
+      }
+      break;
+
+    case RE_NEG_LOOKBEHIND:
+      {
+        int lb_len = inst.a;
+        if (sp - str >= lb_len) {
+          if (bt_match(pat, str, str_end, sp - lb_len, pc + 1, captures, ncap, steps))
+            return FALSE;
+        }
+        /* if not enough text before, negative lookbehind succeeds */
+        pc = inst.offset;
+      }
+      break;
+
     default:
       return FALSE;
     }

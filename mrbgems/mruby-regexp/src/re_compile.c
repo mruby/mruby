@@ -282,6 +282,59 @@ parse_quantifier(re_compiler *c, int *min_out, int *max_out)
   return TRUE;
 }
 
+/*
+ * Compute the fixed byte length consumed by bytecode in range [start, end).
+ * Returns -1 if the pattern has variable length (quantifiers, alternation
+ * with different-length branches, etc.).
+ * Used for lookbehind: we need to know exactly how far back to look.
+ */
+static int
+compute_fixed_len(re_compiler *c, uint32_t start, uint32_t end)
+{
+  int len = 0;
+  uint32_t pc = start;
+
+  while (pc < end) {
+    re_inst inst = c->code[pc];
+    switch (inst.op) {
+    case RE_CHAR:
+    case RE_CLASS:
+    case RE_NCLASS:
+      len += 1;
+      pc++;
+      break;
+    case RE_ANY:
+    case RE_ANY_NL:
+      /* . matches one character which can be 1-4 bytes in UTF-8.
+         For ASCII-only mode this is 1 byte; for safety, only allow
+         if we can determine it's ASCII context. Return -1 for now. */
+      return -1;
+    case RE_SAVE:
+      pc++;
+      break;  /* zero-width */
+    case RE_BOL: case RE_EOL: case RE_BOT: case RE_EOT: case RE_EOTNL:
+    case RE_WBOUND: case RE_NWBOUND:
+      pc++;
+      break;  /* zero-width assertions */
+    case RE_JMP:
+      pc = inst.offset;
+      break;
+    case RE_SPLIT: {
+      /* alternation: both branches must have the same fixed length */
+      /* branch 1: pc+1 to next JMP before branch 2 */
+      /* branch 2: inst.offset to ... */
+      /* For simplicity, reject alternation in lookbehind */
+      return -1;
+    }
+    case RE_MATCH:
+      return len;
+    default:
+      return -1;  /* unknown/variable-length instruction */
+    }
+  }
+  return len;
+}
+
 /* Compile a single atom (character, class, group, etc.) */
 static void
 compile_atom(re_compiler *c)
@@ -314,6 +367,31 @@ compile_atom(re_compiler *c)
           next_char(c);
           c->has_nongreedy = TRUE;  /* needs backtracking engine */
           break;  /* done with this atom */
+        }
+        else if (c->p[1] == '<' && c->p + 2 < c->src_end && (c->p[2] == '=' || c->p[2] == '!')) {
+          /* lookbehind (?<=...) or (?<!...) */
+          mrb_bool negative = (c->p[2] == '!');
+          next_char(c); next_char(c); next_char(c);  /* skip ?<= or ?<! */
+          uint32_t lb_pos = emit(c, negative ? RE_NEG_LOOKBEHIND : RE_LOOKBEHIND, 0, 0);
+          uint32_t sub_start = c->code_len;
+          compile_alt(c);
+          emit(c, RE_MATCH, 0, 0);
+          c->code[lb_pos].offset = (uint16_t)c->code_len;
+
+          /* compute fixed byte length of lookbehind sub-pattern */
+          int fixed_len = compute_fixed_len(c, sub_start, c->code_len);
+          if (fixed_len < 0) {
+            compile_error(c, "lookbehind must be fixed length");
+          }
+          if (fixed_len > 255) {
+            compile_error(c, "lookbehind too long (max 255 bytes)");
+          }
+          c->code[lb_pos].a = (uint8_t)fixed_len;
+
+          if (peek(c) != ')') compile_error(c, "unmatched '('");
+          next_char(c);
+          c->has_nongreedy = TRUE;  /* needs backtracking engine */
+          break;
         }
         else if (c->p[1] == '<' && c->p + 2 < c->src_end && c->p[2] != '=' && c->p[2] != '!') {
           next_char(c); next_char(c);  /* skip ?< */
