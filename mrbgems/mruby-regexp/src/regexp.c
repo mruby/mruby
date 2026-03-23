@@ -187,18 +187,13 @@ create_matchdata(mrb_state *mrb, mrb_value regexp, mrb_value str, int *captures,
   return obj;
 }
 
-/*
- * Regexp#match(str, pos=0)
- */
+/* Internal: execute match and create MatchData.
+   Returns MatchData on match, nil on no match.
+   Sets $~ and $1-$9 globals. */
 static mrb_value
-regexp_match(mrb_state *mrb, mrb_value self)
+exec_match(mrb_state *mrb, mrb_value self, mrb_value str, mrb_int pos)
 {
-  mrb_value str;
-  mrb_int pos = 0;
-  mrb_regexp_pattern *pat;
-
-  mrb_get_args(mrb, "S|i", &str, &pos);
-  pat = DATA_GET_PTR(mrb, self, &regexp_type, mrb_regexp_pattern);
+  mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, self, &regexp_type, mrb_regexp_pattern);
   if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
 
   int captures[RE_MAX_CAPTURES * 2];
@@ -210,8 +205,19 @@ regexp_match(mrb_state *mrb, mrb_value self)
     clear_match_globals(mrb);
     return mrb_nil_value();
   }
-
   return create_matchdata(mrb, self, str, captures, pat->num_captures * 2);
+}
+
+/*
+ * Regexp#match(str, pos=0)
+ */
+static mrb_value
+regexp_match(mrb_state *mrb, mrb_value self)
+{
+  mrb_value str;
+  mrb_int pos = 0;
+  mrb_get_args(mrb, "S|i", &str, &pos);
+  return exec_match(mrb, self, str, pos);
 }
 
 /*
@@ -222,10 +228,9 @@ regexp_match_p(mrb_state *mrb, mrb_value self)
 {
   mrb_value str;
   mrb_int pos = 0;
-  mrb_regexp_pattern *pat;
-
   mrb_get_args(mrb, "S|i", &str, &pos);
-  pat = DATA_GET_PTR(mrb, self, &regexp_type, mrb_regexp_pattern);
+
+  mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, self, &regexp_type, mrb_regexp_pattern);
   if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
 
   int ncap = re_exec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), pos, NULL, 0);
@@ -239,26 +244,15 @@ static mrb_value
 regexp_match_op(mrb_state *mrb, mrb_value self)
 {
   mrb_value str;
-  mrb_regexp_pattern *pat;
-
   mrb_get_args(mrb, "o", &str);
   if (mrb_nil_p(str)) return mrb_nil_value();
   mrb_ensure_string_type(mrb, str);
 
-  pat = DATA_GET_PTR(mrb, self, &regexp_type, mrb_regexp_pattern);
-  if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
+  mrb_value md = exec_match(mrb, self, str, 0);
+  if (mrb_nil_p(md)) return mrb_nil_value();
 
-  int captures[RE_MAX_CAPTURES * 2];
-  memset(captures, -1, sizeof(captures));
-  int ncap = re_exec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), 0,
-                     captures, pat->num_captures * 2);
-
-  if (ncap == 0) {
-    clear_match_globals(mrb);
-    return mrb_nil_value();
-  }
-  create_matchdata(mrb, self, str, captures, pat->num_captures * 2);
-  return mrb_int_value(mrb, captures[0]);
+  mrb_match_data *m = DATA_GET_PTR(mrb, md, &matchdata_type, mrb_match_data);
+  return mrb_int_value(mrb, m->captures[0]);
 }
 
 /*
