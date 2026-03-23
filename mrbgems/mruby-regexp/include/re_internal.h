@@ -75,6 +75,11 @@ typedef struct mrb_regexp_pattern {
   uint8_t first_bytes[16]; /* bitmap of possible first bytes (128-bit, ASCII) */
   mrb_bool has_first_bytes; /* true if first_bytes is usable for skipping */
   mrb_bool is_literal;     /* true if pattern is pure literal (no metacharacters) */
+  /* Cached VM state for pike_vm (avoids malloc per re_exec call) */
+  uint32_t *cached_visited;     /* generation-based visited array */
+  void *cached_threads[2];      /* curr/next thread lists */
+  int cached_list_capa;         /* capacity of cached thread lists */
+  mrb_bool cache_in_use;        /* re-entrancy guard */
 } mrb_regexp_pattern;
 
 /* Regexp flags */
@@ -93,6 +98,12 @@ typedef struct mrb_regexp_pattern {
 
 /* Maximum captures */
 #define RE_MAX_CAPTURES 32
+
+/* Thread struct for Pike VM (also used for cache sizing) */
+typedef struct {
+  uint32_t pc;
+  int cap_slot;
+} re_thread_cache;
 
 /* Compile a pattern string into bytecode */
 mrb_regexp_pattern* re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags);

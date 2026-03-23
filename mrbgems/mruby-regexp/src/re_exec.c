@@ -55,10 +55,7 @@ class_match(const re_charclass *cc, uint8_t ch)
  * - Threads reference captures by pool index, avoiding 260-byte struct copies
  */
 
-typedef struct {
-  uint32_t pc;
-  int cap_slot;  /* slot index into capture pool */
-} re_thread;
+typedef re_thread_cache re_thread;
 
 typedef struct {
   re_thread *threads;
@@ -221,6 +218,11 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
 
   mrb_bool match_only = (captures == NULL || captures_size == 0);
 
+  /* Use cached VM state if available (avoids malloc per call) */
+  mrb_regexp_pattern *mpat = (mrb_regexp_pattern*)pat;  /* for cache_in_use flag */
+  mrb_bool use_cache = !mpat->cache_in_use && mpat->cached_visited != NULL;
+  if (use_cache) mpat->cache_in_use = TRUE;
+
   pike_state s;
   s.mrb = mrb;
   s.pat = pat;
@@ -231,7 +233,6 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
   s.match_only = match_only;
   s.gen = 1;
   if (match_only) {
-    /* no capture tracking needed; allocate minimal pool (1 dummy slot) */
     s.pool_capa = 1;
     s.pool_next = 0;
     s.cap_pool = (int*)mrb_malloc(mrb, sizeof(int) * ncap);
@@ -244,13 +245,22 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
     s.result_caps = (int*)mrb_malloc(mrb, sizeof(int) * ncap);
     memset(s.result_caps, -1, sizeof(int) * ncap);
   }
-  s.visited = (uint32_t*)mrb_calloc(mrb, pat->code_len + 1, sizeof(uint32_t));
 
   re_threadlist curr, next;
-  curr.threads = (re_thread*)mrb_malloc(mrb, sizeof(re_thread) * list_capa);
-  curr.count = 0; curr.capa = list_capa;
-  next.threads = (re_thread*)mrb_malloc(mrb, sizeof(re_thread) * list_capa);
-  next.count = 0; next.capa = list_capa;
+  if (use_cache) {
+    s.visited = mpat->cached_visited;
+    memset(s.visited, 0, sizeof(uint32_t) * (pat->code_len + 1));
+    curr.threads = (re_thread*)mpat->cached_threads[0];
+    next.threads = (re_thread*)mpat->cached_threads[1];
+    curr.capa = next.capa = mpat->cached_list_capa;
+  }
+  else {
+    s.visited = (uint32_t*)mrb_calloc(mrb, pat->code_len + 1, sizeof(uint32_t));
+    curr.threads = (re_thread*)mrb_malloc(mrb, sizeof(re_thread) * list_capa);
+    next.threads = (re_thread*)mrb_malloc(mrb, sizeof(re_thread) * list_capa);
+    curr.capa = next.capa = list_capa;
+  }
+  curr.count = next.count = 0;
 
   for (; sp <= str_end; sp++) {
     if (!s.matched) {
@@ -358,11 +368,16 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
     ret = ncap > 0 ? ncap : 1;
   }
 
-  mrb_free(mrb, curr.threads);
-  mrb_free(mrb, next.threads);
+  if (use_cache) {
+    mpat->cache_in_use = FALSE;
+  }
+  else {
+    mrb_free(mrb, curr.threads);
+    mrb_free(mrb, next.threads);
+    mrb_free(mrb, s.visited);
+  }
   mrb_free(mrb, s.cap_pool);
   if (s.result_caps) mrb_free(mrb, s.result_caps);
-  mrb_free(mrb, s.visited);
 
   return ret;
 }

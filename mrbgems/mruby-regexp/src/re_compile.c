@@ -902,6 +902,16 @@ re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags)
     }
   }
 
+  /* Pre-allocate VM state cache for pike_vm */
+  {
+    int list_capa = (int)pat->code_len * 2 + 16;
+    pat->cached_visited = (uint32_t*)mrb_calloc(mrb, pat->code_len + 1, sizeof(uint32_t));
+    pat->cached_threads[0] = mrb_malloc(mrb, sizeof(re_thread_cache) * list_capa);
+    pat->cached_threads[1] = mrb_malloc(mrb, sizeof(re_thread_cache) * list_capa);
+    pat->cached_list_capa = list_capa;
+    pat->cache_in_use = FALSE;
+  }
+
   if (c.stripped) mrb_free(mrb, c.stripped);
   return pat;
 }
@@ -914,6 +924,9 @@ re_free(mrb_state *mrb, mrb_regexp_pattern *pat)
     mrb_free(mrb, pat->classes);
     mrb_free(mrb, pat->named_captures);
     mrb_free(mrb, pat->prefix);
+    mrb_free(mrb, pat->cached_visited);
+    mrb_free(mrb, pat->cached_threads[0]);
+    mrb_free(mrb, pat->cached_threads[1]);
     mrb_free(mrb, pat);
   }
 }
