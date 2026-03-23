@@ -617,6 +617,295 @@ matchdata_to_s(mrb_state *mrb, mrb_value self)
   return mrb_str_substr(mrb, md->source, s, e - s);
 }
 
+/* --- C-level gsub/sub/scan core --- */
+
+/* Process replacement string: expand \0-\9, \&, \`, \', \+, \\ */
+static void
+apply_replacement(mrb_state *mrb, mrb_value result,
+                  const char *rep, mrb_int rep_len,
+                  const char *str, int *captures, int ncap)
+{
+  mrb_int i = 0;
+  while (i < rep_len) {
+    if (rep[i] == '\\' && i + 1 < rep_len) {
+      char c = rep[i + 1];
+      if (c >= '0' && c <= '9') {
+        int g = c - '0';
+        if (g < ncap && captures[g * 2] >= 0) {
+          int s = captures[g * 2], e = captures[g * 2 + 1];
+          mrb_str_cat(mrb, result, str + s, e - s);
+        }
+      }
+      else if (c == '&') {
+        if (captures[0] >= 0) {
+          mrb_str_cat(mrb, result, str + captures[0], captures[1] - captures[0]);
+        }
+      }
+      else if (c == '`') {
+        if (captures[0] >= 0) {
+          mrb_str_cat(mrb, result, str, captures[0]);
+        }
+      }
+      else if (c == '\'') {
+        if (captures[1] >= 0) {
+          mrb_str_cat(mrb, result, str + captures[1], strlen(str) - captures[1]);
+        }
+      }
+      else if (c == '+') {
+        /* last successful capture */
+        for (int g = ncap - 1; g >= 1; g--) {
+          if (captures[g * 2] >= 0) {
+            int s = captures[g * 2], e = captures[g * 2 + 1];
+            mrb_str_cat(mrb, result, str + s, e - s);
+            break;
+          }
+        }
+      }
+      else if (c == '\\') {
+        mrb_str_cat_lit(mrb, result, "\\");
+      }
+      else {
+        mrb_str_cat(mrb, result, rep + i, 2);  /* \x as-is */
+      }
+      i += 2;
+    }
+    else {
+      /* find next backslash or end for batch copy */
+      mrb_int j = i + 1;
+      while (j < rep_len && rep[j] != '\\') j++;
+      mrb_str_cat(mrb, result, rep + i, j - i);
+      i = j;
+    }
+  }
+}
+
+/* Check if replacement contains backslash */
+static mrb_bool
+has_backslash(const char *s, mrb_int len)
+{
+  return memchr(s, '\\', len) != NULL;
+}
+
+/*
+ * Regexp#__gsub_str(str, replacement) - gsub core without block
+ */
+static mrb_value
+regexp_gsub_str(mrb_state *mrb, mrb_value self)
+{
+  mrb_value str, replacement;
+  mrb_get_args(mrb, "SS", &str, &replacement);
+
+  mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, self, &regexp_type, mrb_regexp_pattern);
+  if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
+
+  const char *s = RSTRING_PTR(str);
+  mrb_int slen = RSTRING_LEN(str);
+  const char *rep = RSTRING_PTR(replacement);
+  mrb_int rep_len = RSTRING_LEN(replacement);
+  mrb_bool need_expand = has_backslash(rep, rep_len);
+
+  int ncap = pat->num_captures;
+  int cap_size = ncap * 2;
+  int *captures = (int*)mrb_malloc(mrb, sizeof(int) * cap_size);
+  mrb_value result = mrb_str_new_capa(mrb, slen);
+  int ai = mrb_gc_arena_save(mrb);
+
+  mrb_int pos = 0;
+  int last_ncap = 0;
+  int last_captures[RE_MAX_CAPTURES * 2];
+
+  while (pos <= slen) {
+    memset(captures, -1, sizeof(int) * cap_size);
+    int n = re_exec(mrb, pat, s, slen, pos, captures, cap_size);
+    if (n == 0) break;
+
+    /* save last match for $~ */
+    last_ncap = cap_size;
+    memcpy(last_captures, captures, sizeof(int) * cap_size);
+
+    /* append pre-match */
+    if (captures[0] > pos) {
+      mrb_str_cat(mrb, result, s + pos, captures[0] - pos);
+    }
+
+    /* append replacement */
+    if (need_expand) {
+      apply_replacement(mrb, result, rep, rep_len, s, captures, ncap);
+    }
+    else {
+      mrb_str_cat(mrb, result, rep, rep_len);
+    }
+
+    /* advance position */
+    int match_end = captures[1];
+    if (match_end == pos) {
+      /* zero-length match: copy one char and advance */
+      if (pos < slen) {
+        mrb_str_cat(mrb, result, s + pos, 1);
+      }
+      pos++;
+    }
+    else {
+      pos = match_end;
+    }
+    mrb_gc_arena_restore(mrb, ai);
+  }
+
+  /* append remainder */
+  if (pos <= slen) {
+    mrb_str_cat(mrb, result, s + pos, slen - pos);
+  }
+
+  mrb_free(mrb, captures);
+
+  /* set $~ from last match */
+  if (last_ncap > 0) {
+    create_matchdata(mrb, self, str, last_captures, last_ncap);
+  }
+  else {
+    clear_match_globals(mrb);
+  }
+
+  return result;
+}
+
+/*
+ * Regexp#__sub_str(str, replacement) - sub core without block
+ */
+static mrb_value
+regexp_sub_str(mrb_state *mrb, mrb_value self)
+{
+  mrb_value str, replacement;
+  mrb_get_args(mrb, "SS", &str, &replacement);
+
+  mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, self, &regexp_type, mrb_regexp_pattern);
+  if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
+
+  const char *s = RSTRING_PTR(str);
+  mrb_int slen = RSTRING_LEN(str);
+  const char *rep = RSTRING_PTR(replacement);
+  mrb_int rep_len = RSTRING_LEN(replacement);
+
+  int cap_size = pat->num_captures * 2;
+  int *captures = (int*)mrb_malloc(mrb, sizeof(int) * cap_size);
+  memset(captures, -1, sizeof(int) * cap_size);
+
+  int n = re_exec(mrb, pat, s, slen, 0, captures, cap_size);
+  if (n == 0) {
+    mrb_free(mrb, captures);
+    clear_match_globals(mrb);
+    return mrb_str_dup(mrb, str);
+  }
+
+  mrb_value result = mrb_str_new_capa(mrb, slen);
+
+  /* pre-match */
+  if (captures[0] > 0) {
+    mrb_str_cat(mrb, result, s, captures[0]);
+  }
+
+  /* replacement */
+  if (has_backslash(rep, rep_len)) {
+    apply_replacement(mrb, result, rep, rep_len, s, captures, pat->num_captures);
+  }
+  else {
+    mrb_str_cat(mrb, result, rep, rep_len);
+  }
+
+  /* post-match */
+  if (captures[1] < slen) {
+    mrb_str_cat(mrb, result, s + captures[1], slen - captures[1]);
+  }
+
+  create_matchdata(mrb, self, str, captures, cap_size);
+  mrb_free(mrb, captures);
+  return result;
+}
+
+/*
+ * Regexp#__scan(str) - scan core, returns array
+ */
+static mrb_value
+regexp_scan(mrb_state *mrb, mrb_value self)
+{
+  mrb_value str;
+  mrb_get_args(mrb, "S", &str);
+
+  mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, self, &regexp_type, mrb_regexp_pattern);
+  if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
+
+  const char *s = RSTRING_PTR(str);
+  mrb_int slen = RSTRING_LEN(str);
+  int ncap = pat->num_captures;
+  int cap_size = ncap * 2;
+  int *captures = (int*)mrb_malloc(mrb, sizeof(int) * cap_size);
+
+  mrb_value ary = mrb_ary_new(mrb);
+  int ai = mrb_gc_arena_save(mrb);
+  mrb_int pos = 0;
+  int last_ncap = 0;
+  int last_captures[RE_MAX_CAPTURES * 2];
+
+  while (pos <= slen) {
+    memset(captures, -1, sizeof(int) * cap_size);
+    int n = re_exec(mrb, pat, s, slen, pos, captures, cap_size);
+    if (n == 0) break;
+
+    last_ncap = cap_size;
+    memcpy(last_captures, captures, sizeof(int) * cap_size);
+
+    if (ncap <= 1) {
+      /* no captures or just group 0: push matched string */
+      mrb_ary_push(mrb, ary,
+        mrb_str_substr(mrb, str, captures[0], captures[1] - captures[0]));
+    }
+    else if (ncap == 2) {
+      /* single capture group: push capture string */
+      if (captures[2] >= 0) {
+        mrb_ary_push(mrb, ary,
+          mrb_str_substr(mrb, str, captures[2], captures[3] - captures[2]));
+      }
+      else {
+        mrb_ary_push(mrb, ary, mrb_nil_value());
+      }
+    }
+    else {
+      /* multiple captures: push array of captures */
+      mrb_value sub = mrb_ary_new_capa(mrb, ncap - 1);
+      for (int i = 1; i < ncap; i++) {
+        if (captures[i * 2] >= 0) {
+          mrb_ary_push(mrb, sub,
+            mrb_str_substr(mrb, str, captures[i*2], captures[i*2+1] - captures[i*2]));
+        }
+        else {
+          mrb_ary_push(mrb, sub, mrb_nil_value());
+        }
+      }
+      mrb_ary_push(mrb, ary, sub);
+    }
+
+    int match_end = captures[1];
+    if (match_end == pos) {
+      pos++;
+    }
+    else {
+      pos = match_end;
+    }
+    mrb_gc_arena_restore(mrb, ai);
+  }
+
+  mrb_free(mrb, captures);
+
+  if (last_ncap > 0) {
+    create_matchdata(mrb, self, str, last_captures, last_ncap);
+  }
+  else {
+    clear_match_globals(mrb);
+  }
+
+  return ary;
+}
+
 /* --- Gem init --- */
 
 void
@@ -649,6 +938,9 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, re, "hash", regexp_hash, MRB_ARGS_NONE());
   mrb_define_method(mrb, re, "options", regexp_options, MRB_ARGS_NONE());
   mrb_define_method(mrb, re, "casefold?", regexp_casefold_p, MRB_ARGS_NONE());
+  mrb_define_method(mrb, re, "__gsub_str", regexp_gsub_str, MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, re, "__sub_str", regexp_sub_str, MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, re, "__scan", regexp_scan, MRB_ARGS_REQ(1));
 
   /* MatchData class */
   struct RClass *md = mrb_define_class(mrb, "MatchData", mrb->object_class);

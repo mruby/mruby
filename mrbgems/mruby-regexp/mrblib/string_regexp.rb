@@ -13,71 +13,31 @@ class String
     re =~ self
   end
 
-  def __sub_replace(rep, md)
-    return rep unless rep.include?("\\")
-    parts = []
-    i = 0
-    while i < rep.length
-      if rep[i] == "\\" && i + 1 < rep.length
-        c = rep[i + 1]
-        case c
-        when '0'..'9'
-          parts << (md[c.to_i] || "")
-        when '&'
-          parts << (md[0] || "")
-        when '`'
-          parts << md.pre_match
-        when "'"
-          parts << md.post_match
-        when '+'
-          last = nil
-          md.captures.each { |v| last = v if v }
-          parts << (last || "")
-        when "\\"
-          parts << "\\"
-        else
-          parts << "\\" << c
-        end
-        i += 2
-      else
-        parts << rep[i]
-        i += 1
-      end
-    end
-    parts.join
-  end
-
   def sub(pattern, replacement = nil, &block)
     pattern = Regexp.new(Regexp.escape(pattern)) if pattern.is_a?(String)
+    unless block
+      return pattern.__sub_str(self, replacement.to_s)
+    end
     md = pattern.match(self)
     return self.dup unless md
-
-    pre = md.pre_match
-    post = md.post_match
-    if block
-      rep = block.call(md[0]).to_s
-    else
-      rep = __sub_replace(replacement.to_s, md)
-    end
-    pre + rep + post
+    md.pre_match + block.call(md[0]).to_s + md.post_match
   end
 
   def gsub(pattern, replacement = nil, &block)
     pattern = Regexp.new(Regexp.escape(pattern)) if pattern.is_a?(String)
+    unless block
+      return pattern.__gsub_str(self, replacement.to_s)
+    end
+    # block case: keep in Ruby to avoid VM callback from C
     parts = []
     rest = self
     while rest.length > 0
       md = pattern.match(rest)
       break unless md
       parts << md.pre_match
-      if block
-        parts << block.call(md[0]).to_s
-      else
-        parts << __sub_replace(replacement.to_s, md)
-      end
+      parts << block.call(md[0]).to_s
       matched_len = md[0].length
       if matched_len == 0
-        # avoid infinite loop on zero-length match
         parts << rest[0] if rest.length > 0
         rest = rest[1..-1] || ""
       else
@@ -90,24 +50,7 @@ class String
 
   def scan(pattern)
     pattern = Regexp.new(Regexp.escape(pattern)) if pattern.is_a?(String)
-    result = []
-    pos = 0
-    while pos <= self.length
-      md = pattern.match(self, pos)
-      break unless md
-      if md.captures.empty?
-        result << md[0]
-      elsif md.captures.length == 1
-        result << md.captures[0]
-      else
-        result << md.captures
-      end
-      if md[0].length == 0
-        pos = md.end(0) + 1
-      else
-        pos = md.end(0)
-      end
-    end
+    result = pattern.__scan(self)
     if block_given?
       result.each { |m| yield m }
       self
