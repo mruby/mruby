@@ -196,16 +196,20 @@ exec_match(mrb_state *mrb, mrb_value self, mrb_value str, mrb_int pos)
   mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, self, &regexp_type, mrb_regexp_pattern);
   if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
 
-  int captures[RE_MAX_CAPTURES * 2];
-  memset(captures, -1, sizeof(captures));
+  int cap_size = pat->num_captures * 2;
+  int *captures = (int*)mrb_malloc(mrb, sizeof(int) * cap_size);
+  memset(captures, -1, sizeof(int) * cap_size);
   int ncap = re_exec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), pos,
-                     captures, pat->num_captures * 2);
+                     captures, cap_size);
 
   if (ncap == 0) {
+    mrb_free(mrb, captures);
     clear_match_globals(mrb);
     return mrb_nil_value();
   }
-  return create_matchdata(mrb, self, str, captures, pat->num_captures * 2);
+  mrb_value md = create_matchdata(mrb, self, str, captures, cap_size);
+  mrb_free(mrb, captures);
+  return md;
 }
 
 /*
