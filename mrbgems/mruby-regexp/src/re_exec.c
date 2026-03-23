@@ -565,12 +565,41 @@ backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
   return 0;
 }
 
+/* Fast path for pure literal patterns: use memchr+memcmp, no NFA needed */
+static int
+literal_exec(const mrb_regexp_pattern *pat,
+             const char *str, mrb_int len, mrb_int start,
+             int *captures, int captures_size)
+{
+  const char *sp = str + start;
+  const char *str_end = str + len;
+  int plen = pat->prefix_len;
+
+  while (sp + plen <= str_end) {
+    const char *found = (const char*)memchr(sp, pat->prefix[0], str_end - sp);
+    if (!found || found + plen > str_end) return 0;
+    if (plen == 1 || memcmp(found + 1, pat->prefix + 1, plen - 1) == 0) {
+      /* match found */
+      if (captures && captures_size >= 2) {
+        captures[0] = (int)(found - str);
+        captures[1] = (int)(found - str) + plen;
+      }
+      return 2;  /* group 0 start/end */
+    }
+    sp = found + 1;
+  }
+  return 0;
+}
+
 /* Public entry point */
 int
 re_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
         const char *str, mrb_int len, mrb_int start,
         int *captures, int captures_size)
 {
+  if (pat->is_literal) {
+    return literal_exec(pat, str, len, start, captures, captures_size);
+  }
   if (pat->has_backref || pat->needs_backtrack) {
     return backtrack_exec(mrb, pat, str, len, start, captures, captures_size);
   }

@@ -74,6 +74,7 @@ typedef struct mrb_regexp_pattern {
   uint8_t prefix_len;      /* length of prefix (0 = no prefix) */
   uint8_t first_bytes[16]; /* bitmap of possible first bytes (128-bit, ASCII) */
   mrb_bool has_first_bytes; /* true if first_bytes is usable for skipping */
+  mrb_bool is_literal;     /* true if pattern is pure literal (no metacharacters) */
 } mrb_regexp_pattern;
 
 /* Regexp flags */

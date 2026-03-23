@@ -875,6 +875,22 @@ re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags)
     }
   }
 
+  /* Check if pattern is pure literal: SAVE CHAR* SAVE MATCH only.
+     prefix_len already holds the literal char count if so. */
+  pat->is_literal = FALSE;
+  if (pat->prefix_len > 0 && pat->num_captures == 1 &&
+      !pat->has_backref && !pat->needs_backtrack) {
+    /* bytecode should be: SAVE(0), CHAR*N, SAVE(1), MATCH
+       = 2 + prefix_len + 2 = prefix_len + 2 instructions
+       (SAVE(0) at 0, CHARs at 1..N, SAVE(1) at N+1, MATCH at N+2) */
+    if (pat->code_len == (uint32_t)(pat->prefix_len + 3) &&
+        pat->code[0].op == RE_SAVE &&
+        pat->code[pat->code_len - 2].op == RE_SAVE &&
+        pat->code[pat->code_len - 1].op == RE_MATCH) {
+      pat->is_literal = TRUE;
+    }
+  }
+
   /* Compute first-byte bitmap: set of bytes that could start a match.
      Used when prefix is empty (e.g. alternation, character class patterns). */
   {
