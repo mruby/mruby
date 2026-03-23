@@ -288,32 +288,38 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
       if (th->pc >= pat->code_len) continue;
 
       re_inst inst = pat->code[th->pc];
-      int cp = match_only ? 0 : pool_copy(&s, th->cap_slot);
       switch (inst.op) {
       case RE_CHAR:
         if (ch == inst.a) {
+          int cp = match_only ? 0 : pool_copy(&s, th->cap_slot);
           add_thread(&s, &next, th->pc + 1, cp, sp + 1);
         }
         break;
 
       case RE_ANY:
         if (ch != '\n') {
+          int cp = match_only ? 0 : pool_copy(&s, th->cap_slot);
           add_thread(&s, &next, th->pc + 1, cp, sp + advance);
         }
         break;
 
       case RE_ANY_NL:
-        add_thread(&s, &next, th->pc + 1, cp, sp + advance);
+        {
+          int cp = match_only ? 0 : pool_copy(&s, th->cap_slot);
+          add_thread(&s, &next, th->pc + 1, cp, sp + advance);
+        }
         break;
 
       case RE_CLASS:
         if (class_match(&pat->classes[inst.a], (uint8_t)ch)) {
+          int cp = match_only ? 0 : pool_copy(&s, th->cap_slot);
           add_thread(&s, &next, th->pc + 1, cp, sp + advance);
         }
         break;
 
       case RE_NCLASS:
         if (!class_match(&pat->classes[inst.a], (uint8_t)ch)) {
+          int cp = match_only ? 0 : pool_copy(&s, th->cap_slot);
           add_thread(&s, &next, th->pc + 1, cp, sp + advance);
         }
         break;
