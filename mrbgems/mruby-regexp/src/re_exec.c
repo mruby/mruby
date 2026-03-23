@@ -34,6 +34,10 @@ skip_to_prefix(const mrb_regexp_pattern *pat, const char *sp, const char *str_en
   return NULL;
 }
 
+/* Check if a byte is in the first-byte bitmap */
+#define FIRST_BYTE_OK(pat, ch) \
+  ((ch) >= 128 || ((pat)->first_bytes[(ch) >> 3] & (1 << ((ch) & 7))))
+
 /* Check if character matches a character class */
 static mrb_bool
 class_match(const re_charclass *cc, uint8_t ch)
@@ -250,11 +254,17 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
 
   for (; sp <= str_end; sp++) {
     if (!s.matched) {
-      /* Skip ahead using literal prefix when no active threads */
-      if (pat->prefix_len > 0 && curr.count == 0) {
-        const char *skip = skip_to_prefix(pat, sp, str_end);
-        if (!skip) break;  /* prefix not found anywhere; no match possible */
-        sp = skip;
+      /* Skip ahead when no active threads */
+      if (curr.count == 0) {
+        if (pat->prefix_len > 0) {
+          const char *skip = skip_to_prefix(pat, sp, str_end);
+          if (!skip) break;
+          sp = skip;
+        }
+        else if (pat->has_first_bytes) {
+          while (sp < str_end && !FIRST_BYTE_OK(pat, (uint8_t)*sp)) sp++;
+          if (sp > str_end) break;
+        }
       }
       int slot = match_only ? 0 : pool_alloc(&s);
       if (!match_only) memset(CAP(&s, slot), -1, sizeof(int) * ncap);
@@ -529,11 +539,15 @@ backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
   int *caps = (int*)mrb_malloc(mrb, sizeof(int) * ncap);
 
   for (const char *sp = str + start; sp <= str_end; sp++) {
-    /* Skip ahead using literal prefix */
+    /* Skip ahead using literal prefix or first-byte bitmap */
     if (pat->prefix_len > 0) {
       const char *skip = skip_to_prefix(pat, sp, str_end);
       if (!skip) break;
       sp = skip;
+    }
+    else if (pat->has_first_bytes) {
+      while (sp < str_end && !FIRST_BYTE_OK(pat, (uint8_t)*sp)) sp++;
+      if (sp > str_end) break;
     }
     memset(caps, -1, sizeof(int) * ncap);
     int steps = 0;

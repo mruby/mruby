@@ -732,6 +732,82 @@ strip_extended(mrb_state *mrb, const char *src, mrb_int len, mrb_int *out_len)
   return buf;
 }
 
+/*
+ * Compute the set of bytes that could be the first consumed byte of a match.
+ * Walks bytecode from pc=0, following epsilon transitions (SAVE, JMP, SPLIT).
+ * Returns TRUE if the set is narrower than "any byte" (i.e., useful for skip).
+ */
+static mrb_bool
+first_set_walk(const re_inst *code, uint32_t code_len,
+               const re_charclass *classes, uint32_t pc,
+               uint8_t *bm, uint8_t *seen)
+{
+  while (pc < code_len) {
+    if (seen[pc]) return TRUE;  /* already visited */
+    seen[pc] = 1;
+    switch (code[pc].op) {
+    case RE_SAVE:
+    case RE_BOL: case RE_EOL: case RE_BOT: case RE_EOT: case RE_EOTNL:
+    case RE_WBOUND: case RE_NWBOUND:
+      pc++;
+      continue;  /* zero-width, keep walking */
+    case RE_JMP:
+      pc = code[pc].offset;
+      continue;
+    case RE_SPLIT:
+      /* both branches: pc+1 and offset */
+      if (!first_set_walk(code, code_len, classes, code[pc].offset, bm, seen))
+        return FALSE;
+      pc++;
+      continue;
+    case RE_SPLITNG:
+      if (!first_set_walk(code, code_len, classes, pc + 1, bm, seen))
+        return FALSE;
+      pc = code[pc].offset;
+      continue;
+    case RE_CHAR:
+      bm[code[pc].a >> 3] |= (1 << (code[pc].a & 7));
+      return TRUE;
+    case RE_CLASS: {
+      const re_charclass *cc = &classes[code[pc].a];
+      for (int i = 0; i < 16; i++) bm[i] |= cc->bitmap[i];
+      if (cc->utf8_any) return FALSE;  /* non-ASCII possible */
+      return TRUE;
+    }
+    case RE_NCLASS: {
+      /* negated class: complement of bitmap. Too many bits; not useful. */
+      return FALSE;
+    }
+    case RE_ANY: case RE_ANY_NL:
+      return FALSE;  /* any byte possible */
+    case RE_MATCH:
+      return TRUE;  /* empty match; first_bytes still valid for other branches */
+    default:
+      return FALSE;
+    }
+  }
+  return TRUE;
+}
+
+static mrb_bool
+compute_first_set(const re_inst *code, uint32_t code_len,
+                  const re_charclass *classes, uint8_t *bm)
+{
+  uint8_t seen[4096];
+  if (code_len >= sizeof(seen)) return FALSE;  /* pattern too large */
+  memset(seen, 0, code_len + 1);
+  if (!first_set_walk(code, code_len, classes, 0, bm, seen))
+    return FALSE;
+  /* Check if bitmap is all-ones (no benefit to skip) */
+  int set_bits = 0;
+  for (int i = 0; i < 16; i++) {
+    for (int b = 0; b < 8; b++) {
+      if (bm[i] & (1 << b)) set_bits++;
+    }
+  }
+  return set_bits < 96;  /* useful only if fewer than 75% of bytes match */
+}
+
 mrb_regexp_pattern*
 re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags)
 {
@@ -796,6 +872,17 @@ re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags)
     else {
       pat->prefix = NULL;
       pat->prefix_len = 0;
+    }
+  }
+
+  /* Compute first-byte bitmap: set of bytes that could start a match.
+     Used when prefix is empty (e.g. alternation, character class patterns). */
+  {
+    uint8_t bm[16];
+    memset(bm, 0, sizeof(bm));
+    pat->has_first_bytes = compute_first_set(pat->code, pat->code_len, pat->classes, bm);
+    if (pat->has_first_bytes) {
+      memcpy(pat->first_bytes, bm, 16);
     }
   }
 
