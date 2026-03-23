@@ -70,6 +70,8 @@ typedef struct mrb_regexp_pattern {
   uint16_t num_named;
   mrb_bool has_backref;    /* true if pattern uses \1-\9 */
   mrb_bool needs_backtrack; /* true if pattern needs backtracking engine */
+  uint8_t *prefix;         /* literal prefix bytes for fast skip (or NULL) */
+  uint8_t prefix_len;      /* length of prefix (0 = no prefix) */
 } mrb_regexp_pattern;
 
 /* Regexp flags */

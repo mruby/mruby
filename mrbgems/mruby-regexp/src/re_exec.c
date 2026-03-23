@@ -10,6 +10,30 @@
 #include "re_internal.h"
 #include <string.h>
 
+/*
+ * Skip to the next position where the pattern's literal prefix could match.
+ * Uses memchr on the first byte for fast scanning, then verifies the rest.
+ * Returns the found position, or NULL if no match is possible.
+ */
+static const char*
+skip_to_prefix(const mrb_regexp_pattern *pat, const char *sp, const char *str_end)
+{
+  if (pat->prefix_len == 0) return sp;
+
+  uint8_t first = pat->prefix[0];
+  int plen = pat->prefix_len;
+
+  while (sp + plen <= str_end) {
+    const char *found = (const char*)memchr(sp, first, str_end - sp);
+    if (!found || found + plen > str_end) return NULL;
+    if (plen == 1 || memcmp(found + 1, pat->prefix + 1, plen - 1) == 0) {
+      return found;
+    }
+    sp = found + 1;
+  }
+  return NULL;
+}
+
 /* Check if character matches a character class */
 static mrb_bool
 class_match(const re_charclass *cc, uint8_t ch)
@@ -226,6 +250,12 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
 
   for (; sp <= str_end; sp++) {
     if (!s.matched) {
+      /* Skip ahead using literal prefix when no active threads */
+      if (pat->prefix_len > 0 && curr.count == 0) {
+        const char *skip = skip_to_prefix(pat, sp, str_end);
+        if (!skip) break;  /* prefix not found anywhere; no match possible */
+        sp = skip;
+      }
       int slot = match_only ? 0 : pool_alloc(&s);
       if (!match_only) memset(CAP(&s, slot), -1, sizeof(int) * ncap);
       s.gen++;
@@ -493,6 +523,12 @@ backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
   int *caps = (int*)mrb_malloc(mrb, sizeof(int) * ncap);
 
   for (const char *sp = str + start; sp <= str_end; sp++) {
+    /* Skip ahead using literal prefix */
+    if (pat->prefix_len > 0) {
+      const char *skip = skip_to_prefix(pat, sp, str_end);
+      if (!skip) break;
+      sp = skip;
+    }
     memset(caps, -1, sizeof(int) * ncap);
     int steps = 0;
 
