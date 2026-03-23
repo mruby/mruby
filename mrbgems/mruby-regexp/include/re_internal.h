@@ -69,7 +69,7 @@ typedef struct mrb_regexp_pattern {
   re_named_capture *named_captures;
   uint16_t num_named;
   mrb_bool has_backref;    /* true if pattern uses \1-\9 */
-  mrb_bool has_nongreedy;  /* true if pattern uses *?, +?, ?? */
+  mrb_bool needs_backtrack; /* true if pattern needs backtracking engine */
 } mrb_regexp_pattern;
 
 /* Regexp flags */

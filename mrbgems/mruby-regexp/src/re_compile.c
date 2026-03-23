@@ -28,7 +28,7 @@ typedef struct {
   re_named_capture *named_captures;
   uint16_t num_named;
   mrb_bool has_backref;
-  mrb_bool has_nongreedy;
+  mrb_bool needs_backtrack;
   char *stripped;           /* allocated buffer for x-mode preprocessing */
 } re_compiler;
 
@@ -365,7 +365,7 @@ compile_atom(re_compiler *c)
           c->code[la_pos].offset = (uint16_t)c->code_len;  /* patch: skip past sub-pattern */
           if (peek(c) != ')') compile_error(c, "unmatched '('");
           next_char(c);
-          c->has_nongreedy = TRUE;  /* needs backtracking engine */
+          c->needs_backtrack = TRUE;  /* needs backtracking engine */
           break;  /* done with this atom */
         }
         else if (c->p[1] == '<' && c->p + 2 < c->src_end && (c->p[2] == '=' || c->p[2] == '!')) {
@@ -390,7 +390,7 @@ compile_atom(re_compiler *c)
 
           if (peek(c) != ')') compile_error(c, "unmatched '('");
           next_char(c);
-          c->has_nongreedy = TRUE;  /* needs backtracking engine */
+          c->needs_backtrack = TRUE;  /* needs backtracking engine */
           break;
         }
         else if (c->p[1] == '<' && c->p + 2 < c->src_end && c->p[2] != '=' && c->p[2] != '!') {
@@ -548,7 +548,7 @@ compile_quantified(re_compiler *c)
     mrb_bool nongreedy = (peek(c) == '?');
     if (nongreedy) {
       next_char(c);
-      c->has_nongreedy = TRUE;
+      c->needs_backtrack = TRUE;
     }
 
 
@@ -582,7 +582,7 @@ compile_quantified(re_compiler *c)
     mrb_bool nongreedy = (peek(c) == '?');
     if (nongreedy) {
       next_char(c);
-      c->has_nongreedy = TRUE;
+      c->needs_backtrack = TRUE;
     }
 
     /* For {n,m}: repeat atom min times, then optional (max-min) times */
@@ -774,7 +774,7 @@ re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags)
   pat->named_captures = c.named_captures;
   pat->num_named = c.num_named;
   pat->has_backref = c.has_backref;
-  pat->has_nongreedy = c.has_nongreedy;
+  pat->needs_backtrack = c.needs_backtrack;
 
   if (c.stripped) mrb_free(mrb, c.stripped);
   return pat;
