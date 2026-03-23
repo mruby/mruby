@@ -271,8 +271,13 @@ top_proc(mrb_state *mrb, const struct RProc *proc, const struct REnv **envp)
 
 #define CI_PROC_SET(ci, p) do {\
   ci->proc = p;\
-  mrb_assert(!p || !MRB_PROC_ALIAS_P(p));\
-  ci->pc = (p && !MRB_PROC_CFUNC_P(p) && p->body.irep) ? p->body.irep->iseq : NULL;\
+  if (p) {\
+    mrb_assert(!MRB_PROC_ALIAS_P(p));\
+    ci->pc = (!MRB_PROC_CFUNC_P(p) && p->body.irep) ? p->body.irep->iseq : NULL;\
+  }\
+  else {\
+    ci->pc = NULL;\
+  }\
 } while (0)
 
 void
@@ -490,8 +495,14 @@ cipop(mrb_state *mrb)
 {
   struct mrb_context *c = mrb->c;
   mrb_callinfo *ci = c->ci;
-  struct REnv *env = CI_ENV(ci);
 
+  /* Fast path: no env and no blk (most common for simple method calls) */
+  if (mrb_likely((!ci->u.env || ci->u.env->tt != MRB_TT_ENV) && !ci->blk)) {
+    c->ci--;
+    return c->ci;
+  }
+
+  struct REnv *env = CI_ENV(ci);
   ci_env_set(ci, NULL); // make possible to free env by GC if not needed
   struct RProc *b = ci->blk;
   if (b && !MRB_PROC_STRICT_P(b) && MRB_PROC_ENV(b) == CI_ENV(&ci[-1])) {
