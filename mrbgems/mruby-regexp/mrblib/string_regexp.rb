@@ -15,37 +15,36 @@ class String
 
   def __sub_replace(rep, md)
     return rep unless rep.include?("\\")
-    result = ""
+    parts = []
     i = 0
     while i < rep.length
       if rep[i] == "\\" && i + 1 < rep.length
         c = rep[i + 1]
         case c
         when '0'..'9'
-          result += (md[c.to_i] || "")
+          parts << (md[c.to_i] || "")
         when '&'
-          result += (md[0] || "")
+          parts << (md[0] || "")
         when '`'
-          result += md.pre_match
+          parts << md.pre_match
         when "'"
-          result += md.post_match
+          parts << md.post_match
         when '+'
-          # last successful capture
           last = nil
-          md.captures.each { |c| last = c if c }
-          result += (last || "")
+          md.captures.each { |v| last = v if v }
+          parts << (last || "")
         when "\\"
-          result += "\\"
+          parts << "\\"
         else
-          result += "\\" + c
+          parts << "\\" << c
         end
         i += 2
       else
-        result += rep[i]
+        parts << rep[i]
         i += 1
       end
     end
-    result
+    parts.join
   end
 
   def sub(pattern, replacement = nil, &block)
