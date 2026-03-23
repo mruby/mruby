@@ -42,6 +42,14 @@ static void matchdata_free(mrb_state *mrb, void *ptr) {
 
 static const struct mrb_data_type matchdata_type = { "MatchData", matchdata_free };
 
+/* Get internal flags from Regexp object */
+static uint32_t
+get_iflags(mrb_state *mrb, mrb_value self)
+{
+  mrb_value v = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@flags"));
+  return mrb_nil_p(v) ? 0 : (uint32_t)mrb_integer(v);
+}
+
 /* Parse flags from string or integer */
 static uint32_t
 parse_flags(mrb_state *mrb, mrb_value flags_val)
@@ -289,8 +297,7 @@ regexp_source(mrb_state *mrb, mrb_value self)
 static mrb_value
 regexp_options(mrb_state *mrb, mrb_value self)
 {
-  mrb_value flags_val = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@flags"));
-  uint32_t iflags = mrb_nil_p(flags_val) ? 0 : (uint32_t)mrb_integer(flags_val);
+  uint32_t iflags = get_iflags(mrb, self);
   mrb_int opts = 0;
   if (iflags & RE_FLAG_IGNORECASE) opts |= 1;  /* Regexp::IGNORECASE */
   if (iflags & RE_FLAG_EXTENDED) opts |= 2;     /* Regexp::EXTENDED */
@@ -304,9 +311,7 @@ regexp_options(mrb_state *mrb, mrb_value self)
 static mrb_value
 regexp_casefold_p(mrb_state *mrb, mrb_value self)
 {
-  mrb_value flags_val = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@flags"));
-  uint32_t iflags = mrb_nil_p(flags_val) ? 0 : (uint32_t)mrb_integer(flags_val);
-  return mrb_bool_value((iflags & RE_FLAG_IGNORECASE) != 0);
+  return mrb_bool_value((get_iflags(mrb, self) & RE_FLAG_IGNORECASE) != 0);
 }
 
 /*
@@ -316,8 +321,7 @@ static mrb_value
 regexp_to_s(mrb_state *mrb, mrb_value self)
 {
   mrb_value src = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@source"));
-  mrb_value flags_val = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@flags"));
-  uint32_t flags = mrb_nil_p(flags_val) ? 0 : (uint32_t)mrb_integer(flags_val);
+  uint32_t flags = get_iflags(mrb, self);
 
   mrb_value result = mrb_str_new_lit(mrb, "(?");
   if (flags & RE_FLAG_IGNORECASE) mrb_str_cat_lit(mrb, result, "i");
@@ -333,8 +337,7 @@ static mrb_value
 regexp_inspect(mrb_state *mrb, mrb_value self)
 {
   mrb_value src = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@source"));
-  mrb_value flags_val = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@flags"));
-  uint32_t flags = mrb_nil_p(flags_val) ? 0 : (uint32_t)mrb_integer(flags_val);
+  uint32_t flags = get_iflags(mrb, self);
 
   mrb_value result = mrb_str_new_lit(mrb, "/");
   mrb_str_cat_str(mrb, result, src);
@@ -359,11 +362,7 @@ regexp_eql(mrb_state *mrb, mrb_value self)
   mrb_value src1 = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@source"));
   mrb_value src2 = mrb_iv_get(mrb, other, mrb_intern_lit(mrb, "@source"));
   if (!mrb_str_equal(mrb, src1, src2)) return mrb_false_value();
-  mrb_value f1 = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@flags"));
-  mrb_value f2 = mrb_iv_get(mrb, other, mrb_intern_lit(mrb, "@flags"));
-  mrb_int flags1 = mrb_nil_p(f1) ? 0 : mrb_integer(f1);
-  mrb_int flags2 = mrb_nil_p(f2) ? 0 : mrb_integer(f2);
-  return mrb_bool_value(flags1 == flags2);
+  return mrb_bool_value(get_iflags(mrb, self) == get_iflags(mrb, other));
 }
 
 /*
@@ -373,10 +372,8 @@ static mrb_value
 regexp_hash(mrb_state *mrb, mrb_value self)
 {
   mrb_value src = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@source"));
-  mrb_value flags_val = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@flags"));
-  uint32_t flags = mrb_nil_p(flags_val) ? 0 : (uint32_t)mrb_integer(flags_val);
   uint32_t h = mrb_str_hash(mrb, src);
-  h ^= flags * 0x9e3779b9;  /* mix flags into hash */
+  h ^= get_iflags(mrb, self) * 0x9e3779b9;  /* mix flags into hash */
   return mrb_int_value(mrb, (mrb_int)h);
 }
 
