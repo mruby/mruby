@@ -455,50 +455,37 @@ found:
   return mrb_str_substr(mrb, md->source, start, end - start);
 }
 
-/*
- * MatchData#captures
- */
+/* Build array of capture strings from group `from` to num_captures-1 */
 static mrb_value
-matchdata_captures(mrb_state *mrb, mrb_value self)
+matchdata_to_ary(mrb_state *mrb, mrb_value self, int from)
 {
   mrb_match_data *md = DATA_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
   if (!md) return mrb_ary_new(mrb);
 
-  mrb_value ary = mrb_ary_new_capa(mrb, md->num_captures - 1);
-  for (int i = 1; i < md->num_captures; i++) {
-    int start = md->captures[i * 2];
-    int end = md->captures[i * 2 + 1];
-    if (start < 0) {
+  mrb_value ary = mrb_ary_new_capa(mrb, md->num_captures - from);
+  for (int i = from; i < md->num_captures; i++) {
+    int s = md->captures[i * 2];
+    int e = md->captures[i * 2 + 1];
+    if (s < 0) {
       mrb_ary_push(mrb, ary, mrb_nil_value());
     }
     else {
-      mrb_ary_push(mrb, ary, mrb_str_substr(mrb, md->source, start, end - start));
+      mrb_ary_push(mrb, ary, mrb_str_substr(mrb, md->source, s, e - s));
     }
   }
   return ary;
 }
 
-/*
- * MatchData#to_a
- */
+static mrb_value
+matchdata_captures(mrb_state *mrb, mrb_value self)
+{
+  return matchdata_to_ary(mrb, self, 1);
+}
+
 static mrb_value
 matchdata_to_a(mrb_state *mrb, mrb_value self)
 {
-  mrb_match_data *md = DATA_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
-  if (!md) return mrb_ary_new(mrb);
-
-  mrb_value ary = mrb_ary_new_capa(mrb, md->num_captures);
-  for (int i = 0; i < md->num_captures; i++) {
-    int start = md->captures[i * 2];
-    int end = md->captures[i * 2 + 1];
-    if (start < 0) {
-      mrb_ary_push(mrb, ary, mrb_nil_value());
-    }
-    else {
-      mrb_ary_push(mrb, ary, mrb_str_substr(mrb, md->source, start, end - start));
-    }
-  }
-  return ary;
+  return matchdata_to_ary(mrb, self, 0);
 }
 
 /*
