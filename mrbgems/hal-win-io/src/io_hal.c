@@ -34,17 +34,17 @@
 static void
 convert_stat(const struct _stat64 *src, mrb_io_stat *dst)
 {
-  dst->st_dev = (uint64_t)src->st_dev;
-  dst->st_ino = (uint64_t)src->st_ino;
-  dst->st_mode = (uint32_t)src->st_mode;
-  dst->st_nlink = (uint32_t)src->st_nlink;
+  dst->st_dev = (mrb_int)src->st_dev;
+  dst->st_ino = (mrb_int)src->st_ino;
+  dst->st_mode = (mrb_int)src->st_mode;
+  dst->st_nlink = (mrb_int)src->st_nlink;
   dst->st_uid = 0;  /* Windows doesn't have Unix-style UIDs */
   dst->st_gid = 0;  /* Windows doesn't have Unix-style GIDs */
-  dst->st_rdev = (uint64_t)src->st_rdev;
-  dst->st_size = (int64_t)src->st_size;
-  dst->st_atime = (int64_t)src->st_atime;
-  dst->st_mtime = (int64_t)src->st_mtime;
-  dst->st_ctime = (int64_t)src->st_ctime;
+  dst->st_rdev = (mrb_int)src->st_rdev;
+  dst->st_size = (mrb_int)src->st_size;
+  dst->st_atime = (mrb_int)src->st_atime;
+  dst->st_mtime = (mrb_int)src->st_mtime;
+  dst->st_ctime = (mrb_int)src->st_ctime;
   dst->st_blksize = 512;
   dst->st_blocks = (dst->st_size + 511) / 512;
 }
@@ -114,14 +114,14 @@ mrb_hal_io_lstat(mrb_state *mrb, const char *path, mrb_io_stat *st)
 }
 
 int
-mrb_hal_io_chmod(mrb_state *mrb, const char *path, uint32_t mode)
+mrb_hal_io_chmod(mrb_state *mrb, const char *path, mrb_int mode)
 {
   (void)mrb;
   return _chmod(path, (int)mode);
 }
 
-uint32_t
-mrb_hal_io_umask(mrb_state *mrb, int32_t mask)
+mrb_int
+mrb_hal_io_umask(mrb_state *mrb, mrb_int mask)
 {
   int old;
   (void)mrb;
@@ -134,14 +134,14 @@ mrb_hal_io_umask(mrb_state *mrb, int32_t mask)
   else {
     old = _umask((int)mask);
   }
-  return (uint32_t)old;
+  return (mrb_int)old;
 }
 
 int
-mrb_hal_io_ftruncate(mrb_state *mrb, int fd, int64_t length)
+mrb_hal_io_ftruncate(mrb_state *mrb, int fd, mrb_int length)
 {
   (void)mrb;
-  return _chsize_s(fd, length);
+  return _chsize_s(fd, (__int64)length);
 }
 
 int
@@ -280,7 +280,7 @@ mrb_hal_io_gethome(mrb_state *mrb, const char *username)
  */
 
 int
-mrb_hal_io_open(mrb_state *mrb, const char *path, int flags, uint32_t mode)
+mrb_hal_io_open(mrb_state *mrb, const char *path, int flags, mrb_int mode)
 {
   int fd;
   (void)mrb;
@@ -306,30 +306,23 @@ mrb_hal_io_close(mrb_state *mrb, int fd)
   return _close(fd);
 }
 
-int64_t
+mrb_int
 mrb_hal_io_read(mrb_state *mrb, int fd, void *buf, size_t count)
 {
-  int n;
   (void)mrb;
-
-  n = _read(fd, buf, (unsigned int)count);
-  return (int64_t)n;
+  return (mrb_int)_read(fd, buf, (unsigned int)count);
 }
 
-int64_t
+mrb_int
 mrb_hal_io_write(mrb_state *mrb, int fd, const void *buf, size_t count)
 {
-  int n;
   (void)mrb;
-
-  n = _write(fd, buf, (unsigned int)count);
-  return (int64_t)n;
+  return (mrb_int)_write(fd, buf, (unsigned int)count);
 }
 
-int64_t
-mrb_hal_io_lseek(mrb_state *mrb, int fd, int64_t offset, int whence)
+mrb_int
+mrb_hal_io_lseek(mrb_state *mrb, int fd, mrb_int offset, int whence)
 {
-  __int64 pos;
   int win_whence;
   (void)mrb;
 
@@ -343,8 +336,7 @@ mrb_hal_io_lseek(mrb_state *mrb, int fd, int64_t offset, int whence)
       return -1;
   }
 
-  pos = _lseeki64(fd, (__int64)offset, win_whence);
-  return (int64_t)pos;
+  return (mrb_int)_lseeki64(fd, (__int64)offset, win_whence);
 }
 
 int

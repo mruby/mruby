@@ -1268,14 +1268,14 @@ time2timeval(mrb_state *mrb, mrb_value time)
 
   switch (mrb_type(time)) {
     case MRB_TT_INTEGER:
-      t.tv_sec = (int64_t)mrb_integer(time);
+      t.tv_sec = mrb_integer(time);
       t.tv_usec = 0;
       break;
 
 #ifndef MRB_NO_FLOAT
     case MRB_TT_FLOAT:
-      t.tv_sec = (int64_t)mrb_float(time);
-      t.tv_usec = (int64_t)((mrb_float(time) - t.tv_sec) * 1000000.0);
+      t.tv_sec = (mrb_int)mrb_float(time);
+      t.tv_usec = (mrb_int)((mrb_float(time) - t.tv_sec) * 1000000.0);
       break;
 #endif
 

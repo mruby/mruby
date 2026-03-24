@@ -12,7 +12,6 @@
 #define MRUBY_IO_HAL_H
 
 #include <mruby.h>
-#include <stdint.h>
 
 /*
  * Platform-independent type definitions
@@ -20,25 +19,25 @@
 
 /* File status structure - platform-independent representation */
 typedef struct mrb_io_stat {
-  uint64_t st_dev;       /* Device ID */
-  uint64_t st_ino;       /* Inode number */
-  uint32_t st_mode;      /* File mode/permissions */
-  uint32_t st_nlink;     /* Number of hard links */
-  uint32_t st_uid;       /* User ID */
-  uint32_t st_gid;       /* Group ID */
-  uint64_t st_rdev;      /* Device ID (if special file) */
-  int64_t  st_size;      /* File size in bytes */
-  int64_t  st_atime;     /* Last access time */
-  int64_t  st_mtime;     /* Last modification time */
-  int64_t  st_ctime;     /* Last status change time */
-  int64_t  st_blksize;   /* Block size for filesystem I/O */
-  int64_t  st_blocks;    /* Number of 512B blocks allocated */
+  mrb_int st_dev;       /* Device ID */
+  mrb_int st_ino;       /* Inode number */
+  mrb_int st_mode;      /* File mode/permissions */
+  mrb_int st_nlink;     /* Number of hard links */
+  mrb_int st_uid;       /* User ID */
+  mrb_int st_gid;       /* Group ID */
+  mrb_int st_rdev;      /* Device ID (if special file) */
+  mrb_int  st_size;      /* File size in bytes */
+  mrb_int  st_atime;     /* Last access time */
+  mrb_int  st_mtime;     /* Last modification time */
+  mrb_int  st_ctime;     /* Last status change time */
+  mrb_int  st_blksize;   /* Block size for filesystem I/O */
+  mrb_int  st_blocks;    /* Number of 512B blocks allocated */
 } mrb_io_stat;
 
 /* Timeval structure for select() */
 typedef struct mrb_io_timeval {
-  int64_t tv_sec;        /* Seconds */
-  int64_t tv_usec;       /* Microseconds */
+  mrb_int tv_sec;        /* Seconds */
+  mrb_int tv_usec;       /* Microseconds */
 } mrb_io_timeval;
 
 /* File descriptor set for select() */
@@ -120,7 +119,7 @@ int mrb_hal_io_lstat(mrb_state *mrb, const char *path, mrb_io_stat *st);
  * @param mode New permission mode
  * @return 0 on success, -1 on error (sets errno)
  */
-int mrb_hal_io_chmod(mrb_state *mrb, const char *path, uint32_t mode);
+int mrb_hal_io_chmod(mrb_state *mrb, const char *path, mrb_int mode);
 
 /**
  * Set/get file creation mask
@@ -129,7 +128,7 @@ int mrb_hal_io_chmod(mrb_state *mrb, const char *path, uint32_t mode);
  * @param mask New umask value (if < 0, only returns current value)
  * @return Previous umask value
  */
-uint32_t mrb_hal_io_umask(mrb_state *mrb, int32_t mask);
+mrb_int mrb_hal_io_umask(mrb_state *mrb, mrb_int mask);
 
 /**
  * Truncate file to specified length
@@ -139,7 +138,7 @@ uint32_t mrb_hal_io_umask(mrb_state *mrb, int32_t mask);
  * @param length New file length
  * @return 0 on success, -1 on error (sets errno)
  */
-int mrb_hal_io_ftruncate(mrb_state *mrb, int fd, int64_t length);
+int mrb_hal_io_ftruncate(mrb_state *mrb, int fd, mrb_int length);
 
 /**
  * Apply or remove advisory lock on file
@@ -242,7 +241,7 @@ const char* mrb_hal_io_gethome(mrb_state *mrb, const char *username);
  * @param mode Creation mode (used if O_CREAT is set)
  * @return File descriptor on success, -1 on error (sets errno)
  */
-int mrb_hal_io_open(mrb_state *mrb, const char *path, int flags, uint32_t mode);
+int mrb_hal_io_open(mrb_state *mrb, const char *path, int flags, mrb_int mode);
 
 /**
  * Close file descriptor
@@ -262,7 +261,7 @@ int mrb_hal_io_close(mrb_state *mrb, int fd);
  * @param count Maximum bytes to read
  * @return Number of bytes read, 0 on EOF, -1 on error (sets errno)
  */
-int64_t mrb_hal_io_read(mrb_state *mrb, int fd, void *buf, size_t count);
+mrb_int mrb_hal_io_read(mrb_state *mrb, int fd, void *buf, size_t count);
 
 /**
  * Write to file descriptor
@@ -273,7 +272,7 @@ int64_t mrb_hal_io_read(mrb_state *mrb, int fd, void *buf, size_t count);
  * @param count Number of bytes to write
  * @return Number of bytes written, -1 on error (sets errno)
  */
-int64_t mrb_hal_io_write(mrb_state *mrb, int fd, const void *buf, size_t count);
+mrb_int mrb_hal_io_write(mrb_state *mrb, int fd, const void *buf, size_t count);
 
 /**
  * Reposition file offset
@@ -284,7 +283,7 @@ int64_t mrb_hal_io_write(mrb_state *mrb, int fd, const void *buf, size_t count);
  * @param whence Reference point (MRB_IO_SEEK_SET/CUR/END)
  * @return New offset from beginning of file, -1 on error (sets errno)
  */
-int64_t mrb_hal_io_lseek(mrb_state *mrb, int fd, int64_t offset, int whence);
+mrb_int mrb_hal_io_lseek(mrb_state *mrb, int fd, mrb_int offset, int whence);
 
 /**
  * Duplicate file descriptor

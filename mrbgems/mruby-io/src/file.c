@@ -114,14 +114,13 @@
 static mrb_value
 mrb_file_s_umask(mrb_state *mrb, mrb_value klass)
 {
-  mrb_int mask;
-  uint32_t omask;
+  mrb_int mask, omask;
 
   if (mrb_get_args(mrb, "|i", &mask) == 0) {
     omask = mrb_hal_io_umask(mrb, -1);
   }
   else {
-    omask = mrb_hal_io_umask(mrb, (int32_t)mask);
+    omask = mrb_hal_io_umask(mrb, mask);
   }
   return mrb_fixnum_value(omask);
 }
@@ -658,18 +657,6 @@ mrb_file_absolute_path_p(mrb_state *mrb, mrb_value klass)
   return mrb_bool_value(path_absolute_p(RSTRING_CSTR(mrb, path)));
 }
 
-#define TIME_OVERFLOW_P(a) (sizeof(time_t) >= sizeof(mrb_int) && ((a) > MRB_INT_MAX || (a) < MRB_INT_MIN))
-#define TIME_T_UINT (~(time_t)0 > 0)
-#if defined(MRB_USE_BITINT)
-#define TIME_BIGTIME(mrb, a)                                                   \
-  return (TIME_T_UINT ? mrb_bint_new_uint64((mrb), (uint64_t)(a))              \
-               : mrb_bint_new_int64(mrb, (int64_t)(a)))
-#elif !defined(MRB_NO_FLOAT)
-#define TIME_BIGTIME(mrb,a) return mrb_float_value((mrb), (mrb_float)(a))
-#else
-#define TIME_BIGTIME(mrb, a) mrb_raise(mrb, E_IO_ERROR, #a " overflow")
-#endif
-
 static mrb_value
 mrb_file_atime(mrb_state *mrb, mrb_value self)
 {
@@ -679,10 +666,7 @@ mrb_file_atime(mrb_state *mrb, mrb_value self)
   mrb->c->ci->mid = 0;
   if (mrb_hal_io_fstat(mrb, fd, &st) == -1)
     mrb_sys_fail(mrb, "atime");
-  if (TIME_OVERFLOW_P(st.st_atime)) {
-    TIME_BIGTIME(mrb, st.st_atime);
-  }
-  return mrb_int_value(mrb, (mrb_int)st.st_atime);
+  return mrb_int_value(mrb, st.st_atime);
 }
 
 static mrb_value
@@ -694,10 +678,7 @@ mrb_file_ctime(mrb_state *mrb, mrb_value self)
   mrb->c->ci->mid = 0;
   if (mrb_hal_io_fstat(mrb, fd, &st) == -1)
     mrb_sys_fail(mrb, "ctime");
-  if (TIME_OVERFLOW_P(st.st_ctime)) {
-    TIME_BIGTIME(mrb, st.st_ctime);
-  }
-  return mrb_int_value(mrb, (mrb_int)st.st_ctime);
+  return mrb_int_value(mrb, st.st_ctime);
 }
 
 static mrb_value
@@ -709,10 +690,7 @@ mrb_file_mtime(mrb_state *mrb, mrb_value self)
   mrb->c->ci->mid = 0;
   if (mrb_hal_io_fstat(mrb, fd, &st) == -1)
     mrb_sys_fail(mrb, "mtime");
-  if (TIME_OVERFLOW_P(st.st_mtime)) {
-    TIME_BIGTIME(mrb, st.st_mtime);
-  }
-  return mrb_int_value(mrb, (mrb_int)st.st_mtime);
+  return mrb_int_value(mrb, st.st_mtime);
 }
 
 /*
@@ -775,22 +753,13 @@ mrb_file_size(mrb_state *mrb, mrb_value self)
   if (mrb_hal_io_fstat(mrb, fd, &st) == -1) {
     mrb_sys_fail(mrb, "fstat");
   }
-
-  if (sizeof(st.st_size) >= sizeof(mrb_int) && st.st_size > MRB_INT_MAX) {
-#ifdef MRB_NO_FLOAT
-    mrb_raise(mrb, E_RUNTIME_ERROR, "File#size too large for MRB_NO_FLOAT");
-#else
-    return mrb_float_value(mrb, (mrb_float)st.st_size);
-#endif
-  }
-
-  return mrb_int_value(mrb, (mrb_int)st.st_size);
+  return mrb_int_value(mrb, st.st_size);
 }
 
 static int
 mrb_ftruncate(mrb_state *mrb, int fd, mrb_int length)
 {
-  return mrb_hal_io_ftruncate(mrb, fd, (int64_t)length);
+  return mrb_hal_io_ftruncate(mrb, fd, length);
 }
 
 /*
@@ -865,7 +834,7 @@ mrb_file_s_chmod(mrb_state *mrb, mrb_value klass)
     mrb_ensure_string_type(mrb, filenames[i]);
     const char *utf8_path = RSTRING_CSTR(mrb, filenames[i]);
     char *path = mrb_locale_from_utf8(utf8_path, -1);
-    if (mrb_hal_io_chmod(mrb, path, (uint32_t)mode) == -1) {
+    if (mrb_hal_io_chmod(mrb, path, mode) == -1) {
       mrb_locale_free(path);
       mrb_sys_fail(mrb, utf8_path);
     }
