@@ -28,6 +28,7 @@
 #ifdef _WIN32
 #include <io.h>
 #define isatty(fd) _isatty(fd)
+#define fileno(fd) _fileno(fd)
 #else
 #include <unistd.h>
 #endif
