@@ -200,14 +200,11 @@ mrb_hal_io_symlink(mrb_state *mrb, const char *target, const char *linkpath)
   return symlink(target, linkpath);
 }
 
-int64_t
+mrb_int
 mrb_hal_io_readlink(mrb_state *mrb, const char *path, char *buf, size_t bufsize)
 {
-  ssize_t rc;
   (void)mrb;
-
-  rc = readlink(path, buf, bufsize);
-  return (int64_t)rc;
+  return (mrb_int)readlink(path, buf, bufsize);
 }
 
 char*

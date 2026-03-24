@@ -900,7 +900,7 @@ mrb_file_s_readlink(mrb_state *mrb, mrb_value klass)
   /* Use mrb_temp_alloc for exception safety - GC will clean up on exception */
   char *buf = (char*)mrb_temp_alloc(mrb, PATH_MAX);
 
-  int64_t rc = mrb_hal_io_readlink(mrb, tmp, buf, PATH_MAX);
+  mrb_int rc = mrb_hal_io_readlink(mrb, tmp, buf, PATH_MAX);
   mrb_locale_free(tmp);
   if (rc == -1) {
     mrb_sys_fail(mrb, path);
