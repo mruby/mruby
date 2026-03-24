@@ -50,7 +50,7 @@ mrb_uint_to_cstr(char *buf, size_t len, mrb_int num, int base)
   char *b = buf + len - 1;
   const int mask = base-1;
   int shift;
-  mrb_uint val = (uint64_t)num;
+  mrb_uint val = (mrb_uint)num;
 
   if (num == 0) {
     buf[0] = '0'; buf[1] = '\0';
