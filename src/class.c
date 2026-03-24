@@ -1306,6 +1306,28 @@ mrb_block_given_p(mrb_state *mrb)
 #define GET_ARG(_type) (ptr ? ((_type)(*ptr++)) : va_arg((*ap), _type))
 
 /*
+ * Per-character validation for the mrb_get_args fast path.
+ * Written as a switch rather than an array-designator lookup table so
+ * that the file can be compiled as C++ (array-index designators are a
+ * C99-only feature).  Modern compilers typically lower this to a jump
+ * table, giving the same effective O(1) behavior as the original table.
+ * Returns 1 for a valid arg specifier, 2 for the separator, 0 otherwise.
+ */
+static inline uint8_t
+fast_fmt_ok(char c)
+{
+  switch (c) {
+  case 'o': case 'S': case 'A': case 'H': case 'i': case 'b':
+  case 'f': case 'n': case 'z': case 'c': case 's': case 'a':
+    return 1;
+  case '|':
+    return 2;
+  default:
+    return 0;
+  }
+}
+
+/*
  * Fast path for simple format strings (no *, :, !, +, &, ?).
  * Handles the most common patterns directly in one pass,
  * skipping the two-pass format scanning of the general path.
@@ -1324,24 +1346,14 @@ get_args_fast(mrb_state *mrb, const char *format, void** ptr, va_list *ap)
   if (argc >= 15 || ci->nk > 0) return -1;
   argv = ci->stack + 1;
 
-  /* scan format: validate all specifiers and count required/optional */
+  /* validate format and count args in one scan (table lookup, no switch) */
   const char *p = format;
   int req = 0, opt = 0;
   mrb_bool in_opt = FALSE;
   while (*p) {
-    char c = *p;
-    if (c == '|') { in_opt = TRUE; p++; continue; }
-    /* bail out on complex specifiers or unsupported types */
-    switch (c) {
-    case 'o': case 'S': case 'A': case 'H': case 'i': case 'b':
-    case 'f': case 'n': case 'z': case 'c':
-      break;
-    case 's': case 'a':
-      /* these consume 2 GET_ARG slots */
-      break;
-    default:
-      return -1;  /* unknown/complex, bail before touching va_list */
-    }
+    uint8_t v = fast_fmt_ok(*p);
+    if (v == 0) return -1;  /* unsupported specifier */
+    if (v == 2) { in_opt = TRUE; p++; continue; }
     if (in_opt) opt++; else req++;
     p++;
   }
