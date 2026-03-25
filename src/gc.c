@@ -541,15 +541,15 @@ mrb_gc_unregister(mrb_state *mrb, mrb_value obj)
   if (!mrb_array_p(table)) return;
   struct RArray *a = mrb_ary_ptr(table);
   mrb_ary_modify(mrb, a);
-  mrb_int len = ARY_LEN(a)-1;
+  mrb_int len = ARY_LEN(a);
   mrb_value *ptr = ARY_PTR(a);
-  for (mrb_int i = 0; i <= len; i++) {
-    if (mrb_ptr(ptr[i]) == mrb_ptr(obj)) {
-      ARY_SET_LEN(a, len);
-      memmove(&ptr[i], &ptr[i + 1], (len - i) * sizeof(mrb_value));
-      break;
+  mrb_int w = 0;
+  for (mrb_int r = 0; r < len; r++) {
+    if (mrb_ptr(ptr[r]) != mrb_ptr(obj)) {
+      ptr[w++] = ptr[r];
     }
   }
+  ARY_SET_LEN(a, w);
 }
 
 MRB_API struct RBasic*
