@@ -232,21 +232,3 @@ mrb_hal_task_final(mrb_state *mrb)
   (void)mrb;
 #endif
 }
-
-/*
- * Gem initialization (empty - HAL functions called by mruby-task)
- */
-
-void
-mrb_hal_posix_task_gem_init(mrb_state *mrb)
-{
-  (void)mrb;
-  /* HAL interface functions are called by mruby-task gem */
-}
-
-void
-mrb_hal_posix_task_gem_final(mrb_state *mrb)
-{
-  (void)mrb;
-  /* Cleanup handled by mrb_hal_task_final called from mruby-task */
-}

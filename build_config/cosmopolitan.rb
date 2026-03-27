@@ -64,10 +64,8 @@ MRuby::Build.new do |conf|
   # APE binaries use .com extension
   conf.exts.executable = '.com'
 
-  # Cosmopolitan provides POSIX compatibility, explicitly select POSIX HALs
-  conf.gem core: 'hal-posix-io'
-  conf.gem core: 'hal-posix-socket'
-  conf.gem core: 'hal-posix-dir'
+  # Cosmopolitan provides POSIX compatibility
+  conf.ports :posix
 
   # Standard library
   conf.gembox 'stdlib'
