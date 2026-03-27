@@ -173,21 +173,3 @@ mrb_hal_dir_final(mrb_state *mrb)
   (void)mrb;
   /* No cleanup needed for POSIX */
 }
-
-/*
- * Gem initialization
- */
-
-void
-mrb_hal_posix_dir_gem_init(mrb_state *mrb)
-{
-  (void)mrb;
-  /* HAL interface functions are called by mruby-dir gem */
-}
-
-void
-mrb_hal_posix_dir_gem_final(mrb_state *mrb)
-{
-  (void)mrb;
-  /* Cleanup handled by mrb_hal_dir_final called from mruby-dir */
-}

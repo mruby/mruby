@@ -214,36 +214,3 @@ mrb_hal_dir_final(mrb_state *mrb)
   (void)mrb;
   /* No cleanup needed for Windows */
 }
-
-/*
- * Gem initialization
- */
-
-void
-mrb_hal_win_dir_gem_init(mrb_state *mrb)
-{
-  (void)mrb;
-  /* HAL interface functions are called by mruby-dir gem */
-}
-
-void
-mrb_hal_win_dir_gem_final(mrb_state *mrb)
-{
-  (void)mrb;
-  /* Cleanup handled by mrb_hal_dir_final called from mruby-dir */
-}
-
-/*
-** Portions derived from dirent.c by Kevlin Henney:
-**
-** Copyright Kevlin Henney, 1997, 2003, 2012. All rights reserved.
-**
-** Permission to use, copy, modify, and distribute this software and its
-** documentation for any purpose is hereby granted without fee, provided
-** that this copyright and permissions notice appear in all copies and
-** derivatives.
-**
-** This software is supplied "as is" without express or implied warranty.
-**
-** But that said, if there are any problems please get in touch.
-*/
