@@ -145,8 +145,3 @@ mrb_uart_clear_tx(int unit)
 {
   /* not supported on ESP-IDF */
 }
-
-#include <mruby.h>
-
-void mrb_hw_esp32_uart_gem_init(mrb_state *mrb) {}
-void mrb_hw_esp32_uart_gem_final(mrb_state *mrb) {}

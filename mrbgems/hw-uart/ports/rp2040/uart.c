@@ -134,8 +134,3 @@ mrb_uart_clear_tx(int unit)
 {
   /* not supported on RP2040 */
 }
-
-#include <mruby.h>
-
-void mrb_hw_rp2040_uart_gem_init(mrb_state *mrb) {}
-void mrb_hw_rp2040_uart_gem_final(mrb_state *mrb) {}

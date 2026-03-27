@@ -5,12 +5,11 @@ It is designed for embedded platforms such as ESP32 and RP2040.
 
 ## Architecture
 
-- **hw-uart** (this gem) - Ruby API, C bindings, ring buffer, and HAL
-  function declarations
-- **hw-esp32-uart** - HAL implementation for ESP32 (using ESP-IDF UART
-  driver with FreeRTOS task for RX)
-- **hw-rp2040-uart** - HAL implementation for RP2040 (using Pico SDK
-  with IRQ-driven RX)
+Platform-specific HAL implementations are in `ports/` directories:
+
+- `ports/esp32/` - ESP32 using ESP-IDF UART driver with FreeRTOS
+  task for RX
+- `ports/rp2040/` - RP2040 using Pico SDK with IRQ-driven RX
 
 Received data is buffered in a ring buffer (allocated by the common
 gem) that the platform HAL populates via interrupt or task. The ring
@@ -21,14 +20,14 @@ buffer size must be a power of two.
 ```ruby
 # For ESP32
 MRuby::CrossBuild.new('esp32') do |conf|
-  # ...
-  conf.gem "#{root}/mrbgems/hw-esp32-uart"
+  conf.ports :esp32
+  conf.gem core: 'hw-uart'
 end
 
 # For RP2040
 MRuby::CrossBuild.new('rp2040') do |conf|
-  # ...
-  conf.gem "#{root}/mrbgems/hw-rp2040-uart"
+  conf.ports :rp2040
+  conf.gem core: 'hw-uart'
 end
 ```
 
@@ -153,8 +152,8 @@ Set the line ending used by `puts`. Must be `"\n"`, `"\r"`, or
 
 ## HAL Interface
 
-To add support for a new platform, create a gem that depends on
-`hw-uart` and implements the following C functions declared in
+To add support for a new platform, create a `ports/<name>/`
+directory and implement the following C functions declared in
 `<mruby/uart.h>`:
 
 ```c
