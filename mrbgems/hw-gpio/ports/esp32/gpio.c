@@ -48,8 +48,3 @@ mrb_gpio_write(uint8_t pin, uint8_t val)
 {
   gpio_set_level(pin, val);
 }
-
-#include <mruby.h>
-
-void mrb_hw_esp32_gpio_gem_init(mrb_state *mrb) {}
-void mrb_hw_esp32_gpio_gem_final(mrb_state *mrb) {}

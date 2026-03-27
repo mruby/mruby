@@ -6,26 +6,27 @@ It is designed for embedded platforms such as ESP32 and RP2040.
 
 ## Architecture
 
-- **hw-gpio** (this gem) - Ruby API, C bindings, and HAL function declarations
-- **hw-esp32-gpio** - HAL implementation for ESP32 (using ESP-IDF GPIO driver)
-- **hw-rp2040-gpio** - HAL implementation for RP2040 (using Pico SDK)
+Platform-specific HAL implementations are in `ports/` directories:
 
-The platform gems depend on hw-gpio, so you only need to specify the
-platform gem in your build configuration.
+- `ports/esp32/` - ESP32 using ESP-IDF GPIO driver
+- `ports/rp2040/` - RP2040 using Pico SDK
+
+The build system automatically compiles matching port sources based
+on `conf.ports` setting.
 
 ## Build Configuration
 
 ```ruby
 # For ESP32
 MRuby::CrossBuild.new('esp32') do |conf|
-  # ...
-  conf.gem "#{root}/mrbgems/hw-esp32-gpio"
+  conf.ports :esp32
+  conf.gem core: 'hw-gpio'
 end
 
 # For RP2040
 MRuby::CrossBuild.new('rp2040') do |conf|
-  # ...
-  conf.gem "#{root}/mrbgems/hw-rp2040-gpio"
+  conf.ports :rp2040
+  conf.gem core: 'hw-gpio'
 end
 ```
 
@@ -121,9 +122,9 @@ GPIO.open_drain_at(pin)     # enable open-drain
 
 ## HAL Interface
 
-To add support for a new platform, create a gem (e.g., `hw-myboard-gpio`)
-that depends on `hw-gpio` and implements the following C functions
-declared in `<mruby/gpio.h>`:
+To add support for a new platform, create a `ports/<name>/`
+directory and implement the following C functions declared in
+`<mruby/gpio.h>`:
 
 ```c
 void mrb_gpio_init(uint8_t pin);
@@ -135,13 +136,8 @@ int  mrb_gpio_read(uint8_t pin);
 void mrb_gpio_write(uint8_t pin, uint8_t val);
 ```
 
-The `flags` parameter for `mrb_gpio_set_dir()` uses the bitmask
-constants defined in the header (`MRB_GPIO_IN`, `MRB_GPIO_OUT`,
-`MRB_GPIO_HIGH_Z`).
-
-The gem must also provide empty `mrb_<gemname>_gem_init()` and
-`mrb_<gemname>_gem_final()` functions (with hyphens replaced by
-underscores).
+The port sources are compiled automatically when the build
+configuration includes a matching `conf.ports` tag.
 
 ## License
 

@@ -49,8 +49,3 @@ mrb_gpio_write(uint8_t pin, uint8_t val)
 {
   gpio_put(pin, val == 1);
 }
-
-#include <mruby.h>
-
-void mrb_hw_rp2040_gpio_gem_init(mrb_state *mrb) {}
-void mrb_hw_rp2040_gpio_gem_final(mrb_state *mrb) {}
