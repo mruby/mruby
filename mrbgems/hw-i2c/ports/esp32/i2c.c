@@ -115,8 +115,3 @@ mrb_i2c_write_read(int unit, uint8_t addr, const uint8_t *src, size_t wlen,
   i2c_master_bus_rm_device(dev);
   return (err == ESP_OK) ? (int)rlen : -1;
 }
-
-#include <mruby.h>
-
-void mrb_hw_esp32_i2c_gem_init(mrb_state *mrb) {}
-void mrb_hw_esp32_i2c_gem_final(mrb_state *mrb) {}

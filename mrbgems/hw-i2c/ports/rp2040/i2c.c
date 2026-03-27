@@ -62,8 +62,3 @@ mrb_i2c_write_read(int unit, uint8_t addr, const uint8_t *src, size_t wlen,
   /* read with nostop=false (STOP after read) */
   return i2c_read_timeout_us(inst, addr, dst, rlen, false, timeout_us);
 }
-
-#include <mruby.h>
-
-void mrb_hw_rp2040_i2c_gem_init(mrb_state *mrb) {}
-void mrb_hw_rp2040_i2c_gem_final(mrb_state *mrb) {}

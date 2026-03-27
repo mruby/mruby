@@ -4,27 +4,27 @@ This gem provides the `I2C` class for communicating with I2C devices from mruby.
 
 ## Architecture
 
-The I2C support is split into a common gem and platform-specific HAL gems:
+Platform-specific HAL implementations are in `ports/` directories:
 
-- **hw-i2c** (this gem) - Ruby API, C bindings, and HAL function declarations
-- **hw-esp32-i2c** - HAL implementation for ESP32 (using ESP-IDF I2C master driver)
-- **hw-rp2040-i2c** - HAL implementation for RP2040 (using Pico SDK)
+- `ports/esp32/` - ESP32 using ESP-IDF I2C master driver
+- `ports/rp2040/` - RP2040 using Pico SDK
 
-The platform gems depend on hw-i2c, so you only need to specify the platform gem in your build configuration.
+The build system automatically compiles matching port sources based
+on `conf.ports` setting.
 
 ## Build Configuration
 
 ```ruby
 # For ESP32
 MRuby::CrossBuild.new('esp32') do |conf|
-  # ...
-  conf.gem "#{root}/mrbgems/hw-esp32-i2c"
+  conf.ports :esp32
+  conf.gem core: 'hw-i2c'
 end
 
 # For RP2040
 MRuby::CrossBuild.new('rp2040') do |conf|
-  # ...
-  conf.gem "#{root}/mrbgems/hw-rp2040-i2c"
+  conf.ports :rp2040
+  conf.gem core: 'hw-i2c'
 end
 ```
 
@@ -126,38 +126,25 @@ found = i2c.scan
 
 ## HAL Interface
 
-To add support for a new platform, create a gem (e.g., `hw-myboard-i2c`) that depends on `hw-i2c` and implements the following C functions declared in `<mruby/i2c.h>`:
+To add support for a new platform, create a `ports/<name>/`
+directory and implement the following C functions declared in
+`<mruby/i2c.h>`:
 
 ```c
-/* Convert platform-specific unit name string to unit number.
-   Return MRB_I2C_ERROR_UNIT for unknown names. */
 int mrb_i2c_unit_name_to_num(const char *name);
-
-/* Initialize an I2C bus unit.
-   sda/scl: GPIO pin numbers (-1 for platform default if available).
-   Return MRB_I2C_OK on success. */
 mrb_i2c_status mrb_i2c_init(int unit, uint32_t freq, int8_t sda, int8_t scl);
-
-/* Read len bytes from device at addr.
-   Return number of bytes read on success, negative on error. */
 int mrb_i2c_read(int unit, uint8_t addr, uint8_t *dst, size_t len,
                  uint32_t timeout_us);
-
-/* Write len bytes to device at addr.
-   Return number of bytes written on success, negative on error. */
 int mrb_i2c_write(int unit, uint8_t addr, const uint8_t *src, size_t len,
                   uint32_t timeout_us);
-
-/* Atomic write-then-read using repeated START condition.
-   Write wlen bytes from src, then read rlen bytes into dst.
-   Return number of bytes read on success, negative on error. */
 int mrb_i2c_write_read(int unit, uint8_t addr,
                        const uint8_t *src, size_t wlen,
                        uint8_t *dst, size_t rlen,
                        uint32_t timeout_us);
 ```
 
-The gem must also provide empty `mrb_<gemname>_gem_init()` and `mrb_<gemname>_gem_final()` functions (with hyphens replaced by underscores).
+The port sources are compiled automatically when the build
+configuration includes a matching `conf.ports` tag.
 
 ### Error Codes
 
