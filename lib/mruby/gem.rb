@@ -59,6 +59,12 @@ module MRuby
         @rbfiles = Dir.glob("#{@dir}/mrblib/**/*.rb").sort
         @objs = srcs_to_objs("src")
 
+        # Add platform-specific sources from ports/<name>/ directories
+        build.effective_ports.each do |port|
+          port_dir = "#{@dir}/ports/#{port}"
+          @objs += srcs_to_objs("ports/#{port}") if File.directory?(port_dir)
+        end
+
         @test_preload = nil # 'test/assert.rb'
         @test_args = {}
         @skip_test = false

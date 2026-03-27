@@ -81,7 +81,7 @@ module MRuby
     include LoadGems
     attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir, :defines, :libdir_name
     attr_reader :products, :libmruby_core_objs, :libmruby_objs, :gems, :toolchains, :presym, :mrbc_build, :gem_dir_to_repo_url
-    attr_reader :install_excludes
+    attr_reader :install_excludes, :port_names
 
     alias libmruby libmruby_objs
 
@@ -138,6 +138,7 @@ module MRuby
         @mrbcfile_external = false
         @internal = internal
         @toolchains = []
+        @port_names = nil
         @gem_dir_to_repo_url = {}
 
         # Add lambda instead of string because libdir_name or lib may be changed by user configuration
@@ -181,6 +182,29 @@ module MRuby
       @mrbc.compile_options += ' -g'
 
       @enable_debug = true
+    end
+
+    # Set target port names for this build.
+    # Gems with matching ports/<name>/ directories will compile
+    # those platform-specific sources automatically.
+    #   conf.ports :esp32
+    #   conf.ports :rp2040, :posix
+    def ports(*names)
+      @port_names = names.map { |n| n.to_s }
+    end
+
+    # Returns the effective port names for this build.
+    # If not explicitly set, auto-detects :posix or :win for host builds.
+    def effective_ports
+      return @port_names if @port_names
+      if kind_of?(MRuby::CrossBuild)
+        []
+      elsif ENV['OS'] == 'Windows_NT' ||
+            ('A'..'Z').any? { |v| Dir.exist?("#{v}:") }
+        ['win']
+      else
+        ['posix']
+      end
     end
 
     def disable_lock
