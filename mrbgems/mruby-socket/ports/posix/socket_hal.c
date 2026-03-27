@@ -137,21 +137,3 @@ mrb_hal_socket_unix_path(mrb_state *mrb, const char *sockaddr, size_t socklen)
 
   return mrb_str_new_cstr(mrb, ((const struct sockaddr_un*)sockaddr)->sun_path);
 }
-
-/*
- * Gem initialization
- */
-
-void
-mrb_hal_posix_socket_gem_init(mrb_state *mrb)
-{
-  (void)mrb;
-  /* HAL interface functions are called by mruby-socket gem */
-}
-
-void
-mrb_hal_posix_socket_gem_final(mrb_state *mrb)
-{
-  (void)mrb;
-  /* Cleanup handled by mrb_hal_socket_final called from mruby-socket */
-}
