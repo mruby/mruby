@@ -46,6 +46,18 @@ assert("Enumerator::Lazy#to_enum") do
   assert_equal [0*1, 2*3, 4*5, 6*7], lazy_enum.map { |a| a.first * a.last }.first(4)
 end
 
+assert("Enumerator::Lazy#flat_map with arrays") do
+  assert_equal [1, 10, 2, 20, 3, 30], [1, 2, 3].lazy.flat_map {|x| [x, x*10]}.force
+end
+
+assert("Enumerator::Lazy#flat_map with non-enumerable") do
+  assert_equal [1, 2, 3], [1, 2, 3].lazy.flat_map {|x| x}.force
+end
+
+assert("Enumerator::Lazy#flat_map with enumerable") do
+  assert_equal [[1, 2], [3, 4]], [1, 3].lazy.flat_map {|x| [[x, x+1]]}.force
+end
+
 assert("Enumerator::Lazy#grep_v") do
   lazy_grep_v = (0..).lazy.grep_v(2..4)
   assert_kind_of Enumerator::Lazy, lazy_grep_v
