@@ -3260,7 +3260,7 @@ primary         : literal
                       $<stack>$ = p->cmdarg_stack;
                       p->cmdarg_stack = 0;
                     }
-                  stmt {p->lstate = EXPR_ENDARG;} rparen
+                  compstmt {p->lstate = EXPR_ENDARG;} rparen
                     {
                       p->cmdarg_stack = $<stack>2;
                       $$ = $3;
