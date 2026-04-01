@@ -29,3 +29,5 @@ updates:
       pre-commit-hooks:
         patterns:
           - "*"
+    cooldown:
+      default-days: 7
