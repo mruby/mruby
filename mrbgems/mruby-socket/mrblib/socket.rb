@@ -701,13 +701,11 @@ class UDPSocket < IPSocket
   #   data, addr = sock.recvfrom_nonblock(1024)
   #
   def recvfrom_nonblock(*args)
-    s = self
     begin
       self._setnonblock(true)
       self.recvfrom(*args)
     ensure
-      # XXX: self is a SystemcallException here! (should be bug)
-      s._setnonblock(false)
+      self._setnonblock(false)
     end
   end
 
