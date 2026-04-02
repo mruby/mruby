@@ -316,7 +316,11 @@ struct RCptr {
 #endif
 #define mrb_test(o)   mrb_bool(o)
 #ifndef mrb_bigint_p
+#ifdef MRB_USE_BIGINT
 #define mrb_bigint_p(o) (mrb_type(o) == MRB_TT_BIGINT)
+#else
+#define mrb_bigint_p(o) FALSE
+#endif
 #endif
 
 /**

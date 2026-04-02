@@ -611,37 +611,15 @@ class Array
   #   ary.product(*arys)                  ->   array
   #   ary.product(*arys) { |item| ... }   ->   self
   def product(*arys, &block)
-    size = arys.size
-    i = size
-    while i > 0
-      i -= 1
-      unless arys[i].kind_of?(Array)
-        raise TypeError, "no implicit conversion into Array"
+    gen = __product_generate(arys, &block)
+    return gen unless block
+
+    if gen
+      while group = __product_next(arys, gen)
+        yield group
       end
     end
-
-    i = size
-    total = self.size
-    total *= arys[i -= 1].size while i > 0
-
-    if block
-      i = 0
-      while i < total
-        group = self.__product_group(arys, i, size + 1)
-        block.call(group)
-        i += 1
-      end
-      return self
-    else
-      result = [nil] * total
-      i = 0
-      while i < total
-        group = self.__product_group(arys, i, size + 1)
-        result[i] = group
-        i += 1
-      end
-      return result
-    end
+    self
   end
 
   ##

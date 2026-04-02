@@ -3,7 +3,7 @@
 default_stages: [pre-commit, pre-push]
 default_language_version:
   python: python3
-  node: 24.11.1
+  node: 24.14.0
 minimum_pre_commit_version: "3.2.0"
 exclude: "^tools/lrama/"
 repos:
@@ -35,13 +35,13 @@ repos:
           track and have security implications. Please remove the zip file from the repository.
         files: \.zip$
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.30.0
+    rev: v8.30.1
     hooks:
       - id: gitleaks
         name: run gitleaks
         description: detect hardcoded secrets with gitleaks
   - repo: https://github.com/oxipng/oxipng
-    rev: v10.0.0
+    rev: v10.1.0
     hooks:
       - id: oxipng
         name: run oxipng
@@ -73,7 +73,7 @@ repos:
       - id: mixed-line-ending
       - id: trailing-whitespace
   - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.5.5
+    rev: v1.5.6
     hooks:
       - id: forbid-tabs
         name: run no-tabs checker
@@ -85,19 +85,19 @@ repos:
         args: [--whitespaces-count, "2"]
         exclude: Makefile$
   - repo: https://github.com/rhysd/actionlint
-    rev: v1.7.9
+    rev: v1.7.12
     hooks:
       - id: actionlint
         name: run actionlint
         description: lint GitHub Actions workflow files
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.1
+    rev: v2.4.2
     hooks:
       - id: codespell
         name: run codespell
         description: check spelling with codespell
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.46.0
+    rev: v0.48.0
     hooks:
       - id: markdownlint
         name: run markdownlint
@@ -106,7 +106,7 @@ repos:
         types: [markdown]
         files: \.md$
   - repo: https://github.com/rubocop/rubocop
-    rev: v1.81.7
+    rev: v1.86.0
     hooks:
       - id: rubocop
         name: run rubocop
@@ -120,7 +120,7 @@ repos:
         name: run shellcheck
         description: check shell scripts with a static analysis tool
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.37.1
+    rev: v1.38.0
     hooks:
       - id: yamllint
         name: run yamllint

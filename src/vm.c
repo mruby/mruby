@@ -134,19 +134,29 @@ static inline void
 envadjust(mrb_state *mrb, mrb_value *oldbase, mrb_value *newbase)
 {
   mrb_callinfo *ci = mrb->c->cibase;
-  ptrdiff_t delta = newbase - oldbase;
+  /*
+   * Byte-level calculation to avoid truncation when allocator alignment is
+   * smaller than sizeof(mrb_value).
+   * eg: MRB_NO_BOXING + MRB_INT64 with MRB_32BIT => sizeof(mrb_value)=16
+   *     And when memory allocator's alignment is 8 bytes
+   * Pointer subtraction on mrb_value* would truncate (8/16 -> 0).
+   * So, we use char* for pointer calculation to get the correct offset in bytes,
+   * then apply that offset to mrb_value* pointers.
+   */
+  ptrdiff_t off = (char *)newbase - (char *)oldbase;
 
-  if (delta == 0) return;
+  if (off == 0) return;
   while (ci <= mrb->c->ci) {
     struct REnv *e = mrb_vm_ci_env(ci);
+
+    mrb_value *new_stack = (mrb_value *)((char *)ci->stack + off);
 
     if (e) {
       mrb_assert(e->cxt == mrb->c && MRB_ENV_ONSTACK_P(e));
       mrb_assert(e->stack == ci->stack);
-
-      e->stack += delta;
+      e->stack = new_stack;
     }
-    ci->stack += delta;
+    ci->stack = new_stack;
     ci++;
   }
 }
@@ -2703,11 +2713,10 @@ RETRY_TRY_BLOCK:
       if (kidx < 0 || !mrb_hash_p(kdict=regs[kidx]) || !mrb_hash_key_p(mrb, kdict, k)) {
         RAISE_FORMAT(mrb, E_ARGUMENT_ERROR, "missing keyword: %v", k);
       }
-      v = mrb_hash_get(mrb, kdict, k);
+
+      v = mrb_hash_delete_key(mrb, kdict, k);
       ci = mrb->c->ci;
       regs[a] = v;
-      mrb_hash_delete_key(mrb, kdict, k);
-      ci = mrb->c->ci;
       NEXT;
     }
 
@@ -3113,7 +3122,9 @@ RETRY_TRY_BLOCK:
       {                                                                     \
         mrb_value arg = mrb_int_value(mrb, c);                              \
         mrb_sym mid = MRB_OPSYM(op_name);                                   \
-        regs[a] = mrb_funcall_argv(mrb, regs[a], mid, 1, &arg);             \
+        mrb_value v = mrb_funcall_argv(mrb, regs[a], mid, 1, &arg);         \
+        ci = mrb->c->ci;                                                    \
+        regs[a] = v;                                                        \
         mrb_gc_arena_restore(mrb, ai);                                      \
       }                                                                     \
       break;                                                                \

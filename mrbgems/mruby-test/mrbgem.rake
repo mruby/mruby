@@ -19,9 +19,11 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
   file assert_c => [assert_rb, build.mrbcfile] do |t|
     _pp "GEN", t.name.relative_path
     mkdir_p File.dirname(t.name)
-    open(t.name, 'w') do |f|
+    tmpfile = t.name + ".tmp"
+    open(tmpfile, 'w') do |f|
       mrbc.run f, assert_rb, 'mrbtest_assert_irep', cdump: false
     end
+    File.rename(tmpfile, t.name)
   end
 
   gem_table = build.gems.generate_gem_table build
@@ -36,7 +38,8 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
     file g.test_rbireps => [g.test_rbfiles, build.mrbcfile].flatten do |t|
       _pp "GEN", t.name.relative_path
       mkdir_p File.dirname(t.name)
-      open(t.name, 'w') do |f|
+      tmpfile = t.name + ".tmp"
+      open(tmpfile, 'w') do |f|
         g.print_gem_test_header(f)
         test_preload = g.test_preload and [g.dir, MRUBY_ROOT].map {|dir|
           File.expand_path(g.test_preload, dir)
@@ -117,6 +120,7 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
         end
         f.puts %Q[}]
       end
+      File.rename(tmpfile, t.name)
     end
   end
 
@@ -134,7 +138,8 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
   file clib => ["#{build.build_dir}/mrbgems/active_gems.txt", build.mrbcfile, __FILE__] do |_t|
     _pp "GEN", clib.relative_path
     mkdir_p File.dirname(clib)
-    open(clib, 'w') do |f|
+    tmpfile = clib + ".tmp"
+    open(tmpfile, 'w') do |f|
       f.puts %Q[/*]
       f.puts %Q[ * This file contains a list of all]
       f.puts %Q[ * test functions.]
@@ -169,5 +174,6 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
       end
       f.puts %Q[}]
     end
+    File.rename(tmpfile, clib)
   end
 end

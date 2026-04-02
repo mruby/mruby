@@ -291,11 +291,12 @@ class Enumerator
     #
     def flat_map(&block)
       Lazy.new(self){|yielder, val|
-        ary = block.call(val)
-        # TODO: check ary is an Array
-        ary.each {|x|
-          yielder << x
-        }
+        result = block.call(val)
+        if result.respond_to?(:each)
+          result.each {|x| yielder << x }
+        else
+          yielder << result
+        end
       }
     end
     alias collect_concat flat_map

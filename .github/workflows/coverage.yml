@@ -2,6 +2,9 @@ name: Coverage
 
 on: [push]
 
+permissions:
+  contents: read
+
 jobs:
   coverage:
     name: Coverage
@@ -17,6 +20,8 @@ jobs:
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - name: Ruby version
         run: ruby -v
       - name: Compiler version

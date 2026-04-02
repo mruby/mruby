@@ -2748,7 +2748,7 @@ prepare_writer_name(mrb_state *mrb, mrb_sym sym)
 }
 
 static mrb_value
-mod_attr_define(mrb_state *mrb, mrb_value mod, mrb_value (*accessor)(mrb_state*, mrb_value), mrb_sym (*access_name)(mrb_state*, mrb_sym))
+mod_attr_define(mrb_state *mrb, mrb_value mod, mrb_int aargc, mrb_value (*accessor)(mrb_state*, mrb_value), mrb_sym (*access_name)(mrb_state*, mrb_sym))
 {
   struct RClass *c = mrb_class_ptr(mod);
   const mrb_value *argv;
@@ -2765,6 +2765,7 @@ mod_attr_define(mrb_state *mrb, mrb_value mod, mrb_value (*accessor)(mrb_state*,
     }
 
     struct RProc *p = mrb_proc_new_cfunc_with_env(mrb, accessor, 1, &name);
+    p->flags |= aargc == 0 ? MRB_PROC_NOARG : 0;
     mrb_method_t m;
     MRB_METHOD_FROM_PROC(m, p);
     mrb_define_method_raw(mrb, c, method, m);
@@ -2783,7 +2784,7 @@ attr_reader(mrb_state *mrb, mrb_value obj)
 static mrb_value
 mrb_mod_attr_reader(mrb_state *mrb, mrb_value mod)
 {
-  return mod_attr_define(mrb, mod, attr_reader, NULL);
+  return mod_attr_define(mrb, mod, 0, attr_reader, NULL);
 }
 
 static mrb_value
@@ -2799,7 +2800,7 @@ attr_writer(mrb_state *mrb, mrb_value obj)
 static mrb_value
 mrb_mod_attr_writer(mrb_state *mrb, mrb_value mod)
 {
-  return mod_attr_define(mrb, mod, attr_writer, prepare_writer_name);
+  return mod_attr_define(mrb, mod, 1, attr_writer, prepare_writer_name);
 }
 
 static mrb_value

@@ -190,11 +190,7 @@ int_powm(mrb_state *mrb, mrb_value x)
     return mrb_int_pow(mrb, x, mrb_get_arg1(mrb));
   }
   mrb_get_args(mrb, "oo", &e, &m);
-  if (!mrb_integer_p(e)
-#ifdef MRB_USE_BIGINT
-      && !mrb_bigint_p(e)
-#endif
-      ) {
+  if (!mrb_integer_p(e) && !mrb_bigint_p(e)) {
     mrb_raise(mrb, E_TYPE_ERROR, "int.pow(n,m): 2nd argument not allowed unless 1st argument is an integer");
   }
 #ifdef MRB_USE_BIGINT

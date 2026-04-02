@@ -432,11 +432,7 @@ mrb_get_values_at(mrb_state *mrb, mrb_value obj, mrb_int olen, mrb_int argc, con
   for (mrb_int i = 0; i < argc; i++) {
     mrb_value v = argv[i];
 
-    if (mrb_integer_p(v)
-#ifdef MRB_USE_BIGINT
-        || mrb_bigint_p(v)
-#endif
-        ) {
+    if (mrb_integer_p(v) || mrb_bigint_p(v)) {
       mrb_int i = mrb_as_int(mrb, v);
       mrb_ary_push(mrb, result, func(mrb, obj, i));
     }

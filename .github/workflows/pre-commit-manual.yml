@@ -13,7 +13,9 @@ jobs:
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v6
-      - uses: j178/prek-action@v1
+        with:
+          persist-credentials: false
+      - uses: j178/prek-action@v2
         with:
           install-only: true
       - name: Run manual pre-commit hooks

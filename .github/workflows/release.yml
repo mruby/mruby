@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: "Checkout ${{ github.ref_name }} ( ${{ github.sha }} )"
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - name: Builds
         id: builds
         run: |
