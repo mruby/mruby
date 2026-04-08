@@ -1608,10 +1608,11 @@ ary_combination_next(mrb_state *mrb, mrb_value self)
     }
   }
 
-  /* Build current combination indices */
+  /* Build current combination */
   mrb_value result = mrb_ary_new_capa(mrb, state->n);
+  const mrb_value *p = RARRAY_PTR(self);
   for (mrb_int i = 0; i < state->n; i++) {
-    mrb_ary_push(mrb, result, mrb_fixnum_value(state->indices[i]));
+    mrb_ary_push(mrb, result, p[state->indices[i]]);
   }
 
   mrb_int pos = state->n - 1;
