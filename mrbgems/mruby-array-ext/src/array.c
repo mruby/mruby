@@ -1627,13 +1627,9 @@ ary_combination_next(mrb_state *mrb, mrb_value self)
   }
   else {
     /* Reset dependent indices */
-    for (mrb_int i = pos + 1; i < state->n; i++) {
-      if (state->permutation) {
-        state->indices[i] = 0;
-      }
-      else {
-        state->indices[i] = state->indices[i - 1];
-      }
+    mrb_int reset = state->permutation ? 0 : state->indices[pos];
+    for (pos++; pos < state->n; pos++) {
+      state->indices[pos] = reset;
     }
   }
 
