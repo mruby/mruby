@@ -1551,6 +1551,10 @@ ary_combination_init(mrb_state *mrb, mrb_value self)
   }
 #endif
 
+  if (n < 1) {
+    return mrb_nil_value();
+  }
+
   struct RData *d;
   struct mrb_combination_state *state;
   Data_Make_Struct(mrb, mrb->object_class, struct mrb_combination_state,
@@ -1559,11 +1563,8 @@ ary_combination_init(mrb_state *mrb, mrb_value self)
   state->n = n;
   state->array_size = RARRAY_LEN(self);
   state->permutation = permutation;
-  state->finished = (n <= 0 && n != 0);
-
-  if (n > 0) {
-    state->indices = (mrb_int*)mrb_calloc(mrb, n, sizeof(mrb_int));
-  }
+  state->finished = FALSE;
+  state->indices = (mrb_int*)mrb_calloc(mrb, n, sizeof(mrb_int));
 
   return mrb_obj_value(d);
 }
@@ -1592,12 +1593,6 @@ ary_combination_next(mrb_state *mrb, mrb_value self)
   /* Validate array hasn't been modified during iteration */
   if (RARRAY_LEN(self) != state->array_size) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "array modified during iteration");
-  }
-
-  /* Edge case: empty array */
-  if (state->array_size == 0) {
-    state->finished = TRUE;
-    return mrb_nil_value();
   }
 
   /* Validate current indices are still in bounds */
