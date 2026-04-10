@@ -183,3 +183,80 @@ assert("Task.new with block doesn't execute immediately") do
   # Block should not execute until scheduler runs
   assert_false executed
 end
+
+# Fiber inside Task tests (requires mruby-fiber)
+#
+# Test specific behavior of fibers running inside tasks.
+# Since Task.pass only runs one task per call. Earlier assert blocks
+# may have created tasks that are still in the ready queue, so a single
+# Task.pass could execute a stale task instead of ours.
+# So `Task.pass until t.status == :DORMANT` ensures we keep passing
+# until our specific task completes.
+
+assert("Fiber inside Task: basic resume/yield") do
+  results = []
+  t = Task.new(name: "fiber_basic") do
+    f = Fiber.new do |x|
+      Fiber.yield(x * 2)
+      x * 3
+    end
+    results << f.resume(10)
+    results << f.resume
+    results << :done
+  end
+  Task.pass until t.status == :DORMANT
+  assert_equal [20, 30, :done], results
+end
+
+assert("Fiber inside Task: multiple fibers") do
+  results = []
+  t = Task.new(name: "multi_fiber") do
+    f1 = Fiber.new { |x| Fiber.yield(x); x + 1 }
+    f2 = Fiber.new { |x| Fiber.yield(x * 10); x * 100 }
+    results << f1.resume(1)
+    results << f2.resume(2)
+    results << f1.resume
+    results << f2.resume
+  end
+  Task.pass until t.status == :DORMANT
+  assert_equal [1, 20, 2, 200], results
+end
+
+assert("Fiber inside Task: fiber completes then task completes") do
+  result = nil
+  t = Task.new(name: "fiber_complete") do
+    f = Fiber.new { 42 }
+    result = f.resume
+  end
+  Task.pass until t.status == :DORMANT
+  assert_equal 42, result
+end
+
+assert("Fiber inside Task: no crash after GC") do
+  tasks = []
+  10.times do |i|
+    tasks << Task.new(name: "gc_#{i}") do
+      f = Fiber.new { Fiber.yield(:mid); :end }
+      f.resume
+      f.resume
+    end
+  end
+  Task.pass until tasks.all? { |t| t.status == :DORMANT }
+  GC.start
+  assert_true true
+end
+
+assert("Fiber inside Task: alive? works") do
+  alive_mid = nil
+  alive_end = nil
+  t = Task.new(name: "fiber_alive") do
+    f = Fiber.new { Fiber.yield }
+    f.resume
+    alive_mid = f.alive?
+    f.resume
+    alive_end = f.alive?
+  end
+  Task.pass until t.status == :DORMANT
+  assert_true alive_mid
+  assert_false alive_end
+end

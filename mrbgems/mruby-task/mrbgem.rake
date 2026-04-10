@@ -6,6 +6,8 @@ MRuby::Gem::Specification.new('mruby-task') do |spec|
   # Enable task scheduler globally (required for vm.c integration)
   spec.build.defines << 'MRB_USE_TASK_SCHEDULER'
 
+  spec.add_test_dependency 'mruby-fiber', core: 'mruby-fiber'
+
   # Check if HAL gem is loaded
   # HAL gems must be explicitly specified in build config (recommended) or via auto-selection below
   spec.build.gems.one? { |g| g.name =~ /^hal-.*-task$/ } or begin

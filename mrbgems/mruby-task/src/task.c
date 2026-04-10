@@ -295,6 +295,7 @@ task_init_context(mrb_state *mrb, mrb_task *t, const struct RProc *proc)
   ci->pc = proc->body.irep->iseq;  /* Initialize PC to start of bytecode */
 
   c->status = MRB_TASK_CREATED;
+  c->type = MRB_CONTEXT_TASK;
 }
 
 /*
@@ -1480,6 +1481,7 @@ mrb_task_reset_context(mrb_state *mrb, mrb_value task)
   struct mrb_context *c = &t->c;
   c->ci = c->cibase;
   c->status = MRB_TASK_CREATED;
+  c->type = MRB_CONTEXT_TASK;
   if (c->ci) {
     mrb_vm_ci_target_class_set(c->ci, mrb->object_class);
   }

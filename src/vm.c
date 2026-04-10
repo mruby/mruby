@@ -1557,7 +1557,8 @@ prepare_tagged_break(mrb_state *mrb, uint32_t tag, const mrb_callinfo *return_ci
 
 #ifdef MRB_USE_TASK_SCHEDULER
 #define RETURN_IF_TASK_STOPPED(mrb) do { \
-  if ((mrb)->task.switching || (mrb)->c->status == MRB_TASK_STOPPED) \
+  if (mrb->c->type == MRB_CONTEXT_TASK && \
+      ((mrb)->task.switching || (mrb)->c->status == MRB_TASK_STOPPED)) \
     return mrb_nil_value(); \
 } while (0)
 #define TASK_STOP(mrb) do { \
@@ -2857,7 +2858,7 @@ RETRY_TRY_BLOCK:
         }
 
 #ifdef MRB_USE_TASK_SCHEDULER
-        if (mrb->c->status == MRB_TASK_CREATED) {
+        if (c->type == MRB_CONTEXT_TASK) {
           mrb_gc_arena_restore(mrb, ai);
           mrb->jmp = prev_jmp;
           TASK_STOP(mrb);
