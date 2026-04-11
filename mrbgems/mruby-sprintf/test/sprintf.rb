@@ -90,3 +90,19 @@ assert("String#% invalid format") do
     "%?" % ""
   end
 end
+
+assert("sprintf with to_s mutating format string") do
+  # The to_s callback must not be able to invalidate sprintf's internal
+  # iteration pointers by mutating the format string.
+  fmt = "%s" + "B" * 200
+  mutator = Object.new
+  $sprintf_test_fmt = fmt
+  def mutator.to_s
+    $sprintf_test_fmt.replace("Z")
+    "ok"
+  end
+  result = sprintf(fmt, mutator)
+  assert_equal 202, result.length
+  assert_equal "ok", result[0, 2]
+  assert_equal "B" * 200, result[2..]
+end

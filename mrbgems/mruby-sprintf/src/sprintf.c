@@ -380,6 +380,13 @@ mrb_str_format(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value fm
   argc++;
   argv--;
   mrb_ensure_string_type(mrb, fmt);
+  /* Duplicate the format string so that to_s/inspect callbacks invoked
+     during the loop cannot invalidate p/end by mutating the original
+     via String#replace or similar. mrb_str_dup shares the underlying
+     buffer, so this is O(1); String#replace on the original goes
+     through str_replace which decrements the shared refcount, leaving
+     our copy's buffer intact. */
+  fmt = mrb_str_dup(mrb, fmt);
   p = RSTRING_PTR(fmt);
   end = p + RSTRING_LEN(fmt);
   blen = 0;
