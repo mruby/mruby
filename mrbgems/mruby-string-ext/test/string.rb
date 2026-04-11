@@ -492,6 +492,21 @@ assert('String#prepend') do
   g = "world"
   assert_equal "hello world", g.prepend("", "hello ", "")
   assert_equal "hello world", g
+
+  # Self-referencing arguments (GHSA-3hgj-g76g-878c)
+  h = "A" * 100
+  h.prepend(h, h)
+  assert_equal 300, h.length
+  assert_equal "A" * 300, h
+
+  # Mixed self-reference and literal
+  i = "AB"
+  i.prepend("XYZ", i)
+  assert_equal "XYZABAB", i
+
+  j = "AB"
+  j.prepend(j, "X", j)
+  assert_equal "ABXABAB", j
 end
 
 assert('String#ljust') do
