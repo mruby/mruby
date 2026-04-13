@@ -2201,15 +2201,27 @@ str_prepend(mrb_state *mrb, mrb_value self)
 
   char *p = RSTRING_PTR(self);
 
-  /* Move original content to the end */
+  /* Move original content to the end. The original self data now lives
+     at p + total_prepend_len, which we use as the source for any
+     self-referencing arguments (e.g., s.prepend(s, s)) to avoid reading
+     data that has already been overwritten by earlier copies. */
   memmove(p + total_prepend_len, p, self_len);
 
   /* Copy prepended strings in order */
   mrb_int offset = 0;
   for (mrb_int i = 0; i < argc; i++) {
-    mrb_int arg_len = RSTRING_LEN(argv[i]);
+    const char *src;
+    mrb_int arg_len;
+    if (mrb_obj_eq(mrb, self, argv[i])) {
+      src = p + total_prepend_len;
+      arg_len = self_len;
+    }
+    else {
+      src = RSTRING_PTR(argv[i]);
+      arg_len = RSTRING_LEN(argv[i]);
+    }
     if (arg_len > 0) {
-      memcpy(p + offset, RSTRING_PTR(argv[i]), arg_len);
+      memcpy(p + offset, src, arg_len);
       offset += arg_len;
     }
   }

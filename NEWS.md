@@ -23,6 +23,8 @@ mruby now supports pattern matching (case/in) syntax:
 - Trailing comma in method definition parameters: `def foo(a, b,)` ([f78334b](https://github.com/mruby/mruby/commit/f78334b))
 - Array/Hash/String subclasses can now override `[]` and `[]=` methods ([#6675](https://github.com/mruby/mruby/pull/6675))
 - `OP_SETIDX` optimization for Array and Hash ([ddd8fe1](https://github.com/mruby/mruby/commit/ddd8fe1))
+- `case`/`in` without `else` now raises `NoMatchingPatternError` ([d8de35b](https://github.com/mruby/mruby/commit/d8de35b))
+- Allow compound statement in parenthesized argument context ([919cbd8](https://github.com/mruby/mruby/commit/919cbd8))
 
 # Changes in C API
 
@@ -37,6 +39,8 @@ mruby now supports pattern matching (case/in) syntax:
 - `mrb_open()` returns mrb_state with exc set on init failure ([05ffe0c](https://github.com/mruby/mruby/commit/05ffe0c))
 - `mrb_utf8_to_buf()` for UTF-8 encoding consolidation ([7e28e68](https://github.com/mruby/mruby/commit/7e28e68))
 - `kh_is_end()` macro for safe khash iteration ([893cc75](https://github.com/mruby/mruby/commit/893cc75))
+- `mrb_bigint_p()` always defined regardless of bigint gem presence ([6c4a8c0](https://github.com/mruby/mruby/commit/6c4a8c0))
+- `RInteger` and `RFloat` added to `RVALUE` union ([13dbca0](https://github.com/mruby/mruby/commit/13dbca0))
 
 # ROM Method Tables
 
@@ -76,6 +80,7 @@ mruby-symbol-ext, mruby-range-ext, mruby-object-ext.
 - Emscripten: use native WASM exception handling ([ca364e3](https://github.com/mruby/mruby/commit/ca364e3))
 - HAL (Hardware Abstraction Layer) for platform abstraction in mruby-io, mruby-socket, mruby-dir, mruby-task ([74ca22f](https://github.com/mruby/mruby/commit/74ca22f))
 - `MRUBY_MIRB_READLINE` environment variable to control readline library selection ([0aafb83](https://github.com/mruby/mruby/commit/0aafb83))
+- MSYS2 drive letter support in build script ([77f6ffe](https://github.com/mruby/mruby/commit/77f6ffe))
 - Inter-gem headers separated from external API headers ([#6671](https://github.com/mruby/mruby/pull/6671))
 
 # Changes in mrbgems
@@ -110,6 +115,7 @@ mruby-symbol-ext, mruby-range-ext, mruby-object-ext.
 ## Other Gem Changes
 
 - **_NOTE_**: `Hash#deconstruct_keys` removed for CRuby compatibility ([34b9412](https://github.com/mruby/mruby/commit/34b9412))
+- **mruby-enum-lazy**: Fix `Lazy#flat_map` to handle non-enumerable block return values ([#6765](https://github.com/mruby/mruby/pull/6765))
 - **mruby-array-ext**: Add `Array#find` and `Array#rfind` methods
 - **mruby-io**: Add `IO#putc` and `Kernel#putc` ([baff6e6](https://github.com/mruby/mruby/commit/baff6e6))
 - **mruby-random**: Replace xoshiro with PCG for better memory efficiency ([f1bab01](https://github.com/mruby/mruby/commit/f1bab01))
@@ -125,6 +131,8 @@ mruby-symbol-ext, mruby-range-ext, mruby-object-ext.
 - Optimized masgn to generate literals directly into target registers ([fb5d966](https://github.com/mruby/mruby/commit/fb5d966))
 - Optimized splat of literal arrays in args/literals ([1cb8d73](https://github.com/mruby/mruby/commit/1cb8d73))
 - Early termination after too many parse errors ([510ebd7](https://github.com/mruby/mruby/commit/510ebd7))
+- Chunk array literals at 64 elements to reduce register pressure ([f98d641](https://github.com/mruby/mruby/commit/f98d641))
+- Chunk `%w()` and `%i()` literals to reduce register pressure ([62cf0dc](https://github.com/mruby/mruby/commit/62cf0dc))
 
 # VM Optimizations
 
@@ -185,6 +193,10 @@ Other optimizations:
 - [#6705](https://github.com/mruby/mruby/issues/6705) Can't get outer class of an object in C
 - [#6713](https://github.com/mruby/mruby/issues/6713) mruby-polarssl not work
 - [#6720](https://github.com/mruby/mruby/issues/6720) Random float range: different behavior from CRuby
+- [#6722](https://github.com/mruby/mruby/issues/6722) RBreak size overflow on 32-bit platforms with MRB_NO_BOXING
+- [#6740](https://github.com/mruby/mruby/issues/6740) `%w()`/`%i()` register pressure with large literals
+- [#6741](https://github.com/mruby/mruby/issues/6741) `case`/`in` without `else` should raise `NoMatchingPatternError`
+- [#6760](https://github.com/mruby/mruby/issues/6760) `mrb_gc_unregister()` not removing all matching entries
 
 # Merged Pull Requests
 
@@ -260,6 +272,7 @@ Other optimizations:
 - [#6589](https://github.com/mruby/mruby/pull/6589) Add pre-commit hook `check-zip-file-is-not-committed`
 - [#6591](https://github.com/mruby/mruby/pull/6591) mruby-eval fix license link in README
 - [#6593](https://github.com/mruby/mruby/pull/6593) README: Add Contributors Avatars, Star History, Table of Contents
+- [#6598](https://github.com/mruby/mruby/pull/6598) Fix heap buffer overflow in `#method_missing`
 - [#6599](https://github.com/mruby/mruby/pull/6599) pre-commit: run `markdown-link-check`, `oxipng`, `prettier` manually
 - [#6600](https://github.com/mruby/mruby/pull/6600) `dreamcast_shelf build config`: update to use KallistiOS wrappers
 - [#6601](https://github.com/mruby/mruby/pull/6601) fix: skip local build_config.rb when working in MRUBY_ROOT
@@ -303,6 +316,33 @@ Other optimizations:
 - [#6716](https://github.com/mruby/mruby/pull/6716) Fixes identity for proc object
 - [#6717](https://github.com/mruby/mruby/pull/6717) Fix mruby-task: wrapping by critical section and setting initial task receiver
 - [#6718](https://github.com/mruby/mruby/pull/6718) Add installation instructions for conda and Homebrew
+- [#6723](https://github.com/mruby/mruby/pull/6723) Add `RInteger` and `RFloat` to `RVALUE`
+- [#6727](https://github.com/mruby/mruby/pull/6727) Language documentation: update wording of "overloading" section
+- [#6729](https://github.com/mruby/mruby/pull/6729) Simplifying dependency addition for gensym task
+- [#6730](https://github.com/mruby/mruby/pull/6730) Simplifying presym file generation actions
+- [#6733](https://github.com/mruby/mruby/pull/6733) Include `mruby/presym.h` for all source files
+- [#6734](https://github.com/mruby/mruby/pull/6734) Chunk array literals at 64 elements to reduce register pressure
+- [#6735](https://github.com/mruby/mruby/pull/6735) Prevent full recompilation without changes to presym file
+- [#6739](https://github.com/mruby/mruby/pull/6739) Fix MSYS2 build error with drive letters
+- [#6743](https://github.com/mruby/mruby/pull/6743) Chunk `%w()` and `%i()` literals to reduce register pressure
+- [#6744](https://github.com/mruby/mruby/pull/6744) Raise `NoMatchingPatternError` in `case`/`in` without `else`
+- [#6747](https://github.com/mruby/mruby/pull/6747) Correctly handle empty hash as default named argument
+- [#6749](https://github.com/mruby/mruby/pull/6749) Fix microcontroller profile
+- [#6750](https://github.com/mruby/mruby/pull/6750) Fix out-of-bounds read and divide-by-zero in `Array#product`
+- [#6752](https://github.com/mruby/mruby/pull/6752) Fix `attr_reader`-generated methods accepting extra arguments
+- [#6753](https://github.com/mruby/mruby/pull/6753) Further optimize `Array#product`
+- [#6754](https://github.com/mruby/mruby/pull/6754) Mark `attr_reader` procs as noarg
+- [#6755](https://github.com/mruby/mruby/pull/6755) Reload `ci` after `mrb_hash_delete_key()` in keyword argument handling
+- [#6756](https://github.com/mruby/mruby/pull/6756) Avoid impact of object modifications caused by `mrb_vm_exec()` calls
+- [#6758](https://github.com/mruby/mruby/pull/6758) Don't assign result of `mrb_funcall()` directly to `regs`
+- [#6759](https://github.com/mruby/mruby/pull/6759) Define `mrb_bigint_p()` always
+- [#6761](https://github.com/mruby/mruby/pull/6761) Fix `mrb_gc_unregister()` to remove all matching entries
+- [#6762](https://github.com/mruby/mruby/pull/6762) Write generated test C files atomically to avoid build race condition
+- [#6765](https://github.com/mruby/mruby/pull/6765) Fix `Lazy#flat_map` to handle non-enumerable block return values
+- [#6767](https://github.com/mruby/mruby/pull/6767) Allow compound statement in parenthesized argument context
+- [#6780](https://github.com/mruby/mruby/pull/6780) Fix `String#prepend` with self-referencing arguments
+- [#6781](https://github.com/mruby/mruby/pull/6781) Protect `sprintf` format string from mutation during callbacks
+- [#6783](https://github.com/mruby/mruby/pull/6783) Pin GitHub Actions workflows to commit hashes
 
 # Security Fixes
 
@@ -320,4 +360,8 @@ Other optimizations:
 - Heap-use-after-free in insertion_sort ([099d2c47](https://github.com/mruby/mruby/commit/099d2c47))
 - Integer overflow in str_check_length ([6afff1c3](https://github.com/mruby/mruby/commit/6afff1c3))
 - Integer overflow in Integer#lcm ([070bef24](https://github.com/mruby/mruby/commit/070bef24))
+- Heap buffer overflow in `#method_missing` ([550d10a](https://github.com/mruby/mruby/commit/550d10a))
+- Out-of-bounds read and divide-by-zero in `Array#product` ([8441eaf](https://github.com/mruby/mruby/commit/8441eaf))
+- Heap buffer overflow in `String#prepend` with self-referencing arguments ([18ba026](https://github.com/mruby/mruby/commit/18ba026))
+- Use-after-free in `sprintf` via `to_s` callback mutating format string ([48fc422](https://github.com/mruby/mruby/commit/48fc422))
 - Multiple memory leak fixes in bigint, Set, Array, and Task gems
