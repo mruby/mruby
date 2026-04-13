@@ -315,9 +315,8 @@ h_check_modified_validate(mrb_state *mrb, struct h_check_modified *checker, stru
 static uint32_t
 float_hash_code(mrb_float f)
 {
-  if (f == 0.0) return 0;
   /* normalize -0.0 to 0.0 */
-  if (f == -0.0) f = 0.0;
+  if (f == 0.0) f = 0.0;
   return mrb_byte_hash((const uint8_t*)&f, sizeof(f));
 }
 #endif
