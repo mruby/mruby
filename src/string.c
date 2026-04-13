@@ -2014,18 +2014,18 @@ mrb_byte_hash_step(const uint8_t *s, mrb_int len, uint32_t hval)
   const uint8_t *send = s + len;
 
   /*
-   * FNV-1 hash each octet in the buffer
+   * FNV-1a hash each octet in the buffer
    */
   while (s < send) {
+    /* xor the bottom with the current octet */
+    hval ^= (uint32_t)*s++;
+
     /* multiply by the 32-bit FNV magic prime mod 2^32 */
 #if defined(NO_FNV_GCC_OPTIMIZATION)
     hval *= FNV_32_PRIME;
 #else
     hval += (hval<<1) + (hval<<4) + (hval<<7) + (hval<<8) + (hval<<24);
 #endif
-
-    /* xor the bottom with the current octet */
-    hval ^= (uint32_t)*s++;
   }
 
   /* return our new hash value */

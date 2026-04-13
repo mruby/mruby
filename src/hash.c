@@ -361,7 +361,10 @@ mrb_obj_hash_code(mrb_state *mrb, mrb_value key)
     hash_code = U32(tt) ^ U32(mrb_integer(hash_code_obj));
     break;
   }
-  return hash_code ^ (hash_code << 2) ^ (hash_code >> 2);
+  hash_code ^= hash_code >> 16;
+  hash_code *= 0x45d9f3b;
+  hash_code ^= hash_code >> 16;
+  return hash_code;
 }
 
 static uint32_t
