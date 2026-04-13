@@ -386,7 +386,7 @@ mrb_str_format(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value fm
      buffer, so this is O(1); String#replace on the original goes
      through str_replace which decrements the shared refcount, leaving
      our copy's buffer intact. */
-  fmt = mrb_str_dup(mrb, fmt);
+  fmt = mrb_str_dup_frozen(mrb, fmt);
   p = RSTRING_PTR(fmt);
   end = p + RSTRING_LEN(fmt);
   blen = 0;
