@@ -147,6 +147,7 @@ mrb_proc_decompress_caspec(uint32_t flags)
 static inline void
 mrb_proc_set_cfunc_aspec(struct RProc *p, mrb_aspec aspec)
 {
+  p->flags &= ~(MRB_PROC_NOARG | MRB_PROC_CASPEC_MASK);
   if (aspec == 0) {
     p->flags |= MRB_PROC_NOARG;
   }
