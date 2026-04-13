@@ -412,7 +412,18 @@ mrb_proc_arity(const struct RProc *p)
   int ma, op, ra, pa, arity;
 
   if (MRB_PROC_CFUNC_P(p)) {
-    /* TODO cfunc aspec not implemented yet */
+    uint32_t caspec_bits = p->flags & MRB_PROC_CASPEC_MASK;
+    if (caspec_bits != 0) {
+      aspec = mrb_proc_decompress_caspec(caspec_bits);
+      ma = MRB_ASPEC_REQ(aspec);
+      op = MRB_ASPEC_OPT(aspec);
+      ra = MRB_ASPEC_REST(aspec);
+      pa = MRB_ASPEC_POST(aspec);
+      return ra || op ? -(ma + pa + 1) : ma + pa;
+    }
+    if (MRB_PROC_NOARG_P(p)) {
+      return 0;
+    }
     return -1;
   }
 

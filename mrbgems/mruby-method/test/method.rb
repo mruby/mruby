@@ -60,7 +60,7 @@ assert 'Method#arity' do
       assert_equal(-3, method(:mo7).arity)
       assert_equal(1, method(:ma1).arity)
 
-      assert_equal(-1, method(:__send__).arity)
+      assert_equal(-2, method(:__send__).arity)
       assert_equal(-1, method(:nothing).arity)
     end
 

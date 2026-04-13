@@ -901,7 +901,11 @@ exec_irep(mrb_state *mrb, mrb_value self, const struct RProc *p)
   MRB_PROC_RESOLVE_ALIAS(ci, p);
   CI_PROC_SET(ci, p);
   if (MRB_PROC_CFUNC_P(p)) {
-    if (MRB_PROC_NOARG_P(p) && (ci->n > 0 || ci->nk > 0)) {
+    uint32_t caspec_bits = p->flags & MRB_PROC_CASPEC_MASK;
+    if (caspec_bits != 0) {
+      check_argument_count(mrb, ci, mrb_proc_decompress_caspec(caspec_bits));
+    }
+    else if (MRB_PROC_NOARG_P(p) && (ci->n > 0 || ci->nk > 0)) {
       check_argument_count(mrb, ci, 0);
     }
     return MRB_PROC_CFUNC(p)(mrb, self);
@@ -1052,7 +1056,11 @@ send_method(mrb_state *mrb, mrb_value self, mrb_bool pub)
   MRB_PROC_RESOLVE_ALIAS(ci, p);
   CI_PROC_SET(ci, p);
   if (MRB_PROC_CFUNC_P(p)) {
-    if (MRB_PROC_NOARG_P(p) && (ci->n > 0 || ci->nk > 0)) {
+    uint32_t caspec_bits = p->flags & MRB_PROC_CASPEC_MASK;
+    if (caspec_bits != 0) {
+      check_argument_count(mrb, ci, mrb_proc_decompress_caspec(caspec_bits));
+    }
+    else if (MRB_PROC_NOARG_P(p) && (ci->n > 0 || ci->nk > 0)) {
       check_argument_count(mrb, ci, 0);
     }
     return MRB_PROC_CFUNC(p)(mrb, self);

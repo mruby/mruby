@@ -85,6 +85,7 @@ method_missing_prepare(mrb_state *mrb, mrb_sym *mid, mrb_value recv, struct RCla
   const struct RProc *proc;
   if (MRB_METHOD_FUNC_P(m)) {
     struct RProc *p = mrb_proc_new_cfunc(mrb, MRB_METHOD_FUNC(m));
+    mrb_proc_set_cfunc_aspec(p, MRB_MT_ASPEC(m.flags));
     MRB_PROC_SET_TARGET_CLASS(p, *tc);
     proc = p;
   }
@@ -393,9 +394,7 @@ method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
     return MRB_METHOD_PROC(m);
 
   struct RProc *proc = mrb_proc_new_cfunc(mrb, MRB_METHOD_FUNC(m));
-  if (MRB_MT_ASPEC(m.flags) == 0) {
-    proc->flags |= MRB_PROC_NOARG;
-  }
+  mrb_proc_set_cfunc_aspec(proc, MRB_MT_ASPEC(m.flags));
   return proc;
 }
 
