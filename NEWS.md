@@ -340,6 +340,9 @@ Other optimizations:
 - [#6762](https://github.com/mruby/mruby/pull/6762) Write generated test C files atomically to avoid build race condition
 - [#6765](https://github.com/mruby/mruby/pull/6765) Fix `Lazy#flat_map` to handle non-enumerable block return values
 - [#6767](https://github.com/mruby/mruby/pull/6767) Allow compound statement in parenthesized argument context
+- [#6780](https://github.com/mruby/mruby/pull/6780) Fix `String#prepend` with self-referencing arguments
+- [#6781](https://github.com/mruby/mruby/pull/6781) Protect `sprintf` format string from mutation during callbacks
+- [#6783](https://github.com/mruby/mruby/pull/6783) Pin GitHub Actions workflows to commit hashes
 
 # Security Fixes
 
@@ -359,4 +362,6 @@ Other optimizations:
 - Integer overflow in Integer#lcm ([070bef24](https://github.com/mruby/mruby/commit/070bef24))
 - Heap buffer overflow in `#method_missing` ([550d10a](https://github.com/mruby/mruby/commit/550d10a))
 - Out-of-bounds read and divide-by-zero in `Array#product` ([8441eaf](https://github.com/mruby/mruby/commit/8441eaf))
+- Heap buffer overflow in `String#prepend` with self-referencing arguments ([18ba026](https://github.com/mruby/mruby/commit/18ba026))
+- Use-after-free in `sprintf` via `to_s` callback mutating format string ([48fc422](https://github.com/mruby/mruby/commit/48fc422))
 - Multiple memory leak fixes in bigint, Set, Array, and Task gems
