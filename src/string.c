@@ -1358,6 +1358,16 @@ mrb_str_dup(mrb_state *mrb, mrb_value str)
   return str_replace(mrb, dup, s);
 }
 
+MRB_API mrb_value
+mrb_str_dup_frozen(mrb_state *mrb, mrb_value str)
+{
+  if (!mrb_frozen_p(mrb_basic_ptr(str))) {
+    str = mrb_str_dup(mrb, str);
+    mrb_basic_ptr(str)->frozen = TRUE;
+  }
+  return str;
+}
+
 enum str_convert_range {
   /* `beg` and `len` are byte unit in `0 ... str.bytesize` */
   STR_BYTE_RANGE_CORRECTED = 1,
