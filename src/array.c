@@ -2290,6 +2290,7 @@ sort_cmp(mrb_state *mrb, mrb_value ary, mrb_value a_val, mrb_value b_val, mrb_va
 static void
 heapify(mrb_state *mrb, mrb_value ary, mrb_value *a, mrb_int index, mrb_int size, mrb_value blk)
 {
+  int ai = mrb_gc_arena_save(mrb);
   mrb_value val = a[index];  /* save root to hole */
   mrb_gc_protect(mrb, val);
 
@@ -2308,6 +2309,7 @@ heapify(mrb_state *mrb, mrb_value ary, mrb_value *a, mrb_int index, mrb_int size
     index = child;
   }
   a[index] = val;             /* place saved value */
+  mrb_gc_arena_restore(mrb, ai);
 }
 
 /* Floyd's bottom-up heap deletion: sift the hole down to a leaf without
@@ -2317,6 +2319,7 @@ heapify(mrb_state *mrb, mrb_value ary, mrb_value *a, mrb_int index, mrb_int size
 static void
 heap_delete_root(mrb_state *mrb, mrb_value ary, mrb_value *a, mrb_int size, mrb_value blk)
 {
+  int ai = mrb_gc_arena_save(mrb);
   /* a[0] already holds the value to be re-inserted (set by caller) */
   mrb_value last = a[0];
   mrb_gc_protect(mrb, last);
@@ -2347,6 +2350,7 @@ heap_delete_root(mrb_state *mrb, mrb_value ary, mrb_value *a, mrb_int size, mrb_
     hole = parent;
   }
   a[hole] = last;
+  mrb_gc_arena_restore(mrb, ai);
 }
 
 static void
