@@ -172,6 +172,11 @@ create_matchdata(mrb_state *mrb, mrb_value regexp, mrb_value str, int *captures,
   memcpy(md->captures, captures, sizeof(int) * ncap);
 
   mrb_value obj = mrb_obj_value(mrb_data_object_alloc(mrb, md_class, md, &matchdata_type));
+  /* Keep `source` and `regexp` GC-reachable via instance variables.
+   * The mrb_values are also held in mrb_match_data, but C-allocated
+   * structs are not scanned by the GC. */
+  mrb_iv_set(mrb, obj, mrb_intern_lit(mrb, "source"), str);
+  mrb_iv_set(mrb, obj, mrb_intern_lit(mrb, "regexp"), regexp);
   mrb_gv_set(mrb, mrb_intern_lit(mrb, "$~"), obj);
 
   /* set $1-$9 from captures */
