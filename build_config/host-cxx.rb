@@ -1,4 +1,4 @@
-MRuby::Build.new do |conf|
+MRuby::Build.new('host-cxx') do |conf|
   conf.toolchain
 
   # include the default GEMs
