@@ -51,15 +51,14 @@ typedef struct mpz_context {
 } mpz_ctx_t;
 
 /* Convenience macros for context creation.
- * Uses per-member assignment instead of a C99 compound literal with
- * designated initializers so the file compiles as C++ on legacy
- * toolchains (pre-C++20). */
+ * Uses positional aggregate initialization instead of a C99 compound
+ * literal with designated initializers, so the file compiles as C++
+ * on legacy toolchains (pre-C++20).  Member order must match the
+ * mpz_context struct declaration above. */
 #define MPZ_CTX_INIT(mrb_ptr, ctx, pool_ptr) \
   mpz_pool_t pool ## _storage = {{0}};\
   mpz_pool_t *pool_ptr = &pool ## _storage;\
-  mpz_ctx_t ctx ## _struct; \
-  ctx ## _struct.mrb = (mrb_ptr); \
-  ctx ## _struct.pool = (pool_ptr); \
+  mpz_ctx_t ctx ## _struct = { (mrb_ptr), (pool_ptr) }; \
   mpz_ctx_t *ctx = &(ctx ## _struct);
 
 /* Access macros for readability */
