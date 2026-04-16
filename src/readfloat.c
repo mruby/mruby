@@ -168,10 +168,11 @@ mrb_read_float(const char *str, char **endp, double *fp)
     res = (double)int_part;
   }
   else {
-    // Fast path: combine integer and fractional parts
+    // Divide by the exact 10^n (exact for n <= 22) rather than multiplying
+    // by the inexact 10^-n, so the fraction is correctly rounded.
     res = (double)int_part;
     if (frac_digits > 0) {
-      res += (double)frac_part * mrb_pow10(-frac_digits);
+      res += (double)frac_part / mrb_pow10(frac_digits);
     }
   }
 
