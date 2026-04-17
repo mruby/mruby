@@ -144,7 +144,7 @@ mrb_read_float(const char *str, char **endp, double *fp)
   // Parse fractional part
   if (*p == '.') {
     p++;
-    while (ISDIGIT(*p) && frac_digits < 17) { // Limit precision to avoid overflow
+    while (ISDIGIT(*p) && frac_digits < 18) { // Limit precision to avoid overflow
       frac_part = frac_part * 10 + (*p - '0');
       frac_digits++;
       digits++;
