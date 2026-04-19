@@ -14,15 +14,12 @@
  */
 MRB_BEGIN_DECL
 
-
-struct mrb_state;
-
 #define MRB_EACH_OBJ_OK 0
 #define MRB_EACH_OBJ_BREAK 1
-typedef int (mrb_each_object_callback)(struct mrb_state *mrb, struct RBasic *obj, void *data);
-void mrb_objspace_each_objects(struct mrb_state *mrb, mrb_each_object_callback *callback, void *data);
+typedef int (mrb_each_object_callback)(mrb_state *mrb, struct RBasic *obj, void *data);
+void mrb_objspace_each_objects(mrb_state *mrb, mrb_each_object_callback *callback, void *data);
 size_t mrb_objspace_page_slot_size(void);
-MRB_API void mrb_free_context(struct mrb_state *mrb, struct mrb_context *c);
+MRB_API void mrb_free_context(mrb_state *mrb, struct mrb_context *c);
 
 #ifndef MRB_GC_ARENA_SIZE
 #define MRB_GC_ARENA_SIZE 100
@@ -69,8 +66,8 @@ typedef struct mrb_gc {
   int arena_idx;
 } mrb_gc;
 
-MRB_API mrb_bool mrb_object_dead_p(struct mrb_state *mrb, struct RBasic *object);
-MRB_API int mrb_gc_add_region(struct mrb_state *mrb, void *start, size_t size);
+MRB_API mrb_bool mrb_object_dead_p(mrb_state *mrb, struct RBasic *object);
+MRB_API int mrb_gc_add_region(mrb_state *mrb, void *start, size_t size);
 
 #define MRB_GC_RED 7
 

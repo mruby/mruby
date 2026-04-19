@@ -165,11 +165,11 @@ mrb_val_union(mrb_value v)
   return x;
 }
 
-MRB_API mrb_value mrb_word_boxing_cptr_value(struct mrb_state*, void*);
+MRB_API mrb_value mrb_word_boxing_cptr_value(mrb_state*, void*);
 #ifndef MRB_NO_FLOAT
-MRB_API mrb_value mrb_word_boxing_float_value(struct mrb_state*, mrb_float);
+MRB_API mrb_value mrb_word_boxing_float_value(mrb_state*, mrb_float);
 #endif
-MRB_API mrb_value mrb_boxing_int_value(struct mrb_state*, mrb_int);
+MRB_API mrb_value mrb_boxing_int_value(mrb_state*, mrb_int);
 
 #if WORDBOX_IMMEDIATE_MASK == 0x3
 #define mrb_immediate_p(o) ((o).w & WORDBOX_IMMEDIATE_MASK || (o).w <= MRB_Qundef)

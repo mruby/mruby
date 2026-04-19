@@ -113,6 +113,8 @@
 
 #include "mrbconf.h"
 
+typedef struct mrb_state mrb_state;
+
 #include <mruby/common.h>
 #include <mruby/value.h>
 #include <mruby/gc.h>
@@ -155,8 +157,6 @@ typedef uint8_t mrb_code;
 typedef uint32_t mrb_aspec;
 
 typedef struct mrb_irep mrb_irep;
-
-struct mrb_state;
 
 #ifndef MRB_FIXED_STATE_ATEXIT_STACK_SIZE
 #define MRB_FIXED_STATE_ATEXIT_STACK_SIZE 5
@@ -224,7 +224,7 @@ mrb_static_assert_powerof2(MRB_METHOD_CACHE_SIZE);
  * @param self The self object
  * @return [mrb_value] The function's return value
  */
-typedef mrb_value (*mrb_func_t)(struct mrb_state *mrb, mrb_value self);
+typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value self);
 
 typedef struct {
   uint32_t flags;                       /* method flags (no symbol packed) */
@@ -245,7 +245,7 @@ struct mrb_cache_entry {
 
 struct mrb_jmpbuf;
 
-typedef void (*mrb_atexit_func)(struct mrb_state*);
+typedef void (*mrb_atexit_func)(mrb_state*);
 
 #ifdef MRB_USE_TASK_SCHEDULER
 struct mrb_task;
@@ -260,7 +260,7 @@ typedef struct mrb_task_state {
 } mrb_task_state;
 #endif
 
-typedef struct mrb_state {
+struct mrb_state {
   struct mrb_jmpbuf *jmp;
 
   struct mrb_context *c;
@@ -307,12 +307,12 @@ typedef struct mrb_state {
 #endif
 
 #ifdef MRB_USE_DEBUG_HOOK
-  void (*code_fetch_hook)(struct mrb_state* mrb, const struct mrb_irep *irep, const mrb_code *pc, mrb_value *regs);
-  void (*debug_op_hook)(struct mrb_state* mrb, const struct mrb_irep *irep, const mrb_code *pc, mrb_value *regs);
+  void (*code_fetch_hook)(mrb_state* mrb, const struct mrb_irep *irep, const mrb_code *pc, mrb_value *regs);
+  void (*debug_op_hook)(mrb_state* mrb, const struct mrb_irep *irep, const mrb_code *pc, mrb_value *regs);
 #endif
 
 #ifdef MRB_BYTECODE_DECODE_OPTION
-  mrb_code (*bytecode_decoder)(struct mrb_state* mrb, mrb_code code);
+  mrb_code (*bytecode_decoder)(mrb_state* mrb, mrb_code code);
 #endif
 
   struct RClass *eException_class;
@@ -339,7 +339,7 @@ typedef struct mrb_state {
 #ifdef MRB_USE_TASK_SCHEDULER
   mrb_task_state task;                    /* Task scheduler state */
 #endif
-} mrb_state;
+};
 
 /**
  * Defines a new class.
