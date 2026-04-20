@@ -51,6 +51,8 @@ To get mruby, you can download the stable version 4.0.0 from the official mruby
 GitHub repository or clone the trunk of the mruby source tree with the "git
 clone" command. You can also install and compile mruby using [ruby-install](https://github.com/postmodern/ruby-install), [ruby-build](https://github.com/rbenv/ruby-build), [rvm](https://github.com/rvm/rvm), [conda](https://anaconda.org/channels/conda-forge/packages/mruby/overview) or [Homebrew](https://formulae.brew.sh/formula/mruby).
 
+The release candidate version 4.0.0 of mruby can be downloaded via the following URL: [https://github.com/mruby/mruby/archive/4.0.0-rc3.zip](https://github.com/mruby/mruby/archive/4.0.0-rc3.zip)
+
 The latest development version of mruby can be downloaded via the following URL: [https://github.com/mruby/mruby/zipball/master](https://github.com/mruby/mruby/zipball/master)
 
 The trunk of the mruby source tree can be checked out with the

@@ -80,7 +80,7 @@ MRB_BEGIN_DECL
 /*
  * Release year.
  */
-#define MRUBY_RELEASE_YEAR 2025
+#define MRUBY_RELEASE_YEAR 2026
 
 /*
  * Release month.
