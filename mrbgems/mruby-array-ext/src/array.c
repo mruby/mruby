@@ -1575,16 +1575,8 @@ ary_combination_init(mrb_state *mrb, mrb_value self)
 static mrb_value
 ary_combination_next(mrb_state *mrb, mrb_value self)
 {
-  mrb_value state_obj;
-  mrb_get_args(mrb, "o", &state_obj);
-
   struct mrb_combination_state *state;
-
-  /* Validate state object type and get data */
-  state = (struct mrb_combination_state*)mrb_data_check_and_get(mrb, state_obj, &mrb_combination_state_type);
-  if (!state) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid combination state");
-  }
+  mrb_get_args(mrb, "d", &state, &mrb_combination_state_type);
 
   /* Check if iteration is complete */
   if (state->finished) return mrb_nil_value();
