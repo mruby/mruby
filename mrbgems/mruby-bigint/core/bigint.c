@@ -348,6 +348,14 @@ mpz_move(mpz_ctx_t *ctx, mpz_t *y, mpz_t *x)
   x->sz = 0;
 }
 
+static inline void
+mpz_swap(mpz_t *a, mpz_t *b)
+{
+  mpz_t tmp = *a;
+  *a = *b;
+  *b = tmp;
+}
+
 static size_t
 digits(mpz_t *x)
 {
@@ -4821,9 +4829,11 @@ mpz_power_of_2_p(mpz_t *x)
   return (limb != 0) && ((limb & (limb - 1)) == 0);
 }
 
-/* Hybrid GCD: a binary (Stein) prelude factors out common powers of 2
-   and handles single-limb / power-of-2 fast paths; the multi-limb main
-   loop is classical Euclidean using mpz_mod. */
+/* Binary GCD (Stein's algorithm): factor out common powers of 2,
+   then iterate on odd operands with subtract + trailing-zero shift.
+   For heavily unbalanced pairs (one operand has at least two more
+   limbs than the other) a single Euclidean step via mpz_mod replaces
+   many Stein subtracts. */
 static void
 mpz_gcd(mpz_ctx_t *ctx, mpz_t *gg, mpz_t *aa, mpz_t *bb)
 {
@@ -4895,14 +4905,29 @@ mpz_gcd(mpz_ctx_t *ctx, mpz_t *gg, mpz_t *aa, mpz_t *bb)
   mpz_div_2exp(ctx, &a, &a, a_zeros);
   mpz_div_2exp(ctx, &b, &b, b_zeros);
 
-  /* Euclidean algorithm for multi-limb numbers */
+  /* Stein main loop. Invariant: a and b are positive and odd.
+     Euclidean fallback when b has >=2 more limbs than a. */
   while (!zero_p(&b)) {
-    mpz_t temp;
-    mpz_init_temp(ctx, &temp, a.sz);
-    mpz_mod(ctx, &temp, &a, &b);
-    mpz_move(ctx, &a, &b);
-    mpz_move(ctx, &b, &temp);
-    mpz_clear(ctx, &temp);
+    if (mpz_cmp(ctx, &a, &b) > 0) {
+      mpz_swap(&a, &b);
+    }
+    if (b.sz >= a.sz + 2) {
+      mpz_t temp;
+      mpz_init_temp(ctx, &temp, a.sz);
+      mpz_mod(ctx, &temp, &b, &a);
+      mpz_move(ctx, &b, &temp);
+      mpz_clear(ctx, &temp);
+      if (zero_p(&b)) break;
+      size_t bz = mpz_trailing_zeros(&b);
+      if (bz > 0)
+        mpz_div_2exp(ctx, &b, &b, bz);
+    }
+    else {
+      mpz_sub(ctx, &b, &b, &a);
+      if (zero_p(&b)) break;
+      size_t bz = mpz_trailing_zeros(&b);
+      mpz_div_2exp(ctx, &b, &b, bz);
+    }
   }
   mpz_mul_2exp(ctx, gg, &a, shift);
   mpz_clear(ctx, &a);
