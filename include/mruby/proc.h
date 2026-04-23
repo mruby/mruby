@@ -102,6 +102,60 @@ struct RProc {
 #define MRB_PROC_ALIAS 8192
 #define MRB_PROC_ALIAS_P(p) (((p)->flags & MRB_PROC_ALIAS) != 0)
 
+/* Compressed aspec for cfunc procs (13 bits in RProc.flags).
+ * Uses free bits 0-6 and 14-19 to store a compressed argument spec.
+ * Layout: block(0) kdict(1) key(2-3) post(4-5) rest(6) opt(14-16) req(17-19)
+ * Field widths are smaller than the full 24-bit aspec: req/opt max 7, post/key max 3.
+ * Values exceeding the compressed range are clamped and rest is forced to 1. */
+#define MRB_PROC_CASPEC_MASK  0xfc07fu  /* bits 0-6 and 14-19 */
+
+static inline uint32_t
+mrb_proc_compress_aspec(mrb_aspec aspec)
+{
+  uint32_t req   = MRB_ASPEC_REQ(aspec);
+  uint32_t opt   = MRB_ASPEC_OPT(aspec);
+  uint32_t rest  = MRB_ASPEC_REST(aspec);
+  uint32_t post  = MRB_ASPEC_POST(aspec);
+  uint32_t key   = MRB_ASPEC_KEY(aspec);
+  uint32_t kdict = MRB_ASPEC_KDICT(aspec);
+  uint32_t block = MRB_ASPEC_BLOCK(aspec);
+
+  if (req > 7 || opt > 7 || post > 3 || key > 3) {
+    if (req > 7) req = 7;
+    if (opt > 7) opt = 7;
+    if (post > 3) post = 3;
+    if (key > 3) key = 3;
+    rest = 1;
+  }
+
+  return block | (kdict << 1) | (key << 2) | (post << 4) | (rest << 6)
+       | (opt << 14) | (req << 17);
+}
+
+static inline mrb_aspec
+mrb_proc_decompress_caspec(uint32_t flags)
+{
+  return (((flags >> 17) & 0x7) << 18)  /* req */
+       | (((flags >> 14) & 0x7) << 13)  /* opt */
+       | (((flags >> 6) & 0x1) << 12)   /* rest */
+       | (((flags >> 4) & 0x3) << 7)    /* post */
+       | (((flags >> 2) & 0x3) << 2)    /* key */
+       | (((flags >> 1) & 0x1) << 1)    /* kdict */
+       | (flags & 0x1);                 /* block */
+}
+
+static inline void
+mrb_proc_set_cfunc_aspec(struct RProc *p, mrb_aspec aspec)
+{
+  p->flags &= ~(MRB_PROC_NOARG | MRB_PROC_CASPEC_MASK);
+  if (aspec == 0) {
+    p->flags |= MRB_PROC_NOARG;
+  }
+  else {
+    p->flags |= mrb_proc_compress_aspec(aspec);
+  }
+}
+
 #define mrb_proc_ptr(v)    ((struct RProc*)(mrb_ptr(v)))
 
 struct RProc *mrb_proc_new(mrb_state*, const mrb_irep*);
