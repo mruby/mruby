@@ -4821,7 +4821,9 @@ mpz_power_of_2_p(mpz_t *x)
   return (limb != 0) && ((limb & (limb - 1)) == 0);
 }
 
-/* Binary GCD algorithm (Stein's algorithm) - faster than Euclidean GCD */
+/* Hybrid GCD: a binary (Stein) prelude factors out common powers of 2
+   and handles single-limb / power-of-2 fast paths; the multi-limb main
+   loop is classical Euclidean using mpz_mod. */
 static void
 mpz_gcd(mpz_ctx_t *ctx, mpz_t *gg, mpz_t *aa, mpz_t *bb)
 {
