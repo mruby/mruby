@@ -155,3 +155,44 @@ assert 'Bigint abs' do
   assert_equal 36893488147419103232, n.abs
   assert_equal 36893488147419103232, (-n).abs
 end
+
+assert 'Bigint gcd' do
+  # zero cases
+  assert_equal 0, 0.gcd(0)
+  n = 1 << 200
+  assert_equal n, n.gcd(0)
+  assert_equal n, 0.gcd(n)
+
+  # power-of-2 fast path
+  assert_equal 1 << 100, (1 << 200).gcd(1 << 100)
+  assert_equal 1 << 100, (1 << 100).gcd(1 << 200)
+  assert_equal 1 << 40, (10 ** 50).gcd(1 << 40)
+
+  # negative operands: result is the positive GCD
+  a = 1 << 200
+  b = 3 << 200
+  assert_equal a, a.gcd(b)
+  assert_equal a, (-a).gcd(b)
+  assert_equal a, a.gcd(-b)
+  assert_equal a, (-a).gcd(-b)
+
+  # balanced multi-limb with known common factor
+  fib1000 = (1..1000).inject([0, 1]) { |(x, y), _| [y, x + y] }[0]
+  common = fib1000
+  k, m = 1_000_003, 1_000_033          # small coprime primes
+  assert_equal common, (common * k).gcd(common * m)
+  assert_equal common, (common * m).gcd(common * k)
+
+  # unbalanced: small coprime vs large
+  big = common * k
+  assert_equal 1, big.gcd(m)
+  assert_equal 1, m.gcd(big)
+
+  # Fibonacci neighbors are always coprime
+  f100 = (1..100).inject([0, 1]) { |(x, y), _| [y, x + y] }[0]
+  f101 = (1..101).inject([0, 1]) { |(x, y), _| [y, x + y] }[0]
+  assert_equal 1, f100.gcd(f101)
+
+  # Euclidean fallback path: operand sizes differ by several limbs
+  assert_equal 7, (7 * (1 << 4000)).gcd(7 * 13)
+end
