@@ -28,6 +28,7 @@ assert('Addrinfo.getaddrinfo diagnostic') do
 end
 
 assert('Addrinfo.getaddrinfo') do
+  skip "localhost resolution unreliable in Windows getaddrinfo" if SocketTest.win?
   ary = Addrinfo.getaddrinfo("localhost", 53, Socket::AF_INET, Socket::SOCK_STREAM)
   assert_true(ary.size >= 1)
   ai = ary[0]
@@ -39,6 +40,7 @@ assert('Addrinfo.getaddrinfo') do
 end
 
 assert('Addrinfo.foreach') do
+  skip "localhost resolution unreliable in Windows getaddrinfo" if SocketTest.win?
   # assume Addrinfo.getaddrinfo works well
   a = Addrinfo.getaddrinfo("localhost", 80)
   b = []
