@@ -150,7 +150,7 @@ mrb_nan_boxing_value_int(mrb_value v)
 #define SET_TRUE_VALUE(r) NANBOX_SET_MISC_VALUE(r, MRB_TT_TRUE, 1)
 #define SET_BOOL_VALUE(r,b) NANBOX_SET_MISC_VALUE(r, (b) ? MRB_TT_TRUE : MRB_TT_FALSE, 1)
 #ifdef MRB_INT64
-MRB_API mrb_value mrb_boxing_int_value(struct mrb_state*, mrb_int);
+MRB_API mrb_value mrb_boxing_int_value(mrb_state*, mrb_int);
 #define SET_INT_VALUE(mrb, r, n) ((r) = mrb_boxing_int_value(mrb, n))
 #else
 #define SET_INT_VALUE(mrb, r, n) SET_FIXNUM_VALUE(r, n)

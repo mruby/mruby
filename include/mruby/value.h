@@ -55,8 +55,6 @@ typedef uint8_t mrb_bool;
 # endif
 #endif
 
-struct mrb_state;
-
 #if defined _MSC_VER && _MSC_VER < 1800
 # define PRIo64 "llo"
 # define PRId64 "lld"
@@ -330,7 +328,7 @@ struct RCptr {
  */
 #ifndef MRB_NO_FLOAT
 MRB_INLINE mrb_value
-mrb_float_value(struct mrb_state *mrb, mrb_float f)
+mrb_float_value(mrb_state *mrb, mrb_float f)
 {
   mrb_value v;
   (void) mrb;
@@ -340,7 +338,7 @@ mrb_float_value(struct mrb_state *mrb, mrb_float f)
 #endif
 
 MRB_INLINE mrb_value
-mrb_cptr_value(struct mrb_state *mrb, void *p)
+mrb_cptr_value(mrb_state *mrb, void *p)
 {
   mrb_value v;
   (void) mrb;
@@ -352,7 +350,7 @@ mrb_cptr_value(struct mrb_state *mrb, void *p)
  * Returns an integer in Ruby.
  */
 MRB_INLINE mrb_value
-mrb_int_value(struct mrb_state *mrb, mrb_int i)
+mrb_int_value(mrb_state *mrb, mrb_int i)
 {
   mrb_value v;
   SET_INT_VALUE(mrb, v, i);
