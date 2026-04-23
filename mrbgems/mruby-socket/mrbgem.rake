@@ -8,4 +8,9 @@ MRuby::Gem::Specification.new('mruby-socket') do |spec|
   spec.add_dependency('mruby-io', :core => 'mruby-io')
   spec.add_dependency('mruby-error', :core => 'mruby-error')
   # spec.add_dependency('mruby-mtest')
+
+  if spec.for_windows?
+    spec.linker.libraries << "wsock32"
+    spec.linker.libraries << "ws2_32"
+  end
 end
