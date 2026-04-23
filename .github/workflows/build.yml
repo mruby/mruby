@@ -42,18 +42,8 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          Write-Host "=== Dnscache service state (before) ==="
-          Get-Service Dnscache | Format-List Name, Status, StartType
-          if ((Get-Service Dnscache).Status -ne 'Running') {
-            Set-Service -Name Dnscache -StartupType Automatic
-            Start-Service -Name Dnscache
-          }
-          Write-Host "=== Dnscache service state (after) ==="
-          Get-Service Dnscache | Format-List Name, Status, StartType
           Add-Content -Path $env:WINDIR\System32\drivers\etc\hosts -Value "127.0.0.1 localhost"
           Add-Content -Path $env:WINDIR\System32\drivers\etc\hosts -Value "::1 localhost"
-          Write-Host "=== Resolve-DnsName localhost ==="
-          Resolve-DnsName localhost -ErrorAction Continue | Format-List
       - name: Build and test
         run: rake -m test:run:serial
 
@@ -98,18 +88,8 @@ jobs:
       - name: Ensure localhost resolves
         shell: pwsh
         run: |
-          Write-Host "=== Dnscache service state (before) ==="
-          Get-Service Dnscache | Format-List Name, Status, StartType
-          if ((Get-Service Dnscache).Status -ne 'Running') {
-            Set-Service -Name Dnscache -StartupType Automatic
-            Start-Service -Name Dnscache
-          }
-          Write-Host "=== Dnscache service state (after) ==="
-          Get-Service Dnscache | Format-List Name, Status, StartType
           Add-Content -Path $env:WINDIR\System32\drivers\etc\hosts -Value "127.0.0.1 localhost"
           Add-Content -Path $env:WINDIR\System32\drivers\etc\hosts -Value "::1 localhost"
-          Write-Host "=== Resolve-DnsName localhost ==="
-          Resolve-DnsName localhost -ErrorAction Continue | Format-List
       - name: Build and test
         shell: cmd
         run: |
