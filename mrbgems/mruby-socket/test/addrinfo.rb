@@ -6,27 +6,6 @@ assert('super class of Addrinfo') do
   assert_equal(Object, Addrinfo.superclass)
 end
 
-# TEMPORARY DIAGNOSTIC: observe which getaddrinfo pattern works on Windows CI.
-# Remove once the root cause is identified and the real fix is in place.
-assert('Addrinfo.getaddrinfo diagnostic') do
-  cases = [
-    ['127.0.0.1 literal AF_INET', -> { Addrinfo.getaddrinfo('127.0.0.1', 53, Socket::AF_INET, Socket::SOCK_STREAM) }],
-    ['localhost AF_UNSPEC',       -> { Addrinfo.getaddrinfo('localhost', 53, Socket::AF_UNSPEC, Socket::SOCK_STREAM) }],
-    ['localhost nil family',      -> { Addrinfo.getaddrinfo('localhost', 53) }],
-    ['localhost AF_INET6',        -> { Addrinfo.getaddrinfo('localhost', 53, Socket::AF_INET6, Socket::SOCK_STREAM) }],
-    ['localhost AF_INET (orig)',  -> { Addrinfo.getaddrinfo('localhost', 53, Socket::AF_INET, Socket::SOCK_STREAM) }],
-  ]
-  cases.each do |label, probe|
-    begin
-      ary = probe.call
-      puts "DIAG #{label}: OK size=#{ary.size} first=#{ary.first&.ip_address.inspect}"
-    rescue => e
-      puts "DIAG #{label}: #{e.class} #{e.message}"
-    end
-  end
-  assert_true(true)
-end
-
 assert('Addrinfo.getaddrinfo') do
   skip "localhost resolution unreliable in Windows getaddrinfo" if SocketTest.win?
   ary = Addrinfo.getaddrinfo("localhost", 53, Socket::AF_INET, Socket::SOCK_STREAM)
