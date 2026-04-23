@@ -689,14 +689,7 @@ class Array
       if n > 0
         # Use C iterator for complex cases
         state = __combination_init(n, permutation)
-        while (indices = __combination_next(state))
-          # Convert indices to elements in Ruby
-          tmp = [nil] * n
-          i = 0
-          while i < n
-            tmp[i] = self[indices[i]]
-            i += 1
-          end
+        while tmp = __combination_next(state)
           yield tmp
         end
       end
