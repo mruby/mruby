@@ -38,6 +38,12 @@ jobs:
         run: ruby -v
       - name: Compiler version
         run: ${{ env.CC }} --version
+      - name: Ensure localhost resolves on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Add-Content -Path $env:WINDIR\System32\drivers\etc\hosts -Value "127.0.0.1 localhost"
+          Add-Content -Path $env:WINDIR\System32\drivers\etc\hosts -Value "::1 localhost"
       - name: Build and test
         run: rake -m test:run:serial
 
@@ -79,6 +85,11 @@ jobs:
           persist-credentials: false
       - name: Ruby version
         run: ruby -v
+      - name: Ensure localhost resolves
+        shell: pwsh
+        run: |
+          Add-Content -Path $env:WINDIR\System32\drivers\etc\hosts -Value "127.0.0.1 localhost"
+          Add-Content -Path $env:WINDIR\System32\drivers\etc\hosts -Value "::1 localhost"
       - name: Build and test
         shell: cmd
         run: |
