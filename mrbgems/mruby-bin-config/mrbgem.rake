@@ -21,14 +21,14 @@ MRuby::Gem::Specification.new('mruby-bin-config') do |spec|
   end
 
   mruby_config = name + suffix
-  mruby_config_path = "#{mruby_config_dir}/#{mruby_config}"
+  mruby_config_path = build.exefile("#{mruby_config_dir}/#{name}")
   make_cfg = "#{build.build_dir}/#{build.libdir_name}/libmruby.flags.mak"
   tmplt_path = "#{__dir__}/#{mruby_config}"
 
   if iscross
     build.products << mruby_config_path
   else
-    build.bins << mruby_config
+    build.bins << name
   end
 
   directory mruby_config_dir
