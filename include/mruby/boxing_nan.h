@@ -103,7 +103,8 @@ mrb_unboxed_type(mrb_value o)
 {
   if (!mrb_float_p(o) && mrb_nb_tt(o) == MRB_NANBOX_TT_OBJECT && o.u != 0) {
     return ((struct RBasic*)(uintptr_t)o.u)->tt;
-  } else {
+  }
+  else {
     return MRB_TT_FALSE;
   }
 }

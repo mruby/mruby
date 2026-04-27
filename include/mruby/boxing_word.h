@@ -266,9 +266,11 @@ mrb_unboxed_type(mrb_value o)
 {
   if (mrb_nil_p(o)) {
     return MRB_TT_FALSE;
-  } else if ((o.w & WORDBOX_IMMEDIATE_MASK) == 0) {
+  }
+  else if ((o.w & WORDBOX_IMMEDIATE_MASK) == 0) {
     return mrb_val_union(o).bp->tt;
-  } else {
+  }
+  else {
     return MRB_TT_FALSE;
   }
 }
