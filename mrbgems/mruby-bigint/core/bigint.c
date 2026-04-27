@@ -1248,7 +1248,8 @@ mpn_add_var(mp_limb *rp, const mp_limb *ap, size_t an,
       rp[i] = LOW(sum);
       carry = HIGH(sum);
     }
-  } else {
+  }
+  else {
     for (; i < bn; i++) {
       mp_dbl_limb sum = (mp_dbl_limb)bp[i] + carry;
       rp[i] = LOW(sum);
@@ -1572,7 +1573,8 @@ mpz_mul_toom3(mpz_ctx_t *ctx, mp_limb *result,
     mpn_add(t2, t2, w_len, w0, w_len);
     mpn_add(t2, t2, w_len, winf, w_len);
     mpn_neg(t2, t2, w_len);
-  } else {
+  }
+  else {
     mpn_sub(t2, t2, w_len, w0, w_len);
     mpn_sub(t2, t2, w_len, winf, w_len);
   }
