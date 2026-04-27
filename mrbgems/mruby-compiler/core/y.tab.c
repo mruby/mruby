@@ -15879,7 +15879,8 @@ dump_node(mrb_state *mrb, node *tree, int offset)
         node *item = list->car;
         if (item->car == 0 && item->cdr == 0) {
           /* Skip separator (0 . 0) */
-        } else if (item->car && item->cdr) {
+        }
+        else if (item->car && item->cdr) {
           /* String item: (len . str) */
           dump_prefix(offset+1, lineno);
           int len = node_to_int(item->car);
