@@ -343,6 +343,16 @@ MRB_API const char *mrb_string_value_cstr(mrb_state *mrb, mrb_value *str);
 MRB_API mrb_value mrb_str_dup(mrb_state *mrb, mrb_value str);
 
 /**
+ * Returns a frozen string object.
+ * The string will be duplicated and frozen if it is not already frozen.
+ *
+ * @param mrb The current mruby state.
+ * @param str An original Ruby string.
+ * @return [mrb_value] Ruby frozen string.
+ */
+MRB_API mrb_value mrb_str_dup_frozen(mrb_state *mrb, mrb_value str);
+
+/**
  * Returns a symbol from a passed in Ruby string.
  *
  * @param mrb The current mruby state.
