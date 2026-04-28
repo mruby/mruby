@@ -3,7 +3,7 @@ GEM
   specs:
     coderay (1.1.3)
     rake (13.4.2)
-    yard (0.9.42)
+    yard (0.9.43)
     yard-coderay (0.1.0)
       coderay
       yard
