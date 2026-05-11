@@ -370,3 +370,37 @@ SomeClass.new.nested    # NoMethodError
 
 Writing nested `def` like this is unusual; this difference rarely
 surfaces in practical code.
+
+## `Proc#dup` / `Proc#clone` is Always Orphan
+
+A `dup` or `clone` of a block given to a method is always treated as
+an orphan block in mruby — calling it raises `LocalJumpError` if the
+block contains `break` or `return`. CRuby is finer-grained: the copy
+inherits the orphan status of its original, so the copy only becomes
+orphan once the original yielding method returns.
+
+```ruby
+def m(&b)
+  b.dup
+end
+
+x = m { break 1 }
+x.call
+```
+
+#### CRuby
+
+```
+LocalJumpError  # raised only after m returns; if called inside m,
+                # the dup is still a live block
+```
+
+#### mruby
+
+```
+LocalJumpError  # always raised — the dup is orphan from the moment
+                # it is created
+```
+
+mruby's stricter rule keeps `RProc` from needing a back-pointer to
+the original block (which would also enlarge the GC mark set).

@@ -322,6 +322,14 @@ mrb_proc_init_copy(mrb_state *mrb, mrb_value self)
 
   check_proc(mrb, proc);
   mrb_proc_copy(mrb, mrb_proc_ptr(self), mrb_proc_ptr(proc));
+  /* A copied Proc is always treated as an orphan block: it cannot
+     `break` / `return` from the original yielding method.  This is
+     stricter than CRuby (which only marks the copy orphan once the
+     original becomes orphan), but matches mruby's memory-first
+     design — tracking the original via a back pointer would grow
+     RProc and the GC mark set.  See limitations.md for the spec
+     divergence note. */
+  mrb_proc_ptr(self)->flags |= MRB_PROC_ORPHAN;
   return self;
 }
 

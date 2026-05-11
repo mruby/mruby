@@ -179,6 +179,18 @@ assert('Creation of a proc through the block of a method') do
   end
 end
 
+assert('#6345: dup of a block from method is treated as orphan') do
+  def m(&b) b.dup end
+
+  # The dup is orphan, so calling it raises LocalJumpError on break.
+  assert_raise LocalJumpError do
+    m { break 1 }.call
+  end
+
+  # A dup of a block without break still returns normally.
+  assert_equal 42, m { 42 }.call
+end
+
 assert('identity check for proc object') do
   b = []
   t = 2
