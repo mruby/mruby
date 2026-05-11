@@ -75,9 +75,22 @@ class Proc
     if lambda?
       type = :lambda
       self_arity = self.arity
-      if (self_arity >= 0 && arity != self_arity) ||
-         (self_arity < 0 && abs[self_arity] > arity)
-        raise ArgumentError, "wrong number of arguments (given #{arity}, expected #{abs[self_arity]})"
+      min_req = abs[self_arity]
+      if self_arity < 0
+        max_arity = 0
+        has_rest = false
+        self.parameters.each do |p|
+          case p[0]
+          when :rest, :keyrest then has_rest = true
+          when :req, :opt then max_arity += 1
+          end
+        end
+        if arity < min_req || (!has_rest && arity > max_arity)
+          expected = (!has_rest && max_arity != min_req) ? "#{min_req}..#{max_arity}" : min_req.to_s
+          raise ArgumentError, "wrong number of arguments (given #{arity}, expected #{expected})"
+        end
+      elsif arity != self_arity
+        raise ArgumentError, "wrong number of arguments (given #{arity}, expected #{self_arity})"
       end
     end
 

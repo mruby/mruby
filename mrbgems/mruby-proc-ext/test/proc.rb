@@ -64,6 +64,13 @@ assert('Proc#curry') do
 
   assert_false(proc{}.curry.lambda?)
   assert_true(lambda{}.curry.lambda?)
+
+  # #2855: lambda with optional param: curry must validate against max arity
+  l = lambda {|a, b=nil|}
+  assert_raise(ArgumentError) { l.curry(3) }   # over max
+  assert_kind_of Proc, l.curry(2)              # within range
+  assert_kind_of Proc, l.curry(1)              # at min
+  assert_kind_of Proc, lambda {|a, *b|}.curry(99) # rest -> unbounded
 end
 
 assert('Proc#parameters') do
