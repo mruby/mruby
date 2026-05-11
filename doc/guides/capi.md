@@ -381,6 +381,13 @@ mrb_define_method(mrb, point, "initialize", point_init, MRB_ARGS_REQ(2));
 mrb_define_method(mrb, point, "x", point_x, MRB_ARGS_NONE());
 ```
 
+**Do not call into mruby from a `dfree` handler.** The handler runs
+from inside GC sweep; allocating Ruby objects, calling
+`mrb_funcall`, `mrb_yield`, raising exceptions, or otherwise
+re-entering the VM can trigger a recursive GC that revisits the
+same object and causes double-free. Keep `dfree` to `mrb_free` /
+plain C cleanup of the wrapped data only.
+
 ## Exception Handling
 
 ### Raising Exceptions
