@@ -1,4 +1,9 @@
 class String
+  # Capture the C-defined String#split under `__split` before the override
+  # below replaces it, so the override can delegate non-regexp patterns
+  # back to the core implementation.
+  alias __split split
+
   def match(re, pos = 0)
     re = Regexp.new(re) if re.is_a?(String)
     re.match(self, pos)
@@ -59,10 +64,14 @@ class String
     end
   end
 
+  # Regexp-aware split.  Falls back to the C-defined split (aliased as
+  # `__split` in mrb_mruby_regexp_gem_init before this override loads) for
+  # nil or simple-string patterns; converts string-with-backslash to a
+  # Regexp and handles regexp patterns in Ruby.
   def split(pattern = nil, limit = -1)
-    return super if pattern.nil?
+    return __split(pattern, limit) if pattern.nil?
     if pattern.is_a?(String)
-      return super if pattern.length == 1 || !pattern.include?('\\')
+      return __split(pattern, limit) if pattern.length == 1 || !pattern.include?('\\')
       pattern = Regexp.new(Regexp.escape(pattern))
     end
     result = []

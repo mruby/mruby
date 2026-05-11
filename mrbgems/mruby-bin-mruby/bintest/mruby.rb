@@ -176,3 +176,17 @@ assert('top level local variables are in file scope') do
   assert_mruby("[1, -2, 3]\n5\n6\n", "", true, ["-r", crb.path, drb.path])
   assert_mruby("[1, -2, 3]\n5\n6\n", "", true, ["-b", "-r", cmrb.path, dmrb.path])
 end
+
+assert('String#split still works when mruby-regexp is loaded') do
+  # The regexp-aware override in mruby-regexp/mrblib/string_regexp.rb used to
+  # replace the C-defined String#split, leaving its `return super if ...`
+  # fast paths with no method to delegate to (NoMethodError).  Now the
+  # override delegates via `__split`, an alias of the original C method
+  # installed in mrb_mruby_regexp_gem_init before mrblib runs.
+  assert_mruby(%Q(["a", "b", "c"]\n), "", true,
+               ["-e", 'p "a,b,c".split(",")'])
+  assert_mruby(%Q(["abc", "abc", "abc"]\n), "", true,
+               ["-e", 'p "abc abc abc".split'])
+  assert_mruby(%Q(["hello", "world"]\n), "", true,
+               ["-e", 'p "hello world".split(/\s+/)'])
+end
