@@ -91,6 +91,16 @@ assert("String#% invalid format") do
   end
 end
 
+assert("sprintf %g with high precision") do
+  # Regression test: precision values larger than double's significand
+  # used to cause out-of-bounds reads in fp_uscale's fixed_width().
+  assert_equal "7",                                                "%.*g" % [51, 7]
+  assert_equal "7.5",                                              "%.*g" % [51, 7.5]
+  assert_equal "7",                                                "%.51g" % 7.0
+  assert_equal "7." + "0" * 50,                                    "%#.51g" % 7.0
+  assert_equal "7",                                                "%.*g" % [1000, 7.0]
+end
+
 assert("sprintf with to_s mutating format string") do
   # The to_s callback must not be able to invalidate sprintf's internal
   # iteration pointers by mutating the format string.

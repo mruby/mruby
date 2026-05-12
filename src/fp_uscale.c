@@ -1247,8 +1247,10 @@ mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, ch
     }
     else if (fmt == 'g') {
       /* g/G format */
-      int fprec;
-      fixed_width((double)f, prec, &d, &p);
+      int fprec, n = prec;
+      if (n > 18) n = 18;
+      if (n < 1) n = 1;
+      fixed_width((double)f, n, &d, &p);
       nd = count_digits(d);
       exp = p + nd - 1;
 
