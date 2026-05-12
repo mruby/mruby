@@ -404,3 +404,37 @@ LocalJumpError  # always raised — the dup is orphan from the moment
 
 mruby's stricter rule keeps `RProc` from needing a back-pointer to
 the original block (which would also enlarge the GC mark set).
+
+## `Class#initialize` Can Be Re-Invoked
+
+CRuby raises `TypeError: already initialized class` when `initialize`
+is invoked on a class that has already been set up. mruby's
+`Class#initialize` has no such guard — invoking it on an existing
+class through `__send__`, `send`, or `UnboundMethod#bind_call`
+silently succeeds. The superclass argument is ignored in this case,
+so the call cannot rewrite the class hierarchy; only the block (if
+any) is evaluated with the class as receiver.
+
+```ruby
+Klass = Class.new
+Klass.__send__(:initialize) {}
+```
+
+#### CRuby
+
+```
+TypeError: already initialized class
+```
+
+#### mruby
+
+```
+The block is evaluated in the context of Klass; no error is raised.
+The superclass is not changed even when one is passed as an argument.
+```
+
+`Module#initialize` is re-callable in both implementations, so this
+divergence is `Class`-specific. Adding the CRuby check would require
+an additional flag bit on every `RClass`; mruby leaves the bit
+unspent because no destructive side effects are possible through
+this path.
