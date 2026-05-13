@@ -1497,7 +1497,7 @@ mrb_read_float(const char *str, char **endp, double *fp)
     else if (final_p > 308) {
       res = HUGE_VAL;
     }
-    else if (final_p < -342 - nd) {
+    else if (final_p < POW10_MIN) {
       res = 0.0;
     }
     else {

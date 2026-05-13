@@ -293,4 +293,13 @@ assert('Float#abs') do
   assert_equal(0.0, f.abs)
 end
 
+assert('Float literal underflow') do
+  # Regression: float literals with exponents below POW10_MIN used to
+  # index pow10_tab out of bounds in mrb_read_float. They must round
+  # cleanly to 0.0.
+  assert_equal 0.0, 1.0e-400
+  assert_equal 0.0, 9.99e-344
+  assert_equal(-0.0, -92170141183460469231731687303715884105729e-383)
+end
+
 end # const_defined?(:Float)
