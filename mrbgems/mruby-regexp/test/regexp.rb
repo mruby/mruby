@@ -361,6 +361,25 @@ assert("MatchData#named_captures") do
   assert_equal "host", nc["b"]
 end
 
+assert("Regexp - named captures survive /x preprocessing") do
+  # Regression: with /x, re_compile freed the stripped buffer that
+  # named_captures[i].name pointed into.
+  re = /(?<n>\d+) # comment
+       \s* (?<u>\w+) /x
+  m = re.match("42 px")
+  assert_equal "42", m[:n]
+  assert_equal "px", m[:u]
+end
+
+assert("Regexp - named captures survive source string mutation") do
+  # Regression: name pointer used to alias RSTRING_PTR of the source.
+  s = String.new("(?<key>\\d+)")
+  re = Regexp.new(s)
+  s.replace("X" * 10000)   # force buffer reallocation
+  m = re.match("abc 123 def")
+  assert_equal "123", m[:key]
+end
+
 assert("Regexp - positive lookahead (?=...)") do
   md = /\w+(?=@)/.match("user@host")
   assert_equal "user", md[0]

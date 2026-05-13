@@ -884,7 +884,26 @@ re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags)
   pat->num_captures = c.num_captures;
   pat->flags = flags;
   pat->named_captures = c.named_captures;
+  pat->named_arena = NULL;
   pat->num_named = c.num_named;
+
+  /* Copy capture names into an owned arena. Until this point the names
+     point into the pattern source (or into c.stripped, which gets freed
+     below in /x mode). After this loop the regexp owns its names. */
+  if (c.num_named > 0) {
+    size_t total = 0;
+    for (uint16_t i = 0; i < c.num_named; i++) total += c.named_captures[i].name_len;
+    if (total > 0) {
+      pat->named_arena = (char*)mrb_malloc(mrb, total);
+      size_t off = 0;
+      for (uint16_t i = 0; i < c.num_named; i++) {
+        uint16_t n = c.named_captures[i].name_len;
+        memcpy(pat->named_arena + off, c.named_captures[i].name, n);
+        pat->named_captures[i].name = pat->named_arena + off;
+        off += n;
+      }
+    }
+  }
   pat->has_backref = c.has_backref;
   pat->needs_backtrack = c.needs_backtrack;
 
@@ -959,6 +978,7 @@ re_free(mrb_state *mrb, mrb_regexp_pattern *pat)
     mrb_free(mrb, pat->code);
     mrb_free(mrb, pat->classes);
     mrb_free(mrb, pat->named_captures);
+    mrb_free(mrb, pat->named_arena);
     mrb_free(mrb, pat->prefix);
     mrb_free(mrb, pat->cached_visited);
     mrb_free(mrb, pat->cached_threads[0]);
