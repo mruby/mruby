@@ -2236,7 +2236,7 @@ io_set_autoclose(mrb_state *mrb, mrb_value io)
  *   ios.autoclose? -> true or false
  *
  * Returns +true+ if the underlying file descriptor of +ios+ will be closed
- * when +ios+ is closed ( via finalization), otherwise +false+.
+ * when +ios+ is closed, otherwise +false+.
  *
  *   f = File.open("testfile")
  *   f.autoclose?         #=> true
