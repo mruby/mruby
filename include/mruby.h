@@ -1323,7 +1323,7 @@ MRB_API void mrb_method_cache_clear(mrb_state *mrb);
 #define mrb_method_cache_clear(mrb) ((void)0)
 #endif
 #ifndef MRB_NO_CONST_CACHE
-void mrb_const_cache_clear(mrb_state *mrb);
+MRB_API void mrb_const_cache_clear(mrb_state *mrb);
 #else
 #define mrb_const_cache_clear(mrb) ((void)0)
 #endif
