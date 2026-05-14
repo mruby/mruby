@@ -2205,6 +2205,51 @@ io_flush(mrb_state *mrb, mrb_value io)
   return io;
 }
 
+/*
+ * call-seq:
+ *   ios.autoclose = bool -> bool
+ *
+ * Sets the autoclose flag.
+ *
+ * If the autoclose flag is set, the underlying file descriptor(s) of +ios+
+ * will be closed when +ios+ is closed (explicitly via +#close+, or implicitly
+ * when the +IO+ object is garbage-collected). When unset, the file
+ * descriptor(s) are left open.
+ *
+ *   f = File.open("testfile")
+ *   IO.for_fd(f.fileno).autoclose = false
+ */
+static mrb_value
+io_set_autoclose(mrb_state *mrb, mrb_value io)
+{
+  struct mrb_io *fptr = io_get_open_fptr(mrb, io);
+  mrb_bool b;
+
+  mrb_get_args(mrb, "b", &b);
+  fptr->close_fd = b;
+  fptr->close_fd2 = b;
+  return mrb_bool_value(b);
+}
+
+/*
+ * call-seq:
+ *   ios.autoclose? -> true or false
+ *
+ * Returns +true+ if the underlying file descriptor of +ios+ will be closed
+ * when +ios+ is closed, otherwise +false+.
+ *
+ *   f = File.open("testfile")
+ *   f.autoclose?         #=> true
+ *   f.autoclose = false
+ *   f.autoclose?         #=> false
+ */
+static mrb_value
+io_autoclose_p(mrb_state *mrb, mrb_value io)
+{
+  struct mrb_io *fptr = io_get_open_fptr(mrb, io);
+  return mrb_bool_value(fptr->close_fd);
+}
+
 /* ---------------------------*/
 static const mrb_mt_entry io_rom_entries[] = {
   MRB_MT_ENTRY(io_init,              MRB_SYM(initialize), MRB_ARGS_ARG(1,2)),
@@ -2243,6 +2288,8 @@ static const mrb_mt_entry io_rom_entries[] = {
   MRB_MT_ENTRY(io_pwrite,            MRB_SYM(pwrite), MRB_ARGS_ANY()),  /* Ruby 2.5 feature */
   MRB_MT_ENTRY(io_getbyte,           MRB_SYM(getbyte),       MRB_ARGS_NONE()),
   MRB_MT_ENTRY(io_readbyte,          MRB_SYM(readbyte),      MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(io_set_autoclose,     MRB_SYM_E(autoclose),   MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(io_autoclose_p,       MRB_SYM_Q(autoclose),   MRB_ARGS_NONE()),
 };
 
 void

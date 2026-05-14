@@ -665,4 +665,14 @@ assert('`cmd`') do
   end
 end
 
+assert('IO#autoclose?, IO#autoclose=') do
+  io = IO.new(IO.sysopen($mrbtest_io_rfname), "r")
+  assert_true io.autoclose?
+  io.autoclose = false
+  assert_false io.autoclose?
+  io.autoclose = true
+  assert_true io.autoclose?
+  io.close
+end
+
 MRubyIOTestUtil.io_test_cleanup

@@ -33,8 +33,8 @@ Add the line below to your build configuration.
 | IO.write                   |          |          |
 | IO#<<                      |          |          |
 | IO#advise                  |          |          |
-| IO#autoclose=              |          |          |
-| IO#autoclose?              |          |          |
+| IO#autoclose=              | o        |          |
+| IO#autoclose?              | o        |          |
 | IO#binmode                 |          |          |
 | IO#binmode?                |          |          |
 | IO#bytes                   |          | obsolete |
