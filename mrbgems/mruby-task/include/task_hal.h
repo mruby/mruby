@@ -35,8 +35,8 @@
 /*
  * HAL Interface Functions
  *
- * Platform-specific implementations (hal-posix-task, hal-win-task, etc.)
- * must provide these functions.
+ * The port directory under mruby-task/ports/<port_name>/ provides
+ * these functions. See README.md for adding a new port.
  */
 
 /**

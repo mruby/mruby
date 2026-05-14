@@ -91,14 +91,8 @@ typedef struct mrb_task {
 #define TASK_CI_INIT_SIZE 4       /* Initial task callinfo size */
 
 /*
- * HAL (Hardware Abstraction Layer) functions
- * Platform-specific implementations must provide these
+ * HAL (Hardware Abstraction Layer) functions are declared in task_hal.h.
  */
-void mrb_task_hal_init(mrb_state *mrb);
-void mrb_task_hal_final(mrb_state *mrb);
-void mrb_task_enable_irq(void);
-void mrb_task_disable_irq(void);
-void mrb_task_hal_idle_cpu(mrb_state *mrb);
 
 /*
  * GC integration

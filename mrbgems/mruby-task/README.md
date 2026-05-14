@@ -260,180 +260,107 @@ These grow automatically as needed, similar to Fiber.
 
 ### HAL (Hardware Abstraction Layer)
 
-The task scheduler uses a Hardware Abstraction Layer (HAL) to support different platforms. Platform-specific timer and interrupt handling is provided by separate HAL gems.
+The task scheduler uses a Hardware Abstraction Layer (HAL) to support
+different platforms. Platform-specific timer and interrupt handling
+lives in `mruby-task/ports/<port_name>/task_hal.c`, and the active
+port is selected at build configuration time.
 
-#### Built-in HAL Gems
+#### Built-in Ports
 
-**hal-posix-task** - For POSIX systems (Linux, macOS, BSD, Unix)
+**`ports/posix/`** - For POSIX systems (Linux, macOS, BSD, Unix)
 
-- Uses `SIGALRM` and `setitimer()` for timer
+- Uses `SIGALRM` and `setitimer()` for the timer
 - Uses `sigprocmask()` for interrupt protection
 - Uses `SA_RESTART` to prevent `EINTR` on system calls
 - Supports multiple VMs per process
-- **WASM/Emscripten support**: When compiled with Emscripten (`__EMSCRIPTEN__` defined), the SIGALRM timer is automatically disabled. JavaScript handles tick calls via `setInterval`, preventing double-increment of the tick counter
+- **WASM/Emscripten support**: When compiled with Emscripten
+  (`__EMSCRIPTEN__` defined), the SIGALRM timer is automatically
+  disabled. JavaScript handles tick calls via `setInterval`,
+  preventing double-increment of the tick counter
 
-**hal-win-task** - For Windows
+**`ports/win/`** - For Windows
 
-- Uses multimedia timer API (`timeSetEvent`/`timeKillEvent`)
+- Uses the multimedia timer API (`timeSetEvent`/`timeKillEvent`)
 - Uses `CRITICAL_SECTION` for interrupt protection
 - Supports multiple VMs per process
 
-#### HAL Selection
+#### Port Selection
 
-The task scheduler will automatically select an appropriate HAL gem based on your platform. For explicit control, you can specify the HAL gem in your build configuration:
+The build system auto-detects `:posix` on Linux/macOS/BSD and `:win`
+on Windows. For explicit control (cross-compilation, Cosmopolitan,
+etc.) set `conf.ports` in your build configuration:
 
 ```ruby
 MRuby::Build.new do |conf|
-  # Option 1: Explicit HAL selection (recommended)
-  conf.gem core: 'hal-posix-task'   # For Linux/macOS/BSD
-  # or
-  conf.gem core: 'hal-win-task'     # For Windows
-
-  # mruby-task automatically loads if HAL is loaded
-  # But you can also specify it explicitly:
+  conf.ports :posix   # or :win, or your own port name
   conf.gem core: 'mruby-task'
 end
 ```
 
-**Auto-detection behavior:**
-
-- If you include `mruby-task` but no HAL gem, it will automatically load the appropriate HAL
-- On Linux/macOS/BSD: loads `hal-posix-task`
-- On Windows: loads `hal-win-task`
-- On unknown platforms: fails with helpful error message
+When `conf.ports` is set, the corresponding `ports/<name>/`
+directory in every gem is compiled in; directories for other port
+names are skipped. This is how `build_config/cosmopolitan.rb` reuses
+the POSIX HAL on Cosmopolitan.
 
 **Multi-VM support:**
 
-- Both HAL implementations support multiple `mrb_state` instances
+- Both built-in ports support multiple `mrb_state` instances
 - A single system timer ticks all registered VMs
 - Maximum VMs: configurable via `MRB_TASK_MAX_VMS` (default: 8)
 
-#### Custom HAL Implementation
+#### Adding a New HAL
 
-For embedded systems or unsupported platforms, you can create a custom HAL gem. The HAL must provide five functions defined in `mruby-task/include/task_hal.h`:
+To support a new platform (an RTOS, a UI runloop like GLib or Cocoa,
+a bare-metal target), add a new directory
+`mruby-task/ports/<name>/task_hal.c` and contribute it upstream. The
+HAL must implement the six functions declared in
+`mruby-task/include/task_hal.h`:
 
 ```c
 /**
- * Initialize timer and register VM
- * Called during gem initialization
- * Must set up periodic timer to call mrb_tick(mrb) every MRB_TICK_UNIT ms
+ * Initialize timer and register VM.
+ * Called during gem initialization. Must set up a periodic timer
+ * that calls mrb_tick(mrb) every MRB_TICK_UNIT milliseconds.
  */
-void mrb_task_hal_init(mrb_state *mrb);
+void mrb_hal_task_init(mrb_state *mrb);
 
 /**
- * Cleanup timer and unregister VM
- * Called during gem finalization
+ * Cleanup timer and unregister VM.
+ * Called during gem finalization.
  */
-void mrb_task_hal_final(mrb_state *mrb);
+void mrb_hal_task_final(mrb_state *mrb);
 
 /**
- * Enable timer interrupts (exit critical section)
- * Must be reentrant for nested calls
+ * Enable timer interrupts (exit critical section).
+ * Must be reentrant for nested calls.
  */
 void mrb_task_enable_irq(void);
 
 /**
- * Disable timer interrupts (enter critical section)
- * Must be reentrant for nested calls
+ * Disable timer interrupts (enter critical section).
+ * Must be reentrant for nested calls.
  */
 void mrb_task_disable_irq(void);
 
 /**
- * Put CPU in low-power/idle mode
- * Called when no tasks are ready but some are waiting
- * Should sleep ~MRB_TICK_UNIT milliseconds
+ * Put CPU in low-power/idle mode.
+ * Called when no tasks are ready but some are waiting; should sleep
+ * roughly MRB_TICK_UNIT milliseconds and allow the timer to fire.
  */
-void mrb_task_hal_idle_cpu(mrb_state *mrb);
+void mrb_hal_task_idle_cpu(mrb_state *mrb);
+
+/**
+ * Sleep for the given number of microseconds of wall-clock time.
+ * Must allow timer interrupts/callbacks during the sleep and should
+ * complete the full duration even if interrupted.
+ */
+void mrb_hal_task_sleep_us(mrb_state *mrb, mrb_int usec);
 ```
 
-**Example custom HAL gem structure:**
-
-```
-mrbgems/hal-myplatform-task/
-├── mrbgem.rake              # Gem specification
-├── include/
-│   └── task_hal.h          # Symlink to mruby-task/include/task_hal.h
-└── src/
-    └── task_hal.c          # Platform implementation
-```
-
-**mrbgem.rake:**
-
-```ruby
-MRuby::Gem::Specification.new('hal-myplatform-task') do |spec|
-  spec.license = 'MIT'
-  spec.authors = 'Your Name'
-  spec.summary = 'My Platform HAL for mruby-task'
-
-  # HAL gem depends on feature gem (important for build order)
-  spec.add_dependency 'mruby-task', core: 'mruby-task'
-
-  # Add any platform-specific libraries or flags
-  # spec.linker.libraries << 'myplatform_timer'
-end
-```
-
-**task_hal.c example for embedded system:**
-
-```c
-#include <mruby.h>
-#include "task_hal.h"
-#include "myplatform_hardware.h"
-
-static mrb_state *registered_vm = NULL;
-
-void mrb_task_hal_init(mrb_state *mrb)
-{
-  registered_vm = mrb;
-
-  // Setup hardware timer to fire every MRB_TICK_UNIT milliseconds
-  hardware_timer_init(MRB_TICK_UNIT, timer_isr);
-  hardware_timer_start();
-}
-
-void mrb_task_hal_final(mrb_state *mrb)
-{
-  hardware_timer_stop();
-  registered_vm = NULL;
-}
-
-void mrb_task_enable_irq(void)
-{
-  hardware_enable_interrupts();
-}
-
-void mrb_task_disable_irq(void)
-{
-  hardware_disable_interrupts();
-}
-
-void mrb_task_hal_idle_cpu(mrb_state *mrb)
-{
-  (void)mrb;
-  hardware_sleep_mode();  // Enter low-power mode until interrupt
-}
-
-// Timer ISR - must call mrb_tick() for scheduler
-void timer_isr(void)
-{
-  if (registered_vm) {
-    mrb_tick(registered_vm);
-  }
-}
-
-// Gem initialization (required but can be empty)
-void mrb_hal_myplatform_task_gem_init(mrb_state *mrb)
-{
-  (void)mrb;
-}
-
-void mrb_hal_myplatform_task_gem_final(mrb_state *mrb)
-{
-  (void)mrb;
-}
-```
-
-See `hal-posix-task` and `hal-win-task` source code for complete reference implementations.
+Users selecting your port set `conf.ports :<name>`; the built-in
+POSIX and Windows ports are then skipped, so there is no symbol
+clash. See `mruby-task/ports/posix/task_hal.c` and
+`mruby-task/ports/win/task_hal.c` for reference implementations.
 
 ## C API
 

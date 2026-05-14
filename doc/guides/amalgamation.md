@@ -73,14 +73,14 @@ The following gems work with amalgamation:
 - `mruby-enum-ext`, `mruby-compar-ext`
 - `mruby-error`, `mruby-math`, `mruby-struct`
 - `mruby-bigint`, `mruby-rational`, `mruby-complex`
-- `mruby-io` (with `hal-posix-io`)
-- `mruby-task` (with `hal-posix-task`)
+- `mruby-io` (with the active `ports/<name>/` HAL)
+- `mruby-task` (with the active `ports/<name>/` HAL)
 
 ### Platform-Dependent Gems
 
 Gems that use a HAL (Hardware Abstraction Layer) include
 platform-specific code in the amalgamation. For example, if
-`mruby-io` selects `hal-posix-io` on Linux, the generated `mruby.c`
+`mruby-io` selects its POSIX port on Linux, the generated `mruby.c`
 contains POSIX-specific code and cannot be compiled on Windows.
 
 If you need amalgamated files for multiple platforms, generate them
