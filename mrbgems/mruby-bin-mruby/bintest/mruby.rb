@@ -178,6 +178,10 @@ assert('top level local variables are in file scope') do
 end
 
 assert('String#split still works when mruby-regexp is loaded') do
+  # Only meaningful when mruby-regexp is built in; skip otherwise.
+  _, _, stat = Open3.capture3(*(cmd_list("mruby") + ["-e", "Regexp"]))
+  skip "mruby-regexp not loaded" unless stat.success?
+
   # The regexp-aware override in mruby-regexp/mrblib/string_regexp.rb used to
   # replace the C-defined String#split, leaving its `return super if ...`
   # fast paths with no method to delegate to (NoMethodError).  Now the
