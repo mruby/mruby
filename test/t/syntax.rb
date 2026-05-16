@@ -981,6 +981,32 @@ assert('pattern matching - basic case/in') do
   assert_equal :other, result
 end
 
+assert('pattern matching - string literal patterns') do
+  result = case "hello"
+           in "hello" then :match
+           end
+  assert_equal :match, result
+
+  # double-quoted vs single-quoted should both work
+  result = case 'world'
+           in "world" then :double
+           end
+  assert_equal :double, result
+
+  # alternation with strings
+  result = case "ab"
+           in "ab" | "cd" then :alt
+           end
+  assert_equal :alt, result
+
+  # string interpolation in pattern
+  expected = "lo"
+  result = case "hello"
+           in "hel#{expected}" then :interp
+           end
+  assert_equal :interp, result
+end
+
 assert('pattern matching - array patterns') do
   # simple array pattern
   case [1, 2, 3]

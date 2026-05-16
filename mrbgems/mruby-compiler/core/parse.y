@@ -3987,9 +3987,9 @@ p_value         : p_var
                     {
                       $$ = new_pat_value(p, $1);
                     }
-                | tSTRING
+                | string
                     {
-                      $$ = new_pat_value(p, new_str(p, list1($1)));
+                      $$ = new_pat_value(p, new_str(p, $1));
                     }
                 | keyword_nil
                     {
