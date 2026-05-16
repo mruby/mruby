@@ -30,12 +30,17 @@ assert('embedded document with invalid terminator') do
 end
 
 assert('debug info preserves line/filename across multiple inputs. #1316') do
+  # Verifying mrbc's debug info requires running the compiled output through
+  # the mruby binary; skip when bin-mruby isn't built.  Kernel#puts only
+  # exists when mruby-io is loaded, so the script uses print.
+  skip "mruby command not built" unless File.exist?(cmd_bin("mruby"))
+
   a = Tempfile.new(['a', '.rb'])
   b = Tempfile.new(['b', '.rb'])
   out = Tempfile.new(['out', '.mrb'])
-  a.write("# line 1\n# line 2\nputs \"from a\"\n# line 4\nundefined_in_a\n")
+  a.write("# line 1\n# line 2\nprint \"from a\"\n# line 4\nundefined_in_a\n")
   a.flush
-  b.write("# b line 1\nputs \"from b\"\n")
+  b.write("# b line 1\nprint \"from b\"\n")
   b.flush
   `#{cmd('mrbc')} -g -o #{out.path} #{a.path} #{b.path}`
   assert_equal 0, $?.exitstatus
