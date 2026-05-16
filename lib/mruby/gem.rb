@@ -60,10 +60,16 @@ module MRuby
         @rbfiles = Dir.glob("#{@dir}/mrblib/**/*.rb").sort
         @objs = srcs_to_objs("src")
 
-        # Add platform-specific sources from ports/<name>/ directories
+        # Add platform-specific sources from the first matching
+        # ports/<name>/ directory.  effective_ports is a fallback
+        # chain: later names act as defaults for gems that don't ship
+        # a port for the earlier names.
         build.effective_ports.each do |port|
           port_dir = "#{@dir}/ports/#{port}"
-          @objs += srcs_to_objs("ports/#{port}") if File.directory?(port_dir)
+          if File.directory?(port_dir)
+            @objs += srcs_to_objs("ports/#{port}")
+            break
+          end
         end
 
         @test_preload = nil # 'test/assert.rb'

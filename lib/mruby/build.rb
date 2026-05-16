@@ -185,10 +185,11 @@ module MRuby
     end
 
     # Set target port names for this build.
-    # Gems with matching ports/<name>/ directories will compile
-    # those platform-specific sources automatically.
+    # Each gem compiles the first matching ports/<name>/ directory;
+    # later names in the list act as fallbacks for gems that don't
+    # ship a port for the earlier names.
     #   conf.ports :esp32
-    #   conf.ports :rp2040, :posix
+    #   conf.ports :rp2040, :posix    # use rp2040 if available, else posix
     def ports(*names)
       @port_names = names.map { |n| n.to_s }
     end
