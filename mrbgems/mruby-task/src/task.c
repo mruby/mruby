@@ -568,7 +568,8 @@ sleep_us_impl(mrb_state *mrb, uint32_t usec)
   t->wait.wakeup_tick = tick_ + USEC_TO_TICKS(usec);
 
   /* Update next wakeup time if this task wakes earlier */
-  if ((int32_t)(t->wait.wakeup_tick - wakeup_tick_) < 0) {
+  if (wakeup_tick_ == UINT32_MAX ||
+      (int32_t)(t->wait.wakeup_tick - wakeup_tick_) < 0) {
     wakeup_tick_ = t->wait.wakeup_tick;
   }
 
