@@ -417,8 +417,16 @@ mrb_tick(mrb_state *mrb)
     }
   }
 
-  /* Wake up sleeping tasks whose wakeup time has passed */
-  if ((int32_t)(wakeup_tick_ - tick_) <= 0) {
+  /* Wake up sleeping tasks whose wakeup time has passed.
+   *
+   * UINT32_MAX is the "no sleepers" sentinel. Without the explicit
+   * check, (int32_t)(UINT32_MAX - tick_) evaluates negative for the
+   * first half of the 32-bit range, so the queue walk fires every
+   * tick with nothing to do. Short-circuiting saves the walk in the
+   * common no-sleepers case -- benefits every HAL, not just
+   * tickless ones. */
+  if (wakeup_tick_ != UINT32_MAX &&
+      (int32_t)(wakeup_tick_ - tick_) <= 0) {
     mrb_task *curr = q_waiting_;
     mrb_task *next;
     uint32_t next_wakeup = UINT32_MAX;
@@ -567,12 +575,19 @@ sleep_us_impl(mrb_state *mrb, uint32_t usec)
   /* Convert microseconds to ticks (tick unit is in milliseconds) */
   t->wait.wakeup_tick = tick_ + USEC_TO_TICKS(usec);
 
-  /* Update next wakeup time if this task wakes earlier */
+  /* Update next wakeup time if this task wakes earlier.
+   *
+   * When wakeup_tick_ is UINT32_MAX (no prior sleepers), the
+   * unsigned subtraction wraps to a small positive value and the
+   * int32_t cast stays non-negative, so the update is skipped and
+   * the global stays stale until the next mrb_tick self-heals it.
+   * Handle the sentinel explicitly so tickless HALs that read this
+   * field get a consistent value as soon as the sleeper is
+   * installed. */
   if (wakeup_tick_ == UINT32_MAX ||
       (int32_t)(t->wait.wakeup_tick - wakeup_tick_) < 0) {
     wakeup_tick_ = t->wait.wakeup_tick;
   }
-
   q_insert_task(mrb, t);
 
   mrb_task_enable_irq();
@@ -1321,11 +1336,22 @@ resume_task_internal(mrb_state *mrb, mrb_task *t)
     }
   }
 
-  /* Update wakeup_tick if task has sleep reason */
+  /* Update wakeup_tick if task has sleep reason.
+   *
+   * Two fixes here vs the original:
+   *   - The UINT32_MAX sentinel case (see comments in
+   *     sleep_us_impl).
+   *   - The read-modify-write on wakeup_tick_ races with
+   *     mrb_tick, which also rewrites this field. sleep_us_impl
+   *     already wraps its update in the IRQ pair; we need the
+   *     same here to match the locking discipline. */
   if (t->reason == MRB_TASK_REASON_SLEEP) {
-    if ((int32_t)(t->wait.wakeup_tick - wakeup_tick_) < 0) {
+    mrb_task_disable_irq();
+    if (wakeup_tick_ == UINT32_MAX ||
+        (int32_t)(t->wait.wakeup_tick - wakeup_tick_) < 0) {
       wakeup_tick_ = t->wait.wakeup_tick;
     }
+    mrb_task_enable_irq();
   }
 }
 
