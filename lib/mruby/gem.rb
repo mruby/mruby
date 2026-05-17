@@ -25,6 +25,8 @@ module MRuby
       alias :author= :authors=
 
       attr_accessor :rbfiles, :objs
+      attr_reader :port_objs
+      attr_accessor :hal_pattern
       attr_writer :test_objs, :test_rbfiles
       attr_accessor :test_args, :test_preload
 
@@ -63,11 +65,15 @@ module MRuby
         # Add platform-specific sources from the first matching
         # ports/<name>/ directory.  effective_ports is a fallback
         # chain: later names act as defaults for gems that don't ship
-        # a port for the earlier names.
+        # a port for the earlier names.  These objs are tracked
+        # separately so List#resolve_external_hal! can drop them when
+        # an external HAL provider matching spec.hal_pattern is loaded.
+        @port_objs = []
         build.effective_ports.each do |port|
           port_dir = "#{@dir}/ports/#{port}"
           if File.directory?(port_dir)
-            @objs += srcs_to_objs("ports/#{port}")
+            @port_objs = srcs_to_objs("ports/#{port}")
+            @objs += @port_objs
             break
           end
         end
@@ -457,6 +463,27 @@ module MRuby
           self.each(&:setup)
           gemset = self.setup_dependencies(build).keys.sort
         end until gemset == gemset_prev
+        resolve_external_hal!
+      end
+
+      # If a gem declares `spec.hal_pattern = /regex/`, any other gem
+      # whose name matches the regex is treated as the external HAL
+      # provider for that gem -- the target gem's ports/* sources are
+      # dropped from its object list (the matching gem itself supplies
+      # the implementation).  Two or more matches is a build error.
+      def resolve_external_hal!
+        each do |target|
+          next unless target.hal_pattern
+          overriders = select { |g| g != target && g.name =~ target.hal_pattern }
+          next if overriders.empty?
+          if overriders.size > 1
+            fail "Multiple gems match #{target.hal_pattern.inspect} as " \
+                 "HAL provider for '#{target.name}': " +
+                 overriders.map(&:name).join(", ")
+          end
+          next if target.port_objs.nil? || target.port_objs.empty?
+          target.objs.reject! { |o| target.port_objs.include?(o) }
+        end
       end
 
       def setup_build
