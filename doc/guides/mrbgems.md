@@ -172,6 +172,8 @@ The maximal GEM structure looks like this:
     |
     +- src/             <- Source for C extension
     |
+    +- ports/<name>/    <- Platform-specific C sources (see Platform Ports)
+    |
     +- tools/           <- Source for Executable (in C)
     |
     +- test/            <- Test code (Ruby)
@@ -182,6 +184,8 @@ contains C/C++ files to extend mruby. The `include` directory contains C/C++ hea
 files. The `test` directory contains C/C++ and pure Ruby files for testing purposes
 which will be used by `mrbtest`. `mrbgem.rake` contains the specification
 to compile C and Ruby files. `README.md` is a short description of your GEM.
+The optional `ports/<name>/` directories hold platform-specific C sources
+selected at build time; see [Platform Ports](#platform-ports-ports) below.
 
 ## Build process
 
@@ -331,6 +335,64 @@ end
 
 **NOTE**: Using the `build_settings` method will cause GEM's all build command settings
 directly written in the block passed to `MRuby::Gem::Specification.new` to be ignored.
+
+## Platform Ports (ports/)
+
+A gem may ship platform-specific C sources under `ports/<name>/`
+subdirectories. The build configuration selects which port name(s)
+are active via `conf.ports`, and each gem compiles the sources of
+the first matching `ports/<name>/` it ships:
+
+```ruby
+MRuby::Build.new do |conf|
+  conf.toolchain
+  conf.ports :posix     # selects ports/posix/ across all gems
+end
+```
+
+`conf.ports` accepts multiple names as a fallback chain. Each gem
+picks the first directory in the list that exists on its side:
+
+```ruby
+conf.ports :rp2040, :posix    # try rp2040 per-gem, else posix
+```
+
+Host builds auto-detect `:posix` or `:win` when `conf.ports` is
+not set. Sources outside `ports/` (i.e. `src/`) are always
+compiled regardless of the port selection.
+
+### External HAL Provider Gems
+
+A third-party gem may replace another gem's bundled port at build
+time. A gem whose name matches `hal-<short>-<conf>` is recognized
+as the external HAL provider for the target gem whose name's last
+`-`-separated segment is `<short>`. For example, `hal-task-glib`
+overrides the HAL of `mruby-task`; `hal-io-uring` would override
+`mruby-io`. The HAL provider must depend on its target so it can
+`#include` the target's HAL header:
+
+```ruby
+MRuby::Gem::Specification.new('hal-task-glib') do |spec|
+  spec.license = 'MIT'
+  spec.author  = 'Your Name'
+  spec.summary = 'GLib HAL for mruby-task'
+  spec.add_dependency 'mruby-task', core: 'mruby-task'
+  # src/ contains the HAL implementation
+end
+```
+
+When a matching HAL provider gem is present in the build, the
+target gem's `ports/<conf.ports>/` sources are dropped from the
+build automatically. The HAL provider's own sources supply the
+implementation instead, avoiding duplicate symbol errors at link
+time. Loading two gems that match the same `hal-<short>-*`
+prefix is a build error.
+
+The naming convention is the only signal -- no spec attribute,
+no `add_dependency` flag is required. A gem author who wants to
+contribute an additional bundled port upstream sends a PR adding
+`<target-gem>/ports/<name>/`; a gem author who prefers to ship
+out of tree publishes a `hal-<short>-<conf>` gem instead.
 
 ## C Extension
 
