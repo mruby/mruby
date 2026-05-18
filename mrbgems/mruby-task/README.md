@@ -13,8 +13,9 @@ The primary purpose of `mruby-task` is to enable mruby applications to:
 - Schedule tasks based on priority (0-255, where 0 is highest priority).
 - Provide cooperative yielding with `Task.pass`.
 - Support preemptive scheduling via timer-based interrupts.
-- Synchronize tasks using `sleep` and `join` operations.
+- Synchronize tasks using `sleep`, `join` and `Task::Queue`.
 - Suspend and resume tasks programmatically.
+- Coordinate producers and consumers via `Task::Queue` without polling.
 
 ## Architecture
 
@@ -185,6 +186,116 @@ Task.run
   worker.join  # Wait for completion
   puts "Worker finished"
   ```
+
+### Task::Error
+
+`Task::Error` is the base error class for queue-related errors. It inherits
+from `StandardError`.
+
+```ruby
+begin
+  q = Task::Queue.new
+  q.close
+  q.push(1)   # raises Task::Error: queue closed
+rescue Task::Error => e
+  puts e.message  # => "queue closed"
+end
+```
+
+Errors raised by `Task::Queue`:
+
+| Situation                          | Error class   | Message          |
+| ---------------------------------- | ------------- | ---------------- |
+| `push` on a closed queue           | `Task::Error` | `"queue closed"` |
+| `pop(true)` on an empty open queue | `Task::Error` | `"queue empty"`  |
+
+Internal consistency errors (programming errors, not queue logic) still use
+`RuntimeError`:
+
+| Situation                                               | Error class    |
+| ------------------------------------------------------- | -------------- |
+| Blocking `pop` called from root context                 | `RuntimeError` |
+| Blocking `pop` called from inside a C function boundary | `RuntimeError` |
+
+### Task::Queue
+
+`Task::Queue` is a thread-safe FIFO queue for inter-task communication, analogous to CRuby's `Queue`. A task that calls `pop` on an empty queue is automatically moved to the WAITING state and rescheduled when another task pushes an item.
+No polling or explicit sleep is required.
+
+#### Creating a Queue
+
+```ruby
+q = Task::Queue.new
+```
+
+#### Pushing Items
+
+```ruby
+q.push(item)   # add to the back of the queue; raises Task::Error if closed
+q << item      # alias for push
+q.enq(item)    # alias for push
+```
+
+#### Popping Items
+
+```ruby
+item = q.pop           # block until an item is available
+item = q.pop(true)     # non-blocking: raises Task::Error if empty
+item = q.deq           # alias for pop
+item = q.shift         # alias for pop
+```
+
+Behavior when the queue is **closed**:
+
+- `pop` on a non-empty closed queue returns the remaining items normally.
+- `pop` on an empty closed queue returns `nil` immediately (no blocking).
+
+#### Inspecting the Queue
+
+```ruby
+q.size        # => Integer: number of items currently in the queue
+q.length      # alias for size
+q.empty?      # => true if the queue has no items
+q.num_waiting # => Integer: number of tasks currently blocked in pop
+```
+
+#### Clearing and Closing
+
+```ruby
+q.clear       # remove all items; returns self
+q.close       # close the queue; returns self
+q.closed?     # => true if the queue has been closed
+```
+
+After `close`:
+
+- `push` raises `Task::Error`.
+- Tasks blocked in `pop` are woken and receive `nil` for an empty queue.
+- `pop` on remaining items still returns them normally; returns `nil` when empty.
+
+#### Producer/Consumer Example
+
+```ruby
+q = Task::Queue.new
+
+Task.new(name: "producer") do
+  10.times do |i|
+    q.push(i)
+    sleep 0.1
+  end
+  q.close
+end
+
+Task.new(name: "consumer") do
+  loop do
+    item = q.pop   # blocks until an item arrives or the queue closes
+    break if item.nil?
+    puts "got #{item}"
+  end
+end
+
+Task.run
+```
 
 ### Kernel Methods (Sleep)
 
@@ -584,6 +695,49 @@ sleep 1
 task.terminate   # Stop permanently
 ```
 
+### Producer/Consumer with Task::Queue
+
+Using `Task::Queue` eliminates polling. The consumer blocks on `pop` and wakes
+automatically when the producer pushes an item.
+
+```ruby
+q = Task::Queue.new
+results = []
+
+Task.new(name: "producer") do
+  ["a", "b", "c"].each do |v|
+    q.push(v)
+    sleep 0.1
+  end
+  q.close
+end
+
+Task.new(name: "consumer") do
+  loop do
+    item = q.pop  # blocks here until an item is available or the queue closes
+    break if item.nil?
+    results << item
+  end
+end
+
+Task.run
+puts results.inspect  # => ["a", "b", "c"]
+```
+
+Multiple producers and consumers work naturally:
+
+```ruby
+q = Task::Queue.new
+
+3.times { |i| Task.new { q.push(i) } }
+
+received = []
+3.times { Task.new { received << q.pop } }
+
+Task.run
+puts received.sort.inspect  # => [0, 1, 2]
+```
+
 ## Limitations and Compatibility
 
 ### Relationship with Fiber
@@ -628,6 +782,10 @@ The gem includes tests that verify:
 - Join synchronization
 - Suspend and resume
 - Task.pass cooperative yielding
+- Task::Queue push/pop FIFO order
+- Task::Queue blocking pop and wakeup on push
+- Task::Queue close semantics
+- Task::Queue num_waiting count
 
 Run tests with:
 
@@ -644,7 +802,7 @@ Each task can be in one of five states:
 - `DORMANT (0x00)`: Not started or finished
 - `READY (0x02)`: Ready to run
 - `RUNNING (0x03)`: Currently executing
-- `WAITING (0x04)`: Waiting (sleep, join, mutex)
+- `WAITING (0x04)`: Waiting (sleep, join, queue)
 - `SUSPENDED (0x08)`: Manually suspended
 
 ### Wait Reasons
@@ -655,6 +813,7 @@ When a task is in WAITING state, the reason indicates why:
 - `SLEEP (0x01)`: Sleeping for time
 - `MUTEX (0x02)`: Waiting for mutex (reserved, not yet implemented)
 - `JOIN (0x04)`: Waiting for another task
+- `QUEUE (0x08)`: Waiting for an item to be pushed to a `Task::Queue`
 
 ### Scheduler Algorithm
 
@@ -683,6 +842,7 @@ The scheduler includes a lock counter (`mrb->task.scheduler_lock`) that prevents
 Planned features not yet implemented:
 
 - **Mutex support**: Thread-safe synchronization primitives
+- **Task::SizedQueue**: Bounded queue with backpressure (push blocks when full)
 - **Task.raise**: Throw exceptions to other tasks
 - **Task#value**: Retrieve task return value (like Thread#value)
 - **Per-task timeslice configuration**

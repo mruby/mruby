@@ -19,21 +19,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "task.h"
-#include "task_hal.h"
-
-/*
- * Queue helper macros
- */
-#define q_dormant_   (mrb->task.queues[MRB_TASK_QUEUE_DORMANT])
-#define q_ready_     (mrb->task.queues[MRB_TASK_QUEUE_READY])
-#define q_waiting_   (mrb->task.queues[MRB_TASK_QUEUE_WAITING])
-#define q_suspended_ (mrb->task.queues[MRB_TASK_QUEUE_SUSPENDED])
-#define tick_        (mrb->task.tick)
-#define wakeup_tick_ (mrb->task.wakeup_tick)
-#define switching_   (mrb->task.switching)
-
-/* Get task from current context using pointer arithmetic */
-#define MRB2TASK(mrb) ((mrb_task *)((uint8_t *)mrb->c - offsetof(mrb_task, c)))
 
 /* Get task pointer from self with validation */
 #define TASK_GET_PTR_OR_RAISE(var, self) \
@@ -49,15 +34,6 @@
 
 /* Maximum value for scheduler_lock (uint8_t max) */
 #define MRB_TASK_SCHEDULER_LOCK_MAX 255
-
-/* Check scheduler lock and raise error if locked */
-static inline void
-task_check_scheduler_lock(mrb_state *mrb)
-{
-  if (mrb->task.scheduler_lock > 0) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "Cannot use asynchronous Task API during synchronous execution");
-  }
-}
 
 /*
  * Task data type for GC
@@ -171,7 +147,7 @@ q_get_queue(mrb_state *mrb, mrb_task *t)
 }
 
 /* Insert task into queue based on priority (higher priority = lower number = earlier in queue) */
-static void
+void
 q_insert_task(mrb_state *mrb, mrb_task *t)
 {
   mrb_task **q = q_get_queue(mrb, t);
@@ -195,7 +171,7 @@ q_insert_task(mrb_state *mrb, mrb_task *t)
 }
 
 /* Delete task from its current queue */
-static void
+void
 q_delete_task(mrb_state *mrb, mrb_task *t)
 {
   mrb_task **q = q_get_queue(mrb, t);
@@ -1524,6 +1500,12 @@ mrb_mruby_task_gem_init(mrb_state *mrb)
 
   task_class = mrb_define_class_id(mrb, MRB_SYM(Task), mrb->object_class);
   MRB_SET_INSTANCE_TT(task_class, MRB_TT_DATA);
+
+  /* Task::Error - base error class for task synchronization errors */
+  mrb_define_class_under_id(mrb, task_class, MRB_SYM(Error), mrb->eStandardError_class);
+
+  /* Task::Queue */
+  mrb_init_task_queue(mrb, task_class);
 
   /* Class methods */
   mrb_define_class_method_id(mrb, task_class, MRB_SYM(new),     mrb_task_s_new,     MRB_ARGS_KEY(2,0)|MRB_ARGS_BLOCK());
