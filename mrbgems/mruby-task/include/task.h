@@ -28,7 +28,10 @@ enum {
   MRB_TASK_REASON_SLEEP = 0x01,  /* Sleeping for time */
   MRB_TASK_REASON_MUTEX = 0x02,  /* Waiting for mutex (reserved) */
   MRB_TASK_REASON_JOIN  = 0x04,  /* Waiting for another task */
+  MRB_TASK_REASON_QUEUE = 0x08,  /* Waiting for queue item */
 };
+
+struct mrb_task_queue;
 
 /*
  * Task structure - represents a single task in the scheduler
@@ -53,6 +56,7 @@ typedef struct mrb_task {
     uint32_t wakeup_tick;          /* Tick count to wake up (REASON_SLEEP) */
     const struct mrb_task *join;   /* Task being waited on (REASON_JOIN) */
     void *mutex;                   /* Mutex pointer (REASON_MUTEX, reserved) */
+    struct mrb_task_queue *queue;  /* Queue being waited on (REASON_QUEUE) */
   } wait;
 
   mrb_value self;                  /* Ruby Task object reference */
@@ -139,5 +143,39 @@ MRB_API mrb_value mrb_task_status(mrb_state *mrb, mrb_value self);
 MRB_API void mrb_task_init_context(mrb_state *mrb, mrb_value task, struct RProc *proc);
 MRB_API void mrb_task_reset_context(mrb_state *mrb, mrb_value task);
 MRB_API void mrb_task_proc_set(mrb_state *mrb, mrb_value task, struct RProc *proc);
+
+/*
+ * Internal helpers - used by task.c and task_queue.c
+ */
+#include <stddef.h>
+#include "task_hal.h"
+
+/* Scheduler state accessors (require a local mrb variable in scope) */
+#define q_dormant_   (mrb->task.queues[MRB_TASK_QUEUE_DORMANT])
+#define q_ready_     (mrb->task.queues[MRB_TASK_QUEUE_READY])
+#define q_waiting_   (mrb->task.queues[MRB_TASK_QUEUE_WAITING])
+#define q_suspended_ (mrb->task.queues[MRB_TASK_QUEUE_SUSPENDED])
+#define tick_        (mrb->task.tick)
+#define wakeup_tick_ (mrb->task.wakeup_tick)
+#define switching_   (mrb->task.switching)
+
+/* Recover the mrb_task that owns the current mruby context */
+#define MRB2TASK(mrb) ((mrb_task *)((uint8_t *)(mrb)->c - offsetof(mrb_task, c)))
+
+/* Raise if the scheduler is locked (synchronous execution in progress) */
+static inline void
+task_check_scheduler_lock(mrb_state *mrb)
+{
+  if (mrb->task.scheduler_lock > 0) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "Cannot use asynchronous Task API during synchronous execution");
+  }
+}
+
+/* Priority-queue insert/delete - defined in task.c */
+void q_insert_task(mrb_state *mrb, mrb_task *t);
+void q_delete_task(mrb_state *mrb, mrb_task *t);
+
+/* Task::Queue class registration - defined in task_queue.c */
+void mrb_init_task_queue(mrb_state *mrb, struct RClass *task_class);
 
 #endif /* MRUBY_TASK_H */
