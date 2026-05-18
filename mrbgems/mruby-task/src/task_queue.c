@@ -20,17 +20,12 @@ mrb_task_queue_free(mrb_state *mrb, void *ptr)
   mrb_free(mrb, ptr);
 }
 
-static struct RClass *
-queue_task_error_class(mrb_state *mrb)
-{
-  return mrb_class_get_under(mrb, mrb_class_get(mrb, "Task"), "Error");
-}
-
 static const struct mrb_data_type mrb_task_queue_type = {
   "Task::Queue", mrb_task_queue_free,
 };
 
 static mrb_value wait_retry_;
+static struct RClass *task_error_class_;
 
 /* Wake the highest-priority task waiting on this queue */
 static void
@@ -97,7 +92,7 @@ queue_push(mrb_state *mrb, mrb_value self)
 
   mrb_task_queue *q = (mrb_task_queue*)mrb_data_get_ptr(mrb, self, &mrb_task_queue_type);
   if (!q) mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid queue");
-  if (q->closed) mrb_raise(mrb, queue_task_error_class(mrb), "queue closed");
+  if (q->closed) mrb_raise(mrb, task_error_class_, "queue closed");
 
   mrb_value items = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@items"));
   mrb_ary_push(mrb, items, obj);
@@ -137,7 +132,7 @@ queue_pop_try(mrb_state *mrb, mrb_value self)
 
   /* Non-blocking and empty */
   if (non_block) {
-    mrb_raise(mrb, queue_task_error_class(mrb), "queue empty");
+    mrb_raise(mrb, task_error_class_, "queue empty");
   }
 
   /* Blocking pop only works inside a task */
@@ -235,6 +230,8 @@ mrb_init_task_queue(mrb_state *mrb, struct RClass *task_class)
 
   queue_class = mrb_define_class_under_id(mrb, task_class, MRB_SYM(Queue), mrb->object_class);
   MRB_SET_INSTANCE_TT(queue_class, MRB_TT_DATA);
+
+  task_error_class_ = mrb_class_get_under_id(mrb, task_class, MRB_SYM(Error));
 
   /* Allocate and store WAIT_RETRY sentinel (rooted by the class constant table) */
   wait_retry_ = mrb_obj_new(mrb, mrb->object_class, 0, NULL);
