@@ -140,6 +140,9 @@ queue_pop_try(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_RUNTIME_ERROR, "blocking pop can only be called from within a task");
   }
 
+  /* Blocking pop requires the scheduler to be running */
+  task_check_scheduler_lock(mrb);
+
   /* Guard against yielding from inside a C function boundary */
   mrb_callinfo *ci;
   for (ci = mrb->c->ci; ci >= mrb->c->cibase; ci--) {
