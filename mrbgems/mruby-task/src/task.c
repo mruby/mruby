@@ -281,20 +281,28 @@ task_init_context(mrb_state *mrb, mrb_task *t, const struct RProc *proc)
 static void
 wake_up_join_waiters(mrb_state *mrb, mrb_task *completed_task)
 {
+  mrb_task_disable_irq();
   mrb_task *curr = q_waiting_;
   while (curr != NULL) {
     mrb_task *next = curr->next;
     if (curr->reason == MRB_TASK_REASON_JOIN && curr->wait.join == completed_task) {
-      mrb_task_disable_irq();
       q_delete_task(mrb, curr);
       curr->status = MRB_TASK_STATUS_READY;
       curr->reason = MRB_TASK_REASON_NONE;
       curr->wait.join = NULL;
       q_insert_task(mrb, curr);
-      mrb_task_enable_irq();
+      /* If a higher-priority waiter is resumed from task context,
+       * request a context switch after leaving the critical section. */
+      if (mrb->c != mrb->root_c && !switching_) {
+        mrb_task *running = MRB2TASK(mrb);
+        if (curr->priority < running->priority) {
+          switching_ = TRUE;
+        }
+      }
     }
     curr = next;
   }
+  mrb_task_enable_irq();
 }
 
 /* Change task state with IRQ protection and queue management */
