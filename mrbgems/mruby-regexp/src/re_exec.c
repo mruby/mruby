@@ -492,6 +492,7 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
     case RE_BACKREF:
       {
         int group = inst.a;
+        if (group * 2 + 1 >= ncap) return FALSE;
         int gs = captures[group * 2];
         int ge = captures[group * 2 + 1];
         if (gs < 0 || ge < 0) return FALSE;
