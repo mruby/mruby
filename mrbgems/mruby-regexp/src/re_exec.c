@@ -388,8 +388,10 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
  */
 static mrb_bool
 bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
-         const char *sp, uint32_t pc, int *captures, int ncap, int *steps)
+         const char *sp, uint32_t pc, int *captures, int ncap, int *steps,
+         int depth)
 {
+  if (depth > MRB_REGEXP_RECURSION_LIMIT) return FALSE;
   while (pc < pat->code_len) {
     if (++(*steps) > MRB_REGEXP_STEP_LIMIT) return FALSE;
 
@@ -428,12 +430,12 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
       break;
 
     case RE_SPLIT:
-      if (bt_match(pat, str, str_end, sp, pc + 1, captures, ncap, steps)) return TRUE;
+      if (bt_match(pat, str, str_end, sp, pc + 1, captures, ncap, steps, depth + 1)) return TRUE;
       pc = inst.offset;
       break;
 
     case RE_SPLITNG:
-      if (bt_match(pat, str, str_end, sp, inst.offset, captures, ncap, steps)) return TRUE;
+      if (bt_match(pat, str, str_end, sp, inst.offset, captures, ncap, steps, depth + 1)) return TRUE;
       pc++;
       break;
 
@@ -443,7 +445,7 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
         if (slot < ncap) {
           int old = captures[slot];
           captures[slot] = (int)(sp - str);
-          if (bt_match(pat, str, str_end, sp, pc + 1, captures, ncap, steps)) return TRUE;
+          if (bt_match(pat, str, str_end, sp, pc + 1, captures, ncap, steps, depth + 1)) return TRUE;
           captures[slot] = old;
         }
         return FALSE;
@@ -502,13 +504,13 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
       break;
 
     case RE_LOOKAHEAD:
-      if (!bt_match(pat, str, str_end, sp, pc + 1, captures, ncap, steps))
+      if (!bt_match(pat, str, str_end, sp, pc + 1, captures, ncap, steps, depth + 1))
         return FALSE;
       pc = inst.offset;
       break;
 
     case RE_NEG_LOOKAHEAD:
-      if (bt_match(pat, str, str_end, sp, pc + 1, captures, ncap, steps))
+      if (bt_match(pat, str, str_end, sp, pc + 1, captures, ncap, steps, depth + 1))
         return FALSE;
       pc = inst.offset;
       break;
@@ -517,7 +519,7 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
       {
         int lb_len = inst.a;
         if (sp - str < lb_len) return FALSE;  /* not enough text before */
-        if (!bt_match(pat, str, str_end, sp - lb_len, pc + 1, captures, ncap, steps))
+        if (!bt_match(pat, str, str_end, sp - lb_len, pc + 1, captures, ncap, steps, depth + 1))
           return FALSE;
         pc = inst.offset;
       }
@@ -527,7 +529,7 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
       {
         int lb_len = inst.a;
         if (sp - str >= lb_len) {
-          if (bt_match(pat, str, str_end, sp - lb_len, pc + 1, captures, ncap, steps))
+          if (bt_match(pat, str, str_end, sp - lb_len, pc + 1, captures, ncap, steps, depth + 1))
             return FALSE;
         }
         /* if not enough text before, negative lookbehind succeeds */
@@ -567,7 +569,7 @@ backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
     memset(caps, -1, sizeof(int) * ncap);
     int steps = 0;
 
-    if (bt_match(pat, str, str_end, sp, 0, caps, ncap, &steps)) {
+    if (bt_match(pat, str, str_end, sp, 0, caps, ncap, &steps, 0)) {
       if (captures) {
         int copy = ncap < captures_size ? ncap : captures_size;
         memcpy(captures, caps, sizeof(int) * copy);
