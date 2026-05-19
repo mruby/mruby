@@ -2,5 +2,6 @@
 build
 coverage
 doc/internal/opcode.md
+mrbgems/hw-spi/README.md
 tools/lrama
 .venv
