@@ -37,7 +37,7 @@ jobs:
       - name: Ruby version
         run: ruby -v
       - name: Compiler version
-        run: ${{ env.CC }} --version
+        run: ${{ env.CC }} --version # zizmor: ignore[template-injection]
       - name: Build and test
         run: rake -m test:run:serial
 
@@ -80,7 +80,7 @@ jobs:
       - name: Ruby version
         run: ruby -v
       - name: Build and test
-        shell: cmd
+        shell: cmd # zizmor: ignore[misfeature]
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           rake -m test:run:serial

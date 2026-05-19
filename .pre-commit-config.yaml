@@ -60,6 +60,15 @@ repos:
         description: use lossless compression to optimize PNG files
         args: ["--fix", "-o", "4", "--strip", "safe", "--alpha"]
         stages: [manual]
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: v1.25.2
+    hooks:
+      - id: zizmor
+        name: run zizmor
+        description: zizmor is a static analysis tool for GitHub Actions
+        args: [--config=.github/linters/zizmor.yml]
+        files: ^\.github/workflows/.*$
+        types: [yaml]
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
