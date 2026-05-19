@@ -351,6 +351,14 @@ flo_idiv(mrb_state *mrb, mrb_value xv)
   mrb_float x = mrb_float(xv);
   mrb_check_num_exact(mrb, x);
   mrb_int y = mrb_as_int(mrb, mrb_get_arg1(mrb));
+  /* (mrb_int)x is UB when x is outside mrb_int range. */
+  if (!FIXABLE_FLOAT(x)) {
+#ifdef MRB_USE_BIGINT
+    return mrb_bint_div(mrb, mrb_bint_new_float(mrb, x), mrb_int_value(mrb, y));
+#else
+    mrb_int_overflow(mrb, "div");
+#endif
+  }
   return mrb_div_int_value(mrb, (mrb_int)x, y);
 }
 
