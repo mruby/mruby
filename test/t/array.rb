@@ -107,6 +107,17 @@ assert('Array#[]=', '15.2.12.5.5') do
   a = [1,2,3]
   a[-1,0] = a
   assert_equal([1,2,1,2,3,3], a)
+
+  # passing self with length above ARY_REPLACE_SHARED_MIN (=20).
+  # ary_dup -> ary_replace converts the source to shared as a
+  # copy-on-write optimization; without re-modifying `a` afterwards,
+  # ARY_CAPA(a) reads from aux.shared's pointer bits and the
+  # expand-capa check silently mis-sizes -> heap-buffer-overflow in
+  # value_move. Reported via clusterfuzz mruby_fuzzer.
+  a = (0..30).to_a
+  a[3, 2] = a
+  assert_equal(60, a.length)
+  assert_equal([0, 1, 2] + (0..30).to_a + (5..30).to_a, a)
 end
 
 assert('Array#clear', '15.2.12.5.6') do

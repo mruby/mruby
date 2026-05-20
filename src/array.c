@@ -1197,6 +1197,14 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
       }
       r = ary_dup(mrb, a);
       argv = ARY_PTR(r);
+      /* ary_dup -> ary_replace converts `a` to shared as a
+         copy-on-write optimization when len > ARY_REPLACE_SHARED_MIN.
+         Subsequent ARY_CAPA(a) reads would land on aux.shared's
+         pointer bits instead of the actual capacity, so the
+         expand-capa check below silently mis-sizes and value_move
+         walks past the buffer. Re-modify here to unshare before
+         mutating `a` in place. */
+      ary_modify(mrb, a);
     }
   }
   else if (mrb_undef_p(rpl)) {
