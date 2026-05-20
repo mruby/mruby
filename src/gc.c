@@ -1216,36 +1216,37 @@ incremental_sweep_phase(mrb_state *mrb, mrb_gc *gc, size_t limit)
   size_t tried_sweep = 0;
 
   while (page && (tried_sweep < limit)) {
-    RVALUE *p = page->objects;
-    RVALUE *e = p + MRB_HEAP_PAGE_SIZE;
     size_t freed = 0;
     mrb_bool dead_slot = TRUE;
 
     if (is_minor_gc(gc) && page->old) {
       /* skip a slot which doesn't contain any young object */
-      p = e;
       dead_slot = FALSE;
     }
-    while (p<e) {
-      if (is_dead(gc, &p->as.basic)) {
-        if (p->as.basic.tt != MRB_TT_FREE) {
-          obj_free(mrb, &p->as.basic, FALSE);
-          if (p->as.basic.tt == MRB_TT_FREE) {
-            p->as.free.next = page->freelist;
-            page->freelist = p;
-            freed++;
-          }
-          else {
-            dead_slot = FALSE;
+    else {
+      RVALUE *p = page->objects;
+      RVALUE *e = p + MRB_HEAP_PAGE_SIZE;
+      while (p<e) {
+        if (is_dead(gc, &p->as.basic)) {
+          if (p->as.basic.tt != MRB_TT_FREE) {
+            obj_free(mrb, &p->as.basic, FALSE);
+            if (p->as.basic.tt == MRB_TT_FREE) {
+              p->as.free.next = page->freelist;
+              page->freelist = p;
+              freed++;
+            }
+            else {
+              dead_slot = FALSE;
+            }
           }
         }
+        else {
+          if (!is_generational(gc))
+            paint_partial_white(gc, &p->as.basic); /* next gc target */
+          dead_slot = FALSE;
+        }
+        p++;
       }
-      else {
-        if (!is_generational(gc))
-          paint_partial_white(gc, &p->as.basic); /* next gc target */
-        dead_slot = FALSE;
-      }
-      p++;
     }
 
     /* free dead slot */
