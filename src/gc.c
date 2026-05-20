@@ -1230,14 +1230,10 @@ incremental_sweep_phase(mrb_state *mrb, mrb_gc *gc, size_t limit)
         if (is_dead(gc, &p->as.basic)) {
           if (p->as.basic.tt != MRB_TT_FREE) {
             obj_free(mrb, &p->as.basic, FALSE);
-            if (p->as.basic.tt == MRB_TT_FREE) {
-              p->as.free.next = page->freelist;
-              page->freelist = p;
-              freed++;
-            }
-            else {
-              dead_slot = FALSE;
-            }
+            mrb_assert(p->as.basic.tt == MRB_TT_FREE);
+            p->as.free.next = page->freelist;
+            page->freelist = p;
+            freed++;
           }
         }
         else {
