@@ -214,6 +214,8 @@ parse_escape(re_compiler *c)
   case 'v': return '\v';
   case 'a': return '\a';
   case 'e': return 0x1b;
+  case 'b': return '\b';  /* backspace; only reachable inside [...] since the
+                             top-level dispatcher emits RE_WBOUND for `\b` */
   default: return ch;  /* literal: \., \\, \/, \(, etc. */
   }
 }

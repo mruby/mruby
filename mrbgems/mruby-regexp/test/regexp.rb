@@ -47,6 +47,14 @@ assert("Regexp - character class") do
   assert_equal "abc", md[0]
 end
 
+assert("Regexp - \\b inside character class is backspace") do
+  # Outside [...], \b is the word boundary assertion; inside [...]
+  # it must mean U+0008 (backspace), matching MRI/Onigmo.
+  assert_equal "Ruby", "Ruby".gsub(/[\b]/, "X")
+  assert_equal "aXc", "a\bc".gsub(/[\b]/, "X")
+  assert_equal ["\b", "\t", "\n"], "ABC\b\t\n".scan(/[\b-\n]/)
+end
+
 assert("Regexp - dot") do
   re = Regexp.new("a.c")
   assert_true re.match?("abc")
