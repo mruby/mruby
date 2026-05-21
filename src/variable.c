@@ -665,7 +665,8 @@ assign_class_name(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
 {
   if (namespace_p(mrb_type(v))) {
     struct RObject *c = mrb_obj_ptr(v);
-    if (obj != c && ISUPPER(mrb_sym_name_len(mrb, sym, NULL)[0])) {
+    const char *name = mrb_sym_name_len(mrb, sym, NULL);
+    if (obj != c && name && ISUPPER(name[0])) {
       mrb_sym id_classname = MRB_SYM(__classname__);
       mrb_value o = mrb_obj_iv_get(mrb, c, id_classname);
 
