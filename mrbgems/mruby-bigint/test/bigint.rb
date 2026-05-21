@@ -164,6 +164,18 @@ assert 'Bigint Integer#pow(e, m) - Montgomery path' do
   assert_equal ((5**300) ** 7) % m2, (5**300).pow(7, m2)
 end
 
+assert 'Bigint Integer#remainder large operand' do
+  # Regression: mpz_mod's Barrett path didn't enforce its precondition
+  # x < 2^(2*bits(m)), so it silently truncated high limbs when x was
+  # much larger than m^2, producing the wrong remainder. Integer#%
+  # took the udiv path and worked, but Integer#remainder went through
+  # mpz_mod and was broken.
+  m = (2**100) + 3
+  assert_equal (3**500) % m, (3**500).remainder(m)
+  assert_equal (5**500) % ((2**150) + 1), (5**500).remainder((2**150) + 1)
+  assert_equal (2**400) % ((2**130) + 1), (2**400).remainder((2**130) + 1)
+end
+
 assert 'Bigint abs' do
   n = 1<<65
   assert_equal 36893488147419103232, n.abs

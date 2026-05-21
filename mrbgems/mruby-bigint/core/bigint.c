@@ -3149,8 +3149,11 @@ mpz_mod(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *y)
     return;
   }
 
-  /* Barrett reduction for moderate-sized moduli (>= 4 limbs where setup is worthwhile) */
-  if (y->sz >= 4 && y->sz <= 16 && x->sz >= y->sz + 2) {
+  /* Barrett reduction for moderate-sized moduli (>= 4 limbs where setup is worthwhile).
+   * Barrett's precondition is x < 2^(2*bits(m)); inputs beyond ~2*m.sz limbs
+   * violate it and the algorithm silently truncates high limbs. Fall through
+   * to general division for those. */
+  if (y->sz >= 4 && y->sz <= 16 && x->sz >= y->sz + 2 && x->sz <= 2 * y->sz) {
     mpz_t mu;
     mpz_init_temp(ctx, &mu, y->sz + 1);
     mpz_barrett_mu(ctx, &mu, y);
