@@ -373,6 +373,8 @@ trim(mpz_t *x)
   while (x->sz && x->p[x->sz-1] == 0) {
     x->sz--;
   }
+  /* Maintain invariant: sz == 0 implies sn == 0 (zero is canonical). */
+  if (x->sz == 0) x->sn = 0;
 }
 
 /* z = x + y, without regard for sign */
