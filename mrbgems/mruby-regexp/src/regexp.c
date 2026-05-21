@@ -107,14 +107,16 @@ regexp_init(mrb_state *mrb, mrb_value self)
     flags = parse_flags(mrb, flags_val);
   }
 
+  /* Set @source and @flags before re_compile() so a Regexp that survives
+     a compile-time exception (e.g. picked up by ObjectSpace.each_object)
+     still has usable IVs for hash/eql?/inspect. */
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@source"), pattern);
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@flags"), mrb_int_value(mrb, (mrb_int)flags));
+
   pat = re_compile(mrb, RSTRING_PTR(pattern), RSTRING_LEN(pattern), flags);
 
   DATA_TYPE(self) = &regexp_type;
   DATA_PTR(self) = pat;
-
-  /* store source for #source and #inspect */
-  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@source"), pattern);
-  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@flags"), mrb_int_value(mrb, (mrb_int)flags));
 
   /* store named captures as hash */
   if (pat->num_named > 0) {
@@ -364,6 +366,9 @@ regexp_eql(mrb_state *mrb, mrb_value self)
   }
   mrb_value src1 = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@source"));
   mrb_value src2 = mrb_iv_get(mrb, other, mrb_intern_lit(mrb, "@source"));
+  if (!mrb_string_p(src1) || !mrb_string_p(src2)) {
+    return mrb_bool_value(mrb_obj_eq(mrb, self, other));
+  }
   if (!mrb_str_equal(mrb, src1, src2)) return mrb_false_value();
   return mrb_bool_value(get_iflags(mrb, self) == get_iflags(mrb, other));
 }
@@ -375,7 +380,7 @@ static mrb_value
 regexp_hash(mrb_state *mrb, mrb_value self)
 {
   mrb_value src = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@source"));
-  uint32_t h = mrb_str_hash(mrb, src);
+  uint32_t h = mrb_string_p(src) ? mrb_str_hash(mrb, src) : 0;
   h ^= get_iflags(mrb, self) * 0x9e3779b9;  /* mix flags into hash */
   return mrb_int_value(mrb, (mrb_int)h);
 }

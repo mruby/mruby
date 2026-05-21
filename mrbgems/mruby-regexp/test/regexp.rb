@@ -181,6 +181,17 @@ assert("Regexp#hash") do
   assert_not_equal r1.hash, r3.hash
 end
 
+assert("Regexp#hash/== on uninitialized regexp") do
+  # Regexp.allocate yields an object with no @source IV; hash/== must
+  # not crash (regression: ObjectSpace.each_object could expose a
+  # half-initialized Regexp after Regexp.new raised a compile error).
+  r = Regexp.allocate
+  assert_kind_of Integer, r.hash
+  assert_true r == r
+  assert_false r == Regexp.allocate
+  assert_false r == Regexp.new("abc")
+end
+
 assert("Regexp#options") do
   assert_equal 0, Regexp.new("abc").options
   assert_equal Regexp::IGNORECASE, Regexp.new("abc", Regexp::IGNORECASE).options
