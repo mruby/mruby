@@ -5250,12 +5250,19 @@ mpz_powm_montgomery(mpz_ctx_t *ctx, mpz_t *result,
   mpz_init(ctx, &one_mont);
   mpz_montgomery_reduce(ctx, &one_mont, &R2, n, rho);
 
-  /* Convert base to Montgomery form: base_mont = base * R mod n = REDC(base * R^2) */
-  mpz_t base_mont, temp;
+  /* Convert base to Montgomery form: base_mont = base * R mod n = REDC(base * R^2).
+   * REDC requires its input T to satisfy T < R*N. If `base` is not already
+   * reduced (e.g. base >= n), `base * R^2` can exceed R*N and REDC produces
+   * a wrong result. Pre-reduce base modulo n via mpz_mmod (the general
+   * division path) -- both operands are non-negative here so this is
+   * semantically equivalent to mpz_mod. */
+  mpz_t base_mont, base_reduced, temp;
   mpz_init(ctx, &base_mont);
+  mpz_init(ctx, &base_reduced);
   mpz_init_temp(ctx, &temp, n->sz * 4);
 
-  mpz_mul(ctx, &temp, (mpz_t*)base, &R2);
+  mpz_mmod(ctx, &base_reduced, (mpz_t*)base, (mpz_t*)n);
+  mpz_mul(ctx, &temp, &base_reduced, &R2);
   mpz_montgomery_reduce(ctx, &base_mont, &temp, n, rho);
 
   /* Initialize accumulator to 1 in Montgomery form */
@@ -5287,6 +5294,7 @@ mpz_powm_montgomery(mpz_ctx_t *ctx, mpz_t *result,
   mpz_clear(ctx, &R2);
   mpz_clear(ctx, &one_mont);
   mpz_clear(ctx, &base_mont);
+  mpz_clear(ctx, &base_reduced);
   mpz_clear(ctx, &temp);
   mpz_clear(ctx, &acc);
   pool_restore(ctx, pool_state);

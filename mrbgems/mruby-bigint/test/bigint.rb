@@ -150,6 +150,20 @@ assert 'Bigint pow' do
   # assert_equal(-1041439304, n.pow(n, -1234567890))
 end
 
+assert 'Bigint Integer#pow(e, m) - Montgomery path' do
+  # Regression: mpz_powm_montgomery() failed to pre-reduce base mod n,
+  # producing wrong results when base >= n. Also trim() must restore
+  # the canonical sn=0 when sz becomes 0, otherwise an inconsistent
+  # zero bignum (sn!=0, sz=0) propagates through the squaring loop.
+  m = (2**40) + 1
+  assert_equal 1, (2**160).pow(2, m)
+  assert_equal 1, (2**320).pow(2, m)
+  assert_equal 8, ((2**160) + 1).pow(3, m)
+  m2 = (2**100) + 3
+  assert_equal (3**500) % m2, (3**500).pow(1, m2)
+  assert_equal ((5**300) ** 7) % m2, (5**300).pow(7, m2)
+end
+
 assert 'Bigint abs' do
   n = 1<<65
   assert_equal 36893488147419103232, n.abs
