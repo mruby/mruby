@@ -1043,6 +1043,21 @@ assert('pattern matching - array patterns') do
     x
   end
   assert_equal 3, result
+
+  # array literal with splat as case value (#6854):
+  # the array-literal-length optimization must bail out for splat,
+  # since the runtime length is unknown statically.
+  a = [1, 2]
+  result = case [*a]
+           in [1, 2] then :match
+           else :nomatch
+           end
+  assert_equal :match, result
+
+  # same bug in one-line `in` pattern
+  assert_true ([*a] in [1, 2])
+  assert_false ([*a] in [1, 2, 3])
+  assert_true ([1, *a, 4] in [1, 1, 2, 4])
 end
 
 assert('pattern matching - find patterns') do

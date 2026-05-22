@@ -4285,6 +4285,22 @@ codegen_case(codegen_scope *s, node *varnode, int val)
  */
 static void codegen_pattern(codegen_scope *s, node *pattern, int target, uint32_t *fail_pos, int known_array_len);
 
+/* Return the static element count of an array literal AST node, or -1 if any
+ * element is a splat (whose runtime length is unknown).
+ */
+static int
+array_literal_known_len(node *value)
+{
+  if (node_type(value) != NODE_ARRAY) return -1;
+  struct mrb_ast_array_node *arr = array_node(value);
+  int len = 0;
+  for (node *elem = arr->elements; elem; elem = elem->cdr) {
+    if (is_splat_node(elem->car)) return -1;
+    len++;
+  }
+  return len;
+}
+
 /* Pattern matching case/in expression */
 static void
 codegen_case_match(codegen_scope *s, node *varnode, int val)
@@ -4298,13 +4314,7 @@ codegen_case_match(codegen_scope *s, node *varnode, int val)
   uint32_t tmp;
 
   /* Check if value is an array literal - allows optimizations in pattern matching */
-  int known_array_len = -1;
-  if (node_type(value) == NODE_ARRAY) {
-    struct mrb_ast_array_node *arr = array_node(value);
-    node *elem;
-    known_array_len = 0;
-    for (elem = arr->elements; elem; elem = elem->cdr) known_array_len++;
-  }
+  int known_array_len = array_literal_known_len(value);
 
   /* Generate code for the case value */
   codegen(s, value, VAL);
@@ -6552,16 +6562,15 @@ codegen(codegen_scope *s, node *tree, int val)
       /* Optimize: array literal => array pattern with matching sizes */
       if (node_type(mp->value) == NODE_ARRAY &&
           node_type(mp->pattern) == NODE_PAT_ARRAY) {
-        struct mrb_ast_array_node *arr = array_node(mp->value);
         struct mrb_ast_pat_array_node *pat = pat_array_node(mp->pattern);
         /* Only optimize for exact match (no rest, no post) */
         if (pat->rest == 0 && pat->post == NULL) {
-          /* Count array elements and pattern pre elements */
-          int arr_len = 0, pat_len = 0;
+          /* Count array elements (bail if splat present) and pattern pre elements */
+          int arr_len = array_literal_known_len(mp->value);
+          int pat_len = 0;
           node *e;
-          for (e = arr->elements; e; e = e->cdr) arr_len++;
           for (e = pat->pre; e; e = e->cdr) pat_len++;
-          if (arr_len == pat_len) {
+          if (arr_len >= 0 && arr_len == pat_len) {
             /* Sizes match - skip deconstruct and size check */
             int arr_reg = cursp();
             int i = 0;
@@ -6600,12 +6609,7 @@ codegen(codegen_scope *s, node *tree, int val)
       head = cursp();
 
       /* Check if value is array literal for optimization */
-      if (node_type(mp->value) == NODE_ARRAY) {
-        struct mrb_ast_array_node *arr = array_node(mp->value);
-        node *elem;
-        known_array_len = 0;
-        for (elem = arr->elements; elem; elem = elem->cdr) known_array_len++;
-      }
+      known_array_len = array_literal_known_len(mp->value);
 
       /* Evaluate the value */
       codegen(s, mp->value, VAL);
