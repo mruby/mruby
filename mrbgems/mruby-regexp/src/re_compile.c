@@ -91,12 +91,16 @@ insert_inst(re_compiler *c, uint32_t pos, uint8_t op, uint8_t a, uint16_t offset
   c->code[pos].a = a;
   c->code[pos].offset = offset;
 
-  /* fix all jump targets that point at or past the insertion point */
+  /* Fix jump targets that point past the insertion point. An offset equal
+     to `pos` already points to the inserted instruction's new location and
+     must not be bumped -- bumping it would shift the target to whatever
+     code got displaced by the insertion (e.g. the body of the quantified
+     atom), corrupting "skip past this atom" jumps emitted earlier. */
   for (uint32_t i = 0; i < c->code_len; i++) {
     if (i == pos) continue;
     switch (c->code[i].op) {
     case RE_JMP: case RE_SPLIT: case RE_SPLITNG:
-      if (c->code[i].offset >= pos && c->code[i].offset < 0xffff) {
+      if (c->code[i].offset > pos && c->code[i].offset < 0xffff) {
         c->code[i].offset++;
       }
       break;

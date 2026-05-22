@@ -463,3 +463,18 @@ assert("$1-$9 cleared on no match") do
   /xyz/ =~ "abc"
   assert_nil $1
 end
+
+assert("Regexp - consecutive optional quantifiers (#6853)") do
+  # insert_inst was over-incrementing jump offsets that pointed *at* the
+  # insertion site, sending earlier "skip this atom" SPLITs into the next
+  # atom's body. Two adjacent zero-matchable atoms then both failed even
+  # when both should match zero characters.
+  assert_equal ["a", nil],   /\Aa(b)?c?\z/.match("a").to_a
+  assert_equal ["ab", "b"],  /\Aa(b)?c?\z/.match("ab").to_a
+  assert_equal ["ac", nil],  /\Aa(b)?c?\z/.match("ac").to_a
+  assert_equal ["abc", "b"], /\Aa(b)?c?\z/.match("abc").to_a
+
+  assert_equal [""], /a?b?/.match("").to_a
+  assert_equal [""], /a*b*/.match("").to_a
+  assert_equal [""], /a?b?c?d?/.match("").to_a
+end
