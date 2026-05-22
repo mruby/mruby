@@ -478,3 +478,17 @@ assert("Regexp - consecutive optional quantifiers (#6853)") do
   assert_equal [""], /a*b*/.match("").to_a
   assert_equal [""], /a?b?c?d?/.match("").to_a
 end
+
+assert("Regexp - empty-matchable patterns find earliest match position") do
+  # When a regex can match zero characters via epsilon transitions, the
+  # first-byte skip-ahead optimization is unsafe: skipping past bytes
+  # that aren't in the first-byte set would also skip past valid
+  # empty-match positions.
+  md = /a?/.match("b")
+  assert_equal "", md[0]
+  assert_equal 0, md.begin(0)
+
+  md = /a?b?/.match("c")
+  assert_equal "", md[0]
+  assert_equal 0, md.begin(0)
+end

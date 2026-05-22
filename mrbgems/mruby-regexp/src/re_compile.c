@@ -823,12 +823,18 @@ first_set_walk(const re_inst *code, uint32_t code_len,
     case RE_ANY: case RE_ANY_NL:
       return FALSE;  /* any byte possible */
     case RE_MATCH:
-      return TRUE;  /* empty match; first_bytes still valid for other branches */
+      /* Reaching MATCH via epsilon transitions means the regex can match
+         zero characters at any position. Skipping bytes that aren't in the
+         first-byte set would skip past valid empty-match positions, so the
+         optimization isn't safe -- bail out and accept any starting byte. */
+      return FALSE;
     default:
       return FALSE;
     }
   }
-  return TRUE;
+  /* Walked off the end without hitting MATCH or a consuming op. Treat as
+     empty-matchable, same as RE_MATCH. */
+  return FALSE;
 }
 
 static mrb_bool
