@@ -148,7 +148,7 @@ q_get_queue(mrb_state *mrb, mrb_task *t)
 
 /* Insert task into queue based on priority (higher priority = lower number = earlier in queue) */
 void
-q_insert_task(mrb_state *mrb, mrb_task *t)
+mrb_task_q_insert(mrb_state *mrb, mrb_task *t)
 {
   mrb_task **q = q_get_queue(mrb, t);
   mrb_task *curr = *q;
@@ -172,7 +172,7 @@ q_insert_task(mrb_state *mrb, mrb_task *t)
 
 /* Delete task from its current queue */
 void
-q_delete_task(mrb_state *mrb, mrb_task *t)
+mrb_task_q_delete(mrb_state *mrb, mrb_task *t)
 {
   mrb_task **q = q_get_queue(mrb, t);
   mrb_task *curr = *q;
@@ -202,10 +202,10 @@ task_cleanup_if_stopped(mrb_state *mrb, mrb_task *t)
   if (t->status == MRB_TASK_STATUS_DORMANT || t->c.status == MRB_TASK_STOPPED) {
     /* Task is terminated but still in queue - remove it */
     mrb_task_disable_irq();
-    q_delete_task(mrb, t);
+    mrb_task_q_delete(mrb, t);
     if (t->status != MRB_TASK_STATUS_DORMANT) {
       t->status = MRB_TASK_STATUS_DORMANT;
-      q_insert_task(mrb, t);
+      mrb_task_q_insert(mrb, t);
     }
     mrb_task_enable_irq();
     return TRUE;
@@ -286,11 +286,11 @@ wake_up_join_waiters(mrb_state *mrb, mrb_task *completed_task)
   while (curr != NULL) {
     mrb_task *next = curr->next;
     if (curr->reason == MRB_TASK_REASON_JOIN && curr->wait.join == completed_task) {
-      q_delete_task(mrb, curr);
+      mrb_task_q_delete(mrb, curr);
       curr->status = MRB_TASK_STATUS_READY;
       curr->reason = MRB_TASK_REASON_NONE;
       curr->wait.join = NULL;
-      q_insert_task(mrb, curr);
+      mrb_task_q_insert(mrb, curr);
       /* If a higher-priority waiter is resumed from task context,
        * request a context switch after leaving the critical section. */
       if (mrb->c != mrb->root_c && !switching_) {
@@ -310,9 +310,9 @@ static void
 task_change_state(mrb_state *mrb, mrb_task *t, uint8_t new_status)
 {
   mrb_task_disable_irq();
-  q_delete_task(mrb, t);
+  mrb_task_q_delete(mrb, t);
   t->status = new_status;
-  q_insert_task(mrb, t);
+  mrb_task_q_insert(mrb, t);
   mrb_task_enable_irq();
 }
 
@@ -369,9 +369,9 @@ execute_task(mrb_state *mrb, mrb_task *t)
   if (t->c.status == MRB_TASK_STOPPED) {
     switching_ = FALSE;
     mrb_task_disable_irq();
-    q_delete_task(mrb, t);
+    mrb_task_q_delete(mrb, t);
     t->status = MRB_TASK_STATUS_DORMANT;
-    q_insert_task(mrb, t);
+    mrb_task_q_insert(mrb, t);
     mrb_task_enable_irq();
 
     /* Wake up tasks waiting on join */
@@ -421,10 +421,10 @@ mrb_tick(mrb_state *mrb)
       if (curr->reason == MRB_TASK_REASON_SLEEP) {
         if ((int32_t)(curr->wait.wakeup_tick - tick_) <= 0) {
           /* Time to wake up */
-          q_delete_task(mrb, curr);
+          mrb_task_q_delete(mrb, curr);
           curr->status = MRB_TASK_STATUS_READY;
           curr->reason = MRB_TASK_REASON_NONE;
-          q_insert_task(mrb, curr);
+          mrb_task_q_insert(mrb, curr);
           switching_ = TRUE;
         }
         else if (curr->wait.wakeup_tick < next_wakeup) {
@@ -551,7 +551,7 @@ sleep_us_impl(mrb_state *mrb, uint32_t usec)
   mrb_task_disable_irq();
 
   /* Remove from ready queue */
-  q_delete_task(mrb, t);
+  mrb_task_q_delete(mrb, t);
 
   /* Move to waiting queue */
   t->status = MRB_TASK_STATUS_WAITING;
@@ -572,7 +572,7 @@ sleep_us_impl(mrb_state *mrb, uint32_t usec)
       (int32_t)(t->wait.wakeup_tick - wakeup_tick_) < 0) {
     wakeup_tick_ = t->wait.wakeup_tick;
   }
-  q_insert_task(mrb, t);
+  mrb_task_q_insert(mrb, t);
 
   mrb_task_enable_irq();
 
@@ -597,9 +597,9 @@ mrb_f_sleep(mrb_state *mrb, mrb_value self)
     mrb_task *t = q_ready_;
     if (t) {
       mrb_task_disable_irq();
-      q_delete_task(mrb, t);
+      mrb_task_q_delete(mrb, t);
       t->status = MRB_TASK_STATUS_SUSPENDED;
-      q_insert_task(mrb, t);
+      mrb_task_q_insert(mrb, t);
       mrb_task_enable_irq();
       switching_ = TRUE;
     }
@@ -666,7 +666,7 @@ task_create_common(mrb_state *mrb, const struct RProc *proc,
   task_init_context(mrb, t, proc);
 
   mrb_task_disable_irq();
-  q_insert_task(mrb, t);
+  mrb_task_q_insert(mrb, t);
   mrb_task_enable_irq();
 
   if (q_ready_ && q_ready_->status == MRB_TASK_STATUS_RUNNING) {
@@ -1024,8 +1024,8 @@ mrb_task_set_priority(mrb_state *mrb, mrb_value self)
 
   /* Re-sort in queue if task is ready */
   if (t->status == MRB_TASK_STATUS_READY || t->status == MRB_TASK_STATUS_RUNNING) {
-    q_delete_task(mrb, t);
-    q_insert_task(mrb, t);
+    mrb_task_q_delete(mrb, t);
+    mrb_task_q_insert(mrb, t);
   }
   mrb_task_enable_irq();
 
@@ -1100,11 +1100,11 @@ mrb_task_join(mrb_state *mrb, mrb_value self)
 
   /* Wait for task to complete */
   mrb_task_disable_irq();
-  q_delete_task(mrb, current);
+  mrb_task_q_delete(mrb, current);
   current->status = MRB_TASK_STATUS_WAITING;
   current->reason = MRB_TASK_REASON_JOIN;
   current->wait.join = t;
-  q_insert_task(mrb, current);
+  mrb_task_q_insert(mrb, current);
   mrb_task_enable_irq();
 
   /* Trigger context switch */
@@ -1162,7 +1162,7 @@ mrb_execute_proc_synchronously(mrb_state *mrb, mrb_value proc_val, mrb_int argc,
   /* 3. Move task from DORMANT to READY */
   mrb_task_disable_irq();
   t->status = MRB_TASK_STATUS_READY;
-  q_insert_task(mrb, t);
+  mrb_task_q_insert(mrb, t);
   mrb_task_enable_irq();
 
   /* 4. Execute the task in a dedicated loop (no context switching) */
@@ -1186,7 +1186,7 @@ mrb_execute_proc_synchronously(mrb_state *mrb, mrb_value proc_val, mrb_int argc,
 
   /* 6. Free the temporary task's resources */
   mrb_task_disable_irq();
-  q_delete_task(mrb, t);
+  mrb_task_q_delete(mrb, t);
   mrb_task_enable_irq();
 
   /* Prevent double-free: clear Data object's type before freeing task */
@@ -1362,10 +1362,10 @@ terminate_task_internal(mrb_state *mrb, mrb_task *t)
   if (t->status == MRB_TASK_STATUS_DORMANT) return;
 
   mrb_task_disable_irq();
-  q_delete_task(mrb, t);
+  mrb_task_q_delete(mrb, t);
   t->status = MRB_TASK_STATUS_DORMANT;
   t->c.status = MRB_TASK_STOPPED;
-  q_insert_task(mrb, t);
+  mrb_task_q_insert(mrb, t);
   mrb_task_enable_irq();
 
   wake_up_join_waiters(mrb, t);

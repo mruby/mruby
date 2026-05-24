@@ -166,8 +166,8 @@ task_check_scheduler_lock(mrb_state *mrb)
 }
 
 /* Priority-queue insert/delete - defined in task.c */
-void q_insert_task(mrb_state *mrb, mrb_task *t);
-void q_delete_task(mrb_state *mrb, mrb_task *t);
+void mrb_task_q_insert(mrb_state *mrb, mrb_task *t);
+void mrb_task_q_delete(mrb_state *mrb, mrb_task *t);
 
 /* Task::Queue class registration - defined in task_queue.c */
 void mrb_init_task_queue(mrb_state *mrb, struct RClass *task_class);

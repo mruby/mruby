@@ -36,11 +36,11 @@ queue_wake_one_waiter(mrb_state *mrb, mrb_task_queue *q)
   while (curr) {
     mrb_task *next = curr->next;
     if (curr->reason == MRB_TASK_REASON_QUEUE && curr->wait.queue == q) {
-      q_delete_task(mrb, curr);
+      mrb_task_q_delete(mrb, curr);
       curr->status = MRB_TASK_STATUS_READY;
       curr->reason = MRB_TASK_REASON_NONE;
       curr->wait.queue = NULL;
-      q_insert_task(mrb, curr);
+      mrb_task_q_insert(mrb, curr);
       switching_ = TRUE;
       break;
     }
@@ -59,11 +59,11 @@ queue_wake_all_waiters(mrb_state *mrb, mrb_task_queue *q)
   while (curr) {
     mrb_task *next = curr->next;
     if (curr->reason == MRB_TASK_REASON_QUEUE && curr->wait.queue == q) {
-      q_delete_task(mrb, curr);
+      mrb_task_q_delete(mrb, curr);
       curr->status = MRB_TASK_STATUS_READY;
       curr->reason = MRB_TASK_REASON_NONE;
       curr->wait.queue = NULL;
-      q_insert_task(mrb, curr);
+      mrb_task_q_insert(mrb, curr);
       woke_any = TRUE;
     }
     curr = next;
@@ -154,11 +154,11 @@ queue_pop_try(mrb_state *mrb, mrb_value self)
   /* Move current task to WAITING */
   mrb_task *current = MRB2TASK(mrb);
   mrb_task_disable_irq();
-  q_delete_task(mrb, current);
+  mrb_task_q_delete(mrb, current);
   current->status = MRB_TASK_STATUS_WAITING;
   current->reason = MRB_TASK_REASON_QUEUE;
   current->wait.queue = q;
-  q_insert_task(mrb, current);
+  mrb_task_q_insert(mrb, current);
   mrb_task_enable_irq();
   switching_ = TRUE;
 
