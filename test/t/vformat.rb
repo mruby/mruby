@@ -42,7 +42,7 @@ assert('mrb_vformat') do
   assert_equal '`S`: {a: 1, "b" => "c"}', vf.v('`S`: %S', {a: 1, "b" => ?c})
   assert_equal 'percent: %', vf.z('percent: %%')
   assert_equal '"I": inspect char', vf.c('%!c: inspect char', ?I)
-  assert_equal '709: inspect mrb_int', vf.i('%!d: inspect mrb_int', 709)
+  assert_equal '709: inspect mrb_int', vf.i('%!i: inspect mrb_int', 709)
   assert_equal '"a\x00b\xff"', vf.l('%!l', "a\000b\xFFc\000d", 4)
   assert_equal ':"&.": inspect symbol', vf.n('%!n: inspect symbol', :'&.')
   assert_equal 'inspect "String"', vf.v('inspect %!v', 'String')
