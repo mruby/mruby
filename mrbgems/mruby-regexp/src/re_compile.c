@@ -183,7 +183,7 @@ class_add_shorthand(re_charclass *cc, int ch)
     break;
   case 'W':
     for (int i = 0; i < 128; i++) {
-      if (!re_is_word_char(i)) class_set_bit(cc, (uint8_t)i);
+      if (!mrb_re_is_word_char(i)) class_set_bit(cc, (uint8_t)i);
     }
     cc->utf8_any = TRUE;
     break;
@@ -857,7 +857,7 @@ compute_first_set(const re_inst *code, uint32_t code_len,
 }
 
 mrb_regexp_pattern*
-re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags)
+mrb_re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags)
 {
   re_compiler c;
   memset(&c, 0, sizeof(c));
@@ -984,7 +984,7 @@ re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags)
 }
 
 void
-re_free(mrb_state *mrb, mrb_regexp_pattern *pat)
+mrb_re_free(mrb_state *mrb, mrb_regexp_pattern *pat)
 {
   if (pat) {
     mrb_free(mrb, pat->code);

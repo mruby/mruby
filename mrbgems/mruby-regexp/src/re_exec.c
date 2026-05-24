@@ -170,16 +170,16 @@ add_thread(pike_state *s, re_threadlist *list,
 
     case RE_WBOUND:
       {
-        mrb_bool before = (sp > s->str) && re_is_word_char((uint8_t)sp[-1]);
-        mrb_bool after = (sp < s->str_end) && re_is_word_char((uint8_t)*sp);
+        mrb_bool before = (sp > s->str) && mrb_re_is_word_char((uint8_t)sp[-1]);
+        mrb_bool after = (sp < s->str_end) && mrb_re_is_word_char((uint8_t)*sp);
         if (before != after) { pc++; continue; }
       }
       return;
 
     case RE_NWBOUND:
       {
-        mrb_bool before = (sp > s->str) && re_is_word_char((uint8_t)sp[-1]);
-        mrb_bool after = (sp < s->str_end) && re_is_word_char((uint8_t)*sp);
+        mrb_bool before = (sp > s->str) && mrb_re_is_word_char((uint8_t)sp[-1]);
+        mrb_bool after = (sp < s->str_end) && mrb_re_is_word_char((uint8_t)*sp);
         if (before == after) { pc++; continue; }
       }
       return;
@@ -301,7 +301,7 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
     next.count = 0;
 
     int ch = (uint8_t)*sp;
-    int advance = re_utf8_charlen(sp, str_end);
+    int advance = mrb_re_utf8_charlen(sp, str_end);
 
     for (int i = 0; i < curr.count; i++) {
       re_thread *th = &curr.threads[i];
@@ -404,22 +404,22 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
 
     case RE_ANY:
       if (sp >= str_end || *sp == '\n') return FALSE;
-      sp += re_utf8_charlen(sp, str_end); pc++;
+      sp += mrb_re_utf8_charlen(sp, str_end); pc++;
       break;
 
     case RE_ANY_NL:
       if (sp >= str_end) return FALSE;
-      sp += re_utf8_charlen(sp, str_end); pc++;
+      sp += mrb_re_utf8_charlen(sp, str_end); pc++;
       break;
 
     case RE_CLASS:
       if (sp >= str_end || !class_match(&pat->classes[inst.a], (uint8_t)*sp)) return FALSE;
-      sp += re_utf8_charlen(sp, str_end); pc++;
+      sp += mrb_re_utf8_charlen(sp, str_end); pc++;
       break;
 
     case RE_NCLASS:
       if (sp >= str_end || class_match(&pat->classes[inst.a], (uint8_t)*sp)) return FALSE;
-      sp += re_utf8_charlen(sp, str_end); pc++;
+      sp += mrb_re_utf8_charlen(sp, str_end); pc++;
       break;
 
     case RE_MATCH:
@@ -473,8 +473,8 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
 
     case RE_WBOUND:
       {
-        mrb_bool before = (sp > str) && re_is_word_char((uint8_t)sp[-1]);
-        mrb_bool after = (sp < str_end) && re_is_word_char((uint8_t)*sp);
+        mrb_bool before = (sp > str) && mrb_re_is_word_char((uint8_t)sp[-1]);
+        mrb_bool after = (sp < str_end) && mrb_re_is_word_char((uint8_t)*sp);
         if (before == after) return FALSE;
       }
       pc++;
@@ -482,8 +482,8 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
 
     case RE_NWBOUND:
       {
-        mrb_bool before = (sp > str) && re_is_word_char((uint8_t)sp[-1]);
-        mrb_bool after = (sp < str_end) && re_is_word_char((uint8_t)*sp);
+        mrb_bool before = (sp > str) && mrb_re_is_word_char((uint8_t)sp[-1]);
+        mrb_bool after = (sp < str_end) && mrb_re_is_word_char((uint8_t)*sp);
         if (before != after) return FALSE;
       }
       pc++;
@@ -611,7 +611,7 @@ literal_exec(const mrb_regexp_pattern *pat,
 
 /* Public entry point */
 int
-re_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
+mrb_re_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
         const char *str, mrb_int len, mrb_int start,
         int *captures, int captures_size)
 {

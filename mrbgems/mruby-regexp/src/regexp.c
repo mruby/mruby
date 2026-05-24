@@ -19,7 +19,7 @@
 
 /* Regexp data type */
 static void regexp_free(mrb_state *mrb, void *ptr) {
-  re_free(mrb, (mrb_regexp_pattern*)ptr);
+  mrb_re_free(mrb, (mrb_regexp_pattern*)ptr);
 }
 
 static const struct mrb_data_type regexp_type = { "Regexp", regexp_free };
@@ -107,13 +107,13 @@ regexp_init(mrb_state *mrb, mrb_value self)
     flags = parse_flags(mrb, flags_val);
   }
 
-  /* Set @source and @flags before re_compile() so a Regexp that survives
+  /* Set @source and @flags before mrb_re_compile() so a Regexp that survives
      a compile-time exception (e.g. picked up by ObjectSpace.each_object)
      still has usable IVs for hash/eql?/inspect. */
   mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@source"), pattern);
   mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@flags"), mrb_int_value(mrb, (mrb_int)flags));
 
-  pat = re_compile(mrb, RSTRING_PTR(pattern), RSTRING_LEN(pattern), flags);
+  pat = mrb_re_compile(mrb, RSTRING_PTR(pattern), RSTRING_LEN(pattern), flags);
 
   DATA_TYPE(self) = &regexp_type;
   DATA_PTR(self) = pat;
@@ -206,7 +206,7 @@ exec_match(mrb_state *mrb, mrb_value self, mrb_value str, mrb_int pos)
   int cap_size = pat->num_captures * 2;
   int *captures = (int*)mrb_malloc(mrb, sizeof(int) * cap_size);
   memset(captures, -1, sizeof(int) * cap_size);
-  int ncap = re_exec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), pos,
+  int ncap = mrb_re_exec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), pos,
                      captures, cap_size);
 
   if (ncap == 0) {
@@ -244,7 +244,7 @@ regexp_match_p(mrb_state *mrb, mrb_value self)
   mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, self, &regexp_type, mrb_regexp_pattern);
   if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
 
-  int ncap = re_exec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), pos, NULL, 0);
+  int ncap = mrb_re_exec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), pos, NULL, 0);
   return mrb_bool_value(ncap > 0);
 }
 
@@ -281,7 +281,7 @@ regexp_case_match(mrb_state *mrb, mrb_value self)
   pat = DATA_GET_PTR(mrb, self, &regexp_type, mrb_regexp_pattern);
   if (!pat) return mrb_false_value();
 
-  int ncap = re_exec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), 0, NULL, 0);
+  int ncap = mrb_re_exec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), 0, NULL, 0);
   return mrb_bool_value(ncap > 0);
 }
 
@@ -726,7 +726,7 @@ regexp_gsub_str(mrb_state *mrb, mrb_value self)
 
   while (pos <= slen) {
     memset(captures, -1, sizeof(int) * cap_size);
-    int n = re_exec(mrb, pat, s, slen, pos, captures, cap_size);
+    int n = mrb_re_exec(mrb, pat, s, slen, pos, captures, cap_size);
     if (n == 0) break;
 
     /* save last match for $~ */
@@ -800,7 +800,7 @@ regexp_sub_str(mrb_state *mrb, mrb_value self)
   int *captures = (int*)mrb_malloc(mrb, sizeof(int) * cap_size);
   memset(captures, -1, sizeof(int) * cap_size);
 
-  int n = re_exec(mrb, pat, s, slen, 0, captures, cap_size);
+  int n = mrb_re_exec(mrb, pat, s, slen, 0, captures, cap_size);
   if (n == 0) {
     mrb_free(mrb, captures);
     clear_match_globals(mrb);
@@ -858,7 +858,7 @@ regexp_scan(mrb_state *mrb, mrb_value self)
 
   while (pos <= slen) {
     memset(captures, -1, sizeof(int) * cap_size);
-    int n = re_exec(mrb, pat, s, slen, pos, captures, cap_size);
+    int n = mrb_re_exec(mrb, pat, s, slen, pos, captures, cap_size);
     if (n == 0) break;
 
     last_ncap = cap_size;

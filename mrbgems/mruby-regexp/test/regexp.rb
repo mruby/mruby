@@ -381,7 +381,7 @@ assert("MatchData#named_captures") do
 end
 
 assert("Regexp - named captures survive /x preprocessing") do
-  # Regression: with /x, re_compile freed the stripped buffer that
+  # Regression: with /x, mrb_re_compile freed the stripped buffer that
   # named_captures[i].name pointed into.
   re = /(?<n>\d+) # comment
        \s* (?<u>\w+) /x
