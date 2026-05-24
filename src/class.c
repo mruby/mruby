@@ -3966,7 +3966,7 @@ mrb_method_added(mrb_state *mrb, struct RClass *c, mrb_sym mid)
   }
 }
 
-mrb_value
+static mrb_value
 define_method_m(mrb_state *mrb, struct RClass *c, int vis)
 {
   mrb_sym mid;
