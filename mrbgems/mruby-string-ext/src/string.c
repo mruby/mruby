@@ -1020,6 +1020,143 @@ str_ord(mrb_state* mrb, mrb_value str)
   return mrb_fixnum_value(c);
 }
 
+/* Returns the byte length of a valid UTF-8 char starting at p, or -1 for
+   any invalid sequence (illegal lead byte, truncated tail, invalid
+   continuation byte, overlong encoding, UTF-16 surrogate, or codepoint
+   above U+10FFFF). Like utf8code() but reports rather than raises. */
+static mrb_int
+str_scrub_char_len(const unsigned char *p, const unsigned char *e)
+{
+  if (p[0] < 0x80) return 1;
+  mrb_int len = mrb_utf8len_table[p[0]>>3];
+  if (len < 2 || len > e - p) return -1;
+  for (mrb_int i = 1; i < len; i++) {
+    if ((p[i] & 0xc0) != 0x80) return -1;
+  }
+  mrb_int cp;
+  if (len == 2) {
+    cp = ((p[0] & 0x1f) << 6) | (p[1] & 0x3f);
+    if (cp < 0x80) return -1;
+  }
+  else if (len == 3) {
+    cp = ((p[0] & 0x0f) << 12) | ((p[1] & 0x3f) << 6) | (p[2] & 0x3f);
+    if (cp < 0x800) return -1;
+    if (cp >= 0xD800 && cp <= 0xDFFF) return -1;
+  }
+  else { /* len == 4 */
+    cp = ((p[0] & 0x07) << 18) | ((p[1] & 0x3f) << 12)
+       | ((p[2] & 0x3f) <<  6) |  (p[3] & 0x3f);
+    if (cp < 0x10000 || cp > 0x10FFFF) return -1;
+  }
+  return len;
+}
+
+static void
+str_scrub_validate_replacement(mrb_state *mrb, mrb_value repl)
+{
+  const unsigned char *p = (const unsigned char*)RSTRING_PTR(repl);
+  const unsigned char *e = p + RSTRING_LEN(repl);
+  while (p < e) {
+    mrb_int len = str_scrub_char_len(p, e);
+    if (len < 0) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "replacement must be valid UTF-8");
+    }
+    p += len;
+  }
+}
+
+/* Core of String#scrub for the no-block case. Returns a new string with
+   each maximal run of invalid UTF-8 bytes replaced by `repl` (or U+FFFD
+   if `repl` is nil). Already-valid strings are returned via mrb_str_dup. */
+static mrb_value
+str_scrub_core(mrb_state *mrb, mrb_value self)
+{
+  mrb_value repl = mrb_nil_value();
+  mrb_get_args(mrb, "|S!", &repl);
+
+  const char *replace;
+  mrb_int replace_len;
+  if (mrb_nil_p(repl)) {
+    replace = "\xEF\xBF\xBD";  /* U+FFFD REPLACEMENT CHARACTER */
+    replace_len = 3;
+  }
+  else {
+    str_scrub_validate_replacement(mrb, repl);
+    replace = RSTRING_PTR(repl);
+    replace_len = RSTRING_LEN(repl);
+  }
+
+  struct RString *s = mrb_str_ptr(self);
+  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
+    return mrb_str_dup(mrb, self);
+  }
+
+  const unsigned char *p = (const unsigned char*)RSTR_PTR(s);
+  const unsigned char *e = p + RSTR_LEN(s);
+  const unsigned char *valid_start = p;
+  const unsigned char *q = p;
+  mrb_value result = mrb_nil_value();  /* lazily allocated on first invalid byte */
+
+  while (q < e) {
+    mrb_int len = str_scrub_char_len(q, e);
+    if (len < 0) {
+      if (mrb_nil_p(result)) {
+        result = mrb_str_new(mrb, NULL, 0);
+      }
+      mrb_str_cat(mrb, result, (const char*)valid_start, q - valid_start);
+      mrb_str_cat(mrb, result, replace, replace_len);
+      q++;
+      while (q < e && str_scrub_char_len(q, e) < 0) q++;
+      valid_start = q;
+    }
+    else {
+      q += len;
+    }
+  }
+
+  if (mrb_nil_p(result)) {
+    return mrb_str_dup(mrb, self);  /* already valid */
+  }
+  mrb_str_cat(mrb, result, (const char*)valid_start, q - valid_start);
+  return result;
+}
+
+/* Splits self into alternating valid/invalid byte runs and returns them
+   as an Array of strings ([valid, invalid, valid, ...], odd length).
+   Used by the block form of String#scrub in mrblib; the block can then
+   map each invalid run to a replacement of its choosing without the C
+   side having to call back into the VM. */
+static mrb_value
+str_scrub_chunks(mrb_state *mrb, mrb_value self)
+{
+  mrb_value ary = mrb_ary_new(mrb);
+  struct RString *s = mrb_str_ptr(self);
+  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
+    mrb_ary_push(mrb, ary, mrb_str_dup(mrb, self));
+    return ary;
+  }
+  const unsigned char *p = (const unsigned char*)RSTR_PTR(s);
+  const unsigned char *e = p + RSTR_LEN(s);
+  const unsigned char *valid_start = p;
+  const unsigned char *q = p;
+  while (q < e) {
+    mrb_int len = str_scrub_char_len(q, e);
+    if (len < 0) {
+      mrb_ary_push(mrb, ary, mrb_str_new(mrb, (const char*)valid_start, q - valid_start));
+      const unsigned char *invalid_start = q;
+      q++;
+      while (q < e && str_scrub_char_len(q, e) < 0) q++;
+      mrb_ary_push(mrb, ary, mrb_str_new(mrb, (const char*)invalid_start, q - invalid_start));
+      valid_start = q;
+    }
+    else {
+      q += len;
+    }
+  }
+  mrb_ary_push(mrb, ary, mrb_str_new(mrb, (const char*)valid_start, q - valid_start));
+  return ary;
+}
+
 /* Internal helper for String#codepoints - returns array of character codepoints */
 static mrb_value
 str_codepoints(mrb_state *mrb, mrb_value str)
@@ -1067,6 +1204,24 @@ str_codepoints(mrb_state *mrb, mrb_value self)
     p++;
   }
   return result;
+}
+
+/* Non-UTF-8 builds: scrub is a no-op. The replacement arg is accepted
+   (and validated only as a String) for API parity with the UTF-8 build. */
+static mrb_value
+str_scrub_core(mrb_state *mrb, mrb_value self)
+{
+  mrb_value repl = mrb_nil_value();
+  mrb_get_args(mrb, "|S!", &repl);
+  return mrb_str_dup(mrb, self);
+}
+
+static mrb_value
+str_scrub_chunks(mrb_state *mrb, mrb_value self)
+{
+  mrb_value ary = mrb_ary_new(mrb);
+  mrb_ary_push(mrb, ary, mrb_str_dup(mrb, self));
+  return ary;
 }
 #endif
 
@@ -2282,6 +2437,8 @@ static const mrb_mt_entry string_ext_rom_entries[] = {
   MRB_MT_ENTRY(str_b,               MRB_SYM(b),               MRB_ARGS_NONE()),
   MRB_MT_ENTRY(str_lines,           MRB_SYM(__lines),         MRB_ARGS_NONE()),
   MRB_MT_ENTRY(str_codepoints,      MRB_SYM(__codepoints),    MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(str_scrub_core,      MRB_SYM(__scrub),         MRB_ARGS_OPT(1)),
+  MRB_MT_ENTRY(str_scrub_chunks,    MRB_SYM(__scrub_chunks),  MRB_ARGS_NONE()),
   MRB_MT_ENTRY(str_lstrip,          MRB_SYM(lstrip),          MRB_ARGS_NONE()),
   MRB_MT_ENTRY(str_rstrip,          MRB_SYM(rstrip),          MRB_ARGS_NONE()),
   MRB_MT_ENTRY(str_strip,           MRB_SYM(strip),           MRB_ARGS_NONE()),
