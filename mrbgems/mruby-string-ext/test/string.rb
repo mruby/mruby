@@ -793,6 +793,9 @@ assert('String#-@') do
 end
 
 assert('String#scrub default replacement (U+FFFD)') do
+  # scrub has UTF-8 semantics; on builds without MRB_UTF8_STRING it
+  # degrades to a no-op (verified separately below).
+  skip unless "あ".length == 1
   assert_equal "\u{FFFD}",       "\xE3\x81".scrub
   assert_equal "abc\u{FFFD}def", "abc\x80def".scrub
   assert_equal "\u{FFFD}",       "\x80\x81\x82".scrub   # run collapsed
@@ -802,6 +805,7 @@ assert('String#scrub default replacement (U+FFFD)') do
 end
 
 assert('String#scrub rejects malformed sequences') do
+  skip unless "あ".length == 1
   # overlong, UTF-16 surrogate, codepoint above U+10FFFF
   assert_equal "\u{FFFD}", "\xC0\xAF".scrub             # overlong "/"
   assert_equal "\u{FFFD}", "\xED\xA0\x80".scrub         # surrogate U+D800
@@ -809,16 +813,19 @@ assert('String#scrub rejects malformed sequences') do
 end
 
 assert('String#scrub with replacement string') do
+  skip unless "あ".length == 1
   assert_equal "abc?def", "abc\x80def".scrub("?")
   assert_equal "abcdef",  "abc\x80def".scrub("")
   assert_equal "abc<bad>def", "abc\x80def".scrub("<bad>")
 end
 
 assert('String#scrub raises on invalid replacement') do
+  skip unless "あ".length == 1
   assert_raise(ArgumentError) { "abc\x80".scrub("\xFF") }
 end
 
 assert('String#scrub with block') do
+  skip unless "あ".length == 1
   assert_equal "abc<80>def",
                "abc\x80def".scrub { |b| "<" + b.bytes.first.to_s(16) + ">" }
   # Block not called when string is already valid
@@ -832,4 +839,12 @@ assert('String#scrub with block') do
   # CRuby raises TypeError instead). Locking this in so the choice is
   # explicit and doesn't drift accidentally.
   assert_equal "abc42def", "abc\x80def".scrub { 42 }
+end
+
+assert('String#scrub is a no-op without MRB_UTF8_STRING') do
+  skip if "あ".length == 1
+  # Method is still defined and returns a (string-equal) copy.
+  assert_equal "abc\x80def", "abc\x80def".scrub
+  assert_equal "abc\x80def", "abc\x80def".scrub("?")
+  assert_equal "abc\x80def", "abc\x80def".scrub { |_| "?" }
 end
