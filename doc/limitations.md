@@ -139,6 +139,12 @@ Behavior of the operator wasn't changed.
 in the `metaprog` gembox). Without this gem, `binding` is not
 available.
 
+## `Kernel#catch` and `Kernel#throw` are not supported without mruby-catch gem
+
+`Kernel#catch` and `Kernel#throw` methods require the `mruby-catch`
+gem (included in the `stdlib` gembox). Without this gem, `catch/throw` is
+not available.
+
 ## `nil?` redefinition in conditional expressions
 
 Redefinition of `nil?` is ignored in conditional expressions.
