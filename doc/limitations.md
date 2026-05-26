@@ -15,6 +15,23 @@ This document is collecting these limitations.
 This document does not contain a complete list of limitations.
 Please help to improve it by submitting your findings.
 
+## Features provided by mrbgems
+
+Many Ruby features that CRuby builds into its core are provided by
+mrbgems in mruby. Which features are actually available depends on
+which mrbgems are linked into the build. The `default.gembox` and
+`stdlib.gembox` cover the common cases, but a minimal build can omit
+familiar features such as `Kernel#binding` (provided by
+`mruby-binding`), `Kernel#catch`/`throw` (by `mruby-catch`),
+`Enumerable` extensions, `Comparable`, IO, regular expressions, and
+many more.
+
+This is by design rather than a limitation per se. When porting Ruby
+code to mruby, a `NoMethodError` or `NameError` often means "the gem
+providing this feature is not linked in" rather than "mruby does not
+support it." Adding the relevant gem to the build configuration is
+usually enough.
+
 ## `Kernel.raise` in rescue clause
 
 `Kernel.raise` without arguments does not raise the current exception within
@@ -132,12 +149,6 @@ The re-defined `+` operator does not accept any arguments.
 
 `'ab'`
 Behavior of the operator wasn't changed.
-
-## `Kernel#binding` is not supported without mruby-binding gem
-
-`Kernel#binding` method requires the `mruby-binding` gem (included
-in the `metaprog` gembox). Without this gem, `binding` is not
-available.
 
 ## `nil?` redefinition in conditional expressions
 
