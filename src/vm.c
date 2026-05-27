@@ -1588,8 +1588,16 @@ prepare_tagged_break(mrb_state *mrb, uint32_t tag, const mrb_callinfo *return_ci
 #define CALL_CODE_HOOKS() do { insn = BYTECODE_DECODER(*ci->pc); CODE_FETCH_HOOK(mrb, irep, ci->pc, regs); } while (0)
 
 #ifdef MRB_USE_TASK_SCHEDULER
+/* Defer task switches while a C-level ObjectSpace walk holds gc.iterating
+   true. The walk runs callbacks (which may call back into mrb_vm_exec via
+   mrb_yield); returning early from an inner exec while the outer C
+   iteration is still active drifts the call-info stack and eventually
+   crashes (issue #6862). Switches resume at the next OP boundary after
+   the walk releases gc.iterating. A pending MRB_TASK_STOPPED is not
+   deferred -- the task is going away. */
 #define RETURN_IF_TASK_STOPPED(mrb) do { \
-  if ((mrb)->task.switching || (mrb)->c->status == MRB_TASK_STOPPED) \
+  if (((mrb)->task.switching && !(mrb)->gc.iterating) || \
+      (mrb)->c->status == MRB_TASK_STOPPED) \
     return mrb_nil_value(); \
 } while (0)
 #define TASK_STOP(mrb) do { \
