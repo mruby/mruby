@@ -113,9 +113,7 @@ mrb_task_mark_all(mrb_state *mrb)
 
       /* Mark task-specific values */
       mrb_gc_mark_value(mrb, t->self);
-      if (t->status == MRB_TASK_STATUS_DORMANT) {
-        mrb_gc_mark_value(mrb, t->result);
-      }
+      mrb_gc_mark_value(mrb, t->result);
       mrb_gc_mark_value(mrb, t->name);
 
       t = t->next;
