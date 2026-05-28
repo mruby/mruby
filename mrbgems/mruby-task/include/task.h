@@ -48,6 +48,7 @@ typedef struct mrb_task {
   uint8_t priority;                /* Priority (0-255, 0=highest) */
   uint8_t status;                  /* Current status (TASKSTATUS enum) */
   uint8_t reason;                  /* Wait reason (TASKREASON enum) */
+  volatile uint8_t timeslice;      /* Remaining ticks while RUNNING */
   mrb_value name;                  /* Optional task name */
 
   /* Wait-specific data - mutually exclusive based on reason field */
@@ -60,7 +61,6 @@ typedef struct mrb_task {
 
   mrb_value self;                  /* Ruby Task object reference */
 
-  volatile uint8_t timeslice;      /* Remaining ticks while RUNNING */
   mrb_value result;                /* Task return value */
 
   struct mrb_context c;            /* Execution context (stack, callinfo, etc) */
