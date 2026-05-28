@@ -1635,9 +1635,11 @@ task_across_c_boundary(mrb_state *mrb)
   if (mrb->c->status != MRB_TASK_STOPPED) \
     mrb->c->status = MRB_TASK_STOPPED; \
 } while (0)
+#define TASK_RETURN_EXCEPTION_AS_VALUE(mrb) ((mrb)->task.exception_as_result)
 #else
 #define RETURN_IF_TASK_STOPPED(mrb)
 #define TASK_STOP(mrb)
+#define TASK_RETURN_EXCEPTION_AS_VALUE(mrb) FALSE
 #endif
 
 /**
@@ -2691,6 +2693,7 @@ RETRY_TRY_BLOCK:
             fiber_terminate(mrb, c, ci);
             if (mrb_unlikely(!c->vmexec)) goto L_RAISE;
             mrb->jmp = prev_jmp;
+            if (TASK_RETURN_EXCEPTION_AS_VALUE(mrb)) return mrb_obj_value(mrb->exc);
             if (!prev_jmp) return mrb_obj_value(mrb->exc);
             MRB_THROW(prev_jmp);
           }
