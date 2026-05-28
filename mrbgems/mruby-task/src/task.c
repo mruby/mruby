@@ -389,6 +389,18 @@ execute_task(mrb_state *mrb, mrb_task *t)
   prev_c->ci = prev_ci;
   prev_ci->cci = prev_cci;
 
+  /* If an abnormal path inside mrb_vm_exec() bypassed
+     exception_as_result and unwound via MRB_THROW (e.g. a
+     CINFO_SKIP frame), mrb_protect_error caught it and stored the
+     exception object in t->result. Force the task to terminate
+     cleanly so the scheduler keeps running instead of aborting -
+     re-raising into the scheduler would abort in pattern 1, where
+     no outer jmpbuf exists. The exception remains observable via
+     mrb_task_value() / Task#value. */
+  if (error) {
+    t->c.status = MRB_TASK_STOPPED;
+  }
+
   /* Handle task termination */
   if (t->c.status == MRB_TASK_STOPPED) {
     switching_ = FALSE;
@@ -404,15 +416,6 @@ execute_task(mrb_state *mrb, mrb_task *t)
   else if (t->status == MRB_TASK_STATUS_RUNNING) {
     /* Task yielded but still running - move to ready queue */
     t->status = MRB_TASK_STATUS_READY;
-  }
-
-  /* Fallback for abnormal cases that bypass exception_as_result:
-     e.g. a CINFO_SKIP frame or some other path inside mrb_vm_exec()
-     unwound via MRB_THROW instead of returning the exception as a
-     value. Normal unhandled task exceptions never reach this branch;
-     they are captured into t->result by execute_task_vm() above. */
-  if (error) {
-    mrb_exc_raise(mrb, t->result);
   }
 }
 
