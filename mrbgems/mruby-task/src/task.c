@@ -94,6 +94,16 @@ mrb_task_mark_all(mrb_state *mrb)
         for (i = 0; i < e; i++) {
           mrb_gc_mark_value(mrb, c->stbase[i]);
         }
+        /* Clear the dead slots above the live range, matching
+           mark_context_stack() in gc.c. A preempted task whose live range
+           later shrinks (a frame returned) would otherwise leave stale
+           object pointers in those slots; the objects get swept while the
+           pointers survive, and a subsequent mark of the resumed task trips
+           the MRB_TT_FREE assertion in mrb_gc_mark (issue #6870). */
+        size_t stend = c->stend - c->stbase;
+        for (; i < stend; i++) {
+          SET_NIL_VALUE(c->stbase[i]);
+        }
       }
 
       /* Mark call stack */
