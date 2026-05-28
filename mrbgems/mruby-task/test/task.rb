@@ -81,6 +81,10 @@ end
 assert("Task#suspend doesn't raise") do
   task = Task.new { }
   assert_nothing_raised { task.suspend }
+  # Clean up: a suspended task left in q_suspended_ keeps a later
+  # Task.run from terminating (the scheduler idles waiting on it
+  # instead of exiting).
+  task.terminate
 end
 
 assert("Task#resume doesn't raise") do
