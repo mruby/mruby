@@ -1594,11 +1594,21 @@ prepare_tagged_break(mrb_state *mrb, uint32_t tag, const mrb_callinfo *return_ci
    iteration is still active drifts the call-info stack and eventually
    crashes (issue #6862). Switches resume at the next OP boundary after
    the walk releases gc.iterating. A pending MRB_TASK_STOPPED is not
-   deferred -- the task is going away. */
+   deferred, since the task is going away.
+
+   mrb->jmp is restored to prev_jmp before returning, exactly as the
+   normal return paths below do. mrb_vm_exec set mrb->jmp to its own
+   stack-local c_jmp on entry; leaving it dangling after this early return
+   means a later raise longjmps into a freed frame (issue #6863).
+
+   This macro must only be expanded where prev_jmp is in scope, i.e.
+   inside mrb_vm_exec (via NEXT / END_DISPATCH). */
 #define RETURN_IF_TASK_STOPPED(mrb) do { \
   if (((mrb)->task.switching && !(mrb)->gc.iterating) || \
-      (mrb)->c->status == MRB_TASK_STOPPED) \
+      (mrb)->c->status == MRB_TASK_STOPPED) { \
+    (mrb)->jmp = prev_jmp; \
     return mrb_nil_value(); \
+  } \
 } while (0)
 #define TASK_STOP(mrb) do { \
   if (mrb->c->status != MRB_TASK_STOPPED) \
