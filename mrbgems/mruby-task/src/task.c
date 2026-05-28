@@ -445,6 +445,11 @@ mrb_task_run(mrb_state *mrb)
 {
   mrb_task *t;
 
+  if (mrb->task.loop_running) {
+    return mrb_nil_value();
+  }
+  mrb->task.loop_running = TRUE;
+
   while (1) {
     t = q_ready_;
 
@@ -481,6 +486,7 @@ mrb_task_run(mrb_state *mrb)
     }
   }
 
+  mrb->task.loop_running = FALSE;
   return mrb_nil_value();
 }
 
@@ -1505,6 +1511,7 @@ mrb_mruby_task_gem_init(mrb_state *mrb)
   /* Initialize main task to NULL and scheduler_lock to 0 */
   mrb->task.main_task = NULL;
   mrb->task.scheduler_lock = 0;
+  mrb->task.loop_running = FALSE;
 
   task_class = mrb_define_class_id(mrb, MRB_SYM(Task), mrb->object_class);
   MRB_SET_INSTANCE_TT(task_class, MRB_TT_DATA);
