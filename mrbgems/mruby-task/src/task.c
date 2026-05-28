@@ -14,6 +14,7 @@
 #include <mruby/internal.h>
 #include <mruby/proc.h>
 #include <mruby/string.h>
+#include <mruby/throw.h>
 #include <mruby/variable.h>
 #include <string.h>
 #include <stdint.h>
@@ -443,44 +444,62 @@ mrb_tick(mrb_state *mrb)
 MRB_API mrb_value
 mrb_task_run(mrb_state *mrb)
 {
+  struct mrb_jmpbuf *prev_jmp;
+  struct mrb_jmpbuf c_jmp;
   mrb_task *t;
 
-  while (1) {
-    t = q_ready_;
-
-    /* No task ready - check if all tasks are done */
-    if (!t) {
-      mrb_task_disable_irq();
-      mrb_bool exiting = !q_ready_ && !q_waiting_ && !q_suspended_;
-      mrb_task_enable_irq();
-      if (exiting) {
-        /* All tasks are dormant - scheduler done */
-        break;
-      }
-      /* If there are tasks waiting or suspended, idle */
-      mrb_hal_task_idle_cpu(mrb);
-      continue;
-    }
-
-    /* Safety check - don't execute terminated tasks */
-    if (task_cleanup_if_stopped(mrb, t)) {
-      continue;
-    }
-
-    /* Execute task using core logic */
-    execute_task(mrb, t);
-
-    /* Move to end of ready queue if still running (round-robin) */
-    if (t->status == MRB_TASK_STATUS_READY) {
-      task_change_state(mrb, t, MRB_TASK_STATUS_READY);
-    }
-
-    /* Run incremental GC if active */
-    if (mrb->gc.state != MRB_GC_STATE_ROOT) {
-      mrb_incremental_gc(mrb);
-    }
+  if (mrb->task.loop_running) {
+    return mrb_nil_value();
   }
+  mrb->task.loop_running = TRUE;
 
+  prev_jmp = mrb->jmp;
+  MRB_TRY(&c_jmp) {
+    mrb->jmp = &c_jmp;
+
+    while (1) {
+      t = q_ready_;
+
+      /* No task ready - check if all tasks are done */
+      if (!t) {
+        mrb_task_disable_irq();
+        mrb_bool exiting = !q_ready_ && !q_waiting_ && !q_suspended_;
+        mrb_task_enable_irq();
+        if (exiting) {
+          /* All tasks are dormant - scheduler done */
+          break;
+        }
+        /* If there are tasks waiting or suspended, idle */
+        mrb_hal_task_idle_cpu(mrb);
+        continue;
+      }
+
+      /* Safety check - don't execute terminated tasks */
+      if (task_cleanup_if_stopped(mrb, t)) {
+        continue;
+      }
+
+      /* Execute task using core logic */
+      execute_task(mrb, t);
+
+      /* Move to end of ready queue if still running (round-robin) */
+      if (t->status == MRB_TASK_STATUS_READY) {
+        task_change_state(mrb, t, MRB_TASK_STATUS_READY);
+      }
+
+      /* Run incremental GC if active */
+      if (mrb->gc.state != MRB_GC_STATE_ROOT) {
+        mrb_incremental_gc(mrb);
+      }
+    }
+    mrb->jmp = prev_jmp;
+  } MRB_CATCH(&c_jmp) {
+    mrb->task.loop_running = FALSE;
+    mrb->jmp = prev_jmp;
+    MRB_THROW(prev_jmp);
+  } MRB_END_EXC(&c_jmp);
+
+  mrb->task.loop_running = FALSE;
   return mrb_nil_value();
 }
 
@@ -1505,6 +1524,7 @@ mrb_mruby_task_gem_init(mrb_state *mrb)
   /* Initialize main task to NULL and scheduler_lock to 0 */
   mrb->task.main_task = NULL;
   mrb->task.scheduler_lock = 0;
+  mrb->task.loop_running = FALSE;
 
   task_class = mrb_define_class_id(mrb, MRB_SYM(Task), mrb->object_class);
   MRB_SET_INSTANCE_TT(task_class, MRB_TT_DATA);

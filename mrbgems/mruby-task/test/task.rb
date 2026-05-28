@@ -183,3 +183,10 @@ assert("Task.new with block doesn't execute immediately") do
   # Block should not execute until scheduler runs
   assert_false executed
 end
+
+assert("Task.run inside Task.run is a noop") do
+  assert_nothing_raised do
+    Task.new { Task.run }
+    Task.run
+  end
+end

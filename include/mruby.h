@@ -274,6 +274,7 @@ typedef struct mrb_task_state {
   volatile mrb_bool switching;      /* Context switch pending flag */
   struct mrb_task *main_task;       /* Main task wrapper for root context */
   uint8_t scheduler_lock;           /* Lock counter for synchronous execution */
+  mrb_bool loop_running;            /* Active mrb_task_run loop flag */
 } mrb_task_state;
 #endif
 
