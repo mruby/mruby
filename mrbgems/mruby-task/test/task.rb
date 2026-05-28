@@ -81,6 +81,7 @@ end
 assert("Task#suspend doesn't raise") do
   task = Task.new { }
   assert_nothing_raised { task.suspend }
+  task.terminate
 end
 
 assert("Task#resume doesn't raise") do
@@ -186,7 +187,6 @@ end
 
 assert("Task.run inside Task.run is a noop") do
   assert_nothing_raised do
-    Task.list.each { |task| task.terminate if task.status == :SUSPENDED }
     Task.new { Task.run }
     Task.run
   end
