@@ -113,9 +113,7 @@ mrb_task_mark_all(mrb_state *mrb)
 
       /* Mark task-specific values */
       mrb_gc_mark_value(mrb, t->self);
-      if (t->status == MRB_TASK_STATUS_DORMANT) {
-        mrb_gc_mark_value(mrb, t->state.result);
-      }
+      mrb_gc_mark_value(mrb, t->result);
       mrb_gc_mark_value(mrb, t->name);
 
       t = t->next;
@@ -325,8 +323,8 @@ execute_task(mrb_state *mrb, mrb_task *t)
   uint8_t prev_cci;
 
   /* Set task as running */
+  t->timeslice = MRB_TIMESLICE_TICK_COUNT;
   t->status = MRB_TASK_STATUS_RUNNING;
-  t->state.timeslice = MRB_TIMESLICE_TICK_COUNT;
 
   /* Switch to task context */
   prev_c = mrb->c;
@@ -351,7 +349,7 @@ execute_task(mrb_state *mrb, mrb_task *t)
   t->c.vmexec = TRUE;
 
   /* Execute task - PC is saved in ci->pc from previous run */
-  t->state.result = mrb_vm_exec(mrb, proc, pc);
+  t->result = mrb_vm_exec(mrb, proc, pc);
 
   /* Clear vmexec flag */
   t->c.vmexec = FALSE;
@@ -394,9 +392,9 @@ mrb_tick(mrb_state *mrb)
 
   /* Decrease timeslice for running task */
   t = q_ready_;
-  if (t && t->status == MRB_TASK_STATUS_RUNNING && t->state.timeslice > 0) {
-    t->state.timeslice--;
-    if (t->state.timeslice == 0) {
+  if (t && t->status == MRB_TASK_STATUS_RUNNING && t->timeslice > 0) {
+    t->timeslice--;
+    if (t->timeslice == 0) {
       switching_ = TRUE;  /* Trigger context switch */
     }
   }
@@ -1115,7 +1113,7 @@ mrb_task_join(mrb_state *mrb, mrb_value self)
 
   /* If task is already dormant, return immediately */
   if (t->status == MRB_TASK_STATUS_DORMANT) {
-    return t->state.result;
+    return t->result;
   }
 
   /* Wait for task to complete */
@@ -1130,7 +1128,7 @@ mrb_task_join(mrb_state *mrb, mrb_value self)
   /* Trigger context switch */
   switching_ = TRUE;
 
-  return t->state.result;
+  return t->result;
 }
 
 /*
@@ -1190,16 +1188,16 @@ mrb_execute_proc_synchronously(mrb_state *mrb, mrb_value proc_val, mrb_int argc,
   mrb->c = &t->c;
 
   while (t->c.status != MRB_TASK_STOPPED) {
-    t->state.result = mrb_vm_exec(mrb, mrb->c->ci->proc, mrb->c->ci->pc);
+    t->result = mrb_vm_exec(mrb, mrb->c->ci->proc, mrb->c->ci->pc);
   }
 
   /* If there's an unhandled exception after VM stops, save it as result */
   if (mrb->exc) {
-    t->state.result = mrb_obj_value(mrb->exc);
+    t->result = mrb_obj_value(mrb->exc);
   }
 
   /* 5. Get result and clean up */
-  mrb_value result = t->state.result;
+  mrb_value result = t->result;
   if (mrb_obj_ptr(result) == mrb->exc) {
     mrb->exc = NULL;  /* Clear exception */
   }
@@ -1437,7 +1435,7 @@ mrb_task_value(mrb_state *mrb, mrb_value task)
   mrb_task *t = (mrb_task*)mrb_data_check_get_ptr(mrb, task, &mrb_task_type);
   if (!t) return mrb_nil_value();
 
-  return t->state.result;
+  return t->result;
 }
 
 /*
