@@ -323,8 +323,8 @@ execute_task(mrb_state *mrb, mrb_task *t)
   uint8_t prev_cci;
 
   /* Set task as running */
-  t->status = MRB_TASK_STATUS_RUNNING;
   t->timeslice = MRB_TIMESLICE_TICK_COUNT;
+  t->status = MRB_TASK_STATUS_RUNNING;
 
   /* Switch to task context */
   prev_c = mrb->c;
