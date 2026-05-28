@@ -324,6 +324,27 @@ task_change_state(mrb_state *mrb, mrb_task *t, uint8_t new_status)
   mrb_task_enable_irq();
 }
 
+typedef struct execute_task_vm_args {
+  mrb_task *t;
+  const struct RProc *proc;
+  const mrb_code *pc;
+} execute_task_vm_args;
+
+static mrb_value
+execute_task_vm(mrb_state *mrb, void *ud)
+{
+  execute_task_vm_args *args = (execute_task_vm_args*)ud;
+
+  mrb->task.exception_as_result = TRUE;
+  args->t->result = mrb_vm_exec(mrb, args->proc, args->pc);
+  if (mrb->exc) {
+    args->t->result = mrb_obj_value(mrb->exc);
+    mrb->exc = NULL;
+  }
+  mrb->task.exception_as_result = FALSE;
+  return args->t->result;
+}
+
 /* Execute a single task - core task execution logic */
 static void
 execute_task(mrb_state *mrb, mrb_task *t)
@@ -358,8 +379,13 @@ execute_task(mrb_state *mrb, mrb_task *t)
   /* Set vmexec flag to prevent fiber_terminate from being called */
   t->c.vmexec = TRUE;
 
-  /* Execute task - PC is saved in ci->pc from previous run */
-  t->result = mrb_vm_exec(mrb, proc, pc);
+  /* Execute task - PC is saved in ci->pc from previous run.
+     Unhandled task exceptions are converted to the task result by
+     mrb_vm_exec() in task mode, so the scheduler protect frame stays intact. */
+  execute_task_vm_args args = { t, proc, pc };
+  mrb_bool error = FALSE;
+  t->result = mrb_protect_error(mrb, execute_task_vm, &args, &error);
+  mrb->task.exception_as_result = FALSE;
 
   /* Clear vmexec flag */
   t->c.vmexec = FALSE;
@@ -372,6 +398,18 @@ execute_task(mrb_state *mrb, mrb_task *t)
   t->c.prev = NULL;
   prev_c->ci = prev_ci;
   prev_ci->cci = prev_cci;
+
+  /* If an abnormal path inside mrb_vm_exec() bypassed
+     exception_as_result and unwound via MRB_THROW (e.g. a
+     CINFO_SKIP frame), mrb_protect_error caught it and stored the
+     exception object in t->result. Force the task to terminate
+     cleanly so the scheduler keeps running instead of aborting -
+     re-raising into the scheduler would abort in pattern 1, where
+     no outer jmpbuf exists. The exception remains observable via
+     mrb_task_value() / Task#value. */
+  if (error) {
+    t->c.status = MRB_TASK_STOPPED;
+  }
 
   /* Handle task termination */
   if (t->c.status == MRB_TASK_STOPPED) {
@@ -1534,6 +1572,7 @@ mrb_mruby_task_gem_init(mrb_state *mrb)
   mrb->task.main_task = NULL;
   mrb->task.scheduler_lock = 0;
   mrb->task.loop_running = FALSE;
+  mrb->task.exception_as_result = FALSE;
 
   task_class = mrb_define_class_id(mrb, MRB_SYM(Task), mrb->object_class);
   MRB_SET_INSTANCE_TT(task_class, MRB_TT_DATA);
@@ -1565,6 +1604,7 @@ mrb_mruby_task_gem_init(mrb_state *mrb)
   mrb_define_method_id(mrb, task_class, MRB_SYM(resume),      mrb_task_resume,       MRB_ARGS_NONE());
   mrb_define_method_id(mrb, task_class, MRB_SYM(terminate),   mrb_task_terminate,    MRB_ARGS_NONE());
   mrb_define_method_id(mrb, task_class, MRB_SYM(join),        mrb_task_join,         MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, task_class, MRB_SYM(value),       mrb_task_value,        MRB_ARGS_NONE());
 
   /* Kernel methods (module functions like CRuby)
    * Note: sleep and usleep override mruby-sleep's implementation to be task-aware

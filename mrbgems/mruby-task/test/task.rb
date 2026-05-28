@@ -194,3 +194,17 @@ assert("Task.run inside Task.run is a noop") do
     Task.run
   end
 end
+
+assert("Task#value returns exception object for unhandled task errors") do
+  child = nil
+
+  Task.new do
+    child = Task.new { raise "boom" }
+  end
+
+  Task.run
+
+  result = child.value
+  assert_kind_of RuntimeError, result
+  assert_equal "boom", result.message
+end
