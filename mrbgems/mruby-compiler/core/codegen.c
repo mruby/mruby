@@ -3974,7 +3974,13 @@ codegen_if(codegen_scope *s, node *varnode, int val)
     mrb_sym sym_nil_p = MRB_SYM_Q(nil);
     if (call_n->method_name == sym_nil_p && callargs_empty(call_n->args)) {
       nil_p = TRUE;
-      codegen(s, call_n->receiver, VAL);
+      if (call_n->receiver) {
+        codegen(s, call_n->receiver, VAL);
+      }
+      else {
+        /* implicit receiver: bare `nil?` means `self.nil?` */
+        gen_load_op1(s, OP_LOADSELF, VAL);
+      }
     }
   }
 
