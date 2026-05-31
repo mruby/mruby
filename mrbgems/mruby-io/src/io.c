@@ -911,18 +911,12 @@ io_syswrite(mrb_state *mrb, mrb_value io)
   /* end */
 
 static mrb_int
-fd_write(mrb_state *mrb, int fd, mrb_value str)
+fd_write_buf(mrb_state *mrb, int fd, const char *ptr, mrb_int len)
 {
-  fssize_t n;
-
-  str = mrb_obj_as_string(mrb, str);
-  fssize_t len = (fssize_t)RSTRING_LEN(str);
   if (len == 0) return 0;
-
-  const char *ptr = RSTRING_PTR(str);
   fssize_t sum = 0;
-  while (sum < len) {
-    n = write(fd, ptr + sum, len - sum);
+  while (sum < (fssize_t)len) {
+    fssize_t n = write(fd, ptr + sum, (size_t)(len - sum));
     if (n == -1) {
       if (errno == EINTR) continue;
       mrb_sys_fail(mrb, "syswrite");
@@ -931,6 +925,15 @@ fd_write(mrb_state *mrb, int fd, mrb_value str)
   }
   return len;
 }
+
+static mrb_int
+fd_write(mrb_state *mrb, int fd, mrb_value str)
+{
+  str = mrb_obj_as_string(mrb, str);
+  return fd_write_buf(mrb, fd, RSTRING_PTR(str), RSTRING_LEN(str));
+}
+
+#define FD_WRITE_LIT(mrb, fd, s) fd_write_buf(mrb, fd, "" s "", sizeof(s) - 1)
 
 /* Helper function to prepare IO object for writing by adjusting buffer state */
 static void
@@ -987,8 +990,7 @@ io_puts_str(mrb_state *mrb, int fd, mrb_value str)
 
   /* Add newline if string doesn't end with one */
   if (len == 0 || ptr[len-1] != '\n') {
-    mrb_value newline = mrb_str_new_lit(mrb, "\n");
-    fd_write(mrb, fd, newline);
+    FD_WRITE_LIT(mrb, fd, "\n");
   }
 }
 
@@ -1001,8 +1003,7 @@ static void
 io_puts_ary(mrb_state *mrb, int fd, mrb_value ary, int depth)
 {
   if (depth >= IO_PUTS_MAX_DEPTH) {
-    mrb_value mark = mrb_str_new_lit(mrb, "[...]\n");
-    fd_write(mrb, fd, mark);
+    FD_WRITE_LIT(mrb, fd, "[...]\n");
     return;
   }
 
@@ -1010,8 +1011,7 @@ io_puts_ary(mrb_state *mrb, int fd, mrb_value ary, int depth)
 
   if (len == 0) {
     /* Empty array - write a single newline */
-    mrb_value newline = mrb_str_new_lit(mrb, "\n");
-    fd_write(mrb, fd, newline);
+    FD_WRITE_LIT(mrb, fd, "\n");
     return;
   }
 
@@ -1041,8 +1041,7 @@ io_puts(mrb_state *mrb, mrb_value io)
 
   if (argc == 0) {
     /* No arguments - just write a newline */
-    mrb_value newline = mrb_str_new_lit(mrb, "\n");
-    fd_write(mrb, fd, newline);
+    FD_WRITE_LIT(mrb, fd, "\n");
     return mrb_nil_value();
   }
 
