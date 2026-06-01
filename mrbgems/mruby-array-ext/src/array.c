@@ -1636,6 +1636,8 @@ ary_combination_next(mrb_state *mrb, mrb_value self)
   for (mrb_int i = 0; i < state->k; i++) {
     if (state->indices[i] >= state->n) {
       state->mode = comb_finished;
+      mrb_free(mrb, state->indices);
+      state->indices = NULL;
       return mrb_nil_value();
     }
   }
@@ -1698,6 +1700,8 @@ ary_combination_next(mrb_state *mrb, mrb_value self)
   }
 
   state->mode = comb_finished;
+  mrb_free(mrb, state->indices);
+  state->indices = NULL;
   return result;
 }
 
