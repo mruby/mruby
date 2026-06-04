@@ -91,12 +91,16 @@ insert_inst(re_compiler *c, uint32_t pos, uint8_t op, uint8_t a, uint16_t offset
   c->code[pos].a = a;
   c->code[pos].offset = offset;
 
-  /* fix all jump targets that point at or past the insertion point */
+  /* Fix jump targets that point past the insertion point. An offset equal
+     to `pos` already points to the inserted instruction's new location and
+     must not be bumped -- bumping it would shift the target to whatever
+     code got displaced by the insertion (e.g. the body of the quantified
+     atom), corrupting "skip past this atom" jumps emitted earlier. */
   for (uint32_t i = 0; i < c->code_len; i++) {
     if (i == pos) continue;
     switch (c->code[i].op) {
     case RE_JMP: case RE_SPLIT: case RE_SPLITNG:
-      if (c->code[i].offset >= pos && c->code[i].offset < 0xffff) {
+      if (c->code[i].offset > pos && c->code[i].offset < 0xffff) {
         c->code[i].offset++;
       }
       break;
@@ -179,7 +183,7 @@ class_add_shorthand(re_charclass *cc, int ch)
     break;
   case 'W':
     for (int i = 0; i < 128; i++) {
-      if (!re_is_word_char(i)) class_set_bit(cc, (uint8_t)i);
+      if (!mrb_re_is_word_char(i)) class_set_bit(cc, (uint8_t)i);
     }
     cc->utf8_any = TRUE;
     break;
@@ -214,6 +218,8 @@ parse_escape(re_compiler *c)
   case 'v': return '\v';
   case 'a': return '\a';
   case 'e': return 0x1b;
+  case 'b': return '\b';  /* backspace; only reachable inside [...] since the
+                             top-level dispatcher emits RE_WBOUND for `\b` */
   default: return ch;  /* literal: \., \\, \/, \(, etc. */
   }
 }
@@ -817,12 +823,18 @@ first_set_walk(const re_inst *code, uint32_t code_len,
     case RE_ANY: case RE_ANY_NL:
       return FALSE;  /* any byte possible */
     case RE_MATCH:
-      return TRUE;  /* empty match; first_bytes still valid for other branches */
+      /* Reaching MATCH via epsilon transitions means the regex can match
+         zero characters at any position. Skipping bytes that aren't in the
+         first-byte set would skip past valid empty-match positions, so the
+         optimization isn't safe -- bail out and accept any starting byte. */
+      return FALSE;
     default:
       return FALSE;
     }
   }
-  return TRUE;
+  /* Walked off the end without hitting MATCH or a consuming op. Treat as
+     empty-matchable, same as RE_MATCH. */
+  return FALSE;
 }
 
 static mrb_bool
@@ -845,7 +857,7 @@ compute_first_set(const re_inst *code, uint32_t code_len,
 }
 
 mrb_regexp_pattern*
-re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags)
+mrb_re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags)
 {
   re_compiler c;
   memset(&c, 0, sizeof(c));
@@ -972,7 +984,7 @@ re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags)
 }
 
 void
-re_free(mrb_state *mrb, mrb_regexp_pattern *pat)
+mrb_re_free(mrb_state *mrb, mrb_regexp_pattern *pat)
 {
   if (pat) {
     mrb_free(mrb, pat->code);

@@ -163,4 +163,34 @@ class String
     end
     self
   end
+
+  ##
+  # call-seq:
+  #    str.scrub                                   -> new_str
+  #    str.scrub(repl)                             -> new_str
+  #    str.scrub {|bytes| block }                  -> new_str
+  #
+  # Returns a copy of +self+ with each maximal run of invalid UTF-8 bytes
+  # replaced by +repl+ (U+FFFD if +repl+ is omitted), or by the value
+  # returned from the block when one is given. The block receives the
+  # invalid bytes as a String.
+  #
+  #    "abc\x80def".scrub          #=> "abc\u{FFFD}def"
+  #    "abc\x80def".scrub("?")     #=> "abc?def"
+  #    "\xE3\x81".scrub             #=> "\u{FFFD}"
+  #    "\x80\x81".scrub { |b| b.bytes.map { |c| "<%02X>" % c }.join }
+  #                                #=> "<80><81>"
+  def scrub(repl = nil, &block)
+    return __scrub(repl) unless block
+    chunks = __scrub_chunks
+    return chunks[0] if chunks.length == 1
+    result = chunks[0].dup
+    i = 1
+    while i < chunks.length
+      result << yield(chunks[i]).to_s
+      result << chunks[i + 1] if i + 1 < chunks.length
+      i += 2
+    end
+    result
+  end
 end

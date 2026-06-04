@@ -1588,17 +1588,58 @@ prepare_tagged_break(mrb_state *mrb, uint32_t tag, const mrb_callinfo *return_ci
 #define CALL_CODE_HOOKS() do { insn = BYTECODE_DECODER(*ci->pc); CODE_FETCH_HOOK(mrb, irep, ci->pc, regs); } while (0)
 
 #ifdef MRB_USE_TASK_SCHEDULER
+/* TRUE when the current context is executing across a C call boundary, i.e.
+   a C function on the stack re-entered the VM (mrb_funcall / mrb_yield /
+   mrb_vm_run). A task cannot be suspended at such a point: the C stack
+   frame between the scheduler's mrb_vm_exec and the current frame cannot
+   be saved or restored, and returning early from the inner mrb_vm_exec
+   would leave the call-info stack drifted, tripping the assertion in
+   mrb_vm_run (issues #6864, #6868). The scheduler defers the switch until
+   execution unwinds back to a frame with no C boundary. This mirrors the
+   cooperative guard in Task.pass, which raises rather than defers.
+   cibase is excluded: it is the entry frame of this mrb_vm_exec. */
+static mrb_bool
+task_across_c_boundary(mrb_state *mrb)
+{
+  for (mrb_callinfo *ci = mrb->c->ci; ci > mrb->c->cibase; ci--) {
+    if (ci->cci > 0) return TRUE;
+  }
+  return FALSE;
+}
+
+/* Defer task switches while a C-level ObjectSpace walk holds gc.iterating
+   true. The walk runs callbacks (which may call back into mrb_vm_exec via
+   mrb_yield); returning early from an inner exec while the outer C
+   iteration is still active drifts the call-info stack and eventually
+   crashes (issue #6862). Switches resume at the next OP boundary after
+   the walk releases gc.iterating. A pending switch is also deferred while
+   executing across a C call boundary (see task_across_c_boundary). A
+   pending MRB_TASK_STOPPED is not deferred, since the task is going away.
+
+   mrb->jmp is restored to prev_jmp before returning, exactly as the
+   normal return paths below do. mrb_vm_exec set mrb->jmp to its own
+   stack-local c_jmp on entry; leaving it dangling after this early return
+   means a later raise longjmps into a freed frame (issue #6863).
+
+   This macro must only be expanded where prev_jmp is in scope, i.e.
+   inside mrb_vm_exec (via NEXT / END_DISPATCH). */
 #define RETURN_IF_TASK_STOPPED(mrb) do { \
-  if ((mrb)->task.switching || (mrb)->c->status == MRB_TASK_STOPPED) \
+  if (((mrb)->task.switching && !(mrb)->gc.iterating && \
+       !task_across_c_boundary(mrb)) || \
+      (mrb)->c->status == MRB_TASK_STOPPED) { \
+    (mrb)->jmp = prev_jmp; \
     return mrb_nil_value(); \
+  } \
 } while (0)
 #define TASK_STOP(mrb) do { \
   if (mrb->c->status != MRB_TASK_STOPPED) \
     mrb->c->status = MRB_TASK_STOPPED; \
 } while (0)
+#define TASK_RETURN_EXCEPTION_AS_VALUE(mrb) ((mrb)->task.exception_as_result)
 #else
 #define RETURN_IF_TASK_STOPPED(mrb)
 #define TASK_STOP(mrb)
+#define TASK_RETURN_EXCEPTION_AS_VALUE(mrb) FALSE
 #endif
 
 /**
@@ -2652,6 +2693,7 @@ RETRY_TRY_BLOCK:
             fiber_terminate(mrb, c, ci);
             if (mrb_unlikely(!c->vmexec)) goto L_RAISE;
             mrb->jmp = prev_jmp;
+            if (TASK_RETURN_EXCEPTION_AS_VALUE(mrb)) return mrb_obj_value(mrb->exc);
             if (!prev_jmp) return mrb_obj_value(mrb->exc);
             MRB_THROW(prev_jmp);
           }

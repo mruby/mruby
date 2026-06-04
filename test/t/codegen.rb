@@ -194,3 +194,29 @@ assert('register window of calls (#3783)') do
     end
   end
 end
+
+assert('bare `nil?` in if/unless uses self as receiver (#6874)') do
+  klass = Class.new do
+    def unless_form
+      reached = false
+      unless nil?
+        reached = true
+      end
+      reached
+    end
+
+    def if_form
+      if nil?
+        :yes
+      else
+        :no
+      end
+    end
+  end
+
+  assert_true klass.new.unless_form
+  assert_equal :no, klass.new.if_form
+  # Sanity: explicit literal nil receiver still optimized correctly.
+  result = if nil.nil? then :yes else :no end
+  assert_equal :yes, result
+end

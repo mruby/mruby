@@ -1216,36 +1216,33 @@ incremental_sweep_phase(mrb_state *mrb, mrb_gc *gc, size_t limit)
   size_t tried_sweep = 0;
 
   while (page && (tried_sweep < limit)) {
-    RVALUE *p = page->objects;
-    RVALUE *e = p + MRB_HEAP_PAGE_SIZE;
     size_t freed = 0;
     mrb_bool dead_slot = TRUE;
 
     if (is_minor_gc(gc) && page->old) {
       /* skip a slot which doesn't contain any young object */
-      p = e;
       dead_slot = FALSE;
     }
-    while (p<e) {
-      if (is_dead(gc, &p->as.basic)) {
-        if (p->as.basic.tt != MRB_TT_FREE) {
-          obj_free(mrb, &p->as.basic, FALSE);
-          if (p->as.basic.tt == MRB_TT_FREE) {
+    else {
+      RVALUE *p = page->objects;
+      RVALUE *e = p + MRB_HEAP_PAGE_SIZE;
+      while (p<e) {
+        if (is_dead(gc, &p->as.basic)) {
+          if (p->as.basic.tt != MRB_TT_FREE) {
+            obj_free(mrb, &p->as.basic, FALSE);
+            mrb_assert(p->as.basic.tt == MRB_TT_FREE);
             p->as.free.next = page->freelist;
             page->freelist = p;
             freed++;
           }
-          else {
-            dead_slot = FALSE;
-          }
         }
+        else {
+          if (!is_generational(gc))
+            paint_partial_white(gc, &p->as.basic); /* next gc target */
+          dead_slot = FALSE;
+        }
+        p++;
       }
-      else {
-        if (!is_generational(gc))
-          paint_partial_white(gc, &p->as.basic); /* next gc target */
-        dead_slot = FALSE;
-      }
-      p++;
     }
 
     /* free dead slot */
@@ -1802,21 +1799,21 @@ gc_stat(mrb_state *mrb, mrb_value self)
   mrb_gc *gc = &mrb->gc;
   mrb_value hash = mrb_hash_new_capa(mrb, 8);
 
-  mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "live")), mrb_int_value(mrb, (mrb_int)gc->live));
-  mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "debt")), mrb_int_value(mrb, gc->gc_debt));
-  mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "state")), mrb_int_value(mrb, (mrb_int)gc->state));
-  mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "generational")), mrb_bool_value(gc->generational));
-  mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "full")), mrb_bool_value(gc->full));
-  mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "step_limit")), mrb_int_value(mrb, (mrb_int)gc->step_limit));
-  mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "malloc_increase")), mrb_int_value(mrb, (mrb_int)gc->malloc_increase));
-  mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "malloc_threshold")), mrb_int_value(mrb, (mrb_int)gc->malloc_threshold));
-  mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "symbol_count")), mrb_int_value(mrb, (mrb_int)(MRB_PRESYM_MAX + mrb->symidx)));
-  mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "dynamic_symbol_count")), mrb_int_value(mrb, (mrb_int)mrb->dynamic_sym_count));
+  mrb_hash_set(mrb, hash, mrb_symbol_value(MRB_SYM(live)), mrb_int_value(mrb, (mrb_int)gc->live));
+  mrb_hash_set(mrb, hash, mrb_symbol_value(MRB_SYM(debt)), mrb_int_value(mrb, gc->gc_debt));
+  mrb_hash_set(mrb, hash, mrb_symbol_value(MRB_SYM(state)), mrb_int_value(mrb, (mrb_int)gc->state));
+  mrb_hash_set(mrb, hash, mrb_symbol_value(MRB_SYM(generational)), mrb_bool_value(gc->generational));
+  mrb_hash_set(mrb, hash, mrb_symbol_value(MRB_SYM(full)), mrb_bool_value(gc->full));
+  mrb_hash_set(mrb, hash, mrb_symbol_value(MRB_SYM(step_limit)), mrb_int_value(mrb, (mrb_int)gc->step_limit));
+  mrb_hash_set(mrb, hash, mrb_symbol_value(MRB_SYM(malloc_increase)), mrb_int_value(mrb, (mrb_int)gc->malloc_increase));
+  mrb_hash_set(mrb, hash, mrb_symbol_value(MRB_SYM(malloc_threshold)), mrb_int_value(mrb, (mrb_int)gc->malloc_threshold));
+  mrb_hash_set(mrb, hash, mrb_symbol_value(MRB_SYM(symbol_count)), mrb_int_value(mrb, (mrb_int)(MRB_PRESYM_MAX + mrb->symidx)));
+  mrb_hash_set(mrb, hash, mrb_symbol_value(MRB_SYM(dynamic_symbol_count)), mrb_int_value(mrb, (mrb_int)mrb->dynamic_sym_count));
 
 #ifdef MRB_GC_STATS
-  mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "total")), mrb_int_value(mrb, (mrb_int)gc->gc_total_count));
-  mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "minor")), mrb_int_value(mrb, (mrb_int)gc->minor_gc_count));
-  mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "major")), mrb_int_value(mrb, (mrb_int)gc->major_gc_count));
+  mrb_hash_set(mrb, hash, mrb_symbol_value(MRB_SYM(total)), mrb_int_value(mrb, (mrb_int)gc->gc_total_count));
+  mrb_hash_set(mrb, hash, mrb_symbol_value(MRB_SYM(minor)), mrb_int_value(mrb, (mrb_int)gc->minor_gc_count));
+  mrb_hash_set(mrb, hash, mrb_symbol_value(MRB_SYM(major)), mrb_int_value(mrb, (mrb_int)gc->major_gc_count));
 #endif
 
   return hash;

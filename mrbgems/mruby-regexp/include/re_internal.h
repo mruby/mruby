@@ -76,7 +76,7 @@ typedef struct mrb_regexp_pattern {
   uint8_t first_bytes[16]; /* bitmap of possible first bytes (128-bit, ASCII) */
   mrb_bool has_first_bytes; /* true if first_bytes is usable for skipping */
   mrb_bool is_literal;     /* true if pattern is pure literal (no metacharacters) */
-  /* Cached VM state for pike_vm (avoids malloc per re_exec call) */
+  /* Cached VM state for pike_vm (avoids malloc per mrb_re_exec call) */
   uint32_t *cached_visited;     /* generation-based visited array */
   void *cached_threads[2];      /* curr/next thread lists */
   int cached_list_capa;         /* capacity of cached thread lists */
@@ -97,6 +97,12 @@ typedef struct mrb_regexp_pattern {
 #define MRB_REGEXP_STEP_LIMIT 1000000
 #endif
 
+/* Recursion-depth limit for bt_match: bounds C stack growth on
+   patterns like `(?=)+` that recurse without consuming input. */
+#ifndef MRB_REGEXP_RECURSION_LIMIT
+#define MRB_REGEXP_RECURSION_LIMIT 1000
+#endif
+
 /* Maximum captures */
 #define RE_MAX_CAPTURES 32
 
@@ -107,21 +113,21 @@ typedef struct {
 } re_thread_cache;
 
 /* Compile a pattern string into bytecode */
-mrb_regexp_pattern* re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags);
+mrb_regexp_pattern* mrb_re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags);
 
 /* Free a compiled pattern */
-void re_free(mrb_state *mrb, mrb_regexp_pattern *pat);
+void mrb_re_free(mrb_state *mrb, mrb_regexp_pattern *pat);
 
 /* Execute a match.
    Returns number of captures filled (0 = no match).
    captures[2*n] = start, captures[2*n+1] = end for group n. */
-int re_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
+int mrb_re_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
             const char *str, mrb_int len, mrb_int start,
             int *captures, int captures_size);
 
 /* UTF-8 helpers */
-int re_utf8_charlen(const char *s, const char *end);
-uint32_t re_utf8_decode(const char *s, int *len);
-mrb_bool re_is_word_char(uint32_t c);
+int mrb_re_utf8_charlen(const char *s, const char *end);
+uint32_t mrb_re_utf8_decode(const char *s, int *len);
+mrb_bool mrb_re_is_word_char(uint32_t c);
 
 #endif /* MRB_RE_INTERNAL_H */

@@ -373,6 +373,8 @@ trim(mpz_t *x)
   while (x->sz && x->p[x->sz-1] == 0) {
     x->sz--;
   }
+  /* Maintain invariant: sz == 0 implies sn == 0 (zero is canonical). */
+  if (x->sz == 0) x->sn = 0;
 }
 
 /* z = x + y, without regard for sign */
@@ -3147,8 +3149,11 @@ mpz_mod(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *y)
     return;
   }
 
-  /* Barrett reduction for moderate-sized moduli (>= 4 limbs where setup is worthwhile) */
-  if (y->sz >= 4 && y->sz <= 16 && x->sz >= y->sz + 2) {
+  /* Barrett reduction for moderate-sized moduli (>= 4 limbs where setup is worthwhile).
+   * Barrett's precondition is x < 2^(2*bits(m)); inputs beyond ~2*m.sz limbs
+   * violate it and the algorithm silently truncates high limbs. Fall through
+   * to general division for those. */
+  if (y->sz >= 4 && y->sz <= 16 && x->sz >= y->sz + 2 && x->sz <= 2 * y->sz) {
     mpz_t mu;
     mpz_init_temp(ctx, &mu, y->sz + 1);
     mpz_barrett_mu(ctx, &mu, y);
@@ -5248,12 +5253,19 @@ mpz_powm_montgomery(mpz_ctx_t *ctx, mpz_t *result,
   mpz_init(ctx, &one_mont);
   mpz_montgomery_reduce(ctx, &one_mont, &R2, n, rho);
 
-  /* Convert base to Montgomery form: base_mont = base * R mod n = REDC(base * R^2) */
-  mpz_t base_mont, temp;
+  /* Convert base to Montgomery form: base_mont = base * R mod n = REDC(base * R^2).
+   * REDC requires its input T to satisfy T < R*N. If `base` is not already
+   * reduced (e.g. base >= n), `base * R^2` can exceed R*N and REDC produces
+   * a wrong result. Pre-reduce base modulo n via mpz_mmod (the general
+   * division path) -- both operands are non-negative here so this is
+   * semantically equivalent to mpz_mod. */
+  mpz_t base_mont, base_reduced, temp;
   mpz_init(ctx, &base_mont);
+  mpz_init(ctx, &base_reduced);
   mpz_init_temp(ctx, &temp, n->sz * 4);
 
-  mpz_mul(ctx, &temp, (mpz_t*)base, &R2);
+  mpz_mmod(ctx, &base_reduced, (mpz_t*)base, (mpz_t*)n);
+  mpz_mul(ctx, &temp, &base_reduced, &R2);
   mpz_montgomery_reduce(ctx, &base_mont, &temp, n, rho);
 
   /* Initialize accumulator to 1 in Montgomery form */
@@ -5285,6 +5297,7 @@ mpz_powm_montgomery(mpz_ctx_t *ctx, mpz_t *result,
   mpz_clear(ctx, &R2);
   mpz_clear(ctx, &one_mont);
   mpz_clear(ctx, &base_mont);
+  mpz_clear(ctx, &base_reduced);
   mpz_clear(ctx, &temp);
   mpz_clear(ctx, &acc);
   pool_restore(ctx, pool_state);

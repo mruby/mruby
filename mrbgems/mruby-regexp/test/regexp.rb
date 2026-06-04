@@ -47,6 +47,14 @@ assert("Regexp - character class") do
   assert_equal "abc", md[0]
 end
 
+assert("Regexp - \\b inside character class is backspace") do
+  # Outside [...], \b is the word boundary assertion; inside [...]
+  # it must mean U+0008 (backspace), matching MRI/Onigmo.
+  assert_equal "Ruby", "Ruby".gsub(/[\b]/, "X")
+  assert_equal "aXc", "a\bc".gsub(/[\b]/, "X")
+  assert_equal ["\b", "\t", "\n"], "ABC\b\t\n".scan(/[\b-\n]/)
+end
+
 assert("Regexp - dot") do
   re = Regexp.new("a.c")
   assert_true re.match?("abc")
@@ -171,6 +179,17 @@ assert("Regexp#hash") do
   r3 = Regexp.new("abc")
   assert_equal r1.hash, r2.hash
   assert_not_equal r1.hash, r3.hash
+end
+
+assert("Regexp#hash/== on uninitialized regexp") do
+  # Regexp.allocate yields an object with no @source IV; hash/== must
+  # not crash (regression: ObjectSpace.each_object could expose a
+  # half-initialized Regexp after Regexp.new raised a compile error).
+  r = Regexp.allocate
+  assert_kind_of Integer, r.hash
+  assert_true r == r
+  assert_false r == Regexp.allocate
+  assert_false r == Regexp.new("abc")
 end
 
 assert("Regexp#options") do
@@ -362,7 +381,7 @@ assert("MatchData#named_captures") do
 end
 
 assert("Regexp - named captures survive /x preprocessing") do
-  # Regression: with /x, re_compile freed the stripped buffer that
+  # Regression: with /x, mrb_re_compile freed the stripped buffer that
   # named_captures[i].name pointed into.
   re = /(?<n>\d+) # comment
        \s* (?<u>\w+) /x
@@ -443,4 +462,33 @@ assert("$1-$9 cleared on no match") do
   assert_equal "hello", $1
   /xyz/ =~ "abc"
   assert_nil $1
+end
+
+assert("Regexp - consecutive optional quantifiers (#6853)") do
+  # insert_inst was over-incrementing jump offsets that pointed *at* the
+  # insertion site, sending earlier "skip this atom" SPLITs into the next
+  # atom's body. Two adjacent zero-matchable atoms then both failed even
+  # when both should match zero characters.
+  assert_equal ["a", nil],   /\Aa(b)?c?\z/.match("a").to_a
+  assert_equal ["ab", "b"],  /\Aa(b)?c?\z/.match("ab").to_a
+  assert_equal ["ac", nil],  /\Aa(b)?c?\z/.match("ac").to_a
+  assert_equal ["abc", "b"], /\Aa(b)?c?\z/.match("abc").to_a
+
+  assert_equal [""], /a?b?/.match("").to_a
+  assert_equal [""], /a*b*/.match("").to_a
+  assert_equal [""], /a?b?c?d?/.match("").to_a
+end
+
+assert("Regexp - empty-matchable patterns find earliest match position") do
+  # When a regex can match zero characters via epsilon transitions, the
+  # first-byte skip-ahead optimization is unsafe: skipping past bytes
+  # that aren't in the first-byte set would also skip past valid
+  # empty-match positions.
+  md = /a?/.match("b")
+  assert_equal "", md[0]
+  assert_equal 0, md.begin(0)
+
+  md = /a?b?/.match("c")
+  assert_equal "", md[0]
+  assert_equal 0, md.begin(0)
 end

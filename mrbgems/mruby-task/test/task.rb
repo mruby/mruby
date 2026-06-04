@@ -81,6 +81,10 @@ end
 assert("Task#suspend doesn't raise") do
   task = Task.new { }
   assert_nothing_raised { task.suspend }
+  # Clean up: a suspended task left in q_suspended_ keeps a later
+  # Task.run from terminating (the scheduler idles waiting on it
+  # instead of exiting).
+  task.terminate
 end
 
 assert("Task#resume doesn't raise") do
@@ -182,4 +186,25 @@ assert("Task.new with block doesn't execute immediately") do
   task = Task.new { executed = true }
   # Block should not execute until scheduler runs
   assert_false executed
+end
+
+assert("Task.run inside Task.run is a noop") do
+  assert_nothing_raised do
+    Task.new { Task.run }
+    Task.run
+  end
+end
+
+assert("Task#value returns exception object for unhandled task errors") do
+  child = nil
+
+  Task.new do
+    child = Task.new { raise "boom" }
+  end
+
+  Task.run
+
+  result = child.value
+  assert_kind_of RuntimeError, result
+  assert_equal "boom", result.message
 end

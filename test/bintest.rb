@@ -1,4 +1,5 @@
 $:.unshift File.dirname(File.dirname(File.expand_path(__FILE__)))
+require 'shellwords'
 require 'test/assert.rb'
 
 GEMNAME = ""
@@ -16,7 +17,7 @@ def cmd_list(s)
   path_list = [cmd_bin(s)]
 
   emu = ENV['EMULATOR']
-  path_list.unshift emu if emu && !emu.empty?
+  path_list.unshift(*Shellwords.split(emu)) if emu && !emu.empty?
 
   path_list
 end

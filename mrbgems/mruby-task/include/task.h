@@ -41,7 +41,6 @@ struct mrb_task_queue;
  * - Removed started flag (inferred from c.status): 1 byte
  * - Unified wakeup_tick/join/mutex into single union: 4 bytes
  * - Removed redundant proc field (stored in c.ci->proc): 8 bytes
- * - Unified timeslice/result into state union: ~4 bytes
  * Total savings: ~18 bytes per task (14% reduction)
  */
 typedef struct mrb_task {
@@ -49,6 +48,7 @@ typedef struct mrb_task {
   uint8_t priority;                /* Priority (0-255, 0=highest) */
   uint8_t status;                  /* Current status (TASKSTATUS enum) */
   uint8_t reason;                  /* Wait reason (TASKREASON enum) */
+  volatile uint8_t timeslice;      /* Remaining ticks while RUNNING */
   mrb_value name;                  /* Optional task name */
 
   /* Wait-specific data - mutually exclusive based on reason field */
@@ -61,11 +61,7 @@ typedef struct mrb_task {
 
   mrb_value self;                  /* Ruby Task object reference */
 
-  /* State-specific data - mutually exclusive based on status */
-  union {
-    volatile uint8_t timeslice;    /* Remaining ticks (RUNNING only) */
-    mrb_value result;              /* Task return value (DORMANT only) */
-  } state;
+  mrb_value result;                /* Task return value */
 
   struct mrb_context c;            /* Execution context (stack, callinfo, etc) */
 } mrb_task;
@@ -166,8 +162,8 @@ task_check_scheduler_lock(mrb_state *mrb)
 }
 
 /* Priority-queue insert/delete - defined in task.c */
-void q_insert_task(mrb_state *mrb, mrb_task *t);
-void q_delete_task(mrb_state *mrb, mrb_task *t);
+void mrb_task_q_insert(mrb_state *mrb, mrb_task *t);
+void mrb_task_q_delete(mrb_state *mrb, mrb_task *t);
 
 /* Task::Queue class registration - defined in task_queue.c */
 void mrb_init_task_queue(mrb_state *mrb, struct RClass *task_class);

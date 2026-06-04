@@ -9,7 +9,7 @@
 /* Return byte length of UTF-8 character at s.
    Returns 1 for invalid sequences (treat as single byte). */
 int
-re_utf8_charlen(const char *s, const char *end)
+mrb_re_utf8_charlen(const char *s, const char *end)
 {
   uint8_t c = (uint8_t)*s;
   int len;
@@ -28,7 +28,7 @@ re_utf8_charlen(const char *s, const char *end)
 /* Decode a UTF-8 character and return its codepoint.
    *len is set to the byte length consumed. */
 uint32_t
-re_utf8_decode(const char *s, int *len)
+mrb_re_utf8_decode(const char *s, int *len)
 {
   uint8_t c = (uint8_t)s[0];
   uint32_t cp;
@@ -66,7 +66,7 @@ re_utf8_decode(const char *s, int *len)
 
 /* Check if character is a "word" character (\w): [a-zA-Z0-9_] */
 mrb_bool
-re_is_word_char(uint32_t c)
+mrb_re_is_word_char(uint32_t c)
 {
   if (c >= 'a' && c <= 'z') return TRUE;
   if (c >= 'A' && c <= 'Z') return TRUE;
