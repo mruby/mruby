@@ -419,6 +419,15 @@ mrb_proc_arity(const struct RProc *p)
   mrb_aspec aspec;
   int ma, op, ra, pa, arity;
 
+  /* Resolve alias procs first: an alias carries body.mid (a symbol), not an
+     irep, with `upper` pointing at the original proc. Without this the irep
+     branch below reads body.mid as an mrb_irep* and dereferences it -> SEGV.
+     Mirrors the guard already present in mrb_proc_source_location / mrb_proc_eql. */
+  while (p && MRB_PROC_ALIAS_P(p)) {
+    p = p->upper;
+  }
+  if (!p) return 0;
+
   if (MRB_PROC_CFUNC_P(p)) {
     uint32_t caspec_bits = p->flags & MRB_PROC_CASPEC_MASK;
     if (caspec_bits != 0) {

@@ -182,6 +182,17 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
   };
   int i;
   const struct RProc *proc = mrb_proc_ptr(self);
+  /* An alias proc carries no irep of its own: body.mid holds the aliased
+     method's name and `upper` points at the original proc (see mrb_alias_method
+     in class.c). Without this, the else branch below reads body.mid as an
+     mrb_irep* and dereferences it -> misaligned read / SEGV. Resolve to the
+     underlying proc, exactly as method_to_s already does, so an aliased method
+     reports the original's parameters. Alias chains are collapsed at creation,
+     but loop (as mruby-method does) and bail to empty on a broken chain. */
+  while (MRB_PROC_ALIAS_P(proc)) {
+    proc = proc->upper;
+    if (!proc) return mrb_ary_new(mrb);
+  }
   mrb_aspec aspec;
   mrb_bool has_lv = TRUE;
   if (MRB_PROC_CFUNC_P(proc)) {
