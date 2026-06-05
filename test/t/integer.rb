@@ -129,6 +129,18 @@ assert('Integer#^', '15.2.8.3.11') do
   assert_equal 6, 5 ^ 3
 end
 
+assert('Integer bitwise ops reject non-Integer operands') do
+  # A non-Integer operand has no bit pattern to combine, so &, |, ^ raise
+  # TypeError instead of silently reading garbage (Float used to return a
+  # bogus value via an unchecked union access).
+  assert_raise(TypeError) { 5 & 5.0 }
+  assert_raise(TypeError) { 5 | 5.0 }
+  assert_raise(TypeError) { 5 ^ 5.0 }
+  assert_raise(TypeError) { 5 | "3" }
+  assert_raise(TypeError) { 5 & nil }
+  assert_raise(TypeError) { 5 ^ :sym }
+end
+
 assert('Integer#<<', '15.2.8.3.12') do
   # Left Shift by one
   #   00010111 (23)

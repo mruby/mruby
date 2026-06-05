@@ -1352,6 +1352,7 @@ int_rev(mrb_state *mrb, mrb_value num)
 }
 
 #define bit_op(x,y,op1,op2) do {\
+  if (!mrb_integer_p(y)) mrb_int_noconv(mrb, y);\
   return mrb_int_value(mrb, (mrb_integer(x) op2 mrb_integer(y)));\
 } while(0)
 
