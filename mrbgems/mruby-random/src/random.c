@@ -154,14 +154,45 @@ rand_i(rand_state *t, mrb_int max)
   return (mrb_int)(r % (uint32_t)max);
 }
 
+/* Full-width unsigned random value in [0, 2**MRB_INT_BIT). */
+static mrb_uint
+rand_uint(rand_state *t)
+{
+#ifdef MRB_INT64
+  return ((mrb_uint)rand_uint32(t) << 32) | rand_uint32(t);
+#else
+  return (mrb_uint)rand_uint32(t);
+#endif
+}
+
+/* Uniform unsigned value in [0, span) without modulo bias.
+   span == 0 selects the entire domain [0, 2**MRB_INT_BIT). */
+static mrb_uint
+rand_u(rand_state *t, mrb_uint span)
+{
+  if (span == 0) return rand_uint(t);
+  mrb_uint threshold = (mrb_uint)(-span) % span; /* == 2**MRB_INT_BIT % span */
+  mrb_uint r;
+  do {
+    r = rand_uint(t);
+  } while (r < threshold);
+  return r % span;
+}
+
 static mrb_value
 rand_range_int(mrb_state *mrb, rand_state *t, mrb_int begin,
                mrb_int end, mrb_bool excl) {
-  mrb_int span = end - begin + (excl ? 0 : 1);
-  if (span <= 0)
+  /* Reversed or empty range -> nil (as CRuby does). Compare before
+     subtracting so extreme bounds cannot overflow mrb_int. */
+  if (begin > end || (excl && begin == end))
     return mrb_nil_value();
 
-  return mrb_int_value(mrb, (rand_i(t, span)) + begin);
+  /* Candidate count in unsigned arithmetic to avoid signed overflow.
+     An inclusive full-width range wraps to 0, which rand_u reads as
+     "the entire domain". */
+  mrb_uint span = (mrb_uint)end - (mrb_uint)begin + (excl ? 0 : 1);
+  mrb_uint r = rand_u(t, span);
+  return mrb_int_value(mrb, (mrb_int)((mrb_uint)begin + r));
 }
 
 #ifndef MRB_NO_FLOAT

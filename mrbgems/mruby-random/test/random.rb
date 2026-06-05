@@ -149,3 +149,33 @@ assert("Kernel#rand()") do
   assert_equal(rand(0.0...0.0), nil)
   assert_equal(rand(1..0), nil)
 end
+
+assert("Kernel#rand integer range overflow") do
+  # Width-independent guard behaviour for reversed/empty/single ranges.
+  assert_equal(5, rand(5..5))   # single-element inclusive range
+  assert_nil(rand(5...5))       # empty exclusive range
+  assert_nil(rand(10..3))       # reversed inclusive range
+  assert_nil(rand(10...3))      # reversed exclusive range
+  100.times { assert_include(3..7, rand(3..7)) }
+
+  # Wide fixnum ranges whose span exceeds the mrb_int range only exist on
+  # 64-bit mrb_int builds. Such bounds used to overflow `end - begin` in C
+  # (UndefinedBehaviorSanitizer signed-integer-overflow), found via a
+  # minimized mruby_fuzzer testcase. On 32-bit mrb_int (or when bigint
+  # promotes the bounds) these take a different path, so probe the
+  # integer-range path first and skip if absent.
+  hi = ((1 << 62) + (1 << 61)) rescue nil
+  if hi && (Integer === (rand(-hi..hi) rescue nil))
+    lo = -hi
+    # reversed wide range -> nil; old code overflowed `end - begin`.
+    assert_nil(rand(hi..lo))
+    assert_nil(rand(hi...lo))
+    # valid wide range -> in-range Integer; old code overflowed and wrongly
+    # returned nil instead of a uniform value.
+    100.times do
+      v = rand(lo..hi)
+      assert_kind_of(Integer, v)
+      assert_true(lo <= v && v <= hi)
+    end
+  end
+end
