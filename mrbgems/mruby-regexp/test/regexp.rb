@@ -39,6 +39,9 @@ assert("Regexp#===") do
   re = Regexp.new("abc")
   assert_true re === "abc"
   assert_false re === "xyz"
+  re = Regexp.new("hello (theo)")
+  assert_true re === "hello theo"
+  assert_equal "theo", $1
 end
 
 assert("Regexp - character class") do
