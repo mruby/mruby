@@ -272,7 +272,7 @@ regexp_match_op(mrb_state *mrb, mrb_value self)
 static mrb_value
 regexp_case_match(mrb_state *mrb, mrb_value self)
 {
-  mrb_value str;
+  mrb_value str, md;
   mrb_regexp_pattern *pat;
 
   mrb_get_args(mrb, "o", &str);
@@ -281,8 +281,8 @@ regexp_case_match(mrb_state *mrb, mrb_value self)
   pat = DATA_GET_PTR(mrb, self, &regexp_type, mrb_regexp_pattern);
   if (!pat) return mrb_false_value();
 
-  int ncap = mrb_re_exec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), 0, NULL, 0);
-  return mrb_bool_value(ncap > 0);
+  md = exec_match(mrb, self, str, 0);
+  return mrb_bool_value(!mrb_nil_p(md));
 }
 
 /*
