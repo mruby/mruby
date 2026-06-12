@@ -1187,6 +1187,18 @@ final_marking_phase(mrb_state *mrb, mrb_gc *gc)
   if (mrb->c != mrb->root_c) {
     mark_context(mrb, mrb->root_c);
   }
+
+#ifdef MRB_USE_TASK_SCHEDULER
+  /* Re-mark task stacks atomically, the same way mrb->c is re-marked here.
+     Task stacks are unbarriered roots: the VM mutates them during the
+     incremental mark phase without a write barrier, so root_scan_phase's
+     snapshot can go stale. mark_context() gives the running context this
+     atomic re-scan; task contexts need it too. Omitting it lets a stack slot
+     outlive the object it references, and the next cycle's mark of that slot
+     trips the MRB_TT_FREE assertion in mrb_gc_mark (issue #6886). */
+  mrb_task_mark_all(mrb);
+#endif
+
   mrb_gc_mark(mrb, (struct RBasic*)mrb->exc);
 
   /* mark pre-allocated exception */
