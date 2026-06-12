@@ -1621,11 +1621,20 @@ task_across_c_boundary(mrb_state *mrb)
    stack-local c_jmp on entry; leaving it dangling after this early return
    means a later raise longjmps into a freed frame (issue #6863).
 
+   A pending switch is never honored on the root context. The root context
+   is not a task: it has no scheduler frame to catch the early return, so
+   bailing out of its mrb_vm_exec leaves the call-info stack drifted and trips
+   the assertion in mrb_vm_run. This happens when Task.pass is driven from the
+   root context (the UI-loop-on-root pattern) while a stray switch flag is
+   left set by background-task activity (issue #6887). switching is set from
+   the timer interrupt (mrb_tick), so a genuine task always clears it on the
+   next OP boundary; only the root context can observe it spuriously.
+
    This macro must only be expanded where prev_jmp is in scope, i.e.
    inside mrb_vm_exec (via NEXT / END_DISPATCH). */
 #define RETURN_IF_TASK_STOPPED(mrb) do { \
-  if (((mrb)->task.switching && !(mrb)->gc.iterating && \
-       !task_across_c_boundary(mrb)) || \
+  if (((mrb)->task.switching && (mrb)->c != (mrb)->root_c && \
+       !(mrb)->gc.iterating && !task_across_c_boundary(mrb)) || \
       (mrb)->c->status == MRB_TASK_STOPPED) { \
     (mrb)->jmp = prev_jmp; \
     return mrb_nil_value(); \
