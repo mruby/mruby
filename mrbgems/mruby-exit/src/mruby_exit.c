@@ -44,7 +44,7 @@ f_exit(mrb_state *mrb, mrb_value self)
   mrb_value exc = mrb_obj_new(mrb, mrb_exc_get_id(mrb, MRB_SYM(SystemExit)), 0, NULL);
   struct RException *e = mrb_exc_ptr(exc);
   e->flags |= MRB_EXC_EXIT;
-  mrb_iv_set(mrb, exc, MRB_SYM(status), mrb_int_value(mrb, (mrb_int)status));
+  mrb_iv_set(mrb, exc, MRB_IVSYM(status), mrb_int_value(mrb, (mrb_int)status));
   mrb_exc_raise(mrb, exc);
   /* not reached */
   return mrb_nil_value();
