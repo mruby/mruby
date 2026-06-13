@@ -57,6 +57,13 @@ end
 
 task :build => MRuby.targets.flat_map{|_, build| build.products}
 
+desc "download all gem dependencies without building"
+task :fetch do
+  MRuby.each_target do |build|
+    puts "Dependencies ready for '#{build.name}'"
+  end
+end
+
 desc "clean all built and in-repo installed artifacts"
 task :clean do
   MRuby.each_target do |build|
