@@ -579,6 +579,10 @@ mrb_task_run_once(mrb_state *mrb)
     mrb_incremental_gc(mrb);
   }
 
+  if (t->status == MRB_TASK_STATUS_DORMANT) {
+    return t->result;
+  }
+
   return mrb_true_value();
 }
 

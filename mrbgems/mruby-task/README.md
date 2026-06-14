@@ -490,7 +490,7 @@ MRB_API mrb_value mrb_task_run(mrb_state *mrb);
 MRB_API mrb_value mrb_task_run_once(mrb_state *mrb);
 ```
 
-**`mrb_task_run_once()`** executes one ready task and returns. This is designed for WASM/JavaScript event loop integration where the scheduler should yield control back to the browser between task executions.
+**`mrb_task_run_once()`** executes one ready task and returns. This is designed for WASM/JavaScript event loop integration where the scheduler should yield control back to the browser between task executions. When the executed task stops during that step, the return value is the task result, including an exception object for unhandled task errors.
 
 ### Task Creation API
 
