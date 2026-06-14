@@ -633,7 +633,7 @@ matchdata_to_s(mrb_state *mrb, mrb_value self)
 static void
 apply_replacement(mrb_state *mrb, mrb_value result,
                   const char *rep, mrb_int rep_len,
-                  const char *str, int *captures, int ncap)
+                  const char *str, mrb_int str_len, int *captures, int ncap)
 {
   mrb_int i = 0;
   while (i < rep_len) {
@@ -658,7 +658,11 @@ apply_replacement(mrb_state *mrb, mrb_value result,
       }
       else if (c == '\'') {
         if (captures[1] >= 0) {
-          mrb_str_cat(mrb, result, str + captures[1], strlen(str) - captures[1]);
+          /* post-match: bytes after the match end. Use the subject's real
+             byte length, not strlen(str): the subject may contain embedded
+             NUL bytes or be a non-NUL-terminated shared substring, in which
+             case strlen() underflows the length (issue #6892). */
+          mrb_str_cat(mrb, result, str + captures[1], str_len - captures[1]);
         }
       }
       else if (c == '+') {
@@ -740,7 +744,7 @@ regexp_gsub_str(mrb_state *mrb, mrb_value self)
 
     /* append replacement */
     if (need_expand) {
-      apply_replacement(mrb, result, rep, rep_len, s, captures, ncap);
+      apply_replacement(mrb, result, rep, rep_len, s, slen, captures, ncap);
     }
     else {
       mrb_str_cat(mrb, result, rep, rep_len);
@@ -816,7 +820,7 @@ regexp_sub_str(mrb_state *mrb, mrb_value self)
 
   /* replacement */
   if (has_backslash(rep, rep_len)) {
-    apply_replacement(mrb, result, rep, rep_len, s, captures, pat->num_captures);
+    apply_replacement(mrb, result, rep, rep_len, s, slen, captures, pat->num_captures);
   }
   else {
     mrb_str_cat(mrb, result, rep, rep_len);

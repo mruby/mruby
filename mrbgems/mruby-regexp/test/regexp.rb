@@ -265,6 +265,19 @@ assert("String#sub with \\& \\` \\' specials") do
   assert_equal "abbd", "abcd".sub(/(b)c/, '\\1\\1')
 end
 
+assert("String#sub \\' post-match uses byte length, not strlen (issue #6892)") do
+  # An embedded NUL before the match end used to make \' compute its length
+  # with strlen(), underflowing into a wild memcpy and crashing.
+  s = "A\0" + ("B" * 40) + "MATCH"
+  assert_equal 44, s.sub(/MATCH/, "X\\'Y").length
+  assert_equal "A\0" + ("B" * 40) + "XY", s.sub(/MATCH/, "X\\'Y")
+
+  # A shared substring whose logical end is not NUL-terminated must not let
+  # \' copy bytes past the substring into the parent's buffer.
+  parent = ("Q" * 200) + "MATCHzzzzzzzzzzzzzzzz"
+  assert_equal ("Q" * 100) + "[]", parent[100, 105].sub(/MATCH/, "[\\']")
+end
+
 assert("String#gsub with \\& special") do
   assert_equal "[a][b][c]", "abc".gsub(/./, '[\\&]')
 end
