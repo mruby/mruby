@@ -353,6 +353,11 @@ assert("String#gsub with block and zero-width match") do
   assert_equal "!abc", "abc".gsub(/^/) { "!" }
   assert_equal "a!bc", "abc".gsub(/(?=b)/) { "!" }
   assert_equal "!a!b!c!", "abc".gsub(//) { "!" }
+  if __ENCODING__ == "UTF-8"
+    assert_equal "！いろは", "いろは".gsub(/^/) { "！" }
+    assert_equal "い！ろは", "いろは".gsub(/(?=ろ)/) { "！" }
+    assert_equal "！い！ろ！は！", "いろは".gsub(//) { "！" }
+  end
 end
 
 assert("String#gsub date reformat") do

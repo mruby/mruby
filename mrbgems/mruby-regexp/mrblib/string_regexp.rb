@@ -36,21 +36,28 @@ class String
     # block case: keep in Ruby to avoid VM callback from C
     parts = []
     pos = 0
-    while pos <= self.length
+    len = self.bytesize
+    while pos <= len
       md = pattern.match(self, pos)
       break unless md
       match_start = md.begin(0)
       match_end = md.end(0)
-      parts << self[pos...match_start]
+      parts << self.byteslice(pos, match_start - pos)
       parts << block.call(md[0]).to_s
       if match_start == match_end
-        parts << self[match_end] if match_end < self.length
-        pos = match_end + 1
+        rest = self.byteslice(match_end..-1)
+        if rest && rest.bytesize > 0
+          char = rest[0]
+          parts << char
+          pos = match_end + char.bytesize
+        else
+          pos = match_end + 1
+        end
       else
         pos = match_end
       end
     end
-    parts << self[pos..-1]
+    parts << self.byteslice(pos..-1)
     parts.join
   end
 
