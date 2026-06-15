@@ -353,6 +353,9 @@ assert("String#gsub with block and zero-width match") do
   assert_equal "!abc", "abc".gsub(/^/) { "!" }
   assert_equal "a!bc", "abc".gsub(/(?=b)/) { "!" }
   assert_equal "!a!b!c!", "abc".gsub(//) { "!" }
+  assert_equal "!\n", "\n".gsub(/^/m) { "!" }
+  assert_equal "!a\n", "a\n".gsub(/^/m) { "!" }
+  assert_equal "!a\n!b", "a\nb".gsub(/^/m) { "!" }
   if __ENCODING__ == "UTF-8"
     assert_equal "！いろは", "いろは".gsub(/^/) { "！" }
     assert_equal "い！ろは", "いろは".gsub(/(?=ろ)/) { "！" }
