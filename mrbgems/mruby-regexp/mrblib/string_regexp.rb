@@ -35,21 +35,22 @@ class String
     end
     # block case: keep in Ruby to avoid VM callback from C
     parts = []
-    rest = self
-    while rest.length > 0
-      md = pattern.match(rest)
+    pos = 0
+    while pos <= self.length
+      md = pattern.match(self, pos)
       break unless md
-      parts << md.pre_match
+      match_start = md.begin(0)
+      match_end = md.end(0)
+      parts << self[pos...match_start]
       parts << block.call(md[0]).to_s
-      matched_len = md[0].length
-      if matched_len == 0
-        parts << rest[0] if rest.length > 0
-        rest = rest[1..-1] || ""
+      if match_start == match_end
+        parts << self[match_end] if match_end < self.length
+        pos = match_end + 1
       else
-        rest = md.post_match
+        pos = match_end
       end
     end
-    parts << rest
+    parts << self[pos..-1]
     parts.join
   end
 
