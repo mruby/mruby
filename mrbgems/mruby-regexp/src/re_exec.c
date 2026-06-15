@@ -145,7 +145,7 @@ add_thread(pike_state *s, re_threadlist *list,
       continue;
 
     case RE_BOL:
-      if (sp == s->str || ((s->pat->flags & RE_FLAG_MULTILINE) && sp > s->str && sp[-1] == '\n')) {
+      if (sp == s->str || ((s->pat->flags & RE_FLAG_MULTILINE) && sp > s->str && sp < s->str_end && sp[-1] == '\n')) {
         pc++; continue;
       }
       return;
@@ -452,7 +452,7 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
       }
 
     case RE_BOL:
-      if (sp != str && !(pat->flags & RE_FLAG_MULTILINE && sp > str && sp[-1] == '\n')) return FALSE;
+      if (sp != str && !(pat->flags & RE_FLAG_MULTILINE && sp > str && sp < str_end && sp[-1] == '\n')) return FALSE;
       pc++;
       break;
 

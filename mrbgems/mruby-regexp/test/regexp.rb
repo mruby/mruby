@@ -349,6 +349,20 @@ assert("String#gsub with block") do
   assert_equal "HELLO WORLD", "hello world".gsub(/\w+/) { |m| m.upcase }
 end
 
+assert("String#gsub with block and zero-width match") do
+  assert_equal "!abc", "abc".gsub(/^/) { "!" }
+  assert_equal "a!bc", "abc".gsub(/(?=b)/) { "!" }
+  assert_equal "!a!b!c!", "abc".gsub(//) { "!" }
+  assert_equal "!\n", "\n".gsub(/^/m) { "!" }
+  assert_equal "!a\n", "a\n".gsub(/^/m) { "!" }
+  assert_equal "!a\n!b", "a\nb".gsub(/^/m) { "!" }
+  if __ENCODING__ == "UTF-8"
+    assert_equal "！いろは", "いろは".gsub(/^/) { "！" }
+    assert_equal "い！ろは", "いろは".gsub(/(?=ろ)/) { "！" }
+    assert_equal "！い！ろ！は！", "いろは".gsub(//) { "！" }
+  end
+end
+
 assert("String#gsub date reformat") do
   result = "2026-03-21".gsub(/(\d+)-(\d+)-(\d+)/) { "#{$~[3]}/#{$~[2]}/#{$~[1]}" }
   assert_equal "21/03/2026", result
