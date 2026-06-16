@@ -947,6 +947,28 @@ assert('Hash#rehash') do
   [1, 17].each{assert_equal(_1 * 2, h[_1])}
 end
 
+assert('Hash iteration with entries deleted ahead of the cursor') do
+  # Regression for GHSA-jfmr-44fc-gfhg: a block that deletes not-yet-visited
+  # entries during iteration must not let the entry scan run past the end of
+  # the entry array (heap out-of-bounds read / type confusion).
+  h = {}
+  20.times { |i| h[i] = i * 10 }
+  visited = 0
+  h.each do |k, v|
+    visited += 1
+    # On the first call, delete every entry except the current one.
+    h.keys.each { |kk| h.delete(kk) unless kk == k } if visited == 1
+  end
+  assert_true(visited >= 1)   # must have run without crashing
+  assert_equal(1, h.size)     # only the first-visited entry remains
+
+  # Deleting the current entry on every step (delete_if-style) stays correct.
+  g = {}
+  20.times { |i| g[i] = i }
+  g.each { |k, v| g.delete(k) }
+  assert_predicate(g, :empty?)
+end
+
 assert('Hash#assoc, Hash#rassoc') do
   h = {foo: 0, bar: 1, baz: 2}
   assert_equal([:bar, 1], h.assoc(:bar))

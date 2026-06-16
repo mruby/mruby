@@ -191,10 +191,25 @@ DEFINE_SWITCHER(ht, HT)                                         /* h_ht_on  h_ht
        ib_it_find_by_key(mrb, it_var, key);                                   \
        it_var[0].h = NULL)
 
+/* Same live-entry iteration as EA_EACH (visit the live count of entries,
+   skipping deleted slots), but the deleted-entry skip is bounded by the end of
+   the entry allocation (ea + ea_capa). For valid iterations the live count is
+   reached well before the bound, so behaviour is identical to EA_EACH; when a
+   callback deletes entries ahead of the cursor, the bound keeps the iterator
+   inside the allocation instead of reading out of bounds
+   (GHSA-jfmr-44fc-gfhg). ea_capa is used rather than ea_n_used because the
+   latter is transiently inconsistent with the entry positions while a rehash
+   that raised mid-way is being observed; ea_capa always spans every entry. */
 #define H_EACH(h, entry_var)                                                  \
-  EA_EACH((h_ar_p(h) ? ar_ea(h) : ht_ea(h)),                                  \
-          (h_ar_p(h) ? ar_size(h) : ht_size(h)),                              \
-          entry_var)
+  for (uint32_t ea_size__ = (h_ar_p(h) ? ar_size(h) : ht_size(h));            \
+       ea_size__; ea_size__ = 0)                                             \
+    for (hash_entry *entry_var = (h_ar_p(h) ? ar_ea(h) : ht_ea(h)),           \
+                    *ea_end__ = entry_var +                                   \
+                      (h_ar_p(h) ? ar_ea_capa(h) : ht_ea_capa(h));            \
+         ea_size__ &&                                                         \
+           (entry_var = entry_skip_deleted_bounded(entry_var, ea_end__))      \
+             < ea_end__;                                                      \
+         entry_var++, ea_size__--)
 
 /*
  * In `H_CHECK_MODIFIED()`, in the case of `MRB_NO_BOXING`, `ht_ea()` or
@@ -426,6 +441,19 @@ entry_skip_deleted(hash_entry *e)
   return e;
 }
 
+/* Like entry_skip_deleted, but never advances past `end` (one past the last
+   allocated entry slot). H_EACH uses this so that a callback which deletes
+   entries ahead of the cursor mid-iteration cannot walk the iterator off the
+   end of the allocation (GHSA-jfmr-44fc-gfhg, CWE-125). A realloc-causing
+   mutation is still caught separately by H_CHECK_MODIFIED in the loop body. */
+static hash_entry*
+entry_skip_deleted_bounded(hash_entry *e, const hash_entry *end)
+{
+  for (; e < end && entry_deleted_p(e); e++)
+    ;
+  return e;
+}
+
 static uint32_t
 ea_next_capa_for(uint32_t size, uint32_t max_capa)
 {
@@ -447,9 +475,17 @@ ea_next_capa_for(uint32_t size, uint32_t max_capa)
 }
 
 static hash_entry*
-ea_resize(mrb_state *mrb, hash_entry *ea, uint32_t capa)
+ea_resize(mrb_state *mrb, hash_entry *ea, uint32_t old_capa, uint32_t capa)
 {
-  return (hash_entry*)mrb_realloc(mrb, ea, sizeof(hash_entry) * capa);
+  ea = (hash_entry*)mrb_realloc(mrb, ea, sizeof(hash_entry) * capa);
+  /* Mark the newly grown slots as deleted so the unused tail of the entry
+     array is always skippable. H_EACH bounds its scan by ea_capa and relies
+     on every slot outside the live range being deleted (GHSA-jfmr-44fc-gfhg);
+     mrb_realloc leaves grown slots uninitialized. */
+  for (uint32_t i = old_capa; i < capa; i++) {
+    entry_delete(&ea[i]);
+  }
+  return ea;
 }
 
 static void
@@ -461,6 +497,12 @@ ea_compress(hash_entry *ea, uint32_t n_used)
     if (r_entry != w_entry) *w_entry = *r_entry;
     w_entry++;
   }
+  /* Mark the slots vacated by compaction as deleted; they hold stale copies
+     of moved entries, which must not be read as live by a later H_EACH scan
+     that overruns the live range (GHSA-jfmr-44fc-gfhg). */
+  for (hash_entry *end = ea + n_used; w_entry < end; w_entry++) {
+    entry_delete(w_entry);
+  }
 }
 
 /*
@@ -471,8 +513,9 @@ ea_compress(hash_entry *ea, uint32_t n_used)
 static hash_entry*
 ea_adjust(mrb_state *mrb, hash_entry *ea, uint32_t *capap, uint32_t max_capa)
 {
+  uint32_t old_capa = *capap;
   *capap = ea_next_capa_for(*capap, max_capa);
-  return ea_resize(mrb, ea, *capap);
+  return ea_resize(mrb, ea, old_capa, *capap);
 }
 
 static hash_entry*
@@ -1244,7 +1287,7 @@ mrb_hash_new_capa(mrb_state *mrb, mrb_int capa)
   else {
     uint32_t size = U32(capa);
     struct RHash *h = h_alloc(mrb);
-    hash_entry *ea = ea_resize(mrb, NULL, size);
+    hash_entry *ea = ea_resize(mrb, NULL, 0, size);
     if (size <= AR_MAX_SIZE) {
       ar_init(h, 0, ea, size, 0);
     }
