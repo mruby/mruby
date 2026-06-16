@@ -171,6 +171,27 @@ re_byte_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
   return mrb_str_new(mrb, RSTRING_PTR(str) + beg, len);
 }
 
+/* Convert a byte offset into str to a character offset, so MatchData#begin
+   and #end report character positions like CRuby. Counts UTF-8 lead bytes
+   (every byte that is not a 10xxxxxx continuation) in [0, byte_off). On
+   non-UTF-8 builds a byte is a character, so the offset is returned as-is. */
+static mrb_int
+re_byte_to_char(mrb_state *mrb, mrb_value str, mrb_int byte_off)
+{
+  (void)mrb;
+#ifdef MRB_UTF8_STRING
+  const char *p = RSTRING_PTR(str);
+  mrb_int chars = 0;
+  for (mrb_int i = 0; i < byte_off; i++) {
+    if (((unsigned char)p[i] & 0xC0) != 0x80) chars++;
+  }
+  return chars;
+#else
+  (void)str;
+  return byte_off;
+#endif
+}
+
 /* Create MatchData from captures */
 static mrb_value
 create_matchdata(mrb_state *mrb, mrb_value regexp, mrb_value str, int *captures, int ncap)
@@ -527,11 +548,40 @@ matchdata_begin(mrb_state *mrb, mrb_value self)
   if (!md || idx < 0 || idx >= md->num_captures) return mrb_nil_value();
   int pos = md->captures[idx * 2];
   if (pos < 0) return mrb_nil_value();
-  return mrb_int_value(mrb, pos);
+  return mrb_int_value(mrb, re_byte_to_char(mrb, md->source, pos));
 }
 
 static mrb_value
 matchdata_end(mrb_state *mrb, mrb_value self)
+{
+  mrb_int idx;
+  mrb_get_args(mrb, "i", &idx);
+
+  mrb_match_data *md = DATA_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
+  if (!md || idx < 0 || idx >= md->num_captures) return mrb_nil_value();
+  int pos = md->captures[idx * 2 + 1];
+  if (pos < 0) return mrb_nil_value();
+  return mrb_int_value(mrb, re_byte_to_char(mrb, md->source, pos));
+}
+
+/* Private byte-offset accessors used by String#gsub, which works in byte
+   space (byteslice). begin/end report character offsets; these report the
+   raw byte offsets the engine recorded. */
+static mrb_value
+matchdata_byte_begin(mrb_state *mrb, mrb_value self)
+{
+  mrb_int idx;
+  mrb_get_args(mrb, "i", &idx);
+
+  mrb_match_data *md = DATA_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
+  if (!md || idx < 0 || idx >= md->num_captures) return mrb_nil_value();
+  int pos = md->captures[idx * 2];
+  if (pos < 0) return mrb_nil_value();
+  return mrb_int_value(mrb, pos);
+}
+
+static mrb_value
+matchdata_byte_end(mrb_state *mrb, mrb_value self)
 {
   mrb_int idx;
   mrb_get_args(mrb, "i", &idx);
@@ -979,6 +1029,8 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, md, "size", matchdata_length, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "begin", matchdata_begin, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, md, "end", matchdata_end, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, md, "__byte_begin", matchdata_byte_begin, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, md, "__byte_end", matchdata_byte_end, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, md, "pre_match", matchdata_pre, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "post_match", matchdata_post, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "named_captures", matchdata_named_captures, MRB_ARGS_NONE());

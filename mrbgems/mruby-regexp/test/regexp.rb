@@ -175,6 +175,12 @@ assert("Regexp - multibyte (UTF-8) match extraction") do
   assert_equal "ああいいうう", "あいう".gsub(/./) { |m| m + m }
   assert_equal "x-y", "x—y".sub(/—/) { "-" }
   assert_equal ["1", "2", "3"], "ABCあいう123".scan(/\d/)
+
+  # MatchData#begin/#end report CHARACTER offsets like CRuby, not bytes.
+  m = "αβγ".match(/(β)(γ)/)
+  assert_equal [1, 2], [m.begin(1), m.end(1)]
+  assert_equal [2, 3], [m.begin(2), m.end(2)]
+  assert_equal 2, "あいう".match(/う/).begin(0)
 end
 
 assert("Regexp.escape") do

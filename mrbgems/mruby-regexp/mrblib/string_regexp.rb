@@ -40,8 +40,10 @@ class String
     while pos <= len
       md = pattern.match(self, pos)
       break unless md
-      match_start = md.begin(0)
-      match_end = md.end(0)
+      # gsub works in byte space (match pos, byteslice). begin/end report
+      # character offsets (CRuby-compatible), so use the byte accessors.
+      match_start = md.__byte_begin(0)
+      match_end = md.__byte_end(0)
       parts << self.byteslice(pos, match_start - pos)
       parts << block.call(md[0]).to_s
       if match_start == match_end
