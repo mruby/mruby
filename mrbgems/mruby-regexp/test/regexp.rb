@@ -161,6 +161,22 @@ assert("MatchData#begin / #end") do
   assert_equal 3, md.end(0)
 end
 
+assert("Regexp - multibyte (UTF-8) match extraction") do
+  # Capture offsets are recorded in bytes; substring extraction must honor
+  # them as byte ranges so multibyte matches are not corrupted.
+  skip unless __ENCODING__ == "UTF-8"
+  assert_equal "あ", "あa".match(/\S/)[0]
+  assert_equal ["あ", "a", "い"], "あ a い".scan(/\S/)
+  assert_equal "本", "日本語".match(/本/)[0]
+  md = "いろは".match(/ろ/)
+  assert_equal "い", md.pre_match
+  assert_equal "は", md.post_match
+  assert_equal ["β", "γ"], "αβγ".match(/(β)(γ)/).captures
+  assert_equal "ああいいうう", "あいう".gsub(/./) { |m| m + m }
+  assert_equal "x-y", "x—y".sub(/—/) { "-" }
+  assert_equal ["1", "2", "3"], "ABCあいう123".scan(/\d/)
+end
+
 assert("Regexp.escape") do
   assert_equal "a\\.b\\*c", Regexp.escape("a.b*c")
 end
