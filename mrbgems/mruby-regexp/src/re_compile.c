@@ -505,7 +505,11 @@ compile_atom(re_compiler *c)
       next_char(c);
       uint16_t id = add_class(c);
       class_add_shorthand(&c->classes[id], ch);
-      emit(c, (ch >= 'A' && ch <= 'Z') ? RE_NCLASS : RE_CLASS, (uint8_t)id, 0);
+      /* class_add_shorthand already builds the complemented set for the
+         uppercase forms (\D, \W, \S include utf8_any), so always emit
+         RE_CLASS. Emitting RE_NCLASS here would negate a second time and
+         make \D/\W/\S behave like \d/\w/\s (issue: negated shorthands). */
+      emit(c, RE_CLASS, (uint8_t)id, 0);
     }
     else if (ch == 'A') {
       next_char(c);

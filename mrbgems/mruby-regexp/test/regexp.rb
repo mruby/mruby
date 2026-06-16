@@ -93,6 +93,19 @@ assert("Regexp - \\d \\w \\s") do
   assert_false Regexp.new("\\d+").match?("abc")
 end
 
+assert("Regexp - negated shorthands \\D \\W \\S") do
+  # \D \W \S must be the complement of \d \w \s, not aliases of them.
+  # (A double negation in the compiler made \D match digits, etc.)
+  assert_equal ["a", " ", "b"], "a1 b2".scan(/\D/)
+  assert_equal [" "],           "a1 b2".scan(/\W/)
+  assert_equal ["a", "1", "b", "2"], "a1 b2".scan(/\S/)
+  assert_equal "_9__", "x9 z".gsub(/\D/, "_")
+  # inside [...] the shorthands keep working, including mixed full-range sets
+  assert_equal ["a", " ", "b"], "a5 b".scan(/[\D]/)
+  assert_equal ["a", "5", " ", "b"], "a5 b".scan(/[\s\S]/)
+  assert_equal [" "], "foo BAR".scan(/[\W\d]/)
+end
+
 assert("Regexp - anchors") do
   assert_true Regexp.new("^abc").match?("abc")
   assert_false Regexp.new("^abc").match?("xabc")
