@@ -1,0 +1,14 @@
+MRuby::GemBox.new do |conf|
+  conf.gembox 'stdlib'
+  conf.gembox 'stdlib-ext'
+  conf.gembox 'stdlib-io'
+  conf.gembox 'math'
+
+  conf.gem core: 'mruby-compiler-prism'
+  conf.gem core: 'mruby-bin-mrbc-prism'
+  conf.gem core: 'mruby-bin-mruby-prism'
+  conf.gem core: 'mruby-bin-mirb-prism'
+  conf.gem core: 'mruby-eval-prism'
+  conf.gem core: 'mruby-binding'
+  conf.gem core: 'mruby-bin-config'
+end

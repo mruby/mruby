@@ -1,0 +1,3 @@
+[submodule "mrbgems/mruby-compiler-prism/lib/prism"]
+	path = mrbgems/mruby-compiler-prism/lib/prism
+	url = https://github.com/ruby/prism

@@ -18,6 +18,10 @@
 #include <mruby/variable.h>
 #include <mruby/array.h>
 
+#if defined(MRBTEST_COMPILER_PRISM)
+mrb_state *global_mrb = NULL; /* externed in prism_xallocator.h */
+#endif
+
 extern const uint8_t mrbtest_assert_irep[];
 
 void mrbgemtest_init(mrb_state* mrb);
@@ -295,6 +299,9 @@ main(int argc, char **argv)
     mrb_close(mrb);        /* handles NULL */
     return EXIT_FAILURE;
   }
+#if defined(MRBTEST_COMPILER_PRISM)
+  global_mrb = mrb;
+#endif
 
   if (argc == 2 && argv[1][0] == '-' && argv[1][1] == 'v') {
     printf("verbose mode: enable\n\n");

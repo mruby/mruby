@@ -14,6 +14,7 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
   mrbtest_lib = libfile("#{build_dir}/mrbtest")
   mrbtest_objs = [assert_lib]
   driver_objs = srcs_to_objs(".")
+  spec.cc.defines << "MRBTEST_COMPILER_PRISM" if build.gems["mruby-compiler-prism"]
 
   file assert_lib => assert_c
   file assert_c => [assert_rb, build.mrbcfile] do |t|
@@ -67,6 +68,9 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
         end
         f.puts %Q[void mrb_init_test_driver(mrb_state *mrb, mrb_bool verbose);]
         f.puts %Q[void mrb_t_pass_result(mrb_state *dst, mrb_state *src);]
+        f.puts %Q[#if defined(MRBTEST_COMPILER_PRISM)]
+        f.puts %Q[extern mrb_state *global_mrb;]
+        f.puts %Q[#endif]
         f.puts %Q[void GENERATED_TMP_mrb_#{g.funcname}_gem_test(mrb_state *mrb) {]
         unless g.test_rbfiles.empty?
           unless g.test_args.empty?
@@ -77,6 +81,9 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
           f.puts %Q[    fprintf(stderr, "Invalid mrb_state, exiting \%s", __func__);]
           f.puts %Q[    exit(EXIT_FAILURE);]
           f.puts %Q[  }]
+          f.puts %Q[#if defined(MRBTEST_COMPILER_PRISM)]
+          f.puts %Q[  global_mrb = mrb2;]
+          f.puts %Q[#endif]
           f.puts %Q[  int ai = mrb_gc_arena_save(mrb2);]
           f.puts %Q[  mrb_const_set(mrb2, mrb_obj_value(mrb2->object_class), mrb_intern_lit(mrb2, "GEMNAME"), mrb_str_new(mrb2, "#{g.name}", #{g.name.length}));]
           f.puts %Q[  mrb_gc_arena_restore(mrb2, ai);]
@@ -116,6 +123,9 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
             f.puts %Q[  ]
           end
           f.puts %Q[  mrb_t_pass_result(mrb, mrb2);]
+          f.puts %Q[#if defined(MRBTEST_COMPILER_PRISM)]
+          f.puts %Q[  global_mrb = mrb;]
+          f.puts %Q[#endif]
           f.puts %Q[  mrb_close(mrb2);]
         end
         f.puts %Q[}]
