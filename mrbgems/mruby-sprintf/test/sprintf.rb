@@ -94,6 +94,7 @@ end
 assert("sprintf %g with high precision") do
   # Regression test: precision values larger than double's significand
   # used to cause out-of-bounds reads in fp_uscale's fixed_width().
+  skip unless Object.const_defined?(:Float)
   assert_equal "7",                                                "%.*g" % [51, 7]
   assert_equal "7.5",                                              "%.*g" % [51, 7.5]
   assert_equal "7",                                                "%.51g" % 7.0

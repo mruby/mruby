@@ -10,6 +10,10 @@ assert("Random.new") do
 end
 
 assert("Kernel#srand") do
+  # Kernel#rand with no argument yields a Float in [0, 1); without float
+  # support it falls back to an integer in [0, 100), where distinct seeds can
+  # collide on their first draw.
+  skip unless Object.const_defined?(:Float)
   srand(234)
   r1 = rand
   srand(234)
@@ -137,6 +141,8 @@ assert('Array#sample(random)') do
 end
 
 assert("Kernel#rand()") do
+  # The no-argument and Float-range forms only exist with float support.
+  skip unless Object.const_defined?(:Float)
   100.times {
     assert_include(0.0..1.0, rand)
     assert_include(0...100, rand(0...100))

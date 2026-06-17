@@ -223,6 +223,11 @@ random_range(mrb_state *mrb, rand_state *t, mrb_value rv)
                           mrb_integer(RANGE_END(r)), RANGE_EXCL(r));
   }
 
+#ifdef MRB_NO_FLOAT
+  /* Without float support only integer ranges are meaningful. */
+  range_error(mrb, RANGE_BEG(r));
+  return mrb_nil_value();
+#else
 #define cast_to_float(v)                                                       \
   (mrb_float_p(v)     ? mrb_float(v)                                           \
    : mrb_integer_p(v) ? (mrb_float)mrb_integer(v)                              \
@@ -231,6 +236,7 @@ random_range(mrb_state *mrb, rand_state *t, mrb_value rv)
   return rand_range_float(mrb, t, cast_to_float(RANGE_BEG(r)),
                           cast_to_float(RANGE_END(r)), RANGE_EXCL(r));
 #undef cast_to_float
+#endif
 }
 
 static mrb_value
@@ -241,9 +247,11 @@ random_rand_impl(mrb_state *mrb, rand_state *t, mrb_value self)
     return random_rand(mrb, t, 0);
   }
 
+#ifndef MRB_NO_FLOAT
   if (mrb_float_p(arg)) {
     return random_rand(mrb, t, (mrb_int)mrb_float(arg));
   }
+#endif
 
   if (mrb_integer_p(arg)) {
     return random_rand(mrb, t, mrb_integer(arg));

@@ -133,9 +133,13 @@ assert('Integer bitwise ops reject non-Integer operands') do
   # A non-Integer operand has no bit pattern to combine, so &, |, ^ raise
   # TypeError instead of silently reading garbage (Float used to return a
   # bogus value via an unchecked union access).
-  assert_raise(TypeError) { 5 & 5.0 }
-  assert_raise(TypeError) { 5 | 5.0 }
-  assert_raise(TypeError) { 5 ^ 5.0 }
+  if Object.const_defined?(:Float)
+    # Without float support, a float literal compiles to the integer 0, so
+    # these expressions are ordinary integer bitwise ops rather than errors.
+    assert_raise(TypeError) { 5 & 5.0 }
+    assert_raise(TypeError) { 5 | 5.0 }
+    assert_raise(TypeError) { 5 ^ 5.0 }
+  end
   assert_raise(TypeError) { 5 | "3" }
   assert_raise(TypeError) { 5 & nil }
   assert_raise(TypeError) { 5 ^ :sym }
