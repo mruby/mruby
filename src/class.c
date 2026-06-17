@@ -1317,8 +1317,12 @@ static inline uint8_t
 fast_fmt_ok(char c)
 {
   switch (c) {
+#ifndef MRB_NO_FLOAT
+  case 'f':
+    return 1;
+#endif
   case 'o': case 'S': case 'A': case 'H': case 'i': case 'b':
-  case 'f': case 'n': case 'z': case 'c': case 's': case 'a':
+  case 'n': case 'z': case 'c': case 's': case 'a':
     return 1;
   case '|':
     return 2;
@@ -1413,11 +1417,13 @@ get_args_fast(mrb_state *mrb, const char *format, void** ptr, va_list *ap)
       *bp = mrb_test(argv[i++]);
       break;
     }
+#ifndef MRB_NO_FLOAT
     case 'f': {
       mrb_float *fp = GET_ARG(mrb_float*);
       *fp = mrb_as_float(mrb, argv[i++]);
       break;
     }
+#endif
     case 'n': {
       mrb_sym *np = GET_ARG(mrb_sym*);
       *np = to_sym(mrb, argv[i++]);

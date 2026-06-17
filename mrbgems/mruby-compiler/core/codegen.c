@@ -5676,6 +5676,7 @@ codegen_range(codegen_scope *s, node *varnode, int val, mrb_bool exclusive)
   push();
 }
 
+#ifndef MRB_NO_FLOAT
 static void
 codegen_float(codegen_scope *s, node *varnode, int val)
 {
@@ -5688,6 +5689,7 @@ codegen_float(codegen_scope *s, node *varnode, int val)
 
   gen_load_op2(s, OP_LOADL, off, val);
 }
+#endif
 
 /* Variable-sized simple node generation functions */
 static void
@@ -6773,9 +6775,11 @@ codegen(codegen_scope *s, node *tree, int val)
     codegen_range(s, tree, val, TRUE);
     break;
 
+#ifndef MRB_NO_FLOAT
   case NODE_FLOAT:
     codegen_float(s, tree, val);
     break;
+#endif
 
   case NODE_SELF:
     codegen_self(s, tree, val);
