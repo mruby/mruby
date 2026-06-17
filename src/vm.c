@@ -3311,7 +3311,7 @@ RETRY_TRY_BLOCK:
   /* need to check if op is overridden */\
   if (mrb_likely(TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1])) == \
                  TYPES2(MRB_TT_INTEGER,MRB_TT_INTEGER))) {\
-    result = OP_CMP_BODY(op,mrb_fixnum,mrb_fixnum);\
+    result = OP_CMP_BODY(op,mrb_integer,mrb_integer);\
   }\
   else {\
     mid = MRB_OPSYM(sym);\
