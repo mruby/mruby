@@ -668,6 +668,9 @@ mrb_basicsocket_recv(mrb_state *mrb, mrb_value self)
   mrb_int maxlen, flags = 0;
 
   mrb_get_args(mrb, "i|i", &maxlen, &flags);
+  if (maxlen < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative length");
+  }
 
   mrb_value buf = mrb_str_new_capa(mrb, maxlen);
   ssize_t n = recv(socket_fd(mrb, self), RSTRING_PTR(buf), (fsize_t)maxlen, (int)flags);
@@ -690,6 +693,9 @@ mrb_basicsocket_recvfrom(mrb_state *mrb, mrb_value self)
   mrb_int maxlen, flags = 0;
 
   mrb_get_args(mrb, "i|i", &maxlen, &flags);
+  if (maxlen < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative length");
+  }
 
   mrb_value buf = mrb_str_new_capa(mrb, maxlen);
   socklen_t socklen = sizeof(struct sockaddr_storage);
@@ -937,6 +943,9 @@ mrb_ipsocket_recvfrom(mrb_state *mrb, mrb_value self)
   mrb_int flags = 0;
 
   mrb_get_args(mrb, "i|i", &maxlen, &flags);
+  if (maxlen < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative length");
+  }
 
   mrb_value buf = mrb_str_new_capa(mrb, maxlen);
   struct sockaddr_storage ss;

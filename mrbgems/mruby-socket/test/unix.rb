@@ -127,4 +127,17 @@ assert('UNIXSocket#recvfrom') do
   end
 end
 
+assert('Socket#recv and #recvfrom reject a negative length') do
+  # A negative length must raise instead of allocating a tiny buffer and
+  # passing a huge unsigned length to recv()/recvfrom(), which overflows the
+  # heap (GHSA-qj89-7wc6-8hfr).
+  with_unix_client do |path, server, ssock, csock|
+    ssock.send "A" * 64, 0
+    assert_raise(ArgumentError) { csock.recv(-1) }
+    assert_raise(ArgumentError) { csock.recvfrom(-1) }
+    # The raises happen before any data is consumed, so a valid read still works.
+    assert_equal "A" * 8, csock.recv(8)
+  end
+end
+
 end # SocketTest.win?
