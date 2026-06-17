@@ -2,7 +2,15 @@
 
 ## Reporting a Vulnerability
 
-To report a security vulnerability, please email the mruby team at <matz@ruby.or.jp>. We appreciate your efforts to disclose your findings responsibly.
+Please report security vulnerabilities through GitHub's private vulnerability reporting, using the **Report a vulnerability** button at:
+
+<https://github.com/mruby/mruby/security/advisories>
+
+This delivers your report directly to the maintainers, lets us collaborate with you privately, and gives you a visible record that the report was received.
+
+If you cannot use GitHub, you may email the maintainer at <matz@ruby.or.jp> as a fallback. Please note that this is a personal address with a high volume of mail, so a reply may be delayed and, in rare cases, a message may be missed. The GitHub channel above is the more reliable way to reach us.
+
+We appreciate your efforts to disclose your findings responsibly.
 
 ## Scope
 
