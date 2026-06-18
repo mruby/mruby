@@ -1,12 +1,9 @@
-# mruby-bin-mirb
+# mruby-bin-mirb-prism
 
-mirb (mruby interactive) is an interactive Ruby shell for mruby.
+mirb-prism (mruby interactive) is an interactive Ruby shell for mruby, using the Prism compiler.
 
 ## Usage
 
-```
-mirb [options]
-```
 
 ### Options
 
