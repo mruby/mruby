@@ -47,6 +47,12 @@ typedef struct {
 #define RE_CLASS_BITMAP_SIZE 16  /* 128 bits = 16 bytes for ASCII */
 typedef struct {
   uint8_t bitmap[RE_CLASS_BITMAP_SIZE];  /* bitmap for 0-127 */
+  /* Non-ASCII codepoint ranges. Stored as flat (lo, hi) pairs:
+     ranges[2k] = lo, ranges[2k+1] = hi (inclusive). NULL when the
+     class has no non-ASCII members (the common case). */
+  uint32_t *ranges;
+  uint16_t num_ranges;
+  uint16_t range_capa;
   mrb_bool negated;
   mrb_bool utf8_any;  /* match any non-ASCII byte if true */
 } re_charclass;
@@ -106,10 +112,17 @@ typedef struct mrb_regexp_pattern {
 /* Maximum captures */
 #define RE_MAX_CAPTURES 32
 
-/* Thread struct for Pike VM (also used for cache sizing) */
+/* Thread struct for Pike VM (also used for cache sizing). `sp` is the
+   input position the thread is waiting for; the outer loop only dispatches
+   a thread when its sp matches the loop's current sp, otherwise the thread
+   is deferred to the next iteration. This keeps multi-byte consumers
+   (RE_CLASS over a UTF-8 char, advancing 3 bytes) in sync with single-byte
+   consumers (RE_CHAR, advancing 1 byte) without requiring a uniform
+   char-step outer loop -- both varieties just enqueue at their own sp+N. */
 typedef struct {
   uint32_t pc;
   int cap_slot;
+  const char *sp;
 } re_thread_cache;
 
 /* Compile a pattern string into bytecode */

@@ -48,8 +48,13 @@ compile_error(re_compiler *c, const char *msg)
      up. mrb_free doesn't trigger GC, so emsg stays valid across these. */
   mrb_free(c->mrb, c->code);
   c->code = NULL;
-  mrb_free(c->mrb, c->classes);
-  c->classes = NULL;
+  if (c->classes) {
+    for (uint16_t i = 0; i < c->num_classes; i++) {
+      mrb_free(c->mrb, c->classes[i].ranges);
+    }
+    mrb_free(c->mrb, c->classes);
+    c->classes = NULL;
+  }
   mrb_free(c->mrb, c->named_captures);
   c->named_captures = NULL;
   if (c->stripped) mrb_free(c->mrb, c->stripped);
@@ -155,6 +160,26 @@ class_set_bit(re_charclass *cc, uint8_t ch)
   }
 }
 
+/* Append a non-ASCII codepoint range [lo, hi]. Both bounds must be >= 128. */
+static void
+class_add_range(re_compiler *c, re_charclass *cc, uint32_t lo, uint32_t hi)
+{
+  if (cc->num_ranges >= cc->range_capa) {
+    cc->range_capa = cc->range_capa ? cc->range_capa * 2 : 4;
+    cc->ranges = (uint32_t*)mrb_realloc(c->mrb, cc->ranges, sizeof(uint32_t) * 2 * cc->range_capa);
+  }
+  cc->ranges[2 * cc->num_ranges] = lo;
+  cc->ranges[2 * cc->num_ranges + 1] = hi;
+  cc->num_ranges++;
+}
+
+/* Add a single non-ASCII codepoint to the class. */
+static void
+class_add_codepoint(re_compiler *c, re_charclass *cc, uint32_t cp)
+{
+  class_add_range(c, cc, cp, cp);
+}
+
 static void
 class_set_range(re_charclass *cc, uint8_t lo, uint8_t hi)
 {
@@ -202,6 +227,26 @@ class_add_shorthand(re_charclass *cc, int ch)
     }
     cc->utf8_any = TRUE;
     break;
+  case 'h':
+    /* hex digit: [0-9a-fA-F] */
+    class_set_range(cc, '0', '9');
+    class_set_range(cc, 'a', 'f');
+    class_set_range(cc, 'A', 'F');
+    break;
+  case 'H':
+    /* non-hex-digit: complement of [0-9a-fA-F]. Built as an explicit
+       positive set so the top-level dispatcher can emit it as RE_CLASS
+       and the `[...]` path can add it directly -- both contexts need the
+       complement bits present (the uppercase->RE_NCLASS auto-route used
+       by \D/\W/\S is deliberately bypassed for \H). */
+    for (int i = 0; i < 128; i++) {
+      mrb_bool is_hex = (i >= '0' && i <= '9') ||
+                        (i >= 'a' && i <= 'f') ||
+                        (i >= 'A' && i <= 'F');
+      if (!is_hex) class_set_bit(cc, (uint8_t)i);
+    }
+    cc->utf8_any = TRUE;
+    break;
   }
 }
 
@@ -220,8 +265,67 @@ parse_escape(re_compiler *c)
   case 'e': return 0x1b;
   case 'b': return '\b';  /* backspace; only reachable inside [...] since the
                              top-level dispatcher emits RE_WBOUND for `\b` */
+  /* Octal escape `\NNN` (1-3 digits, value 0-255). The outer dispatcher
+     consumes `\1`-`\9` as backref, so the only octal-leading digit that
+     reaches here from the top level is `\0` -- but parse_escape also fires
+     from read_class_atom inside `[...]`, where backref parsing does not
+     apply, so the full 0-7 range needs handling. */
+  case '0': case '1': case '2': case '3':
+  case '4': case '5': case '6': case '7': {
+    int val = ch - '0';
+    int n = 1;
+    while (n < 3) {
+      int d = peek(c);
+      if (d < '0' || d > '7') break;
+      val = val * 8 + (d - '0');
+      next_char(c);
+      n++;
+    }
+    return val & 0xff;
+  }
+  /* Hex escape `\xHH` (1-2 hex digits, value 0-255). The `\x{HHHH}` form
+     for codepoints above 0xff is not implemented. */
+  case 'x': {
+    int val = 0;
+    int n = 0;
+    while (n < 2) {
+      int d = peek(c);
+      int v;
+      if (d >= '0' && d <= '9') v = d - '0';
+      else if (d >= 'a' && d <= 'f') v = d - 'a' + 10;
+      else if (d >= 'A' && d <= 'F') v = d - 'A' + 10;
+      else break;
+      val = val * 16 + v;
+      next_char(c);
+      n++;
+    }
+    return val & 0xff;
+  }
   default: return ch;  /* literal: \., \\, \/, \(, etc. */
   }
+}
+
+/* Read one character class atom: either an ASCII byte (0-127), a
+   `\escape`, or a full multi-byte UTF-8 codepoint. Returns the
+   codepoint and advances c->p. */
+static uint32_t
+read_class_atom(re_compiler *c)
+{
+  if (peek(c) == '\\') {
+    next_char(c);
+    return (uint32_t)parse_escape(c);
+  }
+  uint8_t b = (uint8_t)*c->p;
+  if (b < 0xC0) {
+    /* ASCII or stray continuation byte. */
+    return (uint32_t)next_char(c);
+  }
+  /* Multi-byte UTF-8 leader: decode the full codepoint. */
+  int len = 0;
+  uint32_t cp = mrb_re_utf8_decode(c->p, &len);
+  if (c->p + len > c->src_end) len = (int)(c->src_end - c->p);
+  c->p += len;
+  return cp;
 }
 
 /* Parse [...] character class */
@@ -239,42 +343,43 @@ compile_charclass(re_compiler *c)
 
   mrb_bool first = TRUE;
   while (peek(c) != ']' || first) {
-    int ch;
-
     if (peek(c) < 0) compile_error(c, "unterminated character class");
     first = FALSE;
 
+    /* Shorthand classes (\d, \D, \w, \W, \s, \S, \h, \H) are handled
+       before the codepoint-aware path so the single-byte semantics
+       stay intact. */
     if (peek(c) == '\\') {
-      next_char(c);
-      int esc = peek(c);
-      if (esc == 'd' || esc == 'D' || esc == 'w' || esc == 'W' || esc == 's' || esc == 'S') {
-        next_char(c);
+      int esc = (c->p + 1 < c->src_end) ? (uint8_t)c->p[1] : -1;
+      if (esc == 'd' || esc == 'D' || esc == 'w' || esc == 'W' ||
+          esc == 's' || esc == 'S' || esc == 'h' || esc == 'H') {
+        next_char(c);  /* '\\' */
+        next_char(c);  /* spec  */
         class_add_shorthand(cc, esc);
         continue;
       }
-      ch = parse_escape(c);
-    }
-    else {
-      ch = next_char(c);
     }
 
-    /* check for range a-z */
+    uint32_t cp = read_class_atom(c);
+
+    /* check for range a-z (or U+xxxx-U+yyyy) */
     if (peek(c) == '-' && c->p + 1 < c->src_end && c->p[1] != ']') {
       next_char(c);  /* skip '-' */
-      int hi;
-      if (peek(c) == '\\') {
-        next_char(c);
-        hi = parse_escape(c);
+      uint32_t hi = read_class_atom(c);
+      if (cp < 128 && hi < 128) {
+        class_set_range(cc, (uint8_t)cp, (uint8_t)hi);
       }
       else {
-        hi = next_char(c);
-      }
-      if (ch < 128 && hi < 128) {
-        class_set_range(cc, (uint8_t)ch, (uint8_t)hi);
+        /* Range that touches non-ASCII: store as codepoint range.
+           Mixed ASCII/non-ASCII ranges are rare; stash the whole span
+           in the codepoint list (the bitmap covers ASCII only, so a
+           non-ASCII upper bound forces the codepoint path). */
+        if (cp <= hi) class_add_range(c, cc, cp, hi);
       }
     }
     else {
-      if (ch < 128) class_set_bit(cc, (uint8_t)ch);
+      if (cp < 128) class_set_bit(cc, (uint8_t)cp);
+      else class_add_codepoint(c, cc, cp);
     }
   }
   next_char(c);  /* skip ']' */
@@ -509,6 +614,15 @@ compile_atom(re_compiler *c)
          uppercase forms (\D, \W, \S include utf8_any), so always emit
          RE_CLASS. Emitting RE_NCLASS here would negate a second time and
          make \D/\W/\S behave like \d/\w/\s (issue: negated shorthands). */
+      emit(c, RE_CLASS, (uint8_t)id, 0);
+    }
+    else if (ch == 'h' || ch == 'H') {
+      /* \h / \H both carry their full positive set (hex digits /
+         non-hex-digits), so emit RE_CLASS for both rather than routing
+         \H through an RE_NCLASS path that would double-negate. */
+      next_char(c);
+      uint16_t id = add_class(c);
+      class_add_shorthand(&c->classes[id], ch);
       emit(c, RE_CLASS, (uint8_t)id, 0);
     }
     else if (ch == 'A') {
@@ -818,6 +932,7 @@ first_set_walk(const re_inst *code, uint32_t code_len,
       const re_charclass *cc = &classes[code[pc].a];
       for (int i = 0; i < 16; i++) bm[i] |= cc->bitmap[i];
       if (cc->utf8_any) return FALSE;  /* non-ASCII possible */
+      if (cc->num_ranges > 0) return FALSE;  /* non-ASCII codepoints possible */
       return TRUE;
     }
     case RE_NCLASS: {
@@ -992,7 +1107,12 @@ mrb_re_free(mrb_state *mrb, mrb_regexp_pattern *pat)
 {
   if (pat) {
     mrb_free(mrb, pat->code);
-    mrb_free(mrb, pat->classes);
+    if (pat->classes) {
+      for (uint16_t i = 0; i < pat->num_classes; i++) {
+        mrb_free(mrb, pat->classes[i].ranges);
+      }
+      mrb_free(mrb, pat->classes);
+    }
     mrb_free(mrb, pat->named_captures);
     mrb_free(mrb, pat->named_arena);
     mrb_free(mrb, pat->prefix);

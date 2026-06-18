@@ -557,3 +557,40 @@ assert("Regexp - empty-matchable patterns find earliest match position") do
   assert_equal "", md[0]
   assert_equal 0, md.begin(0)
 end
+
+assert("Regexp - UTF-8 codepoints in character class") do
+  assert_equal 0, ("β" =~ /[α-ω]/)
+  assert_nil ("Z" =~ /[α-ω]/)
+  assert_equal ["₀₁₂"], "a₀₁₂b".scan(/[₀-₉]+/)
+  assert_true "₇₈₉".match?(/[₀₁₂₃₄₅₆₇₈₉]+/)
+  assert_equal 0, ("か" =~ /[あ-ん]/)
+  # negation
+  assert_nil ("β" =~ /[^α-ω]/)
+  assert_equal 0, ("x" =~ /[^α-ω]/)
+  # mixed ASCII / non-ASCII range
+  assert_equal 0, ("m" =~ /[a-z₀-₉]/)
+  assert_equal 0, ("₅" =~ /[a-z₀-₉]/)
+end
+
+assert("Regexp - quantifier over multi-byte char class") do
+  assert_equal "a#b#c", "a₀₁b₂c".gsub(/[₀-₉]+/, "#")
+  assert_equal ["₀₁₂"], "₀₁₂".scan(/[₀-₉]+/)
+end
+
+assert("Regexp - octal and hex escapes") do
+  assert_equal 0, (/\033/ =~ "\e")
+  assert_equal 0, (/\x1b/ =~ "\e")
+  assert_equal 0, (/[\x41]/ =~ "A")
+  assert_equal 0, (/[\101]/ =~ "A")
+  assert_equal 0, (/\x7/ =~ "\a")
+end
+
+assert("Regexp - \\h and \\H hex-digit shorthands") do
+  assert_equal 0, (/\h/ =~ "f")
+  assert_nil (/\h/ =~ "g")
+  assert_equal 0, (/\H/ =~ "g")
+  assert_nil (/\H/ =~ "a")
+  assert_equal ["3f"], "3fX".scan(/[\h]+/)
+  assert_equal ["XY"], "3fXY".scan(/[\H]+/)
+  assert_equal ["deadBEEF"], "deadBEEFzz".scan(/\h+/)
+end
