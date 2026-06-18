@@ -1,12 +1,9 @@
-# mruby-bin-mruby
+# mruby-bin-mruby-prism
 
-mruby is the main interpreter for executing Ruby scripts with mruby.
+mruby-prism is the main interpreter for executing Ruby scripts with mruby, using the Prism compiler.
 
 ## Usage
 
-```
-mruby [switches] [programfile] [arguments]
-```
 
 ### Options
 
