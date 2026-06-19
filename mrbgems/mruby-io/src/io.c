@@ -242,7 +242,7 @@ static void
 io_fd_cloexec(mrb_state *mrb, int fd)
 {
 #if defined(F_GETFD) && defined(F_SETFD) && defined(FD_CLOEXEC)
-  int flags = fcntl(fd, F_GETFD);
+  int flags = mrb_hal_io_fcntl(mrb, fd, F_GETFD, 0);
   int flags2;
 
   if (flags < 0) {
@@ -255,7 +255,7 @@ io_fd_cloexec(mrb_state *mrb, int fd)
     flags2 = flags | FD_CLOEXEC; /* Set CLOEXEC for non-standard file descriptors: 3, 4, 5, ... */
   }
   if (flags != flags2) {
-    if (fcntl(fd, F_SETFD, flags2) < 0) {
+    if (mrb_hal_io_fcntl(mrb, fd, F_SETFD, flags2) < 0) {
       mrb_sys_fail(mrb, "cloexec SETFD");
     }
   }
@@ -462,7 +462,7 @@ symdup(mrb_state *mrb, int fd, mrb_bool *failed)
   if (fd < 0)
     return fd;
 
-  new_fd = dup(fd);
+  new_fd = mrb_hal_io_dup(mrb, fd);
   if (new_fd > 0) *failed = FALSE;
   return new_fd;
 }
@@ -503,7 +503,7 @@ io_init_copy(mrb_state *mrb, mrb_value copy)
   if (fptr_orig->fd2 != -1) {
     fptr_copy->fd2 = symdup(mrb, fptr_orig->fd2, &failed);
     if (failed) {
-      close(fptr_copy->fd);
+      mrb_hal_io_close(mrb, fptr_copy->fd);
       mrb_sys_fail(mrb, 0);
     }
     io_fd_cloexec(mrb, fptr_copy->fd2);
@@ -610,7 +610,7 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet)
     }
 #endif
     if (fptr->fd != -1 && fptr->close_fd) {
-      if (close(fptr->fd) == -1) {
+      if (mrb_hal_io_close(mrb, fptr->fd) == -1) {
         saved_errno = errno;
       }
     }
@@ -618,7 +618,7 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet)
   }
 
   if (fptr->fd2 >= limit) {
-    if (fptr->close_fd2 && close(fptr->fd2) == -1) {
+    if (fptr->close_fd2 && mrb_hal_io_close(mrb, fptr->fd2) == -1) {
       if (saved_errno == 0) {
         saved_errno = errno;
       }
@@ -696,7 +696,7 @@ static mrb_value
 io_isatty(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr = io_get_open_fptr(mrb, io);
-  if (isatty(fptr->fd) == 0)
+  if (mrb_hal_io_isatty(mrb, fptr->fd) == 0)
     return mrb_false_value();
   return mrb_true_value();
 }
@@ -720,7 +720,7 @@ io_s_sysclose(mrb_state *mrb, mrb_value klass)
   mrb_int fd;
   mrb->c->ci->mid = 0;
   mrb_get_args(mrb, "i", &fd);
-  if (close((int)fd) == -1) {
+  if (mrb_hal_io_close(mrb, (int)fd) == -1) {
     mrb_sys_fail(mrb, "close");
   }
   return mrb_fixnum_value(0);
@@ -740,7 +740,7 @@ io_cloexec_open(mrb_state *mrb, const char *pathname, int flags, fmode_t mode)
   flags |= O_NOINHERIT;
 #endif
 reopen:
-  fd = open(fname, flags, mode);
+  fd = mrb_hal_io_open(mrb, fname, flags, mode);
   if (fd == -1) {
     if (!retry) {
       switch (errno) {
@@ -787,7 +787,7 @@ eof_error(mrb_state *mrb)
 
 static mrb_value
 io_read_common(mrb_state *mrb,
-    fssize_t (*readfunc)(int, void*, fsize_t, off_t),
+    fssize_t (*readfunc)(mrb_state*, int, void*, fsize_t, off_t),
     mrb_value io, mrb_value buf, mrb_int maxlen, off_t offset)
 {
   if (maxlen < 0) {
@@ -809,7 +809,7 @@ io_read_common(mrb_state *mrb,
   }
 
   struct mrb_io *fptr = io_get_read_fptr(mrb, io);
-  int ret = readfunc(fptr->fd, RSTRING_PTR(buf), (fsize_t)maxlen, offset);
+  int ret = readfunc(mrb, fptr->fd, RSTRING_PTR(buf), (fsize_t)maxlen, offset);
   if (ret < 0) {
     mrb_sys_fail(mrb, "sysread failed");
   }
@@ -824,9 +824,10 @@ io_read_common(mrb_state *mrb,
 }
 
 static fssize_t
-sysread(int fd, void *buf, fsize_t nbytes, off_t offset)
+sysread(mrb_state *mrb, int fd, void *buf, fsize_t nbytes, off_t offset)
 {
-  return (fssize_t)read(fd, buf, nbytes);
+  (void)offset;
+  return (fssize_t)mrb_hal_io_read(mrb, fd, buf, nbytes);
 }
 
 static mrb_value
@@ -851,7 +852,7 @@ io_sysseek(mrb_state *mrb, mrb_value io)
   }
 
   struct mrb_io *fptr = io_get_open_fptr(mrb, io);
-  off_t pos = lseek(fptr->fd, (off_t)offset, (int)whence);
+  off_t pos = (off_t)mrb_hal_io_lseek(mrb, fptr->fd, (mrb_int)offset, (int)whence);
   if (pos == -1) {
     mrb_sys_fail(mrb, "sysseek");
   }
@@ -876,11 +877,11 @@ io_seek(mrb_state *mrb, mrb_value io)
 
 static mrb_value
 io_write_common(mrb_state *mrb,
-    fssize_t (*writefunc)(int, const void*, fsize_t, off_t),
+    fssize_t (*writefunc)(mrb_state*, int, const void*, fsize_t, off_t),
     struct mrb_io *fptr, const void *buf, mrb_ssize blen, off_t offset)
 {
   int fd = io_get_write_fd(fptr);
-  fssize_t length = writefunc(fd, buf, (fsize_t)blen, offset);
+  fssize_t length = writefunc(mrb, fd, buf, (fsize_t)blen, offset);
   if (length == -1) {
     mrb_sys_fail(mrb, "syswrite");
   }
@@ -888,9 +889,10 @@ io_write_common(mrb_state *mrb,
 }
 
 static fssize_t
-syswrite(int fd, const void *buf, fsize_t nbytes, off_t offset)
+syswrite(mrb_state *mrb, int fd, const void *buf, fsize_t nbytes, off_t offset)
 {
-  return (fssize_t)write(fd, buf, nbytes);
+  (void)offset;
+  return (fssize_t)mrb_hal_io_write(mrb, fd, buf, nbytes);
 }
 
 static mrb_value
@@ -916,7 +918,7 @@ fd_write_buf(mrb_state *mrb, int fd, const char *ptr, mrb_int len)
   if (len == 0) return 0;
   fssize_t sum = 0;
   while (sum < (fssize_t)len) {
-    fssize_t n = write(fd, ptr + sum, (size_t)(len - sum));
+    fssize_t n = mrb_hal_io_write(mrb, fd, ptr + sum, (size_t)(len - sum));
     if (n == -1) {
       if (errno == EINTR) continue;
       mrb_sys_fail(mrb, "syswrite");
@@ -944,10 +946,10 @@ io_prepare_write(mrb_state *mrb, struct mrb_io *fptr)
     off_t n;
 
     /* get current position */
-    n = lseek(fd, 0, SEEK_CUR);
+    n = (off_t)mrb_hal_io_lseek(mrb, fd, 0, MRB_IO_SEEK_CUR);
     if (n == -1) mrb_sys_fail(mrb, "lseek");
     /* move cursor */
-    n = lseek(fd, n - fptr->buf->len, SEEK_SET);
+    n = (off_t)mrb_hal_io_lseek(mrb, fd, (mrb_int)(n - fptr->buf->len), MRB_IO_SEEK_SET);
     if (n == -1) mrb_sys_fail(mrb, "lseek(2)");
     fptr->buf->start = fptr->buf->len = 0;
   }
@@ -1112,7 +1114,7 @@ io_putc(mrb_state *mrb, mrb_value io)
     unsigned char byte = (unsigned char)(mrb_integer(c) & 0xff);
     ssize_t n;
     do {
-      n = write(fd, &byte, 1);
+      n = mrb_hal_io_write(mrb, fd, &byte, 1);
     } while (n == -1 && errno == EINTR);
     if (n == -1) mrb_sys_fail(mrb, "write");
     return c;
@@ -1139,7 +1141,7 @@ io_putc(mrb_state *mrb, mrb_value io)
 
   /* Write the character bytes */
   while (write_len > 0) {
-    ssize_t n = write(fd, ptr, write_len);
+    ssize_t n = mrb_hal_io_write(mrb, fd, ptr, write_len);
     if (n == -1) {
       if (errno == EINTR) continue;
       mrb_sys_fail(mrb, "write");
@@ -1198,7 +1200,7 @@ static mrb_value
 io_close_write(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr = io_get_open_fptr(mrb, io);
-  if (close((int)fptr->fd2) == -1) {
+  if (mrb_hal_io_close(mrb, (int)fptr->fd2) == -1) {
     mrb_sys_fail(mrb, "close");
   }
   return mrb_nil_value();
@@ -1229,7 +1231,7 @@ static mrb_value
 io_pos(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr = io_get_open_fptr(mrb, io);
-  off_t pos = lseek(fptr->fd, 0, SEEK_CUR);
+  off_t pos = (off_t)mrb_hal_io_lseek(mrb, fptr->fd, 0, MRB_IO_SEEK_CUR);
   if (pos == -1) mrb_sys_fail(mrb, 0);
 
   if (fptr->buf) {
@@ -1599,11 +1601,11 @@ io_close_on_exec_p(mrb_state *mrb, mrb_value io)
   int ret;
 
   if (fptr->fd2 >= 0) {
-    if ((ret = fcntl(fptr->fd2, F_GETFD)) == -1) mrb_sys_fail(mrb, "F_GETFD failed");
+    if ((ret = mrb_hal_io_fcntl(mrb, fptr->fd2, F_GETFD, 0)) == -1) mrb_sys_fail(mrb, "F_GETFD failed");
     if (!(ret & FD_CLOEXEC)) return mrb_false_value();
   }
 
-  if ((ret = fcntl(fptr->fd, F_GETFD)) == -1) mrb_sys_fail(mrb, "F_GETFD failed");
+  if ((ret = mrb_hal_io_fcntl(mrb, fptr->fd, F_GETFD, 0)) == -1) mrb_sys_fail(mrb, "F_GETFD failed");
   if (!(ret & FD_CLOEXEC)) return mrb_false_value();
   return mrb_true_value();
 }
@@ -1635,19 +1637,19 @@ io_set_close_on_exec(mrb_state *mrb, mrb_value io)
   int ret;
 
   if (fptr->fd2 >= 0) {
-    if ((ret = fcntl(fptr->fd2, F_GETFD)) == -1) mrb_sys_fail(mrb, "F_GETFD failed");
+    if ((ret = mrb_hal_io_fcntl(mrb, fptr->fd2, F_GETFD, 0)) == -1) mrb_sys_fail(mrb, "F_GETFD failed");
     if ((ret & FD_CLOEXEC) != flag) {
       ret = (ret & ~FD_CLOEXEC) | flag;
-      ret = fcntl(fptr->fd2, F_SETFD, ret);
+      ret = mrb_hal_io_fcntl(mrb, fptr->fd2, F_SETFD, ret);
 
       if (ret == -1) mrb_sys_fail(mrb, "F_SETFD failed");
     }
   }
 
-  if ((ret = fcntl(fptr->fd, F_GETFD)) == -1) mrb_sys_fail(mrb, "F_GETFD failed");
+  if ((ret = mrb_hal_io_fcntl(mrb, fptr->fd, F_GETFD, 0)) == -1) mrb_sys_fail(mrb, "F_GETFD failed");
   if ((ret & FD_CLOEXEC) != flag) {
     ret = (ret & ~FD_CLOEXEC) | flag;
-    ret = fcntl(fptr->fd, F_SETFD, ret);
+    ret = mrb_hal_io_fcntl(mrb, fptr->fd, F_SETFD, ret);
     if (ret == -1) mrb_sys_fail(mrb, "F_SETFD failed");
   }
 
@@ -1706,6 +1708,23 @@ value2off(mrb_state *mrb, mrb_value offv)
   return (off_t)mrb_as_int(mrb, offv);
 }
 
+/* Positional read/write have no HAL counterpart (the IO HAL has no
+   pread/pwrite), so these wrappers call the platform pread/pwrite
+   directly while matching the readfunc/writefunc callback signature. */
+static fssize_t
+sys_pread(mrb_state *mrb, int fd, void *buf, fsize_t nbytes, off_t offset)
+{
+  (void)mrb;
+  return (fssize_t)pread(fd, buf, nbytes, offset);
+}
+
+static fssize_t
+sys_pwrite(mrb_state *mrb, int fd, const void *buf, fsize_t nbytes, off_t offset)
+{
+  (void)mrb;
+  return (fssize_t)pwrite(fd, buf, nbytes, offset);
+}
+
 /*
  * call-seq:
  *  pread(maxlen, offset, outbuf = "") -> outbuf
@@ -1719,7 +1738,7 @@ io_pread(mrb_state *mrb, mrb_value io)
 
   mrb_get_args(mrb, "io|S!", &maxlen, &off, &buf);
 
-  return io_read_common(mrb, pread, io, buf, maxlen, value2off(mrb, off));
+  return io_read_common(mrb, sys_pread, io, buf, maxlen, value2off(mrb, off));
 }
 
 /*
@@ -1733,7 +1752,7 @@ io_pwrite(mrb_state *mrb, mrb_value io)
 
   mrb_get_args(mrb, "So", &buf, &off);
 
-  return io_write_common(mrb, pwrite, io_get_write_fptr(mrb, io), RSTRING_PTR(buf), RSTRING_LEN(buf), value2off(mrb, off));
+  return io_write_common(mrb, sys_pwrite, io_get_write_fptr(mrb, io), RSTRING_PTR(buf), RSTRING_LEN(buf), value2off(mrb, off));
 }
 #endif /* MRB_USE_IO_PREAD_PWRITE */
 
@@ -1840,7 +1859,7 @@ io_fill_buf_comp(mrb_state *mrb, struct mrb_io *fptr)
   int keep = buf->len;
 
   memmove(buf->mem, buf->mem+buf->start, keep);
-  int n = read(fptr->fd, buf->mem+keep, MRB_IO_BUF_SIZE-keep);
+  int n = mrb_hal_io_read(mrb, fptr->fd, buf->mem+keep, MRB_IO_BUF_SIZE-keep);
   if (n < 0) mrb_sys_fail(mrb, 0);
   if (n == 0) fptr->eof = 1;
   buf->start = 0;
@@ -1855,7 +1874,7 @@ io_fill_buf(mrb_state *mrb, struct mrb_io *fptr)
 
   if (buf->len > 0) return;
 
-  int n = read(fptr->fd, buf->mem, MRB_IO_BUF_SIZE);
+  int n = mrb_hal_io_read(mrb, fptr->fd, buf->mem, MRB_IO_BUF_SIZE);
   if (n < 0) mrb_sys_fail(mrb, 0);
   if (n == 0) fptr->eof = 1;
   buf->start = 0;
@@ -2309,7 +2328,9 @@ mrb_init_io(mrb_state *mrb)
 
   MRB_MT_INIT_ROM(mrb, io, io_rom_entries);
 
-  mrb_define_const_id(mrb, io, MRB_SYM(SEEK_SET), mrb_fixnum_value(SEEK_SET));
-  mrb_define_const_id(mrb, io, MRB_SYM(SEEK_CUR), mrb_fixnum_value(SEEK_CUR));
-  mrb_define_const_id(mrb, io, MRB_SYM(SEEK_END), mrb_fixnum_value(SEEK_END));
+  /* Use the HAL's platform-independent whence values; mrb_hal_io_lseek()
+     maps them back to the platform SEEK_* (these coincide on POSIX). */
+  mrb_define_const_id(mrb, io, MRB_SYM(SEEK_SET), mrb_fixnum_value(MRB_IO_SEEK_SET));
+  mrb_define_const_id(mrb, io, MRB_SYM(SEEK_CUR), mrb_fixnum_value(MRB_IO_SEEK_CUR));
+  mrb_define_const_id(mrb, io, MRB_SYM(SEEK_END), mrb_fixnum_value(MRB_IO_SEEK_END));
 }
