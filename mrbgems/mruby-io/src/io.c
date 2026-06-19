@@ -1708,21 +1708,42 @@ value2off(mrb_state *mrb, mrb_value offv)
   return (off_t)mrb_as_int(mrb, offv);
 }
 
-/* Positional read/write have no HAL counterpart (the IO HAL has no
-   pread/pwrite), so these wrappers call the platform pread/pwrite
-   directly while matching the readfunc/writefunc callback signature. */
+/* The IO HAL has no positional read/write entry points, so pread/pwrite
+   are emulated with the seek + read/write the HAL does provide: save the
+   current offset, seek to the requested one, transfer, then restore the
+   offset. This keeps the HAL surface minimal (custom and embedded HALs
+   need not add new functions) and makes positional I/O honor a
+   redirecting HAL, at the cost of three calls and non-atomic positioning.
+   The original file offset is preserved, matching the defining property of
+   pread(2)/pwrite(2). */
 static fssize_t
 sys_pread(mrb_state *mrb, int fd, void *buf, fsize_t nbytes, off_t offset)
 {
-  (void)mrb;
-  return (fssize_t)pread(fd, buf, nbytes, offset);
+  mrb_int saved = mrb_hal_io_lseek(mrb, fd, 0, MRB_IO_SEEK_CUR);
+  if (saved < 0) return -1;
+  if (mrb_hal_io_lseek(mrb, fd, (mrb_int)offset, MRB_IO_SEEK_SET) < 0) return -1;
+
+  mrb_int n = mrb_hal_io_read(mrb, fd, buf, nbytes);
+
+  int saved_errno = errno;
+  mrb_hal_io_lseek(mrb, fd, saved, MRB_IO_SEEK_SET);  /* best-effort restore */
+  errno = saved_errno;
+  return (fssize_t)n;
 }
 
 static fssize_t
 sys_pwrite(mrb_state *mrb, int fd, const void *buf, fsize_t nbytes, off_t offset)
 {
-  (void)mrb;
-  return (fssize_t)pwrite(fd, buf, nbytes, offset);
+  mrb_int saved = mrb_hal_io_lseek(mrb, fd, 0, MRB_IO_SEEK_CUR);
+  if (saved < 0) return -1;
+  if (mrb_hal_io_lseek(mrb, fd, (mrb_int)offset, MRB_IO_SEEK_SET) < 0) return -1;
+
+  mrb_int n = mrb_hal_io_write(mrb, fd, buf, nbytes);
+
+  int saved_errno = errno;
+  mrb_hal_io_lseek(mrb, fd, saved, MRB_IO_SEEK_SET);  /* best-effort restore */
+  errno = saved_errno;
+  return (fssize_t)n;
 }
 
 /*
