@@ -263,6 +263,12 @@ MRB_API void
 mrb_ccontext_cleanup_local_variables(mrb_ccontext *c)
 {
   if (!c) return;
+  /* Forget the locals accumulated so far so they do not leak into the next
+     compilation unit (e.g. a script run after a -r required file). The syms
+     buffer itself is kept; it is reused by the next compile's realloc or
+     freed by mrb_ccontext_free(). copy_context_to_mrc() only propagates
+     locals when slen > 0, so clearing slen is enough to stop the leak. */
+  c->slen = 0;
   c->keep_lv = FALSE;
 }
 
