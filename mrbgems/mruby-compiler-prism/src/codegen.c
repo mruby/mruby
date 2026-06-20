@@ -5013,6 +5013,46 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
     case PM_UNTIL_NODE:
     {
       CAST(while); /* Compatible with until? */
+      if (cast->base.flags & PM_LOOP_FLAGS_BEGIN_MODIFIER) {
+        /* do-while: `begin ... end while/until cond` runs the body once
+           before testing the condition (mirrors codegen_loop_mod). */
+        mrc_bool is_until = (nt == PM_UNTIL_NODE);
+        if (is_until ? true_always(cast->predicate) : false_always(cast->predicate)) {
+          /* execute body once then exit */
+          codegen(s, (mrc_node *)cast->statements, val);
+          if (val) push();
+          goto exit;
+        }
+        if (is_until ? false_always(cast->predicate) : true_always(cast->predicate)) {
+          /* infinite loop after first execution */
+          struct loopinfo *lp = loop_push(s, LOOP_NORMAL);
+          if (!val) lp->reg = -1;
+          uint32_t pos0 = genjmp_0(s, OP_JMP);
+          lp->pc0 = new_label(s);
+          lp->pc1 = new_label(s);
+          genop_0(s, OP_NOP); /* for redo */
+          dispatch(s, pos0);
+          codegen(s, (mrc_node *)cast->statements, NOVAL);
+          genjmp(s, OP_JMP, lp->pc0);
+          loop_pop(s, val);
+          break;
+        }
+        struct loopinfo *lp = loop_push(s, LOOP_NORMAL);
+        if (!val) lp->reg = -1;
+        uint32_t pos0 = genjmp_0(s, OP_JMP);
+        lp->pc0 = new_label(s);
+        codegen(s, cast->predicate, VAL);
+        pop();
+        uint32_t pos = genjmp2_0(s, is_until ? OP_JMPIF : OP_JMPNOT, cursp(), NOVAL);
+        lp->pc1 = new_label(s);
+        genop_0(s, OP_NOP); /* for redo */
+        dispatch(s, pos0);
+        codegen(s, (mrc_node *)cast->statements, NOVAL);
+        genjmp(s, OP_JMP, lp->pc0);
+        dispatch(s, pos);
+        loop_pop(s, val);
+        break;
+      }
       if (true_always(cast->predicate)) {
         if (nt == PM_UNTIL_NODE) {
           if (val) {
@@ -5636,6 +5676,14 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
     case PM_BEGIN_NODE:
     {
       CAST(begin);
+      if (cast->rescue_clause == NULL && cast->else_clause == NULL &&
+          cast->ensure_clause == NULL) {
+        /* plain begin/end: no exception machinery, just the body. Emitting
+           the rescue scaffold here left a dangling jump and an unbalanced
+           loop entry that corrupted following code. */
+        gen_begin(s, (mrc_node *)cast, val);
+        break;
+      }
       int noexc;
       uint32_t exend, pos1;
       struct loopinfo *lp;
