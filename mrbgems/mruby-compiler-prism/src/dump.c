@@ -147,7 +147,9 @@ get_pool_block_size(mrc_ccontext *c, const mrc_irep *irep)
 
     case IREP_TT_BIGINT:
       {
-        mrc_int len = irep->pool[pool_no].u.str[0];
+        /* str[0] is an unsigned length byte (0-255); reading it through a
+           signed char would make a >=128 byte bignum literal negative. */
+        mrc_int len = (unsigned char)irep->pool[pool_no].u.str[0];
         mrc_assert_int_fit(mrc_int, len, size_t, SIZE_MAX);
         size += (size_t)len+2;
       }
@@ -213,7 +215,7 @@ write_pool_block(mrc_ccontext *c, const mrc_irep *irep, uint8_t *buf)
 
     case IREP_TT_BIGINT:
       cur += mrc_uint8_to_bin(IREP_TT_BIGINT, cur); /* data type */
-      len = irep->pool[pool_no].u.str[0];
+      len = (unsigned char)irep->pool[pool_no].u.str[0];
       memcpy(cur, irep->pool[pool_no].u.str, (size_t)len+2);
       cur += len+2;
       break;
