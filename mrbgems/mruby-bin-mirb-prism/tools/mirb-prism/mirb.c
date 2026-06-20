@@ -120,6 +120,11 @@ is_code_block_open(struct mrb_parser_state *parser)
   /* check if parser error are available */
   if (0 < parser->nerr) {
     const char unexpected_end[] = "syntax error, unexpected end of file";
+    /* Prism phrases an unterminated construct (open def/class/if/block/
+       paren/...) as "unexpected end-of-input": the parser reached EOF
+       while still expecting a closing token, which is exactly the signal
+       to keep reading another line. */
+    const char unexpected_eoi[] = "syntax error, unexpected end-of-input";
     const char *message = parser->error_buffer[0].message;
 
     /* a parser error occur, we have to check if */
@@ -127,7 +132,8 @@ is_code_block_open(struct mrb_parser_state *parser)
     /* a different issue which we have to show to */
     /* the user */
 
-    if (strncmp(message, unexpected_end, sizeof(unexpected_end) - 1) == 0) {
+    if (strncmp(message, unexpected_end, sizeof(unexpected_end) - 1) == 0 ||
+        strncmp(message, unexpected_eoi, sizeof(unexpected_eoi) - 1) == 0) {
       code_block_open = TRUE;
     }
     else if (strcmp(message, "syntax error, unexpected keyword_end") == 0) {
