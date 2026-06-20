@@ -4,6 +4,11 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
   spec.summary = 'mruby test'
 
   spec.test_rbfiles = Dir.glob("#{MRUBY_ROOT}/test/t/*.rb")
+  # The Prism parser does not accept `&nil` block-forbidding parameters yet,
+  # so drop that test when building with mruby-compiler-prism.
+  if build.gems['mruby-compiler-prism']
+    spec.test_rbfiles.reject! { |f| File.basename(f) == 'syntax_block_forbid.rb' }
+  end
 
   clib = "#{build_dir}/mrbtest.c"
   mlib = clib.ext(exts.object)

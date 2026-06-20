@@ -123,7 +123,7 @@ repos:
       - id: rubocop
         name: run rubocop
         description: RuboCop is a Ruby code style checker (linter) and formatter based on the community-driven Ruby Style Guide
-        exclude: ^test/t/syntax\.rb$
+        exclude: ^test/t/syntax(_block_forbid)?\.rb$
         args: [--config=.github/linters/.rubocop.yml]
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.11.0.1
