@@ -1,5 +1,5 @@
 MRuby.each_target do |build|
-  if build.host? && build.mrbc_build && !build.gems["mruby-bin-mrbc"]
+  if build.host? && build.mrbc_build && !build.gems["mruby-bin-mrbc"] && !build.gems["mruby-bin-mrbc-prism"]
     exe = build.exefile("#{build.mrbc_build.build_dir}/bin/mrbc")
     build.products << build.define_installer(exe)
   end

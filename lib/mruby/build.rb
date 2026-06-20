@@ -156,7 +156,7 @@ module MRuby
         current.instance_eval(&block)
       ensure
         if current.libmruby_enabled? && !current.mrbcfile_external?
-          current.create_mrbc_build if current.host? || current.gems["mruby-bin-mrbc"]
+          current.create_mrbc_build if current.host? || current.gems["mruby-bin-mrbc"] || current.gems["mruby-bin-mrbc-prism"]
         end
         current.presym = Presym.new(current)
       end
@@ -347,8 +347,15 @@ EOS
       @enable_test
     end
 
-    def build_mrbc_exec
-      gem :core => 'mruby-bin-mrbc' unless @gems['mruby-bin-mrbc']
+    def build_mrbc_exec(prism: false)
+      if prism
+        # Add the compiler before the executable so the latter's mrbgem.rake
+        # can see it in build.gems while it is evaluated.
+        gem :core => 'mruby-compiler-prism' unless @gems['mruby-compiler-prism']
+        gem :core => 'mruby-bin-mrbc-prism' unless @gems['mruby-bin-mrbc-prism']
+      else
+        gem :core => 'mruby-bin-mrbc' unless @gems['mruby-bin-mrbc']
+      end
     end
 
     def locks
@@ -358,12 +365,15 @@ EOS
     def mrbcfile
       return @mrbcfile if @mrbcfile
 
-      gem_name = "mruby-bin-mrbc"
-      if (gem = @gems[gem_name])
+      if (gem = @gems["mruby-bin-mrbc"])
         @mrbcfile = exefile("#{gem.build.build_dir}/bin/mrbc")
+      elsif (gem = @gems["mruby-bin-mrbc-prism"])
+        @mrbcfile = exefile("#{gem.build.build_dir}/bin/mrbc-prism")
       elsif !host? && (host = MRuby.targets["host"])
-        if (gem = host.gems[gem_name])
+        if (gem = host.gems["mruby-bin-mrbc"])
           @mrbcfile = exefile("#{gem.build.build_dir}/bin/mrbc")
+        elsif (gem = host.gems["mruby-bin-mrbc-prism"])
+          @mrbcfile = exefile("#{gem.build.build_dir}/bin/mrbc-prism")
         elsif host.mrbcfile_external?
           @mrbcfile = host.mrbcfile
         end
@@ -576,7 +586,9 @@ EOS
             end
         build.instance_variable_set(n, v)
       end
-      build.build_mrbc_exec
+      # When the main build uses the Prism compiler, bootstrap mrbc with the
+      # Prism mrbc too so mrblib is compiled by Prism (matching presyms).
+      build.build_mrbc_exec(prism: !!@gems['mruby-compiler-prism'])
       build.disable_libmruby
       build.presym = Presym.new(build)
       @mrbc_build = build
