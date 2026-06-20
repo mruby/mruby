@@ -5495,7 +5495,11 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
         }
       }
       else { /* `super()` parentheses without argument */
-        if (s2) gen_blkmove(s, s2->ainfo, lv);
+        /* block argument */
+        if (cast->block) {
+          codegen(s, (mrc_node *)cast->block, VAL);
+        }
+        else if (s2) gen_blkmove(s, s2->ainfo, lv);
         else {
           genop_1(s, OP_LOADNIL, cursp());
           push();
