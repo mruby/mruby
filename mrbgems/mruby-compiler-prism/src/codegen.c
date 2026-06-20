@@ -1338,19 +1338,13 @@ gen_addsub(mrc_codegen_scope *s, uint8_t op, uint16_t dst)
     struct mrc_insn_data data0 = mrc_decode_insn(mrc_prev_pc(s, data.addr));
     mrc_int n0;
     if (addr_pc(s, data.addr) == s->lastlabel || !get_int_operand(s, &data0, &n0)) {
-      /* OP_ADDI/OP_SUBI takes upto 8bits */
-      if (n > INT8_MAX || n < INT8_MIN) goto normal;
+      /* Fold to OP_ADDI/OP_SUBI only for non-negative 8-bit n; flipping op
+         for negative n would change the method sent on user override (#2557). */
+      if (n < 0 || n > UINT8_MAX) goto normal;
       rewind_pc(s);
       if (n == 0) return;
-      if (n > 0) {
-        if (op == OP_ADD) genop_2(s, OP_ADDI, dst, (uint16_t)n);
-        else genop_2(s, OP_SUBI, dst, (uint16_t)n);
-      }
-      else {                    /* n < 0 */
-        n = -n;
-        if (op == OP_ADD) genop_2(s, OP_SUBI, dst, (uint16_t)n);
-        else genop_2(s, OP_ADDI, dst, (uint16_t)n);
-      }
+      if (op == OP_ADD) genop_2(s, OP_ADDI, dst, (uint16_t)n);
+      else genop_2(s, OP_SUBI, dst, (uint16_t)n);
       return;
     }
     if (op == OP_ADD) {
