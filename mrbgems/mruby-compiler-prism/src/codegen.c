@@ -5125,6 +5125,43 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       }
       break;
     }
+    case PM_MATCH_PREDICATE_NODE:
+    {
+      /* one-line `expr in pattern` -> true / false */
+      CAST(match_predicate);
+      int head = cursp();
+      codegen(s, (mrc_node *)cast->value, VAL);
+      uint32_t fail_pos = JMPLINK_START;
+      codegen_pattern(s, (mrc_node *)cast->pattern, head, &fail_pos, -1);
+      genop_1(s, OP_LOADTRUE, head);
+      uint32_t done = genjmp(s, OP_JMP, JMPLINK_START);
+      if (fail_pos != JMPLINK_START) dispatch_linked(s, fail_pos);
+      genop_1(s, OP_LOADFALSE, head);
+      dispatch(s, done);
+      if (!val) pop();
+      break;
+    }
+    case PM_MATCH_REQUIRED_NODE:
+    {
+      /* one-line `expr => pattern`: binds on match, raises
+         NoMatchingPatternError otherwise; evaluates to nil. */
+      CAST(match_required);
+      int head = cursp();
+      codegen(s, (mrc_node *)cast->value, VAL);
+      uint32_t fail_pos = JMPLINK_START;
+      codegen_pattern(s, (mrc_node *)cast->pattern, head, &fail_pos, -1);
+      uint32_t ok = genjmp(s, OP_JMP, JMPLINK_START);
+      if (fail_pos != JMPLINK_START) dispatch_linked(s, fail_pos);
+      genop_1(s, OP_LOADFALSE, cursp());
+      genop_1(s, OP_MATCHERR, cursp());
+      dispatch(s, ok);
+      pop();
+      if (val) {
+        genop_1(s, OP_LOADNIL, cursp());
+        push();
+      }
+      break;
+    }
     case PM_CASE_MATCH_NODE:
     {
       CAST(case_match);
@@ -5720,17 +5757,6 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
     case PM_POST_EXECUTION_NODE:
     {
       mrc_diagnostic_list_append(s->c, tree->location.start, "END not supported", MRC_GENERATOR_ERROR);
-      break;
-    }
-    case PM_MATCH_REQUIRED_NODE:
-    {
-      CAST(match_required);
-      if (nint(cast->pattern) != PM_LOCAL_VARIABLE_TARGET_NODE) {
-        mrc_diagnostic_list_append(s->c, cast->pattern->location.start, "expecting a local variable", MRC_GENERATOR_ERROR);
-        break;
-      }
-      pm_local_variable_target_node_t *lvar = (pm_local_variable_target_node_t *)cast->pattern;
-      gen_assignment(s, (mrc_node *)lvar, (mrc_node *)cast->value, 0, val);
       break;
     }
     case PM_RANGE_NODE:
