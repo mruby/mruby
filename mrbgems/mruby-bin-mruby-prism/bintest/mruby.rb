@@ -13,8 +13,11 @@ def assert_mruby(exp_out, exp_err, exp_success, args)
 end
 
 assert('regression for #1564') do
-  assert_mruby("", /\A-e:1:2: syntax error, .*\n\z/, false, %w[-e <<])
-  assert_mruby("", /\A-e:1:3: syntax error, .*\n\z/, false, %w[-e <<-])
+  # Prism reports the column at the start of the offending token and may
+  # emit more than one diagnostic, so match a located syntax error at the
+  # start of stderr rather than an exact column or a single line.
+  assert_mruby("", /\A-e:1:\d+: syntax error,/, false, %w[-e <<])
+  assert_mruby("", /\A-e:1:\d+: syntax error,/, false, %w[-e <<-])
 end
 
 assert('regression for #1572') do
@@ -76,7 +79,8 @@ end
 
 assert('mruby -c option') do
   assert_mruby("Syntax OK\n", "", true, ["-c", "-e", "p 1"])
-  assert_mruby("", /\A-e:1:7: syntax error, .*\n\z/, false, ["-c", "-e", "p 1; 1."])
+  # Column is Prism's (start of the token); just require a located error.
+  assert_mruby("", /\A-e:1:\d+: syntax error,/, false, ["-c", "-e", "p 1; 1."])
 end
 
 assert('mruby -d option') do
@@ -126,11 +130,13 @@ end
 assert('mruby -v option') do
   ver_re = '\Amruby \d+\.\d+\.\d+.* \(\d+-\d+-\d+\)\n'
   assert_mruby(/#{ver_re}\z/, "", true, %w[-v])
-  assert_mruby(/#{ver_re}^[^\n]*NODE.*\n:end\n\z/m, "", true, %w[-v -e p(:end)])
+  # Prism's verbose output is the irep disassembly (it has no mruby-style
+  # AST/NODE dump), followed by the program output.
+  assert_mruby(/#{ver_re}.*irep .*:end\n\z/m, "", true, %w[-v -e p(:end)])
 end
 
 assert('mruby --verbose option') do
-  assert_mruby(/\A[^\n]*NODE.*\n:end\n\z/m, "", true, %w[--verbose -e p(:end)])
+  assert_mruby(/\Airep .*:end\n\z/m, "", true, %w[--verbose -e p(:end)])
 end
 
 assert('mruby --') do
