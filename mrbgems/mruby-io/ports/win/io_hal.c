@@ -285,8 +285,11 @@ mrb_hal_io_open(mrb_state *mrb, const char *path, int flags, mrb_int mode)
   int fd;
   (void)mrb;
 
-  /* Windows uses _open with slightly different flags */
-  fd = _open(path, flags | _O_BINARY, (int)mode);
+  /* Honor the caller's flags verbatim. mruby-io selects text vs binary
+     mode itself (it adds O_BINARY only for a "b" mode), so forcing
+     _O_BINARY here would override that and break the text-mode CRLF
+     handling that IO#gets and friends rely on. */
+  fd = _open(path, flags, (int)mode);
   if (fd == -1) {
     return -1;
   }
