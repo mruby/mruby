@@ -376,14 +376,14 @@ mrb_generate_code(mrb_state *mrb, struct mrb_parser_state *p)
   struct RProc *proc;
   uint8_t *bin = NULL;
   size_t bin_size = 0;
-  uint8_t flags = 0;
+  /* Always carry debug info across the dump/reload that turns the mrc_irep
+     into an mrb_irep: without it runtime backtraces lose the file name and
+     line number, and mruby reports those even when compiled without -g. */
+  uint8_t flags = MRC_COMPAT_DUMP_DEBUG_INFO;
 
   if (!p || !p->tree || p->nerr) return NULL;
   mc = (mrc_ccontext*)p->ylval;
   irep = (mrc_irep*)p->tree;
-  if (p->cxt && p->cxt->dump_result) {
-    flags |= MRC_COMPAT_DUMP_DEBUG_INFO;
-  }
   if (mrc_dump_irep(mc, irep, flags, &bin, &bin_size) != MRC_COMPAT_DUMP_OK) {
     return NULL;
   }
