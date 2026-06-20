@@ -3788,6 +3788,50 @@ gen_ensure(mrc_codegen_scope *s, mrc_node *tree, uint32_t catch_entry, uint32_t 
   catch_handler_set(s, catch_entry, MRC_CATCH_ENSURE, begin, ensure_end, ensure_target);
 }
 
+/* Load the integer described by a pm_integer_t into the current stack slot,
+   handling the small (uint32), 64-bit, and bignum-literal cases. Shared by
+   PM_INTEGER_NODE and the rational literal codegen. */
+static void
+gen_pm_integer(mrc_codegen_scope *s, const pm_integer_t *iv)
+{
+  if (iv->length == 0) {
+    if (!iv->negative) {
+      gen_int(s, cursp(), (mrc_int)iv->value);
+    }
+    else {
+      gen_int(s, cursp(), (mrc_int)iv->value * -1);
+    }
+    return;
+  }
+#ifdef MRC_INT64
+  if (iv->length == 2) {
+    mrc_uint value = ((mrc_uint)iv->values[0])|((mrc_uint)iv->values[1] << 32);
+    mrc_bool fits = TRUE;
+    if (!iv->negative && MRC_INT_MAX < value) fits = FALSE;
+    if (iv->negative) {
+      if (value > (mrc_uint)MRC_INT_MIN) fits = FALSE;
+      else value *= -1;
+    }
+    if (fits) {
+      gen_int(s, cursp(), value);
+      return;
+    }
+  }
+#endif
+  {
+    pm_buffer_t buf = {0};
+    pm_integer_string(&buf, iv);
+    buf.value[buf.length] = '\0';
+    if (iv->negative) {
+      memmove(buf.value, buf.value+1, buf.length);
+      buf.length--;
+    }
+    int off = new_litbint(s, buf.value, 10, iv->negative);
+    genop_2(s, OP_LOADL, cursp(), off);
+    pm_buffer_free(&buf);
+  }
+}
+
 static void
 codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
 {
@@ -4368,46 +4412,40 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
     {
       if (val) {
         CAST(integer);
-        if (cast->value.length == 0) {
-          if (!cast->value.negative) {
-            gen_int(s, cursp(), (mrc_int)cast->value.value);
-          }
-          else {
-            gen_int(s, cursp(), (mrc_int)cast->value.value * -1);
-          }
-        }
-        else {
-          if (cast->value.length == 2) {
-#ifdef MRC_INT64
-            mrc_uint value = ((mrc_uint)cast->value.values[0])|((mrc_uint)cast->value.values[1] << 32);
-            if (!cast->value.negative && MRC_INT_MAX < value) goto overflow;
-            if (cast->value.negative) {
-              // `value` is the unsigned absolute value of the negative literal.
-              //  (mrc_uint)MRC_INT_MIN wraps -2^63 to 2^63, which is the max absolute value a negative mrc_int can represent.
-              if (value > (mrc_uint)MRC_INT_MIN) goto overflow;
-              value *= -1;
-            }
-            gen_int(s, cursp(), value);
-#else
-            goto overflow;
-#endif
-          }
-          else {
-          overflow:
-            {
-              pm_buffer_t buf = {0};
-              pm_integer_string(&buf, &cast->value);
-              buf.value[buf.length] = '\0';
-              if (cast->value.negative) {
-                memmove(buf.value, buf.value+1, buf.length);
-                buf.length--;
-              }
-              int off = new_litbint(s, buf.value, 10, cast->value.negative);
-              genop_2(s, OP_LOADL, cursp(), off);
-              pm_buffer_free(&buf);
-            }
-          }
-        }
+        gen_pm_integer(s, &cast->value);
+        push();
+      }
+      break;
+    }
+    case PM_RATIONAL_NODE:
+    {
+      /* `Nr` literal -> Rational(numerator, denominator). Prism normalizes
+         even float forms (1.5r -> 3/2), so both parts are integers. */
+      if (val) {
+        CAST(rational);
+        int recv = cursp();
+        push();                                  /* receiver (self) slot */
+        gen_pm_integer(s, &cast->numerator); push();
+        gen_pm_integer(s, &cast->denominator); push();
+        pop_n(3);
+        genop_3(s, OP_SSEND, recv,
+                new_sym(s, nsym(s->c->p, (const uint8_t*)"Rational", 8)), 2);
+        push();
+      }
+      break;
+    }
+    case PM_IMAGINARY_NODE:
+    {
+      /* `Ni` literal -> Complex(0, numeric). */
+      if (val) {
+        CAST(imaginary);
+        int recv = cursp();
+        push();                                  /* receiver (self) slot */
+        gen_int(s, cursp(), 0); push();          /* real part */
+        codegen(s, (mrc_node*)cast->numeric, VAL); /* imaginary part */
+        pop_n(3);
+        genop_3(s, OP_SSEND, recv,
+                new_sym(s, nsym(s->c->p, (const uint8_t*)"Complex", 7)), 2);
         push();
       }
       break;
