@@ -4646,7 +4646,8 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       genop_2(s, OP_STRING, cursp(), off);
       push(); push();
       pop_n(3);
-      genop_3(s, OP_SEND, cursp(), sym, 1);
+      /* SSEND: backtick is a private Kernel method, call it on self */
+      genop_3(s, OP_SSEND, cursp(), sym, 1);
       if (val) push();
       break;
     }
@@ -4880,7 +4881,8 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       push();
       pop_n(3);
       sym = new_sym(s, MRC_OPSYM_2(tick));
-      genop_3(s, OP_SEND, cursp(), sym, 1);
+      /* SSEND: backtick is a private Kernel method, call it on self */
+      genop_3(s, OP_SSEND, cursp(), sym, 1);
       if (val) push();
       break;
     }
