@@ -2690,7 +2690,13 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
   case PM_RATIONAL_NODE:
   case PM_IMAGINARY_NODE:
   case PM_STRING_NODE:
+  case PM_INTERPOLATED_STRING_NODE:
+  case PM_X_STRING_NODE:
   case PM_SYMBOL_NODE:
+  case PM_INTERPOLATED_SYMBOL_NODE:
+  case PM_REGULAR_EXPRESSION_NODE:
+  case PM_INTERPOLATED_REGULAR_EXPRESSION_NODE:
+  case PM_RANGE_NODE:
   case PM_TRUE_NODE:
   case PM_FALSE_NODE:
   case PM_NIL_NODE:
