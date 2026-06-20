@@ -4906,7 +4906,14 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
         mrc_sym sym_nil_p = MRC_SYM_2(nil_p);
         if (mid == sym_nil_p && n->arguments == NULL) {
           nil_p = TRUE;
-          codegen(s, (mrc_node *)n->receiver, VAL);
+          if (n->receiver) {
+            codegen(s, (mrc_node *)n->receiver, VAL);
+          }
+          else {
+            /* implicit receiver: bare `nil?` means `self.nil?` (#6874) */
+            genop_1(s, OP_LOADSELF, cursp());
+            push();
+          }
         }
       }
       if (!nil_p) {
