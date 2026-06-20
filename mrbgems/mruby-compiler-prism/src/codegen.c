@@ -1537,7 +1537,10 @@ new_litbint(mrc_codegen_scope *s, const char *p, int base, mrc_bool neg)
     pv = &s->pool[i];
     if (pv->tt != IREP_TT_BIGINT) continue;
     len = pv->u.str[0];
-    if (len == plen && pv->u.str[1] == base && memcmp(pv->u.str+2, p, len) == 0)
+    /* str[1] encodes the sign as -base for negative values, so compare the
+       signed base; otherwise a negative literal would dedup onto a positive
+       one of the same magnitude and lose its sign. */
+    if (len == plen && pv->u.str[1] == (neg ? -base : base) && memcmp(pv->u.str+2, p, len) == 0)
       return i;
   }
 
