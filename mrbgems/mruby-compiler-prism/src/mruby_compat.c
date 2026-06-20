@@ -190,6 +190,22 @@ parse_source(mrb_state *mrb, const char *s, size_t len, mrb_ccontext *c)
   if (c) {
     c->parser_nerr = p->nerr;
   }
+#ifndef MRB_NO_STDIO
+  /* Unless the caller captures errors (e.g. eval), report parse errors to
+     stderr like the bison parser does, so a syntax error is not a silent
+     failure. Only parser errors are emitted here; codegen errors are
+     already printed by the generator (see codegen_error()). */
+  if (!c || !c->capture_errors) {
+    const char *fn = (c && c->filename) ? c->filename : "(string)";
+    const mrc_diagnostic_list *d;
+    for (d = mc->diagnostic_list; d; d = d->next) {
+      if (d->code == MRC_PARSER_ERROR && d->message) {
+        fprintf(stderr, "%s:%d:%d: %s\n", fn, (int)d->line, (int)d->column,
+                d->message);
+      }
+    }
+  }
+#endif
   return p;
 }
 
