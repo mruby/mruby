@@ -1,7 +1,7 @@
 require 'open3'
 require 'tempfile'
 
-MIRB_BIN = "mirb-prism"
+MIRB_BIN = "mirb"
 
 assert('mirb normal operations') do
   o, s = Open3.capture2(cmd(MIRB_BIN), :stdin_data => "a=1\nb=2\na+b\n")

@@ -1,7 +1,7 @@
 require 'tempfile'
 require 'open3'
 
-MRUBY_BIN = "mruby-prism"
+MRUBY_BIN = "mruby"
 
 def assert_mruby(exp_out, exp_err, exp_success, args)
   out, err, stat = Open3.capture3( *(cmd_list(MRUBY_BIN) + args))

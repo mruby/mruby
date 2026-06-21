@@ -25,7 +25,7 @@ MRuby::Gem::Specification.new 'mruby-bin-mrbc-prism' do |spec|
   mrbc_prism_objs += build.gems['mruby-compiler-prism'].objs
   mrbc_prism_objs.delete_if { |o| o.include?('gem_init') || o.include?('mruby_compat') }
 
-  exe_name = 'mrbc-prism'
+  exe_name = 'mrbc'
 
   file exefile("#{build.build_dir}/bin/#{exe_name}") => mrbc_prism_objs do |t|
     build.linker.run t.name, t.prerequisites

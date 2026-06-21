@@ -93,7 +93,7 @@ mrbc_raw_free(void *ptr)
 static void
 mrc_show_version(void)
 {
-  printf("mrbc-prism %s\n", mrc_description());
+  printf("mrbc %s\n", mrc_description());
 }
 
 static void

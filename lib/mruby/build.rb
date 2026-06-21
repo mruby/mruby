@@ -368,12 +368,12 @@ EOS
       if (gem = @gems["mruby-bin-mrbc"])
         @mrbcfile = exefile("#{gem.build.build_dir}/bin/mrbc")
       elsif (gem = @gems["mruby-bin-mrbc-prism"])
-        @mrbcfile = exefile("#{gem.build.build_dir}/bin/mrbc-prism")
+        @mrbcfile = exefile("#{gem.build.build_dir}/bin/mrbc")
       elsif !host? && (host = MRuby.targets["host"])
         if (gem = host.gems["mruby-bin-mrbc"])
           @mrbcfile = exefile("#{gem.build.build_dir}/bin/mrbc")
         elsif (gem = host.gems["mruby-bin-mrbc-prism"])
-          @mrbcfile = exefile("#{gem.build.build_dir}/bin/mrbc-prism")
+          @mrbcfile = exefile("#{gem.build.build_dir}/bin/mrbc")
         elsif host.mrbcfile_external?
           @mrbcfile = host.mrbcfile
         end
