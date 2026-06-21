@@ -1,8 +1,10 @@
 require 'tempfile'
 require 'open3'
 
+MRUBY_BIN = "mruby"
+
 def assert_mruby(exp_out, exp_err, exp_success, args)
-  out, err, stat = Open3.capture3( *(cmd_list("mruby") + args))
+  out, err, stat = Open3.capture3( *(cmd_list(MRUBY_BIN) + args))
   assert "assert_mruby" do
     assert_operator(exp_out, :===, out, "standard output")
     assert_operator(exp_err, :===, err, "standard error")
@@ -11,15 +13,18 @@ def assert_mruby(exp_out, exp_err, exp_success, args)
 end
 
 assert('regression for #1564') do
-  assert_mruby("", /\A-e:1:2: syntax error, .*\n\z/, false, %w[-e <<])
-  assert_mruby("", /\A-e:1:3: syntax error, .*\n\z/, false, %w[-e <<-])
+  # Prism reports the column at the start of the offending token and may
+  # emit more than one diagnostic, so match a located syntax error at the
+  # start of stderr rather than an exact column or a single line.
+  assert_mruby("", /\A-e:1:\d+: syntax error,/, false, %w[-e <<])
+  assert_mruby("", /\A-e:1:\d+: syntax error,/, false, %w[-e <<-])
 end
 
 assert('regression for #1572') do
   script, bin = Tempfile.new('test.rb'), Tempfile.new('test.mrb')
   File.write script.path, 'p "ok"'
   system "#{cmd('mrbc')} -g -o #{bin.path} #{script.path}"
-  o = `#{cmd('mruby')} #{bin.path}`.strip
+  o = `#{cmd(MRUBY_BIN)} #{bin.path}`.strip
   assert_equal '"ok"', o
 end
 
@@ -29,14 +34,14 @@ assert '$0 value' do
   # .rb script
   script.write "p $0\n"
   script.flush
-  assert_equal "\"#{script.path}\"", `#{cmd('mruby')} "#{script.path}"`.chomp
+  assert_equal "\"#{script.path}\"", `#{cmd(MRUBY_BIN)} "#{script.path}"`.chomp
 
   # .mrb file
   `#{cmd('mrbc')} -o "#{bin.path}" "#{script.path}"`
-  assert_equal "\"#{bin.path}\"", `#{cmd('mruby')} "#{bin.path}"`.chomp
+  assert_equal "\"#{bin.path}\"", `#{cmd(MRUBY_BIN)} "#{bin.path}"`.chomp
 
   # one liner
-  assert_equal '"-e"', `#{cmd('mruby')} -e #{shellquote('p $0')}`.chomp
+  assert_equal '"-e"', `#{cmd(MRUBY_BIN)} -e #{shellquote('p $0')}`.chomp
 end
 
 assert 'ARGV value' do
@@ -55,7 +60,7 @@ __END__
 p 'legend'
 EOS
   script.flush
-  assert_equal "\"test\"\n\"fin\"\n", `#{cmd('mruby')} #{script.path}`
+  assert_equal "\"test\"\n\"fin\"\n", `#{cmd(MRUBY_BIN)} #{script.path}`
 end
 
 assert('garbage collecting built-in classes') do
@@ -68,13 +73,14 @@ Array.dup
 print nil.class.to_s
 RUBY
   script.flush
-  assert_equal "NilClass", `#{cmd('mruby')} #{script.path}`
+  assert_equal "NilClass", `#{cmd(MRUBY_BIN)} #{script.path}`
   assert_equal 0, $?.exitstatus
 end
 
 assert('mruby -c option') do
   assert_mruby("Syntax OK\n", "", true, ["-c", "-e", "p 1"])
-  assert_mruby("", /\A-e:1:7: syntax error, .*\n\z/, false, ["-c", "-e", "p 1; 1."])
+  # Column is Prism's (start of the token); just require a located error.
+  assert_mruby("", /\A-e:1:\d+: syntax error,/, false, ["-c", "-e", "p 1; 1."])
 end
 
 assert('mruby -d option') do
@@ -87,7 +93,7 @@ assert('mruby -e option (no code specified)') do
 end
 
 assert('mruby -h option') do
-  assert_mruby(/\AUsage: #{Regexp.escape cmd_bin("mruby")} .*/m, "", true, %w[-h])
+  assert_mruby(/\AUsage: #{Regexp.escape cmd_bin(MRUBY_BIN)} .*/m, "", true, %w[-h])
 end
 
 assert('mruby -r option') do
@@ -106,10 +112,10 @@ EOS
 print Hoge.new.hoge
 EOS
   script.flush
-  assert_equal 'hoge', `#{cmd('mruby')} -r #{lib.path} #{script.path}`
+  assert_equal 'hoge', `#{cmd(MRUBY_BIN)} -r #{lib.path} #{script.path}`
   assert_equal 0, $?.exitstatus
 
-  assert_equal 'hogeClass', `#{cmd('mruby')} -r #{lib.path} -r #{script.path} -e #{shellquote('print Hoge.class')}`
+  assert_equal 'hogeClass', `#{cmd(MRUBY_BIN)} -r #{lib.path} -r #{script.path} -e #{shellquote('print Hoge.class')}`
   assert_equal 0, $?.exitstatus
 end
 
@@ -124,11 +130,13 @@ end
 assert('mruby -v option') do
   ver_re = '\Amruby \d+\.\d+\.\d+.* \(\d+-\d+-\d+\)\n'
   assert_mruby(/#{ver_re}\z/, "", true, %w[-v])
-  assert_mruby(/#{ver_re}^[^\n]*NODE.*\n:end\n\z/m, "", true, %w[-v -e p(:end)])
+  # Prism's verbose output is the irep disassembly (it has no mruby-style
+  # AST/NODE dump), followed by the program output.
+  assert_mruby(/#{ver_re}.*irep .*:end\n\z/m, "", true, %w[-v -e p(:end)])
 end
 
 assert('mruby --verbose option') do
-  assert_mruby(/\A[^\n]*NODE.*\n:end\n\z/m, "", true, %w[--verbose -e p(:end)])
+  assert_mruby(/\Airep .*:end\n\z/m, "", true, %w[--verbose -e p(:end)])
 end
 
 assert('mruby --') do
@@ -179,7 +187,7 @@ end
 
 assert('String#split still works when mruby-regexp is loaded') do
   # Only meaningful when mruby-regexp is built in; skip otherwise.
-  _, _, stat = Open3.capture3(*(cmd_list("mruby") + ["-e", "Regexp"]))
+  _, _, stat = Open3.capture3(*(cmd_list(MRUBY_BIN) + ["-e", "Regexp"]))
   skip "mruby-regexp not loaded" unless stat.success?
 
   # The regexp-aware override in mruby-regexp/mrblib/string_regexp.rb used to

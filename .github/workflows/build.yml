@@ -85,12 +85,12 @@ jobs:
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           rake -m test:run:serial
 
-  Prism:
-    name: "prism-ubuntu-24.04"
+  Lrama:
+    name: "lrama-ubuntu-24.04"
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
-      MRUBY_CONFIG: prism
+      MRUBY_CONFIG: lrama
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3

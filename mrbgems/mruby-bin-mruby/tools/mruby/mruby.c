@@ -13,6 +13,8 @@
 #include <mruby/proc.h>
 #include <mruby/error.h>
 
+extern mrb_state *global_mrb; /* defined in mruby-compiler (ccontext.c) */
+
 #if defined(_WIN32)
 # include <io.h> /* for setmode */
 # include <fcntl.h>
@@ -286,6 +288,7 @@ main(int argc, char **argv)
     mrb_close(mrb);        /* handles NULL */
     return EXIT_FAILURE;
   }
+  global_mrb = mrb;
 
   n = parse_args(mrb, argc, argv, &args);
   if (n == EXIT_FAILURE || (args.cmdline == NULL && args.rfp == NULL)) {

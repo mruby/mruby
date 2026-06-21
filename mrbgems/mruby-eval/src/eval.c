@@ -423,3 +423,15 @@ void
 mrb_mruby_eval_gem_final(mrb_state* mrb)
 {
 }
+
+void
+mrb_mruby_eval_prism_gem_init(mrb_state* mrb)
+{
+  mrb_mruby_eval_gem_init(mrb);
+}
+
+void
+mrb_mruby_eval_prism_gem_final(mrb_state* mrb)
+{
+  mrb_mruby_eval_gem_final(mrb);
+}

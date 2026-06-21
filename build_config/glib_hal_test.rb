@@ -53,7 +53,7 @@ MRuby::Build.new do |conf|
 
   # Parser generator settings
   # conf.yacc do |yacc|
-  #   yacc.command = ENV['YACC'] || 'bison'
+  #   yacc.command = ENV['YACC'] || 'lrama'
   #   yacc.compile_options = %q[-o "%{outfile}" "%{infile}"]
   # end
 
@@ -84,5 +84,5 @@ MRuby::Build.new do |conf|
   conf.ports :glib
   conf.cc.defines << 'MRB_TASK_BUILD_DEMO'
   conf.gem core: 'mruby-task'
-  conf.gem core: 'mruby-compiler'
+  conf.gem core: 'mruby-compiler-lrama'
 end

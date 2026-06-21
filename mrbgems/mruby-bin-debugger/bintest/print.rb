@@ -93,7 +93,7 @@ assert('mruby-bin-debugger(print) error') do
 
   # test case
   tc = []
-  tc << {:cmd=>"p (1+2",  :exp=>'$1 = line 1: syntax error'}
+  tc << {:cmd=>"p (1+2",  :exp=>'$1 = syntax error'}
   tc << {:cmd=>"p bar",   :exp=>'$2 = undefined method'}
 
   BinTest_MRubyBinDebugger.test(src, tc)

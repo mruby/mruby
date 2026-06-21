@@ -68,5 +68,5 @@ MRuby::CrossBuild.new("gameboyadvance") do |conf|
   conf.gem core: "mruby-toplevel-ext"
   conf.gem core: "mruby-kernel-ext"
   conf.gem core: "mruby-class-ext"
-  conf.gem core: "mruby-compiler"
+  conf.gem core: "mruby-compiler-lrama"
 end
