@@ -5272,6 +5272,15 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       }
       break;
     }
+    case PM_MATCH_WRITE_NODE:
+    {
+      /* `regexp =~ string` whose regexp has named captures. mruby does not
+         bind the named captures to local variables (the bison compiler does
+         not either), so just emit the underlying =~ call and run the match. */
+      CAST(match_write);
+      codegen(s, (mrc_node *)cast->call, val);
+      break;
+    }
     case PM_MATCH_PREDICATE_NODE:
     {
       /* one-line `expr in pattern` -> true / false */
