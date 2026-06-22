@@ -2080,7 +2080,12 @@ gen_assignment(mrc_codegen_scope *s, mrc_node *tree, mrc_node *rhs, int sp, int 
     case PM_REQUIRED_PARAMETER_NODE:
     {
       CAST(local_variable_write);
-      gen_assignment_lvar(s, sp, cast->name, cast->depth + s->for_depth, val);
+      /* pm_required_parameter_node_t has no `depth` field (a parameter is
+         always a local in the current scope); reading cast->depth on it would
+         read past the node, yielding a garbage depth that sends the lookup to
+         search_upvar and fails with "Can't find local variables". */
+      int depth = (nint(tree) == PM_REQUIRED_PARAMETER_NODE) ? 0 : (int)cast->depth;
+      gen_assignment_lvar(s, sp, cast->name, depth + s->for_depth, val);
       break;
     }
     case PM_INSTANCE_VARIABLE_WRITE_NODE:
