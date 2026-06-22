@@ -1134,12 +1134,10 @@ search_upvar(mrc_codegen_scope *s, mrc_sym id, int *idx)
 }
 
 static void
-gen_getupvar(mrc_codegen_scope *s, uint16_t dst, mrc_sym id, int depth)
+gen_getupvar(mrc_codegen_scope *s, uint16_t dst, mrc_sym id)
 {
   int idx;
   int lv = search_upvar(s, id, &idx);
-
-  mrc_assert(lv == depth-1);
 
   if (!no_peephole(s)) {
     struct mrc_insn_data data = mrc_last_insn(s);
@@ -1152,12 +1150,10 @@ gen_getupvar(mrc_codegen_scope *s, uint16_t dst, mrc_sym id, int depth)
 }
 
 static void
-gen_setupvar(mrc_codegen_scope *s, uint16_t dst, mrc_sym id, int depth)
+gen_setupvar(mrc_codegen_scope *s, uint16_t dst, mrc_sym id)
 {
   int idx;
   int lv = search_upvar(s, id, &idx);
-
-  mrc_assert(lv == depth-1);
 
   if (!no_peephole(s)) {
     struct mrc_insn_data data = mrc_last_insn(s);
@@ -1928,7 +1924,7 @@ gen_assignment_lvar(mrc_codegen_scope *s, int sp, mrc_sym name, int depth, int v
     }
   }
   else {
-    gen_setupvar(s, sp, name, depth);
+    gen_setupvar(s, sp, name);
   }
 }
 
@@ -3751,7 +3747,7 @@ gen_lvar(mrc_codegen_scope *s, mrc_sym name, int depth)
     gen_move(s, cursp(), lv_idx(s, name), 1);
   }
   else {
-    gen_getupvar(s, cursp(), name, depth);
+    gen_getupvar(s, cursp(), name);
   }
   push();
 }
@@ -5917,8 +5913,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
         mrc_sym and = MRC_OPSYM_2(and);
         int idx = lv_idx(s, and);
         if (idx == 0) {
-          int depth = search_upvar(s, and, &idx);
-          gen_getupvar(s, cursp(), and, depth + 1);
+          gen_getupvar(s, cursp(), and);
         }
         else {
           gen_move(s, cursp(), idx, val);
