@@ -35,7 +35,7 @@ jobs:
           {
             echo "# Coverage report"
             echo \`\`\`
-            gcovr --gcov-executable "llvm-cov-18 gcov" -e ".*_test.c" -e ".*/test/.*" -s --html-details -o coverage/ build
+            gcovr --gcov-executable "llvm-cov-18 gcov" --gcov-ignore-errors=source_not_found -e ".*_test.c" -e ".*/test/.*" -s --html-details -o coverage/ build
             echo \`\`\`
           } > "$GITHUB_STEP_SUMMARY"
       - name: Upload coverage report
