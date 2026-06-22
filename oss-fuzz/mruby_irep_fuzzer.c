@@ -2,9 +2,10 @@
 #include <string.h>
 #include <mruby.h>
 #include <mruby/irep.h>
+#include <mruby/dump.h>
 
 int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t size) {
-    if (size < 1) {
+    if (size < sizeof(struct rite_binary_header)) {
         return 0;
     }
     mrb_state *mrb = mrb_open();
