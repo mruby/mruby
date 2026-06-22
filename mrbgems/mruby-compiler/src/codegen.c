@@ -1560,7 +1560,9 @@ new_lit_str(mrc_codegen_scope *s, const char *str, mrc_int len)
     if (pv->tt & IREP_TT_NFLAG) continue;
     mrc_int plen = pv->tt>>2;
     if (len != plen) continue;
-    if (memcmp(pv->u.str, str, plen) == 0)
+    /* plen==0 means both are empty; skip memcmp so a NULL str (empty string
+       literal) is not passed to its nonnull argument (UB clang miscompiles). */
+    if (plen == 0 || memcmp(pv->u.str, str, plen) == 0)
       return i;
   }
 
@@ -1574,7 +1576,7 @@ new_lit_str(mrc_codegen_scope *s, const char *str, mrc_int len)
     char *p;
     pv->tt = (uint32_t)(len<<2) | IREP_TT_STR;
     p = (char*)mrc_realloc(s->c, NULL, len+1);
-    memcpy(p, str, len);
+    if (len) memcpy(p, str, len);   /* str may be NULL for an empty literal */
     p[len] = '\0';
     pv->u.str = p;
   //}
