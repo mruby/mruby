@@ -222,3 +222,11 @@ assert 'Bigint gcd' do
   # Euclidean fallback path: operand sizes differ by several limbs
   assert_equal 7, (7 * (1 << 4000)).gcd(7 * 13)
 end
+
+assert 'Bigint large integer literal' do
+  # A literal too large for mrc_int exercises the bignum path of the code
+  # generator (issue #6905). Compare against the runtime-computed value.
+  assert_equal 10**40, 10000000000000000000000000000000000000000
+  assert_equal(-(10**40), -10000000000000000000000000000000000000000)
+  assert_equal 2**128, 340282366920938463463374607431768211456
+end

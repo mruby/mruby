@@ -3944,12 +3944,15 @@ gen_pm_integer(mrc_codegen_scope *s, const pm_integer_t *iv)
   {
     pm_buffer_t buf = {0};
     pm_integer_string(&buf, iv);
-    buf.value[buf.length] = '\0';
+    /* pm_integer_string writes exactly buf.length bytes and reserves no room
+       for a terminator; append the NUL through the buffer API so it grows the
+       allocation instead of writing one byte past it. */
+    pm_buffer_append_byte(&buf, '\0');
+    const char *digits = buf.value;
     if (iv->negative) {
-      memmove(buf.value, buf.value+1, buf.length);
-      buf.length--;
+      digits++;   /* skip the leading '-'; new_litbint takes the sign separately */
     }
-    int off = new_litbint(s, buf.value, 10, iv->negative);
+    int off = new_litbint(s, digits, 10, iv->negative);
     genop_2(s, OP_LOADL, cursp(), off);
     pm_buffer_free(&buf);
   }
