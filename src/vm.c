@@ -191,11 +191,17 @@ stack_extend_alloc(mrb_state *mrb, mrb_int room)
   }
 #endif
 
+  /* Disable GC across the realloc: it frees the old stack before c->stbase is
+     updated, so an incremental GC step triggered from inside the realloc would
+     mark the freed stack (use-after-free). */
+  mrb_bool gc_disabled = mrb->gc.disabled;
+  mrb->gc.disabled = TRUE;
   mrb_value *newstack = (mrb_value*)mrb_realloc(mrb, mrb->c->stbase, sizeof(mrb_value) * size);
   stack_clear(&(newstack[oldsize]), size - oldsize);
   envadjust(mrb, oldbase, newstack);
   mrb->c->stbase = newstack;
   mrb->c->stend = mrb->c->stbase + size;
+  mrb->gc.disabled = gc_disabled;
 
   /* Raise an exception if the new stack size will be too large,
      to prevent infinite recursion. However, do this only after resizing the stack, so mrb_raise has stack space to work with. */
@@ -383,9 +389,15 @@ cipush(mrb_state *mrb, mrb_int push_stacks, uint8_t cci, struct RClass *target_c
     if (size >= MRB_CALL_LEVEL_MAX) {
       mrb_exc_raise(mrb, mrb_obj_value(mrb->stack_err));
     }
+    /* Disable GC across the realloc: it frees the old callinfo stack before
+       c->cibase/c->ci are updated, so an incremental GC step triggered from
+       inside the realloc would mark the freed stack (use-after-free). */
+    mrb_bool gc_disabled = mrb->gc.disabled;
+    mrb->gc.disabled = TRUE;
     c->cibase = (mrb_callinfo*)mrb_realloc(mrb, c->cibase, sizeof(mrb_callinfo)*size*2);
     c->ci = ci = c->cibase + size;
     c->ciend = c->cibase + size * 2;
+    mrb->gc.disabled = gc_disabled;
   }
   ci->mid = mid;
   CI_PROC_SET(ci, proc);
