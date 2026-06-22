@@ -4529,6 +4529,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
         push();                                  /* receiver (self) slot */
         gen_pm_integer(s, &cast->numerator); push();
         gen_pm_integer(s, &cast->denominator); push();
+        push(); pop();                           /* reserve OP_SSEND block slot */
         pop_n(3);
         genop_3(s, OP_SSEND, recv,
                 new_sym(s, nsym(s->c->p, (const uint8_t*)"Rational", 8)), 2);
@@ -4545,6 +4546,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
         push();                                  /* receiver (self) slot */
         gen_int(s, cursp(), 0); push();          /* real part */
         codegen(s, (mrc_node*)cast->numeric, VAL); /* imaginary part */
+        push(); pop();                           /* reserve OP_SSEND block slot */
         pop_n(3);
         genop_3(s, OP_SSEND, recv,
                 new_sym(s, nsym(s->c->p, (const uint8_t*)"Complex", 7)), 2);
