@@ -863,12 +863,16 @@ assert('argument forwarding') do
       assert_equal(a,1)
       b(1,...)
     end
+    def e(...)
+      [1].each { a0(...) }
+    end
   }
   o = c.new
   o.a(1,2,3){}
   o.b(1,2,3){}
   o.c(1,2,3){}
   o.d(1,2,3){}
+  o.e(1,2,3){}   # forwarding from inside a block
 end
 
 assert('endless def') do

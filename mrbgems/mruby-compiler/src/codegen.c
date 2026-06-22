@@ -1930,6 +1930,22 @@ gen_assignment_lvar(mrc_codegen_scope *s, int sp, mrc_sym name, int depth, int v
   }
 }
 
+/* Load the anonymous forwarding variable `sym` (one of `*`, `**`, `&`) into
+   cursp(). When `...` is forwarded from inside a block the variable lives in
+   an enclosing method scope, so fall back to an upvar load instead of asserting
+   it is a local of the current scope. */
+static void
+gen_forward_arg(mrc_codegen_scope *s, mrc_sym sym, int val)
+{
+  int idx = lv_idx(s, sym);
+  if (idx > 0) {
+    gen_move(s, cursp(), idx, val);
+  }
+  else {
+    gen_getupvar(s, cursp(), sym);
+  }
+}
+
 static int
 gen_values(mrc_codegen_scope *s, mrc_node *tree, int val, int limit)
 {
@@ -1993,27 +2009,20 @@ gen_values(mrc_codegen_scope *s, mrc_node *tree, int val, int limit)
       push();
     }
     else if (is_forwarding) {
-      int idx;
       /* ARYCAT rest args (*) into the flushed array */
-      idx = lv_idx(s, MRC_OPSYM_2(mul));
-      assert(idx != 0);
-      gen_move(s, cursp(), idx, val);
+      gen_forward_arg(s, MRC_OPSYM_2(mul), val);
       pop();
       genop_1(s, OP_ARYCAT, cursp());
       push();
       /* ** keyword hash */
       genop_2(s, OP_HASH, cursp(), 0);
       push();
-      idx = lv_idx(s, MRC_OPSYM_2(pow));
-      assert(idx != 0);
-      gen_move(s, cursp(), idx, val);
+      gen_forward_arg(s, MRC_OPSYM_2(pow), val);
       pop();
       genop_1(s, OP_HASHCAT, cursp());
       push();
       /* & block */
-      idx = lv_idx(s, MRC_OPSYM_2(and));
-      assert(idx != 0);
-      gen_move(s, cursp(), idx, val);
+      gen_forward_arg(s, MRC_OPSYM_2(and), val);
       break;
     }
     else {
