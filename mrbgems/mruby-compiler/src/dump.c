@@ -767,7 +767,11 @@ debug_info_defined_p(const mrc_irep *irep)
 static mrc_bool
 lv_defined_p(const mrc_irep *irep)
 {
-  if (irep->lv && 0 < ((pm_constant_id_list_t *)irep->lv)->size) { return TRUE; }
+  /* irep->lv is an mrc_sym array (NULL when the scope has no named locals);
+     the old `((pm_constant_id_list_t *)irep->lv)->size` reinterpreted it as a
+     different struct, an out-of-bounds read and a strict-aliasing violation
+     that clang miscompiles. A plain NULL check matches the bytecode dumper. */
+  if (irep->lv) { return TRUE; }
   for (int i = 0; i < irep->rlen; i++) {
     if (lv_defined_p(irep->reps[i])) { return TRUE; }
   }
