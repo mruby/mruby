@@ -278,12 +278,17 @@ load_file(mrc_ccontext *c, struct mrc_args *args, uint8_t **source)
   c->no_ext_ops = args->no_ext_ops;
   c->no_optimize = args->no_optimize;
 
-  char *filenames[args->argc - args->idx + 1];
+  int nfiles = args->argc - args->idx;
+  /* heap-allocated rather than a VLA: MSVC does not support variable-length
+     arrays. */
+  char **filenames = (char **)malloc(sizeof(char *) * (nfiles + 1));
+  if (filenames == NULL) return NULL;
   for (int i = args->idx; i < args->argc; i++) {
     filenames[i - args->idx] = args->argv[i];
   }
-  filenames[args->argc - args->idx] = NULL;
+  filenames[nfiles] = NULL;
   irep = mrc_load_file_cxt(c, (const char **)filenames, source);
+  free(filenames);
 
   return irep;
 }
