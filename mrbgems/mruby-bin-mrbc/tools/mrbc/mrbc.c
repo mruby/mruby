@@ -12,7 +12,11 @@
 #include "mrc_compile.h"
 #include "mrc_pool.h"
 
+#if defined(MRC_TARGET_MRUBY)
 extern mrb_state *global_mrb; /* defined in mruby-compiler (ccontext.c) */
+#else
+#define global_mrb NULL
+#endif
 
 #define RITEBIN_EXT ".mrb"
 #define C_EXT       ".c"
