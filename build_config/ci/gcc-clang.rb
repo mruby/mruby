@@ -27,7 +27,9 @@ end
 MRuby::Build.new('cxx_abi') do |conf|
   conf.toolchain
 
-  conf.gembox 'full-core'
+  # Prism is a vendored C library and does not compile as C++, so the C++ ABI
+  # build exercises the full gem set with the lrama compiler instead.
+  conf.gembox 'full-core-lrama'
   conf.cc.flags += %w(-fpermissive -std=gnu++03)
   conf.compilers.each do |c|
     c.defines += %w(MRB_GC_FIXED_ARENA)
@@ -36,5 +38,5 @@ MRuby::Build.new('cxx_abi') do |conf|
 
   conf.enable_cxx_abi
 
-  conf.build_mrbc_exec
+  conf.build_mrbc_exec(lrama: true)
 end
