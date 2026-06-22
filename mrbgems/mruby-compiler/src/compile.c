@@ -240,6 +240,22 @@ read_input_files(mrc_ccontext *c, const char **filenames, uint8_t **source, mrc_
   FILE *file;
   const char *filename = filenames[0];
   while (filename) {
+    if (i > 0) {
+      /* Separate files with a newline so that a file without a trailing
+         newline does not merge its last token with the first token of the
+         next file (e.g. `end` + `module` becoming `endmodule`). The separator
+         precedes the file content, so filename_table[i].start still points at
+         the content and the filename/line mapping is unaffected. See #6907. */
+      length += 1;
+      if (*source == NULL) {
+        *source = (uint8_t *)mrc_malloc(c, length + 1);
+      }
+      else {
+        *source = (uint8_t *)mrc_realloc(c, *source, length + 1);
+      }
+      (*source)[pos++] = '\n';
+      (*source)[length] = '\0';
+    }
     filename_table[i].filename = filenames[i];
     filename_table[i].start = pos;
     if (filename[0] == '-' && filename[1] == '\0') {
