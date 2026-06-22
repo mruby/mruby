@@ -3093,6 +3093,7 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
             gen_move(s, val_reg, vals_reg, 0);
             push(); /* protect receiver */
             gen_int(s, cursp(), key_idx);
+            push(); /* protect index arg */
             push(); pop(); /* touch block slot */
             s->sp = val_reg;
             genop_3(s, OP_SEND, val_reg, new_sym(s, MRC_OPSYM_2(aref)), 1);
