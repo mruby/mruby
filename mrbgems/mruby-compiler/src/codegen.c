@@ -6039,13 +6039,14 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
     }
     case PM_DEFINED_NODE:
     {
-      CAST(defined);
-      push();
-      codegen(s, cast->value, VAL);
-      pop();
-      pop();
-      genop_3(s, OP_SSEND, cursp(), new_sym(s, MRC_SYM_2(defined_p)), 1);
-      push();
+      /* `defined?` is intentionally not implemented (a full implementation is
+         large for little gain). Return nil without evaluating the operand:
+         `defined?` must not evaluate its argument, and the previous stub both
+         evaluated it and called a non-existent `defined?` method. */
+      if (val) {
+        genop_1(s, OP_LOADNIL, cursp());
+        push();
+      }
       break;
     }
     default:
