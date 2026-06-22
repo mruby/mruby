@@ -3426,7 +3426,11 @@ lambda_body(mrc_codegen_scope *s, mrc_node *tree, mrc_node *body, pm_constant_id
   forwarding = 0;
   int block_reg = 0;
   pm_constant_id_list_t *lv = (pm_constant_id_list_t *)codegen_palloc(s, sizeof(pm_constant_id_list_t));
-  pm_constant_id_t null_mark = pm_constant_pool_insert_constant(&s->c->p->constant_pool, NULL, 0);
+  /* Use a non-NULL zero-length pointer: pm_constant_pool_insert feeds it to
+     memcmp/memcpy, whose nonnull attribute makes a NULL argument undefined
+     behavior that clang miscompiles (the constant pool then misbehaves and
+     codegen reports a spurious "Can't find local variables"). */
+  pm_constant_id_t null_mark = pm_constant_pool_insert_constant(&s->c->p->constant_pool, (const uint8_t *)"", 0);
 
   // Create lv regs from Prism's locals
   if (parameters == NULL) {

@@ -599,7 +599,10 @@ write_section_debug(mrc_ccontext *c, const mrc_irep *irep, uint8_t *cur, mrc_sym
 static void
 create_lv_sym_table(mrc_ccontext *c, const mrc_irep *irep, mrc_sym **syms, uint32_t *syms_len)
 {
-  pm_constant_id_t null_mark = pm_constant_pool_find(&c->p->constant_pool, NULL, 0);
+  /* Match the non-NULL zero-length marker inserted by the code generator;
+     a NULL argument here is undefined behavior (memcmp nonnull) that clang
+     miscompiles. */
+  pm_constant_id_t null_mark = pm_constant_pool_find(&c->p->constant_pool, (const uint8_t *)"", 0);
 
   if (*syms == NULL) {
     *syms = (mrc_sym*)mrc_malloc(c, sizeof(mrc_sym) * 1);
@@ -646,7 +649,10 @@ write_lv_record(mrc_ccontext *c, const mrc_irep *irep, uint8_t **start, mrc_sym 
 {
   uint8_t *cur = *start;
 
-  pm_constant_id_t null_mark = pm_constant_pool_find(&c->p->constant_pool, NULL, 0);
+  /* Match the non-NULL zero-length marker inserted by the code generator;
+     a NULL argument here is undefined behavior (memcmp nonnull) that clang
+     miscompiles. */
+  pm_constant_id_t null_mark = pm_constant_pool_find(&c->p->constant_pool, (const uint8_t *)"", 0);
 
   for (int i = 0; i + 1 < irep->nlocals; i++) {
     if (irep->lv[i] == 0 || irep->lv[i] == null_mark) {
