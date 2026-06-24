@@ -312,6 +312,12 @@ mrb_parser_free(struct mrb_parser_state *p)
   }
   free_parser_messages(mrb, p->error_buffer, sizeof(p->error_buffer) / sizeof(p->error_buffer[0]));
   free_parser_messages(mrb, p->warn_buffer, sizeof(p->warn_buffer) / sizeof(p->warn_buffer[0]));
+  /* Free the source copy that parse_source() allocated and stored in p->s.
+     The irep keeps pointers into it (symbol names, debug info) until codegen
+     and the irep dump finish, so it must live until the parser state is freed.
+     mrb_parser_parse() transfers this owned copy into p->s, replacing the
+     caller's borrowed buffer, so freeing p->s here always frees the copy. */
+  if (p->s) mrb_free(mrb, (void*)p->s);
   mrb_free(mrb, p);
 }
 
@@ -330,6 +336,14 @@ mrb_parser_parse(struct mrb_parser_state *p, mrb_ccontext *c)
   p->nwarn = parsed->nwarn;
   memcpy(p->error_buffer, parsed->error_buffer, sizeof(p->error_buffer));
   memcpy(p->warn_buffer, parsed->warn_buffer, sizeof(p->warn_buffer));
+  /* Transfer ownership of the source copy parse_source() allocated from the
+     inner state to p. The irep (now in p->tree) keeps pointers into it until
+     codegen finishes, so the copy must outlive `parsed`. p->s previously held
+     the caller's borrowed buffer, which the caller frees itself; overwriting it
+     here is safe because no one reads p->s after parsing. */
+  p->s = parsed->s;
+  p->send = parsed->send;
+  parsed->s = parsed->send = NULL;
   parsed->tree = NULL;
   parsed->ylval = NULL;
   memset(parsed->error_buffer, 0, sizeof(parsed->error_buffer));
