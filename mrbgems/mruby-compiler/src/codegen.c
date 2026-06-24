@@ -282,11 +282,12 @@ codegen_error(mrc_codegen_scope *s, const char *message)
       mrc_free(s->c, s->syms);
       mrc_free(s->c, s->catch_table);
       if (s->reps) {
-        /* copied from mrc_irep_free() in state.c */
-        //for (int i=0; i<s->irep->rlen; i++) {
-        //  if (s->reps[i])
-        //    mrc_irep_decref(s->mrb, (mrc_irep*)s->reps[i]);
-        //}
+        /* Compiler ireps are singly owned (refcnt is only ever set to 1), so
+           freeing each child outright is equivalent to decref-to-zero. */
+        for (int i=0; i<s->irep->rlen; i++) {
+          if (s->reps[i])
+            mrc_irep_free(s->c, (mrc_irep*)s->reps[i]);
+        }
         mrc_free(s->c, s->reps);
       }
       mrc_free(s->c, s->lines);
@@ -1793,8 +1794,9 @@ generate_code(mrc_ccontext *c, mrc_node *node, int val)
     return irep;
   }
   MRC_CATCH(c->jmp) {
-    // TODO?
-    //mrc_irep_free(c, scope->irep);
+    /* scope->irep is the root irep (shared with the top-level scope). It is
+       NULL only if codegen failed before the first scope_add_irep(). */
+    if (scope->irep) mrc_irep_free(c, scope->irep);
     mrc_pool_close(scope->mpool);
     c->jmp = prev_jmp;
     return NULL;
