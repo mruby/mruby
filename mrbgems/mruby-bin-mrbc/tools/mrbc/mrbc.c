@@ -328,22 +328,22 @@ dump_file(mrc_ccontext *c, FILE *wfp, const char *outfile, const mrc_irep *irep,
 int
 main(int argc, char **argv)
 {
-  int n, result;
+  int n, result = EXIT_FAILURE;
   struct mrc_args args;
   FILE *wfp;
-  mrc_irep *irep;
+  mrc_irep *irep = NULL;
+  uint8_t *source = NULL;
 
   mrc_ccontext *c = mrc_ccontext_new(global_mrb);
 
   n = parse_args(c, argc, argv, &args);
   if (n < 0) {
-    cleanup(c, &args);
     usage(argv[0]);
-    return EXIT_FAILURE;
+    goto done;
   }
   if (n == argc) {
     fprintf(stderr, "%s: no program file given\n", args.prog);
-    return EXIT_FAILURE;
+    goto done;
   }
   if (args.outfile == NULL && !args.check_syntax) {
     if (n + 1 == argc) {
@@ -351,33 +351,32 @@ main(int argc, char **argv)
     }
     else {
       fprintf(stderr, "%s: output file should be specified to compile multiple files\n", args.prog);
-      return EXIT_FAILURE;
+      goto done;
     }
   }
 
   args.idx = n;
-  uint8_t *source = NULL;
   irep = load_file(c, &args, &source);
 
-  mrc_diagnostic_list *d = c->diagnostic_list;
-  while (d) {
-    if (args.verbose || d->code == MRC_PARSER_ERROR || d->code == MRC_GENERATOR_ERROR) {
-      const char *filename = d->filename ? d->filename : (c->filename_table ? c->filename_table[0].filename : "-");
-      fprintf(stderr, "%s:%d:%d: %s\n", filename, d->line, d->column, d->message);
+  {
+    mrc_diagnostic_list *d = c->diagnostic_list;
+    while (d) {
+      if (args.verbose || d->code == MRC_PARSER_ERROR || d->code == MRC_GENERATOR_ERROR) {
+        const char *filename = d->filename ? d->filename : (c->filename_table ? c->filename_table[0].filename : "-");
+        fprintf(stderr, "%s:%d:%d: %s\n", filename, d->line, d->column, d->message);
+      }
+      d = d->next;
     }
-    d = d->next;
   }
 
   if (irep == NULL){
-    cleanup(c, &args);
-    return EXIT_FAILURE;
+    goto done;
   }
 
   if (args.check_syntax) {
     printf("%s:%s:Syntax OK\n", args.prog, argv[n]);
-    cleanup(c, &args);
-    mrc_irep_free(c, irep);
-    return EXIT_SUCCESS;
+    result = EXIT_SUCCESS;
+    goto done;
   }
 
   if (args.outfile) {
@@ -386,24 +385,26 @@ main(int argc, char **argv)
     }
     else if ((wfp = fopen(args.outfile, "wb")) == NULL) {
       fprintf(stderr, "%s: cannot open output file:(%s)\n", args.prog, args.outfile);
-      return EXIT_FAILURE;
+      goto done;
     }
   }
   else {
     fputs("Output file is required\n", stderr);
-    return EXIT_FAILURE;
+    goto done;
   }
   result = dump_file(c, wfp, args.outfile, irep, &args);
-  if (source) mrc_free(c, source);
   fclose(wfp);
-  cleanup(c, &args);
-  mrc_irep_free(c, irep);
-  mrc_ccontext_free(c);
+  result = (result == MRC_DUMP_OK) ? EXIT_SUCCESS : EXIT_FAILURE;
 
-  if (result != MRC_DUMP_OK) {
-    return EXIT_FAILURE;
-  }
-  return EXIT_SUCCESS;
+done:
+  /* Single exit: every path frees the compile context, the parsed irep and the
+     source buffer. Only the success path did so before, leaking on -c and on
+     the error returns. */
+  cleanup(c, &args);
+  if (source) mrc_free(c, source);
+  if (irep) mrc_irep_free(c, irep);
+  mrc_ccontext_free(c);
+  return result;
 }
 
 // Dummy function for search_upvar() in codegen.c
