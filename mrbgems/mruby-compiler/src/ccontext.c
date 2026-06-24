@@ -59,6 +59,21 @@ mrc_ccontext_filename(mrc_ccontext *c, const char *s)
 MRC_API void
 mrc_ccontext_free(mrc_ccontext *c)
 {
+  if (c->options) {
+    /* pm_options_free() releases the scope and locals arrays but not the
+       per-local name copies (they are PM_STRING_CONSTANT, which pm_string_free
+       leaves alone) nor the options struct itself, so free those here. The
+       copies must go first, before pm_options_free() releases the arrays. */
+    for (size_t s = 0; s < c->options->scopes_count; s++) {
+      pm_options_scope_t *scope = &c->options->scopes[s];
+      for (size_t l = 0; l < scope->locals_count; l++) {
+        mrc_free(c, (void *)scope->locals[l].source);
+      }
+    }
+    pm_options_free(c->options);
+    mrc_free(c, c->options);
+    c->options = NULL;
+  }
   if (c->filename_table) mrc_free(c, c->filename_table);
   if (c->filename) mrc_free(c, c->filename);
   pm_parser_free(c->p);
