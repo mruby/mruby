@@ -82,6 +82,9 @@ repos:
         files: ^\.github/linters/codespell\.txt$
       - id: fix-byte-order-marker
       - id: forbid-submodules
+        # The vendored Prism compiler is a legitimate submodule; still forbid
+        # any other submodule from being added.
+        exclude: ^mrbgems/mruby-compiler/lib/prism$
       - id: mixed-line-ending
       - id: trailing-whitespace
   - repo: https://github.com/Lucas-C/pre-commit-hooks
