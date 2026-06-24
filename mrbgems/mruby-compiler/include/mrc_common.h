@@ -21,7 +21,7 @@
 #endif
 
 #if !defined(MRC_TARGET_MRUBY) && !defined(PICORB_VM_MRUBYC)
-  /* May be building mrbc (picorbc) */
+  /* May be building standalone mrbc */
   #define mrb_state void
 #endif
 

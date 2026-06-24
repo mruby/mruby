@@ -70,7 +70,7 @@
   #endif
 #else
 
-  // for picorbc
+  // for standalone mrbc in PicoRuby
   #define mrc_malloc(c,size)        malloc(size)
   #define mrc_calloc(c,nmemb,size)  calloc(nmemb, size)
   #define mrc_realloc(c,ptr,size)   realloc(ptr, size)

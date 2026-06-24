@@ -1,14 +1,14 @@
-# mruby-compiler-prism / mruby-compiler2
+# mruby-compiler / mruby-compiler2
 
 This project is a Prism-based Ruby parser and bytecode compiler for mruby, PicoRuby, and FemtoRuby.
 
 Read this note first:
 
-- If this file is under `mruby/mrbgems/mruby-compiler-prism`, you are reading the canonical mruby core mgem. This is where development happens.
+- If this file is under `mruby/mrbgems/mruby-compiler`, you are reading the canonical mruby core mgem. This is where development happens.
 - If this file is at the top of `picoruby/mruby-compiler2`, you are reading the standalone mirror. That repository exists for projects that need to use the compiler independently from mruby and pin it at an arbitrary commit.
 - Please send patches to `mruby/mruby`, not to `picoruby/mruby-compiler2`. The standalone repository is synchronized from mruby after changes land there.
 
-The compiler must remain usable without fundamentally depending on mruby. mruby uses it as `mruby-compiler-prism`; PicoRuby and FemtoRuby use the same compiler through the standalone `mruby-compiler2` mirror.
+The compiler must remain usable without fundamentally depending on mruby. mruby uses it as `mruby-compiler`; PicoRuby and FemtoRuby use the same compiler through the standalone `mruby-compiler2` mirror.
 
 ## Using mruby-compiler2 as a standalone mgem
 
@@ -21,7 +21,7 @@ end
 ```
 
 `picoruby/mruby-compiler2` is synchronized from
-`mruby/mruby/mrbgems/mruby-compiler-prism`. It may lag behind mruby until the sync workflow opens and merges a mirror PR.
+`mruby/mruby/mrbgems/mruby-compiler`. It may lag behind mruby until the sync workflow opens and merges a mirror PR.
 
 ## Using Prism in mruby
 
@@ -42,24 +42,11 @@ This keeps the normal mruby build and CI path compatible with the existing `mrub
 
 The Prism route currently includes:
 
-- `mruby-compiler-prism`
-- `mruby-bin-mrbc-prism`
-- `mruby-bin-mruby-prism`
-- `mruby-bin-mirb-prism`
-- `mruby-eval-prism`
-
-## CI impact in mruby
-
-Normal mruby CI uses `mrbgems/full-core.gembox`. That gembox intentionally excludes `*-prism` gems, so adding this mgem does not change the default mruby compiler path.
-
-The Prism build should be tested separately:
-
-```sh
-MRB_COMPILER_PRISM=yes rake test
-rake MRUBY_CONFIG=prism test
-```
-
-Until the remaining parser and tool behavior differences are resolved, a Prism-specific CI job should be separate from required normal mruby CI.
+- `mruby-compiler`
+- `mruby-bin-mrbc`
+- `mruby-bin-mruby`
+- `mruby-bin-mirb`
+- `mruby-eval`
 
 ## Prism submodule and bootstrap
 
