@@ -38,7 +38,7 @@ class String
     pos = 0
     len = self.bytesize
     while pos <= len
-      md = pattern.match(self, pos)
+      md = pattern.__byte_match(self, pos)
       break unless md
       # gsub works in byte space (match pos, byteslice). begin/end report
       # character offsets (CRuby-compatible), so use the byte accessors.
@@ -112,7 +112,7 @@ class String
         result << (self.byteslice(field_start..-1) || "")
         return result
       end
-      md = pattern.match(self, search_pos)
+      md = pattern.__byte_match(self, search_pos)
       break unless md
       match_start = md.__byte_begin(0)
       match_end = md.__byte_end(0)
