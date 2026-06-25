@@ -461,6 +461,8 @@ assert("String#split with regexp captures") do
   assert_equal ["a", "1", "b2c"], "a1b2c".split(/(\d)/, 2)
   assert_equal ["a", "1", "b", "2", "c"], "a1b2c".split(/(\d)/, 3)
   assert_equal ["a", "1", "b", "2", "c"], "a1b2c".split(/(\d)/, -1)
+  assert_equal ["hell"], "hello".split(/(x)?o/)
+  assert_equal ["hell", ""], "hello".split(/(x)?o/, -1)
 end
 
 assert("String#split with zero-width regexp") do
