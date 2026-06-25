@@ -192,6 +192,41 @@ re_byte_to_char(mrb_state *mrb, mrb_value str, mrb_int byte_off)
 #endif
 }
 
+/* Normalize Regexp#match positional argument for the regexp engine. Ruby's
+   pos is a character offset only when MRB_UTF8_STRING is enabled; otherwise
+   it already is a byte offset. Returns -1 for out-of-range offsets, which
+   Ruby treats as no match. */
+static mrb_int
+re_char_to_byte(mrb_state *mrb, mrb_value str, mrb_int char_off)
+{
+  (void)mrb;
+#ifdef MRB_UTF8_STRING
+  const char *p = RSTRING_PTR(str);
+  const char *e = p + RSTRING_LEN(str);
+  mrb_int char_len = re_byte_to_char(mrb, str, RSTRING_LEN(str));
+  mrb_int chars = 0;
+
+  if (char_off < 0) {
+    char_off += char_len;
+  }
+  if (char_off < 0 || char_off > char_len) return -1;
+  while (p < e && chars < char_off) {
+    p++;
+    while (p < e && (((unsigned char)*p & 0xC0) == 0x80)) {
+      p++;
+    }
+    chars++;
+  }
+  if (chars < char_off) return -1;
+  return (mrb_int)(p - RSTRING_PTR(str));
+#else
+  mrb_int len = RSTRING_LEN(str);
+  if (char_off < 0) char_off += len;
+  if (char_off < 0 || char_off > len) return -1;
+  return char_off;
+#endif
+}
+
 /* Create MatchData from captures */
 static mrb_value
 create_matchdata(mrb_state *mrb, mrb_value regexp, mrb_value str, int *captures, int ncap)
@@ -259,6 +294,33 @@ static mrb_value
 regexp_match(mrb_state *mrb, mrb_value self)
 {
   mrb_value str;
+  mrb_value block = mrb_nil_value();
+  mrb_int pos = 0;
+  mrb_value md;
+
+  mrb_get_args(mrb, "o|i&", &str, &pos, &block);
+  if (mrb_nil_p(str)) {
+    clear_match_globals(mrb);
+    return mrb_nil_value();
+  }
+  str = mrb_ensure_string_type(mrb, str);
+  pos = re_char_to_byte(mrb, str, pos);
+  if (pos < 0) {
+    clear_match_globals(mrb);
+    return mrb_nil_value();
+  }
+
+  md = exec_match(mrb, self, str, pos);
+  if (!mrb_nil_p(md) && !mrb_nil_p(block)) {
+    return mrb_yield(mrb, block, md);
+  }
+  return md;
+}
+
+static mrb_value
+regexp_match_byte(mrb_state *mrb, mrb_value self)
+{
+  mrb_value str;
   mrb_int pos = 0;
   mrb_get_args(mrb, "S|i", &str, &pos);
   return exec_match(mrb, self, str, pos);
@@ -272,7 +334,11 @@ regexp_match_p(mrb_state *mrb, mrb_value self)
 {
   mrb_value str;
   mrb_int pos = 0;
-  mrb_get_args(mrb, "S|i", &str, &pos);
+  mrb_get_args(mrb, "o|i", &str, &pos);
+  if (mrb_nil_p(str)) return mrb_false_value();
+  str = mrb_ensure_string_type(mrb, str);
+  pos = re_char_to_byte(mrb, str, pos);
+  if (pos < 0) return mrb_false_value();
 
   mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, self, &regexp_type, mrb_regexp_pattern);
   if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
@@ -289,8 +355,11 @@ regexp_match_op(mrb_state *mrb, mrb_value self)
 {
   mrb_value str;
   mrb_get_args(mrb, "o", &str);
-  if (mrb_nil_p(str)) return mrb_nil_value();
-  mrb_ensure_string_type(mrb, str);
+  if (mrb_nil_p(str)) {
+    clear_match_globals(mrb);
+    return mrb_nil_value();
+  }
+  str = mrb_ensure_string_type(mrb, str);
 
   mrb_value md = exec_match(mrb, self, str, 0);
   if (mrb_nil_p(md)) return mrb_nil_value();
@@ -1002,7 +1071,8 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, re, "quote", regexp_escape, MRB_ARGS_REQ(1));
 
   /* Instance methods */
-  mrb_define_method(mrb, re, "match", regexp_match, MRB_ARGS_ARG(1, 1));
+  mrb_define_method(mrb, re, "match", regexp_match, MRB_ARGS_ARG(1, 1)|MRB_ARGS_BLOCK());
+  mrb_define_method(mrb, re, "__byte_match", regexp_match_byte, MRB_ARGS_ARG(1, 1));
   mrb_define_method(mrb, re, "match?", regexp_match_p, MRB_ARGS_ARG(1, 1));
   mrb_define_method(mrb, re, "=~", regexp_match_op, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, re, "===", regexp_case_match, MRB_ARGS_REQ(1));

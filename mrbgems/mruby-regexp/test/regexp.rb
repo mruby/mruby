@@ -23,16 +23,43 @@ assert("Regexp#match - no match") do
   assert_nil re.match("abc")
 end
 
+assert("Regexp#match - nil argument") do
+  $~ = /abc/.match("abc")
+  assert_nil /abc/.match(nil)
+  assert_nil $~
+end
+
+assert("Regexp#match - block") do
+  result = /bc/.match("abcd") { |md| [md[0], md.begin(0)] }
+  assert_equal ["bc", 1], result
+  assert_nil(/xyz/.match("abcd") { |md| md[0] })
+end
+
 assert("Regexp#match?") do
   re = Regexp.new("abc")
   assert_true re.match?("xabcy")
   assert_false re.match?("xyz")
+  assert_false re.match?(nil)
+end
+
+assert("Regexp#match? - does not update last match") do
+  $~ = /matched/.match("matched")
+  assert_true /abc/.match?("abc")
+  assert_equal "matched", $~[0]
+  assert_false /xyz/.match?("abc")
+  assert_equal "matched", $~[0]
 end
 
 assert("Regexp#=~") do
   re = Regexp.new("bc")
   assert_equal 1, re =~ "abcd"
   assert_nil re =~ "xyz"
+end
+
+assert("Regexp#=~ - nil argument clears last match") do
+  $~ = /abc/.match("abc")
+  assert_nil(/abc/ =~ nil)
+  assert_nil $~
 end
 
 assert("Regexp#===") do
@@ -181,6 +208,25 @@ assert("Regexp - multibyte (UTF-8) match extraction") do
   assert_equal [1, 2], [m.begin(1), m.end(1)]
   assert_equal [2, 3], [m.begin(2), m.end(2)]
   assert_equal 2, "あいう".match(/う/).begin(0)
+
+  assert_equal 2, /あ/.match("あいあ", 2).begin(0)
+  assert_equal 2, /あ/.match("あいあ", -1).begin(0)
+  assert_nil /い/.match("あいあ", 2)
+  assert_nil /あ/.match("あいあ", 4)
+  assert_nil /あ/.match("あいあ", -4)
+  assert_true /あ/.match?("あいあ", 2)
+  assert_false /い/.match?("あいあ", 2)
+end
+
+assert("String#gsub - regexp search position is byte-based internally") do
+  skip unless __ENCODING__ == "UTF-8"
+  assert_equal "あ-い-う", "あ,い,う".gsub(/,/, "-")
+end
+
+assert("String#split - regexp search position is byte-based internally") do
+  skip unless __ENCODING__ == "UTF-8"
+  assert_equal ["あ", "い", "う"], "あ,い,う".split(/,/)
+  assert_equal ["あ", ",", "い", ",", "う"], "あ,い,う".split(/(,)/)
 end
 
 assert("Regexp.escape") do
