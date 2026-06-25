@@ -76,40 +76,78 @@ class String
 
   # Regexp-aware split.  Falls back to the C-defined split (aliased as
   # `__split` in mrb_mruby_regexp_gem_init before this override loads) for
-  # nil or simple-string patterns; converts string-with-backslash to a
-  # Regexp and handles regexp patterns in Ruby.
-  def split(pattern = nil, limit = -1)
-    return __split(pattern, limit) if pattern.nil?
-    if pattern.is_a?(String)
-      return __split(pattern, limit) if pattern.length == 1 || !pattern.include?('\\')
-      pattern = Regexp.new(Regexp.escape(pattern))
+  # nil or string patterns, and handles regexp patterns in Ruby.
+  def split(pattern = nil, *args)
+    if args.length > 1
+      raise ArgumentError, "wrong number of arguments (given #{args.length + 1}, expected 0..2)"
     end
+
+    limit_given = args.length > 0
+    limit = limit_given ? args[0] : 0
+    if limit_given && !limit.is_a?(Integer)
+      if limit.respond_to?(:to_int)
+        limit = limit.to_int
+        unless limit.is_a?(Integer)
+          raise TypeError, "no implicit conversion of #{limit.class} to Integer)"
+        end
+      else
+        limit = limit.__to_int
+      end
+    end
+    if pattern.nil? || pattern.is_a?(String)
+      return limit_given ? __split(pattern, limit) : __split(pattern)
+    end
+    return self.empty? ? [] : [self] if limit == 1
+    unless pattern.is_a?(Regexp)
+      raise TypeError, "wrong argument type #{pattern.class} (expected Regexp)"
+    end
+
     result = []
-    rest = self
+    field_start = 0
+    search_pos = 0
+    len = self.bytesize
     count = 0
-    while rest.length > 0
+    while search_pos <= len
       if limit > 0 && count >= limit - 1
-        result << rest
+        result << (self.byteslice(field_start..-1) || "")
         return result
       end
-      md = pattern.match(rest)
+      md = pattern.match(self, search_pos)
       break unless md
-      result << md.pre_match
-      rest = md.post_match
-      count += 1
-      # skip zero-length match at beginning
-      if md[0].length == 0
-        if rest.length > 0
-          result[-1] = result[-1] + rest[0]
-          rest = rest[1..-1] || ""
+      match_start = md.__byte_begin(0)
+      match_end = md.__byte_end(0)
+
+      if match_start == match_end
+        rest = self.byteslice(match_end..-1)
+        if rest && rest.bytesize > 0
+          char = rest[0]
+          search_pos = match_end + char.bytesize
         else
-          break
+          search_pos = match_end + 1
         end
+        next if match_start == field_start
+      end
+
+      result << self.byteslice(field_start, match_start - field_start)
+      count += 1
+
+      if match_start == match_end
+        field_start = match_end
+      else
+        field_start = match_end
+        search_pos = match_end
+      end
+      i = 1
+      while i < md.length
+        result << md[i] unless md[i].nil?
+        i += 1
       end
     end
-    result << rest
-    # remove trailing empty strings if no limit
-    if limit < 0
+    if len > 0 && field_start <= len && (field_start < len || limit != 0)
+      result << self.byteslice(field_start..-1)
+    end
+
+    if limit == 0
       while result.length > 0 && result[-1] == ""
         result.pop
       end
