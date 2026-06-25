@@ -214,6 +214,19 @@ assert("Regexp - repetition {n,m}") do
   assert_equal "aaa", Regexp.new("a{2,3}").match("aaaa")[0]
 end
 
+assert("Regexp - repetition with a zero lower bound") do
+  # A zero lower bound must not force the one already-compiled copy: {0,m}
+  # caps at m (it used to match m+1), {0} matches nothing, {0,} is just *.
+  assert_equal "aaa", "aaaa".match(/a{0,3}/)[0]
+  assert_equal "aaa", "aaaa".match(/a{,3}/)[0]
+  assert_equal "", "aaa".match(/a{0}/)[0]
+  assert_equal "b", "b".match(/a{0}b/)[0]
+  assert_equal "aaaa", "aaaa".match(/a{0,}/)[0]
+  assert_equal "bc", "bc".match(/ba{0,2}c/)[0]
+  assert_equal "baac", "baac".match(/ba{0,2}c/)[0]
+  assert_nil "baaac".match(/\Aba{0,2}c\z/)
+end
+
 assert("Regexp - a curly brace that is not a quantifier is a literal") do
   # An invalid {...} used to spin the compiler forever (issue #6914); it must
   # be treated as a literal brace, matching CRuby. A well-formed quantifier

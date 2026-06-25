@@ -773,30 +773,47 @@ compile_quantified(re_compiler *c)
     uint32_t atom_end = c->code_len;
     uint32_t atom_size = atom_end - start;
 
-    /* First, we have one copy already. We need min-1 more mandatory copies. */
-    for (int i = 1; i < min; i++) {
-      for (uint32_t j = 0; j < atom_size; j++) {
-        emit(c, c->code[start + j].op, c->code[start + j].a, c->code[start + j].offset);
-      }
-    }
-    /* Then optional copies */
-    if (max < 0) {
-      /* {n,} = min copies + * */
-      uint32_t loop_start = c->code_len;
-      uint32_t split_pos = emit(c, nongreedy ? RE_SPLITNG : RE_SPLIT, 0, 0);
-      for (uint32_t j = 0; j < atom_size; j++) {
-        emit(c, c->code[start + j].op, c->code[start + j].a, c->code[start + j].offset);
-      }
-      emit(c, RE_JMP, 0, loop_start);
-      patch(c, split_pos, c->code_len);
+    if (min == 0 && max == 0) {
+      /* {0}: the atom matches zero times, so drop the copy we emitted. */
+      c->code_len = start;
     }
     else {
-      for (int i = min; i < max; i++) {
+      /* {0,m} and {0,} compile as {1,m}/{1,} wrapped in an optional, so the
+         single already-emitted copy is not forced to match. lo is the lower
+         bound used while laying out copies (1 in the wrapped case). */
+      mrb_bool wrap_optional = (min == 0);
+      int lo = wrap_optional ? 1 : min;
+
+      /* We have one copy already; emit lo-1 more mandatory copies. */
+      for (int i = 1; i < lo; i++) {
+        for (uint32_t j = 0; j < atom_size; j++) {
+          emit(c, c->code[start + j].op, c->code[start + j].a, c->code[start + j].offset);
+        }
+      }
+      /* Then optional copies */
+      if (max < 0) {
+        /* {n,} = lo copies + * */
+        uint32_t loop_start = c->code_len;
         uint32_t split_pos = emit(c, nongreedy ? RE_SPLITNG : RE_SPLIT, 0, 0);
         for (uint32_t j = 0; j < atom_size; j++) {
           emit(c, c->code[start + j].op, c->code[start + j].a, c->code[start + j].offset);
         }
+        emit(c, RE_JMP, 0, loop_start);
         patch(c, split_pos, c->code_len);
+      }
+      else {
+        for (int i = lo; i < max; i++) {
+          uint32_t split_pos = emit(c, nongreedy ? RE_SPLITNG : RE_SPLIT, 0, 0);
+          for (uint32_t j = 0; j < atom_size; j++) {
+            emit(c, c->code[start + j].op, c->code[start + j].a, c->code[start + j].offset);
+          }
+          patch(c, split_pos, c->code_len);
+        }
+      }
+      if (wrap_optional) {
+        /* Make the whole {1,m}/{1,} body skippable so it matches zero times. */
+        insert_inst(c, start, nongreedy ? RE_SPLITNG : RE_SPLIT, 0, 0);
+        c->code[start].offset = (uint16_t)c->code_len;
       }
     }
   }
