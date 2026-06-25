@@ -718,6 +718,32 @@ compile_atom(re_compiler *c)
   }
 }
 
+/* Append a copy of the atom bytecode in [start, start+size) at the current
+   position. Internal jump/split targets are relocated to the copy, so a
+   repeated group like (a{2,3}){2} keeps each iteration self-contained instead
+   of jumping back into the first copy (which corrupted its captures). Capture
+   slots (RE_SAVE) are shared across copies on purpose: a repeated group keeps
+   only its last iteration, like CRuby. */
+static void
+emit_atom_copy(re_compiler *c, uint32_t start, uint32_t size)
+{
+  int32_t delta = (int32_t)c->code_len - (int32_t)start;
+  uint32_t atom_end = start + size;
+  for (uint32_t j = 0; j < size; j++) {
+    re_inst in = c->code[start + j];
+    switch (in.op) {
+    case RE_JMP: case RE_SPLIT: case RE_SPLITNG:
+      if (in.offset >= start && in.offset <= atom_end) {
+        in.offset = (uint16_t)((int32_t)in.offset + delta);
+      }
+      break;
+    default:
+      break;
+    }
+    emit(c, in.op, in.a, in.offset);
+  }
+}
+
 /* Compile atom with quantifiers (*, +, ?, {n,m}) */
 static void
 compile_quantified(re_compiler *c)
@@ -786,27 +812,21 @@ compile_quantified(re_compiler *c)
 
       /* We have one copy already; emit lo-1 more mandatory copies. */
       for (int i = 1; i < lo; i++) {
-        for (uint32_t j = 0; j < atom_size; j++) {
-          emit(c, c->code[start + j].op, c->code[start + j].a, c->code[start + j].offset);
-        }
+        emit_atom_copy(c, start, atom_size);
       }
       /* Then optional copies */
       if (max < 0) {
         /* {n,} = lo copies + * */
         uint32_t loop_start = c->code_len;
         uint32_t split_pos = emit(c, nongreedy ? RE_SPLITNG : RE_SPLIT, 0, 0);
-        for (uint32_t j = 0; j < atom_size; j++) {
-          emit(c, c->code[start + j].op, c->code[start + j].a, c->code[start + j].offset);
-        }
+        emit_atom_copy(c, start, atom_size);
         emit(c, RE_JMP, 0, loop_start);
         patch(c, split_pos, c->code_len);
       }
       else {
         for (int i = lo; i < max; i++) {
           uint32_t split_pos = emit(c, nongreedy ? RE_SPLITNG : RE_SPLIT, 0, 0);
-          for (uint32_t j = 0; j < atom_size; j++) {
-            emit(c, c->code[start + j].op, c->code[start + j].a, c->code[start + j].offset);
-          }
+          emit_atom_copy(c, start, atom_size);
           patch(c, split_pos, c->code_len);
         }
       }

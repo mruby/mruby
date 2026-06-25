@@ -214,6 +214,18 @@ assert("Regexp - repetition {n,m}") do
   assert_equal "aaa", Regexp.new("a{2,3}").match("aaaa")[0]
 end
 
+assert("Regexp - repeated group keeps each iteration self-contained") do
+  # Copying a grouped quantifier body must relocate its internal jumps, or a
+  # later copy jumps back into the first and reports the wrong capture span.
+  m = "aaaaab".match(/(a{2,3}){2}/)
+  assert_equal "aaaaa", m[0]
+  assert_equal "aa", m[1]
+  assert_equal "ab", "ababab".match(/(ab){2}/)[1]
+  assert_equal "a", "abab".match(/(a|b){3}/)[1]
+  assert_equal ["abab", "ab"], "abab".match(/((a)(b)){2}/).to_a[0, 2]
+  assert_equal "34", "1234".match(/(\d{2}){2}/)[1]
+end
+
 assert("Regexp - repetition with a zero lower bound") do
   # A zero lower bound must not force the one already-compiled copy: {0,m}
   # caps at m (it used to match m+1), {0} matches nothing, {0,} is just *.
