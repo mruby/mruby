@@ -184,6 +184,24 @@ assert("Regexp - anchors") do
   assert_false Regexp.new("abc$").match?("abcx")
 end
 
+assert("Regexp - ^ and $ always match at line boundaries") do
+  # In Ruby ^ and $ are line anchors regardless of /m (which only makes `.`
+  # match a newline). \A and \z stay anchored to the whole string.
+  assert_equal "bar", "foo\nbar".match(/^bar/)[0]
+  assert_equal "foo", "foo\nbar".match(/foo$/)[0]
+  assert_equal ["a", "b", "c"], "a\nb\nc".scan(/^./)
+  assert_equal ["a", "b", "c"], "a\nb\nc".scan(/.$/)
+  assert_equal 3, "a\nb\nc".scan(/^/).size
+  # a trailing newline opens no final line, so ^ does not match at the end
+  assert_equal 1, "a\n".scan(/^/).size
+  assert_equal ">a\n>b\n>c", "a\nb\nc".gsub(/^/, ">")
+  assert_equal ["a\n", "b\n", "c"], "a\nb\nc".split(/^/)
+  # \A / \z remain absolute
+  assert_nil(/\Abar/.match("foo\nbar"))
+  assert_nil(/foo\z/.match("foo\nbar"))
+  assert_equal "bar", "foo\nbar".match(/bar\z/)[0]
+end
+
 assert("Regexp - case insensitive") do
   re = Regexp.new("abc", Regexp::IGNORECASE)
   assert_true re.match?("ABC")

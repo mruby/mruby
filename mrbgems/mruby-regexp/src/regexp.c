@@ -881,17 +881,22 @@ regexp_gsub_str(mrb_state *mrb, mrb_value self)
       mrb_str_cat(mrb, result, rep, rep_len);
     }
 
-    /* advance position */
-    int match_end = captures[1];
-    if (match_end == pos) {
-      /* zero-length match: copy one char and advance */
-      if (pos < slen) {
-        mrb_str_cat(mrb, result, s + pos, 1);
+    /* advance position. A zero-width match (start == end) must step past the
+       match position -- even when it was found ahead of `pos`, e.g. `^` at the
+       next line start -- otherwise the next search re-applies it there. Copy
+       the whole character so multibyte text is not split. */
+    if (captures[1] == captures[0]) {
+      if (captures[1] < slen) {
+        int clen = mrb_re_utf8_charlen(s + captures[1], s + slen);
+        mrb_str_cat(mrb, result, s + captures[1], clen);
+        pos = captures[1] + clen;
       }
-      pos++;
+      else {
+        pos = captures[1] + 1;
+      }
     }
     else {
-      pos = match_end;
+      pos = captures[1];
     }
     mrb_gc_arena_restore(mrb, ai);
   }
@@ -1022,12 +1027,15 @@ regexp_scan(mrb_state *mrb, mrb_value self)
       mrb_ary_push(mrb, ary, sub);
     }
 
-    int match_end = captures[1];
-    if (match_end == pos) {
-      pos++;
+    /* Advance past the match. A zero-width match (start == end) must step
+       one byte forward, even when it landed ahead of `pos` (e.g. `^` found
+       at the next line start), otherwise the next search re-reports the same
+       position. */
+    if (captures[1] == captures[0]) {
+      pos = captures[1] + 1;
     }
     else {
-      pos = match_end;
+      pos = captures[1];
     }
     mrb_gc_arena_restore(mrb, ai);
   }

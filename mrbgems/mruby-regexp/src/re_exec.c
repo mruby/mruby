@@ -166,13 +166,18 @@ add_thread(pike_state *s, re_threadlist *list,
       continue;
 
     case RE_BOL:
-      if (sp == s->str || ((s->pat->flags & RE_FLAG_MULTILINE) && sp > s->str && sp < s->str_end && sp[-1] == '\n')) {
+      /* ^ always matches at a line start (string start or just after a \n);
+         Ruby's /m only affects `.`, not the line anchors. \A is RE_BOT. A
+         trailing \n does not open a final line, so ^ does not match at the
+         very end. */
+      if (sp == s->str || (sp != s->str_end && sp[-1] == '\n')) {
         pc++; continue;
       }
       return;
 
     case RE_EOL:
-      if (sp == s->str_end || ((s->pat->flags & RE_FLAG_MULTILINE) && *sp == '\n')) {
+      /* $ always matches at a line end (string end or just before a \n). */
+      if (sp == s->str_end || *sp == '\n') {
         pc++; continue;
       }
       return;
@@ -531,12 +536,15 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
       }
 
     case RE_BOL:
-      if (sp != str && !(pat->flags & RE_FLAG_MULTILINE && sp > str && sp < str_end && sp[-1] == '\n')) return FALSE;
+      /* ^ always matches at a line start (see the Pike VM case); /m only
+         affects `.`. \A is RE_BOT. A trailing \n opens no final line. */
+      if (sp != str && (sp == str_end || sp[-1] != '\n')) return FALSE;
       pc++;
       break;
 
     case RE_EOL:
-      if (sp != str_end && !(pat->flags & RE_FLAG_MULTILINE && *sp == '\n')) return FALSE;
+      /* $ always matches at a line end. */
+      if (sp != str_end && *sp != '\n') return FALSE;
       pc++;
       break;
 
