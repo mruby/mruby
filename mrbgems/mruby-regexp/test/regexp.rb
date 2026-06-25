@@ -411,6 +411,70 @@ assert("String#split with regexp") do
   assert_equal ["a", "b", "c"], "a, b, c".split(/,\s*/)
 end
 
+assert("String#split delegates non-regexp patterns") do
+  assert_equal ["a", "b"], " a  b ".split
+  assert_equal ["a", "b"], " a  b ".split(nil)
+  assert_equal ["a", "b", "c"], "a,b,c".split(",")
+  assert_equal ["a", "b", "c"], "abc".split("")
+  assert_equal ["a", "b", "c", ""], "abc".split("", -1)
+  assert_equal ["a", "b"], "a\\b".split("\\")
+end
+
+assert("String#split with regexp limit") do
+  assert_equal ["a"], "a,".split(/,/, 0)
+  assert_equal ["a", ""], "a,".split(/,/, -1)
+  assert_equal ["a", ""], "a,".split(/,/, 2)
+  assert_equal ["a,b,"], "a,b,".split(/,/, 1)
+end
+
+assert("String#split with empty regexp") do
+  assert_equal ["a", "b", "c"], "abc".split(//)
+  assert_equal ["a", "bc"], "abc".split(//, 2)
+  assert_equal ["a", "b", "c"], "abc".split(//, 3)
+  assert_equal ["a", "b", "c", ""], "abc".split(//, 4)
+  assert_equal ["a", "b", "c", ""], "abc".split(//, -1)
+  assert_equal [], "".split(//, -1)
+  assert_equal ["a", ""], "a".split(//, -1)
+  assert_equal ["あ", "い"], "あい".split(//)
+  assert_equal ["あ", "い"], "あい".split(//, 2)
+  assert_equal ["あ", "い", ""], "あい".split(//, -1)
+end
+
+assert("String#split with invalid regexp pattern type") do
+  assert_raise(TypeError) { "abc".split(1) }
+  assert_equal ["abc"], "abc".split(1, 1)
+end
+
+assert("String#split with regexp captures") do
+  assert_equal ["a1b2c"], "a1b2c".split(/(\d)/, 1)
+  assert_equal ["a", "1", "b", "2", "c"], "a1b2c".split(/(\d)/)
+  assert_equal ["a", "1", "b2c"], "a1b2c".split(/(\d)/, 2)
+  assert_equal ["a", "1", "b", "2", "c"], "a1b2c".split(/(\d)/, 3)
+  assert_equal ["a", "1", "b", "2", "c"], "a1b2c".split(/(\d)/, -1)
+end
+
+assert("String#split with zero-width regexp") do
+  assert_equal ["ab"], "ab".split(/(?=b)/, 1)
+  assert_equal ["a", "b"], "ab".split(/(?=b)/, 2)
+  assert_equal ["a", "b"], "ab".split(/(?=b)/, 3)
+  assert_equal ["a", "bc"], "abc".split(/(?=b)/)
+  assert_equal ["a", "bc"], "abc".split(/(?=b)/, -1)
+  assert_equal ["abc"], "abc".split(/(?=a)/)
+  assert_equal ["abc"], "abc".split(/(?=a)/, -1)
+  assert_equal ["ab", "c"], "abc".split(/(?=c)/)
+  assert_equal ["abc"], "abc".split(/^/)
+  assert_equal ["abc", ""], "abc".split(/$/, -1)
+  assert_equal ["a", "b", "bc"], "abc".split(/(?=(b))/)
+end
+
+assert("String#split with multibyte regexp") do
+  assert_equal ["あ", "い"], "あい".split(/(?=い)/)
+  assert_equal ["あ", "い"], "あい".split(/(?=い)/, -1)
+  assert_equal ["あ", "い", "い"], "あい".split(/(?=(い))/)
+  assert_equal ["", "あ", "い"], "あい".split(/(あ)/)
+  assert_equal ["", "あ", "い"], "あい".split(/(あ)/, -1)
+end
+
 assert("Regexp - case in when") do
   result = case "hello123"
            when /\d+/ then "has digits"
