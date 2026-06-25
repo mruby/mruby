@@ -425,6 +425,16 @@ assert("String#split with regexp limit") do
   assert_equal ["a", ""], "a,".split(/,/, -1)
   assert_equal ["a", ""], "a,".split(/,/, 2)
   assert_equal ["a,b,"], "a,b,".split(/,/, 1)
+  assert_raise(TypeError) { "a,b".split(/,/, nil) }
+  assert_equal ["a,b"], "a,b".split(/,/, 1.5)
+
+  limit = Object.new
+  def limit.to_int; 2; end
+  assert_equal ["a", "b"], "a,b".split(/,/, limit)
+
+  limit = Object.new
+  def limit.to_int; 1.5; end
+  assert_raise(TypeError) { "a,b".split(/,/, limit) }
 end
 
 assert("String#split with empty regexp") do

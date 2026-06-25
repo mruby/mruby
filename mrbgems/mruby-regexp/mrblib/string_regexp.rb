@@ -84,6 +84,16 @@ class String
 
     limit_given = args.length > 0
     limit = limit_given ? args[0] : 0
+    if limit_given && !limit.is_a?(Integer)
+      if limit.respond_to?(:to_int)
+        limit = limit.to_int
+        unless limit.is_a?(Integer)
+          raise TypeError, "no implicit conversion of #{limit.class} to Integer)"
+        end
+      else
+        limit = limit.__to_int
+      end
+    end
     if pattern.nil? || pattern.is_a?(String)
       return limit_given ? __split(pattern, limit) : __split(pattern)
     end
