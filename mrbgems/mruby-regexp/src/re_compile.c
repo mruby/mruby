@@ -402,9 +402,11 @@ parse_quantifier(re_compiler *c, int *min_out, int *max_out)
 {
   const char *save = c->p;
   int min = 0, max = -1;
+  mrb_bool has_digit = FALSE;
 
   while (peek(c) >= '0' && peek(c) <= '9') {
     min = min * 10 + (next_char(c) - '0');
+    has_digit = TRUE;
     if (min > RE_MAX_REPEAT) compile_error(c, "quantifier too large");
   }
   if (peek(c) == ',') {
@@ -413,6 +415,7 @@ parse_quantifier(re_compiler *c, int *min_out, int *max_out)
       max = 0;
       while (peek(c) >= '0' && peek(c) <= '9') {
         max = max * 10 + (next_char(c) - '0');
+        has_digit = TRUE;
         if (max > RE_MAX_REPEAT) compile_error(c, "quantifier too large");
       }
     }
@@ -421,7 +424,8 @@ parse_quantifier(re_compiler *c, int *min_out, int *max_out)
   else {
     max = min;  /* {n} means exactly n */
   }
-  if (peek(c) != '}') {
+  /* {} and {,} carry no count and are literals in Ruby, not quantifiers. */
+  if (!has_digit || peek(c) != '}') {
     c->p = save;  /* not a quantifier, treat { as literal */
     return FALSE;
   }
@@ -670,8 +674,26 @@ compile_atom(re_compiler *c)
     }
     break;
 
+  case '{':
+    {
+      /* `{` opens a repeat only as a valid quantifier, which compile_quantified
+         consumes after an atom. Reaching it here means there is no atom to
+         repeat: a real quantifier (e.g. {2}) is an error, like CRuby, and
+         anything else (e.g. {a}, a lone {) is a literal `{`. parse_quantifier
+         consumes the `{...}` on success and restores the position on failure,
+         so without this case a literal `{` was never consumed and the
+         sequence loop spun forever (issue #6914). */
+      next_char(c);  /* consume `{` for the trial parse */
+      int qmin, qmax;
+      if (parse_quantifier(c, &qmin, &qmax)) {
+        compile_error(c, "target of repeat operator is not specified");
+      }
+      emit(c, RE_CHAR, '{', 0);
+    }
+    break;
+
   default:
-    if (ch < 0 || ch == ')' || ch == '|' || ch == '*' || ch == '+' || ch == '?' || ch == '{') {
+    if (ch < 0 || ch == ')' || ch == '|' || ch == '*' || ch == '+' || ch == '?') {
       return;  /* not an atom */
     }
     next_char(c);

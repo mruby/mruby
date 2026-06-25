@@ -214,6 +214,19 @@ assert("Regexp - repetition {n,m}") do
   assert_equal "aaa", Regexp.new("a{2,3}").match("aaaa")[0]
 end
 
+assert("Regexp - a curly brace that is not a quantifier is a literal") do
+  # An invalid {...} used to spin the compiler forever (issue #6914); it must
+  # be treated as a literal brace, matching CRuby. A well-formed quantifier
+  # with nothing to repeat is an error instead.
+  assert_equal "{a}", "x{a}y".match(/{a}/)[0]
+  assert_equal "{", "a{b".match(/{/)[0]
+  assert_equal "{}", "a{}b".match(/{}/)[0]
+  assert_equal "a{}", "a{}".match(/a{}/)[0]
+  assert_equal "{,}", "x{,}y".match(/{,}/)[0]
+  assert_equal "a{b}c", "a{b}c".match(/a{b}c/)[0]
+  assert_raise(RegexpError) { Regexp.new("{2}") }
+end
+
 assert("MatchData#captures") do
   re = Regexp.new("(a)(b)(c)")
   md = re.match("abc")
