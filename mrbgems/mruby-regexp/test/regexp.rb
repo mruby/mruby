@@ -98,6 +98,19 @@ assert("Regexp - alternation") do
   assert_equal "dog", re.match("I have a dog")[0]
 end
 
+assert("Regexp - alternation is leftmost-first") do
+  # Ruby tries alternatives left to right and keeps the first that lets the
+  # whole pattern match -- not the longest. The linear-time engine used to
+  # pick the longest branch instead.
+  assert_equal "a", "ab".match(/a|ab/)[0]
+  assert_equal "foo", "foobar".match(/foo|foobar/)[0]
+  assert_equal "ab", "ab".match(/ab|a/)[0]
+  assert_equal ["abc", "ab", "c"], "abcd".match(/(ab|abc)(c|cd)/).to_a
+  assert_equal "aa", "aaa".match(/aa|a/)[0]
+  # greedy quantifiers stay longest-match
+  assert_equal "aaa", "aaa".match(/a+/)[0]
+end
+
 assert("Regexp - quantifiers") do
   assert_equal "aaa", Regexp.new("a+").match("aaa")[0]
   assert_equal "", Regexp.new("a*").match("bbb")[0]
