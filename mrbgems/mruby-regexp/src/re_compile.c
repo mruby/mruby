@@ -829,12 +829,17 @@ compile_alt(re_compiler *c)
     }
   }
 
-  /* Now set up SPLIT chain: each SPLIT tries next instruction or jumps to alt */
+  /* Now set up the SPLIT chain. Each SPLIT falls through to the next, and the
+     chain's final fall-through reaches the first alternative, so the engines
+     (which rank a SPLIT's fall-through above its jump) explore alternative 0
+     first. The jump targets are then unwound in reverse, so SPLIT i must jump
+     to alternative (split_count - i) to keep the remaining alternatives in
+     source order -- i.e. leftmost-first across three or more branches. */
   for (uint32_t i = 0; i < split_count; i++) {
     uint32_t pos = alt_starts[0] - split_count + i;
     c->code[pos].op = RE_SPLIT;
     c->code[pos].a = 0;
-    c->code[pos].offset = (uint16_t)alt_starts[i + 1];
+    c->code[pos].offset = (uint16_t)alt_starts[split_count - i];
   }
 
   /* Patch JMPs (they are right before each alt_starts[1..n-1]) to point to end */

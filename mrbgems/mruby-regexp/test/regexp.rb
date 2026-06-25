@@ -107,6 +107,11 @@ assert("Regexp - alternation is leftmost-first") do
   assert_equal "ab", "ab".match(/ab|a/)[0]
   assert_equal ["abc", "ab", "c"], "abcd".match(/(ab|abc)(c|cd)/).to_a
   assert_equal "aa", "aaa".match(/aa|a/)[0]
+  # three or more branches keep source order, not just the first two
+  assert_equal "car", "cart".match(/cat|car|cart/)[0]
+  assert_equal "cart", "cart".match(/cat|cart|car/)[0]
+  assert_equal "a", "abc".match(/a|ab|abc/)[0]
+  assert_equal "abc", "abc".match(/abc|ab|a/)[0]
   # greedy quantifiers stay longest-match
   assert_equal "aaa", "aaa".match(/a+/)[0]
 end
