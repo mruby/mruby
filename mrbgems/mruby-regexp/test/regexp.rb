@@ -123,6 +123,17 @@ assert("Regexp - quantifiers") do
   assert_equal "a", Regexp.new("ab?").match("ac")[0]
 end
 
+assert("Regexp - quantified first alternative does not leak into the next") do
+  # A quantifier loops back to its own atom. When the atom starts the first
+  # alternative, the alternation SPLIT is inserted in front of it; the
+  # loop-back must follow the atom, not land on the new SPLIT (which used to
+  # let /\d+|\w/ match "1b" by re-entering the alternation after "1").
+  assert_equal "1", "1b2c3".match(/\d+|\w/)[0]
+  assert_equal ["a", "1", "b", "2", "c", "3"], "a1b2c3".scan(/\d+|\w/)
+  assert_equal "aaa", "aaa".match(/a+|b/)[0]
+  assert_equal "123", "123abc".match(/\d+|\w+/)[0]
+end
+
 assert("Regexp - captures") do
   re = Regexp.new("(\\w+)@(\\w+)")
   md = re.match("user@host")

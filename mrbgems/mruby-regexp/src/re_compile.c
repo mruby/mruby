@@ -85,7 +85,7 @@ patch(re_compiler *c, uint32_t pos, uint16_t offset)
 }
 
 /* Insert an instruction at position `pos` by shifting code.
-   Adjusts all jump offsets >= pos by +1. */
+   Adjusts jump targets so they still point at the same instructions. */
 static void
 insert_inst(re_compiler *c, uint32_t pos, uint8_t op, uint8_t a, uint16_t offset)
 {
@@ -96,16 +96,19 @@ insert_inst(re_compiler *c, uint32_t pos, uint8_t op, uint8_t a, uint16_t offset
   c->code[pos].a = a;
   c->code[pos].offset = offset;
 
-  /* Fix jump targets that point past the insertion point. An offset equal
-     to `pos` already points to the inserted instruction's new location and
-     must not be bumped -- bumping it would shift the target to whatever
-     code got displaced by the insertion (e.g. the body of the quantified
-     atom), corrupting "skip past this atom" jumps emitted earlier. */
+  /* Fix jump targets across the insertion. A target past `pos` shifts down by
+     one. A target equal to `pos` is ambiguous:
+     - code that moved (i > pos) is a backward jump -- e.g. the SPLIT that
+       loops `\d+` back to its class -- and meant the instruction now at
+       pos+1, so it must follow.
+     - code before the insertion (i < pos) is a forward "skip to here"
+       reference that should stay on the newly inserted instruction. */
   for (uint32_t i = 0; i < c->code_len; i++) {
     if (i == pos) continue;
     switch (c->code[i].op) {
     case RE_JMP: case RE_SPLIT: case RE_SPLITNG:
-      if (c->code[i].offset > pos && c->code[i].offset < 0xffff) {
+      if (c->code[i].offset >= 0xffff) break;
+      if (c->code[i].offset > pos || (c->code[i].offset == pos && i > pos)) {
         c->code[i].offset++;
       }
       break;
