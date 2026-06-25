@@ -142,6 +142,21 @@ assert("Regexp - captures") do
   assert_equal "host", md[2]
 end
 
+assert("String#scan return shape") do
+  # No capture group: an array of the matched strings.
+  assert_equal ["a", "b", "c"], "abc".scan(/\w/)
+  # Any capture group: an array per match holding that match's captures, so a
+  # single group still yields one-element arrays (not bare strings).
+  assert_equal [["x"], ["x"]], "xyxy".scan(/(x|xy)+/)
+  assert_equal [["a", "1"], ["b", "2"]], "a1b2".scan(/(\w)(\d)/)
+  assert_equal [["cat"], ["dog"]], "cats dogs".scan(/(cat|dog)s?/)
+  # A group that did not participate is nil inside the per-match array.
+  assert_equal [[nil]], "".scan(/(a|ab)*/)
+  collected = []
+  "foo".scan(/(o)/) { |m| collected << m }
+  assert_equal [["o"], ["o"]], collected
+end
+
 assert("Regexp - \\d \\w \\s") do
   assert_true Regexp.new("\\d+").match?("123")
   assert_true Regexp.new("\\w+").match?("abc_123")

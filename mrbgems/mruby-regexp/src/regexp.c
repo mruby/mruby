@@ -1000,22 +1000,15 @@ regexp_scan(mrb_state *mrb, mrb_value self)
     memcpy(last_captures, captures, sizeof(int) * cap_size);
 
     if (ncap <= 1) {
-      /* no captures or just group 0: push matched string */
+      /* no capture groups: push the matched string */
       mrb_ary_push(mrb, ary,
         re_byte_substr(mrb, str, captures[0], captures[1] - captures[0]));
     }
-    else if (ncap == 2) {
-      /* single capture group: push capture string */
-      if (captures[2] >= 0) {
-        mrb_ary_push(mrb, ary,
-          re_byte_substr(mrb, str, captures[2], captures[3] - captures[2]));
-      }
-      else {
-        mrb_ary_push(mrb, ary, mrb_nil_value());
-      }
-    }
     else {
-      /* multiple captures: push array of captures */
+      /* one or more capture groups: push an array of the captures. CRuby
+         returns an array per match whenever the pattern has any group, so a
+         single group yields a one-element array (e.g. [["x"]]), not a bare
+         string. */
       mrb_value sub = mrb_ary_new_capa(mrb, ncap - 1);
       for (int i = 1; i < ncap; i++) {
         if (captures[i * 2] >= 0) {
