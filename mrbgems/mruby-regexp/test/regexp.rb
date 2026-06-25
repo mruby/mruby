@@ -158,6 +158,20 @@ assert("MatchData#captures") do
   assert_equal ["a", "b", "c"], md.captures
 end
 
+assert("MatchData captures across alternation branches") do
+  # The branch that matches must record its own capture, whichever side of
+  # the alternation it is on (regression: the left branch used to come back
+  # nil because the Pike VM clobbered its capture slot during compaction).
+  md = /(\d)|(x)/.match("1")
+  assert_equal "1", md[1]
+  assert_nil md[2]
+  md = /(\d)|(x)/.match("x")
+  assert_nil md[1]
+  assert_equal "x", md[2]
+  md = /(cat)|(dog)/.match("cat")
+  assert_equal ["cat", nil], md.captures
+end
+
 assert("MatchData#pre_match / #post_match") do
   re = Regexp.new("bc")
   md = re.match("abcde")
