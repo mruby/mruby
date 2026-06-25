@@ -253,6 +253,42 @@ class_add_shorthand(re_charclass *cc, int ch)
   }
 }
 
+/* Set ASCII bits for a POSIX class name (e.g. "alpha") into a 128-bit map.
+   Returns FALSE for an unknown name. Semantics are ASCII, like this gem's
+   \w/\d shorthands; non-ASCII codepoints are not classified. */
+static mrb_bool
+posix_class_bits(uint8_t *bits, const char *name, uint16_t len)
+{
+#define NAME_IS(s) (len == sizeof(s) - 1 && memcmp(name, s, len) == 0)
+#define BSET(ch)   (bits[(ch) >> 3] |= (uint8_t)(1u << ((ch) & 7)))
+#define BRANGE(lo, hi) do { for (int i = (lo); i <= (hi); i++) BSET(i); } while (0)
+  if (NAME_IS("alpha")) { BRANGE('a','z'); BRANGE('A','Z'); }
+  else if (NAME_IS("digit")) { BRANGE('0','9'); }
+  else if (NAME_IS("alnum")) { BRANGE('a','z'); BRANGE('A','Z'); BRANGE('0','9'); }
+  else if (NAME_IS("upper")) { BRANGE('A','Z'); }
+  else if (NAME_IS("lower")) { BRANGE('a','z'); }
+  else if (NAME_IS("space")) { BSET(' '); BRANGE('\t','\r'); }
+  else if (NAME_IS("blank")) { BSET(' '); BSET('\t'); }
+  else if (NAME_IS("xdigit")) { BRANGE('0','9'); BRANGE('a','f'); BRANGE('A','F'); }
+  else if (NAME_IS("word")) { BRANGE('a','z'); BRANGE('A','Z'); BRANGE('0','9'); BSET('_'); }
+  else if (NAME_IS("cntrl")) { BRANGE(0, 0x1f); BSET(0x7f); }
+  else if (NAME_IS("print")) { BRANGE(0x20, 0x7e); }
+  else if (NAME_IS("graph")) { BRANGE(0x21, 0x7e); }
+  else if (NAME_IS("ascii")) { BRANGE(0, 0x7f); }
+  else if (NAME_IS("punct")) {
+    for (int i = 0x21; i <= 0x7e; i++) {
+      mrb_bool alnum = (i >= 'a' && i <= 'z') || (i >= 'A' && i <= 'Z') ||
+                       (i >= '0' && i <= '9');
+      if (!alnum) BSET(i);
+    }
+  }
+  else return FALSE;
+  return TRUE;
+#undef NAME_IS
+#undef BSET
+#undef BRANGE
+}
+
 static int
 parse_escape(re_compiler *c)
 {
@@ -348,6 +384,32 @@ compile_charclass(re_compiler *c)
   while (peek(c) != ']' || first) {
     if (peek(c) < 0) compile_error(c, "unterminated character class");
     first = FALSE;
+
+    /* POSIX bracket class: [:name:] or negated [:^name:] inside [...]. */
+    if (peek(c) == '[' && c->p + 1 < c->src_end && c->p[1] == ':') {
+      const char *save = c->p;
+      next_char(c);  /* '[' */
+      next_char(c);  /* ':' */
+      mrb_bool neg = FALSE;
+      if (peek(c) == '^') { neg = TRUE; next_char(c); }
+      const char *name = c->p;
+      while (peek(c) >= 0 && peek(c) != ':' && peek(c) != ']') next_char(c);
+      if (peek(c) == ':' && c->p + 1 < c->src_end && c->p[1] == ']') {
+        uint8_t bits[16] = {0};
+        if (!posix_class_bits(bits, name, (uint16_t)(c->p - name))) {
+          compile_error(c, "invalid POSIX bracket class");
+        }
+        next_char(c);  /* ':' */
+        next_char(c);  /* ']' */
+        for (int i = 0; i < 128; i++) {
+          mrb_bool in = (bits[i >> 3] >> (i & 7)) & 1;
+          if (in != neg) class_set_bit(cc, (uint8_t)i);
+        }
+        if (neg) cc->utf8_any = TRUE;  /* [:^...:] matches non-ASCII too */
+        continue;
+      }
+      c->p = save;  /* not a POSIX class; treat '[' as a literal below */
+    }
 
     /* Shorthand classes (\d, \D, \w, \W, \s, \S, \h, \H) are handled
        before the codepoint-aware path so the single-byte semantics

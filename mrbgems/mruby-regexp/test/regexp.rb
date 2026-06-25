@@ -77,6 +77,25 @@ assert("Regexp - character class") do
   assert_equal "abc", md[0]
 end
 
+assert("Regexp - POSIX bracket classes") do
+  # ASCII semantics, like this gem's \w/\d shorthands.
+  assert_equal "abc", "123abc456".match(/[[:alpha:]]+/)[0]
+  assert_equal "123", "123abc".match(/[[:digit:]]+/)[0]
+  assert_equal "abc123", "abc123!".match(/[[:alnum:]]+/)[0]
+  assert_equal "deadBEEF", "deadBEEF".match(/[[:xdigit:]]+/)[0]
+  assert_equal "snake_case", "snake_case".match(/[[:word:]]+/)[0]
+  assert_equal "!", "ab!cd".match(/[[:punct:]]/)[0]
+  assert_equal "AB", "abAB".match(/[[:upper:]]+/)[0]
+  # combine with literals and other classes
+  assert_equal "a1", "a1-".match(/[a[:digit:]]+/)[0]
+  assert_equal "ab12", "ab12 ".match(/[[:alpha:][:digit:]]+/)[0]
+  # negated forms
+  assert_equal "abc", "abc123".match(/[[:^digit:]]+/)[0]
+  assert_equal "x", " x".match(/[^[:space:]]/)[0]
+  # an unknown class name is an error
+  assert_raise(RegexpError) { Regexp.new("[[:bogus:]]") }
+end
+
 assert("Regexp - \\b inside character class is backspace") do
   # Outside [...], \b is the word boundary assertion; inside [...]
   # it must mean U+0008 (backspace), matching MRI/Onigmo.
