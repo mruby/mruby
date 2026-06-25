@@ -674,6 +674,18 @@ assert("Regexp - named captures") do
   assert_equal "2026", md["year"]
 end
 
+assert("Regexp - named backreference \\k") do
+  assert_equal "aa", "aa".match(/(?<n>\w)\k<n>/)[0]
+  assert_equal "abba", "abba".match(/(?<a>.)(?<b>.)\k<b>\k<a>/)[0]
+  assert_equal "1212", "1212".match(/(?<x>\d+)\k'x'/)[0]
+  assert_nil "ab".match(/(?<n>\w)\k<n>/)
+  # numeric and relative forms
+  assert_equal "aa", "aa".match(/(a)\k<1>/)[0]
+  assert_equal "abba", "abba".match(/(.)(.)\k<-1>\k<-2>/)[0]
+  # an unknown name is an error
+  assert_raise(RegexpError) { Regexp.new("\\k<missing>") }
+end
+
 assert("MatchData#named_captures") do
   md = /(?<a>\w+)@(?<b>\w+)/.match("user@host")
   nc = md.named_captures

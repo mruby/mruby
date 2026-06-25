@@ -652,6 +652,45 @@ compile_atom(re_compiler *c)
       next_char(c);
       emit(c, RE_NWBOUND, 0, 0);
     }
+    else if (ch == 'k' && c->p + 1 < c->src_end &&
+             (c->p[1] == '<' || c->p[1] == '\'')) {
+      /* \k<name> / \k'name': backreference to a named group. Numeric forms
+         \k<2> (absolute) and \k<-1> (relative to the groups seen so far) are
+         also accepted, like the \g/\k family in Onigmo. */
+      next_char(c);  /* skip k */
+      int close = (peek(c) == '<') ? '>' : '\'';
+      next_char(c);  /* skip < or ' */
+      const char *name = c->p;
+      while (peek(c) != close && peek(c) >= 0) next_char(c);
+      if (peek(c) != close) compile_error(c, "unterminated backreference name");
+      uint16_t name_len = (uint16_t)(c->p - name);
+      next_char(c);  /* skip the closing > or ' */
+
+      int group = -1;
+      if (name_len > 0 && (name[0] == '-' || (name[0] >= '0' && name[0] <= '9'))) {
+        mrb_bool relative = (name[0] == '-');
+        int n = 0;
+        for (uint16_t i = (relative ? 1 : 0); i < name_len; i++) {
+          if (name[i] < '0' || name[i] > '9') compile_error(c, "invalid backreference");
+          n = n * 10 + (name[i] - '0');
+        }
+        group = relative ? (int)c->num_captures - n : n;
+      }
+      else {
+        for (uint16_t i = 0; i < c->num_named; i++) {
+          if (c->named_captures[i].name_len == name_len &&
+              memcmp(c->named_captures[i].name, name, name_len) == 0) {
+            group = c->named_captures[i].group;
+            break;
+          }
+        }
+      }
+      if (group < 1 || group >= (int)c->num_captures) {
+        compile_error(c, "undefined group name reference");
+      }
+      emit(c, RE_BACKREF, (uint8_t)group, 0);
+      c->has_backref = TRUE;
+    }
     else {
       ch = parse_escape(c);
       if (c->flags & RE_FLAG_IGNORECASE) {
