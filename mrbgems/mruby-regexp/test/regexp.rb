@@ -54,6 +54,27 @@ assert("Regexp#=~") do
   re = Regexp.new("bc")
   assert_equal 1, re =~ "abcd"
   assert_nil re =~ "xyz"
+  assert_equal __ENCODING__ == "UTF-8" ? 1 : 3, /い/ =~ "あい"
+end
+
+assert("Regexp - dot advances by string mode") do
+  str = "\xC3\xA9x"
+  assert_equal [[0xC3, 0xA9], [0x78]], str.scan(/./).map { |m| m.bytes }
+  assert_equal [0x5A, 0x78], str.sub(/./, "Z").bytes
+  assert_equal "195,120,", str.gsub(/./) { |m| "#{m.bytes[0]}," }
+
+  if Object.const_defined?(:Encoding)
+    bin = str.dup.force_encoding("ASCII-8BIT")
+    md = /x/.match(bin, 2)
+    assert_equal "x", md[0]
+    assert_equal 2, md.begin(0)
+    assert_true /x/.match?(bin, 2)
+    assert_equal 2, /x/ =~ bin
+
+    assert_equal [[0xC3], [0xA9], [0x78]], bin.scan(/./).map { |m| m.bytes }
+    assert_equal [0x5A, 0xA9, 0x78], bin.sub(/./, "Z").bytes
+    assert_equal "195,169,120,", bin.gsub(/./) { |m| "#{m.bytes[0]}," }
+  end
 end
 
 assert("Regexp#=~ - nil argument clears last match") do

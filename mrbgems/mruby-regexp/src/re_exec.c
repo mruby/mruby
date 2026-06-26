@@ -84,6 +84,7 @@ typedef struct {
   const char *str_end;
   mrb_bool matched;
   mrb_bool match_only;    /* true: skip capture tracking (match? path) */
+  mrb_bool binary;        /* true: subject is byte-indexed ASCII-8BIT */
   mrb_bool cut;           /* a higher-priority thread matched this step:
                              stop adding/processing lower-priority threads */
   int *result_caps;       /* best match (ncap ints) */
@@ -239,7 +240,7 @@ add_thread(pike_state *s, re_threadlist *list,
 static int
 pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
         const char *str, mrb_int len, mrb_int start,
-        int *captures, int captures_size)
+        int *captures, int captures_size, mrb_bool binary)
 {
   const char *sp = str + start;
   const char *str_end = str + len;
@@ -263,6 +264,7 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
   s.str_end = str_end;
   s.matched = FALSE;
   s.match_only = match_only;
+  s.binary = binary;
   s.cut = FALSE;
   s.gen = 1;
   if (match_only) {
@@ -313,7 +315,7 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
          a multi-byte char's interior is not a valid char boundary, and
          starting a thread there mis-decodes the char (e.g. a class-
          match on a stray 0x82 instead of the leader's full codepoint). */
-      if (curr.count == 0 && sp < str_end && ((uint8_t)*sp & 0xC0) == 0x80) {
+      if (!s.binary && curr.count == 0 && sp < str_end && mrb_re_utf8_continuation_p(sp)) {
         continue;
       }
       int slot = match_only ? 0 : pool_alloc(&s);
@@ -352,13 +354,13 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
     next.count = 0;
 
     int ch = (uint8_t)*sp;
-    int advance = mrb_re_utf8_charlen(sp, str_end);
+    int advance = mrb_re_charlen(sp, str_end, s.binary);
     /* Decoded codepoint of the current input char. Identical to `ch`
        for ASCII; lazily decoded only when the char is multi-byte. */
     uint32_t curr_cp = (uint32_t)ch;
-    if (advance > 1) {
+    if (!s.binary && advance > 1) {
       int dlen = 0;
-      curr_cp = mrb_re_utf8_decode(sp, &dlen);
+      curr_cp = mrb_re_decode_char(sp, &dlen, s.binary);
     }
 
     for (int i = 0; i < curr.count; i++) {
@@ -461,7 +463,7 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
 static mrb_bool
 bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
          const char *sp, uint32_t pc, int *captures, int ncap, int *steps,
-         int depth)
+         int depth, mrb_bool binary)
 {
   if (depth > MRB_REGEXP_RECURSION_LIMIT) return FALSE;
   while (pc < pat->code_len) {
@@ -476,21 +478,21 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
 
     case RE_ANY:
       if (sp >= str_end || *sp == '\n') return FALSE;
-      sp += mrb_re_utf8_charlen(sp, str_end); pc++;
+      sp += mrb_re_charlen(sp, str_end, binary); pc++;
       break;
 
     case RE_ANY_NL:
       if (sp >= str_end) return FALSE;
-      sp += mrb_re_utf8_charlen(sp, str_end); pc++;
+      sp += mrb_re_charlen(sp, str_end, binary); pc++;
       break;
 
     case RE_CLASS:
       if (sp >= str_end) return FALSE;
       {
         int dlen = 0;
-        uint32_t cp_ = mrb_re_utf8_decode(sp, &dlen);
+        uint32_t cp_ = mrb_re_decode_char(sp, &dlen, binary);
         if (!class_match(&pat->classes[inst.a], cp_)) return FALSE;
-        sp += mrb_re_utf8_charlen(sp, str_end);
+        sp += mrb_re_charlen(sp, str_end, binary);
       }
       pc++;
       break;
@@ -499,9 +501,9 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
       if (sp >= str_end) return FALSE;
       {
         int dlen = 0;
-        uint32_t cp_ = mrb_re_utf8_decode(sp, &dlen);
+        uint32_t cp_ = mrb_re_decode_char(sp, &dlen, binary);
         if (class_match(&pat->classes[inst.a], cp_)) return FALSE;
-        sp += mrb_re_utf8_charlen(sp, str_end);
+        sp += mrb_re_charlen(sp, str_end, binary);
       }
       pc++;
       break;
@@ -514,12 +516,12 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
       break;
 
     case RE_SPLIT:
-      if (bt_match(pat, str, str_end, sp, pc + 1, captures, ncap, steps, depth + 1)) return TRUE;
+      if (bt_match(pat, str, str_end, sp, pc + 1, captures, ncap, steps, depth + 1, binary)) return TRUE;
       pc = inst.offset;
       break;
 
     case RE_SPLITNG:
-      if (bt_match(pat, str, str_end, sp, inst.offset, captures, ncap, steps, depth + 1)) return TRUE;
+      if (bt_match(pat, str, str_end, sp, inst.offset, captures, ncap, steps, depth + 1, binary)) return TRUE;
       pc++;
       break;
 
@@ -529,7 +531,7 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
         if (slot < ncap) {
           int old = captures[slot];
           captures[slot] = (int)(sp - str);
-          if (bt_match(pat, str, str_end, sp, pc + 1, captures, ncap, steps, depth + 1)) return TRUE;
+          if (bt_match(pat, str, str_end, sp, pc + 1, captures, ncap, steps, depth + 1, binary)) return TRUE;
           captures[slot] = old;
         }
         return FALSE;
@@ -592,13 +594,13 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
       break;
 
     case RE_LOOKAHEAD:
-      if (!bt_match(pat, str, str_end, sp, pc + 1, captures, ncap, steps, depth + 1))
+      if (!bt_match(pat, str, str_end, sp, pc + 1, captures, ncap, steps, depth + 1, binary))
         return FALSE;
       pc = inst.offset;
       break;
 
     case RE_NEG_LOOKAHEAD:
-      if (bt_match(pat, str, str_end, sp, pc + 1, captures, ncap, steps, depth + 1))
+      if (bt_match(pat, str, str_end, sp, pc + 1, captures, ncap, steps, depth + 1, binary))
         return FALSE;
       pc = inst.offset;
       break;
@@ -607,7 +609,7 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
       {
         int lb_len = inst.a;
         if (sp - str < lb_len) return FALSE;  /* not enough text before */
-        if (!bt_match(pat, str, str_end, sp - lb_len, pc + 1, captures, ncap, steps, depth + 1))
+        if (!bt_match(pat, str, str_end, sp - lb_len, pc + 1, captures, ncap, steps, depth + 1, binary))
           return FALSE;
         pc = inst.offset;
       }
@@ -617,7 +619,7 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
       {
         int lb_len = inst.a;
         if (sp - str >= lb_len) {
-          if (bt_match(pat, str, str_end, sp - lb_len, pc + 1, captures, ncap, steps, depth + 1))
+          if (bt_match(pat, str, str_end, sp - lb_len, pc + 1, captures, ncap, steps, depth + 1, binary))
             return FALSE;
         }
         /* if not enough text before, negative lookbehind succeeds */
@@ -635,7 +637,7 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
 static int
 backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
                const char *str, mrb_int len, mrb_int start,
-               int *captures, int captures_size)
+               int *captures, int captures_size, mrb_bool binary)
 {
   const char *str_end = str + len;
   int ncap = pat->num_captures * 2;
@@ -654,10 +656,13 @@ backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
       while (sp < str_end && !FIRST_BYTE_OK(pat, (uint8_t)*sp)) sp++;
       if (sp > str_end) break;
     }
+    if (!binary && sp < str_end && mrb_re_utf8_continuation_p(sp)) {
+      continue;
+    }
     memset(caps, -1, sizeof(int) * ncap);
     int steps = 0;
 
-    if (bt_match(pat, str, str_end, sp, 0, caps, ncap, &steps, 0)) {
+    if (bt_match(pat, str, str_end, sp, 0, caps, ncap, &steps, 0, binary)) {
       if (captures) {
         int copy = ncap < captures_size ? ncap : captures_size;
         memcpy(captures, caps, sizeof(int) * copy);
@@ -700,13 +705,13 @@ literal_exec(const mrb_regexp_pattern *pat,
 int
 mrb_re_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
         const char *str, mrb_int len, mrb_int start,
-        int *captures, int captures_size)
+        int *captures, int captures_size, mrb_bool binary)
 {
   if (pat->is_literal) {
     return literal_exec(pat, str, len, start, captures, captures_size);
   }
   if (pat->has_backref || pat->needs_backtrack) {
-    return backtrack_exec(mrb, pat, str, len, start, captures, captures_size);
+    return backtrack_exec(mrb, pat, str, len, start, captures, captures_size, binary);
   }
-  return pike_vm(mrb, pat, str, len, start, captures, captures_size);
+  return pike_vm(mrb, pat, str, len, start, captures, captures_size, binary);
 }

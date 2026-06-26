@@ -179,8 +179,13 @@ static mrb_int
 re_byte_to_char(mrb_state *mrb, mrb_value str, mrb_int byte_off)
 {
   (void)mrb;
+  if (byte_off < 0) return byte_off;
+
 #ifdef MRB_UTF8_STRING
-  const char *p = RSTRING_PTR(str);
+  struct RString *s = RSTRING(str);
+  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) return byte_off;
+
+  const char *p = RSTR_PTR(s);
   mrb_int chars = 0;
   for (mrb_int i = 0; i < byte_off; i++) {
     if (((unsigned char)p[i] & 0xC0) != 0x80) chars++;
@@ -191,25 +196,33 @@ re_byte_to_char(mrb_state *mrb, mrb_value str, mrb_int byte_off)
   return byte_off;
 #endif
 }
-
-/* Normalize Regexp#match positional argument for the regexp engine. Ruby's
-   pos is a character offset only when MRB_UTF8_STRING is enabled; otherwise
-   it already is a byte offset. Returns -1 for out-of-range offsets, which
-   Ruby treats as no match. */
+/* Normalize Regexp#match positional argument for the regexp engine.
+   For UTF-8 multibyte strings, Ruby's public pos is a character offset and
+   must be converted to a byte offset. For single-byte or binary strings,
+   the public pos is already byte-compatible. Returns -1 for out-of-range
+   offsets, which Ruby treats as no match. */
 static mrb_int
 re_char_to_byte(mrb_state *mrb, mrb_value str, mrb_int char_off)
 {
   (void)mrb;
 #ifdef MRB_UTF8_STRING
-  const char *p = RSTRING_PTR(str);
-  const char *e = p + RSTRING_LEN(str);
-  mrb_int char_len = re_byte_to_char(mrb, str, RSTRING_LEN(str));
+  struct RString *s = RSTRING(str);
+  mrb_int len = RSTR_LEN(s);
+  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
+    if (char_off < 0) char_off += len;
+    if (char_off < 0 || char_off > len) return -1;
+    return char_off;
+  }
+
+  const char *p = RSTR_PTR(s);
+  const char *e = p + len;
   mrb_int chars = 0;
 
   if (char_off < 0) {
+    mrb_int char_len = re_byte_to_char(mrb, str, len);
     char_off += char_len;
+    if (char_off < 0) return -1;
   }
-  if (char_off < 0 || char_off > char_len) return -1;
   while (p < e && chars < char_off) {
     p++;
     while (p < e && (((unsigned char)*p & 0xC0) == 0x80)) {
@@ -218,13 +231,19 @@ re_char_to_byte(mrb_state *mrb, mrb_value str, mrb_int char_off)
     chars++;
   }
   if (chars < char_off) return -1;
-  return (mrb_int)(p - RSTRING_PTR(str));
+  return (mrb_int)(p - RSTR_PTR(s));
 #else
   mrb_int len = RSTRING_LEN(str);
   if (char_off < 0) char_off += len;
   if (char_off < 0 || char_off > len) return -1;
   return char_off;
 #endif
+}
+
+static mrb_bool
+re_binary_string_p(mrb_value str)
+{
+  return RSTR_BINARY_P(RSTRING(str));
 }
 
 /* Create MatchData from captures */
@@ -275,7 +294,7 @@ exec_match(mrb_state *mrb, mrb_value self, mrb_value str, mrb_int pos)
   int *captures = (int*)mrb_malloc(mrb, sizeof(int) * cap_size);
   memset(captures, -1, sizeof(int) * cap_size);
   int ncap = mrb_re_exec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), pos,
-                     captures, cap_size);
+                     captures, cap_size, re_binary_string_p(str));
 
   if (ncap == 0) {
     mrb_free(mrb, captures);
@@ -343,7 +362,8 @@ regexp_match_p(mrb_state *mrb, mrb_value self)
   mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, self, &regexp_type, mrb_regexp_pattern);
   if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
 
-  int ncap = mrb_re_exec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), pos, NULL, 0);
+  int ncap = mrb_re_exec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), pos, NULL, 0,
+                         re_binary_string_p(str));
   return mrb_bool_value(ncap > 0);
 }
 
@@ -365,7 +385,7 @@ regexp_match_op(mrb_state *mrb, mrb_value self)
   if (mrb_nil_p(md)) return mrb_nil_value();
 
   mrb_match_data *m = DATA_GET_PTR(mrb, md, &matchdata_type, mrb_match_data);
-  return mrb_int_value(mrb, m->captures[0]);
+  return mrb_int_value(mrb, re_byte_to_char(mrb, m->source, m->captures[0]));
 }
 
 /*
@@ -848,6 +868,7 @@ regexp_gsub_str(mrb_state *mrb, mrb_value self)
   const char *rep = RSTRING_PTR(replacement);
   mrb_int rep_len = RSTRING_LEN(replacement);
   mrb_bool need_expand = has_backslash(rep, rep_len);
+  mrb_bool binary = re_binary_string_p(str);
 
   int ncap = pat->num_captures;
   int cap_size = ncap * 2;
@@ -861,7 +882,7 @@ regexp_gsub_str(mrb_state *mrb, mrb_value self)
 
   while (pos <= slen) {
     memset(captures, -1, sizeof(int) * cap_size);
-    int n = mrb_re_exec(mrb, pat, s, slen, pos, captures, cap_size);
+    int n = mrb_re_exec(mrb, pat, s, slen, pos, captures, cap_size, binary);
     if (n == 0) break;
 
     /* save last match for $~ */
@@ -887,7 +908,7 @@ regexp_gsub_str(mrb_state *mrb, mrb_value self)
        the whole character so multibyte text is not split. */
     if (captures[1] == captures[0]) {
       if (captures[1] < slen) {
-        int clen = mrb_re_utf8_charlen(s + captures[1], s + slen);
+        int clen = mrb_re_charlen(s + captures[1], s + slen, binary);
         mrb_str_cat(mrb, result, s + captures[1], clen);
         pos = captures[1] + clen;
       }
@@ -940,7 +961,7 @@ regexp_sub_str(mrb_state *mrb, mrb_value self)
   int *captures = (int*)mrb_malloc(mrb, sizeof(int) * cap_size);
   memset(captures, -1, sizeof(int) * cap_size);
 
-  int n = mrb_re_exec(mrb, pat, s, slen, 0, captures, cap_size);
+  int n = mrb_re_exec(mrb, pat, s, slen, 0, captures, cap_size, re_binary_string_p(str));
   if (n == 0) {
     mrb_free(mrb, captures);
     clear_match_globals(mrb);
@@ -986,6 +1007,7 @@ regexp_scan(mrb_state *mrb, mrb_value self)
 
   const char *s = RSTRING_PTR(str);
   mrb_int slen = RSTRING_LEN(str);
+  mrb_bool binary = re_binary_string_p(str);
   int ncap = pat->num_captures;
   int cap_size = ncap * 2;
   int *captures = (int*)mrb_malloc(mrb, sizeof(int) * cap_size);
@@ -998,7 +1020,7 @@ regexp_scan(mrb_state *mrb, mrb_value self)
 
   while (pos <= slen) {
     memset(captures, -1, sizeof(int) * cap_size);
-    int n = mrb_re_exec(mrb, pat, s, slen, pos, captures, cap_size);
+    int n = mrb_re_exec(mrb, pat, s, slen, pos, captures, cap_size, binary);
     if (n == 0) break;
 
     last_ncap = cap_size;
