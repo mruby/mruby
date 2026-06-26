@@ -881,7 +881,12 @@ retry:
           if (i > 0)
             need = BIT_DIGITS(i);
         }
-        if (need > MRB_INT_MAX - ((flags&FPREC) ? prec : 6)) {
+        /* The float formatter works in `int` (buffer offsets and the return
+           value), so the buffer must fit in an int. Bound against INT_MAX, not
+           MRB_INT_MAX: on a 64-bit mrb_int the latter never trips, letting a
+           prec/width near INT_MAX (e.g. "%.2147483647e") allocate ~2GB and then
+           overflow the int length into a negative memmove size (segfault). */
+        if (need > INT_MAX - ((flags&FPREC) ? prec : 6)) {
         too_big_width_prec:
           mrb_raise(mrb, E_ARGUMENT_ERROR,
                     (width > prec ? "width too big" : "prec too big"));
@@ -889,7 +894,7 @@ retry:
         need += (flags&FPREC) ? prec : 6;
         if ((flags&FWIDTH) && need < width)
           need = width;
-        if ((mrb_int)need > MRB_INT_MAX - 20) {
+        if ((mrb_int)need > INT_MAX - 20) {
           goto too_big_width_prec;
         }
         need += 20;
