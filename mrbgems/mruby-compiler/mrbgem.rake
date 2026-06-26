@@ -14,6 +14,17 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
 
   cc.defines.flatten!
   cc.defines << 'PRISM_XALLOCATOR'
+  # Prism is a recursive-descent parser and mruby has no machine-stack-overflow
+  # backstop, so its default nesting cap of 10000 overflows the C stack (a
+  # crash) before the limit trips -- e.g. an ASan build dies around 400-500
+  # deep. Cap nesting to match the codegen's own MRC_CODEGEN_LEVEL_MAX (256):
+  # the codegen cannot compile an expression nested deeper than that anyway, so
+  # this rejects nothing compilable while staying well below the stack limit.
+  # Targets on a tiny stack can lower it; those that raise it must also raise
+  # MRC_CODEGEN_LEVEL_MAX and have the C stack to match.
+  unless cc.defines.any? { _1.match?(/\APRISM_DEPTH_MAXIMUM(=|\z)/) }
+    cc.defines << 'PRISM_DEPTH_MAXIMUM=256'
+  end
   if cc.defines.include?('PICORB_VM_MRUBY')
     cc.defines << 'MRC_TARGET_MRUBY'
   elsif cc.defines.include?('PICORB_VM_MRUBYC')

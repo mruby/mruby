@@ -54,6 +54,17 @@ assert 'eval syntax error' do
   end
 end
 
+assert 'eval deeply nested input does not crash the parser' do
+  # The recursive-descent parser must hit its nesting cap and report an error
+  # rather than overflowing the C stack on pathologically nested source.
+  assert_raise(SyntaxError) do
+    eval('(' * 1000 + '1' + ')' * 1000)
+  end
+  assert_raise(SyntaxError) do
+    eval('[' * 1000)
+  end
+end
+
 assert('String instance_eval') do
   obj = Object.new
   obj.instance_eval{ @test = 'test' }
