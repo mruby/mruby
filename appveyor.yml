@@ -1,6 +1,10 @@
 version: "{build}"
 
-shallow_clone: true
+# Do not use shallow_clone: it fetches a source archive with no .git, so the
+# Prism compiler submodule (mrbgems/mruby-compiler/lib/prism) cannot be checked
+# out and the build aborts on "git submodule update". A normal clone keeps .git
+# so the submodule can be initialized in install below.
+clone_depth: 1
 
 environment:
   matrix:
@@ -41,6 +45,11 @@ init:
   # Visual Studio AppVeyor images. Ruby 2.7 is only on the 2019 image.
   - set PATH=C:\Ruby26-x64\bin;%PATH%
   - ruby --version
+
+install:
+  # Fetch the Prism compiler submodule (init runs before the clone, so this
+  # must be here, after the repository is checked out).
+  - git submodule update --init --recursive
 
 build_script:
   - set MRUBY_CONFIG=ci/msvc
