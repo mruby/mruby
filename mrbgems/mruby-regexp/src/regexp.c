@@ -185,6 +185,9 @@ re_byte_to_char(mrb_state *mrb, mrb_value str, mrb_int byte_off)
   struct RString *s = RSTRING(str);
   if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) return byte_off;
 
+  mrb_int len = RSTR_LEN(s);
+  if (byte_off > len) byte_off = len;
+
   const char *p = RSTR_PTR(s);
   mrb_int chars = 0;
   for (mrb_int i = 0; i < byte_off; i++) {
@@ -222,6 +225,9 @@ re_char_to_byte(mrb_state *mrb, mrb_value str, mrb_int char_off)
     mrb_int char_len = re_byte_to_char(mrb, str, len);
     char_off += char_len;
     if (char_off < 0) return -1;
+  }
+  else if (char_off > len) {
+    return -1;
   }
   while (p < e && chars < char_off) {
     p++;
