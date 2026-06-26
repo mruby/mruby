@@ -596,6 +596,11 @@ assert("String#gsub with block and zero-width match") do
     assert_equal "い！ろは", "いろは".gsub(/(?=ろ)/) { "！" }
     assert_equal "！い！ろ！は！", "いろは".gsub(//) { "！" }
   end
+  bin = "\xC3\xA9x".b
+  assert_equal [45, 195, 45, 169, 45, 120, 45], bin.gsub(//, "-").bytes
+  assert_equal [45, 195, 45, 169, 45, 120, 45], bin.gsub(//) { "-" }.bytes
+  assert_equal [45, 195, 45, 169, 45, 120], bin.gsub(/(?=.)/, "-").bytes
+  assert_equal [45, 195, 45, 169, 45, 120], bin.gsub(/(?=.)/) { "-" }.bytes
 end
 
 assert("String#gsub date reformat") do

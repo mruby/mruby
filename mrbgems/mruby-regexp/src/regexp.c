@@ -252,6 +252,15 @@ re_binary_string_p(mrb_value str)
   return RSTR_BINARY_P(RSTRING(str));
 }
 
+static mrb_value
+regexp_binary_string_p(mrb_state *mrb, mrb_value self)
+{
+  (void)self;
+  mrb_value str;
+  mrb_get_args(mrb, "S", &str);
+  return mrb_bool_value(re_binary_string_p(str));
+}
+
 /* Create MatchData from captures */
 static mrb_value
 create_matchdata(mrb_state *mrb, mrb_value regexp, mrb_value str, int *captures, int ncap)
@@ -1098,6 +1107,7 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   /* compile is defined in Ruby (mrblib) as alias for new */
   mrb_define_class_method(mrb, re, "escape", regexp_escape, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, re, "quote", regexp_escape, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, re, "__binary_string?", regexp_binary_string_p, MRB_ARGS_REQ(1));
 
   /* Instance methods */
   mrb_define_method(mrb, re, "match", regexp_match, MRB_ARGS_ARG(1, 1)|MRB_ARGS_BLOCK());
