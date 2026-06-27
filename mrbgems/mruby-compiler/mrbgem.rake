@@ -22,7 +22,7 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
   # this rejects nothing compilable while staying well below the stack limit.
   # Targets on a tiny stack can lower it; those that raise it must also raise
   # MRC_CODEGEN_LEVEL_MAX and have the C stack to match.
-  unless cc.defines.any? { _1.match?(/\APRISM_DEPTH_MAXIMUM(=|\z)/) }
+  unless cc.defines.any? { |d| d.match?(/\APRISM_DEPTH_MAXIMUM(=|\z)/) }
     cc.defines << 'PRISM_DEPTH_MAXIMUM=256'
   end
   if cc.defines.include?('PICORB_VM_MRUBY')
@@ -32,7 +32,7 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
   elsif !cc.defines.include?('MRB_NO_GEMS')
     cc.defines << 'MRC_TARGET_MRUBY'
   end
-  cc.defines << 'MRC_DEBUG' if cc.defines.any? { _1.match?(/\AMRB_DEBUG(=|\z)/) }
+  cc.defines << 'MRC_DEBUG' if cc.defines.any? { |d| d.match?(/\AMRB_DEBUG(=|\z)/) }
   cc.defines << 'PRISM_BUILD_MINIMAL' unless cc.defines.include?('MRC_DEBUG')
 
   next if %w(clean deep_clean).include?(Rake.application.top_level_tasks.first)
