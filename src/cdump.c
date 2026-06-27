@@ -232,9 +232,16 @@ cdump_syms(mrb_state *mrb, const char *name, const char *key, int n, int syms_le
   const char *var_name = sym_var_name(mrb, name, key, n);
 
   fprintf(fp, "mrb_DEFINE_SYMS_VAR(%s, %d, (", var_name, syms_len);
+  int emitted = 0;
   for (int i=0; i<syms_len; i++) {
-    cdump_sym(mrb, syms[i], var_name, i, init_syms_code, fp);
+    if (cdump_sym(mrb, syms[i], var_name, i, init_syms_code, fp) == MRB_DUMP_OK) {
+      emitted++;
+    }
   }
+  /* An empty inline list expands to `{}`, which ISO C rejects before C23 (older
+     MSVC fails with C2059). Emit a single 0 so the array is validly
+     zero-initialized; runtime-interned symbols are still filled by init code. */
+  if (emitted == 0) fputs("0", fp);
   fputs("), ", fp);
   if (code_len == RSTRING_LEN(init_syms_code)) fputs("const", fp);
   fputs(");\n", fp);
