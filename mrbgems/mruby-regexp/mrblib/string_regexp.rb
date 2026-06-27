@@ -37,6 +37,7 @@ class String
     parts = []
     pos = 0
     len = self.bytesize
+    binary = Regexp.__binary_string?(self)
     while pos <= len
       md = pattern.__byte_match(self, pos)
       break unless md
@@ -47,11 +48,16 @@ class String
       parts << self.byteslice(pos, match_start - pos)
       parts << block.call(md[0]).to_s
       if match_start == match_end
-        rest = self.byteslice(match_end..-1)
-        if rest && rest.bytesize > 0
-          char = rest[0]
-          parts << char
-          pos = match_end + char.bytesize
+        if match_end < len
+          if binary
+            parts << self.byteslice(match_end, 1)
+            pos = match_end + 1
+          else
+            rest = self.byteslice(match_end..-1)
+            char = rest[0]
+            parts << char
+            pos = match_end + char.bytesize
+          end
         else
           pos = match_end + 1
         end
