@@ -3508,9 +3508,11 @@ lambda_body(mrc_codegen_scope *s, mrc_node *tree, mrc_node *body, pm_constant_id
     }
     // rest
     if (ra) {
-      if (((pm_rest_parameter_node_t *)parameters->rest)->name) {
+      if (nint(parameters->rest) == PM_REST_PARAMETER_NODE &&
+          ((pm_rest_parameter_node_t *)parameters->rest)->name) {
         mrc_constant_id_list_append(s, lv, ((pm_rest_parameter_node_t *)parameters->rest)->name);
       } else {
+        /* anonymous rest (*) or implicit rest from a trailing comma (|a,|) */
         pm_constant_id_t astr = MRC_OPSYM_2(mul);
         mrc_constant_id_list_append(s, lv, astr);
       }

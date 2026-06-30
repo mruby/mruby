@@ -208,3 +208,14 @@ assert('identity check for proc object') do
   assert_false b[0] == b[1]
   assert_not_equal b[0].hash, b[1].hash
 end
+
+assert('block parameter with trailing comma (implicit rest)') do
+  # `|a,|` is an implicit-rest parameter: take the first element, ignore the
+  # rest. It used to emit a bogus local-variable symbol that crashed the
+  # bytecode dumper.
+  assert_equal 1, [[1, 2, 3]].map { |a,| a }.first
+  assert_equal [1, 2], [[1, 2, 3, 4]].map { |a, b,| [a, b] }.first
+  result = nil
+  [[9, 8, 7]].each { |x,| result = x }
+  assert_equal 9, result
+end
