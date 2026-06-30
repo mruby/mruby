@@ -74,3 +74,38 @@ assert 'Data#freeze' do
     o.freeze
   }
 end
+
+assert 'Data#with' do
+  c = Data.define(:x, :y)
+  a = c.new(1, 2)
+
+  # replace a subset of members, leaving the rest unchanged
+  b = a.with(y: 20)
+  assert_equal 1, b.x
+  assert_equal 20, b.y
+  # receiver is not modified
+  assert_equal 1, a.x
+  assert_equal 2, a.y
+  # result is a frozen instance of the same class
+  assert_true b.frozen?
+  assert_equal c, b.class
+
+  # replace every member
+  assert_equal c.new(10, 20), a.with(x: 10, y: 20)
+
+  # no arguments returns the receiver itself
+  assert_true a.with.equal?(a)
+
+  # unknown keyword is rejected
+  assert_raise(ArgumentError) { a.with(z: 9) }
+  # positional arguments are rejected
+  assert_raise(ArgumentError) { a.with(1) }
+end
+
+assert 'Data#with with more than four members' do
+  c = Data.define(:a, :b, :c, :d, :e, :f)
+  x = c.new(1, 2, 3, 4, 5, 6)
+  y = x.with(a: 10, f: 60)
+  assert_equal [10, 2, 3, 4, 5, 60], [y.a, y.b, y.c, y.d, y.e, y.f]
+  assert_true y.frozen?
+end

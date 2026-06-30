@@ -78,6 +78,14 @@ Instances of classes created by `Data.define` have several useful methods:
   # Output: {:name=>"John Doe", :address=>"123 Main St", :zip=>12345}
   ```
 
+- **`with(**kwargs)`**: Returns a new instance with the members named by the keyword arguments replaced; the remaining members keep their current values. With no arguments, returns the receiver itself.
+
+  ```ruby
+  point1 = Point.new(1, 2)
+  p point1.with(y: 20)  # Output: #<data Point x=1, y=20>
+  p point1              # Output: #<data Point x=1, y=2> (unchanged)
+  ```
+
 - **`to_s` / `inspect`**: Returns a string representation of the data instance.
 
   ```ruby
