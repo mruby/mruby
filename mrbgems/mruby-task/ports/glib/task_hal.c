@@ -196,8 +196,11 @@ arm_locked(mrb_task_thread_state *s)
 
     mrb_task *w = vm->task.queues[MRB_TASK_QUEUE_WAITING];
     while (w) {
-      if (w->reason == MRB_TASK_REASON_SLEEP) {
-        uint32_t wake   = w->wait.wakeup_tick;
+      if (w->reason == MRB_TASK_REASON_SLEEP ||
+          (w->reason == MRB_TASK_REASON_QUEUE &&
+           w->wait.queue.wakeup_tick != UINT32_MAX)) {
+        uint32_t wake = w->reason == MRB_TASK_REASON_SLEEP ?
+                        w->wait.wakeup_tick : w->wait.queue.wakeup_tick;
         uint32_t tick   = vm->task.tick;
         int32_t  offset = (int32_t)(wake - tick);
         if (!has_sleep || offset < min_wake_offset) {

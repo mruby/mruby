@@ -161,3 +161,41 @@ assert("Task::Queue num_waiting reflects blocked task count") do
 
   assert_equal [1], counts
 end
+
+assert("Task::Queue pop returns nil after timeout") do
+  q = Task::Queue.new
+  result = :unset
+
+  Task.new { result = q.pop(timeout_ms: 8) }
+  Task.run
+
+  assert_nil result
+end
+
+assert("Task::Queue pop wakes on push before timeout") do
+  q = Task::Queue.new
+  result = nil
+
+  Task.new { result = q.pop(timeout_ms: 100) }
+  Task.new do
+    sleep_ms 4
+    q.push(:ready)
+  end
+  Task.run
+
+  assert_equal :ready, result
+end
+
+assert("Task::Queue pop with zero timeout still returns an available item") do
+  q = Task::Queue.new
+  q.push(:ready)
+  assert_equal :ready, q.pop(timeout_ms: 0)
+  assert_nil q.pop(timeout_ms: 0)
+end
+
+assert("Task::Queue timeout validates arguments") do
+  q = Task::Queue.new
+  assert_raise(TypeError) { q.pop(timeout_ms: 1.0) }
+  assert_raise(ArgumentError) { q.pop(timeout_ms: -1) }
+  assert_raise(ArgumentError) { q.pop(true, timeout_ms: 1) }
+end
