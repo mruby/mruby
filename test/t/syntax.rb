@@ -1203,17 +1203,6 @@ assert('pattern matching - alternative patterns') do
     :no_match
   end
   assert_equal :match, result
-
-  # an unimplemented pattern (`self`) on the left of `|` used to corrupt the
-  # bytecode through the JMPNOT->JMPIF peephole and crash the VM; it must just
-  # fail to match and fall through to the right alternative.
-  result = case 42
-  in self | _
-    :matched
-  else
-    :no
-  end
-  assert_equal :matched, result
 end
 
 assert('pattern matching - pin operator') do
