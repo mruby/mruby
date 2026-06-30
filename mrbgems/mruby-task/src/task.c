@@ -474,12 +474,16 @@ mrb_tick(mrb_state *mrb)
 
       if (curr_wakeup != UINT32_MAX) {
         if ((int32_t)(curr_wakeup - tick_) <= 0) {
-          /* Time to wake up */
+          /* Time to wake up. Only clear the queue-specific wait state when the
+           * task was actually waiting on a queue; for a SLEEP waiter the active
+           * union member is wait.wakeup_tick, not wait.queue. */
           mrb_task_q_delete(mrb, curr);
           curr->status = MRB_TASK_STATUS_READY;
+          if (curr->reason == MRB_TASK_REASON_QUEUE) {
+            curr->wait.queue.target = NULL;
+            curr->wait.queue.wakeup_tick = UINT32_MAX;
+          }
           curr->reason = MRB_TASK_REASON_NONE;
-          curr->wait.queue.target = NULL;
-          curr->wait.queue.wakeup_tick = UINT32_MAX;
           mrb_task_q_insert(mrb, curr);
           switching_ = TRUE;
         }
