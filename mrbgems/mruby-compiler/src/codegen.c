@@ -2766,9 +2766,14 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
       /* Try left pattern */
       codegen_pattern(s, (mrc_node *)pat_alt->left, target, &left_fail, known_array_len);
 
-      /* Optimize JMPNOT+JMP to JMPIF when possible */
+      /* Optimize JMPNOT+JMP to JMPIF when possible.
+         Only when the left pattern's tail is an OP_JMPNOT (BS format, so the
+         opcode sits at left_fail-2).  Patterns that emit a plain OP_JMP (e.g.
+         unimplemented patterns falling to the default case) must not be
+         rewritten, or a neighboring byte would be corrupted. */
       if (nint(pat_alt->left) != PM_ALTERNATION_PATTERN_NODE &&
-          left_fail != JMPLINK_START && left_fail >= 2 && left_fail + 2 == s->pc) {
+          left_fail != JMPLINK_START && left_fail >= 2 && left_fail + 2 == s->pc &&
+          s->iseq[left_fail - 2] == OP_JMPNOT) {
         /* Extract the previous link from the JMPNOT chain */
         int16_t prev_offset = (int16_t)PEEK_S(s->iseq + left_fail);
         int32_t next_addr = (int32_t)(left_fail + 2) + prev_offset;
