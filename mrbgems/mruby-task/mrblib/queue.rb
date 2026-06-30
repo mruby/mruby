@@ -22,16 +22,20 @@ class Task
     # that a closed-and-empty queue also returns nil, so a nil result does not
     # distinguish "timed out" from "closed" -- this mirrors CRuby's
     # Thread::Queue#pop(timeout:).
+    #
+    # __deadline converts the timeout into a fixed absolute tick once, and
+    # __pop_try compares it against the current tick with wrap-safe arithmetic
+    # in C. Keeping the deadline in C tick space (rather than recomputing a
+    # remaining time in Ruby) avoids the 32-bit wrap-around of Task.tick.
     def pop(non_block = false, timeout_ms: nil)
       unless timeout_ms.nil?
         raise ArgumentError, "timeout cannot be combined with non_block" if non_block
         raise TypeError, "timeout_ms must be an Integer" unless timeout_ms.is_a?(Integer)
         raise ArgumentError, "timeout_ms must be non-negative" if timeout_ms < 0
       end
-      deadline = timeout_ms.nil? ? nil : Task.tick + timeout_ms
+      deadline = timeout_ms.nil? ? nil : __deadline(timeout_ms)
       while true
-        remaining = deadline.nil? ? nil : deadline - Task.tick
-        v = __pop_try(non_block, remaining)
+        v = __pop_try(non_block, deadline)
         return nil if v.equal?(WAIT_TIMEOUT)
         return v unless v.equal?(WAIT_RETRY)
       end
