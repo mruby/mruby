@@ -93,6 +93,25 @@ Instances of classes created by `Data.define` have several useful methods:
   p customer1    # Output: #<data Customer name="John Doe", address="123 Main St", zip=12345>
   ```
 
+## Custom Initialization
+
+You can override `initialize` to validate or normalize attributes. As in CRuby,
+it receives the members as keyword arguments and should pass them to `super`.
+`new` accepts the same positional or keyword arguments and routes them to your
+`initialize`, while `with` copies the already-built values and does not re-run
+it.
+
+```ruby
+Measure = Data.define(:amount, :unit) do
+  def initialize(amount:, unit: "USD")
+    super(amount: amount, unit: unit.to_s)
+  end
+end
+
+Measure.new(amount: 5)            #=> #<data Measure amount=5, unit="USD">
+Measure.new(5, :EUR)              #=> #<data Measure amount=5, unit="EUR">
+```
+
 ## Freezing
 
 By default, instances of data classes are frozen after initialization, meaning their attributes cannot be modified after creation.

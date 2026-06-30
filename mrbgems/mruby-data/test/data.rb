@@ -109,3 +109,35 @@ assert 'Data#with with more than four members' do
   assert_equal [10, 2, 3, 4, 5, 60], [y.a, y.b, y.c, y.d, y.e, y.f]
   assert_true y.frozen?
 end
+
+assert 'Data with overridden initialize (keyword style)' do
+  c = Data.define(:amount, :unit) do
+    def initialize(amount:, unit: "USD")
+      super(amount: amount, unit: unit.to_s)
+    end
+  end
+
+  # keyword construction runs through the custom initialize
+  a = c.new(amount: 5, unit: :EUR)
+  assert_equal 5, a.amount
+  assert_equal "EUR", a.unit
+  assert_true a.frozen?
+
+  # default value from the custom initialize applies
+  assert_equal "USD", c.new(amount: 5).unit
+
+  # positional arguments map to members in order, then run initialize
+  b = c.new(5, :JPY)
+  assert_equal "JPY", b.unit
+
+  # too many positional arguments
+  assert_raise(ArgumentError) { c.new(1, 2, 3) }
+
+  # #with copies stored values and does NOT re-run the custom initialize
+  d = Data.define(:v) do
+    def initialize(v:); super(v: v * 2); end
+  end
+  e = d.new(v: 3)             # initialize doubles -> 6
+  assert_equal 6, e.v
+  assert_equal 5, e.with(v: 5).v   # with bypasses initialize -> 5, not 10
+end
