@@ -1951,6 +1951,7 @@ gen_forward_arg(mrc_codegen_scope *s, mrc_sym sym, int val)
 static int
 gen_values(mrc_codegen_scope *s, mrc_node *tree, int val, int limit)
 {
+  if (tree == NULL) return 0;   /* no arguments (e.g. empty index `a[]`) */
   CAST(arguments);
   mrc_node *t;
 

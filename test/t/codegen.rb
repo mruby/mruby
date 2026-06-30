@@ -220,3 +220,19 @@ assert('bare `nil?` in if/unless uses self as receiver (#6874)') do
   result = if nil.nil? then :yes else :no end
   assert_equal :yes, result
 end
+
+assert('op-assign on empty index does not crash the compiler') do
+  # Empty index `recv[] op= val` must compile; it used to segfault codegen
+  # because the index argument list was NULL.
+  obj = Class.new do
+    def initialize; @v = 1; end
+    def []; @v; end
+    def []=(x); @v = x; end
+  end.new
+  assert_nothing_raised do
+    obj[] += 3
+    obj[] ||= 0
+    obj[] &&= 9
+  end
+  assert_equal 9, obj[]
+end
