@@ -464,17 +464,28 @@ mrb_tick(mrb_state *mrb)
     while (curr != NULL) {
       next = curr->next;
 
+      uint32_t curr_wakeup = UINT32_MAX;
       if (curr->reason == MRB_TASK_REASON_SLEEP) {
-        if ((int32_t)(curr->wait.wakeup_tick - tick_) <= 0) {
+        curr_wakeup = curr->wait.wakeup_tick;
+      }
+      else if (curr->reason == MRB_TASK_REASON_QUEUE) {
+        curr_wakeup = curr->wait.queue.wakeup_tick;
+      }
+
+      if (curr_wakeup != UINT32_MAX) {
+        if ((int32_t)(curr_wakeup - tick_) <= 0) {
           /* Time to wake up */
           mrb_task_q_delete(mrb, curr);
           curr->status = MRB_TASK_STATUS_READY;
           curr->reason = MRB_TASK_REASON_NONE;
+          curr->wait.queue.target = NULL;
+          curr->wait.queue.wakeup_tick = UINT32_MAX;
           mrb_task_q_insert(mrb, curr);
           switching_ = TRUE;
         }
-        else if (curr->wait.wakeup_tick < next_wakeup) {
-          next_wakeup = curr->wait.wakeup_tick;
+        else if (next_wakeup == UINT32_MAX ||
+                 (int32_t)(curr_wakeup - next_wakeup) < 0) {
+          next_wakeup = curr_wakeup;
         }
       }
 
@@ -627,7 +638,7 @@ sleep_us_impl(mrb_state *mrb, uint32_t usec)
   t->status = MRB_TASK_STATUS_WAITING;
   t->reason = MRB_TASK_REASON_SLEEP;
   /* Convert microseconds to ticks (tick unit is in milliseconds) */
-  t->wait.wakeup_tick = tick_ + USEC_TO_TICKS(usec);
+  t->wait.wakeup_tick = mrb_task_normalize_wakeup(tick_ + USEC_TO_TICKS(usec));
 
   /* Update next wakeup time if this task wakes earlier.
    *
@@ -1399,11 +1410,15 @@ resume_task_internal(mrb_state *mrb, mrb_task *t)
    *     mrb_tick, which also rewrites this field. sleep_us_impl
    *     already wraps its update in the IRQ pair; we need the
    *     same here to match the locking discipline. */
-  if (t->reason == MRB_TASK_REASON_SLEEP) {
+  if (t->reason == MRB_TASK_REASON_SLEEP ||
+      (t->reason == MRB_TASK_REASON_QUEUE &&
+       t->wait.queue.wakeup_tick != UINT32_MAX)) {
+    uint32_t task_wakeup = t->reason == MRB_TASK_REASON_SLEEP ?
+                           t->wait.wakeup_tick : t->wait.queue.wakeup_tick;
     mrb_task_disable_irq();
     if (wakeup_tick_ == UINT32_MAX ||
-        (int32_t)(t->wait.wakeup_tick - wakeup_tick_) < 0) {
-      wakeup_tick_ = t->wait.wakeup_tick;
+        (int32_t)(task_wakeup - wakeup_tick_) < 0) {
+      wakeup_tick_ = task_wakeup;
     }
     mrb_task_enable_irq();
   }

@@ -39,9 +39,9 @@ struct mrb_task_queue;
  * Memory-optimized layout:
  * - Removed priority_preemption (always equals priority): 1 byte
  * - Removed started flag (inferred from c.status): 1 byte
- * - Unified wakeup_tick/join/mutex into single union: 4 bytes
+ * - Unified wait-specific state into a single union
  * - Removed redundant proc field (stored in c.ci->proc): 8 bytes
- * Total savings: ~18 bytes per task (14% reduction)
+ * Total savings on 32-bit targets: ~14 bytes per task
  */
 typedef struct mrb_task {
   struct mrb_task *next;           /* Linked list pointer */
@@ -56,7 +56,10 @@ typedef struct mrb_task {
     uint32_t wakeup_tick;          /* Tick count to wake up (REASON_SLEEP) */
     const struct mrb_task *join;   /* Task being waited on (REASON_JOIN) */
     void *mutex;                   /* Mutex pointer (REASON_MUTEX, reserved) */
-    struct mrb_task_queue *queue;  /* Queue being waited on (REASON_QUEUE) */
+    struct {
+      struct mrb_task_queue *target;
+      uint32_t wakeup_tick;        /* UINT32_MAX when no timeout */
+    } queue;                       /* Queue wait state (REASON_QUEUE) */
   } wait;
 
   mrb_value self;                  /* Ruby Task object reference */
@@ -65,6 +68,18 @@ typedef struct mrb_task {
 
   struct mrb_context c;            /* Execution context (stack, callinfo, etc) */
 } mrb_task;
+
+/* Normalize a freshly computed wakeup deadline so it can never equal the
+ * UINT32_MAX "no timed wakeup" sentinel used in the wait.wakeup_tick /
+ * wait.queue.wakeup_tick slots. The wrapping tick counter can, once every
+ * 2^32 ticks, produce a real deadline of exactly UINT32_MAX; left as-is the
+ * scheduler would mistake it for "no timeout" and never wake the task. Pulling
+ * it back by one tick removes the collision at a cost of at most one tick. */
+static inline uint32_t
+mrb_task_normalize_wakeup(uint32_t deadline)
+{
+  return deadline == UINT32_MAX ? UINT32_MAX - 1 : deadline;
+}
 
 /*
  * Task queue configuration

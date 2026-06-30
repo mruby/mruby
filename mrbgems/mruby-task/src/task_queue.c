@@ -25,6 +25,7 @@ static const struct mrb_data_type mrb_task_queue_type = {
 };
 
 static mrb_value wait_retry_;
+static mrb_value wait_timeout_;
 static struct RClass *task_error_class_;
 
 /* Wake the highest-priority task waiting on this queue */
@@ -35,11 +36,12 @@ queue_wake_one_waiter(mrb_state *mrb, mrb_task_queue *q)
   mrb_task *curr = q_waiting_;
   while (curr) {
     mrb_task *next = curr->next;
-    if (curr->reason == MRB_TASK_REASON_QUEUE && curr->wait.queue == q) {
+    if (curr->reason == MRB_TASK_REASON_QUEUE && curr->wait.queue.target == q) {
       mrb_task_q_delete(mrb, curr);
       curr->status = MRB_TASK_STATUS_READY;
       curr->reason = MRB_TASK_REASON_NONE;
-      curr->wait.queue = NULL;
+      curr->wait.queue.target = NULL;
+      curr->wait.queue.wakeup_tick = UINT32_MAX;
       mrb_task_q_insert(mrb, curr);
       switching_ = TRUE;
       break;
@@ -58,11 +60,12 @@ queue_wake_all_waiters(mrb_state *mrb, mrb_task_queue *q)
   mrb_task *curr = q_waiting_;
   while (curr) {
     mrb_task *next = curr->next;
-    if (curr->reason == MRB_TASK_REASON_QUEUE && curr->wait.queue == q) {
+    if (curr->reason == MRB_TASK_REASON_QUEUE && curr->wait.queue.target == q) {
       mrb_task_q_delete(mrb, curr);
       curr->status = MRB_TASK_STATUS_READY;
       curr->reason = MRB_TASK_REASON_NONE;
-      curr->wait.queue = NULL;
+      curr->wait.queue.target = NULL;
+      curr->wait.queue.wakeup_tick = UINT32_MAX;
       mrb_task_q_insert(mrb, curr);
       woke_any = TRUE;
     }
@@ -105,6 +108,7 @@ queue_push(mrb_state *mrb, mrb_value self)
  *   - the item if available
  *   - nil if closed and empty
  *   - raises Task::Error if non_block and empty
+ *   - Task::Queue::WAIT_TIMEOUT sentinel when timeout_ms has elapsed
  *   - Task::Queue::WAIT_RETRY sentinel if the current task was put to WAITING
  *
  * Ruby-level pop loops on WAIT_RETRY.
@@ -113,7 +117,8 @@ static mrb_value
 queue_pop_try(mrb_state *mrb, mrb_value self)
 {
   mrb_bool non_block = FALSE;
-  mrb_get_args(mrb, "|b", &non_block);
+  mrb_value timeout_value = mrb_nil_value();
+  mrb_get_args(mrb, "|bo", &non_block, &timeout_value);
 
   mrb_task_queue *q = (mrb_task_queue*)mrb_data_get_ptr(mrb, self, &mrb_task_queue_type);
   if (!q) mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid queue");
@@ -133,6 +138,27 @@ queue_pop_try(mrb_state *mrb, mrb_value self)
   /* Non-blocking and empty */
   if (non_block) {
     mrb_raise(mrb, task_error_class_, "queue empty");
+  }
+
+  /* Validate/convert the timeout only on the blocking path. The item-available
+   * and closed cases above return early, so a bogus timeout_value is not
+   * inspected there; that is acceptable because the Ruby Queue#pop wrapper
+   * already validates timeout_ms (type and sign) before reaching this point.
+   * These checks are the defensive C-level backstop. */
+  uint32_t timeout_ticks = UINT32_MAX;
+  if (!mrb_nil_p(timeout_value)) {
+    if (!mrb_integer_p(timeout_value)) {
+      mrb_raise(mrb, E_TYPE_ERROR, "timeout_ms must be an Integer");
+    }
+    mrb_int timeout_ms = mrb_integer(timeout_value);
+    if (timeout_ms <= 0) {
+      return wait_timeout_;
+    }
+    uint64_t ticks = ((uint64_t)timeout_ms + MRB_TICK_UNIT - 1) / MRB_TICK_UNIT;
+    if (INT32_MAX < ticks) {
+      mrb_raise(mrb, E_RANGE_ERROR, "timeout_ms is too large");
+    }
+    timeout_ticks = (uint32_t)ticks;
   }
 
   /* Blocking pop only works inside a task */
@@ -157,7 +183,15 @@ queue_pop_try(mrb_state *mrb, mrb_value self)
   mrb_task_q_delete(mrb, current);
   current->status = MRB_TASK_STATUS_WAITING;
   current->reason = MRB_TASK_REASON_QUEUE;
-  current->wait.queue = q;
+  current->wait.queue.target = q;
+  current->wait.queue.wakeup_tick = timeout_ticks == UINT32_MAX ?
+                                    UINT32_MAX :
+                                    mrb_task_normalize_wakeup(tick_ + timeout_ticks);
+  if (current->wait.queue.wakeup_tick != UINT32_MAX &&
+      (wakeup_tick_ == UINT32_MAX ||
+       (int32_t)(current->wait.queue.wakeup_tick - wakeup_tick_) < 0)) {
+    wakeup_tick_ = current->wait.queue.wakeup_tick;
+  }
   mrb_task_q_insert(mrb, current);
   mrb_task_enable_irq();
   switching_ = TRUE;
@@ -217,7 +251,7 @@ queue_num_waiting(mrb_state *mrb, mrb_value self)
   mrb_task_disable_irq();
   mrb_task *curr = q_waiting_;
   while (curr) {
-    if (curr->reason == MRB_TASK_REASON_QUEUE && curr->wait.queue == q) {
+    if (curr->reason == MRB_TASK_REASON_QUEUE && curr->wait.queue.target == q) {
       count++;
     }
     curr = curr->next;
@@ -238,11 +272,13 @@ mrb_init_task_queue(mrb_state *mrb, struct RClass *task_class)
 
   /* Allocate and store WAIT_RETRY sentinel (rooted by the class constant table) */
   wait_retry_ = mrb_obj_new(mrb, mrb->object_class, 0, NULL);
+  wait_timeout_ = mrb_obj_new(mrb, mrb->object_class, 0, NULL);
   mrb_define_const_id(mrb, queue_class, MRB_SYM(WAIT_RETRY), wait_retry_);
+  mrb_define_const_id(mrb, queue_class, MRB_SYM(WAIT_TIMEOUT), wait_timeout_);
 
   mrb_define_method_id(mrb, queue_class, MRB_SYM(initialize),  queue_initialize,  MRB_ARGS_NONE());
   mrb_define_method_id(mrb, queue_class, MRB_SYM(__push),      queue_push,        MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, queue_class, MRB_SYM(__pop_try),   queue_pop_try,     MRB_ARGS_OPT(1));
+  mrb_define_method_id(mrb, queue_class, MRB_SYM(__pop_try),   queue_pop_try,     MRB_ARGS_OPT(2));
   mrb_define_method_id(mrb, queue_class, MRB_SYM(size),        queue_size,        MRB_ARGS_NONE());
   mrb_define_method_id(mrb, queue_class, MRB_SYM(length),      queue_size,        MRB_ARGS_NONE());
   mrb_define_method_id(mrb, queue_class, MRB_SYM_Q(empty),     queue_empty_p,     MRB_ARGS_NONE());
