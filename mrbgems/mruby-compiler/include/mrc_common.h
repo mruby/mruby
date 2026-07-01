@@ -1,8 +1,6 @@
 #ifndef MRC_COMMON_H
 #define MRC_COMMON_H
 
-#include <stdint.h>
-
 #define MRC_STRINGIZE0(expr) #expr
 #define MRC_STRINGIZE(expr) MRC_STRINGIZE0(expr)
 
@@ -10,31 +8,33 @@
   #if !defined(MRC_TARGET_MRUBY)
     #define MRC_TARGET_MRUBY
   #endif
-  #include <mruby.h>
 #endif
 #if defined(PICORB_VM_MRUBYC)
   #if !defined(MRC_TARGET_MRUBYC)
     #define MRC_TARGET_MRUBYC
   #endif
-  #include <mrubyc.h>
-  #define mrb_state void
 #endif
 
-#if !defined(MRC_TARGET_MRUBY) && !defined(PICORB_VM_MRUBYC)
+/* mruby.h must be included before <stdint.h> (it enforces this ordering on
+   some platforms) and it carries the core API's linkage, so include it up
+   front -- and outside the extern "C" wrap below. prism.h pulls mruby.h in
+   transitively through prism_xallocator.h; keeping it out of the wrap means
+   that under MRB_USE_CXX_ABI the core keeps its C++ linkage while only Prism
+   gets C linkage. */
+#if defined(MRC_TARGET_MRUBY)
+  #include <mruby.h>
+#elif defined(MRC_TARGET_MRUBYC)
+  #include <mrubyc.h>
+  #define mrb_state void
+#else
   /* May be building standalone mrbc */
   #define mrb_state void
 #endif
 
+#include <stdint.h>
+
 #if !defined(PRISM_XALLOCATOR)
   #define PRISM_XALLOCATOR
-#endif
-/* Include mruby.h with its own linkage before wrapping Prism below: prism.h
-   pulls in mruby.h transitively (through prism_xallocator.h), and it must not
-   land inside the extern "C" block -- under MRB_USE_CXX_ABI mruby's API uses
-   C++ linkage, so forcing C linkage on it would break every call from the
-   C++-compiled compiler glue into the core. */
-#if defined(MRC_TARGET_MRUBY) && !defined(PICORB_VM_MRUBY)
-  #include <mruby.h>
 #endif
 /* Prism is a vendored C library and is always compiled as C (its generated
    code uses C constructs -- designated initializers, implicit void* casts --
