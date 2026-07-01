@@ -14,7 +14,7 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
   mrbtest_lib = libfile("#{build_dir}/mrbtest")
   mrbtest_objs = [assert_lib]
   driver_objs = srcs_to_objs(".")
-  spec.cc.defines << "MRBTEST_COMPILER_PRISM" unless build.gems["mruby-compiler-lrama"]
+  spec.cc.defines << "MRBTEST_COMPILER_PRISM"
 
   file assert_lib => assert_c
   file assert_c => [assert_rb, build.mrbcfile] do |t|

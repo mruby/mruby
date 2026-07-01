@@ -3,8 +3,6 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
   spec.author  = 'mruby and PicoRuby developers'
   spec.summary = 'mruby compiler using Prism'
 
-  spec.add_conflict 'mruby-compiler-lrama'
-
   lib_dir = "#{dir}/lib"
   prism_dir = "#{lib_dir}/prism"
   prism_templates_dir = "#{prism_dir}/templates"

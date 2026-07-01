@@ -8,10 +8,7 @@ Read this note first:
 
 ## Naming
 
-The Prism-based `mrbc` is now the default compiler in mruby, so this gem
-carries the canonical name `mruby-bin-mrbc`. It was published as
-`mruby-bin-mrbc-prism` while it coexisted with the older lrama-based `mrbc`.
-The standalone PicoRuby mirror keeps the name `mruby-bin-mrbc2`.
-
-The previous lrama-based toolchain is still available under the `-lrama`
-gems (`mruby-bin-mrbc-lrama`, `mruby-compiler-lrama`).
+The Prism-based `mrbc` is the compiler in mruby, so this gem carries the
+canonical name `mruby-bin-mrbc`. It was published as `mruby-bin-mrbc-prism`
+while it coexisted with the older lrama-based `mrbc`, which has since been
+removed. The standalone PicoRuby mirror keeps the name `mruby-bin-mrbc2`.

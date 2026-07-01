@@ -3,7 +3,6 @@ MRuby::Gem::Specification.new('mruby-eval') do |spec|
   spec.author  = 'mruby developers'
   spec.summary = 'standard Kernel#eval method using Prism compiler'
 
-  spec.add_conflict 'mruby-eval-lrama'
   add_dependency 'mruby-compiler', core: 'mruby-compiler'
   add_dependency 'mruby-binding', :core => 'mruby-binding'
   spec.add_test_dependency('mruby-metaprog', :core => 'mruby-metaprog')

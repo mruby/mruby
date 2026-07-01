@@ -4,8 +4,6 @@ MRuby::Gem::Specification.new 'mruby-bin-mrbc' do |spec|
   spec.summary = 'mruby compiler executable using Prism'
 
   spec.add_dependency 'mruby-compiler', core: 'mruby-compiler'
-  spec.add_conflict 'mruby-compiler-lrama'
-  spec.add_conflict 'mruby-bin-mrbc-lrama'
 
   spec.cc.include_paths << "#{MRUBY_ROOT}/mrbgems/mruby-compiler/lib/prism/include"
 

@@ -249,7 +249,7 @@ module MRuby
 
     def initialize(build)
       super
-      @command = "ruby #{MRUBY_ROOT}/tools/lrama/exe/lrama"
+      @command = ENV['YACC'] || 'lrama'
       @compile_options = %q[-o "%{outfile}" "%{infile}"]
     end
 

@@ -156,7 +156,7 @@ module MRuby
         current.instance_eval(&block)
       ensure
         if current.libmruby_enabled? && !current.mrbcfile_external?
-          current.create_mrbc_build if current.host? || current.gems["mruby-bin-mrbc"] || current.gems["mruby-bin-mrbc-lrama"]
+          current.create_mrbc_build if current.host? || current.gems["mruby-bin-mrbc"]
         end
         current.presym = Presym.new(current)
       end
@@ -347,16 +347,11 @@ EOS
       @enable_test
     end
 
-    def build_mrbc_exec(lrama: false)
-      if lrama
-        gem :core => 'mruby-compiler-lrama' unless @gems['mruby-compiler-lrama']
-        gem :core => 'mruby-bin-mrbc-lrama' unless @gems['mruby-bin-mrbc-lrama']
-      else
-        # Prism is the default compiler; add it before the executable so the
-        # latter's mrbgem.rake can see it in build.gems while it is evaluated.
-        gem :core => 'mruby-compiler' unless @gems['mruby-compiler']
-        gem :core => 'mruby-bin-mrbc' unless @gems['mruby-bin-mrbc']
-      end
+    def build_mrbc_exec
+      # Add the compiler before the executable so the latter's mrbgem.rake can
+      # see it in build.gems while it is evaluated.
+      gem :core => 'mruby-compiler' unless @gems['mruby-compiler']
+      gem :core => 'mruby-bin-mrbc' unless @gems['mruby-bin-mrbc']
     end
 
     def locks
@@ -366,10 +361,10 @@ EOS
     def mrbcfile
       return @mrbcfile if @mrbcfile
 
-      if (gem = @gems["mruby-bin-mrbc"] || @gems["mruby-bin-mrbc-lrama"])
+      if (gem = @gems["mruby-bin-mrbc"])
         @mrbcfile = exefile("#{gem.build.build_dir}/bin/mrbc")
       elsif !host? && (host = MRuby.targets["host"])
-        if (gem = host.gems["mruby-bin-mrbc"] || host.gems["mruby-bin-mrbc-lrama"])
+        if (gem = host.gems["mruby-bin-mrbc"])
           @mrbcfile = exefile("#{gem.build.build_dir}/bin/mrbc")
         elsif host.mrbcfile_external?
           @mrbcfile = host.mrbcfile
@@ -583,15 +578,9 @@ EOS
             end
         build.instance_variable_set(n, v)
       end
-      # Bootstrap mrbc with the same compiler the main build uses (Prism by
-      # default, lrama when selected) so mrblib is compiled by the matching
-      # compiler with matching presyms. This runs before dependency resolution,
-      # so detect the lrama family by any of its gems, not just the compiler
-      # (a config may list only an lrama bin/eval gem and pull the lrama
-      # compiler in as a dependency).
-      uses_lrama = %w[mruby-compiler-lrama mruby-bin-mrbc-lrama mruby-bin-mruby-lrama
-                      mruby-bin-mirb-lrama mruby-eval-lrama].any? { |g| @gems[g] }
-      build.build_mrbc_exec(lrama: uses_lrama)
+      # Bootstrap mrbc with the Prism compiler so mrblib is compiled with
+      # matching presyms. This runs before dependency resolution.
+      build.build_mrbc_exec
       build.disable_libmruby
       build.presym = Presym.new(build)
       @mrbc_build = build
