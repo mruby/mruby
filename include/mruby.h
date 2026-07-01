@@ -215,6 +215,14 @@ mrb_static_assert_powerof2(MRB_METHOD_CACHE_SIZE);
 # define MRB_METHOD_CACHE_SIZE (1<<8)
 #endif
 
+#ifdef MRB_IV_CACHE_SIZE
+# undef MRB_NO_IV_CACHE
+mrb_static_assert_powerof2(MRB_IV_CACHE_SIZE);
+#else
+/* default instance-variable (object shape) index cache size: 256 */
+# define MRB_IV_CACHE_SIZE (1<<8)
+#endif
+
 /**
  * Function pointer type for a function callable by mruby.
  *
@@ -240,6 +248,17 @@ struct mrb_cache_entry {
   struct RClass *c, *c0;
   mrb_sym mid;
   mrb_method_t m;
+};
+#endif
+
+#ifndef MRB_NO_IV_CACHE
+/* Caches the (object shape, IV symbol) -> value-slot index lookup so a shaped
+   instance-variable access is O(1). Shapes live for the whole mrb_state, so a
+   shape pointer is a stable key; the cache is per-state, hence multi-state safe. */
+struct mrb_iv_cache_entry {
+  struct mrb_iv_shape *shape;
+  mrb_sym sym;
+  int idx;
 };
 #endif
 
@@ -314,6 +333,10 @@ struct mrb_state {
 
 #ifndef MRB_NO_METHOD_CACHE
   struct mrb_cache_entry cache[MRB_METHOD_CACHE_SIZE];
+#endif
+
+#ifndef MRB_NO_IV_CACHE
+  struct mrb_iv_cache_entry iv_cache[MRB_IV_CACHE_SIZE];
 #endif
 
 #ifndef MRB_NO_CONST_CACHE

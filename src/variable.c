@@ -252,7 +252,7 @@ iv_free(mrb_state *mrb, iv_tbl *t)
  */
 
 /* Maximum IV count before de-shaping to iv_tbl */
-#define MRB_SHAPE_MAX_IVS 16
+#define MRB_SHAPE_MAX_IVS 128
 
 /* Shape descriptor -- shared across objects with same IV layout */
 typedef struct mrb_iv_shape {
@@ -311,9 +311,35 @@ shape_transition(mrb_state *mrb, mrb_iv_shape *shape, mrb_sym sym)
  * Look up sym in shape by walking the parent chain.
  * Returns the value index (0-based), or -1 if not found.
  */
+/* Below this many IVs the parent-chain walk (a few register ops on hot,
+   recently-allocated shape nodes) beats a cache probe (hash + a load from the
+   multi-KB per-state cache). Only deeper objects use the index cache. */
+#define SHAPE_CACHE_MIN_IVS 12
+
 static int
-shape_lookup(mrb_iv_shape *shape, mrb_sym sym)
+shape_lookup(mrb_state *mrb, mrb_iv_shape *shape, mrb_sym sym)
 {
+#ifndef MRB_NO_IV_CACHE
+  if (shape->count > SHAPE_CACHE_MIN_IVS) {
+    /* Per-state (shape,sym)->idx cache: the O(n) parent-chain walk becomes O(1)
+       on a hit. Shapes live until mrb_close, so the pointer is a stable key. */
+    uintptr_t h = (((uintptr_t)shape >> 4) ^ ((uintptr_t)sym * 2654435761u)) & (MRB_IV_CACHE_SIZE - 1);
+    struct mrb_iv_cache_entry *e = &mrb->iv_cache[h];
+    if (e->shape == shape && e->sym == sym) {
+      return e->idx;
+    }
+    mrb_iv_shape *s = shape;
+    int idx = -1;
+    while (s->count > 0) {
+      if (s->edge == sym) { idx = s->count - 1; break; }
+      s = s->parent;
+    }
+    e->shape = shape;
+    e->sym = sym;
+    e->idx = idx;
+    return idx;
+  }
+#endif
   mrb_iv_shape *s = shape;
   while (s->count > 0) {
     if (s->edge == sym) return s->count - 1;
@@ -387,7 +413,7 @@ shaped_iv_set(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
   mrb_iv_shape *shape = siv ? siv->shape : mrb->root_shape;
 
   /* check if sym already exists in current shape */
-  int idx = shape_lookup(shape, sym);
+  int idx = shape_lookup(mrb, shape, sym);
   if (idx >= 0) {
     siv->values[idx] = v;
     return;
@@ -422,22 +448,22 @@ shaped_iv_set(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
 }
 
 static mrb_value
-shaped_iv_get(struct RObject *obj, mrb_sym sym)
+shaped_iv_get(mrb_state *mrb, struct RObject *obj, mrb_sym sym)
 {
   mrb_shaped_iv *siv = (mrb_shaped_iv*)obj->iv;
   if (!siv) return mrb_nil_value();
-  int idx = shape_lookup(siv->shape, sym);
+  int idx = shape_lookup(mrb, siv->shape, sym);
   if (idx >= 0 && !mrb_undef_p(siv->values[idx]))
     return siv->values[idx];
   return mrb_nil_value();
 }
 
 static mrb_bool
-shaped_iv_defined(struct RObject *obj, mrb_sym sym)
+shaped_iv_defined(mrb_state *mrb, struct RObject *obj, mrb_sym sym)
 {
   mrb_shaped_iv *siv = (mrb_shaped_iv*)obj->iv;
   if (!siv) return FALSE;
-  int idx = shape_lookup(siv->shape, sym);
+  int idx = shape_lookup(mrb, siv->shape, sym);
   if (idx >= 0 && !mrb_undef_p(siv->values[idx]))
     return TRUE;
   return FALSE;
@@ -619,7 +645,7 @@ MRB_API mrb_value
 mrb_obj_iv_get(mrb_state *mrb, struct RObject *obj, mrb_sym sym)
 {
   if (MRB_OBJ_SHAPED_P(obj)) {
-    return shaped_iv_get(obj, sym);
+    return shaped_iv_get(mrb, obj, sym);
   }
 
   mrb_value v;
@@ -793,7 +819,7 @@ MRB_API mrb_bool
 mrb_obj_iv_defined(mrb_state *mrb, struct RObject *obj, mrb_sym sym)
 {
   if (MRB_OBJ_SHAPED_P(obj)) {
-    return shaped_iv_defined(obj, sym);
+    return shaped_iv_defined(mrb, obj, sym);
   }
 
   iv_tbl *t = obj->iv;
@@ -963,7 +989,7 @@ mrb_iv_remove(mrb_state *mrb, mrb_value obj, mrb_sym sym)
     if (MRB_OBJ_SHAPED_P(o)) {
       mrb_shaped_iv *siv = (mrb_shaped_iv*)o->iv;
       if (siv) {
-        int idx = shape_lookup(siv->shape, sym);
+        int idx = shape_lookup(mrb, siv->shape, sym);
         if (idx >= 0 && !mrb_undef_p(siv->values[idx])) {
           mrb_value val = siv->values[idx];
           /* de-shape, then remove the key */
