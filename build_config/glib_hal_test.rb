@@ -84,5 +84,5 @@ MRuby::Build.new do |conf|
   conf.ports :glib
   conf.cc.defines << 'MRB_TASK_BUILD_DEMO'
   conf.gem core: 'mruby-task'
-  conf.gem core: 'mruby-compiler-lrama'
+  conf.gem core: 'mruby-compiler'
 end
