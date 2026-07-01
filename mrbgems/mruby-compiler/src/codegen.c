@@ -2208,9 +2208,9 @@ scope_body(mrc_codegen_scope *s, mrc_node *tree, int val)
     }
     case PM_CLASS_NODE:
     {
-      CAST3(class, tree, class);
-      nlv = &class->locals;
-      statements = class->body;
+      CAST3(class, tree, cls);
+      nlv = &cls->locals;
+      statements = cls->body;
       break;
     }
     case PM_SINGLETON_CLASS_NODE:
@@ -3553,8 +3553,8 @@ lambda_body(mrc_codegen_scope *s, mrc_node *tree, mrc_node *body, pm_constant_id
             pm_constant_id_t dastr = MRC_OPSYM_2(pow);
             mrc_constant_id_list_append(s, lv, dastr);
             mrc_constant_id_list_append(s, lv, null_mark);
-            pm_constant_id_t and = MRC_OPSYM_2(and);
-            mrc_constant_id_list_append(s, lv, and);
+            pm_constant_id_t and_sym = MRC_OPSYM_2(and);
+            mrc_constant_id_list_append(s, lv, and_sym);
             block_reg = lv->size;
             break;
           }
@@ -3576,8 +3576,8 @@ lambda_body(mrc_codegen_scope *s, mrc_node *tree, mrc_node *body, pm_constant_id
         mrc_constant_id_list_append(s, lv, ((pm_block_parameter_node_t *)parameters->block)->name);
       }
       else {
-        pm_constant_id_t and = MRC_OPSYM_2(and);
-        mrc_constant_id_list_append(s, lv, and);
+        pm_constant_id_t and_sym = MRC_OPSYM_2(and);
+        mrc_constant_id_list_append(s, lv, and_sym);
       }
       block_reg = lv->size;
     }
@@ -5946,10 +5946,10 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
     {
       CAST(block_argument);
       if (!cast->expression) {
-        mrc_sym and = MRC_OPSYM_2(and);
-        int idx = lv_idx(s, and);
+        mrc_sym and_sym = MRC_OPSYM_2(and);
+        int idx = lv_idx(s, and_sym);
         if (idx == 0) {
-          gen_getupvar(s, cursp(), and);
+          gen_getupvar(s, cursp(), and_sym);
         }
         else {
           gen_move(s, cursp(), idx, val);

@@ -61,7 +61,7 @@ mrc_diagnostic_code_to_string(mrc_diagnostic_code code)
 void
 mrc_diagnostic_list_append(mrc_ccontext *c, const uint8_t * location_start, const char *message, mrc_diagnostic_code code)
 {
-  mrc_diagnostic_list *list = mrc_calloc(c, 1, sizeof(mrc_diagnostic_list));
+  mrc_diagnostic_list *list = (mrc_diagnostic_list *)mrc_calloc(c, 1, sizeof(mrc_diagnostic_list));
   const uint8_t *file_start = c->p->start;
   list->filename = NULL;
 #ifndef MRC_NO_STDIO

@@ -28,7 +28,26 @@
 #if !defined(PRISM_XALLOCATOR)
   #define PRISM_XALLOCATOR
 #endif
+/* Include mruby.h with its own linkage before wrapping Prism below: prism.h
+   pulls in mruby.h transitively (through prism_xallocator.h), and it must not
+   land inside the extern "C" block -- under MRB_USE_CXX_ABI mruby's API uses
+   C++ linkage, so forcing C linkage on it would break every call from the
+   C++-compiled compiler glue into the core. */
+#if defined(MRC_TARGET_MRUBY) && !defined(PICORB_VM_MRUBY)
+  #include <mruby.h>
+#endif
+/* Prism is a vendored C library and is always compiled as C (its generated
+   code uses C constructs -- designated initializers, implicit void* casts --
+   that a C++ compiler cannot build). When this header is included from a C++
+   translation unit -- e.g. an MRB_USE_CXX_ABI build -- its declarations must
+   use C linkage so they match the C-compiled Prism objects. */
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include "prism.h"
+#ifdef __cplusplus
+}
+#endif
 
 #ifndef MRC_COMMIT_TIMESTAMP
   #define MRC_COMMIT_TIMESTAMP "unknown"

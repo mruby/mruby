@@ -197,7 +197,7 @@ mrc_pm_parser_init(mrc_parser_state *p, uint8_t **source, size_t size, mrc_ccont
 static ssize_t
 append_from_stdin(mrc_ccontext *c, uint8_t **source, size_t source_length)
 {
-  uint8_t *buffer = mrc_malloc(c, INITIAL_BUF_SIZE);
+  uint8_t *buffer = (uint8_t *)mrc_malloc(c, INITIAL_BUF_SIZE);
   if (buffer == NULL) return -1;
 
   int capacity = INITIAL_BUF_SIZE;
@@ -220,7 +220,7 @@ append_from_stdin(mrc_ccontext *c, uint8_t **source, size_t source_length)
 
     if (capacity <= length) {
       capacity *= 2;
-      uint8_t *new_buffer = mrc_realloc(c, buffer, capacity);
+      uint8_t *new_buffer = (uint8_t *)mrc_realloc(c, buffer, capacity);
       if (new_buffer == NULL) {
         mrc_free(c, buffer);
         return -1;
