@@ -3415,12 +3415,24 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_ARYCAT, B) {
-      mrb_value splat = mrb_ary_splat(mrb, regs[a+1]);
-      ci = mrb->c->ci;
+      mrb_value v = regs[a+1];
       if (mrb_nil_p(regs[a])) {
-        regs[a] = splat;
+        /* becomes the argument accumulator, which OP_ARYPUSH/ARYCAT then
+           append to, so it must be a fresh array independent of v */
+        regs[a] = mrb_ary_splat(mrb, v);
+        ci = mrb->c->ci;
+      }
+      else if (mrb_array_p(v)) {
+        /* concat only reads v, so splat here would just dup v and copy it
+           twice; concatenate straight from v (ary_concat handles v aliasing
+           regs[a]) */
+        mrb_ensure_array_type(mrb, regs[a]);
+        mrb_ary_concat(mrb, regs[a], v);
       }
       else {
+        /* non-array: to_a already yields a fresh array, no extra dup needed */
+        mrb_value splat = mrb_ary_splat(mrb, v);
+        ci = mrb->c->ci;
         mrb_ensure_array_type(mrb, regs[a]);
         mrb_ary_concat(mrb, regs[a], splat);
       }
