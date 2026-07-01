@@ -35,6 +35,15 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
   cc.defines << 'MRC_DEBUG' if cc.defines.any? { |d| d.match?(/\AMRB_DEBUG(=|\z)/) }
   cc.defines << 'PRISM_BUILD_MINIMAL' unless cc.defines.include?('MRC_DEBUG')
 
+  # The compiler glue is built as C++ under MRB_USE_CXX_ABI, and mruby.h
+  # requires __STDC_LIMIT_MACROS / __STDC_CONSTANT_MACROS before <stdint.h> in
+  # C++ mode -- some libc stdint.h (e.g. mingw) only define UINTPTR_MAX and
+  # friends when they are set. Define them on the command line so they apply no
+  # matter which header pulls in <stdint.h> first.
+  if build.cxx_abi_enabled?
+    cc.defines += %w(__STDC_LIMIT_MACROS __STDC_CONSTANT_MACROS)
+  end
+
   next if %w(clean deep_clean).include?(Rake.application.top_level_tasks.first)
 
   prism_generated_files = %w[
