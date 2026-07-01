@@ -4,15 +4,6 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
   spec.summary = 'mruby test'
 
   spec.test_rbfiles = Dir.glob("#{MRUBY_ROOT}/test/t/*.rb")
-  if build.gems['mruby-compiler-lrama']
-    # The Prism parser accepts patterns (e.g. `self` in an alternation) that the
-    # legacy lrama parser rejects, so drop that test for lrama builds.
-    spec.test_rbfiles.reject! { |f| File.basename(f) == 'syntax_pattern_prism.rb' }
-  else
-    # The Prism parser does not accept `&nil` block-forbidding parameters yet,
-    # so drop that test unless building with the legacy lrama compiler.
-    spec.test_rbfiles.reject! { |f| File.basename(f) == 'syntax_block_forbid.rb' }
-  end
 
   clib = "#{build_dir}/mrbtest.c"
   mlib = clib.ext(exts.object)
