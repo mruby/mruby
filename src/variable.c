@@ -239,35 +239,11 @@ iv_free(mrb_state *mrb, iv_tbl *t)
 }
 
 /*
- * Object Shape (Hidden Class) structures.
- *
- * A shape describes the IV layout of an object: which syms are stored
- * at which indices. Shapes form a tree rooted at the empty root shape.
- * Each child adds one IV (its "edge" sym). Objects sharing the same
- * set of IVs (assigned in the same order) share the same shape,
- * eliminating per-object key storage.
- *
- * Only MRB_TT_OBJECT instances are shaped. RClass, RHash, etc. keep
- * traditional iv_tbl.
+ * Object Shape (Hidden Class) storage. The mrb_iv_shape / mrb_shaped_iv
+ * structures and the mrb_shape_lookup index lookup live in
+ * mruby/internal.h so the VM can inline the shaped OP_GETIV/OP_SETIV
+ * fast path; the tree construction and the slow paths stay here.
  */
-
-/* Maximum IV count before de-shaping to iv_tbl */
-#define MRB_SHAPE_MAX_IVS 128
-
-/* Shape descriptor -- shared across objects with same IV layout */
-typedef struct mrb_iv_shape {
-  struct mrb_iv_shape *parent;    /* parent shape (one fewer IV) */
-  struct mrb_iv_shape *children;  /* linked list of child shapes */
-  struct mrb_iv_shape *sibling;   /* next child of same parent */
-  mrb_sym edge;                   /* IV sym added from parent */
-  uint16_t count;                 /* number of IV slots */
-} mrb_iv_shape;
-
-/* Per-object shaped IV storage (allocated via struct hack) */
-typedef struct mrb_shaped_iv {
-  mrb_iv_shape *shape;
-  mrb_value values[1];  /* shape->count elements */
-} mrb_shaped_iv;
 
 /* Create the empty root shape */
 static mrb_iv_shape*
@@ -305,47 +281,6 @@ shape_transition(mrb_state *mrb, mrb_iv_shape *shape, mrb_sym sym)
   child->count = shape->count + 1;
   shape->children = child;
   return child;
-}
-
-/*
- * Look up sym in shape by walking the parent chain.
- * Returns the value index (0-based), or -1 if not found.
- */
-/* Below this many IVs the parent-chain walk (a few register ops on hot,
-   recently-allocated shape nodes) beats a cache probe (hash + a load from the
-   multi-KB per-state cache). Only deeper objects use the index cache. */
-#define SHAPE_CACHE_MIN_IVS 12
-
-static int
-shape_lookup(mrb_state *mrb, mrb_iv_shape *shape, mrb_sym sym)
-{
-#ifndef MRB_NO_IV_CACHE
-  if (shape->count > SHAPE_CACHE_MIN_IVS) {
-    /* Per-state (shape,sym)->idx cache: the O(n) parent-chain walk becomes O(1)
-       on a hit. Shapes live until mrb_close, so the pointer is a stable key. */
-    uintptr_t h = (((uintptr_t)shape >> 4) ^ ((uintptr_t)sym * 2654435761u)) & (MRB_IV_CACHE_SIZE - 1);
-    struct mrb_iv_cache_entry *e = &mrb->iv_cache[h];
-    if (e->shape == shape && e->sym == sym) {
-      return e->idx;
-    }
-    mrb_iv_shape *s = shape;
-    int idx = -1;
-    while (s->count > 0) {
-      if (s->edge == sym) { idx = s->count - 1; break; }
-      s = s->parent;
-    }
-    e->shape = shape;
-    e->sym = sym;
-    e->idx = idx;
-    return idx;
-  }
-#endif
-  mrb_iv_shape *s = shape;
-  while (s->count > 0) {
-    if (s->edge == sym) return s->count - 1;
-    s = s->parent;
-  }
-  return -1;
 }
 
 /* Recursively free all shapes in the tree */
@@ -413,7 +348,7 @@ shaped_iv_set(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
   mrb_iv_shape *shape = siv ? siv->shape : mrb->root_shape;
 
   /* check if sym already exists in current shape */
-  int idx = shape_lookup(mrb, shape, sym);
+  int idx = mrb_shape_lookup(mrb, shape, sym);
   if (idx >= 0) {
     siv->values[idx] = v;
     return;
@@ -452,7 +387,7 @@ shaped_iv_get(mrb_state *mrb, struct RObject *obj, mrb_sym sym)
 {
   mrb_shaped_iv *siv = (mrb_shaped_iv*)obj->iv;
   if (!siv) return mrb_nil_value();
-  int idx = shape_lookup(mrb, siv->shape, sym);
+  int idx = mrb_shape_lookup(mrb, siv->shape, sym);
   if (idx >= 0 && !mrb_undef_p(siv->values[idx]))
     return siv->values[idx];
   return mrb_nil_value();
@@ -463,7 +398,7 @@ shaped_iv_defined(mrb_state *mrb, struct RObject *obj, mrb_sym sym)
 {
   mrb_shaped_iv *siv = (mrb_shaped_iv*)obj->iv;
   if (!siv) return FALSE;
-  int idx = shape_lookup(mrb, siv->shape, sym);
+  int idx = mrb_shape_lookup(mrb, siv->shape, sym);
   if (idx >= 0 && !mrb_undef_p(siv->values[idx]))
     return TRUE;
   return FALSE;
@@ -989,7 +924,7 @@ mrb_iv_remove(mrb_state *mrb, mrb_value obj, mrb_sym sym)
     if (MRB_OBJ_SHAPED_P(o)) {
       mrb_shaped_iv *siv = (mrb_shaped_iv*)o->iv;
       if (siv) {
-        int idx = shape_lookup(mrb, siv->shape, sym);
+        int idx = mrb_shape_lookup(mrb, siv->shape, sym);
         if (idx >= 0 && !mrb_undef_p(siv->values[idx])) {
           mrb_value val = siv->values[idx];
           /* de-shape, then remove the key */

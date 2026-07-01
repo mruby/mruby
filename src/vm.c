@@ -2468,13 +2468,42 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_GETIV, BB) {
-      regs[a] = mrb_iv_get(mrb, regs[0], irep->syms[b]);
+      mrb_value recv = regs[0];
+      /* shaped fast path: self is almost always a plain object here, and the
+         lookup neither allocates nor raises, so ci stays valid */
+      if (mrb_type(recv) == MRB_TT_OBJECT) {
+        struct RObject *o = mrb_obj_ptr(recv);
+        if (MRB_OBJ_SHAPED_P(o) && o->iv) {
+          mrb_shaped_iv *siv = (mrb_shaped_iv*)o->iv;
+          int idx = mrb_shape_lookup(mrb, siv->shape, irep->syms[b]);
+          regs[a] = (idx >= 0 && !mrb_undef_p(siv->values[idx]))
+                    ? siv->values[idx] : mrb_nil_value();
+          NEXT;
+        }
+      }
+      regs[a] = mrb_iv_get(mrb, recv, irep->syms[b]);
       ci = mrb->c->ci;
       NEXT;
     }
 
     CASE(OP_SETIV, BB) {
-      mrb_iv_set(mrb, regs[0], irep->syms[b], regs[a]);
+      mrb_value recv = regs[0];
+      /* shaped fast path: only overwrite an already-present slot on an
+         unfrozen object; shape transitions, frozen errors and non-objects
+         take the full path */
+      if (mrb_type(recv) == MRB_TT_OBJECT) {
+        struct RObject *o = mrb_obj_ptr(recv);
+        if (MRB_OBJ_SHAPED_P(o) && o->iv && !mrb_frozen_p(o)) {
+          mrb_shaped_iv *siv = (mrb_shaped_iv*)o->iv;
+          int idx = mrb_shape_lookup(mrb, siv->shape, irep->syms[b]);
+          if (idx >= 0 && !mrb_undef_p(siv->values[idx])) {
+            siv->values[idx] = regs[a];
+            mrb_field_write_barrier_value(mrb, (struct RBasic*)o, regs[a]);
+            NEXT;
+          }
+        }
+      }
+      mrb_iv_set(mrb, recv, irep->syms[b], regs[a]);
       ci = mrb->c->ci;
       NEXT;
     }

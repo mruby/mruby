@@ -203,6 +203,79 @@ void mrb_gc_free_iv(mrb_state*, struct RObject*);
 void mrb_init_shape(mrb_state*);
 void mrb_free_shape(mrb_state*);
 
+/*
+ * Object Shape (Hidden Class) structures.
+ *
+ * A shape describes the IV layout of an object: which syms are stored
+ * at which indices. Shapes form a tree rooted at the empty root shape.
+ * Each child adds one IV (its "edge" sym). Objects sharing the same
+ * set of IVs (assigned in the same order) share the same shape,
+ * eliminating per-object key storage.
+ *
+ * Only MRB_TT_OBJECT instances are shaped (see MRB_OBJ_SHAPED_P); RClass,
+ * RHash, etc. keep a traditional iv_tbl. Defined here (not variable.c) so
+ * the VM can inline the shaped fast path of OP_GETIV/OP_SETIV.
+ */
+
+/* Maximum IV count before de-shaping to iv_tbl */
+#define MRB_SHAPE_MAX_IVS 128
+
+/* Shape descriptor -- shared across objects with same IV layout */
+typedef struct mrb_iv_shape {
+  struct mrb_iv_shape *parent;    /* parent shape (one fewer IV) */
+  struct mrb_iv_shape *children;  /* linked list of child shapes */
+  struct mrb_iv_shape *sibling;   /* next child of same parent */
+  mrb_sym edge;                   /* IV sym added from parent */
+  uint16_t count;                 /* number of IV slots */
+} mrb_iv_shape;
+
+/* Per-object shaped IV storage (allocated via struct hack) */
+typedef struct mrb_shaped_iv {
+  mrb_iv_shape *shape;
+  mrb_value values[1];  /* shape->count elements */
+} mrb_shaped_iv;
+
+/* Below this many IVs the parent-chain walk (a few register ops on hot,
+   recently-allocated shape nodes) beats a cache probe (hash + a load from the
+   multi-KB per-state cache). Only deeper objects use the index cache. */
+#define MRB_SHAPE_CACHE_MIN_IVS 12
+
+/*
+ * Look up sym in shape by walking the parent chain.
+ * Returns the value index (0-based), or -1 if not found.
+ */
+static inline int
+mrb_shape_lookup(mrb_state *mrb, mrb_iv_shape *shape, mrb_sym sym)
+{
+#ifndef MRB_NO_IV_CACHE
+  if (shape->count > MRB_SHAPE_CACHE_MIN_IVS) {
+    /* Per-state (shape,sym)->idx cache: the O(n) parent-chain walk becomes O(1)
+       on a hit. Shapes live until mrb_close, so the pointer is a stable key. */
+    uintptr_t h = (((uintptr_t)shape >> 4) ^ ((uintptr_t)sym * 2654435761u)) & (MRB_IV_CACHE_SIZE - 1);
+    struct mrb_iv_cache_entry *e = &mrb->iv_cache[h];
+    if (e->shape == shape && e->sym == sym) {
+      return e->idx;
+    }
+    mrb_iv_shape *s = shape;
+    int idx = -1;
+    while (s->count > 0) {
+      if (s->edge == sym) { idx = s->count - 1; break; }
+      s = s->parent;
+    }
+    e->shape = shape;
+    e->sym = sym;
+    e->idx = idx;
+    return idx;
+  }
+#endif
+  mrb_iv_shape *s = shape;
+  while (s->count > 0) {
+    if (s->edge == sym) return s->count - 1;
+    s = s->parent;
+  }
+  return -1;
+}
+
 /* VM */
 #define MRB_CI_VISIBILITY(ci) MRB_FLAGS_GET((ci)->vis, 0, 2)
 #define MRB_CI_SET_VISIBILITY(ci, visi) MRB_FLAGS_SET((ci)->vis, 0, 2, visi)
