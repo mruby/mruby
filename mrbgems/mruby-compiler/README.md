@@ -89,7 +89,6 @@ The compiler is shared by multiple runtimes. Changes made for mruby must preserv
 4. Public compiler headers are the API boundary for PicoRuby and FemtoRuby.
 
    Keep the C API usable without depending on mruby internals:
-
    - `mrc_common.h`
    - `mrc_ccontext.h`
    - `mrc_compile.h`

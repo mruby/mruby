@@ -78,7 +78,7 @@ Instances of classes created by `Data.define` have several useful methods:
   # Output: {:name=>"John Doe", :address=>"123 Main St", :zip=>12345}
   ```
 
-- **`with(**kwargs)`**: Returns a new instance with the members named by the keyword arguments replaced; the remaining members keep their current values. With no arguments, returns the receiver itself.
+- **`with`**: Takes keyword arguments and returns a new instance with the members they name replaced; the remaining members keep their current values. With no arguments, returns the receiver itself.
 
   ```ruby
   point1 = Point.new(1, 2)
