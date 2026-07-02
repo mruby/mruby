@@ -822,6 +822,17 @@ assert('numbered parameters') do
   assert_equal(5, -> { _1 }.call(5))
 end
 
+assert('numbered parameter after ordinary local (#6921)') do
+  # a local assigned before the first _1 reference used to steal _1's
+  # register, leaving the numbered parameter nil
+  result = nil
+  [1].each { tmp = _1 + 1; result = tmp }
+  assert_equal(2, result)
+
+  [[1, 2]].each { t = _2; result = [_1, t] }
+  assert_equal([1, 2], result)
+end
+
 assert('_0 is not numbered parameter') do
   _0 = :l
   assert_equal(:l, ->{_0}.call)

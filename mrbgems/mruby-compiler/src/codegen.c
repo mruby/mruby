@@ -3462,9 +3462,31 @@ lambda_body(mrc_codegen_scope *s, mrc_node *tree, mrc_node *body, pm_constant_id
     if (!tree || nint(tree) != PM_NUMBERED_PARAMETERS_NODE) {
       /* empty block or `it`: insert null_mark as a placeholder for slot 1 */
       mrc_constant_id_list_append(s, lv, null_mark);
+      for (i = 0; i < locals->size; i++) {
+        mrc_constant_id_list_append(s, lv, locals->ids[i]);
+      }
     }
-    for (i = 0; i < locals->size; i++) {
-      mrc_constant_id_list_append(s, lv, locals->ids[i]);
+    else {
+      /* Numbered parameters must own the first na slots so the arguments are
+         stored into them, but Prism lists block locals in order of first
+         appearance -- `{ tmp = _1 }` yields [tmp, _1]. Lay out _1.._na first
+         (interning returns the ids the parser already created) and the
+         remaining locals after them. */
+      static const char *const num_names[9] = {"_1","_2","_3","_4","_5","_6","_7","_8","_9"};
+      for (int k = 0; k < na; k++) {
+        pm_constant_id_t nid = pm_constant_pool_insert_constant(&s->c->p->constant_pool,
+                                 (const uint8_t*)num_names[k], 2);
+        mrc_constant_id_list_append(s, lv, nid);
+      }
+      for (i = 0; i < locals->size; i++) {
+        int k;
+        for (k = 0; k < na; k++) {
+          if (lv->ids[k] == locals->ids[i]) break;
+        }
+        if (k == na) {
+          mrc_constant_id_list_append(s, lv, locals->ids[i]);
+        }
+      }
     }
     ma = mma = oa = ra = pa = ppa = ka = kd = ba = 0;
   }
