@@ -403,6 +403,26 @@ class Hash
     end
   end
 
+  ##
+  # call-seq:
+  #   hsh.except(:key) -> hsh
+  #
+  # Returns a copy of `self` that excludes entries
+  # for the given `keys`; any `keys` that are not
+  # found are ignored:
+  #
+  #   h = {foo: 0, bar: 1, baz: 2} # => {foo: 0, bar: 1, baz: 2}
+  #   h.except(:baz, :foo)         # => {bar: 1}
+  #   h.except(:bar, :nosuch)      # => {foo: 0, baz: 2}
+  def except(*keys)
+    hsh = {}
+    each do |k,v|
+      next if keys.include?(k)
+      hsh[k] = v
+    end
+    hsh
+  end
+
   alias filter select
   alias filter! select!
 end

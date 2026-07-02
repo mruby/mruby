@@ -315,3 +315,28 @@ assert("Hash#except") do
   assert_equal({:a=>100}, h.except(:b, :c, :d))
   assert_equal(h, h.except)
 end
+
+assert('Hash#except') do
+  ##
+  # Without arguments
+  h = {foo: 0, bar: 1, baz: 2}
+  assert_equal(h, h.except)
+  assert_not_same(h, h.except)
+
+  ##
+  # With arguments
+  h = {foo: 0, bar: 1, baz: 2}
+  assert_equal({bar: 1}, h.except(:baz, :foo))
+  assert_equal({foo: 0, baz: 2}, h.except(:bar, :nosuch))
+
+  ##
+  # Subclass does not carry over
+  h = Class.new(Hash).new
+  assert_equal(Hash, h.except.class)
+
+  ##
+  # Default does not carry over
+  h = {foo: 0, bar: 1, baz: 2}
+  h.default = 42
+  assert_equal(nil, h.except.default)
+end
