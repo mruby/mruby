@@ -3104,7 +3104,11 @@ RETRY_TRY_BLOCK:
     L_RETURN_FALSE:
       v = mrb_false_value();
     L_RETURN:
-      mrb_gc_protect(mrb, v);
+      /* cipop below may allocate (env unshare), and the returning frame's
+         slots are no longer scanned after the pop, so keep a heap return
+         value in the arena; immediates need no protection and skipping the
+         call matters on integer-heavy return paths */
+      if (!mrb_immediate_p(v)) mrb_gc_protect(mrb, v);
       return_ci = ci;
       CHECKPOINT_RESTORE(RBREAK_TAG_BREAK) {
         if (TRUE) {
@@ -3118,7 +3122,7 @@ RETRY_TRY_BLOCK:
           ci = mrb->c->ci;
           v = ci->stack[a];
         }
-        mrb_gc_protect(mrb, v);
+        if (!mrb_immediate_p(v)) mrb_gc_protect(mrb, v);
       }
       CHECKPOINT_MAIN(RBREAK_TAG_BREAK) {
         for (;;) {
