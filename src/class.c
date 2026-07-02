@@ -2955,8 +2955,8 @@ mod_attr_define(mrb_state *mrb, mrb_value mod, mrb_int aargc, mrb_value (*access
   return mrb_nil_value();
 }
 
-static mrb_value
-attr_reader(mrb_state *mrb, mrb_value obj)
+mrb_value
+mrb_attr_reader(mrb_state *mrb, mrb_value obj)
 {
   mrb_value name = mrb_proc_cfunc_env_get(mrb, 0);
   return mrb_iv_get(mrb, obj, to_sym(mrb, name));
@@ -2965,11 +2965,11 @@ attr_reader(mrb_state *mrb, mrb_value obj)
 static mrb_value
 mrb_mod_attr_reader(mrb_state *mrb, mrb_value mod)
 {
-  return mod_attr_define(mrb, mod, 0, attr_reader, NULL);
+  return mod_attr_define(mrb, mod, 0, mrb_attr_reader, NULL);
 }
 
-static mrb_value
-attr_writer(mrb_state *mrb, mrb_value obj)
+mrb_value
+mrb_attr_writer(mrb_state *mrb, mrb_value obj)
 {
   mrb_value name = mrb_proc_cfunc_env_get(mrb, 0);
   mrb_value val = mrb_get_arg1(mrb);
@@ -2981,7 +2981,7 @@ attr_writer(mrb_state *mrb, mrb_value obj)
 static mrb_value
 mrb_mod_attr_writer(mrb_state *mrb, mrb_value mod)
 {
-  return mod_attr_define(mrb, mod, 1, attr_writer, prepare_writer_name);
+  return mod_attr_define(mrb, mod, 1, mrb_attr_writer, prepare_writer_name);
 }
 
 static mrb_value

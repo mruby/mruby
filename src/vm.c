@@ -2874,6 +2874,32 @@ RETRY_TRY_BLOCK:
         /* handle alias */
         MRB_PROC_RESOLVE_ALIAS(ci, p);
         CI_PROC_SET(ci, p);
+        if (MRB_PROC_CFUNC_P(p) && MRB_PROC_ENV_P(p) && !ci->blk && ci->nk == 0) {
+          /* attr accessor fast path: access the ivar in place and pop the
+             frame instead of doing a full cfunc call. Only for cases that
+             cannot raise: reads never do; writes are limited to unfrozen
+             plain objects. Arity/frozen errors fall to the normal call. */
+          mrb_func_t f = MRB_PROC_CFUNC(p);
+          mrb_value name;
+          if (f == mrb_attr_reader && ci->n == 0 &&
+              mrb_symbol_p(name = MRB_PROC_ENV(p)->stack[0])) {
+            mrb_value va = mrb_iv_get(mrb, recv, mrb_symbol(name));
+            mrb->c->ci--;       /* fresh frame: no env, no blk */
+            ci = mrb->c->ci;
+            regs[a] = va;
+            NEXT;
+          }
+          if (f == mrb_attr_writer && ci->n == 1 &&
+              mrb_type(recv) == MRB_TT_OBJECT && !mrb_obj_ptr(recv)->frozen &&
+              mrb_symbol_p(name = MRB_PROC_ENV(p)->stack[0])) {
+            mrb_value va = regs[1];
+            mrb_obj_iv_set_force(mrb, mrb_obj_ptr(recv), mrb_symbol(name), va);
+            mrb->c->ci--;       /* fresh frame: no env, no blk */
+            ci = mrb->c->ci;
+            regs[a] = va;
+            NEXT;
+          }
+        }
         if (!MRB_PROC_CFUNC_P(p)) {
           /* setup environment for calling method */
           irep = p->body.irep;
