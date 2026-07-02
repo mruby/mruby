@@ -314,4 +314,13 @@ assert("Hash#except") do
   assert_equal({:b=>200, :c=>300}, h.except(:a))
   assert_equal({:a=>100}, h.except(:b, :c, :d))
   assert_equal(h, h.except)
+  assert_not_same(h, h.except)
+
+  # as in CRuby, the result is a plain Hash without the receiver's default
+  h2 = Class.new(Hash).new
+  h2[:a] = 1
+  assert_equal(Hash, h2.except.class)
+  h3 = { a: 1 }
+  h3.default = 42
+  assert_nil(h3.except(:a).default)
 end
