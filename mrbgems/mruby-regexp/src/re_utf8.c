@@ -26,41 +26,34 @@ mrb_re_utf8_charlen(const char *s, const char *end)
 }
 
 /* Decode a UTF-8 character and return its codepoint.
-   *len is set to the byte length consumed. */
+   *len is set to the byte length consumed. Invalid or truncated
+   sequences consume a single byte, mirroring mrb_re_utf8_charlen. */
 uint32_t
-mrb_re_utf8_decode(const char *s, int *len)
+mrb_re_utf8_decode(const char *s, const char *end, int *len)
 {
   uint8_t c = (uint8_t)s[0];
   uint32_t cp;
+  int n = mrb_re_utf8_charlen(s, end);
 
-  if (c < 0x80) {
-    *len = 1;
-    return c;
-  }
-  else if (c < 0xc0) {
-    *len = 1;
-    return c;  /* invalid, return as-is */
-  }
-  else if (c < 0xe0) {
-    *len = 2;
+  *len = n;
+  switch (n) {
+  case 2:
     cp = (c & 0x1f) << 6;
     cp |= ((uint8_t)s[1] & 0x3f);
     return cp;
-  }
-  else if (c < 0xf0) {
-    *len = 3;
+  case 3:
     cp = (c & 0x0f) << 12;
     cp |= ((uint8_t)s[1] & 0x3f) << 6;
     cp |= ((uint8_t)s[2] & 0x3f);
     return cp;
-  }
-  else {
-    *len = 4;
+  case 4:
     cp = (c & 0x07) << 18;
     cp |= ((uint8_t)s[1] & 0x3f) << 12;
     cp |= ((uint8_t)s[2] & 0x3f) << 6;
     cp |= ((uint8_t)s[3] & 0x3f);
     return cp;
+  default:
+    return c;  /* ASCII, or invalid/truncated byte returned as-is */
   }
 }
 

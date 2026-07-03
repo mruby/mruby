@@ -133,7 +133,7 @@ void mrb_re_free(mrb_state *mrb, mrb_regexp_pattern *pat);
 
 /* UTF-8 helpers */
 int mrb_re_utf8_charlen(const char *s, const char *end);
-uint32_t mrb_re_utf8_decode(const char *s, int *len);
+uint32_t mrb_re_utf8_decode(const char *s, const char *end, int *len);
 mrb_bool mrb_re_is_word_char(uint32_t c);
 
 static inline int
@@ -143,13 +143,13 @@ mrb_re_charlen(const char *s, const char *end, mrb_bool binary)
 }
 
 static inline uint32_t
-mrb_re_decode_char(const char *s, int *len, mrb_bool binary)
+mrb_re_decode_char(const char *s, const char *end, int *len, mrb_bool binary)
 {
   if (binary) {
     if (len) *len = 1;
     return (uint8_t)*s;
   }
-  return mrb_re_utf8_decode(s, len);
+  return mrb_re_utf8_decode(s, end, len);
 }
 
 static inline mrb_bool

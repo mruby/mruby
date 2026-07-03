@@ -361,8 +361,7 @@ read_class_atom(re_compiler *c)
   }
   /* Multi-byte UTF-8 leader: decode the full codepoint. */
   int len = 0;
-  uint32_t cp = mrb_re_utf8_decode(c->p, &len);
-  if (c->p + len > c->src_end) len = (int)(c->src_end - c->p);
+  uint32_t cp = mrb_re_utf8_decode(c->p, c->src_end, &len);
   c->p += len;
   return cp;
 }

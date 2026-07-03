@@ -887,3 +887,19 @@ assert("Regexp - \\h and \\H hex-digit shorthands") do
   assert_equal ["XY"], "3fXY".scan(/[\H]+/)
   assert_equal ["deadBEEF"], "deadBEEFzz".scan(/\h+/)
 end
+
+assert("Regexp - invalid UTF-8 byte near pattern end") do
+  # a truncated multi-byte leader in a character class must not read
+  # past the end of the pattern buffer
+  re = Regexp.new("[   \xff ]")
+  assert_kind_of Regexp, re
+  assert_equal 0, (re =~ "\xff")
+  assert_nil (re =~ "x")
+end
+
+assert("Regexp - truncated UTF-8 at subject end") do
+  # a lone multi-byte leader at the end of the subject must not read
+  # past the end of the string buffer when matched against a class
+  assert_nil ("ab\xf0" =~ /[cd]/)
+  assert_equal 0, ("ab\xf0" =~ /[^cd]+$/)
+end

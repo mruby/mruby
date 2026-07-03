@@ -360,7 +360,7 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
     uint32_t curr_cp = (uint32_t)ch;
     if (!s.binary && advance > 1) {
       int dlen = 0;
-      curr_cp = mrb_re_decode_char(sp, &dlen, s.binary);
+      curr_cp = mrb_re_decode_char(sp, str_end, &dlen, s.binary);
     }
 
     for (int i = 0; i < curr.count; i++) {
@@ -490,7 +490,7 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
       if (sp >= str_end) return FALSE;
       {
         int dlen = 0;
-        uint32_t cp_ = mrb_re_decode_char(sp, &dlen, binary);
+        uint32_t cp_ = mrb_re_decode_char(sp, str_end, &dlen, binary);
         if (!class_match(&pat->classes[inst.a], cp_)) return FALSE;
         sp += mrb_re_charlen(sp, str_end, binary);
       }
@@ -501,7 +501,7 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
       if (sp >= str_end) return FALSE;
       {
         int dlen = 0;
-        uint32_t cp_ = mrb_re_decode_char(sp, &dlen, binary);
+        uint32_t cp_ = mrb_re_decode_char(sp, str_end, &dlen, binary);
         if (class_match(&pat->classes[inst.a], cp_)) return FALSE;
         sp += mrb_re_charlen(sp, str_end, binary);
       }
