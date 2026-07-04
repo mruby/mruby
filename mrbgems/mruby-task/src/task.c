@@ -683,6 +683,12 @@ mrb_f_sleep(mrb_state *mrb, mrb_value self)
       /* Root context has no task to suspend */
       return mrb_nil_value();
     }
+    mrb_callinfo *ci;
+    for (ci = mrb->c->ci; ci >= mrb->c->cibase; ci--) {
+      if (ci->cci > 0) {
+        mrb_raise(mrb, E_RUNTIME_ERROR, "can't sleep across C function boundary");
+      }
+    }
     mrb_task *t = MRB2TASK(mrb);
     mrb_task_disable_irq();
     mrb_task_q_delete(mrb, t);
