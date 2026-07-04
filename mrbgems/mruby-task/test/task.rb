@@ -227,3 +227,24 @@ assert("Task#terminate on self triggers context switch to next task") do
   assert_equal [:a_start, :b_runs], order
   assert_false order.include?(:a_zombie)
 end
+
+assert("sleep() no-arg suspends the calling task, not another") do
+  order = []
+
+  # high-priority task (runs first) - calls sleep() to suspend itself
+  high = Task.new(priority: 50) do
+    order << :high_start
+    sleep                 # should suspend THIS task, not low
+    order << :high_resume
+  end
+
+  # low-priority task - should keep running after high suspends
+  low = Task.new(priority: 200) do
+    order << :low_runs
+    high.resume           # wake high back up
+  end
+
+  Task.run
+
+  assert_equal [:high_start, :low_runs, :high_resume], order
+end
