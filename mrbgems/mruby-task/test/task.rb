@@ -208,3 +208,22 @@ assert("Task#value returns exception object for unhandled task errors") do
   assert_kind_of RuntimeError, result
   assert_equal "boom", result.message
 end
+
+assert("Task#terminate on self triggers context switch to next task") do
+  order = []
+
+  Task.new(priority: 50) do
+    order << :a_start
+    Task.current.terminate  # self-terminate - must switch away
+    order << :a_zombie      # should never execute
+  end
+
+  Task.new(priority: 100) do
+    order << :b_runs
+  end
+
+  Task.run
+
+  assert_equal [:a_start, :b_runs], order
+  assert_false order.include?(:a_zombie)
+end
