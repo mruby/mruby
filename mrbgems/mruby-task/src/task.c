@@ -1450,6 +1450,8 @@ terminate_task_internal(mrb_state *mrb, mrb_task *t)
 {
   if (t->status == MRB_TASK_STATUS_DORMANT) return;
 
+  mrb_bool was_running = (t->status == MRB_TASK_STATUS_RUNNING);
+
   mrb_task_disable_irq();
   mrb_task_q_delete(mrb, t);
   t->status = MRB_TASK_STATUS_DORMANT;
@@ -1460,7 +1462,7 @@ terminate_task_internal(mrb_state *mrb, mrb_task *t)
   wake_up_join_waiters(mrb, t);
 
   /* If terminating self, trigger context switch */
-  if (t == q_ready_) {
+  if (was_running) {
     switching_ = TRUE;
   }
 }
