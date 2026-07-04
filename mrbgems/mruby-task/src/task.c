@@ -679,15 +679,17 @@ mrb_f_sleep(mrb_state *mrb, mrb_value self)
 
   if (n == 0) {
     /* No argument - suspend indefinitely */
-    mrb_task *t = q_ready_;
-    if (t) {
-      mrb_task_disable_irq();
-      mrb_task_q_delete(mrb, t);
-      t->status = MRB_TASK_STATUS_SUSPENDED;
-      mrb_task_q_insert(mrb, t);
-      mrb_task_enable_irq();
-      switching_ = TRUE;
+    if (mrb->c == mrb->root_c) {
+      /* Root context has no task to suspend */
+      return mrb_nil_value();
     }
+    mrb_task *t = MRB2TASK(mrb);
+    mrb_task_disable_irq();
+    mrb_task_q_delete(mrb, t);
+    t->status = MRB_TASK_STATUS_SUSPENDED;
+    mrb_task_q_insert(mrb, t);
+    mrb_task_enable_irq();
+    switching_ = TRUE;
     return mrb_nil_value();
   }
 
