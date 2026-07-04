@@ -42,7 +42,11 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
     cc.defines += %w(__STDC_LIMIT_MACROS __STDC_CONSTANT_MACROS)
   end
 
-  next if %w(clean deep_clean).include?(Rake.application.top_level_tasks.first)
+  # Skip the Prism template generation and object registration only when the
+  # invocation is purely cleaning. Checking just the first task would also skip
+  # it for "rake clean test" (clean followed by a build in one process), which
+  # would leave the Prism objects out of objs and break the link.
+  next if (Rake.application.top_level_tasks - %w(clean deep_clean)).empty?
 
   prism_generated_files = %w[
     ext/prism/api_node.c
