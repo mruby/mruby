@@ -1631,6 +1631,21 @@ task_across_c_boundary(mrb_state *mrb)
    executing across a C call boundary (see task_across_c_boundary). A
    pending MRB_TASK_STOPPED is not deferred, since the task is going away.
 
+   A pending switch is likewise deferred while an exception is in flight
+   (mrb->exc set). The L_RAISE handler-found path repoints ci->pc at the
+   catch handler and falls into NEXT; honoring the switch there returns
+   early BEFORE OP_EXCEPT consumes the exception, so the scheduler's
+   execute_task_vm mistakes the already-handled exception for an
+   unhandled one, captures it as the task result and clears mrb->exc —
+   the resumed task then runs the rescue with no exception pending and
+   the begin block silently evaluates to nil. Observed in the field as a
+   C extension's mrb_raise being un-rescuable whenever it fires after a
+   long-blocking call (the timeslice always expires mid-call, so
+   task.switching is always pending at raise time). The same window
+   covers break/ensure unwinding, which carries RBreak in mrb->exc
+   across NEXT. Deferral is bounded: the handler's first instruction
+   consumes mrb->exc, so the switch happens one instruction later.
+
    mrb->jmp is restored to prev_jmp before returning, exactly as the
    normal return paths below do. mrb_vm_exec set mrb->jmp to its own
    stack-local c_jmp on entry; leaving it dangling after this early return
@@ -1649,6 +1664,7 @@ task_across_c_boundary(mrb_state *mrb)
    inside mrb_vm_exec (via NEXT / END_DISPATCH). */
 #define RETURN_IF_TASK_STOPPED(mrb) do { \
   if (((mrb)->task.switching && (mrb)->c != (mrb)->root_c && \
+       !(mrb)->exc && \
        !(mrb)->gc.iterating && !task_across_c_boundary(mrb)) || \
       (mrb)->c->status == MRB_TASK_STOPPED) { \
     (mrb)->jmp = prev_jmp; \

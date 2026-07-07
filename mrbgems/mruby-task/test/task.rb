@@ -248,3 +248,44 @@ assert("sleep() no-arg suspends the calling task, not another") do
 
   assert_equal [:high_start, :low_runs, :high_resume], order
 end
+
+assert("exception raised from C after blocking past the timeslice is rescuable") do
+  # TaskTest.block_then_raise busy-blocks longer than a timeslice before
+  # raising, so task.switching is pending when the exception dispatches.
+  # A pending switch must not preempt the catch-handler dispatch: honoring
+  # it between catch_handler_find and OP_EXCEPT swallowed the exception
+  # into the task result, and the rescue below saw nothing.
+  result = nil
+
+  Task.new do
+    result =
+      begin
+        TaskTest.block_then_raise(50)
+        :not_raised
+      rescue RuntimeError => e
+        "caught #{e.message}"
+      end
+  end
+
+  Task.run
+
+  assert_equal "caught raised after blocking", result
+end
+
+assert("exception raised from C after blocking is not leaked into Task#value") do
+  child = nil
+
+  Task.new do
+    child = Task.new do
+      begin
+        TaskTest.block_then_raise(50)
+      rescue RuntimeError
+        :rescued
+      end
+    end
+  end
+
+  Task.run
+
+  assert_equal :rescued, child.value
+end
