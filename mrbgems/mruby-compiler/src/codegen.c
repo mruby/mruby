@@ -5911,9 +5911,12 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
 
       /* ensure */
       if (cast->ensure_clause && cast->ensure_clause->statements) {
-        /* When rescue is present with val=1, cursp is 1 higher than the no-rescue case.
-         * Normalize before gen_ensure so that the exception register lands consistently. */
-        if (cast->rescue_clause && val) pop();
+        /* When rescue is present, cursp is 1 higher than the no-rescue case
+         * regardless of val. Normalize before gen_ensure so that the node
+         * stays register-balanced; otherwise a NOVAL begin/rescue/ensure
+         * (e.g. as a loop body) leaks one register and `break value` lands
+         * in a different register than the loop exit reads. */
+        if (cast->rescue_clause) pop();
         gen_ensure(s, (mrc_node *)cast->ensure_clause, ensure_catch_entry, ensure_begin);
       }
       else {
