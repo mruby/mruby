@@ -74,6 +74,14 @@ void
 mrb_task_mark_all(mrb_state *mrb)
 {
   int qi;
+  /* The tick IRQ relinks tasks between queues (sleep wakeups, timeslice
+     rotation). A relink that lands mid-traversal makes this walk skip
+     still-queued tasks; a skipped task's object is swept while its
+     mrb_task stays linked, and the freed chunk's reuse turns the queue
+     links into garbage (observed on RP2350 as ASCII string bytes where
+     next pointers should be). Exclude the scheduler IRQ for the whole
+     walk — same family as the gc.iterating guard in vm.c. */
+  mrb_task_disable_irq();
   for (qi = 0; qi < 4; qi++) {
     mrb_task *t = mrb->task.queues[qi];
     while (t) {
@@ -129,6 +137,7 @@ mrb_task_mark_all(mrb_state *mrb)
       t = t->next;
     }
   }
+  mrb_task_enable_irq();
 }
 
 /*
