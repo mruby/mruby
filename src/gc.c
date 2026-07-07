@@ -32,6 +32,64 @@
 void mrb_task_mark_all(mrb_state *mrb);
 #endif
 
+#ifdef MRB_GC_PROFILE
+#include <time.h>
+#include <stdio.h>
+
+/* Monotonic microsecond clock for pause measurement. Returns 0 where no
+   monotonic clock is available, which degrades the histogram gracefully
+   (durations collapse to bucket 0) rather than breaking the build. */
+static uint64_t
+gc_prof_now_us(void)
+{
+#if defined(CLOCK_MONOTONIC)
+  struct timespec ts;
+  if (clock_gettime(CLOCK_MONOTONIC, &ts) == 0) {
+    return (uint64_t)ts.tv_sec * 1000000u + (uint64_t)ts.tv_nsec / 1000u;
+  }
+#endif
+  return 0;
+}
+
+static void
+gc_prof_record(mrb_gc_prof_hist *h, uint64_t us)
+{
+  unsigned i = 0;
+  uint64_t v = us;
+  h->count++;
+  h->total_us += us;
+  if (us > h->max_us) h->max_us = us;
+  while (v > 0 && i < MRB_GC_PROFILE_NBUCKETS - 1) { v >>= 1; i++; }
+  h->buckets[i]++;
+}
+
+/* Reentrancy-guarded pause timing: only the outermost GC entry starts the
+   clock and picks the target histogram, so a nested mrb_full_gc (e.g. major
+   GC escalation during a step) is attributed to whichever entry the mutator
+   actually called, not double-counted. Returns the start time; pass it back
+   to gc_prof_leave. */
+static uint64_t
+gc_prof_enter(mrb_gc *gc, mrb_gc_prof_hist *target)
+{
+  if (gc->prof_depth++ == 0) {
+    gc->prof_target = target;
+    return gc_prof_now_us();
+  }
+  return 0;
+}
+
+static uint64_t
+gc_prof_leave(mrb_gc *gc, uint64_t t0)
+{
+  if (--gc->prof_depth == 0 && gc->prof_target) {
+    uint64_t dt = gc_prof_now_us() - t0;
+    gc_prof_record(gc->prof_target, dt);
+    return dt;
+  }
+  return 0;
+}
+#endif
+
 /*
   = Tri-color Incremental Garbage Collection
 
@@ -208,7 +266,8 @@ mrb_static_assert(MRB_GC_RED <= GC_COLOR_MASK);
 
 mrb_noreturn void mrb_raise_nomemory(mrb_state *mrb);
 
-static void incremental_gc_finish(mrb_state *mrb, mrb_gc *gc);
+static size_t incremental_gc_finish(mrb_state *mrb, mrb_gc *gc);
+static size_t incremental_gc_run(mrb_state *mrb, mrb_gc *gc);
 
 MRB_API void*
 mrb_realloc_simple(mrb_state *mrb, void *p,  size_t len)
@@ -221,20 +280,26 @@ mrb_realloc_simple(mrb_state *mrb, void *p,  size_t len)
   }
 #endif
   p2 = mrb_basic_alloc_func(p, len);
-  if (!p2 && len > 0 && mrb->gc.heaps && !mrb->gc.collecting) {
+  if (!p2 && len > 0 && mrb->gc.heaps && !mrb->gc.collecting &&
+      !mrb->gc.disabled && !mrb->gc.iterating) {
     /* collecting == FALSE means no mark/sweep is running on the stack, so
        this failure is a mutator allocation, not one from inside the GC
        engine (e.g. an RData dfree during sweep). Recovery runs only here; a
        reentrant failure falls through to raise NoMemoryError as before.
-       gc_drive() sets collecting. */
+       gc_drive() sets collecting. disabled/iterating are checked here too so
+       the retry (and the emergency counter) only happen when recovery can
+       actually run. */
+#ifdef MRB_GC_PROFILE
+    mrb->gc.prof_emergency_count++;
+#endif
     if (mrb->gc.state == MRB_GC_STATE_SWEEP) {
       /* Mid-sweep: starting a new mark cycle here is unsafe, but finishing
          the in-progress sweep is safe and is exactly what reclaims memory.
          Without this an allocation failure while parked in SWEEP raised
-         NoMemoryError even though free slots were about to be produced. */
-      if (!mrb->gc.disabled && !mrb->gc.iterating) {
-        incremental_gc_finish(mrb, &mrb->gc);
-      }
+         NoMemoryError even though free slots were about to be produced.
+         Also matters when GC steps are driven off the allocation path
+         (auto_step off) and the heap can be parked in SWEEP for a while. */
+      incremental_gc_finish(mrb, &mrb->gc);
     }
     else {
       mrb_full_gc(mrb);
@@ -248,7 +313,7 @@ mrb_realloc_simple(mrb_state *mrb, void *p,  size_t len)
         mrb->gc.malloc_threshold > 0 &&
         mrb->gc.malloc_increase >= mrb->gc.malloc_threshold &&
         mrb->gc.state == MRB_GC_STATE_ROOT &&
-        !mrb->gc.disabled && !mrb->gc.iterating) {
+        !mrb->gc.disabled && !mrb->gc.iterating && mrb->gc.auto_step) {
       /* Only a fresh allocation (p == NULL) may drive the collector here. A
          realloc (p != NULL) has just freed the caller's old block, but the
          caller has not yet stored the returned pointer back into the object it
@@ -259,7 +324,12 @@ mrb_realloc_simple(mrb_state *mrb, void *p,  size_t len)
          pointer, a use-after-free. A fresh allocation frees nothing the caller
          references, so it is a safe point to step GC. Byte pressure from
          reallocs is not lost: malloc_increase keeps accumulating above and
-         fires at the next fresh allocation. */
+         fires at the next fresh allocation.
+
+         auto_step is part of the condition (not just relied on inside
+         mrb_incremental_gc) so malloc_increase is not cleared for a call
+         that would no-op -- the GC task reads malloc_increase as a byte
+         pressure signal. */
       mrb->gc.malloc_increase = 0;
       mrb_incremental_gc(mrb);
     }
@@ -460,6 +530,8 @@ mrb_gc_init(mrb_state *mrb, mrb_gc *gc)
   add_heap(mrb, gc);
   gc->interval_ratio = DEFAULT_GC_INTERVAL_RATIO;
   gc->step_ratio = DEFAULT_GC_STEP_RATIO;
+  gc->auto_step = TRUE;
+  gc->sched_driven = FALSE;
 #ifndef MRB_GC_TURN_OFF_GENERATIONAL
   gc->generational = TRUE;
   gc->full = TRUE;
@@ -607,43 +679,63 @@ mrb_obj_alloc_core(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
   gc->gc_debt++;
   if (gc->gc_debt > 0) {
     mrb_incremental_gc(mrb);
+    /* Safety valve: when auto_step is off, mrb_incremental_gc no-ops and the
+       GC task is expected to drive collection. If it falls behind and debt
+       runs past debt_limit, force synchronous progress here so the worst
+       case stays bounded rather than growing the heap without limit. */
+    if (!gc->auto_step && gc->debt_limit > 0 && gc->gc_debt > gc->debt_limit &&
+        !gc->disabled && !gc->iterating) {
+#ifdef MRB_GC_PROFILE
+      uint64_t prof_t0 = gc_prof_enter(gc, &gc->prof_sync);
+#endif
+      incremental_gc_run(mrb, gc);
+#ifdef MRB_GC_PROFILE
+      gc_prof_leave(gc, prof_t0);
+#endif
+    }
   }
   gc_arena_keep(mrb, gc);
   if (gc->free_heaps == NULL) {
-    /* Free slots ran out: try to reclaim before growing. A full
-       collection finishes the (possibly half-run) incremental cycle
-       and sweeps its garbage, usually refilling the freelists without
-       adding a page. Growing immediately instead ratchets the page
-       count up to the workload's transient high-water mark and it
-       never comes back down — pages are only freed when COMPLETELY
-       empty, so fragmentation keeps them pinned. On fixed-arena
-       targets the pages eventually consume the whole arena even
-       though most of their slots are free.
+    /* Free slots ran out. Under the auto_step allocation-driven policy, try to
+       reclaim before growing: a full collection finishes the (possibly
+       half-run) incremental cycle and sweeps its garbage, usually refilling the
+       freelists without adding a page. Growing immediately instead ratchets the
+       page count up to the workload's transient high-water mark and it never
+       comes back down — pages are only freed when COMPLETELY empty, so
+       fragmentation keeps them pinned. On fixed-arena targets the pages
+       eventually consume the whole arena even though most of their slots are
+       free.
 
-       Only attempt the collection when the accounting shows real
-       slack (live well below capacity): if the heap is genuinely
-       full of live objects — e.g. a growing working set — collecting
-       before every page-add just burns time, so grow directly as
-       before. Walking the page list here is fine: growth events are
-       rare and the walk is a few pointer hops per page.
-       (mrb_full_gc() is a no-op while the GC is disabled or
-       iterating; we grow as before in that case, too.) */
-    size_t capacity = 0;
-    for (mrb_heap_page *page = gc->heaps; page; page = page->next) {
-      capacity += MRB_HEAP_PAGE_SIZE;
-    }
-    /* gc->live is inflated by dead-but-unswept objects at this point,
-       so it cannot distinguish "full of garbage" (reclaim!) from
-       "full of live data" (grow!). live_after_mark from the last
-       completed cycle is the garbage-free estimate of the true live
-       set: sweep decrements it as objects are freed. */
-    /* The !collecting guard mirrors mrb_realloc_simple(): allocation
-       can re-enter here from inside a running mark/sweep (an RData
-       dfree callback that allocates during the sweep phase), and
-       starting a nested collection there would corrupt the GC's
-       in-progress state. */
-    if (!gc->collecting && gc->live_after_mark + MRB_HEAP_PAGE_SIZE/2 < capacity) {
-      mrb_full_gc(mrb);
+       Skip the reclaim entirely under GC.scheduler_driven (auto_step off): the
+       allocation path must not run a synchronous collection there — it would
+       re-introduce exactly the pauses the mode removes and, by finishing the
+       cycle atomically, starve the scheduler's idle stepping. In that mode we
+       grow here and leave reclamation to the idle steps and the debt_limit
+       safety valve. Keeping the heap tight is not a goal of scheduler-driven
+       mode; bounded latency is.
+
+       The !collecting guard mirrors mrb_realloc_simple(): allocation can
+       re-enter here from inside a running mark/sweep (an RData dfree callback
+       that allocates during the sweep phase), and starting a nested collection
+       there would corrupt the GC's in-progress state. */
+    if (gc->auto_step && !gc->collecting) {
+      /* gc->live is inflated by dead-but-unswept objects at this point, so it
+         cannot distinguish "full of garbage" (reclaim!) from "full of live
+         data" (grow!). live_after_mark from the last completed cycle is the
+         garbage-free estimate of the true live set: sweep decrements it as
+         objects are freed. Only reclaim when the accounting shows real slack
+         (live well below capacity); otherwise a working set that is genuinely
+         growing would collect before every page-add and just burn time, so
+         grow directly. Walking the page list here is fine: growth events are
+         rare and the walk is a few pointer hops per page. (mrb_full_gc() is
+         also a no-op while GC is disabled or iterating; we grow then, too.) */
+      size_t capacity = 0;
+      for (mrb_heap_page *page = gc->heaps; page; page = page->next) {
+        capacity += MRB_HEAP_PAGE_SIZE;
+      }
+      if (gc->live_after_mark + MRB_HEAP_PAGE_SIZE/2 < capacity) {
+        mrb_full_gc(mrb);
+      }
     }
     if (gc->free_heaps == NULL) {
       add_heap(mrb, gc);
@@ -1372,16 +1464,35 @@ incremental_gc(mrb_state *mrb, mrb_gc *gc, size_t limit)
     return 0;
   case MRB_GC_STATE_MARK:
     if (gc->gray_stack_top > 0 || gc->gray_overflow) {
-      return incremental_marking_phase(mrb, gc, limit);
+      size_t tried_marks = incremental_marking_phase(mrb, gc, limit);
+#ifdef MRB_GC_PROFILE
+      gc->prof_mark_work_total += tried_marks;
+#endif
+      return tried_marks;
     }
     else {
+#ifdef MRB_GC_PROFILE
+      uint64_t fm0 = gc_prof_now_us();
+#endif
       final_marking_phase(mrb, gc);
+#ifdef MRB_GC_PROFILE
+      {
+        uint64_t fmdt = gc_prof_now_us() - fm0;
+        if (fmdt > gc->prof_final_mark_max_us) {
+          gc->prof_final_mark_max_us = fmdt;
+          gc->prof_final_mark_max_live = gc->live;
+        }
+      }
+#endif
       prepare_incremental_sweep(mrb, gc);
       return 0;
     }
   case MRB_GC_STATE_SWEEP: {
      size_t tried_sweep = 0;
      tried_sweep = incremental_sweep_phase(mrb, gc, limit);
+#ifdef MRB_GC_PROFILE
+     gc->prof_sweep_work_total += tried_sweep;
+#endif
      if (tried_sweep == 0)
        gc->state = MRB_GC_STATE_ROOT;
      return tried_sweep;
@@ -1426,8 +1537,8 @@ run_incremental(mrb_state *mrb, mrb_gc *gc, size_t limit, mrb_bool run_to_root)
  *
  * Every path that can sweep funnels through this helper (incremental_gc is
  * only ever called from here), so all callers -- mrb_incremental_gc,
- * mrb_full_gc, clear_all_old, change_gen_gc_mode and the emergency path --
- * are covered without each having to manage the flag.
+ * mrb_full_gc, clear_all_old, change_gen_gc_mode, gc_drive, and the emergency
+ * path -- are covered without each having to manage the flag.
  *
  * When an outer jmp buffer exists, wrap the run in MRB_TRY/MRB_CATCH so the
  * flag is restored on both normal return and a longjmp out of a dfree (so it
@@ -1456,6 +1567,15 @@ gc_drive(mrb_state *mrb, mrb_gc *gc, size_t limit, mrb_bool run_to_root)
       gc->collecting = was_collecting;
     } MRB_CATCH(&c_jmp) {
       gc->collecting = was_collecting;
+#ifdef MRB_GC_PROFILE
+      /* This longjmp is about to unwind every gc_prof_enter frame on the
+         stack: they all wrap gc_drive transitively and nothing between here
+         and them catches, so their gc_prof_leave calls never run. Reset the
+         depth, or profiling would silently stop recording for the rest of
+         the process (enter would never see depth 0 again). */
+      gc->prof_depth = 0;
+      gc->prof_target = NULL;
+#endif
       mrb->jmp = prev_jmp;
       MRB_THROW(prev_jmp);
     } MRB_END_EXC(&c_jmp);
@@ -1468,20 +1588,23 @@ gc_drive(mrb_state *mrb, mrb_gc *gc, size_t limit, mrb_bool run_to_root)
   return result;
 }
 
-static void
+static size_t
 incremental_gc_finish(mrb_state *mrb, mrb_gc *gc)
 {
-  gc_drive(mrb, gc, SIZE_MAX, TRUE);
+  return gc_drive(mrb, gc, SIZE_MAX, TRUE);
 }
 
-static void
+static size_t
 incremental_gc_step(mrb_state *mrb, mrb_gc *gc)
 {
   size_t limit = (GC_STEP_SIZE/100) * gc->step_ratio;
+  size_t result;
   if (gc->step_limit > 0 && limit > gc->step_limit) {
     limit = gc->step_limit;
   }
-  gc->gc_debt -= (mrb_int)gc_drive(mrb, gc, limit, FALSE);
+  result = gc_drive(mrb, gc, limit, FALSE);
+  gc->gc_debt -= (mrb_int)result;
+  return result;
 }
 
 static void
@@ -1503,19 +1626,22 @@ clear_all_old(mrb_state *mrb, mrb_gc *gc)
   gc->gray_overflow = FALSE;
 }
 
-MRB_API void
-mrb_incremental_gc(mrb_state *mrb)
+/* One unit of incremental GC progress plus the end-of-cycle bookkeeping.
+   This is the body of the GC engine with no policy guard: callers decide
+   whether it may run (mrb_incremental_gc honours disabled/auto_step;
+   mrb_gc_step drives it directly). Kept separate so the scheduler-driven and
+   automatic drivers share identical mark/sweep/debt/generational semantics. */
+static size_t
+incremental_gc_run(mrb_state *mrb, mrb_gc *gc)
 {
-  mrb_gc *gc = &mrb->gc;
-
-  if (gc->disabled || gc->iterating) return;
+  size_t work;
 
   if (is_minor_gc(gc)) {
 #ifdef MRB_GC_STATS
     gc->gc_total_count++;
     gc->minor_gc_count++;
 #endif
-    incremental_gc_finish(mrb, gc);
+    work = incremental_gc_finish(mrb, gc);
   }
   else {
 #ifdef MRB_GC_STATS
@@ -1524,7 +1650,7 @@ mrb_incremental_gc(mrb_state *mrb)
       gc->major_gc_count++;
     }
 #endif
-    incremental_gc_step(mrb, gc);
+    work = incremental_gc_step(mrb, gc);
   }
 
   if (gc->state == MRB_GC_STATE_ROOT) {
@@ -1555,6 +1681,30 @@ mrb_incremental_gc(mrb_state *mrb)
       gc->full = TRUE;
     }
   }
+
+  return work;
+}
+
+/* Advance the incremental collector by one policy-sized unit.
+ *
+ * NOTE: this honours the auto_step flag -- when collection is driven by the
+ * task scheduler instead (GC.scheduler_driven = true, auto_step off), this
+ * call silently no-ops. An embedder that needs unconditional collection must
+ * use mrb_full_gc(). */
+MRB_API void
+mrb_incremental_gc(mrb_state *mrb)
+{
+  mrb_gc *gc = &mrb->gc;
+
+  if (gc->disabled || gc->iterating || !gc->auto_step) return;
+
+#ifdef MRB_GC_PROFILE
+  uint64_t prof_t0 = gc_prof_enter(gc, &gc->prof_sync);
+#endif
+  incremental_gc_run(mrb, gc);
+#ifdef MRB_GC_PROFILE
+  gc_prof_leave(gc, prof_t0);
+#endif
 }
 
 /* Perform a full gc cycle */
@@ -1565,6 +1715,10 @@ mrb_full_gc(mrb_state *mrb)
 
   if (!mrb->c) return;
   if (gc->disabled || gc->iterating) return;
+
+#ifdef MRB_GC_PROFILE
+  uint64_t prof_t0 = gc_prof_enter(gc, &gc->prof_sync);
+#endif
 
 #ifdef MRB_GC_STATS
   gc->gc_total_count++;
@@ -1595,6 +1749,10 @@ mrb_full_gc(mrb_state *mrb)
 
 #ifdef MRB_USE_MALLOC_TRIM
   malloc_trim(0);
+#endif
+
+#ifdef MRB_GC_PROFILE
+  gc_prof_leave(gc, prof_t0);
 #endif
 }
 
@@ -1771,6 +1929,7 @@ gc_step_ratio_get(mrb_state *mrb, mrb_value obj)
  *
  *  Updates step span ratio of Incremental GC. Default value is 200(%).
  *  1 step of incrementalGC becomes long if a rate is big.
+ *  Must be positive.
  *
  */
 
@@ -1780,16 +1939,35 @@ gc_step_ratio_set(mrb_state *mrb, mrb_value obj)
   mrb_int ratio;
 
   mrb_get_args(mrb, "i", &ratio);
+  if (ratio <= 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "step_ratio must be positive");
+  }
   mrb->gc.step_ratio = (int)ratio;
   return mrb_nil_value();
 }
 
+/*
+ *  call-seq:
+ *     GC.step_limit -> int
+ *
+ *  Returns the cap on the work done by one incremental GC step (0 = unlimited).
+ *  Applies to every step regardless of what drives it: the ordinary
+ *  allocation path, a manual GC.step, or a scheduler-driven step (see
+ *  mruby-task's GC.scheduler_driven). Bounds the length of the single
+ *  longest non-preemptible GC pause.
+ */
 static mrb_value
 gc_step_limit_get(mrb_state *mrb, mrb_value obj)
 {
   return mrb_int_value(mrb, (mrb_int)mrb->gc.step_limit);
 }
 
+/*
+ *  call-seq:
+ *     GC.step_limit = int -> int
+ *
+ *  Sets the cap on the work done by one incremental GC step. See GC.step_limit.
+ */
 static mrb_value
 gc_step_limit_set(mrb_state *mrb, mrb_value obj)
 {
@@ -1803,12 +1981,31 @@ gc_step_limit_set(mrb_state *mrb, mrb_value obj)
   return mrb_int_value(mrb, limit);
 }
 
+/*
+ *  call-seq:
+ *     GC.malloc_threshold -> int
+ *
+ *  Returns the malloc-backed byte-growth threshold that triggers an
+ *  incremental GC cycle (0 = disabled). Unlike GC.debt (which counts
+ *  objects), this catches workloads that allocate few but large
+ *  malloc-backed payloads (long String/Array buffers). It fires in two
+ *  places: the ordinary allocation path triggers GC.start's incremental
+ *  counterpart once malloc growth crosses this threshold even in stock
+ *  auto_step mode, and mruby-task's GC.scheduler_driven also treats crossing
+ *  it as a reason to step.
+ */
 static mrb_value
 gc_malloc_threshold_get(mrb_state *mrb, mrb_value obj)
 {
   return mrb_int_value(mrb, (mrb_int)mrb->gc.malloc_threshold);
 }
 
+/*
+ *  call-seq:
+ *     GC.malloc_threshold = int -> int
+ *
+ *  Sets the malloc-backed byte-growth threshold. See GC.malloc_threshold.
+ */
 static mrb_value
 gc_malloc_threshold_set(mrb_state *mrb, mrb_value obj)
 {
@@ -1829,6 +2026,15 @@ change_gen_gc_mode(mrb_state *mrb, mrb_gc *gc, mrb_bool enable)
     mrb_raise(mrb, E_RUNTIME_ERROR, "generational mode changed when GC disabled");
     return;
   }
+  if (enable && gc->sched_driven) {
+    /* Scheduler-driven mode requires generational off: a minor cycle runs to
+       completion inside one atomic step, which defeats fine-grained idle
+       stepping. Silently allowing this would re-introduce exactly the pauses
+       the mode exists to remove, so refuse. (mrb_gc_scheduler_driven itself
+       only ever disables generational mode here, never enables it.) */
+    mrb_raise(mrb, E_RUNTIME_ERROR, "generational mode conflicts with scheduler-driven GC");
+    return;
+  }
   if (is_generational(gc) && !enable) {
     clear_all_old(mrb, gc);
     mrb_assert(gc->state == MRB_GC_STATE_ROOT);
@@ -1840,6 +2046,97 @@ change_gen_gc_mode(mrb_state *mrb, mrb_gc *gc, mrb_bool enable)
     gc->full = FALSE;
   }
   gc->generational = enable;
+}
+
+/* One unit of incremental GC progress, unconditional except for the
+   disabled/iterating guard. This is the entry point the task scheduler drives
+   from its idle points; it deliberately ignores auto_step so collection still
+   advances while the allocation path is not driving it. Pauses are attributed
+   to prof_step (work moved off the allocation path). */
+MRB_API mrb_int
+mrb_gc_step(mrb_state *mrb)
+{
+  mrb_gc *gc = &mrb->gc;
+  size_t work;
+
+  if (gc->disabled || gc->iterating) return 0;
+
+#ifdef MRB_GC_PROFILE
+  {
+    uint64_t prof_t0 = gc_prof_enter(gc, &gc->prof_step);
+    work = incremental_gc_run(mrb, gc);
+    gc->prof_last_step_us = gc_prof_leave(gc, prof_t0);
+  }
+#else
+  work = incremental_gc_run(mrb, gc);
+#endif
+  return (mrb_int)work;
+}
+
+/* See mruby/gc.h. Records the last step's wall time as jitter when the
+   scheduler reports that step delayed a task. */
+MRB_API void
+mrb_gc_scheduler_jitter(mrb_state *mrb, mrb_bool delayed_task)
+{
+#ifdef MRB_GC_PROFILE
+  if (delayed_task) {
+    mrb_gc *gc = &mrb->gc;
+    gc_prof_record(&gc->prof_step_jitter, gc->prof_last_step_us);
+  }
+#else
+  (void)mrb;
+  (void)delayed_task;
+#endif
+}
+
+/* Whether scheduler-driven GC has work worth doing right now: a cycle is in
+   progress, collection is overdue by object debt, or malloc-backed byte
+   pressure has crossed malloc_threshold. Always FALSE when scheduler-driven
+   mode is off, so the scheduler can gate on this alone. Keeps the "is a step
+   warranted" policy inside gc.c; the scheduler only wires idle points to it. */
+MRB_API mrb_bool
+mrb_gc_scheduler_pending(mrb_state *mrb)
+{
+  mrb_gc *gc = &mrb->gc;
+
+  if (!gc->sched_driven || gc->disabled || gc->iterating) return FALSE;
+  if (gc->gc_debt > 0) return TRUE;
+  if (gc->state != MRB_GC_STATE_ROOT) return TRUE;
+  if (gc->malloc_threshold > 0 && gc->malloc_increase >= gc->malloc_threshold)
+    return TRUE;
+  return FALSE;
+}
+
+/* Hand GC scheduling to the task scheduler (enable) or back to the allocation
+   path (disable). See the header comment for the contract. */
+MRB_API void
+mrb_gc_scheduler_driven(mrb_state *mrb, mrb_bool enable)
+{
+  mrb_gc *gc = &mrb->gc;
+
+  if (enable) {
+    /* Refuse while GC is disabled or ObjectSpace is iterating, regardless of
+       whether generational mode happens to be on (change_gen_gc_mode below
+       would only catch the generational case): the contract is deterministic,
+       and the raise leaves the driver flags unchanged. */
+    if (gc->disabled || gc->iterating) {
+      mrb_raise(mrb, E_RUNTIME_ERROR, "scheduler-driven GC enabled when GC disabled");
+      return;
+    }
+    /* A minor cycle otherwise completes inside one atomic step, which defeats
+       incremental scheduler stepping, so drop to non-generational first.
+       change_gen_gc_mode refuses to re-enable generational mode while
+       sched_driven is set, so the two flags cannot get out of sync later. */
+    if (is_generational(gc)) {
+      change_gen_gc_mode(mrb, gc, FALSE);
+    }
+    gc->auto_step = FALSE;
+    gc->sched_driven = TRUE;
+  }
+  else {
+    gc->sched_driven = FALSE;
+    gc->auto_step = TRUE;
+  }
 }
 
 /*
@@ -1961,8 +2258,72 @@ gc_stat(mrb_state *mrb, mrb_value self)
   mrb_hash_set(mrb, hash, mrb_symbol_value(MRB_SYM(major)), mrb_int_value(mrb, (mrb_int)gc->major_gc_count));
 #endif
 
+#ifdef MRB_GC_PROFILE
+  /* Profiling keys are only present when MRB_GC_PROFILE is compiled in;
+     the interned literals avoid depending on presym regeneration. Two pause
+     populations are reported separately: :prof_sync_* are the synchronous
+     mutator pauses this feature aims to shrink, :prof_step_* are the pauses
+     relocated onto the scheduler's idle-time GC steps. */
+  {
+    int i;
+    mrb_gc_prof_hist *hs[3];
+    const char *pfx[3];
+    hs[0] = &gc->prof_sync;         pfx[0] = "prof_sync";
+    hs[1] = &gc->prof_step;         pfx[1] = "prof_step";
+    hs[2] = &gc->prof_step_jitter;  pfx[2] = "prof_step_jitter";
+    for (i = 0; i < 3; i++) {
+      char key[40];
+      int j;
+      mrb_value buckets;
+      snprintf(key, sizeof(key), "%s_count", pfx[i]);
+      mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_cstr(mrb, key)), mrb_int_value(mrb, (mrb_int)hs[i]->count));
+      snprintf(key, sizeof(key), "%s_total_us", pfx[i]);
+      mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_cstr(mrb, key)), mrb_int_value(mrb, (mrb_int)hs[i]->total_us));
+      snprintf(key, sizeof(key), "%s_max_us", pfx[i]);
+      mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_cstr(mrb, key)), mrb_int_value(mrb, (mrb_int)hs[i]->max_us));
+      snprintf(key, sizeof(key), "%s_hist", pfx[i]);
+      buckets = mrb_ary_new_capa(mrb, MRB_GC_PROFILE_NBUCKETS);
+      for (j = 0; j < MRB_GC_PROFILE_NBUCKETS; j++) {
+        mrb_ary_push(mrb, buckets, mrb_int_value(mrb, (mrb_int)hs[i]->buckets[j]));
+      }
+      mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_cstr(mrb, key)), buckets);
+    }
+    mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "prof_final_mark_max_us")), mrb_int_value(mrb, (mrb_int)gc->prof_final_mark_max_us));
+    mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "prof_final_mark_max_live")), mrb_int_value(mrb, (mrb_int)gc->prof_final_mark_max_live));
+    mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "prof_mark_work_total")), mrb_int_value(mrb, (mrb_int)gc->prof_mark_work_total));
+    mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "prof_sweep_work_total")), mrb_int_value(mrb, (mrb_int)gc->prof_sweep_work_total));
+    mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "prof_emergency_count")), mrb_int_value(mrb, (mrb_int)gc->prof_emergency_count));
+  }
+#endif
+
   return hash;
 }
+
+#ifdef MRB_GC_PROFILE
+/*
+ *  call-seq:
+ *     GC.reset_stat  -> nil
+ *
+ *  Zeroes the MRB_GC_PROFILE pause/work counters. Only defined when the
+ *  profiler is compiled in. Lets a benchmark discard warm-up before the
+ *  measured window.
+ */
+static mrb_value
+gc_reset_stat(mrb_state *mrb, mrb_value self)
+{
+  mrb_gc *gc = &mrb->gc;
+  memset(&gc->prof_sync, 0, sizeof(gc->prof_sync));
+  memset(&gc->prof_step, 0, sizeof(gc->prof_step));
+  memset(&gc->prof_step_jitter, 0, sizeof(gc->prof_step_jitter));
+  gc->prof_last_step_us = 0;
+  gc->prof_final_mark_max_us = 0;
+  gc->prof_final_mark_max_live = 0;
+  gc->prof_mark_work_total = 0;
+  gc->prof_sweep_work_total = 0;
+  gc->prof_emergency_count = 0;
+  return mrb_nil_value();
+}
+#endif
 
 void
 mrb_init_gc(mrb_state *mrb)
@@ -1980,6 +2341,9 @@ mrb_init_gc(mrb_state *mrb)
   gc = mrb_define_module_id(mrb, MRB_SYM(GC));
 
   mrb_define_class_method_id(mrb, gc, MRB_SYM(stat), gc_stat, MRB_ARGS_NONE());
+#ifdef MRB_GC_PROFILE
+  mrb_define_class_method(mrb, gc, "reset_stat", gc_reset_stat, MRB_ARGS_NONE());
+#endif
   mrb_define_class_method_id(mrb, gc, MRB_SYM(start), gc_start, MRB_ARGS_NONE());
   mrb_define_class_method_id(mrb, gc, MRB_SYM(enable), gc_enable, MRB_ARGS_NONE());
   mrb_define_class_method_id(mrb, gc, MRB_SYM(disable), gc_disable, MRB_ARGS_NONE());
