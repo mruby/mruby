@@ -1354,7 +1354,7 @@ run_incremental(mrb_state *mrb, mrb_gc *gc, size_t limit, mrb_bool run_to_root)
 
   if (run_to_root) {
     do {
-      incremental_gc(mrb, gc, limit);
+      result += incremental_gc(mrb, gc, limit);
     } while (gc->state != MRB_GC_STATE_ROOT);
   }
   else {
