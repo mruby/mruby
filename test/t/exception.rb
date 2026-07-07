@@ -451,3 +451,17 @@ assert('break value from begin/rescue/ensure in while loop') do
   assert_equal 9, v
   assert_equal [:ensure, :ensure2], side
 end
+
+assert('next inside rescue continues the loop') do
+  i = 0
+  v = while true
+    i += 1
+    begin
+      raise "e" if i < 3
+      break i * 100
+    rescue
+      next
+    end
+  end
+  assert_equal 300, v
+end

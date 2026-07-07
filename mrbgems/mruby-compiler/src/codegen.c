@@ -5800,12 +5800,18 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
     case PM_NEXT_NODE:
     {
       CAST(next);
-      if (!s->loop) {
+      /* next targets the enclosing loop or block, not the exception
+         frames of surrounding begin/rescue, just like break and redo */
+      struct loopinfo *lp = s->loop;
+      while (lp && (lp->type == LOOP_BEGIN || lp->type == LOOP_RESCUE)) {
+        lp = lp->prev;
+      }
+      if (!lp) {
         raise_error(s, "unexpected next");
       }
-      else if (s->loop->type == LOOP_NORMAL) {
+      else if (lp->type == LOOP_NORMAL) {
         codegen(s, (mrc_node *)cast->arguments, NOVAL);
-        genjmp(s, OP_JMPUW, s->loop->pc0);
+        genjmp(s, OP_JMPUW, lp->pc0);
       }
       else {
         if ((mrc_node *)cast->arguments) {
