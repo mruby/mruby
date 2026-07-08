@@ -205,6 +205,7 @@ void mrb_init_task_queue(mrb_state *mrb, struct RClass *task_class);
 static inline void
 mrb_task_excl_enter(mrb_state *mrb)
 {
+  mrb_assert(mrb->task.irq_nesting < UINT8_MAX);
   if (mrb->task.irq_nesting++ == 0) {
     mrb_task_disable_irq();
   }
