@@ -259,7 +259,14 @@ task_init_context(mrb_state *mrb, mrb_task *t, const struct RProc *proc)
   if (stbase == NULL || cibase == NULL) {
     mrb_free(mrb, stbase);
     mrb_free(mrb, cibase);
-    t->status = MRB_TASK_STATUS_DORMANT;
+    /* Mark only the CONTEXT as stopped. t->status must keep its
+     * current value: q_get_queue() derives a task's queue from
+     * t->status, so flipping it to DORMANT while the task is still
+     * linked in another queue would make every later q_delete search
+     * the wrong list (task_cleanup_if_stopped would then spin on an
+     * unremovable queue head). The scheduler's existing safety nets
+     * see c->status == MRB_TASK_STOPPED, unlink the task from its
+     * true queue, and transition it to DORMANT coherently. */
     c->status = MRB_TASK_STOPPED;
     mrb_exc_raise(mrb, mrb_obj_value(mrb->nomem_err));
   }
