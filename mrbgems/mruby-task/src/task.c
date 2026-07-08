@@ -384,7 +384,14 @@ execute_task(mrb_state *mrb, mrb_task *t)
      mrb_vm_exec() in task mode, so the scheduler protect frame stays intact. */
   execute_task_vm_args args = { t, proc, pc };
   mrb_bool error = FALSE;
+  /* mrb_protect_error() roots its result in the GC arena (+1 entry,
+   * never popped by the caller loop): one slot per execution slice
+   * accumulates forever and pins every slice's result object. The
+   * result is already reachable — and marked — through t->result
+   * (mrb_task_mark_all), so the arena root is redundant here. */
+  int ai = mrb_gc_arena_save(mrb);
   t->result = mrb_protect_error(mrb, execute_task_vm, &args, &error);
+  mrb_gc_arena_restore(mrb, ai);
   mrb->task.exception_as_result = FALSE;
 
   /* Clear vmexec flag */
