@@ -73,11 +73,31 @@ assert('GC.malloc_threshold - triggers GC on large allocations') do
   origin = GC.malloc_threshold
   begin
     GC.malloc_threshold = 4096
-    GC.start  # reset malloc_increase
+    GC.start  # force a full GC cycle
     # allocate large strings to exceed threshold
     100.times { "x" * 1024 }
     stat = GC.stat
     assert_true stat[:malloc_increase] >= 0
+  ensure
+    GC.malloc_threshold = origin
+  end
+end
+
+assert('GC.malloc_threshold - does not mark through stale realloc buffers') do
+  origin = GC.malloc_threshold
+  begin
+    GC.malloc_threshold = 1
+    GC.start  # reset malloc_increase
+
+    h = {}
+    300.times { |i| h[i] = i }
+    assert_equal 300, h.size
+    300.times { |i| assert_equal i, h[i] }
+
+    a = []
+    1000.times { |i| a << i }
+    assert_equal 1000, a.size
+    1000.times { |i| assert_equal i, a[i] }
   ensure
     GC.malloc_threshold = origin
   end
