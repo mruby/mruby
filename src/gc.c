@@ -244,10 +244,22 @@ mrb_realloc_simple(mrb_state *mrb, void *p,  size_t len)
 
   if (p2 && len > 0) {
     mrb->gc.malloc_increase += len;
-    if (mrb->gc.malloc_threshold > 0 &&
+    if (p == NULL &&
+        mrb->gc.malloc_threshold > 0 &&
         mrb->gc.malloc_increase >= mrb->gc.malloc_threshold &&
         mrb->gc.state == MRB_GC_STATE_ROOT &&
         !mrb->gc.disabled && !mrb->gc.iterating) {
+      /* Only a fresh allocation (p == NULL) may drive the collector here. A
+         realloc (p != NULL) has just freed the caller's old block, but the
+         caller has not yet stored the returned pointer back into the object it
+         belongs to -- e.g. ht_adjust_ea() does `ea = ea_resize(...)` and only
+         then `ht_set_ea(h, ea)`, and ary_expand_capa() likewise. Running an
+         incremental mark in that window would mark the still-reachable
+         container (Hash/Array/String/...) while it holds the dangling old
+         pointer, a use-after-free. A fresh allocation frees nothing the caller
+         references, so it is a safe point to step GC. Byte pressure from
+         reallocs is not lost: malloc_increase keeps accumulating above and
+         fires at the next fresh allocation. */
       mrb->gc.malloc_increase = 0;
       mrb_incremental_gc(mrb);
     }
