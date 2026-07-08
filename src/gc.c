@@ -598,7 +598,39 @@ mrb_obj_alloc_core(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
   }
   gc_arena_keep(mrb, gc);
   if (gc->free_heaps == NULL) {
-    add_heap(mrb, gc);
+    /* Free slots ran out: try to reclaim before growing. A full
+       collection finishes the (possibly half-run) incremental cycle
+       and sweeps its garbage, usually refilling the freelists without
+       adding a page. Growing immediately instead ratchets the page
+       count up to the workload's transient high-water mark and it
+       never comes back down — pages are only freed when COMPLETELY
+       empty, so fragmentation keeps them pinned. On fixed-arena
+       targets the pages eventually consume the whole arena even
+       though most of their slots are free.
+
+       Only attempt the collection when the accounting shows real
+       slack (live well below capacity): if the heap is genuinely
+       full of live objects — e.g. a growing working set — collecting
+       before every page-add just burns time, so grow directly as
+       before. Walking the page list here is fine: growth events are
+       rare and the walk is a few pointer hops per page.
+       (mrb_full_gc() is a no-op while the GC is disabled or
+       iterating; we grow as before in that case, too.) */
+    size_t capacity = 0;
+    for (mrb_heap_page *page = gc->heaps; page; page = page->next) {
+      capacity += MRB_HEAP_PAGE_SIZE;
+    }
+    /* gc->live is inflated by dead-but-unswept objects at this point,
+       so it cannot distinguish "full of garbage" (reclaim!) from
+       "full of live data" (grow!). live_after_mark from the last
+       completed cycle is the garbage-free estimate of the true live
+       set: sweep decrements it as objects are freed. */
+    if (gc->live_after_mark + MRB_HEAP_PAGE_SIZE/2 < capacity) {
+      mrb_full_gc(mrb);
+    }
+    if (gc->free_heaps == NULL) {
+      add_heap(mrb, gc);
+    }
   }
 
   RVALUE *p = gc->free_heaps->freelist;
