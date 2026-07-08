@@ -248,7 +248,29 @@ task_init_context(mrb_state *mrb, mrb_task *t, const struct RProc *proc)
   if (proc->body.irep->nregs > slen) {
     slen += proc->body.irep->nregs;
   }
-  c->stbase = (mrb_value*)mrb_malloc(mrb, slen * sizeof(mrb_value));
+
+  /* Allocate both buffers atomically: mrb_malloc() raises on OOM via
+   * longjmp, which would leave a half-built context (ci == NULL) on a
+   * task that is still queued — the scheduler then dereferences it.
+   * Allocate with the non-raising variant, and on failure retire the
+   * task coherently BEFORE raising NoMemoryError. */
+  mrb_value *stbase = (mrb_value*)mrb_malloc_simple(mrb, slen * sizeof(mrb_value));
+  mrb_callinfo *cibase = (mrb_callinfo*)mrb_malloc_simple(mrb, TASK_CI_INIT_SIZE * sizeof(mrb_callinfo));
+  if (stbase == NULL || cibase == NULL) {
+    mrb_free(mrb, stbase);
+    mrb_free(mrb, cibase);
+    /* Mark only the CONTEXT as stopped. t->status must keep its
+     * current value: q_get_queue() derives a task's queue from
+     * t->status, so flipping it to DORMANT while the task is still
+     * linked in another queue would make every later q_delete search
+     * the wrong list (task_cleanup_if_stopped would then spin on an
+     * unremovable queue head). The scheduler's existing safety nets
+     * see c->status == MRB_TASK_STOPPED, unlink the task from its
+     * true queue, and transition it to DORMANT coherently. */
+    c->status = MRB_TASK_STOPPED;
+    mrb_exc_raise(mrb, mrb_obj_value(mrb->nomem_err));
+  }
+  c->stbase = stbase;
   c->stend = c->stbase + slen;
 
   /* Initialize stack values to nil */
@@ -264,9 +286,9 @@ task_init_context(mrb_state *mrb, mrb_task *t, const struct RProc *proc)
   /* Set receiver to top self */
   c->stbase[0] = mrb_top_self(mrb);
 
-  /* Initialize callinfo stack */
+  /* Initialize callinfo stack (allocated above) */
   static const mrb_callinfo ci_zero = { 0 };
-  c->cibase = (mrb_callinfo*)mrb_malloc(mrb, TASK_CI_INIT_SIZE * sizeof(mrb_callinfo));
+  c->cibase = cibase;
   c->ciend = c->cibase + TASK_CI_INIT_SIZE;
   c->ci = c->cibase;
   c->cibase[0] = ci_zero;
@@ -353,6 +375,21 @@ execute_task(mrb_state *mrb, mrb_task *t)
   mrb_callinfo *prev_ci;
   uint8_t prev_cci;
 
+  /* A task can lose its context without leaving the queues: OOM during
+   * task_init_context unwinds via longjmp before the context is built
+   * (ci == NULL). Retire such a task instead of dereferencing the hole
+   * — checked BEFORE the context switch so the scheduler's own context
+   * stays usable. */
+  if (t->c.ci == NULL || t->c.ci->proc == NULL) {
+    mrb_task_disable_irq();
+    mrb_task_q_delete(mrb, t);
+    t->status = MRB_TASK_STATUS_DORMANT;
+    t->c.status = MRB_TASK_STOPPED;
+    mrb_task_q_insert(mrb, t);
+    mrb_task_enable_irq();
+    return;
+  }
+
   /* Set task as running */
   t->timeslice = MRB_TIMESLICE_TICK_COUNT;
   t->status = MRB_TASK_STATUS_RUNNING;
@@ -370,11 +407,6 @@ execute_task(mrb_state *mrb, mrb_task *t)
   /* Save proc and PC to locals before calling mrb_vm_exec */
   const struct RProc *proc = t->c.ci->proc;
   const mrb_code *pc = t->c.ci->pc;
-
-  /* With C function boundary checks, proc should never be NULL on resume */
-  if (!proc) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "task context corrupted: no proc on resume");
-  }
 
   /* Set vmexec flag to prevent fiber_terminate from being called */
   t->c.vmexec = TRUE;
