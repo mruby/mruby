@@ -183,4 +183,40 @@ void mrb_task_q_delete(mrb_state *mrb, mrb_task *t);
 /* Task::Queue class registration - defined in task_queue.c */
 void mrb_init_task_queue(mrb_state *mrb, struct RClass *task_class);
 
+/*
+ * Nesting-safe scheduler-IRQ exclusion.
+ *
+ * The HAL primitives (mrb_task_disable_irq/mrb_task_enable_irq) are not
+ * required to nest (sigprocmask on POSIX, plain interrupt enable/disable
+ * on microcontrollers): a naive inner enable would reopen the exclusion
+ * for its outer section. Nesting does happen — GC marking
+ * (mrb_task_mark_all) excludes the tick, and a GC cycle can be triggered
+ * by an allocation made inside an already-excluded section (e.g.
+ * Task.stat building its result hash). Every scheduler-IRQ exclusion in
+ * this gem must therefore go through these counted helpers; only the
+ * outermost level touches the HAL.
+ *
+ * The depth counter is per-VM (mrb->task.irq_nesting) and is only ever
+ * accessed from the VM's own thread — the tick itself never takes the
+ * exclusion — so no atomicity is required, and multiple VMs on
+ * different threads stay independent even when the HAL shares one lock
+ * (as the Windows HAL does).
+ */
+static inline void
+mrb_task_excl_enter(mrb_state *mrb)
+{
+  if (mrb->task.irq_nesting++ == 0) {
+    mrb_task_disable_irq();
+  }
+}
+
+static inline void
+mrb_task_excl_exit(mrb_state *mrb)
+{
+  mrb_assert(mrb->task.irq_nesting > 0);
+  if (--mrb->task.irq_nesting == 0) {
+    mrb_task_enable_irq();
+  }
+}
+
 #endif /* MRUBY_TASK_H */

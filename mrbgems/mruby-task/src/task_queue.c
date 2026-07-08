@@ -32,7 +32,7 @@ static struct RClass *task_error_class_;
 static void
 queue_wake_one_waiter(mrb_state *mrb, mrb_task_queue *q)
 {
-  mrb_task_disable_irq();
+  mrb_task_excl_enter(mrb);
   mrb_task *curr = q_waiting_;
   while (curr) {
     mrb_task *next = curr->next;
@@ -48,7 +48,7 @@ queue_wake_one_waiter(mrb_state *mrb, mrb_task_queue *q)
     }
     curr = next;
   }
-  mrb_task_enable_irq();
+  mrb_task_excl_exit(mrb);
 }
 
 /* Wake all tasks waiting on this queue (used by close) */
@@ -56,7 +56,7 @@ static void
 queue_wake_all_waiters(mrb_state *mrb, mrb_task_queue *q)
 {
   mrb_bool woke_any = FALSE;
-  mrb_task_disable_irq();
+  mrb_task_excl_enter(mrb);
   mrb_task *curr = q_waiting_;
   while (curr) {
     mrb_task *next = curr->next;
@@ -74,7 +74,7 @@ queue_wake_all_waiters(mrb_state *mrb, mrb_task_queue *q)
   if (woke_any) {
     switching_ = TRUE;
   }
-  mrb_task_enable_irq();
+  mrb_task_excl_exit(mrb);
 }
 
 static mrb_value
@@ -200,7 +200,7 @@ queue_pop_try(mrb_state *mrb, mrb_value self)
 
   /* Move current task to WAITING */
   mrb_task *current = MRB2TASK(mrb);
-  mrb_task_disable_irq();
+  mrb_task_excl_enter(mrb);
   mrb_task_q_delete(mrb, current);
   current->status = MRB_TASK_STATUS_WAITING;
   current->reason = MRB_TASK_REASON_QUEUE;
@@ -212,7 +212,7 @@ queue_pop_try(mrb_state *mrb, mrb_value self)
     wakeup_tick_ = deadline;
   }
   mrb_task_q_insert(mrb, current);
-  mrb_task_enable_irq();
+  mrb_task_excl_exit(mrb);
   switching_ = TRUE;
 
   /* Return sentinel; the Ruby pop loop will retry after wakeup */
@@ -267,7 +267,7 @@ queue_num_waiting(mrb_state *mrb, mrb_value self)
   mrb_task_queue *q = (mrb_task_queue*)mrb_data_get_ptr(mrb, self, &mrb_task_queue_type);
   if (!q) mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid queue");
   uint32_t count = 0;
-  mrb_task_disable_irq();
+  mrb_task_excl_enter(mrb);
   mrb_task *curr = q_waiting_;
   while (curr) {
     if (curr->reason == MRB_TASK_REASON_QUEUE && curr->wait.queue.target == q) {
@@ -275,7 +275,7 @@ queue_num_waiting(mrb_state *mrb, mrb_value self)
     }
     curr = curr->next;
   }
-  mrb_task_enable_irq();
+  mrb_task_excl_exit(mrb);
   return mrb_int_value(mrb, (mrb_int)count);
 }
 
