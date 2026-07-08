@@ -11,10 +11,6 @@
 #include <mruby/proc.h>
 #include <string.h>
 
-/* after <mruby/opcode.h>: re-establishes the cc-flavored FETCH_* macros
-   used by mrb_decode_insn below */
-#include "../include/mrc_opcode.h"
-
 #include "../include/mrc_ccontext.h"
 #include "../include/mrc_compile.h"
 #include "../include/mrc_diagnostic.h"
@@ -577,10 +573,7 @@ mrb_decode_insn(const mrb_code *pc)
   mrb_code insn = READ_B();
   uint16_t a = 0;
   uint16_t b = 0;
-  /* mrc_opcode.h's FETCH_* macros decode the third operand into `cc`,
-     not `c` (see the comment there); this file includes it after
-     <mruby/opcode.h>, so the cc flavor is the live one here. */
-  uint16_t cc = 0;
+  uint16_t c = 0;
 
   switch (insn) {
 #define OPCODE(i,x) case OP_ ## i: FETCH_ ## x (); break;
@@ -618,7 +611,7 @@ mrb_decode_insn(const mrb_code *pc)
   data.insn = insn;
   data.a = a;
   data.b = b;
-  data.c = cc;
+  data.c = c;
   return data;
 }
 
