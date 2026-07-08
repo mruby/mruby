@@ -615,6 +615,15 @@ compile_atom(re_compiler *c)
           cap_name_len = (uint16_t)(c->p - cap_name);
           next_char(c);  /* skip > */
         }
+        else {
+          /* (?X) with an unsupported X: none of the recognized (?: (?= (?!
+             (?<= (?<! (?<name> forms. Inline option groups such as (?i) and
+             (?i:...), the absent operator (?~...), and conditionals (?(...))
+             are not implemented. Raise here rather than falling through to
+             the capturing-group path, which would leave the stray `?` for
+             compile_seq to spin on forever (A1). */
+          compile_error(c, "undefined (?...) sequence");
+        }
       }
 
       uint16_t group = 0;
@@ -944,7 +953,17 @@ static void
 compile_seq(re_compiler *c)
 {
   while (peek(c) >= 0 && peek(c) != ')' && peek(c) != '|') {
+    uint32_t code_before = c->code_len;
+    const char *p_before = c->p;
     compile_quantified(c);
+    if (c->code_len == code_before && c->p == p_before) {
+      /* compile_quantified neither consumed input nor emitted code: the
+         current character is a quantifier metacharacter with no atom to
+         repeat (a leading `*`, `+`, `?`, or the trailing `*`s in `a***`).
+         CRuby raises RegexpError here; without this guard peek() never
+         advances and the loop spins forever (A1). */
+      compile_error(c, "target of repeat operator is not specified");
+    }
   }
 }
 

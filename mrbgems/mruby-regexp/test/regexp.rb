@@ -292,6 +292,27 @@ assert("Regexp - a curly brace that is not a quantifier is a literal") do
   assert_raise(RegexpError) { Regexp.new("{2}") }
 end
 
+assert("Regexp - patterns that used to hang the compiler now raise (A1)") do
+  # These once looped forever in the compiler at 100% CPU instead of raising.
+  # Regexp.new is used so the pattern reaches the regexp compiler directly,
+  # bypassing the literal validation the parser performs on /.../ literals.
+
+  # (?X) with an unsupported X: inline options (?i)/(?i:...), the absent
+  # operator (?~...), and conditionals (?(...)) are not implemented.
+  assert_raise(RegexpError) { Regexp.new("(?i:a)") }
+  assert_raise(RegexpError) { Regexp.new("(?i)a") }
+  assert_raise(RegexpError) { Regexp.new("(?~foo)") }
+  assert_raise(RegexpError) { Regexp.new("(?(<x>)a|b)") }
+  assert_raise(RegexpError) { Regexp.new("(?") }
+  assert_raise(RegexpError) { Regexp.new("(?<") }
+
+  # A quantifier metacharacter with no atom to repeat.
+  assert_raise(RegexpError) { Regexp.new("a***") }
+  assert_raise(RegexpError) { Regexp.new("*") }
+  assert_raise(RegexpError) { Regexp.new("+") }
+  assert_raise(RegexpError) { Regexp.new("?abc") }
+end
+
 assert("MatchData#captures") do
   re = Regexp.new("(a)(b)(c)")
   md = re.match("abc")
