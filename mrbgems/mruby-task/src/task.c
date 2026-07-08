@@ -403,12 +403,12 @@ execute_task(mrb_state *mrb, mrb_task *t)
    * — checked BEFORE the context switch so the scheduler's own context
    * stays usable. */
   if (t->c.ci == NULL || t->c.ci->proc == NULL) {
-    task_irq_disable(mrb);
+    mrb_task_excl_enter(mrb);
     mrb_task_q_delete(mrb, t);
     t->status = MRB_TASK_STATUS_DORMANT;
     t->c.status = MRB_TASK_STOPPED;
     mrb_task_q_insert(mrb, t);
-    task_irq_enable(mrb);
+    mrb_task_excl_exit(mrb);
     return;
   }
 
