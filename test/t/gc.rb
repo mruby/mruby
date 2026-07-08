@@ -73,7 +73,7 @@ assert('GC.malloc_threshold - triggers GC on large allocations') do
   origin = GC.malloc_threshold
   begin
     GC.malloc_threshold = 4096
-    GC.start  # reset malloc_increase
+    GC.start  # force a full GC cycle
     # allocate large strings to exceed threshold
     100.times { "x" * 1024 }
     stat = GC.stat
