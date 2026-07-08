@@ -637,7 +637,12 @@ mrb_obj_alloc_core(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
        "full of live data" (grow!). live_after_mark from the last
        completed cycle is the garbage-free estimate of the true live
        set: sweep decrements it as objects are freed. */
-    if (gc->live_after_mark + MRB_HEAP_PAGE_SIZE/2 < capacity) {
+    /* The !collecting guard mirrors mrb_realloc_simple(): allocation
+       can re-enter here from inside a running mark/sweep (an RData
+       dfree callback that allocates during the sweep phase), and
+       starting a nested collection there would corrupt the GC's
+       in-progress state. */
+    if (!gc->collecting && gc->live_after_mark + MRB_HEAP_PAGE_SIZE/2 < capacity) {
       mrb_full_gc(mrb);
     }
     if (gc->free_heaps == NULL) {
