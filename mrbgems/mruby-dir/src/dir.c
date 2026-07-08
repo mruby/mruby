@@ -15,7 +15,11 @@
 #include <string.h>
 #include <errno.h>
 
+/* mruby-io's <mruby/io.h> defines the same lookup; reuse it when visible
+   in this translation unit (e.g. the amalgamated build) */
+#ifndef E_IO_ERROR
 #define E_IO_ERROR mrb_exc_get_id(mrb, MRB_SYM(IOError))
+#endif
 
 struct mrb_dir {
   mrb_dir_handle *handle;
