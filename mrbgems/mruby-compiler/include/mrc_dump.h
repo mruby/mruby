@@ -56,6 +56,11 @@ int mrc_dump_irep(mrc_ccontext *c, const mrc_irep *irep, uint8_t flags, uint8_t 
 #define MRC_DUMP_DEFAULT_STR_LEN      128
 #define MRC_DUMP_ALIGNMENT            sizeof(uint32_t)
 
+/* The RITE structs below are identical to the ones in mruby's
+   <mruby/dump.h>. Guard them so both headers can coexist in one
+   translation unit (e.g. the amalgamated build). */
+#ifndef MRUBY_DUMP_H
+
 /* binary header */
 struct rite_binary_header {
   uint8_t binary_ident[4];    /* Binary Identifier */
@@ -94,6 +99,8 @@ struct rite_section_lv_header {
 struct rite_binary_footer {
   RITE_SECTION_HEADER;
 };
+
+#endif /* !MRUBY_DUMP_H */
 
 static inline size_t
 mrc_uint8_to_bin(uint8_t s, uint8_t *bin)

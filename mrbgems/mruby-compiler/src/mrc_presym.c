@@ -7,6 +7,11 @@ typedef struct {
 } mrc_sym_entry;
 
 static mrc_sym_entry symTable[] = {
+/* mrc_presym.h defines these as lookup macros; drop them first in case it
+   is visible in this translation unit (e.g. the amalgamated build) */
+#undef MRC_OPSYM_2
+#undef MRC_SYM_1
+#undef MRC_SYM_2
 #define MRC_OPSYM_2(name, lit, num) {num, #lit},
 #define MRC_SYM_1(lit, num)         {num, #lit},
 #define MRC_SYM_2(name, lit, num)   {num, #lit},

@@ -10,6 +10,10 @@ MRC_BEGIN_DECL
   unsigned int frozen:1;  \
   uint32_t flags:20
 
+/* This struct mirrors RProc in mruby's <mruby/proc.h> (mrc_irep is
+   layout-compatible with mrb_irep there). Guard it so both headers can
+   coexist in one translation unit (e.g. the amalgamated build). */
+#ifndef MRUBY_PROC_H
 struct RProc {
   MRC_OBJECT_HEADER;
   union {
@@ -23,6 +27,7 @@ struct RProc {
     struct REnv *env;
   } e;
 };
+#endif /* !MRUBY_PROC_H */
 
 MRC_END_DECL
 

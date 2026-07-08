@@ -86,7 +86,7 @@ mrc_mruby_lvspace_proc_p(const struct RProc *proc)
   if (proc == NULL || MRC_PROC_CFUNC_P(proc) || proc->upper == NULL) {
     return FALSE;
   }
-  irep = proc->body.irep;
+  irep = (const struct mrc_irep *)proc->body.irep;
   return irep && irep->lv == NULL && irep->nlocals == 1;
 }
 
@@ -148,7 +148,7 @@ mrc_pm_options_init(mrc_ccontext *cc)
     if (mrc_mruby_lvspace_proc_p(u)) {
       continue;
     }
-    const struct mrc_irep *ir = u->body.irep;
+    const struct mrc_irep *ir = (const struct mrc_irep *)u->body.irep;
     size_t lv_count = ir->nlocals > 0 ? ir->nlocals - 1 : 0;
     const mrc_sym *v = ir->lv;
     size_t locals_count = mrc_mruby_irep_local_count(cc->mrb, ir);

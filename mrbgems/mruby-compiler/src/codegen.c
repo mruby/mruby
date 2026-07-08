@@ -1100,7 +1100,7 @@ search_upvar(mrc_codegen_scope *s, mrc_sym id, int *idx)
     pm_constant_t *constant = pm_constant_pool_id_to_constant(&s->c->p->constant_pool, id);
     mrc_sym intern = mrb_intern(s->c->mrb, (const char *)constant->start, constant->length);
     while (u && !MRC_PROC_CFUNC_P(u)) {
-      const struct mrc_irep *ir = u->body.irep;
+      const struct mrc_irep *ir = (const struct mrc_irep *)u->body.irep;
       uint_fast16_t n = ir->nlocals;
       int i;
       const mrc_sym *v = ir->lv;
@@ -2365,7 +2365,7 @@ mrc_mruby_numbered_parameter_upvar(mrc_codegen_scope *s, mrc_sym id, int *lv, in
   const struct RProc *u = s->c->upper;
   *lv = 0;
   while (u && !MRC_PROC_CFUNC_P(u)) {
-    const struct mrc_irep *ir = u->body.irep;
+    const struct mrc_irep *ir = (const struct mrc_irep *)u->body.irep;
     uint_fast16_t n = ir->nlocals;
     const mrc_sym *v = ir->lv;
     int number = constant->start[1] - '0';
