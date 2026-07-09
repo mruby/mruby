@@ -198,7 +198,9 @@ sym_check(mrb_state *mrb, const char *name, size_t len, mrb_sym i)
   }
   else {
     /* length in BER */
-    symlen = mrb_packed_int_decode((const uint8_t*)symname, (const uint8_t**)&symname);
+    const uint8_t *p = (const uint8_t*)symname;
+    symlen = mrb_packed_int_decode(p, &p);
+    symname = (const char*)p;
   }
   if (len == symlen && memcmp(symname, name, len) == 0) {
     return TRUE;
@@ -303,7 +305,9 @@ migrate_to_hash_table(mrb_state *mrb)
     }
     else {
       /* This is a packed length string */
-      len = mrb_packed_int_decode((const uint8_t*)name, (const uint8_t**)&name);
+      const uint8_t *p = (const uint8_t*)name;
+      len = mrb_packed_int_decode(p, &p);
+      name = (const char*)p;
     }
 
     hash = mrb_byte_hash((const uint8_t*)name, len);
@@ -633,7 +637,9 @@ sym2name_len(mrb_state *mrb, mrb_sym sym, char *buf, mrb_int *lenp)
   const char *symname = symtbl_get_ptr(tagged_ptr);  /* Untag for access */
 
   if (!symtbl_is_literal(tagged_ptr)) {
-    uint32_t len = mrb_packed_int_decode((const uint8_t*)symname, (const uint8_t**)&symname);
+    const uint8_t *p = (const uint8_t*)symname;
+    uint32_t len = mrb_packed_int_decode(p, &p);
+    symname = (const char*)p;
     if (lenp) *lenp = (mrb_int)len;
   }
   else if (lenp) {
@@ -849,7 +855,9 @@ mrb_symbol_gc(mrb_state *mrb)
         len = strlen(name);
       }
       else {
-        len = mrb_packed_int_decode((const uint8_t*)name, (const uint8_t**)&name);
+        const uint8_t *p = (const uint8_t*)name;
+        len = mrb_packed_int_decode(p, &p);
+        name = (const char*)p;
       }
       uint8_t hash = mrb_byte_hash((const uint8_t*)name, len);
       if (ht->buckets[hash] != 0) {
