@@ -592,8 +592,13 @@ task_run_body(mrb_state *mrb, void *ud)
         mrb_gc_step(mrb);
         /* q_ready_ was empty above; if a task is READY now, mrb_tick woke it
            *during* the step, so the step delayed it. Record the step's wall
-           time as the jitter that task suffered (no-op without MRB_GC_PROFILE). */
-        mrb_gc_scheduler_jitter(mrb, q_ready_ != NULL);
+           time as the jitter that task suffered (no-op without MRB_GC_PROFILE).
+           q_ready_ is mutated by the mrb_tick IRQ, so read it under the
+           scheduler-IRQ exclusion to get a defined, non-cached load. */
+        mrb_task_excl_enter(mrb);
+        mrb_bool delayed = (q_ready_ != NULL);
+        mrb_task_excl_exit(mrb);
+        mrb_gc_scheduler_jitter(mrb, delayed);
         continue;
       }
       /* If there are tasks waiting or suspended, idle */
@@ -658,7 +663,13 @@ mrb_task_run_once(mrb_state *mrb)
        GC one step per tick. No-op unless GC.scheduler_driven is on. */
     if (mrb_gc_scheduler_pending(mrb)) {
       mrb_gc_step(mrb);
-      mrb_gc_scheduler_jitter(mrb, q_ready_ != NULL);
+      /* q_ready_ is mutated by the mrb_tick IRQ; read it under the
+         scheduler-IRQ exclusion to get a defined, non-cached load
+         (see the matching comment in task_run_body). */
+      mrb_task_excl_enter(mrb);
+      mrb_bool delayed = (q_ready_ != NULL);
+      mrb_task_excl_exit(mrb);
+      mrb_gc_scheduler_jitter(mrb, delayed);
       return mrb_true_value();
     }
     return mrb_nil_value();
