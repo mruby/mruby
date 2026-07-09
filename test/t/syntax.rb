@@ -48,6 +48,22 @@ assert('yield', '11.3.5') do
   end
 end
 
+assert('yield with keyword arguments') do
+  # keywords must reach the block, alone and mixed with positional/splat args
+  def ky_kw; yield b: true; end
+  assert_equal [{b: true}], ky_kw { |*a| a }
+
+  def ky_pos_kw; yield 1, b: true; end
+  assert_equal [1, {b: true}], ky_pos_kw { |*a| a }
+
+  def ky_splat_kw; yield 1, *[2], b: true; end
+  assert_equal [1, 2, {b: true}], ky_splat_kw { |*a| a }
+
+  # a block declaring keyword parameters receives them as keywords
+  def ky_decl; yield 1, x: 2, y: 3; end
+  assert_equal [1, 2, 3], ky_decl { |a, x:, y:| [a, x, y] }
+end
+
 assert('break', '11.5.2.4.3') do
   n = 0
   a = []

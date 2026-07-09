@@ -5771,7 +5771,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       CAST(yield);
       mrc_codegen_scope *s2 = s;
       int lv = 0, ainfo = -1;
-      int n = 0, sendv = 0;
+      int n = 0, nk = 0, st = 0;
 
       while (!s2->mscope) {
         lv++;
@@ -5783,23 +5783,33 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       }
       if (ainfo < 0) codegen_error(s, "invalid yield (SyntaxError)");
       push();
-      if (cast->arguments) {
-        n = gen_values(s, (mrc_node *)cast->arguments, VAL, 14);
+      CAST3(arguments, cast->arguments, arguments);
+      if (arguments) {
+        st = n = gen_values(s, (mrc_node *)cast->arguments, VAL, 14);
         if (n < 0) {
-          n = sendv = 1;
+          st = 1; n = 15;
           push();
+        }
+        /* keyword arguments */
+        for (size_t i = 0; i < arguments->arguments.size; i++) {
+          mrc_node *t = (mrc_node *)arguments->arguments.nodes[i];
+          if (nint(t) == PM_KEYWORD_HASH_NODE) {
+            nk = gen_hash(s, t, VAL, 14);
+            if (nk < 0) {st++; nk = 15;}
+            else st += nk*2;
+            n |= nk<<4;
+          }
         }
       }
       push(); pop(); /* space for a block */
-      pop_n(n+1);
+      pop_n(st+1);
       genop_2S(s, OP_BLKPUSH, cursp(), (ainfo<<4)|(lv & 0xf));
-      if (sendv) n = CALL_MAXARGS;
-      if (n < 15) {
+      if (nk == 0 && n < 15) {
         /* fast path: direct block call without method dispatch */
         genop_2(s, OP_BLKCALL, cursp(), n);
       }
       else {
-        /* fallback: use SEND for splat */
+        /* SEND carries the keyword count / splat array to Proc#call */
         genop_3(s, OP_SEND, cursp(), new_sym(s, MRC_SYM_1(call)), n);
       }
       if (val) push();
