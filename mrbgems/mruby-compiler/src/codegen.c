@@ -4288,10 +4288,12 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
   receiver = (mrc_node *)cast->receiver; \
   value = (mrc_node *)cast->value; \
   read_name = cast->read_name; \
-  write_name = cast->write_name;
+  write_name = cast->write_name; \
+  safe = (cast->base.flags & PM_CALL_NODE_FLAGS_SAFE_NAVIGATION) ? 1 : 0;
       mrc_node *receiver = NULL, *value = NULL;
       mrc_sym read_name = -1, write_name = -1, binary_operator = -1, op_jmp = -1;
       uint32_t pos = -1;
+      int safe = 0, skip = 0;
       switch (nt) {
         case PM_CALL_OPERATOR_WRITE_NODE:
           {
@@ -4320,6 +4322,12 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
         push();
       }
       codegen(s, receiver, VAL);
+      if (safe) {
+        /* nil&.x op= v short-circuits to nil without the read/write */
+        int recv = cursp()-1;
+        gen_move(s, cursp(), recv, 1);
+        skip = genjmp2_0(s, OP_JMPNIL, cursp(), val);
+      }
       idx = new_sym(s, read_name);
       base = cursp()-1;
       /* copy receiver and arguments */
@@ -4349,6 +4357,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       idx = new_sym(s, write_name);
       genop_3(s, OP_SEND, cursp(), idx, 1);
       if (0 < pos) { dispatch(s, pos); }
+      if (safe) { dispatch(s, skip); }
       break;
     }
     case PM_INDEX_OPERATOR_WRITE_NODE:

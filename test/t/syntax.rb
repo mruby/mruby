@@ -144,6 +144,29 @@ assert('next with value from a block') do
   assert_equal [1, 20, 3], [1, 2, 3].map { |x| next x * 10 if x == 2; x }
 end
 
+assert('safe navigation operator-assignment short-circuits on nil') do
+  # a nil receiver yields nil without invoking the read or write method
+  assert_nil (nil&.foo += 5)
+  assert_nil (nil&.foo ||= 5)
+  assert_nil (nil&.foo &&= 5)
+
+  # the right-hand side is not evaluated when the receiver is nil
+  evaluated = false
+  nil&.foo += (evaluated = true; 1)
+  assert_false evaluated
+
+  # a non-nil receiver still performs the operation
+  acc = Class.new { attr_accessor :x }
+  c = acc.new
+  c.x = 10
+  assert_equal 15, (c&.x += 5)
+  assert_equal 15, c.x
+
+  d = acc.new
+  d&.x ||= 7
+  assert_equal 7, d.x
+end
+
 assert('redo', '11.5.2.4.5') do
   sum = 0
   for i in 1..10
