@@ -771,29 +771,29 @@ is no Ruby GC task, no `Task.list` scan, and no task-switch overhead.
 
 ### Primitives
 
-| Method                       | Description                                                                                                                                                        |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Method                       | Description                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `GC.scheduler_driven = bool` | `true` hands GC scheduling to the scheduler (turns `auto_step` off and generational mode off); it drives GC from its idle points. Enabling raises while GC is disabled or ObjectSpace iteration is active, because generational mode cannot be changed safely then. `false` restores `auto_step` (stock allocation-synchronous GC) but does **not** restore generational mode — call `GC.generational_mode = true` yourself if you want it back. |
-| `GC.scheduler_driven`        | Whether scheduler-driven GC is on.                                                                                                                                 |
-| `GC.step_limit = n`          | Cap the work of one step (`0` = unlimited). Bounds the length of one non-preemptible GC pause. Not scheduler-driven-specific: also bounds ordinary auto_step-driven and manual `GC.step` pauses. |
-| `GC.debt_limit = n`          | Safety valve: while scheduler-driven, if the system is 100 % busy and debt exceeds `n`, the allocation path forces a bounded synchronous step. `0` disables. Only has an effect while scheduler-driven — there is no other way to turn `auto_step` off. |
-| `GC.malloc_threshold = n`    | Byte-pressure threshold (`GC.debt` counts objects, not bytes). Not scheduler-driven-specific: the ordinary allocation path also triggers an incremental GC cycle once malloc-backed growth crosses this threshold, even with `auto_step` on. Scheduler-driven GC additionally treats crossing it as a reason to step. |
+| `GC.scheduler_driven`        | Whether scheduler-driven GC is on.                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `GC.step_limit = n`          | Cap the work of one step (`0` = unlimited). Bounds the length of one non-preemptible GC pause. Not scheduler-driven-specific: also bounds ordinary auto_step-driven and manual `GC.step` pauses.                                                                                                                                                                                                                                                 |
+| `GC.debt_limit = n`          | Safety valve: while scheduler-driven, if the system is 100 % busy and debt exceeds `n`, the allocation path forces a bounded synchronous step. `0` disables. Only has an effect while scheduler-driven — there is no other way to turn `auto_step` off.                                                                                                                                                                                          |
+| `GC.malloc_threshold = n`    | Byte-pressure threshold (`GC.debt` counts objects, not bytes). Not scheduler-driven-specific: the ordinary allocation path also triggers an incremental GC cycle once malloc-backed growth crosses this threshold, even with `auto_step` on. Scheduler-driven GC additionally treats crossing it as a reason to step.                                                                                                                            |
 
 Observability (`GC.stat`) still reports `:debt`, `:state`, `:malloc_increase`,
 `:live`, and — under `MRB_GC_PROFILE` — the `:prof_sync_*` / `:prof_step_*`
 pause histograms.
 
 The equivalent C entry points are `mrb_gc_scheduler_driven()`,
-`mrb_gc_sched_pending()` and `mrb_gc_step()` (see `mruby/gc.h`).
+`mrb_gc_scheduler_pending()` and `mrb_gc_step()` (see `mruby/gc.h`).
 
 ### Tuning
 
 - **Generational mode is turned off for you.** In generational mode a minor
   cycle runs to completion inside a single step, and a step is one C call —
   atomic with respect to preemption. On a large heap that is a long
-  non-preemptible pause, *worse* than the stock behaviour. `GC.scheduler_driven
-  = true` disables generational mode so steps stay finely divisible, and it
-  *stays* off: `GC.generational_mode = true` raises while scheduler-driven GC
+  non-preemptible pause, _worse_ than the stock behaviour. `GC.scheduler_driven
+= true` disables generational mode so steps stay finely divisible, and it
+  _stays_ off: `GC.generational_mode = true` raises while scheduler-driven GC
   is on. If GC is disabled or ObjectSpace is iterating, enabling
   scheduler-driven GC raises instead of entering a mode it cannot make safe.
 - **`GC.step_limit`** bounds the pause of one step. Size it to the longest
@@ -802,8 +802,8 @@ The equivalent C entry points are `mrb_gc_scheduler_driven()`,
 - **`GC.debt_limit`** is the backstop for starvation: on a 100 %-busy system
   the scheduler never idles, so it never steps and the heap would grow without
   bound. The valve forces bounded synchronous steps once debt passes the cap.
-  It bounds heap *growth*, not latency — pick a cap small enough that the valve
-  fires before the heap bloats. Note the valve keys on *object* debt: a starved
+  It bounds heap _growth_, not latency — pick a cap small enough that the valve
+  fires before the heap bloats. Note the valve keys on _object_ debt: a starved
   workload whose pressure is purely malloc bytes (few objects, large buffers,
   no idle time) is only backstopped by the out-of-memory emergency collection.
 
