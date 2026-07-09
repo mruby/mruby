@@ -4351,7 +4351,9 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
         pop();
       }
       if (0 <= vsp) {
-        gen_move(s, vsp, cursp(), 0);
+        /* nopeep: a real MOVE, so peephole cannot hoist a loaded RHS out of
+           the argument register (cursp()) that the write SEND reads below */
+        gen_move(s, vsp, cursp(), TRUE);
       }
       pop();
       idx = new_sym(s, write_name);

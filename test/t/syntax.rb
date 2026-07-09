@@ -167,6 +167,28 @@ assert('safe navigation operator-assignment short-circuits on nil') do
   assert_equal 7, d.x
 end
 
+assert('attribute or/and-assignment persists the write in a value context') do
+  acc = Class.new { attr_accessor :x }
+
+  # ||= writing when the value is used (e.g. as a method argument): the
+  # peephole must not hoist the RHS out of the write's argument register
+  c = acc.new
+  assert_equal 7, (c.x ||= 7)
+  assert_equal 7, c.x
+
+  # ||= skipping when the attribute is already truthy
+  c2 = acc.new
+  c2.x = 5
+  assert_equal 5, (c2.x ||= 7)
+  assert_equal 5, c2.x
+
+  # &&= writing when truthy
+  c3 = acc.new
+  c3.x = 3
+  assert_equal 9, (c3.x &&= 9)
+  assert_equal 9, c3.x
+end
+
 assert('redo', '11.5.2.4.5') do
   sum = 0
   for i in 1..10
