@@ -1446,6 +1446,34 @@ assert('pattern matching - complex patterns') do
   end
 end
 
+assert('defined? on statically-decidable operands') do
+  # literals and pure expressions
+  assert_equal 'expression', defined?(1)
+  assert_equal 'expression', defined?("s")
+  assert_equal 'expression', defined?(:sym)
+  assert_equal 'expression', defined?([1, 2])
+  assert_equal 'expression', defined?({a: 1})
+  assert_equal 'expression', defined?(nil)
+  assert_equal 'expression', defined?(true)
+  assert_equal 'expression', defined?(false)
+  assert_equal 'expression', defined?(1..2)
+  assert_equal 'expression', defined?(defined?(x))
+
+  # self
+  assert_equal 'self', defined?(self)
+
+  # a local variable in scope
+  lv = 1
+  assert_equal 'local-variable', defined?(lv)
+
+  # assignments report "assignment" without being evaluated
+  assert_equal 'assignment', defined?(unset = 1)
+  assert_nil unset
+  n = 5
+  assert_equal 'assignment', defined?(n += 100)
+  assert_equal 5, n
+end
+
 # NOTE: `&nil` block-forbidding parameters live in syntax_block_forbid.rb,
 # which the build excludes when compiling with mruby-compiler-prism (the
 # Prism parser does not accept `&nil` yet).

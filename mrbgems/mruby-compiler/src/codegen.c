@@ -6106,12 +6106,63 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
     }
     case PM_DEFINED_NODE:
     {
-      /* `defined?` is intentionally not implemented (a full implementation is
-         large for little gain). Return nil without evaluating the operand:
-         `defined?` must not evaluate its argument, and the previous stub both
-         evaluated it and called a non-existent `defined?` method. */
+      /* `defined?` must not evaluate its operand. The cases decidable purely
+         from the operand's node type are handled here; the runtime cases
+         (ivar/gvar/cvar/const/method/yield existence) still fall through to
+         nil, as they need a runtime lookup that is not implemented yet. */
+      CAST(defined);
+      const char *type = NULL;
+      switch (nint(cast->value)) {
+      case PM_INTEGER_NODE: case PM_FLOAT_NODE:
+      case PM_RATIONAL_NODE: case PM_IMAGINARY_NODE:
+      case PM_STRING_NODE: case PM_INTERPOLATED_STRING_NODE:
+      case PM_X_STRING_NODE: case PM_INTERPOLATED_X_STRING_NODE:
+      case PM_SYMBOL_NODE: case PM_INTERPOLATED_SYMBOL_NODE:
+      case PM_REGULAR_EXPRESSION_NODE: case PM_INTERPOLATED_REGULAR_EXPRESSION_NODE:
+      case PM_ARRAY_NODE: case PM_HASH_NODE: case PM_KEYWORD_HASH_NODE:
+      case PM_NIL_NODE: case PM_TRUE_NODE: case PM_FALSE_NODE:
+      case PM_RANGE_NODE: case PM_LAMBDA_NODE: case PM_DEFINED_NODE:
+      case PM_SOURCE_FILE_NODE: case PM_SOURCE_LINE_NODE: case PM_SOURCE_ENCODING_NODE:
+        type = "expression";
+        break;
+      case PM_SELF_NODE:
+        type = "self";
+        break;
+      case PM_LOCAL_VARIABLE_READ_NODE:
+        type = "local-variable";
+        break;
+      case PM_LOCAL_VARIABLE_WRITE_NODE: case PM_INSTANCE_VARIABLE_WRITE_NODE:
+      case PM_GLOBAL_VARIABLE_WRITE_NODE: case PM_CLASS_VARIABLE_WRITE_NODE:
+      case PM_CONSTANT_WRITE_NODE: case PM_CONSTANT_PATH_WRITE_NODE:
+      case PM_MULTI_WRITE_NODE:
+      case PM_LOCAL_VARIABLE_OPERATOR_WRITE_NODE:
+      case PM_LOCAL_VARIABLE_OR_WRITE_NODE: case PM_LOCAL_VARIABLE_AND_WRITE_NODE:
+      case PM_INSTANCE_VARIABLE_OPERATOR_WRITE_NODE:
+      case PM_INSTANCE_VARIABLE_OR_WRITE_NODE: case PM_INSTANCE_VARIABLE_AND_WRITE_NODE:
+      case PM_GLOBAL_VARIABLE_OPERATOR_WRITE_NODE:
+      case PM_GLOBAL_VARIABLE_OR_WRITE_NODE: case PM_GLOBAL_VARIABLE_AND_WRITE_NODE:
+      case PM_CLASS_VARIABLE_OPERATOR_WRITE_NODE:
+      case PM_CLASS_VARIABLE_OR_WRITE_NODE: case PM_CLASS_VARIABLE_AND_WRITE_NODE:
+      case PM_CONSTANT_OPERATOR_WRITE_NODE:
+      case PM_CONSTANT_OR_WRITE_NODE: case PM_CONSTANT_AND_WRITE_NODE:
+      case PM_CONSTANT_PATH_OPERATOR_WRITE_NODE:
+      case PM_CONSTANT_PATH_OR_WRITE_NODE: case PM_CONSTANT_PATH_AND_WRITE_NODE:
+      case PM_INDEX_OPERATOR_WRITE_NODE:
+      case PM_INDEX_OR_WRITE_NODE: case PM_INDEX_AND_WRITE_NODE:
+      case PM_CALL_OPERATOR_WRITE_NODE:
+      case PM_CALL_OR_WRITE_NODE: case PM_CALL_AND_WRITE_NODE:
+        type = "assignment";
+        break;
+      default:
+        break;
+      }
       if (val) {
-        genop_1(s, OP_LOADNIL, cursp());
+        if (type) {
+          genop_2(s, OP_STRING, cursp(), new_lit_cstr(s, type));
+        }
+        else {
+          genop_1(s, OP_LOADNIL, cursp());
+        }
         push();
       }
       break;
