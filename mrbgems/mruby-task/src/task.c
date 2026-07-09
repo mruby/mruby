@@ -582,6 +582,25 @@ task_run_body(mrb_state *mrb, void *ud)
         /* All tasks are dormant - scheduler done */
         break;
       }
+      /* Task-scheduled GC: every remaining task is waiting for a tick, so this
+         CPU would otherwise idle. Spend it on one unit of GC and loop back to
+         re-check q_ready_ -- if mrb_tick woke a task meanwhile we hand it the
+         CPU immediately, so GC never delays a tick-driven wakeup. Only sleep
+         once there is no GC work left. No-op (returns FALSE) unless
+         GC.scheduler_driven is on. */
+      if (mrb_gc_scheduler_pending(mrb)) {
+        mrb_gc_step(mrb);
+        /* q_ready_ was empty above; if a task is READY now, mrb_tick woke it
+           *during* the step, so the step delayed it. Record the step's wall
+           time as the jitter that task suffered (no-op without MRB_GC_PROFILE).
+           q_ready_ is mutated by the mrb_tick IRQ, so read it under the
+           scheduler-IRQ exclusion to get a defined, non-cached load. */
+        mrb_task_excl_enter(mrb);
+        mrb_bool delayed = (q_ready_ != NULL);
+        mrb_task_excl_exit(mrb);
+        mrb_gc_scheduler_jitter(mrb, delayed);
+        continue;
+      }
       /* If there are tasks waiting or suspended, idle */
       mrb_hal_task_idle_cpu(mrb);
       continue;
@@ -634,6 +653,25 @@ mrb_task_run_once(mrb_state *mrb)
 
   /* No task ready */
   if (!t) {
+    /* Task-scheduled GC, single-step variant. Unlike mrb_task_run we cannot
+       drain GC in a loop here: this call must stay non-blocking so the host
+       event loop keeps spinning, so advance the collector by exactly one unit
+       and return. Returning true (progress made) rather than nil tells a host
+       that branches on the result to pump again promptly; nil is reserved for
+       "truly idle", so GC never stalls because the host backed off to a long
+       sleep. Hosts that ignore the result (e.g. a fixed timer) still advance
+       GC one step per tick. No-op unless GC.scheduler_driven is on. */
+    if (mrb_gc_scheduler_pending(mrb)) {
+      mrb_gc_step(mrb);
+      /* q_ready_ is mutated by the mrb_tick IRQ; read it under the
+         scheduler-IRQ exclusion to get a defined, non-cached load
+         (see the matching comment in task_run_body). */
+      mrb_task_excl_enter(mrb);
+      mrb_bool delayed = (q_ready_ != NULL);
+      mrb_task_excl_exit(mrb);
+      mrb_gc_scheduler_jitter(mrb, delayed);
+      return mrb_true_value();
+    }
     return mrb_nil_value();
   }
 
@@ -1677,6 +1715,9 @@ mrb_mruby_task_gem_init(mrb_state *mrb)
 
   /* Task::Queue */
   mrb_init_task_queue(mrb, task_class);
+
+  /* GC.scheduler_driven family */
+  mrb_init_task_gc(mrb);
 
   /* Class methods */
   mrb_define_class_method_id(mrb, task_class, MRB_SYM(new),     mrb_task_s_new,     MRB_ARGS_KEY(2,0)|MRB_ARGS_BLOCK());

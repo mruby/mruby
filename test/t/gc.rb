@@ -28,6 +28,8 @@ assert('GC.step_ratio=') do
   origin = GC.step_ratio
   begin
     assert_equal 150, (GC.step_ratio = 150)
+    assert_raise(ArgumentError) { GC.step_ratio = 0 }
+    assert_raise(ArgumentError) { GC.step_ratio = -1 }
   ensure
     GC.step_ratio = origin
   end

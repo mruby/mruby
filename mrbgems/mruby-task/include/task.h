@@ -220,4 +220,7 @@ mrb_task_excl_exit(mrb_state *mrb)
   }
 }
 
+/* GC.scheduler_driven family - defined in gc.c */
+void mrb_init_task_gc(mrb_state *mrb);
+
 #endif /* MRUBY_TASK_H */
