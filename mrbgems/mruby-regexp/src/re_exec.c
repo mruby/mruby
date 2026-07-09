@@ -47,7 +47,7 @@ class_match(const re_charclass *cc, uint32_t cp)
   if (cp < 128) {
     return (cc->bitmap[cp >> 3] >> (cp & 7)) & 1;
   }
-  for (uint16_t i = 0; i < cc->num_ranges; i++) {
+  for (uint32_t i = 0; i < cc->num_ranges; i++) {
     if (cp >= cc->ranges[2*i] && cp <= cc->ranges[2*i + 1]) return TRUE;
   }
   return cc->utf8_any;

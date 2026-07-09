@@ -947,3 +947,31 @@ assert("Regexp - truncated UTF-8 at subject end") do
   assert_nil ("ab\xf0" =~ /[cd]/)
   assert_equal 0, ("ab\xf0" =~ /[^cd]+$/)
 end
+
+assert("Regexp - large non-ASCII character class does not overflow") do
+  # a class listing tens of thousands of non-ASCII codepoints used to
+  # overflow the 16-bit range capacity (32768 * 2 wrapped to 0, feeding a
+  # size-0 realloc and a write through NULL). See issue #6937.
+  # Patterns are always parsed as UTF-8, so build the bytes directly to
+  # exercise this in both MRB_UTF8_STRING and byte-string builds.
+  utf8 = ->(cp) {
+    if cp < 0x800
+      (0xC0 | (cp >> 6)).chr + (0x80 | (cp & 0x3F)).chr
+    else
+      (0xE0 | (cp >> 12)).chr + (0x80 | ((cp >> 6) & 0x3F)).chr + (0x80 | (cp & 0x3F)).chr
+    end
+  }
+  s = "["
+  i = 0x80
+  while i <= 0x8080
+    s += utf8.call(i)
+    i += 1
+  end
+  s += "]"
+  re = Regexp.new(s)
+  assert_kind_of Regexp, re
+  assert_equal 0, (re =~ utf8.call(0x80))
+  assert_equal 0, (re =~ utf8.call(0x8080))
+  assert_nil (re =~ utf8.call(0x8081))
+  assert_nil (re =~ "A")
+end

@@ -167,9 +167,23 @@ class_set_bit(re_charclass *cc, uint8_t ch)
 static void
 class_add_range(re_compiler *c, re_charclass *cc, uint32_t lo, uint32_t hi)
 {
+  /* Merge with the previous range when the new one is contiguous with or
+     overlaps it. Codepoints are appended in scan order, so an ascending run
+     (the common case, e.g. a long [...] enumeration) collapses to a single
+     range instead of one entry per codepoint. */
+  if (cc->num_ranges > 0) {
+    uint32_t *last = &cc->ranges[2 * (cc->num_ranges - 1)];
+    if (lo >= last[0] && lo <= last[1] + 1) {
+      if (hi > last[1]) last[1] = hi;
+      return;
+    }
+  }
   if (cc->num_ranges >= cc->range_capa) {
-    cc->range_capa = cc->range_capa ? cc->range_capa * 2 : 4;
-    cc->ranges = (uint32_t*)mrb_realloc(c->mrb, cc->ranges, sizeof(uint32_t) * 2 * cc->range_capa);
+    /* range_capa/num_ranges are uint32_t: doubling from 32768 no longer
+       wraps to 0 (which fed a size-0 realloc and a write through NULL). */
+    uint32_t new_capa = cc->range_capa ? cc->range_capa * 2 : 4;
+    cc->ranges = (uint32_t*)mrb_realloc(c->mrb, cc->ranges, sizeof(uint32_t) * 2 * new_capa);
+    cc->range_capa = new_capa;
   }
   cc->ranges[2 * cc->num_ranges] = lo;
   cc->ranges[2 * cc->num_ranges + 1] = hi;

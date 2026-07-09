@@ -51,8 +51,8 @@ typedef struct {
      ranges[2k] = lo, ranges[2k+1] = hi (inclusive). NULL when the
      class has no non-ASCII members (the common case). */
   uint32_t *ranges;
-  uint16_t num_ranges;
-  uint16_t range_capa;
+  uint32_t num_ranges;
+  uint32_t range_capa;
   mrb_bool negated;
   mrb_bool utf8_any;  /* match any non-ASCII byte if true */
 } re_charclass;
