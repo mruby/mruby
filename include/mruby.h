@@ -166,7 +166,7 @@ typedef struct {
   uint8_t n:4;                  /* (15=*) c=n|nk<<4 */
   uint8_t nk:4;                 /* (15=*) */
   uint8_t cci;                  /* called from C function */
-  uint8_t vis;                  /* 5(ZERO):1(separate module):2(method visibility) */
+  uint8_t vis;                  /* 4(ZERO):1(module_function):1(separate module):2(method visibility) */
                                 /* under 3-bit flags are copied to env, and after that, env takes precedence */
   mrb_sym mid;
   const struct RProc *proc;

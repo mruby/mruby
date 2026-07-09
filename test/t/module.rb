@@ -866,6 +866,33 @@ assert('Module#module_function') do
   end
 end
 
+assert('Module#module_function with no arguments (toggle mode)') do
+  mod = Module.new do
+    module_function
+    def foo; 42; end
+    def bar; 43; end
+    public
+    def baz; 44; end   # public ends the module_function scope
+  end
+
+  # subsequent defs become module (singleton) methods
+  assert_equal 42, mod.foo
+  assert_equal 43, mod.bar
+  # while public/private turns the toggle off again
+  assert_false mod.respond_to?(:baz)
+
+  # the instance-side methods are private: callable without an explicit
+  # receiver, but not with one; baz stayed public
+  klass = Class.new do
+    include mod
+    def call_foo; foo; end
+  end
+  obj = klass.new
+  assert_equal 42, obj.call_foo
+  assert_equal 44, obj.baz
+  assert_raise(NoMethodError) { obj.foo }
+end
+
 assert('module with non-class/module outer raises TypeError') do
   assert_raise(TypeError) { module 0::M1 end }
   assert_raise(TypeError) { module []::M2 end }

@@ -1045,6 +1045,7 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
   }
 
   int flags = m.flags;
+  mrb_bool modfunc = FALSE;
   if (mid == MRB_SYM(initialize) ||
       mid == MRB_SYM(initialize_copy) ||
       mid == MRB_SYM_Q(respond_to_missing)) {
@@ -1061,10 +1062,19 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
       find_visibility_scope(mrb, c, 0, &ci, &e);
       mrb_assert(ci || e);
       MRB_SET_VISIBILITY_FLAGS(flags, (uint32_t)(e ? MRB_ENV_VISIBILITY(e) : MRB_CI_VISIBILITY(ci)) << 25);
+      modfunc = e ? MRB_ENV_MODFUNC_P(e) : MRB_CI_MODFUNC_P(ci);
     }
   }
   mt_put(mrb, h, mid, flags, ptr);
   if (!mrb->bootstrapping) mc_clear_by_id(mrb, mid);
+  if (modfunc) {
+    /* module_function scope: also define a public method on the singleton
+       class, so the module method (M.foo) mirrors the private instance one */
+    mrb_method_t sm = m;
+    MRB_SET_VISIBILITY_FLAGS(sm.flags, MRB_METHOD_PUBLIC_FL);
+    prepare_singleton_class(mrb, (struct RBasic*)c);
+    mrb_define_method_raw(mrb, c->c, mid, sm);
+  }
 }
 
 static void
@@ -2453,9 +2463,11 @@ mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int vis)
     find_visibility_scope(mrb, NULL, 1, &ci, &e);
     if (e) {
       MRB_ENV_SET_VISIBILITY(e, vis >> 25);
+      MRB_ENV_CLEAR_MODFUNC(e);  /* an explicit visibility ends module_function scope */
     }
     else {
       MRB_CI_SET_VISIBILITY(ci, vis >> 25);
+      MRB_CI_CLEAR_MODFUNC(ci);
     }
   }
   else {
@@ -4051,12 +4063,21 @@ mrb_mod_module_function(mrb_state *mrb, mrb_value mod)
 
   mrb_get_args(mrb, "*", &argv, &argc);
   if (argc == 0) {
-    /* set MODFUNC SCOPE if implemented */
+    /* toggle mode: subsequent defs become private instance + public module
+       methods. Mark the enclosing scope; mrb_define_method_raw acts on it. */
+    mrb_callinfo *ci;
+    struct REnv *e;
+    find_visibility_scope(mrb, NULL, 1, &ci, &e);
+    if (e) {
+      MRB_ENV_SET_VISIBILITY(e, MRB_METHOD_PRIVATE_FL >> 25);
+      MRB_ENV_SET_MODFUNC(e);
+    }
+    else {
+      MRB_CI_SET_VISIBILITY(ci, MRB_METHOD_PRIVATE_FL >> 25);
+      MRB_CI_SET_MODFUNC(ci);
+    }
     return mod;
   }
-
-  /* set PRIVATE method visibility if implemented */
-  /* mrb_mod_dummy_visibility(mrb, mod); */
 
   struct RClass *rclass = mrb_class_ptr(mod);
   int ai = mrb_gc_arena_save(mrb);
