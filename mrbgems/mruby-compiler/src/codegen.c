@@ -5819,8 +5819,9 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       }
       else {
         if ((mrc_node *)cast->arguments) {
-          codegen(s, (mrc_node *)cast->arguments, VAL);
-          pop();
+          /* next v returns v itself; gen_retval unwraps a single argument
+             instead of wrapping it in an array (next 1, 2 stays [1, 2]) */
+          gen_retval(s, (mrc_node *)cast->arguments);
         }
         else {
           genop_1(s, OP_LOADNIL, cursp());

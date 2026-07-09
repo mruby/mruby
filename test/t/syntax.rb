@@ -130,6 +130,20 @@ assert('break', '11.5.2.4.3') do
   assert_equal [1, 2, 3, 4], a
 end
 
+assert('next with value from a block') do
+  def next_yield; yield; end
+  # next v returns v itself, not [v]
+  assert_equal 234, (next_yield { next 234 })
+  # multiple values become an array
+  assert_equal [1, 2], (next_yield { next 1, 2 })
+  # a splat argument is expanded, not double-wrapped
+  assert_equal [7, 8], (next_yield { next *[7, 8] })
+  # bare next yields nil
+  assert_nil (next_yield { next })
+  # next as loop control still discards its value
+  assert_equal [1, 20, 3], [1, 2, 3].map { |x| next x * 10 if x == 2; x }
+end
+
 assert('redo', '11.5.2.4.5') do
   sum = 0
   for i in 1..10
