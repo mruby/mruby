@@ -2164,13 +2164,17 @@ gen_assignment(mrc_codegen_scope *s, mrc_node *tree, mrc_node *rhs, int sp, int 
       CAST(index_target);
       codegen(s, cast->receiver, VAL);
       int n = gen_values(s, (mrc_node *)cast->arguments, VAL, 14);
-      genop_2(s, OP_MOVE, cursp(), cursp() - n * 2 + 1);
+      /* the value to assign lives in sp (set by the caller for multiple
+         assignment); cursp()-n*2+1 would point at an index register */
+      genop_2(s, OP_MOVE, cursp(), sp);
+      push();  /* reserve the value register so nregs accounts for it */
       if (n == 1) {
-        pop_n(2);
+        pop_n(3);
         genop_1(s, OP_SETIDX, cursp());
       }
       else {
-        pop_n(n+1);
+        push(); pop();  /* touch block slot so nregs covers the OP_SEND */
+        pop_n(n+2);
         genop_3(s, OP_SEND, cursp(), new_sym(s, MRC_OPSYM_2(aset)), n+1);
       }
       break;

@@ -388,6 +388,23 @@ assert('multiple assignment (rest)') do
   assert_equal [0], a
 end
 
+assert('multiple assignment (index targets)') do
+  a = [1, 2]
+  a[0], a[1] = 9, 8
+  assert_equal [9, 8], a
+
+  a[0], a[1] = a[1], a[0]
+  assert_equal [8, 9], a
+
+  h = {}
+  h[:x], h[:y] = 1, 2
+  assert_equal({:x => 1, :y => 2}, h)
+
+  b = Array.new(4, 0)
+  b[0, 2], b[2, 2] = [1, 2], [3, 4]
+  assert_equal [1, 2, 3, 4], b
+end
+
 assert('multiple assignment (rest+post)') do
   *a, b = 0, 1, 2
   *c, d = 3
