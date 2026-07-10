@@ -143,6 +143,13 @@ mrb_hal_task_idle_cpu(mrb_state *mrb)
 }
 
 void
+mrb_hal_task_switch_hook(mrb_state *mrb)
+{
+  (void)mrb;
+  /* Nothing to service on this platform */
+}
+
+void
 mrb_hal_task_sleep_us(mrb_state *mrb, mrb_int usec)
 {
   struct timespec start, now, sleep_time;

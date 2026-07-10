@@ -130,6 +130,24 @@ void mrb_task_disable_irq(void);
 void mrb_hal_task_idle_cpu(mrb_state *mrb);
 
 /**
+ * Called by the scheduler each time it regains control from a task
+ * (timeslice expiry, block, or completion), in thread context.
+ *
+ * Gives the platform a periodic servicing point that fires even when the
+ * ready queue is never empty — mrb_hal_task_idle_cpu() only runs when no
+ * task is ready, so a compute-bound task would otherwise starve anything
+ * the platform services there (e.g. a polled network driver).
+ *
+ * Requirements:
+ * - Must be cheap when there is nothing to service (called every switch)
+ * - Must NOT sleep or wait for interrupts (that is idle_cpu's job)
+ * - Most ports need no servicing: provide an empty implementation
+ *
+ * @param mrb The mruby state (for context, may be unused)
+ */
+void mrb_hal_task_switch_hook(mrb_state *mrb);
+
+/**
  * Sleep for specified microseconds in wall-clock time
  *
  * Called by sleep functions when in root context (not in a task).
