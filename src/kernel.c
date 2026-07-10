@@ -664,8 +664,57 @@ mrb_p_m(mrb_state *mrb, mrb_value self)
 }
 #endif
 
+/* defined? runtime helpers: each returns the CRuby result string, or nil when
+   undefined. The compiler emits calls to these for `defined?(...)` operands
+   whose kind can only be resolved at run time. */
+static mrb_value
+mrb_f_defined_method(mrb_state *mrb, mrb_value self)
+{
+  mrb_sym sym;
+  mrb_get_args(mrb, "n", &sym);
+  struct RClass *c = mrb_class(mrb, self);
+  mrb_method_t m = mrb_method_search_vm(mrb, &c, sym);
+  if (!MRB_METHOD_UNDEF_P(m)) return mrb_str_new_lit(mrb, "method");
+  return mrb_nil_value();
+}
+
+static mrb_value
+mrb_f_defined_ivar(mrb_state *mrb, mrb_value self)
+{
+  mrb_sym sym;
+  mrb_get_args(mrb, "n", &sym);
+  if (mrb_iv_defined(mrb, self, sym)) return mrb_str_new_lit(mrb, "instance-variable");
+  return mrb_nil_value();
+}
+
+static mrb_value
+mrb_f_defined_const(mrb_state *mrb, mrb_value self)
+{
+  mrb_sym sym;
+  mrb_get_args(mrb, "n", &sym);
+  /* resolve in the caller's lexical scope (ci[-1]), not this helper's */
+  mrb_callinfo *ci = &mrb->c->ci[-1];
+  if (ci >= mrb->c->cibase && ci->proc &&
+      mrb_vm_const_defined_p(mrb, ci->proc, sym)) {
+    return mrb_str_new_lit(mrb, "constant");
+  }
+  return mrb_nil_value();
+}
+
+static mrb_value
+mrb_f_defined_yield(mrb_state *mrb, mrb_value self)
+{
+  /* mrb_f_block_given_p_m inspects ci[-1], i.e. the frame that used defined? */
+  if (mrb_test(mrb_f_block_given_p_m(mrb, self))) return mrb_str_new_lit(mrb, "yield");
+  return mrb_nil_value();
+}
+
 /* ---------------------------*/
 static const mrb_mt_entry kernel_rom_entries[] = {
+  MRB_MT_ENTRY(mrb_f_defined_method, MRB_SYM_Q(__defined_method), MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_f_defined_ivar,   MRB_SYM_Q(__defined_ivar),   MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_f_defined_const,  MRB_SYM_Q(__defined_const),  MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_f_defined_yield,  MRB_SYM_Q(__defined_yield),  MRB_ARGS_NONE() | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_eqq_m,                        MRB_OPSYM(eqq),        MRB_ARGS_REQ(1)),  /* 15.3.1.3.2  */
   MRB_MT_ENTRY(mrb_cmp_m,                        MRB_OPSYM(cmp),         MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(mrb_f_block_given_p_m,    MRB_SYM_Q(block_given),                           MRB_ARGS_NONE() | MRB_MT_PRIVATE),  /* 15.3.1.3.6  */

@@ -1367,6 +1367,38 @@ mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
   return const_get(mrb, c, sym, TRUE);
 }
 
+/* Non-raising lexical constant lookup for `defined?(CONST)`. Mirrors the
+   search order of mrb_vm_const_get but takes the lexical scope's proc as an
+   argument (the caller's, via ci[-1]) and returns whether the constant
+   resolves, without invoking const_missing or raising. */
+mrb_bool
+mrb_vm_const_defined_p(mrb_state *mrb, const struct RProc *proc, mrb_sym sym)
+{
+  struct RClass *c = MRB_PROC_TARGET_CLASS(proc), *c2;
+  mrb_value v;
+
+  if (!c) c = mrb->object_class;
+  if (iv_get(mrb, class_iv_ptr(c), sym, &v)) return TRUE;
+  for (proc = proc->upper; proc; proc = proc->upper) {
+    c2 = MRB_PROC_TARGET_CLASS(proc);
+    if (!c2) c2 = mrb->object_class;
+    if (iv_get(mrb, class_iv_ptr(c2), sym, &v)) return TRUE;
+  }
+  if (c->tt == MRB_TT_SCLASS) {
+    if (!mrb_undef_p(const_get_nohook(mrb, c, sym, TRUE))) return TRUE;
+
+    mrb_value klass;
+    for (c2 = c; c2 && c2->tt == MRB_TT_SCLASS; c2 = mrb_class_ptr(klass)) {
+      if (!iv_get(mrb, class_iv_ptr(c2), MRB_SYM(__attached__), &klass)) {
+        c2 = NULL;
+        break;
+      }
+    }
+    if (c2 && (c2->tt == MRB_TT_CLASS || c2->tt == MRB_TT_MODULE)) c = c2;
+  }
+  return !mrb_undef_p(const_get_nohook(mrb, c, sym, TRUE));
+}
+
 /*
  * Sets a constant in a module or class.
  *

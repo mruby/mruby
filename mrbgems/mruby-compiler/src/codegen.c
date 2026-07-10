@@ -6106,12 +6106,15 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
     }
     case PM_DEFINED_NODE:
     {
-      /* `defined?` must not evaluate its operand. The cases decidable purely
-         from the operand's node type are handled here; the runtime cases
-         (ivar/gvar/cvar/const/method/yield existence) still fall through to
-         nil, as they need a runtime lookup that is not implemented yet. */
+      /* `defined?` must not evaluate its operand. Cases decidable from the
+         operand's node type alone yield a literal string; ivar/const/method/
+         yield existence is resolved at run time by a private helper (the
+         helper reads the caller's frame for const lexical scope and for the
+         block). gvar/cvar and method-with-receiver still fall through to nil. */
       CAST(defined);
       const char *type = NULL;
+      int helper = 0;             /* runtime helper symbol, 0 = none */
+      pm_constant_id_t arg = 0;   /* symbol operand for the helper, 0 = none */
       switch (nint(cast->value)) {
       case PM_INTEGER_NODE: case PM_FLOAT_NODE:
       case PM_RATIONAL_NODE: case PM_IMAGINARY_NODE:
@@ -6153,17 +6156,53 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       case PM_CALL_OR_WRITE_NODE: case PM_CALL_AND_WRITE_NODE:
         type = "assignment";
         break;
+      case PM_INSTANCE_VARIABLE_READ_NODE:
+        helper = MRC_SYM_2(defined_ivar_q);
+        arg = ((pm_instance_variable_read_node_t *)cast->value)->name;
+        break;
+      case PM_CONSTANT_READ_NODE:
+        helper = MRC_SYM_2(defined_const_q);
+        arg = ((pm_constant_read_node_t *)cast->value)->name;
+        break;
+      case PM_YIELD_NODE:
+        helper = MRC_SYM_2(defined_yield_q);
+        break;
+      case PM_CALL_NODE:
+        /* a bare method call on self (no explicit receiver, so no operand to
+           evaluate); a call with a receiver would need to evaluate it */
+        if (((pm_call_node_t *)cast->value)->receiver == NULL) {
+          helper = MRC_SYM_2(defined_method_q);
+          arg = ((pm_call_node_t *)cast->value)->name;
+        }
+        break;
       default:
         break;
       }
       if (val) {
         if (type) {
           genop_2(s, OP_STRING, cursp(), new_lit_cstr(s, type));
+          push();
+        }
+        else if (helper) {
+          genop_1(s, OP_LOADSELF, cursp());   /* receiver slot for the SSEND */
+          if (arg == 0) {           /* yield: no symbol operand */
+            push(); push();         /* reserve arg + block slots (nregs) */
+            pop_n(2);
+            genop_2(s, OP_SSEND0, cursp(), new_sym(s, helper));
+          }
+          else {
+            push();
+            genop_2(s, OP_LOADSYM, cursp(), new_sym(s, arg));
+            push(); push();         /* reserve value + block slots (nregs) */
+            pop_n(3);
+            genop_3(s, OP_SSEND, cursp(), new_sym(s, helper), 1);
+          }
+          push();
         }
         else {
           genop_1(s, OP_LOADNIL, cursp());
+          push();
         }
-        push();
       }
       break;
     }

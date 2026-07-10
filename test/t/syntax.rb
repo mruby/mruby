@@ -1474,6 +1474,36 @@ assert('defined? on statically-decidable operands') do
   assert_equal 5, n
 end
 
+DEFINED_TEST_CONST = 1
+
+assert('defined? on operands resolved at run time') do
+  # constants (in the lexical scope of this method)
+  assert_equal 'constant', defined?(DEFINED_TEST_CONST)
+  assert_equal 'constant', defined?(Object)
+  assert_nil defined?(NoSuchConstantHere)
+
+  # methods reachable from self, including private ones
+  assert_equal 'method', defined?(assert)          # available here
+  assert_nil defined?(no_such_method_at_all)
+
+  # instance variables of self
+  o = Object.new
+  o.instance_eval { @ivar_present = 1 }
+  assert_equal 'instance-variable', o.instance_eval { defined?(@ivar_present) }
+  assert_nil o.instance_eval { defined?(@ivar_absent) }
+
+  # yield depends on whether the enclosing method got a block
+  m = Object.new
+  def m.with_block; defined?(yield); end
+  assert_equal 'yield', m.with_block {}
+  assert_nil m.with_block
+
+  # the operand is not evaluated
+  evaluated = false
+  defined?(no_such_method_at_all(evaluated = true))
+  assert_false evaluated
+end
+
 # NOTE: `&nil` block-forbidding parameters live in syntax_block_forbid.rb,
 # which the build excludes when compiling with mruby-compiler-prism (the
 # Prism parser does not accept `&nil` yet).
