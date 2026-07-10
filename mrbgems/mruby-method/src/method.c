@@ -602,7 +602,7 @@ method_to_s(mrb_state *mrb, mrb_value self)
   if (!mrb_nil_p(proc)) {
     const struct RProc *p = mrb_proc_ptr(proc);
     if (MRB_PROC_ALIAS_P(p)) {
-      mrb_sym mid;
+      mrb_sym mid = 0;
       while (MRB_PROC_ALIAS_P(p)) {
         mid = p->body.mid;
         p = p->upper;
