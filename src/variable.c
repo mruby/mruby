@@ -1228,6 +1228,23 @@ mrb_vm_cv_get(mrb_state *mrb, mrb_sym sym)
   return mrb_mod_cv_get(mrb, c, sym);
 }
 
+/* Non-raising class-variable lookup for `defined?(@@v)`. Resolves the class
+   from the given lexical scope's proc (the caller's, via ci[-1]), mirroring
+   mrb_vm_cv_get's class selection. */
+mrb_bool
+mrb_vm_cv_defined_p(mrb_state *mrb, const struct RProc *proc, mrb_sym sym)
+{
+  struct RClass *c;
+
+  for (;;) {
+    c = MRB_PROC_TARGET_CLASS(proc);
+    if (c && c->tt != MRB_TT_SCLASS) break;
+    proc = proc->upper;
+    if (!proc) { c = mrb->object_class; break; }
+  }
+  return mrb_mod_cv_defined(mrb, c, sym);
+}
+
 void
 mrb_vm_cv_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
 {
@@ -1591,6 +1608,14 @@ mrb_gv_get(mrb_state *mrb, mrb_sym sym)
   if (iv_get(mrb, mrb->globals, sym, &v))
     return v;
   return mrb_nil_value();
+}
+
+/* Whether a global variable has been assigned, for `defined?($g)`. */
+mrb_bool
+mrb_gv_defined(mrb_state *mrb, mrb_sym sym)
+{
+  mrb_value v;
+  return iv_get(mrb, mrb->globals, sym, &v) != 0;
 }
 
 /*

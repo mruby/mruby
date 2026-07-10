@@ -1504,6 +1504,31 @@ assert('defined? on operands resolved at run time') do
   assert_false evaluated
 end
 
+$defined_test_gvar = 1
+
+assert('defined? on global/class variables and super') do
+  # global variables (defined once assigned)
+  assert_equal 'global-variable', defined?($defined_test_gvar)
+  assert_nil defined?($no_such_global_anywhere)
+
+  # class variables, in the lexical class scope
+  cls = Class.new do
+    @@cv_present = 1
+    def read_present; defined?(@@cv_present); end
+    def read_absent;  defined?(@@cv_absent); end
+  end
+  obj = cls.new
+  assert_equal 'class variable', obj.read_present
+  assert_nil obj.read_absent
+
+  # super depends on whether the method has a super method
+  base = Class.new { def greet; end }
+  derived = Class.new(base) { def greet; defined?(super); end }
+  assert_equal 'super', derived.new.greet
+  standalone = Class.new { def solo; defined?(super); end }
+  assert_nil standalone.new.solo
+end
+
 # NOTE: `&nil` block-forbidding parameters live in syntax_block_forbid.rb,
 # which the build excludes when compiling with mruby-compiler-prism (the
 # Prism parser does not accept `&nil` yet).

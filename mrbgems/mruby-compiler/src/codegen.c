@@ -6164,8 +6164,19 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
         helper = MRC_SYM_2(defined_const_q);
         arg = ((pm_constant_read_node_t *)cast->value)->name;
         break;
+      case PM_GLOBAL_VARIABLE_READ_NODE:
+        helper = MRC_SYM_2(defined_gvar_q);
+        arg = ((pm_global_variable_read_node_t *)cast->value)->name;
+        break;
+      case PM_CLASS_VARIABLE_READ_NODE:
+        helper = MRC_SYM_2(defined_cvar_q);
+        arg = ((pm_class_variable_read_node_t *)cast->value)->name;
+        break;
       case PM_YIELD_NODE:
         helper = MRC_SYM_2(defined_yield_q);
+        break;
+      case PM_SUPER_NODE: case PM_FORWARDING_SUPER_NODE:
+        helper = MRC_SYM_2(defined_super_q);
         break;
       case PM_CALL_NODE:
         /* a bare method call on self (no explicit receiver, so no operand to

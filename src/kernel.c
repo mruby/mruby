@@ -709,12 +709,54 @@ mrb_f_defined_yield(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
+static mrb_value
+mrb_f_defined_gvar(mrb_state *mrb, mrb_value self)
+{
+  mrb_sym sym;
+  mrb_get_args(mrb, "n", &sym);
+  if (mrb_gv_defined(mrb, sym)) return mrb_str_new_lit(mrb, "global-variable");
+  return mrb_nil_value();
+}
+
+static mrb_value
+mrb_f_defined_cvar(mrb_state *mrb, mrb_value self)
+{
+  mrb_sym sym;
+  mrb_get_args(mrb, "n", &sym);
+  /* class-variable scope follows the caller's lexical class (ci[-1]) */
+  mrb_callinfo *ci = &mrb->c->ci[-1];
+  if (ci >= mrb->c->cibase && ci->proc &&
+      mrb_vm_cv_defined_p(mrb, ci->proc, sym)) {
+    return mrb_str_new_lit(mrb, "class variable");
+  }
+  return mrb_nil_value();
+}
+
+static mrb_value
+mrb_f_defined_super(mrb_state *mrb, mrb_value self)
+{
+  /* "super" is defined when the caller's method has a super method */
+  mrb_callinfo *ci = &mrb->c->ci[-1];
+  if (ci < mrb->c->cibase) return mrb_nil_value();
+  mrb_sym mid = ci->mid;
+  struct RClass *tc = mrb_vm_ci_target_class(ci);
+  if (mid != 0 && tc != NULL && tc->super != NULL) {
+    struct RClass *c = tc->super;
+    mrb_method_t m = mrb_method_search_vm(mrb, &c, mid);
+    if (!MRB_METHOD_UNDEF_P(m)) return mrb_str_new_lit(mrb, "super");
+  }
+  return mrb_nil_value();
+}
+
 /* ---------------------------*/
 static const mrb_mt_entry kernel_rom_entries[] = {
   MRB_MT_ENTRY(mrb_f_defined_method, MRB_SYM_Q(__defined_method), MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_f_defined_ivar,   MRB_SYM_Q(__defined_ivar),   MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_f_defined_const,  MRB_SYM_Q(__defined_const),  MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_f_defined_yield,  MRB_SYM_Q(__defined_yield),  MRB_ARGS_NONE() | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_f_defined_gvar,   MRB_SYM_Q(__defined_gvar),   MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_f_defined_cvar,   MRB_SYM_Q(__defined_cvar),   MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_f_defined_super,  MRB_SYM_Q(__defined_super),  MRB_ARGS_NONE() | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_eqq_m,                        MRB_OPSYM(eqq),        MRB_ARGS_REQ(1)),  /* 15.3.1.3.2  */
   MRB_MT_ENTRY(mrb_cmp_m,                        MRB_OPSYM(cmp),         MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(mrb_f_block_given_p_m,    MRB_SYM_Q(block_given),                           MRB_ARGS_NONE() | MRB_MT_PRIVATE),  /* 15.3.1.3.6  */
