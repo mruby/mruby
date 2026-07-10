@@ -6115,6 +6115,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       const char *type = NULL;
       int helper = 0;             /* runtime helper symbol, 0 = none */
       pm_constant_id_t arg = 0;   /* symbol operand for the helper, 0 = none */
+      pm_constant_id_t arg2 = 0;  /* second symbol operand (A::B), 0 = none */
       switch (nint(cast->value)) {
       case PM_INTEGER_NODE: case PM_FLOAT_NODE:
       case PM_RATIONAL_NODE: case PM_IMAGINARY_NODE:
@@ -6164,6 +6165,18 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
         helper = MRC_SYM_2(defined_const_q);
         arg = ((pm_constant_read_node_t *)cast->value)->name;
         break;
+      case PM_CONSTANT_PATH_NODE:
+        /* only A::B where A is a plain constant; nested/toplevel/expression
+           parents are left to fall through to nil */
+        {
+          pm_constant_path_node_t *cp = (pm_constant_path_node_t *)cast->value;
+          if (cp->parent && nint(cp->parent) == PM_CONSTANT_READ_NODE) {
+            helper = MRC_SYM_2(defined_const_path_q);
+            arg = ((pm_constant_read_node_t *)cp->parent)->name;
+            arg2 = cp->name;
+          }
+        }
+        break;
       case PM_GLOBAL_VARIABLE_READ_NODE:
         helper = MRC_SYM_2(defined_gvar_q);
         arg = ((pm_global_variable_read_node_t *)cast->value)->name;
@@ -6196,7 +6209,16 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
         }
         else if (helper) {
           genop_1(s, OP_LOADSELF, cursp());   /* receiver slot for the SSEND */
-          if (arg == 0) {           /* yield: no symbol operand */
+          if (arg2 != 0) {          /* A::B: two symbol operands */
+            push();
+            genop_2(s, OP_LOADSYM, cursp(), new_sym(s, arg));
+            push();
+            genop_2(s, OP_LOADSYM, cursp(), new_sym(s, arg2));
+            push(); push();         /* reserve args + block slots (nregs) */
+            pop_n(4);
+            genop_3(s, OP_SSEND, cursp(), new_sym(s, helper), 2);
+          }
+          else if (arg == 0) {      /* yield/super: no symbol operand */
             push(); push();         /* reserve arg + block slots (nregs) */
             pop_n(2);
             genop_2(s, OP_SSEND0, cursp(), new_sym(s, helper));

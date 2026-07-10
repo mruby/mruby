@@ -748,8 +748,27 @@ mrb_f_defined_super(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
+static mrb_value
+mrb_f_defined_const_path(mrb_state *mrb, mrb_value self)
+{
+  mrb_sym parent, child;
+  mrb_get_args(mrb, "nn", &parent, &child);
+  /* resolve the parent constant in the caller's lexical scope (ci[-1]) */
+  mrb_callinfo *ci = &mrb->c->ci[-1];
+  if (ci < mrb->c->cibase || ci->proc == NULL) return mrb_nil_value();
+  mrb_value pv = mrb_vm_const_get_noraise(mrb, ci->proc, parent);
+  if (mrb_undef_p(pv)) return mrb_nil_value();
+  enum mrb_vtype t = mrb_type(pv);
+  if (t != MRB_TT_CLASS && t != MRB_TT_MODULE && t != MRB_TT_SCLASS) {
+    return mrb_nil_value();
+  }
+  if (mrb_const_defined(mrb, pv, child)) return mrb_str_new_lit(mrb, "constant");
+  return mrb_nil_value();
+}
+
 /* ---------------------------*/
 static const mrb_mt_entry kernel_rom_entries[] = {
+  MRB_MT_ENTRY(mrb_f_defined_const_path, MRB_SYM_Q(__defined_const_path), MRB_ARGS_REQ(2) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_f_defined_method, MRB_SYM_Q(__defined_method), MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_f_defined_ivar,   MRB_SYM_Q(__defined_ivar),   MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_f_defined_const,  MRB_SYM_Q(__defined_const),  MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),

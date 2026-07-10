@@ -1529,6 +1529,25 @@ assert('defined? on global/class variables and super') do
   assert_nil standalone.new.solo
 end
 
+module DefinedPathOuter
+  Inner = 1
+end
+
+class DefinedPathBase; Sub = 2; end
+class DefinedPathChild < DefinedPathBase; end
+
+assert('defined? on constant paths (A::B)') do
+  assert_equal 'constant', defined?(DefinedPathOuter::Inner)
+  assert_nil defined?(DefinedPathOuter::Missing)
+  assert_nil defined?(NoSuchOuter::Inner)      # undefined parent, no raise
+
+  # the ::  lookup follows the ancestor chain of the parent
+  assert_equal 'constant', defined?(DefinedPathChild::Sub)
+
+  # a builtin nested constant
+  assert_equal 'constant', defined?(Float::INFINITY)
+end
+
 # NOTE: `&nil` block-forbidding parameters live in syntax_block_forbid.rb,
 # which the build excludes when compiling with mruby-compiler-prism (the
 # Prism parser does not accept `&nil` yet).

@@ -187,6 +187,7 @@ mrb_value mrb_vm_cv_get(mrb_state*, mrb_sym);
 void mrb_vm_cv_set(mrb_state*, mrb_sym, mrb_value);
 mrb_value mrb_vm_const_get(mrb_state*, mrb_sym);
 mrb_bool mrb_vm_const_defined_p(mrb_state *mrb, const struct RProc *proc, mrb_sym sym);
+mrb_value mrb_vm_const_get_noraise(mrb_state *mrb, const struct RProc *proc, mrb_sym sym);
 mrb_bool mrb_vm_cv_defined_p(mrb_state *mrb, const struct RProc *proc, mrb_sym sym);
 mrb_bool mrb_gv_defined(mrb_state *mrb, mrb_sym sym);
 size_t mrb_obj_iv_tbl_memsize(mrb_value);
