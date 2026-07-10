@@ -157,7 +157,12 @@ queue_pop_try(mrb_state *mrb, mrb_value self)
 
   /* Item available - return it */
   if (RARRAY_LEN(items) > 0) {
-    return mrb_ary_shift(mrb, items);
+    mrb_value item = mrb_ary_shift(mrb, items);
+    mrb_gc_protect(mrb, item);
+    if (RARRAY_LEN(items) == 0) {
+      mrb_ary_clear(mrb, items);
+    }
+    return item;
   }
 
   /* Closed and empty */
