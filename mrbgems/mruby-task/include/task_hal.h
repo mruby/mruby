@@ -130,22 +130,41 @@ void mrb_task_disable_irq(void);
 void mrb_hal_task_idle_cpu(mrb_state *mrb);
 
 /**
+ * Which scheduler control point is calling mrb_hal_task_switch_hook().
+ *
+ * More reasons may be added as the scheduler grows control points, without
+ * changing the hook's signature.
+ */
+typedef enum mrb_task_switch_reason {
+  /** A task returned control (timeslice expiry, block, or completion) */
+  MRB_TASK_SWITCH_TASK,
+  /** An idle GC step ran in the scheduler's pending-GC drain loop */
+  MRB_TASK_SWITCH_GC_STEP,
+} mrb_task_switch_reason;
+
+/**
  * Called by the scheduler each time it regains control from a task
- * (timeslice expiry, block, or completion), in thread context.
+ * (timeslice expiry, block, or completion) and after each GC step in its
+ * pending-GC drain loop, always in thread context.
  *
  * Gives the platform a periodic servicing point that fires even when the
  * ready queue is never empty — mrb_hal_task_idle_cpu() only runs when no
- * task is ready, so a compute-bound task would otherwise starve anything
- * the platform services there (e.g. a polled network driver).
+ * task is ready, so a compute-bound task (or a long GC drain) would
+ * otherwise starve anything the platform services there (e.g. a polled
+ * network driver).
  *
  * Requirements:
  * - Must be cheap when there is nothing to service (called every switch)
  * - Must NOT sleep or wait for interrupts (that is idle_cpu's job)
  * - Most ports need no servicing: provide an empty implementation
+ * - Ports that don't distinguish control points ignore `reason`; ports
+ *   that branch on it must service unrecognized values as if they were
+ *   MRB_TASK_SWITCH_TASK, so reasons added later never lose servicing
  *
  * @param mrb The mruby state (for context, may be unused)
+ * @param reason The control point being serviced (may be ignored)
  */
-void mrb_hal_task_switch_hook(mrb_state *mrb);
+void mrb_hal_task_switch_hook(mrb_state *mrb, mrb_task_switch_reason reason);
 
 /**
  * Sleep for specified microseconds in wall-clock time
