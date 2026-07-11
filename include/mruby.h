@@ -33,9 +33,18 @@
 #define MRUBY_H
 
 #ifdef __cplusplus
+/* Guard against redefinition: the C++ ABI build also defines these on the
+   command line (see mruby-compiler/mrbgem.rake), and some toolchains predefine
+   them, so a bare redefine here trips -Wmacro-redefined. */
+#ifndef __STDC_LIMIT_MACROS
 #define __STDC_LIMIT_MACROS
+#endif
+#ifndef __STDC_CONSTANT_MACROS
 #define __STDC_CONSTANT_MACROS
+#endif
+#ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
+#endif
 #endif
 
 #include <stdarg.h>
