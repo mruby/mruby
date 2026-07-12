@@ -841,7 +841,7 @@ assert('String#scrub with block') do
   assert_equal "abc42def", "abc\x80def".scrub { 42 }
 end
 
-assert('String#scrub is a no-op without MRB_UTF8_STRING') do
+assert('String#scrub no-op on non-UTF-8 build') do
   skip if "あ".length == 1
   # Method is still defined and returns a (string-equal) copy.
   assert_equal "abc\x80def", "abc\x80def".scrub
