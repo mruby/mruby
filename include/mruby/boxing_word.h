@@ -259,8 +259,10 @@ MRB_INLINE enum mrb_vtype mrb_type(mrb_value o) {
   enum mrb_vtype tt = lut1[o.w & 0x3];
   if (tt != MRB_TT_MAXDEFINE)
     return tt;
-  if (~o.w & 0x4) return mrb_val_union(o).bp->tt;
-  return lut3[(o.w >> 3) & 0x3];
+  if (o.w & 0x4)
+    return lut3[(o.w >> 3) & 0x3];
+
+  return mrb_val_union(o).bp->tt;
 }
 
 MRB_INLINE enum mrb_vtype
