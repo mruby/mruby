@@ -250,25 +250,17 @@ mrb_integer_func(mrb_value o) {
 #define SET_OBJ_VALUE(r,v) ((r).w = (uintptr_t)(v))
 
 MRB_INLINE enum mrb_vtype mrb_type(mrb_value o) {
-  static const enum mrb_vtype type_lut[32] = {
-#ifndef MRB_WORDBOX_NO_INLINE_FLOAT
-    MRB_TT_OBJECT, MRB_TT_INTEGER, MRB_TT_FLOAT, MRB_TT_INTEGER,
-    MRB_TT_FALSE, MRB_TT_INTEGER, MRB_TT_FLOAT, MRB_TT_INTEGER,
-    MRB_TT_OBJECT, MRB_TT_INTEGER, MRB_TT_FLOAT, MRB_TT_INTEGER,
-    MRB_TT_TRUE, MRB_TT_INTEGER, MRB_TT_FLOAT, MRB_TT_INTEGER,
-    MRB_TT_OBJECT, MRB_TT_INTEGER, MRB_TT_FLOAT, MRB_TT_INTEGER,
-    MRB_TT_UNDEF, MRB_TT_INTEGER, MRB_TT_FLOAT, MRB_TT_INTEGER,
-    MRB_TT_OBJECT, MRB_TT_INTEGER, MRB_TT_FLOAT, MRB_TT_INTEGER,
-    MRB_TT_SYMBOL, MRB_TT_INTEGER, MRB_TT_FLOAT, MRB_TT_INTEGER
-#else
-    /* todo */
-#endif
-  };
-
-  if (o.w == MRB_Qnil) return MRB_TT_FALSE;
-  const enum mrb_vtype tt = type_lut[o.w & 0x1f];
-  if (tt == MRB_TT_OBJECT) return mrb_val_union(o).bp->tt;
-  return tt;
+  static const enum mrb_vtype lut1[4] = {MRB_TT_MAXDEFINE, MRB_TT_INTEGER,
+                                         MRB_TT_FLOAT, MRB_TT_INTEGER};
+  static const enum mrb_vtype lut3[4] = {MRB_TT_FALSE, MRB_TT_TRUE,
+                                         MRB_TT_UNDEF, MRB_TT_SYMBOL};
+  if (o.w == MRB_Qnil)
+    return MRB_TT_FALSE;
+  enum mrb_vtype tt = lut1[o.w & 0x3];
+  if (tt != MRB_TT_MAXDEFINE)
+    return tt;
+  if (~o.w & 0x4) return mrb_val_union(o).bp->tt;
+  return lut3[(o.w >> 3) & 0x3];
 }
 
 MRB_INLINE enum mrb_vtype
