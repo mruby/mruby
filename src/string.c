@@ -2676,6 +2676,10 @@ mrb_str_len_to_integer(mrb_state *mrb, const char *str, size_t len, mrb_int base
       }
     }
     else if (base < -1) {
+      if (base < -MRB_INT_MAX) {
+        /* base == MRB_INT_MIN: negating it would overflow mrb_int */
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal radix %i", base);
+      }
       base = -base;
     }
     else {

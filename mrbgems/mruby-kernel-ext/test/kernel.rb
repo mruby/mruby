@@ -83,6 +83,10 @@ assert('Kernel#Integer') do
   assert_raise(ArgumentError) { Integer('6 8') }
   assert_raise(ArgumentError) { Integer("15\0") }
   assert_raise(ArgumentError) { Integer("15.0") }
+  # negative radix uses its absolute value; out-of-range must raise, and the
+  # most-negative mrb_int must not overflow while being negated (#6948)
+  assert_operator(7, :eql?, Integer("111", -2))
+  assert_raise(ArgumentError) { Integer("z", -37) }
   skip unless Object.const_defined?(:Float)
   assert_operator(123, :eql?, Integer(123.999))
 end
