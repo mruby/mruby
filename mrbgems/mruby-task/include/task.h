@@ -138,6 +138,7 @@ MRB_API mrb_value mrb_execute_proc_synchronously(mrb_state *mrb, mrb_value proc,
 MRB_API void mrb_suspend_task(mrb_state *mrb, mrb_value task);
 MRB_API void mrb_resume_task(mrb_state *mrb, mrb_value task);
 MRB_API void mrb_terminate_task(mrb_state *mrb, mrb_value task);
+MRB_API void mrb_close_task(mrb_state *mrb, mrb_value task);
 MRB_API mrb_bool mrb_stop_task(mrb_state *mrb, mrb_value task);
 MRB_API mrb_value mrb_task_value(mrb_state *mrb, mrb_value task);
 MRB_API mrb_value mrb_task_status(mrb_state *mrb, mrb_value self);

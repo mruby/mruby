@@ -97,6 +97,20 @@ assert("Task#terminate doesn't raise") do
   assert_nothing_raised { task.terminate }
 end
 
+assert("Task#close removes task and is idempotent") do
+  ready_count = Task.stat[:ready][:count]
+  task = Task.new { }
+  assert_equal ready_count + 1, Task.stat[:ready][:count]
+  assert_nil task.close
+  assert_equal ready_count, Task.stat[:ready][:count]
+  assert_nil task.close
+  assert_raise(ArgumentError) { task.status }
+end
+
+assert("Task#close rejects current task") do
+  assert_raise(RuntimeError) { Task.current.close }
+end
+
 # Task.current tests
 
 assert("Task.current in root context") do
