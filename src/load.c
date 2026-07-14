@@ -415,19 +415,24 @@ read_debug_record(mrb_state *mrb, const uint8_t *start, const uint8_t *end, mrb_
   irep->debug_info = debug = (mrb_irep_debug_info*)mrb_calloc(mrb, 1, sizeof(mrb_irep_debug_info));
   debug->pc_count = (uint32_t)irep->ilen;
 
+  if ((size_t)(end - bin) < sizeof(uint32_t) + sizeof(uint16_t)) {
+    return MRB_DUMP_GENERAL_FAILURE;
+  }
   record_size = (size_t)bin_to_uint32(bin);
   bin += sizeof(uint32_t);
 
   debug->flen = bin_to_uint16(bin);
   bin += sizeof(uint16_t);
-  if (bin > end) return MRB_DUMP_GENERAL_FAILURE;
   debug->files = (mrb_irep_debug_info_file**)mrb_calloc(mrb, irep->debug_info->flen, sizeof(mrb_irep_debug_info*));
 
   for (f_idx = 0; f_idx < debug->flen; f_idx++) {
     mrb_irep_debug_info_file *file;
     uint16_t filename_idx;
 
-    if (bin > end) return MRB_DUMP_GENERAL_FAILURE;
+    /* fixed file header: start_pos(4) + filename_idx(2) + line_entry_count(4) + line_type(1) */
+    if ((size_t)(end - bin) < 2*sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint8_t)) {
+      return MRB_DUMP_GENERAL_FAILURE;
+    }
     file = (mrb_irep_debug_info_file*)mrb_calloc(mrb, 1, sizeof(*file));
     debug->files[f_idx] = file;
 
@@ -437,7 +442,7 @@ read_debug_record(mrb_state *mrb, const uint8_t *start, const uint8_t *end, mrb_
     /* filename */
     filename_idx = bin_to_uint16(bin);
     bin += sizeof(uint16_t);
-    mrb_assert(filename_idx < filenames_len);
+    if (filename_idx >= filenames_len) return MRB_DUMP_GENERAL_FAILURE;
     file->filename_sym = filenames[filename_idx];
 
     file->line_entry_count = bin_to_uint32(bin);
@@ -446,9 +451,12 @@ read_debug_record(mrb_state *mrb, const uint8_t *start, const uint8_t *end, mrb_
     bin += sizeof(uint8_t);
     switch (file->line_type) {
       case mrb_debug_line_ary: {
+        if (SIZE_ERROR_MUL(file->line_entry_count, sizeof(uint16_t))) {
+          return MRB_DUMP_GENERAL_FAILURE;
+        }
         size_t l = sizeof(uint16_t) * (size_t)file->line_entry_count;
 
-        if (bin + l > end) return MRB_DUMP_GENERAL_FAILURE;
+        if (l > (size_t)(end - bin)) return MRB_DUMP_GENERAL_FAILURE;
         uint16_t *ary = (uint16_t*)mrb_malloc(mrb, l);
         for (l = 0; l < file->line_entry_count; l++) {
           ary[l] = bin_to_uint16(bin);
