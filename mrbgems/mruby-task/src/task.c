@@ -1268,6 +1268,13 @@ mrb_task_terminate(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+mrb_task_close(mrb_state *mrb, mrb_value self)
+{
+  mrb_close_task(mrb, self);
+  return mrb_nil_value();
+}
+
+static mrb_value
 mrb_task_join(mrb_state *mrb, mrb_value self)
 {
   mrb_task *t, *current;
@@ -1588,6 +1595,28 @@ mrb_terminate_task(mrb_state *mrb, mrb_value task)
   terminate_task_internal(mrb, t);
 }
 
+MRB_API void
+mrb_close_task(mrb_state *mrb, mrb_value task)
+{
+  task_check_scheduler_lock(mrb);
+
+  mrb_task *t = (mrb_task*)mrb_data_check_get_ptr(mrb, task, &mrb_task_type);
+  if (!t) return;
+
+  if (t == mrb->task.main_task ||
+      (mrb->c != mrb->root_c && t == MRB2TASK(mrb))) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "can't close current task");
+  }
+
+  terminate_task_internal(mrb, t);
+  mrb_task_excl_enter(mrb);
+  mrb_task_q_delete(mrb, t);
+  mrb_task_excl_exit(mrb);
+
+  DATA_PTR(task) = NULL;
+  mrb_task_free(mrb, t);
+}
+
 /*
  * Stop a task (mark as stopped but don't move to dormant)
  */
@@ -1739,6 +1768,7 @@ mrb_mruby_task_gem_init(mrb_state *mrb)
   mrb_define_method_id(mrb, task_class, MRB_SYM(suspend),     mrb_task_suspend,      MRB_ARGS_NONE());
   mrb_define_method_id(mrb, task_class, MRB_SYM(resume),      mrb_task_resume,       MRB_ARGS_NONE());
   mrb_define_method_id(mrb, task_class, MRB_SYM(terminate),   mrb_task_terminate,    MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, task_class, MRB_SYM(close),       mrb_task_close,        MRB_ARGS_NONE());
   mrb_define_method_id(mrb, task_class, MRB_SYM(join),        mrb_task_join,         MRB_ARGS_NONE());
   mrb_define_method_id(mrb, task_class, MRB_SYM(value),       mrb_task_value,        MRB_ARGS_NONE());
 
