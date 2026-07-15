@@ -2090,20 +2090,19 @@ mrb_gc_scheduler_jitter(mrb_state *mrb, mrb_bool delayed_task)
 }
 
 /* Whether scheduler-driven GC has work worth doing right now: a cycle is in
-   progress, collection is overdue by object debt, or malloc-backed byte
-   pressure has crossed malloc_threshold. Always FALSE when scheduler-driven
-   mode is off, so the scheduler can gate on this alone. Keeps the "is a step
-   warranted" policy inside gc.c; the scheduler only wires idle points to it. */
+   progress, object-debt credit has run out, or malloc-backed byte pressure has
+   accumulated. Always FALSE when scheduler-driven mode is off, so the
+   scheduler can gate on this alone. Keeps the "is a step warranted" policy
+   inside gc.c; the scheduler only wires idle points to it. */
 MRB_API mrb_bool
 mrb_gc_scheduler_pending(mrb_state *mrb)
 {
   mrb_gc *gc = &mrb->gc;
 
   if (!gc->sched_driven || gc->disabled || gc->iterating) return FALSE;
-  if (gc->gc_debt > 0) return TRUE;
   if (gc->state != MRB_GC_STATE_ROOT) return TRUE;
-  if (gc->malloc_threshold > 0 && gc->malloc_increase >= gc->malloc_threshold)
-    return TRUE;
+  if (gc->gc_debt >= 0) return TRUE;
+  if (gc->malloc_increase > 0) return TRUE;
   return FALSE;
 }
 
