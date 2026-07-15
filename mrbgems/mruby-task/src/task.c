@@ -1769,6 +1769,23 @@ mrb_task_proc_set(mrb_state *mrb, mrb_value task, struct RProc *proc)
   mrb_task *t = (mrb_task*)mrb_data_check_get_ptr(mrb, task, &mrb_task_type);
   if (!t) return;
 
+  struct mrb_context *c = &t->c;
+
+  /* Grow the task's stack to fit the proc being set. It may need more
+   * registers than the original proc the stack was sized for.
+   * mrb_stack_extend() works on mrb->c, so point mrb->c at the task context
+   * across the call. */
+  if (c->stbase && !MRB_PROC_CFUNC_P(proc) && proc->body.irep) {
+    size_t cur = (size_t)(c->stend - c->stbase);
+    size_t need = (size_t)proc->body.irep->nregs;
+    if (need > cur) {
+      struct mrb_context *prev_c = mrb->c;
+      mrb->c = c;
+      mrb_stack_extend(mrb, (mrb_int)need);
+      mrb->c = prev_c;
+    }
+  }
+
   /* Handle environment resize if needed */
   if (t->c.cibase && t->c.cibase->u.env) {
     struct REnv *e = mrb_vm_ci_env(t->c.cibase);
