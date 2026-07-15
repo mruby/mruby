@@ -249,17 +249,46 @@ mrb_integer_func(mrb_value o) {
 #define SET_SYM_VALUE(r,n) WORDBOX_SET_SHIFT_VALUE(r, SYMBOL, n)
 #define SET_OBJ_VALUE(r,v) ((r).w = (uintptr_t)(v))
 
-MRB_INLINE enum mrb_vtype
-mrb_type(mrb_value o)
-{
-  return !mrb_bool(o)    ? MRB_TT_FALSE :
-         mrb_true_p(o)   ? MRB_TT_TRUE :
-         mrb_fixnum_p(o) ? MRB_TT_INTEGER :
-         mrb_symbol_p(o) ? MRB_TT_SYMBOL :
-         mrb_undef_p(o)  ? MRB_TT_UNDEF :
-         mrb_float_p(o)  ? MRB_TT_FLOAT :
-         mrb_val_union(o).bp->tt;
+#ifndef MRB_WORDBOX_NO_INLINE_FLOAT
+MRB_INLINE enum mrb_vtype mrb_type(mrb_value o) {
+  static const enum mrb_vtype lut1[4] = {MRB_TT_MAXDEFINE, MRB_TT_INTEGER,
+                                         MRB_TT_FLOAT, MRB_TT_INTEGER};
+  static const enum mrb_vtype lut3[4] = {MRB_TT_FALSE, MRB_TT_TRUE,
+                                         MRB_TT_UNDEF, MRB_TT_SYMBOL};
+  if (o.w == MRB_Qnil)
+    return MRB_TT_FALSE;
+  enum mrb_vtype tt = lut1[o.w & 0x3];
+  if (tt != MRB_TT_MAXDEFINE)
+    return tt;
+  if (o.w & 0x4)
+    return lut3[(o.w >> 3) & 0x3];
+
+  return mrb_val_union(o).bp->tt;
 }
+#else
+MRB_INLINE enum mrb_vtype mrb_type(mrb_value o) {
+  static const enum mrb_vtype lut1[4] = {MRB_TT_MAXDEFINE, MRB_TT_INTEGER,
+                                         MRB_TT_SYMBOL, MRB_TT_INTEGER};
+  static const enum mrb_vtype lut2[8] = {
+    MRB_TT_FALSE,
+    MRB_TT_FALSE,
+    MRB_TT_UNDEF, /* should never happen */
+    MRB_TT_TRUE,
+    MRB_TT_UNDEF, /* should never happen */
+    MRB_TT_UNDEF,
+    MRB_TT_UNDEF, /* should never happen */
+    MRB_TT_UNDEF, /* should never happen */
+  };
+  enum mrb_vtype tt = lut1[o.w & 0x3];
+  if (tt != MRB_TT_MAXDEFINE)
+    return tt;
+
+  if (o.w <= MRB_Qundef)
+    return lut2[o.w >> 2];
+
+  return mrb_val_union(o).bp->tt;
+}
+#endif
 
 MRB_INLINE enum mrb_vtype
 mrb_unboxed_type(mrb_value o)
