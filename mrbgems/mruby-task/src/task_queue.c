@@ -87,19 +87,42 @@ queue_initialize(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ * Report validation and closure as results so C callbacks can use this API
+ * without relying on exception handling.
+ */
+MRB_API mrb_task_queue_push_result
+mrb_task_queue_push(mrb_state *mrb, mrb_value self, mrb_value obj)
+{
+  if (!mrb_data_p(self) || DATA_TYPE(self) != &mrb_task_queue_type ||
+      DATA_PTR(self) == NULL) {
+    return MRB_TASK_QUEUE_PUSH_INVALID;
+  }
+  mrb_task_queue *q = (mrb_task_queue*)DATA_PTR(self);
+  if (q->closed) return MRB_TASK_QUEUE_PUSH_CLOSED;
+
+  mrb_value items = mrb_iv_get(mrb, self, MRB_IVSYM(items));
+  mrb_assert(mrb_array_p(items));
+  mrb_ary_push(mrb, items, obj);
+  queue_wake_one_waiter(mrb, q);
+  return MRB_TASK_QUEUE_PUSH_OK;
+}
+
 static mrb_value
 queue_push(mrb_state *mrb, mrb_value self)
 {
   mrb_value obj;
   mrb_get_args(mrb, "o", &obj);
-
-  mrb_task_queue *q = (mrb_task_queue*)mrb_data_get_ptr(mrb, self, &mrb_task_queue_type);
-  if (!q) mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid queue");
-  if (q->closed) mrb_raise(mrb, task_error_class_, "queue closed");
-
-  mrb_value items = mrb_iv_get(mrb, self, MRB_IVSYM(items));
-  mrb_ary_push(mrb, items, obj);
-  queue_wake_one_waiter(mrb, q);
+  switch (mrb_task_queue_push(mrb, self, obj)) {
+    case MRB_TASK_QUEUE_PUSH_OK:
+      break;
+    case MRB_TASK_QUEUE_PUSH_CLOSED:
+      mrb_raise(mrb, task_error_class_, "queue closed");
+      break;
+    case MRB_TASK_QUEUE_PUSH_INVALID:
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid queue");
+      break;
+  }
   return self;
 }
 
