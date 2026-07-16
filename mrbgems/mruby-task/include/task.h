@@ -184,6 +184,19 @@ void mrb_task_q_delete(mrb_state *mrb, mrb_task *t);
 /* Task::Queue class registration - defined in task_queue.c */
 void mrb_init_task_queue(mrb_state *mrb, struct RClass *task_class);
 
+typedef enum {
+  MRB_TASK_QUEUE_PUSH_OK = 0,
+  MRB_TASK_QUEUE_PUSH_CLOSED,
+  MRB_TASK_QUEUE_PUSH_INVALID,
+} mrb_task_queue_push_result;
+
+/* Push obj into a Task::Queue and wake one waiter. Invalid and closed queues
+ * are reported as results so C callbacks need no exception handling for those
+ * conditions. Exceptions from allocation and other mruby internals may still
+ * propagate. Do not call this from an interrupt handler or any context that
+ * would re-enter the VM. */
+MRB_API mrb_task_queue_push_result mrb_task_queue_push(mrb_state *mrb, mrb_value queue, mrb_value obj);
+
 /*
  * Nesting-safe scheduler-IRQ exclusion.
  *
