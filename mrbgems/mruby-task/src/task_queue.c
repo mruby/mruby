@@ -102,6 +102,7 @@ mrb_task_queue_push(mrb_state *mrb, mrb_value self, mrb_value obj)
   if (q->closed) return MRB_TASK_QUEUE_PUSH_CLOSED;
 
   mrb_value items = mrb_iv_get(mrb, self, MRB_IVSYM(items));
+  mrb_assert(mrb_array_p(items));
   mrb_ary_push(mrb, items, obj);
   queue_wake_one_waiter(mrb, q);
   return MRB_TASK_QUEUE_PUSH_OK;
