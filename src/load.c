@@ -632,7 +632,7 @@ read_section_lv(mrb_state *mrb, const uint8_t *start, size_t size, mrb_irep *ire
   for (i = 0; i < syms_len; i++) {
     uint16_t const str_len = bin_to_uint16(bin);
     bin += sizeof(uint16_t);
-    if (bin > end) return MRB_DUMP_READ_FAULT;
+    if (bin + str_len > end) return MRB_DUMP_READ_FAULT;
     syms[i] = intern_func(mrb, (const char*)bin, str_len);
     bin += str_len;
   }
