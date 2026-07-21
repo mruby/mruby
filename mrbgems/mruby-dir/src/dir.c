@@ -246,6 +246,40 @@ skip_name_p(const char *name)
   return FALSE;
 }
 
+struct mrb_dir_iteration {
+  mrb_dir_handle *handle;
+  mrb_bool skip_special;
+};
+
+static mrb_value
+mrb_dir_empty_body(mrb_state *mrb, void *ptr)
+{
+  struct mrb_dir_iteration *ctx = (struct mrb_dir_iteration*)ptr;
+  const char *name;
+
+  while ((name = mrb_hal_dir_read(mrb, ctx->handle)) != NULL) {
+    if (!skip_name_p(name)) {
+      return mrb_false_value();
+    }
+  }
+  return mrb_true_value();
+}
+
+static mrb_value
+mrb_dir_collect_body(mrb_state *mrb, void *ptr)
+{
+  struct mrb_dir_iteration *ctx = (struct mrb_dir_iteration*)ptr;
+  mrb_value ary = mrb_ary_new(mrb);
+  const char *name;
+
+  while ((name = mrb_hal_dir_read(mrb, ctx->handle)) != NULL) {
+    if (!ctx->skip_special || !skip_name_p(name)) {
+      mrb_ary_push(mrb, ary, mrb_str_new_cstr(mrb, name));
+    }
+  }
+  return ary;
+}
+
 /*
  * call-seq:
  *   Dir.empty?(path_name) -> true or false
@@ -259,21 +293,18 @@ static mrb_value
 mrb_dir_empty(mrb_state *mrb, mrb_value self)
 {
   mrb_dir_handle *handle;
-  const char *name;
   const char *path;
-  mrb_value result = mrb_true_value();
+  mrb_value result;
 
   mrb_get_args(mrb, "z", &path);
   if ((handle = mrb_hal_dir_open(mrb, path)) == NULL) {
     mrb_sys_fail(mrb, path);
   }
-  while ((name = mrb_hal_dir_read(mrb, handle)) != NULL) {
-    if (!skip_name_p(name)) {
-      result = mrb_false_value();
-      break;
-    }
+
+  struct mrb_dir_iteration ctx = { handle, FALSE };
+  MRB_ENSURE(mrb, result, mrb_dir_empty_body, &ctx) {
+    mrb_hal_dir_close(mrb, handle);
   }
-  mrb_hal_dir_close(mrb, handle);
   return result;
 }
 
@@ -410,6 +441,7 @@ static mrb_value
 mrb_dir_entries(mrb_state *mrb, mrb_value klass)
 {
   const char *path;
+  mrb_value result;
 
   mrb_get_args(mrb, "z", &path);
 
@@ -418,14 +450,11 @@ mrb_dir_entries(mrb_state *mrb, mrb_value klass)
     mrb_sys_fail(mrb, path);
   }
 
-  mrb_value ary = mrb_ary_new(mrb);
-  const char *name;
-  while ((name = mrb_hal_dir_read(mrb, handle)) != NULL) {
-    mrb_ary_push(mrb, ary, mrb_str_new_cstr(mrb, name));
+  struct mrb_dir_iteration ctx = { handle, FALSE };
+  MRB_ENSURE(mrb, result, mrb_dir_collect_body, &ctx) {
+    mrb_hal_dir_close(mrb, handle);
   }
-
-  mrb_hal_dir_close(mrb, handle);
-  return ary;
+  return result;
 }
 
 /*
@@ -440,6 +469,7 @@ static mrb_value
 mrb_dir_children(mrb_state *mrb, mrb_value klass)
 {
   const char *path;
+  mrb_value result;
 
   mrb_get_args(mrb, "z", &path);
 
@@ -448,16 +478,11 @@ mrb_dir_children(mrb_state *mrb, mrb_value klass)
     mrb_sys_fail(mrb, path);
   }
 
-  mrb_value ary = mrb_ary_new(mrb);
-  const char *name;
-  while ((name = mrb_hal_dir_read(mrb, handle)) != NULL) {
-    if (!skip_name_p(name)) {
-      mrb_ary_push(mrb, ary, mrb_str_new_cstr(mrb, name));
-    }
+  struct mrb_dir_iteration ctx = { handle, TRUE };
+  MRB_ENSURE(mrb, result, mrb_dir_collect_body, &ctx) {
+    mrb_hal_dir_close(mrb, handle);
   }
-
-  mrb_hal_dir_close(mrb, handle);
-  return ary;
+  return result;
 }
 
 void
