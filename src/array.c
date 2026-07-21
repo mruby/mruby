@@ -1783,56 +1783,79 @@ mrb_ary_entry(mrb_value ary, mrb_int n)
 }
 
 static mrb_value
-join_ary(mrb_state *mrb, mrb_value ary, mrb_value sep, mrb_value list)
+join_ary(mrb_state *mrb, mrb_value ary, mrb_value sep)
 {
-  /* check recursive */
-  for (mrb_int i=0; i<RARRAY_LEN(list); i++) {
-    if (mrb_obj_equal(mrb, ary, RARRAY_PTR(list)[i])) {
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "recursive array join");
-    }
-  }
-
-  mrb_ary_push(mrb, list, ary);
-
   mrb_value result = mrb_str_new_capa(mrb, 64);
+  /* Explicit stack of (array, index) frames instead of C recursion, so a
+     deeply nested (non-cyclic) array cannot overflow the native stack.
+     Nested results are concatenated verbatim, so appending every element
+     into one shared buffer in depth-first order yields the same bytes a
+     per-level recursion would.  The stack is a GC-tracked array; an
+     exception unwind reclaims it, so there is no leak. */
+  mrb_value stack = mrb_ary_new(mrb);
+  mrb_int idx = 0;
 
-  for (mrb_int i=0; i<RARRAY_LEN(ary); i++) {
-    if (i > 0 && !mrb_nil_p(sep)) {
-      mrb_str_cat_str(mrb, result, sep);
-    }
-
-    mrb_value val = RARRAY_PTR(ary)[i];
-
-    switch (mrb_type(val)) {
-    case MRB_TT_ARRAY:
-    ary_join:
-      val = join_ary(mrb, val, sep, list);
-      /* fall through */
-
-    case MRB_TT_STRING:
-    str_join:
-      mrb_str_cat_str(mrb, result, val);
-      break;
-
-    default:
-      if (!mrb_immediate_p(val)) {
-        mrb_value tmp = mrb_check_string_type(mrb, val);
-        if (!mrb_nil_p(tmp)) {
-          val = tmp;
-          goto str_join;
-        }
-        tmp = mrb_check_array_type(mrb, val);
-        if (!mrb_nil_p(tmp)) {
-          val = tmp;
-          goto ary_join;
-        }
+  for (;;) {
+    while (idx < RARRAY_LEN(ary)) {
+      mrb_value val = RARRAY_PTR(ary)[idx];
+      if (idx > 0 && !mrb_nil_p(sep)) {
+        mrb_str_cat_str(mrb, result, sep);
       }
-      val = mrb_obj_as_string(mrb, val);
-      goto str_join;
-    }
-  }
+      idx++;
 
-  mrb_ary_pop(mrb, list);
+      mrb_bool as_array = FALSE;
+      switch (mrb_type(val)) {
+      case MRB_TT_ARRAY:
+        as_array = TRUE;
+        break;
+
+      case MRB_TT_STRING:
+        break;
+
+      default:
+        if (!mrb_immediate_p(val)) {
+          mrb_value tmp = mrb_check_string_type(mrb, val);
+          if (!mrb_nil_p(tmp)) {
+            val = tmp;
+            break;
+          }
+          tmp = mrb_check_array_type(mrb, val);
+          if (!mrb_nil_p(tmp)) {
+            val = tmp;
+            as_array = TRUE;
+            break;
+          }
+        }
+        val = mrb_obj_as_string(mrb, val);
+        break;
+      }
+
+      if (as_array) {
+        /* check recursive: val must not be an ancestor on the current path */
+        if (mrb_obj_equal(mrb, val, ary)) {
+          mrb_raise(mrb, E_ARGUMENT_ERROR, "recursive array join");
+        }
+        for (mrb_int j = 0; j < RARRAY_LEN(stack); j += 2) {
+          if (mrb_obj_equal(mrb, val, RARRAY_PTR(stack)[j])) {
+            mrb_raise(mrb, E_ARGUMENT_ERROR, "recursive array join");
+          }
+        }
+        /* descend: save the current frame and switch to val */
+        mrb_ary_push(mrb, stack, ary);
+        mrb_ary_push(mrb, stack, mrb_fixnum_value(idx));
+        ary = val;
+        idx = 0;
+      }
+      else {
+        mrb_str_cat_str(mrb, result, val);
+      }
+    }
+
+    if (RARRAY_LEN(stack) == 0) break;
+    /* ascend: restore the parent frame */
+    idx = mrb_fixnum(mrb_ary_pop(mrb, stack));
+    ary = mrb_ary_pop(mrb, stack);
+  }
 
   return result;
 }
@@ -1857,7 +1880,7 @@ mrb_ary_join(mrb_state *mrb, mrb_value ary, mrb_value sep)
   if (!mrb_nil_p(sep)) {
     sep = mrb_obj_as_string(mrb, sep);
   }
-  return join_ary(mrb, ary, sep, mrb_ary_new(mrb));
+  return join_ary(mrb, ary, sep);
 }
 
 /*

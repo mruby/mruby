@@ -232,6 +232,31 @@ assert('Array#join', '15.2.12.5.17') do
   assert_equal('1,2,3', b)
 end
 
+assert('Array#join nested arrays') do
+  assert_equal('1-2-3-4', [1, [2, 3], 4].join('-'))
+  assert_equal('12345', [[1, 2], [3, [4, 5]]].join)
+end
+
+assert('Array#join detects recursion') do
+  a = []
+  a << a
+  assert_raise(ArgumentError) { a.join }
+
+  x = []
+  y = []
+  x << y
+  y << x
+  assert_raise(ArgumentError) { x.join }
+end
+
+assert('Array#join deeply nested array does not overflow the C stack') do
+  a = []
+  10000.times { a = [a] }
+  # join is iterative, so a deeply nested (non-cyclic) array must not overflow
+  # the native stack; every leaf here is empty, so the result is "".
+  assert_equal('', a.join)
+end
+
 assert('Array#last', '15.2.12.5.18') do
   assert_raise(ArgumentError) do
     # this will cause an exception due to the wrong argument
