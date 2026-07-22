@@ -18,6 +18,14 @@ assert('Addrinfo.getaddrinfo') do
   assert_equal(ai.ip_port, 53)
 end
 
+assert('Addrinfo.getaddrinfo rejects out-of-range integer hints') do
+  # a 64-bit mrb_int that does not fit C int must raise, not be silently
+  # truncated into a different but still-valid-looking hint (#6960)
+  skip "needs 64-bit mrb_int" unless (1 << 40).kind_of?(Integer)
+  assert_raise(RangeError) { Addrinfo.getaddrinfo("localhost", nil, 1 << 40) }
+  assert_raise(RangeError) { Addrinfo.getaddrinfo("localhost", nil, nil, nil, nil, 1 << 40) }
+end
+
 assert('Addrinfo.foreach') do
   skip "localhost resolution unreliable in Windows getaddrinfo" if SocketTest.win?
   # assume Addrinfo.getaddrinfo works well
