@@ -159,15 +159,23 @@ str_match_no_brace_p(const char *pat, mrb_int pat_len,
 #define COPY_AND_INC(dst, src, len) \
   do { memcpy(dst, src, len); dst += len; } while (0)
 
+/* Well above any hand-written test pattern, well below a C stack overflow. */
+#define STR_MATCH_MAX_BRACE_DEPTH 100
+
 static mrb_bool
 str_match_p(mrb_state *mrb,
             const char *pat, mrb_int pat_len,
-            const char *str, mrb_int str_len)
+            const char *str, mrb_int str_len,
+            int depth)
 {
   const char *p = pat, *pat_end = pat + pat_len;
   const char *lbrace = NULL, *rbrace = NULL;
   int nest = 0;
   mrb_bool ret = FALSE;
+
+  /* Bound brace-expansion recursion so a pathologically nested pattern
+     cannot exhaust the C stack (#6959). */
+  if (depth > STR_MATCH_MAX_BRACE_DEPTH) return FALSE;
 
   for (; p != pat_end; p++) {
     if (*p == '{' && nest++ == 0) lbrace = p;
@@ -192,7 +200,7 @@ str_match_p(mrb_state *mrb,
       }
       COPY_AND_INC(ex_p, t, p-t);
       COPY_AND_INC(ex_p, rbrace+1, pat_end-rbrace-1);
-      if ((ret = str_match_p(mrb, ex_pat, ex_p-ex_pat, str, str_len))) break;
+      if ((ret = str_match_p(mrb, ex_pat, ex_p-ex_pat, str, str_len, depth + 1))) break;
       ex_p = orig_ex_p;
     }
     mrb_free(mrb, ex_pat);
@@ -211,7 +219,7 @@ m_str_match_p(mrb_state *mrb, mrb_value self)
   mrb_int pat_len, str_len;
 
   mrb_get_args(mrb, "ss", &pat, &pat_len, &str, &str_len);
-  return mrb_bool_value(str_match_p(mrb, pat, pat_len, str, str_len));
+  return mrb_bool_value(str_match_p(mrb, pat, pat_len, str, str_len, 0));
 }
 
 void
