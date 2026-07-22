@@ -1437,7 +1437,10 @@ mrb_read_float(const char *str, char **endp, double *fp)
       d = d * 10 + (*p - '0');
       nd++;
     }
-    else {
+    else if (trunc < 100000) {
+      /* Cap the extra-integer-digit counter. Past this many digits the
+         result is HUGE_VAL no matter the exponent (bounded by e < 10000
+         below), so counting further only risks signed overflow (#6958). */
       trunc++;
     }
     any_digits = 1;

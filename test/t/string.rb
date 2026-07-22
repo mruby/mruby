@@ -723,6 +723,10 @@ assert('String#to_f', '15.2.10.5.38') do
   assert_operator(12.3, :eql?, '1_2.3__4'.to_f)
   assert_operator(0.9, :eql?, '.9'.to_f)
   assert_operator(0.9, :eql?, "\t\r\n\f\v .9 \t\r\n\f\v".to_f)
+  # an extremely long digit string must not overflow the truncated-digit
+  # counter; the value is far beyond Float range, so it saturates to
+  # Infinity instead of triggering signed-overflow UB (#6958)
+  assert_operator(Float::INFINITY, :eql?, ('9' * 200000).to_f)
 end if Object.const_defined?(:Float)
 
 assert('String#to_i', '15.2.10.5.39') do
