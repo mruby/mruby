@@ -9,6 +9,7 @@
 #include <mruby/numeric.h>
 #include <mruby/string.h>
 #include <mruby/class.h>
+#include <mruby/common.h>
 #include <mruby/internal.h>
 #include <string.h>
 
@@ -410,6 +411,8 @@ num_fdiv(mrb_state *mrb, mrb_value x)
   return flo_div(mrb, mrb_ensure_float_type(mrb, x));
 }
 
+#define BUFFER_MAX 25
+
 /**
  * Converts an mrb_value float to a new mrb_value string.
  * It handles formatting to ensure the string representation includes a
@@ -425,7 +428,7 @@ num_fdiv(mrb_state *mrb, mrb_value x)
 mrb_value
 mrb_float_to_str(mrb_state *mrb, mrb_value flo, const char *fmt)
 {
-  char buf[25];
+  char buf[BUFFER_MAX];
 
   mrb_format_float(mrb_float(flo), buf, sizeof(buf), 'g', -2, '\0');
   for (char *p = buf; *p; p++) {
@@ -437,7 +440,7 @@ mrb_float_to_str(mrb_state *mrb, mrb_value flo, const char *fmt)
       goto exit;
     }
   }
-  strcat(buf, ".0");
+  MRB_STRLCAT(buf, ".0", BUFFER_MAX);
  exit:
   return mrb_str_new_cstr(mrb, buf);
 }

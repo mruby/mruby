@@ -659,7 +659,7 @@ main(int argc, char **argv)
         fputs("concatenated input string too long\n", stderr);
         continue;
       }
-      strcat(ruby_code, last_code_line);
+      MRB_STRLCAT(ruby_code, last_code_line, MAX_RUBY_CODE);
     }
     else {
       if (check_keyword(last_code_line, "quit") || check_keyword(last_code_line, "exit")) {

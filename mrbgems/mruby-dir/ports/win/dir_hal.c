@@ -51,7 +51,7 @@ mrb_hal_dir_open(mrb_state *mrb, const char *path)
   size_t plen = len + strlen(suffix) + 1;
   handle->pattern = (char*)mrb_malloc(mrb, plen);
   MRB_STRLCPY(handle->pattern, path, plen);
-  strcat(handle->pattern, suffix);
+  MRB_STRLCAT(handle->pattern, suffix, plen);
 
   handle->handle = _findfirst(handle->pattern, &handle->info);
   if (handle->handle == -1) {
