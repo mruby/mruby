@@ -337,6 +337,18 @@ assert('IO#ungetc') do
   io.close
 end
 
+assert('IO#ungetc after grow and partial read') do
+  skip "pipe is not supported on this platform" if MRubyIOTestUtil.win?
+  # ungetc grows the buffer past MRB_IO_BUF_SIZE, a partial read advances
+  # start, then a second ungetc must not read past the reallocated block (#6964)
+  IO.pipe do |r, w|
+    r.ungetc("A" * 32767)
+    assert_equal("A" * 20000, r.read(20000))
+    r.ungetc("B")
+    assert_equal("BAAAA", r.read(5))
+  end
+end
+
 assert('IO#isatty') do
   skip "isatty is not supported on this platform" if MRubyIOTestUtil.win?
   begin
