@@ -12,8 +12,10 @@
 */
 
 #include <mruby.h>
+#include <mruby/common.h>
 #include "dir_hal.h"
 
+#include <stddef.h>
 #include <windows.h>
 #include <direct.h>
 #include <io.h>
@@ -46,9 +48,10 @@ mrb_hal_dir_open(mrb_state *mrb, const char *path)
   suffix = (len > 0 && (path[len-1] == '/' || path[len-1] == '\\')) ? "*" : "/*";
 
   handle = (mrb_dir_handle*)mrb_malloc(mrb, sizeof(mrb_dir_handle));
-  handle->pattern = (char*)mrb_malloc(mrb, len + strlen(suffix) + 1);
-  strcpy(handle->pattern, path);
-  strcat(handle->pattern, suffix);
+  size_t plen = len + strlen(suffix) + 1;
+  handle->pattern = (char*)mrb_malloc(mrb, plen);
+  MRB_STRLCPY(handle->pattern, path, plen);
+  MRB_STRLCAT(handle->pattern, suffix, plen);
 
   handle->handle = _findfirst(handle->pattern, &handle->info);
   if (handle->handle == -1) {

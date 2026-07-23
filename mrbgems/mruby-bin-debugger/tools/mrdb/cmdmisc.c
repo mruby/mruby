@@ -4,11 +4,13 @@
 */
 
 #include <ctype.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "apilist.h"
 #include "apistring.h"
+#include <mruby/common.h>
 #include <mruby/compile.h>
 
 typedef struct help_msg {
@@ -262,10 +264,11 @@ replace_ext(mrb_state *mrb, const char *filename, const char *ext)
     len = strlen(filename);
   }
 
-  s = (char*)mrb_malloc(mrb, len + strlen(ext) + 1);
+  size_t slen = len + strlen(ext) + 1;
+  s = (char*)mrb_malloc(mrb, slen);
   memset(s, '\0', len + strlen(ext) + 1);
   strncpy(s, filename, len);
-  strcat(s, ext);
+  MRB_STRLCAT(s, ext, slen);
 
   return s;
 }

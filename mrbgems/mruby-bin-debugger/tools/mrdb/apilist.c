@@ -10,6 +10,7 @@
 #include "apilist.h"
 #include "apistring.h"
 #include <mruby/compile.h>
+#include <mruby/common.h>
 #include <mruby/irep.h>
 #include <mruby/debug.h>
 
@@ -52,10 +53,10 @@ build_path(mrb_state *mrb, const char *dir, const char *base)
   memset(path, 0, len);
 
   if (strcmp(dir, ".")) {
-    strcat(path, dir);
-    strcat(path, "/");
+    MRB_STRLCAT(path, dir, len);
+    MRB_STRLCAT(path, "/", len);
   }
-  strcat(path, base);
+  MRB_STRLCAT(path, base, len);
 
   return path;
 }

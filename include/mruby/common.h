@@ -122,6 +122,24 @@ MRB_BEGIN_DECL
 # endif
 #endif
 
+/** Declare size-bounded string copying and concatenation functions. */
+// The `__POSIX_VISIBLE` and `__BSD_VISIBLE` conditionals are from
+// OpenBSD's <string.h>.  The former refers to the POSIX.1-2024.
+#if ((defined(__POSIX_VISIBLE) && __POSIX_VISIBLE >= 202405) ||\
+     (defined(__BSD_VISIBLE) && __BSD_VISIBLE)) ||\
+    (defined(__GLIBC__) &&\
+     ((__GLIBC__ == 2 && __GLIBC_MINOR__ >= 38) || __GLIBC__ > 2))
+#define MRB_STRLCPY(dst, src, dstsize) strlcpy((dst), (src), (dstsize))
+#define MRB_STRLCAT(dst, src, dstsize) strlcat((dst), (src), (dstsize))
+#else
+#define MRB_STRLCPY(dst, src, dstsize) snprintf((dst), (dstsize), "%s", (src))
+#define MRB_STRLCAT(dst, src, dstsize) do {\
+    size_t tmp_len = strlen(dst);\
+    if (tmp_len < (dstsize))\
+      snprintf((dst) + tmp_len, (dstsize) - tmp_len, "%s", (src));\
+  } while (0)
+#endif
+
 MRB_END_DECL
 
 #endif  /* MRUBY_COMMON_H */
