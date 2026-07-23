@@ -11,6 +11,7 @@
 #include <mruby/dump.h>
 #include <mruby/debug.h>
 #include <mruby/class.h>
+#include <mruby/common.h>
 #include <mruby/opcode.h>
 #include <mruby/variable.h>
 #include <mruby/proc.h>
@@ -19,6 +20,7 @@
 #include "mrdb.h"
 #include "apibreak.h"
 #include "apilist.h"
+#include "mrdbconf.h"
 
 void mrdb_state_free(mrb_state*);
 
@@ -274,7 +276,7 @@ get_command(mrb_state *mrb, mrdb_state *mrdb)
 
   if (i == 0 && feof(stdin)) {
     clearerr(stdin);
-    strcpy(mrdb->command, "quit");
+    MRB_STRLCPY(mrdb->command, "quit", MAX_COMMAND_LINE + 1);
     i += sizeof("quit") - 1;
   }
 

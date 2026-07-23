@@ -8,6 +8,7 @@
 #include "mirb_highlight.h"
 #include <mruby/array.h>
 #include <mruby/class.h>
+#include <mruby/common.h>
 #include <mruby/compile.h>
 #include <mruby/error.h>
 #include <mruby/gc.h>
@@ -23,6 +24,8 @@
 #ifdef _MSC_VER
 #define strdup _strdup
 #endif
+
+#define MAX_COMPLETION_LINE 1024
 
 /* strndup is not available on Windows (MSVC and MinGW) */
 #ifdef _WIN32
@@ -660,7 +663,7 @@ mirb_linenoise_completion(const char *buf, linenoiseCompletions *lc)
 {
   int cursor_pos = (int)strlen(buf);  /* linenoise completes at end */
   int i, prefix_start;
-  char completion_line[1024];
+  char completion_line[MAX_COMPLETION_LINE];
 
   /* Clear previous completions */
   mirb_completion_free(g_ctx);
@@ -679,7 +682,7 @@ mirb_linenoise_completion(const char *buf, linenoiseCompletions *lc)
     }
 
     /* Add completion */
-    strcpy(completion_line + prefix_start, g_ctx->completions[i]);
+    MRB_STRLCPY(completion_line + prefix_start, g_ctx->completions[i], MAX_COMPLETION_LINE);
 
     linenoiseAddCompletion(lc, completion_line);
   }

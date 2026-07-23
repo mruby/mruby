@@ -14,6 +14,7 @@
 
 #include <mruby/array.h>
 #include <mruby/proc.h>
+#include <mruby/common.h>
 #include <mruby/compile.h>
 #include <mruby/dump.h>
 #include <mruby/string.h>
@@ -43,6 +44,8 @@ extern mrb_state *global_mrb; /* defined in mruby-compiler (ccontext.c) */
 #ifdef DISABLE_MIRB_UNDERSCORE
 # define MRB_NO_MIRB_UNDERSCORE
 #endif
+
+#define MAX_RUBY_CODE 4096
 
 static void
 p(mrb_state *mrb, mrb_value obj, mirb_highlighter *hl)
@@ -461,7 +464,7 @@ decl_lv_underscore(mrb_state *mrb, mrb_ccontext *cxt)
 int
 main(int argc, char **argv)
 {
-  char ruby_code[4096] = { 0 };
+  char ruby_code[MAX_RUBY_CODE] = { 0 };
   char last_code_line[1024] = { 0 };
   int last_char;
   size_t char_index;
@@ -596,7 +599,7 @@ main(int argc, char **argv)
         free(input);
         continue;
       }
-      strcpy(ruby_code, input);
+      MRB_STRLCPY(ruby_code, input, MAX_RUBY_CODE);
       free(input);
 
       /* Count lines for line number update */
@@ -662,7 +665,7 @@ main(int argc, char **argv)
       if (check_keyword(last_code_line, "quit") || check_keyword(last_code_line, "exit")) {
         break;
       }
-      strcpy(ruby_code, last_code_line);
+      MRB_STRLCPY(ruby_code, last_code_line, MAX_RUBY_CODE);
     }
 
   evaluate:
