@@ -337,6 +337,18 @@ assert('IO#ungetc') do
   io.close
 end
 
+assert('IO#ungetc after partial read of a grown buffer') do
+  # A large ungetc grows the buffer past MRB_IO_BUF_SIZE; a partial read
+  # advances buf->start; a second ungetc that crosses the threshold must
+  # keep the bytes still referenced by start when it resizes.
+  IO.pipe do |r, w|
+    r.ungetc("A" * 32767)
+    assert_equal "A" * 20000, r.read(20000)
+    r.ungetc("B")
+    assert_equal "B" + "A" * 12767, r.read(12768)
+  end
+end
+
 assert('IO#isatty') do
   skip "isatty is not supported on this platform" if MRubyIOTestUtil.win?
   begin

@@ -1786,6 +1786,14 @@ io_unget_data(mrb_state *mrb, struct mrb_io *fptr, const char *ptr, mrb_int len)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "total ungetc buffer exceeds maximum size");
   }
   if (buf->len + len > MRB_IO_BUF_SIZE) {
+    /* The realloc size is derived from buf->len, so a previously grown buffer
+       whose start is past that size would shrink below start and leave the
+       memmove below reading past the block. Compact the live data to the
+       front first (start becomes 0) so it stays within the new size. */
+    if (buf->start > 0) {
+      memmove(buf->mem, buf->mem+buf->start, buf->len);
+      buf->start = 0;
+    }
     fptr->buf = (struct mrb_io_buf*)mrb_realloc(mrb, buf, sizeof(struct mrb_io_buf)+buf->len+len-MRB_IO_BUF_SIZE);
     buf = fptr->buf;
   }
