@@ -566,7 +566,7 @@ debug_exit:
 }
 
 static int
-read_lv_record(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, size_t *record_len, mrb_sym const *syms, uint32_t syms_len)
+read_lv_record(mrb_state *mrb, const uint8_t *start, const uint8_t *end, mrb_irep *irep, size_t *record_len, mrb_sym const *syms, uint32_t syms_len)
 {
   const uint8_t *bin = start;
 
@@ -575,6 +575,7 @@ read_lv_record(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, size_t *rec
   irep->lv = lv;
 
   for (int i = 0; i + 1 < irep->nlocals; i++) {
+    if (bin + sizeof(uint16_t) > end) return MRB_DUMP_READ_FAULT;
     uint16_t const sym_idx = bin_to_uint16(bin);
     bin += sizeof(uint16_t);
     if (sym_idx == RITE_LV_NULL_MARK) {
@@ -592,7 +593,7 @@ read_lv_record(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, size_t *rec
     size_t len;
     int ret;
 
-    ret = read_lv_record(mrb, bin, (mrb_irep*)irep->reps[i], &len, syms, syms_len);
+    ret = read_lv_record(mrb, bin, end, (mrb_irep*)irep->reps[i], &len, syms, syms_len);
     if (ret != MRB_DUMP_OK) return ret;
     bin += len;
   }
@@ -627,6 +628,7 @@ read_section_lv(mrb_state *mrb, const uint8_t *start, size_t size, mrb_irep *ire
   syms_len = bin_to_uint32(bin);
   bin += sizeof(uint32_t);
   if (bin > end) return MRB_DUMP_READ_FAULT;
+  if (SIZE_ERROR_MUL(syms_len, sizeof(mrb_sym))) return MRB_DUMP_GENERAL_FAILURE;
   syms_obj = mrb_str_new(mrb, NULL, sizeof(mrb_sym) * (size_t)syms_len);
   syms = (mrb_sym*)RSTRING_PTR(syms_obj);
   for (i = 0; i < syms_len; i++) {
@@ -637,7 +639,7 @@ read_section_lv(mrb_state *mrb, const uint8_t *start, size_t size, mrb_irep *ire
     bin += str_len;
   }
 
-  result = read_lv_record(mrb, bin, irep, &len, syms, syms_len);
+  result = read_lv_record(mrb, bin, end, irep, &len, syms, syms_len);
   if (result != MRB_DUMP_OK) goto lv_exit;
 
   bin += len;
