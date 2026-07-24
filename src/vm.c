@@ -134,22 +134,22 @@ static inline void
 envadjust(mrb_state *mrb, mrb_value *oldbase, mrb_value *newbase)
 {
   mrb_callinfo *ci = mrb->c->cibase;
-  /*
-   * Byte-level calculation to avoid truncation when allocator alignment is
-   * smaller than sizeof(mrb_value).
-   * eg: MRB_NO_BOXING + MRB_INT64 with MRB_32BIT => sizeof(mrb_value)=16
-   *     And when memory allocator's alignment is 8 bytes
-   * Pointer subtraction on mrb_value* would truncate (8/16 -> 0).
-   * So, we use char* for pointer calculation to get the correct offset in bytes,
-   * then apply that offset to mrb_value* pointers.
-   */
-  ptrdiff_t off = (char *)newbase - (char *)oldbase;
 
-  if (off == 0) return;
+  if (newbase == oldbase) return;
+
   while (ci <= mrb->c->ci) {
     struct REnv *e = mrb_vm_ci_env(ci);
 
-    mrb_value *new_stack = (mrb_value *)((char *)ci->stack + off);
+    /*
+     * Byte-level calculation to avoid truncation when allocator alignment is
+     * smaller than sizeof(mrb_value).
+     * eg: MRB_NO_BOXING + MRB_INT64 with MRB_32BIT => sizeof(mrb_value)=16
+     *     And when memory allocator's alignment is 8 bytes
+     * Pointer subtraction on mrb_value* would truncate (8/16 -> 0).
+     * So, we use char* for pointer calculation to get the correct offset in
+     * bytes, then apply that offset to mrb_value* pointers.
+     */
+    mrb_value *new_stack = (mrb_value *)((char *)newbase + ((char *)ci->stack - (char *)oldbase));
 
     if (e) {
       mrb_assert(e->cxt == mrb->c && MRB_ENV_ONSTACK_P(e));
