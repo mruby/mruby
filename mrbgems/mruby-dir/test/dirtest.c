@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 #include <mruby.h>
 #include <mruby/string.h>
@@ -114,12 +115,51 @@ mrb_dirtest_sandbox(mrb_state *mrb, mrb_value klass)
   return mrb_cv_get(mrb, klass, mrb_intern_cstr(mrb, "sandbox"));
 }
 
+static mrb_value
+mrb_dirtest_operation_errno(mrb_state *mrb, mrb_value klass)
+{
+  mrb_sym operation;
+  mrb_dir_handle *dirp;
+  const char *path;
+
+  (void)klass;
+  mrb_get_args(mrb, "nz", &operation, &path);
+  errno = 0;
+
+  if (operation == mrb_intern_lit(mrb, "mkdir")) {
+    if (mrb_hal_dir_mkdir(mrb, path, 0) == 0) {
+      return mrb_fixnum_value(0);
+    }
+    return mrb_fixnum_value(errno);
+  }
+  if (operation == mrb_intern_lit(mrb, "open")) {
+    dirp = mrb_hal_dir_open(mrb, path);
+    if (dirp == NULL) {
+      return mrb_fixnum_value(errno);
+    }
+    mrb_hal_dir_close(mrb, dirp);
+    return mrb_fixnum_value(0);
+  }
+  if (operation == mrb_intern_lit(mrb, "chdir")) {
+    if (mrb_hal_dir_chdir(mrb, path) == 0) {
+      return mrb_fixnum_value(0);
+    }
+    return mrb_fixnum_value(errno);
+  }
+
+  mrb_raise(mrb, E_ARGUMENT_ERROR, "unsupported directory operation");
+  return mrb_nil_value();
+}
+
 void
 mrb_mruby_dir_gem_test(mrb_state *mrb)
 {
   struct RClass *c = mrb_define_module(mrb, "DirTest");
 
+  mrb_define_const(mrb, c, "EEXIST", mrb_fixnum_value(EEXIST));
+  mrb_define_const(mrb, c, "ENOENT", mrb_fixnum_value(ENOENT));
   mrb_define_class_method(mrb, c, "sandbox", mrb_dirtest_sandbox, MRB_ARGS_NONE());
   mrb_define_class_method(mrb, c, "setup", mrb_dirtest_setup, MRB_ARGS_NONE());
   mrb_define_class_method(mrb, c, "teardown", mrb_dirtest_teardown, MRB_ARGS_NONE());
+  mrb_define_class_method(mrb, c, "operation_errno", mrb_dirtest_operation_errno, MRB_ARGS_REQ(2));
 }

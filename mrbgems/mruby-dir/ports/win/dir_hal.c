@@ -3,7 +3,7 @@
 **
 ** See Copyright Notice in mruby.h
 **
-** Windows implementation for directory operations using _findfirst/_findnext APIs.
+** Windows implementation for directory operations using _wfindfirst/_wfindnext APIs.
 ** Provides POSIX-compatible interface on Windows.
 **
 ** Based on dirent.c by Kevlin Henney (kevlin@acm.org, kevlin@curbralan.com)
@@ -22,14 +22,57 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <wchar.h>
 
 /* Windows directory handle implementation */
 struct mrb_dir_handle {
-  intptr_t handle;          /* _findfirst/_findnext handle */
-  struct _finddata_t info;  /* Current entry info */
-  char *pattern;            /* Search pattern with wildcard */
-  int first;                /* Flag: haven't read first entry yet */
+  intptr_t handle;           /* _wfindfirst/_wfindnext handle */
+  struct _wfinddata_t info;  /* Current entry info */
+  wchar_t *pattern;          /* UTF-16 search pattern stored after this structure */
+  char *name;                /* Current entry name encoded as UTF-8 */
+  size_t name_capacity;      /* Allocated size of name */
+  int first;                 /* Flag: haven't read first entry yet */
 };
+
+static wchar_t*
+utf8_to_utf16(mrb_state *mrb, const char *utf8)
+{
+  int len = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, utf8, -1, NULL, 0);
+  wchar_t *utf16;
+
+  if (len == 0) {
+    errno = EINVAL;
+    return NULL;
+  }
+  utf16 = (wchar_t*)mrb_malloc(mrb, (size_t)len * sizeof(wchar_t));
+  if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, utf8, -1, utf16, len) == 0) {
+    mrb_free(mrb, utf16);
+    errno = EINVAL;
+    return NULL;
+  }
+  return utf16;
+}
+
+static int
+utf16_to_utf8(mrb_state *mrb, const wchar_t *utf16, char **buf, size_t *capacity)
+{
+  int len = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, utf16, -1, NULL, 0, NULL, NULL);
+
+  if (len == 0) {
+    errno = EILSEQ;
+    return -1;
+  }
+  if ((size_t)len > *capacity) {
+    char *newbuf = (char*)mrb_realloc(mrb, *buf, (size_t)len);
+    *buf = newbuf;
+    *capacity = (size_t)len;
+  }
+  if (WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, utf16, -1, *buf, len, NULL, NULL) == 0) {
+    errno = EILSEQ;
+    return -1;
+  }
+  return 0;
+}
 
 /*
  * Directory Operations
@@ -39,21 +82,39 @@ mrb_dir_handle*
 mrb_hal_dir_open(mrb_state *mrb, const char *path)
 {
   mrb_dir_handle *handle;
-  size_t len = strlen(path);
-  const char *suffix;
+  const wchar_t *suffix;
+  int utf16_len = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, path, -1, NULL, 0);
+  size_t len;
+
+  if (utf16_len == 0) {
+    errno = EINVAL;
+    return NULL;
+  }
+
+  // Reserve enough trailing space for either "*" or "/*".
+  handle = (mrb_dir_handle*)mrb_malloc(mrb,
+    sizeof(mrb_dir_handle) + ((size_t)utf16_len + 2) * sizeof(wchar_t));
+  handle->pattern = (wchar_t*)(handle + 1);
+  handle->name = NULL;
+  handle->name_capacity = 0;
+
+  if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, path, -1,
+                          handle->pattern, utf16_len) == 0) {
+    mrb_free(mrb, handle);
+    errno = EINVAL;
+    return NULL;
+  }
+  len = (size_t)utf16_len - 1;
 
   /* Add wildcard suffix if needed */
-  suffix = (len > 0 && (path[len-1] == '/' || path[len-1] == '\\')) ? "*" : "/*";
+  suffix = (len > 0 && (handle->pattern[len-1] == L'/' || handle->pattern[len-1] == L'\\')) ? L"*" : L"/*";
+  wcscat(handle->pattern, suffix);
 
-  handle = (mrb_dir_handle*)mrb_malloc(mrb, sizeof(mrb_dir_handle));
-  handle->pattern = (char*)mrb_malloc(mrb, len + strlen(suffix) + 1);
-  strcpy(handle->pattern, path);
-  strcat(handle->pattern, suffix);
-
-  handle->handle = _findfirst(handle->pattern, &handle->info);
+  handle->handle = _wfindfirst(handle->pattern, &handle->info);
   if (handle->handle == -1) {
-    mrb_free(mrb, handle->pattern);
+    int saved_errno = errno;
     mrb_free(mrb, handle);
+    errno = saved_errno;
     return NULL;
   }
 
@@ -70,7 +131,7 @@ mrb_hal_dir_close(mrb_state *mrb, mrb_dir_handle *handle)
     result = _findclose(handle->handle);
   }
 
-  mrb_free(mrb, handle->pattern);
+  mrb_free(mrb, handle->name);
   mrb_free(mrb, handle);
 
   if (result == -1) {
@@ -84,32 +145,35 @@ mrb_hal_dir_close(mrb_state *mrb, mrb_dir_handle *handle)
 const char*
 mrb_hal_dir_read(mrb_state *mrb, mrb_dir_handle *handle)
 {
-  (void)mrb;
+  const wchar_t *name;
 
   if (handle->handle == -1) {
     errno = EBADF;
     return NULL;
   }
 
-  /* First call returns the result from _findfirst */
+  /* First call returns the result from _wfindfirst */
   if (handle->first) {
     handle->first = 0;
-    return handle->info.name;
+    name = handle->info.name;
+  }
+  else {
+    /* Subsequent calls use _wfindnext */
+    if (_wfindnext(handle->handle, &handle->info) == -1) {
+      return NULL;
+    }
+    name = handle->info.name;
   }
 
-  /* Subsequent calls use _findnext */
-  if (_findnext(handle->handle, &handle->info) == -1) {
+  if (utf16_to_utf8(mrb, name, &handle->name, &handle->name_capacity) == -1) {
     return NULL;
   }
-
-  return handle->info.name;
+  return handle->name;
 }
 
 void
 mrb_hal_dir_rewind(mrb_state *mrb, mrb_dir_handle *handle)
 {
-  (void)mrb;
-
   if (handle->handle == -1) {
     errno = EBADF;
     return;
@@ -117,7 +181,7 @@ mrb_hal_dir_rewind(mrb_state *mrb, mrb_dir_handle *handle)
 
   /* Close and reopen to rewind */
   _findclose(handle->handle);
-  handle->handle = _findfirst(handle->pattern, &handle->info);
+  handle->handle = _wfindfirst(handle->pattern, &handle->info);
   handle->first = 1;
 }
 
@@ -150,30 +214,81 @@ mrb_hal_dir_tell(mrb_state *mrb, mrb_dir_handle *handle)
 int
 mrb_hal_dir_mkdir(mrb_state *mrb, const char *path, int mode)
 {
+  wchar_t *utf16 = utf8_to_utf16(mrb, path);
+  int result;
+  int saved_errno;
+
   /* Windows _mkdir ignores mode parameter */
-  (void)mrb; (void)mode;
-  return _mkdir(path);
+  (void)mode;
+  if (utf16 == NULL) return -1;
+  result = _wmkdir(utf16);
+  saved_errno = errno;
+  mrb_free(mrb, utf16);
+  if (result == -1) errno = saved_errno;
+  return result;
 }
 
 int
 mrb_hal_dir_rmdir(mrb_state *mrb, const char *path)
 {
-  (void)mrb;
-  return _rmdir(path);
+  wchar_t *utf16 = utf8_to_utf16(mrb, path);
+  int result;
+  int saved_errno;
+
+  if (utf16 == NULL) return -1;
+  result = _wrmdir(utf16);
+  saved_errno = errno;
+  mrb_free(mrb, utf16);
+  if (result == -1) errno = saved_errno;
+  return result;
 }
 
 int
 mrb_hal_dir_chdir(mrb_state *mrb, const char *path)
 {
-  (void)mrb;
-  return _chdir(path);
+  wchar_t *utf16 = utf8_to_utf16(mrb, path);
+  int result;
+  int saved_errno;
+
+  if (utf16 == NULL) return -1;
+  result = _wchdir(utf16);
+  saved_errno = errno;
+  mrb_free(mrb, utf16);
+  if (result == -1) errno = saved_errno;
+  return result;
 }
 
 int
 mrb_hal_dir_getcwd(mrb_state *mrb, char *buf, size_t size)
 {
-  (void)mrb;
-  return _getcwd(buf, (int)size) ? 0 : -1;
+  wchar_t *utf16 = (wchar_t*)mrb_malloc(mrb, size * sizeof(wchar_t));
+  int len;
+
+  if (_wgetcwd(utf16, (int)size) == NULL) {
+    int saved_errno = errno;
+    mrb_free(mrb, utf16);
+    errno = saved_errno;
+    return -1;
+  }
+  len = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, utf16, -1, NULL, 0, NULL, NULL);
+  if (len == 0) {
+    mrb_free(mrb, utf16);
+    errno = EILSEQ;
+    return -1;
+  }
+  if ((size_t)len > size) {
+    mrb_free(mrb, utf16);
+    errno = ERANGE;
+    return -1;
+  }
+  if (WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, utf16, -1,
+                          buf, len, NULL, NULL) == 0) {
+    mrb_free(mrb, utf16);
+    errno = EILSEQ;
+    return -1;
+  }
+  mrb_free(mrb, utf16);
+  return 0;
 }
 
 int
@@ -189,12 +304,20 @@ int
 mrb_hal_dir_is_directory(mrb_state *mrb, const char *path)
 {
   struct _stat sb;
-  (void)mrb;
+  wchar_t *utf16 = utf8_to_utf16(mrb, path);
+  int result;
+  int saved_errno;
 
-  if (_stat(path, &sb) == 0 && (sb.st_mode & _S_IFDIR)) {
-    return 1;
+  if (utf16 == NULL) return 0;
+
+  result = _wstat(utf16, &sb);
+  saved_errno = errno;
+  mrb_free(mrb, utf16);
+  if (result == -1) {
+    errno = saved_errno;
+    return 0;
   }
-  return 0;
+  return (sb.st_mode & _S_IFDIR) != 0;
 }
 
 /*

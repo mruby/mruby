@@ -4,10 +4,12 @@ end
 
 assert('DirTest.setup') do
   assert_nothing_raised{DirTest.setup}
+  assert_equal 0, Dir.mkdir(DirTest.sandbox + "/日本語")
 end
 
 assert('Dir.chdir') do
   assert_equal 0, Dir.chdir(DirTest.sandbox)
+  assert_equal DirTest::ENOENT, DirTest.operation_errno(:chdir, DirTest.sandbox + "/nosuchdir")
 end
 
 assert('Dir.entries') do
@@ -16,8 +18,17 @@ assert('Dir.entries') do
   assert_true a.include?("b")
 end
 
+assert('Dir.children') do
+  children = Dir.children(DirTest.sandbox)
+  assert_true children.include?("a")
+  assert_true children.include?("b")
+  assert_false children.include?(".")
+  assert_false children.include?("..")
+end
+
 assert('Dir.exist?') do
   assert_true Dir.exist?(DirTest.sandbox)
+  assert_true Dir.exist?(DirTest.sandbox + "/日本語")
   assert_false Dir.exist?(DirTest.sandbox + "/nosuchdir")
 end
 
@@ -31,6 +42,13 @@ end
 assert('Dir.getwd') do
   s = Dir.getwd
   assert_true s.kind_of? String
+
+  name = "半角アルファベットや記号以外が使われた長いディレクトリ名"
+  path = DirTest.sandbox + "/" + name
+  Dir.mkdir(path)
+  Dir.chdir(path) do
+    assert_true Dir.getwd.include?(name)
+  end
 end
 
 assert('Dir.mkdir') do
@@ -38,9 +56,15 @@ assert('Dir.mkdir') do
   m2 = DirTest.sandbox + "/mkdir2"
   assert_equal 0, Dir.mkdir(m1)
   assert_equal 0, Dir.mkdir(m2, 0765)
+
+  assert_equal DirTest::EEXIST, DirTest.operation_errno(:mkdir, m1)
 end
 
 assert('Dir.delete') do
+  japanese = DirTest.sandbox + "/delete-日本語"
+  Dir.mkdir(japanese)
+  assert_equal 0, Dir.delete(japanese)
+
   s = DirTest.sandbox + "/delete"
   Dir.mkdir(s)
   assert_true Dir.exist?(s)
@@ -50,6 +74,8 @@ assert('Dir.delete') do
 end
 
 assert('Dir.open') do
+  assert_equal DirTest::ENOENT, DirTest.operation_errno(:open, DirTest.sandbox + "/nosuchdir")
+
   a = []
   Dir.open(DirTest.sandbox) { |d|
     d.each_child { |s| a << s }
@@ -87,6 +113,21 @@ assert('Dir#read') do
   d.close
   assert_true a.include?("a")
   assert_true a.include?("b")
+
+  japanese = DirTest.sandbox + "/日本語"
+  child = japanese + "/子"
+  Dir.mkdir(child)
+  begin
+    names = []
+    d = Dir.open(japanese)
+    while s = d.read
+      names << s
+    end
+    d.close
+    assert_true names.include?("子")
+  ensure
+    Dir.delete(child) if Dir.exist?(child)
+  end
 end
 
 assert('Dir#rewind') do
