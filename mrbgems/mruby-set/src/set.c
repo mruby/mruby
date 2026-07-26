@@ -57,6 +57,24 @@ kset_hash_value(mrb_state *mrb, mrb_value key)
 static inline mrb_bool
 kset_equal_value(mrb_state *mrb, mrb_value a, mrb_value b)
 {
+  /* Compare common key types directly in C, mirroring Hash's obj_eql, so an
+     ordinary Set never re-enters the VM for #eql?. Only genuinely custom
+     objects dispatch to Ruby (and are guarded by khash's modification check). */
+  switch (mrb_type(a)) {
+  case MRB_TT_STRING:
+    return mrb_str_equal(mrb, a, b);
+  case MRB_TT_SYMBOL:
+    return mrb_symbol_p(b) && mrb_symbol(a) == mrb_symbol(b);
+  case MRB_TT_INTEGER:
+    return mrb_integer_p(b) && mrb_integer(a) == mrb_integer(b);
+#ifndef MRB_NO_FLOAT
+  case MRB_TT_FLOAT:
+    return mrb_float_p(b) && mrb_float(a) == mrb_float(b);
+#endif
+  default:
+    break;
+  }
+
   struct kset_eql_data data = { a, b };
   mrb_bool error;
   mrb_value result = mrb_protect_error(mrb, kset_eql_body, &data, &error);
