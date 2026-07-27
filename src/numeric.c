@@ -426,9 +426,10 @@ mrb_value
 mrb_float_to_str(mrb_state *mrb, mrb_value flo, const char *fmt)
 {
   char buf[25];
+  char *p;
 
   mrb_format_float(mrb_float(flo), buf, sizeof(buf), 'g', -2, '\0');
-  for (char *p = buf; *p; p++) {
+  for (p = buf; *p; p++) {
     if (*p == '.') goto exit;
     if (*p == 'e') {
       memmove(p+2, p, strlen(p)+1);
@@ -437,7 +438,7 @@ mrb_float_to_str(mrb_state *mrb, mrb_value flo, const char *fmt)
       goto exit;
     }
   }
-  strcat(buf, ".0");
+  memcpy(p, ".0", sizeof(".0"));   /* `p` points to the terminating NUL */
  exit:
   return mrb_str_new_cstr(mrb, buf);
 }

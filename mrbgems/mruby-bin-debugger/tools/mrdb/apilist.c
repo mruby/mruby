@@ -39,23 +39,23 @@ source_file_free(mrb_state *mrb, source_file *file)
 static char*
 build_path(mrb_state *mrb, const char *dir, const char *base)
 {
-  int len;
-  char *path = NULL;
+  size_t base_len = strlen(base);
+  size_t dir_len = strcmp(dir, ".") ? strlen(dir) : 0;
+  size_t len = base_len + 1;
+  char *path, *p;
 
-  len = strlen(base) + 1;
-
-  if (strcmp(dir, ".")) {
-    len += strlen(dir) + sizeof("/") - 1;
+  if (dir_len) {
+    len += dir_len + 1;  /* dir + "/" */
   }
 
-  path = (char*)mrb_malloc(mrb, len);
-  memset(path, 0, len);
+  path = p = (char*)mrb_malloc(mrb, len);
 
-  if (strcmp(dir, ".")) {
-    strcat(path, dir);
-    strcat(path, "/");
+  if (dir_len) {
+    memcpy(p, dir, dir_len); p += dir_len;
+    *p++ = '/';
   }
-  strcat(path, base);
+  memcpy(p, base, base_len); p += base_len;
+  *p = '\0';
 
   return path;
 }

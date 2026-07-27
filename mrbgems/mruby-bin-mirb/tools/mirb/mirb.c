@@ -464,7 +464,7 @@ main(int argc, char **argv)
   char ruby_code[4096] = { 0 };
   char last_code_line[1024] = { 0 };
   int last_char;
-  size_t char_index;
+  size_t char_index, code_len, line_len;
   mirb_editor editor;
   mirb_check_data check_data;
   mrb_bool use_editor = FALSE;
@@ -591,12 +591,13 @@ main(int argc, char **argv)
       }
 
       /* The editor returns complete multi-line input */
-      if (strlen(input) >= sizeof(ruby_code) - 1) {
+      code_len = strlen(input);
+      if (code_len >= sizeof(ruby_code) - 1) {
         fputs("input string too long\n", stderr);
         free(input);
         continue;
       }
-      strcpy(ruby_code, input);
+      memcpy(ruby_code, input, code_len+1);
       free(input);
 
       /* Count lines for line number update */
@@ -651,18 +652,20 @@ main(int argc, char **argv)
     line_num++;
 
   done:
+    line_len = strlen(last_code_line);
     if (code_block_open) {
-      if (strlen(ruby_code)+strlen(last_code_line) > sizeof(ruby_code)-1) {
+      code_len = strlen(ruby_code);
+      if (code_len+line_len > sizeof(ruby_code)-1) {
         fputs("concatenated input string too long\n", stderr);
         continue;
       }
-      strcat(ruby_code, last_code_line);
+      memcpy(ruby_code+code_len, last_code_line, line_len+1);
     }
     else {
       if (check_keyword(last_code_line, "quit") || check_keyword(last_code_line, "exit")) {
         break;
       }
-      strcpy(ruby_code, last_code_line);
+      memcpy(ruby_code, last_code_line, line_len+1);
     }
 
   evaluate:

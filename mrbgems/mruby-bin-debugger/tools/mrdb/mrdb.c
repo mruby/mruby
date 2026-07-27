@@ -274,7 +274,7 @@ get_command(mrb_state *mrb, mrdb_state *mrdb)
 
   if (i == 0 && feof(stdin)) {
     clearerr(stdin);
-    strcpy(mrdb->command, "quit");
+    memcpy(mrdb->command, "quit", sizeof("quit"));
     i += sizeof("quit") - 1;
   }
 

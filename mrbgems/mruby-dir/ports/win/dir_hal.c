@@ -82,7 +82,6 @@ mrb_dir_handle*
 mrb_hal_dir_open(mrb_state *mrb, const char *path)
 {
   mrb_dir_handle *handle;
-  const wchar_t *suffix;
   int utf16_len = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, path, -1, NULL, 0);
   size_t len;
 
@@ -107,8 +106,11 @@ mrb_hal_dir_open(mrb_state *mrb, const char *path)
   len = (size_t)utf16_len - 1;
 
   /* Add wildcard suffix if needed */
-  suffix = (len > 0 && (handle->pattern[len-1] == L'/' || handle->pattern[len-1] == L'\\')) ? L"*" : L"/*";
-  wcscat(handle->pattern, suffix);
+  if (len == 0 || (handle->pattern[len-1] != L'/' && handle->pattern[len-1] != L'\\')) {
+    handle->pattern[len++] = L'/';
+  }
+  handle->pattern[len++] = L'*';
+  handle->pattern[len] = L'\0';
 
   handle->handle = _wfindfirst(handle->pattern, &handle->info);
   if (handle->handle == -1) {

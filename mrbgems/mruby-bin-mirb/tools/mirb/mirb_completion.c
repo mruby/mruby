@@ -668,18 +668,19 @@ mirb_linenoise_completion(const char *buf, linenoiseCompletions *lc)
   /* Generate completions */
   mirb_generate_completions(g_ctx, buf, cursor_pos);
 
+  /* Need to build full line with completion */
+  prefix_start = cursor_pos - g_ctx->prefix_len;
+  if (prefix_start < 0) return;
+
   /* Add each completion to linenoise */
   for (i = 0; i < g_ctx->completion_count; i++) {
-    /* Need to build full line with completion */
-    prefix_start = cursor_pos - g_ctx->prefix_len;
+    size_t len = strlen(g_ctx->completions[i]);
 
-    /* Copy line up to prefix */
-    if (prefix_start > 0) {
-      memcpy(completion_line, buf, prefix_start);
-    }
+    if ((size_t)prefix_start + len + 1 > sizeof(completion_line)) continue;
 
-    /* Add completion */
-    strcpy(completion_line + prefix_start, g_ctx->completions[i]);
+    /* Copy line up to prefix, then the completion */
+    memcpy(completion_line, buf, prefix_start);
+    memcpy(completion_line + prefix_start, g_ctx->completions[i], len+1);
 
     linenoiseAddCompletion(lc, completion_line);
   }

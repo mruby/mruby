@@ -82,8 +82,7 @@ mrc_diagnostic_list_append(mrc_ccontext *c, const uint8_t * location_start, cons
   snprintf(buf, sizeof(buf), "%s, %s", diagnostic_code_str, message);
   size_t len = strlen(buf);
   list->message = (char *)mrc_malloc(c, len + 1);
-  strcpy(list->message, buf);
-  list->message[len] = '\0';
+  memcpy(list->message, buf, len + 1);
   list->code = code;
 
   if (c->diagnostic_list == NULL) {
