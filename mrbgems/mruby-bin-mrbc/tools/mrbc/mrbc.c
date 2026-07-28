@@ -277,7 +277,7 @@ load_file(mrc_ccontext *c, struct mrc_args *args, uint8_t **source)
 {
   mrc_irep *irep;
 
-  if (args->verbose) c->dump_result = TRUE;
+  if (args->verbose) c->dump_ast = c->dump_result = TRUE;
   c->no_exec = TRUE;
   c->no_ext_ops = args->no_ext_ops;
   c->no_optimize = args->no_optimize;

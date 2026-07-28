@@ -32,6 +32,9 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
   end
   cc.defines << 'MRC_DEBUG' if cc.defines.any? { |d| d.match?(/\AMRB_DEBUG(=|\z)/) }
   cc.defines << 'PRISM_BUILD_MINIMAL' unless cc.defines.include?('MRC_DEBUG')
+  # PRISM_BUILD_MINIMAL stubs out pm_prettyprint(), so `mruby -v` can only dump
+  # the AST where it is compiled in
+  cc.defines << 'MRC_DUMP_PRETTY' if cc.defines.include?('MRC_DEBUG')
 
   # The compiler glue is built as C++ under MRB_USE_CXX_ABI, and mruby.h
   # requires __STDC_LIMIT_MACROS / __STDC_CONSTANT_MACROS before <stdint.h> in

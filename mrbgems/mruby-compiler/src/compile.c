@@ -34,10 +34,11 @@ mrc_load_exec(mrc_ccontext *c, mrc_node *ast)
     }
   }
 #if defined(MRC_DUMP_PRETTY) && !defined(MRC_NO_STDIO)
-  if (c->dump_result) {
+  if (c->dump_ast) {
     pm_buffer_t buffer = { 0 };
     pm_prettyprint(&buffer, c->p, ast);
-    fprintf(stderr, "%s\n", buffer.value);
+    /* stdout, like the irep dump from mrc_codedump_all() */
+    printf("%s\n", buffer.value);
     pm_buffer_free(&buffer);
   }
 #endif

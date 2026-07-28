@@ -36,6 +36,7 @@ typedef struct mrc_ccontext {
   uint16_t lineno;
   struct RClass *target_class;
   mrc_bool capture_errors:1;
+  mrc_bool dump_ast:1;
   mrc_bool dump_result:1;
   mrc_bool no_exec:1;
   mrc_bool keep_lv:1;

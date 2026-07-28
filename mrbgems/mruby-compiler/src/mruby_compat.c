@@ -34,7 +34,11 @@ copy_context_to_mrc(mrc_ccontext *dst, const mrb_ccontext *src)
   dst->lineno = src->lineno;
   dst->target_class = src->target_class;
   dst->capture_errors = FALSE;
-  dst->dump_result = src->dump_result;
+  /* Only the AST dump is delegated to the compiler. `dump_result` stays off
+     here because mrb_load_exec() dumps the generated proc through
+     mrb_codedump_all(); letting mrc_load_exec() dump too would print the
+     same irep twice. */
+  dst->dump_ast = src->dump_result;
   dst->no_exec = src->no_exec;
   dst->keep_lv = src->keep_lv;
   dst->no_optimize = src->no_optimize;
