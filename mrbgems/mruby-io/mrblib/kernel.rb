@@ -10,7 +10,7 @@ module Kernel
   #   `ls testdir`.split[1]    #=> "main.rb"
   #   `echo oops && exit 99`   #=> "oops\n"
   #
-  private def `(cmd) #`
+  module_function def `(cmd) #`
     IO.popen(cmd) {|io| io.read }
   end
 
@@ -31,7 +31,7 @@ module Kernel
   #     print f.gets
   #   end
   #
-  private def open(file, *rest, &block)
+  module_function def open(file, *rest, &block)
     raise ArgumentError unless file.is_a?(String)
 
     if file[0] == "|"
@@ -54,7 +54,7 @@ module Kernel
   #   s = S['dave', 'TX']
   #   p s             #=> #<struct S name="dave", state="TX">
   #
-  private def p(*a)
+  module_function def p(*a)
     for e in a
       $stdout.write e.inspect
       $stdout.write "\n"
@@ -79,7 +79,7 @@ module Kernel
   #   $\ = "\n"
   #   print "cat", [1,2,3], 99
   #
-  private def print(...)
+  module_function def print(...)
     $stdout.print(...)
   end
 
@@ -92,7 +92,7 @@ module Kernel
   # If int is String, writes the first character.
   # Returns nil.
   #
-  private def putc(c)
+  module_function def putc(c)
     $stdout.putc(c)
     nil
   end
@@ -105,7 +105,7 @@ module Kernel
   #
   #   puts "this", "is", "a", "test"
   #
-  private def puts(...)
+  module_function def puts(...)
     $stdout.puts(...)
   end
 
@@ -119,7 +119,7 @@ module Kernel
   #
   #   printf "Number: %5.2f,\nString: %s\n", 1.23, "hello"
   #
-  private def printf(...)
+  module_function def printf(...)
     $stdout.printf(...)
   end
 
@@ -137,7 +137,7 @@ module Kernel
   #   name = gets
   #   print "Hello #{name}"
   #
-  private def gets(...)
+  module_function def gets(...)
     $stdin.gets(...)
   end
 
@@ -153,7 +153,7 @@ module Kernel
   #   name = readline
   #   print "Hello #{name}"
   #
-  private def readline(...)
+  module_function def readline(...)
     $stdin.readline(...)
   end
 
@@ -169,7 +169,7 @@ module Kernel
   #   lines = readlines
   #   lines[0]   #=> "This is line one\n"
   #
-  private def readlines(...)
+  module_function def readlines(...)
     $stdin.readlines(...)
   end
 end

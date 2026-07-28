@@ -282,7 +282,7 @@ mrb_mruby_proc_ext_gem_init(mrb_state* mrb)
   struct RClass *p = mrb->proc_class;
 
   MRB_MT_INIT_ROM(mrb, p, proc_ext_rom_entries);
-  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(proc), kernel_proc, MRB_ARGS_BLOCK());
+  mrb_define_module_function_id(mrb, mrb->kernel_module, MRB_SYM(proc), kernel_proc, MRB_ARGS_BLOCK());
 }
 
 void

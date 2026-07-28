@@ -301,12 +301,30 @@ static const mrb_mt_entry kernel_ext_rom_entries[] = {
   MRB_MT_ENTRY(mrb_f_hash, MRB_SYM(Hash),      MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
 };
 
+/* public counterparts on `Kernel` itself; see `kernel_module_function_entries`
+   in src/kernel.c */
+static const mrb_mt_entry kernel_ext_module_function_entries[] = {
+  MRB_MT_ENTRY(mrb_f_raise, MRB_SYM(fail),      MRB_ARGS_OPT(2)),
+  MRB_MT_ENTRY(mrb_f_caller, MRB_SYM(caller),    MRB_ARGS_OPT(2)),
+  MRB_MT_ENTRY(mrb_f_method, MRB_SYM(__method__),             MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_f_callee, MRB_SYM(__callee__),             MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_f_integer, MRB_SYM(Integer), MRB_ARGS_ARG(1,1)),
+  MRB_MT_ENTRY(mrb_f_string, MRB_SYM(String),    MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(mrb_f_array, MRB_SYM(Array),     MRB_ARGS_REQ(1)),
+#ifndef MRB_NO_FLOAT
+  MRB_MT_ENTRY(mrb_f_float, MRB_SYM(Float),     MRB_ARGS_REQ(1)),
+#endif
+  MRB_MT_ENTRY(mrb_f_hash, MRB_SYM(Hash),      MRB_ARGS_REQ(1)),
+};
+
 void
 mrb_mruby_kernel_ext_gem_init(mrb_state *mrb)
 {
   struct RClass *krn = mrb->kernel_module;
 
   MRB_MT_INIT_ROM(mrb, krn, kernel_ext_rom_entries);
+  MRB_MT_INIT_ROM(mrb, mrb_singleton_class_ptr(mrb, mrb_obj_value(krn)),
+                  kernel_ext_module_function_entries);
 }
 
 void

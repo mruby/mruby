@@ -460,3 +460,19 @@ assert('stack extend') do
 
   assert_equal 6, recurse(0, 5)
 end
+
+assert('Kernel module functions') do
+  # the qualified form reaches the module function
+  assert_raise(ArgumentError) { Kernel.raise ArgumentError }
+  assert_false Kernel.block_given?
+  assert_false Kernel.iterator?
+
+  # while the instance-side copies stay private
+  obj = Object.new
+  assert_raise(NoMethodError) { obj.raise ArgumentError }
+  assert_raise(NoMethodError) { obj.block_given? }
+  assert_raise(NoMethodError) { obj.loop }
+
+  # and unrelated modules do not gain them
+  assert_raise(NoMethodError) { Comparable.raise ArgumentError }
+end

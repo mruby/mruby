@@ -136,3 +136,16 @@ assert('Kernel#Hash') do
   assert_equal({:key => :value}, Hash(key: :value))
   assert_raise(TypeError) { Hash([1, 2, 3]) }
 end
+
+assert('Kernel.<conversion> module functions') do
+  assert_equal 3, Kernel.Integer("3")
+  assert_equal "3", Kernel.String(3)
+  assert_equal [1], Kernel.Array([1])
+  assert_equal({}, Kernel.Hash(nil))
+  assert_nil Kernel.__method__
+  assert_raise(RuntimeError) { Kernel.fail "boom" }
+
+  obj = Object.new
+  assert_raise(NoMethodError) { obj.Integer("3") }
+  assert_raise(NoMethodError) { obj.fail "boom" }
+end

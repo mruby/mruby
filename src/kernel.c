@@ -809,19 +809,29 @@ static const mrb_mt_entry kernel_rom_entries[] = {
 #endif
 };
 
+/* Public counterparts on `Kernel` itself, so that the qualified form
+   `Kernel.raise` works while the instance methods above stay private.
+   This is what `module_function` gives these methods in CRuby. */
+static const mrb_mt_entry kernel_module_function_entries[] = {
+  MRB_MT_ENTRY(mrb_f_block_given_p_m, MRB_SYM_Q(block_given), MRB_ARGS_NONE()),  /* 15.3.1.2.2  */
+  MRB_MT_ENTRY(mrb_f_block_given_p_m, MRB_SYM_Q(iterator),    MRB_ARGS_NONE()),  /* 15.3.1.2.5  */
+  MRB_MT_ENTRY(mrb_f_raise,           MRB_SYM(raise),      MRB_ARGS_OPT(2)),  /* 15.3.1.2.12 */
+#ifndef HAVE_MRUBY_IO_GEM
+  MRB_MT_ENTRY(mrb_p_m,               MRB_SYM(p),          MRB_ARGS_ANY()),
+  MRB_MT_ENTRY(mrb_print_m,           MRB_SYM(print),      MRB_ARGS_ANY()),
+#endif
+};
+
 void
 mrb_init_kernel(mrb_state *mrb)
 {
   struct RClass *krn;
 
   mrb->kernel_module = krn = mrb_define_module_id(mrb, MRB_SYM(Kernel));                                                    /* 15.3.1 */
-#if 0
-  mrb_define_class_method_id(mrb, krn, MRB_SYM_Q(block_given),        mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.2.2  */
-  mrb_define_class_method_id(mrb, krn, MRB_SYM_Q(iterator),           mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.2.5  */
-#endif
-  mrb_define_class_method_id(mrb, krn, MRB_SYM(raise),                mrb_f_raise,                     MRB_ARGS_OPT(2));    /* 15.3.1.2.12 */
 
   MRB_MT_INIT_ROM(mrb, krn, kernel_rom_entries);
+  MRB_MT_INIT_ROM(mrb, mrb_singleton_class_ptr(mrb, mrb_obj_value(krn)),
+                  kernel_module_function_entries);
 
   mrb_include_module(mrb, mrb->object_class, mrb->kernel_module);
 }

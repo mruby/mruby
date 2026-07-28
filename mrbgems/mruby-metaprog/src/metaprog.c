@@ -703,6 +703,13 @@ static const mrb_mt_entry metaprog_krn_rom_entries[] = {
   MRB_MT_ENTRY(mrb_f_public_send,        MRB_SYM(public_send), MRB_ARGS_REQ(1)|MRB_ARGS_REST()|MRB_ARGS_BLOCK()),
 };
 
+/* public counterparts on `Kernel` itself; see `kernel_module_function_entries`
+   in src/kernel.c */
+static const mrb_mt_entry metaprog_krn_module_function_entries[] = {
+  MRB_MT_ENTRY(mrb_f_global_variables, MRB_SYM(global_variables), MRB_ARGS_NONE()),  /* 15.3.1.2.4 */
+  MRB_MT_ENTRY(mrb_local_variables, MRB_SYM(local_variables),  MRB_ARGS_NONE()),  /* 15.3.1.2.7 */
+};
+
 static const mrb_mt_entry metaprog_mod_rom_entries[] = {
   MRB_MT_ENTRY(mrb_mod_class_variables,          MRB_SYM(class_variables), MRB_ARGS_OPT(1)),  /* 15.2.2.4.19 */
   MRB_MT_ENTRY(mrb_mod_remove_cvar,              MRB_SYM(remove_class_variable), MRB_ARGS_REQ(1)),  /* 15.2.2.4.39 */
@@ -727,6 +734,8 @@ mrb_mruby_metaprog_gem_init(mrb_state* mrb)
   struct RClass *mod = mrb->module_class;
 
   MRB_MT_INIT_ROM(mrb, krn, metaprog_krn_rom_entries);
+  MRB_MT_INIT_ROM(mrb, mrb_singleton_class_ptr(mrb, mrb_obj_value(krn)),
+                  metaprog_krn_module_function_entries);
   MRB_MT_INIT_ROM(mrb, mod, metaprog_mod_rom_entries);
   mrb_define_class_method_id(mrb, mod, MRB_SYM(constants), mrb_mod_s_constants, MRB_ARGS_ANY()); /* 15.2.2.3.1 */
   mrb_define_class_method_id(mrb, mod, MRB_SYM(nesting), mrb_mod_s_nesting, MRB_ARGS_NONE()); /* 15.2.2.3.2 */
