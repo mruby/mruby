@@ -70,11 +70,12 @@ assert('mrbc -v disassembles like mruby -v') do
   a.write(src)
   a.flush
 
-  # keep only the disassembly, and mask the irep addresses
+  # Keep only the disassembly. The irep address has to go by position, not by
+  # shape: MSVC prints "%p" as 000001C3D1A77D50 and glibc as 0x5b5cc80b2660.
   clean = lambda do |s|
-    s.sub(/\A.*?^(?=irep )/m, '').gsub(/0x[0-9a-f]+/, 'ADDR').lines.reject { |l|
-      l.start_with?('Syntax OK')
-    }.join
+    s.sub(/\A.*?^(?=irep )/m, '')
+     .gsub(/^irep \S+ /, 'irep ADDR ')
+     .lines.reject { |l| l.start_with?('Syntax OK') }.join
   end
 
   # Backticks capture stdout only, which is where both write the disassembly.
