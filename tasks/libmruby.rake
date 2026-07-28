@@ -3,9 +3,13 @@ MRuby.each_target do
     archiver.run t.name, t.prerequisites
   end
 
-  products << libmruby_core_static
-
+  # A build with disable_libmruby (the mrbc bootstrap, and the minimal host a
+  # cross build creates) links mrbc from the compiler gem's objects alone, so
+  # registering libmruby_core.a as a product there would compile the whole of
+  # src/ for an archive nothing reads.
   next unless libmruby_enabled?
+
+  products << libmruby_core_static
 
   copy_headers_task = "expose_header_files:#{self.name}"
   file libmruby_static => libmruby_objs.flatten do |t|

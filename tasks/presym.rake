@@ -18,6 +18,11 @@ MRuby.each_target do |build|
   build_dir = "#{build.build_dir}/"
   mrbc_build_dir = "#{build.mrbc_build.build_dir}/" if build.mrbc_build
   build.products.each{|product| all_prerequisites.(product, prereqs)}
+  # The core symbols must be in the table even when libmruby_core.a is not a
+  # product (a disable_libmruby build), so seed the scan from the object list
+  # instead of relying on the product graph to reach it. Only the preprocessed
+  # files are actually built from these; the objects themselves are not.
+  build.libmruby_core_objs.flatten.each{|obj| prereqs[obj] = true}
   prereqs.each_key do |prereq|
     next unless File.extname(prereq) == build.exts.object
     next unless prereq.start_with?(build_dir)
