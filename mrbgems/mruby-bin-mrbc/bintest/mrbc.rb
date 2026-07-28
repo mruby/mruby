@@ -77,8 +77,10 @@ assert('mrbc -v disassembles like mruby -v') do
     }.join
   end
 
-  from_mrbc = clean.call(`#{cmd('mrbc')} -v -o #{out.path} #{a.path} 2>/dev/null`)
-  from_mruby = clean.call(`#{cmd('mruby')} -v -c #{a.path} 2>/dev/null`)
+  # Backticks capture stdout only, which is where both write the disassembly.
+  # Do not redirect stderr: `2>/dev/null` is not portable to cmd.exe.
+  from_mrbc = clean.call(`#{cmd('mrbc')} -v -o #{out.path} #{a.path}`)
+  from_mruby = clean.call(`#{cmd('mruby')} -v -c #{a.path}`)
 
   assert_false from_mrbc.empty?, 'mrbc -v produced no disassembly'
   assert_equal from_mruby, from_mrbc
