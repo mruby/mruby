@@ -932,6 +932,28 @@ assert('Module#module_function') do
   assert_equal nil do
     M.modfunc
   end
+
+  # the instance-side copy turns private, like the no-argument form
+  mod = Module.new do
+    def foo; 42; end
+    module_function :foo
+    module_function def bar; 43; end
+  end
+  assert_equal 42, mod.foo
+  assert_equal 43, mod.bar
+
+  klass = Class.new do
+    include mod
+    def call_foo; foo; end
+    def call_bar; bar; end
+  end
+  obj = klass.new
+  assert_equal 42, obj.call_foo
+  assert_equal 43, obj.call_bar
+  assert_raise(NoMethodError) { obj.foo }
+  assert_raise(NoMethodError) { obj.bar }
+
+  assert_raise(NameError) { Module.new { module_function :no_such_method } }
 end
 
 assert('Module#module_function with no arguments (toggle mode)') do

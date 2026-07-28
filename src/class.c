@@ -4090,6 +4090,9 @@ mrb_mod_module_function(mrb_state *mrb, mrb_value mod)
     prepare_singleton_class(mrb, (struct RBasic*)rclass);
     MRB_METHOD_SET_VISIBILITY(m, MRB_METHOD_PUBLIC_FL);
     mrb_define_method_raw(mrb, rclass->c, mid, m);
+    /* the instance method copy turns private, as the no-argument form does */
+    MRB_METHOD_SET_VISIBILITY(m, MRB_METHOD_PRIVATE_FL);
+    mrb_define_method_raw(mrb, rclass, mid, m);
     mrb_gc_arena_restore(mrb, ai);
   }
 
