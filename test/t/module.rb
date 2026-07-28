@@ -799,6 +799,29 @@ assert('method visibility') do
   assert_equal :test, v.test_private { :test }
 end
 
+assert('method_missing is dispatched regardless of its visibility') do
+  class PrivMissingTest
+    private
+    def method_missing(name, *args)
+      [name, args]
+    end
+  end
+
+  assert_equal [:foo, [1, 2]], PrivMissingTest.new.foo(1, 2)
+  assert_equal [:bar, []], PrivMissingTest.new.bar
+
+  class ProtMissingTest
+    protected
+    def method_missing(name, *args)
+      [name, args]
+    end
+  end
+  assert_equal [:baz, [3]], ProtMissingTest.new.baz(3)
+
+  # an explicit call to `method_missing` itself is still checked
+  assert_raise(NoMethodError) { PrivMissingTest.new.method_missing(:x) }
+end
+
 assert('method visibility with meta programming') do
   assert_equal "GOOD!" do
     f = nil

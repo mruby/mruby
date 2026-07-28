@@ -2870,17 +2870,20 @@ RETRY_TRY_BLOCK:
       }
       else {
         ci->mid = mid;
-      }
-      if (insn == OP_SEND || insn == OP_SEND0 || insn == OP_SENDB) {
-        mrb_bool priv = TRUE;
-        if (m.flags & MRB_METHOD_PRIVATE_FL) {
-        vis_err:;
-          mrb_value args = (ci->n == 15) ? regs[1] : mrb_ary_new_from_values(mrb, ci->n, regs+1);
-          vis_error(mrb, mid, args, recv, priv);
-        }
-        else if ((m.flags & MRB_METHOD_PROTECTED_FL) && mrb_obj_is_kind_of(mrb, recv, ci->u.target_class)) {
-          priv = FALSE;
-          goto vis_err;
+        /* visibility is checked only when the method is actually found;
+           the `method_missing` fallback dispatches regardless of its own
+           visibility, as in CRuby */
+        if (insn == OP_SEND || insn == OP_SEND0 || insn == OP_SENDB) {
+          mrb_bool priv = TRUE;
+          if (m.flags & MRB_METHOD_PRIVATE_FL) {
+          vis_err:;
+            mrb_value args = (ci->n == 15) ? regs[1] : mrb_ary_new_from_values(mrb, ci->n, regs+1);
+            vis_error(mrb, mid, args, recv, priv);
+          }
+          else if ((m.flags & MRB_METHOD_PROTECTED_FL) && mrb_obj_is_kind_of(mrb, recv, ci->u.target_class)) {
+            priv = FALSE;
+            goto vis_err;
+          }
         }
       }
       ci->cci = CINFO_NONE;
