@@ -7,7 +7,6 @@
 #   libmruby.so.<MAJOR>.<MINOR>  symlink to libmruby.so (matches SONAME)
 #   libmruby.map            linker version script (MRUBY_<RELEASE_NO>)
 #
-# Also produces the matching libmruby_core.so + symlink for completeness.
 #
 # Symbol versioning ties to MRUBY_RELEASE_NO (e.g. MRUBY_40000 for 4.0.0).
 # mruby has historically had ABI breaks between TEENY versions, so the
@@ -63,8 +62,7 @@ MRuby.each_target do
   minor = MRuby::Source::MRUBY_RELEASE_MINOR
 
   [
-    [libmruby_static,      "libmruby"],
-    [libmruby_core_static, "libmruby_core"],
+    [libmruby_static, "libmruby"],
   ].each do |archive, basename|
     so      = File.join(libdir, "#{basename}.so")
     symlink = "#{so}.#{major}.#{minor}"

@@ -417,7 +417,7 @@ root directory. The structure of this directory will look like this:
         |
         +- bin          <- Binaries (mirb, mrbc and mruby)
         |
-        +- lib          <- Libraries (libmruby.a and libmruby_core.a)
+        +- lib          <- Libraries (libmruby.a)
         |
         +- mrbc         <- Minimal mrbc place
         |
@@ -431,16 +431,14 @@ root directory. The structure of this directory will look like this:
 The compilation workflow will look like this:
 
 - compile minimal `mrbc` from `src` and `mrblib` sources
-  - compile all files under `src` (object files will be stored in `build/host/mrbc/src`)
   - compile `mruby-compiler` gem
-  - create `build/host/mrbc/lib/libmruby_core.a` out of all object files (C only)
   - create `build/host/mrbc/bin/mrbc` via `mruby-bin-mrbc` gem
 - compile all files under `src` and store result in `build/host/src`
 - create `build/host/mrblib/mrblib.c` by compiling all `*.rb` files under `mrblib` with `build/host/mrbc/bin/mrbc`
 - compile `build/host/mrblib/mrblib.c` to `build/host/mrblib/mrblib.o`
 - create `build/host/lib/libmruby.a` out of all object files (C and Ruby)
 - compile (normal) mrbgems specified in the configuration file
-- create `build/host/lib/libmruby.a` from object files from gems and `libmruby_core.a`
+- create `build/host/lib/libmruby.a` from object files from gems and from `src`
 - create binary commands according to binary gems (e.g. `mirb` and `mruby`)
 - copy binaries under `build/host/bin` to `bin` directory
 
@@ -495,10 +493,9 @@ as placeholder for `mrbc`). Afterwards the cross compilation process
 proceeds like this:
 
 - cross-compile all files under `src` and store result in `build/i386/src`
-- create `build/i386/lib/libmruby_core.a` out of C object files
 - create `build/i386/mrblib/mrblib.c` by compiling all `*.rb` files under `mrblib` with native `build/host/bin/mrbc`
 - cross-compile `build/i386/mrblib/mrblib.c` to `build/i386/mrblib/mrblib.o`
-- create `build/i386/lib/libmruby.a` from object files from gems and `libmruby_core.a`
+- create `build/i386/lib/libmruby.a` from object files from gems and from `src`
 - create binary commands according to binary gems (e.g. `mirb` and `mruby`)
 - copy binaries under `build/host/bin` to `bin` directory
 
@@ -660,8 +657,6 @@ conf.install_excludes << proc { |path|
   path == exefile("bin/mrbtest")
 }
 ```
-
-By default, it contains only a proc object to exclude `libmruby_core`.
 
 ## Tips
 

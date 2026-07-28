@@ -141,13 +141,6 @@ module MRuby
         @port_names = nil
         @gem_dir_to_repo_url = {}
 
-        # Add lambda instead of string because libdir_name or lib may be changed by user configuration
-        libmruby_core_name = nil
-        @install_excludes << ->(file) {
-          libmruby_core_name ||= File.join(libdir_name, libfile("libmruby_core"))
-          file == libmruby_core_name
-        }
-
         MRuby.targets[@name] = current = self
       end
 
@@ -516,10 +509,6 @@ EOS
 
     def libmruby_static
       libfile("#{build_dir}/#{libdir_name}/libmruby")
-    end
-
-    def libmruby_core_static
-      libfile("#{build_dir}/#{libdir_name}/libmruby_core")
     end
 
     def libraries
