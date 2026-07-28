@@ -37,8 +37,10 @@ mrc_load_exec(mrc_ccontext *c, mrc_node *ast)
   if (c->dump_ast) {
     pm_buffer_t buffer = { 0 };
     pm_prettyprint(&buffer, c->p, ast);
-    /* stdout, like the irep dump from mrc_codedump_all() */
-    printf("%s\n", buffer.value);
+    /* stdout, like the irep dump from mrc_codedump_all(). The buffer is not
+       NUL terminated, so it must be written by length. */
+    fwrite(pm_buffer_value(&buffer), 1, pm_buffer_length(&buffer), stdout);
+    putchar('\n');
     pm_buffer_free(&buffer);
   }
 #endif
