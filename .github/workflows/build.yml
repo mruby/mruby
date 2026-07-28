@@ -20,6 +20,9 @@ jobs:
           - {os: ubuntu-24.04, cc: clang, cxx: clang++}
           - {os: ubuntu-22.04, cc: gcc, cxx: g++}
           - {os: ubuntu-22.04, cc: clang, cxx: clang++}
+          # The only runner where `char` is unsigned; the macOS runners are
+          # ARM64 too but Apple's ABI keeps `char` signed.
+          - {os: ubuntu-24.04-arm, cc: gcc, cxx: g++}
           - {os: macos-26, cc: clang, cxx: clang++}
           - {os: macos-15, cc: clang, cxx: clang++}
           - {os: windows-2025, cc: gcc, cxx: g++, altname: "mingw-gcc"}
