@@ -130,13 +130,14 @@ end
 assert('mruby -v option') do
   ver_re = '\Amruby \d+\.\d+\.\d+.* \(\d+-\d+-\d+\)\n'
   assert_mruby(/#{ver_re}\z/, "", true, %w[-v])
-  # Prism's verbose output is the irep disassembly (it has no mruby-style
-  # AST/NODE dump), followed by the program output.
+  # Verbose output is the irep disassembly followed by the program output.
+  # Debug builds print prism's AST dump first; PRISM_BUILD_MINIMAL stubs the
+  # pretty printer out, so elsewhere the irep is all there is.
   assert_mruby(/#{ver_re}.*irep .*:end\n\z/m, "", true, %w[-v -e p(:end)])
 end
 
 assert('mruby --verbose option') do
-  assert_mruby(/\Airep .*:end\n\z/m, "", true, %w[--verbose -e p(:end)])
+  assert_mruby(/\A(@ ProgramNode\b.*\n\n)?irep .*:end\n\z/m, "", true, %w[--verbose -e p(:end)])
 end
 
 assert('mruby --') do
