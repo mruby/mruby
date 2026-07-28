@@ -463,3 +463,37 @@ assert('alias_method and remove_method') do
     Integer.remove_method :to_s_
   end
 end
+
+assert('Object#public_send visibility') do
+  klass = Class.new do
+    def pub
+      :pub
+    end
+    private
+    def priv
+      :priv
+    end
+    protected
+    def prot
+      :prot
+    end
+  end
+  obj = klass.new
+
+  assert_equal :pub, obj.public_send(:pub)
+  assert_raise(NoMethodError) { obj.public_send(:priv) }
+  assert_raise(NoMethodError) { obj.public_send(:prot) }
+
+  # send ignores visibility
+  assert_equal :priv, obj.send(:priv)
+  assert_equal :prot, obj.send(:prot)
+
+  # public_send falls back to method_missing for undefined methods
+  mm = Class.new do
+    private
+    def method_missing(name, *args)
+      [name, args]
+    end
+  end.new
+  assert_equal [:nope, [1]], mm.public_send(:nope, 1)
+end

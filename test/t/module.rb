@@ -799,6 +799,51 @@ assert('method visibility') do
   assert_equal :test, v.test_private { :test }
 end
 
+assert('protected method with an explicit receiver') do
+  class ProtRecvTest
+    def call_other(o)
+      o.val
+    end
+    protected
+    def val
+      42
+    end
+  end
+  class ProtRecvSubTest < ProtRecvTest; end
+  class ProtRecvOtherTest
+    def call_other(o)
+      o.val
+    end
+  end
+  module ProtRecvModTest
+    def call_other(o)
+      o.mval
+    end
+    protected
+    def mval
+      :mod
+    end
+  end
+  class ProtRecvIncTest
+    include ProtRecvModTest
+  end
+
+  # permitted: the caller's `self` belongs to the defining class
+  assert_equal 42, ProtRecvTest.new.call_other(ProtRecvTest.new)
+  assert_equal 42, ProtRecvTest.new.call_other(ProtRecvSubTest.new)
+  assert_equal 42, ProtRecvSubTest.new.call_other(ProtRecvTest.new)
+  assert_equal :mod, ProtRecvIncTest.new.call_other(ProtRecvIncTest.new)
+
+  # rejected: the caller's `self` is unrelated to the defining class
+  assert_raise_with_message_pattern(NoMethodError, "protected method 'val' called for ProtRecvTest") do
+    ProtRecvTest.new.val
+  end
+  assert_raise_with_message_pattern(NoMethodError, "protected method 'val' called for ProtRecvTest") do
+    ProtRecvOtherTest.new.call_other(ProtRecvTest.new)
+  end
+  assert_equal 42, ProtRecvTest.new.__send__(:val)
+end
+
 assert('method_missing is dispatched regardless of its visibility') do
   class PrivMissingTest
     private

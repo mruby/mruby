@@ -1061,7 +1061,8 @@ send_method(mrb_state *mrb, mrb_value self, mrb_bool pub)
       }
       vis_error(mrb, name, mrb_ary_new_from_values(mrb, n, regs+1), self, priv);
     }
-    else if ((m.flags & MRB_METHOD_PROTECTED_FL) && mrb_obj_is_kind_of(mrb, self, ci->u.target_class)) {
+    else if (m.flags & MRB_METHOD_PROTECTED_FL) {
+      /* `public_send` rejects protected methods unconditionally */
       priv = FALSE;
       goto vis_err;
     }
@@ -2880,7 +2881,10 @@ RETRY_TRY_BLOCK:
             mrb_value args = (ci->n == 15) ? regs[1] : mrb_ary_new_from_values(mrb, ci->n, regs+1);
             vis_error(mrb, mid, args, recv, priv);
           }
-          else if ((m.flags & MRB_METHOD_PROTECTED_FL) && mrb_obj_is_kind_of(mrb, recv, ci->u.target_class)) {
+          /* protected methods are callable when the caller's `self` belongs
+             to the class (or module) where the method is defined */
+          else if ((m.flags & MRB_METHOD_PROTECTED_FL) &&
+                   !mrb_obj_is_kind_of(mrb, ci[-1].stack[0], ci->u.target_class)) {
             priv = FALSE;
             goto vis_err;
           }
