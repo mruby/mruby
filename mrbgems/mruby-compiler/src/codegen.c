@@ -221,7 +221,6 @@ typedef struct scope {
   mrc_bool mscope:1;
 
   struct loopinfo *loop;
-  //mrc_sym filename_sym;
   const char *filename;
   uint16_t lineno;
 
@@ -1569,18 +1568,12 @@ new_lit_str(mrc_codegen_scope *s, const char *str, mrc_int len)
 
   pv = lit_pool_extend(s);
 
-  //if (mrb_ro_data_p(str)) {
-  //  pv->tt = (uint32_t)(len<<2) | IREP_TT_SSTR;
-  //  pv->u.str = str;
-  //}
-  //else {
-    char *p;
-    pv->tt = (uint32_t)(len<<2) | IREP_TT_STR;
-    p = (char*)mrc_realloc(s->c, NULL, len+1);
-    if (len) memcpy(p, str, len);   /* str may be NULL for an empty literal */
-    p[len] = '\0';
-    pv->u.str = p;
-  //}
+  char *p;
+  pv->tt = (uint32_t)(len<<2) | IREP_TT_STR;
+  p = (char*)mrc_realloc(s->c, NULL, len+1);
+  if (len) memcpy(p, str, len);   /* str may be NULL for an empty literal */
+  p[len] = '\0';
+  pv->u.str = p;
 
   return i;
 }
@@ -2278,7 +2271,6 @@ gen_hash(mrc_codegen_scope *s, mrc_node *tree, int val, int limit)
   mrc_bool update = FALSE;
   mrc_bool first = TRUE;
 
-  //while (tree) {
   for (size_t i = 0; i < elements.size; i++) {
     if (nint(elements.nodes[i]) == PM_ASSOC_SPLAT_NODE) {
       CAST3(assoc_splat, elements.nodes[i], assocsplat);
@@ -6076,7 +6068,6 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
     }
     case PM_FORWARDING_ARGUMENTS_NODE:
     {
-      //CAST(forwarding_arguments);
       if (val) {
         int idx;
         genop_1(s, OP_LOADNIL, cursp());

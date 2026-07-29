@@ -153,9 +153,6 @@ mrc_debug_info_append_file(mrc_ccontext *c, mrc_irep_debug_info *d,
   mrc_assert(lines);
 
   if (d->flen > 0) {
-    //const char *fn = mrc_sym_name_len(mrb, d->files[d->flen - 1]->filename_sym, NULL);
-    //if (strcmp(filename, fn) == 0)
-    //  return NULL;
     pm_constant_t *fn_constant = pm_constant_pool_id_to_constant(&c->p->constant_pool, d->files[d->flen - 1]->filename_sym);
     mrc_assert(fn_constant);
     if (strlen(filename) == fn_constant->length &&
@@ -174,7 +171,6 @@ mrc_debug_info_append_file(mrc_ccontext *c, mrc_irep_debug_info *d,
   d->pc_count = end_pos;
 
   size_t fn_len = strlen(filename);
-  //f->filename_sym = mrc_intern(mrb, filename, fn_len);
   f->filename_sym = pm_constant_pool_insert_constant(&c->p->constant_pool, (const uint8_t *)filename, fn_len);
 
   f->line_type = mrc_debug_line_packed_map;

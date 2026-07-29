@@ -38,8 +38,6 @@ mrc_irep_free(mrc_ccontext *c, mrc_irep *irep)
   mrc_free(c, (void*)irep->syms);
   if (irep->reps) {
     for (i=0; i<irep->rlen; i++) {
-//      if (irep->reps[i])
-//        mrb_irep_decref((mrb_irep*)irep->reps[i]);
       mrc_irep_free(c, (mrc_irep*)irep->reps[i]);
     }
     mrc_free(c, (void*)irep->reps);

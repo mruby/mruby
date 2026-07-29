@@ -135,7 +135,6 @@ print_args(uint16_t i, FILE *out)
 static void
 codedump(mrc_ccontext *c, const mrc_irep *irep, FILE *out)
 {
-//  int ai;
   const mrc_code *pc, *pcend;
   mrc_code ins;
   const char *file = NULL, *next_file;
