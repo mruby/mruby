@@ -40,8 +40,6 @@ uint32_t mrb_packed_int_decode(const uint8_t *p, const uint8_t **newpos);
 #ifdef MRUBY_IREP_H
 int mrb_dump_irep(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, uint8_t **bin, size_t *bin_size);
 #ifndef MRB_NO_STDIO
-int mrb_dump_irep_cfunc(mrb_state *mrb, const mrb_irep*, uint8_t flags, FILE *f, const char *initname);
-int mrb_dump_irep_cstruct(mrb_state *mrb, const mrb_irep*, uint8_t flags, FILE *f, const char *initname);
 #endif
 #endif
 

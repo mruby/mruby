@@ -16,7 +16,7 @@
  */
 MRB_BEGIN_DECL
 
-/* flags for mrb_dump_irep{,_binary,_cfunc,_cstruct} */
+/* flags for mrb_dump_irep and mrb_dump_irep_binary */
 #define MRB_DUMP_DEBUG_INFO 1
 #define MRB_DUMP_STATIC 2
 #define MRB_DUMP_NO_LVAR 4
