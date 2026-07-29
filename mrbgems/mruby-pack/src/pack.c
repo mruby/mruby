@@ -1454,12 +1454,15 @@ pack_uu(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count)
   int lines_written = 0;
   int dlen = 0;
 
-  if (count <= 1) count = 45; /* default line length for UU-encoding */
+  /* The leading length character holds `count` in six bits, so a line can
+   * carry at most 63 bytes, and encoding works on whole 3-byte groups. */
+  if (count <= 2) count = 45; /* default line length for UU-encoding */
+  else if (count > 63) count = 63;
+  count -= count % 3;
 
   /* Calculate buffer size by accounting for per-line encoding
    * Each line encodes separately, so padding happens per line, not globally
    */
-  /* divide before adding to avoid overflow when count == INT_MAX */
   mrb_int num_lines = slen / count + (slen % count ? 1 : 0);  /* Number of lines */
   mrb_int total_encoded = 0;
   mrb_int temp_slen = slen;

@@ -65,6 +65,26 @@ assert('pack("u")') do
   assert_equal ["ab"].pack("u"), ["ab"].pack("u2147483647")
   assert_equal ["ab"], ["ab"].pack("x124u2147483647")[124..-1].unpack("u")
 
+  # The leading length character holds six bits, so a line carries at most 63
+  # bytes; encoding works on whole 3-byte groups, so the length rounds down to
+  # a multiple of 3. Under 3 it falls back to the default 45.
+  data = "abcdefghij" * 12
+  line_length = ->(n) { [data].pack("u#{n}").getbyte(0) - 32 }
+  assert_equal 45, line_length.call(0)
+  assert_equal 45, line_length.call(2)
+  assert_equal 3, line_length.call(3)
+  assert_equal 42, line_length.call(44)
+  assert_equal 45, line_length.call(45)
+  assert_equal 45, line_length.call(47)
+  assert_equal 63, line_length.call(63)
+  assert_equal 63, line_length.call(64)
+  assert_equal 63, line_length.call(1000)
+
+  # every line length must survive a round trip
+  (0..70).each do |n|
+    assert_equal [data], [data].pack("u#{n}").unpack("u"), "round trip failed for u#{n}"
+  end
+
   # Test that packed data ends with zero-length line for non-empty input
   packed = ["test"].pack("u")
   # Check if last two characters are backtick and newline
