@@ -197,7 +197,7 @@ mrc_pm_parser_init(mrc_parser_state *p, uint8_t **source, size_t size, mrc_ccont
 #ifndef MRC_NO_STDIO
 
 #define INITIAL_BUF_SIZE 1024
-static ssize_t
+static intptr_t
 append_from_stdin(mrc_ccontext *c, uint8_t **source, size_t source_length)
 {
   uint8_t *buffer = (uint8_t *)mrc_malloc(c, INITIAL_BUF_SIZE);
@@ -233,13 +233,13 @@ append_from_stdin(mrc_ccontext *c, uint8_t **source, size_t source_length)
   }
 }
 
-static ssize_t
+static intptr_t
 read_input_files(mrc_ccontext *c, const char **filenames, uint8_t **source, mrc_filename_table *filename_table)
 {
   int i = 0;
   size_t pos = 0;
-  ssize_t length = 0;
-  ssize_t each_size;
+  intptr_t length = 0;
+  intptr_t each_size;
   FILE *file;
   const char *filename = filenames[0];
   while (filename) {
@@ -351,7 +351,7 @@ mrc_parse_file_cxt(mrc_ccontext *c, const char **filenames, uint8_t **source)
   c->filename_table = (mrc_filename_table *)mrc_malloc(c, sizeof(mrc_filename_table) * filecount);
   c->filename_table_length = filecount;
   c->current_filename_index = 0;
-  ssize_t length = read_input_files(c, filenames, source, c->filename_table);
+  intptr_t length = read_input_files(c, filenames, source, c->filename_table);
   if (length < 0) {
     fprintf(stderr, "Cannot open files: ");
     for (size_t i = 0; i < filecount; i++) {
