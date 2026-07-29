@@ -486,11 +486,6 @@ module MRuby
         end
       end
 
-      def setup_build
-        each(&:setup_build)
-        self
-      end
-
       def setup_dependencies(build)
         gem_table = each_with_object({}) { |spec, h| h[spec.name] = spec }
 
@@ -584,6 +579,7 @@ module MRuby
 
         @ary = tsort_dependencies gem_table.keys, gem_table, true
 
+        each(&:setup_build)
         each(&:setup_compilers)
 
         each do |g|

@@ -333,6 +333,9 @@ spec.build_settings do
 end
 ```
 
+The block passed to `MRuby::Gem::Specification#build_settings` is called in the order of the dependent GEMs,
+after all setup blocks for GEMs including dependencies have been called.
+
 **NOTE**: Using the `build_settings` method will cause GEM's all build command settings
 directly written in the block passed to `MRuby::Gem::Specification.new` to be ignored.
 
