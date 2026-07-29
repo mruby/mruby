@@ -61,6 +61,10 @@ assert('pack("u")') do
   packed_long = [long_data].pack("u")
   assert_equal [long_data], packed_long.unpack("u")
 
+  # Huge explicit line length must not overflow the buffer size calculation
+  assert_equal ["ab"].pack("u"), ["ab"].pack("u2147483647")
+  assert_equal ["ab"], ["ab"].pack("x124u2147483647")[124..-1].unpack("u")
+
   # Test that packed data ends with zero-length line for non-empty input
   packed = ["test"].pack("u")
   # Check if last two characters are backtick and newline
