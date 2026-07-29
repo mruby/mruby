@@ -20,8 +20,13 @@ end
 MRUBY_CONFIG = MRuby::Build.mruby_config_path
 load MRUBY_CONFIG
 
-# set up all gems
-MRuby.each_target do
+# define MRB_NO_GEMS and set up all gems
+MRuby.each_target do |build|
+  unless enable_gems? && libmruby_enabled?
+    compilers.each do |compiler|
+      compiler.defines << "MRB_NO_GEMS"
+    end
+  end
   gems.setup(self) if enable_gems?
 end
 

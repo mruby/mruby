@@ -382,9 +382,6 @@ EOS
     end
 
     def define_rules
-      compilers.each do |compiler|
-        compiler.defines << "MRB_NO_GEMS" unless enable_gems? && libmruby_enabled?
-      end
       [@cc, *(@cxx if cxx_exception_enabled?)].each do |compiler|
         compiler.define_rules(@build_dir, MRUBY_ROOT, @exts.object)
         compiler.define_rules(@build_dir, MRUBY_ROOT, @exts.presym_preprocessed)
