@@ -1459,7 +1459,8 @@ pack_uu(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count)
   /* Calculate buffer size by accounting for per-line encoding
    * Each line encodes separately, so padding happens per line, not globally
    */
-  mrb_int num_lines = (slen + count - 1) / count;  /* Number of lines */
+  /* divide before adding to avoid overflow when count == INT_MAX */
+  mrb_int num_lines = slen / count + (slen % count ? 1 : 0);  /* Number of lines */
   mrb_int total_encoded = 0;
   mrb_int temp_slen = slen;
 
