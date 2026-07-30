@@ -341,9 +341,6 @@ EOS
     end
 
     def build_mrbc_exec
-      # Add the compiler before the executable so the latter's mrbgem.rake can
-      # see it in build.gems while it is evaluated.
-      gem :core => 'mruby-compiler' unless @gems['mruby-compiler']
       gem :core => 'mruby-bin-mrbc' unless @gems['mruby-bin-mrbc']
     end
 
