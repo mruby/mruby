@@ -55,9 +55,9 @@ task_unshare_envs(mrb_state *mrb, struct mrb_context *c)
    * one element before the start of an array is undefined behavior. */
   for (ci = c->ci; ; ci--) {
     struct REnv *e = ci->u.env;
-    /* mrb_env_unshare() allocates and can therefore run a GC cycle. The
-     * task is already unlinked here, so an env that nothing else refers
-     * to may be swept mid-walk; check liveness before touching it. */
+    /* mrb_env_unshare() allocates and can therefore run a GC cycle. In
+     * teardown paths the task may already be unlinked, so an env that no
+     * other object refers to may be swept mid-walk; check liveness first. */
     if (e && !mrb_object_dead_p(mrb, (struct RBasic*)e) &&
         e->tt == MRB_TT_ENV && MRB_ENV_ONSTACK_P(e)) {
       mrb_env_unshare(mrb, e, TRUE);
