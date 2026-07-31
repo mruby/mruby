@@ -1,6 +1,7 @@
 #include <time.h>
 #include <mruby.h>
 #include <mruby/class.h>
+#include <mruby/proc.h>
 #include "task.h"
 
 /* Burn CPU until `ms` milliseconds of CPU time have elapsed, then raise.
@@ -98,6 +99,34 @@ tasktest_run_once(mrb_state *mrb, mrb_value self)
   return mrb_task_run_once(mrb);
 }
 
+
+/* Drive mrb_task_init_context(): reuse an existing task's context for a
+   new proc. The old context's stack is freed inside, which is where an
+   escaped env must have been detached. */
+static mrb_value
+tasktest_reinit_context(mrb_state *mrb, mrb_value self)
+{
+  mrb_value task, blk;
+  mrb_get_args(mrb, "o&", &task, &blk);
+  if (mrb_nil_p(blk)) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "block required");
+  }
+  mrb_task_init_context(mrb, task, mrb_proc_ptr(blk));
+  return mrb_nil_value();
+}
+
+/* Drive the synchronous-execution teardown path. */
+static mrb_value
+tasktest_run_sync(mrb_state *mrb, mrb_value self)
+{
+  mrb_value blk;
+  mrb_get_args(mrb, "&", &blk);
+  if (mrb_nil_p(blk)) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "block required");
+  }
+  return mrb_execute_proc_synchronously(mrb, blk, 0, NULL);
+}
+
 void
 mrb_mruby_task_gem_test(mrb_state* mrb)
 {
@@ -108,4 +137,6 @@ mrb_mruby_task_gem_test(mrb_state* mrb)
   mrb_define_module_function(mrb, tasktest, "install_wake_hook", tasktest_install_wake_hook, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, tasktest, "clear_hook", tasktest_clear_hook, MRB_ARGS_NONE());
   mrb_define_module_function(mrb, tasktest, "run_once", tasktest_run_once, MRB_ARGS_NONE());
+  mrb_define_module_function(mrb, tasktest, "reinit_context", tasktest_reinit_context, MRB_ARGS_REQ(1) | MRB_ARGS_BLOCK());
+  mrb_define_module_function(mrb, tasktest, "run_sync", tasktest_run_sync, MRB_ARGS_BLOCK());
 }

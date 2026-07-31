@@ -35,6 +35,37 @@
 /* Maximum value for scheduler_lock (uint8_t max) */
 #define MRB_TASK_SCHEDULER_LOCK_MAX 255
 
+/* Detach envs that live on this task's stack before the stack goes away.
+ * An escaped closure keeps its REnv alive after the task is gone; if the
+ * env still points into the freed stack, the next GC marks garbage and
+ * crashes in mrb_gc_mark. mruby does the same for fibers in gc.c's
+ * MRB_TT_FIBER free path.
+ *
+ * Only called while the VM is alive. A task stays GC-registered for its
+ * whole life, so the GC frees one only while tearing the heap down, and
+ * there detaching would be both pointless (no later marking) and unsafe
+ * (the env's page may already be gone). */
+static void
+task_unshare_envs(mrb_state *mrb, struct mrb_context *c)
+{
+  mrb_callinfo *ci;
+
+  if (!c->cibase || !c->ci) return;
+  /* Stop AT cibase rather than decrementing past it: forming a pointer
+   * one element before the start of an array is undefined behavior. */
+  for (ci = c->ci; ; ci--) {
+    struct REnv *e = ci->u.env;
+    /* mrb_env_unshare() allocates and can therefore run a GC cycle. In
+     * teardown paths the task may already be unlinked, so an env that no
+     * other object refers to may be swept mid-walk; check liveness first. */
+    if (e && !mrb_object_dead_p(mrb, (struct RBasic*)e) &&
+        e->tt == MRB_TT_ENV && MRB_ENV_ONSTACK_P(e)) {
+      mrb_env_unshare(mrb, e, TRUE);
+    }
+    if (ci == c->cibase) break;
+  }
+}
+
 /*
  * Task data type for GC
  */
@@ -1407,6 +1438,12 @@ mrb_execute_proc_synchronously(mrb_state *mrb, mrb_value proc_val, mrb_int argc,
   if (mrb_obj_ptr(result) == mrb->exc) {
     mrb->exc = NULL;  /* Clear exception */
   }
+  /* From here on the task is unlinked, its context is STOPPED and (for an
+   * exception result) mrb->exc is cleared, so nothing the GC walks refers
+   * to the result any more. task_unshare_envs() below allocates and can
+   * therefore run a GC cycle: protect the result before that point, not
+   * after the teardown. */
+  mrb_gc_protect(mrb, result);
 
   /* 6. Free the temporary task's resources */
   mrb_task_excl_enter(mrb);
@@ -1417,6 +1454,7 @@ mrb_execute_proc_synchronously(mrb_state *mrb, mrb_value proc_val, mrb_int argc,
   DATA_TYPE(task_obj) = NULL;
 
   /* Free context resources directly (bypass GC since we own this task) */
+  task_unshare_envs(mrb, &t->c);
   if (t->c.stbase) {
     mrb_free(mrb, t->c.stbase);
     t->c.stbase = NULL;
@@ -1639,6 +1677,7 @@ mrb_close_task(mrb_state *mrb, mrb_value task)
   mrb_task_excl_exit(mrb);
 
   DATA_PTR(task) = NULL;
+  task_unshare_envs(mrb, &t->c);
   mrb_task_free(mrb, t);
 }
 
@@ -1686,6 +1725,7 @@ mrb_task_init_context(mrb_state *mrb, mrb_value task, struct RProc *proc)
   struct mrb_context *c = &t->c;
 
   /* Cleanup existing context if any */
+  task_unshare_envs(mrb, c);
   if (c->stbase) {
     mrb_free(mrb, c->stbase);
     c->stbase = NULL;
