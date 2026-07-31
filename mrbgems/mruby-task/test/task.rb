@@ -359,3 +359,74 @@ assert("scheduler hook cleared with NULL stops firing") do
   assert_true 1 <= fired
   assert_equal fired, TaskTest.probe_count(0)
 end
+
+# Envs on a task stack must be detached before the stack is freed
+
+assert("closure escaping a closed task survives GC") do
+  t = Task.new(name: "escaper") do
+    a1 = 1; a2 = 2; a3 = 3; a4 = 4; a5 = 5; a6 = 6
+    $task_escaped_proc = -> { a1 + a2 + a3 + a4 + a5 + a6 }
+    Task.current.suspend
+  end
+  Task.pass
+  assert_equal 21, $task_escaped_proc.call
+  t.terminate
+  t.close                 # frees the task's stack
+  GC.start                # marks the escaped env; must not read freed memory
+  junk = []
+  i = 0
+  while i < 200
+    junk << "x" * 64      # reuse the freed stack region
+    i += 1
+  end
+  GC.start
+  assert_equal 21, $task_escaped_proc.call
+  $task_escaped_proc = nil
+end
+
+assert("closure escaping a task whose context is reinitialized survives GC") do
+  t = Task.new(name: "reinit") do
+    b1 = 7; b2 = 8; b3 = 9
+    $task_escaped_proc2 = -> { b1 + b2 + b3 }
+    Task.current.suspend
+  end
+  Task.pass
+  assert_equal 24, $task_escaped_proc2.call
+  t.terminate
+  # Reuse the task's context for another proc: the old stack is freed
+  # inside mrb_task_init_context, with the escaped env still pointing at it.
+  TaskTest.reinit_context(t) { 0 }
+  GC.start
+  junk = []
+  i = 0
+  while i < 200
+    junk << "y" * 48
+    i += 1
+  end
+  GC.start
+  assert_equal 24, $task_escaped_proc2.call
+  $task_escaped_proc2 = nil
+  t.close
+end
+
+assert("closure escaping a synchronously executed proc survives GC") do
+  result = TaskTest.run_sync do
+    c1 = 10; c2 = 20
+    $task_escaped_proc3 = -> { c1 + c2 }
+    "sync-result"
+  end
+  # The teardown frees the temporary task's stack; both the returned
+  # object and the escaped env must survive it.
+  assert_equal "sync-result", result
+  GC.start
+  junk = []
+  i = 0
+  while i < 200
+    junk << "z" * 48
+    i += 1
+  end
+  GC.start
+  assert_equal 30, $task_escaped_proc3.call
+  assert_equal "sync-result", result
+  $task_escaped_proc3 = nil
+end
