@@ -50,6 +50,7 @@ void mrb_codedump_all_file(mrb_state *mrb, struct RProc *proc, FILE *out);
 #endif
 
 /* error */
+mrb_noreturn void mrb_raise_nomemory(mrb_state *mrb);
 mrb_value mrb_exc_inspect(mrb_state *mrb, mrb_value exc);
 mrb_value mrb_exc_backtrace(mrb_state *mrb, mrb_value exc);
 mrb_value mrb_get_backtrace(mrb_state *mrb);

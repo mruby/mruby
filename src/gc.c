@@ -264,8 +264,6 @@ mrb_static_assert(MRB_GC_RED <= GC_COLOR_MASK);
 #define other_white_part(s) ((s)->current_white_part ^ GC_WHITES)
 #define is_dead(s, o) (((o)->gc_color & other_white_part(s) & GC_WHITES) || (o)->tt == MRB_TT_FREE)
 
-mrb_noreturn void mrb_raise_nomemory(mrb_state *mrb);
-
 static size_t incremental_gc_finish(mrb_state *mrb, mrb_gc *gc);
 static size_t incremental_gc_run(mrb_state *mrb, mrb_gc *gc);
 
