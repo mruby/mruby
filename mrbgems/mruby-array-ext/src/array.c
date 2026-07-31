@@ -1060,15 +1060,20 @@ ary_fill_exec(mrb_state *mrb, mrb_value self)
   struct RArray *ary = mrb_ary_ptr(self);
   mrb_int ary_len = ARY_LEN(ary);
 
+  mrb_int end;
+  if (mrb_int_add_overflow(start, length, &end)) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
+  }
+
   /* Extend array if necessary */
-  if (start + length > ary_len) {
-    mrb_ary_resize(mrb, self, start + length);
+  if (end > ary_len) {
+    mrb_ary_resize(mrb, self, end);
     ary = mrb_ary_ptr(self);  /* refresh pointer after resize */
   }
 
   /* Ensure we don't go beyond array bounds */
   if (start >= ARY_LEN(ary) || length <= 0) return self;
-  if (start + length > ARY_LEN(ary)) {
+  if (end > ARY_LEN(ary)) {
     length = ARY_LEN(ary) - start;
   }
 
@@ -1399,7 +1404,10 @@ ary_insert(mrb_state *mrb, mrb_value self)
 
   mrb_ary_modify(mrb, mrb_ary_ptr(self));
 
-  mrb_int new_len = (idx > len ? idx : len) + argc;
+  mrb_int new_len;
+  if (mrb_int_add_overflow(idx > len ? idx : len, argc, &new_len)) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
+  }
   mrb_ary_resize(mrb, self, new_len);
 
   if (idx < len) {

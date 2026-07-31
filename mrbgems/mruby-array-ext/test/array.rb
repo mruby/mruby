@@ -411,6 +411,13 @@ assert("Array#fill") do
   # Test extending array
   a = [1, 2]
   assert_equal [1, 2, nil, nil, "x"], a.fill("x", 4, 1)
+
+  # start + length must not overflow mrb_int
+  # (shift width via a variable; the folded literal is unrepresentable on MRB_INT32)
+  bits = 63
+  a = [1, 2, 3, 4, 5]
+  assert_raise(ArgumentError, RangeError) { a.fill(0, 1, ~(-1 << bits)) }
+  assert_equal [1, 2, 3, 4, 5], a
 end
 
 
@@ -530,6 +537,13 @@ assert("Array#insert") do
   assert_equal "x", a[500]
   assert_equal 499, a[499]
   assert_equal 500, a[501]
+
+  # index + argc must not overflow mrb_int
+  # (shift width via a variable; the folded literal is unrepresentable on MRB_INT32)
+  bits = 63
+  a = [1, 2, 3, 4, 5]
+  assert_raise(ArgumentError, RangeError) { a.insert(~(-1 << bits), 99) }
+  assert_equal [1, 2, 3, 4, 5], a
 end
 
 assert("Array#bsearch") do
