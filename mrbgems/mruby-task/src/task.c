@@ -571,6 +571,12 @@ task_run_body(mrb_state *mrb, void *ud)
   (void)ud;
 
   while (1) {
+    /* Scheduler servicing point. Runs before the ready-queue read so
+       a task woken here (busy path, task termination, and idle return
+       all pass through this loop top) is picked up in this iteration. */
+    if (mrb->task.scheduler_hook) {
+      mrb->task.scheduler_hook(mrb, mrb->task.scheduler_hook_ud);
+    }
     t = q_ready_;
 
     /* No task ready - check if all tasks are done */
@@ -599,11 +605,6 @@ task_run_body(mrb_state *mrb, void *ud)
         mrb_bool delayed = (q_ready_ != NULL);
         mrb_task_excl_exit(mrb);
         mrb_gc_scheduler_jitter(mrb, delayed);
-        /* This branch loops without reaching idle_cpu or the post-execute
-           hook below, so a long GC drain would otherwise be a third way to
-           starve platform servicing (mrb_task_run_once doesn't need this:
-           it returns to the host after one step). */
-        mrb_hal_task_switch_hook(mrb, MRB_TASK_SWITCH_GC_STEP);
         continue;
       }
       /* If there are tasks waiting or suspended, idle */
@@ -618,11 +619,6 @@ task_run_body(mrb_state *mrb, void *ud)
 
     /* Execute task using core logic */
     execute_task(mrb, t);
-
-    /* Platform servicing point — fires on every switch, so a compute-bound
-       task that keeps the ready queue full cannot starve it (idle_cpu only
-       runs when no task is ready). */
-    mrb_hal_task_switch_hook(mrb, MRB_TASK_SWITCH_TASK);
 
     /* Move to end of ready queue if still running (round-robin) */
     if (t->status == MRB_TASK_STATUS_READY) {
@@ -655,11 +651,24 @@ mrb_task_run(mrb_state *mrb)
   return result;
 }
 
+MRB_API void
+mrb_task_set_scheduler_hook(mrb_state *mrb, void (*fn)(mrb_state *mrb, void *ud), void *ud)
+{
+  mrb->task.scheduler_hook = fn;
+  mrb->task.scheduler_hook_ud = ud;
+}
+
 /* Single-step task execution for WASM event loop integration */
 MRB_API mrb_value
 mrb_task_run_once(mrb_state *mrb)
 {
-  mrb_task *t = q_ready_;
+  mrb_task *t;
+
+  /* Scheduler servicing point (see task_run_body) */
+  if (mrb->task.scheduler_hook) {
+    mrb->task.scheduler_hook(mrb, mrb->task.scheduler_hook_ud);
+  }
+  t = q_ready_;
 
   /* No task ready */
   if (!t) {
@@ -692,9 +701,6 @@ mrb_task_run_once(mrb_state *mrb)
 
   /* Execute task using core logic */
   execute_task(mrb, t);
-
-  /* Platform servicing point (see task_run_body) */
-  mrb_hal_task_switch_hook(mrb, MRB_TASK_SWITCH_TASK);
 
   /* Move to end of ready queue if still ready (round-robin) */
   if (t->status == MRB_TASK_STATUS_READY) {
@@ -986,7 +992,13 @@ mrb_task_s_list(mrb_state *mrb, mrb_value self)
 static void
 task_run_one_iteration(mrb_state *mrb)
 {
-  mrb_task *t = q_ready_;
+  mrb_task *t;
+
+  /* Scheduler servicing point (see task_run_body) */
+  if (mrb->task.scheduler_hook) {
+    mrb->task.scheduler_hook(mrb, mrb->task.scheduler_hook_ud);
+  }
+  t = q_ready_;
 
   /* No ready task - just return (sleep from root provides delays) */
   if (!t) {

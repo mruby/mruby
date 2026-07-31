@@ -303,3 +303,59 @@ assert("exception raised from C after blocking is not leaked into Task#value") d
 
   assert_equal :rescued, child.value
 end
+
+# Scheduler hook tests (mrb_task_set_scheduler_hook)
+
+assert("scheduler hook fires at every scheduler entry") do
+  TaskTest.install_probe_hook(0)
+  c0 = TaskTest.probe_count(0)
+  Task.pass            # entry: task_run_one_iteration (root-context Task.pass)
+  c1 = TaskTest.probe_count(0)
+  TaskTest.run_once    # entry: mrb_task_run_once
+  c2 = TaskTest.probe_count(0)
+  Task.new(name: "hook_noop") { }
+  Task.run             # entry: task_run_body loop
+  c3 = TaskTest.probe_count(0)
+  TaskTest.clear_hook
+  assert_true c0 + 1 <= c1
+  assert_true c1 + 1 <= c2
+  assert_true c2 + 1 <= c3
+end
+
+assert("scheduler hook wakes a queue-blocked task in the same iteration") do
+  q = Task::Queue.new
+  ran = []
+  t = Task.new(name: "hook_waker") do
+    ran << q.pop
+  end
+  Task.pass  # runs the task until it parks inside q.pop
+  TaskTest.install_wake_hook(q)
+  # The hook fires before the ready-queue read, so the push it makes must
+  # wake the task and get it selected within this single Task.pass. If the
+  # hook ran after the read, a second pass would be needed.
+  Task.pass
+  TaskTest.clear_hook
+  assert_equal [42], ran
+end
+
+assert("setting a new scheduler hook replaces the previous one") do
+  TaskTest.install_probe_hook(0)
+  Task.pass
+  a_after_first = TaskTest.probe_count(0)
+  TaskTest.install_probe_hook(1)
+  Task.pass
+  TaskTest.clear_hook
+  assert_equal a_after_first, TaskTest.probe_count(0)
+  assert_true 1 <= TaskTest.probe_count(1)
+end
+
+assert("scheduler hook cleared with NULL stops firing") do
+  TaskTest.install_probe_hook(0)
+  Task.pass
+  fired = TaskTest.probe_count(0)
+  TaskTest.clear_hook
+  Task.pass
+  Task.pass
+  assert_true 1 <= fired
+  assert_equal fired, TaskTest.probe_count(0)
+end

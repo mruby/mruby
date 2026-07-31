@@ -305,6 +305,8 @@ typedef struct mrb_task_state {
   uint8_t irq_nesting;              /* Depth counter for scheduler-IRQ exclusion */
   mrb_bool loop_running;            /* Active mrb_task_run loop flag */
   mrb_bool exception_as_result;     /* Return unhandled task exceptions as values */
+  void (*scheduler_hook)(struct mrb_state *mrb, void *ud); /* Pre-scheduling servicing hook */
+  void *scheduler_hook_ud;            /* Opaque argument for scheduler_hook */
 } mrb_task_state;
 #endif
 
