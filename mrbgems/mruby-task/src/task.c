@@ -571,6 +571,12 @@ task_run_body(mrb_state *mrb, void *ud)
   (void)ud;
 
   while (1) {
+    /* Scheduler servicing point. Runs before the ready-queue read so
+       a task woken here (busy path, task termination, and idle return
+       all pass through this loop top) is picked up in this iteration. */
+    if (mrb->task.scheduler_hook) {
+      mrb->task.scheduler_hook(mrb, mrb->task.scheduler_hook_ud);
+    }
     t = q_ready_;
 
     /* No task ready - check if all tasks are done */
@@ -655,11 +661,24 @@ mrb_task_run(mrb_state *mrb)
   return result;
 }
 
+MRB_API void
+mrb_task_set_scheduler_hook(mrb_state *mrb, void (*fn)(mrb_state *mrb, void *ud), void *ud)
+{
+  mrb->task.scheduler_hook = fn;
+  mrb->task.scheduler_hook_ud = ud;
+}
+
 /* Single-step task execution for WASM event loop integration */
 MRB_API mrb_value
 mrb_task_run_once(mrb_state *mrb)
 {
-  mrb_task *t = q_ready_;
+  mrb_task *t;
+
+  /* Scheduler servicing point (see task_run_body) */
+  if (mrb->task.scheduler_hook) {
+    mrb->task.scheduler_hook(mrb, mrb->task.scheduler_hook_ud);
+  }
+  t = q_ready_;
 
   /* No task ready */
   if (!t) {
@@ -986,7 +1005,13 @@ mrb_task_s_list(mrb_state *mrb, mrb_value self)
 static void
 task_run_one_iteration(mrb_state *mrb)
 {
-  mrb_task *t = q_ready_;
+  mrb_task *t;
+
+  /* Scheduler servicing point (see task_run_body) */
+  if (mrb->task.scheduler_hook) {
+    mrb->task.scheduler_hook(mrb, mrb->task.scheduler_hook_ud);
+  }
+  t = q_ready_;
 
   /* No ready task - just return (sleep from root provides delays) */
   if (!t) {

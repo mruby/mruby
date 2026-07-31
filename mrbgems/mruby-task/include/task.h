@@ -121,6 +121,14 @@ MRB_API void mrb_tick(mrb_state *mrb);
 MRB_API mrb_value mrb_task_run(mrb_state *mrb);
 MRB_API mrb_value mrb_task_run_once(mrb_state *mrb);
 
+/* Register a hook called in thread context at every scheduler entry,
+ * right before the ready-queue read: a task the hook makes ready
+ * (e.g. via mrb_task_queue_push) runs in the same iteration.
+ * One hook per mrb_state -- setting replaces, fn == NULL clears,
+ * composition is the embedder's concern, the caller owns ud.
+ * Must be cheap, never sleep, never re-enter the scheduler. */
+MRB_API void mrb_task_set_scheduler_hook(mrb_state *mrb, void (*fn)(mrb_state *mrb, void *ud), void *ud);
+
 /*
  * Task creation API
  */
