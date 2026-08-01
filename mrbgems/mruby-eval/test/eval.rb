@@ -194,3 +194,13 @@ assert 'method visibility with eval' do
     c.new.good!
   end
 end
+
+assert('alias and undef reject a dynamic symbol') do
+  # OP_ALIAS and OP_UNDEF carry a symbol index, so an interpolated name cannot
+  # be expressed. The codegen used to read the InterpolatedSymbolNode as if it
+  # were a SymbolNode, which ran off the end of the node
+  # (clusterfuzz 6308929387429888, `alias p:"#{}"`).
+  assert_raise(SyntaxError) { eval 'alias p :"#{}"' }
+  assert_raise(SyntaxError) { eval 'alias :"#{1}" p' }
+  assert_raise(SyntaxError) { eval 'undef :"#{}"' }
+end

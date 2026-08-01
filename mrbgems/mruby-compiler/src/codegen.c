@@ -1857,6 +1857,34 @@ node_lineno(mrc_ccontext *c, mrc_node *node)
   return abs_line - file_start_line + 1 + line_offset;
 }
 
+/* `alias` and `undef` take compile-time symbol indices, but prism hands them a
+   SymbolNode *or* an InterpolatedSymbolNode (`alias :"#{x}" :y`), plus
+   GlobalVariableReadNode / MissingNode on a parse error. Resolve the ones whose
+   name is known at compile time and report the rest instead of reading the
+   wrong node layout. */
+static mrc_sym
+alias_sym(mrc_codegen_scope *s, mrc_node *tree)
+{
+  switch (nint(tree)) {
+  case PM_SYMBOL_NODE:
+    {
+      CAST3(symbol, tree, sym);
+      return new_sym(s, nsym(s->c->p, sym->unescaped.source, sym->unescaped.length));
+    }
+  case PM_INTERPOLATED_SYMBOL_NODE:
+    /* The name is only known at run time, but OP_ALIAS and OP_UNDEF carry a
+       symbol index. Supporting it would mean interning and dispatching at run
+       time, which is a separate feature. */
+    codegen_error(s, "dynamic symbol is not supported by alias/undef");
+    return 0;
+  default:
+    /* GlobalVariableReadNode / MissingNode: prism produces these for
+       `alias a $b` and `alias a 42` and has already reported the error. */
+    codegen_error(s, "invalid alias/undef argument");
+    return 0;
+  }
+}
+
 static mrc_bool
 true_always(mrc_node *tree)
 {
@@ -5615,10 +5643,8 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
     case PM_ALIAS_METHOD_NODE:
     {
       CAST(alias_method);
-      CAST3(symbol, cast->new_name, new_name);
-      CAST3(symbol, cast->old_name, old_name);
-      int a = new_sym(s, nsym(s->c->p, new_name->unescaped.source, new_name->unescaped.length));
-      int b = new_sym(s, nsym(s->c->p, old_name->unescaped.source, old_name->unescaped.length));
+      int a = alias_sym(s, (mrc_node *)cast->new_name);
+      int b = alias_sym(s, (mrc_node *)cast->old_name);
       genop_2(s, OP_ALIAS, a, b);
       if (val) {
         genop_1(s, OP_LOADNIL, cursp());
@@ -5630,9 +5656,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
     {
       CAST(undef);
       for (size_t i = 0; i < cast->names.size; i++) {
-        CAST3(symbol, cast->names.nodes[i], name);
-        int symbol = new_sym(s, nsym(s->c->p, name->unescaped.source, name->unescaped.length));
-        genop_1(s, OP_UNDEF, symbol);
+        genop_1(s, OP_UNDEF, alias_sym(s, (mrc_node *)cast->names.nodes[i]));
       }
       if (val) {
         genop_1(s, OP_LOADNIL, cursp());
