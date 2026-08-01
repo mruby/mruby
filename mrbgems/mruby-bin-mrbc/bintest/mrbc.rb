@@ -56,9 +56,10 @@ assert('mrbc -v disassembles like mruby -v') do
     begin
       raise "x"
     rescue => e
+      p e
       retry if false
     ensure
-      nil
+      $gv = "done"
     end
     ->(z) { z }.call(1)
     case 1 when 1 then 2 else 3 end
