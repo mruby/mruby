@@ -2504,8 +2504,13 @@ RETRY_TRY_BLOCK:
           NEXT;
         }
       }
-      regs[a] = mrb_iv_get(mrb, recv, irep->syms[b]);
-      ci = mrb->c->ci;
+      {
+        /* same as OP_ARYCAT: mrb_iv_get() can run a `method_missing`-style
+           callback, so the store has to go through the refreshed `regs` */
+        mrb_value iv = mrb_iv_get(mrb, recv, irep->syms[b]);
+        ci = mrb->c->ci;
+        regs[a] = iv;
+      }
       NEXT;
     }
 
@@ -3506,9 +3511,14 @@ RETRY_TRY_BLOCK:
       mrb_value v = regs[a+1];
       if (mrb_nil_p(regs[a])) {
         /* becomes the argument accumulator, which OP_ARYPUSH/ARYCAT then
-           append to, so it must be a fresh array independent of v */
-        regs[a] = mrb_ary_splat(mrb, v);
+           append to, so it must be a fresh array independent of v.
+           mrb_ary_splat() can call back into the VM (`to_a`) and move the
+           stack, so take the result first and store it through the refreshed
+           `regs`: the address of regs[a] is otherwise computed before the
+           call and would point into the freed buffer. */
+        mrb_value splat = mrb_ary_splat(mrb, v);
         ci = mrb->c->ci;
+        regs[a] = splat;
       }
       else if (mrb_array_p(v)) {
         /* concat only reads v, so splat here would just dup v and copy it
