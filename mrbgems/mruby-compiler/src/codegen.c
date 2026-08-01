@@ -258,14 +258,15 @@ codegen_error(mrc_codegen_scope *s, const char *message)
   mrc_diagnostic_list_append(s->c, 0, message, MRC_GENERATOR_ERROR);
 
 #ifndef MRC_NO_STDIO
-  if (s->filename && s->lineno) {
-    const char *filename = (const char *)s->filename;
-    fprintf(stderr, "%s:%d: %s\n", filename, s->lineno, message);
+  if (!s->c->quiet_errors) {
+    if (s->filename && s->lineno) {
+      const char *filename = (const char *)s->filename;
+      fprintf(stderr, "%s:%d: %s\n", filename, s->lineno, message);
+    }
+    else {
+      fprintf(stderr, "%s\n", message);
+    }
   }
-  else {
-    fprintf(stderr, "%s\n", message);
-  }
-
 #endif
   while (s->prev) {
     mrc_codegen_scope *tmp = s->prev;

@@ -34,6 +34,11 @@ copy_context_to_mrc(mrc_ccontext *dst, const mrb_ccontext *src)
   dst->lineno = src->lineno;
   dst->target_class = src->target_class;
   dst->capture_errors = FALSE;
+  /* `capture_errors` is the compiler's own "an error was recorded" flag, so it
+     starts clear; the caller's intent to report errors itself travels in
+     `quiet_errors` and keeps codegen_error() off stderr, the way parse errors
+     are gated below. */
+  dst->quiet_errors = src->capture_errors;
   /* Only the AST dump is delegated to the compiler. `dump_result` stays off
      here because mrb_load_exec() dumps the generated proc through
      mrb_codedump_all(); letting mrc_load_exec() dump too would print the
@@ -198,8 +203,8 @@ parse_source(mrb_state *mrb, const char *s, size_t len, mrb_ccontext *c)
 #ifndef MRB_NO_STDIO
   /* Unless the caller captures errors (e.g. eval), report parse errors to
      stderr like the bison parser does, so a syntax error is not a silent
-     failure. Only parser errors are emitted here; codegen errors are
-     already printed by the generator (see codegen_error()). */
+     failure. Codegen errors take the same gate inside codegen_error(),
+     through `quiet_errors`. */
   if (!c || !c->capture_errors) {
     const char *fn = (c && c->filename) ? c->filename : "(string)";
     const mrc_diagnostic_list *d;

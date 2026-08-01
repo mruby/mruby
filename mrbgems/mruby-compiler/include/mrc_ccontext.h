@@ -35,7 +35,8 @@ typedef struct mrc_ccontext {
   char *filename;
   uint16_t lineno;
   struct RClass *target_class;
-  mrc_bool capture_errors:1;
+  mrc_bool capture_errors:1;   /* output: an error was recorded */
+  mrc_bool quiet_errors:1;     /* input: caller reports them itself (eval) */
   mrc_bool dump_ast:1;
   mrc_bool dump_result:1;
   mrc_bool no_exec:1;
