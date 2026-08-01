@@ -183,6 +183,32 @@ assert('safe navigation operator-assignment short-circuits on nil') do
   assert_equal 7, d.x
 end
 
+assert('local variable or/and-assignment yields its value') do
+  # gen_assignment_lvar() only moves, so the local-variable branch has to push
+  # the result the way the other branches do. Without it the expression yields
+  # nothing and every later register is off by one, which the VM catches as
+  # `bidx < irep->nregs`.
+  q = 1;   assert_equal 1, (q ||= 7); assert_equal 1, q
+  r = nil; assert_equal 7, (r ||= 7); assert_equal 7, r
+  s = 1;   assert_equal 7, (s &&= 7); assert_equal 7, s
+  t = nil; assert_nil (t &&= 7)
+
+  # in argument position, where the register slip used to assert
+  u = 1
+  assert_equal [1], [].push(u ||= 7)
+  v = 1
+  assert_equal [1, 8], [(v ||= 7), 8]
+
+  # combined with a splat argument (clusterfuzz 6212427713413120)
+  w = 1
+  assert_equal [1, :h], [(w ||= 7), *[:h]]
+
+  # and in a nested scope, through an upvar
+  outer = nil
+  [1].each { outer ||= 5 }
+  assert_equal 5, outer
+end
+
 assert('attribute or/and-assignment persists the write in a value context') do
   acc = Class.new { attr_accessor :x }
 

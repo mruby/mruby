@@ -4555,7 +4555,12 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       switch (nt) {
         case PM_LOCAL_VARIABLE_OR_WRITE_NODE:
         case PM_LOCAL_VARIABLE_AND_WRITE_NODE:
+          /* gen_assignment_lvar() only moves, so the result has to be pushed
+             here the way the other branches do below. Without it the
+             expression yields nothing and every later register is off by
+             one, which shows up as `bidx < irep->nregs` in the VM. */
           gen_assignment_lvar(s, cursp(), name, depth, val);
+          push();
           break;
         case PM_GLOBAL_VARIABLE_OR_WRITE_NODE:
         case PM_GLOBAL_VARIABLE_AND_WRITE_NODE:
