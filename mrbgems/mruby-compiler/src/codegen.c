@@ -4883,6 +4883,15 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       codegen(s, (mrc_node *)cast->statements, val);
       break;
     }
+    case PM_EMBEDDED_VARIABLE_NODE:
+    {
+      /* `"#@iv"`, the brace-less form of `"#{@iv}"`. The variable read is an
+         ordinary expression and OP_STRCAT converts it, so there is nothing to
+         do beyond generating it. */
+      CAST(embedded_variable);
+      codegen(s, (mrc_node *)cast->variable, val);
+      break;
+    }
     case PM_INTERPOLATED_STRING_NODE:
     case PM_INTERPOLATED_SYMBOL_NODE:
     {

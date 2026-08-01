@@ -1577,3 +1577,32 @@ end
 # NOTE: `&nil` block-forbidding parameters live in syntax_block_forbid.rb,
 # which the build excludes when compiling with mruby-compiler-prism (the
 # Prism parser does not accept `&nil` yet).
+
+assert('brace-less variable interpolation') do
+  # `"#@iv"` is the short form of `"#{@iv}"`. It reaches the codegen as an
+  # EmbeddedVariableNode, which used to be unimplemented.
+  @iv = "IV"
+  $gv = "GV"
+
+  assert_equal "aIVb", "a#@iv" + "b"
+  assert_equal "xGVy", "x#$gv" + "y"
+  assert_equal "IVGV", "#@iv#$gv"
+  assert_equal :sIV, :"s#@iv"
+
+  # a class variable, which is only readable from a class body or method
+  c = Class.new do
+    @@cv = "CV"
+    def self.t; "c#@@cv"; end
+  end
+  assert_equal "cCV", c.t
+
+  # non-string values go through to_s, as with #{}
+  @n = 42
+  @u = nil
+  assert_equal "42", "#@n"
+  assert_equal "", "#@u"
+
+  # `#` not followed by a variable sigil stays literal
+  assert_equal "# x", "# x"
+  assert_equal 3, "#@ ".length
+end
