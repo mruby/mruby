@@ -15,6 +15,9 @@ class String
   end
 
   def =~(re)
+    # A String argument would dispatch back to this method and recurse, so
+    # reject it up front (CRuby raises the same TypeError).
+    raise TypeError, "type mismatch: String given" if re.is_a?(String)
     re =~ self
   end
 
