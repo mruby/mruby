@@ -571,6 +571,12 @@ class StringMatchIsALiar
   end
 end
 
+class StringMatchToStr
+  def to_str
+    "b"
+  end
+end
+
 assert("String#match / #match? with a non-Regexp argument raise TypeError") do
   # nil, true and false are named by value, everything else by class.
   assert_raise_with_message(TypeError, "wrong argument type nil (expected Regexp)") do
@@ -606,6 +612,18 @@ assert("String#match / #match? with a non-Regexp argument raise TypeError") do
   end
   assert_raise_with_message(TypeError, "wrong argument type StringMatchIsALiar (expected Regexp)") do
     "abc".match?(liar)
+  end
+
+  # CRuby converts an argument responding to `to_str` and matches with it.
+  # mruby has no implicit String conversion in core, so the gem names such an
+  # argument by class like any other, and this row stays an intentional
+  # difference rather than a gap to close.
+  to_str = StringMatchToStr.new
+  assert_raise_with_message(TypeError, "wrong argument type StringMatchToStr (expected Regexp)") do
+    "abc".match(to_str)
+  end
+  assert_raise_with_message(TypeError, "wrong argument type StringMatchToStr (expected Regexp)") do
+    "abc".match?(to_str)
   end
 
   # The pattern is rejected before pos is looked at.
