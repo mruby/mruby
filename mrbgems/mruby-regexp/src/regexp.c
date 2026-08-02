@@ -296,6 +296,15 @@ create_matchdata(mrb_state *mrb, mrb_value regexp, mrb_value str, int *captures,
   return obj;
 }
 
+/* Internal: the string a match operates on. A Symbol is matched against its
+   name; anything else has to be a String. */
+static mrb_value
+match_operand(mrb_state *mrb, mrb_value obj)
+{
+  if (mrb_symbol_p(obj)) return mrb_sym_str(mrb, mrb_symbol(obj));
+  return mrb_ensure_string_type(mrb, obj);
+}
+
 /* Internal: execute match and create MatchData.
    Returns MatchData on match, nil on no match.
    Sets $~ and $1-$9 globals. */
@@ -337,7 +346,7 @@ regexp_match(mrb_state *mrb, mrb_value self)
     clear_match_globals(mrb);
     return mrb_nil_value();
   }
-  str = mrb_ensure_string_type(mrb, str);
+  str = match_operand(mrb, str);
   pos = re_char_to_byte(mrb, str, pos);
   if (pos < 0) {
     clear_match_globals(mrb);
@@ -370,7 +379,7 @@ regexp_match_p(mrb_state *mrb, mrb_value self)
   mrb_int pos = 0;
   mrb_get_args(mrb, "o|i", &str, &pos);
   if (mrb_nil_p(str)) return mrb_false_value();
-  str = mrb_ensure_string_type(mrb, str);
+  str = match_operand(mrb, str);
   pos = re_char_to_byte(mrb, str, pos);
   if (pos < 0) return mrb_false_value();
 
@@ -394,7 +403,7 @@ regexp_match_op(mrb_state *mrb, mrb_value self)
     clear_match_globals(mrb);
     return mrb_nil_value();
   }
-  str = mrb_ensure_string_type(mrb, str);
+  str = match_operand(mrb, str);
 
   mrb_value md = exec_match(mrb, self, str, 0);
   if (mrb_nil_p(md)) return mrb_nil_value();
@@ -413,7 +422,8 @@ regexp_case_match(mrb_state *mrb, mrb_value self)
   mrb_regexp_pattern *pat;
 
   mrb_get_args(mrb, "o", &str);
-  if (!mrb_string_p(str)) return mrb_false_value();
+  if (!mrb_string_p(str) && !mrb_symbol_p(str)) return mrb_false_value();
+  str = match_operand(mrb, str);
 
   pat = DATA_GET_PTR(mrb, self, &regexp_type, mrb_regexp_pattern);
   if (!pat) return mrb_false_value();

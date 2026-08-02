@@ -51,6 +51,7 @@ re.match("string") { |md| ... }   # => block result, or nil if no match
 re.match?("string")               # => true/false
 re =~ "string"                    # => index or nil
 re === "string"                   # => true/false (for case/when)
+re.match(:symbol)                 # a Symbol is matched against its name
 re.source                         # => "pattern"
 re.options                        # => flags integer
 Regexp.escape("a.b")              # => "a\\.b"
