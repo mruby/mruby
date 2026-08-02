@@ -532,6 +532,14 @@ assert("String#match - block") do
   called = false
   assert_nil("hello".match(Regexp.new("l"), 4) { called = true })
   assert_false called
+
+  called = false
+  result = "hello".match("l+") do
+    called = true
+    nil
+  end
+  assert_nil result
+  assert_true called
 end
 
 assert("String#match - break out of the block") do
