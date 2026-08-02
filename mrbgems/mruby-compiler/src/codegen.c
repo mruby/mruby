@@ -1826,7 +1826,13 @@ static void codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target,
 static mrc_sym
 nsym(mrc_parser_state *p, const uint8_t *start, size_t length)
 {
-  if (length == 0 || (start >= p->start && start < p->end)) {
+  if (length == 0) {
+    /* An empty name has no bytes to keep alive, and `start` can be NULL for
+       one. The pool compares colliding entries with `memcmp()`, which is
+       declared nonnull, so hand it an empty string instead. */
+    return pm_constant_pool_insert_constant(&p->constant_pool, (const uint8_t *)"", 0);
+  }
+  if (start >= p->start && start < p->end) {
     /* Source-backed bytes stay valid for the parser's lifetime. */
     return pm_constant_pool_insert_constant(&p->constant_pool, start, length);
   }

@@ -46,3 +46,13 @@ assert('Symbol name round-trips across the inline-packing boundary (issue #6940)
   end
   assert_equal 42, cls.new.source
 end
+
+assert('Symbol, empty name') do
+  # Compiling the same empty symbol twice makes the second one collide with
+  # the first in the compiler's constant pool, which compares the colliding
+  # entries byte by byte. An empty name carries no bytes to compare.
+  assert_equal "", :"".to_s
+  assert_equal :"", :"".to_sym
+  assert_equal 0, :"".to_s.length
+  assert_true :"".is_a?(Symbol)
+end
