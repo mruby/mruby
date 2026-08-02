@@ -46,10 +46,11 @@ class String
     unless (1..2).include?(args.length)
       raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1..2)"
     end
+    return to_enum(:gsub, *args) if args.length == 1 && !block
     pattern, replacement = *args
     pattern = Regexp.new(Regexp.escape(pattern)) if pattern.is_a?(String)
     # A replacement argument wins over the block, as in CRuby.
-    unless block && args.length == 1
+    if args.length == 2
       return pattern.__gsub_str(self, replacement.to_s)
     end
     # block case: keep in Ruby to avoid VM callback from C

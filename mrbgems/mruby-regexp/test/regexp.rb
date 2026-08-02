@@ -575,6 +575,13 @@ assert("String#gsub - wrong number of arguments") do
   end
 end
 
+assert("String#gsub without a block returns an enumerator") do
+  assert_equal ["b", "b"], "abcb".gsub(/b/).to_a
+  assert_equal ["b", "b"], "abcb".gsub("b").to_a
+  # Iterating the enumerator with a block performs the substitution.
+  assert_equal "aBcB", "abcb".gsub(/b/).each { |m| m.upcase }
+end
+
 assert("String#sub with \\& \\` \\' specials") do
   # \& = full match
   assert_equal "a[bc]d", "abcd".sub(/bc/, '[\\&]')
