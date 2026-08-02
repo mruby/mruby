@@ -521,6 +521,16 @@ assert("String#match") do
   assert_equal "world", md[2]
 end
 
+assert("String#=~") do
+  assert_equal 1, "abc" =~ Regexp.new("b")
+  assert_nil "abc" =~ Regexp.new("z")
+end
+
+assert("String#=~ with a String argument raises TypeError") do
+  assert_raise(TypeError) { "abc" =~ "b" }
+  assert_raise(TypeError) { "abc" !~ "b" }
+end
+
 assert("String#sub") do
   assert_equal "hXllo", "hello".sub(Regexp.new("e"), "X")
 end
