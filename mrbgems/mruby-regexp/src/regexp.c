@@ -1089,6 +1089,32 @@ regexp_scan(mrb_state *mrb, mrb_value self)
   return ary;
 }
 
+/* Resolve the pattern given to String#match and #match?: a Regexp passes
+   through, a String is compiled via `Regexp.new`, everything else raises.
+   The test runs here rather than in Ruby so it never dispatches on the
+   argument, where a redefined `is_a?` or `class` could pose as a Regexp or
+   fake the type name. CRuby names `nil`, `true` and `false` by value and
+   everything else by class. */
+static mrb_value
+regexp_match_pattern(mrb_state *mrb, mrb_value self)
+{
+  mrb_value re;
+  mrb_get_args(mrb, "o", &re);
+
+  struct RClass *regexp_class = mrb_class_get_id(mrb, MRB_SYM(Regexp));
+  if (mrb_obj_is_kind_of(mrb, re, regexp_class)) return re;
+  if (mrb_string_p(re)) {
+    return mrb_funcall_argv1(mrb, mrb_obj_value(regexp_class), MRB_SYM(new), re);
+  }
+
+  const char *name;
+  if (mrb_nil_p(re)) name = "nil";
+  else if (mrb_true_p(re)) name = "true";
+  else if (mrb_false_p(re)) name = "false";
+  else name = mrb_obj_classname(mrb, re);
+  mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %s (expected Regexp)", name);
+}
+
 /* --- Gem init --- */
 
 void
@@ -1108,6 +1134,7 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, re, "escape", regexp_escape, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, re, "quote", regexp_escape, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, re, "__binary_string?", regexp_binary_string_p, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, re, "__match_pattern", regexp_match_pattern, MRB_ARGS_REQ(1));
 
   /* Instance methods */
   mrb_define_method(mrb, re, "match", regexp_match, MRB_ARGS_ARG(1, 1)|MRB_ARGS_BLOCK());

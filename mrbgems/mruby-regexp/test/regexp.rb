@@ -571,6 +571,12 @@ class StringMatchIsALiar
   end
 end
 
+class StringMatchClassLiar
+  def class
+    Regexp
+  end
+end
+
 class StringMatchToStr
   def to_str
     "b"
@@ -581,6 +587,12 @@ class StringMatchRegexp < Regexp
 end
 
 class StringMatchString < String
+end
+
+class StringMatchHelperOverride < String
+  private def __match_pattern(re)
+    Regexp.new(re.to_s)
+  end
 end
 
 assert("String#match / #match? with a non-Regexp argument raise TypeError") do
@@ -620,6 +632,16 @@ assert("String#match / #match? with a non-Regexp argument raise TypeError") do
     "abc".match?(liar)
   end
 
+  # The type name in the message comes from the real class, so an argument
+  # redefining `class` cannot make the message name something else.
+  class_liar = StringMatchClassLiar.new
+  assert_raise_with_message(TypeError, "wrong argument type StringMatchClassLiar (expected Regexp)") do
+    "abc".match(class_liar)
+  end
+  assert_raise_with_message(TypeError, "wrong argument type StringMatchClassLiar (expected Regexp)") do
+    "abc".match?(class_liar)
+  end
+
   # CRuby converts an argument responding to `to_str` and matches with it.
   # mruby has no implicit String conversion in core, so the gem names such an
   # argument by class like any other, and this row stays an intentional
@@ -640,15 +662,22 @@ assert("String#match / #match? with a non-Regexp argument raise TypeError") do
     "abc".match?(nil, Object.new)
   end
 
-  # The helper doing the check stays out of String's public API.
-  assert_raise(NoMethodError) { "abc".__match_pattern("b") }
+  # The check lives on Regexp and no helper for it is defined on String, so a
+  # subclass defining a method by such a name cannot widen what `match` and
+  # `match?` accept.
+  assert_raise_with_message(TypeError, "wrong argument type Symbol (expected Regexp)") do
+    StringMatchHelperOverride.new("abc").match(:abc)
+  end
+  assert_raise_with_message(TypeError, "wrong argument type Symbol (expected Regexp)") do
+    StringMatchHelperOverride.new("abc").match?(:abc)
+  end
 
   # The accepted types still work.
   assert_equal "b", "abc".match(Regexp.new("b"))[0]
   assert_equal "b", "abc".match("b")[0]
   assert_true "abc".match?("b")
 
-  # The check goes through `Module#===`, so subclasses are accepted too.
+  # The check is by kind, so subclasses are accepted too.
   assert_equal "b", "abc".match(StringMatchRegexp.new("b"))[0]
   assert_true "abc".match?(StringMatchRegexp.new("b"))
   assert_equal "b", "abc".match(StringMatchString.new("b"))[0]
