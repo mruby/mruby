@@ -35,6 +35,10 @@ assert("Regexp#match - block") do
   assert_nil(/xyz/.match("abcd") { |md| md[0] })
 end
 
+assert("Regexp#match - break out of the block") do
+  assert_equal :broke, /l+/.match("hello") { break :broke }
+end
+
 assert("Regexp#match?") do
   re = Regexp.new("abc")
   assert_true re.match?("xabcy")
