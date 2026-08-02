@@ -7,13 +7,19 @@ class String
   # `match` and `match?` accept a Regexp or a String and reject everything
   # else.  The check lives in C (see Regexp.__match_pattern) so that the
   # argument cannot steer it: it cannot pose as a Regexp, and there is no
-  # helper on String for a subclass to redefine.
+  # helper on String for a subclass to redefine.  Compiling an accepted String
+  # stays here, so the check does not have to call back into the VM; `String
+  # ===` goes through `Module#===` and cannot be redefined either.
   def match(re, pos = 0, &block)
-    Regexp.__match_pattern(re).match(self, pos, &block)
+    re = Regexp.__match_pattern(re)
+    re = Regexp.new(re) if String === re
+    re.match(self, pos, &block)
   end
 
   def match?(re, pos = 0)
-    Regexp.__match_pattern(re).match?(self, pos)
+    re = Regexp.__match_pattern(re)
+    re = Regexp.new(re) if String === re
+    re.match?(self, pos)
   end
 
   def =~(re)

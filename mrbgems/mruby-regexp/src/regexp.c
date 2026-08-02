@@ -1089,23 +1089,21 @@ regexp_scan(mrb_state *mrb, mrb_value self)
   return ary;
 }
 
-/* Resolve the pattern given to String#match and #match?: a Regexp passes
-   through, a String is compiled via `Regexp.new`, everything else raises.
-   The test runs here rather than in Ruby so it never dispatches on the
-   argument, where a redefined `is_a?` or `class` could pose as a Regexp or
-   fake the type name. CRuby names `nil`, `true` and `false` by value and
-   everything else by class. */
+/* Check the pattern given to String#match and #match?: a Regexp or a String
+   passes through, everything else raises. The test runs here rather than in
+   Ruby so it never dispatches on the argument, where a redefined `is_a?` or
+   `class` could pose as a Regexp or fake the type name. Compiling a String
+   pattern is left to the caller, so this needs no callback into the VM.
+   CRuby names `nil`, `true` and `false` by value and everything else by
+   class. */
 static mrb_value
 regexp_match_pattern(mrb_state *mrb, mrb_value self)
 {
   mrb_value re;
   mrb_get_args(mrb, "o", &re);
 
-  struct RClass *regexp_class = mrb_class_get_id(mrb, MRB_SYM(Regexp));
-  if (mrb_obj_is_kind_of(mrb, re, regexp_class)) return re;
-  if (mrb_string_p(re)) {
-    return mrb_funcall_argv1(mrb, mrb_obj_value(regexp_class), MRB_SYM(new), re);
-  }
+  if (mrb_obj_is_kind_of(mrb, re, mrb_class_get_id(mrb, MRB_SYM(Regexp)))) return re;
+  if (mrb_string_p(re)) return re;
 
   const char *name;
   if (mrb_nil_p(re)) name = "nil";
