@@ -65,8 +65,10 @@ assert("Symbol#=~") do
   assert_equal 2, :hello =~ Regexp.new("l")
   assert_nil :hello =~ Regexp.new("z")
 
-  # inherited from String#=~: a String argument is a type mismatch
+  # inherited from String#=~: a String argument is a type mismatch, and any
+  # other argument is answered by its own `=~`
   assert_raise(TypeError) { :hello =~ "l" }
+  assert_nil :hello =~ nil
 end
 
 assert("Symbol#=~ sets the match globals") do

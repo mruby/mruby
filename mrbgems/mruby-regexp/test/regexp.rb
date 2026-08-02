@@ -640,6 +640,15 @@ assert("String#=~ with a String argument raises TypeError") do
   assert_raise(TypeError) { "abc" !~ "b" }
 end
 
+assert("String#=~ dispatches to the argument") do
+  # A non-Regexp, non-String argument is answered by its own `=~`, so `nil`
+  # gets a value from `NilClass#=~` and everything else without one raises.
+  assert_nil "abc" =~ nil
+  assert_true "abc" !~ nil
+  assert_raise(NoMethodError) { "abc" =~ 1 }
+  assert_raise(NoMethodError) { "abc" =~ Object.new }
+end
+
 class StringMatchIsALiar
   def is_a?(klass)
     true
