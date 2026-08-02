@@ -577,6 +577,12 @@ class StringMatchToStr
   end
 end
 
+class StringMatchRegexp < Regexp
+end
+
+class StringMatchString < String
+end
+
 assert("String#match / #match? with a non-Regexp argument raise TypeError") do
   # nil, true and false are named by value, everything else by class.
   assert_raise_with_message(TypeError, "wrong argument type nil (expected Regexp)") do
@@ -641,6 +647,12 @@ assert("String#match / #match? with a non-Regexp argument raise TypeError") do
   assert_equal "b", "abc".match(Regexp.new("b"))[0]
   assert_equal "b", "abc".match("b")[0]
   assert_true "abc".match?("b")
+
+  # The check goes through `Module#===`, so subclasses are accepted too.
+  assert_equal "b", "abc".match(StringMatchRegexp.new("b"))[0]
+  assert_true "abc".match?(StringMatchRegexp.new("b"))
+  assert_equal "b", "abc".match(StringMatchString.new("b"))[0]
+  assert_true "abc".match?(StringMatchString.new("b"))
 end
 
 assert("String#sub") do
