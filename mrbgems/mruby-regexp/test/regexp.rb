@@ -539,6 +539,42 @@ assert("String#gsub") do
   assert_equal "h-ll-", "hello".gsub(Regexp.new("[eo]"), "-")
 end
 
+assert("String#sub/#gsub - replacement string takes precedence over the block") do
+  assert_equal "aXc", "abc".sub(/b/, "X") { "Y" }
+  assert_equal "aXcX", "abcb".gsub(/b/, "X") { "Y" }
+  # The block is only used when no replacement argument is given.
+  assert_equal "aYc", "abc".sub(/b/) { "Y" }
+  assert_equal "aYcY", "abcb".gsub(/b/) { "Y" }
+end
+
+assert("String#sub - wrong number of arguments") do
+  # Without a block CRuby demands exactly 2 arguments, and says so.
+  assert_raise_with_message(ArgumentError, "wrong number of arguments (given 0, expected 2)") do
+    "abc".sub
+  end
+  assert_raise_with_message(ArgumentError, "wrong number of arguments (given 1, expected 2)") do
+    "abc".sub(/b/)
+  end
+  assert_raise_with_message(ArgumentError, "wrong number of arguments (given 3, expected 2)") do
+    "abc".sub(/b/, "X", "Y")
+  end
+  assert_raise_with_message(ArgumentError, "wrong number of arguments (given 3, expected 1..2)") do
+    "abc".sub(/b/, "X", "Y") { "Z" }
+  end
+end
+
+assert("String#gsub - wrong number of arguments") do
+  assert_raise_with_message(ArgumentError, "wrong number of arguments (given 0, expected 1..2)") do
+    "abc".gsub
+  end
+  assert_raise_with_message(ArgumentError, "wrong number of arguments (given 3, expected 1..2)") do
+    "abc".gsub(/b/, "X", "Y")
+  end
+  assert_raise_with_message(ArgumentError, "wrong number of arguments (given 3, expected 1..2)") do
+    "abc".gsub(/b/, "X", "Y") { "Z" }
+  end
+end
+
 assert("String#sub with \\& \\` \\' specials") do
   # \& = full match
   assert_equal "a[bc]d", "abcd".sub(/bc/, '[\\&]')
