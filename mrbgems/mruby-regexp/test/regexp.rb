@@ -609,7 +609,12 @@ assert("String#match / #match? with a non-Regexp argument raise TypeError") do
   end
 
   # The pattern is rejected before pos is looked at.
-  assert_raise(TypeError) { "abc".match(nil, 99) }
+  assert_raise_with_message(TypeError, "wrong argument type nil (expected Regexp)") do
+    "abc".match(nil, Object.new)
+  end
+  assert_raise_with_message(TypeError, "wrong argument type nil (expected Regexp)") do
+    "abc".match?(nil, Object.new)
+  end
 
   # The helper doing the check stays out of String's public API.
   assert_raise(NoMethodError) { "abc".__match_pattern("b") }
