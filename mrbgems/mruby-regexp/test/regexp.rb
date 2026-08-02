@@ -576,6 +576,7 @@ assert("String#gsub - wrong number of arguments") do
 end
 
 assert("String#gsub without a block returns an enumerator") do
+  skip "Enumerator is not available" unless Object.const_defined?(:Enumerator)
   assert_equal ["b", "b"], "abcb".gsub(/b/).to_a
   assert_equal ["b", "b"], "abcb".gsub("b").to_a
   # Iterating the enumerator with a block performs the substitution.

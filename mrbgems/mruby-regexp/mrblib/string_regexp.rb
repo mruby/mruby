@@ -46,6 +46,9 @@ class String
     unless (1..2).include?(args.length)
       raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1..2)"
     end
+    # Without mruby-enumerator this is core Kernel#to_enum, which raises
+    # NotImplementedError; every other path here stays usable, so the gem does
+    # not depend on Enumerator.
     return to_enum(:gsub, *args) if args.length == 1 && !block
     pattern, replacement = *args
     pattern = Regexp.new(Regexp.escape(pattern)) if pattern.is_a?(String)
