@@ -47,6 +47,7 @@ simulation) with backtracking fallback.
 re = Regexp.new("pattern", Regexp::IGNORECASE)
 re = /pattern/i                   # literal syntax
 re.match("string")                # => MatchData or nil
+re.match("string") { |md| ... }   # => block result, or nil if no match
 re.match?("string")               # => true/false
 re =~ "string"                    # => index or nil
 re === "string"                   # => true/false (for case/when)
@@ -71,6 +72,7 @@ md.named_captures                 # => {"name" => "value", ...}
 
 # String methods
 str.match(re)                     # => MatchData or nil
+str.match(re) { |md| ... }        # => block result, or nil if no match
 str.match?(re)                    # => true/false
 str =~ re                         # => index or nil
 str.sub(re, replacement)          # replace first occurrence
