@@ -565,6 +565,12 @@ assert("String#=~ with a String argument raises TypeError") do
   assert_raise(TypeError) { "abc" !~ "b" }
 end
 
+class StringMatchIsALiar
+  def is_a?(klass)
+    true
+  end
+end
+
 assert("String#match / #match? with a non-Regexp argument raise TypeError") do
   # nil, true and false are named by value, everything else by class.
   assert_raise_with_message(TypeError, "wrong argument type nil (expected Regexp)") do
@@ -591,6 +597,15 @@ assert("String#match / #match? with a non-Regexp argument raise TypeError") do
   end
   assert_raise_with_message(TypeError, "wrong argument type Symbol (expected Regexp)") do
     "abc".match?(:b)
+  end
+
+  # An argument claiming to be a Regexp through `is_a?` is still rejected.
+  liar = StringMatchIsALiar.new
+  assert_raise_with_message(TypeError, "wrong argument type StringMatchIsALiar (expected Regexp)") do
+    "abc".match(liar)
+  end
+  assert_raise_with_message(TypeError, "wrong argument type StringMatchIsALiar (expected Regexp)") do
+    "abc".match?(liar)
   end
 
   # The pattern is rejected before pos is looked at.

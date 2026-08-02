@@ -9,11 +9,13 @@ class String
   # would be handed `self` and the failure would surface as a NoMethodError
   # naming the argument as the receiver, which says nothing about the pattern.
   # CRuby names `nil`, `true` and `false` by value and everything else by
-  # class.  Private, so the gem does not grow String's public API with a
-  # helper only `match` and `match?` call.
+  # class.  The test goes through `Module#===` instead of `is_a?`, so an
+  # argument overriding `is_a?` cannot pose as a Regexp and turn the TypeError
+  # into a NoMethodError.  Private, so the gem does not grow String's public
+  # API with a helper only `match` and `match?` call.
   private def __match_pattern(re)
-    return re if re.is_a?(Regexp)
-    return Regexp.new(re) if re.is_a?(String)
+    return re if Regexp === re
+    return Regexp.new(re) if String === re
     name = if re.nil?
              "nil"
            elsif re.equal?(true)
