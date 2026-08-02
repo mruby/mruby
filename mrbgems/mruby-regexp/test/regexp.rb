@@ -565,6 +565,46 @@ assert("String#=~ with a String argument raises TypeError") do
   assert_raise(TypeError) { "abc" !~ "b" }
 end
 
+assert("String#match / #match? with a non-Regexp argument raise TypeError") do
+  # nil, true and false are named by value, everything else by class.
+  assert_raise_with_message(TypeError, "wrong argument type nil (expected Regexp)") do
+    "abc".match(nil)
+  end
+  assert_raise_with_message(TypeError, "wrong argument type true (expected Regexp)") do
+    "abc".match(true)
+  end
+  assert_raise_with_message(TypeError, "wrong argument type false (expected Regexp)") do
+    "abc".match(false)
+  end
+  assert_raise_with_message(TypeError, "wrong argument type Symbol (expected Regexp)") do
+    "abc".match(:b)
+  end
+  assert_raise_with_message(TypeError, "wrong argument type Integer (expected Regexp)") do
+    "abc".match(1)
+  end
+  assert_raise_with_message(TypeError, "wrong argument type Array (expected Regexp)") do
+    "abc".match([])
+  end
+
+  assert_raise_with_message(TypeError, "wrong argument type nil (expected Regexp)") do
+    "abc".match?(nil)
+  end
+  assert_raise_with_message(TypeError, "wrong argument type Symbol (expected Regexp)") do
+    "abc".match?(:b)
+  end
+
+  # The pattern is rejected before pos is looked at.
+  assert_raise(TypeError) { "abc".match(nil, 99) }
+
+  # The helper doing the check stays out of String's public API.
+  assert_raise(NoMethodError) { "abc".__match_pattern("b") }
+
+  # The accepted types still work.
+  assert_equal "b", "abc".match(Regexp.new("b"))[0]
+  assert_equal "b", "abc".match("b")[0]
+  assert_true "abc".match?("b")
+end
+
 assert("String#sub") do
   assert_equal "hXllo", "hello".sub(Regexp.new("e"), "X")
 end

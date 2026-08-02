@@ -4,14 +4,34 @@ class String
   # back to the core implementation.
   alias __split split
 
+  # `match` and `match?` accept a Regexp or a String and reject everything
+  # else, so resolve the pattern in one place.  Without the check the argument
+  # would be handed `self` and the failure would surface as a NoMethodError
+  # naming the argument as the receiver, which says nothing about the pattern.
+  # CRuby names `nil`, `true` and `false` by value and everything else by
+  # class.  Private, so the gem does not grow String's public API with a
+  # helper only `match` and `match?` call.
+  private def __match_pattern(re)
+    return re if re.is_a?(Regexp)
+    return Regexp.new(re) if re.is_a?(String)
+    name = if re.nil?
+             "nil"
+           elsif re.equal?(true)
+             "true"
+           elsif re.equal?(false)
+             "false"
+           else
+             re.class.to_s
+           end
+    raise TypeError, "wrong argument type #{name} (expected Regexp)"
+  end
+
   def match(re, pos = 0, &block)
-    re = Regexp.new(re) if re.is_a?(String)
-    re.match(self, pos, &block)
+    __match_pattern(re).match(self, pos, &block)
   end
 
   def match?(re, pos = 0)
-    re = Regexp.new(re) if re.is_a?(String)
-    re.match?(self, pos)
+    __match_pattern(re).match?(self, pos)
   end
 
   def =~(re)
