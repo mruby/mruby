@@ -565,6 +565,125 @@ assert("String#=~ with a String argument raises TypeError") do
   assert_raise(TypeError) { "abc" !~ "b" }
 end
 
+class StringMatchIsALiar
+  def is_a?(klass)
+    true
+  end
+end
+
+class StringMatchClassLiar
+  def class
+    Regexp
+  end
+end
+
+class StringMatchToStr
+  def to_str
+    "b"
+  end
+end
+
+class StringMatchRegexp < Regexp
+end
+
+class StringMatchString < String
+end
+
+class StringMatchHelperOverride < String
+  private def __match_pattern(re)
+    Regexp.new(re.to_s)
+  end
+end
+
+assert("String#match / #match? with a non-Regexp argument raise TypeError") do
+  # nil, true and false are named by value, everything else by class.
+  assert_raise_with_message(TypeError, "wrong argument type nil (expected Regexp)") do
+    "abc".match(nil)
+  end
+  assert_raise_with_message(TypeError, "wrong argument type true (expected Regexp)") do
+    "abc".match(true)
+  end
+  assert_raise_with_message(TypeError, "wrong argument type false (expected Regexp)") do
+    "abc".match(false)
+  end
+  assert_raise_with_message(TypeError, "wrong argument type Symbol (expected Regexp)") do
+    "abc".match(:b)
+  end
+  assert_raise_with_message(TypeError, "wrong argument type Integer (expected Regexp)") do
+    "abc".match(1)
+  end
+  assert_raise_with_message(TypeError, "wrong argument type Array (expected Regexp)") do
+    "abc".match([])
+  end
+
+  assert_raise_with_message(TypeError, "wrong argument type nil (expected Regexp)") do
+    "abc".match?(nil)
+  end
+  assert_raise_with_message(TypeError, "wrong argument type Symbol (expected Regexp)") do
+    "abc".match?(:b)
+  end
+
+  # An argument claiming to be a Regexp through `is_a?` is still rejected.
+  liar = StringMatchIsALiar.new
+  assert_raise_with_message(TypeError, "wrong argument type StringMatchIsALiar (expected Regexp)") do
+    "abc".match(liar)
+  end
+  assert_raise_with_message(TypeError, "wrong argument type StringMatchIsALiar (expected Regexp)") do
+    "abc".match?(liar)
+  end
+
+  # The type name in the message comes from the real class, so an argument
+  # redefining `class` cannot make the message name something else.
+  class_liar = StringMatchClassLiar.new
+  assert_raise_with_message(TypeError, "wrong argument type StringMatchClassLiar (expected Regexp)") do
+    "abc".match(class_liar)
+  end
+  assert_raise_with_message(TypeError, "wrong argument type StringMatchClassLiar (expected Regexp)") do
+    "abc".match?(class_liar)
+  end
+
+  # CRuby converts an argument responding to `to_str` and matches with it.
+  # mruby has no implicit String conversion in core, so the gem names such an
+  # argument by class like any other, and this row stays an intentional
+  # difference rather than a gap to close.
+  to_str = StringMatchToStr.new
+  assert_raise_with_message(TypeError, "wrong argument type StringMatchToStr (expected Regexp)") do
+    "abc".match(to_str)
+  end
+  assert_raise_with_message(TypeError, "wrong argument type StringMatchToStr (expected Regexp)") do
+    "abc".match?(to_str)
+  end
+
+  # The pattern is rejected before pos is looked at.
+  assert_raise_with_message(TypeError, "wrong argument type nil (expected Regexp)") do
+    "abc".match(nil, Object.new)
+  end
+  assert_raise_with_message(TypeError, "wrong argument type nil (expected Regexp)") do
+    "abc".match?(nil, Object.new)
+  end
+
+  # The check lives on Regexp and no helper for it is defined on String, so a
+  # subclass defining a method by such a name cannot widen what `match` and
+  # `match?` accept.
+  assert_raise_with_message(TypeError, "wrong argument type Symbol (expected Regexp)") do
+    StringMatchHelperOverride.new("abc").match(:abc)
+  end
+  assert_raise_with_message(TypeError, "wrong argument type Symbol (expected Regexp)") do
+    StringMatchHelperOverride.new("abc").match?(:abc)
+  end
+
+  # The accepted types still work.
+  assert_equal "b", "abc".match(Regexp.new("b"))[0]
+  assert_equal "b", "abc".match("b")[0]
+  assert_true "abc".match?("b")
+
+  # The check is by kind, so subclasses are accepted too.
+  assert_equal "b", "abc".match(StringMatchRegexp.new("b"))[0]
+  assert_true "abc".match?(StringMatchRegexp.new("b"))
+  assert_equal "b", "abc".match(StringMatchString.new("b"))[0]
+  assert_true "abc".match?(StringMatchString.new("b"))
+end
+
 assert("String#sub") do
   assert_equal "hXllo", "hello".sub(Regexp.new("e"), "X")
 end

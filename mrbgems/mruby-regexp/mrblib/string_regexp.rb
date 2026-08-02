@@ -4,14 +4,16 @@ class String
   # back to the core implementation.
   alias __split split
 
+  # `match` and `match?` accept a Regexp or a String and reject everything
+  # else.  The check lives in C (see Regexp.__match_pattern) so that the
+  # argument cannot steer it: it cannot pose as a Regexp, and there is no
+  # helper on String for a subclass to redefine.
   def match(re, pos = 0, &block)
-    re = Regexp.new(re) if re.is_a?(String)
-    re.match(self, pos, &block)
+    Regexp.__match_pattern(re).match(self, pos, &block)
   end
 
   def match?(re, pos = 0)
-    re = Regexp.new(re) if re.is_a?(String)
-    re.match?(self, pos)
+    Regexp.__match_pattern(re).match?(self, pos)
   end
 
   def =~(re)
