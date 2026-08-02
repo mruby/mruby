@@ -190,7 +190,7 @@ mrb_exc_set(mrb_state *mrb, mrb_value exc)
         (struct RBasic*)mrb->exc == mrb->gc.arena[mrb->gc.arena_idx-1]) {
       mrb->gc.arena_idx--;
     }
-    if (!mrb->gc.out_of_memory && mrb->exc != mrb->nomem_err && !mrb_frozen_p(mrb->exc)) {
+    if (mrb->exc != mrb->nomem_err && !mrb_frozen_p(mrb->exc)) {
       mrb_keep_backtrace(mrb, exc);
     }
   }

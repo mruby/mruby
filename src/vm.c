@@ -174,13 +174,7 @@ mrb_realloc_with_gc_disabled(mrb_state *mrb, void *p, size_t size)
   mrb->gc.disabled = TRUE;
   p = mrb_realloc_simple(mrb, p, size);
   mrb->gc.disabled = gc_disabled;
-  /* Track the failure the way mrb_realloc() does: the flag stops
-     mrb_keep_backtrace() from allocating while the heap is exhausted. */
-  if (!p) {
-    mrb->gc.out_of_memory = TRUE;
-    mrb_raise_nomemory(mrb);
-  }
-  mrb->gc.out_of_memory = FALSE;
+  if (!p) mrb_raise_nomemory(mrb);
   return p;
 }
 

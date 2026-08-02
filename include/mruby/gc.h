@@ -68,7 +68,6 @@ typedef struct mrb_gc {
   mrb_bool disabled      :1;       /* GC disabled */
   mrb_bool generational  :1;       /* generational GC mode */
   mrb_bool full          :1;       /* major GC mode */
-  mrb_bool out_of_memory :1;       /* out-of-memory error occurred */
   mrb_bool collecting    :1;       /* mark/sweep engine is on the stack;
                                       suppresses reentrant emergency GC */
   mrb_bool auto_step     :1;       /* run GC steps on allocation (default on) */
