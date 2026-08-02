@@ -4,9 +4,9 @@ class String
   # back to the core implementation.
   alias __split split
 
-  def match(re, pos = 0)
+  def match(re, pos = 0, &block)
     re = Regexp.new(re) if re.is_a?(String)
-    re.match(self, pos)
+    re.match(self, pos, &block)
   end
 
   def match?(re, pos = 0)

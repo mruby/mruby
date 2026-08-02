@@ -521,6 +521,28 @@ assert("String#match") do
   assert_equal "world", md[2]
 end
 
+assert("String#match - block") do
+  assert_equal "L", "hello".match(Regexp.new("l")) { |md| md[0].upcase }
+  assert_equal "ll", "hello".match("l+") { |md| md[0] }
+
+  called = false
+  assert_nil("hello".match(Regexp.new("z")) { called = true })
+  assert_false called
+
+  called = false
+  assert_nil("hello".match(Regexp.new("l"), 4) { called = true })
+  assert_false called
+end
+
+assert("String#match - break out of the block") do
+  assert_equal :broke, "hello".match("l+") { break :broke }
+end
+
+assert("String#match - block sees the match globals") do
+  assert_equal "ll", "hello".match("l+") { $~[0] }
+  assert_equal "ll", "hello".match("l+") { Regexp.last_match(0) }
+end
+
 assert("String#=~") do
   assert_equal 1, "abc" =~ Regexp.new("b")
   assert_nil "abc" =~ Regexp.new("z")
