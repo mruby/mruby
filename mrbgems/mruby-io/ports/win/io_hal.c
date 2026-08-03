@@ -316,9 +316,105 @@ mrb_hal_io_read(mrb_state *mrb, int fd, void *buf, size_t count)
   return (mrb_int)_read(fd, buf, (unsigned int)count);
 }
 
+#define MRB_CONSOLE_WRITE_CHUNK_SIZE 16384
+
+static size_t
+console_utf8_chunk_size(const unsigned char *buf, size_t count)
+{
+  size_t len = count > MRB_CONSOLE_WRITE_CHUNK_SIZE ? MRB_CONSOLE_WRITE_CHUNK_SIZE : count;
+  size_t lead;
+  int sequence_len;
+
+  if (len == count || (buf[len] & 0xc0) != 0x80) {
+    return len;
+  }
+
+  /* Do not split a valid UTF-8 sequence across console writes. */
+  lead = len;
+  for (int i = 0; i < 3 && lead > 0 && (buf[lead] & 0xc0) == 0x80; i++) {
+    lead--;
+  }
+
+  if ((buf[lead] & 0xe0) == 0xc0) {
+    sequence_len = 2;
+  }
+  else if ((buf[lead] & 0xf0) == 0xe0) {
+    sequence_len = 3;
+  }
+  else if ((buf[lead] & 0xf8) == 0xf0) {
+    sequence_len = 4;
+  }
+  else {
+    return len;
+  }
+
+  return lead + (size_t)sequence_len > len ? lead : len;
+}
+
 mrb_int
 mrb_hal_io_write(mrb_state *mrb, int fd, const void *buf, size_t count)
 {
+  if (count == 0) {
+    return 0;
+  }
+
+  /*
+   * The Windows console does not interpret the UTF-8 bytes written by the
+   * CRT according to the string's encoding.  Match the core print path by
+   * converting terminal output to UTF-16 and writing it through the wide
+   * character console API.  Keep using _write() for redirected output so
+   * files and pipes continue to receive the original bytes.
+   */
+  if (_isatty(fd)) {
+    HANDLE handle = (HANDLE)_get_osfhandle(fd);
+    const unsigned char *bytes = (const unsigned char*)buf;
+    size_t offset = 0;
+
+    while (offset < count) {
+      size_t chunk_len = console_utf8_chunk_size(bytes + offset, count - offset);
+      int wlen = MultiByteToWideChar(CP_UTF8, 0, (const char*)bytes + offset,
+                                     (int)chunk_len, NULL, 0);
+      wchar_t *utf16;
+      DWORD total_written = 0;
+
+      if (wlen == 0) {
+        set_errno_from_win_error(GetLastError());
+        return -1;
+      }
+
+      utf16 = (wchar_t*)mrb_malloc(mrb, (size_t)wlen * sizeof(wchar_t));
+      if (MultiByteToWideChar(CP_UTF8, 0, (const char*)bytes + offset,
+                              (int)chunk_len, utf16, wlen) == 0) {
+        DWORD error = GetLastError();
+        mrb_free(mrb, utf16);
+        set_errno_from_win_error(error);
+        return -1;
+      }
+
+      while (total_written < (DWORD)wlen) {
+        DWORD written;
+        if (!WriteConsoleW(handle, utf16 + total_written,
+                           (DWORD)wlen - total_written, &written, NULL)) {
+          DWORD error = GetLastError();
+          mrb_free(mrb, utf16);
+          set_errno_from_win_error(error);
+          return -1;
+        }
+        if (written == 0) {
+          mrb_free(mrb, utf16);
+          errno = EIO;
+          return -1;
+        }
+        total_written += written;
+      }
+
+      mrb_free(mrb, utf16);
+      offset += chunk_len;
+    }
+
+    return (mrb_int)count;
+  }
+
   (void)mrb;
   return (mrb_int)_write(fd, buf, (unsigned int)count);
 }
