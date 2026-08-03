@@ -1441,3 +1441,91 @@ assert("Regexp - large non-ASCII character class does not overflow") do
   assert_nil (re =~ utf8.call(0x8081))
   assert_nil (re =~ "A")
 end
+
+assert("String#[] with regexp") do
+  assert_equal "ll", "hello"[/l+/]
+  assert_equal "ll", "hello".slice(/l+/)
+  assert_nil "hello"[/z/]
+  assert_nil "hello".slice(/z/)
+  assert_equal "", "hello"[//]
+
+  # the result is a plain String even for a subclass receiver, as in CRuby
+  sub = Class.new(String)
+  assert_equal String, sub.new("hello")[/l+/].class
+end
+
+assert("String#[] with regexp and capture") do
+  assert_equal "ll", "hello"[/(l+)(o)/, 1]
+  assert_equal "o", "hello"[/(l+)(o)/, 2]
+  assert_equal "llo", "hello"[/(l+)(o)/, 0]
+  assert_equal "ll", "hello"[/(?<x>l+)/, :x]
+  assert_equal "ll", "hello"[/(?<x>l+)/, "x"]
+  assert_equal "ll", "hello".slice(/(l+)/, 1)
+
+  # handed to MatchData#[]: a negative index counts back from the last group,
+  # an index past the last group is nil, and a name that resolves to no group
+  # is a mistake at the point of the call
+  assert_equal "o", "hello"[/(l+)(o)/, -1]
+  assert_nil "hello"[/(l+)/, 5]
+  assert_raise(IndexError) { "hello"[/(?<x>l+)/, :zz] }
+  assert_raise(IndexError) { "hello"[/(l+)/, "x"] }
+  assert_raise(TypeError) { "hello"[/(l+)/, nil] }
+
+  # a failed match answers nil without ever looking at the capture argument
+  assert_nil "hello"[/(?<x>z)/, :zz]
+  assert_nil "hello"[/(z)/, 1]
+end
+
+assert("String#[] with regexp sets the match globals") do
+  assert_equal "ll", "hello"[/l+/]
+  assert_equal "ll", $~[0]
+  assert_equal "ll", Regexp.last_match(0)
+
+  "hello"[/(l)(l)/, 2]
+  assert_equal "l", $1
+
+  # a failed match clears $~, which is why this goes through `match` rather
+  # than `match?`
+  assert_nil "hello"[/z/]
+  assert_nil $~
+end
+
+assert("String#[] delegates non-regexp arguments") do
+  assert_equal "e", "hello"[1]
+  assert_equal "e", "hello".slice(1)
+  assert_equal "ell", "hello"[1, 3]
+  assert_equal "ell", "hello".slice(1, 3)
+  assert_equal "ell", "hello"[1..3]
+  assert_equal "llo", "hello"[-3..-1]
+  assert_equal "ll", "hello"["ll"]
+  assert_nil "hello"["bye"]
+  assert_nil "hello"[12]
+  assert_nil "hello"[12, 1]
+
+  # the same delegation on a subclass receiver, which OP_GETIDX never
+  # shortcuts and which therefore always arrives through the override
+  sub = Class.new(String)
+  assert_equal "e", sub.new("hello")[1]
+  assert_equal "ell", sub.new("hello")[1..3]
+  assert_equal "ll", sub.new("hello")["ll"]
+
+  assert_raise(ArgumentError) { "hello"[] }
+  assert_raise(ArgumentError) { "hello"[1, 2, 3] }
+  assert_raise(ArgumentError) { "hello"[/l/, 1, 2] }
+  assert_raise(ArgumentError) { "hello".slice(1, 2, 3) }
+  assert_raise(TypeError) { "hello"[nil] }
+end
+
+assert("String#[] reads the real type of its argument") do
+  # `is_a?` is redefinable, so an object claiming not to be a Regexp must not
+  # be read as an index, and a non-Regexp claiming to be one must not be
+  # matched against
+  re = /l+/
+  def re.is_a?(klass); false; end
+  assert_equal "ll", "hello"[re]
+
+  fake = Object.new
+  def fake.is_a?(klass); true; end
+  def fake.match(str); raise "must not be called"; end
+  assert_raise(TypeError) { "hello"[fake] }
+end

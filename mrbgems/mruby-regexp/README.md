@@ -82,12 +82,17 @@ str.gsub(re, replacement)         # replace all occurrences
 str.gsub(re) { |m| ... }          # replace all with block
 str.scan(re)                      # => array of matches
 str.split(re)                     # => array of parts
+str[re]                           # => matched substring or nil
+str[re, capture]                  # => capture by index or name
+str.slice(re)                     # => same as str[re]
 
 # Symbol methods (the String methods applied to the symbol's name)
 sym.match(re)                     # => MatchData or nil
 sym.match(re) { |md| ... }        # => block result, or nil if no match
 sym.match?(re)                    # => true/false
 sym =~ re                         # => index or nil
+sym[re]                           # => matched substring or nil
+                                  #    (Symbol#[] comes from mruby-symbol-ext)
 
 # Global variables
 $~                                # last MatchData
@@ -122,9 +127,6 @@ pattern analysis.
   only.
 - **Step limit on backtracking**: Patterns that require the
   backtracking engine are subject to a step limit.
-- **No regexp form of `String#[]`**: `str[re]` and `str.slice(re)`
-  are not supported, and neither is `sym[re]`, which delegates to
-  them.
 
 ## Configuration
 

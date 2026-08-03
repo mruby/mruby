@@ -4,6 +4,12 @@ class String
   # back to the core implementation.
   alias __split split
 
+  # Same for String#[], which the override below replaces along with its
+  # `slice` twin.  `__aref` also serves as the internal spelling of `str[i]`
+  # inside this file: the loops in `gsub` and `split` would otherwise pay for
+  # a Ruby frame per iteration on a call that can never take a Regexp.
+  alias __aref []
+
   # `match` and `match?` accept a Regexp or a String and reject everything
   # else.  The check lives in C (see Regexp.__check_pattern) so that the
   # argument cannot steer it: it cannot pose as a Regexp, and there is no
@@ -96,7 +102,7 @@ class String
             pos = match_end + 1
           else
             rest = self.byteslice(match_end..-1)
-            char = rest[0]
+            char = rest.__aref(0)
             parts << char
             pos = match_end + char.bytesize
           end
@@ -122,6 +128,42 @@ class String
       result
     end
   end
+
+  # Regexp-aware element reference.  Only a Regexp is handled here; every
+  # other argument list goes back to the C-defined `[]` untouched.
+  #
+  # Note that `str[i]`, `str[range]` and `str["sub"]` never reach this method
+  # when the receiver is a String rather than a subclass: OP_GETIDX answers
+  # those three argument types from C without consulting the method table, so
+  # an override is not visible there.  That is harmless as long as this method
+  # only delegates them, which is why the regexp branch is the only behaviour
+  # added here.
+  def [](*args)
+    # Checked before the argument is inspected, so the non-regexp forms keep
+    # reporting the CRuby arity rather than silently ignoring an extra
+    # argument.
+    unless (1..2).include?(args.length)
+      raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1..2)"
+    end
+    # `is_a?` is redefinable, so an argument denying its own type could steer
+    # itself into `__aref` and be read as an index.  `Module#===` reads the
+    # real type.
+    return __aref(*args) unless Regexp === args[0]
+    # `match`, not `match?`: `$~` has to be set even when the match fails,
+    # where it becomes nil.  The MatchData is unused in the no-capture case,
+    # but the global is not.
+    md = args[0].match(self)
+    return nil unless md
+    # The capture argument is handed to MatchData#[] as it stands: an out of
+    # range index answers nil and a name that resolves to no group raises
+    # IndexError, which is what CRuby's rb_reg_nth_match() and
+    # rb_reg_backref_number() do respectively.
+    md[args.length == 2 ? args[1] : 0]
+  end
+
+  # CRuby reaches the same code for both names, and Symbol#slice (in
+  # mruby-symbol-ext) delegates here, which is what makes `sym[re]` work.
+  alias slice []
 
   # Regexp-aware split.  Falls back to the C-defined split (aliased as
   # `__split` in mrb_mruby_regexp_gem_init before this override loads) for
@@ -173,7 +215,7 @@ class String
       if match_start == match_end
         rest = self.byteslice(match_end..-1)
         if rest && rest.bytesize > 0
-          char = rest[0]
+          char = rest.__aref(0)
           search_pos = match_end + char.bytesize
         else
           search_pos = match_end + 1

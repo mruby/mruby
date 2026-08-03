@@ -5,8 +5,9 @@
 #
 # This covers the symbol-on-the-left direction only.  The Regexp side converts
 # a symbol on its own, in `match_operand()` in regexp.c, so it needs nothing
-# from here.  `sym[/re/]` is the direction still missing; it waits on the
-# regexp form of `String#slice`.
+# from here.  `sym[/re/]` needs nothing either: Symbol#slice (mruby-symbol-ext,
+# which this gem does not depend on) delegates to String#slice, so it picks up
+# the regexp form from string_regexp.rb wherever that gem is built in.
 #
 # The argument handling of `=~` is inherited from `String#=~` rather than
 # introduced here, and agrees with CRuby: a String argument raises TypeError,
