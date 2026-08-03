@@ -24,8 +24,10 @@ class String
 
   def =~(re)
     # A String argument would dispatch back to this method and recurse, so
-    # reject it up front (CRuby raises the same TypeError).
-    raise TypeError, "type mismatch: String given" if re.is_a?(String)
+    # reject it up front (CRuby raises the same TypeError).  `is_a?` is
+    # redefinable, so a String subclass denying its own type would slip past
+    # the guard and recurse anyway; `Module#===` reads the real type.
+    raise TypeError, "type mismatch: String given" if String === re
     re =~ self
   end
 
@@ -131,7 +133,10 @@ class String
         limit = limit.__to_int
       end
     end
-    if pattern.nil? || pattern.is_a?(String)
+    # `nil?` and `is_a?` are redefinable, so an argument answering either one
+    # could steer itself around the check below and reach `__split` instead.
+    # `Module#===` reads the real type and cannot be redefined.
+    if NilClass === pattern || String === pattern
       return limit_given ? __split(pattern, limit) : __split(pattern)
     end
     return self.empty? ? [] : [self] if limit == 1

@@ -673,6 +673,16 @@ end
 class StringMatchString < String
 end
 
+class StringMatchStringDenier < String
+  def is_a?(klass)
+    false
+  end
+
+  def nil?
+    true
+  end
+end
+
 class StringMatchHelperOverride < String
   private def __match_pattern(re)
     Regexp.new(re.to_s)
@@ -818,6 +828,38 @@ assert("String#gsub without a block returns an enumerator") do
   assert_equal ["b", "b"], "abcb".gsub("b").to_a
   # Iterating the enumerator with a block performs the substitution.
   assert_equal "aBcB", "abcb".gsub(/b/).each { |m| m.upcase }
+end
+
+assert("String#sub / #gsub / #scan / #split accept a Regexp subclass, and quote a String") do
+  assert_equal "aXc", "abc".sub(StringMatchRegexp.new("b"), "X")
+  assert_equal "aXcX", "abcb".gsub(StringMatchRegexp.new("b"), "X")
+  assert_equal ["b", "b"], "abcb".scan(StringMatchRegexp.new("b"))
+  assert_equal ["a", "c"], "abc".split(StringMatchRegexp.new("b"))
+
+  # A String pattern is a literal here, not a pattern: `.` matches only `.`.
+  assert_equal "aXc", "a.c".sub(".", "X")
+  assert_equal "aXc", "a.c".gsub(".", "X")
+  assert_equal ["."], "a.c".scan(".")
+  assert_equal "a[.]c", "a.c".gsub(".") { |m| "[#{m}]" }
+  # A String subclass is accepted on the same terms.
+  assert_equal "aXc", "a.c".sub(StringMatchString.new("."), "X")
+  # Even one denying that it is a String, or claiming to be nil: `split` reads
+  # the real type before choosing between the core implementation and the
+  # regexp path.
+  assert_equal ["a", "c"], "a.c".split(StringMatchStringDenier.new("."))
+end
+
+assert("String#=~ reads the real type of a String argument") do
+  # `=~` dispatches everything but a String to the argument, so a String
+  # subclass denying its own type used to pass the guard and dispatch back
+  # here, recursing until the stack ran out instead of raising.
+  denier = StringMatchStringDenier.new("b")
+  assert_raise_with_message(TypeError, "type mismatch: String given") do
+    "abc" =~ denier
+  end
+  assert_raise_with_message(TypeError, "type mismatch: String given") do
+    denier =~ denier
+  end
 end
 
 assert("String#sub with \\& \\` \\' specials") do
