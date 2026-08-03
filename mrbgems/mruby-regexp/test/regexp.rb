@@ -1069,12 +1069,16 @@ assert("String#split with regexp limit") do
   assert_raise(TypeError) { "a,b".split(/,/, nil) }
   assert_equal ["a,b"], "a,b".split(/,/, 1.5)
 
+  # mruby has no implicit conversion protocol, so an object defining `to_int`
+  # is rejected here exactly as `Array.new(obj)` and `ary[obj]` reject it. The
+  # limit is never asked what it responds to, so an object overriding
+  # `respond_to?` reaches the same TypeError rather than a NoMethodError.
   limit = Object.new
   def limit.to_int; 2; end
-  assert_equal ["a", "b"], "a,b".split(/,/, limit)
+  assert_raise(TypeError) { "a,b".split(/,/, limit) }
 
   limit = Object.new
-  def limit.to_int; 1.5; end
+  def limit.respond_to?(name, include_all = false); true; end
   assert_raise(TypeError) { "a,b".split(/,/, limit) }
 end
 

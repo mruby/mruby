@@ -133,15 +133,13 @@ class String
 
     limit_given = args.length > 0
     limit = limit_given ? args[0] : 0
+    # `__to_int` is `mrb_ensure_integer_type()`, which asks the object nothing.
+    # mruby has no implicit conversion protocol in core, so `Array.new(obj)`,
+    # `ary[obj]` and `"s" * obj` all reject an object that only defines
+    # `to_int`; dispatching it here would leave this the one place in the tree
+    # that accepts one, as the same reasoning keeps `match` off `to_str`.
     if limit_given && !limit.is_a?(Integer)
-      if limit.respond_to?(:to_int)
-        limit = limit.to_int
-        unless limit.is_a?(Integer)
-          raise TypeError, "no implicit conversion of #{limit.class} to Integer)"
-        end
-      else
-        limit = limit.__to_int
-      end
+      limit = limit.__to_int
     end
     # `nil?` and `is_a?` are redefinable, so an argument answering either one
     # could steer itself around the check below and reach `__split` instead.
