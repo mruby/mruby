@@ -4,7 +4,9 @@ paths:
   - "include/**/*.h"
   - "mrblib/**/*.rb"
   - "mrbgems/*/src/*.{c,h}"
+  - "mrbgems/*/include/**/*.h"
   - "mrbgems/*/mrblib/*.rb"
+  - "mrbgems/*/tools/*/*.c"
 ---
 
 # The C/Ruby boundary in mruby
