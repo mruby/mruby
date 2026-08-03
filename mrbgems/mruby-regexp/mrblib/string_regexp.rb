@@ -138,6 +138,12 @@ class String
   # an override is not visible there.  That is harmless as long as this method
   # only delegates them, which is why the regexp branch is the only behaviour
   # added here.
+  #
+  # `str[0]` is the exception: a literal zero index compiles to OP_GETIDX0,
+  # which has no String branch at all and always sends, so it does arrive here
+  # and pays a Ruby frame and an argument array for what used to be a direct
+  # call into C, roughly four times the cost.  That is why the loops in `gsub`
+  # and `split` above read their one character with `__aref(0)`.
   def [](*args)
     # Checked before the argument is inspected, so the non-regexp forms keep
     # reporting the CRuby arity rather than silently ignoring an extra
