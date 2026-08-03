@@ -206,6 +206,28 @@ mruby is currently targeting to execute Ruby code which complies to ISO/IEC
 30170:2012 (<https://www.iso.org/standard/59579.html>),
 unless there's a clear reason, e.g. the latest Ruby has changed behavior from ISO.
 
+#### Do not ask an argument what it is
+
+When a method changes what it does based on an argument's type, read that type
+with `Module#===` rather than asking the argument. `is_a?`, `kind_of?`, `nil?`,
+`class` and `respond_to?` are all ordinary methods and can be redefined, so an
+argument that answers them dishonestly decides which branch runs. `Module#===`
+is `mrb_obj_is_kind_of()` in C and cannot be redefined.
+
+```ruby
+raise TypeError, "..." if String === arg   # reads the real type
+raise TypeError, "..." if arg.is_a?(String) # the argument decides
+```
+
+The failures are quiet rather than obvious. A guard skipped this way lets an
+argument reach code written on the assumption that the guard held: recursing
+until the stack runs out, driving a loop with an unconverted value and giving
+back a plausible wrong answer, or naming a class the argument does not have.
+
+This is about type dispatch, not about duck typing. Asking an object what it
+can do is still how a method decides how to use it, once the type question is
+settled.
+
 ## Building documentation
 
 ### mruby API
