@@ -42,7 +42,13 @@ class String
       raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 2)"
     end
     pattern, replacement = *args
-    pattern = Regexp.new(Regexp.escape(pattern)) if pattern.is_a?(String)
+    pattern = Regexp.__match_pattern(pattern)
+    # Unlike `match`, a String pattern is quoted rather than compiled: it is a
+    # literal here, the distinction CRuby draws between get_pat_quoted and
+    # get_pat.  Only the quoting is taken from it: get_pat_quoted also accepts
+    # anything answering `to_str`, where `__match_pattern` keeps to a real
+    # String, as `match` already does.
+    pattern = Regexp.new(Regexp.escape(pattern)) if String === pattern
     # A replacement argument wins over the block, as in CRuby.
     if args.length == 2
       return pattern.__sub_str(self, replacement.to_s)
@@ -61,7 +67,10 @@ class String
     # not depend on Enumerator.
     return to_enum(:gsub, *args) if args.length == 1 && !block
     pattern, replacement = *args
-    pattern = Regexp.new(Regexp.escape(pattern)) if pattern.is_a?(String)
+    # After the to_enum return above, so that `"abc".gsub(:b)` yields an
+    # Enumerator and raises on the first iteration, as CRuby does.
+    pattern = Regexp.__match_pattern(pattern)
+    pattern = Regexp.new(Regexp.escape(pattern)) if String === pattern
     # A replacement argument wins over the block, as in CRuby.
     if args.length == 2
       return pattern.__gsub_str(self, replacement.to_s)
@@ -103,7 +112,8 @@ class String
   end
 
   def scan(pattern)
-    pattern = Regexp.new(Regexp.escape(pattern)) if pattern.is_a?(String)
+    pattern = Regexp.__match_pattern(pattern)
+    pattern = Regexp.new(Regexp.escape(pattern)) if String === pattern
     result = pattern.__scan(self)
     if block_given?
       result.each { |m| yield m }
@@ -140,9 +150,9 @@ class String
       return limit_given ? __split(pattern, limit) : __split(pattern)
     end
     return self.empty? ? [] : [self] if limit == 1
-    unless pattern.is_a?(Regexp)
-      raise TypeError, "wrong argument type #{pattern.class} (expected Regexp)"
-    end
+    # nil and String patterns already went to __split above, so the String
+    # branch of the resolver is unreachable here and nothing needs quoting.
+    pattern = Regexp.__match_pattern(pattern)
 
     result = []
     field_start = 0

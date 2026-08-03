@@ -1099,13 +1099,14 @@ regexp_scan(mrb_state *mrb, mrb_value self)
   return ary;
 }
 
-/* Check the pattern given to String#match and #match?: a Regexp or a String
-   passes through, everything else raises. The test runs here rather than in
-   Ruby so it never dispatches on the argument, where a redefined `is_a?` or
-   `class` could pose as a Regexp or fake the type name. Compiling a String
-   pattern is left to the caller, so this needs no callback into the VM.
-   CRuby names `nil`, `true` and `false` by value and everything else by
-   class. */
+/* Check the pattern given to String#match, #match?, #sub, #gsub, #scan and
+   #split: a Regexp or a String passes through, everything else raises. The
+   test runs here rather than in Ruby so it never dispatches on the argument,
+   where a redefined `is_a?` or `class` could pose as a Regexp or fake the type
+   name. What to do with an accepted String is left to the caller, which
+   compiles it for `match` and quotes it first for `sub` and friends, so this
+   needs no callback into the VM. CRuby names `nil`, `true` and `false` by
+   value and everything else by class. */
 static mrb_value
 regexp_match_pattern(mrb_state *mrb, mrb_value self)
 {
