@@ -1122,7 +1122,7 @@ regexp_scan(mrb_state *mrb, mrb_value self)
    needs no callback into the VM. CRuby names `nil`, `true` and `false` by
    value and everything else by class. */
 static mrb_value
-regexp_match_pattern(mrb_state *mrb, mrb_value self)
+regexp_check_pattern(mrb_state *mrb, mrb_value self)
 {
   mrb_value re;
   mrb_get_args(mrb, "o", &re);
@@ -1157,7 +1157,7 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, re, "escape", regexp_escape, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, re, "quote", regexp_escape, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, re, "__binary_string?", regexp_binary_string_p, MRB_ARGS_REQ(1));
-  mrb_define_class_method(mrb, re, "__match_pattern", regexp_match_pattern, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, re, "__check_pattern", regexp_check_pattern, MRB_ARGS_REQ(1));
 
   /* Instance methods */
   mrb_define_method(mrb, re, "match", regexp_match, MRB_ARGS_ARG(1, 1)|MRB_ARGS_BLOCK());
