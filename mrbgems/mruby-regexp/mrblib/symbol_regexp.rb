@@ -8,10 +8,10 @@
 # from here.  `sym[/re/]` is the direction still missing; it waits on the
 # regexp form of `String#slice`.
 #
-# Two differences from CRuby are inherited from `String#=~` rather than
-# introduced here: a String argument raises TypeError (CRuby does too), but so
-# does any other object that has no `=~` -- `:a =~ nil` raises NoMethodError
-# where CRuby returns nil.
+# The argument handling of `=~` is inherited from `String#=~` rather than
+# introduced here, and agrees with CRuby: a String argument raises TypeError,
+# and any other object is asked for its own `=~`, which `nil` answers and an
+# object without one rejects with NoMethodError.
 class Symbol
   def match(re, pos = 0, &block)
     self.to_s.match(re, pos, &block)

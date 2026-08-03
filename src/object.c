@@ -148,6 +148,23 @@ nil_inspect(mrb_state *mrb, mrb_value obj)
   return str;
 }
 
+/*
+ *  call-seq:
+ *     nil =~ other  -> nil
+ *
+ *  Always returns `nil`, as CRuby does.  It belongs here rather than in an
+ *  mrbgem because `Kernel#!~` is `!(self =~ other)` and is always present:
+ *  without this method `nil !~ other` raises even in a build carrying no gem
+ *  at all.  It is also what answers `str =~ nil` instead of raising, for a
+ *  `String#=~` that dispatches a non-String argument as `other =~ self`.
+ */
+
+static mrb_value
+nil_match(mrb_state *mrb, mrb_value obj)
+{
+  return mrb_nil_value();
+}
+
 /***********************************************************************
  *  Document-class: TrueClass
  *
@@ -328,6 +345,7 @@ static const mrb_mt_entry nil_rom_entries[] = {
   MRB_MT_ENTRY(mrb_true,    MRB_SYM_Q(nil), MRB_ARGS_NONE()),  /* 15.2.4.3.4  */
   MRB_MT_ENTRY(nil_to_s,    MRB_SYM(to_s),  MRB_ARGS_NONE()),  /* 15.2.4.3.5  */
   MRB_MT_ENTRY(nil_inspect, MRB_SYM(inspect), MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(nil_match,   MRB_OPSYM(match), MRB_ARGS_REQ(1)),
 };
 
 static const mrb_mt_entry true_rom_entries[] = {

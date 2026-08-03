@@ -33,6 +33,16 @@ assert('NilClass#to_s', '15.2.4.3.5') do
   assert_equal '', nil.to_s
 end
 
+assert('NilClass#=~') do
+  assert_nil nil =~ "a"
+  assert_nil nil =~ nil
+  assert_nil nil =~ Object.new
+  assert_true nil.respond_to?(:=~)
+  # `Kernel#!~` is `!(self =~ other)`, so it answers now that `=~` does.
+  assert_true nil !~ "a"
+  assert_raise(ArgumentError) { nil.=~() }
+end
+
 assert('safe navigation') do
   assert_nil nil&.size
   assert_equal 0, []&.size
