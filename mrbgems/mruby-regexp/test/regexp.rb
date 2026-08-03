@@ -684,7 +684,7 @@ class StringMatchStringDenier < String
 end
 
 class StringMatchHelperOverride < String
-  private def __match_pattern(re)
+  private def __check_pattern(re)
     Regexp.new(re.to_s)
   end
 end

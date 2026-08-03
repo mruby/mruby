@@ -5,19 +5,19 @@ class String
   alias __split split
 
   # `match` and `match?` accept a Regexp or a String and reject everything
-  # else.  The check lives in C (see Regexp.__match_pattern) so that the
+  # else.  The check lives in C (see Regexp.__check_pattern) so that the
   # argument cannot steer it: it cannot pose as a Regexp, and there is no
   # helper on String for a subclass to redefine.  Compiling an accepted String
   # stays here, so the check does not have to call back into the VM; `String
   # ===` goes through `Module#===` and cannot be redefined either.
   def match(re, pos = 0, &block)
-    re = Regexp.__match_pattern(re)
+    re = Regexp.__check_pattern(re)
     re = Regexp.new(re) if String === re
     re.match(self, pos, &block)
   end
 
   def match?(re, pos = 0)
-    re = Regexp.__match_pattern(re)
+    re = Regexp.__check_pattern(re)
     re = Regexp.new(re) if String === re
     re.match?(self, pos)
   end
@@ -42,11 +42,11 @@ class String
       raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 2)"
     end
     pattern, replacement = *args
-    pattern = Regexp.__match_pattern(pattern)
+    pattern = Regexp.__check_pattern(pattern)
     # Unlike `match`, a String pattern is quoted rather than compiled: it is a
     # literal here, the distinction CRuby draws between get_pat_quoted and
     # get_pat.  Only the quoting is taken from it: get_pat_quoted also accepts
-    # anything answering `to_str`, where `__match_pattern` keeps to a real
+    # anything answering `to_str`, where `__check_pattern` keeps to a real
     # String, as `match` already does.
     pattern = Regexp.new(Regexp.escape(pattern)) if String === pattern
     # A replacement argument wins over the block, as in CRuby.
@@ -69,7 +69,7 @@ class String
     pattern, replacement = *args
     # After the to_enum return above, so that `"abc".gsub(:b)` yields an
     # Enumerator and raises on the first iteration, as CRuby does.
-    pattern = Regexp.__match_pattern(pattern)
+    pattern = Regexp.__check_pattern(pattern)
     pattern = Regexp.new(Regexp.escape(pattern)) if String === pattern
     # A replacement argument wins over the block, as in CRuby.
     if args.length == 2
@@ -112,7 +112,7 @@ class String
   end
 
   def scan(pattern)
-    pattern = Regexp.__match_pattern(pattern)
+    pattern = Regexp.__check_pattern(pattern)
     pattern = Regexp.new(Regexp.escape(pattern)) if String === pattern
     result = pattern.__scan(self)
     if block_given?
@@ -149,8 +149,8 @@ class String
     end
     return self.empty? ? [] : [self] if limit == 1
     # nil and String patterns already went to __split above, so the String
-    # branch of the resolver is unreachable here and nothing needs quoting.
-    pattern = Regexp.__match_pattern(pattern)
+    # branch of the check is unreachable here and nothing needs quoting.
+    pattern = Regexp.__check_pattern(pattern)
 
     result = []
     field_start = 0
