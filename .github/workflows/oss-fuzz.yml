@@ -6,6 +6,7 @@ permissions:
 
 jobs:
   Fuzzing:
+    if: ${{ github.repository == 'mruby/mruby' }}
     runs-on: ubuntu-latest
     steps:
       - name: Build Fuzzers
