@@ -127,6 +127,8 @@ pattern analysis.
   only.
 - **Step limit on backtracking**: Patterns that require the
   backtracking engine are subject to a step limit.
+- **No regexp form on the write side**: `str[re] = repl` and
+  `str.slice!(re)` are not supported. Reading with `str[re]` is.
 
 ## Configuration
 
