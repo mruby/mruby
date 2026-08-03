@@ -60,9 +60,19 @@ typedef struct {
 /* Named capture entry */
 typedef struct {
   const char *name;
-  uint16_t name_len;
+  uint32_t name_len;
   uint16_t group;
 } re_named_capture;
+
+/* Longest group name re_named_capture::name_len can hold. The compiler
+   rejects anything longer instead of narrowing to the field, so a stored
+   length is always the name's true length.
+
+   RE_NAME_LEN_FITS() widens before comparing: where the argument's type is
+   no wider than the field (ptrdiff_t on ILP32, mrb_int on MRB_INT32) the
+   comparison is otherwise constant, which compilers warn about. */
+#define RE_MAX_NAME_LEN UINT32_MAX
+#define RE_NAME_LEN_FITS(n) ((uintmax_t)(n) <= RE_MAX_NAME_LEN)
 
 /* Compiled regexp pattern */
 typedef struct mrb_regexp_pattern {
