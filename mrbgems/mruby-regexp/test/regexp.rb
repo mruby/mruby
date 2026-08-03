@@ -1076,6 +1076,16 @@ assert("MatchData#[] - undefined group name") do
   assert_raise(IndexError) { /(a)/.match("a")[:zz] }
 end
 
+assert("MatchData#[] - group name longer than a uint16 length") do
+  # Regression: the length test truncated the requested length to uint16_t
+  # while the memcmp() next to it did not, so (uint16_t)65539 == 3 ==
+  # "abc".length let a 65539-byte read run off a 3-byte arena. The result is
+  # unchanged either way; only a sanitizer build fails on it.
+  md = /(?<abc>x)/.match("x")
+  assert_raise(IndexError) { md["abc" + "A" * 65536] }
+  assert_equal "x", md[:abc]
+end
+
 assert("Regexp - named backreference \\k") do
   assert_equal "aa", "aa".match(/(?<n>\w)\k<n>/)[0]
   assert_equal "abba", "abba".match(/(?<a>.)(?<b>.)\k<b>\k<a>/)[0]
