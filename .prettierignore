@@ -3,3 +3,8 @@ build
 coverage
 doc/internal/opcode.md
 .venv
+
+# The vendored Prism compiler. The prettier hook runs with pass_filenames
+# false, so it globs the working tree rather than the files prek selects, and
+# without this it rewrites the submodule even for a single-file run.
+mrbgems/mruby-compiler/lib/prism/
