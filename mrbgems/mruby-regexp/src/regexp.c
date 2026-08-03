@@ -592,7 +592,10 @@ matchdata_aref(mrb_state *mrb, mrb_value self)
     if (!mrb_nil_p(md->regexp)) {
       pat = DATA_GET_PTR(mrb, md->regexp, &regexp_type, mrb_regexp_pattern);
     }
-    if (pat) {
+    /* A stored name never exceeds UINT16_MAX, so a longer request can name no
+       group. Rejecting it here keeps the cast in the loop lossless; without it
+       the length test truncates while the memcmp() next to it does not. */
+    if (pat && name_len <= UINT16_MAX) {
       for (uint16_t i = 0; i < pat->num_named; i++) {
         if (pat->named_captures[i].name_len == (uint16_t)name_len &&
             memcmp(pat->named_captures[i].name, name, name_len) == 0) {
