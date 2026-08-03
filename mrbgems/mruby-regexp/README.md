@@ -51,6 +51,7 @@ re.match("string") { |md| ... }   # => block result, or nil if no match
 re.match?("string")               # => true/false
 re =~ "string"                    # => index or nil
 re === "string"                   # => true/false (for case/when)
+re.match(:symbol)                 # a Symbol is matched against its name
 re.source                         # => "pattern"
 re.options                        # => flags integer
 Regexp.escape("a.b")              # => "a\\.b"
@@ -121,12 +122,6 @@ pattern analysis.
   only.
 - **Step limit on backtracking**: Patterns that require the
   backtracking engine are subject to a step limit.
-- **Symbols only on the left of a match**: `sym.match(re)`,
-  `sym.match?(re)` and `sym =~ re` work, but the Regexp side still
-  takes strings only. `re =~ sym`, `re.match(sym)` and
-  `re.match?(sym)` raise TypeError, `re === sym` returns false, and
-  therefore `syms.grep(re)` (which goes through `Regexp#===`) returns
-  `[]`.
 - **No regexp form of `String#[]`**: `str[re]` and `str.slice(re)`
   are not supported, and neither is `sym[re]`, which delegates to
   them.

@@ -96,6 +96,81 @@ assert("Regexp#===") do
   assert_equal "theo", $1
 end
 
+assert("Regexp#match - Symbol argument") do
+  md = /a(b)/.match(:xaby)
+  assert_kind_of MatchData, md
+  assert_equal "ab", md[0]
+  assert_equal "b", md[1]
+  assert_equal "xaby", md.string
+  assert_equal "x", md.pre_match
+  assert_equal "ab", $~[0]
+  assert_equal "b", /(?<x>b)/.match(:ab)[:x]
+  assert_equal "A", (/a/.match(:ab) { |m| m[0].upcase })
+  assert_nil /z/.match(:ab)
+end
+
+assert("Regexp#match - Symbol argument with pos") do
+  assert_equal 3, /a/.match(:abxay, 1).begin(0)
+  assert_nil /a/.match(:ab, 2)
+end
+
+assert("Regexp#match - multibyte Symbol argument") do
+  # a multibyte name never fits the inline symbol representation, so this is
+  # the shared-buffer path, with a subject the offset conversion has to walk
+  assert_equal "い", /(い)/.match(:あいう)[1]
+  assert_equal __ENCODING__ == "UTF-8" ? 1 : 3, /い/ =~ :あい
+  assert_true /う/.match?(:あいう, 2)
+  assert_false /あ/.match?(:あいう, 1)
+  assert_true(/^あ/ === :あい)
+end
+
+assert("Regexp#match - Symbol argument does not alias the symbol table") do
+  # A symbol long enough to miss the inline representation shares the symbol
+  # table's buffer, and a dup keeps sharing it, so a destructive update has to
+  # copy first.
+  s = /a/.match(:abcdefghijklmnop).string.dup
+  s << "Z"
+  assert_equal "abcdefghijklmnopZ", s
+  assert_equal "abcdefghijklmnop", :abcdefghijklmnop.to_s
+end
+
+assert("Regexp#match? - Symbol argument") do
+  assert_true /a/.match?(:ab)
+  assert_false /z/.match?(:ab)
+  assert_false /a/.match?(:ab, 1)
+  assert_true /b/.match?(:ab, 1)
+end
+
+assert("Regexp#=~ - Symbol argument") do
+  assert_equal 1, (/b/ =~ :ab)
+  assert_equal "b", $~[0]
+  assert_nil(/z/ =~ :ab)
+  assert_nil $~
+end
+
+assert("Regexp#=== - Symbol argument") do
+  assert_true(/^to_/ === :to_s)
+  assert_false(/^to_/ === :size)
+  # Enumerable#grep is the motivating case: it dispatches through #===, so it
+  # used to answer [] rather than raise
+  assert_equal %i[to_s to_i], %i[to_s to_i size].grep(/^to_/)
+  result = case :hello123
+           when /\d+/ then "has digits"
+           else "no digits"
+           end
+  assert_equal "has digits", result
+end
+
+assert("Regexp - match operand rejects other types") do
+  assert_raise(TypeError) { /a/.match(1) }
+  assert_raise(TypeError) { /a/.match?(1) }
+  assert_raise(TypeError) { /a/ =~ 1 }
+  # #=== answers false rather than raising, for symbols and everything else
+  assert_false(/a/ === 1)
+  assert_false(/a/ === Object.new)
+  assert_false(/a/ === nil)
+end
+
 assert("Regexp - character class") do
   re = Regexp.new("[a-z]+")
   md = re.match("123abc456")
