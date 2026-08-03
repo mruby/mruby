@@ -138,7 +138,10 @@ class String
     # `ary[obj]` and `"s" * obj` all reject an object that only defines
     # `to_int`; dispatching it here would leave this the one place in the tree
     # that accepts one, as the same reasoning keeps `match` off `to_str`.
-    if limit_given && !limit.is_a?(Integer)
+    # `is_a?` is redefinable, so a limit claiming to be an Integer would skip
+    # that conversion and reach the arithmetic below as itself. `Module#===`
+    # reads the real type and cannot be redefined.
+    if limit_given && !(Integer === limit)
       limit = limit.__to_int
     end
     # `nil?` and `is_a?` are redefinable, so an argument answering either one
