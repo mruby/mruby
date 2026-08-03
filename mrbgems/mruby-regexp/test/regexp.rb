@@ -673,6 +673,16 @@ end
 class StringMatchString < String
 end
 
+class StringMatchStringDenier < String
+  def is_a?(klass)
+    false
+  end
+
+  def nil?
+    true
+  end
+end
+
 class StringMatchHelperOverride < String
   private def __match_pattern(re)
     Regexp.new(re.to_s)
@@ -818,6 +828,97 @@ assert("String#gsub without a block returns an enumerator") do
   assert_equal ["b", "b"], "abcb".gsub("b").to_a
   # Iterating the enumerator with a block performs the substitution.
   assert_equal "aBcB", "abcb".gsub(/b/).each { |m| m.upcase }
+end
+
+assert("String#sub / #gsub / #scan / #split with a non-Regexp pattern raise TypeError") do
+  # The same check `match` uses, so the naming matches: nil, true and false by
+  # value, everything else by class.
+  [
+    ["nil", nil], ["true", true], ["false", false],
+    ["Symbol", :b], ["Integer", 1], ["Array", []],
+  ].each do |name, pat|
+    message = "wrong argument type #{name} (expected Regexp)"
+    assert_raise_with_message(TypeError, message) { "abc".sub(pat, "X") }
+    assert_raise_with_message(TypeError, message) { "abc".gsub(pat, "X") }
+    assert_raise_with_message(TypeError, message) { "abc".sub(pat) { "X" } }
+    assert_raise_with_message(TypeError, message) { "abc".gsub(pat) { "X" } }
+    assert_raise_with_message(TypeError, message) { "abc".scan(pat) }
+    # split delegates nil to the core implementation instead of raising.
+    assert_raise_with_message(TypeError, message) { "abc".split(pat) } unless pat.nil?
+  end
+
+  # An argument claiming to be a Regexp through `is_a?` or `class` is still
+  # rejected, and still named by its real class.  `split` routes nil and String
+  # patterns to the core implementation, so it has to reach the same check
+  # without asking the argument what it is.
+  liar = StringMatchIsALiar.new
+  assert_raise_with_message(TypeError, "wrong argument type StringMatchIsALiar (expected Regexp)") do
+    "abc".sub(liar, "X")
+  end
+  assert_raise_with_message(TypeError, "wrong argument type StringMatchIsALiar (expected Regexp)") do
+    "abc".split(liar)
+  end
+  class_liar = StringMatchClassLiar.new
+  assert_raise_with_message(TypeError, "wrong argument type StringMatchClassLiar (expected Regexp)") do
+    "abc".gsub(class_liar, "X")
+  end
+  assert_raise_with_message(TypeError, "wrong argument type StringMatchClassLiar (expected Regexp)") do
+    "abc".split(class_liar)
+  end
+
+  # A Symbol answers `match`, which the block form of `sub` used to reach: it
+  # matched with the operands reversed and returned a string built from the
+  # symbol's name instead of raising.
+  assert_raise_with_message(TypeError, "wrong argument type Symbol (expected Regexp)") do
+    "ab".sub(:xaby) { "Z" }
+  end
+end
+
+assert("String#sub / #gsub / #scan / #split accept a Regexp subclass, and quote a String") do
+  assert_equal "aXc", "abc".sub(StringMatchRegexp.new("b"), "X")
+  assert_equal "aXcX", "abcb".gsub(StringMatchRegexp.new("b"), "X")
+  assert_equal ["b", "b"], "abcb".scan(StringMatchRegexp.new("b"))
+  assert_equal ["a", "c"], "abc".split(StringMatchRegexp.new("b"))
+
+  # A String pattern is a literal here, not a pattern: `.` matches only `.`.
+  assert_equal "aXc", "a.c".sub(".", "X")
+  assert_equal "aXc", "a.c".gsub(".", "X")
+  assert_equal ["."], "a.c".scan(".")
+  assert_equal "a[.]c", "a.c".gsub(".") { |m| "[#{m}]" }
+  # A String subclass is accepted on the same terms.
+  assert_equal "aXc", "a.c".sub(StringMatchString.new("."), "X")
+  # Even one denying that it is a String, or claiming to be nil: `split` reads
+  # the real type before choosing between the core implementation and the
+  # regexp path.
+  assert_equal ["a", "c"], "a.c".split(StringMatchStringDenier.new("."))
+end
+
+assert("String#=~ reads the real type of a String argument") do
+  # `=~` dispatches everything but a String to the argument, so a String
+  # subclass denying its own type used to pass the guard and dispatch back
+  # here, recursing until the stack ran out instead of raising.
+  denier = StringMatchStringDenier.new("b")
+  assert_raise_with_message(TypeError, "type mismatch: String given") do
+    "abc" =~ denier
+  end
+  assert_raise_with_message(TypeError, "type mismatch: String given") do
+    denier =~ denier
+  end
+end
+
+assert("String#gsub / #split examine the pattern only where CRuby does") do
+  # gsub without a block builds the enumerator first, so the TypeError is
+  # raised on the first iteration rather than at the call.
+  if Object.const_defined?(:Enumerator)
+    enum = "abc".gsub(:b)
+    assert_raise_with_message(TypeError, "wrong argument type Symbol (expected Regexp)") do
+      enum.to_a
+    end
+  end
+
+  # split returns before looking at the pattern when the limit is 1.
+  assert_equal ["abc"], "abc".split(true, 1)
+  assert_equal [], "".split(:b, 1)
 end
 
 assert("String#sub with \\& \\` \\' specials") do
