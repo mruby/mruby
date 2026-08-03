@@ -1082,6 +1082,44 @@ assert("String#split with regexp limit") do
   assert_raise(TypeError) { "a,b".split(/,/, limit) }
 end
 
+class StringSplitLimitIsALiar
+  def is_a?(klass)
+    true
+  end
+end
+
+class StringSplitLimitComparable
+  def is_a?(klass)
+    true
+  end
+
+  def ==(other)
+    false
+  end
+
+  def >(other)
+    true
+  end
+
+  def -(other)
+    1
+  end
+end
+
+assert("String#split limit cannot pose as an Integer") do
+  # `is_a?` is redefinable, so a limit claiming to be an Integer used to skip
+  # the conversion and reach the split loop as itself.
+  assert_raise(TypeError) { "a,b,c".split(/,/, StringSplitLimitIsALiar.new) }
+  # The String pattern delegates to __split, which converts the limit again in
+  # C, so this one held before the fix too. Asserted so that the two halves of
+  # the method stay pinned to the same answer.
+  assert_raise(TypeError) { "a,b,c".split(",", StringSplitLimitIsALiar.new) }
+
+  # Answering the operators the loop uses used to produce a wrong result
+  # instead of an error.
+  assert_raise(TypeError) { "a,b,c".split(/,/, StringSplitLimitComparable.new) }
+end
+
 assert("String#split with empty regexp") do
   assert_equal ["a", "b", "c"], "abc".split(//)
   assert_equal ["a", "bc"], "abc".split(//, 2)
