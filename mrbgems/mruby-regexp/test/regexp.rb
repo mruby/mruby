@@ -1058,6 +1058,15 @@ assert("MatchData#[] - negative index") do
   assert_nil md[5]
 end
 
+assert("MatchData#[] - undefined group name") do
+  md = /(?<x>a)/.match("a")
+  assert_equal "a", md[:x]
+  assert_raise(IndexError) { md[:zz] }
+  assert_raise(IndexError) { md["zz"] }
+  # a pattern without any named group raises just the same
+  assert_raise(IndexError) { /(a)/.match("a")[:zz] }
+end
+
 assert("Regexp - named backreference \\k") do
   assert_equal "aa", "aa".match(/(?<n>\w)\k<n>/)[0]
   assert_equal "abba", "abba".match(/(?<a>.)(?<b>.)\k<b>\k<a>/)[0]

@@ -601,7 +601,10 @@ matchdata_aref(mrb_state *mrb, mrb_value self)
         }
       }
     }
-    return mrb_nil_value();
+    /* A name that resolves to no group is a mistake at the point of the call,
+       not a failed match. CRuby raises here even when the pattern has no
+       named group at all. */
+    mrb_raisef(mrb, E_INDEX_ERROR, "undefined group name reference: %l", name, (size_t)name_len);
   }
   else {
     idx = mrb_as_int(mrb, arg);
