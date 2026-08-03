@@ -168,6 +168,33 @@ main(void)
 }
 ```
 
+#### Avoid re-entering the VM from C
+
+A C function whose job is to validate an argument, determine a type, normalize
+a value, or read an internal representation should do that work in C and stop
+there. Do not call back into the Ruby VM from it, whether through
+`mrb_funcall*()`, `mrb_yield*()`, `mrb_obj_new()`, or a conversion that
+dispatches a user-definable method. Re-entrant VM execution can move the stack
+and invalidate pointers held across the call, and a redefined method can change
+the outcome of a check that was meant to be authoritative.
+
+When a method needs both, split it: keep the check in C and express the rest in
+Ruby. `String#match` validates its pattern in C and compiles an accepted String
+in mrblib. A method that takes a block generally belongs in Ruby for the same
+reason; where speed matters, define a C fast path (conventionally named with a
+`__` prefix) and call it from a wrapping Ruby method.
+
+The rule is about the responsibility of the function, not about the presence of
+`mrb_funcall*()`. Entering the VM is legitimate where dispatch is itself the
+specification: `convert_type()` in `src/object.c` for the `to_str` protocol,
+`mrb_obj_new()` in `src/class.c` running `initialize` and the `inherited`,
+`included` and `method_missing` hooks, the default proc in `src/hash.c`, and
+the `to_a` and `to_enum` delegations in `src/array.c`. When you rely on such a
+case, say why in a comment or in the pull request, and check that exceptions
+and `break` propagate, that intermediate state survives re-entry, and that live
+values stay rooted (see `mrb_gc_arena_restore(mrb, ai); // for mrb_funcall` in
+`src/array.c`).
+
 ### Ruby code
 
 Parts of the standard library of mruby are written in the Ruby programming
