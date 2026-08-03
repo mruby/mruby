@@ -601,14 +601,25 @@ matchdata_aref(mrb_state *mrb, mrb_value self)
         }
       }
     }
-    return mrb_nil_value();
+    /* A name that resolves to no group is a mistake at the point of the call,
+       not a failed match. CRuby raises here even when the pattern has no
+       named group at all. */
+    mrb_raisef(mrb, E_INDEX_ERROR, "undefined group name reference: %l", name, (size_t)name_len);
   }
   else {
     idx = mrb_as_int(mrb, arg);
+    if (idx < 0) {
+      /* A negative index counts back from the last group. CRuby's
+         rb_reg_nth_match() drops the result unless it is positive, so the
+         lowest group a negative index reaches is 1, never the whole match:
+         /(a)(b)/.match("ab")[-3] is nil, not "ab". */
+      idx += md->num_captures;
+      if (idx <= 0) return mrb_nil_value();
+    }
   }
 
 found:
-  if (idx < 0 || idx >= md->num_captures) return mrb_nil_value();
+  if (idx >= md->num_captures) return mrb_nil_value();
   int start = md->captures[idx * 2];
   int end = md->captures[idx * 2 + 1];
   if (start < 0) return mrb_nil_value();

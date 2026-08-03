@@ -1054,6 +1054,28 @@ assert("Regexp - named captures") do
   assert_equal "2026", md["year"]
 end
 
+assert("MatchData#[] - negative index") do
+  md = /(a)(b)/.match("ab")
+  assert_equal "b", md[-1]
+  assert_equal "a", md[-2]
+  # -num_captures and below are nil: a negative index never reaches group 0
+  assert_nil md[-3]
+  assert_nil md[-4]
+  # a group that did not participate is nil either way
+  assert_nil(/(a)|(b)/.match("a")[-1])
+  # out of range upwards stays nil
+  assert_nil md[5]
+end
+
+assert("MatchData#[] - undefined group name") do
+  md = /(?<x>a)/.match("a")
+  assert_equal "a", md[:x]
+  assert_raise(IndexError) { md[:zz] }
+  assert_raise(IndexError) { md["zz"] }
+  # a pattern without any named group raises just the same
+  assert_raise(IndexError) { /(a)/.match("a")[:zz] }
+end
+
 assert("Regexp - named backreference \\k") do
   assert_equal "aa", "aa".match(/(?<n>\w)\k<n>/)[0]
   assert_equal "abba", "abba".match(/(?<a>.)(?<b>.)\k<b>\k<a>/)[0]
