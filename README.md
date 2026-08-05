@@ -26,7 +26,6 @@
 - [License](#license)
 - [Note for License](#note-for-license)
 - [How to Contribute](#how-to-contribute)
-- [Star History](#star-history)
 - [Contributors](#contributors)
 
 ## What is mruby
@@ -173,10 +172,6 @@ Please ask us if you want to distribute your code under another license.
 
 To contribute to mruby, please refer to the [contribution guidelines][contribution-guidelines] and send a pull request to the [mruby GitHub repository](https://github.com/mruby/mruby).
 By contributing, you grant non-exclusive rights to your code under the MIT License.
-
-## Star History
-
-[![mruby Star History](https://api.star-history.com/svg?repos=mruby/mruby&type=Date)](https://www.star-history.com/#mruby/mruby&Date)
 
 ## Contributors
 
