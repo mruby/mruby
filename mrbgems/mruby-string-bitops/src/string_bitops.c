@@ -261,36 +261,18 @@ bitop_count_bits(const unsigned char *ptr, mrb_int len)
 }
 
 /*
- * Converts an offset argument to mrb_int.  Following CRuby's
- * rb_to_int, non-numeric objects are converted via to_int; the
- * numeric types are left to mrb_as_int, which handles Float (and
- * Bigint/Rational/Complex when their gems are present) itself.
- * to_int is dispatched manually: mrb_type_convert with
- * MRB_TT_INTEGER would reject a Bigint returned by to_int with
- * TypeError, while a directly passed Bigint reaches mrb_as_int and
- * raises RangeError; both paths must agree.
+ * Converts an offset argument to mrb_int.  Unlike CRuby's rb_to_int
+ * this does not dispatch to_int: mruby has no implicit conversion
+ * protocol in core, so Array.new(obj), ary[obj] and "s" * obj all
+ * reject an object that merely defines to_int, and this must not be
+ * the one place in the tree that accepts one.
+ * mrb_ensure_integer_type() covers exactly the numeric types an
+ * offset may be written as, and raises TypeError for the rest.
  */
 static mrb_int
 bitop_offset_from_index(mrb_state *mrb, mrb_value index)
 {
-  switch (mrb_type(index)) {
-  case MRB_TT_INTEGER:
-  case MRB_TT_FLOAT:
-  case MRB_TT_BIGINT:
-  case MRB_TT_RATIONAL:
-  case MRB_TT_COMPLEX:
-    break;
-  default:
-    if (mrb_respond_to(mrb, index, MRB_SYM(to_int))) {
-      mrb_value converted = mrb_funcall_argv(mrb, index, MRB_SYM(to_int), 0, NULL);
-      if (mrb_type(converted) == MRB_TT_INTEGER || mrb_type(converted) == MRB_TT_BIGINT) {
-        index = converted;
-        break;
-      }
-    }
-    mrb_raisef(mrb, E_TYPE_ERROR, "%Y cannot be converted to Integer", index);
-  }
-  return mrb_as_int(mrb, index);
+  return mrb_as_int(mrb, mrb_ensure_integer_type(mrb, index));
 }
 
 /*
@@ -476,24 +458,19 @@ mrb_str_bitwise_not_bang(mrb_state *mrb, mrb_value str)
 }
 
 /*
- * Converts the operand of a binary bitwise operation like CRuby's
- * StringValue(): a real String passes through, anything else goes
- * through to_str.  mrb_type_convert cannot be used here because on
- * MRB_TT_STRING failure it falls back to any_to_s instead of raising.
+ * Checks the operand of a binary bitwise operation.  Unlike CRuby's
+ * StringValue() this does not dispatch to_str, for the same reason
+ * the offset conversion does not dispatch to_int: mruby has no
+ * implicit String conversion in core, so honouring to_str here would
+ * make this gem more permissive than the tree it sits in.
  */
 static mrb_value
 bitop_str_operand(mrb_state *mrb, mrb_value other)
 {
-  if (mrb_string_p(other)) {
-    return other;
+  if (!mrb_string_p(other)) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "%Y cannot be converted to String", other);
   }
-  if (mrb_respond_to(mrb, other, MRB_SYM(to_str))) {
-    mrb_value converted = mrb_funcall_argv(mrb, other, MRB_SYM(to_str), 0, NULL);
-    if (mrb_string_p(converted)) {
-      return converted;
-    }
-  }
-  mrb_raisef(mrb, E_TYPE_ERROR, "%Y cannot be converted to String", other);
+  return other;
 }
 
 static void

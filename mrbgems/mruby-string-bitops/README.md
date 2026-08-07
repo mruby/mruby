@@ -79,8 +79,14 @@ loop; only the tail bytes go through a byte loop.
   `mrb_int` builds with strings over 256MiB) becomes a Bignum when
   mruby-bigint is present and raises `RangeError` otherwise.
 
-Matching CRuby, binary operands are converted with `to_str` and bit
-offsets with `to_int`, and the results of the non-bang bitwise
+- Implicit conversion is not honoured. CRuby converts a binary operand
+  with `to_str` and a bit offset with `to_int`; this gem requires a
+  real `String` and a real numeric offset. mruby has no implicit
+  conversion protocol in core, so `Array.new(obj)`, `ary[obj]` and
+  `"s" * obj` all reject an object that merely defines `to_int`, and
+  this gem does not become the one place that accepts one.
+
+Matching CRuby, the results of the non-bang bitwise
 operations are BINARY (ASCII-8BIT) strings -- the binary flag is
 observable through `String#encoding` when mruby-encoding is in the
 build, and inert otherwise.

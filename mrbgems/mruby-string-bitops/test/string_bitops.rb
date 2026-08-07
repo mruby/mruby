@@ -28,23 +28,17 @@ assert('String#bit_get') do
     assert_raise(RangeError) { s.bit_get(huge) }
   end
 
-  # Offsets are converted with to_int like CRuby's rb_to_int.
+  # Unlike CRuby's rb_to_int, an offset is not converted with to_int:
+  # mruby has no implicit conversion protocol in core, so an object
+  # that only defines to_int is rejected here exactly as it is by
+  # Array.new(obj), ary[obj] and "s" * obj.
   o = Object.new
   def o.to_int
     1
   end
-  assert_equal 1, s.bit_get(o)
+  assert_raise(TypeError) { s.bit_get(o) }
   assert_raise(TypeError) { s.bit_get("1") }
 
-  # A to_int returning a value beyond mrb_int raises RangeError, the
-  # same as passing such a value directly.  Without mruby-bigint the
-  # power itself raises RangeError; with it, the Bigint reaches the
-  # offset conversion.  Both configurations end in RangeError.
-  big = Object.new
-  def big.to_int
-    2 ** 100
-  end
-  assert_raise(RangeError) { s.bit_get(big) }
 end
 
 assert('String#bit_set?') do
@@ -153,15 +147,14 @@ assert('String#bitwise_and, #bitwise_or, #bitwise_xor') do
   assert_equal s.object_id, s.bitwise_xor!("\xFF").object_id
   assert_equal "\x33", s
 
-  # Operands are converted with to_str like CRuby's StringValue.
+  # Unlike CRuby's StringValue, an operand is not converted with
+  # to_str; see the offset conversion for the same reasoning.
   o = Object.new
   def o.to_str
     "\xCC"
   end
-  assert_equal "\xC0", "\xF0".bitwise_and(o)
-  t = "\xF0"
-  t.bitwise_and!(o)
-  assert_equal "\xC0", t
+  assert_raise(TypeError) { "\xF0".bitwise_and(o) }
+  assert_raise(TypeError) { "\xF0".bitwise_and!(o) }
 
   if "".respond_to?(:encoding)
     assert_equal Encoding::BINARY, "\xF0".bitwise_and("\xCC").encoding
@@ -180,6 +173,12 @@ assert('String#bitwise_and, #bitwise_or, #bitwise_xor') do
   assert_raise(ArgumentError) { "\x00\x00".bitwise_or!("\x00") }
   assert_raise(TypeError) { "\x00".bitwise_or(nil) }
   assert_raise(TypeError) { "\x00".bitwise_or(0) }
+  q = Object.new
+  def q.to_str
+    "\x00"
+  end
+  assert_raise(TypeError) { "\x00".bitwise_or(q) }
+  assert_raise(TypeError) { "\x00".bitwise_or!(q) }
   assert_raise(FrozenError) { "\x00".freeze.bitwise_xor!("\x00") }
 end
 
