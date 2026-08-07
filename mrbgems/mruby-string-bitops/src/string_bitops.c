@@ -288,7 +288,7 @@ bitop_offset_from_index(mrb_state *mrb, mrb_value index)
         break;
       }
     }
-    mrb_raisef(mrb, E_TYPE_ERROR, "%t cannot be converted to Integer", index);
+    mrb_raisef(mrb, E_TYPE_ERROR, "%Y cannot be converted to Integer", index);
   }
   return mrb_as_int(mrb, index);
 }
@@ -493,7 +493,7 @@ bitop_str_operand(mrb_state *mrb, mrb_value other)
       return converted;
     }
   }
-  mrb_raisef(mrb, E_TYPE_ERROR, "%t cannot be converted to String", other);
+  mrb_raisef(mrb, E_TYPE_ERROR, "%Y cannot be converted to String", other);
 }
 
 static void
