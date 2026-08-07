@@ -10,6 +10,7 @@
  */
 #include <mruby.h>
 #include <mruby/string.h>
+#include <mruby/internal.h>
 #include <string.h>
 #include <stdint.h>
 #include <limits.h>
@@ -209,10 +210,16 @@ BITOP_DEFINE_BINARY_KERNEL(bitop_and_kernel, BITOP_AND_WORD, BITOP_AND_BYTE)
 BITOP_DEFINE_BINARY_KERNEL(bitop_or_kernel, BITOP_OR_WORD, BITOP_OR_BYTE)
 BITOP_DEFINE_BINARY_KERNEL(bitop_xor_kernel, BITOP_XOR_WORD, BITOP_XOR_BYTE)
 
-static mrb_int
+/*
+ * The maximum count is len * 8, which can exceed MRB_INT_MAX on
+ * 32-bit mrb_int builds for strings over 256MiB, so accumulate in
+ * uint64_t; whether the total fits in mrb_int is decided when boxing
+ * the return value.
+ */
+static uint64_t
 bitop_count_bits(const unsigned char *ptr, mrb_int len)
 {
-  mrb_int count = 0;
+  uint64_t count = 0;
   mrb_int off = 0;
 
 #if defined(__GNUC__)
@@ -414,8 +421,18 @@ mrb_str_bit_flip(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_bit_count(mrb_state *mrb, mrb_value str)
 {
+  uint64_t count;
+
   mrb_get_args(mrb, "");
-  return mrb_int_value(mrb, bitop_count_bits((const unsigned char*)RSTRING_PTR(str), RSTRING_LEN(str)));
+  count = bitop_count_bits((const unsigned char*)RSTRING_PTR(str), RSTRING_LEN(str));
+  if (count <= (uint64_t)MRB_INT_MAX) {
+    return mrb_int_value(mrb, (mrb_int)count);
+  }
+#ifdef MRB_USE_BIGINT
+  return mrb_bint_new_uint64(mrb, count);
+#else
+  mrb_raise(mrb, E_RANGE_ERROR, "bit count too big for Integer");
+#endif
 }
 
 /*

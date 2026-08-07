@@ -75,6 +75,9 @@ loop; only the tail bytes go through a byte loop.
   has no mruby equivalent. Offsets that do not fit in `mrb_int` raise
   `RangeError` (CRuby raises `ArgumentError` for offsets beyond
   `uint64_t`).
+- A `bit_count` result beyond `mrb_int` (reachable only on 32-bit
+  `mrb_int` builds with strings over 256MiB) becomes a Bignum when
+  mruby-bigint is present and raises `RangeError` otherwise.
 
 Matching CRuby, binary operands are converted with `to_str` and bit
 offsets with `to_int`, and the results of the non-bang bitwise
