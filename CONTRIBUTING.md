@@ -134,6 +134,25 @@ to check code for common misspellings. We have a small custom dictionary file [c
 
 How to style your C and Ruby code which you want to submit.
 
+### Argument conversion
+
+mruby has no implicit conversion protocol, so do not dispatch `to_int` or
+`to_str` to convert an argument. Ask for an integer with
+`mrb_ensure_integer_type()` in C or `__to_int` in Ruby, and for a string with a
+plain type check.
+
+`Array.new(obj)`, `ary[obj]` and `"s" * obj` all raise `TypeError` for an object
+that merely defines `to_int`, and `String#match` does the same for one that
+defines `to_str`. A method that honours the protocol is more permissive than the
+tree it sits in, which is a worse inconsistency than the difference from CRuby.
+Nor can the gap be closed by honouring it everywhere: `convert_type()` in
+`src/object.c` dispatches without CRuby's `method_missing` step, so a partial
+protocol only trades one surprise for another.
+
+CRuby's `NUM2LONG()` and `StringValue()` do convert, so a faithful port of a
+CRuby method will arrive with the dispatch in it. Removing it is a deliberate
+difference, not a defect in the port.
+
 ### C code
 
 The core part (parser, bytecode-interpreter, core-lib, etc.) of mruby is
