@@ -3676,7 +3676,14 @@ lambda_body(mrc_codegen_scope *s, mrc_node *tree, mrc_node *body, pm_constant_id
 
   s->mscope = !blk;
   if (blk) {
-    s->for_depth = s->prev->for_depth; /* inherit for-depth from enclosing scope */
+    /* `for_depth` compensates for the loop body scope that `for` needs but
+       Prism does not have, so a Prism depth of 0 there means the enclosing
+       scope rather than the loop body.  A block is a scope Prism knows about,
+       so depth 0 means its own locals again and the compensation must not
+       carry into it: `gen_lvar()` reads depth only as local-or-upvar, and an
+       inherited depth turned every own local into an upvar that the enclosing
+       scopes do not hold ("Can't find local variables", #7012). */
+    s->for_depth = 0;
     struct loopinfo *lp = loop_push(s, LOOP_BLOCK);
     lp->pc0 = new_label(s);
   }

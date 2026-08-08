@@ -236,3 +236,34 @@ assert('op-assign on empty index does not crash the compiler') do
   end
   assert_equal 9, obj[]
 end
+
+assert('block inside a for body sees its own locals') do
+  # `for` needs a loop body scope that Prism does not have, and the depth
+  # compensation for it used to be inherited by a block nested in the body.
+  # `gen_lvar()` reads a depth only as local-or-upvar, so every local of the
+  # block became an upvar the enclosing scopes do not hold, and the file
+  # failed to compile with "Can't find local variables".
+  a = []
+  for i in 0...2
+    [10, 20].each do |j|
+      k = j + i
+      a << k
+    end
+  end
+  assert_equal [10, 20, 11, 21], a
+
+  # the outer scope stays reachable from the same block
+  m = 100
+  b = []
+  for i in 0...2
+    [1].each { b << m + i }
+  end
+  assert_equal [100, 101], b
+
+  # and an assignment to an outer variable still lands outside
+  x = 0
+  for i in 0...3
+    [1].each { x += 1 }
+  end
+  assert_equal 3, x
+end
