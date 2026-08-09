@@ -14,8 +14,10 @@
 /* Compiler state */
 typedef struct {
   mrb_state *mrb;
-  const char *src;     /* pattern source */
+  const char *src;     /* pattern source (preprocessed in extended mode) */
   const char *src_end;
+  const char *orig;    /* pattern as written, for error messages */
+  const char *orig_end;
   const char *p;       /* current position */
   re_inst *code;       /* instruction array */
   uint32_t code_len;
@@ -37,11 +39,13 @@ static void compile_alt(re_compiler *c);  /* forward */
 static void
 compile_error(re_compiler *c, const char *msg)
 {
-  /* Format the message before freeing c->stripped (which may alias c->src
-     in extended mode). c->src is not NUL-terminated, so use %l with the
-     explicit length from c->src_end. */
+  /* Quote c->orig, the pattern as written: in extended mode c->src points at
+     the buffer strip_extended() returned, so quoting it would drop the
+     free-spacing and the comments from the message. c->orig is the caller's
+     buffer, which outlives the compile. It is not NUL-terminated, so use %l
+     with the explicit length from c->orig_end. */
   mrb_value emsg = mrb_format(c->mrb, "%s: /%l/",
-                              msg, c->src, (size_t)(c->src_end - c->src));
+                              msg, c->orig, (size_t)(c->orig_end - c->orig));
 
   /* Free compile buffers before raising, since mrb_exc_raise longjmps out
      and the stack-local re_compiler is abandoned without a chance to clean
@@ -1249,6 +1253,9 @@ mrb_re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags)
 {
   re_compiler c;
   memset(&c, 0, sizeof(c));
+
+  c.orig = pattern;
+  c.orig_end = pattern + len;
 
   if (flags & RE_FLAG_EXTENDED) {
     mrb_int slen;
