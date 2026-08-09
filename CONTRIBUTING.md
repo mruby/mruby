@@ -205,7 +205,7 @@ reason; where speed matters, define a C fast path (conventionally named with a
 
 The rule is about the responsibility of the function, not about the presence of
 `mrb_funcall*()`. Entering the VM is legitimate where dispatch is itself the
-specification: `convert_type()` in `src/object.c` for the `to_str` protocol,
+specification: `convert_type()` in `src/object.c` for the `to_proc` protocol,
 `mrb_obj_new()` in `src/class.c` running `initialize` and the `inherited`,
 `included` and `method_missing` hooks, the default proc in `src/hash.c`, and
 the `to_a` and `to_enum` delegations in `src/array.c`. When you rely on such a
