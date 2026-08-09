@@ -3182,10 +3182,17 @@ mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
   size_error:
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
   }
-  mrb_int capa = str_modify_cat(mrb, s, (mrb_int)len);
+  /* The overlap has to be recognized against the buffer `ptr` was taken
+     from, which is the one `s` holds now. `str_modify_cat()` either appends
+     inside the shared allocation, where `ptr` stays valid and the offset is
+     the same answer reached another way, or detaches `s` onto a fresh buffer
+     and releases the old one, where `ptr` is neither inside the new buffer
+     nor safe to read. Recording the offset ahead of the call covers both
+     without having to know which path ran. */
   if (ptr >= RSTR_PTR(s) && ptr <= RSTR_PTR(s) + (size_t)RSTR_LEN(s)) {
       off = ptr - RSTR_PTR(s);
   }
+  mrb_int capa = str_modify_cat(mrb, s, (mrb_int)len);
 
   if (capa <= total) {
     if (capa == 0) capa = 1;
