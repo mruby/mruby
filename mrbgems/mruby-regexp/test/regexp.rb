@@ -177,6 +177,36 @@ assert("Regexp - character class") do
   assert_equal "abc", md[0]
 end
 
+assert("Regexp - character class range across the ASCII boundary") do
+  # A range from an ASCII bound to a non-ASCII one used to be stored whole in
+  # the codepoint list, which the matcher never reads below 128, so the ASCII
+  # half of the range matched nothing.
+  assert_equal "a", "a".match(/[a-Ā]/)[0]
+  assert_equal "z", "z".match(/[a-Ā]/)[0]
+  assert_equal "{", "{".match(/[a-Ā]/)[0]      # 0x7b, inside a-Ā
+  assert_nil "A".match(/[a-Ā]/)                # 0x41, below the range
+  assert_nil "`".match(/[a-Ā]/)                # 0x60, just below 'a'
+  assert_equal "abĀz", "!abĀz!".match(/[a-Ā]+/)[0]
+  # The non-ASCII half still answers on its own.
+  assert_equal "Ā", "Ā".match(/[a-Ā]/)[0]
+  assert_equal "À", "À".match(/[a-Ā]/)[0]
+  assert_nil "ā".match(/[a-Ā]/)                # one past the upper bound
+  # Negation reads the same class, so it rejected the ASCII half it had to
+  # accept and accepted the half it had to reject.
+  assert_nil "a".match(/[^a-Ā]/)
+  assert_nil "Ā".match(/[^a-Ā]/)
+  assert_equal "A", "A".match(/[^a-Ā]/)[0]
+  assert_equal "ā", "ā".match(/[^a-Ā]/)[0]
+  # The /i fold walks the bitmap, so it reaches the ASCII half once that half
+  # is stored there. Non-ASCII case folding is still not applied.
+  assert_equal "A", "A".match(/[a-Ā]/i)[0]
+  assert_nil "A".match(/[^a-Ā]/i)
+  # Ranges that stay on one side of the boundary are unaffected.
+  assert_equal "b", "b".match(/[a-c]/)[0]
+  assert_equal "ą", "ą".match(/[Ā-Đ]/)[0]
+  assert_nil "a".match(/[Ā-Đ]/)
+end
+
 assert("Regexp - POSIX bracket classes") do
   # ASCII semantics, like this gem's \w/\d shorthands.
   assert_equal "abc", "123abc456".match(/[[:alpha:]]+/)[0]
