@@ -1241,6 +1241,14 @@ assert("Regexp - named backreference \\k") do
   assert_raise(RegexpError) { Regexp.new("\\k<missing>") }
 end
 
+assert("Regexp - numeric \\k backreference out of int range") do
+  # The digit accumulator is an int with no bound, so 4294967297 used to wrap
+  # to 1 and bind this backreference to group 1 instead of raising.
+  assert_raise(RegexpError) { Regexp.new("(a)\\k<4294967297>") }
+  assert_raise(RegexpError) { Regexp.new("(a)\\k<-4294967297>") }
+  assert_raise(RegexpError) { Regexp.new("(a)(b)\\k<4294967298>") }
+end
+
 assert("MatchData#named_captures") do
   md = /(?<a>\w+)@(?<b>\w+)/.match("user@host")
   nc = md.named_captures
