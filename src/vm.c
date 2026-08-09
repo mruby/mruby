@@ -2077,9 +2077,11 @@ vm_op_getidx(mrb_state *mrb, uint32_t a, mrb_sym *midp)
   else if (tt == MRB_TT_HASH) {
     /* optimize only for Hash class; subclasses/singleton may override [] */
     if (mrb_obj_ptr(va)->c != mrb->hash_class) goto getidx_fallback;
+    int ai = mrb_gc_arena_save(mrb);
     va = mrb_hash_get(mrb, va, vb);
     ci = mrb->c->ci;
     regs[a] = va;
+    mrb_gc_arena_restore(mrb, ai);
     return VM_NEXT;
   }
   else if (tt == MRB_TT_STRING) {
@@ -2089,9 +2091,13 @@ vm_op_getidx(mrb_state *mrb, uint32_t a, mrb_sym *midp)
     case MRB_TT_INTEGER:
     case MRB_TT_STRING:
     case MRB_TT_RANGE:
-      va = mrb_str_aref(mrb, va, vb, mrb_undef_value());
-      regs[a] = va;
-      return VM_NEXT;
+      {
+        int ai = mrb_gc_arena_save(mrb);
+        va = mrb_str_aref(mrb, va, vb, mrb_undef_value());
+        regs[a] = va;
+        mrb_gc_arena_restore(mrb, ai);
+        return VM_NEXT;
+      }
     default:
       break;
     }
@@ -2127,10 +2133,13 @@ vm_op_getidx0(mrb_state *mrb, uint32_t a, uint16_t b, mrb_sym *midp)
     {
       /* same as the Hash branch of vm_op_getidx(): mrb_hash_get() can run a
          default proc and move the stack, so take the result first and store
-         it through the refreshed `regs` */
+         it through the refreshed `regs`. The arena is restored only after
+         that store, which is what roots the result. */
+      int ai = mrb_gc_arena_save(mrb);
       mrb_value val = mrb_hash_get(mrb, recv, mrb_fixnum_value(0));
       ci = mrb->c->ci;
       regs[a] = val;
+      mrb_gc_arena_restore(mrb, ai);
     }
     return VM_NEXT;
   }
@@ -2158,9 +2167,13 @@ vm_op_setidx(mrb_state *mrb, uint32_t a, mrb_sym *midp)
   case MRB_TT_HASH:
     /* optimize only for Hash class; subclasses/singleton may override []= */
     if (mrb_obj_ptr(va)->c != mrb->hash_class) goto setidx_fallback;
-    mrb_hash_set(mrb, va, vb, vc);
-    ci = mrb->c->ci;
-    regs[a] = vc;
+    {
+      int ai = mrb_gc_arena_save(mrb);
+      mrb_hash_set(mrb, va, vb, vc);
+      ci = mrb->c->ci;
+      regs[a] = vc;
+      mrb_gc_arena_restore(mrb, ai);
+    }
     return VM_NEXT;
   default:
   setidx_fallback:
@@ -3285,7 +3298,10 @@ RETRY_TRY_BLOCK:
     break
 #endif
 #ifdef MRB_USE_BIGINT
-#define OP_MATH_OVERFLOW_INT(op,x,y) regs[a] = mrb_bint_##op##_ii(mrb,x,y)
+#define OP_MATH_OVERFLOW_INT(op,x,y) do {                                   \
+  regs[a] = mrb_bint_##op##_ii(mrb,x,y);                                    \
+  mrb_gc_arena_restore(mrb, ai);                                            \
+} while (0)
 #else
 #define OP_MATH_OVERFLOW_INT(op,x,y) goto L_INT_OVERFLOW
 #endif
