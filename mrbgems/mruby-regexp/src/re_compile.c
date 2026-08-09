@@ -821,6 +821,7 @@ compile_atom(re_compiler *c)
         for (uint16_t i = (relative ? 1 : 0); i < name_len; i++) {
           if (name[i] < '0' || name[i] > '9') compile_error(c, "invalid backreference");
           n = n * 10 + (name[i] - '0');
+          if (n > (int)c->num_captures - 1) compile_error(c, "undefined group name reference");
         }
         group = relative ? (int)c->num_captures - n : n;
       }
