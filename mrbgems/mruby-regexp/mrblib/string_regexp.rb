@@ -142,7 +142,7 @@ class String
     # that conversion and reach the arithmetic below as itself. `Module#===`
     # reads the real type and cannot be redefined.
     if limit_given && !(Integer === limit)
-      limit = limit.__to_int
+      limit = Integer.__ensure(limit)
     end
     # `nil?` and `is_a?` are redefinable, so an argument answering either one
     # could steer itself around the check below and reach `__split` instead.

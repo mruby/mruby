@@ -16,7 +16,7 @@ class Range
 
     raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1)" unless args.length == 1
     nv = args[0]
-    n = nv.__to_int
+    n = Integer.__ensure(nv)
     raise ArgumentError, "negative array size (or size too big)" unless 0 <= n
     ary = []
     each do |i|
@@ -48,7 +48,7 @@ class Range
 
     raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1)" unless args.length == 1
     nv = args[0]
-    n = nv.__to_int
+    n = Integer.__ensure(nv)
     raise ArgumentError, "negative array size (or size too big)" unless 0 <= n
     return self.to_a.last(n)
   end

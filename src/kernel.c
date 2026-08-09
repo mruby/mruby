@@ -800,7 +800,6 @@ static const mrb_mt_entry kernel_rom_entries[] = {
   MRB_MT_ENTRY(obj_respond_to,                   MRB_SYM_Q(respond_to), MRB_ARGS_ARG(1,1)),  /* 15.3.1.3.43 */
   MRB_MT_ENTRY(mrb_any_to_s,                     MRB_SYM(to_s),                      MRB_ARGS_NONE()),  /* 15.3.1.3.46 */
   MRB_MT_ENTRY(mrb_obj_ceqq,                     MRB_SYM(__case_eqq),     MRB_ARGS_REQ(1)),  /* internal */
-  MRB_MT_ENTRY(mrb_ensure_int_type,              MRB_SYM(__to_int),                  MRB_ARGS_NONE()),  /* internal */
   MRB_MT_ENTRY(mrb_false,                MRB_SYM_Q(respond_to_missing),      MRB_ARGS_ARG(1,1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_obj_method_recursive_p,       MRB_SYM_Q(__method_recursive), MRB_ARGS_ARG(1,1)),
 #ifndef HAVE_MRUBY_IO_GEM

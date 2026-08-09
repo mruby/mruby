@@ -138,8 +138,10 @@ How to style your C and Ruby code which you want to submit.
 
 mruby has no implicit conversion protocol, so do not dispatch `to_int` or
 `to_str` to convert an argument. Ask for an integer with
-`mrb_ensure_integer_type()` in C or `__to_int` in Ruby, and for a string with a
-plain type check.
+`mrb_ensure_integer_type()` in C or `Integer.__ensure(obj)` in Ruby, and for a
+string with a plain type check. Both take the value as an argument rather than
+as a receiver: a conversion written as `obj.something` is a dispatch, and the
+argument can redefine it.
 
 `Array.new(obj)`, `ary[obj]` and `"s" * obj` all raise `TypeError` for an object
 that merely defines `to_int`, and `String#match` does the same for one that

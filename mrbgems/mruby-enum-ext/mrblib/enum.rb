@@ -13,7 +13,7 @@ module Enumerable
   #    a.drop(3)             #=> [4, 5, 0]
 
   def drop(n)
-    n = n.__to_int
+    n = Integer.__ensure(n)
     raise ArgumentError, "attempt to drop negative size" if n < 0
 
     ary = []
@@ -56,8 +56,7 @@ module Enumerable
   #    a.take(3)             #=> [1, 2, 3]
 
   def take(n)
-    n = n.__to_int
-    i = n.to_i
+    i = Integer.__ensure(n)
     raise ArgumentError, "attempt to take negative size" if i < 0
     ary = []
     return ary if i == 0
@@ -112,7 +111,7 @@ module Enumerable
   #     [8, 9, 10]
 
   def each_cons(n, &block)
-    n = n.__to_int
+    n = Integer.__ensure(n)
     raise ArgumentError, "invalid size" if n <= 0
 
     return to_enum(:each_cons,n) unless block
@@ -140,7 +139,7 @@ module Enumerable
   #     [10]
 
   def each_slice(n, &block)
-    n = n.__to_int
+    n = Integer.__ensure(n)
     raise ArgumentError, "invalid slice size" if n <= 0
 
     return to_enum(:each_slice,n) unless block
@@ -210,7 +209,7 @@ module Enumerable
       end
       return nil
     when 1
-      i = args[0].__to_int
+      i = Integer.__ensure(args[0])
       raise ArgumentError, "attempt to take negative size" if i < 0
       ary = []
       return ary if i == 0
@@ -658,7 +657,7 @@ module Enumerable
     if nv.nil?
       n = -1
     else
-      n = nv.__to_int
+      n = Integer.__ensure(nv)
       return nil if n <= 0
     end
 

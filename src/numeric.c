@@ -2312,6 +2312,23 @@ static const mrb_mt_entry numeric_rom_entries[] = {
 #endif
 };
 
+/*
+ * Integer.__ensure(val) -> Integer
+ *
+ * Internal. Converts `val` the way `mrb_ensure_int_type()` does, as a check
+ * ON its argument rather than a dispatch TO it. `val.__to_int` used to be the
+ * mrblib idiom, but `__to_int` was an ordinary public method, so an object
+ * defining one was accepted where an object defining `to_int` is rejected
+ * (#7014).
+ */
+static mrb_value
+int_s_ensure(mrb_state *mrb, mrb_value self)
+{
+  mrb_value val;
+  mrb_get_args(mrb, "o", &val);
+  return mrb_ensure_int_type(mrb, val);
+}
+
 static const mrb_mt_entry integer_rom_entries[] = {
   MRB_MT_ENTRY(int_pow,              MRB_OPSYM(pow),    MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(num_cmp,              MRB_OPSYM(cmp),    MRB_ARGS_REQ(1)),  /* 15.2.8.3.1  */
@@ -2402,6 +2419,7 @@ mrb_init_numeric(mrb_state *mrb)
   MRB_UNDEF_ALLOCATOR(integer);
   mrb_undef_class_method_id(mrb, integer, MRB_SYM(new));
   MRB_MT_INIT_ROM(mrb, integer, integer_rom_entries);
+  mrb_define_class_method_id(mrb, integer, MRB_SYM(__ensure), int_s_ensure, MRB_ARGS_REQ(1));
 
   /* Fixnum Class for compatibility */
   mrb_define_const_id(mrb, mrb->object_class, MRB_SYM(Fixnum), mrb_obj_value(integer));

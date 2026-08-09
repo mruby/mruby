@@ -221,3 +221,14 @@ assert("Enumerable#each_entry") do
   assert_equal [1,2], a[1]
   assert_equal nil, a[2]
 end
+
+assert('Enumerable size arguments reject a redefined converter') do
+  # `n.__to_int` was a dispatch the argument could redefine, and `take` then
+  # called `to_i` on whatever came back, so neither call was a type check.
+  evil = Class.new { def __to_int; 2; end }.new
+  sneaky = Class.new { def __to_int; self; end; def to_i; 3; end }.new
+  assert_raise(TypeError) { (1..9).take(evil) }
+  assert_raise(TypeError) { (1..9).drop(evil) }
+  assert_raise(TypeError) { (1..9).take(sneaky) }
+  assert_equal [1, 2], (1..9).take(2)
+end
