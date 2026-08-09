@@ -1214,6 +1214,15 @@ assert("Regexp#named_captures") do
   assert_equal({"a" => [1]}, re.named_captures)
 end
 
+assert("Regexp#names") do
+  assert_equal ["year", "month", "day"],
+               /(?<year>\d+)-(?<month>\d+)-(?<day>\d+)/.names
+  assert_equal [], /\d+/.names
+
+  # a name that is registered twice is reported once, as in CRuby
+  assert_equal ["tag"], /(?<tag>\w+)-(?<tag>\w+)/.names
+end
+
 assert("Regexp - empty group name") do
   # (?<>x) used to compile and answer to "", and in /x mode the stored name
   # pointed into the preprocessing buffer the compiler frees on the way out.
@@ -1285,6 +1294,11 @@ assert("MatchData#named_captures") do
   nc = md.named_captures
   assert_equal "user", nc["a"]
   assert_equal "host", nc["b"]
+end
+
+assert("MatchData#names") do
+  assert_equal ["a", "b"], /(?<a>\w+)@(?<b>\w+)/.match("user@host").names
+  assert_equal [], /\w+/.match("user").names
 end
 
 assert("Regexp - named captures survive /x preprocessing") do

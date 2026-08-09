@@ -14,6 +14,12 @@ class Regexp
     result
   end
 
+  # Return the capture names in group order
+  def names
+    table = @named_captures
+    table ? table.keys : []
+  end
+
   # options is implemented in C (internal flags -> Ruby constants conversion)
 
   def self.last_match(n = nil)
@@ -27,4 +33,8 @@ end
 
 class MatchData
   # named_captures is implemented in C via md->regexp
+
+  def names
+    regexp.names
+  end
 end
