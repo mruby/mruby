@@ -55,6 +55,7 @@ re.match(:symbol)                 # a Symbol is matched against its name
 re.source                         # => "pattern"
 re.options                        # => flags integer
 re.named_captures                 # => {"name" => [group_number], ...}
+re.names                          # => ["name", ...]
 Regexp.escape("a.b")              # => "a\\.b"
 Regexp.last_match(n)              # => nth capture from last match
 
@@ -71,6 +72,7 @@ md.end(0)                         # => match end position
 md.pre_match                      # => string before match
 md.post_match                     # => string after match
 md.named_captures                 # => {"name" => "value", ...}
+md.names                          # => ["name", ...]
 
 # String methods
 str.match(re)                     # => MatchData or nil
