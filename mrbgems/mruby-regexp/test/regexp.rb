@@ -515,6 +515,37 @@ assert("MatchData#string") do
   assert_equal "abcde", md.string
 end
 
+assert("MatchData - subject is snapshotted at match time") do
+  # Regression: source used to alias the subject, so mutating it afterwards
+  # retroactively changed what an already-created MatchData reported.
+  s = "hello"
+  md = /l/.match(s)
+  s.upcase!
+  assert_equal "l", md[0]
+  assert_equal "hello", md.string
+  assert_equal "he", md.pre_match
+  assert_equal "lo", md.post_match
+  assert_true md.string.frozen?
+
+  s2 = "hello"
+  s2 =~ /l/
+  s2.upcase!
+  assert_equal "l", $~[0]
+  assert_equal "hello", $~.string
+end
+
+assert("MatchData - match globals survive subject mutation in a gsub block") do
+  # Regression: the mrblib gsub loop republishes $&, $` and $' from the
+  # MatchData after the block runs, so a block that mutates the subject used
+  # to make them describe the mutated string.
+  t = "hello"
+  n = 0
+  t.gsub(/l/) { n += 1; t.upcase! if n == 2; "X" }
+  assert_equal "l", $&
+  assert_equal "hel", $`
+  assert_equal "o", $'
+end
+
 assert("MatchData#regexp") do
   re = Regexp.new("bc")
   md = re.match("abcde")
