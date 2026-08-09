@@ -665,6 +665,7 @@ compile_atom(re_compiler *c)
           cap_name = c->p;
           while (peek(c) != '>' && peek(c) >= 0) next_char(c);
           if (peek(c) != '>') compile_error(c, "unterminated named capture");
+          if (c->p == cap_name) compile_error(c, "group name is empty");
           cap_name_len = (uint16_t)(c->p - cap_name);
           next_char(c);  /* skip > */
         }
@@ -811,6 +812,7 @@ compile_atom(re_compiler *c)
       const char *name = c->p;
       while (peek(c) != close && peek(c) >= 0) next_char(c);
       if (peek(c) != close) compile_error(c, "unterminated backreference name");
+      if (c->p == name) compile_error(c, "group name is empty");
       uint16_t name_len = (uint16_t)(c->p - name);
       next_char(c);  /* skip the closing > or ' */
 

@@ -1197,6 +1197,20 @@ assert("Regexp - named captures") do
   assert_equal "2026", md["year"]
 end
 
+assert("Regexp - empty group name") do
+  # (?<>x) used to compile and answer to "", and in /x mode the stored name
+  # pointed into the preprocessing buffer the compiler frees on the way out.
+  assert_raise(RegexpError) { Regexp.new("(?<>x)") }
+  assert_raise(RegexpError) { Regexp.new("(?<>x) ", Regexp::EXTENDED) }
+  assert_raise(RegexpError) { Regexp.new("(?<>x)\\k<>") }
+  assert_raise(RegexpError) { Regexp.new("\\k<>") }
+  assert_raise(RegexpError) { Regexp.new("\\k''") }
+
+  # lookbehind is not a named group and is unaffected
+  assert_equal "b", Regexp.new("(?<=a)b").match("ab")[0]
+  assert_nil Regexp.new("(?<!a)b").match("ab")
+end
+
 assert("MatchData#[] - negative index") do
   md = /(a)(b)/.match("ab")
   assert_equal "b", md[-1]
