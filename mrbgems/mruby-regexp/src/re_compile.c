@@ -167,6 +167,13 @@ class_set_bit(re_charclass *cc, uint8_t ch)
   }
 }
 
+static mrb_bool
+class_get_bit(const re_charclass *cc, uint8_t ch)
+{
+  if (ch >= 128) return FALSE;
+  return (cc->bitmap[ch >> 3] >> (ch & 7)) & 1;
+}
+
 /* Append a non-ASCII codepoint range [lo, hi]. Both bounds must be >= 128. */
 static void
 class_add_range(re_compiler *c, re_charclass *cc, uint32_t lo, uint32_t hi)
@@ -465,6 +472,19 @@ compile_charclass(re_compiler *c)
     }
   }
   next_char(c);  /* skip ']' */
+
+  /* Fold ASCII letters under /i. This runs once the class is complete, so a
+     single pass covers every form the loop above merges into the bitmap:
+     POSIX brackets, shorthands, ranges and single literals. Negation is
+     applied at match time against this same bitmap (RE_NCLASS), so folding
+     the positive set also fixes [^a-c] under /i. Non-ASCII case folding is
+     out of scope, so the codepoint range list is left alone. */
+  if (c->flags & RE_FLAG_IGNORECASE) {
+    for (int ch = 'a'; ch <= 'z'; ch++) {
+      if (class_get_bit(cc, (uint8_t)ch)) class_set_bit(cc, (uint8_t)(ch - 32));
+      else if (class_get_bit(cc, (uint8_t)(ch - 32))) class_set_bit(cc, (uint8_t)ch);
+    }
+  }
 
   cc->negated = negated;
   emit(c, negated ? RE_NCLASS : RE_CLASS, (uint8_t)id, 0);
