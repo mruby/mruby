@@ -99,3 +99,20 @@ assert("Symbol - multibyte (UTF-8) name") do
   assert_false :"あいあ".match?(Regexp.new("い"), 2)
   assert_equal 1, :"あい" =~ Regexp.new("い")
 end
+
+assert("Symbol#[] with regexp") do
+  # `Symbol#[]` and `#slice` live in mruby-symbol-ext, which this gem does not
+  # depend on; they delegate to the String methods, so the regexp form arrives
+  # from string_regexp.rb wherever that gem is built in.
+  skip unless :hello.respond_to?(:slice)
+  assert_equal "ll", :hello[Regexp.new("l+")]
+  assert_equal "ll", :hello.slice(Regexp.new("l+"))
+  assert_equal "ll", :hello[Regexp.new("(?<x>l+)"), :x]
+  assert_equal "o", :hello[Regexp.new("(l+)(o)"), 2]
+  assert_nil :hello[Regexp.new("z")]
+
+  # the non-regexp forms are untouched
+  assert_equal "e", :hello[1]
+  assert_equal "ell", :hello[1, 3]
+  assert_equal "ell", :hello[1..3]
+end
