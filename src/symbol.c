@@ -295,6 +295,7 @@ migrate_to_hash_table(mrb_state *mrb)
   /* Rebuild hash table from existing linear data */
   for (i = 1; i <= mrb->symidx; i++) {
     const char *tagged_ptr = mrb->symtbl[i];
+    if (tagged_ptr == NULL) continue;  /* skip tombstones */
     const char *name = symtbl_get_ptr(tagged_ptr);
     size_t len;
     uint8_t hash;
