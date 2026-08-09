@@ -326,11 +326,13 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
           if (sp > str_end) break;
         }
       }
-      /* Don't seed a new match attempt at a UTF-8 continuation byte --
-         a multi-byte char's interior is not a valid char boundary, and
-         starting a thread there mis-decodes the char (e.g. a class-
-         match on a stray 0x82 instead of the leader's full codepoint). */
-      if (!s.binary && curr.count == 0 && sp < str_end && mrb_re_utf8_continuation_p(sp)) {
+      /* Don't seed a new match attempt inside a character. Its interior is
+         not a char boundary, and starting a thread there mis-decodes the
+         char (e.g. a class match on a stray 0x82 instead of the leader's
+         full codepoint). A byte that no lead byte reaches belongs to no
+         character and is a boundary of its own. */
+      if (!s.binary && curr.count == 0 && sp < str_end &&
+          mrb_re_utf8_interior_p(str, sp, str_end)) {
         continue;
       }
       int slot = match_only ? 0 : pool_alloc(&s);
@@ -674,7 +676,7 @@ backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
       while (sp < str_end && !FIRST_BYTE_OK(pat, (uint8_t)*sp)) sp++;
       if (sp > str_end) break;
     }
-    if (!binary && sp < str_end && mrb_re_utf8_continuation_p(sp)) {
+    if (!binary && sp < str_end && mrb_re_utf8_interior_p(str, sp, str_end)) {
       continue;
     }
     memset(caps, -1, sizeof(int) * ncap);
@@ -697,7 +699,7 @@ backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
 static int
 literal_exec(const mrb_regexp_pattern *pat,
              const char *str, mrb_int len, mrb_int start,
-             int *captures, int captures_size)
+             int *captures, int captures_size, mrb_bool binary)
 {
   const char *sp = str + start;
   const char *str_end = str + len;
@@ -706,6 +708,10 @@ literal_exec(const mrb_regexp_pattern *pat,
   while (sp + plen <= str_end) {
     const char *found = (const char*)memchr(sp, pat->prefix[0], str_end - sp);
     if (!found || found + plen > str_end) return 0;
+    if (!binary && mrb_re_utf8_interior_p(str, found, str_end)) {
+      sp = found + 1;  /* not a char boundary, same rule as the other engines */
+      continue;
+    }
     if (plen == 1 || memcmp(found + 1, pat->prefix + 1, plen - 1) == 0) {
       /* match found */
       if (captures && captures_size >= 2) {
@@ -726,7 +732,7 @@ mrb_re_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
         int *captures, int captures_size, mrb_bool binary)
 {
   if (pat->is_literal) {
-    return literal_exec(pat, str, len, start, captures, captures_size);
+    return literal_exec(pat, str, len, start, captures, captures_size, binary);
   }
   if (pat->has_backref || pat->needs_backtrack) {
     return backtrack_exec(mrb, pat, str, len, start, captures, captures_size, binary);
