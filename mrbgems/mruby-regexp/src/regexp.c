@@ -272,33 +272,21 @@ regexp_binary_string_p(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(re_binary_string_p(str));
 }
 
-/* Create MatchData from captures */
-static mrb_value
-create_matchdata(mrb_state *mrb, mrb_value regexp, mrb_value str, int *captures, int ncap)
+/* Publish `obj` and the thirteen names derived from its offsets, the
+   counterpart of clear_match_globals(). Kept apart from create_matchdata() so
+   that an existing MatchData can be republished without rebuilding it. */
+static void
+set_match_globals(mrb_state *mrb, mrb_value obj, mrb_value str, int *captures, int num_captures)
 {
   ensure_match_syms(mrb);
 
-  struct RClass *md_class = mrb_class_get(mrb, "MatchData");
-  mrb_match_data *md = (mrb_match_data*)mrb_malloc(mrb, sizeof(mrb_match_data));
-  md->source = str;
-  md->regexp = regexp;
-  md->num_captures = ncap / 2;
-  md->captures = (int*)mrb_malloc(mrb, sizeof(int) * ncap);
-  memcpy(md->captures, captures, sizeof(int) * ncap);
-
-  mrb_value obj = mrb_obj_value(mrb_data_object_alloc(mrb, md_class, md, &matchdata_type));
-  /* Keep `source` and `regexp` GC-reachable via instance variables.
-   * The mrb_values are also held in mrb_match_data, but C-allocated
-   * structs are not scanned by the GC. */
-  mrb_iv_set(mrb, obj, mrb_intern_lit(mrb, "source"), str);
-  mrb_iv_set(mrb, obj, mrb_intern_lit(mrb, "regexp"), regexp);
   mrb_gv_set(mrb, mrb_intern_lit(mrb, "$~"), obj);
 
   /* set $1-$9 from captures */
   for (int i = 0; i < 9; i++) {
     mrb_value val = mrb_nil_value();
     int g = i + 1;
-    if (g < md->num_captures && captures[g*2] >= 0) {
+    if (g < num_captures && captures[g*2] >= 0) {
       val = re_byte_substr(mrb, str, captures[g*2], captures[g*2+1] - captures[g*2]);
     }
     mrb_gv_set(mrb, nth_syms[i], val);
@@ -315,13 +303,35 @@ create_matchdata(mrb_state *mrb, mrb_value regexp, mrb_value str, int *captures,
   /* set $+ from the last group that actually participated, which is not
      necessarily the last group in the pattern */
   mrb_value last_paren = mrb_nil_value();
-  for (int g = md->num_captures - 1; g >= 1; g--) {
+  for (int g = num_captures - 1; g >= 1; g--) {
     if (captures[g*2] >= 0) {
       last_paren = re_byte_substr(mrb, str, captures[g*2], captures[g*2+1] - captures[g*2]);
       break;
     }
   }
   mrb_gv_set(mrb, last_match_syms[LAST_PAREN], last_paren);
+}
+
+/* Create MatchData from captures */
+static mrb_value
+create_matchdata(mrb_state *mrb, mrb_value regexp, mrb_value str, int *captures, int ncap)
+{
+  struct RClass *md_class = mrb_class_get(mrb, "MatchData");
+  mrb_match_data *md = (mrb_match_data*)mrb_malloc(mrb, sizeof(mrb_match_data));
+  md->source = str;
+  md->regexp = regexp;
+  md->num_captures = ncap / 2;
+  md->captures = (int*)mrb_malloc(mrb, sizeof(int) * ncap);
+  memcpy(md->captures, captures, sizeof(int) * ncap);
+
+  mrb_value obj = mrb_obj_value(mrb_data_object_alloc(mrb, md_class, md, &matchdata_type));
+  /* Keep `source` and `regexp` GC-reachable via instance variables.
+   * The mrb_values are also held in mrb_match_data, but C-allocated
+   * structs are not scanned by the GC. */
+  mrb_iv_set(mrb, obj, mrb_intern_lit(mrb, "source"), str);
+  mrb_iv_set(mrb, obj, mrb_intern_lit(mrb, "regexp"), regexp);
+
+  set_match_globals(mrb, obj, str, captures, md->num_captures);
 
   return obj;
 }
@@ -750,6 +760,20 @@ matchdata_byte_end(mrb_state *mrb, mrb_value self)
   int pos = md->captures[idx * 2 + 1];
   if (pos < 0) return mrb_nil_value();
   return mrb_int_value(mrb, pos);
+}
+
+/* Private: republish $~ and the thirteen names derived from it. Used by the
+   mrblib loops that drive __byte_match themselves, where the failing call
+   that ends the loop clears the match the loop is supposed to leave behind.
+   The names other than $~ are not assignable from Ruby, so restoring them
+   has to come from here. */
+static mrb_value
+matchdata_set_globals(mrb_state *mrb, mrb_value self)
+{
+  mrb_match_data *md = DATA_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
+  if (!md) return mrb_nil_value();
+  set_match_globals(mrb, self, md->source, md->captures, md->num_captures);
+  return self;
 }
 
 /*
@@ -1221,6 +1245,7 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, md, "end", matchdata_end, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, md, "__byte_begin", matchdata_byte_begin, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, md, "__byte_end", matchdata_byte_end, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, md, "__set_globals", matchdata_set_globals, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "pre_match", matchdata_pre, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "post_match", matchdata_post, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "named_captures", matchdata_named_captures, MRB_ARGS_NONE());

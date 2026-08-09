@@ -80,9 +80,15 @@ class String
     pos = 0
     len = self.bytesize
     binary = Regexp.__binary_string?(self)
+    # The loop normally ends on a failed __byte_match, which clears $~ and the
+    # thirteen names that go with it. CRuby leaves the last match behind, so
+    # keep it and republish it below. A gsub that matched nothing has nothing
+    # to restore and keeps the cleared state, as CRuby does.
+    last = nil
     while pos <= len
       md = pattern.__byte_match(self, pos)
       break unless md
+      last = md
       # gsub works in byte space (match pos, byteslice). begin/end report
       # character offsets (CRuby-compatible), so use the byte accessors.
       match_start = md.__byte_begin(0)
@@ -108,6 +114,7 @@ class String
       end
     end
     parts << self.byteslice(pos..-1)
+    last.__set_globals if last
     parts.join
   end
 
