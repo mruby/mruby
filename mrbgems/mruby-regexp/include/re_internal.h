@@ -57,10 +57,18 @@ typedef struct {
   mrb_bool utf8_any;  /* match any non-ASCII byte if true */
 } re_charclass;
 
+/* Longest capture name that fits in re_named_capture::name_len. The bound
+   sits beside the field it describes so a later change of width is one line.
+   The widening inside the macro is not cosmetic: on a target whose argument
+   type is no wider than the field, the naive comparison is against a constant
+   that type cannot exceed, and the compiler reports it. */
+#define RE_MAX_NAME_LEN UINT32_MAX
+#define RE_NAME_LEN_FITS(n) ((uintmax_t)(n) <= RE_MAX_NAME_LEN)
+
 /* Named capture entry */
 typedef struct {
   const char *name;
-  uint16_t name_len;
+  uint32_t name_len;
   uint16_t group;
 } re_named_capture;
 

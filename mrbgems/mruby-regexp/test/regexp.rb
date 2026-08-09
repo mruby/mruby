@@ -1260,6 +1260,34 @@ assert("MatchData#[] - group name longer than a uint16 length") do
   assert_equal "x", md[:abc]
 end
 
+assert("Regexp - group name longer than a uint16 length") do
+  # The name length used to live in a uint16_t and was truncated with a cast,
+  # so (uint16_t)65538 == 2 made this group answer to "ab" instead of to the
+  # name it was given.
+  long = "ab" + "A" * 65536
+  re = Regexp.new("(?<#{long}>x)")
+  assert_equal [long], re.named_captures.keys
+  assert_equal "x", re.match("x")[long]
+  assert_raise(IndexError) { re.match("x")["ab"] }
+
+  # two names that shared a truncation stay distinct, and the two APIs that
+  # resolve a name agree on which group it names
+  re = Regexp.new("(?<ab>x)(?<#{long}>y)")
+  md = re.match("xy")
+  assert_equal "x", md["ab"]
+  assert_equal "y", md[long]
+  assert_equal({ "ab" => "x", long => "y" }, md.named_captures)
+
+  # \k binds to the group the name was written on
+  re = Regexp.new("(?<ab>x)(?<#{long}>y)\\k<#{long}>")
+  assert_nil re.match("xyx")
+  assert_equal "xyy", re.match("xyy")[0]
+
+  # a name of exactly 65536 bytes is not the empty name
+  z = "Z" * 65536
+  assert_equal [z], Regexp.new("(?<#{z}>x)").named_captures.keys
+end
+
 assert("Regexp - named backreference \\k") do
   assert_equal "aa", "aa".match(/(?<n>\w)\k<n>/)[0]
   assert_equal "abba", "abba".match(/(?<a>.)(?<b>.)\k<b>\k<a>/)[0]
