@@ -186,6 +186,9 @@ assert("Regexp - POSIX bracket classes") do
   assert_equal "snake_case", "snake_case".match(/[[:word:]]+/)[0]
   assert_equal "!", "ab!cd".match(/[[:punct:]]/)[0]
   assert_equal "AB", "abAB".match(/[[:upper:]]+/)[0]
+  # /i makes the two letter-case classes equivalent.
+  assert_equal "abAB", "abAB".match(/[[:upper:]]+/i)[0]
+  assert_equal "abAB", "abAB".match(/[[:lower:]]+/i)[0]
   # combine with literals and other classes
   assert_equal "a1", "a1-".match(/[a[:digit:]]+/)[0]
   assert_equal "ab12", "ab12 ".match(/[[:alpha:][:digit:]]+/)[0]
@@ -333,6 +336,24 @@ assert("Regexp - case insensitive") do
   assert_true re.match?("Abc")
 end
 
+assert("Regexp - case insensitive character class") do
+  # /i used to be folded in only where a single literal was emitted, so a
+  # character class ignored it entirely.
+  assert_true(/[abc]/i.match?("A"))
+  assert_true(/[a-c]/i.match?("A"))
+  assert_true(/[A-C]/i.match?("a"))
+  assert_true(/[a-c]+/i.match?("AB"))
+  assert_true Regexp.new("[a-c]", Regexp::IGNORECASE).match?("A")
+  # A negated class matched what it had to reject, which is a false positive.
+  assert_false(/[^a-c]/i.match?("A"))
+  assert_false(/[^A-C]/i.match?("a"))
+  assert_true(/[^a-c]/i.match?("d"))
+  # Folding must not widen the class beyond the ASCII letters.
+  assert_false(/[a-c]/i.match?("D"))
+  assert_false(/[\[]/i.match?("{"))  # `[` and `{` are 32 apart but are not a case pair
+  assert_false(/[@]/i.match?("`"))
+end
+
 assert("Regexp - repetition {n,m}") do
   assert_equal "aaa", Regexp.new("a{3}").match("aaaa")[0]
   assert_equal "aa", Regexp.new("a{2,3}").match("aa")[0]
@@ -408,6 +429,11 @@ assert("Regexp - inline options (?i) / (?i:...)") do
   assert_equal 0, (/(?i:abc)/ =~ "ABC")
   assert_nil (/(?i:a)b/ =~ "aB")          # option must not leak past the `)`
   assert_equal 0, (/(?i:ab)+/ =~ "AbaB")  # scoped group is still quantifiable
+
+  # A character class reads the inline-scoped flag, not the pattern-wide one.
+  assert_equal 0, (/(?i)[a-c]/ =~ "A")
+  assert_equal 0, (/(?i:[a-c])/ =~ "A")
+  assert_nil (/(?i:[a-c])[a-c]/ =~ "AB")  # option must not leak past the `)`
 
   # The toggle inside a group is confined to that group.
   assert_equal 0, (/(a(?i)b)c/ =~ "aBc")
