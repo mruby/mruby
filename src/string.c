@@ -3136,17 +3136,22 @@ mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
   ptrdiff_t off = -1;
 
   if (len == 0) return str;
+  /* `len` has to be known to fit in an `mrb_int` before it is used as one:
+     the conversion is otherwise free to make it negative, and the overflow
+     check takes `mrb_int` parameters, so it would not see it. Checking ahead
+     of the modification also leaves the string untouched when it raises. */
+  mrb_int total;
+  if (len > (size_t)MRB_INT_MAX ||
+      mrb_int_add_overflow(RSTR_LEN(s), (mrb_int)len, &total)) {
+  size_error:
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
+  }
   mrb_str_modify(mrb, s);
   if (ptr >= RSTR_PTR(s) && ptr <= RSTR_PTR(s) + (size_t)RSTR_LEN(s)) {
       off = ptr - RSTR_PTR(s);
   }
 
   mrb_int capa = RSTR_CAPA(s);
-  mrb_int total;
-  if (mrb_int_add_overflow(RSTR_LEN(s), len, &total)) {
-  size_error:
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
-  }
   if (capa <= total) {
     if (capa == 0) capa = 1;
     while (capa <= total) {
