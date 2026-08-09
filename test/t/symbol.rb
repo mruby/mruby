@@ -56,3 +56,22 @@ assert('Symbol, empty name') do
   assert_equal 0, :"".to_s.length
   assert_true :"".is_a?(Symbol)
 end
+
+assert('Symbol#to_s and Symbol#name outlive symbol GC') do
+  # Symbol GC frees the name buffer of a dynamic symbol. A returned string
+  # longer than the embedded limit used to share that buffer instead of
+  # copying it, so every later read of the string was a use after free.
+  name = "gc-target-symbol-" + "a" * 24
+  str = name.to_sym.to_s
+  frozen = name.to_sym.name
+
+  # Reach the dynamic symbol limit so a sweep runs, then hand the freed
+  # blocks to something else.
+  6000.times { |i| "gc-filler-symbol-name-#{i}".to_sym }
+  GC.start
+  reuse = []
+  3000.times { |i| reuse << "z" * 60 + i.to_s }
+
+  assert_equal name, str
+  assert_equal name, frozen
+end
