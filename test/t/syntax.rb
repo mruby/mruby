@@ -1606,3 +1606,28 @@ assert('brace-less variable interpolation') do
   assert_equal "# x", "# x"
   assert_equal 3, "#@ ".length
 end
+
+assert('local variable operator-assignment with a non-numeric receiver') do
+  # `x += 1` on a local variable compiles to OP_ADDILV, whose fast path handles
+  # Integer and Float in place.  Anything else has to go through the method,
+  # and that call must not be set up on the local variables: both the argument
+  # register and the callee frame would start at the local being assigned.
+  obj = Class.new { def +(n); [:added, n]; end }.new
+  a = 10
+  b = 20
+  obj += 1
+  assert_equal [:added, 1], obj
+  assert_equal 10, a
+  assert_equal 20, b
+
+  obj2 = Class.new { def -(n); [:subtracted, n]; end }.new
+  c = 30
+  obj2 -= 2
+  assert_equal [:subtracted, 2], obj2
+  assert_equal 30, c
+
+  # the operand is passed as an Integer, and an exception from the method
+  # propagates rather than being swallowed
+  obj3 = Class.new { def +(n); raise ArgumentError, n.to_s; end }.new
+  assert_raise_with_message(ArgumentError, "7") { obj3 += 7 }
+end
