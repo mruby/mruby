@@ -1208,7 +1208,11 @@ preprocess_pattern(mrb_state *mrb, const char *src, mrb_int len,
       if (ch == '[' && src + 1 < end && src[1] == ':') {
         const char *q = src + 2;
         while (q < end && *q != ':' && *q != ']') q++;
-        if (q + 1 < end && *q == ':' && q[1] == ']') {
+        /* Compare the distance rather than q + 1: the loop above stops with
+           q == end for a bracket the pattern truncates, as in /[[:alpha/,
+           and forming q + 1 from a one-past-the-end pointer is undefined
+           even where the && never reads through it. */
+        if (end - q >= 2 && q[0] == ':' && q[1] == ']') {
           q += 2;
           while (src < q) buf[o++] = *src++;
           continue;

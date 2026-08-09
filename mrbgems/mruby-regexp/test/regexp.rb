@@ -823,6 +823,15 @@ assert("Regexp extended mode (x flag)") do
 
   assert_equal " 1 ", Regexp.new('[[:digit:] ]+', Regexp::EXTENDED).match(" 1 ")[0]
 
+  # a bracket the pattern truncates leaves the scan with nothing after the
+  # name, and the class is still the parser's error to report
+  assert_raise_with_message(RegexpError, "unterminated character class: /[[:alpha/") do
+    Regexp.new("[[:alpha", Regexp::EXTENDED)
+  end
+  assert_raise_with_message(RegexpError, "unterminated character class: /[[:alpha:/") do
+    Regexp.new("[[:alpha:", Regexp::EXTENDED)
+  end
+
   # a ']' written first in a class is a literal member, so the class is
   # still open after it
   re = Regexp.new('[] ]', Regexp::EXTENDED)
