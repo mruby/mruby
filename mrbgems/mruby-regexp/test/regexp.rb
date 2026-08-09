@@ -1588,6 +1588,47 @@ assert("$&, $`, $' and $+ cleared on no match") do
   assert_nil $+
 end
 
+assert("String#gsub with block leaves the last match behind") do
+  # The block form drives the search from mrblib, and the failed match that
+  # ends the loop used to clear the match the loop was supposed to leave.
+  $~ = nil
+  "hello".gsub(/l/) { |m| m }
+  assert_equal "l", $~[0]
+
+  # every name a match publishes, not just $~
+  $~ = nil
+  "a1b22c".gsub(/([a-c])(\d+)/) { |m| m }
+  assert_equal "b22", $~[0]
+  assert_equal "b22", $&
+  assert_equal "a1", $`
+  assert_equal "c", $'
+  assert_equal "b", $1
+  assert_equal "22", $2
+  assert_equal "22", $+
+
+  # a block that matches on its own does not get the last word
+  $~ = nil
+  "hello".gsub(/l/) { |m| /z+/ =~ "zzz"; m }
+  assert_equal "l", $~[0]
+
+  # a zero-width match at the end of the subject ends the loop on the
+  # `pos <= len` test rather than a failed match, and lands the same way
+  $~ = nil
+  "ab".gsub(/x*/) { "-" }
+  assert_equal "", $~[0]
+  assert_equal 2, $~.begin(0)
+
+  # matching nothing clears, as it does everywhere else
+  /b(c)/ =~ "abcd"
+  "hello".gsub(/z/) { |m| m }
+  assert_nil $~
+  assert_nil $&
+  assert_nil $`
+  assert_nil $'
+  assert_nil $1
+  assert_nil $+
+end
+
 assert("Regexp - consecutive optional quantifiers (#6853)") do
   # insert_inst was over-incrementing jump offsets that pointed *at* the
   # insertion site, sending earlier "skip this atom" SPLITs into the next
