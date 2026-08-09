@@ -20,6 +20,7 @@ simulation) with backtracking fallback.
 - `(?<name>...)` named capture group
 - `|` alternation
 - `\1`-`\9` backreferences
+- `\k<name>`, `\k'name'` named backreferences
 - `(?=...)` positive lookahead
 - `(?!...)` negative lookahead
 - `(?<=...)` positive lookbehind (fixed-length only)
@@ -131,6 +132,29 @@ pattern analysis.
   only.
 - **Step limit on backtracking**: Patterns that require the
   backtracking engine are subject to a step limit.
+
+## Named Captures
+
+As in CRuby, declaring a named group anywhere in a pattern changes how the
+whole pattern is numbered: a plain `(...)` groups without capturing, and a
+numbered backreference is a `RegexpError` in every spelling (`\1`, `\k<1>`,
+`\k<-1>`). Refer to a group by name instead.
+
+```ruby
+md = /(?<a>a)(b)/.match("ab")
+md.size                          # => 2
+md.captures                      # => ["a"]
+md[:a]                           # => "a"
+md[2]                            # => nil
+
+"aa".match(/(?<n>\w)\k<n>/)[0]   # => "aa"
+
+Regexp.new("(a)(?<b>b)\\1")
+# RegexpError: numbered backref/call is not allowed. (use name)
+```
+
+A pattern with no named group numbers its groups as usual, and `\1`-`\9` work
+there.
 
 ## Configuration
 
