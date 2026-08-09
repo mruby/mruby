@@ -7,7 +7,9 @@
 #include "re_internal.h"
 
 /* Return byte length of UTF-8 character at s.
-   Returns 1 for invalid sequences (treat as single byte). */
+   Returns 1 for invalid sequences (treat as single byte): a byte that starts
+   no sequence, a sequence cut short by end, and one whose continuation bytes
+   are not 10xxxxxx. */
 int
 mrb_re_utf8_charlen(const char *s, const char *end)
 {
@@ -22,6 +24,9 @@ mrb_re_utf8_charlen(const char *s, const char *end)
   else return 1;  /* invalid */
 
   if (s + len > end) return 1;  /* truncated */
+  for (int i = 1; i < len; i++) {
+    if (((uint8_t)s[i] & 0xc0) != 0x80) return 1;  /* invalid continuation */
+  }
   return len;
 }
 

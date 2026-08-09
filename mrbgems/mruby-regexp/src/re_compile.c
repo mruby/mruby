@@ -936,6 +936,21 @@ compile_atom(re_compiler *c)
         break;
       }
     }
+    if (ch >= 128) {
+      /* Emit every byte of a multibyte character here, so the whole character
+         is one atom. Leaving the continuation bytes to the parse loop made
+         each of them an atom of its own, and a quantifier binds to the last
+         atom emitted: /Ā+/ compiled as \xC4(\x80)+ and matched one Ā in "ĀĀ".
+         An invalid lead byte has a charlen of 1 and still emits alone. */
+      int len = mrb_re_utf8_charlen(c->p - 1, c->src_end);
+      emit(c, RE_CHAR, (uint8_t)ch, 0);
+      for (int i = 1; i < len; i++) {
+        int b = next_char(c);
+        if (b < 0) break;
+        emit(c, RE_CHAR, (uint8_t)b, 0);
+      }
+      break;
+    }
     emit(c, RE_CHAR, (uint8_t)ch, 0);
     break;
   }
