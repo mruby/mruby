@@ -529,6 +529,50 @@ assert("MatchData#begin / #end - index out of matches") do
   assert_nil md.end(2)
 end
 
+assert("Regexp - quantifier on a multibyte literal") do
+  # The bytes of a multibyte literal used to be separate atoms, so a
+  # quantifier bound to the last one: /Ā+/ was \xC4(\x80)+ and stopped after
+  # one Ā. The byte counts below are what tells the two apart.
+  assert_equal 4, "ĀĀ".match(/Ā+/)[0].bytesize
+  assert_equal 4, "ĀĀ".match(/Ā*/)[0].bytesize
+  assert_equal 6, "ĀĀĀ".match(/Ā{2,3}/)[0].bytesize
+  assert_true "ĀĀ".match?(/Ā{2}/)
+  assert_false "Ā".match?(/Ā{2}/)
+  # Three and four byte characters take the same path.
+  assert_equal 6, "日日".match(/日+/)[0].bytesize
+  assert_equal 8, "𝕏𝕏".match(/𝕏+/)[0].bytesize
+  # A quantified literal after another atom, and a non-greedy one.
+  assert_equal 5, "aĀĀ".match(/aĀ+/)[0].bytesize
+  assert_equal 2, "ĀĀ".match(/Ā+?/)[0].bytesize
+  # Scanning must not split a run into one match per character.
+  assert_equal [4, 2], "ĀĀxĀ".scan(/Ā+/).map { |s| s.bytesize }
+  # An optional multibyte literal that is absent still matches empty.
+  assert_equal 0, "z".match(/Ā?/)[0].bytesize
+end
+
+assert("Regexp - quantifier on an invalid multibyte literal") do
+  # A byte above 127 is one atom only while it starts a whole character. The
+  # sequences below never complete one, so each byte stands alone and the
+  # quantifier binds to the byte in front of it, not to the pair.
+  lead2 = "\xC4"  # starts a two byte character
+  lead3 = "\xE3"  # starts a three byte character
+  cont = "\x81"   # continuation byte
+
+  # "x" is not a continuation byte, so `+` repeats "x".
+  assert_equal 4, (lead2 + "xxx").match(Regexp.new(lead2 + "x+"))[0].bytesize
+  assert_equal 4, (lead3 + "abb").match(Regexp.new(lead3 + "ab+"))[0].bytesize
+  # The quantifier itself must not be taken for a continuation byte either.
+  assert_equal 2, (lead2 + lead2).match(Regexp.new(lead2 + "+"))[0].bytesize
+  # A sequence cut short by the end of the pattern emits its bytes one by one.
+  assert_equal 2, (lead3 + cont).match(Regexp.new(lead3 + cont))[0].bytesize
+  assert_equal 3, (lead3 + cont + cont).match(Regexp.new(lead3 + cont + "+"))[0].bytesize
+  # A valid character right after an invalid lead byte is still one atom.
+  assert_equal 5, (lead2 + "ĀĀ").match(Regexp.new(lead2 + "Ā+"))[0].bytesize
+  # The subject side reads the same way: `.` takes the lead byte alone.
+  assert_equal 1, (lead2 + "x").match(/./)[0].bytesize
+  assert_equal 2, "Ā".match(/./)[0].bytesize
+end
+
 assert("Regexp - multibyte (UTF-8) match extraction") do
   # Capture offsets are recorded in bytes; substring extraction must honor
   # them as byte ranges so multibyte matches are not corrupted.
