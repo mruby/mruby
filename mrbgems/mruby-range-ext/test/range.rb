@@ -42,6 +42,9 @@ assert('Range#last') do
   assert_raise(RangeError) { (10...).last }
   assert_equal [18, 19, 20], (10..20).last(3)
   assert_equal [17, 18, 19], (10...20).last(3)
+
+  skip unless Object.const_defined?(:Float)
+  assert_equal [18, 19, 20], (10..20).last(3.0)
 end
 
 assert('Range#size') do
