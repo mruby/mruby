@@ -1100,6 +1100,164 @@ assert("String#gsub without a block returns an enumerator") do
   assert_equal "aBcB", "abcb".gsub(/b/).each { |m| m.upcase }
 end
 
+assert("String#sub! / #gsub! with a Regexp pattern") do
+  # The core definitions decide whether a substitution happened with
+  # `String#index`, which only takes a String, so every form below used to
+  # raise TypeError once the pattern reached it.
+  s = "hello world"
+  assert_equal "hell0 world", s.sub!(/o/, "0")
+  assert_equal "hell0 world", s
+  s = "hello world"
+  assert_equal "hell0 w0rld", s.gsub!(/o/, "0")
+  assert_equal "hell0 w0rld", s
+
+  s = "hello"
+  assert_equal "heLlo", s.sub!(/l/) { |m| m.upcase }
+  s = "hello"
+  assert_equal "heLLo", s.gsub!(/l/) { |m| m.upcase }
+
+  s = "John Smith"
+  assert_equal "Smith John", s.sub!(/(\w+) (\w+)/, '\2 \1')
+  s = "a1b2"
+  assert_equal "1a2b", s.gsub!(/([a-z])(\d)/, '\2\1')
+
+  # The receiver itself comes back, not a copy of it.
+  s = "abc"
+  assert_same s, s.sub!(/b/, "X")
+  s = "abcb"
+  assert_same s, s.gsub!(/b/, "X")
+
+  # A replacement argument wins over the block, as in `sub`/`gsub`.
+  assert_equal "aYc", "abc".sub!(/b/, "Y") { "X" }
+  assert_equal "aYcY", "abcb".gsub!(/b/, "Y") { "X" }
+end
+
+assert("String#sub! / #gsub! return nil only when nothing matched") do
+  s = "abc"
+  assert_nil s.sub!(/z/, "X")
+  assert_nil s.gsub!(/z/, "X")
+  assert_nil s.sub!("z", "X")
+  assert_nil s.gsub!("z", "X")
+  assert_equal "abc", s
+  # The block is not called for a pattern that does not match.
+  assert_nil "abc".sub!(/z/) { flunk "block called" }
+
+  # A match is a match even where the replacement leaves the string as it was,
+  # so the answer cannot come from comparing the result with the receiver.
+  s = "aaa"
+  assert_same s, s.sub!(/a/, "a")
+  assert_same s, s.gsub!(/a/, "a")
+  assert_equal "aaa", s
+end
+
+assert("String#sub! / #gsub! quote a String pattern") do
+  # A String is a literal here, as it is for `sub`/`gsub`: `.` matches only `.`.
+  s = "a.c.e"
+  assert_equal "aXc.e", s.sub!(".", "X")
+  s = "a.c.e"
+  assert_equal "aXcXe", s.gsub!(".", "X")
+
+  # Anything that is neither a Regexp nor a String is rejected, rather than
+  # reaching a match with the operands reversed.
+  [["nil", nil], ["true", true], ["Symbol", :b], ["Integer", 1]].each do |name, pat|
+    message = "wrong argument type #{name} (expected Regexp)"
+    assert_raise_with_message(TypeError, message) { "abc".sub!(pat, "X") }
+    assert_raise_with_message(TypeError, message) { "abc".gsub!(pat, "X") }
+    assert_raise_with_message(TypeError, message) { "abc".sub!(pat) { "X" } }
+    assert_raise_with_message(TypeError, message) { "abc".gsub!(pat) { "X" } }
+  end
+end
+
+assert("String#sub! / #gsub! - wrong number of arguments") do
+  assert_raise_with_message(ArgumentError, "wrong number of arguments (given 0, expected 2)") do
+    "abc".sub!
+  end
+  assert_raise_with_message(ArgumentError, "wrong number of arguments (given 1, expected 2)") do
+    "abc".sub!(/b/)
+  end
+  assert_raise_with_message(ArgumentError, "wrong number of arguments (given 3, expected 2)") do
+    "abc".sub!(/b/, "X", "Y")
+  end
+  assert_raise_with_message(ArgumentError, "wrong number of arguments (given 3, expected 1..2)") do
+    "abc".sub!(/b/, "X", "Y") { "Z" }
+  end
+  assert_raise_with_message(ArgumentError, "wrong number of arguments (given 0, expected 1..2)") do
+    "abc".gsub!
+  end
+  assert_raise_with_message(ArgumentError, "wrong number of arguments (given 3, expected 1..2)") do
+    "abc".gsub!(/b/, "X", "Y")
+  end
+end
+
+assert("String#gsub! without a block returns an enumerator") do
+  skip "Enumerator is not available" unless Object.const_defined?(:Enumerator)
+  assert_equal Enumerator, "abc".gsub!(/a/).class
+  # Iterating it performs the substitution on the original receiver.
+  s = "abcb"
+  assert_equal "aBcB", s.gsub!(/b/).each { |m| m.upcase }
+  assert_equal "aBcB", s
+  # As with `gsub`, the pattern is examined on the first iteration, not at the
+  # call.
+  enum = "abc".gsub!(:b)
+  assert_raise_with_message(TypeError, "wrong argument type Symbol (expected Regexp)") do
+    enum.each { "X" }
+  end
+end
+
+assert("String#sub! / #gsub! on a frozen string") do
+  message = "can't modify frozen String"
+  assert_raise_with_message(FrozenError, message) { "abc".freeze.sub!(/a/, "X") }
+  assert_raise_with_message(FrozenError, message) { "abc".freeze.gsub!(/a/, "X") }
+  # Before the no-match check: the receiver is rejected whether or not a
+  # substitution would have taken place.
+  assert_raise_with_message(FrozenError, message) { "abc".freeze.sub!(/z/, "X") }
+  assert_raise_with_message(FrozenError, message) { "abc".freeze.gsub!(/z/, "X") }
+  # And before the enumerator, which CRuby does not hand back here either.
+  assert_raise_with_message(FrozenError, message) { "abc".freeze.gsub!(/a/) }
+
+  # `sub!` reads its arguments first, though, as CRuby does.
+  assert_raise_with_message(ArgumentError, "wrong number of arguments (given 1, expected 2)") do
+    "abc".freeze.sub!(/z/)
+  end
+  assert_raise_with_message(TypeError, "wrong argument type Symbol (expected Regexp)") do
+    "abc".freeze.sub!(:z, "X")
+  end
+end
+
+assert("String#sub! / #gsub! leave the match behind") do
+  $~ = nil
+  s = "hello world"
+  s.sub!(/o/, "0")
+  assert_equal "o", $~[0]
+  # The subject is the string as it was matched, not the replaced one: a
+  # MatchData snapshots it, so overwriting the receiver afterwards is safe.
+  assert_equal "hello world", $~.string
+  assert_equal "hell", $~.pre_match
+  assert_equal " world", $~.post_match
+
+  # `gsub!` leaves the last match, as `gsub` does.
+  $~ = nil
+  s = "hello world"
+  s.gsub!(/o/, "0")
+  assert_equal "hello world", $~.string
+  assert_equal "hello w", $~.pre_match
+
+  $~ = nil
+  s = "hello"
+  s.gsub!(/l/) { "X" }
+  assert_equal "hello", $~.string
+  assert_equal "hel", $~.pre_match
+
+  # Matching nothing clears it, which is why the check is `match` and not
+  # `match?`.
+  /b(c)/ =~ "abcd"
+  assert_nil "hello".sub!(/z/, "X")
+  assert_nil $~
+  /b(c)/ =~ "abcd"
+  assert_nil "hello".gsub!(/z/, "X")
+  assert_nil $~
+end
+
 assert("String#sub / #gsub / #scan / #split with a non-Regexp pattern raise TypeError") do
   # The same check `match` uses, so the naming matches: nil, true and false by
   # value, everything else by class.

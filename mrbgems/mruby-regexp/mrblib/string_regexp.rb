@@ -63,6 +63,38 @@ class String
     md.pre_match + block.call(md[0]).to_s + md.post_match
   end
 
+  def sub!(*args, &block)
+    # The argument checks come before the frozen receiver, as in CRuby:
+    # `"abc".freeze.sub!(/b/)` raises ArgumentError and
+    # `"abc".freeze.sub!(:b, "X")` TypeError, while the two-argument form on
+    # the same receiver raises FrozenError.  `gsub!` orders it the other way,
+    # also as CRuby does.
+    if block
+      unless (1..2).include?(args.length)
+        raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1..2)"
+      end
+    elsif args.length != 2
+      raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 2)"
+    end
+    # Resolved here rather than left to `sub` because the match below decides
+    # the return value, and a String pattern is a literal on both paths.
+    pattern = Regexp.__check_pattern(args[0])
+    pattern = Regexp.new(Regexp.escape(pattern)) if String === pattern
+    raise FrozenError, "can't modify frozen String" if frozen?
+    # Whether a substitution happened is a question about the match, not about
+    # the result: `"aaa".sub!(/a/, "a")` returns self even though the string is
+    # unchanged.  `match` and not `match?`, so a failed match clears $~.
+    return nil unless pattern.match(self)
+    # `sub` matches again and publishes its own $~ over this one, leaving the
+    # caller the match `sub` would have left, a block's own matches included.
+    # The resolved pattern takes the place of the original argument so that a
+    # String is not quoted and compiled a second time.  Overwriting `self`
+    # afterwards is safe: a MatchData snapshots its subject, so $~ keeps
+    # describing the string as it was matched.
+    str = args.length == 2 ? self.sub(pattern, args[1], &block) : self.sub(pattern, &block)
+    self.replace(str)
+  end
+
   def gsub(*args, &block)
     unless (1..2).include?(args.length)
       raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1..2)"
@@ -121,6 +153,25 @@ class String
     parts << self.byteslice(pos..-1)
     last.__set_globals if last
     parts.join
+  end
+
+  def gsub!(*args, &block)
+    # Before the arity check and before the enumerator below, as in CRuby:
+    # `"abc".freeze.gsub!(/a/)` raises FrozenError rather than handing back an
+    # Enumerator that fails later.
+    raise FrozenError, "can't modify frozen String" if frozen?
+    unless (1..2).include?(args.length)
+      raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1..2)"
+    end
+    return to_enum(:gsub!, *args) if args.length == 1 && !block
+    pattern = Regexp.__check_pattern(args[0])
+    pattern = Regexp.new(Regexp.escape(pattern)) if String === pattern
+    # As in `sub!`: the match decides the return value, and `match` clears $~
+    # when it fails.  What it publishes on success is replaced right away by
+    # the last match of the `gsub` below, which is the one CRuby leaves behind.
+    return nil unless pattern.match(self)
+    str = args.length == 2 ? self.gsub(pattern, args[1], &block) : self.gsub(pattern, &block)
+    self.replace(str)
   end
 
   def scan(pattern)
