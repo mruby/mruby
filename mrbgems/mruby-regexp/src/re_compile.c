@@ -1140,6 +1140,19 @@ strip_extended(mrb_state *mrb, const char *src, mrb_int len, mrb_int *out_len)
       continue;
     }
     if (in_class) {
+      /* compile_charclass() consumes a POSIX bracket as a unit, so the ']'
+         of [:name:] does not end the class. Copy it whole and keep the
+         class open; a malformed bracket falls through and the '[' is
+         copied as an ordinary member, which is what the parser does too. */
+      if (ch == '[' && src + 1 < end && src[1] == ':') {
+        const char *q = src + 2;
+        while (q < end && *q != ':' && *q != ']') q++;
+        if (q + 1 < end && *q == ':' && q[1] == ']') {
+          q += 2;
+          while (src < q) buf[o++] = *src++;
+          continue;
+        }
+      }
       if (ch == ']') in_class = FALSE;
       buf[o++] = *src++;
       continue;
@@ -1147,6 +1160,10 @@ strip_extended(mrb_state *mrb, const char *src, mrb_int len, mrb_int *out_len)
     if (ch == '[') {
       in_class = TRUE;
       buf[o++] = *src++;
+      /* A ']' written first is a literal member, optionally after '^',
+         mirroring the `first` flag in compile_charclass(). */
+      if (src < end && *src == '^') buf[o++] = *src++;
+      if (src < end && *src == ']') buf[o++] = *src++;
       continue;
     }
     if (ch == '#') {

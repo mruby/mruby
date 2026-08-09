@@ -589,6 +589,27 @@ assert("Regexp extended mode (x flag)") do
   re = Regexp.new('[ ]', Regexp::EXTENDED)
   assert_true re.match?(" ")
 
+  # a POSIX bracket does not end the class, so what follows it is still
+  # class content
+  re = Regexp.new('[[:alpha:] ]', Regexp::EXTENDED)
+  assert_true re.match?(" ")
+  assert_true re.match?("a")
+
+  re = Regexp.new('[[:alpha:]#x]', Regexp::EXTENDED)
+  assert_true re.match?("#")
+
+  assert_equal " 1 ", Regexp.new('[[:digit:] ]+', Regexp::EXTENDED).match(" 1 ")[0]
+
+  # a ']' written first in a class is a literal member, so the class is
+  # still open after it
+  re = Regexp.new('[] ]', Regexp::EXTENDED)
+  assert_true re.match?(" ")
+  assert_true re.match?("]")
+
+  re = Regexp.new('[^] ]', Regexp::EXTENDED)
+  assert_false re.match?(" ")
+  assert_true re.match?("a")
+
   # escaped whitespace is preserved
   re = Regexp.new('a\\ b', Regexp::EXTENDED)
   assert_true re.match?("a b")
