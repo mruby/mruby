@@ -613,7 +613,7 @@ compile_atom(re_compiler *c)
       uint32_t saved_flags = c->flags;
 
       const char *cap_name = NULL;
-      uint16_t cap_name_len = 0;
+      uint32_t cap_name_len = 0;
 
       if (peek(c) == '?' && c->p + 1 < c->src_end) {
         if (c->p[1] == ':') {
@@ -666,7 +666,8 @@ compile_atom(re_compiler *c)
           while (peek(c) != '>' && peek(c) >= 0) next_char(c);
           if (peek(c) != '>') compile_error(c, "unterminated named capture");
           if (c->p == cap_name) compile_error(c, "group name is empty");
-          cap_name_len = (uint16_t)(c->p - cap_name);
+          if (!RE_NAME_LEN_FITS(c->p - cap_name)) compile_error(c, "group name too long");
+          cap_name_len = (uint32_t)(c->p - cap_name);
           next_char(c);  /* skip > */
         }
         else if (c->p[1] == 'i' || c->p[1] == 'm' || c->p[1] == 'x' || c->p[1] == '-') {
@@ -813,14 +814,15 @@ compile_atom(re_compiler *c)
       while (peek(c) != close && peek(c) >= 0) next_char(c);
       if (peek(c) != close) compile_error(c, "unterminated backreference name");
       if (c->p == name) compile_error(c, "group name is empty");
-      uint16_t name_len = (uint16_t)(c->p - name);
+      if (!RE_NAME_LEN_FITS(c->p - name)) compile_error(c, "group name too long");
+      uint32_t name_len = (uint32_t)(c->p - name);
       next_char(c);  /* skip the closing > or ' */
 
       int group = -1;
       if (name_len > 0 && (name[0] == '-' || (name[0] >= '0' && name[0] <= '9'))) {
         mrb_bool relative = (name[0] == '-');
         int n = 0;
-        for (uint16_t i = (relative ? 1 : 0); i < name_len; i++) {
+        for (uint32_t i = (relative ? 1 : 0); i < name_len; i++) {
           if (name[i] < '0' || name[i] > '9') compile_error(c, "invalid backreference");
           n = n * 10 + (name[i] - '0');
           if (n > (int)c->num_captures - 1) compile_error(c, "undefined group name reference");
@@ -1295,7 +1297,7 @@ mrb_re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags)
       pat->named_arena = (char*)mrb_malloc(mrb, total);
       size_t off = 0;
       for (uint16_t i = 0; i < c.num_named; i++) {
-        uint16_t n = c.named_captures[i].name_len;
+        uint32_t n = c.named_captures[i].name_len;
         memcpy(pat->named_arena + off, c.named_captures[i].name, n);
         pat->named_captures[i].name = pat->named_arena + off;
         off += n;
