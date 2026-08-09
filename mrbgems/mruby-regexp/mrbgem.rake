@@ -19,4 +19,11 @@ MRuby::Gem::Specification.new('mruby-regexp') do |spec|
   if build.gems.any? {|g| g.name == 'mruby-enumerator'}
     spec.add_dependency 'mruby-enumerator', :core => 'mruby-enumerator'
   end
+
+  # Same deal for `Symbol#[]` and `#slice`, which live in mruby-symbol-ext and
+  # delegate to the String methods: the regexp form is this gem's, so mrbtest
+  # can only exercise it when that gem is part of the state.
+  if build.gems.any? {|g| g.name == 'mruby-symbol-ext'}
+    spec.add_dependency 'mruby-symbol-ext', :core => 'mruby-symbol-ext'
+  end
 end
