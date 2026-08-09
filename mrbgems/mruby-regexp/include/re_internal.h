@@ -163,6 +163,19 @@ int mrb_re_utf8_charlen(const char *s, const char *end);
 uint32_t mrb_re_utf8_decode(const char *s, const char *end, int *len);
 mrb_bool mrb_re_is_word_char(uint32_t c);
 
+#ifdef MRB_REGEXP_UNICODE_CASE
+/* Simple case folding. mrb_re_case_fold() returns the folded codepoint, or cp
+   itself when it folds to nothing else. mrb_re_case_unfold() writes every
+   other codepoint sharing cp's folded form into out, at most max of them, and
+   returns how many it wrote. Both cover ASCII and the 1:1 Unicode foldings; a
+   codepoint whose fold is several codepoints (U+00DF to "ss") is left alone. */
+#define RE_MAX_UNFOLD 4
+uint32_t mrb_re_case_fold(uint32_t cp);
+int mrb_re_case_unfold(uint32_t cp, uint32_t *out, int max);
+void mrb_re_case_unfold_range(uint32_t lo, uint32_t hi,
+                              void (*add)(void *, uint32_t, uint32_t), void *user);
+#endif
+
 static inline int
 mrb_re_charlen(const char *s, const char *end, mrb_bool binary)
 {

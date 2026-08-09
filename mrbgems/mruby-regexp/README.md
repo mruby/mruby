@@ -38,7 +38,8 @@ simulation) with backtracking fallback.
 
 ### Flags
 
-- `i` (`Regexp::IGNORECASE`) case-insensitive matching (ASCII)
+- `i` (`Regexp::IGNORECASE`) case-insensitive matching (ASCII, or Unicode
+  with `MRB_REGEXP_UNICODE_CASE`)
 - `m` (`Regexp::MULTILINE`) `.` matches newline; `^`/`$` match at line boundaries
 - `x` (`Regexp::EXTENDED`) free-spacing mode; unescaped whitespace ignored, `#` starts comments
 
@@ -132,8 +133,10 @@ pattern analysis.
   Maximum 255 bytes.
 - **No Unicode properties**: `\p{Alpha}`, `\p{L}`, etc. are not
   supported.
-- **ASCII case folding only**: The `i` flag handles ASCII letters
-  only.
+- **ASCII case folding by default**: The `i` flag handles ASCII letters
+  only unless the build defines `MRB_REGEXP_UNICODE_CASE`, which adds the
+  Unicode foldings that map one codepoint to one other. A codepoint whose
+  fold is several codepoints (`ß` to `ss`) is never folded.
 - **Step limit on backtracking**: Patterns that require the
   backtracking engine are subject to a step limit.
 - **No inline extended mode**: `(?x)` and `(?x:...)` raise a
@@ -173,6 +176,17 @@ there.
 #define MRB_REGEXP_STEP_LIMIT 1000000
 #endif
 ```
+
+Case folding beyond ASCII is opt-in, since it carries a table of the Unicode
+foldings. Define `MRB_REGEXP_UNICODE_CASE` to enable it:
+
+```ruby
+conf.cc.defines << 'MRB_REGEXP_UNICODE_CASE'
+```
+
+It costs about 6KB of text, of which roughly 2.4KB is the table itself. With
+it, `/Ā/i` matches `"ā"`, `/Σ/i` matches `"σ"`, and `[^Ā]` under `/i` stops
+accepting `"ā"`. Without it those all behave as they always have.
 
 ## License
 

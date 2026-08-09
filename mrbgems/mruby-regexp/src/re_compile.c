@@ -227,6 +227,47 @@ class_set_range(re_charclass *cc, uint8_t lo, uint8_t hi)
   }
 }
 
+#ifdef MRB_REGEXP_UNICODE_CASE
+/* Add one codepoint to whichever half of the class can hold it. */
+static void
+class_add_cp(re_compiler *c, re_charclass *cc, uint32_t cp)
+{
+  if (cp < 128) class_set_bit(cc, (uint8_t)cp);
+  else class_add_codepoint(c, cc, cp);
+}
+
+/* Add the case counterparts of cp to a class that already holds cp. Used for
+   the single-literal paths, where the class exists only to express the
+   choice between one character and its other cases. */
+static void
+class_add_fold_counterparts(re_compiler *c, uint16_t id, uint32_t cp)
+{
+  uint32_t alt[RE_MAX_UNFOLD];
+  int n = mrb_re_case_unfold(cp, alt, RE_MAX_UNFOLD);
+  for (int i = 0; i < n; i++) class_add_cp(c, &c->classes[id], alt[i]);
+}
+
+/* Closure for mrb_re_case_unfold_range(), which reports counterpart spans one
+   at a time. A span can straddle 128 (U+017F folds to 's'), so it is split
+   the same way a written range is. */
+typedef struct {
+  re_compiler *c;
+  re_charclass *cc;
+} class_fold_sink;
+
+static void
+class_fold_add(void *user, uint32_t lo, uint32_t hi)
+{
+  class_fold_sink *s = (class_fold_sink*)user;
+  if (lo < 128) {
+    class_set_range(s->cc, (uint8_t)lo, (uint8_t)(hi < 128 ? hi : 127));
+  }
+  if (hi >= 128) {
+    class_add_range(s->c, s->cc, lo < 128 ? 128 : lo, hi);
+  }
+}
+#endif  /* MRB_REGEXP_UNICODE_CASE */
+
 static void
 class_add_shorthand(re_charclass *cc, int ch)
 {
@@ -502,13 +543,32 @@ compile_charclass(re_compiler *c)
      single pass covers every form the loop above merges into the bitmap:
      POSIX brackets, shorthands, ranges and single literals. Negation is
      applied at match time against this same bitmap (RE_NCLASS), so folding
-     the positive set also fixes [^a-c] under /i. Non-ASCII case folding is
-     out of scope, so the codepoint range list is left alone. */
+     the positive set also fixes [^a-c] under /i. */
   if (c->flags & RE_FLAG_IGNORECASE) {
     for (int ch = 'a'; ch <= 'z'; ch++) {
       if (class_get_bit(cc, (uint8_t)ch)) class_set_bit(cc, (uint8_t)(ch - 32));
       else if (class_get_bit(cc, (uint8_t)(ch - 32))) class_set_bit(cc, (uint8_t)ch);
     }
+
+#ifdef MRB_REGEXP_UNICODE_CASE
+    /* Then the Unicode foldings. The codepoint list is read from a snapshot of
+       its length, since adding counterparts appends to the same list and an
+       unbounded walk would keep folding what it just added. The bitmap needs
+       no snapshot: the ASCII pass above has already closed it under folding,
+       and a counterpart landing in it (U+017F into 's') adds no new source. */
+    class_fold_sink sink = { c, cc };
+    uint32_t nranges = cc->num_ranges;
+    for (uint32_t i = 0; i < nranges; i++) {
+      uint32_t lo = cc->ranges[2 * i], hi = cc->ranges[2 * i + 1];
+      mrb_re_case_unfold_range(lo, hi, class_fold_add, &sink);
+    }
+    /* An ASCII bit can have a non-ASCII counterpart, which the pass above
+       cannot reach because the bitmap holds no ranges to walk. */
+    for (int ch = 0; ch < 128; ch++) {
+      if (!class_get_bit(cc, (uint8_t)ch)) continue;
+      mrb_re_case_unfold_range((uint32_t)ch, (uint32_t)ch, class_fold_add, &sink);
+    }
+#endif
   }
 
   cc->negated = negated;
@@ -687,6 +747,36 @@ emit_char_bytes(re_compiler *c, int ch)
     if (b < 0) break;
     emit(c, RE_CHAR, (uint8_t)b, 0);
   }
+}
+
+/* Emit a non-ASCII literal under /i as a class rather than a run of bytes, and
+   report whether it did. A counterpart need not have the same byte length
+   (U+212A folds to 'k'), which a byte-wise RE_CHAR run cannot express, while
+   RE_CLASS decodes one codepoint and compares that whatever its width. A
+   character with no counterpart, which is most of the non-ASCII range and
+   every script without case in it, falls back to the bytes and costs /i
+   nothing. */
+static mrb_bool
+emit_char_folded(re_compiler *c, int ch)
+{
+#ifdef MRB_REGEXP_UNICODE_CASE
+  if (ch < 128 || !(c->flags & RE_FLAG_IGNORECASE)) return FALSE;
+  int len = 0;
+  uint32_t cp = mrb_re_utf8_decode(c->p - 1, c->src_end, &len);
+  uint32_t alt[RE_MAX_UNFOLD];
+  int n = mrb_re_case_unfold(cp, alt, RE_MAX_UNFOLD);
+  if (n == 0) return FALSE;
+  c->p += len - 1;
+  uint16_t id = add_class(c);
+  class_add_cp(c, &c->classes[id], cp);
+  for (int i = 0; i < n; i++) class_add_cp(c, &c->classes[id], alt[i]);
+  emit(c, RE_CLASS, (uint8_t)id, 0);
+  return TRUE;
+#else
+  (void)c;
+  (void)ch;
+  return FALSE;
+#endif
 }
 
 /* Compile a single atom (character, class, group, etc.) */
@@ -970,7 +1060,7 @@ compile_atom(re_compiler *c)
          parse_escape() reads the letter, since \xNN and octal \NNN name a byte
          rather than a character. */
       next_char(c);
-      emit_char_bytes(c, ch);
+      if (!emit_char_folded(c, ch)) emit_char_bytes(c, ch);
     }
     else {
       ch = parse_escape(c);
@@ -979,6 +1069,9 @@ compile_atom(re_compiler *c)
           uint16_t id = add_class(c);
           class_set_bit(&c->classes[id], (uint8_t)ch);
           class_set_bit(&c->classes[id], (uint8_t)(ch + 32));
+#ifdef MRB_REGEXP_UNICODE_CASE
+          class_add_fold_counterparts(c, id, (uint32_t)ch);
+#endif
           emit(c, RE_CLASS, (uint8_t)id, 0);
           break;
         }
@@ -986,6 +1079,9 @@ compile_atom(re_compiler *c)
           uint16_t id = add_class(c);
           class_set_bit(&c->classes[id], (uint8_t)ch);
           class_set_bit(&c->classes[id], (uint8_t)(ch - 32));
+#ifdef MRB_REGEXP_UNICODE_CASE
+          class_add_fold_counterparts(c, id, (uint32_t)ch);
+#endif
           emit(c, RE_CLASS, (uint8_t)id, 0);
           break;
         }
@@ -1022,6 +1118,9 @@ compile_atom(re_compiler *c)
         uint16_t id = add_class(c);
         class_set_bit(&c->classes[id], (uint8_t)ch);
         class_set_bit(&c->classes[id], (uint8_t)(ch + 32));
+#ifdef MRB_REGEXP_UNICODE_CASE
+        class_add_fold_counterparts(c, id, (uint32_t)ch);
+#endif
         emit(c, RE_CLASS, (uint8_t)id, 0);
         break;
       }
@@ -1029,12 +1128,15 @@ compile_atom(re_compiler *c)
         uint16_t id = add_class(c);
         class_set_bit(&c->classes[id], (uint8_t)ch);
         class_set_bit(&c->classes[id], (uint8_t)(ch - 32));
+#ifdef MRB_REGEXP_UNICODE_CASE
+        class_add_fold_counterparts(c, id, (uint32_t)ch);
+#endif
         emit(c, RE_CLASS, (uint8_t)id, 0);
         break;
       }
     }
     if (ch >= 128) {
-      emit_char_bytes(c, ch);
+      if (!emit_char_folded(c, ch)) emit_char_bytes(c, ch);
       break;
     }
     emit(c, RE_CHAR, (uint8_t)ch, 0);
