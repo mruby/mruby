@@ -1305,6 +1305,13 @@ int_equal(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
 
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x)) {
+    if (mrb_integer_p(y) || mrb_bigint_p(y) || mrb_float_p(y)) {
+      return mrb_bool_value(mrb_bint_cmp(mrb, x, y) == 0);
+    }
+  }
+#endif
   switch (mrb_type(y)) {
   case MRB_TT_INTEGER:
     return mrb_bool_value(mrb_integer(x) == mrb_integer(y));
