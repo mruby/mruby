@@ -316,6 +316,10 @@ set_match_globals(mrb_state *mrb, mrb_value obj, mrb_value str, int *captures, i
 static mrb_value
 create_matchdata(mrb_state *mrb, mrb_value regexp, mrb_value str, int *captures, int ncap)
 {
+  /* Snapshot the subject: MatchData reports the string as it was at match
+     time, so later in-place changes to it must not be visible here. */
+  str = mrb_str_dup_frozen(mrb, str);
+
   struct RClass *md_class = mrb_class_get(mrb, "MatchData");
   mrb_match_data *md = (mrb_match_data*)mrb_malloc(mrb, sizeof(mrb_match_data));
   md->source = str;
