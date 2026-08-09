@@ -477,6 +477,32 @@ assert("MatchData#begin / #end") do
   assert_equal 3, md.end(0)
 end
 
+assert("MatchData#begin / #end - group name") do
+  md = /(?<x>b)(?<y>c)/.match("abcde")
+  assert_equal 1, md.begin(:x)
+  assert_equal 2, md.end(:x)
+  assert_equal 2, md.begin("y")
+  assert_equal 3, md.end("y")
+  assert_raise(IndexError) { md.begin(:zz) }
+  assert_raise(IndexError) { md.end("zz") }
+  # a pattern without any named group raises just the same
+  assert_raise(IndexError) { /(a)/.match("a").begin(:zz) }
+end
+
+assert("MatchData#begin / #end - index out of matches") do
+  # An offset has no nil to fall back on, so an index naming no group raises
+  # here where MatchData#[] returns nil.
+  md = /(a)(b)/.match("ab")
+  assert_raise(IndexError) { md.begin(3) }
+  assert_raise(IndexError) { md.end(3) }
+  assert_raise(IndexError) { md.begin(-1) }
+  assert_raise(IndexError) { md.end(-1) }
+  # a group that exists but did not participate is still nil
+  md = /(a)|(b)/.match("a")
+  assert_nil md.begin(2)
+  assert_nil md.end(2)
+end
+
 assert("Regexp - multibyte (UTF-8) match extraction") do
   # Capture offsets are recorded in bytes; substring extraction must honor
   # them as byte ranges so multibyte matches are not corrupted.
@@ -1350,6 +1376,16 @@ assert("MatchData#[] - group name longer than a uint16 length") do
   md = /(?<abc>x)/.match("x")
   assert_raise(IndexError) { md["abc" + "A" * 65536] }
   assert_equal "x", md[:abc]
+end
+
+assert("MatchData#begin / #end - group name longer than a stored name") do
+  # begin/end share the name lookup with MatchData#[], so the bound that keeps
+  # the memcmp() from being handed a length larger than what was measured
+  # covers them too.
+  md = /(?<abc>x)/.match("x")
+  assert_raise(IndexError) { md.begin("abc" + "A" * 65536) }
+  assert_raise(IndexError) { md.end("abc" + "A" * 65536) }
+  assert_equal 0, md.begin(:abc)
 end
 
 assert("Regexp - group name longer than a uint16 length") do
