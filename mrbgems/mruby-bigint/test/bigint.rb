@@ -258,3 +258,33 @@ assert 'Bigint large integer literal' do
   assert_equal(-(10**40), -10000000000000000000000000000000000000000)
   assert_equal 2**128, 340282366920938463463374607431768211456
 end
+
+assert 'OP_LOADL does not retain a boxed Integer in the GC arena' do
+  # `OP_LOADL` boxes the pool entry afresh on every execution rather than
+  # handing back a stored object: the pool holds an integer as a raw i32 or i64
+  # and a big integer as its digits, and none of the three is an `mrb_value`.
+  # Boxing allocates for a value outside the fixnum range, and the opcode has
+  # no cfunc epilogue behind it to shrink the arena, so a loop over such a
+  # literal retains one object per iteration unless the opcode restores.
+  #
+  # This belongs with the arena assertions in test/t/gc.rb and lives here
+  # because both literals are wider than 32 bits: without mruby-bigint they are
+  # out of mrb_int range on an MRB_INT32 build, and an unrepresentable literal
+  # is a compile-time error rather than something a test can rescue.  With the
+  # gem they reach IREP_TT_INT64 where mrb_int is 64 bits wide and
+  # IREP_TT_BIGINT where it is not, which are the two branches that allocate.
+  #
+  # `GC.stat` is a cfunc and so reports the count before its own epilogue
+  # restores.  The loop body avoids sends because a single one would empty the
+  # arena and hide the retention.
+  GC.start
+  base = GC.stat[:live]
+  i = 0
+  while i < 20000
+    z = 2147483648           # outside the fixnum range under NaN boxing
+    z = 4611686018427387904  # outside it under 64-bit word boxing
+    i += 1
+  end
+  assert_operator GC.stat[:live] - base, :<, 5000
+  assert_equal 4611686018427387904, z
+end

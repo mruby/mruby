@@ -211,3 +211,70 @@ assert('OP_ADD does not retain an overflowed Integer in the GC arena') do
     assert_operator GC.stat[:live] - base, :<, 5000
   end
 end
+
+# The assertions below cover the boxing sites inside the interpreter loop
+# rather than the calls out of it.  `SET_INT_VALUE()` heap-allocates an
+# RInteger for a value outside the fixnum range, and the inline opcodes that
+# box one have no cfunc epilogue behind them either, so what they allocate
+# stays in the arena the same way.  Where the fixnum range ends depends on the
+# boxing mode, so the arithmetic loops are run at more than one width; on a
+# build whose boxing macro cannot allocate at all they retain nothing and the
+# assertions hold trivially.  `1 << shift` is written with a variable shift
+# because a constant shift is folded at compile time, and a folded result out
+# of mrb_int range makes the build fail rather than raise.
+
+assert('OP_ADD does not retain a boxed Integer in the GC arena') do
+  [30, 31, 62].each do |shift|
+    begin
+      x = 1 << shift
+    rescue RangeError
+      next  # mrb_int is narrower than this and mruby-bigint is absent
+    end
+    one = 1
+    GC.start
+    base = GC.stat[:live]
+    i = 0
+    while i < 20000
+      x + one   # OP_ADD
+      x + 1     # OP_ADDI
+      i += 1
+    end
+    assert_operator GC.stat[:live] - base, :<, 5000
+  end
+end
+
+assert('OP_DIV does not retain a boxed Integer in the GC arena') do
+  [30, 31, 62].each do |shift|
+    begin
+      x = 1 << shift
+    rescue RangeError
+      next
+    end
+    one = 1
+    GC.start
+    base = GC.stat[:live]
+    i = 0
+    while i < 20000
+      x / one
+      i += 1
+    end
+    assert_operator GC.stat[:live] - base, :<, 5000
+  end
+end
+
+assert('OP_LOADI32 does not retain a boxed Integer in the GC arena') do
+  # `1073741824` is `2**30`, which fits in the operand of `OP_LOADI32` rather
+  # than going to the pool, and is the first value outside the fixnum range of
+  # a 32-bit host under word boxing.  That is the only configuration where this
+  # opcode can allocate: everywhere else the value is a fixnum, the loop retains
+  # nothing and the assertion holds trivially.
+  GC.start
+  base = GC.stat[:live]
+  i = 0
+  while i < 20000
+    z = 1073741824
+    i += 1
+  end
+  assert_operator GC.stat[:live] - base, :<, 5000
+  assert_equal 1073741824, z
+end
