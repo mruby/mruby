@@ -593,7 +593,9 @@ compute_fixed_len(re_compiler *c, uint32_t start, uint32_t end)
    (':' or ')'). `base` is the option set in effect on entry; the resulting
    set is returned. Ruby's inline letters are i (IGNORECASE), m (DOTALL),
    x (EXTENDED). Extended mode is applied by a whole-pattern preprocessing
-   pass, so it cannot be scoped inline and is rejected here. */
+   pass that runs before the parser, so it cannot be scoped inline:
+   enabling it is rejected here, and see the 'x' branch below for why
+   disabling it is not. */
 static uint32_t
 parse_inline_flags(re_compiler *c, uint32_t base)
 {
@@ -605,8 +607,20 @@ parse_inline_flags(re_compiler *c, uint32_t base)
     if (oc == 'i') bit = RE_FLAG_IGNORECASE;
     else if (oc == 'm') bit = RE_FLAG_DOTALL;
     else if (oc == 'x') {
-      compile_error(c, "inline extended mode (?x) is not supported");
-      return base;  /* unreached: compile_error longjmps */
+      if (!negate) {
+        compile_error(c, "inline extended mode (?x) is not supported");
+        return base;  /* unreached: compile_error longjmps */
+      }
+      /* A '-x' is accepted and dropped. Regexp#to_s names every flag that
+         is off, so its result carries one whenever the pattern is not
+         extended, and rejecting it would make interpolation and
+         Regexp.new(re.to_s) raise for such a Regexp. Dropping it is exact
+         there, since the flag is already off. Inside a pattern that is
+         itself extended it is not: the preprocessing pass has removed the
+         whitespace by now and the scope cannot get it back. */
+      seen = TRUE;
+      next_char(c);
+      continue;
     }
     else if (oc == '-' && !negate) { negate = TRUE; next_char(c); continue; }
     else break;
