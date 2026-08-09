@@ -3188,9 +3188,16 @@ mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
      the same answer reached another way, or detaches `s` onto a fresh buffer
      and releases the old one, where `ptr` is neither inside the new buffer
      nor safe to read. Recording the offset ahead of the call covers both
-     without having to know which path ran. */
-  if (ptr >= RSTR_PTR(s) && ptr <= RSTR_PTR(s) + (size_t)RSTR_LEN(s)) {
-      off = ptr - RSTR_PTR(s);
+     without having to know which path ran.
+
+     `ptr` is allowed to come from anywhere, so it and `RSTR_PTR(s)` need not
+     point into the same object, and relational comparison and subtraction
+     between pointers that do not is undefined. Going through `uintptr_t`
+     leaves both on integers, where the whole range is ordered. */
+  uintptr_t ptr_addr = (uintptr_t)ptr;
+  uintptr_t str_addr = (uintptr_t)RSTR_PTR(s);
+  if (ptr_addr >= str_addr && ptr_addr <= str_addr + (uintptr_t)RSTR_LEN(s)) {
+      off = (ptrdiff_t)(ptr_addr - str_addr);
   }
   mrb_int capa = str_modify_cat(mrb, s, (mrb_int)len);
 
