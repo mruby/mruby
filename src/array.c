@@ -1554,7 +1554,7 @@ mrb_ary_last(mrb_state *mrb, mrb_value self)
     return mrb_nil_value();
   }
 
-  mrb_int size = mrb_integer(mrb_get_arg1(mrb));
+  mrb_int size = mrb_as_int(mrb, mrb_get_arg1(mrb));
   if (size < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "negative array size");
   }

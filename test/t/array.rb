@@ -265,7 +265,12 @@ assert('Array#last', '15.2.12.5.18') do
 
   a = [1,2,3]
   assert_equal(3, a.last)
+  assert_equal([2,3], a.last(2))
   assert_nil([].last)
+  assert_raise(TypeError) { a.last("2") }
+
+  skip unless Object.const_defined?(:Float)
+  assert_equal([2,3], a.last(2.0))
 end
 
 assert('Array#length', '15.2.12.5.19') do
