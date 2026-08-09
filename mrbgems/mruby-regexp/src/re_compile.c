@@ -455,15 +455,14 @@ compile_charclass(re_compiler *c)
     if (peek(c) == '-' && c->p + 1 < c->src_end && c->p[1] != ']') {
       next_char(c);  /* skip '-' */
       uint32_t hi = read_class_atom(c);
-      if (cp < 128 && hi < 128) {
-        class_set_range(cc, (uint8_t)cp, (uint8_t)hi);
-      }
-      else {
-        /* Range that touches non-ASCII: store as codepoint range.
-           Mixed ASCII/non-ASCII ranges are rare; stash the whole span
-           in the codepoint list (the bitmap covers ASCII only, so a
-           non-ASCII upper bound forces the codepoint path). */
-        if (cp <= hi) class_add_range(c, cc, cp, hi);
+      /* A range that straddles the ASCII boundary is split in two: the
+         bitmap takes the half below 128 and the codepoint list the rest.
+         Neither half can hold the other, and class_match() picks the side
+         to read from the codepoint alone, so a span left whole in the
+         codepoint list is unreachable below 128. */
+      if (cp <= hi) {
+        if (cp < 128) class_set_range(cc, (uint8_t)cp, (uint8_t)(hi < 128 ? hi : 127));
+        if (hi >= 128) class_add_range(c, cc, cp < 128 ? 128 : cp, hi);
       }
     }
     else {
