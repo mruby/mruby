@@ -1176,6 +1176,25 @@ has_comment_group(const char *src, mrb_int len)
   return FALSE;
 }
 
+/* Inside a character class, is `src` the start of a POSIX bracket [:name:]?
+   Returns the position just past its closing "]", or NULL if it is not one.
+   compile_charclass() consumes such a bracket as a unit, so its ']' does not
+   end the class; a malformed one falls through and the '[' is an ordinary
+   member. Any scan that has to agree with the parser needs this test. */
+static const char*
+skip_posix_bracket(const char *src, const char *end)
+{
+  if (!(*src == '[' && src + 1 < end && src[1] == ':')) return NULL;
+  const char *q = src + 2;
+  while (q < end && *q != ':' && *q != ']') q++;
+  /* Compare the distance rather than q + 1: the loop above stops with
+     q == end for a bracket the pattern truncates, as in /[[:alpha/, and
+     forming q + 1 from a one-past-the-end pointer is undefined even where
+     the && never reads through it. */
+  if (end - q >= 2 && q[0] == ':' && q[1] == ']') return q + 2;
+  return NULL;
+}
+
 /*
  * Rewrite the pattern before the parser sees it.
  * Removes (?#...) comment groups always, and in extended mode (/x) also
@@ -1201,22 +1220,11 @@ preprocess_pattern(mrb_state *mrb, const char *src, mrb_int len,
       continue;
     }
     if (in_class) {
-      /* compile_charclass() consumes a POSIX bracket as a unit, so the ']'
-         of [:name:] does not end the class. Copy it whole and keep the
-         class open; a malformed bracket falls through and the '[' is
-         copied as an ordinary member, which is what the parser does too. */
-      if (ch == '[' && src + 1 < end && src[1] == ':') {
-        const char *q = src + 2;
-        while (q < end && *q != ':' && *q != ']') q++;
-        /* Compare the distance rather than q + 1: the loop above stops with
-           q == end for a bracket the pattern truncates, as in /[[:alpha/,
-           and forming q + 1 from a one-past-the-end pointer is undefined
-           even where the && never reads through it. */
-        if (end - q >= 2 && q[0] == ':' && q[1] == ']') {
-          q += 2;
-          while (src < q) buf[o++] = *src++;
-          continue;
-        }
+      /* Copy a POSIX bracket whole and keep the class open. */
+      const char *q = skip_posix_bracket(src, end);
+      if (q) {
+        while (src < q) buf[o++] = *src++;
+        continue;
       }
       if (ch == ']') in_class = FALSE;
       buf[o++] = *src++;
