@@ -134,8 +134,12 @@ regexp_init(mrb_state *mrb, mrb_value self)
 /* Pre-interned symbols for $1-$9 (cached on first use) */
 static mrb_sym nth_syms[9];
 
+/* Pre-interned symbols for $&, $`, $' and $+ (cached on first use) */
+enum { LAST_MATCH, PRE_MATCH, POST_MATCH, LAST_PAREN, LAST_SYM_COUNT };
+static mrb_sym last_match_syms[LAST_SYM_COUNT];
+
 static void
-ensure_nth_syms(mrb_state *mrb)
+ensure_match_syms(mrb_state *mrb)
 {
   if (nth_syms[0]) return;
   nth_syms[0] = mrb_intern_lit(mrb, "$1");
@@ -147,15 +151,22 @@ ensure_nth_syms(mrb_state *mrb)
   nth_syms[6] = mrb_intern_lit(mrb, "$7");
   nth_syms[7] = mrb_intern_lit(mrb, "$8");
   nth_syms[8] = mrb_intern_lit(mrb, "$9");
+  last_match_syms[LAST_MATCH] = mrb_intern_lit(mrb, "$&");
+  last_match_syms[PRE_MATCH] = mrb_intern_lit(mrb, "$`");
+  last_match_syms[POST_MATCH] = mrb_intern_lit(mrb, "$'");
+  last_match_syms[LAST_PAREN] = mrb_intern_lit(mrb, "$+");
 }
 
 static void
 clear_match_globals(mrb_state *mrb)
 {
-  ensure_nth_syms(mrb);
+  ensure_match_syms(mrb);
   mrb_gv_set(mrb, mrb_intern_lit(mrb, "$~"), mrb_nil_value());
   for (int i = 0; i < 9; i++) {
     mrb_gv_set(mrb, nth_syms[i], mrb_nil_value());
+  }
+  for (int i = 0; i < LAST_SYM_COUNT; i++) {
+    mrb_gv_set(mrb, last_match_syms[i], mrb_nil_value());
   }
 }
 
@@ -265,7 +276,7 @@ regexp_binary_string_p(mrb_state *mrb, mrb_value self)
 static mrb_value
 create_matchdata(mrb_state *mrb, mrb_value regexp, mrb_value str, int *captures, int ncap)
 {
-  ensure_nth_syms(mrb);
+  ensure_match_syms(mrb);
 
   struct RClass *md_class = mrb_class_get(mrb, "MatchData");
   mrb_match_data *md = (mrb_match_data*)mrb_malloc(mrb, sizeof(mrb_match_data));
@@ -292,6 +303,25 @@ create_matchdata(mrb_state *mrb, mrb_value regexp, mrb_value str, int *captures,
     }
     mrb_gv_set(mrb, nth_syms[i], val);
   }
+
+  /* set $&, $` and $' from the whole-match offsets */
+  mrb_gv_set(mrb, last_match_syms[LAST_MATCH],
+             re_byte_substr(mrb, str, captures[0], captures[1] - captures[0]));
+  mrb_gv_set(mrb, last_match_syms[PRE_MATCH],
+             re_byte_substr(mrb, str, 0, captures[0]));
+  mrb_gv_set(mrb, last_match_syms[POST_MATCH],
+             re_byte_substr(mrb, str, captures[1], RSTRING_LEN(str) - captures[1]));
+
+  /* set $+ from the last group that actually participated, which is not
+     necessarily the last group in the pattern */
+  mrb_value last_paren = mrb_nil_value();
+  for (int g = md->num_captures - 1; g >= 1; g--) {
+    if (captures[g*2] >= 0) {
+      last_paren = re_byte_substr(mrb, str, captures[g*2], captures[g*2+1] - captures[g*2]);
+      break;
+    }
+  }
+  mrb_gv_set(mrb, last_match_syms[LAST_PAREN], last_paren);
 
   return obj;
 }

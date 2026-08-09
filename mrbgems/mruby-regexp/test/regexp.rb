@@ -1360,6 +1360,33 @@ assert("$1-$9 cleared on no match") do
   assert_nil $1
 end
 
+assert("$&, $`, $' and $+ global variables") do
+  /b(c)/ =~ "abcd"
+  assert_equal "bc", $&
+  assert_equal "a", $`
+  assert_equal "d", $'
+  assert_equal "c", $+
+
+  # $+ is the last group that participated, not the last group in the pattern
+  /(a)|(b)/ =~ "a"
+  assert_equal "a", $+
+
+  # a pattern without groups has no $+
+  /cd/ =~ "abcd"
+  assert_equal "cd", $&
+  assert_nil $+
+end
+
+assert("$&, $`, $' and $+ cleared on no match") do
+  /b(c)/ =~ "abcd"
+  assert_equal "bc", $&
+  /xyz/ =~ "abc"
+  assert_nil $&
+  assert_nil $`
+  assert_nil $'
+  assert_nil $+
+end
+
 assert("Regexp - consecutive optional quantifiers (#6853)") do
   # insert_inst was over-incrementing jump offsets that pointed *at* the
   # insertion site, sending earlier "skip this atom" SPLITs into the next
