@@ -598,6 +598,14 @@ assert("Regexp extended mode (x flag)") do
 
   # to_s shows x flag
   assert_equal "(?x:abc)", Regexp.new("abc", Regexp::EXTENDED).to_s
+
+  # errors quote the pattern as written, not the stripped text
+  assert_raise_with_message(RegexpError, "unterminated character class: /a # c\n[/") do
+    Regexp.new("a # c\n[", Regexp::EXTENDED)
+  end
+  assert_raise_with_message(RegexpError, "unmatched '(': /a b(/") do
+    Regexp.new("a b(", Regexp::EXTENDED)
+  end
 end
 
 assert("String#match") do
