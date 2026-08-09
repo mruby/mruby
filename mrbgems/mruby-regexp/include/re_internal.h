@@ -168,7 +168,7 @@ static inline mrb_bool
 mrb_re_utf8_interior_p(const char *str, const char *s, const char *end)
 {
   if (((uint8_t)*s & 0xC0) != 0x80) return FALSE;
-  for (int back = 1; back <= 3 && s - back >= str; back++) {
+  for (int back = 1; back <= 3 && back <= s - str; back++) {
     const char *lead = s - back;
     if (((uint8_t)*lead & 0xC0) == 0x80) continue;  /* another continuation byte */
     return mrb_re_utf8_charlen(lead, end) > back;
