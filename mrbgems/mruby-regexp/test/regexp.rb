@@ -483,6 +483,42 @@ assert("Regexp - inline options (?i) / (?i:...)") do
   assert_raise(RegexpError) { Regexp.new("(?x)a b") }
 end
 
+assert("Regexp - comment groups (?#...)") do
+  # The group is removed before the pattern is parsed, so it can stand
+  # anywhere, including where an atom cannot.
+  assert_true(/a(?#note)b/.match?("ab"))
+  assert_true Regexp.new("(?#lead)ab").match?("ab")
+  assert_true Regexp.new("ab(?#trail)").match?("ab")
+  assert_true Regexp.new("a(?#)b").match?("ab")          # empty comment
+  assert_true Regexp.new("a(?#no\nte)b").match?("ab")    # newline is comment text
+  assert_equal ["ab", "ab"], Regexp.new("(a(?#c)b)").match("ab").to_a
+
+  # The group is not an atom: a quantifier after it repeats what came before.
+  assert_equal 0, (Regexp.new("a(?#x)*") =~ "aaa")
+  assert_raise(RegexpError) { Regexp.new("(?#x)*") }
+
+  # A backslash escapes the following byte, so \) does not close the group.
+  assert_true Regexp.new("a(?#x\\)y)b").match?("ab")
+  # ... but an escaped backslash does not reach the ')', which then closes
+  # the group and leaves the second one unmatched.
+  assert_raise(RegexpError) { Regexp.new("a(?#x\\\\)y)b") }
+
+  # Comment groups do not nest: the first ')' closes, the second is unmatched.
+  assert_raise(RegexpError) { Regexp.new("x(?#a(?#b))y") }
+
+  # An unterminated group raises rather than swallowing the rest.
+  assert_raise_with_message(RegexpError, "unterminated comment group: /a(?#note/") do
+    Regexp.new("a(?#note")
+  end
+
+  # Inside a character class the same bytes are ordinary members.
+  assert_true Regexp.new("a[(?#c)]b").match?("a#b")
+  assert_true Regexp.new("a[(?#c)]b").match?("a(b")
+
+  # An escaped '(' does not open a comment group.
+  assert_raise(RegexpError) { Regexp.new("a\\(?#note)b") }
+end
+
 assert("MatchData#captures") do
   re = Regexp.new("(a)(b)(c)")
   md = re.match("abc")
@@ -756,6 +792,18 @@ assert("Regexp extended mode (x flag)") do
   # escaped whitespace is preserved
   re = Regexp.new('a\\ b', Regexp::EXTENDED)
   assert_true re.match?("a b")
+
+  # a comment group is removed ahead of the line-comment pass, so its ')'
+  # survives the '#' inside it
+  re = Regexp.new("a (?#note) b", Regexp::EXTENDED)
+  assert_true re.match?("ab")
+
+  re = Regexp.new("a (?#note) b # tail\nc", Regexp::EXTENDED)
+  assert_true re.match?("abc")
+
+  assert_raise_with_message(RegexpError, "unterminated comment group: /a (?#note/") do
+    Regexp.new("a (?#note", Regexp::EXTENDED)
+  end
 
   # inspect shows x flag
   assert_equal "/abc/x", Regexp.new("abc", Regexp::EXTENDED).inspect
