@@ -593,6 +593,45 @@ regexp_escape(mrb_state *mrb, mrb_value self)
 
 /* --- MatchData methods --- */
 
+/* Resolve a String or Symbol to the group it names. Shared by MatchData#[],
+   #begin and #end: the three disagree about what an out-of-range integer
+   means, but a name is looked up the same way for all of them. Does not
+   return when the name reaches no group. */
+static mrb_int
+matchdata_name_to_group(mrb_state *mrb, mrb_match_data *md, mrb_value arg)
+{
+  const char *name;
+  mrb_int name_len;
+  if (mrb_symbol_p(arg)) {
+    name = mrb_sym_name_len(mrb, mrb_symbol(arg), &name_len);
+  }
+  else {
+    name = RSTRING_PTR(arg);
+    name_len = RSTRING_LEN(arg);
+  }
+  /* look up name in regexp's named captures */
+  mrb_regexp_pattern *pat = NULL;
+  if (!mrb_nil_p(md->regexp)) {
+    pat = DATA_GET_PTR(mrb, md->regexp, &regexp_type, mrb_regexp_pattern);
+  }
+  /* A stored name never exceeds RE_MAX_NAME_LEN, so a longer request can
+     name no group. Rejecting it here keeps the cast in the loop lossless;
+     without it the length test truncates while the memcmp() next to it does
+     not. */
+  if (pat && RE_NAME_LEN_FITS(name_len)) {
+    for (uint16_t i = 0; i < pat->num_named; i++) {
+      if (pat->named_captures[i].name_len == (uint32_t)name_len &&
+          memcmp(pat->named_captures[i].name, name, name_len) == 0) {
+        return pat->named_captures[i].group;
+      }
+    }
+  }
+  /* A name that resolves to no group is a mistake at the point of the call,
+     not a failed match. CRuby raises here even when the pattern has no
+     named group at all. */
+  mrb_raisef(mrb, E_INDEX_ERROR, "undefined group name reference: %l", name, (size_t)name_len);
+}
+
 /*
  * MatchData#[](n)
  */
@@ -608,37 +647,7 @@ matchdata_aref(mrb_state *mrb, mrb_value self)
   mrb_int idx;
   if (mrb_string_p(arg) || mrb_symbol_p(arg)) {
     /* named capture access */
-    const char *name;
-    mrb_int name_len;
-    if (mrb_symbol_p(arg)) {
-      name = mrb_sym_name_len(mrb, mrb_symbol(arg), &name_len);
-    }
-    else {
-      name = RSTRING_PTR(arg);
-      name_len = RSTRING_LEN(arg);
-    }
-    /* look up name in regexp's named captures */
-    mrb_regexp_pattern *pat = NULL;
-    if (!mrb_nil_p(md->regexp)) {
-      pat = DATA_GET_PTR(mrb, md->regexp, &regexp_type, mrb_regexp_pattern);
-    }
-    /* A stored name never exceeds RE_MAX_NAME_LEN, so a longer request can
-       name no group. Rejecting it here keeps the cast in the loop lossless;
-       without it the length test truncates while the memcmp() next to it does
-       not. */
-    if (pat && RE_NAME_LEN_FITS(name_len)) {
-      for (uint16_t i = 0; i < pat->num_named; i++) {
-        if (pat->named_captures[i].name_len == (uint32_t)name_len &&
-            memcmp(pat->named_captures[i].name, name, name_len) == 0) {
-          idx = pat->named_captures[i].group;
-          goto found;
-        }
-      }
-    }
-    /* A name that resolves to no group is a mistake at the point of the call,
-       not a failed match. CRuby raises here even when the pattern has no
-       named group at all. */
-    mrb_raisef(mrb, E_INDEX_ERROR, "undefined group name reference: %l", name, (size_t)name_len);
+    idx = matchdata_name_to_group(mrb, md, arg);
   }
   else {
     idx = mrb_as_int(mrb, arg);
@@ -652,7 +661,6 @@ matchdata_aref(mrb_state *mrb, mrb_value self)
     }
   }
 
-found:
   if (idx >= md->num_captures) return mrb_nil_value();
   int start = md->captures[idx * 2];
   int end = md->captures[idx * 2 + 1];
@@ -697,14 +705,35 @@ matchdata_to_a(mrb_state *mrb, mrb_value self)
 /*
  * MatchData#begin(n) / MatchData#end(n)
  */
+
+/* begin and end return an offset, and nil is not one, so an argument they
+   cannot use is an error rather than a missing result. That is stricter than
+   MatchData#[], which has nil to return for a group that did not participate
+   and reuses it for an index out of range. A group that exists but did not
+   participate is still nil here; only the argument itself raises. Does not
+   return when the argument reaches no group. */
+static mrb_int
+matchdata_group_arg(mrb_state *mrb, mrb_match_data *md, mrb_value arg)
+{
+  if (mrb_string_p(arg) || mrb_symbol_p(arg)) {
+    return matchdata_name_to_group(mrb, md, arg);
+  }
+  mrb_int idx = mrb_as_int(mrb, arg);
+  if (idx < 0 || idx >= md->num_captures) {
+    mrb_raisef(mrb, E_INDEX_ERROR, "index %i out of matches", idx);
+  }
+  return idx;
+}
+
 static mrb_value
 matchdata_begin(mrb_state *mrb, mrb_value self)
 {
-  mrb_int idx;
-  mrb_get_args(mrb, "i", &idx);
+  mrb_value arg;
+  mrb_get_args(mrb, "o", &arg);
 
   mrb_match_data *md = DATA_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
-  if (!md || idx < 0 || idx >= md->num_captures) return mrb_nil_value();
+  if (!md) return mrb_nil_value();
+  mrb_int idx = matchdata_group_arg(mrb, md, arg);
   int pos = md->captures[idx * 2];
   if (pos < 0) return mrb_nil_value();
   return mrb_int_value(mrb, re_byte_to_char(mrb, md->source, pos));
@@ -713,11 +742,12 @@ matchdata_begin(mrb_state *mrb, mrb_value self)
 static mrb_value
 matchdata_end(mrb_state *mrb, mrb_value self)
 {
-  mrb_int idx;
-  mrb_get_args(mrb, "i", &idx);
+  mrb_value arg;
+  mrb_get_args(mrb, "o", &arg);
 
   mrb_match_data *md = DATA_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
-  if (!md || idx < 0 || idx >= md->num_captures) return mrb_nil_value();
+  if (!md) return mrb_nil_value();
+  mrb_int idx = matchdata_group_arg(mrb, md, arg);
   int pos = md->captures[idx * 2 + 1];
   if (pos < 0) return mrb_nil_value();
   return mrb_int_value(mrb, re_byte_to_char(mrb, md->source, pos));
