@@ -2197,7 +2197,9 @@ vm_op_div(mrb_state *mrb, uint32_t a, mrb_sym *midp)
     {
       mrb_int x = mrb_integer(regs[a]);
       mrb_int y = mrb_integer(regs[a+1]);
+      int ai = mrb_gc_arena_save(mrb);
       regs[a] = mrb_div_int_value(mrb, x, y);
+      mrb_gc_arena_restore(mrb, ai);
     }
     return VM_NEXT;
 #ifndef MRB_NO_FLOAT
@@ -2284,6 +2286,23 @@ vm_call_proc(mrb_state *mrb, const struct RProc *p, mrb_int nargs,
   }
   return VM_NEXT;
 }
+
+/* Stores an mrb_int into a register from inside mrb_vm_exec().
+   SET_INT_VALUE() heap-allocates an RInteger for a value outside the fixnum
+   range, and an inline opcode has no cfunc epilogue behind it to shrink the
+   arena, so a boxing site in the interpreter loop has to restore for itself.
+   The restore is skipped when the store produced an immediate, which is the
+   fixnum fast path and allocates nothing.  Where the macro cannot allocate at
+   all this expands to the bare store.  `ai` is the arena index mrb_vm_exec()
+   saved on entry. */
+#if defined(MRB_WORD_BOXING) || (defined(MRB_NAN_BOXING) && defined(MRB_INT64))
+#define VM_SET_INT_VALUE(r,n) do {                                          \
+  SET_INT_VALUE(mrb, r, n);                                                 \
+  if (!mrb_immediate_p(r)) mrb_gc_arena_restore(mrb, ai);                   \
+} while (0)
+#else
+#define VM_SET_INT_VALUE(r,n) SET_INT_VALUE(mrb,r,n)
+#endif
 
 /**
  * @brief Executes a sequence of mruby bytecode instructions.
@@ -2381,16 +2400,16 @@ RETRY_TRY_BLOCK:
     CASE(OP_LOADL, BB) {
       switch (irep->pool[b].tt) {   /* number */
       case IREP_TT_INT32:
-        regs[a] = mrb_int_value(mrb, (mrb_int)irep->pool[b].u.i32);
+        VM_SET_INT_VALUE(regs[a], (mrb_int)irep->pool[b].u.i32);
         break;
       case IREP_TT_INT64:
 #if defined(MRB_INT64)
-        regs[a] = mrb_int_value(mrb, (mrb_int)irep->pool[b].u.i64);
+        VM_SET_INT_VALUE(regs[a], (mrb_int)irep->pool[b].u.i64);
         break;
 #else
 #if defined(MRB_64BIT)
         if (INT32_MIN <= irep->pool[b].u.i64 && irep->pool[b].u.i64 <= INT32_MAX) {
-          regs[a] = mrb_int_value(mrb, (mrb_int)irep->pool[b].u.i64);
+          VM_SET_INT_VALUE(regs[a], (mrb_int)irep->pool[b].u.i64);
           break;
         }
 #endif
@@ -2401,6 +2420,7 @@ RETRY_TRY_BLOCK:
         {
           const char *s = irep->pool[b].u.str;
           regs[a] = mrb_bint_new_str(mrb, s+2, (uint8_t)s[0], (int8_t)s[1]);
+          mrb_gc_arena_restore(mrb, ai);
         }
         break;
 #else
@@ -2449,7 +2469,7 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_LOADI32, BSS) {
-      SET_INT_VALUE(mrb, regs[a], (int32_t)(((uint32_t)b<<16)+c));
+      VM_SET_INT_VALUE(regs[a], (int32_t)(((uint32_t)b<<16)+c));
       NEXT;
     }
 
@@ -3262,7 +3282,7 @@ RETRY_TRY_BLOCK:
       OP_MATH_OVERFLOW_INT(op_name,x,y);                                    \
     }                                                                       \
     else                                                                    \
-      SET_INT_VALUE(mrb,regs[a], z);                                        \
+      VM_SET_INT_VALUE(regs[a], z);                                         \
   }                                                                         \
   else switch (tt) {                                                        \
     OP_MATH_CASE_FLOAT(op_name, integer, float);                            \
@@ -3283,7 +3303,7 @@ RETRY_TRY_BLOCK:
         OP_MATH_OVERFLOW_INT(op_name,x,y);                                  \
       }                                                                     \
       else                                                                  \
-        SET_INT_VALUE(mrb,regs[a], z);                                      \
+        VM_SET_INT_VALUE(regs[a], z);                                       \
     }                                                                       \
     break
 #ifdef MRB_NO_FLOAT
@@ -3345,7 +3365,7 @@ RETRY_TRY_BLOCK:
       OP_MATH_OVERFLOW_INT(op_name,x,y);                                    \
     }                                                                       \
     else                                                                    \
-      SET_INT_VALUE(mrb,regs[a], z);                                        \
+      VM_SET_INT_VALUE(regs[a], z);                                         \
   }                                                                         \
   else switch (mrb_type(regs[a])) {                                         \
     OP_MATHI_CASE_FLOAT(op_name);                                           \
@@ -3364,7 +3384,7 @@ RETRY_TRY_BLOCK:
         OP_MATH_OVERFLOW_INT(op_name,x,y);                                  \
       }                                                                     \
       else                                                                  \
-        SET_INT_VALUE(mrb,regs[a], z);                                      \
+        VM_SET_INT_VALUE(regs[a], z);                                       \
     }                                                                       \
     break
 #ifdef MRB_NO_FLOAT
@@ -3408,7 +3428,7 @@ RETRY_TRY_BLOCK:
           OP_MATH_OVERFLOW_INT(op_name,x,y);                                \
         }                                                                   \
         else {                                                              \
-          SET_INT_VALUE(mrb,regs[a], z);                                    \
+          VM_SET_INT_VALUE(regs[a], z);                                     \
         }                                                                   \
       }                                                                     \
       break;                                                                \
