@@ -105,6 +105,77 @@ assert('String#concat') do
   end
 end
 
+assert('String#concat on a shared buffer') do
+  # An append to a string that shares its buffer writes into the spare
+  # capacity above what every other sharer can see, and each sharer has to
+  # keep the bytes it owns. Every string below is grown by appending before
+  # it is shared, since a string that was never appended to has no spare
+  # capacity and every append to it copies the buffer instead.
+
+  # The parent appends in place; an interior slice must not see it.
+  a = "a" * 100
+  a << "z" * 100
+  mid = a[0, 100]
+  a << "q"
+  assert_equal "a" * 100 + "z" * 100 + "q", a
+  assert_equal "a" * 100, mid
+  mid << "r"
+  assert_equal "a" * 100 + "r", mid
+  assert_equal "a" * 100 + "z" * 100 + "q", a
+
+  # Two strings that end at the same offset: the first append claims the
+  # bytes, and the other one has to take a copy of the buffer.
+  b = "b" * 100
+  b << "y" * 100
+  c = b.dup
+  b << "1"
+  c << "2"
+  assert_equal "b" * 100 + "y" * 100 + "1", b
+  assert_equal "b" * 100 + "y" * 100 + "2", c
+
+  # The same in the other order.
+  d = "d" * 100
+  d << "w" * 100
+  e = d.dup
+  e << "1"
+  d << "2"
+  assert_equal "d" * 100 + "w" * 100 + "1", e
+  assert_equal "d" * 100 + "w" * 100 + "2", d
+
+  # A tail slice ends where its parent does, so the same rule applies.
+  f = "f" * 100
+  f << "v" * 100
+  g = f[170, 30]
+  g << "1"
+  f << "2"
+  assert_equal "v" * 30 + "1", g
+  assert_equal "f" * 100 + "v" * 100 + "2", f
+
+  # Appending and slicing in a loop, the shape the copy made quadratic.
+  h = ""
+  50.times { h << "0123456789012345678901234567890123456789"; h[0, 30] }
+  assert_equal 2000, h.length
+  assert_equal "0123456789012345678901234567890123456789", h[-40, 40]
+
+  # Appending a slice of a buffer to the string it was taken from.
+  i = "i" * 100
+  i << "j" * 100
+  k = i[0, 40]
+  i << k
+  assert_equal "i" * 100 + "j" * 100 + "i" * 40, i
+  assert_equal "i" * 40, k
+
+  # A frozen sharer still raises, and does not stop the others.
+  l = "l" * 100
+  l << "m" * 100
+  n = l.dup
+  n.freeze
+  assert_raise(FrozenError) { n << "x" }
+  l << "y"
+  assert_equal "l" * 100 + "m" * 100 + "y", l
+  assert_equal "l" * 100 + "m" * 100, n
+end
+
 assert('String#casecmp') do
   assert_equal 1, "abcdef".casecmp("abcde")
   assert_equal 0, "aBcDeF".casecmp("abcdef")
