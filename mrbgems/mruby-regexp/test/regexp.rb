@@ -514,6 +514,30 @@ end
 
 assert("Regexp.escape") do
   assert_equal "a\\.b\\*c", Regexp.escape("a.b*c")
+
+  # characters that are only special under the x flag or inside [...]
+  assert_equal "a\\ b", Regexp.escape("a b")
+  assert_equal "a\\#b", Regexp.escape("a#b")
+  assert_equal "a\\-b", Regexp.escape("a-b")
+
+  # control characters become printable two-character escapes
+  assert_equal "a\\nb", Regexp.escape("a\nb")
+  assert_equal "a\\tb", Regexp.escape("a\tb")
+  assert_equal "a\\rb", Regexp.escape("a\rb")
+  assert_equal "a\\fb", Regexp.escape("a\fb")
+  assert_equal "a\\vb", Regexp.escape("a\vb")
+
+  # non-ASCII bytes pass through untouched
+  assert_equal "あ\\-い", Regexp.escape("あ-い")
+
+  # the escaped pattern matches the original literally in every mode
+  [" ", "#", "-", "\n", "\t", "\r", "\f", "\v"].each do |c|
+    src = Regexp.escape(c)
+    assert_true Regexp.new(src).match?(c)
+    assert_true Regexp.new(src, Regexp::EXTENDED).match?(c)
+  end
+  assert_true Regexp.new(Regexp.escape("a b"), Regexp::EXTENDED).match?("a b")
+  assert_true Regexp.new(Regexp.escape("a # b"), Regexp::EXTENDED).match?("a # b")
 end
 
 assert("Regexp#inspect") do
