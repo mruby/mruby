@@ -3,6 +3,34 @@ assert 'Bigint basic' do
   assert_equal 36893488147419103232, n
 end
 
+assert 'Bigint ==' do
+  n = 1<<64
+
+  # A Bigint receiver used to be read as a plain `mrb_int`, so `==` compared
+  # the low bits of the magnitude instead of the number itself.
+  assert_false n == 0
+  assert_false n + 5 == 5
+  assert_false n - 1 == -1
+  assert_false(-(n + 5) == 5)
+  assert_false (1<<160) + 5 == 5
+  assert_false (1<<192) + 5 == 5
+  assert_false n.zero?
+  assert_false [n].include?(0)
+
+  assert_true n == 1<<64
+  assert_false n == 1<<65
+  assert_false n == -n
+  assert_false 5 == n + 5
+
+  assert_false n == 'x'
+  assert_false n == nil
+
+  if Object.const_defined?(:Float)
+    assert_true (1<<70) == (2.0**70)
+    assert_false (1<<70) == (2.0**71)
+  end
+end
+
 assert 'Bigint +' do
   n = 1<<65
   assert_equal 36893488147419103232, n + 0
