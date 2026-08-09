@@ -126,6 +126,34 @@ assert('String#[] with Range') do
   assert_equal 'xyz', k2
 end
 
+assert('String#[] redefined on String itself is bypassed by the index opcodes') do
+  # `OP_GETIDX` answers `s[1]` from C, and `OP_GETIDX0` answers `s[0]` the same
+  # way, whenever the receiver's class is exactly `String`. Both therefore
+  # bypass a redefinition installed on `String` itself, the same way the Array
+  # and Hash branches of those opcodes do. A subclass receiver fails the class
+  # guard and keeps reaching the redefinition.
+  String.class_eval do
+    alias_method :__aref_before_test, :[]
+    def [](*args)
+      :overridden
+    end
+  end
+  begin
+    s = 'hello'
+    sub = Class.new(String).new('hello')
+    assert_equal 'h', s[0]
+    assert_equal 'e', s[1]
+    assert_equal :overridden, sub[0]
+  ensure
+    String.class_eval do
+      alias_method :[], :__aref_before_test
+      # `remove_method` comes from mruby-metaprog, which the core test build
+      # does not have; the saved alias is harmless where it is missing.
+      remove_method :__aref_before_test if respond_to?(:remove_method, true)
+    end
+  end
+end
+
 assert('String#[]=') do
   # length of args is 1
   a = 'abc'

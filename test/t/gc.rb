@@ -148,6 +148,18 @@ assert('OP_GETIDX does not retain a Hash default in the GC arena') do
   assert_operator GC.stat[:live] - base, :<, 5000
 end
 
+assert('OP_GETIDX0 does not retain a String result in the GC arena') do
+  s = "hello"
+  GC.start
+  base = GC.stat[:live]
+  i = 0
+  while i < 20000
+    s[0]
+    i += 1
+  end
+  assert_operator GC.stat[:live] - base, :<, 5000
+end
+
 assert('OP_GETIDX0 does not retain a Hash default in the GC arena') do
   h = Hash.new { Object.new }
   GC.start
