@@ -29,7 +29,7 @@ enum re_opcode {
   RE_EOTNL,     /* assert end of text or before final \n (\Z) */
   RE_WBOUND,     /* assert word boundary (\b) */
   RE_NWBOUND,    /* assert non-word boundary (\B) */
-  RE_BACKREF,    /* backreference: operand = group number */
+  RE_BACKREF,    /* backreference: a = group number, offset = 1 if case-insensitive */
   RE_LOOKAHEAD,  /* positive lookahead: offset = end of sub-pattern */
   RE_NEG_LOOKAHEAD, /* negative lookahead: offset = end of sub-pattern */
   RE_LOOKBEHIND,     /* positive lookbehind: a = byte length, offset = end */

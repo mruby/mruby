@@ -764,7 +764,7 @@ compile_atom(re_compiler *c)
     ch = peek(c);
     if (ch >= '1' && ch <= '9') {
       next_char(c);
-      emit(c, RE_BACKREF, (uint8_t)(ch - '0'), 0);
+      emit(c, RE_BACKREF, (uint8_t)(ch - '0'), (c->flags & RE_FLAG_IGNORECASE) ? 1 : 0);
       c->has_backref = TRUE;
     }
     else if (ch == 'd' || ch == 'D' || ch == 'w' || ch == 'W' || ch == 's' || ch == 'S') {
@@ -845,7 +845,7 @@ compile_atom(re_compiler *c)
       if (group < 1 || group >= (int)c->num_captures) {
         compile_error(c, "undefined group name reference");
       }
-      emit(c, RE_BACKREF, (uint8_t)group, 0);
+      emit(c, RE_BACKREF, (uint8_t)group, (c->flags & RE_FLAG_IGNORECASE) ? 1 : 0);
       c->has_backref = TRUE;
     }
     else {

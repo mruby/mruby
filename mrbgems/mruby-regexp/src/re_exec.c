@@ -53,6 +53,21 @@ class_match(const re_charclass *cc, uint32_t cp)
   return cc->utf8_any;
 }
 
+/* Compare two byte spans ignoring ASCII case. Folding stops at ASCII, like
+   every other ignorecase decision in this engine (see compile_atom()'s /i
+   handling, which only folds A-Z and a-z into a class bitmap). */
+static mrb_bool
+memcmp_ci(const char *a, const char *b, int len)
+{
+  for (int i = 0; i < len; i++) {
+    uint8_t ca = (uint8_t)a[i], cb = (uint8_t)b[i];
+    if (ca >= 'A' && ca <= 'Z') ca += 32;
+    if (cb >= 'A' && cb <= 'Z') cb += 32;
+    if (ca != cb) return FALSE;
+  }
+  return TRUE;
+}
+
 /*
  * Pike VM with optimized thread storage.
  *
@@ -587,7 +602,10 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
         if (gs < 0 || ge < 0) return FALSE;
         int blen = ge - gs;
         if (sp + blen > str_end) return FALSE;
-        if (memcmp(sp, str + gs, blen) != 0) return FALSE;
+        if (inst.offset) {
+          if (!memcmp_ci(sp, str + gs, blen)) return FALSE;
+        }
+        else if (memcmp(sp, str + gs, blen) != 0) return FALSE;
         sp += blen;
         pc++;
       }

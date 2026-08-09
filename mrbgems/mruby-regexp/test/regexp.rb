@@ -413,6 +413,12 @@ assert("Regexp - inline options (?i) / (?i:...)") do
   assert_equal 0, (/(a(?i)b)c/ =~ "aBc")
   assert_nil (/(a(?i)b)c/ =~ "aBC")       # trailing `c` is case-sensitive again
 
+  # A backreference takes the options in effect where it appears, not the
+  # pattern's own, so an inline toggle reaches it like any other atom.
+  assert_equal 0, (/(a)(?i)\1/ =~ "aA")
+  assert_equal 0, (/(a)(?i:\1)/ =~ "aA")
+  assert_nil (/(?-i:(a)\1)/i =~ "aA")
+
   # m enables dot-matches-newline for its scope.
   assert_equal 0, (/(?m:a.b)/ =~ "a\nb")
   assert_nil (/a.b/ =~ "a\nb")
@@ -1240,6 +1246,14 @@ assert("Regexp - backreference no match") do
   assert_nil /(\w+) \1/.match("hello world")
 end
 
+assert("Regexp - backreference under /i") do
+  # The comparison against the captured text has to fold case too, otherwise
+  # `\1` stays case-sensitive while the rest of the pattern does not.
+  assert_equal "aA", /(a)\1/i.match("aA")[0]
+  assert_equal "Hello hELLO", /(\w+) \1/i.match("Hello hELLO world")[0]
+  assert_nil /(a)\1/i.match("ab")
+end
+
 assert("Regexp - named captures") do
   md = /(?<year>\d+)-(?<month>\d+)-(?<day>\d+)/.match("2026-03-21")
   assert_equal "2026", md[:year]
@@ -1350,6 +1364,9 @@ assert("Regexp - named backreference \\k") do
   # numeric and relative forms
   assert_equal "aa", "aa".match(/(a)\k<1>/)[0]
   assert_equal "abba", "abba".match(/(.)(.)\k<-1>\k<-2>/)[0]
+  # /i folds the comparison against the captured text
+  assert_equal "aA", "aA".match(/(?<n>a)\k<n>/i)[0]
+  assert_nil "ab".match(/(?<n>a)\k<n>/i)
   # an unknown name is an error
   assert_raise(RegexpError) { Regexp.new("\\k<missing>") }
 end
