@@ -672,6 +672,29 @@ mrb_sym_name_len(mrb_state *mrb, mrb_sym sym, mrb_int *lenp)
 }
 
 /*
+ * Tells whether symbol GC may free the buffer holding the symbol's name.
+ *
+ * Only dynamic symbols own an individual allocation. Inline symbols carry
+ * their name in the value, presym names are static data and literal names
+ * come from the symbol pool, so none of those is ever freed and a string
+ * may share them.
+ */
+static mrb_bool
+sym_name_freeable_p(mrb_state *mrb, mrb_sym sym)
+{
+#if MRB_SYMBOL_MAX > 0
+  if (SYMBOL_INLINE_P(sym)) return FALSE;
+  if (sym <= MRB_PRESYM_MAX) return FALSE;
+  sym -= MRB_PRESYM_MAX;
+  if (sym > mrb->symidx) return FALSE;
+  return (mrb->sym_flags[sym] & SYM_FL_DYNAMIC) != 0;
+#else
+  (void)mrb; (void)sym;
+  return FALSE;
+#endif
+}
+
+/*
  * Symbol GC: mark and sweep unreferenced dynamic symbols.
  * Called lazily when dynamic symbol count reaches MRB_SYMBOL_MAX.
  */
@@ -978,7 +1001,7 @@ sym_name(mrb_state *mrb, mrb_value vsym)
   const char *name = mrb_sym_name_len(mrb, sym, &len);
 
   mrb_assert(name != NULL);
-  if (SYMBOL_INLINE_P(sym)) {
+  if (SYMBOL_INLINE_P(sym) || sym_name_freeable_p(mrb, sym)) {
     return mrb_str_new_frozen(mrb, name, len);
   }
   return mrb_str_new_static_frozen(mrb, name, len);
@@ -1154,7 +1177,8 @@ sym_inspect(mrb_state *mrb, mrb_value sym)
  * sym: The symbol to convert.
  *
  * Returns the mruby string value corresponding to the symbol.
- * If the symbol is an inline symbol, a new string is created.
+ * The name is copied for an inline symbol and for a dynamic symbol, whose
+ * name buffer symbol GC may free while the string is still alive.
  * Otherwise, a static string (sharing the symbol's name buffer) is returned.
  * Returns an undefined value if the symbol is invalid (though this should not happen).
  */
@@ -1169,6 +1193,9 @@ mrb_sym_str(mrb_state *mrb, mrb_sym sym)
     mrb_value str = mrb_str_new(mrb, name, len);
     RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
     return str;
+  }
+  if (sym_name_freeable_p(mrb, sym)) {
+    return mrb_str_new(mrb, name, len);
   }
   return mrb_str_new_static(mrb, name, len);
 }
