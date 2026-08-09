@@ -1155,6 +1155,22 @@ assert("String#split limit cannot pose as an Integer") do
   assert_raise(TypeError) { "a,b,c".split(/,/, StringSplitLimitComparable.new) }
 end
 
+assert("String#split with a Bigint limit") do
+  # A Bigint is an Integer, so a check on the class let one through unconverted
+  # and the split loop ran with a limit that does not fit `mrb_int`, while the
+  # String pattern raised in `__split`. The exponent is a variable because a
+  # constant power out of `mrb_int` range fails the build rather than raising.
+  exp = 70
+  begin
+    limit = 2 ** exp
+  rescue RangeError
+    skip "requires mruby-bigint"
+  end
+  assert_raise(RangeError) { "a,b,c".split(/,/, limit) }
+  assert_raise(RangeError) { "a,b,c".split(",", limit) }
+  assert_raise(RangeError) { "a,b,c".split(/,/, -limit) }
+end
+
 assert("String#split with empty regexp") do
   assert_equal ["a", "b", "c"], "abc".split(//)
   assert_equal ["a", "bc"], "abc".split(//, 2)

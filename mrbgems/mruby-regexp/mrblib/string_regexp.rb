@@ -138,12 +138,10 @@ class String
     # `ary[obj]` and `"s" * obj` all reject an object that only defines
     # `to_int`; dispatching it here would leave this the one place in the tree
     # that accepts one, as the same reasoning keeps `match` off `to_str`.
-    # `is_a?` is redefinable, so a limit claiming to be an Integer would skip
-    # that conversion and reach the arithmetic below as itself. `Module#===`
-    # reads the real type and cannot be redefined.
-    if limit_given && !(Integer === limit)
-      limit = Integer.__ensure(limit)
-    end
+    # Every limit goes through it, an Integer included: a Bigint is an Integer
+    # and does not fit `mrb_int`, and `__ensure` is what narrows it and raises
+    # the `RangeError` `__split` raises on the string path.
+    limit = Integer.__ensure(limit) if limit_given
     # `nil?` and `is_a?` are redefinable, so an argument answering either one
     # could steer itself around the check below and reach `__split` instead.
     # `Module#===` reads the real type and cannot be redefined.
