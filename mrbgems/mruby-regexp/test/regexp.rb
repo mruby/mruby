@@ -194,6 +194,12 @@ assert("Regexp - POSIX bracket classes") do
   assert_equal "x", " x".match(/[^[:space:]]/)[0]
   # an unknown class name is an error
   assert_raise(RegexpError) { Regexp.new("[[:bogus:]]") }
+  # The name length used to be truncated with a (uint16_t) cast, so a name
+  # 65536 bytes longer than "alpha" compared equal to "alpha" and compiled
+  # as [[:alpha:]] instead of raising.
+  long = "alpha" + "A" * 65536
+  assert_raise(RegexpError) { Regexp.new("[[:#{long}:]]") }
+  assert_raise(RegexpError) { Regexp.new("[[:^#{long}:]]") }
 end
 
 assert("Regexp - \\b inside character class is backspace") do

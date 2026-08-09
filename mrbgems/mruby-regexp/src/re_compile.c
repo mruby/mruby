@@ -271,7 +271,7 @@ class_add_shorthand(re_charclass *cc, int ch)
    Returns FALSE for an unknown name. Semantics are ASCII, like this gem's
    \w/\d shorthands; non-ASCII codepoints are not classified. */
 static mrb_bool
-posix_class_bits(uint8_t *bits, const char *name, uint16_t len)
+posix_class_bits(uint8_t *bits, const char *name, size_t len)
 {
 #define NAME_IS(s) (len == sizeof(s) - 1 && memcmp(name, s, len) == 0)
 #define BSET(ch)   (bits[(ch) >> 3] |= (uint8_t)(1u << ((ch) & 7)))
@@ -409,7 +409,7 @@ compile_charclass(re_compiler *c)
       while (peek(c) >= 0 && peek(c) != ':' && peek(c) != ']') next_char(c);
       if (peek(c) == ':' && c->p + 1 < c->src_end && c->p[1] == ']') {
         uint8_t bits[16] = {0};
-        if (!posix_class_bits(bits, name, (uint16_t)(c->p - name))) {
+        if (!posix_class_bits(bits, name, (size_t)(c->p - name))) {
           compile_error(c, "invalid POSIX bracket class");
         }
         next_char(c);  /* ':' */
