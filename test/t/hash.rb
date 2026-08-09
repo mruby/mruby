@@ -996,3 +996,18 @@ assert('test value omission') do
   y = 2
   assert_equal({x:1, y:2}, {x:, y:})
 end
+
+assert('Hash#[] with a default proc that grows the VM stack') do
+  # The default proc re-enters the VM, and enough frames of it reallocate the
+  # stack. `OP_GETIDX0` and `OP_GETIDX` answer from C, so each has to store its
+  # result through the refreshed registers rather than the ones it came in
+  # with. The corruption is silent without a sanitizer, so this only fails
+  # reliably under `build_config/clang-asan.rb`.
+  def self.deep(n)
+    return 0 if n == 0
+    deep(n - 1)
+  end
+  h = Hash.new { |_, _| deep(50); :from_proc }
+  assert_equal :from_proc, h[0]
+  assert_equal :from_proc, h[1]
+end

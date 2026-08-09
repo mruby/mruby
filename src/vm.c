@@ -2124,7 +2124,14 @@ vm_op_getidx0(mrb_state *mrb, uint32_t a, uint16_t b, mrb_sym *midp)
   }
   else if (tt == MRB_TT_HASH) {
     if (mrb_obj_ptr(recv)->c != mrb->hash_class) goto getidx0_fallback;
-    regs[a] = mrb_hash_get(mrb, recv, mrb_fixnum_value(0));
+    {
+      /* same as the Hash branch of vm_op_getidx(): mrb_hash_get() can run a
+         default proc and move the stack, so take the result first and store
+         it through the refreshed `regs` */
+      mrb_value val = mrb_hash_get(mrb, recv, mrb_fixnum_value(0));
+      ci = mrb->c->ci;
+      regs[a] = val;
+    }
     return VM_NEXT;
   }
 getidx0_fallback:
