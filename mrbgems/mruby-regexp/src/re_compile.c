@@ -14,7 +14,7 @@
 /* Compiler state */
 typedef struct {
   mrb_state *mrb;
-  const char *src;     /* pattern source (preprocessed in extended mode) */
+  const char *src;     /* pattern source, preprocessed (see preprocess_pattern) */
   const char *src_end;
   const char *orig;    /* pattern as written, for error messages */
   const char *orig_end;
@@ -31,7 +31,7 @@ typedef struct {
   uint16_t num_named;
   mrb_bool has_backref;
   mrb_bool needs_backtrack;
-  char *stripped;           /* allocated buffer for x-mode preprocessing */
+  char *stripped;           /* allocated buffer for pattern preprocessing */
 } re_compiler;
 
 static void compile_alt(re_compiler *c);  /* forward */
@@ -39,11 +39,12 @@ static void compile_alt(re_compiler *c);  /* forward */
 static void
 compile_error(re_compiler *c, const char *msg)
 {
-  /* Quote c->orig, the pattern as written: in extended mode c->src points at
-     the buffer strip_extended() returned, so quoting it would drop the
-     free-spacing and the comments from the message. c->orig is the caller's
-     buffer, which outlives the compile. It is not NUL-terminated, so use %l
-     with the explicit length from c->orig_end. */
+  /* Quote c->orig, the pattern as written: when the pattern is preprocessed
+     c->src points at the buffer preprocess_pattern() returned, so quoting it
+     would drop the free-spacing, the comments and the (?#...) groups from the
+     message. c->orig is the caller's buffer, which outlives the compile. It
+     is not NUL-terminated, so use %l with the explicit length from
+     c->orig_end. */
   mrb_value emsg = mrb_format(c->mrb, "%s: /%l/",
                               msg, c->orig, (size_t)(c->orig_end - c->orig));
 
@@ -719,12 +720,19 @@ compile_atom(re_compiler *c)
             compile_error(c, "undefined (?...) sequence");
           }
         }
+        else if (c->p[1] == '#') {
+          /* preprocess_pattern() removes a terminated comment group before
+             the parser runs, so one reaching here was never closed. */
+          compile_error(c, "unterminated comment group");
+        }
         else {
           /* (?X) with an unsupported X: not one of the recognized (?: (?= (?!
-             (?<= (?<! (?<name> (?imx forms. The absent operator (?~...) and
-             conditionals (?(...)) are not implemented. Raise here rather than
-             falling through to the capturing-group path, which would leave
-             the stray `?` for compile_seq to spin on forever (A1). */
+             (?<= (?<! (?<name> (?imx forms. Comment groups (?#...) never get
+             here either, having been removed by preprocess_pattern(). The
+             absent operator (?~...) and conditionals (?(...)) are not
+             implemented. Raise here rather than falling through to the
+             capturing-group path, which would leave the stray `?` for
+             compile_seq to spin on forever (A1). */
           compile_error(c, "undefined (?...) sequence");
         }
       }
@@ -1140,12 +1148,31 @@ compile_alt(re_compiler *c)
 }
 
 /*
- * Strip whitespace and #comments for extended mode (/x flag).
- * Whitespace inside [...] character classes is preserved.
+ * Does the pattern hold a (?# comment group opener? Cheap pre-check so an
+ * ordinary pattern without one skips preprocess_pattern() and its malloc.
+ */
+static mrb_bool
+has_comment_group(const char *src, mrb_int len)
+{
+  const char *p = src, *end = src + len;
+  while (p < end && (p = (const char*)memchr(p, '(', (size_t)(end - p))) != NULL) {
+    if (end - p >= 3 && p[1] == '?' && p[2] == '#') return TRUE;
+    p++;
+  }
+  return FALSE;
+}
+
+/*
+ * Rewrite the pattern before the parser sees it.
+ * Removes (?#...) comment groups always, and in extended mode (/x) also
+ * whitespace and #comments.
+ * Whitespace inside [...] character classes is preserved, and so is a (?#
+ * written there, which is a literal member rather than a comment group.
  * Escaped characters (\ followed by anything) are preserved.
  */
 static char*
-strip_extended(mrb_state *mrb, const char *src, mrb_int len, mrb_int *out_len)
+preprocess_pattern(mrb_state *mrb, const char *src, mrb_int len,
+                   mrb_bool extended, mrb_int *out_len)
 {
   char *buf = (char*)mrb_malloc(mrb, len);
   mrb_int o = 0;
@@ -1186,14 +1213,39 @@ strip_extended(mrb_state *mrb, const char *src, mrb_int len, mrb_int *out_len)
       if (src < end && *src == ']') buf[o++] = *src++;
       continue;
     }
-    if (ch == '#') {
-      /* skip to end of line */
-      while (src < end && *src != '\n') src++;
+    if (ch == '(' && end - src >= 3 && src[1] == '?' && src[2] == '#') {
+      /* Comment group: ends at the first ')' not preceded by a backslash.
+         It does not nest, so (?#a(?#b)) closes at the first ')' and leaves
+         the second one to be reported as unmatched, as CRuby does.
+         Dropping the group here rather than in compile_atom() is what lets
+         it stand where an atom cannot: CRuby compiles "a(?#x)*" as "a*", and
+         an atom that emits no instruction cannot be a quantifier's target.
+         An unterminated group is copied through instead, so that
+         compile_atom() raises on it. */
+      const char *q = src + 3;
+      while (q < end && *q != ')') {
+        if (*q == '\\' && q + 1 < end) q++;
+        q++;
+      }
+      if (q < end) {
+        src = q + 1;
+        continue;
+      }
+      buf[o++] = *src++;
+      buf[o++] = *src++;
+      buf[o++] = *src++;
       continue;
     }
-    if (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' || ch == '\f' || ch == '\v') {
-      src++;
-      continue;
+    if (extended) {
+      if (ch == '#') {
+        /* skip to end of line */
+        while (src < end && *src != '\n') src++;
+        continue;
+      }
+      if (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' || ch == '\f' || ch == '\v') {
+        src++;
+        continue;
+      }
     }
     buf[o++] = *src++;
   }
@@ -1294,9 +1346,10 @@ mrb_re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags)
   c.orig = pattern;
   c.orig_end = pattern + len;
 
-  if (flags & RE_FLAG_EXTENDED) {
+  if ((flags & RE_FLAG_EXTENDED) || has_comment_group(pattern, len)) {
     mrb_int slen;
-    c.stripped = strip_extended(mrb, pattern, len, &slen);
+    c.stripped = preprocess_pattern(mrb, pattern, len,
+                                    (flags & RE_FLAG_EXTENDED) != 0, &slen);
     pattern = c.stripped;
     len = slen;
   }
@@ -1333,7 +1386,8 @@ mrb_re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags)
 
   /* Copy capture names into an owned arena. Until this point the names
      point into the pattern source (or into c.stripped, which gets freed
-     below in /x mode). After this loop the regexp owns its names. */
+     below when the pattern was preprocessed). After this loop the regexp
+     owns its names. */
   if (c.num_named > 0) {
     size_t total = 0;
     for (uint16_t i = 0; i < c.num_named; i++) total += c.named_captures[i].name_len;

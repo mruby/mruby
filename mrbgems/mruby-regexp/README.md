@@ -16,6 +16,7 @@ simulation) with backtracking fallback.
 - `\D`, `\W`, `\S` negated shortcuts
 - `(...)` capture group
 - `(?:...)` non-capturing group
+- `(?#...)` comment group
 - `(?<name>...)` named capture group
 - `|` alternation
 - `\1`-`\9` backreferences
