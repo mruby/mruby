@@ -54,6 +54,7 @@ re === "string"                   # => true/false (for case/when)
 re.match(:symbol)                 # a Symbol is matched against its name
 re.source                         # => "pattern"
 re.options                        # => flags integer
+re.named_captures                 # => {"name" => [group_number], ...}
 Regexp.escape("a.b")              # => "a\\.b"
 Regexp.last_match(n)              # => nth capture from last match
 

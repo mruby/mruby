@@ -1197,6 +1197,17 @@ assert("Regexp - named captures") do
   assert_equal "2026", md["year"]
 end
 
+assert("Regexp#named_captures") do
+  assert_equal({"year" => [1], "month" => [2], "day" => [3]},
+               /(?<year>\d+)-(?<month>\d+)-(?<day>\d+)/.named_captures)
+  assert_equal({}, /\d+/.named_captures)
+
+  # the returned Hash is a copy; mutating it must not affect a later call
+  re = /(?<a>x)/
+  re.named_captures["a"] = 99
+  assert_equal({"a" => [1]}, re.named_captures)
+end
+
 assert("Regexp - empty group name") do
   # (?<>x) used to compile and answer to "", and in /x mode the stored name
   # pointed into the preprocessing buffer the compiler frees on the way out.

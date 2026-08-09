@@ -3,9 +3,15 @@ class Regexp
     new(pattern, *args)
   end
 
-  # Return named captures hash: {"name" => group_number, ...}
+  # Return named captures hash: {"name" => [group_number, ...], ...}
+  # @named_captures holds the internal name -> group_number table, so a fresh
+  # Hash is derived on every call and the caller cannot corrupt the table.
   def named_captures
-    @named_captures || {}
+    table = @named_captures
+    return {} unless table
+    result = {}
+    table.each { |name, group| result[name] = [group] }
+    result
   end
 
   # options is implemented in C (internal flags -> Ruby constants conversion)
