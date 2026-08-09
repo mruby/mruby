@@ -2143,6 +2143,21 @@ vm_op_getidx0(mrb_state *mrb, uint32_t a, uint16_t b, mrb_sym *midp)
     }
     return VM_NEXT;
   }
+  else if (tt == MRB_TT_STRING) {
+    /* optimize only for String class; subclasses/singleton may override [] */
+    if (mrb_obj_ptr(recv)->c != mrb->string_class) goto getidx0_fallback;
+    {
+      /* mrb_str_aref() allocates, and an inline opcode never runs the cfunc
+         epilogue that would shrink the arena, so save and restore it here.
+         Unlike the Hash branch above, `ci` needs no refresh: this call cannot
+         run Ruby code and so cannot move the stack. */
+      int ai = mrb_gc_arena_save(mrb);
+      mrb_value val = mrb_str_aref(mrb, recv, mrb_fixnum_value(0), mrb_undef_value());
+      regs[a] = val;
+      mrb_gc_arena_restore(mrb, ai);
+    }
+    return VM_NEXT;
+  }
 getidx0_fallback:
   regs[a] = recv;
   SET_FIXNUM_VALUE(regs[a+1], 0);
