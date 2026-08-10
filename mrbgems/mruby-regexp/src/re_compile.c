@@ -31,6 +31,7 @@ typedef struct {
   uint16_t num_named;
   mrb_bool has_backref;
   mrb_bool needs_backtrack;
+  mrb_bool dont_capture;    /* pattern declares a named group: plain (...) does not capture */
   char *stripped;           /* allocated buffer for pattern preprocessing */
 } re_compiler;
 
@@ -736,6 +737,12 @@ compile_atom(re_compiler *c)
         }
       }
 
+      /* Onigmo's ONIG_OPTION_DONT_CAPTURE_GROUP, which CRuby turns on for a
+         pattern that declares a named group: a plain (...) then groups
+         without capturing, so the numbered side counts only the named
+         groups. The named group itself keeps its number. */
+      if (c->dont_capture && cap_name == NULL) capturing = FALSE;
+
       uint16_t group = 0;
       if (capturing) {
         if (c->num_captures >= RE_MAX_CAPTURES) {
@@ -790,6 +797,9 @@ compile_atom(re_compiler *c)
     next_char(c);
     ch = peek(c);
     if (ch >= '1' && ch <= '9') {
+      if (c->dont_capture) {
+        compile_error(c, "numbered backref/call is not allowed. (use name)");
+      }
       next_char(c);
       emit(c, RE_BACKREF, (uint8_t)(ch - '0'), (c->flags & RE_FLAG_IGNORECASE) ? 1 : 0);
       c->has_backref = TRUE;
@@ -851,6 +861,14 @@ compile_atom(re_compiler *c)
 
       int group = -1;
       if (name_len > 0 && (name[0] == '-' || (name[0] >= '0' && name[0] <= '9'))) {
+        /* CRuby rejects a numbered backreference in a named pattern whatever
+           its spelling, and it has to be rejected here too: once plain groups
+           stop consuming numbers, both the absolute bound and the relative
+           form's `num_captures - n` below would silently resolve to a
+           different group instead of erroring. */
+        if (c->dont_capture) {
+          compile_error(c, "numbered backref/call is not allowed. (use name)");
+        }
         mrb_bool relative = (name[0] == '-');
         int n = 0;
         for (uint32_t i = (relative ? 1 : 0); i < name_len; i++) {
@@ -1176,6 +1194,25 @@ has_comment_group(const char *src, mrb_int len)
   return FALSE;
 }
 
+/* Inside a character class, is `src` the start of a POSIX bracket [:name:]?
+   Returns the position just past its closing "]", or NULL if it is not one.
+   compile_charclass() consumes such a bracket as a unit, so its ']' does not
+   end the class; a malformed one falls through and the '[' is an ordinary
+   member. Both scans below have to agree with the parser on this. */
+static const char*
+skip_posix_bracket(const char *src, const char *end)
+{
+  if (!(*src == '[' && src + 1 < end && src[1] == ':')) return NULL;
+  const char *q = src + 2;
+  while (q < end && *q != ':' && *q != ']') q++;
+  /* Compare the distance rather than q + 1: the loop above stops with
+     q == end for a bracket the pattern truncates, as in /[[:alpha/, and
+     forming q + 1 from a one-past-the-end pointer is undefined even where
+     the && never reads through it. */
+  if (end - q >= 2 && q[0] == ':' && q[1] == ']') return q + 2;
+  return NULL;
+}
+
 /*
  * Rewrite the pattern before the parser sees it.
  * Removes (?#...) comment groups always, and in extended mode (/x) also
@@ -1201,18 +1238,11 @@ preprocess_pattern(mrb_state *mrb, const char *src, mrb_int len,
       continue;
     }
     if (in_class) {
-      /* compile_charclass() consumes a POSIX bracket as a unit, so the ']'
-         of [:name:] does not end the class. Copy it whole and keep the
-         class open; a malformed bracket falls through and the '[' is
-         copied as an ordinary member, which is what the parser does too. */
-      if (ch == '[' && src + 1 < end && src[1] == ':') {
-        const char *q = src + 2;
-        while (q < end && *q != ':' && *q != ']') q++;
-        if (q + 1 < end && *q == ':' && q[1] == ']') {
-          q += 2;
-          while (src < q) buf[o++] = *src++;
-          continue;
-        }
+      /* Copy a POSIX bracket whole and keep the class open. */
+      const char *q = skip_posix_bracket(src, end);
+      if (q) {
+        while (src < q) buf[o++] = *src++;
+        continue;
       }
       if (ch == ']') in_class = FALSE;
       buf[o++] = *src++;
@@ -1265,6 +1295,63 @@ preprocess_pattern(mrb_state *mrb, const char *src, mrb_int len,
   }
   *out_len = o;
   return buf;
+}
+
+/*
+ * Does the pattern declare a named group anywhere? Answering this before the
+ * parser starts is what lets compile_atom() demote a plain (...) that comes
+ * before the named group that causes the demotion.
+ *
+ * (?<name>...) is the only spelling of a definition this gem accepts; the
+ * (?'name'...) form raises "undefined (?...) sequence", so the scan looks for
+ * "(?<" alone. It excludes (?<= and (?<!, which are lookbehind rather than a
+ * definition, and it skips escape pairs and character classes so that /\(?/
+ * and /[(?<]/ are not false positives, with a POSIX bracket and a leading
+ * literal ']' not ending a class, as in preprocess_pattern() above.
+ *
+ * A truncated "(?<" at the end of the pattern is counted as a named group,
+ * which is harmless: the parser reaches the same bytes and raises there.
+ */
+static mrb_bool
+has_named_group(const char *src, mrb_int len)
+{
+  const char *end = src + len;
+  mrb_bool in_class = FALSE;
+
+  while (src < end) {
+    char ch = *src;
+    if (ch == '\\' && src + 1 < end) {
+      src += 2;
+      continue;
+    }
+    if (in_class) {
+      const char *q = skip_posix_bracket(src, end);
+      if (q) {
+        src = q;
+        continue;
+      }
+      if (ch == ']') in_class = FALSE;
+      src++;
+      continue;
+    }
+    if (ch == '[') {
+      in_class = TRUE;
+      src++;
+      if (src < end && *src == '^') src++;
+      if (src < end && *src == ']') src++;
+      continue;
+    }
+    if (ch == '(' && end - src >= 3 && src[1] == '?' && src[2] == '<') {
+      /* src + 3 is at most end here, since the test above leaves three bytes
+         to read, so the one-past-the-end pointer it can form is a position C
+         allows. */
+      if (src + 3 >= end || (src[3] != '=' && src[3] != '!')) return TRUE;
+      src += 3;
+      continue;
+    }
+    src++;
+  }
+  return FALSE;
 }
 
 /*
@@ -1373,6 +1460,10 @@ mrb_re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags)
   c.p = pattern;
   c.flags = flags;
   c.num_captures = 1;  /* group 0 = whole match */
+  /* Scan the same bytes the parser is about to read: preprocess_pattern() has
+     already taken out the /x free-spacing, the #comments and the (?#...)
+     groups. */
+  c.dont_capture = has_named_group(pattern, len);
 
   /* group 0 start */
   emit(&c, RE_SAVE, 0, 0);

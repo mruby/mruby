@@ -823,6 +823,15 @@ assert("Regexp extended mode (x flag)") do
 
   assert_equal " 1 ", Regexp.new('[[:digit:] ]+', Regexp::EXTENDED).match(" 1 ")[0]
 
+  # a bracket the pattern truncates leaves the scan with nothing after the
+  # name, and the class is still the parser's error to report
+  assert_raise_with_message(RegexpError, "unterminated character class: /[[:alpha/") do
+    Regexp.new("[[:alpha", Regexp::EXTENDED)
+  end
+  assert_raise_with_message(RegexpError, "unterminated character class: /[[:alpha:/") do
+    Regexp.new("[[:alpha:", Regexp::EXTENDED)
+  end
+
   # a ']' written first in a class is a literal member, so the class is
   # still open after it
   re = Regexp.new('[] ]', Regexp::EXTENDED)
@@ -1282,6 +1291,59 @@ assert("Regexp - non-capturing group") do
   assert_nil md[2]
 end
 
+assert("Regexp - a named group makes plain groups non-capturing") do
+  # Onigmo's ONIG_OPTION_DONT_CAPTURE_GROUP, which CRuby turns on once the
+  # pattern declares a named group: (...) then groups without capturing.
+  md = /(?<a>a)(b)/.match("ab")
+  assert_equal 2, md.size
+  assert_equal ["ab", "a"], md.to_a
+  assert_equal ["a"], md.captures
+  assert_nil md[2]
+  assert_raise_with_message(IndexError, "index 2 out of matches") { md.begin(2) }
+  assert_equal "a", md[:a]
+
+  # a plain group written before the named group is demoted just the same,
+  # which is what the pre-scan buys: the parser reaches it before it has seen
+  # the declaration that decides the question
+  md = /(a)(?<b>b)/.match("ab")
+  assert_equal 2, md.size
+  assert_equal ["ab", "b"], md.to_a
+  assert_equal ["b"], md.captures
+  assert_equal "b", md[1]
+  assert_equal "b", md[:b]
+
+  # the shrunken count is what $2, $+ and a \2 in a replacement read
+  "ab" =~ /(?<a>a)(b)/
+  assert_nil $2
+  assert_equal "a", $+
+  assert_equal "[]", "ab".sub(/(?<a>a)(b)/, '[\2]')
+
+  # (?<= and (?<! open a lookbehind, not a named group, so they demote nothing
+  assert_equal ["b", "b"], /(?<=a)(b)/.match("ab").to_a
+  assert_equal ["b", "b"], /(?<!x)(b)/.match("ab").to_a
+  # nor does a "(?<" that is escaped or sits inside a character class
+  assert_equal ["(<a>b", "b"], /\(?<a>(b)/.match("(<a>b").to_a
+  assert_equal ["(?<b", "b"], /[(?<a>]+(b)/.match("(?<b").to_a
+  assert_equal ["a(?<b", "b"], /[[:alpha:](?<]+(b)/.match("a(?<b").to_a
+  # nor one inside a (?#...) comment group, which is gone before the scan runs
+  assert_equal ["b", "b"], /(?# (?<a>x )(b)/.match("b").to_a
+
+  # in /x mode the scan reads the pattern after free-spacing and comments go
+  assert_equal ["xy", "x"], /(?<a>x) # (b)
+                             (y)/x.match("xy").to_a
+  assert_equal ["y", "y"], /# (?<a>x)
+                            (y)/x.match("y").to_a
+
+  # a truncated "(?<" is still the parser's error, not a silent named group
+  assert_raise(RegexpError) { Regexp.new("(?<") }
+
+  # the scan runs on every pattern, so a truncated POSIX bracket reaches
+  # skip_posix_bracket() without /x too, and is still the parser's error
+  assert_raise_with_message(RegexpError, "unterminated character class: /[[:alpha/") do
+    Regexp.new("[[:alpha")
+  end
+end
+
 assert("String#sub with block") do
   assert_equal "HELLO world", "hello world".sub(/\w+/) { |m| m.upcase }
 end
@@ -1608,6 +1670,20 @@ assert("Regexp - named backreference \\k") do
   assert_nil "ab".match(/(?<n>a)\k<n>/i)
   # an unknown name is an error
   assert_raise(RegexpError) { Regexp.new("\\k<missing>") }
+
+  # once the pattern has a named group a numbered backreference is rejected,
+  # whatever its spelling, because there is no longer a number to reach
+  msg = "numbered backref/call is not allowed. (use name)"
+  assert_raise_with_message(RegexpError, "#{msg}: /(a)(?<b>b)\\1/") do
+    Regexp.new("(a)(?<b>b)\\1")
+  end
+  assert_raise_with_message(RegexpError, "#{msg}: /(a)(?<b>b)\\k<1>/") do
+    Regexp.new("(a)(?<b>b)\\k<1>")
+  end
+  assert_raise_with_message(RegexpError, "#{msg}: /(a)(?<b>b)\\k<-1>/") do
+    Regexp.new("(a)(?<b>b)\\k<-1>")
+  end
+  assert_raise(RegexpError) { Regexp.new("(?<b>b)\\k'1'") }
 end
 
 assert("Regexp - numeric \\k backreference out of int range") do
