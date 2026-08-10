@@ -132,6 +132,11 @@ pattern analysis.
   only.
 - **Step limit on backtracking**: Patterns that require the
   backtracking engine are subject to a step limit.
+- **No inline extended mode**: `(?x)` and `(?x:...)` raise a
+  `RegexpError`, because extended mode is applied to the whole pattern
+  before it is parsed. A `-x` is accepted and ignored, so inside a
+  pattern that is itself extended it does not bring back the
+  whitespace that pass removed.
 
 ## Named Captures
 

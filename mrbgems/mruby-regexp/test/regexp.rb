@@ -479,8 +479,21 @@ assert("Regexp - inline options (?i) / (?i:...)") do
   assert_equal 0, (/(?m:a.b)/ =~ "a\nb")
   assert_nil (/a.b/ =~ "a\nb")
 
-  # x (extended) cannot be scoped inline with the current architecture.
+  # x (extended) cannot be scoped inline with the current architecture, so
+  # turning it on is rejected.
   assert_raise(RegexpError) { Regexp.new("(?x)a b") }
+  assert_raise(RegexpError) { Regexp.new("(?x:a b)") }
+
+  # Turning it off is accepted, because Regexp#to_s writes a '-x' for every
+  # pattern that is not extended and that form has to recompile.
+  assert_equal 0, (/(?-x:a b)/ =~ "a b")
+  assert_equal 0, (/(?i-mx:a)b/ =~ "Ab")
+  assert_true Regexp.new("(?-mix:a b)").match?("a b")
+
+  # The '-x' is dropped rather than honoured, so in a pattern that is
+  # itself extended the whitespace stays stripped. CRuby matches "a b"
+  # here.
+  assert_true Regexp.new("(?-x:a b)", Regexp::EXTENDED).match?("ab")
 end
 
 assert("Regexp - comment groups (?#...)") do
@@ -780,13 +793,32 @@ end
 assert("Regexp#inspect") do
   re = Regexp.new("abc", Regexp::IGNORECASE)
   assert_equal "/abc/i", re.inspect
+  # several flags are written in the m, i, x order, whatever order they
+  # were given in
+  assert_equal "/abc/mi", Regexp.new("abc", Regexp::IGNORECASE | Regexp::MULTILINE).inspect
+  assert_equal "/abc/mix", Regexp.new("abc", Regexp::IGNORECASE | Regexp::MULTILINE | Regexp::EXTENDED).inspect
 end
 
 assert("Regexp#to_s") do
-  assert_equal "(?:abc)", Regexp.new("abc").to_s
-  assert_equal "(?i:abc)", Regexp.new("abc", Regexp::IGNORECASE).to_s
-  assert_equal "(?m:abc)", Regexp.new("abc", Regexp::MULTILINE).to_s
-  assert_equal "(?im:abc)", Regexp.new("abc", Regexp::IGNORECASE | Regexp::MULTILINE).to_s
+  assert_equal "(?-mix:abc)", Regexp.new("abc").to_s
+  assert_equal "(?i-mx:abc)", Regexp.new("abc", Regexp::IGNORECASE).to_s
+  assert_equal "(?m-ix:abc)", Regexp.new("abc", Regexp::MULTILINE).to_s
+  assert_equal "(?mi-x:abc)", Regexp.new("abc", Regexp::IGNORECASE | Regexp::MULTILINE).to_s
+  # the '-' run is dropped only when no flag is off
+  assert_equal "(?mix:abc)", Regexp.new("abc", Regexp::IGNORECASE | Regexp::MULTILINE | Regexp::EXTENDED).to_s
+
+  # the form recompiles, and the flags it names do not leak either way
+  assert_true Regexp.new(Regexp.new("abc", Regexp::IGNORECASE).to_s).match?("ABC")
+  assert_false Regexp.new(Regexp.new("abc").to_s + "d", Regexp::IGNORECASE).match?("ABCd")
+end
+
+assert("Regexp#to_s - interpolation") do
+  inner = Regexp.new("abc", Regexp::IGNORECASE)
+  # the inner Regexp keeps its own flags where the outer has none
+  assert_true(/#{inner}d/.match?("ABCd"))
+  assert_false(/#{inner}d/.match?("ABCD"))
+  # and does not pick up the outer ones
+  assert_false(/#{Regexp.new("abc")}d/i.match?("ABCd"))
 end
 
 assert("Regexp#== and Regexp#eql?") do
@@ -900,7 +932,7 @@ assert("Regexp extended mode (x flag)") do
   assert_equal "/abc/x", Regexp.new("abc", Regexp::EXTENDED).inspect
 
   # to_s shows x flag
-  assert_equal "(?x:abc)", Regexp.new("abc", Regexp::EXTENDED).to_s
+  assert_equal "(?x-mi:abc)", Regexp.new("abc", Regexp::EXTENDED).to_s
 
   # errors quote the pattern as written, not the stripped text
   assert_raise_with_message(RegexpError, "unterminated character class: /a # c\n[/") do

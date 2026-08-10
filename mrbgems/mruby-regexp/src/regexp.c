@@ -510,19 +510,52 @@ regexp_casefold_p(mrb_state *mrb, mrb_value self)
   return mrb_bool_value((get_iflags(mrb, self) & RE_FLAG_IGNORECASE) != 0);
 }
 
+/* The flag letters of the displayed forms, in the order Ruby writes them.
+   Regexp#to_s and Regexp#inspect both walk this table, so the two cannot
+   drift apart. RE_FLAG_DOTALL is the other half of Ruby's `m` and is
+   always set together with RE_FLAG_MULTILINE, so testing one of the pair
+   is enough. */
+static const struct {
+  uint32_t bit;
+  char letter;
+} re_flag_letters[] = {
+  { RE_FLAG_MULTILINE,  'm' },
+  { RE_FLAG_IGNORECASE, 'i' },
+  { RE_FLAG_EXTENDED,   'x' },
+};
+
+#define RE_FLAG_LETTER_COUNT (sizeof(re_flag_letters) / sizeof(re_flag_letters[0]))
+
 /*
- * Regexp#to_s - CRuby-compatible (?flags:source) format
+ * Regexp#to_s - (?on-off:source) format
+ *
+ * The flags that are off are named after a '-', and that run is left out
+ * only when none of them are. Spelling them out is what keeps the result
+ * meaningful once it is interpolated into another pattern: written as
+ * "(?i:a)", the embedded source in /#{/a/i}b/m would pick up the
+ * enclosing pattern's flags instead of carrying only its own.
  */
 static mrb_value
 regexp_to_s(mrb_state *mrb, mrb_value self)
 {
   mrb_value src = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@source"));
   uint32_t flags = get_iflags(mrb, self);
+  char off[RE_FLAG_LETTER_COUNT];
+  mrb_int noff = 0;
 
   mrb_value result = mrb_str_new_lit(mrb, "(?");
-  if (flags & RE_FLAG_IGNORECASE) mrb_str_cat_lit(mrb, result, "i");
-  if (flags & RE_FLAG_MULTILINE) mrb_str_cat_lit(mrb, result, "m");
-  if (flags & RE_FLAG_EXTENDED) mrb_str_cat_lit(mrb, result, "x");
+  for (size_t i = 0; i < RE_FLAG_LETTER_COUNT; i++) {
+    if (flags & re_flag_letters[i].bit) {
+      mrb_str_cat(mrb, result, &re_flag_letters[i].letter, 1);
+    }
+    else {
+      off[noff++] = re_flag_letters[i].letter;
+    }
+  }
+  if (noff > 0) {
+    mrb_str_cat_lit(mrb, result, "-");
+    mrb_str_cat(mrb, result, off, noff);
+  }
   mrb_str_cat_lit(mrb, result, ":");
   mrb_str_cat_str(mrb, result, src);
   mrb_str_cat_lit(mrb, result, ")");
@@ -538,9 +571,11 @@ regexp_inspect(mrb_state *mrb, mrb_value self)
   mrb_value result = mrb_str_new_lit(mrb, "/");
   mrb_str_cat_str(mrb, result, src);
   mrb_str_cat_lit(mrb, result, "/");
-  if (flags & RE_FLAG_IGNORECASE) mrb_str_cat_lit(mrb, result, "i");
-  if (flags & RE_FLAG_MULTILINE) mrb_str_cat_lit(mrb, result, "m");
-  if (flags & RE_FLAG_EXTENDED) mrb_str_cat_lit(mrb, result, "x");
+  for (size_t i = 0; i < RE_FLAG_LETTER_COUNT; i++) {
+    if (flags & re_flag_letters[i].bit) {
+      mrb_str_cat(mrb, result, &re_flag_letters[i].letter, 1);
+    }
+  }
   return result;
 }
 
