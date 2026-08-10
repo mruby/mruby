@@ -1887,14 +1887,20 @@ mrb_str_chop_bang(mrb_state *mrb, mrb_value str)
   if (RSTR_LEN(s) > 0) {
     mrb_int len;
 #ifdef MRB_UTF8_STRING
-    const char* t = RSTR_PTR(s), *p = t;
-    const char* e = p + RSTR_LEN(s);
-    while (p<e) {
-      mrb_int clen = mrb_utf8len(p, e);
-      if (p + clen>=e) break;
-      p += clen;
+    if (RSTR_BINARY_P(s)) {
+      /* The last position of a byte-indexed string is its last byte. */
+      len = RSTR_LEN(s) - 1;
     }
-    len = p - t;
+    else {
+      const char* t = RSTR_PTR(s), *p = t;
+      const char* e = p + RSTR_LEN(s);
+      while (p<e) {
+        mrb_int clen = mrb_utf8len(p, e);
+        if (p + clen>=e) break;
+        p += clen;
+      }
+      len = p - t;
+    }
 #else
     len = RSTR_LEN(s) - 1;
 #endif
