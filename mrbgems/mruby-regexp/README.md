@@ -165,6 +165,13 @@ pattern analysis.
   supported.
 - **No `\x{...}` hex escape**: the hex escape is `\xHH`, so it reaches
   `0xff` at most. Write `\u{...}` for a codepoint above that.
+- **No encodings**: a pattern is a byte string read as UTF-8, and there is no
+  encoding to consult about a byte that starts no whole character. Such a byte
+  is that byte, inside a character class as much as outside one: `[\xB5]` and
+  `\xB5` both hold the byte `0xB5`, and neither matches `µ`, which is `C2 B5`.
+  CRuby settles the same question with the pattern's encoding and raises
+  `RegexpError` for either spelling. A range whose ends are a byte and a
+  character (`[\x80-µ]`) names neither and raises `RegexpError`.
 - **ASCII case folding by default**: The `i` flag handles ASCII letters
   only unless the build defines `MRB_REGEXP_UNICODE_CASE`, which adds the
   Unicode foldings that pair one codepoint with one other. Without the

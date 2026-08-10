@@ -840,8 +840,10 @@ assert("Regexp - an attempt in flight opens no match position inside a character
   # A character the class does hold is still found through the same branch.
   assert_equal 4, ("ĵ" + "µ").match(/.?[µ]/)[0].bytesize
   assert_equal 5, ("あ" + "µ").match(/.?[µ]/)[0].bytesize
-  # And so is the byte itself where no lead byte reaches it.
-  assert_equal 2, ("x" + "\xb5").match(/.?[µ]/)[0].bytesize
+  # And so is a byte where no lead byte reaches it, through a class that holds
+  # the byte. [µ] holds the character, whose trailing byte alone is not it.
+  assert_equal 2, ("x" + "\xb5").match(Regexp.new(".?[\xb5]"))[0].bytesize
+  assert_nil ("x" + "\xb5").match(/.?[µ]/)
 end
 
 assert("Regexp - a match does not end inside a character") do
@@ -2426,9 +2428,9 @@ end
 
 assert("Regexp - overlong UTF-8 is not the character it spells") do
   # C0 BC is the two-byte overlong spelling of "<" and E0 84 80 the three-byte
-  # spelling of "Ā". A class compares the decoded codepoint and a literal
-  # compares bytes, so a decoder that hands out a codepoint for these makes the
-  # two disagree about the same subject: assert them together.
+  # spelling of "Ā". A decoder that hands out a codepoint for these would let a
+  # class hold a character the subject does not spell, so assert the class and
+  # the literal together against the same subject.
   assert_nil ("\xC0\xBC" =~ /[<]/)
   assert_nil ("\xC0\xBC" =~ /</)
   assert_equal 0, ("\xC0\xBC" =~ /[^<]/)
@@ -2454,6 +2456,63 @@ assert("Regexp - overlong UTF-8 is not the character it spells") do
   assert_equal 1, "\u{10FFFF}".scan(/./).size  # F4 8F BF BF
   assert_equal 0, ("\u{0800}" =~ Regexp.new("[\u{0800}]"))
   assert_equal 0, ("\u{10FFFF}" =~ Regexp.new("[\u{10FFFF}]"))
+end
+
+assert("Regexp - a pattern byte that starts no character is a byte in a class") do
+  # A class used to read a lone continuation byte as the codepoint of its
+  # number, so "[\xB5]" held U+00B5 while "\xB5" held the byte: one pattern
+  # meant two things depending on which side of the brackets it was written.
+  # CRuby settles it with the pattern's encoding and raises RegexpError for
+  # either spelling; this gem has no encoding to consult, so it reads the byte
+  # as the byte on both sides.
+  mu = "\xC2\xB5"  # U+00B5 MICRO SIGN, two bytes
+  assert_nil (mu =~ Regexp.new("[\xB5]"))
+  assert_nil (mu =~ Regexp.new("\xB5"))
+  assert_equal mu.bytes, mu.gsub(Regexp.new("[\xB5]"), "!").bytes
+  assert_equal mu.bytes, mu.gsub(Regexp.new("\xB5"), "!").bytes
+  assert_equal 0, ("\xB5" =~ Regexp.new("[\xB5]"))       # the byte alone is it
+  assert_equal 1, (mu.b =~ Regexp.new("[\xB5]"))         # so is a byte subject
+  assert_equal 0, (mu =~ Regexp.new("[^\xB5]"))
+  # An escape names a byte too, which is what the literal path emits for it.
+  assert_nil (mu =~ Regexp.new("[\\xB5]"))
+  assert_equal 0, ("\xB5" =~ Regexp.new("[\\xB5]"))
+  # `\u` names a codepoint outright, so it is how the character gets spelled
+  # where the byte of the same number will not do.
+  assert_equal 0, (mu =~ Regexp.new("[\\u{B5}]"))
+  assert_nil ("\xB5" =~ Regexp.new("[\\u{B5}]"))
+  # An invalid leader is a byte on both sides for the same reason, which is
+  # what "overlong UTF-8 is not the character it spells" pins for the class.
+  assert_equal 0, ("\xC0" =~ Regexp.new("[\xC0]"))
+  assert_nil ("À" =~ Regexp.new("[\xC0]"))               # C3 80
+  # A byte range is how a continuation byte gets spelled, and it stays a range
+  # of bytes: it holds no character of its own.
+  data = "\xC2\xB5A\xCE\xBC"
+  assert_equal 2, data.b.scan(Regexp.new("[\x80-\xBF]")).size
+  assert_equal 0, data.scan(Regexp.new("[\x80-\xBF]")).size
+  assert_equal 0, ("\u{00BF}" =~ Regexp.new("[^\x80-\xBF]"))
+  # A range from a byte to a character names neither, however it is spelled.
+  assert_raise(RegexpError) { Regexp.new("[\x80-µ]") }
+  assert_raise(RegexpError) { Regexp.new("[µ-\x80]") }
+  assert_raise(RegexpError) { Regexp.new("[\\u{B5}-\\xBF]") }
+  # ASCII belongs to both, so it pairs with either.
+  assert_equal 0, ("\xFF" =~ Regexp.new("[\x00-\xFF]"))
+  assert_equal 0, ("µ" =~ Regexp.new("[\x00-\u{FF}]"))
+end
+
+assert("Regexp - /i over a class of bytes asks for no case data") do
+  # Folding is for characters, and a byte that starts none has no case: a
+  # class of continuation bytes used to reach the fold tables through the
+  # codepoint its number spells, which refused the pattern on a build without
+  # them and folded it into two Greek letters on a build with them.
+  assert_kind_of Regexp, Regexp.new("[\xB5]", Regexp::IGNORECASE)
+  assert_kind_of Regexp, Regexp.new("[\x80-\xBF]", Regexp::IGNORECASE)
+  assert_kind_of Regexp, Regexp.new("[\xC0\xBC]", Regexp::IGNORECASE)
+  assert_nil ("μ" =~ Regexp.new("[\xB5]", Regexp::IGNORECASE))
+  assert_nil ("Μ" =~ Regexp.new("[\xB5]", Regexp::IGNORECASE))
+  assert_equal 0, ("μ" =~ Regexp.new("[^\xB5]", Regexp::IGNORECASE))
+  assert_equal 2, "\xC2\xB5A\xCE\xBC".b.scan(Regexp.new("[\x80-\xBF]", Regexp::IGNORECASE)).size
+  # The characters in the same class still fold.
+  assert_equal 0, ("K" =~ Regexp.new("[\x80-\xBF k]", Regexp::IGNORECASE))
 end
 
 assert("Regexp - pattern too large for its jump targets is refused") do

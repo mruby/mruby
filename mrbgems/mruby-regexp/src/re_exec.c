@@ -38,15 +38,24 @@ skip_to_prefix(const mrb_regexp_pattern *pat, const char *sp, const char *str_en
 #define FIRST_BYTE_OK(pat, ch) \
   ((ch) >= 128 || ((pat)->first_bytes[(ch) >> 3] & (1 << ((ch) & 7))))
 
-/* Check if a codepoint matches a character class. ASCII (cp < 128) hits
-   the bitmap; non-ASCII falls back to the inclusive (lo, hi) range list,
-   then to the utf8_any catch-all (used by negated shorthand like \D). */
+/* Check if the current input character matches a character class. ASCII
+   (cp < 128) hits the bitmap; non-ASCII falls back to the inclusive (lo, hi)
+   range list, then to the utf8_any catch-all (used by negated shorthand like
+   \D).
+
+   `raw` says the input is a byte rather than a character: a byte-indexed
+   subject, or one whose byte at this position starts no whole character. It
+   picks which half of the range list to read, since a byte member and a
+   codepoint member of the same number are different members and arrive here as
+   the same number. utf8_any is the answer for either, being about the byte
+   being non-ASCII at all. */
 static mrb_bool
-class_match(const re_charclass *cc, uint32_t cp)
+class_match(const re_charclass *cc, uint32_t cp, mrb_bool raw)
 {
   if (cp < 128) {
     return (cc->bitmap[cp >> 3] >> (cp & 7)) & 1;
   }
+  if (raw) cp |= RE_CLASS_BYTE;
   for (uint32_t i = 0; i < cc->num_ranges; i++) {
     if (cp >= cc->ranges[2*i] && cp <= cc->ranges[2*i + 1]) return TRUE;
   }
@@ -473,6 +482,10 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
       int dlen = 0;
       curr_cp = mrb_re_decode_char(sp, str_end, &dlen, s.binary);
     }
+    /* A non-ASCII byte that stands alone is a byte, not the character its
+       number spells: every byte of a byte-indexed subject, and a byte that
+       starts no whole character in a decoded one. */
+    mrb_bool curr_raw = (advance == 1 && ch >= 0x80);
 
     for (int i = 0; i < curr.count; i++) {
       re_thread *th = &curr.threads[i];
@@ -512,14 +525,14 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
         break;
 
       case RE_CLASS:
-        if (class_match(&pat->classes[inst.a], curr_cp)) {
+        if (class_match(&pat->classes[inst.a], curr_cp, curr_raw)) {
           int cp = match_only ? 0 : pool_copy(&s, th->cap_slot);
           add_thread(&s, &next, th->pc + 1, cp, sp + advance, s.gen);
         }
         break;
 
       case RE_NCLASS:
-        if (!class_match(&pat->classes[inst.a], curr_cp)) {
+        if (!class_match(&pat->classes[inst.a], curr_cp, curr_raw)) {
           int cp = match_only ? 0 : pool_copy(&s, th->cap_slot);
           add_thread(&s, &next, th->pc + 1, cp, sp + advance, s.gen);
         }
@@ -602,7 +615,8 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
       {
         int dlen = 0;
         uint32_t cp_ = mrb_re_decode_char(sp, str_end, &dlen, binary);
-        if (!class_match(&pat->classes[inst.a], cp_)) return FALSE;
+        mrb_bool raw = (dlen == 1 && (uint8_t)*sp >= 0x80);
+        if (!class_match(&pat->classes[inst.a], cp_, raw)) return FALSE;
         sp += mrb_re_charlen(sp, str_end, binary);
       }
       pc++;
@@ -613,7 +627,8 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
       {
         int dlen = 0;
         uint32_t cp_ = mrb_re_decode_char(sp, str_end, &dlen, binary);
-        if (class_match(&pat->classes[inst.a], cp_)) return FALSE;
+        mrb_bool raw = (dlen == 1 && (uint8_t)*sp >= 0x80);
+        if (class_match(&pat->classes[inst.a], cp_, raw)) return FALSE;
         sp += mrb_re_charlen(sp, str_end, binary);
       }
       pc++;
