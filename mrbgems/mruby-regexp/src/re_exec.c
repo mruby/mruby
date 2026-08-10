@@ -175,6 +175,14 @@ add_thread(pike_state *s, re_threadlist *list,
       continue;
 
     case RE_SAVE:
+      /* Slot 1 is the end of group 0, so this is where the whole match
+         closes. It may not close inside a character, the same rule the
+         seeding loop applies to where a match opens. Killing the thread
+         rather than the attempt lets a longer branch match instead. */
+      if (inst.offset == 1 && !s->binary && sp < s->str_end &&
+          mrb_re_utf8_interior_p(s->str, sp, s->str_end)) {
+        return;
+      }
       if (!s->match_only) {
         CAP(s, cap_slot)[inst.offset] = (int)(sp - s->str);
       }
@@ -546,6 +554,13 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
     case RE_SAVE:
       {
         int slot = inst.offset;
+        /* End of group 0: the whole match may not close inside a character
+           (see the Pike VM case). Failing here backtracks into the other
+           branches, so a longer one can still match. */
+        if (slot == 1 && !binary && sp < str_end &&
+            mrb_re_utf8_interior_p(str, sp, str_end)) {
+          return FALSE;
+        }
         if (slot < ncap) {
           int old = captures[slot];
           captures[slot] = (int)(sp - str);
@@ -714,6 +729,12 @@ literal_exec(const mrb_regexp_pattern *pat,
       continue;
     }
     if (plen == 1 || memcmp(found + 1, pat->prefix + 1, plen - 1) == 0) {
+      if (!binary && found + plen < str_end &&
+          mrb_re_utf8_interior_p(str, found + plen, str_end)) {
+        sp = found + 1;  /* ends inside a character, same rule as the end of
+                            group 0 in the other engines */
+        continue;
+      }
       /* match found */
       if (captures && captures_size >= 2) {
         captures[0] = (int)(found - str);
