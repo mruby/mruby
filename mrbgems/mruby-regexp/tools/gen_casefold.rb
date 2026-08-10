@@ -13,6 +13,7 @@
 # same data so that the second cannot drift into letting through a codepoint
 # the first would have folded.
 
+require 'rbconfig'
 require 'set'
 
 outdir = ARGV[0] or abort "usage: #{$0} OUTDIR"
