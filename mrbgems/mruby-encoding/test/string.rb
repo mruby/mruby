@@ -15,6 +15,43 @@ assert('String#valid_encoding?') do
   end
 end
 
+assert('String#length of a binary string counts bytes') do
+  # A byte-indexed string has one position per byte, which is what indexing it
+  # already answered. Measuring it read the same string as UTF-8, so the length
+  # disagreed with every index taken off it.
+  if UTF8STRING
+    s = "\u{1F600}".b   # F0 9F 98 80: four bytes, one character
+    assert_equal 4, s.size
+    assert_equal 4, s.length
+    assert_equal 4, s.bytesize
+    assert_equal 4, s.chars.size
+    assert_equal "\x9F".b, s[1]
+    assert_equal "\x80".b, s[3]
+    assert_equal "\x80".b, s[-1]
+    assert_equal "\xF0\x9F".b, s[0, 2]
+    assert_equal "\x9F\x98".b, s.slice(1, 2)
+    # the length is not cached as a property of the bytes: force_encoding can
+    # hand the same bytes back to the UTF-8 reading
+    s.force_encoding(Encoding::UTF_8)
+    assert_equal 1, s.size
+    t = "\u{1F600}"
+    assert_equal 1, t.size
+    t.force_encoding(Encoding::BINARY)
+    assert_equal 4, t.size
+  end
+end
+
+assert('String#reverse! on a binary string reverses bytes') do
+  if UTF8STRING
+    s = "\u{1F600}".b
+    s.reverse!
+    assert_equal "\x80\x98\x9F\xF0".b, s
+    u = "a\u{1F600}b"
+    u.reverse!
+    assert_equal "b\u{1F600}a", u
+  end
+end
+
 assert('String#encoding') do
   if UTF8STRING
     a = "あ"

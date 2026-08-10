@@ -532,6 +532,19 @@ utf8_strlen(mrb_value str)
   struct RString *s = mrb_str_ptr(str);
   mrb_int byte_len = RSTR_LEN(s);
 
+  /* A byte-indexed string has one position per byte, which is what
+     chars2bytes() and bytes2chars() already answer for it. Asked here only
+     about the single-byte flag, the same string was measured as UTF-8 and
+     reported a length its own indexing did not agree with.
+
+     The flag below is deliberately not set on the way out: it says the bytes
+     hold nothing multi-byte, while this returns early because of how the
+     string is read. force_encoding() can take MRB_STR_BINARY away again, and
+     a flag set here would outlive the reason for it. */
+  if (RSTR_BINARY_P(s)) {
+    return byte_len;
+  }
+
   if (RSTR_SINGLE_BYTE_P(s)) {
     return byte_len;
   }
