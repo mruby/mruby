@@ -135,8 +135,15 @@ pattern analysis.
   supported.
 - **ASCII case folding by default**: The `i` flag handles ASCII letters
   only unless the build defines `MRB_REGEXP_UNICODE_CASE`, which adds the
-  Unicode foldings that map one codepoint to one other. A codepoint whose
-  fold is several codepoints (`ß` to `ss`) is never folded.
+  Unicode foldings that pair one codepoint with one other. Without the
+  option, a pattern holding a character that needs one of those raises
+  `RegexpError` rather than answering as if the character had no case; see
+  Configuration. A codepoint with no single counterpart to fold to (`ﬀ` to
+  `ff`) is never folded by either build.
+- **Case-insensitive backreferences match a superset**: `\1` under `i`
+  folds each side and compares, so it matches where the capture and the
+  repeat hold the same characters in different widths (`k` and `K`).
+  CRuby declines to fold across a width change there.
 - **Step limit on backtracking**: Patterns that require the
   backtracking engine are subject to a step limit.
 - **No inline extended mode**: `(?x)` and `(?x:...)` raise a
@@ -184,9 +191,27 @@ foldings. Define `MRB_REGEXP_UNICODE_CASE` to enable it:
 conf.cc.defines << 'MRB_REGEXP_UNICODE_CASE'
 ```
 
-It costs about 6KB of text, of which roughly 2.4KB is the table itself. With
+It costs about 4KB of text, of which roughly 2.5KB is the table itself. With
 it, `/Ā/i` matches `"ā"`, `/Σ/i` matches `"σ"`, and `[^Ā]` under `/i` stops
-accepting `"ā"`. Without it those all behave as they always have.
+accepting `"ā"`.
+
+Without it, those same patterns do not compile:
+
+```ruby
+/Ā/i     # RegexpError: /i needs MRB_REGEXP_UNICODE_CASE for this character
+```
+
+The test is whether a character has a case folding, not whether it is
+non-ASCII, so a script without case is unaffected and `/日本/i`, `/العربية/i`
+and `/😀/i` go on working. Patterns like `/Ā/i` were answering wrongly rather
+than narrowly before this: `[Ā]` under `/i` missed `"ā"`, and `[^Ā]` accepted
+it. Reaching this error means the option is what you want.
+
+`/k/i` matching `"K"` (U+212A) and `/s/i` matching `"ſ"` need no option.
+Those two are the only foldings whose result is an ASCII letter, and both
+builds carry them, so that folding "ASCII only" covers the whole of the
+equivalence class an ASCII letter belongs to rather than the part of it that
+is ASCII.
 
 ## License
 

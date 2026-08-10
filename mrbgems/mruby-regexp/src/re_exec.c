@@ -62,7 +62,6 @@ static int
 memcmp_ci(const char *a, const char *a_end, const char *b, const char *b_end,
           mrb_bool binary)
 {
-#ifdef MRB_REGEXP_UNICODE_CASE
   const char *a0 = a;
   while (b < b_end) {
     if (a >= a_end) return -1;
@@ -70,23 +69,10 @@ memcmp_ci(const char *a, const char *a_end, const char *b, const char *b_end,
     uint32_t ca = mrb_re_decode_char(a, a_end, &alen, binary);
     uint32_t cb = mrb_re_decode_char(b, b_end, &blen, binary);
     if (mrb_re_case_fold(ca) != mrb_re_case_fold(cb)) return -1;
-    a += mrb_re_charlen(a, a_end, binary);
-    b += mrb_re_charlen(b, b_end, binary);
+    a += alen;
+    b += blen;
   }
   return (int)(a - a0);
-#else
-  /* Folding stops at ASCII, so the two spans always hold the same bytes. */
-  (void)binary;
-  int len = (int)(b_end - b);
-  if (a + len > a_end) return -1;
-  for (int i = 0; i < len; i++) {
-    uint8_t ca = (uint8_t)a[i], cb = (uint8_t)b[i];
-    if (ca >= 'A' && ca <= 'Z') ca += 32;
-    if (cb >= 'A' && cb <= 'Z') cb += 32;
-    if (ca != cb) return -1;
-  }
-  return len;
-#endif
 }
 
 /*

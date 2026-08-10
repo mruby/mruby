@@ -198,9 +198,12 @@ assert("Regexp - character class range across the ASCII boundary") do
   assert_equal "A", "A".match(/[^a-Ā]/)[0]
   assert_equal "ā", "ā".match(/[^a-Ā]/)[0]
   # The /i fold walks the bitmap, so it reaches the ASCII half once that half
-  # is stored there. Non-ASCII case folding is still not applied.
-  assert_equal "A", "A".match(/[a-Ā]/i)[0]
-  assert_nil "A".match(/[^a-Ā]/i)
+  # is stored there. The upper bound here is uncased, which keeps this about
+  # the split alone: what /i does with a range whose non-ASCII half has case
+  # differs by build and is asserted in ascii_case.rb and unicode_case.rb.
+  assert_equal "A", "A".match(/[a-©]/i)[0]
+  assert_nil "A".match(/[^a-©]/i)
+  assert_equal "©", "©".match(/[a-©]/i)[0]
   # Ranges that stay on one side of the boundary are unaffected.
   assert_equal "b", "b".match(/[a-c]/)[0]
   assert_equal "ą", "ą".match(/[Ā-Đ]/)[0]
@@ -431,6 +434,34 @@ assert("Regexp - case insensitive character class") do
   assert_false(/[a-c]/i.match?("D"))
   assert_false(/[\[]/i.match?("{"))  # `[` and `{` are 32 apart but are not a case pair
   assert_false(/[@]/i.match?("`"))
+end
+
+assert("Regexp - /i folds an ASCII letter's class whole") do
+  # U+017F folds to "s" and U+212A to "k". They are the only two foldings
+  # whose result is an ASCII letter, and every build carries them, so that
+  # folding "ASCII only" covers the whole of the equivalence class an ASCII
+  # letter belongs to rather than the part of it that is ASCII. Left out, the
+  # negated forms below would accept what they were written to reject.
+  kelvin = "K"
+  long_s = "ſ"
+  assert_true Regexp.new("k", Regexp::IGNORECASE).match?(kelvin)
+  assert_true Regexp.new("K", Regexp::IGNORECASE).match?(kelvin)
+  assert_true Regexp.new("[k]", Regexp::IGNORECASE).match?(kelvin)
+  assert_true Regexp.new("[a-z]", Regexp::IGNORECASE).match?(kelvin)
+  assert_true Regexp.new("[j-l]", Regexp::IGNORECASE).match?(kelvin)
+  assert_false Regexp.new("[^k]", Regexp::IGNORECASE).match?(kelvin)
+  assert_true Regexp.new(kelvin, Regexp::IGNORECASE).match?("k")
+  assert_true Regexp.new(kelvin, Regexp::IGNORECASE).match?("K")
+  assert_true Regexp.new("[#{kelvin}]", Regexp::IGNORECASE).match?("K")
+  assert_true Regexp.new("s", Regexp::IGNORECASE).match?(long_s)
+  assert_false Regexp.new("[^s]", Regexp::IGNORECASE).match?(long_s)
+  assert_true Regexp.new(long_s, Regexp::IGNORECASE).match?("S")
+  # A backreference compares the same way, so the capture and the repeat need
+  # not hold the same bytes.
+  assert_equal "k#{kelvin}", "k#{kelvin}".match(Regexp.new("(k)\\1", Regexp::IGNORECASE))[0]
+  # Without /i none of it folds.
+  assert_false Regexp.new("k").match?(kelvin)
+  assert_true Regexp.new("[^k]").match?(kelvin)
 end
 
 assert("Regexp - repetition {n,m}") do
