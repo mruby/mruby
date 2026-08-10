@@ -26,6 +26,21 @@ simulation) with backtracking fallback.
 - `(?<=...)` positive lookbehind (fixed-length only)
 - `(?<!...)` negative lookbehind (fixed-length only)
 
+### Character Escapes
+
+- `\n`, `\t`, `\r`, `\f`, `\v`, `\a`, `\e` control characters
+- `\NNN` octal, one to three digits
+- `\xHH` hex, one or two digits
+- `\uXXXX` Unicode codepoint, exactly four hex digits
+- `\u{...}` Unicode codepoints, one to six hex digits each, several of
+  them separated by spaces: `/\u{61 62}/` is `ab`
+
+Outside a character class the list form is a sequence rather than one
+atom, so a quantifier after it repeats the last codepoint only:
+`/\u{61 62}+/` is `ab+`. Inside a class every codepoint is a member of
+its own, and the last one can still open a range: `/[\u{61 62}-z]/` is
+`a` plus `b-z`.
+
 ### Anchors
 
 - `^` beginning of line
@@ -148,6 +163,8 @@ pattern analysis.
   Maximum 255 bytes.
 - **No Unicode properties**: `\p{Alpha}`, `\p{L}`, etc. are not
   supported.
+- **No `\x{...}` hex escape**: the hex escape is `\xHH`, so it reaches
+  `0xff` at most. Write `\u{...}` for a codepoint above that.
 - **ASCII case folding by default**: The `i` flag handles ASCII letters
   only unless the build defines `MRB_REGEXP_UNICODE_CASE`, which adds the
   Unicode foldings that pair one codepoint with one other. Without the

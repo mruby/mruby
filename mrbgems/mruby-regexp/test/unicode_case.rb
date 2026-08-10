@@ -35,6 +35,18 @@ assert("Regexp - Unicode case folding under /i") do
   assert_equal "K", "K".match(/k/i)[0]
   assert_equal "k", "k".match(/K/i)[0]
   assert_equal "ſ", "ſ".match(/s/i)[0]
+  # A `\u` escape names the character another pattern would spell out, so /i
+  # folds it the same way either spelling is folded. That holds for both
+  # spellings of the escape, and inside a class as well as outside one.
+  assert_equal "ā", "ā".match(/\u{100}/i)[0]
+  assert_equal "Ā", "Ā".match(/\u{101}/i)[0]
+  assert_equal "ā", "ā".match(/\u0100/i)[0]
+  assert_equal "ā", "ā".match(/[\u{100}]/i)[0]
+  assert_nil "ā".match(/[^\u{100}]/i)
+  # A range written with escapes closes under folding as the spelled one does:
+  # U+0103 folds from U+0102, which the range holds.
+  assert_equal "ă", "ă".match(/[\u{100}-\u{102}]/i)[0]
+  assert_nil "ą".match(/[\u{100}-\u{102}]/i)
   # Backreferences compare folded too.
   assert_equal "Āā", "Āā".match(/(Ā)\1/i)[0]
   # Without /i nothing folds.
