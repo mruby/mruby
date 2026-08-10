@@ -1575,6 +1575,12 @@ str_escape(mrb_state *mrb, mrb_value str, mrb_bool inspect)
 #endif
 
   p = RSTRING_PTR(str); pend = RSTRING_END(str);
+#ifdef MRB_UTF8_STRING
+  /* `inspect` passes a whole character through unescaped so it stays readable.
+     A byte-indexed string holds no characters to keep readable, so it escapes
+     byte by byte, which is what `dump` on the same string already did. */
+  if (RSTR_BINARY_P(mrb_str_ptr(str))) inspect = FALSE;
+#endif
   for (;p < pend; p++) {
     unsigned char c, cc;
 #ifdef MRB_UTF8_STRING
