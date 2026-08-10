@@ -193,8 +193,8 @@ class String
   end
 
   # Regexp-aware split.  Falls back to the C-defined split (aliased as
-  # `__split` in mrb_mruby_regexp_gem_init before this override loads) for
-  # nil or string patterns, and handles regexp patterns in Ruby.
+  # `__split` above) for nil or string patterns, and handles regexp patterns
+  # in Ruby.
   def split(pattern = nil, *args)
     if args.length > 1
       raise ArgumentError, "wrong number of arguments (given #{args.length + 1}, expected 0..2)"
@@ -202,7 +202,7 @@ class String
 
     limit_given = args.length > 0
     limit = limit_given ? args[0] : 0
-    # `__to_int` is `mrb_ensure_integer_type()`, which asks the object nothing.
+    # `Integer.__ensure` is `mrb_ensure_int_type()`, which asks the object nothing.
     # mruby has no implicit conversion protocol in core, so `Array.new(obj)`,
     # `ary[obj]` and `"s" * obj` all reject an object that only defines
     # `to_int`; dispatching it here would leave this the one place in the tree
