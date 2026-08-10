@@ -177,13 +177,19 @@ mrb_bool mrb_re_is_word_char(uint32_t c);
    codepoint that has no single counterpart to fold to (U+FB00 to "ff"). */
 uint32_t mrb_re_case_fold(uint32_t cp);
 
-/* True when [lo, hi] holds a codepoint this build cannot fold but a full
-   Unicode build could. A pattern reaching one of those under /i is refused at
+/* True when [lo, hi] holds a codepoint that carries case folding data this
+   build does not have. A pattern reaching one of those under /i is refused at
    compile time, since folding ASCII and carrying on would answer wrongly: the
    missing fold shows up as a missed match in `[X]` and, with the sign flipped,
-   as a false accept in `[^X]`. A build with the data has nothing to refuse,
-   so the test compiles away there. The arguments are evaluated at most once,
-   but only by the definition that uses them, so pass plain values. */
+   as a false accept in `[^X]`. The test is having the data rather than being
+   foldable, so two kinds fall inside it that no build folds: a source whose
+   fold expands into several codepoints (U+FB00 to "ff"), and the uncased
+   neighbours the coarse ranges close over. A build with the table compiles
+   both and matches them literally, so what the two builds differ in there is
+   what they refuse rather than what they answer. A build with the data has
+   nothing to refuse, so the test compiles away there. The arguments are
+   evaluated at most once, but only by the definition that uses them, so pass
+   plain values. */
 #ifdef MRB_REGEXP_UNICODE_CASE
 #define mrb_re_needs_case_data(lo, hi) FALSE
 #else
