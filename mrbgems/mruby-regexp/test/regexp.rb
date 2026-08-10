@@ -2886,3 +2886,80 @@ assert("String#byteindex and String#byterindex delegate every non-regexp argumen
   assert_raise(TypeError) { "hello".byteindex(fake) }
   assert_raise(TypeError) { "hello".byterindex(fake) }
 end
+
+assert("String#partition and String#rpartition with regexp") do
+  assert_equal ["he", "ll", "o"], "hello".partition(/l+/)
+  assert_equal ["hell", "o", ""], "hello".partition(/o/)
+  assert_equal ["hel", "l", "o"], "hello".rpartition(/l/)
+  assert_equal ["hello w", "o", "rld"], "hello world".rpartition(/o/)
+
+  # the three pieces come from the match itself, so a capture group changes
+  # nothing about where the subject is cut
+  assert_equal ["he", "llo", ""], "hello".partition(/(l+)(o)/)
+
+  # `rpartition` takes the last match, overlapping ones included
+  assert_equal ["", "aa", "a"], "aaa".partition(/aa/)
+  assert_equal ["a", "aa", ""], "aaa".rpartition(/aa/)
+
+  # no match leaves the subject whole: at the head for `partition` and at the
+  # tail for `rpartition`
+  assert_equal ["hello", "", ""], "hello".partition(/z/)
+  assert_equal ["", "", "hello"], "hello".rpartition(/z/)
+  assert_equal ["", "", ""], "".partition(/z/)
+  assert_equal ["", "", ""], "".rpartition(/z/)
+
+  # an empty match still cuts, at the first position for one and at the last
+  # for the other
+  assert_equal ["", "", "hello"], "hello".partition(//)
+  assert_equal ["hello", "", ""], "hello".rpartition(//)
+
+  # the unmatched subject comes back as a copy, and every piece is a plain
+  # String even for a subclass receiver, as in CRuby
+  s = "hello"
+  assert_false s.partition(/z/)[0].equal?(s)
+  sub = Class.new(String)
+  assert_equal [String, String, String], sub.new("hello").partition(/l/).map { |x| x.class }
+  assert_equal [String, String, String], sub.new("hello").rpartition(/z/).map { |x| x.class }
+end
+
+assert("String#partition and String#rpartition with regexp set the match globals") do
+  assert_equal ["a", "b", "cabc"], "abcabc".partition(/(b)/)
+  assert_equal 1, $~.begin(0)
+  assert_equal "b", $1
+
+  # the match `rpartition` stopped on, not one it walked past on the way there
+  assert_equal ["abca", "b", "c"], "abcabc".rpartition(/(b)/)
+  assert_equal 4, $~.begin(0)
+
+  "zzz" =~ /z/
+  assert_equal ["abc", "", ""], "abc".partition(/x/)
+  assert_nil $~
+  "zzz" =~ /z/
+  assert_equal ["", "", "abc"], "abc".rpartition(/x/)
+  assert_nil $~
+end
+
+assert("String#partition and String#rpartition delegate every non-regexp argument") do
+  assert_equal ["he", "ll", "o"], "hello".partition("ll")
+  assert_equal ["hello", "", ""], "hello".partition("z")
+  assert_equal ["hel", "l", "o"], "hello".rpartition("l")
+  assert_equal ["", "", "hello"], "hello".rpartition("z")
+
+  assert_raise(ArgumentError) { "hello".partition }
+  assert_raise(ArgumentError) { "hello".rpartition }
+  assert_raise(ArgumentError) { "hello".partition(/l/, 1) }
+  assert_raise(ArgumentError) { "hello".rpartition(/l/, 1) }
+  assert_raise(TypeError) { "hello".partition(1) }
+  assert_raise(TypeError) { "hello".rpartition(1) }
+
+  re = /l+/
+  def re.is_a?(klass); false; end
+  assert_equal ["he", "ll", "o"], "hello".partition(re)
+  assert_equal ["hel", "l", "o"], "hello".rpartition(re)
+
+  fake = Object.new
+  def fake.is_a?(klass); true; end
+  def fake.match(str, pos = 0); raise "must not be called"; end
+  assert_raise(TypeError) { "hello".partition(fake) }
+  assert_raise(TypeError) { "hello".rpartition(fake) }
+end

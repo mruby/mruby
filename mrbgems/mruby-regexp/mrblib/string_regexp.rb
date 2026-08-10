@@ -61,6 +61,10 @@ class String
   alias __byteindex byteindex
   alias __byterindex byterindex
 
+  # The two from mruby-string-ext, which this gem depends on.
+  alias __partition partition
+  alias __rpartition rpartition
+
   # `match` and `match?` accept a Regexp or a String and reject everything
   # else.  The check lives in C (see Regexp.__check_pattern) so that the
   # argument cannot steer it: it cannot pose as a Regexp, and there is no
@@ -574,5 +578,30 @@ class String
     end
     md = __regexp_rsearch(args[0], pos, true)
     md && md.__byte_begin(0)
+  end
+
+  # Regexp-aware `partition`.  Falls back to the C-defined `partition`
+  # (aliased as `__partition` above) for every other argument.
+  def partition(sep)
+    return __partition(sep) unless Regexp === sep
+    md = sep.match(self)
+    # No match leaves the whole subject in the head, and the copy is a plain
+    # String even when the receiver is a subclass, as `mrb_str_dup()` and
+    # CRuby's `str_duplicate(rb_cString, str)` both hand back.
+    return [self.byteslice(0, self.bytesize), "", ""] unless md
+    [md.pre_match, md[0], md.post_match]
+  end
+
+  # Regexp-aware `rpartition`.  Falls back to the C-defined `rpartition`
+  # (aliased as `__rpartition` above) for every other argument.
+  def rpartition(sep)
+    return __rpartition(sep) unless Regexp === sep
+    # The last match anywhere in the subject, so the limit is its end and the
+    # walk below never stops early.
+    md = __regexp_rsearch(sep, self.length, false)
+    # No match puts the whole subject in the tail, which is the row this
+    # method is most often got wrong on.
+    return ["", "", self.byteslice(0, self.bytesize)] unless md
+    [md.pre_match, md[0], md.post_match]
   end
 end
