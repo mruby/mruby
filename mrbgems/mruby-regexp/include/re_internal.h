@@ -45,11 +45,21 @@ typedef struct {
 
 /* Character class bitmap (ASCII range) */
 #define RE_CLASS_BITMAP_SIZE 16  /* 128 bits = 16 bytes for ASCII */
+
+/* A class member that is a byte rather than a codepoint, held in the same
+   range list with this bit set. A pattern byte that starts no whole character
+   is a byte, and the two spaces collide over U+0080 to U+00FF: the byte 0xB5
+   and the character U+00B5 both arrive as the number 0xB5, so the number alone
+   cannot say which was written. The tag sits above every codepoint, so a
+   tagged range can never overlap an untagged one. */
+#define RE_CLASS_BYTE 0x80000000u
+
 typedef struct {
   uint8_t bitmap[RE_CLASS_BITMAP_SIZE];  /* bitmap for 0-127 */
-  /* Non-ASCII codepoint ranges. Stored as flat (lo, hi) pairs:
-     ranges[2k] = lo, ranges[2k+1] = hi (inclusive). NULL when the
-     class has no non-ASCII members (the common case). */
+  /* Non-ASCII codepoint ranges, and byte ranges tagged with RE_CLASS_BYTE.
+     Stored as flat (lo, hi) pairs: ranges[2k] = lo, ranges[2k+1] = hi
+     (inclusive). NULL when the class has no non-ASCII members (the common
+     case). */
   uint32_t *ranges;
   uint32_t num_ranges;
   uint32_t range_capa;

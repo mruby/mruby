@@ -532,22 +532,33 @@ unicode_escape_first(re_compiler *c, mrb_bool *more)
   return cp;
 }
 
-/* Add one codepoint to the class: the ASCII bitmap and the codepoint range
-   list each hold one side of 128, and class_match() picks the side to read
-   from the codepoint alone. */
+/* Add one member to the class: the ASCII bitmap and the range list each hold
+   one side of 128, and class_match() picks the side to read from the value
+   alone. Above 128 the value is a codepoint or a byte, which the tag records
+   because the number cannot: see RE_CLASS_BYTE. */
 static void
-class_add_member(re_compiler *c, re_charclass *cc, uint32_t cp)
+class_add_member(re_compiler *c, re_charclass *cc, uint32_t cp, mrb_bool is_byte)
 {
   if (cp < 128) class_set_bit(cc, (uint8_t)cp);
-  else class_add_codepoint(c, cc, cp);
+  else class_add_codepoint(c, cc, (is_byte ? RE_CLASS_BYTE : 0) | cp);
 }
 
 /* Read one character class atom: either an ASCII byte (0-127), a
-   `\escape`, or a full multi-byte UTF-8 codepoint. Returns the
-   codepoint and advances c->p. */
+   `\escape`, or a full multi-byte UTF-8 codepoint. Returns the value and
+   advances c->p. *is_byte says which of the two the value is: TRUE for a
+   byte at or above 0x80 that starts no whole character, FALSE for ASCII, for
+   a decoded codepoint and for `\u`, which names a codepoint outright.
+
+   The question is the one the literal path already answers: emit_char_folded()
+   decodes and stands aside when the decode consumed one byte, so `\xB5` and a
+   raw 0xB5 both compile to the byte outside [...]. Reading the same byte as
+   U+00B5 inside [...] made the two halves of one pattern disagree about what
+   the pattern holds. A byte and a codepoint of the same number are different
+   members, which is what the tag on the stored value records. */
 static uint32_t
-read_class_atom(re_compiler *c, re_charclass *cc)
+read_class_atom(re_compiler *c, re_charclass *cc, mrb_bool *is_byte)
 {
+  *is_byte = FALSE;
   if (peek(c) == '\\') {
     next_char(c);
     if (peek(c) == 'u') {
@@ -559,7 +570,7 @@ read_class_atom(re_compiler *c, re_charclass *cc)
          the last join the class here; the last is returned, so it can open a
          range as any other atom would: `[\u{61 62}-z]` is `a` plus `b-z`. */
       while (unicode_escape_next(c, &more, &nx)) {
-        class_add_member(c, cc, cp);
+        class_add_member(c, cc, cp, FALSE);
         cp = nx;
       }
       return cp;
@@ -569,17 +580,25 @@ read_class_atom(re_compiler *c, re_charclass *cc)
        returns one byte, which left the continuation byte as a class atom of
        its own. A trailing backslash (peek < 0) still reaches parse_escape(),
        which reports it. */
-    if (peek(c) < 0xC0) return (uint32_t)parse_escape(c);
+    if (peek(c) < 0xC0) {
+      uint32_t esc = (uint32_t)parse_escape(c);
+      /* \xNN and octal \NNN name a byte, and the literal path emits one. */
+      if (esc >= 0x80) *is_byte = TRUE;
+      return esc;
+    }
   }
   uint8_t b = (uint8_t)*c->p;
   if (b < 0xC0) {
-    /* ASCII or stray continuation byte. */
+    /* ASCII, or a continuation byte that starts nothing. */
+    if (b >= 0x80) *is_byte = TRUE;
     return (uint32_t)next_char(c);
   }
-  /* Multi-byte UTF-8 leader: decode the full codepoint. */
+  /* Multi-byte UTF-8 leader: decode the full codepoint. An invalid leader
+     decodes as itself over one byte, so it is a byte like the rest. */
   int len = 0;
   uint32_t cp = mrb_re_utf8_decode(c->p, c->src_end, &len);
   c->p += len;
+  if (len == 1) *is_byte = TRUE;
   return cp;
 }
 
@@ -641,12 +660,20 @@ compile_charclass(re_compiler *c)
       }
     }
 
-    uint32_t cp = read_class_atom(c, cc);
+    mrb_bool cp_byte;
+    uint32_t cp = read_class_atom(c, cc, &cp_byte);
 
     /* check for range a-z (or U+xxxx-U+yyyy) */
     if (peek(c) == '-' && c->p + 1 < c->src_end && c->p[1] != ']') {
       next_char(c);  /* skip '-' */
-      uint32_t hi = read_class_atom(c, cc);
+      mrb_bool hi_byte;
+      uint32_t hi = read_class_atom(c, cc, &hi_byte);
+      /* An endpoint at or above 128 is a byte or a character, and a span from
+         one to the other names neither: [\x80-µ] would run from a byte to a
+         codepoint. ASCII belongs to both, so it pairs with either. */
+      if (cp >= 128 && hi >= 128 && cp_byte != hi_byte) {
+        compile_error(c, "character class range mixes a byte and a character");
+      }
       /* A range that straddles the ASCII boundary is split in two: the
          bitmap takes the half below 128 and the codepoint list the rest.
          Neither half can hold the other, and class_match() picks the side
@@ -654,11 +681,14 @@ compile_charclass(re_compiler *c)
          codepoint list is unreachable below 128. */
       if (cp <= hi) {
         if (cp < 128) class_set_range(cc, (uint8_t)cp, (uint8_t)(hi < 128 ? hi : 127));
-        if (hi >= 128) class_add_range(c, cc, cp < 128 ? 128 : cp, hi);
+        if (hi >= 128) {
+          uint32_t tag = hi_byte ? RE_CLASS_BYTE : 0;
+          class_add_range(c, cc, tag | (cp < 128 ? 128 : cp), tag | hi);
+        }
       }
     }
     else {
-      class_add_member(c, cc, cp);
+      class_add_member(c, cc, cp, cp_byte);
     }
   }
   next_char(c);  /* skip ']' */
@@ -671,7 +701,10 @@ compile_charclass(re_compiler *c)
      written to reject.
 
      Closing means: x belongs to the class whenever some written member folds
-     the same way x does. */
+     the same way x does. A byte member has no case: it stands for no character,
+     so nothing folds to it and it folds to nothing. Every walk below steps over
+     the tagged ranges, which is also what keeps /i from refusing a class of
+     continuation bytes on a build without the folding tables. */
   if (c->flags & RE_FLAG_IGNORECASE) {
 #ifdef MRB_REGEXP_UNICODE_CASE
     /* That takes two rounds rather than one walk in each direction, because a
@@ -689,6 +722,7 @@ compile_charclass(re_compiler *c)
        added. */
     uint32_t nranges = cc->num_ranges;
     for (uint32_t i = 0; i < nranges; i++) {
+      if (cc->ranges[2 * i] & RE_CLASS_BYTE) continue;
       mrb_re_case_fold_range(cc->ranges[2 * i], cc->ranges[2 * i + 1],
                              class_fold_add, &sink);
     }
@@ -702,6 +736,7 @@ compile_charclass(re_compiler *c)
        an upper case letter. */
     nranges = cc->num_ranges;
     for (uint32_t i = 0; i < nranges; i++) {
+      if (cc->ranges[2 * i] & RE_CLASS_BYTE) continue;
       mrb_re_case_unfold_range(cc->ranges[2 * i], cc->ranges[2 * i + 1],
                                class_fold_add, &sink);
     }
@@ -720,6 +755,7 @@ compile_charclass(re_compiler *c)
        across the boundary in each direction. */
     for (uint32_t i = 0; i < cc->num_ranges; i++) {
       uint32_t lo = cc->ranges[2 * i], hi = cc->ranges[2 * i + 1];
+      if (lo & RE_CLASS_BYTE) continue;
       if (mrb_re_needs_case_data(lo, hi)) {
         compile_error(c, "/i needs MRB_REGEXP_UNICODE_CASE for this character class");
       }
@@ -961,7 +997,7 @@ emit_cp_folded(re_compiler *c, uint32_t cp)
   uint16_t id = add_class(c);
   class_add_codepoint(c, &c->classes[id], cp);
   for (int i = 0; i < n; i++) {
-    class_add_member(c, &c->classes[id], alt[i]);
+    class_add_member(c, &c->classes[id], alt[i], FALSE);
   }
   emit(c, RE_CLASS, (uint8_t)id, 0);
   return TRUE;
