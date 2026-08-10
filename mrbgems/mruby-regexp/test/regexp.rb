@@ -660,6 +660,36 @@ assert("Regexp - quantifier on a multibyte literal") do
   assert_equal 0, "z".match(/Ā?/)[0].bytesize
 end
 
+assert("Regexp - quantifier on an escaped multibyte literal") do
+  # A backslash before a character with no escape meaning is just that
+  # character, so \Ā has to be one atom exactly like Ā. The escape path used
+  # to emit the lead byte alone and leave the continuation byte to the parse
+  # loop, so the quantifier bound to that byte instead.
+  # The /.../ spelling cannot show this, because the lexer drops the backslash
+  # before the gem sees the pattern: /\Ā/.source is the two bytes of Ā alone.
+  # A pattern built at runtime arrives through Regexp.new with the backslash
+  # still in it.
+  assert_equal 4, Regexp.new("\\Ā+").match("ĀĀ")[0].bytesize
+  assert_equal 6, Regexp.new("\\ĀĀĀ").match("ĀĀĀ")[0].bytesize
+  assert_true Regexp.new("\\Ā{2}").match?("ĀĀ")
+  assert_false Regexp.new("\\Ā{2}").match?("Ā")
+  assert_equal 6, Regexp.new("\\日+").match("日日")[0].bytesize
+  assert_equal 8, Regexp.new("\\𝕏+").match("𝕏𝕏")[0].bytesize
+  assert_equal 5, Regexp.new("a\\Ā+").match("aĀĀ")[0].bytesize
+  assert_equal 2, Regexp.new("\\Ā+?").match("ĀĀ")[0].bytesize
+  # Inside [...] the same escape has to read as one codepoint, or the class
+  # holds the lead byte and the continuation byte as two wrong members.
+  assert_true Regexp.new("[\\Ā]").match?("Ā")
+  assert_false Regexp.new("[\\Ā]").match?("Ä")
+  assert_true Regexp.new("[\\Ā-\\ā]").match?("ā")
+  assert_false Regexp.new("[\\Ā-\\ā]").match?("Ă")
+  # A raw byte escape names a byte rather than a character, so it keeps taking
+  # the parse_escape path and the quantifier binds to that one byte. CRuby
+  # joins byte escapes that spell a valid UTF-8 sequence into one character
+  # and matches four bytes here; closing that gap is a separate change.
+  assert_equal 2, Regexp.new("\\xC4\\x80+").match("ĀĀ")[0].bytesize
+end
+
 assert("Regexp - quantifier on an invalid multibyte literal") do
   # A byte above 127 is one atom only while it starts a whole character. The
   # sequences below never complete one, so each byte stands alone and the

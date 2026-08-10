@@ -388,7 +388,12 @@ read_class_atom(re_compiler *c)
 {
   if (peek(c) == '\\') {
     next_char(c);
-    return (uint32_t)parse_escape(c);
+    /* A backslash before a multibyte character has no escape meaning, so let
+       the decode below read the whole codepoint: [\Ā] is [Ā]. parse_escape()
+       returns one byte, which left the continuation byte as a class atom of
+       its own. A trailing backslash (peek < 0) still reaches parse_escape(),
+       which reports it. */
+    if (peek(c) < 0xC0) return (uint32_t)parse_escape(c);
   }
   uint8_t b = (uint8_t)*c->p;
   if (b < 0xC0) {
@@ -641,6 +646,25 @@ parse_inline_flags(re_compiler *c, uint32_t base)
   }
   if (!seen) compile_error(c, "undefined (?...) sequence");
   return (base | on) & ~off;
+}
+
+/* Emit every byte of the character whose lead byte `ch` was just consumed, so
+   the whole character is one atom. Leaving the continuation bytes to the parse
+   loop made each of them an atom of its own, and a quantifier binds to the last
+   atom emitted: /Ā+/ compiled as \xC4(\x80)+ and matched one Ā in "ĀĀ". An
+   invalid lead byte has a charlen of 1 and still emits alone. Every atom that
+   consumes a character has to emit all of its bytes before returning, since
+   what compile_quantified() repeats is the bytes that atom emitted. */
+static void
+emit_char_bytes(re_compiler *c, int ch)
+{
+  int len = mrb_re_utf8_charlen(c->p - 1, c->src_end);
+  emit(c, RE_CHAR, (uint8_t)ch, 0);
+  for (int i = 1; i < len; i++) {
+    int b = next_char(c);
+    if (b < 0) break;
+    emit(c, RE_CHAR, (uint8_t)b, 0);
+  }
 }
 
 /* Compile a single atom (character, class, group, etc.) */
@@ -916,6 +940,16 @@ compile_atom(re_compiler *c)
       emit(c, RE_BACKREF, (uint8_t)group, (c->flags & RE_FLAG_IGNORECASE) ? 1 : 0);
       c->has_backref = TRUE;
     }
+    else if (ch >= 0xC0) {
+      /* A backslash before a multibyte character has no escape meaning: \Ā is
+         Ā. parse_escape() returns one byte, which left the continuation bytes
+         to the parse loop as atoms of their own, so emit the whole character
+         here as the unescaped spelling does. The dispatch has to happen before
+         parse_escape() reads the letter, since \xNN and octal \NNN name a byte
+         rather than a character. */
+      next_char(c);
+      emit_char_bytes(c, ch);
+    }
     else {
       ch = parse_escape(c);
       if (c->flags & RE_FLAG_IGNORECASE) {
@@ -978,18 +1012,7 @@ compile_atom(re_compiler *c)
       }
     }
     if (ch >= 128) {
-      /* Emit every byte of a multibyte character here, so the whole character
-         is one atom. Leaving the continuation bytes to the parse loop made
-         each of them an atom of its own, and a quantifier binds to the last
-         atom emitted: /Ā+/ compiled as \xC4(\x80)+ and matched one Ā in "ĀĀ".
-         An invalid lead byte has a charlen of 1 and still emits alone. */
-      int len = mrb_re_utf8_charlen(c->p - 1, c->src_end);
-      emit(c, RE_CHAR, (uint8_t)ch, 0);
-      for (int i = 1; i < len; i++) {
-        int b = next_char(c);
-        if (b < 0) break;
-        emit(c, RE_CHAR, (uint8_t)b, 0);
-      }
+      emit_char_bytes(c, ch);
       break;
     }
     emit(c, RE_CHAR, (uint8_t)ch, 0);
