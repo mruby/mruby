@@ -17,7 +17,7 @@ class File < IO
   #   f = File.new("tmpfile",  "a")
   #
   def initialize(fd_or_path, mode = "r", perm = 0666)
-    if fd_or_path.kind_of? Integer
+    if Integer === fd_or_path
       super(fd_or_path, mode)
     else
       @path = fd_or_path

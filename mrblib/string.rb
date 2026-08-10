@@ -18,7 +18,7 @@ class String
       block.call(self)
       return self
     end
-    raise TypeError unless separator.is_a?(String)
+    raise TypeError unless String === separator
 
     paragraph_mode = false
     if separator.empty?

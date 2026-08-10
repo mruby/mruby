@@ -133,7 +133,7 @@ class Enumerator
   end
 
   private def initialize_copy(obj)
-    raise TypeError, "can't copy type #{obj.class}" unless obj.kind_of? Enumerator
+    raise TypeError, "can't copy type #{obj.class}" unless Enumerator === obj
     raise TypeError, "can't copy execution context" if obj.instance_eval{@fib}
     meth = args = kwd = fib = nil
     obj.instance_eval {
@@ -780,7 +780,7 @@ module Enumerable
         when last_value
           arr << element
         else
-          raise 'symbols beginning with an underscore are reserved' if value.is_a?(Symbol) && value.to_s[0] == '_'
+          raise 'symbols beginning with an underscore are reserved' if Symbol === value && value.to_s[0] == '_'
           y.yield [last_value, arr] if arr.size > 0
           last_value, arr = value, [element]
         end

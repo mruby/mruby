@@ -30,7 +30,7 @@ class Task
     def pop(non_block = false, timeout_ms: nil)
       unless timeout_ms.nil?
         raise ArgumentError, "timeout cannot be combined with non_block" if non_block
-        raise TypeError, "timeout_ms must be an Integer" unless timeout_ms.is_a?(Integer)
+        raise TypeError, "timeout_ms must be an Integer" unless Integer === timeout_ms
         raise ArgumentError, "timeout_ms must be non-negative" if timeout_ms < 0
       end
       deadline = timeout_ms.nil? ? nil : __deadline(timeout_ms)

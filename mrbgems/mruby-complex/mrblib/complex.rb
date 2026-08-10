@@ -80,7 +80,7 @@ class Complex < Numeric
   #   Complex(2, 3) <=> 1              #=> 1
   #
   def <=>(other)
-    return nil unless other.kind_of?(Numeric)
+    return nil unless Numeric === other
     self.to_f <=> other.to_f
   rescue
     nil

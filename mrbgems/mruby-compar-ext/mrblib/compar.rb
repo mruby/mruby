@@ -43,7 +43,7 @@ module Comparable
   def clamp(min, max=nil)
 
     if max.nil?
-      if min.kind_of?(Range)
+      if Range === min
         max = min.end
         if !max.nil? && min.exclude_end?
           raise ArgumentError, "cannot clamp with an exclusive range"

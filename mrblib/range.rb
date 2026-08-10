@@ -20,7 +20,7 @@ class Range
     val = self.begin
     last = self.end
 
-    if val.kind_of?(Integer) && last.nil?
+    if Integer === val && last.nil?
       i = val
       while true
         block.call(i)
@@ -29,7 +29,7 @@ class Range
       return self
     end
 
-    if val.kind_of?(String) && last.nil?
+    if String === val && last.nil?
       if val.respond_to? :__upto_endless
         return val.__upto_endless(&block)
       else
@@ -37,7 +37,7 @@ class Range
       end
     end
 
-    if val.kind_of?(Integer) && last.kind_of?(Integer) # integers are special
+    if Integer === val && Integer === last # integers are special
       lim = last
       lim += 1 unless exclude_end?
       i = val
@@ -48,7 +48,7 @@ class Range
       return self
     end
 
-    if val.kind_of?(String) && last.kind_of?(String) # strings are special
+    if String === val && String === last # strings are special
       if val.respond_to? :upto
         return val.upto(last, exclude_end?, &block)
       else

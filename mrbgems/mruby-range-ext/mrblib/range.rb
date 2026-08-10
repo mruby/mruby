@@ -74,8 +74,8 @@ class Range
     raise RangeError, "cannot get the maximum of endless range" if last.nil?
 
     # fast path for numerics
-    if val.kind_of?(Numeric) && last.kind_of?(Numeric)
-      raise TypeError if exclude_end? && !last.kind_of?(Integer)
+    if Numeric === val && Numeric === last
+      raise TypeError if exclude_end? && !(Integer === last)
       return nil if val > last
       return nil if val == last && exclude_end?
 
@@ -109,7 +109,7 @@ class Range
     return val if last.nil?
 
     # fast path for numerics
-    if val.kind_of?(Numeric) && last.kind_of?(Numeric)
+    if Numeric === val && Numeric === last
       return nil if val > last
       return nil if val == last && exclude_end?
 
@@ -132,7 +132,7 @@ class Range
   #   (1..5).overlap?(7..9) #=> false
   #
   def overlap?(other)
-    raise TypeError, "argument must be a range" unless other.kind_of?(Range)
+    raise TypeError, "argument must be a range" unless Range === other
 
     self_begin = self.begin
     other_end = other.end

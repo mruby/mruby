@@ -101,7 +101,7 @@ class String
   #     "07".upto("11").to_a  #=> ["07", "08", "09", "10", "11"]
   def upto(max, exclusive=false, &block)
     return to_enum(:upto, max, exclusive) unless block
-    raise TypeError, "no implicit conversion of #{max.class} into String" unless max.kind_of? String
+    raise TypeError, "no implicit conversion of #{max.class} into String" unless String === max
 
     len = self.length
     maxlen = max.length
