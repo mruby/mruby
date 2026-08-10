@@ -1,19 +1,30 @@
 # Generate re_casefold.h from the Unicode simple case folding data that the
-# host CRuby carries. Phase 1 covers 1:1 foldings only; a codepoint whose fold
-# is more than one codepoint (U+00DF -> "ss") is skipped and listed at the end
-# of the header as a comment.
+# host CRuby carries. It holds the foldings that pair one codepoint with one
+# other; a codepoint with no such counterpart (U+FB00 -> "ff") is skipped and
+# listed at the end of the header as a comment.
 #
 #   ruby mrbgems/mruby-regexp/tools/gen_casefold.rb > mrbgems/mruby-regexp/src/re_casefold.h
 
-pairs = []
-skipped = []
+pairs = []      # [source, counterpart] for the foldings that pair one with one
+skipped = []    # [source, fold] where no single counterpart exists
 (0x80..0x10FFFF).each do |cp|
   next if cp.between?(0xD800, 0xDFFF)
   c = begin; cp.chr("UTF-8"); rescue RangeError; next; end
   f = c.downcase(:fold)
   next if f == c
+  to = nil
   if f.length == 1
-    pairs << [cp, f.ord]
+    to = f.ord
+  else
+    # A fold of several codepoints can still leave a single counterpart the
+    # engine can use: U+1E9E lower cases to U+00DF, and the two fold alike, so
+    # /ß/i reaching "ẞ" needs no more than the 1:1 machinery. Only a source
+    # with no such counterpart at all (U+FB00 to "ff") is out of reach.
+    lo = c.downcase
+    to = lo.ord if lo.length == 1 && lo != c && lo.downcase(:fold) == f
+  end
+  if to
+    pairs << [cp, to]
   else
     skipped << [cp, f]
   end
@@ -47,7 +58,7 @@ puts <<~HEAD
   ** as carried by ruby #{RUBY_VERSION}. Do not edit by hand.
   **
   ** Sources below 128 are not in the table: ASCII folding is done inline by
-  ** the compiler. A source whose fold is more than one codepoint is not in
+  ** the compiler. A source with no single counterpart to pair with is not in
   ** the table either; those are listed at the end of this file.
   **
   ** See Copyright Notice in mruby.h
@@ -83,7 +94,7 @@ TAIL
 puts
 puts "/* #{pairs.size} source codepoints in #{runs.size} runs. */"
 puts "/*"
-puts " * Not covered (fold is more than one codepoint), #{skipped.size} sources:"
+puts " * Not covered (no single codepoint counterpart), #{skipped.size} sources:"
 skipped.each_slice(6) do |slice|
   puts " *   " + slice.map { |cp, f| "U+%04X" % cp }.join(" ")
 end

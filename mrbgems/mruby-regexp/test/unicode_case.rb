@@ -40,6 +40,11 @@ assert("Regexp - Unicode case folding under /i") do
   # Without /i nothing folds.
   assert_nil "ā".match(/Ā/)
   assert_nil "K".match(/k/)
-  # A fold that produces several codepoints is still not applied.
+  # A fold of several codepoints can still leave a single counterpart, and
+  # that much is applied: U+1E9E lower cases to U+00DF and the two fold alike.
+  assert_equal "ẞ", "ẞ".match(/ß/i)[0]
+  assert_nil "ẞ".match(/[^ß]/i)
+  # The expansion into several codepoints is what stays out of reach.
   assert_nil "ss".match(/ß/i)
+  assert_nil "ff".match(/ﬀ/i)
 end

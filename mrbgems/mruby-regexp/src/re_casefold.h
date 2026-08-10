@@ -5,7 +5,7 @@
 ** as carried by ruby 4.0.6. Do not edit by hand.
 **
 ** Sources below 128 are not in the table: ASCII folding is done inline by
-** the compiler. A source whose fold is more than one codepoint is not in
+** the compiler. A source with no single counterpart to pair with is not in
 ** the table either; those are listed at the end of this file.
 **
 ** See Copyright Notice in mruby.h
@@ -134,6 +134,7 @@ static const re_fold_run re_fold_runs[] = {
   { 0x01CBD,    3, 1,   -3008 },
   { 0x01E00,   75, 2,       1 },
   { 0x01E9B,    1, 1,     -58 },
+  { 0x01E9E,    1, 1,   -7615 },
   { 0x01EA0,   48, 2,       1 },
   { 0x01F08,    8, 1,      -8 },
   { 0x01F18,    6, 1,      -8 },
@@ -142,10 +143,15 @@ static const re_fold_run re_fold_runs[] = {
   { 0x01F48,    6, 1,      -8 },
   { 0x01F59,    4, 2,      -8 },
   { 0x01F68,    8, 1,      -8 },
+  { 0x01F88,    8, 1,      -8 },
+  { 0x01F98,    8, 1,      -8 },
+  { 0x01FA8,    8, 1,      -8 },
   { 0x01FB8,    2, 1,      -8 },
   { 0x01FBA,    2, 1,     -74 },
+  { 0x01FBC,    1, 1,      -9 },
   { 0x01FBE,    1, 1,   -7173 },
   { 0x01FC8,    4, 1,     -86 },
+  { 0x01FCC,    1, 1,      -9 },
   { 0x01FD8,    2, 1,      -8 },
   { 0x01FDA,    2, 1,    -100 },
   { 0x01FE8,    2, 1,      -8 },
@@ -153,6 +159,7 @@ static const re_fold_run re_fold_runs[] = {
   { 0x01FEC,    1, 1,      -7 },
   { 0x01FF8,    2, 1,    -128 },
   { 0x01FFA,    2, 1,    -126 },
+  { 0x01FFC,    1, 1,      -9 },
   { 0x02126,    1, 1,   -7517 },
   { 0x0212A,    1, 1,   -8383 },
   { 0x0212B,    1, 1,   -8262 },
@@ -228,25 +235,20 @@ static const re_fold_run re_fold_runs[] = {
 #define RE_FOLD_MIN 0x000B5
 #define RE_FOLD_MAX 0x1E921
 
-/* 1455 source codepoints in 198 runs. */
+/* 1483 source codepoints in 205 runs. */
 /*
- * Not covered (fold is more than one codepoint), 104 sources:
+ * Not covered (no single codepoint counterpart), 76 sources:
  *   U+00DF U+0130 U+0149 U+01F0 U+0390 U+03B0
  *   U+0587 U+1E96 U+1E97 U+1E98 U+1E99 U+1E9A
- *   U+1E9E U+1F50 U+1F52 U+1F54 U+1F56 U+1F80
- *   U+1F81 U+1F82 U+1F83 U+1F84 U+1F85 U+1F86
- *   U+1F87 U+1F88 U+1F89 U+1F8A U+1F8B U+1F8C
- *   U+1F8D U+1F8E U+1F8F U+1F90 U+1F91 U+1F92
- *   U+1F93 U+1F94 U+1F95 U+1F96 U+1F97 U+1F98
- *   U+1F99 U+1F9A U+1F9B U+1F9C U+1F9D U+1F9E
- *   U+1F9F U+1FA0 U+1FA1 U+1FA2 U+1FA3 U+1FA4
- *   U+1FA5 U+1FA6 U+1FA7 U+1FA8 U+1FA9 U+1FAA
- *   U+1FAB U+1FAC U+1FAD U+1FAE U+1FAF U+1FB2
- *   U+1FB3 U+1FB4 U+1FB6 U+1FB7 U+1FBC U+1FC2
- *   U+1FC3 U+1FC4 U+1FC6 U+1FC7 U+1FCC U+1FD2
- *   U+1FD3 U+1FD6 U+1FD7 U+1FE2 U+1FE3 U+1FE4
- *   U+1FE6 U+1FE7 U+1FF2 U+1FF3 U+1FF4 U+1FF6
- *   U+1FF7 U+1FFC U+FB00 U+FB01 U+FB02 U+FB03
- *   U+FB04 U+FB05 U+FB06 U+FB13 U+FB14 U+FB15
- *   U+FB16 U+FB17
+ *   U+1F50 U+1F52 U+1F54 U+1F56 U+1F80 U+1F81
+ *   U+1F82 U+1F83 U+1F84 U+1F85 U+1F86 U+1F87
+ *   U+1F90 U+1F91 U+1F92 U+1F93 U+1F94 U+1F95
+ *   U+1F96 U+1F97 U+1FA0 U+1FA1 U+1FA2 U+1FA3
+ *   U+1FA4 U+1FA5 U+1FA6 U+1FA7 U+1FB2 U+1FB3
+ *   U+1FB4 U+1FB6 U+1FB7 U+1FC2 U+1FC3 U+1FC4
+ *   U+1FC6 U+1FC7 U+1FD2 U+1FD3 U+1FD6 U+1FD7
+ *   U+1FE2 U+1FE3 U+1FE4 U+1FE6 U+1FE7 U+1FF2
+ *   U+1FF3 U+1FF4 U+1FF6 U+1FF7 U+FB00 U+FB01
+ *   U+FB02 U+FB03 U+FB04 U+FB05 U+FB06 U+FB13
+ *   U+FB14 U+FB15 U+FB16 U+FB17
  */
