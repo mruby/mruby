@@ -1442,6 +1442,70 @@ first_set_walk(const re_inst *code, uint32_t code_len,
   return FALSE;
 }
 
+/* TRUE when an epsilon-only path runs from pc to goal, so the repetition that
+   goal closes can complete an iteration without consuming. seen[] is marked
+   with `mark` rather than cleared, so one buffer serves every edge. */
+static mrb_bool
+epsilon_path(const re_inst *code, uint32_t pc, uint32_t goal,
+             uint32_t *seen, uint32_t mark)
+{
+  while (pc != goal) {
+    if (pc > goal || seen[pc] == mark) return FALSE;
+    seen[pc] = mark;
+    switch (code[pc].op) {
+    case RE_SAVE:
+    case RE_BOL: case RE_EOL: case RE_BOT: case RE_EOT: case RE_EOTNL:
+    case RE_WBOUND: case RE_NWBOUND:
+      pc++;
+      break;
+    case RE_JMP:
+      pc = code[pc].offset;
+      break;
+    case RE_SPLIT:
+    case RE_SPLITNG:
+      if (epsilon_path(code, code[pc].offset, goal, seen, mark)) return TRUE;
+      pc++;
+      break;
+    default:
+      return FALSE;  /* consumes input, or is an assertion this walk cannot judge */
+    }
+  }
+  return TRUE;
+}
+
+/* Find the repetitions whose body can match empty and mark the backward edge
+   that closes each one, so the Pike VM knows which loops need the empty-
+   iteration handling in add_thread() and which can stay on the cheap path.
+   Returns how deeply those loops nest, which bounds the VM's epsilon passes
+   and the thread lists sized from them; see RE_MAX_PASS and RE_LIST_CAPA. */
+static uint8_t
+mark_empty_loops(mrb_state *mrb, re_inst *code, uint32_t code_len)
+{
+  int32_t *delta = (int32_t*)mrb_calloc(mrb, code_len + 1, sizeof(int32_t));
+  uint32_t *seen = (uint32_t*)mrb_calloc(mrb, code_len + 1, sizeof(uint32_t));
+  uint32_t mark = 0;
+
+  for (uint32_t pc = 0; pc < code_len; pc++) {
+    re_inst in = code[pc];
+    if (in.op != RE_JMP && in.op != RE_SPLIT && in.op != RE_SPLITNG) continue;
+    code[pc].a = 0;                /* this pass owns `a` on the edge opcodes */
+    if (in.offset > pc) continue;  /* forward edge: alternation, not a loop */
+    if (!epsilon_path(code, in.offset, pc, seen, ++mark)) continue;
+    code[pc].a = 1;
+    delta[in.offset]++;
+    delta[pc + 1]--;  /* the closing edge itself still sits inside the loop */
+  }
+
+  int32_t depth = 0, max = 0;
+  for (uint32_t pc = 0; pc < code_len; pc++) {
+    depth += delta[pc];
+    if (depth > max) max = depth;
+  }
+  mrb_free(mrb, seen);
+  mrb_free(mrb, delta);
+  return max > UINT8_MAX ? UINT8_MAX : (uint8_t)max;
+}
+
 static mrb_bool
 compute_first_set(const re_inst *code, uint32_t code_len,
                   const re_charclass *classes, uint8_t *bm)
@@ -1583,9 +1647,11 @@ mrb_re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags)
     }
   }
 
+  pat->loop_depth = mark_empty_loops(mrb, pat->code, pat->code_len);
+
   /* Pre-allocate VM state cache for pike_vm */
   {
-    int list_capa = (int)pat->code_len * 2 + 16;
+    int list_capa = RE_LIST_CAPA(pat->code_len, pat->loop_depth);
     pat->cached_visited = (uint32_t*)mrb_calloc(mrb, pat->code_len + 1, sizeof(uint32_t));
     pat->cached_threads[0] = mrb_malloc(mrb, sizeof(re_thread_cache) * list_capa);
     pat->cached_threads[1] = mrb_malloc(mrb, sizeof(re_thread_cache) * list_capa);
