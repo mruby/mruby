@@ -467,6 +467,25 @@ regexp_s_byte_search(mrb_state *mrb, mrb_value klass)
   return exec_match(mrb, re, str, pos);
 }
 
+/* Internal: the search of `match?`, run with a NULL capture buffer so that
+   it allocates no MatchData and leaves the match globals alone, which is the
+   whole point of `match?`. */
+static mrb_value
+exec_match_p(mrb_state *mrb, mrb_value re, mrb_value str, mrb_int pos)
+{
+  if (mrb_nil_p(str)) return mrb_false_value();
+  str = match_operand(mrb, str);
+  pos = re_char_to_byte(mrb, str, pos);
+  if (pos < 0) return mrb_false_value();
+
+  mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
+  if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
+
+  int ncap = mrb_re_exec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), pos, NULL, 0,
+                         re_binary_string_p(str));
+  return mrb_bool_value(ncap > 0);
+}
+
 /*
  * Regexp#match?(str, pos=0)
  */
@@ -476,17 +495,24 @@ regexp_match_p(mrb_state *mrb, mrb_value self)
   mrb_value str;
   mrb_int pos = 0;
   mrb_get_args(mrb, "o|i", &str, &pos);
-  if (mrb_nil_p(str)) return mrb_false_value();
-  str = match_operand(mrb, str);
-  pos = re_char_to_byte(mrb, str, pos);
-  if (pos < 0) return mrb_false_value();
+  return exec_match_p(mrb, self, str, pos);
+}
 
-  mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, self, &regexp_type, mrb_regexp_pattern);
-  if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
+/*
+ * Regexp.__search_p(re, str, pos = 0)
+ *
+ * Internal: `Regexp#match?` with the pattern as an argument, for the
+ * `String#match?` override; the same boundary as `Regexp.__search`.
+ */
+static mrb_value
+regexp_s_search_p(mrb_state *mrb, mrb_value klass)
+{
+  mrb_value re, str;
+  mrb_int pos = 0;
 
-  int ncap = mrb_re_exec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), pos, NULL, 0,
-                         re_binary_string_p(str));
-  return mrb_bool_value(ncap > 0);
+  mrb_get_args(mrb, "oo|i", &re, &str, &pos);
+  check_regexp_arg(mrb, re);
+  return exec_match_p(mrb, re, str, pos);
 }
 
 /*
@@ -1352,6 +1378,7 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, re, "__check_pattern", regexp_check_pattern, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, re, "__search", regexp_s_search, MRB_ARGS_ARG(2, 1));
   mrb_define_class_method(mrb, re, "__byte_search", regexp_s_byte_search, MRB_ARGS_ARG(2, 1));
+  mrb_define_class_method(mrb, re, "__search_p", regexp_s_search_p, MRB_ARGS_ARG(2, 1));
 
   /* Instance methods */
   mrb_define_method(mrb, re, "match", regexp_match, MRB_ARGS_ARG(1, 1)|MRB_ARGS_BLOCK());

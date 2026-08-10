@@ -3123,6 +3123,21 @@ assert("String overrides search a pattern whose `__byte_match` was rewritten") d
   assert_equal 2, "hello".byteindex(r)
 end
 
+assert("String#match? and String#=~ search a real pattern without asking it") do
+  r = /l+/
+  def r.match?(*args); "PWNED"; end
+  def r.=~(*args); 99; end
+
+  assert_true "hello".match?(r)
+  assert_equal 2, "hello" =~ r
+
+  # The forward for everything that is not a Regexp stays: CRuby sends `=~`
+  # to the argument there too.
+  o = Object.new
+  def o.=~(str); 42; end
+  assert_equal 42, "hello" =~ o
+end
+
 assert("String overrides run a pattern whose operation cores were rewritten") do
   r = /l+/
   def r.__sub_str(*args); "PWNED"; end

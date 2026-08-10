@@ -78,10 +78,13 @@ class String
     re.match(self, pos, &block)
   end
 
+  # Unlike `match`, the search does not dispatch on the pattern: CRuby's
+  # `rb_str_match_m_p()` resolves the argument and searches it directly,
+  # where `rb_str_match_m()` sends `match` to it on purpose.
   def match?(re, pos = 0)
     re = Regexp.__check_pattern(re)
     re = Regexp.new(re) if String === re
-    re.match?(self, pos)
+    Regexp.__search_p(re, self, pos)
   end
 
   def =~(re)
@@ -90,6 +93,13 @@ class String
     # redefinable, so a String subclass denying its own type would slip past
     # the guard and recurse anyway; `Module#===` reads the real type.
     raise TypeError, "type mismatch: String given" if String === re
+    # A real Regexp is searched here rather than asked, as CRuby's
+    # `rb_str_match()` does: it sends `=~` to the argument only when the
+    # argument is not a Regexp, which is what the tail below keeps doing.
+    if Regexp === re
+      md = Regexp.__search(re, self)
+      return md && md.begin(0)
+    end
     re =~ self
   end
 
