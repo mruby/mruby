@@ -52,6 +52,20 @@ class String
   alias __aset []=
   alias __slice_bang slice!
 
+  # The four search methods of src/string.c whose regexp form is overridden at
+  # the end of this file.  On a build without MRB_UTF8_STRING the two of a
+  # pair are the same C function behind two method table entries, so each
+  # still needs its own capture.
+  alias __index index
+  alias __rindex rindex
+  alias __byteindex byteindex
+  alias __byterindex byterindex
+
+  # The three from mruby-string-ext, which this gem depends on.
+  alias __partition partition
+  alias __rpartition rpartition
+  alias __start_with? start_with?
+
   # `match` and `match?` accept a Regexp or a String and reject everything
   # else.  The check lives in C (see Regexp.__check_pattern) so that the
   # argument cannot steer it: it cannot pose as a Regexp, and there is no
@@ -444,5 +458,178 @@ class String
     removed = md[group]
     __aset(beg, len, "")
     removed
+  end
+
+  # Regexp-aware `index`.  Falls back to the C-defined `index` (aliased as
+  # `__index` above) for every other argument form.
+  def index(*args)
+    return __index(*args) unless Regexp === args[0]
+    if args.length > 2
+      raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1..2)"
+    end
+    # `Regexp#match` normalizes a position the way `index` does and reads it
+    # with the same `mrb_get_args()` conversion, so the argument goes over
+    # unexamined: a negative one counts back from the end, and one that lands
+    # outside the subject answers nil after clearing the match globals.
+    # `match` and not `match?`, because those globals are part of the answer.
+    md = args.length > 1 ? args[0].match(self, args[1]) : args[0].match(self)
+    # `begin` reports character offsets, which is the space `index` answers
+    # in; `byteindex` below is the same search read in the other space.
+    md && md.begin(0)
+  end
+
+  # The last match that starts at or before `limit`, or nil, with the match
+  # globals left describing it.  `limit` is a byte offset when `bytes` is
+  # true and a character offset otherwise, which is the whole of the
+  # difference between `byterindex` and `rindex`.
+  #
+  # The engine searches forward only, so this walks the subject from the
+  # start and keeps the last match that qualifies: linear in the number of
+  # positions a match starts at, where the backward search CRuby hands to
+  # Onig is not.  Each step resumes one character past the match start and
+  # not at the match end, which is what keeps overlapping matches in view:
+  # `"aaa".rindex(/aa/)` is 1, where resuming at the end would answer 0.
+  def __regexp_rsearch(pattern, limit, bytes)
+    found = nil
+    pos = 0
+    while (md = pattern.match(self, pos))
+      break if (bytes ? md.__byte_begin(0) : md.begin(0)) > limit
+      found = md
+      pos = md.begin(0) + 1
+    end
+    # The loop leaves behind whatever its last `match` published: the clear a
+    # failed one does, or a match past `limit` that is not the answer.  Both
+    # have to give way to what the search found.
+    found ? found.__set_globals : pattern.match(nil)
+    found
+  end
+
+  # Regexp-aware `rindex`.  Falls back to the C-defined `rindex` (aliased as
+  # `__rindex` above) for every other argument form.
+  def rindex(*args)
+    return __rindex(*args) unless Regexp === args[0]
+    if args.length > 2
+      raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1..2)"
+    end
+    len = self.length
+    pos = len
+    if args.length > 1
+      # The position is arithmetic here rather than an argument handed
+      # straight to the engine, so it has to be an Integer first.
+      # `Integer.__ensure` is `mrb_ensure_int_type()`, the same conversion
+      # `mrb_get_args()` performs for the `i` of the C method.
+      pos = Integer.__ensure(args[1])
+      if pos < 0
+        pos += len
+        # Out of the subject at the negative end is a miss, and a miss
+        # clears the match globals.
+        return args[0].match(nil) if pos < 0
+      elsif pos > len
+        # Past the other end is not: `rindex` searches back from the end of
+        # the subject, and `mrb_str_byterindex_m()` clamps for the same
+        # reason.  `"abc".rindex(/b/, 10)` is 1.
+        pos = len
+      end
+    end
+    md = __regexp_rsearch(args[0], pos, false)
+    md && md.begin(0)
+  end
+
+  # Regexp-aware `byteindex`.  Falls back to the C-defined `byteindex`
+  # (aliased as `__byteindex` above) for every other argument form.
+  def byteindex(*args)
+    return __byteindex(*args) unless Regexp === args[0]
+    if args.length > 2
+      raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1..2)"
+    end
+    len = self.bytesize
+    pos = 0
+    if args.length > 1
+      pos = Integer.__ensure(args[1])
+      pos += len if pos < 0
+    end
+    # `__byte_match` takes the position as given and does not range check it,
+    # where `Regexp#match` answers nil for one outside the subject.  Both
+    # ends are a miss here, as they are for `mrb_str_byteindex_m()`.  An
+    # offset that lands inside a character is not an error: the C method does
+    # not check for one either, and on a build without MRB_UTF8_STRING there
+    # is nothing to check.
+    return args[0].match(nil) if pos < 0 || pos > len
+    md = args[0].__byte_match(self, pos)
+    md && md.__byte_begin(0)
+  end
+
+  # Regexp-aware `byterindex`.  Falls back to the C-defined `byterindex`
+  # (aliased as `__byterindex` above) for every other argument form.
+  def byterindex(*args)
+    return __byterindex(*args) unless Regexp === args[0]
+    if args.length > 2
+      raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1..2)"
+    end
+    len = self.bytesize
+    pos = len
+    if args.length > 1
+      pos = Integer.__ensure(args[1])
+      if pos < 0
+        pos += len
+        return args[0].match(nil) if pos < 0
+      elsif pos > len
+        pos = len
+      end
+    end
+    md = __regexp_rsearch(args[0], pos, true)
+    md && md.__byte_begin(0)
+  end
+
+  # Regexp-aware `partition`.  Falls back to the C-defined `partition`
+  # (aliased as `__partition` above) for every other argument.
+  def partition(sep)
+    return __partition(sep) unless Regexp === sep
+    md = sep.match(self)
+    # No match leaves the whole subject in the head, and the copy is a plain
+    # String even when the receiver is a subclass, as `mrb_str_dup()` and
+    # CRuby's `str_duplicate(rb_cString, str)` both hand back.
+    return [self.byteslice(0, self.bytesize), "", ""] unless md
+    [md.pre_match, md[0], md.post_match]
+  end
+
+  # Regexp-aware `rpartition`.  Falls back to the C-defined `rpartition`
+  # (aliased as `__rpartition` above) for every other argument.
+  def rpartition(sep)
+    return __rpartition(sep) unless Regexp === sep
+    # The last match anywhere in the subject, so the limit is its end and the
+    # walk below never stops early.
+    md = __regexp_rsearch(sep, self.length, false)
+    # No match puts the whole subject in the tail, which is the row this
+    # method is most often got wrong on.
+    return ["", "", self.byteslice(0, self.bytesize)] unless md
+    [md.pre_match, md[0], md.post_match]
+  end
+
+  # Regexp-aware `start_with?`.  Takes any mix of patterns and hands each
+  # non-regexp one to the C-defined `start_with?` (aliased as
+  # `__start_with?` above), one at a time, so that a String keeps the C
+  # comparison and its error and the arguments are still read left to right.
+  def start_with?(*args)
+    i = 0
+    while i < args.length
+      arg = args[i]
+      if Regexp === arg
+        # A regexp is anchored at the start, not searched for, while `match`
+        # searches forward from its position.  The engine matches leftmost,
+        # so a pattern that can match at 0 does, which makes `begin(0) == 0`
+        # the anchored answer rather than an approximation of it.
+        md = arg.match(self)
+        return true if md && md.begin(0) == 0
+        # A match further along is not an answer and CRuby leaves none
+        # behind for one, so clear what the search published.  Matching
+        # against nil is how a Regexp clears the globals.
+        arg.match(nil) if md
+      elsif __start_with?(arg)
+        return true
+      end
+      i += 1
+    end
+    false
   end
 end

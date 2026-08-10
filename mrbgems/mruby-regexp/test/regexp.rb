@@ -2737,3 +2737,346 @@ assert("String#slice! delegates every non-regexp argument") do
   assert_raise(TypeError) { "hello".slice!(nil) }
   assert_raise(FrozenError) { "hello".freeze.slice!(0) }
 end
+
+assert("String#index with regexp") do
+  assert_equal 1, "hello".index(/e/)
+  assert_equal 2, "hello".index(/l+/)
+  assert_nil "hello".index(/z/)
+  assert_equal 0, "hello".index(//)
+
+  # a start position, and a negative one counting back from the end
+  assert_equal 3, "hello".index(/l/, 3)
+  assert_equal 3, "hello".index(/l/, -2)
+  assert_nil "hello".index(/l/, 4)
+
+  # the end of the subject is a position a match can start at, and anything
+  # past either end is a miss
+  assert_equal 5, "hello".index(//, 5)
+  assert_nil "hello".index(//, 6)
+  assert_nil "hello".index(/l/, -10)
+end
+
+assert("String#rindex with regexp") do
+  assert_equal 3, "hello".rindex(/l/)
+  assert_nil "hello".rindex(/z/)
+  assert_equal 5, "hello".rindex(//)
+
+  # the last match and not the first, which is the whole of the difference
+  # from `index`
+  assert_equal 4, "abcabc".rindex(/b/)
+  # the last position a match starts at, so the longer match at 2 loses to
+  # the shorter one at 3
+  assert_equal 3, "hello".rindex(/l+/)
+  # and overlapping matches are in view: a walk that resumed at the match end
+  # would answer 0 here
+  assert_equal 1, "aaa".rindex(/aa/)
+
+  # the position bounds where the match starts, not where it ends
+  assert_equal 1, "abcabc".rindex(/bca/, 1)
+  assert_nil "abcabc".rindex(/bca/, 0)
+  assert_equal 2, "hello".rindex(/l/, 2)
+  assert_equal 3, "hello".rindex(/l/, -1)
+
+  # past the end of the subject clamps to it, where past the negative end is
+  # a miss
+  assert_equal 3, "hello".rindex(/l/, 10)
+  assert_nil "hello".rindex(/l/, -10)
+end
+
+assert("String#index and String#rindex with regexp set the match globals") do
+  assert_equal 1, "abc".index(/(b)/)
+  assert_equal "b", $1
+  assert_equal "b", Regexp.last_match(0)
+
+  # the match `rindex` stopped on, not one it walked past on the way there
+  assert_equal 4, "abcabc".rindex(/(b)/)
+  assert_equal 4, $~.begin(0)
+
+  # a failed match clears $~, which is why both search through `match` rather
+  # than `match?`
+  "zzz" =~ /z/
+  assert_nil "abc".index(/x/)
+  assert_nil $~
+  "zzz" =~ /z/
+  assert_nil "abc".rindex(/x/)
+  assert_nil $~
+
+  # so does a position that lands outside the subject
+  "zzz" =~ /z/
+  assert_nil "abc".index(/b/, 10)
+  assert_nil $~
+  "zzz" =~ /z/
+  assert_nil "abc".rindex(/b/, -10)
+  assert_nil $~
+
+  # and so does a match that starts past what the search asked for: `rindex`
+  # walks past it and does not leave it behind
+  "zzz" =~ /z/
+  assert_nil "abc".rindex(/c/, 1)
+  assert_nil $~
+end
+
+assert("String#index and String#rindex delegate every non-regexp argument") do
+  assert_equal 2, "hello".index("l")
+  assert_equal 3, "hello".index("l", 3)
+  assert_nil "hello".index("z")
+  assert_equal 3, "hello".rindex("l")
+  assert_equal 2, "hello".rindex("l", 2)
+  assert_nil "hello".rindex("z")
+
+  # a delegated call still gets the C arity check and the C errors
+  assert_raise(ArgumentError) { "hello".index }
+  assert_raise(ArgumentError) { "hello".rindex }
+  assert_raise(TypeError) { "hello".index(1) }
+  assert_raise(TypeError) { "hello".rindex(1) }
+  assert_raise(TypeError) { "hello".index("l", nil) }
+
+  # and the regexp form takes the arguments the C form takes
+  assert_raise(ArgumentError) { "hello".index(/l/, 1, 2) }
+  assert_raise(ArgumentError) { "hello".rindex(/l/, 1, 2) }
+  assert_raise(TypeError) { "hello".index(/l/, nil) }
+  assert_raise(TypeError) { "hello".rindex(/l/, nil) }
+
+  # `is_a?` is redefinable, so a Regexp denying its own type must still be
+  # searched for, and an object claiming to be one must not be
+  re = /l+/
+  def re.is_a?(klass); false; end
+  assert_equal 2, "hello".index(re)
+  assert_equal 3, "hello".rindex(re)
+
+  fake = Object.new
+  def fake.is_a?(klass); true; end
+  def fake.match(str, pos = 0); raise "must not be called"; end
+  assert_raise(TypeError) { "hello".index(fake) }
+  assert_raise(TypeError) { "hello".rindex(fake) }
+end
+
+assert("String#byteindex and String#byterindex with regexp") do
+  assert_equal 1, "hello".byteindex(/e/)
+  assert_nil "hello".byteindex(/z/)
+  assert_equal 3, "hello".byteindex(/l/, 3)
+  assert_equal 3, "hello".byteindex(/l/, -2)
+  assert_nil "hello".byteindex(/l/, 6)
+  assert_nil "hello".byteindex(/l/, -10)
+
+  assert_equal 3, "hello".byterindex(/l/)
+  assert_nil "hello".byterindex(/z/)
+  assert_equal 1, "aaa".byterindex(/aa/)
+  assert_equal 2, "hello".byterindex(/l/, 2)
+  assert_equal 3, "hello".byterindex(/l/, 10)
+  assert_nil "hello".byterindex(/l/, -10)
+
+  # the same two searches read in the other space.  They part company with
+  # `index` and `rindex` only on a build with MRB_UTF8_STRING, where the
+  # answer and the position argument are both byte offsets
+  if __ENCODING__ == "UTF-8"
+    assert_equal 1, "あいうあいう".index(/い/)
+    assert_equal 3, "あいうあいう".byteindex(/い/)
+    assert_equal 4, "あいうあいう".rindex(/い/)
+    assert_equal 12, "あいうあいう".byterindex(/い/)
+    assert_equal 12, "あいうあいう".byteindex(/い/, 6)
+    assert_equal 3, "あいうあいう".byterindex(/い/, 6)
+  end
+end
+
+assert("String#byteindex and String#byterindex with regexp set the match globals") do
+  assert_equal 1, "abc".byteindex(/(b)/)
+  assert_equal "b", $1
+  assert_equal 4, "abcabc".byterindex(/(b)/)
+  assert_equal 4, $~.begin(0)
+
+  "zzz" =~ /z/
+  assert_nil "abc".byteindex(/x/)
+  assert_nil $~
+  "zzz" =~ /z/
+  assert_nil "abc".byterindex(/x/)
+  assert_nil $~
+
+  # a position outside the subject and a match that starts past the one asked
+  # for both clear them too
+  "zzz" =~ /z/
+  assert_nil "abc".byteindex(/b/, 10)
+  assert_nil $~
+  "zzz" =~ /z/
+  assert_nil "abc".byterindex(/c/, 1)
+  assert_nil $~
+end
+
+assert("String#byteindex and String#byterindex delegate every non-regexp argument") do
+  assert_equal 2, "hello".byteindex("l")
+  assert_equal 3, "hello".byteindex("l", 3)
+  assert_nil "hello".byteindex("z")
+  assert_equal 3, "hello".byterindex("l")
+  assert_equal 2, "hello".byterindex("l", 2)
+  assert_nil "hello".byterindex("z")
+
+  assert_raise(ArgumentError) { "hello".byteindex }
+  assert_raise(ArgumentError) { "hello".byterindex }
+  assert_raise(TypeError) { "hello".byteindex(1) }
+  assert_raise(TypeError) { "hello".byterindex(1) }
+  assert_raise(ArgumentError) { "hello".byteindex(/l/, 1, 2) }
+  assert_raise(ArgumentError) { "hello".byterindex(/l/, 1, 2) }
+  assert_raise(TypeError) { "hello".byteindex(/l/, nil) }
+  assert_raise(TypeError) { "hello".byterindex(/l/, nil) }
+
+  re = /l+/
+  def re.is_a?(klass); false; end
+  assert_equal 2, "hello".byteindex(re)
+  assert_equal 3, "hello".byterindex(re)
+
+  fake = Object.new
+  def fake.is_a?(klass); true; end
+  def fake.match(str, pos = 0); raise "must not be called"; end
+  assert_raise(TypeError) { "hello".byteindex(fake) }
+  assert_raise(TypeError) { "hello".byterindex(fake) }
+end
+
+assert("String#partition and String#rpartition with regexp") do
+  assert_equal ["he", "ll", "o"], "hello".partition(/l+/)
+  assert_equal ["hell", "o", ""], "hello".partition(/o/)
+  assert_equal ["hel", "l", "o"], "hello".rpartition(/l/)
+  assert_equal ["hello w", "o", "rld"], "hello world".rpartition(/o/)
+
+  # the three pieces come from the match itself, so a capture group changes
+  # nothing about where the subject is cut
+  assert_equal ["he", "llo", ""], "hello".partition(/(l+)(o)/)
+
+  # `rpartition` takes the last match, overlapping ones included
+  assert_equal ["", "aa", "a"], "aaa".partition(/aa/)
+  assert_equal ["a", "aa", ""], "aaa".rpartition(/aa/)
+
+  # no match leaves the subject whole: at the head for `partition` and at the
+  # tail for `rpartition`
+  assert_equal ["hello", "", ""], "hello".partition(/z/)
+  assert_equal ["", "", "hello"], "hello".rpartition(/z/)
+  assert_equal ["", "", ""], "".partition(/z/)
+  assert_equal ["", "", ""], "".rpartition(/z/)
+
+  # an empty match still cuts, at the first position for one and at the last
+  # for the other
+  assert_equal ["", "", "hello"], "hello".partition(//)
+  assert_equal ["hello", "", ""], "hello".rpartition(//)
+
+  # the unmatched subject comes back as a copy, and every piece is a plain
+  # String even for a subclass receiver, as in CRuby
+  s = "hello"
+  assert_false s.partition(/z/)[0].equal?(s)
+  sub = Class.new(String)
+  assert_equal [String, String, String], sub.new("hello").partition(/l/).map { |x| x.class }
+  assert_equal [String, String, String], sub.new("hello").rpartition(/z/).map { |x| x.class }
+end
+
+assert("String#partition and String#rpartition with regexp set the match globals") do
+  assert_equal ["a", "b", "cabc"], "abcabc".partition(/(b)/)
+  assert_equal 1, $~.begin(0)
+  assert_equal "b", $1
+
+  # the match `rpartition` stopped on, not one it walked past on the way there
+  assert_equal ["abca", "b", "c"], "abcabc".rpartition(/(b)/)
+  assert_equal 4, $~.begin(0)
+
+  "zzz" =~ /z/
+  assert_equal ["abc", "", ""], "abc".partition(/x/)
+  assert_nil $~
+  "zzz" =~ /z/
+  assert_equal ["", "", "abc"], "abc".rpartition(/x/)
+  assert_nil $~
+end
+
+assert("String#partition and String#rpartition delegate every non-regexp argument") do
+  assert_equal ["he", "ll", "o"], "hello".partition("ll")
+  assert_equal ["hello", "", ""], "hello".partition("z")
+  assert_equal ["hel", "l", "o"], "hello".rpartition("l")
+  assert_equal ["", "", "hello"], "hello".rpartition("z")
+
+  assert_raise(ArgumentError) { "hello".partition }
+  assert_raise(ArgumentError) { "hello".rpartition }
+  assert_raise(ArgumentError) { "hello".partition(/l/, 1) }
+  assert_raise(ArgumentError) { "hello".rpartition(/l/, 1) }
+  assert_raise(TypeError) { "hello".partition(1) }
+  assert_raise(TypeError) { "hello".rpartition(1) }
+
+  re = /l+/
+  def re.is_a?(klass); false; end
+  assert_equal ["he", "ll", "o"], "hello".partition(re)
+  assert_equal ["hel", "l", "o"], "hello".rpartition(re)
+
+  fake = Object.new
+  def fake.is_a?(klass); true; end
+  def fake.match(str, pos = 0); raise "must not be called"; end
+  assert_raise(TypeError) { "hello".partition(fake) }
+  assert_raise(TypeError) { "hello".rpartition(fake) }
+end
+
+assert("String#start_with? with regexp") do
+  assert_true "hello".start_with?(/h/)
+  assert_true "hello".start_with?(/hel+/)
+  assert_true "hello".start_with?(//)
+  assert_false "hello".start_with?(/z/)
+
+  # anchored at the start rather than searched for, so a pattern that matches
+  # further along is not an answer
+  assert_false "hello".start_with?(/e/)
+  assert_true "hello".start_with?(/^h/)
+  assert_false "abc\ndef".start_with?(/^d/)
+
+  # several patterns, read left to right, in any mix of the two kinds
+  assert_true "hello".start_with?(/z/, /h/)
+  assert_true "hello".start_with?("z", /h/)
+  assert_true "hello".start_with?(/h/, "z")
+  assert_false "hello".start_with?(/z/, "z")
+  assert_false "hello".start_with?
+
+  # an argument after the one that answers is never looked at
+  assert_true "hello".start_with?(/h/, 1)
+
+  # `end_with?` is not part of this family: CRuby rejects a Regexp there too
+  assert_raise(TypeError) { "hello".end_with?(/o/) }
+end
+
+assert("String#start_with? with regexp sets the match globals") do
+  assert_true "hello".start_with?(/(h)(e)/)
+  assert_equal "h", $1
+  assert_equal "e", $2
+
+  # the pattern that answered, after the ones before it failed
+  assert_true "hello".start_with?(/z/, /(h)/)
+  assert_equal "h", $1
+
+  "zzz" =~ /z/
+  assert_false "hello".start_with?(/z/)
+  assert_nil $~
+
+  # a pattern that matches further along is refused, and its match is not
+  # left behind either
+  "zzz" =~ /z/
+  assert_false "hello".start_with?(/e/)
+  assert_nil $~
+
+  # a non-regexp argument leaves them as they were
+  "zzz" =~ /z/
+  assert_true "hello".start_with?("he")
+  assert_equal "z", $~[0]
+  "zzz" =~ /z/
+  assert_false "hello".start_with?
+  assert_equal "z", $~[0]
+end
+
+assert("String#start_with? delegates every non-regexp argument") do
+  assert_true "hello".start_with?("he")
+  assert_false "hello".start_with?("z")
+  assert_true "hello".start_with?("z", "he")
+  assert_raise(TypeError) { "hello".start_with?(1) }
+
+  re = /l+/
+  def re.is_a?(klass); false; end
+  assert_false "hello".start_with?(re)
+  head = /h/
+  def head.is_a?(klass); false; end
+  assert_true "hello".start_with?(head)
+
+  fake = Object.new
+  def fake.is_a?(klass); true; end
+  def fake.match(str, pos = 0); raise "must not be called"; end
+  assert_raise(TypeError) { "hello".start_with?(fake) }
+end

@@ -95,6 +95,17 @@ str[re] = repl                    # replace the match
 str[re, capture] = repl           # replace a capture by index or name
 str.slice!(re)                    # remove and return the match, or nil
 str.slice!(re, capture)           # same, for a capture by index or name
+str.index(re)                     # => match start, or nil
+str.index(re, pos)                # => same, searching from pos
+str.rindex(re)                    # => last match start, or nil
+str.rindex(re, pos)               # => last match starting at or before pos
+str.byteindex(re)                 # => match start in bytes, or nil
+str.byteindex(re, pos)            # => same, searching from byte pos
+str.byterindex(re)                # => last match start in bytes, or nil
+str.byterindex(re, pos)           # => same, at or before byte pos
+str.partition(re)                 # => [before, match, after]
+str.rpartition(re)                # => [before, last match, after]
+str.start_with?(re)               # => true/false (anchored at the start)
 
 # Symbol methods (the String methods applied to the symbol's name)
 sym.match(re)                     # => MatchData or nil
@@ -146,6 +157,11 @@ pattern analysis.
   CRuby declines to fold across a width change there.
 - **Step limit on backtracking**: Patterns that require the
   backtracking engine are subject to a step limit.
+- **Backward search walks forward**: the engine searches forward only,
+  so `rindex`, `byterindex` and `rpartition` walk the subject from the
+  start and keep the last match that qualifies. The cost grows with the
+  number of positions a match starts at, where CRuby hands the search to
+  Onig.
 - **No inline extended mode**: `(?x)` and `(?x:...)` raise a
   `RegexpError`, because extended mode is applied to the whole pattern
   before it is parsed. A `-x` is accepted and ignored, so inside a
