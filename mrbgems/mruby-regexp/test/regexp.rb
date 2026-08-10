@@ -2330,6 +2330,7 @@ assert("Regexp - overlong UTF-8 is not the character it spells") do
   assert_equal 2, "\xC0\xBC".scan(/./).size
   assert_equal 3, "\xED\xA0\x80".scan(/./).size
   assert_equal 4, "\xF0\x80\x80\xBC".scan(/./).size
+  assert_equal 4, "\xF4\x90\x80\x80".scan(/./).size
   assert_equal 4, "\xF5\x80\x80\x80".scan(/./).size
   # the shortest spelling on each side of those bounds is still one character
   assert_equal 1, "\u{0080}".scan(/./).size    # C2 80
