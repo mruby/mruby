@@ -670,6 +670,44 @@ assert("Regexp - quantifier on an invalid multibyte literal") do
   assert_equal 2, "Ā".match(/./)[0].bytesize
 end
 
+assert("Regexp - a byte that belongs to no character is a match position") do
+  # A byte in 0x80-0xBF is the interior of a character only while a lead byte
+  # in front of it reaches that far. One that stands on its own is a boundary
+  # like any other, and the engines used to disagree about it: the literal
+  # fast path matched there, the NFA never started a match there.
+  b = "\x81"
+  assert_equal 0, (b + b).match(Regexp.new(b + b)).begin(0)
+  assert_equal 2, (b + b).match(Regexp.new(b + "+"))[0].bytesize
+  assert_equal 2, (b + b).match(Regexp.new(b + "*"))[0].bytesize
+  assert_equal 1, (b + b).match(Regexp.new(b + "?"))[0].bytesize
+  assert_equal 1, ("x" + b + b).match(Regexp.new(b + "+")).begin(0)
+  # Inside a character there is still no match position.
+  assert_nil "あ".match(Regexp.new("\x81"))
+  assert_nil "あ".match(Regexp.new("\x82"))
+  assert_nil "\u{1D54F}".match(Regexp.new("\x95"))
+  # Next to one there is.
+  assert_equal 0, (b + "あ").match(Regexp.new(b)).begin(0)
+  # Through pre_match, since #begin counts characters where the build has
+  # them and bytes where it does not.
+  assert_equal 3, ("あ" + b).match(Regexp.new(b)).pre_match.bytesize
+end
+
+assert("Regexp - an attempt in flight opens no match position inside a character") do
+  # "ĵ" is C4 B5 and "µ" is C2 B5, so the two share their trailing byte. That
+  # byte is the interior of "ĵ" and no match may start there, but the test
+  # for it only ran while nothing was in flight. The branch of `.?` that
+  # consumes the character parks a thread past it, and the attempt seeded at
+  # the shared byte then matched it on its own, cutting "ĵ" in half.
+  assert_nil "ĵ".match(/.?[µ]/)
+  assert_nil "ĵ".gsub(/.?[µ]/, "!").match(/!/)
+  assert_nil ("あ" + "ĵ").match(/.?[µ]/)
+  # A character the class does hold is still found through the same branch.
+  assert_equal 4, ("ĵ" + "µ").match(/.?[µ]/)[0].bytesize
+  assert_equal 5, ("あ" + "µ").match(/.?[µ]/)[0].bytesize
+  # And so is the byte itself where no lead byte reaches it.
+  assert_equal 2, ("x" + "\xb5").match(/.?[µ]/)[0].bytesize
+end
+
 assert("Regexp - multibyte (UTF-8) match extraction") do
   # Capture offsets are recorded in bytes; substring extraction must honor
   # them as byte ranges so multibyte matches are not corrupted.

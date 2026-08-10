@@ -160,10 +160,20 @@ mrb_re_decode_char(const char *s, const char *end, int *len, mrb_bool binary)
   return mrb_re_utf8_decode(s, end, len);
 }
 
+/* TRUE when s points into the middle of a character that starts earlier in
+   the string, so it is not a place a match may start at. A byte that looks
+   like a continuation byte but follows no lead byte that reaches it belongs
+   to no character and stands on its own. */
 static inline mrb_bool
-mrb_re_utf8_continuation_p(const char *s)
+mrb_re_utf8_interior_p(const char *str, const char *s, const char *end)
 {
-  return (((uint8_t)*s & 0xC0) == 0x80);
+  if (((uint8_t)*s & 0xC0) != 0x80) return FALSE;
+  for (int back = 1; back <= 3 && back <= s - str; back++) {
+    const char *lead = s - back;
+    if (((uint8_t)*lead & 0xC0) == 0x80) continue;  /* another continuation byte */
+    return mrb_re_utf8_charlen(lead, end) > back;
+  }
+  return FALSE;
 }
 
 /* Execute a match.
