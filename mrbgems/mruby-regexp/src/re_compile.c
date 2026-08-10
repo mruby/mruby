@@ -380,6 +380,17 @@ posix_class_bits(uint8_t *bits, const char *name, size_t len)
 #undef BRANGE
 }
 
+/* Value of one hex digit, or -1 for anything else (including the -1 that
+   peek() returns at the end of the pattern). */
+static int
+hex_value(int ch)
+{
+  if (ch >= '0' && ch <= '9') return ch - '0';
+  if (ch >= 'a' && ch <= 'f') return ch - 'a' + 10;
+  if (ch >= 'A' && ch <= 'F') return ch - 'A' + 10;
+  return -1;
+}
+
 static int
 parse_escape(re_compiler *c)
 {
@@ -419,12 +430,8 @@ parse_escape(re_compiler *c)
     int val = 0;
     int n = 0;
     while (n < 2) {
-      int d = peek(c);
-      int v;
-      if (d >= '0' && d <= '9') v = d - '0';
-      else if (d >= 'a' && d <= 'f') v = d - 'a' + 10;
-      else if (d >= 'A' && d <= 'F') v = d - 'A' + 10;
-      else break;
+      int v = hex_value(peek(c));
+      if (v < 0) break;
       val = val * 16 + v;
       next_char(c);
       n++;
@@ -433,6 +440,16 @@ parse_escape(re_compiler *c)
   }
   default: return ch;  /* literal: \., \\, \/, \(, etc. */
   }
+}
+
+/* Add one codepoint to the class: the ASCII bitmap and the codepoint range
+   list each hold one side of 128, and class_match() picks the side to read
+   from the codepoint alone. */
+static void
+class_add_member(re_compiler *c, re_charclass *cc, uint32_t cp)
+{
+  if (cp < 128) class_set_bit(cc, (uint8_t)cp);
+  else class_add_codepoint(c, cc, cp);
 }
 
 /* Read one character class atom: either an ASCII byte (0-127), a
@@ -537,8 +554,7 @@ compile_charclass(re_compiler *c)
       }
     }
     else {
-      if (cp < 128) class_set_bit(cc, (uint8_t)cp);
-      else class_add_codepoint(c, cc, cp);
+      class_add_member(c, cc, cp);
     }
   }
   next_char(c);  /* skip ']' */
@@ -772,6 +788,24 @@ parse_inline_flags(re_compiler *c, uint32_t base)
   }
   if (!seen) compile_error(c, "undefined (?...) sequence");
   return (base | on) & ~off;
+}
+
+/* Emit one byte as an atom, for a character that is a single byte. Under /i an
+   ASCII letter becomes a class of its case counterparts instead, so any of them
+   matches. The multibyte spelling of the same job is emit_char_bytes() below. */
+static void
+emit_char(re_compiler *c, uint8_t ch)
+{
+  if ((c->flags & RE_FLAG_IGNORECASE) &&
+      ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z'))) {
+    uint16_t id = add_class(c);
+    class_set_bit(&c->classes[id], ch);
+    class_set_bit(&c->classes[id], (uint8_t)(ch ^ 0x20));  /* the other case */
+    class_add_fold_counterparts(c, id, ch);
+    emit(c, RE_CLASS, (uint8_t)id, 0);
+    return;
+  }
+  emit(c, RE_CHAR, ch, 0);
 }
 
 /* Emit every byte of the character whose lead byte `ch` was just consumed, so
@@ -1124,26 +1158,7 @@ compile_atom(re_compiler *c)
       if (!emit_char_folded(c, ch)) emit_char_bytes(c, ch);
     }
     else {
-      ch = parse_escape(c);
-      if (c->flags & RE_FLAG_IGNORECASE) {
-        if (ch >= 'A' && ch <= 'Z') {
-          uint16_t id = add_class(c);
-          class_set_bit(&c->classes[id], (uint8_t)ch);
-          class_set_bit(&c->classes[id], (uint8_t)(ch + 32));
-          class_add_fold_counterparts(c, id, (uint32_t)ch);
-          emit(c, RE_CLASS, (uint8_t)id, 0);
-          break;
-        }
-        else if (ch >= 'a' && ch <= 'z') {
-          uint16_t id = add_class(c);
-          class_set_bit(&c->classes[id], (uint8_t)ch);
-          class_set_bit(&c->classes[id], (uint8_t)(ch - 32));
-          class_add_fold_counterparts(c, id, (uint32_t)ch);
-          emit(c, RE_CLASS, (uint8_t)id, 0);
-          break;
-        }
-      }
-      emit(c, RE_CHAR, (uint8_t)ch, 0);
+      emit_char(c, (uint8_t)parse_escape(c));
     }
     break;
 
@@ -1170,29 +1185,11 @@ compile_atom(re_compiler *c)
       return;  /* not an atom */
     }
     next_char(c);
-    if ((c->flags & RE_FLAG_IGNORECASE) && ch < 128) {
-      if (ch >= 'A' && ch <= 'Z') {
-        uint16_t id = add_class(c);
-        class_set_bit(&c->classes[id], (uint8_t)ch);
-        class_set_bit(&c->classes[id], (uint8_t)(ch + 32));
-        class_add_fold_counterparts(c, id, (uint32_t)ch);
-        emit(c, RE_CLASS, (uint8_t)id, 0);
-        break;
-      }
-      else if (ch >= 'a' && ch <= 'z') {
-        uint16_t id = add_class(c);
-        class_set_bit(&c->classes[id], (uint8_t)ch);
-        class_set_bit(&c->classes[id], (uint8_t)(ch - 32));
-        class_add_fold_counterparts(c, id, (uint32_t)ch);
-        emit(c, RE_CLASS, (uint8_t)id, 0);
-        break;
-      }
-    }
     if (ch >= 128) {
       if (!emit_char_folded(c, ch)) emit_char_bytes(c, ch);
       break;
     }
-    emit(c, RE_CHAR, (uint8_t)ch, 0);
+    emit_char(c, (uint8_t)ch);
     break;
   }
 }
