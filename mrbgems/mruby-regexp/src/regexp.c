@@ -448,13 +448,23 @@ regexp_s_search(mrb_state *mrb, mrb_value klass)
   return exec_match(mrb, re, str, pos);
 }
 
+/*
+ * Regexp.__byte_search(re, str, pos = 0)
+ *
+ * Internal: the byte-offset search the mrblib loops of `gsub`, `split` and
+ * `byteindex` drive themselves. No position normalization, because the
+ * callers already work in byte space, and no operand conversion, because
+ * they always pass a String.
+ */
 static mrb_value
-regexp_match_byte(mrb_state *mrb, mrb_value self)
+regexp_s_byte_search(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value str;
+  mrb_value re, str;
   mrb_int pos = 0;
-  mrb_get_args(mrb, "S|i", &str, &pos);
-  return exec_match(mrb, self, str, pos);
+
+  mrb_get_args(mrb, "oS|i", &re, &str, &pos);
+  check_regexp_arg(mrb, re);
+  return exec_match(mrb, re, str, pos);
 }
 
 /*
@@ -887,8 +897,8 @@ matchdata_byte_end(mrb_state *mrb, mrb_value self)
 }
 
 /* Private: republish $~ and the thirteen names derived from it. Used by the
-   mrblib loops that drive __byte_match themselves, where the failing call
-   that ends the loop clears the match the loop is supposed to leave behind.
+   mrblib loops that drive Regexp.__byte_search themselves, where the failing
+   call that ends the loop clears the match the loop is supposed to leave behind.
    The names other than $~ are not assignable from Ruby, so restoring them
    has to come from here. */
 static mrb_value
@@ -1338,10 +1348,10 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, re, "__binary_string?", regexp_binary_string_p, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, re, "__check_pattern", regexp_check_pattern, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, re, "__search", regexp_s_search, MRB_ARGS_ARG(2, 1));
+  mrb_define_class_method(mrb, re, "__byte_search", regexp_s_byte_search, MRB_ARGS_ARG(2, 1));
 
   /* Instance methods */
   mrb_define_method(mrb, re, "match", regexp_match, MRB_ARGS_ARG(1, 1)|MRB_ARGS_BLOCK());
-  mrb_define_method(mrb, re, "__byte_match", regexp_match_byte, MRB_ARGS_ARG(1, 1));
   mrb_define_method(mrb, re, "match?", regexp_match_p, MRB_ARGS_ARG(1, 1));
   mrb_define_method(mrb, re, "=~", regexp_match_op, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, re, "===", regexp_case_match, MRB_ARGS_REQ(1));

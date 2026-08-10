@@ -174,13 +174,13 @@ class String
     pos = 0
     len = self.bytesize
     binary = Regexp.__binary_string?(self)
-    # The loop normally ends on a failed __byte_match, which clears $~ and the
-    # thirteen names that go with it. CRuby leaves the last match behind, so
-    # keep it and republish it below. A gsub that matched nothing has nothing
-    # to restore and keeps the cleared state, as CRuby does.
+    # The loop normally ends on a failed __byte_search, which clears $~ and
+    # the thirteen names that go with it. CRuby leaves the last match behind,
+    # so keep it and republish it below. A gsub that matched nothing has
+    # nothing to restore and keeps the cleared state, as CRuby does.
     last = nil
     while pos <= len
-      md = pattern.__byte_match(self, pos)
+      md = Regexp.__byte_search(pattern, self, pos)
       break unless md
       last = md
       # gsub works in byte space (match pos, byteslice). begin/end report
@@ -283,7 +283,7 @@ class String
         result << (self.byteslice(field_start..-1) || "")
         return result
       end
-      md = pattern.__byte_match(self, search_pos)
+      md = Regexp.__byte_search(pattern, self, search_pos)
       break unless md
       match_start = md.__byte_begin(0)
       match_end = md.__byte_end(0)
@@ -549,14 +549,14 @@ class String
       pos = Integer.__ensure(args[1])
       pos += len if pos < 0
     end
-    # `__byte_match` takes the position as given and does not range check it,
-    # where `Regexp.__search` answers nil for one outside the subject.  Both
-    # ends are a miss here, as they are for `mrb_str_byteindex_m()`.  An
+    # `__byte_search` takes the position as given and does not range check
+    # it, where `Regexp.__search` answers nil for one outside the subject.
+    # Both ends are a miss here, as they are for `mrb_str_byteindex_m()`.  An
     # offset that lands inside a character is not an error: the C method does
     # not check for one either, and on a build without MRB_UTF8_STRING there
     # is nothing to check.
     return Regexp.__search(args[0], nil) if pos < 0 || pos > len
-    md = args[0].__byte_match(self, pos)
+    md = Regexp.__byte_search(args[0], self, pos)
     md && md.__byte_begin(0)
   end
 

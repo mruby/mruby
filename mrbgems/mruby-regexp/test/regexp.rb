@@ -3113,3 +3113,12 @@ assert("String overrides search a pattern whose `match` was rewritten") do
   assert_equal "heXo", s.gsub!(quiet, "X")
   assert_equal "heXo", s
 end
+
+assert("String overrides search a pattern whose `__byte_match` was rewritten") do
+  r = /l+/
+  def r.__byte_match(*args); "PWNED"; end
+
+  assert_equal "heLLo", "hello".gsub(r) { |m| m.upcase }
+  assert_equal ["he", "o"], "hello".split(r)
+  assert_equal 2, "hello".byteindex(r)
+end
