@@ -79,6 +79,26 @@ assert('String#rstrip!') do
   assert_equal("  abc", t)
 end
 
+assert('String#strip! family on a shared buffer') do
+  # A substring shares the parent's heap buffer, so the strip family must read
+  # the buffer pointer after mrb_str_modify unshares it. Reading it before means
+  # the copy and the terminator land in the parent's buffer instead.
+  base = ".        abcdefghijklmnopqrstuvwxyz0123456789"
+  view = base[1..-1]
+  assert_equal("abcdefghijklmnopqrstuvwxyz0123456789", view.lstrip!)
+  assert_equal(".        abcdefghijklmnopqrstuvwxyz0123456789", base)
+
+  base = "abcdefghijklmnopqrstuvwxyz0123456789        ."
+  view = base[0..-2]
+  assert_equal("abcdefghijklmnopqrstuvwxyz0123456789", view.rstrip!)
+  assert_equal("abcdefghijklmnopqrstuvwxyz0123456789        .", base)
+
+  base = ".        abcdefghijklmnopqrstuvwxyz0123456789        ."
+  view = base[1..-2]
+  assert_equal("abcdefghijklmnopqrstuvwxyz0123456789", view.strip!)
+  assert_equal(".        abcdefghijklmnopqrstuvwxyz0123456789        .", base)
+end
+
 assert('String#swapcase') do
   assert_equal "hELLO", "Hello".swapcase
   assert_equal "CyBeR_pUnK11", "cYbEr_PuNk11".swapcase
