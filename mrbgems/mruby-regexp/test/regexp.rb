@@ -751,6 +751,39 @@ assert("Regexp - an attempt in flight opens no match position inside a character
   assert_equal 2, ("x" + "\xb5").match(/.?[µ]/)[0].bytesize
 end
 
+assert("Regexp - a match does not end inside a character") do
+  # A pattern is compiled byte by byte and RE_CHAR consumes one byte, so a
+  # pattern holding a byte that reaches no character ends its match in the
+  # middle of one. "ĵ" is C4 B5, and a pattern of the single byte C4 used to
+  # match its lead byte alone and hand back half a character.
+  j = "ĵ"
+  assert_nil j.match(Regexp.new("\xc4"))          # literal fast path
+  assert_nil ("x" + j).match(Regexp.new("\xc4"))
+  assert_nil j.match(Regexp.new("\xc4+"))         # pike VM
+  assert_nil j.match(Regexp.new("(\xc4)\\1?"))    # backtracking engine
+  assert_equal j.bytes, j.gsub(Regexp.new("\xc4"), "!").bytes
+  # A branch that does end on a boundary still matches, greedy or not.
+  assert_equal 2, j.match(Regexp.new("\xc4."))[0].bytesize
+  assert_equal 2, j.match(Regexp.new("\xc4(?:\xb5)?"))[0].bytesize
+  assert_equal 2, j.match(Regexp.new("\xc4(?:\xb5)??"))[0].bytesize
+  assert_equal 2, j.match(Regexp.new("(\xc4\xb5)\\1?"))[0].bytesize
+  assert_equal 0, j.match(Regexp.new("\xc4*"))[0].bytesize
+  # A lookaround ends at a position without consuming it, so it is not the
+  # end of the match and keeps its own answer.
+  assert_equal 2, j.match(Regexp.new("(?=\xc4)\xc4\xb5"))[0].bytesize
+  # A byte no lead byte reaches is a boundary, so a byte pattern still works.
+  b = "\x81"
+  assert_equal 1, (b + b).match(Regexp.new(b))[0].bytesize
+  assert_equal 2, (b + b).match(Regexp.new(b + "+"))[0].bytesize
+  assert_equal 1, ("a" + b).match(Regexp.new(b))[0].bytesize
+  # Read as binary every position is a boundary, so nothing changes there.
+  if Object.const_defined?(:Encoding)
+    bin = j.dup.force_encoding("ASCII-8BIT")
+    assert_equal 1, bin.match(Regexp.new("\xc4"))[0].bytesize
+    assert_equal 2, bin.match(Regexp.new("\xc4."))[0].bytesize
+  end
+end
+
 assert("Regexp - multibyte (UTF-8) match extraction") do
   # Capture offsets are recorded in bytes; substring extraction must honor
   # them as byte ranges so multibyte matches are not corrupted.
