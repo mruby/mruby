@@ -278,6 +278,7 @@ class String
     search_pos = 0
     len = self.bytesize
     count = 0
+    binary = Regexp.__binary_string?(self)
     while search_pos <= len
       if limit > 0 && count >= limit - 1
         result << (self.byteslice(field_start..-1) || "")
@@ -289,12 +290,20 @@ class String
       match_end = md.__byte_end(0)
 
       if match_start == match_end
-        rest = self.byteslice(match_end..-1)
-        if rest && rest.bytesize > 0
-          char = rest[0]
-          search_pos = match_end + char.bytesize
-        else
+        if binary
+          # A byte-indexed subject has one position per byte, and the step
+          # below reads the rest of it as UTF-8: `byteslice` hands back a
+          # string without the flag, so its first element is a whole character
+          # again. `gsub` steps by a byte here for the same reason.
           search_pos = match_end + 1
+        else
+          rest = self.byteslice(match_end..-1)
+          if rest && rest.bytesize > 0
+            char = rest[0]
+            search_pos = match_end + char.bytesize
+          else
+            search_pos = match_end + 1
+          end
         end
         next if match_start == field_start
       end

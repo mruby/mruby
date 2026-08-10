@@ -918,6 +918,21 @@ assert("String#split - regexp search position is byte-based internally") do
   assert_equal ["あ", ",", "い", ",", "う"], "あ,い,う".split(/(,)/)
 end
 
+assert("String#split - a byte-indexed subject is split by byte") do
+  skip unless __ENCODING__ == "UTF-8"
+  # An empty match steps to the next position, and `String#b` makes every byte
+  # one. The step read the subject as UTF-8 and cleared a whole character,
+  # so a four-byte string came back in one piece.
+  s = "\u{1F600}".b   # F0 9F 98 80: four bytes, one character
+  assert_equal ["\xF0".b, "\x9F".b, "\x98".b, "\x80".b], s.split(//)
+  assert_equal 4, s.split(//).size
+  assert_equal ["a".b, "\xC3".b, "\xA9".b, "b".b], "a\u{E9}b".b.split(//)
+  # a subject read as UTF-8 is still split by character
+  assert_equal ["\u{1F600}"], "\u{1F600}".split(//)
+  # and the limit still counts fields, not bytes
+  assert_equal ["\xF0".b, "\x9F\x98\x80".b], s.split(//, 2)
+end
+
 assert("Regexp.escape") do
   assert_equal "a\\.b\\*c", Regexp.escape("a.b*c")
 
