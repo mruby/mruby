@@ -15,10 +15,21 @@ assert("Regexp - Unicode case folding under /i") do
   # Inside a class, and its negation.
   assert_equal "ā", "ā".match(/[Ā]/i)[0]
   assert_nil "ā".match(/[^Ā]/i)
+  # Three codepoints share one fold: U+03A3 and U+03C2 both fold to U+03C3.
+  # A class written with any of them has to reach the other two, which takes
+  # the fold they share as a stepping stone rather than one hop from what was
+  # written.
+  assert_equal "ς", "ς".match(/[Σ]/i)[0]
+  assert_equal "Σ", "Σ".match(/[ς]/i)[0]
+  assert_nil "ς".match(/[^Σ]/i)
   # U+0103 folds from U+0102, which the range holds, so /i reaches it even
   # though it sits past the upper bound itself.
   assert_equal "ă", "ă".match(/[Ā-Ă]/i)[0]
   assert_nil "ą".match(/[Ā-Ă]/i)
+  # A range straddling the ASCII boundary folds on both sides of the split.
+  assert_equal "A", "A".match(/[a-Ā]/i)[0]
+  assert_equal "à", "à".match(/[a-Ā]/i)[0]
+  assert_equal "ā", "ā".match(/[a-Ā]/i)[0]
   # A counterpart of a different byte length: U+212A folds to 'k' and U+017F
   # to 's', so the two sides of the choice are 3 and 1, and 2 and 1, bytes.
   assert_equal "K", "K".match(/k/i)[0]

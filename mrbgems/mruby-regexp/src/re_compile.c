@@ -551,21 +551,39 @@ compile_charclass(re_compiler *c)
     }
 
 #ifdef MRB_REGEXP_UNICODE_CASE
-    /* Then the Unicode foldings. The codepoint list is read from a snapshot of
-       its length, since adding counterparts appends to the same list and an
-       unbounded walk would keep folding what it just added. The bitmap needs
-       no snapshot: the ASCII pass above has already closed it under folding,
-       and a counterpart landing in it (U+017F into 's') adds no new source. */
+    /* Then the Unicode foldings, which close the class rather than take one
+       hop from what was written: x belongs to the class whenever some member
+       folds the same way x does. That takes two rounds, because a fold can
+       have more than one source (U+03A3 and U+03C2 both fold to U+03C3), and
+       a class written with one of them reaches the others only through the
+       fold they share. The first round puts that shared fold in the class;
+       the second pulls in everything that folds to it. A third round would
+       find nothing: whatever the second adds folds to something the first
+       already added.
+
+       Each round reads the codepoint list from a snapshot of its length,
+       since the additions append to the same list and an unbounded walk would
+       keep folding what it just added. */
     class_fold_sink sink = { c, cc };
     uint32_t nranges = cc->num_ranges;
     for (uint32_t i = 0; i < nranges; i++) {
-      uint32_t lo = cc->ranges[2 * i], hi = cc->ranges[2 * i + 1];
-      mrb_re_case_unfold_range(lo, hi, class_fold_add, &sink);
+      mrb_re_case_fold_range(cc->ranges[2 * i], cc->ranges[2 * i + 1],
+                             class_fold_add, &sink);
     }
-    /* An ASCII bit can have a non-ASCII counterpart, which the pass above
-       cannot reach because the bitmap holds no ranges to walk. */
+
+    nranges = cc->num_ranges;
+    for (uint32_t i = 0; i < nranges; i++) {
+      mrb_re_case_unfold_range(cc->ranges[2 * i], cc->ranges[2 * i + 1],
+                               class_fold_add, &sink);
+    }
+    /* An ASCII member can have a non-ASCII source (U+212A folds to 'k'),
+       which the walk above cannot reach: the bitmap holds no ranges. The
+       bitmap is read upwards, so an upper case letter set here is behind the
+       cursor and is never asked for sources of its own, which is correct:
+       nothing folds to an upper case letter. */
     for (int ch = 0; ch < 128; ch++) {
       if (!class_get_bit(cc, (uint8_t)ch)) continue;
+      if (ch >= 'a' && ch <= 'z') class_set_bit(cc, (uint8_t)(ch - 32));
       mrb_re_case_unfold_range((uint32_t)ch, (uint32_t)ch, class_fold_add, &sink);
     }
 #endif

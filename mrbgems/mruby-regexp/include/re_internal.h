@@ -172,6 +172,14 @@ mrb_bool mrb_re_is_word_char(uint32_t c);
 #define RE_MAX_UNFOLD 4
 uint32_t mrb_re_case_fold(uint32_t cp);
 int mrb_re_case_unfold(uint32_t cp, uint32_t *out, int max);
+
+/* The same two directions over a span rather than one codepoint, reporting
+   what they find by calling add() with each span of it. mrb_re_case_fold_range
+   reports the folds of the sources in [lo, hi], mrb_re_case_unfold_range the
+   sources of the folds in [lo, hi]. Spans may repeat or overlap what the
+   caller already holds; the caller merges. */
+void mrb_re_case_fold_range(uint32_t lo, uint32_t hi,
+                            void (*add)(void *, uint32_t, uint32_t), void *user);
 void mrb_re_case_unfold_range(uint32_t lo, uint32_t hi,
                               void (*add)(void *, uint32_t, uint32_t), void *user);
 #endif

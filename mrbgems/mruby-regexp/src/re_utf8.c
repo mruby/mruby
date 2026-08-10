@@ -148,11 +148,38 @@ mrb_re_case_unfold(uint32_t cp, uint32_t *out, int max)
   return n;
 }
 
-/* Report the case counterparts of every codepoint in [lo, hi] by calling add()
-   with each span of them. Walking the table run by run keeps a wide range
-   cheap: a run of stride 1 contributes one span, and only the interleaved
-   stride 2 runs are reported one codepoint at a time. Spans may repeat or
-   overlap what the caller already holds; the caller merges. */
+/* Both range walks read the table run by run, which keeps a wide range cheap:
+   a run of stride 1 contributes one span whatever its length, and only the
+   interleaved stride 2 runs are reported one codepoint at a time. */
+void
+mrb_re_case_fold_range(uint32_t lo, uint32_t hi,
+                       void (*add)(void *, uint32_t, uint32_t), void *user)
+{
+  for (size_t i = 0; i < RE_FOLD_RUN_COUNT; i++) {
+    const re_fold_run *r = &re_fold_runs[i];
+    uint32_t span = (uint32_t)(r->count - 1) * r->stride;
+
+    uint32_t s_lo = r->start > lo ? r->start : lo;
+    uint32_t s_hi = r->start + span < hi ? r->start + span : hi;
+    if (s_lo > s_hi) continue;
+    /* Round s_lo up and s_hi down to codepoints the run actually holds. */
+    uint32_t off = s_lo - r->start;
+    if (off % r->stride) s_lo += r->stride - (off % r->stride);
+    s_hi -= (s_hi - r->start) % r->stride;
+    if (s_lo > s_hi) continue;
+
+    if (r->stride == 1) {
+      add(user, (uint32_t)((int32_t)s_lo + r->delta), (uint32_t)((int32_t)s_hi + r->delta));
+    }
+    else {
+      for (uint32_t cp = s_lo; cp <= s_hi; cp += r->stride) {
+        uint32_t f = (uint32_t)((int32_t)cp + r->delta);
+        add(user, f, f);
+      }
+    }
+  }
+}
+
 void
 mrb_re_case_unfold_range(uint32_t lo, uint32_t hi,
                          void (*add)(void *, uint32_t, uint32_t), void *user)
@@ -161,46 +188,24 @@ mrb_re_case_unfold_range(uint32_t lo, uint32_t hi,
     const re_fold_run *r = &re_fold_runs[i];
     uint32_t span = (uint32_t)(r->count - 1) * r->stride;
 
-    /* Sources of this run that the range covers, reported as their folds. */
-    uint32_t s_lo = r->start > lo ? r->start : lo;
-    uint32_t s_hi = r->start + span < hi ? r->start + span : hi;
-    if (s_lo <= s_hi) {
-      /* Round s_lo up and s_hi down to codepoints the run actually holds. */
-      uint32_t off = s_lo - r->start;
-      if (off % r->stride) s_lo += r->stride - (off % r->stride);
-      s_hi -= (s_hi - r->start) % r->stride;
-      if (s_lo <= s_hi) {
-        if (r->stride == 1) {
-          add(user, (uint32_t)((int32_t)s_lo + r->delta), (uint32_t)((int32_t)s_hi + r->delta));
-        }
-        else {
-          for (uint32_t cp = s_lo; cp <= s_hi; cp += r->stride) {
-            uint32_t f = (uint32_t)((int32_t)cp + r->delta);
-            add(user, f, f);
-          }
-        }
-      }
-    }
-
-    /* Folds of this run that the range covers, reported as their sources. */
     int32_t f_start = (int32_t)r->start + r->delta;
+    if (f_start < 0) continue;
     int32_t f_end = f_start + (int32_t)span;
     uint32_t f_lo = (uint32_t)f_start > lo ? (uint32_t)f_start : lo;
     uint32_t f_hi = (uint32_t)f_end < hi ? (uint32_t)f_end : hi;
-    if (f_start >= 0 && f_lo <= f_hi) {
-      uint32_t off = f_lo - (uint32_t)f_start;
-      if (off % r->stride) f_lo += r->stride - (off % r->stride);
-      f_hi -= (f_hi - (uint32_t)f_start) % r->stride;
-      if (f_lo <= f_hi) {
-        if (r->stride == 1) {
-          add(user, (uint32_t)((int32_t)f_lo - r->delta), (uint32_t)((int32_t)f_hi - r->delta));
-        }
-        else {
-          for (uint32_t cp = f_lo; cp <= f_hi; cp += r->stride) {
-            uint32_t s = (uint32_t)((int32_t)cp - r->delta);
-            add(user, s, s);
-          }
-        }
+    if (f_lo > f_hi) continue;
+    uint32_t off = f_lo - (uint32_t)f_start;
+    if (off % r->stride) f_lo += r->stride - (off % r->stride);
+    f_hi -= (f_hi - (uint32_t)f_start) % r->stride;
+    if (f_lo > f_hi) continue;
+
+    if (r->stride == 1) {
+      add(user, (uint32_t)((int32_t)f_lo - r->delta), (uint32_t)((int32_t)f_hi - r->delta));
+    }
+    else {
+      for (uint32_t cp = f_lo; cp <= f_hi; cp += r->stride) {
+        uint32_t s = (uint32_t)((int32_t)cp - r->delta);
+        add(user, s, s);
       }
     }
   }
