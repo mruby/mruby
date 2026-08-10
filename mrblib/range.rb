@@ -23,7 +23,7 @@ class Range
     if Integer === val && last.nil?
       i = val
       while true
-        block.call(i)
+        yield(i)
         i += 1
       end
       return self
@@ -42,7 +42,7 @@ class Range
       lim += 1 unless exclude_end?
       i = val
       while i < lim
-        block.call(i)
+        yield(i)
         i += 1
       end
       return self
@@ -61,14 +61,14 @@ class Range
     return self if (val <=> last) > 0
 
     while (val <=> last) < 0
-      block.call(val)
+      yield(val)
       val = val.succ
       if str_each
         break if val.size > last.size
       end
     end
 
-    block.call(val) if !exclude_end? && (val <=> last) == 0
+    yield(val) if !exclude_end? && (val <=> last) == 0
     self
   end
 
