@@ -52,6 +52,11 @@ class String
   alias __aset []=
   alias __slice_bang slice!
 
+  # The two search methods of src/string.c whose regexp form is overridden at
+  # the end of this file.
+  alias __index index
+  alias __rindex rindex
+
   # `match` and `match?` accept a Regexp or a String and reject everything
   # else.  The check lives in C (see Regexp.__check_pattern) so that the
   # argument cannot steer it: it cannot pose as a Regexp, and there is no
@@ -444,5 +449,80 @@ class String
     removed = md[group]
     __aset(beg, len, "")
     removed
+  end
+
+  # Regexp-aware `index`.  Falls back to the C-defined `index` (aliased as
+  # `__index` above) for every other argument form.
+  def index(*args)
+    return __index(*args) unless Regexp === args[0]
+    if args.length > 2
+      raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1..2)"
+    end
+    # `Regexp#match` normalizes a position the way `index` does and reads it
+    # with the same `mrb_get_args()` conversion, so the argument goes over
+    # unexamined: a negative one counts back from the end, and one that lands
+    # outside the subject answers nil after clearing the match globals.
+    # `match` and not `match?`, because those globals are part of the answer.
+    md = args.length > 1 ? args[0].match(self, args[1]) : args[0].match(self)
+    # `begin` reports character offsets, which is the space `index` answers
+    # in; `byteindex` below is the same search read in the other space.
+    md && md.begin(0)
+  end
+
+  # The last match that starts at or before `limit`, or nil, with the match
+  # globals left describing it.  `limit` is a byte offset when `bytes` is
+  # true and a character offset otherwise, which is the whole of the
+  # difference between `byterindex` and `rindex`.
+  #
+  # The engine searches forward only, so this walks the subject from the
+  # start and keeps the last match that qualifies: linear in the number of
+  # positions a match starts at, where the backward search CRuby hands to
+  # Onig is not.  Each step resumes one character past the match start and
+  # not at the match end, which is what keeps overlapping matches in view:
+  # `"aaa".rindex(/aa/)` is 1, where resuming at the end would answer 0.
+  def __regexp_rsearch(pattern, limit, bytes)
+    found = nil
+    pos = 0
+    while (md = pattern.match(self, pos))
+      break if (bytes ? md.__byte_begin(0) : md.begin(0)) > limit
+      found = md
+      pos = md.begin(0) + 1
+    end
+    # The loop leaves behind whatever its last `match` published: the clear a
+    # failed one does, or a match past `limit` that is not the answer.  Both
+    # have to give way to what the search found.
+    found ? found.__set_globals : pattern.match(nil)
+    found
+  end
+
+  # Regexp-aware `rindex`.  Falls back to the C-defined `rindex` (aliased as
+  # `__rindex` above) for every other argument form.
+  def rindex(*args)
+    return __rindex(*args) unless Regexp === args[0]
+    if args.length > 2
+      raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1..2)"
+    end
+    len = self.length
+    pos = len
+    if args.length > 1
+      # The position is arithmetic here rather than an argument handed
+      # straight to the engine, so it has to be an Integer first.
+      # `Integer.__ensure` is `mrb_ensure_int_type()`, the same conversion
+      # `mrb_get_args()` performs for the `i` of the C method.
+      pos = Integer.__ensure(args[1])
+      if pos < 0
+        pos += len
+        # Out of the subject at the negative end is a miss, and a miss
+        # clears the match globals.
+        return args[0].match(nil) if pos < 0
+      elsif pos > len
+        # Past the other end is not: `rindex` searches back from the end of
+        # the subject, and `mrb_str_byterindex_m()` clamps for the same
+        # reason.  `"abc".rindex(/b/, 10)` is 1.
+        pos = len
+      end
+    end
+    md = __regexp_rsearch(args[0], pos, false)
+    md && md.begin(0)
   end
 end

@@ -2693,3 +2693,116 @@ assert("String#slice! delegates every non-regexp argument") do
   assert_raise(TypeError) { "hello".slice!(nil) }
   assert_raise(FrozenError) { "hello".freeze.slice!(0) }
 end
+
+assert("String#index with regexp") do
+  assert_equal 1, "hello".index(/e/)
+  assert_equal 2, "hello".index(/l+/)
+  assert_nil "hello".index(/z/)
+  assert_equal 0, "hello".index(//)
+
+  # a start position, and a negative one counting back from the end
+  assert_equal 3, "hello".index(/l/, 3)
+  assert_equal 3, "hello".index(/l/, -2)
+  assert_nil "hello".index(/l/, 4)
+
+  # the end of the subject is a position a match can start at, and anything
+  # past either end is a miss
+  assert_equal 5, "hello".index(//, 5)
+  assert_nil "hello".index(//, 6)
+  assert_nil "hello".index(/l/, -10)
+end
+
+assert("String#rindex with regexp") do
+  assert_equal 3, "hello".rindex(/l/)
+  assert_nil "hello".rindex(/z/)
+  assert_equal 5, "hello".rindex(//)
+
+  # the last match and not the first, which is the whole of the difference
+  # from `index`
+  assert_equal 4, "abcabc".rindex(/b/)
+  # the last position a match starts at, so the longer match at 2 loses to
+  # the shorter one at 3
+  assert_equal 3, "hello".rindex(/l+/)
+  # and overlapping matches are in view: a walk that resumed at the match end
+  # would answer 0 here
+  assert_equal 1, "aaa".rindex(/aa/)
+
+  # the position bounds where the match starts, not where it ends
+  assert_equal 1, "abcabc".rindex(/bca/, 1)
+  assert_nil "abcabc".rindex(/bca/, 0)
+  assert_equal 2, "hello".rindex(/l/, 2)
+  assert_equal 3, "hello".rindex(/l/, -1)
+
+  # past the end of the subject clamps to it, where past the negative end is
+  # a miss
+  assert_equal 3, "hello".rindex(/l/, 10)
+  assert_nil "hello".rindex(/l/, -10)
+end
+
+assert("String#index and String#rindex with regexp set the match globals") do
+  assert_equal 1, "abc".index(/(b)/)
+  assert_equal "b", $1
+  assert_equal "b", Regexp.last_match(0)
+
+  # the match `rindex` stopped on, not one it walked past on the way there
+  assert_equal 4, "abcabc".rindex(/(b)/)
+  assert_equal 4, $~.begin(0)
+
+  # a failed match clears $~, which is why both search through `match` rather
+  # than `match?`
+  "zzz" =~ /z/
+  assert_nil "abc".index(/x/)
+  assert_nil $~
+  "zzz" =~ /z/
+  assert_nil "abc".rindex(/x/)
+  assert_nil $~
+
+  # so does a position that lands outside the subject
+  "zzz" =~ /z/
+  assert_nil "abc".index(/b/, 10)
+  assert_nil $~
+  "zzz" =~ /z/
+  assert_nil "abc".rindex(/b/, -10)
+  assert_nil $~
+
+  # and so does a match that starts past what the search asked for: `rindex`
+  # walks past it and does not leave it behind
+  "zzz" =~ /z/
+  assert_nil "abc".rindex(/c/, 1)
+  assert_nil $~
+end
+
+assert("String#index and String#rindex delegate every non-regexp argument") do
+  assert_equal 2, "hello".index("l")
+  assert_equal 3, "hello".index("l", 3)
+  assert_nil "hello".index("z")
+  assert_equal 3, "hello".rindex("l")
+  assert_equal 2, "hello".rindex("l", 2)
+  assert_nil "hello".rindex("z")
+
+  # a delegated call still gets the C arity check and the C errors
+  assert_raise(ArgumentError) { "hello".index }
+  assert_raise(ArgumentError) { "hello".rindex }
+  assert_raise(TypeError) { "hello".index(1) }
+  assert_raise(TypeError) { "hello".rindex(1) }
+  assert_raise(TypeError) { "hello".index("l", nil) }
+
+  # and the regexp form takes the arguments the C form takes
+  assert_raise(ArgumentError) { "hello".index(/l/, 1, 2) }
+  assert_raise(ArgumentError) { "hello".rindex(/l/, 1, 2) }
+  assert_raise(TypeError) { "hello".index(/l/, nil) }
+  assert_raise(TypeError) { "hello".rindex(/l/, nil) }
+
+  # `is_a?` is redefinable, so a Regexp denying its own type must still be
+  # searched for, and an object claiming to be one must not be
+  re = /l+/
+  def re.is_a?(klass); false; end
+  assert_equal 2, "hello".index(re)
+  assert_equal 3, "hello".rindex(re)
+
+  fake = Object.new
+  def fake.is_a?(klass); true; end
+  def fake.match(str, pos = 0); raise "must not be called"; end
+  assert_raise(TypeError) { "hello".index(fake) }
+  assert_raise(TypeError) { "hello".rindex(fake) }
+end
