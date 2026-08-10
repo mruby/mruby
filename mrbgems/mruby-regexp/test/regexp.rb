@@ -2160,24 +2160,45 @@ assert("Regexp - negative lookbehind at string start") do
   assert_equal "a", md[0]
 end
 
-assert("Regexp - lookbehind rejects a class that can match a multibyte character") do
-  # A class holding non-ASCII members consumes one byte here and two there,
-  # so no single rewind width is right. Refusing the pattern beats rewinding
-  # into the middle of a character, where a positive lookbehind reports no
-  # match and a negative one reports a match.
-  assert_raise(RegexpError) { Regexp.new("(?<=[Ā])x") }
-  assert_raise(RegexpError) { Regexp.new("(?<![Ā])b") }
-  assert_raise(RegexpError) { Regexp.new("(?<=[Ā-ă])x") }
-  assert_raise(RegexpError) { Regexp.new("(?<=[aĀ])x") }
-  assert_raise(RegexpError) { Regexp.new("(?<=[Ā]{2})x") }
-  # a negated class always admits non-ASCII, whatever its members are
-  assert_raise(RegexpError) { Regexp.new("(?<=[^あ])x") }
-  assert_raise(RegexpError) { Regexp.new("(?<![^a])b") }
+assert("Regexp - lookbehind over a class that can match a multibyte character") do
+  # A class consumes exactly one character whatever its members are, so the
+  # rewind steps back that many characters rather than assuming a byte each.
+  assert_equal "x", "Āx".match(/(?<=[Ā])x/)[0]
+  assert_nil "ax".match(/(?<=[Ā])x/)
+  assert_equal "x", "Āx".match(/(?<=[Ā-ă])x/)[0]
+  assert_equal "x", "ax".match(/(?<=[aĀ])x/)[0]
+  assert_equal "x", "Āx".match(/(?<=[aĀ])x/)[0]
+  assert_equal "x", "ĀĀx".match(/(?<=[Ā]{2})x/)[0]
+  assert_nil "aĀx".match(/(?<=[Ā]{2})x/)
+  assert_nil "Āx".match(/(?<=[Ā]{2})x/)
+  # a negated class admits non-ASCII, whatever its members are
+  assert_nil "あx".match(/(?<=[^あ])x/)
+  assert_equal "x", "ax".match(/(?<=[^あ])x/)[0]
+  assert_nil "Āb".match(/(?<![Ā])b/)
+  assert_equal "b", "ab".match(/(?<![Ā])b/)[0]
+  assert_equal "b", "ab".match(/(?<![^a])b/)[0]
+  assert_nil "あb".match(/(?<![^a])b/)
   # the uppercase shorthands carry the same catch-all
-  assert_raise(RegexpError) { Regexp.new("(?<=a\\W)x") }
-  assert_raise(RegexpError) { Regexp.new("(?<=\\W\\W)x") }
-  assert_raise(RegexpError) { Regexp.new("(?<=\\D)x") }
-  assert_raise(RegexpError) { Regexp.new("(?<=\\S)x") }
+  assert_equal "x", "aあx".match(/(?<=a\W)x/)[0]
+  assert_nil "aax".match(/(?<=a\W)x/)
+  assert_equal "x", "ああx".match(/(?<=\W\W)x/)[0]
+  assert_equal "x", "Āx".match(/(?<=\D)x/)[0]
+  assert_equal "x", "Āx".match(/(?<=\S)x/)[0]
+  # dot is one character by the same argument
+  assert_equal "x", "ax".match(/(?<=.)x/)[0]
+  assert_equal "x", "Āx".match(/(?<=.)x/)[0]
+  assert_nil "x".match(/(?<=.)x/)
+end
+
+assert("Regexp - lookbehind against a binary subject rewinds by bytes") do
+  # A binary subject advances one byte at a time, so the same compiled
+  # pattern rewinds by its byte count there: two for the literal Ā, and one
+  # for a class, which is handed the raw byte as its codepoint.
+  bin = "Āx".b
+  assert_equal "x", bin.match(/(?<=Ā)x/)[0]
+  assert_nil bin.match(/(?<=[Ā])x/)
+  assert_equal "x", bin.match(/(?<=[\x80])x/)[0]
+  assert_equal "x", bin.match(/(?<=.)x/)[0]
 end
 
 assert("Regexp - lookbehind measures an ASCII-only class") do

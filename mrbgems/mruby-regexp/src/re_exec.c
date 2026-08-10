@@ -568,6 +568,33 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
 }
 
 /*
+ * Where the lookbehind at pc starts matching from: sp rewound by the byte
+ * count in the opcode for a binary subject, and otherwise by the character
+ * count in the RE_LB_WIDTH that follows it. The backward walk steps over
+ * continuation bytes with mrb_re_utf8_interior_p(), which keeps it on the
+ * boundaries the forward decode uses, broken input included. Returns NULL
+ * when the text before sp runs out first.
+ */
+static const char*
+lookbehind_start(const mrb_regexp_pattern *pat, const char *str,
+                 const char *str_end, const char *sp, uint32_t pc,
+                 mrb_bool binary)
+{
+  if (binary) {
+    int lb_len = pat->code[pc].a;
+    return (sp - str < lb_len) ? NULL : sp - lb_len;
+  }
+  int nchars = pat->code[pc + 1].a;
+  while (nchars > 0) {
+    if (sp <= str) return NULL;
+    sp--;
+    while (sp > str && mrb_re_utf8_interior_p(str, sp, str_end)) sp--;
+    nchars--;
+  }
+  return sp;
+}
+
+/*
  * Backtracking engine for patterns with backreferences.
  * Step-limited to prevent ReDoS.
  */
@@ -734,9 +761,9 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
 
     case RE_LOOKBEHIND:
       {
-        int lb_len = inst.a;
-        if (sp - str < lb_len) return FALSE;  /* not enough text before */
-        if (!bt_match(pat, str, str_end, sp - lb_len, pc + 1, captures, ncap, steps, depth + 1, binary))
+        const char *back = lookbehind_start(pat, str, str_end, sp, pc, binary);
+        if (!back) return FALSE;  /* not enough text before */
+        if (!bt_match(pat, str, str_end, back, pc + 2, captures, ncap, steps, depth + 1, binary))
           return FALSE;
         pc = inst.offset;
       }
@@ -744,11 +771,10 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
 
     case RE_NEG_LOOKBEHIND:
       {
-        int lb_len = inst.a;
-        if (sp - str >= lb_len) {
-          if (bt_match(pat, str, str_end, sp - lb_len, pc + 1, captures, ncap, steps, depth + 1, binary))
-            return FALSE;
-        }
+        const char *back = lookbehind_start(pat, str, str_end, sp, pc, binary);
+        if (back &&
+            bt_match(pat, str, str_end, back, pc + 2, captures, ncap, steps, depth + 1, binary))
+          return FALSE;
         /* if not enough text before, negative lookbehind succeeds */
         pc = inst.offset;
       }
