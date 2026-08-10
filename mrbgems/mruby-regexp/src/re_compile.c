@@ -70,9 +70,19 @@ compile_error(re_compiler *c, const char *msg)
     mrb_exc_new_str(c->mrb, mrb_exc_get_id(c->mrb, MRB_SYM(RegexpError)), emsg));
 }
 
+/* Maximum number of instructions in a compiled pattern. Every jump target
+   lives in re_inst.offset (uint16_t) and a target may be one past the last
+   instruction, so the whole program has to be addressable by that field.
+   Without the cap the targets wrap on the way in and the engine jumps to an
+   unrelated instruction: no exception, no memory error, just a pattern that
+   stops matching text it describes. The check sits in emit(), the one place
+   code_len grows, so it covers every producer including insert_inst(). */
+#define RE_MAX_CODE_LEN 0xffff
+
 static uint32_t
 emit(re_compiler *c, uint8_t op, uint8_t a, uint16_t offset)
 {
+  if (c->code_len >= RE_MAX_CODE_LEN) compile_error(c, "regexp too large");
   if (c->code_len >= c->code_capa) {
     c->code_capa = c->code_capa ? c->code_capa * 2 : 64;
     c->code = (re_inst*)mrb_realloc(c->mrb, c->code, sizeof(re_inst) * c->code_capa);
@@ -113,7 +123,6 @@ insert_inst(re_compiler *c, uint32_t pos, uint8_t op, uint8_t a, uint16_t offset
     if (i == pos) continue;
     switch (c->code[i].op) {
     case RE_JMP: case RE_SPLIT: case RE_SPLITNG:
-      if (c->code[i].offset >= 0xffff) break;
       if (c->code[i].offset > pos || (c->code[i].offset == pos && i > pos)) {
         c->code[i].offset++;
       }
