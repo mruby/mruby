@@ -85,6 +85,10 @@ str.sub(re, replacement)          # replace first occurrence
 str.sub(re) { |m| ... }           # replace with block
 str.gsub(re, replacement)         # replace all occurrences
 str.gsub(re) { |m| ... }          # replace all with block
+str.sub!(re, replacement)         # => self, or nil if no match
+str.sub!(re) { |m| ... }          # same, replacing with the block result
+str.gsub!(re, replacement)        # => self, or nil if no match
+str.gsub!(re) { |m| ... }         # same, replacing with the block result
 str.scan(re)                      # => array of matches
 str.split(re)                     # => array of parts
 str[re]                           # => matched substring or nil
