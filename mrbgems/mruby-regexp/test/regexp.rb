@@ -692,6 +692,22 @@ assert("Regexp - a byte that belongs to no character is a match position") do
   assert_equal 3, ("あ" + b).match(Regexp.new(b)).pre_match.bytesize
 end
 
+assert("Regexp - an attempt in flight opens no match position inside a character") do
+  # "ĵ" is C4 B5 and "µ" is C2 B5, so the two share their trailing byte. That
+  # byte is the interior of "ĵ" and no match may start there, but the test
+  # for it only ran while nothing was in flight. The branch of `.?` that
+  # consumes the character parks a thread past it, and the attempt seeded at
+  # the shared byte then matched it on its own, cutting "ĵ" in half.
+  assert_nil "ĵ".match(/.?[µ]/)
+  assert_nil "ĵ".gsub(/.?[µ]/, "!").match(/!/)
+  assert_nil ("あ" + "ĵ").match(/.?[µ]/)
+  # A character the class does hold is still found through the same branch.
+  assert_equal 4, ("ĵ" + "µ").match(/.?[µ]/)[0].bytesize
+  assert_equal 5, ("あ" + "µ").match(/.?[µ]/)[0].bytesize
+  # And so is the byte itself where no lead byte reaches it.
+  assert_equal 2, ("x" + "\xb5").match(/.?[µ]/)[0].bytesize
+end
+
 assert("Regexp - multibyte (UTF-8) match extraction") do
   # Capture offsets are recorded in bytes; substring extraction must honor
   # them as byte ranges so multibyte matches are not corrupted.

@@ -330,17 +330,18 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
          not a char boundary, and starting a thread there mis-decodes the
          char (e.g. a class match on a stray 0x82 instead of the leader's
          full codepoint). A byte that no lead byte reaches belongs to no
-         character and is a boundary of its own. */
-      if (!s.binary && curr.count == 0 && sp < str_end &&
-          mrb_re_utf8_interior_p(str, sp, str_end)) {
-        continue;
+         character and is a boundary of its own.
+         Threads seeded earlier are still stepped at this position, so the
+         test guards the seeding alone and never skips the iteration. */
+      if (s.binary || sp >= str_end ||
+          !mrb_re_utf8_interior_p(str, sp, str_end)) {
+        int slot = match_only ? 0 : pool_alloc(&s);
+        if (!match_only) memset(CAP(&s, slot), -1, sizeof(int) * ncap);
+        s.gen++;
+        s.cut = FALSE;
+        add_thread(&s, &curr, 0, slot, sp);
+        if (s.matched && curr.count == 0) break;
       }
-      int slot = match_only ? 0 : pool_alloc(&s);
-      if (!match_only) memset(CAP(&s, slot), -1, sizeof(int) * ncap);
-      s.gen++;
-      s.cut = FALSE;
-      add_thread(&s, &curr, 0, slot, sp);
-      if (s.matched && curr.count == 0) break;
     }
 
     if (sp >= str_end) break;
