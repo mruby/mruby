@@ -23,6 +23,14 @@ assert("Regexp - /i refuses what ASCII folding cannot answer") do
   # build has no data to tell it apart from one that would have folded.
   assert_raise(RegexpError) { Regexp.new("ß", Regexp::IGNORECASE) }
   assert_raise(RegexpError) { Regexp.new("ﬀ", Regexp::IGNORECASE) }
+  # A `\u` escape names a character rather than spelling it out, and naming one
+  # does not make it a character this build can fold. Both spellings of the
+  # escape reach the refusal, in the literal path and in the class path alike.
+  assert_raise(RegexpError) { Regexp.new("\\u{100}", Regexp::IGNORECASE) }
+  assert_raise(RegexpError) { Regexp.new("\\u0100", Regexp::IGNORECASE) }
+  assert_raise(RegexpError) { Regexp.new("[\\u{100}]", Regexp::IGNORECASE) }
+  assert_raise(RegexpError) { Regexp.new("[^\\u{100}]", Regexp::IGNORECASE) }
+  assert_raise(RegexpError) { Regexp.new("[\\u{100}-\\u{102}]", Regexp::IGNORECASE) }
   # The message names the option, so hitting this says what to do about it.
   begin
     Regexp.new("Ā", Regexp::IGNORECASE)
@@ -45,4 +53,10 @@ assert("Regexp - /i leaves alone what it can answer") do
   assert_true(/Ā/.match?("Ā"))
   assert_false(/Ā/.match?("ā"))
   assert_true(/[^Ā]/.match?("ā"))
+  # U+212A folds to ASCII 'k', which this build has without the table, so the
+  # `\u` spelling of it compiles and reaches both cases of the letter.
+  assert_true(/\u{212a}/i.match?("k"))
+  assert_true(/\u{212a}/i.match?("K"))
+  assert_true(/[\u{212a}]/i.match?("k"))
+  assert_false(/[^\u{212a}]/i.match?("K"))
 end

@@ -2329,6 +2329,75 @@ assert("Regexp - octal and hex escapes") do
   assert_equal 0, (/\x7/ =~ "\a")
 end
 
+assert("Regexp - \\u escapes") do
+  # `\u` used to be unknown to the engine, which dropped the backslash and
+  # left the rest as literal text: /\u00b5/ matched "u00b5" rather than "µ".
+  assert_equal 0, (/\u00b5/ =~ "\xc2\xb5")
+  assert_nil (/\u00b5/ =~ "u00b5")
+  assert_equal 0, (/\u{b5}/ =~ "\xc2\xb5")
+  assert_nil (/\u{b5}/ =~ "u{b5}")
+  assert_equal 0, (/\u0061/ =~ "a")
+  assert_equal 0, (/\u{3042}/ =~ "\xe3\x81\x82")
+  assert_equal 0, (/\u{10FFFF}/ =~ "\xf4\x8f\xbf\xbf")
+
+  # a codepoint is one atom, so a quantifier repeats the whole character
+  # rather than its last UTF-8 byte
+  assert_equal ["\xe3\x81\x82\xe3\x81\x82"], "\xe3\x81\x82\xe3\x81\x82".scan(/\u{3042}+/)
+  assert_equal 0, (/\u{3042}{2}/ =~ "\xe3\x81\x82\xe3\x81\x82")
+
+  # the list form is a sequence of atoms, so a following quantifier binds
+  # to the last codepoint alone: /\u{61 62}+/ is `ab+`
+  assert_equal "ab", "abbb"[/\u{61 62}/]
+  assert_equal "abbb", "abbb"[/\u{61 62}+/]
+  assert_nil ("b" =~ /\u{61 62}/)
+
+  # /x strips whitespace before the pattern is parsed, but not the spaces
+  # that separate the codepoints of a list
+  assert_equal 0, (Regexp.new("\\u{61 62}", Regexp::EXTENDED) =~ "ab")
+
+  # /i folds an ASCII letter reached through `\u`, like a literal one
+  assert_equal 0, (/\u0061/i =~ "A")
+end
+
+assert("Regexp - \\u escapes in a character class") do
+  assert_equal 0, (/[\u00b5]/ =~ "\xc2\xb5")
+  assert_nil (/[\u00b5]/ =~ "u")
+  assert_equal 0, (/[\u{3042}-\u{3044}]/ =~ "\xe3\x81\x83")
+  assert_nil (/[\u{3042}-\u{3044}]/ =~ "\xe3\x81\x85")
+  assert_equal 0, (/[a-\u{7a}]/ =~ "q")
+
+  # every codepoint of a list is a member of its own, and the last one can
+  # still open a range
+  assert_equal ["a", "b"], "abc".scan(/[\u{61 62}]/)
+  assert_equal ["a", "b", "c"], "abc-".scan(/[\u{61 62}-z]/)
+  assert_equal ["c"], "abc".scan(/[^\u{61 62}]/)
+end
+
+assert("Regexp - malformed \\u escapes") do
+  # each of these is a RegexpError in CRuby rather than a shorter codepoint
+  # or literal text
+  assert_raise_with_message(RegexpError, "invalid Unicode escape: /\\uXX/") do
+    Regexp.new("\\uXX")
+  end
+  assert_raise_with_message(RegexpError, "too short escape sequence: /\\u/") do
+    Regexp.new("\\u")
+  end
+  assert_raise(RegexpError) { Regexp.new("\\u061") }       # fewer than four digits
+  assert_raise(RegexpError) { Regexp.new("\\u{}") }        # empty list
+  assert_raise(RegexpError) { Regexp.new("\\u{ }") }       # list of no codepoints
+  assert_raise(RegexpError) { Regexp.new("\\u{61") }       # unterminated list
+  assert_raise(RegexpError) { Regexp.new("\\u{61,62}") }   # comma is not a separator
+  assert_raise(RegexpError) { Regexp.new("\\u{0000061}") } # more than six digits
+  assert_raise(RegexpError) { Regexp.new("\\uD800") }      # surrogate
+  assert_raise(RegexpError) { Regexp.new("[\\u{110000}]") }
+
+  # /\u{3042}/ used to be read as the quantifier `u{3042}`, so a codepoint
+  # out of range was reported as a repeat count the pattern never wrote
+  assert_raise_with_message(RegexpError, "invalid Unicode range: /\\u{110000}/") do
+    Regexp.new("\\u{110000}")
+  end
+end
+
 assert("Regexp - \\h and \\H hex-digit shorthands") do
   assert_equal 0, (/\h/ =~ "f")
   assert_nil (/\h/ =~ "g")
