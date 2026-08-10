@@ -2806,3 +2806,83 @@ assert("String#index and String#rindex delegate every non-regexp argument") do
   assert_raise(TypeError) { "hello".index(fake) }
   assert_raise(TypeError) { "hello".rindex(fake) }
 end
+
+assert("String#byteindex and String#byterindex with regexp") do
+  assert_equal 1, "hello".byteindex(/e/)
+  assert_nil "hello".byteindex(/z/)
+  assert_equal 3, "hello".byteindex(/l/, 3)
+  assert_equal 3, "hello".byteindex(/l/, -2)
+  assert_nil "hello".byteindex(/l/, 6)
+  assert_nil "hello".byteindex(/l/, -10)
+
+  assert_equal 3, "hello".byterindex(/l/)
+  assert_nil "hello".byterindex(/z/)
+  assert_equal 1, "aaa".byterindex(/aa/)
+  assert_equal 2, "hello".byterindex(/l/, 2)
+  assert_equal 3, "hello".byterindex(/l/, 10)
+  assert_nil "hello".byterindex(/l/, -10)
+
+  # the same two searches read in the other space.  They part company with
+  # `index` and `rindex` only on a build with MRB_UTF8_STRING, where the
+  # answer and the position argument are both byte offsets
+  if __ENCODING__ == "UTF-8"
+    assert_equal 1, "あいうあいう".index(/い/)
+    assert_equal 3, "あいうあいう".byteindex(/い/)
+    assert_equal 4, "あいうあいう".rindex(/い/)
+    assert_equal 12, "あいうあいう".byterindex(/い/)
+    assert_equal 12, "あいうあいう".byteindex(/い/, 6)
+    assert_equal 3, "あいうあいう".byterindex(/い/, 6)
+  end
+end
+
+assert("String#byteindex and String#byterindex with regexp set the match globals") do
+  assert_equal 1, "abc".byteindex(/(b)/)
+  assert_equal "b", $1
+  assert_equal 4, "abcabc".byterindex(/(b)/)
+  assert_equal 4, $~.begin(0)
+
+  "zzz" =~ /z/
+  assert_nil "abc".byteindex(/x/)
+  assert_nil $~
+  "zzz" =~ /z/
+  assert_nil "abc".byterindex(/x/)
+  assert_nil $~
+
+  # a position outside the subject and a match that starts past the one asked
+  # for both clear them too
+  "zzz" =~ /z/
+  assert_nil "abc".byteindex(/b/, 10)
+  assert_nil $~
+  "zzz" =~ /z/
+  assert_nil "abc".byterindex(/c/, 1)
+  assert_nil $~
+end
+
+assert("String#byteindex and String#byterindex delegate every non-regexp argument") do
+  assert_equal 2, "hello".byteindex("l")
+  assert_equal 3, "hello".byteindex("l", 3)
+  assert_nil "hello".byteindex("z")
+  assert_equal 3, "hello".byterindex("l")
+  assert_equal 2, "hello".byterindex("l", 2)
+  assert_nil "hello".byterindex("z")
+
+  assert_raise(ArgumentError) { "hello".byteindex }
+  assert_raise(ArgumentError) { "hello".byterindex }
+  assert_raise(TypeError) { "hello".byteindex(1) }
+  assert_raise(TypeError) { "hello".byterindex(1) }
+  assert_raise(ArgumentError) { "hello".byteindex(/l/, 1, 2) }
+  assert_raise(ArgumentError) { "hello".byterindex(/l/, 1, 2) }
+  assert_raise(TypeError) { "hello".byteindex(/l/, nil) }
+  assert_raise(TypeError) { "hello".byterindex(/l/, nil) }
+
+  re = /l+/
+  def re.is_a?(klass); false; end
+  assert_equal 2, "hello".byteindex(re)
+  assert_equal 3, "hello".byterindex(re)
+
+  fake = Object.new
+  def fake.is_a?(klass); true; end
+  def fake.match(str, pos = 0); raise "must not be called"; end
+  assert_raise(TypeError) { "hello".byteindex(fake) }
+  assert_raise(TypeError) { "hello".byterindex(fake) }
+end

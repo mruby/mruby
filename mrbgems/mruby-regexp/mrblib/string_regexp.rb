@@ -52,10 +52,14 @@ class String
   alias __aset []=
   alias __slice_bang slice!
 
-  # The two search methods of src/string.c whose regexp form is overridden at
-  # the end of this file.
+  # The four search methods of src/string.c whose regexp form is overridden at
+  # the end of this file.  On a build without MRB_UTF8_STRING the two of a
+  # pair are the same C function behind two method table entries, so each
+  # still needs its own capture.
   alias __index index
   alias __rindex rindex
+  alias __byteindex byteindex
+  alias __byterindex byterindex
 
   # `match` and `match?` accept a Regexp or a String and reject everything
   # else.  The check lives in C (see Regexp.__check_pattern) so that the
@@ -524,5 +528,51 @@ class String
     end
     md = __regexp_rsearch(args[0], pos, false)
     md && md.begin(0)
+  end
+
+  # Regexp-aware `byteindex`.  Falls back to the C-defined `byteindex`
+  # (aliased as `__byteindex` above) for every other argument form.
+  def byteindex(*args)
+    return __byteindex(*args) unless Regexp === args[0]
+    if args.length > 2
+      raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1..2)"
+    end
+    len = self.bytesize
+    pos = 0
+    if args.length > 1
+      pos = Integer.__ensure(args[1])
+      pos += len if pos < 0
+    end
+    # `__byte_match` takes the position as given and does not range check it,
+    # where `Regexp#match` answers nil for one outside the subject.  Both
+    # ends are a miss here, as they are for `mrb_str_byteindex_m()`.  An
+    # offset that lands inside a character is not an error: the C method does
+    # not check for one either, and on a build without MRB_UTF8_STRING there
+    # is nothing to check.
+    return args[0].match(nil) if pos < 0 || pos > len
+    md = args[0].__byte_match(self, pos)
+    md && md.__byte_begin(0)
+  end
+
+  # Regexp-aware `byterindex`.  Falls back to the C-defined `byterindex`
+  # (aliased as `__byterindex` above) for every other argument form.
+  def byterindex(*args)
+    return __byterindex(*args) unless Regexp === args[0]
+    if args.length > 2
+      raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1..2)"
+    end
+    len = self.bytesize
+    pos = len
+    if args.length > 1
+      pos = Integer.__ensure(args[1])
+      if pos < 0
+        pos += len
+        return args[0].match(nil) if pos < 0
+      elsif pos > len
+        pos = len
+      end
+    end
+    md = __regexp_rsearch(args[0], pos, true)
+    md && md.__byte_begin(0)
   end
 end
