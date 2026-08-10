@@ -2963,3 +2963,76 @@ assert("String#partition and String#rpartition delegate every non-regexp argumen
   assert_raise(TypeError) { "hello".partition(fake) }
   assert_raise(TypeError) { "hello".rpartition(fake) }
 end
+
+assert("String#start_with? with regexp") do
+  assert_true "hello".start_with?(/h/)
+  assert_true "hello".start_with?(/hel+/)
+  assert_true "hello".start_with?(//)
+  assert_false "hello".start_with?(/z/)
+
+  # anchored at the start rather than searched for, so a pattern that matches
+  # further along is not an answer
+  assert_false "hello".start_with?(/e/)
+  assert_true "hello".start_with?(/^h/)
+  assert_false "abc\ndef".start_with?(/^d/)
+
+  # several patterns, read left to right, in any mix of the two kinds
+  assert_true "hello".start_with?(/z/, /h/)
+  assert_true "hello".start_with?("z", /h/)
+  assert_true "hello".start_with?(/h/, "z")
+  assert_false "hello".start_with?(/z/, "z")
+  assert_false "hello".start_with?
+
+  # an argument after the one that answers is never looked at
+  assert_true "hello".start_with?(/h/, 1)
+
+  # `end_with?` is not part of this family: CRuby rejects a Regexp there too
+  assert_raise(TypeError) { "hello".end_with?(/o/) }
+end
+
+assert("String#start_with? with regexp sets the match globals") do
+  assert_true "hello".start_with?(/(h)(e)/)
+  assert_equal "h", $1
+  assert_equal "e", $2
+
+  # the pattern that answered, after the ones before it failed
+  assert_true "hello".start_with?(/z/, /(h)/)
+  assert_equal "h", $1
+
+  "zzz" =~ /z/
+  assert_false "hello".start_with?(/z/)
+  assert_nil $~
+
+  # a pattern that matches further along is refused, and its match is not
+  # left behind either
+  "zzz" =~ /z/
+  assert_false "hello".start_with?(/e/)
+  assert_nil $~
+
+  # a non-regexp argument leaves them as they were
+  "zzz" =~ /z/
+  assert_true "hello".start_with?("he")
+  assert_equal "z", $~[0]
+  "zzz" =~ /z/
+  assert_false "hello".start_with?
+  assert_equal "z", $~[0]
+end
+
+assert("String#start_with? delegates every non-regexp argument") do
+  assert_true "hello".start_with?("he")
+  assert_false "hello".start_with?("z")
+  assert_true "hello".start_with?("z", "he")
+  assert_raise(TypeError) { "hello".start_with?(1) }
+
+  re = /l+/
+  def re.is_a?(klass); false; end
+  assert_false "hello".start_with?(re)
+  head = /h/
+  def head.is_a?(klass); false; end
+  assert_true "hello".start_with?(head)
+
+  fake = Object.new
+  def fake.is_a?(klass); true; end
+  def fake.match(str, pos = 0); raise "must not be called"; end
+  assert_raise(TypeError) { "hello".start_with?(fake) }
+end

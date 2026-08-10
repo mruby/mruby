@@ -61,9 +61,10 @@ class String
   alias __byteindex byteindex
   alias __byterindex byterindex
 
-  # The two from mruby-string-ext, which this gem depends on.
+  # The three from mruby-string-ext, which this gem depends on.
   alias __partition partition
   alias __rpartition rpartition
+  alias __start_with? start_with?
 
   # `match` and `match?` accept a Regexp or a String and reject everything
   # else.  The check lives in C (see Regexp.__check_pattern) so that the
@@ -603,5 +604,32 @@ class String
     # method is most often got wrong on.
     return ["", "", self.byteslice(0, self.bytesize)] unless md
     [md.pre_match, md[0], md.post_match]
+  end
+
+  # Regexp-aware `start_with?`.  Takes any mix of patterns and hands each
+  # non-regexp one to the C-defined `start_with?` (aliased as
+  # `__start_with?` above), one at a time, so that a String keeps the C
+  # comparison and its error and the arguments are still read left to right.
+  def start_with?(*args)
+    i = 0
+    while i < args.length
+      arg = args[i]
+      if Regexp === arg
+        # A regexp is anchored at the start, not searched for, while `match`
+        # searches forward from its position.  The engine matches leftmost,
+        # so a pattern that can match at 0 does, which makes `begin(0) == 0`
+        # the anchored answer rather than an approximation of it.
+        md = arg.match(self)
+        return true if md && md.begin(0) == 0
+        # A match further along is not an answer and CRuby leaves none
+        # behind for one, so clear what the search published.  Matching
+        # against nil is how a Regexp clears the globals.
+        arg.match(nil) if md
+      elsif __start_with?(arg)
+        return true
+      end
+      i += 1
+    end
+    false
   end
 end
