@@ -163,6 +163,58 @@ int mrb_re_utf8_charlen(const char *s, const char *end);
 uint32_t mrb_re_utf8_decode(const char *s, const char *end, int *len);
 mrb_bool mrb_re_is_word_char(uint32_t c);
 
+/* The two foldings whose result is an ASCII letter. Every build carries them,
+   whether or not it has the Unicode table, so that folding "ASCII only" covers
+   the whole of the equivalence class an ASCII letter belongs to rather than
+   the part of it that is ASCII: without them /k/i would miss U+212A and, the
+   sign flipped, [^k] under /i would accept it. */
+#define RE_FOLD_LONG_S 0x017F  /* to 's' */
+#define RE_FOLD_KELVIN 0x212A  /* to 'k' */
+
+/* Simple case folding: the folded codepoint, or cp itself when it folds to
+   nothing else. With MRB_REGEXP_UNICODE_CASE that is ASCII plus every 1:1
+   Unicode folding; without it, ASCII plus the two above. Neither build folds a
+   codepoint that has no single counterpart to fold to (U+FB00 to "ff"). */
+uint32_t mrb_re_case_fold(uint32_t cp);
+
+/* True when [lo, hi] holds a codepoint that carries case folding data this
+   build does not have. A pattern reaching one of those under /i is refused at
+   compile time, since folding ASCII and carrying on would answer wrongly: the
+   missing fold shows up as a missed match in `[X]` and, with the sign flipped,
+   as a false accept in `[^X]`. The test is having the data rather than being
+   foldable, so two kinds fall inside it that no build folds: a source whose
+   fold expands into several codepoints (U+FB00 to "ff"), and the uncased
+   neighbours the coarse ranges close over. A build with the table compiles
+   both and matches them literally, so what the two builds differ in there is
+   what they refuse rather than what they answer. A build with the data has
+   nothing to refuse, so the test compiles away there. The arguments are
+   evaluated at most once, but only by the definition that uses them, so pass
+   plain values. */
+#ifdef MRB_REGEXP_UNICODE_CASE
+#define mrb_re_needs_case_data(lo, hi) FALSE
+#else
+mrb_bool mrb_re_needs_case_data(uint32_t lo, uint32_t hi);
+#endif
+
+#ifdef MRB_REGEXP_UNICODE_CASE
+/* Walking the table takes data only this build has. Without it the compiler
+   reaches the same two foldings directly, since there are only two.
+
+   mrb_re_case_unfold() writes every other codepoint sharing cp's folded form
+   into out, at most max of them, and returns how many it wrote. The two range
+   forms do the same two directions over a span rather than one codepoint,
+   reporting what they find by calling add() with each span of it:
+   mrb_re_case_fold_range the folds of the sources in [lo, hi],
+   mrb_re_case_unfold_range the sources of the folds in [lo, hi]. Spans may
+   repeat or overlap what the caller already holds; the caller merges. */
+#define RE_MAX_UNFOLD 4
+int mrb_re_case_unfold(uint32_t cp, uint32_t *out, int max);
+void mrb_re_case_fold_range(uint32_t lo, uint32_t hi,
+                            void (*add)(void *, uint32_t, uint32_t), void *user);
+void mrb_re_case_unfold_range(uint32_t lo, uint32_t hi,
+                              void (*add)(void *, uint32_t, uint32_t), void *user);
+#endif
+
 static inline int
 mrb_re_charlen(const char *s, const char *end, mrb_bool binary)
 {

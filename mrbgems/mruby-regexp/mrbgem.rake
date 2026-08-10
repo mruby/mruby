@@ -26,4 +26,14 @@ MRuby::Gem::Specification.new('mruby-regexp') do |spec|
   if build.gems.any? {|g| g.name == 'mruby-symbol-ext'}
     spec.add_dependency 'mruby-symbol-ext', :core => 'mruby-symbol-ext'
   end
+
+  # The two case folding test files assert opposite things about the same
+  # patterns (one that /i folds them, the other that /i refuses to compile
+  # them), so each belongs to exactly one of the two builds. Everything /i
+  # does the same way in both is in test/regexp.rb and always runs.
+  if build.cc.defines.include?('MRB_REGEXP_UNICODE_CASE')
+    spec.test_rbfiles -= ["#{spec.dir}/test/ascii_case.rb"]
+  else
+    spec.test_rbfiles -= ["#{spec.dir}/test/unicode_case.rb"]
+  end
 end

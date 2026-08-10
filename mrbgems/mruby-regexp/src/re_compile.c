@@ -227,6 +227,51 @@ class_set_range(re_charclass *cc, uint8_t lo, uint8_t hi)
   }
 }
 
+/* Add the case counterparts of an ASCII letter to a class that already holds
+   both of its ASCII cases. Used for the single-literal paths, where the class
+   exists only to express the choice between one character and its other
+   cases. Only 'k' and 's' have a counterpart outside ASCII, which is why a
+   build without the Unicode table still has something to do here: folding
+   half of their equivalence classes is what makes [^k] under /i accept
+   U+212A. */
+static void
+class_add_fold_counterparts(re_compiler *c, uint16_t id, uint32_t cp)
+{
+#ifdef MRB_REGEXP_UNICODE_CASE
+  uint32_t alt[RE_MAX_UNFOLD];
+  int n = mrb_re_case_unfold(cp, alt, RE_MAX_UNFOLD);
+  for (int i = 0; i < n; i++) {
+    if (alt[i] < 128) class_set_bit(&c->classes[id], (uint8_t)alt[i]);
+    else class_add_codepoint(c, &c->classes[id], alt[i]);
+  }
+#else
+  if (cp == 'k' || cp == 'K') class_add_codepoint(c, &c->classes[id], RE_FOLD_KELVIN);
+  else if (cp == 's' || cp == 'S') class_add_codepoint(c, &c->classes[id], RE_FOLD_LONG_S);
+#endif
+}
+
+#ifdef MRB_REGEXP_UNICODE_CASE
+/* Closure for the range walks, which report counterpart spans one at a time.
+   A span can straddle 128 (U+017F folds to 's'), so it is split the same way
+   a written range is. */
+typedef struct {
+  re_compiler *c;
+  re_charclass *cc;
+} class_fold_sink;
+
+static void
+class_fold_add(void *user, uint32_t lo, uint32_t hi)
+{
+  class_fold_sink *s = (class_fold_sink*)user;
+  if (lo < 128) {
+    class_set_range(s->cc, (uint8_t)lo, (uint8_t)(hi < 128 ? hi : 127));
+  }
+  if (hi >= 128) {
+    class_add_range(s->c, s->cc, lo < 128 ? 128 : lo, hi);
+  }
+}
+#endif
+
 static void
 class_add_shorthand(re_charclass *cc, int ch)
 {
@@ -498,17 +543,76 @@ compile_charclass(re_compiler *c)
   }
   next_char(c);  /* skip ']' */
 
-  /* Fold ASCII letters under /i. This runs once the class is complete, so a
-     single pass covers every form the loop above merges into the bitmap:
-     POSIX brackets, shorthands, ranges and single literals. Negation is
-     applied at match time against this same bitmap (RE_NCLASS), so folding
-     the positive set also fixes [^a-c] under /i. Non-ASCII case folding is
-     out of scope, so the codepoint range list is left alone. */
+  /* Close the class under case folding for /i. This runs once the class is
+     complete, so it covers every form the loop above merges in: POSIX
+     brackets, shorthands, ranges and single literals. Negation is applied at
+     match time against the same class (RE_NCLASS), so closing the positive
+     set is also what keeps [^a-c] and [^Ā] from accepting what they were
+     written to reject.
+
+     Closing means: x belongs to the class whenever some written member folds
+     the same way x does. */
   if (c->flags & RE_FLAG_IGNORECASE) {
+#ifdef MRB_REGEXP_UNICODE_CASE
+    /* That takes two rounds rather than one walk in each direction, because a
+       fold can have more than one source (U+03A3 and U+03C2 both fold to
+       U+03C3), and a class written with one of them reaches the others only
+       through the fold they share. The first round puts that shared fold in
+       the class; the second pulls in everything that folds to it. A third
+       round would find nothing: whatever the second adds folds to something
+       the first already added. */
+    class_fold_sink sink = { c, cc };
+
+    /* Round one: the fold of every member joins the class. The codepoint list
+       is read from a snapshot of its length, since the additions append to
+       the same list and an unbounded walk would keep folding what it just
+       added. */
+    uint32_t nranges = cc->num_ranges;
+    for (uint32_t i = 0; i < nranges; i++) {
+      mrb_re_case_fold_range(cc->ranges[2 * i], cc->ranges[2 * i + 1],
+                             class_fold_add, &sink);
+    }
+    for (int ch = 'A'; ch <= 'Z'; ch++) {
+      if (class_get_bit(cc, (uint8_t)ch)) class_set_bit(cc, (uint8_t)(ch + 32));
+    }
+
+    /* Round two: every source of a member joins it too. The bitmap is walked
+       upwards, so the upper case letter set here is behind the cursor and is
+       never asked for sources of its own, which is correct: nothing folds to
+       an upper case letter. */
+    nranges = cc->num_ranges;
+    for (uint32_t i = 0; i < nranges; i++) {
+      mrb_re_case_unfold_range(cc->ranges[2 * i], cc->ranges[2 * i + 1],
+                               class_fold_add, &sink);
+    }
+    for (int ch = 0; ch < 128; ch++) {
+      if (!class_get_bit(cc, (uint8_t)ch)) continue;
+      if (ch >= 'a' && ch <= 'z') class_set_bit(cc, (uint8_t)(ch - 32));
+      /* An ASCII member can have a non-ASCII source (U+212A folds to 'k'),
+         which the range walk cannot reach: the bitmap holds no ranges. */
+      mrb_re_case_unfold_range((uint32_t)ch, (uint32_t)ch, class_fold_add, &sink);
+    }
+#else
+    /* The same closure, restricted to the foldings this build has. Refusing
+       first is what makes the restriction sound: whatever is left in the
+       codepoint list after this loop either folds to an ASCII letter or folds
+       to nothing, so the rounds collapse into the ASCII pass with one exchange
+       across the boundary in each direction. */
+    for (uint32_t i = 0; i < cc->num_ranges; i++) {
+      uint32_t lo = cc->ranges[2 * i], hi = cc->ranges[2 * i + 1];
+      if (mrb_re_needs_case_data(lo, hi)) {
+        compile_error(c, "/i needs MRB_REGEXP_UNICODE_CASE for this character class");
+      }
+      if (lo <= RE_FOLD_LONG_S && RE_FOLD_LONG_S <= hi) class_set_bit(cc, 's');
+      if (lo <= RE_FOLD_KELVIN && RE_FOLD_KELVIN <= hi) class_set_bit(cc, 'k');
+    }
     for (int ch = 'a'; ch <= 'z'; ch++) {
       if (class_get_bit(cc, (uint8_t)ch)) class_set_bit(cc, (uint8_t)(ch - 32));
       else if (class_get_bit(cc, (uint8_t)(ch - 32))) class_set_bit(cc, (uint8_t)ch);
     }
+    if (class_get_bit(cc, 'k')) class_add_codepoint(c, cc, RE_FOLD_KELVIN);
+    if (class_get_bit(cc, 's')) class_add_codepoint(c, cc, RE_FOLD_LONG_S);
+#endif
   }
 
   cc->negated = negated;
@@ -687,6 +791,53 @@ emit_char_bytes(re_compiler *c, int ch)
     if (b < 0) break;
     emit(c, RE_CHAR, (uint8_t)b, 0);
   }
+}
+
+/* Emit a non-ASCII literal under /i as a class rather than a run of bytes, and
+   report whether it did. A counterpart need not have the same byte length
+   (U+212A folds to 'k'), which a byte-wise RE_CHAR run cannot express, while
+   RE_CLASS decodes one codepoint and compares that whatever its width. A
+   character with no counterpart, which is most of the non-ASCII range and
+   every script without case in it, falls back to the bytes and costs /i
+   nothing. A character this build cannot fold is refused rather than answered
+   without the folding it needs.
+
+   A byte that starts no whole character is not a character to fold. It decodes
+   as one byte and hands back its own value, which would read a lone 0xB5 as
+   U+00B5 and answer /i for a character the pattern does not hold, so it falls
+   back to the bytes like every other invalid sequence in the literal path. */
+static mrb_bool
+emit_char_folded(re_compiler *c, int ch)
+{
+  if (ch < 128 || !(c->flags & RE_FLAG_IGNORECASE)) return FALSE;
+  int len = 0;
+  uint32_t cp = mrb_re_utf8_decode(c->p - 1, c->src_end, &len);
+  if (len == 1) return FALSE;
+  if (mrb_re_needs_case_data(cp, cp)) {
+    compile_error(c, "/i needs MRB_REGEXP_UNICODE_CASE for this character");
+  }
+#ifdef MRB_REGEXP_UNICODE_CASE
+  uint32_t alt[RE_MAX_UNFOLD];
+  int n = mrb_re_case_unfold(cp, alt, RE_MAX_UNFOLD);
+#else
+  /* Whatever survived the refusal folds to an ASCII letter or to nothing at
+     all, so the counterparts are that letter and its upper case: the first two
+     steps of the general walk, and the only two this build can take. */
+  uint32_t alt[2];
+  int n = 0;
+  uint32_t f = mrb_re_case_fold(cp);
+  if (f != cp) { alt[n++] = f; alt[n++] = f - 32; }
+#endif
+  if (n == 0) return FALSE;
+  c->p += len - 1;
+  uint16_t id = add_class(c);
+  class_add_codepoint(c, &c->classes[id], cp);
+  for (int i = 0; i < n; i++) {
+    if (alt[i] < 128) class_set_bit(&c->classes[id], (uint8_t)alt[i]);
+    else class_add_codepoint(c, &c->classes[id], alt[i]);
+  }
+  emit(c, RE_CLASS, (uint8_t)id, 0);
+  return TRUE;
 }
 
 /* Compile a single atom (character, class, group, etc.) */
@@ -970,7 +1121,7 @@ compile_atom(re_compiler *c)
          parse_escape() reads the letter, since \xNN and octal \NNN name a byte
          rather than a character. */
       next_char(c);
-      emit_char_bytes(c, ch);
+      if (!emit_char_folded(c, ch)) emit_char_bytes(c, ch);
     }
     else {
       ch = parse_escape(c);
@@ -979,6 +1130,7 @@ compile_atom(re_compiler *c)
           uint16_t id = add_class(c);
           class_set_bit(&c->classes[id], (uint8_t)ch);
           class_set_bit(&c->classes[id], (uint8_t)(ch + 32));
+          class_add_fold_counterparts(c, id, (uint32_t)ch);
           emit(c, RE_CLASS, (uint8_t)id, 0);
           break;
         }
@@ -986,6 +1138,7 @@ compile_atom(re_compiler *c)
           uint16_t id = add_class(c);
           class_set_bit(&c->classes[id], (uint8_t)ch);
           class_set_bit(&c->classes[id], (uint8_t)(ch - 32));
+          class_add_fold_counterparts(c, id, (uint32_t)ch);
           emit(c, RE_CLASS, (uint8_t)id, 0);
           break;
         }
@@ -1022,6 +1175,7 @@ compile_atom(re_compiler *c)
         uint16_t id = add_class(c);
         class_set_bit(&c->classes[id], (uint8_t)ch);
         class_set_bit(&c->classes[id], (uint8_t)(ch + 32));
+        class_add_fold_counterparts(c, id, (uint32_t)ch);
         emit(c, RE_CLASS, (uint8_t)id, 0);
         break;
       }
@@ -1029,12 +1183,13 @@ compile_atom(re_compiler *c)
         uint16_t id = add_class(c);
         class_set_bit(&c->classes[id], (uint8_t)ch);
         class_set_bit(&c->classes[id], (uint8_t)(ch - 32));
+        class_add_fold_counterparts(c, id, (uint32_t)ch);
         emit(c, RE_CLASS, (uint8_t)id, 0);
         break;
       }
     }
     if (ch >= 128) {
-      emit_char_bytes(c, ch);
+      if (!emit_char_folded(c, ch)) emit_char_bytes(c, ch);
       break;
     }
     emit(c, RE_CHAR, (uint8_t)ch, 0);

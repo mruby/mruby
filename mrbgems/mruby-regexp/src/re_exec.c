@@ -53,19 +53,26 @@ class_match(const re_charclass *cc, uint32_t cp)
   return cc->utf8_any;
 }
 
-/* Compare two byte spans ignoring ASCII case. Folding stops at ASCII, like
-   every other ignorecase decision in this engine (see compile_atom()'s /i
-   handling, which only folds A-Z and a-z into a class bitmap). */
-static mrb_bool
-memcmp_ci(const char *a, const char *b, int len)
+/* Compare two spans ignoring case. Returns how many bytes of `a` were
+   consumed, or -1 when they differ. The count is not always the length of
+   `b`: with Unicode folding a counterpart can be a different width (U+212A
+   folds to 'k'), so the two spans can match while holding different numbers
+   of bytes. */
+static int
+memcmp_ci(const char *a, const char *a_end, const char *b, const char *b_end,
+          mrb_bool binary)
 {
-  for (int i = 0; i < len; i++) {
-    uint8_t ca = (uint8_t)a[i], cb = (uint8_t)b[i];
-    if (ca >= 'A' && ca <= 'Z') ca += 32;
-    if (cb >= 'A' && cb <= 'Z') cb += 32;
-    if (ca != cb) return FALSE;
+  const char *a0 = a;
+  while (b < b_end) {
+    if (a >= a_end) return -1;
+    int alen = 0, blen = 0;
+    uint32_t ca = mrb_re_decode_char(a, a_end, &alen, binary);
+    uint32_t cb = mrb_re_decode_char(b, b_end, &blen, binary);
+    if (mrb_re_case_fold(ca) != mrb_re_case_fold(cb)) return -1;
+    a += alen;
+    b += blen;
   }
-  return TRUE;
+  return (int)(a - a0);
 }
 
 /*
@@ -697,12 +704,18 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
         int ge = captures[group * 2 + 1];
         if (gs < 0 || ge < 0) return FALSE;
         int blen = ge - gs;
-        if (sp + blen > str_end) return FALSE;
         if (inst.offset) {
-          if (!memcmp_ci(sp, str + gs, blen)) return FALSE;
+          /* A folded comparison can consume a different number of bytes than
+             the captured text holds, so the span is measured, not assumed. */
+          int used = memcmp_ci(sp, str_end, str + gs, str + ge, binary);
+          if (used < 0) return FALSE;
+          sp += used;
         }
-        else if (memcmp(sp, str + gs, blen) != 0) return FALSE;
-        sp += blen;
+        else {
+          if (sp + blen > str_end) return FALSE;
+          if (memcmp(sp, str + gs, blen) != 0) return FALSE;
+          sp += blen;
+        }
         pc++;
       }
       break;
