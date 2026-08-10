@@ -2198,6 +2198,37 @@ assert("Regexp - truncated UTF-8 at subject end") do
   assert_equal 0, ("ab\xf0" =~ /[^cd]+$/)
 end
 
+assert("Regexp - overlong UTF-8 is not the character it spells") do
+  # C0 BC is the two-byte overlong spelling of "<" and E0 84 80 the three-byte
+  # spelling of "Ā". A class compares the decoded codepoint and a literal
+  # compares bytes, so a decoder that hands out a codepoint for these makes the
+  # two disagree about the same subject: assert them together.
+  assert_nil ("\xC0\xBC" =~ /[<]/)
+  assert_nil ("\xC0\xBC" =~ /</)
+  assert_equal 0, ("\xC0\xBC" =~ /[^<]/)
+  assert_equal "\xC0\xBC", "\xC0\xBC".gsub(/[<]/, "&lt;")
+  assert_nil ("\xE0\x80\xBC" =~ /[<]/)
+  assert_false Regexp.new("[Ā]").match?("\xE0\x84\x80")
+  assert_false (/Ā/.match?("\xE0\x84\x80"))
+  # the pattern side decodes through the same helper
+  assert_false Regexp.new("[\xC0\xBC]").match?("<")
+  # surrogates and codepoints above U+10FFFF encode no character either, so
+  # each byte stands on its own
+  assert_equal 2, "\xC0\xBC".scan(/./).size
+  assert_equal 3, "\xED\xA0\x80".scan(/./).size
+  assert_equal 4, "\xF0\x80\x80\xBC".scan(/./).size
+  assert_equal 4, "\xF5\x80\x80\x80".scan(/./).size
+  # the shortest spelling on each side of those bounds is still one character
+  assert_equal 1, "\u{0080}".scan(/./).size    # C2 80
+  assert_equal 1, "\u{0800}".scan(/./).size    # E0 A0 80
+  assert_equal 1, "\u{D7FF}".scan(/./).size    # ED 9F BF
+  assert_equal 1, "\u{E000}".scan(/./).size    # EE 80 80
+  assert_equal 1, "\u{10000}".scan(/./).size   # F0 90 80 80
+  assert_equal 1, "\u{10FFFF}".scan(/./).size  # F4 8F BF BF
+  assert_equal 0, ("\u{0800}" =~ Regexp.new("[\u{0800}]"))
+  assert_equal 0, ("\u{10FFFF}" =~ Regexp.new("[\u{10FFFF}]"))
+end
+
 assert("Regexp - pattern too large for its jump targets is refused") do
   # Jump targets live in a 16-bit field, so a program that outgrows the field
   # used to wrap them and jump to an unrelated instruction: the pattern then
