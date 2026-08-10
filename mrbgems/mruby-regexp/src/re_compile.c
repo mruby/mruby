@@ -289,6 +289,16 @@ class_add_shorthand(re_charclass *cc, int ch)
   }
 }
 
+/* TRUE when every character the class can match is ASCII, so it always
+   consumes exactly one byte. Non-ASCII codepoint ranges and the utf8_any
+   catch-all (set by \D, \W, \S, \H and [[:^alpha:]]) both admit multibyte
+   characters, whose width is not known until match time. */
+static mrb_bool
+class_is_ascii_only(const re_charclass *cc)
+{
+  return cc->num_ranges == 0 && !cc->utf8_any;
+}
+
 /* Set ASCII bits for a POSIX class name (e.g. "alpha") into a 128-bit map.
    Returns FALSE for an unknown name. Semantics are ASCII, like this gem's
    \w/\d shorthands; non-ASCII codepoints are not classified. */
@@ -565,11 +575,23 @@ compute_fixed_len(re_compiler *c, uint32_t start, uint32_t end)
     re_inst inst = c->code[pc];
     switch (inst.op) {
     case RE_CHAR:
-    case RE_CLASS:
-    case RE_NCLASS:
+      /* a multibyte literal is a run of one-byte RE_CHAR instructions,
+         so each one is exactly one byte by construction */
       len += 1;
       pc++;
       break;
+    case RE_CLASS:
+      /* a class that admits a multibyte character has no single byte
+         length: one holding both ASCII and non-ASCII members consumes one
+         byte here and two there. Rewinding by a wrong count lands in the
+         middle of a character, so refuse to measure it. */
+      if (!class_is_ascii_only(&c->classes[inst.a])) return -1;
+      len += 1;
+      pc++;
+      break;
+    case RE_NCLASS:
+      /* the complement of an ASCII bitmap always admits non-ASCII */
+      return -1;
     case RE_ANY:
     case RE_ANY_NL:
       /* . matches one character which can be 1-4 bytes in UTF-8.
@@ -1440,8 +1462,7 @@ first_set_walk(const re_inst *code, uint32_t code_len,
     case RE_CLASS: {
       const re_charclass *cc = &classes[code[pc].a];
       for (int i = 0; i < 16; i++) bm[i] |= cc->bitmap[i];
-      if (cc->utf8_any) return FALSE;  /* non-ASCII possible */
-      if (cc->num_ranges > 0) return FALSE;  /* non-ASCII codepoints possible */
+      if (!class_is_ascii_only(cc)) return FALSE;  /* non-ASCII possible */
       return TRUE;
     }
     case RE_NCLASS: {

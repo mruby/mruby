@@ -2034,6 +2034,37 @@ assert("Regexp - negative lookbehind at string start") do
   assert_equal "a", md[0]
 end
 
+assert("Regexp - lookbehind rejects a class that can match a multibyte character") do
+  # A class holding non-ASCII members consumes one byte here and two there,
+  # so no single rewind width is right. Refusing the pattern beats rewinding
+  # into the middle of a character, where a positive lookbehind reports no
+  # match and a negative one reports a match.
+  assert_raise(RegexpError) { Regexp.new("(?<=[Ā])x") }
+  assert_raise(RegexpError) { Regexp.new("(?<![Ā])b") }
+  assert_raise(RegexpError) { Regexp.new("(?<=[Ā-ă])x") }
+  assert_raise(RegexpError) { Regexp.new("(?<=[aĀ])x") }
+  assert_raise(RegexpError) { Regexp.new("(?<=[Ā]{2})x") }
+  # a negated class always admits non-ASCII, whatever its members are
+  assert_raise(RegexpError) { Regexp.new("(?<=[^あ])x") }
+  assert_raise(RegexpError) { Regexp.new("(?<![^a])b") }
+  # the uppercase shorthands carry the same catch-all
+  assert_raise(RegexpError) { Regexp.new("(?<=a\\W)x") }
+  assert_raise(RegexpError) { Regexp.new("(?<=\\W\\W)x") }
+  assert_raise(RegexpError) { Regexp.new("(?<=\\D)x") }
+  assert_raise(RegexpError) { Regexp.new("(?<=\\S)x") }
+end
+
+assert("Regexp - lookbehind measures an ASCII-only class") do
+  assert_equal "x", "ax".match(/(?<=[a-z])x/)[0]
+  assert_nil "1x".match(/(?<=[a-z])x/)
+  assert_equal "x", "1x".match(/(?<=\d)x/)[0]
+  assert_equal "x", " x".match(/(?<=\s)x/)[0]
+  # a multibyte literal compiles to a run of one-byte instructions, so it
+  # keeps its exact width and must keep measuring
+  assert_equal "x", "Āx".match(/(?<=Ā)x/)[0]
+  assert_nil "bx".match(/(?<=Ā)x/)
+end
+
 assert("$1-$9 global variables") do
   /(\w+)\s(\w+)/ =~ "hello world"
   assert_equal "hello", $1
