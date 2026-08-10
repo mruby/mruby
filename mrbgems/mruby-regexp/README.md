@@ -90,6 +90,10 @@ str.split(re)                     # => array of parts
 str[re]                           # => matched substring or nil
 str[re, capture]                  # => capture by index or name
 str.slice(re)                     # => same as str[re]
+str[re] = repl                    # replace the match
+str[re, capture] = repl           # replace a capture by index or name
+str.slice!(re)                    # remove and return the match, or nil
+str.slice!(re, capture)           # same, for a capture by index or name
 
 # Symbol methods (the String methods applied to the symbol's name)
 sym.match(re)                     # => MatchData or nil

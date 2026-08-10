@@ -9,6 +9,12 @@ class String
   # function rather than an alias of `[]`, so this one capture serves both.
   alias __aref []
 
+  # The write side of the same pair, overridden at the end of this file too.
+  # `[]=` has a single method table entry, and `slice!` comes from
+  # mruby-string-ext, which this gem depends on, so it needs its own capture.
+  alias __aset []=
+  alias __slice_bang slice!
+
   # `match` and `match?` accept a Regexp or a String and reject everything
   # else.  The check lives in C (see Regexp.__check_pattern) so that the
   # argument cannot steer it: it cannot pose as a Regexp, and there is no
@@ -309,4 +315,95 @@ class String
   # what makes `sym[re]` work: `Symbol#[]` is an alias of `Symbol#slice`,
   # which delegates to `String#slice`.
   alias slice []
+
+  # Regexp-aware element assignment.  Falls back to the C-defined `[]=`
+  # (aliased as `__aset` above) for every other argument form, and handles a
+  # regexp here.
+  #
+  # `vm_op_setidx()` optimizes Array and Hash only and sends `[]=` for every
+  # other receiver, so unlike the read side there is no opcode keeping the
+  # ordinary `str[i] = repl` off this override: it pays a Ruby frame on its
+  # way to `__aset`.  That is why the delegation guard is a single
+  # `Regexp ===`, before any other work.
+  def []=(*args)
+    return __aset(*args) unless Regexp === args[0]
+    unless args.length == 2 || args.length == 3
+      raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 2..3)"
+    end
+    # `match` and not `match?`, so that the match globals are published here
+    # including the clearing a failed match does.  CRuby searches before it
+    # checks the receiver for modification, which makes the order observable:
+    # a frozen receiver still leaves the match behind, and a pattern that does
+    # not match raises IndexError rather than FrozenError.  Letting the
+    # mutation below be what raises reproduces both.
+    md = args[0].match(self)
+    raise IndexError, "regexp not matched" unless md
+    group = args.length > 2 ? args[1] : 0
+    if Integer === group
+      # An index out of range is an error here, not a missing group, and
+      # CRuby reports it before normalizing a negative one, so the message
+      # names the index as given, and group 0 is out of the negative end's
+      # reach.  `MatchData#begin` has its own wording for this and rejects
+      # every negative index, so the check cannot be left to it.
+      size = md.size
+      if group >= size || -group >= size
+        raise IndexError, "index #{group} out of regexp"
+      end
+      group += size if group < 0
+    end
+    # A String or Symbol reaches `MatchData#begin` as it stands: it resolves
+    # the name to its group and raises the IndexError CRuby raises for a name
+    # that resolves to none, with the same message.
+    beg = md.begin(group)
+    # A group that exists but did not take part in the match has nothing to
+    # replace.  CRuby names the group's number even when the argument was a
+    # name; the number is not reachable from Ruby, so the message repeats the
+    # argument as it was given.
+    raise IndexError, "regexp group #{group} not matched" unless beg
+    # `begin` and `end` report character offsets, which is the space the
+    # two-integer form of `[]=` works in, so a multibyte subject needs no
+    # further conversion.  The replacement is handed over unchecked: the type
+    # check belongs to the core method, as it does for `sub`.
+    __aset(beg, md.end(group) - beg, args[-1])
+  end
+
+  # Regexp-aware `slice!`.  Falls back to the C-defined `slice!` (aliased as
+  # `__slice_bang` above) for every other argument form.
+  def slice!(*args)
+    return __slice_bang(*args) unless Regexp === args[0]
+    if args.length > 2
+      raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1..2)"
+    end
+    # Before the search, where `mrb_str_slice_bang()` and CRuby both put it:
+    # a frozen receiver raises even for a pattern that would not have
+    # matched, and `$~` is left as it was.  This is the opposite order from
+    # `[]=` above, and both are observable.  `frozen?` is redefinable where
+    # the C check is not, but no other route to that check leaves the string
+    # alone on the way.
+    raise FrozenError, "can't modify frozen String" if frozen?
+    md = args[0].match(self)
+    return nil unless md
+    group = args.length > 1 ? args[1] : 0
+    if Integer === group
+      # Where `[]=` raises, `slice!` answers nil: an index that reaches no
+      # group removed nothing.  The normalization is the same, so group 0
+      # stays out of the negative end's reach here too.
+      size = md.size
+      return nil if group >= size || -group >= size
+      group += size if group < 0
+    end
+    beg = md.begin(group)
+    # CRuby answers "" for a group that exists but did not take part in the
+    # match, and removes nothing.  That falls out of `rb_str_slice_bang()`
+    # building the result from the group's -1 offset rather than out of a
+    # decision, but it is what the method answers.
+    return "" unless beg
+    len = md.end(group) - beg
+    # From the MatchData, whose subject is a snapshot taken before this
+    # method mutates anything, and which is a plain String even when the
+    # receiver is a subclass, both as in CRuby.
+    removed = md[group]
+    __aset(beg, len, "")
+    removed
+  end
 end

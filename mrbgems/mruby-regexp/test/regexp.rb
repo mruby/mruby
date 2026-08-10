@@ -2286,3 +2286,213 @@ assert("String#[] reads the real type of its argument") do
   def fake.match(str); raise "must not be called"; end
   assert_raise(TypeError) { "hello"[fake] }
 end
+
+assert("String#[]= with regexp") do
+  s = "hello"
+  assert_equal "X", (s[/l+/] = "X")
+  assert_equal "heXo", s
+
+  # a multibyte subject: `MatchData#begin` and `#end` report character
+  # offsets, which is the space the two-integer form of `[]=` works in
+  s = "あいlluえお"
+  s[/l+/] = "X"
+  assert_equal "あいXuえお", s
+
+  # an empty match replaces an empty span
+  s = "hello"
+  s[/x*/] = "X"
+  assert_equal "Xhello", s
+
+  # a pattern that does not match is an error, unlike the read side's nil
+  s = "hello"
+  assert_raise(IndexError) { s[/z/] = "X" }
+  assert_equal "hello", s
+end
+
+assert("String#[]= with regexp and capture") do
+  s = "hello"
+  s[/(l+)(o)/, 1] = "X"
+  assert_equal "heXo", s
+
+  s = "hello"
+  s[/(l+)(o)/, 0] = "X"
+  assert_equal "heX", s
+
+  # a negative index counts back from the last group, and is rejected once
+  # it reaches group 0, so the whole match is out of its reach
+  s = "hello"
+  s[/(l+)(o)/, -1] = "X"
+  assert_equal "hellX", s
+  assert_raise(IndexError) { "hello"[/l+/, -1] = "X" }
+
+  s = "hello"
+  s[/(?<x>l+)/, :x] = "Y"
+  assert_equal "heYo", s
+
+  s = "あいlluえお"
+  s[/(?<x>l+)/, "x"] = "Y"
+  assert_equal "あいYuえお", s
+
+  # an index that reaches no group is an error here, where the read side
+  # answers nil
+  assert_raise(IndexError) { "hello"[/(l+)/, 5] = "X" }
+  # so is a group that exists but did not take part in the match
+  assert_raise(IndexError) { "hello"[/(h)|(z)/, 2] = "X" }
+  # and so is a name that resolves to no group
+  assert_raise(IndexError) { "hello"[/(?<x>l+)/, :zz] = "X" }
+  assert_raise(IndexError) { "hello"[/(l+)/, "x"] = "X" }
+  assert_raise(TypeError) { "hello"[/(l+)/, nil] = "X" }
+end
+
+assert("String#[]= with regexp sets the match globals") do
+  s = "hello"
+  s[/l+/] = "X"
+  assert_equal "ll", $~[0]
+  # the MatchData describes the subject as it was before the replacement
+  assert_equal "hello", $~.string
+
+  s = "hello"
+  s[/(l)(l)/, 2] = "X"
+  assert_equal "l", $1
+
+  # a failed match clears $~ before the IndexError, which is why this goes
+  # through `match` rather than `match?`
+  assert_raise(IndexError) { "hello"[/z/] = "X" }
+  assert_nil $~
+end
+
+assert("String#[]= with regexp searches before it checks the receiver") do
+  # CRuby modifies last, so a frozen receiver raises only once the search
+  # has left its match behind, and a pattern that does not match raises
+  # IndexError rather than FrozenError
+  $~ = nil
+  assert_raise(FrozenError) { "hello".freeze[/l+/] = "X" }
+  assert_equal "ll", $~[0]
+
+  $~ = nil
+  assert_raise(IndexError) { "hello".freeze[/z/] = "X" }
+  assert_nil $~
+end
+
+assert("String#[]= delegates every non-regexp argument") do
+  s = "hello"
+  s[0] = "H"
+  assert_equal "Hello", s
+  s[1, 3] = "X"
+  assert_equal "HXo", s
+  s = "hello"
+  s[1..3] = "X"
+  assert_equal "hXo", s
+  s = "hello"
+  s["ll"] = "X"
+  assert_equal "heXo", s
+
+  # the errors are the ones the C method raises, and the replacement reaches
+  # its type check unconverted.  Only the regexp form's arity is the
+  # override's to report: the core reads its arguments in order, so a
+  # four-argument call is rejected for the replacement's type before the
+  # count is ever looked at.
+  assert_raise(ArgumentError) { "hello"[/l/, 1, 2] = "X" }
+  assert_raise(TypeError) { "hello"[1, 2, 3] = "X" }
+  assert_raise(IndexError) { "hello"["bye"] = "X" }
+  assert_raise(TypeError) { "hello"[nil] = "X" }
+  assert_raise(TypeError) { "hello"[/l/] = :sym }
+
+  # `is_a?` is redefinable, so the real type is what decides
+  re = /l+/
+  def re.is_a?(klass); false; end
+  s = "hello"
+  s[re] = "X"
+  assert_equal "heXo", s
+end
+
+assert("String#slice! with regexp") do
+  s = "hello"
+  assert_equal "ll", s.slice!(/l+/)
+  assert_equal "heo", s
+
+  s = "あいlluえお"
+  assert_equal "ll", s.slice!(/l+/)
+  assert_equal "あいuえお", s
+
+  # a pattern that does not match removes nothing and answers nil
+  s = "hello"
+  assert_nil s.slice!(/z/)
+  assert_equal "hello", s
+
+  # an empty match removes nothing but is still a match
+  s = "hello"
+  assert_equal "", s.slice!(/x*/)
+  assert_equal "hello", s
+
+  # a plain String even for a subclass receiver, as in CRuby
+  sub = Class.new(String)
+  assert_equal String, sub.new("hello").slice!(/l+/).class
+end
+
+assert("String#slice! with regexp and capture") do
+  s = "hello"
+  assert_equal "l", s.slice!(/(l)(o)/, 1)
+  assert_equal "helo", s
+  # the MatchData left behind describes the whole match, not the capture
+  assert_equal "lo", $~[0]
+
+  s = "hello"
+  assert_equal "o", s.slice!(/(l+)(o)/, -1)
+  assert_equal "hell", s
+
+  s = "hello"
+  assert_equal "ll", s.slice!(/(?<x>l+)/, :x)
+  assert_equal "heo", s
+
+  # where `[]=` raises, an index that reaches no group answers nil here,
+  # group 0 included once the index is negative
+  s = "hello"
+  assert_nil s.slice!(/(l+)/, 5)
+  assert_nil s.slice!(/l+/, -1)
+  assert_equal "hello", s
+
+  # a group that exists but did not take part in the match answers "" and
+  # removes nothing, as in CRuby
+  s = "hello"
+  assert_equal "", s.slice!(/(h)|(z)/, 2)
+  assert_equal "hello", s
+
+  # only a name that resolves to no group raises, as it does for `[]=`
+  assert_raise(IndexError) { "hello".slice!(/(?<x>l+)/, :zz) }
+  assert_raise(IndexError) { "hello".slice!(/(l+)/, "x") }
+  assert_raise(TypeError) { "hello".slice!(/(l+)/, nil) }
+end
+
+assert("String#slice! with regexp checks the receiver before it searches") do
+  # the opposite order from `[]=`, and CRuby draws the same distinction: the
+  # check comes first, so a pattern that would not have matched still raises
+  # and $~ is left alone
+  $~ = nil
+  assert_raise(FrozenError) { "hello".freeze.slice!(/l+/) }
+  assert_nil $~
+  assert_raise(FrozenError) { "hello".freeze.slice!(/z/) }
+  assert_nil $~
+end
+
+assert("String#slice! delegates every non-regexp argument") do
+  s = "hello"
+  assert_equal "e", s.slice!(1)
+  assert_equal "hllo", s
+  s = "hello"
+  assert_equal "ell", s.slice!(1, 3)
+  assert_equal "ho", s
+  s = "hello"
+  assert_equal "ell", s.slice!(1..3)
+  assert_equal "ho", s
+  s = "hello"
+  assert_equal "ll", s.slice!("ll")
+  assert_equal "heo", s
+  assert_nil "hello".slice!("bye")
+
+  assert_raise(ArgumentError) { "hello".slice! }
+  assert_raise(ArgumentError) { "hello".slice!(1, 2, 3) }
+  assert_raise(ArgumentError) { "hello".slice!(/l/, 1, 2) }
+  assert_raise(TypeError) { "hello".slice!(nil) }
+  assert_raise(FrozenError) { "hello".freeze.slice!(0) }
+end
