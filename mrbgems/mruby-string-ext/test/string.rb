@@ -16,6 +16,17 @@ assert('String#dump') do
   assert_nothing_raised { ("\1" * 100).dump }   # regress #1210
 end
 
+assert('String#inspect of a binary string escapes every byte') do
+  # `inspect` passes a whole character through unescaped so it stays readable,
+  # which a string holding no characters has nothing to gain from. `dump` on
+  # the same string escaped every byte already, so the two agree there.
+  if UTF8STRING
+    assert_equal('"る"', "る".inspect)
+    assert_equal('"\xe3\x82\x8b"', "る".b.inspect)
+    assert_equal("る".b.dump, "る".b.inspect)
+  end
+end
+
 assert('String#strip') do
   s = "  abc  "
   assert_equal("abc", s.strip)
