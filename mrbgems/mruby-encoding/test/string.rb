@@ -28,3 +28,24 @@ assert('String#encoding') do
     assert_equal Encoding::BINARY, a.encoding
   end
 end
+
+assert('String#encoding survives a copy') do
+  # A copy holds the same bytes, so it is byte-indexed exactly when the string
+  # it copies is. The copy used to come back UTF-8, which made `size` and every
+  # offset computed from it read the bytes as characters again.
+  if UTF8STRING
+    a = "\u{1F600}".b   # F0 9F 98 80: four bytes, one character
+    assert_equal Encoding::BINARY, a.dup.encoding
+    assert_equal Encoding::BINARY, a.clone.encoding
+    assert_equal Encoding::BINARY, a.freeze.dup.encoding
+    b = "hello"
+    b.replace(a)
+    assert_equal Encoding::BINARY, b.encoding
+    # and a copy of a UTF-8 string is still UTF-8: the flag is copied, not set
+    c = "\u{1F600}"
+    assert_equal Encoding::UTF_8, c.dup.encoding
+    d = "x".b
+    d.replace(c)
+    assert_equal Encoding::UTF_8, d.encoding
+  end
+end
