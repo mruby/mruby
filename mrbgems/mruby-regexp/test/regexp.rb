@@ -281,6 +281,55 @@ assert("Regexp - quantifiers") do
   assert_equal "a", Regexp.new("ab?").match("ac")[0]
 end
 
+assert("Regexp - a repetition stops on an empty iteration") do
+  # A repetition whose body matches empty runs that iteration and then stops,
+  # so a body that prefers the empty branch ends the loop at once instead of
+  # going around again on the branch that consumes.
+  assert_equal "", "a".match(/(|a)*/)[0]
+  assert_equal "", "aaa".match(/(|a)*/)[0]
+  assert_equal "", "a".match(/(?:|a)+/)[0]
+  # a body that can only match empty after consuming still consumes first
+  assert_equal "aaa", "aaa".match(/(a|)*/)[0]
+  assert_equal "aa", "aab".match(/(a?)*/)[0]
+end
+
+assert("Regexp - a repetition keeps its last, empty iteration's capture") do
+  # The final iteration is the empty one, and the group keeps what it
+  # captured: the empty string where the loop stopped. The linear-time engine
+  # used to drop that iteration and report the previous one's text, or nil
+  # when there was no previous one.
+  md = "a".match(/(a?)*/)
+  assert_equal "a", md[0]
+  assert_equal "", md[1]
+  assert_equal 1, md.begin(1)
+  assert_equal "", "aab".match(/(a*)*b/)[1]
+  assert_equal "", "a".match(/(a|)*/)[1]
+  assert_equal "", "a".match(/(a?)+/)[1]
+  # with no earlier iteration the group still participates
+  assert_equal "", "b".match(/(a?)*/)[1]
+  assert_equal "", "".match(/(a?)*/)[1]
+  assert_equal "", "b".match(/(a*)*b/)[1]
+  # a nullable body nested in a repetition reaches the same answer
+  assert_equal "", "a".match(/((a?)*)*/)[1]
+  # both engines agree: a lookaround routes the same pattern to the other one
+  assert_equal "", "a".match(/(?=a)(a?)*/)[1]
+  assert_equal 1, "a".match(/(?=a)(a?)*/).begin(1)
+  assert_equal "", "b".match(/(?=b)(a?)*/)[1]
+end
+
+assert("Regexp - a repetition whose body always consumes is unaffected") do
+  assert_equal "b", "ab".match(/(a|b)*/)[1]
+  assert_nil "c".match(/(a|b)*/)[1]
+  assert_equal "aa", "aa".match(/(a)*/)[0]
+  assert_equal "a", "aa".match(/(a)*/)[1]
+  assert_equal ["", "b", ""], "ab".split(/(?:a?)*/, -1)
+end
+
+assert("String#split and String#scan see the empty iteration's capture") do
+  assert_equal ["", "", "b", "", ""], "ab".split(/(a?)*/, -1)
+  assert_equal [[""], [""], [""]], "ab".scan(/(a?)*/)
+end
+
 assert("Regexp - quantified first alternative does not leak into the next") do
   # A quantifier loops back to its own atom. When the atom starts the first
   # alternative, the alternation SPLIT is inserted in front of it; the

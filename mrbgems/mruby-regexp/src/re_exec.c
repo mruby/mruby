@@ -94,7 +94,9 @@ typedef struct {
   int pool_next;          /* next free slot */
   int pool_capa;          /* total slots allocated */
   uint32_t *visited;      /* generation-based */
-  uint32_t gen;
+  uint32_t gen;           /* visited key this step's first epsilon pass uses */
+  uint32_t key_max;       /* highest key a further pass may reach this step */
+  uint32_t pass_span;     /* keys one step reserves: key_max - gen + 1 */
   const char *str;
   const char *str_end;
   mrb_bool matched;
@@ -129,21 +131,71 @@ pool_copy(pike_state *s, int src_slot)
 
 #define CAP(s, slot) (&(s)->cap_pool[(slot) * (s)->ncap])
 
-/* Add thread following epsilon transitions.
-   visited[pc] == gen means already visited this step. */
+/* TRUE once this step's closure has walked the loop head at pc, which means
+   the body just ran without consuming: an empty iteration. */
+static mrb_bool
+loop_head_seen(pike_state *s, uint32_t pc)
+{
+  return s->visited[pc] >= s->gen;
+}
+
+/* A fork also closes e+: the body is laid out before it, so its jump target
+   is the body start and pc+1 is the loop's exit. Returns the key the jump
+   target's branch walks under, or RE_LOOP_STOP when the body matched empty
+   and the repetition therefore has to stop. An ordinary fork, or one closing
+   a loop whose body always consumes (`a` is 0, see mark_empty_loops()), has
+   no empty iteration to account for and keeps the current key. */
+#define RE_LOOP_STOP UINT32_MAX
+
+static uint32_t
+re_loop_back(pike_state *s, re_inst inst, uint32_t pc, uint32_t key)
+{
+  if (inst.offset > pc || !inst.a) return key;
+  if (loop_head_seen(s, inst.offset)) return RE_LOOP_STOP;
+  return key < s->key_max ? key + 1 : key;
+}
+
+/* Add thread following epsilon transitions. `key` is s->gen for the first
+   pass over this step's closure and one higher per further pass, and
+   visited[pc] holds the key of the pass that last walked pc: a later pass may
+   re-walk what an earlier one marked, and no key is ever reused by a later
+   step. */
 static void
 add_thread(pike_state *s, re_threadlist *list,
-           uint32_t pc, int cap_slot, const char *sp)
+           uint32_t pc, int cap_slot, const char *sp, uint32_t key)
 {
   for (;;) {
     if (s->cut) return;
     if (pc >= s->pat->code_len) return;
-    if (s->visited[pc] == s->gen) return;
-    s->visited[pc] = s->gen;
+    if (s->visited[pc] >= key) return;
+    s->visited[pc] = key;
 
     re_inst inst = s->pat->code[pc];
     switch (inst.op) {
     case RE_JMP:
+      /* A backward jump closes a repetition (e*, e{n,}): it returns to the
+         RE_SPLIT/RE_SPLITNG head, whose offset is the loop's exit. `a` is set
+         only when that body can run empty (see mark_empty_loops()), which is
+         the only case with a final empty iteration to account for. */
+      if (inst.offset <= pc && inst.a) {
+        uint32_t head = inst.offset;
+        if (loop_head_seen(s, head)) {
+          /* The head was walked at this position, so the iteration that just
+             finished consumed nothing. Onigmo stops a repetition on an empty
+             iteration and keeps what that iteration captured, so leave the
+             loop from here rather than dying on the head's mark: this path
+             outranks the exit the head itself queued before the body ran, and
+             claims the exit pc first. */
+          pc = s->pat->code[head].offset;
+          continue;
+        }
+        /* The head is unmarked, so this closure resumed inside the body and
+           the iteration it just finished is a real one. Run the next
+           iteration in a fresh pass, past the marks the resumed tail left. */
+        if (key < s->key_max) key++;
+        pc = head;
+        continue;
+      }
       pc = inst.offset;
       continue;
 
@@ -155,19 +207,24 @@ add_thread(pike_state *s, re_threadlist *list,
          pc+1's closure can mutate the shared slot; the jump branch then runs
          on that snapshot. */
       {
+        uint32_t back = re_loop_back(s, inst, pc, key);
+        if (back == RE_LOOP_STOP) { pc++; continue; }
         int cp = s->match_only ? 0 : pool_copy(s, cap_slot);
-        add_thread(s, list, pc + 1, cap_slot, sp);
+        add_thread(s, list, pc + 1, cap_slot, sp, key);
         if (s->cut) return;
         pc = inst.offset;
         cap_slot = cp;
+        key = back;
       }
       continue;
 
     case RE_SPLITNG:
       /* Non-greedy fork: the jump target outranks the fall-through. */
       {
+        uint32_t back = re_loop_back(s, inst, pc, key);
+        if (back == RE_LOOP_STOP) { pc++; continue; }
         int cp = s->match_only ? 0 : pool_copy(s, cap_slot);
-        add_thread(s, list, inst.offset, cap_slot, sp);
+        add_thread(s, list, inst.offset, cap_slot, sp, back);
         if (s->cut) return;
         pc = pc + 1;
         cap_slot = cp;
@@ -270,7 +327,7 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
   int ncap = pat->num_captures * 2;
   if (ncap == 0) ncap = 2;
 
-  int list_capa = (int)pat->code_len * 2 + 16;
+  int list_capa = RE_LIST_CAPA(pat->code_len, pat->loop_depth);
 
   mrb_bool match_only = (captures == NULL || captures_size == 0);
 
@@ -289,7 +346,9 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
   s.match_only = match_only;
   s.binary = binary;
   s.cut = FALSE;
-  s.gen = 1;
+  s.pass_span = RE_PASS_SPAN(pat->loop_depth);
+  s.gen = s.pass_span;
+  s.key_max = s.gen + s.pass_span - 1;
   if (match_only) {
     s.pool_capa = 1;
     s.pool_next = 0;
@@ -345,9 +404,10 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
           !mrb_re_utf8_interior_p(str, sp, str_end)) {
         int slot = match_only ? 0 : pool_alloc(&s);
         if (!match_only) memset(CAP(&s, slot), -1, sizeof(int) * ncap);
-        s.gen++;
+        s.gen += s.pass_span;
+        s.key_max += s.pass_span;
         s.cut = FALSE;
-        add_thread(&s, &curr, 0, slot, sp);
+        add_thread(&s, &curr, 0, slot, sp, s.gen);
         if (s.matched && curr.count == 0) break;
       }
     }
@@ -375,7 +435,8 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
       s.pool_next = curr.count;
     }
 
-    s.gen++;
+    s.gen += s.pass_span;
+    s.key_max += s.pass_span;
     s.cut = FALSE;
     next.count = 0;
 
@@ -408,35 +469,35 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
       case RE_CHAR:
         if (ch == inst.a) {
           int cp = match_only ? 0 : pool_copy(&s, th->cap_slot);
-          add_thread(&s, &next, th->pc + 1, cp, sp + 1);
+          add_thread(&s, &next, th->pc + 1, cp, sp + 1, s.gen);
         }
         break;
 
       case RE_ANY:
         if (ch != '\n') {
           int cp = match_only ? 0 : pool_copy(&s, th->cap_slot);
-          add_thread(&s, &next, th->pc + 1, cp, sp + advance);
+          add_thread(&s, &next, th->pc + 1, cp, sp + advance, s.gen);
         }
         break;
 
       case RE_ANY_NL:
         {
           int cp = match_only ? 0 : pool_copy(&s, th->cap_slot);
-          add_thread(&s, &next, th->pc + 1, cp, sp + advance);
+          add_thread(&s, &next, th->pc + 1, cp, sp + advance, s.gen);
         }
         break;
 
       case RE_CLASS:
         if (class_match(&pat->classes[inst.a], curr_cp)) {
           int cp = match_only ? 0 : pool_copy(&s, th->cap_slot);
-          add_thread(&s, &next, th->pc + 1, cp, sp + advance);
+          add_thread(&s, &next, th->pc + 1, cp, sp + advance, s.gen);
         }
         break;
 
       case RE_NCLASS:
         if (!class_match(&pat->classes[inst.a], curr_cp)) {
           int cp = match_only ? 0 : pool_copy(&s, th->cap_slot);
-          add_thread(&s, &next, th->pc + 1, cp, sp + advance);
+          add_thread(&s, &next, th->pc + 1, cp, sp + advance, s.gen);
         }
         break;
 
