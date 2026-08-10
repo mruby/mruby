@@ -9,32 +9,27 @@
 # check to reject everything that is not a Regexp.  `[]`, `[]=` and `slice!`
 # read the real class with `Regexp === pattern` and leave anything else to the
 # built-in method they aliased.  `=~` rejects a String, which would recurse
-# back into this method, and hands anything else to the argument's own `=~`,
-# as CRuby does.
+# back into this method, and hands anything that is not a Regexp to the
+# argument's own `=~`, as CRuby does.
 #
-# That is where the guarantee ends.  With the type established, each override
-# calls ordinary methods on the pattern (`match`, `match?`, `=~`,
-# `__byte_match`, `__sub_str`, `__gsub_str`, `__scan`) and on the MatchData it
-# hands back (`[]`, `pre_match`, `post_match`, `begin`, `end`, `size`,
-# `length`, `__byte_begin`, `__byte_end`, `__set_globals`).  Every one of
-# those is defined with `mrb_define_method()`, so a singleton method on the
-# pattern replaces it and the override follows the replacement; the `__`
-# prefix is a naming convention, not a protection.
+# With the type established, each override reaches the engine through class
+# methods that take the pattern as an argument (`Regexp.__search`,
+# `__byte_search`, `__search_p`, `__sub_str`, `__gsub_str`, `__scan`), so
+# nothing rewritten on the pattern instance is consulted on the way: the C
+# side searches, and the loops and blocks stay here.  The MatchData those
+# searches answer is built in C too, so what the overrides read from it
+# (`[]`, `pre_match`, `begin` and the rest) cannot have been planted by an
+# argument.  What remains reachable is a class-wide redefinition of a
+# MatchData method, which is the same category as redefining `String#sub`
+# itself and is not steered by the argument.
 #
-# CRuby is open the same way in `rb_str_match_m()`, which dispatches `match` to
-# the pattern on purpose, and closed everywhere else: `rb_str_sub_bang()`,
-# `rb_str_subpat()`, `rb_str_subpat_set()` and `rb_str_slice_bang()` call
-# `rb_reg_search()` directly, and `String#match?` and `String#=~` search a real
-# Regexp without asking it anything.  The overrides here dispatch on every
-# path, so a rewritten pattern reaches results CRuby would not give it.
-#
-# The gem accepts that rather than closing it.  Reaching it takes rewriting a
-# method on a Regexp instance and then passing that instance to a String
-# method; nothing here is reachable from ordinary input, because an argument
-# that is not a Regexp is rejected, compiled into a Regexp built here, or left
-# to the built-in method the override aliased; `=~` alone forwards it to the
-# argument, which CRuby does too.  The type checks in front of the searches
-# are claims about the argument, not about a pattern its owner has rewritten.
+# `String#match` is the one deliberate exception: it dispatches `match` to
+# the pattern because CRuby's `rb_str_match_m()` does so on purpose, and
+# following that is the correct behaviour, not a hole.  The `=~` forward for
+# a non-Regexp argument is the same shape, from `rb_str_match()`.  Everywhere
+# else the gem is closed the way CRuby is: `rb_str_sub_bang()`,
+# `rb_str_subpat()` and the rest reach the engine without asking the pattern
+# anything.
 class String
   # Capture the C-defined String#split under `__split` before the override
   # below replaces it, so the override can delegate non-regexp patterns
