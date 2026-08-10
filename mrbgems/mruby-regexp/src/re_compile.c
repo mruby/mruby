@@ -800,13 +800,19 @@ emit_char_bytes(re_compiler *c, int ch)
    character with no counterpart, which is most of the non-ASCII range and
    every script without case in it, falls back to the bytes and costs /i
    nothing. A character this build cannot fold is refused rather than answered
-   without the folding it needs. */
+   without the folding it needs.
+
+   A byte that starts no whole character is not a character to fold. It decodes
+   as one byte and hands back its own value, which would read a lone 0xB5 as
+   U+00B5 and answer /i for a character the pattern does not hold, so it falls
+   back to the bytes like every other invalid sequence in the literal path. */
 static mrb_bool
 emit_char_folded(re_compiler *c, int ch)
 {
   if (ch < 128 || !(c->flags & RE_FLAG_IGNORECASE)) return FALSE;
   int len = 0;
   uint32_t cp = mrb_re_utf8_decode(c->p - 1, c->src_end, &len);
+  if (len == 1) return FALSE;
   if (mrb_re_needs_case_data(cp, cp)) {
     compile_error(c, "/i needs MRB_REGEXP_UNICODE_CASE for this character");
   }

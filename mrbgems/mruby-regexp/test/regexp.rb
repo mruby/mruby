@@ -464,6 +464,19 @@ assert("Regexp - /i folds an ASCII letter's class whole") do
   assert_true Regexp.new("[^k]").match?(kelvin)
 end
 
+assert("Regexp - /i does not read a byte above 127 as a character") do
+  # A byte that starts no whole character decodes as itself, so the folding
+  # path would take a lone 0xB5 for U+00B5 and answer /i for a character the
+  # pattern does not hold. A literal compares bytes, with or without /i.
+  micro = "\xB5"        # U+00B5 is "\xC2\xB5"; the byte on its own is not it
+  assert_equal 0, (Regexp.new(micro, Regexp::IGNORECASE) =~ micro)
+  assert_nil (Regexp.new(micro, Regexp::IGNORECASE) =~ "\u00B5")
+  # A sequence cut short by the end of the pattern reads the same way.
+  lead = "\xC3"         # starts a two byte character and never completes one
+  assert_equal 0, (Regexp.new(lead, Regexp::IGNORECASE) =~ lead)
+  assert_nil (Regexp.new(lead, Regexp::IGNORECASE) =~ "\u00E3")
+end
+
 assert("Regexp - repetition {n,m}") do
   assert_equal "aaa", Regexp.new("a{3}").match("aaaa")[0]
   assert_equal "aa", Regexp.new("a{2,3}").match("aa")[0]
