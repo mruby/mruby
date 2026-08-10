@@ -1864,6 +1864,28 @@ assert("Regexp - truncated UTF-8 at subject end") do
   assert_equal 0, ("ab\xf0" =~ /[^cd]+$/)
 end
 
+assert("Regexp - pattern too large for its jump targets is refused") do
+  # Jump targets live in a 16-bit field, so a program that outgrows the field
+  # used to wrap them and jump to an unrelated instruction: the pattern then
+  # quietly stopped matching text it describes instead of reporting anything.
+  # Each (?:abc) unit costs three instructions and the bound is on the whole
+  # program, so the two counts below sit either side of it.
+  assert_kind_of Regexp, Regexp.new("(?:abc){21844}")
+  assert_raise_with_message(RegexpError, "regexp too large: /(?:abc){21845}/") do
+    Regexp.new("(?:abc){21845}")
+  end
+
+  # the shapes that used to answer wrongly rather than raise: a quantifier
+  # whose skip target is patched past the bound, and an alternation whose
+  # branch and exit targets both wrap
+  assert_raise(RegexpError) { Regexp.new("(?:abc){21844}x*y") }
+  assert_raise(RegexpError) { Regexp.new("(?:abc){30000}(?:y|z)") }
+
+  # a quantifier the parser still accepts reaches the bound on its own once
+  # the repeated atom costs more than one instruction
+  assert_raise(RegexpError) { Regexp.new("(?:ab){32768}") }
+end
+
 assert("Regexp - large non-ASCII character class does not overflow") do
   # a class listing tens of thousands of non-ASCII codepoints used to
   # overflow the 16-bit range capacity (32768 * 2 wrapped to 0, feeding a
