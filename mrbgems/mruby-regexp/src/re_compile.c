@@ -820,15 +820,18 @@ parse_quantifier(re_compiler *c, int *min_out, int *max_out)
 }
 
 /*
- * Compute the fixed byte length consumed by bytecode in range [start, end).
- * Returns -1 if the pattern has variable length (quantifiers, alternation
- * with different-length branches, etc.).
- * Used for lookbehind: we need to know exactly how far back to look.
+ * Measure the bytecode in range [start, end) for a lookbehind, which must
+ * know exactly how far back to rewind. Returns the byte count a binary
+ * subject needs, one per consuming instruction since such a subject
+ * advances one byte whatever the instruction is, and stores in *chars_out
+ * the character count a UTF-8 subject needs. Returns -1 if the sub-pattern
+ * has no fixed width (quantifiers, alternation, etc.).
  */
 static int
-compute_fixed_len(re_compiler *c, uint32_t start, uint32_t end)
+compute_fixed_len(re_compiler *c, uint32_t start, uint32_t end, int *chars_out)
 {
   int len = 0;
+  int chars = 0;
   uint32_t pc = start;
 
   while (pc < end) {
@@ -836,28 +839,22 @@ compute_fixed_len(re_compiler *c, uint32_t start, uint32_t end)
     switch (inst.op) {
     case RE_CHAR:
       /* a multibyte literal is a run of one-byte RE_CHAR instructions,
-         so each one is exactly one byte by construction */
+         so each one is exactly one byte by construction, and the run is
+         one character per lead byte in it */
       len += 1;
+      if ((inst.a & 0xC0) != 0x80) chars += 1;
       pc++;
       break;
     case RE_CLASS:
-      /* a class that admits a multibyte character has no single byte
-         length: one holding both ASCII and non-ASCII members consumes one
-         byte here and two there. Rewinding by a wrong count lands in the
-         middle of a character, so refuse to measure it. */
-      if (!class_is_ascii_only(&c->classes[inst.a])) return -1;
-      len += 1;
-      pc++;
-      break;
     case RE_NCLASS:
-      /* the complement of an ASCII bitmap always admits non-ASCII */
-      return -1;
     case RE_ANY:
     case RE_ANY_NL:
-      /* . matches one character which can be 1-4 bytes in UTF-8.
-         For ASCII-only mode this is 1 byte; for safety, only allow
-         if we can determine it's ASCII context. Return -1 for now. */
-      return -1;
+      /* one character whatever its members can be, since the executor
+         hands a class one decoded character at a time */
+      len += 1;
+      chars += 1;
+      pc++;
+      break;
     case RE_SAVE:
       pc++;
       break;  /* zero-width */
@@ -876,11 +873,13 @@ compute_fixed_len(re_compiler *c, uint32_t start, uint32_t end)
       return -1;
     }
     case RE_MATCH:
+      *chars_out = chars;
       return len;
     default:
       return -1;  /* unknown/variable-length instruction */
     }
   }
+  *chars_out = chars;
   return len;
 }
 
@@ -1089,13 +1088,15 @@ compile_atom(re_compiler *c)
           mrb_bool negative = (c->p[2] == '!');
           next_char(c); next_char(c); next_char(c);  /* skip ?<= or ?<! */
           uint32_t lb_pos = emit(c, negative ? RE_NEG_LOOKBEHIND : RE_LOOKBEHIND, 0, 0);
+          emit(c, RE_LB_WIDTH, 0, 0);
           uint32_t sub_start = c->code_len;
           compile_alt(c);
           emit(c, RE_MATCH, 0, 0);
           c->code[lb_pos].offset = (uint16_t)c->code_len;
 
-          /* compute fixed byte length of lookbehind sub-pattern */
-          int fixed_len = compute_fixed_len(c, sub_start, c->code_len);
+          /* measure the sub-pattern for both rewind units */
+          int fixed_chars;
+          int fixed_len = compute_fixed_len(c, sub_start, c->code_len, &fixed_chars);
           if (fixed_len < 0) {
             compile_error(c, "lookbehind must be fixed length");
           }
@@ -1103,6 +1104,8 @@ compile_atom(re_compiler *c)
             compile_error(c, "lookbehind too long (max 255 bytes)");
           }
           c->code[lb_pos].a = (uint8_t)fixed_len;
+          /* the character count never exceeds the byte count, so it fits */
+          c->code[lb_pos + 1].a = (uint8_t)fixed_chars;
 
           if (peek(c) != ')') compile_error(c, "unmatched '('");
           next_char(c);

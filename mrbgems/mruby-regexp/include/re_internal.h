@@ -32,8 +32,12 @@ enum re_opcode {
   RE_BACKREF,    /* backreference: a = group number, offset = 1 if case-insensitive */
   RE_LOOKAHEAD,  /* positive lookahead: offset = end of sub-pattern */
   RE_NEG_LOOKAHEAD, /* negative lookahead: offset = end of sub-pattern */
-  RE_LOOKBEHIND,     /* positive lookbehind: a = byte length, offset = end */
-  RE_NEG_LOOKBEHIND, /* negative lookbehind: a = byte length, offset = end */
+  RE_LOOKBEHIND,     /* positive lookbehind: a = byte count, offset = end */
+  RE_NEG_LOOKBEHIND, /* negative lookbehind: a = byte count, offset = end */
+  RE_LB_WIDTH,       /* carrier after either lookbehind: a = character count.
+                        The executor rewinds by bytes against a binary subject
+                        and by characters otherwise, and the sub-pattern body
+                        starts past this instruction, at pc + 2. */
 };
 
 /* Bytecode instruction (4 bytes each for alignment) */
