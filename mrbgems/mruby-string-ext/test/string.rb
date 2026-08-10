@@ -797,6 +797,28 @@ assert('String#each_char(UTF-8)') do
   assert_equal ["こ", "ん", "に", "ち", "は", "世", "界", "!"], chars
 end if UTF8STRING
 
+assert('String#chop! on a binary string removes one byte') do
+  # `chop!` walks to the last character, and a byte-indexed string ends in a
+  # byte rather than in a character. Walking it as UTF-8 took the whole of a
+  # multi-byte sequence off, or all of a string that held only one.
+  if UTF8STRING
+    s = "\u{1F600}".b   # F0 9F 98 80: four bytes, one character
+    s.chop!
+    assert_equal "\xF0\x9F\x98".b, s
+    t = "a\u{1F600}".b
+    t.chop!
+    assert_equal "a\xF0\x9F\x98".b, t
+    # a string read as UTF-8 still loses the whole character
+    u = "\u{1F600}"
+    u.chop!
+    assert_equal "", u
+    # and the \r\n pair is still taken together
+    v = "a\r\n".b
+    v.chop!
+    assert_equal "a", v
+  end
+end
+
 assert('String#codepoints') do
   expect = [104, 101, 108, 108, 111, 33]
   assert_equal expect, "hello!".codepoints
