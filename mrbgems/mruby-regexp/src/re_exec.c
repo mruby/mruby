@@ -131,6 +131,24 @@ pool_copy(pike_state *s, int src_slot)
 
 #define CAP(s, slot) (&(s)->cap_pool[(slot) * (s)->ncap])
 
+/* Hand this step's closure a fresh block of visited keys. A step reserves one
+   key per epsilon pass, so the counter climbs faster than the single step it
+   used to; on a long enough subject it would wrap, leaving marks from earlier
+   steps outranking every fresh key and the closure adding nothing. Clear the
+   marks and start the keys over when that comes into reach, which also keeps
+   a live key below RE_LOOP_STOP. */
+static void
+advance_gen(pike_state *s)
+{
+  if (s->key_max > UINT32_MAX - 2 * s->pass_span) {
+    memset(s->visited, 0, sizeof(uint32_t) * (s->pat->code_len + 1));
+    s->gen = 0;
+    s->key_max = s->pass_span - 1;
+  }
+  s->gen += s->pass_span;
+  s->key_max += s->pass_span;
+}
+
 /* TRUE once this step's closure has walked the loop head at pc, which means
    the body just ran without consuming: an empty iteration. */
 static mrb_bool
@@ -144,7 +162,8 @@ loop_head_seen(pike_state *s, uint32_t pc)
    target's branch walks under, or RE_LOOP_STOP when the body matched empty
    and the repetition therefore has to stop. An ordinary fork, or one closing
    a loop whose body always consumes (`a` is 0, see mark_empty_loops()), has
-   no empty iteration to account for and keeps the current key. */
+   no empty iteration to account for and keeps the current key. advance_gen()
+   holds every live key below the sentinel. */
 #define RE_LOOP_STOP UINT32_MAX
 
 static uint32_t
@@ -347,8 +366,8 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
   s.binary = binary;
   s.cut = FALSE;
   s.pass_span = RE_PASS_SPAN(pat->loop_depth);
-  s.gen = s.pass_span;
-  s.key_max = s.gen + s.pass_span - 1;
+  s.gen = 0;
+  s.key_max = s.pass_span - 1;
   if (match_only) {
     s.pool_capa = 1;
     s.pool_next = 0;
@@ -404,8 +423,7 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
           !mrb_re_utf8_interior_p(str, sp, str_end)) {
         int slot = match_only ? 0 : pool_alloc(&s);
         if (!match_only) memset(CAP(&s, slot), -1, sizeof(int) * ncap);
-        s.gen += s.pass_span;
-        s.key_max += s.pass_span;
+        advance_gen(&s);
         s.cut = FALSE;
         add_thread(&s, &curr, 0, slot, sp, s.gen);
         if (s.matched && curr.count == 0) break;
@@ -435,8 +453,7 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
       s.pool_next = curr.count;
     }
 
-    s.gen += s.pass_span;
-    s.key_max += s.pass_span;
+    advance_gen(&s);
     s.cut = FALSE;
     next.count = 0;
 
