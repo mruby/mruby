@@ -98,6 +98,11 @@ struct RStringEmbed {
 #endif
 #define RSTR_SET_ASCII_FLAG(s) RSTR_SET_SINGLE_BYTE_FLAG(s)
 #define RSTR_BINARY_P(s) ((s)->flags & MRB_STR_BINARY)
+/* A copy of a string is byte-indexed exactly when the string it copies is, so
+   the flag travels with the bytes rather than being left behind on the
+   original. */
+#define RSTR_COPY_BINARY_FLAG(dst, src) \
+  ((dst)->flags = ((dst)->flags & ~MRB_STR_BINARY) | RSTR_BINARY_P(src))
 
 /**
  * Returns a pointer from a Ruby string

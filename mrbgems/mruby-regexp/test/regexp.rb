@@ -844,6 +844,24 @@ assert("Regexp - an attempt in flight opens no match position inside a character
   assert_equal 2, ("x" + "\xb5").match(/.?[µ]/)[0].bytesize
 end
 
+assert("Regexp - a byte-indexed subject is reported in bytes") do
+  # `String#b` marks the subject byte-indexed, and MatchData snapshots it with
+  # a copy. The copy came back as if it were UTF-8, so #begin counted the
+  # characters of a string that has none, and disagreed with #pre_match, which
+  # counts the same span in bytes.
+  s = "\u{1F600}".b  # F0 9F 98 80: four bytes, one character
+  assert_equal 3, (s =~ Regexp.new("\x80"))
+  assert_equal 3, s.byteindex(Regexp.new("\x80"))
+  md = s.match(Regexp.new("\x80"))
+  assert_equal 3, md.begin(0)
+  assert_equal 4, md.end(0)
+  assert_equal md.pre_match.bytesize, md.begin(0)
+  # the same subject read as UTF-8 counts characters, as it always has
+  u = "\u{1F600}"
+  assert_equal 0, (u =~ /./)
+  assert_equal 1, (("x" + u) =~ Regexp.new("\u{1F600}"))
+end
+
 assert("Regexp - a match does not end inside a character") do
   # A pattern is compiled byte by byte and RE_CHAR consumes one byte, so a
   # pattern holding a byte that reaches no character ends its match in the
