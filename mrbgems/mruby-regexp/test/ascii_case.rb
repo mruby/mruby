@@ -23,19 +23,26 @@ assert("Regexp - /i refuses what ASCII folding cannot answer") do
   # build has no data to tell it apart from one that would have folded.
   assert_raise(RegexpError) { Regexp.new("ß", Regexp::IGNORECASE) }
   assert_raise(RegexpError) { Regexp.new("ﬀ", Regexp::IGNORECASE) }
+  # The message names the option, so hitting this says what to do about it.
+  refused = "/i needs MRB_REGEXP_UNICODE_CASE for this character"
+  assert_raise_with_message(RegexpError, "#{refused}: /Ā/") do
+    Regexp.new("Ā", Regexp::IGNORECASE)
+  end
   # A `\u` escape names a character rather than spelling it out, and naming one
   # does not make it a character this build can fold. Both spellings of the
   # escape reach the refusal, in the literal path and in the class path alike.
-  assert_raise(RegexpError) { Regexp.new("\\u{100}", Regexp::IGNORECASE) }
-  assert_raise(RegexpError) { Regexp.new("\\u0100", Regexp::IGNORECASE) }
-  assert_raise(RegexpError) { Regexp.new("[\\u{100}]", Regexp::IGNORECASE) }
-  assert_raise(RegexpError) { Regexp.new("[^\\u{100}]", Regexp::IGNORECASE) }
-  assert_raise(RegexpError) { Regexp.new("[\\u{100}-\\u{102}]", Regexp::IGNORECASE) }
-  # The message names the option, so hitting this says what to do about it.
-  begin
-    Regexp.new("Ā", Regexp::IGNORECASE)
-  rescue RegexpError => e
-    assert_true e.message.include?("MRB_REGEXP_UNICODE_CASE")
+  # Each asserts the message rather than the class alone, since a `\u` pattern
+  # has reasons of its own to raise `RegexpError` and a complaint about the
+  # escape's own spelling would otherwise pass for this refusal.
+  ["\\u0100", "\\u{100}"].each do |src|
+    assert_raise_with_message(RegexpError, "#{refused}: /#{src}/") do
+      Regexp.new(src, Regexp::IGNORECASE)
+    end
+  end
+  ["[\\u{100}]", "[^\\u{100}]", "[\\u{100}-\\u{102}]"].each do |src|
+    assert_raise_with_message(RegexpError, "#{refused} class: /#{src}/") do
+      Regexp.new(src, Regexp::IGNORECASE)
+    end
   end
 end
 
