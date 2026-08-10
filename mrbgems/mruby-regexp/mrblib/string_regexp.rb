@@ -1,3 +1,40 @@
+# The overrides below take care not to let a pattern argument lie about its
+# type, each in the way its own dispatch needs.  `match`, `match?`, `sub`,
+# `sub!`, `gsub`, `gsub!` and `scan` hand the argument to
+# `Regexp.__check_pattern`, which accepts a Regexp or a String and rejects
+# everything else from C, so the argument cannot steer the decision and there
+# is no Ruby-side helper for a subclass to redefine; an accepted String is
+# compiled or quoted into a Regexp here before anything is searched.  `split`
+# leaves a nil or String pattern to the built-in it aliased and uses the same
+# check to reject everything that is not a Regexp.  `[]`, `[]=` and `slice!`
+# read the real class with `Regexp === pattern` and leave anything else to the
+# built-in method they aliased.  `=~` rejects a String, which would recurse
+# back into this method, and hands anything else to the argument's own `=~`,
+# as CRuby does.
+#
+# That is where the guarantee ends.  With the type established, each override
+# calls ordinary methods on the pattern (`match`, `match?`, `=~`,
+# `__byte_match`, `__sub_str`, `__gsub_str`, `__scan`) and on the MatchData it
+# hands back (`[]`, `pre_match`, `post_match`, `begin`, `end`, `size`,
+# `length`, `__byte_begin`, `__byte_end`, `__set_globals`).  Every one of
+# those is defined with `mrb_define_method()`, so a singleton method on the
+# pattern replaces it and the override follows the replacement; the `__`
+# prefix is a naming convention, not a protection.
+#
+# CRuby is open the same way in `rb_str_match_m()`, which dispatches `match` to
+# the pattern on purpose, and closed everywhere else: `rb_str_sub_bang()`,
+# `rb_str_subpat()`, `rb_str_subpat_set()` and `rb_str_slice_bang()` call
+# `rb_reg_search()` directly, and `String#match?` and `String#=~` search a real
+# Regexp without asking it anything.  The overrides here dispatch on every
+# path, so a rewritten pattern reaches results CRuby would not give it.
+#
+# The gem accepts that rather than closing it.  Reaching it takes rewriting a
+# method on a Regexp instance and then passing that instance to a String
+# method; nothing here is reachable from ordinary input, because an argument
+# that is not a Regexp is rejected, compiled into a Regexp built here, or left
+# to the built-in method the override aliased; `=~` alone forwards it to the
+# argument, which CRuby does too.  The type checks in front of the searches
+# are claims about the argument, not about a pattern its owner has rewritten.
 class String
   # Capture the C-defined String#split under `__split` before the override
   # below replaces it, so the override can delegate non-regexp patterns
@@ -292,7 +329,9 @@ class String
     # arity check `mrb_get_args()` does.  With no arguments at all `args[0]`
     # is nil, the guard fails, and `__aref()` raises the ArgumentError.
     # `is_a?` is redefinable, so a Regexp denying its own type would slip
-    # past and fail in `__aref`; `Module#===` reads the real type.
+    # past and fail in `__aref`; `Module#===` reads the real type.  What it
+    # settles is which implementation answers, not what the pattern goes on to
+    # decide once it is here; see the note at the top of this file.
     return __aref(*args) unless Regexp === args[0]
     if args.length > 2
       raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1..2)"
