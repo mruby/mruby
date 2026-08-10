@@ -3080,3 +3080,36 @@ assert("String#start_with? delegates every non-regexp argument") do
   def fake.match(str, pos = 0); raise "must not be called"; end
   assert_raise(TypeError) { "hello".start_with?(fake) }
 end
+
+assert("String overrides search a pattern whose `match` was rewritten") do
+  r = /l+/
+  def r.match(*args); "PWNED"; end
+
+  assert_equal "ll", "hello"[r]
+  assert_equal "ll", "hello".slice(r)
+  assert_equal "heLLo", "hello".sub(r) { |m| m.upcase }
+  assert_equal "heLLo", "hello".dup.sub!(r) { |m| m.upcase }
+  s = "hello".dup
+  s[r] = "X"
+  assert_equal "heXo", s
+  assert_equal "ll", "hello".dup.slice!(r)
+  assert_equal 2, "hello".index(r)
+  assert_equal 3, "hello".rindex(r)
+  assert_equal 2, "hello".byteindex(r)
+  assert_equal 3, "hello".byterindex(r)
+  assert_equal ["he", "ll", "o"], "hello".partition(r)
+  assert_equal ["hel", "l", "o"], "hello".rpartition(r)
+  assert_true "llama".start_with?(r)
+
+  # The quiet half of the same surface: a rewritten `match` answering nil
+  # used to decide the bang forms' return value, so they answered nil and
+  # left the receiver untouched.
+  quiet = /l+/
+  def quiet.match(*args); nil; end
+  s = "hello".dup
+  assert_equal "heXo", s.sub!(quiet, "X")
+  assert_equal "heXo", s
+  s = "hello".dup
+  assert_equal "heXo", s.gsub!(quiet, "X")
+  assert_equal "heXo", s
+end

@@ -404,6 +404,50 @@ regexp_match(mrb_state *mrb, mrb_value self)
   return md;
 }
 
+/* The pattern of a class-method search entry point arrives as an argument
+   rather than as `self`, so its type has to be established here. Every mrblib
+   caller passes a pattern that already went through `Regexp.__check_pattern`
+   or a `Regexp ===` guard, which makes this a backstop, not a gate. */
+static void
+check_regexp_arg(mrb_state *mrb, mrb_value re)
+{
+  if (!mrb_obj_is_kind_of(mrb, re, mrb_class_get_id(mrb, MRB_SYM(Regexp)))) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %s (expected Regexp)",
+               mrb_obj_classname(mrb, re));
+  }
+}
+
+/*
+ * Regexp.__search(re, str, pos = 0)
+ *
+ * Internal: `Regexp#match` with the pattern as an argument and no block form.
+ * The String overrides in mrblib search through this so that the search never
+ * dispatches on the pattern, where a singleton method would replace it; see
+ * the note at the top of mrblib/string_regexp.rb. A nil subject clears the
+ * match globals and answers nil, as `Regexp#match` does, which is what the
+ * overrides use to report a miss.
+ */
+static mrb_value
+regexp_s_search(mrb_state *mrb, mrb_value klass)
+{
+  mrb_value re, str;
+  mrb_int pos = 0;
+
+  mrb_get_args(mrb, "oo|i", &re, &str, &pos);
+  check_regexp_arg(mrb, re);
+  if (mrb_nil_p(str)) {
+    clear_match_globals(mrb);
+    return mrb_nil_value();
+  }
+  str = match_operand(mrb, str);
+  pos = re_char_to_byte(mrb, str, pos);
+  if (pos < 0) {
+    clear_match_globals(mrb);
+    return mrb_nil_value();
+  }
+  return exec_match(mrb, re, str, pos);
+}
+
 static mrb_value
 regexp_match_byte(mrb_state *mrb, mrb_value self)
 {
@@ -1293,6 +1337,7 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, re, "quote", regexp_escape, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, re, "__binary_string?", regexp_binary_string_p, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, re, "__check_pattern", regexp_check_pattern, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, re, "__search", regexp_s_search, MRB_ARGS_ARG(2, 1));
 
   /* Instance methods */
   mrb_define_method(mrb, re, "match", regexp_match, MRB_ARGS_ARG(1, 1)|MRB_ARGS_BLOCK());

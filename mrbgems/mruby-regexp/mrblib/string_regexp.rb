@@ -115,7 +115,7 @@ class String
     if args.length == 2
       return pattern.__sub_str(self, replacement.to_s)
     end
-    md = pattern.match(self)
+    md = Regexp.__search(pattern, self)
     return self.dup unless md
     md.pre_match + block.call(md[0]).to_s + md.post_match
   end
@@ -140,8 +140,8 @@ class String
     raise FrozenError, "can't modify frozen String" if frozen?
     # Whether a substitution happened is a question about the match, not about
     # the result: `"aaa".sub!(/a/, "a")` returns self even though the string is
-    # unchanged.  `match` and not `match?`, so a failed match clears $~.
-    return nil unless pattern.match(self)
+    # unchanged.  A full search and not `match?`, so a failed match clears $~.
+    return nil unless Regexp.__search(pattern, self)
     # `sub` matches again and publishes its own $~ over this one, leaving the
     # caller the match `sub` would have left, a block's own matches included.
     # The resolved pattern takes the place of the original argument so that a
@@ -223,10 +223,10 @@ class String
     return to_enum(:gsub!, *args) if args.length == 1 && !block
     pattern = Regexp.__check_pattern(args[0])
     pattern = Regexp.new(Regexp.escape(pattern)) if String === pattern
-    # As in `sub!`: the match decides the return value, and `match` clears $~
-    # when it fails.  What it publishes on success is replaced right away by
-    # the last match of the `gsub` below, which is the one CRuby leaves behind.
-    return nil unless pattern.match(self)
+    # As in `sub!`: the match decides the return value, and a failed search
+    # clears $~.  What it publishes on success is replaced right away by the
+    # last match of the `gsub` below, which is the one CRuby leaves behind.
+    return nil unless Regexp.__search(pattern, self)
     str = args.length == 2 ? self.gsub(pattern, args[1], &block) : self.gsub(pattern, &block)
     self.replace(str)
   end
@@ -350,11 +350,11 @@ class String
     if args.length > 2
       raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1..2)"
     end
-    # `match` and not `match?`: the match globals have to be published here,
-    # including the clearing a failed match does, and `match?` leaves them
-    # alone.  That is why the MatchData is fetched even with no capture
+    # A full search and not `match?`: the match globals have to be published
+    # here, including the clearing a failed match does, and `match?` leaves
+    # them alone.  That is why the MatchData is fetched even with no capture
     # argument, where only its `[0]` is used.
-    md = args[0].match(self)
+    md = Regexp.__search(args[0], self)
     return nil unless md
     # The capture argument reaches `MatchData#[]` untouched: it already
     # normalizes a negative index, answers nil for an index past the last
@@ -383,13 +383,13 @@ class String
     unless args.length == 2 || args.length == 3
       raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 2..3)"
     end
-    # `match` and not `match?`, so that the match globals are published here
-    # including the clearing a failed match does.  CRuby searches before it
-    # checks the receiver for modification, which makes the order observable:
-    # a frozen receiver still leaves the match behind, and a pattern that does
-    # not match raises IndexError rather than FrozenError.  Letting the
-    # mutation below be what raises reproduces both.
-    md = args[0].match(self)
+    # A full search and not `match?`, so that the match globals are published
+    # here including the clearing a failed match does.  CRuby searches before
+    # it checks the receiver for modification, which makes the order
+    # observable: a frozen receiver still leaves the match behind, and a
+    # pattern that does not match raises IndexError rather than FrozenError.
+    # Letting the mutation below be what raises reproduces both.
+    md = Regexp.__search(args[0], self)
     raise IndexError, "regexp not matched" unless md
     group = args.length > 2 ? args[1] : 0
     if Integer === group
@@ -434,7 +434,7 @@ class String
     # the C check is not, but no other route to that check leaves the string
     # alone on the way.
     raise FrozenError, "can't modify frozen String" if frozen?
-    md = args[0].match(self)
+    md = Regexp.__search(args[0], self)
     return nil unless md
     group = args.length > 1 ? args[1] : 0
     if Integer === group
@@ -467,12 +467,13 @@ class String
     if args.length > 2
       raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1..2)"
     end
-    # `Regexp#match` normalizes a position the way `index` does and reads it
-    # with the same `mrb_get_args()` conversion, so the argument goes over
+    # `Regexp.__search` normalizes a position the way `index` does and reads
+    # it with the same `mrb_get_args()` conversion, so the argument goes over
     # unexamined: a negative one counts back from the end, and one that lands
     # outside the subject answers nil after clearing the match globals.
-    # `match` and not `match?`, because those globals are part of the answer.
-    md = args.length > 1 ? args[0].match(self, args[1]) : args[0].match(self)
+    # A full search and not `match?`, because those globals are part of the
+    # answer.
+    md = args.length > 1 ? Regexp.__search(args[0], self, args[1]) : Regexp.__search(args[0], self)
     # `begin` reports character offsets, which is the space `index` answers
     # in; `byteindex` below is the same search read in the other space.
     md && md.begin(0)
@@ -492,15 +493,15 @@ class String
   def __regexp_rsearch(pattern, limit, bytes)
     found = nil
     pos = 0
-    while (md = pattern.match(self, pos))
+    while (md = Regexp.__search(pattern, self, pos))
       break if (bytes ? md.__byte_begin(0) : md.begin(0)) > limit
       found = md
       pos = md.begin(0) + 1
     end
-    # The loop leaves behind whatever its last `match` published: the clear a
+    # The loop leaves behind whatever its last search published: the clear a
     # failed one does, or a match past `limit` that is not the answer.  Both
     # have to give way to what the search found.
-    found ? found.__set_globals : pattern.match(nil)
+    found ? found.__set_globals : Regexp.__search(pattern, nil)
     found
   end
 
@@ -523,7 +524,7 @@ class String
         pos += len
         # Out of the subject at the negative end is a miss, and a miss
         # clears the match globals.
-        return args[0].match(nil) if pos < 0
+        return Regexp.__search(args[0], nil) if pos < 0
       elsif pos > len
         # Past the other end is not: `rindex` searches back from the end of
         # the subject, and `mrb_str_byterindex_m()` clamps for the same
@@ -549,12 +550,12 @@ class String
       pos += len if pos < 0
     end
     # `__byte_match` takes the position as given and does not range check it,
-    # where `Regexp#match` answers nil for one outside the subject.  Both
+    # where `Regexp.__search` answers nil for one outside the subject.  Both
     # ends are a miss here, as they are for `mrb_str_byteindex_m()`.  An
     # offset that lands inside a character is not an error: the C method does
     # not check for one either, and on a build without MRB_UTF8_STRING there
     # is nothing to check.
-    return args[0].match(nil) if pos < 0 || pos > len
+    return Regexp.__search(args[0], nil) if pos < 0 || pos > len
     md = args[0].__byte_match(self, pos)
     md && md.__byte_begin(0)
   end
@@ -572,7 +573,7 @@ class String
       pos = Integer.__ensure(args[1])
       if pos < 0
         pos += len
-        return args[0].match(nil) if pos < 0
+        return Regexp.__search(args[0], nil) if pos < 0
       elsif pos > len
         pos = len
       end
@@ -585,7 +586,7 @@ class String
   # (aliased as `__partition` above) for every other argument.
   def partition(sep)
     return __partition(sep) unless Regexp === sep
-    md = sep.match(self)
+    md = Regexp.__search(sep, self)
     # No match leaves the whole subject in the head, and the copy is a plain
     # String even when the receiver is a subclass, as `mrb_str_dup()` and
     # CRuby's `str_duplicate(rb_cString, str)` both hand back.
@@ -615,16 +616,17 @@ class String
     while i < args.length
       arg = args[i]
       if Regexp === arg
-        # A regexp is anchored at the start, not searched for, while `match`
-        # searches forward from its position.  The engine matches leftmost,
-        # so a pattern that can match at 0 does, which makes `begin(0) == 0`
-        # the anchored answer rather than an approximation of it.
-        md = arg.match(self)
+        # A regexp is anchored at the start, not searched for, while the
+        # search runs forward from its position.  The engine matches
+        # leftmost, so a pattern that can match at 0 does, which makes
+        # `begin(0) == 0` the anchored answer rather than an approximation
+        # of it.
+        md = Regexp.__search(arg, self)
         return true if md && md.begin(0) == 0
         # A match further along is not an answer and CRuby leaves none
-        # behind for one, so clear what the search published.  Matching
-        # against nil is how a Regexp clears the globals.
-        arg.match(nil) if md
+        # behind for one, so clear what the search published.  Searching
+        # nil is how the globals are cleared.
+        Regexp.__search(arg, nil) if md
       elsif __start_with?(arg)
         return true
       end
