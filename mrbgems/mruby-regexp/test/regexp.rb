@@ -3122,3 +3122,20 @@ assert("String overrides search a pattern whose `__byte_match` was rewritten") d
   assert_equal ["he", "o"], "hello".split(r)
   assert_equal 2, "hello".byteindex(r)
 end
+
+assert("String overrides run a pattern whose operation cores were rewritten") do
+  r = /l+/
+  def r.__sub_str(*args); "PWNED"; end
+  def r.__gsub_str(*args); "PWNED"; end
+  def r.__scan(*args); "PWNED"; end
+
+  assert_equal "heXo", "hello".sub(r, "X")
+  assert_equal "heXo", "hello".gsub(r, "X")
+  assert_equal ["ll"], "hello".scan(r)
+  s = "hello".dup
+  assert_equal "heXo", s.sub!(r, "X")
+  assert_equal "heXo", s
+  s = "hello".dup
+  assert_equal "heXo", s.gsub!(r, "X")
+  assert_equal "heXo", s
+end

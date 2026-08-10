@@ -1080,15 +1080,16 @@ has_backslash(const char *s, mrb_int len)
 }
 
 /*
- * Regexp#__gsub_str(str, replacement) - gsub core without block
+ * Regexp.__gsub_str(re, str, replacement) - gsub core without block
  */
 static mrb_value
-regexp_gsub_str(mrb_state *mrb, mrb_value self)
+regexp_s_gsub_str(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value str, replacement;
-  mrb_get_args(mrb, "SS", &str, &replacement);
+  mrb_value re, str, replacement;
+  mrb_get_args(mrb, "oSS", &re, &str, &replacement);
+  check_regexp_arg(mrb, re);
 
-  mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, self, &regexp_type, mrb_regexp_pattern);
+  mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
   if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
 
   const char *s = RSTRING_PTR(str);
@@ -1159,7 +1160,7 @@ regexp_gsub_str(mrb_state *mrb, mrb_value self)
 
   /* set $~ from last match */
   if (last_ncap > 0) {
-    create_matchdata(mrb, self, str, last_captures, last_ncap);
+    create_matchdata(mrb, re, str, last_captures, last_ncap);
   }
   else {
     clear_match_globals(mrb);
@@ -1169,15 +1170,16 @@ regexp_gsub_str(mrb_state *mrb, mrb_value self)
 }
 
 /*
- * Regexp#__sub_str(str, replacement) - sub core without block
+ * Regexp.__sub_str(re, str, replacement) - sub core without block
  */
 static mrb_value
-regexp_sub_str(mrb_state *mrb, mrb_value self)
+regexp_s_sub_str(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value str, replacement;
-  mrb_get_args(mrb, "SS", &str, &replacement);
+  mrb_value re, str, replacement;
+  mrb_get_args(mrb, "oSS", &re, &str, &replacement);
+  check_regexp_arg(mrb, re);
 
-  mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, self, &regexp_type, mrb_regexp_pattern);
+  mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
   if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
 
   const char *s = RSTRING_PTR(str);
@@ -1216,21 +1218,22 @@ regexp_sub_str(mrb_state *mrb, mrb_value self)
     mrb_str_cat(mrb, result, s + captures[1], slen - captures[1]);
   }
 
-  create_matchdata(mrb, self, str, captures, cap_size);
+  create_matchdata(mrb, re, str, captures, cap_size);
   mrb_free(mrb, captures);
   return result;
 }
 
 /*
- * Regexp#__scan(str) - scan core, returns array
+ * Regexp.__scan(re, str) - scan core, returns array
  */
 static mrb_value
-regexp_scan(mrb_state *mrb, mrb_value self)
+regexp_s_scan(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value str;
-  mrb_get_args(mrb, "S", &str);
+  mrb_value re, str;
+  mrb_get_args(mrb, "oS", &re, &str);
+  check_regexp_arg(mrb, re);
 
-  mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, self, &regexp_type, mrb_regexp_pattern);
+  mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
   if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
 
   const char *s = RSTRING_PTR(str);
@@ -1293,7 +1296,7 @@ regexp_scan(mrb_state *mrb, mrb_value self)
   mrb_free(mrb, captures);
 
   if (last_ncap > 0) {
-    create_matchdata(mrb, self, str, last_captures, last_ncap);
+    create_matchdata(mrb, re, str, last_captures, last_ncap);
   }
   else {
     clear_match_globals(mrb);
@@ -1363,9 +1366,9 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, re, "hash", regexp_hash, MRB_ARGS_NONE());
   mrb_define_method(mrb, re, "options", regexp_options, MRB_ARGS_NONE());
   mrb_define_method(mrb, re, "casefold?", regexp_casefold_p, MRB_ARGS_NONE());
-  mrb_define_method(mrb, re, "__gsub_str", regexp_gsub_str, MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, re, "__sub_str", regexp_sub_str, MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, re, "__scan", regexp_scan, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, re, "__gsub_str", regexp_s_gsub_str, MRB_ARGS_REQ(3));
+  mrb_define_class_method(mrb, re, "__sub_str", regexp_s_sub_str, MRB_ARGS_REQ(3));
+  mrb_define_class_method(mrb, re, "__scan", regexp_s_scan, MRB_ARGS_REQ(2));
 
   /* MatchData class */
   struct RClass *md = mrb_define_class(mrb, "MatchData", mrb->object_class);

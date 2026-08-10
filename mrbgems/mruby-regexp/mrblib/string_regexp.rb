@@ -113,7 +113,7 @@ class String
     pattern = Regexp.new(Regexp.escape(pattern)) if String === pattern
     # A replacement argument wins over the block, as in CRuby.
     if args.length == 2
-      return pattern.__sub_str(self, replacement.to_s)
+      return Regexp.__sub_str(pattern, self, replacement.to_s)
     end
     md = Regexp.__search(pattern, self)
     return self.dup unless md
@@ -167,7 +167,7 @@ class String
     pattern = Regexp.new(Regexp.escape(pattern)) if String === pattern
     # A replacement argument wins over the block, as in CRuby.
     if args.length == 2
-      return pattern.__gsub_str(self, replacement.to_s)
+      return Regexp.__gsub_str(pattern, self, replacement.to_s)
     end
     # block case: keep in Ruby to avoid VM callback from C
     parts = []
@@ -234,7 +234,7 @@ class String
   def scan(pattern)
     pattern = Regexp.__check_pattern(pattern)
     pattern = Regexp.new(Regexp.escape(pattern)) if String === pattern
-    result = pattern.__scan(self)
+    result = Regexp.__scan(pattern, self)
     if block_given?
       result.each { |m| yield m }
       self
