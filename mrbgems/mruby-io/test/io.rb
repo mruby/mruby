@@ -334,6 +334,26 @@ assert('IO.sysopen, IO#sysread') do
   io.close
 end
 
+assert('IO#sysread into a shared buffer') do
+  # `sysread` resizes the buffer to the requested length and then reads into
+  # it from offset 0, and it is one of the callers of that resize which does
+  # not prepare the buffer for modification itself. Were the resize to leave
+  # the buffer shared, the read would write over bytes another string still
+  # holds. `BasicSocket#recv` resizes the same way and is not covered here.
+  fd = IO.sysopen $mrbtest_io_rfname
+  io = IO.new(fd)
+  begin
+    a = "a" * 100 + "z" * 100
+    a.bytesplice(100, 100, "")  # shorten it, to leave spare capacity behind
+    buf = a.dup                 # shares that buffer, and ends where `a` ends
+    io.sysread(150, buf)        # a different length, so the buffer grows first
+    assert_equal $mrbtest_io_msg, buf
+    assert_equal "a" * 100, a
+  ensure
+    io.close
+  end
+end
+
 assert('IO.sysopen, IO#syswrite') do
   fd = IO.sysopen $mrbtest_io_wfname, "w"
   io = IO.new(fd, "w")
