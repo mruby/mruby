@@ -41,8 +41,18 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
     mrbtest_objs << test_rbobj
     dep_list = build.gems.tsort_dependencies([g.name], gem_table).select(&:generate_functions)
 
+    # The wrapper is generated from mrbgem.rake, not only from the test files:
+    # its body follows the gem's own test_rbfiles, test_preload and test_args,
+    # and it declares and calls the init/final function of every gem in
+    # dep_list, so an edit to the dependency graph of another gem changes it
+    # too. Track the rakefile of the gem and of each of its dependencies.
+    # (This tracks the test_preload path only; its contents stay untracked.)
+    gem_rakefiles = [g, *dep_list].map {|d| File.join(d.dir, "mrbgem.rake") }
+                                  .select {|f| File.exist?(f) }.uniq
+
     file test_rbobj => g.test_rbireps
-    file g.test_rbireps => [g.test_rbfiles, build.mrbcfile].flatten do |t|
+    # __FILE__ holds the generator itself, as in the mrbtest.c rule below.
+    file g.test_rbireps => [g.test_rbfiles, build.mrbcfile, gem_rakefiles, __FILE__].flatten do |t|
       _pp "GEN", t.name.relative_path
       mkdir_p File.dirname(t.name)
       tmpfile = t.name + ".tmp"
