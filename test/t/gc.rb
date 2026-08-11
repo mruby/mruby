@@ -119,10 +119,21 @@ end
 # The inline `[]`, `[]=` and arithmetic opcodes answer from C without a method
 # call, so the arena restore that every cfunc return performs never runs for
 # them.  What they allocate then stays arena-protected for the rest of the
-# enclosing method.  `GC.stat` is itself a cfunc, so it reads the count before
-# its own restore and still sees what the loop pinned.  The loop bodies below
-# are built only from opcodes that do not restore, since a single send in the
-# body would empty the arena and hide the retention.
+# enclosing method.  The loop bodies below are built only from opcodes that do
+# not restore, since a single send in the body would empty the arena and hide
+# the retention.
+#
+# Each assertion runs a full GC while the arena still holds what the loop left
+# there.  The arena is a GC root, so exactly the pinned objects survive that
+# collection and the rise in `GC.stat[:live]` counts them and nothing else.
+# The `GC.start` has to be the first send after the loop: any cfunc return
+# drains the arena, so reading `GC.stat` first would discard the very thing
+# being measured.
+#
+# A retaining branch pins one object per iteration and reports the full 20000.
+# The margin below covers the few objects `GC.stat` allocates for its own
+# result; it is not slack for a partial leak, and a branch that retains on even
+# a small fraction of the iterations is over it.
 
 assert('OP_GETIDX does not retain its result in the GC arena') do
   s = "hello"
@@ -133,7 +144,8 @@ assert('OP_GETIDX does not retain its result in the GC arena') do
     s[1]
     i += 1
   end
-  assert_operator GC.stat[:live] - base, :<, 5000
+  GC.start
+  assert_operator GC.stat[:live] - base, :<, 100
 end
 
 assert('OP_GETIDX does not retain a Hash default in the GC arena') do
@@ -145,7 +157,8 @@ assert('OP_GETIDX does not retain a Hash default in the GC arena') do
     h[1]
     i += 1
   end
-  assert_operator GC.stat[:live] - base, :<, 5000
+  GC.start
+  assert_operator GC.stat[:live] - base, :<, 100
 end
 
 assert('OP_GETIDX0 does not retain a String result in the GC arena') do
@@ -157,7 +170,8 @@ assert('OP_GETIDX0 does not retain a String result in the GC arena') do
     s[0]
     i += 1
   end
-  assert_operator GC.stat[:live] - base, :<, 5000
+  GC.start
+  assert_operator GC.stat[:live] - base, :<, 100
 end
 
 assert('OP_GETIDX0 does not retain a Hash default in the GC arena') do
@@ -169,7 +183,8 @@ assert('OP_GETIDX0 does not retain a Hash default in the GC arena') do
     h[0]
     i += 1
   end
-  assert_operator GC.stat[:live] - base, :<, 5000
+  GC.start
+  assert_operator GC.stat[:live] - base, :<, 100
 end
 
 assert('OP_SETIDX does not retain a duplicated Hash key in the GC arena') do
@@ -182,7 +197,8 @@ assert('OP_SETIDX does not retain a duplicated Hash key in the GC arena') do
     h[k] = 1
     i += 1
   end
-  assert_operator GC.stat[:live] - base, :<, 5000
+  GC.start
+  assert_operator GC.stat[:live] - base, :<, 100
 end
 
 assert('OP_ADD does not retain an overflowed Integer in the GC arena') do
@@ -208,7 +224,8 @@ assert('OP_ADD does not retain an overflowed Integer in the GC arena') do
       x + x
       i += 1
     end
-    assert_operator GC.stat[:live] - base, :<, 5000
+    GC.start
+    assert_operator GC.stat[:live] - base, :<, 100
   end
 end
 
@@ -239,7 +256,8 @@ assert('OP_ADD does not retain a boxed Integer in the GC arena') do
       x + 1     # OP_ADDI
       i += 1
     end
-    assert_operator GC.stat[:live] - base, :<, 5000
+    GC.start
+    assert_operator GC.stat[:live] - base, :<, 100
   end
 end
 
@@ -258,7 +276,8 @@ assert('OP_DIV does not retain a boxed Integer in the GC arena') do
       x / one
       i += 1
     end
-    assert_operator GC.stat[:live] - base, :<, 5000
+    GC.start
+    assert_operator GC.stat[:live] - base, :<, 100
   end
 end
 
@@ -275,6 +294,7 @@ assert('OP_LOADI32 does not retain a boxed Integer in the GC arena') do
     z = 1073741824
     i += 1
   end
-  assert_operator GC.stat[:live] - base, :<, 5000
+  GC.start
+  assert_operator GC.stat[:live] - base, :<, 100
   assert_equal 1073741824, z
 end
