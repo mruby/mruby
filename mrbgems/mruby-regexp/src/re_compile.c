@@ -2002,15 +2002,19 @@ mrb_re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags)
   if (c.num_named > 0) {
     size_t total = 0;
     for (uint16_t i = 0; i < c.num_named; i++) total += c.named_captures[i].name_len;
-    if (total > 0) {
-      pat->named_arena = (char*)mrb_malloc(mrb, total);
-      size_t off = 0;
-      for (uint16_t i = 0; i < c.num_named; i++) {
-        uint32_t n = c.named_captures[i].name_len;
-        memcpy(pat->named_arena + off, c.named_captures[i].name, n);
-        pat->named_captures[i].name = pat->named_arena + off;
-        off += n;
-      }
+    /* total is zero only when every registered name is empty, which the
+       parser rejects, so today the arena is always taken. Allocate a byte
+       for that case anyway rather than skipping the copy: skipping it leaves
+       name borrowing memory this function is about to free, and nulling name
+       instead would hand a NULL to the memcmp() in matchdata_name_to_group(),
+       which is declared nonnull even for a zero length. */
+    pat->named_arena = (char*)mrb_malloc(mrb, total ? total : 1);
+    size_t off = 0;
+    for (uint16_t i = 0; i < c.num_named; i++) {
+      uint32_t n = c.named_captures[i].name_len;
+      memcpy(pat->named_arena + off, c.named_captures[i].name, n);
+      pat->named_captures[i].name = pat->named_arena + off;
+      off += n;
     }
   }
   pat->has_backref = c.has_backref;
