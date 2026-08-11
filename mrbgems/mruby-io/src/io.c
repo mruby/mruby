@@ -503,7 +503,13 @@ io_init_copy(mrb_state *mrb, mrb_value copy)
   if (fptr_orig->fd2 != -1) {
     fptr_copy->fd2 = symdup(mrb, fptr_orig->fd2, &failed);
     if (failed) {
+      /* `copy` is already reachable from the GC, so it outlives this error and
+         is finalized later. Give up the descriptor rather than leaving it in
+         `fd`, or that finalizer closes whatever has since reused the number. */
+      int err = errno;
       mrb_hal_io_close(mrb, fptr_copy->fd);
+      fptr_copy->fd = -1;
+      errno = err;
       mrb_sys_fail(mrb, 0);
     }
     io_fd_cloexec(mrb, fptr_copy->fd2);
