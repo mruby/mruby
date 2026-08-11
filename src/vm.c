@@ -2238,7 +2238,18 @@ vm_op_div(mrb_state *mrb, uint32_t a, mrb_sym *midp)
 
 #ifndef MRB_NO_FLOAT
   f = mrb_div_float(x, y);
-  SET_FLOAT_VALUE(mrb, regs[a], f);
+  {
+    /* This is the one boxing site of OP_DIV that sits outside mrb_vm_exec(),
+       so VM_SET_FLOAT_VALUE() and the arena index it restores to are not in
+       scope.  Saving here instead restores to the height on entry to this
+       branch rather than to the height on entry to the frame, which still
+       bounds the arena across a loop and is what the Integer branch above
+       already does.  The result needs no protection past the restore: it is
+       stored into regs[], and the VM stack is a GC root. */
+    int ai = mrb_gc_arena_save(mrb);
+    SET_FLOAT_VALUE(mrb, regs[a], f);
+    mrb_gc_arena_restore(mrb, ai);
+  }
 #endif
   return VM_NEXT;
 }
@@ -2317,6 +2328,23 @@ vm_call_proc(mrb_state *mrb, const struct RProc *p, mrb_int nargs,
 } while (0)
 #else
 #define VM_SET_INT_VALUE(r,n) SET_INT_VALUE(mrb,r,n)
+#endif
+
+/* The same for an mrb_float.  Under word boxing SET_FLOAT_VALUE() heap-
+   allocates an RFloat for a value the mrb_value word cannot hold inline: every
+   float under MRB_WORDBOX_NO_INLINE_FLOAT, and otherwise a subnormal, an
+   exponent outside the inlinable range, or a rotation that would collide with
+   a sentinel.  The other boxing modes store the float in the mrb_value itself
+   and never allocate, so there this expands to the bare store.  As above the
+   restore is skipped when the store produced an immediate, which is the inline
+   float fast path, and `ai` is mrb_vm_exec()'s saved arena index. */
+#ifdef MRB_WORD_BOXING
+#define VM_SET_FLOAT_VALUE(r,f) do {                                        \
+  SET_FLOAT_VALUE(mrb, r, f);                                               \
+  if (!mrb_immediate_p(r)) mrb_gc_arena_restore(mrb, ai);                   \
+} while (0)
+#else
+#define VM_SET_FLOAT_VALUE(r,f) SET_FLOAT_VALUE(mrb,r,f)
 #endif
 
 /**
@@ -2443,7 +2471,7 @@ RETRY_TRY_BLOCK:
 #endif
 #ifndef MRB_NO_FLOAT
       case IREP_TT_FLOAT:
-        regs[a] = mrb_float_value(mrb, irep->pool[b].u.f);
+        VM_SET_FLOAT_VALUE(regs[a], irep->pool[b].u.f);
         break;
 #endif
       default:
@@ -3328,7 +3356,7 @@ RETRY_TRY_BLOCK:
   case TYPES2(OP_MATH_TT_##t1, OP_MATH_TT_##t2):                                \
     {                                                                           \
       mrb_float z = mrb_##t1(regs[a]) OP_MATH_OP_##op_name mrb_##t2(regs[a+1]); \
-      SET_FLOAT_VALUE(mrb, regs[a], z);                                         \
+      VM_SET_FLOAT_VALUE(regs[a], z);                                           \
     }                                                                           \
     break
 #endif
@@ -3409,7 +3437,7 @@ RETRY_TRY_BLOCK:
   case MRB_TT_FLOAT:                                                        \
     {                                                                       \
       mrb_float z = mrb_float(regs[a]) OP_MATH_OP_##op_name b;              \
-      SET_FLOAT_VALUE(mrb, regs[a], z);                                     \
+      VM_SET_FLOAT_VALUE(regs[a], z);                                       \
     }                                                                       \
     break
 #endif
@@ -3429,7 +3457,7 @@ RETRY_TRY_BLOCK:
   case MRB_TT_FLOAT:                                                        \
     {                                                                       \
       mrb_float z = mrb_float(regs[a]) OP_MATH_OP_##op_name c;              \
-      SET_FLOAT_VALUE(mrb, regs[a], z);                                     \
+      VM_SET_FLOAT_VALUE(regs[a], z);                                       \
     }                                                                       \
     break
 #endif

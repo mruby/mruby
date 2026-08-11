@@ -298,3 +298,87 @@ assert('OP_LOADI32 does not retain a boxed Integer in the GC arena') do
   assert_operator GC.stat[:live] - base, :<, 100
   assert_equal 1073741824, z
 end
+
+# The Float branches of the same opcodes box through `SET_FLOAT_VALUE()`, which
+# under word boxing heap-allocates an RFloat whenever the mrb_value word cannot
+# hold the value inline.  With `MRB_WORDBOX_NO_INLINE_FLOAT` that is every
+# Float; without it, on a 64-bit host, it is a subnormal, an exponent outside
+# the inlinable range, or a rotation that would collide with a sentinel.
+# `5.0e-324` and `1.0e100` are on the wrong side of both bounds, so the loops
+# allocate under either setting.  The immediate-operand opcodes are run only on
+# `1.0e100`, since a subnormal plus a non-zero integer is an ordinary Float that
+# does inline.  On a boxing mode that keeps the Float in the word the loops
+# retain nothing and the assertions hold trivially.
+
+assert('OP_MATH does not retain a boxed Float in the GC arena') do
+  [1.0e100, 5.0e-324].each do |x|
+    zero = 0.0
+    one = 1.0
+    y = nil
+    GC.start
+    base = GC.stat[:live]
+    i = 0
+    while i < 20000
+      y = x + zero   # OP_ADD
+      y = x - zero   # OP_SUB
+      y = x * one    # OP_MUL
+      i += 1
+    end
+    GC.start
+    assert_operator GC.stat[:live] - base, :<, 100
+    assert_equal x, y
+  end
+end
+
+assert('OP_DIV does not retain a boxed Float in the GC arena') do
+  # OP_DIV boxes from a helper outside the interpreter loop, so it restores to
+  # its own saved arena index rather than to the frame's.
+  [1.0e100, 5.0e-324].each do |x|
+    one = 1.0
+    y = nil
+    GC.start
+    base = GC.stat[:live]
+    i = 0
+    while i < 20000
+      y = x / one
+      i += 1
+    end
+    GC.start
+    assert_operator GC.stat[:live] - base, :<, 100
+    assert_equal x, y
+  end
+end
+
+assert('OP_ADDI does not retain a boxed Float in the GC arena') do
+  x = 1.0e100
+  y = nil
+  GC.start
+  base = GC.stat[:live]
+  i = 0
+  while i < 20000
+    y = x + 1   # OP_ADDI
+    y = x - 1   # OP_SUBI
+    x += 1      # OP_ADDILV, the fused local form
+    x -= 1      # OP_SUBILV
+    i += 1
+  end
+  GC.start
+  assert_operator GC.stat[:live] - base, :<, 100
+  assert_equal 1.0e100, x
+  assert_equal 1.0e100, y
+end
+
+assert('OP_LOADL does not retain a boxed Float in the GC arena') do
+  y = nil
+  GC.start
+  base = GC.stat[:live]
+  i = 0
+  while i < 20000
+    y = 1.0e100
+    y = 5.0e-324
+    i += 1
+  end
+  GC.start
+  assert_operator GC.stat[:live] - base, :<, 100
+  assert_equal 5.0e-324, y
+end
