@@ -190,6 +190,12 @@ assert('Integer#eql?', '15.2.8.3.16') do
   assert_true a
   assert_false b
   assert_false c
+
+  # `eql?` compares class as well as value, unlike `==`.
+  if Object.const_defined?(:Float)
+    assert_false 1.eql?(1.0)
+    assert_true 1 == 1.0
+  end
 end
 
 assert('Integer#floor', '15.2.8.3.17') do
