@@ -59,7 +59,7 @@ class Array
     idx = 0
     len = size
     while idx < len
-      self[idx] = block.call(self[idx])
+      self[idx] = yield(self[idx])
       idx += 1
     end
     self

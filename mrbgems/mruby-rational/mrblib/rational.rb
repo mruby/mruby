@@ -42,7 +42,7 @@ class Rational < Numeric
   #   Rational(1, 3) <=> 0.3             #=> 1
   #
   def <=>(other)
-    return nil unless other.kind_of?(Numeric)
+    return nil unless Numeric === other
     self.to_f <=> other.to_f
   rescue
     nil

@@ -15,7 +15,7 @@ class String
   #   "%{foo}f" % { :foo => 1 }                 #=> "1f"
   #
   def %(args)
-    if args.is_a? Array
+    if Array === args
       sprintf(self, *args)
     else
       sprintf(self, args)

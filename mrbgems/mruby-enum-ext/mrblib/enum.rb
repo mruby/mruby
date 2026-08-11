@@ -784,14 +784,14 @@ module Enumerable
     if blk
       self.each do |v|
         v = blk.call(v)
-        raise TypeError, "wrong element type #{v.class} (expected Array)" unless v.is_a? Array
+        raise TypeError, "wrong element type #{v.class} (expected Array)" unless Array === v
         raise ArgumentError, "element has wrong array length (expected 2, was #{v.size})" if v.size != 2
         h[v[0]] = v[1]
       end
     else
       self.each do |*v|
         v = v.__svalue
-        raise TypeError, "wrong element type #{v.class} (expected Array)" unless v.is_a? Array
+        raise TypeError, "wrong element type #{v.class} (expected Array)" unless Array === v
         raise ArgumentError, "element has wrong array length (expected 2, was #{v.size})" if v.size != 2
         h[v[0]] = v[1]
       end
