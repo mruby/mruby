@@ -181,6 +181,16 @@ uint32_t mrb_byte_hash_step(const uint8_t*, mrb_int, uint32_t);
 mrb_int mrb_str_char_to_byte(mrb_state *mrb, mrb_value str, mrb_int off, mrb_int nchars);
 mrb_int mrb_str_byte_to_char(mrb_state *mrb, mrb_value str, mrb_int bi);
 
+/* Whether a string's bytes read as the encoding it is taken to have. A binary
+   string claims no encoding and is valid whatever its bytes are; any other
+   string is walked, and one that turns out to hold a byte standing for no
+   character is not valid. The single-byte flag is not read on the way in, so
+   the answer does not depend on whether the string has been measured before;
+   a string found to have one byte per character is marked on the way out. On
+   non-UTF-8 builds a string is bytes with no encoding to disagree with, and
+   this is always TRUE. */
+mrb_bool mrb_str_valid_encoding_p(mrb_state *mrb, mrb_value str);
+
 mrb_int mrb_utf8_to_buf(char *buf, uint32_t cp);
 #ifdef MRB_UTF8_STRING
 mrb_int mrb_utf8len(const char *str, const char *end);

@@ -525,8 +525,12 @@ static inline uint32_t popcount(bitint x)
 }
 #endif
 
-mrb_int
-mrb_utf8_strlen(const char *str, mrb_int byte_len)
+/* Counts characters, and when `validp` is given also reports whether every
+   sequence decoded as one character. The walk stops at the first broken
+   sequence, so the returned count is a character count only while `*validp`
+   stays TRUE. */
+static mrb_int
+utf8_strlen_check(const char *str, mrb_int byte_len, mrb_bool *validp)
 {
   const char *p = str;
   const char *e = str + byte_len;
@@ -539,11 +543,26 @@ mrb_utf8_strlen(const char *str, mrb_int byte_len)
     if (np == e) break;
     p = np;
     while (p < e && NOASCII(*p)) {
-      p += mrb_utf8len(p, e);
+      mrb_int clen = mrb_utf8len(p, e);
+
+      /* mrb_utf8len() answers 1 for a byte that leads no valid sequence. The
+         byte here is known to be non-ASCII, so a length of 1 means the string
+         carries a byte that stands for no character. */
+      if (validp && clen == 1) {
+        *validp = FALSE;
+        return len;
+      }
+      p += clen;
       len++;
     }
   }
   return len;
+}
+
+mrb_int
+mrb_utf8_strlen(const char *str, mrb_int byte_len)
+{
+  return utf8_strlen_check(str, byte_len, NULL);
 }
 
 static mrb_int
@@ -577,6 +596,27 @@ utf8_strlen(mrb_value str)
 }
 
 #define RSTRING_CHAR_LEN(s) utf8_strlen(s)
+
+/* whether a string's bytes read as the encoding it is taken to have */
+mrb_bool
+mrb_str_valid_encoding_p(mrb_state *mrb, mrb_value str)
+{
+  (void)mrb;
+  struct RString *s = mrb_str_ptr(str);
+  /* A byte-indexed string makes no such claim, so it is valid whatever its
+     bytes are. MRB_STR_SINGLE_BYTE is deliberately not read here: it says one
+     byte per character, which a string of stray bytes satisfies too, so only
+     the walk below decides. */
+  if (RSTR_BINARY_P(s)) return TRUE;
+
+  mrb_int byte_len = RSTR_LEN(s);
+  mrb_bool valid = TRUE;
+  mrb_int utf8_len = utf8_strlen_check(RSTR_PTR(s), byte_len, &valid);
+
+  if (!valid) return FALSE;
+  if (byte_len == utf8_len) RSTR_SET_SINGLE_BYTE_FLAG(s);
+  return TRUE;
+}
 
 /* map character index to byte offset index */
 mrb_int
@@ -711,6 +751,15 @@ mrb_str_byte_to_char(mrb_state *mrb, mrb_value str, mrb_int bi)
 #define char_adjust(ptr, end) (ptr)
 #define char_backtrack(ptr, end) ((end) - 1)
 #define str_index_str_by_char(mrb, str, sub, pos) str_index_str((mrb), (str), (sub), (pos))
+
+/* a string is bytes here, with no encoding to disagree with */
+mrb_bool
+mrb_str_valid_encoding_p(mrb_state *mrb, mrb_value str)
+{
+  (void)mrb;
+  (void)str;
+  return TRUE;
+}
 #endif
 
 /* memsearch_swar (SWAR stands for SIMD within a register)                 */
