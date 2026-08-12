@@ -967,25 +967,18 @@ str_succ(mrb_state *mrb, mrb_value self)
 
 #ifdef MRB_UTF8_STRING
 /* Decodes the UTF-8 character starting at p, storing its byte length through
-   lenp when that is not NULL. mrb_utf8len() answers 1 for every sequence it
-   rejects, so a lead byte measured as one byte is invalid. */
+   lenp when that is not NULL. mrb_utf8_decode() hands back a rejected
+   sequence as its lead byte over one byte; String treats that as an error. */
 MRB_INLINE mrb_int
 utf8code(mrb_state* mrb, const unsigned char* p, const unsigned char *e, mrb_int *lenp)
 {
-  mrb_int len = mrb_utf8len((const char*)p, (const char*)e);
+  mrb_int len;
+  uint32_t cp = mrb_utf8_decode((const char*)p, (const char*)e, &len);
   if (lenp) *lenp = len;
-  if (len == 1) {
-    if (p[0] >= 0x80) {
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid UTF-8 byte sequence");
-    }
-    return p[0];
+  if (len == 1 && p[0] >= 0x80) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid UTF-8 byte sequence");
   }
-
-  mrb_int cp = p[0] & (0xff >> (len + 1));
-  for (mrb_int i = 1; i < len; i++) {
-    cp = (cp << 6) | (p[i] & 0x3f);
-  }
-  return cp;
+  return (mrb_int)cp;
 }
 
 static mrb_value
