@@ -20,7 +20,17 @@ int_chr_binary(mrb_state *mrb, mrb_value num)
   }
   char c = (char)cp;
   mrb_value str = mrb_str_new(mrb, &c, 1);
-  RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+  /* A byte below 0x80 is a character of its own and the string is ASCII. Above
+     it the byte spells no UTF-8 character at all, so the string is not one
+     character per byte and saying that it is left every reader of the flag
+     handing the byte back as a character. What it is instead is a string read
+     by bytes, which is what MRB_STR_BINARY says. */
+  if (cp < 0x80) {
+    RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+  }
+  else {
+    mrb_str_ptr(str)->flags |= MRB_STR_BINARY;
+  }
   return str;
 }
 
