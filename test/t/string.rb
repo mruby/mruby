@@ -723,6 +723,27 @@ assert('String#rindex steps by the characters String#length counts') do
   assert_nil "a\xE3\x81".rindex("\x81")
 end if UTF8STRING
 
+assert('a byte search refuses an offset inside a character') do
+  # An offset that lands inside a character names no position the string has,
+  # so searching from it is refused rather than started from the middle of
+  # one. The boundaries are the ones #length counts over.
+  s = "aあb"          # 61 E3 81 82 62; boundaries 0, 1, 4, 5
+  assert_equal 4, s.byteindex("b", 1)
+  assert_equal 4, s.byteindex("b", 4)
+  assert_raise(IndexError) { s.byteindex("b", 2) }
+  assert_raise(IndexError) { s.byteindex("b", 3) }
+  assert_raise(IndexError) { s.byterindex("a", 2) }
+  # a negative offset is counted from the end first, then asked the same
+  assert_equal 4, s.byteindex("b", -1)
+  assert_raise(IndexError) { s.byteindex("b", -2) }
+  # past either end is out of range rather than off a boundary
+  assert_nil s.byteindex("b", 6)
+  assert_nil s.byteindex("b", -6)
+  assert_equal 0, s.byterindex("a", 99)
+  # ASCII has a boundary at every byte, and so does a byte-indexed string
+  assert_equal 2, "abc".byteindex("c", 1)
+end if UTF8STRING
+
 assert('String#byterindex searches bytes') do
   # `byterindex` answers byte positions, so it walks bytes the way
   # `byteindex` does. Walking characters instead, it passed over every byte

@@ -2297,6 +2297,26 @@ mrb_str_include(mrb_state *mrb, mrb_value self)
  *    'foo'.byteindex('oo') # => 1
  *    'foo'.byteindex('ooo') # => nil
  */
+/* A byte offset that lands inside a character names no position the string
+   has, so a byte search refuses it rather than starting from the middle of
+   one. A byte-indexed string has a position per byte, so every offset is one.
+   The boundaries are the ones String#length counts over, which is why a byte
+   no lead byte reaches is one of them. */
+static void
+str_check_byte_pos(mrb_state *mrb, mrb_value str, mrb_int pos)
+{
+#ifdef MRB_UTF8_STRING
+  struct RString *s = mrb_str_ptr(str);
+  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) return;
+
+  const char *b = RSTR_PTR(s);
+  const char *p = b + pos;
+  if (mrb_utf8_char_head(b, p, b + RSTR_LEN(s)) != p) {
+    mrb_raisef(mrb, E_INDEX_ERROR, "offset %i does not land on character boundary", pos);
+  }
+#endif
+}
+
 static mrb_value
 mrb_str_byteindex_m(mrb_state *mrb, mrb_value str)
 {
@@ -2306,14 +2326,16 @@ mrb_str_byteindex_m(mrb_state *mrb, mrb_value str)
   if (mrb_get_args(mrb, "S|i", &sub, &pos) == 1) {
     pos = 0;
   }
-  /* see str_index_str() */
-  if (!mrb_str_valid_encoding_p(mrb, sub)) return mrb_nil_value();
   else if (pos < 0) {
     pos += RSTRING_LEN(str);
     if (pos < 0) {
       return mrb_nil_value();
     }
   }
+  if (pos > RSTRING_LEN(str)) return mrb_nil_value();
+  str_check_byte_pos(mrb, str, pos);
+  /* see str_index_str() */
+  if (!mrb_str_valid_encoding_p(mrb, sub)) return mrb_nil_value();
   pos = str_index_str(mrb, str, sub, pos);
 
   if (pos == -1) return mrb_nil_value();
@@ -2609,6 +2631,7 @@ mrb_str_byterindex_m(mrb_state *mrb, mrb_value str)
     }
     if (pos > len) pos = len;
   }
+  str_check_byte_pos(mrb, str, pos);
   /* see str_index_str() */
   if (!mrb_str_valid_encoding_p(mrb, sub)) return mrb_nil_value();
   pos = str_byterindex(str, sub, pos);
