@@ -708,8 +708,6 @@ mrb_str_byte_to_char(mrb_state *mrb, mrb_value str, mrb_int bi)
   (void)str;
   return bi;
 }
-#define char_adjust(ptr, end) (ptr)
-#define char_backtrack(ptr, end) ((end) - 1)
 #define str_index_str_by_char(mrb, str, sub, pos) str_index_str((mrb), (str), (sub), (pos))
 #endif
 
@@ -963,8 +961,41 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
   return mrb_obj_value(s1);
 }
 
+/* Search backward for `sub` one byte at a time, the mirror of the forward
+   scan in str_index(). This is what a byte-indexed string answers with. */
 static mrb_int
-str_rindex(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
+str_byterindex(mrb_value str, mrb_value sub, mrb_int pos)
+{
+  const char *s, *sbeg, *t;
+  struct RString *ps = mrb_str_ptr(str);
+  mrb_int len = RSTRING_LEN(sub);
+  mrb_int slen = RSTR_LEN(ps);
+
+  /* substring longer than string */
+  if (slen < len) return -1;
+  if (slen - pos < len) {
+    pos = slen - len;
+  }
+  if (len == 0) return pos;
+
+  sbeg = RSTR_PTR(ps);
+  t = RSTRING_PTR(sub);
+  s = sbeg + pos;
+  while (sbeg <= s) {
+    if (memcmp(s, t, len) == 0) {
+      return (mrb_int)(s - sbeg);
+    }
+    s--;
+  }
+  return -1;
+}
+
+#ifdef MRB_UTF8_STRING
+/* Search backward for `sub` over character boundaries, so a match starting
+   inside a multi-byte character is stepped over rather than reported. This
+   is what a character-indexed string answers with. */
+static mrb_int
+str_char_rindex(mrb_value str, mrb_value sub, mrb_int pos)
 {
   const char *s, *sbeg, *send, *t;
   struct RString *ps = mrb_str_ptr(str);
@@ -994,6 +1025,7 @@ str_rindex(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
     return pos;
   }
 }
+#endif
 
 #ifdef _WIN32
 #include <stdlib.h>
@@ -2482,7 +2514,7 @@ mrb_str_byterindex_m(mrb_state *mrb, mrb_value str)
     }
     if (pos > len) pos = len;
   }
-  pos = str_rindex(mrb, str, sub, pos);
+  pos = str_byterindex(str, sub, pos);
   if (pos < 0) {
     return mrb_nil_value();
   }
@@ -2530,7 +2562,7 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
     if (p == e) return mrb_nil_value();
     pos = (mrb_int)(e - p);
   }
-  pos = str_rindex(mrb, str, sub, pos);
+  pos = str_char_rindex(str, sub, pos);
   if (pos >= 0) {
     pos = mrb_str_byte_to_char(mrb, str, pos);
     if (pos < 0) return mrb_nil_value();
