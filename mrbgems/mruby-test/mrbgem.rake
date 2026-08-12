@@ -14,7 +14,13 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
   mrbtest_lib = libfile("#{build_dir}/mrbtest")
   mrbtest_objs = [assert_lib]
   driver_objs = srcs_to_objs(".")
-  spec.cc.defines << "MRBTEST_COMPILER_PRISM"
+  # `global_mrb` is defined by mruby-compiler, for the Prism allocator to route
+  # through. A build without that gem has neither the symbol nor anything that
+  # would read it. mruby-test is loaded after every other gem, so asking here
+  # gives the whole list.
+  if build.gems.any? {|g| g.name == 'mruby-compiler'}
+    spec.cc.defines << "MRBTEST_COMPILER_PRISM"
+  end
 
   file assert_lib => assert_c
   file assert_c => [assert_rb, build.mrbcfile] do |t|
