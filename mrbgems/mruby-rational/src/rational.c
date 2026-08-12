@@ -124,10 +124,12 @@ static mrb_value
 rational_numerator(mrb_state *mrb, mrb_value self)
 {
   mrb_value n = rat_numerator(mrb, self);
+#ifdef RAT_BIGINT
   if (mrb_bigint_p(n)) {
     /* normalize bigint */
     return mrb_bint_mul(mrb, n, ONE);
   }
+#endif
   return n;
 }
 
@@ -159,10 +161,12 @@ static mrb_value
 rational_denominator(mrb_state *mrb, mrb_value self)
 {
   mrb_value n = rat_denominator(mrb, self);
+#ifdef RAT_BIGINT
   if (mrb_bigint_p(n)) {
     /* normalize bigint */
     return mrb_bint_mul(mrb, n, ONE);
   }
+#endif
   return n;
 }
 
@@ -579,6 +583,10 @@ rational_m(mrb_state *mrb, mrb_value self)
 }
 #endif
 
+#ifdef RAT_BIGINT
+/* The bigint half of the union is what this reads, and rational_eq() reaches
+   it only for a rational that carries RAT_BIGINT, so a build without bigint
+   support has neither the fields nor a caller. */
 static mrb_value
 rational_eq_b(mrb_state *mrb, mrb_value x, mrb_value y)
 {
@@ -641,6 +649,7 @@ rational_eq_b(mrb_state *mrb, mrb_value x, mrb_value y)
   }
   return mrb_bool_value(result);
 }
+#endif  /* RAT_BIGINT */
 
 /*
  * call-seq:
