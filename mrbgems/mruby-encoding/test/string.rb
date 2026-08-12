@@ -10,6 +10,18 @@ assert('String#valid_encoding?') do
     assert_false "\xfe".valid_encoding?
     assert_false "あ\xfe".valid_encoding?
     assert_true "あ\xfe".b.valid_encoding?
+    # RFC 3629 restrictions
+    assert_false "\xC0\x80".valid_encoding?          # overlong NUL
+    assert_false "\xC1\xBF".valid_encoding?          # overlong (< U+0080)
+    assert_false "\xE0\x9F\xBF".valid_encoding?      # overlong (< U+0800)
+    assert_false "\xED\xA0\x80".valid_encoding?      # surrogate U+D800
+    assert_false "\xED\xBF\xBF".valid_encoding?      # surrogate U+DFFF
+    assert_false "\xF0\x8F\xBF\xBF".valid_encoding?  # overlong (< U+10000)
+    assert_false "\xF4\x90\x80\x80".valid_encoding?  # above U+10FFFF
+    assert_false "\xF5\x80\x80\x80".valid_encoding?  # above U+10FFFF
+    assert_true "\u{D7FF}".valid_encoding?           # last code point before surrogates
+    assert_true "\u{E000}".valid_encoding?           # first code point after surrogates
+    assert_true "\u{10FFFF}".valid_encoding?         # largest valid code point
   else
     assert_true "\xfe".valid_encoding?
   end

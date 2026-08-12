@@ -639,6 +639,20 @@ assert('String#size(UTF-8)', '15.2.10.5.33') do
   assert_equal 2, str[1, 2].size
 end if UTF8STRING
 
+assert('String#size(UTF-8) counts invalid sequences per byte') do
+  # RFC 3629: overlong forms, UTF-16 surrogates, and code points above
+  # U+10FFFF are not characters, so each of their bytes counts on its own
+  assert_equal 2, "\xC0\x80".size          # overlong NUL
+  assert_equal 3, "\xE0\x9F\xBF".size      # overlong (< U+0800)
+  assert_equal 3, "\xED\xA0\x80".size      # surrogate U+D800
+  assert_equal 4, "\xF0\x8F\xBF\xBF".size  # overlong (< U+10000)
+  assert_equal 4, "\xF4\x90\x80\x80".size  # above U+10FFFF
+  assert_equal 4, "\xF5\x80\x80\x80".size  # above U+10FFFF
+  assert_equal 1, "\u{D7FF}".size          # last code point before surrogates
+  assert_equal 1, "\u{E000}".size          # first code point after surrogates
+  assert_equal 1, "\u{10FFFF}".size        # largest valid code point
+end if UTF8STRING
+
 assert('String#slice', '15.2.10.5.34') do
   # length of args is 1
   a = 'abc'.slice(0)
