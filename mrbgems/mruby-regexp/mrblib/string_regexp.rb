@@ -115,12 +115,17 @@ class String
     # get_pat.  Only the quoting is taken from it: get_pat_quoted also accepts
     # anything answering `to_str`, where `__check_pattern` keeps to a real
     # String, as `match` already does.
-    pattern = Regexp.new(Regexp.escape(pattern)) if String === pattern
+    literal = String === pattern
+    # CRuby searches for a literal byte by byte and never reads the subject as
+    # UTF-8 on the way, so quoting one into a Regexp here must not put the
+    # subject through a check CRuby does not make: `"a\x80b".sub("b", "!")`
+    # answers there, where the same call with `/b/` is refused.
+    pattern = Regexp.new(Regexp.escape(pattern)) if literal
     # A replacement argument wins over the block, as in CRuby.
     if args.length == 2
-      return Regexp.__sub_str(pattern, self, replacement.to_s)
+      return Regexp.__sub_str(pattern, self, replacement.to_s, literal)
     end
-    md = Regexp.__search(pattern, self)
+    md = Regexp.__search(pattern, self, 0, literal)
     return self.dup unless md
     md.pre_match + block.call(md[0]).to_s + md.post_match
   end
@@ -141,19 +146,23 @@ class String
     # Resolved here rather than left to `sub` because the match below decides
     # the return value, and a String pattern is a literal on both paths.
     pattern = Regexp.__check_pattern(args[0])
-    pattern = Regexp.new(Regexp.escape(pattern)) if String === pattern
+    literal = String === pattern
+    pattern = Regexp.new(Regexp.escape(pattern)) if literal
     raise FrozenError, "can't modify frozen String" if frozen?
     # Whether a substitution happened is a question about the match, not about
     # the result: `"aaa".sub!(/a/, "a")` returns self even though the string is
     # unchanged.  A full search and not `match?`, so a failed match clears $~.
-    return nil unless Regexp.__search(pattern, self)
+    return nil unless Regexp.__search(pattern, self, 0, literal)
     # `sub` matches again and publishes its own $~ over this one, leaving the
     # caller the match `sub` would have left, a block's own matches included.
     # The resolved pattern takes the place of the original argument so that a
-    # String is not quoted and compiled a second time.  Overwriting `self`
-    # afterwards is safe: a MatchData snapshots its subject, so $~ keeps
-    # describing the string as it was matched.
-    str = args.length == 2 ? self.sub(pattern, args[1], &block) : self.sub(pattern, &block)
+    # String is not quoted and compiled a second time; a literal goes down as
+    # the String it was instead, since that is what tells `sub` to leave the
+    # subject unread, and quoting it twice is the price of saying so.
+    # Overwriting `self` afterwards is safe: a MatchData snapshots its subject,
+    # so $~ keeps describing the string as it was matched.
+    down = literal ? args[0] : pattern
+    str = args.length == 2 ? self.sub(down, args[1], &block) : self.sub(down, &block)
     self.replace(str)
   end
 
@@ -169,12 +178,18 @@ class String
     # After the to_enum return above, so that `"abc".gsub(:b)` yields an
     # Enumerator and raises on the first iteration, as CRuby does.
     pattern = Regexp.__check_pattern(pattern)
-    pattern = Regexp.new(Regexp.escape(pattern)) if String === pattern
+    # A String pattern is a literal, as in `sub`, and reaches the subject the
+    # way CRuby reaches it: byte by byte, with no reading of it as UTF-8.
+    literal = String === pattern
+    pattern = Regexp.new(Regexp.escape(pattern)) if literal
     # A replacement argument wins over the block, as in CRuby.
     if args.length == 2
-      return Regexp.__gsub_str(pattern, self, replacement.to_s)
+      return Regexp.__gsub_str(pattern, self, replacement.to_s, literal)
     end
     # block case: keep in Ruby to avoid VM callback from C
+    # `__byte_search` leaves the encoding check to its caller, so run it here,
+    # once for the subject the loop below holds fixed.
+    Regexp.__check_encoding(self) unless literal
     parts = []
     pos = 0
     len = self.bytesize
@@ -227,12 +242,15 @@ class String
     end
     return to_enum(:gsub!, *args) if args.length == 1 && !block
     pattern = Regexp.__check_pattern(args[0])
-    pattern = Regexp.new(Regexp.escape(pattern)) if String === pattern
+    literal = String === pattern
+    pattern = Regexp.new(Regexp.escape(pattern)) if literal
     # As in `sub!`: the match decides the return value, and a failed search
     # clears $~.  What it publishes on success is replaced right away by the
     # last match of the `gsub` below, which is the one CRuby leaves behind.
-    return nil unless Regexp.__search(pattern, self)
-    str = args.length == 2 ? self.gsub(pattern, args[1], &block) : self.gsub(pattern, &block)
+    # A literal goes down as the String it was, for the reason `sub!` gives.
+    return nil unless Regexp.__search(pattern, self, 0, literal)
+    down = literal ? args[0] : pattern
+    str = args.length == 2 ? self.gsub(down, args[1], &block) : self.gsub(down, &block)
     self.replace(str)
   end
 
@@ -278,6 +296,8 @@ class String
     # branch of the check is unreachable here and nothing needs quoting.
     pattern = Regexp.__check_pattern(pattern)
 
+    # Once for the whole loop, as in `gsub`.
+    Regexp.__check_encoding(self)
     result = []
     field_start = 0
     search_pos = 0
@@ -505,9 +525,13 @@ class String
   # not at the match end, which is what keeps overlapping matches in view:
   # `"aaa".rindex(/aa/)` is 1, where resuming at the end would answer 0.
   def __regexp_rsearch(pattern, limit, bytes)
+    # The walk searches once per match position, so the encoding check goes
+    # here rather than in each of those searches, which is what the flag on
+    # `__search` below says.
+    Regexp.__check_encoding(self)
     found = nil
     pos = 0
-    while (md = Regexp.__search(pattern, self, pos))
+    while (md = Regexp.__search(pattern, self, pos, true))
       break if (bytes ? md.__byte_begin(0) : md.begin(0)) > limit
       found = md
       pos = md.begin(0) + 1
@@ -570,6 +594,8 @@ class String
     # not check for one either, and on a build without MRB_UTF8_STRING there
     # is nothing to check.
     return Regexp.__search(args[0], nil) if pos < 0 || pos > len
+    # One search, but `__byte_search` still leaves the check to its caller.
+    Regexp.__check_encoding(self)
     md = Regexp.__byte_search(args[0], self, pos)
     md && md.__byte_begin(0)
   end

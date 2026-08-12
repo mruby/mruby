@@ -228,6 +228,46 @@ re_binary_string_p(mrb_value str)
   return RSTR_BINARY_P(RSTRING(str));
 }
 
+/* CRuby refuses a search whose subject holds a byte that spells no character,
+   and mruby answers for it. Refuse it here too, so that a program moved from
+   one to the other is told about the subject rather than handed a result the
+   other would not have produced.
+
+   A binary string is exempt because it is indexed by byte throughout, so its
+   bytes make no claim that could be broken. A quoted String pattern is exempt
+   for a narrower reason: CRuby searches for a literal byte by byte and reads
+   the subject as UTF-8 nowhere along the way, so `"a\x80b".sub("b", "!")`
+   answers there while the same call with `/b/` is refused.
+
+   The check walks the whole subject, so it runs once per search a method
+   makes, not once per match it finds: the entry points below check what
+   arrives from Ruby, and the two that an mrblib loop drives (`__byte_search`,
+   and `__search` with the flag set) leave it to the loop, which checks the
+   subject it holds fixed before the first turn. */
+static void
+re_check_encoding(mrb_state *mrb, mrb_value str)
+{
+  if (!mrb_str_valid_encoding_p(mrb, str)) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid byte sequence in UTF-8");
+  }
+}
+
+/*
+ * Regexp.__check_encoding(str)
+ *
+ * Internal: the check itself, for the mrblib loops of `gsub`, `split`,
+ * `byteindex`, `rindex`, `byterindex` and `rpartition` to run once at the
+ * entry to the method.
+ */
+static mrb_value
+regexp_s_check_encoding(mrb_state *mrb, mrb_value klass)
+{
+  mrb_value str;
+  mrb_get_args(mrb, "S", &str);
+  re_check_encoding(mrb, str);
+  return mrb_nil_value();
+}
+
 static mrb_value
 regexp_binary_string_p(mrb_state *mrb, mrb_value self)
 {
@@ -362,6 +402,7 @@ regexp_match(mrb_state *mrb, mrb_value self)
     return mrb_nil_value();
   }
 
+  re_check_encoding(mrb, str);
   md = exec_match(mrb, self, str, pos);
   if (!mrb_nil_p(md) && !mrb_nil_p(block)) {
     return mrb_yield(mrb, block, md);
@@ -383,7 +424,7 @@ check_regexp_arg(mrb_state *mrb, mrb_value re)
 }
 
 /*
- * Regexp.__search(re, str, pos = 0)
+ * Regexp.__search(re, str, pos = 0, checked = false)
  *
  * Internal: `Regexp#match` with the pattern as an argument and no block form.
  * The String overrides in mrblib search through this so that the search never
@@ -391,14 +432,22 @@ check_regexp_arg(mrb_state *mrb, mrb_value re)
  * the note at the top of mrblib/string_regexp.rb. A nil subject clears the
  * match globals and answers nil, as `Regexp#match` does, which is what the
  * overrides use to report a miss.
+ *
+ * `checked` says the caller has settled the encoding question for the subject
+ * and this search must not ask it again. The backward search sets it because
+ * it ran `Regexp.__check_encoding` itself, keeping one check for a walk that
+ * searches once per match position; `sub!` and `gsub!` set it because their
+ * pattern is a quoted String, which CRuby searches for without reading the
+ * subject as UTF-8 at all.
  */
 static mrb_value
 regexp_s_search(mrb_state *mrb, mrb_value klass)
 {
   mrb_value re, str;
   mrb_int pos = 0;
+  mrb_bool checked = FALSE;
 
-  mrb_get_args(mrb, "oo|i", &re, &str, &pos);
+  mrb_get_args(mrb, "oo|ib", &re, &str, &pos, &checked);
   check_regexp_arg(mrb, re);
   if (mrb_nil_p(str)) {
     clear_match_globals(mrb);
@@ -410,6 +459,7 @@ regexp_s_search(mrb_state *mrb, mrb_value klass)
     clear_match_globals(mrb);
     return mrb_nil_value();
   }
+  if (!checked) re_check_encoding(mrb, str);
   return exec_match(mrb, re, str, pos);
 }
 
@@ -419,7 +469,8 @@ regexp_s_search(mrb_state *mrb, mrb_value klass)
  * Internal: the byte-offset search the mrblib loops of `gsub`, `split` and
  * `byteindex` drive themselves. No position normalization, because the
  * callers already work in byte space, and no operand conversion, because
- * they always pass a String.
+ * they always pass a String. The subject is checked by the caller, once for
+ * the whole loop.
  */
 static mrb_value
 regexp_s_byte_search(mrb_state *mrb, mrb_value klass)
@@ -445,6 +496,7 @@ exec_match_p(mrb_state *mrb, mrb_value re, mrb_value str, mrb_int pos)
 
   mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
   if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
+  re_check_encoding(mrb, str);
 
   int ncap = mrb_re_exec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), pos, NULL, 0,
                          re_binary_string_p(str));
@@ -493,6 +545,7 @@ regexp_match_op(mrb_state *mrb, mrb_value self)
     return mrb_nil_value();
   }
   str = match_operand(mrb, str);
+  re_check_encoding(mrb, str);
 
   mrb_value md = exec_match(mrb, self, str, 0);
   if (mrb_nil_p(md)) return mrb_nil_value();
@@ -516,6 +569,7 @@ regexp_case_match(mrb_state *mrb, mrb_value self)
 
   pat = DATA_GET_PTR(mrb, self, &regexp_type, mrb_regexp_pattern);
   if (!pat) return mrb_false_value();
+  re_check_encoding(mrb, str);
 
   md = exec_match(mrb, self, str, 0);
   return mrb_bool_value(!mrb_nil_p(md));
@@ -1071,17 +1125,23 @@ has_backslash(const char *s, mrb_int len)
 }
 
 /*
- * Regexp.__gsub_str(re, str, replacement) - gsub core without block
+ * Regexp.__gsub_str(re, str, replacement, checked = false) - gsub core without block
+ *
+ * `checked` says the caller has settled the encoding question for the subject,
+ * which for `gsub` means the pattern is a quoted String and the search is a
+ * literal one that CRuby runs without reading the subject as UTF-8.
  */
 static mrb_value
 regexp_s_gsub_str(mrb_state *mrb, mrb_value klass)
 {
   mrb_value re, str, replacement;
-  mrb_get_args(mrb, "oSS", &re, &str, &replacement);
+  mrb_bool checked = FALSE;
+  mrb_get_args(mrb, "oSS|b", &re, &str, &replacement, &checked);
   check_regexp_arg(mrb, re);
 
   mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
   if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
+  if (!checked) re_check_encoding(mrb, str);
 
   const char *s = RSTRING_PTR(str);
   mrb_int slen = RSTRING_LEN(str);
@@ -1161,17 +1221,21 @@ regexp_s_gsub_str(mrb_state *mrb, mrb_value klass)
 }
 
 /*
- * Regexp.__sub_str(re, str, replacement) - sub core without block
+ * Regexp.__sub_str(re, str, replacement, checked = false) - sub core without block
+ *
+ * `checked` carries the same meaning as in `__gsub_str`.
  */
 static mrb_value
 regexp_s_sub_str(mrb_state *mrb, mrb_value klass)
 {
   mrb_value re, str, replacement;
-  mrb_get_args(mrb, "oSS", &re, &str, &replacement);
+  mrb_bool checked = FALSE;
+  mrb_get_args(mrb, "oSS|b", &re, &str, &replacement, &checked);
   check_regexp_arg(mrb, re);
 
   mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
   if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
+  if (!checked) re_check_encoding(mrb, str);
 
   const char *s = RSTRING_PTR(str);
   mrb_int slen = RSTRING_LEN(str);
@@ -1226,6 +1290,7 @@ regexp_s_scan(mrb_state *mrb, mrb_value klass)
 
   mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
   if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
+  re_check_encoding(mrb, str);
 
   const char *s = RSTRING_PTR(str);
   mrb_int slen = RSTRING_LEN(str);
@@ -1341,7 +1406,8 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, re, "quote", regexp_escape, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, re, "__binary_string?", regexp_binary_string_p, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, re, "__check_pattern", regexp_check_pattern, MRB_ARGS_REQ(1));
-  mrb_define_class_method(mrb, re, "__search", regexp_s_search, MRB_ARGS_ARG(2, 1));
+  mrb_define_class_method(mrb, re, "__check_encoding", regexp_s_check_encoding, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, re, "__search", regexp_s_search, MRB_ARGS_ARG(2, 2));
   mrb_define_class_method(mrb, re, "__byte_search", regexp_s_byte_search, MRB_ARGS_ARG(2, 1));
   mrb_define_class_method(mrb, re, "__search_p", regexp_s_search_p, MRB_ARGS_ARG(2, 1));
 
@@ -1358,8 +1424,8 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, re, "hash", regexp_hash, MRB_ARGS_NONE());
   mrb_define_method(mrb, re, "options", regexp_options, MRB_ARGS_NONE());
   mrb_define_method(mrb, re, "casefold?", regexp_casefold_p, MRB_ARGS_NONE());
-  mrb_define_class_method(mrb, re, "__gsub_str", regexp_s_gsub_str, MRB_ARGS_REQ(3));
-  mrb_define_class_method(mrb, re, "__sub_str", regexp_s_sub_str, MRB_ARGS_REQ(3));
+  mrb_define_class_method(mrb, re, "__gsub_str", regexp_s_gsub_str, MRB_ARGS_ARG(3, 1));
+  mrb_define_class_method(mrb, re, "__sub_str", regexp_s_sub_str, MRB_ARGS_ARG(3, 1));
   mrb_define_class_method(mrb, re, "__scan", regexp_s_scan, MRB_ARGS_REQ(2));
 
   /* MatchData class */

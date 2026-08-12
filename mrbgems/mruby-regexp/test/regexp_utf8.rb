@@ -138,8 +138,7 @@ assert("Regexp - quantifier on an invalid multibyte literal") do
   assert_equal 3, (lead3 + cont + cont).b.match(Regexp.new(lead3 + cont + "+"))[0].bytesize
   # A valid character right after an invalid lead byte is still one atom.
   assert_equal 5, (lead2 + "ĀĀ").b.match(Regexp.new(lead2 + "Ā+"))[0].bytesize
-  # The subject side reads the same way: `.` takes the lead byte alone.
-  assert_equal 1, (lead2 + "x").match(/./)[0].bytesize
+  # A whole character is one atom on the subject side too.
   assert_equal 2, "Ā".match(/./)[0].bytesize
 end
 
@@ -163,9 +162,15 @@ assert("Regexp - a byte that belongs to no character is a match position") do
   assert_nil "\u{1D54F}".match(Regexp.new("\x95"))
   # Next to one there is.
   assert_equal 0, (b + "あ").b.match(Regexp.new(b)).begin(0)
-  # Through pre_match, since #begin counts characters where the build has
-  # them and bytes where it does not.
-  assert_equal 3, ("あ" + b).match(Regexp.new(b)).pre_match.bytesize
+  # Which byte is the interior of a character is a question only a UTF-8
+  # subject asks, and one carrying a byte that starts none is refused before
+  # the engine sees it. Byte-indexed, the interior byte of "あ" is a match
+  # position like any other, so the answer would not be the same.
+  if __ENCODING__ == "UTF-8"
+    assert_raise(ArgumentError) { ("あ" + b).match(Regexp.new(b)) }
+  else
+    assert_equal 3, ("あ" + b).match(Regexp.new(b)).pre_match.bytesize
+  end
 end
 
 assert("Regexp - an attempt in flight opens no match position inside a character") do
@@ -182,8 +187,13 @@ assert("Regexp - an attempt in flight opens no match position inside a character
   assert_equal 5, ("あ" + "µ").match(/.?[µ]/)[0].bytesize
   # And so is a byte where no lead byte reaches it, through a class that holds
   # the byte. [µ] holds the character, whose trailing byte alone is not it.
+  # As UTF-8 that subject is refused; byte-indexed it reaches the engine.
   assert_equal 2, ("x" + "\xb5").b.match(Regexp.new(".?[\xb5]"))[0].bytesize
-  assert_nil ("x" + "\xb5").match(/.?[µ]/)
+  if __ENCODING__ == "UTF-8"
+    assert_raise(ArgumentError) { ("x" + "\xb5").match(/.?[µ]/) }
+  else
+    assert_nil ("x" + "\xb5").match(/.?[µ]/)
+  end
 end
 
 assert("Regexp - a byte-indexed subject is reported in bytes") do
@@ -204,33 +214,36 @@ assert("Regexp - a byte-indexed subject is reported in bytes") do
   assert_equal 1, (("x" + u) =~ Regexp.new("\u{1F600}"))
 end
 
-assert("Regexp - match positions on malformed UTF-8 agree with string indexing") do
-  # String indexing counts a byte no lead byte reaches as one character, but
-  # #begin used to count lead bytes only, so a stray continuation byte was
-  # zero width to it. Computing the length marks such a string single-byte
-  # and switches it to byte counting, so the same match reported one
-  # position before the length was known and another after.
+assert("Regexp - a subject whose bytes are not UTF-8 is refused whatever is known about it") do
+  # CRuby refuses a search on a subject like this, so the refusal must not
+  # depend on what mruby happens to know about the string when the search
+  # arrives: the single-byte flag that `#length` leaves behind says one byte
+  # per character, which a string of stray bytes satisfies too, and reading it
+  # would make the same call answer one way before a length was taken and
+  # another after.
   s = "a\x80b"
-  m = /b/.match(s)
-  before = m.begin(0)
-  assert_equal 3, s.length
-  assert_equal before, /b/.match(s).begin(0)
-  assert_equal 2, before
-  assert_equal "b", s[before]
-  assert_equal 3, m.end(0)
-  # A position argument walks the same characters, from either end. The
-  # fresh literal pins the walk on a string whose length is not known yet.
-  assert_equal "b", /b/.match(s, 2)[0]
-  assert_equal "a", /a/.match(s, -3)[0]
-  assert_nil /a/.match(s, -4)
-  assert_equal "a", /a/.match("a\x80b", -3)[0]
-  # Read as bytes the same subject reports byte offsets, which its own
-  # indexing agrees with too.
+  if __ENCODING__ == "UTF-8"
+    assert_raise(ArgumentError) { /b/.match(s) }
+    assert_equal 3, s.length
+    assert_raise(ArgumentError) { /b/.match(s) }
+    assert_raise(ArgumentError) { /b/.match(s, 2) }
+    assert_raise(ArgumentError) { /a/.match("a\x80b", -3) }
+  else
+    # A build with no UTF-8 to read the subject as reports byte positions for
+    # it, which is what the byte-indexed half below asserts either way.
+    assert_equal 2, /b/.match(s).begin(0)
+    assert_equal 3, s.length
+    assert_equal 2, /b/.match(s).begin(0)
+    assert_equal "b", /b/.match(s, 2)[0]
+    assert_equal "a", /a/.match("a\x80b", -3)[0]
+  end
+  # Read as bytes the same subject makes no claim to break, and every position
+  # it reports is a byte offset its own indexing agrees with.
   b = "a\x80b".b
-  bm = /b/.match(b)
-  assert_equal 2, bm.begin(0)
-  assert_equal 3, bm.end(0)
-  assert_equal "b", b[bm.begin(0)]
+  m = /b/.match(b)
+  assert_equal 2, m.begin(0)
+  assert_equal 3, m.end(0)
+  assert_equal "b", b[m.begin(0)]
   assert_equal "b", /b/.match(b, 2)[0]
   assert_equal "a", /a/.match(b, -3)[0]
   assert_nil /a/.match(b, -4)
@@ -402,10 +415,13 @@ end
 assert("Regexp - truncated UTF-8 at subject end") do
   # a lone multi-byte leader at the end of the subject must not read
   # past the end of the string buffer when matched against a class.
-  # Byte-indexed as well, where the engine reads the leader as a byte of its
-  # own and the walk past it is a different one.
-  assert_nil ("ab\xf0" =~ /[cd]/)
-  assert_equal 0, ("ab\xf0" =~ /[^cd]+$/)
+  # As UTF-8 the subject no longer reaches the engine at all, which is the
+  # stronger guard; byte-indexed it does, and must stay inside the buffer.
+  if __ENCODING__ == "UTF-8"
+    assert_raise(ArgumentError) { "ab\xf0" =~ /[cd]/ }
+  else
+    assert_nil ("ab\xf0" =~ /[cd]/)
+  end
   assert_nil ("ab\xf0".b =~ /[cd]/)
   assert_equal 0, ("ab\xf0".b =~ /[^cd]+$/)
 end
@@ -414,22 +430,40 @@ assert("Regexp - overlong UTF-8 is not the character it spells") do
   # C0 BC is the two-byte overlong spelling of "<" and E0 84 80 the three-byte
   # spelling of "Ā". A decoder that hands out a codepoint for these would let a
   # class hold a character the subject does not spell, so assert the class and
-  # the literal together against the same subject.
-  assert_nil ("\xC0\xBC" =~ /[<]/)
-  assert_nil ("\xC0\xBC" =~ /</)
-  assert_equal 0, ("\xC0\xBC" =~ /[^<]/)
-  assert_equal "\xC0\xBC", "\xC0\xBC".gsub(/[<]/, "&lt;")
-  assert_nil ("\xE0\x80\xBC" =~ /[<]/)
-  assert_false Regexp.new("[Ā]").match?("\xE0\x84\x80")
-  assert_false (/Ā/.match?("\xE0\x84\x80"))
-  # surrogates and codepoints above U+10FFFF encode no character either, so
-  # each byte stands on its own
-  assert_equal 2, "\xC0\xBC".scan(/./).size
-  assert_equal 3, "\xED\xA0\x80".scan(/./).size
-  assert_equal 4, "\xF0\x80\x80\xBC".scan(/./).size
-  assert_equal 4, "\xF4\x90\x80\x80".scan(/./).size
-  assert_equal 4, "\xF5\x80\x80\x80".scan(/./).size
-  # Byte-indexed the same bytes stand on their own too.
+  # the literal together against the same subject. RFC 3629 puts these
+  # sequences outside UTF-8, so where strings are read as UTF-8 the subject is
+  # refused before the engine decodes anything. A build without
+  # MRB_UTF8_STRING has no such reading and still runs the match.
+  if __ENCODING__ == "UTF-8"
+    assert_raise(ArgumentError) { "\xC0\xBC" =~ /[<]/ }
+    assert_raise(ArgumentError) { "\xC0\xBC" =~ /</ }
+    assert_raise(ArgumentError) { "\xC0\xBC" =~ /[^<]/ }
+    assert_raise(ArgumentError) { "\xC0\xBC".gsub(/[<]/, "&lt;") }
+    assert_raise(ArgumentError) { "\xE0\x80\xBC" =~ /[<]/ }
+    assert_raise(ArgumentError) { Regexp.new("[Ā]").match?("\xE0\x84\x80") }
+    assert_raise(ArgumentError) { /Ā/.match?("\xE0\x84\x80") }
+    assert_raise(ArgumentError) { "\xC0\xBC".scan(/./) }
+    assert_raise(ArgumentError) { "\xED\xA0\x80".scan(/./) }
+    assert_raise(ArgumentError) { "\xF0\x80\x80\xBC".scan(/./) }
+    assert_raise(ArgumentError) { "\xF4\x90\x80\x80".scan(/./) }
+    assert_raise(ArgumentError) { "\xF5\x80\x80\x80".scan(/./) }
+  else
+    assert_nil ("\xC0\xBC" =~ /[<]/)
+    assert_nil ("\xC0\xBC" =~ /</)
+    assert_equal 0, ("\xC0\xBC" =~ /[^<]/)
+    assert_equal "\xC0\xBC", "\xC0\xBC".gsub(/[<]/, "&lt;")
+    assert_nil ("\xE0\x80\xBC" =~ /[<]/)
+    assert_false Regexp.new("[Ā]").match?("\xE0\x84\x80")
+    assert_false (/Ā/.match?("\xE0\x84\x80"))
+    # surrogates and codepoints above U+10FFFF encode no character either, so
+    # each byte stands on its own
+    assert_equal 2, "\xC0\xBC".scan(/./).size
+    assert_equal 3, "\xED\xA0\x80".scan(/./).size
+    assert_equal 4, "\xF0\x80\x80\xBC".scan(/./).size
+    assert_equal 4, "\xF4\x90\x80\x80".scan(/./).size
+    assert_equal 4, "\xF5\x80\x80\x80".scan(/./).size
+  end
+  # Byte-indexed, each of those bytes stands on its own in either build.
   assert_equal 2, "\xC0\xBC".b.scan(/./).size
   assert_equal 3, "\xED\xA0\x80".b.scan(/./).size
   assert_equal 4, "\xF0\x80\x80\xBC".b.scan(/./).size
@@ -531,4 +565,64 @@ assert("Regexp - large non-ASCII character class does not overflow") do
   assert_equal 0, (re =~ utf8.call(0x8080))
   assert_nil (re =~ utf8.call(0x8081))
   assert_nil (re =~ "A")
+end
+
+assert("Regexp - a subject whose bytes are not UTF-8 is refused") do
+  # CRuby raises ArgumentError with this message for a subject holding a byte
+  # that stands for no character, and mruby answered for it, so a program
+  # moved from one to the other got a result CRuby would not have produced.
+  skip unless __ENCODING__ == "UTF-8"
+  broken = "あ\x80b"     # "あ" followed by a lone continuation byte
+
+  assert_raise(ArgumentError) { broken =~ /b/ }
+  assert_raise(ArgumentError) { /b/ =~ broken }
+  assert_raise(ArgumentError) { /b/.match(broken) }
+  assert_raise(ArgumentError) { /b/.match?(broken) }
+  assert_raise(ArgumentError) { /b/ === broken }
+  assert_raise(ArgumentError) { broken.match(/b/) }
+  assert_raise(ArgumentError) { broken.match?(/b/) }
+  assert_raise(ArgumentError) { broken.index(/b/) }
+  assert_raise(ArgumentError) { broken.rindex(/b/) }
+  assert_raise(ArgumentError) { broken.byteindex(/b/) }
+  assert_raise(ArgumentError) { broken.byterindex(/b/) }
+  assert_raise(ArgumentError) { broken[/b/] }
+  assert_raise(ArgumentError) { broken.sub(/b/, "!") }
+  assert_raise(ArgumentError) { broken.sub(/b/) { "!" } }
+  assert_raise(ArgumentError) { broken.gsub(/b/, "!") }
+  assert_raise(ArgumentError) { broken.gsub(/b/) { "!" } }
+  assert_raise(ArgumentError) { broken.scan(/b/) }
+  assert_raise(ArgumentError) { broken.split(/b/) }
+  assert_raise(ArgumentError) { broken.partition(/b/) }
+  assert_raise(ArgumentError) { broken.rpartition(/b/) }
+  assert_raise(ArgumentError) { broken.start_with?(/b/) }
+  assert_raise(ArgumentError) { broken.dup.slice!(/b/) }
+  assert_raise(ArgumentError) { broken.dup[/b/] = "!" }
+
+  # A String pattern is a literal, which CRuby searches for byte by byte
+  # without reading the subject as UTF-8, so these answer there and here.
+  # `scan` is the exception CRuby itself makes: it refuses a literal too.
+  assert_equal "あ\x80!", broken.sub("b", "!")
+  assert_equal "あ\x80!", broken.gsub("b", "!")
+  assert_equal "あ\x80!", broken.sub("b") { "!" }
+  assert_equal "あ\x80!", broken.gsub("b") { "!" }
+  bang = broken.dup
+  bang.sub!("b", "!")
+  assert_equal "あ\x80!", bang
+  bang = broken.dup
+  bang.gsub!("b", "!")
+  assert_equal "あ\x80!", bang
+  # The position it publishes is the one the string's own indexing answers.
+  broken.sub("b", "!")
+  assert_equal broken.index("b"), $~.begin(0)
+  assert_raise(ArgumentError) { broken.scan("b") }
+
+  # A byte-indexed subject is indexed by byte throughout, so its bytes make
+  # no claim that could be broken and it goes through as it always did.
+  assert_equal 4, (broken.b =~ /b/)
+  assert_equal 4, broken.b.match(/b/).begin(0)
+  assert_equal "あ\x80!".b, broken.b.sub(/b/, "!")
+
+  # A whole subject is untouched, including one the scan reads to the end.
+  assert_equal 2, ("あいb" =~ /b/)
+  assert_equal 1, ("a\u{10FFFF}b" =~ /b\z|\u{10FFFF}/)
 end
