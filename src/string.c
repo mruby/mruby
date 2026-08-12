@@ -369,6 +369,76 @@ mrb_utf8_to_buf(char *buf, uint32_t cp)
   return 0;  /* invalid codepoint */
 }
 
+/* What a run of bytes spells is a question apart from whether String indexes
+   by character, and mruby-regexp asks the first one whatever the build does.
+   So this much is here in every build; what indexes a string by character
+   waits behind MRB_UTF8_STRING below. */
+
+#define utf8_islead(c) ((unsigned char)((c)&0xc0) != 0x80)
+
+/* the byte length a lead byte claims, read only through mrb_utf8len() */
+static const char mrb_utf8len_table[] = {
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 3, 3, 4, 0
+};
+
+mrb_int
+mrb_utf8len(const char* p, const char* e)
+{
+  mrb_int len = mrb_utf8len_table[(unsigned char)p[0] >> 3];
+  if (len > e - p) return 1;
+  switch (len) {
+  case 0:
+    return 1;
+  case 4:
+    if (utf8_islead(p[3])) return 1;
+  case 3:
+    if (utf8_islead(p[2])) return 1;
+  case 2:
+    if (utf8_islead(p[1])) return 1;
+  }
+  /* Reject overlong sequences, UTF-16 surrogates, and code points above
+     U+10FFFF (RFC 3629, Unicode D93b). */
+  switch ((unsigned char)p[0]) {
+  case 0xC0: case 0xC1:                       /* overlong (< U+0080) */
+    return 1;
+  case 0xE0:                                  /* overlong (< U+0800) */
+    if ((unsigned char)p[1] < 0xA0) return 1;
+    break;
+  case 0xED:                                  /* surrogate (U+D800..U+DFFF) */
+    if ((unsigned char)p[1] > 0x9F) return 1;
+    break;
+  case 0xF0:                                  /* overlong (< U+10000) */
+    if ((unsigned char)p[1] < 0x90) return 1;
+    break;
+  case 0xF4:                                  /* above U+10FFFF */
+    if ((unsigned char)p[1] > 0x8F) return 1;
+    break;
+  case 0xF5: case 0xF6: case 0xF7:            /* above U+10FFFF */
+    return 1;
+  }
+  return len;
+}
+
+/* The byte the character covering `p` starts at, or `p` itself when `p` is
+   already a character boundary. A continuation byte belongs to the character
+   that reaches it; one that no lead byte reaches belongs to none and stands as
+   a character of its own. Whether a lead byte reaches is mrb_utf8len()'s
+   answer, so the boundaries found here are the ones the character count is
+   taken over. Reading back three bytes covers it, since nothing longer than
+   four bytes spells a character. */
+const char*
+mrb_utf8_char_head(const char *beg, const char *p, const char *end)
+{
+  if (p >= end || utf8_islead(p[0])) return p;
+  for (mrb_int back = 1; back <= 3 && back <= p - beg; back++) {
+    const char *lead = p - back;
+    if (!utf8_islead(lead[0])) continue;  /* another continuation byte */
+    return mrb_utf8len(lead, end) > back ? lead : p;
+  }
+  return p;
+}
+
 #ifdef MRB_UTF8_STRING
 
 #define NOASCII(c) ((c) & 0x80)
@@ -461,52 +531,6 @@ search_nonascii(const char *p, const char *e)
 }
 
 #endif  /* SIMPLE_SEARCH_NONASCII */
-
-#define utf8_islead(c) ((unsigned char)((c)&0xc0) != 0x80)
-
-/* the byte length a lead byte claims, read only through mrb_utf8len() */
-static const char mrb_utf8len_table[] = {
-  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-  0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 3, 3, 4, 0
-};
-
-mrb_int
-mrb_utf8len(const char* p, const char* e)
-{
-  mrb_int len = mrb_utf8len_table[(unsigned char)p[0] >> 3];
-  if (len > e - p) return 1;
-  switch (len) {
-  case 0:
-    return 1;
-  case 4:
-    if (utf8_islead(p[3])) return 1;
-  case 3:
-    if (utf8_islead(p[2])) return 1;
-  case 2:
-    if (utf8_islead(p[1])) return 1;
-  }
-  /* Reject overlong sequences, UTF-16 surrogates, and code points above
-     U+10FFFF (RFC 3629, Unicode D93b). */
-  switch ((unsigned char)p[0]) {
-  case 0xC0: case 0xC1:                       /* overlong (< U+0080) */
-    return 1;
-  case 0xE0:                                  /* overlong (< U+0800) */
-    if ((unsigned char)p[1] < 0xA0) return 1;
-    break;
-  case 0xED:                                  /* surrogate (U+D800..U+DFFF) */
-    if ((unsigned char)p[1] > 0x9F) return 1;
-    break;
-  case 0xF0:                                  /* overlong (< U+10000) */
-    if ((unsigned char)p[1] < 0x90) return 1;
-    break;
-  case 0xF4:                                  /* above U+10FFFF */
-    if ((unsigned char)p[1] > 0x8F) return 1;
-    break;
-  case 0xF5: case 0xF6: case 0xF7:            /* above U+10FFFF */
-    return 1;
-  }
-  return len;
-}
 
 #if defined(__GNUC__) || __has_builtin(__builtin_popcount)
 # ifdef MRB_64BIT
@@ -687,25 +711,6 @@ mrb_str_byte_to_char(mrb_state *mrb, mrb_value str, mrb_int bi)
   }
   if (p != pivot) return -1;
   return i;
-}
-
-/* The byte the character covering `p` starts at, or `p` itself when `p` is
-   already a character boundary. A continuation byte belongs to the character
-   that reaches it; one that no lead byte reaches belongs to none and stands as
-   a character of its own. Whether a lead byte reaches is mrb_utf8len()'s
-   answer, so the boundaries found here are the ones the character count is
-   taken over. Reading back three bytes covers it, since nothing longer than
-   four bytes spells a character. */
-static const char*
-str_char_head(const char *beg, const char *p, const char *end)
-{
-  if (p >= end || utf8_islead(p[0])) return p;
-  for (mrb_int back = 1; back <= 3 && back <= p - beg; back++) {
-    const char *lead = p - back;
-    if (!utf8_islead(lead[0])) continue;  /* another continuation byte */
-    return mrb_utf8len(lead, end) > back ? lead : p;
-  }
-  return p;
 }
 
 static mrb_int
@@ -1067,7 +1072,7 @@ str_char_rindex(mrb_value str, mrb_value sub, mrb_int pos)
   if (len) {
     /* a match may start only at a character boundary, and `pos` need not be
        one: the clamp above answers the last byte `sub` fits at */
-    s = str_char_head(sbeg, s, send);
+    s = mrb_utf8_char_head(sbeg, s, send);
     for (;;) {
       if ((mrb_int)(send - s) >= len && memcmp(s, t, len) == 0) {
         return (mrb_int)(s - sbeg);
@@ -1075,7 +1080,7 @@ str_char_rindex(mrb_value str, mrb_value sub, mrb_int pos)
       /* the character before `s`, which there is none of once the search has
          reached the first one */
       if (s == sbeg) break;
-      s = str_char_head(sbeg, s-1, send);
+      s = mrb_utf8_char_head(sbeg, s-1, send);
     }
     return -1;
   }
@@ -2620,7 +2625,7 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
        first character is the last step that stays in the string */
     while (pos < 0) {
       if (e == p) return mrb_nil_value();
-      e = str_char_head(p, e-1, send);
+      e = mrb_utf8_char_head(p, e-1, send);
       pos++;
     }
     pos = (mrb_int)(e - p);

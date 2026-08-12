@@ -679,6 +679,12 @@ assert('String#rindex steps by the characters String#length counts') do
   assert_equal 1, "\xC0\x80a".rindex("\x80")
   assert_equal 3, "\xED\xA0\x80".length
   assert_equal 2, "\xED\xA0\x80".rindex("\x80")
+
+  # A lead byte the string end cuts short reaches none of the bytes that
+  # follow it, so those stand alone too.
+  assert_equal 3, "a\xE3\x81".length
+  assert_equal 1, "a\xE3\x81".rindex("\xE3")
+  assert_equal 2, "a\xE3\x81".rindex("\x81")
 end if UTF8STRING
 
 assert('String#byterindex searches bytes') do
