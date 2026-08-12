@@ -217,29 +217,38 @@ assert("Regexp - a byte-indexed subject is reported in bytes") do
   assert_equal 1, (("x" + u) =~ Regexp.new("\u{1F600}"))
 end
 
-assert("Regexp - match positions on malformed UTF-8 agree with string indexing") do
-  # String indexing counts a byte no lead byte reaches as one character, but
-  # #begin used to count lead bytes only, so a stray continuation byte was
-  # zero width to it. Computing the length marks such a string single-byte
-  # and switches it to byte counting, so the same match reported one
-  # position before the length was known and another after.
+assert("Regexp - a subject whose bytes are not UTF-8 is refused whatever is known about it") do
+  # The refusal must not turn on what the string happens to have been asked
+  # about: the single-byte flag `#length` leaves behind says one byte per
+  # character, which a string of stray bytes satisfies too, so reading it in
+  # place of walking the bytes would make the same call answer one way before
+  # a length was taken and another after. That is what #begin used to do here,
+  # counting lead bytes only until the flag switched it to counting bytes.
   s = "a\x80b"
-  m = /b/.match(s)
-  before = m.begin(0)
-  assert_equal 3, s.length
-  assert_equal before, /b/.match(s).begin(0)
-  assert_equal 2, before
-  assert_equal "b", s[before]
-  assert_equal 3, m.end(0)
-  # A position argument walks the same characters, from either end. The
-  # fresh literal pins the walk on a string whose length is not known yet.
-  assert_equal "b", /b/.match(s, 2)[0]
-  assert_equal "a", /a/.match(s, -3)[0]
+  if __ENCODING__ == "UTF-8"
+    assert_raise(ArgumentError) { /b/.match(s) }
+    assert_equal 3, s.length
+    assert_raise(ArgumentError) { /b/.match(s) }
+    # A position argument is no way around it either, from either end. The
+    # fresh literal puts the question to a string whose length is not known.
+    assert_raise(ArgumentError) { /b/.match(s, 2) }
+    assert_raise(ArgumentError) { /a/.match("a\x80b", -3) }
+  else
+    # A build that reads no encoding for these bytes to break has nothing to
+    # refuse, and reports the byte positions the half below asserts in either
+    # build.
+    assert_equal 2, /b/.match(s).begin(0)
+    assert_equal 3, s.length
+    assert_equal 2, /b/.match(s).begin(0)
+    assert_equal "b", /b/.match(s, 2)[0]
+    assert_equal "a", /a/.match("a\x80b", -3)[0]
+  end
+  # A position outside the subject is settled before the bytes are read, so it
+  # answers nil in either build rather than raising.
   assert_nil /a/.match(s, -4)
-  assert_equal "a", /a/.match("a\x80b", -3)[0]
-  # Read as bytes the same subject reports byte offsets, which its own
-  # indexing agrees with too, and a position argument walks it from either
-  # end in bytes.
+  # Read as bytes the same subject makes no claim that could be broken, and
+  # every position it reports is a byte offset its own indexing agrees with,
+  # walked from either end.
   bs = "a\x80b".b
   bm = /b/.match(bs)
   assert_equal 2, bm.begin(0)
@@ -554,4 +563,67 @@ assert("Regexp - large non-ASCII character class does not overflow") do
   assert_equal 0, (re =~ utf8.call(0x8080))
   assert_nil (re =~ utf8.call(0x8081))
   assert_nil (re =~ "A")
+end
+
+assert("Regexp - a subject whose bytes are not UTF-8 is refused") do
+  # CRuby raises ArgumentError for a subject holding a byte that stands for no
+  # character, and mruby answered for it, so a program moved from one to the
+  # other took a result CRuby would not have produced. `String#scrub` is how a
+  # subject like this becomes matchable.
+  skip unless __ENCODING__ == "UTF-8"
+  broken = "あ\x80b"     # "あ" followed by a lone continuation byte
+
+  assert_raise(ArgumentError) { broken =~ /b/ }
+  assert_raise(ArgumentError) { /b/ =~ broken }
+  assert_raise(ArgumentError) { /b/.match(broken) }
+  assert_raise(ArgumentError) { /b/.match?(broken) }
+  assert_raise(ArgumentError) { /b/ === broken }
+  assert_raise(ArgumentError) { broken.match(/b/) }
+  assert_raise(ArgumentError) { broken.match?(/b/) }
+  assert_raise(ArgumentError) { broken.index(/b/) }
+  assert_raise(ArgumentError) { broken.rindex(/b/) }
+  assert_raise(ArgumentError) { broken.byteindex(/b/) }
+  assert_raise(ArgumentError) { broken.byterindex(/b/) }
+  assert_raise(ArgumentError) { broken[/b/] }
+  assert_raise(ArgumentError) { broken.sub(/b/, "!") }
+  assert_raise(ArgumentError) { broken.sub(/b/) { "!" } }
+  assert_raise(ArgumentError) { broken.gsub(/b/, "!") }
+  assert_raise(ArgumentError) { broken.gsub(/b/) { "!" } }
+  assert_raise(ArgumentError) { broken.scan(/b/) }
+  assert_raise(ArgumentError) { broken.split(/b/) }
+  assert_raise(ArgumentError) { broken.partition(/b/) }
+  assert_raise(ArgumentError) { broken.rpartition(/b/) }
+  assert_raise(ArgumentError) { broken.start_with?(/b/) }
+  assert_raise(ArgumentError) { broken.dup.sub!(/b/, "!") }
+  assert_raise(ArgumentError) { broken.dup.gsub!(/b/, "!") }
+  assert_raise(ArgumentError) { broken.dup.slice!(/b/) }
+  assert_raise(ArgumentError) { broken.dup[/b/] = "!" }
+
+  # A String pattern is a literal, which CRuby searches for byte by byte
+  # without reading the subject as UTF-8, so these answer there and here.
+  # `scan` is the exception CRuby itself makes: it refuses a literal too.
+  assert_equal "あ\x80!", broken.sub("b", "!")
+  assert_equal "あ\x80!", broken.gsub("b", "!")
+  assert_equal "あ\x80!", broken.sub("b") { "!" }
+  assert_equal "あ\x80!", broken.gsub("b") { "!" }
+  bang = broken.dup
+  bang.sub!("b", "!")
+  assert_equal "あ\x80!", bang
+  bang = broken.dup
+  bang.gsub!("b", "!")
+  assert_equal "あ\x80!", bang
+  # The position it publishes is the one the string's own indexing answers.
+  broken.sub("b", "!")
+  assert_equal broken.index("b"), $~.begin(0)
+  assert_raise(ArgumentError) { broken.scan("b") }
+
+  # A byte-indexed subject is indexed by byte throughout, so its bytes make no
+  # claim that could be broken and it goes through as it always did.
+  assert_equal 4, (broken.b =~ /b/)
+  assert_equal 4, broken.b.match(/b/).begin(0)
+  assert_equal "あ\x80!".b, broken.b.sub(/b/, "!")
+
+  # A whole subject is untouched, including one the walk reads to the end.
+  assert_equal 2, ("あいb" =~ /b/)
+  assert_equal 1, ("a\u{10FFFF}b" =~ /b\z|\u{10FFFF}/)
 end
