@@ -189,7 +189,11 @@ mrb_int mrb_str_byte_to_char(mrb_state *mrb, mrb_value str, mrb_int bi);
    definition in string.c for what it reads and what it leaves behind. */
 mrb_bool mrb_str_valid_encoding_p(mrb_state *mrb, mrb_value str);
 
-mrb_int mrb_utf8_to_buf(char *buf, uint32_t cp);
+/* Write the UTF-8 spelling of a codepoint into a buffer of at least four
+   bytes, and return how many it took (1-4), or 0 for a value that spells no
+   character. What counts as one, and why a surrogate does spell one here
+   while mrb_utf8len() says it does not, is in the definition in string.c. */
+mrb_int mrb_utf8_to_buf(char *buf, mrb_int cp);
 
 /* What a run of bytes spells is a question apart from whether String indexes
    by character, so a gem that reads UTF-8 on its own asks for these by

@@ -214,13 +214,36 @@ assert 'pack("U") with a value outside the Unicode range' do
   assert_equal [0xF4, 0x8F, 0xBF, 0xBF], [0x10FFFF].pack("U").unpack("C*")
   assert_raise(RangeError) { [0x110000].pack("U") }
 
-  # The encoder takes a uint32_t, so a value that wraps into the Unicode range
-  # must not come out as the character it wraps to. The shift is computed at
-  # run time because the constant folder would reject the literal on a build
-  # with a 32-bit mrb_int and no bigint, where there is nothing to test.
+  # A value that would land inside the Unicode range if it were truncated to
+  # 32 bits must not come out as the character it truncates to.
+  # The shift width comes from a variable because `1 << 32` written out is
+  # constant folded, and the fold fails while this file is compiled on
+  # MRB_INT32 without bigint, dropping every test in it.
   shift = 32
-  wrapping = ((1 << shift) + 0x41) rescue nil
-  assert_raise(RangeError) { [wrapping].pack("U") } if wrapping.is_a?(Integer)
+  wrapping = nil
+  wide = begin
+    wrapping = (1 << shift) + 0x41  # RangeError where mrb_int is 32 bits and bigint is absent
+    [][wrapping]                    # nil for an mrb_int index, RangeError for a big integer
+    true
+  rescue RangeError
+    false
+  end
+  # A big integer is not an mrb_int either: `pack` refuses it while converting
+  # the element, so the encoder never sees the value and the truncation this
+  # guards against never runs.
+  assert_raise(RangeError) { [wrapping].pack("U") } if wide
+end
+
+assert 'pack("U") with a UTF-16 surrogate' do
+  # A surrogate has a spelling here even though it is not a character: CRuby
+  # writes these three bytes too, and refuses the value in Integer#chr rather
+  # than here. unpack("U") reads them back, so the two stay a pair whatever
+  # the character scanner makes of the bytes.
+  assert_equal [0xED, 0xA0, 0x80], [0xD800].pack("U").unpack("C*")
+  assert_equal [0xED, 0xBF, 0xBF], [0xDFFF].pack("U").unpack("C*")
+  assert_equal [0xD800], [0xD800].pack("U").unpack("U*")
+  assert_equal [0xED, 0x9F, 0xBF], [0xD7FF].pack("U").unpack("C*")
+  assert_equal [0xEE, 0x80, 0x80], [0xE000].pack("U").unpack("C*")
 end
 
 assert 'unpack1' do

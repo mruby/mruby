@@ -137,11 +137,34 @@ assert('sprintf("%c") with an integer that has no UTF-8 encoding') do
   # whatever byte the stack happened to hold there.
   assert_raise(ArgumentError) { sprintf("%c", 0x110000) }
   assert_raise(ArgumentError) { sprintf("%c", -1) }
-  # The encoder takes a uint32_t, so a value that wraps into the Unicode range
-  # must not come out as the character it wraps to. The shift is computed at
-  # run time because the constant folder would reject the literal on a build
-  # with a 32-bit mrb_int and no bigint, where there is nothing to test.
+  # A value that would land inside the Unicode range if it were truncated to
+  # 32 bits must not come out as the character it truncates to.
+  # The shift width comes from a variable because `1 << 32` written out is
+  # constant folded, and the fold fails while this file is compiled on
+  # MRB_INT32 without bigint, dropping every test in it.
   shift = 32
-  wrapping = ((1 << shift) + 0x41) rescue nil
-  assert_raise(ArgumentError) { sprintf("%c", wrapping) } if wrapping.is_a?(Integer)
+  wrapping = nil
+  wide = begin
+    wrapping = (1 << shift) + 0x41  # RangeError where mrb_int is 32 bits and bigint is absent
+    [][wrapping]                    # nil for an mrb_int index, RangeError for a big integer
+    true
+  rescue RangeError
+    false
+  end
+  # A big integer is not an mrb_int either: `%c` takes it down the branch for
+  # an argument that is not an integer and refuses it there, so the encoder
+  # never sees the value and the truncation this guards against never runs.
+  assert_raise(ArgumentError) { sprintf("%c", wrapping) } if wide
+end
+
+assert('sprintf("%c") with a UTF-16 surrogate') do
+  skip unless __ENCODING__ == "UTF-8"
+  # A surrogate has a spelling here even though it is not a character: CRuby
+  # writes these three bytes too, and refuses the value in Integer#chr rather
+  # than here. So what the encoder writes is wider than what the character
+  # scanner reads back, and the string it builds is not valid UTF-8.
+  assert_equal "\xED\xA0\x80", sprintf("%c", 0xD800)
+  assert_equal "\xED\xBF\xBF", sprintf("%c", 0xDFFF)
+  assert_equal "\xED\x9F\xBF", sprintf("%c", 0xD7FF)
+  assert_equal "\xEE\x80\x80", sprintf("%c", 0xE000)
 end

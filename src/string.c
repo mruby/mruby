@@ -336,15 +336,26 @@ mrb_gc_free_str(mrb_state *mrb, struct RString *str)
 #define MASK01 0x01010101ul
 #endif
 
-/*
- * Encode a Unicode codepoint to UTF-8 bytes.
- * buf must have at least 4 bytes of space.
- * Returns the number of bytes written (1-4), or 0 for invalid codepoint.
- */
+/* Encode a Unicode codepoint to UTF-8 bytes, into a buffer of at least four.
+   Returns the number of bytes written (1-4), or 0 for a value outside
+   U+0000..U+10FFFF, which spells no character. The value arrives as an
+   mrb_int so that a negative one and one past the range are both this
+   function's answer to give; a caller reporting them differs only in which
+   exception it raises, and each raises what CRuby raises there.
+
+   A surrogate does encode. What CRuby writes for one is what mruby writes:
+   sprintf("%c", 0xD800) and [0xD800].pack("U") both yield ED A0 80 there.
+   Reading those bytes back is a separate question, and mrb_utf8len() answers
+   it by RFC 3629, under which a surrogate spells nothing. So what this writes
+   is deliberately wider than what that reads, and a string built from one is
+   valid_encoding? == false. */
 mrb_int
-mrb_utf8_to_buf(char *buf, uint32_t cp)
+mrb_utf8_to_buf(char *buf, mrb_int cp)
 {
-  if (cp < 0x80) {
+  if (cp < 0) {
+    return 0;
+  }
+  else if (cp < 0x80) {
     buf[0] = (char)cp;
     return 1;
   }
@@ -366,7 +377,7 @@ mrb_utf8_to_buf(char *buf, uint32_t cp)
     buf[3] = (char)(0x80 | (cp & 0x3F));
     return 4;
   }
-  return 0;  /* invalid codepoint */
+  return 0;  /* above U+10FFFF */
 }
 
 /* What a run of bytes spells is a question apart from whether String indexes
