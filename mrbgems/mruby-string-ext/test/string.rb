@@ -1040,6 +1040,56 @@ assert('String#ord rejects malformed sequences') do
   assert_raise(ArgumentError) { "\xF4\x90\x80\x80".ord }
 end if UTF8STRING
 
+assert('a malformed sequence stays malformed once the string is counted') do
+  # Counting characters remembers a string that holds one per byte, so that
+  # whatever reads it next may step by bytes. Bytes that spell no character
+  # count one per byte as well, and were remembered the same way, after which
+  # they came back as the characters the string does not hold.
+  counters = {
+    "length"    => ->(s) { s.length },
+    "chars"     => ->(s) { s.chars },
+    "each_char" => ->(s) { s.each_char { |c| } },
+    "[]"        => ->(s) { s[0] },
+  }
+  broken = ["\x80", "\xE3\x81", "\xC0\xAF", "\xED\xA0\x80", "\xF4\x90\x80\x80",
+            "a\x80b", "あ\x80"]
+  # #ord reads the first character, so it answers wherever that one is whole
+  ord_answers = { "a\x80b" => 97, "あ\x80" => 12354 }
+
+  counters.each do |name, count|
+    broken.each do |str|
+      s = str.dup
+      count.call(s)
+      assert_raise(ArgumentError, "#{str.inspect}.codepoints after #{name}") { s.codepoints }
+    end
+    broken.each do |str|
+      s = str.dup
+      count.call(s)
+      want = ord_answers[str]
+      if want
+        assert_equal want, s.ord, "#{str.inspect}.ord after #{name}"
+      else
+        assert_raise(ArgumentError, "#{str.inspect}.ord after #{name}") { s.ord }
+      end
+    end
+
+    # scrub has nothing to replace only where the bytes read as characters
+    s = "\xED\xA0\x80"
+    count.call(s)
+    assert_equal "\u{FFFD}" * 3, s.scrub
+    s = "\xED\xA0\x80"
+    count.call(s)
+    assert_equal "???", s.scrub("?")
+
+    # an ASCII string does hold one character per byte, and is still read so
+    s = "abc"
+    count.call(s)
+    assert_equal [97, 98, 99], s.codepoints
+    assert_equal 97, s.ord
+    assert_equal "abc", s.scrub
+  end
+end if UTF8STRING
+
 assert('String#each_codepoint') do
   expect = [104, 101, 108, 108, 111, 33]
   cp = []

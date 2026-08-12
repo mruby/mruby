@@ -618,9 +618,22 @@ mrb_str_char_len(mrb_state *mrb, mrb_value str)
     return byte_len;
   }
   else {
-    mrb_int utf8_len = mrb_utf8_strlen(RSTR_PTR(s), byte_len);
+    const char *p = RSTR_PTR(s);
+    const char *e = p + byte_len;
+    const char *np = search_nonascii(p, e);
+
+    /* Every character a non-ASCII byte begins spells two bytes or more, and a
+       non-ASCII byte that begins none spells no character at all, so a string
+       holds one character per byte exactly when every byte of it is ASCII.
+       Counts that come out equal do not say that: a byte spelling no character
+       is counted as one too, so a string of them set the flag as well, and the
+       readers of it went on to hand those bytes back as characters. */
+    if (np == e) {
+      RSTR_SET_SINGLE_BYTE_FLAG(s);
+      return byte_len;
+    }
+    mrb_int utf8_len = (mrb_int)(np - p) + mrb_utf8_strlen(np, (mrb_int)(e - np));
     mrb_assert(utf8_len <= byte_len);
-    if (byte_len == utf8_len) RSTR_SET_SINGLE_BYTE_FLAG(s);
     return utf8_len;
   }
 }
@@ -632,9 +645,7 @@ mrb_str_valid_encoding_p(mrb_state *mrb, mrb_value str)
   (void)mrb;
   struct RString *s = mrb_str_ptr(str);
   /* A byte-indexed string makes no such claim, so it is valid whatever its
-     bytes are. MRB_STR_SINGLE_BYTE is deliberately not read here: it says one
-     byte per character, which a string of stray bytes satisfies too, so only
-     the walk below decides. */
+     bytes are. */
   if (RSTR_BINARY_P(s)) return TRUE;
   if (RSTR_VALID_ENC_P(s)) return TRUE;
 
