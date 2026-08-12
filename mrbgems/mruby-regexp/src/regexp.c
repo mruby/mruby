@@ -183,33 +183,25 @@ re_byte_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 }
 
 /* Convert a byte offset into str to a character offset, so MatchData#begin
-   and #end report character positions like CRuby. Counts UTF-8 lead bytes
-   (every byte that is not a 10xxxxxx continuation) in [0, byte_off). On
-   non-UTF-8 builds a byte is a character, so the offset is returned as-is. */
+   and #end report character positions like CRuby. Engine offsets normally
+   sit on character boundaries; one that does not (possible only on malformed
+   UTF-8) is backed up to the start of the containing character. Negative
+   offsets pass through for unmatched captures. */
 static mrb_int
 re_byte_to_char(mrb_state *mrb, mrb_value str, mrb_int byte_off)
 {
-  (void)mrb;
   if (byte_off < 0) return byte_off;
 
-#ifdef MRB_UTF8_STRING
-  struct RString *s = RSTRING(str);
-  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) return byte_off;
-
-  mrb_int len = RSTR_LEN(s);
+  mrb_int len = RSTRING_LEN(str);
   if (byte_off > len) byte_off = len;
 
-  const char *p = RSTR_PTR(s);
-  mrb_int chars = 0;
-  for (mrb_int i = 0; i < byte_off; i++) {
-    if (((unsigned char)p[i] & 0xC0) != 0x80) chars++;
+  mrb_int chars = mrb_str_byte_to_char(mrb, str, byte_off);
+  while (chars < 0 && byte_off > 0) {
+    chars = mrb_str_byte_to_char(mrb, str, --byte_off);
   }
   return chars;
-#else
-  (void)str;
-  return byte_off;
-#endif
 }
+
 /* Normalize Regexp#match positional argument for the regexp engine.
    For UTF-8 multibyte strings, Ruby's public pos is a character offset and
    must be converted to a byte offset. For single-byte or binary strings,
@@ -218,43 +210,16 @@ re_byte_to_char(mrb_state *mrb, mrb_value str, mrb_int byte_off)
 static mrb_int
 re_char_to_byte(mrb_state *mrb, mrb_value str, mrb_int char_off)
 {
-  (void)mrb;
-#ifdef MRB_UTF8_STRING
-  struct RString *s = RSTRING(str);
-  mrb_int len = RSTR_LEN(s);
-  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
-    if (char_off < 0) char_off += len;
-    if (char_off < 0 || char_off > len) return -1;
-    return char_off;
-  }
-
-  const char *p = RSTR_PTR(s);
-  const char *e = p + len;
-  mrb_int chars = 0;
+  mrb_int len = RSTRING_LEN(str);
 
   if (char_off < 0) {
-    mrb_int char_len = re_byte_to_char(mrb, str, len);
-    char_off += char_len;
+    char_off += mrb_str_byte_to_char(mrb, str, len);
     if (char_off < 0) return -1;
   }
-  else if (char_off > len) {
-    return -1;
-  }
-  while (p < e && chars < char_off) {
-    p++;
-    while (p < e && (((unsigned char)*p & 0xC0) == 0x80)) {
-      p++;
-    }
-    chars++;
-  }
-  if (chars < char_off) return -1;
-  return (mrb_int)(p - RSTR_PTR(s));
-#else
-  mrb_int len = RSTRING_LEN(str);
-  if (char_off < 0) char_off += len;
-  if (char_off < 0 || char_off > len) return -1;
-  return char_off;
-#endif
+
+  mrb_int byte_off = mrb_str_char_to_byte(mrb, str, 0, char_off);
+  if (byte_off > len) return -1;
+  return byte_off;
 }
 
 static mrb_bool
