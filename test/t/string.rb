@@ -403,6 +403,22 @@ assert('String#chop!(UTF-8)', '15.2.10.5.12') do
   assert_equal c, 'あいう'
 end if UTF8STRING
 
+assert('String#chop! cuts where String#length counts a character') do
+  # The last character starts where the character covering the last byte
+  # starts, and a byte that no lead byte reaches is a character of its own.
+  assert_equal "あ", "あ\x82".chop
+  assert_equal "\x80\x80", "\x80\x80\x80".chop
+  # A sequence RFC 3629 forbids spells no character, so its bytes stand alone.
+  assert_equal "\xC0", "\xC0\x80".chop
+  assert_equal "\xED\xA0", "\xED\xA0\x80".chop
+  # A lead byte the string end cuts short reaches none of the bytes after it.
+  assert_equal "a\xE3", "a\xE3\x81".chop
+  # a whole character still goes at once, however many bytes it spells
+  assert_equal "", "\u{1F600}".chop
+  # and the \r\n pair is still taken together after one
+  assert_equal "あ", "あ\r\n".chop
+end if UTF8STRING
+
 assert('String#downcase', '15.2.10.5.13') do
   a = 'ABC'.downcase
   b = 'ABC'
