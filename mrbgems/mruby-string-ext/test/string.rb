@@ -891,8 +891,8 @@ assert('String#each_char(UTF-8)') do
 end if UTF8STRING
 
 assert('String#chop! on a binary string removes one byte') do
-  # `chop!` walks to the last character, and a byte-indexed string ends in a
-  # byte rather than in a character. Walking it as UTF-8 took the whole of a
+  # `chop!` cuts at the last character, and a byte-indexed string ends in a
+  # byte rather than in a character. Reading it as UTF-8 took the whole of a
   # multi-byte sequence off, or all of a string that held only one.
   if UTF8STRING
     s = "\u{1F600}".b   # F0 9F 98 80: four bytes, one character
