@@ -1020,6 +1020,39 @@ str_scrub_char_len(const unsigned char *p, const unsigned char *e)
   return len;
 }
 
+/* The byte length of the maximal subpart at p, which is the longest prefix
+   that could still have grown into a well-formed sequence. Unicode 3.9 gives
+   one U+FFFD to each of those rather than one to a whole run of bad bytes, so
+   "\xE0\x80\xAF" is three replacements and a truncated "\xE3\x81" is one.
+   Only called where the sequence at p is known to be ill-formed. */
+static mrb_int
+str_scrub_subpart_len(const unsigned char *p, const unsigned char *e)
+{
+  unsigned char c = p[0], lo = 0x80, hi = 0xBF;
+  mrb_int want;
+
+  /* a byte that leads nothing stands alone, continuation bytes included */
+  if (c < 0xC2 || 0xF4 < c) return 1;
+  if (c < 0xE0)      want = 2;
+  else if (c < 0xF0) want = 3;
+  else               want = 4;
+  /* the second byte is the one whose range depends on the lead */
+  switch (c) {
+  case 0xE0: lo = 0xA0; break;
+  case 0xED: hi = 0x9F; break;
+  case 0xF0: lo = 0x90; break;
+  case 0xF4: hi = 0x8F; break;
+  }
+
+  mrb_int n = 1;
+  while (n < want && p + n < e) {
+    unsigned char b = p[n];
+    if (n == 1 ? (b < lo || hi < b) : (b < 0x80 || 0xBF < b)) break;
+    n++;
+  }
+  return n;
+}
+
 static void
 str_scrub_validate_replacement(mrb_state *mrb, mrb_value repl)
 {
@@ -1074,8 +1107,7 @@ str_scrub_core(mrb_state *mrb, mrb_value self)
       }
       mrb_str_cat(mrb, result, (const char*)valid_start, q - valid_start);
       mrb_str_cat(mrb, result, replace, replace_len);
-      q++;
-      while (q < e && str_scrub_char_len(q, e) < 0) q++;
+      q += str_scrub_subpart_len(q, e);
       valid_start = q;
     }
     else {
@@ -1113,8 +1145,7 @@ str_scrub_chunks(mrb_state *mrb, mrb_value self)
     if (len < 0) {
       mrb_ary_push(mrb, ary, mrb_str_new(mrb, (const char*)valid_start, q - valid_start));
       const unsigned char *invalid_start = q;
-      q++;
-      while (q < e && str_scrub_char_len(q, e) < 0) q++;
+      q += str_scrub_subpart_len(q, e);
       mrb_ary_push(mrb, ary, mrb_str_new(mrb, (const char*)invalid_start, q - invalid_start));
       valid_start = q;
     }

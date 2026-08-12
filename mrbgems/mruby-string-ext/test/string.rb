@@ -1026,7 +1026,8 @@ assert('String#scrub default replacement (U+FFFD)') do
   skip unless "あ".length == 1
   assert_equal "\u{FFFD}",       "\xE3\x81".scrub
   assert_equal "abc\u{FFFD}def", "abc\x80def".scrub
-  assert_equal "\u{FFFD}",       "\x80\x81\x82".scrub   # run collapsed
+  # Unicode 3.9 gives one U+FFFD to each maximal subpart, not one to a run
+  assert_equal "\u{FFFD}\u{FFFD}\u{FFFD}", "\x80\x81\x82".scrub
   assert_equal "",               "".scrub
   assert_equal "hello",          "hello".scrub          # already valid
   assert_equal "あい",   "あい".scrub   # already valid multibyte
@@ -1034,10 +1035,29 @@ end
 
 assert('String#scrub rejects malformed sequences') do
   skip unless "あ".length == 1
-  # overlong, UTF-16 surrogate, codepoint above U+10FFFF
-  assert_equal "\u{FFFD}", "\xC0\xAF".scrub             # overlong "/"
-  assert_equal "\u{FFFD}", "\xED\xA0\x80".scrub         # surrogate U+D800
-  assert_equal "\u{FFFD}", "\xF4\x90\x80\x80".scrub     # > U+10FFFF
+  # overlong, UTF-16 surrogate, codepoint above U+10FFFF. Each byte that
+  # cannot continue what came before starts a subpart of its own, so the
+  # count follows the bytes rather than the run.
+  assert_equal "\u{FFFD}" * 2, "\xC0\xAF".scrub             # overlong "/"
+  assert_equal "\u{FFFD}" * 3, "\xED\xA0\x80".scrub         # surrogate U+D800
+  assert_equal "\u{FFFD}" * 4, "\xF4\x90\x80\x80".scrub     # > U+10FFFF
+end
+
+assert('String#scrub replaces each maximal subpart') do
+  skip unless "\u3042".length == 1
+  # A prefix that could still have grown into a character is one subpart:
+  # E3 81 needs a third byte, F0 9F 98 a fourth.
+  assert_equal "\u{FFFD}", "\xE3\x81".scrub
+  assert_equal "\u{FFFD}", "\xF0\x9F\x98".scrub
+  # E0 admits A0-BF as its second byte, so 80 ends the subpart at E0
+  assert_equal "\u{FFFD}" * 3, "\xE0\x80\xAF".scrub
+  # the example from Unicode 3.9: E1 80 | E2 | F0 91 92 | F1 BF BF BF
+  assert_equal "\u{FFFD}" * 3 + "\u{7FFFF}",
+               "\xE1\x80\xE2\xF0\x91\x92\xF1\xBF\xBF\xBF".scrub
+  # the block form is handed the same subparts
+  got = []
+  "\xE0\x80\xAF".scrub { |bad| got << bad.bytes; "?" }
+  assert_equal [[0xE0], [0x80], [0xAF]], got
 end
 
 assert('String#scrub with replacement string') do
