@@ -599,6 +599,24 @@ assert("Regexp - a subject whose bytes are not UTF-8 is refused") do
   assert_raise(ArgumentError) { broken.dup.slice!(/b/) }
   assert_raise(ArgumentError) { broken.dup[/b/] = "!" }
 
+  # A String pattern is a literal, which CRuby searches for byte by byte
+  # without reading the subject as UTF-8, so these answer there and here.
+  # `scan` is the exception CRuby itself makes: it refuses a literal too.
+  assert_equal "あ\x80!", broken.sub("b", "!")
+  assert_equal "あ\x80!", broken.gsub("b", "!")
+  assert_equal "あ\x80!", broken.sub("b") { "!" }
+  assert_equal "あ\x80!", broken.gsub("b") { "!" }
+  bang = broken.dup
+  bang.sub!("b", "!")
+  assert_equal "あ\x80!", bang
+  bang = broken.dup
+  bang.gsub!("b", "!")
+  assert_equal "あ\x80!", bang
+  # The position it publishes is the one the string's own indexing answers.
+  broken.sub("b", "!")
+  assert_equal broken.index("b"), $~.begin(0)
+  assert_raise(ArgumentError) { broken.scan("b") }
+
   # A byte-indexed subject is indexed by byte throughout, so its bytes make no
   # claim that could be broken and it goes through as it always did.
   assert_equal 4, (broken.b =~ /b/)
