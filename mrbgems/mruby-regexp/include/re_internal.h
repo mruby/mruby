@@ -175,7 +175,6 @@ void mrb_re_free(mrb_state *mrb, mrb_regexp_pattern *pat);
 /* UTF-8 helpers */
 int mrb_re_utf8_charlen(const char *s, const char *end);
 uint32_t mrb_re_utf8_decode(const char *s, const char *end, int *len);
-int mrb_re_utf8_encode(uint32_t cp, char *buf);
 mrb_bool mrb_re_is_word_char(uint32_t c);
 
 /* The two foldings whose result is an ASCII letter. Every build carries them,

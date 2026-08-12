@@ -9,6 +9,7 @@
 
 #include "re_internal.h"
 #include <mruby/error.h>
+#include <mruby/internal.h>
 #include <string.h>
 
 /* Compiler state */
@@ -449,7 +450,7 @@ parse_escape(re_compiler *c)
 
 /* Reject what has no UTF-8 encoding. CRuby reports both a surrogate and a
    value past the last plane as "invalid Unicode range", so neither ever
-   reaches mrb_re_utf8_encode(). */
+   reaches mrb_utf8_to_buf(). */
 static void
 check_unicode_cp(re_compiler *c, uint32_t cp)
 {
@@ -1038,7 +1039,7 @@ emit_codepoint(re_compiler *c, uint32_t cp)
   }
   if ((c->flags & RE_FLAG_IGNORECASE) && emit_cp_folded(c, cp)) return;
   char buf[4];
-  int len = mrb_re_utf8_encode(cp, buf);
+  int len = (int)mrb_utf8_to_buf(buf, cp);
   for (int i = 0; i < len; i++) {
     emit(c, RE_CHAR, (uint8_t)buf[i], 0);
   }
