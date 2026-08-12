@@ -624,6 +624,7 @@ mrb_str_byte_to_char(mrb_state *mrb, mrb_value str, mrb_int bi)
 {
   (void)mrb;
   struct RString *s = mrb_str_ptr(str);
+  if (bi < 0 || RSTR_LEN(s) < bi) return -1;
   if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
     return bi;
   }
@@ -633,7 +634,6 @@ mrb_str_byte_to_char(mrb_state *mrb, mrb_value str, mrb_int bi)
   const char *pivot = p + bi;
   mrb_int i = 0;
 
-  if (e < pivot) return -1;
   while (p < pivot) {
     if ((*p & 0x80) == 0) {
       const char *np = search_nonascii(p, pivot);
@@ -705,7 +705,7 @@ mrb_int
 mrb_str_byte_to_char(mrb_state *mrb, mrb_value str, mrb_int bi)
 {
   (void)mrb;
-  (void)str;
+  if (bi < 0 || RSTRING_LEN(str) < bi) return -1;
   return bi;
 }
 #define char_adjust(ptr, end) (ptr)
