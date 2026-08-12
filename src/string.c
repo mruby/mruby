@@ -2540,7 +2540,8 @@ mrb_str_byterindex_m(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
 {
-  if (RSTR_SINGLE_BYTE_P(mrb_str_ptr(str))) {
+  struct RString *s = mrb_str_ptr(str);
+  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
     return mrb_str_byterindex_m(mrb, str);
   }
 
