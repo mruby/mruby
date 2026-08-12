@@ -966,8 +966,6 @@ str_succ(mrb_state *mrb, mrb_value self)
 }
 
 #ifdef MRB_UTF8_STRING
-extern const char mrb_utf8len_table[];
-
 /* Decodes the UTF-8 character starting at p, storing its byte length through
    lenp when that is not NULL. mrb_utf8len() answers 1 for every sequence it
    rejects, so a lead byte measured as one byte is invalid. */
@@ -1718,62 +1716,28 @@ static mrb_value
 str_chars_ary(mrb_state *mrb, mrb_value self)
 {
   struct RString *s = mrb_str_ptr(self);
-  const unsigned char *p = (unsigned char*)RSTR_PTR(s);
-  const unsigned char *e = p + RSTR_LEN(s);
+  const char *p = RSTR_PTR(s);
+  const char *e = p + RSTR_LEN(s);
+  /* the count comes first: it is the exact capacity, and it settles the
+     single-byte flag the walk reads */
+  mrb_value result = mrb_ary_new_capa(mrb, mrb_str_char_len(mrb, self));
 
-  /* Estimate character count for array pre-allocation */
-  mrb_int estimated_chars = RSTR_LEN(s);
-  if (!RSTR_SINGLE_BYTE_P(s) && !RSTR_BINARY_P(s)) {
-    estimated_chars = estimated_chars / 2; /* rough estimate for UTF-8 */
-  }
-  mrb_value result = mrb_ary_new_capa(mrb, estimated_chars);
-
-  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
-    /* ASCII/Binary: each byte is a character */
-    while (p < e) {
-      mrb_value char_str = mrb_str_new(mrb, (char*)p, 1);
-      mrb_ary_push(mrb, result, char_str);
-      p++;
-    }
-  }
-  else {
 #ifdef MRB_UTF8_STRING
-    /* UTF-8: handle multi-byte characters */
+  if (!RSTR_SINGLE_BYTE_P(s) && !RSTR_BINARY_P(s)) {
     while (p < e) {
-      mrb_int char_len = mrb_utf8len_table[p[0] >> 3];
-      if (char_len == 0 || char_len > 4 || p + char_len > e) {
-        /* Invalid UTF-8, treat as single byte */
-        char_len = 1;
-      }
-      else {
-        /* Validate UTF-8 sequence */
-        mrb_bool valid = TRUE;
-        if (char_len > 1) {
-          for (mrb_int i = 1; i < char_len; i++) {
-            if ((p[i] & 0xC0) != 0x80) {
-              valid = FALSE;
-              break;
-            }
-          }
-        }
-        if (!valid) {
-          char_len = 1;
-        }
-      }
-      mrb_value char_str = mrb_str_new(mrb, (char*)p, char_len);
-      mrb_ary_push(mrb, result, char_str);
+      mrb_int char_len = mrb_utf8len(p, e);
+      mrb_ary_push(mrb, result, mrb_str_new(mrb, p, char_len));
       p += char_len;
     }
-#else
-    /* Non-UTF8 build: treat as single bytes */
-    while (p < e) {
-      mrb_value char_str = mrb_str_new(mrb, (char*)p, 1);
-      mrb_ary_push(mrb, result, char_str);
-      p++;
-    }
-#endif
+    return result;
   }
+#endif
 
+  /* one character per byte */
+  while (p < e) {
+    mrb_ary_push(mrb, result, mrb_str_new(mrb, p, 1));
+    p++;
+  }
   return result;
 }
 
