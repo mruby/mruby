@@ -18,7 +18,11 @@ static mrb_value
 str_valid_enc_p(mrb_state *mrb, mrb_value str)
 {
   struct RString *s = mrb_str_ptr(str);
-  if (RSTR_SINGLE_BYTE_P(s)) return mrb_true_value();
+  /* MRB_STR_SINGLE_BYTE says one byte per character, which every other reader
+     uses to index without decoding. A string of stray bytes has that property
+     too, so it cannot stand in for "valid" here: String#size sets the flag on
+     "a\x80" and this used to answer true for it afterwards. Only the loop
+     below decides. */
   if (RSTR_BINARY_P(s)) return mrb_true_value();
 
   mrb_int byte_len = RSTR_LEN(s);

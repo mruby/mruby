@@ -10,6 +10,12 @@ assert('String#valid_encoding?') do
     assert_false "\xfe".valid_encoding?
     assert_false "あ\xfe".valid_encoding?
     assert_true "あ\xfe".b.valid_encoding?
+
+    # Measuring a string of stray bytes marks it as one byte per character,
+    # which is true of it and says nothing about whether it is valid.
+    s = "a\x80"
+    assert_equal 2, s.size
+    assert_false s.valid_encoding?
   else
     assert_true "\xfe".valid_encoding?
   end
