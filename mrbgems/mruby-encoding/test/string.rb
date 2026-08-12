@@ -16,6 +16,26 @@ assert('String#valid_encoding?') do
     s = "a\x80"
     assert_equal 2, s.size
     assert_false s.valid_encoding?
+
+    # RFC 3629 restrictions
+    assert_false "\xC0\x80".valid_encoding?          # overlong NUL
+    assert_false "\xC1\xBF".valid_encoding?          # overlong (< U+0080)
+    assert_false "\xE0\x9F\xBF".valid_encoding?      # overlong (< U+0800)
+    assert_false "\xED\xA0\x80".valid_encoding?      # surrogate U+D800
+    assert_false "\xED\xBF\xBF".valid_encoding?      # surrogate U+DFFF
+    assert_false "\xF0\x8F\xBF\xBF".valid_encoding?  # overlong (< U+10000)
+    assert_false "\xF4\x90\x80\x80".valid_encoding?  # above U+10FFFF
+    assert_false "\xF5\x80\x80\x80".valid_encoding?  # above U+10FFFF
+    assert_true "\u{D7FF}".valid_encoding?           # last code point before surrogates
+    assert_true "\u{E000}".valid_encoding?           # first code point after surrogates
+    assert_true "\u{10FFFF}".valid_encoding?         # largest valid code point
+
+    # The same sequences, measured before they are asked about: counting each
+    # byte on its own is what marks the string one byte per character.
+    ["\xC0\x80", "\xED\xA0\x80", "\xF5\x80\x80\x80"].each do |t|
+      t.size
+      assert_false t.valid_encoding?
+    end
   else
     assert_true "\xfe".valid_encoding?
   end

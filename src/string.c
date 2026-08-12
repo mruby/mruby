@@ -485,6 +485,26 @@ mrb_utf8len(const char* p, const char* e)
   case 2:
     if (utf8_islead(p[1])) return 1;
   }
+  /* Reject overlong sequences, UTF-16 surrogates, and code points above
+     U+10FFFF (RFC 3629, Unicode D93b). */
+  switch ((unsigned char)p[0]) {
+  case 0xC0: case 0xC1:                       /* overlong (< U+0080) */
+    return 1;
+  case 0xE0:                                  /* overlong (< U+0800) */
+    if ((unsigned char)p[1] < 0xA0) return 1;
+    break;
+  case 0xED:                                  /* surrogate (U+D800..U+DFFF) */
+    if ((unsigned char)p[1] > 0x9F) return 1;
+    break;
+  case 0xF0:                                  /* overlong (< U+10000) */
+    if ((unsigned char)p[1] < 0x90) return 1;
+    break;
+  case 0xF4:                                  /* above U+10FFFF */
+    if ((unsigned char)p[1] > 0x8F) return 1;
+    break;
+  case 0xF5: case 0xF6: case 0xF7:            /* above U+10FFFF */
+    return 1;
+  }
   return len;
 }
 
