@@ -190,8 +190,18 @@ mrb_int mrb_str_byte_to_char(mrb_state *mrb, mrb_value str, mrb_int bi);
 mrb_bool mrb_str_valid_encoding_p(mrb_state *mrb, mrb_value str);
 
 mrb_int mrb_utf8_to_buf(char *buf, uint32_t cp);
-#ifdef MRB_UTF8_STRING
+
+/* The byte length of the character at `str`, which has to be a byte of the
+   string rather than `end` itself, and 1 for a run of bytes that spells no
+   character. See the definition in string.c for what it rejects. */
 mrb_int mrb_utf8len(const char *str, const char *end);
+
+/* The byte the character covering `p` starts at, or `p` itself when `p` is
+   already a character boundary. A continuation byte that no lead byte reaches
+   is a boundary too. */
+const char *mrb_utf8_char_head(const char *beg, const char *p, const char *end);
+
+#ifdef MRB_UTF8_STRING
 mrb_int mrb_utf8_strlen(const char *str, mrb_int byte_len);
 #endif
 
