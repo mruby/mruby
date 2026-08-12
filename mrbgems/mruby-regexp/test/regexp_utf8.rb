@@ -63,9 +63,13 @@ assert("Regexp - /i does not read a byte above 127 as a character") do
   # What /i folds is settled when the pattern is compiled, so a byte-indexed
   # subject puts the same question to the engine, which reads one through a
   # branch of its own: `mrb_re_exec` takes the flag and every step it drives,
-  # the fold included, turns on it. It is also the subject the question has a
-  # definite answer on: read as UTF-8 the byte spells nothing for the fold to
-  # be about.
+  # the fold included, turns on it.
+  #
+  # It is also the only subject that can answer, which is why this block and
+  # the ones below ask no UTF-8 subject about a byte like this. Such a subject
+  # spells no character where the byte is, so what the engine does with it is
+  # whatever a decoder happens to do with input no rule covers, and an
+  # assertion on one pins that accident rather than the pattern.
   assert_equal 0, (Regexp.new(micro, Regexp::IGNORECASE) =~ micro.b)
   assert_equal 0, (Regexp.new(lead, Regexp::IGNORECASE) =~ lead.b)
 end
@@ -124,14 +128,17 @@ end
 assert("Regexp - quantifier on an invalid multibyte literal") do
   # A byte above 127 is one atom only while it starts a whole character. The
   # sequences below never complete one, so each byte stands alone and the
-  # quantifier binds to the byte in front of it, not to the pair.
+  # quantifier binds to the byte in front of it, not to the pair. What it binds
+  # to is settled when the pattern is compiled, so the subjects carrying these
+  # bytes are byte-indexed, where each of them is a byte and the byte counts
+  # they report are offsets into what was asked.
   lead2 = "\xC4"  # starts a two byte character
   lead3 = "\xE3"  # starts a three byte character
   cont = "\x81"   # continuation byte
 
-  # What the quantifier binds to is settled when the pattern is compiled, so
-  # the subjects below are byte-indexed, where each of these bytes is a byte
-  # and the byte counts they report are offsets into what was asked.
+  # A whole character is one atom on the subject side, which is what a subject
+  # read as UTF-8 is left to answer here.
+  assert_equal 2, "Ā".match(/./)[0].bytesize
   # "x" is not a continuation byte, so `+` repeats "x".
   assert_equal 4, (lead2 + "xxx").b.match(Regexp.new(lead2 + "x+"))[0].bytesize
   assert_equal 4, (lead3 + "abb").b.match(Regexp.new(lead3 + "ab+"))[0].bytesize
@@ -144,19 +151,22 @@ assert("Regexp - quantifier on an invalid multibyte literal") do
   assert_equal 5, (lead2 + "ĀĀ").b.match(Regexp.new(lead2 + "Ā+"))[0].bytesize
   # The subject side reads the same way: `.` takes the lead byte alone.
   assert_equal 1, (lead2 + "x").b.match(/./)[0].bytesize
-  # A whole character is one atom on the subject side too, and that subject
-  # goes through as it always did.
-  assert_equal 2, "Ā".match(/./)[0].bytesize
 end
 
 assert("Regexp - a byte that belongs to no character is a match position") do
   # A byte in 0x80-0xBF is the interior of a character only while a lead byte
   # in front of it reaches that far. One that stands on its own is a boundary
   # like any other, and the engines used to disagree about it: the literal
-  # fast path matched there, the NFA never started a match there.
-  # Where such a byte opens a match position is a question about the byte, so
-  # the subjects below are byte-indexed: there #begin is a byte offset, which
-  # is what pre_match used to be needed for.
+  # fast path matched there, the NFA never started a match there. Where such a
+  # byte opens a match position is a question about the byte, put to a
+  # byte-indexed subject because one read as UTF-8 spells no character there to
+  # answer for it. That also makes #begin a byte offset, which is what
+  # pre_match used to be needed for.
+  # Inside a character there is still no match position, which is what a
+  # subject read as UTF-8 is left to answer.
+  assert_nil "あ".match(Regexp.new("\x81"))
+  assert_nil "あ".match(Regexp.new("\x82"))
+  assert_nil "\u{1D54F}".match(Regexp.new("\x95"))
   b = "\x81"
   assert_equal 0, (b + b).b.match(Regexp.new(b + b)).begin(0)
   assert_equal 2, (b + b).b.match(Regexp.new(b + "+"))[0].bytesize
@@ -165,11 +175,6 @@ assert("Regexp - a byte that belongs to no character is a match position") do
   assert_equal 1, ("x" + b + b).b.match(Regexp.new(b + "+")).begin(0)
   # Next to one there is a match position too.
   assert_equal 0, (b + "あ").b.match(Regexp.new(b)).begin(0)
-  # Inside a character there is none, on a subject that is whole UTF-8 and
-  # reaches the engine as it always did.
-  assert_nil "あ".match(Regexp.new("\x81"))
-  assert_nil "あ".match(Regexp.new("\x82"))
-  assert_nil "\u{1D54F}".match(Regexp.new("\x95"))
 end
 
 assert("Regexp - an attempt in flight opens no match position inside a character") do
@@ -185,10 +190,11 @@ assert("Regexp - an attempt in flight opens no match position inside a character
   assert_equal 4, ("ĵ" + "µ").match(/.?[µ]/)[0].bytesize
   assert_equal 5, ("あ" + "µ").match(/.?[µ]/)[0].bytesize
   # And so is a byte where no lead byte reaches it, through a class that holds
-  # the byte. [µ] holds the character, whose trailing byte alone is not it.
-  # That subject is byte-indexed, where the thread `.?` parks past the byte is
-  # stepped by the engine's own branch for one. A class that holds the
-  # character rather than the byte still does not hold it.
+  # the byte. [µ] holds the character, whose trailing byte alone is not it. The
+  # subject is byte-indexed, since one read as UTF-8 spells no character at
+  # that byte, and the thread `.?` parks past it is stepped by the branch the
+  # engine keeps for one. A class that holds the character rather than the byte
+  # still does not hold it.
   assert_equal 2, ("x" + "\xb5").b.match(Regexp.new(".?[\xb5]"))[0].bytesize
   assert_nil ("x" + "\xb5").b.match(/.?[µ]/)
 end
@@ -271,8 +277,9 @@ assert("Regexp - a match does not end inside a character") do
     assert_equal 2, bin.match(Regexp.new("\xc4."))[0].bytesize
   end
   # A byte no lead byte reaches is a boundary too, so a byte pattern works
-  # there as well, on a byte-indexed subject whose own indexing agrees with
-  # the byte counts below.
+  # there as well, on a byte-indexed subject: one read as UTF-8 spells no
+  # character at such a byte, and this one's own indexing agrees with the byte
+  # counts below.
   b = "\x81"
   assert_equal 1, (b + b).b.match(Regexp.new(b))[0].bytesize
   assert_equal 2, (b + b).b.match(Regexp.new(b + "+"))[0].bytesize
@@ -401,21 +408,21 @@ end
 
 assert("Regexp - invalid UTF-8 byte near pattern end") do
   # a truncated multi-byte leader in a character class must not read
-  # past the end of the pattern buffer
+  # past the end of the pattern buffer. The subject that is the byte is
+  # byte-indexed, since one read as UTF-8 spells no character at it, and the
+  # engine walks the class there through a branch of its own.
   re = Regexp.new("[   \xff ]")
   assert_kind_of Regexp, re
   assert_nil (re =~ "x")
-  # The subject is byte-indexed, where the engine walks the class through a
-  # branch of its own.
   assert_equal 0, (re =~ "\xff".b)
 end
 
 assert("Regexp - truncated UTF-8 at subject end") do
   # a lone multi-byte leader at the end of the subject must not read
-  # past the end of the string buffer when matched against a class. As UTF-8
-  # that subject no longer reaches the engine at all, which is the stronger
-  # guard; byte-indexed it does, and the walk that reaches the end of the
-  # buffer there is one the engine still has to keep inside it.
+  # past the end of the string buffer when matched against a class. The
+  # subject is byte-indexed, since one read as UTF-8 spells no character at
+  # the leader; there the leader is a byte of its own, and the walk that
+  # reaches the end of the buffer is the one that has to stay inside it.
   assert_nil ("ab\xf0".b =~ /[cd]/)
   assert_equal 0, ("ab\xf0".b =~ /[^cd]+$/)
 end
@@ -425,27 +432,15 @@ assert("Regexp - overlong UTF-8 is not the character it spells") do
   # spelling of "Ā". A decoder that hands out a codepoint for these would let a
   # class hold a character the subject does not spell, so assert the class and
   # the literal together against the same subject. RFC 3629 puts these
-  # sequences outside UTF-8, so the subjects below are byte-indexed, which is
-  # where the decode has to answer anyway: the class must hold no character
-  # the bytes do not spell, whichever way the subject is indexed.
-  assert_nil ("\xC0\xBC".b =~ /[<]/)
-  assert_nil ("\xC0\xBC".b =~ /</)
-  assert_equal 0, ("\xC0\xBC".b =~ /[^<]/)
-  assert_equal "\xC0\xBC".b, "\xC0\xBC".b.gsub(/[<]/, "&lt;")
-  assert_nil ("\xE0\x80\xBC".b =~ /[<]/)
-  assert_false Regexp.new("[Ā]").match?("\xE0\x84\x80".b)
-  assert_false (/Ā/.match?("\xE0\x84\x80".b))
+  # sequences outside UTF-8, so a subject that carries one spells no character
+  # for the decode to hand out and is byte-indexed below. That is where the
+  # decode has to answer anyway: the class must hold no character the bytes do
+  # not spell, whichever way the subject is indexed.
   # the pattern side decodes through the same helper, and its subject here is
   # whole UTF-8
   assert_false Regexp.new("[\xC0\xBC]").match?("<")
-  # surrogates and codepoints above U+10FFFF encode no character either, so
-  # each byte stands on its own
-  assert_equal 2, "\xC0\xBC".b.scan(/./).size
-  assert_equal 3, "\xED\xA0\x80".b.scan(/./).size
-  assert_equal 4, "\xF0\x80\x80\xBC".b.scan(/./).size
-  assert_equal 4, "\xF4\x90\x80\x80".b.scan(/./).size
-  assert_equal 4, "\xF5\x80\x80\x80".b.scan(/./).size
-  # the shortest spelling on each side of those bounds is still one character
+  # the shortest spelling on each side of the RFC 3629 bounds is still one
+  # character
   assert_equal 1, "\u{0080}".scan(/./).size    # C2 80
   assert_equal 1, "\u{0800}".scan(/./).size    # E0 A0 80
   assert_equal 1, "\u{D7FF}".scan(/./).size    # ED 9F BF
@@ -454,6 +449,21 @@ assert("Regexp - overlong UTF-8 is not the character it spells") do
   assert_equal 1, "\u{10FFFF}".scan(/./).size  # F4 8F BF BF
   assert_equal 0, ("\u{0800}" =~ Regexp.new("[\u{0800}]"))
   assert_equal 0, ("\u{10FFFF}" =~ Regexp.new("[\u{10FFFF}]"))
+  # an overlong sequence holds no character on the subject side either
+  assert_nil ("\xC0\xBC".b =~ /[<]/)
+  assert_nil ("\xC0\xBC".b =~ /</)
+  assert_equal 0, ("\xC0\xBC".b =~ /[^<]/)
+  assert_equal "\xC0\xBC".b, "\xC0\xBC".b.gsub(/[<]/, "&lt;")
+  assert_nil ("\xE0\x80\xBC".b =~ /[<]/)
+  assert_false Regexp.new("[Ā]").match?("\xE0\x84\x80".b)
+  assert_false (/Ā/.match?("\xE0\x84\x80".b))
+  # surrogates and codepoints above U+10FFFF encode no character either, so
+  # each byte stands on its own
+  assert_equal 2, "\xC0\xBC".b.scan(/./).size
+  assert_equal 3, "\xED\xA0\x80".b.scan(/./).size
+  assert_equal 4, "\xF0\x80\x80\xBC".b.scan(/./).size
+  assert_equal 4, "\xF4\x90\x80\x80".b.scan(/./).size
+  assert_equal 4, "\xF5\x80\x80\x80".b.scan(/./).size
 end
 
 assert("Regexp - a pattern byte that starts no character is a byte in a class") do
@@ -463,8 +473,11 @@ assert("Regexp - a pattern byte that starts no character is a byte in a class") 
   # CRuby settles it with the pattern's encoding and raises RegexpError for
   # either spelling; this gem has no encoding to consult, so it reads the byte
   # as the byte on both sides. Which of the two a class holds belongs to the
-  # pattern, and a subject that is one such byte is byte-indexed below, where
-  # the byte is a byte on the subject side too.
+  # pattern, and a subject that is one such byte is byte-indexed below, since
+  # one read as UTF-8 spells no character at it. There the byte is a byte on
+  # the subject side too, which is what each pair below turns on: the byte
+  # answers for itself, and the character that carries it answers for the
+  # character.
   mu = "\xC2\xB5"  # U+00B5 MICRO SIGN, two bytes
   assert_nil (mu =~ Regexp.new("[\xB5]"))
   assert_nil (mu =~ Regexp.new("\xB5"))
