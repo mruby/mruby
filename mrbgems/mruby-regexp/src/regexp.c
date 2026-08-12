@@ -228,6 +228,28 @@ re_binary_string_p(mrb_value str)
   return RSTR_BINARY_P(RSTRING(str));
 }
 
+/* CRuby refuses a search whose subject holds a byte that spells no character,
+   and mruby answers for it. Refuse it here too, so that a program moved from
+   one to the other is told about the subject rather than handed a result the
+   other would not have produced.
+
+   A binary string is exempt because it is indexed by byte throughout, so its
+   bytes make no claim that could be broken.
+
+   The check walks the whole subject, so every entry point below runs it on the
+   subject it is handed and the C loops over a subject run it before the first
+   turn. Two searches are driven from mrblib once per match rather than once per
+   call, `__byte_search` and the `__search` the backward search steps, and they
+   check too: core remembers a string it has read as valid UTF-8, so every turn
+   after the first costs a flag test and not a walk. */
+static void
+re_check_encoding(mrb_state *mrb, mrb_value str)
+{
+  if (!mrb_str_valid_encoding_p(mrb, str)) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid byte sequence in UTF-8");
+  }
+}
+
 static mrb_value
 regexp_binary_string_p(mrb_state *mrb, mrb_value self)
 {
@@ -362,6 +384,7 @@ regexp_match(mrb_state *mrb, mrb_value self)
     return mrb_nil_value();
   }
 
+  re_check_encoding(mrb, str);
   md = exec_match(mrb, self, str, pos);
   if (!mrb_nil_p(md) && !mrb_nil_p(block)) {
     return mrb_yield(mrb, block, md);
@@ -410,6 +433,7 @@ regexp_s_search(mrb_state *mrb, mrb_value klass)
     clear_match_globals(mrb);
     return mrb_nil_value();
   }
+  re_check_encoding(mrb, str);
   return exec_match(mrb, re, str, pos);
 }
 
@@ -419,7 +443,8 @@ regexp_s_search(mrb_state *mrb, mrb_value klass)
  * Internal: the byte-offset search the mrblib loops of `gsub`, `split` and
  * `byteindex` drive themselves. No position normalization, because the
  * callers already work in byte space, and no operand conversion, because
- * they always pass a String.
+ * they always pass a String. The subject is the one the loop holds fixed, so
+ * the check reads the flag core left on it after the first turn.
  */
 static mrb_value
 regexp_s_byte_search(mrb_state *mrb, mrb_value klass)
@@ -429,6 +454,7 @@ regexp_s_byte_search(mrb_state *mrb, mrb_value klass)
 
   mrb_get_args(mrb, "oS|i", &re, &str, &pos);
   check_regexp_arg(mrb, re);
+  re_check_encoding(mrb, str);
   return exec_match(mrb, re, str, pos);
 }
 
@@ -445,6 +471,7 @@ exec_match_p(mrb_state *mrb, mrb_value re, mrb_value str, mrb_int pos)
 
   mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
   if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
+  re_check_encoding(mrb, str);
 
   int ncap = mrb_re_exec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), pos, NULL, 0,
                          re_binary_string_p(str));
@@ -493,6 +520,7 @@ regexp_match_op(mrb_state *mrb, mrb_value self)
     return mrb_nil_value();
   }
   str = match_operand(mrb, str);
+  re_check_encoding(mrb, str);
 
   mrb_value md = exec_match(mrb, self, str, 0);
   if (mrb_nil_p(md)) return mrb_nil_value();
@@ -516,6 +544,7 @@ regexp_case_match(mrb_state *mrb, mrb_value self)
 
   pat = DATA_GET_PTR(mrb, self, &regexp_type, mrb_regexp_pattern);
   if (!pat) return mrb_false_value();
+  re_check_encoding(mrb, str);
 
   md = exec_match(mrb, self, str, 0);
   return mrb_bool_value(!mrb_nil_p(md));
@@ -1082,6 +1111,7 @@ regexp_s_gsub_str(mrb_state *mrb, mrb_value klass)
 
   mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
   if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
+  re_check_encoding(mrb, str);
 
   const char *s = RSTRING_PTR(str);
   mrb_int slen = RSTRING_LEN(str);
@@ -1172,6 +1202,7 @@ regexp_s_sub_str(mrb_state *mrb, mrb_value klass)
 
   mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
   if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
+  re_check_encoding(mrb, str);
 
   const char *s = RSTRING_PTR(str);
   mrb_int slen = RSTRING_LEN(str);
@@ -1226,6 +1257,7 @@ regexp_s_scan(mrb_state *mrb, mrb_value klass)
 
   mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
   if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
+  re_check_encoding(mrb, str);
 
   const char *s = RSTRING_PTR(str);
   mrb_int slen = RSTRING_LEN(str);
