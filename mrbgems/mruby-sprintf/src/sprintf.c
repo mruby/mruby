@@ -536,8 +536,13 @@ retry:
             /* Integer: encode directly to stack buffer (no allocation) */
             mrb_int code = mrb_integer(val);
 #ifdef MRB_UTF8_STRING
+            /* mrb_utf8_to_buf() writes nothing for a value it cannot encode,
+               and takes a uint32_t, which wraps a value outside the Unicode
+               range into a codepoint. Either way there is no byte to write. */
+            if (code < 0 || 0x10FFFF < code) {
+              mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid character");
+            }
             clen = (int)mrb_utf8_to_buf(cbuf, (uint32_t)code);
-            if (clen == 0) clen = 1;  /* invalid codepoint: write single byte */
 #else
             cbuf[0] = (char)(code & 0xff);
             clen = 1;
