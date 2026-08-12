@@ -54,6 +54,8 @@ struct RStringEmbed {
 #define MRB_STR_BINARY    16
 #define MRB_STR_SINGLE_BYTE 32
 #define MRB_STR_STATE_MASK 48
+/* bits 6..10 are the embedded length, so 11 is the first one free */
+#define MRB_STR_VALID_ENC 2048
 
 #define RSTR_EMBED_P(s) ((s)->flags & MRB_STR_EMBED)
 #define RSTR_SET_EMBED_FLAG(s) ((s)->flags |= MRB_STR_EMBED)
@@ -89,12 +91,25 @@ struct RStringEmbed {
 # define RSTR_UNSET_SINGLE_BYTE_FLAG(s) ((s)->flags &= ~MRB_STR_SINGLE_BYTE)
 # define RSTR_WRITE_SINGLE_BYTE_FLAG(s, v) (RSTR_UNSET_SINGLE_BYTE_FLAG(s), (s)->flags |= v)
 # define RSTR_COPY_SINGLE_BYTE_FLAG(dst, src) RSTR_WRITE_SINGLE_BYTE_FLAG(dst, RSTR_SINGLE_BYTE_P(src))
+/* Set once a walk has read the whole string as UTF-8, so a later walk can be
+   skipped. Unlike MRB_STR_SINGLE_BYTE this is not a property a byte subrange
+   inherits, since a subrange can cut a character in half; copy it only where
+   the destination ends up holding exactly the source's bytes. */
+# define RSTR_VALID_ENC_P(s) ((s)->flags & MRB_STR_VALID_ENC)
+# define RSTR_SET_VALID_ENC_FLAG(s) ((s)->flags |= MRB_STR_VALID_ENC)
+# define RSTR_UNSET_VALID_ENC_FLAG(s) ((s)->flags &= ~MRB_STR_VALID_ENC)
+# define RSTR_COPY_VALID_ENC_FLAG(dst, src) \
+  ((dst)->flags = ((dst)->flags & ~MRB_STR_VALID_ENC) | RSTR_VALID_ENC_P(src))
 #else
 # define RSTR_SINGLE_BYTE_P(s) TRUE
 # define RSTR_SET_SINGLE_BYTE_FLAG(s) (void)0
 # define RSTR_UNSET_SINGLE_BYTE_FLAG(s) (void)0
 # define RSTR_WRITE_SINGLE_BYTE_FLAG(s, v) (void)0
 # define RSTR_COPY_SINGLE_BYTE_FLAG(dst, src) (void)0
+# define RSTR_VALID_ENC_P(s) TRUE
+# define RSTR_SET_VALID_ENC_FLAG(s) (void)0
+# define RSTR_UNSET_VALID_ENC_FLAG(s) (void)0
+# define RSTR_COPY_VALID_ENC_FLAG(dst, src) (void)0
 #endif
 #define RSTR_SET_ASCII_FLAG(s) RSTR_SET_SINGLE_BYTE_FLAG(s)
 #define RSTR_BINARY_P(s) ((s)->flags & MRB_STR_BINARY)

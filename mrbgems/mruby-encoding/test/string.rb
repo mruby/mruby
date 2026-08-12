@@ -3,6 +3,38 @@
 
 UTF8STRING = __ENCODING__ == "UTF-8"
 
+assert('String#valid_encoding? survives what the string goes through') do
+  # The answer is remembered on the string, so every way of changing its bytes
+  # has to forget it again, and the two places a copy keeps the bytes whole
+  # have to carry it along. Each pair asks the same question of the same
+  # bytes, once with the answer already remembered and once without.
+  if UTF8STRING
+    [->(s) { s << "\x80" },
+     ->(s) { s.concat("\xC0") },
+     ->(s) { s.replace("\xED\xA0\x80") },
+     ->(s) { s.insert(0, "\xFE") },
+     ->(s) { s.prepend("\x81") },
+     ->(s) { s.sub!("あ", "\xE0\x80"); s },
+     ->(s) { s.gsub!("あ", "\xF5"); s },
+     ->(s) { s.chop!; s },
+     ->(s) { s.downcase!; s },
+     ->(s) { s * 2 },
+     ->(s) { s.dup },
+     ->(s) { s.byteslice(0, 1) || s },
+     ->(s) { s[0, 1] || s }].each do |op|
+      ["あ", "あa", "あい", "あ" * 40].each do |base|
+        warm = base.dup
+        warm.valid_encoding?          # remember the answer before the change
+        cold = base.dup
+        a = (op.call(warm) rescue warm)
+        b = (op.call(cold) rescue cold)
+        assert_equal b.bytes, a.bytes
+        assert_equal b.valid_encoding?, a.valid_encoding?
+      end
+    end
+  end
+end
+
 assert('String#valid_encoding?') do
   assert_true "hello".valid_encoding?
   if UTF8STRING

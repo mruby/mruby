@@ -636,6 +636,7 @@ mrb_str_valid_encoding_p(mrb_state *mrb, mrb_value str)
      byte per character, which a string of stray bytes satisfies too, so only
      the walk below decides. */
   if (RSTR_BINARY_P(s)) return TRUE;
+  if (RSTR_VALID_ENC_P(s)) return TRUE;
 
   mrb_int byte_len = RSTR_LEN(s);
   mrb_bool valid = TRUE;
@@ -643,6 +644,7 @@ mrb_str_valid_encoding_p(mrb_state *mrb, mrb_value str)
 
   if (!valid) return FALSE;
   if (byte_len == utf8_len) RSTR_SET_SINGLE_BYTE_FLAG(s);
+  RSTR_SET_VALID_ENC_FLAG(s);
   return TRUE;
 }
 
@@ -1004,6 +1006,7 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
   mrb_check_frozen(mrb, s1);
   if (s1 == s2) return mrb_obj_value(s1);
   RSTR_COPY_SINGLE_BYTE_FLAG(s1, s2);
+  RSTR_COPY_VALID_ENC_FLAG(s1, s2);
   RSTR_COPY_BINARY_FLAG(s1, s2);
   if (RSTR_SHARED_P(s1)) {
     str_decref(mrb, s1->as.heap.aux.shared);
@@ -1173,6 +1176,9 @@ mrb_str_modify_keep_ascii(mrb_state *mrb, struct RString *s)
 {
   mrb_check_frozen(mrb, s);
   str_unshare_buffer(mrb, s);
+  /* Every in-place write reaches here, including the ones that keep the string
+     ASCII, so this is where the walk's answer stops holding. */
+  RSTR_UNSET_VALID_ENC_FLAG(s);
 }
 
 /*
@@ -1367,6 +1373,7 @@ mrb_str_times(mrb_state *mrb, mrb_value self)
   }
   p[RSTR_LEN(str2)] = '\0';
   RSTR_COPY_SINGLE_BYTE_FLAG(str2, mrb_str_ptr(self));
+  RSTR_COPY_VALID_ENC_FLAG(str2, mrb_str_ptr(self));
 
   return mrb_obj_value(str2);
 }
@@ -3314,6 +3321,7 @@ str_modify_cat(mrb_state *mrb, struct RString *s, mrb_int addlen)
          write over them. */
       shared->reserved = off + s->as.heap.len + addlen;
       RSTR_UNSET_SINGLE_BYTE_FLAG(s);
+      RSTR_UNSET_VALID_ENC_FLAG(s);
       return capa;
     }
   }
