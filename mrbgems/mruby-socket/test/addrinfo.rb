@@ -41,6 +41,25 @@ assert('Addrinfo.getaddrinfo rejects out-of-range integer hints') do
   assert_raise(RangeError) { Addrinfo.getaddrinfo("localhost", nil, nil, nil, nil, big) }
 end
 
+assert('Addrinfo.getaddrinfo rejects a big integer hint') do
+  # a hint too wide for mrb_int arrives as a big integer, which used to miss
+  # the `mrb_integer_p` check and leave the field at its default: the caller
+  # asked for something unrepresentable and got an unhinted lookup instead
+  # The shift width comes from a variable because a literal wide shift is
+  # constant folded, and the fold fails where bigint is absent, dropping every
+  # test in this file.
+  shift = 70
+  big = begin
+    1 << shift
+  rescue RangeError
+    nil
+  end
+  skip "needs mruby-bigint" unless big
+  assert_raise(RangeError) { Addrinfo.getaddrinfo("localhost", nil, big) }
+  assert_raise(RangeError) { Addrinfo.getaddrinfo("localhost", nil, nil, big) }
+  assert_raise(RangeError) { Addrinfo.getaddrinfo("localhost", nil, nil, nil, big) }
+end
+
 assert('Addrinfo.foreach') do
   skip "localhost resolution unreliable in Windows getaddrinfo" if SocketTest.win?
   # assume Addrinfo.getaddrinfo works well

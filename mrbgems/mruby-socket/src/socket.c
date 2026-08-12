@@ -186,13 +186,18 @@ free_addrinfo(mrb_state *mrb, mrb_value addrinfo)
  *   Addrinfo.getaddrinfo("www.example.com", 80, Socket::AF_INET)
  */
 static int
-getaddrinfo_hint(mrb_state *mrb, mrb_int v, const char *name)
+getaddrinfo_hint(mrb_state *mrb, mrb_value val, const char *name)
 {
   /* getaddrinfo() hint fields are C int; reject values that would not
-     survive the narrowing rather than silently truncating them (#6960). */
+     survive the narrowing rather than silently truncating them (#6960).
+     A big integer outgrows mrb_int itself, so it never fits a C int either. */
+  if (mrb_bigint_p(val)) {
+    mrb_raisef(mrb, E_RANGE_ERROR, "getaddrinfo %s out of range: %v", name, val);
+  }
+  mrb_int v = mrb_integer(val);
 #if MRB_INT_MAX > INT_MAX
   if (v < INT_MIN || v > INT_MAX) {
-    mrb_raisef(mrb, E_RANGE_ERROR, "getaddrinfo %s out of range: %i", name, v);
+    mrb_raisef(mrb, E_RANGE_ERROR, "getaddrinfo %s out of range: %v", name, val);
   }
 #endif
   return (int)v;
@@ -223,18 +228,21 @@ mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
     mrb_raise(mrb, E_TYPE_ERROR, "service must be String, Integer, or nil");
   }
 
-  hints.ai_flags = getaddrinfo_hint(mrb, flags, "flags");
+  hints.ai_flags = getaddrinfo_hint(mrb, mrb_int_value(mrb, flags), "flags");
 
-  if (mrb_integer_p(family)) {
-    hints.ai_family = getaddrinfo_hint(mrb, mrb_integer(family), "family");
+  /* an out of range hint reaches here as a big integer wherever bigint is
+     built in, and `mrb_integer_p` alone would leave the field at its default
+     rather than report the value as out of range */
+  if (mrb_integer_p(family) || mrb_bigint_p(family)) {
+    hints.ai_family = getaddrinfo_hint(mrb, family, "family");
   }
 
-  if (mrb_integer_p(socktype)) {
-    hints.ai_socktype = getaddrinfo_hint(mrb, mrb_integer(socktype), "socktype");
+  if (mrb_integer_p(socktype) || mrb_bigint_p(socktype)) {
+    hints.ai_socktype = getaddrinfo_hint(mrb, socktype, "socktype");
   }
 
-  if (mrb_integer_p(protocol)) {
-    hints.ai_protocol = getaddrinfo_hint(mrb, mrb_integer(protocol), "protocol");
+  if (mrb_integer_p(protocol) || mrb_bigint_p(protocol)) {
+    hints.ai_protocol = getaddrinfo_hint(mrb, protocol, "protocol");
   }
 
   int error = getaddrinfo(hostname, servname, &hints, &addr);
