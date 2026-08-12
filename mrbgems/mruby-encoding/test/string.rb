@@ -41,6 +41,29 @@ assert('String#valid_encoding?') do
   end
 end
 
+assert('String#valid_encoding? after a run of ASCII') do
+  # The walk skips ASCII a word at a time and decodes only where a byte leaves
+  # that range, so a broken byte has to be caught after such a run as well as
+  # at the head of the string.
+  if UTF8STRING
+    assert_true ("a" * 40).valid_encoding?
+    assert_true ("a" * 40 + "あ").valid_encoding?
+    assert_false ("a" * 40 + "\xfe").valid_encoding?
+    assert_false ("a" * 40 + "\xe3\x81").valid_encoding?  # 3-byte sequence cut short
+    assert_true ("a" * 40 + "\xe3\x81").b.valid_encoding?
+  end
+end
+
+assert('String#valid_encoding? of a shared substring') do
+  # A substring too long to embed shares the parent's buffer, so the walk has
+  # to stop where the substring ends rather than where the parent's bytes do.
+  if UTF8STRING
+    parent = "あ" * 40 + "\xfe"
+    assert_true parent.byteslice(0, 120).valid_encoding?
+    assert_false parent.byteslice(0, 121).valid_encoding?
+  end
+end
+
 assert('String#length of a binary string counts bytes') do
   # A byte-indexed string has one position per byte, which is what indexing it
   # already answered. Measuring it read the same string as UTF-8, so the length
