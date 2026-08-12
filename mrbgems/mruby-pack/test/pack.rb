@@ -214,10 +214,11 @@ assert 'pack("U") with a value outside the Unicode range' do
   assert_equal [0xF4, 0x8F, 0xBF, 0xBF], [0x10FFFF].pack("U").unpack("C*")
   assert_raise(RangeError) { [0x110000].pack("U") }
 
-  # The encoder takes a uint32_t, so a value that wraps into the Unicode range
-  # must not come out as the character it wraps to. The shift is computed at
-  # run time because the constant folder would reject the literal on a build
-  # with a 32-bit mrb_int and no bigint, where there is nothing to test.
+  # A value that would land inside the Unicode range if it were truncated to
+  # 32 bits must not come out as the character it truncates to. The shift is
+  # computed at run time because the constant folder would reject the literal
+  # on a build with a 32-bit mrb_int and no bigint, where there is nothing to
+  # test.
   shift = 32
   wrapping = ((1 << shift) + 0x41) rescue nil
   assert_raise(RangeError) { [wrapping].pack("U") } if wrapping.is_a?(Integer)

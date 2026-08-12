@@ -536,13 +536,13 @@ retry:
             /* Integer: encode directly to stack buffer (no allocation) */
             mrb_int code = mrb_integer(val);
 #ifdef MRB_UTF8_STRING
-            /* mrb_utf8_to_buf() writes nothing for a value it cannot encode,
-               and takes a uint32_t, which wraps a value outside the Unicode
-               range into a codepoint. Either way there is no byte to write. */
-            if (code < 0 || 0x10FFFF < code) {
+            /* A value that spells no character writes no byte, and is what
+               CRuby reports here as an invalid character rather than as a
+               range error. */
+            clen = (int)mrb_utf8_to_buf(cbuf, code);
+            if (clen == 0) {
               mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid character");
             }
-            clen = (int)mrb_utf8_to_buf(cbuf, (uint32_t)code);
 #else
             cbuf[0] = (char)(code & 0xff);
             clen = 1;

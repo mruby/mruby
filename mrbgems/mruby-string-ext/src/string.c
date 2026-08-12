@@ -33,11 +33,14 @@ int_chr_utf8(mrb_state *mrb, mrb_value num)
   mrb_int len;
   mrb_value str;
 
-  /* Reject negative, above U+10FFFF, and UTF-16 surrogates (RFC 3629). */
-  if (cp < 0 || 0x10FFFF < cp || (0xD800 <= cp && cp <= 0xDFFF)) {
+  /* A value outside the Unicode range spells no character and comes back as a
+     zero length. A surrogate does spell one to the encoder, because CRuby's
+     sprintf("%c") and pack("U") spell one; Integer#chr is where CRuby refuses
+     it, so the refusal belongs here rather than in the encoder. */
+  len = mrb_utf8_to_buf(utf8, cp);
+  if (len == 0 || (0xD800 <= cp && cp <= 0xDFFF)) {
     mrb_raisef(mrb, E_RANGE_ERROR, "%v out of char range", num);
   }
-  len = mrb_utf8_to_buf(utf8, (uint32_t)cp);
   str = mrb_str_new(mrb, utf8, len);
   if (len == 1) {
     RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));

@@ -137,10 +137,11 @@ assert('sprintf("%c") with an integer that has no UTF-8 encoding') do
   # whatever byte the stack happened to hold there.
   assert_raise(ArgumentError) { sprintf("%c", 0x110000) }
   assert_raise(ArgumentError) { sprintf("%c", -1) }
-  # The encoder takes a uint32_t, so a value that wraps into the Unicode range
-  # must not come out as the character it wraps to. The shift is computed at
-  # run time because the constant folder would reject the literal on a build
-  # with a 32-bit mrb_int and no bigint, where there is nothing to test.
+  # A value that would land inside the Unicode range if it were truncated to
+  # 32 bits must not come out as the character it truncates to. The shift is
+  # computed at run time because the constant folder would reject the literal
+  # on a build with a 32-bit mrb_int and no bigint, where there is nothing to
+  # test.
   shift = 32
   wrapping = ((1 << shift) + 0x41) rescue nil
   assert_raise(ArgumentError) { sprintf("%c", wrapping) } if wrapping.is_a?(Integer)
