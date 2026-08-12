@@ -649,6 +649,16 @@ assert('String#rindex(UTF-8)', '15.2.10.5.31') do
   assert_equal  3, broken.rindex("☁", 10)
 end if UTF8STRING
 
+assert('String#rindex reaches the first character from a negative position') do
+  # A negative `pos` counts characters back from the end, so minus the length
+  # names the first character rather than a step past it.
+  assert_equal 0, "あいう".rindex("あ", -3)
+  assert_nil "あいう".rindex("あ", -4)
+  assert_equal 3, "あいうあ".rindex("あ", -1)
+  assert_equal 0, "あいうあ".rindex("あ", -4)
+  assert_nil "あいうあ".rindex("あ", -5)
+end if UTF8STRING
+
 assert('String#byterindex searches bytes') do
   # `byterindex` answers byte positions, so it walks bytes the way
   # `byteindex` does. Walking characters instead, it passed over every byte

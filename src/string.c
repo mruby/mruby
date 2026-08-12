@@ -2616,10 +2616,13 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
   else {
     const char *p = RSTRING_PTR(str);
     const char *e = RSTRING_END(str);
-    while (pos++ < 0 && p < e) {
+    /* a negative `pos` counts characters back from the end, and landing on the
+       first character is the last step that stays in the string */
+    while (pos < 0) {
+      if (e == p) return mrb_nil_value();
       e = char_backtrack(p, e);
+      pos++;
     }
-    if (p == e) return mrb_nil_value();
     pos = (mrb_int)(e - p);
   }
   pos = str_char_rindex(str, sub, pos);
