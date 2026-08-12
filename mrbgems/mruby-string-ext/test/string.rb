@@ -452,6 +452,26 @@ assert('String#slice! with multibyte characters') do
   assert_equal "あい", a
 end if UTF8STRING
 
+assert('String#slice! with a multibyte match') do
+  a = "あいう"
+  assert_equal "い", a.slice!("い")
+  assert_equal "あう", a
+
+  a = "あいう"
+  assert_equal "う", a.slice!("う")
+  assert_equal "あい", a
+
+  a = "あいう"
+  assert_nil a.slice!("え")
+  assert_equal "あいう", a
+
+  # the search runs over bytes, so a match starting inside a character is
+  # not a match
+  a = "あ"
+  assert_nil a.slice!("\x81\x82")
+  assert_equal "あ", a
+end if UTF8STRING
+
 assert('String#succ') do
   assert_equal "", "".succ
   assert_equal "1", "0".succ

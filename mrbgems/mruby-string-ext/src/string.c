@@ -2016,13 +2016,12 @@ mrb_str_slice_bang(mrb_state *mrb, mrb_value self)
     if (mrb_string_p(arg1)) {
       mrb_int pos = mrb_str_index(mrb, self, RSTRING_PTR(arg1), RSTRING_LEN(arg1), 0);
       if (pos == -1) return mrb_nil_value();
-#ifdef MRB_UTF8_STRING
-      beg = str_char_count(mrb_str_substr(mrb, self, 0, pos));
+      /* The search runs over bytes, so a match may start inside a character;
+         mrb_str_byte_to_char() answers -1 there, and a match no character
+         index reaches is no match. */
+      beg = mrb_str_byte_to_char(mrb, self, pos);
+      if (beg < 0) return mrb_nil_value();
       len = str_char_count(arg1);
-#else
-      beg = pos;
-      len = RSTRING_LEN(arg1);
-#endif
     }
     else if (mrb_range_p(arg1)) {
       if (mrb_range_beg_len(mrb, arg1, &beg, &len, str_len, TRUE) != MRB_RANGE_OK) {
