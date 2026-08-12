@@ -164,7 +164,9 @@ MRB_API mrb_value mrb_boxing_int_value(mrb_state*, mrb_int);
 
 #define mrb_immediate_p(o) ((mrb_float_p(o) || mrb_nb_tt(o) != MRB_NANBOX_TT_OBJECT) || (o).u == 0)
 #define mrb_nil_p(o)  ((o).u == 0)
-#define mrb_false_p(o) (mrb_type(o) == MRB_TT_FALSE || (o).u == 0)
+/* `mrb_type` reports `MRB_TT_FALSE` for `nil` too, so the `nil` case has to be
+ * excluded here; the other boxings keep `nil` out of `mrb_false_p` as well. */
+#define mrb_false_p(o) (!mrb_nil_p(o) && mrb_type(o) == MRB_TT_FALSE)
 #define mrb_fixnum_p(o) (!mrb_float_p(o) && mrb_nb_tt(o)==MRB_NANBOX_TT_INTEGER)
 
 #endif  /* MRUBY_BOXING_NAN_H */
