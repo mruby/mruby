@@ -608,12 +608,16 @@ mrb_struct_equal(mrb_state *mrb, mrb_value s)
     return mrb_false_value();
   }
 
-  mrb_value *ptr = RSTRUCT_PTR(s);
-  mrb_value *ptr2 = RSTRUCT_PTR(s2);
   mrb_int len = RSTRUCT_LEN(s);
   int ai = mrb_gc_arena_save(mrb);
+  /* A member's #== runs Ruby, where initialize_copy() replaces a struct's
+     member storage, so neither buffer survives the call. Read both afresh,
+     and take a struct that changed shape as no longer equal. */
   for (mrb_int i=0; i<len; i++) {
-    if (!mrb_equal(mrb, ptr[i], ptr2[i])) {
+    if (RSTRUCT_LEN(s) != len || RSTRUCT_LEN(s2) != len) {
+      return mrb_false_value();
+    }
+    if (!mrb_equal(mrb, RSTRUCT_PTR(s)[i], RSTRUCT_PTR(s2)[i])) {
       return mrb_false_value();
     }
     mrb_gc_arena_restore(mrb, ai);
@@ -634,7 +638,6 @@ static mrb_value
 mrb_struct_eql(mrb_state *mrb, mrb_value s)
 {
   mrb_value s2 = mrb_get_arg1(mrb);
-  mrb_value *ptr, *ptr2;
   mrb_int i, len;
 
   if (mrb_obj_equal(mrb, s, s2)) {
@@ -652,11 +655,13 @@ mrb_struct_eql(mrb_state *mrb, mrb_value s)
     return mrb_false_value();
   }
 
-  ptr = RSTRUCT_PTR(s);
-  ptr2 = RSTRUCT_PTR(s2);
   len = RSTRUCT_LEN(s);
+  /* see mrb_struct_equal(): the member storage does not survive #eql? */
   for (i=0; i<len; i++) {
-    if (!mrb_eql(mrb, ptr[i], ptr2[i])) {
+    if (RSTRUCT_LEN(s) != len || RSTRUCT_LEN(s2) != len) {
+      return mrb_false_value();
+    }
+    if (!mrb_eql(mrb, RSTRUCT_PTR(s)[i], RSTRUCT_PTR(s2)[i])) {
       return mrb_false_value();
     }
   }

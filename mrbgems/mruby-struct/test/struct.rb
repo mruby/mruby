@@ -21,6 +21,37 @@ assert('Struct#==', '15.2.18.4.1') do
   assert_raise(NoMethodError) { Struct.new(:m1).new.foo }
 end
 
+assert('Struct#== and #eql? with a member that replaces the storage') do
+  # A member's #== runs while both structs are being compared, and
+  # initialize_copy() there moves the member storage out from under the walk.
+  probe = Class.new do
+    attr_accessor :victim, :donor
+    def ==(_); @victim.replace_from(@donor); true; end
+    alias eql? ==
+  end
+  k = Struct.new(*(0...24).map { |i| "m#{i}".to_sym }) do
+    def replace_from(other); initialize_copy(other); end
+  end
+  donor = k.new(*(0...24).map { |i| 10_000 + i })
+
+  [:==, :eql?].each do |op|
+    p1 = probe.new
+    left = k.new(p1, *(1...24).to_a)
+    right = k.new(Object.new, *(1...24).to_a)
+    p1.victim = left
+    p1.donor = donor
+    assert_false left.__send__(op, right)
+
+    # and with the right operand replaced instead
+    p2 = probe.new
+    l2 = k.new(p2, *(1...24).to_a)
+    r2 = k.new(Object.new, *(1...24).to_a)
+    p2.victim = r2
+    p2.donor = donor
+    assert_false l2.__send__(op, r2)
+  end
+end
+
 assert('Struct#[]', '15.2.18.4.2') do
   c = Struct.new(:m1, :m2)
   cc = c.new(1,2)
