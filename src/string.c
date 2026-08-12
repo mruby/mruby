@@ -371,8 +371,10 @@ mrb_utf8_to_buf(char *buf, uint32_t cp)
 
 /* What a run of bytes spells is a question apart from whether String indexes
    by character, and mruby-regexp asks the first one whatever the build does.
-   So this much is here in every build; what indexes a string by character
-   waits behind MRB_UTF8_STRING below. */
+   So this much is here for any build that asks, through MRB_UTF8_SCAN or
+   MRB_UTF8_STRING; what indexes a string by character waits behind the latter
+   alone, below. A build with neither carries none of it. */
+#if defined(MRB_UTF8_STRING) || defined(MRB_UTF8_SCAN)
 
 #define utf8_islead(c) ((unsigned char)((c)&0xc0) != 0x80)
 
@@ -438,6 +440,8 @@ mrb_utf8_char_head(const char *beg, const char *p, const char *end)
   }
   return p;
 }
+
+#endif  /* MRB_UTF8_STRING || MRB_UTF8_SCAN */
 
 #ifdef MRB_UTF8_STRING
 
