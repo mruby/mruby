@@ -518,7 +518,7 @@ mrb_utf8_strlen(const char *str, mrb_int byte_len)
     len += np - p;
     if (np == e) break;
     p = np;
-    while (NOASCII(*p)) {
+    while (p < e && NOASCII(*p)) {
       p += mrb_utf8len(p, e);
       len++;
     }
