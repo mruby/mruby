@@ -801,23 +801,30 @@ assert("Regexp - lookbehind measures bytes that spell no character") do
   # lead bytes of the run alone made such a byte part of the character before
   # it, rewound too little, and the lookbehind then failed on text it
   # describes, or succeeded where the negative form describes it.
-  # The subjects carrying such a byte are byte-indexed, since one read as
-  # UTF-8 spells no character where the byte is and is refused before the
-  # search. That leaves the byte measurement as the one these can ask about,
-  # and it was right before the character one was fixed to agree with it, so
-  # what they pin is that the two still answer alike rather than the fix
-  # itself. No subject that reaches the character measurement can tell the
-  # two apart: it takes a byte spelling no character to make them differ, and
-  # a subject holding one no longer arrives.
-  assert_equal 2, ("\x80ab".b =~ Regexp.new("(?<=\x80a)b"))
-  assert_nil ("\x80ab".b =~ Regexp.new("(?<!\x80a)b"))
-  # a sequence cut short spells no character either, so each of its bytes is
-  # one: E3 leads three bytes and only two follow it here
-  assert_equal 3, ("\xE3\x81ab".b =~ Regexp.new("(?<=\xE3\x81a)b"))
-  assert_nil ("\xE3\x81ab".b =~ Regexp.new("(?<!\xE3\x81a)b"))
-  # the pattern still holds the byte where the subject does not, and a whole
-  # UTF-8 subject goes through as it always did
+  #
+  # A subject whose bytes spell no character is refused wherever an encoding
+  # reads them, so the character rewind is asked of the build that reads none,
+  # and the byte rewind below puts the same question to the same bytes in
+  # either build.
+  if __ENCODING__ == "UTF-8"
+    assert_raise(ArgumentError) { "\x80ab" =~ /(?<=\x80a)b/ }
+    assert_raise(ArgumentError) { "\x80ab" =~ /(?<!\x80a)b/ }
+    assert_raise(ArgumentError) { "\xE3\x81ab" =~ /(?<=\xE3\x81a)b/ }
+    assert_raise(ArgumentError) { "\x80ab" =~ Regexp.new("(?<=\x80a)b") }
+  else
+    assert_equal 2, ("\x80ab" =~ /(?<=\x80a)b/)
+    assert_nil ("\x80ab" =~ /(?<!\x80a)b/)
+    # a sequence cut short spells no character either, so each of its bytes is
+    # one: E3 leads three bytes and only two follow it here
+    assert_equal 3, ("\xE3\x81ab" =~ /(?<=\xE3\x81a)b/)
+    # the same bytes written into the pattern rather than escaped
+    assert_equal 2, ("\x80ab" =~ Regexp.new("(?<=\x80a)b"))
+  end
+  # a subject that spells characters throughout is read in either build
   assert_nil ("ab" =~ /(?<=\x80a)b/)
+  # a byte-indexed subject counts the same bytes, and rewinds by them
+  assert_equal 2, ("\x80ab".b =~ Regexp.new("(?<=\x80a)b"))
+  assert_equal 3, ("\xE3\x81ab".b =~ Regexp.new("(?<=\xE3\x81a)b"))
   # a whole character is still one whatever its byte count
   assert_equal "b", "Āab".match(/(?<=Āa)b/)[0]
   assert_nil "aab".match(/(?<=Āa)b/)
