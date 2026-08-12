@@ -966,7 +966,7 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
 static mrb_int
 str_byterindex(mrb_value str, mrb_value sub, mrb_int pos)
 {
-  const char *s, *sbeg, *t;
+  const char *sbeg, *t;
   struct RString *ps = mrb_str_ptr(str);
   mrb_int len = RSTRING_LEN(sub);
   mrb_int slen = RSTR_LEN(ps);
@@ -980,12 +980,12 @@ str_byterindex(mrb_value str, mrb_value sub, mrb_int pos)
 
   sbeg = RSTR_PTR(ps);
   t = RSTRING_PTR(sub);
-  s = sbeg + pos;
-  while (sbeg <= s) {
-    if (memcmp(s, t, len) == 0) {
-      return (mrb_int)(s - sbeg);
+  /* count down an index rather than a pointer: stepping a pointer past the
+     first byte to end the search would leave the buffer */
+  for (mrb_int i = pos; 0 <= i; i--) {
+    if (memcmp(sbeg+i, t, len) == 0) {
+      return i;
     }
-    s--;
   }
   return -1;
 }
@@ -1013,10 +1013,13 @@ str_char_rindex(mrb_value str, mrb_value sub, mrb_int pos)
   t = RSTRING_PTR(sub);
   if (len) {
     s = char_adjust(s, send);
-    while (sbeg <= s) {
+    for (;;) {
       if ((mrb_int)(send - s) >= len && memcmp(s, t, len) == 0) {
         return (mrb_int)(s - sbeg);
       }
+      /* char_backtrack() answers the byte before `s`, which would leave the
+         buffer once the search has reached the first character */
+      if (s == sbeg) break;
       s = char_backtrack(sbeg, s);
     }
     return -1;
