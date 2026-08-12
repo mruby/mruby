@@ -1979,6 +1979,16 @@ mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
   if (p[len-1] == newline &&
      (rslen <= 1 ||
      memcmp(RSTRING_PTR(rs), pp, rslen) == 0)) {
+#ifdef MRB_UTF8_STRING
+    /* The bytes line up, but they can be the tail of a character rather than
+       a character of its own, and cutting there would leave a string that is
+       not UTF-8: "あ".chomp("\x82") is the whole of the last byte of a
+       three-byte character. CRuby reads that as no match. */
+    if (!RSTR_BINARY_P(s) && !RSTR_SINGLE_BYTE_P(s) &&
+        mrb_utf8_char_head(p, pp, p + len) != pp) {
+      return mrb_nil_value();
+    }
+#endif
     RSTR_SET_LEN(s, len - rslen);
     p[RSTR_LEN(s)] = '\0';
     return str;

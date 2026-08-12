@@ -321,6 +321,20 @@ assert('String#chomp', '15.2.10.5.9') do
   assert_equal "abc\n", f
 end
 
+assert('String#chomp does not cut inside a character') do
+  # The separator is matched byte by byte, so it can line up with the tail of
+  # a character rather than a character of its own. Cutting there would leave
+  # a string that is not UTF-8, so it counts as no match.
+  assert_equal "あ", "あ".chomp("\x82")
+  assert_equal "あ", "あ".chomp("\x81\x82")
+  assert_equal "あい", "あい".chomp("\x84")
+  assert_equal "aあ", "aあ".chomp("\x82")
+  assert_nil "あ".chomp!("\x82")
+  # a separator that is a whole character still cuts
+  assert_equal "", "あ".chomp("あ")
+  assert_equal "あ", "あい".chomp("い")
+end if UTF8STRING
+
 assert('String#chomp!', '15.2.10.5.10') do
   a = 'abc'
   b = ''
