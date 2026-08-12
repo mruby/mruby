@@ -838,25 +838,14 @@ compute_fixed_len(re_compiler *c, uint32_t start, uint32_t end, int *chars_out)
   while (pc < end) {
     re_inst inst = c->code[pc];
     switch (inst.op) {
-    case RE_CHAR: {
-      /* A multibyte literal is a run of one-byte RE_CHAR instructions, and
-         what a byte spells depends on the bytes after it, so hand the run to
-         mrb_utf8len rather than read the lead bit alone: a continuation byte
-         no lead reaches is a character of its own, which is the rule the
-         executor rewinds by. Four bytes is the longest character there is,
-         and a run never splits one. */
-      char buf[4];
-      int n = 0;
-      while (n < 4 && pc + (uint32_t)n < end && c->code[pc + n].op == RE_CHAR) {
-        buf[n] = (char)c->code[pc + n].a;
-        n++;
-      }
-      int clen = (int)mrb_utf8len(buf, buf + n);
-      len += clen;
-      chars += 1;
-      pc += (uint32_t)clen;
+    case RE_CHAR:
+      /* a multibyte literal is a run of one-byte RE_CHAR instructions,
+         so each one is exactly one byte by construction, and the run is
+         one character per lead byte in it */
+      len += 1;
+      if ((inst.a & 0xC0) != 0x80) chars += 1;
+      pc++;
       break;
-    }
     case RE_CLASS:
     case RE_NCLASS:
     case RE_ANY:
