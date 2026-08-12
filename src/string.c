@@ -662,9 +662,22 @@ mrb_str_char_len(mrb_state *mrb, mrb_value str)
     return byte_len;
   }
   else {
-    mrb_int utf8_len = mrb_utf8_strlen(RSTR_PTR(s), byte_len);
+    const char *p = RSTR_PTR(s);
+    const char *e = p + byte_len;
+    const char *np = search_nonascii(p, e);
+
+    /* Every character a non-ASCII byte begins spells two bytes or more, and a
+       non-ASCII byte that begins none spells no character at all, so a string
+       holds one character per byte exactly when every byte of it is ASCII.
+       Counts that come out equal do not say that: a byte spelling no character
+       is counted as one too, so a string of them set the flag as well, and the
+       readers of it went on to hand those bytes back as characters. */
+    if (np == e) {
+      RSTR_SET_SINGLE_BYTE_FLAG(s);
+      return byte_len;
+    }
+    mrb_int utf8_len = (mrb_int)(np - p) + mrb_utf8_strlen(np, (mrb_int)(e - np));
     mrb_assert(utf8_len <= byte_len);
-    if (byte_len == utf8_len) RSTR_SET_SINGLE_BYTE_FLAG(s);
     return utf8_len;
   }
 }
@@ -676,9 +689,7 @@ mrb_str_valid_encoding_p(mrb_state *mrb, mrb_value str)
   (void)mrb;
   struct RString *s = mrb_str_ptr(str);
   /* A byte-indexed string makes no such claim, so it is valid whatever its
-     bytes are. MRB_STR_SINGLE_BYTE is deliberately not read here: it says one
-     byte per character, which a string of stray bytes satisfies too, so only
-     the walk below decides. */
+     bytes are. */
   if (RSTR_BINARY_P(s)) return TRUE;
   if (RSTR_VALID_ENC_P(s)) return TRUE;
 
@@ -1781,7 +1792,8 @@ str_escape(mrb_state *mrb, mrb_value str, mrb_bool inspect)
   char buf[4];  /* `\x??` or UTF-8 character */
   mrb_value result = mrb_str_new_lit(mrb, "\"");
 #ifdef MRB_UTF8_STRING
-  uint32_t sb_flag = MRB_STR_SINGLE_BYTE;
+  uint32_t sb_flag = MRB_STR_SINGLE_BYTE;      /* what `result` comes out as */
+  uint32_t src_sb_flag = MRB_STR_SINGLE_BYTE;  /* what the walk found `str` to be */
 #endif
 
   p = RSTRING_PTR(str); pend = RSTRING_END(str);
@@ -1796,6 +1808,12 @@ str_escape(mrb_state *mrb, mrb_value str, mrb_bool inspect)
 #ifdef MRB_UTF8_STRING
     if (inspect) {
       mrb_int clen = mrb_utf8len(p, pend);
+      /* A non-ASCII byte either begins a character of several bytes or begins
+         no character at all, and either way `str` is not one byte per
+         character. The escape below turns the second into `\xNN`, so `result`
+         still is, and only a whole character copied across takes that from
+         it. */
+      if (NOASCII(*p)) src_sb_flag = 0;
       if (clen > 1) {
         mrb_str_cat(mrb, result, p, clen);
         p += clen-1;
@@ -1841,7 +1859,7 @@ str_escape(mrb_state *mrb, mrb_value str, mrb_bool inspect)
   mrb_str_cat_lit(mrb, result, "\"");
 #ifdef MRB_UTF8_STRING
   if (inspect) {
-    mrb_str_ptr(str)->flags |= sb_flag;
+    mrb_str_ptr(str)->flags |= src_sb_flag;
     mrb_str_ptr(result)->flags |= sb_flag;
   }
   else {

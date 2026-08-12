@@ -1748,8 +1748,8 @@ str_chars_ary(mrb_state *mrb, mrb_value self)
   struct RString *s = mrb_str_ptr(self);
   const char *p = RSTR_PTR(s);
   const char *e = p + RSTR_LEN(s);
-  /* the count comes first: it is the exact capacity, and it settles the
-     single-byte flag the walk reads */
+  /* the count comes first: it is the exact capacity, and where every byte is
+     ASCII it also settles the single-byte flag the walk reads */
   mrb_value result = mrb_ary_new_capa(mrb, mrb_str_char_len(mrb, self));
 
 #ifdef MRB_UTF8_STRING

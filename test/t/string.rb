@@ -78,6 +78,20 @@ assert('String#[](UTF-8)', '15.2.10.5.6') do
   assert_equal "世", "こんにちは世界"["世"]
 end if UTF8STRING
 
+assert('String#[](UTF-8) indexes a byte that spells no character on its own') do
+  # Such a byte is a position of its own, which is what String#length counts
+  # it as, and it takes that one position beside whole characters too.
+  s = "\xED\xA0\x80"
+  assert_equal "\xED", s[0]
+  assert_equal "\xA0", s[1]
+  assert_equal "\x80", s[2]
+  assert_nil s[3]
+  assert_equal "\xA0\x80", s[1, 2]
+  assert_equal "b", "a\xE3\x81b"[3]
+  assert_equal "\x80", "あ\x80"[1]
+  assert_equal "あ", "\x80あ"[1]
+end if UTF8STRING
+
 assert('String#[] with Range') do
   a1 = 'abc'[1..0]
   b1 = 'abc'[1..1]
@@ -795,6 +809,17 @@ assert('String#size(UTF-8) counts invalid sequences per byte') do
   assert_equal 1, "\u{D7FF}".size          # last code point before surrogates
   assert_equal 1, "\u{E000}".size          # first code point after surrogates
   assert_equal 1, "\u{10FFFF}".size        # largest valid code point
+end if UTF8STRING
+
+assert('String#size(UTF-8) counts a broken sequence beside whole characters') do
+  # The bytes of a broken sequence count one each wherever they sit, so a
+  # string that carries one counts more positions than it holds characters.
+  assert_equal 4, "abc\x80".size
+  assert_equal 4, "\x80abc".size
+  assert_equal 2, "あ\x80".size
+  assert_equal 2, "\x80あ".size
+  assert_equal 4, "a\xE3\x81b".size
+  assert_equal 4, "\u{1F600}\xC0\xAF\xC0".size
 end if UTF8STRING
 
 assert('String#slice', '15.2.10.5.34') do
