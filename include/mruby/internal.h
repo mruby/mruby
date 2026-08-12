@@ -192,9 +192,9 @@ mrb_bool mrb_str_valid_encoding_p(mrb_state *mrb, mrb_value str);
 mrb_int mrb_utf8_to_buf(char *buf, uint32_t cp);
 
 /* What a run of bytes spells is a question apart from whether String indexes
-   by character, so a gem that reads UTF-8 on its own asks for these two by
+   by character, so a gem that reads UTF-8 on its own asks for these by
    defining MRB_UTF8_SCAN (mruby-regexp does, from its mrbgem.rake). A build
-   with neither that gem nor MRB_UTF8_STRING carries neither function. */
+   with neither that gem nor MRB_UTF8_STRING carries none of them. */
 #if defined(MRB_UTF8_STRING) || defined(MRB_UTF8_SCAN)
 /* The byte length of the character at `str`, which has to be a byte of the
    string rather than `end` itself, and 1 for a run of bytes that spells no
@@ -205,6 +205,13 @@ mrb_int mrb_utf8len(const char *str, const char *end);
    already a character boundary. A continuation byte that no lead byte reaches
    is a boundary too. */
 const char *mrb_utf8_char_head(const char *beg, const char *p, const char *end);
+
+/* The codepoint of the character at `p`, which has to be a byte of the string
+   rather than `e` itself, with the byte length consumed always stored through
+   `lenp`. A run of bytes that spells no character comes back as its first
+   byte over one byte, so a value of 0x80 or above beside *lenp == 1 marks an
+   invalid sequence; whether that is an error is the caller's question. */
+uint32_t mrb_utf8_decode(const char *p, const char *e, mrb_int *lenp);
 #endif
 
 #ifdef MRB_UTF8_STRING
