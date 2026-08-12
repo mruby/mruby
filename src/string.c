@@ -464,8 +464,8 @@ search_nonascii(const char *p, const char *e)
 
 #define utf8_islead(c) ((unsigned char)((c)&0xc0) != 0x80)
 
-extern const char mrb_utf8len_table[];
-const char mrb_utf8len_table[] = {
+/* the byte length a lead byte claims, read only through mrb_utf8len() */
+static const char mrb_utf8len_table[] = {
   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
   0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 3, 3, 4, 0
 };

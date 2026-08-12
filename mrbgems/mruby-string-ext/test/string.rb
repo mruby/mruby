@@ -858,6 +858,22 @@ assert('String#chars(UTF-8)') do
   assert_equal "こんにちは世界!", s
 end if UTF8STRING
 
+assert('String#chars splits a malformed sequence by byte') do
+  # A byte standing for no character is one position of its own, which is
+  # what #length counts it as.
+  assert_equal ["\xC0", "\x80"], "\xC0\x80".chars                          # overlong "/"
+  assert_equal ["\xED", "\xA0", "\x80"], "\xED\xA0\x80".chars              # surrogate U+D800
+  assert_equal ["\xF4", "\x90", "\x80", "\x80"], "\xF4\x90\x80\x80".chars  # > U+10FFFF
+  assert_equal ["\xE3", "\x81"], "\xE3\x81".chars                          # truncated
+  assert_equal ["a", "\x80", "b"], "a\x80b".chars                          # stray continuation
+  assert_equal ["あ", "\xFE", "い"], "あ\xFEい".chars                      # sequence leads nothing
+
+  ["\xC0\x80", "\xED\xA0\x80", "\xF4\x90\x80\x80", "\xE3\x81", "a\x80b",
+   "あ\xFEい", "あいu", "hello"].each do |str|
+    assert_equal str.length, str.chars.size
+  end
+end if UTF8STRING
+
 assert('String#each_char') do
   chars = []
   "hello!".each_char do |x|
