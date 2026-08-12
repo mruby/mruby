@@ -2099,15 +2099,17 @@ mrb_hash_pat_values(mrb_state *mrb, mrb_value hash)
   mrb_value keys;
   mrb_get_args(mrb, "A", &keys);
 
-  const mrb_value *ary = RARRAY_PTR(keys);
   mrb_int klen = RARRAY_LEN(keys);
   struct RHash *h = mrb_hash_ptr(hash);
   mrb_value result = mrb_ary_new_capa(mrb, klen);
   int ai = mrb_gc_arena_save(mrb);
 
-  for (mrb_int i = 0; i < klen; i++) {
+  /* h_get() calls #hash and #eql? on the key, and Ruby there can replace
+     `keys` with a shorter array, moving the buffer as well as the length.
+     Neither survives the call, so read both afresh each time. */
+  for (mrb_int i = 0; i < klen && i < RARRAY_LEN(keys); i++) {
     mrb_value val;
-    if (!h_get(mrb, h, ary[i], &val)) {
+    if (!h_get(mrb, h, RARRAY_PTR(keys)[i], &val)) {
       return mrb_false_value();
     }
     mrb_ary_push(mrb, result, val);
@@ -2128,22 +2130,27 @@ mrb_hash_except_keys(mrb_state *mrb, mrb_value hash)
   mrb_value keys;
   mrb_get_args(mrb, "A", &keys);
 
-  const mrb_value *ary = RARRAY_PTR(keys);
   mrb_int klen = RARRAY_LEN(keys);
   mrb_value result = mrb_hash_new(mrb);
   struct RHash *h = mrb_hash_ptr(hash);
   int ai = mrb_gc_arena_save(mrb);
 
+  /* Both calls below run Ruby: #== on a key, and #hash and #eql? on the key
+     being stored. That can replace `keys`, so its buffer and length are read
+     afresh each time, and it can rehash `hash` out from under H_EACH, which
+     is what H_CHECK_MODIFIED refuses. */
   H_EACH(h, entry) {
     mrb_bool found = FALSE;
-    for (mrb_int i = 0; i < klen; i++) {
-      if (mrb_equal(mrb, entry->key, ary[i])) {
+    for (mrb_int i = 0; i < klen && i < RARRAY_LEN(keys); i++) {
+      mrb_bool eq;
+      H_CHECK_MODIFIED(mrb, h) {eq = mrb_equal(mrb, entry->key, RARRAY_PTR(keys)[i]);}
+      if (eq) {
         found = TRUE;
         break;
       }
     }
     if (!found) {
-      mrb_hash_set(mrb, result, entry->key, entry->val);
+      H_CHECK_MODIFIED(mrb, h) {mrb_hash_set(mrb, result, entry->key, entry->val);}
     }
     mrb_gc_arena_restore(mrb, ai);
   }
