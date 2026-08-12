@@ -553,8 +553,9 @@ utf8_strlen(mrb_value str)
   mrb_int byte_len = RSTR_LEN(s);
 
   /* A byte-indexed string has one position per byte, which is what
-     chars2bytes() and bytes2chars() already answer for it. Asked here only
-     about the single-byte flag, the same string was measured as UTF-8 and
+     mrb_str_char_to_byte() and mrb_str_byte_to_char() already answer for it.
+     Asked here only about the single-byte flag, the same string was measured
+     as UTF-8 and
      reported a length its own indexing did not agree with.
 
      The flag below is deliberately not set on the way out: it says the bytes
@@ -579,9 +580,10 @@ utf8_strlen(mrb_value str)
 #define RSTRING_CHAR_LEN(s) utf8_strlen(s)
 
 /* map character index to byte offset index */
-static mrb_int
-chars2bytes(mrb_value str, mrb_int off, mrb_int idx)
+mrb_int
+mrb_str_char_to_byte(mrb_state *mrb, mrb_value str, mrb_int off, mrb_int idx)
 {
+  (void)mrb;
   struct RString *s = mrb_str_ptr(str);
   if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
     return idx;
@@ -618,9 +620,10 @@ chars2bytes(mrb_value str, mrb_int off, mrb_int idx)
 }
 
 /* map byte offset to character index */
-static mrb_int
-bytes2chars(mrb_value str, mrb_int bi)
+mrb_int
+mrb_str_byte_to_char(mrb_state *mrb, mrb_value str, mrb_int bi)
 {
+  (void)mrb;
   struct RString *s = mrb_str_ptr(str);
   if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
     return bi;
@@ -676,21 +679,36 @@ str_index_str_by_char(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
   mrb_int len = RSTRING_LEN(sub);
 
   if (pos > 0) {
-    pos = chars2bytes(str, 0, pos);
+    pos = mrb_str_char_to_byte(mrb, str, 0, pos);
   }
 
   pos = mrb_str_index(mrb, str, ptr, len, pos);
 
   if (pos > 0) {
-    pos = bytes2chars(str, pos);
+    pos = mrb_str_byte_to_char(mrb, str, pos);
   }
   return pos;
 }
 
 #else
 #define RSTRING_CHAR_LEN(s) RSTRING_LEN(s)
-#define chars2bytes(s, off, ci) (ci)
-#define bytes2chars(s, bi) (bi)
+/* a byte is a character here, so both conversions are identity */
+mrb_int
+mrb_str_char_to_byte(mrb_state *mrb, mrb_value str, mrb_int off, mrb_int idx)
+{
+  (void)mrb;
+  (void)str;
+  (void)off;
+  return idx;
+}
+
+mrb_int
+mrb_str_byte_to_char(mrb_state *mrb, mrb_value str, mrb_int bi)
+{
+  (void)mrb;
+  (void)str;
+  return bi;
+}
 #define char_adjust(ptr, end) (ptr)
 #define char_backtrack(ptr, end) ((end) - 1)
 #define str_index_str_by_char(mrb, str, sub, pos) str_index_str((mrb), (str), (sub), (pos))
@@ -846,8 +864,8 @@ mrb_str_byte_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 static inline mrb_value
 str_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 {
-  beg = chars2bytes(str, 0, beg);
-  len = chars2bytes(str, beg, len);
+  beg = mrb_str_char_to_byte(mrb, str, 0, beg);
+  len = mrb_str_char_to_byte(mrb, str, beg, len);
   return mrb_str_byte_subseq(mrb, str, beg, len);
 }
 #else
@@ -1695,8 +1713,8 @@ mrb_str_aset(mrb_state *mrb, mrb_value str, mrb_value idx, mrb_value alen, mrb_v
       if (beg < 0 || beg > charlen) { str_out_of_index(mrb, idx); }
       /* fall through */
     case STR_CHAR_RANGE_CORRECTED:
-      beg = chars2bytes(str, 0, beg);
-      len = chars2bytes(str, beg, len);
+      beg = mrb_str_char_to_byte(mrb, str, 0, beg);
+      len = mrb_str_char_to_byte(mrb, str, beg, len);
       /* fall through */
     case STR_BYTE_RANGE_CORRECTED:
       if (mrb_int_add_overflow(beg, len, &len)) {
@@ -2502,7 +2520,7 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
     pos = RSTRING_LEN(str);
   }
   else if (pos >= 0) {
-    pos = chars2bytes(str, 0, pos);
+    pos = mrb_str_char_to_byte(mrb, str, 0, pos);
   }
   else {
     const char *p = RSTRING_PTR(str);
@@ -2515,7 +2533,7 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
   }
   pos = str_rindex(mrb, str, sub, pos);
   if (pos >= 0) {
-    pos = bytes2chars(str, pos);
+    pos = mrb_str_byte_to_char(mrb, str, pos);
     if (pos < 0) return mrb_nil_value();
     return mrb_int_value(mrb, pos);
   }
@@ -2635,7 +2653,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
         if (end < 0) break;
       }
       else {
-        end = chars2bytes(str, idx, 1);
+        end = mrb_str_char_to_byte(mrb, str, idx, 1);
       }
       mrb_ary_push(mrb, result, mrb_str_byte_subseq(mrb, str, idx, end));
       mrb_gc_arena_restore(mrb, ai);

@@ -196,6 +196,28 @@ assert("Regexp - a byte-indexed subject is reported in bytes") do
   assert_equal 1, (("x" + u) =~ Regexp.new("\u{1F600}"))
 end
 
+assert("Regexp - match positions on malformed UTF-8 agree with string indexing") do
+  # String indexing counts a byte no lead byte reaches as one character, but
+  # #begin used to count lead bytes only, so a stray continuation byte was
+  # zero width to it. Computing the length marks such a string single-byte
+  # and switches it to byte counting, so the same match reported one
+  # position before the length was known and another after.
+  s = "a\x80b"
+  m = /b/.match(s)
+  before = m.begin(0)
+  assert_equal 3, s.length
+  assert_equal before, /b/.match(s).begin(0)
+  assert_equal 2, before
+  assert_equal "b", s[before]
+  assert_equal 3, m.end(0)
+  # A position argument walks the same characters, from either end. The
+  # fresh literal pins the walk on a string whose length is not known yet.
+  assert_equal "b", /b/.match(s, 2)[0]
+  assert_equal "a", /a/.match(s, -3)[0]
+  assert_nil /a/.match(s, -4)
+  assert_equal "a", /a/.match("a\x80b", -3)[0]
+end
+
 assert("Regexp - a match does not end inside a character") do
   # A pattern is compiled byte by byte and RE_CHAR consumes one byte, so a
   # pattern holding a byte that reaches no character ends its match in the
@@ -255,6 +277,8 @@ assert("Regexp - multibyte (UTF-8) match extraction") do
   assert_nil /い/.match("あいあ", 2)
   assert_nil /あ/.match("あいあ", 4)
   assert_nil /あ/.match("あいあ", -4)
+  # The position one past the last character is the end, not out of range.
+  assert_equal 3, //.match("あいあ", 3).begin(0)
   assert_true /あ/.match?("あいあ", 2)
   assert_false /い/.match?("あいあ", 2)
 end
