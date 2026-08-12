@@ -555,8 +555,7 @@ utf8_strlen(mrb_value str)
   /* A byte-indexed string has one position per byte, which is what
      mrb_str_char_to_byte() and mrb_str_byte_to_char() already answer for it.
      Asked here only about the single-byte flag, the same string was measured
-     as UTF-8 and
-     reported a length its own indexing did not agree with.
+     as UTF-8 and reported a length its own indexing did not agree with.
 
      The flag below is deliberately not set on the way out: it says the bytes
      hold nothing multi-byte, while this returns early because of how the
