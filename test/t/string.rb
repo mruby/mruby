@@ -536,8 +536,11 @@ assert('String#index(UTF-8)', '15.2.10.5.22') do
   assert_equal 6, '⓿➊➋➌➍➎⓿➊➋➌➍➎'.index('⓿', -7)
   assert_equal 6, "⓿➊➋➌➍➎".index("", 6)
   assert_equal nil, "⓿➊➋➌➍➎".index("", 7)
-  assert_equal 0, '⓿➊➋➌➍➎'.index("\xe2")
-  assert_equal nil, '⓿➊➋➌➍➎'.index("\xe3")
+  # A needle whose bytes spell no character is found nowhere; the
+  # byte-indexed counterparts live in mruby-string-ext's tests, where
+  # String#b is available to write them.
+  assert_nil '⓿➊➋➌➍➎'.index("\xe2")
+  assert_nil '⓿➊➋➌➍➎'.index("\xe3")
   assert_equal 6, "\xd1\xd1\xd1\xd1\xd1\xd1⓿➊➋➌➍➎".index('⓿')
 end if UTF8STRING
 
@@ -695,7 +698,10 @@ assert('String#rindex steps by the characters String#length counts') do
   str = "あ\x80x"
   assert_equal 3, str.length
   assert_equal 0, str.rindex("あ", -2)
-  assert_equal 1, str.rindex("\x80")
+  # The byte is a position of its own, but a needle spelling no character is
+  # found nowhere, so neither direction reports it. They agree, which is what
+  # this block is about.
+  assert_nil str.rindex("\x80")
   assert_equal str.index("\x80"), str.rindex("\x80")
 
   # Searching backward from `pos` may not answer a position after it.
@@ -705,16 +711,16 @@ assert('String#rindex steps by the characters String#length counts') do
   # A sequence RFC 3629 forbids spells no character either, and its bytes
   # stand alone the same way.
   assert_equal 3, "\xC0\x80a".length
-  assert_equal 0, "\xC0\x80a".rindex("\xC0")
-  assert_equal 1, "\xC0\x80a".rindex("\x80")
+  assert_nil "\xC0\x80a".rindex("\xC0")
+  assert_nil "\xC0\x80a".rindex("\x80")
   assert_equal 3, "\xED\xA0\x80".length
-  assert_equal 2, "\xED\xA0\x80".rindex("\x80")
+  assert_nil "\xED\xA0\x80".rindex("\x80")
 
   # A lead byte the string end cuts short reaches none of the bytes that
   # follow it, so those stand alone too.
   assert_equal 3, "a\xE3\x81".length
-  assert_equal 1, "a\xE3\x81".rindex("\xE3")
-  assert_equal 2, "a\xE3\x81".rindex("\x81")
+  assert_nil "a\xE3\x81".rindex("\xE3")
+  assert_nil "a\xE3\x81".rindex("\x81")
 end if UTF8STRING
 
 assert('String#byterindex searches bytes') do
@@ -722,13 +728,18 @@ assert('String#byterindex searches bytes') do
   # `byteindex` does. Walking characters instead, it passed over every byte
   # inside a multi-byte sequence and reported nothing there.
   str = "aあb" # "\x61\xe3\x81\x82\x62"
-  assert_equal 1, str.byterindex("\xe3")
-  assert_equal 2, str.byterindex("\x81")
-  assert_equal 3, str.byterindex("\x82")
-  assert_equal str.byteindex("\x81"), str.byterindex("\x81")
   assert_equal 4, str.byterindex("b")
-  assert_equal 2, str.byterindex("\x81", 2)
-  assert_nil str.byterindex("\x81", 1)
+  # Whatever a needle that spells no character answers, the two directions
+  # answer it alike, which is what this block is about. On a UTF-8 build that
+  # is nil, since such a needle names nothing to look for; the byte search
+  # itself is asked of a byte-indexed subject in mruby-string-ext's tests,
+  # where String#b is available to write one.
+  assert_equal str.byteindex("\x81"), str.byterindex("\x81")
+  if UTF8STRING
+    assert_nil str.byterindex("\xe3")
+    assert_nil str.byterindex("\x81")
+    assert_nil str.byterindex("\x81", 1)
+  end
 
   assert_equal 3, 'abcabc'.byterindex('a')
   assert_equal 0, 'abcabc'.byterindex('a', 1)

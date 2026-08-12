@@ -722,6 +722,9 @@ mrb_str_byte_to_char(mrb_state *mrb, mrb_value str, mrb_int bi)
 static mrb_int
 str_index_str_by_char(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
 {
+  /* see str_index_str() */
+  if (!mrb_str_valid_encoding_p(mrb, sub)) return -1;
+
   const char *ptr = RSTRING_PTR(sub);
   mrb_int len = RSTRING_LEN(sub);
 
@@ -994,6 +997,12 @@ mrb_str_index(mrb_state *mrb, mrb_value str, const char *sptr, mrb_int slen, mrb
 static mrb_int
 str_index_str(mrb_state *mrb, mrb_value str, mrb_value str2, mrb_int offset)
 {
+  /* A needle whose bytes are not the encoding it is taken to be in spells no
+     character to look for, so it is found nowhere. CRuby answers the same way
+     (is_broken_string in rb_str_index_m); a binary needle claims no encoding
+     and is still searched for byte by byte. */
+  if (!mrb_str_valid_encoding_p(mrb, str2)) return -1;
+
   const char *ptr = RSTRING_PTR(str2);
   mrb_int len = RSTRING_LEN(str2);
 
@@ -1953,6 +1962,8 @@ mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
   }
 
   if (len == 0 || mrb_nil_p(rs)) return mrb_nil_value();
+  /* see str_index_str(): a separator that spells no character ends nothing */
+  if (!mrb_str_valid_encoding_p(mrb, rs)) return mrb_nil_value();
   char *p = RSTR_PTR(s);
   mrb_int rslen = RSTRING_LEN(rs);
   if (rslen == 0) {
@@ -2295,6 +2306,8 @@ mrb_str_byteindex_m(mrb_state *mrb, mrb_value str)
   if (mrb_get_args(mrb, "S|i", &sub, &pos) == 1) {
     pos = 0;
   }
+  /* see str_index_str() */
+  if (!mrb_str_valid_encoding_p(mrb, sub)) return mrb_nil_value();
   else if (pos < 0) {
     pos += RSTRING_LEN(str);
     if (pos < 0) {
@@ -2596,6 +2609,8 @@ mrb_str_byterindex_m(mrb_state *mrb, mrb_value str)
     }
     if (pos > len) pos = len;
   }
+  /* see str_index_str() */
+  if (!mrb_str_valid_encoding_p(mrb, sub)) return mrb_nil_value();
   pos = str_byterindex(str, sub, pos);
   if (pos < 0) {
     return mrb_nil_value();
@@ -2649,6 +2664,8 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
     }
     pos = (mrb_int)(e - p);
   }
+  /* see str_index_str() */
+  if (!mrb_str_valid_encoding_p(mrb, sub)) return mrb_nil_value();
   pos = str_char_rindex(str, sub, pos);
   if (pos >= 0) {
     pos = mrb_str_byte_to_char(mrb, str, pos);

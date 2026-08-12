@@ -934,6 +934,45 @@ assert('String#rindex on a binary string counts bytes') do
   end
 end
 
+assert('a needle that spells no character is found nowhere') do
+  # A search reads its needle as the encoding the needle is taken to be in,
+  # and bytes that spell no character name nothing to look for. CRuby answers
+  # the same way. A byte-indexed needle claims no encoding, so it is still
+  # searched for byte by byte, which is how the byte cases below get asked.
+  if UTF8STRING
+    s = "aあb"                       # 61 E3 81 82 62
+    assert_nil s.index("\x81")
+    assert_nil s.rindex("\x81")
+    assert_nil s.byteindex("\x81")
+    assert_nil s.byterindex("\x81")
+    assert_nil s["\x81"]
+    assert_false s.include?("\x81")
+    assert_false s.end_with?("\x82")
+    assert_equal [s, "", ""], s.partition("\x81")
+    assert_equal ["", "", s], s.rpartition("\x81")
+    assert_equal s, s.chomp("\x82")
+    t = s.dup
+    assert_nil t.slice!("\x81")
+    assert_equal s, t
+
+    # byte-indexed, the same bytes are bytes and every search answers
+    b = s.b
+    assert_equal 2, b.index("\x81".b)
+    assert_equal 2, b.rindex("\x81".b)
+    assert_equal 2, b.byteindex("\x81".b)
+    assert_equal 2, b.byterindex("\x81".b)
+    assert_equal 1, b.byterindex("\xe3".b)
+    assert_true b.include?("\x81".b)
+    assert_equal 3, "あ\x80x".b.rindex("\x80".b)
+    assert_equal 2, "\xC0\x80a".b.rindex("a".b)
+
+    # a whole character is still found, and so is ASCII
+    assert_equal 1, s.index("あ")
+    assert_equal 2, s.index("b")
+    assert_equal 4, s.byterindex("b")
+  end
+end
+
 assert('String#codepoints') do
   expect = [104, 101, 108, 108, 111, 33]
   assert_equal expect, "hello!".codepoints

@@ -226,6 +226,9 @@ str_end_with(mrb_state *mrb, mrb_value self)
     mrb_value sub = argv[i];
     mrb_ensure_string_type(mrb, sub);
     mrb_gc_arena_restore(mrb, ai);
+    /* A suffix whose bytes are not the encoding it is taken to be in ends
+       nothing, the way one is found nowhere by String#index. */
+    if (!mrb_str_valid_encoding_p(mrb, sub)) continue;
     size_t len_l = RSTRING_LEN(self);
     size_t len_r = RSTRING_LEN(sub);
     if (len_l >= len_r) {
@@ -1957,6 +1960,8 @@ mrb_str_slice_bang(mrb_state *mrb, mrb_value self)
 
   if (argc == 1) {
     if (mrb_string_p(arg1)) {
+      /* see String#index: a needle that spells no character is found nowhere */
+      if (!mrb_str_valid_encoding_p(mrb, arg1)) return mrb_nil_value();
       mrb_int pos = mrb_str_index(mrb, self, RSTRING_PTR(arg1), RSTRING_LEN(arg1), 0);
       if (pos == -1) return mrb_nil_value();
       /* The search runs over bytes, so a match may start inside a character;
@@ -2063,10 +2068,14 @@ str_partition(mrb_state *mrb, mrb_value self)
   }
 
   const char *found_ptr = NULL;
-  for (mrb_int i = 0; i <= self_len - sep_len; ++i) {
-    if (memcmp(self_ptr + i, sep_ptr, sep_len) == 0) {
-      found_ptr = self_ptr + i;
-      break;
+  /* A separator whose bytes are not the encoding it is taken to be in
+     splits nothing, the way one is found nowhere by String#index. */
+  if (mrb_str_valid_encoding_p(mrb, sep)) {
+    for (mrb_int i = 0; i <= self_len - sep_len; ++i) {
+      if (memcmp(self_ptr + i, sep_ptr, sep_len) == 0) {
+        found_ptr = self_ptr + i;
+        break;
+      }
     }
   }
 
@@ -2123,10 +2132,14 @@ str_rpartition(mrb_state *mrb, mrb_value self)
   }
 
   const char *found_ptr = NULL;
-  for (mrb_int i = self_len - sep_len; i >= 0; --i) {
-    if (memcmp(self_ptr + i, sep_ptr, sep_len) == 0) {
-      found_ptr = self_ptr + i;
-      break;
+  /* A separator whose bytes are not the encoding it is taken to be in
+     splits nothing, the way one is found nowhere by String#index. */
+  if (mrb_str_valid_encoding_p(mrb, sep)) {
+    for (mrb_int i = self_len - sep_len; i >= 0; --i) {
+      if (memcmp(self_ptr + i, sep_ptr, sep_len) == 0) {
+        found_ptr = self_ptr + i;
+        break;
+      }
     }
   }
 
