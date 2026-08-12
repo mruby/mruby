@@ -25,8 +25,18 @@ assert('Addrinfo.getaddrinfo rejects out-of-range integer hints') do
   # constant folded, and the fold fails while this file is compiled on
   # MRB_INT32 without bigint, dropping every test in it.
   shift = 40
-  big = (1 << shift) rescue nil
-  skip "needs 64-bit mrb_int" unless big.kind_of?(Integer)
+  big = nil
+  wide = begin
+    big = 1 << shift  # RangeError where mrb_int is 32 bits and bigint is absent
+    [][big]           # nil for an mrb_int index, RangeError for a big integer
+    true
+  rescue RangeError
+    false
+  end
+  # A big integer is not an mrb_int either: the hints keep their unconverted
+  # type, `Addrinfo.getaddrinfo` leaves the field at its default, and the
+  # narrowing under test never runs.
+  skip "needs 64-bit mrb_int" unless wide
   assert_raise(RangeError) { Addrinfo.getaddrinfo("localhost", nil, big) }
   assert_raise(RangeError) { Addrinfo.getaddrinfo("localhost", nil, nil, nil, nil, big) }
 end
