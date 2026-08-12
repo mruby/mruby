@@ -624,6 +624,23 @@ assert('splat object in case statement') do
   assert_equal 1, a
 end
 
+assert('splat in case statement with a pattern that replaces the array') do
+  # #=== runs while the splatted array is being walked, and replacing it with a
+  # shorter one moves the buffer out from under the traversal.
+  pat = Class.new do
+    def initialize(a); @a = a; end
+    def ===(o); @a.replace(Array.new(64, 0)); false; end
+  end
+  a = []
+  400.times { a << pat.new(a) }
+  r = case 1
+      when *a then :matched
+      else :none
+      end
+  assert_equal :none, r
+  assert_equal 64, a.size
+end
+
 assert('splat in case statement') do
   values = [3,5,1,7,8]
   testa = [1,2,7]

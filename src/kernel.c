@@ -630,8 +630,12 @@ mrb_obj_ceqq(mrb_state *mrb, mrb_value self)
     }
     mrb_ensure_array_type(mrb, ary);
   }
+  /* A pattern's #=== can replace `ary` with a shorter array, which moves the
+     buffer as well as the length, so the next index has to be checked against
+     what RARRAY_PTR() now points at. The saved length stays as the upper
+     bound: a pattern that grows the array does not extend the traversal. */
   mrb_int len = RARRAY_LEN(ary);
-  for (mrb_int i=0; i<len; i++) {
+  for (mrb_int i=0; i<len && i<RARRAY_LEN(ary); i++) {
     mrb_value c = mrb_funcall_argv(mrb, RARRAY_PTR(ary)[i], eqq, 1, &v);
     if (mrb_test(c)) return mrb_true_value();
   }
