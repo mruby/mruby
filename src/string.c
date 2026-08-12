@@ -2045,14 +2045,12 @@ mrb_str_chop_bang(mrb_state *mrb, mrb_value str)
       len = RSTR_LEN(s) - 1;
     }
     else {
-      const char* t = RSTR_PTR(s), *p = t;
-      const char* e = p + RSTR_LEN(s);
-      while (p<e) {
-        mrb_int clen = mrb_utf8len(p, e);
-        if (p + clen>=e) break;
-        p += clen;
-      }
-      len = p - t;
+      /* The last character starts at the head of the one covering the last
+         byte, which is read backwards from there rather than by walking the
+         whole string. */
+      const char* t = RSTR_PTR(s);
+      const char* e = t + RSTR_LEN(s);
+      len = mrb_utf8_char_head(t, e-1, e) - t;
     }
 #else
     len = RSTR_LEN(s) - 1;
