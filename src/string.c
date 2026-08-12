@@ -689,26 +689,23 @@ mrb_str_byte_to_char(mrb_state *mrb, mrb_value str, mrb_int bi)
   return i;
 }
 
+/* The byte the character covering `p` starts at, or `p` itself when `p` is
+   already a character boundary. A continuation byte belongs to the character
+   that reaches it; one that no lead byte reaches belongs to none and stands as
+   a character of its own. Whether a lead byte reaches is mrb_utf8len()'s
+   answer, so the boundaries found here are the ones the character count is
+   taken over. Reading back three bytes covers it, since nothing longer than
+   four bytes spells a character. */
 static const char*
-char_adjust(const char *ptr, const char *end)
+str_char_head(const char *beg, const char *p, const char *end)
 {
-  ptrdiff_t len = end - ptr;
-  if (len < 1 || utf8_islead(ptr[0])) return ptr;
-  if (len > 1 && utf8_islead(ptr[1])) return ptr+1;
-  if (len > 2 && utf8_islead(ptr[2])) return ptr+2;
-  if (len > 3 && utf8_islead(ptr[3])) return ptr+3;
-  return ptr;
-}
-
-static const char*
-char_backtrack(const char *ptr, const char *end)
-{
-  ptrdiff_t len = end - ptr;
-  if (len < 1 || utf8_islead(end[-1])) return end-1;
-  if (len > 1 && utf8_islead(end[-2])) return end-2;
-  if (len > 2 && utf8_islead(end[-3])) return end-3;
-  if (len > 3 && utf8_islead(end[-4])) return end-4;
-  return end - 1;
+  if (p >= end || utf8_islead(p[0])) return p;
+  for (mrb_int back = 1; back <= 3 && back <= p - beg; back++) {
+    const char *lead = p - back;
+    if (!utf8_islead(lead[0])) continue;  /* another continuation byte */
+    return mrb_utf8len(lead, end) > back ? lead : p;
+  }
+  return p;
 }
 
 static mrb_int
@@ -1068,15 +1065,17 @@ str_char_rindex(mrb_value str, mrb_value sub, mrb_int pos)
   s = sbeg + pos;
   t = RSTRING_PTR(sub);
   if (len) {
-    s = char_adjust(s, send);
+    /* a match may start only at a character boundary, and `pos` need not be
+       one: the clamp above answers the last byte `sub` fits at */
+    s = str_char_head(sbeg, s, send);
     for (;;) {
       if ((mrb_int)(send - s) >= len && memcmp(s, t, len) == 0) {
         return (mrb_int)(s - sbeg);
       }
-      /* char_backtrack() answers the byte before `s`, which would leave the
-         buffer once the search has reached the first character */
+      /* the character before `s`, which there is none of once the search has
+         reached the first one */
       if (s == sbeg) break;
-      s = char_backtrack(sbeg, s);
+      s = str_char_head(sbeg, s-1, send);
     }
     return -1;
   }
@@ -2615,11 +2614,15 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
   }
   else {
     const char *p = RSTRING_PTR(str);
-    const char *e = RSTRING_END(str);
-    while (pos++ < 0 && p < e) {
-      e = char_backtrack(p, e);
+    const char *send = RSTRING_END(str);
+    const char *e = send;
+    /* a negative `pos` counts characters back from the end, and landing on the
+       first character is the last step that stays in the string */
+    while (pos < 0) {
+      if (e == p) return mrb_nil_value();
+      e = str_char_head(p, e-1, send);
+      pos++;
     }
-    if (p == e) return mrb_nil_value();
     pos = (mrb_int)(e - p);
   }
   pos = str_char_rindex(str, sub, pos);
