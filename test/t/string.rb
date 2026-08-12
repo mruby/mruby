@@ -649,6 +649,25 @@ assert('String#rindex(UTF-8)', '15.2.10.5.31') do
   assert_equal  3, broken.rindex("☁", 10)
 end if UTF8STRING
 
+assert('String#byterindex searches bytes') do
+  # `byterindex` answers byte positions, so it walks bytes the way
+  # `byteindex` does. Walking characters instead, it passed over every byte
+  # inside a multi-byte sequence and reported nothing there.
+  str = "aあb" # "\x61\xe3\x81\x82\x62"
+  assert_equal 1, str.byterindex("\xe3")
+  assert_equal 2, str.byterindex("\x81")
+  assert_equal 3, str.byterindex("\x82")
+  assert_equal str.byteindex("\x81"), str.byterindex("\x81")
+  assert_equal 4, str.byterindex("b")
+  assert_equal 2, str.byterindex("\x81", 2)
+  assert_nil str.byterindex("\x81", 1)
+
+  assert_equal 3, 'abcabc'.byterindex('a')
+  assert_equal 0, 'abcabc'.byterindex('a', 1)
+  assert_equal 6, 'abcabc'.byterindex('')
+  assert_nil 'abc'.byterindex('d')
+end
+
 # assert('String#scan', '15.2.10.5.32') do
 #   # Not implemented yet
 # end

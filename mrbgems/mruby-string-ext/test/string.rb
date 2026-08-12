@@ -850,6 +850,28 @@ assert('String#chop! on a binary string removes one byte') do
   end
 end
 
+assert('String#rindex on a binary string counts bytes') do
+  # `rindex` reads a byte-indexed string as UTF-8 unless the single-byte flag
+  # is already set, so it stepped over the bytes inside a multi-byte sequence
+  # and moved a negative position by characters. `index` counts bytes there,
+  # and the two have to meet.
+  if UTF8STRING
+    s = "aあb".b # "\x61\xe3\x81\x82\x62"
+    assert_equal 2, s.rindex("\x81".b)
+    assert_equal s.index("\x81".b), s.rindex("\x81".b)
+    assert_equal 1, s.rindex("\xe3".b)
+    assert_equal 4, s.rindex("b".b)
+    assert_equal 2, s.rindex("\x81".b, -2)
+    assert_equal 2, s.rindex("\x81".b, -3)
+    assert_nil s.rindex("\x81".b, 1)
+    assert_equal 4, s.rindex("b".b, -1)
+    # the same answers once #length has set the single-byte flag
+    assert_equal 5, s.length
+    assert_equal 2, s.rindex("\x81".b)
+    assert_equal 2, s.rindex("\x81".b, -2)
+  end
+end
+
 assert('String#codepoints') do
   expect = [104, 101, 108, 108, 111, 33]
   assert_equal expect, "hello!".codepoints
