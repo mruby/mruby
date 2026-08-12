@@ -1027,27 +1027,8 @@ str_ord(mrb_state* mrb, mrb_value str)
 static mrb_int
 str_scrub_char_len(const unsigned char *p, const unsigned char *e)
 {
-  if (p[0] < 0x80) return 1;
-  mrb_int len = mrb_utf8len_table[p[0]>>3];
-  if (len < 2 || len > e - p) return -1;
-  for (mrb_int i = 1; i < len; i++) {
-    if ((p[i] & 0xc0) != 0x80) return -1;
-  }
-  mrb_int cp;
-  if (len == 2) {
-    cp = ((p[0] & 0x1f) << 6) | (p[1] & 0x3f);
-    if (cp < 0x80) return -1;
-  }
-  else if (len == 3) {
-    cp = ((p[0] & 0x0f) << 12) | ((p[1] & 0x3f) << 6) | (p[2] & 0x3f);
-    if (cp < 0x800) return -1;
-    if (cp >= 0xD800 && cp <= 0xDFFF) return -1;
-  }
-  else { /* len == 4 */
-    cp = ((p[0] & 0x07) << 18) | ((p[1] & 0x3f) << 12)
-       | ((p[2] & 0x3f) <<  6) |  (p[3] & 0x3f);
-    if (cp < 0x10000 || cp > 0x10FFFF) return -1;
-  }
+  mrb_int len = mrb_utf8len((const char*)p, (const char*)e);
+  if (len == 1 && p[0] >= 0x80) return -1;
   return len;
 }
 
