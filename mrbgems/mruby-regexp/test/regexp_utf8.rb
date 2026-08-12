@@ -425,6 +425,9 @@ assert("Regexp - invalid UTF-8 byte near pattern end") do
   assert_kind_of Regexp, re
   assert_equal 0, (re =~ "\xff")
   assert_nil (re =~ "x")
+  # The byte reaches the class the same way from a byte-indexed subject, which
+  # the engine walks through a branch of its own.
+  assert_equal 0, (re =~ "\xff".b)
 end
 
 assert("Regexp - truncated UTF-8 at subject end") do
@@ -432,6 +435,10 @@ assert("Regexp - truncated UTF-8 at subject end") do
   # past the end of the string buffer when matched against a class
   assert_nil ("ab\xf0" =~ /[cd]/)
   assert_equal 0, ("ab\xf0" =~ /[^cd]+$/)
+  # Byte-indexed the leader is a byte of its own, so the walk that reaches the
+  # end of the buffer is a different one and must stay inside it too.
+  assert_nil ("ab\xf0".b =~ /[cd]/)
+  assert_equal 0, ("ab\xf0".b =~ /[^cd]+$/)
 end
 
 assert("Regexp - overlong UTF-8 is not the character it spells") do
@@ -464,6 +471,21 @@ assert("Regexp - overlong UTF-8 is not the character it spells") do
   assert_equal 1, "\u{10FFFF}".scan(/./).size  # F4 8F BF BF
   assert_equal 0, ("\u{0800}" =~ Regexp.new("[\u{0800}]"))
   assert_equal 0, ("\u{10FFFF}" =~ Regexp.new("[\u{10FFFF}]"))
+  # None of this turns on how the subject is indexed: a byte-indexed one is
+  # decoded a byte at a time, so an overlong sequence is no more the character
+  # it spells there, and the answers are the same through that branch.
+  assert_nil ("\xC0\xBC".b =~ /[<]/)
+  assert_nil ("\xC0\xBC".b =~ /</)
+  assert_equal 0, ("\xC0\xBC".b =~ /[^<]/)
+  assert_equal "\xC0\xBC".b, "\xC0\xBC".b.gsub(/[<]/, "&lt;")
+  assert_nil ("\xE0\x80\xBC".b =~ /[<]/)
+  assert_false Regexp.new("[Ā]").match?("\xE0\x84\x80".b)
+  assert_false (/Ā/.match?("\xE0\x84\x80".b))
+  assert_equal 2, "\xC0\xBC".b.scan(/./).size
+  assert_equal 3, "\xED\xA0\x80".b.scan(/./).size
+  assert_equal 4, "\xF0\x80\x80\xBC".b.scan(/./).size
+  assert_equal 4, "\xF4\x90\x80\x80".b.scan(/./).size
+  assert_equal 4, "\xF5\x80\x80\x80".b.scan(/./).size
 end
 
 assert("Regexp - a pattern byte that starts no character is a byte in a class") do
