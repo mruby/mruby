@@ -1741,26 +1741,6 @@ str_strip_bang(mrb_state *mrb, mrb_value self)
   return self;
 }
 
-/* Internal helper to count UTF-8 characters in a string using mruby's standard function */
-static mrb_int
-str_char_count(mrb_value str)
-{
-#ifdef MRB_UTF8_STRING
-  struct RString *s = mrb_str_ptr(str);
-
-  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
-    /* ASCII/Binary: each byte is a character */
-    return RSTR_LEN(s);
-  }
-
-  /* UTF-8: use mruby's standard UTF-8 character counting function */
-  return mrb_utf8_strlen(RSTR_PTR(s), RSTR_LEN(s));
-#else
-  /* Non-UTF8 build: treat as single bytes */
-  return RSTRING_LEN(str);
-#endif
-}
-
 /* Internal fast path for String#chars - returns array of individual characters */
 static mrb_value
 str_chars_ary(mrb_state *mrb, mrb_value self)
@@ -1845,13 +1825,13 @@ str_ljust_core(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
   }
 
-  mrb_int char_len = str_char_count(self);
+  mrb_int char_len = mrb_str_char_len(mrb, self);
   if (width <= char_len) {
     return mrb_str_dup(mrb, self);
   }
 
   mrb_int padsize = width - char_len;
-  mrb_int pad_char_len = str_char_count(padstr);
+  mrb_int pad_char_len = mrb_str_char_len(mrb, padstr);
   if (pad_char_len == 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
   }
@@ -1895,13 +1875,13 @@ str_rjust_core(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
   }
 
-  mrb_int char_len = str_char_count(self);
+  mrb_int char_len = mrb_str_char_len(mrb, self);
   if (width <= char_len) {
     return mrb_str_dup(mrb, self);
   }
 
   mrb_int padsize = width - char_len;
-  mrb_int pad_char_len = str_char_count(padstr);
+  mrb_int pad_char_len = mrb_str_char_len(mrb, padstr);
   if (pad_char_len == 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
   }
@@ -1945,7 +1925,7 @@ str_center_core(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
   }
 
-  mrb_int char_len = str_char_count(self);
+  mrb_int char_len = mrb_str_char_len(mrb, self);
   if (width <= char_len) {
     return mrb_str_dup(mrb, self);
   }
@@ -1954,7 +1934,7 @@ str_center_core(mrb_state *mrb, mrb_value self)
   mrb_int left_pad = total_pad / 2;
   mrb_int right_pad = total_pad - left_pad;
 
-  mrb_int pad_char_len = str_char_count(padstr);
+  mrb_int pad_char_len = mrb_str_char_len(mrb, padstr);
   if (pad_char_len == 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
   }
@@ -2004,11 +1984,7 @@ mrb_str_slice_bang(mrb_state *mrb, mrb_value self)
   struct RString *str = mrb_str_ptr(self);
   const char *ptr = RSTRING_PTR(self);
 
-#ifdef MRB_UTF8_STRING
-  mrb_int str_len = str_char_count(self);
-#else
-  mrb_int str_len = RSTRING_LEN(self);
-#endif
+  mrb_int str_len = mrb_str_char_len(mrb, self);
 
   mrb_int beg, len;
 
@@ -2021,7 +1997,7 @@ mrb_str_slice_bang(mrb_state *mrb, mrb_value self)
          index reaches is no match. */
       beg = mrb_str_byte_to_char(mrb, self, pos);
       if (beg < 0) return mrb_nil_value();
-      len = str_char_count(arg1);
+      len = mrb_str_char_len(mrb, arg1);
     }
     else if (mrb_range_p(arg1)) {
       if (mrb_range_beg_len(mrb, arg1, &beg, &len, str_len, TRUE) != MRB_RANGE_OK) {
