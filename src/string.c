@@ -1737,7 +1737,8 @@ str_escape(mrb_state *mrb, mrb_value str, mrb_bool inspect)
   char buf[4];  /* `\x??` or UTF-8 character */
   mrb_value result = mrb_str_new_lit(mrb, "\"");
 #ifdef MRB_UTF8_STRING
-  uint32_t sb_flag = MRB_STR_SINGLE_BYTE;
+  uint32_t sb_flag = MRB_STR_SINGLE_BYTE;      /* what `result` comes out as */
+  uint32_t src_sb_flag = MRB_STR_SINGLE_BYTE;  /* what the walk found `str` to be */
 #endif
 
   p = RSTRING_PTR(str); pend = RSTRING_END(str);
@@ -1752,6 +1753,12 @@ str_escape(mrb_state *mrb, mrb_value str, mrb_bool inspect)
 #ifdef MRB_UTF8_STRING
     if (inspect) {
       mrb_int clen = mrb_utf8len(p, pend);
+      /* A non-ASCII byte either begins a character of several bytes or begins
+         no character at all, and either way `str` is not one byte per
+         character. The escape below turns the second into `\xNN`, so `result`
+         still is, and only a whole character copied across takes that from
+         it. */
+      if (NOASCII(*p)) src_sb_flag = 0;
       if (clen > 1) {
         mrb_str_cat(mrb, result, p, clen);
         p += clen-1;
@@ -1797,7 +1804,7 @@ str_escape(mrb_state *mrb, mrb_value str, mrb_bool inspect)
   mrb_str_cat_lit(mrb, result, "\"");
 #ifdef MRB_UTF8_STRING
   if (inspect) {
-    mrb_str_ptr(str)->flags |= sb_flag;
+    mrb_str_ptr(str)->flags |= src_sb_flag;
     mrb_str_ptr(result)->flags |= sb_flag;
   }
   else {

@@ -27,6 +27,33 @@ assert('String#inspect of a binary string escapes every byte') do
   end
 end
 
+assert('String#inspect leaves a malformed sequence malformed') do
+  # `inspect` remembers a string it walked without meeting a character of
+  # several bytes, so that whatever reads it next may step by bytes. A byte
+  # spelling no character is escaped one at a time as well, and was remembered
+  # the same way, after which it came back as a character the string does not
+  # hold.
+  ["\x80", "\xE3\x81", "\xC0\xAF", "\xED\xA0\x80", "\xF4\x90\x80\x80",
+   "a\x80b"].each do |str|
+    s = str.dup
+    s.inspect
+    assert_raise(ArgumentError) { s.codepoints }
+  end
+
+  s = "\xED\xA0\x80"
+  s.inspect
+  assert_raise(ArgumentError) { s.ord }
+  s = "\xED\xA0\x80"
+  s.inspect
+  assert_equal "\u{FFFD}" * 3, s.scrub
+
+  # an ASCII string does hold one character per byte, and is still read so
+  s = "abc"
+  s.inspect
+  assert_equal [97, 98, 99], s.codepoints
+  assert_equal "abc", s.scrub
+end if UTF8STRING
+
 assert('String#strip') do
   s = "  abc  "
   assert_equal("abc", s.strip)
