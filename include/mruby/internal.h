@@ -174,8 +174,10 @@ uint32_t mrb_byte_hash_step(const uint8_t*, mrb_int, uint32_t);
    the string ends before `nchars` characters, the remaining byte length plus
    one is returned so out-of-range requests stay detectable. mrb_str_byte_to_char
    returns the character index for byte offset `bi` counted from the start of
-   the string, or -1 when `bi` is past the end or inside a multi-byte character.
-   On non-UTF-8 builds a byte is a character and both are identity. */
+   the string, or -1 when `bi` is outside the string or inside a multi-byte
+   character. On non-UTF-8 builds a byte is a character, so the conversions are
+   identity within the string, and mrb_str_byte_to_char still rejects an offset
+   outside it. */
 mrb_int mrb_str_char_to_byte(mrb_state *mrb, mrb_value str, mrb_int off, mrb_int nchars);
 mrb_int mrb_str_byte_to_char(mrb_state *mrb, mrb_value str, mrb_int bi);
 
