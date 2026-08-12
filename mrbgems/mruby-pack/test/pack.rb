@@ -210,6 +210,19 @@ assert 'pack/unpack "U"' do
   assert_raise(RangeError) { [0x40000000].pack("U") }
 end
 
+assert 'pack("U") with a value outside the Unicode range' do
+  assert_equal [0xF4, 0x8F, 0xBF, 0xBF], [0x10FFFF].pack("U").unpack("C*")
+  assert_raise(RangeError) { [0x110000].pack("U") }
+
+  # The encoder takes a uint32_t, so a value that wraps into the Unicode range
+  # must not come out as the character it wraps to. The shift is computed at
+  # run time because the constant folder would reject the literal on a build
+  # with a 32-bit mrb_int and no bigint, where there is nothing to test.
+  shift = 32
+  wrapping = ((1 << shift) + 0x41) rescue nil
+  assert_raise(RangeError) { [wrapping].pack("U") } if wrapping.is_a?(Integer)
+end
+
 assert 'unpack1' do
   d = 1234
   assert_equal(d, [d].pack("i").unpack1("i"))

@@ -775,12 +775,15 @@ pack_utf8(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, int count, u
 {
   char utf8[4];
   int len;
-  uint32_t c = (uint32_t)mrb_integer(o);
+  mrb_int c = mrb_integer(o);
 
-  len = (int)mrb_utf8_to_buf(utf8, c);
-  if (len == 0) {
+  /* mrb_utf8_to_buf() takes a uint32_t, which wraps a value outside the
+     Unicode range into a codepoint, so the range has to be checked on the
+     mrb_int before the cast. */
+  if (c < 0 || 0x10FFFF < c) {
     mrb_raise(mrb, E_RANGE_ERROR, "pack(U): value out of range");
   }
+  len = (int)mrb_utf8_to_buf(utf8, (uint32_t)c);
 
   str = str_len_ensure(mrb, str, sidx + len);
   memcpy(RSTRING_PTR(str) + sidx, utf8, len);
