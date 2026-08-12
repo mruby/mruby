@@ -441,6 +441,39 @@ mrb_utf8_char_head(const char *beg, const char *p, const char *end)
   return p;
 }
 
+/* Decode a UTF-8 character and return its codepoint.
+   *lenp is set to the byte length consumed. mrb_utf8len() answers 1 for every
+   sequence it rejects, so those consume a single byte and come back as the
+   lead byte itself. */
+uint32_t
+mrb_utf8_decode(const char *p, const char *e, mrb_int *lenp)
+{
+  uint8_t c = (uint8_t)p[0];
+  uint32_t cp;
+  mrb_int n = mrb_utf8len(p, e);
+
+  *lenp = n;
+  switch (n) {
+  case 2:
+    cp = (c & 0x1f) << 6;
+    cp |= ((uint8_t)p[1] & 0x3f);
+    return cp;
+  case 3:
+    cp = (c & 0x0f) << 12;
+    cp |= ((uint8_t)p[1] & 0x3f) << 6;
+    cp |= ((uint8_t)p[2] & 0x3f);
+    return cp;
+  case 4:
+    cp = (c & 0x07) << 18;
+    cp |= ((uint8_t)p[1] & 0x3f) << 12;
+    cp |= ((uint8_t)p[2] & 0x3f) << 6;
+    cp |= ((uint8_t)p[3] & 0x3f);
+    return cp;
+  default:
+    return c;  /* ASCII, or invalid/truncated byte returned as-is */
+  }
+}
+
 #endif  /* MRB_UTF8_STRING || MRB_UTF8_SCAN */
 
 #ifdef MRB_UTF8_STRING
