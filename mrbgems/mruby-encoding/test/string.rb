@@ -43,8 +43,9 @@ assert('String#valid_encoding?') do
     assert_false "あ\xfe".valid_encoding?
     assert_true "あ\xfe".b.valid_encoding?
 
-    # Measuring a string of stray bytes marks it as one byte per character,
-    # which is true of it and says nothing about whether it is valid.
+    # Measuring a string counts a byte that spells no character as a position
+    # of its own, and marks nothing about the string that this answer is read
+    # off.
     s = "a\x80"
     assert_equal 2, s.size
     assert_false s.valid_encoding?
@@ -62,14 +63,54 @@ assert('String#valid_encoding?') do
     assert_true "\u{E000}".valid_encoding?           # first code point after surrogates
     assert_true "\u{10FFFF}".valid_encoding?         # largest valid code point
 
-    # The same sequences, measured before they are asked about: counting each
-    # byte on its own is what marks the string one byte per character.
+    # The same sequences, measured before they are asked about
     ["\xC0\x80", "\xED\xA0\x80", "\xF5\x80\x80\x80"].each do |t|
       t.size
       assert_false t.valid_encoding?
     end
   else
     assert_true "\xfe".valid_encoding?
+  end
+end
+
+assert('String#valid_encoding? answers the same however the string was read first') do
+  # A string read once is marked as holding one character per byte where every
+  # byte of it is ASCII, and the answer here is taken off that mark rather than
+  # walked for. Nothing else a reading leaves behind may reach it, so ask the
+  # same question of the same bytes twice, once after a reading and once not.
+  if UTF8STRING
+    readings = [->(s) { s.length }, ->(s) { s.chars }, ->(s) { s[0] },
+                ->(s) { s.each_char { |c| } }, ->(s) { s.inspect },
+                ->(s) { s.ord rescue nil }, ->(s) { s.codepoints rescue nil }]
+    ["", "abc", "a" * 40, "あ", "あa", "a" * 40 + "\xfe", "\x80", "a\x80b",
+     "\xE3\x81", "\xC0\xAF", "\xED\xA0\x80", "\xF4\x90\x80\x80",
+     171.chr, 0xE3.chr, 65.chr].each do |base|
+      want = base.dup.valid_encoding?
+      readings.each do |read|
+        s = base.dup
+        read.call(s)
+        assert_equal want, s.valid_encoding?, "#{base.inspect} read first"
+      end
+    end
+  end
+end
+
+assert('a string that says it is UTF-8 and says it is valid spells its own bytes') do
+  # The encoding a string reports and the answer it gives for its own validity
+  # are kept apart on it, and either may be settled by a reading that never
+  # asked the other. Where the two say the bytes are UTF-8 and read as it, the
+  # code points taken off them have to spell those same bytes back.
+  if UTF8STRING
+    ["", "abc", "あ", "あa\u{1F600}", "\x80", "a\x80b", "\xED\xA0\x80",
+     "\xE3\x81", 171.chr, 0xE3.chr, 65.chr, "あ".b, "abc".b].each do |base|
+      [->(s) { s }, ->(s) { s.length; s }, ->(s) { s.inspect; s },
+       ->(s) { s.chars; s }].each do |read|
+        s = read.call(base.dup)
+        next unless s.encoding == Encoding::UTF_8 && s.valid_encoding?
+        back = s.codepoints.map { |cp| cp.chr("UTF-8") }.join
+        assert_equal s.bytes, back.bytes, "#{base.inspect} read first"
+      end
+    end
   end
 end
 

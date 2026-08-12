@@ -692,6 +692,13 @@ mrb_str_valid_encoding_p(mrb_state *mrb, mrb_value str)
      bytes are. */
   if (RSTR_BINARY_P(s)) return TRUE;
   if (RSTR_VALID_ENC_P(s)) return TRUE;
+  /* A string of one character per byte holds nothing but ASCII, and ASCII
+     reads as UTF-8 as it stands, so it is valid without a walk. This is what
+     a string counted before it is asked about comes in carrying. */
+  if (RSTR_SINGLE_BYTE_P(s)) {
+    RSTR_SET_VALID_ENC_FLAG(s);
+    return TRUE;
+  }
 
   mrb_int byte_len = RSTR_LEN(s);
   mrb_bool valid = TRUE;
