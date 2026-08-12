@@ -8,6 +8,7 @@
 #define MRB_RE_INTERNAL_H
 
 #include <mruby.h>
+#include <mruby/internal.h>
 #include <stdint.h>
 
 /* Bytecode instructions for the NFA engine */
@@ -173,7 +174,6 @@ mrb_regexp_pattern* mrb_re_compile(mrb_state *mrb, const char *pattern, mrb_int 
 void mrb_re_free(mrb_state *mrb, mrb_regexp_pattern *pat);
 
 /* UTF-8 helpers */
-int mrb_re_utf8_charlen(const char *s, const char *end);
 uint32_t mrb_re_utf8_decode(const char *s, const char *end, int *len);
 mrb_bool mrb_re_is_word_char(uint32_t c);
 
@@ -232,7 +232,7 @@ void mrb_re_case_unfold_range(uint32_t lo, uint32_t hi,
 static inline int
 mrb_re_charlen(const char *s, const char *end, mrb_bool binary)
 {
-  return binary ? 1 : mrb_re_utf8_charlen(s, end);
+  return binary ? 1 : (int)mrb_utf8len(s, end);
 }
 
 static inline uint32_t
@@ -248,17 +248,15 @@ mrb_re_decode_char(const char *s, const char *end, int *len, mrb_bool binary)
 /* TRUE when s points into the middle of a character that starts earlier in
    the string, so it is not a place a match may start at. A byte that looks
    like a continuation byte but follows no lead byte that reaches it belongs
-   to no character and stands on its own. */
+   to no character and stands on its own, and there the head of the character
+   covering s is s itself. The matcher asks this at every position it tries,
+   so keep the answer for a byte that starts a character here rather than in
+   the call. */
 static inline mrb_bool
 mrb_re_utf8_interior_p(const char *str, const char *s, const char *end)
 {
-  if (((uint8_t)*s & 0xC0) != 0x80) return FALSE;
-  for (int back = 1; back <= 3 && back <= s - str; back++) {
-    const char *lead = s - back;
-    if (((uint8_t)*lead & 0xC0) == 0x80) continue;  /* another continuation byte */
-    return mrb_re_utf8_charlen(lead, end) > back;
-  }
-  return FALSE;
+  if (s >= end || ((uint8_t)*s & 0xC0) != 0x80) return FALSE;
+  return mrb_utf8_char_head(str, s, end) != s;
 }
 
 /* Execute a match.

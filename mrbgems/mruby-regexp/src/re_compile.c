@@ -958,7 +958,7 @@ emit_char(re_compiler *c, uint8_t ch)
 static void
 emit_char_bytes(re_compiler *c, int ch)
 {
-  int len = mrb_re_utf8_charlen(c->p - 1, c->src_end);
+  int len = (int)mrb_utf8len(c->p - 1, c->src_end);
   emit(c, RE_CHAR, (uint8_t)ch, 0);
   for (int i = 1; i < len; i++) {
     int b = next_char(c);
