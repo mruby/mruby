@@ -1,43 +1,10 @@
 /*
-** re_utf8.c - UTF-8 utility functions for regexp engine
+** re_utf8.c - case folding and word characters for regexp engine
 **
 ** See Copyright Notice in mruby.h
 */
 
 #include "re_internal.h"
-
-/* Decode a UTF-8 character and return its codepoint.
-   *len is set to the byte length consumed. mrb_utf8len() answers 1 for every
-   sequence it rejects, so those consume a single byte and come back as the
-   lead byte itself. */
-uint32_t
-mrb_re_utf8_decode(const char *s, const char *end, int *len)
-{
-  uint8_t c = (uint8_t)s[0];
-  uint32_t cp;
-  int n = (int)mrb_utf8len(s, end);
-
-  *len = n;
-  switch (n) {
-  case 2:
-    cp = (c & 0x1f) << 6;
-    cp |= ((uint8_t)s[1] & 0x3f);
-    return cp;
-  case 3:
-    cp = (c & 0x0f) << 12;
-    cp |= ((uint8_t)s[1] & 0x3f) << 6;
-    cp |= ((uint8_t)s[2] & 0x3f);
-    return cp;
-  case 4:
-    cp = (c & 0x07) << 18;
-    cp |= ((uint8_t)s[1] & 0x3f) << 12;
-    cp |= ((uint8_t)s[2] & 0x3f) << 6;
-    cp |= ((uint8_t)s[3] & 0x3f);
-    return cp;
-  default:
-    return c;  /* ASCII, or invalid/truncated byte returned as-is */
-  }
-}
 
 /* Check if character is a "word" character (\w): [a-zA-Z0-9_] */
 mrb_bool

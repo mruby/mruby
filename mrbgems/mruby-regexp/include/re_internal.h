@@ -173,8 +173,7 @@ mrb_regexp_pattern* mrb_re_compile(mrb_state *mrb, const char *pattern, mrb_int 
 /* Free a compiled pattern */
 void mrb_re_free(mrb_state *mrb, mrb_regexp_pattern *pat);
 
-/* UTF-8 helpers */
-uint32_t mrb_re_utf8_decode(const char *s, const char *end, int *len);
+/* Word character (\w) test */
 mrb_bool mrb_re_is_word_char(uint32_t c);
 
 /* The two foldings whose result is an ASCII letter. Every build carries them,
@@ -242,7 +241,10 @@ mrb_re_decode_char(const char *s, const char *end, int *len, mrb_bool binary)
     if (len) *len = 1;
     return (uint8_t)*s;
   }
-  return mrb_re_utf8_decode(s, end, len);
+  mrb_int n;
+  uint32_t cp = mrb_utf8_decode(s, end, &n);
+  if (len) *len = (int)n;
+  return cp;
 }
 
 /* TRUE when s points into the middle of a character that starts earlier in

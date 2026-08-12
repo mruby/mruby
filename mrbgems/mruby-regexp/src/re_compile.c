@@ -596,8 +596,8 @@ read_class_atom(re_compiler *c, re_charclass *cc, mrb_bool *is_byte)
   }
   /* Multi-byte UTF-8 leader: decode the full codepoint. An invalid leader
      decodes as itself over one byte, so it is a byte like the rest. */
-  int len = 0;
-  uint32_t cp = mrb_re_utf8_decode(c->p, c->src_end, &len);
+  mrb_int len = 0;
+  uint32_t cp = mrb_utf8_decode(c->p, c->src_end, &len);
   c->p += len;
   if (len == 1) *is_byte = TRUE;
   return cp;
@@ -1015,8 +1015,8 @@ static mrb_bool
 emit_char_folded(re_compiler *c, int ch)
 {
   if (ch < 128 || !(c->flags & RE_FLAG_IGNORECASE)) return FALSE;
-  int len = 0;
-  uint32_t cp = mrb_re_utf8_decode(c->p - 1, c->src_end, &len);
+  mrb_int len = 0;
+  uint32_t cp = mrb_utf8_decode(c->p - 1, c->src_end, &len);
   if (len == 1) return FALSE;
   if (!emit_cp_folded(c, cp)) return FALSE;
   c->p += len - 1;
