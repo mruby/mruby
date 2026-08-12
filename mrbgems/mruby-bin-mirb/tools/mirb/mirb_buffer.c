@@ -5,6 +5,7 @@
 */
 
 #include "mirb_buffer.h"
+#include <mruby/internal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,70 +16,17 @@
  * These are only compiled when MRB_UTF8_STRING is defined
  */
 
-/* Check if byte is a UTF-8 lead byte (not a continuation byte) */
-static mrb_bool
-utf8_islead(unsigned char c)
-{
-  return (c & 0xC0) != 0x80;
-}
-
-/* UTF-8 character length table indexed by (first_byte >> 3) */
-static const char utf8_len_table[] = {
-  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,  /* 0x00-0x7F: ASCII */
-  0, 0, 0, 0, 0, 0, 0, 0,                          /* 0x80-0xBF: continuation (invalid start) */
-  2, 2, 2, 2,                                      /* 0xC0-0xDF: 2-byte sequences */
-  3, 3,                                            /* 0xE0-0xEF: 3-byte sequences */
-  4,                                               /* 0xF0-0xF7: 4-byte sequences */
-  0                                                /* 0xF8-0xFF: invalid */
-};
-
 /*
- * Get byte length of UTF-8 character at position
- * Returns 1 for invalid sequences (safe fallback)
+ * Byte offset of the character before `pos`, which has to be a byte of the
+ * line. mrb_utf8_char_head() answers the head of the character covering the
+ * byte it is given, so it is asked about the byte before the cursor.
  */
 static size_t
-utf8_char_len(const char *p, const char *end)
+utf8_prev_char_start(const mirb_line *line, size_t pos)
 {
-  size_t len;
-  if (p >= end) return 0;
-
-  len = (size_t)utf8_len_table[(unsigned char)p[0] >> 3];
-  if (len == 0 || len > (size_t)(end - p)) return 1;
-
-  /* Validate continuation bytes */
-  switch (len) {
-  case 4:
-    if (!utf8_islead((unsigned char)p[3])) break;  /* continuation expected */
-    return 1;
-  case 3:
-    if (!utf8_islead((unsigned char)p[2])) break;
-    return 1;
-  case 2:
-    if (!utf8_islead((unsigned char)p[1])) break;
-    return 1;
-  }
-  return len;
-}
-
-/*
- * Find start of previous UTF-8 character
- * Returns byte offset from start of string to the previous character
- * If at position 0, returns 0
- */
-static size_t
-utf8_prev_char_start(const char *str, size_t pos)
-{
-  size_t i;
-  if (pos == 0) return 0;
-
-  /* Scan back to find a lead byte (max 4 bytes back) */
-  for (i = 1; i <= 4 && i <= pos; i++) {
-    if (utf8_islead((unsigned char)str[pos - i])) {
-      return pos - i;
-    }
-  }
-  /* No lead byte found, assume single byte */
-  return pos - 1;
+  const char *head = mrb_utf8_char_head(line->data, line->data + pos - 1,
+                                        line->data + line->len);
+  return (size_t)(head - line->data);
 }
 
 /*
@@ -130,10 +78,8 @@ utf8_display_col(const char *str, size_t byte_pos)
   const char *end = str + byte_pos;
 
   while (p < end) {
-    size_t char_len = utf8_char_len(p, str + byte_pos + 4);  /* +4 for safety */
-    if (char_len == 0) break;
     col += (size_t)utf8_char_width(p, end);
-    p += char_len;
+    p += mrb_utf8len(p, end);
   }
   return col;
 }
@@ -509,7 +455,7 @@ mirb_buffer_delete_back(mirb_buffer *buf)
     mirb_line *line = &buf->lines[buf->cursor_line];
 #ifdef MRB_UTF8_STRING
     /* Find start of previous UTF-8 character and delete entire character */
-    size_t prev_pos = utf8_prev_char_start(line->data, buf->cursor_col);
+    size_t prev_pos = utf8_prev_char_start(line, buf->cursor_col);
     size_t char_len = buf->cursor_col - prev_pos;
     if (line_delete_bytes_at(line, prev_pos, char_len)) {
       buf->cursor_col = prev_pos;
@@ -548,8 +494,8 @@ mirb_buffer_delete_forward(mirb_buffer *buf)
     /* Delete within line */
 #ifdef MRB_UTF8_STRING
     /* Delete entire UTF-8 character at cursor */
-    size_t char_len = utf8_char_len(line->data + buf->cursor_col,
-                                    line->data + line->len);
+    size_t char_len = (size_t)mrb_utf8len(line->data + buf->cursor_col,
+                                         line->data + line->len);
     if (line_delete_bytes_at(line, buf->cursor_col, char_len)) {
       buf->modified = TRUE;
       return TRUE;
@@ -657,7 +603,7 @@ mirb_buffer_cursor_left(mirb_buffer *buf)
 #ifdef MRB_UTF8_STRING
     /* Move back to start of previous UTF-8 character */
     mirb_line *line = &buf->lines[buf->cursor_line];
-    buf->cursor_col = utf8_prev_char_start(line->data, buf->cursor_col);
+    buf->cursor_col = utf8_prev_char_start(line, buf->cursor_col);
 #else
     buf->cursor_col--;
 #endif
@@ -682,8 +628,8 @@ mirb_buffer_cursor_right(mirb_buffer *buf)
   if (buf->cursor_col < line->len) {
 #ifdef MRB_UTF8_STRING
     /* Skip entire UTF-8 character */
-    size_t char_len = utf8_char_len(line->data + buf->cursor_col,
-                                    line->data + line->len);
+    size_t char_len = (size_t)mrb_utf8len(line->data + buf->cursor_col,
+                                         line->data + line->len);
     buf->cursor_col += char_len;
 #else
     buf->cursor_col++;
