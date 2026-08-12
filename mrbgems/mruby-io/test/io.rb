@@ -121,6 +121,24 @@ end
 #assert('IO#putc', '15.2.20.5.12') do
 #assert('IO#puts', '15.2.20.5.13') do
 
+assert('IO#puts with an element that replaces the array') do
+  # #to_s runs while the array is being walked, and replacing it with a shorter
+  # one moves the buffer out from under the traversal.
+  elem = Class.new do
+    def initialize(a); @a = a; end
+    def to_s; @a.replace(Array.new(64, 0)); "x"; end
+  end
+  a = []
+  400.times { a << elem.new(a) }
+  io = IO.new(IO.sysopen($mrbtest_io_wfname, 'w'), 'w')
+  io.puts a
+  io.close
+  assert_equal 64, a.size
+  # The first element replaced the array, so the remaining 63 come from the
+  # replacement. CRuby stops at the new length the same way.
+  assert_equal "x\n" + "0\n" * 63, File.read($mrbtest_io_wfname)
+end
+
 assert('IO#read', '15.2.20.5.14') do
   IO.open(IO.sysopen($mrbtest_io_rfname)) do |io|
     assert_raise(ArgumentError) { io.read(-5) }
