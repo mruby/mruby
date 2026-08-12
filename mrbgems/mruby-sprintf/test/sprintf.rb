@@ -145,3 +145,15 @@ assert('sprintf("%c") with an integer that has no UTF-8 encoding') do
   wrapping = ((1 << shift) + 0x41) rescue nil
   assert_raise(ArgumentError) { sprintf("%c", wrapping) } if wrapping.is_a?(Integer)
 end
+
+assert('sprintf("%c") with a UTF-16 surrogate') do
+  skip unless __ENCODING__ == "UTF-8"
+  # A surrogate has a spelling here even though it is not a character: CRuby
+  # writes these three bytes too, and refuses the value in Integer#chr rather
+  # than here. So what the encoder writes is wider than what the character
+  # scanner reads back, and the string it builds is not valid UTF-8.
+  assert_equal "\xED\xA0\x80", sprintf("%c", 0xD800)
+  assert_equal "\xED\xBF\xBF", sprintf("%c", 0xDFFF)
+  assert_equal "\xED\x9F\xBF", sprintf("%c", 0xD7FF)
+  assert_equal "\xEE\x80\x80", sprintf("%c", 0xE000)
+end

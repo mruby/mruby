@@ -223,6 +223,18 @@ assert 'pack("U") with a value outside the Unicode range' do
   assert_raise(RangeError) { [wrapping].pack("U") } if wrapping.is_a?(Integer)
 end
 
+assert 'pack("U") with a UTF-16 surrogate' do
+  # A surrogate has a spelling here even though it is not a character: CRuby
+  # writes these three bytes too, and refuses the value in Integer#chr rather
+  # than here. unpack("U") reads them back, so the two stay a pair whatever
+  # the character scanner makes of the bytes.
+  assert_equal [0xED, 0xA0, 0x80], [0xD800].pack("U").unpack("C*")
+  assert_equal [0xED, 0xBF, 0xBF], [0xDFFF].pack("U").unpack("C*")
+  assert_equal [0xD800], [0xD800].pack("U").unpack("U*")
+  assert_equal [0xED, 0x9F, 0xBF], [0xD7FF].pack("U").unpack("C*")
+  assert_equal [0xEE, 0x80, 0x80], [0xE000].pack("U").unpack("C*")
+end
+
 assert 'unpack1' do
   d = 1234
   assert_equal(d, [d].pack("i").unpack1("i"))
