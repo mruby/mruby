@@ -1088,7 +1088,11 @@ assert('String#bytesplice') do
 
   # check the overflow to index and length (to be pass without crash)
   assert_nothing_raised { "0123456789".bytesplice(8, ~(-1 << 31), "ab") } # for MRB_INT32
-  assert_nothing_raised { begin; "0123456789".bytesplice(8, ~(-1 << 63), "ab"); rescue ArgumentError, RangeError; end } # for MRB_INT64
+  # The shift width comes from a variable because `1 << 63` written out is
+  # constant folded, and the fold fails while this file is compiled on
+  # MRB_INT32 without bigint, dropping every test in it.
+  shift = 63
+  assert_nothing_raised { begin; "0123456789".bytesplice(8, ~(-1 << shift), "ab"); rescue ArgumentError, RangeError; end } # for MRB_INT64
 
   # check the negative index
   assert_equal "0ab3456789", "0123456789".bytesplice(-9, 2, "ab")

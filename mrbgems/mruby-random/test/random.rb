@@ -170,7 +170,11 @@ assert("Kernel#rand integer range overflow") do
   # minimized mruby_fuzzer testcase. On 32-bit mrb_int (or when bigint
   # promotes the bounds) these take a different path, so probe the
   # integer-range path first and skip if absent.
-  hi = ((1 << 62) + (1 << 61)) rescue nil
+  # The shift width comes from a variable because `1 << 62` written out is
+  # constant folded, and the fold fails while this file is compiled on
+  # MRB_INT32 without bigint, dropping every test in it.
+  shift = 62
+  hi = ((1 << shift) + (1 << (shift - 1))) rescue nil
   if hi && (Integer === (rand(-hi..hi) rescue nil))
     lo = -hi
     # reversed wide range -> nil; old code overflowed `end - begin`.
