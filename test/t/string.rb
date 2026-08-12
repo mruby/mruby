@@ -659,6 +659,28 @@ assert('String#rindex reaches the first character from a negative position') do
   assert_nil "あいうあ".rindex("あ", -5)
 end if UTF8STRING
 
+assert('String#rindex steps by the characters String#length counts') do
+  # A byte that no lead byte reaches spells no character with its neighbours,
+  # so it is one position of its own, which is what #length counts it as.
+  str = "あ\x80x"
+  assert_equal 3, str.length
+  assert_equal 0, str.rindex("あ", -2)
+  assert_equal 1, str.rindex("\x80")
+  assert_equal str.index("\x80"), str.rindex("\x80")
+
+  # Searching backward from `pos` may not answer a position after it.
+  assert_nil str.rindex("x", 1)
+  assert_equal 2, str.rindex("x", 2)
+
+  # A sequence RFC 3629 forbids spells no character either, and its bytes
+  # stand alone the same way.
+  assert_equal 3, "\xC0\x80a".length
+  assert_equal 0, "\xC0\x80a".rindex("\xC0")
+  assert_equal 1, "\xC0\x80a".rindex("\x80")
+  assert_equal 3, "\xED\xA0\x80".length
+  assert_equal 2, "\xED\xA0\x80".rindex("\x80")
+end if UTF8STRING
+
 assert('String#byterindex searches bytes') do
   # `byterindex` answers byte positions, so it walks bytes the way
   # `byteindex` does. Walking characters instead, it passed over every byte
