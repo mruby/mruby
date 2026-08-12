@@ -17,8 +17,6 @@
 static mrb_value
 str_valid_enc_p(mrb_state *mrb, mrb_value str)
 {
-#define utf8_islead(c) ((unsigned char)((c)&0xc0) != 0x80)
-
   struct RString *s = mrb_str_ptr(str);
   if (RSTR_SINGLE_BYTE_P(s)) return mrb_true_value();
   if (RSTR_BINARY_P(s)) return mrb_true_value();
