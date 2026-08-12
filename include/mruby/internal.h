@@ -168,8 +168,9 @@ mrb_bool mrb_strcasecmp_p(const char *s1, mrb_int len1, const char *s2, mrb_int 
 uint32_t mrb_byte_hash(const uint8_t*, mrb_int);
 uint32_t mrb_byte_hash_step(const uint8_t*, mrb_int, uint32_t);
 
-/* Character-index/byte-offset conversion, honoring the string's own indexing
-   (single-byte and binary strings index by byte). mrb_str_char_to_byte returns
+/* Character count and character-index/byte-offset conversion, honoring the
+   string's own indexing (single-byte and binary strings index by byte, so
+   their character count is the byte length). mrb_str_char_to_byte returns
    the byte length of `nchars` characters starting at byte offset `off`; when
    the string ends before `nchars` characters, the remaining byte length plus
    one is returned so out-of-range requests stay detectable. mrb_str_byte_to_char
@@ -178,6 +179,7 @@ uint32_t mrb_byte_hash_step(const uint8_t*, mrb_int, uint32_t);
    character. On non-UTF-8 builds a byte is a character, so the conversions are
    identity within the string, and mrb_str_byte_to_char still rejects an offset
    outside it. */
+mrb_int mrb_str_char_len(mrb_state *mrb, mrb_value str);
 mrb_int mrb_str_char_to_byte(mrb_state *mrb, mrb_value str, mrb_int off, mrb_int nchars);
 mrb_int mrb_str_byte_to_char(mrb_state *mrb, mrb_value str, mrb_int bi);
 

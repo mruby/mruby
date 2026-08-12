@@ -546,9 +546,11 @@ mrb_utf8_strlen(const char *str, mrb_int byte_len)
   return len;
 }
 
-static mrb_int
-utf8_strlen(mrb_value str)
+/* count the characters of a string */
+mrb_int
+mrb_str_char_len(mrb_state *mrb, mrb_value str)
 {
+  (void)mrb;
   struct RString *s = mrb_str_ptr(str);
   mrb_int byte_len = RSTR_LEN(s);
 
@@ -575,8 +577,6 @@ utf8_strlen(mrb_value str)
     return utf8_len;
   }
 }
-
-#define RSTRING_CHAR_LEN(s) utf8_strlen(s)
 
 /* map character index to byte offset index */
 mrb_int
@@ -690,8 +690,15 @@ str_index_str_by_char(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
 }
 
 #else
-#define RSTRING_CHAR_LEN(s) RSTRING_LEN(s)
-/* a byte is a character here, so both conversions are identity */
+/* a byte is a character here, so the count is the byte length and both
+   conversions are identity */
+mrb_int
+mrb_str_char_len(mrb_state *mrb, mrb_value str)
+{
+  (void)mrb;
+  return RSTRING_LEN(str);
+}
+
 mrb_int
 mrb_str_char_to_byte(mrb_state *mrb, mrb_value str, mrb_int off, mrb_int idx)
 {
@@ -890,7 +897,7 @@ mrb_str_beg_len(mrb_int str_len, mrb_int *begp, mrb_int *lenp)
 static mrb_value
 str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 {
-  return mrb_str_beg_len(RSTRING_CHAR_LEN(str), &beg, &len) ?
+  return mrb_str_beg_len(mrb_str_char_len(mrb, str), &beg, &len) ?
     str_subseq(mrb, str, beg, len) : mrb_nil_value();
 }
 
@@ -1222,7 +1229,7 @@ mrb_str_plus_m(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_str_size(mrb_state *mrb, mrb_value self)
 {
-  mrb_int len = RSTRING_CHAR_LEN(self);
+  mrb_int len = mrb_str_char_len(mrb, self);
   return mrb_int_value(mrb, len);
 }
 
@@ -1463,7 +1470,7 @@ str_convert_range(mrb_state *mrb, mrb_value str, mrb_value idx, mrb_value alen, 
         return STR_BYTE_RANGE_CORRECTED;
 
       case MRB_TT_RANGE:
-        *len = RSTRING_CHAR_LEN(str);
+        *len = mrb_str_char_len(mrb, str);
         switch (mrb_range_beg_len(mrb, idx, beg, len, *len, TRUE)) {
           case MRB_RANGE_OK:
             return STR_CHAR_RANGE_CORRECTED;
@@ -1707,7 +1714,7 @@ mrb_str_aset(mrb_state *mrb, mrb_value str, mrb_value idx, mrb_value alen, mrb_v
       if (len < 0) {
         mrb_raisef(mrb, E_INDEX_ERROR, "negative length %v", alen);
       }
-      charlen = RSTRING_CHAR_LEN(str);
+      charlen = mrb_str_char_len(mrb, str);
       if (beg < 0) { beg += charlen; }
       if (beg < 0 || beg > charlen) { str_out_of_index(mrb, idx); }
       /* fall through */
@@ -2223,7 +2230,7 @@ mrb_str_index_m(mrb_state *mrb, mrb_value str)
     pos = 0;
   }
   else if (pos < 0) {
-    mrb_int clen = RSTRING_CHAR_LEN(str);
+    mrb_int clen = mrb_str_char_len(mrb, str);
     pos += clen;
     if (pos < 0) {
       return mrb_nil_value();
@@ -2403,7 +2410,7 @@ mrb_str_reverse_bang(mrb_state *mrb, mrb_value str)
   char *p, *e;
 
 #ifdef MRB_UTF8_STRING
-  mrb_int utf8_len = RSTRING_CHAR_LEN(str);
+  mrb_int utf8_len = mrb_str_char_len(mrb, str);
   mrb_int len = RSTR_LEN(s);
 
   if (utf8_len < 2) return str;
