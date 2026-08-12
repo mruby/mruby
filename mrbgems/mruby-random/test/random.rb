@@ -168,10 +168,24 @@ assert("Kernel#rand integer range overflow") do
   # 64-bit mrb_int builds. Such bounds used to overflow `end - begin` in C
   # (UndefinedBehaviorSanitizer signed-integer-overflow), found via a
   # minimized mruby_fuzzer testcase. On 32-bit mrb_int (or when bigint
-  # promotes the bounds) these take a different path, so probe the
-  # integer-range path first and skip if absent.
-  hi = ((1 << 62) + (1 << 61)) rescue nil
-  if hi && (Integer === (rand(-hi..hi) rescue nil))
+  # promotes the bounds) these take a different path, so probe for the bounds
+  # themselves and skip where they are out of reach. The probe asks what the
+  # bounds are rather than what `rand` returns for them: the regression answers
+  # `nil` for the wide range too, so a `rand` guard would read that as "path
+  # absent" and skip the assertions written to catch it.
+  # The shift width comes from a variable because `1 << 62` written out is
+  # constant folded, and the fold fails while this file is compiled on
+  # MRB_INT32 without bigint, dropping every test in it.
+  shift = 62
+  hi = nil
+  wide = begin
+    hi = (1 << shift) + (1 << (shift - 1))  # RangeError where mrb_int is 32 bits and bigint is absent
+    [][hi]                                  # nil for an mrb_int index, RangeError for a big integer
+    true
+  rescue RangeError
+    false
+  end
+  if wide
     lo = -hi
     # reversed wide range -> nil; old code overflowed `end - begin`.
     assert_nil(rand(hi..lo))
