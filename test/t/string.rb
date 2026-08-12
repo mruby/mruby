@@ -535,6 +535,31 @@ assert('String#length', '15.2.10.5.26') do
   assert_equal 3, 'abc'.length
 end
 
+assert('String#length(UTF-8)', '15.2.10.5.26') do
+  assert_equal 3, 'あいう'.length
+
+  # A substring too long to embed shares the parent's buffer, so the byte
+  # after its last one belongs to the parent instead of terminating it.
+  s = ('あ' * 40)[0, 20]
+  assert_equal 60, s.bytesize
+  assert_equal 20, s.length
+  assert_nil s[20]
+  assert_equal 20, ('あ' * 40)[10, 20].length
+  assert_equal 10, ("\u{1F600}" * 20)[0, 10].length
+
+  # These answered correctly all along: a substring short enough to embed is
+  # copied and terminated, one reaching the parent's end stops at the parent's
+  # terminator, and a run of non-ASCII bytes ends on an ASCII one.
+  assert_equal 2, ('あ' * 40)[0, 2].length
+  assert_equal 20, ('あ' * 40)[20, 20].length
+  assert_equal 20, ('aあ' * 30)[0, 20].length
+
+  # Cut in the middle of a character, the loose bytes count one each,
+  # whether the string ends in the parent's buffer or in its own.
+  assert_equal 21, ('あ' * 40).byteslice(0, 59).length
+  assert_equal 2, "\xe3\x81".length
+end if UTF8STRING
+
 # 'String#match', '15.2.10.5.27' will be tested in mrbgems.
 
 assert('String#replace', '15.2.10.5.28') do
