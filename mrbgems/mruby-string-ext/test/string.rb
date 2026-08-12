@@ -938,6 +938,26 @@ assert('String#codepoints(UTF-8)') do
   assert_equal expect, cp
 end if UTF8STRING
 
+assert('String#codepoints rejects malformed sequences') do
+  assert_raise(ArgumentError) { "\x80".codepoints }             # stray continuation
+  assert_raise(ArgumentError) { "\xE3\x81".codepoints }         # truncated
+  assert_raise(ArgumentError) { "\xC0\xAF".codepoints }         # overlong "/"
+  assert_raise(ArgumentError) { "\xED\xA0\x80".codepoints }     # surrogate U+D800
+  assert_raise(ArgumentError) { "\xF4\x90\x80\x80".codepoints } # > U+10FFFF
+  assert_raise(ArgumentError) { "\xF8\x88\x80\x80\x80".codepoints }
+  # the walk keeps its place: characters after a 4-byte one still decode
+  assert_equal [128169, 97], "\u{1F4A9}a".codepoints
+  assert_raise(ArgumentError) { "\u{1F4A9}\xC0\xAF".codepoints }
+end if UTF8STRING
+
+assert('String#ord rejects malformed sequences') do
+  assert_raise(ArgumentError) { "\x80".ord }
+  assert_raise(ArgumentError) { "\xE3\x81".ord }
+  assert_raise(ArgumentError) { "\xC0\xAF".ord }
+  assert_raise(ArgumentError) { "\xED\xA0\x80".ord }
+  assert_raise(ArgumentError) { "\xF4\x90\x80\x80".ord }
+end if UTF8STRING
+
 assert('String#each_codepoint') do
   expect = [104, 101, 108, 108, 111, 33]
   cp = []

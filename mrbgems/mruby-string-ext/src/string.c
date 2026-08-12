@@ -968,36 +968,26 @@ str_succ(mrb_state *mrb, mrb_value self)
 #ifdef MRB_UTF8_STRING
 extern const char mrb_utf8len_table[];
 
+/* Decodes the UTF-8 character starting at p, storing its byte length through
+   lenp when that is not NULL. mrb_utf8len() answers 1 for every sequence it
+   rejects, so a lead byte measured as one byte is invalid. */
 MRB_INLINE mrb_int
-utf8code(mrb_state* mrb, const unsigned char* p, const unsigned char *e)
+utf8code(mrb_state* mrb, const unsigned char* p, const unsigned char *e, mrb_int *lenp)
 {
-  if (p[0] < 0x80) return p[0];
-
-  mrb_int len = mrb_utf8len_table[p[0]>>3];
-  mrb_int cp = -1;
-  if (p+len <= e && len > 1 && (p[1] & 0xc0) == 0x80) {
-    if (len == 2)
-      cp = ((p[0] & 0x1f) << 6) + (p[1] & 0x3f);
-    else if ((p[2] & 0xc0) == 0x80) {
-      if (len == 3)
-        cp = ((p[0] & 0x0f) << 12) + ((p[1] & 0x3f) << 6) + (p[2] & 0x3f);
-      else if (len == 4 && (p[3] & 0xc0) == 0x80) {
-        cp = ((p[0] & 0x07) << 18) + ((p[1] & 0x3f) << 12)
-              + ((p[2] & 0x3f) << 6) + (p[3] & 0x3f);
-      }
+  mrb_int len = mrb_utf8len((const char*)p, (const char*)e);
+  if (lenp) *lenp = len;
+  if (len == 1) {
+    if (p[0] >= 0x80) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid UTF-8 byte sequence");
     }
+    return p[0];
   }
-  /* Reject overlong sequences, UTF-16 surrogates, and code points above
-     U+10FFFF (RFC 3629, Unicode D93b). */
-  if (cp >= 0 &&
-      ((len == 2 && cp >= 0x80) ||
-       (len == 3 && cp >= 0x800 && (cp < 0xD800 || 0xDFFF < cp)) ||
-       (len == 4 && cp >= 0x10000 && cp <= 0x10FFFF))) {
-    return cp;
+
+  mrb_int cp = p[0] & (0xff >> (len + 1));
+  for (mrb_int i = 1; i < len; i++) {
+    cp = (cp << 6) | (p[i] & 0x3f);
   }
-  mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid UTF-8 byte sequence");
-  /* not reached */
-  return -1;
+  return cp;
 }
 
 static mrb_value
@@ -1015,7 +1005,7 @@ str_ord(mrb_state* mrb, mrb_value str)
     c = p[0];
   }
   else {
-    c = utf8code(mrb, p, e);
+    c = utf8code(mrb, p, e, NULL);
   }
   return mrb_fixnum_value(c);
 }
@@ -1027,27 +1017,8 @@ str_ord(mrb_state* mrb, mrb_value str)
 static mrb_int
 str_scrub_char_len(const unsigned char *p, const unsigned char *e)
 {
-  if (p[0] < 0x80) return 1;
-  mrb_int len = mrb_utf8len_table[p[0]>>3];
-  if (len < 2 || len > e - p) return -1;
-  for (mrb_int i = 1; i < len; i++) {
-    if ((p[i] & 0xc0) != 0x80) return -1;
-  }
-  mrb_int cp;
-  if (len == 2) {
-    cp = ((p[0] & 0x1f) << 6) | (p[1] & 0x3f);
-    if (cp < 0x80) return -1;
-  }
-  else if (len == 3) {
-    cp = ((p[0] & 0x0f) << 12) | ((p[1] & 0x3f) << 6) | (p[2] & 0x3f);
-    if (cp < 0x800) return -1;
-    if (cp >= 0xD800 && cp <= 0xDFFF) return -1;
-  }
-  else { /* len == 4 */
-    cp = ((p[0] & 0x07) << 18) | ((p[1] & 0x3f) << 12)
-       | ((p[2] & 0x3f) <<  6) |  (p[3] & 0x3f);
-    if (cp < 0x10000 || cp > 0x10FFFF) return -1;
-  }
+  mrb_int len = mrb_utf8len((const char*)p, (const char*)e);
+  if (len == 1 && p[0] >= 0x80) return -1;
   return len;
 }
 
@@ -1175,9 +1146,10 @@ str_codepoints(mrb_state *mrb, mrb_value str)
   }
   else {
     while (p < e) {
-      mrb_int c = utf8code(mrb, p, e);
+      mrb_int len;
+      mrb_int c = utf8code(mrb, p, e, &len);
       mrb_ary_push(mrb, result, mrb_int_value(mrb, c));
-      p += mrb_utf8len_table[p[0]>>3];
+      p += len;
     }
   }
   return result;
