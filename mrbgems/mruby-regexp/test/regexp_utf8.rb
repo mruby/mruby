@@ -617,11 +617,30 @@ assert("Regexp - a subject whose bytes are not UTF-8 is refused") do
   assert_equal broken.index("b"), $~.begin(0)
   assert_raise(ArgumentError) { broken.scan("b") }
 
+  # `split` is the other exception, and it takes every pattern with it: CRuby
+  # refuses a String, a nil and the awk form as well as a Regexp. A String
+  # pattern reaches core's `split` here, which searches for a literal without
+  # this gem in the way, so the refusal is asked for at the entry instead.
+  assert_raise(ArgumentError) { broken.split("b") }
+  assert_raise(ArgumentError) { broken.split }
+  assert_raise(ArgumentError) { broken.split(" ") }
+  assert_raise(ArgumentError) { broken.split("b", -1) }
+  assert_raise(ArgumentError) { broken.split("b", 2) }
+  # A limit of 1 hands the subject back whole without reading it, whatever the
+  # pattern, and CRuby answers for that too.
+  assert_equal [broken], broken.split("b", 1)
+  assert_equal [broken], broken.split(nil, 1)
+  assert_equal [broken], broken.split(" ", 1)
+  assert_equal [broken], broken.split(/b/, 1)
+  # The limit is converted before the subject is read, as in CRuby.
+  assert_raise(TypeError) { broken.split("b", "x") }
+
   # A byte-indexed subject is indexed by byte throughout, so its bytes make no
   # claim that could be broken and it goes through as it always did.
   assert_equal 4, (broken.b =~ /b/)
   assert_equal 4, broken.b.match(/b/).begin(0)
   assert_equal "あ\x80!".b, broken.b.sub(/b/, "!")
+  assert_equal ["あ\x80".b], broken.b.split("b")
 
   # A whole subject is untouched, including one the walk reads to the end.
   assert_equal 2, ("あいb" =~ /b/)
