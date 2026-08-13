@@ -5,6 +5,10 @@ assert("Regexp - /i refuses what ASCII folding cannot answer") do
   # Folding ASCII and carrying on would answer wrongly rather than narrowly:
   # the missing fold is a missed match in the plain and class forms, and the
   # same gap with the sign flipped is a false accept in the negated class.
+  #
+  # A build that reads its strings by byte has nothing to refuse: every source
+  # below is a run of bytes there, and a byte is no character to fold.
+  skip unless __ENCODING__ == "UTF-8"
   assert_raise(RegexpError) { Regexp.new("Ā", Regexp::IGNORECASE) }
   assert_raise(RegexpError) { Regexp.new("[Ā]", Regexp::IGNORECASE) }
   assert_raise(RegexpError) { Regexp.new("[^Ā]", Regexp::IGNORECASE) }

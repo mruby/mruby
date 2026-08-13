@@ -201,11 +201,11 @@ void mrb_str_check_byte_pos(mrb_state *mrb, mrb_value str, mrb_int pos);
    while mrb_utf8len() says it does not, is in the definition in string.c. */
 mrb_int mrb_utf8_to_buf(char *buf, mrb_int cp);
 
-/* What a run of bytes spells is a question apart from whether String indexes
-   by character, so a gem that reads UTF-8 on its own asks for these by
-   defining MRB_UTF8_SCAN (mruby-regexp does, from its mrbgem.rake). A build
-   with neither that gem nor MRB_UTF8_STRING carries none of them. */
-#if defined(MRB_UTF8_STRING) || defined(MRB_UTF8_SCAN)
+/* UTF-8: what a run of bytes spells, and how many characters a string holds.
+   Only a build that indexes strings by character has to answer either, so a
+   build without MRB_UTF8_STRING carries none of them. What has to read a
+   string whatever the build encodes it in asks through mrb_enc_* below. */
+#ifdef MRB_UTF8_STRING
 /* The byte length of the character at `str`, which has to be a byte of the
    string rather than `end` itself, and 1 for a run of bytes that spells no
    character. See the definition in string.c for what it rejects. */
@@ -222,11 +222,54 @@ const char *mrb_utf8_char_head(const char *beg, const char *p, const char *end);
    byte over one byte, so a value of 0x80 or above beside *lenp == 1 marks an
    invalid sequence; whether that is an error is the caller's question. */
 uint32_t mrb_utf8_decode(const char *p, const char *e, mrb_int *lenp);
-#endif
 
-#ifdef MRB_UTF8_STRING
 mrb_int mrb_utf8_strlen(const char *str, mrb_int byte_len);
 #endif
+
+/* What a run of bytes spells, in whatever a build's strings are encoded in.
+   These are the three above where the build reads UTF-8, and one byte per
+   character where it does not, which is what a String is there. Anything that
+   has to read a string whatever the build indexes it by asks through these,
+   so that adding a codec is a change here rather than in every caller. The
+   spelling of a codepoint has no such answer and stays UTF-8: see
+   mrb_utf8_to_buf() above.
+
+   The byte-per-character answers are inline because a matcher asks them once
+   per byte; where the build reads bytes each call folds into the constant it
+   returns and the branch around it goes away. */
+static inline mrb_int
+mrb_enc_charlen(const char *p, const char *e)
+{
+#ifdef MRB_UTF8_STRING
+  return mrb_utf8len(p, e);
+#else
+  (void)p; (void)e;
+  return 1;
+#endif
+}
+
+static inline const char *
+mrb_enc_char_head(const char *beg, const char *p, const char *end)
+{
+#ifdef MRB_UTF8_STRING
+  return mrb_utf8_char_head(beg, p, end);
+#else
+  (void)beg; (void)end;
+  return p;  /* every byte starts a character of its own */
+#endif
+}
+
+static inline uint32_t
+mrb_enc_decode(const char *p, const char *e, mrb_int *lenp)
+{
+#ifdef MRB_UTF8_STRING
+  return mrb_utf8_decode(p, e, lenp);
+#else
+  (void)e;
+  *lenp = 1;
+  return (uint8_t)*p;
+#endif
+}
 
 /* attr accessor bodies (class.c); the VM compares function pointers against
    these to run attr calls without a full method-call frame */

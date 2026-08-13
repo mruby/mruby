@@ -272,7 +272,7 @@ add_thread(pike_state *s, re_threadlist *list,
          seeding loop applies to where a match opens. Killing the thread
          rather than the attempt lets a longer branch match instead. */
       if (inst.offset == 1 && !s->binary && sp < s->str_end &&
-          mrb_re_utf8_interior_p(s->str, sp, s->str_end)) {
+          mrb_re_char_interior_p(s->str, sp, s->str_end)) {
         return;
       }
       if (!s->match_only) {
@@ -436,7 +436,7 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
          Threads seeded earlier are still stepped at this position, so the
          test guards the seeding alone and never skips the iteration. */
       if (s.binary || sp >= str_end ||
-          !mrb_re_utf8_interior_p(str, sp, str_end)) {
+          !mrb_re_char_interior_p(str, sp, str_end)) {
         int slot = match_only ? 0 : pool_alloc(&s);
         if (!match_only) memset(CAP(&s, slot), -1, sizeof(int) * ncap);
         advance_gen(&s);
@@ -584,7 +584,7 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
  * Where the lookbehind at pc starts matching from: sp rewound by the byte
  * count in the opcode for a binary subject, and otherwise by the character
  * count in the RE_LB_WIDTH that follows it. The backward walk steps over
- * continuation bytes with mrb_re_utf8_interior_p(), which keeps it on the
+ * continuation bytes with mrb_re_char_interior_p(), which keeps it on the
  * boundaries the forward decode uses, broken input included. Returns NULL
  * when the text before sp runs out first.
  */
@@ -601,7 +601,7 @@ lookbehind_start(const mrb_regexp_pattern *pat, const char *str,
   while (nchars > 0) {
     if (sp <= str) return NULL;
     sp--;
-    while (sp > str && mrb_re_utf8_interior_p(str, sp, str_end)) sp--;
+    while (sp > str && mrb_re_char_interior_p(str, sp, str_end)) sp--;
     nchars--;
   }
   return sp;
@@ -685,7 +685,7 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
            (see the Pike VM case). Failing here backtracks into the other
            branches, so a longer one can still match. */
         if (slot == 1 && !binary && sp < str_end &&
-            mrb_re_utf8_interior_p(str, sp, str_end)) {
+            mrb_re_char_interior_p(str, sp, str_end)) {
           return FALSE;
         }
         if (slot < ncap) {
@@ -824,7 +824,7 @@ backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
       while (sp < str_end && !FIRST_BYTE_OK(pat, (uint8_t)*sp)) sp++;
       if (sp > str_end) break;
     }
-    if (!binary && sp < str_end && mrb_re_utf8_interior_p(str, sp, str_end)) {
+    if (!binary && sp < str_end && mrb_re_char_interior_p(str, sp, str_end)) {
       continue;
     }
     memset(caps, -1, sizeof(int) * ncap);
@@ -856,13 +856,13 @@ literal_exec(const mrb_regexp_pattern *pat,
   while (sp + plen <= str_end) {
     const char *found = (const char*)memchr(sp, pat->prefix[0], str_end - sp);
     if (!found || found + plen > str_end) return 0;
-    if (!binary && mrb_re_utf8_interior_p(str, found, str_end)) {
+    if (!binary && mrb_re_char_interior_p(str, found, str_end)) {
       sp = found + 1;  /* not a char boundary, same rule as the other engines */
       continue;
     }
     if (plen == 1 || memcmp(found + 1, pat->prefix + 1, plen - 1) == 0) {
       if (!binary && found + plen < str_end &&
-          mrb_re_utf8_interior_p(str, found + plen, str_end)) {
+          mrb_re_char_interior_p(str, found + plen, str_end)) {
         sp = found + 1;  /* ends inside a character, same rule as the end of
                             group 0 in the other engines */
         continue;
