@@ -263,6 +263,24 @@ regexp_binary_string_p(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(re_binary_string_p(str));
 }
 
+/*
+ * Regexp.__check_encoding(str)
+ *
+ * Internal: the check above, for the one caller that reaches no search of this
+ * gem's. `String#split` hands a String or nil pattern to core's `split`, which
+ * this gem keeps under `__split`, so nothing on that path passes an entry
+ * point that would ask the question.
+ */
+static mrb_value
+regexp_check_encoding(mrb_state *mrb, mrb_value self)
+{
+  (void)self;
+  mrb_value str;
+  mrb_get_args(mrb, "S", &str);
+  re_check_encoding(mrb, str);
+  return mrb_nil_value();
+}
+
 /* Publish `obj` and the thirteen names derived from its offsets, the
    counterpart of clear_match_globals(). Kept apart from create_matchdata() so
    that an existing MatchData can be republished without rebuilding it. */
@@ -1392,6 +1410,7 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, re, "escape", regexp_escape, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, re, "quote", regexp_escape, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, re, "__binary_string?", regexp_binary_string_p, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, re, "__check_encoding", regexp_check_encoding, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, re, "__check_pattern", regexp_check_pattern, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, re, "__search", regexp_s_search, MRB_ARGS_ARG(2, 2));
   mrb_define_class_method(mrb, re, "__byte_search", regexp_s_byte_search, MRB_ARGS_ARG(2, 2));

@@ -286,6 +286,13 @@ class String
     # could steer itself around the check below and reach `__split` instead.
     # `Module#===` reads the real type and cannot be redefined.
     if NilClass === pattern || String === pattern
+      # `__split` is core's `split`, which reaches no search of this gem's, so
+      # the subject would go unread on this path where every other one refuses
+      # it. CRuby refuses a String or nil pattern too, unlike the literal a
+      # search is given, which is why this is not the exemption `sub` takes.
+      # A limit of 1 hands the subject back whole without looking into it, and
+      # CRuby answers for that as well, so the check waits behind it.
+      Regexp.__check_encoding(self) unless limit == 1
       return limit_given ? __split(pattern, limit) : __split(pattern)
     end
     return self.empty? ? [] : [self] if limit == 1
