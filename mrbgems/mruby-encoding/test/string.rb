@@ -211,8 +211,8 @@ end
 
 assert('what a string built out of a byte-read string claims') do
   # A copy carries the byte reading with the bytes, and so do the pieces cut
-  # out of the string, its repetitions and the pads built around it. The sum,
-  # the shovel and the splice still hand back a string reporting UTF-8 over
+  # out of the string, its repetitions, its sums and the pads built around it.
+  # The shovel and the splice still hand back a string reporting UTF-8 over
   # bytes that refuse to read as it: the state `Integer#chr` just stopped
   # handing out, one derivation away.
   if UTF8STRING
@@ -226,9 +226,9 @@ assert('what a string built out of a byte-read string claims') do
     assert_equal Encoding::BINARY, (171.chr * 2).encoding
     assert_true (171.chr * 2).valid_encoding?
     # a sum with a byte-read operand on either side
-    assert_equal Encoding::UTF_8, (171.chr + 171.chr).encoding
-    assert_false (171.chr + 171.chr).valid_encoding?
-    assert_equal Encoding::UTF_8, ("abc" + 171.chr).encoding
+    assert_equal Encoding::BINARY, (171.chr + 171.chr).encoding
+    assert_true (171.chr + 171.chr).valid_encoding?
+    assert_equal Encoding::BINARY, ("abc" + 171.chr).encoding
     # a string the bytes were shoveled or spliced into
     s = ""
     s << 171.chr
@@ -279,6 +279,32 @@ assert('a string built by repeating a byte-read string') do
     assert_true s.valid_encoding?
     assert_equal Encoding::BINARY, ("abc".b * 2).encoding
     assert_equal Encoding::UTF_8, ("あ" * 2).encoding
+  end
+end
+
+assert('String#+ with a byte-read operand') do
+  if UTF8STRING
+    bin = 171.chr   # a byte spelling no character, read as bytes
+    # a byte-read operand carrying a byte above ASCII hands the sum bytes no
+    # other reading holds, so its reading wins
+    [bin + bin, "abc" + bin, bin + "abc", "" + bin].each do |s|
+      assert_equal Encoding::BINARY, s.encoding
+      assert_true s.valid_encoding?
+    end
+    assert_equal [97, 98, 99, 171], ("abc" + bin).bytes
+    # CRuby refuses these pairs outright; here the sum says nothing rather
+    # than something false
+    assert_equal Encoding::BINARY, ("あ" + bin).encoding
+    assert_equal Encoding::BINARY, (bin + "あ").encoding
+    # a byte-read operand of ASCII bytes reads as the other operand as it
+    # stands, so it yields to it
+    assert_equal Encoding::UTF_8, ("abc".b + "あ").encoding
+    assert_equal Encoding::UTF_8, ("あ" + "abc".b).encoding
+    assert_true ("abc".b + "あ").valid_encoding?
+    # two byte-read operands stay byte-read even over ASCII bytes
+    assert_equal Encoding::BINARY, ("abc".b + "def".b).encoding
+    # and two UTF-8 operands are what they were
+    assert_equal Encoding::UTF_8, ("あ" + "い").encoding
   end
 end
 

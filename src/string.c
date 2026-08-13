@@ -710,6 +710,21 @@ mrb_str_valid_encoding_p(mrb_state *mrb, mrb_value str)
   return TRUE;
 }
 
+/* whether every byte of the string is ASCII. A walk that finds nothing else
+   made the statement MRB_STR_SINGLE_BYTE makes, so the answer is left there
+   for the next asker to read off. */
+static mrb_bool
+str_ascii_p(struct RString *s)
+{
+  if (RSTR_SINGLE_BYTE_P(s)) return TRUE;
+
+  const char *p = RSTR_PTR(s);
+  const char *e = p + RSTR_LEN(s);
+  if (search_nonascii(p, e) != e) return FALSE;
+  RSTR_SET_SINGLE_BYTE_FLAG(s);
+  return TRUE;
+}
+
 /* map character index to byte offset index */
 mrb_int
 mrb_str_char_to_byte(mrb_state *mrb, mrb_value str, mrb_int off, mrb_int idx)
@@ -838,6 +853,7 @@ mrb_str_valid_encoding_p(mrb_state *mrb, mrb_value str)
   (void)str;
   return TRUE;
 }
+#define str_ascii_p(s) TRUE
 #endif
 
 /* memsearch_swar (SWAR stands for SIMD within a register)                 */
@@ -1367,6 +1383,19 @@ mrb_str_plus(mrb_state *mrb, mrb_value a, mrb_value b)
   char *pt = RSTR_PTR(t);
   memcpy(pt, p, slen);
   memcpy(pt + slen, p2, s2len);
+
+  /* The sum is read the way its parts were. Two byte-read operands stay that
+     way, and one byte-read operand carrying a byte above ASCII hands the sum
+     bytes no other reading holds, so its reading wins. A byte-read operand of
+     ASCII bytes reads as the other operand as it stands and yields to it,
+     which is where CRuby lands on every pair it accepts; the pairs it refuses
+     outright come out byte-read here, saying nothing rather than something
+     false. */
+  if ((RSTR_BINARY_P(s) && RSTR_BINARY_P(s2)) ||
+      (RSTR_BINARY_P(s) && !str_ascii_p(s)) ||
+      (RSTR_BINARY_P(s2) && !str_ascii_p(s2))) {
+    t->flags |= MRB_STR_BINARY;
+  }
 
   return mrb_obj_value(t);
 }

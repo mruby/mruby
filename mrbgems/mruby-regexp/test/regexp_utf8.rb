@@ -543,12 +543,21 @@ assert("Regexp - large non-ASCII character class does not overflow") do
   # size-0 realloc and a write through NULL). See issue #6937.
   # Patterns are always parsed as UTF-8, so build the bytes directly to
   # exercise this in both MRB_UTF8_STRING and byte-string builds.
+  # append_as_bytes lays raw bytes into the string without moving how it is
+  # read; a sum of Integer#chr pieces would come back read as bytes, and a
+  # byte-read subject is answered by the byte on its own rather than the
+  # character it begins.
   utf8 = ->(cp) {
+    s = ""
     if cp < 0x800
-      (0xC0 | (cp >> 6)).chr + (0x80 | (cp & 0x3F)).chr
+      s.append_as_bytes(0xC0 | (cp >> 6))
+      s.append_as_bytes(0x80 | (cp & 0x3F))
     else
-      (0xE0 | (cp >> 12)).chr + (0x80 | ((cp >> 6) & 0x3F)).chr + (0x80 | (cp & 0x3F)).chr
+      s.append_as_bytes(0xE0 | (cp >> 12))
+      s.append_as_bytes(0x80 | ((cp >> 6) & 0x3F))
+      s.append_as_bytes(0x80 | (cp & 0x3F))
     end
+    s
   }
   s = "["
   i = 0x80
