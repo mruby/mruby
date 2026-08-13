@@ -1050,9 +1050,20 @@ emit_codepoint(re_compiler *c, uint32_t cp)
     emit_char(c, (uint8_t)cp);
     return;
   }
-  if ((c->flags & RE_FLAG_IGNORECASE) && emit_cp_folded(c, cp)) return;
   char buf[4];
   int len = (int)mrb_utf8_to_buf(buf, (mrb_int)cp);
+  /* Fold only a spelling the engine reads back as the one character it spells.
+     What the fold emits is a class, and a class compares one decoded
+     character; where the build decodes bytes it never sees this one, so the
+     class would answer for a lone byte of the same number rather than for the
+     character the pattern names. The bytes below name it on either build,
+     which is the fallback a character the pattern spells already takes there,
+     through the length emit_char_folded() reads. */
+  if ((c->flags & RE_FLAG_IGNORECASE) &&
+      mrb_re_charlen(buf, buf + len, FALSE) == len &&
+      emit_cp_folded(c, cp)) {
+    return;
+  }
   for (int i = 0; i < len; i++) {
     emit(c, RE_CHAR, (uint8_t)buf[i], 0);
   }

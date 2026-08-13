@@ -65,9 +65,17 @@ assert("Regexp - /i leaves alone what it can answer") do
   assert_false(/Ā/.match?("ā"))
   assert_true(/[^Ā]/.match?("ā"))
   # U+212A folds to ASCII 'k', which this build has without the table, so the
-  # `\u` spelling of it compiles and reaches both cases of the letter.
-  assert_true(/\u{212a}/i.match?("k"))
-  assert_true(/\u{212a}/i.match?("K"))
+  # `\u` spelling of it compiles and reaches both cases of the letter. Where
+  # the build reads its strings by byte the escape is the three bytes of the
+  # character instead, and /i adds nothing to a character read that way, so it
+  # matches what it names exactly as it does without /i.
+  if __ENCODING__ == "UTF-8"
+    assert_true(/\u{212a}/i.match?("k"))
+    assert_true(/\u{212a}/i.match?("K"))
+  else
+    assert_true(/\u{212a}/i.match?("\u{212a}"))
+    assert_false(/\u{212a}/i.match?("k"))
+  end
   assert_true(/[\u{212a}]/i.match?("k"))
   assert_false(/[^\u{212a}]/i.match?("K"))
 end
