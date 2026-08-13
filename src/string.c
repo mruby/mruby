@@ -983,6 +983,10 @@ mrb_str_byte_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
     s->as.heap.len = (mrb_ssize)len;
   }
   RSTR_COPY_SINGLE_BYTE_FLAG(s, orig);
+  /* A subrange of a byte-read string holds nothing but bytes of it, so it is
+     read the same way. MRB_STR_VALID_ENC stays behind: cutting can leave a
+     character in pieces, and validity is not a property a subrange inherits. */
+  RSTR_COPY_BINARY_FLAG(s, orig);
   return mrb_obj_value(s);
 }
 
@@ -1445,6 +1449,9 @@ mrb_str_times(mrb_state *mrb, mrb_value self)
   p[RSTR_LEN(str2)] = '\0';
   RSTR_COPY_SINGLE_BYTE_FLAG(str2, mrb_str_ptr(self));
   RSTR_COPY_VALID_ENC_FLAG(str2, mrb_str_ptr(self));
+  /* a repetition of a byte-read string holds nothing but its bytes over
+     again, so it is read the same way */
+  RSTR_COPY_BINARY_FLAG(str2, mrb_str_ptr(self));
 
   return mrb_obj_value(str2);
 }
