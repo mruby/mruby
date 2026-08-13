@@ -208,3 +208,37 @@ assert('String#encoding survives a copy') do
     assert_equal Encoding::UTF_8, d.encoding
   end
 end
+
+assert('what a string built out of a byte-read string claims') do
+  # A copy carries the byte reading with the bytes; nothing else that builds
+  # a string out of one does. Each of these hands back a string reporting
+  # UTF-8, most of them over bytes that refuse to read as it -- the state
+  # `Integer#chr` just stopped handing out, one derivation away. Pin where
+  # every answer stands before any of it moves.
+  if UTF8STRING
+    b = "\xE3\x81\x82".b   # the bytes of a three-byte character, read as bytes
+    assert_equal Encoding::BINARY, b.dup.encoding
+    assert_equal Encoding::BINARY, b.reverse.encoding
+    # a piece cut out of the string, and a repetition of it
+    assert_equal Encoding::UTF_8, b[0].encoding
+    assert_false b[0].valid_encoding?
+    assert_equal Encoding::UTF_8, b.chars[0].encoding
+    assert_equal Encoding::UTF_8, (171.chr * 2).encoding
+    assert_false (171.chr * 2).valid_encoding?
+    # a sum with a byte-read operand on either side
+    assert_equal Encoding::UTF_8, (171.chr + 171.chr).encoding
+    assert_false (171.chr + 171.chr).valid_encoding?
+    assert_equal Encoding::UTF_8, ("abc" + 171.chr).encoding
+    # a string the bytes were shoveled or spliced into
+    s = ""
+    s << 171.chr
+    assert_equal Encoding::UTF_8, s.encoding
+    assert_false s.valid_encoding?
+    assert_equal Encoding::UTF_8, [171.chr, 171.chr].join.encoding
+    assert_equal Encoding::UTF_8, "ab".gsub("a", 171.chr).encoding
+    # ljust keeps the receiver's reading through the copy it pads after;
+    # rjust builds the pad first and drops it
+    assert_equal Encoding::BINARY, 171.chr.ljust(3).encoding
+    assert_equal Encoding::UTF_8, 171.chr.rjust(3).encoding
+  end
+end
