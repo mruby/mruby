@@ -598,8 +598,8 @@ read_class_atom(re_compiler *c, re_charclass *cc, mrb_bool *is_byte)
   }
   /* Multi-byte UTF-8 leader: decode the full codepoint. An invalid leader
      decodes as itself over one byte, so it is a byte like the rest. */
-  mrb_int len = 0;
-  uint32_t cp = mrb_utf8_decode(c->p, c->src_end, &len);
+  int len = 0;
+  uint32_t cp = mrb_re_decode_char(c->p, c->src_end, &len, FALSE);
   c->p += len;
   if (len == 1) *is_byte = TRUE;
   return cp;
@@ -843,8 +843,8 @@ compute_fixed_len(re_compiler *c, uint32_t start, uint32_t end, int *chars_out)
     case RE_CHAR: {
       /* A multibyte literal is a run of one-byte RE_CHAR instructions, and
          what a byte spells depends on the bytes after it, so hand the run to
-         mrb_utf8len rather than read the lead bit alone: a continuation byte
-         no lead reaches is a character of its own, which is the rule the
+         mrb_re_charlen() rather than read the lead bit alone: a continuation
+         byte no lead reaches is a character of its own, which is the rule the
          executor rewinds by. Four bytes is the longest character there is,
          and a run never splits one. */
       char buf[4];
@@ -853,7 +853,7 @@ compute_fixed_len(re_compiler *c, uint32_t start, uint32_t end, int *chars_out)
         buf[n] = (char)c->code[pc + n].a;
         n++;
       }
-      int clen = (int)mrb_utf8len(buf, buf + n);
+      int clen = mrb_re_charlen(buf, buf + n, FALSE);
       len += clen;
       chars += 1;
       pc += (uint32_t)clen;
@@ -971,7 +971,7 @@ emit_char(re_compiler *c, uint8_t ch)
 static void
 emit_char_bytes(re_compiler *c, int ch)
 {
-  int len = (int)mrb_utf8len(c->p - 1, c->src_end);
+  int len = mrb_re_charlen(c->p - 1, c->src_end, FALSE);
   emit(c, RE_CHAR, (uint8_t)ch, 0);
   for (int i = 1; i < len; i++) {
     int b = next_char(c);
@@ -1028,8 +1028,8 @@ static mrb_bool
 emit_char_folded(re_compiler *c, int ch)
 {
   if (ch < 128 || !(c->flags & RE_FLAG_IGNORECASE)) return FALSE;
-  mrb_int len = 0;
-  uint32_t cp = mrb_utf8_decode(c->p - 1, c->src_end, &len);
+  int len = 0;
+  uint32_t cp = mrb_re_decode_char(c->p - 1, c->src_end, &len, FALSE);
   if (len == 1) return FALSE;
   if (!emit_cp_folded(c, cp)) return FALSE;
   c->p += len - 1;
