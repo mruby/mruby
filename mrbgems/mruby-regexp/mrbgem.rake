@@ -27,6 +27,13 @@ MRuby::Gem::Specification.new('mruby-regexp') do |spec|
     spec.add_dependency 'mruby-enumerator', :core => 'mruby-enumerator'
   end
 
+  # Same deal for what a piece of a match is read as: the marking a byte-read
+  # string carries is only visible through mruby-encoding, so mrbtest can only
+  # ask about it when that gem is part of the state.
+  if build.gems.any? {|g| g.name == 'mruby-encoding'}
+    spec.add_test_dependency 'mruby-encoding', :core => 'mruby-encoding'
+  end
+
   # Same deal for `Symbol#[]` and `#slice`, which live in mruby-symbol-ext and
   # delegate to the String methods: the regexp form is this gem's, so mrbtest
   # can only exercise it when that gem is part of the state.
