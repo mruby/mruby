@@ -211,10 +211,10 @@ end
 
 assert('what a string built out of a byte-read string claims') do
   # A copy carries the byte reading with the bytes, and so do the pieces cut
-  # out of the string and its repetitions. The sum, the shovel and the splice
-  # still hand back a string reporting UTF-8 over bytes that refuse to read
-  # as it -- the state `Integer#chr` just stopped handing out, one derivation
-  # away.
+  # out of the string, its repetitions and the pads built around it. The sum,
+  # the shovel and the splice still hand back a string reporting UTF-8 over
+  # bytes that refuse to read as it: the state `Integer#chr` just stopped
+  # handing out, one derivation away.
   if UTF8STRING
     b = "\xE3\x81\x82".b   # the bytes of a three-byte character, read as bytes
     assert_equal Encoding::BINARY, b.dup.encoding
@@ -236,10 +236,9 @@ assert('what a string built out of a byte-read string claims') do
     assert_false s.valid_encoding?
     assert_equal Encoding::UTF_8, [171.chr, 171.chr].join.encoding
     assert_equal Encoding::UTF_8, "ab".gsub("a", 171.chr).encoding
-    # ljust keeps the receiver's reading through the copy it pads after;
-    # rjust builds the pad first and drops it
+    # the receiver's bytes in wider clothes are read the way the receiver was
     assert_equal Encoding::BINARY, 171.chr.ljust(3).encoding
-    assert_equal Encoding::UTF_8, 171.chr.rjust(3).encoding
+    assert_equal Encoding::BINARY, 171.chr.rjust(3).encoding
   end
 end
 
@@ -280,5 +279,25 @@ assert('a string built by repeating a byte-read string') do
     assert_true s.valid_encoding?
     assert_equal Encoding::BINARY, ("abc".b * 2).encoding
     assert_equal Encoding::UTF_8, ("あ" * 2).encoding
+  end
+end
+
+assert('a byte-read string padded to width') do
+  # ljust, rjust and center hand back the receiver's bytes in wider clothes,
+  # so the result is read the way the receiver was, ASCII bytes and all.
+  if UTF8STRING
+    s = 171.chr
+    [s.ljust(3), s.rjust(3), s.center(4)].each do |padded|
+      assert_equal Encoding::BINARY, padded.encoding
+      assert_true padded.valid_encoding?
+    end
+    assert_equal [171, 32, 32], s.ljust(3).bytes
+    assert_equal [32, 32, 171], s.rjust(3).bytes
+    assert_equal [32, 171, 32, 32], s.center(4).bytes
+    # an ASCII receiver read as bytes keeps the byte reading too
+    assert_equal Encoding::BINARY, "abc".b.ljust(5).encoding
+    assert_equal Encoding::BINARY, "abc".b.rjust(5).encoding
+    assert_equal Encoding::BINARY, "abc".b.center(5).encoding
+    assert_equal Encoding::UTF_8, "あ".center(3).encoding
   end
 end

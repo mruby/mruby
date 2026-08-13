@@ -1885,7 +1885,13 @@ str_rjust_core(mrb_state *mrb, mrb_value self)
     }
   }
 
-  return mrb_str_cat_str(mrb, padding, self);
+  mrb_value result = mrb_str_cat_str(mrb, padding, self);
+  /* the padded string is the receiver's bytes in wider clothes, so it is
+     read the way the receiver was, ASCII bytes and all */
+  if (RSTR_BINARY_P(mrb_str_ptr(self))) {
+    mrb_str_ptr(result)->flags |= MRB_STR_BINARY;
+  }
+  return result;
 }
 
 /*
@@ -1953,7 +1959,13 @@ str_center_core(mrb_state *mrb, mrb_value self)
   }
 
   mrb_value result = mrb_str_cat_str(mrb, left_padding, self);
-  return mrb_str_cat_str(mrb, result, right_padding);
+  result = mrb_str_cat_str(mrb, result, right_padding);
+  /* the padded string is the receiver's bytes in wider clothes, so it is
+     read the way the receiver was, ASCII bytes and all */
+  if (RSTR_BINARY_P(mrb_str_ptr(self))) {
+    mrb_str_ptr(result)->flags |= MRB_STR_BINARY;
+  }
+  return result;
 }
 
 static mrb_value
