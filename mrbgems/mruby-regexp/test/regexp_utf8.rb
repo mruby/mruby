@@ -671,3 +671,27 @@ assert("Regexp - a piece of a byte-read subject is byte-read") do
   # a piece of a subject read as UTF-8 goes on reading as UTF-8
   assert_equal Encoding::UTF_8, "あb".match(/b/)[0].encoding
 end
+
+assert("Regexp - what sub and gsub build out of a byte-read subject") do
+  # The result is the subject's bytes with the replacement spliced in, so it
+  # is read the way the subject was, and a replacement of byte-read bytes
+  # above ASCII marks a plain subject's result the way any appended byte-read
+  # bytes do.
+  skip unless "".respond_to?(:encoding)
+  skip unless __ENCODING__ == "UTF-8"
+  subject = "a\x80b".b
+  assert_equal Encoding::BINARY, subject.sub(/a/, "-").encoding
+  assert_equal Encoding::BINARY, subject.gsub(/a/, "-").encoding
+  assert_true subject.gsub(/a/, "-").valid_encoding?
+  assert_equal Encoding::BINARY, subject.gsub(/a/) { "-" }.encoding
+  assert_equal Encoding::BINARY, "ab".gsub(/a/, 171.chr).encoding
+  assert_equal Encoding::BINARY, "ab".sub(/a/, 171.chr).encoding
+  # a replacement of ASCII bytes moves nothing
+  assert_equal Encoding::UTF_8, "ab".gsub(/a/, "-".b).encoding
+  # and neither does one a search that matched nothing never spliced in
+  assert_equal Encoding::UTF_8, "ab".gsub(/x/, 171.chr).encoding
+  assert_equal Encoding::UTF_8, "ab".gsub("x", 171.chr).encoding
+  assert_equal Encoding::UTF_8, "ab".sub(/x/, 171.chr).encoding
+  # a byte-read subject is read as bytes whether anything was spliced or not
+  assert_equal Encoding::BINARY, subject.gsub(/x/, "-").encoding
+end

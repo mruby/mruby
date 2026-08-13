@@ -210,11 +210,10 @@ assert('String#encoding survives a copy') do
 end
 
 assert('what a string built out of a byte-read string claims') do
-  # A copy carries the byte reading with the bytes, and so do the pieces cut
-  # out of the string, its repetitions, its sums and the pads built around it.
-  # The shovel and the splice still hand back a string reporting UTF-8 over
-  # bytes that refuse to read as it: the state `Integer#chr` just stopped
-  # handing out, one derivation away.
+  # A copy carries the byte reading with the bytes, and so does everything
+  # else here that builds a string out of them: the pieces cut out of the
+  # string, its repetitions and sums, and the strings its bytes are shoveled
+  # or spliced into, the pads included.
   if UTF8STRING
     b = "\xE3\x81\x82".b   # the bytes of a three-byte character, read as bytes
     assert_equal Encoding::BINARY, b.dup.encoding
@@ -232,10 +231,10 @@ assert('what a string built out of a byte-read string claims') do
     # a string the bytes were shoveled or spliced into
     s = ""
     s << 171.chr
-    assert_equal Encoding::UTF_8, s.encoding
-    assert_false s.valid_encoding?
-    assert_equal Encoding::UTF_8, [171.chr, 171.chr].join.encoding
-    assert_equal Encoding::UTF_8, "ab".gsub("a", 171.chr).encoding
+    assert_equal Encoding::BINARY, s.encoding
+    assert_true s.valid_encoding?
+    assert_equal Encoding::BINARY, [171.chr, 171.chr].join.encoding
+    assert_equal Encoding::BINARY, "ab".gsub("a", 171.chr).encoding
     # the receiver's bytes in wider clothes are read the way the receiver was
     assert_equal Encoding::BINARY, 171.chr.ljust(3).encoding
     assert_equal Encoding::BINARY, 171.chr.rjust(3).encoding
@@ -308,9 +307,85 @@ assert('String#+ with a byte-read operand') do
   end
 end
 
+assert('bytes shoveled or spliced into a string') do
+  # Bytes that were read as bytes and go above ASCII spell no character in
+  # the string they are appended or spliced into, so they hand it the byte
+  # reading along with themselves. ASCII bytes read the same under any
+  # reading and move nothing.
+  if UTF8STRING
+    s = ""
+    s << 171.chr
+    assert_equal Encoding::BINARY, s.encoding
+    assert_true s.valid_encoding?
+    assert_equal [171], s.bytes
+    # concat and interpolation reach the same append
+    t = "abc"
+    t.concat(171.chr)
+    assert_equal Encoding::BINARY, t.encoding
+    assert_equal Encoding::BINARY, "<#{171.chr}>".encoding
+    # so do join and the replacement gsub splices in
+    assert_equal Encoding::BINARY, [171.chr, 171.chr].join.encoding
+    assert_equal Encoding::BINARY, ["a", 171.chr].join("-").encoding
+    assert_equal Encoding::BINARY, "a\x80b".b.gsub("a", "-").encoding
+    assert_equal Encoding::BINARY, "ab".gsub("a", 171.chr).encoding
+    # ASCII bytes say nothing about the reading
+    u = ""
+    u << "abc".b
+    assert_equal Encoding::UTF_8, u.encoding
+    # an Integer is read as a code point, and a code point is a character
+    v = ""
+    v << 171
+    assert_equal Encoding::UTF_8, v.encoding
+    assert_equal [0xC2, 0xAB], v.bytes
+    # a byte-read receiver reads everything as bytes already; CRuby lifts one
+    # of ASCII bytes to the argument's reading, which is a claim this string
+    # never makes, so it stays as it is
+    w = "".b
+    w << "あ"
+    assert_equal Encoding::BINARY, w.encoding
+    assert_equal [0xE3, 0x81, 0x82], w.bytes
+    # a splice into the middle or the front is the same landing
+    x = "ab"
+    x.insert(1, 171.chr)
+    assert_equal Encoding::BINARY, x.encoding
+    assert_equal [97, 171, 98], x.bytes
+    y = "ab"
+    y.prepend(171.chr)
+    assert_equal Encoding::BINARY, y.encoding
+    z = "ab"
+    z[0, 1] = 171.chr
+    assert_equal Encoding::BINARY, z.encoding
+    assert_true z.valid_encoding?
+    # and a splice of ASCII bytes moves nothing, wherever it lands
+    za = "ab"
+    za.insert(1, "x".b)
+    za.prepend("y".b)
+    za[0, 1] = "z".b
+    assert_equal Encoding::UTF_8, za.encoding
+  end
+end
+
+assert('String#append_as_bytes leaves the reading alone') do
+  # append_as_bytes takes only the bytes of what it is given; the receiver's
+  # reading does not move, whatever lands in it. CRuby specifies exactly this.
+  if UTF8STRING
+    s = "あ"
+    s.append_as_bytes(171)
+    assert_equal Encoding::UTF_8, s.encoding
+    assert_false s.valid_encoding?
+    assert_equal [0xE3, 0x81, 0x82, 171], s.bytes
+    t = "あ"
+    t.append_as_bytes(171.chr)
+    assert_equal Encoding::UTF_8, t.encoding
+    assert_equal [0xE3, 0x81, 0x82, 171], t.bytes
+  end
+end
+
 assert('a byte-read string padded to width') do
   # ljust, rjust and center hand back the receiver's bytes in wider clothes,
-  # so the result is read the way the receiver was, ASCII bytes and all.
+  # so the result is read the way the receiver was, ASCII bytes and all. A
+  # pad read as bytes marks the result the way any appended byte-read bytes
+  # do.
   if UTF8STRING
     s = 171.chr
     [s.ljust(3), s.rjust(3), s.center(4)].each do |padded|
@@ -324,6 +399,10 @@ assert('a byte-read string padded to width') do
     assert_equal Encoding::BINARY, "abc".b.ljust(5).encoding
     assert_equal Encoding::BINARY, "abc".b.rjust(5).encoding
     assert_equal Encoding::BINARY, "abc".b.center(5).encoding
+    # a byte-read pad above ASCII marks a plain receiver's result
+    assert_equal Encoding::BINARY, "ab".center(4, 255.chr).encoding
+    # a byte-read pad of ASCII bytes moves nothing
+    assert_equal Encoding::UTF_8, "ab".center(4, "-".b).encoding
     assert_equal Encoding::UTF_8, "あ".center(3).encoding
   end
 end

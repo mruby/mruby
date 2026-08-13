@@ -1134,6 +1134,26 @@ has_backslash(const char *s, mrb_int len)
   return memchr(s, '\\', len) != NULL;
 }
 
+/* What sub and gsub build is the subject's bytes with the replacement spliced
+   in, so it is read the way the subject was; a replacement that was read as
+   bytes and goes above ASCII hands its reading over the way any appended
+   byte-read bytes do. A gsub that matched nothing spliced nothing, so its
+   result holds the subject alone and the replacement says nothing about it.
+   This is where CRuby lands on every pair it accepts. */
+static void
+re_mark_spliced(mrb_value result, mrb_value subject, mrb_value replacement,
+                mrb_bool spliced)
+{
+  if (!re_binary_string_p(subject)) {
+    if (!spliced || !re_binary_string_p(replacement)) return;
+    const char *p = RSTRING_PTR(replacement);
+    const char *e = p + RSTRING_LEN(replacement);
+    while (p < e && !(*p & 0x80)) p++;
+    if (p == e) return;
+  }
+  mrb_str_ptr(result)->flags |= MRB_STR_BINARY;
+}
+
 /*
  * Regexp.__gsub_str(re, str, replacement, checked = false) - gsub core without block
  *
@@ -1225,6 +1245,7 @@ regexp_s_gsub_str(mrb_state *mrb, mrb_value klass)
     clear_match_globals(mrb);
   }
 
+  re_mark_spliced(result, str, replacement, last_ncap > 0);
   return result;
 }
 
@@ -1283,6 +1304,7 @@ regexp_s_sub_str(mrb_state *mrb, mrb_value klass)
 
   create_matchdata(mrb, re, str, captures, cap_size);
   mrb_free(mrb, captures);
+  re_mark_spliced(result, str, replacement, TRUE);
   return result;
 }
 
