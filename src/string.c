@@ -1491,6 +1491,12 @@ mrb_str_times(mrb_state *mrb, mrb_value self)
   /* a repetition of a byte-read string holds nothing but its bytes over
      again, so it is read the same way */
   RSTR_COPY_BINARY_FLAG(str2, mrb_str_ptr(self));
+  /* A repetition of broken bytes reaches the same broken place the first copy
+     does, so it is broken too. Nought copies keep none of the bytes, and an
+     empty string is not broken whatever it was made from. */
+  if (len > 0) {
+    RSTR_COPY_BROKEN_ENC_FLAG(str2, mrb_str_ptr(self));
+  }
 
   return mrb_obj_value(str2);
 }
