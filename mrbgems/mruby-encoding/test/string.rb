@@ -185,6 +185,10 @@ assert('String#encoding') do
   else
     a = "hello"
     assert_equal Encoding::BINARY, a.encoding
+    # `b` sets the byte-indexed flag, but with no UTF-8 to read a string as
+    # instead, every string answers the same way whether the flag is on or not
+    assert_equal Encoding::BINARY, a.b.encoding
+    assert_equal Encoding::BINARY, "\xff\xfe".encoding
   end
 end
 
