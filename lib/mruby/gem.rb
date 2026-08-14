@@ -422,6 +422,7 @@ module MRuby
 
       def initialize
         @ary = []
+        @removed = []
       end
 
       def each(&b)
@@ -445,10 +446,14 @@ module MRuby
       # Remove the gem named +name+ and return it.  Naming a gem that
       # is not in this build is a typo, not a no-op, so this fails;
       # use +reject!+ when a predicate matching nothing is acceptable.
+      #
+      # A gem another gem declares as a dependency comes back during
+      # dependency resolution; setup_dependencies says so when it does.
       def delete(name)
         gem = self[name]
         fail "Can't remove gem '#{name}'; it is not in this build" unless gem
         @ary.delete(gem)
+        @removed << name
         gem
       end
 
@@ -458,6 +463,7 @@ module MRuby
         gone = @ary.select(&block)
         return nil if gone.empty?
         @ary -= gone
+        @removed.concat(gone.map(&:name))
         self
       end
 
@@ -511,7 +517,7 @@ module MRuby
         default_gems = {}
         each do |g|
           g.dependencies.each do |dep|
-            default_gems[dep[:gem]] ||= default_gem_params(dep)
+            default_gems[dep[:gem]] ||= default_gem_params(dep).merge(:required_by => g.name)
           end
         end
 
@@ -519,12 +525,18 @@ module MRuby
           def_name, def_gem = default_gems.shift
           next if gem_table[def_name]
 
+          # The build config asked for this one to go, but a gem that
+          # stayed cannot be built without it.  Say so rather than
+          # letting the removal look like it took.
+          warn "gem '#{def_name}' can't be removed; #{def_gem[:required_by]} depends on it" if
+            @removed.include?(def_name)
+
           spec = gem_table[def_name] = build.gem(def_gem[:default])
           fail "Invalid gem name: #{spec.name} (Expected: #{def_name})" if spec.name != def_name
           spec.setup
 
           spec.dependencies.each do |dep|
-            default_gems[dep[:gem]] ||= default_gem_params(dep)
+            default_gems[dep[:gem]] ||= default_gem_params(dep).merge(:required_by => spec.name)
           end
         end
 

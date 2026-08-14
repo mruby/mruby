@@ -300,6 +300,15 @@ is not in the build fails, so a misspelled name does not pass for a build
 that quietly keeps the Gem. `conf.gems.reject!` takes a block instead and
 removes every Gem it matches, returning `nil` when it matches none.
 
+A Gem that another Gem in the build declares as a dependency cannot be
+removed this way: dependency resolution loads it again, and reports
+
+```
+gem 'mruby-string-ext' can't be removed; mruby-regexp depends on it
+```
+
+Removing the Gem that depends on it as well is what makes it go.
+
 There is a `RubyGem` (gem for CRuby) named `mgem` that help you to
 manage `mrbgems`. Try `gem install mgem`. `mgem` can show you the list
 of registered `mrbgems`.
