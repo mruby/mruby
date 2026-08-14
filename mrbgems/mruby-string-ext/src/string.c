@@ -1413,7 +1413,10 @@ str_casecmp(mrb_state *mrb, mrb_value self)
   if (p1 == p2) return mrb_fixnum_value(0);
 
   for (mrb_int i=0; i<len; i++) {
-    int c1 = p1[i], c2 = p2[i];
+    /* Read as unsigned, as `String#<=>` reads the same bytes: a plain `char`
+       is signed on most targets, which would order a byte of 0x80 or above
+       below every ASCII one. */
+    int c1 = (unsigned char)p1[i], c2 = (unsigned char)p2[i];
     if (ISASCII(c1) && ISUPPER(c1)) c1 = TOLOWER(c1);
     if (ISASCII(c2) && ISUPPER(c2)) c2 = TOLOWER(c2);
     if (c1 > c2) return mrb_fixnum_value(1);
