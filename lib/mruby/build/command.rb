@@ -36,6 +36,13 @@ module MRuby
 
   class Command::Compiler < Command
     attr_accessor :label, :flags, :include_paths, :defines, :source_exts
+    # Defines are held in two lists, split by who asked for them. `defines` is
+    # what the build config and the gems write. `internal_defines` is what the
+    # build adds on its own behalf, from its own switches (`enable_debug`,
+    # `enable_cxx_abi`) or from a toolchain. Both reach the compiler as `-D`;
+    # keeping them apart lets a toolchain set its own without overwriting what
+    # the config already wrote, and lets a caller ask for one list alone.
+    attr_accessor :internal_defines
     attr_accessor :compile_options, :option_define, :option_include_path, :out_ext
     attr_accessor :cxx_compile_flag, :cxx_exception_flag, :cxx_invalid_flags
     attr_writer :preprocess_options
@@ -48,6 +55,7 @@ module MRuby
       @source_exts = source_exts
       @include_paths = ["#{MRUBY_ROOT}/include"]
       @defines = []
+      @internal_defines = []
       @option_include_path = %q[-I"%s"]
       @option_define = %q[-D"%s"]
       @compile_options = %q[%{flags} -o "%{outfile}" -c "%{infile}"]
@@ -59,6 +67,18 @@ module MRuby
 
     def preprocess_options
       @preprocess_options ||= @compile_options.sub(/(?:\A|\s)\K-c(?=\s)/, "-E -P")
+    end
+
+    # True when this compiler compiles with -D<name>, whichever of the two
+    # lists it sits in. A gem asks this while its own mrbgem.rake body runs,
+    # where `Build#has_define?` refuses to answer because the gems that come
+    # after it have not contributed their defines yet.
+    def has_define?(name)
+      name = name.to_s
+      # A define may carry a value, as `FOO=1` does, so compare the name and
+      # not the value.
+      [defines, internal_defines].flatten
+        .any? {|d| d.to_s.split('=', 2).first == name}
     end
 
     def search_header_path(name)
@@ -73,7 +93,8 @@ module MRuby
     end
 
     def all_flags(_defines=[], _include_paths=[], _flags=[])
-      define_flags = [defines, _defines, build.defines].flatten.map{ |d| option_define % d }
+      define_flags = [defines, internal_defines, _defines, build.defines].flatten
+                       .map{ |d| option_define % d }
       include_path_flags = [include_paths, _include_paths].flatten.map do |f|
         option_include_path % filename(f)
       end

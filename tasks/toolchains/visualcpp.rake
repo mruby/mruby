@@ -9,7 +9,7 @@ MRuby::Toolchain.new(:visualcpp) do |conf, _params|
       compiler.command = ENV['CXX'] || 'cl.exe'
       compiler.flags = [*(ENV['CXXFLAGS'] || ENV['CFLAGS'] || compiler_flags + %w(/EHs))]
     end
-    compiler.defines = %w(MRB_STACK_EXTEND_DOUBLING)
+    compiler.internal_defines |= %w(MRB_STACK_EXTEND_DOUBLING)
     compiler.option_include_path = %q[/I"%s"]
     compiler.option_define = '/D%s'
     compiler.compile_options = %Q[/Zi /c /Fo"%{outfile}" %{flags} "%{infile}"]

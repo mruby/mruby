@@ -170,7 +170,7 @@ module MRuby
 
     def enable_debug
       compilers.each do |c|
-        c.defines += %w(MRB_DEBUG)
+        c.internal_defines += %w(MRB_DEBUG)
         c.setup_debug(self)
       end
       @mrbc.compile_options += ' -g'
@@ -225,7 +225,7 @@ module MRuby
       end
       @cxx_exception_enabled = true
       compilers.each { |c|
-        c.defines += %w(MRB_USE_CXX_EXCEPTION)
+        c.internal_defines += %w(MRB_USE_CXX_EXCEPTION)
         c.flags << c.cxx_exception_flag
       }
       linker.command = cxx.command if toolchains.find { |v| v == 'gcc' }
@@ -245,7 +245,7 @@ module MRuby
         raise "cxx_exception already enabled"
       end
       compilers.each { |c|
-        c.defines += %w(MRB_USE_CXX_EXCEPTION MRB_USE_CXX_ABI)
+        c.internal_defines += %w(MRB_USE_CXX_EXCEPTION MRB_USE_CXX_ABI)
         c.flags << c.cxx_compile_flag
         c.flags = c.flags.flatten - c.cxx_invalid_flags.flatten
       }
@@ -388,8 +388,9 @@ EOS
     end
 
     # True when this build compiles with -D<name>, whether the build config
-    # asked for it or a gem contributed it.  A gem reads this to configure
-    # itself against a capability another gem provides.
+    # asked for it, a gem contributed it, or the build added it from one of
+    # its own switches.  A gem reads this to configure itself against a
+    # capability another gem provides.
     #
     # Until `defines_final!` the answer would depend on how far down the gem
     # list the caller sits, since a gem contributes its defines when its own
@@ -406,8 +407,8 @@ EOS
       # A define may carry a value, as `FOO=1` does, so compare the name and
       # not the value.  The `-D` is the compiler's, added when the flags are
       # assembled, and is no part of the name.
-      [defines, *compilers.map(&:defines)].flatten
-        .any? {|d| d.to_s.split('=', 2).first == name}
+      return true if defines.flatten.any? {|d| d.to_s.split('=', 2).first == name}
+      compilers.any? {|c| c.has_define?(name)}
     end
 
     def define_rules
