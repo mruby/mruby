@@ -410,3 +410,18 @@ assert('a byte-read string padded to width') do
     assert_equal Encoding::UTF_8, "あ".center(3).encoding
   end
 end
+
+assert('a build without UTF-8 does not know the name') do
+  # There is no UTF-8 here for a string to be read as, so "UTF-8" is a name
+  # this build has no encoding for, and it is turned away the way any other
+  # such name is. CRuby answers the same for a name it has no entry for.
+  assert_raise(ArgumentError) { "hello".force_encoding("UTF-8") }
+  assert_raise(ArgumentError) { "hello".force_encoding("utf-8") }
+  assert_raise(NameError) { Encoding::UTF_8 }
+
+  # the names it does have are unaffected
+  s = "hello"
+  assert_equal s, s.force_encoding("ASCII-8BIT")
+  assert_equal s, s.force_encoding("BINARY")
+  assert_equal Encoding::BINARY, s.encoding
+end unless UTF8STRING
