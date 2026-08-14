@@ -45,10 +45,15 @@ MRuby::Gem::Specification.new('mruby-regexp') do |spec|
   # patterns (one that /i folds them, the other that /i refuses to compile
   # them), so each belongs to exactly one of the two builds. Everything /i
   # does the same way in both is in the unconditional test files and
-  # always runs.
-  if build.cc.defines.include?('MRB_REGEXP_UNICODE_CASE')
-    spec.test_rbfiles -= ["#{spec.dir}/test/ascii_case.rb"]
-  else
-    spec.test_rbfiles -= ["#{spec.dir}/test/unicode_case.rb"]
+  # always runs. What the build defines can only be asked once every gem has
+  # had its say, which is what `build_settings` waits for; this gem sets no
+  # build command in the block above, so the reset that comes with it drops
+  # nothing.
+  spec.build_settings do
+    if build.has_define?('MRB_REGEXP_UNICODE_CASE')
+      spec.test_rbfiles -= ["#{spec.dir}/test/ascii_case.rb"]
+    else
+      spec.test_rbfiles -= ["#{spec.dir}/test/unicode_case.rb"]
+    end
   end
 end
