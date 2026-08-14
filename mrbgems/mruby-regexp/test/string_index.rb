@@ -474,6 +474,58 @@ assert("String#byteindex and String#byterindex with regexp") do
   end
 end
 
+assert("String#byteindex and String#byterindex take an offset inside a character") do
+  # A byte offset that lands inside a character names no position the string
+  # has, and `mrb_str_byteindex_m()` refuses one rather than search from the
+  # middle of a character.  This gem takes both methods over for a Regexp and
+  # asks nothing about the offset it is handed, so the two forms of the same
+  # search part company here.  CRuby raises for both.
+  skip unless __ENCODING__ == "UTF-8"
+  str = "あいうあいう"    # 6 characters, 18 bytes
+
+  assert_raise(IndexError) { str.byteindex("い", 1) }
+  assert_raise(IndexError) { str.byterindex("い", 1) }
+  assert_equal 3, str.byteindex(/い/, 1)
+  assert_nil str.byterindex(/い/, 1)
+
+  # a negative offset is read against the byte length first, so where it lands
+  # is the question asked of it too
+  assert_raise(IndexError) { "あ".byteindex("x", -1) }
+  assert_raise(IndexError) { "あ".byterindex("x", -1) }
+  assert_nil "あ".byteindex(/x/, -1)
+  assert_nil "あ".byterindex(/x/, -1)
+
+  # an offset on a boundary is a position either way, and the two forms agree
+  assert_equal 3, str.byteindex("い", 3)
+  assert_equal 3, str.byteindex(/い/, 3)
+  assert_equal 3, str.byterindex("い", 3)
+  assert_equal 3, str.byterindex(/い/, 3)
+
+  # so is every offset of a string that indexes by byte, whatever its bytes
+  # spell, and both forms take one
+  bin = "あ".b
+  assert_nil bin.byteindex("x", 1)
+  assert_nil bin.byteindex(/x/, 1)
+  assert_nil bin.byterindex("x", 1)
+  assert_nil bin.byterindex(/x/, 1)
+
+  # an offset before the string is a miss before it is a position, for either
+  # form.  The pattern is one the subject holds, so that a nil is the offset
+  # being answered rather than the search coming up empty on its own.
+  assert_nil "あ".byteindex("あ", -9)
+  assert_nil "あ".byteindex(/あ/, -9)
+  assert_nil "あ".byterindex("あ", -9)
+  assert_nil "あ".byterindex(/あ/, -9)
+
+  # past the far end the two methods part company, as they do for a String:
+  # `byteindex` misses, and `byterindex` reads the offset as the end it already
+  # searches back from
+  assert_nil "あ".byteindex("あ", 9)
+  assert_nil "あ".byteindex(/あ/, 9)
+  assert_equal 0, "あ".byterindex("あ", 9)
+  assert_equal 0, "あ".byterindex(/あ/, 9)
+end
+
 assert("String#byteindex and String#byterindex with regexp set the match globals") do
   assert_equal 1, "abc".byteindex(/(b)/)
   assert_equal "b", $1
