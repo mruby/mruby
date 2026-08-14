@@ -125,14 +125,32 @@ struct RStringEmbed {
 # define RSTR_COPY_BROKEN_ENC_FLAG(dst, src) (void)0
 #endif
 #define RSTR_SET_ASCII_FLAG(s) RSTR_SET_SINGLE_BYTE_FLAG(s)
-#define RSTR_BINARY_P(s) ((s)->flags & MRB_STR_BINARY)
-#define RSTR_SET_BINARY_FLAG(s) ((s)->flags |= MRB_STR_BINARY)
-#define RSTR_UNSET_BINARY_FLAG(s) ((s)->flags &= ~MRB_STR_BINARY)
-/* A copy of a string is byte-indexed exactly when the string it copies is, so
-   the flag travels with the bytes rather than being left behind on the
-   original. */
-#define RSTR_COPY_BINARY_FLAG(dst, src) \
-  ((dst)->flags = ((dst)->flags & ~MRB_STR_BINARY) | RSTR_BINARY_P(src))
+/* The encoding a string's bytes are read as, named as an index into the set of
+   encodings the build carries. Index 0 is that build's default, which is what
+   a string that says nothing else holds: the literals the parser hands over,
+   the strings numbers and times spell themselves with. The zero a fresh string
+   is filled with therefore already says the default, and the path every string
+   is made on stores nothing.
+
+   A build without MRB_UTF8_STRING carries no UTF-8, so it names none: writing
+   the name there is a compile error rather than a quiet no-op. Such a build
+   still tells a byte-read string from a default one, since String#b and
+   Integer#chr mark one there too. */
+#define MRB_STR_ENCODING_DEFAULT 0
+#define MRB_STR_ENCODING_BINARY  1
+#ifdef MRB_UTF8_STRING
+# define MRB_STR_ENCODING_UTF8   MRB_STR_ENCODING_DEFAULT
+#endif
+
+#define RSTR_ENCODING(s) \
+  (((s)->flags & MRB_STR_BINARY) ? MRB_STR_ENCODING_BINARY : MRB_STR_ENCODING_DEFAULT)
+#define RSTR_ENCODING_SET(s, e) \
+  ((s)->flags = ((s)->flags & ~MRB_STR_BINARY) | \
+                (((e) == MRB_STR_ENCODING_BINARY) ? MRB_STR_BINARY : 0))
+#define RSTR_BINARY_P(s) (RSTR_ENCODING(s) == MRB_STR_ENCODING_BINARY)
+/* A copy of a string is read the way the string it copies is, so the encoding
+   travels with the bytes rather than being left behind on the original. */
+#define RSTR_ENC_COPY(dst, src) RSTR_ENCODING_SET(dst, RSTR_ENCODING(src))
 
 /**
  * Returns a pointer from a Ruby string

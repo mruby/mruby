@@ -29,7 +29,7 @@ int_chr_binary(mrb_state *mrb, mrb_value num)
     RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
   }
   else {
-    RSTR_SET_BINARY_FLAG(mrb_str_ptr(str));
+    RSTR_ENCODING_SET(mrb_str_ptr(str), MRB_STR_ENCODING_BINARY);
   }
   return str;
 }
@@ -125,7 +125,7 @@ str_mark_spliced_bytes(mrb_value recv, mrb_value src)
   const char *p = RSTR_PTR(s);
   const char *e = p + RSTR_LEN(s);
   while (p < e && !(*p & 0x80)) p++;
-  if (p < e) RSTR_SET_BINARY_FLAG(r);
+  if (p < e) RSTR_ENCODING_SET(r, MRB_STR_ENCODING_BINARY);
 }
 
 static void
@@ -1459,7 +1459,7 @@ str_lines(mrb_state *mrb, mrb_value self)
     /* a line of a byte-read string is a subrange of its bytes, read the
        same way */
     mrb_value line = mrb_str_new(mrb, t, len);
-    RSTR_COPY_BINARY_FLAG(mrb_str_ptr(line), mrb_str_ptr(self));
+    RSTR_ENC_COPY(mrb_str_ptr(line), mrb_str_ptr(self));
     mrb_ary_push(mrb, result, line);
     mrb_gc_arena_restore(mrb, ai);
   }
@@ -1522,7 +1522,7 @@ static mrb_value
 str_b(mrb_state *mrb, mrb_value self)
 {
   mrb_value str = mrb_str_dup(mrb, self);
-  RSTR_SET_BINARY_FLAG(mrb_str_ptr(str));
+  RSTR_ENCODING_SET(mrb_str_ptr(str), MRB_STR_ENCODING_BINARY);
   return str;
 }
 
@@ -1806,7 +1806,7 @@ str_chars_ary(mrb_state *mrb, mrb_value self)
      way, so the marking goes with each one */
   while (p < e) {
     mrb_value piece = mrb_str_new(mrb, p, 1);
-    RSTR_COPY_BINARY_FLAG(mrb_str_ptr(piece), s);
+    RSTR_ENC_COPY(mrb_str_ptr(piece), s);
     mrb_ary_push(mrb, result, piece);
     p++;
   }
@@ -1914,7 +1914,7 @@ str_rjust_core(mrb_state *mrb, mrb_value self)
   /* the padded string is the receiver's bytes in wider clothes, so it is
      read the way the receiver was, ASCII bytes and all */
   if (RSTR_BINARY_P(mrb_str_ptr(self))) {
-    RSTR_SET_BINARY_FLAG(mrb_str_ptr(result));
+    RSTR_ENCODING_SET(mrb_str_ptr(result), MRB_STR_ENCODING_BINARY);
   }
   return result;
 }
@@ -1988,7 +1988,7 @@ str_center_core(mrb_state *mrb, mrb_value self)
   /* the padded string is the receiver's bytes in wider clothes, so it is
      read the way the receiver was, ASCII bytes and all */
   if (RSTR_BINARY_P(mrb_str_ptr(self))) {
-    RSTR_SET_BINARY_FLAG(mrb_str_ptr(result));
+    RSTR_ENCODING_SET(mrb_str_ptr(result), MRB_STR_ENCODING_BINARY);
   }
   return result;
 }
@@ -2058,7 +2058,7 @@ mrb_str_slice_bang(mrb_state *mrb, mrb_value self)
   /* the piece cut out is a subrange of the receiver's bytes, read the same
      way; copied rather than shared, since the memmove below would slide the
      receiver's remaining bytes through a shared buffer */
-  RSTR_COPY_BINARY_FLAG(mrb_str_ptr(result), str);
+  RSTR_ENC_COPY(mrb_str_ptr(result), str);
 
   mrb_str_modify(mrb, str);
   ptr = RSTRING_PTR(self);
@@ -2093,7 +2093,7 @@ static mrb_value
 str_cut_piece(mrb_state *mrb, mrb_value str, const char *p, mrb_int len)
 {
   mrb_value piece = mrb_str_new(mrb, p, len);
-  RSTR_COPY_BINARY_FLAG(mrb_str_ptr(piece), mrb_str_ptr(str));
+  RSTR_ENC_COPY(mrb_str_ptr(piece), mrb_str_ptr(str));
   return piece;
 }
 

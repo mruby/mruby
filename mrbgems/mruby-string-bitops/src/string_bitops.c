@@ -427,7 +427,7 @@ static mrb_value
 bitop_result_str(mrb_state *mrb, mrb_int len)
 {
   mrb_value result = mrb_str_new(mrb, NULL, len);
-  RSTR_SET_BINARY_FLAG(mrb_str_ptr(result));
+  RSTR_ENCODING_SET(mrb_str_ptr(result), MRB_STR_ENCODING_BINARY);
   return result;
 }
 

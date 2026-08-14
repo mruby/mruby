@@ -69,10 +69,10 @@ str_force_encoding(mrb_state *mrb, mrb_value self)
   struct RString *s = mrb_str_ptr(self);
   if (MRB_STR_CASECMP_P(enc, ENC_ASCII_8BIT) ||
       MRB_STR_CASECMP_P(enc, ENC_BINARY)) {
-    RSTR_SET_BINARY_FLAG(s);
+    RSTR_ENCODING_SET(s, MRB_STR_ENCODING_BINARY);
   }
   else if (MRB_STR_CASECMP_P(enc, ENC_UTF8)) {
-    RSTR_UNSET_BINARY_FLAG(s);
+    RSTR_ENCODING_SET(s, MRB_STR_ENCODING_UTF8);
   }
   else {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "unknown encoding name - %v", enc);
