@@ -618,15 +618,9 @@ retry:
           mark_written_bytes(result, str);
           len = RSTRING_LEN(str);
 
-          /* Update result string length for embedded strings */
-          if (RSTRING(result)->flags & MRB_STR_EMBED) {
-            mrb_int tmp_n = len;
-            RSTRING(result)->flags &= ~MRB_STR_EMBED_LEN_MASK;
-            RSTRING(result)->flags |= tmp_n << MRB_STR_EMBED_LEN_SHIFT;
-          }
-          else {
-            RSTRING(result)->as.heap.len = blen;
-          }
+          /* Keep the result's length at what has been written into it, which
+             CHECK() leaves at the size of the whole buffer. */
+          RSTR_SET_LEN(mrb_str_ptr(result), blen);
 
           /* Handle precision and width formatting */
           if (flags&(FPREC|FWIDTH)) {
