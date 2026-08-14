@@ -2086,6 +2086,17 @@ str_clear(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/* A piece cut out of a string holds nothing but bytes of it, so it is read the
+   way the string is. An empty piece stands for a place in the string and is
+   read the same way, having no bytes to say otherwise. */
+static mrb_value
+str_cut_piece(mrb_state *mrb, mrb_value str, const char *p, mrb_int len)
+{
+  mrb_value piece = mrb_str_new(mrb, p, len);
+  RSTR_COPY_BINARY_FLAG(mrb_str_ptr(piece), mrb_str_ptr(str));
+  return piece;
+}
+
 /*
  *  call-seq:
  *     str.partition(sep) -> [head, sep, tail]
@@ -2115,8 +2126,8 @@ str_partition(mrb_state *mrb, mrb_value self)
   mrb_value result_ary = mrb_ary_new_capa(mrb, 3);
 
   if (sep_len == 0) {
-    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
-    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
+    mrb_ary_push(mrb, result_ary, str_cut_piece(mrb, self, self_ptr, 0));
+    mrb_ary_push(mrb, result_ary, mrb_str_dup(mrb, sep));
     mrb_ary_push(mrb, result_ary, mrb_str_dup(mrb, self));
     return result_ary;
   }
@@ -2137,14 +2148,14 @@ str_partition(mrb_state *mrb, mrb_value self)
     mrb_int pre_len = found_ptr - self_ptr;
     mrb_int post_len = self_len - pre_len - sep_len;
 
-    mrb_ary_push(mrb, result_ary, mrb_str_new(mrb, self_ptr, pre_len));
+    mrb_ary_push(mrb, result_ary, str_cut_piece(mrb, self, self_ptr, pre_len));
     mrb_ary_push(mrb, result_ary, mrb_str_dup(mrb, sep));
-    mrb_ary_push(mrb, result_ary, mrb_str_new(mrb, found_ptr + sep_len, post_len));
+    mrb_ary_push(mrb, result_ary, str_cut_piece(mrb, self, found_ptr + sep_len, post_len));
   }
   else {
     mrb_ary_push(mrb, result_ary, mrb_str_dup(mrb, self));
-    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
-    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
+    mrb_ary_push(mrb, result_ary, str_cut_piece(mrb, self, self_ptr, 0));
+    mrb_ary_push(mrb, result_ary, str_cut_piece(mrb, self, self_ptr, 0));
   }
 
   return result_ary;
@@ -2180,8 +2191,8 @@ str_rpartition(mrb_state *mrb, mrb_value self)
 
   if (sep_len == 0) {
     mrb_ary_push(mrb, result_ary, mrb_str_dup(mrb, self));
-    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
-    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
+    mrb_ary_push(mrb, result_ary, mrb_str_dup(mrb, sep));
+    mrb_ary_push(mrb, result_ary, str_cut_piece(mrb, self, self_ptr, 0));
     return result_ary;
   }
 
@@ -2201,13 +2212,13 @@ str_rpartition(mrb_state *mrb, mrb_value self)
     mrb_int pre_len = found_ptr - self_ptr;
     mrb_int post_len = self_len - pre_len - sep_len;
 
-    mrb_ary_push(mrb, result_ary, mrb_str_new(mrb, self_ptr, pre_len));
+    mrb_ary_push(mrb, result_ary, str_cut_piece(mrb, self, self_ptr, pre_len));
     mrb_ary_push(mrb, result_ary, mrb_str_dup(mrb, sep));
-    mrb_ary_push(mrb, result_ary, mrb_str_new(mrb, found_ptr + sep_len, post_len));
+    mrb_ary_push(mrb, result_ary, str_cut_piece(mrb, self, found_ptr + sep_len, post_len));
   }
   else {
-    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
-    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
+    mrb_ary_push(mrb, result_ary, str_cut_piece(mrb, self, self_ptr, 0));
+    mrb_ary_push(mrb, result_ary, str_cut_piece(mrb, self, self_ptr, 0));
     mrb_ary_push(mrb, result_ary, mrb_str_dup(mrb, self));
   }
 
