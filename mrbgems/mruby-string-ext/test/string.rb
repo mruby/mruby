@@ -1204,3 +1204,19 @@ assert('String#scrub no-op on non-UTF-8 build') do
   assert_equal "abc\x80def", "abc\x80def".scrub("?")
   assert_equal "abc\x80def", "abc\x80def".scrub { |_| "?" }
 end
+
+assert('String#chars of a receiver longer than the GC arena') do
+  # Each piece sits in the GC arena until it is pushed into the result, and
+  # nothing took it back out, so a receiver of more characters than the arena
+  # holds (MRB_GC_ARENA_SIZE, 100) overflowed it. The array came back
+  # unprotected and the next method call on it read a collected object, which
+  # only a build that collects on every allocation (MRB_GC_STRESS) reached.
+  assert_equal 300, ("a" * 300).chars.size
+  assert_equal "a", ("a" * 300).chars.last
+  assert_equal 300, ("a" * 300).chars.join.size
+end
+
+assert('String#chars of a multibyte receiver longer than the GC arena') do
+  assert_equal 300, ("\u3042" * 300).chars.size
+  assert_equal "\u3042", ("\u3042" * 300).chars.last
+end if UTF8STRING

@@ -1790,6 +1790,13 @@ str_chars_ary(mrb_state *mrb, mrb_value self)
   /* the count comes first: it is the exact capacity, and where every byte is
      ASCII it also settles at 7BIT the answer the walk reads */
   mrb_value result = mrb_ary_new_capa(mrb, mrb_str_char_len(mrb, self));
+  /* Saved after `result`, so restoring keeps it. Each piece is unreachable
+     from anything but the arena until it is pushed, and reachable from
+     `result` after, so the arena has no more to say about it: without the
+     restore a string of more than MRB_GC_ARENA_SIZE characters leaves that
+     many pieces in an arena sized for 100, which is what `str_lines()` below
+     avoids the same way. */
+  int ai = mrb_gc_arena_save(mrb);
 
 #ifdef MRB_UTF8_STRING
   if (RSTR_CODERANGE(s) != MRB_STR_CODERANGE_7BIT && !RSTR_BINARY_P(s)) {
@@ -1797,6 +1804,7 @@ str_chars_ary(mrb_state *mrb, mrb_value self)
       mrb_int char_len = mrb_utf8len(p, e);
       mrb_ary_push(mrb, result, mrb_str_new(mrb, p, char_len));
       p += char_len;
+      mrb_gc_arena_restore(mrb, ai);
     }
     return result;
   }
@@ -1809,6 +1817,7 @@ str_chars_ary(mrb_state *mrb, mrb_value self)
     RSTR_ENC_COPY(mrb_str_ptr(piece), s);
     mrb_ary_push(mrb, result, piece);
     p++;
+    mrb_gc_arena_restore(mrb, ai);
   }
   return result;
 }
