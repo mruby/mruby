@@ -52,18 +52,22 @@ mrb_nan_boxing_value_float(mrb_value v)
   return x.f;
 }
 
-#define SET_FLOAT_VALUE(mrb,r,f) do { \
+/* The union's members are named apart from the parameters: the preprocessor
+   substitutes a parameter wherever its name appears as a token, a member
+   position included, so a member named after a parameter turns an argument
+   such as `p->u.f` into a declaration of `mrb_float p->u.f`. */
+#define SET_FLOAT_VALUE(mrb,r,v) do { \
   union { \
-    mrb_float f; \
-    uint64_t u; \
+    mrb_float fval; \
+    uint64_t uval; \
   } float_uint_union; \
-  if ((f) != (f)) { /* NaN */ \
-    float_uint_union.u = 0x7ff8000000000000UL; \
+  if ((v) != (v)) { /* NaN */ \
+    float_uint_union.uval = 0x7ff8000000000000UL; \
   } \
   else { \
-    float_uint_union.f = (f); \
+    float_uint_union.fval = (v); \
   } \
-  r.u = float_uint_union.u + 0x8004000000000000; \
+  (r).u = float_uint_union.uval + 0x8004000000000000; \
 } while(0)
 
 #define mrb_float_p(o) (((uint64_t)((o).u)&0xfffc000000000000) != 0)
