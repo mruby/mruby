@@ -57,8 +57,8 @@ entry for:
   `ArgumentError: unknown encoding name - UTF-8`, as any other unknown name
   does.
 - `Integer#chr("UTF-8")` raises the same `ArgumentError`.
-- `String#valid_encoding?` answers true for every string, since bytes are all a
-  byte-indexed string claims to be.
+- `String#valid_encoding?` answers true for every string, because every sequence
+  of bytes is valid where the string is read as bytes.
 
 This is what CRuby does with a name it has no encoding for. To tell the two
 builds apart, compare `__ENCODING__` against `"UTF-8"`.
