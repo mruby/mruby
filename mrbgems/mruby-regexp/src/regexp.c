@@ -299,6 +299,13 @@ regexp_check_byte_pos(mrb_state *mrb, mrb_value self)
   mrb_value str;
   mrb_int pos;
   mrb_get_args(mrb, "Si", &str, &pos);
+  /* The mrblib callers read the position against the byte length and answer
+     both ends themselves before asking this, so one outside the subject
+     reaches here only from a direct call. There is no boundary to ask about
+     at a position the subject does not have, and mrb_str_check_byte_pos()
+     would read behind RSTRING_PTR(str) looking for one. A backstop, as
+     check_regexp_arg() below is for a pattern. */
+  if (pos < 0 || pos > RSTRING_LEN(str)) return mrb_nil_value();
   mrb_str_check_byte_pos(mrb, str, pos);
   return mrb_nil_value();
 }
