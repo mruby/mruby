@@ -546,6 +546,33 @@ class_add_member(re_compiler *c, re_charclass *cc, uint32_t cp, mrb_bool is_byte
   else class_add_codepoint(c, cc, (is_byte ? RE_CLASS_BYTE : 0) | cp);
 }
 
+/* What a `\u` escape names, in the members a class can hold. On a build whose
+   characters are single bytes, a codepoint above ASCII is the bytes that spell
+   it, which is already what a character written out in the class comes to
+   there: read_class_atom() decodes one byte at a time, so `[Ā]` holds `\xC4`
+   and `\x80`. Naming the same character rather than spelling it out cannot
+   mean something else, so the escape contributes those bytes too. All but the
+   last join the class here, and the last is returned, so it can open a range
+   as any other atom would.
+
+   A range so opened is a range of bytes, since that is what both ends are.
+   The written out spelling reaches byte ends by its own route and comes to a
+   different span, which is what a range between two characters neither
+   spelling can express comes to on a build like this. */
+static uint32_t
+class_named_cp(re_compiler *c, re_charclass *cc, uint32_t cp, mrb_bool *is_byte)
+{
+  if (MRB_ENC_MULTIBYTE_P || cp < 0x80) return cp;
+
+  char buf[4];
+  int len = (int)mrb_utf8_to_buf(buf, (mrb_int)cp);
+  for (int i = 0; i < len - 1; i++) {
+    class_add_member(c, cc, (uint8_t)buf[i], TRUE);
+  }
+  *is_byte = TRUE;
+  return (uint8_t)buf[len - 1];
+}
+
 /* Read one character class atom: either an ASCII byte (0-127), a
    `\escape`, or a full multi-byte UTF-8 codepoint. Returns the value and
    advances c->p. *is_byte says which of the two the value is: TRUE for a
@@ -573,10 +600,12 @@ read_class_atom(re_compiler *c, re_charclass *cc, mrb_bool *is_byte)
          the last join the class here; the last is returned, so it can open a
          range as any other atom would: `[\u{61 62}-z]` is `a` plus `b-z`. */
       while (unicode_escape_next(c, &more, &nx)) {
-        class_add_member(c, cc, cp, FALSE);
+        mrb_bool member_byte = FALSE;
+        uint32_t member = class_named_cp(c, cc, cp, &member_byte);
+        class_add_member(c, cc, member, member_byte);
         cp = nx;
       }
-      return cp;
+      return class_named_cp(c, cc, cp, is_byte);
     }
     /* A backslash before a multibyte character has no escape meaning, so let
        the decode below read the whole codepoint: [\Ā] is [Ā]. parse_escape()
@@ -598,8 +627,8 @@ read_class_atom(re_compiler *c, re_charclass *cc, mrb_bool *is_byte)
   }
   /* Multi-byte UTF-8 leader: decode the full codepoint. An invalid leader
      decodes as itself over one byte, so it is a byte like the rest. */
-  mrb_int len = 0;
-  uint32_t cp = mrb_utf8_decode(c->p, c->src_end, &len);
+  int len = 0;
+  uint32_t cp = mrb_re_decode_char(c->p, c->src_end, &len, FALSE);
   c->p += len;
   if (len == 1) *is_byte = TRUE;
   return cp;
@@ -843,8 +872,8 @@ compute_fixed_len(re_compiler *c, uint32_t start, uint32_t end, int *chars_out)
     case RE_CHAR: {
       /* A multibyte literal is a run of one-byte RE_CHAR instructions, and
          what a byte spells depends on the bytes after it, so hand the run to
-         mrb_utf8len rather than read the lead bit alone: a continuation byte
-         no lead reaches is a character of its own, which is the rule the
+         mrb_re_charlen() rather than read the lead bit alone: a continuation
+         byte no lead reaches is a character of its own, which is the rule the
          executor rewinds by. Four bytes is the longest character there is,
          and a run never splits one. */
       char buf[4];
@@ -853,7 +882,7 @@ compute_fixed_len(re_compiler *c, uint32_t start, uint32_t end, int *chars_out)
         buf[n] = (char)c->code[pc + n].a;
         n++;
       }
-      int clen = (int)mrb_utf8len(buf, buf + n);
+      int clen = mrb_re_charlen(buf, buf + n, FALSE);
       len += clen;
       chars += 1;
       pc += (uint32_t)clen;
@@ -971,7 +1000,7 @@ emit_char(re_compiler *c, uint8_t ch)
 static void
 emit_char_bytes(re_compiler *c, int ch)
 {
-  int len = (int)mrb_utf8len(c->p - 1, c->src_end);
+  int len = mrb_re_charlen(c->p - 1, c->src_end, FALSE);
   emit(c, RE_CHAR, (uint8_t)ch, 0);
   for (int i = 1; i < len; i++) {
     int b = next_char(c);
@@ -1028,8 +1057,8 @@ static mrb_bool
 emit_char_folded(re_compiler *c, int ch)
 {
   if (ch < 128 || !(c->flags & RE_FLAG_IGNORECASE)) return FALSE;
-  mrb_int len = 0;
-  uint32_t cp = mrb_utf8_decode(c->p - 1, c->src_end, &len);
+  int len = 0;
+  uint32_t cp = mrb_re_decode_char(c->p - 1, c->src_end, &len, FALSE);
   if (len == 1) return FALSE;
   if (!emit_cp_folded(c, cp)) return FALSE;
   c->p += len - 1;
@@ -1050,9 +1079,20 @@ emit_codepoint(re_compiler *c, uint32_t cp)
     emit_char(c, (uint8_t)cp);
     return;
   }
-  if ((c->flags & RE_FLAG_IGNORECASE) && emit_cp_folded(c, cp)) return;
   char buf[4];
   int len = (int)mrb_utf8_to_buf(buf, (mrb_int)cp);
+  /* Fold only a spelling the engine reads back as the one character it spells.
+     What the fold emits is a class, and a class compares one decoded
+     character; where the build decodes bytes it never sees this one, so the
+     class would answer for a lone byte of the same number rather than for the
+     character the pattern names. The bytes below name it on either build,
+     which is the fallback a character the pattern spells already takes there,
+     through the length emit_char_folded() reads. */
+  if ((c->flags & RE_FLAG_IGNORECASE) &&
+      mrb_re_charlen(buf, buf + len, FALSE) == len &&
+      emit_cp_folded(c, cp)) {
+    return;
+  }
   for (int i = 0; i < len; i++) {
     emit(c, RE_CHAR, (uint8_t)buf[i], 0);
   }

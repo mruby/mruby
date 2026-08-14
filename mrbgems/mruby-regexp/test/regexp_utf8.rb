@@ -1,4 +1,13 @@
+# What a run of bytes spells is a question only a build that reads UTF-8 can
+# answer: core carries the scan behind MRB_UTF8_STRING, and a build without it
+# reads a String one byte per character, so the engine reads pattern and
+# subject that way too. Every block below that puts that question skips there,
+# whether it puts it to a subject read as UTF-8 or through a pattern spelling
+# a character in more than one byte. What holds on either build, a
+# byte-indexed subject among it, runs unguarded.
+
 assert("Regexp - dot advances by string mode") do
+  skip unless __ENCODING__ == "UTF-8"
   str = "\xC3\xA9x"
   assert_equal [[0xC3, 0xA9], [0x78]], str.scan(/./).map { |m| m.bytes }
   assert_equal [0x5A, 0x78], str.sub(/./, "Z").bytes
@@ -22,6 +31,7 @@ assert("Regexp - character class range across the ASCII boundary") do
   # A range from an ASCII bound to a non-ASCII one used to be stored whole in
   # the codepoint list, which the matcher never reads below 128, so the ASCII
   # half of the range matched nothing.
+  skip unless __ENCODING__ == "UTF-8"
   assert_equal "a", "a".match(/[a-Ā]/)[0]
   assert_equal "z", "z".match(/[a-Ā]/)[0]
   assert_equal "{", "{".match(/[a-Ā]/)[0]      # 0x7b, inside a-Ā
@@ -55,6 +65,7 @@ assert("Regexp - /i does not read a byte above 127 as a character") do
   # A byte that starts no whole character decodes as itself, so the folding
   # path would take a lone 0xB5 for U+00B5 and answer /i for a character the
   # pattern does not hold. A literal compares bytes, with or without /i.
+  skip unless __ENCODING__ == "UTF-8"
   micro = "\xB5"        # U+00B5 is "\xC2\xB5"; the byte on its own is not it
   assert_nil (Regexp.new(micro, Regexp::IGNORECASE) =~ "\u00B5")
   # A sequence cut short by the end of the pattern reads the same way.
@@ -78,6 +89,7 @@ assert("Regexp - quantifier on a multibyte literal") do
   # The bytes of a multibyte literal used to be separate atoms, so a
   # quantifier bound to the last one: /Ā+/ was \xC4(\x80)+ and stopped after
   # one Ā. The byte counts below are what tells the two apart.
+  skip unless __ENCODING__ == "UTF-8"
   assert_equal 4, "ĀĀ".match(/Ā+/)[0].bytesize
   assert_equal 4, "ĀĀ".match(/Ā*/)[0].bytesize
   assert_equal 6, "ĀĀĀ".match(/Ā{2,3}/)[0].bytesize
@@ -104,6 +116,7 @@ assert("Regexp - quantifier on an escaped multibyte literal") do
   # before the gem sees the pattern: /\Ā/.source is the two bytes of Ā alone.
   # A pattern built at runtime arrives through Regexp.new with the backslash
   # still in it.
+  skip unless __ENCODING__ == "UTF-8"
   assert_equal 4, Regexp.new("\\Ā+").match("ĀĀ")[0].bytesize
   assert_equal 6, Regexp.new("\\ĀĀĀ").match("ĀĀĀ")[0].bytesize
   assert_true Regexp.new("\\Ā{2}").match?("ĀĀ")
@@ -132,6 +145,7 @@ assert("Regexp - quantifier on an invalid multibyte literal") do
   # to is settled when the pattern is compiled, so the subjects carrying these
   # bytes are byte-indexed, where each of them is a byte and the byte counts
   # they report are offsets into what was asked.
+  skip unless __ENCODING__ == "UTF-8"
   lead2 = "\xC4"  # starts a two byte character
   lead3 = "\xE3"  # starts a three byte character
   cont = "\x81"   # continuation byte
@@ -164,6 +178,7 @@ assert("Regexp - a byte that belongs to no character is a match position") do
   # pre_match used to be needed for.
   # Inside a character there is still no match position, which is what a
   # subject read as UTF-8 is left to answer.
+  skip unless __ENCODING__ == "UTF-8"
   assert_nil "あ".match(Regexp.new("\x81"))
   assert_nil "あ".match(Regexp.new("\x82"))
   assert_nil "\u{1D54F}".match(Regexp.new("\x95"))
@@ -183,6 +198,7 @@ assert("Regexp - an attempt in flight opens no match position inside a character
   # for it only ran while nothing was in flight. The branch of `.?` that
   # consumes the character parks a thread past it, and the attempt seeded at
   # the shared byte then matched it on its own, cutting "ĵ" in half.
+  skip unless __ENCODING__ == "UTF-8"
   assert_nil "ĵ".match(/.?[µ]/)
   assert_nil "ĵ".gsub(/.?[µ]/, "!").match(/!/)
   assert_nil ("あ" + "ĵ").match(/.?[µ]/)
@@ -264,6 +280,7 @@ assert("Regexp - a match does not end inside a character") do
   # pattern holding a byte that reaches no character ends its match in the
   # middle of one. "ĵ" is C4 B5, and a pattern of the single byte C4 used to
   # match its lead byte alone and hand back half a character.
+  skip unless __ENCODING__ == "UTF-8"
   j = "ĵ"
   assert_nil j.match(Regexp.new("\xc4"))          # literal fast path
   assert_nil ("x" + j).match(Regexp.new("\xc4"))
@@ -377,6 +394,7 @@ assert("Regexp - \\u escapes") do
 end
 
 assert("Regexp - \\u escapes in a character class") do
+  skip unless __ENCODING__ == "UTF-8"
   assert_equal 0, (/[\u00b5]/ =~ "\xc2\xb5")
   assert_nil (/[\u00b5]/ =~ "u")
   assert_equal 0, (/[\u{3042}-\u{3044}]/ =~ "\xe3\x81\x83")
@@ -388,6 +406,27 @@ assert("Regexp - \\u escapes in a character class") do
   assert_equal ["a", "b"], "abc".scan(/[\u{61 62}]/)
   assert_equal ["a", "b", "c"], "abc-".scan(/[\u{61 62}-z]/)
   assert_equal ["c"], "abc".scan(/[^\u{61 62}]/)
+end
+
+assert("Regexp - a \\u escape in a class names what spelling it out names") do
+  # A class member is one character, and on a build whose characters are single
+  # bytes a character above ASCII is not one: `[Ā]` holds the two bytes that
+  # spell it, since read_class_atom() decodes one byte at a time there. Naming
+  # that character with an escape has to come to the same members, or the two
+  # halves of one pattern disagree about what the pattern holds.
+  skip if __ENCODING__ == "UTF-8"
+  spelled = Regexp.new("[\u{100}]")           # the character, written out
+  named = Regexp.new("[\\u{100}]")            # the same character, named
+  ["\u{100}", "\xC4".b, "\x80".b].each do |subject|
+    assert_equal spelled.match?(subject), named.match?(subject)
+  end
+  # The character the escape names is found through the bytes it holds, which
+  # is what the written out spelling answers too.
+  assert_true named.match?("\u{100}")
+  # An ASCII codepoint is a member of its own on either build, and a list still
+  # gives every codepoint a membership with the last one able to open a range.
+  assert_equal ["a", "b"], "abc".scan(/[\u{61 62}]/)
+  assert_equal ["a", "b", "c"], "abc-".scan(/[\u{61 62}-z]/)
 end
 
 assert("Regexp - malformed \\u escapes") do
@@ -447,6 +486,7 @@ assert("Regexp - overlong UTF-8 is not the character it spells") do
   # not spell, whichever way the subject is indexed.
   # the pattern side decodes through the same helper, and its subject here is
   # whole UTF-8
+  skip unless __ENCODING__ == "UTF-8"
   assert_false Regexp.new("[\xC0\xBC]").match?("<")
   # the shortest spelling on each side of the RFC 3629 bounds is still one
   # character
@@ -487,6 +527,7 @@ assert("Regexp - a pattern byte that starts no character is a byte in a class") 
   # the subject side too, which is what each pair below turns on: the byte
   # answers for itself, and the character that carries it answers for the
   # character.
+  skip unless __ENCODING__ == "UTF-8"
   mu = "\xC2\xB5"  # U+00B5 MICRO SIGN, two bytes
   assert_nil (mu =~ Regexp.new("[\xB5]"))
   assert_nil (mu =~ Regexp.new("\xB5"))
@@ -541,8 +582,10 @@ assert("Regexp - large non-ASCII character class does not overflow") do
   # a class listing tens of thousands of non-ASCII codepoints used to
   # overflow the 16-bit range capacity (32768 * 2 wrapped to 0, feeding a
   # size-0 realloc and a write through NULL). See issue #6937.
-  # Patterns are always parsed as UTF-8, so build the bytes directly to
-  # exercise this in both MRB_UTF8_STRING and byte-string builds.
+  # Only a build that reads its patterns as UTF-8 can list that many members:
+  # where a pattern is bytes there are 128 non-ASCII members in all, so the
+  # loop below builds a handful of ranges and nothing can overflow.
+  skip unless __ENCODING__ == "UTF-8"
   # append_as_bytes lays raw bytes into the string without moving how it is
   # read; a sum of Integer#chr pieces would come back read as bytes, and a
   # byte-read subject is answered by the byte on its own rather than the

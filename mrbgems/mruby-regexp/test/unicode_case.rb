@@ -2,6 +2,11 @@
 # see the gem's mrbgem.rake. Without the option every assertion here would
 # fail, since /i then folds ASCII letters and nothing else.
 assert("Regexp - Unicode case folding under /i") do
+  # Every source and counterpart here lies above ASCII, so they are characters
+  # to fold only where the pattern and the subject are read as characters. A
+  # build that reads its strings by byte has the table and nothing to spend it
+  # on: the bytes below spell no character it can fold.
+  skip unless __ENCODING__ == "UTF-8"
   # A literal and its counterpart, in both directions.
   assert_equal "ā", "ā".match(/Ā/i)[0]
   assert_equal "Ā", "Ā".match(/ā/i)[0]

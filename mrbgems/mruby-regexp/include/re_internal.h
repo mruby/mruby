@@ -228,10 +228,17 @@ void mrb_re_case_unfold_range(uint32_t lo, uint32_t hi,
                               void (*add)(void *, uint32_t, uint32_t), void *user);
 #endif
 
+/* The byte length of the character at `s`, and its codepoint: every read of a
+   run of bytes in this gem goes through these two. A subject handed over as
+   binary is one character per byte; everything else is whatever core says a
+   run of bytes spells, which is one character per byte too on a build that
+   indexes Strings by byte. So the engine reads pattern and subject the way
+   the build reads a String, and the compiler passes FALSE for `binary`, a
+   pattern being read that same way. */
 static inline int
 mrb_re_charlen(const char *s, const char *end, mrb_bool binary)
 {
-  return binary ? 1 : (int)mrb_utf8len(s, end);
+  return binary ? 1 : (int)mrb_enc_charlen(s, end);
 }
 
 static inline uint32_t
@@ -242,7 +249,7 @@ mrb_re_decode_char(const char *s, const char *end, int *len, mrb_bool binary)
     return (uint8_t)*s;
   }
   mrb_int n;
-  uint32_t cp = mrb_utf8_decode(s, end, &n);
+  uint32_t cp = mrb_enc_decode(s, end, &n);
   if (len) *len = (int)n;
   return cp;
 }
@@ -255,10 +262,10 @@ mrb_re_decode_char(const char *s, const char *end, int *len, mrb_bool binary)
    so keep the answer for a byte that starts a character here rather than in
    the call. */
 static inline mrb_bool
-mrb_re_utf8_interior_p(const char *str, const char *s, const char *end)
+mrb_re_char_interior_p(const char *str, const char *s, const char *end)
 {
   if (s >= end || ((uint8_t)*s & 0xC0) != 0x80) return FALSE;
-  return mrb_utf8_char_head(str, s, end) != s;
+  return mrb_enc_char_head(str, s, end) != s;
 }
 
 /* Execute a match.

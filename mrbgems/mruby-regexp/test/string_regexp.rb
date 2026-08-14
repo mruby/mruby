@@ -724,9 +724,19 @@ assert("String#split with empty regexp") do
   assert_equal ["a", "b", "c", ""], "abc".split(//, -1)
   assert_equal [], "".split(//, -1)
   assert_equal ["a", ""], "a".split(//, -1)
-  assert_equal ["あ", "い"], "あい".split(//)
-  assert_equal ["あ", "い"], "あい".split(//, 2)
-  assert_equal ["あ", "い", ""], "あい".split(//, -1)
+  # An empty pattern splits at every position the subject has, which is one
+  # per character where the build reads characters and one per byte where it
+  # does not.
+  if __ENCODING__ == "UTF-8"
+    assert_equal ["あ", "い"], "あい".split(//)
+    assert_equal ["あ", "い"], "あい".split(//, 2)
+    assert_equal ["あ", "い", ""], "あい".split(//, -1)
+  else
+    bytes = ["\xE3", "\x81", "\x82", "\xE3", "\x81", "\x84"]
+    assert_equal bytes, "あい".split(//)
+    assert_equal ["\xE3", "\x81\x82\xE3\x81\x84"], "あい".split(//, 2)
+    assert_equal bytes + [""], "あい".split(//, -1)
+  end
 end
 
 assert("String#split with invalid regexp pattern type") do

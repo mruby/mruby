@@ -5,6 +5,10 @@ assert("Regexp - /i refuses what ASCII folding cannot answer") do
   # Folding ASCII and carrying on would answer wrongly rather than narrowly:
   # the missing fold is a missed match in the plain and class forms, and the
   # same gap with the sign flipped is a false accept in the negated class.
+  #
+  # A build that reads its strings by byte has nothing to refuse: every source
+  # below is a run of bytes there, and a byte is no character to fold.
+  skip unless __ENCODING__ == "UTF-8"
   assert_raise(RegexpError) { Regexp.new("Ā", Regexp::IGNORECASE) }
   assert_raise(RegexpError) { Regexp.new("[Ā]", Regexp::IGNORECASE) }
   assert_raise(RegexpError) { Regexp.new("[^Ā]", Regexp::IGNORECASE) }
@@ -61,9 +65,24 @@ assert("Regexp - /i leaves alone what it can answer") do
   assert_false(/Ā/.match?("ā"))
   assert_true(/[^Ā]/.match?("ā"))
   # U+212A folds to ASCII 'k', which this build has without the table, so the
-  # `\u` spelling of it compiles and reaches both cases of the letter.
-  assert_true(/\u{212a}/i.match?("k"))
-  assert_true(/\u{212a}/i.match?("K"))
-  assert_true(/[\u{212a}]/i.match?("k"))
-  assert_false(/[^\u{212a}]/i.match?("K"))
+  # `\u` spelling of it compiles and reaches both cases of the letter. Where
+  # the build reads its strings by byte the escape is the three bytes of the
+  # character instead, and /i adds nothing to a character read that way, so it
+  # matches what it names exactly as it does without /i.
+  if __ENCODING__ == "UTF-8"
+    assert_true(/\u{212a}/i.match?("k"))
+    assert_true(/\u{212a}/i.match?("K"))
+    # A class holds the character the escape names, so the fold reaches the
+    # ASCII letter from it.
+    assert_true(/[\u{212a}]/i.match?("k"))
+    assert_false(/[^\u{212a}]/i.match?("K"))
+  else
+    assert_true(/\u{212a}/i.match?("\u{212a}"))
+    assert_false(/\u{212a}/i.match?("k"))
+    # A class holds the bytes of that character instead, and a byte has no
+    # case, so /i adds nothing and the letter is not reached.
+    assert_true(/[\u{212a}]/i.match?("\u{212a}"))
+    assert_false(/[\u{212a}]/i.match?("k"))
+    assert_true(/[^\u{212a}]/i.match?("K"))
+  end
 end

@@ -221,6 +221,9 @@ assert("Regexp - /i folds an ASCII letter's class whole") do
   # folding "ASCII only" covers the whole of the equivalence class an ASCII
   # letter belongs to rather than the part of it that is ASCII. Left out, the
   # negated forms below would accept what they were written to reject.
+  # Both sources lie above ASCII, so they are characters to fold only where
+  # the pattern and the subject are read as characters.
+  skip unless __ENCODING__ == "UTF-8"
   kelvin = "K"
   long_s = "ſ"
   assert_true Regexp.new("k", Regexp::IGNORECASE).match?(kelvin)
@@ -829,6 +832,9 @@ end
 assert("Regexp - lookbehind over a class that can match a multibyte character") do
   # A class consumes exactly one character whatever its members are, so the
   # rewind steps back that many characters rather than assuming a byte each.
+  # A build that reads its strings by byte has one byte per character, so it
+  # has nothing here to tell the two rewinds apart.
+  skip unless __ENCODING__ == "UTF-8"
   assert_equal "x", "Āx".match(/(?<=[Ā])x/)[0]
   assert_nil "ax".match(/(?<=[Ā])x/)
   assert_equal "x", "Āx".match(/(?<=[Ā-ă])x/)[0]
@@ -859,7 +865,10 @@ end
 assert("Regexp - lookbehind against a binary subject rewinds by bytes") do
   # A binary subject advances one byte at a time, so the same compiled
   # pattern rewinds by its byte count there: two for the literal Ā, and one
-  # for a class, which is handed the raw byte as its codepoint.
+  # for a class, which is handed the raw byte as its codepoint. What this
+  # contrasts with is the character rewind, which a build reading its strings
+  # by byte does not have.
+  skip unless __ENCODING__ == "UTF-8"
   bin = "Āx".b
   assert_equal "x", bin.match(/(?<=Ā)x/)[0]
   assert_nil bin.match(/(?<=[Ā])x/)
