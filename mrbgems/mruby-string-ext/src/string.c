@@ -26,7 +26,7 @@ int_chr_binary(mrb_state *mrb, mrb_value num)
      handing the byte back as a character. What it is instead is a string read
      by bytes, which is what MRB_STR_BINARY says. */
   if (cp < 0x80) {
-    RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+    RSTR_CODERANGE_SET(mrb_str_ptr(str), MRB_STR_CODERANGE_7BIT);
   }
   else {
     RSTR_ENCODING_SET(mrb_str_ptr(str), MRB_STR_ENCODING_BINARY);
@@ -53,7 +53,7 @@ int_chr_utf8(mrb_state *mrb, mrb_value num)
   }
   str = mrb_str_new(mrb, utf8, len);
   if (len == 1) {
-    RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+    RSTR_CODERANGE_SET(mrb_str_ptr(str), MRB_STR_CODERANGE_7BIT);
   }
   return str;
 }
@@ -1033,7 +1033,7 @@ str_ord(mrb_state* mrb, mrb_value str)
   if (p == e) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "empty string");
   }
-  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
+  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_7BIT || RSTR_BINARY_P(s)) {
     c = p[0];
   }
   else {
@@ -1123,7 +1123,7 @@ str_scrub_core(mrb_state *mrb, mrb_value self)
   }
 
   struct RString *s = mrb_str_ptr(self);
-  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
+  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_7BIT || RSTR_BINARY_P(s)) {
     return mrb_str_dup(mrb, self);
   }
 
@@ -1166,7 +1166,7 @@ str_scrub_chunks(mrb_state *mrb, mrb_value self)
 {
   mrb_value ary = mrb_ary_new(mrb);
   struct RString *s = mrb_str_ptr(self);
-  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
+  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_7BIT || RSTR_BINARY_P(s)) {
     mrb_ary_push(mrb, ary, mrb_str_dup(mrb, self));
     return ary;
   }
@@ -1201,7 +1201,7 @@ str_codepoints(mrb_state *mrb, mrb_value str)
 
   mrb->c->ci->mid = 0;
   mrb_value result = mrb_ary_new(mrb);
-  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
+  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_7BIT || RSTR_BINARY_P(s)) {
     while (p < e) {
       mrb_ary_push(mrb, result, mrb_int_value(mrb, (mrb_int)*p));
       p++;
@@ -1513,7 +1513,7 @@ str_ascii_only_p(mrb_state *mrb, mrb_value str)
     if (*p & 0x80) return mrb_false_value();
     p++;
   }
-  RSTR_SET_ASCII_FLAG(s);
+  RSTR_CODERANGE_SET(s, MRB_STR_CODERANGE_7BIT);
   return mrb_true_value();
 }
 
@@ -1788,11 +1788,11 @@ str_chars_ary(mrb_state *mrb, mrb_value self)
   const char *p = RSTR_PTR(s);
   const char *e = p + RSTR_LEN(s);
   /* the count comes first: it is the exact capacity, and where every byte is
-     ASCII it also settles the single-byte flag the walk reads */
+     ASCII it also settles at 7BIT the answer the walk reads */
   mrb_value result = mrb_ary_new_capa(mrb, mrb_str_char_len(mrb, self));
 
 #ifdef MRB_UTF8_STRING
-  if (!RSTR_SINGLE_BYTE_P(s) && !RSTR_BINARY_P(s)) {
+  if (RSTR_CODERANGE(s) != MRB_STR_CODERANGE_7BIT && !RSTR_BINARY_P(s)) {
     while (p < e) {
       mrb_int char_len = mrb_utf8len(p, e);
       mrb_ary_push(mrb, result, mrb_str_new(mrb, p, char_len));

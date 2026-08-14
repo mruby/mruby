@@ -136,7 +136,7 @@ static mrb_value
 nil_to_s(mrb_state *mrb, mrb_value obj)
 {
   mrb_value str = mrb_str_new_frozen(mrb, NULL, 0);
-  RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+  RSTR_CODERANGE_SET(mrb_str_ptr(str), MRB_STR_CODERANGE_7BIT);
   return str;
 }
 
@@ -144,7 +144,7 @@ static mrb_value
 nil_inspect(mrb_state *mrb, mrb_value obj)
 {
   mrb_value str = mrb_str_new_lit_frozen(mrb, "nil");
-  RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+  RSTR_CODERANGE_SET(mrb_str_ptr(str), MRB_STR_CODERANGE_7BIT);
   return str;
 }
 
@@ -224,7 +224,7 @@ static mrb_value
 true_to_s(mrb_state *mrb, mrb_value obj)
 {
   mrb_value str = mrb_str_new_lit_frozen(mrb, "true");
-  RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+  RSTR_CODERANGE_SET(mrb_str_ptr(str), MRB_STR_CODERANGE_7BIT);
   return str;
 }
 
@@ -333,7 +333,7 @@ static mrb_value
 false_to_s(mrb_state *mrb, mrb_value obj)
 {
   mrb_value str = mrb_str_new_lit_frozen(mrb, "false");
-  RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+  RSTR_CODERANGE_SET(mrb_str_ptr(str), MRB_STR_CODERANGE_7BIT);
   return str;
 }
 

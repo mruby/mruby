@@ -85,46 +85,41 @@ struct RStringEmbed {
 #define RSTR_FSHARED_P(s) ((s)->flags & MRB_STR_FSHARED)
 #define RSTR_NOFREE_P(s) ((s)->flags & MRB_STR_NOFREE)
 
+/* What reading the bytes as the encoding they carry has come back with: not
+   asked yet, nothing but ASCII, read whole and sound, or read and found
+   broken. The four are exclusive and cover every answer there is, so a string
+   keeps one of them rather than a flag per answer. UNKNOWN is 0, which is what
+   a fresh string is already filled with. */
+#define MRB_STR_CODERANGE_UNKNOWN 0
+#define MRB_STR_CODERANGE_7BIT    1
+#define MRB_STR_CODERANGE_VALID   2
+#define MRB_STR_CODERANGE_BROKEN  3
+
 #ifdef MRB_UTF8_STRING
-# define RSTR_SINGLE_BYTE_P(s) ((s)->flags & MRB_STR_SINGLE_BYTE)
-# define RSTR_SET_SINGLE_BYTE_FLAG(s) ((s)->flags |= MRB_STR_SINGLE_BYTE)
-# define RSTR_UNSET_SINGLE_BYTE_FLAG(s) ((s)->flags &= ~MRB_STR_SINGLE_BYTE)
-# define RSTR_WRITE_SINGLE_BYTE_FLAG(s, v) (RSTR_UNSET_SINGLE_BYTE_FLAG(s), (s)->flags |= v)
-# define RSTR_COPY_SINGLE_BYTE_FLAG(dst, src) RSTR_WRITE_SINGLE_BYTE_FLAG(dst, RSTR_SINGLE_BYTE_P(src))
-/* Set once a walk has read the whole string as UTF-8, so a later walk can be
-   skipped. Unlike MRB_STR_SINGLE_BYTE this is not a property a byte subrange
-   inherits, since a subrange can cut a character in half; copy it only where
-   the destination ends up holding exactly the source's bytes. */
-# define RSTR_VALID_ENC_P(s) ((s)->flags & MRB_STR_VALID_ENC)
-# define RSTR_SET_VALID_ENC_FLAG(s) ((s)->flags |= MRB_STR_VALID_ENC)
-# define RSTR_UNSET_VALID_ENC_FLAG(s) ((s)->flags &= ~MRB_STR_VALID_ENC)
-# define RSTR_COPY_VALID_ENC_FLAG(dst, src) \
-  ((dst)->flags = ((dst)->flags & ~MRB_STR_VALID_ENC) | RSTR_VALID_ENC_P(src))
-/* The other answer the same walk can come back with, kept so that a string
-   already read as broken is not read again on every later question. It is
-   forgotten wherever MRB_STR_VALID_ENC is, since a write to the bytes unmakes
-   either answer, and it travels only where the whole of the bytes travels. */
-# define RSTR_BROKEN_ENC_P(s) ((s)->flags & MRB_STR_BROKEN_ENC)
-# define RSTR_SET_BROKEN_ENC_FLAG(s) ((s)->flags |= MRB_STR_BROKEN_ENC)
-# define RSTR_UNSET_BROKEN_ENC_FLAG(s) ((s)->flags &= ~MRB_STR_BROKEN_ENC)
-# define RSTR_COPY_BROKEN_ENC_FLAG(dst, src) \
-  ((dst)->flags = ((dst)->flags & ~MRB_STR_BROKEN_ENC) | RSTR_BROKEN_ENC_P(src))
+/* Kept for now in the three bits that held the answers one at a time, one bit
+   per answer. Nothing writes two of them, so the order below only decides what
+   a combination no writer makes would read as. 7BIT says more than VALID: a
+   string of nothing but ASCII reads as UTF-8 as it stands, and it is also one
+   character per byte, which is the part every index on it wants. */
+# define RSTR_CODERANGE(s) \
+  (((s)->flags & MRB_STR_BROKEN_ENC) ? MRB_STR_CODERANGE_BROKEN : \
+   ((s)->flags & MRB_STR_SINGLE_BYTE) ? MRB_STR_CODERANGE_7BIT : \
+   ((s)->flags & MRB_STR_VALID_ENC) ? MRB_STR_CODERANGE_VALID : \
+   MRB_STR_CODERANGE_UNKNOWN)
+# define RSTR_CODERANGE_SET(s, cr) \
+  ((s)->flags = ((s)->flags & \
+                 ~(MRB_STR_SINGLE_BYTE|MRB_STR_VALID_ENC|MRB_STR_BROKEN_ENC)) | \
+                (((cr) == MRB_STR_CODERANGE_7BIT) ? MRB_STR_SINGLE_BYTE : \
+                 ((cr) == MRB_STR_CODERANGE_VALID) ? MRB_STR_VALID_ENC : \
+                 ((cr) == MRB_STR_CODERANGE_BROKEN) ? MRB_STR_BROKEN_ENC : 0))
 #else
-# define RSTR_SINGLE_BYTE_P(s) TRUE
-# define RSTR_SET_SINGLE_BYTE_FLAG(s) (void)0
-# define RSTR_UNSET_SINGLE_BYTE_FLAG(s) (void)0
-# define RSTR_WRITE_SINGLE_BYTE_FLAG(s, v) (void)0
-# define RSTR_COPY_SINGLE_BYTE_FLAG(dst, src) (void)0
-# define RSTR_VALID_ENC_P(s) TRUE
-# define RSTR_SET_VALID_ENC_FLAG(s) (void)0
-# define RSTR_UNSET_VALID_ENC_FLAG(s) (void)0
-# define RSTR_COPY_VALID_ENC_FLAG(dst, src) (void)0
-# define RSTR_BROKEN_ENC_P(s) FALSE
-# define RSTR_SET_BROKEN_ENC_FLAG(s) (void)0
-# define RSTR_UNSET_BROKEN_ENC_FLAG(s) (void)0
-# define RSTR_COPY_BROKEN_ENC_FLAG(dst, src) (void)0
+/* A build that indexes by byte hands every byte back as a character and asks
+   the bytes nothing, so every string in it stands where 7BIT stands and there
+   is nothing to record. */
+# define RSTR_CODERANGE(s) MRB_STR_CODERANGE_7BIT
+# define RSTR_CODERANGE_SET(s, cr) ((void)0)
 #endif
-#define RSTR_SET_ASCII_FLAG(s) RSTR_SET_SINGLE_BYTE_FLAG(s)
+
 /* The encoding a string's bytes are read as, named as an index into the set of
    encodings the build carries. Index 0 is that build's default, which is what
    a string that says nothing else holds: the literals the parser hands over,
@@ -151,6 +146,22 @@ struct RStringEmbed {
 /* A copy of a string is read the way the string it copies is, so the encoding
    travels with the bytes rather than being left behind on the original. */
 #define RSTR_ENC_COPY(dst, src) RSTR_ENCODING_SET(dst, RSTR_ENCODING(src))
+/* A copy that ends up holding exactly the source's bytes reads them the same
+   way and stands exactly where the source stands, so the two answers travel
+   together. Splitting them apart would let a copy keep one and drop the
+   other, which is the way flags went missing when there was a macro per
+   flag. */
+#define RSTR_ENC_CR_COPY(dst, src) \
+  (RSTR_ENC_COPY(dst, src), RSTR_CODERANGE_SET(dst, RSTR_CODERANGE(src)))
+/* A subrange holds bytes of the source, so it is read the same way, but a cut
+   can leave a character in pieces and can also cut away the piece that spelled
+   none: it inherits neither soundness nor brokenness. Nothing but ASCII is
+   what survives being cut anywhere, so that is the one answer it carries
+   over. */
+#define RSTR_ENC_CR_COPY_FOR_SUBSTR(dst, src) \
+  (RSTR_ENC_COPY(dst, src), \
+   RSTR_CODERANGE_SET(dst, (RSTR_CODERANGE(src) == MRB_STR_CODERANGE_7BIT) \
+                           ? MRB_STR_CODERANGE_7BIT : MRB_STR_CODERANGE_UNKNOWN))
 
 /**
  * Returns a pointer from a Ruby string

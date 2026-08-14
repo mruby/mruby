@@ -647,18 +647,18 @@ mrb_str_char_len(mrb_state *mrb, mrb_value str)
 
   /* A byte-indexed string has one position per byte, which is what
      mrb_str_char_to_byte() and mrb_str_byte_to_char() already answer for it.
-     Asked here only about the single-byte flag, the same string was measured
-     as UTF-8 and reported a length its own indexing did not agree with.
+     Asked here only where the string stands, the same string was measured as
+     UTF-8 and reported a length its own indexing did not agree with.
 
-     The flag below is deliberately not set on the way out: it says the bytes
-     hold nothing multi-byte, while this returns early because of how the
-     string is read. force_encoding() can take MRB_STR_BINARY away again, and
-     a flag set here would outlive the reason for it. */
+     7BIT is deliberately not recorded on the way out: it says the bytes hold
+     nothing multi-byte, while this returns early because of how the string is
+     read. force_encoding() can take the byte reading away again, and an answer
+     recorded here would outlive the reason for it. */
   if (RSTR_BINARY_P(s)) {
     return byte_len;
   }
 
-  if (RSTR_SINGLE_BYTE_P(s)) {
+  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_7BIT) {
     return byte_len;
   }
   else {
@@ -673,7 +673,7 @@ mrb_str_char_len(mrb_state *mrb, mrb_value str)
        is counted as one too, so a string of them set the flag as well, and the
        readers of it went on to hand those bytes back as characters. */
     if (np == e) {
-      RSTR_SET_SINGLE_BYTE_FLAG(s);
+      RSTR_CODERANGE_SET(s, MRB_STR_CODERANGE_7BIT);
       return byte_len;
     }
     mrb_int utf8_len = (mrb_int)(np - p) + mrb_utf8_strlen(np, (mrb_int)(e - np));
@@ -691,43 +691,40 @@ mrb_str_valid_encoding_p(mrb_state *mrb, mrb_value str)
   /* A byte-indexed string makes no such claim, so it is valid whatever its
      bytes are. */
   if (RSTR_BINARY_P(s)) return TRUE;
-  if (RSTR_VALID_ENC_P(s)) return TRUE;
-  /* The walk below reads the whole string to answer FALSE, so a string already
-     read as broken is answered off the mark that walk left instead. */
-  if (RSTR_BROKEN_ENC_P(s)) return FALSE;
-  /* A string of one character per byte holds nothing but ASCII, and ASCII
-     reads as UTF-8 as it stands, so it is valid without a walk. This is what
-     a string counted before it is asked about comes in carrying. */
-  if (RSTR_SINGLE_BYTE_P(s)) {
-    RSTR_SET_VALID_ENC_FLAG(s);
-    return TRUE;
-  }
+  /* The walk below reads the whole string to answer either way, so a string
+     that has been walked already is answered off where it stands instead. A
+     string of one character per byte is one of those: it holds nothing but
+     ASCII, and ASCII reads as UTF-8 as it stands. This is what a string
+     counted before it is asked about comes in carrying. */
+  mrb_int cr = RSTR_CODERANGE(s);
+  if (cr == MRB_STR_CODERANGE_7BIT || cr == MRB_STR_CODERANGE_VALID) return TRUE;
+  if (cr == MRB_STR_CODERANGE_BROKEN) return FALSE;
 
   mrb_int byte_len = RSTR_LEN(s);
   mrb_bool valid = TRUE;
   mrb_int utf8_len = utf8_strlen_check(RSTR_PTR(s), byte_len, &valid);
 
   if (!valid) {
-    RSTR_SET_BROKEN_ENC_FLAG(s);
+    RSTR_CODERANGE_SET(s, MRB_STR_CODERANGE_BROKEN);
     return FALSE;
   }
-  if (byte_len == utf8_len) RSTR_SET_SINGLE_BYTE_FLAG(s);
-  RSTR_SET_VALID_ENC_FLAG(s);
+  RSTR_CODERANGE_SET(s, byte_len == utf8_len ? MRB_STR_CODERANGE_7BIT
+                                             : MRB_STR_CODERANGE_VALID);
   return TRUE;
 }
 
 /* whether every byte of the string is ASCII. A walk that finds nothing else
-   made the statement MRB_STR_SINGLE_BYTE makes, so the answer is left there
-   for the next asker to read off. */
+   has made the statement 7BIT makes, so the answer is left on the string for
+   the next asker to read off. */
 static mrb_bool
 str_ascii_p(struct RString *s)
 {
-  if (RSTR_SINGLE_BYTE_P(s)) return TRUE;
+  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_7BIT) return TRUE;
 
   const char *p = RSTR_PTR(s);
   const char *e = p + RSTR_LEN(s);
   if (search_nonascii(p, e) != e) return FALSE;
-  RSTR_SET_SINGLE_BYTE_FLAG(s);
+  RSTR_CODERANGE_SET(s, MRB_STR_CODERANGE_7BIT);
   return TRUE;
 }
 
@@ -737,7 +734,7 @@ mrb_str_char_to_byte(mrb_state *mrb, mrb_value str, mrb_int off, mrb_int idx)
 {
   (void)mrb;
   struct RString *s = mrb_str_ptr(str);
-  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
+  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_7BIT || RSTR_BINARY_P(s)) {
     return idx;
   }
 
@@ -778,7 +775,7 @@ mrb_str_byte_to_char(mrb_state *mrb, mrb_value str, mrb_int bi)
   (void)mrb;
   struct RString *s = mrb_str_ptr(str);
   if (bi < 0 || RSTR_LEN(s) < bi) return -1;
-  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
+  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_7BIT || RSTR_BINARY_P(s)) {
     return bi;
   }
 
@@ -1004,13 +1001,7 @@ mrb_str_byte_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
     s->as.heap.ptr += (mrb_ssize)beg;
     s->as.heap.len = (mrb_ssize)len;
   }
-  RSTR_COPY_SINGLE_BYTE_FLAG(s, orig);
-  /* A subrange of a byte-read string holds nothing but bytes of it, so it is
-     read the same way. Neither answer about the encoding travels with it:
-     cutting can leave a character in pieces, and it can also cut away the
-     piece that spelled none, so a subrange inherits validity in neither
-     direction. */
-  RSTR_ENC_COPY(s, orig);
+  RSTR_ENC_CR_COPY_FOR_SUBSTR(s, orig);
   return mrb_obj_value(s);
 }
 
@@ -1104,10 +1095,7 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
 {
   mrb_check_frozen(mrb, s1);
   if (s1 == s2) return mrb_obj_value(s1);
-  RSTR_COPY_SINGLE_BYTE_FLAG(s1, s2);
-  RSTR_COPY_VALID_ENC_FLAG(s1, s2);
-  RSTR_COPY_BROKEN_ENC_FLAG(s1, s2);
-  RSTR_ENC_COPY(s1, s2);
+  RSTR_ENC_CR_COPY(s1, s2);
   if (RSTR_SHARED_P(s1)) {
     str_decref(mrb, s1->as.heap.aux.shared);
   }
@@ -1267,8 +1255,8 @@ mrb_locale_from_utf8(const char *utf8, int len)
  * @param s The RString structure to modify.
  *
  * Prepares a string for modification. If the string is shared or not extensible,
- * it will be unshared or converted to a normal string. This version preserves
- * the ASCII/single-byte nature of the string if it was already set.
+ * it will be unshared or converted to a normal string. This version keeps the
+ * string standing at 7BIT if that is where it stood.
  * Raises an error if the string is frozen.
  */
 MRB_API void
@@ -1277,9 +1265,11 @@ mrb_str_modify_keep_ascii(mrb_state *mrb, struct RString *s)
   mrb_check_frozen(mrb, s);
   str_unshare_buffer(mrb, s);
   /* Every in-place write reaches here, including the ones that keep the string
-     ASCII, so this is where the walk's answer stops holding. */
-  RSTR_UNSET_VALID_ENC_FLAG(s);
-  RSTR_UNSET_BROKEN_ENC_FLAG(s);
+     ASCII, so this is where the walk's answer stops holding. What a string of
+     nothing but ASCII stands at is the caller's to keep. */
+  if (RSTR_CODERANGE(s) != MRB_STR_CODERANGE_7BIT) {
+    RSTR_CODERANGE_SET(s, MRB_STR_CODERANGE_UNKNOWN);
+  }
 }
 
 /*
@@ -1287,15 +1277,15 @@ mrb_str_modify_keep_ascii(mrb_state *mrb, struct RString *s)
  * @param s The RString structure to modify.
  *
  * Prepares a string for modification. Similar to `mrb_str_modify_keep_ascii`,
- * but also unsets the single-byte flag, assuming the modification might
- * introduce multi-byte characters.
+ * but also takes 7BIT back, assuming the modification might introduce
+ * multi-byte characters.
  * Raises an error if the string is frozen.
  */
 MRB_API void
 mrb_str_modify(mrb_state *mrb, struct RString *s)
 {
   mrb_str_modify_keep_ascii(mrb, s);
-  RSTR_UNSET_SINGLE_BYTE_FLAG(s);
+  RSTR_CODERANGE_SET(s, MRB_STR_CODERANGE_UNKNOWN);
 }
 
 /*
@@ -1501,16 +1491,13 @@ mrb_str_times(mrb_state *mrb, mrb_value self)
     memcpy(p + n, p, len-n);
   }
   p[RSTR_LEN(str2)] = '\0';
-  RSTR_COPY_SINGLE_BYTE_FLAG(str2, mrb_str_ptr(self));
-  RSTR_COPY_VALID_ENC_FLAG(str2, mrb_str_ptr(self));
-  /* a repetition of a byte-read string holds nothing but its bytes over
-     again, so it is read the same way */
-  RSTR_ENC_COPY(str2, mrb_str_ptr(self));
-  /* A repetition of broken bytes reaches the same broken place the first copy
-     does, so it is broken too. Nought copies keep none of the bytes, and an
-     empty string is not broken whatever it was made from. */
-  if (len > 0) {
-    RSTR_COPY_BROKEN_ENC_FLAG(str2, mrb_str_ptr(self));
+  /* A repetition holds the receiver's bytes over again, so it is read the same
+     way and reaches the same broken place the first copy does. */
+  RSTR_ENC_CR_COPY(str2, mrb_str_ptr(self));
+  /* Nought copies keep none of the bytes, and an empty string is not broken
+     whatever it was made from. */
+  if (len == 0 && RSTR_CODERANGE(str2) == MRB_STR_CODERANGE_BROKEN) {
+    RSTR_CODERANGE_SET(str2, MRB_STR_CODERANGE_UNKNOWN);
   }
 
   return mrb_obj_value(str2);
@@ -1946,11 +1933,11 @@ str_escape(mrb_state *mrb, mrb_value str, mrb_bool inspect)
   mrb_str_cat_lit(mrb, result, "\"");
 #ifdef MRB_UTF8_STRING
   if (inspect) {
-    if (src_sb_flag) RSTR_SET_SINGLE_BYTE_FLAG(mrb_str_ptr(str));
-    if (sb_flag) RSTR_SET_SINGLE_BYTE_FLAG(mrb_str_ptr(result));
+    if (src_sb_flag) RSTR_CODERANGE_SET(mrb_str_ptr(str), MRB_STR_CODERANGE_7BIT);
+    if (sb_flag) RSTR_CODERANGE_SET(mrb_str_ptr(result), MRB_STR_CODERANGE_7BIT);
   }
   else {
-    RSTR_SET_SINGLE_BYTE_FLAG(mrb_str_ptr(result));
+    RSTR_CODERANGE_SET(mrb_str_ptr(result), MRB_STR_CODERANGE_7BIT);
   }
 #endif
 
@@ -2144,7 +2131,7 @@ mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
        a character of its own, and cutting there would leave a string that is
        not UTF-8: "あ".chomp("\x82") is the whole of the last byte of a
        three-byte character. CRuby reads that as no match. */
-    if (!RSTR_BINARY_P(s) && !RSTR_SINGLE_BYTE_P(s) &&
+    if (!RSTR_BINARY_P(s) && RSTR_CODERANGE(s) != MRB_STR_CODERANGE_7BIT &&
         mrb_utf8_char_head(p, pp, p + len) != pp) {
       return mrb_nil_value();
     }
@@ -2456,7 +2443,7 @@ mrb_str_check_byte_pos(mrb_state *mrb, mrb_value str, mrb_int pos)
 {
 #ifdef MRB_UTF8_STRING
   struct RString *s = mrb_str_ptr(str);
-  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) return;
+  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_7BIT || RSTR_BINARY_P(s)) return;
 
   const char *b = RSTR_PTR(s);
   const char *p = b + pos;
@@ -2510,7 +2497,7 @@ mrb_str_byteindex_m(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_index_m(mrb_state *mrb, mrb_value str)
 {
-  if (RSTR_SINGLE_BYTE_P(mrb_str_ptr(str))) {
+  if (RSTR_CODERANGE(mrb_str_ptr(str)) == MRB_STR_CODERANGE_7BIT) {
     return mrb_str_byteindex_m(mrb, str);
   }
 
@@ -2810,7 +2797,7 @@ static mrb_value
 mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
 {
   struct RString *s = mrb_str_ptr(str);
-  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
+  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_7BIT || RSTR_BINARY_P(s)) {
     return mrb_str_byterindex_m(mrb, str);
   }
 
@@ -3517,9 +3504,7 @@ str_modify_cat(mrb_state *mrb, struct RString *s, mrb_int addlen)
       /* The appended bytes belong to `s` from now on, so no other sharer may
          write over them. */
       shared->reserved = off + s->as.heap.len + addlen;
-      RSTR_UNSET_SINGLE_BYTE_FLAG(s);
-      RSTR_UNSET_VALID_ENC_FLAG(s);
-      RSTR_UNSET_BROKEN_ENC_FLAG(s);
+      RSTR_CODERANGE_SET(s, MRB_STR_CODERANGE_UNKNOWN);
       return capa;
     }
   }
