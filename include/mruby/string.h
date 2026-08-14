@@ -51,11 +51,21 @@ struct RStringEmbed {
 #define MRB_STR_EMBED_LEN_BITS 5
 #define MRB_STR_EMBED_LEN_MASK (((1 << MRB_STR_EMBED_LEN_BITS) - 1) << MRB_STR_EMBED_LEN_SHIFT)
 
-#define MRB_STR_BINARY    16
 #define MRB_STR_SINGLE_BYTE 32
-/* bits 6..10 are the embedded length, so 11 is the first one free */
+/* bit 4 is free, and bits 6..10 are the embedded length, so 11 is the first
+   one free above it */
 #define MRB_STR_VALID_ENC 2048
 #define MRB_STR_BROKEN_ENC 4096
+
+/* Where in the flags word the encoding index sits. Two bits name four
+   encodings, which is more than the two a build carries now; widening them is
+   for whenever a third is carried. They sit above the flags rather than in
+   bit 4, the bit the index leaves behind, because a pair needs two bits in a
+   row and MRB_STR_SINGLE_BYTE holds the one beside it. Moving them down is
+   for whenever the word is laid out afresh. */
+#define MRB_STR_ENCODING_SHIFT 13
+#define MRB_STR_ENCODING_BITS 2
+#define MRB_STR_ENCODING_MASK (((1 << MRB_STR_ENCODING_BITS) - 1) << MRB_STR_ENCODING_SHIFT)
 
 #define RSTR_EMBED_P(s) ((s)->flags & MRB_STR_EMBED)
 #define RSTR_SET_EMBED_FLAG(s) ((s)->flags |= MRB_STR_EMBED)
@@ -138,10 +148,10 @@ struct RStringEmbed {
 #endif
 
 #define RSTR_ENCODING(s) \
-  (((s)->flags & MRB_STR_BINARY) ? MRB_STR_ENCODING_BINARY : MRB_STR_ENCODING_DEFAULT)
+  (((s)->flags & MRB_STR_ENCODING_MASK) >> MRB_STR_ENCODING_SHIFT)
 #define RSTR_ENCODING_SET(s, e) \
-  ((s)->flags = ((s)->flags & ~MRB_STR_BINARY) | \
-                (((e) == MRB_STR_ENCODING_BINARY) ? MRB_STR_BINARY : 0))
+  ((s)->flags = ((s)->flags & ~MRB_STR_ENCODING_MASK) | \
+                ((e) << MRB_STR_ENCODING_SHIFT))
 #define RSTR_BINARY_P(s) (RSTR_ENCODING(s) == MRB_STR_ENCODING_BINARY)
 /* A copy of a string is read the way the string it copies is, so the encoding
    travels with the bytes rather than being left behind on the original. */

@@ -24,7 +24,7 @@ int_chr_binary(mrb_state *mrb, mrb_value num)
      it the byte spells no UTF-8 character at all, so the string is not one
      character per byte and saying that it is left every reader of the flag
      handing the byte back as a character. What it is instead is a string read
-     by bytes, which is what MRB_STR_BINARY says. */
+     by bytes, which is what MRB_STR_ENCODING_BINARY names. */
   if (cp < 0x80) {
     RSTR_CODERANGE_SET(mrb_str_ptr(str), MRB_STR_CODERANGE_7BIT);
   }
