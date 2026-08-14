@@ -149,9 +149,14 @@ struct RStringEmbed {
 
 #define RSTR_ENCODING(s) \
   (((s)->flags & MRB_STR_ENCODING_MASK) >> MRB_STR_ENCODING_SHIFT)
+/* The index is masked to the width of the field it goes into, so an index the
+   field is too narrow for lands wrong rather than reaching the bits beside it.
+   Widening MRB_STR_ENCODING_BITS is what a build carrying that many encodings
+   needs; until then this keeps the mistake where it can be seen. Both operands
+   are constants at every call, so nothing is left of this at -O3. */
 #define RSTR_ENCODING_SET(s, e) \
   ((s)->flags = ((s)->flags & ~MRB_STR_ENCODING_MASK) | \
-                ((e) << MRB_STR_ENCODING_SHIFT))
+                (((e) & ((1 << MRB_STR_ENCODING_BITS) - 1)) << MRB_STR_ENCODING_SHIFT))
 #define RSTR_BINARY_P(s) (RSTR_ENCODING(s) == MRB_STR_ENCODING_BINARY)
 /* A copy of a string is read the way the string it copies is, so the encoding
    travels with the bytes rather than being left behind on the original. */
