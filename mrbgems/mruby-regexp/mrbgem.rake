@@ -8,8 +8,8 @@ MRuby::Gem::Specification.new('mruby-regexp') do |spec|
   # The engine reads UTF-8 whatever a build's strings index by, so it asks core
   # for the functions that answer what a run of bytes spells. They wait
   # behind MRB_UTF8_STRING otherwise, and this build has no reason to set that:
-  # mruby-encoding is what does, and the default gembox carries this gem
-  # without it.
+  # a build that wants UTF-8 asks for it in build_config, and the default
+  # gembox carries this gem without it.
   spec.build.defines << 'MRB_UTF8_SCAN'
 
   # Enumerator is optional: only String#gsub without a block reaches `to_enum`,
