@@ -994,10 +994,12 @@ end
 assert('String#inspect', '15.2.10.5.46') do
   assert_equal "\"\\x00\"", "\0".inspect
   assert_equal "\"foo\"", "foo".inspect
+  # a byte spelled out as hex reads out in upper case, the way CRuby writes it
+  assert_equal "\"\\xAB\"", "\xAB".inspect
   if UTF8STRING
     assert_equal '"る"', "る".inspect
   else
-    assert_equal '"\xe3\x82\x8b"', "る".inspect
+    assert_equal '"\xE3\x82\x8B"', "る".inspect
   end
 
   # should not raise an exception - regress #1210

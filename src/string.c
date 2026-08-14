@@ -1866,6 +1866,12 @@ str_replace_partial(mrb_state *mrb, mrb_value src, mrb_int pos, mrb_int end, mrb
 
 #define IS_EVSTR(p,e) ((p) < (e) && (*(p) == '$' || *(p) == '@' || *(p) == '{'))
 
+/* A `\xNN` escape spells its byte in upper case, as CRuby writes it.
+   `mrb_digitmap` is lower case because `Integer#to_s` reads a number
+   through it and CRuby spells that in lower case, so the two cannot share
+   one table. */
+static const char escape_hexmap[] = "0123456789ABCDEF";
+
 static mrb_value
 str_escape(mrb_state *mrb, mrb_value str, mrb_bool inspect)
 {
@@ -1932,8 +1938,8 @@ str_escape(mrb_state *mrb, mrb_value str, mrb_bool inspect)
     }
     else {
       buf[1] = 'x';
-      buf[3] = mrb_digitmap[c % 16]; c /= 16;
-      buf[2] = mrb_digitmap[c % 16];
+      buf[3] = escape_hexmap[c % 16]; c /= 16;
+      buf[2] = escape_hexmap[c % 16];
       mrb_str_cat(mrb, result, buf, 4);
     }
   }

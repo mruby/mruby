@@ -12,7 +12,7 @@ end
 assert('String#dump') do
   assert_equal("\"\\x00\"", "\0".dump)
   assert_equal("\"foo\"", "foo".dump)
-  assert_equal('"\xe3\x82\x8b"', "る".dump)
+  assert_equal('"\xE3\x82\x8B"', "る".dump)
   assert_nothing_raised { ("\1" * 100).dump }   # regress #1210
 end
 
@@ -21,7 +21,7 @@ assert('String#inspect of a binary string escapes every byte') do
   # which a string holding no characters has nothing to gain from. `dump` on
   # the same string escaped every byte already, so the two agree there.
   assert_equal('"る"', "る".inspect)
-  assert_equal('"\xe3\x82\x8b"', "る".b.inspect)
+  assert_equal('"\xE3\x82\x8B"', "る".b.inspect)
   assert_equal("る".b.dump, "る".b.inspect)
 end if UTF8STRING
 

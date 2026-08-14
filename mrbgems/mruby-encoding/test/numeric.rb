@@ -35,7 +35,7 @@ assert('Integer#chr(binary) of a byte that spells no character') do
   assert_equal [171], s.codepoints
   assert_equal 171, s.ord
   assert_equal [171], s.scrub.bytes
-  assert_equal "\"\\xab\"", s.inspect
+  assert_equal "\"\\xAB\"", s.inspect
   assert_equal Encoding::BINARY, s.encoding
   assert_true s.valid_encoding?
   assert_equal Encoding::BINARY, s.dup.encoding
