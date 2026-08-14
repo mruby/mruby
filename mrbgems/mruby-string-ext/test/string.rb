@@ -232,6 +232,60 @@ assert('String#concat on a shared buffer') do
   assert_equal "l" * 100 + "m" * 100, n
 end
 
+assert('String growth on a shared buffer') do
+  # An append writes only above the length every other sharer of the buffer
+  # can see, which is what lets `String#<<` above stay in the buffer. Growing
+  # a string any other way has no such guarantee, and a growth that kept the
+  # buffer shared would be seen through the other string. Every string here is
+  # appended to before it is shared, since one with no spare capacity has
+  # nothing to be grown into in place anyway.
+
+  # `insert` at the front memmoves from offset 0, over the whole slice.
+  a = "a" * 100
+  a << "z" * 100
+  a_slice = a[0, 150]
+  a.insert(0, "1234")
+  assert_equal "1234" + "a" * 100 + "z" * 100, a
+  assert_equal "a" * 100 + "z" * 50, a_slice
+
+  # `prepend`, the same shape as `insert` at 0.
+  c = "c" * 100
+  c << "x" * 100
+  c_slice = c[0, 150]
+  c.prepend("1234")
+  assert_equal "1234" + "c" * 100 + "x" * 100, c
+  assert_equal "c" * 100 + "x" * 50, c_slice
+
+  # The rest are contract rather than detection: what they write happens to
+  # land above the slice, or they take the buffer for reasons of their own.
+
+  # `insert` at the end writes above the slice, and moves only the length and
+  # the terminator of the buffer the slice reads.
+  b = "b" * 100
+  b << "y" * 100
+  b_slice = b[0, 150]
+  b.insert(-1, "1234")
+  assert_equal "b" * 100 + "y" * 100 + "1234", b
+  assert_equal "b" * 100 + "y" * 50, b_slice
+
+  # `succ!` writes a terminator over the string before it grows, so it has to
+  # hold the buffer by then whatever the growth does.
+  d = "z" * 100
+  d << "z" * 100
+  d_slice = d[0, 150]
+  d.succ!
+  assert_equal "a" * 201, d
+  assert_equal "z" * 150, d_slice
+
+  # The sharer is the one that grows, ending below what its parent holds.
+  e = "e" * 100
+  e << "w" * 100
+  e_slice = e[0, 150]
+  e_slice.insert(0, "1234")
+  assert_equal "1234" + "e" * 100 + "w" * 50, e_slice
+  assert_equal "e" * 100 + "w" * 100, e
+end
+
 assert('String#casecmp') do
   assert_equal 1, "abcdef".casecmp("abcde")
   assert_equal 0, "aBcDeF".casecmp("abcdef")

@@ -1200,3 +1200,27 @@ assert('String#bytesplice') do
   # with an empty string
   assert_equal "012789", "0123456789".bytesplice(3, 4, "")
 end
+
+assert('String#bytesplice on a shared buffer') do
+  # A longer replacement grows the string and then writes from `idx1`, which
+  # a string sharing the same buffer still reads, so growing has to take the
+  # buffer away from it. Each string is shortened before it is shared, to
+  # leave spare capacity behind: one that has none cannot be grown in place
+  # anyway, so it would not tell the two behaviours apart.
+  a = "a" * 100 + "z" * 100
+  a.bytesplice(100, 100, "")
+  a_slice = a[0, 60]
+  a.bytesplice(0, 1, "1234567890")
+  assert_equal "1234567890" + "a" * 99, a
+  assert_equal "a" * 60, a_slice
+
+  # The sharer is the one that grows, ending below what its parent holds.
+  # Contract rather than detection: that is already the case where a growth
+  # keeping the buffer would have to take a copy regardless.
+  b = "b" * 100 + "y" * 100
+  b.bytesplice(100, 100, "")
+  b_slice = b[0, 60]
+  b_slice.bytesplice(0, 1, "1234567890")
+  assert_equal "1234567890" + "b" * 59, b_slice
+  assert_equal "b" * 100, b
+end
