@@ -151,6 +151,42 @@ assert("Regexp - match operand rejects other types") do
   assert_false(/a/ === nil)
 end
 
+assert("Regexp.__byte_search answers a position before the subject with a miss") do
+  # The mrblib loops enter this at zero or at an offset a match answered with,
+  # so a negative one arrives only from a direct call. Left to the engine it
+  # would read behind the subject; the answer instead is the miss a position
+  # past the end already gives, and it clears the match globals the same way.
+  $~ = /b/.match("abc")
+  assert_nil Regexp.__byte_search(/b/, "abc", -1)
+  assert_nil $~
+
+  $~ = /b/.match("abc")
+  assert_nil Regexp.__byte_search(/b/, "abc", -1000000)
+  assert_nil $~
+
+  $~ = /b/.match("abc")
+  assert_nil Regexp.__byte_search(/b/, "abc", 1000000)
+  assert_nil $~
+
+  # and a search that publishes nothing clears nothing either, at both ends
+  $~ = /b/.match("abc")
+  assert_nil Regexp.__byte_search(/b/, "abc", -1, false, false)
+  assert_equal "b", $~[0]
+  assert_nil Regexp.__byte_search(/b/, "abc", 1000000, false, false)
+  assert_equal "b", $~[0]
+
+  # and it is answered before the subject is read, the way `__search` answers a
+  # position it cannot place: a subject the position names nothing in is not
+  # read either way
+  bad = "\xFF"
+  assert_nil Regexp.__byte_search(/b/, bad, -1)
+  if __ENCODING__ == "UTF-8"
+    assert_raise(ArgumentError) { Regexp.__byte_search(/b/, bad, 0) }
+  else
+    assert_nil Regexp.__byte_search(/b/, bad, 0)
+  end
+end
+
 assert("Regexp.escape") do
   assert_equal "a\\.b\\*c", Regexp.escape("a.b*c")
 
