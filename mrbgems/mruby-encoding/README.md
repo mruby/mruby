@@ -7,8 +7,8 @@ This mrbgem provides a lightweight, "poorman's" encoding functionality for mruby
 - **License:** MIT
 - **Author:** mruby developers
 - **Supported Encodings:**
-  - `Encoding::UTF_8`
   - `Encoding::ASCII_8BIT` (aliased as `Encoding::BINARY`)
+  - `Encoding::UTF_8`, only in a build that defines `MRB_UTF8_STRING`
 
 ## Functionality
 
@@ -32,6 +32,7 @@ A module (not a class, unlike standard Ruby) that holds encoding constants.
   - Changes the string's reported encoding to the specified `encoding_name` (e.g., "UTF-8", "ASCII-8BIT", "BINARY").
   - The actual byte sequence of the string is not changed.
   - Raises an `ArgumentError` if an unsupported encoding name is provided.
+    Without `MRB_UTF8_STRING`, `"UTF-8"` is such a name.
 
 ### `Integer` Method
 
@@ -40,7 +41,27 @@ A module (not a class, unlike standard Ruby) that holds encoding constants.
   - If `encoding_name` is "UTF-8", the integer is treated as a Unicode codepoint.
   - If `encoding_name` is "ASCII-8BIT" or "BINARY" (the default), the integer is treated as a byte value (0-255).
   - Raises a `RangeError` if the integer is out of the valid range for the specified encoding.
-  - Raises an `ArgumentError` for unknown encoding names.
+  - Raises an `ArgumentError` for unknown encoding names, which without
+    `MRB_UTF8_STRING` includes `"UTF-8"`.
+
+## Builds without `MRB_UTF8_STRING`
+
+This gem does not define `MRB_UTF8_STRING` for the build; a build that wants
+UTF-8 defines it itself. Without it mruby reads a string as bytes, so there is
+no UTF-8 for this gem to name and UTF-8 becomes an encoding the build has no
+entry for:
+
+- `Encoding::UTF_8` is not defined, so naming it raises `NameError`.
+- `String#encoding` answers `Encoding::BINARY` for every string.
+- `String#force_encoding("UTF-8")` raises
+  `ArgumentError: unknown encoding name - UTF-8`, as any other unknown name
+  does.
+- `Integer#chr("UTF-8")` raises the same `ArgumentError`.
+- `String#valid_encoding?` answers true for every string, since bytes are all a
+  byte-indexed string claims to be.
+
+This is what CRuby does with a name it has no encoding for. To tell the two
+builds apart, compare `__ENCODING__` against `"UTF-8"`.
 
 ## Usage Example
 
@@ -48,49 +69,36 @@ A module (not a class, unlike standard Ruby) that holds encoding constants.
 # main.rb
 if __ENCODING__ == "UTF-8"
   s = "helloあ"
-  puts s.encoding  #=> Encoding::UTF_8
+  puts s.encoding        #=> UTF-8
   puts s.valid_encoding? #=> true
 
-  s2 = "\xff".force_encoding("UTF-8")
-  puts s2.valid_encoding? #=> false
+  # the bytes are not touched, only the way they are read
+  bytes = "\xE3\x81\x82"      # UTF-8 bytes for "あ"
+  puts bytes.encoding         #=> UTF-8
+  puts bytes.length           #=> 1
+  puts bytes.b.length         #=> 3
+
+  broken = "\xff\xfe".force_encoding("UTF-8")
+  puts broken.valid_encoding? #=> false
 
   s3 = "world"
   s3.force_encoding("BINARY")
-  puts s3.encoding #=> Encoding::BINARY
-  puts s3.valid_encoding? #=> true (ASCII-8BIT strings are generally considered valid)
+  puts s3.encoding            #=> ASCII-8BIT
+  puts s3.valid_encoding?     #=> true
 
-  puts 65.chr #=> "A" (defaults to ASCII-8BIT)
-  puts 230.chr("UTF-8") #=> "æ" (if U+00E6 is æ)
-  # For mruby, this might be different based on actual UTF-8 char mapping
-  # For example, 12354.chr("UTF-8") might be "あ"
+  puts 12354.chr("UTF-8")     #=> "あ"
+  # 0x110000.chr("UTF-8")     #=> RangeError
 else
   s = "hello"
-  puts s.encoding #=> Encoding::BINARY (or ASCII-8BIT)
+  puts s.encoding             #=> ASCII-8BIT
 
-  # Attempting to force to UTF-8 in a non-UTF-8 mruby build might be limited
-  # or behave as ASCII-8BIT depending on mruby's core string handling.
+  s.force_encoding("BINARY")  # a name this build has
+  # s.force_encoding("UTF-8") #=> ArgumentError: unknown encoding name - UTF-8
+  # Encoding::UTF_8           #=> NameError: uninitialized constant Encoding::UTF_8
+  # 12354.chr("UTF-8")        #=> ArgumentError: unknown encoding name - UTF-8
 end
 
-# Force encoding
-my_string = "\xE3\x81\x82" # UTF-8 bytes for "あ"
-puts my_string.encoding # Might be BINARY by default if not created as UTF-8 literal
-
-my_string.force_encoding("UTF-8")
-puts my_string.encoding #=> Encoding::UTF_8
-puts my_string #=> あ
-
-invalid_utf8 = "\xff\xfe"
-invalid_utf8.force_encoding("UTF-8")
-puts invalid_utf8.valid_encoding? #=> false
-
-# Integer#chr
-puts 65.chr # => "A"
-puts 65.chr("BINARY") # => "A"
-
-# When mruby is compiled with MRB_UTF8_STRING
-if Object.const_defined?(:MRB_UTF8_STRING)
-  puts 12354.chr("UTF-8") # => "あ"
-  # puts 0x110000.chr("UTF-8") #=> RangeError
-end
-
+# Integer#chr reads a byte value whatever the build
+puts 65.chr           #=> "A"
+puts 65.chr("BINARY") #=> "A"
 ```
