@@ -607,13 +607,17 @@ assert("a backward search publishes every global of the match it settled on") do
   assert_nil $2
   assert_equal "b", $+
 
-  # and a search that finds nothing clears all of them, not `$~` alone
-  "zzz" =~ /(z)/
+  # and a search that finds nothing clears all of them, not `$~` alone.  Two
+  # groups are seeded so that a `$2` left standing is one the clear missed
+  # rather than one no seed ever filled
+  "zzz" =~ /(z)(z)/
   assert_nil "abc".rindex(/x/)
+  assert_nil $~
   assert_nil $&
   assert_nil $`
   assert_nil $'
   assert_nil $1
+  assert_nil $2
   assert_nil $+
 end
 
