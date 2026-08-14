@@ -44,6 +44,37 @@ assert('String#valid_encoding? survives what the string goes through') do
   end
 end
 
+assert('String#valid_encoding? after an append inside a shared buffer') do
+  # An append to a string sharing a buffer with room to spare writes in place
+  # rather than detaching, and that path forgets the remembered answer on its
+  # own rather than through mrb_str_modify_keep_ascii(). Nothing else here
+  # reaches it: a string built by `*` or from a literal has no spare capacity,
+  # so its sharers all take the detaching path instead.
+  #
+  # The append also has to be the one that makes a broken string valid, by
+  # completing a sequence cut short at the end. An append that leaves the
+  # string broken agrees with a stale answer and shows nothing.
+  if UTF8STRING
+    base = ""
+    300.times { base << "a" }   # built up, so the allocation is wider than the string
+    base << "\xE3\x81"          # a three-byte sequence two bytes in
+    warm = base.dup             # shares the buffer, spare capacity and all
+    assert_false warm.valid_encoding?
+    warm << "\x82"              # completes it: the same bytes now spell a character
+    assert_true warm.valid_encoding?
+    cold = base.dup
+    cold << "\x82"
+    assert_equal cold.bytes, warm.bytes
+    # and the other way round: an append that breaks a string it shares
+    base2 = ""
+    300.times { base2 << "a" }
+    ok = base2.dup
+    assert_true ok.valid_encoding?
+    ok << "\xE3\x81"
+    assert_false ok.valid_encoding?
+  end
+end
+
 assert('String#valid_encoding?') do
   assert_true "hello".valid_encoding?
   if UTF8STRING

@@ -201,4 +201,10 @@ assert('what the string sprintf builds claims') do
   assert_equal Encoding::UTF_8, ("%c" % [171]).encoding
   assert_equal Encoding::UTF_8, ("%d" % [171]).encoding
   assert_equal Encoding::UTF_8, ("%p" % [bin]).encoding
+  # A byte-read format string of nothing but ASCII keeps the byte reading even
+  # where the argument is UTF-8 and goes above ASCII. CRuby answers UTF-8 here:
+  # its rule lets an all-ASCII side yield to the other one, and this one never
+  # takes the byte reading back off a string that carries it. `"".b << "あ"`
+  # is the same cell, answered the same way on purpose.
+  assert_equal Encoding::BINARY, ("%s".force_encoding(Encoding::BINARY) % ["あ"]).encoding
 end
