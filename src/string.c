@@ -1249,36 +1249,15 @@ mrb_locale_from_utf8(const char *utf8, int len)
  * @param s The RString structure to modify.
  *
  * Prepares a string for modification. If the string is shared or not extensible,
- * it will be unshared or converted to a normal string. This version keeps the
- * string standing at 7BIT if that is where it stood.
- * Raises an error if the string is frozen.
- */
-MRB_API void
-mrb_str_modify_keep_ascii(mrb_state *mrb, struct RString *s)
-{
-  mrb_check_frozen(mrb, s);
-  str_unshare_buffer(mrb, s);
-  /* A write that leaves the string holding nothing but ASCII leaves it
-     standing where it stood, and that is the caller's to keep. Anything else
-     the bytes were read as stops holding here. */
-  if (RSTR_CODERANGE(s) != MRB_STR_CODERANGE_7BIT) {
-    RSTR_CODERANGE_SET(s, MRB_STR_CODERANGE_UNKNOWN);
-  }
-}
-
-/*
- * @param mrb The mruby state.
- * @param s The RString structure to modify.
- *
- * Prepares a string for modification. Similar to `mrb_str_modify_keep_ascii`,
- * but also takes 7BIT back, assuming the modification might introduce
- * multi-byte characters.
+ * it will be unshared or converted to a normal string. What the bytes were read
+ * as stops holding here, so this is the prepare for a write that can change it.
  * Raises an error if the string is frozen.
  */
 MRB_API void
 mrb_str_modify(mrb_state *mrb, struct RString *s)
 {
-  mrb_str_modify_keep_ascii(mrb, s);
+  mrb_check_frozen(mrb, s);
+  str_unshare_buffer(mrb, s);
   RSTR_CODERANGE_SET(s, MRB_STR_CODERANGE_UNKNOWN);
 }
 
@@ -3213,7 +3192,7 @@ mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr)
   }
 
   /*
-   * Even after str_modify_keep_ascii(), NULL termination is not ensured if
+   * Even after mrb_str_modify(), NULL termination is not ensured if
    * RSTR_SET_LEN() is used explicitly (e.g. String#delete_suffix!).
    */
   str_unshare_buffer(mrb, ps);

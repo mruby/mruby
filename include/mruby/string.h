@@ -221,8 +221,6 @@ struct RStringEmbed {
 #define RSTRING_CSTR(mrb,s)  mrb_string_cstr(mrb, s)
 
 MRB_API void mrb_str_modify(mrb_state *mrb, struct RString *s);
-/* mrb_str_modify() with keeping ASCII flag if set */
-MRB_API void mrb_str_modify_keep_ascii(mrb_state *mrb, struct RString *s);
 
 /**
  * Finds the index of a substring in a string
