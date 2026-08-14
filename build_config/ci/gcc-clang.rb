@@ -17,6 +17,12 @@ MRuby::Build.new('full-debug') do |conf|
   # mruby-regexp/test/ascii_case.rb needs, so both sides stay covered.
   conf.cc.defines << 'MRB_REGEXP_UNICODE_CASE'
 
+  # mruby-encoding no longer turns UTF-8 on for the whole build, so a build that
+  # wants it says so. The other builds in this file keep the default, which is
+  # what the non-UTF-8 side of mruby-encoding needs, so both sides stay covered
+  # without a job of their own.
+  conf.cc.defines << 'MRB_UTF8_STRING'
+
   conf.enable_test
 end
 

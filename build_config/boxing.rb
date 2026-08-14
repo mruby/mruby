@@ -9,6 +9,9 @@ boxings.product(bits, ints) do |boxing, bit, int|
     conf.compilers.each do |c|
       c.defines << "MRB_#{boxing.upcase}_BOXING"
       c.defines << "MRB_INT#{int}"
+      # UTF-8 lengths and offsets are mrb_int, and these are the only builds
+      # that vary its width.
+      c.defines << "MRB_UTF8_STRING"
       c.flags << "-m#{bit}"
     end
     conf.linker.flags << "-m#{bit}"
