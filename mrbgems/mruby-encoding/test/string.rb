@@ -435,3 +435,33 @@ assert('a byte-read string padded to width') do
     assert_equal Encoding::UTF_8, "あ".center(3).encoding
   end
 end
+
+assert('a byte-read string cut in three') do
+  # `partition` and `rpartition` cut their pieces out of the receiver's bytes,
+  # and every piece comes back read as UTF-8 whatever the receiver was read
+  # as, most of them over bytes that refuse to read as it. Only the separator
+  # piece carries a reading of its own, being the argument handed back through
+  # `dup`. Pin where every answer stands before any of it moves.
+  if UTF8STRING
+    b = "a\xABb".b
+    bin = Encoding::BINARY
+    utf = Encoding::UTF_8
+    assert_equal ["", "a", "\xABb"], b.partition("a")
+    assert_equal ["a\xAB", "b", ""], b.rpartition("b")
+    assert_equal [utf, utf, utf], b.partition("a").map { |piece| piece.encoding }
+    assert_equal [utf, utf, utf], b.rpartition("b").map { |piece| piece.encoding }
+    assert_false b.partition("a")[2].valid_encoding?
+    # where the separator is found nowhere, the receiver comes back whole and
+    # the two empty pieces are cut out of nothing
+    assert_equal [bin, utf, utf], b.partition("x").map { |piece| piece.encoding }
+    assert_equal [utf, utf, bin], b.rpartition("x").map { |piece| piece.encoding }
+    # an empty separator cuts nothing off either end
+    assert_equal [utf, utf, bin], b.partition("").map { |piece| piece.encoding }
+    assert_equal [bin, utf, utf], b.rpartition("").map { |piece| piece.encoding }
+    # a separator read as bytes hands its own reading to the middle piece alone
+    assert_equal [utf, bin, utf], "aあb".partition("a".b).map { |piece| piece.encoding }
+    assert_equal [utf, bin, utf], "aあb".rpartition("b".b).map { |piece| piece.encoding }
+    # a receiver read as UTF-8 goes on being read that way
+    assert_equal [utf, utf, utf], "あい".partition("あ").map { |piece| piece.encoding }
+  end
+end
