@@ -408,6 +408,27 @@ assert("Regexp - \\u escapes in a character class") do
   assert_equal ["c"], "abc".scan(/[^\u{61 62}]/)
 end
 
+assert("Regexp - a \\u escape in a class names what spelling it out names") do
+  # A class member is one character, and on a build whose characters are single
+  # bytes a character above ASCII is not one: `[Ā]` holds the two bytes that
+  # spell it, since read_class_atom() decodes one byte at a time there. Naming
+  # that character with an escape has to come to the same members, or the two
+  # halves of one pattern disagree about what the pattern holds.
+  skip if __ENCODING__ == "UTF-8"
+  spelled = Regexp.new("[\u{100}]")           # the character, written out
+  named = Regexp.new("[\\u{100}]")            # the same character, named
+  ["\u{100}", "\xC4".b, "\x80".b].each do |subject|
+    assert_equal spelled.match?(subject), named.match?(subject)
+  end
+  # The character the escape names is found through the bytes it holds, which
+  # is what the written out spelling answers too.
+  assert_true named.match?("\u{100}")
+  # An ASCII codepoint is a member of its own on either build, and a list still
+  # gives every codepoint a membership with the last one able to open a range.
+  assert_equal ["a", "b"], "abc".scan(/[\u{61 62}]/)
+  assert_equal ["a", "b", "c"], "abc-".scan(/[\u{61 62}-z]/)
+end
+
 assert("Regexp - malformed \\u escapes") do
   # each of these is a RegexpError in CRuby rather than a shorter codepoint
   # or literal text

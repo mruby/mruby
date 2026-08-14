@@ -546,6 +546,33 @@ class_add_member(re_compiler *c, re_charclass *cc, uint32_t cp, mrb_bool is_byte
   else class_add_codepoint(c, cc, (is_byte ? RE_CLASS_BYTE : 0) | cp);
 }
 
+/* What a `\u` escape names, in the members a class can hold. On a build whose
+   characters are single bytes, a codepoint above ASCII is the bytes that spell
+   it, which is already what a character written out in the class comes to
+   there: read_class_atom() decodes one byte at a time, so `[Ā]` holds `\xC4`
+   and `\x80`. Naming the same character rather than spelling it out cannot
+   mean something else, so the escape contributes those bytes too. All but the
+   last join the class here, and the last is returned, so it can open a range
+   as any other atom would.
+
+   A range so opened is a range of bytes, since that is what both ends are.
+   The written out spelling reaches byte ends by its own route and comes to a
+   different span, which is what a range between two characters neither
+   spelling can express comes to on a build like this. */
+static uint32_t
+class_named_cp(re_compiler *c, re_charclass *cc, uint32_t cp, mrb_bool *is_byte)
+{
+  if (MRB_ENC_MULTIBYTE_P || cp < 0x80) return cp;
+
+  char buf[4];
+  int len = (int)mrb_utf8_to_buf(buf, (mrb_int)cp);
+  for (int i = 0; i < len - 1; i++) {
+    class_add_member(c, cc, (uint8_t)buf[i], TRUE);
+  }
+  *is_byte = TRUE;
+  return (uint8_t)buf[len - 1];
+}
+
 /* Read one character class atom: either an ASCII byte (0-127), a
    `\escape`, or a full multi-byte UTF-8 codepoint. Returns the value and
    advances c->p. *is_byte says which of the two the value is: TRUE for a
@@ -573,10 +600,12 @@ read_class_atom(re_compiler *c, re_charclass *cc, mrb_bool *is_byte)
          the last join the class here; the last is returned, so it can open a
          range as any other atom would: `[\u{61 62}-z]` is `a` plus `b-z`. */
       while (unicode_escape_next(c, &more, &nx)) {
-        class_add_member(c, cc, cp, FALSE);
+        mrb_bool member_byte = FALSE;
+        uint32_t member = class_named_cp(c, cc, cp, &member_byte);
+        class_add_member(c, cc, member, member_byte);
         cp = nx;
       }
-      return cp;
+      return class_named_cp(c, cc, cp, is_byte);
     }
     /* A backslash before a multibyte character has no escape meaning, so let
        the decode below read the whole codepoint: [\Ā] is [Ā]. parse_escape()

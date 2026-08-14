@@ -72,10 +72,17 @@ assert("Regexp - /i leaves alone what it can answer") do
   if __ENCODING__ == "UTF-8"
     assert_true(/\u{212a}/i.match?("k"))
     assert_true(/\u{212a}/i.match?("K"))
+    # A class holds the character the escape names, so the fold reaches the
+    # ASCII letter from it.
+    assert_true(/[\u{212a}]/i.match?("k"))
+    assert_false(/[^\u{212a}]/i.match?("K"))
   else
     assert_true(/\u{212a}/i.match?("\u{212a}"))
     assert_false(/\u{212a}/i.match?("k"))
+    # A class holds the bytes of that character instead, and a byte has no
+    # case, so /i adds nothing and the letter is not reached.
+    assert_true(/[\u{212a}]/i.match?("\u{212a}"))
+    assert_false(/[\u{212a}]/i.match?("k"))
+    assert_true(/[^\u{212a}]/i.match?("K"))
   end
-  assert_true(/[\u{212a}]/i.match?("k"))
-  assert_false(/[^\u{212a}]/i.match?("K"))
 end

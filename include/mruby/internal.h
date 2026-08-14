@@ -226,6 +226,17 @@ uint32_t mrb_utf8_decode(const char *p, const char *e, mrb_int *lenp);
 mrb_int mrb_utf8_strlen(const char *str, mrb_int byte_len);
 #endif
 
+/* Whether more than one byte can spell one character in what this build
+   reads. The three functions below answer what a given run of bytes spells,
+   which is what a reader wants; this is for the few places that have to know
+   the shape of the answer before they have bytes to ask about, such as
+   whether a set of single characters can hold a named codepoint at all. */
+#ifdef MRB_UTF8_STRING
+# define MRB_ENC_MULTIBYTE_P 1
+#else
+# define MRB_ENC_MULTIBYTE_P 0
+#endif
+
 /* What a run of bytes spells, in whatever a build's strings are encoded in.
    These are the three above where the build reads UTF-8, and one byte per
    character where it does not, which is what a String is there. Anything that
