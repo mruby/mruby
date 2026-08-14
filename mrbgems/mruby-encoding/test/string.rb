@@ -505,3 +505,16 @@ assert('a byte-read string cut in three') do
     assert_equal [utf, utf, utf], "あい".partition("あ").map { |piece| piece.encoding }
   end
 end
+
+assert('minrepro') do
+  [->(s) { s << "z" }].each do |op|
+    ["abc", "a" * 100, "", "a" * 31, "a" * 32].each do |base|
+      warm = base.dup
+      warm.length
+      cold = base.dup
+      op.call(warm)
+      op.call(cold)
+      assert_equal cold.chars.size, warm.chars.size
+    end
+  end
+end

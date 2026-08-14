@@ -3557,6 +3557,8 @@ mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
   if (ptr_addr >= str_addr && ptr_addr <= str_addr + (uintptr_t)RSTR_LEN(s)) {
       off = (ptrdiff_t)(ptr_addr - str_addr);
   }
+  /* Read before the modify below, which forgets it. */
+  uint32_t cr = RSTR_CODERANGE(s);
   mrb_int capa = str_modify_cat(mrb, s, (mrb_int)len);
 
   if (capa <= total) {
@@ -3572,6 +3574,23 @@ mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
   memcpy(RSTR_PTR(s) + RSTR_LEN(s), ptr, len);
   RSTR_SET_LEN(s, total);
   RSTR_PTR(s)[total] = '\0';   /* sentinel */
+#ifdef MRB_UTF8_STRING
+  /* An append is the one write that can say what the string stands at
+     afterwards without reading it: ASCII bytes added to a string of nothing
+     but ASCII leave a string of nothing but ASCII. Carrying that across is
+     what keeps a loop of `buf << "..."` from walking the whole of `buf` again
+     on the next question about its bytes, which is how appending in a loop and
+     matching in the same loop came to take quadratic time.
+
+     Only this pair is carried. VALID would need the appended bytes read as
+     characters rather than scanned for the high bit, and the boundary between
+     the two parts read as well, which is the walk this is avoiding. */
+  if (cr == MRB_STR_CODERANGE_7BIT && search_nonascii(ptr, ptr + len) == ptr + len) {
+    RSTR_CODERANGE_SET(s, MRB_STR_CODERANGE_7BIT);
+  }
+#else
+  (void)cr;
+#endif
   return str;
 }
 
