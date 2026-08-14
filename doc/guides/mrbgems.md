@@ -339,6 +339,35 @@ after all setup blocks for GEMs including dependencies have been called.
 **NOTE**: Using the `build_settings` method will cause GEM's all build command settings
 directly written in the block passed to `MRuby::Gem::Specification.new` to be ignored.
 
+### Asking what the build defines
+
+A GEM announces a capability to the rest of the build by adding to
+`spec.build.defines`, which becomes a `-D` on every translation unit:
+
+```ruby
+spec.build.defines << "HAVE_MRUBY_IO_GEM"
+```
+
+`MRuby::Build#has_define?` is how another GEM reads one back:
+
+```ruby
+spec.build_settings do
+  spec.cc.flags << "-any_flags" if build.has_define?("MRB_UTF8_STRING")
+end
+```
+
+It reports a define whether the build configuration asked for it or a GEM
+contributed it, and matches on the name alone, so a define added as `"FOO=1"`
+answers `has_define?("FOO")`. The `-D` belongs to the compiler flag and not to
+the define, so it is no part of the name to ask under.
+
+It has to be asked from `build_settings` and not from the block passed to
+`MRuby::Gem::Specification.new`. A GEM contributes its defines when its own
+block runs, and the blocks run in the order the GEMs were added, so during
+that phase the answer would depend on how far down the list the caller sits.
+`has_define?` raises there rather than hand back an answer that is right for
+some GEM orders and wrong for others.
+
 ## Platform Ports (ports/)
 
 A gem may ship platform-specific C sources under `ports/<name>/`

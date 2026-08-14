@@ -28,6 +28,11 @@ MRuby.each_target do |build|
     end
   end
   gems.setup(self) if enable_gems?
+
+  # The config has been read and every gem's mrbgem.rake body has run, so the
+  # defines a gem contributes are all in. `build.has_define?` answers from
+  # here on, and refuses before.
+  build.defines_final!
 end
 
 # load basic rules

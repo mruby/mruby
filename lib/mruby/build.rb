@@ -110,6 +110,7 @@ module MRuby
         @install_prefix = nil
         @install_excludes = []
         @defines = []
+        @defines_final = false
         @cc = Command::Compiler.new(self, %w(.c), label: "CC")
         @cxx = Command::Compiler.new(self, %w(.cc .cxx .cpp), label: "CXX")
         @objc = Command::Compiler.new(self, %w(.m), label: "OBJC")
@@ -376,6 +377,37 @@ EOS
       COMPILERS.map do |c|
         instance_variable_get("@#{c}")
       end
+    end
+
+    # Declare that every gem in the build has had its mrbgem.rake run, so the
+    # defines gems contribute through `spec.build.defines` are all in.  Called
+    # once from the Rakefile, between loading the build config and defining
+    # any rule.
+    def defines_final!
+      @defines_final = true
+    end
+
+    # True when this build compiles with -D<name>, whether the build config
+    # asked for it or a gem contributed it.  A gem reads this to configure
+    # itself against a capability another gem provides.
+    #
+    # Until `defines_final!` the answer would depend on how far down the gem
+    # list the caller sits, since a gem contributes its defines when its own
+    # mrbgem.rake body runs.  Rather than hand back an answer that is right
+    # for some gem orders and wrong for others, this refuses to answer at all
+    # before then.  `spec.build_settings` is the hook that runs late enough.
+    def has_define?(name)
+      unless @defines_final
+        fail "build.has_define?(#{name.inspect}) cannot be answered while gems " \
+             "are still being set up, because a gem contributes its defines " \
+             "then. Ask from a `spec.build_settings` block instead."
+      end
+      name = name.to_s
+      # A define may carry a value, as `FOO=1` does, so compare the name and
+      # not the value.  The `-D` is the compiler's, added when the flags are
+      # assembled, and is no part of the name.
+      [defines, *compilers.map(&:defines)].flatten
+        .any? {|d| d.to_s.split('=', 2).first == name}
     end
 
     def define_rules
