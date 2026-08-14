@@ -692,6 +692,9 @@ mrb_str_valid_encoding_p(mrb_state *mrb, mrb_value str)
      bytes are. */
   if (RSTR_BINARY_P(s)) return TRUE;
   if (RSTR_VALID_ENC_P(s)) return TRUE;
+  /* The walk below reads the whole string to answer FALSE, so a string already
+     read as broken is answered off the mark that walk left instead. */
+  if (RSTR_BROKEN_ENC_P(s)) return FALSE;
   /* A string of one character per byte holds nothing but ASCII, and ASCII
      reads as UTF-8 as it stands, so it is valid without a walk. This is what
      a string counted before it is asked about comes in carrying. */
@@ -704,7 +707,10 @@ mrb_str_valid_encoding_p(mrb_state *mrb, mrb_value str)
   mrb_bool valid = TRUE;
   mrb_int utf8_len = utf8_strlen_check(RSTR_PTR(s), byte_len, &valid);
 
-  if (!valid) return FALSE;
+  if (!valid) {
+    RSTR_SET_BROKEN_ENC_FLAG(s);
+    return FALSE;
+  }
   if (byte_len == utf8_len) RSTR_SET_SINGLE_BYTE_FLAG(s);
   RSTR_SET_VALID_ENC_FLAG(s);
   return TRUE;
@@ -1000,8 +1006,10 @@ mrb_str_byte_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
   }
   RSTR_COPY_SINGLE_BYTE_FLAG(s, orig);
   /* A subrange of a byte-read string holds nothing but bytes of it, so it is
-     read the same way. MRB_STR_VALID_ENC stays behind: cutting can leave a
-     character in pieces, and validity is not a property a subrange inherits. */
+     read the same way. Neither answer about the encoding travels with it:
+     cutting can leave a character in pieces, and it can also cut away the
+     piece that spelled none, so a subrange inherits validity in neither
+     direction. */
   RSTR_COPY_BINARY_FLAG(s, orig);
   return mrb_obj_value(s);
 }
@@ -1098,6 +1106,7 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
   if (s1 == s2) return mrb_obj_value(s1);
   RSTR_COPY_SINGLE_BYTE_FLAG(s1, s2);
   RSTR_COPY_VALID_ENC_FLAG(s1, s2);
+  RSTR_COPY_BROKEN_ENC_FLAG(s1, s2);
   RSTR_COPY_BINARY_FLAG(s1, s2);
   if (RSTR_SHARED_P(s1)) {
     str_decref(mrb, s1->as.heap.aux.shared);
@@ -1270,6 +1279,7 @@ mrb_str_modify_keep_ascii(mrb_state *mrb, struct RString *s)
   /* Every in-place write reaches here, including the ones that keep the string
      ASCII, so this is where the walk's answer stops holding. */
   RSTR_UNSET_VALID_ENC_FLAG(s);
+  RSTR_UNSET_BROKEN_ENC_FLAG(s);
 }
 
 /*
@@ -1496,6 +1506,12 @@ mrb_str_times(mrb_state *mrb, mrb_value self)
   /* a repetition of a byte-read string holds nothing but its bytes over
      again, so it is read the same way */
   RSTR_COPY_BINARY_FLAG(str2, mrb_str_ptr(self));
+  /* A repetition of broken bytes reaches the same broken place the first copy
+     does, so it is broken too. Nought copies keep none of the bytes, and an
+     empty string is not broken whatever it was made from. */
+  if (len > 0) {
+    RSTR_COPY_BROKEN_ENC_FLAG(str2, mrb_str_ptr(self));
+  }
 
   return mrb_obj_value(str2);
 }
@@ -3497,6 +3513,7 @@ str_modify_cat(mrb_state *mrb, struct RString *s, mrb_int addlen)
       shared->reserved = off + s->as.heap.len + addlen;
       RSTR_UNSET_SINGLE_BYTE_FLAG(s);
       RSTR_UNSET_VALID_ENC_FLAG(s);
+      RSTR_UNSET_BROKEN_ENC_FLAG(s);
       return capa;
     }
   }
