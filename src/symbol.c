@@ -1166,7 +1166,7 @@ sym_inspect(mrb_state *mrb, mrb_value sym)
     sp[1] = '"';
   }
 #ifdef MRB_UTF8_STRING
-  if (SYMBOL_INLINE_P(id)) RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+  if (SYMBOL_INLINE_P(id)) RSTR_CODERANGE_SET(mrb_str_ptr(str), MRB_STR_CODERANGE_7BIT);
 #endif
   return str;
 }
@@ -1192,7 +1192,7 @@ mrb_sym_str(mrb_state *mrb, mrb_sym sym)
   if (!name) return mrb_undef_value(); /* can't happen */
   if (SYMBOL_INLINE_P(sym)) {
     mrb_value str = mrb_str_new(mrb, name, len);
-    RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+    RSTR_CODERANGE_SET(mrb_str_ptr(str), MRB_STR_CODERANGE_7BIT);
     return str;
   }
   if (sym_name_freeable_p(mrb, sym)) {
