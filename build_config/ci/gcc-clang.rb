@@ -59,13 +59,10 @@ end
 MRuby::Build.new('default') do |conf|
   conf.toolchain
 
-  # The one build here on the default gembox. It leaves out mruby-encoding,
-  # which is what defines MRB_UTF8_STRING, so its strings index by byte. The
-  # tests written as the byte-indexed mirror of the UTF-8 ones (String#scrub
-  # degrading to a no-op, the byte-counting halves of mruby-regexp and
-  # mruby-string-ext) run nowhere else: every other build in CI, here and in
-  # ci/msvc, takes full-core. Tests only, since the binaries this gembox adds
-  # are the same ones the bintest above already covers.
+  # The one build here on the default gembox. Every other build in CI, here and
+  # in ci/msvc, takes full-core, so the gems this gembox leaves out are only
+  # compiled away here. Tests only, since the binaries this gembox adds are the
+  # same ones the bintest above already covers.
   conf.gembox 'default'
 
   conf.enable_test
