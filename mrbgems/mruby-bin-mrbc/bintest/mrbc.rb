@@ -87,3 +87,22 @@ assert('mrbc -v disassembles like mruby -v') do
   assert_false from_mrbc.empty?, 'mrbc -v produced no disassembly'
   assert_equal from_mruby, from_mrbc
 end
+
+assert('non-seekable input file is rejected by size, not blamed on the read') do
+  # The file arm of the source reader sizes its buffer from ftell(). On a pipe
+  # ftell() fails, and before it was checked the -1 propagated into the
+  # allocation and the fread() count, surfacing as the misleading "cannot read
+  # program file"; the file opens and reads fine, only its size is unknown.
+  # Needs a genuinely unseekable path: `< file` would still be seekable.
+  skip 'no /dev/stdin' if /mswin(?!ce)|mingw|bccwin/ =~ RbConfig::CONFIG['host_os']
+  skip 'no /dev/stdin' unless File.exist?('/dev/stdin')
+
+  a = Tempfile.new('a.rb')
+  a.write("puts 1\n")
+  a.flush
+
+  result = `cat #{shellquote(a.path)} | #{cmd('mrbc')} -c /dev/stdin 2>&1`
+  assert_equal 1, $?.exitstatus
+  assert_include result, 'compile.c: cannot get size of program file. (/dev/stdin)'
+  assert_not_include result, 'cannot read program file'
+end

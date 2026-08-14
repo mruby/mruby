@@ -279,6 +279,14 @@ read_input_files(mrc_ccontext *c, const char **filenames, uint8_t **source, mrc_
       fseek(file, 0, SEEK_END);
       each_size = ftell(file);
       fseek(file, 0, SEEK_SET);
+      if (each_size < 0) {
+        /* Not a seekable file (a pipe, FIFO or terminal); its size cannot be
+           determined up front, so the read-it-all-at-once path below does not
+           apply. */
+        fprintf(stderr, "compile.c: cannot get size of program file. (%s)\n", filename);
+        fclose(file);
+        return -1;
+      }
       length += each_size;
       if (*source == NULL) {
         *source = (uint8_t *)mrc_malloc(c, length + 1);
@@ -286,7 +294,7 @@ read_input_files(mrc_ccontext *c, const char **filenames, uint8_t **source, mrc_
       else {
         *source = (uint8_t *)mrc_realloc(c, *source, length + 1);
       }
-      if (fread(*source + pos, sizeof(char), each_size, file) != each_size) {
+      if (fread(*source + pos, sizeof(char), (size_t)each_size, file) != (size_t)each_size) {
         fprintf(stderr, "compile.c: cannot read program file. (%s)\n", filename);
         fclose(file);
         return -1;
