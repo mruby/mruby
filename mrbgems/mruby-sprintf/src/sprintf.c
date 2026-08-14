@@ -345,6 +345,23 @@ get_hash(mrb_state *mrb, mrb_value *hash, mrb_int argc, const mrb_value *argv)
   *hash = tmp;
 }
 
+/* Bytes that were read as bytes and go above ASCII spell no character in the
+   string they are written into, so they hand it the byte reading along with
+   themselves, the same as an append through mrb_str_cat_str(). ASCII bytes
+   read the same under any reading and move nothing. */
+static void
+mark_written_bytes(mrb_value result, mrb_value src)
+{
+  struct RString *r = mrb_str_ptr(result);
+  struct RString *s = mrb_str_ptr(src);
+
+  if (RSTR_BINARY_P(r) || !RSTR_BINARY_P(s)) return;
+  const char *p = RSTR_PTR(s);
+  const char *e = p + RSTR_LEN(s);
+  while (p < e && !(*p & 0x80)) p++;
+  if (p < e) r->flags |= MRB_STR_BINARY;
+}
+
 static mrb_value
 mrb_str_format(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value fmt)
 {
@@ -402,6 +419,11 @@ mrb_str_format(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value fm
   }
   if (bsiz > 4096) bsiz = 4096;
   result = mrb_str_new_capa(mrb, bsiz);
+  /* The bytes between the specifiers are the format string's own, so what is
+     built out of them is read the way the format string was read, ASCII bytes
+     and all: the reading a receiver holds, which nothing written into it
+     lifts. */
+  RSTR_COPY_BINARY_FLAG(mrb_str_ptr(result), mrb_str_ptr(fmt));
   buf = RSTRING_PTR(result);
   memset(buf, 0, bsiz);
 
@@ -558,6 +580,7 @@ retry:
             if (RSTRING_LEN(tmp) != 1) {
               mrb_raise(mrb, E_ARGUMENT_ERROR, "%c requires a character");
             }
+            mark_written_bytes(result, tmp);
             c = RSTRING_PTR(tmp);
             clen = (int)RSTRING_LEN(tmp);
           }
@@ -589,6 +612,10 @@ retry:
           /* Convert to string (with inspect for %p) */
           if (spec.subtype == 1) arg = mrb_inspect(mrb, arg); /* 'p' format */
           str = mrb_obj_as_string(mrb, arg);
+          /* What the argument is read as is a property of the argument, so
+             precision cutting the byte above ASCII off the written part moves
+             nothing. This is where CRuby lands on every pair it accepts. */
+          mark_written_bytes(result, str);
           len = RSTRING_LEN(str);
 
           /* Update result string length for embedded strings */
