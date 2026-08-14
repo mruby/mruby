@@ -1630,7 +1630,7 @@ has_comment_group(const char *src, mrb_int len)
    Returns the position just past its closing "]", or NULL if it is not one.
    compile_charclass() consumes such a bracket as a unit, so its ']' does not
    end the class; a malformed one falls through and the '[' is an ordinary
-   member. Both scans below have to agree with the parser on this. */
+   member. The scan below has to agree with the parser on this. */
 static const char*
 skip_posix_bracket(const char *src, const char *end)
 {
@@ -1646,12 +1646,69 @@ skip_posix_bracket(const char *src, const char *end)
 }
 
 /*
+ * Step over the one construct at `src` that a pattern scan must not read
+ * into: an escape sequence, or a character class from its '[' through its
+ * ']'. Returns the position just past it, having updated *in_class, or NULL
+ * when the byte at `src` is neither and the caller has to handle it itself.
+ * A class spans several calls, with *in_class carrying the state between
+ * them, so the caller keeps one flag and starts it FALSE.
+ *
+ * preprocess_pattern() and has_named_group() both walk the pattern hunting
+ * for a "(?" opener, and both have to agree with the parser on when a '(' is
+ * an opener rather than an escaped or bracketed byte. The rules for that live
+ * here alone, so a correction to them cannot be made in one walk and missed
+ * in the other.
+ */
+static const char*
+skip_uninterpreted(const char *src, const char *end, mrb_bool *in_class)
+{
+  char ch = *src;
+
+  if (ch == '\\' && src + 1 < end) {
+    mrb_bool unicode = (src[1] == 'u');
+    src += 2;
+    /* A `\u{...}` list is a single escape rather than `\u` followed by a
+       brace group: it separates its codepoints with spaces, which the
+       free-spacing pass would otherwise remove, joining `\u{61 62}` into the
+       one codepoint `\u{6162}`. An unterminated list runs to the end. */
+    if (unicode && src < end && *src == '{') {
+      while (src < end) {
+        if (*src++ == '}') break;
+      }
+    }
+    return src;
+  }
+
+  if (*in_class) {
+    /* A POSIX bracket is consumed as a unit by compile_charclass(), so the
+       ']' that closes it does not close the class. */
+    const char *q = skip_posix_bracket(src, end);
+    if (q) return q;
+    if (ch == ']') *in_class = FALSE;
+    return src + 1;
+  }
+
+  if (ch == '[') {
+    *in_class = TRUE;
+    src++;
+    /* A ']' written first is a literal member, optionally after '^',
+       mirroring the `first` flag in compile_charclass(). */
+    if (src < end && *src == '^') src++;
+    if (src < end && *src == ']') src++;
+    return src;
+  }
+
+  return NULL;
+}
+
+/*
  * Rewrite the pattern before the parser sees it.
  * Removes (?#...) comment groups always, and in extended mode (/x) also
  * whitespace and #comments.
  * Whitespace inside [...] character classes is preserved, and so is a (?#
  * written there, which is a literal member rather than a comment group.
  * Escaped characters (\ followed by anything) are preserved.
+ * skip_uninterpreted() decides which bytes those are.
  */
 static char*
 preprocess_pattern(mrb_state *mrb, const char *src, mrb_int len,
@@ -1664,40 +1721,12 @@ preprocess_pattern(mrb_state *mrb, const char *src, mrb_int len,
 
   while (src < end) {
     char ch = *src;
-    if (ch == '\\' && src + 1 < end) {
-      mrb_bool unicode = (src[1] == 'u');
-      buf[o++] = *src++;
-      buf[o++] = *src++;
-      /* A `\u{...}` list separates its codepoints with spaces, so the brace
-         group has to be copied whole: the free-spacing pass below would
-         otherwise join `\u{61 62}` into the single codepoint `\u{6162}`. */
-      if (unicode && src < end && *src == '{') {
-        while (src < end) {
-          char u = *src;
-          buf[o++] = *src++;
-          if (u == '}') break;
-        }
-      }
-      continue;
-    }
-    if (in_class) {
-      /* Copy a POSIX bracket whole and keep the class open. */
-      const char *q = skip_posix_bracket(src, end);
-      if (q) {
-        while (src < q) buf[o++] = *src++;
-        continue;
-      }
-      if (ch == ']') in_class = FALSE;
-      buf[o++] = *src++;
-      continue;
-    }
-    if (ch == '[') {
-      in_class = TRUE;
-      buf[o++] = *src++;
-      /* A ']' written first is a literal member, optionally after '^',
-         mirroring the `first` flag in compile_charclass(). */
-      if (src < end && *src == '^') buf[o++] = *src++;
-      if (src < end && *src == ']') buf[o++] = *src++;
+    /* An escape or a character class is copied through untouched: neither
+       holds a comment group, and inside a class the free-spacing rules do
+       not apply. */
+    const char *skip = skip_uninterpreted(src, end, &in_class);
+    if (skip) {
+      while (src < skip) buf[o++] = *src++;
       continue;
     }
     if (ch == '(' && end - src >= 3 && src[1] == '?' && src[2] == '#') {
@@ -1748,9 +1777,8 @@ preprocess_pattern(mrb_state *mrb, const char *src, mrb_int len,
  * (?<name>...) is the only spelling of a definition this gem accepts; the
  * (?'name'...) form raises "undefined (?...) sequence", so the scan looks for
  * "(?<" alone. It excludes (?<= and (?<!, which are lookbehind rather than a
- * definition, and it skips escape pairs and character classes so that /\(?/
- * and /[(?<]/ are not false positives, with a POSIX bracket and a leading
- * literal ']' not ending a class, as in preprocess_pattern() above.
+ * definition, and it steps over escapes and character classes with
+ * skip_uninterpreted(), so that /\(?/ and /[(?<]/ are not false positives.
  *
  * A truncated "(?<" at the end of the pattern is counted as a named group,
  * which is harmless: the parser reaches the same bytes and raises there.
@@ -1763,25 +1791,9 @@ has_named_group(const char *src, mrb_int len)
 
   while (src < end) {
     char ch = *src;
-    if (ch == '\\' && src + 1 < end) {
-      src += 2;
-      continue;
-    }
-    if (in_class) {
-      const char *q = skip_posix_bracket(src, end);
-      if (q) {
-        src = q;
-        continue;
-      }
-      if (ch == ']') in_class = FALSE;
-      src++;
-      continue;
-    }
-    if (ch == '[') {
-      in_class = TRUE;
-      src++;
-      if (src < end && *src == '^') src++;
-      if (src < end && *src == ']') src++;
+    const char *skip = skip_uninterpreted(src, end, &in_class);
+    if (skip) {
+      src = skip;
       continue;
     }
     if (ch == '(' && end - src >= 3 && src[1] == '?' && src[2] == '<') {

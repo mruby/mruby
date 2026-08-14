@@ -550,6 +550,78 @@ assert("Regexp - a named group makes plain groups non-capturing") do
   end
 end
 
+assert("Regexp - the /x pass and the named-group scan skip the same constructs") do
+  # Two walks read the pattern before the parser does: the /x free-spacing
+  # pass and the named-group pre-scan. Both have to step over the same
+  # escapes, character classes and POSIX brackets, so each row below is read
+  # by both at once. A rule lost from the free-spacing pass strips a space it
+  # should have kept; the same rule lost from the pre-scan turns a bracketed
+  # "(?<" into a phantom named group, which demotes the plain (b) that
+  # follows and shortens the match. Either way the row fails.
+  x = Regexp::EXTENDED
+
+  # an escape pair hides the '(' from both
+  assert_equal ["(<a>b", "b"],
+               Regexp.new('\(?<a> (b)', x).match("(<a>b").to_a
+
+  # a character class hides "(?<" and keeps its own spaces
+  assert_equal ["(?< b", "b"],
+               Regexp.new('[(?< a>]+ (b)', x).match("(?< b").to_a
+
+  # a ']' written first is a member, so the class runs past it
+  assert_equal ["] (?<b", "b"],
+               Regexp.new('[] (?<a>]+(b)', x).match("] (?<b").to_a
+  assert_equal ["zzb", "b"],
+               Regexp.new('[^] (?<a>]+(b)', x).match("zzb").to_a
+
+  # a POSIX bracket's ']' does not close the class either
+  assert_equal ["a (?<b", "b"],
+               Regexp.new('[[:alpha:] (?<a>]+(b)', x).match("a (?<b").to_a
+
+  # a `\u{...}` list is one escape, so its separating space survives /x and
+  # its bytes are not read as pattern syntax
+  assert_equal ["ab"], Regexp.new('\u{61 62}', x).match("ab").to_a
+  assert_equal ["abcd", "c", "d"],
+               Regexp.new('\u{61 62}(c)(d)', x).match("abcd").to_a
+  assert_equal ["abcd", "c"],
+               Regexp.new('\u{61 62}(?<n>c)(d)', x).match("abcd").to_a
+  assert_equal ["abcd", "c", "d"],
+               Regexp.new('[\u{61 62}]+(c)(d)', x).match("abcd").to_a
+
+  # With no whitespace, no #comment and no (?#...) to remove, /x rewrites
+  # nothing, so both compiles must agree; they do not take the same road,
+  # though: without /x the pre-scan reads the pattern as written, while with
+  # /x it reads what the free-spacing pass emitted. The two walks disagreeing
+  # about where a class or an escape ends is exactly what shows up here.
+  [
+    ['\(?<a>(b)',            "(<a>b"],
+    ['[(?<a>]+(b)',          "(?<b"],
+    ['[](?<a>]+(b)',         "](?<b"],
+    ['[^](?<a>]+(b)',        "zzb"],
+    ['[[:alpha:](?<a>]+(b)', "a(?<b"],
+    ['[\]](?<a>x)(y)',       "]xy"],
+    ['\\\\(?<a>x)(y)',       "\\xy"],
+    ['\u{61}(?<n>b)(c)',     "abc"],
+    ['[\u{61}]+(?<n>b)(c)',  "abc"],
+    ['(a)(?<b>b)',           "ab"],
+  ].each do |pat, subject|
+    assert_equal Regexp.new(pat).match(subject).to_a,
+                 Regexp.new(pat, x).match(subject).to_a
+  end
+
+  # A `\u{...}` list is not a place a named group can be declared, so the
+  # scan must not read "(?<" out of one. The list here is malformed either
+  # way and the pattern is rejected either way, but which error comes first
+  # depends on the scan: taking the "(?<" for a declaration turns on the
+  # demotion that rejects the leading \1 before the parser ever reaches the
+  # bad list. CRuby reports the list, and so does the scan that treats
+  # `\u{...}` as one escape.
+  assert_raise_with_message(RegexpError,
+                            "invalid Unicode list: /\\1\\u{(?<a>/") do
+    Regexp.new("\\1\\u{(?<a>")
+  end
+end
+
 assert("Regexp - case in when") do
   result = case "hello123"
            when /\d+/ then "has digits"
