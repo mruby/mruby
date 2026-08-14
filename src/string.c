@@ -1879,8 +1879,8 @@ str_escape(mrb_state *mrb, mrb_value str, mrb_bool inspect)
   char buf[4];  /* `\x??` or UTF-8 character */
   mrb_value result = mrb_str_new_lit(mrb, "\"");
 #ifdef MRB_UTF8_STRING
-  uint32_t sb_flag = MRB_STR_SINGLE_BYTE;      /* what `result` comes out as */
-  uint32_t src_sb_flag = MRB_STR_SINGLE_BYTE;  /* what the walk found `str` to be */
+  mrb_bool sb_flag = TRUE;      /* whether `result` comes out single byte */
+  mrb_bool src_sb_flag = TRUE;  /* whether the walk found `str` single byte */
 #endif
 
   p = RSTRING_PTR(str); pend = RSTRING_END(str);
@@ -1900,11 +1900,11 @@ str_escape(mrb_state *mrb, mrb_value str, mrb_bool inspect)
          character. The escape below turns the second into `\xNN`, so `result`
          still is, and only a whole character copied across takes that from
          it. */
-      if (NOASCII(*p)) src_sb_flag = 0;
+      if (NOASCII(*p)) src_sb_flag = FALSE;
       if (clen > 1) {
         mrb_str_cat(mrb, result, p, clen);
         p += clen-1;
-        sb_flag = 0;
+        sb_flag = FALSE;
         continue;
       }
     }
@@ -1946,8 +1946,8 @@ str_escape(mrb_state *mrb, mrb_value str, mrb_bool inspect)
   mrb_str_cat_lit(mrb, result, "\"");
 #ifdef MRB_UTF8_STRING
   if (inspect) {
-    mrb_str_ptr(str)->flags |= src_sb_flag;
-    mrb_str_ptr(result)->flags |= sb_flag;
+    if (src_sb_flag) RSTR_SET_SINGLE_BYTE_FLAG(mrb_str_ptr(str));
+    if (sb_flag) RSTR_SET_SINGLE_BYTE_FLAG(mrb_str_ptr(result));
   }
   else {
     RSTR_SET_SINGLE_BYTE_FLAG(mrb_str_ptr(result));
