@@ -307,6 +307,35 @@ assert('String#+ with a byte-read operand') do
   end
 end
 
+assert('String#+ over two all-ASCII operands is not CRuby') do
+  # Where both operands hold nothing but ASCII, CRuby keeps the receiver's
+  # encoding and answers ASCII-8BIT for the first case below. The rule here is
+  # symmetric in the operands instead: the one bit tracked says "bytes read as
+  # bytes landed here", and ASCII bytes never say that, whichever side they
+  # came from.
+  #
+  # This is where + and << part company, and on purpose. << changes a string
+  # that was already being read some way and never takes that reading back
+  # off; + builds one that was not being read at all. Following CRuby on +
+  # alone would put it at odds with join, which builds a fresh string the same
+  # way, and following it on join too would mean dropping the byte reading off
+  # a string that carries it.
+  if UTF8STRING
+    assert_equal Encoding::UTF_8, ("abc".b + "def").encoding
+    assert_equal Encoding::UTF_8, ("abc" + "def".b).encoding
+    assert_equal Encoding::UTF_8, ["abc".b, "def"].join.encoding
+    # the receiver of << keeps what it had, for the same pair
+    s = "abc".b
+    s << "def"
+    assert_equal Encoding::BINARY, s.encoding
+    # none of this moves once a byte above ASCII is in play on the byte-read
+    # side, which is the case the rule exists for
+    assert_equal Encoding::BINARY, ("a\xABz".b + "def").encoding
+    assert_equal Encoding::BINARY, ("abc" + "a\xABz".b).encoding
+    assert_equal Encoding::BINARY, ["a\xABz".b, "def"].join.encoding
+  end
+end
+
 assert('bytes shoveled or spliced into a string') do
   # Bytes that were read as bytes and go above ASCII spell no character in
   # the string they are appended or spliced into, so they hand it the byte

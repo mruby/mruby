@@ -1384,13 +1384,28 @@ mrb_str_plus(mrb_state *mrb, mrb_value a, mrb_value b)
   memcpy(pt, p, slen);
   memcpy(pt + slen, p2, s2len);
 
-  /* The sum is read the way its parts were. Two byte-read operands stay that
-     way, and one byte-read operand carrying a byte above ASCII hands the sum
-     bytes no other reading holds, so its reading wins. A byte-read operand of
-     ASCII bytes reads as the other operand as it stands and yields to it,
-     which is where CRuby lands on every pair it accepts; the pairs it refuses
-     outright come out byte-read here, saying nothing rather than something
-     false. */
+  /* The sum is a string with no history, so its reading comes from the bytes
+     it was built out of rather than from either operand's standing. Two
+     byte-read operands stay that way, and one byte-read operand carrying a
+     byte above ASCII hands the sum bytes no other reading holds, so its
+     reading wins. A byte-read operand of ASCII bytes carries no such evidence
+     and yields to the other operand.
+
+     Two places this does not answer as CRuby does, both on purpose:
+
+     - `"abc".b + "def"` is UTF-8 here and ASCII-8BIT there. Where both
+       operands are entirely ASCII, CRuby keeps the receiver's encoding; this
+       rule is symmetric in the operands, because the one bit it tracks says
+       "bytes read as bytes landed here" and ASCII bytes never say that.
+       `mrb_str_cat_str()` answers ASCII-8BIT for the same pair, and the two
+       part company on purpose: appending changes a string that was already
+       being read some way, while `+` builds one that was not being read at
+       all. Following CRuby on `+` alone would put it at odds with `join`,
+       and following it there too would mean taking the byte reading back off
+       a string that carries it, which nothing here does.
+     - The pairs CRuby refuses outright with Encoding::CompatibilityError come
+       out byte-read, saying nothing rather than something false. mruby has no
+       such exception. */
   if ((RSTR_BINARY_P(s) && RSTR_BINARY_P(s2)) ||
       (RSTR_BINARY_P(s) && !str_ascii_p(s)) ||
       (RSTR_BINARY_P(s2) && !str_ascii_p(s2))) {
@@ -3589,7 +3604,14 @@ mrb_str_cat_str(mrb_state *mrb, mrb_value str, mrb_value str2)
      character in the string they land in, so they hand it the byte reading
      along with themselves. ASCII bytes read the same under any reading and
      say nothing. Decided before the append so a raise leaves the string as
-     it was, applied after so it lands on the string the append made. */
+     it was, applied after so it lands on the string the append made.
+
+     The flag only ever goes on: a string already read as bytes stays read
+     that way whatever lands in it, which is where CRuby lifts an all-ASCII
+     byte-read receiver to the argument's encoding. Taking the reading back
+     off would mean a buffer turning into text partway through being filled.
+     mrb_str_plus() decides a fresh string instead and answers differently for
+     the same pair; the comment there has the boundary. */
   mrb_bool binary = !RSTR_BINARY_P(s) && RSTR_BINARY_P(s2) && !str_ascii_p(s2);
   mrb_value ret = mrb_str_cat(mrb, str, RSTRING_PTR(str2), RSTRING_LEN(str2));
   if (binary) {
@@ -3824,7 +3846,13 @@ sub_replace(mrb_state *mrb, mrb_value self)
   }
   /* The splice holds bytes of the replacement and of whatever the escapes
      copied in, so it is read as bytes exactly when one of those sources
-     handed it byte-read bytes above ASCII, the same as any other append. */
+     handed it byte-read bytes above ASCII, the same as any other append.
+
+     A source is asked about as a whole, not about the part the escape
+     actually copied: how a string is read is a property of the string, which
+     is what CRuby asks too, so a `\`` that lands only on the ASCII head of a
+     byte-read subject still reports it. Narrowing this to the copied bytes
+     would answer differently from CRuby, not more precisely. */
   if ((RSTR_BINARY_P(mrb_str_ptr(replace)) && !str_ascii_p(mrb_str_ptr(replace))) ||
       (match_taken && RSTR_BINARY_P(mrb_str_ptr(pat)) && !str_ascii_p(mrb_str_ptr(pat))) ||
       (self_taken && RSTR_BINARY_P(mrb_str_ptr(self)) && !str_ascii_p(mrb_str_ptr(self)))) {
