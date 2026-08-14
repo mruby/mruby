@@ -174,15 +174,20 @@ clear_match_globals(mrb_state *mrb)
    offsets in bytes, but mrb_str_substr indexes by character under
    MRB_UTF8_STRING, which corrupts non-empty multibyte matches. Extract by
    byte range so the byte offsets are honored as-is. Returns nil for an
-   out-of-range request, mirroring mrb_str_substr. */
+   out-of-range request, mirroring mrb_str_substr.
+
+   mrb_str_byte_subseq() shares the subject's buffer for a piece too long to
+   embed rather than copying its bytes, and carries the byte reading across the
+   way this did. That is what makes a publish cheap: `$\`` and `$'` are the
+   whole of the subject between them, so copying them cost the subject once per
+   match, and every search publishes. A sharer holds the buffer alive, which is
+   the trade: a piece short enough to embed is copied as before, and a long one
+   is a window on bytes `$~` is holding anyway. */
 static mrb_value
 re_byte_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 {
   if (beg < 0 || len < 0 || beg + len > RSTRING_LEN(str)) return mrb_nil_value();
-  mrb_value ret = mrb_str_new(mrb, RSTRING_PTR(str) + beg, len);
-  /* a piece of a byte-read subject is bytes of it, read the same way */
-  RSTR_COPY_BINARY_FLAG(mrb_str_ptr(ret), mrb_str_ptr(str));
-  return ret;
+  return mrb_str_byte_subseq(mrb, str, beg, len);
 }
 
 /* Convert a byte offset into str to a character offset, so MatchData#begin

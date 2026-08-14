@@ -217,3 +217,55 @@ assert("$&, $`, $' and $+ cleared on no match") do
   assert_nil $'
   assert_nil $+
 end
+
+assert("a piece cut from a subject is its own string") do
+  # The pieces a match hands back share the subject's buffer where they are
+  # too long to embed, rather than copying its bytes. Sharing is only sound
+  # while nothing can see through it, so each of these writes through one name
+  # and reads back another. A piece has to be long enough not to embed for the
+  # sharing to be what is under test.
+  s = ("abcdefghij" * 10) + "MARK" + ("klmnopqrst" * 10)
+  snapshot = s.dup
+  assert_equal 100, (s =~ /MARK/)
+  pre, match, post = $`, $&, $'
+  pre_was, post_was = pre.dup, post.dup
+
+  # writing through a piece reaches neither the subject nor the other pieces
+  pre << "written"
+  assert_equal snapshot, s
+  assert_equal post_was, post
+  assert_equal "MARK", match
+
+  post.upcase!
+  assert_equal snapshot, s
+  assert_equal pre_was + "written", pre
+
+  # writing through the subject reaches none of the pieces
+  s << "appended"
+  s.upcase!
+  assert_equal post_was.upcase, post
+  assert_equal pre_was + "written", pre
+
+  # and a MatchData holds the bytes it matched, whatever becomes of the subject
+  t = ("mn" * 60) + "Q" + ("op" * 60)
+  md = /(\w)Q(\w)/.match(t)
+  whole, before, after = md[0], md.pre_match, md.post_match
+  t.replace("gone")
+  assert_equal "nQo", whole
+  assert_equal 119, before.bytesize
+  assert_equal 119, after.bytesize
+  assert_equal "m", before[-1]
+end
+
+assert("a piece cut from a frozen subject is writable") do
+  # A frozen subject can be shared from without any copy, so the piece has to
+  # be the one that copies when it is written to.
+  f = (("qr" * 60) + "K" + ("st" * 60)).freeze
+  assert_equal 120, (f =~ /K/)
+  piece = $`
+  assert_equal 120, piece.bytesize
+  piece << "z"
+  assert_equal 121, piece.bytesize
+  assert_equal 241, f.bytesize
+  assert_true f.frozen?
+end
