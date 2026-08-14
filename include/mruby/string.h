@@ -53,7 +53,6 @@ struct RStringEmbed {
 
 #define MRB_STR_BINARY    16
 #define MRB_STR_SINGLE_BYTE 32
-#define MRB_STR_STATE_MASK 48
 /* bits 6..10 are the embedded length, so 11 is the first one free */
 #define MRB_STR_VALID_ENC 2048
 #define MRB_STR_BROKEN_ENC 4096
