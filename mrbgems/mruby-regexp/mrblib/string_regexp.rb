@@ -538,19 +538,26 @@ class String
   # `Regexp.__byte_search` does not range check its position, so the walk
   # stops itself at the end of the subject.  An empty match there is the one
   # that reaches it: it leaves `pos` one past the last byte.
+  #
+  # The walk publishes none of what it passes over.  A search that publishes
+  # cuts the whole subject into the pre match and post match globals, and
+  # every match here but the last is one this method already means to
+  # replace, so publishing them costs the subject once per match and leaves
+  # behind nothing anything reads.  The answer is published below instead,
+  # which is where it was published from before.
   def __regexp_rsearch(pattern, limit)
     found = nil
     pos = 0
     size = self.bytesize
-    while pos <= size && (md = Regexp.__byte_search(pattern, self, pos))
+    while pos <= size && (md = Regexp.__byte_search(pattern, self, pos, false, false))
       start = md.__byte_begin(0)
       break if start > limit
       found = md
       pos = start + 1
     end
-    # The loop leaves behind whatever its last search published: the clear a
-    # failed one does, or a match past `limit` that is not the answer.  Both
-    # have to give way to what the search found.
+    # The globals still describe whatever they described before the call, the
+    # walk having said nothing to them, so the answer is published here and a
+    # search that found none clears them itself.
     found ? found.__set_globals : Regexp.__search(pattern, nil)
     found
   end
