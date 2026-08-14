@@ -51,17 +51,20 @@ struct RStringEmbed {
 #define MRB_STR_EMBED_LEN_BITS 5
 #define MRB_STR_EMBED_LEN_MASK (((1 << MRB_STR_EMBED_LEN_BITS) - 1) << MRB_STR_EMBED_LEN_SHIFT)
 
-#define MRB_STR_SINGLE_BYTE 32
-/* bit 4 is free, and bits 6..10 are the embedded length, so 11 is the first
-   one free above it */
-#define MRB_STR_VALID_ENC 2048
-#define MRB_STR_BROKEN_ENC 4096
+/* Where in the flags word the coderange sits. Its four answers are exclusive,
+   so two bits spell every one of them and spell nothing else. They sit in
+   bits 4-5 because a pair needs two bits in a row and that is the lowest pair
+   the word has free; bits 6..10 above them are the embedded length. Moving
+   them to where the layout wants them is for whenever the word is laid out
+   afresh. */
+#define MRB_STR_CODERANGE_SHIFT 4
+#define MRB_STR_CODERANGE_BITS 2
+#define MRB_STR_CODERANGE_MASK (((1 << MRB_STR_CODERANGE_BITS) - 1) << MRB_STR_CODERANGE_SHIFT)
 
 /* Where in the flags word the encoding index sits. Two bits name four
    encodings, which is more than the two a build carries now; widening them is
-   for whenever a third is carried. They sit above the flags rather than in
-   bit 4, the bit the index leaves behind, because a pair needs two bits in a
-   row and MRB_STR_SINGLE_BYTE holds the one beside it. Moving them down is
+   for whenever a third is carried. They sit above the flags rather than among
+   them, in the pair the coderange left free below them; moving them down is
    for whenever the word is laid out afresh. */
 #define MRB_STR_ENCODING_SHIFT 13
 #define MRB_STR_ENCODING_BITS 2
@@ -106,22 +109,22 @@ struct RStringEmbed {
 #define MRB_STR_CODERANGE_BROKEN  3
 
 #ifdef MRB_UTF8_STRING
-/* Kept for now in the three bits that held the answers one at a time, one bit
-   per answer. Nothing writes two of them, so the order below only decides what
-   a combination no writer makes would read as. 7BIT says more than VALID: a
-   string of nothing but ASCII reads as UTF-8 as it stands, and it is also one
-   character per byte, which is the part every index on it wants. */
+/* The answer read back is the field as it stands: the four are numbered 0..3
+   and the field is two bits wide, so every value it can hold names one of
+   them. That is what a field buys over a bit per answer, where a combination
+   nothing writes had to be given a reading anyway.
+
+   An answer is masked to the field's width on the way in, as an encoding index
+   is, so a fifth one lands wrong rather than reaching the bits beside it. Here
+   those bits are the embedded length rather than free ones, so an unmasked
+   write would not merely be a wrong answer: it would lengthen the string.
+   What is written is one of the four either way, spelled outright or read back
+   out of another string's field, so nothing is left of this at -O3. */
 # define RSTR_CODERANGE(s) \
-  (((s)->flags & MRB_STR_BROKEN_ENC) ? MRB_STR_CODERANGE_BROKEN : \
-   ((s)->flags & MRB_STR_SINGLE_BYTE) ? MRB_STR_CODERANGE_7BIT : \
-   ((s)->flags & MRB_STR_VALID_ENC) ? MRB_STR_CODERANGE_VALID : \
-   MRB_STR_CODERANGE_UNKNOWN)
+  (((s)->flags & MRB_STR_CODERANGE_MASK) >> MRB_STR_CODERANGE_SHIFT)
 # define RSTR_CODERANGE_SET(s, cr) \
-  ((s)->flags = ((s)->flags & \
-                 ~(MRB_STR_SINGLE_BYTE|MRB_STR_VALID_ENC|MRB_STR_BROKEN_ENC)) | \
-                (((cr) == MRB_STR_CODERANGE_7BIT) ? MRB_STR_SINGLE_BYTE : \
-                 ((cr) == MRB_STR_CODERANGE_VALID) ? MRB_STR_VALID_ENC : \
-                 ((cr) == MRB_STR_CODERANGE_BROKEN) ? MRB_STR_BROKEN_ENC : 0))
+  ((s)->flags = ((s)->flags & ~MRB_STR_CODERANGE_MASK) | \
+                (((cr) & ((1 << MRB_STR_CODERANGE_BITS) - 1)) << MRB_STR_CODERANGE_SHIFT))
 #else
 /* A build that indexes by byte hands every byte back as a character and asks
    the bytes nothing, so every string in it stands where 7BIT stands and there
