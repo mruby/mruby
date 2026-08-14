@@ -4,10 +4,13 @@
 UTF8STRING = __ENCODING__ == "UTF-8"
 
 assert('String#valid_encoding? survives what the string goes through') do
-  # The answer is remembered on the string, so every way of changing its bytes
-  # has to forget it again, and the two places a copy keeps the bytes whole
-  # have to carry it along. Each pair asks the same question of the same
-  # bytes, once with the answer already remembered and once without.
+  # The answer is remembered on the string, either way it came out, so every
+  # way of changing its bytes has to forget it again, and the two places a copy
+  # keeps the bytes whole have to carry it along. Each pair asks the same
+  # question of the same bytes, once with the answer already remembered and
+  # once without. The bases below start out both valid and broken, and the
+  # changes below both break and repair, so each remembered answer is asked
+  # for after a change that unmakes it.
   if UTF8STRING
     [->(s) { s << "\x80" },
      ->(s) { s.concat("\xC0") },
@@ -21,8 +24,14 @@ assert('String#valid_encoding? survives what the string goes through') do
      ->(s) { s * 2 },
      ->(s) { s.dup },
      ->(s) { s.byteslice(0, 1) || s },
-     ->(s) { s[0, 1] || s }].each do |op|
-      ["あ", "あa", "あい", "あ" * 40].each do |base|
+     ->(s) { s[0, 1] || s },
+     ->(s) { s << "\x82" },
+     ->(s) { s.replace("ok") },
+     ->(s) { s * 0 },
+     ->(s) { s.b },
+     ->(s) { s.clear; s }].each do |op|
+      ["あ", "あa", "あい", "あ" * 40,
+       "\x80", "a\x80b", "\xE3\x81", "\xED\xA0\x80", "\xE3\x81" * 40].each do |base|
         warm = base.dup
         warm.valid_encoding?          # remember the answer before the change
         cold = base.dup
