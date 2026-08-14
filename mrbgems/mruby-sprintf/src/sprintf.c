@@ -359,7 +359,7 @@ mark_written_bytes(mrb_value result, mrb_value src)
   const char *p = RSTR_PTR(s);
   const char *e = p + RSTR_LEN(s);
   while (p < e && !(*p & 0x80)) p++;
-  if (p < e) r->flags |= MRB_STR_BINARY;
+  if (p < e) RSTR_SET_BINARY_FLAG(r);
 }
 
 static mrb_value

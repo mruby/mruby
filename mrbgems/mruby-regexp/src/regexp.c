@@ -1163,7 +1163,7 @@ re_mark_spliced(mrb_value result, mrb_value subject, mrb_value replacement,
     while (p < e && !(*p & 0x80)) p++;
     if (p == e) return;
   }
-  mrb_str_ptr(result)->flags |= MRB_STR_BINARY;
+  RSTR_SET_BINARY_FLAG(mrb_str_ptr(result));
 }
 
 /*
