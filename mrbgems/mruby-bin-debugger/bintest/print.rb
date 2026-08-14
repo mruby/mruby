@@ -371,7 +371,7 @@ SRC
 
   tc << {:cmd=>'p "str"',        :exp=>'$1 = "str"'}
   tc << {:cmd=>'p "s\tt\rr\n"',  :exp=>'$2 = "s\\tt\\rr\\n"'}
-  tc << {:cmd=>'p "\C-a\C-z"',   :exp=>'$3 = "\\x01\\x1a"'}
+  tc << {:cmd=>'p "\C-a\C-z"',   :exp=>'$3 = "\\x01\\x1A"'}
   tc << {:cmd=>'p "#{foo+bar}"', :exp=>'$4 = "foobar"'}
 
   tc << {:cmd=>'p \'str\'',          :exp=>'$5 = "str"'}
@@ -381,12 +381,12 @@ SRC
 
   tc << {:cmd=>'p %!str!',        :exp=>'$9 = "str"'}
   tc << {:cmd=>'p %!s\tt\rr\n!',  :exp=>'$10 = "s\\tt\\rr\\n"'}
-  tc << {:cmd=>'p %!\C-a\C-z!',   :exp=>'$11 = "\\x01\\x1a"'}
+  tc << {:cmd=>'p %!\C-a\C-z!',   :exp=>'$11 = "\\x01\\x1A"'}
   tc << {:cmd=>'p %!#{foo+bar}!', :exp=>'$12 = "foobar"'}
 
   tc << {:cmd=>'p %Q!str!',        :exp=>'$13 = "str"'}
   tc << {:cmd=>'p %Q!s\tt\rr\n!',  :exp=>'$14 = "s\\tt\\rr\\n"'}
-  tc << {:cmd=>'p %Q!\C-a\C-z!',   :exp=>'$15 = "\\x01\\x1a"'}
+  tc << {:cmd=>'p %Q!\C-a\C-z!',   :exp=>'$15 = "\\x01\\x1A"'}
   tc << {:cmd=>'p %Q!#{foo+bar}!', :exp=>'$16 = "foobar"'}
 
   tc << {:cmd=>'p %q!str!',          :exp=>'$17 = "str"'}
