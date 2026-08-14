@@ -442,6 +442,25 @@ module MRuby
         self
       end
 
+      # Remove the gem named +name+ and return it.  Naming a gem that
+      # is not in this build is a typo, not a no-op, so this fails;
+      # use +reject!+ when a predicate matching nothing is acceptable.
+      def delete(name)
+        gem = self[name]
+        fail "Can't remove gem '#{name}'; it is not in this build" unless gem
+        @ary.delete(gem)
+        gem
+      end
+
+      # Remove every gem for which the block returns true.  Returns
+      # nil when nothing was removed, like Array#reject!.
+      def reject!(&block)
+        gone = @ary.select(&block)
+        return nil if gone.empty?
+        @ary -= gone
+        self
+      end
+
       def empty?
         @ary.empty?
       end
