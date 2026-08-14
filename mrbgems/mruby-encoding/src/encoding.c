@@ -63,6 +63,9 @@ str_encoding(mrb_state *mrb, mrb_value self)
  *   str = "hello"
  *   str.force_encoding("ASCII-8BIT")  #=> "hello"
  *   str.encoding                      #=> "ASCII-8BIT"
+ *
+ * Without MRB_UTF8_STRING, "UTF-8" is an encoding this build does not know,
+ * and naming it raises ArgumentError as any other unknown name does.
  */
 static mrb_value
 str_force_encoding(mrb_state *mrb, mrb_value self)
@@ -76,9 +79,11 @@ str_force_encoding(mrb_state *mrb, mrb_value self)
       MRB_STR_CASECMP_P(enc, ENC_BINARY)) {
     s->flags |= MRB_STR_BINARY;
   }
+#ifdef MRB_UTF8_STRING
   else if (MRB_STR_CASECMP_P(enc, ENC_UTF8)) {
     s->flags &= ~MRB_STR_BINARY;
   }
+#endif
   else {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "unknown encoding name - %v", enc);
   }
@@ -105,7 +110,9 @@ mrb_mruby_encoding_gem_init(mrb_state* mrb)
   mrb_value b = mrb_str_new_lit_frozen(mrb, ENC_ASCII_8BIT);
   mrb_define_const_id(mrb, e, MRB_SYM(ASCII_8BIT), b);
   mrb_define_const_id(mrb, e, MRB_SYM(BINARY), b);
+#ifdef MRB_UTF8_STRING
   mrb_define_const_id(mrb, e, MRB_SYM(UTF_8), mrb_str_new_lit_frozen(mrb, ENC_UTF8));
+#endif
 }
 
 void
