@@ -84,8 +84,14 @@ struct RStringEmbed {
 
 #define RSTR_EMBED_P(s) ((s)->flags & MRB_STR_EMBED)
 #define RSTR_SET_EMBED_FLAG(s) ((s)->flags |= MRB_STR_EMBED)
+/* The length is shifted in without being masked to the field's width, unlike
+   the coderange and the encoding index, and that is what a length wants: it is
+   read at run time, so a mask is an instruction on every write rather than
+   something a constant folds away. What the field needs of it is said here
+   instead, the way ARY_SET_LEN says it in mruby/array.h. */
 #define RSTR_SET_EMBED_LEN(s, n) do {\
   size_t tmp_n = (n);\
+  mrb_assert(tmp_n <= (size_t)RSTRING_EMBED_LEN_MAX);\
   (s)->flags &= ~MRB_STR_EMBED_LEN_MASK;\
   (s)->flags |= (tmp_n) << MRB_STR_EMBED_LEN_SHIFT;\
 } while (0)
