@@ -31,6 +31,25 @@ assert 'Bigint ==' do
   end
 end
 
+assert 'Bigint eql?' do
+  n = 1<<70
+
+  assert_true n.eql?(1<<70)
+  assert_false n.eql?(1<<71)
+  assert_false n.eql?(0)
+  assert_false n.eql?(-n)
+
+  assert_false n.eql?('x')
+  assert_false n.eql?(nil)
+
+  # `eql?` compares class as well as value, so an equal Float is not eql? to a
+  # big integer even though `==` holds between the two.
+  if Object.const_defined?(:Float)
+    assert_false n.eql?(2.0**70)
+    assert_true n == (2.0**70)
+  end
+end
+
 assert 'Bigint +' do
   n = 1<<65
   assert_equal 36893488147419103232, n + 0

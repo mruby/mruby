@@ -638,6 +638,9 @@ num_eql(mrb_state *mrb, mrb_value x)
 
 #ifdef MRB_USE_BIGINT
   if (mrb_bigint_p(x)) {
+    /* `eql?` compares class as well as value, and `mrb_bint_cmp()` compares a
+       Float argument numerically, so reject non-Integer arguments up front. */
+    if (!mrb_bigint_p(y) && !mrb_integer_p(y)) return mrb_false_value();
     return mrb_bool_value(mrb_bint_cmp(mrb, x, y) == 0);
   }
 #endif
