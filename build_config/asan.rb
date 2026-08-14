@@ -6,8 +6,8 @@ MRuby::Build.new('asan') do |conf|
 
   conf.gembox 'full-core'
 
-  # The UTF-8 decoders walk a string a byte at a time, and this is the only
-  # build that catches a walk that reads past the end.
+  # The UTF-8 decoders walk a string a byte at a time, and the sanitizer builds
+  # are what catch a walk that reads past the end.
   conf.cc.defines << 'MRB_UTF8_STRING'
 
   conf.enable_sanitizer "address,undefined"
