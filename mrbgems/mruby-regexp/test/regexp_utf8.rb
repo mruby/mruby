@@ -646,3 +646,19 @@ assert("Regexp - a subject whose bytes are not UTF-8 is refused") do
   assert_equal 2, ("あいb" =~ /b/)
   assert_equal 1, ("a\u{10FFFF}b" =~ /b\z|\u{10FFFF}/)
 end
+
+assert("Regexp - a piece of a byte-read subject is byte-read") do
+  # What a match hands back is bytes of the subject, read the way the subject
+  # was. Encoding introspection lives in mruby-encoding, which this gem does
+  # not depend on, so ask only where it is present.
+  skip unless "".respond_to?(:encoding)
+  skip unless __ENCODING__ == "UTF-8"
+  subject = "a\x80b".b
+  assert_equal Encoding::BINARY, subject.match(/a/)[0].encoding
+  subject =~ /a/
+  assert_equal Encoding::BINARY, $~[0].encoding
+  assert_equal Encoding::BINARY, $&.encoding
+  assert_equal Encoding::BINARY, subject.scan(/./)[0].encoding
+  # a piece of a subject read as UTF-8 goes on reading as UTF-8
+  assert_equal Encoding::UTF_8, "あb".match(/b/)[0].encoding
+end

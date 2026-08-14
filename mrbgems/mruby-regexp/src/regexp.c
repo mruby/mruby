@@ -179,7 +179,10 @@ static mrb_value
 re_byte_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 {
   if (beg < 0 || len < 0 || beg + len > RSTRING_LEN(str)) return mrb_nil_value();
-  return mrb_str_new(mrb, RSTRING_PTR(str) + beg, len);
+  mrb_value ret = mrb_str_new(mrb, RSTRING_PTR(str) + beg, len);
+  /* a piece of a byte-read subject is bytes of it, read the same way */
+  RSTR_COPY_BINARY_FLAG(mrb_str_ptr(ret), mrb_str_ptr(str));
+  return ret;
 }
 
 /* Convert a byte offset into str to a character offset, so MatchData#begin
