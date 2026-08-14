@@ -578,6 +578,45 @@ assert("String#partition and String#rpartition with regexp set the match globals
   assert_nil $~
 end
 
+assert("a backward search publishes every global of the match it settled on") do
+  # `$~` and `$1` are what the tests above read back. The rest of what a match
+  # leaves behind is published by the same act and is asserted here, since the
+  # walk these three share passes matches on the way to the one it answers
+  # with and none of those may be what is left standing.
+  assert_equal 4, "abcabc".rindex(/(b)(c)/)
+  assert_equal "bc", $&
+  assert_equal "abca", $`
+  assert_equal "", $'
+  assert_equal "b", $1
+  assert_equal "c", $2
+  assert_equal "c", $+
+  assert_equal "abca", $~.pre_match
+  assert_equal "", $~.post_match
+
+  assert_equal 4, "abcabc".byterindex(/(b)(c)/)
+  assert_equal "bc", $&
+  assert_equal "abca", $`
+
+  assert_equal ["abca", "bc", ""], "abcabc".rpartition(/(b)(c)/)
+  assert_equal "bc", $&
+  assert_equal "abca", $`
+  assert_equal "c", $+
+
+  # a group that did not take part leaves nil behind, and `$+` reaches past it
+  assert_equal 1, "abc".rindex(/(b)(z)?/)
+  assert_nil $2
+  assert_equal "b", $+
+
+  # and a search that finds nothing clears all of them, not `$~` alone
+  "zzz" =~ /(z)/
+  assert_nil "abc".rindex(/x/)
+  assert_nil $&
+  assert_nil $`
+  assert_nil $'
+  assert_nil $1
+  assert_nil $+
+end
+
 assert("String#partition and String#rpartition delegate every non-regexp argument") do
   assert_equal ["he", "ll", "o"], "hello".partition("ll")
   assert_equal ["hello", "", ""], "hello".partition("z")
