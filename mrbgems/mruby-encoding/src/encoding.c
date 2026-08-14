@@ -36,15 +36,20 @@ get_encoding(mrb_state *mrb, mrb_sym enc)
  *
  *   "hello".encoding          #=> "UTF-8"
  *   "\xff\xfe".encoding       #=> "ASCII-8BIT"
+ *
+ * Without MRB_UTF8_STRING there is no UTF-8 to name, so every string is
+ * ASCII-8BIT (BINARY).
  */
 static mrb_value
 str_encoding(mrb_state *mrb, mrb_value self)
 {
+#ifdef MRB_UTF8_STRING
   struct RString *s = mrb_str_ptr(self);
-  if (RSTR_BINARY_P(s)) {
-    return get_encoding(mrb, MRB_SYM(BINARY));
+  if (!RSTR_BINARY_P(s)) {
+    return get_encoding(mrb, MRB_SYM(UTF_8));
   }
-  return get_encoding(mrb, MRB_SYM(UTF_8));
+#endif
+  return get_encoding(mrb, MRB_SYM(BINARY));
 }
 
 /*
