@@ -3338,17 +3338,6 @@ RETRY_TRY_BLOCK:
   }                                                                         \
 } while(0);                                                                 \
   NEXT;
-#define OP_MATH_CASE_INTEGER(op_name)                                       \
-  case TYPES2(MRB_TT_INTEGER, MRB_TT_INTEGER):                              \
-    {                                                                       \
-      mrb_int x = mrb_integer(regs[a]), y = mrb_integer(regs[a+1]), z;      \
-      if (mrb_int_##op_name##_overflow(x, y, &z)) {                         \
-        OP_MATH_OVERFLOW_INT(op_name,x,y);                                  \
-      }                                                                     \
-      else                                                                  \
-        VM_SET_INT_VALUE(regs[a], z);                                       \
-    }                                                                       \
-    break
 #ifdef MRB_NO_FLOAT
 #define OP_MATH_CASE_FLOAT(op_name, t1, t2) (void)0
 #else
@@ -3419,17 +3408,6 @@ RETRY_TRY_BLOCK:
   }                                                                         \
 } while(0);                                                                 \
   NEXT;
-#define OP_MATHI_CASE_INTEGER(op_name)                                      \
-  case MRB_TT_INTEGER:                                                      \
-    {                                                                       \
-      mrb_int x = mrb_integer(regs[a]), y = (mrb_int)b, z;                  \
-      if (mrb_int_##op_name##_overflow(x, y, &z)) {                         \
-        OP_MATH_OVERFLOW_INT(op_name,x,y);                                  \
-      }                                                                     \
-      else                                                                  \
-        VM_SET_INT_VALUE(regs[a], z);                                       \
-    }                                                                       \
-    break
 #ifdef MRB_NO_FLOAT
 #define OP_MATHI_CASE_FLOAT(op_name) (void)0
 #else
