@@ -1,0 +1,44 @@
+# Most headers in this tree are written to be included after mruby.h rather
+# than to be parsed on their own, so a language server pointed at one directly
+# resolves none of its types: they all decay to implicit int, and
+# go-to-definition falls back to a nearby identifier. Force-including mruby.h
+# gives clangd the context those headers already assume.
+#
+# The PathMatch list is deliberately narrow, so the vendored prism headers
+# under mrbgems/mruby-compiler/lib/prism/ are left alone.
+#
+# common.h and value.h are excluded because they sit on mruby.h's own include
+# chain: force-including it re-enters them through their include guards, which
+# leaves them worse off than with no configuration at all.
+If:
+  PathMatch:
+    - include/.*\.h
+    - src/.*\.h
+    - mrbgems/[^/]+/(include|src|core|tools)/.*\.h
+  PathExclude:
+    - mrbgems/mruby-compiler/include/.*
+    - include/mruby/common\.h
+    - include/mruby/value\.h
+
+CompileFlags:
+  Add:
+    - --include=mruby.h
+
+---
+# The compiler headers assume mrc_irep.h as well, which pulls in
+# mrc_ccontext.h and mrc_common.h.
+#
+# mrc_common.h is excluded for the same reason as common.h above.
+# mrc_ccontext.h is excluded because it forms a cycle with mrc_pool.h and
+# mrc_diagnostic.h, so re-entering it from a forced include only adds
+# "main file cannot be included recursively when building a preamble".
+If:
+  PathMatch: mrbgems/mruby-compiler/include/.*\.h
+  PathExclude:
+    - mrbgems/mruby-compiler/include/mrc_common\.h
+    - mrbgems/mruby-compiler/include/mrc_ccontext\.h
+
+CompileFlags:
+  Add:
+    - --include=mruby.h
+    - --include=mrc_irep.h
