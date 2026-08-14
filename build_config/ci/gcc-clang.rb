@@ -20,7 +20,7 @@ MRuby::Build.new('full-debug') do |conf|
   conf.enable_test
 end
 
-MRuby::Build.new do |conf|
+MRuby::Build.new('bintest') do |conf|
   conf.toolchain
 
   # include all core GEMs
