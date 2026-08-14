@@ -189,6 +189,12 @@ mrb_int mrb_str_byte_to_char(mrb_state *mrb, mrb_value str, mrb_int bi);
    definition in string.c for what it reads and what it leaves behind. */
 mrb_bool mrb_str_valid_encoding_p(mrb_state *mrb, mrb_value str);
 
+/* Raise IndexError when `pos` lands inside a character of `str`, and return
+   otherwise. See the definition in string.c for which offsets are positions
+   the string has; a build without MRB_UTF8_STRING has one per byte, so this
+   is a no-op there. */
+void mrb_str_check_byte_pos(mrb_state *mrb, mrb_value str, mrb_int pos);
+
 /* Write the UTF-8 spelling of a codepoint into a buffer of at least four
    bytes, and return how many it took (1-4), or 0 for a value that spells no
    character. What counts as one, and why a surrogate does spell one here

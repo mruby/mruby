@@ -2451,8 +2451,8 @@ mrb_str_include(mrb_state *mrb, mrb_value self)
    one. A byte-indexed string has a position per byte, so every offset is one.
    The boundaries are the ones String#length counts over, which is why a byte
    no lead byte reaches is one of them. */
-static void
-str_check_byte_pos(mrb_state *mrb, mrb_value str, mrb_int pos)
+void
+mrb_str_check_byte_pos(mrb_state *mrb, mrb_value str, mrb_int pos)
 {
 #ifdef MRB_UTF8_STRING
   struct RString *s = mrb_str_ptr(str);
@@ -2482,7 +2482,7 @@ mrb_str_byteindex_m(mrb_state *mrb, mrb_value str)
     }
   }
   if (pos > RSTRING_LEN(str)) return mrb_nil_value();
-  str_check_byte_pos(mrb, str, pos);
+  mrb_str_check_byte_pos(mrb, str, pos);
   /* see str_index_str() */
   if (!mrb_str_valid_encoding_p(mrb, sub)) return mrb_nil_value();
   pos = str_index_str(mrb, str, sub, pos);
@@ -2780,7 +2780,7 @@ mrb_str_byterindex_m(mrb_state *mrb, mrb_value str)
     }
     if (pos > len) pos = len;
   }
-  str_check_byte_pos(mrb, str, pos);
+  mrb_str_check_byte_pos(mrb, str, pos);
   /* see str_index_str() */
   if (!mrb_str_valid_encoding_p(mrb, sub)) return mrb_nil_value();
   pos = str_byterindex(str, sub, pos);
