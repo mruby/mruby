@@ -501,6 +501,17 @@ regexp_s_byte_search(mrb_state *mrb, mrb_value klass)
 
   mrb_get_args(mrb, "oS|ibb", &re, &str, &pos, &checked, &publish);
   check_regexp_arg(mrb, re);
+  /* Every mrblib loop enters at zero or at an offset a match answered with,
+     so a position before the subject reaches here only from a direct call.
+     A backstop, as check_regexp_arg() above is: the answer is the miss a
+     position past the end already gives, rather than the read behind
+     RSTRING_PTR(str) that the engine would make of it. Asked before the
+     encoding is, as `__search` asks a position it cannot place, since a
+     subject the position names nothing in is not read either way. */
+  if (pos < 0) {
+    if (publish) clear_match_globals(mrb);
+    return mrb_nil_value();
+  }
   if (!checked) re_check_encoding(mrb, str);
   return exec_match(mrb, re, str, pos, publish);
 }
