@@ -254,13 +254,35 @@ class String
   def scan(pattern)
     pattern = Regexp.__check_pattern(pattern)
     pattern = Regexp.new(Regexp.escape(pattern)) if String === pattern
-    result = Regexp.__scan(pattern, self)
-    if block_given?
-      result.each { |m| yield m }
-      self
-    else
-      result
+    return Regexp.__scan(pattern, self) unless block_given?
+    # A block reads the match globals of the match it was handed, so the block
+    # form has to walk the subject itself and let each search publish as it
+    # goes. `Regexp.__scan` collects every match before anything is yielded,
+    # which leaves only the last one published, so every call of the block saw
+    # the same final `$~`, `` $` ``, `$'` and `$1`.
+    #
+    # Yield what `__scan` collects: the matched string where the pattern has no
+    # group, and an array of the groups where it has any, a single one
+    # included. A zero-width match steps one byte on, which is what stops the
+    # next search reporting the same place; the engine steps over a byte inside
+    # a character on its own.
+    pos = 0
+    len = self.bytesize
+    # The loop ends on a failed search, which clears the globals. CRuby leaves
+    # the last match behind, so keep it and republish it below, the way `gsub`
+    # does. A scan that matched nothing keeps the cleared state.
+    last = nil
+    while pos <= len
+      md = Regexp.__byte_search(pattern, self, pos)
+      break unless md
+      last = md
+      yield(md.size == 1 ? md[0] : md.captures)
+      match_start = md.__byte_begin(0)
+      match_end = md.__byte_end(0)
+      pos = match_start == match_end ? match_end + 1 : match_end
     end
+    last.__set_globals if last
+    self
   end
 
   # Regexp-aware split.  Falls back to the C-defined split (aliased as

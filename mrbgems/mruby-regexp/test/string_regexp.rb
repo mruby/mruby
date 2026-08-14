@@ -13,6 +13,38 @@ assert("String#scan return shape") do
   assert_equal [["o"], ["o"]], collected
 end
 
+assert("String#scan hands its block the globals of the match it is given") do
+  # The block form used to collect every match before yielding any, so the
+  # globals stood at the last match for every call of the block and $1 was the
+  # same string throughout.
+  seen = []
+  "a1b2c3".scan(/(\d)/) { seen << [$~.begin(0), $&, $`, $', $1] }
+  assert_equal [[1, "1", "a", "b2c3", "1"],
+                [3, "2", "a1b", "c3", "2"],
+                [5, "3", "a1b2c", "", "3"]], seen
+  # a pattern with no group publishes the same way
+  seen = []
+  "aXbXc".scan(/X/) { seen << [$~.begin(0), $`, $'] }
+  assert_equal [[1, "a", "bXc"], [3, "aXb", "c"]], seen
+  # and the last match stays published after the call, as it does without a
+  # block, while a scan that matched nothing leaves the globals cleared
+  "a1b2".scan(/(\d)/) { }
+  assert_equal 3, $~.begin(0)
+  assert_equal "2", $1
+  "a1b2".scan(/(z)/) { }
+  assert_nil $~
+  assert_nil $1
+  # the block form answers the receiver, the bare form the matches
+  assert_equal "abc", "abc".scan(/\w/) { }
+end
+
+assert("String#scan of a multibyte subject reports byte-correct globals") do
+  skip unless __ENCODING__ == "UTF-8"
+  seen = []
+  "あXいXう".scan(/X/) { seen << [$~.begin(0), $`, $'] }
+  assert_equal [[1, "あ", "いXう"], [3, "あXい", "う"]], seen
+end
+
 assert("String#gsub - regexp search position is byte-based internally") do
   skip unless __ENCODING__ == "UTF-8"
   assert_equal "あ-い-う", "あ,い,う".gsub(/,/, "-")
