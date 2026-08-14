@@ -344,6 +344,40 @@ assert("String#rindex with regexp") do
   assert_nil "hello".rindex(/l/, -10)
 end
 
+assert("String#rindex bounds the match start in characters") do
+  # The position `rindex` takes is a character offset and the one
+  # `byterindex` takes is a byte offset. On a single-byte subject the two
+  # name the same place, so only a multibyte one says which is being read.
+  skip unless __ENCODING__ == "UTF-8"
+  str = "あいうあいう"    # 6 characters, 18 bytes
+
+  assert_equal 4, str.rindex(/い/)
+  assert_equal 12, str.byterindex(/い/)
+
+  # 1 as a character offset is the second character, which the first `い` is;
+  # as a byte offset it is inside the first character and reaches no match at
+  # all
+  assert_equal 1, str.rindex(/い/, 1)
+  assert_nil str.rindex(/い/, 0)
+  assert_equal 3, str.byterindex(/い/, 3)
+
+  # 4 as a character offset reaches the second `い`, where the same number of
+  # bytes is still short of the first
+  assert_equal 4, str.rindex(/い/, 4)
+  assert_equal 1, str.rindex(/い/, 3)
+
+  # a negative position counts back in the same space it counts forward in
+  assert_equal 4, str.rindex(/い/, -1)
+  assert_equal 1, str.rindex(/い/, -3)
+
+  # overlapping matches stay in view across a multibyte character, where a
+  # walk that resumed at the match end would answer 0
+  assert_equal 1, "あああ".rindex(/ああ/)
+  assert_equal 3, "あああ".byterindex(/ああ/)
+  assert_equal ["あ", "ああ", ""], "あああ".rpartition(/ああ/)
+  assert_equal ["あい", "うあ", "いう"], str.rpartition(/うあ/)
+end
+
 assert("String#index and String#rindex with regexp set the match globals") do
   assert_equal 1, "abc".index(/(b)/)
   assert_equal "b", $1
