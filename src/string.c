@@ -1010,7 +1010,7 @@ mrb_str_byte_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
      cutting can leave a character in pieces, and it can also cut away the
      piece that spelled none, so a subrange inherits validity in neither
      direction. */
-  RSTR_COPY_BINARY_FLAG(s, orig);
+  RSTR_ENC_COPY(s, orig);
   return mrb_obj_value(s);
 }
 
@@ -1107,7 +1107,7 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
   RSTR_COPY_SINGLE_BYTE_FLAG(s1, s2);
   RSTR_COPY_VALID_ENC_FLAG(s1, s2);
   RSTR_COPY_BROKEN_ENC_FLAG(s1, s2);
-  RSTR_COPY_BINARY_FLAG(s1, s2);
+  RSTR_ENC_COPY(s1, s2);
   if (RSTR_SHARED_P(s1)) {
     str_decref(mrb, s1->as.heap.aux.shared);
   }
@@ -1419,7 +1419,7 @@ mrb_str_plus(mrb_state *mrb, mrb_value a, mrb_value b)
   if ((RSTR_BINARY_P(s) && RSTR_BINARY_P(s2)) ||
       (RSTR_BINARY_P(s) && !str_ascii_p(s)) ||
       (RSTR_BINARY_P(s2) && !str_ascii_p(s2))) {
-    RSTR_SET_BINARY_FLAG(t);
+    RSTR_ENCODING_SET(t, MRB_STR_ENCODING_BINARY);
   }
 
   return mrb_obj_value(t);
@@ -1505,7 +1505,7 @@ mrb_str_times(mrb_state *mrb, mrb_value self)
   RSTR_COPY_VALID_ENC_FLAG(str2, mrb_str_ptr(self));
   /* a repetition of a byte-read string holds nothing but its bytes over
      again, so it is read the same way */
-  RSTR_COPY_BINARY_FLAG(str2, mrb_str_ptr(self));
+  RSTR_ENC_COPY(str2, mrb_str_ptr(self));
   /* A repetition of broken bytes reaches the same broken place the first copy
      does, so it is broken too. Nought copies keep none of the bytes, and an
      empty string is not broken whatever it was made from. */
@@ -1851,7 +1851,7 @@ str_replace_partial(mrb_state *mrb, mrb_value src, mrb_int pos, mrb_int end, mrb
        their reading over, ASCII bytes move nothing */
     struct RString *repp = mrb_str_ptr(rep);
     if (!RSTR_BINARY_P(str) && RSTR_BINARY_P(repp) && !str_ascii_p(repp)) {
-      RSTR_SET_BINARY_FLAG(str);
+      RSTR_ENCODING_SET(str, MRB_STR_ENCODING_BINARY);
     }
   }
   RSTR_SET_LEN(str, newlen);
@@ -3638,7 +3638,7 @@ mrb_str_cat_str(mrb_state *mrb, mrb_value str, mrb_value str2)
   mrb_bool binary = !RSTR_BINARY_P(s) && RSTR_BINARY_P(s2) && !str_ascii_p(s2);
   mrb_value ret = mrb_str_cat(mrb, str, RSTRING_PTR(str2), RSTRING_LEN(str2));
   if (binary) {
-    RSTR_SET_BINARY_FLAG(mrb_str_ptr(ret));
+    RSTR_ENCODING_SET(mrb_str_ptr(ret), MRB_STR_ENCODING_BINARY);
   }
   return ret;
 }
@@ -3879,7 +3879,7 @@ sub_replace(mrb_state *mrb, mrb_value self)
   if ((RSTR_BINARY_P(mrb_str_ptr(replace)) && !str_ascii_p(mrb_str_ptr(replace))) ||
       (match_taken && RSTR_BINARY_P(mrb_str_ptr(pat)) && !str_ascii_p(mrb_str_ptr(pat))) ||
       (self_taken && RSTR_BINARY_P(mrb_str_ptr(self)) && !str_ascii_p(mrb_str_ptr(self)))) {
-    RSTR_SET_BINARY_FLAG(mrb_str_ptr(result));
+    RSTR_ENCODING_SET(mrb_str_ptr(result), MRB_STR_ENCODING_BINARY);
   }
   return result;
 }

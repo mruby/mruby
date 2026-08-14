@@ -359,7 +359,7 @@ mark_written_bytes(mrb_value result, mrb_value src)
   const char *p = RSTR_PTR(s);
   const char *e = p + RSTR_LEN(s);
   while (p < e && !(*p & 0x80)) p++;
-  if (p < e) RSTR_SET_BINARY_FLAG(r);
+  if (p < e) RSTR_ENCODING_SET(r, MRB_STR_ENCODING_BINARY);
 }
 
 static mrb_value
@@ -423,7 +423,7 @@ mrb_str_format(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value fm
      built out of them is read the way the format string was read, ASCII bytes
      and all: the reading a receiver holds, which nothing written into it
      lifts. */
-  RSTR_COPY_BINARY_FLAG(mrb_str_ptr(result), mrb_str_ptr(fmt));
+  RSTR_ENC_COPY(mrb_str_ptr(result), mrb_str_ptr(fmt));
   buf = RSTRING_PTR(result);
   memset(buf, 0, bsiz);
 
