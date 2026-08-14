@@ -543,12 +543,21 @@ assert("Regexp - large non-ASCII character class does not overflow") do
   # size-0 realloc and a write through NULL). See issue #6937.
   # Patterns are always parsed as UTF-8, so build the bytes directly to
   # exercise this in both MRB_UTF8_STRING and byte-string builds.
+  # append_as_bytes lays raw bytes into the string without moving how it is
+  # read; a sum of Integer#chr pieces would come back read as bytes, and a
+  # byte-read subject is answered by the byte on its own rather than the
+  # character it begins.
   utf8 = ->(cp) {
+    s = ""
     if cp < 0x800
-      (0xC0 | (cp >> 6)).chr + (0x80 | (cp & 0x3F)).chr
+      s.append_as_bytes(0xC0 | (cp >> 6))
+      s.append_as_bytes(0x80 | (cp & 0x3F))
     else
-      (0xE0 | (cp >> 12)).chr + (0x80 | ((cp >> 6) & 0x3F)).chr + (0x80 | (cp & 0x3F)).chr
+      s.append_as_bytes(0xE0 | (cp >> 12))
+      s.append_as_bytes(0x80 | ((cp >> 6) & 0x3F))
+      s.append_as_bytes(0x80 | (cp & 0x3F))
     end
+    s
   }
   s = "["
   i = 0x80
@@ -661,4 +670,28 @@ assert("Regexp - a piece of a byte-read subject is byte-read") do
   assert_equal Encoding::BINARY, subject.scan(/./)[0].encoding
   # a piece of a subject read as UTF-8 goes on reading as UTF-8
   assert_equal Encoding::UTF_8, "あb".match(/b/)[0].encoding
+end
+
+assert("Regexp - what sub and gsub build out of a byte-read subject") do
+  # The result is the subject's bytes with the replacement spliced in, so it
+  # is read the way the subject was, and a replacement of byte-read bytes
+  # above ASCII marks a plain subject's result the way any appended byte-read
+  # bytes do.
+  skip unless "".respond_to?(:encoding)
+  skip unless __ENCODING__ == "UTF-8"
+  subject = "a\x80b".b
+  assert_equal Encoding::BINARY, subject.sub(/a/, "-").encoding
+  assert_equal Encoding::BINARY, subject.gsub(/a/, "-").encoding
+  assert_true subject.gsub(/a/, "-").valid_encoding?
+  assert_equal Encoding::BINARY, subject.gsub(/a/) { "-" }.encoding
+  assert_equal Encoding::BINARY, "ab".gsub(/a/, 171.chr).encoding
+  assert_equal Encoding::BINARY, "ab".sub(/a/, 171.chr).encoding
+  # a replacement of ASCII bytes moves nothing
+  assert_equal Encoding::UTF_8, "ab".gsub(/a/, "-".b).encoding
+  # and neither does one a search that matched nothing never spliced in
+  assert_equal Encoding::UTF_8, "ab".gsub(/x/, 171.chr).encoding
+  assert_equal Encoding::UTF_8, "ab".gsub("x", 171.chr).encoding
+  assert_equal Encoding::UTF_8, "ab".sub(/x/, 171.chr).encoding
+  # a byte-read subject is read as bytes whether anything was spliced or not
+  assert_equal Encoding::BINARY, subject.gsub(/x/, "-").encoding
 end

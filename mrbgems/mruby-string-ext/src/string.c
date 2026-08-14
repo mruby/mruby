@@ -111,6 +111,23 @@ str_swapcase(mrb_state *mrb, mrb_value self)
   return str;
 }
 
+/* Bytes that were read as bytes and go above ASCII spell no character in the
+   string they are spliced into, so they hand it the byte reading along with
+   themselves, the same as an append through mrb_str_cat_str(). ASCII bytes
+   read the same under any reading and move nothing. */
+static void
+str_mark_spliced_bytes(mrb_value recv, mrb_value src)
+{
+  struct RString *r = mrb_str_ptr(recv);
+  struct RString *s = mrb_str_ptr(src);
+
+  if (RSTR_BINARY_P(r) || !RSTR_BINARY_P(s)) return;
+  const char *p = RSTR_PTR(s);
+  const char *e = p + RSTR_LEN(s);
+  while (p < e && !(*p & 0x80)) p++;
+  if (p < e) r->flags |= MRB_STR_BINARY;
+}
+
 static void
 str_concat(mrb_state *mrb, mrb_value self, mrb_value str, mrb_bool binary)
 {
@@ -128,7 +145,15 @@ str_concat(mrb_state *mrb, mrb_value self, mrb_value str, mrb_bool binary)
   }
   else
     mrb_ensure_string_type(mrb, str);
-  mrb_str_cat_str(mrb, self, str);
+  if (binary) {
+    /* append_as_bytes takes only the bytes of its argument, and a byte-read
+       receiver already reads everything as bytes, so neither lets the
+       argument's own reading move the receiver's. */
+    mrb_str_cat(mrb, self, RSTRING_PTR(str), RSTRING_LEN(str));
+  }
+  else {
+    mrb_str_cat_str(mrb, self, str);
+  }
 }
 
 static mrb_value
@@ -2232,6 +2257,7 @@ str_insert(mrb_state *mrb, mrb_value self)
   char *p = RSTRING_PTR(self);
   memmove(p + idx + insert_len, p + idx, self_len - idx);
   memcpy(p + idx, RSTRING_PTR(str_to_insert), insert_len);
+  str_mark_spliced_bytes(self, str_to_insert);
 
   return self;
 }
@@ -2305,6 +2331,7 @@ str_prepend(mrb_state *mrb, mrb_value self)
       memcpy(p + offset, src, arg_len);
       offset += arg_len;
     }
+    str_mark_spliced_bytes(self, argv[i]);
   }
 
   return self;

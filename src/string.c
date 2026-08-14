@@ -710,6 +710,21 @@ mrb_str_valid_encoding_p(mrb_state *mrb, mrb_value str)
   return TRUE;
 }
 
+/* whether every byte of the string is ASCII. A walk that finds nothing else
+   made the statement MRB_STR_SINGLE_BYTE makes, so the answer is left there
+   for the next asker to read off. */
+static mrb_bool
+str_ascii_p(struct RString *s)
+{
+  if (RSTR_SINGLE_BYTE_P(s)) return TRUE;
+
+  const char *p = RSTR_PTR(s);
+  const char *e = p + RSTR_LEN(s);
+  if (search_nonascii(p, e) != e) return FALSE;
+  RSTR_SET_SINGLE_BYTE_FLAG(s);
+  return TRUE;
+}
+
 /* map character index to byte offset index */
 mrb_int
 mrb_str_char_to_byte(mrb_state *mrb, mrb_value str, mrb_int off, mrb_int idx)
@@ -838,6 +853,7 @@ mrb_str_valid_encoding_p(mrb_state *mrb, mrb_value str)
   (void)str;
   return TRUE;
 }
+#define str_ascii_p(s) TRUE
 #endif
 
 /* memsearch_swar (SWAR stands for SIMD within a register)                 */
@@ -1368,6 +1384,19 @@ mrb_str_plus(mrb_state *mrb, mrb_value a, mrb_value b)
   memcpy(pt, p, slen);
   memcpy(pt + slen, p2, s2len);
 
+  /* The sum is read the way its parts were. Two byte-read operands stay that
+     way, and one byte-read operand carrying a byte above ASCII hands the sum
+     bytes no other reading holds, so its reading wins. A byte-read operand of
+     ASCII bytes reads as the other operand as it stands and yields to it,
+     which is where CRuby lands on every pair it accepts; the pairs it refuses
+     outright come out byte-read here, saying nothing rather than something
+     false. */
+  if ((RSTR_BINARY_P(s) && RSTR_BINARY_P(s2)) ||
+      (RSTR_BINARY_P(s) && !str_ascii_p(s)) ||
+      (RSTR_BINARY_P(s2) && !str_ascii_p(s2))) {
+    t->flags |= MRB_STR_BINARY;
+  }
+
   return mrb_obj_value(t);
 }
 
@@ -1786,6 +1815,13 @@ str_replace_partial(mrb_state *mrb, mrb_value src, mrb_int pos, mrb_int end, mrb
   memmove(strp + newlen - (len - end), strp + end, len - end);
   if (!mrb_nil_p(rep)) {
     memmove(strp + pos, RSTRING_PTR(rep), replen);
+    /* bytes spliced in mark the string they land in the way appended ones
+       do: byte-read bytes above ASCII spell no character here and hand
+       their reading over, ASCII bytes move nothing */
+    struct RString *repp = mrb_str_ptr(rep);
+    if (!RSTR_BINARY_P(str) && RSTR_BINARY_P(repp) && !str_ascii_p(repp)) {
+      str->flags |= MRB_STR_BINARY;
+    }
   }
   RSTR_SET_LEN(str, newlen);
   strp[newlen] = '\0';
@@ -3543,10 +3579,23 @@ mrb_str_cat_cstr(mrb_state *mrb, mrb_value str, const char *ptr)
 MRB_API mrb_value
 mrb_str_cat_str(mrb_state *mrb, mrb_value str, mrb_value str2)
 {
-  if (mrb_str_ptr(str) == mrb_str_ptr(str2)) {
-    mrb_str_modify(mrb, mrb_str_ptr(str));
+  struct RString *s = mrb_str_ptr(str);
+  struct RString *s2 = mrb_str_ptr(str2);
+
+  if (s == s2) {
+    mrb_str_modify(mrb, s);
   }
-  return mrb_str_cat(mrb, str, RSTRING_PTR(str2), RSTRING_LEN(str2));
+  /* Appended bytes that were read as bytes and go above ASCII spell no
+     character in the string they land in, so they hand it the byte reading
+     along with themselves. ASCII bytes read the same under any reading and
+     say nothing. Decided before the append so a raise leaves the string as
+     it was, applied after so it lands on the string the append made. */
+  mrb_bool binary = !RSTR_BINARY_P(s) && RSTR_BINARY_P(s2) && !str_ascii_p(s2);
+  mrb_value ret = mrb_str_cat(mrb, str, RSTRING_PTR(str2), RSTRING_LEN(str2));
+  if (binary) {
+    mrb_str_ptr(ret)->flags |= MRB_STR_BINARY;
+  }
+  return ret;
 }
 
 /*
@@ -3725,14 +3774,18 @@ mrb_str_byteslice(mrb_state *mrb, mrb_value str)
 static mrb_value
 sub_replace(mrb_state *mrb, mrb_value self)
 {
-  char *p, *match;
-  mrb_int plen, mlen;
+  mrb_value replace, pat;
   mrb_int found, offset;
+  mrb_bool self_taken = FALSE, match_taken = FALSE;
 
-  mrb_get_args(mrb, "ssi", &p, &plen, &match, &mlen, &found);
+  mrb_get_args(mrb, "SSi", &replace, &pat, &found);
   if (found < 0 || RSTRING_LEN(self) < found) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "argument out of range");
   }
+  const char *p = RSTRING_PTR(replace);
+  mrb_int plen = RSTRING_LEN(replace);
+  const char *match = RSTRING_PTR(pat);
+  mrb_int mlen = RSTRING_LEN(pat);
   mrb_value result = mrb_str_new(mrb, 0, 0);
   for (mrb_int i=0; i<plen; i++) {
     if (p[i] != '\\' || i+1==plen) {
@@ -3746,14 +3799,17 @@ sub_replace(mrb_state *mrb, mrb_value self)
       break;
     case '`':
       mrb_str_cat(mrb, result, RSTRING_PTR(self), found);
+      self_taken = TRUE;
       break;
     case '&': case '0':
       mrb_str_cat(mrb, result, match, mlen);
+      match_taken = TRUE;
       break;
     case '\'':
       offset = found + mlen;
       if (RSTRING_LEN(self) > offset) {
         mrb_str_cat(mrb, result, RSTRING_PTR(self)+offset, RSTRING_LEN(self)-offset);
+        self_taken = TRUE;
       }
       break;
     case '1': case '2': case '3':
@@ -3765,6 +3821,14 @@ sub_replace(mrb_state *mrb, mrb_value self)
       mrb_str_cat(mrb, result, &p[i-1], 2);
       break;
     }
+  }
+  /* The splice holds bytes of the replacement and of whatever the escapes
+     copied in, so it is read as bytes exactly when one of those sources
+     handed it byte-read bytes above ASCII, the same as any other append. */
+  if ((RSTR_BINARY_P(mrb_str_ptr(replace)) && !str_ascii_p(mrb_str_ptr(replace))) ||
+      (match_taken && RSTR_BINARY_P(mrb_str_ptr(pat)) && !str_ascii_p(mrb_str_ptr(pat))) ||
+      (self_taken && RSTR_BINARY_P(mrb_str_ptr(self)) && !str_ascii_p(mrb_str_ptr(self)))) {
+    mrb_str_ptr(result)->flags |= MRB_STR_BINARY;
   }
   return result;
 }
