@@ -139,11 +139,22 @@ Typical sizes depend on included gems:
 - Local includes (`.cstub` files) are automatically inlined
 - Generated files (`mrblib.c`, `gem_init.c`) are included
 
-### Gem Defines
+### Build Configuration Defines
 
-Gems that add preprocessor defines affecting core structures are
-automatically detected and included at the top of `mruby.h`.
-Supported patterns: `MRB_USE_*`, `MRB_UTF8_*`, `HAVE_MRUBY_*`.
+The defines the build compiles with are written at the top of `mruby.h`, so
+that including it is enough to get the same `mrb_value` layout, integer width
+and feature set as the build the amalgamation was generated from. Both the
+defines the build configuration names (`conf.cc.defines`) and the ones gems
+contribute (`spec.build.defines`) are emitted. Each is wrapped in `#ifndef`,
+so passing the same define on the command line is not a redefinition.
+
+Two kinds are not written, and are left to whoever compiles the amalgamation:
+
+- `MRB_DEBUG`, which only decides whether `mrb_assert` checks. `-DNDEBUG`
+  above is the same kind of choice.
+- `MRB_USE_CXX_EXCEPTION` and `MRB_USE_CXX_ABI`, which require a C++
+  compiler. `mruby.c` is C, so a header that demanded them could not be
+  compiled as generated.
 
 ### Build Order
 

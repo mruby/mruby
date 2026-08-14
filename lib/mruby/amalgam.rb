@@ -250,25 +250,43 @@ module MRuby
 
       PREAMBLE
 
-      # Add build-level defines from gems (e.g., MRB_USE_TASK_SCHEDULER)
-      gem_defines = collect_gem_defines
-      unless gem_defines.empty?
-        f.puts "/* Gem-required defines */"
-        gem_defines.each do |d|
-          f.puts "#define #{d}"
+      build_defines = collect_build_defines
+      unless build_defines.empty?
+        f.puts "/* Build configuration defines */"
+        build_defines.each do |name, value|
+          f.puts "#ifndef #{name}"
+          f.puts(value ? "#define #{name} #{value}" : "#define #{name}")
+          f.puts "#endif"
         end
         f.puts
       end
     end
 
-    # Collect defines added by gems that affect core headers
-    def collect_gem_defines
-      defines = []
-      @build.defines.each do |d|
-        # Include defines that affect mrb_state or core functionality
-        defines << d if d =~ /^MRB_USE_|^MRB_UTF8_|^HAVE_MRUBY_/
+    # The defines this build compiles with, which the consumer must compile with
+    # too: they decide the layout of `mrb_value` and `mrb_state` and which
+    # functions exist, so a header read without them describes a different
+    # mruby than the one in mruby.c. The build config writes most of them
+    # (`MRB_NO_STDIO`, `MRB_INT64`, the boxing choice), a gem writes the rest
+    # through `spec.build.defines` (`MRB_USE_BIGINT`, `HAVE_MRUBY_IO_GEM`);
+    # neither is distinguishable from the header's side, so both are emitted.
+    #
+    # `internal_defines` is left out on purpose: it holds what the build adds
+    # from its own switches, and `MRB_USE_CXX_ABI` there would make the header
+    # unusable from C. `cxx.defines` is left out for the same reason, the
+    # amalgam being C. The consumer that wants a C++ build passes those itself.
+    def collect_build_defines
+      defines = {}
+      [@build.defines, @build.cc.defines].flatten.each do |d|
+        name, value = d.to_s.split("=", 2)
+        next unless name =~ /\A[A-Za-z_][A-Za-z0-9_]*\z/
+        next if name.start_with?("__STDC_")
+        # First writer wins, `@build.defines` over `@build.cc.defines`, which is
+        # the way the two land on the command line: `all_flags` puts
+        # `build.defines` last and the last `-D` of a name is the one in effect.
+        # `||=` would be wrong here, a valueless define holding nil.
+        defines[name] = value unless defines.key?(name)
       end
-      defines.uniq.sort
+      defines.sort
     end
 
     def write_header_postamble(f)
