@@ -285,10 +285,29 @@ conf.gem :core => 'mruby-bin-mirb'
 
 # Integrate GemBox (set of Gems)
 conf.gembox "default"
+
+# ... and take one back out of it
+conf.gems.delete "mruby-socket"
 ```
 
 A GemBox is a set of Gems defined in `mrbgems/default.gembox` for example.
 It's just a set of `mrbgem` configurations.
+
+`conf.gems.delete` removes a Gem the configuration has already added, so a
+build can say "this GemBox, minus one" without restating the box. It has to
+come after the `gembox` line that brought the Gem in, and naming a Gem that
+is not in the build fails, so a misspelled name does not pass for a build
+that quietly keeps the Gem. `conf.gems.reject!` takes a block instead and
+removes every Gem it matches, returning `nil` when it matches none.
+
+A Gem that another Gem in the build declares as a dependency cannot be
+removed this way: dependency resolution loads it again, and reports
+
+```
+gem 'mruby-string-ext' can't be removed; mruby-regexp depends on it
+```
+
+Removing the Gem that depends on it as well is what makes it go.
 
 There is a `RubyGem` (gem for CRuby) named `mgem` that help you to
 manage `mrbgems`. Try `gem install mgem`. `mgem` can show you the list
