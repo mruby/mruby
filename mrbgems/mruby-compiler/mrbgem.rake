@@ -30,7 +30,7 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
   elsif !cc.defines.include?('MRB_NO_GEMS')
     cc.defines << 'MRC_TARGET_MRUBY'
   end
-  cc.defines << 'MRC_DEBUG' if cc.defines.any? { |d| d.match?(/\AMRB_DEBUG(=|\z)/) }
+  cc.defines << 'MRC_DEBUG' if cc.has_define?('MRB_DEBUG')
   cc.defines << 'PRISM_BUILD_MINIMAL' unless cc.defines.include?('MRC_DEBUG')
   # PRISM_BUILD_MINIMAL stubs out pm_prettyprint(), so `mruby -v` can only dump
   # the AST where it is compiled in
