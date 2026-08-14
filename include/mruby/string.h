@@ -181,9 +181,17 @@ struct RStringEmbed {
    way and stands exactly where the source stands, so the two answers travel
    together. Splitting them apart would let a copy keep one and drop the
    other, which is the way flags went missing when there was a macro per
-   flag. */
+   flag.
+
+   The two fields sit side by side, so one mask spells both and the pair
+   crosses in a single read and a single write rather than one of each per
+   field. A build that indexes by byte keeps no coderange and writes those
+   bits nowhere, so what the mask carries across there is the zeros they
+   hold. */
+#define MRB_STR_ENC_CR_MASK (MRB_STR_ENCODING_MASK|MRB_STR_CODERANGE_MASK)
 #define RSTR_ENC_CR_COPY(dst, src) \
-  (RSTR_ENC_COPY(dst, src), RSTR_CODERANGE_SET(dst, RSTR_CODERANGE(src)))
+  ((dst)->flags = ((dst)->flags & ~MRB_STR_ENC_CR_MASK) | \
+                  ((src)->flags & MRB_STR_ENC_CR_MASK))
 /* A subrange holds bytes of the source, so it is read the same way, but a cut
    can leave a character in pieces and can also cut away the piece that spelled
    none: it inherits neither soundness nor brokenness. Nothing but ASCII is
