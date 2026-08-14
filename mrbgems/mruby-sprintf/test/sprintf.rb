@@ -168,3 +168,37 @@ assert('sprintf("%c") with a UTF-16 surrogate') do
   assert_equal "\xED\x9F\xBF", sprintf("%c", 0xD7FF)
   assert_equal "\xEE\x80\x80", sprintf("%c", 0xE000)
 end
+
+assert('what the string sprintf builds claims') do
+  # The bytes go through: a byte-read argument lands in the result whole, and
+  # a byte-read format string lays its own bytes down as they are. The reading
+  # goes with them now: the format string's own reading is what the result is
+  # built with, and an argument read as bytes and going above ASCII hands it
+  # over the way any appended byte-read bytes do. Whether a string is read as
+  # bytes or as UTF-8 is only visible through mruby-encoding, so ask only
+  # where it is present.
+  skip unless "".respond_to?(:encoding)
+  skip unless __ENCODING__ == "UTF-8"
+  bin = 171.chr   # a byte spelling no character, read as bytes
+  assert_equal [171], ("%s" % [bin]).bytes
+  ["%s" % [bin], "[%s]" % [bin], "%10s" % [bin], "%-10s" % [bin],
+   "%s %s" % [bin, "x"], "%<x>s" % {x: bin}, "%{x}" % {x: bin},
+   "%c" % [bin], sprintf("%s", bin)].each do |s|
+    assert_equal Encoding::BINARY, s.encoding
+    assert_true s.valid_encoding?
+  end
+  # what an argument is read as is a property of the argument, so precision
+  # cutting the byte above ASCII off the written part moves nothing
+  assert_equal Encoding::BINARY, ("%.1s" % ["a\xABb".force_encoding(Encoding::BINARY)]).encoding
+  # a byte-read format string, with nothing written into it and with an
+  # argument written into it
+  assert_equal Encoding::BINARY, ("ab".force_encoding(Encoding::BINARY) % []).encoding
+  assert_equal Encoding::BINARY, ("%s".force_encoding(Encoding::BINARY) % ["ab"]).encoding
+  # what says nothing about the reading either way: ASCII bytes read the same
+  # under any reading, an Integer is a code point, and inspect builds a string
+  # of its own
+  assert_equal Encoding::UTF_8, ("%s" % ["ab".force_encoding(Encoding::BINARY)]).encoding
+  assert_equal Encoding::UTF_8, ("%c" % [171]).encoding
+  assert_equal Encoding::UTF_8, ("%d" % [171]).encoding
+  assert_equal Encoding::UTF_8, ("%p" % [bin]).encoding
+end
