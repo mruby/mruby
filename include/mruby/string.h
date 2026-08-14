@@ -126,6 +126,8 @@ struct RStringEmbed {
 #endif
 #define RSTR_SET_ASCII_FLAG(s) RSTR_SET_SINGLE_BYTE_FLAG(s)
 #define RSTR_BINARY_P(s) ((s)->flags & MRB_STR_BINARY)
+#define RSTR_SET_BINARY_FLAG(s) ((s)->flags |= MRB_STR_BINARY)
+#define RSTR_UNSET_BINARY_FLAG(s) ((s)->flags &= ~MRB_STR_BINARY)
 /* A copy of a string is byte-indexed exactly when the string it copies is, so
    the flag travels with the bytes rather than being left behind on the
    original. */

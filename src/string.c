@@ -1419,7 +1419,7 @@ mrb_str_plus(mrb_state *mrb, mrb_value a, mrb_value b)
   if ((RSTR_BINARY_P(s) && RSTR_BINARY_P(s2)) ||
       (RSTR_BINARY_P(s) && !str_ascii_p(s)) ||
       (RSTR_BINARY_P(s2) && !str_ascii_p(s2))) {
-    t->flags |= MRB_STR_BINARY;
+    RSTR_SET_BINARY_FLAG(t);
   }
 
   return mrb_obj_value(t);
@@ -1851,7 +1851,7 @@ str_replace_partial(mrb_state *mrb, mrb_value src, mrb_int pos, mrb_int end, mrb
        their reading over, ASCII bytes move nothing */
     struct RString *repp = mrb_str_ptr(rep);
     if (!RSTR_BINARY_P(str) && RSTR_BINARY_P(repp) && !str_ascii_p(repp)) {
-      str->flags |= MRB_STR_BINARY;
+      RSTR_SET_BINARY_FLAG(str);
     }
   }
   RSTR_SET_LEN(str, newlen);
@@ -3638,7 +3638,7 @@ mrb_str_cat_str(mrb_state *mrb, mrb_value str, mrb_value str2)
   mrb_bool binary = !RSTR_BINARY_P(s) && RSTR_BINARY_P(s2) && !str_ascii_p(s2);
   mrb_value ret = mrb_str_cat(mrb, str, RSTRING_PTR(str2), RSTRING_LEN(str2));
   if (binary) {
-    mrb_str_ptr(ret)->flags |= MRB_STR_BINARY;
+    RSTR_SET_BINARY_FLAG(mrb_str_ptr(ret));
   }
   return ret;
 }
@@ -3879,7 +3879,7 @@ sub_replace(mrb_state *mrb, mrb_value self)
   if ((RSTR_BINARY_P(mrb_str_ptr(replace)) && !str_ascii_p(mrb_str_ptr(replace))) ||
       (match_taken && RSTR_BINARY_P(mrb_str_ptr(pat)) && !str_ascii_p(mrb_str_ptr(pat))) ||
       (self_taken && RSTR_BINARY_P(mrb_str_ptr(self)) && !str_ascii_p(mrb_str_ptr(self)))) {
-    mrb_str_ptr(result)->flags |= MRB_STR_BINARY;
+    RSTR_SET_BINARY_FLAG(mrb_str_ptr(result));
   }
   return result;
 }

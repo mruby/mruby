@@ -29,7 +29,7 @@ int_chr_binary(mrb_state *mrb, mrb_value num)
     RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
   }
   else {
-    mrb_str_ptr(str)->flags |= MRB_STR_BINARY;
+    RSTR_SET_BINARY_FLAG(mrb_str_ptr(str));
   }
   return str;
 }
@@ -125,7 +125,7 @@ str_mark_spliced_bytes(mrb_value recv, mrb_value src)
   const char *p = RSTR_PTR(s);
   const char *e = p + RSTR_LEN(s);
   while (p < e && !(*p & 0x80)) p++;
-  if (p < e) r->flags |= MRB_STR_BINARY;
+  if (p < e) RSTR_SET_BINARY_FLAG(r);
 }
 
 static void
@@ -1522,7 +1522,7 @@ static mrb_value
 str_b(mrb_state *mrb, mrb_value self)
 {
   mrb_value str = mrb_str_dup(mrb, self);
-  mrb_str_ptr(str)->flags |= MRB_STR_BINARY;
+  RSTR_SET_BINARY_FLAG(mrb_str_ptr(str));
   return str;
 }
 
@@ -1914,7 +1914,7 @@ str_rjust_core(mrb_state *mrb, mrb_value self)
   /* the padded string is the receiver's bytes in wider clothes, so it is
      read the way the receiver was, ASCII bytes and all */
   if (RSTR_BINARY_P(mrb_str_ptr(self))) {
-    mrb_str_ptr(result)->flags |= MRB_STR_BINARY;
+    RSTR_SET_BINARY_FLAG(mrb_str_ptr(result));
   }
   return result;
 }
@@ -1988,7 +1988,7 @@ str_center_core(mrb_state *mrb, mrb_value self)
   /* the padded string is the receiver's bytes in wider clothes, so it is
      read the way the receiver was, ASCII bytes and all */
   if (RSTR_BINARY_P(mrb_str_ptr(self))) {
-    mrb_str_ptr(result)->flags |= MRB_STR_BINARY;
+    RSTR_SET_BINARY_FLAG(mrb_str_ptr(result));
   }
   return result;
 }
