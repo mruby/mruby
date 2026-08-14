@@ -728,7 +728,7 @@ mrb_str_char_to_byte(mrb_state *mrb, mrb_value str, mrb_int off, mrb_int idx)
 {
   (void)mrb;
   struct RString *s = mrb_str_ptr(str);
-  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_7BIT || RSTR_BINARY_P(s)) {
+  if (RSTR_SINGLE_BYTE_P(s)) {
     return idx;
   }
 
@@ -769,7 +769,7 @@ mrb_str_byte_to_char(mrb_state *mrb, mrb_value str, mrb_int bi)
   (void)mrb;
   struct RString *s = mrb_str_ptr(str);
   if (bi < 0 || RSTR_LEN(s) < bi) return -1;
-  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_7BIT || RSTR_BINARY_P(s)) {
+  if (RSTR_SINGLE_BYTE_P(s)) {
     return bi;
   }
 
@@ -2125,8 +2125,7 @@ mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
        a character of its own, and cutting there would leave a string that is
        not UTF-8: "あ".chomp("\x82") is the whole of the last byte of a
        three-byte character. CRuby reads that as no match. */
-    if (!RSTR_BINARY_P(s) && RSTR_CODERANGE(s) != MRB_STR_CODERANGE_7BIT &&
-        mrb_utf8_char_head(p, pp, p + len) != pp) {
+    if (!RSTR_SINGLE_BYTE_P(s) && mrb_utf8_char_head(p, pp, p + len) != pp) {
       return mrb_nil_value();
     }
 #endif
@@ -2437,7 +2436,7 @@ mrb_str_check_byte_pos(mrb_state *mrb, mrb_value str, mrb_int pos)
 {
 #ifdef MRB_UTF8_STRING
   struct RString *s = mrb_str_ptr(str);
-  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_7BIT || RSTR_BINARY_P(s)) return;
+  if (RSTR_SINGLE_BYTE_P(s)) return;
 
   const char *b = RSTR_PTR(s);
   const char *p = b + pos;
@@ -2791,7 +2790,7 @@ static mrb_value
 mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
 {
   struct RString *s = mrb_str_ptr(str);
-  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_7BIT || RSTR_BINARY_P(s)) {
+  if (RSTR_SINGLE_BYTE_P(s)) {
     return mrb_str_byterindex_m(mrb, str);
   }
 

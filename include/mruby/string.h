@@ -180,6 +180,13 @@ struct RStringEmbed {
   ((s)->flags = ((s)->flags & ~MRB_STR_ENCODING_MASK) | \
                 (((e) & ((1 << MRB_STR_ENCODING_BITS) - 1)) << MRB_STR_ENCODING_SHIFT))
 #define RSTR_BINARY_P(s) (RSTR_ENCODING(s) == MRB_STR_ENCODING_BINARY)
+/* Whether a character index into this string is already a byte index: every
+   byte of it stands for a character of its own. That is so where the bytes are
+   nothing but ASCII, and so where they are read as bytes to begin with. The
+   two arrive at it from different sides, which is why this is derived from
+   what the string carries rather than carried alongside it. */
+#define RSTR_SINGLE_BYTE_P(s) \
+  (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_7BIT || RSTR_BINARY_P(s))
 /* A copy of a string is read the way the string it copies is, so the encoding
    travels with the bytes rather than being left behind on the original. */
 #define RSTR_ENC_COPY(dst, src) RSTR_ENCODING_SET(dst, RSTR_ENCODING(src))

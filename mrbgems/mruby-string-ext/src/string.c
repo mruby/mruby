@@ -1033,7 +1033,7 @@ str_ord(mrb_state* mrb, mrb_value str)
   if (p == e) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "empty string");
   }
-  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_7BIT || RSTR_BINARY_P(s)) {
+  if (RSTR_SINGLE_BYTE_P(s)) {
     c = p[0];
   }
   else {
@@ -1123,7 +1123,7 @@ str_scrub_core(mrb_state *mrb, mrb_value self)
   }
 
   struct RString *s = mrb_str_ptr(self);
-  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_7BIT || RSTR_BINARY_P(s)) {
+  if (RSTR_SINGLE_BYTE_P(s)) {
     return mrb_str_dup(mrb, self);
   }
 
@@ -1166,7 +1166,7 @@ str_scrub_chunks(mrb_state *mrb, mrb_value self)
 {
   mrb_value ary = mrb_ary_new(mrb);
   struct RString *s = mrb_str_ptr(self);
-  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_7BIT || RSTR_BINARY_P(s)) {
+  if (RSTR_SINGLE_BYTE_P(s)) {
     mrb_ary_push(mrb, ary, mrb_str_dup(mrb, self));
     return ary;
   }
@@ -1201,7 +1201,7 @@ str_codepoints(mrb_state *mrb, mrb_value str)
 
   mrb->c->ci->mid = 0;
   mrb_value result = mrb_ary_new(mrb);
-  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_7BIT || RSTR_BINARY_P(s)) {
+  if (RSTR_SINGLE_BYTE_P(s)) {
     while (p < e) {
       mrb_ary_push(mrb, result, mrb_int_value(mrb, (mrb_int)*p));
       p++;
@@ -1799,7 +1799,7 @@ str_chars_ary(mrb_state *mrb, mrb_value self)
   int ai = mrb_gc_arena_save(mrb);
 
 #ifdef MRB_UTF8_STRING
-  if (RSTR_CODERANGE(s) != MRB_STR_CODERANGE_7BIT && !RSTR_BINARY_P(s)) {
+  if (!RSTR_SINGLE_BYTE_P(s)) {
     while (p < e) {
       mrb_int char_len = mrb_utf8len(p, e);
       mrb_ary_push(mrb, result, mrb_str_new(mrb, p, char_len));
