@@ -1513,7 +1513,7 @@ str_ascii_only_p(mrb_state *mrb, mrb_value str)
     if (*p & 0x80) return mrb_false_value();
     p++;
   }
-  mrb_str_ptr(str)->flags |= MRB_STR_SINGLE_BYTE;
+  RSTR_SET_ASCII_FLAG(s);
   return mrb_true_value();
 }
 
