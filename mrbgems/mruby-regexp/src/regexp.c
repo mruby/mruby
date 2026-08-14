@@ -284,6 +284,32 @@ regexp_check_encoding(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
+/*
+ * Regexp.__check_byte_pos(str, pos)
+ *
+ * Internal: `mrb_str_check_byte_pos()`, for the byte searches this gem takes
+ * over. `String#byteindex` and `String#byterindex` reach the C methods that
+ * ask this for every argument form but a Regexp, and the answer a search gives
+ * may not turn on which of the two it was reached through.
+ */
+static mrb_value
+regexp_check_byte_pos(mrb_state *mrb, mrb_value self)
+{
+  (void)self;
+  mrb_value str;
+  mrb_int pos;
+  mrb_get_args(mrb, "Si", &str, &pos);
+  /* The mrblib callers read the position against the byte length and answer
+     both ends themselves before asking this, so one outside the subject
+     reaches here only from a direct call. There is no boundary to ask about
+     at a position the subject does not have, and mrb_str_check_byte_pos()
+     would read behind RSTRING_PTR(str) looking for one. A backstop, as
+     check_regexp_arg() below is for a pattern. */
+  if (pos < 0 || pos > RSTRING_LEN(str)) return mrb_nil_value();
+  mrb_str_check_byte_pos(mrb, str, pos);
+  return mrb_nil_value();
+}
+
 /* Publish `obj` and the thirteen names derived from its offsets, the
    counterpart of clear_match_globals(). Kept apart from create_matchdata() so
    that an existing MatchData can be republished without rebuilding it. */
@@ -1449,6 +1475,7 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, re, "__binary_string?", regexp_binary_string_p, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, re, "__check_encoding", regexp_check_encoding, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, re, "__check_pattern", regexp_check_pattern, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, re, "__check_byte_pos", regexp_check_byte_pos, MRB_ARGS_REQ(2));
   mrb_define_class_method(mrb, re, "__search", regexp_s_search, MRB_ARGS_ARG(2, 2));
   mrb_define_class_method(mrb, re, "__byte_search", regexp_s_byte_search, MRB_ARGS_ARG(2, 3));
   mrb_define_class_method(mrb, re, "__search_p", regexp_s_search_p, MRB_ARGS_ARG(2, 1));

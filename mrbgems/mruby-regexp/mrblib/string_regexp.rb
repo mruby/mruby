@@ -637,11 +637,13 @@ class String
     end
     # `__byte_search` takes the position as given and does not range check
     # it, where `Regexp.__search` answers nil for one outside the subject.
-    # Both ends are a miss here, as they are for `mrb_str_byteindex_m()`.  An
-    # offset that lands inside a character is not an error: the C method does
-    # not check for one either, and on a build without MRB_UTF8_STRING there
-    # is nothing to check.
+    # Both ends are a miss here, as they are for `mrb_str_byteindex_m()`.
     return Regexp.__search(args[0], nil) if pos < 0 || pos > len
+    # An offset that lands inside a character names no position the subject
+    # has, and the C method refuses one.  It is asked after the range test,
+    # where the C method asks it too, so an offset outside the subject stays a
+    # miss rather than becoming an error.
+    Regexp.__check_byte_pos(self, pos)
     md = Regexp.__byte_search(args[0], self, pos)
     md && md.__byte_begin(0)
   end
@@ -664,6 +666,9 @@ class String
         pos = len
       end
     end
+    # As in `byteindex` above, and after the same clamp: a position past the
+    # end of the subject has already been read as its end, which is a boundary.
+    Regexp.__check_byte_pos(self, pos)
     md = __regexp_rsearch(args[0], pos)
     md && md.__byte_begin(0)
   end
