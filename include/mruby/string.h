@@ -47,33 +47,51 @@ struct RStringEmbed {
 #define MRB_STR_EMBED     8
 #define MRB_STR_TYPE_MASK 15
 
-#define MRB_STR_EMBED_LEN_SHIFT 6
+/* The four fields the flags word carries, in the order they sit in it:
+
+     bit 0-3    the type, spelled by the MRB_STR_* words above
+     bit 4-8    the embedded length
+     bit 9-10   the coderange
+     bit 11-12  the encoding index
+     bit 13-19  free
+
+   The order is the one that leaves what is free in a single run rather than in
+   pieces, and puts the field likeliest to widen at the top of what is used. A
+   field that widens from the top takes the free bits above it, which is a
+   change to its own MRB_STR_*_BITS and nothing else; a field that widens
+   anywhere else pushes every field above it along. Of the two that can widen
+   it is the encoding index that is expected to first, since a build carrying
+   more than the four encodings two bits name is what this field is here to
+   allow. The embedded length is the other, and only where sizeof(void*) grows
+   to 16: RSTRING_EMBED_LEN_MAX is 11 on 32-bit and 27 on 64-bit, both of which
+   five bits hold. */
+#define MRB_STR_EMBED_LEN_SHIFT 4
 #define MRB_STR_EMBED_LEN_BITS 5
 #define MRB_STR_EMBED_LEN_MASK (((1 << MRB_STR_EMBED_LEN_BITS) - 1) << MRB_STR_EMBED_LEN_SHIFT)
 
 /* Where in the flags word the coderange sits. Its four answers are exclusive,
-   so two bits spell every one of them and spell nothing else. They sit in
-   bits 4-5 because a pair needs two bits in a row and that is the lowest pair
-   the word has free; bits 6..10 above them are the embedded length. Moving
-   them to where the layout wants them is for whenever the word is laid out
-   afresh. */
-#define MRB_STR_CODERANGE_SHIFT 4
+   so two bits spell every one of them and spell nothing else. */
+#define MRB_STR_CODERANGE_SHIFT 9
 #define MRB_STR_CODERANGE_BITS 2
 #define MRB_STR_CODERANGE_MASK (((1 << MRB_STR_CODERANGE_BITS) - 1) << MRB_STR_CODERANGE_SHIFT)
 
 /* Where in the flags word the encoding index sits. Two bits name four
    encodings, which is more than the two a build carries now; widening them is
-   for whenever a third is carried. They sit above the flags rather than among
-   them, in the pair the coderange left free below them; moving them down is
-   for whenever the word is laid out afresh. */
-#define MRB_STR_ENCODING_SHIFT 13
+   for whenever a third is carried. */
+#define MRB_STR_ENCODING_SHIFT 11
 #define MRB_STR_ENCODING_BITS 2
 #define MRB_STR_ENCODING_MASK (((1 << MRB_STR_ENCODING_BITS) - 1) << MRB_STR_ENCODING_SHIFT)
 
 #define RSTR_EMBED_P(s) ((s)->flags & MRB_STR_EMBED)
 #define RSTR_SET_EMBED_FLAG(s) ((s)->flags |= MRB_STR_EMBED)
+/* The length is shifted in without being masked to the field's width, unlike
+   the coderange and the encoding index, and that is what a length wants: it is
+   read at run time, so a mask is an instruction on every write rather than
+   something a constant folds away. What the field needs of it is said here
+   instead, the way ARY_SET_LEN says it in mruby/array.h. */
 #define RSTR_SET_EMBED_LEN(s, n) do {\
   size_t tmp_n = (n);\
+  mrb_assert(tmp_n <= (size_t)RSTRING_EMBED_LEN_MAX);\
   (s)->flags &= ~MRB_STR_EMBED_LEN_MASK;\
   (s)->flags |= (tmp_n) << MRB_STR_EMBED_LEN_SHIFT;\
 } while (0)
@@ -116,10 +134,11 @@ struct RStringEmbed {
 
    An answer is masked to the field's width on the way in, as an encoding index
    is, so a fifth one lands wrong rather than reaching the bits beside it. Here
-   those bits are the embedded length rather than free ones, so an unmasked
-   write would not merely be a wrong answer: it would lengthen the string.
-   What is written is one of the four either way, spelled outright or read back
-   out of another string's field, so nothing is left of this at -O3. */
+   those bits are the encoding index rather than free ones, so an unmasked
+   write would not merely be a wrong answer: it would have the bytes read as
+   another encoding. What is written is one of the four either way, spelled
+   outright or read back out of another string's field, so nothing is left of
+   this at -O3. */
 # define RSTR_CODERANGE(s) \
   (((s)->flags & MRB_STR_CODERANGE_MASK) >> MRB_STR_CODERANGE_SHIFT)
 # define RSTR_CODERANGE_SET(s, cr) \
@@ -168,9 +187,17 @@ struct RStringEmbed {
    way and stands exactly where the source stands, so the two answers travel
    together. Splitting them apart would let a copy keep one and drop the
    other, which is the way flags went missing when there was a macro per
-   flag. */
+   flag.
+
+   The two fields sit side by side, so one mask spells both and the pair
+   crosses in a single read and a single write rather than one of each per
+   field. A build that indexes by byte keeps no coderange and writes those
+   bits nowhere, so what the mask carries across there is the zeros they
+   hold. */
+#define MRB_STR_ENC_CR_MASK (MRB_STR_ENCODING_MASK|MRB_STR_CODERANGE_MASK)
 #define RSTR_ENC_CR_COPY(dst, src) \
-  (RSTR_ENC_COPY(dst, src), RSTR_CODERANGE_SET(dst, RSTR_CODERANGE(src)))
+  ((dst)->flags = ((dst)->flags & ~MRB_STR_ENC_CR_MASK) | \
+                  ((src)->flags & MRB_STR_ENC_CR_MASK))
 /* A subrange holds bytes of the source, so it is read the same way, but a cut
    can leave a character in pieces and can also cut away the piece that spelled
    none: it inherits neither soundness nor brokenness. Nothing but ASCII is
