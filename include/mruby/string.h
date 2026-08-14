@@ -56,6 +56,7 @@ struct RStringEmbed {
 #define MRB_STR_STATE_MASK 48
 /* bits 6..10 are the embedded length, so 11 is the first one free */
 #define MRB_STR_VALID_ENC 2048
+#define MRB_STR_BROKEN_ENC 4096
 
 #define RSTR_EMBED_P(s) ((s)->flags & MRB_STR_EMBED)
 #define RSTR_SET_EMBED_FLAG(s) ((s)->flags |= MRB_STR_EMBED)
@@ -100,6 +101,15 @@ struct RStringEmbed {
 # define RSTR_UNSET_VALID_ENC_FLAG(s) ((s)->flags &= ~MRB_STR_VALID_ENC)
 # define RSTR_COPY_VALID_ENC_FLAG(dst, src) \
   ((dst)->flags = ((dst)->flags & ~MRB_STR_VALID_ENC) | RSTR_VALID_ENC_P(src))
+/* The other answer the same walk can come back with, kept so that a string
+   already read as broken is not read again on every later question. It is
+   forgotten wherever MRB_STR_VALID_ENC is, since a write to the bytes unmakes
+   either answer, and it travels only where the whole of the bytes travels. */
+# define RSTR_BROKEN_ENC_P(s) ((s)->flags & MRB_STR_BROKEN_ENC)
+# define RSTR_SET_BROKEN_ENC_FLAG(s) ((s)->flags |= MRB_STR_BROKEN_ENC)
+# define RSTR_UNSET_BROKEN_ENC_FLAG(s) ((s)->flags &= ~MRB_STR_BROKEN_ENC)
+# define RSTR_COPY_BROKEN_ENC_FLAG(dst, src) \
+  ((dst)->flags = ((dst)->flags & ~MRB_STR_BROKEN_ENC) | RSTR_BROKEN_ENC_P(src))
 #else
 # define RSTR_SINGLE_BYTE_P(s) TRUE
 # define RSTR_SET_SINGLE_BYTE_FLAG(s) (void)0
@@ -110,6 +120,10 @@ struct RStringEmbed {
 # define RSTR_SET_VALID_ENC_FLAG(s) (void)0
 # define RSTR_UNSET_VALID_ENC_FLAG(s) (void)0
 # define RSTR_COPY_VALID_ENC_FLAG(dst, src) (void)0
+# define RSTR_BROKEN_ENC_P(s) FALSE
+# define RSTR_SET_BROKEN_ENC_FLAG(s) (void)0
+# define RSTR_UNSET_BROKEN_ENC_FLAG(s) (void)0
+# define RSTR_COPY_BROKEN_ENC_FLAG(dst, src) (void)0
 #endif
 #define RSTR_SET_ASCII_FLAG(s) RSTR_SET_SINGLE_BYTE_FLAG(s)
 #define RSTR_BINARY_P(s) ((s)->flags & MRB_STR_BINARY)
