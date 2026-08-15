@@ -66,7 +66,8 @@ module Unicode
       file = File.join(@dir, name)
       File.exist?(file) or
         abort "#{file} not found. The Unicode Character Database is not in " \
-              "the repository; download the files from #{URL_BASE}/"
+              "the repository; `rake unicode:download` fetches it from " \
+              "#{URL_BASE}/"
       file
     end
 
@@ -85,7 +86,8 @@ module Unicode
     #
     # What this cannot say is that the bump itself fetched what Unicode
     # published: it pins the bytes that were fetched, which is what every
-    # regeneration after it has to match.
+    # regeneration after it has to match. `rake unicode:download` prints the
+    # digest of what it got, for a bump to record above.
     def verify_files
       CHECKSUMS.each do |name, want|
         got = Digest::SHA256.file(path(name)).hexdigest

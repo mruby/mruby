@@ -52,6 +52,7 @@ load "#{MRUBY_ROOT}/tasks/benchmark.rake"
 load "#{MRUBY_ROOT}/tasks/doc.rake"
 load "#{MRUBY_ROOT}/tasks/install.rake"
 load "#{MRUBY_ROOT}/tasks/amalgam.rake"
+load "#{MRUBY_ROOT}/tasks/unicode.rake"
 
 ##############################
 # generic build targets, rules
