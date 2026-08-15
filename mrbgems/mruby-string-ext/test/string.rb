@@ -291,6 +291,11 @@ assert('String#casecmp') do
   assert_equal 0, "aBcDeF".casecmp("abcdef")
   assert_equal(-1, "abcdef".casecmp("abcdefg"))
   assert_equal 0, "abcdef".casecmp("ABCDEF")
+  # A byte of 0x80 or above orders above every ASCII one, which is where
+  # `String#<=>` puts it as well.
+  assert_equal 1, "\xC3".casecmp("a")
+  assert_equal 1, ("\xC3" <=> "a")
+  assert_equal(-1, "a".casecmp("\xC3"))
 end
 
 assert('String#count') do
