@@ -3,6 +3,13 @@ MRuby::Gem::Specification.new('mruby-regexp') do |spec|
   spec.authors = 'mruby developers'
   spec.summary = 'Regexp class (built-in NFA engine)'
 
+  # The two directions over core's case table that /i reads are compiled for
+  # this gem and for nothing else, and they sit in the same object as the
+  # mapping every build's `String#downcase` calls, so the linker brings them
+  # along whether or not anything calls them. Saying the gem is here is what
+  # lets core leave them out where it is not.
+  spec.build.defines << 'HAVE_MRUBY_REGEXP_GEM'
+
   spec.add_dependency 'mruby-string-ext', :core => 'mruby-string-ext'
 
   # Enumerator is optional: only String#gsub without a block reaches `to_enum`,

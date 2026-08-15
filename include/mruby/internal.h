@@ -405,8 +405,11 @@ enum mrb_case_kind {
    bytes it took, or 0 for a character that maps to itself. */
 mrb_int mrb_uni_case_map(enum mrb_case_kind kind, uint32_t cp, char *buf);
 
+#ifdef HAVE_MRUBY_REGEXP_GEM
 /* The four below are the foldings /i reads off the same table, in the two
-   directions a pattern needs them. */
+   directions a pattern needs them. A build without mruby-regexp has nothing
+   that reads them, so a caller reaching for one there is a compile error
+   rather than a link one. */
 
 /* Simple case folding: the folded codepoint, or cp itself when it folds to
    nothing else. A codepoint whose folding spells several characters (U+FB00
@@ -430,6 +433,7 @@ void mrb_uni_case_fold_range(uint32_t lo, uint32_t hi,
                              void (*add)(void *, uint32_t, uint32_t), void *user);
 void mrb_uni_case_unfold_range(uint32_t lo, uint32_t hi,
                                void (*add)(void *, uint32_t, uint32_t), void *user);
+#endif  /* HAVE_MRUBY_REGEXP_GEM */
 #endif  /* MRB_UTF8_STRING && !MRB_USE_ASCII_CASE */
 
 /* attr accessor bodies (class.c); the VM compares function pointers against
