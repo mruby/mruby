@@ -54,4 +54,24 @@ namespace :unicode do
       end
     end
   end
+
+  desc 'check the committed Unicode tables against the database'
+  task :verify => UNICODE_FILES do
+    require 'tmpdir'
+    stale = []
+    Dir.mktmpdir do |tmp|
+      UNICODE_GENERATORS.each_value do |script, outdir|
+        sh RbConfig.ruby, "#{MRUBY_ROOT}/#{script}", tmp, UNICODE_DATA_DIR
+        Dir.glob("#{tmp}/*.h").each do |built|
+          committed = "#{MRUBY_ROOT}/#{outdir}/#{File.basename(built)}"
+          stale << committed unless FileUtils.identical?(built, committed)
+        end
+        rm Dir.glob("#{tmp}/*.h")
+      end
+    end
+    stale.each { |path| puts "stale: #{path} is not what the database generates" }
+
+    fail 'the Unicode tables are out of date' unless stale.empty?
+    puts "the Unicode #{Unicode::CaseData::VERSION} tables are up to date"
+  end
 end
