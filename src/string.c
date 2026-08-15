@@ -1258,9 +1258,9 @@ mrb_str_modify_keep_ascii(mrb_state *mrb, struct RString *s)
 {
   mrb_check_frozen(mrb, s);
   str_unshare_buffer(mrb, s);
-  /* Every in-place write reaches here, including the ones that keep the string
-     ASCII, so this is where the walk's answer stops holding. What a string of
-     nothing but ASCII stands at is the caller's to keep. */
+  /* A write that leaves the string holding nothing but ASCII leaves it
+     standing where it stood, and that is the caller's to keep. Anything else
+     the bytes were read as stops holding here. */
   if (RSTR_CODERANGE(s) != MRB_STR_CODERANGE_7BIT) {
     RSTR_CODERANGE_SET(s, MRB_STR_CODERANGE_UNKNOWN);
   }
@@ -1280,6 +1280,30 @@ mrb_str_modify(mrb_state *mrb, struct RString *s)
 {
   mrb_str_modify_keep_ascii(mrb, s);
   RSTR_CODERANGE_SET(s, MRB_STR_CODERANGE_UNKNOWN);
+}
+
+/* mrb_str_modify() for a caller whose write leaves what the bytes read as
+   standing: it puts ASCII where ASCII stood, or it cuts where a character
+   ends. Such a write cannot turn a sound string unsound, so the answer the
+   string came in carrying is still the answer, and the next asker is spared
+   the walk that would arrive at it again.
+
+   Only a string already read as broken has to be asked again, since a write
+   is as likely to have mended it as to have left it broken. A string that
+   the write leaves holding nothing but ASCII keeps saying VALID rather than
+   moving to 7BIT: that is an answer worth less than the truth, not a wrong
+   one, and finding the truth is the walk this is here to skip.
+
+   The promise this asks of its caller cannot be checked here, which is why
+   it is not offered outside the library. */
+static void
+str_modify_keep_cr(mrb_state *mrb, struct RString *s)
+{
+  mrb_check_frozen(mrb, s);
+  str_unshare_buffer(mrb, s);
+  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_BROKEN) {
+    RSTR_CODERANGE_SET(s, MRB_STR_CODERANGE_UNKNOWN);
+  }
 }
 
 /*
@@ -2016,7 +2040,7 @@ mrb_str_capitalize_bang(mrb_state *mrb, mrb_value str)
   struct RString *s = mrb_str_ptr(str);
   mrb_int len = RSTR_LEN(s);
 
-  mrb_str_modify_keep_ascii(mrb, s);
+  str_modify_keep_cr(mrb, s);
   char *p = RSTR_PTR(s);
   char *pend = RSTR_PTR(s) + len;
   if (len == 0 || p == NULL) return mrb_nil_value();
@@ -2069,7 +2093,7 @@ mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
   mrb_int argc = mrb_get_args(mrb, "|S", &rs);
   struct RString *s = mrb_str_ptr(str);
 
-  mrb_str_modify_keep_ascii(mrb, s);
+  str_modify_keep_cr(mrb, s);
   mrb_int len = RSTR_LEN(s);
   if (argc == 0) {
     if (len == 0) return mrb_nil_value();
@@ -2176,7 +2200,7 @@ mrb_str_chop_bang(mrb_state *mrb, mrb_value str)
 {
   struct RString *s = mrb_str_ptr(str);
 
-  mrb_str_modify_keep_ascii(mrb, s);
+  str_modify_keep_cr(mrb, s);
   if (RSTR_LEN(s) > 0) {
     mrb_int len;
 #ifdef MRB_UTF8_STRING
@@ -2248,7 +2272,7 @@ mrb_str_downcase_bang(mrb_state *mrb, mrb_value str)
   mrb_bool modify = FALSE;
   struct RString *s = mrb_str_ptr(str);
 
-  mrb_str_modify_keep_ascii(mrb, s);
+  str_modify_keep_cr(mrb, s);
   p = RSTR_PTR(s);
   pend = RSTR_PTR(s) + RSTR_LEN(s);
   while (p < pend) {
@@ -3427,7 +3451,7 @@ mrb_str_upcase_bang(mrb_state *mrb, mrb_value str)
   char *p, *pend;
   mrb_bool modify = FALSE;
 
-  mrb_str_modify_keep_ascii(mrb, s);
+  str_modify_keep_cr(mrb, s);
   p = RSTRING_PTR(str);
   pend = RSTRING_END(str);
   while (p < pend) {
