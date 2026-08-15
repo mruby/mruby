@@ -334,7 +334,7 @@ Example:
 
 ### `String#swapcase`
 
-Returns a copy of `str` with uppercase alphabetic characters converted to lowercase and lowercase characters converted to uppercase. Effective only in ASCII region.
+Returns a copy of `str` with uppercase alphabetic characters converted to lowercase and lowercase characters converted to uppercase. On a build defining `MRB_UTF8_STRING` every character Unicode gives a case is swapped, and a swap may spell a character as several (`"ß".swapcase` is `"SS"`); otherwise, and for a string read as bytes, only the ASCII region is affected.
 
 ```ruby
 str.swapcase   #=> new_str
@@ -779,7 +779,7 @@ b.delete_suffix!("hel") #=> nil
 
 ### `String#casecmp`
 
-Case-insensitive version of `String#<=>`. Returns -1, 0, or +1. Returns `nil` if `other_str` is not a String.
+Case-insensitive version of `String#<=>`. Returns -1, 0, or +1. Returns `nil` if `other_str` is not a String. Only ASCII case is ignored, whatever the build reads a string as; `casecmp?` is the one that folds Unicode.
 
 ```ruby
 str.casecmp(other_str)   #=> -1, 0, +1 or nil
@@ -808,6 +808,15 @@ Example:
 "aBcDeF".casecmp?("abcdef")    #=> true
 "aBcDeF".casecmp?("abcdeg")    #=> false
 ```
+
+On a build defining `MRB_UTF8_STRING`, folding follows Unicode, and one folding may spell a character as several:
+
+```ruby
+"ä".casecmp?("Ä")     #=> true
+"ß".casecmp?("ss")    #=> true
+```
+
+A string holding bytes that spell no character is refused with `ArgumentError`, since bytes that spell nothing have no folding. One read as bytes folds ASCII alone, having no characters to fold.
 
 ### `String#+@` (Unary Plus)
 
