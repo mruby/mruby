@@ -8,16 +8,6 @@ MRuby::Build.new('full-debug') do |conf|
   conf.gembox 'full-core'
   conf.cc.defines += %w(MRB_GC_STRESS MRB_USE_DEBUG_HOOK)
 
-  # Widen the regexp /i flag from ASCII letters to the 1:1 Unicode case
-  # foldings, which it reads off the case table core already carries. The
-  # option is off by default because of the walks it adds over that table, so
-  # mruby-regexp/test/unicode_case.rb is only compiled into a build that turns
-  # it on, and without one here those walks ship untested. It goes on this
-  # build rather than a job of its own so it costs no runner; the other two
-  # builds in this file keep the default, which is what
-  # mruby-regexp/test/ascii_case.rb needs, so both sides stay covered.
-  conf.cc.defines << 'MRB_UNICODE_CASE'
-
   conf.enable_test
 end
 
@@ -65,6 +55,22 @@ MRuby::Build.new('byte-string') do |conf|
   # above already covers.
   conf.gembox 'full-core'
   conf.gems.delete 'mruby-encoding'
+
+  conf.enable_test
+end
+
+MRuby::Build.new('ascii-case') do |conf|
+  conf.toolchain
+
+  # The one build here that indexes by character and converts case by ASCII.
+  # Both halves of that pair are what it covers: core's ASCII conversion, and
+  # the refusal mruby-regexp answers a pattern with when /i is asked for a
+  # folding the build has no table for. The refusal has no other home, since a
+  # build reading its strings as bytes has no character to refuse, so
+  # mruby-regexp/test/ascii_case.rb skips its assertions there.
+  # Tests only, for the reason byte-string gives above.
+  conf.gembox 'full-core'
+  conf.cc.defines << 'MRB_USE_ASCII_CASE'
 
   conf.enable_test
 end

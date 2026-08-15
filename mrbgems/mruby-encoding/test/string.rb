@@ -2,6 +2,7 @@
 # String(Ext) Test
 
 UTF8STRING = __ENCODING__ == "UTF-8"
+UNICODECASE = "\u00C4".downcase == "\u00E4"
 
 assert('String#valid_encoding? survives what the string goes through') do
   # The answer is remembered on the string, either way it came out, so every
@@ -486,7 +487,7 @@ assert('a byte-read string converted case') do
     assert_equal [195, 132, 66], s.upcase.bytes
     assert_equal [195, 132, 98], s.capitalize.bytes
     assert_equal Encoding::BINARY, s.downcase.encoding
-    assert_equal [195, 164, 98], "\xC3\x84B".downcase.bytes
+    assert_equal [195, 164, 98], "\xC3\x84B".downcase.bytes if UNICODECASE
   end
 end
 

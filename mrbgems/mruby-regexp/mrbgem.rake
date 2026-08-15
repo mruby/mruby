@@ -3,6 +3,13 @@ MRuby::Gem::Specification.new('mruby-regexp') do |spec|
   spec.authors = 'mruby developers'
   spec.summary = 'Regexp class (built-in NFA engine)'
 
+  # The two directions over core's case table that /i reads are compiled for
+  # this gem and for nothing else, and they sit in the same object as the
+  # mapping every build's `String#downcase` calls, so the linker brings them
+  # along whether or not anything calls them. Saying the gem is here is what
+  # lets core leave them out where it is not.
+  spec.build.defines << 'HAVE_MRUBY_REGEXP_GEM'
+
   spec.add_dependency 'mruby-string-ext', :core => 'mruby-string-ext'
 
   # Enumerator is optional: only String#gsub without a block reaches `to_enum`,
@@ -43,10 +50,11 @@ MRuby::Gem::Specification.new('mruby-regexp') do |spec|
   # build command in the block above, so the reset that comes with it drops
   # nothing.
   # The pair below is what `RE_UNICODE_CASE` is defined from in re_internal.h:
-  # the foldings are core's table, which only a build reading characters
-  # carries, so the option alone does not put them within /i's reach.
+  # the foldings are core's table, which only a build reading its strings as
+  # characters carries, and only where it converts their case by Unicode.
   spec.build_settings do
-    if build.has_define?('MRB_UNICODE_CASE') && build.has_define?('MRB_UTF8_STRING')
+    if build.has_define?('MRB_UTF8_STRING') &&
+       !build.has_define?('MRB_USE_ASCII_CASE')
       spec.test_rbfiles -= ["#{spec.dir}/test/ascii_case.rb"]
     else
       spec.test_rbfiles -= ["#{spec.dir}/test/unicode_case.rb"]

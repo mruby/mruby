@@ -1,6 +1,7 @@
-# Only compiled into mrbtest when the build defines MRB_UNICODE_CASE;
-# see the gem's mrbgem.rake. Without the option every assertion here would
-# fail, since /i then folds ASCII letters and nothing else.
+# Only compiled into mrbtest when the build converts case by Unicode, which is
+# where a build reading its strings as characters stands unless it says
+# otherwise; see the gem's mrbgem.rake. Converting by ASCII, every pattern
+# below would be refused instead.
 assert("Regexp - Unicode case folding under /i") do
   # Every source and counterpart here lies above ASCII, so they are characters
   # to fold only where the pattern and the subject are read as characters. A

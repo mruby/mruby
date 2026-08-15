@@ -221,17 +221,28 @@ end
   by the same data rather than converting.
 - A string read as bytes (`String#b`) converts and folds ASCII alone, and one
   holding bytes that spell no character is refused with `ArgumentError`.
+- The regexp `i` flag reads the same data, folding every character Unicode
+  pairs with one other. Without this macro it folds ASCII letters, and a
+  pattern holding a character that needs one of the Unicode foldings raises
+  `RegexpError` rather than answering as if the character had no case.
+- `MRB_USE_ASCII_CASE` narrows the case half back to ASCII, leaving the
+  indexing.
 - If it isn't defined, they only support the US-ASCII encoding.
 
-`MRB_UNICODE_CASE`
+`MRB_USE_ASCII_CASE`
 
-- Widens the regexp `i` flag from ASCII letters to the Unicode case foldings
-  that pair one codepoint with one other, read off the case table
-  `MRB_UTF8_STRING` carries.
-- Without it, `i` folds ASCII alone and a pattern holding a character that
-  needs one of those foldings raises `RegexpError` rather than answering as if
-  the character had no case.
-- Takes `MRB_UTF8_STRING`, there being no table to read otherwise.
+- Narrows case conversion back to ASCII, so `String#downcase`, `#upcase`,
+  `#capitalize`, `#swapcase` and `#casecmp?` answer for `'A'` to `'Z'` and hand
+  every other character back as it stands.
+- Drops the Unicode case table the build would otherwise carry. That is what
+  the option is for: a target counting its bytes buys the UTF-8 indexing of
+  `MRB_UTF8_STRING` without the table beside it.
+- The regexp `i` flag reads that table too, so it narrows with the rest: it
+  folds ASCII letters, and a pattern holding a character that needs one of the
+  Unicode foldings raises `RegexpError` rather than answering as if the
+  character had no case.
+- Nothing to narrow without `MRB_UTF8_STRING`: a build reading its strings as
+  bytes converts ASCII alone whatever this says.
 
 `MRB_STR_LENGTH_MAX`
 

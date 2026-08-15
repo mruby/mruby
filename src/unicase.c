@@ -11,7 +11,7 @@
 #include <string.h>
 #include <mruby.h>
 
-#ifdef MRB_UTF8_STRING
+#if defined(MRB_UTF8_STRING) && !defined(MRB_USE_ASCII_CASE)
 
 #include <mruby/internal.h>
 #include "unicase.h"
@@ -157,7 +157,7 @@ mrb_uni_case_map(enum mrb_case_kind kind, uint32_t cp, char *buf)
   return n < 0 ? 0 : n;
 }
 
-#ifdef MRB_UNICODE_CASE
+#ifdef HAVE_MRUBY_REGEXP_GEM
 
 /* ------------------------------------------------------------- folding
 
@@ -166,7 +166,12 @@ mrb_uni_case_map(enum mrb_case_kind kind, uint32_t cp, char *buf)
    mapping under it for the sources the difference passes over. A source whose
    folding spells several characters (U+FB00 to "ff") is in a multi table and
    in neither set of runs, which is exactly the set simple folding leaves
-   alone. */
+   alone.
+
+   /i is the whole of what asks, so the gem that has one says it is here and
+   the rest of this file goes with it. Nothing else would drop it: the mapping
+   above is in the same object, every build calls that, and the linker takes
+   an object whole. */
 
 /* Whether the folding difference holds a run over any of [lo, hi]. A caller
    walking the lowercase runs asks this to know whether the difference has
@@ -358,6 +363,6 @@ mrb_uni_case_unfold_range(uint32_t lo, uint32_t hi,
   unfold_range_of(&case_tables[MRB_CASE_KIND_LOWER], TRUE, lo, hi, add, user);
 }
 
-#endif  /* MRB_UNICODE_CASE */
+#endif  /* HAVE_MRUBY_REGEXP_GEM */
 
-#endif  /* MRB_UTF8_STRING */
+#endif  /* MRB_UTF8_STRING && !MRB_USE_ASCII_CASE */

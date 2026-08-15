@@ -184,11 +184,12 @@ mrb_bool mrb_re_is_word_char(uint32_t c);
 #define RE_FOLD_LONG_S 0x017F  /* to 's' */
 #define RE_FOLD_KELVIN 0x212A  /* to 'k' */
 
-/* The Unicode foldings the option adds are core's table, which only a build
-   reading its strings as characters carries. The option therefore answers
-   where the build reads characters and nowhere else, a pattern read as bytes
-   having no character to fold in the first place. */
-#if defined(MRB_UNICODE_CASE) && defined(MRB_UTF8_STRING)
+/* The Unicode foldings /i reads are core's table, which only a build reading
+   its strings as characters and converting their case by Unicode carries. /i
+   therefore folds the way that build's own case conversion does and no other
+   way, a pattern read as bytes having no character to fold in the first
+   place. */
+#if defined(MRB_UTF8_STRING) && !defined(MRB_USE_ASCII_CASE)
 # define RE_UNICODE_CASE
 #endif
 

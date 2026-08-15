@@ -2066,7 +2066,7 @@ mrb_str_aset_m(mrb_state *mrb, mrb_value str)
   return replace;
 }
 
-#ifdef MRB_UTF8_STRING
+#if defined(MRB_UTF8_STRING) && !defined(MRB_USE_ASCII_CASE)
 
 /* What the walk below makes of an ASCII character. Each method keeps its own
    loop over a string that holds nothing but ASCII, so this is reached only for
@@ -2183,6 +2183,22 @@ mrb_str_case_convert_unicode(mrb_state *mrb, mrb_value str, enum mrb_case_mode m
   str_modify_keep_cr(mrb, s);
 
   return str_case_convert_utf8(mrb, str, mode) ? 1 : 0;
+}
+
+#elif defined(MRB_UTF8_STRING)
+
+/* The walk above is what a build asking for ASCII case gives up, and this is
+   where it says so: every caller of it converts the ASCII of a string in a
+   loop of its own and reaches for the walk only where the string holds more.
+   Answering that there was nothing to walk sends each of them back to that
+   loop, which is the conversion such a build asked for. */
+int
+mrb_str_case_convert_unicode(mrb_state *mrb, mrb_value str, enum mrb_case_mode mode)
+{
+  (void)mrb;
+  (void)str;
+  (void)mode;
+  return -1;
 }
 
 #endif  /* MRB_UTF8_STRING */

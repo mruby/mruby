@@ -2,6 +2,7 @@
 # String(Ext) Test
 
 UTF8STRING = __ENCODING__ == "UTF-8"
+UNICODECASE = "\u00C4".downcase == "\u00E4"
 
 def assert_upto(exp, receiver, *args)
   act = []
@@ -148,7 +149,7 @@ assert('String#swapcase!') do
 end
 
 assert('String#swapcase - Unicode') do
-  skip unless UTF8STRING
+  skip unless UNICODECASE
   assert_equal "äÖ", "Äö".swapcase
   # A character with a lower case swaps down, one without swaps up, so a
   # mapping that spells more than one character comes back here too.
@@ -323,7 +324,7 @@ assert('String#casecmp?') do
 end
 
 assert('String#casecmp? - Unicode') do
-  skip unless UTF8STRING
+  skip unless UNICODECASE
   # `casecmp` orders strings by ASCII case alone, which is CRuby's answer
   # there too; `casecmp?` folds instead, so it sees past the case.
   assert_equal 1, "ä".casecmp("Ä")

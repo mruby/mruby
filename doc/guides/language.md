@@ -421,6 +421,7 @@ Key compile-time macros that affect language behavior:
 | `MRB_NO_FLOAT`       | Remove all float support           |
 | `MRB_USE_FLOAT32`    | Use 32-bit float instead of double |
 | `MRB_UTF8_STRING`    | UTF-8 strings and Unicode case     |
+| `MRB_USE_ASCII_CASE` | Keep UTF-8, convert case by ASCII  |
 | `MRB_INT32`          | Force 32-bit integer               |
 | `MRB_INT64`          | Force 64-bit integer               |
 | `MRB_STR_LENGTH_MAX` | Max string length (default 1MB)    |
