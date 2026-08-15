@@ -350,6 +350,24 @@ assert('String#downcase - Unicode') do
   assert_nil '日本'.downcase!
 end if UTF8STRING
 
+assert('String case conversion - bytes that spell no character') do
+  # A run of bytes that spells no character has no case, and answering as
+  # though it were the byte it starts with would hand back a string nobody
+  # asked for, so the conversion refuses it.
+  broken = "\xC3ABC"
+  assert_raise(ArgumentError) { broken.downcase }
+  assert_raise(ArgumentError) { broken.upcase }
+  assert_raise(ArgumentError) { broken.capitalize }
+  assert_raise_with_message(ArgumentError, 'input string invalid') { broken.downcase }
+  # The receiver of a refused conversion stands as it was.
+  assert_raise(ArgumentError) { broken.downcase! }
+  assert_equal [195, 65, 66, 67], broken.bytes
+  # ASCII ahead of the broken run does not save it, and neither does a
+  # conversion that would have changed nothing.
+  assert_raise(ArgumentError) { "abc\x80".downcase }
+  assert_raise(ArgumentError) { "\x80".downcase }
+end if UTF8STRING
+
 assert('String#upcase - Unicode') do
   assert_equal 'ÄÖÜ', 'äöü'.upcase
   assert_equal 'ΣΟΦΟΣ', 'σοφος'.upcase

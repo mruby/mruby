@@ -346,6 +346,11 @@ assert('String#casecmp? - Unicode') do
   assert_false "İ".casecmp?("i")
   assert_false "日本".casecmp?("日")
   assert_true "日本".casecmp?("日本")
+  # Bytes that spell no character have no folding, so the comparison refuses
+  # them; `casecmp` orders the same bytes without asking what they spell.
+  assert_raise(ArgumentError) { "\xC3ABC".casecmp?("a") }
+  assert_equal 0, "\xC3ABC".casecmp("\xC3abc")
+  assert_raise(ArgumentError) { "\xC3ABC".swapcase }
 end
 
 assert('String#count') do

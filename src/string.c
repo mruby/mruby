@@ -2217,9 +2217,14 @@ str_case_convert_utf8(mrb_state *mrb, mrb_value str, enum mrb_case_mode mode)
       n = 1;
     }
     else {
+      /* A run of bytes that spells no character has no case to convert, and
+         answering as though it were the byte it starts with would hand back a
+         string neither its own reading nor the caller asked for. */
+      if (clen == 1) {
+        mrb_raise(mrb, E_ARGUMENT_ERROR, "input string invalid");
+      }
       n = case_map(case_kind_of(mode, first), cp, buf);
-      /* A run of bytes that spells no character, and one that spells a
-         character with no mapping, both stand as they are. */
+      /* A character with no mapping stands as it is. */
       if (n == 0) {
         memcpy(buf, src, (size_t)clen);
         n = clen;
@@ -2237,15 +2242,12 @@ str_case_convert_utf8(mrb_state *mrb, mrb_value str, enum mrb_case_mode mode)
 
   if (!modify) return FALSE;
 
-  /* Nothing but ASCII is the stronger answer and is true of the bytes just
-     written whatever the source was. Otherwise the mapping preserves what the
-     source was: every mapping spells a character, so a sound string stays
-     sound, and a broken one keeps the run of bytes that broke it. */
+  /* Every byte of the source spelled a character, since the walk refuses one
+     that does not, and every mapping spells characters, so what was written
+     is sound. Nothing but ASCII is the stronger answer where it holds. */
   struct RString *o = mrb_str_ptr(out);
   RSTR_CODERANGE_SET(o, ascii_only ? MRB_STR_CODERANGE_7BIT
-                                   : RSTR_CODERANGE(s) == MRB_STR_CODERANGE_VALID
-                                     ? MRB_STR_CODERANGE_VALID
-                                     : MRB_STR_CODERANGE_UNKNOWN);
+                                   : MRB_STR_CODERANGE_VALID);
   str_replace(mrb, s, o);
   return TRUE;
 }
