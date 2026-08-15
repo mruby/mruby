@@ -188,7 +188,7 @@ mrb_bool mrb_re_is_word_char(uint32_t c);
    reading its strings as characters carries. The option therefore answers
    where the build reads characters and nowhere else, a pattern read as bytes
    having no character to fold in the first place. */
-#if defined(MRB_REGEXP_UNICODE_CASE) && defined(MRB_UTF8_STRING)
+#if defined(MRB_UNICODE_CASE) && defined(MRB_UTF8_STRING)
 # define RE_UNICODE_CASE
 #endif
 

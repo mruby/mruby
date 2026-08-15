@@ -157,7 +157,7 @@ mrb_uni_case_map(enum mrb_case_kind kind, uint32_t cp, char *buf)
   return n < 0 ? 0 : n;
 }
 
-#ifdef MRB_REGEXP_UNICODE_CASE
+#ifdef MRB_UNICODE_CASE
 
 /* ------------------------------------------------------------- folding
 
@@ -358,6 +358,6 @@ mrb_uni_case_unfold_range(uint32_t lo, uint32_t hi,
   unfold_range_of(&case_tables[MRB_CASE_KIND_LOWER], TRUE, lo, hi, add, user);
 }
 
-#endif  /* MRB_REGEXP_UNICODE_CASE */
+#endif  /* MRB_UNICODE_CASE */
 
 #endif  /* MRB_UTF8_STRING */

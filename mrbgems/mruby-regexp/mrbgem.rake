@@ -46,7 +46,7 @@ MRuby::Gem::Specification.new('mruby-regexp') do |spec|
   # the foldings are core's table, which only a build reading characters
   # carries, so the option alone does not put them within /i's reach.
   spec.build_settings do
-    if build.has_define?('MRB_REGEXP_UNICODE_CASE') && build.has_define?('MRB_UTF8_STRING')
+    if build.has_define?('MRB_UNICODE_CASE') && build.has_define?('MRB_UTF8_STRING')
       spec.test_rbfiles -= ["#{spec.dir}/test/ascii_case.rb"]
     else
       spec.test_rbfiles -= ["#{spec.dir}/test/unicode_case.rb"]

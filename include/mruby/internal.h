@@ -403,8 +403,8 @@ enum mrb_case_kind {
    bytes it took, or 0 for a character that maps to itself. */
 mrb_int mrb_uni_case_map(enum mrb_case_kind kind, uint32_t cp, char *buf);
 
-#ifdef MRB_REGEXP_UNICODE_CASE
-/* The foldings below are what /i reads under MRB_REGEXP_UNICODE_CASE, and the walks
+#ifdef MRB_UNICODE_CASE
+/* The foldings below are what /i reads under MRB_UNICODE_CASE, and the walks
    over the table cost more than the table itself, so a build that does not
    ask for them does not carry them. */
 
@@ -430,7 +430,7 @@ void mrb_uni_case_fold_range(uint32_t lo, uint32_t hi,
                              void (*add)(void *, uint32_t, uint32_t), void *user);
 void mrb_uni_case_unfold_range(uint32_t lo, uint32_t hi,
                                void (*add)(void *, uint32_t, uint32_t), void *user);
-#endif  /* MRB_REGEXP_UNICODE_CASE */
+#endif  /* MRB_UNICODE_CASE */
 #endif
 
 /* attr accessor bodies (class.c); the VM compares function pointers against

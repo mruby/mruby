@@ -16,7 +16,7 @@ MRuby::Build.new('full-debug') do |conf|
   # build rather than a job of its own so it costs no runner; the other two
   # builds in this file keep the default, which is what
   # mruby-regexp/test/ascii_case.rb needs, so both sides stay covered.
-  conf.cc.defines << 'MRB_REGEXP_UNICODE_CASE'
+  conf.cc.defines << 'MRB_UNICODE_CASE'
 
   conf.enable_test
 end

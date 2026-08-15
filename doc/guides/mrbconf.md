@@ -223,6 +223,16 @@ end
   holding bytes that spell no character is refused with `ArgumentError`.
 - If it isn't defined, they only support the US-ASCII encoding.
 
+`MRB_UNICODE_CASE`
+
+- Widens the regexp `i` flag from ASCII letters to the Unicode case foldings
+  that pair one codepoint with one other, read off the case table
+  `MRB_UTF8_STRING` carries.
+- Without it, `i` folds ASCII alone and a pattern holding a character that
+  needs one of those foldings raises `RegexpError` rather than answering as if
+  the character had no case.
+- Takes `MRB_UTF8_STRING`, there being no table to read otherwise.
+
 `MRB_STR_LENGTH_MAX`
 
 - The maximum length of strings (default 1048576).

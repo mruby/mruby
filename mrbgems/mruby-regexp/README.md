@@ -54,7 +54,7 @@ its own, and the last one can still open a range: `/[\u{61 62}-z]/` is
 ### Flags
 
 - `i` (`Regexp::IGNORECASE`) case-insensitive matching (ASCII, or Unicode
-  with `MRB_REGEXP_UNICODE_CASE`)
+  with `MRB_UNICODE_CASE`)
 - `m` (`Regexp::MULTILINE`) `.` matches newline; `^`/`$` match at line boundaries
 - `x` (`Regexp::EXTENDED`) free-spacing mode; unescaped whitespace ignored, `#` starts comments
 
@@ -181,7 +181,7 @@ pattern analysis.
   whose ends are a byte and a character (`[\x80-µ]`) names neither and raises
   `RegexpError`.
 - **ASCII case folding by default**: The `i` flag handles ASCII letters
-  only unless the build defines `MRB_REGEXP_UNICODE_CASE`, which reads the Unicode
+  only unless the build defines `MRB_UNICODE_CASE`, which reads the Unicode
   foldings that pair one codepoint with one other off core's case table.
   Without the option, a pattern holding a character that needs one of those
   raises `RegexpError` rather than answering as if the character had no case;
@@ -237,10 +237,10 @@ there.
 ```
 
 Case folding beyond ASCII is opt-in, since it carries the walks over core's
-case table. Define `MRB_REGEXP_UNICODE_CASE` to enable it:
+case table. Define `MRB_UNICODE_CASE` to enable it:
 
 ```ruby
-conf.cc.defines << 'MRB_REGEXP_UNICODE_CASE'
+conf.cc.defines << 'MRB_UNICODE_CASE'
 ```
 
 The table itself is core's, carried by any build that defines
@@ -256,7 +256,7 @@ With the option, `/Ā/i` matches `"ā"`, `/Σ/i` matches `"σ"`, and `[^Ā]` und
 Without it, those same patterns do not compile:
 
 ```ruby
-/Ā/i     # RegexpError: /i needs MRB_REGEXP_UNICODE_CASE for this character
+/Ā/i     # RegexpError: /i needs MRB_UNICODE_CASE for this character
 ```
 
 The test is whether a character has a case folding, not whether it is

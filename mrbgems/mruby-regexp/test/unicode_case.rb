@@ -1,4 +1,4 @@
-# Only compiled into mrbtest when the build defines MRB_REGEXP_UNICODE_CASE;
+# Only compiled into mrbtest when the build defines MRB_UNICODE_CASE;
 # see the gem's mrbgem.rake. Without the option every assertion here would
 # fail, since /i then folds ASCII letters and nothing else.
 assert("Regexp - Unicode case folding under /i") do
