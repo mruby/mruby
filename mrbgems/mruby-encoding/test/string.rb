@@ -47,7 +47,7 @@ end
 assert('String#valid_encoding? after an append inside a shared buffer') do
   # An append to a string sharing a buffer with room to spare writes in place
   # rather than detaching, and that path forgets the remembered answer on its
-  # own rather than through mrb_str_modify_keep_ascii(). Nothing else here
+  # own rather than through mrb_str_modify(). Nothing else here
   # reaches it: a string built by `*` or from a literal has no spare capacity,
   # so its sharers all take the detaching path instead.
   #
