@@ -2181,7 +2181,6 @@ mrb_str_case_convert_unicode(mrb_state *mrb, mrb_value str, enum mrb_case_mode m
   if (RSTR_BINARY_P(s) || str_ascii_p(s)) return -1;
 
   str_modify_keep_cr(mrb, s);
-  if (RSTR_LEN(s) == 0 || RSTR_PTR(s) == NULL) return -1;
 
   return str_case_convert_utf8(mrb, str, mode) ? 1 : 0;
 }
