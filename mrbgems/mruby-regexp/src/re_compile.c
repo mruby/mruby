@@ -243,9 +243,9 @@ class_set_range(re_charclass *cc, uint8_t lo, uint8_t hi)
 static void
 class_add_fold_counterparts(re_compiler *c, uint16_t id, uint32_t cp)
 {
-#ifdef MRB_REGEXP_UNICODE_CASE
-  uint32_t alt[RE_MAX_UNFOLD];
-  int n = mrb_re_case_unfold(cp, alt, RE_MAX_UNFOLD);
+#ifdef RE_UNICODE_CASE
+  uint32_t alt[MRB_UNI_MAX_UNFOLD];
+  int n = mrb_uni_case_unfold(cp, alt, MRB_UNI_MAX_UNFOLD);
   for (int i = 0; i < n; i++) {
     if (alt[i] < 128) class_set_bit(&c->classes[id], (uint8_t)alt[i]);
     else class_add_codepoint(c, &c->classes[id], alt[i]);
@@ -256,7 +256,7 @@ class_add_fold_counterparts(re_compiler *c, uint16_t id, uint32_t cp)
 #endif
 }
 
-#ifdef MRB_REGEXP_UNICODE_CASE
+#ifdef RE_UNICODE_CASE
 /* Closure for the range walks, which report counterpart spans one at a time.
    A span can straddle 128 (U+017F folds to 's'), so it is split the same way
    a written range is. */
@@ -738,7 +738,7 @@ compile_charclass(re_compiler *c)
      the tagged ranges, which is also what keeps /i from refusing a class of
      continuation bytes on a build without the folding tables. */
   if (c->flags & RE_FLAG_IGNORECASE) {
-#ifdef MRB_REGEXP_UNICODE_CASE
+#ifdef RE_UNICODE_CASE
     /* That takes two rounds rather than one walk in each direction, because a
        fold can have more than one source (U+03A3 and U+03C2 both fold to
        U+03C3), and a class written with one of them reaches the others only
@@ -755,7 +755,7 @@ compile_charclass(re_compiler *c)
     uint32_t nranges = cc->num_ranges;
     for (uint32_t i = 0; i < nranges; i++) {
       if (cc->ranges[2 * i] & RE_CLASS_BYTE) continue;
-      mrb_re_case_fold_range(cc->ranges[2 * i], cc->ranges[2 * i + 1],
+      mrb_uni_case_fold_range(cc->ranges[2 * i], cc->ranges[2 * i + 1],
                              class_fold_add, &sink);
     }
     for (int ch = 'A'; ch <= 'Z'; ch++) {
@@ -769,7 +769,7 @@ compile_charclass(re_compiler *c)
     nranges = cc->num_ranges;
     for (uint32_t i = 0; i < nranges; i++) {
       if (cc->ranges[2 * i] & RE_CLASS_BYTE) continue;
-      mrb_re_case_unfold_range(cc->ranges[2 * i], cc->ranges[2 * i + 1],
+      mrb_uni_case_unfold_range(cc->ranges[2 * i], cc->ranges[2 * i + 1],
                                class_fold_add, &sink);
     }
     for (int ch = 0; ch < 128; ch++) {
@@ -777,7 +777,7 @@ compile_charclass(re_compiler *c)
       if (ch >= 'a' && ch <= 'z') class_set_bit(cc, (uint8_t)(ch - 32));
       /* An ASCII member can have a non-ASCII source (U+212A folds to 'k'),
          which the range walk cannot reach: the bitmap holds no ranges. */
-      mrb_re_case_unfold_range((uint32_t)ch, (uint32_t)ch, class_fold_add, &sink);
+      mrb_uni_case_unfold_range((uint32_t)ch, (uint32_t)ch, class_fold_add, &sink);
     }
 #else
     /* The same closure, restricted to the foldings this build has. Refusing
@@ -789,7 +789,7 @@ compile_charclass(re_compiler *c)
       uint32_t lo = cc->ranges[2 * i], hi = cc->ranges[2 * i + 1];
       if (lo & RE_CLASS_BYTE) continue;
       if (mrb_re_needs_case_data(lo, hi)) {
-        compile_error(c, "/i needs MRB_REGEXP_UNICODE_CASE for this character class");
+        compile_error(c, "/i needs MRB_UNICODE_CASE for this character class");
       }
       if (lo <= RE_FOLD_LONG_S && RE_FOLD_LONG_S <= hi) class_set_bit(cc, 's');
       if (lo <= RE_FOLD_KELVIN && RE_FOLD_KELVIN <= hi) class_set_bit(cc, 'k');
@@ -1021,11 +1021,11 @@ static mrb_bool
 emit_cp_folded(re_compiler *c, uint32_t cp)
 {
   if (mrb_re_needs_case_data(cp, cp)) {
-    compile_error(c, "/i needs MRB_REGEXP_UNICODE_CASE for this character");
+    compile_error(c, "/i needs MRB_UNICODE_CASE for this character");
   }
-#ifdef MRB_REGEXP_UNICODE_CASE
-  uint32_t alt[RE_MAX_UNFOLD];
-  int n = mrb_re_case_unfold(cp, alt, RE_MAX_UNFOLD);
+#ifdef RE_UNICODE_CASE
+  uint32_t alt[MRB_UNI_MAX_UNFOLD];
+  int n = mrb_uni_case_unfold(cp, alt, MRB_UNI_MAX_UNFOLD);
 #else
   /* Whatever survived the refusal folds to an ASCII letter or to nothing at
      all, so the counterparts are that letter and its upper case: the first two

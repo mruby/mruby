@@ -1,5 +1,5 @@
 # Only compiled into mrbtest when the build does NOT define
-# MRB_REGEXP_UNICODE_CASE; see the gem's mrbgem.rake. With the option every
+# MRB_UNICODE_CASE; see the gem's mrbgem.rake. With the option every
 # pattern refused here compiles and matches instead.
 assert("Regexp - /i refuses what ASCII folding cannot answer") do
   # Folding ASCII and carrying on would answer wrongly rather than narrowly:
@@ -28,7 +28,7 @@ assert("Regexp - /i refuses what ASCII folding cannot answer") do
   assert_raise(RegexpError) { Regexp.new("ß", Regexp::IGNORECASE) }
   assert_raise(RegexpError) { Regexp.new("ﬀ", Regexp::IGNORECASE) }
   # The message names the option, so hitting this says what to do about it.
-  refused = "/i needs MRB_REGEXP_UNICODE_CASE for this character"
+  refused = "/i needs MRB_UNICODE_CASE for this character"
   assert_raise_with_message(RegexpError, "#{refused}: /Ā/") do
     Regexp.new("Ā", Regexp::IGNORECASE)
   end

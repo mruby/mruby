@@ -184,10 +184,19 @@ mrb_bool mrb_re_is_word_char(uint32_t c);
 #define RE_FOLD_LONG_S 0x017F  /* to 's' */
 #define RE_FOLD_KELVIN 0x212A  /* to 'k' */
 
+/* The Unicode foldings the option adds are core's table, which only a build
+   reading its strings as characters carries. The option therefore answers
+   where the build reads characters and nowhere else, a pattern read as bytes
+   having no character to fold in the first place. */
+#if defined(MRB_UNICODE_CASE) && defined(MRB_UTF8_STRING)
+# define RE_UNICODE_CASE
+#endif
+
 /* Simple case folding: the folded codepoint, or cp itself when it folds to
-   nothing else. With MRB_REGEXP_UNICODE_CASE that is ASCII plus every 1:1
-   Unicode folding; without it, ASCII plus the two above. Neither build folds a
-   codepoint that has no single counterpart to fold to (U+FB00 to "ff"). */
+   nothing else. With RE_UNICODE_CASE that is ASCII plus every 1:1 Unicode
+   folding, read off core's table; without it, ASCII plus the two above.
+   Neither build folds a codepoint that has no single counterpart to fold to
+   (U+FB00 to "ff"). */
 uint32_t mrb_re_case_fold(uint32_t cp);
 
 /* True when [lo, hi] holds a codepoint that carries case folding data this
@@ -203,38 +212,17 @@ uint32_t mrb_re_case_fold(uint32_t cp);
    nothing to refuse, so the test compiles away there. The arguments are
    evaluated at most once, but only by the definition that uses them, so pass
    plain values. */
-#ifdef MRB_REGEXP_UNICODE_CASE
+#ifdef RE_UNICODE_CASE
 #define mrb_re_needs_case_data(lo, hi) FALSE
 #else
 mrb_bool mrb_re_needs_case_data(uint32_t lo, uint32_t hi);
 #endif
 
-#ifdef MRB_REGEXP_UNICODE_CASE
-/* Walking the table takes data only this build has. Without it the compiler
-   reaches the same two foldings directly, since there are only two.
+/* Walking a table takes data only the option build has, and there the table is
+   core's: mrb_uni_case_unfold() and the two range walks beside it in
+   mruby/internal.h are what the compiler reaches for. Without the option the
+   compiler reaches the same two foldings directly, since there are only two. */
 
-   mrb_re_case_unfold() writes every other codepoint sharing cp's folded form
-   into out, at most max of them, and returns how many it wrote. The two range
-   forms do the same two directions over a span rather than one codepoint,
-   reporting what they find by calling add() with each span of it:
-   mrb_re_case_fold_range the folds of the sources in [lo, hi],
-   mrb_re_case_unfold_range the sources of the folds in [lo, hi]. Spans may
-   repeat or overlap what the caller already holds; the caller merges. */
-#define RE_MAX_UNFOLD 4
-int mrb_re_case_unfold(uint32_t cp, uint32_t *out, int max);
-void mrb_re_case_fold_range(uint32_t lo, uint32_t hi,
-                            void (*add)(void *, uint32_t, uint32_t), void *user);
-void mrb_re_case_unfold_range(uint32_t lo, uint32_t hi,
-                              void (*add)(void *, uint32_t, uint32_t), void *user);
-#endif
-
-/* The byte length of the character at `s`, and its codepoint: every read of a
-   run of bytes in this gem goes through these two. A subject handed over as
-   binary is one character per byte; everything else is whatever core says a
-   run of bytes spells, which is one character per byte too on a build that
-   indexes Strings by byte. So the engine reads pattern and subject the way
-   the build reads a String, and the compiler passes FALSE for `binary`, a
-   pattern being read that same way. */
 static inline int
 mrb_re_charlen(const char *s, const char *end, mrb_bool binary)
 {
