@@ -1127,10 +1127,15 @@ str_byterindex(mrb_value str, mrb_value sub, mrb_int pos)
 
   sbeg = RSTR_PTR(ps);
   t = RSTRING_PTR(sub);
+  /* The first byte has to match wherever the rest does, and comparing it here
+     settles all but the positions that carry it. Handing every position to
+     memcmp() instead pays for a call at each one, which is what the search
+     spends nearly all of its time on where the needle is not there to find. */
+  const char head = t[0];
   /* count down an index rather than a pointer: stepping a pointer past the
      first byte to end the search would leave the buffer */
   for (mrb_int i = pos; 0 <= i; i--) {
-    if (memcmp(sbeg+i, t, len) == 0) {
+    if (sbeg[i] == head && memcmp(sbeg+i, t, len) == 0) {
       return i;
     }
   }
@@ -1162,8 +1167,11 @@ str_char_rindex(mrb_value str, mrb_value sub, mrb_int pos)
     /* a match may start only at a character boundary, and `pos` need not be
        one: the clamp above answers the last byte `sub` fits at */
     s = mrb_utf8_char_head(sbeg, s, send);
+    /* see str_byterindex(): the first byte settles all but the positions
+       carrying it, and it is read here anyway to step back from */
+    const char head = t[0];
     for (;;) {
-      if ((mrb_int)(send - s) >= len && memcmp(s, t, len) == 0) {
+      if (*s == head && (mrb_int)(send - s) >= len && memcmp(s, t, len) == 0) {
         return (mrb_int)(s - sbeg);
       }
       /* the character before `s`, which there is none of once the search has
