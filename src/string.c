@@ -722,6 +722,22 @@ str_ascii_p(struct RString *s)
   return TRUE;
 }
 
+/* Whether a character index into this string is already a byte index, asking
+   the bytes where the string does not say. RSTR_SINGLE_BYTE_P() reads what is
+   recorded and answers no for a string nothing has read yet, which sends every
+   later caller down the walking path however plain the bytes are. A string is
+   walked whole at most once here: the walk records what it finds, and it is
+   the same walk the character indexing would go on to do anyway. */
+static mrb_bool
+str_single_byte_p(mrb_state *mrb, mrb_value str)
+{
+  struct RString *s = mrb_str_ptr(str);
+  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_UNKNOWN) {
+    mrb_str_valid_encoding_p(mrb, str);
+  }
+  return RSTR_SINGLE_BYTE_P(s);
+}
+
 /* map character index to byte offset index */
 mrb_int
 mrb_str_char_to_byte(mrb_state *mrb, mrb_value str, mrb_int off, mrb_int idx)
@@ -1025,12 +1041,57 @@ mrb_str_beg_len(mrb_int str_len, mrb_int *begp, mrb_int *lenp)
   return TRUE;
 }
 
+#ifdef MRB_UTF8_STRING
+/* What a substring needs of the string is where two positions are, not how
+   many the string has. Counting the whole of it to find that out reads every
+   byte however near the head the range sits, so the walk here stops at the
+   range instead: forward to `beg` for a position counted from the head, and
+   backward from the end for one counted from there. A position past the end is
+   what the forward walk reports by coming back longer than the string, since
+   mrb_str_char_to_byte() answers one byte more than it reached when the string
+   ends before the index does. */
+static mrb_value
+str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
+{
+  struct RString *s = mrb_str_ptr(str);
+  mrb_int slen = RSTR_LEN(s);
+
+  if (str_single_byte_p(mrb, str)) {
+    return mrb_str_beg_len(slen, &beg, &len) ?
+      mrb_str_byte_subseq(mrb, str, beg, len) : mrb_nil_value();
+  }
+  if (len < 0) return mrb_nil_value();
+
+  const char *o = RSTR_PTR(s);
+  mrb_int bbeg;
+  if (beg < 0) {
+    const char *e = o + slen;
+    const char *p = e;
+    for (mrb_int n = beg; n < 0; n++) {
+      /* stepping back off the first character leaves the string, which is the
+         negative index that names no position */
+      if (p == o) return mrb_nil_value();
+      p = mrb_utf8_char_head(o, p-1, e);
+    }
+    bbeg = (mrb_int)(p - o);
+  }
+  else {
+    bbeg = mrb_str_char_to_byte(mrb, str, 0, beg);
+    if (bbeg > slen) return mrb_nil_value();
+  }
+
+  mrb_int blen = mrb_str_char_to_byte(mrb, str, bbeg, len);
+  if (blen > slen - bbeg) blen = slen - bbeg;
+  return mrb_str_byte_subseq(mrb, str, bbeg, blen);
+}
+#else
 static mrb_value
 str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 {
   return mrb_str_beg_len(mrb_str_char_len(mrb, str), &beg, &len) ?
     str_subseq(mrb, str, beg, len) : mrb_nil_value();
 }
+#endif
 
 /*
  * @param mrb The mruby state.
@@ -2263,6 +2324,14 @@ mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
     if (!RSTR_SINGLE_BYTE_P(s) && mrb_utf8_char_head(p, pp, p + len) != pp) {
       return mrb_nil_value();
     }
+    /* Cutting bytes that are nothing but ASCII leaves what the rest is read as
+       standing, non-ASCII and all, so the coderange str_modify_keep_cr() kept
+       is still the answer. Cutting a non-ASCII byte can have taken the last of
+       them, and a string of nothing but ASCII stands at 7BIT rather than
+       VALID: what it is has to be asked again. */
+    if (search_nonascii(pp, pp + rslen) != pp + rslen) {
+      RSTR_CODERANGE_SET(s, MRB_STR_CODERANGE_UNKNOWN);
+    }
 #endif
     RSTR_SET_LEN(s, len - rslen);
     p[RSTR_LEN(s)] = '\0';
@@ -2336,6 +2405,14 @@ mrb_str_chop_bang(mrb_state *mrb, mrb_value str)
         len--;
       }
     }
+#ifdef MRB_UTF8_STRING
+    /* see mrb_str_chomp_bang(): the character cut here is the last one, so a
+       non-ASCII lead byte at `len` is the whole of what leaves the string, and
+       it can have been the last non-ASCII there was. */
+    if ((signed char)RSTR_PTR(s)[len] < 0) {
+      RSTR_CODERANGE_SET(s, MRB_STR_CODERANGE_UNKNOWN);
+    }
+#endif
     RSTR_SET_LEN(s, len);
     RSTR_PTR(s)[len] = '\0';
     return str;
@@ -2629,7 +2706,7 @@ mrb_str_byteindex_m(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_index_m(mrb_state *mrb, mrb_value str)
 {
-  if (RSTR_CODERANGE(mrb_str_ptr(str)) == MRB_STR_CODERANGE_7BIT) {
+  if (str_single_byte_p(mrb, str)) {
     return mrb_str_byteindex_m(mrb, str);
   }
 
@@ -2928,8 +3005,7 @@ mrb_str_byterindex_m(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
 {
-  struct RString *s = mrb_str_ptr(str);
-  if (RSTR_SINGLE_BYTE_P(s)) {
+  if (str_single_byte_p(mrb, str)) {
     return mrb_str_byterindex_m(mrb, str);
   }
 

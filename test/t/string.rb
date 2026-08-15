@@ -92,6 +92,17 @@ assert('String#[](UTF-8) indexes a byte that spells no character on its own') do
   assert_equal "あ", "\x80あ"[1]
 end if UTF8STRING
 
+assert('String#[](UTF-8) counts a negative index back from the end') do
+  # Stepping back off the first character leaves the string, so a negative
+  # index reaching past the head names no position rather than wrapping to
+  # one. The length the range asks for is clamped to what is left after it.
+  assert_equal "あ", "あい"[-2]
+  assert_nil "あい"[-3]
+  assert_equal "あ", "あい"[-2, 1]
+  assert_nil "あい"[-3, 1]
+  assert_equal "あい", "あい"[-2, 5]
+end if UTF8STRING
+
 assert('String#[] with Range') do
   a1 = 'abc'[1..0]
   b1 = 'abc'[1..1]
