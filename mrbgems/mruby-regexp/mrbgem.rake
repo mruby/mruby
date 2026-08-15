@@ -43,10 +43,11 @@ MRuby::Gem::Specification.new('mruby-regexp') do |spec|
   # build command in the block above, so the reset that comes with it drops
   # nothing.
   # The pair below is what `RE_UNICODE_CASE` is defined from in re_internal.h:
-  # the foldings are core's table, which only a build reading characters
-  # carries, so the option alone does not put them within /i's reach.
+  # the foldings are core's table, which only a build reading its strings as
+  # characters carries, and only where it converts their case by Unicode.
   spec.build_settings do
-    if build.has_define?('MRB_UNICODE_CASE') && build.has_define?('MRB_UTF8_STRING')
+    if build.has_define?('MRB_UTF8_STRING') &&
+       !build.has_define?('MRB_USE_ASCII_CASE')
       spec.test_rbfiles -= ["#{spec.dir}/test/ascii_case.rb"]
     else
       spec.test_rbfiles -= ["#{spec.dir}/test/unicode_case.rb"]

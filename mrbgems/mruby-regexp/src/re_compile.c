@@ -789,7 +789,7 @@ compile_charclass(re_compiler *c)
       uint32_t lo = cc->ranges[2 * i], hi = cc->ranges[2 * i + 1];
       if (lo & RE_CLASS_BYTE) continue;
       if (mrb_re_needs_case_data(lo, hi)) {
-        compile_error(c, "/i needs MRB_UNICODE_CASE for this character class");
+        compile_error(c, "/i needs Unicode case folding for this character class");
       }
       if (lo <= RE_FOLD_LONG_S && RE_FOLD_LONG_S <= hi) class_set_bit(cc, 's');
       if (lo <= RE_FOLD_KELVIN && RE_FOLD_KELVIN <= hi) class_set_bit(cc, 'k');
@@ -1021,7 +1021,7 @@ static mrb_bool
 emit_cp_folded(re_compiler *c, uint32_t cp)
 {
   if (mrb_re_needs_case_data(cp, cp)) {
-    compile_error(c, "/i needs MRB_UNICODE_CASE for this character");
+    compile_error(c, "/i needs Unicode case folding for this character");
   }
 #ifdef RE_UNICODE_CASE
   uint32_t alt[MRB_UNI_MAX_UNFOLD];

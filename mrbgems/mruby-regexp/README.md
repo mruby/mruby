@@ -53,8 +53,8 @@ its own, and the last one can still open a range: `/[\u{61 62}-z]/` is
 
 ### Flags
 
-- `i` (`Regexp::IGNORECASE`) case-insensitive matching (ASCII, or Unicode
-  with `MRB_UNICODE_CASE`)
+- `i` (`Regexp::IGNORECASE`) case-insensitive matching (Unicode, or ASCII
+  where the build converts case by ASCII)
 - `m` (`Regexp::MULTILINE`) `.` matches newline; `^`/`$` match at line boundaries
 - `x` (`Regexp::EXTENDED`) free-spacing mode; unescaped whitespace ignored, `#` starts comments
 
@@ -180,13 +180,13 @@ pattern analysis.
   pattern's encoding and raises `RegexpError` for either spelling. A range
   whose ends are a byte and a character (`[\x80-µ]`) names neither and raises
   `RegexpError`.
-- **ASCII case folding by default**: The `i` flag handles ASCII letters
-  only unless the build defines `MRB_UNICODE_CASE`, which reads the Unicode
-  foldings that pair one codepoint with one other off core's case table.
-  Without the option, a pattern holding a character that needs one of those
-  raises `RegexpError` rather than answering as if the character had no case;
-  see Configuration. A codepoint with no single counterpart to fold to (`ﬀ` to
-  `ff`) is never folded by either build.
+- **Case folding follows the build**: The `i` flag reads the Unicode
+  foldings that pair one codepoint with one other off core's case table,
+  which a build converting case by ASCII does not carry. There `i` folds
+  ASCII letters, and a pattern holding a character that needs one of those
+  foldings raises `RegexpError` rather than answering as if the character had
+  no case; see Configuration. A codepoint with no single counterpart to fold
+  to (`ﬀ` to `ff`) is never folded by either build.
 - **Case-insensitive backreferences match a superset**: `\1` under `i`
   folds each side and compares, so it matches where the capture and the
   repeat hold the same characters in different widths (`k` and `K`).
@@ -236,36 +236,32 @@ there.
 #endif
 ```
 
-Case folding beyond ASCII is opt-in, since it carries the walks over core's
-case table. Define `MRB_UNICODE_CASE` to enable it:
+Case folding beyond ASCII is not this gem's to configure. The table is
+core's, carried by any build that defines `MRB_UTF8_STRING` without
+`MRB_USE_ASCII_CASE`, and is what `String#downcase` and the four case methods
+beside it read; `/i` reads the two directions it needs over that same table.
+So `/i` folds what the build's own case conversion folds, and a build
+converting case by ASCII has nothing for it to fold beyond ASCII either,
+whether the conversion was narrowed there or the strings are read as bytes and
+hold no character to fold in the first place.
+
+Where the build converts case by Unicode, `/Ā/i` matches `"ā"`, `/Σ/i` matches
+`"σ"`, and `[^Ā]` under `/i` stops accepting `"ā"`.
+
+Where it converts by ASCII, those same patterns do not compile:
 
 ```ruby
-conf.cc.defines << 'MRB_UNICODE_CASE'
-```
-
-The table itself is core's, carried by any build that defines
-`MRB_UTF8_STRING`, which is what `String#downcase` and the four case methods
-beside it read. What this option adds is the two directions /i needs over that
-table, at about 4KB of text. It therefore takes `MRB_UTF8_STRING` to do
-anything: without it there is no table under the walks, and a pattern read as
-bytes has no character to fold in the first place.
-
-With the option, `/Ā/i` matches `"ā"`, `/Σ/i` matches `"σ"`, and `[^Ā]` under
-`/i` stops accepting `"ā"`.
-
-Without it, those same patterns do not compile:
-
-```ruby
-/Ā/i     # RegexpError: /i needs MRB_UNICODE_CASE for this character
+/Ā/i     # RegexpError: /i needs Unicode case folding for this character
 ```
 
 The test is whether a character has a case folding, not whether it is
 non-ASCII, so a script without case is unaffected and `/日本/i`, `/العربية/i`
 and `/😀/i` go on working. Patterns like `/Ā/i` were answering wrongly rather
 than narrowly before this: `[Ā]` under `/i` missed `"ā"`, and `[^Ā]` accepted
-it. Reaching this error means the option is what you want.
+it. Reaching this error means the pattern wants a build that converts case by
+Unicode.
 
-`/k/i` matching `"K"` (U+212A) and `/s/i` matching `"ſ"` need no option.
+`/k/i` matching `"K"` (U+212A) and `/s/i` matching `"ſ"` need no table.
 Those two are the only foldings whose result is an ASCII letter, and both
 builds carry them, so that folding "ASCII only" covers the whole of the
 equivalence class an ASCII letter belongs to rather than the part of it that

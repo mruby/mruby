@@ -376,11 +376,13 @@ int mrb_str_case_convert_unicode(mrb_state *mrb, mrb_value str, enum mrb_case_mo
 #define mrb_str_case_convert_unicode(mrb, str, mode) (-1)
 #endif
 
-#ifdef MRB_UTF8_STRING
+#if defined(MRB_UTF8_STRING) && !defined(MRB_USE_ASCII_CASE)
 /* What case a character has, from the tables in unicase.c. A string is
    converted through mrb_str_case_convert_unicode() above; these are for a
    caller holding a codepoint rather than a string, which is mruby-regexp
-   under /i. */
+   under /i. A build converting case by ASCII compiles none of this, the
+   table under it being what it asked to leave behind, so a caller reaching
+   for one of these there is a compile error rather than a link one. */
 
 /* Which table a character is looked up in. The last three hold a difference
    rather than a mapping: title case against upper case, swapping against the
@@ -403,10 +405,8 @@ enum mrb_case_kind {
    bytes it took, or 0 for a character that maps to itself. */
 mrb_int mrb_uni_case_map(enum mrb_case_kind kind, uint32_t cp, char *buf);
 
-#ifdef MRB_UNICODE_CASE
-/* The foldings below are what /i reads under MRB_UNICODE_CASE, and the walks
-   over the table cost more than the table itself, so a build that does not
-   ask for them does not carry them. */
+/* The four below are the foldings /i reads off the same table, in the two
+   directions a pattern needs them. */
 
 /* Simple case folding: the folded codepoint, or cp itself when it folds to
    nothing else. A codepoint whose folding spells several characters (U+FB00
@@ -430,8 +430,7 @@ void mrb_uni_case_fold_range(uint32_t lo, uint32_t hi,
                              void (*add)(void *, uint32_t, uint32_t), void *user);
 void mrb_uni_case_unfold_range(uint32_t lo, uint32_t hi,
                                void (*add)(void *, uint32_t, uint32_t), void *user);
-#endif  /* MRB_UNICODE_CASE */
-#endif
+#endif  /* MRB_UTF8_STRING && !MRB_USE_ASCII_CASE */
 
 /* attr accessor bodies (class.c); the VM compares function pointers against
    these to run attr calls without a full method-call frame */
