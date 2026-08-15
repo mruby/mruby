@@ -20,6 +20,9 @@
 ** See Copyright Notice in mruby.h
 */
 
+#ifndef MRB_RE_CASED_H
+#define MRB_RE_CASED_H
+
 /* Inclusive (lo, hi) pairs, ascending and disjoint. */
 static const uint32_t re_cased_ranges[][2] = {
   { 0x000B5, 0x0017E },
@@ -64,3 +67,5 @@ static const uint32_t re_cased_ranges[][2] = {
 #define RE_CASED_MAX 0x1E943
 
 /* 2982 cased codepoints in 32 ranges spanning 3291. */
+
+#endif /* MRB_RE_CASED_H */

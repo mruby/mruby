@@ -122,6 +122,9 @@ File.open(File.join(outdir, 're_cased.h'), 'w') do |out|
     ** See Copyright Notice in mruby.h
     */
 
+    #ifndef MRB_RE_CASED_H
+    #define MRB_RE_CASED_H
+
     /* Inclusive (lo, hi) pairs, ascending and disjoint. */
     static const uint32_t re_cased_ranges[][2] = {
   HEAD
@@ -143,4 +146,7 @@ File.open(File.join(outdir, 're_cased.h'), 'w') do |out|
 
   out.puts
   out.puts "/* #{refuse.size} cased codepoints in #{ranges.size} ranges spanning #{covered}. */"
+
+  out.puts
+  out.puts "#endif /* MRB_RE_CASED_H */"
 end

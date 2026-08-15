@@ -181,6 +181,9 @@ File.open(File.join(outdir, 'unicase.h'), 'w') do |out|
     ** See Copyright Notice in mruby.h
     */
 
+    #ifndef MRB_UNICASE_H
+    #define MRB_UNICASE_H
+
     /* One run of sources start, start+stride, ... (count entries), each
        mapping to the source plus delta, in six bytes least significant first:
 
@@ -269,6 +272,9 @@ File.open(File.join(outdir, 'unicase.h'), 'w') do |out|
     out.puts "#define UNI_#{up}_MIN #{hex(lo)}"
     out.puts "#define UNI_#{up}_MAX #{hex(hi)}"
   end
+
+  out.puts
+  out.puts "#endif /* MRB_UNICASE_H */"
 end
 
 $stderr.puts "wrote #{File.join(outdir, 'unicase.h')}: pool #{pool.size} bytes, " +

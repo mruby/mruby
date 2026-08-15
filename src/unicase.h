@@ -16,6 +16,9 @@
 ** See Copyright Notice in mruby.h
 */
 
+#ifndef MRB_UNICASE_H
+#define MRB_UNICASE_H
+
 /* One run of sources start, start+stride, ... (count entries), each
    mapping to the source plus delta, in six bytes least significant first:
 
@@ -886,3 +889,5 @@ static const uint8_t uni_fold_multi[] = {
    cannot hit anything costs one comparison. */
 #define UNI_FOLD_MIN 0x000B5
 #define UNI_FOLD_MAX 0x0FB17
+
+#endif /* MRB_UNICASE_H */
