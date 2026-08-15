@@ -2021,14 +2021,15 @@ ascii_case_conv(int c, enum mrb_case_mode mode, mrb_bool first)
   }
 }
 
-/* Which table of unicase.h a character is looked up in. The last two hold a
-   difference rather than a mapping: title case against upper case, and
-   swapping against the rule below it. */
+/* Which table of unicase.h a character is looked up in. The last three hold a
+   difference rather than a mapping: title case against upper case, swapping
+   against the rule below it, and folding against the lowercase mapping. */
 enum case_kind {
   CASE_KIND_LOWER,
   CASE_KIND_UPPER,
   CASE_KIND_TITLE,
-  CASE_KIND_SWAP
+  CASE_KIND_SWAP,
+  CASE_KIND_FOLD
 };
 
 static const struct case_table {
@@ -2046,6 +2047,8 @@ static const struct case_table {
    UNI_TITLE_MIN, UNI_TITLE_MAX},
   {UNI_SWAP_RUNS, UNI_SWAP_RUN_COUNT, UNI_SWAP_MULTI, UNI_SWAP_MULTI_COUNT,
    UNI_SWAP_MIN, UNI_SWAP_MAX},
+  {UNI_FOLD_RUNS, UNI_FOLD_RUN_COUNT, UNI_FOLD_MULTI, UNI_FOLD_MULTI_COUNT,
+   UNI_FOLD_MIN, UNI_FOLD_MAX},
 };
 
 /* The `n` bytes at `p`, least significant first, which is how unicase.h packs
@@ -2159,6 +2162,11 @@ case_map(enum case_kind kind, uint32_t cp, char *buf)
     n = case_map_one(CASE_KIND_LOWER, cp, buf);
     if (n < 0) n = case_map_one(CASE_KIND_UPPER, cp, buf);
     break;
+  case CASE_KIND_FOLD:
+    /* Folding is the difference from the lowercase mapping, so a character
+       the difference says nothing about folds the way it lower cases. */
+    n = case_map_one(CASE_KIND_LOWER, cp, buf);
+    break;
   default:
     break;
   }
@@ -2175,6 +2183,8 @@ case_kind_of(enum mrb_case_mode mode, mrb_bool first)
     return first ? CASE_KIND_TITLE : CASE_KIND_LOWER;
   case MRB_CASE_SWAP:
     return CASE_KIND_SWAP;
+  case MRB_CASE_FOLD:
+    return CASE_KIND_FOLD;
   default:
     return CASE_KIND_LOWER;
   }

@@ -322,6 +322,32 @@ assert('String#casecmp?') do
   assert_nil "abcdef".casecmp?(1)
 end
 
+assert('String#casecmp? - Unicode') do
+  skip unless UTF8STRING
+  # `casecmp` orders strings by ASCII case alone, which is CRuby's answer
+  # there too; `casecmp?` folds instead, so it sees past the case.
+  assert_equal 1, "ä".casecmp("Ä")
+  assert_true "ä".casecmp?("Ä")
+  # A folding can spell a character as several, which is what makes this
+  # wider than comparing one character against one.
+  assert_true "ß".casecmp?("ss")
+  assert_true "ß".casecmp?("SS")
+  # Only one side has to hold a character above ASCII for both to be folded,
+  # and the other side is folded whether or not a walk over it has already
+  # settled what it holds.
+  ss = "SS"
+  ss.length
+  assert_true "ß".casecmp?(ss)
+  assert_true ss.casecmp?("ß")
+  assert_true "ﬁ".casecmp?("fi")
+  # U+212A folds to "k", so the two spell the same string folded.
+  assert_true "\u{212a}".casecmp?("k")
+  # U+0130 folds to "i" plus U+0307, which "i" alone does not match.
+  assert_false "İ".casecmp?("i")
+  assert_false "日本".casecmp?("日")
+  assert_true "日本".casecmp?("日本")
+end
+
 assert('String#count') do
   s = "abccdeff123"
   assert_equal 0, s.count("")

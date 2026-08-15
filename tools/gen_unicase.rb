@@ -31,6 +31,7 @@ outdir = ARGV[0] or abort "usage: #{$0} OUTDIR"
 lower = {}
 upper = {}
 title = {}
+fold  = {}
 swap_diff = {}
 
 (0x80..0x10FFFF).each do |cp|
@@ -39,9 +40,11 @@ swap_diff = {}
   l = c.downcase
   u = c.upcase
   t = c.capitalize          # one character capitalized is its title case
+  f = c.downcase(:fold)
   lower[cp] = l if l != c
   upper[cp] = u if u != c
   title[cp] = t if t != c
+  fold[cp] = f if f != c
   # What the swap rule would answer, against what swapping actually answers.
   s = c.swapcase
   swap_diff[cp] = s if s != (l != c ? l : u)
@@ -54,6 +57,15 @@ title_diff = {}
 (upper.keys | title.keys).each do |cp|
   next if upper[cp] == title[cp]
   title_diff[cp] = title[cp] || cp.chr("UTF-8")
+end
+
+# Folding rides on the lowercase mapping the same way. The two answer alike
+# for all but 108 sources, and the 114 the lowercase mapping has that folding
+# leaves alone are the delta 0 entries here.
+fold_diff = {}
+(lower.keys | fold.keys).each do |cp|
+  next if lower[cp] == fold[cp]
+  fold_diff[cp] = fold[cp] || cp.chr("UTF-8")
 end
 
 # ---------------------------------------------------------------- encode
@@ -129,6 +141,7 @@ TABLES = [
   ['upper', upper,      'the uppercase mapping'],
   ['title', title_diff, 'where title case differs from upper case'],
   ['swap',  swap_diff,  'where swapping differs from the down-then-up rule'],
+  ['fold',  fold_diff,  'where folding differs from the lowercase mapping'],
 ]
 
 encoded = TABLES.map do |name, map, _|
@@ -160,9 +173,9 @@ File.open(File.join(outdir, 'unicase.h'), 'w') do |out|
     ** A source that maps to several characters is in the multi table beside
     ** each run table, spelled as the UTF-8 bytes it produces.
     **
-    ** Title case is stored as its difference from upper case, and swapping as
-    ** its difference from the down-then-up rule; a run of delta 0 in either
-    ** means the source maps under the rule it rides on and not under this
+    ** Title case is stored as its difference from upper case, and folding as
+    ** its difference from the lowercase mapping; a run of delta 0 in either
+    ** means the source maps under the table it rides on and not under this
     ** one.
     **
     ** See Copyright Notice in mruby.h

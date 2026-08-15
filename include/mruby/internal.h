@@ -356,7 +356,11 @@ enum mrb_case_mode {
   MRB_CASE_DOWN,
   MRB_CASE_UP,
   MRB_CASE_CAPITALIZE,
-  MRB_CASE_SWAP
+  MRB_CASE_SWAP,
+  /* Case folding, which is what two strings are compared under rather than
+     something a method hands back: it spells "ß" as "ss" so that the two
+     compare equal, which is no lower case of anything. */
+  MRB_CASE_FOLD
 };
 
 /* Convert every character of `str` in place where Unicode has something to say

@@ -1432,16 +1432,67 @@ str_casecmp(mrb_state *mrb, mrb_value self)
 }
 #undef lesser
 
+#ifdef MRB_UTF8_STRING
+/* Whether a string holds anything the fold table could speak about. A string
+   of nothing but ASCII does not, and one read as bytes spells no characters
+   at all, so neither needs the walk. */
+static mrb_bool
+str_folds_beyond_ascii(mrb_value str)
+{
+  struct RString *s = mrb_str_ptr(str);
+  return RSTR_CODERANGE(s) != MRB_STR_CODERANGE_7BIT && !RSTR_BINARY_P(s);
+}
+
+/* Fold the one side the tables have nothing to say about. Only one of the two
+   has to hold a character above ASCII for both to be folded, and folding is
+   ASCII's lower case where it is nothing more: "SS" has to reach "ss" for
+   `"ß".casecmp?("SS")` to be true, and the walk in core hands such a string
+   back untouched. */
+static void
+str_fold_ascii(mrb_state *mrb, mrb_value str)
+{
+  struct RString *s = mrb_str_ptr(str);
+  mrb_str_modify(mrb, s);
+  char *p = RSTR_PTR(s);
+  for (char *pend = p + RSTR_LEN(s); p < pend; p++) {
+    if (ISUPPER(*p)) *p = TOLOWER(*p);
+  }
+}
+#endif
+
 /*
  * call-seq:
  *   str.casecmp?(other)  -> true, false, or nil
  *
  * Returns true if str and other_str are equal after case folding,
  * false if they are not equal, and nil if other is not a string.
+ *
+ * Folding is what makes this wider than `casecmp`, which orders strings by
+ * ASCII case alone: a build that reads a string as characters folds every
+ * character Unicode gives a folding, and one folding spells a character as
+ * several ("ß" as "ss").
+ *
+ *   "ä".casecmp("Ä")    #=> 1
+ *   "ä".casecmp?("Ä")   #=> true
+ *   "ß".casecmp?("ss")  #=> true
  */
 static mrb_value
 str_casecmp_p(mrb_state *mrb, mrb_value self)
 {
+#ifdef MRB_UTF8_STRING
+  mrb_value other = mrb_get_arg1(mrb);
+  if (!mrb_string_p(other)) return mrb_nil_value();
+
+  /* Nothing above ASCII on either side leaves nothing for the tables to fold,
+     and the two strings order by their bytes as they always have. */
+  if (str_folds_beyond_ascii(self) || str_folds_beyond_ascii(other)) {
+    mrb_value a = mrb_str_dup(mrb, self);
+    mrb_value b = mrb_str_dup(mrb, other);
+    if (mrb_str_case_convert_unicode(mrb, a, MRB_CASE_FOLD) < 0) str_fold_ascii(mrb, a);
+    if (mrb_str_case_convert_unicode(mrb, b, MRB_CASE_FOLD) < 0) str_fold_ascii(mrb, b);
+    return mrb_bool_value(mrb_str_equal(mrb, a, b));
+  }
+#endif
   mrb_value c = str_casecmp(mrb, self);
   if (mrb_nil_p(c)) return c;
   return mrb_bool_value(mrb_fixnum(c) == 0);
