@@ -147,6 +147,24 @@ assert('String#swapcase!') do
   assert_equal s.swapcase, t
 end
 
+assert('String#swapcase - Unicode') do
+  skip unless UTF8STRING
+  assert_equal "äÖ", "Äö".swapcase
+  # A character with a lower case swaps down, one without swaps up, so a
+  # mapping that spells more than one character comes back here too.
+  assert_equal "SSa", "ßA".swapcase
+  assert_equal "FI", "ﬁ".swapcase
+  assert_equal "I", "ı".swapcase
+  # A title case character swaps to what neither of its cases spells: U+01C5
+  # upper cases to U+01C4 and lower cases to U+01C6, and swaps to "dŽ".
+  assert_equal "dŽ", "ǅ".swapcase
+  assert_equal "Ǆ", "ǆ".swapcase
+  assert_equal "ǆ", "Ǆ".swapcase
+  # A script without case has nothing to swap.
+  assert_equal "日本", "日本".swapcase
+  assert_nil "日本".swapcase!
+end
+
 assert('String#concat') do
   assert_equal "Hello World!", "Hello " << "World" << 33
   assert_equal "Hello World!", "Hello ".concat("World").concat(33)
@@ -296,6 +314,43 @@ assert('String#casecmp') do
   assert_equal 1, "\xC3".casecmp("a")
   assert_equal 1, ("\xC3" <=> "a")
   assert_equal(-1, "a".casecmp("\xC3"))
+end
+
+assert('String#casecmp?') do
+  assert_true "aBcDeF".casecmp?("abcdef")
+  assert_false "abcdef".casecmp?("abcde")
+  assert_nil "abcdef".casecmp?(1)
+end
+
+assert('String#casecmp? - Unicode') do
+  skip unless UTF8STRING
+  # `casecmp` orders strings by ASCII case alone, which is CRuby's answer
+  # there too; `casecmp?` folds instead, so it sees past the case.
+  assert_equal 1, "ä".casecmp("Ä")
+  assert_true "ä".casecmp?("Ä")
+  # A folding can spell a character as several, which is what makes this
+  # wider than comparing one character against one.
+  assert_true "ß".casecmp?("ss")
+  assert_true "ß".casecmp?("SS")
+  # Only one side has to hold a character above ASCII for both to be folded,
+  # and the other side is folded whether or not a walk over it has already
+  # settled what it holds.
+  ss = "SS"
+  ss.length
+  assert_true "ß".casecmp?(ss)
+  assert_true ss.casecmp?("ß")
+  assert_true "ﬁ".casecmp?("fi")
+  # U+212A folds to "k", so the two spell the same string folded.
+  assert_true "\u{212a}".casecmp?("k")
+  # U+0130 folds to "i" plus U+0307, which "i" alone does not match.
+  assert_false "İ".casecmp?("i")
+  assert_false "日本".casecmp?("日")
+  assert_true "日本".casecmp?("日本")
+  # Bytes that spell no character have no folding, so the comparison refuses
+  # them; `casecmp` orders the same bytes without asking what they spell.
+  assert_raise(ArgumentError) { "\xC3ABC".casecmp?("a") }
+  assert_equal 0, "\xC3ABC".casecmp("\xC3abc")
+  assert_raise(ArgumentError) { "\xC3ABC".swapcase }
 end
 
 assert('String#count') do

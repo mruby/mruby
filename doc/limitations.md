@@ -279,7 +279,8 @@ Module refinements (`refine`, `using`) are not supported in mruby.
 
 mruby does not have an `Encoding` class. Strings are treated as
 byte sequences by default. UTF-8 aware string operations can be
-enabled with the `MRB_UTF8_STRING` compile flag.
+enabled with the `MRB_UTF8_STRING` compile flag, which is also what
+makes case conversion follow Unicode rather than ASCII.
 
 ## Integer Precision Varies by Boxing Mode
 
