@@ -722,6 +722,22 @@ str_ascii_p(struct RString *s)
   return TRUE;
 }
 
+/* Whether a character index into this string is already a byte index, asking
+   the bytes where the string does not say. RSTR_SINGLE_BYTE_P() reads what is
+   recorded and answers no for a string nothing has read yet, which sends every
+   later caller down the walking path however plain the bytes are. A string is
+   walked whole at most once here: the walk records what it finds, and it is
+   the same walk the character indexing would go on to do anyway. */
+static mrb_bool
+str_single_byte_p(mrb_state *mrb, mrb_value str)
+{
+  struct RString *s = mrb_str_ptr(str);
+  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_UNKNOWN) {
+    mrb_str_valid_encoding_p(mrb, str);
+  }
+  return RSTR_SINGLE_BYTE_P(s);
+}
+
 /* map character index to byte offset index */
 mrb_int
 mrb_str_char_to_byte(mrb_state *mrb, mrb_value str, mrb_int off, mrb_int idx)
@@ -2623,7 +2639,7 @@ mrb_str_byteindex_m(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_index_m(mrb_state *mrb, mrb_value str)
 {
-  if (RSTR_CODERANGE(mrb_str_ptr(str)) == MRB_STR_CODERANGE_7BIT) {
+  if (str_single_byte_p(mrb, str)) {
     return mrb_str_byteindex_m(mrb, str);
   }
 
@@ -2922,8 +2938,7 @@ mrb_str_byterindex_m(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
 {
-  struct RString *s = mrb_str_ptr(str);
-  if (RSTR_SINGLE_BYTE_P(s)) {
+  if (str_single_byte_p(mrb, str)) {
     return mrb_str_byterindex_m(mrb, str);
   }
 
