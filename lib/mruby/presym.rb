@@ -84,16 +84,20 @@ module MRuby
       sym_re = /\A(#{prefix_re})?([\w&&\D]\w*)(#{suffix_re})?\z/o
       _pp "GEN", id_header_path.relative_path
       File.open(id_header_path, "w:binary") do |f|
-        f.puts "enum mruby_presym {"
-        presyms.each.with_index(1) do |sym, num|
-          if sym_re =~ sym && (affixes = SYMBOL_TO_MACRO[[$1, $3]])
-            f.puts "  MRB_#{affixes * 'SYM'}__#{$2} = #{num},"
-          elsif name = OPERATORS[sym]
-            f.puts "  MRB_OPSYM__#{name} = #{num},"
+        # PicoRuby builds the VM core as a gem, so its mrbc build scans
+        # zero presyms. An empty enum is invalid C, so skip the enum then.
+        unless presyms.empty?
+          f.puts "enum mruby_presym {"
+          presyms.each.with_index(1) do |sym, num|
+            if sym_re =~ sym && (affixes = SYMBOL_TO_MACRO[[$1, $3]])
+              f.puts "  MRB_#{affixes * 'SYM'}__#{$2} = #{num},"
+            elsif name = OPERATORS[sym]
+              f.puts "  MRB_OPSYM__#{name} = #{num},"
+            end
           end
+          f.puts "};"
+          f.puts
         end
-        f.puts "};"
-        f.puts
         f.puts "#define MRB_PRESYM_MAX #{presyms.size}"
       end
     end
