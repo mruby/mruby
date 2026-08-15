@@ -181,11 +181,11 @@ pattern analysis.
   whose ends are a byte and a character (`[\x80-µ]`) names neither and raises
   `RegexpError`.
 - **ASCII case folding by default**: The `i` flag handles ASCII letters
-  only unless the build defines `MRB_REGEXP_UNICODE_CASE`, which adds the
-  Unicode foldings that pair one codepoint with one other. Without the
-  option, a pattern holding a character that needs one of those raises
-  `RegexpError` rather than answering as if the character had no case; see
-  Configuration. A codepoint with no single counterpart to fold to (`ﬀ` to
+  only unless the build defines `MRB_REGEXP_UNICODE_CASE`, which reads the Unicode
+  foldings that pair one codepoint with one other off core's case table.
+  Without the option, a pattern holding a character that needs one of those
+  raises `RegexpError` rather than answering as if the character had no case;
+  see Configuration. A codepoint with no single counterpart to fold to (`ﬀ` to
   `ff`) is never folded by either build.
 - **Case-insensitive backreferences match a superset**: `\1` under `i`
   folds each side and compares, so it matches where the capture and the
@@ -236,16 +236,22 @@ there.
 #endif
 ```
 
-Case folding beyond ASCII is opt-in, since it carries a table of the Unicode
-foldings. Define `MRB_REGEXP_UNICODE_CASE` to enable it:
+Case folding beyond ASCII is opt-in, since it carries the walks over core's
+case table. Define `MRB_REGEXP_UNICODE_CASE` to enable it:
 
 ```ruby
 conf.cc.defines << 'MRB_REGEXP_UNICODE_CASE'
 ```
 
-It costs about 4KB of text, of which roughly 2.5KB is the table itself. With
-it, `/Ā/i` matches `"ā"`, `/Σ/i` matches `"σ"`, and `[^Ā]` under `/i` stops
-accepting `"ā"`.
+The table itself is core's, carried by any build that defines
+`MRB_UTF8_STRING`, which is what `String#downcase` and the four case methods
+beside it read. What this option adds is the two directions /i needs over that
+table, at about 4KB of text. It therefore takes `MRB_UTF8_STRING` to do
+anything: without it there is no table under the walks, and a pattern read as
+bytes has no character to fold in the first place.
+
+With the option, `/Ā/i` matches `"ā"`, `/Σ/i` matches `"σ"`, and `[^Ā]` under
+`/i` stops accepting `"ā"`.
 
 Without it, those same patterns do not compile:
 
