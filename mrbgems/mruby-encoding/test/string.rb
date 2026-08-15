@@ -476,6 +476,20 @@ assert('a byte-read string padded to width') do
   end
 end
 
+assert('a byte-read string converted case') do
+  # Bytes read as bytes spell no characters, so a case conversion has nothing
+  # above ASCII to map and hands back the bytes it was given, still read as
+  # bytes. The same bytes read as UTF-8 spell "Ä", which does map.
+  if UTF8STRING
+    s = "\xC3\x84B".b
+    assert_equal [195, 132, 98], s.downcase.bytes
+    assert_equal [195, 132, 66], s.upcase.bytes
+    assert_equal [195, 132, 98], s.capitalize.bytes
+    assert_equal Encoding::BINARY, s.downcase.encoding
+    assert_equal [195, 164, 98], "\xC3\x84B".downcase.bytes
+  end
+end
+
 assert('a byte-read string cut in three') do
   # `partition` and `rpartition` cut their pieces out of the receiver's bytes,
   # so the head and the tail are read the way the receiver was. The middle

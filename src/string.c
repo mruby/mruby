@@ -1999,6 +1999,251 @@ mrb_str_aset_m(mrb_state *mrb, mrb_value str)
   return replace;
 }
 
+#ifdef MRB_UTF8_STRING
+
+#include "unicase.h"
+
+/* What the walk below makes of an ASCII character. Each method keeps its own
+   loop over a string that holds nothing but ASCII, so this is reached only for
+   the ASCII characters of a string that holds others beside them. */
+static int
+ascii_case_conv(int c, enum mrb_case_mode mode, mrb_bool first)
+{
+  switch (mode) {
+  case MRB_CASE_UP:
+    return TOUPPER(c);
+  case MRB_CASE_CAPITALIZE:
+    return first ? TOUPPER(c) : TOLOWER(c);
+  default:
+    return TOLOWER(c);
+  }
+}
+
+/* Which table of unicase.h a character is looked up in. Title case holds only
+   its difference from upper case, so a lookup that misses it asks upper case
+   next. */
+enum case_kind {
+  CASE_KIND_LOWER,
+  CASE_KIND_UPPER,
+  CASE_KIND_TITLE
+};
+
+static const struct case_table {
+  const uint8_t *runs;
+  size_t run_count;
+  const uint8_t *multi;
+  size_t multi_count;
+  uint32_t min, max;
+} case_tables[] = {
+  {UNI_LOWER_RUNS, UNI_LOWER_RUN_COUNT, UNI_LOWER_MULTI, UNI_LOWER_MULTI_COUNT,
+   UNI_LOWER_MIN, UNI_LOWER_MAX},
+  {UNI_UPPER_RUNS, UNI_UPPER_RUN_COUNT, UNI_UPPER_MULTI, UNI_UPPER_MULTI_COUNT,
+   UNI_UPPER_MIN, UNI_UPPER_MAX},
+  {UNI_TITLE_RUNS, UNI_TITLE_RUN_COUNT, UNI_TITLE_MULTI, UNI_TITLE_MULTI_COUNT,
+   UNI_TITLE_MIN, UNI_TITLE_MAX},
+};
+
+/* The `n` bytes at `p`, least significant first, which is how unicase.h packs
+   both of its entry kinds. */
+static uint64_t
+case_bits(const uint8_t *p, int n)
+{
+  uint64_t v = 0;
+  for (int i = 0; i < n; i++) v |= (uint64_t)p[i] << (8 * i);
+  return v;
+}
+
+typedef struct case_run {
+  uint32_t start, count, stride;
+  int32_t delta;
+} case_run;
+
+static void
+case_run_at(const uint8_t *runs, size_t i, case_run *r)
+{
+  uint64_t v = case_bits(runs + i * UNI_CASE_RUN_BYTES, UNI_CASE_RUN_BYTES);
+  r->start = (uint32_t)(v & 0x1FFFFF);
+  r->count = (uint32_t)((v >> 21) & 0x7F);
+  r->stride = (uint32_t)((v >> 28) & 1) + 1;
+  r->delta = (int32_t)((v >> 29) & 0x1FFFF) - UNI_CASE_DELTA_BIAS;
+}
+
+/* Locate the run holding cp. Runs are emitted in ascending source order and
+   never overlap, so a binary search on start is enough; a run with stride 2
+   covers only every other codepoint in its span, which the modulo check
+   rejects. */
+static mrb_bool
+case_run_for(const struct case_table *t, uint32_t cp, case_run *out)
+{
+  size_t lo = 0, hi = t->run_count;
+  while (lo < hi) {
+    size_t mid = lo + (hi - lo) / 2;
+    case_run r;
+    case_run_at(t->runs, mid, &r);
+    uint32_t last = r.start + (r.count - 1) * r.stride;
+    if (cp < r.start) hi = mid;
+    else if (cp > last) lo = mid + 1;
+    else {
+      if ((cp - r.start) % r.stride != 0) return FALSE;
+      *out = r;
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+static mrb_bool
+case_multi_for(const struct case_table *t, uint32_t cp, uint32_t *off, uint32_t *len)
+{
+  size_t lo = 0, hi = t->multi_count;
+  while (lo < hi) {
+    size_t mid = lo + (hi - lo) / 2;
+    uint64_t v = case_bits(t->multi + mid * UNI_CASE_MULTI_BYTES, UNI_CASE_MULTI_BYTES);
+    uint32_t mcp = (uint32_t)(v & 0x1FFFFF);
+    if (cp < mcp) hi = mid;
+    else if (cp > mcp) lo = mid + 1;
+    else {
+      *off = (uint32_t)((v >> 21) & 0xFFF);
+      *len = (uint32_t)((v >> 33) & 7);
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+/* Ask one table about cp, writing what it says into buf. Answers the byte
+   count written, 0 for a character the table maps to itself, and -1 for one
+   the table says nothing about. The two apart is what lets title case hand a
+   character it says nothing about on to upper case while keeping the ones it
+   deliberately maps to themselves. */
+static mrb_int
+case_map_one(enum case_kind kind, uint32_t cp, char *buf)
+{
+  const struct case_table *t = &case_tables[kind];
+  if (cp < t->min || t->max < cp) return -1;
+
+  uint32_t off, len;
+  if (case_multi_for(t, cp, &off, &len)) {
+    memcpy(buf, uni_case_pool + off, len);
+    return (mrb_int)len;
+  }
+  case_run r;
+  if (!case_run_for(t, cp, &r)) return -1;
+  if (r.delta == 0) return 0;
+  return mrb_utf8_to_buf(buf, (mrb_int)cp + r.delta);
+}
+
+/* The case mapping of cp, written into buf, which needs UNI_CASE_MAX_BYTES of
+   room. Answers the byte count written, or 0 for a character that maps to
+   itself. */
+static mrb_int
+case_map(enum case_kind kind, uint32_t cp, char *buf)
+{
+  mrb_int n = case_map_one(kind, cp, buf);
+  if (n < 0 && kind == CASE_KIND_TITLE) {
+    /* Title case is the difference from upper case, so a character the
+       difference says nothing about takes the upper case answer. */
+    n = case_map_one(CASE_KIND_UPPER, cp, buf);
+  }
+  return n < 0 ? 0 : n;
+}
+
+static enum case_kind
+case_kind_of(enum mrb_case_mode mode, mrb_bool first)
+{
+  switch (mode) {
+  case MRB_CASE_UP:
+    return CASE_KIND_UPPER;
+  case MRB_CASE_CAPITALIZE:
+    return first ? CASE_KIND_TITLE : CASE_KIND_LOWER;
+  default:
+    return CASE_KIND_LOWER;
+  }
+}
+
+/* Convert a string that holds characters the tables can speak about. A mapping
+   changes how many bytes a character takes ("K" U+212A lower cases to the one
+   byte of "k"), so the answer is built beside the string rather than over it,
+   and the string takes the buffer's bytes at the end. */
+static mrb_bool
+str_case_convert_utf8(mrb_state *mrb, mrb_value str, enum mrb_case_mode mode)
+{
+  struct RString *s = mrb_str_ptr(str);
+  const char *p = RSTR_PTR(s);
+  const char *pend = p + RSTR_LEN(s);
+  mrb_value out = mrb_str_new_capa(mrb, RSTR_LEN(s));
+  mrb_bool modify = FALSE;
+  mrb_bool ascii_only = TRUE;
+  mrb_bool first = TRUE;
+
+  while (p < pend) {
+    char buf[UNI_CASE_MAX_BYTES];
+    const char *src = p;
+    mrb_int clen;
+    uint32_t cp = mrb_utf8_decode(p, pend, &clen);
+    mrb_int n;
+
+    if (cp < 0x80) {
+      buf[0] = (char)ascii_case_conv((int)cp, mode, first);
+      n = 1;
+    }
+    else {
+      n = case_map(case_kind_of(mode, first), cp, buf);
+      /* A run of bytes that spells no character, and one that spells a
+         character with no mapping, both stand as they are. */
+      if (n == 0) {
+        memcpy(buf, src, (size_t)clen);
+        n = clen;
+      }
+    }
+    p += clen;
+    first = FALSE;
+
+    if (n != clen || memcmp(buf, src, (size_t)n) != 0) modify = TRUE;
+    for (mrb_int i = 0; i < n; i++) {
+      if ((unsigned char)buf[i] & 0x80) ascii_only = FALSE;
+    }
+    mrb_str_cat(mrb, out, buf, n);
+  }
+
+  if (!modify) return FALSE;
+
+  /* Nothing but ASCII is the stronger answer and is true of the bytes just
+     written whatever the source was. Otherwise the mapping preserves what the
+     source was: every mapping spells a character, so a sound string stays
+     sound, and a broken one keeps the run of bytes that broke it. */
+  struct RString *o = mrb_str_ptr(out);
+  RSTR_CODERANGE_SET(o, ascii_only ? MRB_STR_CODERANGE_7BIT
+                                   : RSTR_CODERANGE(s) == MRB_STR_CODERANGE_VALID
+                                     ? MRB_STR_CODERANGE_VALID
+                                     : MRB_STR_CODERANGE_UNKNOWN);
+  str_replace(mrb, s, o);
+  return TRUE;
+}
+
+int
+mrb_str_case_convert_unicode(mrb_state *mrb, mrb_value str, enum mrb_case_mode mode)
+{
+  struct RString *s = mrb_str_ptr(str);
+
+  /* A string of nothing but ASCII holds no character the tables speak about,
+     and one read as bytes holds no characters at all. Neither is this walk's
+     to make, so both go back to the caller's own loop, which converts the
+     bytes where they stand. A string that has not been walked yet is walked
+     for it: reading it through is what the loop below does anyway, and this
+     way an ASCII one is spared the second string the walk builds beside it.
+     The byte reading is asked about first, since a string read as bytes must
+     not be recorded as holding one character per byte. */
+  if (RSTR_BINARY_P(s) || str_ascii_p(s)) return -1;
+
+  str_modify_keep_cr(mrb, s);
+  if (RSTR_LEN(s) == 0 || RSTR_PTR(s) == NULL) return -1;
+
+  return str_case_convert_utf8(mrb, str, mode) ? 1 : 0;
+}
+
+#endif  /* MRB_UTF8_STRING */
+
 /* 15.2.10.5.8  */
 /*
  *  call-seq:
@@ -2015,6 +2260,9 @@ mrb_str_aset_m(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_capitalize_bang(mrb_state *mrb, mrb_value str)
 {
+  int uc = mrb_str_case_convert_unicode(mrb, str, MRB_CASE_CAPITALIZE);
+  if (uc >= 0) return uc ? str : mrb_nil_value();
+
   mrb_bool modify = FALSE;
   struct RString *s = mrb_str_ptr(str);
   mrb_int len = RSTR_LEN(s);
@@ -2043,7 +2291,8 @@ mrb_str_capitalize_bang(mrb_state *mrb, mrb_value str)
  *     str.capitalize   => new_str
  *
  *  Returns a copy of *str* with the first character converted to uppercase
- *  and the remainder to lowercase.
+ *  and the remainder to lowercase. Where a character has a title case apart
+ *  from its upper case, the first one takes that ("ǳ" to "ǲ").
  *
  *     "hello".capitalize    #=> "Hello"
  *     "HELLO".capitalize    #=> "Hello"
@@ -2247,6 +2496,9 @@ mrb_str_chop(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_str_downcase_bang(mrb_state *mrb, mrb_value str)
 {
+  int uc = mrb_str_case_convert_unicode(mrb, str, MRB_CASE_DOWN);
+  if (uc >= 0) return uc ? str : mrb_nil_value();
+
   char *p, *pend;
   mrb_bool modify = FALSE;
   struct RString *s = mrb_str_ptr(str);
@@ -2272,8 +2524,9 @@ mrb_str_downcase_bang(mrb_state *mrb, mrb_value str)
  *     str.downcase   => new_str
  *
  *  Returns a copy of *str* with all uppercase letters replaced with their
- *  lowercase counterparts. The operation is locale insensitive---only
- *  characters 'A' to 'Z' are affected.
+ *  lowercase counterparts. The operation is locale insensitive. A build that
+ *  reads a string as characters maps every character Unicode gives a lower
+ *  case; one that reads it as bytes maps 'A' to 'Z' alone.
  *
  *     "hEllO".downcase   #=> "hello"
  */
@@ -3426,6 +3679,9 @@ mrb_str_to_s(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_str_upcase_bang(mrb_state *mrb, mrb_value str)
 {
+  int uc = mrb_str_case_convert_unicode(mrb, str, MRB_CASE_UP);
+  if (uc >= 0) return uc ? str : mrb_nil_value();
+
   struct RString *s = mrb_str_ptr(str);
   char *p, *pend;
   mrb_bool modify = FALSE;
@@ -3451,8 +3707,10 @@ mrb_str_upcase_bang(mrb_state *mrb, mrb_value str)
  *     str.upcase   => new_str
  *
  *  Returns a copy of *str* with all lowercase letters replaced with their
- *  uppercase counterparts. The operation is locale insensitive---only
- *  characters 'a' to 'z' are affected.
+ *  uppercase counterparts. The operation is locale insensitive. A build that
+ *  reads a string as characters maps every character Unicode gives an upper
+ *  case, which can spell more characters than it was handed ("ß" to "SS"); one
+ *  that reads it as bytes maps 'a' to 'z' alone.
  *
  *     "hEllO".upcase   #=> "HELLO"
  */

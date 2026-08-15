@@ -317,6 +317,53 @@ assert('String#capitalize!', '15.2.10.5.8') do
   assert_equal nil, 'Abc'.capitalize!
 end
 
+assert('String#capitalize - Unicode') do
+  # The first character takes title case, which is not always its upper case.
+  assert_equal 'ǲ', 'ǳ'.capitalize
+  assert_equal 'Ǳ', 'ǳ'.upcase
+  # The rest takes lower case, whatever case it came in.
+  assert_equal 'ǲabc', 'ǳabc'.capitalize
+  assert_equal 'Aä', 'aÄ'.capitalize
+  # A mapping that spells more than one character.
+  assert_equal 'Fi', 'ﬁ'.capitalize
+  # Georgian Mkhedruli upper cases to Mtavruli and title cases to itself, so
+  # the two answers have to be told apart rather than shared.
+  assert_equal 'Ა', 'ა'.upcase
+  assert_equal 'ა', 'ა'.capitalize
+  assert_nil 'ა'.capitalize!
+end if UTF8STRING
+
+assert('String#downcase - Unicode') do
+  assert_equal 'äöü', 'ÄÖÜ'.downcase
+  # Word final sigma is a mapping that reads its neighbours, which neither
+  # this nor CRuby applies: both answer "σ" for the last one too.
+  assert_equal 'σοφοσ', 'ΣΟΦΟΣ'.downcase
+  # A mapping changes how many bytes a character takes: U+212A is three bytes
+  # and lower cases to the one of "k".
+  assert_equal 'k', "\u{212a}".downcase
+  assert_equal 1, "\u{212a}".downcase.bytesize
+  # And it can spell more characters than it was handed.
+  assert_equal "i\u{307}", 'İ'.downcase
+  assert_equal 2, 'İ'.downcase.length
+  # A script without case has nothing to map.
+  assert_equal '日本', '日本'.downcase
+  assert_nil '日本'.downcase!
+end if UTF8STRING
+
+assert('String#upcase - Unicode') do
+  assert_equal 'ÄÖÜ', 'äöü'.upcase
+  assert_equal 'ΣΟΦΟΣ', 'σοφος'.upcase
+  # A mapping that spells more than one character.
+  assert_equal 'SS', 'ß'.upcase
+  assert_equal 2, 'ß'.upcase.length
+  assert_equal 'FI', 'ﬁ'.upcase
+  # And one that shortens: U+0131 is two bytes and upper cases to "I".
+  assert_equal 'I', 'ı'.upcase
+  assert_equal 1, 'ı'.upcase.bytesize
+  assert_equal '日本', '日本'.upcase
+  assert_nil '日本'.upcase!
+end if UTF8STRING
+
 assert('String#chomp', '15.2.10.5.9') do
   a = 'abc'.chomp
   b = ''.chomp

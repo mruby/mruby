@@ -349,6 +349,25 @@ mrb_enc_decode(const char *p, const char *e, mrb_int *lenp)
   return (uint8_t)*p;
 #endif
 }
+/* What a case conversion makes of each character. `capitalize` asks two things
+   of one string, title case at the front and lower case behind it, so a mode
+   is what a method does rather than one case. */
+enum mrb_case_mode {
+  MRB_CASE_DOWN,
+  MRB_CASE_UP,
+  MRB_CASE_CAPITALIZE
+};
+
+/* Convert every character of `str` in place where Unicode has something to say
+   about it, answering 1 if any character changed, 0 if none did, and -1 for a
+   string this walk is not the one to convert: nothing but ASCII, read as bytes,
+   or empty. A caller takes -1 as "the ASCII loop I have is the whole answer",
+   which is what every build without the tables answers to every string. */
+#ifdef MRB_UTF8_STRING
+int mrb_str_case_convert_unicode(mrb_state *mrb, mrb_value str, enum mrb_case_mode mode);
+#else
+#define mrb_str_case_convert_unicode(mrb, str, mode) (-1)
+#endif
 
 /* attr accessor bodies (class.c); the VM compares function pointers against
    these to run attr calls without a full method-call frame */
