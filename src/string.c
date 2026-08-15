@@ -740,16 +740,14 @@ mrb_str_char_to_byte(mrb_state *mrb, mrb_value str, mrb_int off, mrb_int idx)
 
   while (p<e && i<idx) {
     if ((*p & 0x80) == 0) {
-      const char *np = search_nonascii(p, e);
-      ptrdiff_t alen = np - p;
-      if (idx < i+alen) {
-        p += idx-i;
-        i=idx;
-      }
-      else {
-        p = np;
-        i += alen;
-      }
+      /* Every ASCII byte stands for a character of its own, so the run only
+         has to be followed as far as the index asks for. Reading to the end of
+         the string instead makes finding the character just past the head cost
+         what finding the last one does. */
+      const char *lim = (e - p) > (idx - i) ? p + (idx - i) : e;
+      const char *np = search_nonascii(p, lim);
+      i += np - p;
+      p = np;
     }
     else {
       p += mrb_utf8len(p, e);
