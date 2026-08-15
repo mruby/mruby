@@ -257,6 +257,17 @@ mrb_int mrb_str_byte_to_char(mrb_state *mrb, mrb_value str, mrb_int bi);
    definition in string.c for what it reads and what it leaves behind. */
 mrb_bool mrb_str_valid_encoding_p(mrb_state *mrb, mrb_value str);
 
+#ifdef MRB_UTF8_STRING
+/* What RSTR_SINGLE_BYTE_P() reads, asking the bytes where the string does not
+   say rather than answering no for one nothing has read yet. See the
+   definition in string.c for what it leaves behind.
+
+   Only a build that reads its strings as characters has anything to tell a
+   single-byte string from, so a build indexing by byte carries no answer here
+   rather than one saying TRUE of every string. */
+mrb_bool mrb_str_single_byte_p(mrb_state *mrb, mrb_value str);
+#endif
+
 /* Raise IndexError when `pos` lands inside a character of `str`, and return
    otherwise. See the definition in string.c for which offsets are positions
    the string has; a build without MRB_UTF8_STRING has one per byte, so this

@@ -728,8 +728,8 @@ str_ascii_p(struct RString *s)
    later caller down the walking path however plain the bytes are. A string is
    walked whole at most once here: the walk records what it finds, and it is
    the same walk the character indexing would go on to do anyway. */
-static mrb_bool
-str_single_byte_p(mrb_state *mrb, mrb_value str)
+mrb_bool
+mrb_str_single_byte_p(mrb_state *mrb, mrb_value str)
 {
   struct RString *s = mrb_str_ptr(str);
   if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_UNKNOWN) {
@@ -1058,7 +1058,7 @@ str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
   struct RString *s = mrb_str_ptr(str);
   mrb_int slen = RSTR_LEN(s);
 
-  if (str_single_byte_p(mrb, str)) {
+  if (mrb_str_single_byte_p(mrb, str)) {
     return mrb_str_beg_len(slen, &beg, &len) ?
       mrb_str_byte_subseq(mrb, str, beg, len) : mrb_nil_value();
   }
@@ -2700,7 +2700,7 @@ mrb_str_byteindex_m(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_index_m(mrb_state *mrb, mrb_value str)
 {
-  if (str_single_byte_p(mrb, str)) {
+  if (mrb_str_single_byte_p(mrb, str)) {
     return mrb_str_byteindex_m(mrb, str);
   }
 
@@ -2999,7 +2999,7 @@ mrb_str_byterindex_m(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
 {
-  if (str_single_byte_p(mrb, str)) {
+  if (mrb_str_single_byte_p(mrb, str)) {
     return mrb_str_byterindex_m(mrb, str);
   }
 

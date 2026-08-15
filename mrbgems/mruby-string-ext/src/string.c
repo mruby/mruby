@@ -1435,12 +1435,18 @@ str_casecmp(mrb_state *mrb, mrb_value self)
 #ifdef MRB_UTF8_STRING
 /* Whether a string holds anything the fold table could speak about. A string
    of nothing but ASCII does not, and one read as bytes spells no characters
-   at all, so neither needs the walk. */
+   at all, so neither needs the walk: those are the two a single-byte string is
+   arrived at from.
+
+   The reading is asked for rather than taken off the flags, so that a string
+   nobody has read through yet is read through here. The answer is left on the
+   string, so the next comparison of it is a flag away; sending it down the
+   folding path instead would copy it, read the copy, and throw the answer away
+   with the copy, which is a cost that never stops being paid. */
 static mrb_bool
-str_folds_beyond_ascii(mrb_value str)
+str_folds_beyond_ascii(mrb_state *mrb, mrb_value str)
 {
-  struct RString *s = mrb_str_ptr(str);
-  return RSTR_CODERANGE(s) != MRB_STR_CODERANGE_7BIT && !RSTR_BINARY_P(s);
+  return !mrb_str_single_byte_p(mrb, str);
 }
 
 /* Fold the one side the tables have nothing to say about. Only one of the two
@@ -1485,7 +1491,7 @@ str_casecmp_p(mrb_state *mrb, mrb_value self)
 
   /* Nothing above ASCII on either side leaves nothing for the tables to fold,
      and the two strings order by their bytes as they always have. */
-  if (str_folds_beyond_ascii(self) || str_folds_beyond_ascii(other)) {
+  if (str_folds_beyond_ascii(mrb, self) || str_folds_beyond_ascii(mrb, other)) {
     mrb_value a = mrb_str_dup(mrb, self);
     mrb_value b = mrb_str_dup(mrb, other);
     if (mrb_str_case_convert_unicode(mrb, a, MRB_CASE_FOLD) < 0) str_fold_ascii(mrb, a);
