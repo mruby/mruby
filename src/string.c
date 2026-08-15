@@ -1043,12 +1043,57 @@ mrb_str_beg_len(mrb_int str_len, mrb_int *begp, mrb_int *lenp)
   return TRUE;
 }
 
+#ifdef MRB_UTF8_STRING
+/* What a substring needs of the string is where two positions are, not how
+   many the string has. Counting the whole of it to find that out reads every
+   byte however near the head the range sits, so the walk here stops at the
+   range instead: forward to `beg` for a position counted from the head, and
+   backward from the end for one counted from there. A position past the end is
+   what the forward walk reports by coming back longer than the string, since
+   mrb_str_char_to_byte() answers one byte more than it reached when the string
+   ends before the index does. */
+static mrb_value
+str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
+{
+  struct RString *s = mrb_str_ptr(str);
+  mrb_int slen = RSTR_LEN(s);
+
+  if (str_single_byte_p(mrb, str)) {
+    return mrb_str_beg_len(slen, &beg, &len) ?
+      mrb_str_byte_subseq(mrb, str, beg, len) : mrb_nil_value();
+  }
+  if (len < 0) return mrb_nil_value();
+
+  const char *o = RSTR_PTR(s);
+  mrb_int bbeg;
+  if (beg < 0) {
+    const char *e = o + slen;
+    const char *p = e;
+    for (mrb_int n = beg; n < 0; n++) {
+      /* stepping back off the first character leaves the string, which is the
+         negative index that names no position */
+      if (p == o) return mrb_nil_value();
+      p = mrb_utf8_char_head(o, p-1, e);
+    }
+    bbeg = (mrb_int)(p - o);
+  }
+  else {
+    bbeg = mrb_str_char_to_byte(mrb, str, 0, beg);
+    if (bbeg > slen) return mrb_nil_value();
+  }
+
+  mrb_int blen = mrb_str_char_to_byte(mrb, str, bbeg, len);
+  if (blen > slen - bbeg) blen = slen - bbeg;
+  return mrb_str_byte_subseq(mrb, str, bbeg, blen);
+}
+#else
 static mrb_value
 str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 {
   return mrb_str_beg_len(mrb_str_char_len(mrb, str), &beg, &len) ?
     str_subseq(mrb, str, beg, len) : mrb_nil_value();
 }
+#endif
 
 /*
  * @param mrb The mruby state.
