@@ -185,11 +185,12 @@ pattern analysis.
   which a build converting case by ASCII does not carry. There `i` folds
   ASCII letters, and a pattern holding a character that needs one of those
   foldings raises `RegexpError` rather than answering as if the character had
-  no case; see Configuration. A codepoint with no single counterpart to fold
-  to (`ﬀ` to `ff`) is never folded by either build.
+  no case. What it refuses is held as ranges, which take in some uncased
+  characters as well; see Configuration. A codepoint with no single
+  counterpart to fold to (`ﬀ` to `ff`) is never folded by either build.
 - **Case-insensitive backreferences match a superset**: `\1` under `i`
   folds each side and compares, so it matches where the capture and the
-  repeat hold the same characters in different widths (`k` and `K`).
+  repeat hold the same characters in different widths (`k` and `K`).
   CRuby declines to fold across a width change there.
 - **Step limit on backtracking**: Patterns that require the
   backtracking engine are subject to a step limit.
@@ -256,12 +257,14 @@ Where it converts by ASCII, those same patterns do not compile:
 
 The test is whether a character has a case folding, not whether it is
 non-ASCII, so a script without case is unaffected and `/日本/i`, `/العربية/i`
-and `/😀/i` go on working. Patterns like `/Ā/i` were answering wrongly rather
-than narrowly before this: `[Ā]` under `/i` missed `"ā"`, and `[^Ā]` accepted
-it. Reaching this error means the pattern wants a build that converts case by
-Unicode.
+and `/😀/i` go on working. The codepoints that do have one are held as ranges
+rather than one by one, and those ranges are coarse: the uncased codepoints
+inside them are refused with the rest, `ƻ` (U+01BB) among them.
+Patterns like `/Ā/i` were answering wrongly rather than narrowly before this:
+`[Ā]` under `/i` missed `"ā"`, and `[^Ā]` accepted it. Reaching this error
+means the pattern wants a build that converts case by Unicode.
 
-`/k/i` matching `"K"` (U+212A) and `/s/i` matching `"ſ"` need no table.
+`/k/i` matching `"K"` (U+212A) and `/s/i` matching `"ſ"` need no table.
 Those two are the only foldings whose result is an ASCII letter, and both
 builds carry them, so that folding "ASCII only" covers the whole of the
 equivalence class an ASCII letter belongs to rather than the part of it that

@@ -237,7 +237,10 @@ end
 - Drops the Unicode case table the build would otherwise carry. That is what
   the option is for: a target counting its bytes buys the UTF-8 indexing of
   `MRB_UTF8_STRING` without the table beside it.
-- The regexp `i` flag reads that table too, so it narrows with the rest.
+- The regexp `i` flag reads that table too, so it narrows with the rest: it
+  folds ASCII letters, and a pattern holding a character that needs one of the
+  Unicode foldings raises `RegexpError` rather than answering as if the
+  character had no case.
 - Nothing to narrow without `MRB_UTF8_STRING`: a build reading its strings as
   bytes converts ASCII alone whatever this says.
 
