@@ -2273,6 +2273,14 @@ mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
     if (!RSTR_SINGLE_BYTE_P(s) && mrb_utf8_char_head(p, pp, p + len) != pp) {
       return mrb_nil_value();
     }
+    /* Cutting bytes that are nothing but ASCII leaves what the rest is read as
+       standing, non-ASCII and all, so the coderange str_modify_keep_cr() kept
+       is still the answer. Cutting a non-ASCII byte can have taken the last of
+       them, and a string of nothing but ASCII stands at 7BIT rather than
+       VALID: what it is has to be asked again. */
+    if (search_nonascii(pp, pp + rslen) != pp + rslen) {
+      RSTR_CODERANGE_SET(s, MRB_STR_CODERANGE_UNKNOWN);
+    }
 #endif
     RSTR_SET_LEN(s, len - rslen);
     p[RSTR_LEN(s)] = '\0';
@@ -2346,6 +2354,14 @@ mrb_str_chop_bang(mrb_state *mrb, mrb_value str)
         len--;
       }
     }
+#ifdef MRB_UTF8_STRING
+    /* see mrb_str_chomp_bang(): the character cut here is the last one, so a
+       non-ASCII lead byte at `len` is the whole of what leaves the string, and
+       it can have been the last non-ASCII there was. */
+    if ((signed char)RSTR_PTR(s)[len] < 0) {
+      RSTR_CODERANGE_SET(s, MRB_STR_CODERANGE_UNKNOWN);
+    }
+#endif
     RSTR_SET_LEN(s, len);
     RSTR_PTR(s)[len] = '\0';
     return str;
