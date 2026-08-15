@@ -2014,18 +2014,21 @@ ascii_case_conv(int c, enum mrb_case_mode mode, mrb_bool first)
     return TOUPPER(c);
   case MRB_CASE_CAPITALIZE:
     return first ? TOUPPER(c) : TOLOWER(c);
+  case MRB_CASE_SWAP:
+    return ISUPPER(c) ? TOLOWER(c) : TOUPPER(c);
   default:
     return TOLOWER(c);
   }
 }
 
-/* Which table of unicase.h a character is looked up in. Title case holds only
-   its difference from upper case, so a lookup that misses it asks upper case
-   next. */
+/* Which table of unicase.h a character is looked up in. The last two hold a
+   difference rather than a mapping: title case against upper case, and
+   swapping against the rule below it. */
 enum case_kind {
   CASE_KIND_LOWER,
   CASE_KIND_UPPER,
-  CASE_KIND_TITLE
+  CASE_KIND_TITLE,
+  CASE_KIND_SWAP
 };
 
 static const struct case_table {
@@ -2041,6 +2044,8 @@ static const struct case_table {
    UNI_UPPER_MIN, UNI_UPPER_MAX},
   {UNI_TITLE_RUNS, UNI_TITLE_RUN_COUNT, UNI_TITLE_MULTI, UNI_TITLE_MULTI_COUNT,
    UNI_TITLE_MIN, UNI_TITLE_MAX},
+  {UNI_SWAP_RUNS, UNI_SWAP_RUN_COUNT, UNI_SWAP_MULTI, UNI_SWAP_MULTI_COUNT,
+   UNI_SWAP_MIN, UNI_SWAP_MAX},
 };
 
 /* The `n` bytes at `p`, least significant first, which is how unicase.h packs
@@ -2140,10 +2145,22 @@ static mrb_int
 case_map(enum case_kind kind, uint32_t cp, char *buf)
 {
   mrb_int n = case_map_one(kind, cp, buf);
-  if (n < 0 && kind == CASE_KIND_TITLE) {
+  if (n >= 0) return n;
+
+  switch (kind) {
+  case CASE_KIND_TITLE:
     /* Title case is the difference from upper case, so a character the
        difference says nothing about takes the upper case answer. */
     n = case_map_one(CASE_KIND_UPPER, cp, buf);
+    break;
+  case CASE_KIND_SWAP:
+    /* Swapping is the difference from this rule: a character with a lower
+       case is an upper case one and swaps down, and one without swaps up. */
+    n = case_map_one(CASE_KIND_LOWER, cp, buf);
+    if (n < 0) n = case_map_one(CASE_KIND_UPPER, cp, buf);
+    break;
+  default:
+    break;
   }
   return n < 0 ? 0 : n;
 }
@@ -2156,6 +2173,8 @@ case_kind_of(enum mrb_case_mode mode, mrb_bool first)
     return CASE_KIND_UPPER;
   case MRB_CASE_CAPITALIZE:
     return first ? CASE_KIND_TITLE : CASE_KIND_LOWER;
+  case MRB_CASE_SWAP:
+    return CASE_KIND_SWAP;
   default:
     return CASE_KIND_LOWER;
   }

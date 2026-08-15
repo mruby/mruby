@@ -17,6 +17,11 @@
 # "this one does not change" as well: `U+10D0` upcases to `U+1C90` and
 # capitalizes to itself, so a run of delta 0 stands for that.
 #
+# Swap case is stored the same way, against the rule that a character with a
+# lower case swaps down and one without swaps up. What the rule misses is the
+# title case characters, which CRuby swaps to something neither case spells:
+# `U+01C5` upcases to `U+01C4` and downcases to `U+01C6`, and swaps to "dŽ".
+
 require 'rbconfig'
 
 outdir = ARGV[0] or abort "usage: #{$0} OUTDIR"
@@ -26,6 +31,7 @@ outdir = ARGV[0] or abort "usage: #{$0} OUTDIR"
 lower = {}
 upper = {}
 title = {}
+swap_diff = {}
 
 (0x80..0x10FFFF).each do |cp|
   next if cp.between?(0xD800, 0xDFFF)
@@ -36,6 +42,9 @@ title = {}
   lower[cp] = l if l != c
   upper[cp] = u if u != c
   title[cp] = t if t != c
+  # What the swap rule would answer, against what swapping actually answers.
+  s = c.swapcase
+  swap_diff[cp] = s if s != (l != c ? l : u)
 end
 
 # Title case rides on upper case, so only what the two disagree about is
@@ -119,6 +128,7 @@ TABLES = [
   ['lower', lower,      'the lowercase mapping'],
   ['upper', upper,      'the uppercase mapping'],
   ['title', title_diff, 'where title case differs from upper case'],
+  ['swap',  swap_diff,  'where swapping differs from the down-then-up rule'],
 ]
 
 encoded = TABLES.map do |name, map, _|
@@ -150,9 +160,10 @@ File.open(File.join(outdir, 'unicase.h'), 'w') do |out|
     ** A source that maps to several characters is in the multi table beside
     ** each run table, spelled as the UTF-8 bytes it produces.
     **
-    ** Title case is stored as its difference from upper case; a run of delta 0
-    ** in it means the source upper cases to something and title cases to
-    ** itself.
+    ** Title case is stored as its difference from upper case, and swapping as
+    ** its difference from the down-then-up rule; a run of delta 0 in either
+    ** means the source maps under the rule it rides on and not under this
+    ** one.
     **
     ** See Copyright Notice in mruby.h
     */
