@@ -141,15 +141,11 @@ struct RStringEmbed {
    this at -O3. */
 # define RSTR_CODERANGE(s) \
   (((s)->flags & MRB_STR_CODERANGE_MASK) >> MRB_STR_CODERANGE_SHIFT)
-# define RSTR_CODERANGE_SET(s, cr) \
-  ((s)->flags = ((s)->flags & ~MRB_STR_CODERANGE_MASK) | \
-                (((cr) & ((1 << MRB_STR_CODERANGE_BITS) - 1)) << MRB_STR_CODERANGE_SHIFT))
 #else
 /* A build that indexes by byte hands every byte back as a character and asks
    the bytes nothing, so every string in it stands where 7BIT stands and there
    is nothing to record. */
 # define RSTR_CODERANGE(s) MRB_STR_CODERANGE_7BIT
-# define RSTR_CODERANGE_SET(s, cr) ((void)0)
 #endif
 
 /* The encoding a string's bytes are read as, named as an index into the set of
@@ -171,14 +167,6 @@ struct RStringEmbed {
 
 #define RSTR_ENCODING(s) \
   (((s)->flags & MRB_STR_ENCODING_MASK) >> MRB_STR_ENCODING_SHIFT)
-/* The index is masked to the width of the field it goes into, so an index the
-   field is too narrow for lands wrong rather than reaching the bits beside it.
-   Widening MRB_STR_ENCODING_BITS is what a build carrying that many encodings
-   needs; until then this keeps the mistake where it can be seen. Both operands
-   are constants at every call, so nothing is left of this at -O3. */
-#define RSTR_ENCODING_SET(s, e) \
-  ((s)->flags = ((s)->flags & ~MRB_STR_ENCODING_MASK) | \
-                (((e) & ((1 << MRB_STR_ENCODING_BITS) - 1)) << MRB_STR_ENCODING_SHIFT))
 #define RSTR_BINARY_P(s) (RSTR_ENCODING(s) == MRB_STR_ENCODING_BINARY)
 /* Whether a character index into this string is already a byte index: every
    byte of it stands for a character of its own. That is so where the bytes are
@@ -187,33 +175,10 @@ struct RStringEmbed {
    what the string carries rather than carried alongside it. */
 #define RSTR_SINGLE_BYTE_P(s) \
   (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_7BIT || RSTR_BINARY_P(s))
-/* A copy of a string is read the way the string it copies is, so the encoding
-   travels with the bytes rather than being left behind on the original. */
-#define RSTR_ENC_COPY(dst, src) RSTR_ENCODING_SET(dst, RSTR_ENCODING(src))
-/* A copy that ends up holding exactly the source's bytes reads them the same
-   way and stands exactly where the source stands, so the two answers travel
-   together. Splitting them apart would let a copy keep one and drop the
-   other, which is the way flags went missing when there was a macro per
-   flag.
 
-   The two fields sit side by side, so one mask spells both and the pair
-   crosses in a single read and a single write rather than one of each per
-   field. A build that indexes by byte keeps no coderange and writes those
-   bits nowhere, so what the mask carries across there is the zeros they
-   hold. */
-#define MRB_STR_ENC_CR_MASK (MRB_STR_ENCODING_MASK|MRB_STR_CODERANGE_MASK)
-#define RSTR_ENC_CR_COPY(dst, src) \
-  ((dst)->flags = ((dst)->flags & ~MRB_STR_ENC_CR_MASK) | \
-                  ((src)->flags & MRB_STR_ENC_CR_MASK))
-/* A subrange holds bytes of the source, so it is read the same way, but a cut
-   can leave a character in pieces and can also cut away the piece that spelled
-   none: it inherits neither soundness nor brokenness. Nothing but ASCII is
-   what survives being cut anywhere, so that is the one answer it carries
-   over. */
-#define RSTR_ENC_CR_COPY_FOR_SUBSTR(dst, src) \
-  (RSTR_ENC_COPY(dst, src), \
-   RSTR_CODERANGE_SET(dst, (RSTR_CODERANGE(src) == MRB_STR_CODERANGE_7BIT) \
-                           ? MRB_STR_CODERANGE_7BIT : MRB_STR_CODERANGE_UNKNOWN))
+/* Writing either field is in mruby/internal.h. What is read back here is what
+   the bytes were found to be; what is written there is a claim about them,
+   which only what can make good on it should be spelling. */
 
 /**
  * Returns a pointer from a Ruby string
