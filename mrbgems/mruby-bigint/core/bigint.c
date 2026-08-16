@@ -5882,11 +5882,23 @@ mrb_bint_cmp(mrb_state *mrb, mrb_value x, mrb_value y)
 {
 #ifndef MRB_NO_FLOAT
   if (mrb_float_p(y)) {
-    mrb_float v1 = mrb_bint_as_float(mrb, x);
-    mrb_float v2 = mrb_float(y);
-    if (v1 == v2) return 0;
-    if (v1 > v2)  return 1;
-    return -1;
+    mrb_float f = mrb_float(y);
+    /* NaN and an infinity have no integer part to split off, so both are
+       answered before the split. */
+    if (isnan(f)) return -2;
+    if (isinf(f)) return f < 0 ? 1 : -1;
+    /* Split `y` where the exact comparison can be made: `trunc()` is exact and
+       neither arm below rounds the integer part, so the fraction is all that is
+       left to decide. `mrb_bint_new_float()` is written for what no `mrb_int`
+       holds, which is what every caller checks before reaching it. */
+    mrb_float fi = trunc(f);
+    mrb_value yi = FIXABLE_FLOAT(fi) ? mrb_int_value(mrb, (mrb_int)fi)
+                                     : mrb_bint_new_float(mrb, fi);
+    mrb_int c = mrb_bint_cmp(mrb, x, yi);
+    if (c != 0) return c;
+    if (f > fi) return -1;
+    if (f < fi) return 1;
+    return 0;
   }
 #endif
   mpz_t a;
