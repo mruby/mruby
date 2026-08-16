@@ -358,6 +358,30 @@ assert("Regexp - UTF-8 codepoints in character class") do
   assert_equal 0, ("₅" =~ /[a-z₀-₉]/)
 end
 
+assert("Regexp - a class holds the union of its ranges however they are written") do
+  # The ranges are held sorted and free of overlaps, so writing one inside
+  # another, writing a pair the wrong way round, or naming the same member
+  # twice all come to the class the union spells once. What it takes for that
+  # to hold is a search: only the range written last used to be widened, so
+  # anything written out of order was kept as a second entry naming what the
+  # first already accepted.
+  skip unless __ENCODING__ == "UTF-8"
+  [/[Ā-Ȁ]/, /[ƀ-ȀĀ-Ɛ]/,
+   /[Ā-Őő-Ȁ]/, /[Ā-ȀĠ-İ]/,
+   /[ȀĀ-ȀĀ]/].each do |re|
+    assert_equal 0, ("Ā" =~ re)
+    assert_equal 0, ("Ő" =~ re)
+    assert_equal 0, ("Ȁ" =~ re)
+    assert_nil ("ÿ" =~ re)
+    assert_nil ("ȁ" =~ re)
+    assert_nil ("a" =~ re)
+    # The negation reads the same class, so it draws the same boundary.
+    neg = Regexp.new("[^" + re.source[1..-1])
+    assert_nil ("Ő" =~ neg)
+    assert_equal 0, ("ȁ" =~ neg)
+  end
+end
+
 assert("Regexp - quantifier over multi-byte char class") do
   assert_equal "a#b#c", "a₀₁b₂c".gsub(/[₀-₉]+/, "#")
   assert_equal ["₀₁₂"], "₀₁₂".scan(/[₀-₉]+/)
