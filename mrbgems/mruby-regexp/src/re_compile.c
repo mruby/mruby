@@ -191,31 +191,79 @@ class_get_bit(const re_charclass *cc, uint8_t ch)
   return (cc->bitmap[ch >> 3] >> (ch & 7)) & 1;
 }
 
-/* Append a non-ASCII codepoint range [lo, hi]. Both bounds must be >= 128. */
+/* Add a non-ASCII codepoint range [lo, hi]. Both bounds must be >= 128.
+
+   The list is held sorted by `lo`, with no two entries that overlap or touch.
+   A range the class already covers then costs nothing to add again: the
+   search below finds the entry holding it and widens that one where it has
+   to, rather than appending a second entry naming what the first already
+   accepts. Merging with the entry appended last left that to scan order, and
+   closing a class under folding has none: the folds of [U+0080-U+2FFF] land
+   inside the range that was written, and each of them appended an entry that
+   range already covered, 527 of them for that class alone.
+
+   Sorting them is the same answer at match time, where class_match() reads
+   the list through, and at emit time, where every entry is bytecode.
+
+   A byte range carries RE_CLASS_BYTE in both bounds, which is the top bit, so
+   the tagged entries sort above every codepoint and no gap of one can close
+   between the two kinds. */
 static void
 class_add_range(re_compiler *c, re_charclass *cc, uint32_t lo, uint32_t hi)
 {
-  /* Merge with the previous range when the new one is contiguous with or
-     overlaps it. Codepoints are appended in scan order, so an ascending run
-     (the common case, e.g. a long [...] enumeration) collapses to a single
-     range instead of one entry per codepoint. */
-  if (cc->num_ranges > 0) {
-    uint32_t *last = &cc->ranges[2 * (cc->num_ranges - 1)];
+  uint32_t n = cc->num_ranges;
+
+  /* Within one walk the ranges arrive ascending, so the entry standing
+     highest is usually the one the next range joins. Nothing stands above it
+     to close a gap to, which is what lets it be widened where it is. */
+  if (n > 0) {
+    uint32_t *last = &cc->ranges[2 * (n - 1)];
     if (lo >= last[0] && lo <= last[1] + 1) {
       if (hi > last[1]) last[1] = hi;
       return;
     }
   }
-  if (cc->num_ranges >= cc->range_capa) {
+
+  /* The first entry that reaches [lo, hi] or begins after it: everything
+     before it ends more than one below `lo` and cannot join. */
+  uint32_t i = 0, j = n;
+  while (i < j) {
+    uint32_t mid = i + (j - i) / 2;
+    if (cc->ranges[2 * mid + 1] + 1 < lo) i = mid + 1;
+    else j = mid;
+  }
+
+  if (i < n && cc->ranges[2 * i] <= hi + 1) {
+    /* It joins entry i. Widening it can close the gap to the entries above,
+       so they are swallowed and what is left of the list is closed up. */
+    uint32_t *r = &cc->ranges[2 * i];
+    if (lo < r[0]) r[0] = lo;
+    if (hi > r[1]) r[1] = hi;
+    uint32_t k = i + 1;
+    while (k < n && cc->ranges[2 * k] <= r[1] + 1) {
+      if (cc->ranges[2 * k + 1] > r[1]) r[1] = cc->ranges[2 * k + 1];
+      k++;
+    }
+    if (k > i + 1) {
+      memmove(&cc->ranges[2 * (i + 1)], &cc->ranges[2 * k],
+              sizeof(uint32_t) * 2 * (n - k));
+      cc->num_ranges = n - (k - i - 1);
+    }
+    return;
+  }
+
+  if (n >= cc->range_capa) {
     /* range_capa/num_ranges are uint32_t: doubling from 32768 no longer
        wraps to 0 (which fed a size-0 realloc and a write through NULL). */
     uint32_t new_capa = cc->range_capa ? cc->range_capa * 2 : 4;
     cc->ranges = (uint32_t*)mrb_realloc(c->mrb, cc->ranges, sizeof(uint32_t) * 2 * new_capa);
     cc->range_capa = new_capa;
   }
-  cc->ranges[2 * cc->num_ranges] = lo;
-  cc->ranges[2 * cc->num_ranges + 1] = hi;
-  cc->num_ranges++;
+  memmove(&cc->ranges[2 * (i + 1)], &cc->ranges[2 * i],
+          sizeof(uint32_t) * 2 * (n - i));
+  cc->ranges[2 * i] = lo;
+  cc->ranges[2 * i + 1] = hi;
+  cc->num_ranges = n + 1;
 }
 
 /* Add a single non-ASCII codepoint to the class. */
@@ -257,6 +305,25 @@ class_add_fold_counterparts(re_compiler *c, uint16_t id, uint32_t cp)
 }
 
 #ifdef RE_UNICODE_CASE
+/* The part of the class at or above `cp`, as the first range holding a member
+   that high. FALSE where the class holds none. The list is sorted, so this is
+   a search rather than a scan, and it answers against the list as it stands
+   rather than against a position taken before it moved. */
+static mrb_bool
+class_next_range(const re_charclass *cc, uint32_t cp, uint32_t *lo, uint32_t *hi)
+{
+  uint32_t n = cc->num_ranges, i = 0, j = n;
+  while (i < j) {
+    uint32_t mid = i + (j - i) / 2;
+    if (cc->ranges[2 * mid + 1] < cp) i = mid + 1;
+    else j = mid;
+  }
+  if (i >= n) return FALSE;
+  *lo = cc->ranges[2 * i] > cp ? cc->ranges[2 * i] : cp;
+  *hi = cc->ranges[2 * i + 1];
+  return TRUE;
+}
+
 /* Closure for the range walks, which report counterpart spans one at a time.
    A span can straddle 128 (U+017F folds to 's'), so it is split the same way
    a written range is. */
@@ -748,15 +815,25 @@ compile_charclass(re_compiler *c)
        the first already added. */
     class_fold_sink sink = { c, cc };
 
-    /* Round one: the fold of every member joins the class. The codepoint list
-       is read from a snapshot of its length, since the additions append to
-       the same list and an unbounded walk would keep folding what it just
-       added. */
-    uint32_t nranges = cc->num_ranges;
-    for (uint32_t i = 0; i < nranges; i++) {
-      if (cc->ranges[2 * i] & RE_CLASS_BYTE) continue;
-      mrb_uni_case_fold_range(cc->ranges[2 * i], cc->ranges[2 * i + 1],
-                             class_fold_add, &sink);
+    /* Round one: the fold of every member joins the class. Both rounds walk
+       the list by codepoint rather than by index, since class_add_range()
+       inserts where the order puts an entry and an index would name a
+       different entry after one did. A walk that starts each step above the
+       range it just handed over reaches every entry the round began with, and
+       terminates whatever the additions do.
+
+       What it may skip is an entry inserted behind the cursor, and neither
+       round has anything to say about one. Folding is idempotent, so the fold
+       of a fold this round added is the fold itself; and nothing folds to a
+       character that folds elsewhere, so a source the next round adds has no
+       source of its own. */
+    for (uint32_t cp = 0;;) {
+      uint32_t lo, hi;
+      /* The tagged byte ranges sort above every codepoint, so the first one
+         reached ends the walk rather than being stepped over. */
+      if (!class_next_range(cc, cp, &lo, &hi) || (lo & RE_CLASS_BYTE)) break;
+      mrb_uni_case_fold_range(lo, hi, class_fold_add, &sink);
+      cp = hi + 1;
     }
     for (int ch = 'A'; ch <= 'Z'; ch++) {
       if (class_get_bit(cc, (uint8_t)ch)) class_set_bit(cc, (uint8_t)(ch + 32));
@@ -766,11 +843,11 @@ compile_charclass(re_compiler *c)
        upwards, so the upper case letter set here is behind the cursor and is
        never asked for sources of its own, which is correct: nothing folds to
        an upper case letter. */
-    nranges = cc->num_ranges;
-    for (uint32_t i = 0; i < nranges; i++) {
-      if (cc->ranges[2 * i] & RE_CLASS_BYTE) continue;
-      mrb_uni_case_unfold_range(cc->ranges[2 * i], cc->ranges[2 * i + 1],
-                               class_fold_add, &sink);
+    for (uint32_t cp = 0;;) {
+      uint32_t lo, hi;
+      if (!class_next_range(cc, cp, &lo, &hi) || (lo & RE_CLASS_BYTE)) break;
+      mrb_uni_case_unfold_range(lo, hi, class_fold_add, &sink);
+      cp = hi + 1;
     }
     for (int ch = 0; ch < 128; ch++) {
       if (!class_get_bit(cc, (uint8_t)ch)) continue;
