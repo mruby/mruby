@@ -74,6 +74,16 @@ assert 'eval a string literal at the width of the pool length' do
   end
 end
 
+assert 'eval a symbol name at the width of the symbol length' do
+  # The dump records a symbol name's length in 16 bits too, and 0xffff of them
+  # is the length it writes for a null symbol, so 65534 bytes is the longest
+  # name that comes back as itself.
+  assert_equal 65534, eval(':"' + 'x' * 65534 + '"').to_s.size
+  assert_raise(SyntaxError) do
+    eval(':"' + 'x' * 65535 + '"')
+  end
+end
+
 assert('String instance_eval') do
   obj = Object.new
   obj.instance_eval{ @test = 'test' }

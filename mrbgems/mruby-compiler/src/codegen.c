@@ -1311,6 +1311,18 @@ new_sym(mrc_codegen_scope *s, mrc_sym sym)
   for (i=0; i<len; i++) {
     if (s->syms[i] == sym) return i;
   }
+  {
+    /* The dump writes a symbol name's length in 16 bits, and then walks the
+       cursor by the truncated count while copying the name in full, so a
+       longer name leaves the rest of the symbol block written over itself.
+       0xffff is one short of that, and spoken for: it is the length the dump
+       writes for a null symbol (MRC_DUMP_NULL_SYM_LEN), so a name that long
+       is read back as no symbol at all. */
+    mrc_int nlen = 0;
+    if (mrc_sym_name_len(s->c, sym, &nlen) && nlen >= MRC_DUMP_NULL_SYM_LEN) {
+      codegen_error(s, "symbol name too long");
+    }
+  }
   if (s->irep->slen >= s->scapa) {
     s->scapa *= 2;
     if (s->scapa > 0xffff) {
