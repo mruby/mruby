@@ -3987,30 +3987,32 @@ gen_ensure(mrc_codegen_scope *s, mrc_node *tree, uint32_t catch_entry, uint32_t 
 static void
 gen_pm_integer(mrc_codegen_scope *s, const pm_integer_t *iv)
 {
+  mrc_uint value;
+  mrc_bool fits = FALSE;
+
   if (iv->length == 0) {
-    if (!iv->negative) {
-      gen_int(s, cursp(), (mrc_int)iv->value);
-    }
-    else {
-      gen_int(s, cursp(), (mrc_int)iv->value * -1);
-    }
-    return;
+    /* iv->value is a uint32_t, which is wider than mrc_int under MRC_INT32,
+       so the magnitude still has to be range-checked below. */
+    value = iv->value;
+    fits = TRUE;
   }
 #ifdef MRC_INT64
-  if (iv->length == 2) {
-    mrc_uint value = ((mrc_uint)iv->values[0])|((mrc_uint)iv->values[1] << 32);
-    mrc_bool fits = TRUE;
+  else if (iv->length == 2) {
+    value = ((mrc_uint)iv->values[0])|((mrc_uint)iv->values[1] << 32);
+    fits = TRUE;
+  }
+#endif
+  if (fits) {
     if (!iv->negative && MRC_INT_MAX < value) fits = FALSE;
     if (iv->negative) {
       if (value > (mrc_uint)MRC_INT_MIN) fits = FALSE;
       else value *= -1;
     }
-    if (fits) {
-      gen_int(s, cursp(), value);
-      return;
-    }
   }
-#endif
+  if (fits) {
+    gen_int(s, cursp(), (mrc_int)value);
+    return;
+  }
   {
     pm_buffer_t buf = {0};
     pm_integer_string(&buf, iv);
