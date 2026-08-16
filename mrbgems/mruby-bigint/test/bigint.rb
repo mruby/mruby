@@ -126,6 +126,25 @@ assert 'Bigint <=>' do
   end
 end
 
+assert 'Bigint normalizes the smallest Integer' do
+  # An Integer's negative range is one wider than its positive one: where
+  # mrb_int is 64 bits the smallest Integer is -(2**63), and it cannot stay a
+  # big integer, since the same value built out of fixnums alone has to be
+  # indistinguishable from it. The exponent that is not this build's is asked
+  # too, where both spellings already share one representation, two fixnums on
+  # a 64 bit build and two big integers on a 32 bit one, and the rows hold for
+  # that reason.
+  [31, 63].each do |e|
+    from_bigint = -(2 ** e)
+    from_fixnum = -(2 ** e - 1) - 1
+
+    assert_equal from_fixnum, from_bigint
+    assert_true from_bigint.eql?(from_fixnum)
+    assert_true from_fixnum.eql?(from_bigint)
+    assert_equal from_fixnum.hash, from_bigint.hash
+  end
+end
+
 assert 'Bigint +' do
   n = 1<<65
   assert_equal 36893488147419103232, n + 0
