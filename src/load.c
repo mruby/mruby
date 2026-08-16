@@ -678,7 +678,7 @@ read_binary_header(const uint8_t *bin, size_t bufsize, size_t *bin_size, uint8_t
 
   *bin_size = (size_t)bin_to_uint32(header->binary_size);
 
-  if (bufsize < *bin_size) {
+  if (*bin_size < sizeof(struct rite_binary_header) || bufsize < *bin_size) {
     return MRB_DUMP_READ_FAULT;
   }
 
