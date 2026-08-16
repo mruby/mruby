@@ -28,6 +28,39 @@ assert 'Bigint ==' do
   if Object.const_defined?(:Float)
     assert_true (1<<70) == (2.0**70)
     assert_false (1<<70) == (2.0**71)
+
+    # A Float argument used to be compared by rounding the big integer to a
+    # Float, so every neighbour within half an ULP answered equal.
+    assert_false (1<<70) + 1 == (2.0**70)
+    assert_false (1<<70) - 1 == (2.0**70)
+    assert_false(-((1<<70) + 1) == (-2.0**70))
+    assert_true(-(1<<70) == (-2.0**70))
+
+    # Infinity and NaN reach the same comparison and have no integer part.
+    assert_false (1<<70) == (1.0/0.0)
+    assert_false (1<<70) == (-1.0/0.0)
+    assert_false (1<<70) == (0.0/0.0)
+
+    # A Float whose integer part an `mrb_int` holds, zero included, is carried
+    # over as one rather than built into a big integer.
+    assert_false (1<<70) == 0.0
+    assert_false (1<<70) == -0.0
+    assert_false (1<<70) == 0.5
+    assert_false (1<<70) == 1.5
+    assert_false(-(1<<70) == -0.5)
+
+    # ...and every one of them written the other way round. `Float#==` had no
+    # arm for a big integer, so it fell through to false and the two
+    # directions disagreed about an equal pair.
+    assert_true (2.0**70) == (1<<70)
+    assert_false (2.0**71) == (1<<70)
+    assert_true(-2.0**70 == -(1<<70))
+    assert_false (2.0**70) == (1<<70) + 1
+    assert_false (2.0**70) == (1<<70) - 1
+    assert_false(-2.0**70 == -((1<<70) + 1))
+    assert_false (1.0/0.0) == (1<<70)
+    assert_false (0.0/0.0) == (1<<70)
+    assert_false 0.5 == (1<<70)
   end
 end
 
@@ -47,6 +80,49 @@ assert 'Bigint eql?' do
   if Object.const_defined?(:Float)
     assert_false n.eql?(2.0**70)
     assert_true n == (2.0**70)
+    assert_false (2.0**70).eql?(n)
+    assert_true (2.0**70) == n
+  end
+end
+
+assert 'Bigint <=>' do
+  n = 1<<70
+
+  assert_equal 0, n <=> (1<<70)
+  assert_equal(-1, n <=> (1<<71))
+  assert_equal 1, n <=> 0
+  assert_equal(-1, 0 <=> n)
+
+  assert_nil n <=> 'x'
+  assert_nil n <=> nil
+
+  # `cmpnum()` used to round the big integer to a Float before comparing it
+  # against one, which collapsed a whole neighbourhood onto the same answer.
+  if Object.const_defined?(:Float)
+    assert_equal 0, n <=> (2.0**70)
+    assert_equal 1, n + 1 <=> (2.0**70)
+    assert_equal(-1, n - 1 <=> (2.0**70))
+    assert_equal 0, (2.0**70) <=> n
+    assert_equal(-1, (2.0**70) <=> n + 1)
+    assert_equal 1, (2.0**70) <=> n - 1
+
+    assert_true n + 1 > (2.0**70)
+    assert_true (2.0**70) < n + 1
+    assert_true n - 1 < (2.0**70)
+    assert_true (2.0**70) > n - 1
+
+    assert_equal(-1, n <=> (1.0/0.0))
+    assert_equal 1, n <=> (-1.0/0.0)
+    assert_nil n <=> (0.0/0.0)
+    assert_nil (0.0/0.0) <=> n
+
+    # A Float with no integer part of its own is compared the same way.
+    assert_equal 1, n <=> 0.0
+    assert_equal 1, n <=> 0.5
+    assert_equal 1, n <=> -0.5
+    assert_equal(-1, -n <=> 0.5)
+    assert_equal(-1, 0.5 <=> n)
+    assert_equal 1, 0.5 <=> -n
   end
 end
 
