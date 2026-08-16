@@ -648,8 +648,12 @@ module MRuby
       end
 
       def linker_attrs(gem=nil)
-        gems = self.reject{|g| g.bin?}  # library gems
-        gems << gem unless gem.nil?
+        # A gem that puts no object in libmruby.a contributes nothing to a link
+        # of it, so its linker options are its own binary's alone; ref #5210.
+        # One that does put objects there needs its options wherever libmruby.a
+        # is linked, whether or not it builds a binary as well.
+        gems = self.reject{|g| g.bin? && g.objs.empty?}
+        gems << gem unless gem.nil? || gems.include?(gem)
         gems.map{|g| g.linker.run_attrs}.transpose
       end
     end # List
