@@ -85,6 +85,47 @@ assert 'Bigint eql?' do
   end
 end
 
+assert 'Bigint <=>' do
+  n = 1<<70
+
+  assert_equal 0, n <=> (1<<70)
+  assert_equal(-1, n <=> (1<<71))
+  assert_equal 1, n <=> 0
+  assert_equal(-1, 0 <=> n)
+
+  assert_nil n <=> 'x'
+  assert_nil n <=> nil
+
+  # `cmpnum()` used to round the big integer to a Float before comparing it
+  # against one, which collapsed a whole neighbourhood onto the same answer.
+  if Object.const_defined?(:Float)
+    assert_equal 0, n <=> (2.0**70)
+    assert_equal 1, n + 1 <=> (2.0**70)
+    assert_equal(-1, n - 1 <=> (2.0**70))
+    assert_equal 0, (2.0**70) <=> n
+    assert_equal(-1, (2.0**70) <=> n + 1)
+    assert_equal 1, (2.0**70) <=> n - 1
+
+    assert_true n + 1 > (2.0**70)
+    assert_true (2.0**70) < n + 1
+    assert_true n - 1 < (2.0**70)
+    assert_true (2.0**70) > n - 1
+
+    assert_equal(-1, n <=> (1.0/0.0))
+    assert_equal 1, n <=> (-1.0/0.0)
+    assert_nil n <=> (0.0/0.0)
+    assert_nil (0.0/0.0) <=> n
+
+    # A Float with no integer part of its own is compared the same way.
+    assert_equal 1, n <=> 0.0
+    assert_equal 1, n <=> 0.5
+    assert_equal 1, n <=> -0.5
+    assert_equal(-1, -n <=> 0.5)
+    assert_equal(-1, 0.5 <=> n)
+    assert_equal 1, 0.5 <=> -n
+  end
+end
+
 assert 'Bigint +' do
   n = 1<<65
   assert_equal 36893488147419103232, n + 0
