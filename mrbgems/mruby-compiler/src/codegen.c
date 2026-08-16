@@ -1562,6 +1562,12 @@ new_lit_str(mrc_codegen_scope *s, const char *str, mrc_int len)
   int i;
   mrc_pool_value *pv;
 
+  /* The dump writes a pool string's length in 16 bits, so a longer one is
+     recorded truncated while its bytes are written in full, and every field
+     after it is read from the wrong offset. */
+  if (len > UINT16_MAX) {
+    codegen_error(s, "string literal too long");
+  }
   for (i=0; i<s->irep->plen; i++) {
     pv = &s->pool[i];
     if (pv->tt & IREP_TT_NFLAG) continue;
