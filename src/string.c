@@ -639,20 +639,17 @@ mrb_str_char_len(mrb_state *mrb, mrb_value str)
   struct RString *s = mrb_str_ptr(str);
   mrb_int byte_len = RSTR_LEN(s);
 
-  /* A byte-indexed string has one position per byte, which is what
+  /* A single-byte string has one position per byte, which is what
      mrb_str_char_to_byte() and mrb_str_byte_to_char() already answer for it.
      Asked here only where the string stands, the same string was measured as
      UTF-8 and reported a length its own indexing did not agree with.
 
-     7BIT is deliberately not recorded on the way out: it says the bytes hold
-     nothing multi-byte, while this returns early because of how the string is
-     read. force_encoding() can take the byte reading away again, and an answer
-     recorded here would outlive the reason for it. */
-  if (RSTR_BINARY_P(s)) {
-    return byte_len;
-  }
-
-  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_7BIT) {
+     Nothing is recorded on the way out. A string of nothing but ASCII carries
+     that already, and a byte-read one returns here because of how it is read
+     rather than because of what its bytes are: 7BIT would be a claim about
+     bytes nothing has looked at, and force_encoding() can take the byte
+     reading away again and leave the claim standing. */
+  if (RSTR_SINGLE_BYTE_P(s)) {
     return byte_len;
   }
   else {
@@ -1936,10 +1933,14 @@ str_escape(mrb_state *mrb, mrb_value str, mrb_bool inspect)
 
   p = RSTRING_PTR(str); pend = RSTRING_END(str);
 #ifdef MRB_UTF8_STRING
-  /* `inspect` passes a whole character through unescaped so it stays readable.
-     A byte-indexed string holds no characters to keep readable, so it escapes
-     byte by byte, which is what `dump` on the same string already did. */
-  if (RSTR_BINARY_P(mrb_str_ptr(str))) inspect = FALSE;
+  /* `inspect` passes a whole character through unescaped so it stays readable,
+     which is why it reads the character at every byte. A single-byte string
+     has none spelled in more than one byte: a byte-read one holds no
+     characters at all, and one of nothing but ASCII holds only characters the
+     escaping below writes out the same way. Both escape byte by byte, which is
+     what `dump` on the same string already did, and neither reads a character
+     to do it. */
+  if (RSTR_SINGLE_BYTE_P(mrb_str_ptr(str))) inspect = FALSE;
 #endif
   for (;p < pend; p++) {
     unsigned char c, cc;
@@ -2397,13 +2398,10 @@ mrb_str_chop_bang(mrb_state *mrb, mrb_value str)
 
   str_modify_keep_cr(mrb, s);
   if (RSTR_LEN(s) > 0) {
-    mrb_int len;
+    /* The last position of a single-byte string is its last byte. */
+    mrb_int len = RSTR_LEN(s) - 1;
 #ifdef MRB_UTF8_STRING
-    if (RSTR_BINARY_P(s)) {
-      /* The last position of a byte-indexed string is its last byte. */
-      len = RSTR_LEN(s) - 1;
-    }
-    else {
+    if (!RSTR_SINGLE_BYTE_P(s)) {
       /* The last character starts at the head of the one covering the last
          byte, which is read backwards from there rather than by walking the
          whole string. */
@@ -2411,8 +2409,6 @@ mrb_str_chop_bang(mrb_state *mrb, mrb_value str)
       const char* e = t + RSTR_LEN(s);
       len = mrb_utf8_char_head(t, e-1, e) - t;
     }
-#else
-    len = RSTR_LEN(s) - 1;
 #endif
     if (RSTR_PTR(s)[len] == '\n') {
       if (len > 0 &&
