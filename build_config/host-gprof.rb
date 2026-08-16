@@ -1,4 +1,6 @@
-MRuby::Build.new do |conf|
+# gprof build in a dedicated build directory (build/host-gprof) so it does not
+# clobber a normal host build.
+MRuby::Build.new('host-gprof') do |conf|
   # load specific toolchain settings
   toolchain :gcc
 
