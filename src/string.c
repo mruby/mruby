@@ -639,20 +639,17 @@ mrb_str_char_len(mrb_state *mrb, mrb_value str)
   struct RString *s = mrb_str_ptr(str);
   mrb_int byte_len = RSTR_LEN(s);
 
-  /* A byte-indexed string has one position per byte, which is what
+  /* A single-byte string has one position per byte, which is what
      mrb_str_char_to_byte() and mrb_str_byte_to_char() already answer for it.
      Asked here only where the string stands, the same string was measured as
      UTF-8 and reported a length its own indexing did not agree with.
 
-     7BIT is deliberately not recorded on the way out: it says the bytes hold
-     nothing multi-byte, while this returns early because of how the string is
-     read. force_encoding() can take the byte reading away again, and an answer
-     recorded here would outlive the reason for it. */
-  if (RSTR_BINARY_P(s)) {
-    return byte_len;
-  }
-
-  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_7BIT) {
+     Nothing is recorded on the way out. A string of nothing but ASCII carries
+     that already, and a byte-read one returns here because of how it is read
+     rather than because of what its bytes are: 7BIT would be a claim about
+     bytes nothing has looked at, and force_encoding() can take the byte
+     reading away again and leave the claim standing. */
+  if (RSTR_SINGLE_BYTE_P(s)) {
     return byte_len;
   }
   else {
