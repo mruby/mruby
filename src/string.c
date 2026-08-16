@@ -2398,13 +2398,10 @@ mrb_str_chop_bang(mrb_state *mrb, mrb_value str)
 
   str_modify_keep_cr(mrb, s);
   if (RSTR_LEN(s) > 0) {
-    mrb_int len;
+    /* The last position of a single-byte string is its last byte. */
+    mrb_int len = RSTR_LEN(s) - 1;
 #ifdef MRB_UTF8_STRING
-    if (RSTR_BINARY_P(s)) {
-      /* The last position of a byte-indexed string is its last byte. */
-      len = RSTR_LEN(s) - 1;
-    }
-    else {
+    if (!RSTR_SINGLE_BYTE_P(s)) {
       /* The last character starts at the head of the one covering the last
          byte, which is read backwards from there rather than by walking the
          whole string. */
@@ -2412,8 +2409,6 @@ mrb_str_chop_bang(mrb_state *mrb, mrb_value str)
       const char* e = t + RSTR_LEN(s);
       len = mrb_utf8_char_head(t, e-1, e) - t;
     }
-#else
-    len = RSTR_LEN(s) - 1;
 #endif
     if (RSTR_PTR(s)[len] == '\n') {
       if (len > 0 &&
