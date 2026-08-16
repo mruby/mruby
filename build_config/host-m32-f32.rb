@@ -1,4 +1,6 @@
-MRuby::Build.new do |conf|
+# 32-bit MRB_USE_FLOAT32 build in a dedicated build directory
+# (build/host-m32-f32) so it does not clobber a normal host build.
+MRuby::Build.new('host-m32-f32') do |conf|
   # load specific toolchain settings
   toolchain :gcc
 
