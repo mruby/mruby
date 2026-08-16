@@ -134,18 +134,54 @@ end
 # The margin below covers the few objects `GC.stat` allocates for its own
 # result; it is not slack for a partial leak, and a branch that retains on even
 # a small fraction of the iterations is over it.
+#
+# An index opcode answers from C only while the operator it reimplements is
+# still the builtin, so a loop body stops being send-free the moment something
+# redefines that operator on the core class.  Nothing in this tree redefines
+# `Hash#[]` or `Hash#[]=`, so the Hash loops below need no help; mruby-regexp
+# does redefine `String#[]`, which is what `with_builtin_string_aref` puts back.
+
+# Runs the block with the C implementation of `String#[]` in place, so that
+# `s[0]` and `s[1]` inside it reach `OP_GETIDX0` and `OP_GETIDX` rather than
+# compiling down to a send, whose cfunc return would drain the arena and pass
+# the assertion for the wrong reason.  mruby-regexp keeps the C implementation
+# under `__aref` when it replaces `String#[]`; where no gem replaced it there
+# is nothing to swap and the block runs as it stands.
+def with_builtin_string_aref
+  swapped = String.method_defined?(:__aref)
+  if swapped
+    String.class_eval do
+      alias_method :__aref_gc_test_saved, :[]
+      alias_method :[], :__aref
+    end
+  end
+  begin
+    yield
+  ensure
+    if swapped
+      String.class_eval do
+        alias_method :[], :__aref_gc_test_saved
+        # `remove_method` comes from mruby-metaprog, which the core test build
+        # does not have; the saved alias is harmless where it is missing.
+        remove_method :__aref_gc_test_saved if respond_to?(:remove_method, true)
+      end
+    end
+  end
+end
 
 assert('OP_GETIDX does not retain its result in the GC arena') do
-  s = "hello"
-  GC.start
-  base = GC.stat[:live]
-  i = 0
-  while i < 20000
-    s[1]
-    i += 1
+  with_builtin_string_aref do
+    s = "hello"
+    GC.start
+    base = GC.stat[:live]
+    i = 0
+    while i < 20000
+      s[1]
+      i += 1
+    end
+    GC.start
+    assert_operator GC.stat[:live] - base, :<, 100
   end
-  GC.start
-  assert_operator GC.stat[:live] - base, :<, 100
 end
 
 assert('OP_GETIDX does not retain a Hash default in the GC arena') do
@@ -162,16 +198,18 @@ assert('OP_GETIDX does not retain a Hash default in the GC arena') do
 end
 
 assert('OP_GETIDX0 does not retain a String result in the GC arena') do
-  s = "hello"
-  GC.start
-  base = GC.stat[:live]
-  i = 0
-  while i < 20000
-    s[0]
-    i += 1
+  with_builtin_string_aref do
+    s = "hello"
+    GC.start
+    base = GC.stat[:live]
+    i = 0
+    while i < 20000
+      s[0]
+      i += 1
+    end
+    GC.start
+    assert_operator GC.stat[:live] - base, :<, 100
   end
-  GC.start
-  assert_operator GC.stat[:live] - base, :<, 100
 end
 
 assert('OP_GETIDX0 does not retain a Hash default in the GC arena') do

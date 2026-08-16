@@ -65,6 +65,71 @@ assert('Array#[]', '15.2.12.5.4') do
   assert_equal("b", a[1.1])
 end
 
+assert('Array#[] redefined on Array itself reaches the redefinition') do
+  # `OP_GETIDX` answers `a[1]` from C and `OP_GETIDX0` answers `a[0]` the same
+  # way whenever the receiver's class is exactly `Array`, which they may only
+  # do while `Array#[]` is still the builtin they reimplement. Both test the
+  # receiver against `mrb->idx_class[]`, which the method table drops the
+  # moment `Array#[]` is replaced, so a redefinition installed on `Array`
+  # itself is honored as in CRuby. The results are read before the operator is
+  # put back because the assertions themselves index arrays.
+  Array.class_eval do
+    alias_method :__aref_before_test, :[]
+    def [](*args)
+      :overridden
+    end
+  end
+  begin
+    a = [7, 8]
+    sub = Class.new(Array).new
+    got0 = a[0]
+    got1 = a[1]
+    got_sub = sub[0]
+  ensure
+    Array.class_eval do
+      alias_method :[], :__aref_before_test
+      # `remove_method` comes from mruby-metaprog, which the core test build
+      # does not have; the saved alias is harmless where it is missing.
+      remove_method :__aref_before_test if respond_to?(:remove_method, true)
+    end
+  end
+  assert_equal :overridden, got0
+  assert_equal :overridden, got1
+  assert_equal :overridden, got_sub
+  # Aliasing the original implementation back re-arms the opcodes.
+  assert_equal 7, [7, 8][0]
+  assert_equal 8, [7, 8][1]
+end
+
+assert('Array#[]= redefined on Array itself reaches the redefinition') do
+  # `OP_SETIDX` answers `a[0] = 9` from C on the same terms; see the `[]` test
+  # above. A redefinition that stores nothing makes the difference visible in
+  # the receiver as well as in the return value.
+  Array.class_eval do
+    alias_method :__aset_before_test, :[]=
+    def []=(*args)
+      $aset_redefinition_args = args
+    end
+  end
+  begin
+    a = [7, 8]
+    a[0] = 9
+    seen = $aset_redefinition_args
+    untouched = a
+  ensure
+    Array.class_eval do
+      alias_method :[]=, :__aset_before_test
+      remove_method :__aset_before_test if respond_to?(:remove_method, true)
+    end
+    $aset_redefinition_args = nil
+  end
+  assert_equal [0, 9], seen
+  assert_equal [7, 8], untouched
+  a = [7, 8]
+  a[0] = 9
+  assert_equal [9, 8], a
+end
+
 assert('Array#[]=', '15.2.12.5.5') do
   a = Array.new
   assert_raise(ArgumentError) do

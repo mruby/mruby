@@ -152,12 +152,15 @@ assert('String#[] with Range') do
   assert_equal 'xyz', k2
 end
 
-assert('String#[] redefined on String itself is bypassed by the index opcodes') do
+assert('String#[] redefined on String itself reaches the redefinition') do
   # `OP_GETIDX` answers `s[1]` from C, and `OP_GETIDX0` answers `s[0]` the same
-  # way, whenever the receiver's class is exactly `String`. Both therefore
-  # bypass a redefinition installed on `String` itself, the same way the Array
-  # and Hash branches of those opcodes do. A subclass receiver fails the class
-  # guard and keeps reaching the redefinition.
+  # way, whenever the receiver's class is exactly `String`. Answering from C is
+  # allowed only while `String#[]` is still the builtin those opcodes
+  # reimplement, so both test the receiver against `mrb->idx_class[]`, which
+  # the method table drops the moment `String#[]` is replaced. A redefinition
+  # installed on `String` itself is therefore honored, as in CRuby, and not
+  # only the subclass and singleton receivers that already failed the class
+  # test for the other reason.
   String.class_eval do
     alias_method :__aref_before_test, :[]
     def [](*args)
@@ -167,8 +170,8 @@ assert('String#[] redefined on String itself is bypassed by the index opcodes') 
   begin
     s = 'hello'
     sub = Class.new(String).new('hello')
-    assert_equal 'h', s[0]
-    assert_equal 'e', s[1]
+    assert_equal :overridden, s[0]
+    assert_equal :overridden, s[1]
     assert_equal :overridden, sub[0]
   ensure
     String.class_eval do
@@ -178,6 +181,10 @@ assert('String#[] redefined on String itself is bypassed by the index opcodes') 
       remove_method :__aref_before_test if respond_to?(:remove_method, true)
     end
   end
+  # Aliasing the original implementation back makes `String#[]` resolve to it
+  # again, which re-arms the opcodes.
+  assert_equal 'h', 'hello'[0]
+  assert_equal 'e', 'hello'[1]
 end
 
 assert('String#[]=') do

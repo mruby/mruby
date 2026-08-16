@@ -292,6 +292,19 @@ struct mrb_jmpbuf;
 
 typedef void (*mrb_atexit_func)(mrb_state*);
 
+/**
+ * Slots of `mrb_state.idx_class`, one per builtin the inline index opcodes
+ * (`OP_GETIDX`, `OP_GETIDX0`, `OP_SETIDX`) reimplement in C.
+ */
+enum mrb_idx_op_slot {
+  MRB_IDX_OP_ARY_AREF,          /* Array#[]  */
+  MRB_IDX_OP_HASH_AREF,         /* Hash#[]   */
+  MRB_IDX_OP_STR_AREF,          /* String#[] */
+  MRB_IDX_OP_ARY_ASET,          /* Array#[]= */
+  MRB_IDX_OP_HASH_ASET,         /* Hash#[]=  */
+  MRB_IDX_OP_SLOT_COUNT
+};
+
 #ifdef MRB_USE_TASK_SCHEDULER
 struct mrb_task;
 
@@ -395,6 +408,18 @@ struct mrb_state {
   mrb_atexit_func *atexit_stack;
 #endif
   uint16_t atexit_stack_len;
+
+  /* The inline index opcodes answer `[]` and `[]=` from C for a receiver whose
+     class is exactly Array, Hash or String, which would bypass a redefinition
+     installed on those classes themselves.  Each slot holds the core class
+     while the name still resolves to the builtin recorded in `idx_builtin`,
+     and NULL once it does not, so the class-pointer test the opcodes already
+     perform rejects a redefined operator at no extra cost.  NULL is safe as
+     the disabled value because no live object has a NULL class pointer.
+     Armed by mrb_idx_op_init(), rechecked by mrb_idx_op_update().  Placed at
+     the end of the struct so that adding them moves no existing field. */
+  struct RClass *idx_class[MRB_IDX_OP_SLOT_COUNT];
+  mrb_method_t idx_builtin[MRB_IDX_OP_SLOT_COUNT];
 
 #ifdef MRB_USE_TASK_SCHEDULER
   mrb_task_state task;                    /* Task scheduler state */

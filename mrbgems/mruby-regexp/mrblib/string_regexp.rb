@@ -389,10 +389,9 @@ class String
   # regexp here.
   #
   # `vm_op_setidx()` optimizes Array and Hash only and sends `[]=` for every
-  # other receiver, so unlike the read side there is no opcode keeping the
-  # ordinary `str[i] = repl` off this override: it pays a Ruby frame on its
-  # way to `__aset`.  That is why the delegation guard is a single
-  # `Regexp ===`, before any other work.
+  # other receiver, so the ordinary `str[i] = repl` has always arrived here and
+  # paid a Ruby frame on its way to `__aset`.  That is why the delegation guard
+  # is a single `Regexp ===`, before any other work.
   def []=(*args)
     return __aset(*args) unless Regexp === args[0]
     unless args.length == 2 || args.length == 3

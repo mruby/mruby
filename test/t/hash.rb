@@ -997,6 +997,58 @@ assert('test value omission') do
   assert_equal({x:1, y:2}, {x:, y:})
 end
 
+assert('Hash#[] and Hash#[]= redefined on Hash itself reach the redefinition') do
+  # `OP_GETIDX`, `OP_GETIDX0` and `OP_SETIDX` answer from C whenever the
+  # receiver's class is exactly `Hash`, which they may only do while `Hash#[]`
+  # and `Hash#[]=` are still the builtins they reimplement. Each tests the
+  # receiver against `mrb->idx_class[]`, which the method table drops the
+  # moment the operator is replaced, so a redefinition installed on `Hash`
+  # itself is honored as in CRuby.
+  Hash.class_eval do
+    alias_method :__aref_before_test, :[]
+    alias_method :__aset_before_test, :[]=
+    def [](*args)
+      :overridden
+    end
+    def []=(*args)
+      $hash_aset_redefinition_args = args
+    end
+  end
+  begin
+    h = {0 => :zero, 1 => :one}
+    got0 = h[0]
+    got1 = h[1]
+    h[2] = :two
+    seen = $hash_aset_redefinition_args
+    untouched = h.size
+    sub = Class.new(Hash).new
+    got_sub = sub[0]
+  ensure
+    Hash.class_eval do
+      alias_method :[], :__aref_before_test
+      alias_method :[]=, :__aset_before_test
+      # `remove_method` comes from mruby-metaprog, which the core test build
+      # does not have; the saved aliases are harmless where it is missing.
+      if respond_to?(:remove_method, true)
+        remove_method :__aref_before_test
+        remove_method :__aset_before_test
+      end
+    end
+    $hash_aset_redefinition_args = nil
+  end
+  assert_equal :overridden, got0
+  assert_equal :overridden, got1
+  assert_equal :overridden, got_sub
+  assert_equal [2, :two], seen
+  assert_equal 2, untouched
+  # Aliasing the original implementations back re-arms the opcodes.
+  h = {0 => :zero, 1 => :one}
+  h[2] = :two
+  assert_equal :zero, h[0]
+  assert_equal :one, h[1]
+  assert_equal 3, h.size
+end
+
 assert('Hash#[] with a default proc that grows the VM stack') do
   # The default proc re-enters the VM, and enough frames of it reallocate the
   # stack. `OP_GETIDX0` and `OP_GETIDX` answer from C, so each has to store its
