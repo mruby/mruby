@@ -192,6 +192,16 @@ assert 'Bigint pow' do
   n = 1<<65
   assert_equal n, n ** 1
   assert_equal 1, n ** 0
+
+  # `**` compares by value and passes either way; the result must also be
+  # demoted to a fixnum Integer, or `eql?` and `hash` disagree with it.
+  one = n ** 0
+  assert_true one.eql?(1)
+  assert_true 1.eql?(one)
+  assert_equal 1.hash, one.hash
+  h = {}
+  200.times { |i| h[i] = i }
+  assert_equal 1, h[one]
   assert_equal 1361129467683753853853498429727072845824, n ** 2
   # assert_equal 193128586, n.pow(n, 1234567890)
   # assert_equal(-1041439304, n.pow(n, -1234567890))
