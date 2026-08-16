@@ -482,14 +482,8 @@ check_regexp_arg(mrb_state *mrb, mrb_value re)
  * reading the subject as UTF-8 at all.
  */
 static mrb_value
-regexp_s_search(mrb_state *mrb, mrb_value klass)
+re_search(mrb_state *mrb, mrb_value re, mrb_value str, mrb_int pos, mrb_bool checked)
 {
-  mrb_value re, str;
-  mrb_int pos = 0;
-  mrb_bool checked = FALSE;
-
-  mrb_get_args(mrb, "oo|ib", &re, &str, &pos, &checked);
-  check_regexp_arg(mrb, re);
   if (mrb_nil_p(str)) {
     clear_match_globals(mrb);
     return mrb_nil_value();
@@ -502,6 +496,18 @@ regexp_s_search(mrb_state *mrb, mrb_value klass)
   }
   if (!checked) re_check_encoding(mrb, str);
   return exec_match(mrb, re, str, pos, TRUE);
+}
+
+static mrb_value
+regexp_s_search(mrb_state *mrb, mrb_value klass)
+{
+  mrb_value re, str;
+  mrb_int pos = 0;
+  mrb_bool checked = FALSE;
+
+  mrb_get_args(mrb, "oo|ib", &re, &str, &pos, &checked);
+  check_regexp_arg(mrb, re);
+  return re_search(mrb, re, str, pos, checked);
 }
 
 /*
@@ -859,11 +865,8 @@ matchdata_name_to_group(mrb_state *mrb, mrb_match_data *md, mrb_value arg)
  * MatchData#[](n)
  */
 static mrb_value
-matchdata_aref(mrb_state *mrb, mrb_value self)
+md_aref(mrb_state *mrb, mrb_value self, mrb_value arg)
 {
-  mrb_value arg;
-  mrb_get_args(mrb, "o", &arg);
-
   mrb_match_data *md = DATA_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
   if (!md) return mrb_nil_value();
 
@@ -890,6 +893,14 @@ matchdata_aref(mrb_state *mrb, mrb_value self)
   if (start < 0) return mrb_nil_value();
 
   return re_byte_substr(mrb, md->source, start, end - start);
+}
+
+static mrb_value
+matchdata_aref(mrb_state *mrb, mrb_value self)
+{
+  mrb_value arg;
+  mrb_get_args(mrb, "o", &arg);
+  return md_aref(mrb, self, arg);
 }
 
 /* Build array of capture strings from group `from` to num_captures-1 */
@@ -1470,6 +1481,48 @@ regexp_check_pattern(mrb_state *mrb, mrb_value self)
   mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %s (expected Regexp)", name);
 }
 
+/*
+ * String#[](index) / String#[](index, length) / String#[](regexp, capture = 0)
+ * String#slice, the same method under its other name.
+ *
+ * The core `[]` answers every argument form but a Regexp, and this takes the
+ * name so that a Regexp reaches the search below. It is C rather than a Ruby
+ * method delegating to the core one because it takes the name for every call,
+ * not just the Regexp ones: written in Ruby, every `str[i]` in the program
+ * paid a Ruby frame and the two splat arrays a `*args` method builds, on its
+ * way to the same `mrb_str_aref()` this reaches directly.
+ *
+ * The arity errors are the core method's own, since the argument reading here
+ * is the same "o|o": no argument at all, or more than two, raises before the
+ * type of the first one is looked at.
+ */
+static mrb_value
+str_aref(mrb_state *mrb, mrb_value str)
+{
+  mrb_value a1, a2;
+  mrb_int argc = mrb_get_args(mrb, "o|o", &a1, &a2);
+
+  /* The real type, not `a1.is_a?`, which a Regexp denying its own type could
+     answer with; what it settles is which implementation answers, not what
+     the pattern goes on to decide once it is here. Every Regexp is CDATA,
+     including one of a subclass, so the type test settles the common indexes
+     without the constant lookup the class test costs. */
+  if (mrb_type(a1) != MRB_TT_CDATA ||
+      !mrb_obj_is_kind_of(mrb, a1, mrb_class_get_id(mrb, MRB_SYM(Regexp)))) {
+    return mrb_str_aref(mrb, str, a1, argc == 1 ? mrb_undef_value() : a2);
+  }
+
+  /* A full search and not a match test: the match globals have to be
+     published here, including the clearing a failed match does. */
+  mrb_value md = re_search(mrb, a1, str, 0, FALSE);
+  if (mrb_nil_p(md)) return mrb_nil_value();
+  /* The capture argument reaches `MatchData#[]` untouched: it already
+     normalizes a negative index, answers nil for an index past the last group
+     and raises IndexError for a name that resolves to none, which is what
+     CRuby does for `str[re, capture]`. */
+  return md_aref(mrb, md, argc == 1 ? mrb_fixnum_value(0) : a2);
+}
+
 /* --- Gem init --- */
 
 void
@@ -1512,6 +1565,13 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, re, "__gsub_str", regexp_s_gsub_str, MRB_ARGS_ARG(3, 1));
   mrb_define_class_method(mrb, re, "__sub_str", regexp_s_sub_str, MRB_ARGS_ARG(3, 1));
   mrb_define_class_method(mrb, re, "__scan", regexp_s_scan, MRB_ARGS_REQ(2));
+
+  /* String#[] takes the name here rather than in mrblib, so that the indexes
+     the core method answers do not pay a Ruby frame to reach it. `slice` is
+     registered under its own name rather than aliased, which is also what
+     makes `sym[re]` work: `Symbol#[]` delegates to `String#slice`. */
+  mrb_define_method(mrb, mrb->string_class, "[]", str_aref, MRB_ARGS_ARG(1, 1));
+  mrb_define_method(mrb, mrb->string_class, "slice", str_aref, MRB_ARGS_ARG(1, 1));
 
   /* MatchData class */
   struct RClass *md = mrb_define_class(mrb, "MatchData", mrb->object_class);
