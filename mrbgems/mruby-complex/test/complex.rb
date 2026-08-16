@@ -88,6 +88,14 @@ assert 'Complex#==' do
   assert_true  0.0 == Complex(0)
 end
 
+assert 'Complex#eql?' do
+  assert_true  Complex(1, 2).eql?(Complex(1, 2))
+  assert_false Complex(1, 0).eql?(1)
+  assert_false Complex(0, 0).eql?(0.0)
+  assert_false 1.eql?(Complex(1, 0))
+  assert_false Complex(1, 0).eql?(nil)
+end
+
 assert 'Complex#abs' do
   assert_float Complex(-1).abs,        1
   assert_float Complex(3.0, -4.0).abs, 5.0

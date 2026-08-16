@@ -654,6 +654,10 @@ num_eql(mrb_state *mrb, mrb_value x)
     if (!mrb_integer_p(y)) return mrb_false_value();
     return mrb_bool_value(mrb_integer(x) == mrb_integer(y));
   }
+  /* Numeric subclasses such as Rational and Complex land here. Their `==`
+     converts the argument, so `Rational(2,1) == 2` is true; `eql?` must not,
+     because `#hash` does not treat them as the same key either. */
+  if (mrb_type(x) != mrb_type(y)) return mrb_false_value();
   return mrb_bool_value(mrb_equal(mrb, x, y));
 }
 
