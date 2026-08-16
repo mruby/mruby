@@ -407,6 +407,24 @@ mrb_parse_string(mrb_state *mrb, const char *s, mrb_ccontext *c)
   return mrb_parse_nstring(mrb, s, strlen(s), c);
 }
 
+/* The dump and reload below is the one compiler-side failure codegen_error()
+   does not cover, and it leaves nothing on stderr on its own. Report it
+   through the same `quiet_errors` gate, so a caller that captures errors
+   (eval) still sees only the exception mrb_load_exec() raises. */
+static void
+report_roundtrip_error(mrc_ccontext *mc, const char *message)
+{
+#ifndef MRB_NO_STDIO
+  if (mc->quiet_errors) return;
+  if (mc->filename) {
+    fprintf(stderr, "%s: %s\n", mc->filename, message);
+  }
+  else {
+    fprintf(stderr, "%s\n", message);
+  }
+#endif
+}
+
 MRB_API struct RProc*
 mrb_generate_code(mrb_state *mrb, struct mrb_parser_state *p)
 {
@@ -425,11 +443,13 @@ mrb_generate_code(mrb_state *mrb, struct mrb_parser_state *p)
   mc = (mrc_ccontext*)p->ylval;
   irep = (mrc_irep*)p->tree;
   if (mrc_dump_irep(mc, irep, flags, &bin, &bin_size) != MRC_COMPAT_DUMP_OK) {
+    report_roundtrip_error(mc, "irep dump error");
     return NULL;
   }
   mir = mrb_read_irep_buf(mrb, bin, bin_size);
   mrc_free(mc, bin);
   if (!mir) {
+    report_roundtrip_error(mc, "irep load error");
     return NULL;
   }
   proc = mrb_proc_new(mrb, mir);
