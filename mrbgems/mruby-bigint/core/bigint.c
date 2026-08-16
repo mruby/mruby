@@ -4091,6 +4091,10 @@ mpz_get_int(mpz_t *y, mrb_int *v)
     return TRUE;
   }
 
+  /* The negative range is one wider than the positive one, so MRB_INT_MIN
+     fits as an absolute value of MRB_INT_MAX + 1. */
+  mrb_uint limit = (mrb_uint)MRB_INT_MAX + (y->sn < 0 ? 1 : 0);
+
 #ifdef MRB_NO_MPZ64BIT
   /* When using 16-bit limbs, we need to handle larger accumulation */
   mrb_uint i = 0;
@@ -4098,13 +4102,13 @@ mpz_get_int(mpz_t *y, mrb_int *v)
 
   while (d-- > y->p) {
     /* Check for overflow before shifting */
-    if (i > (mrb_uint)(MRB_INT_MAX >> DIG_SIZE)) {
+    if (i > (limit >> DIG_SIZE)) {
       return FALSE;
     }
     i = (i << DIG_SIZE) | *d;
   }
 
-  if (i > (mrb_uint)MRB_INT_MAX) {
+  if (i > limit) {
     return FALSE;
   }
 #else
@@ -4119,14 +4123,16 @@ mpz_get_int(mpz_t *y, mrb_int *v)
     }
     i = (i << DIG_SIZE) | *d;
   }
-  if (i > MRB_INT_MAX) {
+  if (i > limit) {
     /* overflow */
     return FALSE;
   }
 #endif
 
   if (y->sn < 0) {
-    *v = -(mrb_int)i;
+    /* On this branch `limit` is the absolute value of MRB_INT_MIN, which has
+       no positive counterpart to negate, so it is spelled out instead. */
+    *v = (i == limit) ? MRB_INT_MIN : -(mrb_int)i;
   }
   else {
     *v = (mrb_int)i;
