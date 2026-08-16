@@ -1262,6 +1262,12 @@ scope_finish(mrc_codegen_scope *s)
 static mrc_pool_value*
 lit_pool_extend(mrc_codegen_scope *s)
 {
+  /* `plen` is what the dump writes the pool count into, and it is 16 bits
+     wide there and here, so the 65536th entry would wrap it to zero and leave
+     every OP_LOADL past that pointing outside the pool. */
+  if (s->irep->plen == 0xffff) {
+    codegen_error(s, "too many literals");
+  }
   if (s->irep->plen == s->pcapa) {
     s->pcapa *= 2;
     s->pool = (mrc_pool_value*)mrc_realloc(s->c, s->pool, sizeof(mrc_pool_value)*s->pcapa);
