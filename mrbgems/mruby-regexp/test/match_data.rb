@@ -1,3 +1,19 @@
+assert("MatchData cannot be constructed") do
+  # A match builds the only MatchData there is. The class defines no
+  # `initialize`, so `new` and `allocate` used to hand back an instance with
+  # no data behind it, and every method on it raised TypeError instead. CRuby
+  # has neither constructor; a subclass inherits the absence.
+  assert_raise(NoMethodError) { MatchData.new }
+  assert_raise(NoMethodError) { MatchData.allocate }
+  assert_raise(NoMethodError) { Class.new(MatchData).new }
+  assert_raise(NoMethodError) { Class.new(MatchData).allocate }
+
+  # and matching itself is untouched
+  md = /(\w)(\d)/.match("a1")
+  assert_equal MatchData, md.class
+  assert_equal ["a1", "a", "1"], md.to_a
+end
+
 assert("MatchData#captures") do
   re = Regexp.new("(a)(b)(c)")
   md = re.match("abc")

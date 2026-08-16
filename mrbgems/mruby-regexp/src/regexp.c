@@ -1576,6 +1576,13 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   /* MatchData class */
   struct RClass *md = mrb_define_class(mrb, "MatchData", mrb->object_class);
   MRB_SET_INSTANCE_TT(md, MRB_TT_CDATA);
+  /* A match is the only thing that builds one, through create_matchdata(),
+     which allocates the object itself rather than going through `new`. The
+     class defines no `initialize`, so `new` and `allocate` returned an
+     instance whose data type was never set, and every method on it raised
+     TypeError out of the DATA_GET_PTR guard. CRuby undefines both; so do we. */
+  mrb_undef_class_method(mrb, md, "new");
+  mrb_undef_class_method(mrb, md, "allocate");
 
   mrb_define_method(mrb, md, "[]", matchdata_aref, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, md, "captures", matchdata_captures, MRB_ARGS_NONE());
