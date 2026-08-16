@@ -681,6 +681,13 @@ flo_eq(mrb_state *mrb, mrb_value x)
     return mrb_bool_value(mrb_float(x) == (mrb_float)mrb_integer(y));
   case MRB_TT_FLOAT:
     return mrb_bool_value(mrb_float(x) == mrb_float(y));
+#ifdef MRB_USE_BIGINT
+  case MRB_TT_BIGINT:
+    /* `mrb_bint_cmp()` takes the big integer first and compares a Float
+       argument exactly; `int_equal()` makes the same call for the mirror
+       image of this comparison. */
+    return mrb_bool_value(mrb_bint_cmp(mrb, y, x) == 0);
+#endif
 #ifdef MRB_USE_RATIONAL
   case MRB_TT_RATIONAL:
     return mrb_bool_value(mrb_float(x) == mrb_as_float(mrb, y));

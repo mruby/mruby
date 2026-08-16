@@ -48,6 +48,19 @@ assert 'Bigint ==' do
     assert_false (1<<70) == 0.5
     assert_false (1<<70) == 1.5
     assert_false(-(1<<70) == -0.5)
+
+    # ...and every one of them written the other way round. `Float#==` had no
+    # arm for a big integer, so it fell through to false and the two
+    # directions disagreed about an equal pair.
+    assert_true (2.0**70) == (1<<70)
+    assert_false (2.0**71) == (1<<70)
+    assert_true(-2.0**70 == -(1<<70))
+    assert_false (2.0**70) == (1<<70) + 1
+    assert_false (2.0**70) == (1<<70) - 1
+    assert_false(-2.0**70 == -((1<<70) + 1))
+    assert_false (1.0/0.0) == (1<<70)
+    assert_false (0.0/0.0) == (1<<70)
+    assert_false 0.5 == (1<<70)
   end
 end
 
@@ -67,6 +80,8 @@ assert 'Bigint eql?' do
   if Object.const_defined?(:Float)
     assert_false n.eql?(2.0**70)
     assert_true n == (2.0**70)
+    assert_false (2.0**70).eql?(n)
+    assert_true (2.0**70) == n
   end
 end
 
