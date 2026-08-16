@@ -5958,8 +5958,7 @@ mrb_bint_pow(mrb_state *mrb, mrb_value x, mrb_value y)
   MPZ_CTX_INIT(mrb, ctx, pool);
   mpz_pow(ctx, &z, &a, exp);
 
-  struct RBigint *b = bint_new(ctx, &z);
-  return mrb_obj_value(b);
+  return bint_norm(mrb, bint_new(ctx, &z));
 }
 
 mrb_value
