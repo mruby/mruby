@@ -839,22 +839,32 @@ compile_charclass(re_compiler *c)
       if (class_get_bit(cc, (uint8_t)ch)) class_set_bit(cc, (uint8_t)(ch + 32));
     }
 
-    /* Round two: every source of a member joins it too. The bitmap is walked
-       upwards, so the upper case letter set here is behind the cursor and is
-       never asked for sources of its own, which is correct: nothing folds to
-       an upper case letter. */
+    /* Round two: every source of a member joins it too. */
     for (uint32_t cp = 0;;) {
       uint32_t lo, hi;
       if (!class_next_range(cc, cp, &lo, &hi) || (lo & RE_CLASS_BYTE)) break;
       mrb_uni_case_unfold_range(lo, hi, class_fold_add, &sink);
       cp = hi + 1;
     }
+    /* An ASCII member can have a non-ASCII source (U+212A folds to 'k'),
+       which the range walk cannot reach: the bitmap holds no ranges. A run of
+       set bits is asked about in one question, since a question costs a walk
+       of the tables whatever it spans. The tables hold no ASCII source, ASCII
+       being what they are the rest of, so nothing this walk finds lands in
+       the bitmap and no run of it grows while it is being read. */
     for (int ch = 0; ch < 128; ch++) {
       if (!class_get_bit(cc, (uint8_t)ch)) continue;
-      if (ch >= 'a' && ch <= 'z') class_set_bit(cc, (uint8_t)(ch - 32));
-      /* An ASCII member can have a non-ASCII source (U+212A folds to 'k'),
-         which the range walk cannot reach: the bitmap holds no ranges. */
-      mrb_uni_case_unfold_range((uint32_t)ch, (uint32_t)ch, class_fold_add, &sink);
+      int end = ch;
+      while (end + 1 < 128 && class_get_bit(cc, (uint8_t)(end + 1))) end++;
+      mrb_uni_case_unfold_range((uint32_t)ch, (uint32_t)end, class_fold_add, &sink);
+      ch = end;
+    }
+    /* The upper case letter of a lower case member is the source the tables
+       do not hold, so it is set here. Nothing folds to an upper case letter,
+       which is what lets this come after the walk above rather than adding to
+       what that walk is asked about. */
+    for (int ch = 'a'; ch <= 'z'; ch++) {
+      if (class_get_bit(cc, (uint8_t)ch)) class_set_bit(cc, (uint8_t)(ch - 32));
     }
 #else
     /* The same closure, restricted to the foldings this build has. Refusing
