@@ -36,11 +36,6 @@ class String
   # back to the core implementation.
   alias __split split
 
-  # The same for String#[], whose regexp form is overridden at the end of
-  # this file.  `slice` is a second method table entry for the same C
-  # function rather than an alias of `[]`, so this one capture serves both.
-  alias __aref []
-
   # The write side of the same pair, overridden at the end of this file too.
   # `[]=` has a single method table entry, and `slice!` comes from
   # mruby-string-ext, which this gem depends on, so it needs its own capture.
@@ -384,48 +379,10 @@ class String
     result
   end
 
-  # Regexp-aware element reference.  Falls back to the C-defined `[]`
-  # (aliased as `__aref` above) for every other argument form, and handles a
-  # regexp here.
-  #
-  # `vm_op_getidx()` answers `str[Integer]`, `str[String]` and `str[Range]`
-  # from C without consulting the method table, so those three keep bypassing
-  # this override.  They are exactly the forms it would have handed back to
-  # `__aref` unchanged, so they cost nothing and behave as before, while a
-  # regexp index leaves the opcode through its fallback and arrives here as an
-  # ordinary send.  `str[i, len]` and every `slice` call are not opcode
-  # receivers and do arrive here, paying a Ruby frame on their way to
-  # `__aref`.
-  def [](*args)
-    # Before any argument inspection, so that the non-regexp forms keep the
-    # arity check `mrb_get_args()` does.  With no arguments at all `args[0]`
-    # is nil, the guard fails, and `__aref()` raises the ArgumentError.
-    # `is_a?` is redefinable, so a Regexp denying its own type would slip
-    # past and fail in `__aref`; `Module#===` reads the real type.  What it
-    # settles is which implementation answers, not what the pattern goes on to
-    # decide once it is here; see the note at the top of this file.
-    return __aref(*args) unless Regexp === args[0]
-    if args.length > 2
-      raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1..2)"
-    end
-    # A full search and not `match?`: the match globals have to be published
-    # here, including the clearing a failed match does, and `match?` leaves
-    # them alone.  That is why the MatchData is fetched even with no capture
-    # argument, where only its `[0]` is used.
-    md = Regexp.__search(args[0], self)
-    return nil unless md
-    # The capture argument reaches `MatchData#[]` untouched: it already
-    # normalizes a negative index, answers nil for an index past the last
-    # group and raises IndexError for a name that resolves to none, which is
-    # what CRuby does for `str[re, capture]`.
-    md[args.length > 1 ? args[1] : 0]
-  end
-
-  # `slice` is registered separately from `[]` rather than aliased to it, so
-  # the override above would leave it on the C implementation.  This is also
-  # what makes `sym[re]` work: `Symbol#[]` is an alias of `Symbol#slice`,
-  # which delegates to `String#slice`.
-  alias slice []
+  # The regexp-aware `[]` and `slice` are `str_aref()` in src/regexp.c, where
+  # the indexes the core method answers reach it without a Ruby frame in
+  # between.  Everything below stays here, where a block or a loop needs the
+  # VM anyway.
 
   # Regexp-aware element assignment.  Falls back to the C-defined `[]=`
   # (aliased as `__aset` above) for every other argument form, and handles a
