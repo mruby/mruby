@@ -5478,6 +5478,10 @@ mrb_bint_new_float(mrb_state *mrb, mrb_float x)
     mrb_assert(x < 1.0);
     rp[i] = f;
     if (i == 0) break;
+    /* The digit just taken leaves the fraction below it, which is the next
+       digit divided by the base. Without scaling it back the loop reads zero
+       for every digit but the highest, and 1e20 came out as 5 * 2**64. */
+    x *= b;
   }
   return bint_norm(mrb, bint_new(ctx, &r));
 }
