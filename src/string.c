@@ -1933,10 +1933,14 @@ str_escape(mrb_state *mrb, mrb_value str, mrb_bool inspect)
 
   p = RSTRING_PTR(str); pend = RSTRING_END(str);
 #ifdef MRB_UTF8_STRING
-  /* `inspect` passes a whole character through unescaped so it stays readable.
-     A byte-indexed string holds no characters to keep readable, so it escapes
-     byte by byte, which is what `dump` on the same string already did. */
-  if (RSTR_BINARY_P(mrb_str_ptr(str))) inspect = FALSE;
+  /* `inspect` passes a whole character through unescaped so it stays readable,
+     which is why it reads the character at every byte. A single-byte string
+     has none spelled in more than one byte: a byte-read one holds no
+     characters at all, and one of nothing but ASCII holds only characters the
+     escaping below writes out the same way. Both escape byte by byte, which is
+     what `dump` on the same string already did, and neither reads a character
+     to do it. */
+  if (RSTR_SINGLE_BYTE_P(mrb_str_ptr(str))) inspect = FALSE;
 #endif
   for (;p < pend; p++) {
     unsigned char c, cc;
