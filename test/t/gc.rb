@@ -135,11 +135,11 @@ end
 # result; it is not slack for a partial leak, and a branch that retains on even
 # a small fraction of the iterations is over it.
 #
-# A loop body measures the branch under test only while it reaches the opcode
-# rather than compiling down to a send.  Nothing in this tree redefines
-# `Hash#[]` or `Hash#[]=`, so the Hash loops below reach it as they stand;
-# mruby-regexp does replace `String#[]`, which is what
-# `with_builtin_string_aref` puts back.
+# An index opcode answers from C only while the operator it reimplements is
+# still the builtin, so a loop body stops being send-free the moment something
+# redefines that operator on the core class.  Nothing in this tree redefines
+# `Hash#[]` or `Hash#[]=`, so the Hash loops below need no help; mruby-regexp
+# does redefine `String#[]`, which is what `with_builtin_string_aref` puts back.
 
 # Runs the block with the C implementation of `String#[]` in place, so that
 # `s[0]` and `s[1]` inside it reach `OP_GETIDX0` and `OP_GETIDX` rather than

@@ -388,14 +388,15 @@ class String
   # (aliased as `__aref` above) for every other argument form, and handles a
   # regexp here.
   #
-  # `vm_op_getidx()` answers `str[Integer]`, `str[String]` and `str[Range]`
-  # from C without consulting the method table, so those three keep bypassing
-  # this override.  They are exactly the forms it would have handed back to
-  # `__aref` unchanged, so they cost nothing and behave as before, while a
-  # regexp index leaves the opcode through its fallback and arrives here as an
-  # ordinary send.  `str[i, len]` and every `slice` call are not opcode
-  # receivers and do arrive here, paying a Ruby frame on their way to
-  # `__aref`.
+  # Defining this disables the String branch of `vm_op_getidx()` and
+  # `vm_op_getidx0()` for the whole VM: those opcodes answer `str[Integer]`,
+  # `str[String]` and `str[Range]` from C only while `String#[]` is the builtin
+  # they reimplement, and installing this method makes it no longer so.  Every
+  # `str[i]` in the program therefore arrives here, pays a Ruby frame and two
+  # splat arrays, and reaches `__aref` with the same result as before.  That is
+  # the price of the regexp forms being reachable at all; the alternative,
+  # letting the opcode keep answering, is the redefinition being silently
+  # ignored for those three argument types.
   def [](*args)
     # Before any argument inspection, so that the non-regexp forms keep the
     # arity check `mrb_get_args()` does.  With no arguments at all `args[0]`
@@ -432,10 +433,9 @@ class String
   # regexp here.
   #
   # `vm_op_setidx()` optimizes Array and Hash only and sends `[]=` for every
-  # other receiver, so unlike the read side there is no opcode keeping the
-  # ordinary `str[i] = repl` off this override: it pays a Ruby frame on its
-  # way to `__aset`.  That is why the delegation guard is a single
-  # `Regexp ===`, before any other work.
+  # other receiver, so the ordinary `str[i] = repl` has always arrived here and
+  # paid a Ruby frame on its way to `__aset`.  That is why the delegation guard
+  # is a single `Regexp ===`, before any other work.
   def []=(*args)
     return __aset(*args) unless Regexp === args[0]
     unless args.length == 2 || args.length == 3

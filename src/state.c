@@ -60,6 +60,9 @@ mrb_open_core(void)
 
   mrb_method_cache_clear(mrb);
   mrb->bootstrapping = FALSE;
+  /* After bootstrapping, so that a core `[]` replaced from mrblib is recorded
+     as replaced rather than as the builtin. */
+  mrb_idx_op_init(mrb);
 
   return mrb;
 }

@@ -29,6 +29,10 @@ size_t mrb_class_mt_memsize(mrb_state*, struct RClass*);
 mrb_value mrb_obj_extend(mrb_state*, mrb_value obj);
 #endif
 
+/* inline index opcode guards (class.c); see `idx_class` in `struct mrb_state` */
+void mrb_idx_op_init(mrb_state *mrb);
+void mrb_idx_op_update(mrb_state *mrb, mrb_sym mid);
+
 mrb_value mrb_obj_equal_m(mrb_state *mrb, mrb_value);
 
 /* debug */
