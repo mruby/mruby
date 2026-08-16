@@ -784,9 +784,7 @@ load_irep(mrb_state *mrb, struct RProc *proc, mrb_ccontext *c)
 MRB_API mrb_value
 mrb_load_irep_cxt(mrb_state *mrb, const uint8_t *bin, mrb_ccontext *c)
 {
-  struct RProc *proc = mrb_proc_read_irep(mrb, bin);
-  if (!proc) return mrb_undef_value();
-  return load_irep(mrb, proc, c);
+  return load_irep(mrb, mrb_proc_read_irep(mrb, bin), c);
 }
 
 MRB_API mrb_value
