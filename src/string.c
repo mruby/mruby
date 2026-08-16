@@ -2104,6 +2104,36 @@ case_kind_of(enum mrb_case_mode mode, mrb_bool first)
   }
 }
 
+/* Room in `o` for `need` more bytes past the `len` already written. The answer
+   is built with its length held apart from the string, so this grows the
+   buffer the way an append does without the questions an append from anywhere
+   has to ask: what is written here is this walk's own bytes, and where they
+   go is not somewhere the string can already be. */
+static char*
+case_out_room(mrb_state *mrb, struct RString *o, mrb_int len, mrb_int need)
+{
+  mrb_int capa = RSTR_CAPA(o);
+
+  if (capa - len < need) {
+    mrb_int want;
+    if (mrb_int_add_overflow(len, need, &want)) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
+    }
+    while (capa < want) {
+      if (mrb_int_mul_overflow(capa, 2, &capa)) {
+        capa = want;
+        break;
+      }
+    }
+    /* Leaving the buffer takes the string's length with it, and what an
+       embedded string carries over is that many bytes: told nothing, it would
+       carry over none of what has been written so far. */
+    RSTR_SET_LEN(o, len);
+    resize_capa(mrb, o, capa);
+  }
+  return RSTR_PTR(o) + len;
+}
+
 /* Convert a string that holds characters the tables can speak about. A mapping
    changes how many bytes a character takes ("K" U+212A lower cases to the one
    byte of "k"), so the answer is built beside the string rather than over it,
@@ -2115,51 +2145,73 @@ str_case_convert_utf8(mrb_state *mrb, mrb_value str, enum mrb_case_mode mode)
   const char *p = RSTR_PTR(s);
   const char *pend = p + RSTR_LEN(s);
   mrb_value out = mrb_str_new_capa(mrb, RSTR_LEN(s));
+  struct RString *o = mrb_str_ptr(out);
+  mrb_int dlen = 0;
   mrb_bool modify = FALSE;
   mrb_bool ascii_only = TRUE;
   mrb_bool first = TRUE;
 
   while (p < pend) {
-    char buf[MRB_UNI_CASE_MAX_BYTES];
+    /* Room for whatever one character can map to, so neither branch below has
+       to ask again for the character it is about to write. */
+    char *d = case_out_room(mrb, o, dlen, MRB_UNI_CASE_MAX_BYTES);
+
+    if ((unsigned char)*p < 0x80) {
+      /* ASCII has no mapping to look up and takes one byte of the answer per
+         byte of the source, so a run of it is converted where it stands.
+         Reaching the tables for it, or the buffer through an append, is what
+         made a string of ASCII with one character among it cost as much per
+         byte as one made of characters. The run stops where the buffer does,
+         and the turn of the loop after it is what grows the buffer. */
+      const char *dend = RSTR_PTR(o) + RSTR_CAPA(o);
+      do {
+        int c = (unsigned char)*p++;
+        int r = ascii_case_conv(c, mode, first);
+        first = FALSE;
+        if (r != c) modify = TRUE;
+        *d++ = (char)r;
+      } while (p < pend && (unsigned char)*p < 0x80 && d < dend);
+      dlen = (mrb_int)(d - RSTR_PTR(o));
+      continue;
+    }
+
     const char *src = p;
     mrb_int clen;
     uint32_t cp = mrb_utf8_decode(p, pend, &clen);
     mrb_int n;
 
-    if (cp < 0x80) {
-      buf[0] = (char)ascii_case_conv((int)cp, mode, first);
-      n = 1;
+    /* A run of bytes that spells no character has no case to convert, and
+       answering as though it were the byte it starts with would hand back a
+       string neither its own reading nor the caller asked for. */
+    if (clen == 1) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "input string invalid");
     }
-    else {
-      /* A run of bytes that spells no character has no case to convert, and
-         answering as though it were the byte it starts with would hand back a
-         string neither its own reading nor the caller asked for. */
-      if (clen == 1) {
-        mrb_raise(mrb, E_ARGUMENT_ERROR, "input string invalid");
-      }
-      n = mrb_uni_case_map(case_kind_of(mode, first), cp, buf);
-      /* A character with no mapping stands as it is. */
-      if (n == 0) {
-        memcpy(buf, src, (size_t)clen);
-        n = clen;
-      }
+    n = mrb_uni_case_map(case_kind_of(mode, first), cp, d);
+    /* A character with no mapping stands as it is. */
+    if (n == 0) {
+      memcpy(d, src, (size_t)clen);
+      n = clen;
     }
     p += clen;
     first = FALSE;
 
-    if (n != clen || memcmp(buf, src, (size_t)n) != 0) modify = TRUE;
+    if (n != clen || memcmp(d, src, (size_t)n) != 0) modify = TRUE;
+    /* Only what a mapping wrote can be asked about here: a character maps to
+       characters, and ASCII maps to ASCII, so the run above answers itself. */
     for (mrb_int i = 0; i < n; i++) {
-      if ((unsigned char)buf[i] & 0x80) ascii_only = FALSE;
+      if ((unsigned char)d[i] & 0x80) ascii_only = FALSE;
     }
-    mrb_str_cat(mrb, out, buf, n);
+    dlen += n;
   }
 
   if (!modify) return FALSE;
 
+  RSTR_SET_LEN(o, dlen);
+  RSTR_PTR(o)[dlen] = '\0';
+
   /* Every byte of the source spelled a character, since the walk refuses one
      that does not, and every mapping spells characters, so what was written
      is sound. Nothing but ASCII is the stronger answer where it holds. */
-  struct RString *o = mrb_str_ptr(out);
   RSTR_CODERANGE_SET(o, ascii_only ? MRB_STR_CODERANGE_7BIT
                                    : MRB_STR_CODERANGE_VALID);
   str_replace(mrb, s, o);
