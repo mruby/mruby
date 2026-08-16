@@ -654,6 +654,10 @@ num_eql(mrb_state *mrb, mrb_value x)
     if (!mrb_integer_p(y)) return mrb_false_value();
     return mrb_bool_value(mrb_integer(x) == mrb_integer(y));
   }
+  /* Numeric subclasses such as Rational and Complex land here. Their `==`
+     converts the argument, so `Rational(2,1) == 2` is true; `eql?` must not,
+     because `#hash` does not treat them as the same key either. */
+  if (mrb_type(x) != mrb_type(y)) return mrb_false_value();
   return mrb_bool_value(mrb_equal(mrb, x, y));
 }
 
@@ -681,6 +685,13 @@ flo_eq(mrb_state *mrb, mrb_value x)
     return mrb_bool_value(mrb_float(x) == (mrb_float)mrb_integer(y));
   case MRB_TT_FLOAT:
     return mrb_bool_value(mrb_float(x) == mrb_float(y));
+#ifdef MRB_USE_BIGINT
+  case MRB_TT_BIGINT:
+    /* `mrb_bint_cmp()` takes the big integer first and compares a Float
+       argument exactly; `int_equal()` makes the same call for the mirror
+       image of this comparison. */
+    return mrb_bool_value(mrb_bint_cmp(mrb, y, x) == 0);
+#endif
 #ifdef MRB_USE_RATIONAL
   case MRB_TT_RATIONAL:
     return mrb_bool_value(mrb_float(x) == mrb_as_float(mrb, y));
@@ -2116,7 +2127,7 @@ cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
   }
 #ifdef MRB_USE_BIGINT
   else if (mrb_bigint_p(v1)) {
-    if (mrb_integer_p(v2) || mrb_bigint_p(v2)) {
+    if (mrb_integer_p(v2) || mrb_bigint_p(v2) || mrb_float_p(v2)) {
       return mrb_bint_cmp(mrb, v1, v2);
     }
     x = mrb_as_float(mrb, v1);
@@ -2126,12 +2137,20 @@ cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
     x = mrb_as_float(mrb, v1);
   }
 
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(v2)) {
+    /* The switch below would convert `v2` with `mrb_as_float()` and lose the
+       low bits of a big integer. `mrb_bint_cmp()` keeps it exact. Negate the
+       result rather than the operands; -2 means incomparable, which has no
+       opposite. */
+    mrb_int c = mrb_bint_cmp(mrb, v2, mrb_float_value(mrb, x));
+    return c == -2 ? -2 : -c;
+  }
+#endif
+
   switch (mrb_type(v2)) {
 #ifdef MRB_USE_RATIONAL
   case MRB_TT_RATIONAL:
-#endif
-#ifdef MRB_USE_BIGINT
-  case MRB_TT_BIGINT:
 #endif
   case MRB_TT_INTEGER:
     if (mrb_fixnum_p(v2)) {

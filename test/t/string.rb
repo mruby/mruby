@@ -401,6 +401,21 @@ assert('String#upcase - Unicode') do
   assert_nil '日本'.upcase!
 end if UNICODECASE
 
+assert('String#upcase - an answer that outgrows an embedded buffer') do
+  # U+0390 is two bytes and upper cases to six, so a string short enough to
+  # live inside its own object converts to one that cannot. The answer is
+  # built beside the string, and a buffer that leaves an object carries over
+  # what the object says it holds: the walk has to say how much it has
+  # written, or the bytes written so far are dropped where the buffer moves.
+  assert_equal "Ϊ́" * 4, ("ΐ" * 4).upcase
+  assert_equal 24, ("ΐ" * 4).upcase.bytesize
+  # The same crossing one character at a time, so wherever the boundary of an
+  # embedded string falls, some length below walks over it.
+  1.upto(12) do |n|
+    assert_equal "Ϊ́" * n, ("ΐ" * n).upcase
+  end
+end if UNICODECASE
+
 assert('String#chomp', '15.2.10.5.9') do
   a = 'abc'.chomp
   b = ''.chomp

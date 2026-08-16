@@ -1262,6 +1262,12 @@ scope_finish(mrc_codegen_scope *s)
 static mrc_pool_value*
 lit_pool_extend(mrc_codegen_scope *s)
 {
+  /* `plen` is what the dump writes the pool count into, and it is 16 bits
+     wide there and here, so the 65536th entry would wrap it to zero and leave
+     every OP_LOADL past that pointing outside the pool. */
+  if (s->irep->plen == 0xffff) {
+    codegen_error(s, "too many literals");
+  }
   if (s->irep->plen == s->pcapa) {
     s->pcapa *= 2;
     s->pool = (mrc_pool_value*)mrc_realloc(s->c, s->pool, sizeof(mrc_pool_value)*s->pcapa);
@@ -1304,6 +1310,18 @@ new_sym(mrc_codegen_scope *s, mrc_sym sym)
   len = s->irep->slen;
   for (i=0; i<len; i++) {
     if (s->syms[i] == sym) return i;
+  }
+  {
+    /* The dump writes a symbol name's length in 16 bits, and then walks the
+       cursor by the truncated count while copying the name in full, so a
+       longer name leaves the rest of the symbol block written over itself.
+       0xffff is one short of that, and spoken for: it is the length the dump
+       writes for a null symbol (MRC_DUMP_NULL_SYM_LEN), so a name that long
+       is read back as no symbol at all. */
+    mrc_int nlen = 0;
+    if (mrc_sym_name_len(s->c, sym, &nlen) && nlen >= MRC_DUMP_NULL_SYM_LEN) {
+      codegen_error(s, "symbol name too long");
+    }
   }
   if (s->irep->slen >= s->scapa) {
     s->scapa *= 2;
@@ -1556,6 +1574,12 @@ new_lit_str(mrc_codegen_scope *s, const char *str, mrc_int len)
   int i;
   mrc_pool_value *pv;
 
+  /* The dump writes a pool string's length in 16 bits, so a longer one is
+     recorded truncated while its bytes are written in full, and every field
+     after it is read from the wrong offset. */
+  if (len > UINT16_MAX) {
+    codegen_error(s, "string literal too long");
+  }
   for (i=0; i<s->irep->plen; i++) {
     pv = &s->pool[i];
     if (pv->tt & IREP_TT_NFLAG) continue;
@@ -3987,30 +4011,32 @@ gen_ensure(mrc_codegen_scope *s, mrc_node *tree, uint32_t catch_entry, uint32_t 
 static void
 gen_pm_integer(mrc_codegen_scope *s, const pm_integer_t *iv)
 {
+  mrc_uint value;
+  mrc_bool fits = FALSE;
+
   if (iv->length == 0) {
-    if (!iv->negative) {
-      gen_int(s, cursp(), (mrc_int)iv->value);
-    }
-    else {
-      gen_int(s, cursp(), (mrc_int)iv->value * -1);
-    }
-    return;
+    /* iv->value is a uint32_t, which is wider than mrc_int under MRC_INT32,
+       so the magnitude still has to be range-checked below. */
+    value = iv->value;
+    fits = TRUE;
   }
 #ifdef MRC_INT64
-  if (iv->length == 2) {
-    mrc_uint value = ((mrc_uint)iv->values[0])|((mrc_uint)iv->values[1] << 32);
-    mrc_bool fits = TRUE;
+  else if (iv->length == 2) {
+    value = ((mrc_uint)iv->values[0])|((mrc_uint)iv->values[1] << 32);
+    fits = TRUE;
+  }
+#endif
+  if (fits) {
     if (!iv->negative && MRC_INT_MAX < value) fits = FALSE;
     if (iv->negative) {
       if (value > (mrc_uint)MRC_INT_MIN) fits = FALSE;
       else value *= -1;
     }
-    if (fits) {
-      gen_int(s, cursp(), value);
-      return;
-    }
   }
-#endif
+  if (fits) {
+    gen_int(s, cursp(), (mrc_int)value);
+    return;
+  }
   {
     pm_buffer_t buf = {0};
     pm_integer_string(&buf, iv);

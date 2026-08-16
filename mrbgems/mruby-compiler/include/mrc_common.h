@@ -27,7 +27,12 @@
   #include <mrubyc.h>
   #define mrb_state void
 #else
-  /* May be building standalone mrbc */
+  /* May be building standalone mrbc. mruby.h would declare a core API this
+     binary does not link, but mrbconf.h on its own is self-contained, and it
+     is what settles the target's mrb_int width -- which mrc_int has to match,
+     because this mrbc dumps irep for that target (see MRC_INT32 below). */
+  #include <stdint.h>
+  #include <mrbconf.h>
   #define mrb_state void
 #endif
 
@@ -114,6 +119,13 @@ typedef uint8_t mrc_bool;
 # ifndef TRUE
 #  define TRUE 1
 # endif
+#endif
+
+/* mrc_int must be as wide as the VM's mrb_int and no wider: the pool literals
+   and the constant folding below are dumped for a target whose loader rejects
+   an IREP_TT_INT64 entry unless it was built with MRB_INT64 (src/load.c). */
+#if defined(MRB_INT32) && !defined(MRC_INT32)
+#define MRC_INT32 1
 #endif
 
 #if !defined(MRC_INT32)

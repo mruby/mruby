@@ -137,6 +137,15 @@ assert 'Rational#==, Rational#!=' do
   assert_equal_rational(false, Rational(1), '')
 end
 
+assert 'Rational#eql?' do
+  assert_true  Rational(2,1).eql?(Rational(2,1))
+  assert_true  Rational(1,2).eql?(Rational(2,4))
+  assert_false Rational(2,1).eql?(2)
+  assert_false Rational(1,2).eql?(0.5)
+  assert_false 2.eql?(Rational(2,1))
+  assert_false Rational(2,1).eql?(nil)
+end
+
 assert 'Integer#==(Rational), Integer#!=(Rational)' do
   assert_equal_rational(true, 2, Rational(4,2))
   assert_equal_rational(true, -2, Rational(-4,2))

@@ -35,6 +35,27 @@ assert('Literals Numerical', '8.7.6.2') do
   assert_equal 10.0, 1.0e+1
 end
 
+assert('Literals Numerical wider than mrb_int') do
+  # None of these fit mrb_int on MRB_INT32, so the compiler has to hand them
+  # to the VM as big integer literals.  A shift is written on the other side
+  # of each because a shift that overflows mrb_int is left to run time, which
+  # gives the same value by a path the literal does not share.  Without
+  # mruby-bigint the value cannot exist at all, and it is the literal that
+  # cannot be built where mrb_int is narrow, the shift where it is wide, so
+  # the guard holds one of each.
+  begin
+    n = 2147483648
+    m = (1 << 63) - 1
+  rescue RangeError
+    skip 'a value here is wider than mrb_int and mruby-bigint is absent'
+  end
+  assert_equal 1 << 31, n
+  assert_equal 4294967296, 1 << 32
+  assert_equal 9223372036854775807, m
+  assert_equal(-2147483649, -(1 << 31) - 1)
+  assert_equal 2147483648, 0x80000000
+end
+
 assert('Literals Strings Single Quoted', '8.7.6.3.2') do
   assert_equal 'abc', 'abc'
   assert_equal '\'', '\''

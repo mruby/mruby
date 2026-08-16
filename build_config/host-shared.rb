@@ -1,7 +1,7 @@
 # Build mruby with a shared libmruby.so (in addition to the usual
 # libmruby.a / executables).
 #
-# Produces (in build/host/lib/):
+# Produces (in build/host-shared/lib/):
 #   libmruby.a              the static archive (as in the default build)
 #   libmruby.so             the shared library, with SONAME=libmruby.so.<MAJOR>.<MINOR>
 #   libmruby.so.<MAJOR>.<MINOR>  symlink to libmruby.so (matches SONAME)
@@ -14,7 +14,7 @@
 #
 # The shared library is built FROM the static archive via
 # `-Wl,--whole-archive`, so the existing static-build pipeline (including
-# the test infrastructure) is unaffected.  Executables in build/host/bin
+# the test infrastructure) is unaffected.  Executables in build/host-shared/bin
 # remain statically linked; distros that want dynamically-linked
 # executables can rebuild them against the .so.
 #
@@ -22,7 +22,9 @@
 
 require "mruby/source"
 
-MRuby::Build.new do |conf|
+# Shared-library build in a dedicated build directory (build/host-shared) so
+# it does not clobber a normal host build.
+MRuby::Build.new('host-shared') do |conf|
   conf.toolchain
 
   # include the GEM box
@@ -42,7 +44,7 @@ end
 # Add the shared-library targets as a post-build pass, so the default
 # static-build pipeline remains untouched.
 MRuby.each_target do
-  next unless name == "host"
+  next unless name == "host-shared"
 
   libdir = File.join(build_dir, libdir_name)
   vermap = File.join(build_dir, "libmruby.map")

@@ -1,4 +1,6 @@
-MRuby::Build.new do |conf|
+# mruby-task GLib HAL test build in a dedicated build directory
+# (build/glib_hal_test) so it does not clobber a normal host build.
+MRuby::Build.new('glib_hal_test') do |conf|
   # load specific toolchain settings
   conf.toolchain
 
@@ -83,6 +85,11 @@ MRuby::Build.new do |conf|
   conf.enable_test
   conf.ports :glib
   conf.cc.defines << 'MRB_TASK_BUILD_DEMO'
+  # this build loads no gembox, and a build that is not named 'host' cannot
+  # borrow mrbc from a 'host' target that is not being built
+  conf.gem core: 'mruby-bin-mrbc'
+  # mruby-bin-mrbc brings a bintest that disassembles through `mruby -v -c`
+  conf.gem core: 'mruby-bin-mruby'
   conf.gem core: 'mruby-task'
   conf.gem core: 'mruby-compiler'
 end

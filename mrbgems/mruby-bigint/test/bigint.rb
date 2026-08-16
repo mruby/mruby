@@ -28,6 +28,39 @@ assert 'Bigint ==' do
   if Object.const_defined?(:Float)
     assert_true (1<<70) == (2.0**70)
     assert_false (1<<70) == (2.0**71)
+
+    # A Float argument used to be compared by rounding the big integer to a
+    # Float, so every neighbour within half an ULP answered equal.
+    assert_false (1<<70) + 1 == (2.0**70)
+    assert_false (1<<70) - 1 == (2.0**70)
+    assert_false(-((1<<70) + 1) == (-2.0**70))
+    assert_true(-(1<<70) == (-2.0**70))
+
+    # Infinity and NaN reach the same comparison and have no integer part.
+    assert_false (1<<70) == (1.0/0.0)
+    assert_false (1<<70) == (-1.0/0.0)
+    assert_false (1<<70) == (0.0/0.0)
+
+    # A Float whose integer part an `mrb_int` holds, zero included, is carried
+    # over as one rather than built into a big integer.
+    assert_false (1<<70) == 0.0
+    assert_false (1<<70) == -0.0
+    assert_false (1<<70) == 0.5
+    assert_false (1<<70) == 1.5
+    assert_false(-(1<<70) == -0.5)
+
+    # ...and every one of them written the other way round. `Float#==` had no
+    # arm for a big integer, so it fell through to false and the two
+    # directions disagreed about an equal pair.
+    assert_true (2.0**70) == (1<<70)
+    assert_false (2.0**71) == (1<<70)
+    assert_true(-2.0**70 == -(1<<70))
+    assert_false (2.0**70) == (1<<70) + 1
+    assert_false (2.0**70) == (1<<70) - 1
+    assert_false(-2.0**70 == -((1<<70) + 1))
+    assert_false (1.0/0.0) == (1<<70)
+    assert_false (0.0/0.0) == (1<<70)
+    assert_false 0.5 == (1<<70)
   end
 end
 
@@ -47,6 +80,68 @@ assert 'Bigint eql?' do
   if Object.const_defined?(:Float)
     assert_false n.eql?(2.0**70)
     assert_true n == (2.0**70)
+    assert_false (2.0**70).eql?(n)
+    assert_true (2.0**70) == n
+  end
+end
+
+assert 'Bigint <=>' do
+  n = 1<<70
+
+  assert_equal 0, n <=> (1<<70)
+  assert_equal(-1, n <=> (1<<71))
+  assert_equal 1, n <=> 0
+  assert_equal(-1, 0 <=> n)
+
+  assert_nil n <=> 'x'
+  assert_nil n <=> nil
+
+  # `cmpnum()` used to round the big integer to a Float before comparing it
+  # against one, which collapsed a whole neighbourhood onto the same answer.
+  if Object.const_defined?(:Float)
+    assert_equal 0, n <=> (2.0**70)
+    assert_equal 1, n + 1 <=> (2.0**70)
+    assert_equal(-1, n - 1 <=> (2.0**70))
+    assert_equal 0, (2.0**70) <=> n
+    assert_equal(-1, (2.0**70) <=> n + 1)
+    assert_equal 1, (2.0**70) <=> n - 1
+
+    assert_true n + 1 > (2.0**70)
+    assert_true (2.0**70) < n + 1
+    assert_true n - 1 < (2.0**70)
+    assert_true (2.0**70) > n - 1
+
+    assert_equal(-1, n <=> (1.0/0.0))
+    assert_equal 1, n <=> (-1.0/0.0)
+    assert_nil n <=> (0.0/0.0)
+    assert_nil (0.0/0.0) <=> n
+
+    # A Float with no integer part of its own is compared the same way.
+    assert_equal 1, n <=> 0.0
+    assert_equal 1, n <=> 0.5
+    assert_equal 1, n <=> -0.5
+    assert_equal(-1, -n <=> 0.5)
+    assert_equal(-1, 0.5 <=> n)
+    assert_equal 1, 0.5 <=> -n
+  end
+end
+
+assert 'Bigint normalizes the smallest Integer' do
+  # An Integer's negative range is one wider than its positive one: where
+  # mrb_int is 64 bits the smallest Integer is -(2**63), and it cannot stay a
+  # big integer, since the same value built out of fixnums alone has to be
+  # indistinguishable from it. The exponent that is not this build's is asked
+  # too, where both spellings already share one representation, two fixnums on
+  # a 64 bit build and two big integers on a 32 bit one, and the rows hold for
+  # that reason.
+  [31, 63].each do |e|
+    from_bigint = -(2 ** e)
+    from_fixnum = -(2 ** e - 1) - 1
+
+    assert_equal from_fixnum, from_bigint
+    assert_true from_bigint.eql?(from_fixnum)
+    assert_true from_fixnum.eql?(from_bigint)
+    assert_equal from_fixnum.hash, from_bigint.hash
   end
 end
 
@@ -192,6 +287,16 @@ assert 'Bigint pow' do
   n = 1<<65
   assert_equal n, n ** 1
   assert_equal 1, n ** 0
+
+  # `**` compares by value and passes either way; the result must also be
+  # demoted to a fixnum Integer, or `eql?` and `hash` disagree with it.
+  one = n ** 0
+  assert_true one.eql?(1)
+  assert_true 1.eql?(one)
+  assert_equal 1.hash, one.hash
+  h = {}
+  200.times { |i| h[i] = i }
+  assert_equal 1, h[one]
   assert_equal 1361129467683753853853498429727072845824, n ** 2
   # assert_equal 193128586, n.pow(n, 1234567890)
   # assert_equal(-1041439304, n.pow(n, -1234567890))
