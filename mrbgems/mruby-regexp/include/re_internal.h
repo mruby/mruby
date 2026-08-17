@@ -271,4 +271,11 @@ int mrb_re_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
             const char *str, mrb_int len, mrb_int start,
             int *captures, int captures_size, mrb_bool binary);
 
+/* Execute a match backward: the last match that starts at or before `limit`.
+   Answers as mrb_re_exec() does, and clears the capture buffer itself before
+   each of the searches it makes, having to make more than one. */
+int mrb_re_rexec(mrb_state *mrb, const mrb_regexp_pattern *pat,
+            const char *str, mrb_int len, mrb_int limit,
+            int *captures, int captures_size, mrb_bool binary);
+
 #endif /* MRB_RE_INTERNAL_H */

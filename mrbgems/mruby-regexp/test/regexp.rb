@@ -179,13 +179,6 @@ assert("Regexp.__byte_search answers a position before the subject with a miss")
   assert_nil Regexp.__byte_search(/b/, "abc", 1000000)
   assert_nil $~
 
-  # and a search that publishes nothing clears nothing either, at both ends
-  $~ = /b/.match("abc")
-  assert_nil Regexp.__byte_search(/b/, "abc", -1, false, false)
-  assert_equal "b", $~[0]
-  assert_nil Regexp.__byte_search(/b/, "abc", 1000000, false, false)
-  assert_equal "b", $~[0]
-
   # and it is answered before the subject is read, the way `__search` answers a
   # position it cannot place: a subject the position names nothing in is not
   # read either way
@@ -196,6 +189,28 @@ assert("Regexp.__byte_search answers a position before the subject with a miss")
   else
     assert_nil Regexp.__byte_search(/b/, bad, 0)
   end
+end
+
+assert("Regexp.__byte_rsearch reads its limit at both ends of the subject") do
+  # The limit is the last position a match may start at, so one past the end
+  # of the subject is every position in it and not the miss the forward
+  # search answers a position past the end with. `rindex` clamps for the same
+  # reason: `"abc".rindex(/b/, 10)` is 1.
+  assert_equal 1, Regexp.__byte_rsearch(/b/, "abc", 1000000).__byte_begin(0)
+  assert_equal 1, Regexp.__byte_rsearch(/b/, "abc", 3).__byte_begin(0)
+  assert_nil Regexp.__byte_rsearch(/b/, "abc", 0)
+
+  # A negative limit names no position and reaches here only from a direct
+  # call, as a negative position does in `__byte_search` above: it is the
+  # miss, and it clears the match globals.
+  $~ = /b/.match("abc")
+  assert_nil Regexp.__byte_rsearch(/b/, "abc", -1)
+  assert_nil $~
+
+  # and the answer is the one the globals describe
+  assert_equal 4, Regexp.__byte_rsearch(/b(c)/, "abcabc", 6).__byte_begin(0)
+  assert_equal "c", $1
+  assert_equal "bc", Regexp.last_match(0)
 end
 
 assert("Regexp.escape") do

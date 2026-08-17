@@ -383,12 +383,10 @@ set_match_globals(mrb_state *mrb, mrb_value obj, mrb_value str, int *captures, i
   mrb_gv_set(mrb, last_match_syms[LAST_PAREN], last_paren);
 }
 
-/* Create MatchData from captures. `publish` says whether the match becomes the
-   one the match globals describe; a caller that will publish a match of its
-   own choosing passes FALSE and leaves them where they were. */
+/* Create MatchData from captures, and make it the match the globals
+   describe. */
 static mrb_value
-create_matchdata(mrb_state *mrb, mrb_value regexp, mrb_value str, int *captures, int ncap,
-                 mrb_bool publish)
+create_matchdata(mrb_state *mrb, mrb_value regexp, mrb_value str, int *captures, int ncap)
 {
   /* Snapshot the subject: MatchData reports the string as it was at match
      time, so later in-place changes to it must not be visible here. */
@@ -409,7 +407,7 @@ create_matchdata(mrb_state *mrb, mrb_value regexp, mrb_value str, int *captures,
   mrb_iv_set(mrb, obj, mrb_intern_lit(mrb, "source"), str);
   mrb_iv_set(mrb, obj, mrb_intern_lit(mrb, "regexp"), regexp);
 
-  if (publish) set_match_globals(mrb, obj, str, captures, md->num_captures);
+  set_match_globals(mrb, obj, str, captures, md->num_captures);
 
   return obj;
 }
@@ -425,11 +423,9 @@ match_operand(mrb_state *mrb, mrb_value obj)
 
 /* Internal: execute match and create MatchData.
    Returns MatchData on match, nil on no match.
-   Sets $~ and $1-$9 globals, unless `publish` says the caller owns them: a
-   search that publishes nothing clears nothing either, so the globals come
-   out of it exactly as they went in. */
+   Sets $~ and $1-$9 globals, and clears them on a miss. */
 static mrb_value
-exec_match(mrb_state *mrb, mrb_value self, mrb_value str, mrb_int pos, mrb_bool publish)
+exec_match(mrb_state *mrb, mrb_value self, mrb_value str, mrb_int pos)
 {
   mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, self, &regexp_type, mrb_regexp_pattern);
   if (re_uninitialized_p(pat)) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
@@ -442,10 +438,10 @@ exec_match(mrb_state *mrb, mrb_value self, mrb_value str, mrb_int pos, mrb_bool 
 
   if (ncap == 0) {
     mrb_free(mrb, captures);
-    if (publish) clear_match_globals(mrb);
+    clear_match_globals(mrb);
     return mrb_nil_value();
   }
-  mrb_value md = create_matchdata(mrb, self, str, captures, cap_size, publish);
+  mrb_value md = create_matchdata(mrb, self, str, captures, cap_size);
   mrb_free(mrb, captures);
   return md;
 }
@@ -474,7 +470,7 @@ regexp_match(mrb_state *mrb, mrb_value self)
   }
 
   re_check_encoding(mrb, str);
-  md = exec_match(mrb, self, str, pos, TRUE);
+  md = exec_match(mrb, self, str, pos);
   if (!mrb_nil_p(md) && !mrb_nil_p(block)) {
     return mrb_yield(mrb, block, md);
   }
@@ -523,7 +519,7 @@ re_search(mrb_state *mrb, mrb_value re, mrb_value str, mrb_int pos, mrb_bool che
     return mrb_nil_value();
   }
   if (!checked) re_check_encoding(mrb, str);
-  return exec_match(mrb, re, str, pos, TRUE);
+  return exec_match(mrb, re, str, pos);
 }
 
 static mrb_value
@@ -539,7 +535,7 @@ regexp_s_search(mrb_state *mrb, mrb_value klass)
 }
 
 /*
- * Regexp.__byte_search(re, str, pos = 0, checked = false, publish = true)
+ * Regexp.__byte_search(re, str, pos = 0, checked = false)
  *
  * Internal: the byte-offset search the mrblib loops of `gsub`, `split` and
  * `byteindex` drive themselves. No position normalization, because the
@@ -548,12 +544,6 @@ regexp_s_search(mrb_state *mrb, mrb_value klass)
  * the check reads the flag core left on it after the first turn. `checked`
  * carries the same meaning as in `__search`: `gsub` sets it for a block over
  * a quoted String pattern.
- *
- * `publish` says whether the match becomes the one the match globals describe.
- * A loop that walks past a match on the way to the one it wants clears it:
- * `rindex` and its family pass FALSE and publish the match they settled on
- * with `MatchData#__set_globals`. `gsub` and `scan` cannot, since the block
- * they call reads the globals of the match it was handed.
  */
 static mrb_value
 regexp_s_byte_search(mrb_state *mrb, mrb_value klass)
@@ -562,9 +552,8 @@ regexp_s_byte_search(mrb_state *mrb, mrb_value klass)
   mrb_int pos = 0;
 
   mrb_bool checked = FALSE;
-  mrb_bool publish = TRUE;
 
-  mrb_get_args(mrb, "oS|ibb", &re, &str, &pos, &checked, &publish);
+  mrb_get_args(mrb, "oS|ib", &re, &str, &pos, &checked);
   check_regexp_arg(mrb, re);
   /* Every mrblib loop enters at zero or at an offset a match answered with,
      so a position before the subject reaches here only from a direct call.
@@ -574,11 +563,64 @@ regexp_s_byte_search(mrb_state *mrb, mrb_value klass)
      encoding is, as `__search` asks a position it cannot place, since a
      subject the position names nothing in is not read either way. */
   if (pos < 0) {
-    if (publish) clear_match_globals(mrb);
+    clear_match_globals(mrb);
     return mrb_nil_value();
   }
   if (!checked) re_check_encoding(mrb, str);
-  return exec_match(mrb, re, str, pos, publish);
+  return exec_match(mrb, re, str, pos);
+}
+
+/*
+ * Regexp.__byte_rsearch(re, str, limit)
+ *
+ * Internal: the backward search of `rindex`, `byterindex` and `rpartition`.
+ * `limit` is a byte offset and the answer is the last match that starts at or
+ * before it, or nil.
+ *
+ * The three callers work in byte space and always pass a String, as the
+ * callers of `__byte_search` do, so there is no position normalization and no
+ * operand conversion here either. Nor is there a `checked`: none of the three
+ * has a quoted String pattern to reach here with, a String argument being the
+ * form each of them leaves to the C method it aliased.
+ *
+ * The match this answers with is the one the globals describe, and a miss
+ * clears them, as in every other search. The walk that used to pass over
+ * matches on its way to this one is inside this call now, so there is no
+ * longer a caller that has to keep the globals off what it passes.
+ */
+static mrb_value
+regexp_s_byte_rsearch(mrb_state *mrb, mrb_value klass)
+{
+  mrb_value re, str;
+  mrb_int limit;
+
+  mrb_get_args(mrb, "oSi", &re, &str, &limit);
+  check_regexp_arg(mrb, re);
+  /* A backstop, as the one in `__byte_search` is: every caller clamps its
+     position into the subject first, so a negative offset reaches here only
+     from a direct call, and it is the miss it names rather than a read
+     behind RSTRING_PTR(str). */
+  if (limit < 0) {
+    clear_match_globals(mrb);
+    return mrb_nil_value();
+  }
+  re_check_encoding(mrb, str);
+
+  mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
+  if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
+
+  int cap_size = pat->num_captures * 2;
+  int *captures = (int*)mrb_malloc(mrb, sizeof(int) * cap_size);
+  int ncap = mrb_re_rexec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), limit,
+                          captures, cap_size, re_binary_string_p(str));
+  if (ncap == 0) {
+    mrb_free(mrb, captures);
+    clear_match_globals(mrb);
+    return mrb_nil_value();
+  }
+  mrb_value md = create_matchdata(mrb, re, str, captures, cap_size);
+  mrb_free(mrb, captures);
+  return md;
 }
 
 /* Internal: the search of `match?`, run with a NULL capture buffer so that
@@ -645,7 +687,7 @@ regexp_match_op(mrb_state *mrb, mrb_value self)
   str = match_operand(mrb, str);
   re_check_encoding(mrb, str);
 
-  mrb_value md = exec_match(mrb, self, str, 0, TRUE);
+  mrb_value md = exec_match(mrb, self, str, 0);
   if (mrb_nil_p(md)) return mrb_nil_value();
 
   mrb_match_data *m = DATA_GET_PTR(mrb, md, &matchdata_type, mrb_match_data);
@@ -669,7 +711,7 @@ regexp_case_match(mrb_state *mrb, mrb_value self)
   if (re_uninitialized_p(pat)) return mrb_false_value();
   re_check_encoding(mrb, str);
 
-  md = exec_match(mrb, self, str, 0, TRUE);
+  md = exec_match(mrb, self, str, 0);
   return mrb_bool_value(!mrb_nil_p(md));
 }
 
@@ -1332,7 +1374,7 @@ regexp_s_gsub_str(mrb_state *mrb, mrb_value klass)
 
   /* set $~ from last match */
   if (last_ncap > 0) {
-    create_matchdata(mrb, re, str, last_captures, last_ncap, TRUE);
+    create_matchdata(mrb, re, str, last_captures, last_ncap);
   }
   else {
     clear_match_globals(mrb);
@@ -1395,7 +1437,7 @@ regexp_s_sub_str(mrb_state *mrb, mrb_value klass)
     mrb_str_cat(mrb, result, s + captures[1], slen - captures[1]);
   }
 
-  create_matchdata(mrb, re, str, captures, cap_size, TRUE);
+  create_matchdata(mrb, re, str, captures, cap_size);
   mrb_free(mrb, captures);
   re_mark_spliced(result, str, replacement, TRUE);
   return result;
@@ -1475,7 +1517,7 @@ regexp_s_scan(mrb_state *mrb, mrb_value klass)
   mrb_free(mrb, captures);
 
   if (last_ncap > 0) {
-    create_matchdata(mrb, re, str, last_captures, last_ncap, TRUE);
+    create_matchdata(mrb, re, str, last_captures, last_ncap);
   }
   else {
     clear_match_globals(mrb);
@@ -1666,6 +1708,7 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, re, "__check_byte_pos", regexp_check_byte_pos, MRB_ARGS_REQ(2));
   mrb_define_class_method(mrb, re, "__search", regexp_s_search, MRB_ARGS_ARG(2, 2));
   mrb_define_class_method(mrb, re, "__byte_search", regexp_s_byte_search, MRB_ARGS_ARG(2, 3));
+  mrb_define_class_method(mrb, re, "__byte_rsearch", regexp_s_byte_rsearch, MRB_ARGS_REQ(3));
   mrb_define_class_method(mrb, re, "__search_p", regexp_s_search_p, MRB_ARGS_ARG(2, 1));
 
   /* Instance methods */

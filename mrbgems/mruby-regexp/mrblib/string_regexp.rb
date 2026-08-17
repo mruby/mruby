@@ -15,7 +15,8 @@
 #
 # With the type established, each override reaches the engine through class
 # methods that take the pattern as an argument (`Regexp.__search`,
-# `__byte_search`, `__search_p`, `__sub_str`, `__gsub_str`, `__scan`), so
+# `__byte_search`, `__byte_rsearch`, `__search_p`, `__sub_str`, `__gsub_str`,
+# `__scan`), so
 # nothing rewritten on the pattern instance is consulted on the way: the C
 # side searches, and the loops and blocks stay here.  The MatchData those
 # searches answer is built in C too, so what the overrides read from it
@@ -444,53 +445,6 @@ class String
     md && md.begin(0)
   end
 
-  # The last match that starts at or before `limit`, a byte offset, or nil,
-  # with the match globals left describing it.
-  #
-  # The engine searches forward only, so this walks the subject from the
-  # start and keeps the last match that qualifies: linear in the number of
-  # positions a match starts at, where the backward search CRuby hands to
-  # Onig is not.  Each step resumes one byte past the match start and not at
-  # the match end, which is what keeps overlapping matches in view:
-  # `"aaa".rindex(/aa/)` is 1, where resuming at the end would answer 0.
-  #
-  # The walk is in byte space so that its length is what it looks like.  A
-  # character offset is not a place the subject can be read from: every one
-  # handed to `Regexp.__search` is counted out from the start of the subject
-  # again, and every one read back off a match with `begin` is counted the
-  # same way, so a walk that speaks characters pays for the whole subject on
-  # every turn and takes quadratic time on a multibyte one.  Nothing is given
-  # up by leaving them: a byte inside a character is not a position a match
-  # can start at, and the engine steps over one on its own rather than seed a
-  # match attempt there, so `+ 1` reaches the next character by itself.
-  #
-  # `Regexp.__byte_search` does not range check its position, so the walk
-  # stops itself at the end of the subject.  An empty match there is the one
-  # that reaches it: it leaves `pos` one past the last byte.
-  #
-  # The walk publishes none of what it passes over.  A search that publishes
-  # cuts the whole subject into the pre match and post match globals, and
-  # every match here but the last is one this method already means to
-  # replace, so publishing them costs the subject once per match and leaves
-  # behind nothing anything reads.  The answer is published below instead,
-  # which is where it was published from before.
-  def __regexp_rsearch(pattern, limit)
-    found = nil
-    pos = 0
-    size = self.bytesize
-    while pos <= size && (md = Regexp.__byte_search(pattern, self, pos, false, false))
-      start = md.__byte_begin(0)
-      break if start > limit
-      found = md
-      pos = start + 1
-    end
-    # The globals still describe whatever they described before the call, the
-    # walk having said nothing to them, so the answer is published here and a
-    # search that found none clears them itself.
-    found ? found.__set_globals : Regexp.__search(pattern, nil)
-    found
-  end
-
   # Regexp-aware `rindex`.  Falls back to the C-defined `rindex` (aliased as
   # `__rindex` above) for every other argument form.
   def rindex(*args)
@@ -518,14 +472,12 @@ class String
         pos = len
       end
     end
-    # The walk reads the subject by byte, so the character position it is to
-    # stop at has to be read as one here.  A position at the end of the
+    # The search reads the subject by byte, so the character position it is
+    # to stop at has to be read as one here.  A position at the end of the
     # subject is the end of its bytes and needs no reading, which is the form
-    # `rindex` is called in when it is called with one argument at all; only
-    # a position named by the caller is measured, once, where the walk would
-    # otherwise have measured one on every turn.
+    # `rindex` is called in when it is called with one argument at all.
     byte_pos = pos == len ? self.bytesize : self[0, pos].bytesize
-    md = __regexp_rsearch(args[0], byte_pos)
+    md = Regexp.__byte_rsearch(args[0], self, byte_pos)
     md && md.begin(0)
   end
 
@@ -576,7 +528,7 @@ class String
     # As in `byteindex` above, and after the same clamp: a position past the
     # end of the subject has already been read as its end, which is a boundary.
     Regexp.__check_byte_pos(self, pos)
-    md = __regexp_rsearch(args[0], pos)
+    md = Regexp.__byte_rsearch(args[0], self, pos)
     md && md.__byte_begin(0)
   end
 
@@ -597,8 +549,8 @@ class String
   def rpartition(sep)
     return __rpartition(sep) unless Regexp === sep
     # The last match anywhere in the subject, so the limit is its end and the
-    # walk below never stops early.
-    md = __regexp_rsearch(sep, self.bytesize)
+    # search below never stops early.
+    md = Regexp.__byte_rsearch(sep, self, self.bytesize)
     # No match puts the whole subject in the tail, which is the row this
     # method is most often got wrong on.
     return ["", "", self.byteslice(0, self.bytesize)] unless md
