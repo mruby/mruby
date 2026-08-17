@@ -937,6 +937,32 @@ assert("Regexp - consecutive optional quantifiers (#6853)") do
   assert_equal [""], /a?b?c?d?/.match("").to_a
 end
 
+assert("Regexp - a relocated lookaround keeps the end of its sub-pattern") do
+  # A lookaround holds the end of its sub-pattern as an absolute code index,
+  # so every relocation has to carry it the way it carries a jump target.
+  # Neither relocator did: the stale index landed on the sub-pattern's own
+  # RE_MATCH, which ends the outer match early, so the answers below flipped
+  # in both directions and the MatchData of an apparent success held nil.
+  # Three shapes reach a relocator, one each.
+
+  # insert_inst, via the SPLIT a quantifier puts in front of the group
+  assert_nil /(?:(?=a)b)*x/.match("a")
+  assert_equal "x", /(?:(?!b)b)*x/.match("ax")[0]
+
+  # emit_atom_copy, via the copies {n,m} makes of the group
+  assert_equal "aa", /(?:(?=a)a){2}/.match("aa")[0]
+  assert_nil /(?:(?=a)a){2}/.match("ab")
+
+  # insert_inst again, via the SPLIT compile_alt puts in front of branch 0
+  # once every branch is compiled
+  md = /(?=a)a|z/.match("ax")
+  assert_equal 0, md.begin(0)
+  assert_equal "a", md[0]
+
+  # the same group without a relocation, which always answered correctly
+  assert_equal "ab", /(?:(?=a)ab)+/.match("ab")[0]
+end
+
 assert("Regexp - empty-matchable patterns find earliest match position") do
   # When a regex can match zero characters via epsilon transitions, the
   # first-byte skip-ahead optimization is unsafe: skipping past bytes
