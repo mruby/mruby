@@ -872,3 +872,62 @@ assert("String#[] answers the same through the opcode and through a send") do
     [0..2, 1...4, -2..-1].each { |r| assert_equal u.slice(r), u[r], "u[#{r.inspect}]" }
   end
 end
+
+assert("String#[]= answers the same through the opcode and through a send") do
+  # `s[x] = repl` is answered by `OP_SETIDX` in C, without a method lookup,
+  # while `s.[]=(x, repl)` reaches `str_aset()` itself.  The two are only
+  # allowed to be different code while they cannot be told apart, which is the
+  # promise `mrb_idx_op_rearm()` takes from this gem for `[]=` as it does for
+  # `[]`: `str_aset()` takes the name to reach a Regexp index, and re-arms the
+  # opcode because it hands every other argument form to the same
+  # `mrb_str_aset()` the opcode calls.  Widening it to another argument type
+  # the opcode answers would not show up in `s[x] = repl` at all, so ask both
+  # ways, and compare what each store left behind rather than the replacement
+  # both forms answer with.
+  [0, 1, 5, -1, -11, 10].each do |i|
+    a = "hello world"
+    b = "hello world"
+    a[i] = "X"
+    b.[]=(i, "X")
+    assert_equal b, a, "s[#{i}] = 'X'"
+  end
+  ["h", "lo w", "hello world", "", "d"].each do |sub|
+    a = "hello world"
+    b = "hello world"
+    a[sub] = "X"
+    b.[]=(sub, "X")
+    assert_equal b, a, "s[#{sub.inspect}] = 'X'"
+  end
+  [0..3, 1...3, -3..-1, 0..-1, 5..99, 3..1].each do |r|
+    a = "hello world"
+    b = "hello world"
+    a[r] = "X"
+    b.[]=(r, "X")
+    assert_equal b, a, "s[#{r.inspect}] = 'X'"
+  end
+  # The forms neither answers from the opcode: a Regexp index reaches
+  # `str_aset()` through the send the opcode falls back to, and an index that
+  # matches nothing raises the same error either way.
+  a = "hello world"
+  b = "hello world"
+  a[/o.w/] = "X"
+  b.[]=(/o.w/, "X")
+  assert_equal b, a
+  assert_raise(IndexError) { "hello world"[99] = "X" }
+  assert_raise(IndexError) { "hello world".[]=(99, "X") }
+  assert_raise(IndexError) { "hello world"["zz"] = "X" }
+  assert_raise(IndexError) { "hello world".[]=("zz", "X") }
+  # A receiver whose characters are not one byte each.
+  if "あ".length == 1
+    a = "こんにちは"
+    b = "こんにちは"
+    a[1] = "X"
+    b.[]=(1, "X")
+    assert_equal b, a
+    a = "こんにちは"
+    b = "こんにちは"
+    a[1..3] = "X"
+    b.[]=(1..3, "X")
+    assert_equal b, a
+  end
+end

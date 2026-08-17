@@ -6,9 +6,10 @@
 # is no Ruby-side helper for a subclass to redefine; an accepted String is
 # compiled or quoted into a Regexp here before anything is searched.  `split`
 # leaves a nil or String pattern to the built-in it aliased and uses the same
-# check to reject everything that is not a Regexp.  `[]`, `[]=` and `slice!`
-# read the real class with `Regexp === pattern` and leave anything else to the
-# built-in method they aliased.  `=~` rejects a String, which would recurse
+# check to reject everything that is not a Regexp.  `slice!` reads the real
+# class with `Regexp === pattern` and leaves anything else to the built-in
+# method it aliased; `[]` and `[]=` are `str_aref()` and `str_aset()` in
+# src/regexp.c, where the same test is the argument's own type.  `=~` rejects a String, which would recurse
 # back into this method, and hands anything that is not a Regexp to the
 # argument's own `=~`, as CRuby does.
 #
@@ -36,10 +37,10 @@ class String
   # back to the core implementation.
   alias __split split
 
-  # The write side of the same pair, overridden at the end of this file too.
-  # `[]=` has a single method table entry, and `slice!` comes from
-  # mruby-string-ext, which this gem depends on, so it needs its own capture.
-  alias __aset []=
+  # `slice!` comes from mruby-string-ext, which this gem depends on, and is
+  # overridden at the end of this file.  The core `[]=` it also reaches is
+  # captured as `__aset` in src/regexp.c, before the override defined there
+  # takes the name.
   alias __slice_bang slice!
 
   # The four search methods of src/string.c whose regexp form is overridden at
@@ -379,60 +380,10 @@ class String
     result
   end
 
-  # The regexp-aware `[]` and `slice` are `str_aref()` in src/regexp.c, where
-  # the indexes the core method answers reach it without a Ruby frame in
-  # between.  Everything below stays here, where a block or a loop needs the
-  # VM anyway.
-
-  # Regexp-aware element assignment.  Falls back to the C-defined `[]=`
-  # (aliased as `__aset` above) for every other argument form, and handles a
-  # regexp here.
-  #
-  # `vm_op_setidx()` optimizes Array and Hash only and sends `[]=` for every
-  # other receiver, so the ordinary `str[i] = repl` has always arrived here and
-  # paid a Ruby frame on its way to `__aset`.  That is why the delegation guard
-  # is a single `Regexp ===`, before any other work.
-  def []=(*args)
-    return __aset(*args) unless Regexp === args[0]
-    unless args.length == 2 || args.length == 3
-      raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 2..3)"
-    end
-    # A full search and not `match?`, so that the match globals are published
-    # here including the clearing a failed match does.  CRuby searches before
-    # it checks the receiver for modification, which makes the order
-    # observable: a frozen receiver still leaves the match behind, and a
-    # pattern that does not match raises IndexError rather than FrozenError.
-    # Letting the mutation below be what raises reproduces both.
-    md = Regexp.__search(args[0], self)
-    raise IndexError, "regexp not matched" unless md
-    group = args.length > 2 ? args[1] : 0
-    if Integer === group
-      # An index out of range is an error here, not a missing group, and
-      # CRuby reports it before normalizing a negative one, so the message
-      # names the index as given, and group 0 is out of the negative end's
-      # reach.  `MatchData#begin` has its own wording for this and rejects
-      # every negative index, so the check cannot be left to it.
-      size = md.size
-      if group >= size || -group >= size
-        raise IndexError, "index #{group} out of regexp"
-      end
-      group += size if group < 0
-    end
-    # A String or Symbol reaches `MatchData#begin` as it stands: it resolves
-    # the name to its group and raises the IndexError CRuby raises for a name
-    # that resolves to none, with the same message.
-    beg = md.begin(group)
-    # A group that exists but did not take part in the match has nothing to
-    # replace.  CRuby names the group's number even when the argument was a
-    # name; the number is not reachable from Ruby, so the message repeats the
-    # argument as it was given.
-    raise IndexError, "regexp group #{group} not matched" unless beg
-    # `begin` and `end` report character offsets, which is the space the
-    # two-integer form of `[]=` works in, so a multibyte subject needs no
-    # further conversion.  The replacement is handed over unchecked: the type
-    # check belongs to the core method, as it does for `sub`.
-    __aset(beg, md.end(group) - beg, args[-1])
-  end
+  # The regexp-aware `[]`, `slice` and `[]=` are `str_aref()` and `str_aset()`
+  # in src/regexp.c, where the indexes the core methods answer reach them
+  # without a Ruby frame in between.  Everything below stays here, where a
+  # block or a loop needs the VM anyway.
 
   # Regexp-aware `slice!`.  Falls back to the C-defined `slice!` (aliased as
   # `__slice_bang` above) for every other argument form.
