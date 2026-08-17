@@ -607,6 +607,8 @@ assert("Regexp - the /x pass and the named-group scan skip the same constructs")
     ['\u{61}(?<n>b)(c)',     "abc"],
     ['[\u{61}]+(?<n>b)(c)',  "abc"],
     ['(a)(?<b>b)',           "ab"],
+    ["\\(?'a'(b)",           "('a'b"],
+    ["[(?'a]+(b)",           "(?'b"],
   ].each do |pat, subject|
     assert_equal Regexp.new(pat).match(subject).to_a,
                  Regexp.new(pat, x).match(subject).to_a
@@ -658,6 +660,72 @@ assert("Regexp - named captures") do
   assert_equal "03", md[:month]
   assert_equal "21", md[:day]
   assert_equal "2026", md["year"]
+end
+
+assert("Regexp - a named group can be written (?'name'...)") do
+  # A definition has two spellings, and \k already read both, so the parser
+  # used to accept a reference to a name it refused to introduce.
+  md = /(?'x'a)/.match("a")
+  assert_equal ["a", "a"], md.to_a
+  assert_equal "a", md[:x]
+  assert_equal ["year", "month"], /(?'year'\d+)-(?'month'\d+)/.names
+  assert_equal({"year" => [1], "month" => [2]},
+               /(?'year'\d+)-(?'month'\d+)/.named_captures)
+
+  # either spelling of \k reaches a group written in either spelling
+  assert_equal "aa", "aa".match(/(?'n'\w)\k<n>/)[0]
+  assert_equal "aa", "aa".match(/(?<n>\w)\k'n'/)[0]
+  assert_equal "aa", "aa".match(/(?'n'\w)\k'n'/)[0]
+
+  # the two spellings write into one registry: a name given twice is reported
+  # once however each of them was spelled
+  assert_equal ["t"], /(?<t>\w)(?'t'\w)/.names
+  assert_equal ["xy", "x", "y"], /(?<a>x)(?'b'y)/.match("xy").to_a
+
+  # a name runs to its own terminator, so the other spelling's terminator is
+  # a member of it rather than the end
+  assert_equal ["a>b"], /(?'a>b'x)/.names
+  assert_equal ["a'b"], /(?<a'b>x)/.names
+
+  # nesting, quantifiers and /i are the group's own business either way
+  assert_equal ["ab", "ab", "b"], /(?'o'a(?'i'b))/.match("ab").to_a
+  assert_equal ["abab", "ab"], /(?'a'ab)+/.match("abab").to_a
+  assert_equal ["AB", "AB"], /(?'a'ab)/i.match("AB").to_a
+
+  # a name is still required, and still has to be terminated
+  assert_raise(RegexpError) { Regexp.new("(?''x)") }
+  assert_raise(RegexpError) { Regexp.new("(?'x") }
+  assert_raise(RegexpError) { Regexp.new("(?'") }
+end
+
+assert("Regexp - a (?'name'...) group demotes plain groups too") do
+  # The pre-scan settles the demotion before the parser runs, so it has to
+  # know both spellings: reading "(?<" alone left /(a)(?'b'b)/ numbering the
+  # plain group that the declaration demotes.
+  md = /(?'a'a)(b)/.match("ab")
+  assert_equal 2, md.size
+  assert_equal ["ab", "a"], md.to_a
+  assert_nil md[2]
+
+  md = /(a)(?'b'b)/.match("ab")
+  assert_equal ["ab", "b"], md.to_a
+  assert_equal "b", md[:b]
+
+  assert_equal "[]", "ab".sub(/(?'a'a)(b)/, '[\2]')
+
+  # and the numbers the declaration took away cannot be referred to
+  msg = "numbered backref/call is not allowed. (use name)"
+  assert_raise_with_message(RegexpError, "#{msg}: /(a)(?'b'b)\\1/") do
+    Regexp.new("(a)(?'b'b)\\1")
+  end
+  assert_raise_with_message(RegexpError, "#{msg}: /(a)(?'b'b)\\k<1>/") do
+    Regexp.new("(a)(?'b'b)\\k<1>")
+  end
+
+  # an escaped or bracketed "(?'" declares nothing, so the plain group that
+  # follows keeps its number
+  assert_equal ["('a'b", "b"], /\(?'a'(b)/.match("('a'b").to_a
+  assert_equal ["(?'b", "b"], /[(?'a]+(b)/.match("(?'b").to_a
 end
 
 assert("Regexp#named_captures") do
