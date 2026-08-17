@@ -187,6 +187,86 @@ assert('String#[] redefined on String itself reaches the redefinition') do
   assert_equal 'e', 'hello'[1]
 end
 
+assert('String#[]= redefined on String itself reaches the redefinition') do
+  # `OP_SETIDX` answers `s[0] = 'X'` from C whenever the receiver's class is
+  # exactly `String`, on the same terms as the `[]` test above: it tests the
+  # receiver against `mrb->idx_class[]`, which the method table drops the
+  # moment `String#[]=` is replaced. A redefinition that stores nothing makes
+  # the difference visible in the receiver as well as in the return value.
+  String.class_eval do
+    alias_method :__aset_before_test, :[]=
+    def []=(*args)
+      $string_aset_redefinition_args = args
+    end
+  end
+  begin
+    s = 'hello'
+    s[0] = 'X'
+    seen = $string_aset_redefinition_args
+    untouched = s.dup
+    sub = Class.new(String).new('hello')
+    sub[0] = 'X'
+    seen_sub = $string_aset_redefinition_args
+  ensure
+    String.class_eval do
+      alias_method :[]=, :__aset_before_test
+      # `remove_method` comes from mruby-metaprog, which the core test build
+      # does not have; the saved alias is harmless where it is missing.
+      remove_method :__aset_before_test if respond_to?(:remove_method, true)
+    end
+    $string_aset_redefinition_args = nil
+  end
+  assert_equal [0, 'X'], seen
+  assert_equal 'hello', untouched
+  assert_equal [0, 'X'], seen_sub
+  # Aliasing the original implementation back re-arms the opcode.
+  s = 'hello'
+  s[0] = 'X'
+  assert_equal 'Xello', s
+end
+
+assert('String#[]= answers the same through the opcode and through a send') do
+  # `s[x] = repl` is answered by `OP_SETIDX` in C, without a method lookup,
+  # while `s.[]=(x, repl)` reaches `String#[]=` itself. The opcode
+  # answers an Integer, String or Range index and a String replacement, and
+  # leaves every other form to the method, so ask both ways and compare the
+  # receiver each left behind.
+  [0, 1, 4, -1, -5].each do |i|
+    a = 'hello'; b = 'hello'
+    a[i] = 'X'
+    b.[]=(i, 'X')
+    assert_equal b, a, "s[#{i}] = 'X'"
+  end
+  ['h', 'll', 'hello', ''].each do |sub|
+    a = 'hello'; b = 'hello'
+    a[sub] = 'X'
+    b.[]=(sub, 'X')
+    assert_equal b, a, "s[#{sub.inspect}] = 'X'"
+  end
+  [0..2, 1...3, -3..-1, 0..-1, 2..99, 3..1].each do |r|
+    a = 'hello'; b = 'hello'
+    a[r] = 'X'
+    b.[]=(r, 'X')
+    assert_equal b, a, "s[#{r.inspect}] = 'X'"
+  end
+  # Each loop above compares the two forms with each other, so anchor one case
+  # of every index type to the result itself: a defect that made both forms
+  # store nothing would agree with itself.
+  a = 'hello'; a[1] = 'X'
+  assert_equal 'hXllo', a
+  a = 'hello'; a['ll'] = 'X'
+  assert_equal 'heXo', a
+  a = 'hello'; a[1..3] = 'X'
+  assert_equal 'hXo', a
+  # The forms the opcode leaves to the method raise what the method raises.
+  assert_raise(IndexError) { 'hello'[99] = 'X' }
+  assert_raise(IndexError) { 'hello'['zz'] = 'X' }
+  assert_raise(IndexError) { 'hello'[99..100] = 'X' }
+  assert_raise(TypeError) { 'hello'[0] = :sym }
+  assert_raise(TypeError) { 'hello'[nil] = 'X' }
+  assert_raise(FrozenError) { 'hello'.freeze[0] = 'X' }
+end
+
 assert('String#[]=') do
   # length of args is 1
   a = 'abc'

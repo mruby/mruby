@@ -2919,6 +2919,7 @@ mrb_idx_op_update(mrb_state *mrb, mrb_sym mid)
   if (mid == 0 || mid == MRB_OPSYM(aset)) {
     idx_op_refresh(mrb, MRB_IDX_OP_ARY_ASET);
     idx_op_refresh(mrb, MRB_IDX_OP_HASH_ASET);
+    idx_op_refresh(mrb, MRB_IDX_OP_STR_ASET);
   }
 }
 
