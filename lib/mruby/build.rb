@@ -615,18 +615,11 @@ EOS
     def initialize(name, build_dir=nil, &block)
       @test_runner = Command::CrossTestRunner.new(self)
       super
-      unless mrbcfile_external? || MRuby.targets['host']
-        # add minimal 'host'
-        MRuby::Build.new('host') do |conf|
-          conf.toolchain
-          conf.build_mrbc_exec
-          conf.disable_libmruby
-        end
-      end
+      @mrbc_host = mrbcfile_external? ? nil : bind_mrbc_host
     end
 
     def mrbcfile
-      mrbcfile_external? ? super : MRuby::targets['host'].mrbcfile
+      mrbcfile_external? ? super : MRuby::targets[@mrbc_host].mrbcfile
     end
 
     def run_test
@@ -657,5 +650,35 @@ EOS
     protected
 
     def create_mrbc_build; end
+
+    private
+
+    # Name the build this target borrows `mrbc` from.
+    #
+    # The bytecode `mrbc` emits has to be loadable here, and `src/load.c`
+    # refuses a whole irep over a single pool entry the target cannot
+    # represent: under `MRB_NO_FLOAT` a float literal is one. So a target can
+    # only borrow from a build that answers the float question the way it
+    # does, and where none is at hand it gets one that does. A `host` the
+    # build config declares itself is left as it is written; the build
+    # generated here is this code's own and carries the target's answer.
+    def bind_mrbc_host
+      no_float = cc.has_define?('MRB_NO_FLOAT')
+      host = MRuby.targets['host']
+      return 'host' if host && host.cc.has_define?('MRB_NO_FLOAT') == no_float
+
+      # Where there is no `host` the generated build takes that name, as it
+      # always has. Where there is one and it answers otherwise, the build
+      # config owns the name, so this target gets a private `mrbc` beside its
+      # own output instead, the way a native build gets one.
+      name, internal = host ? ["#{@name}/mrbc", true] : ['host', false]
+      MRuby::Build.new(name, internal: internal) do |conf|
+        conf.toolchain
+        conf.build_mrbc_exec
+        conf.disable_libmruby
+        conf.compilers.each {|c| c.defines << 'MRB_NO_FLOAT'} if no_float
+      end
+      name
+    end
   end # CrossBuild
 end # MRuby
