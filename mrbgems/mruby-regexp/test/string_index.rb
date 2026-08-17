@@ -874,60 +874,67 @@ assert("String#[] answers the same through the opcode and through a send") do
 end
 
 assert("String#[]= answers the same through the opcode and through a send") do
-  # `s[x] = repl` is answered by `OP_SETIDX` in C, without a method lookup,
-  # while `s.[]=(x, repl)` reaches `str_aset()` itself.  The two are only
-  # allowed to be different code while they cannot be told apart, which is the
-  # promise `mrb_idx_op_rearm()` takes from this gem for `[]=` as it does for
-  # `[]`: `str_aset()` takes the name to reach a Regexp index, and re-arms the
-  # opcode because it hands every other argument form to the same
-  # `mrb_str_aset()` the opcode calls.  Widening it to another argument type
-  # the opcode answers would not show up in `s[x] = repl` at all, so ask both
-  # ways, and compare what each store left behind rather than the replacement
-  # both forms answer with.
+  # `s[x] = repl` is answered by `OP_SETIDX` in C, without a method lookup.
+  # The two are only allowed to be different code while they cannot be told
+  # apart, which is the promise `mrb_idx_op_rearm()` takes from this gem for
+  # `[]=` as it does for `[]`: `str_aset()` takes the name to reach a Regexp
+  # index, and re-arms the opcode because it hands every other argument form to
+  # the same `mrb_str_aset()` the opcode calls.  Widening it to another
+  # argument type the opcode answers would not show up in `s[x] = repl` at all,
+  # so ask both ways, and compare what each store left behind rather than the
+  # replacement both forms answer with.
+  #
+  # The send side is a String subclass receiver: writing the call out as
+  # `b.[]=(x, repl)` compiles to `OP_SETIDX` too, so it would ask the opcode
+  # twice and could never see the promise broken, and `send` comes from
+  # mruby-metaprog, which the core test build does not have.  A subclass fails
+  # the opcode's class test for an unrelated reason and reaches the method,
+  # which it inherits unchanged, so the two must agree.
+  sub = Class.new(String)
   [0, 1, 5, -1, -11, 10].each do |i|
     a = "hello world"
-    b = "hello world"
+    b = sub.new("hello world")
     a[i] = "X"
-    b.[]=(i, "X")
-    assert_equal b, a, "s[#{i}] = 'X'"
+    b[i] = "X"
+    assert_equal a, b.to_s, "s[#{i}] = 'X'"
   end
-  ["h", "lo w", "hello world", "", "d"].each do |sub|
+  ["h", "lo w", "hello world", "", "d"].each do |s|
     a = "hello world"
-    b = "hello world"
-    a[sub] = "X"
-    b.[]=(sub, "X")
-    assert_equal b, a, "s[#{sub.inspect}] = 'X'"
+    b = sub.new("hello world")
+    a[s] = "X"
+    b[s] = "X"
+    assert_equal a, b.to_s, "s[#{s.inspect}] = 'X'"
   end
   [0..3, 1...3, -3..-1, 0..-1, 5..99, 3..1].each do |r|
     a = "hello world"
-    b = "hello world"
+    b = sub.new("hello world")
     a[r] = "X"
-    b.[]=(r, "X")
-    assert_equal b, a, "s[#{r.inspect}] = 'X'"
+    b[r] = "X"
+    assert_equal a, b.to_s, "s[#{r.inspect}] = 'X'"
   end
-  # The forms neither answers from the opcode: a Regexp index reaches
-  # `str_aset()` through the send the opcode falls back to, and an index that
-  # matches nothing raises the same error either way.
+  # The form neither answers from the opcode: a Regexp index reaches
+  # `str_aset()` through the send the opcode falls back to.
   a = "hello world"
-  b = "hello world"
+  b = sub.new("hello world")
   a[/o.w/] = "X"
-  b.[]=(/o.w/, "X")
-  assert_equal b, a
+  b[/o.w/] = "X"
+  assert_equal a, b.to_s
+  # An index that matches nothing raises the same error either way.
   assert_raise(IndexError) { "hello world"[99] = "X" }
-  assert_raise(IndexError) { "hello world".[]=(99, "X") }
+  assert_raise(IndexError) { sub.new("hello world")[99] = "X" }
   assert_raise(IndexError) { "hello world"["zz"] = "X" }
-  assert_raise(IndexError) { "hello world".[]=("zz", "X") }
+  assert_raise(IndexError) { sub.new("hello world")["zz"] = "X" }
   # A receiver whose characters are not one byte each.
   if "あ".length == 1
     a = "こんにちは"
-    b = "こんにちは"
+    b = sub.new("こんにちは")
     a[1] = "X"
-    b.[]=(1, "X")
-    assert_equal b, a
+    b[1] = "X"
+    assert_equal a, b.to_s
     a = "こんにちは"
-    b = "こんにちは"
+    b = sub.new("こんにちは")
     a[1..3] = "X"
-    b.[]=(1..3, "X")
-    assert_equal b, a
+    b[1..3] = "X"
+    assert_equal a, b.to_s
   end
 end
