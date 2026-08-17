@@ -107,6 +107,15 @@ regexp_init(mrb_state *mrb, mrb_value self)
     flags = parse_flags(mrb, flags_val);
   }
 
+  /* An object holds one pattern and owns it, so a second initialize cannot
+     compile over the first: the pattern already there would be dropped with
+     nothing left to free it. CRuby refuses the call for the same reason. The
+     check stands after the argument conversions above, which is the order
+     CRuby reports the two errors in. */
+  if (DATA_PTR(self)) {
+    mrb_raise(mrb, E_TYPE_ERROR, "already initialized regexp");
+  }
+
   /* Set @source and @flags before mrb_re_compile() so a Regexp that survives
      a compile-time exception (e.g. picked up by ObjectSpace.each_object)
      still has usable IVs for hash/eql?/inspect. */
