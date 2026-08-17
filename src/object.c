@@ -82,11 +82,11 @@ mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
 #ifndef MRB_NO_FLOAT
   /* value mixing with integer and float */
   else if (mrb_integer_p(obj1) && mrb_float_p(obj2)) {
-    if ((mrb_float)mrb_integer(obj1) == mrb_float(obj2))
+    if (mrb_int_float_cmp(mrb_integer(obj1), mrb_float(obj2)) == 0)
       return TRUE;
   }
   else if (mrb_float_p(obj1) && mrb_integer_p(obj2)) {
-    if (mrb_float(obj1) == (mrb_float)mrb_integer(obj2))
+    if (mrb_int_float_cmp(mrb_integer(obj2), mrb_float(obj1)) == 0)
       return TRUE;
   }
 #endif

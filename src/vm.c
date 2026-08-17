@@ -3508,6 +3508,19 @@ RETRY_TRY_BLOCK:
   }\
 } while(0)
 #else
+/* The usual arithmetic conversions would round an `mrb_int` wider than the
+   significand onto a neighbouring Float, so a mixed pair asks
+   `mrb_int_float_cmp()` for the order of the two values themselves. It answers
+   -2 for a NaN operand, which stands in no order with anything: every operator
+   is false against it, as comparing the two as Floats would have been. */
+#define OP_CMP_INT_FLOAT(op) do {\
+  mrb_int c = mrb_int_float_cmp(mrb_integer(regs[a]), mrb_float(regs[a+1]));\
+  result = c != -2 && (c op 0);\
+} while (0)
+#define OP_CMP_FLOAT_INT(op) do {\
+  mrb_int c = mrb_int_float_cmp(mrb_integer(regs[a+1]), mrb_float(regs[a]));\
+  result = c != -2 && (0 op c);\
+} while (0)
 #define OP_CMP(op, sym) do {\
   int result;\
   /* need to check if op is overridden */\
@@ -3517,10 +3530,10 @@ RETRY_TRY_BLOCK:
   }\
   else switch (tt) {\
   case TYPES2(MRB_TT_INTEGER,MRB_TT_FLOAT):\
-    result = OP_CMP_BODY(op,mrb_integer,mrb_float);\
+    OP_CMP_INT_FLOAT(op);\
     break;\
   case TYPES2(MRB_TT_FLOAT,MRB_TT_INTEGER):\
-    result = OP_CMP_BODY(op,mrb_float,mrb_integer);\
+    OP_CMP_FLOAT_INT(op);\
     break;\
   case TYPES2(MRB_TT_FLOAT,MRB_TT_FLOAT):\
     result = OP_CMP_BODY(op,mrb_float,mrb_float);\

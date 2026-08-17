@@ -124,6 +124,39 @@ assert('Float#==', '15.2.9.3.7') do
   assert_false 3.1 == 3.2
 end
 
+assert('Float comparison with an Integer it cannot hold') do
+  # A Float keeps fewer significant bits than an mrb_int, so an integer past
+  # the significand rounds onto a neighbouring Float when the two are compared
+  # as Floats, and the Float answers equal to an integer it is not equal to.
+  #
+  # The pair is derived rather than written out. 2 ** p, for the p significant
+  # bits this build's Float holds, is the first Float that cannot be told from
+  # the integer above it, so the pair stays right where mrb_float is narrower
+  # than the usual 53 bits. A literal that wide cannot be built where mrb_int
+  # is narrow either, and failing to build one drops every test in this file.
+  #
+  # Where mrb_int cannot hold the integer, mruby-bigint answers the assertions
+  # below through mrb_bint_cmp() instead, which is exact for its own reasons;
+  # without that gem the build has no such integer at all and this skips.
+  f = 2.0
+  f *= 2 while f + 1.0 != f
+  begin
+    n = f.to_i + 1
+  rescue RangeError
+    skip 'no mrb_int here is wider than the significand of an mrb_float'
+  end
+
+  assert_false(f == n)
+  assert_false(f.__send__(:==, n))    # the method, where the line above is an opcode
+  assert_equal(-1, f <=> n)
+  assert_true(f < n)
+  assert_true(f.__send__(:<, n))
+  assert_true(f <= n)
+  assert_false(f > n)
+  assert_false(f >= n)
+  assert_false([f] == [n])        # Array#== reads the same comparison
+end
+
 assert('Float#ceil', '15.2.9.3.8') do
   a = 3.123456789.ceil
   b = 3.0.ceil

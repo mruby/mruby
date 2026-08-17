@@ -99,6 +99,72 @@ assert('Integer#==', '15.2.8.3.7') do
   assert_true b
 end
 
+assert('Integer comparison with a Float that stands for another number') do
+  # An mrb_float keeps fewer significant bits than an mrb_int, so an integer
+  # past the significand rounds onto a neighbouring Float when the two are
+  # compared as Floats, and answers equal to a Float it is not equal to.
+  #
+  # The pair is derived rather than written out. 2 ** p, for the p significant
+  # bits this build's Float holds, is the first Float that cannot be told from
+  # the integer above it, so the pair stays right where mrb_float is narrower
+  # than the usual 53 bits. A literal that wide cannot be built where mrb_int
+  # is narrow either, and failing to build one drops every test in this file.
+  #
+  # Where mrb_int cannot hold the integer, mruby-bigint answers the assertions
+  # below through mrb_bint_cmp() instead, which is exact for its own reasons;
+  # without that gem the build has no such integer at all and this skips.
+  skip unless Object.const_defined?(:Float)
+  f = 2.0
+  f *= 2 while f + 1.0 != f
+  begin
+    n = f.to_i + 1
+  rescue RangeError
+    skip 'no mrb_int here is wider than the significand of an mrb_float'
+  end
+
+  assert_false(n == f)
+  assert_false(n.__send__(:==, f))    # the method, where the line above is an opcode
+  assert_equal(1, n <=> f)
+  assert_true(n > f)
+  assert_true(n.__send__(:>, f))
+  assert_true(n >= f)
+  assert_false(n < f)
+  assert_false(n <= f)
+  assert_false([n] == [f])        # Array#== reads the same comparison
+end
+
+assert('Integer comparison with a Float at the ends of the mrb_int range') do
+  # The far ends are where the neighbouring Floats stand furthest apart, and
+  # where the bounds the comparison tests against are themselves built. Both
+  # ends come from arithmetic for the reason the pair above does.
+  #
+  # A narrower mrb_int leaves the shift outside the range these name, and the
+  # two cases part the same way as above: with mruby-bigint the assertions
+  # still hold, answered by mrb_bint_cmp() rather than by the bounds, and
+  # without it the shift raises and this skips.
+  skip unless Object.const_defined?(:Float)
+  begin
+    half = 1 << 62
+  rescue RangeError
+    skip 'an mrb_int here is narrower than 64 bits'
+  end
+  imin = -half - half             # the least mrb_int, which is exact as a Float
+  imax = half - 1 + half          # the greatest, which is not
+  fmin = -(2.0 ** 63)
+  fmax = 2.0 ** 63
+  inf = 1.0 / 0.0
+
+  assert_true(imin == fmin)
+  assert_equal(0, imin <=> fmin)
+  assert_equal(1, (imin + 3) <=> fmin)
+  assert_true((imin + 3) > fmin)
+  assert_false(imax == fmax)
+  assert_equal(-1, imax <=> fmax)
+  assert_true(imax < fmax)
+  assert_true(imax < inf)
+  assert_true(imin > -inf)
+end
+
 assert('Integer#~', '15.2.8.3.8') do
   # Complement
   assert_equal(-1, ~0)
