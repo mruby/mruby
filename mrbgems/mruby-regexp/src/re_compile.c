@@ -12,23 +12,30 @@
 #include <mruby/internal.h>
 #include <string.h>
 
-/* Compiler state */
+/* Compiler state.
+
+   Everything the compile allocates and the finished pattern goes on owning
+   hangs off `pat`, which mrb_re_compile()'s caller has already handed to a
+   Regexp. That is what makes the buffers survivable: raising is how this
+   compiler reports a bad pattern and how mrb_realloc() reports a refused
+   allocation, and either longjmps past this frame, which nothing then
+   unwinds. Held here instead, the buffers would go with the frame.
+
+   What is left here is the parse's own state: the cursor, the capacities the
+   pattern does not record, and the counts that reach `pat` at the end. */
 typedef struct {
   mrb_state *mrb;
+  mrb_regexp_pattern *pat;  /* the pattern being built; owns code/classes/names */
   const char *src;     /* pattern source, preprocessed (see preprocess_pattern) */
   const char *src_end;
   const char *orig;    /* pattern as written, for error messages */
   const char *orig_end;
   const char *p;       /* current position */
-  re_inst *code;       /* instruction array */
   uint32_t code_len;
   uint32_t code_capa;
-  re_charclass *classes;
-  uint16_t num_classes;
   uint16_t class_capa;
   uint16_t num_captures;
   uint32_t flags;
-  re_named_capture *named_captures;
   uint16_t num_named;
   mrb_bool has_backref;
   mrb_bool needs_backtrack;
@@ -38,7 +45,6 @@ typedef struct {
                                before the atom, and a `\u{...}` list moves it
                                forward so the quantifier repeats the last
                                codepoint alone */
-  char *stripped;           /* allocated buffer for pattern preprocessing */
 } re_compiler;
 
 static void compile_alt(re_compiler *c);  /* forward */
@@ -58,23 +64,6 @@ compile_error_str(re_compiler *c, mrb_value msg)
      c->orig_end. */
   mrb_value emsg = mrb_format(c->mrb, "%v: /%l/",
                               msg, c->orig, (size_t)(c->orig_end - c->orig));
-
-  /* Free compile buffers before raising, since mrb_exc_raise longjmps out
-     and the stack-local re_compiler is abandoned without a chance to clean
-     up. mrb_free doesn't trigger GC, so emsg stays valid across these. */
-  mrb_free(c->mrb, c->code);
-  c->code = NULL;
-  if (c->classes) {
-    for (uint16_t i = 0; i < c->num_classes; i++) {
-      mrb_free(c->mrb, c->classes[i].ranges);
-    }
-    mrb_free(c->mrb, c->classes);
-    c->classes = NULL;
-  }
-  mrb_free(c->mrb, c->named_captures);
-  c->named_captures = NULL;
-  if (c->stripped) mrb_free(c->mrb, c->stripped);
-  c->stripped = NULL;
 
   mrb_exc_raise(c->mrb,
     mrb_exc_new_str(c->mrb, mrb_exc_get_id(c->mrb, MRB_SYM(RegexpError)), emsg));
@@ -101,19 +90,19 @@ emit(re_compiler *c, uint8_t op, uint8_t a, uint16_t offset)
   if (c->code_len >= RE_MAX_CODE_LEN) compile_error(c, "regexp too large");
   if (c->code_len >= c->code_capa) {
     c->code_capa = c->code_capa ? c->code_capa * 2 : 64;
-    c->code = (re_inst*)mrb_realloc(c->mrb, c->code, sizeof(re_inst) * c->code_capa);
+    c->pat->code = (re_inst*)mrb_realloc(c->mrb, c->pat->code, sizeof(re_inst) * c->code_capa);
   }
   uint32_t pos = c->code_len++;
-  c->code[pos].op = op;
-  c->code[pos].a = a;
-  c->code[pos].offset = offset;
+  c->pat->code[pos].op = op;
+  c->pat->code[pos].a = a;
+  c->pat->code[pos].offset = offset;
   return pos;
 }
 
 static void
 patch(re_compiler *c, uint32_t pos, uint16_t offset)
 {
-  c->code[pos].offset = offset;
+  c->pat->code[pos].offset = offset;
 }
 
 /* True for the opcodes whose `offset` field holds an absolute code index, so
@@ -148,10 +137,10 @@ insert_inst(re_compiler *c, uint32_t pos, uint8_t op, uint8_t a, uint16_t offset
 {
   emit(c, RE_JMP, 0, 0);  /* grow array */
   uint32_t len = c->code_len - 1 - pos;
-  memmove(&c->code[pos + 1], &c->code[pos], sizeof(re_inst) * len);
-  c->code[pos].op = op;
-  c->code[pos].a = a;
-  c->code[pos].offset = offset;
+  memmove(&c->pat->code[pos + 1], &c->pat->code[pos], sizeof(re_inst) * len);
+  c->pat->code[pos].op = op;
+  c->pat->code[pos].a = a;
+  c->pat->code[pos].offset = offset;
 
   /* Fix code indices across the insertion. An index past `pos` shifts down by
      one. An index equal to `pos` is ambiguous:
@@ -166,9 +155,9 @@ insert_inst(re_compiler *c, uint32_t pos, uint8_t op, uint8_t a, uint16_t offset
        the quantifier wrapping the whole group wants. */
   for (uint32_t i = 0; i < c->code_len; i++) {
     if (i == pos) continue;
-    if (op_holds_code_index(c->code[i].op) &&
-        (c->code[i].offset > pos || (c->code[i].offset == pos && i > pos))) {
-      c->code[i].offset++;
+    if (op_holds_code_index(c->pat->code[i].op) &&
+        (c->pat->code[i].offset > pos || (c->pat->code[i].offset == pos && i > pos))) {
+      c->pat->code[i].offset++;
     }
   }
 }
@@ -198,15 +187,18 @@ next_char(re_compiler *c)
 static uint16_t
 add_class(re_compiler *c)
 {
-  if (c->num_classes >= RE_MAX_CLASSES) {
+  if (c->pat->num_classes >= RE_MAX_CLASSES) {
     compile_error(c, "too many character classes");
   }
-  if (c->num_classes >= c->class_capa) {
+  if (c->pat->num_classes >= c->class_capa) {
     c->class_capa = c->class_capa ? c->class_capa * 2 : 8;
-    c->classes = (re_charclass*)mrb_realloc(c->mrb, c->classes, sizeof(re_charclass) * c->class_capa);
+    c->pat->classes = (re_charclass*)mrb_realloc(c->mrb, c->pat->classes, sizeof(re_charclass) * c->class_capa);
   }
-  uint16_t id = c->num_classes++;
-  memset(&c->classes[id], 0, sizeof(re_charclass));
+  /* num_classes counts the entries mrb_re_free() reads a `ranges` pointer
+     out of, so the slot is cleared before it is counted rather than after. */
+  uint16_t id = c->pat->num_classes;
+  memset(&c->pat->classes[id], 0, sizeof(re_charclass));
+  c->pat->num_classes = id + 1;
   return id;
 }
 
@@ -329,12 +321,12 @@ class_add_fold_counterparts(re_compiler *c, uint16_t id, uint32_t cp)
   uint32_t alt[MRB_UNI_MAX_UNFOLD];
   int n = mrb_uni_case_unfold(cp, alt, MRB_UNI_MAX_UNFOLD);
   for (int i = 0; i < n; i++) {
-    if (alt[i] < 128) class_set_bit(&c->classes[id], (uint8_t)alt[i]);
-    else class_add_codepoint(c, &c->classes[id], alt[i]);
+    if (alt[i] < 128) class_set_bit(&c->pat->classes[id], (uint8_t)alt[i]);
+    else class_add_codepoint(c, &c->pat->classes[id], alt[i]);
   }
 #else
-  if (cp == 'k' || cp == 'K') class_add_codepoint(c, &c->classes[id], RE_FOLD_KELVIN);
-  else if (cp == 's' || cp == 'S') class_add_codepoint(c, &c->classes[id], RE_FOLD_LONG_S);
+  if (cp == 'k' || cp == 'K') class_add_codepoint(c, &c->pat->classes[id], RE_FOLD_KELVIN);
+  else if (cp == 's' || cp == 'S') class_add_codepoint(c, &c->pat->classes[id], RE_FOLD_LONG_S);
 #endif
 }
 
@@ -740,7 +732,7 @@ static void
 compile_charclass(re_compiler *c)
 {
   uint16_t id = add_class(c);
-  re_charclass *cc = &c->classes[id];
+  re_charclass *cc = &c->pat->classes[id];
   mrb_bool negated = FALSE;
 
   if (peek(c) == '^') {
@@ -988,7 +980,7 @@ compute_fixed_len(re_compiler *c, uint32_t start, uint32_t end, int *chars_out)
   uint32_t pc = start;
 
   while (pc < end) {
-    re_inst inst = c->code[pc];
+    re_inst inst = c->pat->code[pc];
     switch (inst.op) {
     case RE_CHAR: {
       /* A multibyte literal is a run of one-byte RE_CHAR instructions, and
@@ -999,8 +991,8 @@ compute_fixed_len(re_compiler *c, uint32_t start, uint32_t end, int *chars_out)
          and a run never splits one. */
       char buf[4];
       int n = 0;
-      while (n < 4 && pc + (uint32_t)n < end && c->code[pc + n].op == RE_CHAR) {
-        buf[n] = (char)c->code[pc + n].a;
+      while (n < 4 && pc + (uint32_t)n < end && c->pat->code[pc + n].op == RE_CHAR) {
+        buf[n] = (char)c->pat->code[pc + n].a;
         n++;
       }
       int clen = mrb_re_charlen(buf, buf + n, FALSE);
@@ -1102,8 +1094,8 @@ emit_char(re_compiler *c, uint8_t ch)
   if ((c->flags & RE_FLAG_IGNORECASE) &&
       ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z'))) {
     uint16_t id = add_class(c);
-    class_set_bit(&c->classes[id], ch);
-    class_set_bit(&c->classes[id], (uint8_t)(ch ^ 0x20));  /* the other case */
+    class_set_bit(&c->pat->classes[id], ch);
+    class_set_bit(&c->pat->classes[id], (uint8_t)(ch ^ 0x20));  /* the other case */
     class_add_fold_counterparts(c, id, ch);
     emit(c, RE_CLASS, (uint8_t)id, 0);
     return;
@@ -1158,9 +1150,9 @@ emit_cp_folded(re_compiler *c, uint32_t cp)
 #endif
   if (n == 0) return FALSE;
   uint16_t id = add_class(c);
-  class_add_codepoint(c, &c->classes[id], cp);
+  class_add_codepoint(c, &c->pat->classes[id], cp);
   for (int i = 0; i < n; i++) {
-    class_add_member(c, &c->classes[id], alt[i], FALSE);
+    class_add_member(c, &c->pat->classes[id], alt[i], FALSE);
   }
   emit(c, RE_CLASS, (uint8_t)id, 0);
   return TRUE;
@@ -1257,7 +1249,7 @@ compile_atom(re_compiler *c)
           uint32_t la_pos = emit(c, negative ? RE_NEG_LOOKAHEAD : RE_LOOKAHEAD, 0, 0);
           compile_alt(c);
           emit(c, RE_MATCH, 0, 0);  /* end of lookahead sub-pattern */
-          c->code[la_pos].offset = (uint16_t)c->code_len;  /* patch: skip past sub-pattern */
+          c->pat->code[la_pos].offset = (uint16_t)c->code_len;  /* patch: skip past sub-pattern */
           if (peek(c) != ')') compile_error(c, "unmatched '('");
           next_char(c);
           c->needs_backtrack = TRUE;  /* needs backtracking engine */
@@ -1273,7 +1265,7 @@ compile_atom(re_compiler *c)
           uint32_t sub_start = c->code_len;
           compile_alt(c);
           emit(c, RE_MATCH, 0, 0);
-          c->code[lb_pos].offset = (uint16_t)c->code_len;
+          c->pat->code[lb_pos].offset = (uint16_t)c->code_len;
 
           /* measure the sub-pattern for both rewind units */
           int fixed_chars;
@@ -1284,9 +1276,9 @@ compile_atom(re_compiler *c)
           if (fixed_len > 255) {
             compile_error(c, "lookbehind too long (max 255 bytes)");
           }
-          c->code[lb_pos].a = (uint8_t)fixed_len;
+          c->pat->code[lb_pos].a = (uint8_t)fixed_len;
           /* the character count never exceeds the byte count, so it fits */
-          c->code[lb_pos + 1].a = (uint8_t)fixed_chars;
+          c->pat->code[lb_pos + 1].a = (uint8_t)fixed_chars;
 
           if (peek(c) != ')') compile_error(c, "unmatched '('");
           next_char(c);
@@ -1369,11 +1361,11 @@ compile_atom(re_compiler *c)
         emit(c, RE_SAVE, 0, group * 2);
         if (cap_name) {
           /* register named capture */
-          c->named_captures = (re_named_capture*)mrb_realloc(c->mrb, c->named_captures,
+          c->pat->named_captures = (re_named_capture*)mrb_realloc(c->mrb, c->pat->named_captures,
             sizeof(re_named_capture) * (c->num_named + 1));
-          c->named_captures[c->num_named].name = cap_name;
-          c->named_captures[c->num_named].name_len = cap_name_len;
-          c->named_captures[c->num_named].group = group;
+          c->pat->named_captures[c->num_named].name = cap_name;
+          c->pat->named_captures[c->num_named].name_len = cap_name_len;
+          c->pat->named_captures[c->num_named].group = group;
           c->num_named++;
         }
       }
@@ -1424,7 +1416,7 @@ compile_atom(re_compiler *c)
     else if (ch == 'd' || ch == 'D' || ch == 'w' || ch == 'W' || ch == 's' || ch == 'S') {
       next_char(c);
       uint16_t id = add_class(c);
-      class_add_shorthand(&c->classes[id], ch);
+      class_add_shorthand(&c->pat->classes[id], ch);
       /* class_add_shorthand already builds the complemented set for the
          uppercase forms (\D, \W, \S include utf8_any), so always emit
          RE_CLASS. Emitting RE_NCLASS here would negate a second time and
@@ -1437,7 +1429,7 @@ compile_atom(re_compiler *c)
          \H through an RE_NCLASS path that would double-negate. */
       next_char(c);
       uint16_t id = add_class(c);
-      class_add_shorthand(&c->classes[id], ch);
+      class_add_shorthand(&c->pat->classes[id], ch);
       emit(c, RE_CLASS, (uint8_t)id, 0);
     }
     else if (ch == 'A') {
@@ -1519,9 +1511,9 @@ compile_atom(re_compiler *c)
       }
       else {
         for (uint16_t i = 0; i < c->num_named; i++) {
-          if (c->named_captures[i].name_len == name_len &&
-              memcmp(c->named_captures[i].name, name, name_len) == 0) {
-            group = c->named_captures[i].group;
+          if (c->pat->named_captures[i].name_len == name_len &&
+              memcmp(c->pat->named_captures[i].name, name, name_len) == 0) {
+            group = c->pat->named_captures[i].group;
             break;
           }
         }
@@ -1611,7 +1603,7 @@ emit_atom_copy(re_compiler *c, uint32_t start, uint32_t size)
   int32_t delta = (int32_t)c->code_len - (int32_t)start;
   uint32_t atom_end = start + size;
   for (uint32_t j = 0; j < size; j++) {
-    re_inst in = c->code[start + j];
+    re_inst in = c->pat->code[start + j];
     if (op_holds_code_index(in.op) && in.offset >= start && in.offset <= atom_end) {
       in.offset = (uint16_t)((int32_t)in.offset + delta);
     }
@@ -1650,7 +1642,7 @@ compile_quantified(re_compiler *c)
          SPLIT offset = end (after JMP), patched after JMP is emitted */
       insert_inst(c, start, nongreedy ? RE_SPLITNG : RE_SPLIT, 0, 0);
       emit(c, RE_JMP, 0, start);
-      c->code[start].offset = (uint16_t)c->code_len;  /* patch: skip to end */
+      c->pat->code[start].offset = (uint16_t)c->code_len;  /* patch: skip to end */
     }
     else if (ch == '+') {
       /* e+ → body; SPLIT/SPLITNG(start)
@@ -1661,7 +1653,7 @@ compile_quantified(re_compiler *c)
     else { /* ? */
       /* e? → SPLIT(body, end); body; end: */
       insert_inst(c, start, nongreedy ? RE_SPLITNG : RE_SPLIT, 0, 0);
-      c->code[start].offset = (uint16_t)c->code_len;  /* patch: skip to end */
+      c->pat->code[start].offset = (uint16_t)c->code_len;  /* patch: skip to end */
     }
   }
   else if (ch == '{') {
@@ -1716,7 +1708,7 @@ compile_quantified(re_compiler *c)
       if (wrap_optional) {
         /* Make the whole {1,m}/{1,} body skippable so it matches zero times. */
         insert_inst(c, start, nongreedy ? RE_SPLITNG : RE_SPLIT, 0, 0);
-        c->code[start].offset = (uint16_t)c->code_len;
+        c->pat->code[start].offset = (uint16_t)c->code_len;
       }
     }
   }
@@ -1792,17 +1784,17 @@ compile_alt(re_compiler *c)
      source order -- i.e. leftmost-first across three or more branches. */
   for (uint32_t i = 0; i < split_count; i++) {
     uint32_t pos = alt_starts[0] - split_count + i;
-    c->code[pos].op = RE_SPLIT;
-    c->code[pos].a = 0;
-    c->code[pos].offset = (uint16_t)alt_starts[split_count - i];
+    c->pat->code[pos].op = RE_SPLIT;
+    c->pat->code[pos].a = 0;
+    c->pat->code[pos].offset = (uint16_t)alt_starts[split_count - i];
   }
 
   /* Patch JMPs (they are right before each alt_starts[1..n-1]) to point to end */
   uint32_t end = c->code_len;
   for (int i = 1; i < num_alts; i++) {
     uint32_t jmp_pos = alt_starts[i] - 1;
-    c->code[jmp_pos].op = RE_JMP;
-    c->code[jmp_pos].offset = (uint16_t)end;
+    c->pat->code[jmp_pos].op = RE_JMP;
+    c->pat->code[jmp_pos].offset = (uint16_t)end;
   }
 }
 
@@ -1904,12 +1896,16 @@ skip_uninterpreted(const char *src, const char *end, mrb_bool *in_class)
  * written there, which is a literal member rather than a comment group.
  * Escaped characters (\ followed by anything) are preserved.
  * skip_uninterpreted() decides which bytes those are.
+ *
+ * The buffer comes from the GC arena, which holds it until the caller's frame
+ * is gone: the parser reads it from beginning to end, and every raise in
+ * between leaves this function nothing to be reached through.
  */
 static char*
 preprocess_pattern(mrb_state *mrb, const char *src, mrb_int len,
                    mrb_bool extended, mrb_int *out_len)
 {
-  char *buf = (char*)mrb_malloc(mrb, len);
+  char *buf = (char*)mrb_temp_alloc(mrb, len);
   mrb_int o = 0;
   mrb_bool in_class = FALSE;
   const char *end = src + len;
@@ -2110,8 +2106,14 @@ epsilon_path(const re_inst *code, uint32_t pc, uint32_t goal,
 static uint8_t
 mark_empty_loops(mrb_state *mrb, re_inst *code, uint32_t code_len)
 {
-  int32_t *delta = (int32_t*)mrb_calloc(mrb, code_len + 1, sizeof(int32_t));
-  uint32_t *seen = (uint32_t*)mrb_calloc(mrb, code_len + 1, sizeof(uint32_t));
+  /* One block holds both arrays. Asking twice puts a raising call between the
+     first allocation and anything that could free it: mrb_calloc() raises
+     when it cannot answer, and this frame is the only owner `delta` has.
+     code_len is capped at RE_MAX_CODE_LEN, so the doubled element count stays
+     well inside the overflow check mrb_calloc() makes. */
+  uint32_t n = code_len + 1;
+  int32_t *delta = (int32_t*)mrb_calloc(mrb, 2 * (size_t)n, sizeof(int32_t));
+  uint32_t *seen = (uint32_t*)(delta + n);
   uint32_t mark = 0;
 
   for (uint32_t pc = 0; pc < code_len; pc++) {
@@ -2130,7 +2132,6 @@ mark_empty_loops(mrb_state *mrb, re_inst *code, uint32_t code_len)
     depth += delta[pc];
     if (depth > max) max = depth;
   }
-  mrb_free(mrb, seen);
   mrb_free(mrb, delta);
   return max > UINT8_MAX ? UINT8_MAX : (uint8_t)max;
 }
@@ -2154,23 +2155,24 @@ compute_first_set(const re_inst *code, uint32_t code_len,
   return set_bits < 96;  /* useful only if fewer than 75% of bytes match */
 }
 
-mrb_regexp_pattern*
-mrb_re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags)
+void
+mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat,
+               const char *pattern, mrb_int len, uint32_t flags)
 {
   re_compiler c;
   memset(&c, 0, sizeof(c));
 
+  c.mrb = mrb;
+  c.pat = pat;
   c.orig = pattern;
   c.orig_end = pattern + len;
 
   if ((flags & RE_FLAG_EXTENDED) || has_comment_group(pattern, len)) {
     mrb_int slen;
-    c.stripped = preprocess_pattern(mrb, pattern, len,
-                                    (flags & RE_FLAG_EXTENDED) != 0, &slen);
-    pattern = c.stripped;
+    pattern = preprocess_pattern(mrb, pattern, len,
+                                 (flags & RE_FLAG_EXTENDED) != 0, &slen);
     len = slen;
   }
-  c.mrb = mrb;
   c.src = pattern;
   c.src_end = pattern + len;
   c.p = pattern;
@@ -2180,6 +2182,8 @@ mrb_re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags)
      already taken out the /x free-spacing, the #comments and the (?#...)
      groups. */
   c.dont_capture = has_named_group(pattern, len);
+
+  pat->flags = flags;
 
   /* group 0 start */
   emit(&c, RE_SAVE, 0, 0);
@@ -2194,35 +2198,33 @@ mrb_re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags)
   emit(&c, RE_SAVE, 0, 1);
   emit(&c, RE_MATCH, 0, 0);
 
-  mrb_regexp_pattern *pat = (mrb_regexp_pattern*)mrb_malloc(mrb, sizeof(mrb_regexp_pattern));
-  pat->code = c.code;
-  pat->code_len = c.code_len;
-  pat->classes = c.classes;
-  pat->num_classes = c.num_classes;
+  /* code_len is the last field written, at the end of this function: the
+     Regexp has been holding this pattern since before the compile started,
+     and a non-zero code_len is what tells the rest of the gem that what it
+     holds can be run (see re_uninitialized_p()). Everything below reads the
+     local instead. */
+  uint32_t code_len = c.code_len;
   pat->num_captures = c.num_captures;
-  pat->flags = flags;
-  pat->named_captures = c.named_captures;
-  pat->named_arena = NULL;
   pat->num_named = c.num_named;
 
-  /* Copy capture names into an owned arena. Until this point the names
-     point into the pattern source (or into c.stripped, which gets freed
-     below when the pattern was preprocessed). After this loop the regexp
-     owns its names. */
+  /* Copy capture names into an owned arena. Until this point the names point
+     into the pattern source, or into the preprocessed copy of it, which the
+     GC arena owns and drops once this frame is gone. After this loop the
+     regexp owns its names. */
   if (c.num_named > 0) {
     size_t total = 0;
-    for (uint16_t i = 0; i < c.num_named; i++) total += c.named_captures[i].name_len;
+    for (uint16_t i = 0; i < c.num_named; i++) total += pat->named_captures[i].name_len;
     /* total is zero only when every registered name is empty, which the
        parser rejects, so today the arena is always taken. Allocate a byte
        for that case anyway rather than skipping the copy: skipping it leaves
-       name borrowing memory this function is about to free, and nulling name
+       name borrowing memory the pattern does not own, and nulling name
        instead would hand a NULL to the memcmp() in matchdata_name_to_group(),
        which is declared nonnull even for a zero length. */
     pat->named_arena = (char*)mrb_malloc(mrb, total ? total : 1);
     size_t off = 0;
     for (uint16_t i = 0; i < c.num_named; i++) {
-      uint32_t n = c.named_captures[i].name_len;
-      memcpy(pat->named_arena + off, c.named_captures[i].name, n);
+      uint32_t n = pat->named_captures[i].name_len;
+      memcpy(pat->named_arena + off, pat->named_captures[i].name, n);
       pat->named_captures[i].name = pat->named_arena + off;
       off += n;
     }
@@ -2235,7 +2237,7 @@ mrb_re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags)
   {
     uint8_t pbuf[256];
     int plen = 0;
-    for (uint32_t i = 0; i < pat->code_len && plen < 255; i++) {
+    for (uint32_t i = 0; i < code_len && plen < 255; i++) {
       if (pat->code[i].op == RE_SAVE) continue;
       if (pat->code[i].op == RE_CHAR) {
         pbuf[plen++] = pat->code[i].a;
@@ -2261,10 +2263,10 @@ mrb_re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags)
     /* bytecode should be: SAVE(0), CHAR*N, SAVE(1), MATCH
        = 2 + prefix_len + 2 = prefix_len + 2 instructions
        (SAVE(0) at 0, CHARs at 1..N, SAVE(1) at N+1, MATCH at N+2) */
-    if (pat->code_len == (uint32_t)(pat->prefix_len + 3) &&
+    if (code_len == (uint32_t)(pat->prefix_len + 3) &&
         pat->code[0].op == RE_SAVE &&
-        pat->code[pat->code_len - 2].op == RE_SAVE &&
-        pat->code[pat->code_len - 1].op == RE_MATCH) {
+        pat->code[code_len - 2].op == RE_SAVE &&
+        pat->code[code_len - 1].op == RE_MATCH) {
       pat->is_literal = TRUE;
     }
   }
@@ -2274,26 +2276,27 @@ mrb_re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags)
   {
     uint8_t bm[16];
     memset(bm, 0, sizeof(bm));
-    pat->has_first_bytes = compute_first_set(pat->code, pat->code_len, pat->classes, bm);
+    pat->has_first_bytes = compute_first_set(pat->code, code_len, pat->classes, bm);
     if (pat->has_first_bytes) {
       memcpy(pat->first_bytes, bm, 16);
     }
   }
 
-  pat->loop_depth = mark_empty_loops(mrb, pat->code, pat->code_len);
+  pat->loop_depth = mark_empty_loops(mrb, pat->code, code_len);
 
   /* Pre-allocate VM state cache for pike_vm */
   {
-    int list_capa = RE_LIST_CAPA(pat->code_len, pat->loop_depth);
-    pat->cached_visited = (uint32_t*)mrb_calloc(mrb, pat->code_len + 1, sizeof(uint32_t));
+    int list_capa = RE_LIST_CAPA(code_len, pat->loop_depth);
+    pat->cached_visited = (uint32_t*)mrb_calloc(mrb, code_len + 1, sizeof(uint32_t));
     pat->cached_threads[0] = mrb_malloc(mrb, sizeof(re_thread_cache) * list_capa);
     pat->cached_threads[1] = mrb_malloc(mrb, sizeof(re_thread_cache) * list_capa);
     pat->cached_list_capa = list_capa;
     pat->cache_in_use = FALSE;
   }
 
-  if (c.stripped) mrb_free(mrb, c.stripped);
-  return pat;
+  /* Nothing above allocates any more, so the pattern is complete: publish
+     the length that says so. */
+  pat->code_len = code_len;
 }
 
 void

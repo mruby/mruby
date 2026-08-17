@@ -11,6 +11,17 @@ assert("Regexp.new with regexp") do
   assert_true r2.match?("ABC")
 end
 
+class RegexpInitializedTwice < Regexp
+  def initialize(first, second)
+    super(first)
+    super(second)
+  end
+end
+
+assert("Regexp#initialize - second call") do
+  assert_raise(TypeError) { RegexpInitializedTwice.new("abc", "xyz") }
+end
+
 assert("Regexp#match - simple") do
   re = Regexp.new("abc")
   md = re.match("xabcy")

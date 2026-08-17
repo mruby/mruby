@@ -167,8 +167,15 @@ typedef struct {
 #define RE_LIST_CAPA(code_len, depth) \
   ((int)(code_len) * (int)(RE_PASS_SPAN(depth) + 1) + 16)
 
-/* Compile a pattern string into bytecode */
-mrb_regexp_pattern* mrb_re_compile(mrb_state *mrb, const char *pattern, mrb_int len, uint32_t flags);
+/* Compile a pattern string into `pat`, which the caller passes zero filled
+   and keeps reachable from a GC object for the whole call. Every buffer the
+   compile allocates hangs off `pat` from the moment it is allocated, so a
+   compile that raises, over a bad pattern or a refused allocation, leaves
+   them to mrb_re_free() rather than to the frame the longjmp abandons: the
+   zero fill is what lets mrb_re_free() read a pattern that got that far.
+   `pat->code_len` is written last and stays zero until the pattern is
+   complete. */
+void mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat, const char *pattern, mrb_int len, uint32_t flags);
 
 /* Free a compiled pattern */
 void mrb_re_free(mrb_state *mrb, mrb_regexp_pattern *pat);
