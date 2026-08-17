@@ -7,7 +7,11 @@
 #ifndef MRUBY_BOXING_WORD_H
 #define MRUBY_BOXING_WORD_H
 
-#if defined(MRB_32BIT) && !defined(MRB_USE_FLOAT32) && !defined(MRB_WORDBOX_NO_INLINE_FLOAT)
+/* Floats are not inlined where a double does not fit beside the tag, nor where
+   there are no floats to inline. The tag layout below and mrb_type() both ask
+   that one question, so it is answered once, here. */
+#if !defined(MRB_WORDBOX_NO_INLINE_FLOAT) && \
+    (defined(MRB_NO_FLOAT) || (defined(MRB_32BIT) && !defined(MRB_USE_FLOAT32)))
 # define MRB_WORDBOX_NO_INLINE_FLOAT
 #endif
 
@@ -79,7 +83,7 @@ enum mrb_special_consts {
 #define WORDBOX_FIXNUM_FLAG     (1 << (WORDBOX_FIXNUM_BIT_POS - 1))
 #define WORDBOX_FIXNUM_MASK     ((1 << WORDBOX_FIXNUM_BIT_POS) - 1)
 
-#if defined(MRB_WORDBOX_NO_INLINE_FLOAT) || defined(MRB_NO_FLOAT)
+#ifdef MRB_WORDBOX_NO_INLINE_FLOAT
 /* floats are allocated in heaps */
 #define WORDBOX_IMMEDIATE_MASK  0x03
 #define WORDBOX_SYMBOL_BIT_POS  2
