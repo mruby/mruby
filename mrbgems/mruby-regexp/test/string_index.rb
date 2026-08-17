@@ -376,6 +376,64 @@ assert("String#rindex bounds the match start in characters") do
   assert_equal 3, "あああ".byterindex(/ああ/)
   assert_equal ["あ", "ああ", ""], "あああ".rpartition(/ああ/)
   assert_equal ["あい", "うあ", "いう"], str.rpartition(/うあ/)
+
+  # the position bounds where the match starts and not how far the subject is
+  # read: `$` still asserts at the end of the subject, and a match that
+  # reaches it is still found from a position well before it
+  assert_nil "あいうい".rindex(/い$/, 1)
+  assert_equal 3, "あいうい".rindex(/い$/)
+  assert_equal 1, str.rindex(/いうあいう/, 1)
+end
+
+assert("a backward search bounds where a match starts, not how far it reads") do
+  # `$` and `\z` assert at the end of the subject. A position that bounded
+  # how much of the subject was read would put that end at the bound instead,
+  # and the `b` at 1 would answer where it must not.
+  assert_nil "abcb".rindex(/b$/, 1)
+  assert_nil "abcb".rindex(/b\z/, 1)
+  assert_equal 3, "abcb".rindex(/b$/)
+
+  # and a match may reach past the bound, since what the bound names is where
+  # the match begins
+  assert_equal 1, "abcabc".rindex(/bcabc/, 1)
+  assert_equal 1, "abcabc".byterindex(/bcabc/, 1)
+end
+
+assert("a backward search answers a match far from the end of the subject") do
+  # A backward search asks about the end of the subject first, and only what
+  # it does not find there sends it over the whole subject. A subject long
+  # enough for those to be two different paths says that both answer what a
+  # short one answers.
+  str = "ab" + "c" * 4000
+
+  assert_equal 0, str.rindex(/ab/)
+  assert_equal 1, str.rindex(/b/)
+  assert_equal 4001, str.rindex(/c/)
+  assert_nil str.rindex(/z/)
+  assert_equal 0, str.byterindex(/ab/)
+  assert_equal 4001, str.byterindex(/c/)
+  assert_equal ["", "ab", "c" * 4000], str.rpartition(/ab/)
+
+  # a match at the end and further ones behind it: the last is still the
+  # answer when the search starts from the end rather than the front
+  tail = "c" * 4000 + "abab"
+  assert_equal 4002, tail.rindex(/ab/)
+  # overlapping matches stay in view there too, as they do on a short subject
+  assert_equal 4001, tail.rindex(/ba/)
+  assert_equal ["c" * 4000 + "ab", "ab", ""], tail.rpartition(/ab/)
+
+  # the bound is read the same way whichever path answers
+  assert_equal 0, str.rindex(/ab/, 0)
+  assert_nil str.rindex(/b/, 0)
+  assert_equal 4000, tail.rindex(/ab/, 4000)
+
+  # and the match it settles on is the one the globals describe
+  assert_equal 4002, tail.rindex(/a(b)/)
+  assert_equal "b", $1
+  assert_equal "ab", Regexp.last_match(0)
+  assert_nil str.rindex(/(z)/)
+  assert_nil $1
+  assert_nil Regexp.last_match(0)
 end
 
 assert("String#index and String#rindex with regexp set the match globals") do

@@ -918,3 +918,77 @@ mrb_re_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
      the forward search is the unbounded case of the above. */
   return exec_range(mrb, pat, str, len, start, len, captures, captures_size, binary);
 }
+
+/* How far the backward probe below may read before it stops being the cheap
+   question. A search bounded to a window still reads from where the window
+   starts to the end of the subject, so the bound is on that span and not on
+   the window's own width: a narrow window at the end of a long subject is
+   cheap, the same window asked about a position far from the end is the
+   whole search over again. */
+#define RE_RSEARCH_PROBE_SPAN 256
+
+/* The last match that starts at or before `limit`, which is what `rindex`,
+   `byterindex` and `rpartition` ask for.
+
+   A forward walk answers this by stepping every match from the front and
+   keeping the last, which costs a search per match: on a subject a pattern
+   matches everywhere that is a search per position, and where one search is
+   itself linear in the subject -- a greedy `/a+b?/` and the like -- the walk
+   is quadratic in it.
+
+   The last match is usually near the end, so ask about the end first: widen
+   a window there until a match starts inside it. A window that catches one
+   costs the window rather than the subject, and the walk that follows has
+   only the window to cross. Widening stops at the span above rather than at
+   the front, so a subject with no match near the end falls through to the
+   single forward search this cost before, instead of paying for the
+   widening as well. */
+int
+mrb_re_rexec(mrb_state *mrb, const mrb_regexp_pattern *pat,
+             const char *str, mrb_int len, mrb_int limit,
+             int *captures, int captures_size, mrb_bool binary)
+{
+  if (limit > len) limit = len;
+  if (limit < 0) return 0;
+
+  int last[RE_MAX_CAPTURES * 2];
+  int last_n = 0;
+
+  for (mrb_int k = 1; ; k *= 2) {
+    mrb_int lo = limit - k + 1;
+    if (lo < 0) lo = 0;
+    if (len - lo > RE_RSEARCH_PROBE_SPAN) break;
+    memset(captures, -1, sizeof(int) * captures_size);
+    last_n = exec_range(mrb, pat, str, len, lo, limit, captures, captures_size, binary);
+    if (last_n) break;
+    /* The window had grown to the whole range, so there is no match to find
+       and the search below would only ask again. */
+    if (lo == 0) return 0;
+  }
+
+  if (last_n == 0) {
+    memset(captures, -1, sizeof(int) * captures_size);
+    last_n = exec_range(mrb, pat, str, len, 0, limit, captures, captures_size, binary);
+    if (last_n == 0) return 0;
+  }
+
+  /* Whichever range answered gave its leftmost match; the last one is found
+     by walking forward from it. Each step resumes one byte past the match
+     start and not at the match end, which is what keeps overlapping matches
+     in view: `"aaa"` against `/aa/` answers 1, where resuming at the end
+     would answer 0. A byte inside a character is not a position a match can
+     start at, and the engine steps over one rather than seed an attempt
+     there, so `+ 1` reaches the next character by itself. */
+  memcpy(last, captures, sizeof(int) * captures_size);
+  mrb_int pos = captures[0] + 1;
+  while (pos <= limit) {
+    memset(captures, -1, sizeof(int) * captures_size);
+    int n = exec_range(mrb, pat, str, len, pos, limit, captures, captures_size, binary);
+    if (n == 0) break;
+    last_n = n;
+    memcpy(last, captures, sizeof(int) * captures_size);
+    pos = captures[0] + 1;
+  }
+  memcpy(captures, last, sizeof(int) * captures_size);
+  return last_n;
+}
