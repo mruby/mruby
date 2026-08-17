@@ -43,8 +43,12 @@ typedef struct {
 
 static void compile_alt(re_compiler *c);  /* forward */
 
+/* Take the message as a String rather than as a C string, for the messages
+   that quote a group name: the name is a length-counted slice of the pattern
+   and may hold a NUL, which a C string would cut short. Callers with a fixed
+   message use compile_error() below. */
 static void
-compile_error(re_compiler *c, const char *msg)
+compile_error_str(re_compiler *c, mrb_value msg)
 {
   /* Quote c->orig, the pattern as written: when the pattern is preprocessed
      c->src points at the buffer preprocess_pattern() returned, so quoting it
@@ -52,7 +56,7 @@ compile_error(re_compiler *c, const char *msg)
      message. c->orig is the caller's buffer, which outlives the compile. It
      is not NUL-terminated, so use %l with the explicit length from
      c->orig_end. */
-  mrb_value emsg = mrb_format(c->mrb, "%s: /%l/",
+  mrb_value emsg = mrb_format(c->mrb, "%v: /%l/",
                               msg, c->orig, (size_t)(c->orig_end - c->orig));
 
   /* Free compile buffers before raising, since mrb_exc_raise longjmps out
@@ -74,6 +78,12 @@ compile_error(re_compiler *c, const char *msg)
 
   mrb_exc_raise(c->mrb,
     mrb_exc_new_str(c->mrb, mrb_exc_get_id(c->mrb, MRB_SYM(RegexpError)), emsg));
+}
+
+static void
+compile_error(re_compiler *c, const char *msg)
+{
+  compile_error_str(c, mrb_str_new_cstr(c->mrb, msg));
 }
 
 /* Maximum number of instructions in a compiled pattern. Every jump target
