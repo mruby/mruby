@@ -2858,22 +2858,50 @@ idx_op_refresh(mrb_state *mrb, int slot)
      m.as.func == mrb->idx_builtin[slot].as.func) ? base : NULL;
 }
 
+/* Records what the operator resolves to now as the implementation the opcode
+   may answer for, and arms the slot.  Only a C function qualifies: anything
+   else means the operator was replaced by something the opcode cannot stand
+   in for. */
+static void
+idx_op_arm(mrb_state *mrb, int slot)
+{
+  struct RClass *c = idx_op_class(mrb, slot);
+  struct RClass *base = c;
+  mrb_method_t m = mrb_vm_find_method(mrb, c, &c, idx_op_mid(slot));
+
+  if (MRB_METHOD_UNDEF_P(m) || !MRB_METHOD_FUNC_P(m)) return;
+  mrb->idx_builtin[slot] = m;
+  mrb->idx_class[slot] = base;
+}
+
 /* Records the builtin `[]` / `[]=` of each core class and arms its slot.
    Called once, after core initialization has installed them. */
 void
 mrb_idx_op_init(mrb_state *mrb)
 {
   for (int slot = 0; slot < MRB_IDX_OP_SLOT_COUNT; slot++) {
-    struct RClass *c = idx_op_class(mrb, slot);
-    struct RClass *base = c;
-    mrb_method_t m = mrb_vm_find_method(mrb, c, &c, idx_op_mid(slot));
-    /* Only a C function is the builtin an index opcode reimplements.  Anything
-       else means the operator was already replaced before the state was handed
-       out, and the opcode must not answer for it. */
-    if (MRB_METHOD_UNDEF_P(m) || !MRB_METHOD_FUNC_P(m)) continue;
-    mrb->idx_builtin[slot] = m;
-    mrb->idx_class[slot] = base;
+    idx_op_arm(mrb, slot);
   }
+}
+
+/* Arms `slot` for an implementation installed over the builtin.
+ *
+ * CALLER'S PROMISE: for every argument form the opcode answers itself, the
+ * method now holding the name produces what the builtin produced.  The opcode
+ * will not consult it, so a form where the two disagree would be answered by
+ * the builtin and the override silently skipped, which is the defect the slots
+ * exist to prevent.  A method that only widens the operator to an argument
+ * type the opcode does not answer -- `String#[]` taking a Regexp, which
+ * `vm_op_getidx()` sends rather than answering -- can make the promise; one
+ * that changes an answer for an Integer, String or Range index cannot.
+ *
+ * Only the method standing now is recorded, so a later redefinition disarms
+ * the slot as it always did.
+ */
+void
+mrb_idx_op_rearm(mrb_state *mrb, enum mrb_idx_op_slot slot)
+{
+  idx_op_arm(mrb, (int)slot);
 }
 
 /* Rechecks the slots that `mid` can affect.  Call after any change to a method

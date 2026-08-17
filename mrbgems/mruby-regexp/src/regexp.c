@@ -1572,6 +1572,15 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
      makes `sym[re]` work: `Symbol#[]` delegates to `String#slice`. */
   mrb_define_method(mrb, mrb->string_class, "[]", str_aref, MRB_ARGS_ARG(1, 1));
   mrb_define_method(mrb, mrb->string_class, "slice", str_aref, MRB_ARGS_ARG(1, 1));
+  /* Taking the name disarmed the String branch of the index opcodes, which
+     answer `str[Integer]`, `str[String]` and `str[Range]` only while `[]` is
+     the implementation they stand in for.  For those three `str_aref()` calls
+     the same `mrb_str_aref()` the opcode calls, with the same arguments, so
+     the promise mrb_idx_op_rearm() asks for holds and the opcode may keep
+     answering them.  A Regexp is none of the three: the opcode sends it, and
+     it arrives above.  Widen `str_aref()` past a Regexp and this call has to
+     go; test/string_index.rb asks both ways round and would catch it. */
+  mrb_idx_op_rearm(mrb, MRB_IDX_OP_STR_AREF);
 
   /* MatchData class */
   struct RClass *md = mrb_define_class(mrb, "MatchData", mrb->object_class);

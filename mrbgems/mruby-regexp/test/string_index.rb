@@ -842,3 +842,33 @@ assert("String overrides run a pattern whose operation cores were rewritten") do
   assert_equal "heXo", s.gsub!(r, "X")
   assert_equal "heXo", s
 end
+
+assert("String#[] answers the same through the opcode and through a send") do
+  # `s[x]` is answered by `OP_GETIDX` / `OP_GETIDX0` in C, without a method
+  # lookup, while `slice` is a second method table entry for the same
+  # implementation that no opcode ever answers.  The two are only allowed to be
+  # different code while they cannot be told apart, which is the promise
+  # `mrb_idx_op_rearm()` takes from this gem: `str_aref()` takes the `[]` name
+  # to reach a Regexp index, and re-arms the opcodes because it hands every
+  # other argument form straight back to the same `mrb_str_aref()` the opcode
+  # calls.  Widening it to another argument type the opcode answers would not
+  # show up in `s[x]` at all, so ask both ways.
+  s = "hello world"
+  [0, 1, 5, -1, -11, 10, 11, 99, -99].each do |i|
+    assert_equal s.slice(i), s[i], "s[#{i}]"
+  end
+  ["h", "lo w", "hello world", "", "zz", "d"].each do |sub|
+    assert_equal s.slice(sub), s[sub], "s[#{sub.inspect}]"
+  end
+  [0..3, 1...3, -3..-1, 0..-1, 5..99, 99..100, 3..1, -99..2].each do |r|
+    assert_equal s.slice(r), s[r], "s[#{r.inspect}]"
+  end
+  assert_equal "".slice(0), ""[0]
+  assert_equal "".slice(0..1), ""[0..1]
+  # A receiver whose characters are not one byte each.
+  if "あ".length == 1
+    u = "こんにちは"
+    [0, 2, 4, -1, 5].each { |i| assert_equal u.slice(i), u[i], "u[#{i}]" }
+    [0..2, 1...4, -2..-1].each { |r| assert_equal u.slice(r), u[r], "u[#{r.inspect}]" }
+  end
+end
