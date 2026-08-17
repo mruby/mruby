@@ -354,9 +354,10 @@ add_thread(pike_state *s, re_threadlist *list,
 
 static int
 pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
-        const char *str, mrb_int len, mrb_int start,
+        const char *str, mrb_int len, mrb_int start, mrb_int start_limit,
         int *captures, int captures_size, mrb_bool binary)
 {
+  const char *start_cap = str + start_limit;
   const char *sp = str + start;
   const char *str_end = str + len;
   int ncap = pat->num_captures * 2;
@@ -415,7 +416,10 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
   curr.count = next.count = 0;
 
   for (; sp <= str_end; sp++) {
-    if (!s.matched) {
+    /* Past the last position a match may start at, only the threads already
+       running can still answer; once they are gone nothing can. */
+    if (!s.matched && sp > start_cap && curr.count == 0) break;
+    if (!s.matched && sp <= start_cap) {
       /* Skip ahead when no active threads */
       if (curr.count == 0) {
         if (pat->prefix_len > 0) {
@@ -427,6 +431,7 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
           while (sp < str_end && !FIRST_BYTE_OK(pat, (uint8_t)*sp)) sp++;
           if (sp > str_end) break;
         }
+        if (sp > start_cap) break;
       }
       /* Don't seed a new match attempt inside a character. Its interior is
          not a char boundary, and starting a thread there mis-decodes the
@@ -804,16 +809,17 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
 
 static int
 backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
-               const char *str, mrb_int len, mrb_int start,
+               const char *str, mrb_int len, mrb_int start, mrb_int start_limit,
                int *captures, int captures_size, mrb_bool binary)
 {
+  const char *start_cap = str + start_limit;
   const char *str_end = str + len;
   int ncap = pat->num_captures * 2;
   if (ncap == 0) ncap = 2;
 
   int *caps = (int*)mrb_malloc(mrb, sizeof(int) * ncap);
 
-  for (const char *sp = str + start; sp <= str_end; sp++) {
+  for (const char *sp = str + start; sp <= str_end && sp <= start_cap; sp++) {
     /* Skip ahead using literal prefix or first-byte bitmap */
     if (pat->prefix_len > 0) {
       const char *skip = skip_to_prefix(pat, sp, str_end);
@@ -824,6 +830,7 @@ backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
       while (sp < str_end && !FIRST_BYTE_OK(pat, (uint8_t)*sp)) sp++;
       if (sp > str_end) break;
     }
+    if (sp > start_cap) break;
     if (!binary && sp < str_end && mrb_re_char_interior_p(str, sp, str_end)) {
       continue;
     }
@@ -846,16 +853,17 @@ backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
 /* Fast path for pure literal patterns: use memchr+memcmp, no NFA needed */
 static int
 literal_exec(const mrb_regexp_pattern *pat,
-             const char *str, mrb_int len, mrb_int start,
+             const char *str, mrb_int len, mrb_int start, mrb_int start_limit,
              int *captures, int captures_size, mrb_bool binary)
 {
+  const char *start_cap = str + start_limit;
   const char *sp = str + start;
   const char *str_end = str + len;
   int plen = pat->prefix_len;
 
-  while (sp + plen <= str_end) {
+  while (sp + plen <= str_end && sp <= start_cap) {
     const char *found = (const char*)memchr(sp, pat->prefix[0], str_end - sp);
-    if (!found || found + plen > str_end) return 0;
+    if (!found || found + plen > str_end || found > start_cap) return 0;
     if (!binary && mrb_re_char_interior_p(str, found, str_end)) {
       sp = found + 1;  /* not a char boundary, same rule as the other engines */
       continue;
@@ -879,17 +887,34 @@ literal_exec(const mrb_regexp_pattern *pat,
   return 0;
 }
 
+/* The search the three engines make, with the last position a match may
+   start at named.  The bound is on where a match may begin and not on how
+   far the subject is read: a match that begins at `start_limit` runs to
+   wherever it ends, which is why this is a separate argument rather than a
+   shorter `len`.  Shortening the subject would answer a different question
+   -- `$` and `\z` would assert at the cut, and a match reaching past it
+   would be lost. */
+static int
+exec_range(mrb_state *mrb, const mrb_regexp_pattern *pat,
+           const char *str, mrb_int len, mrb_int start, mrb_int start_limit,
+           int *captures, int captures_size, mrb_bool binary)
+{
+  if (pat->is_literal) {
+    return literal_exec(pat, str, len, start, start_limit, captures, captures_size, binary);
+  }
+  if (pat->has_backref || pat->needs_backtrack) {
+    return backtrack_exec(mrb, pat, str, len, start, start_limit, captures, captures_size, binary);
+  }
+  return pike_vm(mrb, pat, str, len, start, start_limit, captures, captures_size, binary);
+}
+
 /* Public entry point */
 int
 mrb_re_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
         const char *str, mrb_int len, mrb_int start,
         int *captures, int captures_size, mrb_bool binary)
 {
-  if (pat->is_literal) {
-    return literal_exec(pat, str, len, start, captures, captures_size, binary);
-  }
-  if (pat->has_backref || pat->needs_backtrack) {
-    return backtrack_exec(mrb, pat, str, len, start, captures, captures_size, binary);
-  }
-  return pike_vm(mrb, pat, str, len, start, captures, captures_size, binary);
+  /* The end of the subject is the last position anything can start at, so
+     the forward search is the unbounded case of the above. */
+  return exec_range(mrb, pat, str, len, start, len, captures, captures_size, binary);
 }
