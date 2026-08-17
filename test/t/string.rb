@@ -496,6 +496,27 @@ assert('String#upcase - an answer that outgrows an embedded buffer') do
   end
 end if UNICODECASE
 
+assert('String case conversion - ASCII only') do
+  # The other reading of case: a build that converts by ASCII, whether by
+  # MRB_USE_ASCII_CASE or by reading its strings as bytes, has no mapping above
+  # ASCII, so a character that has one on the Unicode side stands as it was
+  # while the ASCII beside it still converts.
+  assert_equal 'Ä', 'Ä'.downcase
+  assert_equal 'ä', 'ä'.upcase
+  assert_equal 'Ä', 'Ä'.capitalize
+  assert_equal 'äb', 'äB'.downcase
+  assert_equal 'ÄB', 'Äb'.upcase
+  assert_equal 'Äb', 'ÄB'.capitalize
+  # A conversion that maps nothing is one that changed nothing.
+  assert_nil 'Ä'.downcase!
+  assert_nil 'ä'.upcase!
+  assert_nil 'Ä'.capitalize!
+  # Refusing a run of bytes that spells no character belongs to the walk over
+  # characters; a walk that only knows ASCII hands the bytes back untouched.
+  assert_equal [195, 97, 98, 99], "\xC3ABC".downcase.bytes
+  assert_equal [195, 65, 66, 67], "\xC3ABC".upcase.bytes
+end unless UNICODECASE
+
 assert('String#chomp', '15.2.10.5.9') do
   a = 'abc'.chomp
   b = ''.chomp

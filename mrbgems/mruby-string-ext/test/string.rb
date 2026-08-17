@@ -166,6 +166,14 @@ assert('String#swapcase - Unicode') do
   assert_nil "日本".swapcase!
 end
 
+assert('String#swapcase - ASCII only') do
+  skip if UNICODECASE
+  # Where case follows ASCII, a character above it has no case to swap and
+  # stands between the ASCII that does.
+  assert_equal "abÄCD", "ABÄcd".swapcase
+  assert_nil "Ä".swapcase!
+end
+
 assert('String#concat') do
   assert_equal "Hello World!", "Hello " << "World" << 33
   assert_equal "Hello World!", "Hello ".concat("World").concat(33)
@@ -352,6 +360,21 @@ assert('String#casecmp? - Unicode') do
   assert_raise(ArgumentError) { "\xC3ABC".casecmp?("a") }
   assert_equal 0, "\xC3ABC".casecmp("\xC3abc")
   assert_raise(ArgumentError) { "\xC3ABC".swapcase }
+end
+
+assert('String#casecmp? - ASCII only') do
+  skip if UNICODECASE
+  # Narrowed to ASCII, folding sees no further than `casecmp` does, so two
+  # spellings that differ above ASCII stay apart however they would fold.
+  assert_equal 1, "ä".casecmp("Ä")
+  assert_false "ä".casecmp?("Ä")
+  assert_false "ß".casecmp?("ss")
+  assert_false "ﬁ".casecmp?("fi")
+  # What is left of the folding is the ASCII half, and a folding that reads
+  # nothing above ASCII has no bytes it must refuse.
+  assert_true "äB".casecmp?("äb")
+  assert_false "\xC3ABC".casecmp?("a")
+  assert_equal 0, "\xC3ABC".casecmp("\xC3abc")
 end
 
 assert('String#count') do
