@@ -911,6 +911,35 @@ assert("Regexp - lookbehind measures bytes that spell no character") do
   assert_nil "aab".match(/(?<=Āa)b/)
 end
 
+assert("Regexp - lookbehind over a class holding a byte that spells no character") do
+  # Two things meet here that were built apart: a character class may hold a
+  # byte that starts no character, and the rewind steps back over characters.
+  # They agree on the unit already: such a byte is a character of its own,
+  # which is the step the forward match takes for it too, so a class holding
+  # one is measured as one character wide, the same as any other class.
+  #
+  # A subject whose bytes spell no character is refused wherever an encoding
+  # reads them, so the stray byte is put to a binary subject, which rewinds by
+  # bytes in either build.
+  assert_equal "x", "\xB5x".b.match(/(?<=[\xB5])x/)[0]
+  assert_equal 1, ("\xB5x".b =~ /(?<=[\xB5])x/)
+  if __ENCODING__ == "UTF-8"
+    assert_raise(ArgumentError) { "\xB5x" =~ /(?<=[\xB5])x/ }
+    # the byte written into a class is still asked about a character: Ā is
+    # C4 80, and the rewind steps back over the whole of it, so the class is
+    # handed U+0100 rather than either of its bytes
+    assert_nil ("Āx" =~ /(?<=[\x80])x/)
+    assert_nil ("Āx" =~ /(?<=[\xC4])x/)
+    assert_equal 1, ("Āx" =~ /(?<=[Ā])x/)
+  else
+    # a build that reads its strings by byte has one character per byte, so
+    # the same class does see the continuation byte, and only that one
+    assert_equal 1, ("\xB5x" =~ /(?<=[\xB5])x/)
+    assert_equal 2, ("\xC4\x80x" =~ /(?<=[\x80])x/)
+    assert_nil ("\xC4\x80x" =~ /(?<=[\xC4])x/)
+  end
+end
+
 assert("Regexp - lookbehind measures an ASCII-only class") do
   assert_equal "x", "ax".match(/(?<=[a-z])x/)[0]
   assert_nil "1x".match(/(?<=[a-z])x/)
