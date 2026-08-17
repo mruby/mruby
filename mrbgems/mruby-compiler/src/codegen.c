@@ -1438,7 +1438,7 @@ gen_binop(mrc_codegen_scope *s, mrc_sym op, uint16_t dst)
   else if (op == MRC_OPSYM_2(aref)) {
     /* GETIDX0 fusion: MOVE dst arr; LOADI_0 dst+1 -> GETIDX0 dst arr */
     struct mrc_insn_data data = mrc_last_insn(s);
-    if (data.insn == OP_LOADI_0 && data.a == dst+1 && addr_pc(s, data.addr) != s->lastlabel) {
+    if (data.insn == OP_LOADI_0 && data.a == (uint32_t)(dst+1) && addr_pc(s, data.addr) != s->lastlabel) {
       struct mrc_insn_data data0 = mrc_decode_insn(mrc_prev_pc(s, data.addr));
       if (data0.insn == OP_MOVE && data0.a == dst && data0.b != dst) {
         s->pc = addr_pc(s, data0.addr);
