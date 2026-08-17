@@ -1,4 +1,5 @@
 require 'tempfile'
+require 'tmpdir'
 
 assert('Compiling multiple files without new line in last line. #2361') do
   a, b, out = Tempfile.new('a.rb'), Tempfile.new('b.rb'), Tempfile.new('out.mrb')
@@ -105,4 +106,21 @@ assert('non-seekable input file is rejected by size, not blamed on the read') do
   assert_equal 1, $?.exitstatus
   assert_include result, 'compile.c: cannot get size of program file. (/dev/stdin)'
   assert_not_include result, 'cannot read program file'
+end
+
+assert('a directory as an input file is refused') do
+  # Only POSIX systems open a directory for reading; Windows refuses it at
+  # fopen() and never reaches the reader this guards.
+  skip 'fopen() refuses a directory' if /mswin(?!ce)|mingw|bccwin/ =~ RbConfig::CONFIG['host_os']
+  # ftell() answers LONG_MAX for a directory stream on ext4 and 0 on tmpfs,
+  # and the size check accepts both: the first overflows the length
+  # arithmetic that sizes the buffer, the second compiles as an empty
+  # program.  The fread() failure below reports the LONG_MAX case in wording
+  # of its own, so pin which message arrives, not merely that one did.
+  Dir.mktmpdir do |dir|
+    result = `#{cmd('mrbc')} -c #{shellquote(dir)} 2>&1`
+    assert_include result, 'compile.c: cannot read from program file.'
+    assert_not_include result, 'compile.c: cannot read program file.'
+    assert_equal 1, $?.exitstatus
+  end
 end
