@@ -22,6 +22,22 @@ module MRuby
         target.instance_eval(&block)
       end
     end
+
+    # Bind every cross build to the build it borrows `mrbc` from.
+    #
+    # A cross build cannot settle this as it is declared, because the `host`
+    # it would borrow from may be written after it, and `Build.new` reopens a
+    # name already taken rather than initialising it afresh: a build generated
+    # then to fill the gap would swallow the `host` the config goes on to
+    # declare. So the question is asked here instead, once from the Rakefile,
+    # where the config has been read whole and the set of targets is final.
+    # This still runs before the gems are set up, both because they ask for
+    # `mrbcfile` as they go and because the answer turns on defines, which the
+    # config alone has written this early.
+    def resolve_mrbc_hosts
+      mrbc_builds = {}
+      targets.values.grep(CrossBuild).each{|target| target.bind_mrbc_host(mrbc_builds)}
+    end
   end
 
   class Toolchain
@@ -75,6 +91,11 @@ module MRuby
       def install_dir
         @install_dir ||= ENV['INSTALL_DIR'] || "#{MRUBY_ROOT}/bin"
       end
+
+      # The directory the builds write into, each under a directory of its own.
+      def build_root
+        ENV['MRUBY_BUILD_DIR'] || "#{MRUBY_ROOT}/build"
+      end
     end
 
     include Rake::DSL
@@ -101,7 +122,7 @@ module MRuby
           @exts = Exts.new('.o', '', '.a', '.pi')
         end
 
-        build_dir = build_dir || ENV['MRUBY_BUILD_DIR'] || "#{MRUBY_ROOT}/build"
+        build_dir ||= MRuby::Build.build_root
 
         @file_separator = '/'
         @build_dir = "#{build_dir}/#{@name}"
@@ -615,11 +636,53 @@ EOS
     def initialize(name, build_dir=nil, &block)
       @test_runner = Command::CrossTestRunner.new(self)
       super
-      @mrbc_host = mrbcfile_external? ? nil : bind_mrbc_host
     end
 
     def mrbcfile
-      mrbcfile_external? ? super : MRuby::targets[@mrbc_host].mrbcfile
+      return super if mrbcfile_external?
+      unless @mrbc_host
+        fail "the `mrbc' for '#{@name}' is not bound yet; `MRuby.resolve_mrbc_hosts' " \
+             "binds it once the whole build config has been read"
+      end
+      MRuby::targets[@mrbc_host].mrbcfile
+    end
+
+    # Bind this target to the build it borrows `mrbc` from, generating one
+    # where none will do.
+    #
+    # The bytecode `mrbc` emits has to be loadable here, and `src/load.c`
+    # refuses a whole irep over a single pool entry the target cannot
+    # represent: under `MRB_NO_FLOAT` a float literal is one. So a target can
+    # only borrow from a build that answers the float question the way it
+    # does.
+    #
+    # A `host` the build config declares is borrowed as it is written. Where
+    # there is none, or where it answers otherwise, the target gets a `mrbc`
+    # of its own, the way a native build does. That build is internal and
+    # named after the target that asked for it, so a build generated here can
+    # never take a name the build config wants. `mrbc_builds` carries the ones
+    # generated in this pass, keyed by the answer they give, so a config with
+    # several cross targets builds `mrbc` once.
+    def bind_mrbc_host(mrbc_builds)
+      return if mrbcfile_external?
+      no_float = cc.has_define?('MRB_NO_FLOAT')
+      host = MRuby.targets['host']
+      if host && host.cc.has_define?('MRB_NO_FLOAT') == no_float
+        @mrbc_host = 'host'
+      else
+        # `build/host` is where a generated `mrbc` has always been written, and
+        # where the build config declares no `host` it is free to go on being
+        # that: the build belongs to the machine doing the building and to no
+        # one cross target, several of which may share it. The second one
+        # generated, which a config that disagrees with itself on
+        # `MRB_NO_FLOAT` needs, writes beside the target that asked for it.
+        in_host_dir = host.nil? && mrbc_builds.empty?
+        @mrbc_host = (mrbc_builds[no_float] ||= generate_mrbc_build(no_float, in_host_dir))
+        # `tasks/presym.rake` reads this to leave the mrbc build's objects to
+        # it: they sit under this target's own build directory when this is
+        # the target that generated it and `build/host` was taken.
+        @mrbc_build = MRuby.targets[@mrbc_host]
+      end
     end
 
     def run_test
@@ -653,26 +716,14 @@ EOS
 
     private
 
-    # Name the build this target borrows `mrbc` from.
-    #
-    # The bytecode `mrbc` emits has to be loadable here, and `src/load.c`
-    # refuses a whole irep over a single pool entry the target cannot
-    # represent: under `MRB_NO_FLOAT` a float literal is one. So a target can
-    # only borrow from a build that answers the float question the way it
-    # does, and where none is at hand it gets one that does. A `host` the
-    # build config declares itself is left as it is written; the build
-    # generated here is this code's own and carries the target's answer.
-    def bind_mrbc_host
-      no_float = cc.has_define?('MRB_NO_FLOAT')
-      host = MRuby.targets['host']
-      return 'host' if host && host.cc.has_define?('MRB_NO_FLOAT') == no_float
-
-      # Where there is no `host` the generated build takes that name, as it
-      # always has. Where there is one and it answers otherwise, the build
-      # config owns the name, so this target gets a private `mrbc` beside its
-      # own output instead, the way a native build gets one.
-      name, internal = host ? ["#{@name}/mrbc", true] : ['host', false]
-      MRuby::Build.new(name, internal: internal) do |conf|
+    def generate_mrbc_build(no_float, in_host_dir)
+      name = "#{@name}/mrbc"
+      if MRuby.targets[name]
+        fail "cannot generate the `mrbc' build for '#{@name}': " \
+             "the build config already declares a build named '#{name}'"
+      end
+      MRuby::Build.new(name, internal: true) do |conf|
+        conf.build_dir = "#{MRuby::Build.build_root}/host" if in_host_dir
         conf.toolchain
         conf.build_mrbc_exec
         conf.disable_libmruby
