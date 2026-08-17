@@ -1,7 +1,6 @@
 # Address/Undefined sanitizer build with gcc, in a dedicated build directory
 # (build/gcc-asan) so it does not clobber a normal host build. The counterpart
-# of build_config/clang-asan.rb; build_config/asan.rb follows whichever
-# compiler the machine has.
+# of build_config/clang-asan.rb.
 MRuby::Build.new('gcc-asan') do |conf|
   conf.toolchain :gcc
 
