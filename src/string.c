@@ -2969,13 +2969,22 @@ mrb_str_reverse_bang(mrb_state *mrb, mrb_value str)
   struct RString *s = mrb_str_ptr(str);
   char *p, *e;
 
+  /* Reversing writes the string's own bytes back in another order, and both
+     paths below leave every character whole, so what the bytes read as is
+     still what they read as: both write through str_modify_keep_cr(). */
+
 #ifdef MRB_UTF8_STRING
+  /* mrb_str_char_len() walks the string and records what it finds. The
+     multi-byte path turns each character's bytes around where they stand and
+     then turns the whole buffer around, which puts the characters back in the
+     reverse order with each one whole, so that record still holds and the
+     next asker is spared the same walk. */
   mrb_int utf8_len = mrb_str_char_len(mrb, str);
   mrb_int len = RSTR_LEN(s);
 
   if (utf8_len < 2) return str;
   if (utf8_len < len) {
-    mrb_str_modify(mrb, s);
+    str_modify_keep_cr(mrb, s);
     p = RSTR_PTR(s);
     e = p + RSTR_LEN(s);
     while (p<e) {
@@ -2987,8 +2996,10 @@ mrb_str_reverse_bang(mrb_state *mrb, mrb_value str)
   }
 #endif
 
+  /* Reached with one character per byte, where the reversal below is a byte
+     reversal that cuts no character in two. */
   if (RSTR_LEN(s) > 1) {
-    mrb_str_modify(mrb, s);
+    str_modify_keep_cr(mrb, s);
     goto bytes;
   }
   return str;
