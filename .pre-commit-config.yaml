@@ -52,7 +52,7 @@ repos:
         name: run gitleaks
         description: detect hardcoded secrets with gitleaks
   - repo: https://github.com/oxipng/oxipng
-    rev: v10.1.1
+    rev: v10.2.0
     hooks:
       - id: oxipng
         name: run oxipng
