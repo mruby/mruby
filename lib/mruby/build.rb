@@ -622,6 +622,16 @@ EOS
       mrbcfile_external? ? super : MRuby::targets[@mrbc_host].mrbcfile
     end
 
+    # The defines a target and the `mrbc` it borrows have to agree on.
+    #
+    # The bytecode `mrbc` emits has to be loadable on the target, and
+    # `src/load.c` refuses a whole irep over a single pool entry the target
+    # cannot represent: under `MRB_NO_FLOAT` a float literal is one. A define
+    # that decides what a pool entry may hold belongs in this list, which is
+    # where the comparison in `bind_mrbc_host` and the defines a build
+    # generated there carries both read the question from.
+    MRBC_DEFINES = %w[MRB_NO_FLOAT].freeze
+
     def run_test
       @test_runner.runner_options << verbose_flag
       mrbtest = exefile("#{build_dir}/bin/mrbtest")
@@ -655,17 +665,14 @@ EOS
 
     # Name the build this target borrows `mrbc` from.
     #
-    # The bytecode `mrbc` emits has to be loadable here, and `src/load.c`
-    # refuses a whole irep over a single pool entry the target cannot
-    # represent: under `MRB_NO_FLOAT` a float literal is one. So a target can
-    # only borrow from a build that answers the float question the way it
-    # does, and where none is at hand it gets one that does. A `host` the
-    # build config declares itself is left as it is written; the build
+    # A target can only borrow from a build that answers `MRBC_DEFINES` the
+    # way it does, and where none is at hand it gets one that does. A `host`
+    # the build config declares itself is left as it is written; the build
     # generated here is this code's own and carries the target's answer.
     def bind_mrbc_host
-      no_float = cc.has_define?('MRB_NO_FLOAT')
+      needed = mrbc_defines(self)
       host = MRuby.targets['host']
-      return 'host' if host && host.cc.has_define?('MRB_NO_FLOAT') == no_float
+      return 'host' if host && mrbc_defines(host) == needed
 
       # Where there is no `host` the generated build takes that name, as it
       # always has. Where there is one and it answers otherwise, the build
@@ -676,9 +683,24 @@ EOS
         conf.toolchain
         conf.build_mrbc_exec
         conf.disable_libmruby
-        conf.compilers.each {|c| c.defines << 'MRB_NO_FLOAT'} if no_float
+        conf.compilers.each {|c| c.defines.concat(needed)}
       end
       name
+    end
+
+    # The answer `build` gives to every question in `MRBC_DEFINES`, as the
+    # defines it says yes to.
+    #
+    # Both lists a build config writes answer, the way `Build#has_define?`
+    # reads them, because `Command::Compiler#all_flags` puts `build.defines`
+    # on the same command line as a compiler's own. `Build#has_define?` itself
+    # cannot be asked here: it refuses until the gems are set up, and a cross
+    # build binds its `mrbc` as it is declared.
+    def mrbc_defines(build)
+      own = build.defines.flatten.map {|d| d.to_s.split('=', 2).first}
+      MRBC_DEFINES.select do |d|
+        own.include?(d) || build.compilers.any? {|c| c.has_define?(d)}
+      end
     end
   end # CrossBuild
 end # MRuby
