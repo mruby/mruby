@@ -1044,10 +1044,11 @@ compute_fixed_len(re_compiler *c, uint32_t start, uint32_t end, int *chars_out)
    and a further run of i/m/x to switch off, then stops at the terminator
    (':' or ')'). `base` is the option set in effect on entry; the resulting
    set is returned. Ruby's inline letters are i (IGNORECASE), m (DOTALL),
-   x (EXTENDED). Extended mode is applied by a whole-pattern preprocessing
-   pass that runs before the parser, so it cannot be scoped inline:
-   enabling it is rejected here, and see the 'x' branch below for why
-   disabling it is not. */
+   x (EXTENDED). The x bit is carried like the other two but nothing in the
+   parser reads it: free-spacing is applied by preprocess_pattern() before
+   the parser runs, and that pass tracks the same (?x) and (?-x) scopes over
+   the pattern as written, so by the time the letter is read here the
+   whitespace it governed is already gone or already kept. */
 static uint32_t
 parse_inline_flags(re_compiler *c, uint32_t base)
 {
@@ -1058,22 +1059,7 @@ parse_inline_flags(re_compiler *c, uint32_t base)
     uint32_t bit;
     if (oc == 'i') bit = RE_FLAG_IGNORECASE;
     else if (oc == 'm') bit = RE_FLAG_DOTALL;
-    else if (oc == 'x') {
-      if (!negate) {
-        compile_error(c, "inline extended mode (?x) is not supported");
-        return base;  /* unreached: compile_error longjmps */
-      }
-      /* A '-x' is accepted and dropped. Regexp#to_s names every flag that
-         is off, so its result carries one whenever the pattern is not
-         extended, and rejecting it would make interpolation and
-         Regexp.new(re.to_s) raise for such a Regexp. Dropping it is exact
-         there, since the flag is already off. Inside a pattern that is
-         itself extended it is not: the preprocessing pass has removed the
-         whitespace by now and the scope cannot get it back. */
-      seen = TRUE;
-      next_char(c);
-      continue;
-    }
+    else if (oc == 'x') bit = RE_FLAG_EXTENDED;
     else if (oc == '-' && !negate) { negate = TRUE; next_char(c); continue; }
     else break;
     if (negate) off |= bit;
@@ -1799,15 +1785,25 @@ compile_alt(re_compiler *c)
 }
 
 /*
- * Does the pattern hold a (?# comment group opener? Cheap pre-check so an
- * ordinary pattern without one skips preprocess_pattern() and its malloc.
+ * Does the pattern hold a group preprocess_pattern() rewrites: a (?#
+ * comment group, or an inline option group that turns x on, as in (?x),
+ * (?x:...) or (?ix-m:...)? Cheap pre-check so an ordinary pattern without
+ * one skips the pass and its malloc. An escaped or bracketed "(?" is a
+ * false positive here, which costs the pass and nothing else: the pass
+ * itself steps over escapes and classes.
  */
 static mrb_bool
-has_comment_group(const char *src, mrb_int len)
+has_rewritten_group(const char *src, mrb_int len)
 {
   const char *p = src, *end = src + len;
   while (p < end && (p = (const char*)memchr(p, '(', (size_t)(end - p))) != NULL) {
-    if (end - p >= 3 && p[1] == '?' && p[2] == '#') return TRUE;
+    if (end - p >= 3 && p[1] == '?') {
+      if (p[2] == '#') return TRUE;
+      /* The letters before a '-' are the ones switched on. */
+      for (const char *q = p + 2; q < end && (*q == 'i' || *q == 'm' || *q == 'x'); q++) {
+        if (*q == 'x') return TRUE;
+      }
+    }
     p++;
   }
   return FALSE;
@@ -1888,10 +1884,58 @@ skip_uninterpreted(const char *src, const char *end, mrb_bool *in_class)
   return NULL;
 }
 
+/* Read the letters of an inline option group whose "(?" starts at `src`,
+   as far as the free-spacing pass needs them: whether the group is one,
+   whether it is the toggle form (?imx) rather than the scoped (?imx:...),
+   and what it makes of x. `*x_on` is left as it was when the letters do
+   not name x. Returns the terminator's position, or NULL when the bytes
+   are not an option group at all, which includes every malformed one: the
+   parser reads those bytes too and reports them, and this pass has only to
+   agree with it about the well-formed ones. */
+static const char*
+scan_option_group(const char *src, const char *end, mrb_bool *toggle, mrb_bool *x_on)
+{
+  if (end - src < 3 || src[1] != '?') return NULL;
+  const char *q = src + 2;
+  mrb_bool negate = FALSE, seen = FALSE;
+  for (; q < end; q++) {
+    if (*q == 'x') { *x_on = !negate; seen = TRUE; }
+    else if (*q == 'i' || *q == 'm') seen = TRUE;
+    else if (*q == '-' && !negate) negate = TRUE;
+    else break;
+  }
+  if (!seen || q >= end || (*q != ')' && *q != ':')) return NULL;
+  *toggle = (*q == ')');
+  return q;
+}
+
+/* The free-spacing pass's scope stack: one bit per open group, holding
+   what extended mode was outside it. */
+static void
+scope_set(uint8_t *scope, mrb_int depth, mrb_bool extended)
+{
+  uint8_t bit = (uint8_t)(1u << (depth & 7));
+  if (extended) scope[depth >> 3] |= bit;
+  else scope[depth >> 3] &= (uint8_t)~bit;
+}
+
+static mrb_bool
+scope_get(const uint8_t *scope, mrb_int depth)
+{
+  return (scope[depth >> 3] >> (depth & 7)) & 1;
+}
+
 /*
  * Rewrite the pattern before the parser sees it.
- * Removes (?#...) comment groups always, and in extended mode (/x) also
- * whitespace and #comments.
+ * Removes (?#...) comment groups always, and wherever extended mode is in
+ * effect also whitespace and #comments. Extended mode is in effect from the
+ * start when the Regexp carries /x, and it is switched inside the pattern
+ * by the inline option groups: (?x) and (?-x) for the rest of the enclosing
+ * group, (?x:...) and (?-x:...) for their own body. So this pass keeps a
+ * stack of one bit per open group, pushed at every '(' it interprets and
+ * popped at every ')', which is what lets a toggle end where its group does.
+ * That is the same scoping the parser gives i and m; x has to be resolved
+ * here because the bytes it governs are gone before the parser reads them.
  * Whitespace inside [...] character classes is preserved, and so is a (?#
  * written there, which is a literal member rather than a comment group.
  * Escaped characters (\ followed by anything) are preserved.
@@ -1899,13 +1943,17 @@ skip_uninterpreted(const char *src, const char *end, mrb_bool *in_class)
  *
  * The buffer comes from the GC arena, which holds it until the caller's frame
  * is gone: the parser reads it from beginning to end, and every raise in
- * between leaves this function nothing to be reached through.
+ * between leaves this function nothing to be reached through. The scope
+ * stack lives behind the rewritten pattern in the same allocation: a group
+ * opener is one byte of source, so len bits is room for every group.
  */
 static char*
 preprocess_pattern(mrb_state *mrb, const char *src, mrb_int len,
                    mrb_bool extended, mrb_int *out_len)
 {
-  char *buf = (char*)mrb_temp_alloc(mrb, len);
+  char *buf = (char*)mrb_temp_alloc(mrb, (size_t)len + ((size_t)len + 7) / 8);
+  uint8_t *scope = (uint8_t*)buf + len;
+  mrb_int depth = 0;
   mrb_int o = 0;
   mrb_bool in_class = FALSE;
   const char *end = src + len;
@@ -1918,6 +1966,12 @@ preprocess_pattern(mrb_state *mrb, const char *src, mrb_int len,
     const char *skip = skip_uninterpreted(src, end, &in_class);
     if (skip) {
       while (src < skip) buf[o++] = *src++;
+      continue;
+    }
+    if (ch == ')') {
+      /* An unmatched ')' has no scope to close; the parser reports it. */
+      if (depth > 0) extended = scope_get(scope, --depth);
+      buf[o++] = *src++;
       continue;
     }
     if (ch == '(' && end - src >= 3 && src[1] == '?' && src[2] == '#') {
@@ -1940,6 +1994,29 @@ preprocess_pattern(mrb_state *mrb, const char *src, mrb_int len,
       }
       buf[o++] = *src++;
       buf[o++] = *src++;
+      buf[o++] = *src++;
+      continue;
+    }
+    if (ch == '(') {
+      mrb_bool toggle = FALSE, x_on = extended;
+      const char *term = scan_option_group(src, end, &toggle, &x_on);
+      if (term && toggle) {
+        /* (?imx) changes the rest of the enclosing group and opens none of
+           its own, so the stack is left alone. The group is copied through
+           for the parser, which applies i and m from the same letters. */
+        while (src <= term) buf[o++] = *src++;
+        extended = x_on;
+        continue;
+      }
+      /* Every other '(' opens a group whose ')' restores what x is now:
+         (?imx:...) after setting it for its body, and a plain, named,
+         non-capturing or lookaround group after leaving it as it is. */
+      scope_set(scope, depth++, extended);
+      if (term) {
+        while (src <= term) buf[o++] = *src++;
+        extended = x_on;
+        continue;
+      }
       buf[o++] = *src++;
       continue;
     }
@@ -2167,7 +2244,7 @@ mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat,
   c.orig = pattern;
   c.orig_end = pattern + len;
 
-  if ((flags & RE_FLAG_EXTENDED) || has_comment_group(pattern, len)) {
+  if ((flags & RE_FLAG_EXTENDED) || has_rewritten_group(pattern, len)) {
     mrb_int slen;
     pattern = preprocess_pattern(mrb, pattern, len,
                                  (flags & RE_FLAG_EXTENDED) != 0, &slen);

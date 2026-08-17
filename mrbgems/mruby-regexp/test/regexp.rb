@@ -283,6 +283,13 @@ assert("Regexp#to_s") do
   # the form recompiles, and the flags it names do not leak either way
   assert_true Regexp.new(Regexp.new("abc", Regexp::IGNORECASE).to_s).match?("ABC")
   assert_false Regexp.new(Regexp.new("abc").to_s + "d", Regexp::IGNORECASE).match?("ABCd")
+
+  # an extended pattern round-trips too: the "(?x-mi:" it prints is read
+  # back as free-spacing over the source it wraps
+  assert_equal "(?x-mi:a b)", Regexp.new("a b", Regexp::EXTENDED).to_s
+  assert_true Regexp.new(Regexp.new("a b", Regexp::EXTENDED).to_s).match?("ab")
+  assert_false Regexp.new(Regexp.new("a b", Regexp::EXTENDED).to_s).match?("a b")
+  assert_true(/#{Regexp.new("a b", Regexp::EXTENDED)}c d/.match?("abc d"))
 end
 
 assert("Regexp#to_s - interpolation") do
