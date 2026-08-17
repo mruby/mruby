@@ -480,14 +480,20 @@ end
 assert('a byte-read string converted case') do
   # Bytes read as bytes spell no characters, so a case conversion has nothing
   # above ASCII to map and hands back the bytes it was given, still read as
-  # bytes. The same bytes read as UTF-8 spell "Ä", which does map.
+  # bytes. The same bytes read as UTF-8 spell "Ä", which maps where the
+  # build holds a table for it; where case follows ASCII there is nothing to
+  # map and the two readings answer alike.
   if UTF8STRING
     s = "\xC3\x84B".b
     assert_equal [195, 132, 98], s.downcase.bytes
     assert_equal [195, 132, 66], s.upcase.bytes
     assert_equal [195, 132, 98], s.capitalize.bytes
     assert_equal Encoding::BINARY, s.downcase.encoding
-    assert_equal [195, 164, 98], "\xC3\x84B".downcase.bytes if UNICODECASE
+    if UNICODECASE
+      assert_equal [195, 164, 98], "\xC3\x84B".downcase.bytes
+    else
+      assert_equal [195, 132, 98], "\xC3\x84B".downcase.bytes
+    end
   end
 end
 
