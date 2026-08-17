@@ -436,6 +436,39 @@ assert("a backward search answers a match far from the end of the subject") do
   assert_nil Regexp.last_match(0)
 end
 
+assert("a backward search answers a long multibyte subject") do
+  # The subject above is single-byte, so the two paths of the search were
+  # asked about characters only on a short one. A search reads the subject by
+  # byte wherever it starts from, so a place it starts from falls inside a
+  # character as often as not, and the path that reaches the front of a long
+  # subject is not the path that answers from the end of it.
+  skip unless __ENCODING__ == "UTF-8"
+  mb = "あい" + "うえ" * 2000    # 4,002 characters, 12,006 bytes
+
+  # near the end, where the search settles without crossing the subject
+  assert_equal 4001, mb.rindex(/え/)
+  assert_equal 12003, mb.byterindex(/え/)
+  assert_equal 4000, mb.rindex(/うえ/)
+  assert_equal 12000, mb.byterindex(/うえ/)
+
+  # at the front, which is the far end of the same subject
+  assert_equal 0, mb.rindex(/あい/)
+  assert_equal 0, mb.byterindex(/あい/)
+  assert_nil mb.rindex(/お/)
+  assert_equal ["", "あい", "うえ" * 2000], mb.rpartition(/あい/)
+
+  # overlapping matches stay in view at that end too
+  assert_equal 1, ("あああ" + "い" * 3000).rindex(/ああ/)
+
+  # and the position is still a character offset for one of the pair and a
+  # byte offset for the other
+  assert_equal 0, mb.rindex(/あい/, 0)
+  assert_nil mb.rindex(/うえ/, 1)
+  assert_equal 2, mb.rindex(/うえ/, 2)
+  assert_equal 6, mb.byterindex(/うえ/, 6)
+  assert_nil mb.byterindex(/うえ/, 3)
+end
+
 assert("String#index and String#rindex with regexp set the match globals") do
   assert_equal 1, "abc".index(/(b)/)
   assert_equal "b", $1
