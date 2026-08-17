@@ -215,6 +215,29 @@ assert('String#reverse! on a binary string reverses bytes') do
   end
 end
 
+assert('String#reverse! leaves what the bytes read as standing') do
+  # Reversing puts the same bytes back with every character whole, so a string
+  # that read as UTF-8 still does, and one that did not still does not. The
+  # reversal is where that is decided; asking afterwards is how it is seen.
+  if UTF8STRING
+    a = "あいうz"
+    a.reverse!
+    assert_equal "zういあ", a
+    assert_equal 4, a.length
+    assert_true a.valid_encoding?
+
+    b = "abc"
+    b.reverse!
+    assert_equal 3, b.length
+    assert_true b.valid_encoding?
+
+    c = "a\xE3\x81"
+    c.reverse!
+    assert_equal "\x81\xE3a".b, c.b
+    assert_false c.valid_encoding?
+  end
+end
+
 assert('String#encoding') do
   if UTF8STRING
     a = "あ"
