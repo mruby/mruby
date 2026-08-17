@@ -2192,6 +2192,33 @@ vm_op_setidx(mrb_state *mrb, uint32_t a, mrb_sym *midp)
       mrb_gc_arena_restore(mrb, ai);
     }
     return VM_NEXT;
+  case MRB_TT_STRING:
+    /* optimize only for String itself; see vm_op_getidx() */
+    if (mrb_obj_ptr(va)->c != mrb->idx_class[MRB_IDX_OP_STR_ASET]) goto setidx_fallback;
+    /* A replacement that is not a String is a TypeError rather than a store,
+       and the method is where it is raised: leaving it to the send keeps the
+       `String#[]=` frame the backtrace has always shown for it. */
+    if (!mrb_string_p(vc)) goto setidx_fallback;
+    switch (mrb_type(vb)) {
+    case MRB_TT_INTEGER:
+    case MRB_TT_STRING:
+    case MRB_TT_RANGE:
+      {
+        /* mrb_str_aset() allocates, and an inline opcode never runs the cfunc
+           epilogue that would shrink the arena, so save and restore it here.
+           As in the String branch of vm_op_getidx(), `ci` needs no refresh:
+           none of the three index types reaches a conversion that runs Ruby
+           code, so the call cannot move the stack. */
+        int ai = mrb_gc_arena_save(mrb);
+        mrb_str_aset(mrb, va, vb, mrb_undef_value(), vc);
+        regs[a] = vc;
+        mrb_gc_arena_restore(mrb, ai);
+      }
+      return VM_NEXT;
+    default:
+      break;
+    }
+    goto setidx_fallback;
   default:
   setidx_fallback:
     SET_NIL_VALUE(regs[a+3]);

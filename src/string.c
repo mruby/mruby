@@ -2009,7 +2009,17 @@ str_escape(mrb_state *mrb, mrb_value str, mrb_bool inspect)
   return result;
 }
 
-static void
+/*
+ * @param mrb The mruby state.
+ * @param str The receiver, modified in place.
+ * @param idx The index or range, read as `mrb_str_aref()` reads it.
+ * @param alen An optional length (if `idx` is an integer), or undef.
+ * @param replace The replacement, which has to be a String already: anything
+ *                else raises TypeError, before the range is looked at.
+ *
+ * Implements string element assignment (e.g. `str[idx] = replace`).
+ */
+void
 mrb_str_aset(mrb_state *mrb, mrb_value str, mrb_value idx, mrb_value alen, mrb_value replace)
 {
   mrb_int beg, len, charlen;

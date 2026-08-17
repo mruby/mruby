@@ -302,6 +302,7 @@ enum mrb_idx_op_slot {
   MRB_IDX_OP_STR_AREF,          /* String#[] */
   MRB_IDX_OP_ARY_ASET,          /* Array#[]= */
   MRB_IDX_OP_HASH_ASET,         /* Hash#[]=  */
+  MRB_IDX_OP_STR_ASET,          /* String#[]= */
   MRB_IDX_OP_SLOT_COUNT
 };
 
