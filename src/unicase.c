@@ -249,8 +249,19 @@ mrb_uni_case_unfold(uint32_t cp, uint32_t *out, int max)
     out[n++] = folded - 32;
   }
 
-  /* A non-ASCII source folding into ASCII (U+017F into 's') is in a table and
-     is found by these scans like any other. */
+  /* A non-ASCII source folding into ASCII (U+017F into 's') is the only thing
+     an ASCII source can find in a table, and the generator lists those beside
+     the tables, so the list is the whole answer for one. What that saves is
+     the two full scans below, which an ASCII source would otherwise make to
+     collect the entries the list already holds. Most patterns are ASCII and
+     nothing else, and this is what /i costs them. */
+  if (cp < 128) {
+#define X(src, to) if (folded == (to) && n < max) out[n++] = (src);
+    UNI_FOLD_TO_ASCII
+#undef X
+    return n;
+  }
+
   n = unfold_from(&case_tables[MRB_CASE_KIND_FOLD], cp, folded, out, max, n);
   n = unfold_from(&case_tables[MRB_CASE_KIND_LOWER], cp, folded, out, max, n);
   return n;
@@ -359,6 +370,17 @@ void
 mrb_uni_case_unfold_range(uint32_t lo, uint32_t hi,
                           void (*add)(void *, uint32_t, uint32_t), void *user)
 {
+  /* An ASCII fold has the listed sources and no others, for the reason
+     mrb_uni_case_unfold() gives, so the ASCII part of the span is answered
+     from the list and the walks below are handed what is left of it. A class
+     of nothing but ASCII, which is most classes, reaches neither walk. */
+  if (lo < 128) {
+#define X(src, to) if (lo <= (to) && (to) <= hi) add(user, (src), (src));
+    UNI_FOLD_TO_ASCII
+#undef X
+    if (hi < 128) return;
+    lo = 128;
+  }
   unfold_range_of(&case_tables[MRB_CASE_KIND_FOLD], FALSE, lo, hi, add, user);
   unfold_range_of(&case_tables[MRB_CASE_KIND_LOWER], TRUE, lo, hi, add, user);
 }

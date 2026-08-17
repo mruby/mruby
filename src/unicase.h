@@ -890,4 +890,12 @@ static const uint8_t uni_fold_multi[] = {
 #define UNI_FOLD_MIN 0x000B5
 #define UNI_FOLD_MAX 0x0FB17
 
+/* The sources above ASCII whose simple folding is an ASCII character, as
+   a list the caller expands with an X of its own. ASCII itself is in no
+   table, so unfolding an ASCII character is these and the ASCII rules,
+   and no table is read at all. */
+#define UNI_FOLD_TO_ASCII \
+  X(0x0017F, 0x00073)  /* to 's' */ \
+  X(0x0212A, 0x0006B)  /* to 'k' */
+
 #endif /* MRB_UNICASE_H */
