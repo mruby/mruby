@@ -2060,8 +2060,14 @@ epsilon_path(const re_inst *code, uint32_t pc, uint32_t goal,
 static uint8_t
 mark_empty_loops(mrb_state *mrb, re_inst *code, uint32_t code_len)
 {
-  int32_t *delta = (int32_t*)mrb_calloc(mrb, code_len + 1, sizeof(int32_t));
-  uint32_t *seen = (uint32_t*)mrb_calloc(mrb, code_len + 1, sizeof(uint32_t));
+  /* One block holds both arrays. Asking twice puts a raising call between the
+     first allocation and anything that could free it: mrb_calloc() raises
+     when it cannot answer, and this frame is the only owner `delta` has.
+     code_len is capped at RE_MAX_CODE_LEN, so the doubled element count stays
+     well inside the overflow check mrb_calloc() makes. */
+  uint32_t n = code_len + 1;
+  int32_t *delta = (int32_t*)mrb_calloc(mrb, 2 * (size_t)n, sizeof(int32_t));
+  uint32_t *seen = (uint32_t*)(delta + n);
   uint32_t mark = 0;
 
   for (uint32_t pc = 0; pc < code_len; pc++) {
@@ -2080,7 +2086,6 @@ mark_empty_loops(mrb_state *mrb, re_inst *code, uint32_t code_len)
     depth += delta[pc];
     if (depth > max) max = depth;
   }
-  mrb_free(mrb, seen);
   mrb_free(mrb, delta);
   return max > UINT8_MAX ? UINT8_MAX : (uint8_t)max;
 }
