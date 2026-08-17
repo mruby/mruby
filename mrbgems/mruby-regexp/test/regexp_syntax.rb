@@ -754,9 +754,128 @@ end
 assert("Regexp - numeric \\k backreference out of int range") do
   # The digit accumulator is an int with no bound, so 4294967297 used to wrap
   # to 1 and bind this backreference to group 1 instead of raising.
-  assert_raise(RegexpError) { Regexp.new("(a)\\k<4294967297>") }
-  assert_raise(RegexpError) { Regexp.new("(a)\\k<-4294967297>") }
-  assert_raise(RegexpError) { Regexp.new("(a)(b)\\k<4294967298>") }
+  msg = "too big number"
+  assert_raise_with_message(RegexpError, "#{msg}: /(a)\\k<4294967297>/") do
+    Regexp.new("(a)\\k<4294967297>")
+  end
+  assert_raise_with_message(RegexpError, "#{msg}: /(a)\\k<-4294967297>/") do
+    Regexp.new("(a)\\k<-4294967297>")
+  end
+  assert_raise_with_message(RegexpError, "#{msg}: /(a)(b)\\k<4294967298>/") do
+    Regexp.new("(a)(b)\\k<4294967298>")
+  end
+end
+
+assert("Regexp - \\k group reference errors say which failure it was") do
+  # A \k reference fails in four ways and CRuby gives each its own message.
+  # They used to collapse into one, so a pattern that misspelled a name and a
+  # pattern that named a group it never opened read the same.
+
+  # a name that is neither `-`? digits nor a name any group carries
+  assert_raise_with_message(RegexpError, "invalid group name <1x>: /(a)\\k<1x>/") do
+    Regexp.new("(a)\\k<1x>")
+  end
+  assert_raise_with_message(RegexpError, "invalid group name <-x>: /(a)\\k<-x>/") do
+    Regexp.new("(a)\\k<-x>")
+  end
+  # `-` with no digits behind it
+  assert_raise_with_message(RegexpError, "invalid group name <->: /(a)\\k<->/") do
+    Regexp.new("(a)\\k<->")
+  end
+  # group 0 is the whole match, which \k cannot name in either spelling.
+  # The message quotes the name in <> whichever delimiter wrote it.
+  assert_raise_with_message(RegexpError, "invalid group name <0>: /(a)\\k<0>/") do
+    Regexp.new("(a)\\k<0>")
+  end
+  assert_raise_with_message(RegexpError, "invalid group name <-0>: /(a)\\k<-0>/") do
+    Regexp.new("(a)\\k<-0>")
+  end
+  assert_raise_with_message(RegexpError, "invalid group name <0>: /(a)\\k'0'/") do
+    Regexp.new("(a)\\k'0'")
+  end
+
+  # the name is read whole before it is converted, so digits followed by
+  # anything else is a malformed name and never an oversized number
+  assert_raise_with_message(RegexpError,
+                            "invalid group name <99999999999999999999x>: /(a)\\k<99999999999999999999x>/") do
+    Regexp.new("(a)\\k<99999999999999999999x>")
+  end
+
+  # a number past the bound, either sign
+  assert_raise_with_message(RegexpError, "too big number: /(a)\\k<2147483648>/") do
+    Regexp.new("(a)\\k<2147483648>")
+  end
+  assert_raise_with_message(RegexpError, "too big number: /(a)\\k<-2147483648>/") do
+    Regexp.new("(a)\\k<-2147483648>")
+  end
+
+  # a number within the bound that names no group: a different message from
+  # the one above, and the bound is where they part
+  msg = "invalid backref number/name"
+  assert_raise_with_message(RegexpError, "#{msg}: /(a)\\k<2147483647>/") do
+    Regexp.new("(a)\\k<2147483647>")
+  end
+  assert_raise_with_message(RegexpError, "#{msg}: /(a)\\k<5>/") do
+    Regexp.new("(a)\\k<5>")
+  end
+  assert_raise_with_message(RegexpError, "#{msg}: /(a)\\k'5'/") do
+    Regexp.new("(a)\\k'5'")
+  end
+  assert_raise_with_message(RegexpError, "#{msg}: /(a)\\k<-5>/") do
+    Regexp.new("(a)\\k<-5>")
+  end
+  assert_raise_with_message(RegexpError, "#{msg}: /(a)(b)\\k<-3>/") do
+    Regexp.new("(a)(b)\\k<-3>")
+  end
+
+  # a name no group carries
+  assert_raise_with_message(RegexpError,
+                            "undefined name <_nope> reference: /(a)\\k<_nope>/") do
+    Regexp.new("(a)\\k<_nope>")
+  end
+  assert_raise_with_message(RegexpError,
+                            "undefined name <_nope> reference: /(a)\\k'_nope'/") do
+    Regexp.new("(a)\\k'_nope'")
+  end
+  # only `-` leads a number, so `+1` is a name and fails as one
+  assert_raise_with_message(RegexpError,
+                            "undefined name <+1> reference: /(a)\\k<+1>/") do
+    Regexp.new("(a)\\k<+1>")
+  end
+
+  # a named pattern refuses a numbered reference, but only once the name is
+  # read as a number at all: a malformed one and an oversized one are still
+  # reported for what they are
+  assert_raise_with_message(RegexpError, "invalid group name <1x>: /(a)(?<b>b)\\k<1x>/") do
+    Regexp.new("(a)(?<b>b)\\k<1x>")
+  end
+  assert_raise_with_message(RegexpError, "invalid group name <0>: /(a)(?<b>b)\\k<0>/") do
+    Regexp.new("(a)(?<b>b)\\k<0>")
+  end
+  assert_raise_with_message(RegexpError,
+                            "too big number: /(a)(?<b>b)\\k<99999999999999999999>/") do
+    Regexp.new("(a)(?<b>b)\\k<99999999999999999999>")
+  end
+  assert_raise_with_message(RegexpError,
+                            "numbered backref/call is not allowed. (use name): /(a)(?<b>b)\\k<5>/") do
+    Regexp.new("(a)(?<b>b)\\k<5>")
+  end
+
+  # leading zeros are digits like any other, not a malformed name
+  assert_equal "aa", "aa".match(Regexp.new("(a)\\k<01>"))[0]
+  assert_equal "aa", "aa".match(Regexp.new("(a)\\k<-01>"))[0]
+
+  # The name is a length-counted slice of the pattern, so a name holding a NUL
+  # is quoted whole. CRuby builds these messages through a C string and stops
+  # at the NUL, reporting `undefined name <a` for the first of the two.
+  assert_raise_with_message(RegexpError,
+                            "undefined name <a\0b> reference: /(a)\\k<a\0b>/") do
+    Regexp.new("(a)\\k<a\0b>")
+  end
+  assert_raise_with_message(RegexpError,
+                            "invalid group name <1\0>: /(a)\\k<1\0>/") do
+    Regexp.new("(a)\\k<1\0>")
+  end
 end
 
 assert("Regexp - named captures survive /x preprocessing") do
