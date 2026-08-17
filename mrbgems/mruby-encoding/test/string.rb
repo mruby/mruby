@@ -217,12 +217,18 @@ end
 
 assert('String#reverse! leaves what the bytes read as standing') do
   # Reversing puts the same bytes back with every character whole, so a string
-  # that read as UTF-8 still does, and one that did not still does not. The
-  # reversal is where that is decided; asking afterwards is how it is seen.
+  # that read as UTF-8 still does. A string that did not is the one case the
+  # reversal can settle either way, since bytes that spell nothing where they
+  # stood can spell a character once they are turned around. The reversal is
+  # where all of that is decided; asking afterwards is how it is seen.
   if UTF8STRING
     a = "あいうz"
     a.reverse!
     assert_equal "zういあ", a
+    assert_equal 4, a.length
+    assert_true a.valid_encoding?
+    a.reverse!
+    assert_equal "あいうz", a
     assert_equal 4, a.length
     assert_true a.valid_encoding?
 
@@ -235,6 +241,13 @@ assert('String#reverse! leaves what the bytes read as standing') do
     c.reverse!
     assert_equal "\x81\xE3a".b, c.b
     assert_false c.valid_encoding?
+
+    d = "\x80\xC2"   # a trailing byte and then a lead byte, spelling nothing
+    assert_false d.valid_encoding?   # asked here, so the answer is on the string
+    d.reverse!                       # and the same bytes now spell U+0080
+    assert_equal "\xC2\x80".b, d.b
+    assert_equal 1, d.length
+    assert_true d.valid_encoding?
   end
 end
 

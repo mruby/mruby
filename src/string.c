@@ -2954,8 +2954,11 @@ mrb_str_reverse_bang(mrb_state *mrb, mrb_value str)
   char *p, *e;
 
   /* Reversing writes the string's own bytes back in another order, and both
-     paths below leave every character whole, so what the bytes read as is
-     still what they read as: both write through str_modify_keep_cr(). */
+     paths below leave every character whole, so a string that read as UTF-8
+     still does: both write through str_modify_keep_cr(). A string already
+     read as broken is the one this cannot answer for, since bytes that spell
+     nothing where they stand can spell a character turned around, and that is
+     the string the helper asks again on its own. */
 
 #ifdef MRB_UTF8_STRING
   /* mrb_str_char_len() walks the string and records what it finds. The
