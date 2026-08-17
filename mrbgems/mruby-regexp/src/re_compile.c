@@ -1278,15 +1278,23 @@ compile_atom(re_compiler *c)
           c->flags = saved_flags;
           break;
         }
-        else if (c->p[1] == '<' && c->p + 2 < c->src_end && c->p[2] != '=' && c->p[2] != '!') {
-          next_char(c); next_char(c);  /* skip ?< */
+        else if (c->p[1] == '\'' ||
+                 (c->p[1] == '<' && c->p + 2 < c->src_end &&
+                  c->p[2] != '=' && c->p[2] != '!')) {
+          /* A named capture, in either spelling: (?<name>...) or (?'name'...).
+             The quoted one needs none of the ruling out the angled one does
+             above, since no lookbehind is spelled with a quote. The name runs
+             to its own terminator, so a '>' inside quotes and a quote inside
+             angles are both members of the name. */
+          int close = (c->p[1] == '<') ? '>' : '\'';
+          next_char(c); next_char(c);  /* skip ?< or ?' */
           cap_name = c->p;
-          while (peek(c) != '>' && peek(c) >= 0) next_char(c);
-          if (peek(c) != '>') compile_error(c, "unterminated named capture");
+          while (peek(c) != close && peek(c) >= 0) next_char(c);
+          if (peek(c) != close) compile_error(c, "unterminated named capture");
           if (c->p == cap_name) compile_error(c, "group name is empty");
           if (!RE_NAME_LEN_FITS(c->p - cap_name)) compile_error(c, "group name too long");
           cap_name_len = (uint32_t)(c->p - cap_name);
-          next_char(c);  /* skip > */
+          next_char(c);  /* skip the closing > or ' */
         }
         else if (c->p[1] == 'i' || c->p[1] == 'm' || c->p[1] == 'x' || c->p[1] == '-') {
           /* Inline options: the toggle form (?imx) / (?-imx) changes the
@@ -1320,12 +1328,12 @@ compile_atom(re_compiler *c)
         }
         else {
           /* (?X) with an unsupported X: not one of the recognized (?: (?= (?!
-             (?<= (?<! (?<name> (?imx forms. Comment groups (?#...) never get
-             here either, having been removed by preprocess_pattern(). The
-             absent operator (?~...) and conditionals (?(...)) are not
-             implemented. Raise here rather than falling through to the
-             capturing-group path, which would leave the stray `?` for
-             compile_seq to spin on forever (A1). */
+             (?<= (?<! (?<name> (?'name' (?imx forms. Comment groups (?#...)
+             never get here either, having been removed by
+             preprocess_pattern(). The absent operator (?~...) and
+             conditionals (?(...)) are not implemented. Raise here rather
+             than falling through to the capturing-group path, which would
+             leave the stray `?` for compile_seq to spin on forever (A1). */
           compile_error(c, "undefined (?...) sequence");
         }
       }
@@ -1922,14 +1930,14 @@ preprocess_pattern(mrb_state *mrb, const char *src, mrb_int len,
  * parser starts is what lets compile_atom() demote a plain (...) that comes
  * before the named group that causes the demotion.
  *
- * (?<name>...) is the only spelling of a definition this gem accepts; the
- * (?'name'...) form raises "undefined (?...) sequence", so the scan looks for
- * "(?<" alone. It excludes (?<= and (?<!, which are lookbehind rather than a
- * definition, and it steps over escapes and character classes with
- * skip_uninterpreted(), so that /\(?/ and /[(?<]/ are not false positives.
+ * A definition has two spellings, so the scan looks for "(?<" and "(?'" both.
+ * It excludes (?<= and (?<!, which are lookbehind rather than a definition,
+ * and it steps over escapes and character classes with skip_uninterpreted(),
+ * so that /\(?/ and /[(?<]/ are not false positives.
  *
- * A truncated "(?<" at the end of the pattern is counted as a named group,
- * which is harmless: the parser reaches the same bytes and raises there.
+ * A truncated "(?<" or "(?'" at the end of the pattern is counted as a named
+ * group, which is harmless: the parser reaches the same bytes and raises
+ * there.
  */
 static mrb_bool
 has_named_group(const char *src, mrb_int len)
@@ -1944,13 +1952,16 @@ has_named_group(const char *src, mrb_int len)
       src = skip;
       continue;
     }
-    if (ch == '(' && end - src >= 3 && src[1] == '?' && src[2] == '<') {
-      /* src + 3 is at most end here, since the test above leaves three bytes
-         to read, so the one-past-the-end pointer it can form is a position C
-         allows. */
-      if (src + 3 >= end || (src[3] != '=' && src[3] != '!')) return TRUE;
-      src += 3;
-      continue;
+    if (ch == '(' && end - src >= 3 && src[1] == '?') {
+      if (src[2] == '\'') return TRUE;
+      if (src[2] == '<') {
+        /* src + 3 is at most end here, since the test above leaves three
+           bytes to read, so the one-past-the-end pointer it can form is a
+           position C allows. */
+        if (src + 3 >= end || (src[3] != '=' && src[3] != '!')) return TRUE;
+        src += 3;
+        continue;
+      }
     }
     src++;
   }

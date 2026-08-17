@@ -17,7 +17,7 @@ simulation) with backtracking fallback.
 - `(...)` capture group
 - `(?:...)` non-capturing group
 - `(?#...)` comment group
-- `(?<name>...)` named capture group
+- `(?<name>...)`, `(?'name'...)` named capture group
 - `|` alternation
 - `\1`-`\9` backreferences
 - `\k<name>`, `\k'name'` named backreferences
