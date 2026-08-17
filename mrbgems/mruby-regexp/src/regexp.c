@@ -24,6 +24,18 @@ static void regexp_free(mrb_state *mrb, void *ptr) {
 
 static const struct mrb_data_type regexp_type = { "Regexp", regexp_free };
 
+/* True while the object holds nothing that can be matched against. A Regexp
+   owns its pattern from before mrb_re_compile() fills it (see regexp_init()),
+   so a compile that raised leaves one behind, and it is reachable: the
+   exception can be rescued while ObjectSpace still hands the object out.
+   mrb_re_compile() writes code_len last, and no pattern compiles to nothing,
+   so a zero there says the compile did not finish. */
+static mrb_bool
+re_uninitialized_p(const mrb_regexp_pattern *pat)
+{
+  return !pat || pat->code_len == 0;
+}
+
 /* MatchData */
 typedef struct {
   mrb_value source;        /* source string */
@@ -122,10 +134,17 @@ regexp_init(mrb_state *mrb, mrb_value self)
   mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@source"), pattern);
   mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@flags"), mrb_int_value(mrb, (mrb_int)flags));
 
-  pat = mrb_re_compile(mrb, RSTRING_PTR(pattern), RSTRING_LEN(pattern), flags);
-
+  /* Hand the pattern over before the compile starts. mrb_re_compile() raises
+     to report a bad pattern and mrb_realloc() raises to report an allocation
+     it cannot make, and either longjmps past the compiler's frame with
+     nothing left to unwind it; what the object holds, regexp_free() reaches
+     however the compile ends. Until the compile finishes, code_len is zero
+     and re_uninitialized_p() refuses what it holds. */
+  pat = (mrb_regexp_pattern*)mrb_calloc(mrb, 1, sizeof(mrb_regexp_pattern));
   DATA_TYPE(self) = &regexp_type;
   DATA_PTR(self) = pat;
+
+  mrb_re_compile(mrb, pat, RSTRING_PTR(pattern), RSTRING_LEN(pattern), flags);
 
   /* store named captures as hash */
   if (pat->num_named > 0) {
@@ -413,7 +432,7 @@ static mrb_value
 exec_match(mrb_state *mrb, mrb_value self, mrb_value str, mrb_int pos, mrb_bool publish)
 {
   mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, self, &regexp_type, mrb_regexp_pattern);
-  if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
+  if (re_uninitialized_p(pat)) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
 
   int cap_size = pat->num_captures * 2;
   int *captures = (int*)mrb_malloc(mrb, sizeof(int) * cap_size);
@@ -574,7 +593,7 @@ exec_match_p(mrb_state *mrb, mrb_value re, mrb_value str, mrb_int pos)
   if (pos < 0) return mrb_false_value();
 
   mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
-  if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
+  if (re_uninitialized_p(pat)) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
   re_check_encoding(mrb, str);
 
   int ncap = mrb_re_exec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), pos, NULL, 0,
@@ -647,7 +666,7 @@ regexp_case_match(mrb_state *mrb, mrb_value self)
   str = match_operand(mrb, str);
 
   pat = DATA_GET_PTR(mrb, self, &regexp_type, mrb_regexp_pattern);
-  if (!pat) return mrb_false_value();
+  if (re_uninitialized_p(pat)) return mrb_false_value();
   re_check_encoding(mrb, str);
 
   md = exec_match(mrb, self, str, 0, TRUE);
@@ -1242,7 +1261,7 @@ regexp_s_gsub_str(mrb_state *mrb, mrb_value klass)
   check_regexp_arg(mrb, re);
 
   mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
-  if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
+  if (re_uninitialized_p(pat)) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
   if (!checked) re_check_encoding(mrb, str);
 
   const char *s = RSTRING_PTR(str);
@@ -1337,7 +1356,7 @@ regexp_s_sub_str(mrb_state *mrb, mrb_value klass)
   check_regexp_arg(mrb, re);
 
   mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
-  if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
+  if (re_uninitialized_p(pat)) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
   if (!checked) re_check_encoding(mrb, str);
 
   const char *s = RSTRING_PTR(str);
@@ -1393,7 +1412,7 @@ regexp_s_scan(mrb_state *mrb, mrb_value klass)
   check_regexp_arg(mrb, re);
 
   mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
-  if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
+  if (re_uninitialized_p(pat)) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
   re_check_encoding(mrb, str);
 
   const char *s = RSTRING_PTR(str);
