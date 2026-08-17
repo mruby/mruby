@@ -6,12 +6,18 @@ all_prerequisites = ->(task_name, prereqs) do
   end
 end
 
+# Every target first, before the walk below resolves a rule: the products of
+# one target reach the objects of another (a build reaches the mrbc build it
+# generated), and a rule resolved for those objects must see the same include
+# paths as the compile that follows it.
 MRuby.each_target do |build|
-  presym = build.presym
-
   include_dir = "#{build.build_dir}/include"
   build.compilers.each{|c| c.include_paths << include_dir}
   build.gems.each{|gem| gem.compilers.each{|c| c.include_paths << include_dir}}
+end
+
+MRuby.each_target do |build|
+  presym = build.presym
 
   prereqs = {}
   ppps = []

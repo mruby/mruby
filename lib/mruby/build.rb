@@ -91,6 +91,10 @@ module MRuby
 
     Exts = Struct.new(:object, :executable, :library, :presym_preprocessed)
 
+    # `rake -m` resolves the dependencies of several outputs at once, and each
+    # of them compares its own record, so the report is guarded to print once.
+    FLAGS_CHANGE_LOCK = Mutex.new
+
     def initialize(name='host', build_dir=nil, internal: false, &block)
       @name = name.to_s
 
@@ -111,6 +115,7 @@ module MRuby
         @install_excludes = []
         @defines = []
         @defines_final = false
+        @flags_change_reported = false
         @cc = Command::Compiler.new(self, %w(.c), label: "CC")
         @cxx = Command::Compiler.new(self, %w(.cc .cxx .cpp), label: "CXX")
         @objc = Command::Compiler.new(self, %w(.m), label: "OBJC")
@@ -513,6 +518,34 @@ EOS
       env = {"BUILD_DIR" => @build_dir, "MRBCFILE" => mrbc}
       bintest = File.join(MRUBY_ROOT, "test/bintest.rb")
       sh env, "ruby #{bintest}#{verbose_flag} #{targets.join ' '}"
+    end
+
+    # Report that this build directory holds output produced by another
+    # configuration, once for the whole directory: the command line is
+    # recorded per output, so every output that follows carries the same
+    # change and would report it again.
+    #
+    # `recorded` is nil when there is no record at all, which is what a
+    # directory built before this check looks like.
+    def report_flags_change(recorded, current)
+      FLAGS_CHANGE_LOCK.synchronize do
+        return if @flags_change_reported
+        @flags_change_reported = true
+
+        unless recorded
+          warn "#{build_dir}: output here has no record of what built it, rebuilding it"
+          return
+        end
+
+        warn "#{build_dir}: output here was built by another configuration, rebuilding it"
+        recorded.lines.zip(current.lines).each do |before, after|
+          next if before == after
+          field = (after || before)[/\A[^:]+/]
+          before, after = [before, after].map {|line| line.to_s.split(": ", 2)[1].to_s.split}
+          warn "  #{field} added: #{(after - before).join(" ")}" unless (after - before).empty?
+          warn "  #{field} removed: #{(before - after).join(" ")}" unless (before - after).empty?
+        end
+      end
     end
 
     def print_build_summary

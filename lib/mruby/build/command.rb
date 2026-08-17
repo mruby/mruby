@@ -103,17 +103,19 @@ module MRuby
 
     def run(outfile, infile, _defines=[], _include_paths=[], _flags=[])
       mkdir_p File.dirname(outfile)
-      flags = all_flags(_defines, _include_paths, _flags)
+      flags = compile_flags(outfile, _defines, _include_paths, _flags)
       if object_ext?(outfile)
         label = @label
         opts = compile_options
       else
         label = "CPP"
         opts = preprocess_options
-        flags << " -DMRB_PRESYM_SCANNING"
       end
       _pp label, infile.relative_path, outfile.relative_path
       _run opts, flags: flags, infile: filename(infile), outfile: filename(outfile)
+      # Recorded after the compile, so that a compile that failed leaves
+      # nothing claiming a configuration its output was not built with.
+      File.write(flags_file(outfile), flags_record(opts, flags))
     end
 
     def define_rules(build_dir, source_dir='', out_ext=build.exts.object)
@@ -130,26 +132,16 @@ module MRuby
         generated_file_matcher = Regexp.new("^#{Regexp.escape build_dir}/(?!mrbc/|mrbgems/.+/)(.*)#{Regexp.escape out_ext}$")
       end
       source_exts.each do |ext|
-        rule generated_file_matcher => [
-          proc { |file|
-            file.sub(generated_file_matcher, "#{source_dir}/\\1#{ext}")
-          },
-          proc { |file|
-            get_dependencies(file) + rakedep
-          }
-        ] do |t|
-          run t.name, t.prerequisites.first
-        end
-
-        rule generated_file_matcher => [
-          proc { |file|
-            file.sub(generated_file_matcher, "#{build_dir}/\\1#{ext}")
-          },
-          proc { |file|
-            get_dependencies(file) + rakedep
-          }
-        ] do |t|
-          run t.name, t.prerequisites.first
+        # The source is looked for beside the sources first and among the
+        # generated files second.
+        [source_dir, build_dir].each do |dir|
+          source_of = proc { |file| file.sub(generated_file_matcher, "#{dir}/\\1#{ext}") }
+          rule generated_file_matcher => [
+            source_of,
+            proc { |file| get_dependencies(file, source_of.call(file)) + rakedep }
+          ] do |t|
+            run t.name, t.prerequisites.first
+          end
         end
       end
     end
@@ -183,11 +175,13 @@ module MRuby
     #
     #   /src/value_array.h:
     #
-    def get_dependencies(file)
+    def get_dependencies(file, source)
+      discard_foreign_output(file) if rule_applies?(source)
+      deps = [MRUBY_CONFIG]
       dep_file = file.ext(".d")
-      return [MRUBY_CONFIG] unless object_ext?(file) && File.exist?(dep_file)
+      return deps unless object_ext?(file) && File.exist?(dep_file)
 
-      deps = File.read(dep_file).gsub("\\\n ", "").split("\n").map do |dep_line|
+      header_deps = File.read(dep_file).gsub("\\\n ", "").split("\n").map do |dep_line|
         # dep_line:
         # - "/build/host/src/array.o:   /src/array.c   /include/mruby/common.h ..."
         # - ""
@@ -197,7 +191,73 @@ module MRuby
         #    []
         #    []
       end.flatten.uniq
-      deps << MRUBY_CONFIG
+      deps.concat(header_deps)
+    end
+
+    #
+    # === Example of +.flags+ file
+    #
+    #   command: gcc
+    #   options: -MMD -c %{flags} -o "%{outfile}" "%{infile}"
+    #   flags: -std=gnu99 -g -O3 -Wall -DMRB_NO_FLOAT -I"/mruby/include"
+    #
+    def flags_record(options, flags)
+      "command: #{build.filename(command)}\noptions: #{options}\nflags: #{flags}\n"
+    end
+
+    # The record sits beside the output under the output's own name, so that
+    # the object and the presym preprocess of one source keep a record each.
+    def flags_file(outfile)
+      "#{outfile}.flags"
+    end
+
+    # Whether the rule this source belongs to is the one that builds the
+    # output. Rake asks the same of a rule before it applies it, and it asks
+    # every rule that matches the name: the compilers of a build define a rule
+    # each for the same output, differing in the extension of the source they
+    # look for. Only the one that finds its source speaks for the output; the
+    # others would compare it against flags no compile of it ever used.
+    #
+    # Rake accepts one source more than this, one another rule can produce:
+    # `Rake::TaskManager#attempt_rule` falls back to
+    # `enhance_with_matching_rule` for a source that is neither a file nor a
+    # task. The rules here are the only ones in the tree and they match object
+    # names, so nothing answers that fallback; a generated source is a `file`
+    # task, which `Rake::Task.task_defined?` already finds.
+    def rule_applies?(source)
+      File.exist?(source) || Rake::Task.task_defined?(source)
+    end
+
+    # Remove an output that the command line beside it does not answer for,
+    # so that the rule that would have found it up to date builds it again.
+    #
+    # Nothing else in the build tells the two apart. A +.d+ file lists header
+    # dependencies only, and the config file is a dependency by path, so its
+    # mtime does not move when another config takes over the same build
+    # directory. Left uncompared, the output stays up to date against every
+    # dependency it has, and the build silently keeps the flags of whichever
+    # config wrote it first, its defines above all.
+    #
+    # An output with no record at all counts as foreign too, since what
+    # produced it is unknown.
+    def discard_foreign_output(file)
+      return unless File.exist?(file)
+      path = flags_file(file)
+      options = object_ext?(file) ? compile_options : preprocess_options
+      record = flags_record(options, compile_flags(file))
+      recorded = File.read(path) if File.exist?(path)
+      return if recorded == record
+      build.report_flags_change(recorded, record)
+      rm_f file
+    end
+
+    # The flags a compile of `outfile` runs with. The preprocess that feeds
+    # the presym scan is this compiler with one define more, so the define
+    # belongs to the flags and to what is recorded of them.
+    def compile_flags(outfile, _defines=[], _include_paths=[], _flags=[])
+      flags = all_flags(_defines, _include_paths, _flags)
+      flags += " -DMRB_PRESYM_SCANNING" unless object_ext?(outfile)
+      flags
     end
 
     def object_ext?(path)
