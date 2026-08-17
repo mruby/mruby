@@ -106,8 +106,33 @@ patch(re_compiler *c, uint32_t pos, uint16_t offset)
   c->code[pos].offset = offset;
 }
 
+/* True for the opcodes whose `offset` field holds an absolute code index, so
+   that relocating code has to carry it along. The jumps are the obvious ones;
+   the four lookarounds hold the end of their sub-pattern there
+   (re_internal.h), which is a code index just as much as a jump target and is
+   just as wrong when the code it names moves. Every relocator asks this one
+   question, because the two that used to carry their own list disagreed with
+   each other and with the opcode set: both relocated the jumps alone, and a
+   lookaround inside a quantified, repeated or alternated group kept an offset
+   pointing at whatever the shift left in its place.
+   RE_LB_WIDTH is not here: it carries a character count in `a`, and RE_SAVE
+   and RE_BACKREF put a slot number and a case-fold flag in `offset` rather
+   than an index. */
+static mrb_bool
+op_holds_code_index(uint8_t op)
+{
+  switch (op) {
+  case RE_JMP: case RE_SPLIT: case RE_SPLITNG:
+  case RE_LOOKAHEAD: case RE_NEG_LOOKAHEAD:
+  case RE_LOOKBEHIND: case RE_NEG_LOOKBEHIND:
+    return TRUE;
+  default:
+    return FALSE;
+  }
+}
+
 /* Insert an instruction at position `pos` by shifting code.
-   Adjusts jump targets so they still point at the same instructions. */
+   Adjusts code indices so they still point at the same instructions. */
 static void
 insert_inst(re_compiler *c, uint32_t pos, uint8_t op, uint8_t a, uint16_t offset)
 {
@@ -118,23 +143,22 @@ insert_inst(re_compiler *c, uint32_t pos, uint8_t op, uint8_t a, uint16_t offset
   c->code[pos].a = a;
   c->code[pos].offset = offset;
 
-  /* Fix jump targets across the insertion. A target past `pos` shifts down by
-     one. A target equal to `pos` is ambiguous:
+  /* Fix code indices across the insertion. An index past `pos` shifts down by
+     one. An index equal to `pos` is ambiguous:
      - code that moved (i > pos) is a backward jump -- e.g. the SPLIT that
        loops `\d+` back to its class -- and meant the instruction now at
        pos+1, so it must follow.
      - code before the insertion (i < pos) is a forward "skip to here"
-       reference that should stay on the newly inserted instruction. */
+       reference that should stay on the newly inserted instruction. A
+       lookaround is always that second case, since the end of its sub-pattern
+       lies ahead of it: leaving the end at `pos` puts the inserted
+       instruction after the sub-pattern rather than inside it, which is what
+       the quantifier wrapping the whole group wants. */
   for (uint32_t i = 0; i < c->code_len; i++) {
     if (i == pos) continue;
-    switch (c->code[i].op) {
-    case RE_JMP: case RE_SPLIT: case RE_SPLITNG:
-      if (c->code[i].offset > pos || (c->code[i].offset == pos && i > pos)) {
-        c->code[i].offset++;
-      }
-      break;
-    default:
-      break;
+    if (op_holds_code_index(c->code[i].op) &&
+        (c->code[i].offset > pos || (c->code[i].offset == pos && i > pos))) {
+      c->code[i].offset++;
     }
   }
 }
@@ -1526,11 +1550,14 @@ compile_atom(re_compiler *c)
 }
 
 /* Append a copy of the atom bytecode in [start, start+size) at the current
-   position. Internal jump/split targets are relocated to the copy, so a
-   repeated group like (a{2,3}){2} keeps each iteration self-contained instead
-   of jumping back into the first copy (which corrupted its captures). Capture
-   slots (RE_SAVE) are shared across copies on purpose: a repeated group keeps
-   only its last iteration, like CRuby. */
+   position. Internal code indices are relocated to the copy, so a repeated
+   group like (a{2,3}){2} keeps each iteration self-contained instead of
+   jumping back into the first copy (which corrupted its captures). A
+   lookaround's sub-pattern end is one of those indices: left pointing into
+   the original, the copy runs its assertion against the first iteration's
+   code and ends the outer match early. Capture slots (RE_SAVE) are shared
+   across copies on purpose: a repeated group keeps only its last iteration,
+   like CRuby. */
 static void
 emit_atom_copy(re_compiler *c, uint32_t start, uint32_t size)
 {
@@ -1538,14 +1565,8 @@ emit_atom_copy(re_compiler *c, uint32_t start, uint32_t size)
   uint32_t atom_end = start + size;
   for (uint32_t j = 0; j < size; j++) {
     re_inst in = c->code[start + j];
-    switch (in.op) {
-    case RE_JMP: case RE_SPLIT: case RE_SPLITNG:
-      if (in.offset >= start && in.offset <= atom_end) {
-        in.offset = (uint16_t)((int32_t)in.offset + delta);
-      }
-      break;
-    default:
-      break;
+    if (op_holds_code_index(in.op) && in.offset >= start && in.offset <= atom_end) {
+      in.offset = (uint16_t)((int32_t)in.offset + delta);
     }
     emit(c, in.op, in.a, in.offset);
   }
