@@ -233,6 +233,21 @@ append_from_stdin(mrc_ccontext *c, uint8_t **source, size_t source_length)
   }
 }
 
+/* A directory opens for reading on POSIX systems and then fails every read
+   with EISDIR, so a stream that opened says nothing about whether it can be
+   read.  One byte tells the two apart without asking the platform what kind
+   of file this is: an empty file reports end-of-file and no error, while a
+   directory raises the error indicator.  The byte is pushed back, so the
+   stream is left where it was found. */
+static int
+stream_is_unreadable(FILE *file)
+{
+  int c = getc(file);
+  if (c == EOF) return ferror(file) != 0;
+  ungetc(c, file);
+  return 0;
+}
+
 static intptr_t
 read_input_files(mrc_ccontext *c, const char **filenames, uint8_t **source, mrc_filename_table *filename_table)
 {
@@ -284,6 +299,17 @@ read_input_files(mrc_ccontext *c, const char **filenames, uint8_t **source, mrc_
            determined up front, so the read-it-all-at-once path below does not
            apply. */
         fprintf(stderr, "compile.c: cannot get size of program file. (%s)\n", filename);
+        fclose(file);
+        return -1;
+      }
+      if (stream_is_unreadable(file)) {
+        /* The size above is not trustworthy for a stream that cannot be read:
+           a directory answers LONG_MAX to ftell() on ext4 and 0 on tmpfs, so
+           it either overflows the length arithmetic below before the
+           allocation is attempted, or compiles as an empty program.  The
+           wording differs from the fread() failure below so that the two
+           cannot be mistaken for each other. */
+        fprintf(stderr, "compile.c: cannot read from program file. (%s)\n", filename);
         fclose(file);
         return -1;
       }
