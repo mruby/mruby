@@ -30,6 +30,22 @@ assert('embedded document with invalid terminator') do
   assert_equal 1, $?.exitstatus
 end
 
+assert('a float literal under MRB_NO_FLOAT is read as 0 with a warning') do
+  # Only a build without Float takes this path.  Whether this is one is asked
+  # of its mruby, when there is one; mrbc itself cannot be asked.
+  skip 'no mruby to probe the build with' unless File.exist?(cmd_bin('mruby'))
+  system("#{cmd('mruby')} -e Float", out: File::NULL, err: File::NULL)
+  skip 'this build has Float' if $?.success?
+
+  a, out = Tempfile.new('a.rb'), Tempfile.new('out.mrb')
+  a.write("x = 1\np 1.5\n")
+  a.flush
+  result = `#{cmd('mrbc')} -v -o #{out.path} #{a.path} 2>&1`
+  assert_equal 0, $?.exitstatus
+  assert_include result, "#{a.path}:2:3: generator warning, floating-point numbers are not supported"
+  assert_equal "0\n", `#{cmd('mruby')} -b #{out.path}`
+end
+
 assert('mrbc -v disassembles like mruby -v') do
   # mruby-compiler carries its own copy of the disassembler, because it has to
   # build for mruby/c as well and cannot share src/codedump.c. The copy has
