@@ -390,6 +390,15 @@ EOS
       @mrbcfile_external = true
     end
 
+    # Whether this build has a `mrbc` to lend: one it was given, one it
+    # generated for itself (`create_mrbc_build` hands that one over through
+    # `mrbcfile=`), or one it builds from the gem. This is the question
+    # `mrbcfile` asks of `host` on behalf of a native build; a build with
+    # `disable_libmruby` and no `mruby-bin-mrbc` answers no.
+    def supplies_mrbc?
+      mrbcfile_external? || !@gems['mruby-bin-mrbc'].nil?
+    end
+
     def mrbcfile_external?
       @mrbcfile_external
     end
@@ -689,11 +698,12 @@ EOS
     # where none will do.
     #
     # A `host` the build config declares is borrowed as it is written. Where
-    # there is none, or where it answers otherwise, the target borrows a build
-    # generated here, named for the answer it carries rather than for the
-    # target that asked for it: targets that agree share one, and it belongs
-    # to none of them. `mrbc_builds` carries the ones this pass has generated,
-    # so a config with several cross targets builds `mrbc` once per answer.
+    # there is none, where it has no `mrbc` to lend, or where it answers
+    # otherwise, the target borrows a build generated here, named for the
+    # answer it carries rather than for the target that asked for it: targets
+    # that agree share one, and it belongs to none of them. `mrbc_builds`
+    # carries the ones this pass has generated, so a config with several
+    # cross targets builds `mrbc` once per answer.
     #
     # The name is one the build config does not write, so a build generated
     # here cannot take a name the config wants, and `build/mrbc` is where
@@ -703,7 +713,7 @@ EOS
       return if mrbcfile_external?
       needed = mrbc_defines(self)
       host = MRuby.targets['host']
-      if host && mrbc_defines(host) == needed
+      if host && host.supplies_mrbc? && mrbc_defines(host) == needed
         @mrbc_host = 'host'
       else
         @mrbc_host = (mrbc_builds[needed] ||= generate_mrbc_build(needed))
