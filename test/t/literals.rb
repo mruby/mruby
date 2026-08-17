@@ -35,6 +35,17 @@ assert('Literals Numerical', '8.7.6.2') do
   assert_equal 10.0, 1.0e+1
 end
 
+assert('Literals Numerical without Float') do
+  # A build without Float (MRB_NO_FLOAT) reads a float literal as the Integer
+  # 0, with a compiler warning, so a shared test file still compiles and its
+  # Float rows can be skipped at run time.
+  skip 'Float is defined' if Object.const_defined?(:Float)
+  assert_equal 0, 1.5
+  assert_equal 0, -1.5
+  assert_equal 0, 1e10
+  assert_equal Integer, 1.5.class
+end
+
 assert('Literals Numerical wider than mrb_int') do
   # None of these fit mrb_int on MRB_INT32, so the compiler has to hand them
   # to the VM as big integer literals.  A shift is written on the other side

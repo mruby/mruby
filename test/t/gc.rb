@@ -349,6 +349,7 @@ end
 # retain nothing and the assertions hold trivially.
 
 assert('OP_MATH does not retain a boxed Float in the GC arena') do
+  skip unless Object.const_defined?(:Float)
   [1.0e100, 5.0e-324].each do |x|
     zero = 0.0
     one = 1.0
@@ -369,6 +370,7 @@ assert('OP_MATH does not retain a boxed Float in the GC arena') do
 end
 
 assert('OP_DIV does not retain a boxed Float in the GC arena') do
+  skip unless Object.const_defined?(:Float)
   # OP_DIV boxes from a helper outside the interpreter loop, so it restores to
   # its own saved arena index rather than to the frame's.
   [1.0e100, 5.0e-324].each do |x|
@@ -388,6 +390,7 @@ assert('OP_DIV does not retain a boxed Float in the GC arena') do
 end
 
 assert('OP_ADDI does not retain a boxed Float in the GC arena') do
+  skip unless Object.const_defined?(:Float)
   x = 1.0e100
   y = nil
   GC.start
@@ -407,6 +410,7 @@ assert('OP_ADDI does not retain a boxed Float in the GC arena') do
 end
 
 assert('OP_LOADL does not retain a boxed Float in the GC arena') do
+  skip unless Object.const_defined?(:Float)
   y = nil
   GC.start
   base = GC.stat[:live]

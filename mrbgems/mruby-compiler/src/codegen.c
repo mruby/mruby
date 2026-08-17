@@ -4690,18 +4690,29 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       }
       break;
     }
-#ifndef MRC_NO_FLOAT
   case PM_FLOAT_NODE:
   {
+#ifndef MRC_NO_FLOAT
     if (val) {
       CAST(float);
       int off = new_lit_float(s, (mrc_float)cast->value);
       genop_2(s, OP_LOADL, cursp(), off);
       push();
     }
+#else
+    /* A build without Float still has to compile source that spells a
+       float literal, so the literal is warned about and read as Integer 0,
+       as the lrama parser did under MRB_NO_FLOAT. */
+    mrc_diagnostic_list_append(s->c, tree->location.start,
+                               "floating-point numbers are not supported",
+                               MRC_GENERATOR_WARNING);
+    if (val) {
+      gen_int(s, cursp(), 0);
+      push();
+    }
+#endif
     break;
   }
-#endif
     case PM_CALL_NODE:
     {
       CAST(call);

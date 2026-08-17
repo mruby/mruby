@@ -85,6 +85,7 @@ end
 
 - When defined removes floating-point numbers from mruby.
 - It makes mruby easier to handle in "Micro-controller without FPU" and "Kernel Space".
+- A floating-point literal in Ruby source is read as the Integer `0`, with a compiler warning.
 
 `MRB_INT32`
 
