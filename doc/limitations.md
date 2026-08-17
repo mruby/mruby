@@ -281,7 +281,9 @@ mruby does not have an `Encoding` class. Strings are treated as
 byte sequences by default. UTF-8 aware string operations can be
 enabled with the `MRB_UTF8_STRING` compile flag, which is also what
 makes case conversion follow Unicode rather than ASCII; `MRB_USE_ASCII_CASE`
-narrows that half back without giving up the indexing.
+narrows that half back without giving up the indexing. A Unicode conversion
+refuses bytes that spell no character with `ArgumentError`; one narrowed to
+ASCII reads no characters and hands those bytes back untouched.
 
 ## Integer Precision Varies by Boxing Mode
 
