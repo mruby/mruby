@@ -46,18 +46,11 @@ static void compile_alt(re_compiler *c);  /* forward */
 static void
 compile_error(re_compiler *c, const char *msg)
 {
-  /* Quote c->orig, the pattern as written: when the pattern is preprocessed
-     c->src points at the buffer preprocess_pattern() returned, so quoting it
-     would drop the free-spacing, the comments and the (?#...) groups from the
-     message. c->orig is the caller's buffer, which outlives the compile. It
-     is not NUL-terminated, so use %l with the explicit length from
-     c->orig_end. */
-  mrb_value emsg = mrb_format(c->mrb, "%s: /%l/",
-                              msg, c->orig, (size_t)(c->orig_end - c->orig));
-
-  /* Free compile buffers before raising, since mrb_exc_raise longjmps out
-     and the stack-local re_compiler is abandoned without a chance to clean
-     up. mrb_free doesn't trigger GC, so emsg stays valid across these. */
+  /* Free the compile buffers before building the message, since the
+     stack-local re_compiler is abandoned once we leave this function and
+     every step from here on can leave it by longjmp: mrb_format,
+     mrb_exc_get_id and mrb_exc_new_str all allocate, and a failing
+     allocation raises mrb->nomem_err. mrb_free itself never longjmps. */
   mrb_free(c->mrb, c->code);
   c->code = NULL;
   if (c->classes) {
@@ -71,6 +64,15 @@ compile_error(re_compiler *c, const char *msg)
   c->named_captures = NULL;
   if (c->stripped) mrb_free(c->mrb, c->stripped);
   c->stripped = NULL;
+
+  /* Quote c->orig, the pattern as written: when the pattern is preprocessed
+     c->src points at the buffer preprocess_pattern() returned, so quoting it
+     would drop the free-spacing, the comments and the (?#...) groups from the
+     message. c->orig is the caller's buffer, which outlives the compile and
+     is untouched by the frees above. It is not NUL-terminated, so use %l with
+     the explicit length from c->orig_end. */
+  mrb_value emsg = mrb_format(c->mrb, "%s: /%l/",
+                              msg, c->orig, (size_t)(c->orig_end - c->orig));
 
   mrb_exc_raise(c->mrb,
     mrb_exc_new_str(c->mrb, mrb_exc_get_id(c->mrb, MRB_SYM(RegexpError)), emsg));
