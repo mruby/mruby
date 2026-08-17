@@ -203,7 +203,7 @@ append_from_stdin(mrc_ccontext *c, uint8_t **source, size_t source_length)
   uint8_t *buffer = (uint8_t *)mrc_malloc(c, INITIAL_BUF_SIZE);
   if (buffer == NULL) return -1;
 
-  int capacity = INITIAL_BUF_SIZE;
+  size_t capacity = INITIAL_BUF_SIZE;
   size_t length = 0;
 
   while (1) {

@@ -32,7 +32,7 @@ mrc_ccontext_cleanup_local_variables(mrc_ccontext *cc)
   cc->keep_lv = FALSE;
 
   if (cc->options && cc->options->scopes) {
-    for (int i = 0; i < cc->options->scopes[0].locals_count; i++) {
+    for (size_t i = 0; i < cc->options->scopes[0].locals_count; i++) {
       mrc_free(cc, (void *)cc->options->scopes[0].locals[i].source);
     }
     mrc_free(cc, cc->options);

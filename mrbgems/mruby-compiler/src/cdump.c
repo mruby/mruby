@@ -349,7 +349,7 @@ static int
 cdump_syms(mrc_ccontext *c, const char *name, const char *key, int n, int syms_len, const mrc_sym *syms, mrc_string *init_syms_code, FILE *fp)
 {
   int ai = mrc_gc_arena_save(c);
-  mrc_int code_len = MRC_STRING_LEN(init_syms_code);
+  size_t code_len = MRC_STRING_LEN(init_syms_code);
   mrc_string *var_name = sym_var_name_str(c, name, key, n);
 
   fprintf(fp, "mrb_DEFINE_SYMS_VAR(%s, %d, (", MRC_STRING_PTR(var_name), syms_len);
