@@ -43,8 +43,12 @@ typedef struct {
 
 static void compile_alt(re_compiler *c);  /* forward */
 
+/* Take the message as a String rather than as a C string, for the messages
+   that quote a group name: the name is a length-counted slice of the pattern
+   and may hold a NUL, which a C string would cut short. Callers with a fixed
+   message use compile_error() below. */
 static void
-compile_error(re_compiler *c, const char *msg)
+compile_error_str(re_compiler *c, mrb_value msg)
 {
   /* Quote c->orig, the pattern as written: when the pattern is preprocessed
      c->src points at the buffer preprocess_pattern() returned, so quoting it
@@ -52,7 +56,7 @@ compile_error(re_compiler *c, const char *msg)
      message. c->orig is the caller's buffer, which outlives the compile. It
      is not NUL-terminated, so use %l with the explicit length from
      c->orig_end. */
-  mrb_value emsg = mrb_format(c->mrb, "%s: /%l/",
+  mrb_value emsg = mrb_format(c->mrb, "%v: /%l/",
                               msg, c->orig, (size_t)(c->orig_end - c->orig));
 
   /* Free compile buffers before raising, since mrb_exc_raise longjmps out
@@ -74,6 +78,12 @@ compile_error(re_compiler *c, const char *msg)
 
   mrb_exc_raise(c->mrb,
     mrb_exc_new_str(c->mrb, mrb_exc_get_id(c->mrb, MRB_SYM(RegexpError)), emsg));
+}
+
+static void
+compile_error(re_compiler *c, const char *msg)
+{
+  compile_error_str(c, mrb_str_new_cstr(c->mrb, msg));
 }
 
 /* Maximum number of instructions in a compiled pattern. Every jump target
@@ -1209,6 +1219,12 @@ emit_codepoint(re_compiler *c, uint32_t cp)
   }
 }
 
+/* Largest number a \k<n> / \k<-n> backreference may spell. The bound is far
+   above RE_MAX_CAPTURES because it is not a capacity: it separates two of
+   CRuby's messages, `too big number` for a number past it and `invalid backref
+   number/name` for one within it that names no group. */
+#define RE_MAX_BACKREF_NUM 2147483647
+
 /* Compile a single atom (character, class, group, etc.) */
 static void
 compile_atom(re_compiler *c)
@@ -1462,6 +1478,32 @@ compile_atom(re_compiler *c)
 
       int group = -1;
       if (name_len > 0 && (name[0] == '-' || (name[0] >= '0' && name[0] <= '9'))) {
+        mrb_bool relative = (name[0] == '-');
+        uint32_t first = relative ? 1 : 0;
+
+        /* CRuby reads the whole name before converting it, so a name that is
+           not `-`? followed by digits is a malformed name whatever the digits
+           it does hold would come to: \k<99999999999999999999x> is `invalid
+           group name`, not `too big number`. A lone `-` is malformed too. */
+        mrb_bool numeric = (first < name_len);
+        for (uint32_t i = first; numeric && i < name_len; i++) {
+          if (name[i] < '0' || name[i] > '9') numeric = FALSE;
+        }
+
+        int n = 0;
+        for (uint32_t i = first; numeric && i < name_len; i++) {
+          int digit = name[i] - '0';
+          /* CRuby's scanner stops at RE_MAX_BACKREF_NUM, and a number past it
+             is too big rather than a reference to a group that is missing. */
+          if (n > (RE_MAX_BACKREF_NUM - digit) / 10) compile_error(c, "too big number");
+          n = n * 10 + digit;
+        }
+        /* n == 0 names group 0, the whole match, which \k cannot reference */
+        if (!numeric || n == 0) {
+          compile_error_str(c, mrb_format(c->mrb, "invalid group name <%l>",
+                                          name, (size_t)name_len));
+        }
+
         /* CRuby rejects a numbered backreference in a named pattern whatever
            its spelling, and it has to be rejected here too: once plain groups
            stop consuming numbers, both the absolute bound and the relative
@@ -1470,14 +1512,10 @@ compile_atom(re_compiler *c)
         if (c->dont_capture) {
           compile_error(c, "numbered backref/call is not allowed. (use name)");
         }
-        mrb_bool relative = (name[0] == '-');
-        int n = 0;
-        for (uint32_t i = (relative ? 1 : 0); i < name_len; i++) {
-          if (name[i] < '0' || name[i] > '9') compile_error(c, "invalid backreference");
-          n = n * 10 + (name[i] - '0');
-          if (n > (int)c->num_captures - 1) compile_error(c, "undefined group name reference");
-        }
         group = relative ? (int)c->num_captures - n : n;
+        if (group < 1 || group >= (int)c->num_captures) {
+          compile_error(c, "invalid backref number/name");
+        }
       }
       else {
         for (uint16_t i = 0; i < c->num_named; i++) {
@@ -1487,9 +1525,10 @@ compile_atom(re_compiler *c)
             break;
           }
         }
-      }
-      if (group < 1 || group >= (int)c->num_captures) {
-        compile_error(c, "undefined group name reference");
+        if (group < 1) {
+          compile_error_str(c, mrb_format(c->mrb, "undefined name <%l> reference",
+                                          name, (size_t)name_len));
+        }
       }
       emit(c, RE_BACKREF, (uint8_t)group, (c->flags & RE_FLAG_IGNORECASE) ? 1 : 0);
       c->has_backref = TRUE;
