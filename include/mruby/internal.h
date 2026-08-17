@@ -388,7 +388,7 @@ enum mrb_case_mode {
    which is what every build without the tables answers to every string.
    `swapcase` lives in mruby-string-ext and reaches the tables through this, so
    they are asked about in one place. */
-#ifdef MRB_UTF8_STRING
+#if defined(MRB_UTF8_STRING) && !defined(MRB_USE_ASCII_CASE)
 int mrb_str_case_convert_unicode(mrb_state *mrb, mrb_value str, enum mrb_case_mode mode);
 #else
 #define mrb_str_case_convert_unicode(mrb, str, mode) (-1)

@@ -2248,23 +2248,7 @@ mrb_str_case_convert_unicode(mrb_state *mrb, mrb_value str, enum mrb_case_mode m
   return str_case_convert_utf8(mrb, str, mode) ? 1 : 0;
 }
 
-#elif defined(MRB_UTF8_STRING)
-
-/* The walk above is what a build asking for ASCII case gives up, and this is
-   where it says so: every caller of it converts the ASCII of a string in a
-   loop of its own and reaches for the walk only where the string holds more.
-   Answering that there was nothing to walk sends each of them back to that
-   loop, which is the conversion such a build asked for. */
-int
-mrb_str_case_convert_unicode(mrb_state *mrb, mrb_value str, enum mrb_case_mode mode)
-{
-  (void)mrb;
-  (void)str;
-  (void)mode;
-  return -1;
-}
-
-#endif  /* MRB_UTF8_STRING */
+#endif  /* MRB_UTF8_STRING && !MRB_USE_ASCII_CASE */
 
 /* 15.2.10.5.8  */
 /*
