@@ -155,6 +155,18 @@ end
 # to TABLES and left out here would be one the buffer is too small for.
 widest = TABLES.flat_map { |_, map, _| map.values.map(&:bytesize) }.max
 
+# The sources above ASCII whose simple folding is an ASCII character, read the
+# way the lookup reads folding: the difference first, and the lowercase mapping
+# under it for the sources the difference passes over. ASCII is in no table, so
+# these are the whole of what unfolding an ASCII character can find there, and
+# emitting them lets that answer be given without a table at all. Measured over
+# the tables rather than listed beside them for the reason `widest` is.
+fold_to_ascii = (fold_diff.keys | lower.keys).sort.map do |cp|
+  to = (fold_diff[cp] || lower[cp]).unpack("U*")
+  next nil unless to.size == 1 && to[0] < 0x80
+  [cp, to[0]]
+end.compact
+
 # ------------------------------------------------------------------- emit
 
 def hex(cp)
@@ -272,6 +284,16 @@ File.open(File.join(outdir, 'unicase.h'), 'w') do |out|
     out.puts "#define UNI_#{up}_MIN #{hex(lo)}"
     out.puts "#define UNI_#{up}_MAX #{hex(hi)}"
   end
+
+  out.puts
+  out.puts "/* The sources above ASCII whose simple folding is an ASCII character, as"
+  out.puts "   a list the caller expands with an X of its own. ASCII itself is in no"
+  out.puts "   table, so unfolding an ASCII character is these and the ASCII rules,"
+  out.puts "   and no table is read at all. */"
+  out.puts "#define UNI_FOLD_TO_ASCII" +
+           fold_to_ascii.map { |cp, to|
+             " \\\n  X(#{hex(cp)}, #{hex(to)})  /* to '#{to.chr}' */"
+           }.join
 
   out.puts
   out.puts "#endif /* MRB_UNICASE_H */"
