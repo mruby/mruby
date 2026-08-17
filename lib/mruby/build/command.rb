@@ -130,26 +130,16 @@ module MRuby
         generated_file_matcher = Regexp.new("^#{Regexp.escape build_dir}/(?!mrbc/|mrbgems/.+/)(.*)#{Regexp.escape out_ext}$")
       end
       source_exts.each do |ext|
-        rule generated_file_matcher => [
-          proc { |file|
-            file.sub(generated_file_matcher, "#{source_dir}/\\1#{ext}")
-          },
-          proc { |file|
-            get_dependencies(file) + rakedep
-          }
-        ] do |t|
-          run t.name, t.prerequisites.first
-        end
-
-        rule generated_file_matcher => [
-          proc { |file|
-            file.sub(generated_file_matcher, "#{build_dir}/\\1#{ext}")
-          },
-          proc { |file|
-            get_dependencies(file) + rakedep
-          }
-        ] do |t|
-          run t.name, t.prerequisites.first
+        # The source is looked for beside the sources first and among the
+        # generated files second.
+        [source_dir, build_dir].each do |dir|
+          source_of = proc { |file| file.sub(generated_file_matcher, "#{dir}/\\1#{ext}") }
+          rule generated_file_matcher => [
+            source_of,
+            proc { |file| get_dependencies(file) + rakedep }
+          ] do |t|
+            run t.name, t.prerequisites.first
+          end
         end
       end
     end
