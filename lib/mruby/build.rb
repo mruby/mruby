@@ -22,6 +22,22 @@ module MRuby
         target.instance_eval(&block)
       end
     end
+
+    # Bind every cross build to the build it borrows `mrbc` from.
+    #
+    # A cross build cannot settle this as it is declared, because the `host`
+    # it would borrow from may be written after it, and `Build.new` reopens a
+    # name already taken rather than initialising it afresh: a build generated
+    # then to fill the gap would swallow the `host` the config goes on to
+    # declare. So the question is asked here instead, once from the Rakefile,
+    # where the config has been read whole and the set of targets is final.
+    # This still runs before the gems are set up, both because they ask for
+    # `mrbcfile` as they go and because the answer turns on defines, which the
+    # config alone has written this early.
+    def resolve_mrbc_hosts
+      mrbc_builds = {}
+      targets.values.grep(CrossBuild).each{|target| target.bind_mrbc_host(mrbc_builds)}
+    end
   end
 
   class Toolchain
@@ -648,11 +664,15 @@ EOS
     def initialize(name, build_dir=nil, &block)
       @test_runner = Command::CrossTestRunner.new(self)
       super
-      @mrbc_host = mrbcfile_external? ? nil : bind_mrbc_host
     end
 
     def mrbcfile
-      mrbcfile_external? ? super : MRuby::targets[@mrbc_host].mrbcfile
+      return super if mrbcfile_external?
+      unless @mrbc_host
+        fail "the `mrbc' for '#{@name}' is not bound yet; `MRuby.resolve_mrbc_hosts' " \
+             "binds it once the whole build config has been read"
+      end
+      MRuby::targets[@mrbc_host].mrbcfile
     end
 
     # The defines a target and the `mrbc` it borrows have to agree on.
@@ -661,9 +681,38 @@ EOS
     # `src/load.c` refuses a whole irep over a single pool entry the target
     # cannot represent: under `MRB_NO_FLOAT` a float literal is one. A define
     # that decides what a pool entry may hold belongs in this list, which is
-    # where the comparison in `bind_mrbc_host` and the defines a build
-    # generated there carries both read the question from.
+    # where the comparison below, the name of a generated build and the
+    # defines it carries all read the question from.
     MRBC_DEFINES = %w[MRB_NO_FLOAT].freeze
+
+    # Bind this target to the build it borrows `mrbc` from, generating one
+    # where none will do.
+    #
+    # A `host` the build config declares is borrowed as it is written. Where
+    # there is none, or where it answers otherwise, the target borrows a build
+    # generated here, named for the answer it carries rather than for the
+    # target that asked for it: targets that agree share one, and it belongs
+    # to none of them. `mrbc_builds` carries the ones this pass has generated,
+    # so a config with several cross targets builds `mrbc` once per answer.
+    #
+    # The name is one the build config does not write, so a build generated
+    # here cannot take a name the config wants, and `build/mrbc` is where
+    # `mrbc` built for its own sake goes, which is where `build_config/mrbc.rb`
+    # already puts it. `build/host` is left to a `host` the config declares.
+    def bind_mrbc_host(mrbc_builds)
+      return if mrbcfile_external?
+      needed = mrbc_defines(self)
+      host = MRuby.targets['host']
+      if host && mrbc_defines(host) == needed
+        @mrbc_host = 'host'
+      else
+        @mrbc_host = (mrbc_builds[needed] ||= generate_mrbc_build(needed))
+        # `tasks/presym.rake` reads this to leave the generated build's
+        # objects to it, which a target named `mrbc` would otherwise scan as
+        # its own.
+        @mrbc_build = MRuby.targets[@mrbc_host]
+      end
+    end
 
     def run_test
       @test_runner.runner_options << verbose_flag
@@ -696,23 +745,13 @@ EOS
 
     private
 
-    # Name the build this target borrows `mrbc` from.
-    #
-    # A target can only borrow from a build that answers `MRBC_DEFINES` the
-    # way it does, and where none is at hand it gets one that does. A `host`
-    # the build config declares itself is left as it is written; the build
-    # generated here is this code's own and carries the target's answer.
-    def bind_mrbc_host
-      needed = mrbc_defines(self)
-      host = MRuby.targets['host']
-      return 'host' if host && mrbc_defines(host) == needed
-
-      # Where there is no `host` the generated build takes that name, as it
-      # always has. Where there is one and it answers otherwise, the build
-      # config owns the name, so this target gets a private `mrbc` beside its
-      # own output instead, the way a native build gets one.
-      name, internal = host ? ["#{@name}/mrbc", true] : ['host', false]
-      MRuby::Build.new(name, internal: internal) do |conf|
+    def generate_mrbc_build(needed)
+      name = mrbc_build_name(needed)
+      if MRuby.targets[name]
+        fail "cannot generate the `mrbc' build for '#{@name}': " \
+             "the build config already declares a build named '#{name}'"
+      end
+      MRuby::Build.new(name, internal: true) do |conf|
         conf.toolchain
         conf.build_mrbc_exec
         conf.disable_libmruby
@@ -727,13 +766,22 @@ EOS
     # Both lists a build config writes answer, the way `Build#has_define?`
     # reads them, because `Command::Compiler#all_flags` puts `build.defines`
     # on the same command line as a compiler's own. `Build#has_define?` itself
-    # cannot be asked here: it refuses until the gems are set up, and a cross
-    # build binds its `mrbc` as it is declared.
+    # cannot be asked here: it refuses until the gems are set up, and every
+    # `mrbc` is bound before that.
     def mrbc_defines(build)
       own = build.defines.flatten.map {|d| d.to_s.split('=', 2).first}
       MRBC_DEFINES.select do |d|
         own.include?(d) || build.compilers.any? {|c| c.has_define?(d)}
       end
+    end
+
+    # Name a generated build after the defines it carries, so that the name
+    # says which targets can borrow it. A build that carries none is the one a
+    # plain `host` would have been.
+    def mrbc_build_name(defines)
+      answer = defines.empty? ? 'default' :
+               defines.map {|d| d.delete_prefix('MRB_').downcase.tr('_', '-')}.join('+')
+      "mrbc/#{answer}"
     end
   end # CrossBuild
 end # MRuby

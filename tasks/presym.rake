@@ -71,7 +71,7 @@ MRuby.each_target do |build|
   # This is critical when a build's .o files are compiled during another
   # build's presym scanning chain (before :gensym completes), e.g.:
   #   - internal sub-builds (mrbc) triggered by their parent build
-  #   - the implicit host build triggered by a cross build needing mrbc
+  #   - the mrbc build generated for a cross build that has none to borrow
   prereqs.each_key do |prereq|
     next unless File.extname(prereq) == build.exts.object
     next unless prereq.start_with?(build_dir)
