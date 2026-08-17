@@ -647,7 +647,7 @@ assert("String#split with regexp limit") do
   assert_equal ["a", ""], "a,".split(/,/, 2)
   assert_equal ["a,b,"], "a,b,".split(/,/, 1)
   assert_raise(TypeError) { "a,b".split(/,/, nil) }
-  assert_equal ["a,b"], "a,b".split(/,/, 1.5)
+  assert_equal ["a,b"], "a,b".split(/,/, 1.5) if Object.const_defined?(:Float)
 
   # mruby has no implicit conversion protocol, so an object defining `to_int`
   # is rejected here exactly as `Array.new(obj)` and `ary[obj]` reject it. The

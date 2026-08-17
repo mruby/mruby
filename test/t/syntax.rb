@@ -1629,7 +1629,7 @@ assert('defined? on constant paths (A::B)') do
   assert_equal 'constant', defined?(DefinedPathChild::Sub)
 
   # a builtin nested constant
-  assert_equal 'constant', defined?(Float::INFINITY)
+  assert_equal 'constant', defined?(Float::INFINITY) if Object.const_defined?(:Float)
 end
 
 # NOTE: `&nil` block-forbidding parameters live in syntax_block_forbid.rb,

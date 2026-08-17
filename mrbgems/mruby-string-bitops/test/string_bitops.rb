@@ -15,13 +15,13 @@ assert('String#bit_get') do
   # CRuby raises ArgumentError for offsets too large to represent.
   # mruby has no Bignum bit offsets and raises RangeError instead:
   # without mruby-bigint the power itself overflows, with it the
-  # offset conversion rejects the Bigint.  Either way this compiles
-  # in every build configuration (a float literal like 1e30 would
-  # not compile under MRB_NO_FLOAT).
+  # offset conversion rejects the Bigint.  Either way this raises
+  # in every build configuration (a float literal like 1e30 reads
+  # as 0 under MRB_NO_FLOAT).
   assert_raise(RangeError) { s.bit_get(2 ** 100) }
 
   # The Float path of the offset conversion, built without a float
-  # literal so MRB_NO_FLOAT builds can still compile this file.
+  # literal, which MRB_NO_FLOAT builds would read as 0.
   if 1.respond_to?(:to_f)
     huge = (1 << 30).to_f
     huge = huge * huge * 16  # 2.0**64, beyond mrb_int in any build

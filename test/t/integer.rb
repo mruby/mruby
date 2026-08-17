@@ -343,7 +343,7 @@ assert('Integer.__ensure converts its argument without dispatching') do
   assert_raise(TypeError) { Integer.__ensure(Class.new { def to_int; 2; end }.new) }
 
   assert_equal 2, Integer.__ensure(2)
-  assert_equal 1, Integer.__ensure(1.9)
+  assert_equal 1, Integer.__ensure(1.9) if Object.const_defined?(:Float)
   assert_raise(TypeError) { Integer.__ensure("2") }
   assert_raise(TypeError) { Integer.__ensure(nil) }
 end
