@@ -225,8 +225,8 @@ end
   pairs with one other. Without this macro it folds ASCII letters, and a
   pattern holding a character that needs one of the Unicode foldings raises
   `RegexpError` rather than answering as if the character had no case.
-- `MRB_USE_ASCII_CASE` narrows the case half back to ASCII, leaving the
-  indexing.
+- `MRB_USE_ASCII_CASE` narrows the case half back to ASCII, taking the refusal
+  with it and leaving the indexing.
 - If it isn't defined, they only support the US-ASCII encoding.
 
 `MRB_USE_ASCII_CASE`
@@ -237,6 +237,10 @@ end
 - Drops the Unicode case table the build would otherwise carry. That is what
   the option is for: a target counting its bytes buys the UTF-8 indexing of
   `MRB_UTF8_STRING` without the table beside it.
+- Bytes that spell no character are handed back as they stand rather than
+  refused with `ArgumentError`. That refusal belongs to the walk over
+  characters, which is the walk this narrows away: what converts instead reads
+  bytes, and reading bytes asks nothing about what they spell.
 - The regexp `i` flag reads that table too, so it narrows with the rest: it
   folds ASCII letters, and a pattern holding a character that needs one of the
   Unicode foldings raises `RegexpError` rather than answering as if the
