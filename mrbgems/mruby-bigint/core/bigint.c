@@ -231,6 +231,22 @@ mpz_init_set(mpz_ctx_t *ctx, mpz_t *s, mpz_t *t)
 }
 
 static void
+mpz_set_uint64(mpz_ctx_t *ctx, mpz_t *y, uint64_t u)
+{
+  size_t len = 0;
+
+  for (uint64_t u0=u; u0; u0>>=DIG_SIZE,len++)
+    ;
+  y->sn = (u != 0);
+  mpz_realloc(ctx, y, len);
+  y->sz = len;
+  for (size_t i=0; i<len; i++) {
+    y->p[i] = (mp_limb)LOW(u);
+    u >>= DIG_SIZE;
+  }
+}
+
+static void
 mpz_set_int(mpz_ctx_t *ctx, mpz_t *y, mrb_int v)
 {
   mrb_uint u;
@@ -251,33 +267,17 @@ mpz_set_int(mpz_ctx_t *ctx, mpz_t *y, mrb_int v)
   }
 #if MRB_INT_BIT > DIG_SIZE
   if ((u & ~DIG_MASK) != 0) {
-    mpz_realloc(ctx, y, 2);
-    y->p[1] = (mp_limb)HIGH(u);
-    y->p[0] = (mp_limb)LOW(u);
-    y->sz = 2;
+    /* An mrb_int can be wider than two limbs; mpz_set_uint64() counts them.
+       It derives the sign from the magnitude, so keep the one v gave. */
+    short sn = y->sn;
+    mpz_set_uint64(ctx, y, u);
+    y->sn = sn;
     return;
   }
 #endif
   mpz_realloc(ctx, y, 1);
   y->p[0] = (mp_limb)u;
   y->sz = 1;
-}
-
-
-static void
-mpz_set_uint64(mpz_ctx_t *ctx, mpz_t *y, uint64_t u)
-{
-  size_t len = 0;
-
-  for (uint64_t u0=u; u0; u0>>=DIG_SIZE,len++)
-    ;
-  y->sn = (u != 0);
-  mpz_realloc(ctx, y, len);
-  y->sz = len;
-  for (size_t i=0; i<len; i++) {
-    y->p[i] = (mp_limb)LOW(u);
-    u >>= DIG_SIZE;
-  }
 }
 
 #ifdef MRB_INT32

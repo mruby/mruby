@@ -432,3 +432,22 @@ assert('Integer - a Float too big for an mrb_int keeps every digit') do
     assert_equal f, f.to_i.to_f
   end
 end
+
+assert('Bigint an mrb_int operand keeps every bit') do
+  # An mrb_int was written into a fixed pair of limbs, which holds the whole
+  # value only while a limb is half an mrb_int wide.  Under MRB_NO_MPZ64BIT a
+  # limb is 16 bits, so every bit from 32 up was dropped on the way in.  This
+  # is the entry every fixnum overflow takes.
+  max = (1 << 62) - 1 + (1 << 62)  # MRB_INT_MAX where an mrb_int is 64 bits
+  assert_equal 9223372036854775808, max + 1
+  assert_equal 9223372036854775808, (1 << 62) * 2
+  assert_equal(-9223372036854775809, -max - 2)
+  assert_equal(-13835058055282163712, -(1 << 62) * 3)
+
+  # ...and the same conversion on the mrb_int operand of a big integer.  Every
+  # expected value is named outright, because writing one as an expression over
+  # (1 << 32) would take the same broken path and agree with the wrong answer.
+  assert_equal 18446744078004518913, (1 << 64) + ((1 << 32) + 1)
+  assert_equal 18446744069414584319, (1 << 64) - ((1 << 32) + 1)
+  assert_equal 79228162514264337593543950336, (1 << 64) * (1 << 32)
+end
