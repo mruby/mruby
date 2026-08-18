@@ -661,7 +661,7 @@ Example:
 
 ### `String#succ` (alias `String#next`)
 
-Returns the successor to `str`. Increments the rightmost alphanumeric characters.
+Returns the successor to `str`. Increments the rightmost alphanumeric character, carrying into the alphanumeric before it when it wraps. A string with no alphanumeric increments its last character instead: a byte in a binary string (or in a build without `MRB_UTF8_STRING`), a code point in a UTF-8 string.
 
 ```ruby
 str.succ    #=> new_str
@@ -670,13 +670,19 @@ str.succ    #=> new_str
 Example:
 
 ```ruby
-"a".succ     #=> "b"
-"z".succ     #=> "aa"
-"9".succ     #=> "10"
-"a9".succ    #=> "b0"
-"Az".succ    #=> "Ba"
-"zz".succ    #=> "aaa"
+"a".succ         #=> "b"
+"z".succ         #=> "aa"
+"9".succ         #=> "10"
+"a9".succ        #=> "b0"
+"Az".succ        #=> "Ba"
+"zz".succ        #=> "aaa"
+"1.9".succ       #=> "2.0"
+"-".succ         #=> "."
+"\xff".b.succ    #=> "\x01\x00"
+"ÿ".succ         #=> "Ā" (with MRB_UTF8_STRING)
 ```
+
+CRuby also increments letters and digits beyond ASCII within their own script, so `"ת".succ` is `"אא"` there. mruby carries no table of which characters those are; a UTF-8 character above ASCII counts as a letter when the next code point is a character of the same byte length. `"aÿ".succ` is `"aĀ"` as in CRuby, while `"ת".succ` is `"\u05EB"`.
 
 ### `String#succ!` (alias `String#next!`)
 
