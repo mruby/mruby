@@ -19,7 +19,9 @@ simulation) with backtracking fallback.
 - `(?#...)` comment group
 - `(?<name>...)`, `(?'name'...)` named capture group
 - `|` alternation
-- `\1`-`\9` backreferences
+- `\N` backreference: a digit run whose decimal value is at most 9 or at
+  most the number of groups opened before it; a run past both is an octal
+  escape (see below)
 - `\k<name>`, `\k'name'` named backreferences
 - `(?=...)` positive lookahead
 - `(?!...)` negative lookahead
@@ -32,7 +34,10 @@ simulation) with backtracking fallback.
 ### Character Escapes
 
 - `\n`, `\t`, `\r`, `\f`, `\v`, `\a`, `\e` control characters
-- `\NNN` octal, one to three digits
+- `\NNN` octal, one to three digits, when the digits spell no
+  backreference: `\101` is `A`, `\12` is a newline before twelve groups
+  and a backreference after them, `\0NN` is always octal; `\8` and `\9`
+  that spell no backreference are the digits themselves
 - `\xHH` hex, one or two digits; `\x` with no digit raises `RegexpError`
 - `\uXXXX` Unicode codepoint, exactly four hex digits
 - `\u{...}` Unicode codepoints, one to six hex digits each, several of

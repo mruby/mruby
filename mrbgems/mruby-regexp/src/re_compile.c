@@ -48,6 +48,9 @@ typedef struct {
   mrb_bool has_backref;
   mrb_bool needs_backtrack;
   mrb_bool dont_capture;    /* pattern declares a named group: plain (...) does not capture */
+  uint16_t num_groups;      /* groups opened so far, counting the plain ones a
+                               named pattern demotes: what decides whether
+                               `\NN` is a backreference or an octal escape */
   uint32_t atomic_depth;    /* how many (?>...) groups enclose the parse point */
   uint32_t atom_start;      /* where the atom a quantifier binds to begins;
                                compile_quantified sets it to the position
@@ -548,11 +551,11 @@ parse_escape(re_compiler *c)
   case 'e': return 0x1b;
   case 'b': return '\b';  /* backspace; only reachable inside [...] since the
                              top-level dispatcher emits RE_WBOUND for `\b` */
-  /* Octal escape `\NNN` (1-3 digits, value 0-255). The outer dispatcher
-     consumes `\1`-`\9` as backref, so the only octal-leading digit that
-     reaches here from the top level is `\0` -- but parse_escape also fires
-     from read_class_atom inside `[...]`, where backref parsing does not
-     apply, so the full 0-7 range needs handling. */
+  /* Octal escape `\NNN` (1-3 digits, value 0-255). From the top level a
+     digit other than `0` reaches here only once the dispatcher has ruled out
+     a backreference; inside `[...]` read_class_atom sends every digit here,
+     since a class has no backreferences. Three digits can spell up to
+     0777, and CRuby refuses what is past a byte rather than fold it. */
   case '0': case '1': case '2': case '3':
   case '4': case '5': case '6': case '7': {
     int val = ch - '0';
@@ -564,7 +567,8 @@ parse_escape(re_compiler *c)
       next_char(c);
       n++;
     }
-    return val & 0xff;
+    if (val > 0xff) compile_error(c, "invalid escape code");
+    return val;
   }
   /* Hex escape `\xHH` (1-2 hex digits, value 0-255). The `\x{HHHH}` form
      for codepoints above 0xff is not implemented, and it is not read as
@@ -1448,7 +1452,11 @@ compile_atom(re_compiler *c)
       /* Onigmo's ONIG_OPTION_DONT_CAPTURE_GROUP, which CRuby turns on for a
          pattern that declares a named group: a plain (...) then groups
          without capturing, so the numbered side counts only the named
-         groups. The named group itself keeps its number. */
+         groups. The named group itself keeps its number. The count of groups
+         opened is taken before that demotion: CRuby demotes plain groups
+         only once the parse is done, so while it reads the pattern every one
+         of them is still a group that a `\NN` may refer to. */
+      if (capturing && c->num_groups < UINT16_MAX) c->num_groups++;
       if (c->dont_capture && cap_name == NULL) capturing = FALSE;
 
       uint16_t group = 0;
@@ -1505,12 +1513,36 @@ compile_atom(re_compiler *c)
     next_char(c);
     ch = peek(c);
     if (ch >= '1' && ch <= '9') {
-      if (c->dont_capture) {
-        compile_error(c, "numbered backref/call is not allowed. (use name)");
+      /* A digit run after the backslash is read as one decimal number first,
+         and is a backreference when that number is at most 9 or at most the
+         number of groups opened so far, as in CRuby (Onigmo's fetch_token):
+         `\1` and `\12` after twelve groups refer back, `\12` before them is
+         octal 012, a newline. What is not a backreference is an octal escape
+         of up to three digits (`\101` is `A`, `\1234` is `S4`), or the digit
+         itself when it starts with 8 or 9 (`\81` is `81`). Only the
+         comparison with the group count needs the number, so accumulation
+         stops once it is past every count a pattern can reach. */
+      uint32_t num = 0;
+      const char *q = c->p;
+      while (q < c->src_end && *q >= '0' && *q <= '9') {
+        if (num <= UINT16_MAX) num = num * 10 + (uint32_t)(*q - '0');
+        q++;
       }
-      next_char(c);
-      emit(c, RE_BACKREF, (uint8_t)(ch - '0'), (c->flags & RE_FLAG_IGNORECASE) ? 1 : 0);
-      c->has_backref = TRUE;
+      if (num <= 9 || num <= c->num_groups) {
+        if (c->dont_capture) {
+          compile_error(c, "numbered backref/call is not allowed. (use name)");
+        }
+        /* Not dont_capture, so every group counted captures and num is
+           within RE_MAX_CAPTURES. */
+        c->p = q;
+        emit(c, RE_BACKREF, (uint8_t)num, (c->flags & RE_FLAG_IGNORECASE) ? 1 : 0);
+        c->has_backref = TRUE;
+      }
+      else {
+        /* parse_escape() reads `\1`-`\7` as octal and `\8`, `\9` as the
+           digit itself, its default for a byte with no escape meaning. */
+        emit_char(c, (uint8_t)parse_escape(c));
+      }
     }
     else if (ch == 'd' || ch == 'D' || ch == 'w' || ch == 'W' || ch == 's' || ch == 'S') {
       next_char(c);
@@ -2054,20 +2086,33 @@ scope_get(const uint8_t *scope, mrb_int depth)
  * Escaped characters (\ followed by anything) are preserved.
  * skip_uninterpreted() decides which bytes those are.
  *
+ * Removing whitespace must not join what it kept apart. An escape spelled
+ * with digits (`\1`, `\01`, `\x1`) takes the digits that follow it, so
+ * `\x1 2` copied as `\x12` would be one byte where CRuby, whose tokenizer
+ * stops at the space, reads two. So when whitespace went out between such
+ * an escape and a hex digit, an empty group `(?:)` goes in: it emits no
+ * instruction and keeps the digit an atom of its own. A removed comment,
+ * `#...` to the end of its line or `(?#...)`, does join the two: CRuby
+ * strips those before it tokenizes, and `\1(?#c)0` is `\10` there.
+ *
  * The buffer comes from the GC arena, which holds it until the caller's frame
  * is gone: the parser reads it from beginning to end, and every raise in
  * between leaves this function nothing to be reached through. The scope
  * stack lives behind the rewritten pattern in the same allocation: a group
- * opener is one byte of source, so len bits is room for every group.
+ * opener is one byte of source, so len bits is room for every group. The
+ * pattern part is twice the source: each separator adds four bytes and
+ * takes an escape, a blank and a digit, at least four bytes, to occur.
  */
 static char*
 preprocess_pattern(mrb_state *mrb, const char *src, mrb_int len,
                    mrb_bool extended, mrb_int *out_len)
 {
-  char *buf = (char*)mrb_temp_alloc(mrb, (size_t)len + ((size_t)len + 7) / 8);
-  uint8_t *scope = (uint8_t*)buf + len;
+  char *buf = (char*)mrb_temp_alloc(mrb, (size_t)len * 2 + ((size_t)len + 7) / 8);
+  uint8_t *scope = (uint8_t*)buf + len * 2;
   mrb_int depth = 0;
   mrb_int o = 0;
+  mrb_int esc_end = -1;         /* where the last digit escape ended in buf */
+  mrb_bool blank_out = FALSE;   /* whitespace was removed since */
   mrb_bool in_class = FALSE;
   const char *end = src + len;
 
@@ -2078,7 +2123,17 @@ preprocess_pattern(mrb_state *mrb, const char *src, mrb_int len,
        not apply. */
     const char *skip = skip_uninterpreted(src, end, &in_class);
     if (skip) {
+      /* An escape spelled with digits: `\N`, `\x`, or `\u` outside the
+         `\u{...}` list form, whose brace closes it. What is copied here is
+         the backslash and the byte after it; the digits beyond are literals
+         to this pass, and the loop below keeps track of them. */
+      mrb_bool digits = (ch == '\\' && skip - src == 2 &&
+                         (ISDIGIT(src[1]) || src[1] == 'x' || src[1] == 'u'));
       while (src < skip) buf[o++] = *src++;
+      if (digits) {
+        esc_end = o;
+        blank_out = FALSE;
+      }
       continue;
     }
     if (ch == ')') {
@@ -2135,13 +2190,25 @@ preprocess_pattern(mrb_state *mrb, const char *src, mrb_int len,
     }
     if (extended) {
       if (ch == '#') {
-        /* skip to end of line */
+        /* Skip to the end of the line, newline included: the comment is
+           one removed span, not a comment and then a blank. */
         while (src < end && *src != '\n') src++;
+        if (src < end) src++;
         continue;
       }
       if (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' || ch == '\f' || ch == '\v') {
         src++;
+        blank_out = TRUE;
         continue;
+      }
+    }
+    if (o == esc_end && hex_value((unsigned char)ch) >= 0) {
+      if (blank_out) {
+        memcpy(buf + o, "(?:)", 4);  /* the digit is an atom of its own */
+        o += 4;
+      }
+      else {
+        esc_end = o + 1;  /* the digit extends the escape */
       }
     }
     buf[o++] = *src++;
