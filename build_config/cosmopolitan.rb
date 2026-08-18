@@ -15,8 +15,8 @@
 # Usage:
 #   COSMO_ROOT=/path/to/cosmocc rake MRUBY_CONFIG=cosmopolitan
 #
-# The resulting binaries in bin/ will have .com extension and run on all
-# supported platforms without recompilation.
+# The resulting binaries in build/cosmopolitan/bin/ will have .com extension
+# and run on all supported platforms without recompilation.
 
 COSMO_ROOT = ENV['COSMO_ROOT']
 
@@ -37,7 +37,7 @@ unless COSMO_ROOT && File.directory?(COSMO_ROOT)
   raise msg
 end
 
-MRuby::Build.new do |conf|
+MRuby::Build.new('cosmopolitan') do |conf|
   # C compiler
   conf.cc do |cc|
     cc.command = "#{COSMO_ROOT}/bin/cosmocc"
