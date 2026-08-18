@@ -425,11 +425,56 @@ assert("Regexp - \\u escapes in a character class") do
   assert_nil (/[\u{3042}-\u{3044}]/ =~ "\xe3\x81\x85")
   assert_equal 0, (/[a-\u{7a}]/ =~ "q")
 
-  # every codepoint of a list is a member of its own, and the last one can
-  # still open a range
+  # every codepoint of a list is a member of its own, and the one next to a
+  # '-' still opens or closes a range: the last before it, the first after it
   assert_equal ["a", "b"], "abc".scan(/[\u{61 62}]/)
   assert_equal ["a", "b", "c"], "abc-".scan(/[\u{61 62}-z]/)
+  assert_equal ["a", "b", "c", "z"], "abcdz-".scan(/[a-\u{63 7a}]/)
   assert_equal ["c"], "abc".scan(/[^\u{61 62}]/)
+end
+
+assert("Regexp - a \\u list closing a character class range") do
+  # The codepoint next to the '-' is the range end and the rest of the list
+  # are members. The end used to be the last codepoint of the list, so the
+  # class held a different set from CRuby's in either direction: `a-z` plus
+  # `c` for /[a-\u{63 7a}]/, and `z` alone for /[a-\u{7a 41}]/, whose range
+  # ran from `a` down to `A` and was dropped.
+  assert_equal ["a", "b", "c", "z"], "abcdz".scan(/[a-\u{63 7a}]/)
+  assert_equal ["a", "A", "z"], "aAzB".scan(/[a-\u{7a 41}]/)
+  assert_equal ["a", "b", "c", "d"], "abcde".scan(/[\u{61 62}-\u{63 64}]/)
+  # which is also the codepoint a reversed range is reported for
+  assert_raise_with_message(RegexpError, "empty range in char class: /[b-\\u{61 63}]/") do
+    Regexp.new("[b-\\u{61 63}]")
+  end
+  if __ENCODING__ == "UTF-8"
+    assert_equal ["あ", "ぃ", "う"], "あぃぅう".scan(/[\u{3042}-\u{3044 3046}]/)
+    assert_equal ["あ", "ぅ"], "あぃぅ".scan(/[\u{3044}-\u{3046 3042}]/)
+    assert_raise(RegexpError) { Regexp.new("[\\u{3044}-\\u{3042 3046}]") }
+  end
+end
+
+assert("Regexp - reversed character class range through \\u") do
+  # `\u` can write a range backwards without the letters showing it. Such a
+  # range holds nothing, and it used to be dropped without a word: a positive
+  # class lacked the span and a negated one admitted everything.
+  assert_raise_with_message(RegexpError, "empty range in char class: /[\\u{62}-\\u{61}]/") do
+    Regexp.new("[\\u{62}-\\u{61}]")
+  end
+  assert_raise(RegexpError) { Regexp.new("[^\\u{62}-\\u{61}]") }
+  # the last codepoint of a list opens the range, so it is the one compared
+  assert_raise(RegexpError) { Regexp.new("[\\u{62 63}-a]") }
+  assert_equal ["a", "b"], "abc".scan(/[\u{62 61}-a]/)
+  # a range of one codepoint is not empty
+  assert_equal ["a"], "abc".scan(/[\u{61}-\u{61}]/)
+  assert_equal ["a"], "abc".scan(/[a-\u{61}]/)
+  # A range between two characters above ASCII compares their codepoints. On
+  # a build reading a String by byte the ends are the last bytes of their
+  # spellings, whose order is not the codepoints' order.
+  if __ENCODING__ == "UTF-8"
+    assert_raise(RegexpError) { Regexp.new("[\\u{3044}-\\u{3042}]") }
+    assert_raise(RegexpError) { Regexp.new("[\\u{100}-\\u{FF}]") }
+    assert_equal 0, (/[\u{3042}-\u{3042}]/ =~ "あ")
+  end
 end
 
 assert("Regexp - a \\u escape in a class names what spelling it out names") do
@@ -448,9 +493,11 @@ assert("Regexp - a \\u escape in a class names what spelling it out names") do
   # is what the written out spelling answers too.
   assert_true named.match?("\u{100}")
   # An ASCII codepoint is a member of its own on either build, and a list still
-  # gives every codepoint a membership with the last one able to open a range.
+  # gives every codepoint a membership with the one next to a '-' able to open
+  # or close a range.
   assert_equal ["a", "b"], "abc".scan(/[\u{61 62}]/)
   assert_equal ["a", "b", "c"], "abc-".scan(/[\u{61 62}-z]/)
+  assert_equal ["a", "b", "c", "z"], "abcdz-".scan(/[a-\u{63 7a}]/)
 end
 
 assert("Regexp - malformed \\u escapes") do

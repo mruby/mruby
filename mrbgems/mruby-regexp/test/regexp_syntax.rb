@@ -4,6 +4,24 @@ assert("Regexp - character class") do
   assert_equal "abc", md[0]
 end
 
+assert("Regexp - reversed character class range") do
+  # A range written backwards holds nothing. It used to compile to a class
+  # that silently lacked the span, or in the negated form admitted every
+  # character; CRuby raises for either.
+  assert_raise_with_message(RegexpError, "empty range in char class: /[b-a]/") do
+    Regexp.new("[b-a]")
+  end
+  assert_raise_with_message(RegexpError, "empty range in char class: /[^b-a]/") do
+    Regexp.new("[^b-a]")
+  end
+  assert_raise(RegexpError) { Regexp.new("[xz-ay]") }
+  # a range of one is not empty
+  assert_equal ["a"], "abc".scan(/[a-a]/)
+  # a '-' at either edge is a member, not a range
+  assert_equal ["-", "a"], "-ab".scan(/[-a]/)
+  assert_equal ["a", "-"], "abc-".scan(/[a-]/)
+end
+
 assert("Regexp - POSIX bracket classes") do
   # ASCII semantics, like this gem's \w/\d shorthands.
   assert_equal "abc", "123abc456".match(/[[:alpha:]]+/)[0]
