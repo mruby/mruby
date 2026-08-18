@@ -483,13 +483,18 @@ class_is_ascii_only(const re_charclass *cc)
 
 /* Set ASCII bits for a POSIX class name (e.g. "alpha") into a 128-bit map.
    Returns FALSE for an unknown name. Semantics are ASCII, like this gem's
-   \w/\d shorthands; non-ASCII codepoints are not classified. */
+   \w/\d shorthands; non-ASCII codepoints are not classified.
+
+   *ascii_set is TRUE for a name whose set ASCII defines, [:word:] and
+   [:ascii:], as opposed to one ASCII merely bounds here; the distinction is
+   what compile_charclass() folds by. */
 static mrb_bool
-posix_class_bits(uint8_t *bits, const char *name, size_t len)
+posix_class_bits(uint8_t *bits, const char *name, size_t len, mrb_bool *ascii_set)
 {
 #define NAME_IS(s) (len == sizeof(s) - 1 && memcmp(name, s, len) == 0)
 #define BSET(ch)   (bits[(ch) >> 3] |= (uint8_t)(1u << ((ch) & 7)))
 #define BRANGE(lo, hi) do { for (int i = (lo); i <= (hi); i++) BSET(i); } while (0)
+  *ascii_set = NAME_IS("word") || NAME_IS("ascii");
   if (NAME_IS("alpha")) { BRANGE('a','z'); BRANGE('A','Z'); }
   else if (NAME_IS("digit")) { BRANGE('0','9'); }
   else if (NAME_IS("alnum")) { BRANGE('a','z'); BRANGE('A','Z'); BRANGE('0','9'); }
@@ -796,6 +801,12 @@ compile_charclass(re_compiler *c)
     negated = TRUE;
   }
 
+  /* What \w, \W, [:word:] and [:ascii:] add is held apart until the class
+     has been closed under folding, and joins the bitmap after; see the fold
+     below for why. Only the bitmap and utf8_any are ever written here. */
+  re_charclass ascii_set;
+  memset(&ascii_set, 0, sizeof(ascii_set));
+
   mrb_bool first = TRUE;
   while (peek(c) != ']' || first) {
     if (peek(c) < 0) compile_error(c, "unterminated character class");
@@ -812,16 +823,18 @@ compile_charclass(re_compiler *c)
       while (peek(c) >= 0 && peek(c) != ':' && peek(c) != ']') next_char(c);
       if (peek(c) == ':' && c->p + 1 < c->src_end && c->p[1] == ']') {
         uint8_t bits[16] = {0};
-        if (!posix_class_bits(bits, name, (size_t)(c->p - name))) {
+        mrb_bool by_ascii;
+        if (!posix_class_bits(bits, name, (size_t)(c->p - name), &by_ascii)) {
           compile_error(c, "invalid POSIX bracket class");
         }
         next_char(c);  /* ':' */
         next_char(c);  /* ']' */
+        re_charclass *dst = by_ascii ? &ascii_set : cc;
         for (int i = 0; i < 128; i++) {
           mrb_bool in = (bits[i >> 3] >> (i & 7)) & 1;
-          if (in != neg) class_set_bit(cc, (uint8_t)i);
+          if (in != neg) class_set_bit(dst, (uint8_t)i);
         }
-        if (neg) cc->utf8_any = TRUE;  /* [:^...:] matches non-ASCII too */
+        if (neg) dst->utf8_any = TRUE;  /* [:^...:] matches non-ASCII too */
         continue;
       }
       c->p = save;  /* not a POSIX class; treat '[' as a literal below */
@@ -836,7 +849,7 @@ compile_charclass(re_compiler *c)
           esc == 's' || esc == 'S' || esc == 'h' || esc == 'H') {
         next_char(c);  /* '\\' */
         next_char(c);  /* spec  */
-        class_add_shorthand(cc, esc);
+        class_add_shorthand((esc == 'w' || esc == 'W') ? &ascii_set : cc, esc);
         continue;
       }
     }
@@ -880,16 +893,28 @@ compile_charclass(re_compiler *c)
 
   /* Close the class under case folding for /i. This runs once the class is
      complete, so it covers every form the loop above merges in: POSIX
-     brackets, shorthands, ranges and single literals. Negation is applied at
-     match time against the same class (RE_NCLASS), so closing the positive
-     set is also what keeps [^a-c] and [^Ā] from accepting what they were
-     written to reject.
+     brackets, ranges and single literals. Negation is applied at match time
+     against the same class (RE_NCLASS), so closing the positive set is also
+     what keeps [^a-c] and [^Ā] from accepting what they were written to
+     reject.
 
      Closing means: x belongs to the class whenever some written member folds
      the same way x does. A byte member has no case: it stands for no character,
      so nothing folds to it and it folds to nothing. Every walk below steps over
      the tagged ranges, which is also what keeps /i from refusing a class of
-     continuation bytes on a build without the folding tables. */
+     continuation bytes on a build without the folding tables.
+
+     The word class and [:ascii:] are still held apart here, so the closure
+     never sees them. Each is a set ASCII defines: \w is [a-zA-Z0-9_] and no
+     more, so a fold that leaves ASCII leaves the set, and [\w] under /i is
+     the ASCII word characters where [k] under /i reaches U+212A. CRuby reads
+     them the same way, keeping the two out of the class it folds across the
+     boundary from, and it is what makes [^\w] under /i accept U+017F. Both
+     hold both cases of every letter they hold, so the ASCII part of the
+     closure has nothing to add to them, and joining them after it costs
+     nothing. The other POSIX brackets are ASCII here only for want of a
+     table, and stay in: CRuby folds them too, and there their members above
+     ASCII hold what the fold adds anyway. */
   if (c->flags & RE_FLAG_IGNORECASE) {
 #ifdef RE_UNICODE_CASE
     /* That takes two rounds rather than one walk in each direction, because a
@@ -975,6 +1000,9 @@ compile_charclass(re_compiler *c)
     if (class_get_bit(cc, 's')) class_add_codepoint(c, cc, RE_FOLD_LONG_S);
 #endif
   }
+
+  for (int i = 0; i < RE_CLASS_BITMAP_SIZE; i++) cc->bitmap[i] |= ascii_set.bitmap[i];
+  if (ascii_set.utf8_any) cc->utf8_any = TRUE;
 
   cc->negated = negated;
   emit(c, negated ? RE_NCLASS : RE_CLASS, (uint8_t)id, 0);

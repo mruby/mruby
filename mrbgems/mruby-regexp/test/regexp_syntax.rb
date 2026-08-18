@@ -299,6 +299,60 @@ assert("Regexp - /i folds an ASCII letter's class whole") do
   assert_true Regexp.new("[^k]").match?(kelvin)
 end
 
+assert("Regexp - /i keeps the word class inside ASCII") do
+  # `\w` is [a-zA-Z0-9_] and no more, and [:word:] and [:ascii:] are sets
+  # ASCII defines the same way, so /i folds none of them across the boundary:
+  # the fold of a member that leaves ASCII leaves the set. CRuby reads them
+  # the same way. The negated forms are where it shows: [^\w] under /i has to
+  # accept U+212A and U+017F, which are not word characters, and used to
+  # reject them because the closure of [k] and [s] had been applied to `\w`.
+  # Both sources lie above ASCII, so they are characters only where the
+  # pattern and the subject are read as characters.
+  skip unless __ENCODING__ == "UTF-8"
+  kelvin = "K"
+  long_s = "ſ"
+  [kelvin, long_s].each do |ch|
+    assert_false Regexp.new("[\\w]", Regexp::IGNORECASE).match?(ch)
+    assert_true Regexp.new("[^\\w]", Regexp::IGNORECASE).match?(ch)
+    assert_false Regexp.new("[[:ascii:]]", Regexp::IGNORECASE).match?(ch)
+    assert_true Regexp.new("[^[:ascii:]]", Regexp::IGNORECASE).match?(ch)
+    # `\W` holds neither letter and everything above ASCII, so it takes both
+    # with or without the fold; the negated form is what a fold would break.
+    assert_true Regexp.new("[\\W]", Regexp::IGNORECASE).match?(ch)
+    assert_false Regexp.new("[^\\W]", Regexp::IGNORECASE).match?(ch)
+    # Outside a class the shorthand never folded, and still does not.
+    assert_false Regexp.new("\\w", Regexp::IGNORECASE).match?(ch)
+    assert_true Regexp.new("\\W", Regexp::IGNORECASE).match?(ch)
+    # /i does not move either in or out of [:word:], whatever the set holds
+    # (this gem's is the ASCII word characters; CRuby's holds every Unicode
+    # word character, these two among them).
+    assert_equal Regexp.new("[[:word:]]").match?(ch),
+                 Regexp.new("[[:word:]]", Regexp::IGNORECASE).match?(ch)
+    assert_equal Regexp.new("[^[:word:]]").match?(ch),
+                 Regexp.new("[^[:word:]]", Regexp::IGNORECASE).match?(ch)
+  end
+  # A letter written out beside the shorthand folds as it does on its own:
+  # the class then holds it by name as well as through `\w`, and the name is
+  # what folds. Either case of the letter, in either order, and a range too.
+  assert_true Regexp.new("[\\ws]", Regexp::IGNORECASE).match?(long_s)
+  assert_true Regexp.new("[\\wS]", Regexp::IGNORECASE).match?(long_s)
+  assert_true Regexp.new("[k\\w]", Regexp::IGNORECASE).match?(kelvin)
+  assert_true Regexp.new("[\\wa-z]", Regexp::IGNORECASE).match?(long_s)
+  assert_false Regexp.new("[^\\ws]", Regexp::IGNORECASE).match?(long_s)
+  # Naming one letter folds that letter and no other.
+  assert_false Regexp.new("[\\wk]", Regexp::IGNORECASE).match?(long_s)
+  assert_false Regexp.new("[\\ws]", Regexp::IGNORECASE).match?(kelvin)
+  # The other direction is untouched: a member above ASCII still folds to the
+  # letter, and reaches the letter's other case through it.
+  assert_true Regexp.new("[\\w#{long_s}]", Regexp::IGNORECASE).match?("S")
+  assert_false Regexp.new("[^\\w#{long_s}]", Regexp::IGNORECASE).match?("S")
+  # The other POSIX brackets fold like a written range: [:lower:] holds `k`,
+  # so under /i it reaches U+212A, and [^[:alpha:]] rejects U+017F.
+  assert_true Regexp.new("[[:lower:]]", Regexp::IGNORECASE).match?(kelvin)
+  assert_true Regexp.new("[[:alpha:]]", Regexp::IGNORECASE).match?(long_s)
+  assert_false Regexp.new("[^[:alpha:]]", Regexp::IGNORECASE).match?(long_s)
+end
+
 assert("Regexp - repetition {n,m}") do
   assert_equal "aaa", Regexp.new("a{3}").match("aaaa")[0]
   assert_equal "aa", Regexp.new("a{2,3}").match("aa")[0]

@@ -271,7 +271,10 @@ means the pattern wants a build that converts case by Unicode.
 Those two are the only foldings whose result is an ASCII letter, and both
 builds carry them, so that folding "ASCII only" covers the whole of the
 equivalence class an ASCII letter belongs to rather than the part of it that
-is ASCII.
+is ASCII. A class holding the letter only through `\w`, `[:word:]` or
+`[:ascii:]` does not reach them: those are sets ASCII defines, so `[\w]`
+under `/i` stays the ASCII word characters and `[^\w]` accepts `"K"` (U+212A),
+as in CRuby. A letter written out beside the shorthand (`[\ws]`) folds as usual.
 
 ## License
 
