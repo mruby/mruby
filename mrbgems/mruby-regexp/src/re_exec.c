@@ -637,18 +637,36 @@ lookbehind_start(const mrb_regexp_pattern *pat, const char *str,
 #define BT_LIMIT 2
 #define BT_CUT(atomic_depth) (-(int)(atomic_depth))
 
+/* What one backtrack_exec() call shares between its bt_match() frames: the
+   pattern, the subject, the capture slots being written and the step count.
+   A frame's own state is its position, its pc and its depth. */
+typedef struct {
+  const mrb_regexp_pattern *pat;
+  const char *str;
+  const char *str_end;
+  int *captures;
+  int ncap;
+  int steps;
+  mrb_bool binary;
+} bt_state;
+
 /*
  * Backtracking engine for patterns with backreferences.
  * Step-limited to prevent ReDoS.
  */
 static int
-bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
-         const char *sp, uint32_t pc, int *captures, int ncap, int *steps,
-         int depth, mrb_bool binary)
+bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
 {
+  const mrb_regexp_pattern *pat = m->pat;
+  const char *str = m->str;
+  const char *str_end = m->str_end;
+  int *captures = m->captures;
+  int ncap = m->ncap;
+  mrb_bool binary = m->binary;
+
   if (depth > MRB_REGEXP_RECURSION_LIMIT) return BT_LIMIT;
   while (pc < pat->code_len) {
-    if (++(*steps) > MRB_REGEXP_STEP_LIMIT) return BT_LIMIT;
+    if (++m->steps > MRB_REGEXP_STEP_LIMIT) return BT_LIMIT;
 
     re_inst inst = pat->code[pc];
     switch (inst.op) {
@@ -700,7 +718,7 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
 
     case RE_SPLIT:
       {
-        int r = bt_match(pat, str, str_end, sp, pc + 1, captures, ncap, steps, depth + 1, binary);
+        int r = bt_match(m, sp, pc + 1, depth + 1);
         if (r != BT_FAIL && r != BT_LIMIT) return r;
       }
       pc = inst.offset;
@@ -708,7 +726,7 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
 
     case RE_SPLITNG:
       {
-        int r = bt_match(pat, str, str_end, sp, inst.offset, captures, ncap, steps, depth + 1, binary);
+        int r = bt_match(m, sp, inst.offset, depth + 1);
         if (r != BT_FAIL && r != BT_LIMIT) return r;
       }
       pc++;
@@ -727,7 +745,7 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
         if (slot < ncap) {
           int old = captures[slot];
           captures[slot] = (int)(sp - str);
-          int r = bt_match(pat, str, str_end, sp, pc + 1, captures, ncap, steps, depth + 1, binary);
+          int r = bt_match(m, sp, pc + 1, depth + 1);
           if (r == BT_MATCH) return r;
           /* undone for a cut as for a failure: the group the cut fails may
              be the one this slot was written inside */
@@ -812,7 +830,7 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
         /* A sub-pattern answers BT_MATCH, BT_FAIL or BT_LIMIT, never a cut.
            The two failures go up as they are; the four lookarounds only
            differ in what a match means. */
-        int r = bt_match(pat, str, str_end, sp, pc + 1, captures, ncap, steps, depth + 1, binary);
+        int r = bt_match(m, sp, pc + 1, depth + 1);
         if (r != BT_MATCH) return r;
         pc = inst.offset;
       }
@@ -820,7 +838,7 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
 
     case RE_NEG_LOOKAHEAD:
       {
-        int r = bt_match(pat, str, str_end, sp, pc + 1, captures, ncap, steps, depth + 1, binary);
+        int r = bt_match(m, sp, pc + 1, depth + 1);
         if (r == BT_MATCH) return BT_FAIL;
         if (r == BT_LIMIT) return r;
         pc = inst.offset;
@@ -831,7 +849,7 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
       {
         const char *back = lookbehind_start(pat, str, str_end, sp, pc, binary);
         if (!back) return BT_FAIL;  /* not enough text before */
-        int r = bt_match(pat, str, str_end, back, pc + 2, captures, ncap, steps, depth + 1, binary);
+        int r = bt_match(m, back, pc + 2, depth + 1);
         if (r != BT_MATCH) return r;
         pc = inst.offset;
       }
@@ -841,7 +859,7 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
       {
         const char *back = lookbehind_start(pat, str, str_end, sp, pc, binary);
         if (back) {
-          int r = bt_match(pat, str, str_end, back, pc + 2, captures, ncap, steps, depth + 1, binary);
+          int r = bt_match(m, back, pc + 2, depth + 1);
           if (r == BT_MATCH) return BT_FAIL;
           if (r == BT_LIMIT) return r;
         }
@@ -857,7 +875,7 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
            here: the answer is passed up, except that a cut aimed at this
            group is this group failing, which the caller backtracks over the
            way it would any other failed atom. */
-        int r = bt_match(pat, str, str_end, sp, pc + 1, captures, ncap, steps, depth + 1, binary);
+        int r = bt_match(m, sp, pc + 1, depth + 1);
         return (r == BT_CUT(inst.offset)) ? BT_FAIL : r;
       }
 
@@ -867,7 +885,7 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
            when what follows fails, the failure is a cut, so that the SPLITs
            inside the body do not get to try their other branches. A limit
            is not the text failing and goes up as it is. */
-        int r = bt_match(pat, str, str_end, sp, pc + 1, captures, ncap, steps, depth + 1, binary);
+        int r = bt_match(m, sp, pc + 1, depth + 1);
         return (r == BT_FAIL) ? BT_CUT(inst.offset) : r;
       }
 
@@ -889,6 +907,13 @@ backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
   if (ncap == 0) ncap = 2;
 
   int *caps = (int*)mrb_malloc(mrb, sizeof(int) * ncap);
+  bt_state m;
+  m.pat = pat;
+  m.str = str;
+  m.str_end = str_end;
+  m.captures = caps;
+  m.ncap = ncap;
+  m.binary = binary;
 
   for (const char *sp = str + start; sp <= str_end && sp <= start_cap; sp++) {
     /* Skip ahead using literal prefix or first-byte bitmap */
@@ -906,9 +931,9 @@ backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
       continue;
     }
     memset(caps, -1, sizeof(int) * ncap);
-    int steps = 0;
+    m.steps = 0;
 
-    if (bt_match(pat, str, str_end, sp, 0, caps, ncap, &steps, 0, binary) == BT_MATCH) {
+    if (bt_match(&m, sp, 0, 0) == BT_MATCH) {
       if (captures) {
         int copy = ncap < captures_size ? ncap : captures_size;
         memcpy(captures, caps, sizeof(int) * copy);
