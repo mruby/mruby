@@ -71,7 +71,13 @@ end
 # prerequisites of its own: it runs every time and invokes the stamp
 # beside it, which has the prerequisites and holds the time of the last
 # generation.
-def generated_file(name, prerequisites, &block)
+#
+# The stamp also holds the list of the prerequisites and `inputs`, the
+# values the text depends on that are not files. A prerequisite that is
+# gone leaves the ones that remain older than the stamp, and a changed
+# input touches no file at all; the list catches both.
+def generated_file(name, prerequisites, inputs: [], &block)
+  record = (prerequisites + inputs).map { |v| "#{v}\n" }.join
   stamp = file "#{name}.stamp" => prerequisites do |t|
     mkdir_p File.dirname(name)
     fresh = "#{name}.tmp"
@@ -81,9 +87,11 @@ def generated_file(name, prerequisites, &block)
     else
       mv fresh, name
     end
-    touch t.name
+    File.write(t.name, record)
   end
-  stamp.define_singleton_method(:needed?) { super() || !File.exist?(name) }
+  stamp.define_singleton_method(:needed?) do
+    super() || !File.exist?(name) || File.read(self.name) != record
+  end
   source = file name do
     stamp.invoke
   end

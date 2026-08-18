@@ -241,7 +241,7 @@ module MRuby
 
       def define_gem_init_builder
         fname = "#{build_dir}/gem_init.c"
-        generated_file fname, [build.mrbcfile, __FILE__] + [rbfiles].flatten do |f|
+        generated_file fname, [build.mrbcfile, __FILE__] + [rbfiles].flatten, inputs: [cdump?, *objs] do |f|
           _pp "GEN", fname.relative_path
           generate_gem_init(f)
         end
