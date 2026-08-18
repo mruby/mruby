@@ -59,7 +59,9 @@ assert('String#strip') do
   assert_equal("  abc  ", s)
   assert_equal("", "".strip)
   assert_equal("", " \t\r\n\f\v".strip)
-  assert_equal("\0a", "\0a\0".strip)
+  assert_equal("a", "\0a\0".strip)
+  assert_equal("a", "\0 a \0".strip)
+  assert_equal("", "\0 \0".strip)
   assert_equal("abc", "abc".strip)
   assert_equal("abc", "  abc".strip)
   assert_equal("abc", "abc  ".strip)
@@ -71,7 +73,10 @@ assert('String#lstrip') do
   assert_equal("  abc  ", s)
   assert_equal("", "".lstrip)
   assert_equal("", " \t\r\n\f\v".lstrip)
-  assert_equal("\0a\0", "\0a\0".lstrip)
+  assert_equal("a\0", "\0a\0".lstrip)
+  assert_equal("a", "\0\0a".lstrip)
+  assert_equal("a \0", "\0 a \0".lstrip)
+  assert_equal("", "\0 \0".lstrip)
   assert_equal("abc", "abc".lstrip)
   assert_equal("abc", "  abc".lstrip)
   assert_equal("abc  ", "abc  ".lstrip)
@@ -84,6 +89,8 @@ assert('String#rstrip') do
   assert_equal("", "".rstrip)
   assert_equal("", " \t\r\n\f\v".rstrip)
   assert_equal("\0a", "\0a\0".rstrip)
+  assert_equal("\0 a", "\0 a \0".rstrip)
+  assert_equal("", "\0 \0".rstrip)
   assert_equal("abc", "abc".rstrip)
   assert_equal("  abc", "  abc".rstrip)
   assert_equal("abc", "abc  ".rstrip)
@@ -96,6 +103,12 @@ assert('String#strip!') do
   assert_equal("abc", s)
   assert_nil(t.strip!)
   assert_equal("abc", t)
+  u = "\0 a \0"
+  assert_equal("a", u.strip!)
+  assert_equal("a", u)
+  v = "\0 \0"
+  assert_equal("", v.strip!)
+  assert_equal("", v)
 end
 
 assert('String#lstrip!') do
@@ -105,6 +118,12 @@ assert('String#lstrip!') do
   assert_equal("abc  ", s)
   assert_nil(t.lstrip!)
   assert_equal("abc  ", t)
+  u = "\0 a \0"
+  assert_equal("a \0", u.lstrip!)
+  assert_equal("a \0", u)
+  v = "\0\0"
+  assert_equal("", v.lstrip!)
+  assert_equal("", v)
 end
 
 assert('String#rstrip!') do

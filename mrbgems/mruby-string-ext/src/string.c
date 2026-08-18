@@ -1591,19 +1591,12 @@ str_b(mrb_state *mrb, mrb_value self)
 }
 
 /*
- * Check if character is whitespace (space, tab, newline, carriage return, form feed, vertical tab)
+ * Check if character is whitespace for the strip family: space, tab, newline,
+ * carriage return, form feed, vertical tab, and NUL.  CRuby's `strip`,
+ * `lstrip` and `rstrip` all treat NUL as whitespace on both ends.
  */
 static inline mrb_bool
 is_whitespace(char c)
-{
-  return (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v');
-}
-
-/*
- * Check if character is whitespace or null (for rstrip)
- */
-static inline mrb_bool
-is_whitespace_or_null(char c)
 {
   return (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v' || c == '\0');
 }
@@ -1657,7 +1650,7 @@ str_rstrip(mrb_state *mrb, mrb_value self)
   mrb_int end = len;
 
   /* Find last non-whitespace character */
-  while (end > 0 && is_whitespace_or_null(ptr[end - 1])) {
+  while (end > 0 && is_whitespace(ptr[end - 1])) {
     end--;
   }
 
@@ -1694,7 +1687,7 @@ str_strip(mrb_state *mrb, mrb_value self)
   }
 
   /* Find last non-whitespace character */
-  while (end > start && is_whitespace_or_null(ptr[end - 1])) {
+  while (end > start && is_whitespace(ptr[end - 1])) {
     end--;
   }
 
@@ -1773,7 +1766,7 @@ str_rstrip_bang(mrb_state *mrb, mrb_value self)
   char *ptr = RSTR_PTR(s);
 
   /* Find last non-whitespace character */
-  while (end > 0 && is_whitespace_or_null(ptr[end - 1])) {
+  while (end > 0 && is_whitespace(ptr[end - 1])) {
     end--;
   }
 
@@ -1817,7 +1810,7 @@ str_strip_bang(mrb_state *mrb, mrb_value self)
   }
 
   /* Find last non-whitespace character */
-  while (end > start && is_whitespace_or_null(ptr[end - 1])) {
+  while (end > start && is_whitespace(ptr[end - 1])) {
     end--;
   }
 
