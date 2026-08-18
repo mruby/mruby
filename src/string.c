@@ -1248,8 +1248,29 @@ str_char_rindex(mrb_value str, mrb_value sub, mrb_int pos)
 #include <malloc.h>
 #include <windows.h>
 
-MRB_API int
-mrb_mbs_to_wcs(const char *mbsp, int len, wchar_t **wcsp, uint32_t from_cp)
+/* The conversion pair is written once and the allocator is what varies: `mrb`
+   is NULL for the public functions, which allocate with malloc() and answer a
+   refusal with -1, and non-NULL for the mrb_malloc() variants, where a failed
+   allocation raises instead. Everything else -- the length conventions, the
+   terminator, the -1 the code page answers a byte it cannot read with -- is
+   the same question either way, so it is asked in one place. */
+static void*
+w32_conv_alloc(mrb_state *mrb, size_t size)
+{
+  if (mrb) return mrb_malloc(mrb, size);
+  return malloc(size);
+}
+
+static void
+w32_conv_free(mrb_state *mrb, void *p)
+{
+  if (mrb) mrb_free(mrb, p);
+  else free(p);
+}
+
+static int
+w32_mbs_to_wcs(mrb_state *mrb, const char *mbsp, int len, wchar_t **wcsp,
+               uint32_t from_cp, uint32_t flags)
 {
   wchar_t *buf;
   int need;
@@ -1266,22 +1287,22 @@ mrb_mbs_to_wcs(const char *mbsp, int len, wchar_t **wcsp, uint32_t from_cp)
   }
 
   if (len == 0) {
-    buf = (wchar_t*)malloc(sizeof(wchar_t));
+    buf = (wchar_t*)w32_conv_alloc(mrb, sizeof(wchar_t));
     if (buf == NULL) return -1;
     buf[0] = L'\0';
     *wcsp = buf;
     return 0;
   }
 
-  need = MultiByteToWideChar(from_cp, 0, mbsp, len, NULL, 0);
+  need = MultiByteToWideChar(from_cp, flags, mbsp, len, NULL, 0);
   if (need <= 0 || (size_t)need >= SIZE_MAX / sizeof(wchar_t)) return -1;
 
-  buf = (wchar_t*)malloc(((size_t)need + 1) * sizeof(wchar_t));
+  buf = (wchar_t*)w32_conv_alloc(mrb, ((size_t)need + 1) * sizeof(wchar_t));
   if (buf == NULL) return -1;
 
-  written = MultiByteToWideChar(from_cp, 0, mbsp, len, buf, need);
+  written = MultiByteToWideChar(from_cp, flags, mbsp, len, buf, need);
   if (written <= 0) {
-    free(buf);
+    w32_conv_free(mrb, buf);
     return -1;
   }
 
@@ -1290,8 +1311,9 @@ mrb_mbs_to_wcs(const char *mbsp, int len, wchar_t **wcsp, uint32_t from_cp)
   return written;
 }
 
-MRB_API int
-mrb_wcs_to_mbs(const wchar_t *wcsp, int len, char **mbsp, uint32_t to_cp)
+static int
+w32_wcs_to_mbs(mrb_state *mrb, const wchar_t *wcsp, int len, char **mbsp,
+               uint32_t to_cp, uint32_t flags)
 {
   char *buf;
   int need;
@@ -1308,28 +1330,54 @@ mrb_wcs_to_mbs(const wchar_t *wcsp, int len, char **mbsp, uint32_t to_cp)
   }
 
   if (len == 0) {
-    buf = (char*)malloc(1);
+    buf = (char*)w32_conv_alloc(mrb, 1);
     if (buf == NULL) return -1;
     buf[0] = '\0';
     *mbsp = buf;
     return 0;
   }
 
-  need = WideCharToMultiByte(to_cp, 0, wcsp, len, NULL, 0, NULL, NULL);
+  need = WideCharToMultiByte(to_cp, flags, wcsp, len, NULL, 0, NULL, NULL);
   if (need <= 0) return -1;
 
-  buf = (char*)malloc((size_t)need + 1);
+  buf = (char*)w32_conv_alloc(mrb, (size_t)need + 1);
   if (buf == NULL) return -1;
 
-  written = WideCharToMultiByte(to_cp, 0, wcsp, len, buf, need, NULL, NULL);
+  written = WideCharToMultiByte(to_cp, flags, wcsp, len, buf, need, NULL, NULL);
   if (written <= 0) {
-    free(buf);
+    w32_conv_free(mrb, buf);
     return -1;
   }
 
   buf[written] = '\0';
   *mbsp = buf;
   return written;
+}
+
+MRB_API int
+mrb_mbs_to_wcs(const char *mbsp, int len, wchar_t **wcsp, uint32_t from_cp, uint32_t flags)
+{
+  return w32_mbs_to_wcs(NULL, mbsp, len, wcsp, from_cp, flags);
+}
+
+MRB_API int
+mrb_wcs_to_mbs(const wchar_t *wcsp, int len, char **mbsp, uint32_t to_cp, uint32_t flags)
+{
+  return w32_wcs_to_mbs(NULL, wcsp, len, mbsp, to_cp, flags);
+}
+
+int
+mrb_mbs_to_wcs_m(mrb_state *mrb, const char *mbsp, int len, wchar_t **wcsp,
+                 uint32_t from_cp, uint32_t flags)
+{
+  return w32_mbs_to_wcs(mrb, mbsp, len, wcsp, from_cp, flags);
+}
+
+int
+mrb_wcs_to_mbs_m(mrb_state *mrb, const wchar_t *wcsp, int len, char **mbsp,
+                 uint32_t to_cp, uint32_t flags)
+{
+  return w32_wcs_to_mbs(mrb, wcsp, len, mbsp, to_cp, flags);
 }
 
 MRB_API char*
@@ -1341,10 +1389,10 @@ mrb_utf8_from_locale(const char *str, int len)
 
   if (len == 0) return strdup("");
 
-  wcssize = mrb_mbs_to_wcs(str, len, &wcsp, GetACP());
+  wcssize = mrb_mbs_to_wcs(str, len, &wcsp, GetACP(), 0);
   if (wcssize < 0) return NULL;
 
-  if (mrb_wcs_to_mbs(wcsp, wcssize, &mbsp, CP_UTF8) < 0) {
+  if (mrb_wcs_to_mbs(wcsp, wcssize, &mbsp, CP_UTF8, 0) < 0) {
     free(wcsp);
     return NULL;
   }
@@ -1362,10 +1410,10 @@ mrb_locale_from_utf8(const char *utf8, int len)
 
   if (len == 0) return strdup("");
 
-  wcssize = mrb_mbs_to_wcs(utf8, len, &wcsp, CP_UTF8);
+  wcssize = mrb_mbs_to_wcs(utf8, len, &wcsp, CP_UTF8, 0);
   if (wcssize < 0) return NULL;
 
-  if (mrb_wcs_to_mbs(wcsp, wcssize, &mbsp, GetACP()) < 0) {
+  if (mrb_wcs_to_mbs(wcsp, wcssize, &mbsp, GetACP(), 0) < 0) {
     free(wcsp);
     return NULL;
   }

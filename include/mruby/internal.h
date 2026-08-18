@@ -240,6 +240,18 @@ void mrb_str_aset(mrb_state *mrb, mrb_value str, mrb_value idx, mrb_value len, m
 mrb_bool mrb_strcasecmp_p(const char *s1, mrb_int len1, const char *s2, mrb_int len2);
 #define MRB_STR_CASECMP_P(str, lit) \
   mrb_strcasecmp_p(RSTRING_PTR(str), RSTRING_LEN(str), lit, sizeof(lit"")-1)
+
+#ifdef _WIN32
+/* The mrb_malloc() half of mrb_mbs_to_wcs()/mrb_wcs_to_mbs(), for a caller
+   that holds an mrb_state and frees with mrb_free(). Allocation failure is
+   raised rather than returned, and a collection may run inside the call; a
+   conversion that the code page refuses is still the -1 the public pair
+   answers with. */
+int mrb_mbs_to_wcs_m(mrb_state *mrb, const char *mbsp, int len, wchar_t **out,
+                     uint32_t from_cp, uint32_t flags);
+int mrb_wcs_to_mbs_m(mrb_state *mrb, const wchar_t *wcsp, int len, char **out,
+                     uint32_t to_cp, uint32_t flags);
+#endif
 uint32_t mrb_byte_hash(const uint8_t*, mrb_int);
 uint32_t mrb_byte_hash_step(const uint8_t*, mrb_int, uint32_t);
 

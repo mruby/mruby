@@ -1340,9 +1340,15 @@ MRB_API mrb_value mrb_obj_freeze(mrb_state*, mrb_value);
 #define mrb_str_new_lit_frozen(mrb,lit) mrb_obj_freeze(mrb,mrb_str_new_lit(mrb,lit))
 
 #ifdef _WIN32
-/* Returns -1 on failure. If out is non-NULL, *out is set to NULL. */
-MRB_API int mrb_mbs_to_wcs(const char *mbsp, int len, wchar_t **out, uint32_t from_cp);
-MRB_API int mrb_wcs_to_mbs(const wchar_t *wcsp, int len, char **out, uint32_t to_cp);
+/* Convert between a multibyte string and a wide-character one, allocating the
+   answer with malloc() and always terminating it. `len` is a length or -1 for
+   a NUL-terminated input; `flags` is the dwFlags of the Win32 call, where 0
+   replaces a byte the code page cannot read and MB_ERR_INVALID_CHARS /
+   WC_ERR_INVALID_CHARS refuse it instead. The return is the converted length
+   without the terminator, or -1 on failure. If out is non-NULL, *out is set to
+   NULL, and is left NULL unless the conversion succeeds. */
+MRB_API int mrb_mbs_to_wcs(const char *mbsp, int len, wchar_t **out, uint32_t from_cp, uint32_t flags);
+MRB_API int mrb_wcs_to_mbs(const wchar_t *wcsp, int len, char **out, uint32_t to_cp, uint32_t flags);
 MRB_API char* mrb_utf8_from_locale(const char *p, int len);
 MRB_API char* mrb_locale_from_utf8(const char *p, int len);
 #define mrb_locale_free(p) free(p)
