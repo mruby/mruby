@@ -25,6 +25,8 @@ simulation) with backtracking fallback.
 - `(?!...)` negative lookahead
 - `(?<=...)` positive lookbehind (fixed-length only)
 - `(?<!...)` negative lookbehind (fixed-length only)
+- `(?imx-imx)` options for the rest of the enclosing group,
+  `(?imx-imx:...)` options for the group's own body
 
 ### Character Escapes
 
@@ -199,11 +201,6 @@ pattern analysis.
   start and keep the last match that qualifies. The cost grows with the
   number of positions a match starts at, where CRuby hands the search to
   Onig.
-- **No inline extended mode**: `(?x)` and `(?x:...)` raise a
-  `RegexpError`, because extended mode is applied to the whole pattern
-  before it is parsed. A `-x` is accepted and ignored, so inside a
-  pattern that is itself extended it does not bring back the
-  whitespace that pass removed.
 
 ## Named Captures
 

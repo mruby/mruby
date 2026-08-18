@@ -341,21 +341,42 @@ assert("Regexp - inline options (?i) / (?i:...)") do
   assert_equal 0, (/(?m:a.b)/ =~ "a\nb")
   assert_nil (/a.b/ =~ "a\nb")
 
-  # x (extended) cannot be scoped inline with the current architecture, so
-  # turning it on is rejected.
-  assert_raise(RegexpError) { Regexp.new("(?x)a b") }
-  assert_raise(RegexpError) { Regexp.new("(?x:a b)") }
+  # x (extended) is scoped inline like the other two: the toggle form
+  # reaches the end of the enclosing group, the scoped form its own body.
+  assert_equal 0, (/(?x)a b/ =~ "ab")
+  assert_nil (/(?x)a b/ =~ "a b")
+  assert_equal 0, (/(?x:a b)c d/ =~ "abc d")
+  assert_equal 0, (/(a(?x)b c)d e/ =~ "abcd e")
+  assert_equal 0, (/(?<n>(?x)a b)c d/ =~ "abc d")
+  assert_equal 0, (/(?=(?x)a b)ab c/ =~ "ab c")
+  assert_equal 0, (/(?xi)a b/ =~ "AB")
+  assert_equal 0, (/(?x)a b(?-x)c d/ =~ "abc d")
+  assert_equal 0, (/(?x:a(?-x:b c)d)/ =~ "ab cd")
 
-  # Turning it off is accepted, because Regexp#to_s writes a '-x' for every
-  # pattern that is not extended and that form has to recompile.
+  # Free-spacing follows the scope: a comment runs to the end of the line,
+  # a (?# group is dropped as always, and an escape or a class keeps its
+  # whitespace.
+  assert_equal 0, (/(?x)a#c
+b/ =~ "ab")
+  assert_equal 0, (/(?x)(?#c d) e/ =~ "e")
+  assert_equal 0, (/(?x)a\ b/ =~ "a b")
+  assert_equal 0, (/(?x)[a b]/ =~ " ")
+  assert_equal 0, (/[(?x] a/ =~ "( a")
+  assert_equal 0, (/\(?x a/ =~ "(x a")
+
+  # A comment swallows the rest of its line, closing parenthesis included,
+  # as it does in CRuby.
+  assert_true Regexp.new("(?x)a #b)").match?("a")
+  assert_raise(RegexpError) { Regexp.new("(?x)a #b\n(c") }
+
+  # Turning it off inside a pattern that is itself extended brings the
+  # whitespace back for that scope.
   assert_equal 0, (/(?-x:a b)/ =~ "a b")
   assert_equal 0, (/(?i-mx:a)b/ =~ "Ab")
   assert_true Regexp.new("(?-mix:a b)").match?("a b")
-
-  # The '-x' is dropped rather than honoured, so in a pattern that is
-  # itself extended the whitespace stays stripped. CRuby matches "a b"
-  # here.
-  assert_true Regexp.new("(?-x:a b)", Regexp::EXTENDED).match?("ab")
+  assert_true Regexp.new("(?-x:a b)", Regexp::EXTENDED).match?("a b")
+  assert_true Regexp.new("(?-x)a b", Regexp::EXTENDED).match?("a b")
+  assert_true Regexp.new("(?x)a b", Regexp::EXTENDED).match?("ab")
 end
 
 assert("Regexp - comment groups (?#...)") do
