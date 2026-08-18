@@ -687,6 +687,8 @@ assert('String#succ') do
 
   a = ""; a.succ!
   assert_equal "", a
+  assert_raise(FrozenError) { "".freeze.succ! }
+  assert_raise(FrozenError) { "a".freeze.succ! }
   a = "0"; a.succ!
   assert_equal "1", a
   a = "9"; a.succ!

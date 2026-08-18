@@ -1065,8 +1065,8 @@ str_succ_bang(mrb_state *mrb, mrb_value self)
   mrb_int carry_pos = 0;
   enum succ_step step = SUCC_FOUND;
 
-  if (slen == 0) return self;
   mrb_str_modify(mrb, s);
+  if (slen == 0) return self;
 #ifdef MRB_UTF8_STRING
   chars = !RSTR_BINARY_P(s);
 #endif
