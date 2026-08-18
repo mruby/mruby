@@ -6,7 +6,6 @@ MRuby.each_target do
 
     # loader all gems
     self.libmruby_objs << objfile("#{build_dir}/mrbgems/gem_init")
-    file objfile("#{build_dir}/mrbgems/gem_init") => ["#{build_dir}/mrbgems/gem_init.c", "#{build_dir}/LEGAL"]
     file "#{build_dir}/mrbgems/gem_init.c" => [active_gems_txt, MRUBY_CONFIG, __FILE__] do |t|
       mkdir_p "#{build_dir}/mrbgems"
       open(t.name, 'w') do |f|

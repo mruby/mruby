@@ -81,4 +81,7 @@ MRuby.each_target do
   end
 
   products << libmruby_static
+  # The license text of the gems in the archive is a product beside it, not
+  # a member of it.
+  products << "#{build_dir}/LEGAL"
 end
