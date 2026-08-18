@@ -85,6 +85,27 @@ assert("Regexp - /i does not read a byte above 127 as a character") do
   assert_equal 0, (Regexp.new(lead, Regexp::IGNORECASE) =~ lead.b)
 end
 
+assert("Regexp - a backreference under /i folds a byte-indexed subject by ASCII") do
+  # A byte-indexed subject hands the folded comparison bytes, and a byte above
+  # 127 is not the codepoint of the same value: 0xC0 is not U+00C0. The
+  # comparison folded it as if it were, so a build with the Unicode table
+  # paired 0xC0 with 0xE0 the way it pairs "À" with "à". The letters a byte
+  # can spell are the ASCII ones, and those still fold.
+  assert_nil ("\xC0\xE0".b =~ /(.)\1/i)
+  assert_nil ("\xC0a\xE0A".b =~ /(..)\1/i)
+  assert_equal 0, ("\xC0\xC0".b =~ /(.)\1/i)
+  assert_equal 0, ("\xC0a\xC0A".b =~ /(..)\1/i)
+  assert_equal 0, ("aA".b =~ /(.)\1/i)
+  # Nor does a byte take the fold of the character it is part of. Read as
+  # characters "s" and "ſ" fold alike (U+017F to 's', which every build
+  # carries), and the same bytes read one at a time have no character to fold.
+  # A skip here would drop the assertions above, so this is a branch.
+  if __ENCODING__ == "UTF-8"
+    assert_equal 0, ("sſ" =~ /(.)\1/i)
+    assert_nil ("sſ".b =~ /(.)\1/i)
+  end
+end
+
 assert("Regexp - quantifier on a multibyte literal") do
   # The bytes of a multibyte literal used to be separate atoms, so a
   # quantifier bound to the last one: /Ā+/ was \xC4(\x80)+ and stopped after

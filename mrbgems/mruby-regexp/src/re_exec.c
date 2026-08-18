@@ -62,6 +62,18 @@ class_match(const re_charclass *cc, uint32_t cp, mrb_bool raw)
   return cc->utf8_any;
 }
 
+/* The fold of one unit of the subject. A byte-indexed subject hands out
+   bytes, and a byte above 127 is not the codepoint of the same value: 0xC0 is
+   not U+00C0, so folding it to 0xE0 would pair two bytes that spell no letter
+   in common. The letters a byte can spell are the ASCII ones, and those fold
+   as they do everywhere. */
+static inline uint32_t
+subject_fold(uint32_t c, mrb_bool binary)
+{
+  if (binary && c >= 128) return c;
+  return mrb_re_case_fold(c);
+}
+
 /* Compare two spans ignoring case. Returns how many bytes of `a` were
    consumed, or -1 when they differ. The count is not always the length of
    `b`: with Unicode folding a counterpart can be a different width (U+212A
@@ -77,7 +89,7 @@ memcmp_ci(const char *a, const char *a_end, const char *b, const char *b_end,
     int alen = 0, blen = 0;
     uint32_t ca = mrb_re_decode_char(a, a_end, &alen, binary);
     uint32_t cb = mrb_re_decode_char(b, b_end, &blen, binary);
-    if (mrb_re_case_fold(ca) != mrb_re_case_fold(cb)) return -1;
+    if (subject_fold(ca, binary) != subject_fold(cb, binary)) return -1;
     a += alen;
     b += blen;
   }
