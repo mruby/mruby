@@ -97,19 +97,25 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
   # Route Prism's allocator to libc there too: the C++ core exports mrb_malloc
   # with C++ linkage, which the C-compiled Prism objects could not resolve, and
   # Prism's parse memory is transient and freed through the same libc path.
-  # The clone happens inside the file task (not here) so cc.flags is already
-  # fully populated with the build's generated-header include flags.
-  Dir.glob("#{prism_dir}/src/**/*.c").map do |src|
-    obj = objfile(src.pathmap("#{build_dir}/lib/%n"))
-    objs << obj
-    file obj => [src] do |f|
-      prism_cc = cc
-      if build.cxx_abi_enabled?
-        prism_cc = cc.clone
-        prism_cc.flags = cc.flags.flatten - [cc.cxx_compile_flag].flatten
-        prism_cc.defines = cc.defines + %w(MRC_ALLOC_LIBC)
+  # The compiler is derived when a rule is first resolved (not here) so cc is
+  # already fully populated with the build's generated-header include flags.
+  #
+  # The objects go through the rules like every other object of the gem, so
+  # that a change to a Prism header or to the compile flags rebuilds them.
+  prism_src_dir = "#{prism_dir}/src"
+  prism_obj_dir = "#{build_dir}/lib"
+  prism_cc = nil
+  cc.define_rules(prism_obj_dir, prism_src_dir) do
+    prism_cc ||= if build.cxx_abi_enabled?
+      cc.clone.tap do |c|
+        c.flags = cc.flags.flatten - [cc.cxx_compile_flag].flatten
+        c.defines = cc.defines + %w(MRC_ALLOC_LIBC)
       end
-      prism_cc.run f.name, f.prerequisites.first
+    else
+      cc
     end
+  end
+  Dir.glob("#{prism_src_dir}/**/*.c").each do |src|
+    objs << objfile(src.relative_path_from(prism_src_dir).pathmap("#{prism_obj_dir}/%X"))
   end
 end
