@@ -818,6 +818,64 @@ assert('String#succ steps a string with no alphanumeric by character') do
   end
 end
 
+assert('String#succ steps over punctuation and symbols above ASCII') do
+  # Punctuation, a symbol or a combining mark above ASCII is not a letter:
+  # the rightmost letter or digit before it steps, and it stays as it is.
+  assert_equal "b、", "a、".succ
+  assert_equal "10、", "9、".succ
+  assert_equal "aa、", "z、".succ
+  assert_equal "2、0", "1、9".succ
+  assert_equal "・§aa", "・§z".succ
+  assert_equal "\u{80}aa", "\u{80}z".succ
+  assert_equal "b«", "a«".succ
+  assert_equal "b¿a", "a¿z".succ
+  assert_equal "b×", "a×".succ
+  assert_equal "b€", "a€".succ
+  assert_equal "b\u{3000}", "a\u{3000}".succ
+  assert_equal "b！", "a！".succ
+  assert_equal "b㈱", "a㈱".succ
+  assert_equal "b⼀", "a⼀".succ
+  assert_equal "b\u{FEFF}", "a\u{FEFF}".succ
+  assert_equal "b\u{FFFD}", "a\u{FFFD}".succ
+  assert_equal "f\u{301}", "e\u{301}".succ
+  assert_equal "b\u{3099}", "a\u{3099}".succ
+  assert_equal "b\u{200D}", "a\u{200D}".succ
+  assert_equal "b\u{263A}\u{FE0F}", "a\u{263A}\u{FE0F}".succ
+  assert_equal "b\u{1F600}", "a\u{1F600}".succ
+  assert_equal "b\u{1F1EF}\u{1F1F5}", "a\u{1F1EF}\u{1F1F5}".succ
+  assert_equal "b\u{1F44D}\u{1F3FD}", "a\u{1F44D}\u{1F3FD}".succ
+  assert_equal ["a、", "b、", "c、"], ("a、".."c、").to_a
+
+  # A letter steps over one symbol between letters, as CRuby does.
+  assert_equal "Ø", "Ö".succ
+  assert_equal "ø", "ö".succ
+  assert_equal "aØ", "aÖ".succ
+
+  # The letters and numerals inside these blocks step as letters.
+  assert_equal "a〆", "a々".succ
+  assert_equal "a〇", "a〆".succ
+  assert_equal "aⅡ", "aⅠ".succ
+  assert_equal "aℋ", "aℊ".succ
+  assert_equal "aⓑ", "aⓐ".succ
+  assert_equal "a\u{1F171}", "a\u{1F170}".succ
+  assert_equal "aｂ", "aａ".succ
+  assert_equal "a１", "a０".succ
+
+  # A letter with a symbol after it is at its script's end. CRuby wraps it
+  # to the script's start ("aｚ" to "bａ"); this build cannot name the
+  # start, so the letter stays and the walk moves on to the left.
+  assert_equal "bｚ", "aｚ".succ
+  assert_equal "b〇", "a〇".succ
+
+  # With no letter or digit, the last character steps whatever it is.
+  assert_equal "。", "、".succ
+  assert_equal "\u{1F601}", "\u{1F600}".succ
+  assert_equal "Ø", "×".succ
+
+  a = "a、"; a.succ!
+  assert_equal "b、", a
+end if UTF8STRING
+
 assert('String#insert') do
   assert_equal "Xabcd", "abcd".insert(0, 'X')
   assert_equal "abcXd", "abcd".insert(3, 'X')

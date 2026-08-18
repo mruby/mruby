@@ -974,6 +974,74 @@ succ_utf8_write(char *p, mrb_int len, mrb_int cp)
   memcpy(p, buf, len);
   return TRUE;
 }
+
+/* Runs of code points above ASCII that are neither letter nor digit: the
+   punctuation, symbol and mark blocks beside Latin and CJK text, and the
+   emoji. `succ_alnum()` passes over these to the letter or digit before
+   them, "a、" to "b、", and steps a letter over a run of one, "Ö" to "Ø"
+   across "×".
+
+   Each run holds only code points that CRuby's `succ` (Unicode 17.0.0)
+   steps as neither letter nor digit, and reaches as far as that holds: the
+   code point before it and the one after it are stepped there. What CRuby
+   steps inside these blocks, the subscript letters, the letterlike symbols
+   and Roman numerals, the circled letters, 々 〆 〇 and the Suzhou numerals,
+   lies between two runs. Runs of the same shape in other scripts, the Greek
+   and Hebrew punctuation, the Arabic and Indic signs, are not here.
+
+   The runs are in ascending order. Plane 1 is a second table with 0x10000
+   taken off each bound, so that both fit `uint16_t`. */
+static const uint16_t succ_symbol_bmp[][2] = {
+  { 0x0080, 0x00BF }, { 0x00D7, 0x00D7 }, { 0x00F7, 0x00F7 },  /* Latin-1 Supplement: controls, ¡ to ¿, ×, ÷ */
+  { 0x02ED, 0x0362 },                                          /* Combining Diacritical Marks, and the modifier symbols before them */
+  { 0x1FFD, 0x208F },                                          /* General Punctuation, Superscripts and Subscripts, and the Greek accents before them */
+  { 0x209D, 0x2109 },                                          /* Currency Symbols, Combining Diacritical Marks for Symbols */
+  { 0x2114, 0x2118 }, { 0x211E, 0x2123 }, { 0x2125, 0x2125 },  /* Letterlike Symbols, between its letters */
+  { 0x2127, 0x2127 }, { 0x2129, 0x2129 }, { 0x212E, 0x212E },
+  { 0x213A, 0x213B }, { 0x2140, 0x2144 }, { 0x214A, 0x215F },  /* .. and the fractions of Number Forms */
+  { 0x2189, 0x24B5 },                                          /* Arrows through the circled numbers */
+  { 0x24EA, 0x2BFF },                                          /* Box Drawing through Miscellaneous Symbols and Arrows */
+  { 0x2E00, 0x3004 },                                          /* Supplemental Punctuation, the radicals, 　 、 。 〃 〄 */
+  { 0x3008, 0x3020 }, { 0x302A, 0x3030 }, { 0x3036, 0x3037 },  /* CJK Symbols and Punctuation, between its letters */
+  { 0x303D, 0x3040 },
+  { 0x3097, 0x309C }, { 0x30A0, 0x30A0 }, { 0x30FB, 0x30FB },  /* the kana marks ゛ ゜ ゠ ・ */
+  { 0x3200, 0x33FF },                                          /* Enclosed CJK Letters and Months, CJK Compatibility */
+  { 0xFDFC, 0xFE6F },                                          /* Variation Selectors through Small Form Variants */
+  { 0xFEFD, 0xFF0F }, { 0xFF1A, 0xFF20 }, { 0xFF3B, 0xFF40 },  /* the byte order mark, fullwidth punctuation */
+  { 0xFF5B, 0xFF65 },
+  { 0xFFDD, 0xFFFF },                                          /* fullwidth signs, Specials */
+};
+
+static const uint16_t succ_symbol_smp[][2] = {
+  { 0xEEBC, 0xF12F },                                          /* Mahjong Tiles through the digits of Enclosed Alphanumeric Supplement */
+  { 0xF14A, 0xF14F }, { 0xF16A, 0xF16F },                      /* between its squared and circled letters */
+  { 0xF18A, 0xFBEF },                                          /* regional indicators, the emoji, Symbols for Legacy Computing */
+};
+
+static mrb_bool
+succ_symbol_p(mrb_int cp)
+{
+  const uint16_t (*t)[2];
+  size_t i, n;
+
+  if (cp < 0x10000) {
+    t = succ_symbol_bmp;
+    n = sizeof(succ_symbol_bmp) / sizeof(succ_symbol_bmp[0]);
+  }
+  else if (cp < 0x20000) {
+    t = succ_symbol_smp;
+    n = sizeof(succ_symbol_smp) / sizeof(succ_symbol_smp[0]);
+    cp -= 0x10000;
+  }
+  else {
+    return FALSE;
+  }
+  for (i = 0; i < n; i++) {
+    if (cp < t[i][0]) return FALSE;
+    if (cp <= t[i][1]) return TRUE;
+  }
+  return FALSE;
+}
 #endif
 
 /* Step the character at `p` as an alphanumeric, which is what String#succ
@@ -983,14 +1051,22 @@ succ_utf8_write(char *p, mrb_int len, mrb_int cp)
    string read as bytes, is not one.
 
    CRuby asks the encoding what a letter or digit is, so a Unicode letter
-   steps within its script and wraps at the script's end, "ת" to "אא". This
-   build carries no such table, so a UTF-8 character above ASCII counts as a
-   letter when the next code point is a character of the same byte length,
-   which steps "aÿ" to "aĀ" and "1あ" to "1ぃ" as CRuby does; where CRuby
-   skips a gap in a script or wraps at its end, this steps to the code point
-   in the gap or the one past the end. A character that ends its byte length,
-   U+007F, U+07FF, U+FFFF and U+10FFFF, is not a letter here, and it is not
-   one in Unicode either. */
+   steps within its script, over a gap of one code point, and wraps at the
+   script's end, "ת" to "אא". This build has no table of the letters; it
+   has one of what is not a letter, `succ_symbol_bmp` and `succ_symbol_smp`,
+   over the blocks that most often sit beside one. A UTF-8 character above
+   ASCII in the table is not one, and the walk passes over it: "a、" to
+   "b、". One outside the table steps as a letter when the next code point,
+   or the one after that over a symbol, is a character of the same byte
+   length outside the table: "aÿ" to "aĀ", "1あ" to "1ぃ" and "Ö" to "Ø" as
+   CRuby does. It never carries. Where the code point after it is in the
+   table it is at its script's end, which CRuby wraps to a start this build
+   cannot name, so it is left as it is and the walk goes on to the left,
+   "aｚ" to "bｚ" where CRuby says "bａ". Where CRuby wraps at a script's
+   end the table does not reach, or skips a gap in a script, this steps to
+   the code point past the end or in the gap, "ת" to U+05EB. A character
+   that ends its byte length, U+007F, U+07FF, U+FFFF and U+10FFFF, is not a
+   letter here, and it is not one in Unicode either. */
 static enum succ_step
 succ_alnum(char *p, mrb_int len, char *carry)
 {
@@ -1008,7 +1084,11 @@ succ_alnum(char *p, mrb_int len, char *carry)
   {
     mrb_int l;
     mrb_int cp = (mrb_int)mrb_utf8_decode(p, p + len, &l);
-    if (succ_utf8_write(p, len, cp + 1)) return SUCC_FOUND;
+    mrb_int next = cp + 1;
+    if (succ_symbol_p(cp)) return SUCC_NOT_CHAR;
+    if (succ_symbol_p(next)) next++;
+    if (succ_symbol_p(next)) return SUCC_NOT_CHAR;
+    if (succ_utf8_write(p, len, next)) return SUCC_FOUND;
   }
 #endif
   return SUCC_NOT_CHAR;

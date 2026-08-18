@@ -682,9 +682,12 @@ Example:
 "-".succ         #=> "."
 "\xff".b.succ    #=> "\x01\x00"
 "ÿ".succ         #=> "Ā" (with MRB_UTF8_STRING)
+"a、".succ        #=> "b、" (with MRB_UTF8_STRING)
 ```
 
-CRuby also increments letters and digits beyond ASCII within their own script, so `"ת".succ` is `"אא"` there. mruby carries no table of which characters those are; a UTF-8 character above ASCII counts as a letter when the next code point is a character of the same byte length. `"aÿ".succ` is `"aĀ"` as in CRuby, while `"ת".succ` is `"\u05EB"`.
+Which characters step and which carry, in a UTF-8 string: an ASCII letter or digit steps, and carries when it wraps. Punctuation, a symbol or a combining mark neither steps nor carries while the string holds a letter or digit; the walk passes over it, so `"a、".succ` is `"b、"`, `"a😀".succ` is `"b😀"` and `"e\u0301".succ` is `"f\u0301"`. Above ASCII, these are the code points of a table in the gem (`succ_symbol_bmp` and `succ_symbol_smp` in `src/string.c`) covering the punctuation, symbol and mark blocks around Latin and CJK text and the emoji. Any other character above ASCII steps as a letter when the next code point, or the one after it over a single symbol, is a character of the same byte length outside the table: `"aÿ".succ` is `"aĀ"`, `"1あ".succ` is `"1ぃ"`, `"Ö".succ` is `"Ø"`. It never carries.
+
+CRuby knows every script's letters and digits, steps them within their script and wraps at its end, so `"ת".succ` is `"אא"` and `"aｚ".succ` is `"bａ"` there. mruby steps `"ת"` to `"\u05EB"`, the code point past the end; and where the code point after a letter is in the table, it leaves the letter and moves on to the left, so `"aｚ".succ` is `"bｚ"`. Punctuation of other scripts, the Greek `;` or the Arabic `،`, is not in the table and steps as a letter does.
 
 ### `String#succ!` (alias `String#next!`)
 
