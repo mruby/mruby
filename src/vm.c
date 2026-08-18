@@ -4070,6 +4070,8 @@ RETRY_TRY_BLOCK:
     goto RETRY_TRY_BLOCK;
   }
   MRB_END_EXC(&c_jmp);
+  /* not reached */
+  return mrb_nil_value();
 }
 
 static mrb_value
