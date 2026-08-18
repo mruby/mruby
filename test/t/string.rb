@@ -498,7 +498,7 @@ end if UNICODECASE
 
 assert('String case conversion - ASCII only') do
   # The other reading of case: a build that converts by ASCII, whether by
-  # MRB_USE_ASCII_CASE or by reading its strings as bytes, has no mapping above
+  # MRB_USE_ASCII_CTYPE or by reading its strings as bytes, has no mapping above
   # ASCII, so a character that has one on the Unicode side stands as it was
   # while the ASCII beside it still converts.
   assert_equal 'Ä', 'Ä'.downcase

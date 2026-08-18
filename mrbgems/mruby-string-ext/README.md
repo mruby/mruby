@@ -809,7 +809,7 @@ Example:
 "aBcDeF".casecmp?("abcdeg")    #=> false
 ```
 
-On a build defining `MRB_UTF8_STRING`, folding follows Unicode, and one folding may spell a character as several. `MRB_USE_ASCII_CASE` narrows it back to ASCII:
+On a build defining `MRB_UTF8_STRING`, folding follows Unicode, and one folding may spell a character as several. `MRB_USE_ASCII_CTYPE` narrows it back to ASCII:
 
 ```ruby
 "ä".casecmp?("Ä")     #=> true

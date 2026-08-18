@@ -400,13 +400,13 @@ enum mrb_case_mode {
    which is what every build without the tables answers to every string.
    `swapcase` lives in mruby-string-ext and reaches the tables through this, so
    they are asked about in one place. */
-#if defined(MRB_UTF8_STRING) && !defined(MRB_USE_ASCII_CASE)
+#if defined(MRB_UTF8_STRING) && !defined(MRB_USE_ASCII_CTYPE)
 int mrb_str_case_convert_unicode(mrb_state *mrb, mrb_value str, enum mrb_case_mode mode);
 #else
 #define mrb_str_case_convert_unicode(mrb, str, mode) (-1)
 #endif
 
-#if defined(MRB_UTF8_STRING) && !defined(MRB_USE_ASCII_CASE)
+#if defined(MRB_UTF8_STRING) && !defined(MRB_USE_ASCII_CTYPE)
 /* What case a character has, from the tables in unicase.c. A string is
    converted through mrb_str_case_convert_unicode() above; these are for a
    caller holding a codepoint rather than a string, which is mruby-regexp
@@ -464,7 +464,7 @@ void mrb_uni_case_fold_range(uint32_t lo, uint32_t hi,
 void mrb_uni_case_unfold_range(uint32_t lo, uint32_t hi,
                                void (*add)(void *, uint32_t, uint32_t), void *user);
 #endif  /* HAVE_MRUBY_REGEXP_GEM */
-#endif  /* MRB_UTF8_STRING && !MRB_USE_ASCII_CASE */
+#endif  /* MRB_UTF8_STRING && !MRB_USE_ASCII_CTYPE */
 
 /* attr accessor bodies (class.c); the VM compares function pointers against
    these to run attr calls without a full method-call frame */

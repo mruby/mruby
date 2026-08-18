@@ -2192,7 +2192,7 @@ mrb_str_aset_m(mrb_state *mrb, mrb_value str)
   return replace;
 }
 
-#if defined(MRB_UTF8_STRING) && !defined(MRB_USE_ASCII_CASE)
+#if defined(MRB_UTF8_STRING) && !defined(MRB_USE_ASCII_CTYPE)
 
 /* What the walk below makes of an ASCII character. Each method keeps its own
    loop over a string that holds nothing but ASCII, so this is reached only for
@@ -2363,7 +2363,7 @@ mrb_str_case_convert_unicode(mrb_state *mrb, mrb_value str, enum mrb_case_mode m
   return str_case_convert_utf8(mrb, str, mode) ? 1 : 0;
 }
 
-#endif  /* MRB_UTF8_STRING && !MRB_USE_ASCII_CASE */
+#endif  /* MRB_UTF8_STRING && !MRB_USE_ASCII_CTYPE */
 
 /* 15.2.10.5.8  */
 /*

@@ -1,5 +1,5 @@
 # Only compiled into mrbtest when the build converts case by ASCII, whether by
-# MRB_USE_ASCII_CASE or by reading its strings as bytes; see the gem's
+# MRB_USE_ASCII_CTYPE or by reading its strings as bytes; see the gem's
 # mrbgem.rake. Where it converts by Unicode, every pattern refused here
 # compiles and matches instead.
 assert("Regexp - /i refuses what ASCII folding cannot answer") do

@@ -59,7 +59,7 @@ MRuby::Build.new('byte-string') do |conf|
   conf.enable_test
 end
 
-MRuby::Build.new('ascii-case') do |conf|
+MRuby::Build.new('ascii-ctype') do |conf|
   conf.toolchain
 
   # The one build here that indexes by character and converts case by ASCII.
@@ -70,7 +70,7 @@ MRuby::Build.new('ascii-case') do |conf|
   # mruby-regexp/test/ascii_case.rb skips its assertions there.
   # Tests only, for the reason byte-string gives above.
   conf.gembox 'full-core'
-  conf.cc.defines << 'MRB_USE_ASCII_CASE'
+  conf.cc.defines << 'MRB_USE_ASCII_CTYPE'
 
   conf.enable_test
 end
