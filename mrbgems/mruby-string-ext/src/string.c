@@ -990,7 +990,10 @@ succ_utf8_write(char *p, mrb_int len, mrb_int cp)
    and Hebrew punctuation, the Arabic and Indic signs, are not here.
 
    The runs are in ascending order. Plane 1 is a second table with 0x10000
-   taken off each bound, so that both fit `uint16_t`. */
+   taken off each bound, so that both fit `uint16_t`. Above plane 1 the
+   letters are the CJK ideographs of planes 2 and 3, and from plane 14 up,
+   the tags, the variation selectors and the private use planes, there is
+   none, which `succ_symbol_p()` answers with a comparison. */
 static const uint16_t succ_symbol_bmp[][2] = {
   { 0x0080, 0x00BF }, { 0x00D7, 0x00D7 }, { 0x00F7, 0x00F7 },  /* Latin-1 Supplement: controls, ¡ to ¿, ×, ÷ */
   { 0x02ED, 0x0362 },                                          /* Combining Diacritical Marks, and the modifier symbols before them */
@@ -1006,6 +1009,7 @@ static const uint16_t succ_symbol_bmp[][2] = {
   { 0x303D, 0x3040 },
   { 0x3097, 0x309C }, { 0x30A0, 0x30A0 }, { 0x30FB, 0x30FB },  /* the kana marks ゛ ゜ ゠ ・ */
   { 0x3200, 0x33FF },                                          /* Enclosed CJK Letters and Months, CJK Compatibility */
+  { 0xE000, 0xF8FF },                                          /* Private Use Area */
   { 0xFDFC, 0xFE6F },                                          /* Variation Selectors through Small Form Variants */
   { 0xFEFD, 0xFF0F }, { 0xFF1A, 0xFF20 }, { 0xFF3B, 0xFF40 },  /* the byte order mark, fullwidth punctuation */
   { 0xFF5B, 0xFF65 },
@@ -1034,7 +1038,7 @@ succ_symbol_p(mrb_int cp)
     cp -= 0x10000;
   }
   else {
-    return FALSE;
+    return cp >= 0xE0000;
   }
   for (i = 0; i < n; i++) {
     if (cp < t[i][0]) return FALSE;
@@ -1053,20 +1057,20 @@ succ_symbol_p(mrb_int cp)
    CRuby asks the encoding what a letter or digit is, so a Unicode letter
    steps within its script, over a gap of one code point, and wraps at the
    script's end, "ת" to "אא". This build has no table of the letters; it
-   has one of what is not a letter, `succ_symbol_bmp` and `succ_symbol_smp`,
-   over the blocks that most often sit beside one. A UTF-8 character above
-   ASCII in the table is not one, and the walk passes over it: "a、" to
-   "b、". One outside the table steps as a letter when the next code point,
-   or the one after that over a symbol, is a character of the same byte
-   length outside the table: "aÿ" to "aĀ", "1あ" to "1ぃ" and "Ö" to "Ø" as
-   CRuby does. It never carries. Where the code point after it is in the
-   table it is at its script's end, which CRuby wraps to a start this build
-   cannot name, so it is left as it is and the walk goes on to the left,
-   "aｚ" to "bｚ" where CRuby says "bａ". Where CRuby wraps at a script's
-   end the table does not reach, or skips a gap in a script, this steps to
-   the code point past the end or in the gap, "ת" to U+05EB. A character
-   that ends its byte length, U+007F, U+07FF, U+FFFF and U+10FFFF, is not a
-   letter here, and it is not one in Unicode either. */
+   has one of what is not a letter, `succ_symbol_p()`, over the blocks that
+   most often sit beside one. A UTF-8 character above ASCII in the table is
+   not one, and the walk passes over it: "a、" to "b、". One outside the
+   table steps as a letter when the next code point, or the one after that
+   over a symbol, is a character of the same byte length outside the table:
+   "aÿ" to "aĀ", "1あ" to "1ぃ" and "Ö" to "Ø" as CRuby does. It never
+   carries. Where the code point after it is in the table it is at its
+   script's end, which CRuby wraps to a start this build cannot name, so it
+   is left as it is and the walk goes on to the left, "aｚ" to "bｚ" where
+   CRuby says "bａ". Where CRuby wraps at a script's end the table does not
+   reach, or skips a gap in a script, this steps to the code point past the
+   end or in the gap, "ת" to U+05EB. A character that ends its byte length,
+   U+007F, U+07FF, U+FFFF and U+10FFFF, is not a letter here, and it is not
+   one in Unicode either. */
 static enum succ_step
 succ_alnum(char *p, mrb_int len, char *carry)
 {

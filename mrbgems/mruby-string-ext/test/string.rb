@@ -844,6 +844,12 @@ assert('String#succ steps over punctuation and symbols above ASCII') do
   assert_equal "b\u{1F600}", "a\u{1F600}".succ
   assert_equal "b\u{1F1EF}\u{1F1F5}", "a\u{1F1EF}\u{1F1F5}".succ
   assert_equal "b\u{1F44D}\u{1F3FD}", "a\u{1F44D}\u{1F3FD}".succ
+  assert_equal "b\u{E000}", "a\u{E000}".succ
+  assert_equal "b\u{E0100}", "a\u{E0100}".succ
+  assert_equal "\u{845C}\u{E0100}", "\u{845B}\u{E0100}".succ
+  assert_equal "b\u{1F3F4}\u{E0067}\u{E0062}\u{E007F}", "a\u{1F3F4}\u{E0067}\u{E0062}\u{E007F}".succ
+  assert_equal "b\u{F0000}", "a\u{F0000}".succ
+  assert_equal "b\u{10FFFD}", "a\u{10FFFD}".succ
   assert_equal ["a、", "b、", "c、"], ("a、".."c、").to_a
 
   # A letter steps over one symbol between letters, as CRuby does.
@@ -870,6 +876,7 @@ assert('String#succ steps over punctuation and symbols above ASCII') do
   # With no letter or digit, the last character steps whatever it is.
   assert_equal "。", "、".succ
   assert_equal "\u{1F601}", "\u{1F600}".succ
+  assert_equal "\u{E0101}", "\u{E0100}".succ
   assert_equal "Ø", "×".succ
 
   a = "a、"; a.succ!
