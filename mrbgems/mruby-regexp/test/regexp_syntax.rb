@@ -164,6 +164,33 @@ assert("Regexp - the backtracking engine stops a repetition on an empty iteratio
   assert_equal "", /((c*)*)a??/.match("c")[2]
 end
 
+assert("Regexp - a repetition of a lookaround or a backreference stops the same way") do
+  # A lookaround is zero-width, and a backreference to a group that
+  # captured empty consumes nothing, so a repetition of either can run an
+  # empty iteration and stops on it. It used to run to the recursion limit,
+  # where the frame at the limit could not open the branch of a `?` that
+  # follows and answered with the branch that skips it.
+  assert_equal 0, /(?=)+/ =~ "a"
+  assert_equal "a", /(?=a)+a/.match("a")[0]
+  assert_equal "b", /(?:(?!a))*b?/.match("b")[0]
+  assert_equal "ab", /a(?:(?<=a))*b?/.match("ab")[0]
+  assert_equal 1, /(?:(?<!x))+b/ =~ "ab"
+  assert_equal "aab", /(?:a|(?!b))+?b/.match("aab")[0]
+  assert_equal "a", /(?>(?:(?=a))*)a/.match("a")[0]
+  assert_equal "aa", /(a*)\1*/.match("aa")[0]
+  assert_equal "b", /(a?)\1*b/.match("b")[0]
+  assert_equal "aab", /(?:(a)|\1)*b/.match("aab")[0]
+  assert_equal 1, /(?:(?=(a))\1?)*?b/.match("aab").begin(1)
+  # An iteration's record is undone when the iteration is backtracked out
+  # of, so an alternative of the earlier iteration that ends at the same
+  # position is not taken for an empty one: the loop goes round again from
+  # there, and the backreference sees what that alternative captured.
+  md = /(?:(a)b|a(b)|\2)*?c/.match("abbc")
+  assert_equal "abbc", md[0]
+  assert_equal "b", md[2]
+  assert_equal "abbc", /(?:(a)b|a(b)|\2)+c/.match("abbc")[0]
+end
+
 assert("Regexp - quantified first alternative does not leak into the next") do
   # A quantifier loops back to its own atom. When the atom starts the first
   # alternative, the alternation SPLIT is inserted in front of it; the

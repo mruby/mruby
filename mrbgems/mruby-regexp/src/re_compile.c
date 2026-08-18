@@ -2165,9 +2165,12 @@ first_set_walk(const re_inst *code, uint32_t code_len,
   return FALSE;
 }
 
-/* TRUE when an epsilon-only path runs from pc to goal, so the repetition that
-   goal closes can complete an iteration without consuming. seen[] is marked
-   with `mark` rather than cleared, so one buffer serves every edge. */
+/* TRUE when a path that need not consume runs from pc to goal, so the
+   repetition that goal closes can complete an iteration without consuming.
+   A lookaround is zero-width whatever its sub-pattern does, so the walk
+   steps over the sub-pattern; a backreference to a group that captured
+   empty consumes nothing, so it can be on such a path. seen[] is marked with
+   `mark` rather than cleared, so one buffer serves every edge. */
 static mrb_bool
 epsilon_path(const re_inst *code, uint32_t pc, uint32_t goal,
              uint32_t *seen, uint32_t mark)
@@ -2180,9 +2183,12 @@ epsilon_path(const re_inst *code, uint32_t pc, uint32_t goal,
     case RE_BOL: case RE_EOL: case RE_BOT: case RE_EOT: case RE_EOTNL:
     case RE_WBOUND: case RE_NWBOUND:
     case RE_ATOMIC: case RE_ATOMIC_END:
+    case RE_BACKREF:
       pc++;
       break;
     case RE_JMP:
+    case RE_LOOKAHEAD: case RE_NEG_LOOKAHEAD:
+    case RE_LOOKBEHIND: case RE_NEG_LOOKBEHIND:
       pc = code[pc].offset;
       break;
     case RE_SPLIT:
@@ -2191,7 +2197,7 @@ epsilon_path(const re_inst *code, uint32_t pc, uint32_t goal,
       pc++;
       break;
     default:
-      return FALSE;  /* consumes input, or is an assertion this walk cannot judge */
+      return FALSE;  /* consumes input */
     }
   }
   return TRUE;
