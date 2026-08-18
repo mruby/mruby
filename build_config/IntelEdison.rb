@@ -2,17 +2,6 @@
 # Get SDK from here: https://software.intel.com/en-us/iot/hardware/edison/downloads
 # REMEMBER to check and update the SDK root in the constant POKY_EDISON_PATH
 
-MRuby::Build.new do |conf|
-  toolchain :gcc
-  conf.gembox 'default'
-  conf.cc.defines = %w(MRB_USE_READLINE)
-  conf.gembox 'default'
-
-  #lightweight regular expression
-  conf.gem :github => "pbosetti/mruby-hs-regexp", :branch => "master"
-
-end
-
 # Define cross build settings
 MRuby::CrossBuild.new('core2-32-poky-linux') do |conf|
   toolchain :gcc
