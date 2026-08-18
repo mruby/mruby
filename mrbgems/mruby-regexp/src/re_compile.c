@@ -672,6 +672,9 @@ class_named_cp(re_compiler *c, re_charclass *cc, uint32_t cp, mrb_bool *is_byte)
    advances c->p. *is_byte says which of the two the value is: TRUE for a
    byte at or above 0x80 that starts no whole character, FALSE for ASCII, for
    a decoded codepoint and for `\u`, which names a codepoint outright.
+   closes_range says the atom follows a `-`, which matters to a `\u{...}`
+   list alone: the codepoint next to the `-` is the range end, and the rest
+   of the list are members.
 
    The question is the one the literal path already answers: emit_char_folded()
    decodes and stands aside when the decode consumed one byte, so `\xB5` and a
@@ -680,7 +683,7 @@ class_named_cp(re_compiler *c, re_charclass *cc, uint32_t cp, mrb_bool *is_byte)
    the pattern holds. A byte and a codepoint of the same number are different
    members, which is what the tag on the stored value records. */
 static uint32_t
-read_class_atom(re_compiler *c, re_charclass *cc, mrb_bool *is_byte)
+read_class_atom(re_compiler *c, re_charclass *cc, mrb_bool *is_byte, mrb_bool closes_range)
 {
   *is_byte = FALSE;
   if (peek(c) == '\\') {
@@ -690,9 +693,20 @@ read_class_atom(re_compiler *c, re_charclass *cc, mrb_bool *is_byte)
       mrb_bool more;
       uint32_t cp = unicode_escape_first(c, &more);
       uint32_t nx;
-      /* Every codepoint of a `\u{...}` list is a member of its own. All but
-         the last join the class here; the last is returned, so it can open a
-         range as any other atom would: `[\u{61 62}-z]` is `a` plus `b-z`. */
+      /* Every codepoint of a `\u{...}` list is a member of its own, apart
+         from the one next to a `-`, which is a range end as any other atom
+         would be. That is the last of the list before the `-` and the first
+         after it: `[\u{61 62}-z]` is `a` plus `b-z`, and `[a-\u{63 7a}]` is
+         `a-c` plus `z`. The rest join the class here. */
+      if (closes_range) {
+        uint32_t end = class_named_cp(c, cc, cp, is_byte);
+        while (unicode_escape_next(c, &more, &nx)) {
+          mrb_bool member_byte = FALSE;
+          uint32_t member = class_named_cp(c, cc, nx, &member_byte);
+          class_add_member(c, cc, member, member_byte);
+        }
+        return end;
+      }
       while (unicode_escape_next(c, &more, &nx)) {
         mrb_bool member_byte = FALSE;
         uint32_t member = class_named_cp(c, cc, cp, &member_byte);
@@ -787,13 +801,13 @@ compile_charclass(re_compiler *c)
     }
 
     mrb_bool cp_byte;
-    uint32_t cp = read_class_atom(c, cc, &cp_byte);
+    uint32_t cp = read_class_atom(c, cc, &cp_byte, FALSE);
 
     /* check for range a-z (or U+xxxx-U+yyyy) */
     if (peek(c) == '-' && c->p + 1 < c->src_end && c->p[1] != ']') {
       next_char(c);  /* skip '-' */
       mrb_bool hi_byte;
-      uint32_t hi = read_class_atom(c, cc, &hi_byte);
+      uint32_t hi = read_class_atom(c, cc, &hi_byte, TRUE);
       /* An endpoint at or above 128 is a byte or a character, and a span from
          one to the other names neither: [\x80-µ] would run from a byte to a
          codepoint. ASCII belongs to both, so it pairs with either. */

@@ -41,8 +41,11 @@ simulation) with backtracking fallback.
 Outside a character class the list form is a sequence rather than one
 atom, so a quantifier after it repeats the last codepoint only:
 `/\u{61 62}+/` is `ab+`. Inside a class every codepoint is a member of
-its own, and the last one can still open a range: `/[\u{61 62}-z]/` is
-`a` plus `b-z`.
+its own, and the one next to a `-` still opens or closes a range: the
+last of the list before it and the first after it, so `/[\u{61 62}-z]/`
+is `a` plus `b-z` and `/[a-\u{63 7a}]/` is `a-c` plus `z`. A range
+written backwards, `[b-a]` or `[b-\u{61 63}]`, raises `RegexpError` as
+in CRuby.
 
 ### Anchors
 
