@@ -1340,6 +1340,9 @@ MRB_API mrb_value mrb_obj_freeze(mrb_state*, mrb_value);
 #define mrb_str_new_lit_frozen(mrb,lit) mrb_obj_freeze(mrb,mrb_str_new_lit(mrb,lit))
 
 #ifdef _WIN32
+/* Returns -1 on failure. If out is non-NULL, *out is set to NULL. */
+MRB_API int mrb_mbs_to_wcs(const char *mbsp, int len, wchar_t **out, uint32_t from_cp);
+MRB_API int mrb_wcs_to_mbs(const wchar_t *wcsp, int len, char **out, uint32_t to_cp);
 MRB_API char* mrb_utf8_from_locale(const char *p, int len);
 MRB_API char* mrb_locale_from_utf8(const char *p, int len);
 #define mrb_locale_free(p) free(p)

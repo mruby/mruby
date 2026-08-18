@@ -1248,61 +1248,128 @@ str_char_rindex(mrb_value str, mrb_value sub, mrb_int pos)
 #include <malloc.h>
 #include <windows.h>
 
-char*
+MRB_API int
+mrb_mbs_to_wcs(const char *mbsp, int len, wchar_t **wcsp, uint32_t from_cp)
+{
+  wchar_t *buf;
+  int need;
+  int written;
+
+  if (wcsp == NULL) return -1;
+  *wcsp = NULL;   /* Keep the output NULL unless conversion succeeds. */
+  if (mbsp == NULL || len < -1) return -1;
+
+  if (len == -1) {
+    size_t n = strlen(mbsp);
+    if (n > INT_MAX) return -1;
+    len = (int)n;
+  }
+
+  if (len == 0) {
+    buf = (wchar_t*)malloc(sizeof(wchar_t));
+    if (buf == NULL) return -1;
+    buf[0] = L'\0';
+    *wcsp = buf;
+    return 0;
+  }
+
+  need = MultiByteToWideChar(from_cp, 0, mbsp, len, NULL, 0);
+  if (need <= 0 || (size_t)need >= SIZE_MAX / sizeof(wchar_t)) return -1;
+
+  buf = (wchar_t*)malloc(((size_t)need + 1) * sizeof(wchar_t));
+  if (buf == NULL) return -1;
+
+  written = MultiByteToWideChar(from_cp, 0, mbsp, len, buf, need);
+  if (written <= 0) {
+    free(buf);
+    return -1;
+  }
+
+  buf[written] = L'\0';
+  *wcsp = buf;
+  return written;
+}
+
+MRB_API int
+mrb_wcs_to_mbs(const wchar_t *wcsp, int len, char **mbsp, uint32_t to_cp)
+{
+  char *buf;
+  int need;
+  int written;
+
+  if (mbsp == NULL) return -1;
+  *mbsp = NULL;   /* Keep the output NULL unless conversion succeeds. */
+  if (wcsp == NULL || len < -1) return -1;
+
+  if (len == -1) {
+    size_t n = wcslen(wcsp);
+    if (n > INT_MAX) return -1;
+    len = (int)n;
+  }
+
+  if (len == 0) {
+    buf = (char*)malloc(1);
+    if (buf == NULL) return -1;
+    buf[0] = '\0';
+    *mbsp = buf;
+    return 0;
+  }
+
+  need = WideCharToMultiByte(to_cp, 0, wcsp, len, NULL, 0, NULL, NULL);
+  if (need <= 0) return -1;
+
+  buf = (char*)malloc((size_t)need + 1);
+  if (buf == NULL) return -1;
+
+  written = WideCharToMultiByte(to_cp, 0, wcsp, len, buf, need, NULL, NULL);
+  if (written <= 0) {
+    free(buf);
+    return -1;
+  }
+
+  buf[written] = '\0';
+  *mbsp = buf;
+  return written;
+}
+
+MRB_API char*
 mrb_utf8_from_locale(const char *str, int len)
 {
-  wchar_t* wcsp;
-  char* mbsp;
-  int mbssize, wcssize;
+  wchar_t *wcsp;
+  char *mbsp;
+  int wcssize;
 
-  if (len == 0)
-    return strdup("");
-  if (len == -1)
-    len = (int)strlen(str);
-  wcssize = MultiByteToWideChar(GetACP(), 0, str, len,  NULL, 0);
-  wcsp = (wchar_t*) malloc((wcssize + 1) * sizeof(wchar_t));
-  if (!wcsp)
-    return NULL;
-  wcssize = MultiByteToWideChar(GetACP(), 0, str, len, wcsp, wcssize + 1);
-  wcsp[wcssize] = 0;
+  if (len == 0) return strdup("");
 
-  mbssize = WideCharToMultiByte(CP_UTF8, 0, (LPCWSTR) wcsp, -1, NULL, 0, NULL, NULL);
-  mbsp = (char*) malloc((mbssize + 1));
-  if (!mbsp) {
+  wcssize = mrb_mbs_to_wcs(str, len, &wcsp, GetACP());
+  if (wcssize < 0) return NULL;
+
+  if (mrb_wcs_to_mbs(wcsp, wcssize, &mbsp, CP_UTF8) < 0) {
     free(wcsp);
     return NULL;
   }
-  mbssize = WideCharToMultiByte(CP_UTF8, 0, (LPCWSTR) wcsp, -1, mbsp, mbssize, NULL, NULL);
-  mbsp[mbssize] = 0;
+
   free(wcsp);
   return mbsp;
 }
 
-char*
+MRB_API char*
 mrb_locale_from_utf8(const char *utf8, int len)
 {
-  wchar_t* wcsp;
-  char* mbsp;
-  int mbssize, wcssize;
+  wchar_t *wcsp;
+  char *mbsp;
+  int wcssize;
 
-  if (len == 0)
-    return strdup("");
-  if (len == -1)
-    len = (int)strlen(utf8);
-  wcssize = MultiByteToWideChar(CP_UTF8, 0, utf8, len,  NULL, 0);
-  wcsp = (wchar_t*) malloc((wcssize + 1) * sizeof(wchar_t));
-  if (!wcsp)
-    return NULL;
-  wcssize = MultiByteToWideChar(CP_UTF8, 0, utf8, len, wcsp, wcssize + 1);
-  wcsp[wcssize] = 0;
-  mbssize = WideCharToMultiByte(GetACP(), 0, (LPCWSTR) wcsp, -1, NULL, 0, NULL, NULL);
-  mbsp = (char*) malloc((mbssize + 1));
-  if (!mbsp) {
+  if (len == 0) return strdup("");
+
+  wcssize = mrb_mbs_to_wcs(utf8, len, &wcsp, CP_UTF8);
+  if (wcssize < 0) return NULL;
+
+  if (mrb_wcs_to_mbs(wcsp, wcssize, &mbsp, GetACP()) < 0) {
     free(wcsp);
     return NULL;
   }
-  mbssize = WideCharToMultiByte(GetACP(), 0, (LPCWSTR) wcsp, -1, mbsp, mbssize, NULL, NULL);
-  mbsp[mbssize] = 0;
+
   free(wcsp);
   return mbsp;
 }
