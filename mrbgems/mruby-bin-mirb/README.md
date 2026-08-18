@@ -13,7 +13,9 @@ mirb-prism (mruby interactive) is an interactive Ruby shell for mruby, using the
 
 ## Tab Completion
 
-mirb supports context-aware tab completion when built with a readline library.
+mirb supports context-aware tab completion in its built-in multi-line editor.
+The editor is used when standard input is a terminal; no external line-editing
+library is required or consulted.
 
 ### Supported Completions
 
@@ -53,30 +55,11 @@ mirb supports context-aware tab completion when built with a readline library.
   class
   ```
 
-### Readline Library Support
+### Behavior
 
-Tab completion works with:
-
-- **GNU readline** (default on Linux)
-- **libedit** (default on macOS/BSD)
-- **linenoise** (lightweight alternative)
-
-### Configuration
-
-The readline library can be configured via the `MRUBY_MIRB_READLINE` environment variable:
-
-```bash
-# Auto-detect (default)
-rake
-
-# Force specific library
-MRUBY_MIRB_READLINE=readline rake    # GNU readline
-MRUBY_MIRB_READLINE=libedit rake     # libedit
-MRUBY_MIRB_READLINE=linenoise rake   # linenoise
-
-# Disable readline (plain input mode)
-MRUBY_MIRB_READLINE=none rake
-```
+- A single match is inserted in place of the typed prefix
+- Multiple matches sharing a longer common prefix extend the input to that prefix
+- Otherwise the candidates are listed below the input line
 
 ### Notes
 

@@ -17,7 +17,7 @@
  *
  * Architecture:
  * - Core engine is library-agnostic
- * - Adapters for readline/libedit and linenoise
+ * - Adapter for the built-in multi-line editor
  * - Context detection based on input line analysis
  * - Safe evaluation of receiver expressions
  *
@@ -58,7 +58,6 @@ typedef struct mirb_completion_ctx {
   char **completions;       /* Array of completion strings */
   int completion_count;     /* Number of completions */
   int completion_alloc;     /* Allocated size */
-  int current_index;        /* For generator pattern (readline) */
 } mirb_completion_ctx;
 
 /* Core Completion Engine Interface */
@@ -100,20 +99,8 @@ mrb_value mirb_eval_receiver(mrb_state *mrb, const char *receiver_expr, mrb_ccon
 /* Check if in file completion context */
 mrb_bool mirb_in_file_context(const char *line, int quote_pos);
 
-/* Cleanup completion context (shared by all adapters) */
+/* Cleanup completion context */
 void mirb_cleanup_completion(void);
-
-/* Readline/Libedit adapter setup */
-#ifdef MRB_USE_READLINE
-#ifndef MRB_USE_LINENOISE
-void mirb_setup_readline_completion(mrb_state *mrb, mrb_ccontext *cxt);
-#endif
-#endif
-
-/* Linenoise adapter setup */
-#ifdef MRB_USE_LINENOISE
-void mirb_setup_linenoise_completion(mrb_state *mrb, mrb_ccontext *cxt);
-#endif
 
 /* Custom editor adapter */
 void mirb_setup_editor_completion(mrb_state *mrb, mrb_ccontext *cxt);
