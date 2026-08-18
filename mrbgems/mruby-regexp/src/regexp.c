@@ -159,6 +159,10 @@ regexp_init(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/* Pre-interned symbol for $~ (cached on first use). MRB_GVSYM() takes a
+   word after the `$`, which `~` is not, so this one is looked up once here. */
+static mrb_sym match_sym;
+
 /* Pre-interned symbols for $1-$9 (cached on first use) */
 static mrb_sym nth_syms[9];
 
@@ -170,6 +174,7 @@ static void
 ensure_match_syms(mrb_state *mrb)
 {
   if (nth_syms[0]) return;
+  match_sym = mrb_intern_lit(mrb, "$~");
   nth_syms[0] = mrb_intern_lit(mrb, "$1");
   nth_syms[1] = mrb_intern_lit(mrb, "$2");
   nth_syms[2] = mrb_intern_lit(mrb, "$3");
@@ -189,7 +194,7 @@ static void
 clear_match_globals(mrb_state *mrb)
 {
   ensure_match_syms(mrb);
-  mrb_gv_set(mrb, mrb_intern_lit(mrb, "$~"), mrb_nil_value());
+  mrb_gv_set(mrb, match_sym, mrb_nil_value());
   for (int i = 0; i < 9; i++) {
     mrb_gv_set(mrb, nth_syms[i], mrb_nil_value());
   }
@@ -351,7 +356,7 @@ set_match_globals(mrb_state *mrb, mrb_value obj, mrb_value str, int *captures, i
 {
   ensure_match_syms(mrb);
 
-  mrb_gv_set(mrb, mrb_intern_lit(mrb, "$~"), obj);
+  mrb_gv_set(mrb, match_sym, obj);
 
   /* set $1-$9 from captures */
   for (int i = 0; i < 9; i++) {
@@ -392,7 +397,7 @@ create_matchdata(mrb_state *mrb, mrb_value regexp, mrb_value str, int *captures,
      time, so later in-place changes to it must not be visible here. */
   str = mrb_str_dup_frozen(mrb, str);
 
-  struct RClass *md_class = mrb_class_get(mrb, "MatchData");
+  struct RClass *md_class = mrb_class_get_id(mrb, MRB_SYM(MatchData));
   mrb_match_data *md = (mrb_match_data*)mrb_malloc(mrb, sizeof(mrb_match_data));
   md->source = str;
   md->regexp = regexp;
@@ -404,8 +409,8 @@ create_matchdata(mrb_state *mrb, mrb_value regexp, mrb_value str, int *captures,
   /* Keep `source` and `regexp` GC-reachable via instance variables.
    * The mrb_values are also held in mrb_match_data, but C-allocated
    * structs are not scanned by the GC. */
-  mrb_iv_set(mrb, obj, mrb_intern_lit(mrb, "source"), str);
-  mrb_iv_set(mrb, obj, mrb_intern_lit(mrb, "regexp"), regexp);
+  mrb_iv_set(mrb, obj, MRB_SYM(source), str);
+  mrb_iv_set(mrb, obj, MRB_SYM(regexp), regexp);
 
   set_match_globals(mrb, obj, str, captures, md->num_captures);
 
