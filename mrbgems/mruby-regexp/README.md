@@ -33,7 +33,7 @@ simulation) with backtracking fallback.
 
 - `\n`, `\t`, `\r`, `\f`, `\v`, `\a`, `\e` control characters
 - `\NNN` octal, one to three digits
-- `\xHH` hex, one or two digits
+- `\xHH` hex, one or two digits; `\x` with no digit raises `RegexpError`
 - `\uXXXX` Unicode codepoint, exactly four hex digits
 - `\u{...}` Unicode codepoints, one to six hex digits each, several of
   them separated by spaces: `/\u{61 62}/` is `ab`
@@ -175,7 +175,8 @@ pattern analysis.
 - **No Unicode properties**: `\p{Alpha}`, `\p{L}`, etc. are not
   supported.
 - **No `\x{...}` hex escape**: the hex escape is `\xHH`, so it reaches
-  `0xff` at most. Write `\u{...}` for a codepoint above that.
+  `0xff` at most, and `\x{...}` raises `RegexpError` as CRuby does, since
+  the brace is not a hex digit. Write `\u{...}` for a codepoint above that.
 - **No encodings**: a pattern is a byte string read the way the build reads a
   String, and there is no encoding to consult about a byte that starts no
   whole character. Such a byte is that byte, inside a character class as much

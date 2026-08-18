@@ -525,7 +525,10 @@ parse_escape(re_compiler *c)
     return val & 0xff;
   }
   /* Hex escape `\xHH` (1-2 hex digits, value 0-255). The `\x{HHHH}` form
-     for codepoints above 0xff is not implemented. */
+     for codepoints above 0xff is not implemented, and it is not read as
+     `\x` either: a `\x` that no hex digit follows used to come out as
+     `\x00`, so `\x{41}` compiled to a NUL and a quantifier. CRuby rejects
+     it, as it rejects a bare `\x` and `\xZ`. */
   case 'x': {
     int val = 0;
     int n = 0;
@@ -536,6 +539,7 @@ parse_escape(re_compiler *c)
       next_char(c);
       n++;
     }
+    if (n == 0) compile_error(c, "invalid hex escape");
     return val & 0xff;
   }
   default: return ch;  /* literal: \., \\, \/, \(, etc. */
