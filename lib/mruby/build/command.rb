@@ -191,6 +191,20 @@ module MRuby
         #    []
         #    []
       end.flatten.uniq
+      # A header the +.d+ file names but that no longer exists is not a
+      # dependency Rake can resolve: `Rake::TaskManager#attempt_rule` gives up
+      # on the rule when a source neither exists nor has a task, and the
+      # output is left as it is, with nothing to rebuild it (the object keeps
+      # only the presym proxy from `tasks/presym.rake`). The +.d+ describes a
+      # compile that read that header, so the output is stale by its own
+      # record: it is removed here, so that the rule, with the header left
+      # out, builds it again and writes a +.d+ that matches the sources of
+      # now.
+      missing = header_deps.reject {|dep| File.exist?(dep) || Rake::Task.task_defined?(dep) }
+      unless missing.empty?
+        header_deps -= missing
+        rm_f file if rule_applies?(source)
+      end
       deps.concat(header_deps)
     end
 
