@@ -521,6 +521,66 @@ assert("Regexp - non-capturing group") do
   assert_nil md[2]
 end
 
+assert("Regexp - atomic group (?>...)") do
+  # The body's first match is its only one: what follows cannot make it
+  # give text back or take another branch, where a plain group can.
+  assert_equal 0, /(?>a)+b/ =~ "aab"
+  assert_equal 0, /(?:a+)ab/ =~ "aaab"
+  assert_nil /(?>a+)ab/ =~ "aaab"
+  assert_equal 0, /(?>a+)b/ =~ "aaab"
+  assert_equal 0, /(?:a|ab)c/ =~ "abc"
+  assert_nil /(?>a|ab)c/ =~ "abc"
+  assert_equal 0, /(?>ab|a)c/ =~ "abc"
+
+  # A repeated atomic group still gives back whole iterations: only the
+  # inside of each one is closed to backtracking.
+  assert_equal 0, /(?>a)+a/ =~ "aa"
+  assert_equal 0, /(?>ab)+c/ =~ "ababc"
+  assert_nil /(?>ab)+c/ =~ "abbc"
+  assert_equal 0, /(?>a){2}b/ =~ "aab"
+  assert_equal 1, /(?>ab)*?b/ =~ "abab"
+  assert_equal 0, /(?>ab)|x/ =~ "x"
+
+  # Once a group is closed, a failure after it fails the group as a whole,
+  # even an alternation at the top of its body.
+  assert_nil /(?>a(?>b|bc)|abcd)d/ =~ "abcd"
+  # Before it is closed, its body backtracks as any other does, past an
+  # inner atomic group that already closed.
+  assert_equal "xy", /(?>(x|xy)(?>a)b)/.match("xyab")[1]
+  # Sequential atomic groups at the same depth cut independently.
+  assert_nil /(?>x(?>a)(?>b)y)/.match("xabz")
+  assert_equal 0, /(?>x(?>a)(?>b)y)/ =~ "xaby"
+
+  # A repetition whose body can match empty runs until the engine's recursion
+  # limit stops it. Reached inside the body, that stop is not a cut.
+  assert_equal 0, /(?>(?:b*)+)/ =~ ""
+  assert_equal 0, /(?>(?:a*)*)b/ =~ "aab"
+
+  # Captures written inside the body stay when the group matches, and are
+  # unset again when a cut fails the group.
+  assert_equal "a", /(?>(a)+)b/.match("aab")[1]
+  assert_nil /(?:(?>(a))x|a)b/.match("ab")[1]
+  assert_equal "a", /(?>(a)|ab)b/.match("ab")[1]
+
+  # Inside a lookaround, the cut stays inside it.
+  assert_equal 0, /(?=(?>a+)b)a/ =~ "aab"
+  assert_nil /(?=(?>a+)ab)a/ =~ "aab"
+  assert_equal 0, /(?!(?>a)b)a/ =~ "aac"
+
+  # Options toggled in the body end with it, as in any group.
+  assert_equal 0, /(?>a(?i)x)b/ =~ "aXb"
+  assert_nil /(?>a(?i)x)B/ =~ "aXb"
+
+  # It reads back through to_s, and free-spacing applies to its body.
+  assert_equal 0, Regexp.new(/(?>a)+b/.to_s) =~ "aab"
+  assert_equal 0, Regexp.new("(?> a b )c", Regexp::EXTENDED) =~ "abc"
+
+  assert_raise(RegexpError) { Regexp.new("(?>a") }
+  assert_raise(RegexpError) { Regexp.new("(?>") }
+  # not a fixed-length construct, so not allowed in a lookbehind
+  assert_raise(RegexpError) { Regexp.new("(?<=(?>a))b") }
+end
+
 assert("Regexp - a named group makes plain groups non-capturing") do
   # Onigmo's ONIG_OPTION_DONT_CAPTURE_GROUP, which CRuby turns on once the
   # pattern declares a named group: (...) then groups without capturing.

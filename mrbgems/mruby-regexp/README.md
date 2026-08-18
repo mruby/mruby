@@ -25,6 +25,7 @@ simulation) with backtracking fallback.
 - `(?!...)` negative lookahead
 - `(?<=...)` positive lookbehind (fixed-length only)
 - `(?<!...)` negative lookbehind (fixed-length only)
+- `(?>...)` atomic group
 - `(?imx-imx)` options for the rest of the enclosing group,
   `(?imx-imx:...)` options for the group's own body
 
@@ -145,13 +146,14 @@ $~                                # last MatchData
 The gem uses two execution engines:
 
 **Pike VM (NFA simulation)**: Used for patterns without
-backreferences, non-greedy quantifiers, or lookahead. Guarantees
-O(pattern x text) time complexity, making it immune to ReDoS
-attacks.
+backreferences, non-greedy quantifiers, lookaround or atomic groups.
+Guarantees O(pattern x text) time complexity, making it immune to
+ReDoS attacks.
 
 **Backtracking engine**: Used when patterns contain `\1`-`\9`
-backreferences, non-greedy quantifiers (`*?`, `+?`, `??`), or
-lookahead assertions (`(?=...)`, `(?!...)`). Protected by a
+backreferences, non-greedy quantifiers (`*?`, `+?`, `??`),
+lookaround assertions (`(?=...)`, `(?!...)`, `(?<=...)`, `(?<!...)`)
+or atomic groups (`(?>...)`). Protected by a
 configurable step limit (`MRB_REGEXP_STEP_LIMIT`, default 1M) to
 prevent excessive backtracking.
 
