@@ -2325,9 +2325,12 @@ first_set_walk(const re_inst *code, uint32_t code_len,
   return FALSE;
 }
 
-/* TRUE when an epsilon-only path runs from pc to goal, so the repetition that
-   goal closes can complete an iteration without consuming. seen[] is marked
-   with `mark` rather than cleared, so one buffer serves every edge. */
+/* TRUE when a path that need not consume runs from pc to goal, so the
+   repetition that goal closes can complete an iteration without consuming.
+   A lookaround is zero-width whatever its sub-pattern does, so the walk
+   steps over the sub-pattern; a backreference to a group that captured
+   empty consumes nothing, so it can be on such a path. seen[] is marked with
+   `mark` rather than cleared, so one buffer serves every edge. */
 static mrb_bool
 epsilon_path(const re_inst *code, uint32_t pc, uint32_t goal,
              uint32_t *seen, uint32_t mark)
@@ -2340,9 +2343,12 @@ epsilon_path(const re_inst *code, uint32_t pc, uint32_t goal,
     case RE_BOL: case RE_EOL: case RE_BOT: case RE_EOT: case RE_EOTNL:
     case RE_WBOUND: case RE_NWBOUND:
     case RE_ATOMIC: case RE_ATOMIC_END:
+    case RE_BACKREF:
       pc++;
       break;
     case RE_JMP:
+    case RE_LOOKAHEAD: case RE_NEG_LOOKAHEAD:
+    case RE_LOOKBEHIND: case RE_NEG_LOOKBEHIND:
       pc = code[pc].offset;
       break;
     case RE_SPLIT:
@@ -2351,17 +2357,22 @@ epsilon_path(const re_inst *code, uint32_t pc, uint32_t goal,
       pc++;
       break;
     default:
-      return FALSE;  /* consumes input, or is an assertion this walk cannot judge */
+      return FALSE;  /* consumes input */
     }
   }
   return TRUE;
 }
 
 /* Find the repetitions whose body can match empty and mark the backward edge
-   that closes each one, so the Pike VM knows which loops need the empty-
-   iteration handling in add_thread() and which can stay on the cheap path.
-   Returns how deeply those loops nest, which bounds the VM's epsilon passes
-   and the thread lists sized from them; see RE_MAX_PASS and RE_LIST_CAPA. */
+   that closes each one, so that both engines know which loops need the
+   empty-iteration handling (add_thread() and bt_match()) and which can stay
+   on the cheap path. A repetition laid out as e* is closed by a jump back to
+   its SPLIT/SPLITNG head, and that head is marked too: it is where an
+   iteration begins, which the backtracker has to record; see bt_iter(). The
+   head is a forward edge, and a forward edge's mark means nothing else.
+   Returns how deeply the marked loops nest, which bounds the VM's epsilon
+   passes and the thread lists sized from them; see RE_MAX_PASS and
+   RE_LIST_CAPA. */
 static uint8_t
 mark_empty_loops(mrb_state *mrb, re_inst *code, uint32_t code_len)
 {
@@ -2382,6 +2393,11 @@ mark_empty_loops(mrb_state *mrb, re_inst *code, uint32_t code_len)
     if (in.offset > pc) continue;  /* forward edge: alternation, not a loop */
     if (!epsilon_path(code, in.offset, pc, seen, ++mark)) continue;
     code[pc].a = 1;
+    if (in.op == RE_JMP) {
+      /* The head was passed earlier in this scan, so its mark stays. */
+      mrb_assert(code[in.offset].op == RE_SPLIT || code[in.offset].op == RE_SPLITNG);
+      code[in.offset].a = 1;
+    }
     delta[in.offset]++;
     delta[pc + 1]--;  /* the closing edge itself still sits inside the loop */
   }

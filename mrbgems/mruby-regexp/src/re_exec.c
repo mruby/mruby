@@ -638,29 +638,76 @@ lookbehind_start(const mrb_regexp_pattern *pat, const char *str,
    limit. A frame that gets it hands it up; a SPLIT takes it as that branch
    failing and answers with its other branch, as it would with a failure.
    What no frame does is turn it into a cut or into a lookaround's answer,
-   since a limit says nothing about the text. That matters because the
-   recursion limit is what stops a repetition whose body can match empty
-   under this engine (see MRB_REGEXP_RECURSION_LIMIT), and the repetition
-   being stopped may be inside an atomic group's body, where a cut would keep
-   its exit from being taken, or inside a negative lookaround, where reading
-   the limit as "no match" would make the assertion hold. */
+   since a limit says nothing about the text: the frame giving up may be
+   inside an atomic group's body, where a cut would keep the group's exit
+   from being taken, or inside a negative lookaround, where reading the limit
+   as "no match" would make the assertion hold. */
 #define BT_FAIL 0
 #define BT_MATCH 1
 #define BT_LIMIT 2
 #define BT_CUT(atomic_depth) (-(int)(atomic_depth))
+
+/* What one backtrack_exec() call shares between its bt_match() frames: the
+   pattern, the subject, the capture slots being written, the step count and
+   the iteration records. A frame's own state is its position, its pc and its
+   depth. */
+typedef struct {
+  const mrb_regexp_pattern *pat;
+  const char *str;
+  const char *str_end;
+  int *captures;
+  int ncap;
+  int steps;
+  /* Per pc, the offset the running iteration of the loop that pc keys began
+     at, or -1 while none is running. A repetition whose body can match empty
+     has to stop once an iteration ends where it began, or it would go round
+     at the same position until a limit refused it and answer with whatever
+     the alternatives left inside the limit produce. Onigmo stops it with a
+     null check around the body; this array is that check's memory. The pc
+     that keys a loop is its marked head for e* (the SPLIT/SPLITNG whose
+     offset is the exit; the JMP closing the body reads the record) and its
+     marked back edge for e+ (the SPLIT/SPLITNG at the end of the body, which
+     both writes and reads it); see mark_empty_loops(). */
+  int *iter_at;
+  mrb_bool binary;
+} bt_state;
+
+static int bt_match(bt_state *m, const char *sp, uint32_t pc, int depth);
+
+/* Run the frame at pc as the start of an iteration of the loop `key` keys,
+   recording where it begins so that the edge closing the body can tell an
+   empty iteration. The record lasts exactly as long as the frame: the frame
+   that ran the edge into the body is the one that undoes it, so backtracking
+   out of an iteration finds the record of the one it lands in, and the
+   branch that begins an iteration is run this way rather than in place even
+   when it is the frame's last, so that there is one place to undo it. */
+static int
+bt_iter(bt_state *m, const char *sp, uint32_t pc, uint32_t key, int depth)
+{
+  int old = m->iter_at[key];
+  m->iter_at[key] = (int)(sp - m->str);
+  int r = bt_match(m, sp, pc, depth);
+  m->iter_at[key] = old;
+  return r;
+}
 
 /*
  * Backtracking engine for patterns with backreferences.
  * Step-limited to prevent ReDoS.
  */
 static int
-bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
-         const char *sp, uint32_t pc, int *captures, int ncap, int *steps,
-         int depth, mrb_bool binary)
+bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
 {
+  const mrb_regexp_pattern *pat = m->pat;
+  const char *str = m->str;
+  const char *str_end = m->str_end;
+  int *captures = m->captures;
+  int ncap = m->ncap;
+  mrb_bool binary = m->binary;
+
   if (depth > MRB_REGEXP_RECURSION_LIMIT) return BT_LIMIT;
   while (pc < pat->code_len) {
-    if (++(*steps) > MRB_REGEXP_STEP_LIMIT) return BT_LIMIT;
+    if (++m->steps > MRB_REGEXP_STEP_LIMIT) return BT_LIMIT;
 
     re_inst inst = pat->code[pc];
     switch (inst.op) {
@@ -707,20 +754,63 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
       return BT_MATCH;
 
     case RE_JMP:
+      /* A backward jump closes e* and returns to its head. When the head is
+         marked, the body can match empty and iter_at[head] holds where the
+         iteration that just ended began (see bt_iter()): an iteration that
+         ended where it began matched empty, and the repetition stops here,
+         taking the head's exit and keeping what the iteration captured, as
+         Onigmo's null check does. */
+      if (inst.a && m->iter_at[inst.offset] == (int)(sp - str)) {
+        pc = pat->code[inst.offset].offset;
+        break;
+      }
       pc = inst.offset;
       break;
 
     case RE_SPLIT:
+      /* Greedy fork: pc+1 first, then the jump target. A marked one is an
+         edge of a repetition whose body can match empty. Forward, it heads
+         e*, and pc+1 begins an iteration. Backward, it closes e+?, and its
+         target begins the next iteration, unless the one that just ended was
+         empty: then there is only the exit, as at a marked RE_JMP. */
+      if (inst.a) {
+        if (inst.offset > pc) {
+          int r = bt_iter(m, sp, pc + 1, pc, depth + 1);
+          if (r != BT_FAIL && r != BT_LIMIT) return r;
+          pc = inst.offset;
+          break;
+        }
+        if (m->iter_at[pc] == (int)(sp - str)) { pc++; break; }
+        int r = bt_match(m, sp, pc + 1, depth + 1);
+        if (r != BT_FAIL && r != BT_LIMIT) return r;
+        return bt_iter(m, sp, inst.offset, pc, depth + 1);
+      }
       {
-        int r = bt_match(pat, str, str_end, sp, pc + 1, captures, ncap, steps, depth + 1, binary);
+        int r = bt_match(m, sp, pc + 1, depth + 1);
         if (r != BT_FAIL && r != BT_LIMIT) return r;
       }
       pc = inst.offset;
       break;
 
     case RE_SPLITNG:
+      /* Non-greedy fork: the jump target first, then pc+1. Marked, forward
+         it heads e*? and backward it closes e+; the iteration-starting branch
+         is the other one from RE_SPLIT's, and the empty-iteration stop is the
+         same. */
+      if (inst.a) {
+        if (inst.offset > pc) {
+          int r = bt_match(m, sp, inst.offset, depth + 1);
+          if (r != BT_FAIL && r != BT_LIMIT) return r;
+          return bt_iter(m, sp, pc + 1, pc, depth + 1);
+        }
+        if (m->iter_at[pc] == (int)(sp - str)) { pc++; break; }
+        int r = bt_iter(m, sp, inst.offset, pc, depth + 1);
+        if (r != BT_FAIL && r != BT_LIMIT) return r;
+        pc++;
+        break;
+      }
       {
-        int r = bt_match(pat, str, str_end, sp, inst.offset, captures, ncap, steps, depth + 1, binary);
+        int r = bt_match(m, sp, inst.offset, depth + 1);
         if (r != BT_FAIL && r != BT_LIMIT) return r;
       }
       pc++;
@@ -739,7 +829,7 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
         if (slot < ncap) {
           int old = captures[slot];
           captures[slot] = (int)(sp - str);
-          int r = bt_match(pat, str, str_end, sp, pc + 1, captures, ncap, steps, depth + 1, binary);
+          int r = bt_match(m, sp, pc + 1, depth + 1);
           if (r == BT_MATCH) return r;
           /* undone for a cut as for a failure: the group the cut fails may
              be the one this slot was written inside */
@@ -824,7 +914,7 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
         /* A sub-pattern answers BT_MATCH, BT_FAIL or BT_LIMIT, never a cut.
            The two failures go up as they are; the four lookarounds only
            differ in what a match means. */
-        int r = bt_match(pat, str, str_end, sp, pc + 1, captures, ncap, steps, depth + 1, binary);
+        int r = bt_match(m, sp, pc + 1, depth + 1);
         if (r != BT_MATCH) return r;
         pc = inst.offset;
       }
@@ -832,7 +922,7 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
 
     case RE_NEG_LOOKAHEAD:
       {
-        int r = bt_match(pat, str, str_end, sp, pc + 1, captures, ncap, steps, depth + 1, binary);
+        int r = bt_match(m, sp, pc + 1, depth + 1);
         if (r == BT_MATCH) return BT_FAIL;
         if (r == BT_LIMIT) return r;
         pc = inst.offset;
@@ -843,7 +933,7 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
       {
         const char *back = lookbehind_start(pat, str, str_end, sp, pc, binary);
         if (!back) return BT_FAIL;  /* not enough text before */
-        int r = bt_match(pat, str, str_end, back, pc + 2, captures, ncap, steps, depth + 1, binary);
+        int r = bt_match(m, back, pc + 2, depth + 1);
         if (r != BT_MATCH) return r;
         pc = inst.offset;
       }
@@ -853,7 +943,7 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
       {
         const char *back = lookbehind_start(pat, str, str_end, sp, pc, binary);
         if (back) {
-          int r = bt_match(pat, str, str_end, back, pc + 2, captures, ncap, steps, depth + 1, binary);
+          int r = bt_match(m, back, pc + 2, depth + 1);
           if (r == BT_MATCH) return BT_FAIL;
           if (r == BT_LIMIT) return r;
         }
@@ -869,7 +959,7 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
            here: the answer is passed up, except that a cut aimed at this
            group is this group failing, which the caller backtracks over the
            way it would any other failed atom. */
-        int r = bt_match(pat, str, str_end, sp, pc + 1, captures, ncap, steps, depth + 1, binary);
+        int r = bt_match(m, sp, pc + 1, depth + 1);
         return (r == BT_CUT(inst.offset)) ? BT_FAIL : r;
       }
 
@@ -879,7 +969,7 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
            when what follows fails, the failure is a cut, so that the SPLITs
            inside the body do not get to try their other branches. A limit
            is not the text failing and goes up as it is. */
-        int r = bt_match(pat, str, str_end, sp, pc + 1, captures, ncap, steps, depth + 1, binary);
+        int r = bt_match(m, sp, pc + 1, depth + 1);
         return (r == BT_FAIL) ? BT_CUT(inst.offset) : r;
       }
 
@@ -900,7 +990,19 @@ backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
   int ncap = pat->num_captures * 2;
   if (ncap == 0) ncap = 2;
 
-  int *caps = (int*)mrb_malloc(mrb, sizeof(int) * ncap);
+  /* One block: the capture slots, then an iteration record per pc. Every
+     record a search writes it undoes before returning (see bt_iter()), so
+     the array is filled once for all start positions. */
+  int *caps = (int*)mrb_malloc(mrb, sizeof(int) * (ncap + pat->code_len));
+  bt_state m;
+  m.pat = pat;
+  m.str = str;
+  m.str_end = str_end;
+  m.captures = caps;
+  m.ncap = ncap;
+  m.iter_at = caps + ncap;
+  m.binary = binary;
+  memset(m.iter_at, -1, sizeof(int) * pat->code_len);
 
   for (const char *sp = str + start; sp <= str_end && sp <= start_cap; sp++) {
     /* Skip ahead using literal prefix or first-byte bitmap */
@@ -918,9 +1020,9 @@ backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
       continue;
     }
     memset(caps, -1, sizeof(int) * ncap);
-    int steps = 0;
+    m.steps = 0;
 
-    if (bt_match(pat, str, str_end, sp, 0, caps, ncap, &steps, 0, binary) == BT_MATCH) {
+    if (bt_match(&m, sp, 0, 0) == BT_MATCH) {
       if (captures) {
         int copy = ncap < captures_size ? ncap : captures_size;
         memcpy(captures, caps, sizeof(int) * copy);

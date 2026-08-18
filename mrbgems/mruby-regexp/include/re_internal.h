@@ -135,8 +135,8 @@ typedef struct mrb_regexp_pattern {
 #define MRB_REGEXP_STEP_LIMIT 1000000
 #endif
 
-/* Recursion-depth limit for bt_match: bounds C stack growth on
-   patterns like `(?=)+` that recurse without consuming input. */
+/* Recursion-depth limit for bt_match, which recurses at every fork and
+   every capture: bounds C stack growth on a long subject or a deep pattern. */
 #ifndef MRB_REGEXP_RECURSION_LIMIT
 #define MRB_REGEXP_RECURSION_LIMIT 1000
 #endif
