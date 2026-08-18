@@ -240,43 +240,41 @@ module MRuby
       end
 
       def define_gem_init_builder
-        file "#{build_dir}/gem_init.c" => [build.mrbcfile, __FILE__] + [rbfiles].flatten do |t|
-          mkdir_p build_dir
-          generate_gem_init("#{build_dir}/gem_init.c")
+        fname = "#{build_dir}/gem_init.c"
+        generated_file fname, [build.mrbcfile, __FILE__] + [rbfiles].flatten do |f|
+          _pp "GEN", fname.relative_path
+          generate_gem_init(f)
         end
       end
 
-      def generate_gem_init(fname)
-        _pp "GEN", fname.relative_path
-        open(fname, 'w') do |f|
-          print_gem_init_header f
-          unless rbfiles.empty?
-            opts = {cdump: cdump?, static: true}
-            if cdump?
-              build.mrbc.run f, rbfiles, "gem_mrblib_#{funcname}_proc", **opts
-            else
-              build.mrbc.run f, rbfiles, "gem_mrblib_irep_#{funcname}", **opts
-            end
+      def generate_gem_init(f)
+        print_gem_init_header f
+        unless rbfiles.empty?
+          opts = {cdump: cdump?, static: true}
+          if cdump?
+            build.mrbc.run f, rbfiles, "gem_mrblib_#{funcname}_proc", **opts
+          else
+            build.mrbc.run f, rbfiles, "gem_mrblib_irep_#{funcname}", **opts
           end
-          f.puts %Q[void mrb_#{funcname}_gem_init(mrb_state *mrb);]
-          f.puts %Q[void mrb_#{funcname}_gem_final(mrb_state *mrb);]
-          f.puts %Q[]
-          f.puts %Q[void GENERATED_TMP_mrb_#{funcname}_gem_init(mrb_state *mrb) {]
-          f.puts %Q[  gem_mrblib_#{funcname}_proc_init_syms(mrb);] if !rbfiles.empty? && cdump?
-          f.puts %Q[  mrb_#{funcname}_gem_init(mrb);] if objs != [objfile("#{build_dir}/gem_init")]
-          unless rbfiles.empty?
-            if cdump?
-              f.puts %Q[  mrb_load_proc(mrb, gem_mrblib_#{funcname}_proc);]
-            else
-              f.puts %Q[  mrb_load_irep(mrb, gem_mrblib_irep_#{funcname});]
-            end
-          end
-          f.puts %Q[}]
-          f.puts %Q[]
-          f.puts %Q[void GENERATED_TMP_mrb_#{funcname}_gem_final(mrb_state *mrb) {]
-          f.puts %Q[  mrb_#{funcname}_gem_final(mrb);] if objs != [objfile("#{build_dir}/gem_init")]
-          f.puts %Q[}]
         end
+        f.puts %Q[void mrb_#{funcname}_gem_init(mrb_state *mrb);]
+        f.puts %Q[void mrb_#{funcname}_gem_final(mrb_state *mrb);]
+        f.puts %Q[]
+        f.puts %Q[void GENERATED_TMP_mrb_#{funcname}_gem_init(mrb_state *mrb) {]
+        f.puts %Q[  gem_mrblib_#{funcname}_proc_init_syms(mrb);] if !rbfiles.empty? && cdump?
+        f.puts %Q[  mrb_#{funcname}_gem_init(mrb);] if objs != [objfile("#{build_dir}/gem_init")]
+        unless rbfiles.empty?
+          if cdump?
+            f.puts %Q[  mrb_load_proc(mrb, gem_mrblib_#{funcname}_proc);]
+          else
+            f.puts %Q[  mrb_load_irep(mrb, gem_mrblib_irep_#{funcname});]
+          end
+        end
+        f.puts %Q[}]
+        f.puts %Q[]
+        f.puts %Q[void GENERATED_TMP_mrb_#{funcname}_gem_final(mrb_state *mrb) {]
+        f.puts %Q[  mrb_#{funcname}_gem_final(mrb);] if objs != [objfile("#{build_dir}/gem_init")]
+        f.puts %Q[}]
       end # generate_gem_init
 
       def print_gem_comment(f)

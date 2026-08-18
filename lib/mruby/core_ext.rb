@@ -59,3 +59,34 @@ def _pp(cmd, src, tgt=nil, indent: nil)
   template = indent ? "%#{width * indent}s %s %s" : "%-#{width}s %s %s"
   puts template % [cmd, src, tgt ? "-> #{tgt}" : nil]
 end
+
+# A file task like `file`, for a source that is generated: the block writes
+# the text to the IO it is given. The file is written only when the text
+# differs from what is there, so the object built from it stays when a
+# newer `mrbc` makes the same bytecode.
+#
+# Rake holds an output out of date when anything behind its prerequisites
+# is newer, so a source with `mrbc` among its prerequisites would take its
+# object with it whether the text changed or not. The source task has no
+# prerequisites of its own: it runs every time and invokes the stamp
+# beside it, which has the prerequisites and holds the time of the last
+# generation.
+def generated_file(name, prerequisites, &block)
+  stamp = file "#{name}.stamp" => prerequisites do |t|
+    mkdir_p File.dirname(name)
+    fresh = "#{name}.tmp"
+    File.open(fresh, "w", &block)
+    if File.exist?(name) && FileUtils.identical?(fresh, name)
+      rm_f fresh
+    else
+      mv fresh, name
+    end
+    touch t.name
+  end
+  stamp.define_singleton_method(:needed?) { super() || !File.exist?(name) }
+  source = file name do
+    stamp.invoke
+  end
+  source.define_singleton_method(:needed?) { true }
+  source
+end
