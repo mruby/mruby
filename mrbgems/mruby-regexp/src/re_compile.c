@@ -40,6 +40,7 @@ typedef struct {
   mrb_bool has_backref;
   mrb_bool needs_backtrack;
   mrb_bool dont_capture;    /* pattern declares a named group: plain (...) does not capture */
+  uint32_t atomic_depth;    /* how many (?>...) groups enclose the parse point */
   uint32_t atom_start;      /* where the atom a quantifier binds to begins;
                                compile_quantified sets it to the position
                                before the atom, and a `\u{...}` list moves it
@@ -1272,6 +1273,25 @@ compile_atom(re_compiler *c)
           c->flags = saved_flags;
           break;
         }
+        else if (c->p[1] == '>') {
+          /* atomic group (?>...): the body is a non-capturing group whose
+             first match is its only one. The two instructions bracketing it
+             carry the group's nesting depth, which is how the executor pairs
+             the end of a body with the group it closes when a failure after
+             the body has to fail the group; see bt_match(). The depth counts
+             instructions the pattern holds, so it fits the field. */
+          next_char(c); next_char(c);  /* skip ?> */
+          c->atomic_depth++;
+          emit(c, RE_ATOMIC, 0, (uint16_t)c->atomic_depth);
+          compile_alt(c);
+          emit(c, RE_ATOMIC_END, 0, (uint16_t)c->atomic_depth);
+          c->atomic_depth--;
+          if (peek(c) != ')') compile_error(c, "unmatched '('");
+          next_char(c);
+          c->needs_backtrack = TRUE;  /* the Pike VM cannot cut a thread */
+          c->flags = saved_flags;
+          break;
+        }
         else if (c->p[1] == '\'' ||
                  (c->p[1] == '<' && c->p + 2 < c->src_end &&
                   c->p[2] != '=' && c->p[2] != '!')) {
@@ -1322,7 +1342,7 @@ compile_atom(re_compiler *c)
         }
         else {
           /* (?X) with an unsupported X: not one of the recognized (?: (?= (?!
-             (?<= (?<! (?<name> (?'name' (?imx forms. Comment groups (?#...)
+             (?<= (?<! (?<name> (?'name' (?> (?imx forms. Comment groups (?#...)
              never get here either, having been removed by
              preprocess_pattern(). The absent operator (?~...) and
              conditionals (?(...)) are not implemented. Raise here rather
@@ -2097,6 +2117,7 @@ first_set_walk(const re_inst *code, uint32_t code_len,
     case RE_SAVE:
     case RE_BOL: case RE_EOL: case RE_BOT: case RE_EOT: case RE_EOTNL:
     case RE_WBOUND: case RE_NWBOUND:
+    case RE_ATOMIC: case RE_ATOMIC_END:
       pc++;
       continue;  /* zero-width, keep walking */
     case RE_JMP:
@@ -2158,6 +2179,7 @@ epsilon_path(const re_inst *code, uint32_t pc, uint32_t goal,
     case RE_SAVE:
     case RE_BOL: case RE_EOL: case RE_BOT: case RE_EOT: case RE_EOTNL:
     case RE_WBOUND: case RE_NWBOUND:
+    case RE_ATOMIC: case RE_ATOMIC_END:
       pc++;
       break;
     case RE_JMP:
