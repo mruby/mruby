@@ -118,7 +118,18 @@ module MRuby
       File.write(flags_file(outfile), flags_record(opts, flags))
     end
 
-    def define_rules(build_dir, source_dir='', out_ext=build.exts.object)
+    # Define the rules that build the outputs under +build_dir+ from the
+    # sources under +source_dir+, and from the generated sources that sit
+    # beside the outputs.
+    #
+    # The rules compile with this compiler, or with the one the block returns
+    # when a block is given. The block is called when a rule is resolved, not
+    # here, so a compiler it derives from this one sees everything the build
+    # adds after the rules are defined: a gem's mrbgem.rake body runs before
+    # the gem's version define, the include paths of the gems it depends on
+    # and the presym include path reach the gem's compilers.
+    def define_rules(build_dir, source_dir='', out_ext=build.exts.object, &compiler_of)
+      compiler_of ||= proc { self }
       gemrake = File.join(source_dir, "mrbgem.rake")
       rakedep = File.exist?(gemrake) ? [ gemrake ] : []
 
@@ -138,9 +149,9 @@ module MRuby
           source_of = proc { |file| file.sub(generated_file_matcher, "#{dir}/\\1#{ext}") }
           rule generated_file_matcher => [
             source_of,
-            proc { |file| get_dependencies(file, source_of.call(file)) + rakedep }
+            proc { |file| compiler_of.call.get_dependencies(file, source_of.call(file)) + rakedep }
           ] do |t|
-            run t.name, t.prerequisites.first
+            compiler_of.call.run t.name, t.prerequisites.first
           end
         end
       end
@@ -152,8 +163,11 @@ module MRuby
       nil
     end
 
-    private
+    protected
 
+    # The prerequisites of an output besides its source: the config file and
+    # the headers the last compile of it read. Protected, not private, so the
+    # rules one compiler defines can ask the compiler they run.
     #
     # === Example of +.d+ file
     #
@@ -220,6 +234,8 @@ module MRuby
       end
       deps.concat(header_deps)
     end
+
+    private
 
     #
     # === Example of +.flags+ file
