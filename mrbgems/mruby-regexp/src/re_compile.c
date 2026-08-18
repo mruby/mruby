@@ -800,17 +800,21 @@ compile_charclass(re_compiler *c)
       if (cp >= 128 && hi >= 128 && cp_byte != hi_byte) {
         compile_error(c, "character class range mixes a byte and a character");
       }
+      /* A range written backwards holds nothing, and CRuby reports it rather
+         than compiling a class that silently lacks the span, or in the
+         negated form admits everything: [b-a] and [^b-a] both raise. The
+         numbers compare, since the check above leaves no byte paired with a
+         character and ASCII sits below either. */
+      if (cp > hi) compile_error(c, "empty range in char class");
       /* A range that straddles the ASCII boundary is split in two: the
          bitmap takes the half below 128 and the codepoint list the rest.
          Neither half can hold the other, and class_match() picks the side
          to read from the codepoint alone, so a span left whole in the
          codepoint list is unreachable below 128. */
-      if (cp <= hi) {
-        if (cp < 128) class_set_range(cc, (uint8_t)cp, (uint8_t)(hi < 128 ? hi : 127));
-        if (hi >= 128) {
-          uint32_t tag = hi_byte ? RE_CLASS_BYTE : 0;
-          class_add_range(c, cc, tag | (cp < 128 ? 128 : cp), tag | hi);
-        }
+      if (cp < 128) class_set_range(cc, (uint8_t)cp, (uint8_t)(hi < 128 ? hi : 127));
+      if (hi >= 128) {
+        uint32_t tag = hi_byte ? RE_CLASS_BYTE : 0;
+        class_add_range(c, cc, tag | (cp < 128 ? 128 : cp), tag | hi);
       }
     }
     else {

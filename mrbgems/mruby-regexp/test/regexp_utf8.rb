@@ -432,6 +432,30 @@ assert("Regexp - \\u escapes in a character class") do
   assert_equal ["c"], "abc".scan(/[^\u{61 62}]/)
 end
 
+assert("Regexp - reversed character class range through \\u") do
+  # `\u` can write a range backwards without the letters showing it. Such a
+  # range holds nothing, and it used to be dropped without a word: a positive
+  # class lacked the span and a negated one admitted everything.
+  assert_raise_with_message(RegexpError, "empty range in char class: /[\\u{62}-\\u{61}]/") do
+    Regexp.new("[\\u{62}-\\u{61}]")
+  end
+  assert_raise(RegexpError) { Regexp.new("[^\\u{62}-\\u{61}]") }
+  # the last codepoint of a list opens the range, so it is the one compared
+  assert_raise(RegexpError) { Regexp.new("[\\u{62 63}-a]") }
+  assert_equal ["a", "b"], "abc".scan(/[\u{62 61}-a]/)
+  # a range of one codepoint is not empty
+  assert_equal ["a"], "abc".scan(/[\u{61}-\u{61}]/)
+  assert_equal ["a"], "abc".scan(/[a-\u{61}]/)
+  # A range between two characters above ASCII compares their codepoints. On
+  # a build reading a String by byte the ends are the last bytes of their
+  # spellings, whose order is not the codepoints' order.
+  if __ENCODING__ == "UTF-8"
+    assert_raise(RegexpError) { Regexp.new("[\\u{3044}-\\u{3042}]") }
+    assert_raise(RegexpError) { Regexp.new("[\\u{100}-\\u{FF}]") }
+    assert_equal 0, (/[\u{3042}-\u{3042}]/ =~ "あ")
+  end
+end
+
 assert("Regexp - a \\u escape in a class names what spelling it out names") do
   # A class member is one character, and on a build whose characters are single
   # bytes a character above ASCII is not one: `[Ā]` holds the two bytes that
