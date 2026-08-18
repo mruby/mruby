@@ -12,6 +12,7 @@
 */
 
 #include <mruby.h>
+#include <mruby/internal.h>
 #include "dir_hal.h"
 
 #include <windows.h>
@@ -37,16 +38,13 @@ struct mrb_dir_handle {
 static wchar_t*
 utf8_to_utf16(mrb_state *mrb, const char *utf8)
 {
-  int len = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, utf8, -1, NULL, 0);
   wchar_t *utf16;
 
-  if (len == 0) {
-    errno = EINVAL;
-    return NULL;
-  }
-  utf16 = (wchar_t*)mrb_malloc(mrb, (size_t)len * sizeof(wchar_t));
-  if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, utf8, -1, utf16, len) == 0) {
-    mrb_free(mrb, utf16);
+  /* MB_ERR_INVALID_CHARS: a path is not a place to accept the replacement
+     character a byte the code page cannot read would otherwise become. The
+     caller frees with mrb_free(), which is why this takes the mrb_malloc()
+     variant. */
+  if (mrb_mbs_to_wcs_m(mrb, utf8, -1, &utf16, CP_UTF8, MB_ERR_INVALID_CHARS) < 0) {
     errno = EINVAL;
     return NULL;
   }
