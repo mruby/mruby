@@ -212,6 +212,26 @@ assert("Regexp - case insensitive") do
   assert_true re.match?("Abc")
 end
 
+assert("Regexp - /i literals share one class per letter") do
+  # Under /i a letter compiles to a class of its cases, and a class id is a
+  # byte, so a pattern holds at most 256 of them. Every occurrence used to take
+  # one, and a phrase of a few hundred letters was refused as too many
+  # character classes; the second occurrence of a letter now names the class
+  # the first one made.
+  re = Regexp.new("a" * 300, Regexp::IGNORECASE)
+  assert_true re.match?("A" * 300)
+  assert_true re.match?("a" * 300)
+  assert_false re.match?("A" * 299)
+  re = Regexp.new("aA" * 150, Regexp::IGNORECASE)
+  assert_true re.match?("AA" * 150)
+  assert_true re.match?("aa" * 150)
+  # The class is consulted only where /i is on: outside it the same letter
+  # matches its own case alone.
+  re = Regexp.new("(?i:a)a")
+  assert_true re.match?("Aa")
+  assert_false re.match?("AA")
+end
+
 assert("Regexp - case insensitive character class") do
   # /i used to be folded in only where a single literal was emitted, so a
   # character class ignored it entirely.

@@ -12,6 +12,14 @@
 #include <mruby/internal.h>
 #include <string.h>
 
+/* Class IDs are stored in re_inst.a (uint8_t), so at most 256 distinct
+   character classes can be encoded.  Without this cap, class_capa
+   (uint16_t) overflows on doubling past 32768 (8 -> 16 -> ... -> 32768
+   -> 0), mrb_realloc with size 0 returns NULL, and the next memset
+   crashes; even before that, the (uint8_t)id cast at emit sites would
+   silently alias different classes. */
+#define RE_MAX_CLASSES 256
+
 /* Compiler state.
 
    Everything the compile allocates and the finished pattern goes on owning
@@ -46,6 +54,9 @@ typedef struct {
                                before the atom, and a `\u{...}` list moves it
                                forward so the quantifier repeats the last
                                codepoint alone */
+  uint32_t literal_cp[RE_MAX_CLASSES];  /* by class id: the codepoint whose
+                               /i literal the class stands for, 0 for a class
+                               made by anything else; see literal_class() */
 } re_compiler;
 
 static void compile_alt(re_compiler *c);  /* forward */
@@ -177,14 +188,6 @@ next_char(re_compiler *c)
   return (uint8_t)*c->p++;
 }
 
-/* Class IDs are stored in re_inst.a (uint8_t), so at most 256 distinct
-   character classes can be encoded.  Without this cap, class_capa
-   (uint16_t) overflows on doubling past 32768 (8 -> 16 -> ... -> 32768
-   -> 0), mrb_realloc with size 0 returns NULL, and the next memset
-   crashes; even before that, the (uint8_t)id cast at emit sites would
-   silently alias different classes. */
-#define RE_MAX_CLASSES 256
-
 static uint16_t
 add_class(re_compiler *c)
 {
@@ -200,6 +203,40 @@ add_class(re_compiler *c)
   uint16_t id = c->pat->num_classes;
   memset(&c->pat->classes[id], 0, sizeof(re_charclass));
   c->pat->num_classes = id + 1;
+  return id;
+}
+
+/* The class a /i literal for `cp` compiles to, whether it exists yet or not.
+
+   The class holds `cp` and its case counterparts, and nothing else reaches it:
+   not the flags in force, not the pattern around it, and no writer once the
+   emitter that made it has returned. What it holds is a function of `cp`, so
+   the second occurrence of a codepoint can name the class the first one made
+   rather than make another. Each occurrence used to make its own, and a class
+   id is a uint8_t, so a phrase of a few hundred letters under /i ran out of
+   ids and was refused as having too many character classes, where the
+   classes it needed were as many as its distinct letters.
+
+   Every class is recorded by id, which keeps the record the size of the id
+   space and lets it be searched to `num_classes` alone. It sits in the
+   compiler's own frame rather than behind `pat`, since nothing outlives the
+   compile that would want it. Zero marks a class that stands for no literal:
+   it cannot be mistaken for one, since U+0000 has no case and neither caller
+   folds it. Only the id is handed back, and it is for the caller to fill a
+   class that is new, so that a class this function made is never taken for
+   one it found. */
+static uint16_t
+literal_class(re_compiler *c, uint32_t cp, mrb_bool *found)
+{
+  for (uint16_t id = 0; id < c->pat->num_classes; id++) {
+    if (c->literal_cp[id] == cp) {
+      *found = TRUE;
+      return id;
+    }
+  }
+  uint16_t id = add_class(c);
+  c->literal_cp[id] = cp;
+  *found = FALSE;
   return id;
 }
 
@@ -1084,10 +1121,13 @@ emit_char(re_compiler *c, uint8_t ch)
 {
   if ((c->flags & RE_FLAG_IGNORECASE) &&
       ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z'))) {
-    uint16_t id = add_class(c);
-    class_set_bit(&c->pat->classes[id], ch);
-    class_set_bit(&c->pat->classes[id], (uint8_t)(ch ^ 0x20));  /* the other case */
-    class_add_fold_counterparts(c, id, ch);
+    mrb_bool found;
+    uint16_t id = literal_class(c, ch, &found);
+    if (!found) {
+      class_set_bit(&c->pat->classes[id], ch);
+      class_set_bit(&c->pat->classes[id], (uint8_t)(ch ^ 0x20));  /* the other case */
+      class_add_fold_counterparts(c, id, ch);
+    }
     emit(c, RE_CLASS, (uint8_t)id, 0);
     return;
   }
@@ -1140,10 +1180,13 @@ emit_cp_folded(re_compiler *c, uint32_t cp)
   if (f != cp) { alt[n++] = f; alt[n++] = f - 32; }
 #endif
   if (n == 0) return FALSE;
-  uint16_t id = add_class(c);
-  class_add_codepoint(c, &c->pat->classes[id], cp);
-  for (int i = 0; i < n; i++) {
-    class_add_member(c, &c->pat->classes[id], alt[i], FALSE);
+  mrb_bool found;
+  uint16_t id = literal_class(c, cp, &found);
+  if (!found) {
+    class_add_codepoint(c, &c->pat->classes[id], cp);
+    for (int i = 0; i < n; i++) {
+      class_add_member(c, &c->pat->classes[id], alt[i], FALSE);
+    }
   }
   emit(c, RE_CLASS, (uint8_t)id, 0);
   return TRUE;
