@@ -16,7 +16,19 @@ MRuby.each_target do |build|
   build.gems.each{|gem| gem.compilers.each{|c| c.include_paths << include_dir}}
 end
 
+# `all` waits on `gensym` whether or not a build below adds a table to it.
+task :gensym
+
 MRuby.each_target do |build|
+  # `id.h` numbers the symbols in the order `table.h` lists them, and
+  # `symbol.c` compiles `table.h` in: the two headers are one artifact, and
+  # libmruby is its reader. A build with `disable_libmruby` builds no
+  # `symbol.c`; it builds `mrbc` from the compiler gem's objects, which are
+  # compiled without `mruby.h` (`MRB_NO_GEMS` keeps `MRC_TARGET_MRUBY` off), so
+  # a table written for it has no reader, and preprocessing every core source
+  # to write it is work for nothing.
+  next unless build.libmruby_enabled?
+
   presym = build.presym
 
   prereqs = {}
@@ -24,11 +36,6 @@ MRuby.each_target do |build|
   build_dir = "#{build.build_dir}/"
   mrbc_build_dir = "#{build.mrbc_build.build_dir}/" if build.mrbc_build
   build.products.each{|product| all_prerequisites.(product, prereqs)}
-  # The core objects are reachable through libmruby.a, but not in a build with
-  # disable_libmruby, where nothing links them and their symbols would drop out
-  # of the table. Seed the scan from the object list so both cases behave the
-  # same. Only the preprocessed files are built from these, not the objects.
-  build.libmruby_core_objs.flatten.each{|obj| prereqs[obj] = true}
   prereqs.each_key do |prereq|
     next unless File.extname(prereq) == build.exts.object
     next unless prereq.start_with?(build_dir)
