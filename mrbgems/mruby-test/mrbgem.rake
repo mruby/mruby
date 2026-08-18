@@ -22,7 +22,6 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
     spec.cc.defines << "MRBTEST_COMPILER_PRISM"
   end
 
-  file assert_lib => assert_c
   file assert_c => [assert_rb, build.mrbcfile] do |t|
     _pp "GEN", t.name.relative_path
     mkdir_p File.dirname(t.name)
@@ -50,7 +49,6 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
     gem_rakefiles = [g, *dep_list].map {|d| File.join(d.dir, "mrbgem.rake") }
                                   .select {|f| File.exist?(f) }.uniq
 
-    file test_rbobj => g.test_rbireps
     # __FILE__ holds the generator itself, as in the mrbtest.c rule below.
     file g.test_rbireps => [g.test_rbfiles, build.mrbcfile, gem_rakefiles, __FILE__].flatten do |t|
       _pp "GEN", t.name.relative_path
@@ -160,7 +158,6 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
     end
   end
 
-  file mlib => clib
   file clib => ["#{build.build_dir}/mrbgems/active_gems.txt", build.mrbcfile, __FILE__] do |_t|
     _pp "GEN", clib.relative_path
     mkdir_p File.dirname(clib)
