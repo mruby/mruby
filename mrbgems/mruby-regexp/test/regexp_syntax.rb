@@ -127,6 +127,43 @@ assert("String#split and String#scan see the empty iteration's capture") do
   assert_equal [[""], [""], [""]], "ab".scan(/(a?)*/)
 end
 
+assert("Regexp - the backtracking engine stops a repetition on an empty iteration") do
+  # The same rule under the engine a lazy quantifier routes a pattern to. It
+  # used to run such a loop until its recursion limit refused the next frame,
+  # and answer with whatever the alternatives left inside the limit produced:
+  # nothing here, since the outer loop went round again in the frame at the
+  # limit until the step budget was gone.
+  assert_equal 0, /(?:(?:b*)+)+?/ =~ ""
+  assert_equal 0, /(?:(?:b*)+)+?/ =~ "b"
+  assert_equal 0, /(?:(?:b?)+)+?/ =~ ""
+  assert_equal 0, /(?:(?:b*)+)+?/ =~ "abcdefghij"
+  # The loop stops with its lazy body still empty, rather than unwinding into
+  # the body's other branches once the limit is reached.
+  assert_equal "ca", /ca(?:b??b??)+a*?/.match("cab")[0]
+  assert_equal "aa", /(?:a?)*b??/.match("aab")[0]
+  assert_equal "aa", /(?:a?){2,}b??/.match("aab")[0]
+  assert_equal "", /(?:a??)+/.match("aa")[0]
+  assert_equal "a", /(?:a?|b)+c??/.match("ababab")[0]
+  # Each layout of a repetition stops on its own, greedy or lazy: e* jumps
+  # back to its head, e+ forks at the end of its body, e{n,} is copies of the
+  # body before an e*.
+  assert_equal "aab", /(?:a?)*?b/.match("aab")[0]
+  assert_equal "aab", /(?:a??)+b/.match("aab")[0]
+  assert_equal "aab", /(?:a??)+?b/.match("aab")[0]
+  assert_equal "aab", /(?:a?){2,}?b/.match("aab")[0]
+  assert_equal "aab", /(?:(?:a?)*)*?b/.match("aab")[0]
+  assert_equal "", /(?:(?:a?)*?)*b??/.match("aab")[0]
+  assert_equal "aab", /(?:(?:a??)+?)+?b/.match("aab")[0]
+  # The empty iteration's capture is kept, as under the linear-time engine.
+  md = /(a?)*b??/.match("a")
+  assert_equal "", md[1]
+  assert_equal 1, md.begin(1)
+  assert_equal 1, /(a??)+b/.match("ab").begin(1)
+  assert_equal 2, /(a*?)*b/.match("aab").begin(1)
+  assert_equal 1, /(a*?)*?b/.match("aab").begin(1)
+  assert_equal "", /((c*)*)a??/.match("c")[2]
+end
+
 assert("Regexp - quantified first alternative does not leak into the next") do
   # A quantifier loops back to its own atom. When the atom starts the first
   # alternative, the alternation SPLIT is inserted in front of it; the
@@ -566,10 +603,14 @@ assert("Regexp - atomic group (?>...)") do
   assert_nil /(?>x(?>a)(?>b)y)/.match("xabz")
   assert_equal 0, /(?>x(?>a)(?>b)y)/ =~ "xaby"
 
-  # A repetition whose body can match empty runs until the engine's recursion
-  # limit stops it. Reached inside the body, that stop is not a cut.
+  # A repetition whose body can match empty stops on its empty iteration
+  # inside the group as anywhere else, and takes the group's exit; a
+  # repetition of the group stops the same way, its lazy body still empty.
   assert_equal 0, /(?>(?:b*)+)/ =~ ""
   assert_equal 0, /(?>(?:a*)*)b/ =~ "aab"
+  assert_equal "aab", /(?>(?:a*)*)b?/.match("aab")[0]
+  assert_equal "aab", /(?:(?>a*))*b?/.match("aab")[0]
+  assert_equal "ca", /ca(?>b??)+/.match("cab")[0]
 
   # Captures written inside the body stay when the group matches, and are
   # unset again when a cut fails the group.

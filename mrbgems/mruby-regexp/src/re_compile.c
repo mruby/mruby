@@ -2198,10 +2198,15 @@ epsilon_path(const re_inst *code, uint32_t pc, uint32_t goal,
 }
 
 /* Find the repetitions whose body can match empty and mark the backward edge
-   that closes each one, so the Pike VM knows which loops need the empty-
-   iteration handling in add_thread() and which can stay on the cheap path.
-   Returns how deeply those loops nest, which bounds the VM's epsilon passes
-   and the thread lists sized from them; see RE_MAX_PASS and RE_LIST_CAPA. */
+   that closes each one, so that both engines know which loops need the
+   empty-iteration handling (add_thread() and bt_match()) and which can stay
+   on the cheap path. A repetition laid out as e* is closed by a jump back to
+   its SPLIT/SPLITNG head, and that head is marked too: it is where an
+   iteration begins, which the backtracker has to record; see bt_iter(). The
+   head is a forward edge, and a forward edge's mark means nothing else.
+   Returns how deeply the marked loops nest, which bounds the VM's epsilon
+   passes and the thread lists sized from them; see RE_MAX_PASS and
+   RE_LIST_CAPA. */
 static uint8_t
 mark_empty_loops(mrb_state *mrb, re_inst *code, uint32_t code_len)
 {
@@ -2222,6 +2227,11 @@ mark_empty_loops(mrb_state *mrb, re_inst *code, uint32_t code_len)
     if (in.offset > pc) continue;  /* forward edge: alternation, not a loop */
     if (!epsilon_path(code, in.offset, pc, seen, ++mark)) continue;
     code[pc].a = 1;
+    if (in.op == RE_JMP) {
+      /* The head was passed earlier in this scan, so its mark stays. */
+      mrb_assert(code[in.offset].op == RE_SPLIT || code[in.offset].op == RE_SPLITNG);
+      code[in.offset].a = 1;
+    }
     delta[in.offset]++;
     delta[pc + 1]--;  /* the closing edge itself still sits inside the loop */
   }
