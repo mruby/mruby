@@ -191,6 +191,21 @@ assert("Regexp - ^ and $ always match at line boundaries") do
   assert_equal "bar", "foo\nbar".match(/bar\z/)[0]
 end
 
+assert("Regexp - \\Z matches before a trailing newline under both engines") do
+  # \Z is the string end or the position just before a final newline. The
+  # lazy quantifier routes the pattern to the backtracking engine, which had
+  # no case for the opcode and so failed every \Z it saw.
+  assert_equal 0, "a" =~ /a\Z/
+  assert_equal 0, "a\n" =~ /a\Z/
+  assert_nil "a\n\n" =~ /a\Z/
+  assert_nil "ab" =~ /a\Z/
+  assert_equal 0, "a" =~ /a\Za*?/
+  assert_equal 0, "a\n" =~ /a\Z.*?/
+  assert_nil "a\n\n" =~ /a\Z.*?/
+  assert_nil "ab" =~ /a\Zb*?/
+  assert_equal "aX\n", "ab\n".sub(/b\Z(?=)/, "X")
+end
+
 assert("Regexp - case insensitive") do
   re = Regexp.new("abc", Regexp::IGNORECASE)
   assert_true re.match?("ABC")
