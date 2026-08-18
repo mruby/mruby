@@ -507,41 +507,56 @@ class_add_shorthand(re_charclass *cc, int ch)
 }
 
 /* TRUE when every character the class can match is ASCII, so it always
-   consumes exactly one byte. Non-ASCII codepoint ranges and the utf8_any
-   catch-all (set by \D, \W, \S, \H and [[:^alpha:]]) both admit multibyte
-   characters, whose width is not known until match time. */
+   consumes exactly one byte. Non-ASCII codepoint ranges, a type read off the
+   table and the utf8_any catch-all (set by \D, \W, \S, \H and [[:^ascii:]])
+   all admit multibyte characters, whose width is not known until match
+   time. */
 static mrb_bool
 class_is_ascii_only(const re_charclass *cc)
 {
+#ifdef RE_UNICODE_CTYPE
+  if (cc->ctype_yes || cc->ctype_no) return FALSE;
+#endif
   return cc->num_ranges == 0 && !cc->utf8_any;
 }
 
 /* Set ASCII bits for a POSIX class name (e.g. "alpha") into a 128-bit map.
-   Returns FALSE for an unknown name. Semantics are ASCII, like this gem's
-   \w/\d shorthands; non-ASCII codepoints are not classified.
+   Returns FALSE for an unknown name. What the name holds above ASCII is
+   answered separately, by the re_ctype bit written to *ctype: a build with
+   the table reads the rest of the type off it, and one without has ASCII and
+   nothing more, like this gem's \w/\d shorthands, so it writes nothing there
+   and the caller does not read. [:xdigit:] and [:ascii:] are sets ASCII
+   defines, so they hold nothing above it on any build and have no bit.
 
-   *ascii_set is TRUE for a name whose set ASCII defines, [:word:] and
-   [:ascii:], as opposed to one ASCII merely bounds here; the distinction is
-   what compile_charclass() folds by. */
+   *ascii_set is TRUE for a name whose ASCII set is one ASCII defines, [:word:]
+   and [:ascii:], as opposed to one ASCII merely bounds here; the distinction
+   is what compile_charclass() folds by. */
 static mrb_bool
-posix_class_bits(uint8_t *bits, const char *name, size_t len, mrb_bool *ascii_set)
+posix_class_bits(uint8_t *bits, const char *name, size_t len, mrb_bool *ascii_set,
+                 uint16_t *ctype)
 {
 #define NAME_IS(s) (len == sizeof(s) - 1 && memcmp(name, s, len) == 0)
 #define BSET(ch)   (bits[(ch) >> 3] |= (uint8_t)(1u << ((ch) & 7)))
 #define BRANGE(lo, hi) do { for (int i = (lo); i <= (hi); i++) BSET(i); } while (0)
+#ifdef RE_UNICODE_CTYPE
+#define TYPE(t)    (*ctype = (t))
+#else
+#define TYPE(t)    ((void)0)
+#endif
   *ascii_set = NAME_IS("word") || NAME_IS("ascii");
-  if (NAME_IS("alpha")) { BRANGE('a','z'); BRANGE('A','Z'); }
-  else if (NAME_IS("digit")) { BRANGE('0','9'); }
-  else if (NAME_IS("alnum")) { BRANGE('a','z'); BRANGE('A','Z'); BRANGE('0','9'); }
-  else if (NAME_IS("upper")) { BRANGE('A','Z'); }
-  else if (NAME_IS("lower")) { BRANGE('a','z'); }
-  else if (NAME_IS("space")) { BSET(' '); BRANGE('\t','\r'); }
-  else if (NAME_IS("blank")) { BSET(' '); BSET('\t'); }
+  TYPE(0);
+  if (NAME_IS("alpha")) { BRANGE('a','z'); BRANGE('A','Z'); TYPE(RE_CTYPE_ALPHA); }
+  else if (NAME_IS("digit")) { BRANGE('0','9'); TYPE(RE_CTYPE_DIGIT); }
+  else if (NAME_IS("alnum")) { BRANGE('a','z'); BRANGE('A','Z'); BRANGE('0','9'); TYPE(RE_CTYPE_ALNUM); }
+  else if (NAME_IS("upper")) { BRANGE('A','Z'); TYPE(RE_CTYPE_UPPER); }
+  else if (NAME_IS("lower")) { BRANGE('a','z'); TYPE(RE_CTYPE_LOWER); }
+  else if (NAME_IS("space")) { BSET(' '); BRANGE('\t','\r'); TYPE(RE_CTYPE_SPACE); }
+  else if (NAME_IS("blank")) { BSET(' '); BSET('\t'); TYPE(RE_CTYPE_BLANK); }
   else if (NAME_IS("xdigit")) { BRANGE('0','9'); BRANGE('a','f'); BRANGE('A','F'); }
-  else if (NAME_IS("word")) { BRANGE('a','z'); BRANGE('A','Z'); BRANGE('0','9'); BSET('_'); }
-  else if (NAME_IS("cntrl")) { BRANGE(0, 0x1f); BSET(0x7f); }
-  else if (NAME_IS("print")) { BRANGE(0x20, 0x7e); }
-  else if (NAME_IS("graph")) { BRANGE(0x21, 0x7e); }
+  else if (NAME_IS("word")) { BRANGE('a','z'); BRANGE('A','Z'); BRANGE('0','9'); BSET('_'); TYPE(RE_CTYPE_WORD); }
+  else if (NAME_IS("cntrl")) { BRANGE(0, 0x1f); BSET(0x7f); TYPE(RE_CTYPE_CNTRL); }
+  else if (NAME_IS("print")) { BRANGE(0x20, 0x7e); TYPE(RE_CTYPE_PRINT); }
+  else if (NAME_IS("graph")) { BRANGE(0x21, 0x7e); TYPE(RE_CTYPE_GRAPH); }
   else if (NAME_IS("ascii")) { BRANGE(0, 0x7f); }
   else if (NAME_IS("punct")) {
     for (int i = 0x21; i <= 0x7e; i++) {
@@ -549,12 +564,14 @@ posix_class_bits(uint8_t *bits, const char *name, size_t len, mrb_bool *ascii_se
                        (i >= '0' && i <= '9');
       if (!alnum) BSET(i);
     }
+    TYPE(RE_CTYPE_PUNCT);
   }
   else return FALSE;
   return TRUE;
 #undef NAME_IS
 #undef BSET
 #undef BRANGE
+#undef TYPE
 }
 
 /* Value of one hex digit, or -1 for anything else (including the -1 that
@@ -860,7 +877,8 @@ compile_charclass(re_compiler *c)
       if (peek(c) == ':' && c->p + 1 < c->src_end && c->p[1] == ']') {
         uint8_t bits[16] = {0};
         mrb_bool by_ascii;
-        if (!posix_class_bits(bits, name, (size_t)(c->p - name), &by_ascii)) {
+        uint16_t ctype;
+        if (!posix_class_bits(bits, name, (size_t)(c->p - name), &by_ascii, &ctype)) {
           compile_error(c, "invalid POSIX bracket class");
         }
         next_char(c);  /* ':' */
@@ -870,7 +888,20 @@ compile_charclass(re_compiler *c)
           mrb_bool in = (bits[i >> 3] >> (i & 7)) & 1;
           if (in != neg) class_set_bit(dst, (uint8_t)i);
         }
-        if (neg) dst->utf8_any = TRUE;  /* [:^...:] matches non-ASCII too */
+        /* Above ASCII a type is read off the table at match time, in either
+           polarity. A set ASCII defines holds nothing there, so its negation
+           holds everything there: [:^ascii:] is every character above ASCII
+           and every byte that is no character. Without the table, every
+           bracket is such a set. */
+#ifdef RE_UNICODE_CTYPE
+        if (ctype) {
+          if (neg) cc->ctype_no |= ctype;
+          else cc->ctype_yes |= ctype;
+        }
+        else if (neg) dst->utf8_any = TRUE;
+#else
+        if (neg) dst->utf8_any = TRUE;
+#endif
         continue;
       }
       c->p = save;  /* not a POSIX class; treat '[' as a literal below */
@@ -1039,6 +1070,16 @@ compile_charclass(re_compiler *c)
 
   for (int i = 0; i < RE_CLASS_BITMAP_SIZE; i++) cc->bitmap[i] |= ascii_set.bitmap[i];
   if (ascii_set.utf8_any) cc->utf8_any = TRUE;
+
+#ifdef RE_UNICODE_CTYPE
+  /* A type is not spelled out as members, so the closure above never saw it;
+     it is closed at match time instead, by reading the type of every
+     character sharing the folding of the one in hand. The bitmap holds the
+     ASCII of every bracket, and the closure has already reached across the
+     boundary from there: U+017F is in the class once 's' is, so a type
+     found only through an ASCII counterpart is found through the ranges. */
+  cc->ctype_fold = (c->flags & RE_FLAG_IGNORECASE) && (cc->ctype_yes || cc->ctype_no);
+#endif
 
   cc->negated = negated;
   emit(c, negated ? RE_NCLASS : RE_CLASS, (uint8_t)id, 0);

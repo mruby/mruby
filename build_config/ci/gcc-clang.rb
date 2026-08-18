@@ -62,12 +62,13 @@ end
 MRuby::Build.new('ascii-ctype') do |conf|
   conf.toolchain
 
-  # The one build here that indexes by character and converts case by ASCII.
-  # Both halves of that pair are what it covers: core's ASCII conversion, and
-  # the refusal mruby-regexp answers a pattern with when /i is asked for a
-  # folding the build has no table for. The refusal has no other home, since a
-  # build reading its strings as bytes has no character to refuse, so
-  # mruby-regexp/test/ascii_case.rb skips its assertions there.
+  # The one build here that indexes by character and classifies it by ASCII.
+  # Both halves of that pair are what it covers: core's ASCII case conversion,
+  # and what mruby-regexp answers without the tables, the refusal a pattern
+  # gets when /i is asked for a folding the build has no table for and a POSIX
+  # bracket holding its ASCII and no character above it. The refusal has no
+  # other home, since a build reading its strings as bytes has no character to
+  # refuse, so mruby-regexp/test/ascii_case.rb skips its assertions there.
   # Tests only, for the reason byte-string gives above.
   conf.gembox 'full-core'
   conf.cc.defines << 'MRB_USE_ASCII_CTYPE'

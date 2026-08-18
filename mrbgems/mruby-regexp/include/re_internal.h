@@ -11,6 +11,19 @@
 #include <mruby/internal.h>
 #include <stdint.h>
 
+/* The Unicode foldings /i reads are core's table, which only a build reading
+   its strings as characters and classifying them by Unicode carries. /i
+   therefore folds the way that build's own case conversion does and no other
+   way, a pattern read as bytes having no character to fold in the first
+   place. The types a POSIX bracket reads above ASCII are this gem's table,
+   carried on the same condition: a build that asked to leave the case table
+   behind is counting its bytes, and the type table is nothing it wants
+   instead. The two names say which of the tables a site reads. */
+#if defined(MRB_UTF8_STRING) && !defined(MRB_USE_ASCII_CTYPE)
+# define RE_UNICODE_CASE
+# define RE_UNICODE_CTYPE
+#endif
+
 /* Bytecode instructions for the NFA engine */
 enum re_opcode {
   RE_CHAR,       /* match literal byte: operand = byte value */
@@ -84,6 +97,24 @@ typedef struct {
   uint32_t range_capa;
   mrb_bool negated;
   mrb_bool utf8_any;  /* match any non-ASCII byte if true */
+#ifdef RE_UNICODE_CTYPE
+  /* What the POSIX brackets in the class hold above ASCII, as re_ctype bits:
+     a character belongs when its type has a bit of ctype_yes, or lacks a bit
+     of ctype_no ([:^alpha:] is every character that is not a letter). Neither
+     is spelled out as ranges: a class holding [[:alpha:]] would carry the
+     letters as hundreds of ranges, and be read through them one by one at
+     every character. A byte that is no character has no type: it belongs
+     under ctype_no and not under ctype_yes.
+
+     ctype_fold is set under /i when either is: the type read is then that of
+     the character and of every character sharing its folding, so that
+     [[:upper:]] under /i holds "ā" through "Ā". A member the class holds by
+     bit or by range is closed under folding at compile time instead; see
+     compile_charclass(). */
+  uint16_t ctype_yes;
+  uint16_t ctype_no;
+  mrb_bool ctype_fold;
+#endif
 } re_charclass;
 
 /* Longest capture name that fits in re_named_capture::name_len. The bound
@@ -205,13 +236,35 @@ mrb_bool mrb_re_is_word_char(uint32_t c);
 #define RE_FOLD_LONG_S 0x017F  /* to 's' */
 #define RE_FOLD_KELVIN 0x212A  /* to 'k' */
 
-/* The Unicode foldings /i reads are core's table, which only a build reading
-   its strings as characters and converting their case by Unicode carries. /i
-   therefore folds the way that build's own case conversion does and no other
-   way, a pattern read as bytes having no character to fold in the first
-   place. */
-#if defined(MRB_UTF8_STRING) && !defined(MRB_USE_ASCII_CTYPE)
-# define RE_UNICODE_CASE
+/* The types a POSIX bracket can name, as bits: [[:alpha:]] holds a character
+   whose type has RE_CTYPE_ALPHA. Every build reads them for ASCII off the
+   list in re_compile.c; above ASCII only a RE_UNICODE_CTYPE build has an
+   answer, which mrb_re_ctype() reads off re_ctype.h. [:xdigit:] and [:ascii:]
+   are sets ASCII defines and have no bit. */
+enum re_ctype {
+  RE_CTYPE_ALPHA = 1 << 0,
+  RE_CTYPE_UPPER = 1 << 1,
+  RE_CTYPE_LOWER = 1 << 2,
+  RE_CTYPE_DIGIT = 1 << 3,
+  RE_CTYPE_ALNUM = 1 << 4,
+  RE_CTYPE_WORD  = 1 << 5,
+  RE_CTYPE_PUNCT = 1 << 6,
+  RE_CTYPE_SPACE = 1 << 7,
+  RE_CTYPE_BLANK = 1 << 8,
+  RE_CTYPE_GRAPH = 1 << 9,
+  RE_CTYPE_PRINT = 1 << 10,
+  RE_CTYPE_CNTRL = 1 << 11
+};
+
+#ifdef RE_UNICODE_CTYPE
+/* The types of a codepoint above ASCII, as the bits above. */
+uint16_t mrb_re_ctype(uint32_t cp);
+
+/* Whether a class holds a codepoint above ASCII, or a byte tagged
+   RE_CLASS_BYTE, through the brackets in it and the utf8_any catch-all. The
+   class matcher calls this for a class holding any bracket, once the ranges
+   have said nothing. */
+mrb_bool mrb_re_class_ctype_match(const re_charclass *cc, uint32_t cp);
 #endif
 
 /* Simple case folding: the folded codepoint, or cp itself when it folds to

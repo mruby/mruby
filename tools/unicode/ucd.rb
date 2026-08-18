@@ -5,8 +5,8 @@
 # and CHECKSUMS beside it says which bytes that Unicode is. The files are not
 # in the repository, and the directory they are read out of is named after the
 # version, so a bump cannot leave one table generated from an older database
-# than its neighbour. What each generator makes of the files is case_data.rb's;
-# this file knows only which files there are.
+# than its neighbour. What each generator makes of the files is in case_data.rb
+# and ctype_data.rb; this file knows only which files there are.
 
 require 'digest'
 
@@ -18,9 +18,11 @@ module Unicode
     # committed tables were generated. A published release never changes, so
     # what a bump records here is what every regeneration after it has to read.
     CHECKSUMS = {
-      'UnicodeData.txt'   => '2e1efc1dcb59c575eedf5ccae60f95229f706ee6d031835247d843c11d96470c',
-      'SpecialCasing.txt' => 'efc25faf19de21b92c1194c111c932e03d2a5eaf18194e33f1156e96de4c9588',
-      'CaseFolding.txt'   => 'ff8d8fefbf123574205085d6714c36149eb946d717a0c585c27f0f4ef58c4183',
+      'UnicodeData.txt'           => '2e1efc1dcb59c575eedf5ccae60f95229f706ee6d031835247d843c11d96470c',
+      'SpecialCasing.txt'         => 'efc25faf19de21b92c1194c111c932e03d2a5eaf18194e33f1156e96de4c9588',
+      'CaseFolding.txt'           => 'ff8d8fefbf123574205085d6714c36149eb946d717a0c585c27f0f4ef58c4183',
+      'DerivedCoreProperties.txt' => '24c7fed1195c482faaefd5c1e7eb821c5ee1fb6de07ecdbaa64b56a99da22c08',
+      'PropList.txt'              => '130dcddcaadaf071008bdfce1e7743e04fdfbc910886f017d9f9ac931d8c64dd',
     }.freeze
 
     FILES = CHECKSUMS.keys.freeze
@@ -61,6 +63,46 @@ module Unicode
           abort "#{File.join(dir, name)} is not the file Unicode #{VERSION} " \
                 "was generated from:\n  recorded #{want}\n  read     #{got}"
       end
+    end
+
+    # The general category of every assigned codepoint, as {cp => "Lu"} and
+    # the like, out of UnicodeData.txt. A block the file gives as a First and
+    # a Last line rather than one line per character (the CJK ideographs, the
+    # Hangul syllables) is spelled out here, so a caller asking about a
+    # codepoint inside one gets its category rather than nothing. A codepoint
+    # the hash has no entry for is unassigned (Cn).
+    def self.general_categories(dir)
+      gc = {}
+      first = nil
+      File.foreach(path(dir, 'UnicodeData.txt')) do |line|
+        f = line.chomp.split(';', -1)
+        cp = Integer(f[0], 16)
+        if f[1].end_with?('First>')
+          first = cp
+        elsif f[1].end_with?('Last>')
+          (first..cp).each { |c| gc[c] = f[2] }
+          first = nil
+        else
+          gc[cp] = f[2]
+        end
+      end
+      gc
+    end
+
+    # The properties a file in the "range ; Property" format lists, as
+    # {"Alphabetic" => [lo..hi, ...]}. DerivedCoreProperties.txt and
+    # PropList.txt are both spelled that way, one property per line and a
+    # range where a single codepoint would repeat.
+    def self.property_ranges(dir, name)
+      props = Hash.new { |h, k| h[k] = [] }
+      File.foreach(path(dir, name)) do |line|
+        line = line.sub(/#.*/, '').strip
+        next if line.empty?
+        range, prop, = line.split(/\s*;\s*/)
+        lo, hi = range.split('..').map { |x| Integer(x, 16) }
+        props[prop] << (lo..(hi || lo))
+      end
+      props
     end
   end
 end

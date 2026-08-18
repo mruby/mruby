@@ -226,19 +226,24 @@ end
   pairs with one other. Without this macro it folds ASCII letters, and a
   pattern holding a character that needs one of the Unicode foldings raises
   `RegexpError` rather than answering as if the character had no case.
-- `MRB_USE_ASCII_CTYPE` narrows the case half back to ASCII, taking the refusal
-  with it and leaving the indexing.
+- The regexp POSIX brackets classify by Unicode above ASCII: `[[:alpha:]]`
+  holds a letter of any script and `[[:^alpha:]]` rejects it, as in CRuby.
+  Without this macro a bracket holds its ASCII and no character above it.
+- `MRB_USE_ASCII_CTYPE` narrows the case and the brackets back to ASCII,
+  taking the refusal with them and leaving the indexing.
 - If it isn't defined, they only support the US-ASCII encoding.
 
 `MRB_USE_ASCII_CTYPE`
 
 - Narrows the character classification of `MRB_UTF8_STRING` back to ASCII
-  while keeping its indexing. What is classified today is case, so
-  `String#downcase`, `#upcase`, `#capitalize`, `#swapcase` and `#casecmp?`
-  answer for `'A'` to `'Z'` and hand every other character back as it stands.
-- Drops the Unicode tables the build would otherwise carry. That is what the
-  option is for: a target counting its bytes buys the UTF-8 indexing of
-  `MRB_UTF8_STRING` without the tables beside it.
+  while keeping its indexing: `String#downcase`, `#upcase`, `#capitalize`,
+  `#swapcase` and `#casecmp?` answer for `'A'` to `'Z'` and hand every other
+  character back as it stands, and a regexp POSIX bracket holds its ASCII and
+  no character above it.
+- Drops the Unicode tables the build would otherwise carry, core's case table
+  and mruby-regexp's type table. That is what the option is for: a target
+  counting its bytes buys the UTF-8 indexing of `MRB_UTF8_STRING` without the
+  tables beside it.
 - Bytes that spell no character are handed back as they stand rather than
   refused with `ArgumentError`. That refusal belongs to the walk over
   characters, which is the walk this narrows away: what converts instead reads

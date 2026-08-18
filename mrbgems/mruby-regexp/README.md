@@ -16,7 +16,12 @@ simulation) with backtracking fallback.
   `a{2}{3}` is `(?:a{2}){3}`. `{n}` has no non-greedy form, so its `?` is a
   quantifier too and `a{3}?` matches empty where the lazy `a{3,3}?` does not
 - `[abc]`, `[a-z]`, `[^abc]` character classes
-- `\d`, `\w`, `\s` digit, word, whitespace shortcuts
+- `[[:alpha:]]`, `[[:^alpha:]]` POSIX brackets inside a class: `alpha`,
+  `digit`, `alnum`, `upper`, `lower`, `space`, `blank`, `xdigit`, `word`,
+  `cntrl`, `print`, `graph`, `ascii` and `punct`. Above ASCII each holds
+  what CRuby's does where the build classifies characters by Unicode, and
+  nothing where it does not; see Configuration
+- `\d`, `\w`, `\s` digit, word, whitespace shortcuts, ASCII as in CRuby
 - `\D`, `\W`, `\S` negated shortcuts
 - `(...)` capture group
 - `(?:...)` non-capturing group
@@ -187,7 +192,8 @@ pattern analysis.
   require a fixed-length pattern (no `*`, `+`, `?`, or alternation).
   Maximum 255 bytes.
 - **No Unicode properties**: `\p{Alpha}`, `\p{L}`, etc. are not
-  supported.
+  supported. The POSIX brackets read the same data where the build carries
+  it, so `[[:alpha:]]` is the way to ask for a letter of any script.
 - **No `\x{...}` hex escape**: the hex escape is `\xHH`, so it reaches
   `0xff` at most, and `\x{...}` raises `RegexpError` as CRuby does, since
   the brace is not a hex digit. Write `\u{...}` for a codepoint above that.
@@ -286,6 +292,21 @@ is ASCII. A class holding the letter only through `\w`, `[:word:]` or
 `[:ascii:]` does not reach them: those are sets ASCII defines, so `[\w]`
 under `/i` stays the ASCII word characters and `[^\w]` accepts `"K"` (U+212A),
 as in CRuby. A letter written out beside the shorthand (`[\ws]`) folds as usual.
+
+What a POSIX bracket holds above ASCII is this gem's table, `re_ctype.h`,
+carried on the same condition as the case table: a build that defines
+`MRB_UTF8_STRING` without `MRB_USE_ASCII_CTYPE`. There the brackets classify
+as CRuby's do, `[[:alpha:]]` holding `"あ"` and `[[:^alpha:]]` rejecting it,
+`[[:upper:]]` under `/i` reaching `"ā"` through `"Ā"`, and `[[:word:]]` every
+Unicode word character where `\w` stays ASCII. The types are the ones the
+Unicode Character Database publishes: `alpha`, `upper` and `lower` are the
+derived properties Alphabetic, Uppercase and Lowercase, `space` is White_Space,
+and the rest are read off the general categories. Without the table a bracket
+holds its ASCII and no character above it, so `[[:alpha:]]` misses `"あ"` and
+`[[:^alpha:]]` takes it, and a build reading its strings by byte answers the
+same, having no character to classify. `[[:xdigit:]]` and `[[:ascii:]]` are
+sets ASCII defines and hold nothing above it on any build. The table is 13.9KB
+of read-only data; `MRB_USE_ASCII_CTYPE` is what leaves it out.
 
 ## License
 

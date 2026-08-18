@@ -13,7 +13,8 @@ UNICODE_FILES = Unicode::UCD::FILES.map { |f| "#{UNICODE_DATA_DIR}/#{f}" }
 
 UNICODE_GENERATORS = {
   'core' => ['tools/gen_unicase.rb', 'src'],
-  'gem:regexp' => ['mrbgems/mruby-regexp/tools/gen_cased.rb', 'mrbgems/mruby-regexp/src'],
+  'gem:regexp:cased' => ['mrbgems/mruby-regexp/tools/gen_cased.rb', 'mrbgems/mruby-regexp/src'],
+  'gem:regexp:ctype' => ['mrbgems/mruby-regexp/tools/gen_ctype.rb', 'mrbgems/mruby-regexp/src'],
 }
 
 # The database is not in the repository, so each file is a task that fetches

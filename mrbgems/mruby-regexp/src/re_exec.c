@@ -40,15 +40,16 @@ skip_to_prefix(const mrb_regexp_pattern *pat, const char *sp, const char *str_en
 
 /* Check if the current input character matches a character class. ASCII
    (cp < 128) hits the bitmap; non-ASCII falls back to the inclusive (lo, hi)
-   range list, then to the utf8_any catch-all (used by negated shorthand like
-   \D).
+   range list, then to the types the class holds by POSIX bracket, then to the
+   utf8_any catch-all (used by negated shorthand like \D).
 
    `raw` says the input is a byte rather than a character: a byte-indexed
    subject, or one whose byte at this position starts no whole character. It
    picks which half of the range list to read, since a byte member and a
    codepoint member of the same number are different members and arrive here as
-   the same number. utf8_any is the answer for either, being about the byte
-   being non-ASCII at all. */
+   the same number. A byte has no type, so it is in the class through a
+   negated bracket and not through a positive one. utf8_any is the answer for
+   either, being about the byte being non-ASCII at all. */
 static mrb_bool
 class_match(const re_charclass *cc, uint32_t cp, mrb_bool raw)
 {
@@ -59,6 +60,9 @@ class_match(const re_charclass *cc, uint32_t cp, mrb_bool raw)
   for (uint32_t i = 0; i < cc->num_ranges; i++) {
     if (cp >= cc->ranges[2*i] && cp <= cc->ranges[2*i + 1]) return TRUE;
   }
+#ifdef RE_UNICODE_CTYPE
+  if (cc->ctype_yes | cc->ctype_no) return mrb_re_class_ctype_match(cc, cp);
+#endif
   return cc->utf8_any;
 }
 
