@@ -1,47 +1,24 @@
-# The Unicode Character Database, as the table generators read it.
+# The Unicode Character Database, as the case table generators read it.
 #
 # Both generators need the same three files read the same way, so the reading
 # is here and what each of them makes of the mappings stays there. A mapping
 # is held as the codepoints it spells, and only where it differs from the
 # source; a source that is missing from a mapping maps to itself.
 #
-# VERSION is the one place saying which Unicode the tables are generated from,
-# and CHECKSUMS beside it says which bytes that Unicode is. The files are not
-# in the repository, and the directory they are read out of is named after the
-# version, so a bump cannot leave one table generated from an older database
-# than its neighbour.
+# Which release the files are, and where they are, is ucd.rb's to say.
 
-require 'digest'
+require_relative 'ucd'
 
 module Unicode
   class CaseData
-    VERSION = '17.0.0'
-
-    # The files the generators read, and the digest each of them had when the
-    # committed tables were generated. A published release never changes, so
-    # what a bump records here is what every regeneration after it has to read.
-    CHECKSUMS = {
-      'UnicodeData.txt'   => '2e1efc1dcb59c575eedf5ccae60f95229f706ee6d031835247d843c11d96470c',
-      'SpecialCasing.txt' => 'efc25faf19de21b92c1194c111c932e03d2a5eaf18194e33f1156e96de4c9588',
-      'CaseFolding.txt'   => 'ff8d8fefbf123574205085d6714c36149eb946d717a0c585c27f0f4ef58c4183',
-    }.freeze
-
-    FILES = CHECKSUMS.keys.freeze
-
-    URL_BASE = "https://www.unicode.org/Public/#{VERSION}/ucd".freeze
-
     # The Georgian Mtavruli capitals are the one block Unicode keeps out of
     # title case, and title to their lower case rather than to themselves.
     # Nothing in the files says so; CRuby spells the same rule as a codepoint
     # range in enc/unicode.c.
     MTAVRULI = 0x1C90..0x1CBF
 
-    def self.dir
-      File.expand_path("data/#{VERSION}", __dir__)
-    end
-
     def self.load(dir = nil)
-      new(dir || self.dir)
+      new(dir || UCD.dir)
     end
 
     # Each mapping as {source => the codepoints it answers with}, holding a
@@ -52,8 +29,8 @@ module Unicode
 
     def initialize(dir)
       @dir = dir
-      @version = VERSION
-      verify_files
+      @version = UCD::VERSION
+      UCD.verify(dir)
       read_unicode_data
       read_special_casing
       read_case_folding
@@ -63,12 +40,7 @@ module Unicode
     private
 
     def path(name)
-      file = File.join(@dir, name)
-      File.exist?(file) or
-        abort "#{file} not found. The Unicode Character Database is not in " \
-              "the repository; `rake unicode:download` fetches it from " \
-              "#{URL_BASE}/"
-      file
+      UCD.path(@dir, name)
     end
 
     # One field of a data file, as the codepoints it spells, or nil where the
@@ -76,25 +48,6 @@ module Unicode
     def field_cps(field)
       return nil if field.nil? || field.strip.empty?
       field.strip.split(/\s+/).map { |h| Integer(h, 16) }
-    end
-
-    # Each file against the bytes CHECKSUMS records, so that a directory
-    # holding a file from another release is refused rather than generated
-    # from. The version a file names on its first line would answer for two of
-    # the three; UnicodeData.txt names no version, and it is the file most of a
-    # table is read out of.
-    #
-    # What this cannot say is that the bump itself fetched what Unicode
-    # published: it pins the bytes that were fetched, which is what every
-    # regeneration after it has to match. `rake unicode:download` prints the
-    # digest of what it got, for a bump to record above.
-    def verify_files
-      CHECKSUMS.each do |name, want|
-        got = Digest::SHA256.file(path(name)).hexdigest
-        got == want or
-          abort "#{File.join(@dir, name)} is not the file Unicode #{VERSION} " \
-                "was generated from:\n  recorded #{want}\n  read     #{got}"
-      end
     end
 
     # The simple mappings, one source to one character, out of the fields

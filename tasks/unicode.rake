@@ -1,15 +1,15 @@
 require 'digest'
 require 'rbconfig'
-require "#{MRUBY_ROOT}/tools/unicode/case_data"
+require "#{MRUBY_ROOT}/tools/unicode/ucd"
 
 # The tables are committed, so a build never reaches any of this, which is why
 # what only one task needs is required inside it rather than up here. What runs
 # here is what a Unicode version bump comes to: change `VERSION` in
-# tools/unicode/case_data.rb, fetch the database it names, record the digests
+# tools/unicode/ucd.rb, fetch the database it names, record the digests
 # the fetch prints in `CHECKSUMS` beside it, and regenerate every table at
 # once so that no build is left reading an older Unicode than its neighbour.
-UNICODE_DATA_DIR = Unicode::CaseData.dir
-UNICODE_FILES = Unicode::CaseData::FILES.map { |f| "#{UNICODE_DATA_DIR}/#{f}" }
+UNICODE_DATA_DIR = Unicode::UCD.dir
+UNICODE_FILES = Unicode::UCD::FILES.map { |f| "#{UNICODE_DATA_DIR}/#{f}" }
 
 UNICODE_GENERATORS = {
   'core' => ['tools/gen_unicase.rb', 'src'],
@@ -26,7 +26,7 @@ UNICODE_GENERATORS = {
 UNICODE_FILES.each do |path|
   file path do
     require 'open-uri'
-    url = "#{Unicode::CaseData::URL_BASE}/#{File.basename(path)}"
+    url = "#{Unicode::UCD::URL_BASE}/#{File.basename(path)}"
     puts "downloading #{url}"
     mkdir_p File.dirname(path)
     File.binwrite("#{path}.tmp", URI.parse(url).open(&:read))
@@ -40,7 +40,7 @@ def unicode_generate(script, outdir)
 end
 
 namespace :unicode do
-  desc "download the Unicode #{Unicode::CaseData::VERSION} character database"
+  desc "download the Unicode #{Unicode::UCD::VERSION} character database"
   task :download => UNICODE_FILES
 
   desc 'generate all Unicode tables'
@@ -72,6 +72,6 @@ namespace :unicode do
     stale.each { |path| puts "stale: #{path} is not what the database generates" }
 
     fail 'the Unicode tables are out of date' unless stale.empty?
-    puts "the Unicode #{Unicode::CaseData::VERSION} tables are up to date"
+    puts "the Unicode #{Unicode::UCD::VERSION} tables are up to date"
   end
 end

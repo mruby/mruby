@@ -5,7 +5,7 @@
 #
 # UCDDIR holds UnicodeData.txt, SpecialCasing.txt and CaseFolding.txt as
 # published under https://www.unicode.org/Public/<version>/ucd/, and defaults
-# to the copy tools/unicode/case_data.rb names, the same one core's
+# to the copy tools/unicode/ucd.rb names, the same one core's
 # tools/gen_unicase.rb reads. The files are not in the repository: they are
 # read when the table is regenerated and nowhere else.
 #
