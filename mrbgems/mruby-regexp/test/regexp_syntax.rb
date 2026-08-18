@@ -1433,6 +1433,58 @@ assert("Regexp - a hex escape needs at least one digit") do
   assert_equal 0, (Regexp.new("[\\x4]") =~ "\x04")
 end
 
+assert("Regexp - a digit escape is a backreference or an octal escape by the group count") do
+  # Outside a class the digits after the backslash are read as one decimal
+  # number: a backreference when it is at most 9 or at most the number of
+  # groups opened before it, as CRuby reads it, and an octal escape of up
+  # to three digits otherwise. \0 is always octal.
+  assert_equal 0, (/\101/ =~ "A")
+  assert_equal 0, (/\12/ =~ "\n")
+  assert_equal 0, (/\100/ =~ "@")
+  assert_equal 0, (/\1234/ =~ "S4")
+  assert_equal 0, (/\18/ =~ "\x018")
+  assert_equal 0, (/\101/i =~ "a")
+  assert_equal "AA", /\101{2}/.match("AA")[0]
+  assert_equal 0, (/\303\244/ =~ "ä")
+
+  # 8 and 9 are no octal digits, so what is not a backreference is the
+  # digit itself
+  assert_equal 0, (/\81/ =~ "81")
+  assert_equal 0, (/\99/ =~ "99")
+
+  # the count is taken where the escape stands, so the same \10 refers back
+  # after ten groups and is octal 010 before them
+  ten = "(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)"
+  assert_equal 0, (Regexp.new("#{ten}\\10") =~ "abcdefghijj")
+  assert_nil Regexp.new("#{ten}\\10") =~ "abcdefghij\b"
+  assert_equal 0, (Regexp.new("#{ten}\\10{2}") =~ "abcdefghijjj")
+  assert_equal 0, (Regexp.new("#{ten}\\11") =~ "abcdefghij\t")
+  assert_equal 0, (Regexp.new("#{ten}(k)\\11") =~ "abcdefghijkk")
+  assert_equal 0, (Regexp.new("\\10#{ten}") =~ "\babcdefghij")
+  assert_equal 0, (/(a)(b)(c)(d)(e)(f)(g)(h)(i)\10/ =~ "abcdefghi\b")
+
+  # A named pattern counts its plain groups too, since CRuby demotes them
+  # only once the parse is done: what the count makes a backreference is
+  # then refused by number, and what it makes an octal escape is read.
+  msg = "numbered backref/call is not allowed. (use name)"
+  assert_equal 0, (/(?<n>a)\101/ =~ "aA")
+  assert_equal 0, (/(?<n>a)\10/ =~ "a\b")
+  assert_equal 0, (/(?<n>a)(?<m>b)(c)(d)(e)(f)(g)(h)(i)\10/ =~ "abcdefghi\b")
+  assert_raise_with_message(RegexpError, "#{msg}: /(?<n>a)\\9/") do
+    Regexp.new("(?<n>a)\\9")
+  end
+  assert_raise_with_message(RegexpError, "#{msg}: /(?<n>a)(?<m>b)(c)(d)(e)(f)(g)(h)(i)(j)\\10/") do
+    Regexp.new("(?<n>a)(?<m>b)(c)(d)(e)(f)(g)(h)(i)(j)\\10")
+  end
+
+  # Under /x whitespace ends the number and a comment does not, as in
+  # CRuby, whose tokenizer stops at whitespace but never sees a comment.
+  assert_equal 0, (Regexp.new("\\10 1", Regexp::EXTENDED) =~ "\b1")
+  assert_equal 0, (Regexp.new("(a)\\1 0", Regexp::EXTENDED) =~ "aa0")
+  assert_equal 0, (Regexp.new("(a)\\1#c\n0", Regexp::EXTENDED) =~ "a\b")
+  assert_equal 0, (/(a)\1(?#c)0/ =~ "a\b")
+end
+
 assert("Regexp - \\h and \\H hex-digit shorthands") do
   assert_equal 0, (/\h/ =~ "f")
   assert_nil (/\h/ =~ "g")
