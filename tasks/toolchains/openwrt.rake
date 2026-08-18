@@ -27,6 +27,6 @@ MRuby::Toolchain.new(:openwrt) do |conf|
 
   conf.archiver do |archiver|
     archiver.command = ENV['TARGET_AR']
-    archiver.archive_options = 'rs "%{outfile}" %{objs}'
+    archiver.archive_options = 'rcs "%{outfile}" %{objs}'
   end
 end

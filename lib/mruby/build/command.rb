@@ -315,11 +315,18 @@ module MRuby
     def initialize(build)
       super
       @command = ENV['AR'] || 'ar'
-      @archive_options = 'rs "%{outfile}" %{objs}'
+      @archive_options = 'rcs "%{outfile}" %{objs}'
     end
 
+    # The archive is written from the objects of now. `ar r` adds to an
+    # archive that exists and never takes a member out, so an object whose
+    # source was renamed or removed stays in it, ahead of the one that
+    # replaced it, and the linker resolves a symbol both define through the
+    # member it meets first: the old one. Only a build directory that starts
+    # empty avoids that, so the archive that exists is removed here first.
     def run(outfile, objfiles)
       mkdir_p File.dirname(outfile)
+      rm_f outfile
       _pp "AR", outfile.relative_path
       _run archive_options, { :outfile => filename(outfile), :objs => filename(objfiles).map{|f| %Q["#{f}"]}.join(' ') }
     end
