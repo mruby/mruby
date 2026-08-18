@@ -49,7 +49,25 @@ MRuby.each_target do |build|
         presym.send("write_#{type}_header", presyms)
       end
       presym.write_list(presyms)
+    elsif !presym.headers_exist?
+      # The headers are made from the list, so a header that is gone is
+      # written again from the list as it stands. The list itself is left
+      # alone: its timestamp is what every object depends on, and nothing
+      # about the symbols changed. Only the header that is gone is written,
+      # since a new `id.h` recompiles every object that includes it.
+      mkdir_p presym.header_dir
+      %w[id table].each do |type|
+        next if File.exist?(presym.send("#{type}_header_path"))
+        presym.send("write_#{type}_header", presyms)
+      end
     end
+  end
+
+  # The list is the file of the task above, so Rake runs it only when a
+  # preprocessed file is newer than the list. The headers are made from the
+  # list, so a header that is gone needs the task too, with the list as it is.
+  presym_task.define_singleton_method :needed? do
+    super() || !presym.headers_exist?
   end
 
   # Don't directly write dependency tasks in the "task" arguments.

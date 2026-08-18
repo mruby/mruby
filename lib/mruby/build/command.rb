@@ -175,11 +175,20 @@ module MRuby
     #
     #   /src/value_array.h:
     #
+    # The compile of the object writes the +.d+ file, and the presym
+    # preprocess of the same source reads it too: both run the preprocessor
+    # over the same source with the same include paths, so a header that
+    # changes what one sees changes what the other sees. Only the presym
+    # headers are left out of the preprocess: they are made from the
+    # preprocessed files, so depending on them would preprocess every source
+    # again on the run after the symbol table changed. The scan does not
+    # include them anyway (see +MRB_PRESYM_SCANNING+ in +mruby/presym.h+).
+    #
     def get_dependencies(file, source)
       discard_foreign_output(file) if rule_applies?(source)
       deps = [MRUBY_CONFIG]
       dep_file = file.ext(".d")
-      return deps unless object_ext?(file) && File.exist?(dep_file)
+      return deps unless File.exist?(dep_file)
 
       header_deps = File.read(dep_file).gsub("\\\n ", "").split("\n").map do |dep_line|
         # dep_line:
@@ -191,6 +200,24 @@ module MRuby
         #    []
         #    []
       end.flatten.uniq
+      unless object_ext?(file)
+        presym_dir = "#{build.presym.header_dir}/"
+        header_deps.reject! {|dep| dep.start_with?(presym_dir) }
+      end
+      # A header the +.d+ file names but that no longer exists is not a
+      # dependency Rake can resolve: `Rake::TaskManager#attempt_rule` gives up
+      # on the rule when a source neither exists nor has a task, and the
+      # output is left as it is, with nothing to rebuild it (the object keeps
+      # only the presym proxy from `tasks/presym.rake`, the preprocess drops
+      # out of the scan). The +.d+ describes a compile that read that header,
+      # so the output is stale by its own record: it is removed here, so that
+      # the rule, with the header left out, builds it again and writes a
+      # +.d+ that matches the sources of now.
+      missing = header_deps.reject {|dep| File.exist?(dep) || Rake::Task.task_defined?(dep) }
+      unless missing.empty?
+        header_deps -= missing
+        rm_f file if rule_applies?(source)
+      end
       deps.concat(header_deps)
     end
 

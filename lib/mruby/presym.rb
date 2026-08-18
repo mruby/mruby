@@ -142,6 +142,10 @@ module MRuby
       @table_header_path ||= "#{header_dir}/table.h".freeze
     end
 
+    def headers_exist?
+      File.exist?(id_header_path) && File.exist?(table_header_path)
+    end
+
     private
 
     def read_preprocessed(presym_hash, path)
