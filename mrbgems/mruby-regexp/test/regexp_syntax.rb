@@ -172,6 +172,12 @@ assert("Regexp - the backtracking engine stops a repetition on an empty iteratio
   assert_equal "aab", /(?:(?:a?)*)*?b/.match("aab")[0]
   assert_equal "", /(?:(?:a?)*?)*b??/.match("aab")[0]
   assert_equal "aab", /(?:(?:a??)+?)+?b/.match("aab")[0]
+  # The fork closing e+? stops there too. It takes what follows the loop able
+  # to match empty as well to tell: where the loop's exit leads straight to a
+  # byte that has to match, the frame that went round again fails anyway.
+  assert_equal "b", /(?:[ab]?)+?b*b/.match("ba")[0]
+  assert_equal "b", /(?:(?:[ab]?)+?b*)b/.match("ba")[0]
+  assert_equal "aa", /(?:(?:a?|a)+?a+){2,}/.match("aa")[0]
   # The empty iteration's capture is kept, as under the linear-time engine.
   md = /(a?)*b??/.match("a")
   assert_equal "", md[1]
