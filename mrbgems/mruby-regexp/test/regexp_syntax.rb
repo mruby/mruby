@@ -1297,6 +1297,35 @@ assert("Regexp - octal and hex escapes") do
   assert_equal 0, (/\x7/ =~ "\a")
 end
 
+assert("Regexp - a hex escape needs at least one digit") do
+  # `\x` followed by no hex digit used to read as `\x00`, so `\x{41}` was a
+  # NUL and a quantifier, and matched 41 NUL bytes. A regexp literal never
+  # gets this far (the parser refuses it), so the pattern has to be a string.
+  assert_raise_with_message(RegexpError, "invalid hex escape: /\\x{41}/") do
+    Regexp.new("\\x{41}")
+  end
+  assert_raise_with_message(RegexpError, "invalid hex escape: /\\x/") do
+    Regexp.new("\\x")
+  end
+  assert_raise(RegexpError) { Regexp.new("\\xZ") }
+  assert_raise(RegexpError) { Regexp.new("a\\x") }
+  assert_raise(RegexpError) { Regexp.new("\\x{}") }
+
+  # inside a character class the escape reads the same way
+  assert_raise_with_message(RegexpError, "invalid hex escape: /[\\x]/") do
+    Regexp.new("[\\x]")
+  end
+  assert_raise(RegexpError) { Regexp.new("[\\xZ]") }
+  assert_raise(RegexpError) { Regexp.new("[\\x{41}]") }
+  assert_raise(RegexpError) { Regexp.new("[a-\\x]") }
+  assert_raise(RegexpError) { Regexp.new("[\\x-z]") }
+
+  # one digit is enough, and a second non-digit ends the escape
+  assert_equal 0, (Regexp.new("\\x4") =~ "\x04")
+  assert_equal 0, (Regexp.new("\\x4Z") =~ "\x04Z")
+  assert_equal 0, (Regexp.new("[\\x4]") =~ "\x04")
+end
+
 assert("Regexp - \\h and \\H hex-digit shorthands") do
   assert_equal 0, (/\h/ =~ "f")
   assert_nil (/\h/ =~ "g")
