@@ -661,7 +661,7 @@ Example:
 
 ### `String#succ` (alias `String#next`)
 
-Returns the successor to `str`. Increments the rightmost alphanumeric character, carrying into the alphanumeric before it when it wraps. A string with no alphanumeric increments its last character instead: a byte in a binary string (or in a build without `MRB_UTF8_STRING`), a code point in a UTF-8 string.
+Returns the successor to `str`. Increments the rightmost alphanumeric character, carrying into the alphanumeric before it when it wraps. The carry crosses characters that are not alphanumeric, but not from a letter into a digit or from a digit into a letter; a new character goes in instead. A string with no alphanumeric increments its last character instead: a byte in a binary string (or in a build without `MRB_UTF8_STRING`), a code point in a UTF-8 string.
 
 ```ruby
 str.succ    #=> new_str
@@ -677,6 +677,8 @@ Example:
 "Az".succ        #=> "Ba"
 "zz".succ        #=> "aaa"
 "1.9".succ       #=> "2.0"
+"1-z".succ       #=> "1-aa"
+"a-9".succ       #=> "a-10"
 "-".succ         #=> "."
 "\xff".b.succ    #=> "\x01\x00"
 "ÿ".succ         #=> "Ā" (with MRB_UTF8_STRING)
