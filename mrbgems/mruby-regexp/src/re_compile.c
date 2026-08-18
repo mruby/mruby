@@ -2054,20 +2054,33 @@ scope_get(const uint8_t *scope, mrb_int depth)
  * Escaped characters (\ followed by anything) are preserved.
  * skip_uninterpreted() decides which bytes those are.
  *
+ * Removing whitespace must not join what it kept apart. An escape spelled
+ * with digits (`\1`, `\01`, `\x1`) takes the digits that follow it, so
+ * `\x1 2` copied as `\x12` would be one byte where CRuby, whose tokenizer
+ * stops at the space, reads two. So when whitespace went out between such
+ * an escape and a hex digit, an empty group `(?:)` goes in: it emits no
+ * instruction and keeps the digit an atom of its own. A removed comment,
+ * `#...` to the end of its line or `(?#...)`, does join the two: CRuby
+ * strips those before it tokenizes, and `\1(?#c)0` is `\10` there.
+ *
  * The buffer comes from the GC arena, which holds it until the caller's frame
  * is gone: the parser reads it from beginning to end, and every raise in
  * between leaves this function nothing to be reached through. The scope
  * stack lives behind the rewritten pattern in the same allocation: a group
- * opener is one byte of source, so len bits is room for every group.
+ * opener is one byte of source, so len bits is room for every group. The
+ * pattern part is twice the source: each separator adds four bytes and
+ * takes an escape, a blank and a digit, at least four bytes, to occur.
  */
 static char*
 preprocess_pattern(mrb_state *mrb, const char *src, mrb_int len,
                    mrb_bool extended, mrb_int *out_len)
 {
-  char *buf = (char*)mrb_temp_alloc(mrb, (size_t)len + ((size_t)len + 7) / 8);
-  uint8_t *scope = (uint8_t*)buf + len;
+  char *buf = (char*)mrb_temp_alloc(mrb, (size_t)len * 2 + ((size_t)len + 7) / 8);
+  uint8_t *scope = (uint8_t*)buf + len * 2;
   mrb_int depth = 0;
   mrb_int o = 0;
+  mrb_int esc_end = -1;         /* where the last digit escape ended in buf */
+  mrb_bool blank_out = FALSE;   /* whitespace was removed since */
   mrb_bool in_class = FALSE;
   const char *end = src + len;
 
@@ -2078,7 +2091,17 @@ preprocess_pattern(mrb_state *mrb, const char *src, mrb_int len,
        not apply. */
     const char *skip = skip_uninterpreted(src, end, &in_class);
     if (skip) {
+      /* An escape spelled with digits: `\N`, `\x`, or `\u` outside the
+         `\u{...}` list form, whose brace closes it. What is copied here is
+         the backslash and the byte after it; the digits beyond are literals
+         to this pass, and the loop below keeps track of them. */
+      mrb_bool digits = (ch == '\\' && skip - src == 2 &&
+                         (ISDIGIT(src[1]) || src[1] == 'x' || src[1] == 'u'));
       while (src < skip) buf[o++] = *src++;
+      if (digits) {
+        esc_end = o;
+        blank_out = FALSE;
+      }
       continue;
     }
     if (ch == ')') {
@@ -2135,13 +2158,25 @@ preprocess_pattern(mrb_state *mrb, const char *src, mrb_int len,
     }
     if (extended) {
       if (ch == '#') {
-        /* skip to end of line */
+        /* Skip to the end of the line, newline included: the comment is
+           one removed span, not a comment and then a blank. */
         while (src < end && *src != '\n') src++;
+        if (src < end) src++;
         continue;
       }
       if (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' || ch == '\f' || ch == '\v') {
         src++;
+        blank_out = TRUE;
         continue;
+      }
+    }
+    if (o == esc_end && hex_value((unsigned char)ch) >= 0) {
+      if (blank_out) {
+        memcpy(buf + o, "(?:)", 4);  /* the digit is an atom of its own */
+        o += 4;
+      }
+      else {
+        esc_end = o + 1;  /* the digit extends the escape */
       }
     }
     buf[o++] = *src++;

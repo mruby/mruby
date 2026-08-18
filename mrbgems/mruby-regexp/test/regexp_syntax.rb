@@ -570,6 +570,21 @@ assert("Regexp extended mode (x flag)") do
   re = Regexp.new('a\\ b', Regexp::EXTENDED)
   assert_true re.match?("a b")
 
+  # whitespace keeps an escape spelled with digits apart from a digit that
+  # follows it, as CRuby's tokenizer does: \x1 2 is two bytes, not \x12
+  assert_equal 0, (Regexp.new('\x1 2', Regexp::EXTENDED) =~ "\x012")
+  assert_nil Regexp.new('\x1 2', Regexp::EXTENDED) =~ "\x12"
+  assert_equal 0, (Regexp.new('\x1 a', Regexp::EXTENDED) =~ "\x01a")
+  assert_equal 0, (Regexp.new('\01 2', Regexp::EXTENDED) =~ "\x012")
+  assert_equal 0, (Regexp.new('(a)\1 0', Regexp::EXTENDED) =~ "aa0")
+  # what keeps them apart is no atom: a quantifier after the digit repeats
+  # the digit, and a lookbehind still measures a fixed width
+  assert_equal "aa000", Regexp.new('(a)\1 0+', Regexp::EXTENDED).match("aa000")[0]
+  assert_equal 2, (Regexp.new('(?<=\x1 2)x', Regexp::EXTENDED) =~ "\x012x")
+  assert_raise_with_message(RegexpError, "unmatched '(': /\\x1 2(/") do
+    Regexp.new('\x1 2(', Regexp::EXTENDED)
+  end
+
   # a comment group is removed ahead of the line-comment pass, so its ')'
   # survives the '#' inside it
   re = Regexp.new("a (?#note) b", Regexp::EXTENDED)
