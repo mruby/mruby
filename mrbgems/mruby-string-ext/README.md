@@ -809,14 +809,22 @@ Example:
 "aBcDeF".casecmp?("abcdeg")    #=> false
 ```
 
-On a build defining `MRB_UTF8_STRING`, folding follows Unicode, and one folding may spell a character as several. `MRB_USE_ASCII_CTYPE` narrows it back to ASCII:
+On a build defining `MRB_UTF8_STRING`, folding follows Unicode, and one folding may spell a character as several:
 
 ```ruby
 "ä".casecmp?("Ä")     #=> true
 "ß".casecmp?("ss")    #=> true
 ```
 
-A string holding bytes that spell no character is refused with `ArgumentError`, since bytes that spell nothing have no folding. One read as bytes folds ASCII alone, having no characters to fold.
+There, a string holding bytes that spell no character is refused with `ArgumentError`, since bytes that spell nothing have no folding. One read as bytes folds ASCII alone, having no characters to fold.
+
+`MRB_USE_ASCII_CTYPE` narrows the folding of such a build back to ASCII, and the refusal goes with it, since what folds no longer reads characters:
+
+```ruby
+"ä".casecmp?("Ä")         #=> false
+"ß".casecmp?("ss")        #=> false
+"\xff".casecmp?("\xff")   #=> true
+```
 
 ### `String#+@` (Unary Plus)
 
