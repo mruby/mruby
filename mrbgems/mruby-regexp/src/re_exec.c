@@ -725,6 +725,11 @@ bt_match(const mrb_regexp_pattern *pat, const char *str, const char *str_end,
       pc++;
       break;
 
+    case RE_EOTNL:
+      if (sp != str_end && !(sp + 1 == str_end && *sp == '\n')) return FALSE;
+      pc++;
+      break;
+
     case RE_WBOUND:
       {
         mrb_bool before = (sp > str) && mrb_re_is_word_char((uint8_t)sp[-1]);
