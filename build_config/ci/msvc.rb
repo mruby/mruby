@@ -6,7 +6,7 @@ def setup_option(conf)
   conf.linker.flags << "/DEBUG:NONE" unless ENV['LDFLAGS']
 end
 
-MRuby::Build.new do |conf|
+MRuby::Build.new('msvc') do |conf|
   conf.toolchain :visualcpp
 
   # include all core GEMs
