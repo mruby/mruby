@@ -554,7 +554,8 @@ parse_escape(re_compiler *c)
   /* Octal escape `\NNN` (1-3 digits, value 0-255). From the top level a
      digit other than `0` reaches here only once the dispatcher has ruled out
      a backreference; inside `[...]` read_class_atom sends every digit here,
-     since a class has no backreferences. */
+     since a class has no backreferences. Three digits can spell up to
+     0777, and CRuby refuses what is past a byte rather than fold it. */
   case '0': case '1': case '2': case '3':
   case '4': case '5': case '6': case '7': {
     int val = ch - '0';
@@ -566,7 +567,8 @@ parse_escape(re_compiler *c)
       next_char(c);
       n++;
     }
-    return val & 0xff;
+    if (val > 0xff) compile_error(c, "invalid escape code");
+    return val;
   }
   /* Hex escape `\xHH` (1-2 hex digits, value 0-255). The `\x{HHHH}` form
      for codepoints above 0xff is not implemented, and it is not read as
