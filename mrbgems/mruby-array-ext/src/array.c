@@ -1117,8 +1117,12 @@ ary_uniq_bang_body(mrb_state *mrb, void *data)
       }
       (*ctx->write_pos)++;
       kh_del(ary_set, mrb, ctx->set, k);
-      mrb_gc_arena_restore(mrb, ai);
     }
+    /* Every turn protects `elem`, so every turn has to give the slot back:
+       an element already seen took the other branch and left its slot behind,
+       which filled a fixed arena after a hundred duplicates and raised where
+       the answer was in reach. */
+    mrb_gc_arena_restore(mrb, ai);
   }
 
   return mrb_nil_value();
