@@ -11,7 +11,7 @@
 #include <string.h>
 #include <mruby.h>
 
-#if defined(MRB_UTF8_STRING) && !defined(MRB_USE_ASCII_CASE)
+#if defined(MRB_UTF8_STRING) && !defined(MRB_USE_ASCII_CTYPE)
 
 #include <mruby/internal.h>
 #include "unicase.h"
@@ -387,4 +387,4 @@ mrb_uni_case_unfold_range(uint32_t lo, uint32_t hi,
 
 #endif  /* HAVE_MRUBY_REGEXP_GEM */
 
-#endif  /* MRB_UTF8_STRING && !MRB_USE_ASCII_CASE */
+#endif  /* MRB_UTF8_STRING && !MRB_USE_ASCII_CTYPE */

@@ -203,7 +203,7 @@ mrb_bool mrb_re_is_word_char(uint32_t c);
    therefore folds the way that build's own case conversion does and no other
    way, a pattern read as bytes having no character to fold in the first
    place. */
-#if defined(MRB_UTF8_STRING) && !defined(MRB_USE_ASCII_CASE)
+#if defined(MRB_UTF8_STRING) && !defined(MRB_USE_ASCII_CTYPE)
 # define RE_UNICODE_CASE
 #endif
 

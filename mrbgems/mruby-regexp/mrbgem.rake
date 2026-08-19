@@ -54,7 +54,7 @@ MRuby::Gem::Specification.new('mruby-regexp') do |spec|
   # characters carries, and only where it converts their case by Unicode.
   spec.build_settings do
     if build.has_define?('MRB_UTF8_STRING') &&
-       !build.has_define?('MRB_USE_ASCII_CASE')
+       !build.has_define?('MRB_USE_ASCII_CTYPE')
       spec.test_rbfiles -= ["#{spec.dir}/test/ascii_case.rb"]
     else
       spec.test_rbfiles -= ["#{spec.dir}/test/unicode_case.rb"]

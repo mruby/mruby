@@ -247,7 +247,7 @@ there.
 
 Case folding beyond ASCII is not this gem's to configure. The table is
 core's, carried by any build that defines `MRB_UTF8_STRING` without
-`MRB_USE_ASCII_CASE`, and is what `String#downcase` and the four case methods
+`MRB_USE_ASCII_CTYPE`, and is what `String#downcase` and the four case methods
 beside it read; `/i` reads the two directions it needs over that same table.
 So `/i` folds what the build's own case conversion folds, and a build
 converting case by ASCII has nothing for it to fold beyond ASCII either,
