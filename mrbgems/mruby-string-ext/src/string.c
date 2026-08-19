@@ -974,44 +974,102 @@ succ_utf8_write(char *p, mrb_int len, mrb_int cp)
   memcpy(p, buf, len);
   return TRUE;
 }
+
+/* The first character of each byte length, which is where a wrap of that
+   length goes back to when nothing before it is left to wrap to. */
+static const mrb_int succ_first_of_len[] = { 0, 0, 0x80, 0x800, 0x10000 };
+
+/* The code point after `cp`, over the surrogates, which spell no character. */
+static mrb_int
+succ_next_cp(mrb_int cp)
+{
+  return cp + 1 == 0xD800 ? 0xE000 : cp + 1;
+}
+#endif
+
+#if defined(MRB_UTF8_STRING) && !defined(MRB_USE_ASCII_CTYPE)
+/* Which letters and digits there are above ASCII, and where each run of them
+   starts, out of the Unicode character database. A build that reads its
+   strings as bytes has nothing above ASCII to ask about, and one narrowed by
+   MRB_USE_ASCII_CTYPE answers that nothing above ASCII is a letter or a
+   digit, which is the trade it already makes for case: the table is compiled
+   into neither. */
+#include "str_alnum.h"
+
+/* Which of the two the character `cp` is, or 0 for neither, and where the run
+   holding it starts. Nothing is both, so a run is as long as its kind goes,
+   and its start is what a wrap goes back to. */
+static uint32_t
+succ_alnum_run(mrb_int cp, mrb_int *start)
+{
+  size_t lo = 0, hi = STR_ALNUM_RUN_COUNT;
+
+  if (cp < STR_ALNUM_MIN) return 0;
+  while (hi - lo > 1) {
+    size_t mid = (lo + hi) / 2;
+    if ((mrb_int)(str_alnum_runs[mid] >> STR_ALNUM_MASK_BITS) <= cp) lo = mid;
+    else hi = mid;
+  }
+  *start = (mrb_int)(str_alnum_runs[lo] >> STR_ALNUM_MASK_BITS);
+  return str_alnum_runs[lo] & ((1u << STR_ALNUM_MASK_BITS) - 1);
+}
 #endif
 
 /* Step the character at `p` as an alphanumeric, which is what String#succ
-   looks for first. An ASCII letter or digit steps within its run, and the
-   run's carry (its first member, or the digit after it) is left in `carry`
-   for the character before it. Anything else ASCII, and every byte of a
-   string read as bytes, is not one.
+   looks for first. A letter or a digit steps within its own run: to the next
+   one of its kind where there is one, and where there is not, back to the
+   first of the run, leaving the run's carry (its first member, or the digit
+   after it) in `carry` for the character before it. Anything else, and every
+   byte of a string read as bytes, is not one.
 
-   CRuby asks the encoding what a letter or digit is, so a Unicode letter
-   steps within its script and wraps at the script's end, "ת" to "אא". This
-   build carries no such table, so a UTF-8 character above ASCII counts as a
-   letter when the next code point is a character of the same byte length,
-   which steps "aÿ" to "aĀ" and "1あ" to "1ぃ" as CRuby does; where CRuby
-   skips a gap in a script or wraps at its end, this steps to the code point
-   in the gap or the one past the end. A character that ends its byte length,
-   U+007F, U+07FF, U+FFFF and U+10FFFF, is not a letter here, and it is not
-   one in Unicode either. */
+   Which characters those are above ASCII is str_alnum.h's to say, and it says
+   what CRuby's `enc_succ_alnum_char()` asks its encoding, so "ת" steps to
+   "אא" and "ｚ" to "ａ" with a carry. The step over one code point that is
+   not of the kind is CRuby's too: it is what takes "Ρ" to "Σ" over the
+   unassigned U+03A2. A build with no table above ASCII finds nothing there to
+   step, and the walk moves on to the character before it. */
 static enum succ_step
-succ_alnum(char *p, mrb_int len, char *carry)
+succ_alnum(char *p, mrb_int len, char *carry, mrb_int *carry_len)
 {
   unsigned char c = (unsigned char)*p;
 
   if (len == 1) {
     if (!ISALNUM(c)) return SUCC_NOT_CHAR;
+    *carry_len = 1;
     if (c == '9') { *p = '0'; *carry = '1'; return SUCC_WRAPPED; }
     if (c == 'z') { *p = 'a'; *carry = 'a'; return SUCC_WRAPPED; }
     if (c == 'Z') { *p = 'A'; *carry = 'A'; return SUCC_WRAPPED; }
     *p = (char)(c + 1);
     return SUCC_FOUND;
   }
-#ifdef MRB_UTF8_STRING
+#if defined(MRB_UTF8_STRING) && !defined(MRB_USE_ASCII_CTYPE)
   {
-    mrb_int l;
-    mrb_int cp = (mrb_int)mrb_utf8_decode(p, p + len, &l);
-    if (succ_utf8_write(p, len, cp + 1)) return SUCC_FOUND;
+    mrb_int l, start, first, next, cp = (mrb_int)mrb_utf8_decode(p, p + len, &l);
+    uint32_t kind = succ_alnum_run(cp, &start);
+    int step;
+
+    if (kind == 0) return SUCC_NOT_CHAR;
+
+    for (step = 0, next = cp; step < 2; step++) {
+      mrb_int at;
+      next = succ_next_cp(next);
+      if (succ_alnum_run(next, &at) == kind && succ_utf8_write(p, len, next)) {
+        return SUCC_FOUND;
+      }
+    }
+
+    /* Nothing of the kind is left at this byte length, so the run wraps. A
+       character alone in its run has nowhere to wrap to and is not one this
+       walk steps. */
+    first = start > succ_first_of_len[len] ? start : succ_first_of_len[len];
+    if (first == cp) return SUCC_NOT_CHAR;
+    succ_utf8_write(p, len, first);
+    *carry_len = mrb_utf8_to_buf(carry, kind == STR_ALNUM_DIGIT ? first + 1 : first);
+    return SUCC_WRAPPED;
   }
-#endif
+#else
   return SUCC_NOT_CHAR;
+#endif
 }
 
 /* Step the character at `p` as a character, which is what String#succ falls
@@ -1025,13 +1083,10 @@ succ_char(char *p, mrb_int len, mrb_bool chars)
 {
 #ifdef MRB_UTF8_STRING
   if (chars) {
-    static const mrb_int first_of_len[] = { 0, 0, 0x80, 0x800, 0x10000 };
     mrb_int l;
     mrb_int cp = (mrb_int)mrb_utf8_decode(p, p + len, &l);
-    mrb_int next = cp + 1;
-    if (next == 0xD800) next = 0xE000;
-    if (succ_utf8_write(p, len, next)) return SUCC_FOUND;
-    succ_utf8_write(p, len, first_of_len[len]);
+    if (succ_utf8_write(p, len, succ_next_cp(cp))) return SUCC_FOUND;
+    succ_utf8_write(p, len, succ_first_of_len[len]);
     return SUCC_WRAPPED;
   }
 #else
@@ -1061,8 +1116,8 @@ str_succ_bang(mrb_state *mrb, mrb_value self)
   mrb_int slen = RSTR_LEN(s);
   char *sbeg, *e, *p, *last_alnum = NULL;
   mrb_bool chars = FALSE, found_alnum = FALSE;
-  char carry = '\1';
-  mrb_int carry_pos = 0;
+  char carry[4] = { '\1' };
+  mrb_int carry_len = 1, carry_pos = 0;
   enum succ_step step = SUCC_FOUND;
 
   mrb_str_modify(mrb, s);
@@ -1082,12 +1137,13 @@ str_succ_bang(mrb_state *mrb, mrb_value self)
     mrb_int len;
     p = succ_prev_char(sbeg, p, e, chars);
     if (step == SUCC_NOT_CHAR && last_alnum &&
-        (ISALPHA(*last_alnum) ? ISDIGIT(*p) : ISALPHA(*p))) {
+        (ISALPHA(*last_alnum) ? ISDIGIT(*p) :
+         ISDIGIT(*last_alnum) ? ISALPHA(*p) : FALSE)) {
       break;
     }
     len = succ_char_len(p, e, chars);
     if (len == 0) continue;
-    step = succ_alnum(p, len, &carry);
+    step = succ_alnum(p, len, carry, &carry_len);
     if (step == SUCC_NOT_CHAR) continue;
     if (step == SUCC_FOUND) return self;
     last_alnum = p;
@@ -1112,11 +1168,12 @@ str_succ_bang(mrb_state *mrb, mrb_value self)
   /* Everything that could carry has wrapped, so the carry goes in before the
      leftmost character that did: "zz" to "aaa", "\xff\xff".b to
      "\x01\x00\x00", and "\xff" read as UTF-8, which spells nothing to step,
-     to "\x01\xff". */
-  mrb_str_resize(mrb, self, slen + 1);
+     to "\x01\xff". The carry of a wrap above ASCII is a character of that
+     run, so what goes in is as wide as it is: "ת" to "אא". */
+  mrb_str_resize(mrb, self, slen + carry_len);
   sbeg = RSTR_PTR(s);
-  memmove(sbeg + carry_pos + 1, sbeg + carry_pos, slen - carry_pos);
-  sbeg[carry_pos] = carry;
+  memmove(sbeg + carry_pos + carry_len, sbeg + carry_pos, slen - carry_pos);
+  memcpy(sbeg + carry_pos, carry, carry_len);
   return self;
 }
 
