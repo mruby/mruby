@@ -541,23 +541,32 @@ regexp_s_search(mrb_state *mrb, mrb_value klass)
 }
 
 /*
- * Regexp.__byte_search(re, str, pos = 0)
+ * Regexp.__byte_search(re, str, pos = 0, len = -1)
  *
  * Internal: the byte-offset search the mrblib loops of `scan`, `split` and
  * `byteindex` drive themselves. No position normalization, because the
  * callers already work in byte space, and no operand conversion, because
- * they always pass a String. The subject is the one the loop holds fixed, so
- * the check reads the flag core left on it after the first turn. Nor is there
- * a `checked` any more: `gsub` was the caller that set it, and its loop is
- * `__gsub_block` now, which takes the flag itself.
+ * they always pass a String. The subject is the one the loop holds, so the
+ * check reads the flag core left on it after the first turn, and walks it
+ * again only where a block has written to it in between. Nor is there a
+ * `checked` any more: `gsub` was the caller that set it, and its loop is
+ * `__gsub_block` now, which takes the flag itself. `len`, where the caller
+ * gives one, is the byte length its loop began with, and a subject that no
+ * longer has it is refused before the search: this is `str_mod_check` for
+ * the block loop of `scan`, asked here so that the loop pays one argument
+ * per search rather than one `bytesize` call per match.
  */
 static mrb_value
 regexp_s_byte_search(mrb_state *mrb, mrb_value klass)
 {
   mrb_value re, str;
   mrb_int pos = 0;
+  mrb_int len = -1;
 
-  mrb_get_args(mrb, "oS|i", &re, &str, &pos);
+  mrb_get_args(mrb, "oS|ii", &re, &str, &pos, &len);
+  if (len >= 0 && RSTRING_LEN(str) != len) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "string modified");
+  }
   check_regexp_arg(mrb, re);
   /* Every mrblib loop enters at zero or at an offset a match answered with,
      so a position before the subject reaches here only from a direct call.
@@ -1098,12 +1107,12 @@ matchdata_byte_end(mrb_state *mrb, mrb_value self)
   return mrb_int_value(mrb, pos);
 }
 
-/* Whether `str` still reads as the subject `md` was made on. The block loop
-   of `gsub` ends on a search from the offset its last match was found from,
-   on the receiver as the block left it, the way CRuby's `str_gsub` does; on a
-   receiver that reads as it did when that match was made, the search can only
-   find that match again, and the loop republishes it instead. What a search
-   reads of a subject is its bytes
+/* Whether `str` still reads as the subject `md` was made on. The block loops
+   of `gsub` and `scan` end on a search from the offset their last match was
+   found from, on the receiver as the block left it, the way CRuby's
+   `str_gsub` and `rb_str_scan` do; on a receiver that reads as it did when
+   that match was made, the search can only find that match again, and the
+   loops republish it instead. What a search reads of a subject is its bytes
    and whether they are read by byte, and `source` is a frozen copy of both as
    they stood at match time, so comparing the two is the whole of the test:
    where CRuby's `str_mod_check` reads the buffer pointer and the length, this
@@ -1122,18 +1131,24 @@ re_subject_reads_as(mrb_state *mrb, mrb_value str, mrb_value mdv)
   return p == q || memcmp(p, q, (size_t)len) == 0;
 }
 
-/* Private: republish $~ and the thirteen names derived from it. Used by the
-   mrblib loops that drive Regexp.__byte_search themselves, where the failing
-   call that ends the loop clears the match the loop is supposed to leave behind.
-   The names other than $~ are not assignable from Ruby, so restoring them
-   has to come from here. */
+/* Private: publish this match once more, if `str` still reads as the subject
+   it was made on, and say whether it did. The mrblib loop of `scan` ends on
+   a search from the offset its last match was found from, on the receiver as
+   the block left it, the way `rb_str_scan` does; `re_subject_reads_as()`
+   above is the test that spares that search, and this is it asked from
+   mrblib. The names other than $~ are not assignable from Ruby, so publishing
+   them again has to come from here. Returns false where `str` reads
+   differently, and the caller searches. */
 static mrb_value
-matchdata_set_globals(mrb_state *mrb, mrb_value self)
+matchdata_republish(mrb_state *mrb, mrb_value self)
 {
+  mrb_value str;
+  mrb_get_args(mrb, "S", &str);
   mrb_match_data *md = DATA_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
-  if (!md) return mrb_nil_value();
+  if (!md) return mrb_false_value();
+  if (!re_subject_reads_as(mrb, str, self)) return mrb_false_value();
   set_match_globals(mrb, self, md->source, md->captures, md->num_captures);
-  return self;
+  return mrb_true_value();
 }
 
 /*
@@ -2108,7 +2123,7 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, re, "__check_pattern", regexp_check_pattern, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, re, "__check_byte_pos", regexp_check_byte_pos, MRB_ARGS_REQ(2));
   mrb_define_class_method(mrb, re, "__search", regexp_s_search, MRB_ARGS_ARG(2, 2));
-  mrb_define_class_method(mrb, re, "__byte_search", regexp_s_byte_search, MRB_ARGS_ARG(2, 1));
+  mrb_define_class_method(mrb, re, "__byte_search", regexp_s_byte_search, MRB_ARGS_ARG(2, 2));
   mrb_define_class_method(mrb, re, "__byte_rsearch", regexp_s_byte_rsearch, MRB_ARGS_REQ(3));
   mrb_define_class_method(mrb, re, "__search_p", regexp_s_search_p, MRB_ARGS_ARG(2, 1));
 
@@ -2177,7 +2192,7 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, md, "end", matchdata_end, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, md, "__byte_begin", matchdata_byte_begin, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, md, "__byte_end", matchdata_byte_end, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, md, "__set_globals", matchdata_set_globals, MRB_ARGS_NONE());
+  mrb_define_method(mrb, md, "__republish", matchdata_republish, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, md, "pre_match", matchdata_pre, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "post_match", matchdata_post, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "named_captures", matchdata_named_captures, MRB_ARGS_NONE());

@@ -272,20 +272,30 @@ class String
     # a character on its own.
     pos = 0
     len = self.bytesize
-    # The loop ends on a failed search, which clears the globals. CRuby leaves
-    # the last match behind, so keep it and republish it below, the way `gsub`
-    # does. A scan that matched nothing keeps the cleared state.
+    # A block that changes the receiver is answered for as `rb_str_scan`
+    # answers for it, which is the way `__gsub_block` does: one that changed
+    # the length is refused with `RuntimeError` by the next search, which takes
+    # `len` for that, the next match is searched for in the string it left,
+    # and the match left in $~ is a search once more from the offset the last
+    # match was found from, on the string as it stands at the end. That search
+    # also republishes what the failed one that ends the loop clears; a scan
+    # that matched nothing keeps the cleared state. And as in `gsub`, a
+    # receiver that still reads as it did when the last match was made gets
+    # that match republished, and the search runs only where `__republish`
+    # finds it reading differently.
     last = nil
+    last_md = nil
     while pos <= len
-      md = Regexp.__byte_search(pattern, self, pos)
+      md = Regexp.__byte_search(pattern, self, pos, len)
       break unless md
-      last = md
+      last = pos
+      last_md = md
       yield(md.size == 1 ? md[0] : md.captures)
       match_start = md.__byte_begin(0)
       match_end = md.__byte_end(0)
       pos = match_start == match_end ? match_end + 1 : match_end
     end
-    last.__set_globals if last
+    Regexp.__byte_search(pattern, self, last, len) if last && !last_md.__republish(self)
     self
   end
 

@@ -45,6 +45,59 @@ assert("String#scan of a multibyte subject reports byte-correct globals") do
   assert_equal [[1, "あ", "いXう"], [3, "あXい", "う"]], seen
 end
 
+assert("String#scan with a block that changes the receiver") do
+  # `rb_str_scan` searches for the next match in the receiver as the block
+  # left it, and the match it leaves behind is a search once more from the
+  # offset the last match was found from, so a block that writes the match
+  # away leaves nil where the loop used to republish the match it had.
+  s = "hello"
+  seen = []
+  s.scan(/l/) { |m| seen << m; s.upcase! }
+  assert_equal ["l"], seen
+  assert_equal "HELLO", s
+  assert_nil $~
+  s = "hello"
+  n = 0
+  seen = []
+  s.scan(/l/) { |m| seen << m; n += 1; s.upcase! if n == 2 }
+  assert_equal ["l", "l"], seen
+  assert_nil $~
+  # a change that leaves the match where it was leaves it behind, on the
+  # changed string
+  s = "hello"
+  s.scan(/(l)/) { s.tr!("h", "H") }
+  assert_equal "l", $&
+  assert_equal "l", $1
+  assert_equal "Hel", $`
+  assert_equal "o", $'
+  assert_equal "Hello", $~.string
+  # a match the block writes in after the current one is found
+  s = "abcd"
+  seen = []
+  s.scan(/b/) { |m| seen << m; s[3] = "b" }
+  assert_equal ["b", "b"], seen
+  assert_equal "abc", $`
+  s = "abc"
+  seen = []
+  s.scan(//) { |m| seen << m; s.upcase! }
+  assert_equal ["", "", "", ""], seen
+  assert_equal "ABC", $`
+  # a quoted String pattern goes the same way
+  s = "hello"
+  seen = []
+  s.scan("l") { |m| seen << m; s.upcase! }
+  assert_equal ["l"], seen
+  assert_nil $~
+  # a block that changes the length is refused, as in `gsub`
+  s = "hello"
+  assert_raise_with_message(RuntimeError, "string modified") { s.scan(/l/) { s << "z" } }
+  assert_equal "helloz", s
+  s = "hello"
+  assert_raise_with_message(RuntimeError, "string modified") { s.scan("l") { s << "z" } }
+  s = "ab"
+  assert_raise_with_message(RuntimeError, "string modified") { s.scan(/x*/) { s.clear } }
+end
+
 assert("String#gsub - regexp search position is byte-based internally") do
   skip unless __ENCODING__ == "UTF-8"
   assert_equal "あ-い-う", "あ,い,う".gsub(/,/, "-")
