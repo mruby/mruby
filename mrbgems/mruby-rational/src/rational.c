@@ -679,6 +679,13 @@ rational_eq(mrb_state *mrb, mrb_value x)
   mrb_value y = mrb_get_arg1(mrb);
 #ifdef RAT_BIGINT
   if (RAT_BIGINT_P(x)) return rational_eq_b(mrb, x, y);
+  /* rational_eq_b() reads the bigint half of the union from its left operand
+     only, so a bigint-backed right-hand side is answered by swapping the two.
+     Equality is symmetric, and without the swap the MRB_TT_RATIONAL arm below
+     reads y's `struct RBasic*` fields through the mrb_int half. */
+  if (mrb_type(y) == MRB_TT_RATIONAL && RAT_BIGINT_P(y)) {
+    return rational_eq_b(mrb, y, x);
+  }
 #endif
   struct mrb_rational *p1 = rat_ptr(mrb, x);
   mrb_bool result;

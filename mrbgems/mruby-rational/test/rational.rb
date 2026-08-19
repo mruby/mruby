@@ -162,6 +162,11 @@ assert 'Rational#== between bigint-backed rationals' do
   assert_equal_rational(false, Rational(big, 3), Rational(1, 2))
   assert_equal_rational(true,  Rational(big, 1), big)
   assert_equal_rational(false, Rational(big, 1), big + 1)
+  # The same crossing with the bigint-backed side on the right, which reaches
+  # the comparison the other way around.
+  assert_equal_rational(true,  Rational(1, 1), Rational(big, big))
+  assert_equal_rational(true,  Rational(1, 2), Rational(big, big * 2))
+  assert_equal_rational(false, Rational(1, 2), Rational(big, 3))
 end
 
 assert 'Rational#eql?' do
