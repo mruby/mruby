@@ -1312,16 +1312,33 @@ apply_replacement(mrb_state *mrb, mrb_value result,
   while (i < rep_len) {
     if (rep[i] == '\\' && i + 1 < rep_len) {
       char c = rep[i + 1];
+      /* The escapes that stand for a group settle on one here, and the append
+         below is the only one that spends it: a group the escape reaches past
+         or one that took no part in the match stands for nothing. */
+      int g = -1;
+      mrb_bool ref = TRUE;
       if (c >= '0' && c <= '9') {
-        int g = c - '0';
-        if (g < ncap && captures[g * 2] >= 0) {
-          int s = captures[g * 2], e = captures[g * 2 + 1];
-          mrb_str_cat(mrb, result, str + s, e - s);
-        }
+        g = c - '0';
       }
       else if (c == '&') {
-        if (captures[0] >= 0) {
-          mrb_str_cat(mrb, result, str + captures[0], captures[1] - captures[0]);
+        g = 0;
+      }
+      else if (c == '+') {
+        /* last successful capture */
+        for (int j = ncap - 1; j >= 1; j--) {
+          if (captures[j * 2] >= 0) {
+            g = j;
+            break;
+          }
+        }
+      }
+      else {
+        ref = FALSE;
+      }
+      if (ref) {
+        if (g >= 0 && g < ncap && captures[g * 2] >= 0) {
+          int s = captures[g * 2], e = captures[g * 2 + 1];
+          mrb_str_cat(mrb, result, str + s, e - s);
         }
       }
       else if (c == '`') {
@@ -1336,16 +1353,6 @@ apply_replacement(mrb_state *mrb, mrb_value result,
              NUL bytes or be a non-NUL-terminated shared substring, in which
              case strlen() underflows the length (issue #6892). */
           mrb_str_cat(mrb, result, str + captures[1], str_len - captures[1]);
-        }
-      }
-      else if (c == '+') {
-        /* last successful capture */
-        for (int g = ncap - 1; g >= 1; g--) {
-          if (captures[g * 2] >= 0) {
-            int s = captures[g * 2], e = captures[g * 2 + 1];
-            mrb_str_cat(mrb, result, str + s, e - s);
-            break;
-          }
         }
       }
       else if (c == '\\') {
