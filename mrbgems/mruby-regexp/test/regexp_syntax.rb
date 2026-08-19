@@ -979,6 +979,19 @@ assert("Regexp - atomic group (?>...)") do
   assert_nil /(?>x(?>a)(?>b)y)/.match("xabz")
   assert_equal 0, /(?>x(?>a)(?>b)y)/ =~ "xaby"
 
+  # A possessive repeat is an atomic group wrapped around what it repeats,
+  # and it cuts as a group of its own: a failure after it does not open the
+  # repeat to being skipped, whatever groups the repeated code holds.
+  assert_nil /(?>a)?+a/.match("a")
+  assert_nil /(?>a)*+a/.match("aa")
+  assert_nil /(?:(?>a)b?)?+a/.match("a")
+  assert_nil /(?:(?>a)?+)?+a/.match("a")
+  assert_equal 0, /(?>a)?+b/ =~ "ab"
+  assert_equal 0, /(?:(?>a)b?)?+c/ =~ "abc"
+  # A failure inside the repeat, before its end, still fails only the inner
+  # group, and the repeat is skipped as its `?` allows.
+  assert_equal 1, /(?:(?>a)b)?+c/ =~ "ac"
+
   # A repetition whose body can match empty stops on its empty iteration
   # inside the group as anywhere else, and takes the group's exit; a
   # repetition of the group stops the same way, its lazy body still empty.

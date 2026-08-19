@@ -630,7 +630,7 @@ lookbehind_start(const mrb_regexp_pattern *pat, const char *str,
    alternative of its own. The third answer is the cut of an atomic group:
    the text after an RE_ATOMIC_END has failed, and no alternative inside the
    group's body may be tried for it, so the frames between that end and the
-   RE_ATOMIC that opened the group hand BT_CUT of the group's depth up
+   RE_ATOMIC that opened the group hand BT_CUT of the group's number up
    unchanged, undoing their captures as they go, and the frame that ran that
    RE_ATOMIC turns it into BT_FAIL. A cut never reaches a lookaround from
    inside its sub-pattern: the RE_ATOMIC that absorbs it is in there too.
@@ -645,7 +645,7 @@ lookbehind_start(const mrb_regexp_pattern *pat, const char *str,
 #define BT_FAIL 0
 #define BT_MATCH 1
 #define BT_LIMIT 2
-#define BT_CUT(atomic_depth) (-(int)(atomic_depth))
+#define BT_CUT(cut) (-(int)(cut))
 
 /* What one backtrack_exec() call shares between its bt_match() frames: the
    pattern, the subject, the capture slots being written, the step count and

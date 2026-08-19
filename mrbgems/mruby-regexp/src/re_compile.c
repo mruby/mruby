@@ -57,7 +57,9 @@ typedef struct {
   uint16_t num_groups;      /* groups opened so far, counting the plain ones a
                                named pattern demotes: what decides whether
                                `\NN` is a backreference or an octal escape */
-  uint32_t atomic_depth;    /* how many (?>...) groups enclose the parse point */
+  uint32_t num_cuts;        /* atomic groups numbered so far, the possessive
+                               repeats among them: each takes the next number,
+                               so no two that nest share one; see RE_ATOMIC */
   uint32_t atom_start;      /* where the atom a quantifier binds to begins;
                                compile_quantified sets it to the position
                                before the atom, and a `\u{...}` list moves it
@@ -1405,16 +1407,21 @@ compile_atom(re_compiler *c)
         else if (c->p[1] == '>') {
           /* atomic group (?>...): the body is a non-capturing group whose
              first match is its only one. The two instructions bracketing it
-             carry the group's nesting depth, which is how the executor pairs
-             the end of a body with the group it closes when a failure after
-             the body has to fail the group; see bt_match(). The depth counts
-             instructions the pattern holds, so it fits the field. */
+             carry a number of the group's own, which is how the executor
+             pairs the end of a body with the group it closes when a failure
+             after the body has to fail the group; see bt_match(). The number
+             is the count of groups numbered before it rather than the
+             nesting depth: a possessive repeat wraps a group around code
+             already emitted, and with depths that wrapper and a group inside
+             it, compiled with the same groups open around them, shared a
+             depth, so a cut of the wrapper was read as the inner group's.
+             Every numbered group emits two instructions, so the number fits
+             the field. */
           next_char(c); next_char(c);  /* skip ?> */
-          c->atomic_depth++;
-          emit(c, RE_ATOMIC, 0, (uint16_t)c->atomic_depth);
+          uint16_t cut = (uint16_t)++c->num_cuts;
+          emit(c, RE_ATOMIC, 0, cut);
           compile_alt(c);
-          emit(c, RE_ATOMIC_END, 0, (uint16_t)c->atomic_depth);
-          c->atomic_depth--;
+          emit(c, RE_ATOMIC_END, 0, cut);
           if (peek(c) != ')') compile_error(c, "unmatched '('");
           next_char(c);
           c->needs_backtrack = TRUE;  /* the Pike VM cannot cut a thread */
@@ -1848,12 +1855,12 @@ compile_quantified(re_compiler *c)
     int ch = peek(c);
 
     if (greedy_rep && ch == '+') {
-      /* Possessive: what stands emitted becomes an atomic group of its own. */
+      /* Possessive: what stands emitted becomes an atomic group of its own,
+         numbered after every group inside it, since those are emitted. */
       next_char(c);
-      c->atomic_depth++;
-      insert_inst(c, begin, RE_ATOMIC, 0, (uint16_t)c->atomic_depth);
-      emit(c, RE_ATOMIC_END, 0, (uint16_t)c->atomic_depth);
-      c->atomic_depth--;
+      uint16_t cut = (uint16_t)++c->num_cuts;
+      insert_inst(c, begin, RE_ATOMIC, 0, cut);
+      emit(c, RE_ATOMIC_END, 0, cut);
       c->needs_backtrack = TRUE;  /* the Pike VM cannot cut a thread */
       greedy_rep = FALSE;
       start = begin;
