@@ -68,13 +68,18 @@ The value below allows about 60000 recursive calls in the simplest case. */
 
 
 #ifndef MRB_GC_FIXED_ARENA
+/* Unwind the arena to `idx` and give back the memory it no longer needs.
+   The caller is the epilogue of a cfunc call, whose return value is still
+   only in a local of mrb_vm_exec() at this point, so the realloc below must
+   not run once the arena has let go of it: under MRB_GC_STRESS every
+   allocation is a full GC, and the value would be swept before the VM stores
+   it into a register. The unwind therefore comes after the realloc. */
 static void
 mrb_gc_arena_shrink(mrb_state *mrb, int idx)
 {
   mrb_gc *gc = &mrb->gc;
   int capa = gc->arena_capa;
 
-  gc->arena_idx = idx;
   if (idx < capa / 4) {
     capa >>= 2;
     if (capa < MRB_GC_ARENA_SIZE) {
@@ -85,6 +90,7 @@ mrb_gc_arena_shrink(mrb_state *mrb, int idx)
       gc->arena_capa = capa;
     }
   }
+  gc->arena_idx = idx;
 }
 #else
 #define mrb_gc_arena_shrink(mrb, idx) mrb_gc_arena_restore(mrb, idx)
