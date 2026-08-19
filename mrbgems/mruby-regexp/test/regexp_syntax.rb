@@ -467,6 +467,53 @@ assert("Regexp - a curly brace that is not a quantifier is a literal") do
   assert_raise(RegexpError) { Regexp.new("{2}") }
 end
 
+assert("Regexp - a quantifier after a quantifier repeats the repeat") do
+  # CRuby reads a second quantifier as binding the repeat before it, not the
+  # atom: `a**` is `(?:a*)*`. Two spellings are not that, and are read where
+  # the first quantifier is.
+  assert_equal ["aaa"], /a**/.match("aaa").to_a
+  assert_equal ["aaa"], /a+*/.match("aaa").to_a
+  assert_equal ["aaa"], /a?*/.match("aaa").to_a
+  assert_equal ["aaaaaa"], /a{2}{3}/.match("aaaaaa").to_a
+  assert_equal ["aaaa"], /a{2}+/.match("aaaa").to_a
+  assert_equal ["aaa"], /a{1,2}*/.match("aaa").to_a
+  assert_equal ["aaa"], /a***/.match("aaa").to_a
+  assert_equal ["aa"], /(?:a?){2}/.match("aaa").to_a
+  assert_equal ["aa"], /a?{2}/.match("aaa").to_a
+
+  # `?` right after a greedy `*`, `+`, `?` or a `{n,m}` written with a comma
+  # is the non-greedy marker. `{n}` has no non-greedy form, so its `?` is a
+  # quantifier and `a{3}?` matches empty where the lazy `a{3,3}?` does not.
+  assert_equal [""], /a*?/.match("aaa").to_a
+  assert_equal [""], /a{3}?/.match("").to_a
+  assert_equal [""], /a{3}?/.match("aa").to_a
+  assert_nil /a{3,3}?/.match("aa")
+  assert_equal ["aaa"], /a{3,3}?/.match("aaa").to_a
+  assert_equal [""], /a{0,2}?/.match("aa").to_a
+
+  # `+` right after a greedy `*`, `+` or `?` is possessive, `a*+` being
+  # `(?>a*)`: `a?+` takes one `a` out of "aa" where `(?:a?)+` takes two. After
+  # a lazy repeat, a possessive one or a `{...}` it is a quantifier again.
+  assert_equal ["a"], /a?+/.match("aa").to_a
+  assert_nil /a?+a/.match("a")
+  assert_equal ["aa"], /a?+a/.match("aa").to_a
+  assert_equal ["aa"], /(?:a?)+/.match("aa").to_a
+  assert_equal ["aaa"], /a*+/.match("aaa").to_a
+  assert_equal ["aa"], /a+?+/.match("aa").to_a
+  assert_equal ["a"], /a+?+?/.match("aa").to_a
+  assert_equal ["aa"], /a?++/.match("aa").to_a
+
+  # A body that matches no times matches empty however it is repeated.
+  assert_equal [""], /a{0}*/.match("").to_a
+  assert_equal [""], /a{0}{2}?/.match("aa").to_a
+
+  # A repeat of a repeat is an empty-matching loop by construction; the null
+  # check of both engines stops it rather than the recursion limit.
+  assert_equal ["aaa"], /(?:a?)**/.match("aaa").to_a
+  assert_equal ["aaa"], /(?:a*)*+/.match("aaa").to_a
+  assert_equal ["b"], /(?:a?)**b/.match("b").to_a
+end
+
 assert("Regexp - patterns that used to hang the compiler now raise (A1)") do
   # These once looped forever in the compiler at 100% CPU instead of raising.
   # Regexp.new is used so the pattern reaches the regexp compiler directly,
@@ -479,8 +526,9 @@ assert("Regexp - patterns that used to hang the compiler now raise (A1)") do
   assert_raise(RegexpError) { Regexp.new("(?") }
   assert_raise(RegexpError) { Regexp.new("(?<") }
 
-  # A quantifier metacharacter with no atom to repeat.
-  assert_raise(RegexpError) { Regexp.new("a***") }
+  # A quantifier metacharacter with no atom to repeat. `a***` has one, the
+  # repeat before it: it is `(?:(?:a*)*)*`.
+  assert_equal ["aaa"], Regexp.new("a***").match("aaa").to_a
   assert_raise(RegexpError) { Regexp.new("*") }
   assert_raise(RegexpError) { Regexp.new("+") }
   assert_raise(RegexpError) { Regexp.new("?abc") }
@@ -733,7 +781,10 @@ assert("Regexp - free-spacing whitespace stands between tokens only") do
   # `?` a space away is a repeat of the repeat, which this engine refuses
   # as it refuses `a**`
   assert_equal [""], Regexp.new("a*?", x).match("aaa").to_a
-  assert_raise(RegexpError) { Regexp.new("a* ?", x) }
+  # A `?` a blank away from the quantifier repeats the repeat, `(?:a*)?`, and
+  # is not the non-greedy marker, which is read where the quantifier is.
+  assert_equal ["aaa"], Regexp.new("a* ?", x).match("aaa").to_a
+  assert_equal ["aa"], Regexp.new("a{2} ?", x).match("aaa").to_a
 
   # a numeric escape is read whole too: the whitespace that CRuby rejects
   # inside one is rejected here, and the whitespace that ends one short of

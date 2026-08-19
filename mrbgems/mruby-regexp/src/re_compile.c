@@ -1042,11 +1042,13 @@ compile_charclass(re_compiler *c)
 
 /* Parse {n}, {n,}, {n,m} quantifier. Returns min,max via pointers. */
 static mrb_bool
-parse_quantifier(re_compiler *c, int *min_out, int *max_out)
+parse_quantifier(re_compiler *c, int *min_out, int *max_out, mrb_bool *ranged)
 {
   const char *save = c->p;
   int min = 0, max = -1;
   mrb_bool has_digit = FALSE;
+
+  *ranged = FALSE;
 
   while (peek(c) >= '0' && peek(c) <= '9') {
     min = min * 10 + (next_char(c) - '0');
@@ -1055,6 +1057,7 @@ parse_quantifier(re_compiler *c, int *min_out, int *max_out)
   }
   if (peek(c) == ',') {
     next_char(c);
+    *ranged = TRUE;
     if (peek(c) >= '0' && peek(c) <= '9') {
       max = 0;
       while (peek(c) >= '0' && peek(c) <= '9') {
@@ -1721,7 +1724,8 @@ compile_atom(re_compiler *c)
          sequence loop spun forever (issue #6914). */
       next_char(c);  /* consume `{` for the trial parse */
       int qmin, qmax;
-      if (parse_quantifier(c, &qmin, &qmax)) {
+      mrb_bool qranged;
+      if (parse_quantifier(c, &qmin, &qmax, &qranged)) {
         compile_error(c, "target of repeat operator is not specified");
       }
       emit(c, RE_CHAR, '{', 0);
@@ -1766,6 +1770,34 @@ emit_atom_copy(re_compiler *c, uint32_t start, uint32_t size)
 }
 
 /* Compile atom with quantifiers (*, +, ?, {n,m}) */
+/* Read the quantifiers that follow a body which matches empty and emit
+   nothing for them: `a{0}` leaves no code, and repeating what matches empty
+   any number of times still matches empty, so `a{0}*` and `a{0}{2}?` are the
+   empty match CRuby gives. */
+static void
+skip_quantifiers(re_compiler *c)
+{
+  for (;;) {
+    skip_extended_space(c);
+    int ch = peek(c);
+    if (ch == '*' || ch == '+' || ch == '?') {
+      next_char(c);
+      if (peek(c) == '?') next_char(c);
+      continue;
+    }
+    if (ch == '{') {
+      const char *save = c->p;
+      int min, max;
+      mrb_bool ranged;
+      next_char(c);
+      if (!parse_quantifier(c, &min, &max, &ranged)) { c->p = save; return; }
+      if (peek(c) == '?') next_char(c);
+      continue;
+    }
+    return;
+  }
+}
+
 static void
 compile_quantified(re_compiler *c)
 {
@@ -1783,46 +1815,88 @@ compile_quantified(re_compiler *c)
 
   /* Under /x the quantifier may stand apart from its atom, `a +` being `a+`.
      A `?` making it non-greedy is read right after it, though, as CRuby
-     reads it: `a* ?` is `a*` and then a `?` of its own. */
-  skip_extended_space(c);
-  int ch = peek(c);
-  if (ch == '*' || ch == '+' || ch == '?') {
-    next_char(c);
-    mrb_bool nongreedy = (peek(c) == '?');
-    if (nongreedy) {
+     reads it.
+
+     A quantifier that follows a quantifier binds everything emitted so far
+     rather than the atom alone, so the loop below comes round with `start`
+     back at `begin`: `a**` is `(?:a*)*` and `a{2}{3}` is `(?:a{2}){3}`. Two
+     spellings are read before it comes round, as CRuby reads them:
+
+     - `?` right after `*`, `+`, `?` or a `{n,m}` written with a comma is the
+       non-greedy marker. `{n}` has no non-greedy form, so its `?` is a
+       quantifier of its own: `a{3}?` is `(?:a{3})?` and matches empty, where
+       the lazy `a{3,3}?` does not.
+     - `+` right after `*`, `+` or `?` is possessive, `a*+` being `(?>a*)`.
+       That is why `a?+` takes one `a` out of "aa" where `(?:a?)+` takes two.
+       After a `{...}` it is a quantifier again, `a{2}+` matching "aaaa".
+
+     `greedy_rep` says the last thing read was a greedy `*`, `+` or `?`, which
+     is the only place a `+` is possessive: the `+` of `a+` follows the atom,
+     the one of `a+?+` follows a lazy repeat, and the one of `a?++` follows a
+     possessive, and CRuby reads all three of those as quantifiers. */
+  mrb_bool greedy_rep = FALSE;
+
+  for (;;) {
+    skip_extended_space(c);
+    int ch = peek(c);
+
+    if (greedy_rep && ch == '+') {
+      /* Possessive: what stands emitted becomes an atomic group of its own. */
       next_char(c);
-      c->needs_backtrack = TRUE;
+      c->atomic_depth++;
+      insert_inst(c, begin, RE_ATOMIC, 0, (uint16_t)c->atomic_depth);
+      emit(c, RE_ATOMIC_END, 0, (uint16_t)c->atomic_depth);
+      c->atomic_depth--;
+      c->needs_backtrack = TRUE;  /* the Pike VM cannot cut a thread */
+      greedy_rep = FALSE;
+      start = begin;
+      continue;
     }
 
+    if (ch == '*' || ch == '+' || ch == '?') {
+      next_char(c);
+      mrb_bool nongreedy = (peek(c) == '?');
+      if (nongreedy) {
+        next_char(c);
+        c->needs_backtrack = TRUE;
+      }
 
-    if (ch == '*') {
-      /* e* → L: SPLIT(body, end); body; JMP L; end:
-         SPLIT offset = end (after JMP), patched after JMP is emitted */
-      insert_inst(c, start, nongreedy ? RE_SPLITNG : RE_SPLIT, 0, 0);
-      emit(c, RE_JMP, 0, start);
-      c->pat->code[start].offset = (uint16_t)c->code_len;  /* patch: skip to end */
+      if (ch == '*') {
+        /* e* -> L: SPLIT(body, end); body; JMP L; end:
+           SPLIT offset = end (after JMP), patched after JMP is emitted */
+        insert_inst(c, start, nongreedy ? RE_SPLITNG : RE_SPLIT, 0, 0);
+        emit(c, RE_JMP, 0, start);
+        c->pat->code[start].offset = (uint16_t)c->code_len;  /* patch: skip to end */
+      }
+      else if (ch == '+') {
+        /* e+ -> body; SPLIT/SPLITNG(start)
+           SPLIT: first=pc+1(end), second=offset(start) -> non-greedy
+           SPLITNG: first=offset(start), second=pc+1(end) -> greedy */
+        emit(c, nongreedy ? RE_SPLIT : RE_SPLITNG, 0, start);
+      }
+      else { /* ? */
+        /* e? -> SPLIT(body, end); body; end: */
+        insert_inst(c, start, nongreedy ? RE_SPLITNG : RE_SPLIT, 0, 0);
+        c->pat->code[start].offset = (uint16_t)c->code_len;  /* patch: skip to end */
+      }
+      greedy_rep = !nongreedy;
+      start = begin;
+      continue;
     }
-    else if (ch == '+') {
-      /* e+ → body; SPLIT/SPLITNG(start)
-         SPLIT: first=pc+1(end), second=offset(start) → non-greedy
-         SPLITNG: first=offset(start), second=pc+1(end) → greedy */
-      emit(c, nongreedy ? RE_SPLIT : RE_SPLITNG, 0, start);
-    }
-    else { /* ? */
-      /* e? → SPLIT(body, end); body; end: */
-      insert_inst(c, start, nongreedy ? RE_SPLITNG : RE_SPLIT, 0, 0);
-      c->pat->code[start].offset = (uint16_t)c->code_len;  /* patch: skip to end */
-    }
-  }
-  else if (ch == '{') {
+
+    if (ch != '{') return;
+
     const char *save = c->p;
     next_char(c);
     int min, max;
-    if (!parse_quantifier(c, &min, &max)) {
+    mrb_bool ranged;
+    if (!parse_quantifier(c, &min, &max, &ranged)) {
       c->p = save;
       return;  /* not a quantifier */
     }
-    mrb_bool nongreedy = (peek(c) == '?');
+    /* `{n}` has no non-greedy form, so a `?` after it is a quantifier and the
+       loop takes it; `{n,m}` takes it as the marker. */
+    mrb_bool nongreedy = (ranged && peek(c) == '?');
     if (nongreedy) {
       next_char(c);
       c->needs_backtrack = TRUE;
@@ -1868,6 +1942,14 @@ compile_quantified(re_compiler *c)
         insert_inst(c, start, nongreedy ? RE_SPLITNG : RE_SPLIT, 0, 0);
         c->pat->code[start].offset = (uint16_t)c->code_len;
       }
+    }
+    greedy_rep = FALSE;
+    start = begin;
+    /* `{0}` left nothing to repeat, and a quantifier over a body that matches
+       empty matches empty, so what follows is read and emits nothing. */
+    if (c->code_len == begin) {
+      skip_quantifiers(c);
+      return;
     }
   }
 }
