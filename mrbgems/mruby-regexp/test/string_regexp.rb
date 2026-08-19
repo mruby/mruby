@@ -816,3 +816,171 @@ assert("String#gsub with block leaves the last match behind") do
   assert_nil $1
   assert_nil $+
 end
+
+assert("String#sub / #gsub search a String pattern without compiling one") do
+  # A String pattern is a literal, and the search for it walks the subject's
+  # bytes rather than a pattern compiled to walk them: `.` matches only `.`.
+  assert_equal "aXc.e", "a.c.e".sub(".", "X")
+  assert_equal "aXcXe", "a.c.e".gsub(".", "X")
+  assert_equal "a.c.e", "a.c.e".gsub("z", "X")
+  assert_equal "abcabc", "abcabc".gsub("abcabcabc", "X")
+  assert_equal "X", "abc".gsub("abc", "X")
+  assert_equal "--", "aaaa".gsub("aa", "-")
+
+  # What a compiled pattern is still asked for is the Regexp the match names,
+  # which is the quoted literal as CRuby's is.
+  "a.c".gsub(".", "X")
+  assert_equal "\\.", $~.regexp.source
+  assert_equal ".", $~[0]
+  assert_equal 1, $~.begin(0)
+  assert_equal "a", $`
+  assert_equal "c", $'
+  assert_equal ".", $&
+
+  # The last match, not the first, as everywhere else.
+  "a.c.e".gsub(".", "X")
+  assert_equal 3, $~.begin(0)
+
+  # Matching nothing clears, as it does everywhere else.
+  /b(c)/ =~ "abcd"
+  "abc".gsub("z", "X")
+  assert_nil $~
+  assert_nil $&
+  assert_nil $`
+  assert_nil $1
+end
+
+assert("String#sub / #gsub with a String pattern leave the subject unread") do
+  # CRuby searches for a literal byte by byte and reads the subject as UTF-8
+  # nowhere along the way, so a subject that spells no character is answered
+  # for here where the same call with a Regexp is refused.
+  s = "a\x80b"
+  assert_equal "a\x80!", s.sub("b", "!")
+  assert_equal "a\x80!", s.gsub("b", "!")
+  assert_equal "a\x80!", s.dup.sub!("b", "!")
+  assert_equal "a\x80!", s.dup.gsub!("b", "!")
+  if __ENCODING__ == "UTF-8"
+    assert_raise(ArgumentError) { s.sub(/b/, "!") }
+    assert_raise(ArgumentError) { s.gsub(/b/, "!") }
+    assert_raise(ArgumentError) { s.gsub(/b/) { "!" } }
+  end
+end
+
+assert("String#gsub with an empty String pattern steps one character") do
+  assert_equal "-a-b-", "ab".gsub("", "-")
+  assert_equal "-", "".gsub("", "-")
+  assert_equal "-a-", "a".sub("", "-") + "-"
+  # A character and not a byte, where the subject is read as characters, and a
+  # byte where it is read as bytes.
+  if "あ".length == 1
+    assert_equal "-a-あ-b-", "aあb".gsub("", "-")
+  end
+  assert_equal "-a-\xE3-\x81-\x82-b-", "aあb".b.gsub("", "-")
+end
+
+assert("String#sub / #gsub expand the replacement of a String pattern") do
+  assert_equal "a[b]c", "abc".sub("b", "[\\0]")
+  assert_equal "a[b]c", "abc".sub("b", "[\\&]")
+  assert_equal "a<a>c", "abc".sub("b", "<\\`>")
+  assert_equal "a<c>c", "abc".sub("b", "<\\'>")
+  assert_equal "a\\c", "abc".sub("b", "\\\\")
+  assert_equal "a[b]c[b]", "abcb".gsub("b", "[\\&]")
+  # A literal has no groups, so a group reference names nothing and stands for
+  # nothing, as in CRuby.
+  assert_equal "ac", "abc".sub("b", "\\1")
+  assert_equal "ac", "abc".sub("b", "\\+")
+end
+
+assert("String#sub! / #gsub! with a String pattern answer the one search they make") do
+  s = "a.c.e"
+  assert_equal "aXc.e", s.sub!(".", "X")
+  assert_equal "aXc.e", s
+  s = "a.c.e"
+  assert_equal "aXcXe", s.gsub!(".", "X")
+  assert_equal "aXcXe", s
+
+  # nil for nothing matched, and self even where the substitution changed no
+  # byte: the question is about the match, not the result.
+  assert_nil "abc".dup.sub!("z", "X")
+  assert_nil "abc".dup.gsub!("z", "X")
+  s = "aaa"
+  assert_equal "aaa", s.dup.gsub!("a", "a")
+
+  # A miss clears the globals, and a hit leaves the last match behind.
+  /b(c)/ =~ "abcd"
+  assert_nil "abc".dup.gsub!("z", "X")
+  assert_nil $~
+  "a.c.e".dup.gsub!(".", "X")
+  assert_equal 3, $~.begin(0)
+end
+
+assert("String#gsub with a block whose block replaces the subject") do
+  # The loop is in C and reads the subject afresh every turn, so a block that
+  # replaces it under the walk cannot leave the search reading bytes that were
+  # freed.
+  s = "aaaa".dup
+  assert_kind_of String, s.gsub(/a/) { s.replace("b"); "-" }
+  s = "aaaa".dup
+  assert_kind_of String, s.gsub(/a/) { s << "aaaa"; "-" }
+
+  # What the walk takes after the block is what the block left, which needs
+  # the bytes read again rather than the pointer the search was made with. A
+  # replacement of the same length moves the buffer without changing the
+  # length, so this stands whatever a check on the length would say: reading
+  # the old pointer keeps one byte of the subject as it was.
+  s = "a" * 200
+  assert_equal "-" + "b" * 200, s.gsub(/(?=a)/) { s.replace("b" * 200); "-" }
+end
+
+assert("MatchData#regexp compiles a literal pattern only when asked for one") do
+  # Nothing compiled a pattern to search with, so the Regexp the match names is
+  # built out of the bytes it matched, the first time something asks. The same
+  # literal asked for twice running answers the same object, which is what
+  # CRuby's `rb_reg_regcomp` answers for the same quoted pattern.
+  "abc".gsub("b", "X")
+  first = $~.regexp
+  "zbz".gsub("b", "Y")
+  assert_true first.equal?($~.regexp)
+
+  # One entry, as CRuby keeps one: a literal asked for in between drops it.
+  "abc".gsub("b", "X")
+  first = $~.regexp
+  "abc".gsub("c", "Y")
+  $~.regexp
+  "zbz".gsub("b", "Z")
+  assert_false first.equal?($~.regexp)
+
+  # A call that never asks compiles nothing, so it cannot drop what the entry
+  # holds either.
+  "abc".gsub("b", "X")
+  first = $~.regexp
+  "abc".gsub("c", "Y")
+  "zbz".gsub("b", "Z")
+  assert_true first.equal?($~.regexp)
+
+  # A match answers the same Regexp however often it is asked, the entry
+  # behind it having moved on.
+  "abc".gsub("b", "X")
+  md = $~
+  first = md.regexp
+  "abc".gsub("c", "Y")
+  $~.regexp
+  assert_true first.equal?(md.regexp)
+
+  # The literal reaches the entry as it was matched, so a pattern modified
+  # afterwards cannot answer for what it used to spell.
+  pattern = "b".dup
+  "abc".gsub(pattern, "X")
+  first = $~.regexp
+  pattern << "c"
+  "zbz".gsub("b", "Y")
+  assert_true first.equal?($~.regexp)
+  assert_equal "b", first.source
+
+  # A literal has no groups, so a name reaches none, as in CRuby.
+  "a.c".sub(".", "-")
+  assert_equal({}, $~.named_captures)
+  assert_raise(IndexError) { $~[:x] }
+  "abc".sub("", "-")
+  assert_equal "", $~.regexp.source
+end

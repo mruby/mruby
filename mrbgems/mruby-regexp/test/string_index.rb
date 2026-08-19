@@ -934,6 +934,23 @@ assert("String overrides run a pattern whose operation cores were rewritten") do
   assert_equal "heXo", s
 end
 
+assert("String overrides run a String pattern whose operation cores were rewritten") do
+  # The literal path reaches the same class methods on Regexp, so a pattern
+  # carrying its own `__sub_lit` or `__gsub_lit` is searched for, not asked.
+  p = "l".dup
+  def p.__sub_lit(*args); "PWNED"; end
+  def p.__gsub_lit(*args); "PWNED"; end
+  def p.__gsub_block(*args); "PWNED"; end
+
+  assert_equal "heXlo", "hello".sub(p, "X")
+  assert_equal "heXXo", "hello".gsub(p, "X")
+  assert_equal "heXXo", "hello".gsub(p) { "X" }
+  s = "hello".dup
+  assert_equal "heXlo", s.sub!(p, "X")
+  s = "hello".dup
+  assert_equal "heXXo", s.gsub!(p, "X")
+end
+
 assert("String#[] answers the same through the opcode and through a send") do
   # `s[x]` is answered by `OP_GETIDX` / `OP_GETIDX0` in C, without a method
   # lookup, while `slice` is a second method table entry for the same

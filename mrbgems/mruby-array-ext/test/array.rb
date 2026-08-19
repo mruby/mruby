@@ -861,3 +861,17 @@ assert("Array#rfind") do
   # Works with different types
   assert_equal "b", ["a", "b", "c", "b", "a"].rfind { |x| x > "a" }  # scanning from end: a,b - b matches
 end
+
+assert('Array#uniq over an array of duplicates keeps the arena') do
+  # Every turn of the walk protects the element it reads, so every turn has to
+  # give the arena slot back. The restore sat inside the branch an element not
+  # seen before takes, so a duplicate left its slot behind, and a hundred of
+  # them filled a fixed arena and raised where the answer was one comparison
+  # away. A build whose arena grows never noticed.
+  a = Array.new(300) { "x" }
+  assert_equal ["x"], a.uniq
+  assert_equal ["x"], a.dup.uniq!
+
+  b = Array.new(300) { |i| (i % 3).to_s }
+  assert_equal ["0", "1", "2"], b.uniq
+end
