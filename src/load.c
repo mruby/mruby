@@ -529,12 +529,16 @@ read_section_debug(mrb_state *mrb, const uint8_t *start, size_t size, mrb_irep *
   struct rite_section_debug_header *header = (struct rite_section_debug_header*)bin;
   bin += sizeof(struct rite_section_debug_header);
 
+  if ((size_t)(end - bin) < sizeof(uint16_t)) return MRB_DUMP_GENERAL_FAILURE;
   uint16_t filenames_len = bin_to_uint16(bin);
   bin += sizeof(uint16_t);
-  if (bin > end) return MRB_DUMP_GENERAL_FAILURE;
   mrb_value filenames_obj = mrb_str_new(mrb, NULL, sizeof(mrb_sym) * (size_t)filenames_len);
   mrb_sym *filenames = (mrb_sym*)RSTRING_PTR(filenames_obj);
   for (uint16_t i = 0; i < filenames_len; i++) {
+    if ((size_t)(end - bin) < sizeof(uint16_t)) {
+      result = MRB_DUMP_GENERAL_FAILURE;
+      goto debug_exit;
+    }
     uint16_t f_len = bin_to_uint16(bin);
     bin += sizeof(uint16_t);
     if (bin + f_len > end) {
@@ -625,13 +629,14 @@ read_section_lv(mrb_state *mrb, const uint8_t *start, size_t size, mrb_irep *ire
   header = (struct rite_section_lv_header const*)bin;
   bin += sizeof(struct rite_section_lv_header);
 
+  if ((size_t)(end - bin) < sizeof(uint32_t)) return MRB_DUMP_READ_FAULT;
   syms_len = bin_to_uint32(bin);
   bin += sizeof(uint32_t);
-  if (bin > end) return MRB_DUMP_READ_FAULT;
   if (SIZE_ERROR_MUL(syms_len, sizeof(mrb_sym))) return MRB_DUMP_GENERAL_FAILURE;
   syms_obj = mrb_str_new(mrb, NULL, sizeof(mrb_sym) * (size_t)syms_len);
   syms = (mrb_sym*)RSTRING_PTR(syms_obj);
   for (i = 0; i < syms_len; i++) {
+    if ((size_t)(end - bin) < sizeof(uint16_t)) return MRB_DUMP_READ_FAULT;
     uint16_t const str_len = bin_to_uint16(bin);
     bin += sizeof(uint16_t);
     if (bin + str_len > end) return MRB_DUMP_READ_FAULT;
