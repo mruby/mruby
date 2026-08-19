@@ -520,8 +520,15 @@ static mrb_value
 rational_new(mrb_state *mrb, mrb_value a, mrb_value b)
 {
 #ifdef MRB_NO_FLOAT
-  a = mrb_as_int(mrb, a);
-  b = mrb_as_int(mrb, b);
+  /* The #if above admits this arm only when RAT_BIGINT is on, so a Bigint
+     operand is possible here and takes the same route as in the arm below:
+     mrb_ensure_int_type() narrows a Bigint to an mrb_int, which is what
+     rational_new_b() exists to avoid. */
+  if (mrb_bigint_p(a) || mrb_bigint_p(b)) {
+    return rational_new_b(mrb, mrb_as_bint(mrb, a), b);
+  }
+  a = mrb_ensure_int_type(mrb, a);
+  b = mrb_ensure_int_type(mrb, b);
   return rational_new_i(mrb, mrb_integer(a), mrb_integer(b));
 #else
   if (mrb_integer_p(a) && mrb_integer_p(b)) {
@@ -628,11 +635,15 @@ rational_eq_b(mrb_state *mrb, mrb_value x, mrb_value y)
 #endif
   case MRB_TT_RATIONAL:
     {
-      /* Compare by converting to float - less precise but safe */
-      mrb_float v1 = mrb_bint_as_float(mrb, mrb_obj_value(p1->b.num)) /
-                     mrb_bint_as_float(mrb, mrb_obj_value(p1->b.den));
-      mrb_float v2 = rat_float(mrb, y);
-      result = v1 == v2;
+      /* Cross-multiply instead of dividing: num1/den1 == num2/den2 becomes
+         num1*den2 == num2*den1, which is exact and needs no Float. Both
+         denominators are positive (rational_new_b() moves the sign onto the
+         numerator), so the direction of the equality is unaffected. */
+      mrb_value num2 = mrb_as_bint(mrb, rat_numerator(mrb, y));
+      mrb_value den2 = rat_denominator(mrb, y);
+      mrb_value a = mrb_bint_mul_n(mrb, mrb_obj_value(p1->b.num), den2);
+      mrb_value b = mrb_bint_mul_n(mrb, num2, mrb_obj_value(p1->b.den));
+      result = mrb_bint_cmp(mrb, a, b) == 0;
       break;
     }
 
@@ -668,6 +679,13 @@ rational_eq(mrb_state *mrb, mrb_value x)
   mrb_value y = mrb_get_arg1(mrb);
 #ifdef RAT_BIGINT
   if (RAT_BIGINT_P(x)) return rational_eq_b(mrb, x, y);
+  /* rational_eq_b() reads the bigint half of the union from its left operand
+     only, so a bigint-backed right-hand side is answered by swapping the two.
+     Equality is symmetric, and without the swap the MRB_TT_RATIONAL arm below
+     reads y's `struct RBasic*` fields through the mrb_int half. */
+  if (mrb_type(y) == MRB_TT_RATIONAL && RAT_BIGINT_P(y)) {
+    return rational_eq_b(mrb, y, x);
+  }
 #endif
   struct mrb_rational *p1 = rat_ptr(mrb, x);
   mrb_bool result;
