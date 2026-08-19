@@ -693,6 +693,38 @@ assert("String#sub / #gsub raise for a replacement whose \\k< is unclosed") do
   assert_equal "zz", "zz".sub(/(?<x>b)/, '\k<x')
 end
 
+assert("String#sub / #gsub turn \\1-\\9 off where the pattern names a group") do
+  # Naming a group is what stops a plain `(...)` from taking a number, and it
+  # stops a replacement from spending one too: the escape stands for nothing,
+  # not for the named group that carries that number.
+  assert_equal "a[]", "ab".sub(/(?<x>b)/, '[\1]')
+  assert_equal "a[]a[]", "abab".gsub(/(?<x>b)/, '[\1]')
+  assert_equal "[]", "ab".sub(/(?<a>a)(?<b>b)/, '[\1\2]')
+  assert_equal "a[]", "ab".dup.sub!(/(?<x>b)/, '[\1]')
+  # The number is still the group's own, so `md[1]` and `\k<x>` reach what
+  # `\1` no longer does.
+  assert_equal "b", /(?<x>b)/.match("ab")[1]
+  assert_equal "a[b]", "ab".sub(/(?<x>b)/, '[\k<x>]')
+  # A plain group beside a named one has no number left to reach either, and
+  # the named one's number reaches nothing.
+  assert_equal "[]", "ab".sub(/(?<a>a)(b)/, '[\2]')
+  assert_equal "[]", "ab".sub(/(?<a>a)(b)/, '[\1]')
+  # The escapes that name no group are untouched: `\0` and `\&` are the whole
+  # match, `\+` the last group that took part, and `` \` `` and `\'` the text
+  # around the match.
+  assert_equal "a[b]", "ab".sub(/(?<x>b)/, '[\0]')
+  assert_equal "a[b]", "ab".sub(/(?<x>b)/, '[\&]')
+  assert_equal "a[b]", "ab".sub(/(?<x>b)/, '[\+]')
+  assert_equal "a[a]", "ab".sub(/(?<x>b)/, '[\`]')
+  assert_equal "a[]", "ab".sub(/(?<x>b)/, "[\\']")
+  # A pattern that names nothing keeps every number it hands out.
+  assert_equal "a[b]", "ab".sub(/(b)/, '[\1]')
+  assert_equal "a[b]a[b]", "abab".gsub(/(b)/, '[\1]')
+  # A literal String pattern has no group for a number to reach, named or not.
+  assert_equal "a[]", "ab".sub("b", '[\1]')
+  assert_equal "a[]a[]", "abab".gsub("b", '[\1]')
+end
+
 assert("String#scan") do
   assert_equal ["1", "2", "3"], "a1b2c3".scan(Regexp.new("\\d"))
 end

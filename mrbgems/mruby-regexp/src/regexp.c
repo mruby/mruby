@@ -1335,6 +1335,13 @@ apply_replacement(mrb_state *mrb, mrb_value result,
       mrb_int next = i + 2;
       if (c >= '0' && c <= '9') {
         g = c - '0';
+        /* A pattern that names a group turns `\1` through `\9` off, the same
+           rule that stops a plain `(...)` from taking a number there: the
+           number a named group answers to for `md[1]` is not one a
+           replacement may spend, and `\k<name>` is what reaches it. `\0` is
+           the whole match, which naming a group does not touch, and neither
+           do `\&` and `\+` below. */
+        if (g > 0 && pat && pat->num_named > 0) g = -1;
       }
       else if (c == '&') {
         g = 0;
