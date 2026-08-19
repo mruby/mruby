@@ -848,4 +848,14 @@ assert("Regexp - the match a gsub block leaves behind reads as the receiver does
   s.gsub(/l/) { "L" }
   assert_equal 3, $~.begin(0)
   assert_equal 5, $~.string.size
+
+  # It takes a multibyte character *before* the match for the two readings to
+  # answer differently: with the match at "l" of "héllo" a republish and a
+  # fresh search name the same offset, so that pair cannot tell them apart.
+  # Here the match is at "i" with two three-byte characters in front, so
+  # reading the receiver as bytes moves it from character 1 to byte 3.
+  s = "あiう"
+  s.gsub(/i/) { s.replace(s.b); "X" }
+  assert_equal 3, $~.begin(0)
+  assert_equal 7, $~.string.size
 end
