@@ -39,12 +39,13 @@ enum re_opcode {
                         The executor rewinds by bytes against a binary subject
                         and by characters otherwise, and the sub-pattern body
                         starts past this instruction, at pc + 2. */
-  RE_ATOMIC,         /* atomic group (?>...): offset = nesting depth of the
-                        group, 1 for an outermost one. The body follows and
-                        ends at the RE_ATOMIC_END with the same depth; once
-                        the body has matched, a failure after it fails the
-                        whole group rather than backtracking into it. */
-  RE_ATOMIC_END,     /* end of an atomic group's body: offset = the depth of
+  RE_ATOMIC,         /* atomic group (?>...): offset = the group's number,
+                        1 for the first one the pattern opens and no two the
+                        same. The body follows and ends at the RE_ATOMIC_END
+                        with the same number; once the body has matched, a
+                        failure after it fails the whole group rather than
+                        backtracking into it. */
+  RE_ATOMIC_END,     /* end of an atomic group's body: offset = the number of
                         the RE_ATOMIC it closes */
 };
 
