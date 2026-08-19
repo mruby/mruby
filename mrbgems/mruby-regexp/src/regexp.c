@@ -1103,7 +1103,10 @@ matchdata_republish(mrb_state *mrb, mrb_value self)
 }
 
 /*
- * MatchData#pre_match / #post_match
+ * MatchData#pre_match / #post_match, which `` $` `` and `$'` also read
+ * under the private names `__pre_match` and `__post_match`, so that a
+ * program redefining the public pair moves `$~.pre_match` and
+ * `$~.post_match` and leaves the two globals alone.
  */
 static mrb_value
 matchdata_pre(mrb_state *mrb, mrb_value self)
@@ -1122,9 +1125,27 @@ matchdata_post(mrb_state *mrb, mrb_value self)
   return re_byte_substr(mrb, md->source, pos, RSTRING_LEN(md->source) - pos);
 }
 
+/* Private: what `$&` and `$1` onward read, the group of that number, the
+   whole match at 0. The compiler derives them from `$~` with this and not
+   with `[]`, so that a program redefining `[]` moves `$~[n]` and leaves the
+   names alone, as it does in CRuby, where they come from the backref. `n`
+   arrives from the compiler and is never a name; a negative one, which only
+   a direct call can pass, reads as no group rather than counting back. */
+static mrb_value
+matchdata_group(mrb_state *mrb, mrb_value self)
+{
+  mrb_int n;
+  mrb_get_args(mrb, "i", &n);
+  mrb_match_data *md = DATA_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
+  if (!md || n < 0 || n >= md->num_captures) return mrb_nil_value();
+  int s = md->captures[n*2];
+  if (s < 0) return mrb_nil_value();
+  return re_byte_substr(mrb, md->source, s, md->captures[n*2+1] - s);
+}
+
 /* Private: what `$+` reads, the last group that took part in the match,
    which is not necessarily the last group in the pattern. The compiler
-   derives `$+` from `$~` with this, as it derives `$1` with `[]`. */
+   derives `$+` from `$~` with this, as it derives `$1` with `__group`. */
 static mrb_value
 matchdata_last_group(mrb_state *mrb, mrb_value self)
 {
@@ -2198,6 +2219,9 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, md, "__republish", matchdata_republish, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, md, "pre_match", matchdata_pre, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "post_match", matchdata_post, MRB_ARGS_NONE());
+  mrb_define_method(mrb, md, "__pre_match", matchdata_pre, MRB_ARGS_NONE());
+  mrb_define_method(mrb, md, "__post_match", matchdata_post, MRB_ARGS_NONE());
+  mrb_define_method(mrb, md, "__group", matchdata_group, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, md, "__last_group", matchdata_last_group, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "named_captures", matchdata_named_captures, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "string", matchdata_string, MRB_ARGS_NONE());

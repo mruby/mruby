@@ -3891,10 +3891,15 @@ gen_binary_operator(mrc_codegen_scope *s, mrc_sym binary_operator)
 /* `$&`, `` $` ``, `$'`, `$+` and `$1` onward are not globals of their own but
    readings of `$~`, the way CRuby's `getspecial` derives each from the
    backref when it is read, so they compile to a read of `$~` and, where it is
-   not nil, a send on it: `[]` with `n` for `$&` (0) and `$n`, `pre_match`
-   for `` $` ``, `post_match` for `$'` and `__last_group` for `$+`. Where
-   `$~` is nil, which it is without mruby-regexp, the name reads as nil,
-   as an unset global does. A negative `n` is no argument. */
+   not nil, a send on it: `__group` with `n` for `$&` (0) and `$n`,
+   `__pre_match` for `` $` ``, `__post_match` for `$'` and `__last_group`
+   for `$+`. All five are private readings of the match rather than the
+   methods that read the same things in Ruby (`[]`, `pre_match` and
+   `post_match`), so that redefining those moves `$~[n]`, `$~.pre_match`
+   and `$~.post_match` and leaves these names alone, the way CRuby's
+   `rb_reg_nth_match` and the like are past reach. Where `$~` is nil,
+   which it is without mruby-regexp, the name reads as nil, as an unset
+   global does. A negative `n` is no argument. */
 static void
 gen_match_ref(mrc_codegen_scope *s, mrc_sym meth, mrc_int n)
 {
@@ -3909,8 +3914,8 @@ gen_match_ref(mrc_codegen_scope *s, mrc_sym meth, mrc_int n)
   }
   push(); pop();                /* space for a block */
   pop_n(n >= 0 ? 2 : 1);
-  if (n >= 0) {                 /* `$~[n]`, as gen_call() writes an index */
-    genop_1(s, OP_GETIDX, cursp());
+  if (n >= 0) {
+    genop_3(s, OP_SEND, cursp(), new_sym(s, meth), 1);
   }
   else {
     genop_2(s, OP_SEND0, cursp(), new_sym(s, meth));
@@ -4939,9 +4944,9 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
         pm_constant_t *c = pm_constant_pool_id_to_constant(&s->c->p->constant_pool, cast->name);
         /* `$&`, `` $` ``, `$'` and `$+`; the parser admits no other name here */
         switch (c->start[1]) {
-        case '&':  gen_match_ref(s, MRC_OPSYM_2(aref), 0); break;
-        case '`':  gen_match_ref(s, MRC_SYM_1(pre_match), -1); break;
-        case '\'': gen_match_ref(s, MRC_SYM_1(post_match), -1); break;
+        case '&':  gen_match_ref(s, MRC_SYM_1(__group), 0); break;
+        case '`':  gen_match_ref(s, MRC_SYM_1(__pre_match), -1); break;
+        case '\'': gen_match_ref(s, MRC_SYM_1(__post_match), -1); break;
         default:   gen_match_ref(s, MRC_SYM_1(__last_group), -1); break;
         }
       }
@@ -4959,7 +4964,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
           push();
         }
         else {
-          gen_match_ref(s, MRC_OPSYM_2(aref), (mrc_int)cast->number);
+          gen_match_ref(s, MRC_SYM_1(__group), (mrc_int)cast->number);
         }
       }
       break;
