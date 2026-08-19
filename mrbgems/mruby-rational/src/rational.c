@@ -520,8 +520,8 @@ static mrb_value
 rational_new(mrb_state *mrb, mrb_value a, mrb_value b)
 {
 #ifdef MRB_NO_FLOAT
-  a = mrb_as_int(mrb, a);
-  b = mrb_as_int(mrb, b);
+  a = mrb_ensure_int_type(mrb, a);
+  b = mrb_ensure_int_type(mrb, b);
   return rational_new_i(mrb, mrb_integer(a), mrb_integer(b));
 #else
   if (mrb_integer_p(a) && mrb_integer_p(b)) {
