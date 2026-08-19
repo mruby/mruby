@@ -917,12 +917,19 @@ end
 assert("String#gsub with a block whose block replaces the subject") do
   # The loop is in C and reads the subject afresh every turn, so a block that
   # replaces it under the walk cannot leave the search reading bytes that were
-  # freed. What comes out of such a call is not worth pinning down; that it
-  # comes out at all is.
+  # freed.
   s = "aaaa".dup
   assert_kind_of String, s.gsub(/a/) { s.replace("b"); "-" }
   s = "aaaa".dup
   assert_kind_of String, s.gsub(/a/) { s << "aaaa"; "-" }
+
+  # What the walk takes after the block is what the block left, which needs
+  # the bytes read again rather than the pointer the search was made with. A
+  # replacement of the same length moves the buffer without changing the
+  # length, so this stands whatever a check on the length would say: reading
+  # the old pointer keeps one byte of the subject as it was.
+  s = "a" * 200
+  assert_equal "-" + "b" * 200, s.gsub(/(?=a)/) { s.replace("b" * 200); "-" }
 end
 
 assert("MatchData#regexp compiles a literal pattern only when asked for one") do
