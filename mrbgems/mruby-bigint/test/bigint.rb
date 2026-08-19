@@ -328,6 +328,14 @@ assert 'Bigint Integer#remainder large operand' do
   assert_equal (2**400) % ((2**130) + 1), (2**400).remainder((2**130) + 1)
 end
 
+assert 'Bigint Integer#remainder with a non-numeric argument' do
+  # The bigint arm of int_remainder() has its own copy of the fallthrough
+  # the fixnum arm reaches: re-dispatch through Float where Float exists,
+  # TypeError where it does not. Either way the argument is refused.
+  assert_raise(TypeError) { (2**100).remainder("1") }
+  assert_raise(TypeError) { (2**100).remainder(nil) }
+end
+
 assert 'Bigint abs' do
   n = 1<<65
   assert_equal 36893488147419103232, n.abs
