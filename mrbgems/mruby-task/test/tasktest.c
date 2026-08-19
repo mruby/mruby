@@ -2,6 +2,8 @@
 #include <mruby.h>
 #include <mruby/class.h>
 #include <mruby/proc.h>
+#include <mruby/data.h>
+#include <mruby/array.h>
 #include "task.h"
 
 /* Burn CPU until `ms` milliseconds of CPU time have elapsed, then raise.
@@ -127,6 +129,34 @@ tasktest_run_sync(mrb_state *mrb, mrb_value self)
   return mrb_execute_proc_synchronously(mrb, blk, 0, NULL);
 }
 
+/* Regression for the undersized-stack overflow: creating a task sizes its
+   stack for the INITIAL proc only. Setting a larger proc afterwards (the
+   picoruby-sandbox reset_context + proc_set path) must grow the stack to
+   cover the new proc's nregs, otherwise mrb_vm_exec()/OP_ENTER writes past
+   the stack. Returns [stack_slots, replacement_nregs]. */
+static mrb_value
+tasktest_proc_set_stack(mrb_state *mrb, mrb_value self)
+{
+  mrb_value small_blk, big_blk;
+  mrb_get_args(mrb, "oo", &small_blk, &big_blk);
+  struct RProc *small = mrb_proc_ptr(small_blk);
+  struct RProc *big = mrb_proc_ptr(big_blk);
+
+  mrb_value task = mrb_create_task(mrb, small, mrb_nil_value(),
+                                   mrb_nil_value(), mrb_obj_value(mrb->top_self));
+  mrb_task_reset_context(mrb, task);
+  mrb_task_proc_set(mrb, task, big);
+
+  mrb_task *t = (mrb_task*)DATA_PTR(task);
+  mrb_value r[2];
+  r[0] = mrb_fixnum_value((mrb_int)(t->c.stend - t->c.stbase));
+  r[1] = mrb_fixnum_value((mrb_int)big->body.irep->nregs);
+  /* Never run this probe task: unschedule it so a deliberately undersized
+     stack (unfixed build) fails as a clean assertion, not a later crash. */
+  mrb_terminate_task(mrb, task);
+  return mrb_ary_new_from_values(mrb, 2, r);
+}
+
 void
 mrb_mruby_task_gem_test(mrb_state* mrb)
 {
@@ -139,4 +169,5 @@ mrb_mruby_task_gem_test(mrb_state* mrb)
   mrb_define_module_function(mrb, tasktest, "run_once", tasktest_run_once, MRB_ARGS_NONE());
   mrb_define_module_function(mrb, tasktest, "reinit_context", tasktest_reinit_context, MRB_ARGS_REQ(1) | MRB_ARGS_BLOCK());
   mrb_define_module_function(mrb, tasktest, "run_sync", tasktest_run_sync, MRB_ARGS_BLOCK());
+  mrb_define_module_function(mrb, tasktest, "proc_set_stack", tasktest_proc_set_stack, MRB_ARGS_REQ(2));
 }
