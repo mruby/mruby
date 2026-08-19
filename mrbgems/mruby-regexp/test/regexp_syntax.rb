@@ -393,9 +393,9 @@ assert("Regexp - /i keeps the word class inside ASCII") do
     # Outside a class the shorthand never folded, and still does not.
     assert_false Regexp.new("\\w", Regexp::IGNORECASE).match?(ch)
     assert_true Regexp.new("\\W", Regexp::IGNORECASE).match?(ch)
-    # /i does not move either in or out of [:word:], whatever the set holds
-    # (this gem's is the ASCII word characters; CRuby's holds every Unicode
-    # word character, these two among them).
+    # /i does not move either in or out of [:word:], whatever the set holds:
+    # the ASCII word characters on a build without the type table, every
+    # Unicode word character on one with it, these two among them.
     assert_equal Regexp.new("[[:word:]]").match?(ch),
                  Regexp.new("[[:word:]]", Regexp::IGNORECASE).match?(ch)
     assert_equal Regexp.new("[^[:word:]]").match?(ch),
@@ -417,7 +417,9 @@ assert("Regexp - /i keeps the word class inside ASCII") do
   assert_true Regexp.new("[\\w#{long_s}]", Regexp::IGNORECASE).match?("S")
   assert_false Regexp.new("[^\\w#{long_s}]", Regexp::IGNORECASE).match?("S")
   # The other POSIX brackets fold like a written range: [:lower:] holds `k`,
-  # so under /i it reaches U+212A, and [^[:alpha:]] rejects U+017F.
+  # so under /i it reaches U+212A, and [^[:alpha:]] rejects U+017F. Where the
+  # build has the type table both hold the letter without /i as well; the
+  # answers below are the same either way.
   assert_true Regexp.new("[[:lower:]]", Regexp::IGNORECASE).match?(kelvin)
   assert_true Regexp.new("[[:alpha:]]", Regexp::IGNORECASE).match?(long_s)
   assert_false Regexp.new("[^[:alpha:]]", Regexp::IGNORECASE).match?(long_s)

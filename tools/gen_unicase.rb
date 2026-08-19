@@ -4,7 +4,7 @@
 #
 # UCDDIR holds UnicodeData.txt, SpecialCasing.txt and CaseFolding.txt as
 # published under https://www.unicode.org/Public/<version>/ucd/, and defaults
-# to the copy tools/unicode/case_data.rb names, which reads them for this
+# to the copy tools/unicode/ucd.rb names; case_data.rb reads them for this
 # generator and for the one mruby-regexp carries. The files are not in the
 # repository: they are read when the table is regenerated and nowhere else.
 #

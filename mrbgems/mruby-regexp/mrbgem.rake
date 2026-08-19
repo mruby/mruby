@@ -41,23 +41,25 @@ MRuby::Gem::Specification.new('mruby-regexp') do |spec|
     spec.add_dependency 'mruby-symbol-ext', :core => 'mruby-symbol-ext'
   end
 
-  # The two case folding test files assert opposite things about the same
-  # patterns (one that /i folds them, the other that /i refuses to compile
-  # them), so each belongs to exactly one of the two builds. Everything /i
-  # does the same way in both is in the unconditional test files and
-  # always runs. What the build defines can only be asked once every gem has
-  # had its say, which is what `build_settings` waits for; this gem sets no
-  # build command in the block above, so the reset that comes with it drops
-  # nothing.
-  # The pair below is what `RE_UNICODE_CASE` is defined from in re_internal.h:
-  # the foldings are core's table, which only a build reading its strings as
-  # characters carries, and only where it converts their case by Unicode.
+  # The unicode_* and ascii_* test files assert opposite things about the
+  # same patterns (one that /i folds them, the other that /i refuses to
+  # compile them; one that [[:alpha:]] holds a letter above ASCII, the other
+  # that it does not), so each belongs to exactly one of the two builds.
+  # Everything the two builds do the same way is in the unconditional test
+  # files and always runs. What the build defines can only be asked once every
+  # gem has had its say, which is what `build_settings` waits for; this gem
+  # sets no build command in the block above, so the reset that comes with it
+  # drops nothing.
+  # The pair below is what `RE_UNICODE_CASE` and `RE_UNICODE_CTYPE` are
+  # defined from in re_internal.h: the tables are carried only by a build
+  # reading its strings as characters, and only where it classifies them by
+  # Unicode.
   spec.build_settings do
     if build.has_define?('MRB_UTF8_STRING') &&
        !build.has_define?('MRB_USE_ASCII_CTYPE')
-      spec.test_rbfiles -= ["#{spec.dir}/test/ascii_case.rb"]
+      spec.test_rbfiles -= ["#{spec.dir}/test/ascii_case.rb", "#{spec.dir}/test/ascii_ctype.rb"]
     else
-      spec.test_rbfiles -= ["#{spec.dir}/test/unicode_case.rb"]
+      spec.test_rbfiles -= ["#{spec.dir}/test/unicode_case.rb", "#{spec.dir}/test/unicode_ctype.rb"]
     end
   end
 end
