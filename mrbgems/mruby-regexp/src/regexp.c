@@ -911,6 +911,27 @@ regexp_escape(mrb_state *mrb, mrb_value self)
   return re_escape_str(mrb, str);
 }
 
+/* Answer the group a pattern gives a name to, or -1 for a name it gives to
+   no group. The name is compared as the bytes the pattern spelled it with.
+   A NULL pattern names nothing, which is the answer for a match made
+   without a pattern to compile: a literal String one. */
+static int
+re_name_to_group(mrb_regexp_pattern *pat, const char *name, mrb_int name_len)
+{
+  /* A stored name never exceeds RE_MAX_NAME_LEN, so a longer request can
+     name no group. Rejecting it here keeps the cast in the loop lossless;
+     without it the length test truncates while the memcmp() next to it does
+     not. */
+  if (!pat || !RE_NAME_LEN_FITS(name_len)) return -1;
+  for (uint16_t i = 0; i < pat->num_named; i++) {
+    if (pat->named_captures[i].name_len == (uint32_t)name_len &&
+        memcmp(pat->named_captures[i].name, name, name_len) == 0) {
+      return pat->named_captures[i].group;
+    }
+  }
+  return -1;
+}
+
 /* --- MatchData methods --- */
 
 /* Resolve a String or Symbol to the group it names. Shared by MatchData#[],
@@ -929,23 +950,12 @@ matchdata_name_to_group(mrb_state *mrb, mrb_match_data *md, mrb_value arg)
     name = RSTRING_PTR(arg);
     name_len = RSTRING_LEN(arg);
   }
-  /* look up name in regexp's named captures */
   mrb_regexp_pattern *pat = NULL;
   if (!mrb_nil_p(md->regexp)) {
     pat = DATA_GET_PTR(mrb, md->regexp, &regexp_type, mrb_regexp_pattern);
   }
-  /* A stored name never exceeds RE_MAX_NAME_LEN, so a longer request can
-     name no group. Rejecting it here keeps the cast in the loop lossless;
-     without it the length test truncates while the memcmp() next to it does
-     not. */
-  if (pat && RE_NAME_LEN_FITS(name_len)) {
-    for (uint16_t i = 0; i < pat->num_named; i++) {
-      if (pat->named_captures[i].name_len == (uint32_t)name_len &&
-          memcmp(pat->named_captures[i].name, name, name_len) == 0) {
-        return pat->named_captures[i].group;
-      }
-    }
-  }
+  int group = re_name_to_group(pat, name, name_len);
+  if (group >= 0) return group;
   /* A name that resolves to no group is a mistake at the point of the call,
      not a failed match. CRuby raises here even when the pattern has no
      named group at all. */
@@ -1302,26 +1312,69 @@ matchdata_to_s(mrb_state *mrb, mrb_value self)
 
 /* --- C-level gsub/sub/scan core --- */
 
-/* Process replacement string: expand \0-\9, \&, \`, \', \+, \\ */
+/* Process replacement string: expand \0-\9, \&, \`, \', \+, \k<name>, \\.
+   `pat` is the pattern the match was made with, which is what a name is
+   resolved against; a literal String pattern hands in NULL, and every name
+   asked of it is then a name no group carries. */
 static void
 apply_replacement(mrb_state *mrb, mrb_value result,
                   const char *rep, mrb_int rep_len,
-                  const char *str, mrb_int str_len, int *captures, int ncap)
+                  const char *str, mrb_int str_len, int *captures, int ncap,
+                  mrb_regexp_pattern *pat)
 {
   mrb_int i = 0;
   while (i < rep_len) {
     if (rep[i] == '\\' && i + 1 < rep_len) {
       char c = rep[i + 1];
+      /* The escapes that stand for a group settle on one here, and the append
+         below is the only one that spends it: a group the escape reaches past
+         or one that took no part in the match stands for nothing. */
+      int g = -1;
+      mrb_bool ref = TRUE;
+      /* Every escape but `\k<name>` is the two bytes it opened with. */
+      mrb_int next = i + 2;
       if (c >= '0' && c <= '9') {
-        int g = c - '0';
-        if (g < ncap && captures[g * 2] >= 0) {
-          int s = captures[g * 2], e = captures[g * 2 + 1];
-          mrb_str_cat(mrb, result, str + s, e - s);
-        }
+        g = c - '0';
       }
       else if (c == '&') {
-        if (captures[0] >= 0) {
-          mrb_str_cat(mrb, result, str + captures[0], captures[1] - captures[0]);
+        g = 0;
+      }
+      else if (c == 'k' && i + 2 < rep_len && rep[i + 2] == '<') {
+        /* A group named where `\1` numbers one. The name is the bytes up to
+           the first `>`, with no escape among them, and only this spelling
+           opens a reference: `\k'name'`, which the pattern side does read as
+           a backreference, is left to the literal branch below. */
+        const char *name = rep + i + 3;
+        const char *close = (const char*)memchr(name, '>', (size_t)(rep_len - (i + 3)));
+        if (close == NULL) {
+          mrb_raise(mrb, E_RUNTIME_ERROR, "invalid group name reference format");
+        }
+        mrb_int name_len = close - name;
+        /* What the name is asked of is the pattern, not the offsets, so a
+           name no group carries raises where a group that took no part in
+           the match would only have stood for nothing. */
+        g = re_name_to_group(pat, name, name_len);
+        if (g < 0) {
+          mrb_raisef(mrb, E_INDEX_ERROR, "undefined group name reference: %l", name, (size_t)name_len);
+        }
+        next = (close - rep) + 1;
+      }
+      else if (c == '+') {
+        /* last successful capture */
+        for (int j = ncap - 1; j >= 1; j--) {
+          if (captures[j * 2] >= 0) {
+            g = j;
+            break;
+          }
+        }
+      }
+      else {
+        ref = FALSE;
+      }
+      if (ref) {
+        if (g >= 0 && g < ncap && captures[g * 2] >= 0) {
+          int s = captures[g * 2], e = captures[g * 2 + 1];
+          mrb_str_cat(mrb, result, str + s, e - s);
         }
       }
       else if (c == '`') {
@@ -1338,23 +1391,13 @@ apply_replacement(mrb_state *mrb, mrb_value result,
           mrb_str_cat(mrb, result, str + captures[1], str_len - captures[1]);
         }
       }
-      else if (c == '+') {
-        /* last successful capture */
-        for (int g = ncap - 1; g >= 1; g--) {
-          if (captures[g * 2] >= 0) {
-            int s = captures[g * 2], e = captures[g * 2 + 1];
-            mrb_str_cat(mrb, result, str + s, e - s);
-            break;
-          }
-        }
-      }
       else if (c == '\\') {
         mrb_str_cat_lit(mrb, result, "\\");
       }
       else {
         mrb_str_cat(mrb, result, rep + i, 2);  /* \x as-is */
       }
-      i += 2;
+      i = next;
     }
     else {
       /* find next backslash or end for batch copy */
@@ -1420,7 +1463,7 @@ regexp_s_gsub_str(mrb_state *mrb, mrb_value klass)
 
   int ncap = pat->num_captures;
   int cap_size = ncap * 2;
-  int *captures = (int*)mrb_malloc(mrb, sizeof(int) * cap_size);
+  int captures[RE_MAX_CAPTURES * 2];
   mrb_value result = mrb_str_new_capa(mrb, slen);
   int ai = mrb_gc_arena_save(mrb);
 
@@ -1444,7 +1487,7 @@ regexp_s_gsub_str(mrb_state *mrb, mrb_value klass)
 
     /* append replacement */
     if (need_expand) {
-      apply_replacement(mrb, result, rep, rep_len, s, slen, captures, ncap);
+      apply_replacement(mrb, result, rep, rep_len, s, slen, captures, ncap, pat);
     }
     else {
       mrb_str_cat(mrb, result, rep, rep_len);
@@ -1474,8 +1517,6 @@ regexp_s_gsub_str(mrb_state *mrb, mrb_value klass)
   if (pos <= slen) {
     mrb_str_cat(mrb, result, s + pos, slen - pos);
   }
-
-  mrb_free(mrb, captures);
 
   /* set $~ from last match */
   if (last_ncap > 0) {
@@ -1511,12 +1552,11 @@ regexp_s_sub_str(mrb_state *mrb, mrb_value klass)
   mrb_int rep_len = RSTRING_LEN(replacement);
 
   int cap_size = pat->num_captures * 2;
-  int *captures = (int*)mrb_malloc(mrb, sizeof(int) * cap_size);
+  int captures[RE_MAX_CAPTURES * 2];
   memset(captures, -1, sizeof(int) * cap_size);
 
   int n = mrb_re_exec(mrb, pat, s, slen, 0, captures, cap_size, re_binary_string_p(str));
   if (n == 0) {
-    mrb_free(mrb, captures);
     clear_match_globals(mrb);
     return mrb_str_dup(mrb, str);
   }
@@ -1530,7 +1570,7 @@ regexp_s_sub_str(mrb_state *mrb, mrb_value klass)
 
   /* replacement */
   if (has_backslash(rep, rep_len)) {
-    apply_replacement(mrb, result, rep, rep_len, s, slen, captures, pat->num_captures);
+    apply_replacement(mrb, result, rep, rep_len, s, slen, captures, pat->num_captures, pat);
   }
   else {
     mrb_str_cat(mrb, result, rep, rep_len);
@@ -1542,7 +1582,6 @@ regexp_s_sub_str(mrb_state *mrb, mrb_value klass)
   }
 
   create_matchdata(mrb, re, str, captures, cap_size);
-  mrb_free(mrb, captures);
   re_mark_spliced(result, str, replacement, TRUE);
   return result;
 }
@@ -1653,7 +1692,7 @@ regexp_s_gsub_lit(mrb_state *mrb, mrb_value klass)
 
     if (beg > pos) re_cat_bytes(mrb, result, s + pos, beg - pos, binary);
     if (need_expand) {
-      apply_replacement(mrb, result, rep, rep_len, s, slen, captures, 1);
+      apply_replacement(mrb, result, rep, rep_len, s, slen, captures, 1, NULL);
     }
     else {
       mrb_str_cat(mrb, result, rep, rep_len);
@@ -1715,7 +1754,7 @@ regexp_s_sub_lit(mrb_state *mrb, mrb_value klass)
     int captures[2];
     captures[0] = (int)beg;
     captures[1] = (int)end;
-    apply_replacement(mrb, result, rep, rep_len, s, slen, captures, 1);
+    apply_replacement(mrb, result, rep, rep_len, s, slen, captures, 1, NULL);
   }
   else {
     mrb_str_cat(mrb, result, rep, rep_len);
