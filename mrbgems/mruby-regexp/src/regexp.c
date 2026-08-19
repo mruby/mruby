@@ -1420,7 +1420,7 @@ regexp_s_gsub_str(mrb_state *mrb, mrb_value klass)
 
   int ncap = pat->num_captures;
   int cap_size = ncap * 2;
-  int *captures = (int*)mrb_malloc(mrb, sizeof(int) * cap_size);
+  int captures[RE_MAX_CAPTURES * 2];
   mrb_value result = mrb_str_new_capa(mrb, slen);
   int ai = mrb_gc_arena_save(mrb);
 
@@ -1475,8 +1475,6 @@ regexp_s_gsub_str(mrb_state *mrb, mrb_value klass)
     mrb_str_cat(mrb, result, s + pos, slen - pos);
   }
 
-  mrb_free(mrb, captures);
-
   /* set $~ from last match */
   if (last_ncap > 0) {
     create_matchdata(mrb, re, str, last_captures, last_ncap);
@@ -1511,12 +1509,11 @@ regexp_s_sub_str(mrb_state *mrb, mrb_value klass)
   mrb_int rep_len = RSTRING_LEN(replacement);
 
   int cap_size = pat->num_captures * 2;
-  int *captures = (int*)mrb_malloc(mrb, sizeof(int) * cap_size);
+  int captures[RE_MAX_CAPTURES * 2];
   memset(captures, -1, sizeof(int) * cap_size);
 
   int n = mrb_re_exec(mrb, pat, s, slen, 0, captures, cap_size, re_binary_string_p(str));
   if (n == 0) {
-    mrb_free(mrb, captures);
     clear_match_globals(mrb);
     return mrb_str_dup(mrb, str);
   }
@@ -1542,7 +1539,6 @@ regexp_s_sub_str(mrb_state *mrb, mrb_value klass)
   }
 
   create_matchdata(mrb, re, str, captures, cap_size);
-  mrb_free(mrb, captures);
   re_mark_spliced(result, str, replacement, TRUE);
   return result;
 }
