@@ -58,7 +58,7 @@ static const struct mrb_data_type matchdata_type = { "MatchData", matchdata_free
 static uint32_t
 get_iflags(mrb_state *mrb, mrb_value self)
 {
-  mrb_value v = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@flags"));
+  mrb_value v = mrb_iv_get(mrb, self, MRB_IVSYM(flags));
   return mrb_nil_p(v) ? 0 : (uint32_t)mrb_integer(v);
 }
 
@@ -107,10 +107,10 @@ regexp_init(mrb_state *mrb, mrb_value self)
   uint32_t flags;
 
   /* If pattern is a Regexp, copy its source and flags */
-  if (mrb_obj_is_kind_of(mrb, pattern, mrb_class_get(mrb, "Regexp"))) {
-    mrb_value iflags = mrb_iv_get(mrb, pattern, mrb_intern_lit(mrb, "@flags"));
+  if (mrb_obj_is_kind_of(mrb, pattern, mrb_class_get_id(mrb, MRB_SYM(Regexp)))) {
+    mrb_value iflags = mrb_iv_get(mrb, pattern, MRB_IVSYM(flags));
     flags = mrb_nil_p(iflags) ? 0 : (uint32_t)mrb_integer(iflags);
-    pattern = mrb_iv_get(mrb, pattern, mrb_intern_lit(mrb, "@source"));
+    pattern = mrb_iv_get(mrb, pattern, MRB_IVSYM(source));
   }
   else {
     if (!mrb_string_p(pattern)) {
@@ -131,8 +131,8 @@ regexp_init(mrb_state *mrb, mrb_value self)
   /* Set @source and @flags before mrb_re_compile() so a Regexp that survives
      a compile-time exception (e.g. picked up by ObjectSpace.each_object)
      still has usable IVs for hash/eql?/inspect. */
-  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@source"), pattern);
-  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@flags"), mrb_int_value(mrb, (mrb_int)flags));
+  mrb_iv_set(mrb, self, MRB_IVSYM(source), pattern);
+  mrb_iv_set(mrb, self, MRB_IVSYM(flags), mrb_int_value(mrb, (mrb_int)flags));
 
   /* Hand the pattern over before the compile starts. mrb_re_compile() raises
      to report a bad pattern and mrb_realloc() raises to report an allocation
@@ -153,11 +153,15 @@ regexp_init(mrb_state *mrb, mrb_value self)
       mrb_value name = mrb_str_new(mrb, pat->named_captures[i].name, pat->named_captures[i].name_len);
       mrb_hash_set(mrb, nc, name, mrb_fixnum_value(pat->named_captures[i].group));
     }
-    mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@named_captures"), nc);
+    mrb_iv_set(mrb, self, MRB_IVSYM(named_captures), nc);
   }
 
   return self;
 }
+
+/* Pre-interned symbol for $~ (cached on first use). MRB_GVSYM() takes a
+   word after the `$`, which `~` is not, so this one is looked up once here. */
+static mrb_sym match_sym;
 
 /* Pre-interned symbols for $1-$9 (cached on first use) */
 static mrb_sym nth_syms[9];
@@ -170,6 +174,7 @@ static void
 ensure_match_syms(mrb_state *mrb)
 {
   if (nth_syms[0]) return;
+  match_sym = mrb_intern_lit(mrb, "$~");
   nth_syms[0] = mrb_intern_lit(mrb, "$1");
   nth_syms[1] = mrb_intern_lit(mrb, "$2");
   nth_syms[2] = mrb_intern_lit(mrb, "$3");
@@ -189,7 +194,7 @@ static void
 clear_match_globals(mrb_state *mrb)
 {
   ensure_match_syms(mrb);
-  mrb_gv_set(mrb, mrb_intern_lit(mrb, "$~"), mrb_nil_value());
+  mrb_gv_set(mrb, match_sym, mrb_nil_value());
   for (int i = 0; i < 9; i++) {
     mrb_gv_set(mrb, nth_syms[i], mrb_nil_value());
   }
@@ -351,7 +356,7 @@ set_match_globals(mrb_state *mrb, mrb_value obj, mrb_value str, int *captures, i
 {
   ensure_match_syms(mrb);
 
-  mrb_gv_set(mrb, mrb_intern_lit(mrb, "$~"), obj);
+  mrb_gv_set(mrb, match_sym, obj);
 
   /* set $1-$9 from captures */
   for (int i = 0; i < 9; i++) {
@@ -392,7 +397,7 @@ create_matchdata(mrb_state *mrb, mrb_value regexp, mrb_value str, int *captures,
      time, so later in-place changes to it must not be visible here. */
   str = mrb_str_dup_frozen(mrb, str);
 
-  struct RClass *md_class = mrb_class_get(mrb, "MatchData");
+  struct RClass *md_class = mrb_class_get_id(mrb, MRB_SYM(MatchData));
   mrb_match_data *md = (mrb_match_data*)mrb_malloc(mrb, sizeof(mrb_match_data));
   md->source = str;
   md->regexp = regexp;
@@ -404,8 +409,8 @@ create_matchdata(mrb_state *mrb, mrb_value regexp, mrb_value str, int *captures,
   /* Keep `source` and `regexp` GC-reachable via instance variables.
    * The mrb_values are also held in mrb_match_data, but C-allocated
    * structs are not scanned by the GC. */
-  mrb_iv_set(mrb, obj, mrb_intern_lit(mrb, "source"), str);
-  mrb_iv_set(mrb, obj, mrb_intern_lit(mrb, "regexp"), regexp);
+  mrb_iv_set(mrb, obj, MRB_SYM(source), str);
+  mrb_iv_set(mrb, obj, MRB_SYM(regexp), regexp);
 
   set_match_globals(mrb, obj, str, captures, md->num_captures);
 
@@ -721,7 +726,7 @@ regexp_case_match(mrb_state *mrb, mrb_value self)
 static mrb_value
 regexp_source(mrb_state *mrb, mrb_value self)
 {
-  return mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@source"));
+  return mrb_iv_get(mrb, self, MRB_IVSYM(source));
 }
 
 /*
@@ -777,7 +782,7 @@ static const struct {
 static mrb_value
 regexp_to_s(mrb_state *mrb, mrb_value self)
 {
-  mrb_value src = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@source"));
+  mrb_value src = mrb_iv_get(mrb, self, MRB_IVSYM(source));
   uint32_t flags = get_iflags(mrb, self);
   char off[RE_FLAG_LETTER_COUNT];
   mrb_int noff = 0;
@@ -804,7 +809,7 @@ regexp_to_s(mrb_state *mrb, mrb_value self)
 static mrb_value
 regexp_inspect(mrb_state *mrb, mrb_value self)
 {
-  mrb_value src = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@source"));
+  mrb_value src = mrb_iv_get(mrb, self, MRB_IVSYM(source));
   uint32_t flags = get_iflags(mrb, self);
 
   mrb_value result = mrb_str_new_lit(mrb, "/");
@@ -826,11 +831,11 @@ regexp_eql(mrb_state *mrb, mrb_value self)
 {
   mrb_value other;
   mrb_get_args(mrb, "o", &other);
-  if (!mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Regexp"))) {
+  if (!mrb_obj_is_kind_of(mrb, other, mrb_class_get_id(mrb, MRB_SYM(Regexp)))) {
     return mrb_false_value();
   }
-  mrb_value src1 = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@source"));
-  mrb_value src2 = mrb_iv_get(mrb, other, mrb_intern_lit(mrb, "@source"));
+  mrb_value src1 = mrb_iv_get(mrb, self, MRB_IVSYM(source));
+  mrb_value src2 = mrb_iv_get(mrb, other, MRB_IVSYM(source));
   if (!mrb_string_p(src1) || !mrb_string_p(src2)) {
     return mrb_bool_value(mrb_obj_eq(mrb, self, other));
   }
@@ -844,7 +849,7 @@ regexp_eql(mrb_state *mrb, mrb_value self)
 static mrb_value
 regexp_hash(mrb_state *mrb, mrb_value self)
 {
-  mrb_value src = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@source"));
+  mrb_value src = mrb_iv_get(mrb, self, MRB_IVSYM(source));
   uint32_t h = mrb_string_p(src) ? mrb_str_hash(mrb, src) : 0;
   h ^= get_iflags(mrb, self) * 0x9e3779b9;  /* mix flags into hash */
   return mrb_int_value(mrb, (mrb_int)h);
