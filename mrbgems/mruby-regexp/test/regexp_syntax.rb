@@ -847,6 +847,23 @@ assert("Regexp - free-spacing whitespace stands between tokens only") do
   assert_equal ["a{1,2}"], Regexp.new("a{1, 2}", x).match("a{1,2}").to_a
   assert_equal ["a{2}"], Regexp.new("a{ 2}", x).match("a{2}").to_a
   assert_equal ["a{2}"], Regexp.new("a{2 }", x).match("a{2}").to_a
+  # the whitespace breaks the interval wherever /x is on, and the inline
+  # forms turn it on for their own scope as the flag does for the pattern
+  assert_nil Regexp.new("(?x)a{1, 2}").match("aa")
+  assert_nil Regexp.new("(?x:a{1, 2})").match("aa")
+  assert_equal ["a{1,2}"], Regexp.new("(?x)a{1, 2}").match("a{1,2}").to_a
+  # with /x off there is no free-spacing for the braces to lose, and the
+  # literal is the whole of `{1, 2}`, its blank included
+  assert_equal ["a{1, 2}"], Regexp.new("a{1, 2}").match("a{1, 2}").to_a
+  # a comment is gone before the parser reads the interval, so one written
+  # inside the braces does not break it the way whitespace does
+  assert_equal ["aa"], Regexp.new("a{1,#c\n2}", x).match("aa").to_a
+  assert_nil Regexp.new("a{1,#c\n 2}", x).match("aa")
+  assert_equal ["aa"], Regexp.new("a{1,(?#c)2}", x).match("aa").to_a
+  # a `{` the whitespace makes a literal carries no count at all, so a
+  # number too large to repeat by is not one to report
+  assert_equal ["a{99999999999}"],
+               Regexp.new("a{ 99999999999}", x).match("a{99999999999}").to_a
   # the `?` that makes a quantifier non-greedy is read right after it, so a
   # `?` a space away is a repeat of the repeat, which this engine refuses
   # as it refuses `a**`
