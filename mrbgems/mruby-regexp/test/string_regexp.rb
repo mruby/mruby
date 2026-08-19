@@ -1214,3 +1214,28 @@ assert("MatchData#regexp compiles a literal pattern only when asked for one") do
   "abc".sub("", "-")
   assert_equal "", $~.regexp.source
 end
+
+assert("String#sub / #gsub / #scan / #split raise where a search hits a limit") do
+  # A walk over the subject raises from the middle of it rather than hand
+  # back what it had: the matches before the limit are no more the answer
+  # than the shorter match a search itself used to settle for. The first
+  # search here matches the `b`; the second gives up on the run of `a`, three
+  # frames an iteration and as long as the recursion limit, and the walk used
+  # to go on past it to the tail of the run that fit before the `c`.
+  over = "a" * Regexp::RECURSION_LIMIT
+  fits = "a" * (Regexp::RECURSION_LIMIT / 4)
+  s = "b" + over + "c"
+  re = /b|(?:(?>a))*c/
+  assert_raise(RegexpError) { s.gsub(re, "x") }    # was "x" + most of the run + "x", CRuby "xx"
+  assert_raise(RegexpError) { s.scan(re) }         # was ["b", the tail of the run + "c"]
+  assert_raise(RegexpError) { s.split(re) }        # was ["", most of the run], CRuby []
+  assert_raise(RegexpError) { s.sub(/(?:(?>a))*c/, "x") }
+  n = 0
+  assert_raise(RegexpError) { s.gsub(re) { n += 1; "x" } }
+  assert_equal 1, n
+  # Inside the limits the walk goes through, as in CRuby.
+  t = "b" + fits + "c"
+  assert_equal "xx", t.gsub(re, "x")
+  assert_equal ["b", fits + "c"], t.scan(re)
+  assert_equal [], t.split(re)
+end

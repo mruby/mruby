@@ -469,6 +469,44 @@ assert("a backward search answers a long multibyte subject") do
   assert_nil mb.byterindex(/うえ/, 3)
 end
 
+assert("a backward search raises where one of its searches hits a limit") do
+  # The search makes up to three searches: a window at the end that widens,
+  # the whole range when no window answers, and a walk forward from the match
+  # it found. A limit in any of them is the answer to the whole question, so
+  # each raises rather than read it as a window with no match in it, which
+  # would widen, or as the walk having run out of matches, which would answer
+  # the one before.
+  #
+  # The subjects are sized from the recursion limit, which the build sets and
+  # `Regexp::RECURSION_LIMIT` reads back. An atomic group nested d deep spends
+  # 2d frames per copy and one more per iteration of a repetition, and d is
+  # chosen so that a run inside the 256 bytes the window reads spends the
+  # limit; a build with a limit the window cannot reach sends the first and
+  # third cases through the whole-range search instead, where they raise the
+  # same.
+  limit = Regexp::RECURSION_LIMIT
+  d = limit / 600 + 1
+  atom = "a"
+  d.times { atom = "(?>#{atom})" }
+  # the window, grown to the whole subject: the lookbehind lets only position
+  # 0 try, and that one gives up
+  n = limit / (2 * d + 1) + 1
+  assert_raise(RegexpError) { ("a" * n + "b").rindex(/(?<!a)(?:#{atom})*b/) }   # was nil, CRuby 0
+  # the whole range, once no window within 256 bytes of the end has answered
+  assert_raise(RegexpError) { ("a" * limit + "b" + "c" * 300).rindex(/\A(?:(?>a))*b/) }  # was nil, CRuby 0
+  # the walk from the window's match at position 1 to position 2, which has
+  # the run the second alternative asks for and gives up on; the windows
+  # before the one that reaches position 1 have less than that run
+  n = limit / (2 * d) + 1
+  assert_raise(RegexpError) { ("x" + "a" * (n + 1) + "c").rindex(/(?<=x)a|(?:#{atom}){#{n}}c/) }  # was 1, CRuby 2
+  # Inside the limits the same three searches answer, as in CRuby.
+  n = limit / (2 * (2 * d + 1))
+  assert_equal 0, ("a" * n + "b").rindex(/(?<!a)(?:#{atom})*b/)
+  assert_equal 0, ("a" * (limit / 4) + "b" + "c" * 300).rindex(/\A(?:(?>a))*b/)
+  n = limit / (4 * d)
+  assert_equal 2, ("x" + "a" * (n + 1) + "c").rindex(/(?<=x)a|(?:#{atom}){#{n}}c/)
+end
+
 assert("String#index and String#rindex with regexp set the match globals") do
   assert_equal 1, "abc".index(/(b)/)
   assert_equal "b", $1

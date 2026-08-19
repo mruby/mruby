@@ -172,9 +172,11 @@ ReDoS attacks.
 **Backtracking engine**: Used when patterns contain `\1`-`\9`
 backreferences, non-greedy quantifiers (`*?`, `+?`, `??`),
 lookaround assertions (`(?=...)`, `(?!...)`, `(?<=...)`, `(?<!...)`)
-or atomic groups (`(?>...)`). Protected by a
-configurable step limit (`MRB_REGEXP_STEP_LIMIT`, default 1M) to
-prevent excessive backtracking.
+or atomic groups (`(?>...)`). Bounded by a configurable step limit
+(`MRB_REGEXP_STEP_LIMIT`, default 1M) against excessive backtracking and
+by a recursion limit (`MRB_REGEXP_RECURSION_LIMIT`, default 1000) on
+the C stack. A search that reaches either raises `RegexpError` naming
+the limit, since what it had found by then is not the answer.
 
 The engine is selected automatically at compile time based on
 pattern analysis.
@@ -255,7 +257,23 @@ there.
 #ifndef MRB_REGEXP_STEP_LIMIT
 #define MRB_REGEXP_STEP_LIMIT 1000000
 #endif
+
+/* Maximum recursion depth of the backtracking engine (C stack) */
+#ifndef MRB_REGEXP_RECURSION_LIMIT
+#define MRB_REGEXP_RECURSION_LIMIT 1000
+#endif
 ```
+
+A search that reaches either limit raises `RegexpError`, `step limit over
+(MRB_REGEXP_STEP_LIMIT)` or `recursion limit over
+(MRB_REGEXP_RECURSION_LIMIT)`, rather than answer with what it had found
+by then. The recursion limit is spent per fork and per capture, so a
+repetition of an atomic group or a lookaround spends a few frames per
+iteration, and a long enough run of one reaches it on a pattern that is
+not pathological; a build with the stack for it can set it higher. The
+values a build chose are `Regexp::RECURSION_LIMIT` and `Regexp::STEP_LIMIT`,
+for a program that has to size a subject or a pattern to the build it runs
+on; CRuby has no counterpart, its guard being `Regexp.timeout`.
 
 Case folding beyond ASCII is not this gem's to configure. The table is
 core's, carried by any build that defines `MRB_UTF8_STRING` without
