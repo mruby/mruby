@@ -1335,8 +1335,12 @@ emit_codepoint(re_compiler *c, uint32_t cp)
    number/name` for one within it that names no group. */
 #define RE_MAX_BACKREF_NUM 2147483647
 
-/* Compile a single atom (character, class, group, etc.) */
-static void
+/* Compile a single atom (character, class, group, etc.). Returns whether one
+   was read: FALSE when what stands at the parse point is not an atom, either a
+   quantifier metacharacter or the end of the sequence, neither of them
+   consumed, or an option toggle `(?i)`, consumed but nothing a quantifier can
+   repeat. An empty group `(?:)` emits nothing and is still an atom. */
+static mrb_bool
 compile_atom(re_compiler *c)
 {
   int ch = peek(c);
@@ -1456,7 +1460,7 @@ compile_atom(re_compiler *c)
           if (peek(c) == ')') {
             next_char(c);
             c->flags = new_flags;  /* rest of the group; restored at its ')' */
-            return;                /* consumed the token; no atom emitted */
+            return FALSE;          /* consumed the token; no atom emitted */
           }
           else if (peek(c) == ':') {
             next_char(c);
@@ -1465,7 +1469,7 @@ compile_atom(re_compiler *c)
             c->flags = saved_flags;
             if (peek(c) != ')') compile_error(c, "unmatched '('");
             next_char(c);
-            return;
+            return TRUE;
           }
           else {
             compile_error(c, "undefined (?...) sequence");
@@ -1748,7 +1752,7 @@ compile_atom(re_compiler *c)
 
   default:
     if (ch < 0 || ch == ')' || ch == '|' || ch == '*' || ch == '+' || ch == '?') {
-      return;  /* not an atom */
+      return FALSE;  /* not an atom */
     }
     next_char(c);
     if (ch >= 128) {
@@ -1758,6 +1762,7 @@ compile_atom(re_compiler *c)
     emit_char(c, (uint8_t)ch);
     break;
   }
+  return TRUE;
 }
 
 /* Append a copy of the atom bytecode in [start, start+size) at the current
@@ -1783,11 +1788,10 @@ emit_atom_copy(re_compiler *c, uint32_t start, uint32_t size)
   }
 }
 
-/* Compile atom with quantifiers (*, +, ?, {n,m}) */
 /* Read the quantifiers that follow a body which matches empty and emit
-   nothing for them: `a{0}` leaves no code, and repeating what matches empty
-   any number of times still matches empty, so `a{0}*` and `a{0}{2}?` are the
-   empty match CRuby gives. */
+   nothing for them: `a{0}` and `(?:)` leave no code, and repeating what
+   matches empty any number of times still matches empty, so `a{0}*`,
+   `a{0}{2}?` and `(?:)+` are the empty match CRuby gives. */
 static void
 skip_quantifiers(re_compiler *c)
 {
@@ -1812,6 +1816,7 @@ skip_quantifiers(re_compiler *c)
   }
 }
 
+/* Compile atom with quantifiers (*, +, ?, {n,m}) */
 static void
 compile_quantified(re_compiler *c)
 {
@@ -1822,10 +1827,19 @@ compile_quantified(re_compiler *c)
      leaving its own atom behind for this one. */
   uint32_t saved_atom_start = c->atom_start;
   c->atom_start = begin;
-  compile_atom(c);
+  mrb_bool atom = compile_atom(c);
   uint32_t start = c->atom_start;
   c->atom_start = saved_atom_start;
-  if (c->code_len == begin) return;  /* no atom emitted */
+  if (c->code_len == begin) {
+    /* Nothing emitted. An empty group `(?:)` is an atom all the same, and
+       one that matches empty matches empty however it is repeated, so its
+       quantifiers are read and emit nothing, as those of `a{0}` are; CRuby
+       compiles `(?:)*` the same way. What is not an atom, an option toggle
+       `(?i)` or a stray metacharacter, leaves a quantifier after it for
+       compile_seq() to refuse, as CRuby refuses `(?i)*`. */
+    if (atom) skip_quantifiers(c);
+    return;
+  }
 
   /* Under /x the quantifier may stand apart from its atom, `a +` being `a+`.
      A `?` making it non-greedy is read right after it, though, as CRuby
@@ -1985,7 +1999,7 @@ compile_seq(re_compiler *c)
     if (c->code_len == code_before && c->p == p_before) {
       /* compile_quantified neither consumed input nor emitted code: the
          current character is a quantifier metacharacter with no atom to
-         repeat (a leading `*`, `+`, `?`, or the trailing `*`s in `a***`).
+         repeat (a leading `*`, `+`, `?`, or one after the toggle `(?i)`).
          CRuby raises RegexpError here; without this guard peek() never
          advances and the loop spins forever (A1). */
       compile_error(c, "target of repeat operator is not specified");
