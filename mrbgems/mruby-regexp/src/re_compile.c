@@ -1989,6 +1989,33 @@ skip_posix_bracket(const char *src, const char *end)
  * A class spans several calls, with *in_class carrying the state between
  * them, so the caller keeps one flag and starts it FALSE.
  *
+ * An escape is stepped over at the width CRuby's pre-pass (re.c) reads it,
+ * because preprocess_pattern() copies what is stepped over and removes
+ * comments from what is not, and a comment removed from inside an escape
+ * leaves the parser a different escape: `\u12(?#c)34` would reach it as the
+ * valid `\u1234`, where CRuby has read `\u12(?` and rejected it before the
+ * comment is removed. So the escapes spelled with digits take their digits
+ * here:
+ *
+ * - `\u{...}` runs through its '}' (an unterminated list to the end): a `#`
+ *   inside it is a malformed list for the parser to reject, not a comment
+ *   for the pass to remove, and a "(?<" inside it declares nothing.
+ * - `\uXXXX` takes the next four bytes whatever they are, so that a byte
+ *   that is not a hex digit reaches the parser and is rejected there rather
+ *   than replaced by whatever a removed comment brings next.
+ * - `\x` takes up to two hex digits, and with none of them the one byte
+ *   after, which the parser rejects. `\0` takes up to two more octal digits.
+ *   Both stop short of their full width at the first byte that is not a
+ *   digit, and a digit a removed comment brings next would lengthen them:
+ *   `\x6(?#c)1` is `\x06` and `1` in CRuby, whose pre-pass has read `\x6`
+ *   whole and written it at full width before it reaches the comment. *pad
+ *   says how many '0' bytes bring the escape to full width, for the pass to
+ *   write after the letter; a full-width or non-numeric escape sets it to 0.
+ *
+ * `\1`-`\9` are the backslash and the digit, and the digits after them are
+ * plain bytes, as they are to CRuby's pre-pass: a removed comment does join
+ * them, and `\1(?#c)0` is `\10` there and here.
+ *
  * preprocess_pattern() and has_named_group() both walk the pattern hunting
  * for a "(?" opener, and both have to agree with the parser on when a '(' is
  * an opener rather than an escaped or bracketed byte. The rules for that live
@@ -1996,21 +2023,34 @@ skip_posix_bracket(const char *src, const char *end)
  * in the other.
  */
 static const char*
-skip_uninterpreted(const char *src, const char *end, mrb_bool *in_class)
+skip_uninterpreted(const char *src, const char *end, mrb_bool *in_class, int *pad)
 {
   char ch = *src;
 
+  *pad = 0;
   if (ch == '\\' && src + 1 < end) {
-    mrb_bool unicode = (src[1] == 'u');
+    char kind = src[1];
     src += 2;
-    /* A `\u{...}` list is a single escape rather than `\u` followed by a
-       brace group: a `#` inside it is a malformed list for the parser to
-       reject, not a comment for the pass to remove, and a "(?<" inside it
-       declares nothing. An unterminated list runs to the end. */
-    if (unicode && src < end && *src == '{') {
-      while (src < end) {
-        if (*src++ == '}') break;
+    if (kind == 'u') {
+      if (src < end && *src == '{') {
+        while (src < end) {
+          if (*src++ == '}') break;
+        }
       }
+      else {
+        src += (end - src < 4) ? end - src : 4;
+      }
+    }
+    else if (kind == 'x') {
+      int n = 0;
+      while (n < 2 && src < end && hex_value(*src) >= 0) { src++; n++; }
+      if (n == 0) { if (src < end) src++; }
+      else *pad = 2 - n;
+    }
+    else if (kind == '0') {
+      int n = 0;
+      while (n < 2 && src < end && *src >= '0' && *src <= '7') { src++; n++; }
+      *pad = 2 - n;
     }
     return src;
   }
@@ -2100,21 +2140,25 @@ scope_get(const uint8_t *scope, mrb_int depth)
  * here because the bytes they cover are gone before the parser reads them.
  * A `#` inside [...] is a member of the class, and so is a (?# written
  * there. Escaped characters (\ followed by anything) are preserved.
- * skip_uninterpreted() decides which bytes those are.
+ * skip_uninterpreted() decides which bytes those are, and it also says when
+ * a numeric escape is to be written at full width, `\x6` as `\x06`, so that
+ * a digit a removed comment brings next cannot lengthen it.
  *
  * The buffer comes from the GC arena, which holds it until the caller's frame
  * is gone: the parser reads it from beginning to end, and every raise in
  * between leaves this function nothing to be reached through. The scope
  * stack lives behind the rewritten pattern in the same allocation: a group
  * opener is one byte of source, so len bits is room for every group. The
- * pass only removes bytes, so the pattern part is the size of the source.
+ * pattern part is twice the source: writing an escape at full width
+ * lengthens it by two bytes at most, `\0` to `\000`, and nothing else the
+ * pass writes is longer than what it read.
  */
 static char*
 preprocess_pattern(mrb_state *mrb, const char *src, mrb_int len,
                    mrb_bool extended, mrb_int *out_len)
 {
-  char *buf = (char*)mrb_temp_alloc(mrb, (size_t)len + ((size_t)len + 7) / 8);
-  uint8_t *scope = (uint8_t*)buf + len;
+  char *buf = (char*)mrb_temp_alloc(mrb, (size_t)len * 2 + ((size_t)len + 7) / 8);
+  uint8_t *scope = (uint8_t*)buf + len * 2;
   mrb_int depth = 0;
   mrb_int o = 0;
   mrb_bool in_class = FALSE;
@@ -2123,9 +2167,16 @@ preprocess_pattern(mrb_state *mrb, const char *src, mrb_int len,
   while (src < end) {
     char ch = *src;
     /* An escape or a character class is copied through untouched: neither
-       holds a comment. */
-    const char *skip = skip_uninterpreted(src, end, &in_class);
+       holds a comment. A numeric escape short of its full width is padded
+       with zeros after its letter, `\x6` to `\x06`. */
+    int pad;
+    const char *skip = skip_uninterpreted(src, end, &in_class, &pad);
     if (skip) {
+      if (pad) {
+        buf[o++] = *src++;
+        buf[o++] = *src++;
+        while (pad-- > 0) buf[o++] = '0';
+      }
       while (src < skip) buf[o++] = *src++;
       continue;
     }
@@ -2218,7 +2269,8 @@ has_named_group(const char *src, mrb_int len)
 
   while (src < end) {
     char ch = *src;
-    const char *skip = skip_uninterpreted(src, end, &in_class);
+    int pad;
+    const char *skip = skip_uninterpreted(src, end, &in_class, &pad);
     if (skip) {
       src = skip;
       continue;

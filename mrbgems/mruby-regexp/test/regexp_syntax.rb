@@ -791,6 +791,67 @@ assert("Regexp - free-spacing whitespace stands between tokens only") do
   assert_equal [" "], Regexp.new("[\\k<a b>]", x).match(" ").to_a
 end
 
+assert("Regexp - a removed comment does not reach into an escape") do
+  # The pass that removes (?#...) groups and, under /x, `#` comments runs
+  # before the parser, so bytes it removes from inside an escape would leave
+  # the parser a different escape. CRuby's own pre-pass reads each escape
+  # whole before it reaches the comment, and so does this one: `\u12(?#c)34`
+  # is rejected as `\u12(?` rather than read as `\u1234`.
+  x = Regexp::EXTENDED
+
+  # \uXXXX is exactly four bytes after the u, whatever they are
+  ["\\u12(?#c)34", "\\u(?#c){61}", "\\u006(?#c)1"].each do |pat|
+    assert_raise_with_message(RegexpError, "invalid Unicode escape: /#{pat}/") do
+      Regexp.new(pat)
+    end
+  end
+  ["\\u12#c\n34", "\\u#c\n{61}"].each do |pat|
+    assert_raise_with_message(RegexpError, "invalid Unicode escape: /#{pat}/") do
+      Regexp.new(pat, x)
+    end
+  end
+  assert_equal ["ab"], Regexp.new("\\u0061(?#c)\\u0062").match("ab").to_a
+  assert_equal ["ab"], Regexp.new("\\u{61}(?#c)\\u{62}").match("ab").to_a
+  # a `\u{...}` list is one escape through its brace, and holds no comment
+  assert_raise_with_message(RegexpError, "invalid Unicode list: /\\u{61(?#c)62}/") do
+    Regexp.new("\\u{61(?#c)62}")
+  end
+  assert_raise_with_message(RegexpError, "invalid Unicode list: /\\u{61 #c\n62}/") do
+    Regexp.new("\\u{61 #c\n62}", x)
+  end
+
+  # \x is one or two hex digits and needs the one; a one-digit escape is
+  # written at full width so that a digit the comment kept apart cannot
+  # join it: `\x6(?#c)1` is `\x06` and `1`
+  assert_raise_with_message(RegexpError, "invalid hex escape: /\\x(?#c)61/") do
+    Regexp.new("\\x(?#c)61")
+  end
+  assert_raise_with_message(RegexpError, "invalid hex escape: /\\x#c\n61/") do
+    Regexp.new("\\x#c\n61", x)
+  end
+  assert_equal ["\x061"], Regexp.new("\\x6(?#c)1").match("\x061").to_a
+  assert_nil Regexp.new("\\x6(?#c)1").match("a")
+  assert_equal ["\x061"], Regexp.new("\\x6#c\n1", x).match("\x061").to_a
+  assert_nil Regexp.new("\\x6#c\n1", x).match("a")
+  assert_equal ["\x06"], Regexp.new("\\x6(?#c)").match("\x06").to_a
+  assert_equal ["a1"], Regexp.new("\\x61(?#c)1").match("a1").to_a
+
+  # \0 is up to two more octal digits, written at full width the same way
+  assert_equal ["\x0061"], Regexp.new("\\0(?#c)61").match("\x0061").to_a
+  assert_nil Regexp.new("\\0(?#c)61").match("1")
+  assert_equal ["\x0061"], Regexp.new("\\0#c\n61", x).match("\x0061").to_a
+  assert_equal ["\x061"], Regexp.new("\\06(?#c)1").match("\x061").to_a
+  assert_equal ["\x061"], Regexp.new("\\06#c\n1", x).match("\x061").to_a
+  assert_equal ["\x00"], Regexp.new("\\0(?#c)").match("\x00").to_a
+  assert_equal ["\x001"], Regexp.new("\\000(?#c)1").match("\x001").to_a
+
+  # inside a class the pass removes nothing, so `(?#c)` is five members and
+  # `#c` two, and the escape is read as written
+  assert_equal ["\x06"], Regexp.new("[\\x6(?#c)1]").match("\x06").to_a
+  assert_equal ["("], Regexp.new("[\\x6(?#c)1]").match("(").to_a
+  assert_equal ["#"], Regexp.new("[\\x6#c\n1]", x).match("#").to_a
+end
+
 assert("Regexp - empty pattern") do
   assert_true //.match?("")
   assert_true //.match?("abc")
