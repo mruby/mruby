@@ -10,7 +10,11 @@ simulation) with backtracking fallback.
 - `.` any character (except newline by default)
 - `*`, `+`, `?` greedy quantifiers
 - `*?`, `+?`, `??` non-greedy quantifiers
+- `*+`, `++`, `?+` possessive quantifiers, `a*+` being `(?>a*)`
 - `{n}`, `{n,}`, `{n,m}` repetition counts
+- a quantifier after a quantifier repeats the repeat: `a**` is `(?:a*)*` and
+  `a{2}{3}` is `(?:a{2}){3}`. `{n}` has no non-greedy form, so its `?` is a
+  quantifier too and `a{3}?` matches empty where the lazy `a{3,3}?` does not
 - `[abc]`, `[a-z]`, `[^abc]` character classes
 - `\d`, `\w`, `\s` digit, word, whitespace shortcuts
 - `\D`, `\W`, `\S` negated shortcuts
@@ -21,7 +25,9 @@ simulation) with backtracking fallback.
 - `|` alternation
 - `\N` backreference: a digit run whose decimal value is at most 9 or at
   most the number of groups opened before it; a run past both is an octal
-  escape (see below)
+  escape (see below). A reference naming a group the pattern does not have
+  raises `RegexpError`, counting the groups of the whole pattern, so `\1(a)`
+  is valid
 - `\k<name>`, `\k'name'` named backreferences
 - `(?=...)` positive lookahead
 - `(?!...)` negative lookahead
