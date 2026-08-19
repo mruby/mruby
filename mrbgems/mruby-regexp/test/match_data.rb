@@ -261,6 +261,38 @@ assert("$&, $`, $' and $+ cleared on no match") do
   assert_nil $+
 end
 
+assert("$&, $`, $', $+ and $1 onward read $~ as it stands") do
+  # Each is a reading of $~ at the moment it is read, as in CRuby, where
+  # they are derived from the backref and not kept as variables of their
+  # own, so assigning $~ moves all of them at once and clearing it clears
+  # them, whichever search last published.
+  /(b)(c)?/ =~ "abz"
+  md = $~
+  assert_equal ["b", "a", "z", "b", "b", nil], [$&, $`, $', $+, $1, $2]
+
+  $~ = nil
+  assert_nil $&
+  assert_nil $`
+  assert_nil $'
+  assert_nil $+
+  assert_nil $1
+
+  $~ = md
+  assert_equal ["b", "a", "z", "b", "b", nil], [$&, $`, $', $+, $1, $2]
+
+  # a match made by one search and assigned after another is the one read
+  /z/ =~ "z"
+  $~ = /(x)(y)/.match("wxyz")
+  assert_equal ["xy", "w", "z", "y", "x", "y"], [$&, $`, $', $+, $1, $2]
+end
+
+assert("$10 and beyond read the group of that number") do
+  /(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)(k)/ =~ "abcdefghijk"
+  assert_equal "j", $10
+  assert_equal "k", $11
+  assert_nil $12
+end
+
 assert("a piece cut from a subject is its own string") do
   # The pieces a match hands back share the subject's buffer where they are
   # too long to embed, rather than copying its bytes. Sharing is only sound

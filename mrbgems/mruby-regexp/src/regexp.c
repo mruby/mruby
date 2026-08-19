@@ -1181,6 +1181,23 @@ matchdata_post(mrb_state *mrb, mrb_value self)
   return re_byte_substr(mrb, md->source, pos, RSTRING_LEN(md->source) - pos);
 }
 
+/* Private: what `$+` reads, the last group that took part in the match,
+   which is not necessarily the last group in the pattern. The compiler
+   derives `$+` from `$~` with this, as it derives `$1` with `[]`. */
+static mrb_value
+matchdata_last_group(mrb_state *mrb, mrb_value self)
+{
+  mrb_match_data *md = DATA_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
+  if (!md) return mrb_nil_value();
+  for (int g = md->num_captures - 1; g >= 1; g--) {
+    int s = md->captures[g*2];
+    if (s >= 0) {
+      return re_byte_substr(mrb, md->source, s, md->captures[g*2+1] - s);
+    }
+  }
+  return mrb_nil_value();
+}
+
 /*
  * MatchData#length / #size
  */
@@ -2241,6 +2258,7 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, md, "__republish", matchdata_republish, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, md, "pre_match", matchdata_pre, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "post_match", matchdata_post, MRB_ARGS_NONE());
+  mrb_define_method(mrb, md, "__last_group", matchdata_last_group, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "named_captures", matchdata_named_captures, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "string", matchdata_string, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "regexp", matchdata_regexp, MRB_ARGS_NONE());
