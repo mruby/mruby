@@ -437,19 +437,16 @@ exec_match(mrb_state *mrb, mrb_value self, mrb_value str, mrb_int pos)
   if (re_uninitialized_p(pat)) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
 
   int cap_size = pat->num_captures * 2;
-  int *captures = (int*)mrb_malloc(mrb, sizeof(int) * cap_size);
+  int captures[RE_MAX_CAPTURES * 2];
   memset(captures, -1, sizeof(int) * cap_size);
   int ncap = mrb_re_exec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), pos,
                      captures, cap_size, re_binary_string_p(str));
 
   if (ncap == 0) {
-    mrb_free(mrb, captures);
     clear_match_globals(mrb);
     return mrb_nil_value();
   }
-  mrb_value md = create_matchdata(mrb, self, str, captures, cap_size);
-  mrb_free(mrb, captures);
-  return md;
+  return create_matchdata(mrb, self, str, captures, cap_size);
 }
 
 /*
@@ -623,17 +620,14 @@ regexp_s_byte_rsearch(mrb_state *mrb, mrb_value klass)
   if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
 
   int cap_size = pat->num_captures * 2;
-  int *captures = (int*)mrb_malloc(mrb, sizeof(int) * cap_size);
+  int captures[RE_MAX_CAPTURES * 2];
   int ncap = mrb_re_rexec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), limit,
                           captures, cap_size, re_binary_string_p(str));
   if (ncap == 0) {
-    mrb_free(mrb, captures);
     clear_match_globals(mrb);
     return mrb_nil_value();
   }
-  mrb_value md = create_matchdata(mrb, re, str, captures, cap_size);
-  mrb_free(mrb, captures);
-  return md;
+  return create_matchdata(mrb, re, str, captures, cap_size);
 }
 
 /* Internal: the search of `match?`, run with a NULL capture buffer so that
@@ -1924,7 +1918,7 @@ regexp_s_scan(mrb_state *mrb, mrb_value klass)
   mrb_bool binary = re_binary_string_p(str);
   int ncap = pat->num_captures;
   int cap_size = ncap * 2;
-  int *captures = (int*)mrb_malloc(mrb, sizeof(int) * cap_size);
+  int captures[RE_MAX_CAPTURES * 2];
 
   mrb_value ary = mrb_ary_new(mrb);
   int ai = mrb_gc_arena_save(mrb);
@@ -1975,8 +1969,6 @@ regexp_s_scan(mrb_state *mrb, mrb_value klass)
     }
     mrb_gc_arena_restore(mrb, ai);
   }
-
-  mrb_free(mrb, captures);
 
   if (last_ncap > 0) {
     create_matchdata(mrb, re, str, last_captures, last_ncap);
