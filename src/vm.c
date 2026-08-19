@@ -3101,8 +3101,7 @@ RETRY_TRY_BLOCK:
         mrb_raisef(mrb, E_TYPE_ERROR, "wrong type %T (expected Proc)", regs[a]);
       }
       const struct RProc *p = mrb_proc_ptr(regs[a]);
-      ci = cipush(mrb, a, CINFO_DIRECT, NULL, NULL, NULL, 0, b);
-      ci->cci = CINFO_NONE;  /* mark as VM-to-VM call for proper break handling */
+      ci = cipush(mrb, a, CINFO_NONE, NULL, NULL, NULL, 0, b);
       int r = vm_call_proc(mrb, p, b+1, &irep, ai);
       ci = mrb->c->ci;
       if (r == VM_RAISE) goto L_RAISE;
