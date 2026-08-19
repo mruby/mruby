@@ -830,3 +830,22 @@ assert("Regexp - what sub and gsub build out of a byte-read subject") do
   # a byte-read subject is read as bytes whether anything was spliced or not
   assert_equal Encoding::BINARY, subject.gsub(/x/, "-").encoding
 end
+
+assert("Regexp - the match a gsub block leaves behind reads as the receiver does") do
+  # The search that ends the block form of `gsub` runs on the receiver as
+  # the block left it, and it is spared where the receiver still reads as it
+  # did when the last match was made. A block that changed how the receiver
+  # is read without changing a byte has changed what a search reads of it:
+  # `s.replace(s.b)` keeps every byte and makes them byte-read, so the match
+  # left behind counts its offsets in bytes, where the match the loop had
+  # counted characters. Bytes alone would take that receiver for unchanged.
+  skip unless __ENCODING__ == "UTF-8"
+  s = "héllo"
+  s.gsub(/l/) { s.replace(s.b); "L" }
+  assert_equal 4, $~.begin(0)
+  assert_equal 6, $~.string.size
+  s = "héllo"
+  s.gsub(/l/) { "L" }
+  assert_equal 3, $~.begin(0)
+  assert_equal 5, $~.string.size
+end

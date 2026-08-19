@@ -65,16 +65,43 @@ assert("MatchData - subject is snapshotted at match time") do
   assert_equal "hello", $~.string
 end
 
-assert("MatchData - match globals survive subject mutation in a gsub block") do
-  # Regression: the mrblib gsub loop republishes $&, $` and $' from the
-  # MatchData after the block runs, so a block that mutates the subject used
-  # to make them describe the mutated string.
+assert("MatchData - the match a gsub block leaves behind is a fresh search") do
+  # CRuby's `str_gsub` searches once more when the loop is over, from the
+  # offset the last match was found at and on the subject as it stands then,
+  # and that search is what $~ and the names derived from it describe.  A
+  # block that changes the subject in place can therefore leave nil behind,
+  # where the loop used to republish the MatchData of the last match it had.
   t = "hello"
   n = 0
   t.gsub(/l/) { n += 1; t.upcase! if n == 2; "X" }
+  assert_nil $~
+  assert_nil $&
+  assert_nil $`
+  assert_nil $'
+
+  # A change that leaves the last match where it was leaves a match behind,
+  # and its subject is the changed string, not the one that was matched.
+  t = "hello"
+  t.gsub(/l/) { t.tr!("h", "H"); "X" }
   assert_equal "l", $&
-  assert_equal "hel", $`
+  assert_equal "Hel", $`
   assert_equal "o", $'
+  assert_equal "Hello", $~.string
+  assert_true $~.string.frozen?
+
+  # The search runs from the offset the last match was found from, so a
+  # match the block writes in before that offset goes unseen, and one at or
+  # after it is the match left behind.
+  s = "abcbd"
+  n = 0
+  s.gsub(/b/) { n += 1; s[0] = "b" if n == 2; "!" }
+  assert_equal 3, $~.begin(0)
+  assert_equal "bbc", $`
+  s = "abcd"
+  s.gsub(/b/) { s[0] = "b"; "!" }
+  assert_equal 0, $~.begin(0)
+  assert_equal "bcd", $'
+  assert_equal "bbcd", $~.string
 end
 
 assert("MatchData#regexp") do

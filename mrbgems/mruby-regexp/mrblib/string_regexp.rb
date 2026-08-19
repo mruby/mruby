@@ -169,18 +169,29 @@ class String
     end
     pattern = Regexp.new(Regexp.escape(pattern)) if literal
     # A full search and not `match?`, so a failed match clears $~.
-    return nil unless Regexp.__search(pattern, self, 0, literal)
-    # `sub` matches again and publishes its own $~ over this one, leaving the
-    # caller the match `sub` would have left, a block's own matches included.
-    # The resolved pattern takes the place of the original argument so that a
-    # String is not quoted and compiled a second time; a literal goes down as
-    # the String it was instead, since that is what tells `sub` to leave the
-    # subject unread, and quoting it twice is the price of saying so.
-    # Overwriting `self` afterwards is safe: a MatchData snapshots its subject,
-    # so $~ keeps describing the string as it was matched.
-    down = literal ? args[0] : pattern
-    str = argc == 2 ? self.sub(down, args[1], &block) : self.sub(down, &block)
-    self.replace(str)
+    md = Regexp.__search(pattern, self, 0, literal)
+    return nil unless md
+    if argc == 2
+      # `sub` matches again and publishes its own $~ over this one, leaving
+      # the caller the match `sub` would have left.  The resolved pattern
+      # goes down so that it is not compiled a second time; a literal with a
+      # replacement never reaches here, having been answered by `__sub_lit`
+      # above.  Overwriting `self` afterwards is safe: a MatchData snapshots
+      # its subject, so $~ keeps describing the string as it was matched.
+      return self.replace(self.sub(pattern, args[1]))
+    end
+    # The block form does not go down to `sub`, which builds its answer from
+    # the snapshot the MatchData holds, because CRuby's `rb_str_sub_bang`
+    # builds it from the receiver as the block left it: `s = "hello";
+    # s.sub!(/l/) { s.upcase!; "X" }` is "HEXLO" there, where `sub` on the
+    # same receiver is "heXlo".  It refuses a block that changed the length
+    # first, as `gsub` does, so the offsets of the match still name the bytes
+    # they named.  $~ stays what the search above published, or whatever the
+    # block put there.
+    len = self.bytesize
+    val = block.call(md[0]).to_s
+    raise RuntimeError, "string modified" if self.bytesize != len
+    self.replace(self.byteslice(0, md.__byte_begin(0)) + val + self.byteslice(md.__byte_end(0)..-1))
   end
 
   def gsub(*args, &block)
