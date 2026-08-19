@@ -949,6 +949,34 @@ assert("Regexp - non-capturing group") do
   assert_nil md[2]
 end
 
+assert("Regexp - an empty group takes a quantifier") do
+  # `(?:)` emits no code, but it is an atom, and a repeat of what matches
+  # empty matches empty, as CRuby compiles it. The scoped-option and demoted
+  # plain spellings of an empty group are the same atom.
+  assert_equal [""], /(?:)*/.match("").to_a
+  assert_equal [""], /(?:)+/.match("").to_a
+  assert_equal [""], /(?:){2}/.match("").to_a
+  assert_equal [""], /(?:){0}/.match("").to_a
+  assert_equal [""], /(?:)*?/.match("").to_a
+  assert_equal [""], /(?:)*+/.match("").to_a
+  assert_equal [""], /(?:)**/.match("").to_a
+  assert_equal [""], /(?:(?:))*/.match("").to_a
+  assert_equal [""], /(?:a{0})*/.match("aa").to_a
+  assert_equal ["ab"], /a(?:)*b/.match("ab").to_a
+  assert_equal ["b", ""], /((?:)*)b/.match("b").to_a
+  assert_equal [""], /(?i:)*/.match("").to_a
+  assert_equal ["a", "a"], /(?<n>a)()*/.match("a").to_a
+  assert_equal [""], /(?:) * /x.match("").to_a
+  # A `{` after it that spells no quantifier is a literal, as after any atom.
+  assert_equal ["{a}"], /(?:){a}/.match("{a}").to_a
+  # An option toggle is not an atom: the quantifier after `(?i)` has no target.
+  assert_raise_with_message(RegexpError,
+                            "target of repeat operator is not specified: /(?i)*/") do
+    Regexp.new("(?i)*")
+  end
+  assert_raise(RegexpError) { Regexp.new("(?:(?i))*(?i)+") }
+end
+
 assert("Regexp - atomic group (?>...)") do
   # The body's first match is its only one: what follows cannot make it
   # give text back or take another branch, where a plain group can.
