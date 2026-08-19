@@ -73,10 +73,9 @@ compile_error_str(re_compiler *c, mrb_value msg)
 {
   /* Quote c->orig, the pattern as written: when the pattern is preprocessed
      c->src points at the buffer preprocess_pattern() returned, so quoting it
-     would drop the free-spacing, the comments and the (?#...) groups from the
-     message. c->orig is the caller's buffer, which outlives the compile. It
-     is not NUL-terminated, so use %l with the explicit length from
-     c->orig_end. */
+     would drop the comments and the (?#...) groups from the message. c->orig
+     is the caller's buffer, which outlives the compile. It is not
+     NUL-terminated, so use %l with the explicit length from c->orig_end. */
   mrb_value emsg = mrb_format(c->mrb, "%v: /%l/",
                               msg, c->orig, (size_t)(c->orig_end - c->orig));
 
@@ -189,6 +188,30 @@ next_char(re_compiler *c)
 {
   if (c->p >= c->src_end) return -1;
   return (uint8_t)*c->p++;
+}
+
+/* Under /x, step over the whitespace between two tokens. Called where one
+   token ends and the next may begin, in compile_seq() and before the
+   quantifier in compile_quantified(), and nowhere else: whitespace inside a
+   token is the token's own, so `a{1, 2}` is not an interval and `(?<a b>x)`
+   names the group "a b", as in CRuby, whose tokenizer skips whitespace only
+   where it fetches a token. The bytes are the five Onigmo skips; a vertical
+   tab is a literal under /x there, and here.
+
+   `#` comments are not skipped here: preprocess_pattern() removes them, as
+   CRuby's own pre-pass does before it tokenizes, which is what lets a removed
+   comment join `\1` to the `0` after it. */
+static mrb_bool
+extended_space(int ch)
+{
+  return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' || ch == '\f';
+}
+
+static void
+skip_extended_space(re_compiler *c)
+{
+  if (!(c->flags & RE_FLAG_EXTENDED)) return;
+  while (extended_space(peek(c))) next_char(c);
 }
 
 static uint16_t
@@ -1136,11 +1159,11 @@ compute_fixed_len(re_compiler *c, uint32_t start, uint32_t end, int *chars_out)
    and a further run of i/m/x to switch off, then stops at the terminator
    (':' or ')'). `base` is the option set in effect on entry; the resulting
    set is returned. Ruby's inline letters are i (IGNORECASE), m (DOTALL),
-   x (EXTENDED). The x bit is carried like the other two but nothing in the
-   parser reads it: free-spacing is applied by preprocess_pattern() before
-   the parser runs, and that pass tracks the same (?x) and (?-x) scopes over
-   the pattern as written, so by the time the letter is read here the
-   whitespace it governed is already gone or already kept. */
+   x (EXTENDED). All three are scoped alike by the group they are read in:
+   skip_extended_space() reads x from c->flags, which compile_atom() saves
+   at every '(' and restores at its ')'. preprocess_pattern() tracks the
+   same scopes over the pattern as written for the one thing it still does
+   under /x, removing `#` comments. */
 static uint32_t
 parse_inline_flags(re_compiler *c, uint32_t base)
 {
@@ -1758,6 +1781,10 @@ compile_quantified(re_compiler *c)
   c->atom_start = saved_atom_start;
   if (c->code_len == begin) return;  /* no atom emitted */
 
+  /* Under /x the quantifier may stand apart from its atom, `a +` being `a+`.
+     A `?` making it non-greedy is read right after it, though, as CRuby
+     reads it: `a* ?` is `a*` and then a `?` of its own. */
+  skip_extended_space(c);
   int ch = peek(c);
   if (ch == '*' || ch == '+' || ch == '?') {
     next_char(c);
@@ -1849,7 +1876,13 @@ compile_quantified(re_compiler *c)
 static void
 compile_seq(re_compiler *c)
 {
-  while (peek(c) >= 0 && peek(c) != ')' && peek(c) != '|') {
+  for (;;) {
+    /* One token ends here and the next may begin, so under /x this is where
+       the whitespace between them goes: `a b` is `ab`, and the blanks before
+       a '|' or a ')' are gone by the time compile_alt() looks for one. */
+    skip_extended_space(c);
+    int ch = peek(c);
+    if (ch < 0 || ch == ')' || ch == '|') return;
     uint32_t code_before = c->code_len;
     const char *p_before = c->p;
     compile_quantified(c);
@@ -1929,31 +1962,6 @@ compile_alt(re_compiler *c)
   }
 }
 
-/*
- * Does the pattern hold a group preprocess_pattern() rewrites: a (?#
- * comment group, or an inline option group that turns x on, as in (?x),
- * (?x:...) or (?ix-m:...)? Cheap pre-check so an ordinary pattern without
- * one skips the pass and its malloc. An escaped or bracketed "(?" is a
- * false positive here, which costs the pass and nothing else: the pass
- * itself steps over escapes and classes.
- */
-static mrb_bool
-has_rewritten_group(const char *src, mrb_int len)
-{
-  const char *p = src, *end = src + len;
-  while (p < end && (p = (const char*)memchr(p, '(', (size_t)(end - p))) != NULL) {
-    if (end - p >= 3 && p[1] == '?') {
-      if (p[2] == '#') return TRUE;
-      /* The letters before a '-' are the ones switched on. */
-      for (const char *q = p + 2; q < end && (*q == 'i' || *q == 'm' || *q == 'x'); q++) {
-        if (*q == 'x') return TRUE;
-      }
-    }
-    p++;
-  }
-  return FALSE;
-}
-
 /* Inside a character class, is `src` the start of a POSIX bracket [:name:]?
    Returns the position just past its closing "]", or NULL if it is not one.
    compile_charclass() consumes such a bracket as a unit, so its ']' does not
@@ -1981,6 +1989,33 @@ skip_posix_bracket(const char *src, const char *end)
  * A class spans several calls, with *in_class carrying the state between
  * them, so the caller keeps one flag and starts it FALSE.
  *
+ * An escape is stepped over at the width CRuby's pre-pass (re.c) reads it,
+ * because preprocess_pattern() copies what is stepped over and removes
+ * comments from what is not, and a comment removed from inside an escape
+ * leaves the parser a different escape: `\u12(?#c)34` would reach it as the
+ * valid `\u1234`, where CRuby has read `\u12(?` and rejected it before the
+ * comment is removed. So the escapes spelled with digits take their digits
+ * here:
+ *
+ * - `\u{...}` runs through its '}' (an unterminated list to the end): a `#`
+ *   inside it is a malformed list for the parser to reject, not a comment
+ *   for the pass to remove, and a "(?<" inside it declares nothing.
+ * - `\uXXXX` takes the next four bytes whatever they are, so that a byte
+ *   that is not a hex digit reaches the parser and is rejected there rather
+ *   than replaced by whatever a removed comment brings next.
+ * - `\x` takes up to two hex digits, and with none of them the one byte
+ *   after, which the parser rejects. `\0` takes up to two more octal digits.
+ *   Both stop short of their full width at the first byte that is not a
+ *   digit, and a digit a removed comment brings next would lengthen them:
+ *   `\x6(?#c)1` is `\x06` and `1` in CRuby, whose pre-pass has read `\x6`
+ *   whole and written it at full width before it reaches the comment. *pad
+ *   says how many '0' bytes bring the escape to full width, for the pass to
+ *   write after the letter; a full-width or non-numeric escape sets it to 0.
+ *
+ * `\1`-`\9` are the backslash and the digit, and the digits after them are
+ * plain bytes, as they are to CRuby's pre-pass: a removed comment does join
+ * them, and `\1(?#c)0` is `\10` there and here.
+ *
  * preprocess_pattern() and has_named_group() both walk the pattern hunting
  * for a "(?" opener, and both have to agree with the parser on when a '(' is
  * an opener rather than an escaped or bracketed byte. The rules for that live
@@ -1988,21 +2023,34 @@ skip_posix_bracket(const char *src, const char *end)
  * in the other.
  */
 static const char*
-skip_uninterpreted(const char *src, const char *end, mrb_bool *in_class)
+skip_uninterpreted(const char *src, const char *end, mrb_bool *in_class, int *pad)
 {
   char ch = *src;
 
+  *pad = 0;
   if (ch == '\\' && src + 1 < end) {
-    mrb_bool unicode = (src[1] == 'u');
+    char kind = src[1];
     src += 2;
-    /* A `\u{...}` list is a single escape rather than `\u` followed by a
-       brace group: it separates its codepoints with spaces, which the
-       free-spacing pass would otherwise remove, joining `\u{61 62}` into the
-       one codepoint `\u{6162}`. An unterminated list runs to the end. */
-    if (unicode && src < end && *src == '{') {
-      while (src < end) {
-        if (*src++ == '}') break;
+    if (kind == 'u') {
+      if (src < end && *src == '{') {
+        while (src < end) {
+          if (*src++ == '}') break;
+        }
       }
+      else {
+        src += (end - src < 4) ? end - src : 4;
+      }
+    }
+    else if (kind == 'x') {
+      int n = 0;
+      while (n < 2 && src < end && hex_value(*src) >= 0) { src++; n++; }
+      if (n == 0) { if (src < end) src++; }
+      else *pad = 2 - n;
+    }
+    else if (kind == '0') {
+      int n = 0;
+      while (n < 2 && src < end && *src >= '0' && *src <= '7') { src++; n++; }
+      *pad = 2 - n;
     }
     return src;
   }
@@ -2030,7 +2078,7 @@ skip_uninterpreted(const char *src, const char *end, mrb_bool *in_class)
 }
 
 /* Read the letters of an inline option group whose "(?" starts at `src`,
-   as far as the free-spacing pass needs them: whether the group is one,
+   as far as the comment pass needs them: whether the group is one,
    whether it is the toggle form (?imx) rather than the scoped (?imx:...),
    and what it makes of x. `*x_on` is left as it was when the letters do
    not name x. Returns the terminator's position, or NULL when the bytes
@@ -2054,8 +2102,8 @@ scan_option_group(const char *src, const char *end, mrb_bool *toggle, mrb_bool *
   return q;
 }
 
-/* The free-spacing pass's scope stack: one bit per open group, holding
-   what extended mode was outside it. */
+/* The comment pass's scope stack: one bit per open group, holding what
+   extended mode was outside it. */
 static void
 scope_set(uint8_t *scope, mrb_int depth, mrb_bool extended)
 {
@@ -2071,37 +2119,39 @@ scope_get(const uint8_t *scope, mrb_int depth)
 }
 
 /*
- * Rewrite the pattern before the parser sees it.
- * Removes (?#...) comment groups always, and wherever extended mode is in
- * effect also whitespace and #comments. Extended mode is in effect from the
- * start when the Regexp carries /x, and it is switched inside the pattern
- * by the inline option groups: (?x) and (?-x) for the rest of the enclosing
- * group, (?x:...) and (?-x:...) for their own body. So this pass keeps a
- * stack of one bit per open group, pushed at every '(' it interprets and
- * popped at every ')', which is what lets a toggle end where its group does.
- * That is the same scoping the parser gives i and m; x has to be resolved
- * here because the bytes it governs are gone before the parser reads them.
- * Whitespace inside [...] character classes is preserved, and so is a (?#
- * written there, which is a literal member rather than a comment group.
- * Escaped characters (\ followed by anything) are preserved.
- * skip_uninterpreted() decides which bytes those are.
+ * Rewrite the pattern before the parser sees it: remove the (?#...) comment
+ * groups, under any flags, and wherever extended mode is in effect the `#`
+ * comments too. That is what CRuby's own pre-pass (re.c) removes before its
+ * tokenizer reads the pattern, and it is why the removal is done here rather
+ * than by the parser: taking a comment out of the source joins the bytes on
+ * either side of it, and CRuby has `\1(?#c)0` and `\1#c`, a newline and `0`
+ * both as `\10`. The whitespace of free-spacing mode is another matter. It
+ * separates tokens and never joins anything, so the parser skips it between
+ * tokens (skip_extended_space()) and reads every token, escapes and group
+ * names included, with the whitespace still in place.
  *
- * Removing whitespace must not join what it kept apart. An escape spelled
- * with digits (`\1`, `\01`, `\x1`) takes the digits that follow it, so
- * `\x1 2` copied as `\x12` would be one byte where CRuby, whose tokenizer
- * stops at the space, reads two. So when whitespace went out between such
- * an escape and a hex digit, an empty group `(?:)` goes in: it emits no
- * instruction and keeps the digit an atom of its own. A removed comment,
- * `#...` to the end of its line or `(?#...)`, does join the two: CRuby
- * strips those before it tokenizes, and `\1(?#c)0` is `\10` there.
+ * Extended mode is in effect from the start when the Regexp carries /x, and
+ * it is switched inside the pattern by the inline option groups: (?x) and
+ * (?-x) for the rest of the enclosing group, (?x:...) and (?-x:...) for
+ * their own body. So this pass keeps a stack of one bit per open group,
+ * pushed at every '(' it interprets and popped at every ')', which is what
+ * lets a toggle end where its group does. That is the same scoping the
+ * parser gives x for the whitespace; the `#` comments have to be resolved
+ * here because the bytes they cover are gone before the parser reads them.
+ * A `#` inside [...] is a member of the class, and so is a (?# written
+ * there. Escaped characters (\ followed by anything) are preserved.
+ * skip_uninterpreted() decides which bytes those are, and it also says when
+ * a numeric escape is to be written at full width, `\x6` as `\x06`, so that
+ * a digit a removed comment brings next cannot lengthen it.
  *
  * The buffer comes from the GC arena, which holds it until the caller's frame
  * is gone: the parser reads it from beginning to end, and every raise in
  * between leaves this function nothing to be reached through. The scope
  * stack lives behind the rewritten pattern in the same allocation: a group
  * opener is one byte of source, so len bits is room for every group. The
- * pattern part is twice the source: each separator adds four bytes and
- * takes an escape, a blank and a digit, at least four bytes, to occur.
+ * pattern part is twice the source: writing an escape at full width
+ * lengthens it by two bytes at most, `\0` to `\000`, and nothing else the
+ * pass writes is longer than what it read.
  */
 static char*
 preprocess_pattern(mrb_state *mrb, const char *src, mrb_int len,
@@ -2111,29 +2161,23 @@ preprocess_pattern(mrb_state *mrb, const char *src, mrb_int len,
   uint8_t *scope = (uint8_t*)buf + len * 2;
   mrb_int depth = 0;
   mrb_int o = 0;
-  mrb_int esc_end = -1;         /* where the last digit escape ended in buf */
-  mrb_bool blank_out = FALSE;   /* whitespace was removed since */
   mrb_bool in_class = FALSE;
   const char *end = src + len;
 
   while (src < end) {
     char ch = *src;
     /* An escape or a character class is copied through untouched: neither
-       holds a comment group, and inside a class the free-spacing rules do
-       not apply. */
-    const char *skip = skip_uninterpreted(src, end, &in_class);
+       holds a comment. A numeric escape short of its full width is padded
+       with zeros after its letter, `\x6` to `\x06`. */
+    int pad;
+    const char *skip = skip_uninterpreted(src, end, &in_class, &pad);
     if (skip) {
-      /* An escape spelled with digits: `\N`, `\x`, or `\u` outside the
-         `\u{...}` list form, whose brace closes it. What is copied here is
-         the backslash and the byte after it; the digits beyond are literals
-         to this pass, and the loop below keeps track of them. */
-      mrb_bool digits = (ch == '\\' && skip - src == 2 &&
-                         (ISDIGIT(src[1]) || src[1] == 'x' || src[1] == 'u'));
-      while (src < skip) buf[o++] = *src++;
-      if (digits) {
-        esc_end = o;
-        blank_out = FALSE;
+      if (pad) {
+        buf[o++] = *src++;
+        buf[o++] = *src++;
+        while (pad-- > 0) buf[o++] = '0';
       }
+      while (src < skip) buf[o++] = *src++;
       continue;
     }
     if (ch == ')') {
@@ -2171,7 +2215,8 @@ preprocess_pattern(mrb_state *mrb, const char *src, mrb_int len,
       if (term && toggle) {
         /* (?imx) changes the rest of the enclosing group and opens none of
            its own, so the stack is left alone. The group is copied through
-           for the parser, which applies i and m from the same letters. */
+           for the parser, which applies all three letters from the same
+           bytes. */
         while (src <= term) buf[o++] = *src++;
         extended = x_on;
         continue;
@@ -2188,28 +2233,13 @@ preprocess_pattern(mrb_state *mrb, const char *src, mrb_int len,
       buf[o++] = *src++;
       continue;
     }
-    if (extended) {
-      if (ch == '#') {
-        /* Skip to the end of the line, newline included: the comment is
-           one removed span, not a comment and then a blank. */
-        while (src < end && *src != '\n') src++;
-        if (src < end) src++;
-        continue;
-      }
-      if (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' || ch == '\f' || ch == '\v') {
-        src++;
-        blank_out = TRUE;
-        continue;
-      }
-    }
-    if (o == esc_end && hex_value((unsigned char)ch) >= 0) {
-      if (blank_out) {
-        memcpy(buf + o, "(?:)", 4);  /* the digit is an atom of its own */
-        o += 4;
-      }
-      else {
-        esc_end = o + 1;  /* the digit extends the escape */
-      }
+    if (extended && ch == '#') {
+      /* Skip to the end of the line, newline included: the comment is one
+         removed span, and the newline is not left for the parser to read
+         as whitespace where the comment stood inside a token. */
+      while (src < end && *src != '\n') src++;
+      if (src < end) src++;
+      continue;
     }
     buf[o++] = *src++;
   }
@@ -2239,7 +2269,8 @@ has_named_group(const char *src, mrb_int len)
 
   while (src < end) {
     char ch = *src;
-    const char *skip = skip_uninterpreted(src, end, &in_class);
+    int pad;
+    const char *skip = skip_uninterpreted(src, end, &in_class, &pad);
     if (skip) {
       src = skip;
       continue;
@@ -2442,7 +2473,11 @@ mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat,
   c.orig = pattern;
   c.orig_end = pattern + len;
 
-  if ((flags & RE_FLAG_EXTENDED) || has_rewritten_group(pattern, len)) {
+  /* Both things the pre-pass removes, a (?#...) group and a `#` comment,
+     are spelled with a '#', so a pattern without one is parsed as written.
+     A '#' that is escaped or a class member is a false positive here, which
+     costs the pass and nothing else: the pass steps over both. */
+  if (memchr(pattern, '#', (size_t)len)) {
     mrb_int slen;
     pattern = preprocess_pattern(mrb, pattern, len,
                                  (flags & RE_FLAG_EXTENDED) != 0, &slen);
@@ -2454,8 +2489,7 @@ mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat,
   c.flags = flags;
   c.num_captures = 1;  /* group 0 = whole match */
   /* Scan the same bytes the parser is about to read: preprocess_pattern() has
-     already taken out the /x free-spacing, the #comments and the (?#...)
-     groups. */
+     already taken out the #comments and the (?#...) groups. */
   c.dont_capture = has_named_group(pattern, len);
 
   pat->flags = flags;

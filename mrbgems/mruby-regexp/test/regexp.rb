@@ -289,6 +289,9 @@ assert("Regexp#to_s") do
   assert_equal "(?x-mi:a b)", Regexp.new("a b", Regexp::EXTENDED).to_s
   assert_true Regexp.new(Regexp.new("a b", Regexp::EXTENDED).to_s).match?("ab")
   assert_false Regexp.new(Regexp.new("a b", Regexp::EXTENDED).to_s).match?("a b")
+  # a `#` comment in the source rides along and is still a comment inside the
+  # "(?x-mi:", so its newline has to come before the closing ")"
+  assert_true Regexp.new(Regexp.new("a # c\nb", Regexp::EXTENDED).to_s).match?("ab")
   assert_true(/#{Regexp.new("a b", Regexp::EXTENDED)}c d/.match?("abc d"))
 end
 

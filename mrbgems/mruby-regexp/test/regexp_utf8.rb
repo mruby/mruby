@@ -430,8 +430,8 @@ assert("Regexp - \\u escapes") do
   assert_equal "abbb", "abbb"[/\u{61 62}+/]
   assert_nil ("b" =~ /\u{61 62}/)
 
-  # /x strips whitespace before the pattern is parsed, but not the spaces
-  # that separate the codepoints of a list
+  # under /x whitespace is skipped between tokens, and a list is one token,
+  # so the spaces that separate its codepoints stay
   assert_equal 0, (Regexp.new("\\u{61 62}", Regexp::EXTENDED) =~ "ab")
 
   # /i folds an ASCII letter reached through `\u`, like a literal one
