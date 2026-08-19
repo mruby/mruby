@@ -514,6 +514,21 @@ assert("Regexp - a quantifier after a quantifier repeats the repeat") do
   assert_equal ["b"], /(?:a?)**b/.match("b").to_a
 end
 
+assert("Regexp - a backreference names a group the pattern has") do
+  # The count is the pattern's, not the one standing where the reference is,
+  # so a reference to a group written later is valid.
+  assert_equal ["aa", "a"], /(a)\1/.match("aa").to_a
+  assert_nil(/\1(a)/ =~ "a")
+  assert_raise(RegexpError) { Regexp.new("\\1") }
+  assert_raise(RegexpError) { Regexp.new("(a)\\2") }
+  assert_raise(RegexpError) { Regexp.new("(a)(b)\\3") }
+  assert_raise(RegexpError) { Regexp.new("\\9") }
+  assert_equal 0, Regexp.new("(a)" * 9 + "\\9") =~ "aaaaaaaaaa"
+  # A named pattern refuses a numbered reference before it counts.
+  assert_raise(RegexpError) { Regexp.new("(?<n>a)\\1") }
+  assert_raise(RegexpError) { Regexp.new("(?<n>a)\\2") }
+end
+
 assert("Regexp - patterns that used to hang the compiler now raise (A1)") do
   # These once looped forever in the compiler at 100% CPU instead of raising.
   # Regexp.new is used so the pattern reaches the regexp compiler directly,

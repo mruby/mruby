@@ -48,6 +48,12 @@ typedef struct {
   mrb_bool has_backref;
   mrb_bool needs_backtrack;
   mrb_bool dont_capture;    /* pattern declares a named group: plain (...) does not capture */
+  uint16_t max_backref;     /* the largest `\NN` the pattern refers back to,
+                               checked against the group count once the whole
+                               pattern is read: CRuby takes a reference to a
+                               group written later, `\1(a)`, so the count it
+                               compares with is the pattern's, not the one
+                               standing where the reference is */
   uint16_t num_groups;      /* groups opened so far, counting the plain ones a
                                named pattern demotes: what decides whether
                                `\NN` is a backreference or an octal escape */
@@ -1563,6 +1569,7 @@ compile_atom(re_compiler *c)
         c->p = q;
         emit(c, RE_BACKREF, (uint8_t)num, (c->flags & RE_FLAG_IGNORECASE) ? 1 : 0);
         c->has_backref = TRUE;
+        if (num > c->max_backref) c->max_backref = (uint16_t)num;
       }
       else {
         /* parse_escape() reads `\1`-`\7` as octal and `\8`, `\9` as the
@@ -2583,6 +2590,13 @@ mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat,
 
   if (c.p < c.src_end) {
     compile_error(&c, "unmatched ')'");
+  }
+
+  /* A `\NN` names a group the pattern does not have. The count is taken here
+     rather than where the reference stands because a reference may be written
+     before the group it names, `\1(a)` being valid in CRuby. */
+  if (c.max_backref > c.num_groups) {
+    compile_error(&c, "invalid backref number/name");
   }
 
   /* group 0 end */
