@@ -541,23 +541,32 @@ regexp_s_search(mrb_state *mrb, mrb_value klass)
 }
 
 /*
- * Regexp.__byte_search(re, str, pos = 0)
+ * Regexp.__byte_search(re, str, pos = 0, len = -1)
  *
  * Internal: the byte-offset search the mrblib loops of `scan`, `split` and
  * `byteindex` drive themselves. No position normalization, because the
  * callers already work in byte space, and no operand conversion, because
- * they always pass a String. The subject is the one the loop holds fixed, so
- * the check reads the flag core left on it after the first turn. Nor is there
- * a `checked` any more: `gsub` was the caller that set it, and its loop is
- * `__gsub_block` now, which takes the flag itself.
+ * they always pass a String. The subject is the one the loop holds, so the
+ * check reads the flag core left on it after the first turn, and walks it
+ * again only where a block has written to it in between. Nor is there a
+ * `checked` any more: `gsub` was the caller that set it, and its loop is
+ * `__gsub_block` now, which takes the flag itself. `len`, where the caller
+ * gives one, is the byte length its loop began with, and a subject that no
+ * longer has it is refused before the search: this is `str_mod_check` for
+ * the block loop of `scan`, asked here so that the loop pays one argument
+ * per search rather than one `bytesize` call per match.
  */
 static mrb_value
 regexp_s_byte_search(mrb_state *mrb, mrb_value klass)
 {
   mrb_value re, str;
   mrb_int pos = 0;
+  mrb_int len = -1;
 
-  mrb_get_args(mrb, "oS|i", &re, &str, &pos);
+  mrb_get_args(mrb, "oS|ii", &re, &str, &pos, &len);
+  if (len >= 0 && RSTRING_LEN(str) != len) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "string modified");
+  }
   check_regexp_arg(mrb, re);
   /* Every mrblib loop enters at zero or at an offset a match answered with,
      so a position before the subject reaches here only from a direct call.
@@ -1098,18 +1107,48 @@ matchdata_byte_end(mrb_state *mrb, mrb_value self)
   return mrb_int_value(mrb, pos);
 }
 
-/* Private: republish $~ and the thirteen names derived from it. Used by the
-   mrblib loops that drive Regexp.__byte_search themselves, where the failing
-   call that ends the loop clears the match the loop is supposed to leave behind.
-   The names other than $~ are not assignable from Ruby, so restoring them
-   has to come from here. */
-static mrb_value
-matchdata_set_globals(mrb_state *mrb, mrb_value self)
+/* Whether `str` still reads as the subject `md` was made on. The block loops
+   of `gsub` and `scan` end on a search from the offset their last match was
+   found from, on the receiver as the block left it, the way CRuby's
+   `str_gsub` and `rb_str_scan` do; on a receiver that reads as it did when
+   that match was made, the search can only find that match again, and the
+   loops republish it instead. What a search reads of a subject is its bytes
+   and whether they are read by byte, and `source` is a frozen copy of both as
+   they stood at match time, so comparing the two is the whole of the test:
+   where CRuby's `str_mod_check` reads the buffer pointer and the length, this
+   reads the bytes themselves, and a change of length, of contents or of
+   reading each fail it. A receiver that still shares its buffer with the copy
+   is told apart by the pointer alone. */
+static mrb_bool
+re_subject_reads_as(mrb_state *mrb, mrb_value str, mrb_value mdv)
 {
+  mrb_match_data *md = DATA_GET_PTR(mrb, mdv, &matchdata_type, mrb_match_data);
+  mrb_value src = md->source;
+  mrb_int len = RSTRING_LEN(src);
+  if (RSTRING_LEN(str) != len) return FALSE;
+  if (re_binary_string_p(str) != re_binary_string_p(src)) return FALSE;
+  const char *p = RSTRING_PTR(str), *q = RSTRING_PTR(src);
+  return p == q || memcmp(p, q, (size_t)len) == 0;
+}
+
+/* Private: publish this match once more, if `str` still reads as the subject
+   it was made on, and say whether it did. The mrblib loop of `scan` ends on
+   a search from the offset its last match was found from, on the receiver as
+   the block left it, the way `rb_str_scan` does; `re_subject_reads_as()`
+   above is the test that spares that search, and this is it asked from
+   mrblib. The names other than $~ are not assignable from Ruby, so publishing
+   them again has to come from here. Returns false where `str` reads
+   differently, and the caller searches. */
+static mrb_value
+matchdata_republish(mrb_state *mrb, mrb_value self)
+{
+  mrb_value str;
+  mrb_get_args(mrb, "S", &str);
   mrb_match_data *md = DATA_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
-  if (!md) return mrb_nil_value();
+  if (!md) return mrb_false_value();
+  if (!re_subject_reads_as(mrb, str, self)) return mrb_false_value();
   set_match_globals(mrb, self, md->source, md->captures, md->num_captures);
-  return self;
+  return mrb_true_value();
 }
 
 /*
@@ -1701,6 +1740,21 @@ regexp_s_sub_lit(mrb_state *mrb, mrb_value klass)
  * them, all around one `mrb_yield` that C can make directly.  The block still
  * reads what it read there: every match is published before the block sees it,
  * which is why a MatchData is built per turn here as it was there.
+ *
+ * The block can reach the receiver, and CRuby's `str_gsub` answers for a
+ * block that changes it in three ways this loop follows.  It refuses one that
+ * changed the length, as `str_mod_check` does, so the offsets a match answered
+ * with still name the bytes they named; the buffer pointer `str_mod_check`
+ * compares as well is no test here, since mruby answers a write into a shared
+ * string with a buffer of its own.  It reads the stretch before a match, the
+ * next match and the step over an empty one from the receiver as the block
+ * left it, so `s = "hello"; s.gsub(/l/) { s.tr!("h", "H"); "X" }` is "HeXXo"
+ * and not "heXXo".  And it searches once more from `last`, the offset the
+ * final match was found from, on the receiver as it stands at the end: that
+ * is the match it leaves in `$~`, or nil where the block wrote the match
+ * away.  On a receiver that still reads as it did when the last match was
+ * made, that search can only find the match the loop already has, so the loop
+ * republishes that one and searches only where the receiver reads differently.
  */
 static mrb_value
 regexp_s_gsub_block(mrb_state *mrb, mrb_value klass)
@@ -1721,38 +1775,45 @@ regexp_s_gsub_block(mrb_state *mrb, mrb_value klass)
   int cap_size = pat->num_captures * 2;
   int captures[RE_MAX_CAPTURES * 2];
   mrb_value result = mrb_str_new_capa(mrb, RSTRING_LEN(str));
-  /* The match the block was given last, kept so that it can be published
-     again below: CRuby leaves a gsub's own last match behind, over anything
-     the block matched on its way. */
+  /* The match the block was given last, and the offset it was found from:
+     what the closing search below starts from, or stands in for. */
   mrb_value last_md = mrb_nil_value();
+  mrb_int last = 0;
   mrb_int pos = 0;
-  /* The subject's length as the walk started, which is where the walk ends.
-     The mrblib loop this replaced took its bound before the first block call
-     and kept it, so a block that grows the subject it is walking cannot keep
-     the walk going for ever; reading the length afresh for the bound as well
-     as for the bytes would let it. */
-  mrb_int limit = RSTRING_LEN(str);
+  /* The subject the walk is bounded by. Every turn checks its length against
+     the receiver the block hands back, so it holds for the whole walk; the
+     bytes and their reading are taken afresh after every block call. */
+  const char *s = RSTRING_PTR(str);
+  mrb_int slen = RSTRING_LEN(str);
   int ai = mrb_gc_arena_save(mrb);
 
-  while (pos <= limit) {
-    /* The bytes, unlike the bound, are read afresh each turn: the block runs
-       between two of them and can replace them under the walk, which the
-       mrblib loop allowed by asking `self` again for every piece it took. */
-    const char *s = RSTRING_PTR(str);
-    mrb_int slen = RSTRING_LEN(str);
-    if (pos > slen) break;
-
+  while (pos <= slen) {
     memset(captures, -1, sizeof(int) * cap_size);
     if (mrb_re_exec(mrb, pat, s, slen, pos, captures, cap_size, binary) == 0) break;
     mrb_int beg = captures[0], end = captures[1];
 
-    if (beg > pos) re_cat_bytes(mrb, result, s + pos, beg - pos, binary);
     mrb_value matched = re_byte_substr(mrb, str, beg, end - beg);
     last_md = create_matchdata(mrb, re, str, captures, cap_size);
-    mrb_str_cat_str(mrb, result, mrb_obj_as_string(mrb, mrb_yield(mrb, block, matched)));
-
+    last = pos;
+    mrb_value piece = mrb_obj_as_string(mrb, mrb_yield(mrb, block, matched));
+    /* What the block did to the receiver while it had it. A change of length
+       moved every offset the walk holds, and the walk stops there. Bytes it
+       rewrote in place are read from where they are now, since the write can
+       have moved the buffer; whether they are read by byte can have changed
+       with them (`s.replace(s.b)`), and so can whether they spell characters
+       at all, which the next search asks as `__byte_search` would. */
+    if (RSTRING_LEN(str) != slen) {
+      mrb_raise(mrb, E_RUNTIME_ERROR, "string modified");
+    }
+    if (!checked) re_check_encoding(mrb, str);
     s = RSTRING_PTR(str);
-    slen = RSTRING_LEN(str);
+    binary = re_binary_string_p(str);
+
+    /* After the block and not before it, as in CRuby: the bytes before the
+       match are taken from the receiver as the block left it. */
+    if (beg > pos) re_cat_bytes(mrb, result, s + pos, beg - pos, binary);
+    mrb_str_cat_str(mrb, result, piece);
+
     /* A zero-width match carries the character it stood before, so that the
        next search starts past a place the pattern would answer at again. */
     if (beg == end) {
@@ -1776,8 +1837,8 @@ regexp_s_gsub_block(mrb_state *mrb, mrb_value klass)
     mrb_gc_protect(mrb, last_md);
   }
 
-  if (pos < RSTRING_LEN(str)) {
-    re_cat_bytes(mrb, result, RSTRING_PTR(str) + pos, RSTRING_LEN(str) - pos, binary);
+  if (pos < slen) {
+    re_cat_bytes(mrb, result, s + pos, slen - pos, binary);
   }
 
   if (mrb_nil_p(last_md)) {
@@ -1786,9 +1847,14 @@ regexp_s_gsub_block(mrb_state *mrb, mrb_value klass)
        CRuby does. */
     clear_match_globals(mrb);
   }
-  else {
+  else if (re_subject_reads_as(mrb, str, last_md)) {
     mrb_match_data *md = DATA_GET_PTR(mrb, last_md, &matchdata_type, mrb_match_data);
     set_match_globals(mrb, last_md, md->source, md->captures, md->num_captures);
+  }
+  else {
+    /* The closing search of `str_gsub`, on the receiver as the block left it,
+       which publishes what it finds or clears the globals for a miss. */
+    exec_match(mrb, re, str, last);
   }
   return result;
 }
@@ -2057,7 +2123,7 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, re, "__check_pattern", regexp_check_pattern, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, re, "__check_byte_pos", regexp_check_byte_pos, MRB_ARGS_REQ(2));
   mrb_define_class_method(mrb, re, "__search", regexp_s_search, MRB_ARGS_ARG(2, 2));
-  mrb_define_class_method(mrb, re, "__byte_search", regexp_s_byte_search, MRB_ARGS_ARG(2, 1));
+  mrb_define_class_method(mrb, re, "__byte_search", regexp_s_byte_search, MRB_ARGS_ARG(2, 2));
   mrb_define_class_method(mrb, re, "__byte_rsearch", regexp_s_byte_rsearch, MRB_ARGS_REQ(3));
   mrb_define_class_method(mrb, re, "__search_p", regexp_s_search_p, MRB_ARGS_ARG(2, 1));
 
@@ -2126,7 +2192,7 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, md, "end", matchdata_end, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, md, "__byte_begin", matchdata_byte_begin, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, md, "__byte_end", matchdata_byte_end, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, md, "__set_globals", matchdata_set_globals, MRB_ARGS_NONE());
+  mrb_define_method(mrb, md, "__republish", matchdata_republish, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, md, "pre_match", matchdata_pre, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "post_match", matchdata_post, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "named_captures", matchdata_named_captures, MRB_ARGS_NONE());

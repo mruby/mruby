@@ -169,18 +169,29 @@ class String
     end
     pattern = Regexp.new(Regexp.escape(pattern)) if literal
     # A full search and not `match?`, so a failed match clears $~.
-    return nil unless Regexp.__search(pattern, self, 0, literal)
-    # `sub` matches again and publishes its own $~ over this one, leaving the
-    # caller the match `sub` would have left, a block's own matches included.
-    # The resolved pattern takes the place of the original argument so that a
-    # String is not quoted and compiled a second time; a literal goes down as
-    # the String it was instead, since that is what tells `sub` to leave the
-    # subject unread, and quoting it twice is the price of saying so.
-    # Overwriting `self` afterwards is safe: a MatchData snapshots its subject,
-    # so $~ keeps describing the string as it was matched.
-    down = literal ? args[0] : pattern
-    str = argc == 2 ? self.sub(down, args[1], &block) : self.sub(down, &block)
-    self.replace(str)
+    md = Regexp.__search(pattern, self, 0, literal)
+    return nil unless md
+    if argc == 2
+      # `sub` matches again and publishes its own $~ over this one, leaving
+      # the caller the match `sub` would have left.  The resolved pattern
+      # goes down so that it is not compiled a second time; a literal with a
+      # replacement never reaches here, having been answered by `__sub_lit`
+      # above.  Overwriting `self` afterwards is safe: a MatchData snapshots
+      # its subject, so $~ keeps describing the string as it was matched.
+      return self.replace(self.sub(pattern, args[1]))
+    end
+    # The block form does not go down to `sub`, which builds its answer from
+    # the snapshot the MatchData holds, because CRuby's `rb_str_sub_bang`
+    # builds it from the receiver as the block left it: `s = "hello";
+    # s.sub!(/l/) { s.upcase!; "X" }` is "HEXLO" there, where `sub` on the
+    # same receiver is "heXlo".  It refuses a block that changed the length
+    # first, as `gsub` does, so the offsets of the match still name the bytes
+    # they named.  $~ stays what the search above published, or whatever the
+    # block put there.
+    len = self.bytesize
+    val = block.call(md[0]).to_s
+    raise RuntimeError, "string modified" if self.bytesize != len
+    self.replace(self.byteslice(0, md.__byte_begin(0)) + val + self.byteslice(md.__byte_end(0)..-1))
   end
 
   def gsub(*args, &block)
@@ -261,20 +272,30 @@ class String
     # a character on its own.
     pos = 0
     len = self.bytesize
-    # The loop ends on a failed search, which clears the globals. CRuby leaves
-    # the last match behind, so keep it and republish it below, the way `gsub`
-    # does. A scan that matched nothing keeps the cleared state.
+    # A block that changes the receiver is answered for as `rb_str_scan`
+    # answers for it, which is the way `__gsub_block` does: one that changed
+    # the length is refused with `RuntimeError` by the next search, which takes
+    # `len` for that, the next match is searched for in the string it left,
+    # and the match left in $~ is a search once more from the offset the last
+    # match was found from, on the string as it stands at the end. That search
+    # also republishes what the failed one that ends the loop clears; a scan
+    # that matched nothing keeps the cleared state. And as in `gsub`, a
+    # receiver that still reads as it did when the last match was made gets
+    # that match republished, and the search runs only where `__republish`
+    # finds it reading differently.
     last = nil
+    last_md = nil
     while pos <= len
-      md = Regexp.__byte_search(pattern, self, pos)
+      md = Regexp.__byte_search(pattern, self, pos, len)
       break unless md
-      last = md
+      last = pos
+      last_md = md
       yield(md.size == 1 ? md[0] : md.captures)
       match_start = md.__byte_begin(0)
       match_end = md.__byte_end(0)
       pos = match_start == match_end ? match_end + 1 : match_end
     end
-    last.__set_globals if last
+    Regexp.__byte_search(pattern, self, last, len) if last && !last_md.__republish(self)
     self
   end
 

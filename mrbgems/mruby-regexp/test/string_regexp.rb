@@ -45,6 +45,59 @@ assert("String#scan of a multibyte subject reports byte-correct globals") do
   assert_equal [[1, "あ", "いXう"], [3, "あXい", "う"]], seen
 end
 
+assert("String#scan with a block that changes the receiver") do
+  # `rb_str_scan` searches for the next match in the receiver as the block
+  # left it, and the match it leaves behind is a search once more from the
+  # offset the last match was found from, so a block that writes the match
+  # away leaves nil where the loop used to republish the match it had.
+  s = "hello"
+  seen = []
+  s.scan(/l/) { |m| seen << m; s.upcase! }
+  assert_equal ["l"], seen
+  assert_equal "HELLO", s
+  assert_nil $~
+  s = "hello"
+  n = 0
+  seen = []
+  s.scan(/l/) { |m| seen << m; n += 1; s.upcase! if n == 2 }
+  assert_equal ["l", "l"], seen
+  assert_nil $~
+  # a change that leaves the match where it was leaves it behind, on the
+  # changed string
+  s = "hello"
+  s.scan(/(l)/) { s.tr!("h", "H") }
+  assert_equal "l", $&
+  assert_equal "l", $1
+  assert_equal "Hel", $`
+  assert_equal "o", $'
+  assert_equal "Hello", $~.string
+  # a match the block writes in after the current one is found
+  s = "abcd"
+  seen = []
+  s.scan(/b/) { |m| seen << m; s[3] = "b" }
+  assert_equal ["b", "b"], seen
+  assert_equal "abc", $`
+  s = "abc"
+  seen = []
+  s.scan(//) { |m| seen << m; s.upcase! }
+  assert_equal ["", "", "", ""], seen
+  assert_equal "ABC", $`
+  # a quoted String pattern goes the same way
+  s = "hello"
+  seen = []
+  s.scan("l") { |m| seen << m; s.upcase! }
+  assert_equal ["l"], seen
+  assert_nil $~
+  # a block that changes the length is refused, as in `gsub`
+  s = "hello"
+  assert_raise_with_message(RuntimeError, "string modified") { s.scan(/l/) { s << "z" } }
+  assert_equal "helloz", s
+  s = "hello"
+  assert_raise_with_message(RuntimeError, "string modified") { s.scan("l") { s << "z" } }
+  s = "ab"
+  assert_raise_with_message(RuntimeError, "string modified") { s.scan(/x*/) { s.clear } }
+end
+
 assert("String#gsub - regexp search position is byte-based internally") do
   skip unless __ENCODING__ == "UTF-8"
   assert_equal "あ-い-う", "あ,い,う".gsub(/,/, "-")
@@ -914,15 +967,35 @@ assert("String#sub! / #gsub! with a String pattern answer the one search they ma
   assert_equal 3, $~.begin(0)
 end
 
-assert("String#gsub with a block whose block replaces the subject") do
-  # The loop is in C and reads the subject afresh every turn, so a block that
-  # replaces it under the walk cannot leave the search reading bytes that were
-  # freed.
-  s = "aaaa".dup
-  assert_kind_of String, s.gsub(/a/) { s.replace("b"); "-" }
-  s = "aaaa".dup
-  assert_kind_of String, s.gsub(/a/) { s << "aaaa"; "-" }
-
+assert("String#gsub with a block that changes the receiver") do
+  # CRuby's `str_gsub` reads the stretch before each match, the next match
+  # and the step over an empty match from the receiver as the block left it,
+  # so a change the block makes in place shows in the answer from the first
+  # match on.  The stretch before a match used to be copied before the block
+  # ran, so a change there was lost.
+  s = "hello"
+  assert_equal "HeXXo", s.gsub(/l/) { s.tr!("h", "H"); "X" }
+  s = "hello"
+  assert_equal "HEXLO", s.gsub(/l/) { s.upcase!; "X" }
+  # long enough not to sit inside the string object, so that the write moves
+  # the receiver off the buffer the match was made on
+  s = "abcb" * 20
+  assert_equal "A-CB" + ("ABCB" * 19), s.gsub(/b/) { s.upcase!; "-" }
+  s = "hello"
+  n = 0
+  assert_equal "heXXO", s.gsub(/l/) { n += 1; s.upcase! if n == 2; "X" }
+  s = "abc"
+  assert_equal "x!z", s.gsub(/b/) { s.replace("xyz"); "!" }
+  s = "abcb"
+  assert_equal "Z!c!", s.gsub(/b/) { s[0] = "Z"; "!" }
+  # the next match is searched for in the changed string, so a match the block
+  # writes in after the current one is found, and one it writes away is not
+  s = "abcd"
+  assert_equal "a!c!", s.gsub(/b/) { s[3] = "b"; "!" }
+  s = "abcb"
+  assert_equal "a!cz", s.gsub(/b/) { s[3] = "z"; "!" }
+  s = "abc"
+  assert_equal "-A-B-C-", s.gsub(//) { s.upcase!; "-" }
   # What the walk takes after the block is what the block left, which needs
   # the bytes read again rather than the pointer the search was made with. A
   # replacement of the same length moves the buffer without changing the
@@ -930,6 +1003,79 @@ assert("String#gsub with a block whose block replaces the subject") do
   # the old pointer keeps one byte of the subject as it was.
   s = "a" * 200
   assert_equal "-" + "b" * 200, s.gsub(/(?=a)/) { s.replace("b" * 200); "-" }
+  # a quoted String pattern goes the same way
+  s = "hello"
+  assert_equal "HeXXo", s.gsub("l") { s.tr!("h", "H"); "X" }
+  # `gsub!` replaces the receiver with the same answer
+  s = "hello"
+  assert_equal "HeXXo", s.gsub!(/l/) { s.tr!("h", "H"); "X" }
+  assert_equal "HeXXo", s
+
+  # A block that changes the length is refused, as `str_mod_check` refuses
+  # it, since the offsets of the match no longer name the bytes they named.
+  # The length is compared in bytes, and against the receiver as it was when
+  # the loop began, so a change undone before the block returns passes.
+  s = "abc"
+  assert_raise_with_message(RuntimeError, "string modified") { s.gsub(/b/) { s << "zz"; "!" } }
+  s = "abc"
+  assert_raise_with_message(RuntimeError, "string modified") { s.gsub(/b/) { s.replace("xy"); "!" } }
+  s = "abc"
+  assert_raise_with_message(RuntimeError, "string modified") { s.gsub(/b/) { s.clear; "!" } }
+  s = "aébé"
+  assert_raise_with_message(RuntimeError, "string modified") { s.gsub(/é/) { s.replace("aebe"); "!" } }
+  s = "hello"
+  assert_raise_with_message(RuntimeError, "string modified") { s.gsub("l") { s << "z"; "X" } }
+  # an empty match reads the receiver for the character it steps over
+  # before the next search, so a block that shrank it is refused there too
+  s = "ab"
+  assert_raise_with_message(RuntimeError, "string modified") { s.gsub(/x*/) { s.clear; "!" } }
+  s = "ab"
+  assert_raise_with_message(RuntimeError, "string modified") { s.gsub(/x*/) { s.chop!; "!" } }
+  s = "abc"
+  assert_equal "a!c", s.gsub(/b/) { s << "z"; s.chop!; "!" }
+  # the receiver keeps what the block did to it, and the last match stays
+  # published, since the loop ends on the raise and not on a failed search
+  s = "abc"
+  assert_raise(RuntimeError) { s.gsub!(/b/) { s << "zz"; "!" } }
+  assert_equal "abczz", s
+  assert_equal "b", $&
+  assert_equal "abc", $~.string
+
+  # `sub` builds its answer from a copy of the receiver, as `rb_str_sub`
+  # does, so the block reaches nothing it reads and no length is checked.
+  s = "hello"
+  assert_equal "heXlo", s.sub(/l/) { s.upcase!; "X" }
+  s = "abc"
+  assert_equal "a!c", s.sub(/b/) { s << "zz"; "!" }
+end
+
+assert("String#sub! with a block that changes the receiver") do
+  # `rb_str_sub_bang` splices the replacement into the receiver as the block
+  # left it, where `sub` reads the copy it made before the block ran.
+  s = "hello"
+  assert_equal "HEXLO", s.sub!(/l/) { s.upcase!; "X" }
+  assert_equal "HEXLO", s
+  s = "hello"
+  assert_equal "HeXlo", s.sub!(/l/) { s.tr!("h", "H"); "X" }
+  s = "abc"
+  assert_equal "x!z", s.sub!(/b/) { s.replace("xyz"); "!" }
+  # $~ is the match the replacement was made for, on the subject as matched
+  assert_equal "b", $&
+  assert_equal "abc", $~.string
+  # a change of length is refused here too, and the receiver keeps it
+  s = "abc"
+  assert_raise_with_message(RuntimeError, "string modified") { s.sub!(/b/) { s << "zz"; "!" } }
+  assert_equal "abczz", s
+  s = "abc"
+  assert_raise_with_message(RuntimeError, "string modified") { s.sub!(/b/) { s.replace("ab"); "!" } }
+  assert_equal "ab", s
+  # a receiver the block freezes cannot take the replacement
+  s = "abc"
+  assert_raise(FrozenError) { s.sub!(/b/) { s.freeze; "!" } }
+  assert_equal "abc", s
+  s = "abc"
+  assert_raise(FrozenError) { s.gsub!(/b/) { s.freeze; "!" } }
+  assert_equal "abc", s
 end
 
 assert("MatchData#regexp compiles a literal pattern only when asked for one") do
