@@ -641,6 +641,58 @@ assert("String#gsub with \\& special") do
   assert_equal "[a][b][c]", "abc".gsub(/./, '[\\&]')
 end
 
+assert("String#sub / #gsub expand \\k<name> in the replacement") do
+  assert_equal "ab!", "ab".sub(/(?<x>b)/, '\k<x>!')
+  assert_equal "acb", "abc".sub(/(?<x>b)(?<y>c)/, '\k<y>\k<x>')
+  assert_equal "abb", "ab".sub(/(?<x>b)/, '\k<x>\k<x>')
+  assert_equal "a<b>a<b>", "abab".gsub(/(?<x>b)/, '<\k<x>>')
+  assert_equal "aBb", "ab".dup.sub!(/(?<x>b)/, 'B\k<x>')
+  # A group that took no part in the match stands for nothing, the way a
+  # numbered reference to one does.
+  assert_equal "a[]", "ab".sub(/(?<x>c)?b/, '[\k<x>]')
+  # The name is the bytes between the angles, so a multibyte one reaches its
+  # group without the replacement being read as characters.
+  assert_equal "ab!", "ab".sub(/(?<あ>b)/, '\k<あ>!')
+  # Only `\k<` opens a reference: every other spelling is the literal it was,
+  # `\k'name'` among them, which the pattern side does accept as a backref.
+  assert_equal "a\\kx", "ab".sub(/(?<x>b)/, '\kx')
+  assert_equal "az\\k", "ab".sub(/(?<x>b)/, 'z\k')
+  assert_equal "a\\k'x'", "ab".sub(/(?<x>b)/, "\\k'x'")
+  assert_equal "a\\k<x>", "ab".sub(/(?<x>b)/, '\\\\k<x>')
+end
+
+assert("String#sub / #gsub raise for a replacement that names no group") do
+  msg = "undefined group name reference: y"
+  assert_raise_with_message(IndexError, msg) { "ab".sub(/(?<x>b)/, '\k<y>') }
+  assert_raise_with_message(IndexError, msg) { "abab".gsub(/(?<x>b)/, '\k<y>') }
+  assert_raise_with_message(IndexError, msg) { "ab".dup.sub!(/(?<x>b)/, '\k<y>') }
+  # A pattern that names no group at all, and a literal String pattern, which
+  # has no groups to name.
+  assert_raise_with_message(IndexError, msg) { "ab".sub(/b/, '\k<y>') }
+  assert_raise_with_message(IndexError, msg) { "ab".sub("b", '\k<y>') }
+  assert_raise_with_message(IndexError, msg) { "abab".gsub("b", '\k<y>') }
+  # Group 0 is a number, and no name at all is no name.
+  assert_raise_with_message(IndexError, "undefined group name reference: 0") do
+    "ab".sub(/(?<x>b)/, '\k<0>')
+  end
+  assert_raise_with_message(IndexError, "undefined group name reference: ") do
+    "ab".sub(/(?<x>b)/, '\k<>')
+  end
+  # Nothing matched, so nothing expanded the replacement and nothing asked
+  # the pattern for the name.
+  assert_equal "zz", "zz".sub(/(?<x>b)/, '\k<y>')
+  assert_equal "zz", "zz".gsub("b", '\k<y>')
+end
+
+assert("String#sub / #gsub raise for a replacement whose \\k< is unclosed") do
+  msg = "invalid group name reference format"
+  assert_raise_with_message(RuntimeError, msg) { "ab".sub(/(?<x>b)/, '\k<x') }
+  assert_raise_with_message(RuntimeError, msg) { "ab".sub(/(?<x>b)/, '\k<') }
+  assert_raise_with_message(RuntimeError, msg) { "abab".gsub(/(?<x>b)/, '\k<x') }
+  assert_raise_with_message(RuntimeError, msg) { "ab".sub("b", '\k<x') }
+  assert_equal "zz", "zz".sub(/(?<x>b)/, '\k<x')
+end
+
 assert("String#scan") do
   assert_equal ["1", "2", "3"], "a1b2c3".scan(Regexp.new("\\d"))
 end
