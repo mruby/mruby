@@ -628,11 +628,15 @@ rational_eq_b(mrb_state *mrb, mrb_value x, mrb_value y)
 #endif
   case MRB_TT_RATIONAL:
     {
-      /* Compare by converting to float - less precise but safe */
-      mrb_float v1 = mrb_bint_as_float(mrb, mrb_obj_value(p1->b.num)) /
-                     mrb_bint_as_float(mrb, mrb_obj_value(p1->b.den));
-      mrb_float v2 = rat_float(mrb, y);
-      result = v1 == v2;
+      /* Cross-multiply instead of dividing: num1/den1 == num2/den2 becomes
+         num1*den2 == num2*den1, which is exact and needs no Float. Both
+         denominators are positive (rational_new_b() moves the sign onto the
+         numerator), so the direction of the equality is unaffected. */
+      mrb_value num2 = mrb_as_bint(mrb, rat_numerator(mrb, y));
+      mrb_value den2 = rat_denominator(mrb, y);
+      mrb_value a = mrb_bint_mul_n(mrb, mrb_obj_value(p1->b.num), den2);
+      mrb_value b = mrb_bint_mul_n(mrb, num2, mrb_obj_value(p1->b.den));
+      result = mrb_bint_cmp(mrb, a, b) == 0;
       break;
     }
 

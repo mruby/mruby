@@ -137,6 +137,33 @@ assert 'Rational#==, Rational#!=' do
   assert_equal_rational(false, Rational(1), '')
 end
 
+assert 'Rational#== between bigint-backed rationals' do
+  # A bigint-backed Rational is compared by cross-multiplication, which is
+  # exact.  The rows below are the ones a comparison through Float gets wrong:
+  # at this magnitude a double has no bit left for the difference of 1, so
+  # both quotients round to the same value.  The shift count is a variable
+  # because a constant shift wider than mrb_int is folded at compile time,
+  # which fails the build instead of raising.
+  k = 70
+  begin
+    big = 1 << k
+  rescue RangeError
+    skip 'requires mruby-bigint'
+  end
+  assert_equal_rational(false, Rational(big + 1, 3), Rational(big, 3))
+  assert_equal_rational(false, Rational(3, big + 1), Rational(3, big))
+  assert_equal_rational(true,  Rational(big, 3), Rational(big * 2, 6))
+  assert_equal_rational(false, Rational(big, 3), Rational(big, 5))
+  assert_equal_rational(false, Rational(-big, 3), Rational(big, 3))
+  assert_equal_rational(true,  Rational(-big, 3), Rational(big, -3))
+  # One side bigint-backed, the other not: the reduced form of big/big is 1/1
+  # but it keeps the bigint representation, so this crosses the two layouts.
+  assert_equal_rational(true,  Rational(big, big), Rational(1, 1))
+  assert_equal_rational(false, Rational(big, 3), Rational(1, 2))
+  assert_equal_rational(true,  Rational(big, 1), big)
+  assert_equal_rational(false, Rational(big, 1), big + 1)
+end
+
 assert 'Rational#eql?' do
   assert_true  Rational(2,1).eql?(Rational(2,1))
   assert_true  Rational(1,2).eql?(Rational(2,4))
