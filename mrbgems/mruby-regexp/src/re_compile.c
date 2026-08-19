@@ -57,9 +57,10 @@ typedef struct {
   uint16_t num_groups;      /* groups opened so far, counting the plain ones a
                                named pattern demotes: what decides whether
                                `\NN` is a backreference or an octal escape */
-  uint32_t num_cuts;        /* atomic groups numbered so far, the possessive
-                               repeats among them: each takes the next number,
-                               so no two that nest share one; see RE_ATOMIC */
+  uint32_t num_cuts;        /* atomic groups and lookarounds numbered so far,
+                               the possessive repeats among them: each takes
+                               the next number, so no two that nest share one;
+                               see RE_ATOMIC and RE_LOOK_END */
   uint32_t atom_start;      /* where the atom a quantifier binds to begins;
                                compile_quantified sets it to the position
                                before the atom, and a `\u{...}` list moves it
@@ -1154,7 +1155,7 @@ compute_fixed_len(re_compiler *c, uint32_t start, uint32_t end, int *chars_out)
       /* For simplicity, reject alternation in lookbehind */
       return -1;
     }
-    case RE_MATCH:
+    case RE_LOOK_END:
       *chars_out = chars;
       return len;
     default:
@@ -1335,6 +1336,19 @@ emit_codepoint(re_compiler *c, uint32_t cp)
    number/name` for one within it that names no group. */
 #define RE_MAX_BACKREF_NUM 2147483647
 
+/* Compile the sub-pattern of a lookaround, whose opener has just been
+   emitted, up to and including the RE_LOOK_END that closes it. The end
+   carries the lookaround's number, from the count the atomic groups use, so
+   that a cut aimed at this lookaround is told from one aimed at a group
+   around or inside it; see bt_match(). */
+static void
+compile_look_body(re_compiler *c, mrb_bool negative)
+{
+  uint16_t cut = (uint16_t)++c->num_cuts;
+  compile_alt(c);
+  emit(c, RE_LOOK_END, negative, cut);
+}
+
 /* Compile a single atom (character, class, group, etc.) */
 static void
 compile_atom(re_compiler *c)
@@ -1365,8 +1379,7 @@ compile_atom(re_compiler *c)
           mrb_bool negative = (c->p[1] == '!');
           next_char(c); next_char(c);  /* skip ?= or ?! */
           uint32_t la_pos = emit(c, negative ? RE_NEG_LOOKAHEAD : RE_LOOKAHEAD, 0, 0);
-          compile_alt(c);
-          emit(c, RE_MATCH, 0, 0);  /* end of lookahead sub-pattern */
+          compile_look_body(c, negative);
           c->pat->code[la_pos].offset = (uint16_t)c->code_len;  /* patch: skip past sub-pattern */
           if (peek(c) != ')') compile_error(c, "unmatched '('");
           next_char(c);
@@ -1381,8 +1394,7 @@ compile_atom(re_compiler *c)
           uint32_t lb_pos = emit(c, negative ? RE_NEG_LOOKBEHIND : RE_LOOKBEHIND, 0, 0);
           emit(c, RE_LB_WIDTH, 0, 0);
           uint32_t sub_start = c->code_len;
-          compile_alt(c);
-          emit(c, RE_MATCH, 0, 0);
+          compile_look_body(c, negative);
           c->pat->code[lb_pos].offset = (uint16_t)c->code_len;
 
           /* measure the sub-pattern for both rewind units */

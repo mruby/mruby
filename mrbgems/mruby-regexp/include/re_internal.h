@@ -47,6 +47,12 @@ enum re_opcode {
                         backtracking into it. */
   RE_ATOMIC_END,     /* end of an atomic group's body: offset = the number of
                         the RE_ATOMIC it closes */
+  RE_LOOK_END,       /* end of a lookaround's sub-pattern: offset = the
+                        lookaround's number, from the same count as RE_ATOMIC;
+                        a = 1 for a negative one. The instruction after it is
+                        the text after the lookaround, which is where the
+                        opener's `offset` points, so the opener finds its end
+                        at offset - 1. */
 };
 
 /* Bytecode instruction (4 bytes each for alignment) */
