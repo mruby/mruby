@@ -520,6 +520,13 @@ static mrb_value
 rational_new(mrb_state *mrb, mrb_value a, mrb_value b)
 {
 #ifdef MRB_NO_FLOAT
+  /* The #if above admits this arm only when RAT_BIGINT is on, so a Bigint
+     operand is possible here and takes the same route as in the arm below:
+     mrb_ensure_int_type() narrows a Bigint to an mrb_int, which is what
+     rational_new_b() exists to avoid. */
+  if (mrb_bigint_p(a) || mrb_bigint_p(b)) {
+    return rational_new_b(mrb, mrb_as_bint(mrb, a), b);
+  }
   a = mrb_ensure_int_type(mrb, a);
   b = mrb_ensure_int_type(mrb, b);
   return rational_new_i(mrb, mrb_integer(a), mrb_integer(b));
