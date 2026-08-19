@@ -681,10 +681,18 @@ Example:
 "a-9".succ       #=> "a-10"
 "-".succ         #=> "."
 "\xff".b.succ    #=> "\x01\x00"
-"ÿ".succ         #=> "Ā" (with MRB_UTF8_STRING)
 ```
 
-CRuby also increments letters and digits beyond ASCII within their own script, so `"ת".succ` is `"אא"` there. mruby carries no table of which characters those are; a UTF-8 character above ASCII counts as a letter when the next code point is a character of the same byte length. `"aÿ".succ` is `"aĀ"` as in CRuby, while `"ת".succ` is `"\u05EB"`.
+Which characters above ASCII are letters and which are digits is the Unicode character database's answer, the same properties `[[:alpha:]]` and `[[:digit:]]` hold. A letter increments within its own run of letters and wraps at the end of it, and what the wrap carries in is a character of that run rather than an ASCII letter:
+
+```ruby
+"ÿ".succ     #=> "Ā"
+"ת".succ    #=> "אא"
+"aｚ".succ    #=> "bａ"
+"٩".succ     #=> "١٠"
+```
+
+A build that reads its strings as bytes, and one narrowed by `MRB_USE_ASCII_CTYPE`, carries no such table: nothing above ASCII is a letter or a digit there, so `"aÿ".succ` is `"bÿ"` and a string with no ASCII alphanumeric increments its last character. That is the trade `MRB_USE_ASCII_CTYPE` already makes for case.
 
 ### `String#succ!` (alias `String#next!`)
 
