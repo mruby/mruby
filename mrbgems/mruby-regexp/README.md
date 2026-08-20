@@ -158,6 +158,8 @@ sym[re]                           # => matched substring or nil
 
 # Global variables
 $~                                # last MatchData
+$&, $`, $', $+, $1, $2, ...       # read from $~ at the moment they are read
+                                  #    (all nil while $~ is nil)
 ```
 
 ## Engine Architecture

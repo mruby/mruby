@@ -163,44 +163,26 @@ regexp_init(mrb_state *mrb, mrb_value self)
    word after the `$`, which `~` is not, so this one is looked up once here. */
 static mrb_sym match_sym;
 
-/* Pre-interned symbols for $1-$9 (cached on first use) */
-static mrb_sym nth_syms[9];
-
-/* Pre-interned symbols for $&, $`, $' and $+ (cached on first use) */
-enum { LAST_MATCH, PRE_MATCH, POST_MATCH, LAST_PAREN, LAST_SYM_COUNT };
-static mrb_sym last_match_syms[LAST_SYM_COUNT];
-
-static void
-ensure_match_syms(mrb_state *mrb)
+static mrb_sym
+ensure_match_sym(mrb_state *mrb)
 {
-  if (nth_syms[0]) return;
-  match_sym = mrb_intern_lit(mrb, "$~");
-  nth_syms[0] = mrb_intern_lit(mrb, "$1");
-  nth_syms[1] = mrb_intern_lit(mrb, "$2");
-  nth_syms[2] = mrb_intern_lit(mrb, "$3");
-  nth_syms[3] = mrb_intern_lit(mrb, "$4");
-  nth_syms[4] = mrb_intern_lit(mrb, "$5");
-  nth_syms[5] = mrb_intern_lit(mrb, "$6");
-  nth_syms[6] = mrb_intern_lit(mrb, "$7");
-  nth_syms[7] = mrb_intern_lit(mrb, "$8");
-  nth_syms[8] = mrb_intern_lit(mrb, "$9");
-  last_match_syms[LAST_MATCH] = mrb_intern_lit(mrb, "$&");
-  last_match_syms[PRE_MATCH] = mrb_intern_lit(mrb, "$`");
-  last_match_syms[POST_MATCH] = mrb_intern_lit(mrb, "$'");
-  last_match_syms[LAST_PAREN] = mrb_intern_lit(mrb, "$+");
+  if (!match_sym) match_sym = mrb_intern_lit(mrb, "$~");
+  return match_sym;
+}
+
+/* $~ is the one name a match publishes. `$&`, `` $` ``, `$'`, `$+` and `$1`
+   onward are readings of it that the compiler derives when they are read,
+   so publishing and clearing are each one write of `$~`. */
+static void
+set_match_globals(mrb_state *mrb, mrb_value obj)
+{
+  mrb_gv_set(mrb, ensure_match_sym(mrb), obj);
 }
 
 static void
 clear_match_globals(mrb_state *mrb)
 {
-  ensure_match_syms(mrb);
-  mrb_gv_set(mrb, match_sym, mrb_nil_value());
-  for (int i = 0; i < 9; i++) {
-    mrb_gv_set(mrb, nth_syms[i], mrb_nil_value());
-  }
-  for (int i = 0; i < LAST_SYM_COUNT; i++) {
-    mrb_gv_set(mrb, last_match_syms[i], mrb_nil_value());
-  }
+  set_match_globals(mrb, mrb_nil_value());
 }
 
 /* Byte-based substring extraction. The regexp engine records all capture
@@ -349,46 +331,6 @@ regexp_check_byte_pos(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
-/* Publish `obj` and the thirteen names derived from its offsets, the
-   counterpart of clear_match_globals(). Kept apart from create_matchdata() so
-   that an existing MatchData can be republished without rebuilding it. */
-static void
-set_match_globals(mrb_state *mrb, mrb_value obj, mrb_value str, int *captures, int num_captures)
-{
-  ensure_match_syms(mrb);
-
-  mrb_gv_set(mrb, match_sym, obj);
-
-  /* set $1-$9 from captures */
-  for (int i = 0; i < 9; i++) {
-    mrb_value val = mrb_nil_value();
-    int g = i + 1;
-    if (g < num_captures && captures[g*2] >= 0) {
-      val = re_byte_substr(mrb, str, captures[g*2], captures[g*2+1] - captures[g*2]);
-    }
-    mrb_gv_set(mrb, nth_syms[i], val);
-  }
-
-  /* set $&, $` and $' from the whole-match offsets */
-  mrb_gv_set(mrb, last_match_syms[LAST_MATCH],
-             re_byte_substr(mrb, str, captures[0], captures[1] - captures[0]));
-  mrb_gv_set(mrb, last_match_syms[PRE_MATCH],
-             re_byte_substr(mrb, str, 0, captures[0]));
-  mrb_gv_set(mrb, last_match_syms[POST_MATCH],
-             re_byte_substr(mrb, str, captures[1], RSTRING_LEN(str) - captures[1]));
-
-  /* set $+ from the last group that actually participated, which is not
-     necessarily the last group in the pattern */
-  mrb_value last_paren = mrb_nil_value();
-  for (int g = num_captures - 1; g >= 1; g--) {
-    if (captures[g*2] >= 0) {
-      last_paren = re_byte_substr(mrb, str, captures[g*2], captures[g*2+1] - captures[g*2]);
-      break;
-    }
-  }
-  mrb_gv_set(mrb, last_match_syms[LAST_PAREN], last_paren);
-}
-
 /* Create MatchData from captures, and make it the match the globals
    describe. */
 static mrb_value
@@ -413,7 +355,7 @@ create_matchdata(mrb_state *mrb, mrb_value regexp, mrb_value str, int *captures,
   mrb_iv_set(mrb, obj, MRB_SYM(source), str);
   mrb_iv_set(mrb, obj, MRB_SYM(regexp), regexp);
 
-  set_match_globals(mrb, obj, str, captures, md->num_captures);
+  set_match_globals(mrb, obj);
 
   return obj;
 }
@@ -442,7 +384,7 @@ re_check_over_limit(mrb_state *mrb, int n)
 
 /* Internal: execute match and create MatchData.
    Returns MatchData on match, nil on no match.
-   Sets $~ and $1-$9 globals, and clears them on a miss. */
+   Publishes the match as $~, and clears it on a miss. */
 static mrb_value
 exec_match(mrb_state *mrb, mrb_value self, mrb_value str, mrb_int pos)
 {
@@ -1156,9 +1098,8 @@ re_subject_reads_as(mrb_state *mrb, mrb_value str, mrb_value mdv)
    a search from the offset its last match was found from, on the receiver as
    the block left it, the way `rb_str_scan` does; `re_subject_reads_as()`
    above is the test that spares that search, and this is it asked from
-   mrblib. The names other than $~ are not assignable from Ruby, so publishing
-   them again has to come from here. Returns false where `str` reads
-   differently, and the caller searches. */
+   mrblib, with the publish folded in so that the loop asks once. Returns
+   false where `str` reads differently, and the caller searches. */
 static mrb_value
 matchdata_republish(mrb_state *mrb, mrb_value self)
 {
@@ -1167,12 +1108,15 @@ matchdata_republish(mrb_state *mrb, mrb_value self)
   mrb_match_data *md = DATA_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
   if (!md) return mrb_false_value();
   if (!re_subject_reads_as(mrb, str, self)) return mrb_false_value();
-  set_match_globals(mrb, self, md->source, md->captures, md->num_captures);
+  set_match_globals(mrb, self);
   return mrb_true_value();
 }
 
 /*
- * MatchData#pre_match / #post_match
+ * MatchData#pre_match / #post_match, which `` $` `` and `$'` also read
+ * under the private names `__pre_match` and `__post_match`, so that a
+ * program redefining the public pair moves `$~.pre_match` and
+ * `$~.post_match` and leaves the two globals alone.
  */
 static mrb_value
 matchdata_pre(mrb_state *mrb, mrb_value self)
@@ -1189,6 +1133,41 @@ matchdata_post(mrb_state *mrb, mrb_value self)
   if (!md || md->captures[1] < 0) return mrb_nil_value();
   int pos = md->captures[1];
   return re_byte_substr(mrb, md->source, pos, RSTRING_LEN(md->source) - pos);
+}
+
+/* Private: what `$&` and `$1` onward read, the group of that number, the
+   whole match at 0. The compiler derives them from `$~` with this and not
+   with `[]`, so that a program redefining `[]` moves `$~[n]` and leaves the
+   names alone, as it does in CRuby, where they come from the backref. `n`
+   arrives from the compiler and is never a name; a negative one, which only
+   a direct call can pass, reads as no group rather than counting back. */
+static mrb_value
+matchdata_group(mrb_state *mrb, mrb_value self)
+{
+  mrb_int n;
+  mrb_get_args(mrb, "i", &n);
+  mrb_match_data *md = DATA_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
+  if (!md || n < 0 || n >= md->num_captures) return mrb_nil_value();
+  int s = md->captures[n*2];
+  if (s < 0) return mrb_nil_value();
+  return re_byte_substr(mrb, md->source, s, md->captures[n*2+1] - s);
+}
+
+/* Private: what `$+` reads, the last group that took part in the match,
+   which is not necessarily the last group in the pattern. The compiler
+   derives `$+` from `$~` with this, as it derives `$1` with `__group`. */
+static mrb_value
+matchdata_last_group(mrb_state *mrb, mrb_value self)
+{
+  mrb_match_data *md = DATA_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
+  if (!md) return mrb_nil_value();
+  for (int g = md->num_captures - 1; g >= 1; g--) {
+    int s = md->captures[g*2];
+    if (s >= 0) {
+      return re_byte_substr(mrb, md->source, s, md->captures[g*2+1] - s);
+    }
+  }
+  return mrb_nil_value();
 }
 
 /*
@@ -1908,8 +1887,7 @@ regexp_s_gsub_block(mrb_state *mrb, mrb_value klass)
     clear_match_globals(mrb);
   }
   else if (re_subject_reads_as(mrb, str, last_md)) {
-    mrb_match_data *md = DATA_GET_PTR(mrb, last_md, &matchdata_type, mrb_match_data);
-    set_match_globals(mrb, last_md, md->source, md->captures, md->num_captures);
+    set_match_globals(mrb, last_md);
   }
   else {
     /* The closing search of `str_gsub`, on the receiver as the block left it,
@@ -2259,6 +2237,10 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, md, "__republish", matchdata_republish, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, md, "pre_match", matchdata_pre, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "post_match", matchdata_post, MRB_ARGS_NONE());
+  mrb_define_method(mrb, md, "__pre_match", matchdata_pre, MRB_ARGS_NONE());
+  mrb_define_method(mrb, md, "__post_match", matchdata_post, MRB_ARGS_NONE());
+  mrb_define_method(mrb, md, "__group", matchdata_group, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, md, "__last_group", matchdata_last_group, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "named_captures", matchdata_named_captures, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "string", matchdata_string, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "regexp", matchdata_regexp, MRB_ARGS_NONE());

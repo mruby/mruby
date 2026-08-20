@@ -41,6 +41,16 @@ MRuby::Gem::Specification.new('mruby-regexp') do |spec|
     spec.add_dependency 'mruby-symbol-ext', :core => 'mruby-symbol-ext'
   end
 
+  # Same deal for taking a method back off a class. The test that pins `$&`
+  # and `$1` reading the match rather than `MatchData#[]` redefines `[]` and
+  # parks the original under another name, and dropping that name afterwards
+  # is `remove_method`, which mruby-metaprog owns. Where the build has none
+  # the test leaves the parked name behind, which costs the tests after it
+  # nothing.
+  if build.gems.any? {|g| g.name == 'mruby-metaprog'}
+    spec.add_test_dependency 'mruby-metaprog', :core => 'mruby-metaprog'
+  end
+
   # The unicode_* and ascii_* test files assert opposite things about the
   # same patterns (one that /i folds them, the other that /i refuses to
   # compile them; one that [[:alpha:]] holds a letter above ASCII, the other

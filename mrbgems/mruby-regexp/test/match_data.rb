@@ -261,6 +261,172 @@ assert("$&, $`, $' and $+ cleared on no match") do
   assert_nil $+
 end
 
+assert("$&, $`, $', $+ and $1 onward read $~ as it stands") do
+  # Each is a reading of $~ at the moment it is read, as in CRuby, where
+  # they are derived from the backref and not kept as variables of their
+  # own, so assigning $~ moves all of them at once and clearing it clears
+  # them, whichever search last published.
+  /(b)(c)?/ =~ "abz"
+  md = $~
+  assert_equal ["b", "a", "z", "b", "b", nil], [$&, $`, $', $+, $1, $2]
+
+  $~ = nil
+  assert_nil $&
+  assert_nil $`
+  assert_nil $'
+  assert_nil $+
+  assert_nil $1
+
+  $~ = md
+  assert_equal ["b", "a", "z", "b", "b", nil], [$&, $`, $', $+, $1, $2]
+
+  # a match made by one search and assigned after another is the one read
+  /z/ =~ "z"
+  $~ = /(x)(y)/.match("wxyz")
+  assert_equal ["xy", "w", "z", "y", "x", "y"], [$&, $`, $', $+, $1, $2]
+end
+
+assert("$10 and beyond read the group of that number") do
+  /(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)(k)/ =~ "abcdefghijk"
+  assert_equal "j", $10
+  assert_equal "k", $11
+  assert_nil $12
+end
+
+assert("the five names stand wherever a read of a global stands") do
+  # Each compiles to a read of `$~`, a jump and a send, where it used to be
+  # one `OP_GETGV`, so it has to leave the stack as it found it wherever it
+  # is written: beside other values, inside a literal, in a call and under
+  # a block that has locals of its own.
+  /(x)(y)/ =~ "xy"
+  assert_equal ["x", "y"], [$1, $2]
+  assert_equal "a-x-b-y-xy", ["a", $1, "b", $2, $&].join("-")
+  assert_equal({:a => "x", :b => "y"}, {:a => $1, :b => $2})
+  assert_equal "x/xy//", "#{$1}/#{$&}/#{$`}/#{$'}"
+  assert_equal [[1, "x", "y"]], [1].map {|i| [i, $1, $2]}
+end
+
+assert("MatchData#__group reads the group of that number") do
+  # What `$&` (0) and `$1` onward are derived with. It answers a number and
+  # nothing else: a group that did not take part, one past the last and a
+  # negative one all read as nil, where `[]` counts a negative back from the
+  # last group.
+  /(b)(c)?/ =~ "abz"
+  md = $~
+  assert_equal "b", md.__group(0)
+  assert_equal "b", md.__group(1)
+  assert_nil md.__group(2)
+  assert_nil md.__group(3)
+  assert_nil md.__group(-1)
+end
+
+assert("MatchData answers the private readings the compiler sends") do
+  # The roster the names other than `$&` and `$n` are compiled into.
+  # `__pre_match` and `__post_match` are `pre_match` and `post_match` under
+  # names of the compiler's own, so that redefining the public pair moves
+  # `$~.pre_match` and `$~.post_match` alone; `$+` has only `__last_group`,
+  # Ruby having no method that reads it.
+  /(b)(c)?/ =~ "abz"
+  md = $~
+  assert_equal "a", md.__pre_match
+  assert_equal "z", md.__post_match
+  assert_equal "b", md.__last_group
+end
+
+assert("the five names read the match, not the methods that read it") do
+  # CRuby derives them from the backref with rb_reg_nth_match and the like
+  # rather than by sending anything, so redefining the methods that read the
+  # same things in Ruby moves `$~[n]`, `$~.pre_match` and `$~.post_match` and
+  # leaves the names where they were. They send private readings here for
+  # the same reason.
+  class MatchData
+    alias __aref_before_this_test []
+    alias __pre_before_this_test pre_match
+    alias __post_before_this_test post_match
+    def [](n)
+      :redefined
+    end
+    def pre_match
+      :redefined
+    end
+    def post_match
+      :redefined
+    end
+  end
+  begin
+    /(b)(c)?/ =~ "abz"
+    assert_equal ["b", "a", "z", "b", "b"], [$&, $`, $', $+, $1]
+    assert_equal [:redefined, :redefined, :redefined],
+                 [$~[1], $~.pre_match, $~.post_match]
+  ensure
+    class MatchData
+      alias [] __aref_before_this_test
+      alias pre_match __pre_before_this_test
+      alias post_match __post_before_this_test
+    end
+    # mruby-metaprog owns `remove_method`; a build without it keeps the
+    # parked names, which nothing after this reads.
+    if MatchData.respond_to?(:remove_method)
+      MatchData.remove_method(:__aref_before_this_test)
+      MatchData.remove_method(:__pre_before_this_test)
+      MatchData.remove_method(:__post_before_this_test)
+    end
+  end
+end
+
+assert("the five names read whatever answers the private names") do
+  # They are sends, so they read what the `$~` in hand answers, MatchData or
+  # not. CRuby's setter refuses a `$~` that is not a MatchData and mruby has
+  # no hook on a global write to refuse from, so the private names buy one
+  # thing only: an accident (a `$~` holding an Array, a redefined
+  # `MatchData#[]`) is not read as a match. Rewriting the readings themselves
+  # is still asking for what comes back.
+  /(b)(c)?/ =~ "abz"
+  md = $~
+  def md.__group(n)
+    "PWNED#{n}"
+  end
+  assert_equal "PWNED0", $&
+  assert_equal "PWNED1", $1
+  assert_equal "a", $`
+  assert_equal "b", $+
+
+  # a stand-in that never was a match reads the same way
+  begin
+    fake = Object.new
+    def fake.__group(n)
+      "FAKE#{n}"
+    end
+    def fake.__pre_match
+      "FAKEPRE"
+    end
+    $~ = fake
+    assert_equal "FAKE0", $&
+    assert_equal "FAKE1", $1
+    assert_equal "FAKEPRE", $`
+  ensure
+    $~ = nil
+  end
+end
+
+assert("$& and $1 onward refuse a $~ that is not a MatchData") do
+  # `$~` is a plain global and takes any value, where CRuby's setter raises
+  # TypeError. A value that answers `[]` would answer `$1` as well were the
+  # names derived with `[]`, so they ask for the group by a name a MatchData
+  # alone carries and a wrong `$~` is a NoMethodError rather than an answer.
+  /(b)(c)?/ =~ "abz"
+  begin
+    $~ = [10, 20, 30]
+    assert_raise(NoMethodError) { $& }
+    assert_raise(NoMethodError) { $1 }
+    assert_raise(NoMethodError) { $+ }
+    assert_raise(NoMethodError) { $` }
+    assert_raise(NoMethodError) { $' }
+  ensure
+    $~ = nil
+  end
+end
+
 assert("a piece cut from a subject is its own string") do
   # The pieces a match hands back share the subject's buffer where they are
   # too long to embed, rather than copying its bytes. Sharing is only sound
