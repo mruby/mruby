@@ -229,8 +229,12 @@ end
 - The regexp POSIX brackets classify by Unicode above ASCII: `[[:alpha:]]`
   holds a letter of any script and `[[:^alpha:]]` rejects it, as in CRuby.
   Without this macro a bracket holds its ASCII and no character above it.
-- `MRB_USE_ASCII_CTYPE` narrows the case and the brackets back to ASCII,
-  taking the refusal with them and leaving the indexing.
+- `String#succ` steps a letter or a digit above ASCII within its own run of
+  them and wraps at the end of it, as in CRuby (`"ת".succ` is `"אא"`).
+  Without this macro nothing above ASCII is a letter or a digit, and the last
+  character steps as a character.
+- `MRB_USE_ASCII_CTYPE` narrows the case, the brackets and `String#succ` back
+  to ASCII, taking the refusal with them and leaving the indexing.
 - If it isn't defined, they only support the US-ASCII encoding.
 
 `MRB_USE_ASCII_CTYPE`
@@ -238,12 +242,13 @@ end
 - Narrows the character classification of `MRB_UTF8_STRING` back to ASCII
   while keeping its indexing: `String#downcase`, `#upcase`, `#capitalize`,
   `#swapcase` and `#casecmp?` answer for `'A'` to `'Z'` and hand every other
-  character back as it stands, and a regexp POSIX bracket holds its ASCII and
-  no character above it.
-- Drops the Unicode tables the build would otherwise carry, core's case table
-  and mruby-regexp's type table. That is what the option is for: a target
-  counting its bytes buys the UTF-8 indexing of `MRB_UTF8_STRING` without the
-  tables beside it.
+  character back as it stands, a regexp POSIX bracket holds its ASCII and no
+  character above it, and `String#succ` finds no letter and no digit above
+  ASCII to step.
+- Drops the Unicode tables the build would otherwise carry, core's case table,
+  mruby-regexp's type table and mruby-string-ext's table of the letters and
+  the digits. That is what the option is for: a target counting its bytes buys
+  the UTF-8 indexing of `MRB_UTF8_STRING` without the tables beside it.
 - Bytes that spell no character are handed back as they stand rather than
   refused with `ArgumentError`. That refusal belongs to the walk over
   characters, which is the walk this narrows away: what converts instead reads

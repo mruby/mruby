@@ -3,6 +3,10 @@
 
 UTF8STRING = __ENCODING__ == "UTF-8"
 UNICODECASE = "\u00C4".downcase == "\u00E4"
+# Which characters above ASCII are letters and digits is a table compiled under
+# the pair the case tables are, MRB_UTF8_STRING without MRB_USE_ASCII_CTYPE, so
+# what answers for the one answers for the other.
+UNICODEALNUM = UNICODECASE
 
 def assert_upto(exp, receiver, *args)
   act = []
@@ -684,7 +688,6 @@ assert('String#succ') do
   assert_equal "1A", "0Z".succ
 
   assert_equal ".", "-".succ
-  assert_equal "\x01\x00", "\xff".succ
   assert_equal "-b", "-a".succ
   assert_equal "-aa", "-z".succ
   assert_equal "-a-b-", "-a-a-".succ
@@ -693,8 +696,22 @@ assert('String#succ') do
   assert_equal "あb", "あa".succ
   assert_equal "あba", "あaz".succ
 
+  # a wrap carries across what is not alphanumeric, letter to letter and
+  # digit to digit, but not from a letter into a digit or the other way
+  assert_equal "b-a", "a-z".succ
+  assert_equal "2.0", "1.9".succ
+  assert_equal "-10", "-9".succ
+  assert_equal "1-aa", "1-z".succ
+  assert_equal "a-10", "a-9".succ
+  assert_equal "9-aa", "9-z".succ
+  assert_equal "AAa", "Zz".succ
+  assert_equal "aaa00", "zz99".succ
+  assert_equal "**+", "***".succ
+
   a = ""; a.succ!
   assert_equal "", a
+  assert_raise(FrozenError) { "".freeze.succ! }
+  assert_raise(FrozenError) { "a".freeze.succ! }
   a = "0"; a.succ!
   assert_equal "1", a
   a = "9"; a.succ!
@@ -748,8 +765,6 @@ assert('String#succ') do
 
   a = "-"; a.succ!
   assert_equal ".", a
-  a = "\xff"; a.succ!
-  assert_equal "\x01\x00", a
   a = "-a"; a.succ!
   assert_equal "-b", a
   a = "-z"; a.succ!
@@ -772,6 +787,118 @@ assert('String#next') do
   a = "00"; a.next!
   assert_equal "01", a
 end
+
+assert('String#succ steps a string with no alphanumeric by character') do
+  # A string read as bytes steps its last byte, and 0xff wraps to 0x00 and
+  # carries into the byte before it; when every byte wraps, "\x01" goes in
+  # front. Whatever the build reads its strings as, a byte-read string steps
+  # this way.
+  assert_equal "\x01\x00".b, "\xff".b.succ
+  assert_equal "\x01\x00\x00".b, "\xff\xff".b.succ
+  assert_equal "\x80".b, "\x7f".b.succ
+  assert_equal "\x01".b, "\x00".b.succ
+  assert_equal "b\xff".b, "a\xff".b.succ
+  assert_equal "aa\xff".b, "z\xff".b.succ
+  assert_equal "\xC3\xC0".b, "ÿ".b.succ
+  a = "\xff\xff".b; a.succ!
+  assert_equal "\x01\x00\x00".b, a
+
+  if UTF8STRING
+    # A UTF-8 string steps its last character to the next code point of the
+    # same byte length, and wraps to the first of that length where the next
+    # would take one more; a run of bytes that spells no character is left
+    # alone.
+    assert_equal "Ā", "ÿ".succ
+    assert_equal "ぃ", "あ".succ
+    assert_equal "\u{81}", "\u{80}".succ
+    assert_equal "\u{E000}", "\u{D7FF}".succ
+    assert_equal "b\u{D7FF}", "a\u{D7FF}".succ
+    assert_equal "\x01\x00", "\x7f".succ
+    assert_equal "\x01\x00\x00", "\x7f\x7f".succ
+    assert_equal "\x01\u{80}", "\u{7FF}".succ
+    assert_equal "b\u{7FF}", "a\u{7FF}".succ
+    assert_equal "\x01\u{800}", "\u{FFFF}".succ
+    assert_equal "\x01\u{10000}", "\u{10FFFF}".succ
+    assert_equal "b\u{10FFFF}", "a\u{10FFFF}".succ
+    assert_equal "\x01\xff", "\xff".succ
+    assert_equal "\x01\xff\xff", "\xff\xff".succ
+    assert_equal "b\xff", "a\xff".succ
+    assert_equal "aa\xff", "z\xff".succ
+    assert_equal ["ÿ", "Ā", "ā"], ("ÿ".."ā").to_a
+    a = "ÿ"; a.succ!
+    assert_equal "Ā", a
+  else
+    # every byte is a character, so this build steps every string by bytes
+    assert_equal "\x01\x00", "\xff".succ
+    assert_equal "\x01\x00\x00", "\xff\xff".succ
+    assert_equal "\x80", "\x7f".succ
+    assert_equal "\xC3\xC0", "ÿ".succ
+    a = "\xff"; a.succ!
+    assert_equal "\x01\x00", a
+  end
+end
+
+assert('String#succ steps a letter or a digit above ASCII') do
+  # Which characters those are is the table generated from the Unicode
+  # character database, the properties CRuby asks its encoding for: a letter
+  # steps to the next letter and a digit to the next digit.
+  assert_equal "\u0100", "\u00FF".succ
+  assert_equal "a\u0100", "a\u00FF".succ
+  assert_equal "\u3043", "\u3042".succ
+  assert_equal "\u3094", "\u3093".succ
+  assert_equal "\uFF11", "\uFF10".succ
+  assert_equal "\uFF22", "\uFF21".succ
+
+  # over one code point that is not a letter, as CRuby steps U+03A1 to U+03A3
+  # over the unassigned U+03A2
+  assert_equal "\u03A3", "\u03A1".succ
+
+  # the end of a run wraps to the start of that run and carries a character of
+  # it, where the end of the ASCII letters carries an "a"
+  assert_equal "\u05D0\u05D0", "\u05EA".succ
+  assert_equal "b\u05D0", "a\u05EA".succ
+  assert_equal "-\u05D0\u05D0", "-\u05EA".succ
+  assert_equal "\u05D0\u05D0\u05D0", "\u05EA\u05EA".succ
+  assert_equal "\uFF41\uFF41", "\uFF5A".succ
+  assert_equal "\uFF41\uFF41\uFF41", "\uFF5A\uFF5A".succ
+
+  # a digit run carries the digit after its first, where "9" carries "1"
+  assert_equal "\u0661\u0660", "\u0669".succ
+  assert_equal "b\u0660", "a\u0669".succ
+  assert_equal "\u0661\u0660\u0660", "\u0669\u0669".succ
+  assert_equal "\uFF11\uFF10", "\uFF19".succ
+  assert_equal "\u{1D7CF}\u{1D7CE}", "\u{1D7FF}".succ
+
+  # the carry crosses what is not alphanumeric and lands on the alphanumeric
+  # before it, whichever of the two is the wider character
+  assert_equal "b\uFF41", "a\uFF5A".succ
+  assert_equal "10\u05D0", "9\u05EA".succ
+
+  # a letter alone in its run has nowhere to wrap to, so it is not one this
+  # walk steps: U+00A9 and U+00AB are on either side of U+00AA
+  assert_equal "\u00AB", "\u00AA".succ
+  assert_equal "b\u00AA", "a\u00AA".succ
+
+  # so above ASCII it is the letter that steps where an ASCII one is beside it
+  assert_equal "a\u0100", "a\u00FF".succ
+  assert_equal "1\u3043", "1\u3042".succ
+  assert_equal [0x61, 0xC4, 0x80], "a\u00FF".succ.bytes
+end if UNICODEALNUM
+
+assert('String#succ has no letter or digit above ASCII without the table') do
+  # A build reading its strings as bytes, and one narrowed by
+  # MRB_USE_ASCII_CTYPE, carries no table: nothing above ASCII is a letter or a
+  # digit there, and the last character steps as a character instead, which for
+  # these is the same answer as stepping the last byte.
+  assert_equal "\u05EB", "\u05EA".succ
+  assert_equal "\u066A", "\u0669".succ
+  assert_equal "\uFF5B", "\uFF5A".succ
+  # an ASCII letter or digit before it is what steps instead
+  assert_equal "b\u05EA", "a\u05EA".succ
+  assert_equal "b\uFF5A", "a\uFF5A".succ
+  assert_equal "b\u00FF", "a\u00FF".succ
+  assert_equal "2\u3042", "1\u3042".succ
+end unless UNICODEALNUM
 
 assert('String#insert') do
   assert_equal "Xabcd", "abcd".insert(0, 'X')
