@@ -486,6 +486,31 @@ assert('Array#unshift', '15.2.12.5.30') do
   assert_equal([0,1,2,3], d)
 end
 
+assert("Array#unshift with shared arrays") do
+  a = Array.new(16) { _1 }
+  a0 = Array.new(16) { _1 }
+  s = a.shift(4)
+  a.unshift(*s)
+  assert_equal a0, a
+
+  a = Array.new(16) { _1 }
+  exp = [-1, *a]
+  s = a.shift(4)
+  a.unshift(-1, *s) # unshift not in-place because of the extra element
+  assert_equal exp, a
+end
+
+assert("Array#unshift taking shared self") do
+  #define ARY_REPLACE_SHARED_MIN 20
+  a = Array.new(32) { _1 }
+  a0 = Array.new(32) { _1 }
+  a1 = a.dup
+  a.unshift(*a1)
+  assert_equal(a0 * 2, a)
+  assert_equal(a0, a1)
+end
+
+
 assert('Array#to_s', '15.2.12.5.31 / 15.2.12.5.32') do
   a = [2, 3,   4, 5]
   a[4] = a

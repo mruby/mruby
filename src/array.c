@@ -978,6 +978,48 @@ mrb_ary_shift_m(mrb_state *mrb, mrb_value self)
   return val;
 }
 
+static mrb_value
+ary_unshift_values(mrb_state *mrb, mrb_value self,
+                   mrb_int argc, const mrb_value argv[])
+{
+  struct RArray *a = RARRAY(self);
+
+  if (argc == 0) {
+    ary_modify_check(mrb, a);
+    return self;
+  }
+
+  mrb_int len = ARY_LEN(a);
+  if (argc > ARY_MAX_SIZE - len) {
+    ary_too_big(mrb);
+  }
+
+  mrb_value *ptr = NULL;
+  if (ARY_SHARED_P(a)
+      && a->as.heap.aux.shared->refcnt == 1 /* shared only referenced from this array */
+      && a->as.heap.ptr - a->as.heap.aux.shared->ptr >= argc) /* there's room for unshifted items */ {
+    ary_modify_check(mrb, a);
+    a->as.heap.ptr -= argc;
+    ptr = a->as.heap.ptr;
+  } else {
+    mrb_bool same = argv == ARY_PTR(a);
+    ary_modify(mrb, a);
+    if (ARY_CAPA(a) < len + argc)
+      ary_expand_capa(mrb, a, len + argc);
+    ptr = ARY_PTR(a);
+    value_move(ptr + argc, ptr, len);
+    if (same)
+      argv = ptr;
+  }
+  array_copy(ptr, argv, argc);
+  ARY_SET_LEN(a, len + argc);
+  while (argc--) {
+    mrb_field_write_barrier_value(mrb, (struct RBasic *)a, argv[argc]);
+  }
+
+  return self;
+}
+
 /* self = [1,2,3]
    item = 0
    self.unshift item
@@ -998,29 +1040,7 @@ mrb_ary_shift_m(mrb_state *mrb, mrb_value self)
 MRB_API mrb_value
 mrb_ary_unshift(mrb_state *mrb, mrb_value self, mrb_value item)
 {
-  struct RArray *a = mrb_ary_ptr(self);
-  mrb_int len = ARY_LEN(a);
-
-  if (ARY_SHARED_P(a)
-      && a->as.heap.aux.shared->refcnt == 1 /* shared only referenced from this array */
-      && a->as.heap.ptr - a->as.heap.aux.shared->ptr >= 1) /* there's room for unshifted item */ {
-    a->as.heap.ptr--;
-    a->as.heap.ptr[0] = item;
-  }
-  else {
-    mrb_value *ptr;
-
-    ary_modify(mrb, a);
-    if (ARY_CAPA(a) < len + 1)
-      ary_expand_capa(mrb, a, len + 1);
-    ptr = ARY_PTR(a);
-    value_move(ptr + 1, ptr, len);
-    ptr[0] = item;
-  }
-  ARY_SET_LEN(a, len+1);
-  mrb_field_write_barrier_value(mrb, (struct RBasic*)a, item);
-
-  return self;
+  return ary_unshift_values(mrb, self, 1, &item);
 }
 
 /*
@@ -1040,43 +1060,7 @@ mrb_ary_unshift(mrb_state *mrb, mrb_value self, mrb_value item)
 static mrb_value
 mrb_ary_unshift_m(mrb_state *mrb, mrb_value self)
 {
-  struct RArray *a = mrb_ary_ptr(self);
-  mrb_value *ptr;
-
-  mrb_int alen = mrb_get_argc(mrb);
-
-  if (alen == 0) {
-    ary_modify_check(mrb, a);
-    return self;
-  }
-  const mrb_value *vals = mrb_get_argv(mrb);
-  mrb_int len = ARY_LEN(a);
-  if (alen > ARY_MAX_SIZE - len) {
-    ary_too_big(mrb);
-  }
-  if (ARY_SHARED_P(a)
-      && a->as.heap.aux.shared->refcnt == 1 /* shared only referenced from this array */
-      && a->as.heap.ptr - a->as.heap.aux.shared->ptr >= alen) /* there's room for unshifted item */ {
-    ary_modify_check(mrb, a);
-    a->as.heap.ptr -= alen;
-    ptr = a->as.heap.ptr;
-  }
-  else {
-    mrb_bool same = vals == ARY_PTR(a);
-    ary_modify(mrb, a);
-    if (ARY_CAPA(a) < len + alen)
-      ary_expand_capa(mrb, a, len + alen);
-    ptr = ARY_PTR(a);
-    value_move(ptr + alen, ptr, len);
-    if (same) vals = ptr;
-  }
-  array_copy(ptr, vals, alen);
-  ARY_SET_LEN(a, len+alen);
-  while (alen--) {
-    mrb_field_write_barrier_value(mrb, (struct RBasic*)a, vals[alen]);
-  }
-
-  return self;
+  return ary_unshift_values(mrb, self, mrb_get_argc(mrb), mrb_get_argv(mrb));
 }
 
 /**
