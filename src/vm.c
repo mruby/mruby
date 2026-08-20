@@ -3101,8 +3101,7 @@ RETRY_TRY_BLOCK:
         mrb_raisef(mrb, E_TYPE_ERROR, "wrong type %T (expected Proc)", regs[a]);
       }
       const struct RProc *p = mrb_proc_ptr(regs[a]);
-      ci = cipush(mrb, a, CINFO_DIRECT, NULL, NULL, NULL, 0, b);
-      ci->cci = CINFO_NONE;  /* mark as VM-to-VM call for proper break handling */
+      ci = cipush(mrb, a, CINFO_NONE, NULL, NULL, NULL, 0, b);
       int r = vm_call_proc(mrb, p, b+1, &irep, ai);
       ci = mrb->c->ci;
       if (r == VM_RAISE) goto L_RAISE;
@@ -3186,7 +3185,7 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_BREAK, B) {
-      if (MRB_PROC_STRICT_P(ci->proc)) goto NORMAL_RETURN;
+      if (MRB_PROC_STRICT_P(ci->proc)) goto L_OP_RETURN_BODY;
       if (!MRB_PROC_ORPHAN_P(ci->proc) && MRB_PROC_ENV_P(ci->proc) && ci->proc->e.env->cxt == mrb->c) {
         const struct RProc *dst = ci->proc->upper;
         for (ptrdiff_t i = ci - mrb->c->cibase; i > 0; i--, ci--) {
@@ -3200,7 +3199,7 @@ RETRY_TRY_BLOCK:
     }
     CASE(OP_RETURN_BLK, B) {
       if (!MRB_PROC_ENV_P(ci->proc) || MRB_PROC_STRICT_P(ci->proc)) {
-        goto NORMAL_RETURN;
+        goto L_OP_RETURN_BODY;
       }
 
       const struct REnv *env = ci->u.env;
@@ -3219,7 +3218,7 @@ RETRY_TRY_BLOCK:
     }
     CASE(OP_RETSELF, Z) {
       a = 0;
-      goto NORMAL_RETURN;
+      goto L_OP_RETURN_BODY;
     }
     CASE(OP_RETNIL, Z) {
       a = 0;
@@ -3238,7 +3237,6 @@ RETRY_TRY_BLOCK:
       mrb_value v;
       mrb_callinfo *return_ci;
 
-    NORMAL_RETURN:
       v = regs[a];
       goto L_RETURN;
     L_RETURN_NIL:
