@@ -3185,7 +3185,7 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_BREAK, B) {
-      if (MRB_PROC_STRICT_P(ci->proc)) goto NORMAL_RETURN;
+      if (MRB_PROC_STRICT_P(ci->proc)) goto L_OP_RETURN_BODY;
       if (!MRB_PROC_ORPHAN_P(ci->proc) && MRB_PROC_ENV_P(ci->proc) && ci->proc->e.env->cxt == mrb->c) {
         const struct RProc *dst = ci->proc->upper;
         for (ptrdiff_t i = ci - mrb->c->cibase; i > 0; i--, ci--) {
@@ -3199,7 +3199,7 @@ RETRY_TRY_BLOCK:
     }
     CASE(OP_RETURN_BLK, B) {
       if (!MRB_PROC_ENV_P(ci->proc) || MRB_PROC_STRICT_P(ci->proc)) {
-        goto NORMAL_RETURN;
+        goto L_OP_RETURN_BODY;
       }
 
       const struct REnv *env = ci->u.env;
@@ -3218,7 +3218,7 @@ RETRY_TRY_BLOCK:
     }
     CASE(OP_RETSELF, Z) {
       a = 0;
-      goto NORMAL_RETURN;
+      goto L_OP_RETURN_BODY;
     }
     CASE(OP_RETNIL, Z) {
       a = 0;
@@ -3237,7 +3237,6 @@ RETRY_TRY_BLOCK:
       mrb_value v;
       mrb_callinfo *return_ci;
 
-    NORMAL_RETURN:
       v = regs[a];
       goto L_RETURN;
     L_RETURN_NIL:
