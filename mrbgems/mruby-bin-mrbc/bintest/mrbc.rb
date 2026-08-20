@@ -140,3 +140,25 @@ assert('a directory as an input file is refused') do
     assert_equal 1, $?.exitstatus
   end
 end
+
+assert('a super outside a method forwards no block') do
+  # The walk for the block a bare `super` forwards stops at the enclosing
+  # method scope. Outside one there is none, and the walk used to hand
+  # OP_GETUPVAR the count it had reached, a level past the outermost scope
+  # that names nothing (#7290). The block to forward is nil there.
+  src = <<~'EOS'
+    super
+    [1].each { super }
+    -> { super }
+    class C
+      super
+    end
+  EOS
+  a, out = Tempfile.new('a.rb'), Tempfile.new('out.mrb')
+  a.write(src)
+  a.flush
+  result = `#{cmd('mrbc')} -v -o #{out.path} #{a.path} 2>&1`
+  assert_equal 0, $?.exitstatus
+  assert_include result, 'SUPER'
+  assert_not_include result, 'GETUPVAR'
+end

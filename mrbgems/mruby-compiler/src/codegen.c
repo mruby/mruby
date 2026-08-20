@@ -5861,8 +5861,15 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
         if (cast->block) {
           codegen(s, (mrc_node *)cast->block, VAL);
         }
-        else {
+        else if (s2) {
           gen_blkmove(s, 0, lv);
+        }
+        else {
+          /* The walk above found no method scope, so `lv` counts past the
+             outermost one and there is no block to forward: a `super` here
+             raises rather than call anything. PM_SUPER_NODE says the same. */
+          genop_1(s, OP_LOADNIL, cursp());
+          push();
         }
         n = 0;
       }
