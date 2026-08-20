@@ -875,3 +875,27 @@ assert('Array#uniq over an array of duplicates keeps the arena') do
   b = Array.new(300) { |i| (i % 3).to_s }
   assert_equal ["0", "1", "2"], b.uniq
 end
+
+assert('mrb_ary_unshift respects a frozen receiver') do
+  # An array that has been shifted keeps the room in front of it and carries
+  # its storage as shared. mrb_ary_unshift() used to take that room without
+  # asking whether the array may be written to, so a frozen array was quietly
+  # changed; the same call on an array that is not shared raised.
+  a = Array.new(16) { |i| i }
+  a.shift(4)
+  a.freeze
+  assert_raise(FrozenError) { a.__unshift_from_c(99) }
+  assert_equal (4..15).to_a, a
+
+  b = [1, 2, 3].freeze
+  assert_raise(FrozenError) { b.__unshift_from_c(0) }
+  assert_equal [1, 2, 3], b
+
+  # and the two paths still answer where the receiver may be written to
+  c = Array.new(16) { |i| i }
+  c.shift(4)
+  assert_equal 99, c.__unshift_from_c(99)[0]
+  assert_equal 13, c.size
+  d = [1, 2]
+  assert_equal [0, 1, 2], d.__unshift_from_c(0)
+end

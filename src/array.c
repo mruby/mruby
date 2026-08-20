@@ -1001,7 +1001,8 @@ ary_unshift_values(mrb_state *mrb, mrb_value self,
     ary_modify_check(mrb, a);
     a->as.heap.ptr -= argc;
     ptr = a->as.heap.ptr;
-  } else {
+  }
+  else {
     mrb_bool same = argv == ARY_PTR(a);
     ary_modify(mrb, a);
     if (ARY_CAPA(a) < len + argc)
