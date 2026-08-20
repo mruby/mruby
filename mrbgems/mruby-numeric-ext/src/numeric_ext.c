@@ -62,7 +62,11 @@ int_remainder(mrb_state *mrb, mrb_value x)
     if (mrb_integer_p(y) || mrb_bigint_p(y)) {
       return mrb_bint_rem(mrb, x, y);
     }
+#ifdef MRB_NO_FLOAT
+    mrb_raise(mrb, E_TYPE_ERROR, "non integer remainder");
+#else
     return flo_remainder(mrb, mrb_float_value(mrb, mrb_as_float(mrb, x)));
+#endif
   }
 #endif
   a = mrb_integer(x);
