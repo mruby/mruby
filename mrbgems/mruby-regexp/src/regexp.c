@@ -427,6 +427,19 @@ match_operand(mrb_state *mrb, mrb_value obj)
   return mrb_ensure_string_type(mrb, obj);
 }
 
+/* Raise if the search answered RE_OVER_*_LIMIT (see mrb_re_exec()): it gave
+   up at a limit, and what it had found by then is not a shorter or a later
+   match, so the caller raises rather than read it as one. Every caller holds
+   its capture buffer on the stack, so the raise strands nothing. */
+static void
+re_check_over_limit(mrb_state *mrb, int n)
+{
+  if (n >= 0) return;
+  mrb_raise(mrb, E_REGEXP_ERROR, n == RE_OVER_STEP_LIMIT
+            ? "step limit over (MRB_REGEXP_STEP_LIMIT)"
+            : "recursion limit over (MRB_REGEXP_RECURSION_LIMIT)");
+}
+
 /* Internal: execute match and create MatchData.
    Returns MatchData on match, nil on no match.
    Sets $~ and $1-$9 globals, and clears them on a miss. */
@@ -441,6 +454,7 @@ exec_match(mrb_state *mrb, mrb_value self, mrb_value str, mrb_int pos)
   memset(captures, -1, sizeof(int) * cap_size);
   int ncap = mrb_re_exec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), pos,
                      captures, cap_size, re_binary_string_p(str));
+  re_check_over_limit(mrb, ncap);
 
   if (ncap == 0) {
     clear_match_globals(mrb);
@@ -623,6 +637,7 @@ regexp_s_byte_rsearch(mrb_state *mrb, mrb_value klass)
   int captures[RE_MAX_CAPTURES * 2];
   int ncap = mrb_re_rexec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), limit,
                           captures, cap_size, re_binary_string_p(str));
+  re_check_over_limit(mrb, ncap);
   if (ncap == 0) {
     clear_match_globals(mrb);
     return mrb_nil_value();
@@ -647,6 +662,7 @@ exec_match_p(mrb_state *mrb, mrb_value re, mrb_value str, mrb_int pos)
 
   int ncap = mrb_re_exec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), pos, NULL, 0,
                          re_binary_string_p(str));
+  re_check_over_limit(mrb, ncap);
   return mrb_bool_value(ncap > 0);
 }
 
@@ -1475,6 +1491,7 @@ regexp_s_gsub_str(mrb_state *mrb, mrb_value klass)
   while (pos <= slen) {
     memset(captures, -1, sizeof(int) * cap_size);
     int n = mrb_re_exec(mrb, pat, s, slen, pos, captures, cap_size, binary);
+    re_check_over_limit(mrb, n);
     if (n == 0) break;
 
     /* save last match for $~ */
@@ -1557,6 +1574,7 @@ regexp_s_sub_str(mrb_state *mrb, mrb_value klass)
   memset(captures, -1, sizeof(int) * cap_size);
 
   int n = mrb_re_exec(mrb, pat, s, slen, 0, captures, cap_size, re_binary_string_p(str));
+  re_check_over_limit(mrb, n);
   if (n == 0) {
     clear_match_globals(mrb);
     return mrb_str_dup(mrb, str);
@@ -1829,7 +1847,9 @@ regexp_s_gsub_block(mrb_state *mrb, mrb_value klass)
 
   while (pos <= slen) {
     memset(captures, -1, sizeof(int) * cap_size);
-    if (mrb_re_exec(mrb, pat, s, slen, pos, captures, cap_size, binary) == 0) break;
+    int n = mrb_re_exec(mrb, pat, s, slen, pos, captures, cap_size, binary);
+    re_check_over_limit(mrb, n);
+    if (n == 0) break;
     mrb_int beg = captures[0], end = captures[1];
 
     mrb_value matched = re_byte_substr(mrb, str, beg, end - beg);
@@ -1929,6 +1949,7 @@ regexp_s_scan(mrb_state *mrb, mrb_value klass)
   while (pos <= slen) {
     memset(captures, -1, sizeof(int) * cap_size);
     int n = mrb_re_exec(mrb, pat, s, slen, pos, captures, cap_size, binary);
+    re_check_over_limit(mrb, n);
     if (n == 0) break;
 
     last_ncap = cap_size;
@@ -2150,6 +2171,11 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_const(mrb, re, "IGNORECASE", mrb_fixnum_value(1));
   mrb_define_const(mrb, re, "EXTENDED", mrb_fixnum_value(2));
   mrb_define_const(mrb, re, "MULTILINE", mrb_fixnum_value(4));
+  /* The two limits of the backtracking engine, which a build sets (see
+     re_internal.h) and a `RegexpError` names: the value behind the name, for
+     whoever has to size a subject or a pattern to the build it runs on. */
+  mrb_define_const(mrb, re, "RECURSION_LIMIT", mrb_int_value(mrb, MRB_REGEXP_RECURSION_LIMIT));
+  mrb_define_const(mrb, re, "STEP_LIMIT", mrb_int_value(mrb, MRB_REGEXP_STEP_LIMIT));
 
   /* Class methods */
   mrb_define_method(mrb, re, "initialize", regexp_init, MRB_ARGS_ARG(1, 2));

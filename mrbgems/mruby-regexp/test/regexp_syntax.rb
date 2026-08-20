@@ -215,6 +215,59 @@ assert("Regexp - a repetition of a lookaround or a backreference stops the same 
   assert_equal "abbc", /(?:(a)b|a(b)|\2)+c/.match("abbc")[0]
 end
 
+assert("Regexp - the backtracking engine raises at a limit rather than answer short") do
+  # A frame gives up at MRB_REGEXP_RECURSION_LIMIT or MRB_REGEXP_STEP_LIMIT,
+  # and the frames above it used to read that as the branch having failed and
+  # go on with their other branches: the search answered with a shorter match,
+  # a later one or none, told from the real answer by nothing. A limit is the
+  # search's answer now, and the caller raises on it; the same patterns match
+  # whole on a subject inside the limits, as in CRuby.
+  #
+  # The subjects are sized from the limits, which the build sets and the two
+  # constants read back. A repetition of an atomic group or a lookaround
+  # spends two or three frames per iteration, so a run of `a` as long as the
+  # recursion limit is past it for every pattern here and a quarter of that
+  # run is inside it; a chain of `(?=a)` or `(?>a)` spends two frames per
+  # link; `(a+)+\1b` spends about 2^n steps on a run of n. The n that reaches
+  # the step limit is counted by shifting the limit down rather than 1 up to
+  # it, so that a build setting the limit near the width of `mrb_int` has no
+  # shift of its own to overflow.
+  limit = Regexp::RECURSION_LIMIT
+  over = "a" * limit
+  fits = "a" * (limit / 4)
+  n = 0
+  n += 1 while (Regexp::STEP_LIMIT - 1) >> n > 0
+  steps = "a" * (n + 10)
+  assert_raise(RegexpError) { over.match(/(?:(?>a))*/) }       # answered a third of the run
+  assert_raise(RegexpError) { over.match(/(?:(?=a)a)*/) }      # a third of the run
+  assert_raise(RegexpError) { (over + "b").match(/(a)*?b/) }   # began past the middle
+  assert_raise(RegexpError) { over.match(/(?:(?>a))*\z/) }    # began past the middle
+  assert_raise(RegexpError) { "a".match(Regexp.new("(?=a)" * (limit / 2 + 1) + "a")) }   # was nil
+  assert_raise(RegexpError) { over.match(Regexp.new("(?>a)" * (limit / 2 + 1) + "a")) }  # was nil
+  assert_equal fits, fits.match(/(?:(?>a))*/)[0]
+  assert_equal fits, fits.match(/(?:(?=a)a)*/)[0]
+  assert_equal 0, (fits + "b").match(/(a)*?b/).begin(0)
+  assert_equal 0, fits.match(/(?:(?>a))*\z/).begin(0)
+  assert_equal "a", "a".match(Regexp.new("(?=a)" * (limit / 4) + "a"))[0]
+  assert_equal fits, fits.match(Regexp.new("(?>a)" * (limit / 4 - 1) + "a"))[0]
+  # The message names the limit, so that whoever hits one on a legitimate
+  # subject knows which knob to turn, and the constant says where it stands.
+  assert_raise_with_message(RegexpError, "recursion limit over (MRB_REGEXP_RECURSION_LIMIT)") do
+    over.match(/(?:(?>a))*/)
+  end
+  assert_raise_with_message(RegexpError, "step limit over (MRB_REGEXP_STEP_LIMIT)") do
+    steps.match(/(a+)+\1b/)
+  end
+  assert_kind_of Integer, Regexp::RECURSION_LIMIT
+  assert_kind_of Integer, Regexp::STEP_LIMIT
+  # A limit ends the search at the start position it was hit at: the
+  # positions after it would say where the first match is only once this one
+  # has none. The search that reads no captures raises the same.
+  assert_raise(RegexpError) { ("b" + over + "c").match(/b(?:(?>a))*c|a/) }   # began at 1
+  assert_raise(RegexpError) { over.match?(/(?:(?>a))*\z/) }
+  assert_raise(RegexpError) { /(?:(?>a))*\z/ === over }
+end
+
 assert("Regexp - quantified first alternative does not leak into the next") do
   # A quantifier loops back to its own atom. When the atom starts the first
   # alternative, the alternation SPLIT is inserted in front of it; the

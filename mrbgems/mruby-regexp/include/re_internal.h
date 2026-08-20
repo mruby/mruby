@@ -179,6 +179,14 @@ typedef struct mrb_regexp_pattern {
 #define MRB_REGEXP_RECURSION_LIMIT 1000
 #endif
 
+/* What a search answers when the backtracking engine gave up at one of the
+   two limits before it had an answer (see mrb_re_exec()). The caller raises
+   on it: what the search had found by then is not a shorter or a later
+   match, and reading it as one was the defect. Which of the two it was
+   names the knob to turn. */
+#define RE_OVER_RECURSION_LIMIT (-1)
+#define RE_OVER_STEP_LIMIT (-2)
+
 /* Maximum captures */
 #define RE_MAX_CAPTURES 32
 
@@ -332,7 +340,8 @@ mrb_re_char_interior_p(const char *str, const char *s, const char *end)
 }
 
 /* Execute a match.
-   Returns number of captures filled (0 = no match).
+   Returns number of captures filled (0 = no match), or RE_OVER_*_LIMIT with
+   nothing in `captures` to read.
    captures[2*n] = start, captures[2*n+1] = end for group n. */
 int mrb_re_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
             const char *str, mrb_int len, mrb_int start,
