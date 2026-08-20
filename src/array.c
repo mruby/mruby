@@ -997,7 +997,7 @@ ary_unshift_values(mrb_state *mrb, mrb_value self,
   mrb_value *ptr = NULL;
   if (ARY_SHARED_P(a)
       && a->as.heap.aux.shared->refcnt == 1 /* shared only referenced from this array */
-      && a->as.heap.ptr - a->as.heap.aux.shared->ptr >= argc) /* there's room for unshifted items */ { 
+      && a->as.heap.ptr - a->as.heap.aux.shared->ptr >= argc) /* there's room for unshifted items */ {
     ary_modify_check(mrb, a);
     a->as.heap.ptr -= argc;
     ptr = a->as.heap.ptr;
