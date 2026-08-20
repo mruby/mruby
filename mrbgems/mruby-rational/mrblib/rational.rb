@@ -42,6 +42,12 @@ class Rational < Numeric
   #   Rational(1, 3) <=> 0.3             #=> 1
   #
   def <=>(other)
+    # An Integer or another Rational is compared exactly, by __cmp, which is
+    # what lets a numerator too large for a Float still be told apart and what
+    # answers at all in a build carrying no Float. Anything else is compared
+    # the way CRuby compares it, through Float.
+    c = __cmp(other)
+    return c unless false == c
     return nil unless Numeric === other
     self.to_f <=> other.to_f
   rescue

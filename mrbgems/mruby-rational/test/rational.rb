@@ -215,6 +215,79 @@ assert 'Rational#<=>' do
   assert_cmp(nil, 3r, "3")
 end
 
+assert 'Rational#<=> is exact' do
+  # The comparison cross-multiplies rather than going through Float, so a
+  # difference no double can hold is still seen, and there is an answer at all
+  # in a build carrying no Float, where every one of these used to be nil.
+  #
+  # 2**53 and 2**53 + 1 are the first pair a double cannot tell apart.
+  m = 1 << 53
+  assert_cmp(1,  Rational(m + 1, 1), Rational(m, 1))
+  assert_cmp(-1, Rational(m, 1), Rational(m + 1, 1))
+  assert_cmp(1,  Rational(m + 1, 3), Rational(m, 3))
+  assert_cmp(-1, Rational(3, m + 1), Rational(3, m))
+  assert_cmp(0,  Rational(m, 3), Rational(m * 2, 6))
+  assert_cmp(0,  Rational(m, 1), m)
+  assert_cmp(-1, Rational(m, 1), m + 1)
+
+  # Wide enough that cross-multiplying leaves mrb_int behind, which is where
+  # the walk that forms no product answers, or bigint where the build has it.
+  begin
+    w = 3 * (10 ** 18)
+  rescue RangeError
+    skip 'no integer this wide'
+  end
+  assert_cmp(-1, Rational(w, 7), Rational(w + 1, 7))
+  assert_cmp(1,  Rational(w + 1, 7), Rational(w, 7))
+  assert_cmp(0,  Rational(w, 7), Rational(w, 7))
+  assert_cmp(-1, Rational(-w, 7), Rational(w, 7))
+  assert_cmp(1,  Rational(-w, 7), Rational(-w - 1, 7))
+  assert_cmp(1,  Rational(7, w), Rational(7, w + 1))
+
+  # A bigint-backed rational reads its numerator and denominator out of the
+  # other half of a union, so the crossing is asked both ways round: with the
+  # bigint side on the left, and with it on the right, where reading it as if
+  # it were the narrow layout gives two pointers for two integers.
+  begin
+    big = 1 << 70
+  rescue RangeError
+    skip 'requires mruby-bigint'
+  end
+  assert_cmp(1,  Rational(big + 1, 3), Rational(big, 3))
+  assert_cmp(-1, Rational(big, 3), Rational(big + 1, 3))
+  assert_cmp(0,  Rational(big, 3), Rational(big * 2, 6))
+  assert_cmp(-1, Rational(-big, 3), Rational(big, 3))
+  assert_cmp(-1, Rational(1, 2), Rational(big, 3))
+  assert_cmp(1,  Rational(big, 3), Rational(1, 2))
+  assert_cmp(-1, Rational(1, 2), Rational(big, 1))
+  assert_cmp(0,  Rational(big, 1), big)
+  assert_cmp(-1, Rational(big, 1), big + 1)
+  assert_cmp(1,  Rational(big + 1, 1), big)
+  assert_cmp(-1, Rational(3, 1), big)
+  assert_cmp(1,  Rational(big, big), Rational(1, 2))
+  # Rows where reading the wide layout as the narrow one answers the other
+  # way round rather than merely inaccurately: the two pointers it would read
+  # sit near each other, so their ratio is close to 1 and every comparison
+  # against a value far from 1 comes out backwards.
+  assert_cmp(-1, Rational(1000000000, 1), Rational(big, 3))
+  assert_cmp(1,  Rational(big, 3), Rational(1000000000, 1))
+  assert_cmp(1,  Rational(1, 2), Rational(3, big))
+  assert_cmp(-1, Rational(3, big), Rational(1, 2))
+  assert_cmp(1,  Rational(big, 3), 5)
+  assert_cmp(-1, Rational(3, big), 5)
+
+  # Rows chosen so that the walk that forms no product runs several rounds
+  # and one of them divides out exactly, and so that a division truncating
+  # towards zero rather than downwards would answer the other way. They are
+  # reduced already, and their cross products leave a 64-bit mrb_int; a build
+  # whose integers are narrower reaches the same answers through bigint.
+  assert_cmp(-1, Rational(-3592724480034102866, 15), Rational(-718544896006820573, 3))
+  assert_cmp(-1, Rational(-3257273943195690439, 30), Rational(-542878990532615073, 5))
+  assert_cmp(-1, Rational(-3572821367931467021, 15), Rational(-714564273586293404, 3))
+  assert_cmp(1,  Rational(380562786494054481, 4), Rational(3044502291952435847, 32))
+  assert_cmp(1,  Rational(3028249174067900084, 35), Rational(432607024866842869, 5))
+end
+
 assert 'Integer#<=>(Rational)' do
   assert_cmp(-1, -2, Rational(-9,5))
   assert_cmp(0, 5, 5r)
