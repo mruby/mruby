@@ -49,6 +49,7 @@ typedef struct mrb_gc_prof_hist {
 #endif
 
 typedef struct mrb_gc {
+  struct kh_gcroot *root;          /* mrb_gc_register()ed objects -> pin count */
   struct mrb_heap_page *heaps;     /* all heaps pages */
   struct mrb_heap_page *free_heaps;/* heaps for allocation */
   struct mrb_heap_page *sweeps;    /* page where sweep starts */

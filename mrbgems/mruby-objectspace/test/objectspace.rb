@@ -58,3 +58,18 @@ end
 assert 'Check class pointer of ObjectSpace.each_object.' do
   assert_nothing_raised { ObjectSpace.each_object { |obj| !obj } }
 end
+
+assert('mrb_gc_register counts its registrations') do
+  # One mrb_gc_unregister() undoes one mrb_gc_register(). Two owners of the
+  # same object each hold it, so the first to let go leaves the second's hold
+  # standing; and a registration made twice takes two calls to undo, so
+  # nothing is left pinned by accident either.
+  assert_equal 0,  ObjectSpace.__gc_root_survivors(50, 1, 1)
+  assert_equal 50, ObjectSpace.__gc_root_survivors(50, 1, 0)
+  assert_equal 50, ObjectSpace.__gc_root_survivors(50, 2, 1)
+  assert_equal 0,  ObjectSpace.__gc_root_survivors(50, 2, 2)
+  assert_equal 0,  ObjectSpace.__gc_root_survivors(50, 3, 3)
+  assert_equal 50, ObjectSpace.__gc_root_survivors(50, 5, 2)
+  # unregistering what was never registered is not an error
+  assert_equal 0,  ObjectSpace.__gc_root_survivors(50, 0, 1)
+end

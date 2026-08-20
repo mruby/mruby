@@ -22,6 +22,20 @@
 #include <mruby/error.h>
 #include <mruby/throw.h>
 #include <mruby/internal.h>
+#include <mruby/khash.h>
+
+/* The objects mrb_gc_register() pins, each with the number of registrations
+   still standing. A count rather than one entry per registration, so that two
+   owners of the same object each hold it: the first to unregister leaves the
+   second's registration behind, and the object with it.
+
+   Keys are object pointers, which the hash never dereferences, so nothing
+   here calls back into the VM. */
+#define gcroot_hash_func(mrb,key) mrb_int_hash_func(mrb, (intptr_t)(key) >> 4)
+#define gcroot_hash_equal(mrb,a,b) ((a) == (b))
+KHASH_DECLARE(gcroot, struct RBasic*, size_t, TRUE)
+KHASH_DEFINE(gcroot, struct RBasic*, size_t, TRUE, gcroot_hash_func, gcroot_hash_equal)
+
 
 #ifdef MRB_GC_STRESS
 #include <stdlib.h>
@@ -555,6 +569,10 @@ free_heap(mrb_state *mrb, mrb_gc *gc)
 void
 mrb_gc_destroy(mrb_state *mrb, mrb_gc *gc)
 {
+  if (gc->root) {
+    kh_destroy(gcroot, mrb, gc->root);
+    gc->root = NULL;
+  }
   free_heap(mrb, gc);
   /* free region descriptors (buffer memory belongs to the caller) */
   {
@@ -611,7 +629,22 @@ mrb_gc_protect(mrb_state *mrb, mrb_value obj)
   gc_protect(mrb, &mrb->gc, p);
 }
 
-#define GC_ROOT_SYM MRB_SYM(_gc_root_)
+/* Mark every pinned object. Like the arena, this table takes no write
+   barrier, so the marking phase reads it twice: once at the start of a cycle
+   and once atomically at its end, which is what covers a registration made
+   while the cycle was running. */
+static void
+mark_gc_roots(mrb_state *mrb, mrb_gc *gc)
+{
+  kh_gcroot_t *h = gc->root;
+
+  if (!h) return;
+  for (khiter_t k = kh_begin(h); k != kh_end(h); k++) {
+    if (kh_exist(gcroot, h, k)) {
+      mrb_gc_mark(mrb, kh_key(gcroot, h, k));
+    }
+  }
+}
 
 /* mrb_gc_register() keeps the object from GC.
 
@@ -619,42 +652,51 @@ mrb_gc_protect(mrb_state *mrb, mrb_value obj)
    without reference from Ruby world, e.g. callback
    arguments.  Don't forget to remove the object using
    mrb_gc_unregister, otherwise your object will leak.
+
+   Registering the same object twice takes two calls to mrb_gc_unregister()
+   to undo.
 */
 
 MRB_API void
 mrb_gc_register(mrb_state *mrb, mrb_value obj)
 {
   if (mrb_immediate_p(obj)) return;
-  mrb_value table = mrb_gv_get(mrb, GC_ROOT_SYM);
+
+  mrb_gc *gc = &mrb->gc;
   int ai = mrb_gc_arena_save(mrb);
+  /* The table may grow, and growing may collect, so hold the object in the
+     arena until it is in the table. */
   mrb_gc_protect(mrb, obj);
-  if (!mrb_array_p(table)) {
-    table = mrb_ary_new(mrb);
-    mrb_obj_ptr(table)->c = NULL; /* hide from ObjectSpace.each_object */
-    mrb_gv_set(mrb, GC_ROOT_SYM, table);
+  if (!gc->root) {
+    gc->root = kh_init(gcroot, mrb);
   }
-  mrb_ary_push(mrb, table, obj);
+  int fresh;
+  khiter_t k = kh_put2(gcroot, mrb, gc->root, mrb_basic_ptr(obj), &fresh);
+  if (fresh) {
+    kh_value(gcroot, gc->root, k) = 1;
+  }
+  else {
+    kh_value(gcroot, gc->root, k)++;
+  }
   mrb_gc_arena_restore(mrb, ai);
 }
 
-/* mrb_gc_unregister() removes the object from GC root. */
+/* mrb_gc_unregister() removes the object from GC root.
+
+   One call undoes one mrb_gc_register(); the object leaves the root set when
+   the last of them is undone. */
 MRB_API void
 mrb_gc_unregister(mrb_state *mrb, mrb_value obj)
 {
   if (mrb_immediate_p(obj)) return;
-  mrb_value table = mrb_gv_get(mrb, GC_ROOT_SYM);
-  if (!mrb_array_p(table)) return;
-  struct RArray *a = mrb_ary_ptr(table);
-  mrb_ary_modify(mrb, a);
-  mrb_int len = ARY_LEN(a);
-  mrb_value *ptr = ARY_PTR(a);
-  mrb_int w = 0;
-  for (mrb_int r = 0; r < len; r++) {
-    if (mrb_ptr(ptr[r]) != mrb_ptr(obj)) {
-      ptr[w++] = ptr[r];
-    }
+
+  mrb_gc *gc = &mrb->gc;
+  if (!gc->root) return;
+  khiter_t k = kh_get(gcroot, mrb, gc->root, mrb_basic_ptr(obj));
+  if (k == kh_end(gc->root)) return;
+  if (--kh_value(gcroot, gc->root, k) == 0) {
+    kh_del(gcroot, mrb, gc->root, k);
   }
-  ARY_SET_LEN(a, w);
 }
 
 /* Core allocation without type validation.
@@ -1209,6 +1251,7 @@ root_scan_phase(mrb_state *mrb, mrb_gc *gc)
   }
 
   mrb_gc_mark_gv(mrb);
+  mark_gc_roots(mrb, gc);
   /* mark arena */
   for (i=0,e=gc->arena_idx; i<e; i++) {
     mrb_gc_mark(mrb, gc->arena[i]);
@@ -1334,6 +1377,7 @@ final_marking_phase(mrb_state *mrb, mrb_gc *gc)
     mrb_gc_mark(mrb, gc->arena[i]);
   }
   mrb_gc_mark_gv(mrb);
+  mark_gc_roots(mrb, gc);
   mark_context(mrb, mrb->c);
   if (mrb->c != mrb->root_c) {
     mark_context(mrb, mrb->root_c);
