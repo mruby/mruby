@@ -64,12 +64,8 @@ assert('mrb_gc_register counts its registrations') do
   # same object each hold it, so the first to let go leaves the second's hold
   # standing; and a registration made twice takes two calls to undo, so
   # nothing is left pinned by accident either.
-  assert_equal 0,  ObjectSpace.__gc_root_survivors(50, 1, 1)
-  assert_equal 50, ObjectSpace.__gc_root_survivors(50, 1, 0)
-  assert_equal 50, ObjectSpace.__gc_root_survivors(50, 2, 1)
-  assert_equal 0,  ObjectSpace.__gc_root_survivors(50, 2, 2)
-  assert_equal 0,  ObjectSpace.__gc_root_survivors(50, 3, 3)
-  assert_equal 50, ObjectSpace.__gc_root_survivors(50, 5, 2)
-  # unregistering what was never registered is not an error
-  assert_equal 0,  ObjectSpace.__gc_root_survivors(50, 0, 1)
+  pairs = [[1, 1], [1, 0], [2, 1], [2, 2], [3, 3], [5, 2], [0, 1]]
+  #         freed   pinned  pinned  freed   freed   pinned  freed
+  assert_equal [false, true, true, false, false, true, false],
+               ObjectSpace.__gc_root_survivors(pairs)
 end
