@@ -1561,6 +1561,73 @@ assert("Regexp - \\k group reference errors say which failure it was") do
   end
 end
 
+assert("Regexp - a group name may not be a number") do
+  # A definition names a group, it never numbers one: the number spelling
+  # belongs to a reference, and CRuby refuses a leading digit or `-` where a
+  # group is declared. (?<1>x) used to be accepted and left the group
+  # unreachable, since \k<1> reads digits as a number and a named pattern
+  # refuses a numbered backreference.
+  msg = "invalid group name"
+  assert_raise_with_message(RegexpError, "#{msg} <1>: /(?<1>c)/") do
+    Regexp.new("(?<1>c)")
+  end
+  assert_raise_with_message(RegexpError, "#{msg} <1a>: /(?<1a>c)/") do
+    Regexp.new("(?<1a>c)")
+  end
+  assert_raise_with_message(RegexpError, "#{msg} <-a>: /(?<-a>c)/") do
+    Regexp.new("(?<-a>c)")
+  end
+  # both spellings declare, so both refuse, and the message quotes in <>
+  # whichever delimiter wrote the name
+  assert_raise_with_message(RegexpError, "#{msg} <1a>: /(?'1a'c)/") do
+    Regexp.new("(?'1a'c)")
+  end
+  assert_raise_with_message(RegexpError, "#{msg} <-1>: /(?'-1'c)/") do
+    Regexp.new("(?'-1'c)")
+  end
+
+  # only the first byte carries the number spelling: a digit or a `-` further
+  # in is a name character like any other, as a space is
+  assert_equal ["a1"], Regexp.new("(?<a1>c)").names
+  assert_equal ["a-b"], Regexp.new("(?<a-b>c)").names
+  assert_equal ["a b"], Regexp.new("(?<a b>c)").names
+  assert_equal "cc", "cc".match(Regexp.new("(?<a b>c)\\k<a b>"))[0]
+end
+
+assert("Regexp - a group name may not hold a ')'") do
+  # CRuby's fetch_name() ends the name at a ')' and reports a name no
+  # delimiter ended as invalid. mruby took every byte up to the delimiter, so
+  # patterns CRuby rejects compiled here, with a ')' held as a name character
+  # no other engine reads as one.
+  msg = "invalid group name"
+  assert_raise_with_message(RegexpError, "#{msg} <a)b>c)>: /(?<a)b>c)/") do
+    Regexp.new("(?<a)b>c)")
+  end
+  assert_raise_with_message(RegexpError, "#{msg} <a)b'c)>: /(?'a)b'c)/") do
+    Regexp.new("(?'a)b'c)")
+  end
+  # the scan stops at the ')', so the name is quoted to the end of the
+  # pattern and an unterminated one is refused for the ')' rather than for
+  # its missing delimiter
+  assert_raise_with_message(RegexpError, "#{msg} <a)b>: /(?<a)b/") do
+    Regexp.new("(?<a)b")
+  end
+
+  # the reference arm reads a name the same way and stops the same way
+  assert_raise_with_message(RegexpError, "#{msg} <a)b>>: /(?<a>c)\\k<a)b>/") do
+    Regexp.new("(?<a>c)\\k<a)b>")
+  end
+  assert_raise_with_message(RegexpError, "#{msg} <a)b'>: /(?<a>c)\\k'a)b'/") do
+    Regexp.new("(?<a>c)\\k'a)b'")
+  end
+
+  # the first byte is exempt in both arms, as it is in CRuby: a lone ')' is a
+  # name a group can carry and a reference can reach
+  assert_equal [")"], Regexp.new("(?<)>c)").names
+  assert_equal "cc", "cc".match(Regexp.new("(?<)>c)\\k<)>"))[0]
+  assert_equal "cc", "cc".match(Regexp.new("(?')'c)\\k')'"))[0]
+end
+
 assert("Regexp - named captures survive /x preprocessing") do
   # Regression: with /x, mrb_re_compile freed the rewritten buffer that
   # named_captures[i].name pointed into.
