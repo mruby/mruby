@@ -672,6 +672,26 @@ b/ =~ "ab")
   assert_true Regexp.new("(?-x:a b)", Regexp::EXTENDED).match?("a b")
   assert_true Regexp.new("(?-x)a b", Regexp::EXTENDED).match?("a b")
   assert_true Regexp.new("(?x)a b", Regexp::EXTENDED).match?("ab")
+
+  # A group that names no letter is still a group: `-` may stand alone or
+  # come twice, so a generator emitting `(?#{on}-#{off}:...)` with both
+  # lists empty is read rather than refused.
+  assert_equal 0, (Regexp.new("(?-)a") =~ "a")
+  assert_equal 0, (Regexp.new("(?-:a)") =~ "a")
+  assert_equal 0, (Regexp.new("(?--i)a") =~ "a")
+  assert_equal 0, (Regexp.new("(?i-)a") =~ "A")
+  assert_nil (Regexp.new("(?--i)a") =~ "A")   # the second `-` switches off
+  assert_nil (Regexp.new("(?i)a(?--i)b") =~ "aB")
+  assert_true Regexp.new("(?-)a b", Regexp::EXTENDED).match?("ab")
+  assert_true Regexp.new("(?--x)a b", Regexp::EXTENDED).match?("a b")
+  assert_true Regexp.new("(?--x:a b)", Regexp::EXTENDED).match?("a b")
+
+  # What stops the letters is still checked, so a letter that is not an
+  # option and an unterminated group raise as before. `(?)` names no option
+  # byte at all, not even a `-`, and is not an option group to begin with.
+  assert_raise(RegexpError) { Regexp.new("(?-a)b") }
+  assert_raise(RegexpError) { Regexp.new("(?-") }
+  assert_raise(RegexpError) { Regexp.new("(?)") }
 end
 
 assert("Regexp - comment groups (?#...)") do
