@@ -762,6 +762,33 @@ prepare_missing(mrb_state *mrb, mrb_callinfo *ci, mrb_value recv, mrb_sym mid, m
   return m;
 }
 
+mrb_value
+mrb_args_pack_positional(mrb_state *mrb)
+{
+  mrb_callinfo *ci = mrb->c->ci;
+  int argc = ci->n;
+  mrb_value *argv = ci->stack + 1;
+
+  if (argc < CALL_MAXARGS) {
+    mrb_value args = mrb_ary_new_from_values(mrb, argc, argv);
+    if (ci->nk == 0) {
+      mrb_value block = argv[argc];
+      argv[1] = block;
+    }
+    else {
+      mrb_assert(ci->nk == CALL_MAXARGS);
+      mrb_value keyword = argv[argc];
+      mrb_value block = argv[argc + 1];
+      argv[1] = keyword;
+      argv[2] = block;
+    }
+    argv[0] = args;
+    ci->n = CALL_MAXARGS;
+  }
+
+  return *argv;
+}
+
 static void
 funcall_args_capture(mrb_state *mrb, int stoff, mrb_int argc, const mrb_value *argv, mrb_value block, mrb_callinfo *ci)
 {

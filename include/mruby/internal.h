@@ -592,6 +592,7 @@ mrb_value mrb_object_exec(mrb_state *mrb, mrb_value self, struct RClass *target_
 mrb_value mrb_mod_module_eval(mrb_state*, mrb_value);
 mrb_value mrb_f_send(mrb_state *mrb, mrb_value self);
 mrb_value mrb_f_public_send(mrb_state *mrb, mrb_value self);
+mrb_value mrb_args_pack_positional(mrb_state *mrb);
 
 #ifdef MRB_USE_BIGINT
 mrb_value mrb_bint_new_int(mrb_state *mrb, mrb_int x);
