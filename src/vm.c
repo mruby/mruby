@@ -771,6 +771,11 @@ mrb_args_pack_positional(mrb_state *mrb)
 
   if (argc < CALL_MAXARGS) {
     mrb_value args = mrb_ary_new_from_values(mrb, argc, argv);
+    /* self, the array, a keyword hash and a block: a frame that carried
+       fewer arguments than that has no room for the slots written below.
+       prepare_missing() makes the same room before writing the same ones. */
+    stack_extend(mrb, 4);
+    argv = ci->stack + 1;       /* maybe reallocated */
     if (ci->nk == 0) {
       mrb_value block = argv[argc];
       argv[1] = block;
