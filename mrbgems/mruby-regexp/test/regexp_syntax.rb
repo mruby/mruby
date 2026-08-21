@@ -546,6 +546,20 @@ assert("Regexp - a quantifier after a quantifier repeats the repeat") do
   assert_equal ["aaa"], /a{3,3}?/.match("aaa").to_a
   assert_equal [""], /a{0,2}?/.match("aa").to_a
 
+  # The optional wraps the copies of `{n}` alone, so the rest of the pattern
+  # still has to match: `xa{2}?y` takes "xy" and "xaay" but nothing between,
+  # and inside a group the capture is what the wrapper let through. Written
+  # with a comma the `?` is the non-greedy marker again and the copies are
+  # required.
+  assert_equal ["xy"], /xa{2}?y/.match("xy").to_a
+  assert_equal ["xaay"], /xa{2}?y/.match("xaay").to_a
+  assert_nil /xa{2}?y/.match("xay")
+  assert_equal ["xy"], /xa{1}?y/.match("xy").to_a
+  assert_equal [""], /^a{2}?$/.match("").to_a
+  assert_equal ["xy", ""], /x(a{2}?)y/.match("xy").to_a
+  assert_equal ["xaay", "aa"], /x(a{2}?)y/.match("xaay").to_a
+  assert_nil /xa{2,2}?y/.match("xy")
+
   # `+` right after a greedy `*`, `+` or `?` is possessive, `a*+` being
   # `(?>a*)`: `a?+` takes one `a` out of "aa" where `(?:a?)+` takes two. After
   # a lazy repeat, a possessive one or a `{...}` it is a quantifier again.
