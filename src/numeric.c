@@ -2147,6 +2147,17 @@ cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
 {
 #ifdef MRB_NO_FLOAT             /* integer version */
 
+#ifdef MRB_USE_BIGINT
+  /* A big integer on the left is compared without being narrowed first.
+     Neither path below can carry one: mrb_as_int() raises on a big integer
+     that does not fit, and handing the comparison to the other side asks this
+     same function again, which is what made `(1<<70) <=> (1<<71)` run out of
+     stack. A big integer on the right needs nothing here -- the hand-over
+     below reaches this arm with the two the other way round. */
+  if (mrb_bigint_p(v1) && (mrb_integer_p(v2) || mrb_bigint_p(v2))) {
+    return mrb_bint_cmp(mrb, v1, v2);
+  }
+#endif
   if (!mrb_fixnum_p(v2)) {
     if (!mrb_obj_is_kind_of(mrb, v2, mrb_class_get_id(mrb, MRB_SYM(Numeric)))) {
       return -2;
