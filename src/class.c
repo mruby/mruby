@@ -992,14 +992,15 @@ find_visibility_scope(mrb_state *mrb, const struct RClass *c, int n, mrb_callinf
  *             If the method visibility is default, it's determined by the current scope.
  * @raise TypeError if the class/module or its attached object (for singleton classes) is frozen.
  */
-MRB_API void
-mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_t m)
+/* The method table of `c`, ready to be written to: created where there is
+   none, thawed where it was frozen, and given a mutable layer of its own
+   where what it has is read-only. Whoever changes a method table has to come
+   through here, or writes into a table that is not theirs to write. */
+static mrb_mt_tbl*
+mt_writable(mrb_state *mrb, struct RClass *c)
 {
-  union mrb_mt_ptr ptr;
-
-  MRB_CLASS_ORIGIN(c);
-
   mrb_mt_tbl *h = c->mt;
+
   if (c->tt == MRB_TT_SCLASS && mrb_frozen_p(c)) {
     mrb_value v = mrb_iv_get(mrb, mrb_obj_value(c), MRB_SYM(__attached__));
     mrb_check_frozen_value(mrb, v);
@@ -1008,19 +1009,31 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
     mrb_check_frozen(mrb, c);
   }
   if (!h) {
-    h = c->mt = mt_new(mrb);
+    return c->mt = mt_new(mrb);
   }
-  else if (mt_frozen_p(h)) {
+  if (mt_frozen_p(h)) {
     /* unfreeze heap-allocated frozen layer to preserve c->mt pointer
      * (iclasses hold a copy of the mt pointer for included modules) */
     h->alloc &= ~MRB_MT_FROZEN_BIT;
+    return h;
   }
-  else if (mt_readonly_p(h)) {
+  if (mt_readonly_p(h)) {
     /* COW: create mutable top layer, chain to ROM */
     mrb_mt_tbl *top = mt_new(mrb);
     top->next = h;
-    h = c->mt = top;
+    return c->mt = top;
   }
+  return h;
+}
+
+MRB_API void
+mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_t m)
+{
+  union mrb_mt_ptr ptr;
+
+  MRB_CLASS_ORIGIN(c);
+
+  mrb_mt_tbl *h = mt_writable(mrb, c);
   if (MRB_METHOD_PROC_P(m)) {
     struct RProc *p = (struct RProc*)MRB_METHOD_PROC(m);
 
@@ -2479,7 +2492,12 @@ mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int vis)
     }
   }
   else {
-    mrb_mt_tbl *h = c->mt;
+    /* A visibility change writes a copy of the method into this class, so the
+       table it writes to has to be prepared the way defining one prepares it:
+       `class << self; class << self; protected :p; end; end` reached mt_put()
+       with none at all (#7293), and a frozen class took the change in
+       silence. */
+    mrb_mt_tbl *h = mt_writable(mrb, c);
     for (int i=0; i<argc; i++) {
       mrb_check_type(mrb, argv[i], MRB_TT_SYMBOL);
       mrb_sym mid = mrb_symbol(argv[i]);

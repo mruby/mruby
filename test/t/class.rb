@@ -539,3 +539,46 @@ assert("inherited hook runs before class body") do
 
   assert_equal [1, 2], B.values
 end
+
+assert('a visibility change makes the method table it needs') do
+  # A class carries no method table until something is written into it, and a
+  # visibility change writes a copy of the method it names, so it has to make
+  # one first. Reaching the table without one crashed the VM (#7293), which a
+  # singleton class inside another one is the shortest way to.
+  assert_nothing_raised do
+    o = Object.new
+    class << o
+      class << self
+        protected :inspect
+      end
+    end
+  end
+
+  assert_nothing_raised do
+    class << Object.new
+      private :to_s
+    end
+  end
+
+  # the change is the one that was asked for
+  c = Class.new do
+    def m
+      :called
+    end
+    private :m
+  end
+  assert_raise(NoMethodError) { c.new.m }
+
+  # and a frozen class refuses it, the way defining a method on one does
+  assert_raise(FrozenError) do
+    class TestVisibilityFrozen
+      def m
+        1
+      end
+    end
+    TestVisibilityFrozen.freeze
+    class TestVisibilityFrozen
+      private :m
+    end
+  end
+end
