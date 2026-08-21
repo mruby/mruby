@@ -38,28 +38,8 @@ args_shift(mrb_state *mrb)
 static void
 args_unshift(mrb_state *mrb, mrb_value obj)
 {
-  mrb_callinfo *ci = mrb->c->ci;
-  mrb_value *argv = ci->stack + 1;
-
-  if (ci->n < 15) {
-    mrb_assert(ci->nk == 0 || ci->nk == 15);
-    mrb_value args = mrb_ary_new_from_values(mrb, ci->n, argv);
-    if (ci->nk == 0) {
-      mrb_value block = argv[ci->n];
-      argv[0] = args;
-      argv[1] = block;
-    }
-    else {
-      mrb_value keyword = argv[ci->n];
-      mrb_value block = argv[ci->n + 1];
-      argv[0] = args;
-      argv[1] = keyword;
-      argv[2] = block;
-    }
-    ci->n = 15;
-  }
-
-  mrb_ary_unshift(mrb, *argv, obj);
+  mrb_value args = mrb_args_pack_positional(mrb);
+  mrb_ary_unshift(mrb, args, obj);
 }
 
 static const struct RProc*

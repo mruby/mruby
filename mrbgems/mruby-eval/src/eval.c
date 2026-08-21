@@ -394,16 +394,8 @@ f_class_eval(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_binding_eval(mrb_state *mrb, mrb_value binding)
 {
-  mrb_callinfo *ci = mrb->c->ci;
-  int argc = ci->n;
-  mrb_value *argv = ci->stack + 1;
-
-  if (argc < 15) {
-    argv[0] = mrb_ary_new_from_values(mrb, argc, argv);
-    argv[1] = argv[argc];       /* copy block */
-    ci->n = 15;
-  }
-  mrb_ary_splice(mrb, argv[0], 1, 0, binding); /* insert binding as 2nd argument */
+  mrb_value args = mrb_args_pack_positional(mrb);
+  mrb_ary_splice(mrb, args, 1, 0, binding); /* insert binding as 2nd argument */
   return f_eval(mrb, binding);
 }
 
