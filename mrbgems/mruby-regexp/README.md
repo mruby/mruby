@@ -301,20 +301,22 @@ A search that reaches either limit raises `RegexpError`, `step limit over
 rather than answer with what it had found by then. The step limit bounds
 the work one search may do; the stack limit bounds the state it holds while
 doing it: the branches it has not taken yet and the writes it has not taken
-back, an entry each. What a repetition spends per iteration is what it
-holds: one choice point where it captures nothing, and undo records on top
-of that for a capture (two writes to open a group and one to close it) and
-for the record of an iteration that may match empty. A run longer than the
-limit reaches it on a pattern that is not pathological; a build with the
-memory for it can set it higher, and one that wants a smaller ceiling can
-set it lower.
+back, an entry each. A write of the value already in the slot leaves nothing
+to take back and is not counted. What a repetition spends per iteration is
+what it holds: one choice point where it captures nothing, and undo records
+on top of that for a capture (up to two writes to open a group and one to
+close it, an iteration that opens one the attempt has not closed yet paying
+for one of the two) and for the record of an iteration that may match empty.
+A run longer than the limit reaches it on a pattern that is not pathological;
+a build with the memory for it can set it higher, and one that wants a
+smaller ceiling can set it lower.
 
 The default is where the state moving off the C stack costs no pattern the
 subject it used to match, and no higher. The limit that preceded it counted
 C frames, and a frame is not an entry: a fork was one frame and is one
-choice point, while a capture was one frame and is three undo records. Of
-the shapes measured across that change the tightest is `(a)*?b`, which
-crossed 498 characters on the old 1,000 frames and crosses 681 on 2,048
+choice point, while a capture was one frame and is up to three undo records.
+Of the shapes measured across that change the tightest is `(a)*?b`, which
+crossed 498 characters on the old 1,000 frames and crosses 682 on 2,048
 entries; a chain of atomic groups or of lookarounds, which spent two frames
 a link and now spends none once each has closed, is bounded by the pattern
 rather than by this limit either way.
@@ -323,7 +325,7 @@ The limit stands between 1 and 16,777,216, and a build that sets it outside
 that fails to compile: at 0 no search could hold one entry, and above the
 ceiling the arithmetic that sizes the arrays stops holding on a 32-bit ABI.
 A low limit is a build's to choose, and what it buys is memory at the price
-of the patterns the engine will match: the gem's tests ask for 49, which is
+of the patterns the engine will match: the gem's tests ask for 48, which is
 where every pattern they take for granted matches, and the assertions that
 reach the engine skip below it while the rest go on running. The two limits
 are set apart from one another as well: a build that turns this one up far
