@@ -816,6 +816,29 @@ bt_push(bt_state *m, const char *sp, uint32_t pc)
   return BT_OK;
 }
 
+/* Write `val` into `slot`, logging what stood there so that backtracking
+   past this point puts it back. The answer is bt_push()'s, and means what it
+   means there: BT_OK is the write having happened, and BT_LIMIT or BT_NOMEM
+   is the search stopping, for the same two reasons and told apart for the
+   same one. */
+static int
+bt_log(bt_state *m, int *slot, int val)
+{
+  if (!bt_room(m)) return BT_LIMIT;
+  if (m->undo_top == m->undo_capa) {
+    uint32_t capa = bt_grow_capa(m->undo_capa);
+    re_undo *p = (re_undo*)mrb_realloc_simple(m->mrb, m->undo, sizeof(re_undo) * capa);
+    if (!p) return BT_NOMEM;
+    m->undo = p;
+    m->undo_capa = capa;
+  }
+  re_undo *u = &m->undo[m->undo_top++];
+  u->slot = slot;
+  u->old = *slot;
+  *slot = val;
+  return BT_OK;
+}
+
 /* Take back every write logged above `top`. */
 static void
 bt_undo_to(bt_state *m, uint32_t top)
@@ -900,12 +923,13 @@ bt_look(bt_state *m, const char *sp, const char *from, uint32_t pc,
  * Backtracking engine for patterns with backreferences.
  *
  * A fork pushes a choice point and goes on with its first branch; a failure
- * pops one and goes on with the alternative it holds. The frame therefore
- * loops where it used to recurse, and what it may pop is what it pushed: the
- * heights the stacks stood at on entry are the floor, since below them is the
- * state of the frame that called this one, whose captures and iteration
- * records that frame undoes itself. Every answer but BT_MATCH leaves the
- * stacks as the frame found them.
+ * pops one and goes on with the alternative it holds, taking back the writes
+ * logged since it was pushed. The frame therefore loops where it used to
+ * recurse, and what it may pop is what it pushed: the heights the stacks
+ * stood at on entry are the floor, since below them is the state of the
+ * frame that called this one, whose iteration records that frame restores
+ * itself. Every answer but BT_MATCH leaves the stacks as the frame found
+ * them.
  *
  * Step-limited to prevent ReDoS.
  */
@@ -1055,34 +1079,28 @@ bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
             mrb_re_char_interior_p(str, sp, str_end)) {
           goto fail;
         }
-        if (slot < ncap) {
-          /* An even slot opens its group, and the pair it heads is a span
-             only while the group is closed: clear the end slot with the
-             start, so that RE_BACKREF reads a group a repetition has just
-             re-entered the way it reads one never entered, instead of
-             pairing this iteration's start with the end of the one before:
-             an empty span where the two coincide, and a negative one where
-             the start is past it, which no closed group holds. CRuby
-             reads an open group as unmatched the same way (Onigmo's
-             STACK_PUSH_MEM_START invalidates the end with the start). The
-             end slot exists whenever the start does, ncap being even. */
-          mrb_bool opens = (slot & 1) == 0;
-          int old = captures[slot];
-          int old_end = opens ? captures[slot + 1] : 0;
-          captures[slot] = (int)(sp - str);
-          if (opens) captures[slot + 1] = -1;
-          int rr = bt_match(m, sp, pc + 1, depth + 1);
-          if (rr == BT_MATCH) return rr;
-          /* undone for a cut as for a failure: the group the cut fails may
-             be the one this slot was written inside */
-          captures[slot] = old;
-          if (opens) captures[slot + 1] = old_end;
-          if (rr == BT_FAIL) goto fail;
-          r = rr;
-          goto done;
-        }
-        goto fail;
+        if (slot >= ncap) goto fail;
+        /* The write is logged rather than recursed over: backtracking past
+           it puts the slot back, which is undone for a cut as for a failure
+           (the group a cut fails may be the one this slot was written
+           inside), and a match keeps it, the log unwinding for neither. */
+        if ((r = bt_log(m, &captures[slot], (int)(sp - str))) != BT_OK) goto done;
+        /* An even slot opens its group, and the pair it heads is a span
+           only while the group is closed: clear the end slot with the
+           start, so that RE_BACKREF reads a group a repetition has just
+           re-entered the way it reads one never entered, instead of
+           pairing this iteration's start with the end of the one before:
+           an empty span where the two coincide, and a negative one where
+           the start is past it, which no closed group holds. CRuby
+           reads an open group as unmatched the same way (Onigmo's
+           STACK_PUSH_MEM_START invalidates the end with the start). The
+           end slot exists whenever the start does, ncap being even. The
+           clear is logged too, so backtracking puts back the end the
+           iteration before it left. */
+        if ((slot & 1) == 0 && (r = bt_log(m, &captures[slot + 1], -1)) != BT_OK) goto done;
+        pc++;
       }
+      break;
 
     case RE_BOL:
       /* ^ always matches at a line start (see the Pike VM case); /m only
