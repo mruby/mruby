@@ -111,7 +111,7 @@ assert('non-seekable input file is rejected by size, not blamed on the read') do
   # allocation and the fread() count, surfacing as the misleading "cannot read
   # program file"; the file opens and reads fine, only its size is unknown.
   # Needs a genuinely unseekable path: `< file` would still be seekable.
-  skip 'no /dev/stdin' if /mswin(?!ce)|mingw|bccwin/ =~ RbConfig::CONFIG['host_os']
+  skip 'no /dev/stdin' if target_win?
   skip 'no /dev/stdin' unless File.exist?('/dev/stdin')
 
   a = Tempfile.new('a.rb')
@@ -127,7 +127,7 @@ end
 assert('a directory as an input file is refused') do
   # Only POSIX systems open a directory for reading; Windows refuses it at
   # fopen() and never reaches the reader this guards.
-  skip 'fopen() refuses a directory' if /mswin(?!ce)|mingw|bccwin/ =~ RbConfig::CONFIG['host_os']
+  skip 'fopen() refuses a directory' if target_win?
   # ftell() answers LONG_MAX for a directory stream on ext4 and 0 on tmpfs,
   # and the size check accepts both: the first overflows the length
   # arithmetic that sizes the buffer, the second compiles as an empty

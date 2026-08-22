@@ -561,6 +561,7 @@ assert('IO.popen with err option') do
 end
 
 assert('IO#close_write') do
+  skip "no `cat` to talk to on this platform" if MRubyIOTestUtil.win?
   begin
     io = IO.popen("cat", "r+")
     io.write "mruby-io\n"

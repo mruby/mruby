@@ -540,7 +540,8 @@ EOS
       puts ">>> Bintest #{name} <<<"
       targets = @gems.select { |v| File.directory? "#{v.dir}/bintest" }.map { |v| filename v.dir }
       mrbc = @gems["mruby-bin-mrbc"] ? exefile("#{@build_dir}/bin/mrbc") : mrbcfile
-      env = {"BUILD_DIR" => @build_dir, "MRBCFILE" => mrbc}
+      env = {"BUILD_DIR" => @build_dir, "MRBCFILE" => mrbc,
+             "EXECUTABLE_EXT" => @exts.executable}
       bintest = File.join(MRUBY_ROOT, "test/bintest.rb")
       sh env, "ruby #{bintest}#{verbose_flag} #{targets.join ' '}"
     end
@@ -744,6 +745,7 @@ EOS
         "BUILD_DIR" => @build_dir,
         "MRBCFILE" => mrbc,
         "EMULATOR" => @test_runner.emulator,
+        "EXECUTABLE_EXT" => @exts.executable,
       }
       bintest = File.join(MRUBY_ROOT, "test/bintest.rb")
       sh env, "ruby #{bintest}#{verbose_flag} #{targets.join ' '}"

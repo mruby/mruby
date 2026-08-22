@@ -83,6 +83,12 @@ MRuby::CrossBuild.new("cross-mingw-winetest") do |conf|
     t.command = File.join(thisdir, * %w{ helpers wine_runner.rb})
   end
 
+  # Cross builds have no port auto-detection, so the Windows HAL has to
+  # be named here; without it the gems that sit on it (mruby-io and
+  # friends) leave every 'mrb_hal_*' symbol undefined at link time.
+  # This has to precede the gembox: a gem picks its port when it is added.
+  conf.ports :win
+
   conf.gembox "full-core"
 
   conf.enable_bintest
