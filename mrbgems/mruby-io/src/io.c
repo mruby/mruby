@@ -1210,7 +1210,11 @@ static mrb_value
 io_close_write(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr = io_get_open_fptr(mrb, io);
-  if (mrb_hal_io_close(mrb, (int)fptr->fd2) == -1) {
+  int fd2 = fptr->fd2;
+  /* The write end is gone whatever close(2) answers, and leaving its number
+     behind would have #close try to close it a second time. */
+  fptr->fd2 = -1;
+  if (mrb_hal_io_close(mrb, fd2) == -1) {
     mrb_sys_fail(mrb, "close");
   }
   return mrb_nil_value();
