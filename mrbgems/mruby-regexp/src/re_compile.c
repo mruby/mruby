@@ -1127,6 +1127,16 @@ parse_quantifier(re_compiler *c, int *min_out, int *max_out, mrb_bool *ranged)
     return FALSE;
   }
   next_char(c);  /* skip '}' */
+  /* A range written backwards names no repeat count, and CRuby reports it
+     rather than compiling a repeat that silently drops the upper bound:
+     compile_quantified() would lay out `min` mandatory copies and then a
+     `max - min` loop that runs zero times, which is `{min}`. The check sits
+     here, once the `}` is consumed, so that a `{...}` which is no quantifier
+     at all is still restored as a literal brace above, and it lets the
+     unlimited upper bound through, which is spelled -1. */
+  if (max >= 0 && max < min) {
+    compile_error(c, "upper is smaller than lower in repeat range");
+  }
   *min_out = min;
   *max_out = max;
   return TRUE;

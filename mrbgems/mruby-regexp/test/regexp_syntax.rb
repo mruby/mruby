@@ -529,6 +529,36 @@ assert("Regexp - repetition {n,m}") do
   assert_equal "aaa", Regexp.new("a{2,3}").match("aaaa")[0]
 end
 
+assert("Regexp - an upper bound below the lower one is an error") do
+  # `{n,m}` with m < n names no repeat count, and CRuby raises rather than
+  # compiling it; it used to compile as `{n}` and match exactly n repeats.
+  assert_raise(RegexpError) { Regexp.new("a{2,1}") }
+  assert_raise(RegexpError) { Regexp.new("^a{3,1}$") }
+  # The non-greedy marker comes after the `}`, so it does not save the range.
+  assert_raise(RegexpError) { Regexp.new("a{3,1}?") }
+  # Nor does a group, a class, or a lookaround.
+  assert_raise(RegexpError) { Regexp.new("(ab){2,1}") }
+  assert_raise(RegexpError) { Regexp.new("[a-z]{5,3}") }
+  assert_raise(RegexpError) { Regexp.new("(?=a{2,1})") }
+  # A body that matches empty reads its quantifiers and emits nothing for
+  # them, and the range is read there too.
+  assert_raise(RegexpError) { Regexp.new("a{0}{2,1}") }
+  assert_raise(RegexpError) { Regexp.new("(?:){2,1}") }
+  # Where there is no atom to repeat, the range is what CRuby reports, ahead
+  # of the missing target.
+  assert_raise(RegexpError) { Regexp.new("{2,1}") }
+  # Equal bounds are a repeat of exactly n, and an omitted upper bound is
+  # unlimited: neither is below the lower bound.
+  assert_equal "aa", Regexp.new("a{2,2}").match("aaa")[0]
+  assert_equal "aaa", Regexp.new("a{2,}").match("aaa")[0]
+  assert_equal "", Regexp.new("a{0,0}").match("aaa")[0]
+  # A `{...}` that is no quantifier is still a literal brace rather than a
+  # bad range, whether the `}` is missing or the braces are escaped.
+  assert_equal "a{2,1", "a{2,1".match(/a{2,1/)[0]
+  assert_equal "a{2,1}", "a{2,1}".match(/a\{2,1}/)[0]
+  assert_equal "{2,1}", "a{2,1}".match(/[{]2,1[}]/)[0]
+end
+
 assert("Regexp - repeated group keeps each iteration self-contained") do
   # Copying a grouped quantifier body must relocate its internal jumps, or a
   # later copy jumps back into the first and reports the wrong capture span.
