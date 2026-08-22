@@ -24,7 +24,7 @@ already include it.
 | Process::WNOHANG           | o             | mruby's own value, not the platform's    |
 | Process::WUNTRACED         | o             | mruby's own value, not the platform's    |
 | Process::Status#pid        | o             |                                          |
-| Process::Status#to_i       | o             | also `#to_int`                           |
+| Process::Status#to_i       | o             | no `#to_int`; mruby converts nothing     |
 | Process::Status#exited?    | o             |                                          |
 | Process::Status#exitstatus | o             |                                          |
 | Process::Status#signaled?  | o             |                                          |
