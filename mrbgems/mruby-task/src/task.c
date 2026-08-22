@@ -1787,22 +1787,29 @@ mrb_task_proc_set(mrb_state *mrb, mrb_value task, struct RProc *proc)
 
   struct mrb_context *c = &t->c;
 
-  /* Grow the task's stack to fit the proc being set. It may need more
-   * registers than the original proc the stack was sized for.
-   * mrb_stack_extend() works on mrb->c, so point mrb->c at the task context
-   * across the call, and put it back through MRB_ENSURE: the extend
-   * allocates, and an allocation that fails raises, which would otherwise
-   * leave mrb->c on the task's context for whatever runs next. */
-  if (c->stbase && !MRB_PROC_CFUNC_P(proc) && proc->body.irep) {
-    size_t cur = (size_t)(c->stend - c->stbase);
-    size_t need = (size_t)proc->body.irep->nregs;
-    if (need > cur) {
-      struct task_stack_grow_ctx ctx = { (mrb_int)need, mrb->c };
+  /* Grow the task's stack to fit the proc being set. The proc is installed
+   * on the task's current frame, so the room that matters is above
+   * ci->stack, not the total capacity: a task preempted mid-call-chain
+   * holds its frame at an offset. The check is stack_extend()'s own guard
+   * with an exact fit allowed, so a proc the frame already holds does not
+   * touch the allocator. mrb_stack_extend() works on mrb->c, so point
+   * mrb->c at the task context across the call, and put it back through
+   * MRB_ENSURE: the extend allocates, and an allocation that fails raises,
+   * which would otherwise leave mrb->c on the task's context for whatever
+   * runs next. */
+  if (c->stbase && c->ci && !MRB_PROC_CFUNC_P(proc) && proc->body.irep) {
+    mrb_int need = (mrb_int)proc->body.irep->nregs;
+    if (!c->ci->stack || c->ci->stack + need > c->stend) {
+      struct task_stack_grow_ctx ctx = { need, mrb->c };
       mrb_value result;
       mrb->c = c;
       MRB_ENSURE(mrb, result, task_stack_grow_body, &ctx) {
         mrb->c = ctx.prev_c;
       }
+      /* With no jmpbuf in the caller MRB_ENSURE cannot re-raise: a failed
+       * extend leaves mrb->exc set and control here. Keep the old proc
+       * rather than install one the stack cannot hold. */
+      if (mrb->exc) return;
     }
   }
 
