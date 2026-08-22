@@ -672,9 +672,10 @@ enum re_cp_kind {
    input stood (`sp`), which instruction takes the alternative (`pc`) and how
    tall the undo log was when it was pushed (`undo_top`). Backtracking pops
    one, takes back every write logged above its `undo_top` and goes on from
-   its `sp` and `pc`. A fork costs one of these rather than the C frame it
-   used to recurse into, so the C stack a search spends stops growing with
-   the subject: the state that grows is this stack, on the heap.
+   its `sp` and `pc`. A fork costs one of these rather than the C frame the
+   engine used to recurse into, so the C stack a search spends is the one
+   bt_match() call it makes, whatever the subject: the state that grows is
+   this stack, on the heap.
 
    MRB_REGEXP_STACK_LIMIT is what bounds it (see there and bt_room()). */
 typedef struct {
@@ -703,11 +704,10 @@ typedef struct {
   int old;
 } re_undo;
 
-/* What one backtrack_exec() call shares between its bt_match() frames: the
-   pattern, the subject, the capture slots being written, the step count, the
-   iteration records and the two stacks the backtracking state stands on. A
-   frame's own state is its position, its pc and its depth, plus the heights
-   it found the stacks at. */
+/* Everything one backtrack_exec() call carries: the pattern, the subject,
+   the capture slots being written, the step count, the iteration records and
+   the two stacks the backtracking state stands on. What the search itself
+   holds between instructions is only its position and its pc. */
 typedef struct {
   mrb_state *mrb;
   const mrb_regexp_pattern *pat;
@@ -716,7 +716,7 @@ typedef struct {
   int *captures;
   int ncap;
   int steps;
-  /* Per pc, the offset the frame that pc keys was entered at, or -1 while
+  /* Per pc, the offset the loop that pc keys was entered at, or -1 while
      none is running; what a record means is what its pc is. For the edge of
      a repetition whose body can match empty it is where the running
      iteration began: such a repetition has to stop once an iteration ends
@@ -731,17 +731,18 @@ typedef struct {
   int *entered_at;
   /* Per pc, the pass that wrote entered_at[pc]. A pass is one run of a
      lookaround's sub-pattern, numbered from `pass_seq` so that no two runs
-     share one, and 0 is the pattern outside every lookaround; `pass` is the
-     one the search is in. A record is read as the running iteration's only
-     by the pass that wrote it: what a positive lookaround captured outlives
-     it, and so do the records of the loops inside it, the undo log not
-     unwinding at its end, so a repetition around the lookaround re-enters
-     the sub-pattern with the records of the run before still live. The first
-     iteration of an e+, which reads its record without having written it,
-     would take one of those for its own where the positions coincide:
-     `(?=(b|)+)+` on "b" re-enters at 0 while the run before left 1 for
-     `(b|)+`, and its first iteration, ending at 1, would stop there with "b"
-     captured, where a fresh pass goes round once more and leaves "". */
+     of one start position's attempt share one, and 0 is the pattern outside
+     every lookaround; `pass` is the one the search is in. A record is read
+     as the running iteration's only by the pass that wrote it: what a
+     positive lookaround captured outlives it, and so do the records of the
+     loops inside it, the undo log not unwinding at its end, so a repetition
+     around the lookaround re-enters the sub-pattern with the records of the
+     run before still live. The first iteration of an e+, which reads its
+     record without having written it, would take one of those for its own
+     where the positions coincide: `(?=(b|)+)+` on "b" re-enters at 0 while
+     the run before left 1 for `(b|)+`, and its first iteration, ending at
+     1, would stop there with "b" captured, where a fresh pass goes round
+     once more and leaves "". */
   int *entered_in;
   int pass;
   int pass_seq;
@@ -763,15 +764,6 @@ typedef struct {
    sp: the record is this pass's and names sp. */
 #define ITER_EMPTY(m, key, sp) \
   ((m)->entered_at[key] == (int)((sp) - (m)->str) && (m)->entered_in[key] == (m)->pass)
-
-/* What is left of the bound on the C stack while the backtracking state moves
-   onto the heap. The mechanisms that still recurse (a capture, the record of
-   an iteration, an atomic group, a lookaround) each spend a frame per
-   iteration the way a fork used to, and MRB_REGEXP_STACK_LIMIT no longer
-   counts frames, so the frames keep a bound of their own until the last of
-   them is gone. A frame that reaches it gives up as it did before and the
-   search names the same limit, there being one knob and not two. */
-#define RE_FRAME_LIMIT 1000
 
 /* Whether the search may hold one more entry of backtracking state.
    MRB_REGEXP_STACK_LIMIT counts the two stacks together: a choice point and
@@ -858,16 +850,6 @@ bt_undo_to(bt_state *m, uint32_t top)
   }
 }
 
-/* Drop the backtracking state above the heights a frame found: the choice
-   points it pushed and the writes it logged, none of which its caller may
-   backtrack into. */
-static void
-bt_truncate(bt_state *m, uint32_t cp_top, uint32_t undo_top)
-{
-  m->cp_top = cp_top;
-  bt_undo_to(m, undo_top);
-}
-
 /* Where the group `group` was entered, as an index into the choice point
    stack. Barriers nest and a group's end runs while its own is the innermost
    still standing, so the walk down from the top is over what that end is
@@ -875,10 +857,10 @@ bt_truncate(bt_state *m, uint32_t cp_top, uint32_t undo_top)
    opener, which a compiled pattern does not hold; the search reads it as a
    failure rather than trusting an index. */
 static mrb_bool
-bt_barrier_find(const bt_state *m, uint32_t group, uint32_t floor, uint32_t *idx)
+bt_barrier_find(const bt_state *m, uint32_t group, uint32_t *idx)
 {
   uint32_t i = m->cp_top;
-  while (i > floor) {
+  while (i > 0) {
     i--;
     if ((m->cp[i].kind == RE_CP_BARRIER || m->cp[i].kind == RE_CP_NEG) &&
         m->cp[i].group == group) {
@@ -907,17 +889,15 @@ bt_iter_begin(bt_state *m, uint32_t key, const char *sp)
  *
  * A fork pushes a choice point and goes on with its first branch; a failure
  * pops one and goes on with the alternative it holds, taking back the writes
- * logged since it was pushed. The frame therefore loops where it used to
- * recurse, and what it may pop is what it pushed: the heights the stacks
- * stood at on entry are the floor, since below them is the state of the
- * frame that called this one, whose iteration records that frame restores
- * itself. Every answer but BT_MATCH leaves the stacks as the frame found
- * them.
+ * logged since it was pushed. The whole of a search is this one loop, so what
+ * it costs the C stack is one call however long the subject is and however
+ * deep the pattern nests; what grows instead are the two stacks on the heap,
+ * which MRB_REGEXP_STACK_LIMIT bounds.
  *
  * Step-limited to prevent ReDoS.
  */
 static int
-bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
+bt_match(bt_state *m, const char *sp, uint32_t pc)
 {
   const mrb_regexp_pattern *pat = m->pat;
   const char *str = m->str;
@@ -925,17 +905,15 @@ bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
   int *captures = m->captures;
   int ncap = m->ncap;
   mrb_bool binary = m->binary;
-  const uint32_t cp_floor = m->cp_top;
-  const uint32_t undo_floor = m->undo_top;
+  /* What an operation on the stacks answers, which is this call's answer
+     wherever it is not BT_OK. Outside the loop so that no `goto fail`
+     crosses an initialization: a C++ build refuses a jump that does. */
   int r;
-  /* Outside the loop so that no `goto fail` crosses its initialization: a
-     C++ build refuses a jump that does. */
   re_inst inst;
 
-  if (depth > RE_FRAME_LIMIT) return BT_LIMIT;
   for (;;) {
     if (pc >= pat->code_len) goto fail;
-    if (++m->steps > MRB_REGEXP_STEP_LIMIT) { r = BT_LIMIT; goto done; }
+    if (++m->steps > MRB_REGEXP_STEP_LIMIT) return BT_LIMIT;
 
     inst = pat->code[pc];
     switch (inst.op) {
@@ -1004,16 +982,16 @@ bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
       if (inst.a) {
         if (inst.offset > pc) {
           if ((r = bt_push(m, sp, inst.offset, RE_CP_FORK, 0)) != BT_OK ||
-              (r = bt_iter_begin(m, pc, sp)) != BT_OK) goto done;
+              (r = bt_iter_begin(m, pc, sp)) != BT_OK) return r;
           pc++;
           break;
         }
         if (ITER_EMPTY(m, pc, sp)) { pc++; break; }
-        if ((r = bt_push(m, sp, inst.offset, RE_CP_ITER, pc)) != BT_OK) goto done;
+        if ((r = bt_push(m, sp, inst.offset, RE_CP_ITER, pc)) != BT_OK) return r;
         pc++;
         break;
       }
-      if ((r = bt_push(m, sp, inst.offset, RE_CP_FORK, 0)) != BT_OK) goto done;
+      if ((r = bt_push(m, sp, inst.offset, RE_CP_FORK, 0)) != BT_OK) return r;
       pc++;
       break;
 
@@ -1024,17 +1002,17 @@ bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
          same. */
       if (inst.a) {
         if (inst.offset > pc) {
-          if ((r = bt_push(m, sp, pc + 1, RE_CP_ITER, pc)) != BT_OK) goto done;
+          if ((r = bt_push(m, sp, pc + 1, RE_CP_ITER, pc)) != BT_OK) return r;
           pc = inst.offset;
           break;
         }
         if (ITER_EMPTY(m, pc, sp)) { pc++; break; }
         if ((r = bt_push(m, sp, pc + 1, RE_CP_FORK, 0)) != BT_OK ||
-            (r = bt_iter_begin(m, pc, sp)) != BT_OK) goto done;
+            (r = bt_iter_begin(m, pc, sp)) != BT_OK) return r;
         pc = inst.offset;
         break;
       }
-      if ((r = bt_push(m, sp, pc + 1, RE_CP_FORK, 0)) != BT_OK) goto done;
+      if ((r = bt_push(m, sp, pc + 1, RE_CP_FORK, 0)) != BT_OK) return r;
       pc = inst.offset;
       break;
 
@@ -1050,10 +1028,11 @@ bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
         }
         if (slot >= ncap) goto fail;
         /* The write is logged rather than recursed over: backtracking past
-           it puts the slot back, which is undone for a cut as for a failure
-           (the group a cut fails may be the one this slot was written
-           inside), and a match keeps it, the log unwinding for neither. */
-        if ((r = bt_log(m, &captures[slot], (int)(sp - str))) != BT_OK) goto done;
+           it puts the slot back, which is what undoes what a branch captured
+           before it was abandoned. What a match keeps, and what an atomic
+           group or a positive lookaround keeps once it has matched, is kept
+           by the log not unwinding at all there. */
+        if ((r = bt_log(m, &captures[slot], (int)(sp - str))) != BT_OK) return r;
         /* An even slot opens its group, and the pair it heads is a span
            only while the group is closed: clear the end slot with the
            start, so that RE_BACKREF reads a group a repetition has just
@@ -1066,7 +1045,7 @@ bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
            end slot exists whenever the start does, ncap being even. The
            clear is logged too, so backtracking puts back the end the
            iteration before it left. */
-        if ((slot & 1) == 0 && (r = bt_log(m, &captures[slot + 1], -1)) != BT_OK) goto done;
+        if ((slot & 1) == 0 && (r = bt_log(m, &captures[slot + 1], -1)) != BT_OK) return r;
         pc++;
       }
       break;
@@ -1172,7 +1151,7 @@ bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
         }
         if ((r = bt_push(m, sp, inst.offset, negated ? RE_CP_NEG : RE_CP_BARRIER,
                          pat->code[inst.offset - 1].offset)) != BT_OK) {
-          goto done;
+          return r;
         }
         m->pass = ++m->pass_seq;
         sp = from;
@@ -1195,7 +1174,7 @@ bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
            pass the lookaround was entered from comes back with the
            barrier. */
         uint32_t idx;
-        if (!bt_barrier_find(m, inst.offset, cp_floor, &idx)) goto fail;
+        if (!bt_barrier_find(m, inst.offset, &idx)) goto fail;
         re_cpoint c = m->cp[idx];
         m->cp_top = idx;
         m->pass = c.pass;
@@ -1211,8 +1190,8 @@ bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
     case RE_ATOMIC:
       /* The group is entered: a barrier stands where it began, so that a
          failure inside the body that reaches it is the group failing, and
-         the body goes on in this frame. */
-      if ((r = bt_push(m, sp, pc + 1, RE_CP_BARRIER, inst.offset)) != BT_OK) goto done;
+         the body goes on from here. */
+      if ((r = bt_push(m, sp, pc + 1, RE_CP_BARRIER, inst.offset)) != BT_OK) return r;
       pc++;
       break;
 
@@ -1225,7 +1204,7 @@ bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
            failure that goes back past where the group began takes it back
            along with everything else logged since. */
         uint32_t idx;
-        if (!bt_barrier_find(m, inst.offset, cp_floor, &idx)) goto fail;
+        if (!bt_barrier_find(m, inst.offset, &idx)) goto fail;
         m->cp_top = idx;
         pc++;
       }
@@ -1238,11 +1217,10 @@ bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
 
   fail:
     /* This branch is spent. The next alternative is the choice point on top,
-       with every write since it was pushed taken back; below the floor is the
-       caller's state and the caller's alternatives, so there this frame is
-       spent too. */
+       with every write since it was pushed taken back; with none left there
+       is nothing more to try from this start position. */
     for (;;) {
-      if (m->cp_top == cp_floor) { r = BT_FAIL; goto done; }
+      if (m->cp_top == 0) return BT_FAIL;
       re_cpoint c = m->cp[--m->cp_top];
       bt_undo_to(m, c.undo_top);
       /* The pass a branch was pushed in is the pass it runs in, and for a
@@ -1257,16 +1235,10 @@ bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
       if (c.kind == RE_CP_BARRIER) continue;
       sp = c.sp;
       pc = c.pc;
-      if (c.kind == RE_CP_ITER && (r = bt_iter_begin(m, c.group, sp)) != BT_OK) {
-        goto done;
-      }
+      if (c.kind == RE_CP_ITER && (r = bt_iter_begin(m, c.group, sp)) != BT_OK) return r;
       break;
     }
   }
-
-done:
-  if (r != BT_MATCH) bt_truncate(m, cp_floor, undo_floor);
-  return r;
 }
 
 static int
@@ -1326,11 +1298,18 @@ backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
     /* The state of the attempt before, which failed and left nothing to
        resume, is not this attempt's: the stacks start empty, and the writes
        still logged are taken back so that the records the arrays hold are
-       what a fresh search finds. */
+       what a fresh search finds. The pass numbering starts over with them.
+       Every record a pass wrote is on that log, so once it has unwound
+       there is nothing left for a number to be read against and the numbers
+       need only be unique within the attempt; a counter that ran on across
+       the start positions would climb with the length of the subject
+       instead, until a long enough search overflowed it. */
     m.cp_top = 0;
+    m.pass = 0;
+    m.pass_seq = 0;
     bt_undo_to(&m, 0);
 
-    int r = bt_match(&m, sp, 0, 0);
+    int r = bt_match(&m, sp, 0);
     if (r == BT_MATCH) {
       if (captures) {
         int copy = ncap < captures_size ? ncap : captures_size;
@@ -1352,9 +1331,9 @@ backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
       /* The search ends here, not this start position's attempt: the
          positions after it answer where the first match is only once this
          one has none, which is what the limit left unanswered. Which limit
-         is read off the step count: the state checks run before a frame
-         counts its step, so the count is over the step limit exactly when
-         the step check gave up. */
+         is read off the step count: nothing but the step check moves it, so
+         it is over the step limit exactly when that check is what gave
+         up. */
       ret = m.steps > MRB_REGEXP_STEP_LIMIT ? RE_OVER_STEP_LIMIT : RE_OVER_STACK_LIMIT;
       break;
     }
