@@ -306,17 +306,18 @@ assert("Regexp - the backtracking engine raises at a limit rather than answer sh
   assert_raise(RegexpError) { over.match(/(?:(?=a)a)*/) }      # a part of the run
   assert_raise(RegexpError) { (over + "b").match(/(a)*?b/) }   # began later than it should
   assert_raise(RegexpError) { over.match(/(?:(?>a))*\z/) }    # began later than it should
-  assert_raise(RegexpError) { "a".match(Regexp.new("(?=a)" * (limit / 2 + 1) + "a")) }   # was nil
   assert_equal fits, fits.match(/(?:(?>a))*/)[0]
   assert_equal fits, fits.match(/(?:(?=a)a)*/)[0]
   assert_equal 0, (fits + "b").match(/(a)*?b/).begin(0)
   assert_equal 0, fits.match(/(?:(?>a))*\z/).begin(0)
   assert_equal "a", "a".match(Regexp.new("(?=a)" * (limit / 32) + "a"))[0]
   assert_equal fits, fits.match(Regexp.new("(?>a)" * (limit / 32 - 1) + "a"))[0]
-  # A chain of atomic groups holds nothing per link once each has closed, so
-  # its length is bounded by the pattern and not by the limit.
+  # A chain of atomic groups or of lookarounds holds nothing per link once
+  # each has closed, so its length is bounded by the pattern and not by the
+  # limit.
   chain = limit / 2 + 1
   assert_equal "a" * (chain + 1), over.match(Regexp.new("(?>a)" * chain + "a"))[0]
+  assert_equal "a", "a".match(Regexp.new("(?=a)" * chain + "a"))[0]
   # The message names the limit, so that whoever hits one on a legitimate
   # subject knows which knob to turn, and the constant says where it stands.
   assert_raise_with_message(RegexpError, "stack limit over (MRB_REGEXP_STACK_LIMIT)") do
@@ -472,6 +473,40 @@ assert("Regexp - an atomic group costs the backtracking engine no C stack") do
   assert_nil /(?:(?>(a))b|a)/.match("a")[1]
   assert_nil /(?>a*)a/ =~ "aaa"
   assert_equal 0, /(?>a*)b/ =~ "aab"
+end
+
+assert("Regexp - a lookaround costs the backtracking engine no C stack") do
+  need_backtracking_stack
+  # A lookaround ran its sub-pattern in a call of its own, and a positive one
+  # ran the text after it inside that call as well, so that a failure there
+  # could come back as a cut and undo what the sub-pattern had captured: two
+  # frames a lookaround, and a repetition of one or a chain of them reached
+  # the limit by their length. Entering one pushes a barrier instead, and its
+  # end drops the barrier and the alternatives the sub-pattern left, going on
+  # with the text after from where the lookaround was entered.
+  if Regexp::STACK_LIMIT * 8 > Regexp::STEP_LIMIT
+    skip "the stack limit stands out of the step limit's reach here"
+  end
+  begin
+    Regexp.new("(?=a)" * (Regexp::STACK_LIMIT / 2 + 1))
+  rescue RegexpError
+    skip "a chain sized from the stack limit is more pattern than one may spell"
+  end
+  limit = Regexp::STACK_LIMIT
+  s = "a" * (limit / 4)
+  assert_equal s, s.match(/(?:(?=a)a)*/)[0]
+  assert_equal s, s.match(/(?:a(?<=a))*/)[0]
+  assert_equal s, s.match(/(?:(?!b)a)*/)[0]
+  n = limit / 2 + 1
+  assert_equal "a", "a".match(Regexp.new("(?=a)" * n + "a"))[0]
+  # What the barrier keeps and what it takes back is what the frames did: a
+  # positive lookaround's captures outlive it and a negative one's do not,
+  # and neither survives the search going back past where it was entered.
+  assert_equal "a", /(?=(a))a/.match("a")[1]
+  assert_equal ["b", "a"], /(?<=(a))b/.match("ab").to_a
+  assert_nil /(?!(a))|/.match("a")[1]
+  assert_nil /(?:(?=(a))b|)/.match("a")[1]
+  assert_nil /(?=(a|ab))\1c/ =~ "abc"
 end
 
 assert("Regexp - quantified first alternative does not leak into the next") do
