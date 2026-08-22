@@ -819,12 +819,19 @@ bt_push(bt_state *m, const char *sp, uint32_t pc, uint8_t kind, uint32_t group)
 
 /* Write `val` into `slot`, logging what stood there so that backtracking
    past this point puts it back. The answer is bt_push()'s, and means what it
-   means there: BT_OK is the write having happened, and BT_LIMIT or BT_NOMEM
-   is the search stopping, for the same two reasons and told apart for the
-   same one. */
+   means there: BT_OK is the write having gone through, and BT_LIMIT or
+   BT_NOMEM is the search stopping, for the same two reasons and told apart
+   for the same one.
+
+   A write of the value already there leaves nothing to put back, so it is not
+   logged. What MRB_REGEXP_STACK_LIMIT counts is then the state a search would
+   have to restore rather than the calls it made, and a search at the limit
+   goes on through such a write rather than stopping at one that would have
+   restored nothing. */
 static int
 bt_log(bt_state *m, int *slot, int val)
 {
+  if (*slot == val) return BT_OK;
   if (!bt_room(m)) return BT_LIMIT;
   if (m->undo_top == m->undo_capa) {
     uint32_t capa = bt_grow_capa(m->undo_capa);
@@ -876,7 +883,9 @@ bt_barrier_find(const bt_state *m, uint32_t group, uint32_t *idx)
    records go on the undo log, so that backtracking out of an iteration puts
    back the record of the one it lands in; the branch that begins an
    iteration is written this way rather than in place when it is taken, so
-   that there is one place that writes them. */
+   that there is one place that writes them. They go through bt_log() like
+   any other write, so an iteration that begins where the record already
+   says, in the pass it already names, spends nothing on saying so again. */
 static int
 bt_iter_begin(bt_state *m, uint32_t key, const char *sp)
 {
@@ -1044,7 +1053,9 @@ bt_match(bt_state *m, const char *sp, uint32_t pc)
            STACK_PUSH_MEM_START invalidates the end with the start). The
            end slot exists whenever the start does, ncap being even. The
            clear is logged too, so backtracking puts back the end the
-           iteration before it left. */
+           iteration before it left; where there is no such end, the group
+           being one this attempt has not closed yet, the clear writes the
+           -1 that already stands there and bt_log() records nothing. */
         if ((slot & 1) == 0 && (r = bt_log(m, &captures[slot + 1], -1)) != BT_OK) return r;
         pc++;
       }

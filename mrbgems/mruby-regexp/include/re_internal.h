@@ -197,10 +197,10 @@ typedef struct mrb_regexp_pattern {
    letting a search hold more of it is another, and a default above this one
    would make the second silently. The old limit allowed 1,000 C frames, and
    a frame is not an entry: a fork was one frame and is one choice point,
-   while a capture was one frame and is three undo records, so what a pattern
-   spends per iteration is what it holds. `(a)*?b` crossed 498 characters on
-   1,000 frames and crosses 681 on 2,048 entries, which is the tightest of
-   the shapes measured; a chain of atomic groups or of lookarounds, which
+   while a capture was one frame and is up to three undo records, so what a
+   pattern spends per iteration is what it holds. `(a)*?b` crossed 498
+   characters on 1,000 frames and crosses 682 on 2,048 entries, the tightest
+   of the shapes measured; a chain of atomic groups or of lookarounds, which
    spent two frames a link and now spends none once each has closed, is
    bounded by the pattern rather than by this limit either way. A build that
    wants a longer subject to match, or a smaller ceiling on the memory a
@@ -225,11 +225,12 @@ typedef struct mrb_regexp_pattern {
    up is a build's to choose. A low one is not a broken build but a smaller
    ceiling on what one search may ask the allocator for, bought by refusing
    more patterns: an ordinary one holds a handful of entries whatever the
-   subject (ten groups and a backreference hold thirty-three before the first
-   repetition adds any), so a build that sets the limit that low is choosing
-   memory over the patterns it can match. The gem's own tests ask for 49,
-   which is where every pattern they take for granted matches again, and skip
-   below it (see test/backtracking_stack.rb).
+   subject (ten groups and a backreference hold twenty-two, two to a group
+   with the whole match's own pair among them, before the first repetition
+   adds any), so a build that sets the limit that low is choosing memory
+   over the patterns it can match. The gem's own tests ask for 48, which is
+   where every pattern they take for granted matches again, and skip below
+   it (see test/backtracking_stack.rb).
 
    The two limits are set apart from one another as well. Filling the stack
    costs a handful of steps an entry, so a build that turns this one up far
