@@ -11,8 +11,15 @@ def clean(output, stderr = false)
   # Fix line-ends
   output = output.gsub(/\r\n/, "\n")
 
-  # Strip out Wine messages
-
+  # Strip out Wine messages.  Wine writes its own diagnostics to the same
+  # stderr the program under test uses, and it does so on its way out, so
+  # they arrive appended to whatever the program said; a test that asks for
+  # an exact stderr fails at random when one turns up.  Taking the newline
+  # with the line keeps the rest of the text as it stood.
+  if stderr
+    output = output.gsub(/^wine client error:[0-9a-f]+:.*(?:\n|\z)/, '')
+    output = output.gsub(/^[0-9a-f]+:(?:err|warn|fixme|trace):.*(?:\n|\z)/, '')
+  end
 
   # A limit of -1 keeps the trailing empty fields, so a blank line at the end
   # of the output survives the round trip; a disassembly ends with one.
@@ -56,7 +63,7 @@ def main
 
   # Clean and print the results.
   STDOUT.write clean(output)
-  STDERR.write clean(errormsg)
+  STDERR.write clean(errormsg, true)
 
   exit(status.exitstatus)
 end
