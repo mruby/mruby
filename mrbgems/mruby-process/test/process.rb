@@ -105,8 +105,32 @@ assert('Process.kill with no process to signal') do
 end
 
 assert('Process.kill with an unknown signal name') do
-  assert_raise(ArgumentError) { Process.kill("NO_SUCH_SIGNAL", Process.pid) }
-  assert_raise(ArgumentError) { Process.kill(:NO_SUCH_SIGNAL, Process.pid) }
+  # The name is reported with the "SIG" prefix put back on, whether or not it
+  # was written with one, which is how Ruby reports it.
+  assert_raise_with_message(ArgumentError, "unsupported signal 'SIGNO_SUCH_SIGNAL'") do
+    Process.kill("NO_SUCH_SIGNAL", Process.pid)
+  end
+  assert_raise_with_message(ArgumentError, "unsupported signal 'SIGNO_SUCH_SIGNAL'") do
+    Process.kill(:NO_SUCH_SIGNAL, Process.pid)
+  end
+  assert_raise_with_message(ArgumentError, "unsupported signal 'SIGNO_SUCH'") do
+    Process.kill("SIGNO_SUCH", Process.pid)
+  end
+end
+
+assert('Process.kill with a name that is nothing but the prefix') do
+  # "SIG" loses the prefix like any longer name and leaves nothing behind, and
+  # a name that was empty to begin with reaches the same place.  Neither is an
+  # error of its own; both are reported as the signal that "SIG" alone names,
+  # which is none.
+  ["SIG", ""].each do |name|
+    assert_raise_with_message(ArgumentError, "unsupported signal 'SIG'") do
+      Process.kill(name, Process.pid)
+    end
+    assert_raise_with_message(ArgumentError, "unsupported signal 'SIG'") do
+      Process.kill(name.to_sym, Process.pid)
+    end
+  end
 end
 
 assert('Process.kill with a signal name holding a NUL') do
@@ -181,6 +205,12 @@ assert('Process::Status#==') do
   assert_operator st, :==, 0
   assert_not_operator st, :==, 1
   assert_not_operator st, :==, "0"
+end
+
+assert('Process::Status does not answer to_int') do
+  # mruby has no implicit-conversion protocol, so nothing would ever call it,
+  # and CRuby does not have the method either.
+  assert_false Process::Status.new(1234, 0).respond_to?(:to_int)
 end
 
 assert('Process::Status#to_s, #inspect') do
