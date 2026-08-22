@@ -342,6 +342,28 @@ assert 'Bigint abs' do
   assert_equal 36893488147419103232, (-n).abs
 end
 
+assert 'Bigint gcd of one limb each' do
+  # A value between 2**31 and 2**32 is a Bigint of a single limb where mrb_int
+  # is 32 bits wide, and two of them are the only way into the single-limb
+  # path of the gcd. The binary algorithm there took the larger from the
+  # smaller, and a limb being unsigned it borrowed past zero and never
+  # arrived: 3486784401.gcd(1324968986) did not return, and neither did
+  # Rational(1, 3486784401). Where mrb_int is wider these are plain integers
+  # and the rows below only say what a gcd is.
+  begin
+    edge = 3486784401
+  rescue RangeError
+    skip 'no integer this wide'
+  end
+  assert_equal 1, edge.gcd(1324968986)
+  assert_equal 3, edge.gcd(3000000000)
+  assert_equal 1, 4294967295.gcd(4294967294)
+  assert_equal 1, 2147483649.gcd(2147483648)
+  assert_equal 500000000, 3000000000.gcd(2500000000)
+  assert_equal 1000000000, 4000000000.gcd(3000000000)
+  assert_equal edge, edge.gcd(edge)
+end
+
 assert 'Bigint gcd' do
   # zero cases
   assert_equal 0, 0.gcd(0)

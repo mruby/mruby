@@ -4760,14 +4760,16 @@ limb_gcd(mp_limb a, mp_limb b)
       b >>= 1;
     }
 
-    /* Now both a and b are odd. Ensure a >= b */
-    if (a < b) {
+    /* Now both a and b are odd. Ensure a <= b, since a limb is unsigned and
+       the subtraction below has to stay one: with a the larger, b - a borrows
+       past zero and the loop never reaches it. */
+    if (a > b) {
       mp_limb temp = a;
       a = b;
       b = temp;
     }
 
-    /* Replace b with (b - a) */
+    /* Replace b with (b - a), which is even and smaller than b was */
     b = b - a;
 
   } while (b != 0);
