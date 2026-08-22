@@ -68,7 +68,7 @@ other to provide its own feature set:
 `mruby-io`'s own private spawn/wait primitives rather than by anything here.
 There is no dependency in either direction; `mrbgem.rake` names `mruby-io` only
 as a _test_ dependency, because waiting on a child process is only testable
-with a child, and `IO.popen` is how this build makes one.  `mruby-errno` is a
+with a child, and `IO.popen` is how this build makes one. `mruby-errno` is a
 test dependency for the same kind of reason: a gem's tests run in a state
 holding its dependency closure and nothing else, so naming an `Errno` class in
 an assertion means asking for the gem that defines them.
