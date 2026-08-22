@@ -8,16 +8,22 @@ DOSROOT = 'z:'
 
 # Rewrite test output to replace DOS-isms with Unix-isms.
 def clean(output, stderr = false)
-  ends_with_newline = !!(output =~ /\n$/)
-  executable = ARGV[0].gsub(/\.exe\z/i, '')
-
   # Fix line-ends
   output = output.gsub(/\r\n/, "\n")
 
-  # Strip out Wine messages
+  # Strip out Wine messages.  Wine writes its own diagnostics to the same
+  # stderr the program under test uses, and it does so on its way out, so
+  # they arrive appended to whatever the program said; a test that asks for
+  # an exact stderr fails at random when one turns up.  Taking the newline
+  # with the line keeps the rest of the text as it stood.
+  if stderr
+    output = output.gsub(/^wine client error:[0-9a-f]+:.*(?:\n|\z)/, '')
+    output = output.gsub(/^[0-9a-f]+:(?:err|warn|fixme|trace):.*(?:\n|\z)/, '')
+  end
 
-
-  results = output.split(/\n/).map do |line|
+  # A limit of -1 keeps the trailing empty fields, so a blank line at the end
+  # of the output survives the round trip; a disassembly ends with one.
+  results = output.split(/\n/, -1).map do |line|
     # Fix file paths
     if line =~ /#{DOSROOT}\\/i
       line.gsub!(/#{DOSROOT}([^:]*)/i) { |path|
@@ -27,15 +33,10 @@ def clean(output, stderr = false)
       }
     end
 
-    # strip '.exe' off the end of the executable's name if needed
-    line.gsub!(/(#{Regexp.escape executable})\.exe/i, '\1')
-
     line
   end
 
-  result_text = results.join("\n")
-  result_text += "\n" if ends_with_newline
-  result_text
+  results.join("\n")
 end
 
 
@@ -62,7 +63,7 @@ def main
 
   # Clean and print the results.
   STDOUT.write clean(output)
-  STDERR.write clean(errormsg)
+  STDERR.write clean(errormsg, true)
 
   exit(status.exitstatus)
 end
