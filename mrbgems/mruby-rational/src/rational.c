@@ -1187,38 +1187,85 @@ rational_div(mrb_state *mrb, mrb_value x)
 
 mrb_value mrb_int_pow(mrb_state *mrb, mrb_value x, mrb_value y);
 
+/* (n/d) raised to a whole number, which is exact: the numerator and the
+   denominator are raised on their own, and a negative exponent turns the
+   fraction over first. mrb_int_pow() is what Integer#** answers with, so a
+   result too large to hold ends the same way there as here. */
+static mrb_value
+rat_pow_int(mrb_state *mrb, mrb_value x, mrb_value e)
+{
+  mrb_value num = rat_numerator(mrb, x);
+  mrb_value den = rat_denominator(mrb, x);
+  mrb_bool inverse = FALSE;
+
+  if (mrb_integer_p(e)) {
+    mrb_int n = mrb_integer(e);
+    if (n == 0) return rational_new_i(mrb, 1, 1);
+    if (n < 0) {
+      /* -MRB_INT_MIN is not an mrb_int, and nothing survives being raised to
+         it anyway */
+      if (n == MRB_INT_MIN) rat_overflow(mrb);
+      inverse = TRUE;
+      e = mrb_int_value(mrb, -n);
+    }
+  }
+
+  mrb_value a = mrb_int_pow(mrb, num, e);
+  mrb_value b = mrb_int_pow(mrb, den, e);
+  if (inverse) {
+    mrb_value t = a; a = b; b = t;   /* 0 in the numerator becomes 0 below */
+  }
+#if !defined(MRB_NO_FLOAT) || defined(RAT_BIGINT)
+  return rational_new(mrb, a, b);
+#else
+  return rational_new_i(mrb, mrb_integer(a), mrb_integer(b));
+#endif
+}
+
 /*
  * call-seq:
  *   rational ** numeric -> numeric
  *
- * Returns rational raised to the power of numeric. The result is typically
- * a float unless the result can be exactly represented as a rational.
+ * Returns rational raised to the power of numeric. A whole-number exponent
+ * gives a Rational, worked out exactly; an exponent with a fraction in it
+ * gives a Float.
  *
- *   Rational(1, 2) ** 2    #=> Rational(1, 4)
- *   Rational(4, 1) ** 0.5  #=> 2.0
- *   Rational(2, 1) ** 3    #=> Rational(8, 1)
+ *   Rational(1, 2) ** 2          #=> Rational(1, 4)
+ *   Rational(3, 7) ** 3          #=> Rational(27, 343)
+ *   Rational(2, 3) ** -3         #=> Rational(27, 8)
+ *   Rational(4, 1) ** Rational(2, 1) #=> Rational(16, 1)
+ *   Rational(4, 1) ** 0.5        #=> 2.0
  */
 static mrb_value
 rational_pow(mrb_state *mrb, mrb_value x)
 {
-#ifndef MRB_NO_FLOAT
   mrb_value y = mrb_get_arg1(mrb);
+  mrb_value e = y;
+
+  /* a Rational exponent whose denominator is 1 is a whole number */
+  if (mrb_type(e) == MRB_TT_RATIONAL) {
+    mrb_value d = rat_denominator(mrb, e);
+    e = (mrb_integer_p(d) && mrb_integer(d) == 1) ? rat_numerator(mrb, e)
+                                                  : mrb_nil_value();
+  }
+  if (mrb_integer_p(e)
+#ifdef MRB_USE_BIGINT
+      || mrb_bigint_p(e)
+#endif
+      ) {
+    return rat_pow_int(mrb, x, e);
+  }
+
+#ifndef MRB_NO_FLOAT
   double d1 = rat_float(mrb, x);
   double d2 = mrb_as_float(mrb, y);
 
-  d1 = pow(d1, d2);
-  switch (mrb_type(y)) {
-  case MRB_TT_FLOAT:
-    return mrb_float_value(mrb, d1);
-  case MRB_TT_INTEGER:
-  case MRB_TT_RATIONAL:
-    return rational_new_f(mrb, d1);
-  case MRB_TT_BIGINT:
-  default:
-    return mrb_float_value(mrb, d1);
-  }
+  /* what is left is an exponent with a fraction in it, and the answer to that
+     is a Float, as it is in CRuby */
+  return mrb_float_value(mrb, pow(d1, d2));
 #else
-  mrb_raisef(mrb, E_NOTIMP_ERROR, "Rational#** not implemented with MRB_NO_FLOAT");
+  mrb_raisef(mrb, E_NOTIMP_ERROR,
+             "Rational#** with a fractional exponent needs Float");
   /* not reached */
   return mrb_nil_value();
 #endif

@@ -471,6 +471,46 @@ assert 'Rational#**' do
   end
 end
 
+assert 'Rational#** is exact for a whole exponent' do
+  # The numerator and the denominator are raised on their own rather than the
+  # quotient being handed to pow(), so the answer says what it is and there is
+  # an answer at all without a Float. Through Float, Rational(3,7) ** 3 came
+  # back as 88627689459915/1125899906842624.
+  assert_rational(Rational(1, 1), Rational(3, 7) ** 0)
+  assert_rational(Rational(3, 7), Rational(3, 7) ** 1)
+  assert_rational(Rational(9, 49), Rational(3, 7) ** 2)
+  assert_rational(Rational(27, 343), Rational(3, 7) ** 3)
+  assert_rational(Rational(1024, 59049), Rational(2, 3) ** 10)
+  assert_rational(Rational(1048576, 3486784401), Rational(2, 3) ** 20)
+
+  # a negative exponent turns the fraction over
+  assert_rational(Rational(7, 3), Rational(3, 7) ** -1)
+  assert_rational(Rational(49, 9), Rational(3, 7) ** -2)
+  assert_rational(Rational(27, 8), Rational(2, 3) ** -3)
+
+  # the sign of the numerator follows the exponent
+  assert_rational(Rational(-8, 27), Rational(-2, 3) ** 3)
+  assert_rational(Rational(4, 9), Rational(-2, 3) ** 2)
+
+  assert_rational(Rational(0, 1), Rational(0, 5) ** 3)
+  assert_rational(Rational(1, 1), Rational(0, 5) ** 0)
+  assert_raise(ZeroDivisionError) { Rational(0, 5) ** -1 }
+
+  # a Rational exponent whose denominator is 1 is a whole number too
+  assert_rational(Rational(4, 1), Rational(4, 1) ** Rational(2, 2))
+  assert_rational(Rational(16, 1), Rational(4, 1) ** Rational(4, 2))
+  assert_rational(Rational(9, 49), Rational(3, 7) ** Rational(2, 1))
+
+  # wider than an mrb_int, which is where bigint takes over
+  begin
+    wide = Rational(2, 3) ** 40
+  rescue RangeError
+    skip 'requires mruby-bigint'
+  end
+  assert_rational(Rational(1099511627776, 12157665459056928801), wide)
+  assert_rational(Rational(12157665459056928801, 1099511627776), Rational(2, 3) ** -40)
+end
+
 assert 'Integer#quo' do
   a = 6.quo(5)
   assert_equal 6/5r, a
