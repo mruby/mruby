@@ -383,6 +383,33 @@ assert("Regexp - a greedy repetition costs the backtracking engine no C stack") 
   assert_equal s, s.match(/(?:a)*(b)\1/)[0]
 end
 
+assert("Regexp - a capture costs the backtracking engine no C stack") do
+  need_backtracking_stack
+  # A capture wrote its slot and recursed, so that the frame could put back
+  # what the slot held when the branch below it failed: a repetition of a
+  # capturing group spent two frames an iteration, and `(a)*?b`, which runs
+  # its iterations in one frame otherwise, reached the limit by the length
+  # of the run. The write is logged now, and taking it back is the log
+  # unwinding to where the branch was left.
+  if Regexp::STACK_LIMIT * 8 > Regexp::STEP_LIMIT
+    skip "the stack limit stands out of the step limit's reach here"
+  end
+  n = Regexp::STACK_LIMIT / 4
+  s = "a" * n + "b"
+  md = s.match(/(a)*?b/)
+  assert_equal 0, md.begin(0)
+  assert_equal s, md[0]
+  assert_equal "a", md[1]
+  assert_equal n - 1, md.begin(1)
+end
+
+assert("Regexp - what the undo log puts back is what the branch found") do
+  # A slot goes back to what stood in it when the branch that wrote it was
+  # taken, so a group that a later branch did not enter reads as it did
+  # before rather than as the failed branch left it.
+  assert_equal [nil, "b"], "ab".match(/(?:(x)|a)(b)/).captures
+end
+
 assert("Regexp - quantified first alternative does not leak into the next") do
   # A quantifier loops back to its own atom. When the atom starts the first
   # alternative, the alternation SPLIT is inserted in front of it; the
