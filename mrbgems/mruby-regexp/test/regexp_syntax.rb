@@ -215,6 +215,51 @@ assert("Regexp - a repetition of a lookaround or a backreference stops the same 
   assert_equal "abbc", /(?:(a)b|a(b)|\2)+c/.match("abbc")[0]
 end
 
+assert("Regexp - a backreference reads no group the running iteration reopened") do
+  # A group's pair in captures[] is a span only while the group is closed:
+  # its end slot used to keep the previous iteration's end after a repetition
+  # re-entered the group, so a backreference read the running iteration's
+  # start against it: an empty span where the two coincided, and a negative
+  # one where the start was past it. CRuby reads a group that has not closed
+  # as one that has not matched, so the backreference fails and the branch
+  # holding it is not taken.
+  assert_equal ["x", "x", "x"], /((x|\2b))*/.match("xb").to_a  # was ["xb", "b", "b"]
+  assert_equal ["a", "a", "a"], /((\2|a))*/.match("a").to_a    # was ["a", "", ""]
+  # The negative span left a MatchData whose capture sat outside the match,
+  # and where the repetition had no upper bound it walked the position back
+  # as far as the iteration had come, so the loop made no progress and the
+  # search died at the recursion limit.
+  md = /(?:(.)(\2?)){2}/.match("ab")                # answered ["a", "b", nil]
+  assert_equal ["ab", "b", ""], md.to_a
+  assert_equal [0, 2, 1, 2, 2, 2],
+               [md.begin(0), md.end(0), md.begin(1), md.end(1), md.begin(2), md.end(2)]
+  assert_equal ["xx", ""], /(?:x(\1?))+/.match("xx").to_a          # raised at the limit
+  assert_equal ["abc", "c", ""], /(?:(.)(\2?))+/.match("abc").to_a # raised at the limit
+  assert_equal ["ab", "b", ""], /(?>(.)(\2?))+/.match("ab").to_a   # raised at the limit
+  assert_equal ["xX", ""], /(?:x(\1?))+/i.match("xX").to_a
+  # With text between the group's start and the backreference the two sides
+  # of the negative span part company, and the compare read past the subject
+  # (a negative length as memcmp's size).
+  assert_equal ["xyxy", "y"], /(?:x(y\1?))+/.match("xyxy").to_a
+  assert_equal ["xx", "x"], /(?<g>x(\k<g>?))+/.match("xx").to_a
+  assert_equal ["xxx", ""], /(?:x(\1{0,2}))+/.match("xxx").to_a
+  # A group that never closes is a group that never matches, so a pattern
+  # whose only path runs the backreference inside its own group has no match
+  # at all, not an empty one.
+  assert_nil /(\1)/.match("aa")
+  assert_nil /(a\1)/.match("aa")
+  assert_equal ["", nil, nil], /((\1))*/.match("a").to_a
+  # What the guard now refuses is the open group alone: a closed group that
+  # captured empty still reads, and one closed by an earlier iteration still
+  # reads from a branch that does not reopen it.
+  assert_equal ["", ""], /()\1/.match("x").to_a
+  assert_equal ["y", ""], /(x?)y\1/.match("y").to_a
+  assert_equal ["aba", "a"], /(?:(a)|b\1)+/.match("aba").to_a
+  # Backtracking out of a reopened group restores the pair, so the failed
+  # iteration leaves the previous capture readable rather than half its own.
+  assert_equal ["x", "", "x"], /((x|\2b)?)*/.match("xb").to_a
+end
+
 assert("Regexp - the backtracking engine raises at a limit rather than answer short") do
   # A frame gives up at MRB_REGEXP_RECURSION_LIMIT or MRB_REGEXP_STEP_LIMIT,
   # and the frames above it used to read that as the branch having failed and

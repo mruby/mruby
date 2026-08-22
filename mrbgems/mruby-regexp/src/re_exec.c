@@ -900,13 +900,27 @@ bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
           return BT_FAIL;
         }
         if (slot < ncap) {
+          /* An even slot opens its group, and the pair it heads is a span
+             only while the group is closed: clear the end slot with the
+             start, so that RE_BACKREF reads a group a repetition has just
+             re-entered the way it reads one never entered, instead of
+             pairing this iteration's start with the end of the one before:
+             an empty span where the two coincide, and a negative one where
+             the start is past it, which no closed group holds. CRuby
+             reads an open group as unmatched the same way (Onigmo's
+             STACK_PUSH_MEM_START invalidates the end with the start). The
+             end slot exists whenever the start does, ncap being even. */
+          mrb_bool opens = (slot & 1) == 0;
           int old = captures[slot];
+          int old_end = opens ? captures[slot + 1] : 0;
           captures[slot] = (int)(sp - str);
+          if (opens) captures[slot + 1] = -1;
           int r = bt_match(m, sp, pc + 1, depth + 1);
           if (r == BT_MATCH) return r;
           /* undone for a cut as for a failure: the group the cut fails may
              be the one this slot was written inside */
           captures[slot] = old;
+          if (opens) captures[slot + 1] = old_end;
           return r;
         }
         return BT_FAIL;
