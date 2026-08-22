@@ -2237,3 +2237,33 @@ assert("Regexp - a character class intersection is refused, not read as members"
   assert_equal "&", "&"[/[\&]/]
   assert_equal "&", "x&y"[/[\&&]/]
 end
+
+assert("Regexp - the escapes this engine does not carry are refused") do
+  # Each means something in CRuby that this engine does not do, and as an
+  # unknown escape each was simply its own letter: /\R/ matched an R rather
+  # than a newline, and /(a)\g<1>/ matched "ag<1>" rather than "aa".
+  assert_raise_with_message(RegexpError, "\\G is not supported: /\\G/") { Regexp.new("\\G") }
+  assert_raise_with_message(RegexpError, "\\K is not supported: /a\\Kb/") { Regexp.new("a\\Kb") }
+  ["\\R", "\\X", "x\\G", "\\K"].each do |src|
+    assert_raise(RegexpError, src) { Regexp.new(src) }
+  end
+  assert_raise_with_message(RegexpError,
+                            "subexpression call is not supported: /(a)\\g<1>/") do
+    Regexp.new("(a)\\g<1>")
+  end
+  ["(?<n>a)\\g<n>", "(a)\\g'1'", "\\g<0>"].each do |src|
+    assert_raise(RegexpError, src) { Regexp.new(src) }
+  end
+
+  # Inside a character class CRuby reads them as the letter, and so does this
+  assert_equal "G", "G"[/[\G]/]
+  assert_equal "R", "R"[/[\R]/]
+  assert_equal "X", "X"[/[\X]/]
+  assert_equal "g", "g"[/[\g]/]
+
+  # and a bare `\g` is the letter outside one too
+  assert_equal "g", "g"[/\g/]
+
+  # `\k<name>` is the backreference this engine does carry
+  assert_equal "aa", "aa"[/(?<n>a)\k<n>/]
+end

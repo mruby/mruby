@@ -201,6 +201,11 @@ pattern analysis.
   as well, is the letter, which is how CRuby reads them too. The POSIX
   brackets read the same data where the build carries it, so `[[:alpha:]]` is
   the way to ask for a letter of any script.
+- **No `\G`, `\K`, `\R`, `\X` or `\g<name>`**: the search-start anchor, the
+  match-start reset, the linebreak, the grapheme cluster and the subexpression
+  call all raise `RegexpError` rather than standing for their own letter.
+  Inside a character class CRuby reads each as the letter, and so does this;
+  a bare `\g` is the letter either way.
 - **No character class intersection**: `[a&&b]` narrows a class to what both
   sides hold in CRuby, and raises `RegexpError` here. A lone `&` is a member
   of the class, as it is in CRuby, and so is an escaped one: `[\&&]` holds

@@ -1818,6 +1818,24 @@ compile_atom(re_compiler *c)
       emit(c, RE_BACKREF, (uint8_t)group, (c->flags & RE_FLAG_IGNORECASE) ? 1 : 0);
       c->has_backref = TRUE;
     }
+    else if (ch == 'g' && c->p + 1 < c->src_end &&
+             (c->p[1] == '<' || c->p[1] == '\'')) {
+      /* `\g<name>` calls a group's sub-pattern again, which this engine does
+         not do. Left to the fall-through it was the letter `g` and the name
+         was literal text, so /(a)\g<1>/ matched "ag<1>" rather than "aa".
+         A bare `\g` is the letter in CRuby too, and stays one. */
+      compile_error(c, "subexpression call is not supported");
+    }
+    else if (ch == 'G' || ch == 'K' || ch == 'R' || ch == 'X') {
+      /* Each of these means something in CRuby that this engine does not do:
+         `\G` anchors at where the search began, `\K` drops what was matched
+         before it, `\R` is any linebreak and `\X` is a whole grapheme
+         cluster. Left to the fall-through each was simply its own letter, so
+         /\R/ matched an R rather than a newline. Inside a character class
+         CRuby reads them as the letter too, which is what the class parser
+         already does, so only the escape outside one is refused here. */
+      compile_error_str(c, mrb_format(c->mrb, "\\\\%c is not supported", (char)ch));
+    }
     else if ((ch == 'p' || ch == 'P') && c->p + 1 < c->src_end && c->p[1] == '{') {
       /* The engine reads no character property. Without this the escape is
          the letter it names and the braces are literal too, so /\p{Alpha}/
