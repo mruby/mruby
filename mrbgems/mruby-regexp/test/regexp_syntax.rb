@@ -2305,3 +2305,43 @@ assert("Regexp - a '[' inside a class opens something, and is refused when it ca
   # a '[' with nothing after it leaves the class unterminated
   assert_raise(RegexpError) { Regexp.new("[a[") }
 end
+
+assert("Regexp - a control escape names the same character however it is written") do
+  # A regexp literal reaches the engine with `\cA` already turned into its
+  # byte by the lexer, so only Regexp.new() with a written-out backslash asks
+  # the engine to read one. It used to read the letters instead, and the same
+  # pattern then meant two different things depending on how it was spelled.
+  assert_equal "\cA", "\cA"[Regexp.new("\\cA")]
+  assert_equal "\cA", "\cA"[Regexp.new("\\C-A")]
+  assert_equal "\cA", "\cA"[/\cA/]
+  assert_equal "\cA", "\cA"[/\C-A/]
+
+  # the mask is the lexer's, so every X agrees with the string of the same name
+  assert_equal "\c@", "\c@"[Regexp.new("\\c@")]
+  assert_equal "\cz", "\cz"[Regexp.new("\\cz")]
+  assert_equal "\c-", "\c-"[Regexp.new("\\c-")]
+  # `?` is the one X that is not X & 0x1f, in the lexer and so here
+  assert_equal "\c?", "\c?"[Regexp.new("\\c?")]
+  assert_equal 127, "\c?".bytes[0]
+  # a backslash in the X position opens an escape of its own
+  assert_equal "\c\n", "\c\n"[Regexp.new("\\c\\n")]
+
+  # inside a class, as a member and as the end of a range
+  assert_equal "\cA", "\cA"[Regexp.new("[\\cA]")]
+  assert_equal "\cB", "\cB"[Regexp.new("[\\cA-\\cC]")]
+  assert_nil "\cD"[Regexp.new("[\\cA-\\cC]")]
+
+  # what ends early is refused rather than read as the letter
+  ["\\c", "\\C", "\\CA", "[\\C]"].each do |src|
+    assert_raise(RegexpError, src) { Regexp.new(src) }
+  end
+
+  # `\M-X` sets the high bit, making a byte that starts no character, and
+  # there is no encoding here to read one against
+  assert_raise_with_message(RegexpError, "meta escape is not supported: /\\M-a/") do
+    Regexp.new("\\M-a")
+  end
+  ["\\M", "[\\M]", "[\\M-a]", "\\M-\\C-a"].each do |src|
+    assert_raise(RegexpError, src) { Regexp.new(src) }
+  end
+end

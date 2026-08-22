@@ -585,12 +585,50 @@ hex_value(int ch)
   return -1;
 }
 
+static int parse_escape(re_compiler *c);
+
+/* Read the character a control escape names and return the control character
+   it stands for. `\cX` and `\C-X` name the same one, and a `\` in the X
+   position opens an escape of its own, so `\c\n` is a control newline.
+
+   The mask is the one this build's own lexer uses for a string, which is what
+   a regexp literal is read by: /\cA/ reaches the engine as the byte already.
+   Only Regexp.new() with a written-out backslash arrives here, and the two
+   spellings have to name the same character. That settles `\c?`, where CRuby
+   disagrees with itself: its lexer answers DEL and Onig answers 0x1f, so
+   /\c?/ and Regexp.new("\\c?") are two different patterns there. Following
+   the lexer keeps the pair together here. */
+static int
+parse_control_escape(re_compiler *c)
+{
+  int ch = next_char(c);
+
+  if (ch < 0) compile_error(c, "too short control escape");
+  if (ch == '\\') ch = parse_escape(c);
+  if (ch == '?') return 0x7f;
+  return ch & 0x1f;
+}
+
 static int
 parse_escape(re_compiler *c)
 {
   int ch = next_char(c);
   if (ch < 0) compile_error(c, "trailing backslash");
   switch (ch) {
+  case 'c':
+    return parse_control_escape(c);
+  case 'C':
+    /* Only the `\C-X` spelling names a control character; a `\C` with
+       anything else after it is the escape ending early, as it is to CRuby. */
+    if (peek(c) != '-') compile_error(c, "too short control escape");
+    next_char(c);
+    return parse_control_escape(c);
+  case 'M':
+    /* `\M-X` sets the high bit, making a byte that starts no character. This
+       engine has no encoding to read one against (see README.md), and CRuby
+       refuses the escape in a pattern that is not binary, so it is refused
+       rather than answered with a byte nothing matches. */
+    compile_error(c, "meta escape is not supported");
   case 'n': return '\n';
   case 't': return '\t';
   case 'r': return '\r';

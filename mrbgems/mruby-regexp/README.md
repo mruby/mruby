@@ -50,6 +50,8 @@ simulation) with backtracking fallback.
   and a backreference after them, `\0NN` is always octal; `\8` and `\9`
   that spell no backreference are the digits themselves
 - `\xHH` hex, one or two digits; `\x` with no digit raises `RegexpError`
+- `\cX`, `\C-X` control characters, where a `\` in the X position opens an
+  escape of its own (`\c\n`). `\c?` is DEL, as it is in a String
 - `\uXXXX` Unicode codepoint, exactly four hex digits
 - `\u{...}` Unicode codepoints, one to six hex digits each, several of
   them separated by spaces: `/\u{61 62}/` is `ab`
@@ -201,6 +203,9 @@ pattern analysis.
   as well, is the letter, which is how CRuby reads them too. The POSIX
   brackets read the same data where the build carries it, so `[[:alpha:]]` is
   the way to ask for a letter of any script.
+- **No `\M-X` meta escape**: it sets the high bit, making a byte that starts
+  no character, and there is no encoding here to read one against. It raises
+  `RegexpError`, as it does in CRuby for a pattern that is not binary.
 - **A `[` inside a class opens something**: as in CRuby it never stands for
   itself, and what it opens is read here only when it is a POSIX bracket.
   A collating element (`[[.a.]]`), an equivalence class (`[[=a=]]`) and a
