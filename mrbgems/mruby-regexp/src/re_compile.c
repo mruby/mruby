@@ -880,6 +880,33 @@ read_class_atom(re_compiler *c, re_charclass *cc, mrb_bool *is_byte, mrb_bool cl
 }
 
 /* Parse [...] character class */
+/* Whether `\X` at `src` is one of the shorthand classes the class parser
+   folds in whole. Each names a set rather than a character. */
+static mrb_bool
+at_shorthand_class(const char *src, const char *end)
+{
+  if (*src != '\\' || src + 1 >= end) return FALSE;
+  switch (src[1]) {
+  case 'd': case 'D': case 'w': case 'W':
+  case 's': case 'S': case 'h': case 'H':
+    return TRUE;
+  default:
+    return FALSE;
+  }
+}
+
+/* A shorthand and a POSIX bracket each name a set, so neither can be an end
+   of a range. Called where one has just been folded in: a '-' after it opens
+   a range this class cannot have, and CRuby reports that '-' rather than
+   reading it as a member. A '-' just before the ']' is a member in both. */
+static void
+reject_set_as_range_start(re_compiler *c)
+{
+  if (peek(c) == '-' && c->p + 1 < c->src_end && c->p[1] != ']') {
+    compile_error(c, "unmatched range specifier in char-class");
+  }
+}
+
 static void
 compile_charclass(re_compiler *c)
 {
@@ -965,6 +992,7 @@ compile_charclass(re_compiler *c)
 #else
         if (neg) dst->utf8_any = TRUE;
 #endif
+        reject_set_as_range_start(c);
         continue;
       }
       /* The '[' opened a bracket, so a name that does not close is the
@@ -996,6 +1024,7 @@ compile_charclass(re_compiler *c)
         next_char(c);  /* '\\' */
         next_char(c);  /* spec  */
         class_add_shorthand((esc == 'w' || esc == 'W') ? &ascii_set : cc, esc);
+        reject_set_as_range_start(c);
         continue;
       }
     }
@@ -1006,6 +1035,13 @@ compile_charclass(re_compiler *c)
     /* check for range a-z (or U+xxxx-U+yyyy) */
     if (peek(c) == '-' && c->p + 1 < c->src_end && c->p[1] != ']') {
       next_char(c);  /* skip '-' */
+      /* A set cannot close a range either. Read as a character `\d` is the
+         letter, so [a-\d] was [a-d], a class of four letters rather than the
+         error CRuby reports. A POSIX bracket in that place is caught by the
+         backwards-range check below, since its '[' sorts under every letter. */
+      if (at_shorthand_class(c->p, c->src_end)) {
+        compile_error(c, "char-class value at end of range");
+      }
       mrb_bool hi_byte;
       uint32_t hi = read_class_atom(c, cc, &hi_byte, TRUE);
       /* An endpoint at or above 128 is a byte or a character, and a span from

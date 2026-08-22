@@ -203,6 +203,10 @@ pattern analysis.
   as well, is the letter, which is how CRuby reads them too. The POSIX
   brackets read the same data where the build carries it, so `[[:alpha:]]` is
   the way to ask for a letter of any script.
+- **A set is not an end of a range**: a shorthand (`\d`, `\w`, ...) and a
+  POSIX bracket each name a set rather than a character, so `[a-\d]` and
+  `[\d-z]` raise `RegexpError` as they do in CRuby. A `-` at either edge of
+  the class is still a member: `[\d-]` holds the digits and the dash.
 - **No `\M-X` meta escape**: it sets the high bit, making a byte that starts
   no character, and there is no encoding here to read one against. It raises
   `RegexpError`, as it does in CRuby for a pattern that is not binary.

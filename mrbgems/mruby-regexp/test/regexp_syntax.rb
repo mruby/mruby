@@ -2345,3 +2345,40 @@ assert("Regexp - a control escape names the same character however it is written
     assert_raise(RegexpError, src) { Regexp.new(src) }
   end
 end
+
+assert("Regexp - a set cannot be an end of a range in a class") do
+  # A shorthand and a POSIX bracket each name a set rather than a character,
+  # so neither can open or close a range. Read as characters the class held
+  # something else entirely: [a-\d] was [a-d], four letters, and [\d-z] was
+  # the digits plus `-` plus z.
+  assert_raise_with_message(RegexpError,
+                            "char-class value at end of range: /[a-\\d]/") do
+    Regexp.new("[a-\\d]")
+  end
+  assert_raise_with_message(RegexpError,
+                            "unmatched range specifier in char-class: /[\\d-z]/") do
+    Regexp.new("[\\d-z]")
+  end
+  ["[a-\\w]", "[a-\\D]", "[\\w-z]", "[\\s-z]", "[\\D-z]", "[\\d-\\w]",
+   "[a\\d-z]", "[[:digit:]-z]", "[[:alpha:]-[:digit:]]",
+   "[a-[:digit:]]"].each do |src|
+    assert_raise(RegexpError, src) { Regexp.new(src) }
+  end
+
+  # A '-' at either edge is a member, so these still read as they did.
+  # Counted with a plain loop: this gem's tests run without mruby-enum-ext.
+  members = lambda do |src|
+    re = Regexp.new(src)
+    n = 0
+    i = 0x20
+    while i <= 0x7e
+      n += 1 if re.match(i.chr)
+      i += 1
+    end
+    n
+  end
+  assert_equal 11, members.call("[-\\d]")
+  assert_equal 11, members.call("[\\d-]")
+  assert_equal 10, members.call("[\\d]")
+  assert_equal 26, members.call("[a-z]")
+end
