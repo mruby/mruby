@@ -1787,6 +1787,17 @@ mrb_task_proc_set(mrb_state *mrb, mrb_value task, struct RProc *proc)
 
   struct mrb_context *c = &t->c;
 
+  /* Follow the alias chain to the actual target proc, just like
+   * mrb_proc_arity() and mrb_proc_eql() do. body.irep holds an mrb_sym
+   * on an alias proc and a C function on a cfunc proc, so reading it
+   * there is invalid. Furthermore, CI_PROC_SET refuses alias procs.
+   * Thus, resolve the alias before sizing and installing the proc. */
+  const struct RProc *rp = proc;
+  while (rp && MRB_PROC_ALIAS_P(rp)) {
+    rp = rp->upper;
+  }
+  const mrb_irep *irep = (rp && !MRB_PROC_CFUNC_P(rp)) ? rp->body.irep : NULL;
+
   /* Grow the task's stack to fit the proc being set. The proc is installed
    * on the task's current frame, so the room that matters is above
    * ci->stack, not the total capacity: a task preempted mid-call-chain
@@ -1797,8 +1808,8 @@ mrb_task_proc_set(mrb_state *mrb, mrb_value task, struct RProc *proc)
    * MRB_ENSURE: the extend allocates, and an allocation that fails raises,
    * which would otherwise leave mrb->c on the task's context for whatever
    * runs next. */
-  if (c->stbase && c->ci && !MRB_PROC_CFUNC_P(proc) && proc->body.irep) {
-    mrb_int need = (mrb_int)proc->body.irep->nregs;
+  if (irep && c->stbase && c->ci) {
+    mrb_int need = (mrb_int)irep->nregs;
     if (!c->ci->stack || c->ci->stack + need > c->stend) {
       struct task_stack_grow_ctx ctx = { need, mrb->c };
       mrb_value result;
@@ -1813,16 +1824,18 @@ mrb_task_proc_set(mrb_state *mrb, mrb_value task, struct RProc *proc)
     }
   }
 
-  /* Handle environment resize if needed */
-  if (t->c.cibase && t->c.cibase->u.env) {
+  /* Handle environment resize if needed. Widening is only valid for an
+   * env still backed by the task's stack. A heap env owns exactly
+   * MRB_ENV_LEN slots. */
+  if (irep && t->c.cibase && t->c.cibase->u.env) {
     struct REnv *e = mrb_vm_ci_env(t->c.cibase);
-    if (e && MRB_ENV_LEN(e) < proc->body.irep->nlocals) {
-      MRB_ENV_SET_LEN(e, proc->body.irep->nlocals);
+    if (e && MRB_ENV_ONSTACK_P(e) && MRB_ENV_LEN(e) < irep->nlocals) {
+      MRB_ENV_SET_LEN(e, irep->nlocals);
     }
   }
 
   if (t->c.ci) {
-    mrb_vm_ci_proc_set(t->c.ci, proc);
+    mrb_vm_ci_proc_set(t->c.ci, rp);
   }
 }
 
