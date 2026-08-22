@@ -410,6 +410,35 @@ assert("Regexp - what the undo log puts back is what the branch found") do
   assert_equal [nil, "b"], "ab".match(/(?:(x)|a)(b)/).captures
 end
 
+assert("Regexp - what a start position records is not read by the next one") do
+  need_backtracking_stack
+  # Where the running iteration of an empty-matchable repetition began is
+  # recorded on the undo log, which a match does not unwind and a failure
+  # unwinds only as far as the branch it goes back to. A start position that
+  # has failed must leave none of it behind: the first iteration of an `e+`
+  # reads the record without having written it, and one left at the offset
+  # the next start position reaches would stop that repetition before it had
+  # gone round, which shows up as a capture the answer should not hold rather
+  # than as a crash. The search from a later position therefore has to answer
+  # what the same search over the tail alone answers.
+  ["(?:(a)|)+b", "(?:(a)|)+?b", "(?:(a)|)*b\\1", "((?:a|)+)b\\1",
+   "(?:(a*))+?b\\1", "(?:(?>a*)(b|))+?c"].each do |src|
+    re = Regexp.new(src)
+    ["ab", "aab", "b", "abb"].each do |tail|
+      # a head the patterns cannot reach into, so that the leftmost match of
+      # the whole is the tail's own
+      %w[x xx xyx].each do |head|
+        md = (head + tail).match(re)
+        want = tail.match(re)
+        if want
+          assert_equal want[0], md && md[0], "#{src} on #{head + tail}"
+          assert_equal want.captures, md && md.captures, "#{src} on #{head + tail}"
+        end
+      end
+    end
+  end
+end
+
 assert("Regexp - quantified first alternative does not leak into the next") do
   # A quantifier loops back to its own atom. When the atom starts the first
   # alternative, the alternation SPLIT is inserted in front of it; the
