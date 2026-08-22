@@ -8,15 +8,15 @@ DOSROOT = 'z:'
 
 # Rewrite test output to replace DOS-isms with Unix-isms.
 def clean(output, stderr = false)
-  ends_with_newline = !!(output =~ /\n$/)
-
   # Fix line-ends
   output = output.gsub(/\r\n/, "\n")
 
   # Strip out Wine messages
 
 
-  results = output.split(/\n/).map do |line|
+  # A limit of -1 keeps the trailing empty fields, so a blank line at the end
+  # of the output survives the round trip; a disassembly ends with one.
+  results = output.split(/\n/, -1).map do |line|
     # Fix file paths
     if line =~ /#{DOSROOT}\\/i
       line.gsub!(/#{DOSROOT}([^:]*)/i) { |path|
@@ -29,9 +29,7 @@ def clean(output, stderr = false)
     line
   end
 
-  result_text = results.join("\n")
-  result_text += "\n" if ends_with_newline
-  result_text
+  results.join("\n")
 end
 
 
