@@ -190,7 +190,10 @@ stack_extend_alloc(mrb_state *mrb, mrb_int room)
   mrb_value *oldbase = mrb->c->stbase;
   size_t oldsize = mrb->c->stend - mrb->c->stbase;
   size_t size = oldsize;
-  size_t off = mrb->c->ci->stack ? mrb->c->stend - mrb->c->ci->stack : 0;
+  /* ci->stack can sit past stend when an embedder enters the VM with an
+     undersized stack, since cipush places the frame before the stack is
+     extended. The base size must cover the frame offset. */
+  size_t off = mrb->c->ci->stack ? mrb->c->ci->stack - oldbase : 0;
 
   if (off > size) size = off;
 #ifdef MRB_STACK_EXTEND_DOUBLING
