@@ -19,3 +19,24 @@ if Object.const_defined?(:TaskTest) && TaskTest.respond_to?(:proc_set_stack)
     assert_true slots >= nregs, "task stack (#{slots}) must cover replacement proc nregs (#{nregs})"
   end
 end
+
+# Regression: an undersized context puts ci->stack past stend, which is the
+# state above before #7279 and the one an embedder reaches by entering the VM
+# the same way. stack_extend_alloc() reads its size floor as the frame's
+# offset from the bottom of the stack; read as the room above the frame the
+# unsigned subtraction wrapped, the growth math asked for a stack no allocator
+# could give, and the extend raised NoMemoryError rather than growing.
+if Object.const_defined?(:TaskTest) && TaskTest.respond_to?(:extend_past_stend)
+  assert('mruby-task: the VM stack grows for a frame that sits past its top') do
+    over = 8
+    size = TaskTest.extend_past_stend(Proc.new { }, over, 4)
+    # `assert_not_nil` records a failure without leaving the block, so the
+    # size is only compared when there is one; otherwise the miss reads as a
+    # NoMethodError on nil rather than as the assertion that failed.
+    assert_not_nil size, "the extend raised instead of growing the stack"
+    if size
+      assert_true size > over,
+                  "new stack (#{size}) must reach the frame at #{over} past the old top"
+    end
+  end
+end

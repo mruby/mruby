@@ -4,6 +4,7 @@
 #include <mruby/proc.h>
 #include <mruby/data.h>
 #include <mruby/array.h>
+#include <mruby/error.h>
 #include "task.h"
 
 /* Burn CPU until `ms` milliseconds of CPU time have elapsed, then raise.
@@ -157,6 +158,59 @@ tasktest_proc_set_stack(mrb_state *mrb, mrb_value self)
   return mrb_ary_new_from_values(mrb, 2, r);
 }
 
+struct extend_probe {
+  struct mrb_context *c;
+  mrb_int room;
+};
+
+static mrb_value
+extend_probe_body(mrb_state *mrb, void *ud)
+{
+  struct extend_probe *a = (struct extend_probe*)ud;
+  mrb_stack_extend(mrb, a->room);
+  return mrb_fixnum_value((mrb_int)(a->c->stend - a->c->stbase));
+}
+
+/* Regression for the frame-offset floor in stack_extend_alloc(): a context
+   whose ci->stack sits past stend has to grow all the same. That is what an
+   undersized context looks like from inside the VM, and is the state this
+   gem reached before #7279, since cipush places a frame before the stack is
+   extended. Reading the floor as `stend - ci->stack` rather than
+   `ci->stack - stbase` made the unsigned subtraction wrap, and the growth
+   math then asked for a stack no allocator could give: NoMemoryError instead
+   of a bigger one.
+
+   A task's own context is the probe, so the running VM's stack is never the
+   one moved. Returns the stack size after the extend, or nil where it
+   raised. */
+static mrb_value
+tasktest_extend_past_stend(mrb_state *mrb, mrb_value self)
+{
+  mrb_value blk;
+  mrb_int over, room;
+  mrb_get_args(mrb, "oii", &blk, &over, &room);
+
+  mrb_value task = mrb_create_task(mrb, mrb_proc_ptr(blk), mrb_nil_value(),
+                                   mrb_nil_value(), mrb_obj_value(mrb->top_self));
+  mrb_task *t = (mrb_task*)DATA_PTR(task);
+
+  t->c.ci->stack = t->c.stend + over;
+
+  struct extend_probe probe;
+  probe.c = &t->c;
+  probe.room = room;
+
+  struct mrb_context *saved = mrb->c;
+  mrb_bool err = FALSE;
+  mrb->c = &t->c;
+  mrb_value size = mrb_protect_error(mrb, extend_probe_body, &probe, &err);
+  mrb->c = saved;
+
+  /* Never run the probe task; its context was deliberately made incoherent. */
+  mrb_terminate_task(mrb, task);
+  return err ? mrb_nil_value() : size;
+}
+
 void
 mrb_mruby_task_gem_test(mrb_state* mrb)
 {
@@ -170,4 +224,5 @@ mrb_mruby_task_gem_test(mrb_state* mrb)
   mrb_define_module_function(mrb, tasktest, "reinit_context", tasktest_reinit_context, MRB_ARGS_REQ(1) | MRB_ARGS_BLOCK());
   mrb_define_module_function(mrb, tasktest, "run_sync", tasktest_run_sync, MRB_ARGS_BLOCK());
   mrb_define_module_function(mrb, tasktest, "proc_set_stack", tasktest_proc_set_stack, MRB_ARGS_REQ(2));
+  mrb_define_module_function(mrb, tasktest, "extend_past_stend", tasktest_extend_past_stend, MRB_ARGS_REQ(3));
 }
