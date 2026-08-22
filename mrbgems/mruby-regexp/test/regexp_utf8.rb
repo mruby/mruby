@@ -86,6 +86,7 @@ assert("Regexp - /i does not read a byte above 127 as a character") do
 end
 
 assert("Regexp - a backreference under /i folds a byte-indexed subject by ASCII") do
+  need_backtracking_stack
   # A byte-indexed subject hands the folded comparison bytes, and a byte above
   # 127 is not the codepoint of the same value: 0xC0 is not U+00C0. The
   # comparison folded it as if it were, so a build with the Unicode table

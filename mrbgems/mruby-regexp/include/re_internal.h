@@ -173,19 +173,95 @@ typedef struct mrb_regexp_pattern {
 #define MRB_REGEXP_STEP_LIMIT 1000000
 #endif
 
-/* Recursion-depth limit for bt_match, which recurses at every fork and
-   every capture: bounds C stack growth on a long subject or a deep pattern. */
-#ifndef MRB_REGEXP_RECURSION_LIMIT
-#define MRB_REGEXP_RECURSION_LIMIT 1000
+/* How tall the backtracking engine's stack may stand in one search: the
+   choice points it has not tried yet and the writes it has not taken back,
+   counted together (see bt_room() in re_exec.c). That stack is on the heap,
+   so a search spends a constant amount of C stack however long the subject
+   is, and what this bounds is what it holds instead. Where
+   MRB_REGEXP_STEP_LIMIT bounds the work one search may do, this bounds the
+   state it may hold while doing it.
+
+   What it counts is live entries, not bytes. The two arrays behind them grow
+   geometrically and keep their capacity for the rest of the search, so a
+   search that fills one, backtracks, and then fills the other holds both
+   high-water marks at once. Neither array is grown past this limit, though
+   (see bt_push()), so the memory one search may ask for is bounded by it:
+   at most this many entries in each array, an entry being 32 and 16 bytes
+   on a 64-bit ABI and 24 and 8 on a 32-bit one, so 96 KiB together at the
+   default on a 64-bit build and 64 KiB on a 32-bit one. The capture slots
+   and the iteration records (see backtrack_exec()) are sized by the pattern
+   and lie outside it.
+
+   The default is where the state moving off the C stack costs no pattern the
+   subject it used to match, and no higher: moving it is one change and
+   letting a search hold more of it is another, and a default above this one
+   would make the second silently. The old limit allowed 1,000 C frames, and
+   a frame is not an entry: a fork was one frame and is one choice point,
+   while a capture was one frame and is three undo records, so what a pattern
+   spends per iteration is what it holds. `(a)*?b` crossed 498 characters on
+   1,000 frames and crosses 681 on 2,048 entries, which is the tightest of
+   the shapes measured; a chain of atomic groups or of lookarounds, which
+   spent two frames a link and now spends none once each has closed, is
+   bounded by the pattern rather than by this limit either way. A build that
+   wants a longer subject to match, or a smaller ceiling on the memory a
+   search may ask for, sets it. */
+#ifdef MRB_REGEXP_RECURSION_LIMIT
+/* The engine no longer recurses per fork, so nothing counts C frames any more
+   and this knob is gone. Its replacement counts entries on a heap stack, and
+   the two measure different things: a value chosen for the old one does not
+   carry over, and a build that means to keep a restriction has to choose a
+   new one rather than have this header guess. */
+#error MRB_REGEXP_RECURSION_LIMIT was replaced by MRB_REGEXP_STACK_LIMIT
+#endif
+#ifndef MRB_REGEXP_STACK_LIMIT
+#define MRB_REGEXP_STACK_LIMIT 2048
 #endif
 
-/* What a search answers when the backtracking engine gave up at one of the
-   two limits before it had an answer (see mrb_re_exec()). The caller raises
-   on it: what the search had found by then is not a shorter or a later
-   match, and reading it as one was the defect. Which of the two it was
-   names the knob to turn. */
-#define RE_OVER_RECURSION_LIMIT (-1)
+/* What a build may set it to. Outside this it bounds nothing.
+
+   The floor is what the engine itself asks: at 0 no search could hold a
+   single entry and every pattern that reaches this engine would answer
+   RegexpError, which is a limit that has stopped being one. Any value from 1
+   up is a build's to choose. A low one is not a broken build but a smaller
+   ceiling on what one search may ask the allocator for, bought by refusing
+   more patterns: an ordinary one holds a handful of entries whatever the
+   subject (ten groups and a backreference hold thirty-three before the first
+   repetition adds any), so a build that sets the limit that low is choosing
+   memory over the patterns it can match. The gem's own tests ask for 49,
+   which is where every pattern they take for granted matches again, and skip
+   below it (see test/backtracking_stack.rb).
+
+   The two limits are set apart from one another as well. Filling the stack
+   costs a handful of steps an entry, so a build that turns this one up far
+   enough puts it out of MRB_REGEXP_STEP_LIMIT's reach: a search that was to
+   stop here stops there instead. Nothing in the engine reads that as an
+   error, the two limits being answers to different questions, but the tests
+   that pin this one size their subjects from it and are skipped there.
+
+   Above the ceiling the arithmetic that sizes the arrays stops holding: a
+   capacity is doubled in 32 bits and multiplied by an entry's width to ask
+   the allocator for bytes, which is 32 bits wide too on a 32-bit ABI, and a
+   limit this high has in any case stopped being one, the two arrays at it
+   standing at hundreds of megabytes.
+
+   A negative value is refused here rather than read as no limit at all: the
+   count it is compared against is unsigned (see bt_room() in re_exec.c), so
+   -1 would stand for the largest ceiling there is. */
+#if MRB_REGEXP_STACK_LIMIT < 1 || MRB_REGEXP_STACK_LIMIT > (1 << 24)
+#error MRB_REGEXP_STACK_LIMIT must stand between 1 and 16777216
+#endif
+
+/* What a search answers when the backtracking engine stopped before it had
+   an answer (see mrb_re_exec()). The caller raises on it: what the search had
+   found by then is not a shorter or a later match, and reading it as one was
+   the defect. Which one it was names what to do about it: a limit names the
+   knob to turn, where RE_NOMEM says the allocator refused and no knob will
+   help. Turning MRB_REGEXP_STACK_LIMIT up in answer to a refused allocation
+   would make the memory it failed to find scarcer still, so the two are kept
+   apart all the way out of the engine. */
+#define RE_OVER_STACK_LIMIT (-1)
 #define RE_OVER_STEP_LIMIT (-2)
+#define RE_NOMEM (-3)
 
 /* Maximum captures */
 #define RE_MAX_CAPTURES 32
