@@ -208,7 +208,7 @@ end
 assert('a directory as the program file is refused') do
   # Only POSIX systems open a directory for reading; Windows refuses it at
   # fopen() and reports that instead.
-  skip 'fopen() refuses a directory' if /mswin(?!ce)|mingw|bccwin/ =~ RbConfig::CONFIG['host_os']
+  skip 'fopen() refuses a directory' if target_win?
   # A directory opens for reading and then fails every read, and the loader
   # answers nil for that without raising, so without a check it ran as an
   # empty program: no output, no diagnostic, exit 0.
@@ -218,7 +218,7 @@ assert('a directory as the program file is refused') do
 end
 
 assert('a directory as a library file is refused') do
-  skip 'fopen() refuses a directory' if /mswin(?!ce)|mingw|bccwin/ =~ RbConfig::CONFIG['host_os']
+  skip 'fopen() refuses a directory' if target_win?
   # -r took the same swallowed read, and went on to run the program.
   Dir.mktmpdir do |dir|
     assert_mruby("", /Cannot read library file/, false, ["-r", dir, "-e", "puts 1"])

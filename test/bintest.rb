@@ -15,6 +15,13 @@ def exe_ext
   ENV['EXECUTABLE_EXT'] || (host_win? ? ".exe" : "")
 end
 
+# Which platform the binaries under test run on.  A test that turns on the
+# platform has to ask this and not the host: under an emulator the two differ,
+# and it is the binary that meets the directory or the '/dev' entry.
+def target_win?
+  exe_ext == ".exe"
+end
+
 # MRBCFILE is a whole path the build hands over, extension and all, and the
 # build that produced it need not be this one: a cross build can borrow the
 # host's `mrbc`.  Only the names spelled out here take this build's suffix.
