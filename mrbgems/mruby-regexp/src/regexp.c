@@ -369,17 +369,25 @@ match_operand(mrb_state *mrb, mrb_value obj)
   return mrb_ensure_string_type(mrb, obj);
 }
 
-/* Raise if the search answered RE_OVER_*_LIMIT (see mrb_re_exec()): it gave
-   up at a limit, and what it had found by then is not a shorter or a later
-   match, so the caller raises rather than read it as one. Every caller holds
-   its capture buffer on the stack, so the raise strands nothing. */
+/* Raise if the search stopped before it had an answer (see mrb_re_exec()):
+   what it had found by then is not a shorter or a later match, so the caller
+   raises rather than read it as one. Every caller holds its capture buffer on
+   the stack, so the raise strands nothing.
+
+   A limit and a refused allocation raise different classes, since what they
+   ask of the program differs: a build answers a limit by turning the knob the
+   message names, where turning MRB_REGEXP_STACK_LIMIT up in answer to an
+   allocator with nothing left would only let the next search ask for more.
+   NoMemoryError is thrown by the object mruby keeps for it, so the raise
+   itself asks for nothing. */
 static void
-re_check_over_limit(mrb_state *mrb, int n)
+re_check_exec_error(mrb_state *mrb, int n)
 {
   if (n >= 0) return;
+  if (n == RE_NOMEM) mrb_raise_nomemory(mrb);
   mrb_raise(mrb, E_REGEXP_ERROR, n == RE_OVER_STEP_LIMIT
             ? "step limit over (MRB_REGEXP_STEP_LIMIT)"
-            : "recursion limit over (MRB_REGEXP_RECURSION_LIMIT)");
+            : "stack limit over (MRB_REGEXP_STACK_LIMIT)");
 }
 
 /* Internal: execute match and create MatchData.
@@ -396,7 +404,7 @@ exec_match(mrb_state *mrb, mrb_value self, mrb_value str, mrb_int pos)
   memset(captures, -1, sizeof(int) * cap_size);
   int ncap = mrb_re_exec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), pos,
                      captures, cap_size, re_binary_string_p(str));
-  re_check_over_limit(mrb, ncap);
+  re_check_exec_error(mrb, ncap);
 
   if (ncap == 0) {
     clear_match_globals(mrb);
@@ -579,7 +587,7 @@ regexp_s_byte_rsearch(mrb_state *mrb, mrb_value klass)
   int captures[RE_MAX_CAPTURES * 2];
   int ncap = mrb_re_rexec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), limit,
                           captures, cap_size, re_binary_string_p(str));
-  re_check_over_limit(mrb, ncap);
+  re_check_exec_error(mrb, ncap);
   if (ncap == 0) {
     clear_match_globals(mrb);
     return mrb_nil_value();
@@ -604,7 +612,7 @@ exec_match_p(mrb_state *mrb, mrb_value re, mrb_value str, mrb_int pos)
 
   int ncap = mrb_re_exec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), pos, NULL, 0,
                          re_binary_string_p(str));
-  re_check_over_limit(mrb, ncap);
+  re_check_exec_error(mrb, ncap);
   return mrb_bool_value(ncap > 0);
 }
 
@@ -1470,7 +1478,7 @@ regexp_s_gsub_str(mrb_state *mrb, mrb_value klass)
   while (pos <= slen) {
     memset(captures, -1, sizeof(int) * cap_size);
     int n = mrb_re_exec(mrb, pat, s, slen, pos, captures, cap_size, binary);
-    re_check_over_limit(mrb, n);
+    re_check_exec_error(mrb, n);
     if (n == 0) break;
 
     /* save last match for $~ */
@@ -1553,7 +1561,7 @@ regexp_s_sub_str(mrb_state *mrb, mrb_value klass)
   memset(captures, -1, sizeof(int) * cap_size);
 
   int n = mrb_re_exec(mrb, pat, s, slen, 0, captures, cap_size, re_binary_string_p(str));
-  re_check_over_limit(mrb, n);
+  re_check_exec_error(mrb, n);
   if (n == 0) {
     clear_match_globals(mrb);
     return mrb_str_dup(mrb, str);
@@ -1827,7 +1835,7 @@ regexp_s_gsub_block(mrb_state *mrb, mrb_value klass)
   while (pos <= slen) {
     memset(captures, -1, sizeof(int) * cap_size);
     int n = mrb_re_exec(mrb, pat, s, slen, pos, captures, cap_size, binary);
-    re_check_over_limit(mrb, n);
+    re_check_exec_error(mrb, n);
     if (n == 0) break;
     mrb_int beg = captures[0], end = captures[1];
 
@@ -1927,7 +1935,7 @@ regexp_s_scan(mrb_state *mrb, mrb_value klass)
   while (pos <= slen) {
     memset(captures, -1, sizeof(int) * cap_size);
     int n = mrb_re_exec(mrb, pat, s, slen, pos, captures, cap_size, binary);
-    re_check_over_limit(mrb, n);
+    re_check_exec_error(mrb, n);
     if (n == 0) break;
 
     last_ncap = cap_size;
@@ -2152,7 +2160,7 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   /* The two limits of the backtracking engine, which a build sets (see
      re_internal.h) and a `RegexpError` names: the value behind the name, for
      whoever has to size a subject or a pattern to the build it runs on. */
-  mrb_define_const(mrb, re, "RECURSION_LIMIT", mrb_int_value(mrb, MRB_REGEXP_RECURSION_LIMIT));
+  mrb_define_const(mrb, re, "STACK_LIMIT", mrb_int_value(mrb, MRB_REGEXP_STACK_LIMIT));
   mrb_define_const(mrb, re, "STEP_LIMIT", mrb_int_value(mrb, MRB_REGEXP_STEP_LIMIT));
 
   /* Class methods */

@@ -739,19 +739,29 @@ end
 
 assert("String#gsub with block and zero-width match") do
   assert_equal "!abc", "abc".gsub(/^/) { "!" }
-  assert_equal "a!bc", "abc".gsub(/(?=b)/) { "!" }
   assert_equal "!a!b!c!", "abc".gsub(//) { "!" }
   assert_equal "!\n", "\n".gsub(/^/m) { "!" }
   assert_equal "!a\n", "a\n".gsub(/^/m) { "!" }
   assert_equal "!a\n!b", "a\nb".gsub(/^/m) { "!" }
   if __ENCODING__ == "UTF-8"
     assert_equal "！いろは", "いろは".gsub(/^/) { "！" }
-    assert_equal "い！ろは", "いろは".gsub(/(?=ろ)/) { "！" }
     assert_equal "！い！ろ！は！", "いろは".gsub(//) { "！" }
   end
   bin = "\xC3\xA9x".b
   assert_equal [45, 195, 45, 169, 45, 120, 45], bin.gsub(//, "-").bytes
   assert_equal [45, 195, 45, 169, 45, 120, 45], bin.gsub(//) { "-" }.bytes
+end
+
+assert("String#gsub with a zero-width lookahead") do
+  need_backtracking_stack
+  # The same walk over empty matches, with a lookahead as the pattern: what
+  # is under test is the walk, and the lookahead is what routes the search
+  # to the backtracking engine.
+  assert_equal "a!bc", "abc".gsub(/(?=b)/) { "!" }
+  if __ENCODING__ == "UTF-8"
+    assert_equal "い！ろは", "いろは".gsub(/(?=ろ)/) { "！" }
+  end
+  bin = "\xC3\xA9x".b
   assert_equal [45, 195, 45, 169, 45, 120], bin.gsub(/(?=.)/, "-").bytes
   assert_equal [45, 195, 45, 169, 45, 120], bin.gsub(/(?=.)/) { "-" }.bytes
 end
@@ -891,7 +901,13 @@ assert("String#split with regexp captures") do
   assert_equal ["hell", ""], "hello".split(/(x)?o/, -1)
 end
 
+assert("String#split at a zero-width anchor") do
+  assert_equal ["abc"], "abc".split(/^/)
+  assert_equal ["abc", ""], "abc".split(/$/, -1)
+end
+
 assert("String#split with zero-width regexp") do
+  need_backtracking_stack
   assert_equal ["ab"], "ab".split(/(?=b)/, 1)
   assert_equal ["a", "b"], "ab".split(/(?=b)/, 2)
   assert_equal ["a", "b"], "ab".split(/(?=b)/, 3)
@@ -900,17 +916,19 @@ assert("String#split with zero-width regexp") do
   assert_equal ["abc"], "abc".split(/(?=a)/)
   assert_equal ["abc"], "abc".split(/(?=a)/, -1)
   assert_equal ["ab", "c"], "abc".split(/(?=c)/)
-  assert_equal ["abc"], "abc".split(/^/)
-  assert_equal ["abc", ""], "abc".split(/$/, -1)
   assert_equal ["a", "b", "bc"], "abc".split(/(?=(b))/)
 end
 
 assert("String#split with multibyte regexp") do
+  assert_equal ["", "あ", "い"], "あい".split(/(あ)/)
+  assert_equal ["", "あ", "い"], "あい".split(/(あ)/, -1)
+end
+
+assert("String#split with a multibyte zero-width regexp") do
+  need_backtracking_stack
   assert_equal ["あ", "い"], "あい".split(/(?=い)/)
   assert_equal ["あ", "い"], "あい".split(/(?=い)/, -1)
   assert_equal ["あ", "い", "い"], "あい".split(/(?=(い))/)
-  assert_equal ["", "あ", "い"], "あい".split(/(あ)/)
-  assert_equal ["", "あ", "い"], "あい".split(/(あ)/, -1)
 end
 
 assert("String#gsub with block leaves the last match behind") do
@@ -1080,13 +1098,6 @@ assert("String#gsub with a block that changes the receiver") do
   assert_equal "a!cz", s.gsub(/b/) { s[3] = "z"; "!" }
   s = "abc"
   assert_equal "-A-B-C-", s.gsub(//) { s.upcase!; "-" }
-  # What the walk takes after the block is what the block left, which needs
-  # the bytes read again rather than the pointer the search was made with. A
-  # replacement of the same length moves the buffer without changing the
-  # length, so this stands whatever a check on the length would say: reading
-  # the old pointer keeps one byte of the subject as it was.
-  s = "a" * 200
-  assert_equal "-" + "b" * 200, s.gsub(/(?=a)/) { s.replace("b" * 200); "-" }
   # a quoted String pattern goes the same way
   s = "hello"
   assert_equal "HeXXo", s.gsub("l") { s.tr!("h", "H"); "X" }
@@ -1131,6 +1142,19 @@ assert("String#gsub with a block that changes the receiver") do
   assert_equal "heXlo", s.sub(/l/) { s.upcase!; "X" }
   s = "abc"
   assert_equal "a!c", s.sub(/b/) { s << "zz"; "!" }
+end
+
+assert("String#gsub reads the receiver again after a block that moved it") do
+  need_backtracking_stack
+  # What the walk takes after the block is what the block left, which needs
+  # the bytes read again rather than the pointer the search was made with. A
+  # replacement of the same length moves the buffer without changing the
+  # length, so this stands whatever a check on the length would say: reading
+  # the old pointer keeps one byte of the subject as it was. The lookahead
+  # is what makes the match empty, so that the byte the walk steps over is
+  # read from the receiver rather than from the match.
+  s = "a" * 200
+  assert_equal "-" + "b" * 200, s.gsub(/(?=a)/) { s.replace("b" * 200); "-" }
 end
 
 assert("String#sub! with a block that changes the receiver") do
@@ -1216,14 +1240,21 @@ assert("MatchData#regexp compiles a literal pattern only when asked for one") do
 end
 
 assert("String#sub / #gsub / #scan / #split raise where a search hits a limit") do
+  need_backtracking_stack
   # A walk over the subject raises from the middle of it rather than hand
   # back what it had: the matches before the limit are no more the answer
   # than the shorter match a search itself used to settle for. The first
-  # search here matches the `b`; the second gives up on the run of `a`, three
-  # frames an iteration and as long as the recursion limit, and the walk used
-  # to go on past it to the tail of the run that fit before the `c`.
-  over = "a" * Regexp::RECURSION_LIMIT
-  fits = "a" * (Regexp::RECURSION_LIMIT / 4)
+  # search here matches the `b`; the second gives up on the run of `a`, an
+  # entry of backtracking state an iteration and longer than the stack limit
+  # allows entries, and the walk used to go on past it to the tail of
+  # the run that fit before the `c`. A build that puts the stack limit out of
+  # the step limit's reach is left out, as it is where the two limits are
+  # pinned (see regexp_syntax.rb).
+  if Regexp::STACK_LIMIT * 8 > Regexp::STEP_LIMIT
+    skip "the stack limit stands out of the step limit's reach here"
+  end
+  over = "a" * (2 * Regexp::STACK_LIMIT)
+  fits = "a" * (Regexp::STACK_LIMIT / 32)
   s = "b" + over + "c"
   re = /b|(?:(?>a))*c/
   assert_raise(RegexpError) { s.gsub(re, "x") }    # was "x" + most of the run + "x", CRuby "xx"
