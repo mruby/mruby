@@ -307,13 +307,16 @@ assert("Regexp - the backtracking engine raises at a limit rather than answer sh
   assert_raise(RegexpError) { (over + "b").match(/(a)*?b/) }   # began later than it should
   assert_raise(RegexpError) { over.match(/(?:(?>a))*\z/) }    # began later than it should
   assert_raise(RegexpError) { "a".match(Regexp.new("(?=a)" * (limit / 2 + 1) + "a")) }   # was nil
-  assert_raise(RegexpError) { over.match(Regexp.new("(?>a)" * (limit / 2 + 1) + "a")) }  # was nil
   assert_equal fits, fits.match(/(?:(?>a))*/)[0]
   assert_equal fits, fits.match(/(?:(?=a)a)*/)[0]
   assert_equal 0, (fits + "b").match(/(a)*?b/).begin(0)
   assert_equal 0, fits.match(/(?:(?>a))*\z/).begin(0)
   assert_equal "a", "a".match(Regexp.new("(?=a)" * (limit / 32) + "a"))[0]
   assert_equal fits, fits.match(Regexp.new("(?>a)" * (limit / 32 - 1) + "a"))[0]
+  # A chain of atomic groups holds nothing per link once each has closed, so
+  # its length is bounded by the pattern and not by the limit.
+  chain = limit / 2 + 1
+  assert_equal "a" * (chain + 1), over.match(Regexp.new("(?>a)" * chain + "a"))[0]
   # The message names the limit, so that whoever hits one on a legitimate
   # subject knows which knob to turn, and the constant says where it stands.
   assert_raise_with_message(RegexpError, "stack limit over (MRB_REGEXP_STACK_LIMIT)") do
@@ -437,6 +440,38 @@ assert("Regexp - what a start position records is not read by the next one") do
       end
     end
   end
+end
+
+assert("Regexp - an atomic group costs the backtracking engine no C stack") do
+  need_backtracking_stack
+  # The group used to run its body, and then the text after it, in frames of
+  # its own, so that a failure after the group could unwind the frames the
+  # body left rather than backtrack into them: a repetition of one spent two
+  # frames an iteration and a chain of them two a link. Entering the group
+  # pushes a barrier onto the choice point stack instead, and its end drops
+  # the barrier and every alternative the body left above it: the cut, as
+  # a truncation.
+  if Regexp::STACK_LIMIT * 8 > Regexp::STEP_LIMIT
+    skip "the stack limit stands out of the step limit's reach here"
+  end
+  begin
+    Regexp.new("(?>a)" * (Regexp::STACK_LIMIT / 2 + 1))
+  rescue RegexpError
+    skip "a chain sized from the stack limit is more pattern than one may spell"
+  end
+  limit = Regexp::STACK_LIMIT
+  s = "a" * (limit / 4)
+  assert_equal s, s.match(/(?:(?>a))*/)[0]
+  assert_equal 0, s.match(/(?:(?>a))*\z/).begin(0)
+  n = limit / 2 + 1
+  assert_equal "a" * (n + 1), ("a" * (n + 1)).match(Regexp.new("(?>a)" * n + "a"))[0]
+  # What the truncation leaves is what the frames left: the body's captures
+  # stay once it has matched, and go when the search backtracks past where
+  # the group began.
+  assert_equal "a", /(?>(a))a/.match("aa")[1]
+  assert_nil /(?:(?>(a))b|a)/.match("a")[1]
+  assert_nil /(?>a*)a/ =~ "aaa"
+  assert_equal 0, /(?>a*)b/ =~ "aab"
 end
 
 assert("Regexp - quantified first alternative does not leak into the next") do

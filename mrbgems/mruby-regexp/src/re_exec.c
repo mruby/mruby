@@ -668,9 +668,14 @@ lookbehind_start(const mrb_regexp_pattern *pat, const char *str,
 /* What taking a choice point does beyond resuming where it points. */
 enum re_cp_kind {
   RE_CP_FORK,   /* nothing: a branch the search has not tried yet */
-  RE_CP_ITER    /* the branch begins an iteration of the loop its `group`
+  RE_CP_ITER,   /* the branch begins an iteration of the loop its `group`
                    keys, whose record is written when the branch is taken
                    rather than when it was pushed (see bt_iter_begin()) */
+  RE_CP_BARRIER /* not a branch at all: where the group its `group` names was
+                 entered. Reaching it while backtracking is that group
+                 failing, so it resumes nothing and the search goes on
+                 popping; its end drops it and everything above it, which is
+                 how an atomic group cuts (see RE_ATOMIC_END). */
 };
 
 /* A choice point: an alternative the search has not tried yet, as where the
@@ -869,6 +874,40 @@ bt_truncate(bt_state *m, uint32_t cp_top, uint32_t undo_top)
 {
   m->cp_top = cp_top;
   bt_undo_to(m, undo_top);
+}
+
+/* Where the group `group` was entered, as an index into the choice point
+   stack, or FALSE when it was entered in a frame below `floor`: a group
+   whose body holds a lookaround, whose end runs inside the frames the
+   lookaround makes, and which the cut still reaches instead (see
+   bt_cut_absorb()). Barriers nest, so the walk down from the top is over
+   what the group's end is about to drop in any case. */
+static mrb_bool
+bt_barrier_find(const bt_state *m, uint32_t group, uint32_t floor, uint32_t *idx)
+{
+  uint32_t i = m->cp_top;
+  while (i > floor) {
+    i--;
+    if (m->cp[i].kind == RE_CP_BARRIER && m->cp[i].group == group) {
+      *idx = i;
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+/* Whether a nested call's answer is the cut of a group this frame opened,
+   which is that group failing here: everything the body left goes, the writes
+   it logged with it, which is what popping its barrier does. Any other answer
+   is not this frame's to read. */
+static mrb_bool
+bt_cut_absorb(bt_state *m, int r, uint32_t floor)
+{
+  uint32_t idx;
+  if (r >= 0 || !bt_barrier_find(m, (uint32_t)(-r), floor, &idx)) return FALSE;
+  m->cp_top = idx;
+  bt_undo_to(m, m->cp[idx].undo_top);
+  return TRUE;
 }
 
 static int bt_match(bt_state *m, const char *sp, uint32_t pc, int depth);
@@ -1170,7 +1209,7 @@ bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
          frame's, whichever it is. */
       {
         int rr = bt_look(m, sp, sp, pc, pc + 1, depth + 1);
-        if (rr == BT_FAIL) goto fail;
+        if (rr == BT_FAIL || bt_cut_absorb(m, rr, cp_floor)) goto fail;
         r = rr;
         goto done;
       }
@@ -1181,7 +1220,7 @@ bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
            running out of alternatives is the assertion holding, and the text
            after it goes on here. A limit goes up as it is. */
         int rr = bt_look(m, sp, sp, pc, pc + 1, depth + 1);
-        if (rr == BT_MATCH) goto fail;
+        if (rr == BT_MATCH || bt_cut_absorb(m, rr, cp_floor)) goto fail;
         if (rr != BT_FAIL) { r = rr; goto done; }
         pc = inst.offset;
       }
@@ -1192,7 +1231,7 @@ bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
         const char *back = lookbehind_start(pat, str, str_end, sp, pc, binary);
         if (!back) goto fail;  /* not enough text before */
         int rr = bt_look(m, sp, back, pc, pc + 2, depth + 1);
-        if (rr == BT_FAIL) goto fail;
+        if (rr == BT_FAIL || bt_cut_absorb(m, rr, cp_floor)) goto fail;
         r = rr;
         goto done;
       }
@@ -1202,7 +1241,7 @@ bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
         const char *back = lookbehind_start(pat, str, str_end, sp, pc, binary);
         if (back) {
           int rr = bt_look(m, sp, back, pc, pc + 2, depth + 1);
-          if (rr == BT_MATCH) goto fail;
+          if (rr == BT_MATCH || bt_cut_absorb(m, rr, cp_floor)) goto fail;
           if (rr != BT_FAIL) { r = rr; goto done; }
         }
         /* if not enough text before, negative lookbehind succeeds */
@@ -1229,29 +1268,39 @@ bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
         m->pass = m->entered_in[pc];
         int rr = bt_match(m, str + m->entered_at[pc], pc + 1, depth + 1);
         m->pass = pass;
+        if (bt_cut_absorb(m, rr, cp_floor)) goto fail;
         r = (rr == BT_FAIL) ? BT_CUT(inst.offset) : rr;
         goto done;
       }
 
     case RE_ATOMIC:
-      {
-        /* The body runs on through its RE_ATOMIC_END to the end of the
-           pattern inside this call, so there is nothing to continue with
-           here: the answer is passed up, except that a cut aimed at this
-           group is this group failing, which the caller backtracks over the
-           way it would any other failed atom. */
-        int rr = bt_match(m, sp, pc + 1, depth + 1);
-        if (rr == BT_CUT(inst.offset) || rr == BT_FAIL) goto fail;
-        r = rr;
-        goto done;
-      }
+      /* The group is entered: a barrier stands where it began, so that a
+         failure inside the body that reaches it is the group failing, and
+         the body goes on in this frame. */
+      if ((r = bt_push(m, sp, pc + 1, RE_CP_BARRIER, inst.offset)) != BT_OK) goto done;
+      pc++;
+      break;
 
     case RE_ATOMIC_END:
       {
         /* The body has matched once, and that is the only way it matches:
-           when what follows fails, the failure is a cut, so that the SPLITs
-           inside the body do not get to try their other branches. A limit
-           is not the text failing and goes up as it is. */
+           the alternatives it left are dropped, barrier and all, so that a
+           failure after the group is not answered from inside it. What the
+           body captured stays; the undo log is left as it is, and a
+           failure that goes back past where the group began takes it back
+           along with everything else logged since. */
+        uint32_t idx;
+        if (bt_barrier_find(m, inst.offset, cp_floor, &idx)) {
+          m->cp_top = idx;
+          pc++;
+          break;
+        }
+        /* The group was entered in a frame below this one, whose choice
+           points this one may not touch. The text after it runs inside this
+           frame instead, as it did before the barrier: a failure there is
+           the cut, which reaches the barrier through the frames between
+           (see bt_cut_absorb()), and a limit is not the text failing and
+           goes up as it is. */
         int rr = bt_match(m, sp, pc + 1, depth + 1);
         r = (rr == BT_FAIL) ? BT_CUT(inst.offset) : rr;
         goto done;
@@ -1267,15 +1316,19 @@ bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
        with every write since it was pushed taken back; below the floor is the
        caller's state and the caller's alternatives, so there this frame is
        spent too. */
-    if (m->cp_top == cp_floor) { r = BT_FAIL; goto done; }
-    {
+    for (;;) {
+      if (m->cp_top == cp_floor) { r = BT_FAIL; goto done; }
       re_cpoint c = m->cp[--m->cp_top];
       bt_undo_to(m, c.undo_top);
+      /* A barrier is where a group was entered, not a branch: reaching it
+         is that group failing, and what is left to try is below it. */
+      if (c.kind == RE_CP_BARRIER) continue;
       sp = c.sp;
       pc = c.pc;
       if (c.kind == RE_CP_ITER && (r = bt_iter_begin(m, c.group, sp)) != BT_OK) {
         goto done;
       }
+      break;
     }
   }
 
