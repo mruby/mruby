@@ -1218,34 +1218,41 @@ compute_fixed_len(re_compiler *c, uint32_t start, uint32_t end, int *chars_out)
 }
 
 /* Parse the option letters of an inline (?...) group. The parser is
-   positioned just past the '?'; it reads a run of i/m/x, an optional '-',
-   and a further run of i/m/x to switch off, then stops at the terminator
-   (':' or ')'). `base` is the option set in effect on entry; the resulting
-   set is returned. Ruby's inline letters are i (IGNORECASE), m (DOTALL),
+   positioned just past the '?'; it reads i, m, x and '-' in any order until
+   the terminator (':' or ')'), a '-' switching the letters after it off.
+   `base` is the option set in effect on entry; the resulting set is
+   returned. Ruby's inline letters are i (IGNORECASE), m (DOTALL),
    x (EXTENDED). All three are scoped alike by the group they are read in:
    skip_extended_space() reads x from c->flags, which compile_atom() saves
    at every '(' and restores at its ')'. preprocess_pattern() tracks the
    same scopes over the pattern as written for the one thing it still does
-   under /x, removing `#` comments. */
+   under /x, removing `#` comments.
+
+   No letter has to come at all, and a second '-' is read like the first:
+   Onigmo's loop asks only that what it reads is one of these bytes and that
+   what stops it is the terminator, so `(?-)` is a toggle that changes
+   nothing, `(?-:a)` is `(?:a)` and `(?--i)` is `(?-i)`. A generator that
+   writes `(?#{on}-#{off}:...)` reaches the first two with both lists empty.
+   The caller reports what stops the loop when it is neither ':' nor ')',
+   which is where a letter that is not an option is refused, and `(?)` never
+   gets here at all: compile_atom() takes this arm only on i, m, x or '-'. */
 static uint32_t
 parse_inline_flags(re_compiler *c, uint32_t base)
 {
   uint32_t on = 0, off = 0;
-  mrb_bool negate = FALSE, seen = FALSE;
+  mrb_bool negate = FALSE;
   for (;;) {
     int oc = peek(c);
     uint32_t bit;
     if (oc == 'i') bit = RE_FLAG_IGNORECASE;
     else if (oc == 'm') bit = RE_FLAG_DOTALL;
     else if (oc == 'x') bit = RE_FLAG_EXTENDED;
-    else if (oc == '-' && !negate) { negate = TRUE; next_char(c); continue; }
+    else if (oc == '-') { negate = TRUE; next_char(c); continue; }
     else break;
     if (negate) off |= bit;
     else on |= bit;
-    seen = TRUE;
     next_char(c);
   }
-  if (!seen) compile_error(c, "undefined (?...) sequence");
   return (base | on) & ~off;
 }
 
@@ -2289,20 +2296,24 @@ skip_uninterpreted(const char *src, const char *end, mrb_bool *in_class, int *pa
    not name x. Returns the terminator's position, or NULL when the bytes
    are not an option group at all, which includes every malformed one: the
    parser reads those bytes too and reports them, and this pass has only to
-   agree with it about the well-formed ones. */
+   agree with it about the well-formed ones.
+
+   The letters are optional here as they are in parse_inline_flags(), so a
+   plain `(?:` is read as a scoped group carrying no options; that is what
+   it is, and the pass does the same with it either way, opening a scope
+   and leaving x as it stands. */
 static const char*
 scan_option_group(const char *src, const char *end, mrb_bool *toggle, mrb_bool *x_on)
 {
   if (end - src < 3 || src[1] != '?') return NULL;
   const char *q = src + 2;
-  mrb_bool negate = FALSE, seen = FALSE;
+  mrb_bool negate = FALSE;
   for (; q < end; q++) {
-    if (*q == 'x') { *x_on = !negate; seen = TRUE; }
-    else if (*q == 'i' || *q == 'm') seen = TRUE;
-    else if (*q == '-' && !negate) negate = TRUE;
-    else break;
+    if (*q == '-') negate = TRUE;
+    else if (*q == 'x') *x_on = !negate;
+    else if (*q != 'i' && *q != 'm') break;
   }
-  if (!seen || q >= end || (*q != ')' && *q != ':')) return NULL;
+  if (q >= end || (*q != ')' && *q != ':')) return NULL;
   *toggle = (*q == ')');
   return q;
 }
