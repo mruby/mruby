@@ -106,11 +106,16 @@ signal_to_number(mrb_state *mrb, mrb_value sig)
   if (len > 0 && name[0] == '-') {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "signalling a process group is not supported");
   }
-  if (len > 3 && memcmp(name, "SIG", 3) == 0) {
+  /* A name that is exactly "SIG" loses the prefix like any other, leaving
+     nothing to look up.  Nothing is not an error of its own: Ruby reports the
+     empty name the way it reports the empty string, as the message below
+     writing "SIG" and then nothing, so it goes on to the lookup and fails
+     there. */
+  if (len >= 3 && memcmp(name, "SIG", 3) == 0) {
     name += 3;
     len -= 3;
   }
-  if (len <= 0 || (size_t)len >= sizeof(bare)) {
+  if ((size_t)len >= sizeof(bare)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "bad signal name");
   }
   /* The HAL takes a C string, and `name` is a slice of a longer one. */
