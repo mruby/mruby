@@ -72,7 +72,7 @@ in CRuby.
 - `\A` beginning of string
 - `\z` end of string
 - `\Z` end of string (or before final newline)
-- `\b` word boundary
+- `\b` word boundary, beside the word characters `[[:word:]]` holds
 - `\B` non-word boundary
 
 ### Flags
@@ -344,7 +344,13 @@ carried on the same condition as the case table: a build that defines
 `MRB_UTF8_STRING` without `MRB_USE_ASCII_CTYPE`. There the brackets classify
 as CRuby's do, `[[:alpha:]]` holding `"あ"` and `[[:^alpha:]]` rejecting it,
 `[[:upper:]]` under `/i` reaching `"ā"` through `"Ā"`, and `[[:word:]]` every
-Unicode word character where `\w` stays ASCII. The types are the ones the
+Unicode word character where `\w` stays ASCII. `\b` and `\B` read the
+bracket's set rather than the shorthand's, and so sit beside a character of
+any script; without the table they read as `[[:word:]]` does on such a build,
+which is the ASCII word characters and no more. The two are not two answers
+to one question: a class can be asked for another way, so the shorthand keeps
+the set CRuby gives it, while a boundary is the one thing a pattern cannot
+spell another way, and takes the set that is useful. The types are the ones the
 Unicode Character Database publishes: `alpha`, `upper` and `lower` are the
 derived properties Alphabetic, Uppercase and Lowercase, `space` is White_Space,
 and the rest are read off the general categories. Without the table a bracket

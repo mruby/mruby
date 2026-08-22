@@ -339,6 +339,55 @@ mrb_re_char_interior_p(const char *str, const char *s, const char *end)
   return mrb_enc_char_head(str, s, end) != s;
 }
 
+/* Whether a codepoint is one of the word characters a boundary sits beside.
+   This is what `[[:word:]]` holds rather than what `\w` does: a boundary is
+   the one thing a pattern cannot spell another way, since asking for one
+   around any script takes a lookaround either side of the position, where a
+   class only takes the bracket written out. So the shorthand keeps the ASCII
+   set CRuby gives it, and the boundary reads every script, as CRuby's does.
+   A build with no table has no answer above ASCII, and there the boundary
+   reads as `[[:word:]]` does on it: the ASCII word characters and no more. */
+static inline mrb_bool
+mrb_re_word_cp(uint32_t cp)
+{
+  if (cp < 128) return mrb_re_is_word_char(cp);
+#ifdef RE_UNICODE_CTYPE
+  return (mrb_re_ctype(cp) & RE_CTYPE_WORD) != 0;
+#else
+  return FALSE;
+#endif
+}
+
+/* Whether the character starting at `s` is a word character.
+
+   A byte below 0x80 is its own character whatever the subject is, and it is
+   what almost every boundary in almost every subject sits beside, so it is
+   answered without decoding. A binary subject holds bytes rather than
+   characters, and a byte at or above 0x80 stands for no character there: the
+   table must not be asked about it, or the lone byte 0xB5 would be the word
+   character µ rather than the byte it is. */
+static inline mrb_bool
+mrb_re_word_at(const char *s, const char *end, mrb_bool binary)
+{
+  uint8_t b = (uint8_t)*s;
+  if (b < 0x80) return mrb_re_is_word_char(b);
+  if (binary) return FALSE;
+  return mrb_re_word_cp(mrb_re_decode_char(s, end, NULL, FALSE));
+}
+
+/* Whether the character ending at `s` is one. Reading it takes the head of
+   the character the byte before belongs to, which is the one step the engine
+   ever takes backward. */
+static inline mrb_bool
+mrb_re_word_before(const char *str, const char *s, const char *end, mrb_bool binary)
+{
+  uint8_t b = (uint8_t)s[-1];
+  if (b < 0x80) return mrb_re_is_word_char(b);
+  if (binary) return FALSE;
+  const char *head = mrb_enc_char_head(str, s - 1, end);
+  return mrb_re_word_cp(mrb_re_decode_char(head, end, NULL, FALSE));
+}
+
 /* Execute a match.
    Returns number of captures filled (0 = no match), or RE_OVER_*_LIMIT with
    nothing in `captures` to read.

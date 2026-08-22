@@ -859,3 +859,47 @@ assert("Regexp - the match a gsub block leaves behind reads as the receiver does
   assert_equal 3, $~.begin(0)
   assert_equal 7, $~.string.size
 end
+
+assert('Regexp - a word boundary sits beside any script') do
+  # `\b` reads the word characters `[[:word:]]` holds rather than the ASCII
+  # set `\w` names. The two constructs are not two answers to one question: a
+  # class can be written another way, and a boundary cannot, so the shorthand
+  # keeps CRuby's ASCII set and the boundary reads every script, as CRuby's
+  # does. Without a class it took one byte, and no byte of a multi-byte
+  # character is a word character, so /\b/ found none in "ααα".
+  #
+  # The boundary reads the bracket's set, so having one above ASCII takes a
+  # build that classifies there. `"あ".length == 1` does not say that: a
+  # build reading its strings as UTF-8 without the ctype table answers 1 and
+  # still holds no word character above ASCII. Ask the bracket itself.
+  skip unless "あ".length == 1
+  skip "this build classifies only ASCII" unless "α" =~ /[[:word:]]/
+
+  assert_equal 0, ("ααα" =~ /\A\b/)
+  assert_equal 0, ("漢字" =~ /\A\b/)
+  assert_equal "ααα", "ααα"[/\A[[:word:]]+\z/]
+  assert_nil ("ααα" =~ /\A\B/)
+
+  # a boundary sits at each end of a run, whatever the widths in it are
+  assert_equal ["漢字とKanji", "abc"], "漢字とKanji abc".scan(/\b[[:word:]]+\b/)
+  assert_equal ["a", "α", "b"], "a α b".scan(/\b[[:word:]]+\b/)
+  # 1, 2, 3 and 4-byte characters in one subject
+  assert_equal ["a", "α", "漢", "𠮷", "b"], "a α 漢 𠮷 b".scan(/\b[[:word:]]+\b/)
+
+  # `\w` is untouched: still the ASCII set, as in CRuby
+  assert_nil ("ααα" =~ /\w/)
+  assert_equal "a", "a α"[/\w/]
+
+  # and a character that is in neither is still no word character
+  assert_nil ("・" =~ /\A\b/)
+  assert_equal 0, ("・" =~ /\A\B/)
+
+  # A binary subject holds bytes rather than characters, so a byte at or above
+  # 0x80 stands for no character and the table must not be asked about it:
+  # 0xB5 alone is that byte, not the word character it spells in UTF-8.
+  if "".respond_to?(:force_encoding)
+    byte = "\xB5".force_encoding("ASCII-8BIT")
+    assert_nil (byte =~ /\A\b/)
+    assert_equal 0, (byte =~ /\A\B/)
+  end
+end

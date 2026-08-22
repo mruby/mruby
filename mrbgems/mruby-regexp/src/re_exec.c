@@ -328,16 +328,16 @@ add_thread(pike_state *s, re_threadlist *list,
 
     case RE_WBOUND:
       {
-        mrb_bool before = (sp > s->str) && mrb_re_is_word_char((uint8_t)sp[-1]);
-        mrb_bool after = (sp < s->str_end) && mrb_re_is_word_char((uint8_t)*sp);
+        mrb_bool before = (sp > s->str) && mrb_re_word_before(s->str, sp, s->str_end, s->binary);
+        mrb_bool after = (sp < s->str_end) && mrb_re_word_at(sp, s->str_end, s->binary);
         if (before != after) { pc++; continue; }
       }
       return;
 
     case RE_NWBOUND:
       {
-        mrb_bool before = (sp > s->str) && mrb_re_is_word_char((uint8_t)sp[-1]);
-        mrb_bool after = (sp < s->str_end) && mrb_re_is_word_char((uint8_t)*sp);
+        mrb_bool before = (sp > s->str) && mrb_re_word_before(s->str, sp, s->str_end, s->binary);
+        mrb_bool after = (sp < s->str_end) && mrb_re_word_at(sp, s->str_end, s->binary);
         if (before == after) { pc++; continue; }
       }
       return;
@@ -956,8 +956,8 @@ bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
 
     case RE_WBOUND:
       {
-        mrb_bool before = (sp > str) && mrb_re_is_word_char((uint8_t)sp[-1]);
-        mrb_bool after = (sp < str_end) && mrb_re_is_word_char((uint8_t)*sp);
+        mrb_bool before = (sp > str) && mrb_re_word_before(str, sp, str_end, binary);
+        mrb_bool after = (sp < str_end) && mrb_re_word_at(sp, str_end, binary);
         if (before == after) return BT_FAIL;
       }
       pc++;
@@ -965,8 +965,8 @@ bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
 
     case RE_NWBOUND:
       {
-        mrb_bool before = (sp > str) && mrb_re_is_word_char((uint8_t)sp[-1]);
-        mrb_bool after = (sp < str_end) && mrb_re_is_word_char((uint8_t)*sp);
+        mrb_bool before = (sp > str) && mrb_re_word_before(str, sp, str_end, binary);
+        mrb_bool after = (sp < str_end) && mrb_re_word_at(sp, str_end, binary);
         if (before != after) return BT_FAIL;
       }
       pc++;
