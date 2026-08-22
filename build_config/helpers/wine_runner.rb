@@ -9,7 +9,6 @@ DOSROOT = 'z:'
 # Rewrite test output to replace DOS-isms with Unix-isms.
 def clean(output, stderr = false)
   ends_with_newline = !!(output =~ /\n$/)
-  executable = ARGV[0].gsub(/\.exe\z/i, '')
 
   # Fix line-ends
   output = output.gsub(/\r\n/, "\n")
@@ -26,9 +25,6 @@ def clean(output, stderr = false)
         path
       }
     end
-
-    # strip '.exe' off the end of the executable's name if needed
-    line.gsub!(/(#{Regexp.escape executable})\.exe/i, '\1')
 
     line
   end
