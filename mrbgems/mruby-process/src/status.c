@@ -68,6 +68,12 @@ status_initialize(mrb_state *mrb, mrb_value self)
   mrb_int pid, raw_status;
 
   mrb_get_args(mrb, "ii", &pid, &raw_status);
+  /* A port reads a raw status as the `int` the platform reported, so a value
+     that does not fit one would be answered about from bits nobody wrote:
+     #to_i would give back what was passed in while #exited? and the rest
+     read the low half of it.  The pid needs no such check, since it is
+     carried and handed back whole rather than narrowed. */
+  mrb_process_int_arg(mrb, raw_status, "status");
   mrb_iv_set(mrb, self, MRB_IVSYM(pid), mrb_int_value(mrb, pid));
   mrb_iv_set(mrb, self, MRB_IVSYM(status), mrb_int_value(mrb, raw_status));
   return self;

@@ -169,11 +169,15 @@ end
 
 assert('a pid or a signal number too large for the platform') do
   # What is wrong with these is their size, so RangeError is the answer, not
-  # the errno a port would have to borrow to report one.  Where the build's
-  # Integer is no wider than the platform's own, `big` is a Float and there
-  # is nothing here to ask.
-  big = 2**31
-  skip "this build has no Integer wider than a pid" unless big.is_a?(Integer)
+  # the errno a port would have to borrow to report one.
+  #
+  # A build whose own Integer cannot hold this and has no big integer to
+  # promote it to raises while working the value out, so the value is asked
+  # for rather than assumed.  `is_a?(Integer)` would not do: a big integer is
+  # an Integer, so a build that has them answers yes and says nothing about
+  # the width in question.
+  big = (2**31 rescue nil)
+  skip "this build cannot name a number wider than a pid" unless big
 
   assert_raise(RangeError) { Process.kill(0, big) }
   assert_raise(RangeError) { Process.kill(big, Process.pid) }
@@ -194,6 +198,28 @@ assert('Process::Status.new') do
   assert_false st.stopped?
   assert_nil st.stopsig
   assert_false st.coredump?
+end
+
+assert('Process::Status.new with a status too large for the platform') do
+  # A port reads a raw status as the `int` the platform reported it with, so a
+  # value that does not fit one is refused where RangeError can be said rather
+  # than answered about from bits nobody wrote.  Nothing this gem produces can
+  # reach it: waitpid carries a platform status, and mruby-io hands `IO#close`
+  # the same `int` on both platforms.
+  #
+  # This reads the same whatever the build's own Integer is.  Where it is
+  # wider than an int, this gem does the refusing; where it is not, a value
+  # this far out is a big integer that is turned away before the gem sees it.
+  # A build that can name neither raises working the value out, and is skipped.
+  big = (2**31 rescue nil)
+  skip "this build cannot name a number wider than an int" unless big
+
+  assert_raise(RangeError) { Process::Status.new(1234, big) }
+  assert_raise(RangeError) { Process::Status.new(1234, -big - 1) }
+
+  # The edges themselves are still statuses, being what an int can carry.
+  assert_equal big - 1, Process::Status.new(1234, big - 1).to_i
+  assert_equal(-big, Process::Status.new(1234, -big).to_i)
 end
 
 assert('Process::Status#==') do

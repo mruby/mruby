@@ -29,8 +29,8 @@ set_last_status(mrb_state *mrb, mrb_value status)
 }
 
 /*
- * Refuse a pid or a signal number that would not survive the narrowing a port
- * has to do with it.
+ * Refuse a value that would not survive the narrowing a port has to do with
+ * it.
  *
  * What is wrong with such a value is its size, and size is not something a
  * port can report: the HAL answers with an `errno`, which has no spelling for
@@ -39,8 +39,8 @@ set_last_status(mrb_state *mrb, mrb_value status)
  * said, and a port keeps `errno` for what the platform actually answered.
  * mruby-socket checks the `int` fields of a getaddrinfo hint the same way.
  */
-static mrb_int
-int_arg(mrb_state *mrb, mrb_int v, const char *what)
+mrb_int
+mrb_process_int_arg(mrb_state *mrb, mrb_int v, const char *what)
 {
 #if MRB_INT_MAX > INT_MAX
   if (v < (mrb_int)INT_MIN || v > (mrb_int)INT_MAX) {
@@ -79,7 +79,7 @@ signal_to_number(mrb_state *mrb, mrb_value sig)
     if (signo < 0) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "signalling a process group is not supported");
     }
-    return int_arg(mrb, signo, "signal number");
+    return mrb_process_int_arg(mrb, signo, "signal number");
   }
 
   if (mrb_symbol_p(sig)) {
@@ -202,7 +202,7 @@ process_kill(mrb_state *mrb, mrb_value self)
   signo = signal_to_number(mrb, sig);
 
   for (i = 0; i < argc; i++) {
-    mrb_int pid = int_arg(mrb, mrb_as_int(mrb, pids[i]), "pid");
+    mrb_int pid = mrb_process_int_arg(mrb, mrb_as_int(mrb, pids[i]), "pid");
     if (mrb_hal_process_kill(mrb, pid, signo) != 0) {
       mrb_sys_fail(mrb, "kill");
     }
@@ -237,7 +237,7 @@ process_waitpid(mrb_state *mrb, mrb_value self)
   mrb_int result_pid = 0, raw_status = 0;
 
   mrb_get_args(mrb, "|ii", &pid, &flags);
-  pid = int_arg(mrb, pid, "pid");
+  pid = mrb_process_int_arg(mrb, pid, "pid");
 
   /* A port is told what a wait means in mruby's own bits and answers only for
      the ones it was given, so a bit that stands for nothing has to be refused

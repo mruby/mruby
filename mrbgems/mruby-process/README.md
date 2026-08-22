@@ -148,15 +148,23 @@ kept separate from adding this gem.
   nothing about the rest, so `MRB_PROCESS_WAIT_FLAGS` names every bit a wait
   may carry and anything else is `EINVAL` in the common layer. Leaving the
   check to the ports would leave the answer to each of them.
-- **A pid or a signal too large for the platform is refused in the common
-  layer.** What is wrong with such a value is its size, and size is not
-  something a port can report: the HAL answers with an `errno`, which has no
-  spelling for "that was never a pid" and would have to borrow one that means
-  something else, leaving `Errno::ESRCH` to stand both for "no process there"
-  and for "that was never a process id". So the value is refused where
+- **A pid, a signal or a raw status too large for the platform is refused in
+  the common layer.** What is wrong with such a value is its size, and size is
+  not something a port can report: the HAL answers with an `errno`, which has
+  no spelling for "that was never a pid" and would have to borrow one that
+  means something else, leaving `Errno::ESRCH` to stand both for "no process
+  there" and for "that was never a process id". So the value is refused where
   `RangeError` can be said, which is also what CRuby raises for it and how
   `mruby-socket` checks the `int` fields of a getaddrinfo hint. The ports keep
   their own range guards, so that each is correct on its own.
+- **A raw status is checked for the same reason, and only where it is
+  narrowed.** A port reads one as the `int` the platform reported, so a wider
+  value would leave `#to_i` giving back what was passed in while `#exited?`
+  and the rest answered from the low half of it. Nothing this gem produces can
+  reach that: `Process.waitpid` carries a platform status, and `mruby-io`
+  hands `IO#close` the same `int` on both platforms. The check turns away only
+  a value written by hand. The pid a status carries is not checked, because it
+  is handed back whole rather than narrowed.
 - **The POSIX signal list is Ruby's own, not a selection.** Every name Ruby
   knows is there, in Ruby's order, behind the guard that says whether the host
   has it. Taking the list rather than picking one keeps a name the host defines
