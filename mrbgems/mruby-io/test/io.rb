@@ -560,6 +560,20 @@ assert('IO.popen with err option') do
   end
 end
 
+assert('IO#close_write') do
+  begin
+    io = IO.popen("cat", "r+")
+    io.write "mruby-io\n"
+    io.close_write
+    assert_false io.closed?
+    assert_equal "mruby-io\n", io.read
+    io.close
+    assert_true io.closed?
+  rescue NotImplementedError => e
+    skip e.message
+  end
+end
+
 assert('IO.read') do
   # empty file
   fd = IO.sysopen $mrbtest_io_wfname, "w"
