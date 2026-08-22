@@ -7,4 +7,10 @@ MRuby::Gem::Specification.new('mruby-process') do |spec|
   # is only testable with a child, and IO.popen is how one is made.  The
   # dependency stops at the tests; see README.md.
   spec.add_test_dependency 'mruby-io', core: 'mruby-io'
+
+  # A gem's tests run in a state holding its dependency closure and nothing
+  # else, so a test that means to name an Errno class has to ask for the gem
+  # that defines them.  Without this the tests still pass, by taking the
+  # branch that settles for any StandardError.
+  spec.add_test_dependency 'mruby-errno', core: 'mruby-errno'
 end

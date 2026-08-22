@@ -78,13 +78,7 @@ assert('Process.waitpid with a flag it does not define') do
   # negative value is refused for the same reason: read as the unsigned value
   # a port takes, it would turn both of the known bits on.
   [4, -1, Process::WNOHANG | Process::WUNTRACED | 4].each do |flags|
-    # Errno is mruby-errno's, which this gem does not depend on; without it
-    # mrb_sys_fail() falls back to RuntimeError.
-    if Object.const_defined?(:Errno)
-      assert_raise(Errno::EINVAL) { Process.waitpid(-1, flags) }
-    else
-      assert_raise(StandardError) { Process.waitpid(-1, flags) }
-    end
+    assert_raise(Errno::EINVAL) { Process.waitpid(-1, flags) }
   end
 end
 
@@ -255,13 +249,7 @@ assert('Process.waitpid with no child to wait for') do
   io.read
   pid = io.pid
   Process.waitpid(pid)
-  # ECHILD is the documented answer.  Errno is mruby-errno's, which this gem
-  # does not depend on; without it mrb_sys_fail() falls back to RuntimeError.
-  if Object.const_defined?(:Errno)
-    assert_raise(Errno::ECHILD) { Process.waitpid(pid) }
-  else
-    assert_raise(StandardError) { Process.waitpid(pid) }
-  end
+  assert_raise(Errno::ECHILD) { Process.waitpid(pid) }
   io.close
 end
 
