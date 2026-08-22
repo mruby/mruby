@@ -196,8 +196,11 @@ pattern analysis.
   require a fixed-length pattern (no `*`, `+`, `?`, or alternation).
   Maximum 255 bytes.
 - **No Unicode properties**: `\p{Alpha}`, `\p{L}`, etc. are not
-  supported. The POSIX brackets read the same data where the build carries
-  it, so `[[:alpha:]]` is the way to ask for a letter of any script.
+  supported and raise `RegexpError`, inside a character class as much as
+  outside one. It is the braces that name a property: a bare `\p`, and `\pL`
+  as well, is the letter, which is how CRuby reads them too. The POSIX
+  brackets read the same data where the build carries it, so `[[:alpha:]]` is
+  the way to ask for a letter of any script.
 - **No `\x{...}` hex escape**: the hex escape is `\xHH`, so it reaches
   `0xff` at most, and `\x{...}` raises `RegexpError` as CRuby does, since
   the brace is not a hex digit. Write `\u{...}` for a codepoint above that.

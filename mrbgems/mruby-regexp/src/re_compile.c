@@ -912,6 +912,12 @@ compile_charclass(re_compiler *c)
        stay intact. */
     if (peek(c) == '\\') {
       int esc = (c->p + 1 < c->src_end) ? (uint8_t)c->p[1] : -1;
+      /* The engine reads no character property, and the members below would
+         make one of every letter of the name: [\p{Han}] would hold H, a and
+         n. Refused rather than answered with the text of the request. */
+      if ((esc == 'p' || esc == 'P') && c->p + 2 < c->src_end && c->p[2] == '{') {
+        compile_error(c, "character property is not supported");
+      }
       if (esc == 'd' || esc == 'D' || esc == 'w' || esc == 'W' ||
           esc == 's' || esc == 'S' || esc == 'h' || esc == 'H') {
         next_char(c);  /* '\\' */
@@ -1801,6 +1807,15 @@ compile_atom(re_compiler *c)
       }
       emit(c, RE_BACKREF, (uint8_t)group, (c->flags & RE_FLAG_IGNORECASE) ? 1 : 0);
       c->has_backref = TRUE;
+    }
+    else if ((ch == 'p' || ch == 'P') && c->p + 1 < c->src_end && c->p[1] == '{') {
+      /* The engine reads no character property. Without this the escape is
+         the letter it names and the braces are literal too, so /\p{Alpha}/
+         would answer a pattern that asked for a letter with the text of the
+         request. `[[:alpha:]]` is how to ask for one; see README.md.
+         Only the braced spelling is a property: CRuby reads a bare `\p`, and
+         `\pL` as well, as the letter, and so does the fall-through below. */
+      compile_error(c, "character property is not supported");
     }
     else if (ch == 'u') {
       next_char(c);  /* skip u */

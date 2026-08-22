@@ -2188,3 +2188,28 @@ assert("Regexp - pattern too large for its jump targets is refused") do
   # the repeated atom costs more than one instruction
   assert_raise(RegexpError) { Regexp.new("(?:ab){32768}") }
 end
+
+assert("Regexp - a character property escape is refused, not read as letters") do
+  # The engine reads no character property. Left as an unknown escape,
+  # `\p{Alpha}` was the letters `p{Alpha}` and the pattern answered a request
+  # for a letter with the text of the request; inside a class it was worse,
+  # since every letter of the name became a member of the class.
+  assert_raise_with_message(RegexpError,
+                            "character property is not supported: /\\p{Alpha}/") do
+    Regexp.new("\\p{Alpha}")
+  end
+  ["\\P{Alpha}", "[\\p{Han}]", "[\\P{L}]", "a\\p{Lu}b", "(?x)\\p{Space}",
+   "\\p{}", "\\p{"].each do |src|
+    assert_raise(RegexpError, src) { Regexp.new(src) }
+  end
+
+  # It is the braces that name a property. CRuby reads a bare `\p`, and `\pL`
+  # as well, as the letter, with only a warning, and so does this.
+  assert_equal "p", "p"[/\p/]
+  assert_equal "P", "P"[/\P/]
+  assert_equal "pL", "pL"[/\pL/]
+  assert_equal "p", "p"[/[\p]/]
+
+  # `[[:alpha:]]` is how to ask for a letter, and still is
+  assert_equal "a", "1a"[/[[:alpha:]]/]
+end
