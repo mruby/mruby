@@ -201,6 +201,10 @@ pattern analysis.
   as well, is the letter, which is how CRuby reads them too. The POSIX
   brackets read the same data where the build carries it, so `[[:alpha:]]` is
   the way to ask for a letter of any script.
+- **No character class intersection**: `[a&&b]` narrows a class to what both
+  sides hold in CRuby, and raises `RegexpError` here. A lone `&` is a member
+  of the class, as it is in CRuby, and so is an escaped one: `[\&&]` holds
+  `&` twice rather than intersecting.
 - **No `\x{...}` hex escape**: the hex escape is `\xHH`, so it reaches
   `0xff` at most, and `\x{...}` raises `RegexpError` as CRuby does, since
   the brace is not a hex digit. Write `\u{...}` for a codepoint above that.

@@ -2213,3 +2213,27 @@ assert("Regexp - a character property escape is refused, not read as letters") d
   # `[[:alpha:]]` is how to ask for a letter, and still is
   assert_equal "a", "1a"[/[[:alpha:]]/]
 end
+
+assert("Regexp - a character class intersection is refused, not read as members") do
+  # `&&` narrows a class to what both sides hold, which this engine does not
+  # do. Read as members it did the opposite: [a&&b] held a, & and b where it
+  # names nothing at all, so a class written to narrow one widened it instead.
+  assert_raise_with_message(RegexpError,
+                            "character class intersection is not supported: /[a&&b]/") do
+    Regexp.new("[a&&b]")
+  end
+  ["[a&&]", "[&&a]", "[&&]", "[a&&b&&c]", "[[:alpha:]&&[:digit:]]",
+   "[\\w&&\\d]", "[^a&&b]", "[a-c&&b]"].each do |src|
+    assert_raise(RegexpError, src) { Regexp.new(src) }
+  end
+
+  # A lone `&` is a member, here as in CRuby
+  assert_equal "&", "x&y"[/[&]/]
+  assert_equal "&", "x&y"[/[a&b]/]
+  assert_equal "a", "a"[/[a&b]/]
+
+  # and an escaped one is that member followed by whatever comes next, so the
+  # pair it makes with the next `&` is not an intersection
+  assert_equal "&", "&"[/[\&]/]
+  assert_equal "&", "x&y"[/[\&&]/]
+end

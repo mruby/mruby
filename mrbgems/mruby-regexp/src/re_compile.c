@@ -865,6 +865,16 @@ compile_charclass(re_compiler *c)
     if (peek(c) < 0) compile_error(c, "unterminated character class");
     first = FALSE;
 
+    /* `&&` takes the intersection of what is written either side of it, which
+       this engine does not do. Read as members it is the opposite of what was
+       asked: [a&&b] would hold a, & and b where it names nothing at all, so a
+       class written to narrow one would widen it instead. A lone `&` is a
+       member here as it is in CRuby, and an escaped one (`\&&`) is that
+       member followed by whatever comes next. */
+    if (peek(c) == '&' && c->p + 1 < c->src_end && c->p[1] == '&') {
+      compile_error(c, "character class intersection is not supported");
+    }
+
     /* POSIX bracket class: [:name:] or negated [:^name:] inside [...]. */
     if (peek(c) == '[' && c->p + 1 < c->src_end && c->p[1] == ':') {
       const char *save = c->p;
