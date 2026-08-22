@@ -2267,3 +2267,41 @@ assert("Regexp - the escapes this engine does not carry are refused") do
   # `\k<name>` is the backreference this engine does carry
   assert_equal "aa", "aa"[/(?<n>a)\k<n>/]
 end
+
+assert("Regexp - a '[' inside a class opens something, and is refused when it cannot") do
+  # A '[' inside a class never stands for itself in CRuby: it opens a POSIX
+  # bracket, a collating element, an equivalence class, or a class nested in
+  # this one. Only the bracket is read here. Taken as a member the rest
+  # compiled to a different pattern than the one written: [[a][b]] is the
+  # union of two classes in CRuby and was `[` or `a`, then b, then `]` here.
+  assert_raise_with_message(RegexpError,
+                            "nested character class is not supported: /[[a][b]]/") do
+    Regexp.new("[[a][b]]")
+  end
+  assert_raise_with_message(RegexpError,
+                            "POSIX collating element is not supported: /[[.a.]]/") do
+    Regexp.new("[[.a.]]")
+  end
+  assert_raise_with_message(RegexpError,
+                            "POSIX equivalence class is not supported: /[[=a=]]/") do
+    Regexp.new("[[=a=]]")
+  end
+  assert_raise_with_message(RegexpError,
+                            "premature end of char-class: /[[:alpha]/") do
+    Regexp.new("[[:alpha]")
+  end
+  ["[[]", "[a[]", "[[ab]c]", "[[^a]b]"].each do |src|
+    assert_raise(RegexpError, src) { Regexp.new(src) }
+  end
+
+  # The bracket that is read, in every position it is written in
+  assert_equal "a", "1a"[/[[:alpha:]]/]
+  assert_equal "x", " x"[/[^[:space:]]/]
+  assert_equal "a1", "a1-"[/[a[:digit:]]+/]
+
+  # and the escaped bracket, which is how to hold one, in CRuby too
+  assert_equal "[", "x[y"[/[\[]/]
+
+  # a '[' with nothing after it leaves the class unterminated
+  assert_raise(RegexpError) { Regexp.new("[a[") }
+end

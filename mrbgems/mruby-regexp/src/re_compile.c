@@ -875,6 +875,20 @@ compile_charclass(re_compiler *c)
       compile_error(c, "character class intersection is not supported");
     }
 
+    /* A '[' inside a class opens something in CRuby rather than standing for
+       itself: a POSIX bracket, a collating element, an equivalence class, or
+       a class nested in this one. Only the bracket is read here and the rest
+       are refused, since taken as members they compile to a different pattern
+       than the one written: [[a][b]] is the union of two classes there and
+       was `[` or `a`, then b, then `]` here. `[\[]` holds the bracket itself,
+       in CRuby as well. A '[' with nothing after it leaves the class
+       unterminated, which the loop reports on its own. */
+    if (peek(c) == '[' && c->p + 1 < c->src_end) {
+      if (c->p[1] == '.') compile_error(c, "POSIX collating element is not supported");
+      if (c->p[1] == '=') compile_error(c, "POSIX equivalence class is not supported");
+      if (c->p[1] != ':') compile_error(c, "nested character class is not supported");
+    }
+
     /* POSIX bracket class: [:name:] or negated [:^name:] inside [...]. */
     if (peek(c) == '[' && c->p + 1 < c->src_end && c->p[1] == ':') {
       const char *save = c->p;
@@ -884,6 +898,7 @@ compile_charclass(re_compiler *c)
       if (peek(c) == '^') { neg = TRUE; next_char(c); }
       const char *name = c->p;
       while (peek(c) >= 0 && peek(c) != ':' && peek(c) != ']') next_char(c);
+      mrb_bool stopped_at_bracket_end = (peek(c) == ']');
       if (peek(c) == ':' && c->p + 1 < c->src_end && c->p[1] == ']') {
         uint8_t bits[16] = {0};
         mrb_bool by_ascii;
@@ -914,7 +929,17 @@ compile_charclass(re_compiler *c)
 #endif
         continue;
       }
-      c->p = save;  /* not a POSIX class; treat '[' as a literal below */
+      /* The '[' opened a bracket, so a name that does not close is the
+         bracket ending early rather than a literal '[', as it is to CRuby.
+         Which of the two things went wrong depends on where the scan
+         stopped: at a ']' the class does close and only the bracket ended
+         early, and anywhere else (a ':' with nothing after it, or the end of
+         the pattern) the class never closes either, which is the older and
+         more particular complaint of the two. */
+      c->p = save;
+      compile_error(c, stopped_at_bracket_end
+                    ? "premature end of char-class"
+                    : "unterminated character class");
     }
 
     /* Shorthand classes (\d, \D, \w, \W, \s, \S, \h, \H) are handled

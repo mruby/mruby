@@ -201,6 +201,11 @@ pattern analysis.
   as well, is the letter, which is how CRuby reads them too. The POSIX
   brackets read the same data where the build carries it, so `[[:alpha:]]` is
   the way to ask for a letter of any script.
+- **A `[` inside a class opens something**: as in CRuby it never stands for
+  itself, and what it opens is read here only when it is a POSIX bracket.
+  A collating element (`[[.a.]]`), an equivalence class (`[[=a=]]`) and a
+  class nested in this one (`[[a][b]]`) each raise `RegexpError`. Write
+  `[\[]` for the bracket itself, which is the spelling CRuby wants too.
 - **No `\G`, `\K`, `\R`, `\X` or `\g<name>`**: the search-start anchor, the
   match-start reset, the linebreak, the grapheme cluster and the subexpression
   call all raise `RegexpError` rather than standing for their own letter.
