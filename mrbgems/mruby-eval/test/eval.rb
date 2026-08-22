@@ -65,6 +65,20 @@ assert 'eval deeply nested input does not crash the parser' do
   end
 end
 
+assert 'eval an operator assignment whose write name is only the `=`' do
+  # A call written this way leaves the parser with a write name of exactly
+  # "=", so the read name it copies out of it is zero bytes long.  mruby's
+  # allocator answers a request for zero bytes with NULL where malloc answers
+  # with a pointer, and the parser hands what it gets straight to memcpy() and
+  # then keeps it in the constant pool for memcmp() to read.  Both are
+  # undefined with a null pointer even at a length of zero.  Only a sanitizer
+  # build says so, so what is asserted here is the parse; the value of the
+  # test is that a sanitizer build parses this at all.  Twice in one parse,
+  # since the pool only compares the second against what the first left.
+  assert_raise(SyntaxError) { eval('[.m M:+=') }
+  assert_raise(SyntaxError) { eval("[.m M:+=\n[.m N:+=\n") }
+end
+
 assert 'eval a string literal at the width of the pool length' do
   # The dump records a pool string's length in 16 bits, so 65535 bytes is the
   # longest one that survives the round trip into an mrb_irep.
