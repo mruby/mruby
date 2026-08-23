@@ -229,6 +229,20 @@ MRB_API void mrb_ary_set(mrb_state *mrb, mrb_value ary, mrb_int n, mrb_value val
 MRB_API void mrb_ary_replace(mrb_state *mrb, mrb_value self, mrb_value other);
 
 /*
+ * Unshift many values into an array
+ *
+ * Equivalent to:
+ *
+ *      ary.unshift(*argv)
+ *
+ * @param mrb The mruby state reference.
+ * @param self The target array.
+ * @param argc The number of values to unshift.
+ * @param argv The values to unshift.
+ */
+MRB_API mrb_value mrb_ary_unshift_values(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value argv[]);
+
+/*
  * Unshift an element into the array
  *
  * Equivalent to:
