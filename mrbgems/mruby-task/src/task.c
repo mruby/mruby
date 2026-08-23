@@ -106,6 +106,17 @@ mrb_task_mark_all(mrb_state *mrb)
 {
   int qi;
 
+  /* The main task is created lazily by Task.current and never queued, so
+     the queue walk below cannot reach it. mrb_gc_register() pins only its
+     wrapper object, while the values inside the mrb_task struct are
+     reachable through this mark alone. It can exist while every queue is
+     empty, so mark it before the early return. */
+  if (mrb->task.main_task) {
+    mrb_gc_mark_value(mrb, mrb->task.main_task->self);
+    mrb_gc_mark_value(mrb, mrb->task.main_task->result);
+    mrb_gc_mark_value(mrb, mrb->task.main_task->name);
+  }
+
   /* GC can run before mruby-task's gem init (allocations during
      earlier gem inits trigger it, deterministically so under GC
      stress). At that point the queues are necessarily empty AND the
