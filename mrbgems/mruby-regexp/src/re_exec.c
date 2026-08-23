@@ -136,29 +136,52 @@ typedef struct {
   mrb_bool binary;        /* true: subject is byte-indexed ASCII-8BIT */
   mrb_bool cut;           /* a higher-priority thread matched this step:
                              stop adding/processing lower-priority threads */
+  mrb_bool nomem;         /* the allocator refused the search a buffer it
+                             needed: it stops and answers RE_NOMEM */
   int *result_caps;       /* best match (ncap ints) */
 } pike_state;
 
-static int
-pool_alloc(pike_state *s)
+/* Hand out a capture slot, growing the pool where it has none left. TRUE is
+   a slot having been handed out, and FALSE is the allocator having refused
+   the growth, which is the search stopping: there is no slot to answer with,
+   and an index that is not one would be read as a slot all the same. The
+   refusal is recorded on the state as well, since the walk that asked for it
+   is several frames deep and hands nothing back (see add_thread()).
+
+   Growing with mrb_realloc_simple() rather than mrb_realloc() is what lets
+   the refusal be an answer at all, for the reason pike_vm() gives: a raising
+   allocator here jumps past the epilogue that frees the pool and releases
+   the cache, and by this point the search holds all of both. */
+static mrb_bool
+pool_alloc(pike_state *s, int *slot)
 {
   if (s->pool_next >= s->pool_capa) {
     int new_capa = s->pool_capa * 2;
-    s->cap_pool = (int*)mrb_realloc(s->mrb, s->cap_pool,
-                                     sizeof(int) * new_capa * s->ncap);
+    int *p = (int*)mrb_realloc_simple(s->mrb, s->cap_pool,
+                                      sizeof(int) * new_capa * s->ncap);
+    if (!p) {
+      s->nomem = TRUE;
+      return FALSE;
+    }
+    s->cap_pool = p;
     s->pool_capa = new_capa;
   }
-  return s->pool_next++;
+  *slot = s->pool_next++;
+  return TRUE;
 }
 
-static int
-pool_copy(pike_state *s, int src_slot)
+/* A fresh slot holding what `src_slot` holds. Answers as pool_alloc() does,
+   and for the same reason. */
+static mrb_bool
+pool_copy(pike_state *s, int src_slot, int *slot)
 {
-  int dst = pool_alloc(s);
+  int dst;
+  if (!pool_alloc(s, &dst)) return FALSE;
   memcpy(&s->cap_pool[dst * s->ncap],
          &s->cap_pool[src_slot * s->ncap],
          sizeof(int) * s->ncap);
-  return dst;
+  *slot = dst;
+  return TRUE;
 }
 
 #define CAP(s, slot) (&(s)->cap_pool[(slot) * (s)->ncap])
@@ -216,7 +239,10 @@ add_thread(pike_state *s, re_threadlist *list,
            uint32_t pc, int cap_slot, const char *sp, uint32_t key)
 {
   for (;;) {
-    if (s->cut) return;
+    /* Both of these end the walk without an answer to hand back: a cut is
+       this step having been settled by a higher-priority thread, and a
+       refused allocation is the search stopping (see pool_alloc()). */
+    if (s->cut || s->nomem) return;
     if (pc >= s->pat->code_len) return;
     if (s->visited[pc] >= key) return;
     s->visited[pc] = key;
@@ -260,9 +286,10 @@ add_thread(pike_state *s, re_threadlist *list,
       {
         uint32_t back = re_loop_back(s, inst, pc, key);
         if (back == RE_LOOP_STOP) { pc++; continue; }
-        int cp = s->match_only ? 0 : pool_copy(s, cap_slot);
+        int cp = 0;
+        if (!s->match_only && !pool_copy(s, cap_slot, &cp)) return;
         add_thread(s, list, pc + 1, cap_slot, sp, key);
-        if (s->cut) return;
+        if (s->cut || s->nomem) return;
         pc = inst.offset;
         cap_slot = cp;
         key = back;
@@ -274,9 +301,10 @@ add_thread(pike_state *s, re_threadlist *list,
       {
         uint32_t back = re_loop_back(s, inst, pc, key);
         if (back == RE_LOOP_STOP) { pc++; continue; }
-        int cp = s->match_only ? 0 : pool_copy(s, cap_slot);
+        int cp = 0;
+        if (!s->match_only && !pool_copy(s, cap_slot, &cp)) return;
         add_thread(s, list, inst.offset, cap_slot, sp, back);
-        if (s->cut) return;
+        if (s->cut || s->nomem) return;
         pc = pc + 1;
         cap_slot = cp;
       }
@@ -383,10 +411,12 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
 
   mrb_bool match_only = (captures == NULL || captures_size == 0);
 
-  /* Use cached VM state if available (avoids malloc per call) */
+  /* Use cached VM state if available (avoids malloc per call). Whether this
+     search may have it is decided here, since it decides what there is left
+     to allocate; the claim itself is made below, once nothing is left to
+     ask for. */
   mrb_regexp_pattern *mpat = (mrb_regexp_pattern*)pat;  /* for cache_in_use flag */
   mrb_bool use_cache = !mpat->cache_in_use && mpat->cached_visited != NULL;
-  if (use_cache) mpat->cache_in_use = TRUE;
 
   pike_state s;
   s.mrb = mrb;
@@ -398,40 +428,72 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
   s.match_only = match_only;
   s.binary = binary;
   s.cut = FALSE;
+  s.nomem = FALSE;
   s.pass_span = RE_PASS_SPAN(pat->loop_depth);
   s.gen = 0;
   s.key_max = s.pass_span - 1;
+
+  /* Everything this search holds is given back by one epilogue below, which
+     an allocator that raises would jump past: what had been taken by then
+     would be leaked, and the cache claim made after it would stand for the
+     rest of the pattern's life, since nothing but that epilogue clears it.
+     The allocator that answers NULL is what lets a refusal be the search's
+     own answer (RE_NOMEM) and leave by the same exit as every other one.
+     What was not taken is left NULL, which the epilogue frees as readily. */
+  size_t vsize = sizeof(uint32_t) * ((size_t)pat->code_len + 1);
+  s.pool_next = 0;
+  s.result_caps = NULL;
   if (match_only) {
     s.pool_capa = 1;
-    s.pool_next = 0;
-    s.cap_pool = (int*)mrb_malloc(mrb, sizeof(int) * ncap);
-    s.result_caps = NULL;
+    s.cap_pool = (int*)mrb_malloc_simple(mrb, sizeof(int) * ncap);
+    if (!s.cap_pool) s.nomem = TRUE;
   }
   else {
     s.pool_capa = list_capa * 2;
-    s.pool_next = 0;
-    s.cap_pool = (int*)mrb_malloc(mrb, sizeof(int) * s.pool_capa * ncap);
-    s.result_caps = (int*)mrb_malloc(mrb, sizeof(int) * ncap);
-    memset(s.result_caps, -1, sizeof(int) * ncap);
+    s.cap_pool = (int*)mrb_malloc_simple(mrb, sizeof(int) * s.pool_capa * ncap);
+    s.result_caps = (int*)mrb_malloc_simple(mrb, sizeof(int) * ncap);
+    if (!s.cap_pool || !s.result_caps) s.nomem = TRUE;
+    else memset(s.result_caps, -1, sizeof(int) * ncap);
   }
 
   re_threadlist curr, next;
-  if (use_cache) {
+  s.visited = NULL;
+  curr.threads = next.threads = NULL;
+  curr.capa = next.capa = 0;
+  curr.count = next.count = 0;
+  if (s.nomem) {
+    /* The search is over before it starts; there is nothing left to take. */
+  }
+  else if (use_cache) {
     s.visited = mpat->cached_visited;
-    memset(s.visited, 0, sizeof(uint32_t) * (pat->code_len + 1));
+    memset(s.visited, 0, vsize);
     curr.threads = (re_thread*)mpat->cached_threads[0];
     next.threads = (re_thread*)mpat->cached_threads[1];
     curr.capa = next.capa = mpat->cached_list_capa;
   }
   else {
-    s.visited = (uint32_t*)mrb_calloc(mrb, pat->code_len + 1, sizeof(uint32_t));
-    curr.threads = (re_thread*)mrb_malloc(mrb, sizeof(re_thread) * list_capa);
-    next.threads = (re_thread*)mrb_malloc(mrb, sizeof(re_thread) * list_capa);
-    curr.capa = next.capa = list_capa;
+    s.visited = (uint32_t*)mrb_malloc_simple(mrb, vsize);
+    curr.threads = (re_thread*)mrb_malloc_simple(mrb, sizeof(re_thread) * list_capa);
+    next.threads = (re_thread*)mrb_malloc_simple(mrb, sizeof(re_thread) * list_capa);
+    if (!s.visited || !curr.threads || !next.threads) {
+      s.nomem = TRUE;
+    }
+    else {
+      memset(s.visited, 0, vsize);
+      curr.capa = next.capa = list_capa;
+    }
   }
-  curr.count = next.count = 0;
 
-  for (; sp <= str_end; sp++) {
+  /* Claim the cache last. The claim is on the pattern, which outlives the
+     search, so it may not be made where something between it and the
+     epilogue could leave without reaching the epilogue, which is what every
+     allocation above could do until it stopped raising. A search that
+     was refused the memory to run never claims it and never used it, so it
+     is not the one to release it either. */
+  if (s.nomem) use_cache = FALSE;
+  else if (use_cache) mpat->cache_in_use = TRUE;
+
+  for (; !s.nomem && sp <= str_end; sp++) {
     /* Past the last position a match may start at, only the threads already
        running can still answer; once they are gone nothing can. */
     if (!s.matched && sp > start_cap && curr.count == 0) break;
@@ -458,11 +520,15 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
          test guards the seeding alone and never skips the iteration. */
       if (s.binary || sp >= str_end ||
           !mrb_re_char_interior_p(str, sp, str_end)) {
-        int slot = match_only ? 0 : pool_alloc(&s);
-        if (!match_only) memset(CAP(&s, slot), -1, sizeof(int) * ncap);
+        int slot = 0;
+        if (!match_only) {
+          if (!pool_alloc(&s, &slot)) break;
+          memset(CAP(&s, slot), -1, sizeof(int) * ncap);
+        }
         advance_gen(&s);
         s.cut = FALSE;
         add_thread(&s, &curr, 0, slot, sp, s.gen);
+        if (s.nomem) break;
         if (s.matched && curr.count == 0) break;
       }
     }
@@ -480,15 +546,28 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
          final block copy to the front is disjoint because pool_next >= count. */
       int base = s.pool_next;
       for (int i = 0; i < curr.count; i++) {
-        int dst = pool_alloc(&s);
+        int dst;
+        if (!pool_alloc(&s, &dst)) break;
         memcpy(CAP(&s, dst), CAP(&s, curr.threads[i].cap_slot),
                sizeof(int) * ncap);
         curr.threads[i].cap_slot = i;
       }
+      /* Leave before the block copy rather than after it: the staging slots
+         it reads from are the ones the loop above was refused, and `base` is
+         past the end of the pool without them. */
+      if (s.nomem) break;
       memcpy(&s.cap_pool[0], &s.cap_pool[base * ncap],
              sizeof(int) * ncap * curr.count);
-      s.pool_next = curr.count;
     }
+    /* Every live slot is a thread's, and a match keeps what it found in
+       result_caps rather than in the pool (see RE_MATCH in add_thread), so a
+       step with no threads left holds no slot either and the pool goes back
+       to the front. Reclaiming only where there was something to renumber
+       would leave the slot each dead attempt took: a run of positions where
+       nothing survives climbs the pool by one a position, and a search over
+       a long enough subject asks the allocator for memory in proportion to
+       the subject rather than to the pattern. */
+    if (!match_only) s.pool_next = curr.count;
 
     advance_gen(&s);
     s.cut = FALSE;
@@ -526,35 +605,40 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
       switch (inst.op) {
       case RE_CHAR:
         if (ch == inst.a) {
-          int cp = match_only ? 0 : pool_copy(&s, th->cap_slot);
+          int cp = 0;
+          if (!match_only && !pool_copy(&s, th->cap_slot, &cp)) break;
           add_thread(&s, &next, th->pc + 1, cp, sp + 1, s.gen);
         }
         break;
 
       case RE_ANY:
         if (ch != '\n') {
-          int cp = match_only ? 0 : pool_copy(&s, th->cap_slot);
+          int cp = 0;
+          if (!match_only && !pool_copy(&s, th->cap_slot, &cp)) break;
           add_thread(&s, &next, th->pc + 1, cp, sp + advance, s.gen);
         }
         break;
 
       case RE_ANY_NL:
         {
-          int cp = match_only ? 0 : pool_copy(&s, th->cap_slot);
+          int cp = 0;
+          if (!match_only && !pool_copy(&s, th->cap_slot, &cp)) break;
           add_thread(&s, &next, th->pc + 1, cp, sp + advance, s.gen);
         }
         break;
 
       case RE_CLASS:
         if (class_match(&pat->classes[inst.a], curr_cp, curr_raw)) {
-          int cp = match_only ? 0 : pool_copy(&s, th->cap_slot);
+          int cp = 0;
+          if (!match_only && !pool_copy(&s, th->cap_slot, &cp)) break;
           add_thread(&s, &next, th->pc + 1, cp, sp + advance, s.gen);
         }
         break;
 
       case RE_NCLASS:
         if (!class_match(&pat->classes[inst.a], curr_cp, curr_raw)) {
-          int cp = match_only ? 0 : pool_copy(&s, th->cap_slot);
+          int cp = 0;
+          if (!match_only && !pool_copy(&s, th->cap_slot, &cp)) break;
           add_thread(&s, &next, th->pc + 1, cp, sp + advance, s.gen);
         }
         break;
@@ -564,8 +648,10 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
       }
 
       /* A higher-priority thread reached a match while building `next`; the
-         remaining (lower-priority) threads in `curr` are cut for this step. */
-      if (s.cut) break;
+         remaining (lower-priority) threads in `curr` are cut for this step.
+         A refused allocation stops the whole search rather than this step,
+         and the loop above reads it as its own end. */
+      if (s.cut || s.nomem) break;
     }
 
     /* swap curr and next */
@@ -579,7 +665,13 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
   }
 
   int ret = 0;
-  if (s.matched) {
+  if (s.nomem) {
+    /* The allocator had nothing left for a buffer this search needed. It is
+       told apart from a limit all the way out to the caller for the reason
+       backtrack_exec() gives: what it asks for is not a knob turned up. */
+    ret = RE_NOMEM;
+  }
+  else if (s.matched) {
     if (captures && s.result_caps) {
       int copy = ncap < captures_size ? ncap : captures_size;
       memcpy(captures, s.result_caps, sizeof(int) * copy);
