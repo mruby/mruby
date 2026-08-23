@@ -487,8 +487,16 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
       }
       memcpy(&s.cap_pool[0], &s.cap_pool[base * ncap],
              sizeof(int) * ncap * curr.count);
-      s.pool_next = curr.count;
     }
+    /* Every live slot is a thread's, and a match keeps what it found in
+       result_caps rather than in the pool (see RE_MATCH in add_thread), so a
+       step with no threads left holds no slot either and the pool goes back
+       to the front. Reclaiming only where there was something to renumber
+       would leave the slot each dead attempt took: a run of positions where
+       nothing survives climbs the pool by one a position, and a search over
+       a long enough subject asks the allocator for memory in proportion to
+       the subject rather than to the pattern. */
+    if (!match_only) s.pool_next = curr.count;
 
     advance_gen(&s);
     s.cut = FALSE;
