@@ -921,7 +921,6 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
     {
       struct RClass *c = (struct RClass*)obj;
 
-      mrb_gc_mark_mt(mrb, c);
       mrb_gc_mark(mrb, (struct RBasic*)c->super);
       children += mrb_gc_mark_mt(mrb, c);
       children++;
