@@ -120,3 +120,20 @@ assert("GC.scheduler_driven collects during scheduler idle") do
     GC.start
   end
 end
+
+# Regression: Task.current.name must still answer "main" after a GC. The
+# main task is created lazily by Task.current and never queued, so the
+# queue walk in mrb_task_mark_all() cannot reach it, and mrb_gc_register()
+# pins only the wrapper object. The name (and result) held in the mrb_task
+# C struct had no GC root. The "main" string was swept on the next GC, and
+# Task.current.name returned a wrong name, whatever object had reused the
+# slot.
+assert("Task.current.name still answers \"main\" after GC") do
+  t = Task.current
+  GC.start
+  # Churn allocations so a swept slot gets reused rather than merely freed.
+  churn = nil
+  200.times { |i| churn = "churn#{i}" }
+  GC.start
+  assert_equal "main", t.name
+end
