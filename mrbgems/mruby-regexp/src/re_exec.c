@@ -628,43 +628,95 @@ lookbehind_start(const mrb_regexp_pattern *pat, const char *str,
   return sp;
 }
 
-/* What one bt_match() frame answers. The frame that reaches RE_MATCH answers
-   BT_MATCH, and every frame under it hands that up unchanged. A frame whose
-   alternatives are exhausted answers BT_FAIL, and its caller tries the next
-   alternative of its own. The third answer is the cut of an atomic group:
-   the text after an RE_ATOMIC_END has failed, and no alternative inside the
-   group's body may be tried for it, so the frames between that end and the
-   RE_ATOMIC that opened the group hand BT_CUT of the group's number up
-   unchanged, undoing their captures as they go, and the frame that ran that
-   RE_ATOMIC turns it into BT_FAIL. A lookaround runs its sub-pattern the
-   same way, the text after it going on inside the sub-pattern's frames from
-   the RE_LOOK_END (see there), so a cut can pass through one; the opener
-   absorbs its own number like an RE_ATOMIC and hands any other up.
-   The fourth answer, BT_LIMIT, is a frame giving up at the recursion or step
-   limit, and it is the search's answer rather than the frame's: every frame
-   hands it up unchanged, as it does a cut, and backtrack_exec() stops at it
-   (see there). A limit says nothing about the text, so no frame may read it
-   as its branch having failed and answer with its other branch, which would
-   be answering a smaller question with whatever the alternatives inside the
-   limit produce: a shorter, a later or no match, told from the real answer
-   by nothing. */
+/* What one bt_match() call answers. BT_MATCH is the search having reached
+   RE_MATCH, BT_FAIL is every alternative it held having been tried, BT_LIMIT
+   is the search giving up at one of the limits before it had either, and
+   BT_NOMEM is the allocator having refused the state it needed. Neither of
+   the last two says anything about the text, so neither is read as a branch
+   having failed and answered from the alternatives left: that would be
+   answering a smaller question with whatever they produce: a shorter match, a
+   later one or none, told from the real answer by nothing. backtrack_exec()
+   stops the whole search at either (see there), and tells the two apart
+   there, since what a limit asks of the build is that MRB_REGEXP_STACK_LIMIT
+   be turned up, which is the worst thing it could do about an allocator that
+   had nothing left to give.
+
+   BT_OK is not one of bt_match()'s answers. It is what bt_push(), bt_log()
+   and bt_iter_begin() answer when there is nothing to hand up, so that what
+   they answer otherwise is bt_match()'s answer as it stands. */
 #define BT_FAIL 0
 #define BT_MATCH 1
 #define BT_LIMIT 2
-#define BT_CUT(cut) (-(int)(cut))
+#define BT_NOMEM 3
+#define BT_OK 4
 
-/* What one backtrack_exec() call shares between its bt_match() frames: the
-   pattern, the subject, the capture slots being written, the step count and
-   the iteration records. A frame's own state is its position, its pc and its
-   depth. */
+/* What taking a choice point does beyond resuming where it points. */
+enum re_cp_kind {
+  RE_CP_FORK,   /* nothing: a branch the search has not tried yet */
+  RE_CP_ITER,   /* the branch begins an iteration of the loop its `group`
+                   keys, whose record is written when the branch is taken
+                   rather than when it was pushed (see bt_iter_begin()) */
+  RE_CP_BARRIER,/* not a branch at all: where the group its `group` names was
+                   entered. Reaching it while backtracking is that group
+                   failing, so it resumes nothing and the search goes on
+                   popping; its end drops it and everything above it, which is
+                   how an atomic group and a positive lookaround cut (see
+                   RE_ATOMIC_END and RE_LOOK_END). */
+  RE_CP_NEG     /* the barrier of a negative lookaround, which is both: its
+                   sub-pattern running out of alternatives is the assertion
+                   holding, so reaching it resumes the text after the
+                   lookaround, at the sp and pc it holds. */
+};
+
+/* A choice point: an alternative the search has not tried yet, as where the
+   input stood (`sp`), which instruction takes the alternative (`pc`) and how
+   tall the undo log was when it was pushed (`undo_top`). Backtracking pops
+   one, takes back every write logged above its `undo_top` and goes on from
+   its `sp` and `pc`. A fork costs one of these rather than the C frame the
+   engine used to recurse into, so the C stack a search spends is the one
+   bt_match() call it makes, whatever the subject: the state that grows is
+   this stack, on the heap.
+
+   MRB_REGEXP_STACK_LIMIT is what bounds it (see there and bt_room()). */
 typedef struct {
+  const char *sp;
+  uint32_t pc;
+  uint32_t undo_top;
+  uint32_t group;   /* what `kind` names, where it names something */
+  int pass;         /* the pass it was pushed in, which is the pass the
+                       branch it holds runs in; for a lookaround's barrier
+                       that is the pass the lookaround was entered from, and
+                       the sub-pattern above it runs in one of its own */
+  uint8_t kind;
+} re_cpoint;
+
+/* An undo record: one write the search must be able to take back, as the slot
+   written and what stood in it. The records are a stack of their own beside
+   the choice points rather than a field in them, because what a cut does to
+   each differs: the captures a positive lookaround or an atomic group wrote
+   outlive it, so its cut drops the choice points above the barrier and leaves
+   the undo log alone, while a negative lookaround, whose captures do not
+   outlive it, unwinds both. One mixed stack could not truncate at all: it
+   would have to walk the region above the barrier and keep the undo records
+   while dropping the choice points. */
+typedef struct {
+  int *slot;
+  int old;
+} re_undo;
+
+/* Everything one backtrack_exec() call carries: the pattern, the subject,
+   the capture slots being written, the step count, the iteration records and
+   the two stacks the backtracking state stands on. What the search itself
+   holds between instructions is only its position and its pc. */
+typedef struct {
+  mrb_state *mrb;
   const mrb_regexp_pattern *pat;
   const char *str;
   const char *str_end;
   int *captures;
   int ncap;
   int steps;
-  /* Per pc, the offset the frame that pc keys was entered at, or -1 while
+  /* Per pc, the offset the loop that pc keys was entered at, or -1 while
      none is running; what a record means is what its pc is. For the edge of
      a repetition whose body can match empty it is where the running
      iteration began: such a repetition has to stop once an iteration ends
@@ -675,28 +727,37 @@ typedef struct {
      for e* (the SPLIT/SPLITNG whose offset is the exit; the JMP closing the
      body reads the record) and its marked back edge for e+ (the
      SPLIT/SPLITNG at the end of the body, which both writes and reads it);
-     see mark_empty_loops(). For the RE_LOOK_END of a lookaround it is where
-     the lookaround was entered, which is where the text after it goes on
-     from; see bt_look(). */
+     see mark_empty_loops(). */
   int *entered_at;
   /* Per pc, the pass that wrote entered_at[pc]. A pass is one run of a
-     lookaround's sub-pattern, told by the depth of the bt_look() frame
-     running it, and 0 is the pattern outside every lookaround; `pass` is the
-     one the frames now running are in. A record is read as the running
-     iteration's only by the pass that wrote it: the text after a positive
-     lookaround runs inside its sub-pattern's frames (see RE_LOOK_END), so a
-     repetition around the lookaround re-enters the sub-pattern while the
-     records of the loops inside it from the pass before are still live, and
-     the first iteration of an e+, which reads its record without having
-     written it, would take one of those for its own where the positions
-     coincide: `(?=(b|)+)+` on "b" re-enters at 0 while the pass before left
-     1 for `(b|)+`, and its first iteration, ending at 1, would stop there
-     with "b" captured, where a fresh pass goes round once more and leaves
-     "". For the RE_LOOK_END the record is the pass the lookaround was entered
-     from, which the text after it runs in. */
+     lookaround's sub-pattern, numbered from `pass_seq` so that no two runs
+     of one start position's attempt share one, and 0 is the pattern outside
+     every lookaround; `pass` is the one the search is in. A record is read
+     as the running iteration's only by the pass that wrote it: what a
+     positive lookaround captured outlives it, and so do the records of the
+     loops inside it, the undo log not unwinding at its end, so a repetition
+     around the lookaround re-enters the sub-pattern with the records of the
+     run before still live. The first iteration of an e+, which reads its
+     record without having written it, would take one of those for its own
+     where the positions coincide: `(?=(b|)+)+` on "b" re-enters at 0 while
+     the run before left 1 for `(b|)+`, and its first iteration, ending at
+     1, would stop there with "b" captured, where a fresh pass goes round
+     once more and leaves "". */
   int *entered_in;
   int pass;
+  int pass_seq;
   mrb_bool binary;
+  /* The choice points not yet tried and the writes not yet taken back, both
+     grown lazily on the heap. A search starts with neither allocated and
+     pays only for the kind of state it holds: a fork is a choice point, a
+     capture or an iteration record is an undo record, and a pattern with
+     none of them in it asks the allocator for nothing. */
+  re_cpoint *cp;
+  uint32_t cp_top;
+  uint32_t cp_capa;
+  re_undo *undo;
+  uint32_t undo_top;
+  uint32_t undo_capa;
 } bt_state;
 
 /* Whether the loop `key` keys is at the end of an iteration that began at
@@ -704,72 +765,148 @@ typedef struct {
 #define ITER_EMPTY(m, key, sp) \
   ((m)->entered_at[key] == (int)((sp) - (m)->str) && (m)->entered_in[key] == (m)->pass)
 
-static int bt_match(bt_state *m, const char *sp, uint32_t pc, int depth);
-
-/* Run the frame at pc as the start of an iteration of the loop `key` keys,
-   recording where it begins so that the edge closing the body can tell an
-   empty iteration. The record lasts exactly as long as the frame: the frame
-   that ran the edge into the body is the one that undoes it, so backtracking
-   out of an iteration finds the record of the one it lands in, and the
-   branch that begins an iteration is run this way rather than in place even
-   when it is the frame's last, so that there is one place to undo it. */
-static int
-bt_iter(bt_state *m, const char *sp, uint32_t pc, uint32_t key, int depth)
+/* Whether the search may hold one more entry of backtracking state.
+   MRB_REGEXP_STACK_LIMIT counts the two stacks together: a choice point and
+   an undo record each stand for a branch or a write the search is still able
+   to take back, and bounding their sum is what bounds the state one search
+   holds. */
+static mrb_bool
+bt_room(const bt_state *m)
 {
-  int old_at = m->entered_at[key], old_in = m->entered_in[key];
-  m->entered_at[key] = (int)(sp - m->str);
-  m->entered_in[key] = m->pass;
-  int r = bt_match(m, sp, pc, depth);
-  m->entered_at[key] = old_at;
-  m->entered_in[key] = old_in;
-  return r;
+  return m->cp_top + m->undo_top < (uint32_t)MRB_REGEXP_STACK_LIMIT;
 }
 
-/* Run the sub-pattern of the lookaround whose opener is at pc: it begins at
-   `body` and matches from `from`, which is sp for a lookahead and the
-   rewound start for a lookbehind. The record of sp, and of the pass the
-   lookaround is entered from, lasts as long as the frame, as an iteration's
-   does in bt_iter(); the RE_LOOK_END closing the sub-pattern reads it (see
-   there). The sub-pattern runs as a pass of its own, this frame's depth,
-   which no pass still live has, so the records of the loops inside it that
-   another run of the same sub-pattern may have left live are not taken for
-   this run's (see bt_state).
-
-   The answer is the sub-pattern's, and the cut of this lookaround's number
-   is what the sub-pattern matching comes back as: for a negative lookaround
-   from the RE_LOOK_END itself, and the answer is BT_MATCH, with every
-   capture the sub-pattern wrote undone on the way up; for a positive one
-   from the text after the lookaround failing, which the RE_LOOK_END ran
-   inside the sub-pattern's frames, so the sub-pattern matched once and that
-   was its only match: BT_FAIL, the captures undone the same way. BT_MATCH
-   from a positive one is the whole pattern having matched through that
-   text. Everything else, a failure, a limit or another group's cut, goes up
-   as it is. */
-static int
-bt_look(bt_state *m, const char *sp, const char *from, uint32_t pc,
-        uint32_t body, int depth)
+/* What a full stack grows to. Doubling is what makes a push amortised
+   constant; the ceiling is what makes MRB_REGEXP_STACK_LIMIT a bound on the
+   memory a search asks for and not only on the entries it holds at once,
+   since a stack keeps its capacity for the rest of the search and the two of
+   them reach their high-water marks at different times. A stack is grown only
+   where bt_room() has just passed, so its height is below the limit and the
+   ceiling always leaves room for the entry being pushed. */
+static uint32_t
+bt_grow_capa(uint32_t capa)
 {
-  uint32_t end = m->pat->code[pc].offset - 1;
-  re_inst end_inst = m->pat->code[end];
-  int old_at = m->entered_at[end], old_in = m->entered_in[end];
-  int old_pass = m->pass;
-  m->entered_at[end] = (int)(sp - m->str);
-  m->entered_in[end] = old_pass;
-  m->pass = depth;
-  int r = bt_match(m, from, body, depth);
-  m->pass = old_pass;
-  m->entered_at[end] = old_at;
-  m->entered_in[end] = old_in;
-  if (r != BT_CUT(end_inst.offset)) return r;
-  return end_inst.a ? BT_MATCH : BT_FAIL;
+  capa = capa ? capa * 2 : 16;
+  return capa < (uint32_t)MRB_REGEXP_STACK_LIMIT ? capa : (uint32_t)MRB_REGEXP_STACK_LIMIT;
+}
+
+/* Push a choice point. BT_OK is the push having happened, and anything else
+   is the search stopping, to be handed up as the frame's answer: BT_LIMIT
+   where the stack limit refuses the entry, BT_NOMEM where the allocator
+   refuses the memory for it. Growing with mrb_realloc_simple() rather than
+   mrb_realloc() is what lets a refusal be an answer at all, a raising
+   allocator longjmping past the mrb_free() in backtrack_exec(). */
+static int
+bt_push(bt_state *m, const char *sp, uint32_t pc, uint8_t kind, uint32_t group)
+{
+  if (!bt_room(m)) return BT_LIMIT;
+  if (m->cp_top == m->cp_capa) {
+    uint32_t capa = bt_grow_capa(m->cp_capa);
+    re_cpoint *p = (re_cpoint*)mrb_realloc_simple(m->mrb, m->cp, sizeof(re_cpoint) * capa);
+    if (!p) return BT_NOMEM;
+    m->cp = p;
+    m->cp_capa = capa;
+  }
+  re_cpoint *c = &m->cp[m->cp_top++];
+  c->sp = sp;
+  c->pc = pc;
+  c->undo_top = m->undo_top;
+  c->group = group;
+  c->pass = m->pass;
+  c->kind = kind;
+  return BT_OK;
+}
+
+/* Write `val` into `slot`, logging what stood there so that backtracking
+   past this point puts it back. The answer is bt_push()'s, and means what it
+   means there: BT_OK is the write having gone through, and BT_LIMIT or
+   BT_NOMEM is the search stopping, for the same two reasons and told apart
+   for the same one.
+
+   A write of the value already there leaves nothing to put back, so it is not
+   logged. What MRB_REGEXP_STACK_LIMIT counts is then the state a search would
+   have to restore rather than the calls it made, and a search at the limit
+   goes on through such a write rather than stopping at one that would have
+   restored nothing. */
+static int
+bt_log(bt_state *m, int *slot, int val)
+{
+  if (*slot == val) return BT_OK;
+  if (!bt_room(m)) return BT_LIMIT;
+  if (m->undo_top == m->undo_capa) {
+    uint32_t capa = bt_grow_capa(m->undo_capa);
+    re_undo *p = (re_undo*)mrb_realloc_simple(m->mrb, m->undo, sizeof(re_undo) * capa);
+    if (!p) return BT_NOMEM;
+    m->undo = p;
+    m->undo_capa = capa;
+  }
+  re_undo *u = &m->undo[m->undo_top++];
+  u->slot = slot;
+  u->old = *slot;
+  *slot = val;
+  return BT_OK;
+}
+
+/* Take back every write logged above `top`. */
+static void
+bt_undo_to(bt_state *m, uint32_t top)
+{
+  while (m->undo_top > top) {
+    re_undo *u = &m->undo[--m->undo_top];
+    *u->slot = u->old;
+  }
+}
+
+/* Where the group `group` was entered, as an index into the choice point
+   stack. Barriers nest and a group's end runs while its own is the innermost
+   still standing, so the walk down from the top is over what that end is
+   about to drop in any case. FALSE is a group's end reached without its
+   opener, which a compiled pattern does not hold; the search reads it as a
+   failure rather than trusting an index. */
+static mrb_bool
+bt_barrier_find(const bt_state *m, uint32_t group, uint32_t *idx)
+{
+  uint32_t i = m->cp_top;
+  while (i > 0) {
+    i--;
+    if ((m->cp[i].kind == RE_CP_BARRIER || m->cp[i].kind == RE_CP_NEG) &&
+        m->cp[i].group == group) {
+      *idx = i;
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+/* Record that an iteration of the loop `key` keys begins at sp, so that the
+   edge closing the body can tell an iteration that matched empty. The two
+   records go on the undo log, so that backtracking out of an iteration puts
+   back the record of the one it lands in; the branch that begins an
+   iteration is written this way rather than in place when it is taken, so
+   that there is one place that writes them. They go through bt_log() like
+   any other write, so an iteration that begins where the record already
+   says, in the pass it already names, spends nothing on saying so again. */
+static int
+bt_iter_begin(bt_state *m, uint32_t key, const char *sp)
+{
+  int r = bt_log(m, &m->entered_at[key], (int)(sp - m->str));
+  return r != BT_OK ? r : bt_log(m, &m->entered_in[key], m->pass);
 }
 
 /*
  * Backtracking engine for patterns with backreferences.
+ *
+ * A fork pushes a choice point and goes on with its first branch; a failure
+ * pops one and goes on with the alternative it holds, taking back the writes
+ * logged since it was pushed. The whole of a search is this one loop, so what
+ * it costs the C stack is one call however long the subject is and however
+ * deep the pattern nests; what grows instead are the two stacks on the heap,
+ * which MRB_REGEXP_STACK_LIMIT bounds.
+ *
  * Step-limited to prevent ReDoS.
  */
 static int
-bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
+bt_match(bt_state *m, const char *sp, uint32_t pc)
 {
   const mrb_regexp_pattern *pat = m->pat;
   const char *str = m->str;
@@ -777,47 +914,52 @@ bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
   int *captures = m->captures;
   int ncap = m->ncap;
   mrb_bool binary = m->binary;
+  /* What an operation on the stacks answers, which is this call's answer
+     wherever it is not BT_OK. Outside the loop so that no `goto fail`
+     crosses an initialization: a C++ build refuses a jump that does. */
+  int r;
+  re_inst inst;
 
-  if (depth > MRB_REGEXP_RECURSION_LIMIT) return BT_LIMIT;
-  while (pc < pat->code_len) {
+  for (;;) {
+    if (pc >= pat->code_len) goto fail;
     if (++m->steps > MRB_REGEXP_STEP_LIMIT) return BT_LIMIT;
 
-    re_inst inst = pat->code[pc];
+    inst = pat->code[pc];
     switch (inst.op) {
     case RE_CHAR:
-      if (sp >= str_end || (uint8_t)*sp != inst.a) return BT_FAIL;
+      if (sp >= str_end || (uint8_t)*sp != inst.a) goto fail;
       sp++; pc++;
       break;
 
     case RE_ANY:
-      if (sp >= str_end || *sp == '\n') return BT_FAIL;
+      if (sp >= str_end || *sp == '\n') goto fail;
       sp += mrb_re_charlen(sp, str_end, binary); pc++;
       break;
 
     case RE_ANY_NL:
-      if (sp >= str_end) return BT_FAIL;
+      if (sp >= str_end) goto fail;
       sp += mrb_re_charlen(sp, str_end, binary); pc++;
       break;
 
     case RE_CLASS:
-      if (sp >= str_end) return BT_FAIL;
+      if (sp >= str_end) goto fail;
       {
         int dlen = 0;
         uint32_t cp_ = mrb_re_decode_char(sp, str_end, &dlen, binary);
         mrb_bool raw = (dlen == 1 && (uint8_t)*sp >= 0x80);
-        if (!class_match(&pat->classes[inst.a], cp_, raw)) return BT_FAIL;
+        if (!class_match(&pat->classes[inst.a], cp_, raw)) goto fail;
         sp += mrb_re_charlen(sp, str_end, binary);
       }
       pc++;
       break;
 
     case RE_NCLASS:
-      if (sp >= str_end) return BT_FAIL;
+      if (sp >= str_end) goto fail;
       {
         int dlen = 0;
         uint32_t cp_ = mrb_re_decode_char(sp, str_end, &dlen, binary);
         mrb_bool raw = (dlen == 1 && (uint8_t)*sp >= 0x80);
-        if (class_match(&pat->classes[inst.a], cp_, raw)) return BT_FAIL;
+        if (class_match(&pat->classes[inst.a], cp_, raw)) goto fail;
         sp += mrb_re_charlen(sp, str_end, binary);
       }
       pc++;
@@ -828,11 +970,11 @@ bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
 
     case RE_JMP:
       /* A backward jump closes e* and returns to its head. When the head is
-         marked, the body can match empty and entered_at[head] holds where the
-         iteration that just ended began (see bt_iter()): an iteration that
-         ended where it began matched empty, and the repetition stops here,
-         taking the head's exit and keeping what the iteration captured, as
-         Onigmo's null check does. */
+         marked, the body can match empty and entered_at[head] holds where
+         the iteration that just ended began (see bt_iter_begin()): an
+         iteration that ended where it began matched empty, and the
+         repetition stops here, taking the head's exit and keeping what the
+         iteration captured, as Onigmo's null check does. */
       if (inst.a && ITER_EMPTY(m, inst.offset, sp)) {
         pc = pat->code[inst.offset].offset;
         break;
@@ -848,21 +990,18 @@ bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
          empty: then there is only the exit, as at a marked RE_JMP. */
       if (inst.a) {
         if (inst.offset > pc) {
-          int r = bt_iter(m, sp, pc + 1, pc, depth + 1);
-          if (r != BT_FAIL) return r;
-          pc = inst.offset;
+          if ((r = bt_push(m, sp, inst.offset, RE_CP_FORK, 0)) != BT_OK ||
+              (r = bt_iter_begin(m, pc, sp)) != BT_OK) return r;
+          pc++;
           break;
         }
         if (ITER_EMPTY(m, pc, sp)) { pc++; break; }
-        int r = bt_match(m, sp, pc + 1, depth + 1);
-        if (r != BT_FAIL) return r;
-        return bt_iter(m, sp, inst.offset, pc, depth + 1);
+        if ((r = bt_push(m, sp, inst.offset, RE_CP_ITER, pc)) != BT_OK) return r;
+        pc++;
+        break;
       }
-      {
-        int r = bt_match(m, sp, pc + 1, depth + 1);
-        if (r != BT_FAIL) return r;
-      }
-      pc = inst.offset;
+      if ((r = bt_push(m, sp, inst.offset, RE_CP_FORK, 0)) != BT_OK) return r;
+      pc++;
       break;
 
     case RE_SPLITNG:
@@ -872,21 +1011,18 @@ bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
          same. */
       if (inst.a) {
         if (inst.offset > pc) {
-          int r = bt_match(m, sp, inst.offset, depth + 1);
-          if (r != BT_FAIL) return r;
-          return bt_iter(m, sp, pc + 1, pc, depth + 1);
+          if ((r = bt_push(m, sp, pc + 1, RE_CP_ITER, pc)) != BT_OK) return r;
+          pc = inst.offset;
+          break;
         }
         if (ITER_EMPTY(m, pc, sp)) { pc++; break; }
-        int r = bt_iter(m, sp, inst.offset, pc, depth + 1);
-        if (r != BT_FAIL) return r;
-        pc++;
+        if ((r = bt_push(m, sp, pc + 1, RE_CP_FORK, 0)) != BT_OK ||
+            (r = bt_iter_begin(m, pc, sp)) != BT_OK) return r;
+        pc = inst.offset;
         break;
       }
-      {
-        int r = bt_match(m, sp, inst.offset, depth + 1);
-        if (r != BT_FAIL) return r;
-      }
-      pc++;
+      if ((r = bt_push(m, sp, pc + 1, RE_CP_FORK, 0)) != BT_OK) return r;
+      pc = inst.offset;
       break;
 
     case RE_SAVE:
@@ -897,60 +1033,59 @@ bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
            branches, so a longer one can still match. */
         if (slot == 1 && !binary && sp < str_end &&
             mrb_re_char_interior_p(str, sp, str_end)) {
-          return BT_FAIL;
+          goto fail;
         }
-        if (slot < ncap) {
-          /* An even slot opens its group, and the pair it heads is a span
-             only while the group is closed: clear the end slot with the
-             start, so that RE_BACKREF reads a group a repetition has just
-             re-entered the way it reads one never entered, instead of
-             pairing this iteration's start with the end of the one before:
-             an empty span where the two coincide, and a negative one where
-             the start is past it, which no closed group holds. CRuby
-             reads an open group as unmatched the same way (Onigmo's
-             STACK_PUSH_MEM_START invalidates the end with the start). The
-             end slot exists whenever the start does, ncap being even. */
-          mrb_bool opens = (slot & 1) == 0;
-          int old = captures[slot];
-          int old_end = opens ? captures[slot + 1] : 0;
-          captures[slot] = (int)(sp - str);
-          if (opens) captures[slot + 1] = -1;
-          int r = bt_match(m, sp, pc + 1, depth + 1);
-          if (r == BT_MATCH) return r;
-          /* undone for a cut as for a failure: the group the cut fails may
-             be the one this slot was written inside */
-          captures[slot] = old;
-          if (opens) captures[slot + 1] = old_end;
-          return r;
-        }
-        return BT_FAIL;
+        if (slot >= ncap) goto fail;
+        /* The write is logged rather than recursed over: backtracking past
+           it puts the slot back, which is what undoes what a branch captured
+           before it was abandoned. What a match keeps, and what an atomic
+           group or a positive lookaround keeps once it has matched, is kept
+           by the log not unwinding at all there. */
+        if ((r = bt_log(m, &captures[slot], (int)(sp - str))) != BT_OK) return r;
+        /* An even slot opens its group, and the pair it heads is a span
+           only while the group is closed: clear the end slot with the
+           start, so that RE_BACKREF reads a group a repetition has just
+           re-entered the way it reads one never entered, instead of
+           pairing this iteration's start with the end of the one before:
+           an empty span where the two coincide, and a negative one where
+           the start is past it, which no closed group holds. CRuby
+           reads an open group as unmatched the same way (Onigmo's
+           STACK_PUSH_MEM_START invalidates the end with the start). The
+           end slot exists whenever the start does, ncap being even. The
+           clear is logged too, so backtracking puts back the end the
+           iteration before it left; where there is no such end, the group
+           being one this attempt has not closed yet, the clear writes the
+           -1 that already stands there and bt_log() records nothing. */
+        if ((slot & 1) == 0 && (r = bt_log(m, &captures[slot + 1], -1)) != BT_OK) return r;
+        pc++;
       }
+      break;
 
     case RE_BOL:
       /* ^ always matches at a line start (see the Pike VM case); /m only
          affects `.`. \A is RE_BOT. A trailing \n opens no final line. */
-      if (sp != str && (sp == str_end || sp[-1] != '\n')) return BT_FAIL;
+      if (sp != str && (sp == str_end || sp[-1] != '\n')) goto fail;
       pc++;
       break;
 
     case RE_EOL:
       /* $ always matches at a line end. */
-      if (sp != str_end && *sp != '\n') return BT_FAIL;
+      if (sp != str_end && *sp != '\n') goto fail;
       pc++;
       break;
 
     case RE_BOT:
-      if (sp != str) return BT_FAIL;
+      if (sp != str) goto fail;
       pc++;
       break;
 
     case RE_EOT:
-      if (sp != str_end) return BT_FAIL;
+      if (sp != str_end) goto fail;
       pc++;
       break;
 
     case RE_EOTNL:
-      if (sp != str_end && !(sp + 1 == str_end && *sp == '\n')) return FALSE;
+      if (sp != str_end && !(sp + 1 == str_end && *sp == '\n')) goto fail;
       pc++;
       break;
 
@@ -958,7 +1093,7 @@ bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
       {
         mrb_bool before = (sp > str) && mrb_re_word_before(str, sp, str_end, binary);
         mrb_bool after = (sp < str_end) && mrb_re_word_at(sp, str_end, binary);
-        if (before == after) return BT_FAIL;
+        if (before == after) goto fail;
       }
       pc++;
       break;
@@ -967,7 +1102,7 @@ bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
       {
         mrb_bool before = (sp > str) && mrb_re_word_before(str, sp, str_end, binary);
         mrb_bool after = (sp < str_end) && mrb_re_word_at(sp, str_end, binary);
-        if (before != after) return BT_FAIL;
+        if (before != after) goto fail;
       }
       pc++;
       break;
@@ -975,21 +1110,21 @@ bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
     case RE_BACKREF:
       {
         int group = inst.a;
-        if (group * 2 + 1 >= ncap) return BT_FAIL;
+        if (group * 2 + 1 >= ncap) goto fail;
         int gs = captures[group * 2];
         int ge = captures[group * 2 + 1];
-        if (gs < 0 || ge < 0) return BT_FAIL;
+        if (gs < 0 || ge < 0) goto fail;
         int blen = ge - gs;
         if (inst.offset) {
           /* A folded comparison can consume a different number of bytes than
              the captured text holds, so the span is measured, not assumed. */
           int used = memcmp_ci(sp, str_end, str + gs, str + ge, binary);
-          if (used < 0) return BT_FAIL;
+          if (used < 0) goto fail;
           sp += used;
         }
         else {
-          if (sp + blen > str_end) return BT_FAIL;
-          if (memcmp(sp, str + gs, blen) != 0) return BT_FAIL;
+          if (sp + blen > str_end) goto fail;
+          if (memcmp(sp, str + gs, blen) != 0) goto fail;
           sp += blen;
         }
         pc++;
@@ -997,91 +1132,124 @@ bt_match(bt_state *m, const char *sp, uint32_t pc, int depth)
       break;
 
     case RE_LOOKAHEAD:
-      /* A positive lookaround never goes on in this frame: its RE_LOOK_END
-         has run the text after it, so the sub-pattern's answer is the
-         frame's, whichever it is. */
-      return bt_look(m, sp, sp, pc, pc + 1, depth + 1);
-
-    case RE_NEG_LOOKAHEAD:
-      {
-        /* The sub-pattern matching is the assertion failing; the sub-pattern
-           running out of alternatives is the assertion holding, and the text
-           after it goes on here. A limit goes up as it is. */
-        int r = bt_look(m, sp, sp, pc, pc + 1, depth + 1);
-        if (r == BT_MATCH) return BT_FAIL;
-        if (r != BT_FAIL) return r;
-        pc = inst.offset;
-      }
-      break;
-
     case RE_LOOKBEHIND:
-      {
-        const char *back = lookbehind_start(pat, str, str_end, sp, pc, binary);
-        if (!back) return BT_FAIL;  /* not enough text before */
-        return bt_look(m, sp, back, pc, pc + 2, depth + 1);
-      }
-
+    case RE_NEG_LOOKAHEAD:
     case RE_NEG_LOOKBEHIND:
       {
-        const char *back = lookbehind_start(pat, str, str_end, sp, pc, binary);
-        if (back) {
-          int r = bt_look(m, sp, back, pc, pc + 2, depth + 1);
-          if (r == BT_MATCH) return BT_FAIL;
-          if (r != BT_FAIL) return r;
+        /* The lookaround is entered: a barrier stands where it began, and
+           the sub-pattern goes on from here, from sp for a lookahead, from
+           the rewound start for a lookbehind. What the barrier holds is
+           where the text after the lookaround goes on from and the pass to
+           go on in; for a negative one that is what taking the barrier
+           resumes, its sub-pattern running out of alternatives being the
+           assertion holding. The sub-pattern runs as a pass of its own, one
+           no run before it had, so the records of the loops inside it that
+           an earlier run may have left live are not taken for this run's
+           (see bt_state). */
+        mrb_bool negated = (inst.op == RE_NEG_LOOKAHEAD || inst.op == RE_NEG_LOOKBEHIND);
+        const char *from = sp;
+        uint32_t body = pc + 1;
+        if (inst.op == RE_LOOKBEHIND || inst.op == RE_NEG_LOOKBEHIND) {
+          from = lookbehind_start(pat, str, str_end, sp, pc, binary);
+          if (!from) {
+            /* not enough text before: a positive lookbehind cannot hold and
+               a negative one holds without a sub-pattern to run */
+            if (!negated) goto fail;
+            pc = inst.offset;
+            break;
+          }
+          body = pc + 2;
         }
-        /* if not enough text before, negative lookbehind succeeds */
-        pc = inst.offset;
+        if ((r = bt_push(m, sp, inst.offset, negated ? RE_CP_NEG : RE_CP_BARRIER,
+                         pat->code[inst.offset - 1].offset)) != BT_OK) {
+          return r;
+        }
+        m->pass = ++m->pass_seq;
+        sp = from;
+        pc = body;
       }
       break;
 
     case RE_LOOK_END:
       {
-        /* The sub-pattern has matched. For a negative lookaround that is
-           the whole of its answer, and it goes up as a cut so that the
-           frames of the sub-pattern undo their captures and try no other
-           branch on the way; bt_look() reads it back as the match it is.
-           For a positive one the text after the lookaround goes on from
-           where the lookaround was entered, inside the sub-pattern's frames
-           as the text after an atomic group does (RE_ATOMIC_END): a failure
-           there is a cut, undone for and not backtracked into, since the
-           sub-pattern matching once is its only match. A limit goes up as
-           it is. The text after runs in the pass the lookaround was entered
-           from, which is what its loops' records are keyed by; the pass of
-           this sub-pattern comes back for the frames above on the way up. */
-        if (inst.a) return BT_CUT(inst.offset);
-        int pass = m->pass;
-        m->pass = m->entered_in[pc];
-        int r = bt_match(m, str + m->entered_at[pc], pc + 1, depth + 1);
-        m->pass = pass;
-        return (r == BT_FAIL) ? BT_CUT(inst.offset) : r;
+        /* The sub-pattern has matched, and that is the whole of what the
+           lookaround asks of it: no alternative inside it may be tried for
+           the text after, so its choice points go, barrier and all, as an
+           atomic group's do. A positive one goes on with the text after from
+           where it was entered, and what the sub-pattern captured stays --
+           the undo log is left alone, and a failure that goes back past
+           where the lookaround began takes it back with everything else
+           logged since. A negative one is the assertion failing: the log
+           unwinds to where the lookaround began, so what the sub-pattern
+           captured goes with it, and the search backtracks. Either way the
+           pass the lookaround was entered from comes back with the
+           barrier. */
+        uint32_t idx;
+        if (!bt_barrier_find(m, inst.offset, &idx)) goto fail;
+        re_cpoint c = m->cp[idx];
+        m->cp_top = idx;
+        m->pass = c.pass;
+        if (inst.a) {
+          bt_undo_to(m, c.undo_top);
+          goto fail;
+        }
+        sp = c.sp;
+        pc++;
       }
+      break;
 
     case RE_ATOMIC:
-      {
-        /* The body runs on through its RE_ATOMIC_END to the end of the
-           pattern inside this call, so there is nothing to continue with
-           here: the answer is passed up, except that a cut aimed at this
-           group is this group failing, which the caller backtracks over the
-           way it would any other failed atom. */
-        int r = bt_match(m, sp, pc + 1, depth + 1);
-        return (r == BT_CUT(inst.offset)) ? BT_FAIL : r;
-      }
+      /* The group is entered: a barrier stands where it began, so that a
+         failure inside the body that reaches it is the group failing, and
+         the body goes on from here. */
+      if ((r = bt_push(m, sp, pc + 1, RE_CP_BARRIER, inst.offset)) != BT_OK) return r;
+      pc++;
+      break;
 
     case RE_ATOMIC_END:
       {
         /* The body has matched once, and that is the only way it matches:
-           when what follows fails, the failure is a cut, so that the SPLITs
-           inside the body do not get to try their other branches. A limit
-           is not the text failing and goes up as it is. */
-        int r = bt_match(m, sp, pc + 1, depth + 1);
-        return (r == BT_FAIL) ? BT_CUT(inst.offset) : r;
+           the alternatives it left are dropped, barrier and all, so that a
+           failure after the group is not answered from inside it. What the
+           body captured stays; the undo log is left as it is, and a
+           failure that goes back past where the group began takes it back
+           along with everything else logged since. */
+        uint32_t idx;
+        if (!bt_barrier_find(m, inst.offset, &idx)) goto fail;
+        m->cp_top = idx;
+        pc++;
       }
+      break;
 
     default:
-      return BT_FAIL;
+      goto fail;
+    }
+    continue;
+
+  fail:
+    /* This branch is spent. The next alternative is the choice point on top,
+       with every write since it was pushed taken back; with none left there
+       is nothing more to try from this start position. */
+    for (;;) {
+      if (m->cp_top == 0) return BT_FAIL;
+      re_cpoint c = m->cp[--m->cp_top];
+      bt_undo_to(m, c.undo_top);
+      /* The pass a branch was pushed in is the pass it runs in, and for a
+         lookaround's barrier it is the pass the lookaround was entered
+         from, which is where the search is once the barrier is taken. */
+      m->pass = c.pass;
+      /* A barrier is where a group was entered, not a branch: reaching it is
+         that group failing, and what is left to try is below it. A negative
+         lookaround's is the exception: its sub-pattern having no match
+         left is the assertion holding, and what it resumes is the text after
+         the lookaround. */
+      if (c.kind == RE_CP_BARRIER) continue;
+      sp = c.sp;
+      pc = c.pc;
+      if (c.kind == RE_CP_ITER && (r = bt_iter_begin(m, c.group, sp)) != BT_OK) return r;
+      break;
     }
   }
-  return BT_FAIL;
 }
 
 static int
@@ -1095,11 +1263,15 @@ backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
   if (ncap == 0) ncap = 2;
 
   /* One block: the capture slots, then an entry record per pc and the pass
-     that wrote it. Every record a search writes it undoes before returning
-     (see bt_iter() and bt_look()), so the arrays are filled once for all
-     start positions. */
+     that wrote it. The arrays are filled once here and put back to what they
+     hold by the undo log unwinding between start positions (see there): an
+     iteration's record is written on the log now, which a match does not
+     unwind, so a record left by the attempt before would otherwise be read
+     as this attempt's and stop a repetition that had not gone round yet. */
   int *caps = (int*)mrb_malloc(mrb, sizeof(int) * (ncap + 2 * pat->code_len));
+  int ret = 0;
   bt_state m;
+  m.mrb = mrb;
   m.pat = pat;
   m.str = str;
   m.str_end = str_end;
@@ -1108,7 +1280,12 @@ backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
   m.entered_at = caps + ncap;
   m.entered_in = m.entered_at + pat->code_len;
   m.pass = 0;
+  m.pass_seq = 0;
   m.binary = binary;
+  m.cp = NULL;
+  m.cp_top = m.cp_capa = 0;
+  m.undo = NULL;
+  m.undo_top = m.undo_capa = 0;
   memset(m.entered_at, -1, sizeof(int) * pat->code_len);
   memset(m.entered_in, 0, sizeof(int) * pat->code_len);
 
@@ -1129,29 +1306,53 @@ backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
     }
     memset(caps, -1, sizeof(int) * ncap);
     m.steps = 0;
+    /* The state of the attempt before, which failed and left nothing to
+       resume, is not this attempt's: the stacks start empty, and the writes
+       still logged are taken back so that the records the arrays hold are
+       what a fresh search finds. The pass numbering starts over with them.
+       Every record a pass wrote is on that log, so once it has unwound
+       there is nothing left for a number to be read against and the numbers
+       need only be unique within the attempt; a counter that ran on across
+       the start positions would climb with the length of the subject
+       instead, until a long enough search overflowed it. */
+    m.cp_top = 0;
+    m.pass = 0;
+    m.pass_seq = 0;
+    bt_undo_to(&m, 0);
 
-    int r = bt_match(&m, sp, 0, 0);
+    int r = bt_match(&m, sp, 0);
     if (r == BT_MATCH) {
       if (captures) {
         int copy = ncap < captures_size ? ncap : captures_size;
         memcpy(captures, caps, sizeof(int) * copy);
       }
-      mrb_free(mrb, caps);
-      return ncap > 0 ? ncap : 1;
+      ret = ncap > 0 ? ncap : 1;
+      break;
+    }
+    if (r == BT_NOMEM) {
+      /* The allocator had nothing left for the state this search needed. The
+         search ends here as it does at a limit, and it is told apart from
+         one all the way out to the caller, since what it asks for is not a
+         knob turned up: raising MRB_REGEXP_STACK_LIMIT in answer to this
+         would only let the next search ask for more. */
+      ret = RE_NOMEM;
+      break;
     }
     if (r == BT_LIMIT) {
       /* The search ends here, not this start position's attempt: the
          positions after it answer where the first match is only once this
          one has none, which is what the limit left unanswered. Which limit
-         is read off the step count: the depth check runs before a frame
-         counts its step, so the count is over the step limit exactly when
-         the step check gave up. */
-      mrb_free(mrb, caps);
-      return m.steps > MRB_REGEXP_STEP_LIMIT ? RE_OVER_STEP_LIMIT : RE_OVER_RECURSION_LIMIT;
+         is read off the step count: nothing but the step check moves it, so
+         it is over the step limit exactly when that check is what gave
+         up. */
+      ret = m.steps > MRB_REGEXP_STEP_LIMIT ? RE_OVER_STEP_LIMIT : RE_OVER_STACK_LIMIT;
+      break;
     }
   }
+  mrb_free(mrb, m.undo);
+  mrb_free(mrb, m.cp);
   mrb_free(mrb, caps);
-  return 0;
+  return ret;
 }
 
 /* Fast path for pure literal patterns: use memchr+memcmp, no NFA needed */
@@ -1264,10 +1465,11 @@ mrb_re_rexec(mrb_state *mrb, const mrb_regexp_pattern *pat,
     if (len - lo > RE_RSEARCH_PROBE_SPAN) break;
     memset(captures, -1, sizeof(int) * captures_size);
     last_n = exec_range(mrb, pat, str, len, lo, limit, captures, captures_size, binary);
-    /* A match or a limit ends the probe. A limit is the answer to the whole
-       question and not to this window's: a window that gave up is not one
-       with no match in it, and widening would only ask the same search
-       again a size up. */
+    /* A match or an execution error ends the probe. A limit, or an
+       allocation the engine was refused, is the answer to the whole question
+       and not to this window's: a window that gave up is not one with no
+       match in it, and widening would only ask the same search again a size
+       up. */
     if (last_n) break;
     /* The window had grown to the whole range, so there is no match to find
        and the search below would only ask again. */

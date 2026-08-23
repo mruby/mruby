@@ -126,7 +126,12 @@ assert("Regexp - a repetition keeps its last, empty iteration's capture") do
   assert_equal "", "b".match(/(a*)*b/)[1]
   # a nullable body nested in a repetition reaches the same answer
   assert_equal "", "a".match(/((a?)*)*/)[1]
-  # both engines agree: a lookaround routes the same pattern to the other one
+end
+
+assert("Regexp - both engines keep the last, empty iteration's capture") do
+  need_backtracking_stack
+  # The same patterns with a lookaround in front, which routes them to the
+  # other engine: what the two answer must not differ.
   assert_equal "", "a".match(/(?=a)(a?)*/)[1]
   assert_equal 1, "a".match(/(?=a)(a?)*/).begin(1)
   assert_equal "", "b".match(/(?=b)(a?)*/)[1]
@@ -146,6 +151,7 @@ assert("String#split and String#scan see the empty iteration's capture") do
 end
 
 assert("Regexp - the backtracking engine stops a repetition on an empty iteration") do
+  need_backtracking_stack
   # The same rule under the engine a lazy quantifier routes a pattern to. It
   # used to run such a loop until its recursion limit refused the next frame,
   # and answer with whatever the alternatives left inside the limit produced:
@@ -189,6 +195,7 @@ assert("Regexp - the backtracking engine stops a repetition on an empty iteratio
 end
 
 assert("Regexp - a repetition of a lookaround or a backreference stops the same way") do
+  need_backtracking_stack
   # A lookaround is zero-width, and a backreference to a group that
   # captured empty consumes nothing, so a repetition of either can run an
   # empty iteration and stops on it. It used to run to the recursion limit,
@@ -216,6 +223,7 @@ assert("Regexp - a repetition of a lookaround or a backreference stops the same 
 end
 
 assert("Regexp - a backreference reads no group the running iteration reopened") do
+  need_backtracking_stack
   # A group's pair in captures[] is a span only while the group is closed:
   # its end slot used to keep the previous iteration's end after a repetition
   # re-entered the group, so a backreference read the running iteration's
@@ -261,56 +269,244 @@ assert("Regexp - a backreference reads no group the running iteration reopened")
 end
 
 assert("Regexp - the backtracking engine raises at a limit rather than answer short") do
-  # A frame gives up at MRB_REGEXP_RECURSION_LIMIT or MRB_REGEXP_STEP_LIMIT,
-  # and the frames above it used to read that as the branch having failed and
-  # go on with their other branches: the search answered with a shorter match,
-  # a later one or none, told from the real answer by nothing. A limit is the
-  # search's answer now, and the caller raises on it; the same patterns match
-  # whole on a subject inside the limits, as in CRuby.
+  need_backtracking_stack
+  # A search gives up at MRB_REGEXP_STACK_LIMIT or MRB_REGEXP_STEP_LIMIT,
+  # and what was running above it used to read that as the branch having
+  # failed and go on with its other branches: the search answered with a
+  # shorter match, a later one or none, told from the real answer by nothing.
+  # A limit is the search's answer now, and the caller raises on it; the same
+  # patterns match whole on a subject inside the limits, as in CRuby.
   #
-  # The subjects are sized from the limits, which the build sets and the two
-  # constants read back. A repetition of an atomic group or a lookaround
-  # spends two or three frames per iteration, so a run of `a` as long as the
-  # recursion limit is past it for every pattern here and a quarter of that
-  # run is inside it; a chain of `(?=a)` or `(?>a)` spends two frames per
-  # link; `(a+)+\1b` spends about 2^n steps on a run of n. The n that reaches
-  # the step limit is counted by shifting the limit down rather than 1 up to
-  # it, so that a build setting the limit near the width of `mrb_int` has no
-  # shift of its own to overflow.
-  limit = Regexp::RECURSION_LIMIT
-  over = "a" * limit
-  fits = "a" * (limit / 4)
-  n = 0
-  n += 1 while (Regexp::STEP_LIMIT - 1) >> n > 0
-  steps = "a" * (n + 10)
-  assert_raise(RegexpError) { over.match(/(?:(?>a))*/) }       # answered a third of the run
-  assert_raise(RegexpError) { over.match(/(?:(?=a)a)*/) }      # a third of the run
-  assert_raise(RegexpError) { (over + "b").match(/(a)*?b/) }   # began past the middle
-  assert_raise(RegexpError) { over.match(/(?:(?>a))*\z/) }    # began past the middle
-  assert_raise(RegexpError) { "a".match(Regexp.new("(?=a)" * (limit / 2 + 1) + "a")) }   # was nil
-  assert_raise(RegexpError) { over.match(Regexp.new("(?>a)" * (limit / 2 + 1) + "a")) }  # was nil
+  # The subjects and the patterns here are sized from the stack limit, which
+  # the build sets and `Regexp::STACK_LIMIT` reads back. What a pattern holds
+  # per iteration differs (a repetition holds at least the branch it has not
+  # taken, a capture or a group's opener costs on top of that), so the run
+  # that is past the limit is a multiple of it and the run that fits is a
+  # fraction, rather than either being the limit itself.
+  #
+  # A build may set the limit where neither is sized any more. Filling the
+  # stack costs a handful of steps an entry, so a limit high enough puts
+  # itself out of the step limit's reach and these searches stop at the step
+  # limit instead; and a chain sized from it is more pattern than one may
+  # spell. Such a build is left out rather than have the assertions read the
+  # wrong limit.
+  if Regexp::STACK_LIMIT * 8 > Regexp::STEP_LIMIT
+    skip "the stack limit stands out of the step limit's reach here"
+  end
+  begin
+    Regexp.new("(?>a)" * (Regexp::STACK_LIMIT / 2 + 1))
+    Regexp.new("(?=a)" * (Regexp::STACK_LIMIT / 2 + 1))
+  rescue RegexpError
+    skip "a chain sized from the stack limit is more pattern than one may spell"
+  end
+  limit = Regexp::STACK_LIMIT
+  over = "a" * (2 * limit)
+  fits = "a" * (limit / 32)
+  assert_raise(RegexpError) { over.match(/(?:(?>a))*/) }       # answered a part of the run
+  assert_raise(RegexpError) { over.match(/(?:(?=a)a)*/) }      # a part of the run
+  assert_raise(RegexpError) { (over + "b").match(/(a)*?b/) }   # began later than it should
+  assert_raise(RegexpError) { over.match(/(?:(?>a))*\z/) }    # began later than it should
   assert_equal fits, fits.match(/(?:(?>a))*/)[0]
   assert_equal fits, fits.match(/(?:(?=a)a)*/)[0]
   assert_equal 0, (fits + "b").match(/(a)*?b/).begin(0)
   assert_equal 0, fits.match(/(?:(?>a))*\z/).begin(0)
-  assert_equal "a", "a".match(Regexp.new("(?=a)" * (limit / 4) + "a"))[0]
-  assert_equal fits, fits.match(Regexp.new("(?>a)" * (limit / 4 - 1) + "a"))[0]
+  assert_equal "a", "a".match(Regexp.new("(?=a)" * (limit / 32) + "a"))[0]
+  assert_equal fits, fits.match(Regexp.new("(?>a)" * (limit / 32 - 1) + "a"))[0]
+  # A chain of atomic groups or of lookarounds holds nothing per link once
+  # each has closed, so its length is bounded by the pattern and not by the
+  # limit.
+  chain = limit / 2 + 1
+  assert_equal "a" * (chain + 1), over.match(Regexp.new("(?>a)" * chain + "a"))[0]
+  assert_equal "a", "a".match(Regexp.new("(?=a)" * chain + "a"))[0]
   # The message names the limit, so that whoever hits one on a legitimate
   # subject knows which knob to turn, and the constant says where it stands.
-  assert_raise_with_message(RegexpError, "recursion limit over (MRB_REGEXP_RECURSION_LIMIT)") do
+  assert_raise_with_message(RegexpError, "stack limit over (MRB_REGEXP_STACK_LIMIT)") do
     over.match(/(?:(?>a))*/)
   end
-  assert_raise_with_message(RegexpError, "step limit over (MRB_REGEXP_STEP_LIMIT)") do
-    steps.match(/(a+)+\1b/)
-  end
-  assert_kind_of Integer, Regexp::RECURSION_LIMIT
-  assert_kind_of Integer, Regexp::STEP_LIMIT
   # A limit ends the search at the start position it was hit at: the
   # positions after it would say where the first match is only once this one
   # has none. The search that reads no captures raises the same.
   assert_raise(RegexpError) { ("b" + over + "c").match(/b(?:(?>a))*c|a/) }   # began at 1
   assert_raise(RegexpError) { over.match?(/(?:(?>a))*\z/) }
   assert_raise(RegexpError) { /(?:(?>a))*\z/ === over }
+end
+
+assert("Regexp - a search that runs too long raises at the step limit") do
+  need_backtracking_stack
+  # The step limit bounds the work one search may do, where the stack limit
+  # bounds the state it holds while doing it, and a search reaches this one
+  # holding almost nothing: `(?:a|a|a|a)+(z)\1` tries four branches per
+  # character of the run and holds about three entries per character, so
+  # 4**m steps stand against 3*m entries. Sizing the run from the step
+  # limit's width that way is what lets the assertion read the same on a
+  # build with a low stack limit, where a pattern that reaches the step
+  # limit by the length of its run alone would fill the stack first and pin
+  # the other limit.
+  #
+  # The width is counted by shifting the limit down rather than 1 up to it,
+  # so that a build setting the limit near the width of `mrb_int` has no
+  # shift of its own to overflow. `(?:a)+` alone never reaches this engine,
+  # the Pike VM running it in no stack at all, so the backreference is what
+  # sends the pattern here.
+  n = 0
+  n += 1 while (Regexp::STEP_LIMIT - 1) >> n > 0
+  steps = "a" * (n / 2 + 1)
+  assert_raise_with_message(RegexpError, "step limit over (MRB_REGEXP_STEP_LIMIT)") do
+    steps.match(/(?:a|a|a|a)+(z)\1/)
+  end
+end
+
+assert("Regexp - the two limits say where they stand") do
+  # Whichever engine a pattern reaches, the build's answer to both knobs is
+  # readable: a build that sets one low is where the constants matter most.
+  assert_kind_of Integer, Regexp::STACK_LIMIT
+  assert_kind_of Integer, Regexp::STEP_LIMIT
+  assert_true Regexp::STACK_LIMIT >= 1
+  assert_true Regexp::STEP_LIMIT >= 1
+end
+
+assert("Regexp - a greedy repetition costs the backtracking engine no C stack") do
+  need_backtracking_stack
+  # A greedy repetition tries its body first and keeps the exit for later,
+  # whatever the body holds, so the branch it has not taken used to be a C
+  # frame it recursed into and the frames accumulated one per iteration: the
+  # run a search could cross was what the C stack held, and `(?:a)*` reached
+  # the limit on a subject that is nothing out of the ordinary. The branch is
+  # a choice point on the heap now, and what bounds the run is how many of
+  # those MRB_REGEXP_STACK_LIMIT allows.
+  #
+  # `(?:a)*` alone never reaches this engine, the Pike VM running it in no
+  # stack at all, so the backreference is what sends the pattern here.
+  if Regexp::STACK_LIMIT * 8 > Regexp::STEP_LIMIT
+    skip "the stack limit stands out of the step limit's reach here"
+  end
+  s = "a" * (Regexp::STACK_LIMIT / 4) + "bb"
+  assert_equal 0, s.match(/(?:a)*(b)\1/).begin(0)
+  assert_equal 0, s.match(/(?:a)+(b)\1/).begin(0)
+  assert_equal 0, s.match(/(?:a)*?(b)\1/).begin(0)
+  assert_equal s, s.match(/(?:a)*(b)\1/)[0]
+end
+
+assert("Regexp - a capture costs the backtracking engine no C stack") do
+  need_backtracking_stack
+  # A capture wrote its slot and recursed, so that the frame could put back
+  # what the slot held when the branch below it failed: a repetition of a
+  # capturing group spent two frames an iteration, and `(a)*?b`, which runs
+  # its iterations in one frame otherwise, reached the limit by the length
+  # of the run. The write is logged now, and taking it back is the log
+  # unwinding to where the branch was left.
+  if Regexp::STACK_LIMIT * 8 > Regexp::STEP_LIMIT
+    skip "the stack limit stands out of the step limit's reach here"
+  end
+  n = Regexp::STACK_LIMIT / 4
+  s = "a" * n + "b"
+  md = s.match(/(a)*?b/)
+  assert_equal 0, md.begin(0)
+  assert_equal s, md[0]
+  assert_equal "a", md[1]
+  assert_equal n - 1, md.begin(1)
+end
+
+assert("Regexp - what the undo log puts back is what the branch found") do
+  # A slot goes back to what stood in it when the branch that wrote it was
+  # taken, so a group that a later branch did not enter reads as it did
+  # before rather than as the failed branch left it.
+  assert_equal [nil, "b"], "ab".match(/(?:(x)|a)(b)/).captures
+end
+
+assert("Regexp - what a start position records is not read by the next one") do
+  need_backtracking_stack
+  # Where the running iteration of an empty-matchable repetition began is
+  # recorded on the undo log, which a match does not unwind and a failure
+  # unwinds only as far as the branch it goes back to. A start position that
+  # has failed must leave none of it behind: the first iteration of an `e+`
+  # reads the record without having written it, and one left at the offset
+  # the next start position reaches would stop that repetition before it had
+  # gone round, which shows up as a capture the answer should not hold rather
+  # than as a crash. The search from a later position therefore has to answer
+  # what the same search over the tail alone answers.
+  ["(?:(a)|)+b", "(?:(a)|)+?b", "(?:(a)|)*b\\1", "((?:a|)+)b\\1",
+   "(?:(a*))+?b\\1", "(?:(?>a*)(b|))+?c"].each do |src|
+    re = Regexp.new(src)
+    ["ab", "aab", "b", "abb"].each do |tail|
+      # a head the patterns cannot reach into, so that the leftmost match of
+      # the whole is the tail's own
+      %w[x xx xyx].each do |head|
+        md = (head + tail).match(re)
+        want = tail.match(re)
+        if want
+          assert_equal want[0], md && md[0], "#{src} on #{head + tail}"
+          assert_equal want.captures, md && md.captures, "#{src} on #{head + tail}"
+        end
+      end
+    end
+  end
+end
+
+assert("Regexp - an atomic group costs the backtracking engine no C stack") do
+  need_backtracking_stack
+  # The group used to run its body, and then the text after it, in frames of
+  # its own, so that a failure after the group could unwind the frames the
+  # body left rather than backtrack into them: a repetition of one spent two
+  # frames an iteration and a chain of them two a link. Entering the group
+  # pushes a barrier onto the choice point stack instead, and its end drops
+  # the barrier and every alternative the body left above it: the cut, as
+  # a truncation.
+  if Regexp::STACK_LIMIT * 8 > Regexp::STEP_LIMIT
+    skip "the stack limit stands out of the step limit's reach here"
+  end
+  begin
+    Regexp.new("(?>a)" * (Regexp::STACK_LIMIT / 2 + 1))
+  rescue RegexpError
+    skip "a chain sized from the stack limit is more pattern than one may spell"
+  end
+  limit = Regexp::STACK_LIMIT
+  s = "a" * (limit / 4)
+  assert_equal s, s.match(/(?:(?>a))*/)[0]
+  assert_equal 0, s.match(/(?:(?>a))*\z/).begin(0)
+  n = limit / 2 + 1
+  assert_equal "a" * (n + 1), ("a" * (n + 1)).match(Regexp.new("(?>a)" * n + "a"))[0]
+  # What the truncation leaves is what the frames left: the body's captures
+  # stay once it has matched, and go when the search backtracks past where
+  # the group began.
+  assert_equal "a", /(?>(a))a/.match("aa")[1]
+  assert_nil /(?:(?>(a))b|a)/.match("a")[1]
+  assert_nil /(?>a*)a/ =~ "aaa"
+  assert_equal 0, /(?>a*)b/ =~ "aab"
+end
+
+assert("Regexp - a lookaround costs the backtracking engine no C stack") do
+  need_backtracking_stack
+  # A lookaround ran its sub-pattern in a call of its own, and a positive one
+  # ran the text after it inside that call as well, so that a failure there
+  # could come back as a cut and undo what the sub-pattern had captured: two
+  # frames a lookaround, and a repetition of one or a chain of them reached
+  # the limit by their length. Entering one pushes a barrier instead, and its
+  # end drops the barrier and the alternatives the sub-pattern left, going on
+  # with the text after from where the lookaround was entered.
+  if Regexp::STACK_LIMIT * 8 > Regexp::STEP_LIMIT
+    skip "the stack limit stands out of the step limit's reach here"
+  end
+  begin
+    Regexp.new("(?=a)" * (Regexp::STACK_LIMIT / 2 + 1))
+  rescue RegexpError
+    skip "a chain sized from the stack limit is more pattern than one may spell"
+  end
+  limit = Regexp::STACK_LIMIT
+  s = "a" * (limit / 4)
+  assert_equal s, s.match(/(?:(?=a)a)*/)[0]
+  assert_equal s, s.match(/(?:a(?<=a))*/)[0]
+  assert_equal s, s.match(/(?:(?!b)a)*/)[0]
+  n = limit / 2 + 1
+  assert_equal "a", "a".match(Regexp.new("(?=a)" * n + "a"))[0]
+  # What the barrier keeps and what it takes back is what the frames did: a
+  # positive lookaround's captures outlive it and a negative one's do not,
+  # and neither survives the search going back past where it was entered.
+  assert_equal "a", /(?=(a))a/.match("a")[1]
+  assert_equal ["b", "a"], /(?<=(a))b/.match("ab").to_a
+  assert_nil /(?!(a))|/.match("a")[1]
+  assert_nil /(?:(?=(a))b|)/.match("a")[1]
+  assert_nil /(?=(a|ab))\1c/ =~ "abc"
 end
 
 assert("Regexp - quantified first alternative does not leak into the next") do
@@ -377,14 +573,19 @@ assert("Regexp - ^ and $ always match at line boundaries") do
   assert_equal "bar", "foo\nbar".match(/bar\z/)[0]
 end
 
-assert("Regexp - \\Z matches before a trailing newline under both engines") do
-  # \Z is the string end or the position just before a final newline. The
-  # lazy quantifier routes the pattern to the backtracking engine, which had
-  # no case for the opcode and so failed every \Z it saw.
+assert("Regexp - \\Z matches before a trailing newline") do
+  # \Z is the string end or the position just before a final newline.
   assert_equal 0, "a" =~ /a\Z/
   assert_equal 0, "a\n" =~ /a\Z/
   assert_nil "a\n\n" =~ /a\Z/
   assert_nil "ab" =~ /a\Z/
+end
+
+assert("Regexp - \\Z matches before a trailing newline under the backtracking engine too") do
+  need_backtracking_stack
+  # The same four, with a lazy quantifier or a lookaround to route the
+  # pattern to the other engine, which had no case for the opcode and so
+  # failed every \Z it saw.
   assert_equal 0, "a" =~ /a\Za*?/
   assert_equal 0, "a\n" =~ /a\Z.*?/
   assert_nil "a\n\n" =~ /a\Z.*?/
@@ -600,7 +801,9 @@ end
 assert("Regexp - a quantifier after a quantifier repeats the repeat") do
   # CRuby reads a second quantifier as binding the repeat before it, not the
   # atom: `a**` is `(?:a*)*`. Two spellings are not that, and are read where
-  # the first quantifier is.
+  # the first quantifier is. Every repeat here is greedy, so the Pike VM
+  # runs them all; the two spellings that are not a quantifier at all, the
+  # non-greedy marker and the possessive one, are pinned below.
   assert_equal ["aaa"], /a**/.match("aaa").to_a
   assert_equal ["aaa"], /a+*/.match("aaa").to_a
   assert_equal ["aaa"], /a?*/.match("aaa").to_a
@@ -610,22 +813,15 @@ assert("Regexp - a quantifier after a quantifier repeats the repeat") do
   assert_equal ["aaa"], /a***/.match("aaa").to_a
   assert_equal ["aa"], /(?:a?){2}/.match("aaa").to_a
   assert_equal ["aa"], /a?{2}/.match("aaa").to_a
+  assert_equal ["aa"], /(?:a?)+/.match("aa").to_a
 
-  # `?` right after a greedy `*`, `+`, `?` or a `{n,m}` written with a comma
-  # is the non-greedy marker. `{n}` has no non-greedy form, so its `?` is a
-  # quantifier and `a{3}?` matches empty where the lazy `a{3,3}?` does not.
-  assert_equal [""], /a*?/.match("aaa").to_a
+  # `{n}` has no non-greedy form, so its `?` is a quantifier: `a{3}?` matches
+  # empty where the lazy `a{3,3}?` does not. The optional wraps the copies of
+  # `{n}` alone, so the rest of the pattern still has to match: `xa{2}?y`
+  # takes "xy" and "xaay" but nothing between, and inside a group the capture
+  # is what the wrapper let through.
   assert_equal [""], /a{3}?/.match("").to_a
   assert_equal [""], /a{3}?/.match("aa").to_a
-  assert_nil /a{3,3}?/.match("aa")
-  assert_equal ["aaa"], /a{3,3}?/.match("aaa").to_a
-  assert_equal [""], /a{0,2}?/.match("aa").to_a
-
-  # The optional wraps the copies of `{n}` alone, so the rest of the pattern
-  # still has to match: `xa{2}?y` takes "xy" and "xaay" but nothing between,
-  # and inside a group the capture is what the wrapper let through. Written
-  # with a comma the `?` is the non-greedy marker again and the copies are
-  # required.
   assert_equal ["xy"], /xa{2}?y/.match("xy").to_a
   assert_equal ["xaay"], /xa{2}?y/.match("xaay").to_a
   assert_nil /xa{2}?y/.match("xay")
@@ -633,6 +829,29 @@ assert("Regexp - a quantifier after a quantifier repeats the repeat") do
   assert_equal [""], /^a{2}?$/.match("").to_a
   assert_equal ["xy", ""], /x(a{2}?)y/.match("xy").to_a
   assert_equal ["xaay", "aa"], /x(a{2}?)y/.match("xaay").to_a
+
+  # A body that matches no times matches empty however it is repeated.
+  assert_equal [""], /a{0}*/.match("").to_a
+  assert_equal [""], /a{0}{2}?/.match("aa").to_a
+
+  # A repeat of a repeat is an empty-matching loop by construction; the null
+  # check of both engines stops it rather than the stack limit.
+  assert_equal ["aaa"], /(?:a?)**/.match("aaa").to_a
+  assert_equal ["b"], /(?:a?)**b/.match("b").to_a
+end
+
+assert("Regexp - the non-greedy and possessive markers are read where the quantifier is") do
+  need_backtracking_stack
+  # The two spellings the block above leaves out, both of which send the
+  # pattern to the backtracking engine.
+
+  # `?` right after a greedy `*`, `+`, `?` or a `{n,m}` written with a comma
+  # is the non-greedy marker; written without one it is the quantifier the
+  # block above pins.
+  assert_equal [""], /a*?/.match("aaa").to_a
+  assert_nil /a{3,3}?/.match("aa")
+  assert_equal ["aaa"], /a{3,3}?/.match("aaa").to_a
+  assert_equal [""], /a{0,2}?/.match("aa").to_a
   assert_nil /xa{2,2}?y/.match("xy")
 
   # `+` right after a greedy `*`, `+` or `?` is possessive, `a*+` being
@@ -641,36 +860,36 @@ assert("Regexp - a quantifier after a quantifier repeats the repeat") do
   assert_equal ["a"], /a?+/.match("aa").to_a
   assert_nil /a?+a/.match("a")
   assert_equal ["aa"], /a?+a/.match("aa").to_a
-  assert_equal ["aa"], /(?:a?)+/.match("aa").to_a
   assert_equal ["aaa"], /a*+/.match("aaa").to_a
   assert_equal ["aa"], /a+?+/.match("aa").to_a
   assert_equal ["a"], /a+?+?/.match("aa").to_a
   assert_equal ["aa"], /a?++/.match("aa").to_a
 
-  # A body that matches no times matches empty however it is repeated.
-  assert_equal [""], /a{0}*/.match("").to_a
-  assert_equal [""], /a{0}{2}?/.match("aa").to_a
-
   # A repeat of a repeat is an empty-matching loop by construction; the null
-  # check of both engines stops it rather than the recursion limit.
-  assert_equal ["aaa"], /(?:a?)**/.match("aaa").to_a
+  # check of both engines stops it rather than the stack limit.
   assert_equal ["aaa"], /(?:a*)*+/.match("aaa").to_a
-  assert_equal ["b"], /(?:a?)**b/.match("b").to_a
 end
 
 assert("Regexp - a backreference names a group the pattern has") do
   # The count is the pattern's, not the one standing where the reference is,
-  # so a reference to a group written later is valid.
-  assert_equal ["aa", "a"], /(a)\1/.match("aa").to_a
-  assert_nil(/\1(a)/ =~ "a")
+  # so a reference past it is refused where the pattern is read.
   assert_raise(RegexpError) { Regexp.new("\\1") }
   assert_raise(RegexpError) { Regexp.new("(a)\\2") }
   assert_raise(RegexpError) { Regexp.new("(a)(b)\\3") }
   assert_raise(RegexpError) { Regexp.new("\\9") }
-  assert_equal 0, Regexp.new("(a)" * 9 + "\\9") =~ "aaaaaaaaaa"
   # A named pattern refuses a numbered reference before it counts.
   assert_raise(RegexpError) { Regexp.new("(?<n>a)\\1") }
   assert_raise(RegexpError) { Regexp.new("(?<n>a)\\2") }
+end
+
+assert("Regexp - a backreference reaches a group written after it") do
+  need_backtracking_stack
+  # The count being the pattern's rather than the one standing where the
+  # reference is, a reference to a group written later is valid; the group
+  # has captured nothing where the reference is read, so it does not match.
+  assert_equal ["aa", "a"], /(a)\1/.match("aa").to_a
+  assert_nil(/\1(a)/ =~ "a")
+  assert_equal 0, Regexp.new("(a)" * 9 + "\\9") =~ "aaaaaaaaaa"
 end
 
 assert("Regexp - patterns that used to hang the compiler now raise (A1)") do
@@ -715,12 +934,6 @@ assert("Regexp - inline options (?i) / (?i:...)") do
   assert_equal 0, (/(a(?i)b)c/ =~ "aBc")
   assert_nil (/(a(?i)b)c/ =~ "aBC")       # trailing `c` is case-sensitive again
 
-  # A backreference takes the options in effect where it appears, not the
-  # pattern's own, so an inline toggle reaches it like any other atom.
-  assert_equal 0, (/(a)(?i)\1/ =~ "aA")
-  assert_equal 0, (/(a)(?i:\1)/ =~ "aA")
-  assert_nil (/(?-i:(a)\1)/i =~ "aA")
-
   # m enables dot-matches-newline for its scope.
   assert_equal 0, (/(?m:a.b)/ =~ "a\nb")
   assert_nil (/a.b/ =~ "a\nb")
@@ -732,7 +945,6 @@ assert("Regexp - inline options (?i) / (?i:...)") do
   assert_equal 0, (/(?x:a b)c d/ =~ "abc d")
   assert_equal 0, (/(a(?x)b c)d e/ =~ "abcd e")
   assert_equal 0, (/(?<n>(?x)a b)c d/ =~ "abc d")
-  assert_equal 0, (/(?=(?x)a b)ab c/ =~ "ab c")
   assert_equal 0, (/(?xi)a b/ =~ "AB")
   assert_equal 0, (/(?x)a b(?-x)c d/ =~ "abc d")
   assert_equal 0, (/(?x:a(?-x:b c)d)/ =~ "ab cd")
@@ -781,6 +993,17 @@ b/ =~ "ab")
   assert_raise(RegexpError) { Regexp.new("(?-a)b") }
   assert_raise(RegexpError) { Regexp.new("(?-") }
   assert_raise(RegexpError) { Regexp.new("(?)") }
+end
+
+assert("Regexp - an inline option reaches a lookaround and a backreference") do
+  need_backtracking_stack
+  # A backreference takes the options in effect where it appears, not the
+  # pattern's own, so an inline toggle reaches it like any other atom; a
+  # lookaround's sub-pattern is a scope of its own for the toggle inside it.
+  assert_equal 0, (/(a)(?i)\1/ =~ "aA")
+  assert_equal 0, (/(a)(?i:\1)/ =~ "aA")
+  assert_nil (/(?-i:(a)\1)/i =~ "aA")
+  assert_equal 0, (/(?=(?x)a b)ab c/ =~ "ab c")
 end
 
 assert("Regexp - comment groups (?#...)") do
@@ -873,11 +1096,6 @@ assert("Regexp extended mode (x flag)") do
   assert_nil Regexp.new('\x1 2', Regexp::EXTENDED) =~ "\x12"
   assert_equal 0, (Regexp.new('\x1 a', Regexp::EXTENDED) =~ "\x01a")
   assert_equal 0, (Regexp.new('\01 2', Regexp::EXTENDED) =~ "\x012")
-  assert_equal 0, (Regexp.new('(a)\1 0', Regexp::EXTENDED) =~ "aa0")
-  # what keeps them apart is no atom: a quantifier after the digit repeats
-  # the digit, and a lookbehind still measures a fixed width
-  assert_equal "aa000", Regexp.new('(a)\1 0+', Regexp::EXTENDED).match("aa000")[0]
-  assert_equal 2, (Regexp.new('(?<=\x1 2)x', Regexp::EXTENDED) =~ "\x012x")
   assert_raise_with_message(RegexpError, "unmatched '(': /\\x1 2(/") do
     Regexp.new('\x1 2(', Regexp::EXTENDED)
   end
@@ -909,6 +1127,17 @@ assert("Regexp extended mode (x flag)") do
   end
 end
 
+assert("Regexp extended mode keeps a digit escape apart from what follows it") do
+  need_backtracking_stack
+  # The same rule as above, where what stands after the whitespace is a
+  # backreference's digit or a lookbehind: `\1 0` is group 1 and a `0`.
+  assert_equal 0, (Regexp.new('(a)\1 0', Regexp::EXTENDED) =~ "aa0")
+  # what keeps them apart is no atom: a quantifier after the digit repeats
+  # the digit, and a lookbehind still measures a fixed width
+  assert_equal "aa000", Regexp.new('(a)\1 0+', Regexp::EXTENDED).match("aa000")[0]
+  assert_equal 2, (Regexp.new('(?<=\x1 2)x', Regexp::EXTENDED) =~ "\x012x")
+end
+
 assert("Regexp - free-spacing whitespace stands between tokens only") do
   # Under /x the parser skips whitespace where one token ends and the next
   # begins, as CRuby's tokenizer does, and reads every token with the
@@ -927,13 +1156,7 @@ assert("Regexp - free-spacing whitespace stands between tokens only") do
   assert_equal ["aa"], Regexp.new("a {2}", x).match("aa").to_a
   assert_equal ["aa", "a"], Regexp.new("(a) {2}", x).match("aa").to_a
   assert_equal ["b"], Regexp.new("a ?b", x).match("b").to_a
-  assert_equal ["a"], Regexp.new("(?= a)a", x).match("a").to_a
-  assert_equal ["b"], Regexp.new("(?<= a)b", x).match("ab").to_a
-  assert_equal ["b"], Regexp.new("(?! a)b", x).match("b").to_a
-  assert_equal ["a"], Regexp.new("(?> a )", x).match("a").to_a
   assert_equal ["A"], Regexp.new("(?i: a )", x).match("A").to_a
-  assert_equal ["aa", "a"], Regexp.new("(?<n> a)\\k<n>", x).match("aa").to_a
-  assert_equal ["aa", "a"], Regexp.new("(a) \\1", x).match("aa").to_a
 
   # the five bytes CRuby skips; a vertical tab is a literal
   assert_equal ["ab"], Regexp.new("a \t\n\r\fb", x).match("ab").to_a
@@ -973,14 +1196,6 @@ assert("Regexp - free-spacing whitespace stands between tokens only") do
   # number too large to repeat by is not one to report
   assert_equal ["a{99999999999}"],
                Regexp.new("a{ 99999999999}", x).match("a{99999999999}").to_a
-  # the `?` that makes a quantifier non-greedy is read right after it, so a
-  # `?` a space away is a repeat of the repeat, which this engine refuses
-  # as it refuses `a**`
-  assert_equal [""], Regexp.new("a*?", x).match("aaa").to_a
-  # A `?` a blank away from the quantifier repeats the repeat, `(?:a*)?`, and
-  # is not the non-greedy marker, which is read where the quantifier is.
-  assert_equal ["aaa"], Regexp.new("a* ?", x).match("aaa").to_a
-  assert_equal ["aa"], Regexp.new("a{2} ?", x).match("aaa").to_a
 
   # a numeric escape is read whole too: the whitespace that CRuby rejects
   # inside one is rejected here, and the whitespace that ends one short of
@@ -1014,8 +1229,6 @@ assert("Regexp - free-spacing whitespace stands between tokens only") do
   # whether it is declared or referenced: the name is "a b"
   assert_equal ["a b"], Regexp.new("(?<a b>x)", x).names
   assert_equal ["a b"], Regexp.new("(?'a b'x)", x).names
-  assert_equal "xx", Regexp.new("(?<a b>x)\\k<a b>", x).match("xx")[0]
-  assert_equal "xx", Regexp.new("(?'a b'x)\\k'a b'", x).match("xx")[0]
   assert_raise_with_message(RegexpError,
                             "undefined name <a b> reference: /(?<ab>x)\\k<a b>/") do
     Regexp.new("(?<ab>x)\\k<a b>", x)
@@ -1025,17 +1238,47 @@ assert("Regexp - free-spacing whitespace stands between tokens only") do
     Regexp.new("(?<a b>x)\\k<ab>", x)
   end
   # a `\k` that whitespace follows is the letter k, with the `<ab>` after
-  # the whitespace a literal of its own; a comment between the two is gone
-  # before the parser reads either, as in CRuby, so that `\k` is a reference
+  # the whitespace a literal of its own
   assert_equal "xk<ab>", Regexp.new("(?<ab>x)\\k <ab>", x).match("xk<ab>")[0]
   assert_equal "xk<ab>", Regexp.new("(?<ab>x)\\k\n<ab>", x).match("xk<ab>")[0]
-  assert_equal "xx", Regexp.new("(?<ab>x)\\k#c\n<ab>", x).match("xx")[0]
-  assert_equal "xx", Regexp.new("(?<ab>x)\\k(?#c)<ab>").match("xx")[0]
-  # a comment inside a name is removed the same way, and takes its newline
+  # a comment inside a name is removed and takes its newline with it
   assert_equal ["ab"], Regexp.new("(?<ab#c\n>x)\\k<ab#c\n>", x).names
-  assert_equal "xx", Regexp.new("(?<ab#c\n>x)\\k<ab#c\n>", x).match("xx")[0]
   # inside a class the escape is the letter and the space is a member
   assert_equal [" "], Regexp.new("[\\k<a b>]", x).match(" ").to_a
+end
+
+assert("Regexp - free-spacing whitespace stands between the tokens the backtracking engine runs") do
+  need_backtracking_stack
+  # The same rule where the token is a lookaround's opener, an atomic
+  # group's, a non-greedy marker or a backreference's name: the whitespace
+  # between two tokens goes, and the whitespace inside one breaks it.
+  x = Regexp::EXTENDED
+
+  # between tokens
+  assert_equal ["a"], Regexp.new("(?= a)a", x).match("a").to_a
+  assert_equal ["b"], Regexp.new("(?<= a)b", x).match("ab").to_a
+  assert_equal ["b"], Regexp.new("(?! a)b", x).match("b").to_a
+  assert_equal ["a"], Regexp.new("(?> a )", x).match("a").to_a
+  assert_equal ["aa", "a"], Regexp.new("(?<n> a)\\k<n>", x).match("aa").to_a
+  assert_equal ["aa", "a"], Regexp.new("(a) \\1", x).match("aa").to_a
+
+  # the `?` that makes a quantifier non-greedy is read right after it, so a
+  # `?` a space away is a repeat of the repeat, `(?:a*)?`, and not the
+  # marker, which is read where the quantifier is
+  assert_equal [""], Regexp.new("a*?", x).match("aaa").to_a
+  assert_equal ["aaa"], Regexp.new("a* ?", x).match("aaa").to_a
+  assert_equal ["aa"], Regexp.new("a{2} ?", x).match("aaa").to_a
+
+  # a group name is the raw bytes up to its terminator, whitespace included,
+  # so the reference whose name holds the blank is the one that resolves
+  assert_equal "xx", Regexp.new("(?<a b>x)\\k<a b>", x).match("xx")[0]
+  assert_equal "xx", Regexp.new("(?'a b'x)\\k'a b'", x).match("xx")[0]
+  # a comment between `\k` and its name is gone before the parser reads
+  # either, as in CRuby, so that `\k` is a reference where whitespace would
+  # have left it the letter k
+  assert_equal "xx", Regexp.new("(?<ab>x)\\k#c\n<ab>", x).match("xx")[0]
+  assert_equal "xx", Regexp.new("(?<ab>x)\\k(?#c)<ab>").match("xx")[0]
+  assert_equal "xx", Regexp.new("(?<ab#c\n>x)\\k<ab#c\n>", x).match("xx")[0]
 end
 
 assert("Regexp - a removed comment does not reach into an escape") do
@@ -1113,6 +1356,7 @@ assert("Regexp - nested captures") do
 end
 
 assert("Regexp - non-greedy quantifiers") do
+  need_backtracking_stack
 
   assert_equal "a", /a+?/.match("aaa")[0]
   assert_equal "", /a*?/.match("aaa")[0]
@@ -1159,6 +1403,7 @@ assert("Regexp - an empty group takes a quantifier") do
 end
 
 assert("Regexp - atomic group (?>...)") do
+  need_backtracking_stack
   # The body's first match is its only one: what follows cannot make it
   # give text back or take another branch, where a plain group can.
   assert_equal 0, /(?>a)+b/ =~ "aab"
@@ -1228,7 +1473,9 @@ assert("Regexp - atomic group (?>...)") do
   # It reads back through to_s, and free-spacing applies to its body.
   assert_equal 0, Regexp.new(/(?>a)+b/.to_s) =~ "aab"
   assert_equal 0, Regexp.new("(?> a b )c", Regexp::EXTENDED) =~ "abc"
+end
 
+assert("Regexp - an atomic group the parser refuses") do
   assert_raise(RegexpError) { Regexp.new("(?>a") }
   assert_raise(RegexpError) { Regexp.new("(?>") }
   # not a fixed-length construct, so not allowed in a lookbehind
@@ -1262,10 +1509,8 @@ assert("Regexp - a named group makes plain groups non-capturing") do
   assert_equal "a", $+
   assert_equal "[]", "ab".sub(/(?<a>a)(b)/, '[\2]')
 
-  # (?<= and (?<! open a lookbehind, not a named group, so they demote nothing
-  assert_equal ["b", "b"], /(?<=a)(b)/.match("ab").to_a
-  assert_equal ["b", "b"], /(?<!x)(b)/.match("ab").to_a
-  # nor does a "(?<" that is escaped or sits inside a character class
+  # a "(?<" that is escaped or sits inside a character class opens no named
+  # group either
   assert_equal ["(<a>b", "b"], /\(?<a>(b)/.match("(<a>b").to_a
   assert_equal ["(?<b", "b"], /[(?<a>]+(b)/.match("(?<b").to_a
   assert_equal ["a(?<b", "b"], /[[:alpha:](?<]+(b)/.match("a(?<b").to_a
@@ -1286,6 +1531,14 @@ assert("Regexp - a named group makes plain groups non-capturing") do
   assert_raise_with_message(RegexpError, "unterminated character class: /[[:alpha/") do
     Regexp.new("[[:alpha")
   end
+end
+
+assert("Regexp - a lookbehind opener is no named group") do
+  need_backtracking_stack
+  # (?<= and (?<! open a lookbehind, not a named group, so they demote the
+  # plain group after them no more than the spellings above do.
+  assert_equal ["b", "b"], /(?<=a)(b)/.match("ab").to_a
+  assert_equal ["b", "b"], /(?<!x)(b)/.match("ab").to_a
 end
 
 assert("Regexp - the comment pass, the named-group scan and the parser skip the same constructs") do
@@ -1377,6 +1630,7 @@ assert("Regexp - case in when") do
 end
 
 assert("Regexp - backreference \\1") do
+  need_backtracking_stack
   # match repeated word
   md = /(\w+) \1/.match("hello hello world")
   assert_equal "hello hello", md[0]
@@ -1384,10 +1638,12 @@ assert("Regexp - backreference \\1") do
 end
 
 assert("Regexp - backreference no match") do
+  need_backtracking_stack
   assert_nil /(\w+) \1/.match("hello world")
 end
 
 assert("Regexp - backreference under /i") do
+  need_backtracking_stack
   # The comparison against the captured text has to fold case too, otherwise
   # `\1` stays case-sensitive while the rest of the pattern does not.
   assert_equal "aA", /(a)\1/i.match("aA")[0]
@@ -1413,11 +1669,6 @@ assert("Regexp - a named group can be written (?'name'...)") do
   assert_equal({"year" => [1], "month" => [2]},
                /(?'year'\d+)-(?'month'\d+)/.named_captures)
 
-  # either spelling of \k reaches a group written in either spelling
-  assert_equal "aa", "aa".match(/(?'n'\w)\k<n>/)[0]
-  assert_equal "aa", "aa".match(/(?<n>\w)\k'n'/)[0]
-  assert_equal "aa", "aa".match(/(?'n'\w)\k'n'/)[0]
-
   # the two spellings write into one registry: a name given twice is reported
   # once however each of them was spelled
   assert_equal ["t"], /(?<t>\w)(?'t'\w)/.names
@@ -1437,6 +1688,15 @@ assert("Regexp - a named group can be written (?'name'...)") do
   assert_raise(RegexpError) { Regexp.new("(?''x)") }
   assert_raise(RegexpError) { Regexp.new("(?'x") }
   assert_raise(RegexpError) { Regexp.new("(?'") }
+end
+
+assert("Regexp - either spelling of \\k reaches either spelling of a name") do
+  need_backtracking_stack
+  # The reference half of the block above, which the declaration alone
+  # cannot show: a group written in one spelling is reached by the other.
+  assert_equal "aa", "aa".match(/(?'n'\w)\k<n>/)[0]
+  assert_equal "aa", "aa".match(/(?<n>\w)\k'n'/)[0]
+  assert_equal "aa", "aa".match(/(?'n'\w)\k'n'/)[0]
 end
 
 assert("Regexp - a (?'name'...) group demotes plain groups too") do
@@ -1497,8 +1757,12 @@ assert("Regexp - empty group name") do
   assert_raise(RegexpError) { Regexp.new("(?<>x)\\k<>") }
   assert_raise(RegexpError) { Regexp.new("\\k<>") }
   assert_raise(RegexpError) { Regexp.new("\\k''") }
+end
 
-  # lookbehind is not a named group and is unaffected
+assert("Regexp - a lookbehind is no named group with an empty name") do
+  need_backtracking_stack
+  # `(?<` opens one only where `=` or `!` does not follow, so the refusal
+  # above reaches no lookbehind.
   assert_equal "b", Regexp.new("(?<=a)b").match("ab")[0]
   assert_nil Regexp.new("(?<!a)b").match("ab")
 end
@@ -1521,17 +1785,23 @@ assert("Regexp - group name longer than a uint16 length") do
   assert_equal "y", md[long]
   assert_equal({ "ab" => "x", long => "y" }, md.named_captures)
 
-  # \k binds to the group the name was written on
-  re = Regexp.new("(?<ab>x)(?<#{long}>y)\\k<#{long}>")
-  assert_nil re.match("xyx")
-  assert_equal "xyy", re.match("xyy")[0]
-
   # a name of exactly 65536 bytes is not the empty name
   z = "Z" * 65536
   assert_equal [z], Regexp.new("(?<#{z}>x)").named_captures.keys
 end
 
+assert("Regexp - \\k binds to the group a long name was written on") do
+  need_backtracking_stack
+  # The reference half of the truncation above: two names that shared a
+  # truncated length must not share a group here either.
+  long = "ab" + "A" * 65536
+  re = Regexp.new("(?<ab>x)(?<#{long}>y)\\k<#{long}>")
+  assert_nil re.match("xyx")
+  assert_equal "xyy", re.match("xyy")[0]
+end
+
 assert("Regexp - named backreference \\k") do
+  need_backtracking_stack
   assert_equal "aa", "aa".match(/(?<n>\w)\k<n>/)[0]
   assert_equal "abba", "abba".match(/(?<a>.)(?<b>.)\k<b>\k<a>/)[0]
   assert_equal "1212", "1212".match(/(?<x>\d+)\k'x'/)[0]
@@ -1542,6 +1812,9 @@ assert("Regexp - named backreference \\k") do
   # /i folds the comparison against the captured text
   assert_equal "aA", "aA".match(/(?<n>a)\k<n>/i)[0]
   assert_nil "ab".match(/(?<n>a)\k<n>/i)
+end
+
+assert("Regexp - a \\k reference names a group the pattern has") do
   # an unknown name is an error
   assert_raise(RegexpError) { Regexp.new("\\k<missing>") }
 
@@ -1670,10 +1943,6 @@ assert("Regexp - \\k group reference errors say which failure it was") do
     Regexp.new("(a)(?<b>b)\\k<5>")
   end
 
-  # leading zeros are digits like any other, not a malformed name
-  assert_equal "aa", "aa".match(Regexp.new("(a)\\k<01>"))[0]
-  assert_equal "aa", "aa".match(Regexp.new("(a)\\k<-01>"))[0]
-
   # The name is a length-counted slice of the pattern, so a name holding a NUL
   # is quoted whole. CRuby builds these messages through a C string and stops
   # at the NUL, reporting `undefined name <a` for the first of the two.
@@ -1685,6 +1954,15 @@ assert("Regexp - \\k group reference errors say which failure it was") do
                             "invalid group name <1\0>: /(a)\\k<1\0>/") do
     Regexp.new("(a)\\k<1\0>")
   end
+end
+
+assert("Regexp - a \\k reference reads leading zeros as digits") do
+  need_backtracking_stack
+  # Not a malformed name, which is the failure the block above pins: <01> is
+  # group 1 and <-01> is the group one back, and the reference matching is
+  # what says the name resolved.
+  assert_equal "aa", "aa".match(Regexp.new("(a)\\k<01>"))[0]
+  assert_equal "aa", "aa".match(Regexp.new("(a)\\k<-01>"))[0]
 end
 
 assert("Regexp - a group name may not be a number") do
@@ -1717,7 +1995,6 @@ assert("Regexp - a group name may not be a number") do
   assert_equal ["a1"], Regexp.new("(?<a1>c)").names
   assert_equal ["a-b"], Regexp.new("(?<a-b>c)").names
   assert_equal ["a b"], Regexp.new("(?<a b>c)").names
-  assert_equal "cc", "cc".match(Regexp.new("(?<a b>c)\\k<a b>"))[0]
 end
 
 assert("Regexp - a group name may not hold a ')'") do
@@ -1750,6 +2027,14 @@ assert("Regexp - a group name may not hold a ')'") do
   # the first byte is exempt in both arms, as it is in CRuby: a lone ')' is a
   # name a group can carry and a reference can reach
   assert_equal [")"], Regexp.new("(?<)>c)").names
+end
+
+assert("Regexp - a name a group carries is a name a reference reaches") do
+  need_backtracking_stack
+  # What the two blocks above leave to the parser, this one runs: \k resolves
+  # the name the group was declared with, whichever delimiter wrote either
+  # and whatever byte the name holds past its first.
+  assert_equal "cc", "cc".match(Regexp.new("(?<a b>c)\\k<a b>"))[0]
   assert_equal "cc", "cc".match(Regexp.new("(?<)>c)\\k<)>"))[0]
   assert_equal "cc", "cc".match(Regexp.new("(?')'c)\\k')'"))[0]
 end
@@ -1774,28 +2059,33 @@ assert("Regexp - named captures survive source string mutation") do
 end
 
 assert("Regexp - positive lookahead (?=...)") do
+  need_backtracking_stack
   md = /\w+(?=@)/.match("user@host")
   assert_equal "user", md[0]
 end
 
 assert("Regexp - negative lookahead (?!...)") do
+  need_backtracking_stack
   md = /\d+(?!%)/.match("100%")
   assert_equal "10", md[0]
 end
 
 assert("Regexp - lookahead does not consume") do
+  need_backtracking_stack
   md = /foo(?=bar)/.match("foobar")
   assert_equal "foo", md[0]
   assert_nil /foo(?=baz)/.match("foobar")
 end
 
 assert("Regexp - positive lookbehind (?<=...)") do
+  need_backtracking_stack
   md = Regexp.new("(?<=@)\\w+").match("user@host")
   assert_equal "host", md[0]
   assert_nil Regexp.new("(?<=@)\\w+").match("user_host")
 end
 
 assert("Regexp - negative lookbehind (?<!...)") do
+  need_backtracking_stack
   md = Regexp.new("(?<!\\d)px").match("12px auto")
   assert_nil md  # preceded by digit
   md = Regexp.new("(?<!\\d)em").match("12px 1.5em auto")
@@ -1805,12 +2095,14 @@ assert("Regexp - negative lookbehind (?<!...)") do
 end
 
 assert("Regexp - lookbehind with literal string") do
+  need_backtracking_stack
   md = Regexp.new("(?<=foo)bar").match("foobar")
   assert_equal "bar", md[0]
   assert_nil Regexp.new("(?<=foo)bar").match("bazbar")
 end
 
 assert("Regexp - lookbehind at string start") do
+  need_backtracking_stack
   # lookbehind should fail if not enough text before
   assert_nil Regexp.new("(?<=abc)d").match("d")
   # but should work at correct position
@@ -1819,12 +2111,14 @@ assert("Regexp - lookbehind at string start") do
 end
 
 assert("Regexp - negative lookbehind at string start") do
+  need_backtracking_stack
   # negative lookbehind succeeds when not enough text before
   md = Regexp.new("(?<!x)a").match("a")
   assert_equal "a", md[0]
 end
 
 assert("Regexp - a capture inside a lookaround is undone with the lookaround") do
+  need_backtracking_stack
   # A lookaround's sub-pattern used to run in a call of its own, so once it
   # had matched, the frames that could undo what it captured were gone, and
   # backtracking past the lookaround left the capture written. A plain
@@ -1929,6 +2223,7 @@ assert("Regexp - lookbehind against a binary subject rewinds by bytes") do
 end
 
 assert("Regexp - lookbehind measures bytes that spell no character") do
+  need_backtracking_stack
   # A byte no lead byte reaches is a character of its own, which is what the
   # rewind steps back over, so the width has to count it as one. Counting the
   # lead bytes of the run alone made such a byte part of the character before
@@ -1964,6 +2259,7 @@ assert("Regexp - lookbehind measures bytes that spell no character") do
 end
 
 assert("Regexp - lookbehind over a class holding a byte that spells no character") do
+  need_backtracking_stack
   # Two things meet here that were built apart: a character class may hold a
   # byte that starts no character, and the rewind steps back over characters.
   # They agree on the unit already: such a byte is a character of its own,
@@ -1993,6 +2289,7 @@ assert("Regexp - lookbehind over a class holding a byte that spells no character
 end
 
 assert("Regexp - lookbehind measures an ASCII-only class") do
+  need_backtracking_stack
   assert_equal "x", "ax".match(/(?<=[a-z])x/)[0]
   assert_nil "1x".match(/(?<=[a-z])x/)
   assert_equal "x", "1x".match(/(?<=\d)x/)[0]
@@ -2019,6 +2316,7 @@ assert("Regexp - consecutive optional quantifiers (#6853)") do
 end
 
 assert("Regexp - a relocated lookaround keeps the end of its sub-pattern") do
+  need_backtracking_stack
   # A lookaround holds the end of its sub-pattern as an absolute code index,
   # so every relocation has to carry it the way it carries a jump target.
   # Neither relocator did: the stale index landed on the sub-pattern's own
@@ -2105,11 +2403,13 @@ assert("Regexp - a hex escape needs at least one digit") do
   assert_equal 0, (Regexp.new("[\\x4]") =~ "\x04")
 end
 
-assert("Regexp - a digit escape is a backreference or an octal escape by the group count") do
+assert("Regexp - a digit escape no group answers to is an octal escape") do
   # Outside a class the digits after the backslash are read as one decimal
   # number: a backreference when it is at most 9 or at most the number of
   # groups opened before it, as CRuby reads it, and an octal escape of up
-  # to three digits otherwise. \0 is always octal.
+  # to three digits otherwise. \0 is always octal. An octal escape is a
+  # byte like any other, so none of these leaves the Pike VM; what the
+  # count does make a backreference is pinned below.
   assert_equal 0, (/\101/ =~ "A")
   assert_equal 0, (/\12/ =~ "\n")
   assert_equal 0, (/\100/ =~ "@")
@@ -2123,17 +2423,6 @@ assert("Regexp - a digit escape is a backreference or an octal escape by the gro
   # digit itself
   assert_equal 0, (/\81/ =~ "81")
   assert_equal 0, (/\99/ =~ "99")
-
-  # the count is taken where the escape stands, so the same \10 refers back
-  # after ten groups and is octal 010 before them
-  ten = "(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)"
-  assert_equal 0, (Regexp.new("#{ten}\\10") =~ "abcdefghijj")
-  assert_nil Regexp.new("#{ten}\\10") =~ "abcdefghij\b"
-  assert_equal 0, (Regexp.new("#{ten}\\10{2}") =~ "abcdefghijjj")
-  assert_equal 0, (Regexp.new("#{ten}\\11") =~ "abcdefghij\t")
-  assert_equal 0, (Regexp.new("#{ten}(k)\\11") =~ "abcdefghijkk")
-  assert_equal 0, (Regexp.new("\\10#{ten}") =~ "\babcdefghij")
-  assert_equal 0, (/(a)(b)(c)(d)(e)(f)(g)(h)(i)\10/ =~ "abcdefghi\b")
 
   # A named pattern counts its plain groups too, since CRuby demotes them
   # only once the parse is done: what the count makes a backreference is
@@ -2149,9 +2438,29 @@ assert("Regexp - a digit escape is a backreference or an octal escape by the gro
     Regexp.new("(?<n>a)(?<m>b)(c)(d)(e)(f)(g)(h)(i)(j)\\10")
   end
 
-  # Under /x whitespace ends the number and a comment does not, as in
-  # CRuby, whose tokenizer stops at whitespace but never sees a comment.
+  # Under /x whitespace ends the number, so `\10 1` is octal 010 and a `1`
   assert_equal 0, (Regexp.new("\\10 1", Regexp::EXTENDED) =~ "\b1")
+end
+
+assert("Regexp - a digit escape is a backreference or an octal escape by the group count") do
+  need_backtracking_stack
+  # The count is taken where the escape stands, so the same \10 refers back
+  # after ten groups and is octal 010 before them. Each pair here is the
+  # same spelling read both ways, which is why the octal half stands under
+  # this guard with the backreference half rather than beside the escapes
+  # above.
+  ten = "(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)"
+  assert_equal 0, (Regexp.new("#{ten}\\10") =~ "abcdefghijj")
+  assert_nil Regexp.new("#{ten}\\10") =~ "abcdefghij\b"
+  assert_equal 0, (Regexp.new("#{ten}\\10{2}") =~ "abcdefghijjj")
+  assert_equal 0, (Regexp.new("#{ten}\\11") =~ "abcdefghij\t")
+  assert_equal 0, (Regexp.new("#{ten}(k)\\11") =~ "abcdefghijkk")
+  assert_equal 0, (Regexp.new("\\10#{ten}") =~ "\babcdefghij")
+  assert_equal 0, (/(a)(b)(c)(d)(e)(f)(g)(h)(i)\10/ =~ "abcdefghi\b")
+
+  # Under /x whitespace ends the number and a comment does not, as in
+  # CRuby, whose tokenizer stops at whitespace but never sees a comment: the
+  # first is `\1` and a `0`, and the other two are octal 010.
   assert_equal 0, (Regexp.new("(a)\\1 0", Regexp::EXTENDED) =~ "aa0")
   assert_equal 0, (Regexp.new("(a)\\1#c\n0", Regexp::EXTENDED) =~ "a\b")
   assert_equal 0, (/(a)\1(?#c)0/ =~ "a\b")
@@ -2263,8 +2572,11 @@ assert("Regexp - the escapes this engine does not carry are refused") do
 
   # and a bare `\g` is the letter outside one too
   assert_equal "g", "g"[/\g/]
+end
 
-  # `\k<name>` is the backreference this engine does carry
+assert("Regexp - \\k<name> is the group reference this engine does carry") do
+  need_backtracking_stack
+  # `\g<name>` is refused above; the letter one apart from it is not.
   assert_equal "aa", "aa"[/(?<n>a)\k<n>/]
 end
 
