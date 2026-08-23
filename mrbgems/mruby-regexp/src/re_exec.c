@@ -136,6 +136,8 @@ typedef struct {
   mrb_bool binary;        /* true: subject is byte-indexed ASCII-8BIT */
   mrb_bool cut;           /* a higher-priority thread matched this step:
                              stop adding/processing lower-priority threads */
+  mrb_bool nomem;         /* the allocator refused the search a buffer it
+                             needed: it stops and answers RE_NOMEM */
   int *result_caps;       /* best match (ncap ints) */
 } pike_state;
 
@@ -383,10 +385,12 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
 
   mrb_bool match_only = (captures == NULL || captures_size == 0);
 
-  /* Use cached VM state if available (avoids malloc per call) */
+  /* Use cached VM state if available (avoids malloc per call). Whether this
+     search may have it is decided here, since it decides what there is left
+     to allocate; the claim itself is made below, once nothing is left to
+     ask for. */
   mrb_regexp_pattern *mpat = (mrb_regexp_pattern*)pat;  /* for cache_in_use flag */
   mrb_bool use_cache = !mpat->cache_in_use && mpat->cached_visited != NULL;
-  if (use_cache) mpat->cache_in_use = TRUE;
 
   pike_state s;
   s.mrb = mrb;
@@ -398,40 +402,72 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
   s.match_only = match_only;
   s.binary = binary;
   s.cut = FALSE;
+  s.nomem = FALSE;
   s.pass_span = RE_PASS_SPAN(pat->loop_depth);
   s.gen = 0;
   s.key_max = s.pass_span - 1;
+
+  /* Everything this search holds is given back by one epilogue below, which
+     an allocator that raises would jump past: what had been taken by then
+     would be leaked, and the cache claim made after it would stand for the
+     rest of the pattern's life, since nothing but that epilogue clears it.
+     The allocator that answers NULL is what lets a refusal be the search's
+     own answer (RE_NOMEM) and leave by the same exit as every other one.
+     What was not taken is left NULL, which the epilogue frees as readily. */
+  size_t vsize = sizeof(uint32_t) * ((size_t)pat->code_len + 1);
+  s.pool_next = 0;
+  s.result_caps = NULL;
   if (match_only) {
     s.pool_capa = 1;
-    s.pool_next = 0;
-    s.cap_pool = (int*)mrb_malloc(mrb, sizeof(int) * ncap);
-    s.result_caps = NULL;
+    s.cap_pool = (int*)mrb_malloc_simple(mrb, sizeof(int) * ncap);
+    if (!s.cap_pool) s.nomem = TRUE;
   }
   else {
     s.pool_capa = list_capa * 2;
-    s.pool_next = 0;
-    s.cap_pool = (int*)mrb_malloc(mrb, sizeof(int) * s.pool_capa * ncap);
-    s.result_caps = (int*)mrb_malloc(mrb, sizeof(int) * ncap);
-    memset(s.result_caps, -1, sizeof(int) * ncap);
+    s.cap_pool = (int*)mrb_malloc_simple(mrb, sizeof(int) * s.pool_capa * ncap);
+    s.result_caps = (int*)mrb_malloc_simple(mrb, sizeof(int) * ncap);
+    if (!s.cap_pool || !s.result_caps) s.nomem = TRUE;
+    else memset(s.result_caps, -1, sizeof(int) * ncap);
   }
 
   re_threadlist curr, next;
-  if (use_cache) {
+  s.visited = NULL;
+  curr.threads = next.threads = NULL;
+  curr.capa = next.capa = 0;
+  curr.count = next.count = 0;
+  if (s.nomem) {
+    /* The search is over before it starts; there is nothing left to take. */
+  }
+  else if (use_cache) {
     s.visited = mpat->cached_visited;
-    memset(s.visited, 0, sizeof(uint32_t) * (pat->code_len + 1));
+    memset(s.visited, 0, vsize);
     curr.threads = (re_thread*)mpat->cached_threads[0];
     next.threads = (re_thread*)mpat->cached_threads[1];
     curr.capa = next.capa = mpat->cached_list_capa;
   }
   else {
-    s.visited = (uint32_t*)mrb_calloc(mrb, pat->code_len + 1, sizeof(uint32_t));
-    curr.threads = (re_thread*)mrb_malloc(mrb, sizeof(re_thread) * list_capa);
-    next.threads = (re_thread*)mrb_malloc(mrb, sizeof(re_thread) * list_capa);
-    curr.capa = next.capa = list_capa;
+    s.visited = (uint32_t*)mrb_malloc_simple(mrb, vsize);
+    curr.threads = (re_thread*)mrb_malloc_simple(mrb, sizeof(re_thread) * list_capa);
+    next.threads = (re_thread*)mrb_malloc_simple(mrb, sizeof(re_thread) * list_capa);
+    if (!s.visited || !curr.threads || !next.threads) {
+      s.nomem = TRUE;
+    }
+    else {
+      memset(s.visited, 0, vsize);
+      curr.capa = next.capa = list_capa;
+    }
   }
-  curr.count = next.count = 0;
 
-  for (; sp <= str_end; sp++) {
+  /* Claim the cache last. The claim is on the pattern, which outlives the
+     search, so it may not be made where something between it and the
+     epilogue could leave without reaching the epilogue, which is what every
+     allocation above could do until it stopped raising. A search that
+     was refused the memory to run never claims it and never used it, so it
+     is not the one to release it either. */
+  if (s.nomem) use_cache = FALSE;
+  else if (use_cache) mpat->cache_in_use = TRUE;
+
+  for (; !s.nomem && sp <= str_end; sp++) {
     /* Past the last position a match may start at, only the threads already
        running can still answer; once they are gone nothing can. */
     if (!s.matched && sp > start_cap && curr.count == 0) break;
@@ -587,7 +623,13 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
   }
 
   int ret = 0;
-  if (s.matched) {
+  if (s.nomem) {
+    /* The allocator had nothing left for a buffer this search needed. It is
+       told apart from a limit all the way out to the caller for the reason
+       backtrack_exec() gives: what it asks for is not a knob turned up. */
+    ret = RE_NOMEM;
+  }
+  else if (s.matched) {
     if (captures && s.result_caps) {
       int copy = ncap < captures_size ? ncap : captures_size;
       memcpy(captures, s.result_caps, sizeof(int) * copy);
