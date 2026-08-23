@@ -46,10 +46,9 @@ typedef struct {
 
 static void matchdata_free(mrb_state *mrb, void *ptr) {
   mrb_match_data *md = (mrb_match_data*)ptr;
-  if (md) {
-    mrb_free(mrb, md->captures);
-    mrb_free(mrb, md);
-  }
+  /* One block holds the struct and the positions it points into, so this is
+     the whole of what a MatchData took. */
+  mrb_free(mrb, md);
 }
 
 static const struct mrb_data_type matchdata_type = { "MatchData", matchdata_free };
@@ -341,14 +340,22 @@ create_matchdata(mrb_state *mrb, mrb_value regexp, mrb_value str, int *captures,
   str = mrb_str_dup_frozen(mrb, str);
 
   struct RClass *md_class = mrb_class_get_id(mrb, MRB_SYM(MatchData));
-  mrb_match_data *md = (mrb_match_data*)mrb_malloc(mrb, sizeof(mrb_match_data));
+  /* The object comes first and one block holds the rest, so nothing this takes
+     is ever owned by this frame alone. Both of the calls below raise where they
+     cannot answer, mrb_malloc() through mrb_raise_nomemory() and
+     mrb_data_object_alloc() through the page add_heap() takes when the object
+     heap has no free slot, and either longjmps past this frame with nothing
+     left to unwind it. The object is empty when it is made, which
+     matchdata_free() takes, and after that what the object holds is everything
+     the match asked for. */
+  mrb_value obj = mrb_obj_value(mrb_data_object_alloc(mrb, md_class, NULL, &matchdata_type));
+  mrb_match_data *md = (mrb_match_data*)mrb_malloc(mrb, sizeof(mrb_match_data) + sizeof(int) * ncap);
+  DATA_PTR(obj) = md;
   md->source = str;
   md->regexp = regexp;
   md->num_captures = ncap / 2;
-  md->captures = (int*)mrb_malloc(mrb, sizeof(int) * ncap);
+  md->captures = (int*)(md + 1);
   memcpy(md->captures, captures, sizeof(int) * ncap);
-
-  mrb_value obj = mrb_obj_value(mrb_data_object_alloc(mrb, md_class, md, &matchdata_type));
   /* Keep `source` and `regexp` GC-reachable via instance variables.
    * The mrb_values are also held in mrb_match_data, but C-allocated
    * structs are not scanned by the GC. */
