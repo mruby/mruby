@@ -629,25 +629,23 @@ mrb_ensure_integer_type(mrb_state *mrb, mrb_value val)
     if (mrb_float_p(val)) {
       return mrb_float_to_integer(mrb, val);
     }
-    else {
-      switch (mrb_type(val)) {
+#endif
+    switch (mrb_type(val)) {
 #ifdef MRB_USE_BIGINT
-      case MRB_TT_BIGINT:
-        return val;
+    case MRB_TT_BIGINT:
+      return val;
 #endif
 #ifdef MRB_USE_RATIONAL
-      case MRB_TT_RATIONAL:
-        return mrb_rational_to_i(mrb, val);
+    case MRB_TT_RATIONAL:
+      return mrb_rational_to_i(mrb, val);
 #endif
 #ifdef MRB_USE_COMPLEX
-      case MRB_TT_COMPLEX:
-        return mrb_complex_to_i(mrb, val);
+    case MRB_TT_COMPLEX:
+      return mrb_complex_to_i(mrb, val);
 #endif
-      default:
-        break;
-      }
+    default:
+      break;
     }
-#endif
     mrb_raisef(mrb, E_TYPE_ERROR, "%Y cannot be converted to Integer", val);
   }
   return val;
