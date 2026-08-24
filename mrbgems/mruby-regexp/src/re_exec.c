@@ -1359,8 +1359,17 @@ backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
      hold by the undo log unwinding between start positions (see there): an
      iteration's record is written on the log now, which a match does not
      unwind, so a record left by the attempt before would otherwise be read
-     as this attempt's and stop a repetition that had not gone round yet. */
-  int *caps = (int*)mrb_malloc(mrb, sizeof(int) * (ncap + 2 * pat->code_len));
+     as this attempt's and stop a repetition that had not gone round yet.
+
+     Taken with mrb_malloc_simple() rather than mrb_malloc(), so that a
+     refusal is answered where the growth reallocs below already answer one.
+     Nothing is held here yet, so raising from this one line would strand
+     nothing; what it would cost is the engine's own answer. Every other
+     refusal inside a search reaches the caller as RE_NOMEM, which
+     re_check_exec_error() turns into the raise, and a search that raised
+     from here instead would be one the caller never saw stop. */
+  int *caps = (int*)mrb_malloc_simple(mrb, sizeof(int) * (ncap + 2 * pat->code_len));
+  if (!caps) return RE_NOMEM;
   int ret = 0;
   bt_state m;
   m.mrb = mrb;
