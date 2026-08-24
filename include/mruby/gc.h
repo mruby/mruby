@@ -133,9 +133,17 @@ MRB_API int mrb_gc_add_region(mrb_state *mrb, void *start, size_t size);
  *
  * mrb_gc_scheduler_pending() reports whether, in scheduler-driven mode, there is
  * GC work worth doing right now (a cycle is in progress, collection is overdue
- * by object debt, or malloc-backed byte pressure has built up past
- * malloc_threshold). It is FALSE whenever scheduler-driven mode is off, so a
- * caller can gate on it without checking the mode itself.
+ * by object debt, or anything at all has been allocated through mrb_realloc()
+ * since the collector last returned to its root state). It is FALSE whenever
+ * scheduler-driven mode is off, so a caller can gate on it without checking the
+ * mode itself.
+ *
+ * The byte arm is any growth, not the malloc_threshold test the allocation path
+ * applies. A step taken in the scheduler's idle time costs the mutator nothing,
+ * so what is asked here is whether work is available, not whether pressure has
+ * built up far enough to be worth a pause. One consequence is that
+ * malloc_threshold = 0 stops byte growth from driving collection on the
+ * allocation path but does not stop the scheduler from stepping on it.
  *
  * mrb_gc_step() advances the incremental collector by one unit of work and
  * returns the amount done (objects mark-scanned plus slots swept), or 0 while
