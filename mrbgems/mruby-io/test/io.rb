@@ -26,8 +26,8 @@ def assert_io_open(meth)
       end
     end
 
-    assert_raise(RuntimeError) { IO.__send__(meth, 1023) } # For Windows
-    assert_raise(RuntimeError) { IO.__send__(meth, 1 << 26) }
+    assert_raise(Errno::EBADF) { IO.__send__(meth, 1023) } # For Windows
+    assert_raise(Errno::EBADF) { IO.__send__(meth, 1 << 26) }
   end
 end
 
@@ -295,12 +295,7 @@ assert('IO gc check') do
 end
 
 assert('IO.sysopen("./nonexistent")') do
-  if Object.const_defined? :Errno
-    eclass = Errno::ENOENT
-  else
-    eclass = RuntimeError
-  end
-  assert_raise eclass do
+  assert_raise Errno::ENOENT do
     fd = IO.sysopen "./nonexistent"
     IO._sysclose fd
   end
@@ -391,7 +386,7 @@ assert('IO#isatty') do
   skip "isatty is not supported on this platform" if MRubyIOTestUtil.win?
   begin
     f = File.open("/dev/tty")
-  rescue RuntimeError => e
+  rescue SystemCallError => e
     skip e.message
   else
     assert_true f.isatty
@@ -732,7 +727,7 @@ assert('IO#pread') do
     assert_equal 0, io.pos
     assert_equal $mrbtest_io_msg.byteslice(1, 5), io.pread(5, 1)
     assert_equal 0, io.pos
-    assert_raise(RuntimeError) { io.pread(20, -9) }
+    assert_raise(Errno::EINVAL) { io.pread(20, -9) }
   end
 end
 
