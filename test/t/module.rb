@@ -684,6 +684,19 @@ end
     assert_raise(FrozenError) { Class.new.freeze.prepend Module.new }
   end
 
+  assert 'Module#prepend leaves a frozen class frozen' do
+    c = Class.new { def bar; :own; end; prepend Module.new }
+    c.freeze
+
+    assert_raise(FrozenError, 'def') { c.class_eval { def baz; :new; end } }
+    assert_raise(FrozenError, 'define_method') { c.class_eval { define_method(:baz) { :new } } }
+    assert_raise(FrozenError, 'alias_method') { c.class_eval { alias_method :baz, :bar } }
+    assert_raise(FrozenError, 'undef_method') { c.class_eval { undef_method :bar } }
+
+    assert_false c.new.respond_to?(:baz), 'no definition may have got through'
+    assert_true c.new.respond_to?(:bar), 'no removal may have got through'
+  end
+
   assert 'Module#private on a method a prepended module also defines' do
     m = Module.new { def foo; :prepended; end }
     c = Class.new { def foo; :own; end; prepend m }
