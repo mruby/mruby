@@ -1978,6 +1978,17 @@ str_out_of_index(mrb_state *mrb, mrb_value index)
   mrb_raisef(mrb, E_INDEX_ERROR, "index %v out of string", index);
 }
 
+/* Bytes spliced in mark the string they land in the way appended ones do:
+   byte-read bytes above ASCII spell no character here and hand their reading
+   over, ASCII bytes move nothing. */
+static void
+str_mark_spliced_binary(struct RString *str, struct RString *rep)
+{
+  if (!RSTR_BINARY_P(str) && RSTR_BINARY_P(rep) && !str_ascii_p(rep)) {
+    RSTR_ENCODING_SET(str, MRB_STR_ENCODING_BINARY);
+  }
+}
+
 static mrb_value
 str_replace_partial(mrb_state *mrb, mrb_value src, mrb_int pos, mrb_int end, mrb_value rep)
 {
@@ -2009,13 +2020,7 @@ str_replace_partial(mrb_state *mrb, mrb_value src, mrb_int pos, mrb_int end, mrb
   memmove(strp + newlen - (len - end), strp + end, len - end);
   if (!mrb_nil_p(rep)) {
     memmove(strp + pos, RSTRING_PTR(rep), replen);
-    /* bytes spliced in mark the string they land in the way appended ones
-       do: byte-read bytes above ASCII spell no character here and hand
-       their reading over, ASCII bytes move nothing */
-    struct RString *repp = mrb_str_ptr(rep);
-    if (!RSTR_BINARY_P(str) && RSTR_BINARY_P(repp) && !str_ascii_p(repp)) {
-      RSTR_ENCODING_SET(str, MRB_STR_ENCODING_BINARY);
-    }
+    str_mark_spliced_binary(str, mrb_str_ptr(rep));
   }
   RSTR_SET_LEN(str, newlen);
   strp[newlen] = '\0';
