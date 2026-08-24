@@ -64,6 +64,19 @@ assert("Array#uniq!") do
   assert_nil d.uniq! { |s| s.first }
 end
 
+assert("Array - a frozen receiver of a call that writes nothing") do
+  # Each of these leaves the array as it was and used to return before the
+  # write that carries the frozen check.
+  assert_raise(FrozenError) { [].freeze.uniq! }
+  assert_raise(FrozenError) { [1].freeze.uniq! }
+  assert_raise(FrozenError) { [1, 2].freeze.uniq! { |e| e } }
+  assert_raise(FrozenError) { [1, 2].freeze.insert(0) }
+  assert_raise(FrozenError) { [1, 2].freeze.fill(9, 0, 0) }
+  assert_raise(FrozenError) { [1, 2].freeze.fill(0, 0) { |i| i } }
+  assert_raise(FrozenError) { [1, 2].freeze.reject! { false } }
+  assert_raise(FrozenError) { [1, 2].freeze.select! { true } }
+end
+
 assert("Array#uniq") do
   a = [1, 2, 3, 1]
   assert_equal [1, 2, 3], a.uniq

@@ -2012,10 +2012,9 @@ str_replace_partial(mrb_state *mrb, mrb_value src, mrb_int pos, mrb_int end, mrb
   /* Replacing the empty range at the end is an append: it writes nothing any
      sharer of the buffer can see, so mrb_str_cat() may grow the string inside
      that buffer where mrb_str_modify() below would copy the whole of it first.
-     The frozen check mrb_str_modify() would make has to be made here as well,
-     since mrb_str_cat() makes none when handed nothing to append. */
+     mrb_str_cat() checks the frozen receiver on every length, so the check
+     mrb_str_modify() would have made is not lost. */
   if (pos == end && end == len && !mrb_nil_p(rep)) {
-    mrb_check_frozen(mrb, str);
     mrb_str_cat(mrb, src, RSTRING_PTR(rep), (size_t)replen);
     str_mark_spliced_binary(str, mrb_str_ptr(rep));
     return src;
@@ -3101,7 +3100,13 @@ mrb_str_reverse_bang(mrb_state *mrb, mrb_value str)
   mrb_int utf8_len = mrb_str_char_len(mrb, str);
   mrb_int len = RSTR_LEN(s);
 
-  if (utf8_len < 2) return str;
+  if (utf8_len < 2) {
+    /* One character or none reverses into itself and returns here, ahead of
+       the str_modify_keep_cr() below that turns a frozen receiver away. The
+       call is destructive at any length, so it is asked here. */
+    mrb_check_frozen(mrb, s);
+    return str;
+  }
   if (utf8_len < len) {
     str_modify_keep_cr(mrb, s);
     p = RSTR_PTR(s);
@@ -3121,6 +3126,8 @@ mrb_str_reverse_bang(mrb_state *mrb, mrb_value str)
     str_modify_keep_cr(mrb, s);
     goto bytes;
   }
+  /* As above, for a build that reads one character per byte. */
+  mrb_check_frozen(mrb, s);
   return str;
 
  bytes:
@@ -3945,7 +3952,14 @@ mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
   struct RString *s = mrb_str_ptr(str);
   ptrdiff_t off = -1;
 
-  if (len == 0) return str;
+  /* An append of nothing writes nothing, but it is still an append, and the
+     only frozen check on this path is the one the modify below runs. Asking
+     here keeps `str << ""` answering FrozenError like an append that has
+     bytes to add, instead of passing over a frozen receiver in silence. */
+  if (len == 0) {
+    mrb_check_frozen(mrb, s);
+    return str;
+  }
   /* `len` has to be known to fit in an `mrb_int` before it is used as one:
      the conversion is otherwise free to make it negative, and the overflow
      check takes `mrb_int` parameters, so it would not see it. Checking ahead
@@ -4331,10 +4345,9 @@ str_bytesplice(mrb_state *mrb, mrb_value str, mrb_int idx1, mrb_int len1, mrb_va
   /* Splicing the empty range at the end is an append: it writes nothing any
      sharer of the buffer can see, so mrb_str_cat() may grow the string inside
      that buffer where mrb_str_modify() below would copy the whole of it first.
-     The frozen check mrb_str_modify() would make has to be made here as well,
-     since mrb_str_cat() makes none when handed nothing to append. */
+     mrb_str_cat() checks the frozen receiver on every length, so the check
+     mrb_str_modify() would have made is not lost. */
   if (idx1 == RSTR_LEN(s)) {
-    mrb_check_frozen(mrb, s);
     return mrb_str_cat(mrb, str, RSTRING_PTR(replace) + idx2, (size_t)len2);
   }
 

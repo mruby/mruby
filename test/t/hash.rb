@@ -845,11 +845,15 @@ end
       assert_equal(pairs, h.to_a)
 
       assert_raise(FrozenError){h.freeze.__send__(meth, &filter)}
+      # A block that leaves every pair where it is never reaches the delete
+      # that carries the frozen check.
+      assert_raise(FrozenError){h.freeze.__send__(meth){meth == :select!}}
     end
 
     h = {}
     assert_nil(h.__send__(meth){})
     assert_predicate(h, :empty?)
+    assert_raise(FrozenError){{}.freeze.__send__(meth){}}
   end
 end
 

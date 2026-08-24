@@ -219,6 +219,23 @@ assert('String#concat') do
   end
 end
 
+assert('String#concat - a frozen receiver with nothing to append') do
+  # An append of no bytes writes nothing and used to return before reaching
+  # the frozen check, which sits with the write.
+  assert_raise(FrozenError) { "abc".freeze << "" }
+  assert_raise(FrozenError) { "abc".freeze.concat("") }
+  assert_raise(FrozenError) { "".freeze << "" }
+  assert_raise(FrozenError) { "abc".freeze.append_as_bytes("") }
+  # An append that has bytes to add answers the same way.
+  assert_raise(FrozenError) { "abc".freeze << "d" }
+end
+
+assert('String#prepend - a frozen receiver with nothing to prepend') do
+  assert_raise(FrozenError) { "abc".freeze.prepend() }
+  assert_raise(FrozenError) { "abc".freeze.prepend("") }
+  assert_raise(FrozenError) { "abc".freeze.prepend("d") }
+end
+
 assert('String#concat on a shared buffer') do
   # An append to a string that shares its buffer writes into the spare
   # capacity above what every other sharer can see, and each sharer has to

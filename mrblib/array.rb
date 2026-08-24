@@ -55,6 +55,9 @@ class Array
   # ISO 15.2.12.5.7
   def collect!(&block)
     return to_enum(:collect!) unless block
+    # An empty array assigns no element below, so nothing else on this path
+    # asks whether the receiver may be written to.
+    raise FrozenError, "can't modify frozen #{self.class}" if frozen?
 
     idx = 0
     len = size

@@ -104,6 +104,17 @@ assert('Hash#fetch') do
   end
 end
 
+assert("Hash - a frozen receiver of a call that writes nothing") do
+  # Each of these leaves the hash as it was and used to return before the
+  # write that carries the frozen check.
+  assert_raise(FrozenError) { {a: 1}.freeze.merge!({}) { |*x| x } }
+  assert_raise(FrozenError) { {}.freeze.delete_if { true } }
+  assert_raise(FrozenError) { {}.freeze.keep_if { true } }
+  assert_raise(FrozenError) { {a: 1}.freeze.delete_if { false } }
+  assert_raise(FrozenError) { {a: 1}.freeze.keep_if { true } }
+  assert_raise(FrozenError) { {}.freeze.transform_values! { |v| v } }
+end
+
 assert("Hash#delete_if") do
   base = { 1 => 'one', 2 => false, true => 'true', 'cat' => 99 }
   h1   = { 1 => 'one', 2 => false, true => 'true' }

@@ -2545,12 +2545,14 @@ str_prepend(mrb_state *mrb, mrb_value self)
   mrb_int argc;
   mrb_get_args(mrb, "*", &argv, &argc);
 
+  struct RString *s = mrb_str_ptr(self);
+  /* Ahead of the return for no arguments below: prepending nothing is still
+     a prepend, and a frozen receiver answers FrozenError either way. */
+  mrb_check_frozen(mrb, s);
+
   if (argc == 0) {
     return self;
   }
-
-  struct RString *s = mrb_str_ptr(self);
-  mrb_check_frozen(mrb, s);
 
   /* Calculate total length needed for all prepended strings */
   mrb_int total_prepend_len = 0;
