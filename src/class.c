@@ -1034,10 +1034,14 @@ MRB_API void
 mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_t m)
 {
   union mrb_mt_ptr ptr;
+  /* The class the caller named, kept before the origin walk below moves `c`
+     past it: the origin ICLASS never carries the frozen flag, so a frozen
+     check made after the walk is a check nothing can fail. */
+  struct RClass *named = c;
 
   MRB_CLASS_ORIGIN(c);
 
-  mrb_mt_tbl *h = mt_writable(mrb, c, c);
+  mrb_mt_tbl *h = mt_writable(mrb, named, c);
   if (MRB_METHOD_PROC_P(m)) {
     struct RProc *p = (struct RProc*)MRB_METHOD_PROC(m);
 
