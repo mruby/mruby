@@ -1202,8 +1202,9 @@ io_close(mrb_state *mrb, mrb_value io)
  * Closes the write end of a duplex I/O stream (i.e., a pipe).
  *
  * A stream that is not duplex has no write end of its own. If it cannot be
- * read from, its only end is the one being closed and the whole stream is
- * closed; otherwise an `IOError` is raised.
+ * read from, or it was opened to a child process, its only end is the one
+ * being closed and the whole stream is closed; otherwise an `IOError` is
+ * raised.
  *
  *   r, w = IO.pipe
  *   w.close_write
@@ -1218,8 +1219,10 @@ io_close_write(mrb_state *mrb, mrb_value io)
   if (fd2 == -1) {
     /* No second descriptor, so writing goes through fd, which is also what
        reading goes through. There is a write end to give up only where
-       nothing reads from the stream, and then it is the whole stream. */
-    if (fptr->readable) {
+       nothing reads from the stream for the caller's own sake, and then it is
+       the whole stream: what a stream opened to a child process reads is the
+       child, which ends with the pipe. */
+    if (fptr->readable && fptr->pid == 0) {
       mrb_raise(mrb, E_IO_ERROR, "closing non-duplex IO for writing");
     }
     fptr_finalize(mrb, fptr, FALSE);
