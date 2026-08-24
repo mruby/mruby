@@ -1072,7 +1072,13 @@ ary_fill_exec(mrb_state *mrb, mrb_value self)
   }
 
   /* Ensure we don't go beyond array bounds */
-  if (start >= ARY_LEN(ary) || length <= 0) return self;
+  if (start >= ARY_LEN(ary) || length <= 0) {
+    /* Nothing to fill, so this returns ahead of the mrb_ary_modify() below
+       that turns a frozen receiver away. The fill is a destructive call
+       whatever the run comes to, so it is asked here. */
+    mrb_check_frozen(mrb, ary);
+    return self;
+  }
   if (end > ARY_LEN(ary)) {
     length = ARY_LEN(ary) - start;
   }
@@ -1134,6 +1140,10 @@ ary_uniq_bang(mrb_state *mrb, mrb_value self)
   mrb_int len = RARRAY_LEN(self);
 
   if (len <= 1) {
+    /* No room for a duplicate, so this returns without reaching the
+       mrb_ary_modify() below that turns a frozen receiver away. The call is
+       destructive at any length, so it is asked here. */
+    mrb_check_frozen(mrb, mrb_ary_ptr(self));
     return mrb_nil_value();
   }
 
@@ -1394,6 +1404,9 @@ ary_insert(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "i*", &idx, &argv, &argc);
 
   if (argc == 0) {
+    /* Inserting nothing is still an insert, and this returns ahead of the
+       mrb_ary_modify() below that a frozen receiver would have met. */
+    mrb_check_frozen(mrb, mrb_ary_ptr(self));
     return self;
   }
 

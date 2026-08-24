@@ -587,6 +587,20 @@ assert('Array#freeze') do
   end
 end
 
+assert('Array - a frozen receiver of a call that writes nothing') do
+  # Each of these leaves the array as it was and used to return before the
+  # write that carries the frozen check.
+  assert_raise(FrozenError) { [].freeze.reverse! }
+  assert_raise(FrozenError) { [1].freeze.reverse! }
+  assert_raise(FrozenError) { [].freeze.sort! }
+  assert_raise(FrozenError) { [1].freeze.sort! }
+  assert_raise(FrozenError) { [].freeze.collect! { |e| e } }
+  assert_raise(FrozenError) { [].freeze.map! { |e| e } }
+  assert_raise(FrozenError) { [1, 2].freeze.__send__(:initialize) }
+  a = [1, 2].freeze
+  assert_raise(FrozenError) { a.replace(a) }
+end
+
 assert('Array#delete') do
   a = ["a", "b", "c"]
   assert_equal nil, a.delete("x")

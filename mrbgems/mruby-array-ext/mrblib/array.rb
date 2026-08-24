@@ -16,6 +16,10 @@ class Array
   #    c.uniq! { |s| s.first } # => [["student", "sam"], ["teacher", "matz"]]
   #
   def uniq!(&block)
+    # The block form below answers nil without touching the array when it
+    # holds no duplicate, and __uniq! returns early for one element or none.
+    raise FrozenError, "can't modify frozen #{self.class}" if frozen?
+
     if block
       hash = {}
       result = []
@@ -155,6 +159,11 @@ class Array
     start, length = __fill_parse_arg(arg0, arg1, arg2, &block)
 
     if block
+      # A run of zero elements assigns nothing below, so nothing on this path
+      # asks whether the receiver may be written to. __fill_exec answers for
+      # the value form. Asked before the block runs, as CRuby does.
+      raise FrozenError, "can't modify frozen #{self.class}" if frozen?
+
       # Block-based filling in Ruby
       i = start
       while i < start + length
@@ -218,6 +227,9 @@ class Array
 
   def reject!(&block)
     return to_enum(:reject!) unless block
+    # Rejecting nothing skips the `replace` below, which is what would
+    # otherwise refuse a frozen receiver.
+    raise FrozenError, "can't modify frozen #{self.class}" if frozen?
 
     result = []
     idx = 0
@@ -390,6 +402,9 @@ class Array
 
   def select!(&block)
     return to_enum(:select!) unless block
+    # Keeping every element skips the `replace` below, which is what would
+    # otherwise refuse a frozen receiver.
+    raise FrozenError, "can't modify frozen #{self.class}" if frozen?
 
     result = []
     idx = 0
