@@ -1214,6 +1214,12 @@ io_close_write(mrb_state *mrb, mrb_value io)
   /* The write end is gone whatever close(2) answers, and leaving its number
      behind would have #close try to close it a second time. */
   fptr->fd2 = -1;
+  if (fd2 != -1) {
+    /* A stream that has an fd2 writes to it and reads from fd, so closing the
+       write end leaves nowhere to write to: the flag every writer is gated on
+       has to fall with the descriptor. */
+    fptr->writable = 0;
+  }
   if (mrb_hal_io_close(mrb, fd2) == -1) {
     mrb_sys_fail(mrb, "close");
   }
