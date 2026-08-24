@@ -13,8 +13,7 @@ MRuby::CrossBuild.new("cross-mingw") do |conf|
 
   # A cross build detects no host to pick a port from, so the Windows HAL
   # has to be named here; without it every `mrb_hal_*` the gems sitting on
-  # it call is undefined at link time.  This has to precede the gembox: a
-  # gem picks its port when it is added.
+  # it call is undefined at link time.
   conf.ports :win
 
   conf.gembox "default"
