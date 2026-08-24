@@ -40,7 +40,7 @@ already include it.
 | Process.spawn              |               | separate change                          |
 | Process.exec               |               | separate change                          |
 | Process.exit, .exit!       |               | see mruby-exit                           |
-| Process.wait, .wait2       |               | separate change                          |
+| Process.wait, .wait2       | o             | `.waitpid2` too; not `.waitall`          |
 | Process.uid, .gid, ...     |               | separate change                          |
 | Process.getpgrp, ...       |               | separate change                          |
 
