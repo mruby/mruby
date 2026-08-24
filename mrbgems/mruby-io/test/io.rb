@@ -597,6 +597,49 @@ assert('IO#close_write closes the stream for writing') do
   end
 end
 
+assert('IO#close_write on a stream with no write end') do
+  # A stream nothing reads from has only the end being closed.
+  io = IO.new(IO.sysopen($mrbtest_io_wfname, "w"), "w")
+  assert_nil io.close_write
+  assert_true io.closed?
+
+  r, w = IO.pipe
+  assert_nil w.close_write
+  assert_true w.closed?
+  assert_equal "", r.read
+  r.close
+
+  # A stream something reads from has no write end to give up.
+  io = IO.new(IO.sysopen($mrbtest_io_rfname), "r")
+  assert_raise(IOError) { io.close_write }
+  assert_false io.closed?
+  io.close
+
+  io = IO.new(IO.sysopen($mrbtest_io_wfname, "r+"), "r+")
+  assert_raise(IOError) { io.close_write }
+  assert_false io.closed?
+  io.close
+
+  r, w = IO.pipe
+  assert_raise(IOError) { r.close_write }
+  r.close
+  w.close
+end
+
+assert('IO#close_write twice') do
+  skip "no `cat` to talk to on this platform" if MRubyIOTestUtil.win?
+  begin
+    io = IO.popen("cat", "r+")
+    io.close_write
+    # the write end is already gone, and the stream is still read from
+    assert_raise(IOError) { io.close_write }
+    assert_false io.closed?
+    io.close
+  rescue NotImplementedError => e
+    skip e.message
+  end
+end
+
 assert('IO.read') do
   # empty file
   fd = IO.sysopen $mrbtest_io_wfname, "w"

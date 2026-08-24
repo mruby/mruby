@@ -1200,7 +1200,10 @@ io_close(mrb_state *mrb, mrb_value io)
  *   ios.close_write -> nil
  *
  * Closes the write end of a duplex I/O stream (i.e., a pipe).
- * It will raise an `IOError` if the stream is not duplex.
+ *
+ * A stream that is not duplex has no write end of its own. If it cannot be
+ * read from, its only end is the one being closed and the whole stream is
+ * closed; otherwise an `IOError` is raised.
  *
  *   r, w = IO.pipe
  *   w.close_write
@@ -1211,15 +1214,24 @@ io_close_write(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr = io_get_open_fptr(mrb, io);
   int fd2 = fptr->fd2;
+
+  if (fd2 == -1) {
+    /* No second descriptor, so writing goes through fd, which is also what
+       reading goes through. There is a write end to give up only where
+       nothing reads from the stream, and then it is the whole stream. */
+    if (fptr->readable) {
+      mrb_raise(mrb, E_IO_ERROR, "closing non-duplex IO for writing");
+    }
+    fptr_finalize(mrb, fptr, FALSE);
+    return mrb_nil_value();
+  }
   /* The write end is gone whatever close(2) answers, and leaving its number
      behind would have #close try to close it a second time. */
   fptr->fd2 = -1;
-  if (fd2 != -1) {
-    /* A stream that has an fd2 writes to it and reads from fd, so closing the
-       write end leaves nowhere to write to: the flag every writer is gated on
-       has to fall with the descriptor. */
-    fptr->writable = 0;
-  }
+  /* A stream that has an fd2 writes to it and reads from fd, so closing the
+     write end leaves nowhere to write to: the flag every writer is gated on
+     has to fall with the descriptor. */
+  fptr->writable = 0;
   if (mrb_hal_io_close(mrb, fd2) == -1) {
     mrb_sys_fail(mrb, "close");
   }
