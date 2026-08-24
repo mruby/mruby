@@ -312,6 +312,13 @@ void mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat, const char *pattern
 /* Free a compiled pattern */
 void mrb_re_free(mrb_state *mrb, mrb_regexp_pattern *pat);
 
+/* Append the set flags among RE_FLAG_MULTILINE/IGNORECASE/EXTENDED to `str`
+   as letters, in the order Regexp#to_s and Regexp#inspect write them
+   (m, i, x). Shared so a compile error can quote a pattern the way
+   Regexp#inspect would, `/pattern/flags`, without duplicating the table
+   `regexp_to_s()` walks in regexp.c. */
+void mrb_re_flags_cat(mrb_state *mrb, mrb_value str, uint32_t flags);
+
 /* Word character (\w) test */
 mrb_bool mrb_re_is_word_char(uint32_t c);
 
