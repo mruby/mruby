@@ -24,14 +24,15 @@ def clean(output, stderr = false)
   # A limit of -1 keeps the trailing empty fields, so a blank line at the end
   # of the output survives the round trip; a disassembly ends with one.
   results = output.split(/\n/, -1).map do |line|
-    # Fix file paths
-    if line =~ /#{DOSROOT}\\/i
-      line.gsub!(/#{DOSROOT}([^:]*)/i) { |path|
-        path.gsub!(/^#{DOSROOT}/i, '')
-        path.gsub!(%r{\\}, '/')
-        path
-      }
-    end
+    # Fix file paths.  A line that holds one is not all path, so what a path
+    # is has to be said on both ends: `z:` is a root only where a path
+    # follows it, which is what the backslash asks, and a path ends where the
+    # next root begins.  Without the first, a `z:` that is merely text is
+    # taken for a root and the words after it go with it; without the second,
+    # a path that follows another on the same line is swallowed by it.
+    line.gsub!(/#{DOSROOT}(\\(?:(?!#{DOSROOT})[^:])*)/i) { |path|
+      path.sub(/\A#{DOSROOT}/i, '').gsub(%r{\\}, '/')
+    }
 
     line
   end
