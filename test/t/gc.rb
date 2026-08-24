@@ -85,6 +85,44 @@ assert('GC.malloc_threshold - triggers GC on large allocations') do
   end
 end
 
+# A cycle that runs incrementally needs one call per step, and outside this
+# path every one of those calls comes from an object allocation.  A workload
+# that allocates bytes without allocating objects therefore has to advance the
+# cycle on byte pressure alone; if it cannot, the first threshold crossing
+# starts a cycle that parks mid-mark and no later crossing is ever honoured.
+# `malloc_increase` is cleared on every crossing, so its value at the end
+# counts the bytes allocated since the last one: it stays near the threshold
+# while the axis keeps working and grows to the whole loop once it stops.
+#
+# The 40 buffers below are Strings, and an object allocation does step the
+# collector, so the loop has to stay far enough under that axis for the
+# reading to mean what it says.  It does, by construction: `GC.start` ends
+# with `gc_debt` at minus a credit that is floored at `GC_STEP_SIZE`, so the
+# object axis takes at least 1024 allocations to step even once.  40 is
+# twenty-five times under that floor, and the floor is the worst case, since
+# a build with a larger live set gets a proportionally larger credit.
+#
+# That floor is the one thing MRB_GC_STRESS takes away: it collects fully at
+# every object allocation, and with MRB_DEBUG at every heap allocation too, so
+# the assertion passes there whether or not byte pressure works.  It is not
+# weaker than it looks, it is measuring a build that cannot hold the state it
+# is about: a cycle can only park where something allocates without collecting,
+# which is exactly what those builds rule out.
+assert('GC.malloc_threshold - byte pressure advances an incremental cycle') do
+  origin = GC.malloc_threshold
+  origin_mode = GC.generational_mode
+  begin
+    GC.generational_mode = false   # every cycle is incremental in this mode
+    GC.start                       # start from MRB_GC_STATE_ROOT
+    GC.malloc_threshold = 1024
+    40.times { "x" * 65536 }       # 2.6MB of buffers, 40 objects
+    assert_true GC.stat[:malloc_increase] < 262144
+  ensure
+    GC.malloc_threshold = origin
+    GC.generational_mode = origin_mode
+  end
+end
+
 assert('GC.malloc_threshold - does not mark through stale realloc buffers') do
   origin = GC.malloc_threshold
   begin
