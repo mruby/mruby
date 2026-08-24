@@ -530,8 +530,39 @@ mrb_gc_add_region(mrb_state *mrb, void *start, size_t size)
 
 #define DEFAULT_GC_INTERVAL_RATIO 200
 #define DEFAULT_GC_STEP_RATIO 200
+
 #define MAJOR_GC_INC_RATIO 120
 #define MAJOR_GC_TOOMANY 10000
+
+/* Bytes of malloc growth that schedule a collection, the byte counterpart of
+   the object count that gc_debt schedules on. A collection is worth running
+   when the process has churned this much through mrb_realloc(), however few
+   objects those bytes belong to. 16MiB is CRuby's malloc_limit. A port whose
+   memory budget is smaller than the figure it wants to react at overrides it;
+   a heap that never allocates this much simply never reaches the trigger and
+   is scheduled by object count alone, as before.
+
+   A target whose size_t cannot hold 16MiB gets a quarter of what it can hold
+   rather than a truncated constant; it should still name its own figure.
+
+   An override has to land in both types this value is seen through: size_t,
+   which holds it, and mrb_int, which GC.malloc_threshold and GC.stat report
+   it as. One too large for mrb_int would come back from those as a negative
+   number, so refuse it here rather than let it read back as something nobody
+   set. A negative one needs saying separately: it converts to size_t for the
+   SIZE_MAX comparison and passes it, then gets stored as the largest threshold
+   there is. Neither figure above can reach any of the three limits. */
+#ifndef MRB_GC_MALLOC_THRESHOLD
+# if SIZE_MAX < 16*1024*1024
+#  define MRB_GC_MALLOC_THRESHOLD (SIZE_MAX/4)
+# else
+#  define MRB_GC_MALLOC_THRESHOLD (16*1024*1024)
+# endif
+#endif
+mrb_static_assert((intmax_t)(MRB_GC_MALLOC_THRESHOLD) >= 0
+                  && MRB_GC_MALLOC_THRESHOLD <= SIZE_MAX
+                  && MRB_GC_MALLOC_THRESHOLD <= MRB_INT_MAX);
+
 #define is_generational(gc) ((gc)->generational)
 #define is_major_gc(gc) (is_generational(gc) && (gc)->full)
 #define is_minor_gc(gc) (is_generational(gc) && !(gc)->full)
@@ -551,6 +582,7 @@ mrb_gc_init(mrb_state *mrb, mrb_gc *gc)
   add_heap(mrb, gc);
   gc->interval_ratio = DEFAULT_GC_INTERVAL_RATIO;
   gc->step_ratio = DEFAULT_GC_STEP_RATIO;
+  gc->malloc_threshold = MRB_GC_MALLOC_THRESHOLD;
   gc->auto_step = TRUE;
   gc->sched_driven = FALSE;
 #ifndef MRB_GC_TURN_OFF_GENERATIONAL
@@ -1785,6 +1817,13 @@ mrb_full_gc(mrb_state *mrb)
   }
 
   incremental_gc_finish(mrb, gc);
+  /* Both axes start over: this collection has accounted for everything either
+     of them was counting. incremental_gc_run() clears malloc_increase when a
+     cycle it drove reaches MRB_GC_STATE_ROOT; the cycles here do not go
+     through it, so without this a full collection would leave the bytes it
+     just reclaimed still charged, and the next fresh allocation could cross
+     the threshold on pressure that no longer exists. */
+  gc->malloc_increase = 0;
   {
     mrb_int credit = (mrb_int)((gc->live_after_mark/100) * gc->interval_ratio)
                    - (mrb_int)gc->live_after_mark;
@@ -2036,13 +2075,15 @@ gc_step_limit_set(mrb_state *mrb, mrb_value obj)
  *     GC.malloc_threshold -> int
  *
  *  Returns the malloc-backed byte-growth threshold that triggers an
- *  incremental GC cycle (0 = disabled). Unlike GC.debt (which counts
- *  objects), this catches workloads that allocate few but large
- *  malloc-backed payloads (long String/Array buffers). It fires in two
- *  places: the ordinary allocation path triggers GC.start's incremental
- *  counterpart once malloc growth crosses this threshold even in stock
- *  auto_step mode, and mruby-task's GC.scheduler_driven also treats crossing
- *  it as a reason to step.
+ *  incremental GC cycle (0 = disabled, default MRB_GC_MALLOC_THRESHOLD).
+ *  Unlike GC.debt (which counts objects), this catches workloads that
+ *  allocate few but large malloc-backed payloads (long String/Array
+ *  buffers). The ordinary allocation path triggers GC.start's incremental
+ *  counterpart once malloc growth reaches this threshold, even in stock
+ *  auto_step mode. mruby-task's GC.scheduler_driven does not read the
+ *  threshold at all: any byte growth is reason enough to spend idle time
+ *  stepping, so 0 stops byte growth from driving collection here but not
+ *  there.
  */
 static mrb_value
 gc_malloc_threshold_get(mrb_state *mrb, mrb_value obj)

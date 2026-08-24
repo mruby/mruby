@@ -331,13 +331,19 @@ allocations can occur before the next GC cycle begins.
 
 ### Malloc Pressure
 
-When `gc->malloc_threshold` is set (non-zero), the GC also
-tracks bytes allocated through `mrb_realloc_simple()` in
-`gc->malloc_increase`. When `malloc_increase` exceeds
-`malloc_threshold`, the counter resets and an incremental GC
-step runs. This captures memory pressure from large buffers
-(e.g., long strings) that would otherwise be invisible to the
-object-count-based debt model.
+When `gc->malloc_threshold` is non-zero (it is `MRB_GC_MALLOC_THRESHOLD`
+by default), the GC also tracks bytes allocated through
+`mrb_realloc_simple()` in `gc->malloc_increase`. When
+`malloc_increase` reaches `malloc_threshold`, the counter resets
+and an incremental GC step runs. This captures memory pressure
+from large buffers (e.g., long strings) that would otherwise be
+invisible to the object-count-based debt model.
+
+Only a fresh allocation may step the collector here; a `realloc`
+has already freed the caller's old block and the caller has not
+yet stored the new pointer, so marking in that window would walk
+freed memory. Byte pressure from reallocs is not lost, it fires
+at the next fresh allocation.
 
 ### Manual
 
@@ -371,7 +377,7 @@ From Ruby code:
 GC.interval_ratio = 200     # controls debt credit after GC cycle
 GC.step_ratio = 200         # objects per incremental step
 GC.step_limit = 0           # 0=unlimited, >0=absolute step cap
-GC.malloc_threshold = 0     # 0=disabled, >0=bytes to trigger GC
+GC.malloc_threshold = 16777216 # 0=disabled, >0=bytes to trigger GC
 GC.generational_mode = true
 GC.start                     # force full GC
 GC.enable                    # re-enable GC
@@ -392,7 +398,7 @@ GC.stat
 #   :full => false,             # major GC in progress
 #   :step_limit => 0,           # current step limit setting
 #   :malloc_increase => 8192,   # malloc bytes since last cycle
-#   :malloc_threshold => 0,     # current malloc threshold setting
+#   :malloc_threshold => 16777216, # current malloc threshold setting
 # }
 ```
 
@@ -420,11 +426,14 @@ per incremental step regardless of `step_ratio`. Useful for
 real-time applications that need bounded pause times. The
 effective step size is `min(step_ratio calculation, step_limit)`.
 
-**`malloc_threshold`** (default 0, disabled): Triggers GC when
-cumulative `malloc`/`realloc` bytes exceed this threshold. Useful
-when applications allocate large buffers (strings, data objects)
-that create memory pressure without proportional object count
-increase.
+**`malloc_threshold`** (default `MRB_GC_MALLOC_THRESHOLD`, 16MiB,
+or `SIZE_MAX/4` where `size_t` is too narrow to hold that; 0
+disables it): Triggers GC when cumulative `malloc`/`realloc`
+bytes reach this threshold. This is what collects large buffers
+(strings, data objects) that create memory pressure without a
+proportional object count increase; without it a workload that
+churns buffers has no debt to pay and the collector never runs.
+Lower it to react sooner on a small memory budget.
 
 ### Practical Tuning Examples
 
@@ -456,12 +465,24 @@ This makes GC pauses more predictable but increases total GC
 overhead (more steps needed per cycle).
 
 **Large buffer workloads** (reading files, building long strings):
-Set `malloc_threshold` to trigger GC when buffer allocations
-accumulate, even if object count is low:
+`malloc_threshold` already collects these at its 16MiB default.
+Lower it to react sooner, at the cost of more collections:
 
 ```ruby
 GC.malloc_threshold = 1024 * 1024  # trigger GC per ~1MB allocated
 ```
+
+**Small memory budgets** (a target with a few hundred KiB of RAM):
+the default is inert there, because the counter is cleared at the end
+of every collection cycle and a small heap collects often enough that
+it never accumulates 16MiB. Measured high-water marks of
+`malloc_increase` on a host build: 188KB over two million small
+allocations, 710KB for `benchmark/bm_ao_render.rb`, and a small heap
+collects more often than either. To make the byte axis fire on such a
+target, set `MRB_GC_MALLOC_THRESHOLD` to something on the order of the
+memory budget. On the two million allocation workload, `65536` leaves
+the collection count unchanged and `32768` adds 3% more minor
+collections.
 
 ### Diagnosing GC Overhead
 

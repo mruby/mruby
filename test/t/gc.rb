@@ -62,7 +62,8 @@ end
 assert('GC.malloc_threshold=') do
   origin = GC.malloc_threshold
   begin
-    assert_equal 0, origin           # default: disabled
+    # No assertion on `origin`: the initial value is MRB_GC_MALLOC_THRESHOLD,
+    # which a build may set to anything including 0.
     assert_equal 65536, (GC.malloc_threshold = 65536)
     assert_equal 65536, GC.malloc_threshold
     assert_equal 0, (GC.malloc_threshold = 0)  # back to disabled

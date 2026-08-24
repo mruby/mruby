@@ -128,6 +128,24 @@ end
 - Default value is `1024`.
 - Specifies number of `RBasic` per each heap page.
 
+`MRB_GC_MALLOC_THRESHOLD`
+
+- Default value is `16777216` (16MiB), the figure CRuby gives `malloc_limit`,
+  or `SIZE_MAX/4` on a target whose `size_t` cannot represent that.
+- Bytes of `mrb_realloc()` growth that schedule a collection, independent of
+  how many objects those bytes belong to.
+- Sets the initial value of `GC.malloc_threshold`, which can be changed at
+  run time; `0` disables byte-driven collection.
+- The counter behind it is cleared at the end of every collection cycle, so it
+  only accumulates while object-count scheduling is idle. A workload made of
+  ordinary objects never gets near the default: two million small allocations
+  peak at 188KB of accumulated growth, `benchmark/bm_ao_render.rb` at 710KB.
+  What reaches it is large buffers, which is what it exists to catch.
+- Lower it on a target whose memory budget is smaller than the default, or the
+  byte axis will never fire there. A figure on the order of the budget is the
+  right scale: on the two million allocation workload above, `65536` leaves
+  the collection count unchanged and `32768` adds 3% more minor collections.
+
 ## Memory pool configuration
 
 `POOL_ALIGNMENT`
