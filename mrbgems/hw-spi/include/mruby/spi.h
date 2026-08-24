@@ -3,10 +3,9 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <mruby/common.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+MRB_BEGIN_DECL
 
 #define MRB_SPI_MSB_FIRST 1
 #define MRB_SPI_LSB_FIRST 0
@@ -37,8 +36,6 @@ int mrb_spi_read(mrb_spi_info *info, uint8_t *dst, size_t len, uint8_t tx_val);
 int mrb_spi_write(mrb_spi_info *info, const uint8_t *src, size_t len);
 int mrb_spi_transfer(mrb_spi_info *info, const uint8_t *tx, uint8_t *rx, size_t len);
 
-#ifdef __cplusplus
-}
-#endif
+MRB_END_DECL
 
 #endif /* MRUBY_SPI_H */

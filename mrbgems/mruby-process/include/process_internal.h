@@ -12,6 +12,8 @@
 
 #include <mruby.h>
 
+MRB_BEGIN_DECL
+
 /* Refuse `v` with a RangeError naming `what` unless it fits the `int` a port
    has to narrow it to.  A no-op where mruby's own Integer is no wider. */
 mrb_int mrb_process_int_arg(mrb_state *mrb, mrb_int v, const char *what);
@@ -22,5 +24,7 @@ void mrb_process_status_init(mrb_state *mrb, struct RClass *process);
 /* Build a Process::Status for a pid and the platform status it was reaped
    with.  The status decodes itself through the HAL as it is asked questions. */
 mrb_value mrb_process_status_new(mrb_state *mrb, mrb_int pid, mrb_int raw_status);
+
+MRB_END_DECL
 
 #endif /* MRUBY_PROCESS_INTERNAL_H */

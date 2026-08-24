@@ -13,6 +13,8 @@
 
 #include <mruby.h>
 
+MRB_BEGIN_DECL
+
 /*
  * Platform-independent type definitions
  */
@@ -446,5 +448,7 @@ void mrb_hal_io_init(mrb_state *mrb);
  * @param mrb mruby state
  */
 void mrb_hal_io_final(mrb_state *mrb);
+
+MRB_END_DECL
 
 #endif /* MRUBY_IO_HAL_H */

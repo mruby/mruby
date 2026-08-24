@@ -9,6 +9,8 @@
 
 #include <mruby.h>
 
+MRB_BEGIN_DECL
+
 /*
  * Task status values (bit-mapped)
  */
@@ -244,5 +246,7 @@ mrb_task_excl_exit(mrb_state *mrb)
 
 /* GC.scheduler_driven family - defined in gc.c */
 void mrb_init_task_gc(mrb_state *mrb);
+
+MRB_END_DECL
 
 #endif /* MRUBY_TASK_H */

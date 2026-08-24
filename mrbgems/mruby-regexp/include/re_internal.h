@@ -11,6 +11,8 @@
 #include <mruby/internal.h>
 #include <stdint.h>
 
+MRB_BEGIN_DECL
+
 /* The Unicode foldings /i reads are core's table, which only a build reading
    its strings as characters and classifying them by Unicode carries. /i
    therefore folds the way that build's own case conversion does and no other
@@ -479,5 +481,7 @@ int mrb_re_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
 int mrb_re_rexec(mrb_state *mrb, const mrb_regexp_pattern *pat,
             const char *str, mrb_int len, mrb_int limit,
             int *captures, int captures_size, mrb_bool binary);
+
+MRB_END_DECL
 
 #endif /* MRB_RE_INTERNAL_H */
