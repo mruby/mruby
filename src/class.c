@@ -2505,7 +2505,15 @@ mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int vis)
       MRB_METHOD_SET_VISIBILITY(m, vis);
       union mrb_mt_ptr ptr;
       if (MRB_METHOD_PROC_P(m)) {
-        ptr.proc = MRB_METHOD_PROC(m);
+        struct RProc *p = (struct RProc*)MRB_METHOD_PROC(m);
+
+        /* A method table entry is a GC field: mrb_gc_mark_mt() marks every
+           non-MRB_MT_FUNC entry as a child of the class. mrb_define_method_raw()
+           barriers the same kind of store; this one did not. */
+        ptr.proc = p;
+        if (p) {
+          mrb_field_write_barrier(mrb, (struct RBasic*)c, (struct RBasic*)p);
+        }
       }
       else {
         ptr.func = MRB_METHOD_FUNC(m);
