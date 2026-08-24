@@ -2009,6 +2009,18 @@ str_replace_partial(mrb_state *mrb, mrb_value src, mrb_int pos, mrb_int end, mrb
     mrb_raise(mrb, E_RUNTIME_ERROR, "string size too big");
   }
 
+  /* Replacing the empty range at the end is an append: it writes nothing any
+     sharer of the buffer can see, so mrb_str_cat() may grow the string inside
+     that buffer where mrb_str_modify() below would copy the whole of it first.
+     The frozen check mrb_str_modify() would make has to be made here as well,
+     since mrb_str_cat() makes none when handed nothing to append. */
+  if (pos == end && end == len && !mrb_nil_p(rep)) {
+    mrb_check_frozen(mrb, str);
+    mrb_str_cat(mrb, src, RSTRING_PTR(rep), (size_t)replen);
+    str_mark_spliced_binary(str, mrb_str_ptr(rep));
+    return src;
+  }
+
   mrb_str_modify(mrb, str);
 
   if (len < newlen) {

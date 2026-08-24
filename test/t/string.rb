@@ -400,6 +400,37 @@ assert('String[]=(UTF-8)') do
   assert_equal "➀➁➂➃➄", m
 end if UTF8STRING
 
+assert('String#[]= on a shared buffer') do
+  # Assigning to the empty range at the end appends, and an append writes
+  # only above what every other sharer of the buffer reads, so it stays in
+  # the buffer instead of taking a copy of it. The sharer must not see the
+  # bytes the string gained. Each string is shortened before it is shared, to
+  # leave spare capacity behind: one that has none cannot be grown in place
+  # anyway, so it would not tell the two behaviours apart.
+  a = "a" * 100 + "z" * 100
+  a[100, 100] = ""
+  a_slice = a[0, 60]
+  a[a.length, 0] = "1234567890"
+  assert_equal "a" * 100 + "1234567890", a
+  assert_equal "a" * 60, a_slice
+
+  # Assigning below the end writes where the sharer reads, so the buffer has
+  # to be taken away from it first.
+  b = "b" * 100 + "y" * 100
+  b[100, 100] = ""
+  b_slice = b[0, 60]
+  b[0, 1] = "1234567890"
+  assert_equal "1234567890" + "b" * 99, b
+  assert_equal "b" * 60, b_slice
+
+  # The loop that made growth at the end quadratic: the slice shares the
+  # buffer again on every turn, and the append past it stays in place.
+  c = ""
+  50.times { c[c.length, 0] = "0123456789012345678901234567890123456789"; c[0, 30] }
+  assert_equal 2000, c.length
+  assert_equal "0123456789012345678901234567890123456789", c[-40, 40]
+end
+
 assert('String#capitalize', '15.2.10.5.7') do
   a = 'abc'
   a.capitalize
