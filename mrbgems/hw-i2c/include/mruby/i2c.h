@@ -4,10 +4,9 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <mruby/common.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+MRB_BEGIN_DECL
 
 typedef enum {
   MRB_I2C_OK             =  0,
@@ -24,8 +23,6 @@ int mrb_i2c_write_read(int unit, uint8_t addr, const uint8_t *src, size_t wlen,
                        uint8_t *dst, size_t rlen, uint32_t timeout_us);
 int mrb_i2c_unit_name_to_num(const char *name);
 
-#ifdef __cplusplus
-}
-#endif
+MRB_END_DECL
 
 #endif /* MRUBY_I2C_H */

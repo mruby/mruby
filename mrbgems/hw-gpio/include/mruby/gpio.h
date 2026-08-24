@@ -2,10 +2,9 @@
 #define MRUBY_GPIO_H
 
 #include <stdint.h>
+#include <mruby/common.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+MRB_BEGIN_DECL
 
 /* direction/mode flags (bitmask) */
 #define MRB_GPIO_IN         0x01
@@ -24,8 +23,6 @@ void mrb_gpio_open_drain(uint8_t pin);
 int  mrb_gpio_read(uint8_t pin);
 void mrb_gpio_write(uint8_t pin, uint8_t val);
 
-#ifdef __cplusplus
-}
-#endif
+MRB_END_DECL
 
 #endif /* MRUBY_GPIO_H */

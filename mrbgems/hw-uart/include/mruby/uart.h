@@ -4,10 +4,9 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <mruby/common.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+MRB_BEGIN_DECL
 
 #define MRB_UART_PARITY_NONE 0
 #define MRB_UART_PARITY_EVEN 1
@@ -53,8 +52,6 @@ void mrb_uart_send_break(int unit, uint32_t duration_ms);
 void mrb_uart_clear_rx(int unit);
 void mrb_uart_clear_tx(int unit);
 
-#ifdef __cplusplus
-}
-#endif
+MRB_END_DECL
 
 #endif /* MRUBY_UART_H */

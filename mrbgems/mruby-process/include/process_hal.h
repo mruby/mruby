@@ -22,6 +22,8 @@
 
 #include <mruby.h>
 
+MRB_BEGIN_DECL
+
 /*
  * Decoded wait status
  */
@@ -140,5 +142,7 @@ void mrb_hal_process_init(mrb_state *mrb);
 
 /* Cleanup HAL (called once at gem finalization) */
 void mrb_hal_process_final(mrb_state *mrb);
+
+MRB_END_DECL
 
 #endif /* MRUBY_PROCESS_HAL_H */

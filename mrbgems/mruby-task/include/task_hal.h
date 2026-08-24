@@ -13,6 +13,8 @@
 
 #include <mruby.h>
 
+MRB_BEGIN_DECL
+
 /*
  * Configuration - can be overridden in platform-specific build configs
  */
@@ -166,5 +168,7 @@ void mrb_hal_task_sleep_us(mrb_state *mrb, mrb_int usec);
  * @param mrb The mruby state to tick
  */
 void mrb_tick(mrb_state *mrb);
+
+MRB_END_DECL
 
 #endif /* MRUBY_TASK_HAL_H */

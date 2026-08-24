@@ -13,6 +13,8 @@
 
 #include <mruby.h>
 
+MRB_BEGIN_DECL
+
 /*
  * Platform-independent directory handle
  * Each HAL implementation defines this structure internally
@@ -76,5 +78,7 @@ void mrb_hal_dir_init(mrb_state *mrb);
 
 /* Cleanup HAL (called once at gem finalization) */
 void mrb_hal_dir_final(mrb_state *mrb);
+
+MRB_END_DECL
 
 #endif /* MRUBY_DIR_HAL_H */

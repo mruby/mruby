@@ -14,9 +14,7 @@
 
 #include <mruby.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+MRB_BEGIN_DECL
 
 /*
  * Socket HAL Initialization/Finalization
@@ -95,8 +93,6 @@ mrb_value mrb_hal_socket_unix_path(mrb_state *mrb, const char *sockaddr, size_t 
  * (getifaddrs / GetAdaptersAddresses). */
 mrb_value mrb_hal_socket_ip_address_list(mrb_state *mrb);
 
-#ifdef __cplusplus
-}
-#endif
+MRB_END_DECL
 
 #endif /* MRUBY_SOCKET_HAL_H */

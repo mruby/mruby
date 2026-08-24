@@ -11,9 +11,7 @@
 # error IO and File conflicts 'MRB_NO_STDIO' in your build configuration
 #endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
+MRB_BEGIN_DECL
 
 /* IO#pread / IO#pwrite are backed directly by POSIX pread(2)/pwrite(2),
    so enable them only where those calls are actually available.
@@ -82,7 +80,5 @@ struct mrb_io {
 
 int mrb_io_fileno(mrb_state *mrb, mrb_value io);
 
-#if defined(__cplusplus)
-} /* extern "C" { */
-#endif
+MRB_END_DECL
 #endif /* MRUBY_IO_H */
