@@ -314,17 +314,24 @@ assert('String growth on a shared buffer') do
   assert_equal "1234" + "c" * 100 + "x" * 100, c
   assert_equal "c" * 100 + "x" * 50, c_slice
 
-  # The rest are contract rather than detection: what they write happens to
-  # land above the slice, or they take the buffer for reasons of their own.
-
-  # `insert` at the end writes above the slice, and moves only the length and
-  # the terminator of the buffer the slice reads.
+  # `insert` at the end appends, and an append writes only above what the
+  # slice reads, so it stays in the buffer instead of taking a copy of it.
   b = "b" * 100
   b << "y" * 100
   b_slice = b[0, 150]
   b.insert(-1, "1234")
   assert_equal "b" * 100 + "y" * 100 + "1234", b
   assert_equal "b" * 100 + "y" * 50, b_slice
+
+  # The loop that made growth at the end quadratic: the slice shares the
+  # buffer again on every turn, and the append past it stays in place.
+  f = ""
+  50.times { f.insert(-1, "0123456789012345678901234567890123456789"); f[0, 30] }
+  assert_equal 2000, f.length
+  assert_equal "0123456789012345678901234567890123456789", f[-40, 40]
+
+  # The rest are contract rather than detection: what they write happens to
+  # land above the slice, or they take the buffer for reasons of their own.
 
   # `succ!` writes a terminator over the string before it grows, so it has to
   # hold the buffer by then whatever the growth does.
