@@ -1069,10 +1069,10 @@ assert("Regexp extended mode (x flag)") do
 
   # a bracket the pattern truncates leaves the scan with nothing after the
   # name, and the class is still the parser's error to report
-  assert_raise_with_message(RegexpError, "unterminated character class: /[[:alpha/") do
+  assert_raise_with_message(RegexpError, "unterminated character class: /[[:alpha/x") do
     Regexp.new("[[:alpha", Regexp::EXTENDED)
   end
-  assert_raise_with_message(RegexpError, "unterminated character class: /[[:alpha:/") do
+  assert_raise_with_message(RegexpError, "unterminated character class: /[[:alpha:/x") do
     Regexp.new("[[:alpha:", Regexp::EXTENDED)
   end
 
@@ -1096,7 +1096,7 @@ assert("Regexp extended mode (x flag)") do
   assert_nil Regexp.new('\x1 2', Regexp::EXTENDED) =~ "\x12"
   assert_equal 0, (Regexp.new('\x1 a', Regexp::EXTENDED) =~ "\x01a")
   assert_equal 0, (Regexp.new('\01 2', Regexp::EXTENDED) =~ "\x012")
-  assert_raise_with_message(RegexpError, "unmatched '(': /\\x1 2(/") do
+  assert_raise_with_message(RegexpError, "unmatched '(': /\\x1 2(/x") do
     Regexp.new('\x1 2(', Regexp::EXTENDED)
   end
 
@@ -1108,7 +1108,7 @@ assert("Regexp extended mode (x flag)") do
   re = Regexp.new("a (?#note) b # tail\nc", Regexp::EXTENDED)
   assert_true re.match?("abc")
 
-  assert_raise_with_message(RegexpError, "unterminated comment group: /a (?#note/") do
+  assert_raise_with_message(RegexpError, "unterminated comment group: /a (?#note/x") do
     Regexp.new("a (?#note", Regexp::EXTENDED)
   end
 
@@ -1119,11 +1119,28 @@ assert("Regexp extended mode (x flag)") do
   assert_equal "(?x-mi:abc)", Regexp.new("abc", Regexp::EXTENDED).to_s
 
   # errors quote the pattern as written, not the text with the comment removed
-  assert_raise_with_message(RegexpError, "unterminated character class: /a # c\n[/") do
+  assert_raise_with_message(RegexpError, "unterminated character class: /a # c\n[/x") do
     Regexp.new("a # c\n[", Regexp::EXTENDED)
   end
-  assert_raise_with_message(RegexpError, "unmatched '(': /a b(/") do
+  assert_raise_with_message(RegexpError, "unmatched '(': /a b(/x") do
     Regexp.new("a b(", Regexp::EXTENDED)
+  end
+
+  # The suffix names the flags mrb_re_compile() was entered with, not
+  # whatever an inline (?x)/(?-x) leaves c->flags holding by the time the
+  # error is raised: turning /x off inline still reports the entry's /x,
+  # and turning it on where entry carried none reports no suffix at all.
+  # CRuby matches this on both patterns.
+  assert_raise_with_message(RegexpError, "unterminated character class: /(?-x)a # c[/x") do
+    Regexp.new("(?-x)a # c[", Regexp::EXTENDED)
+  end
+  assert_raise_with_message(RegexpError, "unterminated character class: /(?x)a # c\n[/") do
+    Regexp.new("(?x)a # c\n[")
+  end
+
+  # Multiple entry flags are named in Regexp#to_s/#inspect's m, i, x order.
+  assert_raise_with_message(RegexpError, "unterminated character class: /[a/ix") do
+    Regexp.new("[a", Regexp::EXTENDED | Regexp::IGNORECASE)
   end
 end
 
@@ -1171,7 +1188,7 @@ assert("Regexp - free-spacing whitespace stands between tokens only") do
   # inside a token the whitespace is the token's own: `(?` and `{n,m}` are
   # read whole, so a space breaks them rather than being removed from them
   assert_raise_with_message(RegexpError,
-                            "target of repeat operator is not specified: /( ?i)A/") do
+                            "target of repeat operator is not specified: /( ?i)A/x") do
     Regexp.new("( ?i)A", x)
   end
   assert_raise(RegexpError) { Regexp.new("(?i )a", x) }
@@ -1202,21 +1219,21 @@ assert("Regexp - free-spacing whitespace stands between tokens only") do
   # its full width ends it, so `\x6 1` is `\x06` and `1`
   ["\\u {61 62}", "\\u1 234", "\\u12 34", "\\u00 61", "\\u\t{61 62}",
    "\\u 0061", "[\\u12 34]"].each do |pat|
-    assert_raise_with_message(RegexpError, "invalid Unicode escape: /#{pat}/") do
+    assert_raise_with_message(RegexpError, "invalid Unicode escape: /#{pat}/x") do
       Regexp.new(pat, x)
     end
   end
   # nothing after \u is "too short", a wrong byte after it "invalid"; the
   # blank is a byte the parser sees, and reports
-  assert_raise_with_message(RegexpError, "invalid Unicode escape: /\\u /") do
+  assert_raise_with_message(RegexpError, "invalid Unicode escape: /\\u /x") do
     Regexp.new("\\u ", x)
   end
-  assert_raise_with_message(RegexpError, "too short escape sequence: /\\u/") do
+  assert_raise_with_message(RegexpError, "too short escape sequence: /\\u/x") do
     Regexp.new("\\u", x)
   end
   assert_equal ["ab"], Regexp.new("\\u0061 \\u0062", x).match("ab").to_a
   assert_equal ["ab"], Regexp.new("\\u{ 61  62 }", x).match("ab").to_a
-  assert_raise_with_message(RegexpError, "invalid hex escape: /\\x 61/") do
+  assert_raise_with_message(RegexpError, "invalid hex escape: /\\x 61/x") do
     Regexp.new("\\x 61", x)
   end
   assert_equal ["\x061"], Regexp.new("\\x6 1", x).match("\x061").to_a
@@ -1230,11 +1247,11 @@ assert("Regexp - free-spacing whitespace stands between tokens only") do
   assert_equal ["a b"], Regexp.new("(?<a b>x)", x).names
   assert_equal ["a b"], Regexp.new("(?'a b'x)", x).names
   assert_raise_with_message(RegexpError,
-                            "undefined name <a b> reference: /(?<ab>x)\\k<a b>/") do
+                            "undefined name <a b> reference: /(?<ab>x)\\k<a b>/x") do
     Regexp.new("(?<ab>x)\\k<a b>", x)
   end
   assert_raise_with_message(RegexpError,
-                            "undefined name <ab> reference: /(?<a b>x)\\k<ab>/") do
+                            "undefined name <ab> reference: /(?<a b>x)\\k<ab>/x") do
     Regexp.new("(?<a b>x)\\k<ab>", x)
   end
   # a `\k` that whitespace follows is the letter k, with the `<ab>` after
@@ -1296,7 +1313,7 @@ assert("Regexp - a removed comment does not reach into an escape") do
     end
   end
   ["\\u12#c\n34", "\\u#c\n{61}"].each do |pat|
-    assert_raise_with_message(RegexpError, "invalid Unicode escape: /#{pat}/") do
+    assert_raise_with_message(RegexpError, "invalid Unicode escape: /#{pat}/x") do
       Regexp.new(pat, x)
     end
   end
@@ -1306,7 +1323,7 @@ assert("Regexp - a removed comment does not reach into an escape") do
   assert_raise_with_message(RegexpError, "invalid Unicode list: /\\u{61(?#c)62}/") do
     Regexp.new("\\u{61(?#c)62}")
   end
-  assert_raise_with_message(RegexpError, "invalid Unicode list: /\\u{61 #c\n62}/") do
+  assert_raise_with_message(RegexpError, "invalid Unicode list: /\\u{61 #c\n62}/x") do
     Regexp.new("\\u{61 #c\n62}", x)
   end
 
@@ -1316,7 +1333,7 @@ assert("Regexp - a removed comment does not reach into an escape") do
   assert_raise_with_message(RegexpError, "invalid hex escape: /\\x(?#c)61/") do
     Regexp.new("\\x(?#c)61")
   end
-  assert_raise_with_message(RegexpError, "invalid hex escape: /\\x#c\n61/") do
+  assert_raise_with_message(RegexpError, "invalid hex escape: /\\x#c\n61/x") do
     Regexp.new("\\x#c\n61", x)
   end
   assert_equal ["\x061"], Regexp.new("\\x6(?#c)1").match("\x061").to_a

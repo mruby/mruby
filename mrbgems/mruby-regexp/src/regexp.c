@@ -745,6 +745,16 @@ static const struct {
 
 #define RE_FLAG_LETTER_COUNT (sizeof(re_flag_letters) / sizeof(re_flag_letters[0]))
 
+void
+mrb_re_flags_cat(mrb_state *mrb, mrb_value str, uint32_t flags)
+{
+  for (size_t i = 0; i < RE_FLAG_LETTER_COUNT; i++) {
+    if (flags & re_flag_letters[i].bit) {
+      mrb_str_cat(mrb, str, &re_flag_letters[i].letter, 1);
+    }
+  }
+}
+
 /*
  * Regexp#to_s - (?on-off:source) format
  *
@@ -790,11 +800,7 @@ regexp_inspect(mrb_state *mrb, mrb_value self)
   mrb_value result = mrb_str_new_lit(mrb, "/");
   mrb_str_cat_str(mrb, result, src);
   mrb_str_cat_lit(mrb, result, "/");
-  for (size_t i = 0; i < RE_FLAG_LETTER_COUNT; i++) {
-    if (flags & re_flag_letters[i].bit) {
-      mrb_str_cat(mrb, result, &re_flag_letters[i].letter, 1);
-    }
-  }
+  mrb_re_flags_cat(mrb, result, flags);
   return result;
 }
 

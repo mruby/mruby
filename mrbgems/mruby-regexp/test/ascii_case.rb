@@ -31,7 +31,7 @@ assert("Regexp - /i refuses what ASCII folding cannot answer") do
   # The message names what is missing rather than the option that would have
   # supplied it, there being two ways to reach it and no one name for both.
   refused = "/i needs Unicode case folding for this character"
-  assert_raise_with_message(RegexpError, "#{refused}: /Ā/") do
+  assert_raise_with_message(RegexpError, "#{refused}: /Ā/i") do
     Regexp.new("Ā", Regexp::IGNORECASE)
   end
   # A `\u` escape names a character rather than spelling it out, and naming one
@@ -41,12 +41,12 @@ assert("Regexp - /i refuses what ASCII folding cannot answer") do
   # has reasons of its own to raise `RegexpError` and a complaint about the
   # escape's own spelling would otherwise pass for this refusal.
   ["\\u0100", "\\u{100}"].each do |src|
-    assert_raise_with_message(RegexpError, "#{refused}: /#{src}/") do
+    assert_raise_with_message(RegexpError, "#{refused}: /#{src}/i") do
       Regexp.new(src, Regexp::IGNORECASE)
     end
   end
   ["[\\u{100}]", "[^\\u{100}]", "[\\u{100}-\\u{102}]"].each do |src|
-    assert_raise_with_message(RegexpError, "#{refused} class: /#{src}/") do
+    assert_raise_with_message(RegexpError, "#{refused} class: /#{src}/i") do
       Regexp.new(src, Regexp::IGNORECASE)
     end
   end
