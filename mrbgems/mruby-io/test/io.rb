@@ -158,9 +158,22 @@ assert('IO#read', '15.2.20.5.14') do
   end
 end
 
+assert('IO.pipe carries what is written to it') do
+  # The test named `IO.pipe` below stops at `FileTest.pipe?`, which Windows
+  # has no answer for, so the one thing a pipe is for goes unasserted on the
+  # platform that has only just been given one.
+  IO.pipe do |r, w|
+    w.write "hello"
+    w.close
+    assert_equal "hello", r.read
+  end
+end
+
 assert "IO#read(n) with n > IO::BUF_SIZE" do
   buf_size = 4096  # copied from io.c
-  skip "pipe is not supported on this platform" if MRubyIOTestUtil.win?
+  # The whole write has to fit in the pipe, since nothing reads from it until
+  # the writer is done, and Windows gives a pipe less room than this.
+  skip "the pipe buffer here is smaller than this write" if MRubyIOTestUtil.win?
   IO.pipe do |r,w|
     n = buf_size+1
     w.write 'a'*n
@@ -376,7 +389,6 @@ assert('IO#ungetc') do
 end
 
 assert('IO#ungetc after grow and partial read') do
-  skip "pipe is not supported on this platform" if MRubyIOTestUtil.win?
   # ungetc grows the buffer past MRB_IO_BUF_SIZE, a partial read advances
   # start, then a second ungetc must not read past the reallocated block (#6964)
   IO.pipe do |r, w|
@@ -523,6 +535,7 @@ assert('IO.popen') do
 end
 
 assert('IO.popen with in option') do
+  skip "no POSIX shell or `cat` to talk to here" if MRubyIOTestUtil.win?
   begin
     IO.pipe do |r, w|
       w.write 'hello'
@@ -537,6 +550,7 @@ assert('IO.popen with in option') do
 end
 
 assert('IO.popen with out option') do
+  skip "no POSIX shell or `cat` to talk to here" if MRubyIOTestUtil.win?
   begin
     IO.pipe do |r, w|
       IO.popen("echo 'hello'", "w", out: w) {}
@@ -549,6 +563,7 @@ assert('IO.popen with out option') do
 end
 
 assert('IO.popen with err option') do
+  skip "no POSIX shell or `cat` to talk to here" if MRubyIOTestUtil.win?
   begin
     IO.pipe do |r, w|
       assert_equal "", IO.popen("echo 'hello' 1>&2", "r", err: w) { |i| i.read }
