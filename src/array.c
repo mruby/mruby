@@ -978,9 +978,9 @@ mrb_ary_shift_m(mrb_state *mrb, mrb_value self)
   return val;
 }
 
-static mrb_value
-ary_unshift_values(mrb_state *mrb, mrb_value self,
-                   mrb_int argc, const mrb_value argv[])
+MRB_API mrb_value
+mrb_ary_unshift_values(mrb_state *mrb, mrb_value self,
+                       mrb_int argc, const mrb_value argv[])
 {
   struct RArray *a = RARRAY(self);
 
@@ -1041,7 +1041,7 @@ ary_unshift_values(mrb_state *mrb, mrb_value self,
 MRB_API mrb_value
 mrb_ary_unshift(mrb_state *mrb, mrb_value self, mrb_value item)
 {
-  return ary_unshift_values(mrb, self, 1, &item);
+  return mrb_ary_unshift_values(mrb, self, 1, &item);
 }
 
 /*
@@ -1061,7 +1061,7 @@ mrb_ary_unshift(mrb_state *mrb, mrb_value self, mrb_value item)
 static mrb_value
 mrb_ary_unshift_m(mrb_state *mrb, mrb_value self)
 {
-  return ary_unshift_values(mrb, self, mrb_get_argc(mrb), mrb_get_argv(mrb));
+  return mrb_ary_unshift_values(mrb, self, mrb_get_argc(mrb), mrb_get_argv(mrb));
 }
 
 /**
