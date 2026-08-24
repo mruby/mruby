@@ -742,6 +742,28 @@ sym_gc_mark_hash_entry(mrb_state *mrb, mrb_value key, mrb_value val, void *p)
   return 0;
 }
 
+/* Mark the symbols an irep holds: the pool the bytecode loads them from, the
+   local variable names, and the same for every irep nested inside it.  An
+   irep is not an object, so the sweep below never reaches one on its own, and
+   a symbol whose only holder is bytecode that has not run yet would be freed
+   out from under the instruction that is going to load it. */
+static void
+sym_gc_mark_irep(mrb_state *mrb, const mrb_irep *irep)
+{
+  if (irep == NULL) return;
+  for (int i = 0; i < irep->slen; i++) {
+    sym_gc_mark(mrb, irep->syms[i]);
+  }
+  if (irep->lv) {
+    for (int i = 0; i + 1 < irep->nlocals; i++) {
+      sym_gc_mark(mrb, irep->lv[i]);
+    }
+  }
+  for (int i = 0; i < irep->rlen; i++) {
+    sym_gc_mark_irep(mrb, irep->reps[i]);
+  }
+}
+
 /* Mark symbols from a single object */
 static int
 sym_gc_mark_object(mrb_state *mrb, struct RBasic *obj, void *data)
@@ -792,6 +814,18 @@ sym_gc_mark_object(mrb_state *mrb, struct RBasic *obj, void *data)
   case MRB_TT_HASH:
     mrb_iv_foreach(mrb, mrb_obj_value(obj), sym_gc_mark_iv, NULL);
     mrb_hash_foreach(mrb, (struct RHash*)obj, sym_gc_mark_hash_entry, NULL);
+    break;
+  case MRB_TT_PROC:
+    {
+      struct RProc *p = (struct RProc*)obj;
+      if (MRB_PROC_ALIAS_P(p)) {
+        /* an alias keeps a method name where a proc keeps its irep */
+        sym_gc_mark(mrb, p->body.mid);
+      }
+      else if (!MRB_PROC_CFUNC_P(p)) {
+        sym_gc_mark_irep(mrb, p->body.irep);
+      }
+    }
     break;
   default:
     break;

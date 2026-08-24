@@ -224,3 +224,41 @@ assert('a directory as a library file is refused') do
     assert_mruby("", /Cannot read library file/, false, ["-r", dir, "-e", "puts 1"])
   end
 end
+
+assert('symbol GC keeps a symbol its bytecode has not loaded yet') do
+  # The symbol GC took its roots from live objects only, so a symbol whose
+  # single holder was bytecode that had not run yet was freed under the
+  # instruction about to load it: the method answered a symbol with no name,
+  # and joining an array of such symbols dereferenced the undefined value
+  # mrb_sym_str() answers for one.  Compiled here rather than in mrbtest
+  # because an embedded irep interns its symbols statically, and the sweep
+  # passes those over.
+  #
+  # MRB_SYMBOL_MAX defaults to 4096, and names short enough to pack into the
+  # symbol itself spend no entry, so the filler names have to be long.
+  script = Tempfile.new('symbol_gc.rb')
+  script.write <<~'SRC'
+    def probe
+      :mruby_symbol_gc_probe
+    end
+    def probe_ary
+      %I[mruby_symbol_gc_a mruby_symbol_gc_b]
+    end
+    i = 0
+    while i < 5000
+      "symbol_gc_probe_name_#{i}".to_sym
+      i += 1
+    end
+    p probe
+    p probe_ary
+    p(probe_ary * ",")
+  SRC
+  script.flush
+  out, _err, stat = Open3.capture3(*(cmd_list(MRUBY_BIN) + [script.path]))
+  assert_true stat.success?, "mruby exited #{stat.exitstatus.inspect}"
+  assert_equal <<~'EXP', out
+    :mruby_symbol_gc_probe
+    [:mruby_symbol_gc_a, :mruby_symbol_gc_b]
+    "mruby_symbol_gc_a,mruby_symbol_gc_b"
+  EXP
+end
