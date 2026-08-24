@@ -23,9 +23,7 @@ end
 assert('File#initialize', '15.2.21.4.1') do
   io = File.open($mrbtest_io_rfname, "r")
   assert_nil io.close
-  assert_raise IOError do
-    io.close
-  end
+  assert_nil io.close
 end
 
 assert('File#path', '15.2.21.4.2') do
