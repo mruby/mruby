@@ -166,6 +166,9 @@ class Hash
   #
   def reject!(&block)
     return to_enum(:reject!) unless block
+    # Nothing to reject means no `delete` below, and `delete` is what would
+    # otherwise refuse a frozen receiver.
+    raise FrozenError, "can't modify frozen #{self.class}" if frozen?
 
     keys = []
     self.each {|k,v|
@@ -219,6 +222,9 @@ class Hash
   #
   def select!(&block)
     return to_enum(:select!) unless block
+    # Keeping every pair means no `delete` below, and `delete` is what would
+    # otherwise refuse a frozen receiver.
+    raise FrozenError, "can't modify frozen #{self.class}" if frozen?
 
     keys = []
     self.each {|k,v|
