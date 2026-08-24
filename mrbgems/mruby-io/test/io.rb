@@ -647,11 +647,22 @@ end
 assert('IO#close_write twice') do
   begin
     io = IO.popen($cat, "r+")
+    io.write "mruby-io\n"
     io.close_write
-    # the write end is already gone, and the stream is still read from
-    assert_raise(IOError) { io.close_write }
-    assert_false io.closed?
-    io.close
+    assert_equal "mruby-io\n", io.read
+    # the write end is already gone, and what is left of the stream is the child
+    assert_nil io.close_write
+    assert_true io.closed?
+  rescue NotImplementedError => e
+    skip e.message
+  end
+end
+
+assert('IO#close_write on a stream opened to a child') do
+  begin
+    io = IO.popen("#{$cmd}echo mruby-io", "r")
+    assert_nil io.close_write
+    assert_true io.closed?
   rescue NotImplementedError => e
     skip e.message
   end
