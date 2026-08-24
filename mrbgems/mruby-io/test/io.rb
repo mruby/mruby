@@ -603,12 +603,6 @@ assert('IO#close_write on a stream with no write end') do
   assert_nil io.close_write
   assert_true io.closed?
 
-  r, w = IO.pipe
-  assert_nil w.close_write
-  assert_true w.closed?
-  assert_equal "", r.read
-  r.close
-
   # A stream something reads from has no write end to give up.
   io = IO.new(IO.sysopen($mrbtest_io_rfname), "r")
   assert_raise(IOError) { io.close_write }
@@ -619,11 +613,23 @@ assert('IO#close_write on a stream with no write end') do
   assert_raise(IOError) { io.close_write }
   assert_false io.closed?
   io.close
+end
 
-  r, w = IO.pipe
-  assert_raise(IOError) { r.close_write }
-  r.close
-  w.close
+assert('IO#close_write on a pipe end') do
+  begin
+    r, w = IO.pipe
+    assert_nil w.close_write
+    assert_true w.closed?
+    assert_equal "", r.read
+    r.close
+
+    r, w = IO.pipe
+    assert_raise(IOError) { r.close_write }
+    r.close
+    w.close
+  rescue NotImplementedError => e
+    skip e.message
+  end
 end
 
 assert('IO#close_write twice') do
