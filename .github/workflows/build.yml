@@ -10,7 +10,7 @@ jobs:
   GCC-CLANG:
     name: "${{ matrix.os }}-${{ matrix.altname || matrix.cc }}"
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       max-parallel: 8
