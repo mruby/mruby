@@ -324,7 +324,7 @@ mrb_realloc_simple(mrb_state *mrb, void *p,  size_t len)
     if (p == NULL &&
         mrb->gc.malloc_threshold > 0 &&
         mrb->gc.malloc_increase >= mrb->gc.malloc_threshold &&
-        mrb->gc.state == MRB_GC_STATE_ROOT &&
+        !mrb->gc.collecting &&
         !mrb->gc.disabled && !mrb->gc.iterating && mrb->gc.auto_step) {
       /* Only a fresh allocation (p == NULL) may drive the collector here. A
          realloc (p != NULL) has just freed the caller's old block, but the
@@ -337,6 +337,21 @@ mrb_realloc_simple(mrb_state *mrb, void *p,  size_t len)
          references, so it is a safe point to step GC. Byte pressure from
          reallocs is not lost: malloc_increase keeps accumulating above and
          fires at the next fresh allocation.
+
+         The collector may be in any state here. A major cycle advances one
+         step per call, and those calls come from the object axis
+         (mrb_obj_alloc_core), so gating byte pressure on MRB_GC_STATE_ROOT
+         let it start a cycle it could never finish: a workload that allocates
+         bytes without allocating objects fired once, parked the cycle in
+         MARK, and locked the byte axis out for the rest of the run. Stepping
+         from MARK or SWEEP is what the object axis already does on every
+         allocation.
+
+         collecting takes the place of that state test: it is set exactly
+         while the mark/sweep engine is on the C stack, so an allocation made
+         from inside a collection (an RData dfree that allocates during sweep)
+         cannot re-enter the engine. The state test used to rule that case out
+         only as a side effect of sweeping never being at ROOT.
 
          auto_step is part of the condition (not just relied on inside
          mrb_incremental_gc) so malloc_increase is not cleared for a call
