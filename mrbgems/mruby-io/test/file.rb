@@ -276,7 +276,6 @@ assert("File.readlink") do
 end
 
 assert("File.readlink fails with non-symlink") do
-  skip "readlink is not supported on this platform" if MRubyIOTestUtil.win?
   begin
     e2 = nil
     assert_raise(Errno::EINVAL) {
