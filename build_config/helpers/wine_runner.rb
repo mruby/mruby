@@ -51,14 +51,18 @@ end
 # program: the wrapper hangs, holding a pipe no one will write to again, long
 # after the program it ran has exited.  A file ends where its contents do,
 # whoever else still holds it open.
-def capture(argv, input)
+#
+# Only the streams the wrapper has to read need that treatment.  Input is the
+# program's own business, so it is handed the wrapper's stdin as it stands:
+# whether anything ever arrives on it, and whether it is ever read, is then
+# between the program and whoever called the wrapper, which is how it reads
+# on the platform the tests are written for.
+def capture(argv)
   Dir.mktmpdir('wine-runner') do |dir|
-    stdin  = File.join(dir, 'stdin')
     stdout = File.join(dir, 'stdout')
     stderr = File.join(dir, 'stderr')
-    File.write(stdin, input)
 
-    pid = Process.spawn('wine', *argv, in: stdin, out: stdout, err: stderr)
+    pid = Process.spawn('wine', *argv, out: stdout, err: stderr)
     _, status = Process.waitpid2(pid)
 
     [File.read(stdout), File.read(stderr), status]
@@ -72,20 +76,11 @@ def main
     exit 0
   end
 
-  # For simplicity, just read all of stdin into memory and pass that
-  # as an argument when invoking wine. (Skipped if STDIN was not
-  # redirected.)
-  if !STDIN.tty?
-    input = STDIN.read
-  else
-    input = ""
-  end
-
   # Disable all Wine messages so they don't interfere with the output
   ENV['WINEDEBUG'] = 'err-all,warn-all,fixme-all,trace-all'
 
   # Run the program in wine and capture the output
-  output, errormsg, status = capture(ARGV, input)
+  output, errormsg, status = capture(ARGV)
 
   # Clean and print the results.
   STDOUT.write clean(output)
