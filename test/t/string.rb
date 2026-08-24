@@ -507,10 +507,15 @@ assert('String#downcase - a receiver above the embedded buffer') do
 end if UNICODECASE
 
 assert('String case conversion - a frozen receiver') do
-  # The Unicode walk raises from inside str_modify_keep_cr(), before the
-  # ASCII loop each bang method otherwise runs, whether or not the
-  # conversion would have changed anything.
+  # Only upcase! reaches str_modify_keep_cr()'s check on its own: the other
+  # three raise from a second modify further in, so they answer FrozenError
+  # whether or not that check is there and pin nothing about it.
+  assert_raise(FrozenError) { 'Ä'.freeze.upcase! }
   assert_raise(FrozenError) { 'Ä'.freeze.downcase! }
+  assert_raise(FrozenError) { 'Ä'.freeze.capitalize! }
+  # An all-ASCII receiver never enters the walk and is the other half of what
+  # that one check guards.
+  assert_raise(FrozenError) { 'AB'.freeze.downcase! }
 end if UNICODECASE
 
 assert('String case conversion - ASCII only') do
