@@ -194,6 +194,50 @@ assert 'Rational#== between bigint-backed rationals' do
   assert_equal_rational(false, Rational(1, 2), Rational(big, 3))
 end
 
+assert 'Rational#== when the cross product overflows mrb_int but neither side is bigint-backed' do
+  # rational_eq()'s fallback cross-multiplies num1*den2 against num2*den1
+  # once the exact product overflows mrb_int; 1 << 30 overflows once
+  # multiplied by 3 or 5 on MRB_INT32, and 1 << 62 does the same on
+  # MRB_INT64 (same width-portable technique as test/t/gc.rb), so whichever
+  # width this build has, one of the two shifts below reaches the fallback
+  # while h itself stays under mrb_int and is not promoted to a Bigint.
+  [30, 62].each do |k|
+    h = begin
+      1 << k
+    rescue RangeError
+      next
+    end
+    begin
+      assert_equal_rational(false, Rational(h, 3), Rational(h, 5))
+      assert_equal_rational(false, Rational(h, 5), Rational(h, 3))
+    rescue RangeError
+      # Neither a Float nor mruby-bigint to answer through: the fallback
+      # correctly raises instead of guessing.
+      next
+    end
+  end
+end
+
+assert 'Rational#== is exact across the overflow, not rounded through Float' do
+  # Rational(h, 3) and Rational(h + 1, 3) differ by 1/3 in the numerator,
+  # which is inside a double's rounding error once h is large enough that
+  # h*3 overflows mrb_int; only exact (bigint) arithmetic tells them apart.
+  # The shift count is a variable because a constant shift wider than
+  # mrb_int is folded at compile time, which fails the build instead of
+  # raising.
+  k = 70
+  begin
+    probe = 1 << k
+    probe + probe
+  rescue RangeError
+    skip 'requires mruby-bigint'
+  end
+  [30, 62].each do |shift|
+    h = 1 << shift
+    assert_equal_rational(false, Rational(h, 3), Rational(h + 1, 3))
+  end
+end
+
 assert 'Rational#eql?' do
   assert_true  Rational(2,1).eql?(Rational(2,1))
   assert_true  Rational(1,2).eql?(Rational(2,4))

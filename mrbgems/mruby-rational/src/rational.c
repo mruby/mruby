@@ -717,10 +717,21 @@ rational_eq(mrb_state *mrb, mrb_value x)
       }
       if (mrb_int_mul_overflow(p1->numerator, p2->denominator, &a) ||
           mrb_int_mul_overflow(p2->numerator, p1->denominator, &b)) {
-#ifdef MRB_NO_FLOAT
+        /* Cross-multiply exactly instead of falling to Float: the products
+           are what mrb_bint_mul_n() already holds for the bigint-backed
+           arm above, and a double can round two unequal Rationals equal
+           near its precision limit. */
+#ifdef RAT_BIGINT
+        mrb_value na = mrb_bint_mul_n(mrb, mrb_as_bint(mrb, mrb_int_value(mrb, p1->numerator)),
+                                       mrb_int_value(mrb, p2->denominator));
+        mrb_value nb = mrb_bint_mul_n(mrb, mrb_as_bint(mrb, mrb_int_value(mrb, p2->numerator)),
+                                       mrb_int_value(mrb, p1->denominator));
+        result = mrb_bint_cmp(mrb, na, nb) == 0;
+        break;
+#elif defined(MRB_NO_FLOAT)
         rat_overflow(mrb);
 #else
-        result = (double)p1->numerator*p2->denominator == (double)p2->numerator*p2->denominator;
+        result = (double)p1->numerator*p2->denominator == (double)p2->numerator*p1->denominator;
         break;
 #endif
       }
