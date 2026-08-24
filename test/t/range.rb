@@ -192,3 +192,19 @@ assert('Range#to_a') do
   assert_equal([1, 2, 3, 4], (1...5).to_a)
   assert_raise(RangeError) { (1..).to_a }
 end
+
+assert('symbol GC keeps the symbols a Range holds') do
+  # A Range is a container like an Array, and its ends are the only holder of
+  # these two names; re-interning answers the same symbol only if the sweep
+  # left them alone.
+  r = "range_symbol_gc_beg".to_sym.."range_symbol_gc_end".to_sym
+  GC.start
+  i = 0
+  while i < 6000
+    "range-symbol-gc-filler-#{i}".to_sym
+    i += 1
+  end
+  GC.start
+  assert_true r.begin.equal?("range_symbol_gc_beg".to_sym)
+  assert_true r.end.equal?("range_symbol_gc_end".to_sym)
+end
