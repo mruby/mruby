@@ -10,5 +10,12 @@ MRuby::CrossBuild.new("cross-mingw") do |conf|
   conf.linker.command = conf.cc.command
   conf.archiver.command = "#{conf.host_target}-gcc-ar"
   conf.exts.executable = ".exe"
+
+  # A cross build detects no host to pick a port from, so the Windows HAL
+  # has to be named here; without it every `mrb_hal_*` the gems sitting on
+  # it call is undefined at link time.  This has to precede the gembox: a
+  # gem picks its port when it is added.
+  conf.ports :win
+
   conf.gembox "default"
 end
