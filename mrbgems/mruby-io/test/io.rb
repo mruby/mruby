@@ -575,6 +575,28 @@ assert('IO#close_write') do
   end
 end
 
+assert('IO#close_write closes the stream for writing') do
+  skip "no `cat` to talk to on this platform" if MRubyIOTestUtil.win?
+  begin
+    io = IO.popen("cat", "r+")
+    io.write "mruby-io\n"
+    io.close_write
+    assert_raise(IOError) { io.write "again" }
+    assert_raise(IOError) { io.syswrite "again" }
+    assert_raise(IOError) { io.print "again" }
+    assert_raise(IOError) { io.puts "again" }
+    assert_raise(IOError) { io.putc "a" }
+    assert_raise(IOError) { io << "again" }
+    if MRubyIOTestUtil::MRB_USE_IO_PREAD_PWRITE
+      assert_raise(IOError) { io.pwrite("again", 0) }
+    end
+    assert_equal "mruby-io\n", io.read
+    io.close
+  rescue NotImplementedError => e
+    skip e.message
+  end
+end
+
 assert('IO.read') do
   # empty file
   fd = IO.sysopen $mrbtest_io_wfname, "w"
