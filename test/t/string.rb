@@ -506,6 +506,13 @@ assert('String#downcase - a receiver above the embedded buffer') do
   assert_equal "äöü" * 20, long.downcase
 end if UNICODECASE
 
+assert('String case conversion - a frozen receiver') do
+  # The Unicode walk raises from inside str_modify_keep_cr(), before the
+  # ASCII loop each bang method otherwise runs, whether or not the
+  # conversion would have changed anything.
+  assert_raise(FrozenError) { 'Ä'.freeze.downcase! }
+end if UNICODECASE
+
 assert('String case conversion - ASCII only') do
   # The other reading of case: a build that converts by ASCII, whether by
   # MRB_USE_ASCII_CTYPE or by reading its strings as bytes, has no mapping above
