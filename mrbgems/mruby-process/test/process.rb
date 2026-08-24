@@ -309,6 +309,64 @@ assert('Process.waitpid with no child to wait for') do
   io.close
 end
 
+assert('Process.wait') do
+  # The same wait under Ruby's other name for it.
+  skip ProcessTestUtil.child_reason if ProcessTestUtil.child_reason
+  io = ProcessTestUtil.spawn("exit 4")
+  skip "IO.popen is not available" unless io
+
+  io.read
+  pid = io.pid
+  assert_equal pid, Process.wait(pid)
+  assert_kind_of Process::Status, $?
+  assert_equal pid, $?.pid
+  assert_equal 4, $?.exitstatus
+  io.close
+end
+
+assert('Process.waitpid2, Process.wait2') do
+  # The pid and the status of one wait, returned together.  $? is set to the
+  # same status, so the pair is a second way to reach it and not a second
+  # wait: asking twice would find nothing to wait for the second time.
+  skip ProcessTestUtil.child_reason if ProcessTestUtil.child_reason
+  io = ProcessTestUtil.spawn("exit 4")
+  skip "IO.popen is not available" unless io
+
+  io.read
+  pid = io.pid
+  result = Process.waitpid2(pid)
+  assert_kind_of Array, result
+  assert_equal 2, result.size
+  assert_equal pid, result[0]
+  assert_kind_of Process::Status, result[1]
+  assert_equal 4, result[1].exitstatus
+  assert_equal pid, result[1].pid
+  # The same object, not merely a status that reads the same: one wait
+  # happened, and both ways of reaching it reach that one.
+  assert_true result[1].equal?($?)
+  io.close
+end
+
+assert('Process.wait2 with Process::WNOHANG') do
+  skip ProcessTestUtil.child_reason if ProcessTestUtil.child_reason
+  # `exec` so that the pid this knows is the one that sleeps; see
+  # Process.waitpid with Process::WNOHANG above.
+  io = ProcessTestUtil.spawn("exec sleep 30")
+  skip "IO.popen is not available" unless io
+
+  # Nothing has finished, so there is no pair to hand back.
+  assert_nil Process.wait2(io.pid, Process::WNOHANG)
+  assert_nil $?
+
+  Process.kill(:KILL, io.pid)
+  pid, status = Process.wait2(io.pid)
+  assert_equal io.pid, pid
+  assert_true status.signaled?
+  assert_nil status.exitstatus
+  assert_equal "KILL", Process::Status._signame(status.termsig)
+  io.close
+end
+
 assert('$? after IO.popen') do
   # mruby-io sets $? through Process::Status.new(pid, raw_status) when this
   # gem is present.  Neither gem depends on the other; this is the seam.
