@@ -12,10 +12,6 @@
 #include <mruby/numeric.h>
 #include <mruby/internal.h>
 
-#define RANGE_INITIALIZED_FLAG 1
-#define RANGE_INITIALIZED(p) ((p)->flags |= RANGE_INITIALIZED_FLAG)
-#define RANGE_INITIALIZED_P(p) ((p)->flags & RANGE_INITIALIZED_FLAG)
-
 static void
 r_check(mrb_state *mrb, mrb_value a, mrb_value b)
 {

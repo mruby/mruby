@@ -1668,6 +1668,19 @@ gv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
   return 0;
 }
 
+/* Iterate over the global variable table.
+ *
+ * `mrb_iv_foreach` only reaches the instance variables of an object; the
+ * globals live in `mrb->globals`, a table of their own that nothing outside
+ * this file can name. Symbol GC needs to walk it to keep the names of live
+ * globals from being swept.
+ */
+void
+mrb_gv_foreach(mrb_state *mrb, mrb_iv_foreach_func *func, void *p)
+{
+  iv_foreach(mrb, mrb->globals, func, p);
+}
+
 /* 15.3.1.2.4  */
 /* 15.3.1.3.14 */
 /*

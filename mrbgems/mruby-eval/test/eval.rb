@@ -237,3 +237,16 @@ assert('alias and undef reject a dynamic symbol') do
   assert_raise(SyntaxError) { eval 'alias :"#{1}" p' }
   assert_raise(SyntaxError) { eval 'undef :"#{}"' }
 end
+
+assert('symbol GC keeps the names of live global variables') do
+  # The global outlives the code that set it: once that code is collected its
+  # name is reachable from the global variable table alone, which is a root
+  # the sweep has to walk in its own right.
+  eval("$symbol_gc_eval_global = 99")
+  GC.start
+
+  6000.times { |i| "gc-filler-global-name-#{i}".to_sym }
+  GC.start
+
+  assert_true global_variables.include?("$symbol_gc_eval_global".to_sym)
+end

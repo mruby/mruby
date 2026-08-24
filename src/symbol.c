@@ -14,6 +14,8 @@
 #include <mruby/proc.h>
 #include <mruby/variable.h>
 #include <mruby/gc.h>
+#include <mruby/range.h>
+#include <mruby/error.h>
 #include <mruby/internal.h>
 
 #ifndef MRB_PRESYM_SCANNING
@@ -742,6 +744,9 @@ sym_gc_mark_hash_entry(mrb_state *mrb, mrb_value key, mrb_value val, void *p)
   return 0;
 }
 
+/* `sym_gc_mark_object` reaches a suspended fiber, whose stack this walks. */
+static void sym_gc_mark_context(mrb_state *mrb, struct mrb_context *c);
+
 /* Mark the symbols an irep holds: the pool the bytecode loads them from, the
    local variable names, and the same for every irep nested inside it.  An
    irep is not an object, so the sweep below never reaches one on its own, and
@@ -827,6 +832,32 @@ sym_gc_mark_object(mrb_state *mrb, struct RBasic *obj, void *data)
       }
     }
     break;
+  case MRB_TT_FIBER:
+    {
+      /* A suspended fiber's stack is a root of its own; `mrb_symbol_gc`
+         reaches only the current and the root context. */
+      struct mrb_context *c = ((struct RFiber*)obj)->cxt;
+      if (c && c != mrb->root_c && c != mrb->c &&
+          c->status != MRB_FIBER_TERMINATED) {
+        sym_gc_mark_context(mrb, c);
+      }
+    }
+    break;
+  case MRB_TT_RANGE:
+    {
+      struct RRange *r = (struct RRange*)obj;
+      if (RANGE_INITIALIZED_P(r)) {
+        if (mrb_symbol_p(RANGE_BEG(r))) sym_gc_mark(mrb, mrb_symbol(RANGE_BEG(r)));
+        if (mrb_symbol_p(RANGE_END(r))) sym_gc_mark(mrb, mrb_symbol(RANGE_END(r)));
+      }
+    }
+    break;
+  case MRB_TT_BREAK:
+    {
+      mrb_value v = mrb_break_value_get((struct RBreak*)obj);
+      if (mrb_symbol_p(v)) sym_gc_mark(mrb, mrb_symbol(v));
+    }
+    break;
   default:
     break;
   }
@@ -881,10 +912,10 @@ mrb_symbol_gc(mrb_state *mrb)
     sym_gc_mark_context(mrb, mrb->c);
   }
 
-  /* Mark symbols from global variable table */
-  if (mrb->globals) {
-    mrb_iv_foreach(mrb, mrb_obj_value(mrb->object_class), sym_gc_mark_iv, NULL);
-  }
+  /* Mark symbols from global variable table.
+     `mrb->globals` is a table of its own, not the instance variables of
+     `Object`; walking the latter reaches none of the global names. */
+  mrb_gv_foreach(mrb, sym_gc_mark_iv, NULL);
 
   /* Phase 3: sweep unmarked dynamic symbols */
   mrb_sym freed = 0;

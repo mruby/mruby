@@ -481,6 +481,9 @@ mrb_bool mrb_vm_const_defined_p(mrb_state *mrb, const struct RProc *proc, mrb_sy
 mrb_value mrb_vm_const_get_noraise(mrb_state *mrb, const struct RProc *proc, mrb_sym sym);
 mrb_bool mrb_vm_cv_defined_p(mrb_state *mrb, const struct RProc *proc, mrb_sym sym);
 mrb_bool mrb_gv_defined(mrb_state *mrb, mrb_sym sym);
+#ifdef MRUBY_VARIABLE_H
+void mrb_gv_foreach(mrb_state *mrb, mrb_iv_foreach_func *func, void *p);
+#endif
 size_t mrb_obj_iv_tbl_memsize(mrb_value);
 void mrb_obj_iv_set_force(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v);
 mrb_value mrb_mod_constants(mrb_state *mrb, mrb_value mod);
