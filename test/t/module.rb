@@ -683,6 +683,36 @@ end
   assert 'Module#prepend to frozen class' do
     assert_raise(FrozenError) { Class.new.freeze.prepend Module.new }
   end
+
+  assert 'Module#private on a method a prepended module also defines' do
+    m = Module.new { def foo; :prepended; end }
+    c = Class.new { def foo; :own; end; prepend m }
+
+    assert_equal :prepended, c.new.foo
+
+    c.class_eval { private :foo }
+    assert_equal :prepended, c.new.foo, 'private on the origin must not shadow the module ahead of it'
+
+    c.class_eval { public :foo }
+    assert_equal :prepended, c.new.foo
+
+    m.module_eval { def foo; :prepended2; end }
+    assert_equal :prepended2, c.new.foo, 'the origin copy must not freeze what foo answers'
+
+    c.class_eval { def foo; :own2; end }
+    assert_equal :prepended2, c.new.foo
+
+    d = c.dup
+    assert_equal :prepended2, d.new.foo
+
+    # `remove_method` comes from mruby-metaprog, which the core test build
+    # does not have.
+    if c.respond_to?(:remove_method, true)
+      c.class_eval { remove_method :foo }
+      m.module_eval { remove_method :foo }
+      assert_raise(NoMethodError) { c.new.foo }
+    end
+  end
 # @!endgroup prepend
 
 assert('Module#to_s') do

@@ -992,27 +992,31 @@ find_visibility_scope(mrb_state *mrb, const struct RClass *c, int n, mrb_callinf
  *             If the method visibility is default, it's determined by the current scope.
  * @raise TypeError if the class/module or its attached object (for singleton classes) is frozen.
  */
-/* The method table of `c`, ready to be written to: created where there is
+/* The method table of `table`, ready to be written to: created where there is
    none, thawed where it was frozen, and given a mutable layer of its own
    where what it has is read-only. Whoever changes a method table has to come
-   through here, or writes into a table that is not theirs to write. */
-static mrb_mt_tbl*
-mt_writable(mrb_state *mrb, struct RClass *c)
-{
-  mrb_mt_tbl *h = c->mt;
+   through here, or writes into a table that is not theirs to write.
 
-  if (c->tt == MRB_TT_SCLASS && mrb_frozen_p(c)) {
-    mrb_value v = mrb_iv_get(mrb, mrb_obj_value(c), MRB_SYM(__attached__));
+   The frozen check runs on `frozen`, not `table`: on a prepended class the two
+   differ, the origin ICLASS never carries the frozen flag, and the class the
+   caller named is the one CRuby raises FrozenError on. */
+static mrb_mt_tbl*
+mt_writable(mrb_state *mrb, struct RClass *frozen, struct RClass *table)
+{
+  mrb_mt_tbl *h = table->mt;
+
+  if (frozen->tt == MRB_TT_SCLASS && mrb_frozen_p(frozen)) {
+    mrb_value v = mrb_iv_get(mrb, mrb_obj_value(frozen), MRB_SYM(__attached__));
     mrb_check_frozen_value(mrb, v);
   }
   else {
-    mrb_check_frozen(mrb, c);
+    mrb_check_frozen(mrb, frozen);
   }
   if (!h) {
-    return c->mt = mt_new(mrb);
+    return table->mt = mt_new(mrb);
   }
   if (mt_frozen_p(h)) {
-    /* unfreeze heap-allocated frozen layer to preserve c->mt pointer
+    /* unfreeze heap-allocated frozen layer to preserve table->mt pointer
      * (iclasses hold a copy of the mt pointer for included modules) */
     h->alloc &= ~MRB_MT_FROZEN_BIT;
     return h;
@@ -1021,7 +1025,7 @@ mt_writable(mrb_state *mrb, struct RClass *c)
     /* COW: create mutable top layer, chain to ROM */
     mrb_mt_tbl *top = mt_new(mrb);
     top->next = h;
-    return c->mt = top;
+    return table->mt = top;
   }
   return h;
 }
@@ -1033,7 +1037,7 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
 
   MRB_CLASS_ORIGIN(c);
 
-  mrb_mt_tbl *h = mt_writable(mrb, c);
+  mrb_mt_tbl *h = mt_writable(mrb, c, c);
   if (MRB_METHOD_PROC_P(m)) {
     struct RProc *p = (struct RProc*)MRB_METHOD_PROC(m);
 
@@ -2492,12 +2496,22 @@ mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int vis)
     }
   }
   else {
-    /* A visibility change writes a copy of the method into this class, so the
-       table it writes to has to be prepared the way defining one prepares it:
-       `class << self; class << self; protected :p; end; end` reached mt_put()
-       with none at all (#7293), and a frozen class took the change in
-       silence. */
-    mrb_mt_tbl *h = mt_writable(mrb, c);
+    /* A visibility change writes a copy of the method into a class's own
+       table, so the table it writes to has to be prepared the way defining
+       one prepares it: `class << self; class << self; protected :p; end;
+       end` reached mt_put() with none at all (#7293), and a frozen class
+       took the change in silence.
+
+       On a prepended class that table is the origin's, not `c`'s: `c` only
+       has the prepended module in front of it, and a copy written to `c`
+       would outrank the module instead of falling behind it. The frozen
+       check still runs on `c`, the class the caller named and the one
+       `mrb_check_frozen()` can see the flag on; `mrb_method_search()` still
+       starts its walk from `c` too, exactly as it would without this
+       change. */
+    struct RClass *t = c;
+    MRB_CLASS_ORIGIN(t);
+    mrb_mt_tbl *h = mt_writable(mrb, c, t);
     for (int i=0; i<argc; i++) {
       mrb_check_type(mrb, argv[i], MRB_TT_SYMBOL);
       mrb_sym mid = mrb_symbol(argv[i]);
@@ -2505,7 +2519,15 @@ mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int vis)
       MRB_METHOD_SET_VISIBILITY(m, vis);
       union mrb_mt_ptr ptr;
       if (MRB_METHOD_PROC_P(m)) {
-        ptr.proc = MRB_METHOD_PROC(m);
+        struct RProc *p = (struct RProc*)MRB_METHOD_PROC(m);
+
+        /* A method table entry is a GC field: mrb_gc_mark_mt() marks every
+           non-MRB_MT_FUNC entry as a child of the class. mrb_define_method_raw()
+           barriers the same kind of store; this one did not. */
+        ptr.proc = p;
+        if (p) {
+          mrb_field_write_barrier(mrb, (struct RBasic*)t, (struct RBasic*)p);
+        }
       }
       else {
         ptr.func = MRB_METHOD_FUNC(m);
