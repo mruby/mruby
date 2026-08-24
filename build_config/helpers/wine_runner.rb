@@ -2,7 +2,7 @@
 
 # Wrapper for running tests for cross-compiled Windows builds in Wine.
 
-require 'open3'
+require 'tmpdir'
 
 DOSROOT = 'z:'
 
@@ -41,6 +41,31 @@ def clean(output, stderr = false)
 end
 
 
+# Run a Windows program under Wine and hand back what it wrote and how it
+# ended, the way `Open3.capture3` would.
+#
+# Not the way it would, though.  Wine starts background services on its way
+# up and gives each of them the standard streams it was handed itself, and
+# they outlive the program.  A pipe is at an end when the last writer lets go
+# of it, so reading one here is waiting on those services and not on the
+# program: the wrapper hangs, holding a pipe no one will write to again, long
+# after the program it ran has exited.  A file ends where its contents do,
+# whoever else still holds it open.
+def capture(argv, input)
+  Dir.mktmpdir('wine-runner') do |dir|
+    stdin  = File.join(dir, 'stdin')
+    stdout = File.join(dir, 'stdout')
+    stderr = File.join(dir, 'stderr')
+    File.write(stdin, input)
+
+    pid = Process.spawn('wine', *argv, in: stdin, out: stdout, err: stderr)
+    _, status = Process.waitpid2(pid)
+
+    [File.read(stdout), File.read(stderr), status]
+  end
+end
+
+
 def main
   if ARGV.empty? || ARGV[0] =~ /^- (-?) (\?|help|h) $/x
     puts "#{$0} <command-line>"
@@ -60,7 +85,7 @@ def main
   ENV['WINEDEBUG'] = 'err-all,warn-all,fixme-all,trace-all'
 
   # Run the program in wine and capture the output
-  output, errormsg, status = Open3.capture3('wine', *ARGV, :stdin_data => input)
+  output, errormsg, status = capture(ARGV, input)
 
   # Clean and print the results.
   STDOUT.write clean(output)
