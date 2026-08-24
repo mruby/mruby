@@ -44,6 +44,9 @@ typedef struct {
   uint16_t class_capa;
   uint16_t num_captures;
   uint32_t flags;
+  uint32_t orig_flags;  /* flags as passed to mrb_re_compile(), for error
+                            messages: unlike `flags`, an inline option such as
+                            `(?i)` does not change this (re_compile.c:1667) */
   uint16_t num_named;
   mrb_bool has_backref;
   mrb_bool needs_backtrack;
@@ -84,9 +87,14 @@ compile_error_str(re_compiler *c, mrb_value msg)
      c->src points at the buffer preprocess_pattern() returned, so quoting it
      would drop the comments and the (?#...) groups from the message. c->orig
      is the caller's buffer, which outlives the compile. It is not
-     NUL-terminated, so use %l with the explicit length from c->orig_end. */
+     NUL-terminated, so use %l with the explicit length from c->orig_end. The
+     flag suffix uses c->orig_flags, not c->flags: an inline option such as
+     `(?i)` mutates the latter partway through the parse, where CRuby's
+     message (and Regexp#inspect) reports the flags the pattern was compiled
+     with. */
   mrb_value emsg = mrb_format(c->mrb, "%v: /%l/",
                               msg, c->orig, (size_t)(c->orig_end - c->orig));
+  mrb_re_flags_cat(c->mrb, emsg, c->orig_flags);
 
   mrb_exc_raise(c->mrb,
     mrb_exc_new_str(c->mrb, mrb_exc_get_id(c->mrb, MRB_SYM(RegexpError)), emsg));
@@ -2845,6 +2853,7 @@ mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat,
   c.src_end = pattern + len;
   c.p = pattern;
   c.flags = flags;
+  c.orig_flags = flags;
   c.num_captures = 1;  /* group 0 = whole match */
   /* Scan the same bytes the parser is about to read: preprocess_pattern() has
      already taken out the #comments and the (?#...) groups. */
