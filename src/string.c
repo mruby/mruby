@@ -4311,6 +4311,16 @@ str_bytesplice(mrb_state *mrb, mrb_value str, mrb_int idx1, mrb_int len1, mrb_va
   if (mrb_int_add_overflow(idx2, len2, &n) || RSTRING_LEN(replace) < n) {
     len2 = RSTRING_LEN(replace) - idx2;
   }
+  /* Splicing the empty range at the end is an append: it writes nothing any
+     sharer of the buffer can see, so mrb_str_cat() may grow the string inside
+     that buffer where mrb_str_modify() below would copy the whole of it first.
+     The frozen check mrb_str_modify() would make has to be made here as well,
+     since mrb_str_cat() makes none when handed nothing to append. */
+  if (idx1 == RSTR_LEN(s)) {
+    mrb_check_frozen(mrb, s);
+    return mrb_str_cat(mrb, str, RSTRING_PTR(replace) + idx2, (size_t)len2);
+  }
+
   mrb_str_modify(mrb, s);
   if (len1 >= len2) {
     memmove(RSTR_PTR(s)+idx1, RSTRING_PTR(replace)+idx2, len2);

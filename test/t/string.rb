@@ -1445,4 +1445,20 @@ assert('String#bytesplice on a shared buffer') do
   b_slice.bytesplice(0, 1, "1234567890")
   assert_equal "1234567890" + "b" * 59, b_slice
   assert_equal "b" * 100, b
+
+  # Splicing the empty range at the end appends, and an append writes only
+  # above what the sharer reads, so it stays in the buffer.
+  c = "c" * 100 + "x" * 100
+  c.bytesplice(100, 100, "")
+  c_slice = c[0, 60]
+  c.bytesplice(c.bytesize, 0, "1234567890")
+  assert_equal "c" * 100 + "1234567890", c
+  assert_equal "c" * 60, c_slice
+
+  # The loop that made growth at the end quadratic: the slice shares the
+  # buffer again on every turn, and the append past it stays in place.
+  d = ""
+  50.times { d.bytesplice(d.bytesize, 0, "0123456789012345678901234567890123456789"); d[0, 30] }
+  assert_equal 2000, d.bytesize
+  assert_equal "0123456789012345678901234567890123456789", d.byteslice(-40, 40)
 end
