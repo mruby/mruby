@@ -2503,6 +2503,15 @@ str_insert(mrb_state *mrb, mrb_value self)
     mrb_raisef(mrb, E_INDEX_ERROR, "index %S out of string", mrb_int_value(mrb, idx));
   }
 
+  /* Inserting at the end is an append: it writes nothing any sharer of the
+     buffer can see, so mrb_str_cat() may grow the string inside that buffer
+     where mrb_str_modify() below would copy the whole of it first. */
+  if (idx == self_len) {
+    mrb_str_cat(mrb, self, RSTRING_PTR(str_to_insert), (size_t)insert_len);
+    str_mark_spliced_bytes(self, str_to_insert);
+    return self;
+  }
+
   mrb_str_modify(mrb, s);
   mrb_str_resize(mrb, self, self_len + insert_len);
 
