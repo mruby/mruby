@@ -197,6 +197,14 @@ assert('String#swapcase - ASCII only') do
   assert_nil "Ä".swapcase!
 end
 
+assert('String#swapcase! - a frozen receiver') do
+  skip unless UNICODECASE
+  # The Unicode walk raises from inside str_modify_keep_cr(), the same site
+  # String#downcase! raises from, before the ASCII loop str_swapcase_bang
+  # otherwise runs.
+  assert_raise(FrozenError) { "Ä".freeze.swapcase! }
+end
+
 assert('String#concat') do
   assert_equal "Hello World!", "Hello " << "World" << 33
   assert_equal "Hello World!", "Hello ".concat("World").concat(33)

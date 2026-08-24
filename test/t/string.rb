@@ -496,6 +496,23 @@ assert('String#upcase - an answer that outgrows an embedded buffer') do
   end
 end if UNICODECASE
 
+assert('String#downcase - a receiver above the embedded buffer') do
+  # A receiver too long to live inside its own object holds its bytes in a
+  # heap (or shared) buffer that str_replace() has to release rather than
+  # overwrite, and the coderange the walk sets has to survive the copy that
+  # hands the converted buffer to the receiver.
+  long = "ÄÖÜ" * 20
+  assert_equal 60, long.downcase.length
+  assert_equal "äöü" * 20, long.downcase
+end if UNICODECASE
+
+assert('String case conversion - a frozen receiver') do
+  # The Unicode walk raises from inside str_modify_keep_cr(), before the
+  # ASCII loop each bang method otherwise runs, whether or not the
+  # conversion would have changed anything.
+  assert_raise(FrozenError) { 'Ä'.freeze.downcase! }
+end if UNICODECASE
+
 assert('String case conversion - ASCII only') do
   # The other reading of case: a build that converts by ASCII, whether by
   # MRB_USE_ASCII_CTYPE or by reading its strings as bytes, has no mapping above

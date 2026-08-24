@@ -525,6 +525,10 @@ assert('a byte-read string converted case') do
     assert_equal [195, 132, 66], s.upcase.bytes
     assert_equal [195, 132, 98], s.capitalize.bytes
     assert_equal Encoding::BINARY, s.downcase.encoding
+    # swapcase and casecmp? reach the same byte-read arm through their own
+    # readers, one by the walk and the other by mrb_str_single_byte_p.
+    assert_equal [195, 132, 98], s.swapcase.bytes
+    assert_true s.casecmp?("\xC3\x84b".b)
     if UNICODECASE
       assert_equal [195, 164, 98], "\xC3\x84B".downcase.bytes
     else
