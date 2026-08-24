@@ -279,14 +279,9 @@ assert("File.readlink fails with non-symlink") do
   skip "readlink is not supported on this platform" if MRubyIOTestUtil.win?
   begin
     e2 = nil
-    assert_raise(RuntimeError) {
+    assert_raise(Errno::EINVAL) {
       begin
         File.readlink($mrbtest_io_rfname)
-      rescue => e
-        if Object.const_defined?(:SystemCallError) and e.kind_of?(SystemCallError)
-          raise RuntimeError, "SystemCallError converted to RuntimeError"
-        end
-        raise e
       rescue NotImplementedError => e
         e2 = e
       end
@@ -425,7 +420,7 @@ assert('File.open with "x" mode') do
   assert_nothing_raised do
     File.open($mrbtest_io_wfname, "wx") {}
   end
-  assert_raise(RuntimeError) do
+  assert_raise(Errno::EEXIST) do
     File.open($mrbtest_io_wfname, "wx") {}
   end
 
@@ -433,7 +428,7 @@ assert('File.open with "x" mode') do
   assert_nothing_raised do
     File.open($mrbtest_io_wfname, "w+x") {}
   end
-  assert_raise(RuntimeError) do
+  assert_raise(Errno::EEXIST) do
     File.open($mrbtest_io_wfname, "w+x") {}
   end
 
