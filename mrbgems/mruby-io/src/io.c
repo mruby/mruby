@@ -79,13 +79,22 @@ static int io_modestr_to_flags(mrb_state *mrb, const char *modestr);
 static int io_mode_to_flags(mrb_state *mrb, mrb_value mode);
 static void fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet);
 
+/* Every method that touches the stream starts here; only the ones that give a
+   descriptor up rather than use it go on to accept a closed one. */
 static struct mrb_io*
-io_get_open_fptr(mrb_state *mrb, mrb_value io)
+io_get_fptr(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr = (struct mrb_io*)mrb_data_get_ptr(mrb, io, &mrb_io_type);
   if (fptr == NULL) {
     mrb_raise(mrb, E_IO_ERROR, "uninitialized stream");
   }
+  return fptr;
+}
+
+static struct mrb_io*
+io_get_open_fptr(mrb_state *mrb, mrb_value io)
+{
+  struct mrb_io *fptr = io_get_fptr(mrb, io);
   if (fptr->fd < 0) {
     mrb_raise(mrb, E_IO_ERROR, "closed stream");
   }
@@ -1186,11 +1195,26 @@ io_lshift(mrb_state *mrb, mrb_value io)
   return io;
 }
 
+/*
+ * call-seq:
+ *   ios.close -> nil
+ *
+ * Closes the stream. A stream that is already closed is left as it is.
+ *
+ *   f = File.new("testfile")
+ *   f.close         #=> nil
+ *   f.close         #=> nil
+ */
 static mrb_value
 io_close(mrb_state *mrb, mrb_value io)
 {
-  struct mrb_io *fptr;
-  fptr = io_get_open_fptr(mrb, io);
+  struct mrb_io *fptr = io_get_fptr(mrb, io);
+
+  /* Closing what is closed asks for nothing, and the stream already answers
+     #closed? with true, so there is nothing for a raise to tell. */
+  if (fptr->fd < 0) {
+    return mrb_nil_value();
+  }
   fptr_finalize(mrb, fptr, FALSE);
   return mrb_nil_value();
 }
@@ -1204,7 +1228,7 @@ io_close(mrb_state *mrb, mrb_value io)
  * A stream that is not duplex has no write end of its own. If it cannot be
  * read from, or it was opened to a child process, its only end is the one
  * being closed and the whole stream is closed; otherwise an `IOError` is
- * raised.
+ * raised. A stream that is already closed is left as it is.
  *
  *   r, w = IO.pipe
  *   w.close_write
@@ -1213,9 +1237,15 @@ io_close(mrb_state *mrb, mrb_value io)
 static mrb_value
 io_close_write(mrb_state *mrb, mrb_value io)
 {
-  struct mrb_io *fptr = io_get_open_fptr(mrb, io);
-  int fd2 = fptr->fd2;
+  struct mrb_io *fptr = io_get_fptr(mrb, io);
 
+  /* A closed stream has no write end left to give up, duplex or not, so the
+     answer is the one #close gives and nothing below it applies. */
+  if (fptr->fd < 0) {
+    return mrb_nil_value();
+  }
+
+  int fd2 = fptr->fd2;
   if (fd2 == -1) {
     /* No second descriptor, so writing goes through fd, which is also what
        reading goes through. There is a write end to give up only where
