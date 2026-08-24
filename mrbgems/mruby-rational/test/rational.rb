@@ -238,6 +238,49 @@ assert 'Rational#== is exact across the overflow, not rounded through Float' do
   end
 end
 
+assert 'Rational#hash agrees with #==' do
+  # A bigint-backed Rational whose reduced halves both fit an mrb_int must
+  # hash the same as the equal value built straight from fixnums; otherwise
+  # equal Rationals disagree on #hash, which breaks Hash lookup and
+  # Array#uniq for them.
+  k = 70
+  begin
+    big = 1 << k
+  rescue RangeError
+    skip 'requires mruby-bigint'
+  end
+  one = Rational(1, 1)
+  assert_equal(one.hash, Rational(big, big).hash)
+  assert_equal(Rational(3, 4).hash, Rational(3 * big, 4 * big).hash)
+  assert_equal(one.hash, (Rational(big, 1) - Rational(big - 1, 1)).hash)
+
+  # Rational(big, 3) shares no common factor, so it stays bigint-backed
+  # after reduction, unlike the halves above, which all reduce down to the
+  # mrb_int layout; this is what actually reaches rational_hash()'s
+  # RAT_BIGINT_P branch.
+  bigint = Rational(big, 3)
+  assert_equal(bigint.hash, Rational(big * 5, 15).hash)
+
+  # Halves combine order-sensitively, on the bigint path as well as the
+  # mrb_int path, since CRuby's Rational#hash does too.
+  assert_not_equal(Rational(2, 3).hash, Rational(3, 2).hash)
+  assert_not_equal(bigint.hash, Rational(3, big).hash)
+
+  small = { one => :one }
+  assert_equal(:one, small[Rational(big, big)])
+
+  large = {}
+  32.times { |i| large[i] = i }
+  large[one] = :one
+  assert_equal(:one, large[Rational(big, big)])
+  large[bigint] = :bigint
+  assert_equal(:bigint, large[Rational(big * 5, 15)])
+
+  if [].respond_to?(:uniq)
+    assert_equal(41, (1..40).to_a.push(one, Rational(big, big)).uniq.size)
+  end
+end
+
 assert 'Rational#eql?' do
   assert_true  Rational(2,1).eql?(Rational(2,1))
   assert_true  Rational(1,2).eql?(Rational(2,4))
