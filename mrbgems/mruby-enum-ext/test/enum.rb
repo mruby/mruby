@@ -241,6 +241,13 @@ assert('Enumerable#minmax - a comparison with no answer') do
     assert_raise(ArgumentError) { [1.0, Float::NAN, 2.0].minmax }
   end
 
+  # A pair of different kinds stands in no order either.
+  assert_raise(ArgumentError) { [1, 'a'].minmax }
+
   assert_equal [1, 3], [3, 1, 2].minmax
   assert_equal [1, 3], [3, 1, 2].minmax { |a, b| a <=> b }
+
+  # The first element is never compared, and an empty collection has none.
+  assert_equal ['a', 'a'], ['a'].minmax
+  assert_equal [nil, nil], [].minmax
 end
