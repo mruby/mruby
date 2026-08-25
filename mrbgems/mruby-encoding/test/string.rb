@@ -344,6 +344,70 @@ assert('String#swapcase! leaves what the bytes read as standing') do
   end
 end
 
+assert('the prefix and suffix cuts ask again about the bytes they break') do
+  # `delete_prefix!` and `delete_suffix!` match by their bytes with nothing
+  # asked about where characters end, so either can cut a character in two and
+  # leave its head or its tail standing on its own. Where the cut lands on a
+  # byte that begins a character it leaves whole characters on both sides and
+  # what the rest is read as still stands; where it lands inside one, the
+  # answer has to be asked again. Each string below is read once before the
+  # cut, so the answer asked for after it is the one the cut left behind.
+  if UTF8STRING
+    a = "あ"
+    assert_true a.valid_encoding?
+    a.delete_suffix!("\x82")   # cuts one byte off a three-byte character
+    assert_equal "\xE3\x81".b, a.b
+    assert_false a.valid_encoding?
+
+    b = "あ"
+    assert_true b.valid_encoding?
+    b.delete_prefix!("\xE3")
+    assert_equal "\x81\x82".b, b.b
+    assert_false b.valid_encoding?
+
+    # The same cut on the branch that slides the start of a shared buffer,
+    # which writes no byte and so reaches no write helper of its own.
+    base = "あ" * 100
+    c = base.dup
+    assert_true c.valid_encoding?
+    c.delete_prefix!("\xE3")
+    assert_false c.valid_encoding?
+    assert_true base.valid_encoding?
+
+    # A cut landing where a character begins leaves the answer standing, and
+    # the answer it leaves is the right one.
+    d = "あい"
+    assert_true d.valid_encoding?
+    d.delete_prefix!("あ")
+    assert_equal "い", d
+    assert_equal 1, d.length
+    assert_true d.valid_encoding?
+
+    e = "あ\n"
+    assert_true e.valid_encoding?
+    e.delete_suffix!("\n")
+    assert_equal "あ", e
+    assert_equal 1, e.length
+    assert_true e.valid_encoding?
+
+    # A string already read as broken is the one neither can answer for, since
+    # a cut is as likely to have mended it as to have left it broken.
+    f = "\xE3\x81あ"
+    assert_false f.valid_encoding?
+    f.delete_prefix!("\xE3\x81")
+    assert_equal "あ", f
+    assert_true f.valid_encoding?
+
+    # Nothing matched is nothing cut, so what the string reads as stands.
+    g = "あ"
+    assert_true g.valid_encoding?
+    assert_nil g.delete_prefix!("\x82")
+    assert_nil g.delete_suffix!("\xE3")
+    assert_equal 1, g.length
+    assert_true g.valid_encoding?
+  end
+end
+
 assert('String#encoding') do
   if UTF8STRING
     a = "あ"

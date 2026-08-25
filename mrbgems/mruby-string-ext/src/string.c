@@ -1443,6 +1443,49 @@ str_scrub_chunks(mrb_state *mrb, mrb_value self)
 }
 #endif
 
+/* Whether cutting the `cutlen` bytes at `cut` off an end of `s` leaves what
+   the rest of it is read as standing. A byte below 0x80 stands for a character
+   of its own and is never part of one that began earlier, so a cut of nothing
+   but ASCII lands exactly where a character ends; and it cannot have taken the
+   last non-ASCII byte with it either, so a string that was read as UTF-8 with
+   characters in it still is. Cutting a byte at or above 0x80 can do both, and
+   what is left has to be asked about again. This is the question `chomp!` in
+   src/string.c asks of the bytes it cuts.
+
+   Asked before the cut, of a string that has an answer to keep: one carrying
+   nothing has none, and one holding a character per byte is cutting ASCII
+   whatever it cuts, so neither is worth reading a byte for. */
+static mrb_bool
+str_cut_keeps_cr(struct RString *s, const char *cut, mrb_int cutlen)
+{
+#ifdef MRB_UTF8_STRING
+  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_UNKNOWN) return FALSE;
+  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_7BIT) return TRUE;
+  for (mrb_int i = 0; i < cutlen; i++) {
+    if ((uint8_t)cut[i] & 0x80) return FALSE;
+  }
+  return TRUE;
+#else
+  (void)s; (void)cut; (void)cutlen;
+  return FALSE;
+#endif
+}
+
+/* mrb_str_modify_keep_cr()'s rule without the unsharing, which a cut that
+   writes no byte has no use for. A build that records nothing has nothing to
+   say here, down to the arguments. */
+static void
+str_cut_coderange(struct RString *s, mrb_bool keep_cr)
+{
+#ifdef MRB_UTF8_STRING
+  if (!keep_cr || RSTR_CODERANGE(s) == MRB_STR_CODERANGE_BROKEN) {
+    RSTR_CODERANGE_SET(s, MRB_STR_CODERANGE_UNKNOWN);
+  }
+#else
+  (void)s; (void)keep_cr;
+#endif
+}
+
 static mrb_bool
 str_prefix_p(mrb_state *mrb, mrb_value str, const char *prefix_ptr, mrb_int prefix_len)
 {
@@ -1473,15 +1516,21 @@ str_del_prefix_bang(mrb_state *mrb, mrb_value self)
   if (plen > slen) return mrb_nil_value();
   char *s = RSTR_PTR(str);
   if (!str_prefix_p(mrb, self, ptr, plen)) return mrb_nil_value();
+  /* The prefix matched, so its bytes are the ones being cut. */
+  mrb_bool keep_cr = str_cut_keeps_cr(str, ptr, plen);
   if (!mrb_frozen_p(str) && (RSTR_SHARED_P(str) || RSTR_FSHARED_P(str))) {
+    /* Sliding the start of a shared buffer writes no byte, so there is nothing
+       to unshare, and nothing here drops the answer the string was carrying,
+       which is what the branch below gets from its modify. */
     str->as.heap.ptr += plen;
   }
   else {
-    mrb_str_modify(mrb, str);
+    mrb_str_modify_keep_cr(mrb, str);
     s = RSTR_PTR(str);
     memmove(s, s+plen, slen-plen);
   }
   RSTR_SET_LEN(str, slen-plen);
+  str_cut_coderange(str, keep_cr);
   return self;
 }
 
@@ -1538,7 +1587,11 @@ str_del_suffix_bang(mrb_state *mrb, mrb_value self)
   mrb_int slen = RSTR_LEN(str);
   if (plen > slen) return mrb_nil_value();
   if (!str_suffix_p(mrb, self, ptr, plen)) return mrb_nil_value();
+  /* Cutting the end back writes no byte, so there is nothing to unshare. The
+     suffix matched, so its bytes are the ones being cut. */
+  mrb_bool keep_cr = str_cut_keeps_cr(str, ptr, plen);
   RSTR_SET_LEN(str, slen-plen);
+  str_cut_coderange(str, keep_cr);
   return self;
 }
 
