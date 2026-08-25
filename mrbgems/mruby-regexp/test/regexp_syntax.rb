@@ -288,12 +288,14 @@ assert("Regexp - a pattern nested past the parse depth limit raises") do
   # The refusal itself is sized from `Regexp::PARSE_DEPTH_LIMIT`, which reads
   # back what the build set. Reaching it costs the stack the limit stands for:
   # the count is checked at the bottom of the recursion, so a pattern past the
-  # limit descends to it before being refused, and asking a build with a high
-  # limit to do that here would spend a megabyte or more of C stack -- the
-  # very thing the limit exists to keep a pattern from doing. Such a build is
-  # left out rather than have the assertion crash it; the default is
-  # CRuby-exact and so is one of them, and a build that sets the limit to what
-  # a smaller stack can pay for is where this runs.
+  # limit descends to it before being refused, and at the CRuby-exact default
+  # that is some 2.4 MiB -- more C stack than a Windows thread has at all, and
+  # the very thing the limit exists to keep a pattern from spending. So a
+  # build whose limit stands above what a test may descend is left out rather
+  # than crashed, and the refusal is covered by a build that sets a limit a
+  # test can reach: the `ascii-ctype` build of build_config/ci/gcc-clang.rb
+  # sets 512, which runs on every entry of the CI matrix. The arithmetic that
+  # refuses is the same at any limit.
   if limit > 512
     skip "reaching this build's parse depth limit costs more C stack than a test may spend"
   end
