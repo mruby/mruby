@@ -448,17 +448,31 @@ assert('Integer - a Float too big for an mrb_int keeps every digit') do
   # The conversion took the highest base-2**DIG_SIZE digit and read zero for
   # every digit below it, because the fraction left behind was never scaled
   # back up: 1e20 answered 92233720368547758080, which is 5 * 2**64.
-  assert_equal 100000000000000000000, 1e20.to_i
-  assert_equal(-100000000000000000000, -1e20.to_i)
-  assert_equal 10000000000000000000, 1e19.to_i
-  assert_equal 150000000000000000000, 1.5e20.to_i
-  assert_equal 1000000000000000019884624838656, 1e30.to_i
-  assert_equal 30000000000000000570425344, 3.0e25.to_i
+  if 1e39.infinite? then
+    # MRB_USE_FLOAT32 in effect: every one of these literals rounds to a Float
+    # of its own, and the widest entry has to stay under the 3.4e38 a Float
+    # tops out at, 1e100 being Infinity there.
+    assert_equal 100000002004087734272, 1e20.to_i
+    assert_equal(-100000002004087734272, -1e20.to_i)
+    assert_equal 9999999980506447872, 1e19.to_i
+    assert_equal 150000003006131601408, 1.5e20.to_i
+    assert_equal 1000000015047466219876688855040, 1e30.to_i
+    assert_equal 29999999838992083349143552, 3.0e25.to_i
+    widest = 1e38
+  else
+    assert_equal 100000000000000000000, 1e20.to_i
+    assert_equal(-100000000000000000000, -1e20.to_i)
+    assert_equal 10000000000000000000, 1e19.to_i
+    assert_equal 150000000000000000000, 1.5e20.to_i
+    assert_equal 1000000000000000019884624838656, 1e30.to_i
+    assert_equal 30000000000000000570425344, 3.0e25.to_i
+    widest = 1e100
+  end
   # A power of two answered correctly all along, its lower digits being zero.
   assert_equal 18446744073709551616, (2.0**64).to_i
   assert_equal 1180591620717411303424, (2.0**70).to_i
   # Every one of them names the Float it came from.
-  [1e19, 1e20, 1.5e20, 1e30, 3.0e25, 1e100, 2.0**70].each do |f|
+  [1e19, 1e20, 1.5e20, 1e30, 3.0e25, widest, 2.0**70].each do |f|
     assert_equal f, f.to_i.to_f
   end
 end
