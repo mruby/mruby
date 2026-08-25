@@ -36,6 +36,41 @@ re_uninitialized_p(const mrb_regexp_pattern *pat)
   return !pat || pat->code_len == 0;
 }
 
+/* The pattern text a reader answers from, or TypeError when there is none.
+   Regexp.allocate is on every class and hands out an object that never went
+   through re_initialize(): no @source, no @flags, a NULL DATA_PTR. The
+   matchers already refuse it through DATA_GET_PTR(), and the readers below
+   refuse it here, as CRuby's rb_reg_check() does at the top of each of its
+   own.
+
+   Both fields are tested because they answer different questions and each is
+   reachable without the other:
+
+   - DATA_PTR says whether the object was ever initialized. It is the one
+     field only re_initialize() writes: mrb_iv_copy() does not carry it to a
+     copy and no instance_variable_set() can forge it, so a NULL there is an
+     object that never went through re_initialize() however it was made:
+     Regexp.allocate's, or a copy from a subclass that overrode
+     initialize_copy without calling super. It is set before the compile
+     starts, so a Regexp whose compile raised still passes here and goes on
+     answering hash/eql?/inspect from the source it does have (see the
+     comment in re_initialize()).
+
+   - @source is what the readers below hand to mrb_str_cat_str() and
+     RSTRING_PTR(), which take an RString and dereference it as one. It is an
+     ordinary IV, so instance_variable_set() can put anything behind it, and
+     checking the type here is what keeps that a TypeError rather than a
+     read through whatever was stored. */
+static mrb_value
+re_check_initialized(mrb_state *mrb, mrb_value re)
+{
+  mrb_value src = mrb_iv_get(mrb, re, MRB_IVSYM(source));
+  if (!DATA_PTR(re) || !mrb_string_p(src)) {
+    mrb_raise(mrb, E_TYPE_ERROR, "uninitialized Regexp");
+  }
+  return src;
+}
+
 /* MatchData */
 typedef struct {
   mrb_value source;        /* source string */
@@ -165,7 +200,9 @@ regexp_init(mrb_state *mrb, mrb_value self)
   /* If pattern is a Regexp, copy its source and flags */
   if (mrb_obj_is_kind_of(mrb, pattern, mrb_class_get_id(mrb, MRB_SYM(Regexp)))) {
     flags = get_iflags(mrb, pattern);
-    pattern = mrb_iv_get(mrb, pattern, MRB_IVSYM(source));
+    /* Copying is a reading of the argument's source, so an argument that has
+       none is refused here rather than compiled from a nil below. */
+    pattern = re_check_initialized(mrb, pattern);
   }
   else {
     if (!mrb_string_p(pattern)) {
@@ -199,13 +236,9 @@ regexp_init_copy(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_TYPE_ERROR, "initialize_copy should take same class object");
   }
 
-  /* The copy is compiled from the original's source, so an original that
-     has none is refused here rather than handed to the compiler as a nil.
-     CRuby's rb_reg_init_copy() refuses Regexp.allocate.dup the same way. */
-  mrb_value src = mrb_iv_get(mrb, orig, MRB_IVSYM(source));
-  if (!mrb_string_p(src)) {
-    mrb_raise(mrb, E_TYPE_ERROR, "uninitialized Regexp");
-  }
+  /* Copying is a reading of the original's source, so an original that has
+     none is refused here as it is in regexp_init(). */
+  mrb_value src = re_check_initialized(mrb, orig);
   return re_initialize(mrb, self, src, get_iflags(mrb, orig));
 }
 
@@ -747,12 +780,26 @@ regexp_case_match(mrb_state *mrb, mrb_value self)
 }
 
 /*
+ * Regexp#__check_initialized - the guard above, for the readers in mrblib
+ *
+ * `names` and `named_captures` are readings of a compiled pattern too, and
+ * only this side can see DATA_PTR, so they raise through here rather than
+ * testing @source from Ruby and missing what an IV cannot show.
+ */
+static mrb_value
+regexp_check_initialized(mrb_state *mrb, mrb_value self)
+{
+  re_check_initialized(mrb, self);
+  return self;
+}
+
+/*
  * Regexp#source
  */
 static mrb_value
 regexp_source(mrb_state *mrb, mrb_value self)
 {
-  return mrb_iv_get(mrb, self, MRB_IVSYM(source));
+  return re_check_initialized(mrb, self);
 }
 
 /*
@@ -763,6 +810,7 @@ regexp_source(mrb_state *mrb, mrb_value self)
 static mrb_value
 regexp_options(mrb_state *mrb, mrb_value self)
 {
+  re_check_initialized(mrb, self);
   uint32_t iflags = get_iflags(mrb, self);
   mrb_int opts = 0;
   if (iflags & RE_FLAG_IGNORECASE) opts |= 1;  /* Regexp::IGNORECASE */
@@ -777,6 +825,7 @@ regexp_options(mrb_state *mrb, mrb_value self)
 static mrb_value
 regexp_casefold_p(mrb_state *mrb, mrb_value self)
 {
+  re_check_initialized(mrb, self);
   return mrb_bool_value((get_iflags(mrb, self) & RE_FLAG_IGNORECASE) != 0);
 }
 
@@ -818,7 +867,7 @@ mrb_re_flags_cat(mrb_state *mrb, mrb_value str, uint32_t flags)
 static mrb_value
 regexp_to_s(mrb_state *mrb, mrb_value self)
 {
-  mrb_value src = mrb_iv_get(mrb, self, MRB_IVSYM(source));
+  mrb_value src = re_check_initialized(mrb, self);
   uint32_t flags = get_iflags(mrb, self);
   char off[RE_FLAG_LETTER_COUNT];
   mrb_int noff = 0;
@@ -846,7 +895,22 @@ static mrb_value
 regexp_inspect(mrb_state *mrb, mrb_value self)
 {
   mrb_value src = mrb_iv_get(mrb, self, MRB_IVSYM(source));
-  uint32_t flags = get_iflags(mrb, self);
+  uint32_t flags;
+
+  /* The one reader that answers for an uninitialized Regexp instead of
+     raising: an inspect that raises would leave the object undisplayable in
+     a backtrace or a debugger, which is where it is most likely to be met.
+     CRuby's rb_reg_inspect falls back to the default form for the same
+     reason, and this prints that same `#<Regexp:0x...>`.
+
+     What it falls back on is the pair re_check_initialized() raises on, so
+     the same objects are refused here and displayed rather than read: a
+     written or inherited @source without a pattern behind it prints the
+     default form, as it does in CRuby, where @source is not an IV at all and
+     rb_reg_inspect tests the pattern for itself. */
+  if (!DATA_PTR(self) || !mrb_string_p(src)) return mrb_any_to_s(mrb, self);
+
+  flags = get_iflags(mrb, self);
 
   mrb_value result = mrb_str_new_lit(mrb, "/");
   mrb_str_cat_str(mrb, result, src);
@@ -863,14 +927,14 @@ regexp_eql(mrb_state *mrb, mrb_value self)
 {
   mrb_value other;
   mrb_get_args(mrb, "o", &other);
+  /* The one object equal to an uninitialized Regexp is itself: identity holds
+     without reading either source, which is what CRuby answers first too. */
+  if (mrb_obj_eq(mrb, self, other)) return mrb_true_value();
   if (!mrb_obj_is_kind_of(mrb, other, mrb_class_get_id(mrb, MRB_SYM(Regexp)))) {
     return mrb_false_value();
   }
-  mrb_value src1 = mrb_iv_get(mrb, self, MRB_IVSYM(source));
-  mrb_value src2 = mrb_iv_get(mrb, other, MRB_IVSYM(source));
-  if (!mrb_string_p(src1) || !mrb_string_p(src2)) {
-    return mrb_bool_value(mrb_obj_eq(mrb, self, other));
-  }
+  mrb_value src1 = re_check_initialized(mrb, self);
+  mrb_value src2 = re_check_initialized(mrb, other);
   if (!mrb_str_equal(mrb, src1, src2)) return mrb_false_value();
   return mrb_bool_value(get_iflags(mrb, self) == get_iflags(mrb, other));
 }
@@ -881,8 +945,8 @@ regexp_eql(mrb_state *mrb, mrb_value self)
 static mrb_value
 regexp_hash(mrb_state *mrb, mrb_value self)
 {
-  mrb_value src = mrb_iv_get(mrb, self, MRB_IVSYM(source));
-  uint32_t h = mrb_string_p(src) ? mrb_str_hash(mrb, src) : 0;
+  mrb_value src = re_check_initialized(mrb, self);
+  uint32_t h = mrb_str_hash(mrb, src);
   h ^= get_iflags(mrb, self) * 0x9e3779b9;  /* mix flags into hash */
   return mrb_int_value(mrb, (mrb_int)h);
 }
@@ -2230,6 +2294,7 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   /* Class methods */
   mrb_define_method(mrb, re, "initialize", regexp_init, MRB_ARGS_ARG(1, 2));
   mrb_define_method(mrb, re, "initialize_copy", regexp_init_copy, MRB_ARGS_REQ(1));
+  mrb_define_private_method(mrb, re, "__check_initialized", regexp_check_initialized, MRB_ARGS_NONE());
   /* compile is defined in Ruby (mrblib) as alias for new */
   mrb_define_class_method(mrb, re, "escape", regexp_escape, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, re, "quote", regexp_escape, MRB_ARGS_REQ(1));
