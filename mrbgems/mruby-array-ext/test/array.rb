@@ -912,3 +912,57 @@ assert('mrb_ary_unshift respects a frozen receiver') do
   d = [1, 2]
   assert_equal [0, 1, 2], d.__unshift_from_c(0)
 end
+
+assert('Array set operations compare with eql? on both sides of the hash threshold') do
+  # Each of these operations has two implementations, picked by a length
+  # threshold of 32: a hash path whose equality callback is eql?, and a linear
+  # walk that used to compare with ==. 1 == 1.0 is true where 1.eql?(1.0) is
+  # false, so the same pair of elements was one element or two depending only
+  # on how long the array was. The linear walks now compare with eql? too.
+  pad = (2..40).to_a  # enough to carry any of these arrays past the threshold
+  long_receiver = [1] + pad
+  long_floats = pad.map { |i| i + 0.0 } + [1.0]
+
+  # uniq/uniq! take the threshold from the receiver
+  assert_equal [1, 1.0], [1, 1.0].uniq
+  assert_equal [1, 1.0] + pad, ([1, 1.0] + pad).uniq
+  # nothing to remove any more, so uniq! reports no change on either path
+  assert_nil [1, 1.0].uniq!
+  big = [1, 1.0] + pad
+  assert_nil big.uniq!
+  # and it still reports a change, and removes the right element, when the
+  # duplicate really is eql?
+  small_dup = [1, 1.0, 1]
+  assert_equal [1, 1.0], small_dup.uniq!
+
+  # `-` and `&` take it from the argument arrays alone, so a long receiver is
+  # no guarantee of the hash path
+  assert_equal [1], [1] - [1.0]
+  assert_equal [1] + pad, long_receiver - [1.0]
+  assert_equal [1], [1] - [1.0, 2.0]
+  assert_equal [1], [1] - long_floats
+
+  assert_equal [], [1] & [1.0]
+  assert_equal [], long_receiver & [1.0]
+  assert_equal [], [1] & long_floats
+  # the result dedup inside `&` is the same comparison
+  assert_equal [1, 1.0], ([1, 1.0] & [1, 1.0])
+
+  # intersect? takes it from the shorter of the two
+  assert_false [1].intersect?([1.0])
+  assert_false long_receiver.intersect?([1.0])
+  assert_false long_floats.intersect?([1])
+
+  # `|` already compared with eql? on both paths, and so did the block form of
+  # uniq, which is written over a Hash; they have to keep agreeing with the
+  # operations above rather than contradicting them
+  assert_equal [1, 1.0], [1] | [1.0]
+  assert_equal [1] + pad + [1.0], long_receiver | [1.0]
+  assert_equal [1, 1.0], [1, 1.0].uniq { |x| x }
+
+  # and elements that really are eql? still collapse on the linear paths
+  assert_equal [1.0], [1.0, 1.0].uniq
+  assert_equal [], [1.0] - [1.0]
+  assert_equal [1.0], [1.0] & [1.0]
+  assert_true [1.0].intersect?([1.0])
+end

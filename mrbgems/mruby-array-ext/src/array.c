@@ -513,11 +513,11 @@ ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_va
     int ai = mrb_gc_arena_save(mrb);
     for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
       mrb_value p = RARRAY_PTR(self)[i];
-      mrb_gc_protect(mrb, p); // p may be removed from self by mrb_equal()
+      mrb_gc_protect(mrb, p); // p may be removed from self by mrb_eql()
       mrb_bool found = FALSE;
       for (mrb_int j = 0; j < argc; j++) {
         for (mrb_int k = 0; k < RARRAY_LEN(argv[j]); k++) {
-          if (mrb_equal(mrb, p, RARRAY_PTR(argv[j])[k])) {
+          if (mrb_eql(mrb, p, RARRAY_PTR(argv[j])[k])) {
             found = TRUE;
             break;
           }
@@ -778,13 +778,13 @@ ary_intersection_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mr
     int ai = mrb_gc_arena_save(mrb);
     for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
       mrb_value p = RARRAY_PTR(self)[i];
-      mrb_gc_protect(mrb, p); // p may be removed from self by mrb_equal()
+      mrb_gc_protect(mrb, p); // p may be removed from self by mrb_eql()
       mrb_bool found_in_all = TRUE;
 
       for (mrb_int j = 0; j < argc; j++) {
         mrb_bool found_in_current_other = FALSE;
         for (mrb_int k = 0; k < RARRAY_LEN(argv[j]); k++) {
-          if (mrb_equal(mrb, p, RARRAY_PTR(argv[j])[k])) {
+          if (mrb_eql(mrb, p, RARRAY_PTR(argv[j])[k])) {
             found_in_current_other = TRUE;
             break;
           }
@@ -798,7 +798,7 @@ ary_intersection_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mr
       if (found_in_all) {
         mrb_bool already_added = FALSE;
         for (mrb_int j = 0; j < RARRAY_LEN(result); j++) {
-          if (mrb_equal(mrb, p, RARRAY_PTR(result)[j])) {
+          if (mrb_eql(mrb, p, RARRAY_PTR(result)[j])) {
             already_added = TRUE;
             break;
           }
@@ -936,9 +936,9 @@ ary_intersect_p(mrb_state *mrb, mrb_value self)
     int ai = mrb_gc_arena_save(mrb);
     for (mrb_int i = 0; i < RARRAY_LEN(longer_ary); i++) {
       mrb_value p = RARRAY_PTR(longer_ary)[i];
-      mrb_gc_protect(mrb, p); // p may be removed from longer_ary by mrb_equal()
+      mrb_gc_protect(mrb, p); // p may be removed from longer_ary by mrb_eql()
       for (mrb_int j = 0; j < RARRAY_LEN(shorter_ary); j++) {
-        if (mrb_equal(mrb, p, RARRAY_PTR(shorter_ary)[j])) {
+        if (mrb_eql(mrb, p, RARRAY_PTR(shorter_ary)[j])) {
           return mrb_true_value();
         }
       }
@@ -1168,10 +1168,10 @@ ary_uniq_bang(mrb_state *mrb, mrb_value self)
     int ai = mrb_gc_arena_save(mrb);
     for (mrb_int read_pos = 0; read_pos < RARRAY_LEN(self); read_pos++) {
       mrb_value elem = RARRAY_PTR(self)[read_pos];
-      mrb_gc_protect(mrb, elem); // elem may be removed from self by mrb_equal()
+      mrb_gc_protect(mrb, elem); // elem may be removed from self by mrb_eql()
       mrb_bool found = FALSE;
       for (mrb_int j = 0; j < write_pos && j < RARRAY_LEN(self); j++) {
-        if (mrb_equal(mrb, elem, RARRAY_PTR(self)[j])) {
+        if (mrb_eql(mrb, elem, RARRAY_PTR(self)[j])) {
           found = TRUE;
           break;
         }
