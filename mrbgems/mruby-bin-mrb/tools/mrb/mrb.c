@@ -290,8 +290,23 @@ main(int argc, char **argv)
       cleanup(mrb, &args);
       return EXIT_FAILURE;
     }
-    mrb_load_irep_file(mrb, lfp);
+    v = mrb_load_irep_file(mrb, lfp);
     fclose(lfp);
+    if (mrb->exc) {
+      /* A library that does not load leaves the exception here and nothing
+         else: the program below overwrites it on its first successful run, so
+         without this the failure vanished and the program ran as if the
+         library had been there.  A directory, a truncated file and an
+         ordinary non-irep file all reach this the same way.  Reported the way
+         the program's own failure is below, then fatal: a program whose
+         library is missing is not one to run. */
+      MRB_EXC_CHECK_EXIT(mrb, mrb->exc);
+      if (!mrb_undef_p(v)) {
+        mrb_print_error(mrb);
+      }
+      cleanup(mrb, &args);
+      return EXIT_FAILURE;
+    }
   }
 
   /* Load and execute program (.mrb only) */
