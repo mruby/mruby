@@ -251,6 +251,99 @@ assert('String#reverse! leaves what the bytes read as standing') do
   end
 end
 
+assert('the strip family leaves what the bytes read as standing') do
+  # Whitespace is ASCII, so a cut off either end lands where a character ends,
+  # and what the rest is read as is still the answer. The three keep it rather
+  # than dropping it for the next asker to walk to again; a string already read
+  # as broken is the one they cannot answer for, since a cut is as likely to
+  # have mended it as to have left it broken. Each string below is read once
+  # before the cut, so the answer asked for after it is the kept one.
+  if UTF8STRING
+    a = "  あい  "
+    assert_equal 6, a.length
+    a.strip!
+    assert_equal "あい", a
+    assert_equal 2, a.length
+    assert_true a.valid_encoding?
+
+    b = "\tあ\n"
+    assert_true b.valid_encoding?
+    b.lstrip!
+    assert_equal "あ\n", b
+    assert_equal 2, b.length
+    b.rstrip!
+    assert_equal "あ", b
+    assert_equal 1, b.length
+    assert_true b.valid_encoding?
+
+    # A NUL is whitespace to these three, and an ASCII byte like the rest.
+    c = "\0あ\0"
+    assert_equal 3, c.length
+    c.strip!
+    assert_equal "あ", c
+    assert_equal 1, c.length
+    assert_true c.valid_encoding?
+
+    # Broken before the cut and broken after it: the answer is asked again
+    # rather than kept, and comes back the same.
+    d = " a\xE3\x81 "
+    assert_false d.valid_encoding?
+    d.strip!
+    assert_equal "a\xE3\x81".b, d.b
+    assert_false d.valid_encoding?
+
+    # Nothing to cut is nothing changed, so what the string reads as stands.
+    e = "あ"
+    assert_true e.valid_encoding?
+    assert_nil e.strip!
+    assert_nil e.lstrip!
+    assert_nil e.rstrip!
+    assert_equal 1, e.length
+    assert_true e.valid_encoding?
+  end
+end
+
+assert('String#swapcase! leaves what the bytes read as standing') do
+  # The ASCII loop `swapcase!` falls back to is reached for a string that holds
+  # nothing but ASCII or is read as bytes, and it puts ASCII where ASCII stood.
+  # Where the build has no case tables the loop is the whole of the method, and
+  # a byte above ASCII is no letter to it, so it is left alone there too.
+  if UTF8STRING
+    a = "aB"
+    assert_equal 2, a.length
+    a.swapcase!
+    assert_equal "Ab", a
+    assert_equal 2, a.length
+    assert_true a.valid_encoding?
+
+    b = "\xC3\x84B".b   # the bytes of "Ä", read as bytes
+    b.swapcase!
+    assert_equal [195, 132, 98], b.bytes
+    assert_equal Encoding::BINARY, b.encoding
+    assert_true b.valid_encoding?
+
+    c = "Äb"
+    assert_true c.valid_encoding?
+    c.swapcase!
+    assert_equal 2, c.length
+    assert_true c.valid_encoding?
+    assert_equal(UNICODECASE ? "äB" : "ÄB", c)
+
+    # Bytes that spell no character are the walk's to refuse where it runs at
+    # all; where it does not, the loop finds no letter among them and leaves
+    # the string whole.
+    d = "\xE3\x81"
+    assert_false d.valid_encoding?
+    if UNICODECASE
+      assert_raise(ArgumentError) { d.swapcase! }
+    else
+      assert_nil d.swapcase!
+    end
+    assert_equal "\xE3\x81".b, d.b
+    assert_false d.valid_encoding?
+  end
+end
+
 assert('String#encoding') do
   if UTF8STRING
     a = "あ"

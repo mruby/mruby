@@ -75,7 +75,11 @@ str_swapcase_bang(mrb_state *mrb, mrb_value str)
   int modify = 0;
   struct RString *s = mrb_str_ptr(str);
 
-  mrb_str_modify(mrb, s);
+  /* The loop below swaps ASCII letters and passes every other byte through, so
+     it puts ASCII where ASCII stood and leaves what the bytes read as standing.
+     That holds both where the walk above declined the string and where the
+     build carries no tables for it to walk with. */
+  mrb_str_modify_keep_cr(mrb, s);
   char *p = RSTRING_PTR(str);
   char *pend = p + RSTRING_LEN(str);
   while (p < pend) {
@@ -1892,7 +1896,9 @@ str_lstrip_bang(mrb_state *mrb, mrb_value self)
   mrb_int start = 0;
 
   mrb_check_frozen(mrb, mrb_obj_ptr(self));
-  mrb_str_modify(mrb, s);
+  /* Whitespace is ASCII, so the cut below lands where a character ends and
+     what the rest is read as stands. */
+  mrb_str_modify_keep_cr(mrb, s);
   char *ptr = RSTR_PTR(s);
 
   /* Find first non-whitespace character */
@@ -1937,7 +1943,9 @@ str_rstrip_bang(mrb_state *mrb, mrb_value self)
   mrb_int end = len;
 
   mrb_check_frozen(mrb, mrb_obj_ptr(self));
-  mrb_str_modify(mrb, s);
+  /* Whitespace is ASCII, so the cut below lands where a character ends and
+     what the rest is read as stands. */
+  mrb_str_modify_keep_cr(mrb, s);
   char *ptr = RSTR_PTR(s);
 
   /* Find last non-whitespace character */
@@ -1976,7 +1984,9 @@ str_strip_bang(mrb_state *mrb, mrb_value self)
   mrb_bool changed = FALSE;
 
   mrb_check_frozen(mrb, mrb_obj_ptr(self));
-  mrb_str_modify(mrb, s);
+  /* Whitespace is ASCII, so the cuts below land where a character ends and
+     what the rest is read as stands. */
+  mrb_str_modify_keep_cr(mrb, s);
   char *ptr = RSTR_PTR(s);
 
   /* Find first non-whitespace character */
