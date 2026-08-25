@@ -109,6 +109,31 @@ assert('Range#initialize', '15.2.14.4.9') do
   assert_false d.exclude_end?
 end
 
+assert('Range with a NaN for an end') do
+  # A NaN stands in no order with anything, so a range bounded by one holds
+  # nothing and covers nothing. The pair is refused the way a pair that cannot
+  # be compared at all is, rather than built and left to answer nothing.
+  #
+  # One end alone is no pair, and an end left out is nil rather than a number,
+  # so an endless or beginless range bounded by a NaN is still a range. CRuby
+  # draws the line in the same place.
+  skip unless Object.const_defined?(:Float)
+  nan = Float::NAN
+
+  assert_raise(ArgumentError) { (nan..2) }
+  assert_raise(ArgumentError) { (1..nan) }
+  assert_raise(ArgumentError) { (nan..nan) }
+  assert_raise(ArgumentError) { (nan...2) }
+  assert_raise(ArgumentError) { (1.0..nan) }
+  assert_raise(ArgumentError) { Range.new(nan, 2) }
+
+  assert_predicate((nan..).begin, :nan?)
+  assert_nil((nan..).end)
+  assert_predicate((..nan).end, :nan?)
+  assert_nil((..nan).begin)
+  assert_equal(1.0, (1.0..2.0).begin)      # an ordinary pair is untouched
+end
+
 assert('Range#last', '15.2.14.4.10') do
   assert_equal 10, (1..10).last
   assert_nil (1..).last
