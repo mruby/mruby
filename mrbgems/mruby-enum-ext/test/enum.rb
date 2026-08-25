@@ -232,3 +232,15 @@ assert('Enumerable size arguments reject a redefined converter') do
   assert_raise(TypeError) { (1..9).take(sneaky) }
   assert_equal [1, 2], (1..9).take(2)
 end
+
+assert('Enumerable#minmax - a comparison with no answer') do
+  # The same rule as Enumerable#max and #min, which this walks in one pass.
+  assert_raise(ArgumentError) { [1, 2].minmax { |a, b| nil } }
+
+  if Object.const_defined?(:Float)
+    assert_raise(ArgumentError) { [1.0, Float::NAN, 2.0].minmax }
+  end
+
+  assert_equal [1, 3], [3, 1, 2].minmax
+  assert_equal [1, 3], [3, 1, 2].minmax { |a, b| a <=> b }
+end

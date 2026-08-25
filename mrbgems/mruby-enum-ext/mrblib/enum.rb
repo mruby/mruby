@@ -377,13 +377,14 @@ module Enumerable
         first = false
       else
         val = val.__svalue
-        if block
-          max = val if block.call(val, max) > 0
-          min = val if block.call(val, min) < 0
-        else
-          max = val if (val <=> max) > 0
-          min = val if (val <=> min) < 0
-        end
+        # A comparison with no answer is not an ordering, the same as in
+        # Enumerable#max and #min.
+        cmp = block ? block.call(val, max) : (val <=> max)
+        raise ArgumentError, "comparison of #{val.class} with #{max.class} failed" if cmp.nil?
+        max = val if cmp > 0
+        cmp = block ? block.call(val, min) : (val <=> min)
+        raise ArgumentError, "comparison of #{val.class} with #{min.class} failed" if cmp.nil?
+        min = val if cmp < 0
       end
     end
     [min, max]
