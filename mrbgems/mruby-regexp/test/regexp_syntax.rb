@@ -934,6 +934,29 @@ assert("Regexp - inline options (?i) / (?i:...)") do
   assert_equal 0, (/(a(?i)b)c/ =~ "aBc")
   assert_nil (/(a(?i)b)c/ =~ "aBC")       # trailing `c` is case-sensitive again
 
+  # The rest of the group is the toggle's scope alternatives and all, so
+  # `a(?i)b|c` is `a(?i:b|c)`: the `|` splits inside the scope, not at the
+  # level the toggle was written at, and the `c` still wants the `a` before
+  # it. Without that, an alternative after a toggle matched on its own.
+  assert_nil (/a(?i)b|c/ =~ "c")
+  assert_nil (/a(?i)b|c/ =~ "C")
+  assert_equal 0, (/a(?i)b|c/ =~ "ac")
+  assert_equal 0, (/a(?i)b|c/ =~ "aC")    # and the option reaches that `c`
+  assert_nil (/a(?i)|b/ =~ "b")           # an empty first alternative too
+  assert_nil (/x|a(?i)b|c/ =~ "c")        # a toggle in the second alternative
+  assert_nil (/(a(?i)b|c)d/ =~ "cd")
+  assert_equal 0, (/x(a(?i)b|c)d/ =~ "xacd")
+  assert_equal ["acd", "ac", "d"], /(a(?i)b|c)(d)/.match("acd").to_a
+  assert_equal 0, (/a(?i)b(?m).|c/ =~ "aB\n")  # a toggle within that scope
+  assert_equal 0, (/a(?x) b|c/ =~ "ac")   # x is scoped the same way
+  assert_nil (/a(?x) b|c/ =~ "c")
+
+  # Turning an option off is scoped alike, so the alternative after `(?-i)`
+  # is case-sensitive whether or not the pattern is /i.
+  assert_equal 0, (/a(?-i)b|c/i =~ "ac")
+  assert_nil (/a(?-i)b|c/i =~ "aC")
+  assert_nil (/a(?-i)b|c/i =~ "C")
+
   # m enables dot-matches-newline for its scope.
   assert_equal 0, (/(?m:a.b)/ =~ "a\nb")
   assert_nil (/a.b/ =~ "a\nb")
@@ -1004,6 +1027,10 @@ assert("Regexp - an inline option reaches a lookaround and a backreference") do
   assert_equal 0, (/(a)(?i:\1)/ =~ "aA")
   assert_nil (/(?-i:(a)\1)/i =~ "aA")
   assert_equal 0, (/(?=(?x)a b)ab c/ =~ "ab c")
+  # The sub-pattern is where a toggle inside it ends, so the alternation it
+  # takes in ends there too: this is `(?=a(?i:b|c))`.
+  assert_nil (/(?=a(?i)b|c)/ =~ "c")
+  assert_equal 0, (/(?=a(?i)b|c)/ =~ "aC")
 end
 
 assert("Regexp - comment groups (?#...)") do
@@ -1411,7 +1438,9 @@ assert("Regexp - an empty group takes a quantifier") do
   assert_equal [""], /(?:) * /x.match("").to_a
   # A `{` after it that spells no quantifier is a literal, as after any atom.
   assert_equal ["{a}"], /(?:){a}/.match("{a}").to_a
-  # An option toggle is not an atom: the quantifier after `(?i)` has no target.
+  # A quantifier after `(?i)` has no target: what follows the toggle is its
+  # scope, and the quantifier stands at the beginning of it with no atom
+  # before it.
   assert_raise_with_message(RegexpError,
                             "target of repeat operator is not specified: /(?i)*/") do
     Regexp.new("(?i)*")
