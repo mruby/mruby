@@ -262,3 +262,30 @@ assert('symbol GC keeps a symbol its bytecode has not loaded yet') do
     "mruby_symbol_gc_a,mruby_symbol_gc_b"
   EXP
 end
+
+assert('a -r library that does not load is fatal') do
+  # The library's exception was left on the state and nowhere else, and the
+  # program's first successful run overwrote it, so the failure vanished: a
+  # syntax error printed its diagnostic and carried on, a library that raised
+  # said nothing at all, and both exited 0 with the program's output.  `ruby
+  # -r` exits 1 for each of these.
+  lib = Tempfile.new(['lib', '.rb'])
+
+  File.write(lib.path, "def f(\n")
+  assert_mruby("", /syntax error/, false, ["-r", lib.path, "-e", "puts 1"])
+
+  File.write(lib.path, "raise 'lib boom'\n")
+  assert_mruby("", /lib boom/, false, ["-r", lib.path, "-e", "puts 1"])
+
+  # An .mrb library takes the irep loader instead, which has always raised
+  # for this; only the check that reads the exception was missing.
+  bin = Tempfile.new(['lib', '.mrb'])
+  File.write(bin.path, "not an irep\n")
+  assert_mruby("", /irep load error/, false, ["-r", bin.path, "-e", "puts 1"])
+end
+
+assert('a -r library that loads still runs the program') do
+  lib = Tempfile.new(['lib', '.rb'])
+  File.write(lib.path, "def libfn; 42; end\n")
+  assert_mruby("42\n", "", true, ["-r", lib.path, "-e", "puts libfn"])
+end
