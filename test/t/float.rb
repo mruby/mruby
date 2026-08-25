@@ -124,6 +124,40 @@ assert('Float#==', '15.2.9.3.7') do
   assert_false 3.1 == 3.2
 end
 
+assert('a NaN is equal to nothing at all, itself included') do
+  # `==` answers by value, and a NaN has no value: it is equal to no Float,
+  # its own operand included.
+  #
+  # `Float#==` said so all along. What answered true was the shortcut before
+  # it, which takes two values that hold the same thing for the same object
+  # and an object for equal to itself. How much of a Float an `mrb_value`
+  # holds is what boxing decides, so the shortcut used to answer this pair in
+  # a boxed build and leave it to `Float#==` under `MRB_NO_BOXING`: the same
+  # expression answered true or false depending on how the build stores a
+  # Float.
+  #
+  # `equal?` is left out below for that reason: it is the one caller of the
+  # shortcut that asks for exactly what the shortcut reads, and what it reads
+  # still differs between those builds.
+  nan = Float::NAN
+
+  assert_false(nan == nan)
+  assert_true(nan != nan)
+  assert_false((0.0 / 0.0) == (0.0 / 0.0))
+  assert_false(nan == 0.0 / 0.0)
+  assert_false(nan.__send__(:==, nan))
+  assert_false(nan.eql?(nan))
+  assert_false(nan === nan)                       # case equality is `==` here
+  assert_equal(:miss, case nan when nan then :hit else :miss end)
+
+  # every other pair answers as it did
+  assert_true(1.0 == 1.0)
+  assert_true(1.0 === 1.0)
+  assert_true(0.0 == -0.0)
+  assert_true(Float::INFINITY == Float::INFINITY)
+  assert_equal(:hit, case 1.0 when 1.0 then :hit else :miss end)
+end
+
 assert('Float comparison with an Integer it cannot hold') do
   # A Float keeps fewer significant bits than an mrb_int, so an integer past
   # the significand rounds onto a neighbouring Float when the two are compared

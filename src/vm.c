@@ -3559,6 +3559,7 @@ RETRY_TRY_BLOCK:
 #define OP_CMP_BODY(op,v1,v2) (v1(regs[a]) op v2(regs[a+1]))
 
 #ifdef MRB_NO_FLOAT
+#define value_nan_p(v) FALSE
 #define OP_CMP(op,sym) do {\
   int result;\
   /* need to check if op is overridden */\
@@ -3578,6 +3579,7 @@ RETRY_TRY_BLOCK:
   }\
 } while(0)
 #else
+#define value_nan_p(v) (mrb_float_p(v) && isnan(mrb_float(v)))
 /* The usual arithmetic conversions would round an `mrb_int` wider than the
    significand onto a neighbouring Float, so a mixed pair asks
    `mrb_int_float_cmp()` for the order of the two values themselves. It answers
@@ -3622,7 +3624,16 @@ RETRY_TRY_BLOCK:
 #endif
 
     CASE(OP_EQ, B) {
-      if (mrb_obj_eq(mrb, regs[a], regs[a+1])) {
+      /* Two values that hold the same thing are the same object, and an object
+         is equal to itself. A NaN is the one value that holds for neither: it
+         is equal to nothing at all, its own operand included. What
+         `mrb_obj_eq()` reads is the representation, and a boxing that carries
+         a Float in an `mrb_value` gives a NaN the same one every time, so
+         without the test below `Float::NAN == Float::NAN` answered true in a
+         boxed build and false in `MRB_NO_BOXING`. The pair falls through to
+         the comparison instead, which reads it as numbers and answers false
+         in either. */
+      if (mrb_obj_eq(mrb, regs[a], regs[a+1]) && !value_nan_p(regs[a])) {
         SET_TRUE_VALUE(regs[a]);
       }
       else if (mrb_symbol_p(regs[a])) {

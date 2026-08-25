@@ -128,6 +128,13 @@ mrb_eqq_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value arg = mrb_get_arg1(mrb);
 
+#ifndef MRB_NO_FLOAT
+  /* Case equality is `==` for an Object, and a NaN is equal to nothing at all,
+     itself included. `mrb_equal()` answers a value that holds what the other
+     one holds before it asks `==` anything, which is the answer a container
+     searching for the object it was handed wants, and the wrong one here. */
+  if (mrb_float_p(self) && isnan(mrb_float(self))) return mrb_false_value();
+#endif
   return mrb_bool_value(mrb_equal(mrb, self, arg));
 }
 
