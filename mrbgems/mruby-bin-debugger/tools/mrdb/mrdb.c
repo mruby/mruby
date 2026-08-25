@@ -8,6 +8,7 @@
 #include <ctype.h>
 
 #include <mruby.h>
+#include <mruby/compile.h>
 #include <mruby/dump.h>
 #include <mruby/debug.h>
 #include <mruby/error.h>
@@ -64,7 +65,6 @@ static const debug_command debug_command_list[] = {
   {NULL}
 };
 
-
 static void
 usage(const char *name)
 {
@@ -82,21 +82,6 @@ usage(const char *name)
   while (*p) {
     printf("  %s\n", *p++);
   }
-}
-
-/* A directory opens for reading on POSIX systems and then fails every read
-   with EISDIR, so a stream that opened says nothing about whether it can be
-   read.  One byte tells the two apart without asking the platform what kind
-   of file this is: an empty file reports end-of-file and no error, while a
-   directory raises the error indicator.  The byte is pushed back, so the
-   stream is left where it was found.  (Same probe as `mruby`'s.) */
-static int
-stream_is_unreadable(FILE *file)
-{
-  int c = getc(file);
-  if (c == EOF) return ferror(file) != 0;
-  ungetc(c, file);
-  return 0;
 }
 
 static int
@@ -174,7 +159,7 @@ append_srcpath:
         printf("%s: Cannot open program file. (%s)\n", *origargv, *argv);
         return EXIT_FAILURE;
       }
-      if (stream_is_unreadable(args->rfp)) {
+      if (mrb_stream_is_unreadable(args->rfp)) {
         /* Without this, the failed read is swallowed: mrb_load_file_cxt() and
            mrb_load_irep_file() both answer without raising, so a directory
            argument entered the debugger as an empty program.  The check

@@ -238,7 +238,12 @@ append_from_stdin(mrc_ccontext *c, uint8_t **source, size_t source_length)
    read.  One byte tells the two apart without asking the platform what kind
    of file this is: an empty file reports end-of-file and no error, while a
    directory raises the error indicator.  The byte is pushed back, so the
-   stream is left where it was found. */
+   stream is left where it was found.
+
+   The same probe is exported as mrb_stream_is_unreadable() for callers that
+   have mruby.h.  This file does not: it is the portable mrc layer, built for
+   targets with no mruby core, so it keeps its own copy rather than reach for
+   one. */
 static int
 stream_is_unreadable(FILE *file)
 {

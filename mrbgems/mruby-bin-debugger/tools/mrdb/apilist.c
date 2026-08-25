@@ -36,21 +36,6 @@ source_file_free(mrb_state *mrb, source_file *file)
   }
 }
 
-/* A directory opens for reading on POSIX systems and then fails every read
-   with EISDIR, so a stream that opened says nothing about whether it can be
-   read.  One byte tells the two apart without asking the platform what kind
-   of file this is: an empty file reports end-of-file and no error, while a
-   directory raises the error indicator.  The byte is pushed back, so the
-   stream is left where it was found.  (Same probe as `mruby`'s.) */
-static int
-stream_is_unreadable(FILE *file)
-{
-  int c = getc(file);
-  if (c == EOF) return ferror(file) != 0;
-  ungetc(c, file);
-  return 0;
-}
-
 static char*
 build_path(mrb_state *mrb, const char *dir, const char *base)
 {
@@ -105,7 +90,7 @@ source_file_new(mrb_state *mrb, mrb_debug_context *dbg, char *filename)
     source_file_free(mrb, file);
     return NULL;
   }
-  if (stream_is_unreadable(file->fp)) {
+  if (mrb_stream_is_unreadable(file->fp)) {
     /* A directory answers fopen() and then no read, so show_lines() printed
        nothing and mrb_debug_list() answered OK: `list` was silent where it
        has a message for a file it cannot show.  Refusing it here reaches
@@ -219,7 +204,7 @@ mrb_debug_get_source(mrb_state *mrb, mrdb_state *mrdb, const char *srcpath, cons
       path = NULL;
       continue;
     }
-    if (stream_is_unreadable(fp)) {
+    if (mrb_stream_is_unreadable(fp)) {
       /* fopen() alone is the existence test here, and a directory passes it.
          Taking one for a hit ended the search on a path the lister cannot
          show, hiding a readable source further down the search order. */
