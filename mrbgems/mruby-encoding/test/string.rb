@@ -45,6 +45,104 @@ assert('String#valid_encoding? survives what the string goes through') do
   end
 end
 
+assert('every mutating method leaves an answer the string can stand behind') do
+  # The one rule underneath all of this: after a write, what the string says
+  # about its own bytes is either true of them or UNKNOWN. A write that keeps a
+  # true answer spares the next asker a walk; a write that cannot answer for
+  # what it did has to drop the answer instead. Neither is checkable from
+  # inside the write, so it is checked here, against every method that can
+  # change a receiver: the list is the checklist, and a method missing from it
+  # is a method nothing is asking this of.
+  #
+  # Each case runs the same write twice: once on a string that was read before
+  # it, and once on one that was not. The two have to agree afterwards. Where
+  # the write raises it has to raise on both, and the two are left as they were.
+  if UTF8STRING
+    ops = {
+      "<<"             => ->(s) { s << "\x80" },
+      "concat"         => ->(s) { s.concat("\xC0") },
+      "replace"        => ->(s) { s.replace("\xED\xA0\x80") },
+      "insert"         => ->(s) { s.insert(0, "\xFE") },
+      "prepend"        => ->(s) { s.prepend("\x81") },
+      "[]="            => ->(s) { s[0] = "\xF5" },
+      "sub!"           => ->(s) { s.sub!("あ", "\xE0\x80") },
+      "gsub!"          => ->(s) { s.gsub!("あ", "\xF5") },
+      "chop!"          => ->(s) { s.chop! },
+      "chomp!"         => ->(s) { s.chomp! },
+      "lstrip!"        => ->(s) { s.lstrip! },
+      "rstrip!"        => ->(s) { s.rstrip! },
+      "strip!"         => ->(s) { s.strip! },
+      "upcase!"        => ->(s) { s.upcase! },
+      "downcase!"      => ->(s) { s.downcase! },
+      "capitalize!"    => ->(s) { s.capitalize! },
+      "swapcase!"      => ->(s) { s.swapcase! },
+      "reverse!"       => ->(s) { s.reverse! },
+      "succ!"          => ->(s) { s.succ! },
+      "next!"          => ->(s) { s.next! },
+      "tr!"            => ->(s) { s.tr!("a", "\xE3") },
+      "tr_s!"          => ->(s) { s.tr_s!("a", "\xE3") },
+      "squeeze!"       => ->(s) { s.squeeze! },
+      "delete!"        => ->(s) { s.delete!("a") },
+      "slice!"         => ->(s) { s.slice!(0) },
+      "clear"          => ->(s) { s.clear },
+      # Both cut one byte off an end, which is where a character can be left
+      # standing without its head or its tail.
+      "delete_prefix!" => ->(s) { b = s.bytes.first; s.delete_prefix!(b.chr) if b },
+      "delete_suffix!" => ->(s) { b = s.bytes.last;  s.delete_suffix!(b.chr) if b },
+      # Writes that reach past the core gem. The bitwise pair takes an operand
+      # of the receiver's own width, so it has something to do on every base.
+      "setbyte"        => ->(s) { s.setbyte(0, 0x80) },
+      "bytesplice"     => ->(s) { s.bytesplice(0, 1, "\x80") },
+      "bitwise_and!"   => ->(s) { s.bitwise_and!("\x7f" * s.bytesize) },
+      "bitwise_or!"    => ->(s) { s.bitwise_or!("\x80" * s.bytesize) },
+      "bitwise_xor!"   => ->(s) { s.bitwise_xor!("\xff" * s.bytesize) },
+      "bitwise_not!"   => ->(s) { s.bitwise_not! },
+      # Not a write at all, but it changes what the bytes are read as, which is
+      # the same answer by another route. The round trip is the direction that
+      # can turn a string nothing was wrong with into a broken one.
+      "force_encoding" => ->(s) { s.force_encoding("BINARY") },
+      "force_encoding back" =>
+                          ->(s) { s.force_encoding("BINARY"); s.force_encoding("UTF-8") },
+    }
+    # Valid and broken, ASCII and not, with the whitespace and the repetition
+    # that make each write above find something to do.
+    bases = ["あ", "あa", "aあ", "  あ  ", "\tあ\n", "\0あ\0", "あ" * 40,
+             "abc", "a" * 40, "  abc  ", "",
+             "\x80", "a\x80b", "\xE3\x81", "\xED\xA0\x80"]
+    # Two readings, because they leave different answers behind: the walk
+    # settles on VALID or BROKEN, while counting marks only 7BIT.
+    reads = [->(s) { s.valid_encoding? }, ->(s) { s.length }]
+
+    # The list above is only a checklist while something keeps it honest. A
+    # method whose name ends in `!` changes its receiver, so one the build
+    # carries and the list does not name is one nothing is asking this of,
+    # which is how `delete_prefix!` and `delete_suffix!` stayed broken. The
+    # writes that do not announce themselves in their name (`<<`, `setbyte`,
+    # `force_encoding` and the rest above) still have to be added by hand.
+    untested = String.instance_methods.map { |m| m.to_s }
+                     .select { |m| m.end_with?("!") && m != "!" && !ops[m] }
+    assert_equal [], untested.sort, "String methods that change a receiver with no case here"
+
+    ops.each do |name, op|
+      bases.each do |base|
+        reads.each do |read|
+          warm = base.dup
+          read.call(warm)                       # remember an answer first
+          wraised = (begin; op.call(warm); nil; rescue => e; e.class; end)
+          cold = base.dup
+          craised = (begin; op.call(cold); nil; rescue => e; e.class; end)
+          where = "#{name} on #{base.inspect}"
+          assert_equal craised, wraised, where
+          next if wraised
+          assert_equal cold.bytes, warm.bytes, where
+          assert_equal cold.valid_encoding?, warm.valid_encoding?, where
+          assert_equal cold.length, warm.length, where
+        end
+      end
+    end
+  end
+end
+
 assert('String#valid_encoding? after an append inside a shared buffer') do
   # An append to a string sharing a buffer with room to spare writes in place
   # rather than detaching, and that path forgets the remembered answer on its
@@ -248,6 +346,163 @@ assert('String#reverse! leaves what the bytes read as standing') do
     assert_equal "\xC2\x80".b, d.b
     assert_equal 1, d.length
     assert_true d.valid_encoding?
+  end
+end
+
+assert('the strip family leaves what the bytes read as standing') do
+  # Whitespace is ASCII, so a cut off either end lands where a character ends,
+  # and what the rest is read as is still the answer. The three keep it rather
+  # than dropping it for the next asker to walk to again; a string already read
+  # as broken is the one they cannot answer for, since a cut is as likely to
+  # have mended it as to have left it broken. Each string below is read once
+  # before the cut, so the answer asked for after it is the kept one.
+  if UTF8STRING
+    a = "  あい  "
+    assert_equal 6, a.length
+    a.strip!
+    assert_equal "あい", a
+    assert_equal 2, a.length
+    assert_true a.valid_encoding?
+
+    b = "\tあ\n"
+    assert_true b.valid_encoding?
+    b.lstrip!
+    assert_equal "あ\n", b
+    assert_equal 2, b.length
+    b.rstrip!
+    assert_equal "あ", b
+    assert_equal 1, b.length
+    assert_true b.valid_encoding?
+
+    # A NUL is whitespace to these three, and an ASCII byte like the rest.
+    c = "\0あ\0"
+    assert_equal 3, c.length
+    c.strip!
+    assert_equal "あ", c
+    assert_equal 1, c.length
+    assert_true c.valid_encoding?
+
+    # Broken before the cut and broken after it: the answer is asked again
+    # rather than kept, and comes back the same.
+    d = " a\xE3\x81 "
+    assert_false d.valid_encoding?
+    d.strip!
+    assert_equal "a\xE3\x81".b, d.b
+    assert_false d.valid_encoding?
+
+    # Nothing to cut is nothing changed, so what the string reads as stands.
+    e = "あ"
+    assert_true e.valid_encoding?
+    assert_nil e.strip!
+    assert_nil e.lstrip!
+    assert_nil e.rstrip!
+    assert_equal 1, e.length
+    assert_true e.valid_encoding?
+  end
+end
+
+assert('String#swapcase! leaves what the bytes read as standing') do
+  # The ASCII loop `swapcase!` falls back to is reached for a string that holds
+  # nothing but ASCII or is read as bytes, and it puts ASCII where ASCII stood.
+  # Where the build has no case tables the loop is the whole of the method, and
+  # a byte above ASCII is no letter to it, so it is left alone there too.
+  if UTF8STRING
+    a = "aB"
+    assert_equal 2, a.length
+    a.swapcase!
+    assert_equal "Ab", a
+    assert_equal 2, a.length
+    assert_true a.valid_encoding?
+
+    b = "\xC3\x84B".b   # the bytes of "Ä", read as bytes
+    b.swapcase!
+    assert_equal [195, 132, 98], b.bytes
+    assert_equal Encoding::BINARY, b.encoding
+    assert_true b.valid_encoding?
+
+    c = "Äb"
+    assert_true c.valid_encoding?
+    c.swapcase!
+    assert_equal 2, c.length
+    assert_true c.valid_encoding?
+    assert_equal(UNICODECASE ? "äB" : "ÄB", c)
+
+    # Bytes that spell no character are the walk's to refuse where it runs at
+    # all; where it does not, the loop finds no letter among them and leaves
+    # the string whole.
+    d = "\xE3\x81"
+    assert_false d.valid_encoding?
+    if UNICODECASE
+      assert_raise(ArgumentError) { d.swapcase! }
+    else
+      assert_nil d.swapcase!
+    end
+    assert_equal "\xE3\x81".b, d.b
+    assert_false d.valid_encoding?
+  end
+end
+
+assert('the prefix and suffix cuts ask again about the bytes they break') do
+  # `delete_prefix!` and `delete_suffix!` match by their bytes with nothing
+  # asked about where characters end, so either can cut a character in two and
+  # leave its head or its tail standing on its own. Where the cut lands on a
+  # byte that begins a character it leaves whole characters on both sides and
+  # what the rest is read as still stands; where it lands inside one, the
+  # answer has to be asked again. Each string below is read once before the
+  # cut, so the answer asked for after it is the one the cut left behind.
+  if UTF8STRING
+    a = "あ"
+    assert_true a.valid_encoding?
+    a.delete_suffix!("\x82")   # cuts one byte off a three-byte character
+    assert_equal "\xE3\x81".b, a.b
+    assert_false a.valid_encoding?
+
+    b = "あ"
+    assert_true b.valid_encoding?
+    b.delete_prefix!("\xE3")
+    assert_equal "\x81\x82".b, b.b
+    assert_false b.valid_encoding?
+
+    # The same cut on the branch that slides the start of a shared buffer,
+    # which writes no byte and so reaches no write helper of its own.
+    base = "あ" * 100
+    c = base.dup
+    assert_true c.valid_encoding?
+    c.delete_prefix!("\xE3")
+    assert_false c.valid_encoding?
+    assert_true base.valid_encoding?
+
+    # A cut landing where a character begins leaves the answer standing, and
+    # the answer it leaves is the right one.
+    d = "あい"
+    assert_true d.valid_encoding?
+    d.delete_prefix!("あ")
+    assert_equal "い", d
+    assert_equal 1, d.length
+    assert_true d.valid_encoding?
+
+    e = "あ\n"
+    assert_true e.valid_encoding?
+    e.delete_suffix!("\n")
+    assert_equal "あ", e
+    assert_equal 1, e.length
+    assert_true e.valid_encoding?
+
+    # A string already read as broken is the one neither can answer for, since
+    # a cut is as likely to have mended it as to have left it broken.
+    f = "\xE3\x81あ"
+    assert_false f.valid_encoding?
+    f.delete_prefix!("\xE3\x81")
+    assert_equal "あ", f
+    assert_true f.valid_encoding?
+
+    # Nothing matched is nothing cut, so what the string reads as stands.
+    g = "あ"
+    assert_true g.valid_encoding?
+    assert_nil g.delete_prefix!("\x82")
+    assert_nil g.delete_suffix!("\xE3")
+    assert_equal 1, g.length
+    assert_true g.valid_encoding?
   end
 end
 

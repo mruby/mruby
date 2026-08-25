@@ -199,7 +199,7 @@ end
 
 assert('String#swapcase! - a frozen receiver') do
   skip unless UNICODECASE
-  # The Unicode walk raises from inside str_modify_keep_cr(), the same site
+  # The Unicode walk raises from inside mrb_str_modify_keep_cr(), the same site
   # String#downcase! raises from, before the ASCII loop str_swapcase_bang
   # otherwise runs.
   assert_raise(FrozenError) { "Ä".freeze.swapcase! }
