@@ -46,7 +46,8 @@ assert('a float literal under MRB_NO_FLOAT is read as 0 with a warning') do
   result, status = Open3.capture2e(*(cmd_list('mrbc') + ['-v', '-o', out.path, a.path]))
   assert_equal 0, status.exitstatus
   assert_include result, "#{a.path}:2:3: generator warning, floating-point numbers are not supported"
-  compiled, = Open3.capture2(*(cmd_list('mruby') + ['-b', out.path]))
+  compiled, status = Open3.capture2(*(cmd_list('mruby') + ['-b', out.path]))
+  assert_true status.success?, 'mruby did not run the compiled program'
   assert_equal "0\n", compiled
 end
 
@@ -101,8 +102,12 @@ assert('mrbc -v disassembles like mruby -v') do
   end
 
   # capture2 takes stdout only, which is where both write the disassembly.
-  from_mrbc = clean.call(Open3.capture2(*(cmd_list('mrbc') + ['-v', '-o', out.path, a.path]))[0])
-  from_mruby = clean.call(Open3.capture2(*(cmd_list('mruby') + ['-v', '-c', a.path]))[0])
+  mrbc_out, mrbc_status = Open3.capture2(*(cmd_list('mrbc') + ['-v', '-o', out.path, a.path]))
+  mruby_out, mruby_status = Open3.capture2(*(cmd_list('mruby') + ['-v', '-c', a.path]))
+  assert_true mrbc_status.success?, 'mrbc -v did not run'
+  assert_true mruby_status.success?, 'mruby -v -c did not run'
+  from_mrbc = clean.call(mrbc_out)
+  from_mruby = clean.call(mruby_out)
 
   assert_false from_mrbc.empty?, 'mrbc -v produced no disassembly'
   assert_equal from_mruby, from_mrbc
