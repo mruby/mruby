@@ -966,3 +966,51 @@ assert('Array set operations compare with eql? on both sides of the hash thresho
   assert_equal [1.0], [1.0] & [1.0]
   assert_true [1.0].intersect?([1.0])
 end
+
+assert('Array#max, #min - the walk made in C') do
+  # Without a block the walk is made in C rather than through Enumerable#max,
+  # so every answer the Ruby walk gave has to survive the move.
+  assert_nil [].max
+  assert_nil [].min
+  assert_equal 5, [5].max          # one element is never compared
+  assert_equal 5, [5].min
+  assert_equal 3, [3, 1, 2].max
+  assert_equal 1, [3, 1, 2].min
+  assert_equal "b", ["a", "b"].max
+  assert_equal "a", ["a", "b"].min
+
+  # a tie is answered by the element that came first, as `cmp > 0` decided.
+  # Under MRB_NO_FLOAT the literal below is Integer 0, not a tie at all.
+  if Object.const_defined?(:Float)
+    a = [1, 1.0]
+    assert_true 1.eql?(a.max) && 1.eql?(a.min)
+  end
+
+  # the block form is still Enumerable#max, reached through super
+  assert_equal 1, [3, 1, 2].max {|x, y| y <=> x }
+  assert_equal 3, [3, 1, 2].min {|x, y| y <=> x }
+
+  # a pair that stands in no order is refused the same way either side
+  assert_raise(ArgumentError) { [1, "a"].max }
+  assert_raise(ArgumentError) { [1, "a"].min }
+  assert_raise(ArgumentError) { [1, "a"].max {|x, y| x <=> y } }
+  if Object.const_defined?(:Float)
+    assert_raise(ArgumentError) { [1.0, Float::NAN, 2.0].max }
+    assert_raise(ArgumentError) { [1.0, Float::NAN, 2.0].min }
+  end
+end
+
+assert('Array#max, #min - a comparison that runs Ruby') do
+  # `<=>` can run Ruby, which can empty the array being walked or grow it.
+  # The C walk reads the length and the element afresh each time round.
+  cls = Class.new do
+    include Comparable
+    def initialize(v, a); @v = v; @a = a; end
+    attr_reader :v
+    def <=>(o); @a.clear; @v <=> o.v; end
+  end
+  a = []
+  3.times {|i| a << cls.new(i, a) }
+  assert_kind_of cls, a.max
+  assert_equal 0, a.size
+end

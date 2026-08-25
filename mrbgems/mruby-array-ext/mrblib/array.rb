@@ -683,6 +683,39 @@ class Array
   #    [1, 2, 3, 4].find { |x| x > 10 }       #=> nil
   #    [1, 2, 3, 4].find(->{0}) { |x| x > 10 } #=> 0
   #
+  ##
+  # call-seq:
+  #   array.max -> element
+  #   array.max {|a, b| ... } -> element
+  #
+  # Returns the element of `self` that no other element is greater than.
+  #
+  # This is an optimized version of Enumerable#max for arrays: without a block
+  # the walk is made in C, where an Integer, a Float and a String are compared
+  # without a `<=>` send, as they are by Array#sort.
+  #
+  #    [3, 1, 2].max                    #=> 3
+  #    [3, 1, 2].max {|a, b| b <=> a }  #=> 1
+  #
+  def max(&block)
+    block ? super : __max
+  end
+
+  ##
+  # call-seq:
+  #   array.min -> element
+  #   array.min {|a, b| ... } -> element
+  #
+  # Returns the element of `self` that no other element is less than.
+  # See Array#max for how the two forms are walked.
+  #
+  #    [3, 1, 2].min                    #=> 1
+  #    [3, 1, 2].min {|a, b| b <=> a }  #=> 3
+  #
+  def min(&block)
+    block ? super : __min
+  end
+
   def find(ifnone=nil, &block)
     return to_enum(:find, ifnone) unless block
 

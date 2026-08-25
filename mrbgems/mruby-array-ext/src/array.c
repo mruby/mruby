@@ -1731,6 +1731,52 @@ ary_combination_next(mrb_state *mrb, mrb_value self)
 }
 
 /* ---------------------------*/
+
+/* `Enumerable#max` and `#min` reach an element through a call to `each`, a
+   block call and a `__svalue` send, then compare it with a `<=>` send. An
+   Array is walked in place instead, and `mrb_cmp()` answers for an Integer, a
+   Float and a String without a send at all, as `Array#sort` already does. */
+static mrb_int
+ary_cmp_ordered(mrb_state *mrb, mrb_value a, mrb_value b)
+{
+  mrb_int cmp = mrb_cmp(mrb, a, b);
+  if (cmp == -2) {
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "comparison of %T with %T failed", a, b);
+  }
+  return cmp;
+}
+
+/* `<=>` can run Ruby, which can grow the array, shrink it or drop the element
+   held as the answer so far, so the length and the element are read afresh
+   each time round and the answer is kept in the arena. */
+static mrb_value
+ary_max_min(mrb_state *mrb, mrb_value self, mrb_int want)
+{
+  if (RARRAY_LEN(self) == 0) return mrb_nil_value();
+
+  mrb_value result = RARRAY_PTR(self)[0];
+  int ai = mrb_gc_arena_save(mrb);
+  for (mrb_int i = 1; i < RARRAY_LEN(self); i++) {
+    mrb_value val = RARRAY_PTR(self)[i];
+    if (ary_cmp_ordered(mrb, val, result) == want) result = val;
+    mrb_gc_arena_restore(mrb, ai);
+    mrb_gc_protect(mrb, result);
+  }
+  return result;
+}
+
+static mrb_value
+ary_max(mrb_state *mrb, mrb_value self)
+{
+  return ary_max_min(mrb, self, 1);
+}
+
+static mrb_value
+ary_min(mrb_state *mrb, mrb_value self)
+{
+  return ary_max_min(mrb, self, -1);
+}
+
 static const mrb_mt_entry array_ext_rom_entries[] = {
   MRB_MT_ENTRY(ary_assoc,              MRB_SYM(assoc),              MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(ary_at,                 MRB_SYM(at),                 MRB_ARGS_REQ(1)),
@@ -1762,6 +1808,8 @@ static const mrb_mt_entry array_ext_rom_entries[] = {
   MRB_MT_ENTRY(ary_product_next,       MRB_SYM(__product_next),     MRB_ARGS_REQ(2)),
   MRB_MT_ENTRY(ary_combination_init,   MRB_SYM(__combination_init), MRB_ARGS_REQ(2)),
   MRB_MT_ENTRY(ary_combination_next,   MRB_SYM(__combination_next), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(ary_max,                MRB_SYM(__max),              MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(ary_min,                MRB_SYM(__min),              MRB_ARGS_NONE()),
 };
 
 void
