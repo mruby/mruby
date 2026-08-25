@@ -86,6 +86,23 @@ assert("Array#uniq") do
   assert_equal [["student", "sam"], ["teacher", "matz"]], b.uniq { |s| s.first }
 end
 
+assert("Array#uniq and Array#- with a NaN") do
+  # A NaN is equal to no value, its own included, so neither can find one by
+  # what it is equal to; both search for the object instead, and every NaN made
+  # is one of its own, so that two made apart are two objects.
+  skip unless Object.const_defined?(:Float)
+  z = [0.0][0]
+  a = z / z
+  b = z / z
+
+  assert_equal 1, [a, a].uniq.size
+  assert_equal 2, [a, b].uniq.size
+  assert_equal 0, ([a] - [a]).size
+  assert_equal 1, ([a] - [b]).size
+  assert_equal 1, ([a] & [a]).size
+  assert_equal 0, ([a] & [b]).size
+end
+
 assert("Array#-") do
   # Test basic functionality
   a = [1, 2, 3, 1]

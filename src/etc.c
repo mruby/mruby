@@ -95,6 +95,18 @@ mrb_obj_to_sym(mrb_state *mrb, mrb_value name)
   return 0;  /* not reached */
 }
 
+#if !defined(MRB_NO_FLOAT) && !defined(MRB_WORD_BOXING)
+/*
+ * Hands out the count that tells one NaN from the next. See the comment above
+ * `MRB_NAN_SERIAL_MAX` in `mruby/value.h`.
+ */
+MRB_API uint64_t
+mrb_nan_serial_next(mrb_state *mrb)
+{
+  return mrb->nan_serial++;
+}
+#endif
+
 #if !defined(MRB_NO_FLOAT) && !defined(MRB_NAN_BOXING)
 static mrb_int
 mrb_float_id(mrb_float f)
@@ -185,6 +197,8 @@ mrb_obj_id(mrb_value obj)
  * - 64-bit float64: rotation encoding, lossless for exponents [-255, +256].
  * - 32-bit float32: rotation encoding, lossless for exponents [-32, +31].
  *   Floats outside the inline range are heap-allocated as RFloat.
+ * A NaN is heap-allocated whatever the width, being the one float that has to
+ * be told from another of the same value.
  */
 
 #if !defined(MRB_WORDBOX_NO_INLINE_FLOAT) && \
@@ -197,7 +211,7 @@ mrb_obj_id(mrb_value obj)
  *         2 bits == 10 (WORDBOX_FLOAT_FLAG).
  * Decode: rotl(tagged_value, N-3) + ADDEND recovers the original bits.
  *
- * Special values (0.0, -0.0, +Inf, -Inf, NaN) are encoded as small
+ * Special values (0.0, -0.0, +Inf, -Inf) are encoded as small
  * sentinel constants that also have bottom 2 bits == 10.  This avoids
  * heap allocation for these common values.
  */
@@ -208,8 +222,13 @@ mrb_obj_id(mrb_value obj)
 #define WORDBOX_FLOAT_NZERO       0x06  /* -0.0 */
 #define WORDBOX_FLOAT_PINF        0x0a  /* +Infinity */
 #define WORDBOX_FLOAT_NINF        0x0e  /* -Infinity */
-#define WORDBOX_FLOAT_NAN         0x12  /* NaN (all NaN bit patterns normalize to this) */
-#define WORDBOX_FLOAT_SENTINEL_MAX  WORDBOX_FLOAT_NAN
+/* A NaN gets no sentinel of its own. It is equal to nothing at all, its own
+   operand included, so `==` can never find one and a container searching for
+   the NaN it holds has only the object to go by. A NaN therefore takes the
+   heap, where the object it is answers for it and two of them are never one.
+   Every float a sentinel does stand for is equal to itself, so one word does
+   for all the copies of it there will ever be. */
+#define WORDBOX_FLOAT_SENTINEL_MAX WORDBOX_FLOAT_NINF
 
 #if defined(MRB_USE_FLOAT32) && !defined(MRB_64BIT)
 /*
@@ -291,9 +310,18 @@ mrb_word_boxing_float_value(mrb_state *mrb, mrb_float f)
   mrb_rfloat_set(v.fp, f);
   v.bp->frozen = 1;
 #elif defined(MRB_64BIT) && defined(MRB_USE_FLOAT32)
-  v.w = 0;
-  v.f = f;
-  v.w = (v.w<<2) | 2;
+  if (f != f) {
+    /* a NaN is the object it is, and a word holding the whole float has
+       nothing left to tell one from another with */
+    v.p = mrb_obj_alloc(mrb, MRB_TT_FLOAT, mrb->float_class);
+    mrb_rfloat_set(v.fp, f);
+    v.bp->frozen = 1;
+  }
+  else {
+    v.w = 0;
+    v.f = f;
+    v.w = (v.w<<2) | 2;
+  }
 #elif defined(MRB_64BIT)
   {
     uint64_t bits = wordbox_float64_to_u64((double)f);
@@ -313,7 +341,7 @@ mrb_word_boxing_float_value(mrb_state *mrb, mrb_float f)
       else if (bits == UINT64_C(0xFFF0000000000000))
         v.w = WORDBOX_FLOAT_NINF;
       else
-        v.w = WORDBOX_FLOAT_NAN;
+        goto float_heap;  /* a NaN is the object it is; see the sentinels */
     }
     else if (exp >= WORDBOX_FLOAT_EXP_MIN && exp <= WORDBOX_FLOAT_EXP_MAX) {
       uintptr_t w = (uintptr_t)wordbox_rotl64(bits - WORDBOX_FLOAT_ADDEND, WORDBOX_FLOAT_ROTATE);
@@ -347,7 +375,7 @@ mrb_word_boxing_float_value(mrb_state *mrb, mrb_float f)
       else if (bits == 0xFF800000u)
         v.w = WORDBOX_FLOAT_NINF;
       else
-        v.w = WORDBOX_FLOAT_NAN;
+        goto float_heap;  /* a NaN is the object it is; see the sentinels */
     }
     else if (exp >= WORDBOX_FLOAT32_EXP_MIN && exp <= WORDBOX_FLOAT32_EXP_MAX) {
       uintptr_t w = (uintptr_t)wordbox_rotl32(bits - WORDBOX_FLOAT32_ADDEND, WORDBOX_FLOAT_ROTATE);
@@ -379,8 +407,11 @@ mrb_word_boxing_value_float(mrb_value v)
 #if defined(MRB_64BIT) && defined(MRB_USE_FLOAT32)
   union mrb_value_ u;
   u.value = v;
-  u.w >>= 2;
-  return u.f;
+  if ((v.w & WORDBOX_FLOAT_MASK) == WORDBOX_FLOAT_FLAG) {
+    u.w >>= 2;
+    return u.f;
+  }
+  return mrb_rfloat_value(u.fp);
 #elif defined(MRB_64BIT)
   if ((v.w & WORDBOX_FLOAT_MASK) == WORDBOX_FLOAT_FLAG) {
     if (v.w <= WORDBOX_FLOAT_SENTINEL_MAX) {
@@ -389,7 +420,6 @@ mrb_word_boxing_value_float(mrb_value v)
       case WORDBOX_FLOAT_NZERO: return (mrb_float)(-0.0);
       case WORDBOX_FLOAT_PINF:  return (mrb_float)( INFINITY);
       case WORDBOX_FLOAT_NINF:  return (mrb_float)(-INFINITY);
-      case WORDBOX_FLOAT_NAN:   return (mrb_float)  NAN;
       default: break;  /* not reached */
       }
     }
@@ -410,7 +440,6 @@ mrb_word_boxing_value_float(mrb_value v)
       case WORDBOX_FLOAT_NZERO: return (mrb_float)(-0.0f);
       case WORDBOX_FLOAT_PINF:  return (mrb_float)( INFINITY);
       case WORDBOX_FLOAT_NINF:  return (mrb_float)(-INFINITY);
-      case WORDBOX_FLOAT_NAN:   return (mrb_float)  NAN;
       default: break;  /* not reached */
       }
     }
