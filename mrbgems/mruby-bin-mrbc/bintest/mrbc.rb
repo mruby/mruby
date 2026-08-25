@@ -122,9 +122,12 @@ assert('non-seekable input file is rejected by size, not blamed on the read') do
   a.flush
 
   # The one command here that a shell has to read: what is under test is what
-  # arrives through a pipe, and the pipeline is the shell's to build.  The
-  # path is quoted for it.
-  result = `cat #{shellquote(a.path)} | #{cmd('mrbc')} -c /dev/stdin 2>&1`
+  # arrives through a pipe, and the pipeline is the shell's to build.  Both
+  # halves are quoted for it, the command included: `cmd_list()` can hold a
+  # build directory or an emulator argument with a space in it, and joining
+  # that with spaces is what hands the shell the wrong words.
+  mrbc = Shellwords.join(cmd_list('mrbc'))
+  result = `cat #{shellquote(a.path)} | #{mrbc} -c /dev/stdin 2>&1`
   assert_equal 1, $?.exitstatus
   assert_include result, 'compile.c: cannot get size of program file. (/dev/stdin)'
   assert_not_include result, 'cannot read program file'
