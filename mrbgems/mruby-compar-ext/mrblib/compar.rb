@@ -63,11 +63,15 @@ module Comparable
 
     unless min.nil?
       cmp = self <=> min
+      # The bounds were put in order above; the receiver still has to stand in
+      # one with them, and a NaN receiver stands in none.
+      raise ArgumentError, "comparison of #{self.class} with #{min.class} failed" if cmp.nil?
       return self if cmp == 0
       return min if cmp < 0
     end
     unless max.nil?
       cmp = self <=> max
+      raise ArgumentError, "comparison of #{self.class} with #{max.class} failed" if cmp.nil?
       return max if cmp > 0
     end
     return self
