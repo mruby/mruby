@@ -343,6 +343,30 @@ conf.defines << 'MRUBY_REVISION=\"0123456789\"'
 conf.defines << 'MRUBY_FULL_REVISION=\"0123456789abcdef0123456789abcdef01234567\"'
 ```
 
+## Platform name
+
+`MRUBY_PLATFORM`
+
+- The name of the platform the built binary runs on, in the `cpu-os` form
+  CRuby's `RUBY_PLATFORM` uses: `x86_64-linux`, `arm64-darwin`,
+  `x64-mingw-ucrt`. It is what the `MRUBY_PLATFORM` global constant carries.
+- The default is read from the compiler's own predefined macros, so a cross
+  build names its target rather than the machine that ran the build. A target
+  the detection does not know reports `unknown` for the CPU half; one with no
+  operating system under it (bare metal, or an RTOS the compiler does not
+  announce) reports `none`, as a triple would (`arm-none`, `xtensa-none`).
+- Define this to name the platform outright. The value is a C string literal,
+  so its quotes have to reach the compiler:
+
+```ruby
+conf.defines << 'MRUBY_PLATFORM=\"esp32-freertos\"'
+```
+
+`MRUBY_PLATFORM_CPU`, `MRUBY_PLATFORM_OS`
+
+- The two halves `MRUBY_PLATFORM` is built from. Define either one, the same
+  way, to correct one half and leave the other to the detection.
+
 ## Tuning profiles
 
 Predefined profiles adjust several macros together for specific
