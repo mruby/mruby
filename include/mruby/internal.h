@@ -237,6 +237,26 @@ mrb_bool mrb_str_beg_len(mrb_int str_len, mrb_int *begp, mrb_int *lenp);
 mrb_value mrb_str_byte_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len);
 mrb_value mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value idx, mrb_value len);
 void mrb_str_aset(mrb_state *mrb, mrb_value str, mrb_value idx, mrb_value len, mrb_value replace);
+
+/* mrb_str_modify() for a caller whose write leaves what the bytes read as
+   standing: it puts ASCII where ASCII stood, or it cuts where a character
+   ends. The next asker is then spared the walk that would arrive at the
+   answer the string already carries. The promise cannot be checked from
+   inside, which is why this is here rather than in mruby/string.h: a caller
+   that cannot answer for its write wants mrb_str_modify(). */
+#ifdef MRB_UTF8_STRING
+/* See the definition in string.c for what a string read as broken is asked
+   again about. */
+void mrb_str_modify_keep_cr(mrb_state *mrb, struct RString *s);
+#else
+/* A build that indexes by byte records nothing about the bytes, so there is
+   nothing here to keep and this is mrb_str_modify() itself. Naming it rather
+   than compiling a second body of it leaves such a build the size it was,
+   while the callers that reach both builds go on spelling the promise they
+   make. */
+#define mrb_str_modify_keep_cr(mrb, s) mrb_str_modify(mrb, s)
+#endif
+
 mrb_bool mrb_strcasecmp_p(const char *s1, mrb_int len1, const char *s2, mrb_int len2);
 #define MRB_STR_CASECMP_P(str, lit) \
   mrb_strcasecmp_p(RSTRING_PTR(str), RSTRING_LEN(str), lit, sizeof(lit"")-1)
