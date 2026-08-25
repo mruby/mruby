@@ -268,6 +268,57 @@ assert("Regexp - a backreference reads no group the running iteration reopened")
   assert_equal ["x", "", "x"], /((x|\2b)?)*/.match("xb").to_a
 end
 
+assert("Regexp - a pattern nested past the parse depth limit raises") do
+  # The parser recurses once per nesting level, so a deep enough pattern used
+  # to reach the end of the C stack, which is a crash and not an error:
+  # `(?:` x 50000 was a SIGSEGV. MRB_REGEXP_PARSE_DEPTH_LIMIT bounds it, and
+  # CRuby's message for the same refusal is the one raised here.
+  #
+  # A nesting the guard must not refuse: the count has to leave a pattern
+  # inside the limit alone, and a deep one it accepts has to still match. The
+  # depth comes from the build's own limit, since a build may set one below
+  # any figure written here.
+  limit = Regexp::PARSE_DEPTH_LIMIT
+  inside = limit > 200 ? 200 : limit - 1
+  if inside > 0
+    assert_equal 0, (Regexp.new("(?:" * inside + "a" + ")" * inside) =~ "a")
+    assert_equal 0, (Regexp.new("(?i)" * inside + "a") =~ "A")
+  end
+
+  # The refusal itself is sized from `Regexp::PARSE_DEPTH_LIMIT`, which reads
+  # back what the build set. Reaching it costs the stack the limit stands for:
+  # the count is checked at the bottom of the recursion, so a pattern past the
+  # limit descends to it before being refused, and asking a build with a high
+  # limit to do that here would spend a megabyte or more of C stack -- the
+  # very thing the limit exists to keep a pattern from doing. Such a build is
+  # left out rather than have the assertion crash it; the default is
+  # CRuby-exact and so is one of them, and a build that sets the limit to what
+  # a smaller stack can pay for is where this runs.
+  if limit > 512
+    skip "reaching this build's parse depth limit costs more C stack than a test may spend"
+  end
+
+  # Every construct that opens a level is asked, an inline toggle among them:
+  # it encloses the rest of the group it stands in, so it is a level of its
+  # own, and CRuby counts it as one too.
+  fits = limit - 1
+  assert_equal 0, (Regexp.new("(?:" * fits + "a" + ")" * fits) =~ "a")
+  assert_equal 0, (Regexp.new("(?i)" * fits + "a") =~ "A")
+
+  [
+    ["(?:" * limit + "a" + ")" * limit, "a plain group"],
+    ["(?i)" * limit + "a",              "an option toggle"],
+    ["(?i:" * limit + "a" + ")" * limit, "a scoped option group"],
+    ["(?=" * limit + "a" + ")" * limit, "a lookahead"],
+    ["(?>" * limit + "a" + ")" * limit, "an atomic group"],
+  ].each do |pattern, what|
+    assert_raise_with_message(RegexpError,
+                              "parse depth limit over: /#{pattern}/", what) do
+      Regexp.new(pattern)
+    end
+  end
+end
+
 assert("Regexp - the backtracking engine raises at a limit rather than answer short") do
   need_backtracking_stack
   # A search gives up at MRB_REGEXP_STACK_LIMIT or MRB_REGEXP_STEP_LIMIT,

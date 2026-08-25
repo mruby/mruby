@@ -72,6 +72,9 @@ typedef struct {
   uint32_t literal_cp[RE_MAX_CLASSES];  /* by class id: the codepoint whose
                                /i literal the class stands for, 0 for a class
                                made by anything else; see literal_class() */
+  uint32_t depth;           /* nesting levels open at the parse point, one per
+                               compile_alt() frame on the C stack; bounded by
+                               MRB_REGEXP_PARSE_DEPTH_LIMIT */
 } re_compiler;
 
 static void compile_alt(re_compiler *c);  /* forward */
@@ -2279,7 +2282,7 @@ compile_seq(re_compiler *c)
 
 /* Compile alternation: seq | seq | ... */
 static void
-compile_alt(re_compiler *c)
+compile_alt_body(re_compiler *c)
 {
   uint32_t alt_start = c->code_len;
   compile_seq(c);
@@ -2340,6 +2343,23 @@ compile_alt(re_compiler *c)
     c->pat->code[jmp_pos].op = RE_JMP;
     c->pat->code[jmp_pos].offset = (uint16_t)end;
   }
+}
+
+/* Bound the parser's own recursion. Every nesting level it descends into is
+   one compile_alt() frame -- compile_alt -> compile_seq -> compile_quantified
+   -> compile_atom, whose group, lookaround, atomic and inline-option arms
+   call compile_alt again -- so the count stands here, at the one entry the
+   recursion passes through, and a pattern that nests deeper is refused rather
+   than run off the C stack. The message is CRuby's for the same refusal; see
+   MRB_REGEXP_PARSE_DEPTH_LIMIT for what the number is and what it costs. */
+static void
+compile_alt(re_compiler *c)
+{
+  if (++c->depth > (uint32_t)MRB_REGEXP_PARSE_DEPTH_LIMIT) {
+    compile_error(c, "parse depth limit over");
+  }
+  compile_alt_body(c);
+  c->depth--;
 }
 
 /* Inside a character class, is `src` the start of a POSIX bracket [:name:]?
