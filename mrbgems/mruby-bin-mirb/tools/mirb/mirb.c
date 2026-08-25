@@ -44,6 +44,21 @@ extern mrb_state *global_mrb; /* defined in mruby-compiler (ccontext.c) */
 # define MRB_NO_MIRB_UNDERSCORE
 #endif
 
+/* A directory opens for reading on POSIX systems and then fails every read
+   with EISDIR, so a stream that opened says nothing about whether it can be
+   read.  One byte tells the two apart without asking the platform what kind
+   of file this is: an empty file reports end-of-file and no error, while a
+   directory raises the error indicator.  The byte is pushed back, so the
+   stream is left where it was found.  (Same probe as `mruby`'s.) */
+static int
+stream_is_unreadable(FILE *file)
+{
+  int c = getc(file);
+  if (c == EOF) return ferror(file) != 0;
+  ungetc(c, file);
+  return 0;
+}
+
 static void
 p(mrb_state *mrb, mrb_value obj, mirb_highlighter *hl)
 {
@@ -309,6 +324,15 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
         printf("Cannot open program file. (%s)\n", *argv);
         return EXIT_FAILURE;
       }
+      if (stream_is_unreadable(args->rfp)) {
+        /* Without this, the failed read is swallowed: the REPL loop takes the
+           first fgets() failure for end of input and falls through to its
+           `cleanup:` with the initial EXIT_SUCCESS, so a directory argument
+           ran as an empty program with no output, no diagnostic and exit
+           status 0.  The stream is closed by `cleanup:` on the way out. */
+        printf("Cannot read program file. (%s)\n", *argv);
+        return EXIT_FAILURE;
+      }
       argc--; argv++;
     }
   }
@@ -523,6 +547,15 @@ main(int argc, char **argv)
     FILE *lfp = fopen(args.libv[i], "r");
     if (lfp == NULL) {
       printf("Cannot open library file. (%s)\n", args.libv[i]);
+      ret = EXIT_FAILURE;
+      goto cleanup;
+    }
+    if (stream_is_unreadable(lfp)) {
+      /* -r took the same swallowed read: mrb_load_file_cxt() answers an
+         undefined value without setting mrb->exc, and the result is
+         discarded, so the library loaded nothing and said nothing. */
+      printf("Cannot read library file. (%s)\n", args.libv[i]);
+      fclose(lfp);
       ret = EXIT_FAILURE;
       goto cleanup;
     }

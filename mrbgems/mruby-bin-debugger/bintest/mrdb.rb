@@ -1,5 +1,6 @@
 require 'open3'
 require 'tempfile'
+require 'tmpdir'
 
 class BinTest_MRubyBinDebugger
   @debug1=false
@@ -280,4 +281,20 @@ SRC
 
   BinTest_MRubyBinDebugger.test(src, [{:cmd=>"ss",    :exp=>INVCMD}])
   BinTest_MRubyBinDebugger.test(src, [{:cmd=>"stepp", :exp=>INVCMD}])
+end
+
+assert('a directory as the program file is refused') do
+  # Only POSIX systems open a directory for reading; Windows refuses it at
+  # fopen() and reports that instead.
+  skip 'fopen() refuses a directory' if target_win?
+  # A directory opens for reading and then fails every read, and both loaders
+  # answer without raising, so without a check the debugger started on an
+  # empty program and exited 0.  Both arms take the same fopen().
+  Dir.mktmpdir do |dir|
+    [[dir], ["-b", dir]].each do |args|
+      o, s = Open3.capture2(*(cmd_list('mrdb') + args), :stdin_data => "")
+      assert_false s.success?
+      assert_include o, "Cannot read program file. (#{dir})"
+    end
+  end
 end

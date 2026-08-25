@@ -1,5 +1,6 @@
 require 'open3'
 require 'tempfile'
+require 'tmpdir'
 
 MIRB_BIN = "mirb"
 
@@ -57,4 +58,29 @@ A.call
   TESTCODE
 
   assert_kind_of Integer, o =~ /\bundefined method 'a' .*\(NoMethodError\).*=> 5\b.*=> 1\b/m
+end
+
+assert('a directory as the program file is refused') do
+  # Only POSIX systems open a directory for reading; Windows refuses it at
+  # fopen() and reports that instead.
+  skip 'fopen() refuses a directory' if target_win?
+  # A directory opens for reading and then fails every read, and the REPL loop
+  # takes that failure for end of input, so without a check it ran as an empty
+  # program: no diagnostic and exit status 0.
+  Dir.mktmpdir do |dir|
+    o, s = Open3.capture2(*(cmd_list(MIRB_BIN) + [dir]), :stdin_data => "")
+    assert_false s.success?
+    assert_include o, "Cannot read program file. (#{dir})"
+  end
+end
+
+assert('a directory as a library file is refused') do
+  skip 'fopen() refuses a directory' if target_win?
+  # -r took the same swallowed read (mrb_load_file_cxt() sets no exception for
+  # it) and went on into the REPL.
+  Dir.mktmpdir do |dir|
+    o, s = Open3.capture2(*(cmd_list(MIRB_BIN) + ["-r", dir]), :stdin_data => "")
+    assert_false s.success?
+    assert_include o, "Cannot read library file. (#{dir})"
+  end
 end
