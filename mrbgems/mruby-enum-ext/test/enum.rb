@@ -251,3 +251,24 @@ assert('Enumerable#minmax - a comparison with no answer') do
   assert_equal ['a', 'a'], ['a'].minmax
   assert_equal [nil, nil], [].minmax
 end
+
+assert('Array#minmax - the walk made in C') do
+  # The same move as Array#max and #min: without a block the walk is in C.
+  assert_equal [nil, nil], [].minmax
+  assert_equal [5, 5], [5].minmax
+  assert_equal [1, 3], [3, 1, 2].minmax
+  assert_equal ["a", "b"], ["b", "a"].minmax
+  assert_equal [3, 1], [3, 1, 2].minmax {|x, y| y <=> x }
+  assert_raise(ArgumentError) { [1, "a"].minmax }
+  assert_raise(ArgumentError) { [1, "a"].minmax {|x, y| x <=> y } }
+
+  cls = Class.new do
+    include Comparable
+    def initialize(v, a); @v = v; @a = a; end
+    attr_reader :v
+    def <=>(o); @a.clear; @v <=> o.v; end
+  end
+  a = []
+  3.times {|i| a << cls.new(i, a) }
+  assert_equal 2, a.minmax.size
+end
