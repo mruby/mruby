@@ -112,7 +112,13 @@ assert("sprintf rejects an oversized float precision/width") do
   assert_raise(ArgumentError) { sprintf("%.2147483647f", 1.0) }
   # ordinary precision/width still work
   assert_equal "1.31072e+05", sprintf("%.5e", 131072.0)
-  assert_equal "3.1400000000", sprintf("%.10f", 3.14)
+  if 1e39.infinite? then
+    # MRB_USE_FLOAT32 in effect: the nearest Float to 3.14 is
+    # 3.1400001049041748046875, and ten fixed digits of it are its own.
+    assert_equal "3.1400001049", sprintf("%.10f", 3.14)
+  else
+    assert_equal "3.1400000000", sprintf("%.10f", 3.14)
+  end
 end
 
 assert("sprintf with to_s mutating format string") do
