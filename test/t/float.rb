@@ -200,12 +200,19 @@ assert('a NaN is the object it is and no other') do
 
   assert_equal(0, [a].index(a))
   assert_nil([a].index(b))
+  assert_true([a].include?(a))
+  assert_false([a].include?(b))
+  assert_equal(1, [a].count(a))
+  assert_equal(0, [a].count(b))
+  assert_true([1.0, a] == [1.0, a])
+  assert_false([1.0, a] == [1.0, b])
   assert_equal(1, ({a => 1})[a])
   assert_nil(({a => 1})[b])
 
   # a Float that is equal to itself is found by what it is equal to
   x = z + 1.5
   y = z + 1.5
+  assert_true([x].include?(y))
   assert_equal(0, [x].index(y))
   assert_equal(1, ({x => 1})[y])
 end

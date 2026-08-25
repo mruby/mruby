@@ -258,6 +258,17 @@ assert('Array#first', '15.2.12.5.13') do
   assert_equal([1,2,3], b.first(4))
 end
 
+assert('Array#count') do
+  # `Array` answers this rather than `Enumerable`, on the same terms `#include?`
+  # answers: an element the array holds is counted whether or not `==` can find
+  # it, which is what a NaN needs.
+  a = [1, 2, 4, 2]
+  assert_equal 4, a.count
+  assert_equal 2, a.count(2)
+  assert_equal 3, a.count {|x| x % 2 == 0}
+  assert_equal 0, [].count
+end
+
 assert('Array#index', '15.2.12.5.14') do
   a = [1,2,3]
 

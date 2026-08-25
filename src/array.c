@@ -1571,6 +1571,70 @@ mrb_ary_last(mrb_state *mrb, mrb_value self)
 
 /*
  *  call-seq:
+ *     ary.include?(obj) -> true or false
+ *     ary.member?(obj)  -> true or false
+ *
+ *  Returns `true` if the array holds an object equal to `obj`.
+ *
+ * ISO 15.3.2.2.10
+ */
+static mrb_value
+mrb_ary_include(mrb_state *mrb, mrb_value self)
+{
+  mrb_value obj = mrb_get_arg1(mrb);
+
+  /* `Enumerable#include?` reads `==`, which no NaN answers, so an array could
+     not find the very NaN it holds. `mrb_equal()` looks for the object first
+     and asks `==` after, which is how `Array#index` and `#delete` search and
+     what CRuby's own `include?` does. The two now answer alike, and the loop
+     costs a block yield less per element than the one it replaces.
+
+     The length and the pointer are read afresh each turn: `==` may run Ruby
+     that grows or shrinks the array under us. */
+  for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
+    if (mrb_equal(mrb, RARRAY_PTR(self)[i], obj)) {
+      return mrb_true_value();
+    }
+  }
+  return mrb_false_value();
+}
+
+/*
+ *  call-seq:
+ *     ary.count                 -> int
+ *     ary.count(obj)            -> int
+ *     ary.count {|item| block } -> int
+ *
+ *  Returns the number of elements. With an argument, counts the elements the
+ *  array holds that are `==` to it; with a block, the elements the block
+ *  answers true for.
+ */
+static mrb_value
+mrb_ary_count(mrb_state *mrb, mrb_value self)
+{
+  mrb_value obj, blk;
+
+  if (mrb_get_args(mrb, "|o&", &obj, &blk) == 0) {
+    if (mrb_nil_p(blk)) return mrb_int_value(mrb, RARRAY_LEN(self));
+    mrb_int n = 0;
+    for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
+      if (mrb_test(mrb_yield(mrb, blk, RARRAY_PTR(self)[i]))) n++;
+    }
+    return mrb_int_value(mrb, n);
+  }
+
+  /* An element is counted on the same terms `#include?` finds one, so the two
+     agree about a NaN: it is equal to no value, its own included, and the
+     array holding it is holding that object. */
+  mrb_int n = 0;
+  for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
+    if (mrb_equal(mrb, RARRAY_PTR(self)[i], obj)) n++;
+  }
+  return mrb_int_value(mrb, n);
+}
+
+/*
+ *  call-seq:
  *     ary.index(val)            -> int or nil
  *     ary.index {|item| block } -> int or nil
  *     array.index -> enumerator
@@ -1970,8 +2034,13 @@ mrb_ary_eq(mrb_state *mrb, mrb_value ary1)
 
   int ai = mrb_gc_arena_save(mrb);
   for (mrb_int i=0; i<RARRAY_LEN(ary1); i++) {
-    mrb_value eq = mrb_funcall_argv1(mrb, mrb_ary_entry(ary1, i), MRB_OPSYM(eq), mrb_ary_entry(ary2, i));
-    if (!mrb_test(eq)) return mrb_false_value();
+    /* `mrb_equal()` takes the same element in both arrays for equal before it
+       asks `==` anything, which is what a NaN needs: it is equal to no value,
+       its own included, and the two arrays hold the same one. `#index` and
+       `#include?` read the pair the same way, and so does CRuby here. */
+    if (!mrb_equal(mrb, mrb_ary_entry(ary1, i), mrb_ary_entry(ary2, i))) {
+      return mrb_false_value();
+    }
     mrb_gc_arena_restore(mrb, ai);
   }
   return mrb_true_value();
@@ -2538,6 +2607,9 @@ static const mrb_mt_entry array_rom_entries[] = {
   MRB_MT_ENTRY(mrb_ary_eq,           MRB_OPSYM(eq),            MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(mrb_ary_eql,          MRB_SYM_Q(eql),           MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(mrb_ary_first,        MRB_SYM(first),           MRB_ARGS_OPT(1)),                   /* 15.2.12.5.13 */
+  MRB_MT_ENTRY(mrb_ary_count,        MRB_SYM(count),           MRB_ARGS_OPT(1)),
+  MRB_MT_ENTRY(mrb_ary_include,      MRB_SYM_Q(include),       MRB_ARGS_REQ(1)),                   /* 15.3.2.2.10 */
+  MRB_MT_ENTRY(mrb_ary_include,      MRB_SYM_Q(member),        MRB_ARGS_REQ(1)),                   /* 15.3.2.2.15 */
   MRB_MT_ENTRY(mrb_ary_index_m,      MRB_SYM(index),           MRB_ARGS_OPT(1)),                   /* 15.2.12.5.14 */
   MRB_MT_ENTRY(mrb_ary_init,         MRB_SYM(initialize),      MRB_ARGS_OPT(2) | MRB_MT_PRIVATE),  /* 15.2.12.5.15 */
   MRB_MT_ENTRY(mrb_ary_replace_m,    MRB_SYM(initialize_copy), MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),  /* 15.2.12.5.16 */
