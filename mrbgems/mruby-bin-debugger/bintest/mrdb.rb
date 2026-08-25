@@ -14,15 +14,16 @@ class BinTest_MRubyBinDebugger
     script.flush
 
     # compile
-    `#{cmd("mrbc")} -g -o "#{bin.path}" "#{script.path}"`
+    assert_run('mrbc', '-g', '-o', bin.path, script.path)
 
     # add mrdb quit
     testcase << {:cmd=>"quit"}
 
     stdin_data = testcase.map{|t| t[:cmd]}.join("\n") << "\n"
 
-    ["#{cmd('mrdb')} #{script.path}", "#{cmd('mrdb')} -b #{bin.path}"].each do |cmd|
-      o, s = Open3.capture2(cmd, :stdin_data => stdin_data)
+    # Both arms of the same program: the source, and the compiled form of it.
+    [[script.path], ['-b', bin.path]].each do |args|
+      o, s = Open3.capture2(*(cmd_list('mrdb') + args), :stdin_data => stdin_data)
 
       exp_vals = testcase.map{|t| t.fetch(:exp, nil)}
       unexp_vals = testcase.map{|t| t.fetch(:unexp, nil)}
@@ -308,7 +309,7 @@ def with_debuggable_program
     rb = File.join(src, 'prog.rb')
     File.write(rb, "a = 1\nb = 2\n")
     bin = File.join(root, 'prog.mrb')
-    system(*(cmd_list('mrbc') + ['-g', '-o', bin, rb]))
+    assert_run('mrbc', '-g', '-o', bin, rb)
     yield root, rb, bin
   end
 end
@@ -378,11 +379,11 @@ assert('the exit status reports a compiled program too') do
   script, bin = Tempfile.new(['test', '.rb']), Tempfile.new(['test', '.mrb'])
 
   File.write(script.path, "raise 'boom'\n")
-  system(*(cmd_list('mrbc') + ['-g', '-o', bin.path, script.path]))
+  assert_run('mrbc', '-g', '-o', bin.path, script.path)
   assert_false mrdb_status(['-b', bin.path], "r\nq\n").success?
 
   File.write(script.path, "puts 'ok'\n")
-  system(*(cmd_list('mrbc') + ['-g', '-o', bin.path, script.path]))
+  assert_run('mrbc', '-g', '-o', bin.path, script.path)
   assert_true mrdb_status(['-b', bin.path], "r\nq\n").success?
 end
 

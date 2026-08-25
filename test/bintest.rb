@@ -44,6 +44,15 @@ def cmd(s)
   cmd_list(s).join(' ')
 end
 
+# Runs a tool the test needs to have succeeded, usually the `mrbc` that builds
+# its fixture, and reports it here when it did not.  Without this the failure
+# arrives as whatever the case asserts about the tool under test: an empty
+# fixture is a file the tool refuses for a reason of its own, and the case
+# blames the tool rather than the build of its input.
+def assert_run(s, *args)
+  assert_true system(*(cmd_list(s) + args)), "#{s} #{args.join(' ')} did not run"
+end
+
 def shellquote(s)
   case RbConfig::CONFIG['host_os']
   when /mswin(?!ce)|mingw|bccwin/

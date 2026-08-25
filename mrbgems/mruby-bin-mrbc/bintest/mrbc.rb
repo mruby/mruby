@@ -1,3 +1,4 @@
+require 'open3'
 require 'tempfile'
 require 'tmpdir'
 
@@ -7,43 +8,47 @@ assert('Compiling multiple files without new line in last line. #2361') do
   a.flush
   b.write('module B; end')
   b.flush
-  result = `#{cmd('mrbc')} -c -o #{out.path} #{a.path} #{b.path} 2>&1`
+  result, status = Open3.capture2e(*(cmd_list('mrbc') + ['-c', '-o', out.path, a.path, b.path]))
   assert_equal "#{cmd_bin('mrbc')}:#{a.path}:Syntax OK", result.chomp
-  assert_equal 0, $?.exitstatus
+  assert_equal 0, status.exitstatus
 end
 
 assert('parsing function with void argument') do
   a, out = Tempfile.new('a.rb'), Tempfile.new('out.mrb')
   a.write('f ()')
   a.flush
-  result = `#{cmd('mrbc')} -c -o #{out.path} #{a.path} 2>&1`
+  result, status = Open3.capture2e(*(cmd_list('mrbc') + ['-c', '-o', out.path, a.path]))
   assert_equal "#{cmd_bin('mrbc')}:#{a.path}:Syntax OK", result.chomp
-  assert_equal 0, $?.exitstatus
+  assert_equal 0, status.exitstatus
 end
 
 assert('embedded document with invalid terminator') do
   a, out = Tempfile.new('a.rb'), Tempfile.new('out.mrb')
   a.write("=begin\n=endx\n")
   a.flush
-  result = `#{cmd('mrbc')} -c -o #{out.path} #{a.path} 2>&1`
+  result, status = Open3.capture2e(*(cmd_list('mrbc') + ['-c', '-o', out.path, a.path]))
   assert_equal "#{a.path}:2:1: syntax error, embedded document meets end of file", result.chomp
-  assert_equal 1, $?.exitstatus
+  assert_equal 1, status.exitstatus
 end
 
 assert('a float literal under MRB_NO_FLOAT is read as 0 with a warning') do
   # Only a build without Float takes this path.  Whether this is one is asked
-  # of its mruby, when there is one; mrbc itself cannot be asked.
+  # of its mruby, when there is one; mrbc itself cannot be asked.  The run
+  # below is the one here that is not assert_run's: what it fails with is the
+  # answer, not a broken fixture.
   skip 'no mruby to probe the build with' unless File.exist?(cmd_bin('mruby'))
-  system("#{cmd('mruby')} -e Float", out: File::NULL, err: File::NULL)
+  system(*(cmd_list('mruby') + ['-e', 'Float']), out: File::NULL, err: File::NULL)
   skip 'this build has Float' if $?.success?
 
   a, out = Tempfile.new('a.rb'), Tempfile.new('out.mrb')
   a.write("x = 1\np 1.5\n")
   a.flush
-  result = `#{cmd('mrbc')} -v -o #{out.path} #{a.path} 2>&1`
-  assert_equal 0, $?.exitstatus
+  result, status = Open3.capture2e(*(cmd_list('mrbc') + ['-v', '-o', out.path, a.path]))
+  assert_equal 0, status.exitstatus
   assert_include result, "#{a.path}:2:3: generator warning, floating-point numbers are not supported"
-  assert_equal "0\n", `#{cmd('mruby')} -b #{out.path}`
+  compiled, status = Open3.capture2(*(cmd_list('mruby') + ['-b', out.path]))
+  assert_true status.success?, 'mruby did not run the compiled program'
+  assert_equal "0\n", compiled
 end
 
 assert('mrbc -v disassembles like mruby -v') do
@@ -96,10 +101,13 @@ assert('mrbc -v disassembles like mruby -v') do
      .lines.reject { |l| l.start_with?('Syntax OK') }.join
   end
 
-  # Backticks capture stdout only, which is where both write the disassembly.
-  # Do not redirect stderr: `2>/dev/null` is not portable to cmd.exe.
-  from_mrbc = clean.call(`#{cmd('mrbc')} -v -o #{out.path} #{a.path}`)
-  from_mruby = clean.call(`#{cmd('mruby')} -v -c #{a.path}`)
+  # capture2 takes stdout only, which is where both write the disassembly.
+  mrbc_out, mrbc_status = Open3.capture2(*(cmd_list('mrbc') + ['-v', '-o', out.path, a.path]))
+  mruby_out, mruby_status = Open3.capture2(*(cmd_list('mruby') + ['-v', '-c', a.path]))
+  assert_true mrbc_status.success?, 'mrbc -v did not run'
+  assert_true mruby_status.success?, 'mruby -v -c did not run'
+  from_mrbc = clean.call(mrbc_out)
+  from_mruby = clean.call(mruby_out)
 
   assert_false from_mrbc.empty?, 'mrbc -v produced no disassembly'
   assert_equal from_mruby, from_mrbc
@@ -118,7 +126,13 @@ assert('non-seekable input file is rejected by size, not blamed on the read') do
   a.write("puts 1\n")
   a.flush
 
-  result = `cat #{shellquote(a.path)} | #{cmd('mrbc')} -c /dev/stdin 2>&1`
+  # The one command here that a shell has to read: what is under test is what
+  # arrives through a pipe, and the pipeline is the shell's to build.  Both
+  # halves are quoted for it, the command included: `cmd_list()` can hold a
+  # build directory or an emulator argument with a space in it, and joining
+  # that with spaces is what hands the shell the wrong words.
+  mrbc = Shellwords.join(cmd_list('mrbc'))
+  result = `cat #{shellquote(a.path)} | #{mrbc} -c /dev/stdin 2>&1`
   assert_equal 1, $?.exitstatus
   assert_include result, 'compile.c: cannot get size of program file. (/dev/stdin)'
   assert_not_include result, 'cannot read program file'
@@ -134,10 +148,10 @@ assert('a directory as an input file is refused') do
   # program.  The fread() failure below reports the LONG_MAX case in wording
   # of its own, so pin which message arrives, not merely that one did.
   Dir.mktmpdir do |dir|
-    result = `#{cmd('mrbc')} -c #{shellquote(dir)} 2>&1`
+    result, status = Open3.capture2e(*(cmd_list('mrbc') + ['-c', dir]))
     assert_include result, 'compile.c: cannot read from program file.'
     assert_not_include result, 'compile.c: cannot read program file.'
-    assert_equal 1, $?.exitstatus
+    assert_equal 1, status.exitstatus
   end
 end
 
@@ -157,8 +171,8 @@ assert('a super outside a method forwards no block') do
   a, out = Tempfile.new('a.rb'), Tempfile.new('out.mrb')
   a.write(src)
   a.flush
-  result = `#{cmd('mrbc')} -v -o #{out.path} #{a.path} 2>&1`
-  assert_equal 0, $?.exitstatus
+  result, status = Open3.capture2e(*(cmd_list('mrbc') + ['-v', '-o', out.path, a.path]))
+  assert_equal 0, status.exitstatus
   assert_include result, 'SUPER'
   assert_not_include result, 'GETUPVAR'
 end

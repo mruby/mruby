@@ -13,7 +13,7 @@ class BinTest_MRubyBinDebugger
     script.flush
 
     # compile
-    `#{cmd("mrbc")} -g -o "#{bin.path}" "#{script.path}"`
+    assert_run('mrbc', '-g', '-o', bin.path, script.path)
 
     # add mrdb quit
     testcase << {:cmd=>"quit"}
@@ -21,8 +21,9 @@ class BinTest_MRubyBinDebugger
     stdin_data = testcase.map{|t| t[:cmd]}.join("\n") << "\n"
 
     prompt = /^\(#{Regexp.escape(script.path)}:\d+\) /
-    ["#{cmd('mrdb')} #{script.path}", "#{cmd('mrdb')} -b #{bin.path}"].each do |cmd|
-      o, s = Open3.capture2(cmd, :stdin_data => stdin_data)
+    # Both arms of the same program: the source, and the compiled form of it.
+    [[script.path], ['-b', bin.path]].each do |args|
+      o, s = Open3.capture2(*(cmd_list('mrdb') + args), :stdin_data => stdin_data)
       scanner = StringScanner.new(o)
       scanner.skip_until(prompt)
       testcase.each do |tc|

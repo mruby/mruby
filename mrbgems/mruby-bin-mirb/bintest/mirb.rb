@@ -5,26 +5,26 @@ require 'tmpdir'
 MIRB_BIN = "mirb"
 
 assert('mirb normal operations') do
-  o, s = Open3.capture2(cmd(MIRB_BIN), :stdin_data => "a=1\nb=2\na+b\n")
+  o, s = Open3.capture2(*cmd_list(MIRB_BIN), :stdin_data => "a=1\nb=2\na+b\n")
   assert_true o.include?('=> 3')
   assert_true o.include?('=> 2')
 end
 
 assert('mirb multi-line') do
-  o, s = Open3.capture2(cmd(MIRB_BIN), :stdin_data => "def a(b)\n return b\n end\na(1)\n")
+  o, s = Open3.capture2(*cmd_list(MIRB_BIN), :stdin_data => "def a(b)\n return b\n end\na(1)\n")
   assert_true o.include?('=> :a')
   assert_true o.include?('=> 1')
 end
 
 assert('regression for #1563') do
-  o, s = Open3.capture2(cmd(MIRB_BIN), :stdin_data => "a=1;b=2;c=3\nb\nc")
+  o, s = Open3.capture2(*cmd_list(MIRB_BIN), :stdin_data => "a=1;b=2;c=3\nb\nc")
   assert_true o.include?('=> 3')
 end
 
 assert('mirb -d option') do
-  o, _ = Open3.capture2(cmd(MIRB_BIN), :stdin_data => "$DEBUG\n")
+  o, _ = Open3.capture2(*cmd_list(MIRB_BIN), :stdin_data => "$DEBUG\n")
   assert_true o.include?('=> false')
-  o, _ = Open3.capture2("#{cmd(MIRB_BIN)} -d", :stdin_data => "$DEBUG\n")
+  o, _ = Open3.capture2(*(cmd_list(MIRB_BIN) + ['-d']), :stdin_data => "$DEBUG\n")
   assert_true o.include?('=> true')
 end
 
@@ -39,7 +39,7 @@ end
 EOS
   lib.flush
 
-  o, _ = Open3.capture2("#{cmd(MIRB_BIN)} -r #{lib.path}", :stdin_data => "Hoge.new.hoge\n")
+  o, _ = Open3.capture2(*(cmd_list(MIRB_BIN) + ['-r', lib.path]), :stdin_data => "Hoge.new.hoge\n")
   assert_true o.include?('=> :hoge')
 end
 
@@ -51,7 +51,7 @@ A = -> { a }
   TESTLIB
   lib.flush
 
-  o, _ = Open3.capture2("#{cmd(MIRB_BIN)} -r #{lib.path}", :stdin_data => <<-TESTCODE)
+  o, _ = Open3.capture2(*(cmd_list(MIRB_BIN) + ['-r', lib.path]), :stdin_data => <<-TESTCODE)
 a
 a = 5
 A.call
