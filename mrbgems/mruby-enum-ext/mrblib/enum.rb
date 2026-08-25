@@ -369,22 +369,42 @@ module Enumerable
     min = nil
     first = true
 
-    self.each do |*val|
-      if first
+    # The block is asked for out here rather than once an element, as in
+    # `Enumerable#max`; the loop body is the same either way but for what it
+    # compares with.
+    if block
+      self.each do |*val|
         val = val.__svalue
-        max = val
-        min = val
-        first = false
-      else
+        if first
+          max = val
+          min = val
+          first = false
+        else
+          # A comparison with no answer is not an ordering, the same as in
+          # Enumerable#max and #min.
+          cmp = block.call(val, max)
+          raise ArgumentError, "comparison of #{val.class} with #{max.class} failed" if cmp.nil?
+          max = val if cmp > 0
+          cmp = block.call(val, min)
+          raise ArgumentError, "comparison of #{val.class} with #{min.class} failed" if cmp.nil?
+          min = val if cmp < 0
+        end
+      end
+    else
+      self.each do |*val|
         val = val.__svalue
-        # A comparison with no answer is not an ordering, the same as in
-        # Enumerable#max and #min.
-        cmp = block ? block.call(val, max) : (val <=> max)
-        raise ArgumentError, "comparison of #{val.class} with #{max.class} failed" if cmp.nil?
-        max = val if cmp > 0
-        cmp = block ? block.call(val, min) : (val <=> min)
-        raise ArgumentError, "comparison of #{val.class} with #{min.class} failed" if cmp.nil?
-        min = val if cmp < 0
+        if first
+          max = val
+          min = val
+          first = false
+        else
+          cmp = (val <=> max)
+          raise ArgumentError, "comparison of #{val.class} with #{max.class} failed" if cmp.nil?
+          max = val if cmp > 0
+          cmp = (val <=> min)
+          raise ArgumentError, "comparison of #{val.class} with #{min.class} failed" if cmp.nil?
+          min = val if cmp < 0
+        end
       end
     end
     [min, max]

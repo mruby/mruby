@@ -147,8 +147,19 @@ assert('Enumerable#max, #min - a comparison with no answer') do
     assert_raise(ArgumentError) { [1, nan].max }
   end
 
+  # A pair of different kinds stands in no order either.
+  assert_raise(ArgumentError) { [1, 'a'].max }
+  assert_raise(ArgumentError) { [1, 'a'].min }
+
   # An ordering that holds is left alone.
   assert_equal 3, [3, 1, 2].max
   assert_equal 1, [3, 1, 2].min
   assert_equal 3, [3, 1, 2].max { |a, b| a <=> b }
+  assert_equal 1, [3, 1, 2].min { |a, b| a <=> b }
+
+  # The first element is never compared, and an empty collection has none.
+  assert_equal 'a', ['a'].max
+  assert_equal 'a', ['a'].min
+  assert_nil [].max
+  assert_nil [].min
 end
