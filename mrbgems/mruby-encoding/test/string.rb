@@ -45,6 +45,104 @@ assert('String#valid_encoding? survives what the string goes through') do
   end
 end
 
+assert('every mutating method leaves an answer the string can stand behind') do
+  # The one rule underneath all of this: after a write, what the string says
+  # about its own bytes is either true of them or UNKNOWN. A write that keeps a
+  # true answer spares the next asker a walk; a write that cannot answer for
+  # what it did has to drop the answer instead. Neither is checkable from
+  # inside the write, so it is checked here, against every method that can
+  # change a receiver: the list is the checklist, and a method missing from it
+  # is a method nothing is asking this of.
+  #
+  # Each case runs the same write twice: once on a string that was read before
+  # it, and once on one that was not. The two have to agree afterwards. Where
+  # the write raises it has to raise on both, and the two are left as they were.
+  if UTF8STRING
+    ops = {
+      "<<"             => ->(s) { s << "\x80" },
+      "concat"         => ->(s) { s.concat("\xC0") },
+      "replace"        => ->(s) { s.replace("\xED\xA0\x80") },
+      "insert"         => ->(s) { s.insert(0, "\xFE") },
+      "prepend"        => ->(s) { s.prepend("\x81") },
+      "[]="            => ->(s) { s[0] = "\xF5" },
+      "sub!"           => ->(s) { s.sub!("あ", "\xE0\x80") },
+      "gsub!"          => ->(s) { s.gsub!("あ", "\xF5") },
+      "chop!"          => ->(s) { s.chop! },
+      "chomp!"         => ->(s) { s.chomp! },
+      "lstrip!"        => ->(s) { s.lstrip! },
+      "rstrip!"        => ->(s) { s.rstrip! },
+      "strip!"         => ->(s) { s.strip! },
+      "upcase!"        => ->(s) { s.upcase! },
+      "downcase!"      => ->(s) { s.downcase! },
+      "capitalize!"    => ->(s) { s.capitalize! },
+      "swapcase!"      => ->(s) { s.swapcase! },
+      "reverse!"       => ->(s) { s.reverse! },
+      "succ!"          => ->(s) { s.succ! },
+      "next!"          => ->(s) { s.next! },
+      "tr!"            => ->(s) { s.tr!("a", "\xE3") },
+      "tr_s!"          => ->(s) { s.tr_s!("a", "\xE3") },
+      "squeeze!"       => ->(s) { s.squeeze! },
+      "delete!"        => ->(s) { s.delete!("a") },
+      "slice!"         => ->(s) { s.slice!(0) },
+      "clear"          => ->(s) { s.clear },
+      # Both cut one byte off an end, which is where a character can be left
+      # standing without its head or its tail.
+      "delete_prefix!" => ->(s) { b = s.bytes.first; s.delete_prefix!(b.chr) if b },
+      "delete_suffix!" => ->(s) { b = s.bytes.last;  s.delete_suffix!(b.chr) if b },
+      # Writes that reach past the core gem. The bitwise pair takes an operand
+      # of the receiver's own width, so it has something to do on every base.
+      "setbyte"        => ->(s) { s.setbyte(0, 0x80) },
+      "bytesplice"     => ->(s) { s.bytesplice(0, 1, "\x80") },
+      "bitwise_and!"   => ->(s) { s.bitwise_and!("\x7f" * s.bytesize) },
+      "bitwise_or!"    => ->(s) { s.bitwise_or!("\x80" * s.bytesize) },
+      "bitwise_xor!"   => ->(s) { s.bitwise_xor!("\xff" * s.bytesize) },
+      "bitwise_not!"   => ->(s) { s.bitwise_not! },
+      # Not a write at all, but it changes what the bytes are read as, which is
+      # the same answer by another route. The round trip is the direction that
+      # can turn a string nothing was wrong with into a broken one.
+      "force_encoding" => ->(s) { s.force_encoding("BINARY") },
+      "force_encoding back" =>
+                          ->(s) { s.force_encoding("BINARY"); s.force_encoding("UTF-8") },
+    }
+    # Valid and broken, ASCII and not, with the whitespace and the repetition
+    # that make each write above find something to do.
+    bases = ["あ", "あa", "aあ", "  あ  ", "\tあ\n", "\0あ\0", "あ" * 40,
+             "abc", "a" * 40, "  abc  ", "",
+             "\x80", "a\x80b", "\xE3\x81", "\xED\xA0\x80"]
+    # Two readings, because they leave different answers behind: the walk
+    # settles on VALID or BROKEN, while counting marks only 7BIT.
+    reads = [->(s) { s.valid_encoding? }, ->(s) { s.length }]
+
+    # The list above is only a checklist while something keeps it honest. A
+    # method whose name ends in `!` changes its receiver, so one the build
+    # carries and the list does not name is one nothing is asking this of,
+    # which is how `delete_prefix!` and `delete_suffix!` stayed broken. The
+    # writes that do not announce themselves in their name (`<<`, `setbyte`,
+    # `force_encoding` and the rest above) still have to be added by hand.
+    untested = String.instance_methods.map { |m| m.to_s }
+                     .select { |m| m.end_with?("!") && m != "!" && !ops[m] }
+    assert_equal [], untested.sort, "String methods that change a receiver with no case here"
+
+    ops.each do |name, op|
+      bases.each do |base|
+        reads.each do |read|
+          warm = base.dup
+          read.call(warm)                       # remember an answer first
+          wraised = (begin; op.call(warm); nil; rescue => e; e.class; end)
+          cold = base.dup
+          craised = (begin; op.call(cold); nil; rescue => e; e.class; end)
+          where = "#{name} on #{base.inspect}"
+          assert_equal craised, wraised, where
+          next if wraised
+          assert_equal cold.bytes, warm.bytes, where
+          assert_equal cold.valid_encoding?, warm.valid_encoding?, where
+          assert_equal cold.length, warm.length, where
+        end
+      end
+    end
+  end
+end
+
 assert('String#valid_encoding? after an append inside a shared buffer') do
   # An append to a string sharing a buffer with room to spare writes in place
   # rather than detaching, and that path forgets the remembered answer on its
