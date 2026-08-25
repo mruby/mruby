@@ -298,3 +298,55 @@ assert('a directory as the program file is refused') do
     end
   end
 end
+
+# Builds ROOT/src/prog.rb and ROOT/prog.mrb (compiled with -g, so its debug
+# info names ROOT/src/prog.rb), and yields the two paths.
+def with_debuggable_program
+  Dir.mktmpdir do |root|
+    src = File.join(root, 'src')
+    Dir.mkdir(src)
+    rb = File.join(src, 'prog.rb')
+    File.write(rb, "a = 1\nb = 2\n")
+    bin = File.join(root, 'prog.mrb')
+    system(*(cmd_list('mrbc') + ['-g', '-o', bin, rb]))
+    yield root, rb, bin
+  end
+end
+
+def mrdb_list(args)
+  o, _ = Open3.capture2(*(cmd_list('mrdb') + args), :stdin_data => "l\nq\n")
+  o
+end
+
+assert('the source search passes over a directory') do
+  # Only POSIX systems open a directory for reading; Windows refuses it at
+  # fopen() and never reaches the check this covers.
+  skip 'fopen() refuses a directory' if target_win?
+  # fopen() alone was the existence test, so a directory named like the source
+  # was a hit: the search stopped on a path `list` cannot show, and the
+  # readable file next in the search order was never reached.
+  with_debuggable_program do |root, rb, bin|
+    decoy = File.join(root, 'decoy')
+    Dir.mkdir(decoy)
+    Dir.mkdir(File.join(decoy, 'prog.rb'))
+
+    o = mrdb_list(['-d', decoy, '-b', bin])
+    assert_include o, 'a = 1'
+    assert_include o, 'b = 2'
+  end
+end
+
+assert('list reports a source it cannot read') do
+  skip 'fopen() refuses a directory' if target_win?
+  # With nothing readable anywhere in the search order, source_file_new()
+  # still answered a handle for the directory, show_lines() printed nothing
+  # and mrb_debug_list() answered OK, so `list` was silent instead of reaching
+  # its own message.
+  with_debuggable_program do |root, rb, bin|
+    File.delete(rb)
+    Dir.mkdir(rb)
+
+    o = mrdb_list(['-d', File.dirname(rb), '-b', bin])
+    assert_include o, 'Invalid source file named'
+  end
+end
