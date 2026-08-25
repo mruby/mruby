@@ -335,6 +335,61 @@ assert("Regexp#hash/== on uninitialized regexp") do
   assert_false r == Regexp.new("abc")
 end
 
+assert("Regexp#dup and Regexp#clone") do
+  # The compiled pattern cannot be shared with the copy, since one pattern is
+  # owned by one object, so the copy compiles its own from the same source and
+  # flags. Without that it answered the readers and refused every match.
+  r = Regexp.new("ab(?<n>c)", Regexp::IGNORECASE)
+  [r.dup, r.clone].each do |c|
+    assert_equal r.source, c.source
+    assert_equal r.options, c.options
+    assert_equal r.to_s, c.to_s
+    assert_equal r.names, c.names
+    assert_equal r.named_captures, c.named_captures
+    assert_true c == r
+    assert_equal r.hash, c.hash
+    assert_true c.match?("xABCy")
+    assert_equal 1, c =~ "xABCy"
+    assert_equal "C", c.match("xABCy")[:n]
+    assert_equal "x-y", "xABCy".gsub(c, "-")
+  end
+  # the copy owns its own pattern, so the original outlives it and vice versa
+  c = r.dup
+  100.times { r.dup }
+  GC.start
+  assert_true c.match?("ABC")
+  assert_true r.match?("ABC")
+  # a copy of a subclass instance is compiled the same way
+  sub = Class.new(Regexp).new("a+")
+  assert_true sub.dup.match?("aaa")
+  # the capture names belong to the pattern the copy compiled, not to the
+  # table it inherited, so a source that names nothing leaves it none
+  n = Regexp.new("(?<n>a)")
+  n.instance_variable_set(:@source, "b")
+  assert_equal [], n.dup.names
+  assert_equal({}, n.dup.named_captures)
+  m = Regexp.new("(?<n>a)")
+  m.instance_variable_set(:@source, "(?<z>b)")
+  assert_equal ["z"], m.dup.names
+  # clone carries the frozen state, and a frozen original still copies
+  frozen = Regexp.new("a", Regexp::IGNORECASE).freeze
+  assert_true frozen.clone.frozen?
+  assert_true frozen.clone.match?("A")
+  assert_false frozen.dup.frozen?
+end
+
+assert("Regexp#initialize_copy") do
+  # an original with no source has nothing to compile the copy from
+  assert_raise(TypeError) { Regexp.allocate.dup }
+  assert_raise(TypeError) { Regexp.allocate.clone }
+  # reachable directly, so it refuses what dup and clone cannot hand it
+  assert_raise(TypeError) { Regexp.new("a").dup.send(:initialize_copy, Regexp.new("b")) }
+  assert_raise(TypeError) { Regexp.new("a").dup.send(:initialize_copy, "b") }
+  # copying onto itself is a no-op, not a second compile
+  r = Regexp.new("a")
+  assert_true r.send(:initialize_copy, r).match?("a")
+end
+
 assert("Regexp#options") do
   assert_equal 0, Regexp.new("abc").options
   assert_equal Regexp::IGNORECASE, Regexp.new("abc", Regexp::IGNORECASE).options

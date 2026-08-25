@@ -89,39 +89,19 @@ parse_flags(mrb_state *mrb, mrb_value flags_val)
   return flags;
 }
 
-/*
- * Regexp.new(pattern, flags=nil)
- * Regexp.new(regexp)
- * Regexp.compile(pattern, flags=nil)
- */
+/* Compile `pattern` under `flags` into `self` and publish everything a Regexp
+   answers from. `Regexp.new` and `dup`/`clone` differ only in where the two
+   come from, so they share this and cannot drift apart in what they leave
+   behind. */
 static mrb_value
-regexp_init(mrb_state *mrb, mrb_value self)
+re_initialize(mrb_state *mrb, mrb_value self, mrb_value pattern, uint32_t flags)
 {
-  mrb_value pattern;
-  mrb_value flags_val = mrb_nil_value();
   mrb_regexp_pattern *pat;
-
-  mrb_get_args(mrb, "o|o", &pattern, &flags_val);
-
-  uint32_t flags;
-
-  /* If pattern is a Regexp, copy its source and flags */
-  if (mrb_obj_is_kind_of(mrb, pattern, mrb_class_get_id(mrb, MRB_SYM(Regexp)))) {
-    mrb_value iflags = mrb_iv_get(mrb, pattern, MRB_IVSYM(flags));
-    flags = mrb_nil_p(iflags) ? 0 : (uint32_t)mrb_integer(iflags);
-    pattern = mrb_iv_get(mrb, pattern, MRB_IVSYM(source));
-  }
-  else {
-    if (!mrb_string_p(pattern)) {
-      mrb_raise(mrb, E_TYPE_ERROR, "wrong argument type (expected String or Regexp)");
-    }
-    flags = parse_flags(mrb, flags_val);
-  }
 
   /* An object holds one pattern and owns it, so a second initialize cannot
      compile over the first: the pattern already there would be dropped with
      nothing left to free it. CRuby refuses the call for the same reason. The
-     check stands after the argument conversions above, which is the order
+     check stands after the caller's argument conversions, which is the order
      CRuby reports the two errors in. */
   if (DATA_PTR(self)) {
     mrb_raise(mrb, E_TYPE_ERROR, "already initialized regexp");
@@ -154,8 +134,79 @@ regexp_init(mrb_state *mrb, mrb_value self)
     }
     mrb_iv_set(mrb, self, MRB_IVSYM(named_captures), nc);
   }
+  else {
+    /* The table belongs to the pattern compiled just above, so a pattern that
+       names nothing has to leave nothing behind. A copy arrives here with the
+       original's table already on it, mrb_iv_copy() having run before
+       initialize_copy(), and an original whose @source was rewritten to a
+       pattern with no names would hand the copy names its own pattern cannot
+       resolve. Regexp.new reaches this on an object that has no table to
+       remove. */
+    mrb_iv_remove(mrb, self, MRB_IVSYM(named_captures));
+  }
 
   return self;
+}
+
+/*
+ * Regexp.new(pattern, flags=nil)
+ * Regexp.new(regexp)
+ * Regexp.compile(pattern, flags=nil)
+ */
+static mrb_value
+regexp_init(mrb_state *mrb, mrb_value self)
+{
+  mrb_value pattern;
+  mrb_value flags_val = mrb_nil_value();
+  uint32_t flags;
+
+  mrb_get_args(mrb, "o|o", &pattern, &flags_val);
+
+  /* If pattern is a Regexp, copy its source and flags */
+  if (mrb_obj_is_kind_of(mrb, pattern, mrb_class_get_id(mrb, MRB_SYM(Regexp)))) {
+    flags = get_iflags(mrb, pattern);
+    pattern = mrb_iv_get(mrb, pattern, MRB_IVSYM(source));
+  }
+  else {
+    if (!mrb_string_p(pattern)) {
+      mrb_raise(mrb, E_TYPE_ERROR, "wrong argument type (expected String or Regexp)");
+    }
+    flags = parse_flags(mrb, flags_val);
+  }
+
+  return re_initialize(mrb, self, pattern, flags);
+}
+
+/*
+ * Regexp#initialize_copy - what dup and clone leave the copy holding
+ *
+ * The compiled pattern is not part of what mrb_iv_copy() carries over, and it
+ * cannot be: one pattern is owned by one object and freed with it, so a copy
+ * that took the original's pointer would hand regexp_free() the same block
+ * twice. Without this the copy kept the original's @source and @flags and
+ * nothing else, which made it a Regexp that answered source/options/to_s/==
+ * correctly and then refused every match on a NULL DATA_PTR. The copy compiles
+ * its own pattern from the same source and flags instead, which is what CRuby's
+ * rb_reg_init_copy() does.
+ */
+static mrb_value
+regexp_init_copy(mrb_state *mrb, mrb_value self)
+{
+  mrb_value orig = mrb_get_arg1(mrb);
+
+  if (mrb_obj_eq(mrb, self, orig)) return self;
+  if (mrb_type(self) != mrb_type(orig) || mrb_obj_class(mrb, self) != mrb_obj_class(mrb, orig)) {
+    mrb_raise(mrb, E_TYPE_ERROR, "initialize_copy should take same class object");
+  }
+
+  /* The copy is compiled from the original's source, so an original that
+     has none is refused here rather than handed to the compiler as a nil.
+     CRuby's rb_reg_init_copy() refuses Regexp.allocate.dup the same way. */
+  mrb_value src = mrb_iv_get(mrb, orig, MRB_IVSYM(source));
+  if (!mrb_string_p(src)) {
+    mrb_raise(mrb, E_TYPE_ERROR, "uninitialized Regexp");
+  }
+  return re_initialize(mrb, self, src, get_iflags(mrb, orig));
 }
 
 /* Pre-interned symbol for $~ (cached on first use). MRB_GVSYM() takes a
@@ -2178,6 +2229,7 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
 
   /* Class methods */
   mrb_define_method(mrb, re, "initialize", regexp_init, MRB_ARGS_ARG(1, 2));
+  mrb_define_method(mrb, re, "initialize_copy", regexp_init_copy, MRB_ARGS_REQ(1));
   /* compile is defined in Ruby (mrblib) as alias for new */
   mrb_define_class_method(mrb, re, "escape", regexp_escape, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, re, "quote", regexp_escape, MRB_ARGS_REQ(1));
