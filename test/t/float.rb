@@ -157,6 +157,30 @@ assert('Float comparison with an Integer it cannot hold') do
   assert_false([f] == [n])        # Array#== reads the same comparison
 end
 
+assert('Float comparison with a NaN') do
+  # A NaN stands in no order with anything, itself included, so `<=>` has no
+  # answer to give and every comparison against one is false rather than an
+  # error.
+  #
+  # The four operators are written as method calls because `OP_LT` and its
+  # neighbours compare the pair as C values themselves whenever both sides are
+  # numbers, and the methods under test here are never reached that way.
+  nan = Float::NAN
+
+  assert_nil(1.0 <=> nan)
+  assert_nil(nan <=> 1.0)
+  assert_nil(nan <=> nan)
+  assert_nil(nan <=> 1)
+  assert_false(1.0.__send__(:<, nan))
+  assert_false(1.0.__send__(:<=, nan))
+  assert_false(1.0.__send__(:>, nan))
+  assert_false(1.0.__send__(:>=, nan))
+  assert_false(nan.__send__(:<, 1.0))
+  assert_false(nan.__send__(:<=, nan))
+  assert_false(nan.__send__(:>=, 1))
+  assert_false(nan < 1.0)         # the opcode, which already answered this
+end
+
 assert('Float#ceil', '15.2.9.3.8') do
   a = 3.123456789.ceil
   b = 3.0.ceil

@@ -37,6 +37,19 @@ assert('Range#===', '15.2.14.4.2') do
   assert_true c === 0
 end
 
+assert('Range#=== with a NaN') do
+  # A NaN stands in no order with either end, so it falls in no range at all.
+  # `Range` tests the comparison for the answers that hold and takes anything
+  # else for a miss, so this follows from what the comparison itself reports.
+  skip unless Object.const_defined?(:Float)
+  nan = Float::NAN
+
+  assert_false((1..2) === nan)
+  assert_false((1..) === nan)
+  assert_false((..2) === nan)
+  assert_false((1.0..2.0) === nan)
+end
+
 assert('Range#begin', '15.2.14.4.3') do
   assert_equal 1, (1..10).begin
   assert_equal 1, (1..).begin

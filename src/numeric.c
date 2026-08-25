@@ -2125,23 +2125,49 @@ int_to_s(mrb_state *mrb, mrb_value self)
   return mrb_integer_to_str(mrb, self, base);
 }
 
+/* `cmpnum()` answers this for a pair that stands in no order, which is what a
+   NaN operand makes of every comparison. It is neither 0, which would say the
+   two are equal, nor -2, which says they cannot be compared at all: `num_cmp()`
+   answers nil for both, but `num_lt()` and its neighbours raise on -2 while a
+   comparison against NaN is false rather than an error. */
+#define CMP_UNORDERED (-3)
+
 #ifndef MRB_NO_FLOAT
 /* An integer wider than the significand rounds when it is cast to `mrb_float`,
    so a mixed pair is compared exactly rather than as two Floats further down.
-   `mrb_int_float_cmp()` answers -2 for a NaN operand; keep the 0 that
-   comparing the two as Floats produced, because -2 is what `num_lt()` and its
-   neighbours raise on while a Float comparison against NaN is false rather
-   than an error. The 0 also leaves the answer safe to negate, which is how the
-   caller that holds the Float first reads it. */
+   `mrb_int_float_cmp()` reports a NaN as -2, the only answer it has for a pair
+   it cannot place; report it here as unordered instead, which is the one the
+   callers of `cmpnum()` can tell apart from a type mismatch. */
 static mrb_int
 cmpnum_int_float(mrb_int x, mrb_float y)
 {
   mrb_int c = mrb_int_float_cmp(x, y);
-  return c == -2 ? 0 : c;
+  return c == -2 ? CMP_UNORDERED : c;
+}
+
+/* Only 1, 0 and -1 flip when the operands are read the other way round: a pair
+   that cannot be compared, or that stands in no order, is the same pair either
+   way round and its answer has no opposite. */
+static mrb_int
+cmpnum_rev(mrb_int c)
+{
+  return (c == -2 || c == CMP_UNORDERED) ? c : -c;
+}
+
+#ifdef MRB_USE_BIGINT
+/* `mrb_bint_cmp()` answers -2 both for a NaN on the right and for a value it
+   cannot compare with at all. Every call below has settled the types first, so
+   the only -2 left to answer is the NaN. */
+static mrb_int
+cmpnum_bint(mrb_state *mrb, mrb_value x, mrb_value y)
+{
+  mrb_int c = mrb_bint_cmp(mrb, x, y);
+  return c == -2 ? CMP_UNORDERED : c;
 }
 #endif
+#endif
 
-/* compare two numbers: (1:0:-1; -2 for error) */
+/* compare two numbers: (1:0:-1; -2 for error, -3 for an unordered pair) */
 static mrb_int
 cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
 {
@@ -2179,7 +2205,7 @@ cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
     return cmpnum_int_float(mrb_integer(v1), mrb_float(v2));
   }
   if (mrb_float_p(v1) && mrb_integer_p(v2)) {
-    return -cmpnum_int_float(mrb_integer(v2), mrb_float(v1));
+    return cmpnum_rev(cmpnum_int_float(mrb_integer(v2), mrb_float(v1)));
   }
 
   if (mrb_fixnum_p(v1)) {
@@ -2201,7 +2227,7 @@ cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
 #ifdef MRB_USE_BIGINT
   else if (mrb_bigint_p(v1)) {
     if (mrb_integer_p(v2) || mrb_bigint_p(v2) || mrb_float_p(v2)) {
-      return mrb_bint_cmp(mrb, v1, v2);
+      return cmpnum_bint(mrb, v1, v2);
     }
     x = mrb_as_float(mrb, v1);
   }
@@ -2213,11 +2239,10 @@ cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
 #ifdef MRB_USE_BIGINT
   if (mrb_bigint_p(v2)) {
     /* The switch below would convert `v2` with `mrb_as_float()` and lose the
-       low bits of a big integer. `mrb_bint_cmp()` keeps it exact. Negate the
-       result rather than the operands; -2 means incomparable, which has no
-       opposite. */
-    mrb_int c = mrb_bint_cmp(mrb, v2, mrb_float_value(mrb, x));
-    return c == -2 ? -2 : -c;
+       low bits of a big integer. `mrb_bint_cmp()` keeps it exact. The operands
+       are read the other way round here, so the answer is reversed rather than
+       the pair. */
+    return cmpnum_rev(cmpnum_bint(mrb, v2, mrb_float_value(mrb, x)));
   }
 #endif
 
@@ -2248,6 +2273,10 @@ cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
     }
     return -2;
   }
+
+  /* Neither test below holds when either side is NaN, and falling out of them
+     would answer 0, which says the two are equal. */
+  if (isnan(x) || isnan(y)) return CMP_UNORDERED;
 #endif
   if (x > y)
     return 1;
@@ -2287,7 +2316,7 @@ num_cmp(mrb_state *mrb, mrb_value self)
   mrb_value other = mrb_get_arg1(mrb);
   mrb_int n = cmpnum(mrb, self, other);
 
-  if (n == -2) return mrb_nil_value();
+  if (n == -2 || n == CMP_UNORDERED) return mrb_nil_value();
   return mrb_fixnum_value(n);
 }
 
@@ -2303,6 +2332,9 @@ num_lt(mrb_state *mrb, mrb_value self)
   mrb_value other = mrb_get_arg1(mrb);
   mrb_int n = cmpnum(mrb, self, other);
 
+  /* A NaN stands in no order with anything, so every comparison against one is
+     false; an exception is not an answer CRuby gives here either. */
+  if (n == CMP_UNORDERED) return mrb_false_value();
   if (n == -2) cmperr(mrb, self, other);
   if (n < 0) return mrb_true_value();
   return mrb_false_value();
@@ -2314,6 +2346,7 @@ num_le(mrb_state *mrb, mrb_value self)
   mrb_value other = mrb_get_arg1(mrb);
   mrb_int n = cmpnum(mrb, self, other);
 
+  if (n == CMP_UNORDERED) return mrb_false_value();
   if (n == -2) cmperr(mrb, self, other);
   if (n <= 0) return mrb_true_value();
   return mrb_false_value();
@@ -2325,6 +2358,7 @@ num_gt(mrb_state *mrb, mrb_value self)
   mrb_value other = mrb_get_arg1(mrb);
   mrb_int n = cmpnum(mrb, self, other);
 
+  if (n == CMP_UNORDERED) return mrb_false_value();
   if (n == -2) cmperr(mrb, self, other);
   if (n > 0) return mrb_true_value();
   return mrb_false_value();
@@ -2336,9 +2370,21 @@ num_ge(mrb_state *mrb, mrb_value self)
   mrb_value other = mrb_get_arg1(mrb);
   mrb_int n = cmpnum(mrb, self, other);
 
+  if (n == CMP_UNORDERED) return mrb_false_value();
   if (n == -2) cmperr(mrb, self, other);
   if (n >= 0) return mrb_true_value();
   return mrb_false_value();
+}
+
+/* `mrb_cmp()` reports an unordered pair as one it cannot compare. Its callers
+   sort, search and test ranges with the answer, and a NaN belongs at neither
+   end of an order; -2 is the answer they already refuse, which is what CRuby
+   does with a NaN in `Array#sort`. */
+static mrb_int
+cmpnum_total(mrb_state *mrb, mrb_value v1, mrb_value v2)
+{
+  mrb_int n = cmpnum(mrb, v1, v2);
+  return n == CMP_UNORDERED ? -2 : n;
 }
 
 /**
@@ -2362,13 +2408,13 @@ mrb_cmp(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
   mrb_value v;
 
   if (mrb_fixnum_p(obj1) || mrb_float_p(obj1)) {
-    return cmpnum(mrb, obj1, obj2);
+    return cmpnum_total(mrb, obj1, obj2);
   }
   switch (mrb_type(obj1)) {
   case MRB_TT_INTEGER:
   case MRB_TT_FLOAT:
   case MRB_TT_BIGINT:
-    return cmpnum(mrb, obj1, obj2);
+    return cmpnum_total(mrb, obj1, obj2);
   case MRB_TT_STRING:
     if (!mrb_string_p(obj2))
       return -2;

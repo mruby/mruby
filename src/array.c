@@ -2287,7 +2287,14 @@ sort_cmp(mrb_state *mrb, mrb_value ary, mrb_value a_val, mrb_value b_val, mrb_va
         break;
 #ifndef MRB_NO_FLOAT
       case MRB_TT_FLOAT:
-        cmp = (mrb_float(a_val) > mrb_float(b_val)) ? 1 : (mrb_float(a_val) < mrb_float(b_val)) ? -1 : 0;
+        {
+          /* A NaN is greater than, less than and equal to nothing at all, so
+             the pair is reported as one that cannot be compared. Falling out
+             of the two tests below would call it a tie and leave the NaN
+             wherever the sort happened to put it. */
+          mrb_float a_flo = mrb_float(a_val), b_flo = mrb_float(b_val);
+          cmp = (a_flo > b_flo) ? 1 : (a_flo < b_flo) ? -1 : (a_flo == b_flo) ? 0 : -2;
+        }
         break;
 #endif
       case MRB_TT_STRING:

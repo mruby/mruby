@@ -133,6 +133,41 @@ assert('Integer comparison with a Float that stands for another number') do
   assert_false([n] == [f])        # Array#== reads the same comparison
 end
 
+assert('Integer comparison with a NaN') do
+  # The mixed pair is compared exactly rather than as two Floats, and that
+  # comparison reports a NaN apart; the answer it stands for is the one a pair
+  # of Floats gets, no order at all. See the Float file for what that means.
+  skip unless Object.const_defined?(:Float)
+  nan = Float::NAN
+
+  assert_nil(1 <=> nan)
+  assert_false(1.__send__(:<, nan))
+  assert_false(1.__send__(:<=, nan))
+  assert_false(1.__send__(:>, nan))
+  assert_false(1.__send__(:>=, nan))
+  assert_false(1 < nan)           # the opcode, which already answered this
+end
+
+assert('Integer wider than an mrb_int compared with a NaN') do
+  # A big integer is compared by a path of its own, which reported the NaN as a
+  # pair it could not compare at all: `<=>` was already nil, but the four
+  # operators raised where the ones above answered false.
+  skip unless Object.const_defined?(:Float)
+  begin
+    big = 1 << 70
+  rescue RangeError
+    skip 'no integer here is wider than an mrb_int'
+  end
+  nan = Float::NAN
+
+  assert_nil(big <=> nan)
+  assert_nil(nan <=> big)
+  assert_false(big.__send__(:<, nan))
+  assert_false(big.__send__(:>=, nan))
+  assert_false(nan.__send__(:<, big))
+  assert_false(nan.__send__(:>=, big))
+end
+
 assert('Integer comparison with a Float at the ends of the mrb_int range') do
   # The far ends are where the neighbouring Floats stand furthest apart, and
   # where the bounds the comparison tests against are themselves built. Both
