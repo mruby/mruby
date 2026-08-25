@@ -1970,8 +1970,14 @@ mrb_ary_eq(mrb_state *mrb, mrb_value ary1)
 
   int ai = mrb_gc_arena_save(mrb);
   for (mrb_int i=0; i<RARRAY_LEN(ary1); i++) {
-    mrb_value eq = mrb_funcall_argv1(mrb, mrb_ary_entry(ary1, i), MRB_OPSYM(eq), mrb_ary_entry(ary2, i));
-    if (!mrb_test(eq)) return mrb_false_value();
+    /* `OP_EQ` takes two values for equal where they are the same object and
+       dispatches `==` only after; `mrb_equal()` is that same test made from C,
+       and it is what `#index` and `#delete` search a pair with. Dispatching
+       `==` here went around it, so an element was equal to itself only where
+       its own `==` said so. CRuby compares elements here the same way. */
+    if (!mrb_equal(mrb, mrb_ary_entry(ary1, i), mrb_ary_entry(ary2, i))) {
+      return mrb_false_value();
+    }
     mrb_gc_arena_restore(mrb, ai);
   }
   return mrb_true_value();

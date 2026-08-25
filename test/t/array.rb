@@ -527,6 +527,26 @@ assert('Array#==', '15.2.12.5.33') do
   assert_false(["a", "c", 7] == ["a", "d", "f"])
 end
 
+assert('Array#== takes an element for equal to itself') do
+  # `a == b` is answered by `OP_EQ`, which takes two values for equal where
+  # they are the same object and dispatches `==` only after. Comparing the
+  # elements here with `==` went around that, so an object whose `==` answers
+  # false to everything was not equal to itself inside an array while it was
+  # outside one. `#index` searches with the first of the two.
+  class ArrayEqNever
+    def ==(other)
+      false
+    end
+  end
+  never = ArrayEqNever.new
+
+  # `never == never` reads true whatever the definition says, `OP_EQ` having
+  # answered it from the object; the definition is reached by name.
+  assert_false(never.__send__(:==, never))
+  assert_true([never] == [never])
+  assert_equal(0, [never].index(never))
+end
+
 assert('Array#eql?', '15.2.12.5.34') do
   a1 = [ 1, 2, 3 ]
   a2 = [ 1, 2, 3 ]
