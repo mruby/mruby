@@ -341,6 +341,97 @@ end
 puts "#build\tchars=" + ("\u{100}".size == 1 ? "1" : "0") +
      " unicode=" + (Regexp.new("[[:alpha:]]").match?("\u{100}") ? "1" : "0")
 
+# ------------------------------------------------------- the character axis
+#
+# The corpus above asks what the engine makes of a pattern; this asks what it
+# makes of a character. The two want different shapes: a pattern is worth
+# asking about a handful of subjects, where a character is worth asking every
+# way there is to classify one. So a line here is a character and the answers
+# are the columns, which is the other way round, and each is a bit.
+#
+# The characters come out of the database, by the rule
+# tools/unicode/corpus_data.rb states; corpus.rb is what that rule wrote, and
+# compare.rb puts it in front of this file.
+
+# The codepoint as the bytes that spell it, built rather than asked for, so
+# that both engines are handed the same bytes whatever their literals do.
+#
+# The bytes are then said to be UTF-8 where the build has anything to say it
+# to. CRuby's `Integer#chr` hands back a binary string, and a binary subject
+# is one its engine reads a byte at a time whatever the bytes spell, and the
+# answer would be about the encoding and not about the character. A build with
+# no encodings
+# reads the bytes the way it reads every string, which is the answer wanted
+# there.
+def utf8(cp)
+  s = if cp < 0x80
+        cp.chr
+      elsif cp < 0x800
+        (0xc0 | (cp >> 6)).chr + (0x80 | (cp & 0x3f)).chr
+      elsif cp < 0x10000
+        (0xe0 | (cp >> 12)).chr + (0x80 | ((cp >> 6) & 0x3f)).chr +
+          (0x80 | (cp & 0x3f)).chr
+      else
+        (0xf0 | (cp >> 18)).chr + (0x80 | ((cp >> 12) & 0x3f)).chr +
+          (0x80 | ((cp >> 6) & 0x3f)).chr + (0x80 | (cp & 0x3f)).chr
+      end
+  s = s.force_encoding("UTF-8") if s.respond_to?(:force_encoding)
+  s
+end
+
+POSIX_NAMES = %w[alpha digit alnum upper lower space blank xdigit word cntrl
+                 print graph ascii punct]
+
+# Every way to ask what a character is, in the order the columns come. A
+# pattern one engine will not compile is a column of `E` and one that raises
+# while matching a column of `X`, each an answer like any other and one the two
+# can differ about. Neither spells which class was raised: a row here is one
+# character wide per column, which is what lets a line hold every classifier,
+# and the pattern axis is where an engine's choice of class is asked about.
+def classifiers
+  out = []
+  POSIX_NAMES.each do |name|
+    out << ["[[:" + name + ":]]", 0]
+    out << ["[[:^" + name + ":]]", 0]
+  end
+  %w[d D w W s S h H].each { |c| out << ["\\" + c, 0] }
+  out << ["\\b", 0]
+  out << ["\\B", 0]
+  out << [".", 0]
+  # The same questions under /i, which reads a character through every case
+  # of it and is the one flag that changes what a class holds.
+  ["[[:upper:]]", "[[:lower:]]",
+   "[[:^upper:]]"].each { |src| out << [src, Regexp::IGNORECASE] }
+  out
+end
+
+CLASSIFIERS = classifiers.map do |src, opt|
+  begin
+    [src, Regexp.new(src, opt)]
+  rescue StandardError
+    [src, nil]
+  end
+end
+
+CORPUS.each do |cp|
+  s = utf8(cp)
+  row = ""
+  CLASSIFIERS.each do |_, re|
+    if re.nil?
+      row << "E"
+    else
+      begin
+        row << (re.match?(s) ? "1" : "0")
+      rescue StandardError
+        row << "X"
+      end
+    end
+  end
+  h = cp.to_s(16).upcase
+  h = "0" + h while h.size < 4
+  puts "#char U+" + h + "\t" + row + "\t"
+end
+
 PATTERNS.each do |src|
   FLAGS.each do |flags|
     label = render(src) + "/" + flags
