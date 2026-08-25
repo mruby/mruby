@@ -230,11 +230,11 @@ module Enumerable
         result = val
         flag = false
       else
-        if block
-          result = val if yield(val, result) > 0
-        else
-          result = val if (val <=> result) > 0
-        end
+        cmp = block ? yield(val, result) : (val <=> result)
+        # A comparison with no answer is not an ordering: without this the line
+        # below would ask nil whether it is positive.
+        raise ArgumentError, "comparison of #{val.class} with #{result.class} failed" if cmp.nil?
+        result = val if cmp > 0
       end
     }
     result
@@ -257,11 +257,9 @@ module Enumerable
         result = val
         flag = false
       else
-        if block
-          result = val if yield(val, result) < 0
-        else
-          result = val if (val <=> result) < 0
-        end
+        cmp = block ? yield(val, result) : (val <=> result)
+        raise ArgumentError, "comparison of #{val.class} with #{result.class} failed" if cmp.nil?
+        result = val if cmp < 0
       end
     }
     result
