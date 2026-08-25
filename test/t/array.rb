@@ -580,6 +580,21 @@ assert('Array#sort!') do
   assert_equal [1, 2, 3], a    # it is sorted.
 end
 
+assert('Array#sort with a NaN in it') do
+  # A NaN stands in no order with anything, so there is no sorted order for an
+  # array holding one and the comparison is refused rather than answered. The
+  # all-Float array takes a comparison of its own inside the sort, so it is
+  # pinned alongside the mixed one, and a longer array is sorted as well
+  # because a short one takes a different route through the sort.
+  skip unless Object.const_defined?(:Float)
+  nan = Float::NAN
+
+  assert_raise(ArgumentError) { [1.0, nan].sort }
+  assert_raise(ArgumentError) { [1, nan].sort }
+  assert_raise(ArgumentError) { [nan, 1.0].sort }
+  assert_raise(ArgumentError) { ([1.0] * 40 + [nan]).sort }
+end
+
 assert('Array#freeze') do
   a = [].freeze
   assert_raise(FrozenError) do
