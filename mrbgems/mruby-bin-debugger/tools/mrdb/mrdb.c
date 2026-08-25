@@ -10,6 +10,7 @@
 #include <mruby.h>
 #include <mruby/dump.h>
 #include <mruby/debug.h>
+#include <mruby/error.h>
 #include <mruby/class.h>
 #include <mruby/opcode.h>
 #include <mruby/variable.h>
@@ -710,6 +711,7 @@ main(int argc, char **argv)
 {
   mrb_state *mrb = mrb_open();
   int n = -1;
+  int ret = EXIT_SUCCESS;
   struct _args args;
   mrb_value v;
   mrdb_state *mrdb;
@@ -782,6 +784,19 @@ main(int argc, char **argv)
       goto l_restart;
     }
   }
+  /* How the program ended, taken before anything below can disturb it.  The
+     debugger's own command loop follows and used to decide the exit status by
+     itself, with an unconditional 0, so `mrdb prog.rb` answered success for a
+     program that raised, and for one that would not even compile, where
+     `mruby prog.rb` answers 1.  A later command cannot change this: what the
+     status reports is the program's run, not the debugging session.  Quitting
+     from inside the run is not a failure and returns 0 above, with
+     DebuggerExit. */
+  if (mrb->exc) {
+    ret = MRB_EXC_EXIT_P(mrb->exc)
+            ? MRB_EXC_EXIT_STATUS(mrb, mrb->exc) : EXIT_FAILURE;
+  }
+
   puts("mruby application exited.");
   mrdb->dbg->xphase = DBG_PHASE_AFTER_RUN;
   if (!mrb_undef_p(v)) {
@@ -810,5 +825,5 @@ main(int argc, char **argv)
 
   cleanup(mrb, &args);
 
-  return 0;
+  return ret;
 }
