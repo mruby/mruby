@@ -14,7 +14,7 @@ class BinTest_MRubyBinDebugger
     script.flush
 
     # compile
-    system(*(cmd_list('mrbc') + ['-g', '-o', bin.path, script.path]))
+    assert_run('mrbc', '-g', '-o', bin.path, script.path)
 
     # add mrdb quit
     testcase << {:cmd=>"quit"}
@@ -309,7 +309,7 @@ def with_debuggable_program
     rb = File.join(src, 'prog.rb')
     File.write(rb, "a = 1\nb = 2\n")
     bin = File.join(root, 'prog.mrb')
-    system(*(cmd_list('mrbc') + ['-g', '-o', bin, rb]))
+    assert_run('mrbc', '-g', '-o', bin, rb)
     yield root, rb, bin
   end
 end
@@ -379,11 +379,11 @@ assert('the exit status reports a compiled program too') do
   script, bin = Tempfile.new(['test', '.rb']), Tempfile.new(['test', '.mrb'])
 
   File.write(script.path, "raise 'boom'\n")
-  system(*(cmd_list('mrbc') + ['-g', '-o', bin.path, script.path]))
+  assert_run('mrbc', '-g', '-o', bin.path, script.path)
   assert_false mrdb_status(['-b', bin.path], "r\nq\n").success?
 
   File.write(script.path, "puts 'ok'\n")
-  system(*(cmd_list('mrbc') + ['-g', '-o', bin.path, script.path]))
+  assert_run('mrbc', '-g', '-o', bin.path, script.path)
   assert_true mrdb_status(['-b', bin.path], "r\nq\n").success?
 end
 

@@ -27,8 +27,8 @@ assert('success') do
     Tempfile.new('script.rb'), Tempfile.new('c1.mrb'), Tempfile.new('c2.mrb')
   script_file.write "p 'test'\n"
   script_file.flush
-  system(*(cmd_list('mrbc') + ['-g', '-o', compiled1.path, script_file.path]))
-  system(*(cmd_list('mrbc') + ['-g', '-o', compiled2.path, script_file.path]))
+  assert_run('mrbc', '-g', '-o', compiled1.path, script_file.path)
+  assert_run('mrbc', '-g', '-o', compiled2.path, script_file.path)
 
   o, s = Open3.capture2(*(cmd_list('mruby-strip') + [compiled1.path]))
   assert_equal 0, s.exitstatus
@@ -47,12 +47,12 @@ assert('check debug section') do
     Tempfile.new('script.rb'), Tempfile.new('c1.mrb'), Tempfile.new('c2.mrb')
   script_file.write "p 'test'\n"
   script_file.flush
-  system(*(cmd_list('mrbc') + ['-o', without_debug.path, script_file.path]))
-  system(*(cmd_list('mrbc') + ['-g', '-o', with_debug.path, script_file.path]))
+  assert_run('mrbc', '-o', without_debug.path, script_file.path)
+  assert_run('mrbc', '-g', '-o', with_debug.path, script_file.path)
 
   assert_true with_debug.size >= without_debug.size
 
-  system(*(cmd_list('mruby-strip') + [with_debug.path]))
+  assert_run('mruby-strip', with_debug.path)
   assert_equal without_debug.size, with_debug.size
 end
 
@@ -65,10 +65,10 @@ a += b
 p Kernel.local_variables
 EOS
   script_file.flush
-  system(*(cmd_list('mrbc') + ['-o', with_lv.path, script_file.path]))
-  system(*(cmd_list('mrbc') + ['-o', without_lv.path, script_file.path]))
+  assert_run('mrbc', '-o', with_lv.path, script_file.path)
+  assert_run('mrbc', '-o', without_lv.path, script_file.path)
 
-  system(*(cmd_list('mruby-strip') + ['-l', without_lv.path]))
+  assert_run('mruby-strip', '-l', without_lv.path)
   assert_true without_lv.size < with_lv.size
 #
 #  assert_equal '[:a, :b]', Open3.capture2(*(cmd_list('mruby') + ['-b', with_lv.path]))[0].chomp

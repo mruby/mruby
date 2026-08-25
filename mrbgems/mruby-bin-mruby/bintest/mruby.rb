@@ -24,7 +24,7 @@ end
 assert('regression for #1572') do
   script, bin = Tempfile.new('test.rb'), Tempfile.new('test.mrb')
   File.write script.path, 'p "ok"'
-  system(*(cmd_list('mrbc') + ['-g', '-o', bin.path, script.path]))
+  assert_run('mrbc', '-g', '-o', bin.path, script.path)
   o, = Open3.capture2(*(cmd_list(MRUBY_BIN) + [bin.path]))
   assert_equal '"ok"', o.strip
 end
@@ -39,7 +39,7 @@ assert '$0 value' do
   assert_equal "\"#{script.path}\"", o.chomp
 
   # .mrb file
-  system(*(cmd_list('mrbc') + ['-o', bin.path, script.path]))
+  assert_run('mrbc', '-o', bin.path, script.path)
   o, = Open3.capture2(*(cmd_list(MRUBY_BIN) + [bin.path]))
   assert_equal "\"#{bin.path}\"", o.chomp
 
@@ -181,16 +181,16 @@ assert('top level local variables are in file scope') do
   drb, dmrb = Tempfile.new('d.rb'), Tempfile.new('d.mrb')
 
   File.write arb.path, 'a = 1'
-  system(*(cmd_list('mrbc') + ['-g', '-o', amrb.path, arb.path]))
+  assert_run('mrbc', '-g', '-o', amrb.path, arb.path)
   File.write brb.path, 'p a'
-  system(*(cmd_list('mrbc') + ['-g', '-o', bmrb.path, brb.path]))
+  assert_run('mrbc', '-g', '-o', bmrb.path, brb.path)
   assert_mruby("", /:1: undefined method 'a' .*\(NoMethodError\)\n\z/, false, ["-r", arb.path, brb.path])
   assert_mruby("", /:1: undefined method 'a' .*\(NoMethodError\)\n\z/, false, ["-b", "-r", amrb.path, bmrb.path])
 
   File.write crb.path, 'a, b, c = 1, 2, 3; A = -> { b = -2; [a, b, c] }'
-  system(*(cmd_list('mrbc') + ['-g', '-o', cmrb.path, crb.path]))
+  assert_run('mrbc', '-g', '-o', cmrb.path, crb.path)
   File.write drb.path, 'a, b = 5, 6; p A.call; p a, b'
-  system(*(cmd_list('mrbc') + ['-g', '-o', dmrb.path, drb.path]))
+  assert_run('mrbc', '-g', '-o', dmrb.path, drb.path)
   assert_mruby("[1, -2, 3]\n5\n6\n", "", true, ["-r", crb.path, drb.path])
   assert_mruby("[1, -2, 3]\n5\n6\n", "", true, ["-b", "-r", cmrb.path, dmrb.path])
 end

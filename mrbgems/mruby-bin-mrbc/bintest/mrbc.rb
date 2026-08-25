@@ -33,7 +33,9 @@ end
 
 assert('a float literal under MRB_NO_FLOAT is read as 0 with a warning') do
   # Only a build without Float takes this path.  Whether this is one is asked
-  # of its mruby, when there is one; mrbc itself cannot be asked.
+  # of its mruby, when there is one; mrbc itself cannot be asked.  The run
+  # below is the one here that is not assert_run's: what it fails with is the
+  # answer, not a broken fixture.
   skip 'no mruby to probe the build with' unless File.exist?(cmd_bin('mruby'))
   system(*(cmd_list('mruby') + ['-e', 'Float']), out: File::NULL, err: File::NULL)
   skip 'this build has Float' if $?.success?

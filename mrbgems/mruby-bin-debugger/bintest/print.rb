@@ -13,7 +13,7 @@ class BinTest_MRubyBinDebugger
     script.flush
 
     # compile
-    system(*(cmd_list('mrbc') + ['-g', '-o', bin.path, script.path]))
+    assert_run('mrbc', '-g', '-o', bin.path, script.path)
 
     # add mrdb quit
     testcase << {:cmd=>"quit"}

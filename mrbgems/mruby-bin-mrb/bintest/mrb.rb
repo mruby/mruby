@@ -14,7 +14,7 @@ assert('mrb can execute .mrb files') do
   script = Tempfile.new(['test', '.rb'])
   bin = Tempfile.new(['test', '.mrb'])
   File.write(script.path, 'print "hello from mrb"')
-  system(*(cmd_list('mrbc') + ['-o', bin.path, script.path]))
+  assert_run('mrbc', '-o', bin.path, script.path)
   o, = Open3.capture2(*(cmd_list('mrb') + [bin.path]))
   assert_equal 'hello from mrb', o.strip
 end
@@ -23,7 +23,7 @@ assert('mrb $0 value') do
   script = Tempfile.new(['test', '.rb'])
   bin = Tempfile.new(['test', '.mrb'])
   File.write(script.path, 'print $0')
-  system(*(cmd_list('mrbc') + ['-o', bin.path, script.path]))
+  assert_run('mrbc', '-o', bin.path, script.path)
   o, = Open3.capture2(*(cmd_list('mrb') + [bin.path]))
   assert_equal bin.path, o.strip
 end
@@ -32,7 +32,7 @@ assert('mrb ARGV value') do
   script = Tempfile.new(['test', '.rb'])
   bin = Tempfile.new(['test', '.mrb'])
   File.write(script.path, 'p ARGV')
-  system(*(cmd_list('mrbc') + ['-o', bin.path, script.path]))
+  assert_run('mrbc', '-o', bin.path, script.path)
   o, = Open3.capture2(*(cmd_list('mrb') + [bin.path, 'foo', 'bar']))
   assert_equal '["foo", "bar"]', o.strip
 end
@@ -53,8 +53,8 @@ assert('mrb -r option loads library') do
 
   File.write(lib.path, '$lib_loaded = true')
   File.write(main.path, 'print $lib_loaded')
-  system(*(cmd_list('mrbc') + ['-o', lib_mrb.path, lib.path]))
-  system(*(cmd_list('mrbc') + ['-o', main_mrb.path, main.path]))
+  assert_run('mrbc', '-o', lib_mrb.path, lib.path)
+  assert_run('mrbc', '-o', main_mrb.path, main.path)
   o, = Open3.capture2(*(cmd_list('mrb') + ['-r', lib_mrb.path, main_mrb.path]))
   assert_equal 'true', o.strip
 end
@@ -63,7 +63,7 @@ assert('mrb -d sets $DEBUG') do
   script = Tempfile.new(['test', '.rb'])
   bin = Tempfile.new(['test', '.mrb'])
   File.write(script.path, 'print $DEBUG')
-  system(*(cmd_list('mrbc') + ['-o', bin.path, script.path]))
+  assert_run('mrbc', '-o', bin.path, script.path)
   o, = Open3.capture2(*(cmd_list('mrb') + ['-d', bin.path]))
   assert_equal 'true', o.strip
 end
