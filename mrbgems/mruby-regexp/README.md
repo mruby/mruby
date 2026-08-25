@@ -415,6 +415,81 @@ same, having no character to classify. `[[:xdigit:]]` and `[[:ascii:]]` are
 sets ASCII defines and hold nothing above it on any build. The table is 13.9KB
 of read-only data; `MRB_USE_ASCII_CTYPE` is what leaves it out.
 
+## Checking against CRuby
+
+Everything under Limitations is a place this engine answers a pattern
+differently from CRuby, and the list is kept by hand. What keeps it honest is
+`tools/difftest`, which runs a corpus of patterns through both engines and
+reports where they disagree:
+
+```console
+$ rake regexp:difftest
+4180 patterns, 100 known differences, no new ones
+```
+
+The task asks the build the loaded config declares, so a working tree holding
+the builds of several configs still asks the one in hand. A config declaring
+more than one build with this gem in it leaves the choice to `MRUBY`, since a
+baseline describes one build.
+
+`probe.rb` holds the corpus and runs under either engine, printing a line per
+pattern: where a match starts in each of a fixed list of subjects, what it
+captured, and which class it raised. The class is part of the answer whether
+the pattern was refused at compile time or the search raised against a subject,
+since refusing with `RegexpError` and refusing with `ArgumentError` are
+different answers. The patterns are generated from the axes rather than listed,
+so an escape, a quantifier or a class form is covered in every context it can
+stand in — every printable ASCII character after a backslash, alone and beside
+a literal and inside a class and as an end of a range; every quantifier on
+every kind of atom; the groups, the anchors, the backreferences and the POSIX
+brackets. Each is asked under `//`, `/i`, `/m` and `/x`, one flag at a time
+rather than once per combination of them: asked once under all eight, no
+pattern differed under a combination that did not already differ under a single
+flag. The Unicode properties are four patterns rather than an axis, since this
+engine refuses `\p{...}` outright and asking it about every property would
+write the same refusal down once per property; what the four are for is the day
+it stops refusing, when the difference stops being one and the line goes GONE.
+
+`compare.rb` runs it in both and checks the disagreements against
+`baseline.txt`, which holds the ones that are meant: a construct this engine
+refuses rather than answers wrongly, a byte CRuby settles with the pattern's
+encoding. Every line in it is one of the limitations above. A disagreement that
+is not in the baseline is what the tool is for, and it fails on one; a baseline
+line that has stopped disagreeing fails too, so that a fix prunes the list
+rather than leaving it to describe an engine that has moved on. `rake
+regexp:difftest:update` takes a new baseline.
+
+Those three verdicts are the whole of what the tool reports, so
+`rake regexp:difftest:selftest` puts them to `compare.rb` with answers made up
+rather than run: a difference the baseline does not hold, one it holds
+differently, one it holds that has been fixed, and the two cases it has to stay
+quiet about. It runs at the start of every comparison as well, since a mistake
+there is a differential test that passes by not looking. So does the reading of
+the probe's own output, which is the same hazard a line further back: what
+`probe.rb` writes is a protocol, three tab separated fields per answer and one
+`#build` line, and a line of another shape, a label answered twice or a run
+that never said which build it is are each read as a probe to fix rather than
+taken for an answer.
+
+The same task asks the corpus whether it still holds what it says it does. A
+differential test goes quiet two ways, and the second one reads exactly like
+the first: fewer patterns, no disagreement, green. So `probe.rb` asserts its
+shape rather than its size, every escape in every context and every quantifier
+on every atom, with a case out of each axis that is not a product named
+besides. It stops the run rather than the count going down unremarked.
+
+Two things bound what it can say. The answers are the host CRuby's, so a
+different one — another Onigmo, another Unicode release behind its tables — may
+disagree for reasons that are not this engine's; the baseline records which
+CRuby it was taken with. And a baseline describes the build it was taken
+against, since a build reading its strings as bytes or classifying them by ASCII
+answers differently wherever a table is read; `compare.rb` refuses a build that
+is not the one its baseline describes rather than reporting every one of those
+as a regression.
+
+Both are why this is a task to run rather than a job in the workflows, which use
+whatever CRuby a runner ships.
+
 ## License
 
 MIT License. See the mruby license file for details.
