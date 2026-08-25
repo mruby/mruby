@@ -255,9 +255,15 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     uint8_t *ed_flags = kh_flags_##name(h);                             \
     void *kh__data = h->data;                                           \
     khint_t k = kh__key_idx_##name(mrb, key, h), step = 0;              \
+    khint_t probes = h->n_buckets;                                      \
     KHASH_CHECK_MODIFIED(mrb, h, kh__data);                             \
     (void)mrb;                                                          \
-    while (!__ac_isempty(ed_flags, k)) {                                \
+    /* A deleted bucket is not an empty one, so a table drained one      \
+       element at a time can hold no empty bucket at all; this walk      \
+       would then revisit the same buckets forever.  The probe visits    \
+       every bucket once before it repeats, so a full round without a    \
+       hit is a miss. */                                                 \
+    while (!__ac_isempty(ed_flags, k) && probes-- > 0) {                \
       if (!__ac_isdel(ed_flags, k)) {                                   \
         mrb_bool kh__eq = __hash_equal(mrb, keys[k], key);              \
         KHASH_CHECK_MODIFIED(mrb, h, kh__data);                         \
@@ -279,10 +285,13 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     if (kh__is_small_##name(h)) {                                       \
       return kh__put_small_##name(mrb, h, key, ret);                    \
     }                                                                   \
-    khint_t k, del_k, step = 0;                                         \
+    khint_t k, del_k, step = 0, probes;                                 \
     if (h->size >= khash_upper_bound(h)) {                              \
       kh_resize_##name(mrb, h, h->n_buckets*2);                         \
     }                                                                   \
+   kh__put_retry:                                                       \
+    step = 0;                                                           \
+    probes = h->n_buckets;                                              \
     /* Cache calculated pointers for performance */                     \
     khkey_t *keys = kh_keys_##name(h);                                  \
     uint8_t *ed_flags = kh_flags_##name(h);                             \
@@ -290,7 +299,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     k = kh__key_idx_##name(mrb, key, h);                                \
     KHASH_CHECK_MODIFIED(mrb, h, kh__data);                             \
     del_k = kh_end(h);                                                  \
-    while (!__ac_isempty(ed_flags, k)) {                                \
+    while (!__ac_isempty(ed_flags, k) && probes-- > 0) {                \
       if (!__ac_isdel(ed_flags, k)) {                                   \
         mrb_bool kh__eq = __hash_equal(mrb, keys[k], key);              \
         KHASH_CHECK_MODIFIED(mrb, h, kh__data);                         \
@@ -309,6 +318,18 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
       kh__insert_key_##name(h, del_k, key);                             \
       if (ret) *ret = 2;                                                \
       return del_k;                                                     \
+    }                                                                   \
+    else if (!__ac_isempty(ed_flags, k)) {                              \
+      /* A whole round of the probe without an empty bucket and without \
+         a deleted one to take: every bucket is live.  The upper bound  \
+         above keeps that from happening, so this is the table that has \
+         been drained rather than filled and holds nothing but deleted  \
+         buckets between the live ones.  Rebuilding is what gives those \
+         back; the size is unchanged, and the bound above grows the     \
+         table on the next call if the live count really has reached    \
+         it. */                                                         \
+      kh_resize_##name(mrb, h, h->n_buckets);                           \
+      goto kh__put_retry;                                               \
     }                                                                   \
     else {                                                              \
       /* put at empty */                                                \
