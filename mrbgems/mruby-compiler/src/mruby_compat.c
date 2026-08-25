@@ -9,6 +9,7 @@
 #include <mruby/internal.h>
 #include <mruby/opcode.h>
 #include <mruby/proc.h>
+#include <mruby/string.h>
 #include <string.h>
 
 #include "../include/mrc_ccontext.h"
@@ -244,6 +245,29 @@ read_file_content(mrb_state *mrb, FILE *f, size_t *lenp)
   *lenp = len;
   return buf;
 }
+
+/* A stream that opened can still fail every read: a directory does exactly
+   that on POSIX, failing with EISDIR rather than reporting end of input.
+   read_file_content() answers NULL for that, and without an exception here
+   the failure is indistinguishable from an empty file one layer up
+   (mrb_parse_file() passes the NULL on and mrb_load_exec() answers an
+   undefined value), so the caller ran nothing and was told nothing.  The
+   binary loader already raises for its own read failures (`irep load error`
+   in load.c); this is the source loader's counterpart. */
+static void
+set_read_error(mrb_state *mrb, mrb_ccontext *c)
+{
+  mrb_value mesg;
+
+  if (mrb->exc) return;
+  if (c && c->filename) {
+    mesg = mrb_format(mrb, "cannot read file: %s", c->filename);
+  }
+  else {
+    mesg = mrb_str_new_lit(mrb, "cannot read file");
+  }
+  mrb->exc = mrb_obj_ptr(mrb_exc_new_str(mrb, E_SCRIPT_ERROR, mesg));
+}
 #endif
 
 MRB_API mrb_ccontext*
@@ -387,7 +411,10 @@ mrb_parse_file(mrb_state *mrb, FILE *f, mrb_ccontext *c)
 
   if (!f) return NULL;
   buf = read_file_content(mrb, f, &len);
-  if (!buf) return NULL;
+  if (!buf) {
+    set_read_error(mrb, c);
+    return NULL;
+  }
   p = parse_source(mrb, buf, len, c);
   mrb_free(mrb, buf);
   return p;
@@ -469,6 +496,13 @@ mrb_load_exec(mrb_state *mrb, struct mrb_parser_state *p, mrb_ccontext *c)
   mrb_int keep = 0;
 
   if (!p) {
+    /* No parser state at all: the source could not be obtained.  The reader
+       that knows why (set_read_error() above) has already said so; anything
+       else reaching here (a NULL stream, a NULL string) gets a message
+       rather than the silent undefined value this used to answer. */
+    if (mrb->exc == NULL) {
+      mrb->exc = mrb_obj_ptr(mrb_exc_new_lit(mrb, E_SCRIPT_ERROR, "cannot load source"));
+    }
     return mrb_undef_value();
   }
   if (!p->tree || p->nerr) {
@@ -533,7 +567,10 @@ mrb_load_detect_file_cxt(mrb_state *mrb, FILE *fp, mrb_ccontext *c)
 
   if (!fp) return mrb_nil_value();
   buf = read_file_content(mrb, fp, &len);
-  if (!buf) return mrb_nil_value();
+  if (!buf) {
+    set_read_error(mrb, c);
+    return mrb_nil_value();
+  }
   if (len >= 4 && memcmp(buf, "RITE", 4) == 0) {
     result = mrb_load_irep_buf_cxt(mrb, buf, len, c);
   }
