@@ -46,10 +46,36 @@ ary_minmax(mrb_state *mrb, mrb_value self)
   return pair;
 }
 
+/* `Enumerable#count` with an argument reaches an element the same way and
+   compares it with `==`. An Array is walked in place instead, and the pair is
+   compared with `mrb_equal()`, which is what `Array#index` and `#delete`
+   search with and what `OP_EQ` tests before it dispatches `==`.
+
+   `==` can run Ruby that grows or shrinks the array under us, so the length
+   and the pointer are read afresh each turn, and whatever that Ruby built on
+   the way is dropped from the arena before the next turn adds to it. A count
+   walks every element, so without the restore an `==` answering with a fresh
+   object each time fills a fixed arena. What `mrb_equal()` returns is a C
+   value and outlives the restore. */
+static mrb_value
+ary_count(mrb_state *mrb, mrb_value self)
+{
+  mrb_value obj = mrb_get_arg1(mrb);
+  mrb_int n = 0;
+
+  int ai = mrb_gc_arena_save(mrb);
+  for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
+    if (mrb_equal(mrb, RARRAY_PTR(self)[i], obj)) n++;
+    mrb_gc_arena_restore(mrb, ai);
+  }
+  return mrb_int_value(mrb, n);
+}
+
 void
 mrb_mruby_enum_ext_gem_init(mrb_state *mrb)
 {
   mrb_define_method_id(mrb, mrb->array_class, MRB_SYM(__minmax), ary_minmax, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, mrb->array_class, MRB_SYM(__count), ary_count, MRB_ARGS_REQ(1));
 }
 
 void
