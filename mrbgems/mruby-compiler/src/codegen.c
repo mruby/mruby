@@ -1151,12 +1151,16 @@ gen_getupvar(mrc_codegen_scope *s, uint16_t dst, mrc_sym id)
 }
 
 static void
-gen_setupvar(mrc_codegen_scope *s, uint16_t dst, mrc_sym id)
+gen_setupvar(mrc_codegen_scope *s, uint16_t dst, mrc_sym id, int val)
 {
   int idx;
   int lv = search_upvar(s, id, &idx);
 
-  if (!no_peephole(s)) {
+  /* Folding the preceding `OP_MOVE dst, src` into `OP_SETUPVAR src` leaves
+     `dst` unwritten, so it is only sound where the assignment is a statement.
+     As an expression the value belongs in `dst`, and the store is the only
+     thing that would have put it there. */
+  if (!val && !no_peephole(s)) {
     struct mrc_insn_data data = mrc_last_insn(s);
     if (data.insn == OP_MOVE && data.a == dst) {
       dst = data.b;
@@ -1980,7 +1984,7 @@ gen_assignment_lvar(mrc_codegen_scope *s, int sp, mrc_sym name, int depth, int v
     }
   }
   else {
-    gen_setupvar(s, sp, name);
+    gen_setupvar(s, sp, name, val);
   }
 }
 

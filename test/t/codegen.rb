@@ -267,3 +267,39 @@ assert('block inside a for body sees its own locals') do
   end
   assert_equal 3, x
 end
+
+assert('assignment to a captured local is worth its value') do
+  # `a = v` inside a block stores through OP_SETUPVAR, which unlike OP_MOVE
+  # leaves no value behind. Folding the preceding move into it used to happen
+  # even where the assignment is an expression, so the register the value
+  # belonged in was never written and the block answered whatever it held.
+  a = nil
+  assert_equal [7], [7].map {|v| a = v }
+  assert_equal 7, a
+
+  assert_equal [7], [7].select {|v| a = v }
+
+  # every name of a chain gets the value, not just the last
+  b = nil
+  [7].each {|v| a = b = v }
+  assert_equal [7, 7], [a, b]
+
+  # the register is not merely nil: `f` below is what it held
+  a = nil; b = nil; f = true
+  [7].each {|v| if f; a = b = v; f = false; end }
+  assert_equal [7, 7], [a, b]
+
+  a = nil
+  assert_equal [7], [7].map {|v| a ||= v }
+
+  # a block nested in another block, and one reached through `yield`
+  a = nil
+  assert_equal [[7]], [[7]].map {|arr| arr.map {|v| a = v } }
+  def give7; yield 7; end
+  assert_equal 7, give7 {|v| a = v }
+
+  # as a statement the value is unused, and the store still lands
+  a = nil
+  [7].each {|v| a = v }
+  assert_equal 7, a
+end
