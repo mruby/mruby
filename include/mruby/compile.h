@@ -176,6 +176,25 @@ MRB_API mrb_value mrb_load_exec(mrb_state *mrb, struct mrb_parser_state *p, mrb_
 MRB_API mrb_value mrb_load_file(mrb_state*,FILE*);
 MRB_API mrb_value mrb_load_file_cxt(mrb_state*,FILE*, mrb_ccontext *cxt);
 MRB_API mrb_value mrb_load_detect_file_cxt(mrb_state *mrb, FILE *fp, mrb_ccontext *c);
+
+/**
+ * Tests whether a stream that opened can actually be read.
+ *
+ * A directory opens for reading on POSIX systems and then fails every read
+ * with EISDIR, so a successful fopen() says nothing about whether the caller
+ * will get any bytes.  Call this on a freshly opened stream before handing it
+ * to one of the loaders above, to tell a file that cannot be read from one
+ * that is merely empty.
+ *
+ * It reads one byte and pushes it back, so the stream is left where it was
+ * found, and it asks nothing about the kind of file: a character device or a
+ * pipe answers false, the way an ordinary file does.
+ *
+ * @param file an open stream, positioned at the start.
+ * @return TRUE if reading the stream fails, FALSE if it yields bytes or is
+ *         at end of input.
+ */
+MRB_API mrb_bool mrb_stream_is_unreadable(FILE *file);
 #endif
 MRB_API mrb_value mrb_load_string(mrb_state *mrb, const char *s);
 MRB_API mrb_value mrb_load_nstring(mrb_state *mrb, const char *s, size_t len);

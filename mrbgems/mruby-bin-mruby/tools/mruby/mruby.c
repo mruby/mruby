@@ -143,21 +143,6 @@ dup_arg_item(mrb_state *mrb, const char *item)
   return buf;
 }
 
-/* A directory opens for reading on POSIX systems and then fails every read
-   with EISDIR, so a stream that opened says nothing about whether it can be
-   read.  One byte tells the two apart without asking the platform what kind
-   of file this is: an empty file reports end-of-file and no error, while a
-   directory raises the error indicator.  The byte is pushed back, so the
-   stream is left where it was found. */
-static int
-stream_is_unreadable(FILE *file)
-{
-  int c = getc(file);
-  if (c == EOF) return ferror(file) != 0;
-  ungetc(c, file);
-  return 0;
-}
-
 static int
 parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
 {
@@ -255,7 +240,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
         fprintf(stderr, "%s: Cannot open program file: %s\n", opts->program, argv[0]);
         return EXIT_FAILURE;
       }
-      if (args->rfp != stdin && stream_is_unreadable(args->rfp)) {
+      if (args->rfp != stdin && mrb_stream_is_unreadable(args->rfp)) {
         /* Without this, the failed read is swallowed: the loader returns nil
            without raising, so a directory argument ran as an empty program
            with no output, no diagnostic and exit status 0.  The stream is
@@ -356,7 +341,7 @@ main(int argc, char **argv)
         cleanup(mrb, &args);
         return EXIT_FAILURE;
       }
-      if (stream_is_unreadable(lfp)) {
+      if (mrb_stream_is_unreadable(lfp)) {
         /* Same swallowed read as the program file above: -r on a directory
            loaded nothing and said nothing. */
         fprintf(stderr, "%s: Cannot read library file: %s\n", *argv, args.libv[i]);

@@ -580,6 +580,25 @@ mrb_load_detect_file_cxt(mrb_state *mrb, FILE *fp, mrb_ccontext *c)
   mrb_free(mrb, buf);
   return result;
 }
+
+/* One byte tells a stream that cannot be read from one that is merely empty,
+   without asking the platform what kind of file it has: an empty file reports
+   end-of-file and no error, while a directory raises the error indicator.  The
+   byte is pushed back, so the stream is left where it was found.
+
+   This lives beside the loaders because it is their failure mode it detects,
+   and the command line tools each opened their own streams and needed their
+   own copy of it before it was exported.  `mruby-compiler`'s own
+   read_input_files() keeps a private copy: compile.c is the portable mrc
+   layer, built for targets that have no mruby.h to declare this. */
+MRB_API mrb_bool
+mrb_stream_is_unreadable(FILE *file)
+{
+  int c = getc(file);
+  if (c == EOF) return ferror(file) != 0;
+  ungetc(c, file);
+  return FALSE;
+}
 #endif
 
 MRB_API mrb_value

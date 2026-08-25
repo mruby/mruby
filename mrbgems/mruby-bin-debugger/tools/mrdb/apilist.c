@@ -90,6 +90,14 @@ source_file_new(mrb_state *mrb, mrb_debug_context *dbg, char *filename)
     source_file_free(mrb, file);
     return NULL;
   }
+  if (mrb_stream_is_unreadable(file->fp)) {
+    /* A directory answers fopen() and then no read, so show_lines() printed
+       nothing and mrb_debug_list() answered OK: `list` was silent where it
+       has a message for a file it cannot show.  Refusing it here reaches
+       that message. */
+    source_file_free(mrb, file);
+    return NULL;
+  }
 
   file->lineno = 1;
   file->path = mrdb_strdup(mrb, filename);
@@ -192,6 +200,15 @@ mrb_debug_get_source(mrb_state *mrb, mrdb_state *mrdb, const char *srcpath, cons
     }
 
     if ((fp = fopen(path, "rb")) == NULL) {
+      mrb_free(mrb, path);
+      path = NULL;
+      continue;
+    }
+    if (mrb_stream_is_unreadable(fp)) {
+      /* fopen() alone is the existence test here, and a directory passes it.
+         Taking one for a hit ended the search on a path the lister cannot
+         show, hiding a readable source further down the search order. */
+      fclose(fp);
       mrb_free(mrb, path);
       path = NULL;
       continue;
