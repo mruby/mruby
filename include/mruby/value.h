@@ -113,7 +113,62 @@ MRB_API double mrb_float_read(const char *p, char **endp);
 #else
   typedef double mrb_float;
 #endif
+
+#ifndef MRB_WORD_BOXING
+/* A NaN is equal to nothing at all, its own operand included, so `==` can
+   never find one and a container searching for the NaN it holds has only the
+   object to go by. Where a Float is a value and not an object, which is every
+   boxing but `boxing_word.h`, there is no object to be had: what tells one NaN
+   from another has to be carried by the NaN itself, and the only room for it
+   is the payload, which no arithmetic reads. Each NaN made takes a count
+   there.
+
+   The count is given every bit the payload can spare, which is what puts a
+   wrap out of reach: 51 bits where the boxing leaves that many, 48 where the
+   nan-boxing tag begins. Two NaNs made that far apart do hold the same bits.
+   `MRB_USE_FLOAT32` is the one build where the bound is a near one, its
+   payload being 22 bits and nothing more. `boxing_word.h` needs no count at
+   all: a NaN is an object there, and two objects are never one. */
+#ifdef MRB_NAN_BOXING
+/* bit 48 is where the tag saying which nan-boxed value this is begins */
+# define MRB_NAN_SERIAL_MAX UINT64_C(0xffffffffffff)
+#elif defined(MRB_USE_FLOAT32)
+  typedef uint32_t mrb_float_bits;
+# define MRB_NAN_SERIAL_MAX 0x3fffff  /* the whole payload under the quiet bit */
+# define MRB_NAN_QUIET_BIT  0x400000
+#else
+  typedef uint64_t mrb_float_bits;
+# define MRB_NAN_SERIAL_MAX UINT64_C(0x7ffffffffffff)
+# define MRB_NAN_QUIET_BIT  UINT64_C(0x8000000000000)
 #endif
+
+/* The count lives in `mrb_state`, whose layout is not known here: this header
+   is where `mrb_float_value()` expands the boxing's own float macro, and that
+   is above the definition of the struct. */
+MRB_API uint64_t mrb_nan_serial_next(mrb_state *mrb);
+
+#ifndef MRB_NAN_BOXING
+/* `boxing_nan.h` writes the count into a pattern it builds itself, so what
+   follows is for the boxing that has a whole Float to put it in. */
+static inline mrb_float
+mrb_nan_serialize(mrb_float f, uint64_t n)
+{
+  union { mrb_float f; mrb_float_bits u; } x;
+
+  x.f = f;
+  /* The quiet bit is set as well because that is what keeps the pattern a
+     NaN. A signaling NaN can carry every bit it has inside the field the
+     count takes, and clearing those for a count of zero would leave the
+     exponent alone, which is an infinity. Quieting is what arithmetic reading
+     such a NaN does with it anyway. */
+  x.u = (x.u & ~(mrb_float_bits)MRB_NAN_SERIAL_MAX) |
+        (mrb_float_bits)MRB_NAN_QUIET_BIT |
+        (mrb_float_bits)(n & MRB_NAN_SERIAL_MAX);
+  return x.f;
+}
+#endif  /* MRB_NAN_BOXING */
+#endif  /* MRB_WORD_BOXING */
+#endif  /* MRB_NO_FLOAT */
 
 #if defined _MSC_VER && _MSC_VER < 1900
 MRB_API int mrb_msvc_vsnprintf(char *s, size_t n, const char *format, va_list arg);

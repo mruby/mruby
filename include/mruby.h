@@ -355,6 +355,15 @@ struct mrb_state {
 
   mrb_gc gc;
 
+#if !defined(MRB_NO_FLOAT) && !defined(MRB_WORD_BOXING)
+  /* Counts the NaNs made so far. A NaN is equal to nothing at all, its own
+     operand included, so a container searching for one has only the object to
+     go by; where a Float is a value and not an object, the count is what tells
+     two of them apart. See the comment above `MRB_NAN_SERIAL_MAX` in
+     `mruby/value.h`. */
+  uint64_t nan_serial;
+#endif
+
   mrb_bool bootstrapping;
 
 #ifndef MRB_NO_METHOD_CACHE

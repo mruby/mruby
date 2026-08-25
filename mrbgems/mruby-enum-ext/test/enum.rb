@@ -343,3 +343,17 @@ assert('Enumerable#count - an argument decides over a block') do
   end.new
   assert_equal 1, one.count(never)
 end
+
+assert("Array#count with a NaN") do
+  # A NaN is equal to no value, its own included, so `count` cannot find one by
+  # what it is equal to; it searches for the object, and every NaN made is one
+  # of its own, so that two made apart are two objects.
+  skip unless Object.const_defined?(:Float)
+  z = [0.0][0]
+  a = z / z
+  b = z / z
+
+  assert_equal 1, [a].count(a)
+  assert_equal 0, [a].count(b)
+  assert_equal 2, [a, a].count(a)
+end

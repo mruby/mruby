@@ -129,7 +129,7 @@ enum mrb_special_consts {
  *
  * 64-bit word with inline float32 (MRB_USE_FLOAT32):
  *   float : ...FFFF FF10 (float32 shifted left by 2)
- *   (other values same as above)
+ *   (other values same as above; a NaN is heap-allocated as RFloat)
  *
  * word boxing without inline float (MRB_WORDBOX_NO_INLINE_FLOAT):
  *   nil   : ...0000 0000 (all bits are 0)
@@ -211,10 +211,9 @@ mrb_integer_func(mrb_value o) {
 #ifndef MRB_NO_FLOAT
 #ifdef MRB_WORDBOX_NO_INLINE_FLOAT
 #define mrb_float_p(o) WORDBOX_OBJ_TYPE_P(o, FLOAT)
-#elif defined(MRB_USE_FLOAT32) && defined(MRB_64BIT)
-#define mrb_float_p(o) WORDBOX_SHIFT_VALUE_P(o, FLOAT)
 #else
-/* rotation encoding: most floats inline, edge cases on heap */
+/* most floats inline; a NaN is always on the heap, and the rotation encoding
+   sends its edge cases there too */
 #define mrb_float_p(o) (WORDBOX_SHIFT_VALUE_P(o, FLOAT) || WORDBOX_OBJ_TYPE_P(o, FLOAT))
 #endif
 #else
