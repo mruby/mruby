@@ -861,6 +861,48 @@ static void unpack64(double f, uint64_t *m, int *e)
   }
 }
 
+/*
+ * unpack_flo splits an mrb_float the same way, against the significand the
+ * build actually carries: 53 bits for a double, 24 for MRB_USE_FLOAT32.
+ * FLO_SHIFT is what that significand leaves over in the normalised 64-bit
+ * word, and FLO_MIN_EXP the exponent of the smallest subnormal in it.
+ */
+#ifdef MRB_USE_FLOAT32
+#define FLO_SHIFT 40
+#define FLO_MIN_EXP (-(149 + FLO_SHIFT))
+
+static void unpack32(float f, uint64_t *m, int *e)
+{
+  union { float f; uint32_t u; } u;
+  uint32_t bits;
+  int exp;
+
+  u.f = f;
+  bits = u.u;
+
+  *m = (1ULL << 63) | ((uint64_t)(bits & ((1UL << 23) - 1)) << FLO_SHIFT);
+  exp = (int)((bits >> 23) & 0xff);
+
+  if (exp == 0) {
+    int s;
+    *m &= ~(1ULL << 63);
+    *e = FLO_MIN_EXP;
+    s = clz64(*m);
+    *m <<= s;
+    *e -= s;
+  }
+  else {
+    *e = (exp - 1) + FLO_MIN_EXP;
+  }
+}
+
+#define unpack_flo(f, m, e) unpack32((float)(f), (m), (e))
+#else
+#define FLO_SHIFT 11
+#define FLO_MIN_EXP (-(1074 + FLO_SHIFT))
+#define unpack_flo(f, m, e) unpack64((double)(f), (m), (e))
+#endif
+
 static double pack64(uint64_t m, int e)
 {
   union { double d; uint64_t u; } u;
@@ -984,16 +1026,16 @@ static void trim_zeros(uint64_t *x, int *p)
  * shortest computes the shortest formatting of f
  * Returns d and p such that d * 10^p equals f when parsed
  */
-static void shortest(double f, uint64_t *d, int *p)
+static void shortest(mrb_float f, uint64_t *d, int *p)
 {
-  const int min_exp = -1085;
+  const int min_exp = FLO_MIN_EXP;
   uint64_t m, min, max;
   int e, z, odd, lp;
   scaler pre;
   uint64_t dmin, dmax;
 
-  unpack64(f, &m, &e);
-  z = 11;
+  unpack_flo(f, &m, &e);
+  z = FLO_SHIFT;
 
   if (m == (1ULL << 63) && e > min_exp) {
     *p = -skewed(e + z);
@@ -1001,7 +1043,7 @@ static void shortest(double f, uint64_t *d, int *p)
   }
   else {
     if (e < min_exp) {
-      z = 11 + (min_exp - e);
+      z = FLO_SHIFT + (min_exp - e);
     }
     *p = -log10_pow2(e + z);
     min = m - (1ULL << (z - 1));
@@ -1209,7 +1251,7 @@ mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, ch
     if (fmt == 'S') {
       /* shortest representation for to_s */
       int i;
-      shortest((double)f, &d, &p);
+      shortest(f, &d, &p);
       nd = count_digits(d);
       exp = p + nd - 1;
       format_base10(digs, nd, d);
