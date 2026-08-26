@@ -335,3 +335,41 @@ assert('multiple assignment to an attribute counts its registers') do
   i, h[0] = 11, 12
   assert_equal [11, 12], [i, h[0]]
 end
+
+assert('a discarded interpolation leaves the register pointer where it was') do
+  # A string literal whose value is thrown away is compiled for the side
+  # effects of its interpolations alone. Each part was popped though nothing
+  # had been pushed for it, so the register pointer walked down one per part
+  # and the parts were compiled over whatever the frame held below: inside an
+  # `ensure` that is the register `OP_EXCEPT` put the pending exception in.
+  cls = Class.new do
+    def initialize(log); @log = log; end
+    def m(a)
+      raise 'kept'
+    ensure
+      "#{}#{}#{}#{a.inspect}"
+    end
+    def side(a)
+      "#{@log << 1}#{}#{@log << 2}x#{a.inspect}"
+      :done
+    end
+  end
+  log = []
+  o = cls.new(log)
+
+  # the exception raised in the body survives the ensure
+  assert_raise_with_message(RuntimeError, 'kept') { o.m([1, 2]) }
+
+  # and the interpolations of a discarded literal are still evaluated
+  assert_equal :done, o.side([1])
+  assert_equal [1, 2], log
+
+  # the same literal in a method that returns normally leaves its locals alone
+  worker = Class.new do
+    def run(a, b, c)
+      "#{}#{}#{}#{a.inspect}"
+      [a, b, c]
+    end
+  end.new
+  assert_equal [[1], 2, 3], worker.run([1], 2, 3)
+end

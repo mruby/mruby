@@ -5041,8 +5041,11 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
          */
         for (i = 0; i < size; i++) {
           if (nint(nodes[i]) != PM_STRING_NODE) {
+            /* A NOVAL codegen leaves nothing on the stack, so there is nothing
+               to pop: popping here took the register pointer down one for each
+               part, and what the parts were then compiled over was whatever
+               the frame already held below it. */
             codegen(s, nodes[i], NOVAL);
-            pop();
           }
         }
       }
