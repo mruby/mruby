@@ -217,13 +217,17 @@ assert 'Rational#== when the cross product overflows mrb_int but neither side is
       next
     end
     begin
-      assert_equal_rational(false, Rational(h, 3), Rational(h, 5))
-      assert_equal_rational(false, Rational(h, 5), Rational(h, 3))
-    rescue RangeError
+      # Asked here rather than around the rows below, because a RangeError
+      # raised inside assert_equal_rational is caught by the assertion it
+      # wraps and recorded as a failure instead of reaching this rescue.
       # Neither a Float nor mruby-bigint to answer through: the fallback
       # correctly raises instead of guessing.
+      Rational(h, 3) == Rational(h, 5)
+    rescue RangeError
       next
     end
+    assert_equal_rational(false, Rational(h, 3), Rational(h, 5))
+    assert_equal_rational(false, Rational(h, 5), Rational(h, 3))
   end
 end
 
