@@ -981,7 +981,7 @@ compile_charclass(re_compiler *c)
         mrb_bool by_ascii;
         uint16_t ctype;
         if (!posix_class_bits(bits, name, (size_t)(c->p - name), &by_ascii, &ctype)) {
-          compile_error(c, "invalid POSIX bracket class");
+          compile_error(c, "invalid POSIX bracket type");
         }
         next_char(c);  /* ':' */
         next_char(c);  /* ']' */

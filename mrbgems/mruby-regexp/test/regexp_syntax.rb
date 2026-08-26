@@ -52,8 +52,15 @@ assert("Regexp - POSIX bracket classes") do
   # negated forms
   assert_equal "abc", "abc123".match(/[[:^digit:]]+/)[0]
   assert_equal "x", " x".match(/[^[:space:]]/)[0]
-  # an unknown class name is an error
-  assert_raise(RegexpError) { Regexp.new("[[:bogus:]]") }
+  # an unknown class name is an error, named as CRuby names it
+  assert_raise_with_message(RegexpError,
+                            "invalid POSIX bracket type: /[[:bogus:]]/") do
+    Regexp.new("[[:bogus:]]")
+  end
+  assert_raise_with_message(RegexpError,
+                            "invalid POSIX bracket type: /[[:^bogus:]]/") do
+    Regexp.new("[[:^bogus:]]")
+  end
   # The name length used to be truncated with a (uint16_t) cast, so a name
   # 65536 bytes longer than "alpha" compared equal to "alpha" and compiled
   # as [[:alpha:]] instead of raising.
