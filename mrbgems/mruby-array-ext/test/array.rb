@@ -955,6 +955,11 @@ assert('mrb_ary_unshift respects a frozen receiver') do
 end
 
 assert('Array set operations compare with eql? on both sides of the hash threshold') do
+  # What the block is about is a pair that `==` calls equal and `eql?` does
+  # not, which is `1` and `1.0`. Under MRB_NO_FLOAT there is no such pair:
+  # every literal below reads as an Integer, `pad.map { |i| i + 0.0 }` is
+  # `pad` itself, and the rows stop asking what they were written to ask.
+  skip unless Object.const_defined?(:Float)
   # Each of these operations has two implementations, picked by a length
   # threshold of 32: a hash path whose equality callback is eql?, and a linear
   # walk that used to compare with ==. 1 == 1.0 is true where 1.eql?(1.0) is
