@@ -2276,6 +2276,35 @@ insertion_sort_str(mrb_state *mrb, mrb_value *a, mrb_int size)
   }
 }
 
+/* A comparison block answers with whatever object stands for the ordering it
+   found, and only one of those answers is an error. An Integer is its own
+   sign, big or small; `nil` is the block saying the pair has no order at all;
+   anything else is asked `> 0` and then `< 0`, and is a tie when neither
+   holds. That last arm is what lets a Float, or any object carrying the two
+   operators, order a sort, and it is the map `Enumerable#max` and `#min`
+   already read their own block through. It calls back into the VM, which is
+   the price of ordering by an object that answers only to sends; the Integer
+   arm ahead of it takes every block that returns `a <=> b`. */
+static mrb_int
+cmpint(mrb_state *mrb, mrb_value c, mrb_value a, mrb_value b)
+{
+  if (mrb_fixnum_p(c)) {
+    return mrb_fixnum(c);
+  }
+  if (mrb_nil_p(c)) {
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "comparison of %T with %T failed", a, b);
+  }
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(c)) {
+    return mrb_bint_cmp(mrb, c, mrb_fixnum_value(0));
+  }
+#endif
+  mrb_value zero = mrb_fixnum_value(0);
+  if (mrb_test(mrb_funcall_argv1(mrb, c, MRB_OPSYM(gt), zero))) return 1;
+  if (mrb_test(mrb_funcall_argv1(mrb, c, MRB_OPSYM(lt), zero))) return -1;
+  return 0;
+}
+
 static mrb_bool
 sort_cmp(mrb_state *mrb, mrb_value ary, mrb_value a_val, mrb_value b_val, mrb_value blk)
 {
@@ -2317,21 +2346,25 @@ sort_cmp(mrb_state *mrb, mrb_value ary, mrb_value a_val, mrb_value b_val, mrb_va
     else {
       cmp = mrb_cmp(mrb, a_val, b_val);
     }
+    /* -2 is how the comparisons above report a pair they cannot order. It is
+       a value a block may answer with, so the test for it stays on this side
+       of the branch, where the answers are the ones written here. */
+    if (cmp == -2) {
+      mrb_gc_arena_restore(mrb, ai);
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "comparison failed");
+    }
   }
   else {
     mrb_value args[2] = {a_val, b_val};
     mrb_value c = mrb_yield_argv(mrb, blk, 2, args);
-    if (mrb_nil_p(c) || !mrb_fixnum_p(c)) {
-      cmp = -2;
-    }
-    else {
-      cmp = mrb_fixnum(c);
-    }
+    /* The pair goes to `cmpint()` out of `args`, which the yield leaves as it
+       found it, rather than out of the parameters: one arm of the map calls
+       Ruby, and holding the two in registers across the yield so that arm can
+       reach them costs every comparison the sort makes, Integer answers
+       included. */
+    cmp = cmpint(mrb, c, args[0], args[1]);
   }
   mrb_gc_arena_restore(mrb, ai);
-  if (cmp == -2) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "comparison failed");
-  }
   if (RARRAY_PTR(ary) != p || RARRAY_LEN(ary) != n) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "array modified during sort");
   }
