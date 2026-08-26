@@ -220,6 +220,22 @@ assert("Array#difference") do
   assert_equal [2, 3], a.difference(b,c)
 end
 
+assert("Array#difference drops an element found in any argument, on either path") do
+  # `-` keeps a set path and a walk, and several arguments mean "drop what any
+  # one of them holds". Only the walk was ever asked that with more than one
+  # argument: every case above is small enough to take it. The set path had
+  # the same gap when `Array#intersection` answered `self & (a | b)` there and
+  # nothing caught it, so ask this one on both sides and require agreement.
+  pad = (100..140).to_a
+  a = [1, 2, 3] + pad             # 44 elements, long enough for the set path
+  b = [1] + (200..220).to_a       # holds 1 but not 2
+  c = [2] + (300..320).to_a       # holds 2 but not 1; 44 argument elements
+  assert_equal [3] + pad, a.difference(b, c)
+
+  # the same question below the threshold, where the walk answers it
+  assert_equal [3], [1, 2, 3].difference([1], [2])
+end
+
 assert("Array#&") do
   a = [1, 2, 3, 1]
   b = [1, 4]
