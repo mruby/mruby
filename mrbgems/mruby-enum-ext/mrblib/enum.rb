@@ -310,9 +310,15 @@ module Enumerable
         max_cmp = block.call(*val)
         first = false
       else
-        if (cmp = block.call(*val)) > max_cmp
+        value = block.call(*val)
+        # A comparison with no answer is not an ordering, the same as in
+        # Enumerable#max: without this the operator below would place a pair
+        # that stands in none.
+        cmp = (value <=> max_cmp)
+        raise ArgumentError, "comparison of #{value.class} with #{max_cmp.class} failed" if cmp.nil?
+        if cmp > 0
           max = val.__svalue
-          max_cmp = cmp
+          max_cmp = value
         end
       end
     end
@@ -344,9 +350,14 @@ module Enumerable
         min_cmp = block.call(*val)
         first = false
       else
-        if (cmp = block.call(*val)) < min_cmp
+        value = block.call(*val)
+        # A comparison with no answer is not an ordering, the same as in
+        # Enumerable#min.
+        cmp = (value <=> min_cmp)
+        raise ArgumentError, "comparison of #{value.class} with #{min_cmp.class} failed" if cmp.nil?
+        if cmp < 0
           min = val.__svalue
-          min_cmp = cmp
+          min_cmp = value
         end
       end
     end
@@ -441,13 +452,24 @@ module Enumerable
         max_cmp = min_cmp = block.call(*val)
         first = false
       else
-        if (cmp = block.call(*val)) > max_cmp
+        # The block is asked once an element and its value held, as it is in
+        # Enumerable#max_by and #min_by: the two bounds are both placed against
+        # the one value, where asking again would let a block that answers
+        # differently each time place the element in two orders.
+        value = block.call(*val)
+        # A comparison with no answer is not an ordering, the same as in
+        # Enumerable#minmax, which this walks by the block's values.
+        cmp = (value <=> max_cmp)
+        raise ArgumentError, "comparison of #{value.class} with #{max_cmp.class} failed" if cmp.nil?
+        if cmp > 0
           max = val.__svalue
-          max_cmp = cmp
+          max_cmp = value
         end
-        if (cmp = block.call(*val)) < min_cmp
+        cmp = (value <=> min_cmp)
+        raise ArgumentError, "comparison of #{value.class} with #{min_cmp.class} failed" if cmp.nil?
+        if cmp < 0
           min = val.__svalue
-          min_cmp = cmp
+          min_cmp = value
         end
       end
     end
