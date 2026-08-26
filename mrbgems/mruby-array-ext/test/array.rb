@@ -121,9 +121,9 @@ assert("Array#-") do
   assert_equal [2, 3], (a - b)
   assert_equal [1, 2, 3, 1], a
 
-  # Test hash-based implementation (other_ary length > 32)
+  # Test hash-based implementation (other_ary length past the hash threshold)
   a = (1..50).to_a
-  b = (15..50).to_a  # 36 elements > 32, triggers hash approach
+  b = (15..50).to_a  # well past the hash threshold
   result = a - b
   expected = (1..14).to_a
 
@@ -132,7 +132,7 @@ assert("Array#-") do
 
   # Test with larger removal set
   a = (1..60).to_a
-  b = (20..55).to_a  # 36 elements > 32, triggers hash approach
+  b = (20..55).to_a  # well past the hash threshold
   result = a - b
   expected = (1..19).to_a + (56..60).to_a
 
@@ -150,7 +150,7 @@ assert("Array#-") do
 
   # Test removing no elements
   a = (1..20).to_a
-  b = (30..50).to_a  # 21 elements > 16, triggers hash approach
+  b = (30..50).to_a  # past the hash threshold
   result = a - b
   expected = (1..20).to_a
 
@@ -177,9 +177,9 @@ assert("Array#|") do
 end
 
 assert("Array#| with large arrays") do
-  # Test hash-based implementation (total length > 32)
+  # Test hash-based implementation (total length past the hash threshold)
   a = (1..25).to_a
-  b = (20..45).to_a  # total = 51 > 32, triggers hash approach
+  b = (20..45).to_a  # well past the hash threshold
   result = a | b
   expected = (1..45).to_a
 
@@ -188,7 +188,7 @@ assert("Array#| with large arrays") do
 
   # Test with overlapping ranges
   a = (1..20).to_a
-  b = (15..35).to_a  # total = 41 > 32, triggers hash approach
+  b = (15..35).to_a  # well past the hash threshold
   result = a | b
   expected = (1..35).to_a
 
@@ -247,9 +247,9 @@ assert("Array#&") do
 end
 
 assert("Array#& with large arrays") do
-  # Test hash-based implementation (other_ary length > 32)
+  # Test hash-based implementation (other_ary length past the hash threshold)
   a = (1..50).to_a
-  b = (20..55).to_a  # 36 elements > 32, triggers hash approach
+  b = (20..55).to_a  # well past the hash threshold
   result = a & b
   expected = (20..50).to_a
 
@@ -258,7 +258,7 @@ assert("Array#& with large arrays") do
 
   # Test with larger intersection set
   a = (1..60).to_a
-  b = (25..60).to_a  # 36 elements > 32, triggers hash approach
+  b = (25..60).to_a  # well past the hash threshold
   result = a & b
   expected = (25..60).to_a
 
@@ -267,7 +267,7 @@ assert("Array#& with large arrays") do
 
   # Test with duplicates in first array
   a = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10]
-  b = (5..25).to_a  # 21 elements > 16, triggers hash approach
+  b = (5..25).to_a  # past the hash threshold
   result = a & b
   expected = [5, 6, 7, 8, 9, 10]  # no duplicates in result
 
@@ -276,7 +276,7 @@ assert("Array#& with large arrays") do
 
   # Test no intersection
   a = (1..20).to_a
-  b = (30..50).to_a  # 21 elements > 16, triggers hash approach
+  b = (30..50).to_a  # past the hash threshold
   result = a & b
   expected = []
 
@@ -318,27 +318,27 @@ assert("Array#intersect?") do
 end
 
 assert("Array#intersect? with large arrays") do
-  # Test hash-based implementation (shorter array > 32)
+  # Test hash-based implementation (shorter array past the hash threshold)
   a = (1..50).to_a
-  b = (40..75).to_a  # 36 elements > 32, but a is longer so b is shorter
+  b = (40..75).to_a  # well past the threshold, but a is longer so b is shorter
   result = a.intersect?(b)
   assert_true(result)  # should find intersection at 40-50
 
   # Test with larger arrays, no intersection
   a = (1..30).to_a
-  b = (50..85).to_a  # 36 elements > 32, triggers hash approach
+  b = (50..85).to_a  # well past the hash threshold
   result = a.intersect?(b)
   assert_false(result)  # no intersection
 
   # Test with first element matching (early termination)
   a = (1..30).to_a
-  b = [1] + (50..70).to_a  # 22 elements > 16, first element matches
+  b = [1] + (50..70).to_a  # past the threshold, first element matches
   result = a.intersect?(b)
   assert_true(result)  # should terminate early on first element
 
   # Test with last element matching
   a = (1..30).to_a
-  b = (50..70).to_a + [30]  # 22 elements > 16, last element matches
+  b = (50..70).to_a + [30]  # past the threshold, last element matches
   result = a.intersect?(b)
   assert_true(result)  # should find match at the end
 
@@ -355,13 +355,13 @@ assert("Array#intersect? with large arrays") do
 
   # Test array size optimization (shorter array used for hash)
   a = (1..5).to_a  # shorter
-  b = (3..30).to_a  # longer, 28 elements > 16
+  b = (3..30).to_a  # longer, past the threshold
   result = a.intersect?(b)
   assert_true(result)  # should use a (shorter) for hash, find 3,4,5
 
   # Test with duplicates
   a = [1, 1, 2, 2, 3, 3] * 5  # 30 elements with duplicates
-  b = (25..50).to_a  # 26 elements > 16, no intersection
+  b = (25..50).to_a  # past the threshold, no intersection
   result = a.intersect?(b)
   assert_false(result)
 
@@ -961,7 +961,7 @@ assert('Array set operations compare with eql? on both sides of the hash thresho
   # `pad` itself, and the rows stop asking what they were written to ask.
   skip unless Object.const_defined?(:Float)
   # Each of these operations has two implementations, picked by a length
-  # threshold of 32: a hash path whose equality callback is eql?, and a linear
+  # threshold of 8: a hash path whose equality callback is eql?, and a linear
   # walk that used to compare with ==. 1 == 1.0 is true where 1.eql?(1.0) is
   # false, so the same pair of elements was one element or two depending only
   # on how long the array was. The linear walks now compare with eql? too.
@@ -1129,7 +1129,7 @@ assert('Array#intersection narrows by every argument, not by their union') do
 
   # three arguments narrow in turn, and the receiver still decides the order
   assert_equal [3, 1], [3, 1, 2, 1].intersection((1..40).to_a, (1..40).to_a, [1, 3])
-  assert_equal [3, 1], [3, 1, 2, 1].intersection([1, 2, 3, 4], [1, 2, 3, 4], [1, 3])
+  assert_equal [3, 1], [3, 1, 2, 1].intersection([1, 2, 3], [1, 2, 3], [1, 3])
 
   # a single argument is the `&` case and must not regress
   assert_equal [1, 2], a.intersection((1..40).to_a)
