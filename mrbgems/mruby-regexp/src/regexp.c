@@ -855,6 +855,138 @@ mrb_re_flags_cat(mrb_state *mrb, mrb_value str, uint32_t flags)
   }
 }
 
+/* The options one letter of an inline group names, which is the reading
+   parse_flags() gives the same letter in Regexp.new's flags argument: `m` is
+   both halves of Ruby's multiline, and i/m/x are the only options. Zero for
+   anything else, which is what ends a run of letters.
+
+   re_flag_letters[] above is the other direction and cannot serve here: it
+   holds one bit of the multiline pair, enough to decide a letter to print,
+   where a group being folded has to carry the pair into a compile. */
+static uint32_t
+re_option_letter_bits(char c)
+{
+  switch (c) {
+  case 'i': return RE_FLAG_IGNORECASE;
+  case 'm': return RE_FLAG_MULTILINE | RE_FLAG_DOTALL;
+  case 'x': return RE_FLAG_EXTENDED;
+  default:  return 0;
+  }
+}
+
+struct re_trial_compile {
+  mrb_regexp_pattern *pat;
+  const char *ptr;
+  mrb_int len;
+  uint32_t flags;
+};
+
+static mrb_value
+re_trial_compile_body(mrb_state *mrb, void *ud)
+{
+  struct re_trial_compile *t = (struct re_trial_compile*)ud;
+  mrb_re_compile(mrb, t->pat, t->ptr, t->len, t->flags);
+  return mrb_nil_value();
+}
+
+/* Whether `ptr`/`len` is a pattern in its own right under `flags`.
+   mrb_re_compile() reports a bad pattern by raising, so the trial runs under
+   mrb_protect_error(), which returns here however the compile ended and
+   leaves neither the exception nor the arena behind. The pattern is held by
+   the caller's frame rather than the body's, since a compile that raises
+   abandons the body's: what it allocated hangs off `pat`, and mrb_re_free()
+   is what reaches it either way. */
+static mrb_bool
+re_compiles_alone(mrb_state *mrb, const char *ptr, mrb_int len, uint32_t flags)
+{
+  struct re_trial_compile t;
+  mrb_bool error;
+
+  t.pat = (mrb_regexp_pattern*)mrb_calloc(mrb, 1, sizeof(mrb_regexp_pattern));
+  t.ptr = ptr;
+  t.len = len;
+  t.flags = flags;
+  mrb_protect_error(mrb, re_trial_compile_body, &t, &error);
+  mrb_re_free(mrb, t.pat);
+  return !error;
+}
+
+/* Fold a leading option group of `src` into the flags to print, leaving the
+   text that is left in `*ptrp`/`*lenp` and the flags in `*flagsp`. This is
+   what makes /(?i)a/ and /a/i print alike, as they do in CRuby
+   (rb_reg_str_with_term(), re.c).
+
+   Two shapes fold, and only at the very start of the source:
+
+   - a toggle, "(?imx-imx)", governs everything after it, so its letters are
+     the flags of the whole and the group itself is gone. Several in a row
+     fold in turn.
+   - a scoped group, "(?imx-imx:...)", governs only what it encloses, so it
+     folds only when what it encloses is the whole source. Its ")" being the
+     last byte does not say that: in "(?i:a)(b)" the last byte closes another
+     group. What settles it is whether the text between them is a pattern on
+     its own, which is one trial compile, the same question and the same
+     price CRuby pays through onig_new().
+
+   A group that folds neither way is not the only thing left as written: the
+   toggles already peeled ahead of it go back too, which is why /(?i)(?=a)/
+   prints its "(?i)" where /(?i)(?m:a)/ does not. */
+static void
+re_fold_leading_group(mrb_state *mrb, mrb_value src, const char **ptrp, mrb_int *lenp, uint32_t *flagsp)
+{
+  const char *ptr = RSTRING_PTR(src);
+  mrb_int len = RSTRING_LEN(src);
+  uint32_t flags = *flagsp;
+
+  /* "(?" and the shortest thing that can close a group: below that there is
+     no group to read. */
+  while (len >= 4 && ptr[0] == '(' && ptr[1] == '?') {
+    const char *p = ptr + 2;
+    mrb_int n = len - 2;
+    uint32_t on = flags;
+    uint32_t bits;
+
+    while (n > 0 && (bits = re_option_letter_bits(*p)) != 0) {
+      on |= bits;
+      p++; n--;
+    }
+    /* A '-' with nothing after it names no letter to turn off, and reading
+       past it would run off the end. */
+    if (n > 1 && *p == '-') {
+      p++; n--;
+      while (n > 0 && (bits = re_option_letter_bits(*p)) != 0) {
+        on &= ~bits;
+        p++; n--;
+      }
+    }
+
+    if (n > 0 && *p == ')') {
+      flags = on;
+      ptr = p + 1;
+      len = n - 1;
+      continue;
+    }
+
+    /* n counts ':' and ')' as well as what lies between, which may be empty:
+       "(?:)" is a group around nothing. */
+    if (n >= 2 && *p == ':' && p[n-1] == ')' && re_compiles_alone(mrb, p + 1, n - 2, on)) {
+      flags = on;
+      ptr = p + 1;
+      len = n - 2;
+    }
+    else {
+      ptr = RSTRING_PTR(src);
+      len = RSTRING_LEN(src);
+      flags = *flagsp;
+    }
+    break;
+  }
+
+  *ptrp = ptr;
+  *lenp = len;
+  *flagsp = flags;
+}
+
 /*
  * Regexp#to_s - (?on-off:source) format
  *
@@ -863,14 +995,23 @@ mrb_re_flags_cat(mrb_state *mrb, mrb_value str, uint32_t flags)
  * meaningful once it is interpolated into another pattern: written as
  * "(?i:a)", the embedded source in /#{/a/i}b/m would pick up the
  * enclosing pattern's flags instead of carrying only its own.
+ *
+ * A source that already opens with an option group has it folded into those
+ * flags rather than printed inside them, so the printed form names each
+ * option once. Regexp#inspect prints the source as written and is not
+ * touched; CRuby draws the same line.
  */
 static mrb_value
 regexp_to_s(mrb_state *mrb, mrb_value self)
 {
   mrb_value src = re_check_initialized(mrb, self);
   uint32_t flags = get_iflags(mrb, self);
+  const char *ptr;
+  mrb_int len;
   char off[RE_FLAG_LETTER_COUNT];
   mrb_int noff = 0;
+
+  re_fold_leading_group(mrb, src, &ptr, &len, &flags);
 
   mrb_value result = mrb_str_new_lit(mrb, "(?");
   for (size_t i = 0; i < RE_FLAG_LETTER_COUNT; i++) {
@@ -886,7 +1027,7 @@ regexp_to_s(mrb_state *mrb, mrb_value self)
     mrb_str_cat(mrb, result, off, noff);
   }
   mrb_str_cat_lit(mrb, result, ":");
-  mrb_str_cat_str(mrb, result, src);
+  mrb_str_cat(mrb, result, ptr, len);
   mrb_str_cat_lit(mrb, result, ")");
   return result;
 }

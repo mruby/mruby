@@ -295,6 +295,62 @@ assert("Regexp#to_s") do
   assert_true(/#{Regexp.new("a b", Regexp::EXTENDED)}c d/.match?("abc d"))
 end
 
+assert("Regexp#to_s - a leading option group folds into the printed flags") do
+  # a toggle governs everything after it, so its letters are the flags of the
+  # whole and the group is gone: the two spellings of /a/i print alike
+  assert_equal "(?i-mx:a)", Regexp.new("(?i)a").to_s
+  assert_equal Regexp.new("a", Regexp::IGNORECASE).to_s, Regexp.new("(?i)a").to_s
+  assert_equal "(?x-mi:a b)", Regexp.new("(?x)a b").to_s
+  assert_equal "(?mi-x:a)", Regexp.new("(?i)(?m)a").to_s
+  # a '-' run turns letters off, including one the object carries
+  assert_equal "(?-mix:a)", Regexp.new("(?-i)a", Regexp::IGNORECASE).to_s
+  assert_equal "(?i-mx:)", Regexp.new("(?i)").to_s
+
+  # a scoped group governs only what it encloses, so it folds only when that
+  # is the whole source
+  assert_equal "(?i-mx:a)", Regexp.new("(?i:a)").to_s
+  assert_equal "(?i-mx:a)", Regexp.new("(?i-m:a)").to_s
+  assert_equal "(?-mix:)", Regexp.new("(?:)").to_s
+  assert_equal "(?mi-x:a)", Regexp.new("(?i:a)", Regexp::MULTILINE).to_s
+  # one level only: the group inside is text like any other
+  assert_equal "(?i-mx:(?m:a))", Regexp.new("(?i:(?m:a))").to_s
+  # a toggle ahead of it folds first, and then it does
+  assert_equal "(?mi-x:a)", Regexp.new("(?i)(?m:a)").to_s
+
+  # what the group does not enclose stays outside it, so nothing folds
+  assert_equal "(?-mix:(?i:a)b)", Regexp.new("(?i:a)b").to_s
+  # the ')' at the end closes the second group, not the first: only trying
+  # the text between them as a pattern of its own tells the two apart
+  assert_equal "(?-mix:(?i:a)(b))", Regexp.new("(?i:a)(b)").to_s
+  assert_equal "(?-mix:a(?i:b))", Regexp.new("a(?i:b)").to_s
+
+  # a group that is not an option group is not one to fold, and the toggles
+  # already peeled ahead of it are printed again with it
+  assert_equal "(?-mix:(?=a))", Regexp.new("(?=a)").to_s
+  assert_equal "(?-mix:(?i)(?=a))", Regexp.new("(?i)(?=a)").to_s
+  assert_equal "(?-mix:(?#c)a)", Regexp.new("(?#c)a").to_s
+  assert_equal "(?-mix:(?<n>a))", Regexp.new("(?<n>a)").to_s
+
+  # inspect prints the source as written either way
+  assert_equal "/(?i)a/", Regexp.new("(?i)a").inspect
+  assert_equal "/(?i:a)/m", Regexp.new("(?i:a)", Regexp::MULTILINE).inspect
+  # and == compares source and options, which the fold does not touch
+  assert_false Regexp.new("(?i)a") == Regexp.new("a", Regexp::IGNORECASE)
+end
+
+assert("Regexp#to_s - a folded form matches what it was folded from") do
+  ["(?i)a", "(?i:a)", "(?i:a)b", "(?i:a)(b)", "(?x)a b", "(?i)(?m)a",
+   "(?i:a|b)", "(?i:a)|b", "(?m)a.b", "(?i:(?m:a))"].each do |src|
+    re = Regexp.new(src)
+    round = Regexp.new(re.to_s)
+    ["a", "A", "ab", "AB", "a b", "a\nb", "b", "a.b"].each do |input|
+      assert_equal re.match?(input), round.match?(input), "#{src.inspect} on #{input.inspect}"
+      # and carries only its own flags into a pattern that has others
+      assert_equal re.match?(input), /#{re}/m.match?(input), "#{src.inspect} nested, on #{input.inspect}"
+    end
+  end
+end
+
 assert("Regexp#to_s - interpolation") do
   inner = Regexp.new("abc", Regexp::IGNORECASE)
   # the inner Regexp keeps its own flags where the outer has none
