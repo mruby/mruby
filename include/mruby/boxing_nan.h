@@ -62,7 +62,14 @@ mrb_nan_boxing_value_float(mrb_value v)
     uint64_t uval; \
   } float_uint_union; \
   if ((v) != (v)) { /* NaN */ \
-    float_uint_union.uval = 0x7ff8000000000000UL; \
+    /* A NaN is equal to nothing at all, its own operand included, so `==`
+       can never find one and a container searching for the NaN it holds has
+       only the object to go by. Each NaN takes a count of its own in the
+       payload, which the tag space leaves free: the tag saying which value
+       this is begins at bit 48, and everything below is the NaN's to spend.
+       `mrb_float()` reads any of these back as a NaN. */ \
+    float_uint_union.uval = 0x7ff8000000000000UL | \
+      (uint64_t)(mrb_nan_serial_next(mrb) & MRB_NAN_SERIAL_MAX); \
   } \
   else { \
     float_uint_union.fval = (v); \

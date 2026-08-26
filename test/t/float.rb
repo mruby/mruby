@@ -185,6 +185,51 @@ assert('a Float is the object that holds what it holds') do
   assert_false(nan == nan)
 end
 
+assert('a NaN is the object it is and no other') do
+  # A NaN is equal to no value, its own included, so `==` can never find one.
+  # A container searching for the NaN it holds has nothing but the object to go
+  # by, so every NaN made is one of its own: two NaNs made apart are two
+  # objects, and one copied around stays one.
+  #
+  # The two below are built at run time from a variable so that nothing folds
+  # them into a single literal, and every answer here is the same whichever
+  # boxing the build uses, which is what a NaN having an identity is for.
+  z = [0.0][0]
+  a = z / z
+  b = z / z
+  c = a
+
+  assert_predicate(a, :nan?)
+  assert_predicate(b, :nan?)
+
+  assert_true(a.equal?(a))
+  assert_true(a.equal?(c))          # the same object, passed around
+  assert_false(a.equal?(b))         # two NaNs, made apart
+  assert_false(a.equal?(Float::NAN))
+
+  # `object_id` names what `equal?` compares, so the two answer alike. Where a
+  # NaN is a heap object its id comes off the object, the bits every NaN holds
+  # being the same ones.
+  assert_equal(a.object_id, c.object_id)
+  assert_not_equal(a.object_id, b.object_id)
+
+  # The searches asked here are the ones core answers. `Array#include?` and
+  # `#count` are answered by mruby-array-ext and mruby-enum-ext, and are asked
+  # in the tests those gems carry.
+  assert_equal(0, [a].index(a))
+  assert_nil([a].index(b))
+  assert_true([1.0, a] == [1.0, a])
+  assert_false([1.0, a] == [1.0, b])
+  assert_equal(1, ({a => 1})[a])
+  assert_nil(({a => 1})[b])
+
+  # a Float that is equal to itself is found by what it is equal to
+  x = z + 1.5
+  y = z + 1.5
+  assert_equal(0, [x].index(y))
+  assert_equal(1, ({x => 1})[y])
+end
+
 assert('Float comparison with an Integer it cannot hold') do
   # A Float keeps fewer significant bits than an mrb_int, so an integer past
   # the significand rounds onto a neighbouring Float when the two are compared

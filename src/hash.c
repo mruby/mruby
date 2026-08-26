@@ -410,9 +410,17 @@ obj_eql(mrb_state *mrb, mrb_value a, mrb_value b, struct RHash *h)
     return mrb_integer(a) == mrb_integer(b);
 
 #ifndef MRB_NO_FLOAT
-  case MRB_TT_FLOAT:
+  case MRB_TT_FLOAT: {
     if (!mrb_float_p(b)) return FALSE;
-    return mrb_float(a) == mrb_float(b);
+    mrb_float fa = mrb_float(a);
+    if (fa == mrb_float(b)) return TRUE;
+    /* A NaN is equal to no value, its own key included, so a Hash handed the
+       very key it stored would not find it again. The key it holds is that
+       object, and an object is the same key as itself. Only a key that is not
+       equal to itself asks, so what an ordinary key pays is the comparison
+       against the value already in hand. */
+    return fa != fa && mrb_obj_eq(mrb, a, b);
+  }
 #endif
 
   default:

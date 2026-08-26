@@ -162,6 +162,22 @@ assert 'pack double' do
   end
 end
 
+assert 'unpack a NaN that signals' do
+  skip unless Object.const_defined?(:Float)
+  # A NaN that signals has every bit it is set in the low payload, which is
+  # where a build that keeps no object for a NaN writes what tells one from
+  # another. Reading one back has to leave a NaN rather than the infinity an
+  # empty payload under that exponent would be, and two reads have to leave
+  # two objects, as they do for a NaN made any other way.
+  s = "\x01\x00\x00\x00\x00\x00\xf0\x7f"
+  a = s.unpack1("E")
+  b = s.unpack1("E")
+
+  assert_predicate(a, :nan?)
+  assert_predicate(b, :nan?)
+  assert_false(a.equal?(b))
+end
+
 assert 'pack/unpack "i"' do
   int_size = [0].pack('i').size
   raise "pack('i').size is too small (#{int_size})" if int_size < 2

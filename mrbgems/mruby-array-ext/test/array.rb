@@ -86,6 +86,31 @@ assert("Array#uniq") do
   assert_equal [["student", "sam"], ["teacher", "matz"]], b.uniq { |s| s.first }
 end
 
+assert("Array#uniq, Array#- and Array#include? with a NaN") do
+  # A NaN is equal to no value, its own included, so none of these can find one
+  # by what it is equal to; they search for the object instead, and every NaN
+  # made is one of its own, so that two made apart are two objects.
+  skip unless Object.const_defined?(:Float)
+  z = [0.0][0]
+  a = z / z
+  b = z / z
+
+  assert_equal 1, [a, a].uniq.size
+  assert_equal 2, [a, b].uniq.size
+  assert_equal 0, ([a] - [a]).size
+  assert_equal 1, ([a] - [b]).size
+  assert_equal 1, ([a] & [a]).size
+  assert_equal 0, ([a] & [b]).size
+  assert_true [a].include?(a)
+  assert_false [a].include?(b)
+  assert_true [a].member?(a)
+
+  # a Float that is equal to itself is found by what it is equal to
+  x = z + 1.5
+  y = z + 1.5
+  assert_true [x].include?(y)
+end
+
 assert("Array#-") do
   # Test basic functionality
   a = [1, 2, 3, 1]

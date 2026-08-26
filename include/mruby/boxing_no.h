@@ -49,7 +49,17 @@ typedef struct mrb_value {
 #define SET_INT_VALUE(mrb,r,n) BOXNO_SET_VALUE(r, MRB_TT_INTEGER, value.i, (n))
 #define SET_FIXNUM_VALUE(r,n) BOXNO_SET_VALUE(r, MRB_TT_INTEGER, value.i, (n))
 #ifndef MRB_NO_FLOAT
-#define SET_FLOAT_VALUE(mrb,r,v) BOXNO_SET_VALUE(r, MRB_TT_FLOAT, value.f, (v))
+/* A NaN is equal to nothing at all, its own operand included, so `==` can
+   never find one and a container searching for the NaN it holds has only the
+   object to go by. There is no object here, a Float being a value, so each NaN
+   takes a count of its own in the payload, which no arithmetic reads;
+   `mrb_obj_eq()` compares what a Float holds bit for bit so that a NaN is the
+   same object as itself and no other. */
+#define SET_FLOAT_VALUE(mrb,r,v) do { \
+  mrb_float boxno_f = (v); \
+  if (boxno_f != boxno_f) boxno_f = mrb_nan_serialize(boxno_f, mrb_nan_serial_next(mrb)); \
+  BOXNO_SET_VALUE(r, MRB_TT_FLOAT, value.f, boxno_f); \
+} while (0)
 #endif
 #define SET_SYM_VALUE(r,v) BOXNO_SET_VALUE(r, MRB_TT_SYMBOL, value.sym, (v))
 #define SET_OBJ_VALUE(r,v) BOXNO_SET_VALUE(r, (((struct RObject*)(v))->tt), value.p, (v))
