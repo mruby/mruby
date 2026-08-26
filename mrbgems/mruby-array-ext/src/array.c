@@ -728,20 +728,50 @@ ary_intersection_body(mrb_state *mrb, void *data)
 {
   struct ary_intersection_ctx *ctx = (struct ary_intersection_ctx *)data;
 
-  for (mrb_int i = 0; i < ctx->argc; i++) {
-    ary_populate_temp_set(mrb, ctx->set, ctx->argv[i]);
-  }
-
-  int ai = mrb_gc_arena_save(mrb);
-  for (mrb_int i = 0; i < RARRAY_LEN(ctx->self); i++) {
-    mrb_value p = RARRAY_PTR(ctx->self)[i];
-    mrb_gc_protect(mrb, p); // p may be removed from self by kh_get(ary_set, ...)
-    khiter_t k = kh_get(ary_set, mrb, ctx->set, p);
-    if (!kh_is_end(ctx->set, k)) {
-      mrb_ary_push(mrb, ctx->result, p);
-      kh_del(ary_set, mrb, ctx->set, k);
+  /* An element belongs in the result only if every argument holds it, so the
+     arguments have to narrow the result one at a time. Pouring them all into
+     one set instead answers `self & (a | b | ...)`, which let an element
+     missing from one argument survive because another argument carried it. */
+  for (mrb_int j = 0; j < ctx->argc; j++) {
+    if (j > 0) {
+      kh_clear(ary_set, mrb, ctx->set);
     }
-    mrb_gc_arena_restore(mrb, ai);
+    ary_populate_temp_set(mrb, ctx->set, ctx->argv[j]);
+
+    /* The first argument selects out of `self` into the still empty result;
+       every later one narrows that result, which is ours alone and can be
+       compacted in place since the write position never runs ahead of the
+       read position. The set gives up an element the first time it is taken,
+       so a duplicate no longer finds it and the result keeps one of each. */
+    mrb_value src = ctx->self;
+    if (j > 0) {
+      src = ctx->result;
+      mrb_ary_modify(mrb, mrb_ary_ptr(ctx->result));
+    }
+
+    mrb_int write_pos = 0;
+    int ai = mrb_gc_arena_save(mrb);
+    for (mrb_int i = 0; i < RARRAY_LEN(src); i++) {
+      mrb_value p = RARRAY_PTR(src)[i];
+      mrb_gc_protect(mrb, p); // p may be removed from src by kh_get(ary_set, ...)
+      khiter_t k = kh_get(ary_set, mrb, ctx->set, p);
+      if (!kh_is_end(ctx->set, k)) {
+        kh_del(ary_set, mrb, ctx->set, k);
+        if (j == 0) {
+          mrb_ary_push(mrb, ctx->result, p);
+        }
+        else {
+          RARRAY_PTR(ctx->result)[write_pos] = p;
+        }
+        write_pos++;
+      }
+      mrb_gc_arena_restore(mrb, ai);
+    }
+    if (j > 0) {
+      mrb_ary_resize(mrb, ctx->result, write_pos);
+    }
+
+    if (write_pos == 0) break;
   }
 
   return ctx->result;
