@@ -1220,7 +1220,7 @@ assert("Regexp extended mode (x flag)") do
   assert_nil Regexp.new('\x1 2', Regexp::EXTENDED) =~ "\x12"
   assert_equal 0, (Regexp.new('\x1 a', Regexp::EXTENDED) =~ "\x01a")
   assert_equal 0, (Regexp.new('\01 2', Regexp::EXTENDED) =~ "\x012")
-  assert_raise_with_message(RegexpError, "unmatched '(': /\\x1 2(/x") do
+  assert_raise_with_message(RegexpError, "end pattern with unmatched parenthesis: /\\x1 2(/x") do
     Regexp.new('\x1 2(', Regexp::EXTENDED)
   end
 
@@ -1246,7 +1246,7 @@ assert("Regexp extended mode (x flag)") do
   assert_raise_with_message(RegexpError, "premature end of char-class: /a # c\n[/x") do
     Regexp.new("a # c\n[", Regexp::EXTENDED)
   end
-  assert_raise_with_message(RegexpError, "unmatched '(': /a b(/x") do
+  assert_raise_with_message(RegexpError, "end pattern with unmatched parenthesis: /a b(/x") do
     Regexp.new("a b(", Regexp::EXTENDED)
   end
 
@@ -1506,6 +1506,20 @@ end
 assert("Regexp - word boundary") do
   assert_equal "cat", /\bcat\b/.match("the cat sat")[0]
   assert_nil /\bcat\b/.match("concatenate")
+end
+
+assert("Regexp - a group the pattern ends inside says which it was") do
+  # A group no ')' closes is `end pattern with unmatched parenthesis` in
+  # CRuby, whichever of the (?...) forms opened it, and the plain one as
+  # well.
+  ["(", "(a", "(?:a", "(?=a", "(?!a", "(?<=a", "(?<!a", "(?>a", "(?i:a",
+   "(?<a>x", "(?'a'x"].each do |src|
+    assert_raise_with_message(RegexpError,
+                              "end pattern with unmatched parenthesis: /#{src}/",
+                              src) do
+      Regexp.new(src)
+    end
+  end
 end
 
 assert("Regexp - non-capturing group") do

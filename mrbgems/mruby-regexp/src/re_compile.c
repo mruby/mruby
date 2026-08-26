@@ -1567,7 +1567,7 @@ compile_atom(re_compiler *c)
           uint32_t la_pos = emit(c, negative ? RE_NEG_LOOKAHEAD : RE_LOOKAHEAD, 0, 0);
           compile_look_body(c, negative);
           c->pat->code[la_pos].offset = (uint16_t)c->code_len;  /* patch: skip past sub-pattern */
-          if (peek(c) != ')') compile_error(c, "unmatched '('");
+          if (peek(c) != ')') compile_error(c, "end pattern with unmatched parenthesis");
           next_char(c);
           c->needs_backtrack = TRUE;  /* needs backtracking engine */
           c->flags = saved_flags;
@@ -1596,7 +1596,7 @@ compile_atom(re_compiler *c)
           /* the character count never exceeds the byte count, so it fits */
           c->pat->code[lb_pos + 1].a = (uint8_t)fixed_chars;
 
-          if (peek(c) != ')') compile_error(c, "unmatched '('");
+          if (peek(c) != ')') compile_error(c, "end pattern with unmatched parenthesis");
           next_char(c);
           c->needs_backtrack = TRUE;  /* needs backtracking engine */
           c->flags = saved_flags;
@@ -1620,7 +1620,7 @@ compile_atom(re_compiler *c)
           emit(c, RE_ATOMIC, 0, cut);
           compile_alt(c);
           emit(c, RE_ATOMIC_END, 0, cut);
-          if (peek(c) != ')') compile_error(c, "unmatched '('");
+          if (peek(c) != ')') compile_error(c, "end pattern with unmatched parenthesis");
           next_char(c);
           c->needs_backtrack = TRUE;  /* the Pike VM cannot cut a thread */
           c->flags = saved_flags;
@@ -1700,7 +1700,7 @@ compile_atom(re_compiler *c)
             c->flags = new_flags;
             compile_alt(c);
             c->flags = saved_flags;
-            if (peek(c) != ')') compile_error(c, "unmatched '('");
+            if (peek(c) != ')') compile_error(c, "end pattern with unmatched parenthesis");
             next_char(c);
             return TRUE;
           }
@@ -1755,7 +1755,7 @@ compile_atom(re_compiler *c)
 
       compile_alt(c);
 
-      if (peek(c) != ')') compile_error(c, "unmatched '('");
+      if (peek(c) != ')') compile_error(c, "end pattern with unmatched parenthesis");
       next_char(c);
 
       if (capturing) {
