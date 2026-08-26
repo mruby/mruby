@@ -18,5 +18,5 @@ MRuby::Toolchain.new(:wasi) do |conf, params|
   conf.linker.libraries << 'setjmp'
 
   # llvm-ar defaults to the Darwin format on macOS hosts, which overflows on long member paths
-  conf.archiver.archive_options = '--format=gnu rcs "%{outfile}" %{objs}'
+  conf.archiver.archive_options = '--format=gnu rcs%{deterministic} "%{outfile}" %{objs}'
 end
