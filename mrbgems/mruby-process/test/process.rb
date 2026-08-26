@@ -133,6 +133,32 @@ assert('Process.kill with a name that is nothing but the prefix') do
   end
 end
 
+assert('Process.kill with a signal of no signal type') do
+  # What cannot be a signal at all is refused by its class, which Ruby
+  # reports as ArgumentError: the call is not converting the argument, it is
+  # naming the kinds it takes.
+  assert_raise_with_message(ArgumentError, "bad signal type Float") do
+    Process.kill(15.0, Process.pid)
+  end
+  assert_raise_with_message(ArgumentError, "bad signal type NilClass") do
+    Process.kill(nil, Process.pid)
+  end
+  assert_raise_with_message(ArgumentError, "bad signal type Array") do
+    Process.kill([], Process.pid)
+  end
+
+  # A big integer is an Integer, but not the Integer the signal branch reads,
+  # so it is refused the same way, as CRuby refuses it.  Worked out rather
+  # than written down: a literal this wide would drop the whole file from a
+  # build that cannot parse it.
+  huge = ((2**35) * (2**35) rescue nil)
+  if huge
+    assert_raise_with_message(ArgumentError, "bad signal type Integer") do
+      Process.kill(huge, Process.pid)
+    end
+  end
+end
+
 assert('Process.kill with a signal name holding a NUL') do
   # The name reaches the port as a C string, so a NUL in it would name the
   # part before it.  "TERM\0suffix" must not be a way to spell TERM.
@@ -180,8 +206,15 @@ assert('a pid or a signal number too large for the platform') do
   skip "this build cannot name a number wider than a pid" unless big
 
   assert_raise(RangeError) { Process.kill(0, big) }
-  assert_raise(RangeError) { Process.kill(big, Process.pid) }
   assert_raise(RangeError) { Process.waitpid(big) }
+
+  # As a signal, its size is only what is wrong with it where the build's own
+  # Integer carries it: a build that promoted it to a big integer refuses it
+  # as no signal type instead, tested above.  The builds are told apart by
+  # identity, which every Integer has and no big integer object does.
+  if big.equal?(2**31)
+    assert_raise(RangeError) { Process.kill(big, Process.pid) }
+  end
 end
 
 assert('Process::Status.new') do
