@@ -4,6 +4,18 @@ assert("Regexp - character class") do
   assert_equal "abc", md[0]
 end
 
+assert("Regexp - a class the pattern ends inside says which it was") do
+  # A class no ']' closes is `premature end of char-class` in CRuby, whatever
+  # stands unfinished inside it: a member, a range, or a POSIX bracket that
+  # ends early enough to leave the class open as well.
+  ["[", "[a", "[a-", "[^a", "[[:alpha", "[[:alpha:", "[[:alpha:]",
+   "[a[:alpha:]", "[[:word:]x"].each do |src|
+    assert_raise_with_message(RegexpError, "premature end of char-class: /#{src}/", src) do
+      Regexp.new(src)
+    end
+  end
+end
+
 assert("Regexp - reversed character class range") do
   # A range written backwards holds nothing. It used to compile to a class
   # that silently lacked the span, or in the negated form admitted every
@@ -1174,10 +1186,10 @@ assert("Regexp extended mode (x flag)") do
 
   # a bracket the pattern truncates leaves the scan with nothing after the
   # name, and the class is still the parser's error to report
-  assert_raise_with_message(RegexpError, "unterminated character class: /[[:alpha/x") do
+  assert_raise_with_message(RegexpError, "premature end of char-class: /[[:alpha/x") do
     Regexp.new("[[:alpha", Regexp::EXTENDED)
   end
-  assert_raise_with_message(RegexpError, "unterminated character class: /[[:alpha:/x") do
+  assert_raise_with_message(RegexpError, "premature end of char-class: /[[:alpha:/x") do
     Regexp.new("[[:alpha:", Regexp::EXTENDED)
   end
 
@@ -1224,7 +1236,7 @@ assert("Regexp extended mode (x flag)") do
   assert_equal "(?x-mi:abc)", Regexp.new("abc", Regexp::EXTENDED).to_s
 
   # errors quote the pattern as written, not the text with the comment removed
-  assert_raise_with_message(RegexpError, "unterminated character class: /a # c\n[/x") do
+  assert_raise_with_message(RegexpError, "premature end of char-class: /a # c\n[/x") do
     Regexp.new("a # c\n[", Regexp::EXTENDED)
   end
   assert_raise_with_message(RegexpError, "unmatched '(': /a b(/x") do
@@ -1236,15 +1248,15 @@ assert("Regexp extended mode (x flag)") do
   # error is raised: turning /x off inline still reports the entry's /x,
   # and turning it on where entry carried none reports no suffix at all.
   # CRuby matches this on both patterns.
-  assert_raise_with_message(RegexpError, "unterminated character class: /(?-x)a # c[/x") do
+  assert_raise_with_message(RegexpError, "premature end of char-class: /(?-x)a # c[/x") do
     Regexp.new("(?-x)a # c[", Regexp::EXTENDED)
   end
-  assert_raise_with_message(RegexpError, "unterminated character class: /(?x)a # c\n[/") do
+  assert_raise_with_message(RegexpError, "premature end of char-class: /(?x)a # c\n[/") do
     Regexp.new("(?x)a # c\n[")
   end
 
   # Multiple entry flags are named in Regexp#to_s/#inspect's m, i, x order.
-  assert_raise_with_message(RegexpError, "unterminated character class: /[a/ix") do
+  assert_raise_with_message(RegexpError, "premature end of char-class: /[a/ix") do
     Regexp.new("[a", Regexp::EXTENDED | Regexp::IGNORECASE)
   end
 end
@@ -1652,7 +1664,7 @@ assert("Regexp - a named group makes plain groups non-capturing") do
 
   # the scan runs on every pattern, so a truncated POSIX bracket reaches
   # skip_posix_bracket() without /x too, and is still the parser's error
-  assert_raise_with_message(RegexpError, "unterminated character class: /[[:alpha/") do
+  assert_raise_with_message(RegexpError, "premature end of char-class: /[[:alpha/") do
     Regexp.new("[[:alpha")
   end
 end

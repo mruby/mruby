@@ -940,7 +940,7 @@ compile_charclass(re_compiler *c)
 
   mrb_bool first = TRUE;
   while (peek(c) != ']' || first) {
-    if (peek(c) < 0) compile_error(c, "unterminated character class");
+    if (peek(c) < 0) compile_error(c, "premature end of char-class");
     first = FALSE;
 
     /* `&&` takes the intersection of what is written either side of it, which
@@ -976,7 +976,6 @@ compile_charclass(re_compiler *c)
       if (peek(c) == '^') { neg = TRUE; next_char(c); }
       const char *name = c->p;
       while (peek(c) >= 0 && peek(c) != ':' && peek(c) != ']') next_char(c);
-      mrb_bool stopped_at_bracket_end = (peek(c) == ']');
       if (peek(c) == ':' && c->p + 1 < c->src_end && c->p[1] == ']') {
         uint8_t bits[16] = {0};
         mrb_bool by_ascii;
@@ -1010,15 +1009,11 @@ compile_charclass(re_compiler *c)
       }
       /* The '[' opened a bracket, so a name that does not close is the
          bracket ending early rather than a literal '[', as it is to CRuby.
-         Which of the two things went wrong depends on where the scan
-         stopped: at a ']' the class does close and only the bracket ended
-         early, and anywhere else (a ':' with nothing after it, or the end of
-         the pattern) the class never closes either, which is the older and
-         more particular complaint of the two. */
+         Where the scan stopped makes no difference to what is said: the
+         complaint is the class's own either way, as it is in CRuby, where
+         /[[:al]/ and /[[:al/ raise the one message between them. */
       c->p = save;
-      compile_error(c, stopped_at_bracket_end
-                    ? "premature end of char-class"
-                    : "unterminated character class");
+      compile_error(c, "premature end of char-class");
     }
 
     /* Shorthand classes (\d, \D, \w, \W, \s, \S, \h, \H) are handled
