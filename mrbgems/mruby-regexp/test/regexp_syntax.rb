@@ -2673,6 +2673,18 @@ assert("Regexp - octal and hex escapes") do
   end
 end
 
+assert("Regexp - a backslash the pattern ends after says which it was") do
+  # A `\\` with nothing after it is an escape that ends early, which is what
+  # CRuby calls it, and the same one it calls a `\\u` with no digits after
+  # it. Inside a class as well: the member reads its escape the same way.
+  ["a\\", "\\", "[a\\", "(?:a\\"].each do |src|
+    assert_raise_with_message(RegexpError,
+                              "too short escape sequence: /#{src}/", src) do
+      Regexp.new(src)
+    end
+  end
+end
+
 assert("Regexp - a hex escape needs at least one digit") do
   # `\x` followed by no hex digit used to read as `\x00`, so `\x{41}` was a
   # NUL and a quantifier, and matched 41 NUL bytes. A regexp literal never
