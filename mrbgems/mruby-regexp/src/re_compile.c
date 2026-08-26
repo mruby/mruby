@@ -1226,7 +1226,7 @@ parse_quantifier(re_compiler *c, int *min_out, int *max_out, mrb_bool *ranged)
   while (peek(c) >= '0' && peek(c) <= '9') {
     min = min * 10 + (next_char(c) - '0');
     has_digit = TRUE;
-    if (min > RE_MAX_REPEAT) compile_error(c, "quantifier too large");
+    if (min > RE_MAX_REPEAT) compile_error(c, "too big number for repeat range");
   }
   if (peek(c) == ',') {
     next_char(c);
@@ -1236,7 +1236,7 @@ parse_quantifier(re_compiler *c, int *min_out, int *max_out, mrb_bool *ranged)
       while (peek(c) >= '0' && peek(c) <= '9') {
         max = max * 10 + (next_char(c) - '0');
         has_digit = TRUE;
-        if (max > RE_MAX_REPEAT) compile_error(c, "quantifier too large");
+        if (max > RE_MAX_REPEAT) compile_error(c, "too big number for repeat range");
       }
     }
     /* else max = -1 (unlimited) */

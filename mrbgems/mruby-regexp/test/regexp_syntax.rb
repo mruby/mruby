@@ -802,6 +802,22 @@ assert("Regexp - repetition {n,m}") do
   assert_equal "aaa", Regexp.new("a{2,3}").match("aaaa")[0]
 end
 
+assert("Regexp - a repeat count above what the engine takes") do
+  # The ceiling here is 32768 and CRuby's is 100000, so between them stand
+  # counts this engine refuses and CRuby compiles. Above both the two
+  # refuse the same pattern, and what they say of it is the same.
+  ["a{100001}", "a{1,100001}", "a{100001,}", "a{10000000000}"].each do |src|
+    assert_raise_with_message(RegexpError,
+                              "too big number for repeat range: /#{src}/", src) do
+      Regexp.new(src)
+    end
+  end
+  assert_raise_with_message(RegexpError,
+                            "too big number for repeat range: /a{32769}/") do
+    Regexp.new("a{32769}")
+  end
+end
+
 assert("Regexp - an upper bound below the lower one is an error") do
   # `{n,m}` with m < n names no repeat count, and CRuby raises rather than
   # compiling it; it used to compile as `{n}` and match exactly n repeats.
