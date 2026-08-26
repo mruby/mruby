@@ -1544,9 +1544,10 @@ assert("Regexp - a (?...) prefix the pattern ends inside says which it was") do
     end
   end
   # A character that names no group is that failure rather than this one,
-  # whether or not the pattern goes on.
-  ["(?z", "(?z)"].each do |src|
-    assert_raise_with_message(RegexpError, "undefined (?...) sequence: /#{src}/", src) do
+  # whether or not the pattern goes on. `(?P<name>x)` is Python's spelling
+  # of a named group and no group of Ruby's, so it is one of these too.
+  ["(?z", "(?z)", "(?P", "(?P<a>x)"].each do |src|
+    assert_raise_with_message(RegexpError, "undefined group option: /#{src}/", src) do
       Regexp.new(src)
     end
   end
