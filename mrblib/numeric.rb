@@ -17,7 +17,7 @@ class Numeric
   #
   # ISO 15.2.7.4.2
   def -@
-    0 - self
+    -1 * self
   end
 
   ##
