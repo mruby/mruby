@@ -15,6 +15,11 @@ UNICODE_GENERATORS = {
   'core' => ['tools/gen_unicase.rb', 'src'],
   'gem:regexp:cased' => ['mrbgems/mruby-regexp/tools/gen_cased.rb', 'mrbgems/mruby-regexp/src'],
   'gem:regexp:ctype' => ['mrbgems/mruby-regexp/tools/gen_ctype.rb', 'mrbgems/mruby-regexp/src'],
+  # Not a table the engine reads: the characters the differential test asks it
+  # about. Generated here so that a version bump moves the questions with the
+  # answers rather than leaving them a release apart.
+  'gem:regexp:corpus' => ['mrbgems/mruby-regexp/tools/difftest/gen_corpus.rb',
+                          'mrbgems/mruby-regexp/tools/difftest'],
   'gem:string-ext:alnum' => ['mrbgems/mruby-string-ext/tools/gen_alnum.rb', 'mrbgems/mruby-string-ext/src'],
 }
 
@@ -64,11 +69,11 @@ namespace :unicode do
     Dir.mktmpdir do |tmp|
       UNICODE_GENERATORS.each_value do |script, outdir|
         sh RbConfig.ruby, "#{MRUBY_ROOT}/#{script}", tmp, UNICODE_DATA_DIR
-        Dir.glob("#{tmp}/*.h").each do |built|
+        Dir.glob("#{tmp}/*.{h,rb}").each do |built|
           committed = "#{MRUBY_ROOT}/#{outdir}/#{File.basename(built)}"
           stale << committed unless FileUtils.identical?(built, committed)
         end
-        rm Dir.glob("#{tmp}/*.h")
+        rm Dir.glob("#{tmp}/*.{h,rb}")
       end
     end
     stale.each { |path| puts "stale: #{path} is not what the database generates" }

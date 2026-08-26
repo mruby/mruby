@@ -23,6 +23,8 @@ module Unicode
       'CaseFolding.txt'           => 'ff8d8fefbf123574205085d6714c36149eb946d717a0c585c27f0f4ef58c4183',
       'DerivedCoreProperties.txt' => '24c7fed1195c482faaefd5c1e7eb821c5ee1fb6de07ecdbaa64b56a99da22c08',
       'PropList.txt'              => '130dcddcaadaf071008bdfce1e7743e04fdfbc910886f017d9f9ac931d8c64dd',
+      'Scripts.txt'               => '9f5e50d3abaee7d6ce09480f325c706f485ae3240912527e651954d2d6b035bf',
+      'DerivedAge.txt'            => 'f8ecdf768bdc210f201abd271d9bc587825618a86a7046a8146cc816393f1998',
     }.freeze
 
     FILES = CHECKSUMS.keys.freeze
@@ -90,12 +92,12 @@ module Unicode
     end
 
     # The properties a file in the "range ; Property" format lists, as
-    # {"Alphabetic" => [lo..hi, ...]}. DerivedCoreProperties.txt and
-    # PropList.txt are both spelled that way, one property per line and a
-    # range where a single codepoint would repeat.
+    # {"Alphabetic" => [lo..hi, ...]}. DerivedCoreProperties.txt, PropList.txt,
+    # Scripts.txt and DerivedAge.txt are all spelled that way, one property per
+    # line and a range where a single codepoint would repeat.
     def self.property_ranges(dir, name)
       props = Hash.new { |h, k| h[k] = [] }
-      File.foreach(path(dir, name)) do |line|
+      each_line(dir, name) do |line|
         line = line.sub(/#.*/, '').strip
         next if line.empty?
         range, prop, = line.split(/\s*;\s*/)
@@ -103,6 +105,15 @@ module Unicode
         props[prop] << (lo..(hi || lo))
       end
       props
+    end
+
+    # The files are UTF-8, and a few of them say so only in a comment: a
+    # character name is ASCII but the copyright line above it is not. Reading
+    # them as whatever the locale happens to be leaves those bytes in a string
+    # the comment strip then refuses to scan, so the encoding is named here
+    # rather than left to the environment the generator runs in.
+    def self.each_line(dir, name, &block)
+      File.foreach(path(dir, name), encoding: 'UTF-8', &block)
     end
   end
 end
