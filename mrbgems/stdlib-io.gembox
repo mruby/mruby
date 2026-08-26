@@ -16,6 +16,9 @@ MRuby::GemBox.new do |conf|
   # Use ENV object
   conf.gem :core => "mruby-env"
 
+  # Use Signal module
+  conf.gem :core => "mruby-signal"
+
   # Use Process module
   conf.gem :core => "mruby-process"
 end
