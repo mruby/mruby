@@ -73,5 +73,17 @@ MRuby::Build.new('ascii-ctype') do |conf|
   conf.gembox 'full-core'
   conf.cc.defines << 'MRB_USE_ASCII_CTYPE'
 
+  # A second mruby-regexp refusal that needs a build of its own: the parse
+  # depth limit. Reaching a limit costs the C stack that limit stands for,
+  # about 600 bytes a level, so no build can be asked to reach the default
+  # 4096, whose 2.4 MiB is more than a Windows thread's whole stack, and the
+  # test skips above 512 for that reason. This build sets a limit a test may
+  # reach anywhere in the matrix, some 300 KiB, which is what gives
+  # `parse depth limit over` a home; the arithmetic that refuses is the same
+  # at any limit. It rides along here rather than in a build of its own so
+  # that the matrix runs no extra pass, and it costs this build nothing: the
+  # depth a pattern may nest is not what ASCII classification is about.
+  conf.cc.defines << 'MRB_REGEXP_PARSE_DEPTH_LIMIT=512'
+
   conf.enable_test
 end

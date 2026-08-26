@@ -72,6 +72,9 @@ typedef struct {
   uint32_t literal_cp[RE_MAX_CLASSES];  /* by class id: the codepoint whose
                                /i literal the class stands for, 0 for a class
                                made by anything else; see literal_class() */
+  uint32_t depth;           /* nesting levels open at the parse point, one per
+                               compile_alt() frame on the C stack; bounded by
+                               MRB_REGEXP_PARSE_DEPTH_LIMIT */
 } re_compiler;
 
 static void compile_alt(re_compiler *c);  /* forward */
@@ -1533,8 +1536,9 @@ compile_look_body(re_compiler *c, mrb_bool negative)
 /* Compile a single atom (character, class, group, etc.). Returns whether one
    was read: FALSE when what stands at the parse point is not an atom, either a
    quantifier metacharacter or the end of the sequence, neither of them
-   consumed, or an option toggle `(?i)`, consumed but nothing a quantifier can
-   repeat. An empty group `(?:)` emits nothing and is still an atom. */
+   consumed. An empty group `(?:)` emits nothing and is still an atom, and so
+   does an option toggle `(?i)` whose scope, the rest of the enclosing group,
+   is empty. */
 static mrb_bool
 compile_atom(re_compiler *c)
 {
@@ -1674,9 +1678,25 @@ compile_atom(re_compiler *c)
           next_char(c);  /* skip '?' */
           uint32_t new_flags = parse_inline_flags(c, c->flags);
           if (peek(c) == ')') {
+            /* The rest of the enclosing group, alternatives and all, is the
+               toggle's scope: `a(?i)b|c` is `a(?i:b|c)`, as Onigmo builds it
+               (parse_exp() hands its "option only" remainder to
+               parse_subexp(), the alternation level). So compile that
+               remainder here rather than returning to the sequence the
+               toggle was read in, where the `|` would split at the level the
+               toggle was written at and `c` would match with no `a` before
+               it. compile_alt() consumes every `|` and stops at the group's
+               ')' or the end of the pattern, which is where the caller
+               expects the parse point, so what follows is unchanged: the
+               enclosing compile_seq() finds its terminator, a stray ')' at
+               top level is still refused by mrb_re_compile(), and a
+               quantifier with nothing before it is refused by the
+               compile_seq() called from here. */
             next_char(c);
-            c->flags = new_flags;  /* rest of the group; restored at its ')' */
-            return FALSE;          /* consumed the token; no atom emitted */
+            c->flags = new_flags;
+            compile_alt(c);
+            c->flags = saved_flags;
+            return TRUE;
           }
           else if (peek(c) == ':') {
             next_char(c);
@@ -1744,7 +1764,7 @@ compile_atom(re_compiler *c)
       if (capturing) {
         emit(c, RE_SAVE, 0, group * 2 + 1);
       }
-      c->flags = saved_flags;  /* inline toggles inside the group end here */
+      c->flags = saved_flags;  /* the options this group opened with */
     }
     break;
 
@@ -2086,9 +2106,10 @@ compile_quantified(re_compiler *c)
     /* Nothing emitted. An empty group `(?:)` is an atom all the same, and
        one that matches empty matches empty however it is repeated, so its
        quantifiers are read and emit nothing, as those of `a{0}` are; CRuby
-       compiles `(?:)*` the same way. What is not an atom, an option toggle
-       `(?i)` or a stray metacharacter, leaves a quantifier after it for
-       compile_seq() to refuse, as CRuby refuses `(?i)*`. */
+       compiles `(?:)*` the same way. A stray metacharacter is no atom and
+       leaves the quantifier for compile_seq() to refuse; `(?i)*` is refused
+       there too, as CRuby refuses it, by the compile_seq() that reads the
+       toggle's scope. */
     if (atom) skip_quantifiers(c);
     return;
   }
@@ -2261,7 +2282,7 @@ compile_seq(re_compiler *c)
 
 /* Compile alternation: seq | seq | ... */
 static void
-compile_alt(re_compiler *c)
+compile_alt_body(re_compiler *c)
 {
   uint32_t alt_start = c->code_len;
   compile_seq(c);
@@ -2322,6 +2343,23 @@ compile_alt(re_compiler *c)
     c->pat->code[jmp_pos].op = RE_JMP;
     c->pat->code[jmp_pos].offset = (uint16_t)end;
   }
+}
+
+/* Bound the parser's own recursion. Every nesting level it descends into is
+   one compile_alt() frame -- compile_alt -> compile_seq -> compile_quantified
+   -> compile_atom, whose group, lookaround, atomic and inline-option arms
+   call compile_alt again -- so the count stands here, at the one entry the
+   recursion passes through, and a pattern that nests deeper is refused rather
+   than run off the C stack. The message is CRuby's for the same refusal; see
+   MRB_REGEXP_PARSE_DEPTH_LIMIT for what the number is and what it costs. */
+static void
+compile_alt(re_compiler *c)
+{
+  if (++c->depth > (uint32_t)MRB_REGEXP_PARSE_DEPTH_LIMIT) {
+    compile_error(c, "parse depth limit over");
+  }
+  compile_alt_body(c);
+  c->depth--;
 }
 
 /* Inside a character class, is `src` the start of a POSIX bracket [:name:]?

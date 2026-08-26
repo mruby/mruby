@@ -2290,6 +2290,11 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
      whoever has to size a subject or a pattern to the build it runs on. */
   mrb_define_const(mrb, re, "STACK_LIMIT", mrb_int_value(mrb, MRB_REGEXP_STACK_LIMIT));
   mrb_define_const(mrb, re, "STEP_LIMIT", mrb_int_value(mrb, MRB_REGEXP_STEP_LIMIT));
+  /* How deep a pattern may nest, which the compiler refuses past rather than
+     recurse off the C stack: read back like the two above, by whoever has to
+     size a pattern to the build it runs on. */
+  mrb_define_const(mrb, re, "PARSE_DEPTH_LIMIT",
+                   mrb_int_value(mrb, MRB_REGEXP_PARSE_DEPTH_LIMIT));
 
   /* Class methods */
   mrb_define_method(mrb, re, "initialize", regexp_init, MRB_ARGS_ARG(1, 2));

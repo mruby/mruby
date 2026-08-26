@@ -268,6 +268,59 @@ assert("Regexp - a backreference reads no group the running iteration reopened")
   assert_equal ["x", "", "x"], /((x|\2b)?)*/.match("xb").to_a
 end
 
+assert("Regexp - a pattern nested past the parse depth limit raises") do
+  # The parser recurses once per nesting level, so a deep enough pattern used
+  # to reach the end of the C stack, which is a crash and not an error:
+  # `(?:` x 50000 was a SIGSEGV. MRB_REGEXP_PARSE_DEPTH_LIMIT bounds it, and
+  # CRuby's message for the same refusal is the one raised here.
+  #
+  # A nesting the guard must not refuse: the count has to leave a pattern
+  # inside the limit alone, and a deep one it accepts has to still match. The
+  # depth comes from the build's own limit, since a build may set one below
+  # any figure written here.
+  limit = Regexp::PARSE_DEPTH_LIMIT
+  inside = limit > 200 ? 200 : limit - 1
+  if inside > 0
+    assert_equal 0, (Regexp.new("(?:" * inside + "a" + ")" * inside) =~ "a")
+    assert_equal 0, (Regexp.new("(?i)" * inside + "a") =~ "A")
+  end
+
+  # The refusal itself is sized from `Regexp::PARSE_DEPTH_LIMIT`, which reads
+  # back what the build set. Reaching it costs the stack the limit stands for:
+  # the count is checked at the bottom of the recursion, so a pattern past the
+  # limit descends to it before being refused, and at the CRuby-exact default
+  # that is some 2.4 MiB -- more C stack than a Windows thread has at all, and
+  # the very thing the limit exists to keep a pattern from spending. So a
+  # build whose limit stands above what a test may descend is left out rather
+  # than crashed, and the refusal is covered by a build that sets a limit a
+  # test can reach: the `ascii-ctype` build of build_config/ci/gcc-clang.rb
+  # sets 512, which runs on every entry of the CI matrix. The arithmetic that
+  # refuses is the same at any limit.
+  if limit > 512
+    skip "reaching this build's parse depth limit costs more C stack than a test may spend"
+  end
+
+  # Every construct that opens a level is asked, an inline toggle among them:
+  # it encloses the rest of the group it stands in, so it is a level of its
+  # own, and CRuby counts it as one too.
+  fits = limit - 1
+  assert_equal 0, (Regexp.new("(?:" * fits + "a" + ")" * fits) =~ "a")
+  assert_equal 0, (Regexp.new("(?i)" * fits + "a") =~ "A")
+
+  [
+    ["(?:" * limit + "a" + ")" * limit, "a plain group"],
+    ["(?i)" * limit + "a",              "an option toggle"],
+    ["(?i:" * limit + "a" + ")" * limit, "a scoped option group"],
+    ["(?=" * limit + "a" + ")" * limit, "a lookahead"],
+    ["(?>" * limit + "a" + ")" * limit, "an atomic group"],
+  ].each do |pattern, what|
+    assert_raise_with_message(RegexpError,
+                              "parse depth limit over: /#{pattern}/", what) do
+      Regexp.new(pattern)
+    end
+  end
+end
+
 assert("Regexp - the backtracking engine raises at a limit rather than answer short") do
   need_backtracking_stack
   # A search gives up at MRB_REGEXP_STACK_LIMIT or MRB_REGEXP_STEP_LIMIT,
@@ -934,6 +987,29 @@ assert("Regexp - inline options (?i) / (?i:...)") do
   assert_equal 0, (/(a(?i)b)c/ =~ "aBc")
   assert_nil (/(a(?i)b)c/ =~ "aBC")       # trailing `c` is case-sensitive again
 
+  # The rest of the group is the toggle's scope alternatives and all, so
+  # `a(?i)b|c` is `a(?i:b|c)`: the `|` splits inside the scope, not at the
+  # level the toggle was written at, and the `c` still wants the `a` before
+  # it. Without that, an alternative after a toggle matched on its own.
+  assert_nil (/a(?i)b|c/ =~ "c")
+  assert_nil (/a(?i)b|c/ =~ "C")
+  assert_equal 0, (/a(?i)b|c/ =~ "ac")
+  assert_equal 0, (/a(?i)b|c/ =~ "aC")    # and the option reaches that `c`
+  assert_nil (/a(?i)|b/ =~ "b")           # an empty first alternative too
+  assert_nil (/x|a(?i)b|c/ =~ "c")        # a toggle in the second alternative
+  assert_nil (/(a(?i)b|c)d/ =~ "cd")
+  assert_equal 0, (/x(a(?i)b|c)d/ =~ "xacd")
+  assert_equal ["acd", "ac", "d"], /(a(?i)b|c)(d)/.match("acd").to_a
+  assert_equal 0, (/a(?i)b(?m).|c/ =~ "aB\n")  # a toggle within that scope
+  assert_equal 0, (/a(?x) b|c/ =~ "ac")   # x is scoped the same way
+  assert_nil (/a(?x) b|c/ =~ "c")
+
+  # Turning an option off is scoped alike, so the alternative after `(?-i)`
+  # is case-sensitive whether or not the pattern is /i.
+  assert_equal 0, (/a(?-i)b|c/i =~ "ac")
+  assert_nil (/a(?-i)b|c/i =~ "aC")
+  assert_nil (/a(?-i)b|c/i =~ "C")
+
   # m enables dot-matches-newline for its scope.
   assert_equal 0, (/(?m:a.b)/ =~ "a\nb")
   assert_nil (/a.b/ =~ "a\nb")
@@ -1004,6 +1080,10 @@ assert("Regexp - an inline option reaches a lookaround and a backreference") do
   assert_equal 0, (/(a)(?i:\1)/ =~ "aA")
   assert_nil (/(?-i:(a)\1)/i =~ "aA")
   assert_equal 0, (/(?=(?x)a b)ab c/ =~ "ab c")
+  # The sub-pattern is where a toggle inside it ends, so the alternation it
+  # takes in ends there too: this is `(?=a(?i:b|c))`.
+  assert_nil (/(?=a(?i)b|c)/ =~ "c")
+  assert_equal 0, (/(?=a(?i)b|c)/ =~ "aC")
 end
 
 assert("Regexp - comment groups (?#...)") do
@@ -1411,7 +1491,9 @@ assert("Regexp - an empty group takes a quantifier") do
   assert_equal [""], /(?:) * /x.match("").to_a
   # A `{` after it that spells no quantifier is a literal, as after any atom.
   assert_equal ["{a}"], /(?:){a}/.match("{a}").to_a
-  # An option toggle is not an atom: the quantifier after `(?i)` has no target.
+  # A quantifier after `(?i)` has no target: what follows the toggle is its
+  # scope, and the quantifier stands at the beginning of it with no atom
+  # before it.
   assert_raise_with_message(RegexpError,
                             "target of repeat operator is not specified: /(?i)*/") do
     Regexp.new("(?i)*")
