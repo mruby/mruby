@@ -493,7 +493,12 @@ ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_va
 
   mrb_value result = mrb_ary_new(mrb);
 
-  if (total_len > SET_OP_HASH_THRESHOLD) {
+  /* Both sides have to be worth a set: it costs O(total_len) to build and is
+     then asked RARRAY_LEN(self) questions. A short receiver cannot repay a
+     long set, one lookup into a thousand entries losing to one linear scan of
+     them, so, as CRuby does, either side being small picks the walk. */
+  if (total_len > SET_OP_HASH_THRESHOLD &&
+      RARRAY_LEN(self) > SET_OP_HASH_THRESHOLD) {
     /* Create shared copies to protect elements during khash operations */
     mrb_value *argv_copies = (mrb_value *)mrb_alloca(mrb, sizeof(mrb_value) * argc);
     for (mrb_int i = 0; i < argc; i++) {

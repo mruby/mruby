@@ -960,12 +960,13 @@ assert('Array set operations compare with eql? on both sides of the hash thresho
   small_dup = [1, 1.0, 1]
   assert_equal [1, 1.0], small_dup.uniq!
 
-  # `-` and `&` take it from the argument arrays alone, so a long receiver is
-  # no guarantee of the hash path
+  # `-` takes the set only when both sides are long enough to pay for it, so
+  # it needs a row for each way of being short as well as one for neither
   assert_equal [1], [1] - [1.0]
   assert_equal [1] + pad, long_receiver - [1.0]
   assert_equal [1], [1] - [1.0, 2.0]
   assert_equal [1], [1] - long_floats
+  assert_equal [1] + pad, long_receiver - long_floats
 
   assert_equal [], [1] & [1.0]
   assert_equal [], long_receiver & [1.0]
