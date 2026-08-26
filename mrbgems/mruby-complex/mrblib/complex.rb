@@ -39,7 +39,8 @@ class Complex < Numeric
   #   Complex(1, -2).to_s  #=> "1-2i"
   #
   def to_s
-    "#{real}#{'+' unless imaginary < 0}#{imaginary}#{'*' unless imaginary.finite?}i"
+    i = imaginary.to_s
+    "#{real}#{'+' unless i[0] == '-'}#{i}#{'*' unless imaginary.finite?}i"
   end
 
   #
