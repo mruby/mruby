@@ -1522,6 +1522,18 @@ assert("Regexp - a group the pattern ends inside says which it was") do
   end
 end
 
+assert("Regexp - a ')' that closes no group says which it was") do
+  # The counterpart of the group that never closes: a ')' with no group
+  # open is `unmatched close parenthesis` in CRuby. A comment group does
+  # not nest, so the second ')' of (?#a(?#b)) is one of these.
+  [")", "a)", "(a))", "(?#a(?#b))"].each do |src|
+    assert_raise_with_message(RegexpError,
+                              "unmatched close parenthesis: /#{src}/", src) do
+      Regexp.new(src)
+    end
+  end
+end
+
 assert("Regexp - non-capturing group") do
   md = /(?:a)(b)/.match("ab")
   assert_equal "ab", md[0]
