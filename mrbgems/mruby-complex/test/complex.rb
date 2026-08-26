@@ -166,6 +166,18 @@ assert 'Complex::to_i' do
   end
 end
 
+assert 'Complex#to_s' do
+  assert_equal "1.0+2.0i", Complex(1.0, 2.0).to_s
+  assert_equal "1.0-2.0i", Complex(1.0, -2.0).to_s
+  assert_equal "1.0+0.0i", Complex(1.0, 0.0).to_s
+  assert_equal "1.0-0.0i", Complex(1.0, -0.0).to_s
+  assert_equal "-0.0-0.0i", Complex(-0.0, -0.0).to_s
+  assert_equal "(1.0-0.0i)", Complex(1.0, -0.0).inspect
+  assert_equal "1.0+Infinity*i", Complex(1.0, 1.0 / 0).to_s
+  assert_equal "1.0-Infinity*i", Complex(1.0, -1.0 / 0).to_s
+  assert_equal "0.0+NaN*i", Complex(0.0, 0.0 / 0).to_s
+end
+
 assert 'Complex#frozen?' do
   assert_predicate(1i, :frozen?)
   assert_predicate(Complex(2,3), :frozen?)
