@@ -389,19 +389,14 @@ When debugging mode is enabled
 ### File prefix map
 
 The compiler is given absolute paths, so where the mruby tree and the build
-directory sit reaches what it compiles: `__FILE__`, which is what `mrb_assert`
-reports through `assert`, and the debug information that the `-g` of the `gcc`
-and `clang` toolchains writes. To keep them out of it add the following:
-
-```ruby
-conf.enable_file_prefix_map
-```
-
-which compiles with `-ffile-prefix-map` for the two directories the sources of
-a build come from: the mruby tree, written as `.`, and the build directory,
-written as `./build`. The build directory is written as the place it takes when
-nothing moves it, so that a build with `MRUBY_BUILD_DIR` pointing outside the
-tree compiles what a build inside the tree compiles.
+directory sit would reach what it compiles: `__FILE__`, which is what
+`mrb_assert` reports through `assert`, and the debug information that the `-g`
+of the `gcc` and `clang` toolchains writes. Every build keeps them out of it on
+its own, compiling with `-ffile-prefix-map` for the two directories its sources
+come from: the mruby tree, written as `.`, and the build directory, written as
+`./build`. The build directory is written as the place it takes when nothing
+moves it, so that a build with `MRUBY_BUILD_DIR` pointing outside the tree
+compiles what a build inside the tree compiles.
 
 To write the two names yourself:
 
@@ -415,6 +410,18 @@ toolchain or of a gem outside the tree is written:
 ```ruby
 conf.file_prefix_map "/opt/toolchain", "toolchain"
 ```
+
+To compile with the paths as they are:
+
+```ruby
+conf.disable_file_prefix_map
+```
+
+which is what a build to be debugged from outside the mruby tree wants: a
+debugger looks for the sources of a mapped build under the names they were
+mapped to, and finds them only from the directory those names are relative to.
+Either tell the debugger where they are (`set substitute-path . /path/to/mruby`
+in gdb) or take the map off this way.
 
 Note that
 
