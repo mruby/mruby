@@ -137,8 +137,12 @@ assert('Process.kill with a signal of no signal type') do
   # What cannot be a signal at all is refused by its class, which Ruby
   # reports as ArgumentError: the call is not converting the argument, it is
   # naming the kinds it takes.
-  assert_raise_with_message(ArgumentError, "bad signal type Float") do
-    Process.kill(15.0, Process.pid)
+  # Under MRB_NO_FLOAT the literal below is Integer 0, which is a signal
+  # number `kill` takes rather than a class it refuses.
+  if Object.const_defined?(:Float)
+    assert_raise_with_message(ArgumentError, "bad signal type Float") do
+      Process.kill(15.0, Process.pid)
+    end
   end
   assert_raise_with_message(ArgumentError, "bad signal type NilClass") do
     Process.kill(nil, Process.pid)
