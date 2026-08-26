@@ -236,17 +236,20 @@ module Enumerable
   # counts the number of elements yielding a true value.
   def count(v=NONE, &block)
     count = 0
-    if block
-      self.each do |*val|
-        count += 1 if block.call(*val)
+    # An argument decides even where a block came with it, as in CRuby and as
+    # in Array#count; the block was tested first here, so the argument was
+    # read only where none came.
+    if NONE.equal?(v)
+      if block
+        self.each do |*val|
+          count += 1 if block.call(*val)
+        end
+      else
+        self.each { count += 1 }
       end
     else
-      if NONE.equal?(v)
-        self.each { count += 1 }
-      else
-        self.each do |*val|
-          count += 1 if val.__svalue == v
-        end
+      self.each do |*val|
+        count += 1 if val.__svalue == v
       end
     end
     count

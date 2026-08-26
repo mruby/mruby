@@ -317,3 +317,29 @@ assert("Array#count - a comparison that answers with a fresh object") do
   a = Array.new(300) { cls.new }
   assert_equal 300, a.count(:x)
 end
+
+assert('Enumerable#count - an argument decides over a block') do
+  # CRuby counts by the argument and warns that the block is unused. The block
+  # was tested first here, so a block passed alongside an argument took over
+  # the count. Array#count answers by the argument, and so does every other
+  # Enumerable now.
+  cls = Class.new do
+    include Enumerable
+    def each; yield 1; yield 2; yield 2; end
+  end
+  e = cls.new
+  assert_equal 2, e.count(2) {|x| true }
+  assert_equal 2, e.count(2)
+  assert_equal 3, e.count
+  assert_equal 3, e.count {|x| true }
+  assert_equal 1, (1..4).count(2) {|x| true }
+  assert_equal 1, ({a: 1, b: 2}).count([:a, 1]) {|x| true }
+
+  # an element is taken for equal to itself, `==` reaching it through OP_EQ
+  never = Class.new { def ==(other); false; end }.new
+  one = Class.new do
+    include Enumerable
+    define_method(:each) {|&b| b.call(never) }
+  end.new
+  assert_equal 1, one.count(never)
+end
