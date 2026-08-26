@@ -1715,7 +1715,7 @@ compile_atom(re_compiler *c)
           }
           else {
             if (peek(c) < 0) compile_error(c, "end pattern in group");
-            compile_error(c, "undefined (?...) sequence");
+            compile_error(c, "undefined group option");
           }
         }
         else if (c->p[1] == '#') {
@@ -1740,7 +1740,7 @@ compile_atom(re_compiler *c)
                leaves open. */
             compile_error(c, "end pattern with unmatched parenthesis");
           }
-          compile_error(c, "undefined (?...) sequence");
+          compile_error(c, "undefined group option");
         }
       }
 
