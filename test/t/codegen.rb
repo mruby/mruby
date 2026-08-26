@@ -303,3 +303,35 @@ assert('assignment to a captured local is worth its value') do
   [7].each {|v| a = v }
   assert_equal 7, a
 end
+
+assert('multiple assignment to an attribute counts its registers') do
+  # `a, o.v = 1, 2` sends `v=` with the value in the register after the
+  # receiver, and OP_SEND reads its block from the register after that.
+  # Neither was reserved, so `nregs` left the frame two short of what the
+  # send reads: an assertion in a debug build, and a read past the frame in
+  # one without.
+  klass = Class.new do
+    attr_accessor :v, :w
+  end
+  o = klass.new
+
+  a, o.v = 1, 2
+  assert_equal [1, 2], [a, o.v]
+
+  # the target in front, and more than one of them
+  o.v, b = 3, 4
+  assert_equal [3, 4], [o.v, b]
+  c, o.v, o.w = 5, 6, 7
+  assert_equal [5, 6, 7], [c, o.v, o.w]
+
+  # a splat either side of it, and a nested target
+  d, o.v, *e = 1, 2, 3, 4
+  assert_equal [1, 2, [3, 4]], [d, o.v, e]
+  (f, o.v), g = [8, 9], 10
+  assert_equal [8, 9, 10], [f, o.v, g]
+
+  # the index form, which reserves its registers already, still answers
+  h = []
+  i, h[0] = 11, 12
+  assert_equal [11, 12], [i, h[0]]
+end

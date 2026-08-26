@@ -2239,8 +2239,15 @@ gen_assignment(mrc_codegen_scope *s, mrc_node *tree, mrc_node *rhs, int sp, int 
     {
       CAST(call_target);
       codegen(s, cast->receiver, VAL);
+      /* the value to assign lives in sp (set by the caller for multiple
+         assignment) and goes in the register after the receiver, which the
+         `aset` arm above reserves the same way: the OP_SEND below reads its
+         one argument from there and its block from the register after that,
+         so both have to be counted or `nregs` leaves the frame short of them */
       genop_2(s, OP_MOVE, cursp(), sp);
-      pop();
+      push();  /* reserve the value register so nregs accounts for it */
+      push(); pop();  /* touch block slot so nregs covers the OP_SEND */
+      pop_n(2);
       genop_3(s, OP_SEND, cursp(), new_sym(s, cast->name), 1);
       break;
     }
