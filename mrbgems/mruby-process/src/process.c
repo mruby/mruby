@@ -16,6 +16,7 @@
 #include <mruby/variable.h>
 #include "process_hal.h"
 #include "process_internal.h"
+#include "signal_hal.h"
 
 #include <errno.h>
 #include <limits.h>
@@ -58,8 +59,8 @@ mrb_process_int_arg(mrb_state *mrb, mrb_int v, const char *what)
  * Read a signal argument into a number.
  *
  * Ruby lets a signal be an Integer, or a name as a String or Symbol, with or
- * without the "SIG" prefix.  Deciding that much is common-layer work; which
- * number a name stands for is the port's.
+ * without the "SIG" prefix.  Deciding that much is this gem's work; which
+ * number a name stands for is mruby-signal's, through the signal HAL.
  */
 static mrb_int
 signal_to_number(mrb_state *mrb, mrb_value sig)
@@ -123,7 +124,7 @@ signal_to_number(mrb_state *mrb, mrb_value sig)
   memcpy(bare, name, (size_t)len);
   bare[len] = '\0';
 
-  if (mrb_hal_process_signal_number(mrb, bare, &signo) != 0) {
+  if (mrb_hal_signal_number(mrb, bare, &signo) != 0) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "unsupported signal 'SIG%s'", bare);
   }
   return signo;

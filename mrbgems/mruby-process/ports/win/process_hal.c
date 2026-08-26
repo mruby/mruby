@@ -32,40 +32,17 @@
 
 #include <errno.h>
 #include <stdint.h>
-#include <string.h>
 
 /* Vista and later; fall back to the access right every Windows has. */
 #ifndef PROCESS_QUERY_LIMITED_INFORMATION
 #define PROCESS_QUERY_LIMITED_INFORMATION PROCESS_QUERY_INFORMATION
 #endif
 
-/*
- * Signal table
- *
- * The numbers Windows' <signal.h> uses, plus KILL at its conventional POSIX
- * value so that `Process.kill(:KILL, pid)` names something here.  Being in
- * the table only makes a name resolvable; mrb_hal_process_kill() decides
- * which of them can actually be delivered.
- */
-
-struct signal_entry {
-  const char *name;
-  int signo;
-};
-
-static const struct signal_entry signal_table[] = {
-  { "INT",   2 },
-  { "ILL",   4 },
-  { "FPE",   8 },
-  { "KILL",  9 },
-  { "SEGV",  11 },
-  { "TERM",  15 },
-  { "BREAK", 21 },
-  { "ABRT",  22 },
-};
-
-#define SIGNAL_TABLE_LEN (sizeof(signal_table) / sizeof(signal_table[0]))
-
+/* The two signals this port can deliver, by the numbers mruby-signal's
+   Windows table gives them.  Naming them here rather than asking the signal
+   HAL keeps this port answering about delivery alone: which names resolve to
+   which numbers is that gem's question, and a port that could not reach it
+   would still have to know these two. */
 #define SIGNAL_KILL 9
 #define SIGNAL_TERM 15
 
@@ -231,35 +208,6 @@ mrb_hal_process_kill(mrb_state *mrb, mrb_int pid, mrb_int signo)
   }
   CloseHandle(h);
   return 0;
-}
-
-int
-mrb_hal_process_signal_number(mrb_state *mrb, const char *name, mrb_int *signo)
-{
-  size_t i;
-  (void)mrb;
-
-  for (i = 0; i < SIGNAL_TABLE_LEN; i++) {
-    if (strcmp(signal_table[i].name, name) == 0) {
-      *signo = (mrb_int)signal_table[i].signo;
-      return 0;
-    }
-  }
-  return -1;
-}
-
-const char*
-mrb_hal_process_signal_name(mrb_state *mrb, mrb_int signo)
-{
-  size_t i;
-  (void)mrb;
-
-  for (i = 0; i < SIGNAL_TABLE_LEN; i++) {
-    if ((mrb_int)signal_table[i].signo == signo) {
-      return signal_table[i].name;
-    }
-  }
-  return NULL;
 }
 
 /*
