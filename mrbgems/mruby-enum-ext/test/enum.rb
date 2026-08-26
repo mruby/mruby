@@ -252,6 +252,49 @@ assert('Enumerable#minmax - a comparison with no answer') do
   assert_equal [nil, nil], [].minmax
 end
 
+assert('Enumerable#max_by, #min_by and #minmax_by - a comparison with no answer') do
+  # The same rule as Enumerable#max, #min and #minmax, walked by the block's
+  # values rather than by the elements.
+  if Object.const_defined?(:Float)
+    nan = Float::NAN
+    assert_raise(ArgumentError) { [1.0, nan].max_by { |x| x } }
+    assert_raise(ArgumentError) { [nan, 1.0].max_by { |x| x } }
+    assert_raise(ArgumentError) { [1.0, nan].min_by { |x| x } }
+    assert_raise(ArgumentError) { [nan, 1.0].min_by { |x| x } }
+    assert_raise(ArgumentError) { [1.0, nan].minmax_by { |x| x } }
+    assert_raise(ArgumentError) { [nan, 1.0].minmax_by { |x| x } }
+  end
+
+  # A pair of different kinds stands in no order either.
+  assert_raise(ArgumentError) { ['a', 1].max_by { |x| x } }
+  assert_raise(ArgumentError) { ['a', 1].min_by { |x| x } }
+  assert_raise(ArgumentError) { ['a', 1].minmax_by { |x| x } }
+
+  # A block answering nil orders nothing and moves nothing: `nil <=> nil` is 0,
+  # so the first element stands.
+  assert_equal 1, [1, 2].max_by { nil }
+  assert_equal 1, [1, 2].min_by { nil }
+  assert_equal [1, 1], [1, 2].minmax_by { nil }
+
+  assert_equal 3, [2, 1, 3].max_by { |x| x }
+  assert_equal 1, [2, 1, 3].min_by { |x| x }
+  assert_equal [1, 3], [2, 1, 3].minmax_by { |x| x }
+
+  # The first element's value is never compared, and an empty collection has
+  # no element at all.
+  assert_equal 'a', ['a'].max_by { |x| x }
+  assert_nil [].max_by { |x| x }
+  assert_equal [nil, nil], [].minmax_by { |x| x }
+end
+
+assert('Enumerable#minmax_by - the block is asked once an element') do
+  # Both bounds are placed against the one value the block gave, so the count
+  # is the count #max_by and #min_by make rather than twice it.
+  calls = 0
+  assert_equal [1, 3], [2, 1, 3].minmax_by { |x| calls += 1; x }
+  assert_equal 3, calls
+end
+
 assert('Array#minmax - the walk made in C') do
   # The same move as Array#max and #min: without a block the walk is in C.
   assert_equal [nil, nil], [].minmax
