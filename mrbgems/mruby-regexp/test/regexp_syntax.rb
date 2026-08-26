@@ -1488,6 +1488,18 @@ assert("Regexp - empty pattern") do
   assert_true //.match?("abc")
 end
 
+assert("Regexp - more capture groups than the engine holds") do
+  # This engine holds 31 of them, group 0 taking the last of the 32 slots,
+  # where CRuby holds thousands. The pattern that reaches the limit is not
+  # the same one, so what is shared is the wording, which is CRuby's.
+  src = "(a)" * 32
+  assert_raise_with_message(RegexpError,
+                            "too many capture groups are specified: /#{src}/") do
+    Regexp.new(src)
+  end
+  assert_equal 32, Regexp.new("(a)" * 31).match("a" * 31).size
+end
+
 assert("Regexp - nested captures") do
   md = /((a)(b))c/.match("abc")
   assert_equal "abc", md[0]
