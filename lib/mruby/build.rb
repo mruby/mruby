@@ -97,6 +97,7 @@ module MRuby
     include LoadGems
     attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir, :defines, :libdir_name
     attr_reader :products, :libmruby_core_objs, :libmruby_objs, :gems, :toolchains, :presym, :mrbc_build, :gem_dir_to_repo_url
+    attr_reader :build_root
     attr_reader :install_excludes, :port_names
 
     alias libmruby libmruby_objs
@@ -124,6 +125,11 @@ module MRuby
         build_dir = build_dir || ENV['MRUBY_BUILD_DIR'] || "#{MRUBY_ROOT}/build"
 
         @file_separator = '/'
+        # The directory every target of this config builds under. `@build_dir`
+        # is this target's share of it, and the clones of remote gems sit
+        # beside that. `MRUBY_BUILD_DIR` may put it anywhere, so this is the
+        # one a build maps to keep its own paths out of what it compiles.
+        @build_root = build_dir
         @build_dir = "#{build_dir}/#{@name}"
         @gem_clone_dir = "#{build_dir}/repos/#{@name}"
         @libdir_name = (self.kind_of?(MRuby::CrossBuild) ? nil : ENV["MRUBY_SYSTEM_LIBDIR_NAME"]) || "lib"
@@ -158,6 +164,7 @@ module MRuby
         @enable_lock = true
         @enable_benchmark = true
         @mrbcfile_external = false
+        @file_prefix_map = nil
         @internal = internal
         @toolchains = []
         @port_names = nil
@@ -170,6 +177,9 @@ module MRuby
       begin
         current.instance_eval(&block)
       ensure
+        # Before the compilers are copied: `create_mrbc_build` below takes a
+        # copy of them, and so does every gem when it is set up.
+        current.apply_default_file_prefix_map
         if current.libmruby_enabled? && !current.mrbcfile_external?
           current.create_mrbc_build if current.host? || current.gems["mruby-bin-mrbc"]
         end
@@ -197,6 +207,50 @@ module MRuby
       @mrbc.compile_options += ' -g'
 
       @enable_debug = true
+    end
+
+    # Have the compilers write +to+ in place of +from+ wherever they write a
+    # path of their own: in `__FILE__`, which `mrb_assert` reaches through
+    # `assert`, and in the debug information `-g` writes. A compiler that
+    # cannot map a path is left alone.
+    def file_prefix_map(from, to)
+      compilers.each {|c| c.file_prefix_maps[from] = to}
+    end
+
+    # Keep the paths of this build out of what it compiles, by mapping the two
+    # directories its sources come from: the mruby tree, and the build
+    # directory, where the generated sources and the presym headers are.
+    #
+    # Every build does this much on its own, so a config calls this only to
+    # write the two names itself, and by calling it says that the build has
+    # no say: the names a config writes are the only ones its output carries.
+    #
+    # The build directory is written as `build` under the name of the tree,
+    # the place it takes when nothing moves it, so that a build with
+    # `MRUBY_BUILD_DIR` pointing outside the tree compiles what a build inside
+    # the tree compiles.
+    #
+    # The two maps overlap where the build directory is inside the tree, and
+    # both `gcc` and `clang` answer a path both cover with the longer prefix,
+    # which is the build directory. Under the names above that is the answer
+    # either map gives; a caller that names the two apart is asking for the
+    # longer one to win.
+    #
+    # This says nothing of the paths `mrbc` writes: the file names it records
+    # for a backtrace under `enable_debug` are the ones the build passes it,
+    # and no compiler flag reaches them.
+    def enable_file_prefix_map(source: ".", build: "#{source}/build")
+      file_prefix_map(MRUBY_ROOT, source)
+      file_prefix_map(@build_root, build)
+      @file_prefix_map = true
+    end
+
+    # Compile with the paths of this build as they are, which a build that
+    # is meant to be debugged from outside the tree wants: a debugger looks
+    # for the sources of a mapped build under the mapped names, and finds
+    # them only from the directory they were mapped against.
+    def disable_file_prefix_map
+      @file_prefix_map = false
     end
 
     # Set target port names for this build.
@@ -635,6 +689,12 @@ EOS
     protected
 
     attr_writer :presym
+
+    # Map the directories of this build unless the config has spoken for
+    # itself, either way.
+    def apply_default_file_prefix_map
+      enable_file_prefix_map if @file_prefix_map.nil?
+    end
 
     def create_mrbc_build
       exclusions = %i[@name @build_dir @gems @enable_test @enable_bintest @internal @install_excludes]

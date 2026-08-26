@@ -57,6 +57,10 @@ MRuby.each_target do
         end
         modcc = cc.clone
         modcc.include_paths = incpaths.replace_prefix_by(dirmaps).uniq
+        # The file prefix maps name directories of the machine that built the
+        # package, and nothing the package is compiled with from here sits
+        # under them.
+        modcc.file_prefix_maps = {}
 
         f.puts "#{cmd} = #{cc.command}"
         f.puts "#{flags} = #{modcc.all_flags}"

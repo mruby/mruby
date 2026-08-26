@@ -386,6 +386,56 @@ When debugging mode is enabled
   - Because `-g` flag would be added to `mrbc` runner.
     - You can have better backtrace of mruby scripts with this.
 
+### File prefix map
+
+The compiler is given absolute paths, so where the mruby tree and the build
+directory sit would reach what it compiles: `__FILE__`, which is what
+`mrb_assert` reports through `assert`, and the debug information that the `-g`
+of the `gcc` and `clang` toolchains writes. Every build keeps them out of it on
+its own, compiling with `-ffile-prefix-map` for the two directories its sources
+come from: the mruby tree, written as `.`, and the build directory, written as
+`./build`. The build directory is written as the place it takes when nothing
+moves it, so that a build with `MRUBY_BUILD_DIR` pointing outside the tree
+compiles what a build inside the tree compiles.
+
+To write the two names yourself:
+
+```ruby
+conf.enable_file_prefix_map source: "mruby", build: "mruby/build"
+```
+
+Any other directory is mapped one at a time, which is how the path of a
+toolchain or of a gem outside the tree is written:
+
+```ruby
+conf.file_prefix_map "/opt/toolchain", "toolchain"
+```
+
+To compile with the paths as they are:
+
+```ruby
+conf.disable_file_prefix_map
+```
+
+which is what a build to be debugged from outside the mruby tree wants: a
+debugger looks for the sources of a mapped build under the names they were
+mapped to, and finds them only from the directory those names are relative to.
+Either tell the debugger where they are (`set substitute-path . /path/to/mruby`
+in gdb) or take the map off this way.
+
+Note that
+
+- A compiler that does not take `-ffile-prefix-map`, which `cl` and every
+  compiler older than GCC 8 or clang 10 are, is compiled with as it always was.
+  The build asks the compiler before it maps anything, and leaves the paths
+  alone where the answer is no.
+- The flags a build exports in `libmruby.flags.mak` carry no map: the
+  directories a map names are the ones of the machine that built the package,
+  and nothing compiled against the package from there sits under them.
+- The file names `mrbc` records under `enable_debug`, which the backtrace of an
+  mruby script reports, are written by `mrbc` and not by the compiler, so no
+  map reaches them.
+
 ## Cross-Compilation
 
 mruby can also be cross-compiled from one platform to another. To achieve
