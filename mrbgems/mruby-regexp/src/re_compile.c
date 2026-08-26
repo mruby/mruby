@@ -626,7 +626,7 @@ static int
 parse_escape(re_compiler *c)
 {
   int ch = next_char(c);
-  if (ch < 0) compile_error(c, "trailing backslash");
+  if (ch < 0) compile_error(c, "too short escape sequence");
   switch (ch) {
   case 'c':
     return parse_control_escape(c);
