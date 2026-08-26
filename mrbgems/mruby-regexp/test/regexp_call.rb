@@ -248,9 +248,39 @@ assert("Regexp - the references a call refuses") do
   end
 end
 
+assert("Regexp - a recursion no input could end is refused") do
+  # the check is CRuby's, message and line: a call cycle reachable with
+  # nothing consumed, or a group no invocation completes without re-entering
+  msg = "never ending recursion"
+  assert_raise_with_message(RegexpError, "#{msg}: /(?<a>\\g<a>)/") do
+    Regexp.new("(?<a>\\g<a>)")
+  end
+  ["(?<a>x\\g<a>)",             # must recurse to match at all
+   "(?<a>x|\\g<a>)",            # reachable with nothing consumed
+   "(?<a>\\g<a>?x)",            # optional, but still at the head
+   "(?<a>x\\g<a>{1,2})",        # a lower bound of one is mandatory
+   "(?:(?<a>x\\g<a>))?",        # optional outside the group saves nothing
+   "(?<a>(?:\\g<a>)*)",         # the loop re-enters at the position it left
+   "(?<a>(?<b>\\g<a>)?)",       # through a nested group, still at the head
+   "(?<a>(?=\\g<a>)x)",         # a lookaround's sub-pattern runs at its head
+   "(?<a>(?!\\g<a>)x)",
+   "(?<a>x(?=\\g<a>))",         # and a positive one is not an alternative
+   "(?<a>x(?!\\g<a>))",
+   "(?<a>(?>\\g<a>))",
+   "(?<e>z)(?<a>\\g<e>\\g<a>)", # every path recurses, \g<e> escaping nothing
+   "(?<b>x?)(?<a>\\k<b>\\g<a>)", # a backreference's minimum is zero
+   "(?<a>^\\g<a>)",
+   "(?<a>\\g<b>)(?<b>\\g<a>)",  # mutual recursion counts the same
+   "\\g<0>",
+   "x(?=\\g<0>)",
+   "(?<a>x)\\g<0>"].each do |src|
+    assert_raise(RegexpError, src) { Regexp.new(src) }
+  end
+end
+
 assert("Regexp - the recursions an input can end compile") do
   need_backtracking_stack
-  # a call every path can decline ends when the input does
+  # a call every path can decline escapes both refusals
   assert_equal "xxx", "xxx".match(Regexp.new("(?<a>x\\g<a>?)"))[0]
   assert_equal "xxx", "xxx".match(Regexp.new("(?<a>x\\g<a>*)"))[0]
   assert_equal "x", "xx".match(Regexp.new("(?<a>x\\g<a>??)"))[0]
@@ -260,6 +290,13 @@ assert("Regexp - the recursions an input can end compile") do
   assert_equal "xx", "xx".match(Regexp.new("x\\g<0>*"))[0]
   assert_equal "xy", "xy".match(Regexp.new("(?<a>x(?:(?=\\g<a>)|y))"))[0]
   assert_equal "xx", "xx".match(Regexp.new("(?<a>(?>x)\\g<a>?)"))[0]
+
+  # a call on the way to a recursion prices in its body's minimum, so a call
+  # to a group that always consumes keeps what follows off the head:
+  # \g<0> here stands behind a's `b` and compiles, where a call to an
+  # empty-bodied group leaves the head reachable and is refused above
+  assert_nil Regexp.new("(?<a>b\\g<a>??)$\\g<0>?").match("bbaa")
+  assert_equal "b", "b".match(Regexp.new("(?<a>b\\g<a>??)\\g<0>?"))[0]
 end
 
 assert("Regexp - recursion depth is bounded by the stack limit") do

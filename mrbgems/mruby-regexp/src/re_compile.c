@@ -3229,7 +3229,195 @@ compute_first_set(const re_inst *code, uint32_t code_len,
    The parse leaves a pattern with \g in it unfinished in three ways: an
    RE_CALL may still carry a parked reference, no RE_CALL has anywhere to
    jump, and a lookbehind holding one is unmeasured. resolve_calls() finishes
-   all three. */
+   all three, and refuses the recursions no input could end. */
+
+/* One reachability walk over the finished code, from `start` down every
+   branch. The answer is the set of groups the walk reached a RE_CALL to, as
+   bits; with `reached_ret` given, whether it reached the RE_RETURN closing
+   `ret_group`'s body is answered there too. Three questions share the walk:
+
+   - consuming_stops on: which calls stand where no input need be consumed
+     first. What a call itself consumes is its body's minimum, so the walk
+     steps over one only when `pass_mask` holds the group -- the groups whose
+     body can complete consuming nothing, computed by fixpoint below. CRuby
+     counts the same way: `(?<g1>b\g<g1>??)$\g<0>?` compiles there because
+     the call to g1 consumes a `b` and \g<0> is never at the head, while
+     `(?<e>)(?<a>\g<e>\g<a>)` is refused because e's body is empty.
+   - consuming_stops off, look_forks on: which calls can run at all inside an
+     invocation, wherever they stand -- inside either branch of a fork, and
+     inside a lookaround of either polarity, whose sub-pattern runs whatever
+     its answer is used for.
+   - consuming_stops off, look_forks off, wall_mask set: whether an
+     invocation can complete without recursing. A lookaround is walked
+     through its sub-pattern alone, since the text after it is reached only
+     once the sub-pattern has run; a call into the recursion under test is a
+     wall, and reaching the body's own RE_RETURN is the escape.
+
+   A RE_RETURN ends every path: the walk has no call stack, and what follows
+   one belongs to whoever called. seen[] is marked with `mark` so one buffer
+   serves every walk; `stack` is the worklist, and code_len entries bound it
+   because a fork is pushed at most once. */
+static uint32_t
+call_walk(const re_inst *code, uint32_t code_len, uint32_t start,
+          uint32_t *seen, uint32_t mark, uint32_t *stack,
+          mrb_bool consuming_stops, mrb_bool look_forks, uint32_t wall_mask,
+          uint32_t pass_mask, uint16_t ret_group, mrb_bool *reached_ret)
+{
+  uint32_t mask = 0;
+  uint32_t top = 0;
+
+  if (reached_ret) *reached_ret = FALSE;
+  stack[top++] = start;
+  while (top > 0) {
+    uint32_t pc = stack[--top];
+    for (;;) {
+      if (pc >= code_len || seen[pc] == mark) break;
+      seen[pc] = mark;
+      re_inst in = code[pc];
+      switch (in.op) {
+      case RE_CHAR: case RE_CLASS: case RE_NCLASS: case RE_ANY: case RE_ANY_NL:
+        if (consuming_stops) break;
+        pc++;
+        continue;
+      case RE_SAVE:
+      case RE_BOL: case RE_EOL: case RE_BOT: case RE_EOT: case RE_EOTNL:
+      case RE_WBOUND: case RE_NWBOUND:
+      case RE_ATOMIC: case RE_ATOMIC_END:
+      case RE_BACKREF: case RE_LOOK_END:
+        pc++;
+        continue;
+      case RE_JMP:
+        pc = in.offset;
+        continue;
+      case RE_SPLIT: case RE_SPLITNG:
+        stack[top++] = in.offset;
+        pc++;
+        continue;
+      case RE_LOOKAHEAD: case RE_NEG_LOOKAHEAD:
+        if (look_forks) stack[top++] = in.offset;
+        pc++;
+        continue;
+      case RE_LOOKBEHIND: case RE_NEG_LOOKBEHIND:
+        if (look_forks) stack[top++] = in.offset;
+        pc += 2;  /* over the RE_LB_WIDTH carrier, into the sub-pattern */
+        continue;
+      case RE_CALL:
+        if ((wall_mask >> in.a) & 1) break;
+        mask |= (uint32_t)1 << in.a;
+        /* What stands after the call is reached only through what its body
+           consumes; a body that cannot complete at zero width ends this
+           path where a literal would. */
+        if (!((pass_mask >> in.a) & 1)) break;
+        pc++;
+        continue;
+      case RE_RETURN:
+        if (reached_ret && in.a == ret_group) *reached_ret = TRUE;
+        break;
+      default:  /* RE_MATCH */
+        break;
+      }
+      break;
+    }
+  }
+  return mask;
+}
+
+/* Close a 32-node call graph under reachability, in place. */
+static void
+call_closure(uint32_t *adj)
+{
+  for (;;) {
+    mrb_bool changed = FALSE;
+    for (int k = 0; k < RE_MAX_CAPTURES; k++) {
+      uint32_t reach = adj[k];
+      for (int m = 0; m < RE_MAX_CAPTURES; m++) {
+        if ((adj[k] >> m) & 1) reach |= adj[m];
+      }
+      if (reach != adj[k]) { adj[k] = reach; changed = TRUE; }
+    }
+    if (!changed) return;
+  }
+}
+
+/* Refuse the recursions no input could end, with CRuby's message and, as far
+   as the probes reach, CRuby's line. Two shapes are refused:
+
+   - a call cycle a walk reaches with nothing consumed on the way, wherever
+     the calls stand: `(?<a>\g<a>?x)` and `(?<a>x|\g<a>)` alike, since an
+     engine that takes them re-enters the body at the position it left.
+   - a group no invocation can complete without re-entering its own
+     recursion: `(?<a>x\g<a>)` must recurse to match at all, and so must
+     `x(?=\g<0>)`, whose lookahead is not an alternative but a requirement.
+
+   What escapes both is a call every path can decline: `(?<a>x\g<a>?)` and
+   the balanced-parentheses pattern this feature exists for. */
+static void
+never_ending_check(re_compiler *c, uint32_t called, const uint32_t *entry)
+{
+  uint32_t code_len = c->code_len;
+  const re_inst *code = c->pat->code;
+  uint32_t eps[RE_MAX_CAPTURES];   /* calls reached consuming nothing */
+  uint32_t any[RE_MAX_CAPTURES];   /* calls reached at all */
+  uint32_t mark = 0;
+  mrb_bool bad = FALSE;
+
+  /* One block: the seen marks and the walk's worklist. Freed before the
+     raise below, this frame being its only owner. */
+  uint32_t *buf = (uint32_t*)mrb_calloc(c->mrb, 2 * (size_t)code_len + 2,
+                                        sizeof(uint32_t));
+  uint32_t *seen = buf;
+  uint32_t *stack = buf + code_len + 1;
+
+  /* Which called bodies can complete consuming nothing, to fixpoint: a body
+     completing through a call needs that call's body to have completed the
+     same way, so the set starts empty and grows until it holds. This is what
+     prices a call in the head walk below at its body's minimum rather than
+     at zero. */
+  uint32_t eps_done = 0;
+  for (;;) {
+    uint32_t before = eps_done;
+    for (int k = 0; k < RE_MAX_CAPTURES; k++) {
+      if (!((called >> k) & 1) || ((eps_done >> k) & 1)) continue;
+      mrb_bool done;
+      call_walk(code, code_len, entry[k], seen, ++mark, stack,
+                TRUE, TRUE, 0, eps_done, (uint16_t)k, &done);
+      if (done) eps_done |= (uint32_t)1 << k;
+    }
+    if (eps_done == before) break;
+  }
+
+  memset(eps, 0, sizeof(eps));
+  memset(any, 0, sizeof(any));
+  for (int k = 0; k < RE_MAX_CAPTURES; k++) {
+    if (!((called >> k) & 1)) continue;
+    eps[k] = call_walk(code, code_len, entry[k], seen, ++mark, stack,
+                       TRUE, TRUE, 0, eps_done, (uint16_t)k, NULL);
+    any[k] = call_walk(code, code_len, entry[k], seen, ++mark, stack,
+                       FALSE, TRUE, 0, ~(uint32_t)0, (uint16_t)k, NULL);
+  }
+  call_closure(eps);
+  call_closure(any);
+
+  for (int k = 0; !bad && k < RE_MAX_CAPTURES; k++) {
+    if (((called >> k) & 1) && ((eps[k] >> k) & 1)) bad = TRUE;
+  }
+  for (int k = 0; !bad && k < RE_MAX_CAPTURES; k++) {
+    if (!((called >> k) & 1)) continue;
+    /* The walls are this group and everything a call chain leads back from:
+       a path that reaches one has re-entered the recursion under test. */
+    uint32_t wall = (uint32_t)1 << k;
+    for (int m = 0; m < RE_MAX_CAPTURES; m++) {
+      if ((any[m] >> k) & 1) wall |= (uint32_t)1 << m;
+    }
+    mrb_bool escapes;
+    call_walk(code, code_len, entry[k], seen, ++mark, stack,
+              FALSE, FALSE, wall, ~(uint32_t)0, (uint16_t)k, &escapes);
+    if (!escapes) bad = TRUE;
+  }
+
+  mrb_free(c->mrb, buf);
+  if (bad) compile_error(c, "never ending recursion");
+}
 
 /* Measure the lookbehinds whose sub-pattern holds a call, which the parse
    marked and left; see the lookbehind arm in compile_atom(). The walk is the
@@ -3257,8 +3445,8 @@ measure_deferred_lookbehinds(re_compiler *c)
 
 /* Finish what the \g arm left: resolve the parked references, give every
    called group's body its one entry and one exit, point every call at the
-   body it names, and measure the lookbehinds that waited. Runs once, after
-   the last instruction is emitted;
+   body it names, refuse the recursions no input could end, and measure the
+   lookbehinds that waited. Runs once, after the last instruction is emitted;
    nothing moves code after it, which is what lets RE_CALL carry a code index
    from here on (see op_holds_code_index()). */
 static void
@@ -3366,6 +3554,7 @@ resolve_calls(re_compiler *c)
     c->pat->code[pc].offset = (uint16_t)entry[c->pat->code[pc].a];
   }
 
+  never_ending_check(c, called, entry);
   measure_deferred_lookbehinds(c);
 }
 

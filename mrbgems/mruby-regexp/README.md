@@ -40,9 +40,11 @@ simulation) with backtracking fallback.
   again where the call stands, recursively when the call stands inside it,
   so `(?<p>\((?:[^()]|\g<p>)*\))` matches balanced parentheses. `\g<n>` is
   absolute, `\g<-n>` counts back over the groups already opened, `\g<+n>`
-  counts forward, and `\g<0>` is the whole pattern. The recursion depth is
-  bounded at match time by `MRB_REGEXP_STACK_LIMIT`, the call frames living
-  on the backtracking stack it counts
+  counts forward, and `\g<0>` is the whole pattern. A recursion no input
+  could end (`(?<a>\g<a>)`, `(?<a>x\g<a>)`) raises `RegexpError` at compile
+  time, as in CRuby; the depth of one that can end is bounded at match time
+  by `MRB_REGEXP_STACK_LIMIT`, the call frames living on the backtracking
+  stack it counts
 - `(?=...)` positive lookahead
 - `(?!...)` negative lookahead
 - `(?<=...)` positive lookbehind (fixed-length only)
