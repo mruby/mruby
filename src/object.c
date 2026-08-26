@@ -10,6 +10,7 @@
 #include <mruby/string.h>
 #include <mruby/class.h>
 #include <mruby/internal.h>
+#include <string.h>
 
 /*
  * Checks if two mruby values, `v1` and `v2`, are identical.
@@ -45,7 +46,12 @@ mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
 
 #ifndef MRB_NO_FLOAT
   case MRB_TT_FLOAT:
-    return (mrb_float(v1) == mrb_float(v2));
+    /* What a Float holds is compared bit for bit rather than as a number, so
+       that a NaN, which is equal to no number at all, is still the same object
+       as itself and no other. The two forms part only over a NaN and over
+       -0.0, which holds what 0.0 does not; a boxed build, where this reads the
+       representation, answers both the same way. */
+    return memcmp(&v1.value.f, &v2.value.f, sizeof(mrb_float)) == 0;
 #endif
 
   default:

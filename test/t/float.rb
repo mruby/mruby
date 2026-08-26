@@ -136,9 +136,9 @@ assert('a NaN is equal to nothing at all, itself included') do
   # expression answered true or false depending on how the build stores a
   # Float.
   #
-  # `equal?` is left out below for that reason: it is the one caller of the
-  # shortcut that asks for exactly what the shortcut reads, and what it reads
-  # still differs between those builds.
+  # `equal?` is left out below because it is not equality: it is the one
+  # caller of the shortcut that asks for exactly what the shortcut reads.
+  # What it answers is pinned below, in every boxing.
   nan = Float::NAN
 
   assert_false(nan == nan)
@@ -156,6 +156,33 @@ assert('a NaN is equal to nothing at all, itself included') do
   assert_true(0.0 == -0.0)
   assert_true(Float::INFINITY == Float::INFINITY)
   assert_equal(:hit, case 1.0 when 1.0 then :hit else :miss end)
+end
+
+assert('a Float is the object that holds what it holds') do
+  # `equal?` asks what a value holds rather than what it is equal to, and what
+  # a Float holds is compared bit for bit. A -0.0 holds what a 0.0 does not, so
+  # the two are two objects; the boxed builds answered that all along, reading
+  # the representation, and `MRB_NO_BOXING` used to read the number instead and
+  # answer the other way. Equal is what they still are.
+  #
+  # The two below are built at run time from a variable so that nothing folds
+  # them into a single literal.
+  z = [0.0][0]
+  pzero = z + 0.0
+  nzero = z * -1.0
+
+  assert_true(pzero.equal?(pzero))
+  assert_false(pzero.equal?(nzero))
+  assert_true(pzero == nzero)
+
+  # A NaN holds what it holds as well, so it is the same object as itself
+  # however far it is passed around, which reading the number could not say:
+  # a NaN is equal to nothing at all, its own operand included.
+  nan = z / z
+  same = nan
+  assert_true(nan.equal?(nan))
+  assert_true(nan.equal?(same))
+  assert_false(nan == nan)
 end
 
 assert('Float comparison with an Integer it cannot hold') do
