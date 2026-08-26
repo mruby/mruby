@@ -121,10 +121,22 @@ class String
     # to search with.  What a compiled pattern would be needed for is the
     # Regexp the `$~` it publishes names, and `MatchData#regexp` quotes that
     # one where CRuby quotes it: on the first call that asks for it.
+    # A Hash replacement is not text to substitute but a table to look the
+    # match up in, which is the block form with the lookup where the call
+    # would be: CRuby runs the two down the same tail, so a `\1` in what comes
+    # back stands for itself rather than naming a group, and a key the Hash
+    # does not hold answers nil, which `to_s` spells as the empty string.  The
+    # Hash has to be one, as `__check_pattern` demands a real String: mruby
+    # converts nothing with `to_hash` anywhere.
+    hash = nil
     if argc == 2
-      replacement = args[1].to_s
-      return Regexp.__sub_lit(pattern, self, replacement) if literal
-      return Regexp.__sub_str(pattern, self, replacement)
+      if Hash === args[1]
+        hash = args[1]
+      else
+        replacement = args[1].to_s
+        return Regexp.__sub_lit(pattern, self, replacement) if literal
+        return Regexp.__sub_str(pattern, self, replacement)
+      end
     end
     # CRuby searches for a literal byte by byte and never reads the subject as
     # UTF-8 on the way, so quoting one into a Regexp here must not put the
@@ -133,7 +145,7 @@ class String
     pattern = Regexp.new(Regexp.escape(pattern)) if literal
     md = Regexp.__search(pattern, self, 0, literal)
     return self.dup unless md
-    md.pre_match + block.call(md[0]).to_s + md.post_match
+    md.pre_match + (hash ? hash[md[0]] : block.call(md[0])).to_s + md.post_match
   end
 
   def sub!(*args, &block)
@@ -154,6 +166,10 @@ class String
     # the return value, and a String pattern is a literal on both paths.
     pattern = Regexp.__check_pattern(args[0])
     literal = String === pattern
+    # A table to look the match up in rather than text to substitute, as in
+    # `sub`; the tail below is where the lookup happens, so both of the paths
+    # a replacement takes have to let it past.
+    hash = args[1] if argc == 2 && Hash === args[1]
     # Quoting the literal below raises nothing, so asking here is the order the
     # original had: after the argument checks, before any search.
     raise FrozenError, "can't modify frozen String" if frozen?
@@ -162,7 +178,7 @@ class String
     # unchanged.  The `bang` argument is that question asked of the one search
     # `__sub_lit` already makes, so the literal path does not walk the subject
     # twice to answer it; a failed search clears $~ there as `__search` does.
-    if literal && argc == 2
+    if literal && argc == 2 && !hash
       str = Regexp.__sub_lit(pattern, self, args[1].to_s, true)
       return nil unless str
       return self.replace(str)
@@ -171,7 +187,7 @@ class String
     # A full search and not `match?`, so a failed match clears $~.
     md = Regexp.__search(pattern, self, 0, literal)
     return nil unless md
-    if argc == 2
+    if argc == 2 && !hash
       # `sub` matches again and publishes its own $~ over this one, leaving
       # the caller the match `sub` would have left.  The resolved pattern
       # goes down so that it is not compiled a second time; a literal with a
@@ -187,9 +203,11 @@ class String
     # same receiver is "heXlo".  It refuses a block that changed the length
     # first, as `gsub` does, so the offsets of the match still name the bytes
     # they named.  $~ stays what the search above published, or whatever the
-    # block put there.
+    # block put there.  A Hash replacement is here rather than above for the
+    # same reason: its default proc is free to reach the receiver, and CRuby
+    # answers a lookup that did with the receiver it left.
     len = self.bytesize
-    val = block.call(md[0]).to_s
+    val = (hash ? hash[md[0]] : block.call(md[0])).to_s
     raise RuntimeError, "string modified" if self.bytesize != len
     self.replace(self.byteslice(0, md.__byte_begin(0)) + val + self.byteslice(md.__byte_end(0)..-1))
   end
@@ -212,12 +230,24 @@ class String
     literal = String === pattern
     # A replacement argument wins over the block, as in CRuby.  A literal is
     # searched for as bytes and compiles nothing, as in `sub` above.
+    hash = nil
     if argc == 2
-      replacement = args[1].to_s
-      return Regexp.__gsub_lit(pattern, self, replacement) if literal
-      return Regexp.__gsub_str(pattern, self, replacement)
+      if Hash === args[1]
+        hash = args[1]
+      else
+        replacement = args[1].to_s
+        return Regexp.__gsub_lit(pattern, self, replacement) if literal
+        return Regexp.__gsub_str(pattern, self, replacement)
+      end
     end
     pattern = Regexp.new(Regexp.escape(pattern)) if literal
+    # A Hash replacement is a table the match is looked up in, as in `sub`,
+    # and CRuby's `str_gsub` walks it with the very loop it walks a block
+    # with: what the receiver looks like to each turn, the refusal of a
+    # lookup that changed its length and the `$~` left behind are the ones
+    # `__gsub_block` already answers for, so the lookup goes down as the
+    # block it stands in for.
+    return Regexp.__gsub_block(pattern, self, literal) { |m| hash[m] } if hash
     # The walk and the block call are both in `__gsub_block`.  What the loop
     # was written here for, the block reading the globals of the match it was
     # handed, a C loop publishes just as well, and it pays neither the frame
@@ -242,8 +272,10 @@ class String
     # last match of the `gsub` below, which is the one CRuby leaves behind.
     # A literal goes down as the String it was, for the reason `sub!` gives,
     # and a literal with a replacement asks the question of `__gsub_lit`
-    # itself rather than searching once to ask and again to substitute.
-    if literal && argc == 2
+    # itself rather than searching once to ask and again to substitute.  A
+    # Hash is no replacement to hand it: it goes to the `gsub` below, which
+    # looks the match up in it.
+    if literal && argc == 2 && !(Hash === args[1])
       str = Regexp.__gsub_lit(pattern, self, args[1].to_s, true)
       return nil unless str
       return self.replace(str)

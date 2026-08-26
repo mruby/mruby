@@ -324,6 +324,39 @@ assert("String#sub/#gsub - replacement string takes precedence over the block") 
   assert_equal "aYcY", "abcb".gsub(/b/) { "Y" }
 end
 
+assert("String#sub/#gsub with a Hash replacement") do
+  # A Hash is a table the match is looked up in, not text to substitute.
+  assert_equal "aB", "ab".sub(/b/, "b" => "B")
+  assert_equal "aBcB", "abcb".gsub(/b/, "b" => "B")
+  # A String pattern is looked up the same way.
+  assert_equal "aBc", "abc".sub("b", "b" => "B")
+  assert_equal "aBcB", "abcb".gsub("b", "b" => "B")
+  # A key the Hash does not hold answers nil, which `to_s` spells as the empty
+  # string, and a value that is no String is asked for its `to_s` too.
+  assert_equal "B", "abc".gsub(/[abc]/, "b" => "B")
+  assert_equal "a1c", "abc".gsub(/b/, "b" => 1)
+  # A default is the answer where there is no key, as for any other lookup.
+  h = Hash.new("?")
+  h["b"] = "B"
+  assert_equal "?B?", "abc".gsub(/[abc]/, h)
+  # `\1` in the value stands for itself: only a String replacement names
+  # groups.
+  assert_equal "a<\\1>c", "abc".gsub(/(b)/, "b" => '<\1>')
+  # A Hash wins over the block, as a String replacement does.
+  assert_equal "aB", "ab".sub(/b/, {"b" => "B"}) { "Z" }
+  assert_equal "aB", "ab".gsub(/b/, {"b" => "B"}) { "Z" }
+  # The whole match is the key, groups or no groups.
+  assert_equal "aX", "abc".gsub(/(b)(c)/, "bc" => "X")
+  # A zero-width match looks the empty string up.
+  assert_equal "-a-b-", "ab".gsub(/x*/, "" => "-")
+  # Nothing matched, nothing looked up.
+  assert_equal "abc", "abc".sub(/z/, "z" => "Z")
+  assert_equal "abc", "abc".gsub(/z/, "z" => "Z")
+  # The match left behind is the last one, as with any other replacement.
+  "abcb".gsub(/b/, "b" => "B")
+  assert_equal 3, $~.begin(0)
+end
+
 assert("String#sub - wrong number of arguments") do
   # Without a block CRuby demands exactly 2 arguments, and says so.
   assert_raise_with_message(ArgumentError, "wrong number of arguments (given 0, expected 2)") do
@@ -390,6 +423,62 @@ assert("String#sub! / #gsub! with a Regexp pattern") do
   # A replacement argument wins over the block, as in `sub`/`gsub`.
   assert_equal "aYc", "abc".sub!(/b/, "Y") { "X" }
   assert_equal "aYcY", "abcb".gsub!(/b/, "Y") { "X" }
+end
+
+assert("String#sub! / #gsub! with a Hash replacement") do
+  s = "ab"
+  assert_same s, s.sub!(/b/, "b" => "B")
+  assert_equal "aB", s
+  s = "abab"
+  assert_same s, s.gsub!(/b/, "b" => "B")
+  assert_equal "aBaB", s
+  # A String pattern carries the Hash down the same way: the literal
+  # replacement path is no place for a table.
+  s = "abc"
+  assert_equal "aBc", s.sub!("b", "b" => "B")
+  s = "abcb"
+  assert_equal "aBcB", s.gsub!("b", "b" => "B")
+  # A key the Hash does not hold is still a match, and still a substitution.
+  s = "abc"
+  assert_same s, s.sub!("b", "x" => "B")
+  assert_equal "ac", s
+  # Nothing matched, nothing replaced.
+  s = "abc"
+  assert_nil s.sub!(/z/, "z" => "Z")
+  assert_nil s.gsub!(/z/, "z" => "Z")
+  assert_nil s.sub!("z", "z" => "Z")
+  assert_nil s.gsub!("z", "z" => "Z")
+  assert_equal "abc", s
+  # A match is a match even where the lookup leaves the string as it was.
+  s = "aaa"
+  assert_same s, s.sub!(/a/, "a" => "a")
+  assert_same s, s.gsub!(/a/, "a" => "a")
+  assert_equal "aaa", s
+  # A frozen receiver is refused before anything is looked up.
+  message = "can't modify frozen String"
+  assert_raise_with_message(FrozenError, message) { "abc".freeze.sub!(/a/, "a" => "X") }
+  assert_raise_with_message(FrozenError, message) { "abc".freeze.gsub!(/a/, "a" => "X") }
+end
+
+assert("String#sub / #sub! / #gsub! with a Hash default proc that reaches the receiver") do
+  # A Hash replacement goes down the tail the block form goes down, so a
+  # default proc that reaches the receiver is answered the way a block is:
+  # `sub!` builds its result from the receiver as the lookup left it, where
+  # `sub` builds from the string it matched.
+  s = "hello"
+  h = Hash.new { |_h, _k| s.upcase!; "X" }
+  assert_equal "heXlo", s.sub(/l/, h)
+  assert_equal "HELLO", s
+  s = "hello"
+  assert_equal "HEXLO", s.sub!(/l/, h)
+  s = "hello"
+  assert_equal "HEXLO", s.gsub!(/l/, h)
+  # One that changed the length is refused, as a block that did is.
+  s = "hello"
+  grow = Hash.new { |_h, _k| s << "!"; "X" }
+  assert_raise_with_message(RuntimeError, "string modified") { s.sub!(/l/, grow) }
+  s = "hello"
+  assert_raise_with_message(RuntimeError, "string modified") { s.gsub(/l/, grow) }
 end
 
 assert("String#sub! / #gsub! return nil only when nothing matched") do
