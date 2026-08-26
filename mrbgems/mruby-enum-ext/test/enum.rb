@@ -272,3 +272,48 @@ assert('Array#minmax - the walk made in C') do
   3.times {|i| a << cls.new(i, a) }
   assert_equal 2, a.minmax.size
 end
+
+assert('Array#count - the walk made in C') do
+  # `Enumerable#count` reaches an element through a call to `each`, a block
+  # call and a `__svalue` send, then compares it with `==`. An Array reads its
+  # length off itself, and an argument is counted by a walk made in C where
+  # the pair is compared with `mrb_equal()`, as `Array#index` compares one.
+  a = [1, 2, 4, 2]
+  assert_equal 4, a.count
+  assert_equal 0, [].count
+  assert_equal 2, a.count(2)
+  assert_equal 0, a.count(3)
+  assert_equal 3, a.count {|x| x % 2 == 0}     # the block form, through super
+
+  # an argument decides even where a block came with it, as in CRuby, where
+  # `Enumerable#count` took the block
+  assert_equal 2, a.count(2) {|x| true}
+
+  # an element is taken for equal to itself before `==` is asked anything
+  never = Class.new { def ==(other); false; end }.new
+  assert_equal 1, [never].count(never)
+end
+
+assert('Array#count - a comparison that runs Ruby') do
+  # `==` can run Ruby, which can empty the array being walked. The C walk
+  # reads the length and the pointer afresh each time round.
+  cls = Class.new do
+    def initialize(a); @a = a; end
+    def ==(o); @a.clear; false; end
+  end
+  a = [1, 2]
+  a << cls.new(a)
+  assert_equal 0, a.count(:missing)
+  assert_equal 0, a.size
+end
+
+assert("Array#count - a comparison that answers with a fresh object") do
+  # What a call leaves behind in the GC arena is its return value, and a count
+  # walks every element rather than returning at the first true one, so an `==`
+  # answering with a fresh object each time would pile them up. The walk drops
+  # what a turn left before the next one adds to it, which is what keeps a
+  # fixed arena from filling with the length of the array.
+  cls = Class.new { def ==(o); "truthy"; end }
+  a = Array.new(300) { cls.new }
+  assert_equal 300, a.count(:x)
+end
