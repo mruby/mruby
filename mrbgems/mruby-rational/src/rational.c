@@ -912,7 +912,11 @@ mrb_rational_add(mrb_state *mrb, mrb_value x, mrb_value y)
 
 #if defined(MRB_USE_COMPLEX)
   case MRB_TT_COMPLEX:
+#ifdef MRB_COMPLEX_FLOAT_ONLY
     return mrb_complex_add(mrb, mrb_complex_new(mrb, rat_float(mrb, x), 0), y);
+#else
+    return mrb_complex_add(mrb, mrb_complex_new_value(mrb, x, mrb_fixnum_value(0)), y);
+#endif
 #endif
 
   default:
@@ -1008,7 +1012,11 @@ mrb_rational_sub(mrb_state *mrb, mrb_value x, mrb_value y)
 
 #if defined(MRB_USE_COMPLEX)
   case MRB_TT_COMPLEX:
+#ifdef MRB_COMPLEX_FLOAT_ONLY
     return mrb_complex_sub(mrb, mrb_complex_new(mrb, rat_float(mrb, x), 0), y);
+#else
+    return mrb_complex_sub(mrb, mrb_complex_new_value(mrb, x, mrb_fixnum_value(0)), y);
+#endif
 #endif
 
 #ifndef MRB_NO_FLOAT
@@ -1115,7 +1123,11 @@ mrb_rational_mul(mrb_state *mrb, mrb_value x, mrb_value y)
 
 #if defined(MRB_USE_COMPLEX)
   case MRB_TT_COMPLEX:
+#ifdef MRB_COMPLEX_FLOAT_ONLY
     return mrb_complex_mul(mrb, mrb_complex_new(mrb, rat_float(mrb, x), 0), y);
+#else
+    return mrb_complex_mul(mrb, mrb_complex_new_value(mrb, x, mrb_fixnum_value(0)), y);
+#endif
 #endif
 
   default:
@@ -1206,7 +1218,11 @@ mrb_rational_div(mrb_state *mrb, mrb_value x, mrb_value y)
 
 #ifdef MRB_USE_COMPLEX
   case MRB_TT_COMPLEX:
+#ifdef MRB_COMPLEX_FLOAT_ONLY
     return mrb_complex_div(mrb, mrb_complex_new(mrb, rat_float(mrb, x), 0), y);
+#else
+    return mrb_complex_div(mrb, mrb_complex_new_value(mrb, x, mrb_fixnum_value(0)), y);
+#endif
 #endif
 
 #ifndef MRB_NO_FLOAT

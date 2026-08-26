@@ -6,11 +6,23 @@ class Complex < Numeric
   # Returns a complex number in terms of its polar coordinates.
   # abs is the absolute value (magnitude) and arg is the argument (angle).
   #
-  #   Complex.polar(3, 0)            #=> (3+0i)
-  #   Complex.polar(3, Math::PI/2)   #=> (1.836909530733566e-16+3.0i)
-  #   Complex.polar(3, Math::PI)     #=> (-3.0+3.673819061467132e-16i)
+  #   Complex.polar(3, 0)            #=> (3+0.0i)
+  #   Complex.polar(3, Math::PI/2)   #=> (0.0+3i)
+  #   Complex.polar(3, Math::PI)     #=> (-3+0.0i)
   #
   def self.polar(abs, arg = 0)
+    # the four angles the sine and cosine answer exactly keep the magnitude
+    # exact, the way CRuby's f_complex_polar_real does
+    return Complex(abs, 0.0) if abs == 0 || arg == 0
+    if arg.is_a?(Float)
+      if arg == Math::PI
+        return Complex(-abs, 0.0)
+      elsif arg == Math::PI / 2
+        return Complex(0.0, abs)
+      elsif arg == Math::PI / 2 + Math::PI
+        return Complex(0.0, -abs)
+      end
+    end
     Complex(abs * Math.cos(arg), abs * Math.sin(arg))
   end
 
@@ -25,7 +37,18 @@ class Complex < Numeric
   #   Complex(1, 2).inspect   #=> "(1+2i)"
   #
   def inspect
-    "(#{to_s})"
+    s = imaginary.to_s
+    i = imaginary.inspect
+    if s[0] == '-'
+      sep = '-'
+      # the sign character sits at the front, or just inside a Rational's
+      # opening parenthesis; drop it rather than negate the part
+      i = i[0] == '-' ? i[1..-1] : i[0, 1] + i[2..-1]
+    else
+      sep = '+'
+    end
+    d = i[-1]
+    "(#{real.inspect}#{sep}#{i}#{'*' unless d >= '0' && d <= '9'}i)"
   end
 
   #
@@ -39,8 +62,20 @@ class Complex < Numeric
   #   Complex(1, -2).to_s  #=> "1-2i"
   #
   def to_s
+    # The sign comes off the rendered part and becomes the separator: the
+    # rendering carries the sign bit `<` cannot see on -0.0, and stripping
+    # it needs no negation, which an Integer part of INT_MIN has no room for
+    # without bigint. The `*` marks a part whose rendering does not end in a
+    # digit, such as Infinity or NaN.
     i = imaginary.to_s
-    "#{real}#{'+' unless i[0] == '-'}#{i}#{'*' unless imaginary.finite?}i"
+    if i[0] == '-'
+      sep = '-'
+      i = i[1..-1]
+    else
+      sep = '+'
+    end
+    d = i[-1]
+    "#{real}#{sep}#{i}#{'*' unless d >= '0' && d <= '9'}i"
   end
 
   #
@@ -76,9 +111,9 @@ class Complex < Numeric
   # or greater than numeric. This is the basis for the tests in the Comparable module.
   # Returns nil if the two values are incomparable.
   #
-  #   Complex(2, 3) <=> Complex(2, 3)  #=> 0
-  #   Complex(5) <=> 5                 #=> 0
-  #   Complex(2, 3) <=> 1              #=> 1
+  #   Complex(5) <=> 5     #=> 0
+  #   Complex(2) <=> 1     #=> 1
+  #   Complex(2, 3) <=> 1  #=> nil
   #
   def <=>(other)
     return nil unless Numeric === other
@@ -154,7 +189,7 @@ class Complex < Numeric
   #   Complex(11, 22).fdiv(3)  #=> (3.6666666666666665+7.333333333333333i)
   #
   def fdiv(numeric)
-    Complex(real / numeric, imaginary / numeric)
+    Complex(real.to_f, imaginary.to_f) / numeric
   end
 
   #
@@ -219,7 +254,7 @@ class Complex < Numeric
   #   Complex(1, 2).to_r    #=> RangeError
   #
   def to_r
-    raise RangeError.new "can't convert #{to_s} into Rational" unless imaginary.zero?
+    raise RangeError.new "can't convert #{to_s} into Rational" unless imaginary == 0
     Rational(real, 1)
   end
 

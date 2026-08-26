@@ -265,7 +265,11 @@ int_div(mrb_state *mrb, mrb_value x)
 #endif
 #ifdef MRB_USE_COMPLEX
   case MRB_TT_COMPLEX:
+#ifdef MRB_COMPLEX_FLOAT_ONLY
     x = mrb_complex_new(mrb, mrb_as_float(mrb, x), 0);
+#else
+    x = mrb_complex_new_value(mrb, x, mrb_fixnum_value(0));
+#endif
     return mrb_complex_div(mrb, x, y);
 #endif
 #ifndef MRB_NO_FLOAT
@@ -1989,7 +1993,11 @@ mrb_int_sub(mrb_state *mrb, mrb_value x, mrb_value y)
 #endif
 #ifdef MRB_USE_COMPLEX
   case MRB_TT_COMPLEX:
+#ifdef MRB_COMPLEX_FLOAT_ONLY
     return mrb_complex_sub(mrb, mrb_complex_new(mrb, (mrb_float)a, 0), y);
+#else
+    return mrb_complex_sub(mrb, mrb_complex_new_value(mrb, mrb_int_value(mrb, a), mrb_fixnum_value(0)), y);
+#endif
 #endif
   default:
 #ifdef MRB_NO_FLOAT

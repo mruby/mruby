@@ -29,7 +29,7 @@ c3 = Complex.polar(5, Math::PI/2) # => (0.0+5.0i) (approximately)
 puts c1 + c2  # => (4+6i)
 puts c1 - c2  # => (-2-2i)
 puts c1 * c2  # => (-5+10i)
-puts c1 / c2  # => (0.44+0.08i)
+puts c1 / c2  # => ((11/25)+(2/25)*i) with mruby-rational, (0.44+0.08i) without
 
 # Accessing parts
 puts c1.real      # => 1
@@ -49,6 +49,23 @@ puts 2.3.to_c     # => (2.3+0i)
 puts 5i           # => (0+5i)
 puts 2.3i         # => (0+2.3i)
 ```
+
+## Exact parts
+
+A `Complex` answers with the parts it was given: `Complex(1, 2).real` is the
+Integer `1`, a Rational or Bigint part stays what it is, and only a Float
+part is a Float. Arithmetic follows the parts, so `Complex(1, 2) ** 2` is
+exactly `(-3+4i)`, and division without a Float anywhere is exact where the
+build has mruby-rational: `Complex(1, 2) / 2` is `((1/2)+1i)`. With a Float
+in the operands, arithmetic is the usual floating-point kind.
+
+### `MRB_COMPLEX_FLOAT_ONLY`
+
+- When defined, every part is coerced through `Float` on the way in and the
+  two parts are stored as two `mrb_float`, which is this gem's historical
+  representation.
+- For builds that want the smaller arithmetic paths and have no use for
+  exact parts.
 
 ## Note
 
