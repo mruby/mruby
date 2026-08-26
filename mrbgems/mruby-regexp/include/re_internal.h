@@ -68,6 +68,28 @@ enum re_opcode {
                         the text after the lookaround, which is where the
                         opener's `offset` points, so the opener finds its end
                         at offset - 1. */
+  RE_CALL,           /* run the body of group `a` again (\g<name>): offset =
+                        where the body starts. The executor pushes a frame
+                        holding where to go on when the body completes (pc + 1)
+                        and where the input stood, clears the group's end slot
+                        so the group reads as unmatched while the invocation
+                        is open, and jumps. The frame lives on the choice
+                        point stack, so backtracking past the call unwinds it
+                        with everything else and MRB_REGEXP_STACK_LIMIT is
+                        what bounds the call depth. Every entry into a called
+                        group's body is one of these, the inline occurrence
+                        included: resolve_calls() reroutes it through a
+                        trampoline appended after the pattern, so the body has
+                        one entry and one exit however it is reached. Until
+                        that pass runs, `offset` is not a code index but the
+                        parser's own bookkeeping, which is why this opcode is
+                        not in op_holds_code_index(). */
+  RE_RETURN          /* end of a called group's body: a = the group. Finds
+                        the topmost frame no return has answered yet, writes
+                        the group's capture pair from it -- the invocation
+                        that completes last is the one the pair names, as in
+                        CRuby -- leaves a marker in the frame's place and
+                        goes on where the frame says. */
 };
 
 /* Bytecode instruction (4 bytes each for alignment) */

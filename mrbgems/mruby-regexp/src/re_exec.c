@@ -754,10 +754,25 @@ enum re_cp_kind {
                    popping; its end drops it and everything above it, which is
                    how an atomic group and a positive lookaround cut (see
                    RE_ATOMIC_END and RE_LOOK_END). */
-  RE_CP_NEG     /* the barrier of a negative lookaround, which is both: its
+  RE_CP_NEG,    /* the barrier of a negative lookaround, which is both: its
                    sub-pattern running out of alternatives is the assertion
                    holding, so reaching it resumes the text after the
                    lookaround, at the sp and pc it holds. */
+  RE_CP_CALL,   /* not a branch: a call frame, pushed where RE_CALL entered a
+                   group's body. `pc` is where the body's RE_RETURN goes on
+                   and `sp` is where the input stood, which is where the
+                   invocation's capture opens; `group` is the group, for the
+                   assert alone. Living on this stack is what makes a call
+                   backtrack-safe with no bookkeeping: a failure that goes
+                   back past the call pops the frame with everything above
+                   it, and MRB_REGEXP_STACK_LIMIT bounds the call depth by
+                   bounding the frames. */
+  RE_CP_RET     /* not a branch either: the mark RE_RETURN leaves in place of
+                   popping the frame it answered, which backtracking may
+                   still need. The next RE_RETURN's downward scan counts
+                   these against the frames it passes, so each return pairs
+                   with the innermost frame no return has answered yet, as
+                   Onigmo's STACK_RETURN counts its STK_RETURN marks. */
 };
 
 /* A choice point: an alternative the search has not tried yet, as where the
@@ -1313,6 +1328,68 @@ bt_match(bt_state *m, const char *sp, uint32_t pc)
       }
       break;
 
+    case RE_CALL:
+      {
+        /* The group's body is entered: a frame holds where its RE_RETURN
+           goes on and where the input stands, and the group's end slot is
+           cleared so the group reads as unmatched while the invocation is
+           open -- the same invalidation entering a group inline makes at
+           RE_SAVE, and what makes `(?<a>x|\k<a>y)\g<a>` read \k<a> as
+           unmatched inside the second invocation rather than as the first
+           invocation's text, which is CRuby's answer. The clear is logged,
+           so backtracking out of the call puts back what an earlier
+           invocation captured. */
+        int slot = inst.a * 2 + 1;
+        if (slot < ncap && (r = bt_log(m, &captures[slot], -1)) != BT_OK) return r;
+        if ((r = bt_push(m, sp, pc + 1, RE_CP_CALL, inst.a)) != BT_OK) return r;
+        pc = inst.offset;
+      }
+      break;
+
+    case RE_RETURN:
+      {
+        /* The invocation completed: find its frame -- the innermost one no
+           return has answered yet, the returns already made counting
+           against the frames they answered -- write the group's capture
+           pair from it, leave the mark, and go on where the frame says.
+           The pair is written whole here rather than half at entry: the
+           invocation that completes last is the one the capture names, as
+           in CRuby, where `(?<a>x)\g<a>` leaves the call's text and the
+           recursion this feature exists for leaves the outermost span. */
+        uint32_t i = m->cp_top;
+        uint32_t level = 0;
+        uint32_t idx = 0;
+        mrb_bool found = FALSE;
+        while (i > 0) {
+          i--;
+          if (m->cp[i].kind == RE_CP_RET) level++;
+          else if (m->cp[i].kind == RE_CP_CALL) {
+            if (level == 0) { idx = i; found = TRUE; break; }
+            level--;
+          }
+        }
+        if (!found) goto fail;  /* a compiled pattern always has the frame */
+        mrb_assert(m->cp[idx].group == inst.a);
+        /* Group 0 is the whole match, which may not close inside a
+           character; the same rule RE_SAVE applies to slot 1. */
+        if (inst.a == 0 && !binary && sp < str_end &&
+            mrb_re_char_interior_p(str, sp, str_end)) {
+          goto fail;
+        }
+        {
+          int slot = inst.a * 2;
+          if (slot + 1 >= ncap) goto fail;
+          if ((r = bt_log(m, &captures[slot], (int)(m->cp[idx].sp - str))) != BT_OK) return r;
+          if ((r = bt_log(m, &captures[slot + 1], (int)(sp - str))) != BT_OK) return r;
+        }
+        {
+          uint32_t ret = m->cp[idx].pc;
+          if ((r = bt_push(m, sp, 0, RE_CP_RET, inst.a)) != BT_OK) return r;
+          pc = ret;
+        }
+      }
+      break;
+
     default:
       goto fail;
     }
@@ -1334,8 +1411,10 @@ bt_match(bt_state *m, const char *sp, uint32_t pc)
          that group failing, and what is left to try is below it. A negative
          lookaround's is the exception: its sub-pattern having no match
          left is the assertion holding, and what it resumes is the text after
-         the lookaround. */
-      if (c.kind == RE_CP_BARRIER) continue;
+         the lookaround. A call frame and a return's mark are not branches
+         either: backtracking past a call is just the call unwinding, and
+         what is left to try is below them. */
+      if (c.kind == RE_CP_BARRIER || c.kind == RE_CP_CALL || c.kind == RE_CP_RET) continue;
       sp = c.sp;
       pc = c.pc;
       if (c.kind == RE_CP_ITER && (r = bt_iter_begin(m, c.group, sp)) != BT_OK) return r;
