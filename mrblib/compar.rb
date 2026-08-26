@@ -97,6 +97,22 @@ module Comparable
   #
   # ISO 15.3.3.2.6
   def between?(min, max)
-    self >= min and self <= max
+    # Asked of `<=>` rather than through `>=` and `<=`: an operator answers
+    # false for a pair that stands in no order, which is right written out but
+    # wrong as the whole of a method whose job is to place the receiver. The
+    # operators above refuse such a pair, yet a Float receiver never reaches
+    # them, because Float defines its own in C.
+    cmp = self <=> min
+    if cmp.nil?
+      raise ArgumentError, "comparison of #{self.class} with #{min.class} failed"
+    end
+    # The max bound is left unasked once the receiver is below the min, as it
+    # is when `>=` short-circuits the `and`.
+    return false if cmp < 0
+    cmp = self <=> max
+    if cmp.nil?
+      raise ArgumentError, "comparison of #{self.class} with #{max.class} failed"
+    end
+    cmp <= 0
   end
 end
