@@ -1764,7 +1764,7 @@ compile_atom(re_compiler *c)
       uint16_t group = 0;
       if (capturing) {
         if (c->num_captures >= RE_MAX_CAPTURES) {
-          compile_error(c, "too many capture groups");
+          compile_error(c, "too many capture groups are specified");
         }
         group = c->num_captures++;
         emit(c, RE_SAVE, 0, group * 2);
