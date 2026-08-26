@@ -2959,7 +2959,7 @@ mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat,
   compile_alt(&c);
 
   if (c.p < c.src_end) {
-    compile_error(&c, "unmatched ')'");
+    compile_error(&c, "unmatched close parenthesis");
   }
 
   /* A backreference names a group the pattern does not have. The count is
