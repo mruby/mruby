@@ -1580,7 +1580,8 @@ enum re_pending_kind {
 typedef struct {
   uint32_t src_off;   /* where the name, or the number's digits, start */
   uint32_t len;
-  uint32_t resolved;  /* RE_PENDING_NUM: the group number it spelled */
+  uint32_t resolved;  /* the group number it spelled (RE_PENDING_NUM) or the
+                         name resolved to (filled in by resolve_calls()) */
   uint8_t kind;
 } re_pending_call;
 
@@ -3452,39 +3453,38 @@ measure_deferred_lookbehinds(re_compiler *c)
 static void
 resolve_calls(re_compiler *c)
 {
-  const re_pending_call *pend = c->num_pending
-    ? (const re_pending_call*)RSTRING_PTR(c->pending_calls) : NULL;
+  re_pending_call *pend = c->num_pending
+    ? (re_pending_call*)RSTRING_PTR(c->pending_calls) : NULL;
   uint32_t entry[RE_MAX_CAPTURES];
   uint32_t called = 0;
   uint32_t parsed_len = c->code_len;
 
-  /* Resolve the parked references. A name is read against the whole
-     pattern's definitions: a group written after the call is reachable, a
-     name two groups carry is refused where the call reads it, as CRuby
-     refuses it, and a number past the groups open at the call is checked
-     against the count the finished pattern reached. Every group number here
-     is under RE_MAX_CAPTURES: the numeric forms are refused in a pattern
-     that demotes plain groups, so the count they were checked against is
-     the capture count. */
-  for (uint32_t pc = 0; pc < parsed_len; pc++) {
-    re_inst *in = &c->pat->code[pc];
-    if (in->op != RE_CALL || in->a != RE_CALL_PENDING) continue;
-    const re_pending_call *r = &pend[in->offset];
+  /* Resolve the parked references, every record and not only those an
+     instruction still carries: `{0}` drops a callless atom's code but not
+     its records, and CRuby refuses `(?:\g<nope>){0}` all the same. A name
+     is read against the whole pattern's definitions: a group written after
+     the call is reachable, a name two groups carry is refused where the
+     call reads it, as CRuby refuses it, and a number past the groups open
+     at the call is checked against the count the finished pattern reached.
+     Every group number here is under RE_MAX_CAPTURES: the numeric forms are
+     refused in a pattern that demotes plain groups, so the count they were
+     checked against is the capture count. */
+  for (uint16_t i = 0; i < c->num_pending; i++) {
+    re_pending_call *r = &pend[i];
     const char *at = c->src + r->src_off;
     if (r->kind == RE_PENDING_NUM) {
       if (r->resolved > c->num_groups) {
         compile_error_str(c, mrb_format(c->mrb, "undefined group <%l> reference",
                                         at, (size_t)r->len));
       }
-      in->a = (uint8_t)r->resolved;
     }
     else {
       int group = -1;
       int defs = 0;
-      for (uint16_t i = 0; i < c->num_named; i++) {
-        if (c->pat->named_captures[i].name_len == r->len &&
-            memcmp(c->pat->named_captures[i].name, at, r->len) == 0) {
-          group = c->pat->named_captures[i].group;
+      for (uint16_t n = 0; n < c->num_named; n++) {
+        if (c->pat->named_captures[n].name_len == r->len &&
+            memcmp(c->pat->named_captures[n].name, at, r->len) == 0) {
+          group = c->pat->named_captures[n].group;
           defs++;
         }
       }
@@ -3496,8 +3496,13 @@ resolve_calls(re_compiler *c)
         compile_error_str(c, mrb_format(c->mrb, "multiplex definition name <%l> call",
                                         at, (size_t)r->len));
       }
-      in->a = (uint8_t)group;
+      r->resolved = (uint32_t)group;
     }
+  }
+  for (uint32_t pc = 0; pc < parsed_len; pc++) {
+    re_inst *in = &c->pat->code[pc];
+    if (in->op != RE_CALL || in->a != RE_CALL_PENDING) continue;
+    in->a = (uint8_t)pend[in->offset].resolved;
     in->offset = 0;
   }
 

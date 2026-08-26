@@ -131,6 +131,31 @@ assert("Regexp - {0} erases the inline occurrence and keeps the group") do
   assert_equal "x", "x".match(Regexp.new("(?:(?<a>x)){0}\\g<a>"))[0]
 end
 
+assert("Regexp - {0} erases a call's code but not its reference checks") do
+  # The reference a {0}-erased call spelled is still read against the whole
+  # pattern: CRuby refuses each of these, erased or not. No call survives to
+  # run, so no backtracking stack is asked for.
+  assert_raise_with_message(RegexpError,
+                            "undefined name <nope> reference: /(?:\\g<nope>){0}/") do
+    Regexp.new("(?:\\g<nope>){0}")
+  end
+  assert_raise_with_message(RegexpError,
+                            "undefined group <9> reference: /(?:\\g<+9>){0}/") do
+    Regexp.new("(?:\\g<+9>){0}")
+  end
+  assert_raise_with_message(RegexpError,
+                            "undefined group <2> reference: /(?:\\g<2>){0}(x)/") do
+    Regexp.new("(?:\\g<2>){0}(x)")
+  end
+  assert_raise_with_message(RegexpError,
+                            "multiplex definition name <a> call: /(?:\\g<a>){0}(?<a>x)(?<a>y)/") do
+    Regexp.new("(?:\\g<a>){0}(?<a>x)(?<a>y)")
+  end
+
+  # a reference the pattern does define stays fine erased
+  assert_equal "x", "x".match(Regexp.new("(?:\\g<a>){0}(?<a>x)"))[0]
+end
+
 assert("Regexp - {0} keeps a group \\k reads as never matched") do
   # No call machinery runs here, so no stack is asked for: the erased group
   # never matches, and a backreference to it fails, as in CRuby.
