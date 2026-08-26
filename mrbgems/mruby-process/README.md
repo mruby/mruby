@@ -55,13 +55,13 @@ other to provide its own feature set:
        +-------+-------+
        |               |
        v               v
-   mruby-io       mruby-process
-       |               |
-       v               v
-    io_hal         process_hal
-       |               |
-   +---+---+       +---+---+
- posix   win     posix   win
+   mruby-io       mruby-process ----> mruby-signal
+       |               |                   |
+       v               v                   v
+    io_hal         process_hal         signal_hal
+       |               |                   |
+   +---+---+       +---+---+           +---+---+
+ posix   win     posix   win         posix   win
 ```
 
 `IO.popen` is the one place the two capabilities meet, and it is served by
@@ -72,6 +72,13 @@ with a child, and `IO.popen` is how this build makes one. `mruby-errno` is a
 test dependency for the same kind of reason: a gem's tests run in a state
 holding its dependency closure and nothing else, so naming an `Errno` class in
 an assertion means asking for the gem that defines them.
+
+`mruby-signal` is a real dependency rather than a test one. `Process.kill`
+takes a signal by name and `Process::Status#to_s` spells one out, so both need
+the platform's signal table; that table is `mruby-signal`'s, and this gem
+reaches it through `signal_hal.h` rather than keeping a second copy that could
+drift from the first. Nothing runs the other way: `mruby-signal` needs nothing
+from here.
 
 ### The HAL boundary
 
@@ -86,10 +93,12 @@ The HAL answers OS-level facts and performs OS-level operations:
 - `mrb_hal_process_waitpid()` — translates the `MRB_PROCESS_WAIT_*` bits into
   native wait options and waits.
 - `mrb_hal_process_kill()` — delivers a signal.
-- `mrb_hal_process_signal_number()` / `_signal_name()` — map between a bare
-  name such as `TERM` and the number this platform gives it.
 - `mrb_hal_process_status_decode()` — reads a native wait status into
   `mrb_process_status`.
+
+What a signal is _called_ is not among them: `mruby-signal`'s
+`mrb_hal_signal_number()` and `mrb_hal_signal_name()` answer that, and both
+`Process.kill` and `Process::Status#to_s` call them directly.
 
 The common sources under `src/` implement everything Ruby promises: the module
 and class definitions, argument shapes and conversions, `Process.waitpid`
@@ -134,8 +143,9 @@ kept separate from adding this gem.
   store to answer everything else.
 - **Windows exposes the signals it can honour.** `KILL` and `TERM` are
   delivered as `TerminateProcess()`, and signal 0 asks whether the process can
-  be opened. Other names resolve to a number (so `Process::Status#to_s` can
-  spell them) but fail with `ENOSYS` when sent.
+  be opened. Other names resolve to a number, since `mruby-signal`'s table says
+  what a name stands for and this port says only what can be delivered, but
+  sending one fails with `ENOSYS`.
 - **Unsupported operations fail through `errno`.** A port sets `ENOSYS` and the
   common layer raises through `mrb_sys_fail()`, which becomes `Errno::ENOSYS`
   when `mruby-errno` is in the build. Methods are never conditionally absent,
@@ -165,15 +175,14 @@ kept separate from adding this gem.
   hands `IO#close` the same `int` on both platforms. The check turns away only
   a value written by hand. The pid a status carries is not checked, because it
   is handed back whole rather than narrowed.
-- **The POSIX signal list is Ruby's own, not a selection.** Every name Ruby
-  knows is there, in Ruby's order, behind the guard that says whether the host
-  has it. Taking the list rather than picking one keeps a name the host defines
-  from being reported as unsupported, and keeping the order is what makes the
-  reverse lookup answer `ABRT` rather than `IOT` where a host spells one signal
-  two ways. `EXIT` is the one name left out, for the reason below.
 
 ## Deviations from CRuby
 
+- `Process::Status._signame` and `Process::Status._signal_description` are
+  internal helpers `Process::Status#to_s` uses to spell a signal number out.
+  They are not a signal API of their own: `Signal.signame` is the one to
+  call, and `_signame(0)` is nil rather than `"EXIT"`, since a status never
+  carries 0 as a signal.
 - `Process.kill` does not name a process group through the signal yet. A
   negative signal number, or a name written with a leading `-`, asks CRuby for
   the group of each pid given; here it raises `ArgumentError` rather than
@@ -182,11 +191,6 @@ kept separate from adding this gem.
   reach the platform as they are written, which on POSIX is `kill(2)`'s
   caller's process group, every process the caller may signal, and the group
   whose ID is `-pid`.
-- `Process::Status._signame` and `Process::Status._signal_description` are
-  internal helpers `Process::Status#to_s` uses to spell a signal number out.
-  They are not a general signal API; `Signal` and `Signal.signame` are not
-  implemented. `_signame(0)` is nil rather than `"EXIT"`, since a status never
-  carries 0 as a signal and `Process.kill` does not take the name either.
 - On Windows a wait status is the child's exit code and nothing more, so a
   status there always reads as exited — even for a process this gem terminated.
 - On Windows, `Process.waitpid` fails for every process: `ENOSYS` for a pid of

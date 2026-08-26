@@ -11,7 +11,8 @@ Add the line below to your build configuration.
 ```
 
 It is part of the `stdlib-io` gembox, so `default.gembox` and `full-core.gembox`
-already include it.
+already include it. `mruby-process` depends on it, so a build that has
+`Process.kill` has this gem whether or not it asked for it.
 
 ## Implemented methods
 
@@ -53,6 +54,14 @@ them instead, in which case the bundled ports are dropped from the build.
 No platform macro — `SIGTERM`, `NSIG` — appears above the HAL, and the HAL
 knows nothing of `Signal`, `EXIT` or `Process.kill`.
 
+### mruby-process depends on this gem
+
+`Process.kill(:TERM, pid)` takes a signal by name, and `Process::Status#to_s`
+spells one out, so both need this table. Rather than keep a second copy of it,
+`mruby-process` names `mruby-signal` as a dependency and calls the HAL
+directly from C. The dependency runs one way only: nothing here needs
+`Process`.
+
 ### Design decisions
 
 - **`EXIT` is added above the HAL, not in the ports.** No platform numbers a
@@ -60,6 +69,11 @@ knows nothing of `Signal`, `EXIT` or `Process.kill`.
   signalled at all — so `EXIT` is a name Ruby gives rather than one a host
   reports. Putting it in `src/signal.c` gives every port the same answer for
   free, and keeps the ports to what `<signal.h>` actually defines.
+- **`Process.kill` still refuses `EXIT`.** It resolves a name through
+  `mrb_hal_signal_number()`, which does not know the name, so
+  `Process.kill("EXIT", pid)` raises `ArgumentError` reading
+  `unsupported signal 'SIGEXIT'` — the same error, for the same reason, as
+  CRuby.
 - **The signal list is Ruby's own, not a selection.** Every name Ruby knows is
   in the POSIX port, in Ruby's order, behind the guard that says whether the
   host has it. Taking the list rather than picking one keeps a name the host

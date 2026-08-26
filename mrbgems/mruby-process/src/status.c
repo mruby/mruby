@@ -21,6 +21,7 @@
 #include <mruby/string.h>
 #include "process_hal.h"
 #include "process_internal.h"
+#include "signal_hal.h"
 
 /* Read one of the two integers a status is made of.  An instance that never
    reached #initialize has neither, and asking it anything is a mistake worth
@@ -242,7 +243,7 @@ status_s_signame(mrb_state *mrb, mrb_value self)
   const char *name;
 
   mrb_get_args(mrb, "i", &signo);
-  name = mrb_hal_process_signal_name(mrb, signo);
+  name = mrb_hal_signal_name(mrb, signo);
   if (name == NULL) return mrb_nil_value();
   return mrb_str_new_cstr(mrb, name);
 }

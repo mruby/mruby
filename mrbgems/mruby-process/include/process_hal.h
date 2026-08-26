@@ -15,6 +15,10 @@
 ** `WNOHANG`, ...) crosses into the common layer: process and signal
 ** numbers travel as `mrb_int`, wait options as the MRB_PROCESS_WAIT_* bits
 ** below, and a decoded wait status as `mrb_process_status`.
+**
+** What a signal is *called* is not asked here at all.  mruby-signal owns
+** that table, and both `Process.kill` and `Process::Status#to_s` reach it
+** through signal_hal.h.
 */
 
 #ifndef MRUBY_PROCESS_HAL_H
@@ -105,23 +109,6 @@ int mrb_hal_process_waitpid(mrb_state *mrb, mrb_int pid, unsigned int flags,
  *         cannot deliver this signal at all)
  */
 int mrb_hal_process_kill(mrb_state *mrb, mrb_int pid, mrb_int signo);
-
-/*
- * Resolve a signal name to its number on this platform.
- *
- * @param name  a bare name such as "TERM", without the "SIG" prefix, which
- *              the common layer has already stripped
- * @return 0 with *signo set, or -1 when the platform has no such signal
- */
-int mrb_hal_process_signal_number(mrb_state *mrb, const char *name, mrb_int *signo);
-
-/*
- * Name the signal `signo` stands for on this platform.
- *
- * @return a static bare name such as "TERM", or NULL when the number names
- *         no signal here.  The caller must not free it.
- */
-const char *mrb_hal_process_signal_name(mrb_state *mrb, mrb_int signo);
 
 /*
  * Read a platform wait status into its neutral form.
