@@ -615,6 +615,77 @@ assert('Array#sort with a NaN in it') do
   assert_raise(ArgumentError) { ([1.0] * 40 + [nan]).sort }
 end
 
+assert('Array#sort with a block that answers with something other than an Integer') do
+  # The block's answer stands for an ordering, and an Integer is one of the
+  # forms it takes rather than the only one: anything else is asked `> 0` and
+  # then `< 0`, and is a tie when neither holds. `nil` is the one answer with
+  # no order in it. This is the map `Enumerable#max` and `#min` already read
+  # their own block through, so an object that orders one orders the other.
+  class SortSign
+    def initialize(n)
+      @n = n
+    end
+
+    def >(other)
+      @n > other
+    end
+
+    def <(other)
+      @n < other
+    end
+  end
+
+  # A short array and a long one take different routes through the sort, so
+  # both are ordered here.
+  descending = Array.new(40) { |i| 40 - i }
+  ascending = Array.new(40) { |i| i + 1 }
+
+  assert_equal [1, 2, 3], [3, 1, 2].sort { |a, b| SortSign.new(a - b) }
+  assert_equal ascending, descending.sort { |a, b| SortSign.new(a - b) }
+  assert_equal [1, 2, 3], [3, 1, 2].sort! { |a, b| SortSign.new(a - b) }
+  assert_equal 3, [3, 1, 2].max { |a, b| SortSign.new(a - b) }
+
+  # An Integer answer is read for its sign alone. -2 is the value the sort
+  # keeps for a pair it cannot order, and a block that answered with it used to
+  # be taken for one.
+  assert_equal [1, 2, 3], [3, 1, 2].sort { |a, b| (a <=> b) * 2 }
+
+  # The wording is the one the rest of the tree gives a pair with no order,
+  # `Comparable` and `Enumerable#max` included.
+  assert_raise_with_message(ArgumentError, "comparison of Integer with Integer failed") {
+    [3, 1, 2].sort { |a, b| nil }
+  }
+end
+
+assert('Array#sort with a block that answers with a Float') do
+  skip unless Object.const_defined?(:Float)
+
+  assert_equal [1, 2, 3], [3, 1, 2].sort { |a, b| (a - b).to_f }
+  assert_equal Array.new(40) { |i| i + 1 },
+               Array.new(40) { |i| 40 - i }.sort { |a, b| (a - b).to_f }
+
+  # A NaN is greater than and less than nothing at all, so every pair it
+  # answers for is a tie and the sort has nothing to order by. Which order it
+  # leaves is its own business; that it answers at all is what is asserted.
+  assert_equal [1, 2, 3], [3, 1, 2].sort { |a, b| Float::NAN }.sort
+end
+
+assert('Array#sort with a block that answers with a big integer') do
+  # A big integer is read for its sign, which is the one thing it can say about
+  # an ordering. The shift count is a variable because a constant shift out of
+  # mrb_int range makes the build fail rather than raise.
+  begin
+    k = 100
+    big = 1 << k
+  rescue RangeError
+    skip 'requires mruby-bigint'
+  end
+
+  assert_equal [1, 2, 3], [3, 1, 2].sort { |a, b| a > b ? big : -big }
+  assert_equal Array.new(40) { |i| i + 1 },
+               Array.new(40) { |i| 40 - i }.sort { |a, b| a > b ? big : -big }
+end
+
 assert('Array#freeze') do
   a = [].freeze
   assert_raise(FrozenError) do
