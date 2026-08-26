@@ -412,7 +412,13 @@ ary_rotate_bang(mrb_state *mrb, mrb_value self)
   return self;
 }
 
-#define SET_OP_HASH_THRESHOLD 32
+/* Above this many deciding elements the khash set repays building it; at and
+   below, the linear walk wins and allocates nothing. Driving the deciding
+   length directly against a build that always walks and one that always
+   builds the set, the walk stops winning at 6 elements for `uniq`, 4 for `|`
+   and 8 for `&`, and the set is ahead from 8, 6 and 12; 8 takes the whole of
+   the set's win without giving any operation's small sizes away. */
+#define SET_OP_HASH_THRESHOLD 8
 
 /* Helper functions for temporary khash sets */
 static void
