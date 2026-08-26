@@ -24,6 +24,14 @@ end
 
 assert('Numeric#-@', '15.2.7.4.2') do
   assert_equal(-1, -1)
+
+  skip unless Object.const_defined?(:Float)
+  pzero = 0.0
+  nzero = -0.0
+  assert_float(-Float::INFINITY, 1.0 / -pzero)
+  assert_float(Float::INFINITY, 1.0 / -nzero)
+  assert_equal("-0.0", (-pzero).to_s)
+  assert_equal("0.0", (-nzero).to_s)
 end
 
 assert('Numeric#abs', '15.2.7.4.3') do
