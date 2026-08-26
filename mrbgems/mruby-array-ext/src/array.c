@@ -781,7 +781,10 @@ static mrb_value
 ary_intersection_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value *argv)
 {
   if (argc == 0) {
-    return mrb_ary_new(mrb);
+    /* Nothing to narrow by, so every element of the receiver survives, which
+       CRuby answers with a copy of it. Duplicates are kept: what collapses
+       them is an argument selecting each one the first time it is taken. */
+    return mrb_ary_new_from_values(mrb, RARRAY_LEN(self), RARRAY_PTR(self));
   }
 
   mrb_int total_len = ary_get_array_args(mrb, argc, &argv);

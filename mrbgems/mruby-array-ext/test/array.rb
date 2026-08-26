@@ -1113,3 +1113,20 @@ assert('Array#intersection narrows by every argument, not by their union') do
   assert_equal [1, 2], a.intersection((1..40).to_a)
   assert_equal [1, 2], a.intersection([1, 2, 3])
 end
+
+assert('Array#intersection with no argument copies the receiver') do
+  # Nothing to narrow by, so every element survives. An empty Array was
+  # answered instead, which is what narrowing by nothing at all would give.
+  a = [1, 2, 2, 3]
+  r = a.intersection
+  assert_equal [1, 2, 2, 3], r      # duplicates are kept: no argument took them
+  assert_false r.equal?(a)          # and it is a copy, not the receiver
+  assert_equal [], [].intersection
+
+  # a frozen receiver still answers, the copy being a new Array
+  assert_equal [1, 2], [1, 2].freeze.intersection
+
+  # an argument narrows as before, on both sides of the length threshold
+  assert_equal [2, 3], [1, 2, 3].intersection([2, 3])
+  assert_equal [1, 2, 3], [1, 2, 3].intersection((1..40).to_a)
+end
