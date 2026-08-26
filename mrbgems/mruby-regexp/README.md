@@ -42,9 +42,11 @@ simulation) with backtracking fallback.
   absolute, `\g<-n>` counts back over the groups already opened, `\g<+n>`
   counts forward, and `\g<0>` is the whole pattern. A recursion no input
   could end (`(?<a>\g<a>)`, `(?<a>x\g<a>)`) raises `RegexpError` at compile
-  time, as in CRuby; the depth of one that can end is bounded at match time
-  by `MRB_REGEXP_STACK_LIMIT`, the call frames living on the backtracking
-  stack it counts
+  time, as in CRuby; one that can end is bounded at match time by
+  `MRB_REGEXP_STACK_LIMIT`, which counts the calls open or completed along
+  the current path -- a completed call's frame and return marker stay on
+  the backtracking stack until backtracking removes them -- so a long flat
+  repetition of a call reaches the limit as a deep recursion does
 - `(?=...)` positive lookahead
 - `(?!...)` negative lookahead
 - `(?<=...)` positive lookbehind (fixed-length only)
@@ -251,9 +253,9 @@ pattern analysis.
   call taking no level, reaches it in both. The first byte is the relative
   form's sign, so `\k<-1>` is still the group one back.
 - **A call in a lookbehind must still be fixed-length**: `(?<=\g<a>)` runs
-  where the group's body is fixed-length, and raises the lookbehind's own
-  `lookbehind must be fixed length` where it is not -- recursion included --
-  where CRuby says `invalid pattern in look-behind`.
+  where the group's body is fixed-length, and where it is not -- recursion
+  included -- raises `invalid pattern in look-behind`, which is CRuby's
+  message for the same refusal.
 - **An empty iteration ends a repeat around a call too**: an iteration that
   matched empty ends the repetition and keeps what it captured, which is the
   rule every inline repeat here follows, and a repeat whose body runs
