@@ -75,7 +75,16 @@ assert 'Rational#to_i' do
   assert_equal(0, Rational(2, 3).to_i)
   assert_equal(3, Rational(3).to_i)
   if RATIONAL_FLOAT
-    assert_equal(300, Rational(300.6).to_i)
+    # The exact fraction of the double 300.6 is 2644105562475725/8796093022208,
+    # whose numerator is wider than a 32-bit mrb_int; a build that narrow with
+    # no mruby-bigint cannot name the Rational at all, so there is nothing for
+    # the truncation to be asked about rather than a truncation it gets wrong.
+    r = begin
+      Rational(300.6)
+    rescue RangeError
+      nil
+    end
+    assert_equal(300, r.to_i) if r
   end
   assert_equal(1, Rational(98, 71).to_i)
   assert_equal(-15, Rational(-30, 2).to_i)
@@ -337,8 +346,14 @@ assert 'Rational#<=> is exact' do
   # difference no double can hold is still seen, and there is an answer at all
   # in a build carrying no Float, where every one of these used to be nil.
   #
-  # 2**53 and 2**53 + 1 are the first pair a double cannot tell apart.
-  m = 1 << 53
+  # 2**53 and 2**53 + 1 are the first pair a double cannot tell apart, so a
+  # build whose integers stop short of that width has no such pair to ask
+  # about; the wider blocks below guard themselves the same way.
+  begin
+    m = 1 << 53
+  rescue RangeError
+    skip 'no integer this wide'
+  end
   assert_cmp(1,  Rational(m + 1, 1), Rational(m, 1))
   assert_cmp(-1, Rational(m, 1), Rational(m + 1, 1))
   assert_cmp(1,  Rational(m + 1, 3), Rational(m, 3))
@@ -568,7 +583,15 @@ assert 'Rational#** is exact for a whole exponent' do
   assert_rational(Rational(9, 49), Rational(3, 7) ** 2)
   assert_rational(Rational(27, 343), Rational(3, 7) ** 3)
   assert_rational(Rational(1024, 59049), Rational(2, 3) ** 10)
-  assert_rational(Rational(1048576, 3486784401), Rational(2, 3) ** 20)
+  # 3 ** 20 is 3486784401, which is wider than a 32-bit mrb_int, so both the
+  # power and the expected value it is compared against are out of reach of a
+  # build that narrow without mruby-bigint.
+  pow20 = begin
+    Rational(2, 3) ** 20
+  rescue RangeError
+    nil
+  end
+  assert_rational(Rational(1048576, 3486784401), pow20) if pow20
 
   # a negative exponent turns the fraction over
   assert_rational(Rational(7, 3), Rational(3, 7) ** -1)
