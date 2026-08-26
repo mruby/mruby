@@ -285,6 +285,7 @@ gembox provides the class or feature you need:
 | Socket                | stdlib-io  | mruby-socket      |
 | Dir                   | stdlib-io  | mruby-dir         |
 | Errno                 | stdlib-io  | mruby-errno       |
+| ENV                   | stdlib-io  | mruby-env         |
 | Process               | stdlib-io  | mruby-process     |
 | Signal                | stdlib-io  | mruby-signal      |
 | Math                  | math       | mruby-math        |
@@ -328,14 +329,14 @@ methods. These are included by default:
 
 ### Gembox Summary
 
-| Gembox       | Contents                                      | Notes                                        |
-| ------------ | --------------------------------------------- | -------------------------------------------- |
-| `stdlib`     | Core class extensions, Fiber, Enumerator, Set | Works with `MRB_NO_STDIO` and `MRB_NO_FLOAT` |
-| `stdlib-ext` | Time, Struct, Data, Random, sprintf, pack     | Works with `MRB_NO_STDIO` and `MRB_NO_FLOAT` |
-| `stdlib-io`  | IO, File, Dir, Socket, Errno, Process, Signal | Requires stdio                               |
-| `math`       | Math, Rational, Complex, Bigint               | Works with `MRB_NO_STDIO`                    |
-| `metaprog`   | eval, binding, Method, compiler               | Works with `MRB_NO_STDIO` and `MRB_NO_FLOAT` |
-| `default`    | All of the above + CLI tools                  | Full installation                            |
+| Gembox       | Contents                                           | Notes                                        |
+| ------------ | -------------------------------------------------- | -------------------------------------------- |
+| `stdlib`     | Core class extensions, Fiber, Enumerator, Set      | Works with `MRB_NO_STDIO` and `MRB_NO_FLOAT` |
+| `stdlib-ext` | Time, Struct, Data, Random, sprintf, pack          | Works with `MRB_NO_STDIO` and `MRB_NO_FLOAT` |
+| `stdlib-io`  | IO, File, Dir, Socket, Errno, ENV, Process, Signal | Requires stdio                               |
+| `math`       | Math, Rational, Complex, Bigint                    | Works with `MRB_NO_STDIO`                    |
+| `metaprog`   | eval, binding, Method, compiler                    | Works with `MRB_NO_STDIO` and `MRB_NO_FLOAT` |
+| `default`    | All of the above + CLI tools                       | Full installation                            |
 
 ## Key Differences from CRuby
 
