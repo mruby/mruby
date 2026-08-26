@@ -2,3 +2,7 @@
 *.bat   text eol=crlf
 *.cmd   text eol=crlf
 *.png   binary
+
+# `git archive` writes the commit it archived here, which is how a source
+# release carries the revision a checkout reads out of the repository itself.
+/.revision export-subst

@@ -325,6 +325,24 @@ end
 - Default value is `256`.
 - Threshold for switching symbol table from linear search to hash table.
 
+`MRUBY_REVISION`, `MRUBY_FULL_REVISION`
+
+- The revision the build was made from: `MRUBY_FULL_REVISION` the whole commit
+  hash, which is what the `MRUBY_REVISION` constant holds, and `MRUBY_REVISION`
+  the ten characters a version string can name it with.
+- The build reads them for itself, out of the repository the source sits in or
+  out of the `.revision` a source release carries, and writes what it read to a
+  generated `mruby/revision.h`. Define them here where it can read neither and
+  the revision is known anyway, as a package built from a source drop is.
+- What a build config says wins over what the build read.
+- A build with nothing to read and nothing defined here reports `"HEAD"`.
+- Both hold a string, so the value carries quotes of its own:
+
+```ruby
+conf.defines << 'MRUBY_REVISION=\"0123456789\"'
+conf.defines << 'MRUBY_FULL_REVISION=\"0123456789abcdef0123456789abcdef01234567\"'
+```
+
 ## Tuning profiles
 
 Predefined profiles adjust several macros together for specific

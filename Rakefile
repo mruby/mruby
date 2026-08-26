@@ -51,6 +51,9 @@ load "#{MRUBY_ROOT}/tasks/mrblib.rake"
 load "#{MRUBY_ROOT}/tasks/mrbgems.rake"
 load "#{MRUBY_ROOT}/tasks/libmruby.rake"
 load "#{MRUBY_ROOT}/tasks/bin.rake"
+# `revision.rake` adds a define to the compilers, and `presym.rake` resolves
+# rules as it is loaded: the two are in this order and not the other one.
+load "#{MRUBY_ROOT}/tasks/revision.rake"
 load "#{MRUBY_ROOT}/tasks/presym.rake"
 load "#{MRUBY_ROOT}/tasks/test.rake"
 load "#{MRUBY_ROOT}/tasks/benchmark.rake"
