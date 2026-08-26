@@ -51,12 +51,14 @@ typedef struct {
   mrb_bool has_backref;
   mrb_bool needs_backtrack;
   mrb_bool dont_capture;    /* pattern declares a named group: plain (...) does not capture */
-  uint16_t max_backref;     /* the largest `\NN` the pattern refers back to,
-                               checked against the group count once the whole
-                               pattern is read: CRuby takes a reference to a
-                               group written later, `\1(a)`, so the count it
-                               compares with is the pattern's, not the one
-                               standing where the reference is */
+  uint16_t max_backref;     /* the largest group number the pattern refers
+                               back to, whichever of `\NN` and `\k<n>` spelled
+                               it, checked against the group count once the
+                               whole pattern is read: CRuby takes a reference
+                               to a group written later, `\1(a)` and
+                               `\k<1>(a)` alike, so the count it compares with
+                               is the pattern's, not the one standing where
+                               the reference is */
   uint16_t num_groups;      /* groups opened so far, counting the plain ones a
                                named pattern demotes: what decides whether
                                `\NN` is a backreference or an octal escape */
@@ -1918,15 +1920,31 @@ compile_atom(re_compiler *c)
 
         /* CRuby rejects a numbered backreference in a named pattern whatever
            its spelling, and it has to be rejected here too: once plain groups
-           stop consuming numbers, both the absolute bound and the relative
-           form's `num_captures - n` below would silently resolve to a
-           different group instead of erroring. */
+           stop consuming numbers, both the check after the parse, which
+           counts the demoted groups, and the relative form's `num_captures -
+           n` below would silently resolve to a different group instead of
+           erroring. */
         if (c->dont_capture) {
           compile_error(c, "numbered backref/call is not allowed. (use name)");
         }
-        group = relative ? (int)c->num_captures - n : n;
-        if (group < 1 || group >= (int)c->num_captures) {
-          compile_error(c, "invalid backref number/name");
+        if (relative) {
+          /* `\k<-n>` counts back from where it stands, so the groups it can
+             name are the ones already open; Onigmo resolves it the same way
+             (BACKREF_REL_TO_ABS) and refuses a relative forward reference. */
+          group = (int)c->num_captures - n;
+          if (group < 1) compile_error(c, "invalid backref number/name");
+        }
+        else {
+          /* The absolute form may name a group written later, `\k<1>(a)`
+             being as valid in CRuby as `\1(a)` is, so the number is only
+             recorded here and mrb_re_compile() checks it against the
+             pattern's group count once the parse is done. A number above
+             RE_MAX_CAPTURES names no group whatever the pattern goes on to
+             open, and is kept at that bound so the check still refuses it
+             while the number stays one a group field can hold. */
+          if (n > RE_MAX_CAPTURES) n = RE_MAX_CAPTURES;
+          if (n > (int)c->max_backref) c->max_backref = (uint16_t)n;
+          group = n;
         }
       }
       else {
@@ -2908,9 +2926,11 @@ mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat,
     compile_error(&c, "unmatched ')'");
   }
 
-  /* A `\NN` names a group the pattern does not have. The count is taken here
-     rather than where the reference stands because a reference may be written
-     before the group it names, `\1(a)` being valid in CRuby. */
+  /* A backreference names a group the pattern does not have. The count is
+     taken here rather than where the reference stands because a reference may
+     be written before the group it names, `\1(a)` being valid in CRuby, and
+     it is taken once for both spellings so `\1` and `\k<1>` agree on which
+     references a pattern accepts. */
   if (c.max_backref > c.num_groups) {
     compile_error(&c, "invalid backref number/name");
   }
