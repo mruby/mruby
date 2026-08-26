@@ -358,7 +358,7 @@ module MRuby
     def initialize(build)
       super
       @command = ENV['AR'] || 'ar'
-      @archive_options = 'rcs "%{outfile}" %{objs}'
+      @archive_options = 'rcs%{deterministic} "%{outfile}" %{objs}'
     end
 
     # The archive is written from the objects of now. `ar r` adds to an
@@ -371,7 +371,35 @@ module MRuby
       mkdir_p File.dirname(outfile)
       rm_f outfile
       _pp "AR", outfile.relative_path
-      _run archive_options, { :outfile => filename(outfile), :objs => filename(objfiles).map{|f| %Q["#{f}"]}.join(' ') }
+      params = { :outfile => filename(outfile), :objs => filename(objfiles).map{|f| %Q["#{f}"]}.join(' ') }
+      params[:deterministic] = deterministic_modifier(File.dirname(outfile)) if
+        archive_options.include?("%{deterministic}")
+      _run archive_options, params
+    end
+
+    private
+
+    # `ar` copies the mtime, uid, gid and mode of every object into the member
+    # header it writes, so the same objects archived by another user, or a
+    # second later, make a different archive. The `D` modifier of GNU ar and
+    # llvm-ar writes zeros in those fields instead. Most binutils are built to
+    # do that unasked, but that is the choice of whoever built binutils and not
+    # one to rest on, and the `ar` of cctools takes no `D` at all. So ask this
+    # `ar` whether it takes one, once per build, with its complaint about an
+    # unknown modifier kept off the screen.
+    def deterministic_modifier(dir)
+      return @deterministic_modifier if defined?(@deterministic_modifier)
+      probe = "#{dir}/.ar-deterministic-probe"
+      rm_f probe
+      accepted = system(%Q[#{build.filename(command)} rcsD "#{filename(probe)}" > #{File::NULL} 2>&1])
+      rm_f probe
+      @deterministic_modifier = accepted ? "D" : ""
+    end
+
+    # The `ar` that takes no `D`, cctools', zeroes the timestamps when this is
+    # set instead. GNU ar and llvm-ar pay it no attention.
+    def _run(options, params={})
+      sh({"ZERO_AR_DATE" => "1"}, "#{build.filename(command)} #{options % params}")
     end
   end
 

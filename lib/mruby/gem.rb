@@ -206,9 +206,14 @@ module MRuby
         end
       end
 
+      # The order of this list is the order of the members in `libmruby.a`.
+      # A glob of several extensions hands back one extension after another,
+      # and the sorting inside each of them is a default of `Dir` and not
+      # something asked for, so the order is settled here: the same sources
+      # then make the same archive, wherever it is built.
       def srcs_to_objs(src_dir_from_gem_dir)
         exts = compilers.flat_map{|c| c.source_exts} * ","
-        Dir["#{@dir}/#{src_dir_from_gem_dir}/*{#{exts}}"].map do |f|
+        Dir["#{@dir}/#{src_dir_from_gem_dir}/*{#{exts}}"].sort.map do |f|
           objfile(f.relative_path_from(@dir).to_s.pathmap("#{build_dir}/%X"))
         end
       end
