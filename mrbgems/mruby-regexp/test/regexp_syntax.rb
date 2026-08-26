@@ -2224,10 +2224,10 @@ end
 assert("Regexp - a nest level on a \\k reference is refused") do
   need_backtracking_stack
   # `\k<name+n>` reads the group as the enclosing recursion left it n levels
-  # up, which goes with the `\g` subexpression call this engine refuses. Taking
-  # the sign into the name made each a name no group carried, so
-  # /(?<a>c)\k<a+0>/ raised `undefined name <a+0> reference` where CRuby
-  # matched "cc".
+  # up, which asks for a capture memory per call level that this engine's flat
+  # slots do not carry, `\g` calls themselves being supported. Taking the sign
+  # into the name made each a name no group carried, so /(?<a>c)\k<a+0>/
+  # raised `undefined name <a+0> reference` where CRuby matched "cc".
   msg = "backreference with nest level is not supported"
   assert_raise_with_message(RegexpError, "#{msg}: /(?<a>c)\\k<a+0>/") do
     Regexp.new("(?<a>c)\\k<a+0>")
@@ -2912,17 +2912,10 @@ end
 assert("Regexp - the escapes this engine does not carry are refused") do
   # Each means something in CRuby that this engine does not do, and as an
   # unknown escape each was simply its own letter: /\R/ matched an R rather
-  # than a newline, and /(a)\g<1>/ matched "ag<1>" rather than "aa".
+  # than a newline.
   assert_raise_with_message(RegexpError, "\\G is not supported: /\\G/") { Regexp.new("\\G") }
   assert_raise_with_message(RegexpError, "\\K is not supported: /a\\Kb/") { Regexp.new("a\\Kb") }
   ["\\R", "\\X", "x\\G", "\\K"].each do |src|
-    assert_raise(RegexpError, src) { Regexp.new(src) }
-  end
-  assert_raise_with_message(RegexpError,
-                            "subexpression call is not supported: /(a)\\g<1>/") do
-    Regexp.new("(a)\\g<1>")
-  end
-  ["(?<n>a)\\g<n>", "(a)\\g'1'", "\\g<0>"].each do |src|
     assert_raise(RegexpError, src) { Regexp.new(src) }
   end
 
@@ -2932,7 +2925,8 @@ assert("Regexp - the escapes this engine does not carry are refused") do
   assert_equal "X", "X"[/[\X]/]
   assert_equal "g", "g"[/[\g]/]
 
-  # and a bare `\g` is the letter outside one too
+  # and a bare `\g`, which calls a group only with a <name> or 'name' after
+  # it, is the letter outside one too
   assert_equal "g", "g"[/\g/]
 end
 

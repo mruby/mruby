@@ -10,6 +10,7 @@
 #include "re_internal.h"
 #include <mruby/error.h>
 #include <mruby/internal.h>
+#include <mruby/string.h>
 #include <string.h>
 
 /* Class IDs are stored in re_inst.a (uint8_t), so at most 256 distinct
@@ -77,6 +78,12 @@ typedef struct {
   uint32_t depth;           /* nesting levels open at the parse point, one per
                                compile_alt() frame on the C stack; bounded by
                                MRB_REGEXP_PARSE_DEPTH_LIMIT */
+  mrb_bool has_call;        /* a \g call was emitted: resolve_calls() runs */
+  mrb_value pending_calls;  /* the \g references the parse could not resolve,
+                               as re_pending_call records in a String the GC
+                               arena keeps for the compile; nil until the
+                               first one */
+  uint16_t num_pending;
 } re_compiler;
 
 static void compile_alt(re_compiler *c);  /* forward */
@@ -152,7 +159,10 @@ patch(re_compiler *c, uint32_t pos, uint16_t offset)
    pointing at whatever the shift left in its place.
    RE_LB_WIDTH is not here: it carries a character count in `a`, and RE_SAVE
    and RE_BACKREF put a slot number and a case-fold flag in `offset` rather
-   than an index. */
+   than an index. RE_CALL is not here either, deliberately: while the parse
+   runs, its `offset` is a pending-reference index that relocation would
+   corrupt, and by the time resolve_calls() writes a code index into it, the
+   last insertion has already happened. */
 static mrb_bool
 op_holds_code_index(uint8_t op)
 {
@@ -1274,13 +1284,19 @@ parse_quantifier(re_compiler *c, int *min_out, int *max_out, mrb_bool *ranged)
  * has no fixed width (quantifiers, alternation, etc.).
  */
 static int
-compute_fixed_len(re_compiler *c, uint32_t start, uint32_t end, int *chars_out)
+fixed_len_walk(re_compiler *c, uint32_t start, uint32_t end, int *chars_out, int depth)
 {
   int len = 0;
   int chars = 0;
   uint32_t pc = start;
 
-  while (pc < end) {
+  /* The walk runs to `end` rather than while it is below it, because a call
+     steps outside the span: an inline occurrence of a called group is a jump
+     to the trampoline after the pattern and a jump back. The bound below is
+     what keeps a walk that misses `end` finite; a cycle without RE_SPLIT does
+     not exist, and RE_SPLIT answers -1. */
+  while (pc != end) {
+    if (pc >= c->code_len) return -1;
     re_inst inst = c->pat->code[pc];
     switch (inst.op) {
     case RE_CHAR: {
@@ -1332,12 +1348,41 @@ compute_fixed_len(re_compiler *c, uint32_t start, uint32_t end, int *chars_out)
     case RE_LOOK_END:
       *chars_out = chars;
       return len;
+    case RE_CALL: {
+      /* The call runs the body it points at, so the body's measure is this
+         instruction's. The depth bound is what answers a recursive call:
+         distinct groups nest no deeper than there are groups, so a walk
+         past that is going round a cycle, which no fixed length fits --
+         CRuby refuses recursion in a lookbehind the same way. */
+      if (depth > RE_MAX_CAPTURES) return -1;
+      uint32_t body = inst.offset;
+      uint32_t close = body;
+      while (close < c->code_len &&
+             !(c->pat->code[close].op == RE_RETURN &&
+               c->pat->code[close].a == inst.a)) {
+        close++;
+      }
+      if (close >= c->code_len) return -1;
+      int sub_chars = 0;
+      int sub_len = fixed_len_walk(c, body, close, &sub_chars, depth + 1);
+      if (sub_len < 0) return -1;
+      len += sub_len;
+      chars += sub_chars;
+      pc++;
+      break;
+    }
     default:
       return -1;  /* unknown/variable-length instruction */
     }
   }
   *chars_out = chars;
   return len;
+}
+
+static int
+compute_fixed_len(re_compiler *c, uint32_t start, uint32_t end, int *chars_out)
+{
+  return fixed_len_walk(c, start, end, chars_out, 0);
 }
 
 /* Parse the option letters of an inline (?...) group. The parser is
@@ -1517,6 +1562,49 @@ emit_codepoint(re_compiler *c, uint32_t cp)
    number/name` for one within it that names no group. */
 #define RE_MAX_BACKREF_NUM 2147483647
 
+/* A \g reference the parse could not finish resolving: a name, which has to
+   wait for the definitions still to come, or a number past the groups open so
+   far, which CRuby takes when the pattern goes on to open enough. The
+   RE_CALL emitted for one carries RE_CALL_PENDING in `a` and this record's
+   index in `offset` until resolve_calls() rewrites it; RE_MAX_CAPTURES is 32,
+   so no resolved group ever wears the sentinel. What the record points into
+   is c->src, which outlives the parse, so a name is an offset and a length
+   rather than a copy. */
+#define RE_CALL_PENDING 255
+
+enum re_pending_kind {
+  RE_PENDING_NAME,  /* resolved against the named-capture table */
+  RE_PENDING_NUM    /* already a group number; checked against the count */
+};
+
+typedef struct {
+  uint32_t src_off;   /* where the name, or the number's digits, start */
+  uint32_t len;
+  uint32_t resolved;  /* RE_PENDING_NUM: the group number it spelled */
+  uint8_t kind;
+} re_pending_call;
+
+/* Park one reference. The records live in a String rather than a buffer this
+   frame owns, because the parse raises through longjmp and a raise must not
+   strand them: the GC arena holds the String for the length of the compile
+   and no longer, which is exactly the records' life. The count is bounded by
+   the instructions emitted, so it fits the uint16_t field that carries it. */
+static uint16_t
+add_pending_call(re_compiler *c, uint8_t kind, const char *at, uint32_t len,
+                 uint32_t resolved)
+{
+  re_pending_call rec;
+  if (mrb_nil_p(c->pending_calls)) {
+    c->pending_calls = mrb_str_new(c->mrb, NULL, 0);
+  }
+  rec.src_off = (uint32_t)(at - c->src);
+  rec.len = len;
+  rec.resolved = resolved;
+  rec.kind = kind;
+  mrb_str_cat(c->mrb, c->pending_calls, (const char*)&rec, sizeof(rec));
+  return c->num_pending++;
+}
+
 /* Compile the sub-pattern of a lookaround, whose opener has just been
    emitted, up to and including the RE_LOOK_END that closes it. The end
    carries the lookaround's number, from the count the atomic groups use, so
@@ -1592,18 +1680,32 @@ compile_atom(re_compiler *c)
           compile_look_body(c, negative);
           c->pat->code[lb_pos].offset = (uint16_t)c->code_len;
 
-          /* measure the sub-pattern for both rewind units */
-          int fixed_chars;
-          int fixed_len = compute_fixed_len(c, sub_start, c->code_len, &fixed_chars);
-          if (fixed_len < 0) {
-            compile_error(c, "invalid pattern in look-behind");
+          /* A sub-pattern holding a \g call cannot be measured yet: where
+             the call jumps is not decided until resolve_calls(), and the
+             body it runs may not be written yet. The RE_LB_WIDTH's spare
+             field marks the lookbehind for measure_deferred_lookbehinds(),
+             which runs the same walk once the calls are wired. */
+          mrb_bool deferred = FALSE;
+          for (uint32_t i = sub_start; i < c->code_len; i++) {
+            if (c->pat->code[i].op == RE_CALL) { deferred = TRUE; break; }
           }
-          if (fixed_len > 255) {
-            compile_error(c, "lookbehind too long (max 255 bytes)");
+          if (deferred) {
+            c->pat->code[lb_pos + 1].offset = 1;
           }
-          c->pat->code[lb_pos].a = (uint8_t)fixed_len;
-          /* the character count never exceeds the byte count, so it fits */
-          c->pat->code[lb_pos + 1].a = (uint8_t)fixed_chars;
+          else {
+            /* measure the sub-pattern for both rewind units */
+            int fixed_chars;
+            int fixed_len = compute_fixed_len(c, sub_start, c->code_len, &fixed_chars);
+            if (fixed_len < 0) {
+              compile_error(c, "invalid pattern in look-behind");
+            }
+            if (fixed_len > 255) {
+              compile_error(c, "lookbehind too long (max 255 bytes)");
+            }
+            c->pat->code[lb_pos].a = (uint8_t)fixed_len;
+            /* the character count never exceeds the byte count, so it fits */
+            c->pat->code[lb_pos + 1].a = (uint8_t)fixed_chars;
+          }
 
           if (peek(c) != ')') compile_error(c, "end pattern with unmatched parenthesis");
           next_char(c);
@@ -2036,11 +2138,138 @@ compile_atom(re_compiler *c)
     }
     else if (ch == 'g' && c->p + 1 < c->src_end &&
              (c->p[1] == '<' || c->p[1] == '\'')) {
-      /* `\g<name>` calls a group's sub-pattern again, which this engine does
-         not do. Left to the fall-through it was the letter `g` and the name
-         was literal text, so /(a)\g<1>/ matched "ag<1>" rather than "aa".
-         A bare `\g` is the letter in CRuby too, and stays one. */
-      compile_error(c, "subexpression call is not supported");
+      /* \g<name> / \g'name': run a group's sub-pattern again, from wherever
+         the call stands -- recursion when the call stands inside the group it
+         names. The numeric forms follow the \k family: \g<2> is absolute,
+         \g<-1> counts back over the groups already open, and \g<+1>, a form
+         \k has no use for, counts forward over the groups still to come.
+         \g<0> is the whole pattern. The name is read as a definition reads
+         one, signs included: there is no nest level on a call, so `\g<a-1>`
+         reaches the group `(?<a-1>x)` names, which the sign-cutting \k arm
+         above can never reach.
+
+         What is emitted here is one RE_CALL. Where it jumps to is not
+         decided now: the group it names may not be written yet, a name may
+         turn out to name two groups, and the body it runs has to be given
+         its one entry and one exit once the whole pattern is laid out. All
+         of that is resolve_calls(), after the parse; a reference it must
+         finish resolving is parked in c->pending_calls and the instruction
+         carries the parking slot until then. */
+      next_char(c);  /* skip g */
+      {
+        int close = (peek(c) == '<') ? '>' : '\'';
+        next_char(c);  /* skip < or ' */
+        const char *name = c->p;
+        while (peek(c) != close && peek(c) >= 0) {
+          /* The scan stops at a ')' from the second byte on, as every name
+             scan here does; the message quotes to the end of the pattern,
+             as CRuby does when its own scan never reached a delimiter. */
+          if (peek(c) == ')' && c->p > name) {
+            compile_error_str(c, mrb_format(c->mrb, "invalid group name <%l>",
+                                            name, (size_t)(c->src_end - name)));
+          }
+          next_char(c);
+        }
+        /* The end of the pattern ends the name the way a ')' does, and the
+           two failures are reported as the \k arm above reports them: a name
+           that never began is the empty one whether or not it was closed,
+           and one the pattern ends inside is quoted back as the malformed
+           name it is. */
+        if (c->p == name) compile_error(c, "group name is empty");
+        if (peek(c) != close) {
+          compile_error_str(c, mrb_format(c->mrb, "invalid group name <%l>",
+                                          name, (size_t)(c->p - name)));
+        }
+        uint32_t name_len = (uint32_t)(c->p - name);
+        if (!RE_NAME_LEN_FITS(name_len)) compile_error(c, "group name too long");
+        next_char(c);  /* skip the closing > or ' */
+
+        int group = -1;
+        uint16_t pend = 0;
+        mrb_bool pended = FALSE;
+        if (name[0] == '-' || name[0] == '+' ||
+            (name[0] >= '0' && name[0] <= '9')) {
+          mrb_bool back = (name[0] == '-');
+          uint32_t first = (back || name[0] == '+') ? 1 : 0;
+
+          /* As at \k: the whole name is read before it is converted, and a
+             lone sign is malformed. The message is CRuby's own for a call,
+             which differs from the one its backreferences get. */
+          mrb_bool numeric = (first < name_len);
+          for (uint32_t i = first; numeric && i < name_len; i++) {
+            if (name[i] < '0' || name[i] > '9') numeric = FALSE;
+          }
+          if (!numeric) {
+            compile_error_str(c, mrb_format(c->mrb, "invalid char in group name <%l>",
+                                            name, (size_t)name_len));
+          }
+
+          int n = 0;
+          for (uint32_t i = first; i < name_len; i++) {
+            int digit = name[i] - '0';
+            if (n > (RE_MAX_BACKREF_NUM - digit) / 10) compile_error(c, "too big number");
+            n = n * 10 + digit;
+          }
+
+          if (n == 0) {
+            /* `\g<0>` is the whole pattern, group 0, which even a named
+               pattern numbers; a signed zero names no group either way.
+               CRuby quotes `-0` as written and `+0` without its sign. */
+            if (first) {
+              compile_error_str(c, mrb_format(c->mrb, "invalid group name <%l>",
+                                              name + (back ? 0 : 1),
+                                              (size_t)(name_len - (back ? 0 : 1))));
+            }
+            group = 0;
+          }
+          else if (back) {
+            /* Backward-relative resolves against the groups already open,
+               exactly as \k<-n> does above, and for the same CRuby order:
+               the range is checked before a named pattern refuses the
+               numbered spelling. */
+            group = (int)c->num_groups + 1 - n;
+            if (group < 1) compile_error(c, "invalid backref number/name");
+            if (c->dont_capture) {
+              compile_error(c, "numbered backref/call is not allowed. (use name)");
+            }
+          }
+          else {
+            if (c->dont_capture) {
+              compile_error(c, "numbered backref/call is not allowed. (use name)");
+            }
+            /* Forward-relative counts on from the groups already open; the
+               absolute form is the number itself. Either may name a group
+               written later, so a number past the count so far is checked
+               against the whole pattern's count once the parse is done. The
+               digits are kept for that check's message, which quotes them
+               as written, sign dropped, as CRuby quotes a call's number. */
+            group = first ? (int)c->num_groups + n : n;
+            if (group > (int)c->num_groups) {
+              pend = add_pending_call(c, RE_PENDING_NUM, name + first,
+                                      name_len - first, (uint32_t)group);
+              pended = TRUE;
+            }
+          }
+        }
+        else {
+          /* A name resolves once the whole pattern is read: CRuby takes a
+             call to a group defined later, and a name two groups carry is
+             refused only where a call reads it, so even a name already
+             defined here has to wait for the definitions still to come. */
+          pend = add_pending_call(c, RE_PENDING_NAME, name, name_len, 0);
+          pended = TRUE;
+        }
+
+        if (pended) {
+          emit(c, RE_CALL, RE_CALL_PENDING, pend);
+        }
+        else {
+          /* group 0, or a group already open: 32 at most, so it fits `a` */
+          emit(c, RE_CALL, (uint8_t)group, 0);
+        }
+        c->has_call = TRUE;
+        c->needs_backtrack = TRUE;  /* the Pike VM has no call stack */
+      }
     }
     else if (ch == 'G' || ch == 'K' || ch == 'R' || ch == 'X') {
       /* Each of these means something in CRuby that this engine does not do:
@@ -2297,8 +2526,23 @@ compile_quantified(re_compiler *c)
     uint32_t atom_size = atom_end - start;
 
     if (min == 0 && max == 0) {
-      /* {0}: the atom matches zero times, so drop the copy we emitted. */
-      c->code_len = start;
+      /* {0}: the atom matches zero times. The copy we emitted is dropped --
+         except where it defines a capture group. CRuby erases only the
+         inline occurrence there: the group stays callable by \g, and \k
+         still reads it as a group that never matched rather than one that
+         does not exist, so the body is kept behind a jump instead. Nothing
+         inline reaches it; a call may. */
+      mrb_bool has_group = FALSE;
+      for (uint32_t i = start; i < atom_end; i++) {
+        if (c->pat->code[i].op == RE_SAVE) { has_group = TRUE; break; }
+      }
+      if (has_group) {
+        insert_inst(c, start, RE_JMP, 0, 0);
+        patch(c, start, (uint16_t)c->code_len);
+      }
+      else {
+        c->code_len = start;
+      }
     }
     else {
       /* {0,m} and {0,} compile as {1,m}/{1,} wrapped in an optional, so the
@@ -2807,6 +3051,13 @@ first_set_walk(const re_inst *code, uint32_t code_len,
     case RE_JMP:
       pc = code[pc].offset;
       continue;
+    case RE_CALL:
+      /* The body runs where the call stands, so its first bytes are the
+         call's. What follows a body that can complete without consuming is
+         unknown to this walk, which has no call stack; that path ends at
+         the body's RE_RETURN, whose default below answers FALSE. */
+      pc = code[pc].offset;
+      continue;
     case RE_SPLIT:
       /* both branches: pc+1 and offset */
       if (!first_set_walk(code, code_len, classes, code[pc].offset, bm, seen))
@@ -2853,14 +3104,23 @@ first_set_walk(const re_inst *code, uint32_t code_len,
    repetition that goal closes can complete an iteration without consuming.
    A lookaround is zero-width whatever its sub-pattern does, so the walk
    steps over the sub-pattern; a backreference to a group that captured
-   empty consumes nothing, so it can be on such a path. seen[] is marked with
-   `mark` rather than cleared, so one buffer serves every edge. */
+   empty consumes nothing, so it can be on such a path, and so can a call,
+   whose body may match empty. seen[] is marked with `mark` rather than
+   cleared, so one buffer serves every edge.
+
+   The walk is not bounded to [pc, goal]: an inline occurrence of a called
+   group jumps out to the trampoline after the pattern and back in, so a path
+   may stand past `goal` and still reach it. seen[] is what makes the walk
+   finite, and the answer stays conservative: what a stray path can add is a
+   mark on a loop whose body cannot in fact match empty, and a marked loop
+   whose iterations all consume never triggers the handling the mark turns
+   on. */
 static mrb_bool
-epsilon_path(const re_inst *code, uint32_t pc, uint32_t goal,
+epsilon_path(const re_inst *code, uint32_t code_len, uint32_t pc, uint32_t goal,
              uint32_t *seen, uint32_t mark)
 {
   while (pc != goal) {
-    if (pc > goal || seen[pc] == mark) return FALSE;
+    if (pc >= code_len || seen[pc] == mark) return FALSE;
     seen[pc] = mark;
     switch (code[pc].op) {
     case RE_SAVE:
@@ -2868,6 +3128,7 @@ epsilon_path(const re_inst *code, uint32_t pc, uint32_t goal,
     case RE_WBOUND: case RE_NWBOUND:
     case RE_ATOMIC: case RE_ATOMIC_END:
     case RE_BACKREF:
+    case RE_CALL:
       pc++;
       break;
     case RE_JMP:
@@ -2877,7 +3138,7 @@ epsilon_path(const re_inst *code, uint32_t pc, uint32_t goal,
       break;
     case RE_SPLIT:
     case RE_SPLITNG:
-      if (epsilon_path(code, code[pc].offset, goal, seen, mark)) return TRUE;
+      if (epsilon_path(code, code_len, code[pc].offset, goal, seen, mark)) return TRUE;
       pc++;
       break;
     default:
@@ -2912,10 +3173,20 @@ mark_empty_loops(mrb_state *mrb, re_inst *code, uint32_t code_len)
 
   for (uint32_t pc = 0; pc < code_len; pc++) {
     re_inst in = code[pc];
+    /* The parsed pattern ends at its RE_MATCH; what follows are the
+       trampolines resolve_calls() appended, whose jump back into a called
+       body is a backward edge but not a loop. Reading one as a loop close
+       was two defects in one: its "head" is whatever instruction the body
+       resumes after, whose fields mean something else entirely, so marking
+       it clobbered them, and the empty-iteration stop then resumed at that
+       instruction's `offset`, which for a backward SPLITNG is the body --
+       the repetition that was to stop re-entered instead, and grew the
+       stack to the limit. */
+    if (in.op == RE_MATCH) break;
     if (in.op != RE_JMP && in.op != RE_SPLIT && in.op != RE_SPLITNG) continue;
     code[pc].a = 0;                /* this pass owns `a` on the edge opcodes */
     if (in.offset > pc) continue;  /* forward edge: alternation, not a loop */
-    if (!epsilon_path(code, in.offset, pc, seen, ++mark)) continue;
+    if (!epsilon_path(code, code_len, in.offset, pc, seen, ++mark)) continue;
     code[pc].a = 1;
     if (in.op == RE_JMP) {
       /* The head was passed earlier in this scan, so its mark stays. */
@@ -2954,6 +3225,150 @@ compute_first_set(const re_inst *code, uint32_t code_len,
   return set_bits < 96;  /* useful only if fewer than 75% of bytes match */
 }
 
+/* ---- subexpression calls -------------------------------------------------
+   The parse leaves a pattern with \g in it unfinished in three ways: an
+   RE_CALL may still carry a parked reference, no RE_CALL has anywhere to
+   jump, and a lookbehind holding one is unmeasured. resolve_calls() finishes
+   all three. */
+
+/* Measure the lookbehinds whose sub-pattern holds a call, which the parse
+   marked and left; see the lookbehind arm in compile_atom(). The walk is the
+   parse's own, now able to follow a call. */
+static void
+measure_deferred_lookbehinds(re_compiler *c)
+{
+  for (uint32_t pc = 0; pc + 1 < c->code_len; pc++) {
+    re_inst in = c->pat->code[pc];
+    if (in.op != RE_LOOKBEHIND && in.op != RE_NEG_LOOKBEHIND) continue;
+    if (c->pat->code[pc + 1].offset != 1) continue;
+    int fixed_chars = 0;
+    int fixed_len = compute_fixed_len(c, pc + 2, in.offset, &fixed_chars);
+    if (fixed_len < 0) {
+      compile_error(c, "invalid pattern in look-behind");
+    }
+    if (fixed_len > 255) {
+      compile_error(c, "lookbehind too long (max 255 bytes)");
+    }
+    c->pat->code[pc].a = (uint8_t)fixed_len;
+    c->pat->code[pc + 1].a = (uint8_t)fixed_chars;
+    c->pat->code[pc + 1].offset = 0;
+  }
+}
+
+/* Finish what the \g arm left: resolve the parked references, give every
+   called group's body its one entry and one exit, point every call at the
+   body it names, and measure the lookbehinds that waited. Runs once, after
+   the last instruction is emitted;
+   nothing moves code after it, which is what lets RE_CALL carry a code index
+   from here on (see op_holds_code_index()). */
+static void
+resolve_calls(re_compiler *c)
+{
+  const re_pending_call *pend = c->num_pending
+    ? (const re_pending_call*)RSTRING_PTR(c->pending_calls) : NULL;
+  uint32_t entry[RE_MAX_CAPTURES];
+  uint32_t called = 0;
+  uint32_t parsed_len = c->code_len;
+
+  /* Resolve the parked references. A name is read against the whole
+     pattern's definitions: a group written after the call is reachable, a
+     name two groups carry is refused where the call reads it, as CRuby
+     refuses it, and a number past the groups open at the call is checked
+     against the count the finished pattern reached. Every group number here
+     is under RE_MAX_CAPTURES: the numeric forms are refused in a pattern
+     that demotes plain groups, so the count they were checked against is
+     the capture count. */
+  for (uint32_t pc = 0; pc < parsed_len; pc++) {
+    re_inst *in = &c->pat->code[pc];
+    if (in->op != RE_CALL || in->a != RE_CALL_PENDING) continue;
+    const re_pending_call *r = &pend[in->offset];
+    const char *at = c->src + r->src_off;
+    if (r->kind == RE_PENDING_NUM) {
+      if (r->resolved > c->num_groups) {
+        compile_error_str(c, mrb_format(c->mrb, "undefined group <%l> reference",
+                                        at, (size_t)r->len));
+      }
+      in->a = (uint8_t)r->resolved;
+    }
+    else {
+      int group = -1;
+      int defs = 0;
+      for (uint16_t i = 0; i < c->num_named; i++) {
+        if (c->pat->named_captures[i].name_len == r->len &&
+            memcmp(c->pat->named_captures[i].name, at, r->len) == 0) {
+          group = c->pat->named_captures[i].group;
+          defs++;
+        }
+      }
+      if (defs == 0) {
+        compile_error_str(c, mrb_format(c->mrb, "undefined name <%l> reference",
+                                        at, (size_t)r->len));
+      }
+      if (defs > 1) {
+        compile_error_str(c, mrb_format(c->mrb, "multiplex definition name <%l> call",
+                                        at, (size_t)r->len));
+      }
+      in->a = (uint8_t)group;
+    }
+    in->offset = 0;
+  }
+
+  for (uint32_t pc = 0; pc < parsed_len; pc++) {
+    if (c->pat->code[pc].op == RE_CALL) {
+      called |= (uint32_t)1 << c->pat->code[pc].a;
+    }
+  }
+
+  /* Reroute every copy of every called group's body through the call
+     machinery, so the body has one entry and one exit however it is reached.
+     The inline SAVE pair becomes a jump out to a trampoline appended after
+     the pattern and the RE_RETURN that jumps back, so nothing here moves an
+     instruction and no jump into or around the group needs relocating: a
+     repetition's back edge still lands where the group begins, which is now
+     the jump out, and takes the same path the first iteration took. A
+     quantifier that copied the body leaves several pairs; each copy gets its
+     own trampoline, and the calls all run the first, the slots being shared
+     among the copies anyway. */
+  memset(entry, 0, sizeof(entry));
+  for (uint32_t pc = 0; pc < parsed_len; pc++) {
+    re_inst in = c->pat->code[pc];
+    uint16_t k;
+    if (in.op != RE_SAVE || (in.offset & 1)) continue;
+    k = in.offset / 2;
+    if (!((called >> k) & 1)) continue;
+    /* This copy's close: spans of one group never nest, so the next close
+       slot of the same group is this copy's. */
+    uint32_t close = pc + 1;
+    while (close < parsed_len &&
+           !(c->pat->code[close].op == RE_SAVE &&
+             c->pat->code[close].offset == (uint16_t)(k * 2 + 1))) {
+      close++;
+    }
+    mrb_assert(close < parsed_len);
+    {
+      uint32_t tramp = c->code_len;
+      emit(c, RE_CALL, (uint8_t)k, 0);  /* the entry index lands below */
+      emit(c, RE_JMP, 0, (uint16_t)(close + 1));
+      c->pat->code[pc].op = RE_JMP;
+      c->pat->code[pc].a = 0;
+      c->pat->code[pc].offset = (uint16_t)tramp;
+      c->pat->code[close].op = RE_RETURN;
+      c->pat->code[close].a = (uint8_t)k;
+      c->pat->code[close].offset = 0;
+      if (entry[k] == 0) entry[k] = pc + 1;  /* never 0: pc 0 is group 0's open */
+    }
+  }
+
+  /* Point every call, the trampolines' own included, at the body it runs. */
+  for (uint32_t pc = 0; pc < c->code_len; pc++) {
+    if (c->pat->code[pc].op != RE_CALL) continue;
+    mrb_assert(entry[c->pat->code[pc].a] != 0);
+    c->pat->code[pc].offset = (uint16_t)entry[c->pat->code[pc].a];
+  }
+
+  measure_deferred_lookbehinds(c);
+}
+
 void
 mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat,
                const char *pattern, mrb_int len, uint32_t flags)
@@ -2965,6 +3380,7 @@ mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat,
   c.pat = pat;
   c.orig = pattern;
   c.orig_end = pattern + len;
+  c.pending_calls = mrb_nil_value();  /* a zero fill is not a nil mrb_value */
 
   /* Both things the pre-pass removes, a (?#...) group and a `#` comment,
      are spelled with a '#', so a pattern without one is parsed as written.
@@ -3009,6 +3425,10 @@ mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat,
   /* group 0 end */
   emit(&c, RE_SAVE, 0, 1);
   emit(&c, RE_MATCH, 0, 0);
+
+  /* A pattern with \g in it is finished by resolve_calls(), which appends
+     the trampolines after the RE_MATCH just emitted; see there. */
+  if (c.has_call) resolve_calls(&c);
 
   /* code_len is the last field written, at the end of this function: the
      Regexp has been holding this pattern since before the compile started,

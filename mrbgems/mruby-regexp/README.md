@@ -36,6 +36,13 @@ simulation) with backtracking fallback.
 - `\k<name>`, `\k'name'` named backreferences
 - `\k<n>`, `\k'n'` numbered backreferences
 - `\k<-n>`, `\k'-n'` relative backreferences
+- `\g<name>`, `\g'name'` subexpression calls: the group's sub-pattern runs
+  again where the call stands, recursively when the call stands inside it,
+  so `(?<p>\((?:[^()]|\g<p>)*\))` matches balanced parentheses. `\g<n>` is
+  absolute, `\g<-n>` counts back over the groups already opened, `\g<+n>`
+  counts forward, and `\g<0>` is the whole pattern. The recursion depth is
+  bounded at match time by `MRB_REGEXP_STACK_LIMIT`, the call frames living
+  on the backtracking stack it counts
 - `(?=...)` positive lookahead
 - `(?!...)` negative lookahead
 - `(?<=...)` positive lookbehind (fixed-length only)
@@ -171,14 +178,16 @@ $&, $`, $', $+, $1, $2, ...       # read from $~ at the moment they are read
 The gem uses two execution engines:
 
 **Pike VM (NFA simulation)**: Used for patterns without
-backreferences, non-greedy quantifiers, lookaround or atomic groups.
-Guarantees O(pattern x text) time complexity, making it immune to
-ReDoS attacks.
+backreferences, non-greedy quantifiers, lookaround, atomic groups or
+subexpression calls. Guarantees O(pattern x text) time complexity, making it
+immune to ReDoS attacks.
 
 **Backtracking engine**: Used when patterns contain `\1`-`\9`
 backreferences, non-greedy quantifiers (`*?`, `+?`, `??`),
-lookaround assertions (`(?=...)`, `(?!...)`, `(?<=...)`, `(?<!...)`)
-or atomic groups (`(?>...)`). It backtracks on a stack of its own on the
+lookaround assertions (`(?=...)`, `(?!...)`, `(?<=...)`, `(?<!...)`),
+atomic groups (`(?>...)`) or subexpression calls (`\g<name>`), whose call
+frames the Pike VM's threads have no stack to hold -- a call declines the
+Pike path the way a backreference does. It backtracks on a stack of its own on the
 heap, so a search spends a constant amount of C stack however long the
 subject is. Bounded by a configurable step limit (`MRB_REGEXP_STEP_LIMIT`,
 default 1M) against excessive backtracking and by a stack limit
@@ -221,19 +230,37 @@ pattern analysis.
   A collating element (`[[.a.]]`), an equivalence class (`[[=a=]]`) and a
   class nested in this one (`[[a][b]]`) each raise `RegexpError`. Write
   `[\[]` for the bracket itself, which is the spelling CRuby wants too.
-- **No `\G`, `\K`, `\R`, `\X` or `\g<name>`**: the search-start anchor, the
-  match-start reset, the linebreak, the grapheme cluster and the subexpression
-  call all raise `RegexpError` rather than standing for their own letter.
-  Inside a character class CRuby reads each as the letter, and so does this;
-  a bare `\g` is the letter either way.
+- **No `\G`, `\K`, `\R` or `\X`**: the search-start anchor, the match-start
+  reset, the linebreak and the grapheme cluster all raise `RegexpError`
+  rather than standing for their own letter. Inside a character class CRuby
+  reads each as the letter, and so does this; a bare `\g`, which calls a
+  group only with a `<name>` or `'name'` after it, is the letter either way.
 - **No nest level on a backreference**: `\k<name+n>` and `\k<name-n>` read the
-  group as the enclosing recursion left it `n` levels up, which goes with the
-  subexpression call above, so they raise `RegexpError` too. The level starts
-  at the first `+` or `-` past the name's first byte, in CRuby as here, which
-  leaves a group whose name holds one out of every reference's reach:
-  `(?<a-1>x)` names a group in both, and `\k<a-1>` reaches it in neither. The
-  first byte is the relative form's sign, so `\k<-1>` is still the group one
-  back.
+  group as the enclosing recursion left it `n` levels up, which asks for a
+  capture memory per call level where this engine keeps one flat slot per
+  group, so they raise `RegexpError`. A plain `\k<name>` still works inside a
+  recursion: it reads the pair the innermost completed invocation left, and
+  reads the group as unmatched inside an invocation no inner one has
+  completed within, which are CRuby's answers for the same shapes. The level
+  starts at the first `+`
+  or `-` past the name's first byte, in CRuby as here, which leaves a group
+  whose name holds one out of a backreference's reach: `(?<a-1>x)` names a
+  group in both, and `\k<a-1>` reaches it in neither, though `\g<a-1>`, a
+  call taking no level, reaches it in both. The first byte is the relative
+  form's sign, so `\k<-1>` is still the group one back.
+- **A call in a lookbehind must still be fixed-length**: `(?<=\g<a>)` runs
+  where the group's body is fixed-length, and raises the lookbehind's own
+  `lookbehind must be fixed length` where it is not -- recursion included --
+  where CRuby says `invalid pattern in look-behind`.
+- **An empty iteration ends a repeat around a call too**: an iteration that
+  matched empty ends the repetition and keeps what it captured, which is the
+  rule every inline repeat here follows, and a repeat whose body runs
+  through a called group follows it unchanged. Onigmo switches such repeats
+  to a capture-tracking empty check that can lose matches its own inline
+  rule finds: `/((?<g1>|){2}b){2}\g<g1>{0}/` answers nil in CRuby although
+  the dead call never runs, and `/(?<g1>)b\g<g1>{1,3}?/` answers nil where
+  its greedy spelling matches `"b"`. This engine answers every such pattern
+  as the call-free spelling does.
 - **No character class intersection**: `[a&&b]` narrows a class to what both
   sides hold in CRuby, and raises `RegexpError` here. A lone `&` is a member
   of the class, as it is in CRuby, and so is an escaped one: `[\&&]` holds
