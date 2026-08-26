@@ -1677,6 +1677,19 @@ assert("Regexp - an atomic group the parser refuses") do
   assert_raise(RegexpError) { Regexp.new("(?<=(?>a))b") }
 end
 
+assert("Regexp - a lookbehind body of no fixed width says which it was") do
+  # This engine rewinds a lookbehind by a width it measures at compile
+  # time, so a body that has none is refused. CRuby refuses the same
+  # bodies, and what it says of them is `invalid pattern in look-behind`.
+  ["(?<=a+)b", "(?<=a*)b", "(?<=a?)b", "(?<=a{1,2})b", "(?<!a+)b",
+   "(?<=(?>a))b"].each do |src|
+    assert_raise_with_message(RegexpError,
+                              "invalid pattern in look-behind: /#{src}/", src) do
+      Regexp.new(src)
+    end
+  end
+end
+
 assert("Regexp - a named group makes plain groups non-capturing") do
   # Onigmo's ONIG_OPTION_DONT_CAPTURE_GROUP, which CRuby turns on once the
   # pattern declares a named group: (...) then groups without capturing.
