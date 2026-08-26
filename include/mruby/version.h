@@ -8,6 +8,7 @@
 #define MRUBY_VERSION_H
 
 #include "common.h"
+#include "platform.h"
 
 /**
  * mruby version definition macros

@@ -29,6 +29,7 @@ mrb_init_version(mrb_state* mrb)
   mrb_define_global_const(mrb, "RUBY_ENGINE", mrb_str_new_lit(mrb, MRUBY_RUBY_ENGINE));
   mrb_define_global_const(mrb, "RUBY_ENGINE_VERSION", mruby_version);
   mrb_define_global_const(mrb, "MRUBY_VERSION", mruby_version);
+  mrb_define_global_const(mrb, "MRUBY_PLATFORM", mrb_str_new_lit_frozen(mrb, MRUBY_PLATFORM));
   mrb_define_global_const(mrb, "MRUBY_RELEASE_NO", mrb_fixnum_value(MRUBY_RELEASE_NO));
   mrb_define_global_const(mrb, "MRUBY_RELEASE_DATE", mrb_str_new_lit(mrb, MRUBY_RELEASE_DATE));
   mrb_define_global_const(mrb, "MRUBY_REVISION", mrb_str_new_lit_frozen(mrb, MRUBY_FULL_REVISION));
