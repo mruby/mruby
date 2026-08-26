@@ -1154,7 +1154,7 @@ assert("Regexp - comment groups (?#...)") do
   assert_raise(RegexpError) { Regexp.new("x(?#a(?#b))y") }
 
   # An unterminated group raises rather than swallowing the rest.
-  assert_raise_with_message(RegexpError, "unterminated comment group: /a(?#note/") do
+  assert_raise_with_message(RegexpError, "end pattern in group: /a(?#note/") do
     Regexp.new("a(?#note")
   end
 
@@ -1232,7 +1232,7 @@ assert("Regexp extended mode (x flag)") do
   re = Regexp.new("a (?#note) b # tail\nc", Regexp::EXTENDED)
   assert_true re.match?("abc")
 
-  assert_raise_with_message(RegexpError, "unterminated comment group: /a (?#note/x") do
+  assert_raise_with_message(RegexpError, "end pattern in group: /a (?#note/x") do
     Regexp.new("a (?#note", Regexp::EXTENDED)
   end
 
@@ -1531,6 +1531,31 @@ assert("Regexp - a ')' that closes no group says which it was") do
                               "unmatched close parenthesis: /#{src}/", src) do
       Regexp.new(src)
     end
+  end
+end
+
+assert("Regexp - a (?...) prefix the pattern ends inside says which it was") do
+  # `(?` opens a group the characters after it name. A pattern that ends
+  # before they do is `end pattern in group` in CRuby, whether what stands
+  # there is nothing at all, an option letter, or a comment group.
+  ["(?", "(?i", "(?im", "(?i-", "(?-", "(?#", "(?#note"].each do |src|
+    assert_raise_with_message(RegexpError, "end pattern in group: /#{src}/", src) do
+      Regexp.new(src)
+    end
+  end
+  # A character that names no group is that failure rather than this one,
+  # whether or not the pattern goes on.
+  ["(?z", "(?z)"].each do |src|
+    assert_raise_with_message(RegexpError, "undefined (?...) sequence: /#{src}/", src) do
+      Regexp.new(src)
+    end
+  end
+  # `(?<` is the prefix CRuby answers for with the group instead: it ends
+  # before the character that tells a lookbehind from a named group, and
+  # both of those are a group that never closes.
+  assert_raise_with_message(RegexpError,
+                            "end pattern with unmatched parenthesis: /(?</") do
+    Regexp.new("(?<")
   end
 end
 
