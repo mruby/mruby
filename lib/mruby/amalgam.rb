@@ -979,7 +979,7 @@ module MRuby
     def mruby_header?(header)
       # Check if this is an mruby header that should be inlined/transformed
       header == "mruby.h" || header.start_with?("mruby/") ||
-        %w[mrbconf.h boxing_nan.h boxing_word.h boxing_no.h common.h object.h value_array.h].include?(header)
+        %w[mrbconf.h boxing_nan.h boxing_word.h boxing_no.h common.h object.h platform.h value_array.h].include?(header)
     end
 
     def inline_header(header)
