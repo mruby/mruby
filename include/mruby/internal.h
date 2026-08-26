@@ -133,6 +133,9 @@ mrb_value mrb_rational_sub(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_rational_mul(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_rational_div(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_as_rational(mrb_state *mrb, mrb_value x);
+mrb_value mrb_rational_canonicalize(mrb_state *mrb, mrb_value x);
+mrb_bool mrb_rational_eq(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_value mrb_rational_hash(mrb_state *mrb, mrb_value rat);
 void mrb_rational_copy(mrb_state *mrb, mrb_value x, mrb_value y);
 int mrb_rational_mark(mrb_state *mrb, struct RBasic *rat);
 #endif
