@@ -1659,8 +1659,15 @@ compile_atom(re_compiler *c)
             }
             next_char(c);
           }
-          if (peek(c) != close) compile_error(c, "unterminated named capture");
+          /* A name the pattern ends before the delimiter of is the same
+             `invalid group name` as one a ')' ended, quoted the same way,
+             and an empty one is empty whether or not it was ever closed:
+             (?'  and (?<>x) answer alike, as they do in CRuby. */
           if (c->p == cap_name) compile_error(c, "group name is empty");
+          if (peek(c) != close) {
+            compile_error_str(c, mrb_format(c->mrb, "invalid group name <%l>",
+                                            cap_name, (size_t)(c->p - cap_name)));
+          }
           /* A definition names a group, it never numbers one: CRuby reads a
              leading digit or '-' as the number spelling, which only a
              reference may use, and refuses it here. Everything after the first
@@ -1898,8 +1905,17 @@ compile_atom(re_compiler *c)
         }
         next_char(c);
       }
-      if (peek(c) != close) compile_error(c, "unterminated backreference name");
+      /* The end of the pattern ends the name the way a ')' does; see the
+         definition side for the pair. */
       if (c->p == name) compile_error(c, "group name is empty");
+      /* A pattern that ends inside the name never closed it, so what was read
+         is not a name to look up: it is quoted back as the malformed one it
+         is. This comes before the level check below because an unclosed name
+         is not a level either. */
+      if (peek(c) != close) {
+        compile_error_str(c, mrb_format(c->mrb, "invalid group name <%l>",
+                                        name, (size_t)(c->p - name)));
+      }
       uint32_t name_len = (uint32_t)(c->p - name);
 
       /* A `+` or `-` past the first byte ends a \k name and opens a nest

@@ -2264,6 +2264,27 @@ assert("Regexp - a nest level on a \\k reference is refused") do
   end
 end
 
+assert("Regexp - a name the pattern ends inside says which it was") do
+  # A name the pattern ends before the delimiter of is `invalid group name`
+  # in CRuby, quoted as far as the scan got, and a name that never began is
+  # the empty one. Both spellings of a definition and both of a reference
+  # read the name the same way.
+  {
+    "(?<a" => "invalid group name <a>",
+    "(?'a" => "invalid group name <a>",
+    "(?<ab" => "invalid group name <ab>",
+    "(?'" => "group name is empty",
+    "(a)\\k<b" => "invalid group name <b>",
+    "(a)\\k'b" => "invalid group name <b>",
+    "(a)\\k<" => "group name is empty",
+    "(a)\\k'" => "group name is empty",
+  }.each do |src, msg|
+    assert_raise_with_message(RegexpError, "#{msg}: /#{src}/", src) do
+      Regexp.new(src)
+    end
+  end
+end
+
 assert("Regexp - a group name may not be a number") do
   # A definition names a group, it never numbers one: the number spelling
   # belongs to a reference, and CRuby refuses a leading digit or `-` where a
