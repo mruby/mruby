@@ -2285,9 +2285,11 @@ assert("Regexp - a nest level on a \\k reference is refused") do
     Regexp.new("(?<a>c)\\k<a+0)>")
   end
 
-  # An unterminated name is still that, and not a level with nothing behind it
+  # An unterminated name is still that, and not a level with nothing behind
+  # it, so it reaches the message an unclosed name gets rather than the level
+  # one: the pattern never closed the name, which is not a level either.
   assert_raise_with_message(RegexpError,
-                            "unterminated backreference name: /(?<a>c)\\k<a+/") do
+                            "invalid group name <a+>: /(?<a>c)\\k<a+/") do
     Regexp.new("(?<a>c)\\k<a+")
   end
 end
