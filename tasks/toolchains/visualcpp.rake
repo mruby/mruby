@@ -12,6 +12,9 @@ MRuby::Toolchain.new(:visualcpp) do |conf, _params|
     compiler.internal_defines |= %w(MRB_STACK_EXTEND_DOUBLING)
     compiler.option_include_path = %q[/I"%s"]
     compiler.option_define = '/D%s'
+    # `cl` has no counterpart of `-ffile-prefix-map`: it writes the path it
+    # is given, and `/d1trimfile` only takes a prefix off `__FILE__`.
+    compiler.option_file_prefix_map = nil
     compiler.compile_options = %Q[/Zi /c /Fo"%{outfile}" %{flags} "%{infile}"]
     compiler.preprocess_options = %Q[/EP %{flags} "%{infile}" > "%{outfile}"]
     compiler.cxx_compile_flag = '/TP'

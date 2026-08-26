@@ -35,6 +35,10 @@ module MRuby
   end
 
   class Command::Compiler < Command
+    # The answers `file_prefix_map?` has had from the commands it asked,
+    # which are the same from one compiler to the next.
+    FILE_PREFIX_MAP_SUPPORT = {}
+
     attr_accessor :label, :flags, :include_paths, :defines, :source_exts
     # Defines are held in two lists, split by who asked for them. `defines` is
     # what the build config and the gems write. `internal_defines` is what the
@@ -44,6 +48,11 @@ module MRuby
     # the config already wrote, and lets a caller ask for one list alone.
     attr_accessor :internal_defines
     attr_accessor :compile_options, :option_define, :option_include_path, :out_ext
+    # The directories the compiler writes another name for, as `from => to`,
+    # and the option that spells that to it. They are kept out of `flags`
+    # because they name directories of the machine the build runs on, which
+    # the flags a package exports are asked not to carry.
+    attr_accessor :file_prefix_maps, :option_file_prefix_map
     attr_accessor :cxx_compile_flag, :cxx_exception_flag, :cxx_invalid_flags
     attr_writer :preprocess_options
 
@@ -58,6 +67,8 @@ module MRuby
       @internal_defines = []
       @option_include_path = %q[-I"%s"]
       @option_define = %q[-D"%s"]
+      @file_prefix_maps = {}
+      @option_file_prefix_map = %q[-ffile-prefix-map="%s=%s"]
       @compile_options = %q[%{flags} -o "%{outfile}" -c "%{infile}"]
       @cxx_invalid_flags = []
       @out_ext = build.exts.object
@@ -81,6 +92,36 @@ module MRuby
         .any? {|d| d.to_s.split('=', 2).first == name}
     end
 
+    # The flags that have this compiler write the names in `file_prefix_maps`
+    # in place of the directories they stand for, wherever it writes a path of
+    # its own: in `__FILE__`, and in the debug information. Empty where this
+    # compiler cannot map a path at all, and the paths it writes stand as they
+    # are.
+    def file_prefix_map_flags
+      return [] if file_prefix_maps.empty? || !file_prefix_map?
+      file_prefix_maps.map {|from, to| option_file_prefix_map % [filename(from), to]}
+    end
+
+    # Whether this compiler can map a path, which is two questions: whether
+    # the toolchain spells such an option at all, and whether the command it
+    # names knows the one it spells. The second is asked of the command,
+    # since a toolchain stands for a family of compilers and the flag is not
+    # in the older ones: `-ffile-prefix-map` arrived in GCC 8 and in clang
+    # 10. A command that answers no is compiled with as it always was, so a
+    # build that used to work is not broken by a map it never asked for.
+    #
+    # The answer is kept per command line, since a build has four compilers
+    # and a config has several builds, and they name few commands between
+    # them.
+    def file_prefix_map?
+      return false unless option_file_prefix_map
+      probe = "#{build.filename(command)} #{option_file_prefix_map % ['/mruby', '.']}"
+      FILE_PREFIX_MAP_SUPPORT.fetch(probe) do
+        `echo | #{probe} -E - 2>&1`
+        FILE_PREFIX_MAP_SUPPORT[probe] = $?.exitstatus == 0
+      end
+    end
+
     def search_header_path(name)
       header_search_paths.find do |v|
         File.exist? build.filename("#{v}/#{name}").sub(/^"(.*)"$/, '\1')
@@ -98,7 +139,7 @@ module MRuby
       include_path_flags = [include_paths, _include_paths].flatten.map do |f|
         option_include_path % filename(f)
       end
-      [flags, define_flags, include_path_flags, _flags].flatten.join(' ')
+      [flags, file_prefix_map_flags, define_flags, include_path_flags, _flags].flatten.join(' ')
     end
 
     def run(outfile, infile, _defines=[], _include_paths=[], _flags=[])
