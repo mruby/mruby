@@ -1886,8 +1886,39 @@ compile_atom(re_compiler *c)
       }
       if (peek(c) != close) compile_error(c, "unterminated backreference name");
       if (c->p == name) compile_error(c, "group name is empty");
-      if (!RE_NAME_LEN_FITS(c->p - name)) compile_error(c, "group name too long");
       uint32_t name_len = (uint32_t)(c->p - name);
+
+      /* A `+` or `-` past the first byte ends a \k name and opens a nest
+         level: `\k<name+n>` reads the group as the enclosing recursion left
+         it n levels up, which is a feature of the subexpression calls this
+         engine refuses (see `\g` below), so the reference is refused with it.
+         The first byte is exempt because that is where the relative form's
+         sign stands: `\k<-1>` is the group one back, and `\k<-1-1>` is that
+         group at a level. Reading the sign as part of the name instead let a
+         reference reach a group CRuby's own numbering puts out of reach, since
+         a definition takes the sign into the name where a reference never
+         does: `(?<a-1>x)\k<a-1>` matched here and is `undefined name <a>`
+         there. Only digits stand behind the sign, so a level CRuby itself
+         refuses is a malformed name here as it is there, `\k<a+>` and
+         `\k<a+1x>` reaching the message the rest of this arm gives one. The
+         name is quoted as it was read; CRuby quotes it to the end of the
+         pattern instead, the way it does for every name its own scan ended.
+         The whole check comes before the length one below because the sign is
+         where the name ends, so a name long enough to fail that one is a
+         level first. */
+      uint32_t sign = 1;
+      while (sign < name_len && name[sign] != '+' && name[sign] != '-') sign++;
+      if (sign < name_len) {
+        mrb_bool numeric = (sign + 1 < name_len);
+        for (uint32_t i = sign + 1; numeric && i < name_len; i++) {
+          if (name[i] < '0' || name[i] > '9') numeric = FALSE;
+        }
+        if (numeric) compile_error(c, "backreference with nest level is not supported");
+        compile_error_str(c, mrb_format(c->mrb, "invalid group name <%l>",
+                                        name, (size_t)name_len));
+      }
+
+      if (!RE_NAME_LEN_FITS(name_len)) compile_error(c, "group name too long");
       next_char(c);  /* skip the closing > or ' */
 
       int group = -1;

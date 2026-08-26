@@ -226,6 +226,14 @@ pattern analysis.
   call all raise `RegexpError` rather than standing for their own letter.
   Inside a character class CRuby reads each as the letter, and so does this;
   a bare `\g` is the letter either way.
+- **No nest level on a backreference**: `\k<name+n>` and `\k<name-n>` read the
+  group as the enclosing recursion left it `n` levels up, which goes with the
+  subexpression call above, so they raise `RegexpError` too. The level starts
+  at the first `+` or `-` past the name's first byte, in CRuby as here, which
+  leaves a group whose name holds one out of every reference's reach:
+  `(?<a-1>x)` names a group in both, and `\k<a-1>` reaches it in neither. The
+  first byte is the relative form's sign, so `\k<-1>` is still the group one
+  back.
 - **No character class intersection**: `[a&&b]` narrows a class to what both
   sides hold in CRuby, and raises `RegexpError` here. A lone `&` is a member
   of the class, as it is in CRuby, and so is an escaped one: `[\&&]` holds

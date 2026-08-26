@@ -2109,6 +2109,77 @@ assert("Regexp - a \\k reference reads leading zeros as digits") do
   assert_equal "aa", "aa".match(Regexp.new("(a)\\k<-01>"))[0]
 end
 
+assert("Regexp - a nest level on a \\k reference is refused") do
+  need_backtracking_stack
+  # `\k<name+n>` reads the group as the enclosing recursion left it n levels
+  # up, which goes with the `\g` subexpression call this engine refuses. Taking
+  # the sign into the name made each a name no group carried, so
+  # /(?<a>c)\k<a+0>/ raised `undefined name <a+0> reference` where CRuby
+  # matched "cc".
+  msg = "backreference with nest level is not supported"
+  assert_raise_with_message(RegexpError, "#{msg}: /(?<a>c)\\k<a+0>/") do
+    Regexp.new("(?<a>c)\\k<a+0>")
+  end
+  ["(?<a>c)\\k<a-1>", "(?<a>c)\\k'a+0'", "(c)\\k<1+0>", "(c)\\k<1-1>",
+   "(?<a>c)\\k<a+007>"].each do |src|
+    assert_raise(RegexpError, src) { Regexp.new(src) }
+  end
+
+  # The first byte is exempt: that is where the relative form's sign stands,
+  # and the level of a relative reference comes after its digits
+  assert_equal "aa", "aa".match(Regexp.new("(a)\\k<-1>"))[0]
+  assert_raise_with_message(RegexpError, "#{msg}: /(a)\\k<-1-1>/") do
+    Regexp.new("(a)\\k<-1-1>")
+  end
+
+  # A definition takes the sign into the name where a reference never does, so
+  # a group whose name holds one is out of every reference's reach, here as in
+  # CRuby. Reading it as a name let /(?<a-1>c)\k<a-1>/ match where CRuby
+  # raised.
+  assert_equal "a-1", Regexp.new("(?<a-1>c)").names[0]
+  assert_raise_with_message(RegexpError, "#{msg}: /(?<a-1>c)\\k<a-1>/") do
+    Regexp.new("(?<a-1>c)\\k<a-1>")
+  end
+
+  # Only digits stand behind the sign, so a level CRuby itself refuses is a
+  # malformed name here as it is there. The name is quoted as it was read,
+  # where CRuby quotes it to the end of the pattern.
+  bad = "invalid group name"
+  assert_raise_with_message(RegexpError,
+                            "#{bad} <a-b>: /(?<a-b>c)\\k<a-b>/") do
+    Regexp.new("(?<a-b>c)\\k<a-b>")
+  end
+  assert_raise_with_message(RegexpError,
+                            "#{bad} <a+>: /(?<a>c)\\k<a+>x/") do
+    Regexp.new("(?<a>c)\\k<a+>x")
+  end
+  assert_raise_with_message(RegexpError,
+                            "#{bad} <a+0+0>: /(?<a>c)\\k<a+0+0>/") do
+    Regexp.new("(?<a>c)\\k<a+0+0>")
+  end
+  # quoted in <> whichever delimiter wrote it, as the rest of this arm is
+  assert_raise_with_message(RegexpError,
+                            "#{bad} <a+>: /(?<a>c)\\k'a+'/") do
+    Regexp.new("(?<a>c)\\k'a+'")
+  end
+
+  # A `)` still ends the name first, whichever side of the sign it falls
+  assert_raise_with_message(RegexpError,
+                            "invalid group name <a)b+0>>: /(?<a>c)\\k<a)b+0>/") do
+    Regexp.new("(?<a>c)\\k<a)b+0>")
+  end
+  assert_raise_with_message(RegexpError,
+                            "invalid group name <a+0)>>: /(?<a>c)\\k<a+0)>/") do
+    Regexp.new("(?<a>c)\\k<a+0)>")
+  end
+
+  # An unterminated name is still that, and not a level with nothing behind it
+  assert_raise_with_message(RegexpError,
+                            "unterminated backreference name: /(?<a>c)\\k<a+/") do
+    Regexp.new("(?<a>c)\\k<a+")
+  end
+end
+
 assert("Regexp - a group name may not be a number") do
   # A definition names a group, it never numbers one: the number spelling
   # belongs to a reference, and CRuby refuses a leading digit or `-` where a
