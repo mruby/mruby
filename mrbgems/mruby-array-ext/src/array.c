@@ -1777,6 +1777,43 @@ ary_min(mrb_state *mrb, mrb_value self)
   return ary_max_min(mrb, self, -1);
 }
 
+/*
+ *  call-seq:
+ *     array.include?(obj) -> true or false
+ *     array.member?(obj)  -> true or false
+ *
+ *  Returns `true` if the array holds an element equal to `obj`.
+ *
+ *  This is an optimized version of `Enumerable#include?` for arrays: the walk
+ *  is made in C, and the pair is compared with `mrb_equal()`, which is what
+ *  `Array#index` and `#delete` search with and what `a == b` reaches through
+ *  `OP_EQ`.
+ *
+ *     [1, 2, 3].include?(2)   #=> true
+ *     [1, 2, 3].include?(4)   #=> false
+ *
+ *  ISO 15.3.2.2.10, 15.3.2.2.15
+ */
+static mrb_value
+ary_include(mrb_state *mrb, mrb_value self)
+{
+  mrb_value obj = mrb_get_arg1(mrb);
+
+  /* `==` may run Ruby that grows or shrinks the array under us, so the length
+     and the pointer are read afresh each turn.
+
+     Nothing accumulates in the GC arena over the walk, which is why there is
+     no arena restore in it, as there is none in `Array#index`: what a call
+     leaves behind is its return value, and this walk returns at the first one
+     that is true. The answers it walks past are false, which is immediate. */
+  for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
+    if (mrb_equal(mrb, RARRAY_PTR(self)[i], obj)) {
+      return mrb_true_value();
+    }
+  }
+  return mrb_false_value();
+}
+
 static const mrb_mt_entry array_ext_rom_entries[] = {
   MRB_MT_ENTRY(ary_assoc,              MRB_SYM(assoc),              MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(ary_at,                 MRB_SYM(at),                 MRB_ARGS_REQ(1)),
@@ -1810,6 +1847,8 @@ static const mrb_mt_entry array_ext_rom_entries[] = {
   MRB_MT_ENTRY(ary_combination_next,   MRB_SYM(__combination_next), MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(ary_max,                MRB_SYM(__max),              MRB_ARGS_NONE()),
   MRB_MT_ENTRY(ary_min,                MRB_SYM(__min),              MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(ary_include,            MRB_SYM_Q(include),          MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(ary_include,            MRB_SYM_Q(member),           MRB_ARGS_REQ(1)),
 };
 
 void

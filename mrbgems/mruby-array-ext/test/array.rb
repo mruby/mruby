@@ -1014,3 +1014,40 @@ assert('Array#max, #min - a comparison that runs Ruby') do
   assert_kind_of cls, a.max
   assert_equal 0, a.size
 end
+
+assert('Array#include?, #member? - the walk made in C') do
+  # `Enumerable#include?` reaches an element through a call to `each`, a block
+  # call and a `__svalue` send, then compares it with `==`. An Array is walked
+  # in place instead, and the pair is compared with `mrb_equal()`, which is
+  # what `Array#index` and `#delete` search with.
+  assert_false [].include?(1)
+  assert_true [1, 2, 3].include?(1)      # the first element is reached
+  assert_true [1, 2, 3].include?(3)      # and so is the last
+  assert_false [1, 2, 3].include?(4)
+  assert_true [1, 2, 3].member?(2)
+  assert_false [1, 2, 3].member?(4)
+
+  assert_true ["a", "b"].include?("a")   # found by what it is equal to
+  assert_true [nil].include?(nil)
+  assert_true [false].include?(false)
+  assert_false [nil].include?(false)
+
+  # an element is taken for equal to itself before `==` is asked anything,
+  # which is how `#index` reads a pair
+  never = Class.new { def ==(other); false; end }.new
+  assert_true [never].include?(never)
+  assert_equal 0, [never].index(never)
+end
+
+assert('Array#include? - a comparison that runs Ruby') do
+  # `==` can run Ruby, which can empty the array being walked. The C walk
+  # reads the length and the pointer afresh each time round.
+  cls = Class.new do
+    def initialize(a); @a = a; end
+    def ==(o); @a.clear; false; end
+  end
+  a = [1, 2]
+  a << cls.new(a)
+  assert_false a.include?(:missing)
+  assert_equal 0, a.size
+end
