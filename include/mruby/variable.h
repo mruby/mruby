@@ -94,6 +94,23 @@ MRB_API void mrb_gv_set(mrb_state *mrb, mrb_sym sym, mrb_value val);
  */
 MRB_API void mrb_gv_remove(mrb_state *mrb, mrb_sym sym);
 
+/**
+ * Turn a global variable name into a virtual one: `mrb_gv_get()` and
+ * `mrb_gv_set()` on `sym` call `get` and `set` instead of touching the
+ * stored value, so a name whose semantics are not "one process-wide slot"
+ * (CRuby's `$~` is per method scope) can keep its global spelling. The
+ * dispatch lives behind a sentinel stored in the globals table itself, so
+ * the name stays defined and listed in `global_variables`, and an ordinary
+ * global pays one type test on access. `set` may raise; removing the name
+ * with `mrb_gv_remove()` removes the hook with it.
+ *
+ * @param mrb The mruby state reference
+ * @param sym The name of the global variable
+ * @param get Called to produce the variable's value
+ * @param set Called with the value assigned to the variable
+ */
+MRB_API void mrb_gv_define_virtual(mrb_state *mrb, mrb_sym sym, mrb_value (*get)(mrb_state*), void (*set)(mrb_state*, mrb_value));
+
 MRB_API mrb_value mrb_cv_get(mrb_state *mrb, mrb_value mod, mrb_sym sym);
 MRB_API void mrb_mod_cv_set(mrb_state *mrb, struct RClass * c, mrb_sym sym, mrb_value v);
 MRB_API void mrb_cv_set(mrb_state *mrb, mrb_value mod, mrb_sym sym, mrb_value v);
