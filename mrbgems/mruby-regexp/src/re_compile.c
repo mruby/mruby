@@ -1555,6 +1555,15 @@ compile_atom(re_compiler *c)
       const char *cap_name = NULL;
       uint32_t cap_name_len = 0;
 
+      /* `(?` and nothing more: the prefix that names which group this is
+         runs off the end of the pattern. It is reported here because what
+         the parser would otherwise be left with is a `?` standing where no
+         atom is, which compile_seq() reads as a quantifier with nothing to
+         repeat. */
+      if (peek(c) == '?' && c->p + 1 >= c->src_end) {
+        compile_error(c, "end pattern in group");
+      }
+
       if (peek(c) == '?' && c->p + 1 < c->src_end) {
         if (c->p[1] == ':') {
           next_char(c); next_char(c);  /* skip ?: */
@@ -1705,13 +1714,15 @@ compile_atom(re_compiler *c)
             return TRUE;
           }
           else {
+            if (peek(c) < 0) compile_error(c, "end pattern in group");
             compile_error(c, "undefined (?...) sequence");
           }
         }
         else if (c->p[1] == '#') {
           /* preprocess_pattern() removes a terminated comment group before
-             the parser runs, so one reaching here was never closed. */
-          compile_error(c, "unterminated comment group");
+             the parser runs, so one reaching here was never closed, which
+             is the pattern ending inside the prefix like any other. */
+          compile_error(c, "end pattern in group");
         }
         else {
           /* (?X) with an unsupported X: not one of the recognized (?: (?= (?!
@@ -1721,6 +1732,14 @@ compile_atom(re_compiler *c)
              conditionals (?(...)) are not implemented. Raise here rather
              than falling through to the capturing-group path, which would
              leave the stray `?` for compile_seq to spin on forever (A1). */
+          if (c->p[1] == '<') {
+            /* `(?<` and nothing more, the only way a '<' reaches here: the
+               pattern ends before the character that tells a lookbehind
+               from a named group. CRuby answers for the group that never
+               closes rather than for the prefix, which either reading
+               leaves open. */
+            compile_error(c, "end pattern with unmatched parenthesis");
+          }
           compile_error(c, "undefined (?...) sequence");
         }
       }
