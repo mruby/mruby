@@ -18,6 +18,7 @@
 #include <mruby.h>
 #include <mruby/class.h>
 #include <mruby/variable.h>
+#include <mruby/numeric.h>
 #include <mruby/string.h>
 #include "process_hal.h"
 #include "process_internal.h"
@@ -229,23 +230,86 @@ status_eq(mrb_state *mrb, mrb_value self)
 }
 
 /*
- * call-seq:
- *   Process::Status._signame(signo) -> string or nil
+ * Append a number to the description being built.
  *
- * The bare name this platform gives signal +signo+, without the "SIG"
- * prefix, or nil where the number names no signal.  Process::Status#to_s
- * uses it to spell a signal out; it is not a signal API of its own.
+ * CRuby writes this description into one buffer as it goes, and so does this.
+ * mrb_format() would be shorter to read, but it builds a String per piece and
+ * concatenates it, which costs an allocation for every number written; the
+ * buffer below is large enough for any mrb_int in base 10, sign included, so
+ * the conversion cannot fail.
+ */
+static void
+status_cat_int(mrb_state *mrb, mrb_value str, mrb_int n)
+{
+  char buf[MRB_INT_BIT / 3 + 3];
+
+  mrb_str_cat_cstr(mrb, str, mrb_int_to_cstr(buf, sizeof(buf), n, 10));
+}
+
+/*
+ * Spell a signal out the way Ruby does: " SIGKILL (signal 9)", or " signal 9"
+ * where this platform gives the number no name.  `lead` is what stands
+ * between the pid and the signal, which is " stopped" for a process that
+ * stopped and nothing for one that was killed.
+ */
+static void
+status_cat_signal(mrb_state *mrb, mrb_value str, const char *lead, mrb_int signo)
+{
+  const char *name = mrb_hal_signal_name(mrb, signo);
+
+  mrb_str_cat_cstr(mrb, str, lead);
+  if (name == NULL) {
+    mrb_str_cat_lit(mrb, str, " signal ");
+    status_cat_int(mrb, str, signo);
+    return;
+  }
+  mrb_str_cat_lit(mrb, str, " SIG");
+  mrb_str_cat_cstr(mrb, str, name);
+  mrb_str_cat_lit(mrb, str, " (signal ");
+  status_cat_int(mrb, str, signo);
+  mrb_str_cat_lit(mrb, str, ")");
+}
+
+/*
+ * call-seq:
+ *   status.to_s -> string
+ *
+ * A description of how the process finished:
+ *
+ *   pid 1234 exit 0
+ *   pid 1234 SIGKILL (signal 9)
+ *   pid 1234 SIGSEGV (signal 11) (core dumped)
+ *   pid 1234 stopped SIGSTOP (signal 19)
+ *
+ * A status the platform said nothing about is just "pid 1234".
  */
 static mrb_value
-status_s_signame(mrb_state *mrb, mrb_value self)
+status_to_s(mrb_state *mrb, mrb_value self)
 {
-  mrb_int signo;
-  const char *name;
+  mrb_process_status st;
+  mrb_value str;
 
-  mrb_get_args(mrb, "i", &signo);
-  name = mrb_hal_signal_name(mrb, signo);
-  if (name == NULL) return mrb_nil_value();
-  return mrb_str_new_cstr(mrb, name);
+  status_decode(mrb, self, &st);
+  str = mrb_str_new_lit(mrb, "pid ");
+  status_cat_int(mrb, str, st.pid);
+
+  /* Each part is asked about on its own, as CRuby asks, rather than in an
+     if/else chain: a port that reports two of them at once is then described
+     twice over instead of having all but the first dropped. */
+  if (st.flags & MRB_PROCESS_STATUS_STOPPED) {
+    status_cat_signal(mrb, str, " stopped", st.stopsig);
+  }
+  if (st.flags & MRB_PROCESS_STATUS_SIGNALED) {
+    status_cat_signal(mrb, str, "", st.termsig);
+  }
+  if (st.flags & MRB_PROCESS_STATUS_EXITED) {
+    mrb_str_cat_lit(mrb, str, " exit ");
+    status_cat_int(mrb, str, st.exitstatus);
+  }
+  if (st.flags & MRB_PROCESS_STATUS_COREDUMP) {
+    mrb_str_cat_lit(mrb, str, " (core dumped)");
+  }
+  return str;
 }
 
 mrb_value
@@ -267,11 +331,10 @@ mrb_process_status_init(mrb_state *mrb, struct RClass *process)
 
   status = mrb_define_class_under_id(mrb, process, MRB_SYM(Status), mrb->object_class);
 
-  mrb_define_class_method_id(mrb, status, MRB_SYM(_signame), status_s_signame, MRB_ARGS_REQ(1));
-
   mrb_define_method_id(mrb, status, MRB_SYM(initialize), status_initialize, MRB_ARGS_REQ(2));
   mrb_define_method_id(mrb, status, MRB_SYM(pid),        status_pid,        MRB_ARGS_NONE());
   mrb_define_method_id(mrb, status, MRB_SYM(to_i),       status_to_i,       MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, status, MRB_SYM(to_s),       status_to_s,       MRB_ARGS_NONE());
   mrb_define_method_id(mrb, status, MRB_SYM_Q(exited),   status_exited_p,   MRB_ARGS_NONE());
   mrb_define_method_id(mrb, status, MRB_SYM(exitstatus), status_exitstatus, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, status, MRB_SYM_Q(signaled), status_signaled_p, MRB_ARGS_NONE());

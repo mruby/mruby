@@ -178,11 +178,6 @@ kept separate from adding this gem.
 
 ## Deviations from CRuby
 
-- `Process::Status._signame` and `Process::Status._signal_description` are
-  internal helpers `Process::Status#to_s` uses to spell a signal number out.
-  They are not a signal API of their own: `Signal.signame` is the one to
-  call, and `_signame(0)` is nil rather than `"EXIT"`, since a status never
-  carries 0 as a signal.
 - `Process.kill` does not name a process group through the signal yet. A
   negative signal number, or a name written with a leading `-`, asks CRuby for
   the group of each pid given; here it raises `ArgumentError` rather than
