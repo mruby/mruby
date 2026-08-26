@@ -1918,23 +1918,33 @@ compile_atom(re_compiler *c)
                                           name, (size_t)name_len));
         }
 
-        /* CRuby rejects a numbered backreference in a named pattern whatever
-           its spelling, and it has to be rejected here too: once plain groups
-           stop consuming numbers, both the check after the parse, which
-           counts the demoted groups, and the relative form's `num_captures -
-           n` below would silently resolve to a different group instead of
-           erroring. */
-        if (c->dont_capture) {
-          compile_error(c, "numbered backref/call is not allowed. (use name)");
-        }
         if (relative) {
           /* `\k<-n>` counts back from where it stands, so the groups it can
              name are the ones already open; Onigmo resolves it the same way
-             (BACKREF_REL_TO_ABS) and refuses a relative forward reference. */
-          group = (int)c->num_captures - n;
+             (BACKREF_REL_TO_ABS) and refuses a relative forward reference.
+             The count is `num_groups` rather than `num_captures` because the
+             groups a named pattern demotes still count here, as they do
+             everywhere else the parse numbers a group; where nothing is
+             demoted the two agree, `num_groups` standing one below
+             `num_captures`, which counts group 0. The resolution comes before
+             the refusal below because CRuby reaches that refusal only once
+             the reference has resolved to a group the pattern has:
+             `(?<n>a)\k<-1>` is refused for being numbered, `(?<n>a)\k<-2>`
+             is out of range instead. */
+          group = (int)c->num_groups + 1 - n;
           if (group < 1) compile_error(c, "invalid backref number/name");
         }
-        else {
+
+        /* CRuby rejects a numbered backreference in a named pattern whatever
+           its spelling, and it has to be rejected here too: once plain groups
+           stop consuming numbers, the check after the parse, which counts the
+           demoted groups, would silently accept a number naming a group that
+           no longer carries it. */
+        if (c->dont_capture) {
+          compile_error(c, "numbered backref/call is not allowed. (use name)");
+        }
+
+        if (!relative) {
           /* The absolute form may name a group written later, `\k<1>(a)`
              being as valid in CRuby as `\1(a)` is, so the number is only
              recorded here and mrb_re_compile() checks it against the

@@ -1954,6 +1954,12 @@ assert("Regexp - a \\k reference names a group the pattern has") do
   assert_raise_with_message(RegexpError, "#{msg}: /(a)(?<b>b)\\k<-1>/") do
     Regexp.new("(a)(?<b>b)\\k<-1>")
   end
+  # the relative form resolves against every group the pattern has opened, the
+  # plain ones it demotes included, so this one names group 1 and is refused
+  # for being numbered rather than for naming no group
+  assert_raise_with_message(RegexpError, "#{msg}: /(a)(?<b>b)\\k<-2>/") do
+    Regexp.new("(a)(?<b>b)\\k<-2>")
+  end
   assert_raise(RegexpError) { Regexp.new("(?<b>b)\\k'1'") }
 end
 
@@ -2033,6 +2039,10 @@ assert("Regexp - \\k group reference errors say which failure it was") do
   assert_raise_with_message(RegexpError, "#{msg}: /(a)(b)\\k<-3>/") do
     Regexp.new("(a)(b)\\k<-3>")
   end
+  # a pattern that has opened no group at all
+  assert_raise_with_message(RegexpError, "#{msg}: /\\k<-1>/") do
+    Regexp.new("\\k<-1>")
+  end
 
   # a name no group carries
   assert_raise_with_message(RegexpError,
@@ -2065,6 +2075,16 @@ assert("Regexp - \\k group reference errors say which failure it was") do
   assert_raise_with_message(RegexpError,
                             "numbered backref/call is not allowed. (use name): /(a)(?<b>b)\\k<5>/") do
     Regexp.new("(a)(?<b>b)\\k<5>")
+  end
+  # the relative form is resolved before that refusal, so one past the groups
+  # the pattern has is out of range where an absolute one is refused: where an
+  # absolute reference points is only settled once the parse is done, and a
+  # relative one is settled where it stands
+  assert_raise_with_message(RegexpError, "#{msg}: /(?<b>b)\\k<-2>/") do
+    Regexp.new("(?<b>b)\\k<-2>")
+  end
+  assert_raise_with_message(RegexpError, "#{msg}: /(a)(?<b>b)\\k<-3>/") do
+    Regexp.new("(a)(?<b>b)\\k<-3>")
   end
 
   # The name is a length-counted slice of the pattern, so a name holding a NUL
