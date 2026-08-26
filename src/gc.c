@@ -1083,6 +1083,11 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
     children += mrb_rational_mark(mrb, obj);
     break;
 #endif
+#if defined(MRB_USE_COMPLEX) && !defined(MRB_COMPLEX_FLOAT_ONLY)
+  case MRB_TT_COMPLEX:
+    children += mrb_complex_mark(mrb, obj);
+    break;
+#endif
 #ifdef MRB_USE_SET
   case MRB_TT_SET:
     children += mrb_gc_mark_set(mrb, obj);
@@ -1117,7 +1122,8 @@ mrb_gc_mark(mrb_state *mrb, struct RBasic *obj)
 #ifdef MRB_USE_BIGINT
   case MRB_TT_BIGINT:
 #endif
-#ifdef MRB_USE_COMPLEX
+#if defined(MRB_USE_COMPLEX) && defined(MRB_COMPLEX_FLOAT_ONLY)
+  /* only a float-only complex is a leaf; otherwise a part may be an object */
   case MRB_TT_COMPLEX:
 #endif
     /* leaf types: no children besides class */
@@ -1250,7 +1256,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj, mrb_bool end)
     break;
 #endif
 
-#if defined(MRB_USE_COMPLEX) && defined(MRB_32BIT) && !defined(MRB_USE_FLOAT32)
+#if defined(MRB_USE_COMPLEX) && defined(MRB_COMPLEX_INDIRECT)
   case MRB_TT_COMPLEX:
     {
       struct RData *o = (struct RData*)obj;

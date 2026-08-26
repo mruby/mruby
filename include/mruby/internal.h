@@ -119,12 +119,27 @@ mrb_int mrb_int_float_cmp(mrb_int x, mrb_float y);
 #endif
 
 #ifdef MRB_USE_COMPLEX
+/* struct mrb_complex sits beside the object header where it fits in the
+   slot, and behind one pointer where it does not.  Which of the two a build
+   gets is also what obj_free() must know to free that pointer, so the
+   condition lives here, visible to both gc.c and the gem.  Without
+   MRB_COMPLEX_FLOAT_ONLY a part is an mrb_value, which is wider than an
+   mrb_float wherever a value carries its type tag beside the payload, so
+   an unboxed build overflows the slot that its two floats used to fit. */
+#if (defined(MRB_32BIT) && !defined(MRB_USE_FLOAT32)) || \
+    (!defined(MRB_COMPLEX_FLOAT_ONLY) && defined(MRB_NO_BOXING))
+#define MRB_COMPLEX_INDIRECT
+#endif
 mrb_value mrb_complex_new(mrb_state *mrb, mrb_float x, mrb_float y);
 mrb_value mrb_complex_add(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_complex_sub(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_complex_mul(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_complex_div(mrb_state *mrb, mrb_value x, mrb_value y);
 void mrb_complex_copy(mrb_state *mrb, mrb_value x, mrb_value y);
+#ifndef MRB_COMPLEX_FLOAT_ONLY
+mrb_value mrb_complex_new_value(mrb_state *mrb, mrb_value real, mrb_value imaginary);
+int mrb_complex_mark(mrb_state *mrb, struct RBasic *comp);
+#endif
 #endif
 #ifdef MRB_USE_RATIONAL
 mrb_value mrb_rational_new(mrb_state *mrb, mrb_int x, mrb_int y);
@@ -133,6 +148,9 @@ mrb_value mrb_rational_sub(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_rational_mul(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_rational_div(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_as_rational(mrb_state *mrb, mrb_value x);
+mrb_value mrb_rational_canonicalize(mrb_state *mrb, mrb_value x);
+mrb_bool mrb_rational_eq(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_value mrb_rational_hash(mrb_state *mrb, mrb_value rat);
 void mrb_rational_copy(mrb_state *mrb, mrb_value x, mrb_value y);
 int mrb_rational_mark(mrb_state *mrb, struct RBasic *rat);
 #endif

@@ -324,6 +324,30 @@ mrb_rational_new(mrb_state *mrb, mrb_int nume, mrb_int deno)
 
 #define rational_new_i(mrb,n,d) mrb_rational_new(mrb, n, d)
 
+/* (n/1) is the Integer n to the callers that hand a Rational back to the
+   rest of the tower, such as an exact Complex division; every other value
+   passes through untouched.  The denominator is 1 and not -1 or 0 here,
+   because both constructors move the sign onto the numerator and refuse a
+   zero denominator. */
+mrb_value
+mrb_rational_canonicalize(mrb_state *mrb, mrb_value x)
+{
+  if (mrb_type(x) != MRB_TT_RATIONAL) return x;
+  struct mrb_rational *p = rat_ptr(mrb, x);
+#ifdef RAT_BIGINT
+  if (RAT_BIGINT_P(x)) {
+    if (mrb_bint_cmp(mrb, mrb_obj_value(p->b.den), mrb_int_value(mrb, 1)) != 0) {
+      return x;
+    }
+    /* rational_new_b() demotes a half that fits an mrb_int, so a bigint
+       numerator beside a denominator of 1 is a value only a Bigint holds */
+    return mrb_obj_value(p->b.num);
+  }
+#endif
+  if (p->denominator != 1) return x;
+  return mrb_int_value(mrb, p->numerator);
+}
+
 #ifndef MRB_NO_FLOAT
 
 #if defined(MRB_INT32) || defined(MRB_USE_FLOAT32)
@@ -551,6 +575,13 @@ rational_new(mrb_state *mrb, mrb_value a, mrb_value b)
     return rational_new_b(mrb, mrb_as_bint(mrb, a), b);
   }
 #endif
+  else if ((mrb_type(a) == MRB_TT_RATIONAL || mrb_type(b) == MRB_TT_RATIONAL) &&
+           !mrb_float_p(a) && !mrb_float_p(b)) {
+    /* Rational(a, b) is a/b, and with a Rational among exact operands the
+       quotient is exact; the Float arm below would round it through a
+       division of two doubles. */
+    return mrb_rational_div(mrb, mrb_as_rational(mrb, a), b);
+  }
   else {
     mrb_float x = mrb_as_float(mrb, a);
     mrb_float y = mrb_as_float(mrb, b);
@@ -685,18 +716,17 @@ rational_eq_b(mrb_state *mrb, mrb_value x, mrb_value y)
  *   Rational(1, 2) == 0.5             #=> true
  *   Rational(1, 2) == Rational(1, 3)  #=> false
  */
-static mrb_value
-rational_eq(mrb_state *mrb, mrb_value x)
+mrb_bool
+mrb_rational_eq(mrb_state *mrb, mrb_value x, mrb_value y)
 {
-  mrb_value y = mrb_get_arg1(mrb);
 #ifdef RAT_BIGINT
-  if (RAT_BIGINT_P(x)) return rational_eq_b(mrb, x, y);
+  if (RAT_BIGINT_P(x)) return mrb_test(rational_eq_b(mrb, x, y));
   /* rational_eq_b() reads the bigint half of the union from its left operand
      only, so a bigint-backed right-hand side is answered by swapping the two.
      Equality is symmetric, and without the swap the MRB_TT_RATIONAL arm below
      reads y's `struct RBasic*` fields through the mrb_int half. */
   if (mrb_type(y) == MRB_TT_RATIONAL && RAT_BIGINT_P(y)) {
-    return rational_eq_b(mrb, y, x);
+    return mrb_test(rational_eq_b(mrb, y, x));
   }
 #endif
   struct mrb_rational *p1 = rat_ptr(mrb, x);
@@ -704,13 +734,13 @@ rational_eq(mrb_state *mrb, mrb_value x)
 
   switch (mrb_type(y)) {
   case MRB_TT_INTEGER:
-    if (p1->denominator != 1) return mrb_false_value();
+    if (p1->denominator != 1) return FALSE;
     result = p1->numerator == mrb_integer(y);
     break;
 #ifdef MRB_USE_BIGINT
   case MRB_TT_BIGINT:
     /* Non-bigint rational comparing with bigint */
-    if (p1->denominator != 1) return mrb_false_value();
+    if (p1->denominator != 1) return FALSE;
     result = mrb_bint_cmp(mrb, y, mrb_int_value(mrb, p1->numerator)) == 0;
     break;
 #endif
@@ -725,7 +755,7 @@ rational_eq(mrb_state *mrb, mrb_value x)
       mrb_int a, b;
 
       if (p1->numerator == p2->numerator && p1->denominator == p2->denominator) {
-        return mrb_true_value();
+        return TRUE;
       }
       if (mrb_int_mul_overflow(p1->numerator, p2->denominator, &a) ||
           mrb_int_mul_overflow(p2->numerator, p1->denominator, &b)) {
@@ -762,7 +792,13 @@ rational_eq(mrb_state *mrb, mrb_value x)
     result = mrb_equal(mrb, y, x);
     break;
   }
-  return mrb_bool_value(result);
+  return result;
+}
+
+static mrb_value
+rational_eq(mrb_state *mrb, mrb_value x)
+{
+  return mrb_bool_value(mrb_rational_eq(mrb, x, mrb_get_arg1(mrb)));
 }
 
 /*
@@ -876,7 +912,11 @@ mrb_rational_add(mrb_state *mrb, mrb_value x, mrb_value y)
 
 #if defined(MRB_USE_COMPLEX)
   case MRB_TT_COMPLEX:
+#ifdef MRB_COMPLEX_FLOAT_ONLY
     return mrb_complex_add(mrb, mrb_complex_new(mrb, rat_float(mrb, x), 0), y);
+#else
+    return mrb_complex_add(mrb, mrb_complex_new_value(mrb, x, mrb_fixnum_value(0)), y);
+#endif
 #endif
 
   default:
@@ -972,7 +1012,11 @@ mrb_rational_sub(mrb_state *mrb, mrb_value x, mrb_value y)
 
 #if defined(MRB_USE_COMPLEX)
   case MRB_TT_COMPLEX:
+#ifdef MRB_COMPLEX_FLOAT_ONLY
     return mrb_complex_sub(mrb, mrb_complex_new(mrb, rat_float(mrb, x), 0), y);
+#else
+    return mrb_complex_sub(mrb, mrb_complex_new_value(mrb, x, mrb_fixnum_value(0)), y);
+#endif
 #endif
 
 #ifndef MRB_NO_FLOAT
@@ -1079,7 +1123,11 @@ mrb_rational_mul(mrb_state *mrb, mrb_value x, mrb_value y)
 
 #if defined(MRB_USE_COMPLEX)
   case MRB_TT_COMPLEX:
+#ifdef MRB_COMPLEX_FLOAT_ONLY
     return mrb_complex_mul(mrb, mrb_complex_new(mrb, rat_float(mrb, x), 0), y);
+#else
+    return mrb_complex_mul(mrb, mrb_complex_new_value(mrb, x, mrb_fixnum_value(0)), y);
+#endif
 #endif
 
   default:
@@ -1170,7 +1218,11 @@ mrb_rational_div(mrb_state *mrb, mrb_value x, mrb_value y)
 
 #ifdef MRB_USE_COMPLEX
   case MRB_TT_COMPLEX:
+#ifdef MRB_COMPLEX_FLOAT_ONLY
     return mrb_complex_div(mrb, mrb_complex_new(mrb, rat_float(mrb, x), 0), y);
+#else
+    return mrb_complex_div(mrb, mrb_complex_new_value(mrb, x, mrb_fixnum_value(0)), y);
+#endif
 #endif
 
 #ifndef MRB_NO_FLOAT
@@ -1303,8 +1355,8 @@ rational_pow(mrb_state *mrb, mrb_value x)
  *
  *   Rational(1, 2).hash == Rational(2, 4).hash  #=> true
  */
-static mrb_value
-rational_hash(mrb_state *mrb, mrb_value rat)
+mrb_value
+mrb_rational_hash(mrb_state *mrb, mrb_value rat)
 {
   struct mrb_rational *r = rat_ptr(mrb, rat);
   uint32_t hash;
@@ -1453,7 +1505,7 @@ static const mrb_mt_entry rational_rom_entries[] = {
   MRB_MT_ENTRY(rational_div,         MRB_OPSYM(div), MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(rational_div,         MRB_SYM(quo), MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(rational_pow,         MRB_OPSYM(pow), MRB_ARGS_REQ(1)),
-  MRB_MT_ENTRY(rational_hash,        MRB_SYM(hash),     MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_rational_hash,    MRB_SYM(hash),     MRB_ARGS_NONE()),
 #ifndef MRB_NO_FLOAT
   MRB_MT_ENTRY(mrb_rational_to_f,   MRB_SYM(to_f),     MRB_ARGS_NONE()),
 #endif

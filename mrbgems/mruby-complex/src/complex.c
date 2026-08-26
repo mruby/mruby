@@ -14,12 +14,39 @@
 #define F(x) x
 #endif
 
+#ifdef MRB_USE_RATIONAL
+mrb_value mrb_rational_to_i(mrb_state *mrb, mrb_value self);
+#endif
+
+/* A Complex answers with the parts it was given.  Two Floats stay the two
+   mrb_float they always were; any other pair from the numeric tower is held
+   as two mrb_value, with COMP_VALUE on the object saying which half of the
+   union is live.  MRB_COMPLEX_FLOAT_ONLY compiles the value half away and
+   coerces every part through Float on the way in, which is this gem's
+   historical behavior. */
 struct mrb_complex {
-  mrb_float real;
-  mrb_float imaginary;
+  union {
+    struct {
+      mrb_float real;
+      mrb_float imaginary;
+    } f;
+#ifndef MRB_COMPLEX_FLOAT_ONLY
+    struct {
+      mrb_value real;
+      mrb_value imaginary;
+    } v;
+#endif
+  };
 };
 
-#if defined(MRB_32BIT) && !defined(MRB_USE_FLOAT32)
+#ifndef MRB_COMPLEX_FLOAT_ONLY
+#define COMP_VALUE 1
+#define COMP_VALUE_P(cpx) (mrb_obj_ptr(cpx)->flags & COMP_VALUE)
+#else
+#define COMP_VALUE_P(cpx) FALSE
+#endif
+
+#ifdef MRB_COMPLEX_INDIRECT
 
 struct RComplex {
   MRB_OBJECT_HEADER;
@@ -61,13 +88,53 @@ complex_alloc(mrb_state *mrb, struct RClass *c, struct mrb_complex **p)
   return (struct RBasic*)s;
 }
 
+/* Both parts as floats, whichever half of the union is live. */
+static mrb_float
+comp_float_real(mrb_state *mrb, mrb_value cpx)
+{
+  struct mrb_complex *p = complex_ptr(mrb, cpx);
+#ifndef MRB_COMPLEX_FLOAT_ONLY
+  if (COMP_VALUE_P(cpx)) return mrb_as_float(mrb, p->v.real);
+#endif
+  return p->f.real;
+}
+
+static mrb_float
+comp_float_imaginary(mrb_state *mrb, mrb_value cpx)
+{
+  struct mrb_complex *p = complex_ptr(mrb, cpx);
+#ifndef MRB_COMPLEX_FLOAT_ONLY
+  if (COMP_VALUE_P(cpx)) return mrb_as_float(mrb, p->v.imaginary);
+#endif
+  return p->f.imaginary;
+}
+
+/* Both parts as values: what #real and #imaginary answer. */
+static mrb_value
+part_real(mrb_state *mrb, mrb_value cpx)
+{
+  struct mrb_complex *p = complex_ptr(mrb, cpx);
+#ifndef MRB_COMPLEX_FLOAT_ONLY
+  if (COMP_VALUE_P(cpx)) return p->v.real;
+#endif
+  return mrb_float_value(mrb, p->f.real);
+}
+
+static mrb_value
+part_imaginary(mrb_state *mrb, mrb_value cpx)
+{
+  struct mrb_complex *p = complex_ptr(mrb, cpx);
+#ifndef MRB_COMPLEX_FLOAT_ONLY
+  if (COMP_VALUE_P(cpx)) return p->v.imaginary;
+#endif
+  return mrb_float_value(mrb, p->f.imaginary);
+}
+
 void
 mrb_complex_get(mrb_state *mrb, mrb_value cpx, mrb_float *r, mrb_float *i)
 {
-  struct mrb_complex *c = complex_ptr(mrb, cpx);
-
-  *r = c->real;
-  *i = c->imaginary;
+  *r = comp_float_real(mrb, cpx);
+  *i = comp_float_imaginary(mrb, cpx);
 }
 
 mrb_value
@@ -76,8 +143,8 @@ mrb_complex_new(mrb_state *mrb, mrb_float real, mrb_float imaginary)
   struct RClass *c = mrb_class_get_id(mrb, MRB_SYM(Complex));
   struct mrb_complex *p;
   struct RBasic *comp = complex_alloc(mrb, c, &p);
-  p->real = real;
-  p->imaginary = imaginary;
+  p->f.real = real;
+  p->f.imaginary = imaginary;
   comp->frozen = 1;
 
   return mrb_obj_value(comp);
@@ -85,46 +152,154 @@ mrb_complex_new(mrb_state *mrb, mrb_float real, mrb_float imaginary)
 
 #define complex_new(mrb, real, imag) mrb_complex_new(mrb, real, imag)
 
+#ifndef MRB_COMPLEX_FLOAT_ONLY
+
+/* The set a part can be: the numeric tower as this build has it, minus
+   Complex itself and Float, which has its own storage. */
+static mrb_bool
+part_exact_type_p(mrb_value v)
+{
+  switch (mrb_type(v)) {
+  case MRB_TT_INTEGER:
+#ifdef MRB_USE_BIGINT
+  case MRB_TT_BIGINT:
+#endif
+#ifdef MRB_USE_RATIONAL
+  case MRB_TT_RATIONAL:
+#endif
+    return TRUE;
+  default:
+    return FALSE;
+  }
+}
+
+/* A member of the tower passes through as itself; everything else keeps its
+   old answer, a coercion through Float.  For a Complex argument that is its
+   real part when the imaginary part is zero and a RangeError otherwise. */
+static mrb_value
+part_coerce(mrb_state *mrb, mrb_value v)
+{
+  if (part_exact_type_p(v) || mrb_float_p(v)) return v;
+  return mrb_float_value(mrb, mrb_as_float(mrb, v));
+}
+
+mrb_value
+mrb_complex_new_value(mrb_state *mrb, mrb_value real, mrb_value imaginary)
+{
+  if (mrb_float_p(real) && mrb_float_p(imaginary)) {
+    return mrb_complex_new(mrb, mrb_float(real), mrb_float(imaginary));
+  }
+
+  struct RClass *c = mrb_class_get_id(mrb, MRB_SYM(Complex));
+  struct mrb_complex *p;
+  struct RBasic *comp = complex_alloc(mrb, c, &p);
+  comp->flags |= COMP_VALUE;
+  p->v.real = real;
+  p->v.imaginary = imaginary;
+  comp->frozen = 1;
+
+  return mrb_obj_value(comp);
+}
+
+int
+mrb_complex_mark(mrb_state *mrb, struct RBasic *comp)
+{
+  if (!(comp->flags & COMP_VALUE)) return 0;
+
+  struct mrb_complex *p;
+#ifdef COMPLEX_INLINE
+  p = &((struct RComplex*)comp)->r;
+#else
+  p = ((struct RComplex*)comp)->p;
+  if (!p) return 0;
+#endif
+  int children = 0;
+  if (!mrb_immediate_p(p->v.real)) {
+    mrb_gc_mark(mrb, mrb_basic_ptr(p->v.real));
+    children++;
+  }
+  if (!mrb_immediate_p(p->v.imaginary)) {
+    mrb_gc_mark(mrb, mrb_basic_ptr(p->v.imaginary));
+    children++;
+  }
+  return children;
+}
+
+/* Equality on the closed set a part can be.  Every pair lands on an exact
+   C comparison; nothing here calls back into Ruby. */
+static mrb_bool
+part_eq(mrb_state *mrb, mrb_value a, mrb_value b)
+{
+#ifdef MRB_USE_RATIONAL
+  if (mrb_type(a) == MRB_TT_RATIONAL) return mrb_rational_eq(mrb, a, b);
+  if (mrb_type(b) == MRB_TT_RATIONAL) return mrb_rational_eq(mrb, b, a);
+#endif
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(a)) return mrb_bint_cmp(mrb, a, b) == 0;
+  if (mrb_bigint_p(b)) return mrb_bint_cmp(mrb, b, a) == 0;
+#endif
+  if (mrb_float_p(a)) {
+    if (mrb_float_p(b)) return mrb_float(a) == mrb_float(b);
+    return mrb_int_float_cmp(mrb_integer(b), mrb_float(a)) == 0;
+  }
+  if (mrb_float_p(b)) return mrb_int_float_cmp(mrb_integer(a), mrb_float(b)) == 0;
+  return mrb_integer(a) == mrb_integer(b);
+}
+
+#define part_zero_p(mrb, v) part_eq(mrb, v, mrb_fixnum_value(0))
+
+#endif /* MRB_COMPLEX_FLOAT_ONLY */
+
 void
 mrb_complex_copy(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   struct mrb_complex *p1 = complex_ptr(mrb, x);
   struct mrb_complex *p2 = complex_ptr(mrb, y);
-  p1->real = p2->real;
-  p1->imaginary = p2->imaginary;
+#ifndef MRB_COMPLEX_FLOAT_ONLY
+  struct RBasic *b1 = (struct RBasic*)mrb_obj_ptr(x);
+  if (COMP_VALUE_P(y)) {
+    p1->v.real = p2->v.real;
+    p1->v.imaginary = p2->v.imaginary;
+    b1->flags |= COMP_VALUE;
+    return;
+  }
+  b1->flags &= ~COMP_VALUE;
+#endif
+  p1->f.real = p2->f.real;
+  p1->f.imaginary = p2->f.imaginary;
 }
 
 /*
  * call-seq:
- *   complex.real -> float
+ *   complex.real -> numeric
  *
- * Returns the real part of the complex number.
+ * Returns the real part of the complex number, in the class it was
+ * given as.
  *
- *   Complex(3, 4).real  #=> 3.0
- *   Complex(-1).real    #=> -1.0
+ *   Complex(3, 4).real    #=> 3
+ *   Complex(-1.5).real    #=> -1.5
  */
 static mrb_value
 complex_real(mrb_state *mrb, mrb_value self)
 {
-  struct mrb_complex *p = complex_ptr(mrb, self);
-  return mrb_float_value(mrb, p->real);
+  return part_real(mrb, self);
 }
 
 /*
  * call-seq:
- *   complex.imaginary -> float
- *   complex.imag      -> float
+ *   complex.imaginary -> numeric
+ *   complex.imag      -> numeric
  *
- * Returns the imaginary part of the complex number.
+ * Returns the imaginary part of the complex number, in the class it was
+ * given as.
  *
- *   Complex(3, 4).imaginary  #=> 4.0
- *   Complex(5).imag          #=> 0.0
+ *   Complex(3, 4).imaginary  #=> 4
+ *   Complex(5).imag          #=> 0
  */
 static mrb_value
 complex_imaginary(mrb_state *mrb, mrb_value self)
 {
-  struct mrb_complex *p = complex_ptr(mrb, self);
-  return mrb_float_value(mrb, p->imaginary);
+  return part_imaginary(mrb, self);
 }
 
 /*
@@ -143,10 +318,35 @@ complex_imaginary(mrb_state *mrb, mrb_value self)
 static mrb_value
 complex_s_rect(mrb_state *mrb, mrb_value self)
 {
+#ifdef MRB_COMPLEX_FLOAT_ONLY
   mrb_float real, imaginary = 0.0;
 
   mrb_get_args(mrb, "f|f", &real, &imaginary);
   return complex_new(mrb, real, imaginary);
+#else
+  mrb_value real, imaginary = mrb_fixnum_value(0);
+
+  mrb_get_args(mrb, "o|o", &real, &imaginary);
+  real = part_coerce(mrb, real);
+  imaginary = part_coerce(mrb, imaginary);
+  return mrb_complex_new_value(mrb, real, imaginary);
+#endif
+}
+
+/* The Integer this float is, by the rules #to_i has always used. */
+static mrb_value
+complex_float_to_i(mrb_state *mrb, mrb_value self, mrb_float f)
+{
+#ifdef MRB_USE_BIGINT
+  if (!FIXABLE_FLOAT(f)) {
+    return mrb_bint_new_float(mrb, f);
+  }
+#else
+  if (!FIXABLE_FLOAT(f)) {
+    mrb_raisef(mrb, E_RANGE_ERROR, "can't convert %v into Integer", self);
+  }
+#endif
+  return mrb_int_value(mrb, (mrb_int)f);
 }
 
 /*
@@ -162,13 +362,23 @@ complex_s_rect(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_complex_to_f(mrb_state *mrb, mrb_value self)
 {
+#ifndef MRB_COMPLEX_FLOAT_ONLY
+  if (COMP_VALUE_P(self)) {
+    struct mrb_complex *p = complex_ptr(mrb, self);
+
+    if (!part_zero_p(mrb, p->v.imaginary)) {
+      mrb_raisef(mrb, E_RANGE_ERROR, "can't convert %v into Float", self);
+    }
+    return mrb_float_value(mrb, mrb_as_float(mrb, p->v.real));
+  }
+#endif
   struct mrb_complex *p = complex_ptr(mrb, self);
 
-  if (p->imaginary != 0) {
+  if (p->f.imaginary != 0) {
     mrb_raisef(mrb, E_RANGE_ERROR, "can't convert %v into Float", self);
   }
 
-  return mrb_float_value(mrb, p->real);
+  return mrb_float_value(mrb, p->f.real);
 }
 
 /*
@@ -184,26 +394,60 @@ mrb_complex_to_f(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_complex_to_i(mrb_state *mrb, mrb_value self)
 {
-  struct mrb_complex *p = complex_ptr(mrb, self);
+#ifndef MRB_COMPLEX_FLOAT_ONLY
+  if (COMP_VALUE_P(self)) {
+    struct mrb_complex *p = complex_ptr(mrb, self);
 
+    if (!part_zero_p(mrb, p->v.imaginary)) {
+      mrb_raisef(mrb, E_RANGE_ERROR, "can't convert %v into Integer", self);
+    }
+    switch (mrb_type(p->v.real)) {
+    case MRB_TT_INTEGER:
 #ifdef MRB_USE_BIGINT
-  if (p->imaginary != 0) {
-    mrb_raisef(mrb, E_RANGE_ERROR, "can't convert %v into Integer", self);
-  }
-  if (!FIXABLE_FLOAT(p->real)) {
-    return mrb_bint_new_float(mrb, p->real);
-  }
-#else
-  if (p->imaginary != 0 || !FIXABLE_FLOAT(p->real)) {
-    mrb_raisef(mrb, E_RANGE_ERROR, "can't convert %v into Integer", self);
+    case MRB_TT_BIGINT:
+#endif
+      return p->v.real;
+#ifdef MRB_USE_RATIONAL
+    case MRB_TT_RATIONAL:
+      return mrb_rational_to_i(mrb, p->v.real);
+#endif
+    default:
+      return complex_float_to_i(mrb, self, mrb_float(p->v.real));
+    }
   }
 #endif
-  return mrb_int_value(mrb, (mrb_int)p->real);
+  struct mrb_complex *p = complex_ptr(mrb, self);
+
+  if (p->f.imaginary != 0) {
+    mrb_raisef(mrb, E_RANGE_ERROR, "can't convert %v into Integer", self);
+  }
+  return complex_float_to_i(mrb, self, p->f.real);
 }
 
 mrb_bool
 mrb_complex_eq(mrb_state *mrb, mrb_value x, mrb_value y)
 {
+#ifndef MRB_COMPLEX_FLOAT_ONLY
+  if (COMP_VALUE_P(x) || (mrb_type(y) == MRB_TT_COMPLEX && COMP_VALUE_P(y))) {
+    switch (mrb_type(y)) {
+    case MRB_TT_COMPLEX:
+      return part_eq(mrb, part_real(mrb, x), part_real(mrb, y)) &&
+             part_eq(mrb, part_imaginary(mrb, x), part_imaginary(mrb, y));
+    case MRB_TT_INTEGER:
+    case MRB_TT_FLOAT:
+#ifdef MRB_USE_BIGINT
+    case MRB_TT_BIGINT:
+#endif
+#ifdef MRB_USE_RATIONAL
+    case MRB_TT_RATIONAL:
+#endif
+      return part_zero_p(mrb, part_imaginary(mrb, x)) &&
+             part_eq(mrb, part_real(mrb, x), y);
+    default:
+      return mrb_equal(mrb, y, x);
+    }
+  }
+#endif
   struct mrb_complex *p1 = complex_ptr(mrb, x);
 
   switch (mrb_type(y)) {
@@ -211,17 +455,17 @@ mrb_complex_eq(mrb_state *mrb, mrb_value x, mrb_value y)
     {
       struct mrb_complex *p2 = complex_ptr(mrb, y);
 
-      if (p1->real == p2->real && p1->imaginary == p2->imaginary) {
+      if (p1->f.real == p2->f.real && p1->f.imaginary == p2->f.imaginary) {
         return TRUE;
       }
       return FALSE;
     }
   case MRB_TT_INTEGER:
-    if (p1->imaginary != 0) return FALSE;
-    return p1->real == mrb_integer(y);
+    if (p1->f.imaginary != 0) return FALSE;
+    return p1->f.real == mrb_integer(y);
   case MRB_TT_FLOAT:
-    if (p1->imaginary != 0) return FALSE;
-    return p1->real == mrb_float(y);
+    if (p1->f.imaginary != 0) return FALSE;
+    return p1->f.real == mrb_float(y);
 
   default:
     return mrb_equal(mrb, y, x);
@@ -246,17 +490,96 @@ complex_eq(mrb_state *mrb, mrb_value x)
   return mrb_bool_value(mrb_complex_eq(mrb, x, y));
 }
 
+#ifndef MRB_COMPLEX_FLOAT_ONLY
+static mrb_bool
+part_eql(mrb_state *mrb, mrb_value a, mrb_value b)
+{
+  if (mrb_type(a) != mrb_type(b)) return FALSE;
+  return part_eq(mrb, a, b);
+}
+
+/*
+ * call-seq:
+ *   complex.eql?(object) -> true or false
+ *
+ * Returns true if object is a Complex whose parts are of the same classes
+ * and equal.  `==` converts across part classes; `eql?` must not, because
+ * #hash keys each part by its class as well as its value.
+ *
+ *   Complex(1, 2).eql?(Complex(1, 2))      #=> true
+ *   Complex(1, 2).eql?(Complex(1.0, 2.0))  #=> false
+ */
+static mrb_value
+complex_eql(mrb_state *mrb, mrb_value x)
+{
+  mrb_value y = mrb_get_arg1(mrb);
+
+  if (mrb_type(y) != MRB_TT_COMPLEX) return mrb_false_value();
+  return mrb_bool_value(part_eql(mrb, part_real(mrb, x), part_real(mrb, y)) &&
+                        part_eql(mrb, part_imaginary(mrb, x), part_imaginary(mrb, y)));
+}
+
+static mrb_value
+complex_op_value(mrb_state *mrb, mrb_value x, mrb_value y, char op)
+{
+  mrb_value ar = part_real(mrb, x);
+  mrb_value ai = part_imaginary(mrb, x);
+
+  if (mrb_type(y) != MRB_TT_COMPLEX) {
+    /* part-wise, not the four-product formula with a zero imaginary part:
+       multiplying an Integer part by that zero would answer in whatever
+       class the other side's arithmetic returns, not the part's own */
+    mrb_value s = part_coerce(mrb, y);
+
+    switch (op) {
+    case '+':
+      return mrb_complex_new_value(mrb, mrb_num_add(mrb, ar, s), ai);
+    case '-':
+      return mrb_complex_new_value(mrb, mrb_num_sub(mrb, ar, s), ai);
+    default: /* '*' */
+      return mrb_complex_new_value(mrb, mrb_num_mul(mrb, ar, s), mrb_num_mul(mrb, ai, s));
+    }
+  }
+
+  mrb_value br = part_real(mrb, y);
+  mrb_value bi = part_imaginary(mrb, y);
+
+  switch (op) {
+  case '+':
+    return mrb_complex_new_value(mrb, mrb_num_add(mrb, ar, br), mrb_num_add(mrb, ai, bi));
+  case '-':
+    return mrb_complex_new_value(mrb, mrb_num_sub(mrb, ar, br), mrb_num_sub(mrb, ai, bi));
+  default: /* '*' */
+    {
+      mrb_value r = mrb_num_sub(mrb, mrb_num_mul(mrb, ar, br), mrb_num_mul(mrb, ai, bi));
+      mrb_value i = mrb_num_add(mrb, mrb_num_mul(mrb, ar, bi), mrb_num_mul(mrb, ai, br));
+      return mrb_complex_new_value(mrb, r, i);
+    }
+  }
+}
+
+/* A pair of float-form operands takes the float arms below; anything
+   holding a value form goes part-wise through the tower's own dispatch. */
+#define COMP_OP_VALUE_P(x, y) \
+  (COMP_VALUE_P(x) || (mrb_type(y) == MRB_TT_COMPLEX && COMP_VALUE_P(y)))
+#endif /* MRB_COMPLEX_FLOAT_ONLY */
+
 static mrb_value
 complex_op(mrb_state *mrb, mrb_value x, mrb_value y, char op)
 {
+#ifndef MRB_COMPLEX_FLOAT_ONLY
+  if (COMP_OP_VALUE_P(x, y)) {
+    return complex_op_value(mrb, x, y, op);
+  }
+#endif
   struct mrb_complex *p1 = complex_ptr(mrb, x);
   mrb_float r, i;
 
   switch (mrb_type(y)) {
   case MRB_TT_COMPLEX: {
     struct mrb_complex *p2 = complex_ptr(mrb, y);
-    r = p2->real;
-    i = p2->imaginary;
+    r = p2->f.real;
+    i = p2->f.imaginary;
     break;
   }
   default: {
@@ -268,11 +591,11 @@ complex_op(mrb_state *mrb, mrb_value x, mrb_value y, char op)
 
   switch (op) {
   case '+':
-    return mrb_complex_new(mrb, p1->real + r, p1->imaginary + i);
+    return mrb_complex_new(mrb, p1->f.real + r, p1->f.imaginary + i);
   case '-':
-    return mrb_complex_new(mrb, p1->real - r, p1->imaginary - i);
+    return mrb_complex_new(mrb, p1->f.real - r, p1->f.imaginary - i);
   case '*':
-    return mrb_complex_new(mrb, p1->real * r - p1->imaginary * i, p1->real * i + p1->imaginary * r);
+    return mrb_complex_new(mrb, p1->f.real * r - p1->f.imaginary * i, p1->f.real * i + p1->f.imaginary * r);
   }
   return mrb_nil_value(); /* should not happen */
 }
@@ -391,13 +714,88 @@ div_pair(struct float_pair *q, struct float_pair const *a,
   q->x = a->x - b->x;
 }
 
+#if !defined(MRB_COMPLEX_FLOAT_ONLY) && defined(MRB_USE_RATIONAL)
+/* Exact division of two parts: what Integer#quo answers, folded back to an
+   Integer when the quotient has denominator 1, the way every part of an
+   exact quotient reads in CRuby. */
+static mrb_value
+part_quo(mrb_state *mrb, mrb_value a, mrb_value b)
+{
+  return mrb_rational_canonicalize(mrb, mrb_rational_div(mrb, mrb_as_rational(mrb, a), b));
+}
+
+/* One part divided by an exact real scalar: a Float part divides as a
+   float, an exact part quotients exactly, the way CRuby's f_divide runs
+   quo over each part and canonicalizes its scalar arm. */
+static mrb_value
+part_quo_scalar(mrb_state *mrb, mrb_value part, mrb_value rhs)
+{
+  if (mrb_float_p(part)) {
+    return mrb_float_value(mrb, mrb_div_float(mrb_float(part), mrb_as_float(mrb, rhs)));
+  }
+  return part_quo(mrb, part, rhs);
+}
+
+static mrb_bool
+comp_no_float_parts_p(mrb_state *mrb, mrb_value cpx)
+{
+  if (!COMP_VALUE_P(cpx)) return FALSE;
+  struct mrb_complex *p = complex_ptr(mrb, cpx);
+  return !mrb_float_p(p->v.real) && !mrb_float_p(p->v.imaginary);
+}
+
+/* A complex divisor stays exact only while no float is anywhere in it, the
+   same condition CRuby's f_divide asks before it skips canonicalization. */
+static mrb_bool
+comp_div_exact_p(mrb_state *mrb, mrb_value x, mrb_value rhs)
+{
+  return comp_no_float_parts_p(mrb, x) && comp_no_float_parts_p(mrb, rhs);
+}
+
+static mrb_value
+complex_div_exact(mrb_state *mrb, mrb_value x, mrb_value rhs)
+{
+  mrb_value ar = part_real(mrb, x);
+  mrb_value ai = part_imaginary(mrb, x);
+
+  mrb_value br = part_real(mrb, rhs);
+  mrb_value bi = part_imaginary(mrb, rhs);
+  /* multiply through by the conjugate; with exact parts there is no
+     rounding for the float arm's r-scaling to save */
+  mrb_value n = mrb_num_add(mrb, mrb_num_mul(mrb, br, br), mrb_num_mul(mrb, bi, bi));
+  if (part_zero_p(mrb, n)) mrb_int_zerodiv(mrb);
+  mrb_value zr = mrb_num_add(mrb, mrb_num_mul(mrb, ar, br), mrb_num_mul(mrb, ai, bi));
+  mrb_value zi = mrb_num_sub(mrb, mrb_num_mul(mrb, ai, br), mrb_num_mul(mrb, ar, bi));
+  return mrb_complex_new_value(mrb, part_quo(mrb, zr, n), part_quo(mrb, zi, n));
+}
+#endif /* !MRB_COMPLEX_FLOAT_ONLY && MRB_USE_RATIONAL */
+
 mrb_value
 mrb_complex_div(mrb_state *mrb, mrb_value self, mrb_value rhs)
 {
-  struct mrb_complex *a, *b;
+#if !defined(MRB_COMPLEX_FLOAT_ONLY) && defined(MRB_USE_RATIONAL)
+  /* The class check is runtime, not compile-time, because mrbtest runs each
+     gem's tests in a state that initializes only its declared dependencies;
+     without Rational the quotient falls to the float arms, the same answer
+     Integer#quo gives there. */
+  if (mrb_type(rhs) != MRB_TT_COMPLEX) {
+    if (COMP_VALUE_P(self) && part_exact_type_p(rhs) &&
+        mrb_class_defined_id(mrb, MRB_SYM(Rational))) {
+      if (part_zero_p(mrb, rhs)) mrb_int_zerodiv(mrb);
+      return mrb_complex_new_value(mrb,
+                                   part_quo_scalar(mrb, part_real(mrb, self), rhs),
+                                   part_quo_scalar(mrb, part_imaginary(mrb, self), rhs));
+    }
+  }
+  else if (comp_div_exact_p(mrb, self, rhs) &&
+           mrb_class_defined_id(mrb, MRB_SYM(Rational))) {
+    return complex_div_exact(mrb, self, rhs);
+  }
+#endif
+  mrb_float ar = comp_float_real(mrb, self);
+  mrb_float ai = comp_float_imaginary(mrb, self);
   mrb_float r, den;
 
-  a = complex_ptr(mrb, self);
   if (mrb_type(rhs) != MRB_TT_COMPLEX) {
     if (mrb_integer_p(rhs) && mrb_integer(rhs) == 0) {
       mrb_int_zerodiv(mrb);
@@ -406,16 +804,14 @@ mrb_complex_div(mrb_state *mrb, mrb_value self, mrb_value rhs)
     if (f == 0.0) {
       mrb_int_zerodiv(mrb);
     }
-    return complex_new(mrb, mrb_div_float(a->real, f), mrb_div_float(a->imaginary, f));
+    return complex_new(mrb, mrb_div_float(ar, f), mrb_div_float(ai, f));
   }
 
-  b = complex_ptr(mrb, rhs);
-  if (b->real == 0 && b->imaginary == 0) {
+  mrb_float br = comp_float_real(mrb, rhs);
+  mrb_float bi = comp_float_imaginary(mrb, rhs);
+  if (br == 0 && bi == 0) {
     mrb_int_zerodiv(mrb);
   }
-
-  mrb_float br = b->real;
-  mrb_float bi = b->imaginary;
 
   if (F(fabs)(br) < DBL_MIN * F(fabs)(bi) && F(fabs)(bi) < DBL_MIN * F(fabs)(br)) {
     /* Fallback to frexp/ldexp for extreme values */
@@ -426,8 +822,8 @@ mrb_complex_div(mrb_state *mrb, mrb_value self, mrb_value rhs)
     struct float_pair ai_br_p, ar_bi_p;
     struct float_pair zr_p, zi_p;
 
-    ar_p.s = F(frexp)(a->real, &ar_p.x);
-    ai_p.s = F(frexp)(a->imaginary, &ai_p.x);
+    ar_p.s = F(frexp)(ar, &ar_p.x);
+    ai_p.s = F(frexp)(ai, &ai_p.x);
     br_p.s = F(frexp)(br, &br_p.x);
     bi_p.s = F(frexp)(bi, &bi_p.x);
 
@@ -452,12 +848,12 @@ mrb_complex_div(mrb_state *mrb, mrb_value self, mrb_value rhs)
     if (F(fabs)(br) > F(fabs)(bi)) {
       r = bi / br;
       den = br + r * bi;
-      return complex_new(mrb, (a->real + a->imaginary * r) / den, (a->imaginary - a->real * r) / den);
+      return complex_new(mrb, (ar + ai * r) / den, (ai - ar * r) / den);
     }
     else {
       r = br / bi;
       den = bi + r * br;
-      return complex_new(mrb, (a->real * r + a->imaginary) / den, (a->imaginary * r - a->real) / den);
+      return complex_new(mrb, (ar * r + ai) / den, (ai * r - ar) / den);
     }
   }
 }
@@ -467,8 +863,9 @@ mrb_complex_div(mrb_state *mrb, mrb_value self, mrb_value rhs)
  *   complex / numeric -> complex
  *   complex.quo(numeric) -> complex
  *
- * Returns the quotient of complex divided by numeric. Uses the standard
- * complex division formula by multiplying by the conjugate.
+ * Returns the quotient of complex divided by numeric. With no Float
+ * anywhere in it the quotient is exact; otherwise it divides with the
+ * standard float algorithm.
  *
  *   Complex(10, 5) / Complex(2, 1)  #=> (5+0i)
  *   Complex(6, 4) / 2               #=> (3+2i)
@@ -480,21 +877,68 @@ complex_div(mrb_state *mrb, mrb_value x)
   return mrb_complex_div(mrb, x, y);
 }
 
+#ifndef MRB_COMPLEX_FLOAT_ONLY
+/* One part's contribution to #hash.  Keyed by class as well as value, the
+   same distinction #eql? draws; both float zeros hash as one key because
+   0.0 and -0.0 are eql?. */
+static uint32_t
+part_hash32(mrb_state *mrb, mrb_value v)
+{
+  switch (mrb_type(v)) {
+  case MRB_TT_INTEGER:
+    {
+      mrb_int i = mrb_integer(v);
+      return mrb_byte_hash((uint8_t*)&i, sizeof(i));
+    }
+#ifdef MRB_USE_BIGINT
+  case MRB_TT_BIGINT:
+    return (uint32_t)mrb_integer(mrb_bint_hash(mrb, v));
+#endif
+#ifdef MRB_USE_RATIONAL
+  case MRB_TT_RATIONAL:
+    return (uint32_t)mrb_integer(mrb_rational_hash(mrb, v));
+#endif
+  default:
+    {
+      mrb_float f = mrb_float(v);
+      if (f == 0.0) f = 0.0;
+      return mrb_byte_hash((uint8_t*)&f, sizeof(f));
+    }
+  }
+}
+#endif
+
 /*
  * call-seq:
  *   complex.hash -> integer
  *
  * Returns a hash value for the complex number. Two complex numbers with
- * the same real and imaginary parts will have the same hash value.
+ * eql? parts will have the same hash value.
  *
  *   Complex(1, 2).hash == Complex(1, 2).hash  #=> true
  */
 static mrb_value
 complex_hash(mrb_state *mrb, mrb_value cpx)
 {
+  uint32_t hash;
+#ifndef MRB_COMPLEX_FLOAT_ONLY
+  if (COMP_VALUE_P(cpx)) {
+    struct mrb_complex *c = complex_ptr(mrb, cpx);
+    uint32_t hr = part_hash32(mrb, c->v.real);
+    uint32_t hi = part_hash32(mrb, c->v.imaginary);
+    hash = mrb_byte_hash((uint8_t*)&hr, sizeof(hr));
+    hash = mrb_byte_hash_step((uint8_t*)&hi, sizeof(hi), hash);
+    return mrb_int_value(mrb, hash);
+  }
+#endif
   struct mrb_complex *c = complex_ptr(mrb, cpx);
-  uint32_t hash = mrb_byte_hash((uint8_t*)&c->real, sizeof(mrb_float));
-  hash = mrb_byte_hash_step((uint8_t*)&c->imaginary, sizeof(mrb_float), hash);
+  /* -0.0 == 0.0, and Float#eql? agrees, so the two must hash alike */
+  mrb_float fr = c->f.real;
+  mrb_float fi = c->f.imaginary;
+  if (fr == 0.0) fr = 0.0;
+  if (fi == 0.0) fi = 0.0;
+  hash = mrb_byte_hash((uint8_t*)&fr, sizeof(mrb_float));
+  hash = mrb_byte_hash_step((uint8_t*)&fi, sizeof(mrb_float), hash);
   return mrb_int_value(mrb, hash);
 }
 
@@ -509,7 +953,42 @@ complex_hash(mrb_state *mrb, mrb_value cpx)
 static mrb_value
 nil_to_c(mrb_state *mrb, mrb_value self)
 {
+#ifdef MRB_COMPLEX_FLOAT_ONLY
   return complex_new(mrb, 0, 0);
+#else
+  return mrb_complex_new_value(mrb, mrb_fixnum_value(0), mrb_fixnum_value(0));
+#endif
+}
+
+static mrb_value
+complex_one(mrb_state *mrb)
+{
+#ifdef MRB_COMPLEX_FLOAT_ONLY
+  return complex_new(mrb, 1, 0);
+#else
+  return mrb_complex_new_value(mrb, mrb_fixnum_value(1), mrb_fixnum_value(0));
+#endif
+}
+
+/* Square-and-multiply, n >= 0.  Exact parts stay exact; float parts repeat
+   the same float multiply, which still beats the polar arm's transcendental
+   round trip: (1+2i)**2 is (-3+4i), not (-3+4.000000000000002i). */
+static mrb_value
+complex_pow_int(mrb_state *mrb, mrb_value x, mrb_int n)
+{
+  mrb_value r = complex_one(mrb);
+  mrb_value z = x;
+  int ai = mrb_gc_arena_save(mrb);
+
+  while (n > 0) {
+    if (n & 1) r = mrb_complex_mul(mrb, r, z);
+    n >>= 1;
+    if (n) z = mrb_complex_mul(mrb, z, z);
+    mrb_gc_arena_restore(mrb, ai);
+    mrb_gc_protect(mrb, r);
+    mrb_gc_protect(mrb, z);
+  }
+  return r;
 }
 
 /*
@@ -525,14 +1004,23 @@ static mrb_value
 complex_pow(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
-  struct mrb_complex *c_self = complex_ptr(mrb, self);
-  mrb_float self_real = c_self->real;
-  mrb_float self_imaginary = c_self->imaginary;
+
+  if (mrb_integer_p(other)) {
+    mrb_int n = mrb_integer(other);
+    if (n >= 0) return complex_pow_int(mrb, self, n);
+    /* -MRB_INT_MIN has no mrb_int negation; that one exponent answers its
+       magnitude-zero-or-infinity question in the polar arm below */
+    if (n != MRB_INT_MIN) {
+      return mrb_complex_div(mrb, complex_one(mrb), complex_pow_int(mrb, self, -n));
+    }
+  }
+
+  mrb_float self_real = comp_float_real(mrb, self);
+  mrb_float self_imaginary = comp_float_imaginary(mrb, self);
 
   if (mrb_type(other) == MRB_TT_COMPLEX) {
-    struct mrb_complex *c_other = complex_ptr(mrb, other);
-    mrb_float x = c_other->real;
-    mrb_float y = c_other->imaginary;
+    mrb_float x = comp_float_real(mrb, other);
+    mrb_float y = comp_float_imaginary(mrb, other);
 
     mrb_float log_abs_self = F(log)(F(hypot)(self_real, self_imaginary));
     mrb_float arg_self = F(atan2)(self_imaginary, self_real);
@@ -569,6 +1057,9 @@ static const mrb_mt_entry complex_rom_entries[] = {
   MRB_MT_ENTRY(complex_div,       MRB_OPSYM(div), MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(complex_div,       MRB_SYM(quo), MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(complex_eq,        MRB_OPSYM(eq), MRB_ARGS_REQ(1)),
+#ifndef MRB_COMPLEX_FLOAT_ONLY
+  MRB_MT_ENTRY(complex_eql,       MRB_SYM_Q(eql), MRB_ARGS_REQ(1)),
+#endif
   MRB_MT_ENTRY(complex_hash,      MRB_SYM(hash),   MRB_ARGS_NONE()),
   MRB_MT_ENTRY(complex_pow,       MRB_OPSYM(pow), MRB_ARGS_REQ(1)),
 };
