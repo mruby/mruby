@@ -324,15 +324,152 @@ assert("Regexp#hash") do
   assert_not_equal r1.hash, r3.hash
 end
 
-assert("Regexp#hash/== on uninitialized regexp") do
-  # Regexp.allocate yields an object with no @source IV; hash/== must
-  # not crash (regression: ObjectSpace.each_object could expose a
-  # half-initialized Regexp after Regexp.new raised a compile error).
+assert("Regexp readers on an uninitialized regexp") do
+  # Regexp.allocate hands out an object with no @source, no @flags and no
+  # compiled pattern; every reader is a reading of that missing state and
+  # raises TypeError rather than crashing on it or answering from nothing.
   r = Regexp.allocate
-  assert_kind_of Integer, r.hash
+  assert_raise(TypeError) { r.source }
+  assert_raise(TypeError) { r.options }
+  assert_raise(TypeError) { r.casefold? }
+  assert_raise(TypeError) { r.names }
+  assert_raise(TypeError) { r.named_captures }
+  assert_raise(TypeError) { r.hash }
+  assert_raise(TypeError) { r.to_s }
+  assert_raise(TypeError) { r == Regexp.allocate }
+  assert_raise(TypeError) { r == Regexp.new("abc") }
+  assert_raise(TypeError) { Regexp.new(r) }
+  # identity answers without reading either source
   assert_true r == r
-  assert_false r == Regexp.allocate
+  # and a non-Regexp is unequal before the source is looked at
+  assert_false r == "abc"
+  # inspect is the one reader that answers, so the object stays displayable
+  assert_kind_of String, r.inspect
+  assert_not_equal "//", r.inspect
+end
+
+class RegexpFailedCompile < Regexp
+  def initialize
+    super("(")
+  rescue RegexpError
+  end
+end
+
+assert("Regexp readers on a regexp whose compile raised") do
+  # regexp_init() sets @source and @flags before it compiles, so this object
+  # has a source to answer from where the allocated one has none; it must
+  # keep answering the readers that do not need the compiled pattern.
+  r = RegexpFailedCompile.new
+  assert_equal "(", r.source
+  assert_equal 0, r.options
+  assert_false r.casefold?
+  assert_equal [], r.names
+  assert_equal({}, r.named_captures)
+  assert_kind_of Integer, r.hash
+  assert_equal "/(/", r.inspect
+  assert_equal "(?-mix:()", r.to_s
+  assert_true r == RegexpFailedCompile.new
   assert_false r == Regexp.new("abc")
+  # but matching against it is still refused
+  assert_raise(ArgumentError) { r =~ "(" }
+end
+
+assert("Regexp#dup and Regexp#clone") do
+  # The compiled pattern cannot be shared with the copy, since one pattern is
+  # owned by one object, so the copy compiles its own from the same source and
+  # flags. Without that it answered the readers and refused every match.
+  r = Regexp.new("ab(?<n>c)", Regexp::IGNORECASE)
+  [r.dup, r.clone].each do |c|
+    assert_equal r.source, c.source
+    assert_equal r.options, c.options
+    assert_equal r.to_s, c.to_s
+    assert_equal r.names, c.names
+    assert_equal r.named_captures, c.named_captures
+    assert_true c == r
+    assert_equal r.hash, c.hash
+    assert_true c.match?("xABCy")
+    assert_equal 1, c =~ "xABCy"
+    assert_equal "C", c.match("xABCy")[:n]
+    assert_equal "x-y", "xABCy".gsub(c, "-")
+  end
+  # the copy owns its own pattern, so the original outlives it and vice versa
+  c = r.dup
+  100.times { r.dup }
+  GC.start
+  assert_true c.match?("ABC")
+  assert_true r.match?("ABC")
+  # a copy of a subclass instance is compiled the same way
+  sub = Class.new(Regexp).new("a+")
+  assert_true sub.dup.match?("aaa")
+  # the capture names belong to the pattern the copy compiled, not to the
+  # table it inherited, so a source that names nothing leaves it none
+  n = Regexp.new("(?<n>a)")
+  n.instance_variable_set(:@source, "b")
+  assert_equal [], n.dup.names
+  assert_equal({}, n.dup.named_captures)
+  m = Regexp.new("(?<n>a)")
+  m.instance_variable_set(:@source, "(?<z>b)")
+  assert_equal ["z"], m.dup.names
+  # clone carries the frozen state, and a frozen original still copies
+  frozen = Regexp.new("a", Regexp::IGNORECASE).freeze
+  assert_true frozen.clone.frozen?
+  assert_true frozen.clone.match?("A")
+  assert_false frozen.dup.frozen?
+end
+
+assert("Regexp readers on a copy that never reached initialize_copy") do
+  # A subclass can override initialize_copy and never call super, which leaves
+  # the copy holding the original's @source and @flags and no pattern at all.
+  # The readers answer from the compiled pattern, so they refuse it the way
+  # they refuse Regexp.allocate: what says the object was initialized is
+  # DATA_PTR, which no IV copy carries over, not the source it inherited.
+  c = Class.new(Regexp) do
+    def initialize_copy(other)
+      self
+    end
+  end
+  d = c.new("(?<n>a)").dup
+  assert_raise(TypeError) { d.source }
+  assert_raise(TypeError) { d.options }
+  assert_raise(TypeError) { d.casefold? }
+  assert_raise(TypeError) { d.to_s }
+  assert_raise(TypeError) { d.hash }
+  assert_raise(TypeError) { d.names }
+  assert_raise(TypeError) { d.named_captures }
+  assert_raise(TypeError) { d == Regexp.new("a") }
+  assert_raise(TypeError) { d.match?("a") }
+  # inspect answers rather than raising, but it answers about the object it
+  # has, not about the source it inherited
+  assert_true d.inspect.start_with?("#<")
+
+  # nor can an IV write alone make an uninitialized Regexp answer
+  a = Regexp.allocate
+  a.instance_variable_set(:@source, "a")
+  a.instance_variable_set(:@flags, 0)
+  assert_raise(TypeError) { a.to_s }
+  assert_raise(TypeError) { a.source }
+  assert_raise(TypeError) { a.hash }
+  assert_true a.inspect.start_with?("#<")
+
+  # and an initialized Regexp whose @source was replaced raises rather than
+  # reading whatever was put there as a String
+  r = Regexp.new("a")
+  r.instance_variable_set(:@source, nil)
+  assert_raise(TypeError) { r.to_s }
+  assert_raise(TypeError) { r.source }
+  assert_kind_of String, r.inspect
+end
+
+assert("Regexp#initialize_copy") do
+  # an original with no source has nothing to compile the copy from
+  assert_raise(TypeError) { Regexp.allocate.dup }
+  assert_raise(TypeError) { Regexp.allocate.clone }
+  # reachable directly, so it refuses what dup and clone cannot hand it
+  assert_raise(TypeError) { Regexp.new("a").dup.send(:initialize_copy, Regexp.new("b")) }
+  assert_raise(TypeError) { Regexp.new("a").dup.send(:initialize_copy, "b") }
+  # copying onto itself is a no-op, not a second compile
+  r = Regexp.new("a")
+  assert_true r.send(:initialize_copy, r).match?("a")
 end
 
 assert("Regexp#options") do
