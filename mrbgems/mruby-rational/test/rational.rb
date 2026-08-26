@@ -629,3 +629,10 @@ assert 'Integer#quo' do
   a = 6.quo(5)
   assert_equal 6/5r, a
 end
+
+assert 'Kernel#Rational with a Rational operand stays exact' do
+  assert_equal Rational(1, 3), Rational(Rational(1, 3), 1)
+  assert_equal Rational(3, 2), Rational(Rational(1, 2), Rational(1, 3))
+  assert_equal Rational(3, 1), Rational(1, Rational(1, 3))
+  assert_equal Rational(1, 6), Rational(Rational(1, 3), 2)
+end

@@ -551,6 +551,13 @@ rational_new(mrb_state *mrb, mrb_value a, mrb_value b)
     return rational_new_b(mrb, mrb_as_bint(mrb, a), b);
   }
 #endif
+  else if ((mrb_type(a) == MRB_TT_RATIONAL || mrb_type(b) == MRB_TT_RATIONAL) &&
+           !mrb_float_p(a) && !mrb_float_p(b)) {
+    /* Rational(a, b) is a/b, and with a Rational among exact operands the
+       quotient is exact; the Float arm below would round it through a
+       division of two doubles. */
+    return mrb_rational_div(mrb, mrb_as_rational(mrb, a), b);
+  }
   else {
     mrb_float x = mrb_as_float(mrb, a);
     mrb_float y = mrb_as_float(mrb, b);
