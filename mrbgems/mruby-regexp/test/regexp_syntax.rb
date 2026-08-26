@@ -930,6 +930,12 @@ assert("Regexp - a backreference names a group the pattern has") do
   assert_raise(RegexpError) { Regexp.new("(a)\\2") }
   assert_raise(RegexpError) { Regexp.new("(a)(b)\\3") }
   assert_raise(RegexpError) { Regexp.new("\\9") }
+  # Both spellings ask the same count, so both refuse the same references.
+  assert_raise(RegexpError) { Regexp.new("\\k<1>") }
+  assert_raise(RegexpError) { Regexp.new("(a)\\k<2>") }
+  assert_raise(RegexpError) { Regexp.new("(a)(b)\\k<3>") }
+  # A number above the capture limit names no group whatever follows it.
+  assert_raise(RegexpError) { Regexp.new("\\k<32>(a)") }
   # A named pattern refuses a numbered reference before it counts.
   assert_raise(RegexpError) { Regexp.new("(?<n>a)\\1") }
   assert_raise(RegexpError) { Regexp.new("(?<n>a)\\2") }
@@ -943,6 +949,25 @@ assert("Regexp - a backreference reaches a group written after it") do
   assert_equal ["aa", "a"], /(a)\1/.match("aa").to_a
   assert_nil(/\1(a)/ =~ "a")
   assert_equal 0, Regexp.new("(a)" * 9 + "\\9") =~ "aaaaaaaaaa"
+
+  # The `\k<n>` spelling of the same reference reaches the same group: it used
+  # to be checked where it stood while `\1` was checked after the parse, so
+  # the two spellings of one forward reference disagreed.
+  assert_nil(Regexp.new("\\k<1>(a)") =~ "a")
+  assert_equal ["aa", "a"], Regexp.new("(a)\\k<1>").match("aa").to_a
+  assert_nil(Regexp.new("\\k<2>(a)(b)") =~ "ab")
+  assert_nil(Regexp.new("(a)\\k<2>(b)") =~ "ab")
+
+  # What the forward reference is for: the group has captured by the second
+  # iteration, so the reference matches there.
+  assert_equal ["aa", "a"], Regexp.new("(?:\\1|(a))+").match("aa").to_a
+  assert_equal ["cc", "c"], Regexp.new("(?:\\k<1>|(c))+").match("cc").to_a
+
+  # The relative form stays as it was: `\k<-n>` counts back from where it
+  # stands, so it names one of the groups already open and never a later one.
+  assert_equal "abba", "abba".match(Regexp.new("(.)(.)\\k<-1>\\k<-2>"))[0]
+  assert_raise(RegexpError) { Regexp.new("\\k<-1>(a)") }
+  assert_raise(RegexpError) { Regexp.new("(?:\\k<-1>|(c))+") }
 end
 
 assert("Regexp - patterns that used to hang the compiler now raise (A1)") do

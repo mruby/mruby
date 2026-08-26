@@ -34,6 +34,8 @@ simulation) with backtracking fallback.
   raises `RegexpError`, counting the groups of the whole pattern, so `\1(a)`
   is valid
 - `\k<name>`, `\k'name'` named backreferences
+- `\k<n>`, `\k'n'` numbered backreferences
+- `\k<-n>`, `\k'-n'` relative backreferences
 - `(?=...)` positive lookahead
 - `(?!...)` negative lookahead
 - `(?<=...)` positive lookbehind (fixed-length only)
