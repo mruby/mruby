@@ -1596,7 +1596,7 @@ compile_atom(re_compiler *c)
           int fixed_chars;
           int fixed_len = compute_fixed_len(c, sub_start, c->code_len, &fixed_chars);
           if (fixed_len < 0) {
-            compile_error(c, "lookbehind must be fixed length");
+            compile_error(c, "invalid pattern in look-behind");
           }
           if (fixed_len > 255) {
             compile_error(c, "lookbehind too long (max 255 bytes)");
