@@ -439,6 +439,35 @@ assert('Kernel#!~') do
   assert_false y !~ "y"
   assert_false y !~ "z"
   assert_true  y !~ "not y"
+
+  # the answer is a truth value read off what `=~` returned, not that value
+  z = "z"
+  def z.=~(other)
+    other == "z" ? 0 : nil
+  end
+  assert_false z !~ "z"
+  assert_true  z !~ "not z"
+
+  # an exception raised by `=~` is the answer to `!~`
+  e = "e"
+  def e.=~(other)
+    raise ArgumentError, "no match for you"
+  end
+  assert_raise(ArgumentError) { e !~ "e" }
+
+  # `=~` may ask another object the same question while answering
+  class Test4NotMatchPeer
+    def =~(other)
+      other == "b"
+    end
+  end
+  class Test4NotMatch
+    def =~(other)
+      Test4NotMatchPeer.new !~ other
+    end
+  end
+  assert_true  Test4NotMatch.new !~ "b"
+  assert_false Test4NotMatch.new !~ "c"
 end
 
 assert('Kernel#respond_to_missing?') do

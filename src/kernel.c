@@ -138,6 +138,33 @@ mrb_eqq_m(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(mrb_equal(mrb, self, arg));
 }
 
+/* 11.4.4 Step c) */
+/*
+ *  call-seq:
+ *     obj !~ other  -> true or false
+ *
+ *  Returns true when *obj* does not match *other*, which is what `=~`
+ *  answering a false value means.  Overriding `=~` is what gives a class a
+ *  meaning for both operators; overriding this one separately is what makes
+ *  the two disagree, as it does in CRuby.
+ */
+static mrb_value
+mrb_obj_not_match(mrb_state *mrb, mrb_value self)
+{
+  mrb_value arg = mrb_get_arg1(mrb);
+
+  /* Dispatching `=~` is the meaning of this method rather than a convenience,
+     so the VM call belongs here.  What comes back is read as a truth value and
+     then dropped, so nothing has to survive the arena restore, and an exception
+     raised by `=~` unwinds past this frame with nothing left behind to clean
+     up.  Answering from C is also what keeps `=~` writing `$~` into the scope
+     that wrote `!~`, the way CRuby's `rb_obj_not_match()` does. */
+  int ai = mrb_gc_arena_save(mrb);
+  mrb_bool matched = mrb_test(mrb_funcall_argv(mrb, self, MRB_OPSYM(match), 1, &arg));
+  mrb_gc_arena_restore(mrb, ai);
+  return mrb_bool_value(!matched);
+}
+
 static mrb_value
 mrb_cmp_m(mrb_state *mrb, mrb_value self)
 {
@@ -788,6 +815,7 @@ static const mrb_mt_entry kernel_rom_entries[] = {
   MRB_MT_ENTRY(mrb_f_defined_cvar,   MRB_SYM_Q(__defined_cvar),   MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_f_defined_super,  MRB_SYM_Q(__defined_super),  MRB_ARGS_NONE() | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_eqq_m,                        MRB_OPSYM(eqq),        MRB_ARGS_REQ(1)),  /* 15.3.1.3.2  */
+  MRB_MT_ENTRY(mrb_obj_not_match,                MRB_OPSYM(nmatch),      MRB_ARGS_REQ(1)),  /* 11.4.4 c) */
   MRB_MT_ENTRY(mrb_cmp_m,                        MRB_OPSYM(cmp),         MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(mrb_f_block_given_p_m,    MRB_SYM_Q(block_given),                           MRB_ARGS_NONE() | MRB_MT_PRIVATE),  /* 15.3.1.3.6  */
   MRB_MT_ENTRY(mrb_obj_class_m,                  MRB_SYM(class),                     MRB_ARGS_NONE()),  /* 15.3.1.3.7  */
