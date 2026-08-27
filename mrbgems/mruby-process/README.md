@@ -20,6 +20,7 @@ already include it.
 | Process.pid                | o             | also `$$`                                |
 | Process.ppid               | o             |                                          |
 | Process.kill               | o             | no negative-signal form yet, see below   |
+| Process.wait, .wait2       | o             | `.waitpid2` too; not `.waitall`          |
 | Process.waitpid            | o             | sets `$?`; POSIX only, see below         |
 | Process::WNOHANG           | o             | mruby's own value, not the platform's    |
 | Process::WUNTRACED         | o             | mruby's own value, not the platform's    |
@@ -40,7 +41,6 @@ already include it.
 | Process.spawn              |               | separate change                          |
 | Process.exec               |               | separate change                          |
 | Process.exit, .exit!       |               | see mruby-exit                           |
-| Process.wait, .wait2       | o             | `.waitpid2` too; not `.waitall`          |
 | Process.uid, .gid, ...     |               | separate change                          |
 | Process.getpgrp, ...       |               | separate change                          |
 
