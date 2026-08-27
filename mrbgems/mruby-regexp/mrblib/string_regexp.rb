@@ -38,17 +38,6 @@ class String
   # back to the core implementation.
   alias __split split
 
-  # `slice!` comes from mruby-string-ext, which this gem depends on, and is
-  # overridden at the end of this file.  The core `[]=` it also reaches is
-  # captured as `__aset` in src/regexp.c, before the override defined there
-  # takes the name.
-  alias __slice_bang slice!
-
-  # The three from mruby-string-ext, which this gem depends on.
-  alias __partition partition
-  alias __rpartition rpartition
-  alias __start_with? start_with?
-
   def sub(*args, &block)
     # CRuby accepts 1..2 arguments with a block, but demands exactly 2
     # without one, and reports the expected count accordingly.  The count is
@@ -382,103 +371,5 @@ class String
       end
     end
     result
-  end
-
-  # The regexp-aware `[]`, `slice` and `[]=` are `str_aref()` and `str_aset()`
-  # in src/regexp.c, where the indexes the core methods answer reach them
-  # without a Ruby frame in between.  Everything below stays here, where a
-  # block or a loop needs the VM anyway.
-
-  # Regexp-aware `slice!`.  Falls back to the C-defined `slice!` (aliased as
-  # `__slice_bang` above) for every other argument form.
-  def slice!(*args)
-    return __slice_bang(*args) unless Regexp === args[0]
-    if args.length > 2
-      raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1..2)"
-    end
-    # Before the search, where `mrb_str_slice_bang()` and CRuby both put it:
-    # a frozen receiver raises even for a pattern that would not have
-    # matched, and `$~` is left as it was.  This is the opposite order from
-    # `[]=` above, and both are observable.  `frozen?` is redefinable where
-    # the C check is not, but no other route to that check leaves the string
-    # alone on the way.
-    raise FrozenError, "can't modify frozen String" if frozen?
-    md = Regexp.__search(args[0], self)
-    return nil unless md
-    group = args.length > 1 ? args[1] : 0
-    if Integer === group
-      # Where `[]=` raises, `slice!` answers nil: an index that reaches no
-      # group removed nothing.  The normalization is the same, so group 0
-      # stays out of the negative end's reach here too.
-      size = md.size
-      return nil if group >= size || -group >= size
-      group += size if group < 0
-    end
-    beg = md.begin(group)
-    # CRuby answers "" for a group that exists but did not take part in the
-    # match, and removes nothing.  That falls out of `rb_str_slice_bang()`
-    # building the result from the group's -1 offset rather than out of a
-    # decision, but it is what the method answers.
-    return "" unless beg
-    len = md.end(group) - beg
-    # From the MatchData, whose subject is a snapshot taken before this
-    # method mutates anything, and which is a plain String even when the
-    # receiver is a subclass, both as in CRuby.
-    removed = md[group]
-    __aset(beg, len, "")
-    removed
-  end
-
-  # Regexp-aware `partition`.  Falls back to the C-defined `partition`
-  # (aliased as `__partition` above) for every other argument.
-  def partition(sep)
-    return __partition(sep) unless Regexp === sep
-    md = Regexp.__search(sep, self)
-    # No match leaves the whole subject in the head, and the copy is a plain
-    # String even when the receiver is a subclass, as `mrb_str_dup()` and
-    # CRuby's `str_duplicate(rb_cString, str)` both hand back.
-    return [self.byteslice(0, self.bytesize), "", ""] unless md
-    [md.pre_match, md[0], md.post_match]
-  end
-
-  # Regexp-aware `rpartition`.  Falls back to the C-defined `rpartition`
-  # (aliased as `__rpartition` above) for every other argument.
-  def rpartition(sep)
-    return __rpartition(sep) unless Regexp === sep
-    # The last match anywhere in the subject, so the limit is its end and the
-    # search below never stops early.
-    md = Regexp.__byte_rsearch(sep, self, self.bytesize)
-    # No match puts the whole subject in the tail, which is the row this
-    # method is most often got wrong on.
-    return ["", "", self.byteslice(0, self.bytesize)] unless md
-    [md.pre_match, md[0], md.post_match]
-  end
-
-  # Regexp-aware `start_with?`.  Takes any mix of patterns and hands each
-  # non-regexp one to the C-defined `start_with?` (aliased as
-  # `__start_with?` above), one at a time, so that a String keeps the C
-  # comparison and its error and the arguments are still read left to right.
-  def start_with?(*args)
-    i = 0
-    while i < args.length
-      arg = args[i]
-      if Regexp === arg
-        # A regexp is anchored at the start, not searched for, while the
-        # search runs forward from its position.  The engine matches
-        # leftmost, so a pattern that can match at 0 does, which makes
-        # `begin(0) == 0` the anchored answer rather than an approximation
-        # of it.
-        md = Regexp.__search(arg, self)
-        return true if md && md.begin(0) == 0
-        # A match further along is not an answer and CRuby leaves none
-        # behind for one, so clear what the search published.  Searching
-        # nil is how the globals are cleared.
-        Regexp.__search(arg, nil) if md
-      elsif __start_with?(arg)
-        return true
-      end
-      i += 1
-    end
-    false
   end
 end
