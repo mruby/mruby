@@ -3612,7 +3612,8 @@ mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr)
   p = RSTR_PTR(ps);
   len = RSTR_LEN(ps);
   if (p == NULL) return "";
-  if (p[len] == '\0') {
+  /* A NOFREE buffer only promises `len` readable bytes. */
+  if (!RSTR_NOFREE_P(ps) && p[len] == '\0') {
     return p;
   }
 
