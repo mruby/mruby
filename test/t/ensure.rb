@@ -34,3 +34,13 @@ assert('ensure - context - yield and return') do
   end.call
   assert_equal yielder, yielder.ensure_context
 end
+
+assert('ensure with local ||= preserves return value') do
+  result = lambda do
+    value = []
+    :result
+  ensure
+    value ||= []
+  end.call
+  assert_equal :result, result
+end
