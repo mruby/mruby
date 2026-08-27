@@ -34,11 +34,6 @@ module Kernel
     e.result
   end
 
-  # 11.4.4 Step c)
-  def !~(y)
-    !(self =~ y)
-  end
-
   def to_enum(*a)
     raise NotImplementedError.new("fiber required for enumerator")
   end
