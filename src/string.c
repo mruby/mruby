@@ -3976,11 +3976,10 @@ mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
   }
   /* The overlap has to be recognized against the buffer `ptr` was taken
      from, which is the one `s` holds now. `str_modify_cat()` either appends
-     inside the shared allocation, where `ptr` stays valid and the offset is
-     the same answer reached another way, or detaches `s` onto a fresh buffer
-     and releases the old one, where `ptr` is neither inside the new buffer
-     nor safe to read. Recording the offset ahead of the call covers both
-     without having to know which path ran.
+     inside the shared allocation, where `ptr` stays valid, or detaches `s`
+     onto a fresh buffer. An offset can only be replayed after a detach when
+     the whole source range was copied with the visible bytes of `s`; save a
+     range that starts inside them but extends beyond them before modifying.
 
      `ptr` is allowed to come from anywhere, so it and `RSTR_PTR(s)` need not
      point into the same object, and relational comparison and subtraction
@@ -3988,8 +3987,14 @@ mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
      leaves both on integers, where the whole range is ordered. */
   uintptr_t ptr_addr = (uintptr_t)ptr;
   uintptr_t str_addr = (uintptr_t)RSTR_PTR(s);
-  if (ptr_addr >= str_addr && ptr_addr <= str_addr + (uintptr_t)RSTR_LEN(s)) {
-      off = (ptrdiff_t)(ptr_addr - str_addr);
+  if (ptr_addr >= str_addr && ptr_addr - str_addr <= (uintptr_t)RSTR_LEN(s)) {
+    off = (ptrdiff_t)(ptr_addr - str_addr);
+    if (len > (size_t)(RSTR_LEN(s) - off)) {
+      char *tmp = (char*)mrb_alloca(mrb, len);
+      memcpy(tmp, ptr, len);
+      ptr = tmp;
+      off = -1;
+    }
   }
   /* Read before the modify below, which forgets it. */
   uint32_t cr = RSTR_CODERANGE(s);
@@ -4005,7 +4010,7 @@ mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
   if (off != -1) {
       ptr = RSTR_PTR(s) + off;
   }
-  memcpy(RSTR_PTR(s) + RSTR_LEN(s), ptr, len);
+  memmove(RSTR_PTR(s) + RSTR_LEN(s), ptr, len);
   RSTR_SET_LEN(s, total);
   RSTR_PTR(s)[total] = '\0';   /* sentinel */
 #ifdef MRB_UTF8_STRING

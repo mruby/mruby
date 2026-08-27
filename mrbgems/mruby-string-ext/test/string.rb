@@ -296,6 +296,15 @@ assert('String#concat on a shared buffer') do
   assert_equal "i" * 100 + "j" * 100 + "i" * 40, i
   assert_equal "i" * 40, k
 
+  # A source may start inside the receiver but extend beyond it. Detaching
+  # the receiver must not redirect that tail into its uninitialized capacity.
+  source = "abcdefghij" * 12
+  receiver = source[21, 39]
+  append = source[22, 111]
+  expected = receiver.dup + append
+  receiver.concat(append)
+  assert_equal expected, receiver
+
   # A frozen sharer still raises, and does not stop the others.
   l = "l" * 100
   l << "m" * 100
