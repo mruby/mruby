@@ -153,6 +153,13 @@ kept separate from adding this gem.
   will not do.
 - **`Process::Status.new(pid, raw_status)` stays public.** Making it private
   would break the `mruby-io` path it exists for.
+- **A `Process::Status` is frozen once built.** What a process did is over by
+  the time there is a status for it, and the pid and the raw status set at
+  construction are what every other question is read back from. Freezing says
+  so, and keeps the two from being rewritten under the answers. CRuby freezes
+  the status it leaves in `$?` for the same reason. An instance of a subclass
+  is left unfrozen: it is still being built when `#initialize` returns, and
+  every status this gem and `mruby-io` publish is a `Process::Status` itself.
 - **A wait flag no port stands for is refused before a port sees it.** The
   flags are mruby's own bits, and a port reads the ones it knows and can say
   nothing about the rest, so `MRB_PROCESS_WAIT_FLAGS` names every bit a wait
