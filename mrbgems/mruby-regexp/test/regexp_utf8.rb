@@ -153,11 +153,11 @@ assert("Regexp - quantifier on an escaped multibyte literal") do
   assert_false Regexp.new("[\\Ā]").match?("Ä")
   assert_true Regexp.new("[\\Ā-\\ā]").match?("ā")
   assert_false Regexp.new("[\\Ā-\\ā]").match?("Ă")
-  # A raw byte escape names a byte rather than a character, so it keeps taking
-  # the parse_escape path and the quantifier binds to that one byte. CRuby
-  # joins byte escapes that spell a valid UTF-8 sequence into one character
-  # and matches four bytes here; closing that gap is a separate change.
-  assert_equal 2, Regexp.new("\\xC4\\x80+").match("ĀĀ")[0].bytesize
+  # Byte escapes that spell a character are that character, so the quantifier
+  # binds to the whole of it here too, as CRuby's does. The bytes are read the
+  # same way however the pattern spells them.
+  assert_equal 4, Regexp.new("\\xC4\\x80+").match("ĀĀ")[0].bytesize
+  assert_equal 4, Regexp.new("\\xC4\\x80\\xC4\\x80").match("ĀĀ")[0].bytesize
 end
 
 assert("Regexp - quantifier on an invalid multibyte literal") do
@@ -297,11 +297,20 @@ assert("Regexp - a subject whose bytes are not UTF-8 is refused whatever is know
   assert_nil /a/.match(bs, -4)
 end
 
-assert("Regexp - a match does not end inside a character") do
-  # A pattern is compiled byte by byte and RE_CHAR consumes one byte, so a
-  # pattern holding a byte that reaches no character ends its match in the
-  # middle of one. "ĵ" is C4 B5, and a pattern of the single byte C4 used to
-  # match its lead byte alone and hand back half a character.
+assert("Regexp - a byte that spells no character matches only a byte") do
+  # A pattern byte above 127 that starts no whole character is a byte, not the
+  # codepoint of the same number, and the byte it names is not the one inside a
+  # character that happens to hold that value: "ĵ" is C4 B5 and holds no byte
+  # of its own. A class already read such a byte this way; the literal used to
+  # match a byte of a character with it and stop the match, a capture or a
+  # lookaround between the two halves of one.
+  # Every pattern below that holds a byte spelling no character is one CRuby
+  # refuses at Regexp.new (`too short escaped multibyte character`) rather
+  # than answering, because a Regexp there carries an encoding to refuse with.
+  # This gem has none and accepts them, which is what keeps a pattern of a
+  # lone byte usable as a way to find that byte. So what these assertions pin
+  # is the answer this gem gives while it accepts them, and they are what has
+  # to become the raise if a Regexp ever carries an encoding.
   skip unless __ENCODING__ == "UTF-8"
   j = "ĵ"
   assert_nil j.match(Regexp.new("\xc4"))          # literal fast path
@@ -309,29 +318,106 @@ assert("Regexp - a match does not end inside a character") do
   assert_nil j.match(Regexp.new("\xc4+"))         # pike VM
   assert_nil j.match(Regexp.new("(\xc4)\\1?"))    # backtracking engine
   assert_equal j.bytes, j.gsub(Regexp.new("\xc4"), "!").bytes
-  # A branch that does end on a boundary still matches, greedy or not.
-  assert_equal 2, j.match(Regexp.new("\xc4."))[0].bytesize
-  assert_equal 2, j.match(Regexp.new("\xc4(?:\xb5)?"))[0].bytesize
-  assert_equal 2, j.match(Regexp.new("\xc4(?:\xb5)??"))[0].bytesize
-  assert_equal 2, j.match(Regexp.new("(\xc4\xb5)\\1?"))[0].bytesize
+  # Nothing built on it reaches the character either, where the rule used to be
+  # a test on the end of the match and let these through.
+  assert_nil j.match(Regexp.new("\xc4."))
+  assert_nil j.match(Regexp.new("\xc4(?:\xb5)?"))
+  assert_nil j.match(Regexp.new("(?=\xc4)\xc4\xb5"))
   assert_equal 0, j.match(Regexp.new("\xc4*"))[0].bytesize
-  # A lookaround ends at a position without consuming it, so it is not the
-  # end of the match and keeps its own answer.
-  assert_equal 2, j.match(Regexp.new("(?=\xc4)\xc4\xb5"))[0].bytesize
-  # Read as binary every position is a boundary, so nothing changes there.
+  # The bytes that do spell the character are the character, so they match it.
+  assert_equal 2, j.match(Regexp.new("\xc4\xb5"))[0].bytesize
+  assert_equal 2, j.match(Regexp.new("(\xc4\xb5)\\1?"))[0].bytesize
+  # Read as binary every byte stands alone, so every one of them is a byte the
+  # pattern can name.
   if Object.const_defined?(:Encoding)
     bin = j.dup.force_encoding("ASCII-8BIT")
     assert_equal 1, bin.match(Regexp.new("\xc4"))[0].bytesize
     assert_equal 2, bin.match(Regexp.new("\xc4."))[0].bytesize
   end
-  # A byte no lead byte reaches is a boundary too, so a byte pattern works
-  # there as well, on a byte-indexed subject: one read as UTF-8 spells no
-  # character at such a byte, and this one's own indexing agrees with the byte
-  # counts below.
+  # A byte no lead byte reaches stands alone in a UTF-8 subject too, so a byte
+  # pattern finds it there.
   b = "\x81"
   assert_equal 1, (b + b).b.match(Regexp.new(b))[0].bytesize
   assert_equal 2, (b + b).b.match(Regexp.new(b + "+"))[0].bytesize
   assert_equal 1, ("a" + b).b.match(Regexp.new(b))[0].bytesize
+end
+
+assert("Regexp - a capture spans whole characters") do
+  # A capture is bracketed wherever the pattern brackets it, so where a byte
+  # could match inside a character it could close, or open, between the two
+  # bytes of one and hand back half of it. The whole match could not, the end
+  # of group 0 carrying a rule the other slots did not. On a build that
+  # indexes by character that span had no offsets to name it either: m[1] held
+  # the lead byte of "Ā" while m.begin(1) and m.end(1) were both the character
+  # it sits in. A byte that spells no character now matches only a byte that
+  # stands alone, so no group is recorded at a position inside a character.
+  # Every pattern below that holds a byte spelling no character is one CRuby
+  # refuses at Regexp.new (`too short escaped multibyte character`) rather
+  # than answering, because a Regexp there carries an encoding to refuse with.
+  # This gem has none and accepts them, which is what keeps a pattern of a
+  # lone byte usable as a way to find that byte. So what these assertions pin
+  # is the answer this gem gives while it accepts them, and they are what has
+  # to become the raise if a Regexp ever carries an encoding.
+  skip unless __ENCODING__ == "UTF-8"
+  a = "Āx"  # C4 80 78
+  assert_nil Regexp.new("(\xc4).").match(a)
+  assert_nil Regexp.new("\xc4(\x80)").match(a)
+  assert_nil Regexp.new("((\xc4).)").match(a)
+  assert_nil Regexp.new("(\xc4).\\1?").match(a)      # backtracking engine
+  assert_nil Regexp.new("(?=(\xc4))\xc4\x80").match(a)
+  assert_equal 0, Regexp.new("(?!(\xc4))").match(a).begin(0)
+  # A capture that does span whole characters matches, and its offsets are the
+  # characters it holds.
+  m = Regexp.new("(\xc4\x80)(.)").match(a)
+  assert_equal [0xc4, 0x80], m[1].bytes
+  assert_equal "x", m[2]
+  assert_equal [0, 1, 1, 2], [m.begin(1), m.end(1), m.begin(2), m.end(2)]
+  # Read as binary every byte stands alone, so a byte capture works there.
+  if Object.const_defined?(:Encoding)
+    bm = Regexp.new("(\xc4).").match("\xc4\x80x".b)
+    assert_equal [0xc4, 0x80], bm[0].bytes
+    assert_equal [0xc4], bm[1].bytes
+  end
+  # ...and a byte no lead byte reaches stands alone in a UTF-8 subject too.
+  b = "\x81"
+  bm = Regexp.new("(" + b + ")(" + b + ")").match((b + b).b)
+  assert_equal [0x81], bm[1].bytes
+  assert_equal [0x81], bm[2].bytes
+end
+
+assert("Regexp - a lookaround holds where its sub-pattern matches") do
+  # A lookaround consumes nothing, so where its sub-pattern stopped was not the
+  # end of a match and nothing held it to a character. It could therefore
+  # answer the opposite of the body it asserts: at the start of "Ā" the pattern
+  # \xC4 finds nothing, yet (?=\xC4) held there and (?!\xC4) did not. The body
+  # reaches the same positions as the rest of the search now, so both halves
+  # read what they assert.
+  # Every pattern below that holds a byte spelling no character is one CRuby
+  # refuses at Regexp.new (`too short escaped multibyte character`) rather
+  # than answering, because a Regexp there carries an encoding to refuse with.
+  # This gem has none and accepts them, which is what keeps a pattern of a
+  # lone byte usable as a way to find that byte. So what these assertions pin
+  # is the answer this gem gives while it accepts them, and they are what has
+  # to become the raise if a Regexp ever carries an encoding.
+  skip unless __ENCODING__ == "UTF-8"
+  a = "Āx"  # C4 80 78
+  assert_nil a.match(Regexp.new("\xc4"))
+  assert_nil a.match(Regexp.new("(?=\xc4)"))                # was: held at byte 0
+  assert_equal 0, a.match(Regexp.new("(?!\xc4)")).begin(0)   # was: byte 2
+  # A lookbehind read the same way, rewound a character and stopping one byte
+  # short of the position it was asserting about.
+  assert_nil a.match(Regexp.new("(?<=\xc4)"))               # was: held at byte 2
+  assert_equal 1, a.match(Regexp.new("(?<!\xc4)x")).begin(0)
+  # A body that does match asserts what it always did.
+  assert_equal 1, a.match(Regexp.new("(?=x)")).begin(0)
+  assert_equal 1, a.match(Regexp.new("(?<=Ā)")).begin(0)
+  assert_equal "x", a.match(Regexp.new("(?=(x))"))[1]
+  assert_equal "Ā", a.match(Regexp.new("(?<=(Ā))x"))[1]
+  assert_equal 2, a.match(Regexp.new("(?=\xc4\x80)\xc4\x80"))[0].bytesize
+  # Read as binary the byte is there to assert about.
+  if Object.const_defined?(:Encoding)
+    assert_equal 0, "\xc4\x80x".b.match(Regexp.new("(?=\xc4)")).begin(0)
+  end
 end
 
 assert("Regexp - multibyte (UTF-8) match extraction") do

@@ -22,6 +22,8 @@ static void regexp_free(mrb_state *mrb, void *ptr) {
   mrb_re_free(mrb, (mrb_regexp_pattern*)ptr);
 }
 
+static mrb_bool re_binary_string_p(mrb_value str);
+
 static const struct mrb_data_type regexp_type = { "Regexp", regexp_free };
 
 /* True while the object holds nothing that can be matched against. A Regexp
@@ -158,7 +160,8 @@ re_initialize(mrb_state *mrb, mrb_value self, mrb_value pattern, uint32_t flags)
   DATA_TYPE(self) = &regexp_type;
   DATA_PTR(self) = pat;
 
-  mrb_re_compile(mrb, pat, RSTRING_PTR(pattern), RSTRING_LEN(pattern), flags);
+  mrb_re_compile(mrb, pat, RSTRING_PTR(pattern), RSTRING_LEN(pattern), flags,
+                 re_binary_string_p(pattern));
 
   /* store named captures as hash */
   if (pat->num_named > 0) {
@@ -723,13 +726,14 @@ struct re_trial_compile {
   const char *ptr;
   mrb_int len;
   uint32_t flags;
+  mrb_bool binary;
 };
 
 static mrb_value
 re_trial_compile_body(mrb_state *mrb, void *ud)
 {
   struct re_trial_compile *t = (struct re_trial_compile*)ud;
-  mrb_re_compile(mrb, t->pat, t->ptr, t->len, t->flags);
+  mrb_re_compile(mrb, t->pat, t->ptr, t->len, t->flags, t->binary);
   return mrb_nil_value();
 }
 
@@ -739,9 +743,11 @@ re_trial_compile_body(mrb_state *mrb, void *ud)
    leaves neither the exception nor the arena behind. The pattern is held by
    the caller's frame rather than the body's, since a compile that raises
    abandons the body's: what it allocated hangs off `pat`, and mrb_re_free()
-   is what reaches it either way. */
+   is what reaches it either way. `binary` is the source's own reading, so
+   the trial spells the bytes the way the compile of the whole spells them. */
 static mrb_bool
-re_compiles_alone(mrb_state *mrb, const char *ptr, mrb_int len, uint32_t flags)
+re_compiles_alone(mrb_state *mrb, const char *ptr, mrb_int len, uint32_t flags,
+                  mrb_bool binary)
 {
   struct re_trial_compile t;
   mrb_bool error;
@@ -750,6 +756,7 @@ re_compiles_alone(mrb_state *mrb, const char *ptr, mrb_int len, uint32_t flags)
   t.ptr = ptr;
   t.len = len;
   t.flags = flags;
+  t.binary = binary;
   mrb_protect_error(mrb, re_trial_compile_body, &t, &error);
   mrb_re_free(mrb, t.pat);
   return !error;
@@ -813,7 +820,8 @@ re_fold_leading_group(mrb_state *mrb, mrb_value src, const char **ptrp, mrb_int 
 
     /* n counts ':' and ')' as well as what lies between, which may be empty:
        "(?:)" is a group around nothing. */
-    if (n >= 2 && *p == ':' && p[n-1] == ')' && re_compiles_alone(mrb, p + 1, n - 2, on)) {
+    if (n >= 2 && *p == ':' && p[n-1] == ')' &&
+        re_compiles_alone(mrb, p + 1, n - 2, on, re_binary_string_p(src))) {
       flags = on;
       ptr = p + 1;
       len = n - 2;

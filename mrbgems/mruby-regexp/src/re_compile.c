@@ -51,6 +51,8 @@ typedef struct {
   uint16_t num_named;
   mrb_bool has_backref;
   mrb_bool needs_backtrack;
+  mrb_bool binary;      /* the pattern string is byte-indexed: its bytes
+                            spell no characters (see mrb_re_compile()) */
   mrb_bool dont_capture;    /* pattern declares a named group: plain (...) does not capture */
   uint16_t max_backref;     /* the largest group number the pattern refers
                                back to, whichever of `\NN` and `\k<n>` spelled
@@ -609,6 +611,7 @@ hex_value(int ch)
 }
 
 static int parse_escape(re_compiler *c);
+static void emit_codepoint(re_compiler *c, uint32_t cp);
 
 /* Read the character a control escape names and return the control character
    it stands for. `\cX` and `\C-X` name the same one, and a `\` in the X
@@ -1318,6 +1321,13 @@ fixed_len_walk(re_compiler *c, uint32_t start, uint32_t end, int *chars_out, int
       pc += (uint32_t)clen;
       break;
     }
+    case RE_BYTE:
+      /* a byte that starts no character is a character of its own, which is
+         the unit the rewind counts and the byte it costs */
+      len += 1;
+      chars += 1;
+      pc++;
+      break;
     case RE_CLASS:
     case RE_NCLASS:
     case RE_ANY:
@@ -1455,13 +1465,84 @@ emit_char(re_compiler *c, uint8_t ch)
 static void
 emit_char_bytes(re_compiler *c, int ch)
 {
-  int len = mrb_re_charlen(c->p - 1, c->src_end, FALSE);
+  /* A byte-indexed pattern holds bytes and not the character they would
+     spell, so each one is an atom of its own and a quantifier after them
+     repeats the last, which is what CRuby reads an ASCII-8BIT pattern as. */
+  int len = c->binary ? 1 : mrb_re_charlen(c->p - 1, c->src_end, FALSE);
+  /* A byte the pattern spells out that starts no whole character spells no
+     character either, and is the same byte `\xNN` names: RE_BYTE, not a byte
+     of something. Written raw or written escaped, a pattern holds one for the
+     same reason and it matches in the same places. */
+  if (len == 1 && ch >= 128) {
+    emit(c, RE_BYTE, (uint8_t)ch, 0);
+    return;
+  }
   emit(c, RE_CHAR, (uint8_t)ch, 0);
   for (int i = 1; i < len; i++) {
     int b = next_char(c);
     if (b < 0) break;
     emit(c, RE_CHAR, (uint8_t)b, 0);
   }
+}
+
+/* Read one more byte escape, or answer -1 and leave the position where it
+   stood. Only `\xNN` and octal `\NNN` name a byte; everything else names a
+   character or an assertion and is not a byte of the sequence being spelled. */
+static int
+next_escaped_byte(re_compiler *c)
+{
+  const char *save = c->p;
+  if (peek(c) != '\\') return -1;
+  next_char(c);
+  int k = peek(c);
+  if (k != 'x' && !(k >= '0' && k <= '7')) { c->p = save; return -1; }
+  int v = parse_escape(c);
+  if (v < 0x80 || v > 0xBF) { c->p = save; return -1; }
+  return v;
+}
+
+/* Emit a byte escape whose value is above 127, having read the first one.
+
+   Byte escapes that spell a character are that character: CRuby reads
+   `\xC4\x80` as "\u{100}" and binds a quantifier to the whole of it, and so
+   does the unescaped spelling here through emit_char_bytes(). So the
+   continuation bytes are read and the character emitted as one atom.
+
+   What is left is a byte no character reaches, which is a byte and not the
+   codepoint of the same number: `\xC4` alone is not "\u{C4}", and the byte it
+   names lives inside "\u{100}" without being a character there. RE_BYTE is
+   what asks for it, matching only where the subject byte stands alone, the
+   rule `[\xC4]` already reads it by. Matching it inside a character instead
+   was what let a match, a capture and a lookaround stop between two bytes of
+   one. */
+static void
+emit_escaped_byte(re_compiler *c, int ch)
+{
+  int need = 0;
+  if (c->binary) need = 0;  /* bytes spell no character here; see above */
+  else if (ch >= 0xC2 && ch <= 0xDF) need = 1;
+  else if (ch >= 0xE0 && ch <= 0xEF) need = 2;
+  else if (ch >= 0xF0 && ch <= 0xF4) need = 3;
+
+  if (need > 0) {
+    const char *save = c->p;
+    char buf[4];
+    buf[0] = (char)ch;
+    int n = 1;
+    while (n <= need) {
+      int b = next_escaped_byte(c);
+      if (b < 0) break;
+      buf[n++] = (char)b;
+    }
+    if (n == need + 1 && mrb_re_charlen(buf, buf + n, FALSE) == n) {
+      int len = 0;
+      uint32_t cp = mrb_re_decode_char(buf, buf + n, &len, FALSE);
+      emit_codepoint(c, cp);
+      return;
+    }
+    c->p = save;  /* spells no character: the lead byte is a byte of its own */
+  }
+  emit(c, RE_BYTE, (uint8_t)ch, 0);
 }
 
 /* Emit a non-ASCII codepoint under /i as a class rather than a run of bytes,
@@ -2318,7 +2399,9 @@ compile_atom(re_compiler *c)
       if (!emit_char_folded(c, ch)) emit_char_bytes(c, ch);
     }
     else {
-      emit_char(c, (uint8_t)parse_escape(c));
+      int v = parse_escape(c);
+      if (v >= 128) emit_escaped_byte(c, v);
+      else emit_char(c, (uint8_t)v);
     }
     break;
 
@@ -3126,6 +3209,8 @@ first_set_walk(const re_inst *code, uint32_t code_len,
         return FALSE;
       pc = code[pc].offset;
       continue;
+    case RE_BYTE:
+      return FALSE;  /* always non-ASCII: bm covers ASCII only */
     case RE_CHAR:
       if (code[pc].a >= 128) return FALSE;  /* non-ASCII: bm covers ASCII only */
       bm[code[pc].a >> 3] |= (1 << (code[pc].a & 7));
@@ -3333,7 +3418,8 @@ call_walk(const re_inst *code, uint32_t code_len, uint32_t start,
       seen[pc] = mark;
       re_inst in = code[pc];
       switch (in.op) {
-      case RE_CHAR: case RE_CLASS: case RE_NCLASS: case RE_ANY: case RE_ANY_NL:
+      case RE_CHAR: case RE_BYTE:
+      case RE_CLASS: case RE_NCLASS: case RE_ANY: case RE_ANY_NL:
         if (consuming_stops) break;
         pc++;
         continue;
@@ -3630,11 +3716,13 @@ resolve_calls(re_compiler *c)
 
 void
 mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat,
-               const char *pattern, mrb_int len, uint32_t flags)
+               const char *pattern, mrb_int len, uint32_t flags,
+               mrb_bool binary)
 {
   re_compiler c;
   memset(&c, 0, sizeof(c));
 
+  c.binary = binary;
   c.mrb = mrb;
   c.pat = pat;
   c.orig = pattern;
