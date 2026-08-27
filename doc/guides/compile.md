@@ -33,16 +33,24 @@ inside of the mruby source root. To generate and execute the test tools call
 `rake test`. To clean all build files call `rake clean`. To see full command
 line on build, call `rake -v`.
 
-`rake compile_commands.json` writes a `compile_commands.json` at the source
-root, for editors and clang tools, out of the command lines the build records
-beside its own objects. No tracer such as `bear` is involved.
+Every target ends its build by writing a `compile_commands.json` of its own
+compiles into its build directory, for editors and clang tools, out of the
+command lines it records beside its objects. No tracer such as `bear` is
+involved. `rake compile_commands.json` is that same build, asked for by the
+name of the file it leaves behind. A target says
+`conf.disable_compile_commands` to keep none.
 
-The database describes one build: the target named `host` where there is one
-and the first target the configuration declares otherwise, or the target
-`MRUBY_CDB_TARGET` names. A source no build in the tree compiled, one of a
-gem the configuration leaves out for instance, has no entry;
-`compile_flags.txt` and `.clangd` at the source root are what answer for
-those.
+A database in a build directory is what `clangd --compile-commands-dir` and
+its like are pointed at, so reading the tree as a cross target is one option
+away. What a tool finds without being pointed anywhere is the copy at the
+source root, and that one describes a single target: the one whose
+configuration says `conf.enable_compile_commands default: true`, or failing
+that the target named `host`, or failing that the first target the
+configuration declares. `MRUBY_CDB_TARGET` names another for one run.
+
+A source no build in the tree compiled, one of a gem the configuration leaves
+out for instance, has no entry; `compile_flags.txt` and `.clangd` at the
+source root are what answer for those.
 
 You can specify your own configuration file by the `MRUBY_CONFIG` environment
 variable (you can use `CONFIG` for shorthand for `MRUBY_CONFIG`). If the path

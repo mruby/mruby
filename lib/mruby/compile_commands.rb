@@ -20,52 +20,106 @@ module MRuby
     # The keys of a +.flags+ record, in the order it writes them.
     RECORD_KEYS = %w[command options flags].freeze
 
-    # Where the database goes. clangd and the clang tools look for it beside
-    # the file they are asked about and in the directories above it, so the
-    # source root is where it answers for the whole tree.
-    def self.path
+    # Where the tree's own database goes. clangd and the clang tools look
+    # for one beside the file they are asked about and in the directories
+    # above it, and a source of this tree has the source root above it and
+    # no build directory, so the source root is where a database answers
+    # for the tree.
+    def self.tree_path
       "#{MRUBY_ROOT}/compile_commands.json"
     end
 
-    # Write the database of the tree and say so.
+    # Write a database for every build that keeps one, and the tree's from
+    # the build that speaks for it.
+    #
+    # A build's own database sits in its build directory, where a tool told
+    # to read that build finds it: what clangd's +compile-commands-dir+
+    # option names is a directory, so a cross build's flags are one option
+    # away without the config or the environment being changed at all.
+    #
+    # A build that has compiled nothing is passed over rather than handed an
+    # empty database, since its build directory may not even be there yet.
     def self.write
-      build = target
-      count = new(build).write(path)
-      _pp "GEN", path.relative_path, "#{count} entries from '#{build.name}'"
+      speaks_for_tree = target
+      keepers.each do |build|
+        database = new(build)
+        next if database.count.zero?
+
+        write_one(database, database.path, "#{database.count} entries")
+        next unless build.equal?(speaks_for_tree)
+
+        write_one(database, tree_path, "from '#{build.name}'")
+      end
     end
 
-    # The build the database describes.
+    # Write one database, and report where the file cannot be written rather
+    # than raise.
     #
-    # A tree builds several targets and a tool that opens one source wants
-    # one answer for it, so one target speaks for the tree: the one named
-    # +host+ where there is one, and the first the config declares
-    # otherwise. +MRUBY_CDB_TARGET+ names another.
+    # A file that cannot be written is not a build that has gone wrong: mruby
+    # is built from a read-only checkout as a dependency of something else,
+    # and the database is no part of what that build is for. Each file is
+    # answered for on its own, so a source root that refuses the tree's copy
+    # leaves the builds after it their own.
+    def self.write_one(database, path, note)
+      database.write(path)
+      _pp "GEN", path.relative_path, note
+    rescue SystemCallError => e
+      warn "#{path.relative_path} not written: #{e.message}"
+    end
+
+    # The builds that keep a database: those a config declared, and that it
+    # has not told to keep none.
     #
     # The builds a build makes for itself are left out. The +mrbc+ donor
     # compiles the same sources as its owner with the defines of a
     # bootstrap compiler, and it is no target the config asked for.
+    def self.keepers
+      MRuby.targets.each_value.reject(&:internal?).select(&:compile_commands_enabled?)
+    end
+
+    # The build the tree's own database is written from.
+    #
+    # The config settles it where it says so, since a config with several
+    # builds is the only thing that knows which of them a reader of this
+    # tree means. Failing that it is the build named +host+, the one that
+    # runs on the machine the sources are being read on, and failing that
+    # the first the config declares. +MRUBY_CDB_TARGET+ names another for a
+    # single run, and has to name one that keeps a database: a build told to
+    # keep none has none to copy, and saying so beats writing nothing and
+    # leaving the reader to wonder which build answered.
     def self.target(name = ENV["MRUBY_CDB_TARGET"])
+      builds = keepers
       if name
-        MRuby.targets[name] or fail "unknown build target: #{name}"
-      else
-        builds = MRuby.targets.each_value.reject(&:internal?)
-        builds.find { |build| build.name == "host" } || builds.first
+        return builds.find { |build| build.name == name } ||
+          fail("MRUBY_CDB_TARGET names no build that keeps a compile_commands.json: #{name}")
       end
+
+      builds.find(&:compile_commands_default?) ||
+        builds.find { |build| build.name == "host" } ||
+        builds.first
     end
 
     def initialize(build)
       @build = build
     end
 
-    # Write the database to +path+ and answer the number of entries in it.
+    # Where this build's own database goes.
+    def path
+      "#{@build.build_dir}/compile_commands.json"
+    end
+
+    # Write the database to +path+.
     #
     # A file that already holds these entries is left alone, mtime and all,
     # so that a language server watching it does not reindex the tree after
-    # a build that compiled nothing.
+    # a build that compiled nothing. The same database is written to more
+    # than one path, so what it holds is worked out once.
     def write(path)
-      entries = self.entries
-      json = JSON.pretty_generate(entries) << "\n"
       File.write(path, json) unless File.exist?(path) && File.read(path) == json
+    end
+
+    # How many entries the database holds.
+    def count
       entries.size
     end
 
@@ -73,16 +127,23 @@ module MRuby
     # source they compile so that two runs over the same build directory
     # write the same file.
     def entries
-      list = records.map { |outfile| entry(outfile) }.compact
-      list.sort_by! { |e| [e["file"], e["output"]] }
-      # One source is compiled once here, but a build directory that holds a
-      # nested build keeps a record for each. The first is the one the sort
-      # settled on, and a database with two answers for a file has none.
-      list.uniq! { |e| e["file"] }
-      list
+      @entries ||= begin
+        list = records.map { |outfile| entry(outfile) }.compact
+        list.sort_by! { |e| [e["file"], e["output"]] }
+        # One source is compiled once here, but a build directory that holds
+        # a nested build keeps a record for each. The first is the one the
+        # sort settled on, and a database with two answers for a file has
+        # none.
+        list.uniq! { |e| e["file"] }
+        list
+      end
     end
 
     private
+
+    def json
+      @json ||= JSON.pretty_generate(entries) << "\n"
+    end
 
     # The objects this build directory holds, named by the record beside
     # them.
