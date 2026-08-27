@@ -44,15 +44,6 @@ class String
   # takes the name.
   alias __slice_bang slice!
 
-  # The four search methods of src/string.c whose regexp form is overridden at
-  # the end of this file.  On a build without MRB_UTF8_STRING the two of a
-  # pair are the same C function behind two method table entries, so each
-  # still needs its own capture.
-  alias __index index
-  alias __rindex rindex
-  alias __byteindex byteindex
-  alias __byterindex byterindex
-
   # The three from mruby-string-ext, which this gem depends on.
   alias __partition partition
   alias __rpartition rpartition
@@ -436,112 +427,6 @@ class String
     removed = md[group]
     __aset(beg, len, "")
     removed
-  end
-
-  # Regexp-aware `index`.  Falls back to the C-defined `index` (aliased as
-  # `__index` above) for every other argument form.
-  def index(*args)
-    return __index(*args) unless Regexp === args[0]
-    if args.length > 2
-      raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1..2)"
-    end
-    # `Regexp.__search` normalizes a position the way `index` does and reads
-    # it with the same `mrb_get_args()` conversion, so the argument goes over
-    # unexamined: a negative one counts back from the end, and one that lands
-    # outside the subject answers nil after clearing the match globals.
-    # A full search and not `match?`, because those globals are part of the
-    # answer.
-    md = args.length > 1 ? Regexp.__search(args[0], self, args[1]) : Regexp.__search(args[0], self)
-    # `begin` reports character offsets, which is the space `index` answers
-    # in; `byteindex` below is the same search read in the other space.
-    md && md.begin(0)
-  end
-
-  # Regexp-aware `rindex`.  Falls back to the C-defined `rindex` (aliased as
-  # `__rindex` above) for every other argument form.
-  def rindex(*args)
-    return __rindex(*args) unless Regexp === args[0]
-    if args.length > 2
-      raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1..2)"
-    end
-    len = self.length
-    pos = len
-    if args.length > 1
-      # The position is arithmetic here rather than an argument handed
-      # straight to the engine, so it has to be an Integer first.
-      # `Integer.__ensure` is `mrb_ensure_int_type()`, the same conversion
-      # `mrb_get_args()` performs for the `i` of the C method.
-      pos = Integer.__ensure(args[1])
-      if pos < 0
-        pos += len
-        # Out of the subject at the negative end is a miss, and a miss
-        # clears the match globals.
-        return Regexp.__search(args[0], nil) if pos < 0
-      elsif pos > len
-        # Past the other end is not: `rindex` searches back from the end of
-        # the subject, and `mrb_str_byterindex_m()` clamps for the same
-        # reason.  `"abc".rindex(/b/, 10)` is 1.
-        pos = len
-      end
-    end
-    # The search reads the subject by byte, so the character position it is
-    # to stop at has to be read as one here.  A position at the end of the
-    # subject is the end of its bytes and needs no reading, which is the form
-    # `rindex` is called in when it is called with one argument at all.
-    byte_pos = pos == len ? self.bytesize : self[0, pos].bytesize
-    md = Regexp.__byte_rsearch(args[0], self, byte_pos)
-    md && md.begin(0)
-  end
-
-  # Regexp-aware `byteindex`.  Falls back to the C-defined `byteindex`
-  # (aliased as `__byteindex` above) for every other argument form.
-  def byteindex(*args)
-    return __byteindex(*args) unless Regexp === args[0]
-    if args.length > 2
-      raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1..2)"
-    end
-    len = self.bytesize
-    pos = 0
-    if args.length > 1
-      pos = Integer.__ensure(args[1])
-      pos += len if pos < 0
-    end
-    # `__byte_search` takes the position as given and does not range check
-    # it, where `Regexp.__search` answers nil for one outside the subject.
-    # Both ends are a miss here, as they are for `mrb_str_byteindex_m()`.
-    return Regexp.__search(args[0], nil) if pos < 0 || pos > len
-    # An offset that lands inside a character names no position the subject
-    # has, and the C method refuses one.  It is asked after the range test,
-    # where the C method asks it too, so an offset outside the subject stays a
-    # miss rather than becoming an error.
-    Regexp.__check_byte_pos(self, pos)
-    md = Regexp.__byte_search(args[0], self, pos)
-    md && md.__byte_begin(0)
-  end
-
-  # Regexp-aware `byterindex`.  Falls back to the C-defined `byterindex`
-  # (aliased as `__byterindex` above) for every other argument form.
-  def byterindex(*args)
-    return __byterindex(*args) unless Regexp === args[0]
-    if args.length > 2
-      raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1..2)"
-    end
-    len = self.bytesize
-    pos = len
-    if args.length > 1
-      pos = Integer.__ensure(args[1])
-      if pos < 0
-        pos += len
-        return Regexp.__search(args[0], nil) if pos < 0
-      elsif pos > len
-        pos = len
-      end
-    end
-    # As in `byteindex` above, and after the same clamp: a position past the
-    # end of the subject has already been read as its end, which is a boundary.
-    Regexp.__check_byte_pos(self, pos)
-    md = Regexp.__byte_rsearch(args[0], self, pos)
-    md && md.__byte_begin(0)
   end
 
   # Regexp-aware `partition`.  Falls back to the C-defined `partition`

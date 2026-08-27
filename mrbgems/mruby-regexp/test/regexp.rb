@@ -241,28 +241,6 @@ assert("Regexp.escape") do
   assert_true Regexp.new(Regexp.escape("a # b"), Regexp::EXTENDED).match?("a # b")
 end
 
-assert("Regexp.__check_byte_pos passes a position the subject does not have") do
-  # `String#byteindex` and `String#byterindex` read the position against the
-  # byte length and answer both ends themselves before asking this, so one
-  # outside the subject arrives only from a direct call. A position the subject
-  # does not have sits on no boundary, and looking for one would read behind
-  # the subject.
-  s = "あいう"
-  assert_nil Regexp.__check_byte_pos(s, -1)
-  assert_nil Regexp.__check_byte_pos(s, -1000000)
-  assert_nil Regexp.__check_byte_pos(s, s.bytesize + 1)
-  assert_nil Regexp.__check_byte_pos(s, 1000000)
-
-  # the ones it does have are still asked
-  assert_nil Regexp.__check_byte_pos(s, 0)
-  assert_nil Regexp.__check_byte_pos(s, s.bytesize)
-  if __ENCODING__ == "UTF-8"
-    assert_raise(IndexError) { Regexp.__check_byte_pos(s, 1) }
-  else
-    assert_nil Regexp.__check_byte_pos(s, 1)
-  end
-end
-
 assert("Regexp#inspect") do
   re = Regexp.new("abc", Regexp::IGNORECASE)
   assert_equal "/abc/i", re.inspect

@@ -388,32 +388,6 @@ regexp_check_encoding(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
-/*
- * Regexp.__check_byte_pos(str, pos)
- *
- * Internal: `mrb_str_check_byte_pos()`, for the byte searches this gem takes
- * over. `String#byteindex` and `String#byterindex` reach the C methods that
- * ask this for every argument form but a Regexp, and the answer a search gives
- * may not turn on which of the two it was reached through.
- */
-static mrb_value
-regexp_check_byte_pos(mrb_state *mrb, mrb_value self)
-{
-  (void)self;
-  mrb_value str;
-  mrb_int pos;
-  mrb_get_args(mrb, "Si", &str, &pos);
-  /* The mrblib callers read the position against the byte length and answer
-     both ends themselves before asking this, so one outside the subject
-     reaches here only from a direct call. There is no boundary to ask about
-     at a position the subject does not have, and mrb_str_check_byte_pos()
-     would read behind RSTRING_PTR(str) looking for one. A backstop, as
-     check_regexp_arg() below is for a pattern. */
-  if (pos < 0 || pos > RSTRING_LEN(str)) return mrb_nil_value();
-  mrb_str_check_byte_pos(mrb, str, pos);
-  return mrb_nil_value();
-}
-
 /* Create MatchData from captures, and make it the match the globals
    describe. */
 static mrb_value
@@ -669,6 +643,42 @@ regexp_s_byte_rsearch(mrb_state *mrb, mrb_value klass)
     clear_match_globals(mrb);
     return mrb_nil_value();
   }
+  re_check_encoding(mrb, str);
+
+  mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
+  if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
+
+  int cap_size = pat->num_captures * 2;
+  int captures[RE_MAX_CAPTURES * 2];
+  int ncap = mrb_re_rexec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), limit,
+                          captures, cap_size, re_binary_string_p(str));
+  re_check_exec_error(mrb, ncap);
+  if (ncap == 0) {
+    clear_match_globals(mrb);
+    return mrb_nil_value();
+  }
+  return create_matchdata(mrb, re, str, captures, cap_size);
+}
+
+/*
+ * The backward search of `rindex`, `byterindex` and `rpartition`. `limit` is
+ * a byte offset and the answer is the last match that starts at or before it,
+ * or nil.
+ *
+ * The three callers work in byte space and clamp the limit into the subject
+ * first, so there is no position normalization and no operand conversion
+ * here. Nor is there a `checked`: none of the three has a quoted String
+ * pattern to reach here with, a String argument being the form each of them
+ * leaves to the C method it captured.
+ *
+ * The match this answers with is the one the globals describe, and a miss
+ * clears them, as in every other search. The walk that used to pass over
+ * matches on its way to this one is inside mrb_re_rexec(), so no caller has
+ * to keep the globals off what it passes.
+ */
+static mrb_value
+re_byte_rsearch(mrb_state *mrb, mrb_value re, mrb_value str, mrb_int limit)
+{
   re_check_encoding(mrb, str);
 
   mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
@@ -2538,6 +2548,164 @@ str_match_op_m(mrb_state *mrb, mrb_value self)
   return str_match_op_common(mrb, self);
 }
 
+/*
+ * String#index(pattern, pos = 0), the regexp form; every other argument form
+ * goes back to the captured core `__index`.
+ */
+static mrb_value
+str_index_m(mrb_state *mrb, mrb_value self)
+{
+  const mrb_value *argv;
+  mrb_int argc;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  if (argc == 0 || !regexp_arg_p(mrb, argv[0])) {
+    return mrb_funcall_argv(mrb, self, MRB_SYM(__index), argc, argv);
+  }
+  if (argc > 2) mrb_argnum_error(mrb, argc, 1, 2);
+  /* re_search() normalizes the position the way `index` does: a negative one
+     counts back from the end, and one that lands outside the subject answers
+     nil after clearing the match globals. A full search and not `match?`,
+     because those globals are part of the answer. */
+  mrb_value md = re_search(mrb, argv[0], self,
+                           argc > 1 ? mrb_as_int(mrb, argv[1]) : 0, FALSE);
+  if (mrb_nil_p(md)) return mrb_nil_value();
+  mrb_match_data *m = DATA_GET_PTR(mrb, md, &matchdata_type, mrb_match_data);
+  /* A character offset, which is the space `index` answers in; `byteindex`
+     below is the same search read in the other space. */
+  return mrb_int_value(mrb, re_byte_to_char(mrb, m->source, m->captures[0]));
+}
+
+/*
+ * String#rindex(pattern, pos = end), the regexp form; every other argument
+ * form goes back to the captured core `__rindex`.
+ */
+static mrb_value
+str_rindex_m(mrb_state *mrb, mrb_value self)
+{
+  const mrb_value *argv;
+  mrb_int argc;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  if (argc == 0 || !regexp_arg_p(mrb, argv[0])) {
+    return mrb_funcall_argv(mrb, self, MRB_SYM(__rindex), argc, argv);
+  }
+  if (argc > 2) mrb_argnum_error(mrb, argc, 1, 2);
+  mrb_value pattern = argv[0];
+  mrb_int clen = mrb_str_char_len(mrb, self);
+  mrb_int pos = clen;
+  if (argc > 1) {
+    /* The position is arithmetic here rather than an argument handed
+       straight to the engine, so it has to be an Integer first. */
+    pos = mrb_as_int(mrb, argv[1]);
+    if (pos < 0) {
+      pos += clen;
+      /* Out of the subject at the negative end is a miss, and a miss clears
+         the match globals. */
+      if (pos < 0) {
+        clear_match_globals(mrb);
+        return mrb_nil_value();
+      }
+    }
+    else if (pos > clen) {
+      /* Past the other end is not: `rindex` searches back from the end of
+         the subject, and mrb_str_byterindex_m() clamps for the same reason.
+         `"abc".rindex(/b/, 10)` is 1. */
+      pos = clen;
+    }
+  }
+  /* The search reads the subject by byte, so the character position it is to
+     stop at has to be read as one here. A position at the end of the subject
+     is the end of its bytes and needs no reading, which is the form `rindex`
+     is called in when it is called with one argument at all. */
+  mrb_int byte_pos = (pos == clen) ? RSTRING_LEN(self)
+                                   : mrb_str_char_to_byte(mrb, self, 0, pos);
+  mrb_value md = re_byte_rsearch(mrb, pattern, self, byte_pos);
+  if (mrb_nil_p(md)) return mrb_nil_value();
+  mrb_match_data *m = DATA_GET_PTR(mrb, md, &matchdata_type, mrb_match_data);
+  return mrb_int_value(mrb, re_byte_to_char(mrb, m->source, m->captures[0]));
+}
+
+/*
+ * String#byteindex(pattern, pos = 0), the regexp form; every other argument
+ * form goes back to the captured core `__byteindex`.
+ */
+static mrb_value
+str_byteindex_m(mrb_state *mrb, mrb_value self)
+{
+  const mrb_value *argv;
+  mrb_int argc;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  if (argc == 0 || !regexp_arg_p(mrb, argv[0])) {
+    return mrb_funcall_argv(mrb, self, MRB_SYM(__byteindex), argc, argv);
+  }
+  if (argc > 2) mrb_argnum_error(mrb, argc, 1, 2);
+  mrb_value pattern = argv[0];
+  mrb_int len = RSTRING_LEN(self);
+  mrb_int pos = 0;
+  if (argc > 1) {
+    pos = mrb_as_int(mrb, argv[1]);
+    if (pos < 0) pos += len;
+  }
+  /* Both ends are a miss here, as they are for mrb_str_byteindex_m(), and a
+     miss clears the match globals. */
+  if (pos < 0 || pos > len) {
+    clear_match_globals(mrb);
+    return mrb_nil_value();
+  }
+  /* An offset that lands inside a character names no position the subject
+     has, and the C method refuses one. It is asked after the range test,
+     where the C method asks it too, so an offset outside the subject stays a
+     miss rather than becoming an error. */
+  mrb_str_check_byte_pos(mrb, self, pos);
+  re_check_encoding(mrb, self);
+  mrb_value md = exec_match(mrb, pattern, self, pos);
+  if (mrb_nil_p(md)) return mrb_nil_value();
+  mrb_match_data *m = DATA_GET_PTR(mrb, md, &matchdata_type, mrb_match_data);
+  return mrb_int_value(mrb, m->captures[0]);
+}
+
+/*
+ * String#byterindex(pattern, pos = end), the regexp form; every other
+ * argument form goes back to the captured core `__byterindex`.
+ */
+static mrb_value
+str_byterindex_m(mrb_state *mrb, mrb_value self)
+{
+  const mrb_value *argv;
+  mrb_int argc;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  if (argc == 0 || !regexp_arg_p(mrb, argv[0])) {
+    return mrb_funcall_argv(mrb, self, MRB_SYM(__byterindex), argc, argv);
+  }
+  if (argc > 2) mrb_argnum_error(mrb, argc, 1, 2);
+  mrb_value pattern = argv[0];
+  mrb_int len = RSTRING_LEN(self);
+  mrb_int pos = len;
+  if (argc > 1) {
+    pos = mrb_as_int(mrb, argv[1]);
+    if (pos < 0) {
+      pos += len;
+      if (pos < 0) {
+        clear_match_globals(mrb);
+        return mrb_nil_value();
+      }
+    }
+    else if (pos > len) {
+      pos = len;
+    }
+  }
+  /* As in `byteindex`, and after the same clamp: a position past the end of
+     the subject has already been read as its end, which is a boundary. */
+  mrb_str_check_byte_pos(mrb, self, pos);
+  mrb_value md = re_byte_rsearch(mrb, pattern, self, pos);
+  if (mrb_nil_p(md)) return mrb_nil_value();
+  mrb_match_data *m = DATA_GET_PTR(mrb, md, &matchdata_type, mrb_match_data);
+  return mrb_int_value(mrb, m->captures[0]);
+}
+
 /* --- Gem init --- */
 
 void
@@ -2571,7 +2739,6 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, re, "__binary_string?", regexp_binary_string_p, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, re, "__check_encoding", regexp_check_encoding, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, re, "__check_pattern", regexp_check_pattern, MRB_ARGS_REQ(1));
-  mrb_define_class_method(mrb, re, "__check_byte_pos", regexp_check_byte_pos, MRB_ARGS_REQ(2));
   mrb_define_class_method(mrb, re, "__search", regexp_s_search, MRB_ARGS_ARG(2, 2));
   mrb_define_class_method(mrb, re, "__byte_search", regexp_s_byte_search, MRB_ARGS_ARG(2, 2));
   mrb_define_class_method(mrb, re, "__byte_rsearch", regexp_s_byte_rsearch, MRB_ARGS_REQ(3));
@@ -2596,10 +2763,27 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, re, "__gsub_block", regexp_s_gsub_block, MRB_ARGS_ARG(2, 1)|MRB_ARGS_BLOCK());
   mrb_define_class_method(mrb, re, "__scan", regexp_s_scan, MRB_ARGS_REQ(2));
 
+  /* The String methods whose regexp form this gem answers. Every core or
+     mruby-string-ext method a non-Regexp argument goes back to is captured
+     under a private name first, before the override takes the name, the way
+     the mrblib overrides captured them with `alias` at the top of the class
+     body. On a build without MRB_UTF8_STRING the two of an index pair are
+     the same C function behind two method table entries, so each still
+     needs its own capture. `slice!`, `partition`, `rpartition` and
+     `start_with?` come from mruby-string-ext, which this gem depends on. */
   struct RClass *str = mrb->string_class;
+  mrb_alias_method(mrb, str, MRB_SYM(__index), MRB_SYM(index));
+  mrb_alias_method(mrb, str, MRB_SYM(__rindex), MRB_SYM(rindex));
+  mrb_alias_method(mrb, str, MRB_SYM(__byteindex), MRB_SYM(byteindex));
+  mrb_alias_method(mrb, str, MRB_SYM(__byterindex), MRB_SYM(byterindex));
+
   mrb_define_method(mrb, str, "match", str_match_m, MRB_ARGS_ARG(1, 1)|MRB_ARGS_BLOCK());
   mrb_define_method(mrb, str, "match?", str_match_p_m, MRB_ARGS_ARG(1, 1));
   mrb_define_method(mrb, str, "=~", str_match_op_m, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, str, "index", str_index_m, MRB_ARGS_ANY());
+  mrb_define_method(mrb, str, "rindex", str_rindex_m, MRB_ARGS_ANY());
+  mrb_define_method(mrb, str, "byteindex", str_byteindex_m, MRB_ARGS_ANY());
+  mrb_define_method(mrb, str, "byterindex", str_byterindex_m, MRB_ARGS_ANY());
 
   /* String#[] takes the name here rather than in mrblib, so that the indexes
      the core method answers do not pay a Ruby frame to reach it. `slice` is
