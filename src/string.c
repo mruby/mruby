@@ -515,8 +515,15 @@ search_nonascii(const char *p, const char *e)
       p = (const char *)s;
     }
   }
+  /* One test per byte the range holds: entering at `case N` runs N of them,
+     and `default` is only reached where the range holds at least 16, which is
+     the first `_mm_loadu_si128()` having found a byte among those 16. A test
+     more than the label promises reads the position the range ends at, which
+     every mruby string happens to carry as its NUL sentinel and a bare buffer
+     does not. */
   switch (e - p) {
   default:
+  case 16: if (NOASCII(*p)) return p; ++p;
   case 15: if (NOASCII(*p)) return p; ++p;
   case 14: if (NOASCII(*p)) return p; ++p;
   case 13: if (NOASCII(*p)) return p; ++p;
@@ -532,7 +539,6 @@ search_nonascii(const char *p, const char *e)
   case 3:  if (NOASCII(*p)) return p; ++p;
   case 2:  if (NOASCII(*p)) return p; ++p;
   case 1:  if (NOASCII(*p)) return p; ++p;
-           if (NOASCII(*p)) return p;
   case 0:  break;
   }
   return e;
@@ -3990,12 +3996,8 @@ mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
   if (ptr_addr >= str_addr && ptr_addr - str_addr <= (uintptr_t)RSTR_LEN(s)) {
     off = (ptrdiff_t)(ptr_addr - str_addr);
     if (len > (size_t)(RSTR_LEN(s) - off)) {
-      /* One byte more than the range: search_nonascii() below reads the
-         position the range ends at, which every mruby string carries as its
-         NUL sentinel and a raw buffer does not. */
-      char *tmp = (char*)mrb_alloca(mrb, len + 1);
+      char *tmp = (char*)mrb_alloca(mrb, len);
       memcpy(tmp, ptr, len);
-      tmp[len] = '\0';
       ptr = tmp;
       off = -1;
     }
