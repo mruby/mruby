@@ -12,6 +12,11 @@ boxings.product(bits, ints) do |boxing, bit, int|
       c.flags << "-m#{bit}"
     end
     conf.linker.flags << "-m#{bit}"
+
+    # The compile_commands.json at the source root speaks for the plain build,
+    # word boxing being what mruby picks when nothing asks for another.
+    conf.enable_compile_commands default: true if [boxing, bit, int] == ['word', 64, 64]
+
     conf.enable_debug
     conf.enable_test
     conf.enable_bintest

@@ -10,6 +10,9 @@ MRuby::Build.new('host-m32') do |conf|
   conf.cc.flags << '-m32'
   conf.linker.flags << '-m32'
 
+  # The compile_commands.json at the source root speaks for this build
+  conf.enable_compile_commands default: true
+
   # Turn on `enable_debug` for better debugging
   conf.enable_debug
   conf.enable_test
