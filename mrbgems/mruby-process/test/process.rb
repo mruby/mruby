@@ -270,6 +270,24 @@ assert('Process::Status#==') do
   assert_not_operator st, :==, "0"
 end
 
+assert('Process::Status#== reads a subclass as the status it is') do
+  # What decides is the raw status, and carrying one is not something a
+  # subclass stops doing.  CRuby never asks about the class here: its
+  # Integer#== hands a non-numeric right operand the question back, so the
+  # object on the right answers through whichever #== it inherits.  mruby's
+  # Integer#== does not hand back, so the unwrapping is this method's to do
+  # and it has to read a subclass as a status.
+  sub = Class.new(Process::Status)
+  st = Process::Status.new(1234, 0)
+
+  assert_operator st, :==, sub.new(1234, 0)
+  assert_operator sub.new(1234, 0), :==, st
+  # The pid takes no part here either.
+  assert_operator st, :==, sub.new(1235, 0)
+  assert_not_operator st, :==, sub.new(1234, 1)
+  assert_not_operator sub.new(1234, 1), :==, st
+end
+
 assert('Process::Status does not answer to_int') do
   # mruby has no implicit-conversion protocol, so nothing would ever call it,
   # and CRuby does not have the method either.
