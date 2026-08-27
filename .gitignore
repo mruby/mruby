@@ -28,7 +28,6 @@ bin
 doc/api
 doc/capi
 compile_commands.json
-compile_flags.txt
 cscope.files
 cscope.out
 gmon.out

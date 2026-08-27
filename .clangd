@@ -1,3 +1,37 @@
+# Without a compile_commands.json, clangd falls back to a bare `clang <file>`:
+# no include paths, so the force-includes below resolve nothing and every
+# `#include <mruby/...>` is a file-not-found. compile_flags.txt next to this
+# file supplies those paths; a compile_commands.json, when the tree has one,
+# still wins over it, so generating one (e.g. `bear -- rake`) still gives the
+# per-file flags of a real build. The paths have to live there rather than
+# here, because a relative path added from this file resolves against the
+# directory of the file being edited, not against the project root.
+#
+# They also have to live there uncommented: compile_flags.txt has no comment
+# syntax, every line is one compiler argument. clangd happens to shrug off a
+# prose line, dropping it as a stray input filename, but clang-tidy, which
+# falls back to the same file, reports each one as a missing input file. What
+# those paths mean is therefore recorded here instead:
+#
+# build/host/include carries the generated headers (mruby/presym/id.h, which
+# every MRB_SYM() expands into, and mruby/revision.h): run `rake` once for
+# them to exist. Any config that names its build `host` fills the path; a
+# bare `rake` (build_config/default.rb) does, and build_config/host-debug.rb
+# is the assumed one, since its full-core gembox puts the presyms of nearly
+# every core gem into the generated table. A build under another name
+# (MRUBY_BUILD_DIR, or a target other than `host`) needs its own line there.
+#
+# The gem include paths are the ones the build hands to a gem that depends on
+# them; a gem added later with an include/ directory of its own needs a line
+# there too.
+#
+# Note that this file deliberately does not pin -std, even though the build
+# compiles C with -std=gnu99: below C11 `mrb_static_assert` expands to a
+# struct named after __COUNTER__, and clangd restarts that counter after the
+# preamble, so a header that force-includes mruby.h and then asserts collides
+# with an assert from the preamble. The default -std keeps `_Static_assert`,
+# which has no such name.
+
 # Most headers in this tree are written to be included after mruby.h rather
 # than to be parsed on their own, so a language server pointed at one directly
 # resolves none of its types: they all decay to implicit int, and
@@ -42,3 +76,115 @@ CompileFlags:
   Add:
     - --include=mruby.h
     - --include=mrc_irep.h
+
+---
+# mruby-compiler is built with MRC_TARGET_MRUBY, and mruby-bin-mrbc copies
+# that define from it because it links the gem's objects. Without it
+# mrc_common.h takes its standalone-mrbc branch, which never includes mruby.h
+# and makes `mrb_state` a macro for void: the sources still parse, but no
+# mrb_* declaration is in scope and every `mrb->` field resolves to nothing.
+#
+# The add rides on top of a compile_commands.json as well. For any database
+# this tree generates that is a harmless duplicate: its commands already
+# carry MRC_TARGET_MRUBY. A database from a PICORB_VM_MRUBYC build, which
+# compiles this gem for the mruby/c VM, is misread, since mrc_common.h
+# prefers MRC_TARGET_MRUBY when both targets are defined and no clangd
+# condition can scope an add to fallback commands only; a tree building that
+# target can strip the define back out with `CompileFlags: Remove` in its
+# own .clangd.
+#
+# PRISM_XALLOCATOR is what makes prism/defines.h include the gem's
+# prism_xallocator.h, so the vendored Prism sources see mruby's allocator.
+# Both are settings rather than paths, which is why they are here and the
+# include paths are not.
+If:
+  PathMatch:
+    - mrbgems/mruby-compiler/.*
+    - mrbgems/mruby-bin-mrbc/.*
+
+CompileFlags:
+  Add:
+    - -DMRC_TARGET_MRUBY
+    - -DPRISM_XALLOCATOR
+
+---
+# Some gems hand every build that carries them a define announcing their
+# presence (spec.build.defines in their mrbgem.rake), and their own sources
+# assume it: mrdbconf.h #errors without MRB_USE_DEBUG_HOOK, rational.c calls
+# `mrb_rational_div` through an internal.h declaration that MRB_USE_RATIONAL
+# guards. Each of the fragments below applies a gem's own define to the gem's
+# own directory, since reading a gem's sources implies a build that carries
+# the gem. They are scoped to the gem rather than set globally: which gems a
+# build carries is a build configuration question, and the rest of the tree
+# should not be read through the answer one gem happens to give.
+If:
+  PathMatch: mrbgems/mruby-bigint/.*
+
+CompileFlags:
+  Add:
+    - -DMRB_USE_BIGINT
+
+---
+If:
+  PathMatch: mrbgems/mruby-bin-debugger/.*
+
+CompileFlags:
+  Add:
+    - -DMRB_USE_DEBUG_HOOK
+
+---
+If:
+  PathMatch: mrbgems/mruby-complex/.*
+
+CompileFlags:
+  Add:
+    - -DMRB_USE_COMPLEX
+
+---
+If:
+  PathMatch: mrbgems/mruby-encoding/.*
+
+CompileFlags:
+  Add:
+    - -DHAVE_MRUBY_ENCODING_GEM
+    - -DMRB_UTF8_STRING
+
+---
+If:
+  PathMatch: mrbgems/mruby-io/.*
+
+CompileFlags:
+  Add:
+    - -DHAVE_MRUBY_IO_GEM
+
+---
+If:
+  PathMatch: mrbgems/mruby-rational/.*
+
+CompileFlags:
+  Add:
+    - -DMRB_USE_RATIONAL
+
+---
+If:
+  PathMatch: mrbgems/mruby-regexp/.*
+
+CompileFlags:
+  Add:
+    - -DHAVE_MRUBY_REGEXP_GEM
+
+---
+If:
+  PathMatch: mrbgems/mruby-set/.*
+
+CompileFlags:
+  Add:
+    - -DMRB_USE_SET
+
+---
+If:
+  PathMatch: mrbgems/mruby-task/.*
+
+CompileFlags:
+  Add:
+    - -DMRB_USE_TASK_SCHEDULER
