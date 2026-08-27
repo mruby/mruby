@@ -38,6 +38,16 @@ status_ivar(mrb_state *mrb, mrb_value self, mrb_sym name)
   return mrb_integer(v);
 }
 
+/* Process::Status itself, which is not always an instance's own class: a
+   subclass of it is still one, and #== has to read one as such. */
+static struct RClass *
+status_class(mrb_state *mrb)
+{
+  struct RClass *process = mrb_module_get_id(mrb, MRB_SYM(Process));
+
+  return mrb_class_get_under_id(mrb, process, MRB_SYM(Status));
+}
+
 static void
 status_decode(mrb_state *mrb, mrb_value self, mrb_process_status *st)
 {
@@ -222,8 +232,11 @@ status_eq(mrb_state *mrb, mrb_value self)
   /* Ruby answers this question as `to_i == other`, and reaches a status on
      the right through Integer#== asking it back.  mrb_equal() answers false
      for anything that is not a number instead of asking, so a status is
-     unwrapped here rather than left to it. */
-  if (mrb_obj_class(mrb, self) == mrb_obj_class(mrb, other)) {
+     unwrapped here rather than left to it.  Being a status is what decides
+     that, not being of this exact class: a subclass of Process::Status is
+     one, and CRuby's way round reaches it through whichever #== the object
+     carries. */
+  if (mrb_obj_is_kind_of(mrb, other, status_class(mrb))) {
     other = mrb_int_value(mrb, status_ivar(mrb, other, MRB_IVSYM(status)));
   }
   return mrb_bool_value(mrb_equal(mrb, raw, other));
@@ -315,8 +328,7 @@ status_to_s(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_process_status_new(mrb_state *mrb, mrb_int pid, mrb_int raw_status)
 {
-  struct RClass *process = mrb_module_get_id(mrb, MRB_SYM(Process));
-  struct RClass *status = mrb_class_get_under_id(mrb, process, MRB_SYM(Status));
+  struct RClass *status = status_class(mrb);
   mrb_value argv[2];
 
   argv[0] = mrb_int_value(mrb, pid);
