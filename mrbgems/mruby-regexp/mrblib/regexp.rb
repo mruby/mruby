@@ -30,12 +30,6 @@ class Regexp
 
   # options is implemented in C (internal flags -> Ruby constants conversion)
 
-  def self.last_match(n = nil)
-    md = $~
-    return md if n.nil?
-    md ? md[n] : nil
-  end
-
   # named capture info is set via C create_matchdata
 end
 

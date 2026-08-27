@@ -3137,6 +3137,58 @@ str_start_with_p(mrb_state *mrb, mrb_value self)
   return mrb_false_value();
 }
 
+/* --- The regexp-aware Symbol methods --- */
+
+/* CRuby defines these on Symbol so that a symbol can be matched against a
+   regexp without spelling out the `to_s`. Each applies the String body above
+   to the symbol's name, the way CRuby's sym_match_m() hands rb_sym2str(sym)
+   to the String function, so the argument handling is inherited rather than
+   repeated; `$~` is published by the shared body either way.
+
+   This covers the symbol-on-the-left direction only. The Regexp side
+   converts a symbol on its own, in match_operand(), so it needs nothing from
+   here. `sym[/re/]` needs nothing either: `Symbol#slice` (mruby-symbol-ext,
+   which this gem does not depend on) delegates to `String#slice`, so it
+   picks up the regexp form of str_aref() wherever that gem is built in. */
+
+static mrb_value
+sym_match_m(mrb_state *mrb, mrb_value self)
+{
+  return str_match_common(mrb, mrb_sym_str(mrb, mrb_symbol(self)));
+}
+
+static mrb_value
+sym_match_p_m(mrb_state *mrb, mrb_value self)
+{
+  return str_match_p_common(mrb, mrb_sym_str(mrb, mrb_symbol(self)));
+}
+
+static mrb_value
+sym_match_op_m(mrb_state *mrb, mrb_value self)
+{
+  return str_match_op_common(mrb, mrb_sym_str(mrb, mrb_symbol(self)));
+}
+
+/*
+ * Regexp.last_match / Regexp.last_match(n)
+ *
+ * Reads `$~` and indexes it the way MatchData#[] does: CRuby's
+ * rb_reg_s_last_match() reaches rb_reg_nth_match() directly rather than
+ * dispatching `[]`, so a program redefining `MatchData#[]` moves `md[n]`
+ * and leaves this reader alone.
+ */
+static mrb_value
+regexp_s_last_match(mrb_state *mrb, mrb_value klass)
+{
+  mrb_value n = mrb_nil_value();
+
+  mrb_get_args(mrb, "|o", &n);
+  mrb_value md = mrb_gv_get(mrb, ensure_match_sym(mrb));
+  if (mrb_nil_p(n)) return md;
+  if (mrb_nil_p(md)) return mrb_nil_value();
+  return md_aref(mrb, md, n);
+}
+
 /* --- Gem init --- */
 
 void
@@ -3167,6 +3219,7 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   /* compile is defined in Ruby (mrblib) as alias for new */
   mrb_define_class_method(mrb, re, "escape", regexp_escape, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, re, "quote", regexp_escape, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, re, "last_match", regexp_s_last_match, MRB_ARGS_OPT(1));
 
   /* Instance methods */
   mrb_define_method(mrb, re, "match", regexp_match, MRB_ARGS_ARG(1, 1)|MRB_ARGS_BLOCK());
@@ -3246,6 +3299,13 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
      opcode calls. */
   mrb_define_method(mrb, str, "[]=", str_aset, MRB_ARGS_ANY());
   mrb_idx_op_rearm(mrb, MRB_IDX_OP_STR_ASET);
+
+  /* The Symbol delegations, which share the String bodies; see the note
+     above sym_match_m(). */
+  struct RClass *sym = mrb->symbol_class;
+  mrb_define_method(mrb, sym, "match", sym_match_m, MRB_ARGS_ARG(1, 1)|MRB_ARGS_BLOCK());
+  mrb_define_method(mrb, sym, "match?", sym_match_p_m, MRB_ARGS_ARG(1, 1));
+  mrb_define_method(mrb, sym, "=~", sym_match_op_m, MRB_ARGS_REQ(1));
 
   /* MatchData class */
   struct RClass *md = mrb_define_class(mrb, "MatchData", mrb->object_class);
