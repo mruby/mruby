@@ -286,9 +286,9 @@ assert("String#match / #match? with a non-Regexp argument raise TypeError") do
     "abc".match?(nil, Object.new)
   end
 
-  # The check lives on Regexp and no helper for it is defined on String, so a
-  # subclass defining a method by such a name cannot widen what `match` and
-  # `match?` accept.
+  # The check lives in C (check_pattern() in src/regexp.c) and no helper for
+  # it is defined on String, so a subclass defining a method by such a name
+  # cannot widen what `match` and `match?` accept.
   assert_raise_with_message(TypeError, "wrong argument type Symbol (expected Regexp)") do
     StringMatchHelperOverride.new("abc").match(:abc)
   end

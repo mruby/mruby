@@ -720,23 +720,6 @@ regexp_match_p(mrb_state *mrb, mrb_value self)
 }
 
 /*
- * Regexp.__search_p(re, str, pos = 0)
- *
- * Internal: `Regexp#match?` with the pattern as an argument, for the
- * `String#match?` override; the same boundary as `Regexp.__search`.
- */
-static mrb_value
-regexp_s_search_p(mrb_state *mrb, mrb_value klass)
-{
-  mrb_value re, str;
-  mrb_int pos = 0;
-
-  mrb_get_args(mrb, "oo|i", &re, &str, &pos);
-  check_regexp_arg(mrb, re);
-  return exec_match_p(mrb, re, str, pos);
-}
-
-/*
  * Regexp#=~(str)
  */
 static mrb_value
@@ -2258,6 +2241,41 @@ regexp_s_scan(mrb_state *mrb, mrb_value klass)
 
 /* Check the pattern given to String#match, #match?, #sub, #gsub, #scan and
    #split: a Regexp or a String passes through, everything else raises. The
+   real type is read rather than asked of the argument, so a redefined `is_a?`
+   or `class` cannot pose as a Regexp or fake the type name. What to do with
+   an accepted String is left to the caller, which compiles it for `match` and
+   quotes it first for `sub` and friends. CRuby names `nil`, `true` and
+   `false` by value and everything else by class. */
+static mrb_value
+check_pattern(mrb_state *mrb, mrb_value re)
+{
+  if (mrb_obj_is_kind_of(mrb, re, mrb_class_get_id(mrb, MRB_SYM(Regexp)))) return re;
+  if (mrb_string_p(re)) return re;
+
+  const char *name;
+  if (mrb_nil_p(re)) name = "nil";
+  else if (mrb_true_p(re)) name = "true";
+  else if (mrb_false_p(re)) name = "false";
+  else name = mrb_obj_classname(mrb, re);
+  mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %s (expected Regexp)", name);
+}
+
+/* True for the arguments the regexp-aware overrides take over; everything
+   else goes to the captured core method. The real type is read, not
+   `is_a?`, which a Regexp denying its own type could answer with: what it
+   settles is which implementation answers, not what the pattern goes on to
+   decide once it is here. Every Regexp is CDATA, including one of a
+   subclass, so the type test settles the common arguments without the
+   constant lookup the class test costs. */
+static mrb_bool
+regexp_arg_p(mrb_state *mrb, mrb_value obj)
+{
+  return mrb_type(obj) == MRB_TT_CDATA &&
+         mrb_obj_is_kind_of(mrb, obj, mrb_class_get_id(mrb, MRB_SYM(Regexp)));
+}
+
+/* Check the pattern given to String#match, #match?, #sub, #gsub, #scan and
+   #split: a Regexp or a String passes through, everything else raises. The
    test runs here rather than in Ruby so it never dispatches on the argument,
    where a redefined `is_a?` or `class` could pose as a Regexp or fake the type
    name. What to do with an accepted String is left to the caller, which
@@ -2302,13 +2320,7 @@ str_aref(mrb_state *mrb, mrb_value str)
   mrb_value a1, a2;
   mrb_int argc = mrb_get_args(mrb, "o|o", &a1, &a2);
 
-  /* The real type, not `a1.is_a?`, which a Regexp denying its own type could
-     answer with; what it settles is which implementation answers, not what
-     the pattern goes on to decide once it is here. Every Regexp is CDATA,
-     including one of a subclass, so the type test settles the common indexes
-     without the constant lookup the class test costs. */
-  if (mrb_type(a1) != MRB_TT_CDATA ||
-      !mrb_obj_is_kind_of(mrb, a1, mrb_class_get_id(mrb, MRB_SYM(Regexp)))) {
+  if (!regexp_arg_p(mrb, a1)) {
     return mrb_str_aref(mrb, str, a1, argc == 1 ? mrb_undef_value() : a2);
   }
 
@@ -2347,9 +2359,7 @@ str_aset(mrb_state *mrb, mrb_value str)
   mrb_int argc;
   mrb_get_args(mrb, "*", &argv, &argc);
 
-  /* The real type, not `argv[0].is_a?`; see str_aref() above. */
-  if (argc < 1 || mrb_type(argv[0]) != MRB_TT_CDATA ||
-      !mrb_obj_is_kind_of(mrb, argv[0], mrb_class_get_id(mrb, MRB_SYM(Regexp)))) {
+  if (argc < 1 || !regexp_arg_p(mrb, argv[0])) {
     if (argc >= 3 && !mrb_nil_p(argv[2])) mrb_ensure_string_type(mrb, argv[2]);
     if (argc < 2 || argc > 3) mrb_argnum_error(mrb, argc, 2, 3);
     mrb_value replace = argv[argc-1];
@@ -2414,6 +2424,120 @@ str_aset(mrb_state *mrb, mrb_value str)
   return replace;
 }
 
+/* --- The regexp-aware String methods --- */
+
+/* Each stands where CRuby implements the same method in C, a C frame in
+   place of the Ruby frame the mrblib override pushed.
+
+   Every entry point settles its pattern argument up front, so the argument
+   cannot steer the decision: check_pattern() reads the real type, an accepted
+   String is compiled or quoted here, and with the type established the search
+   reaches the engine directly, so nothing rewritten on the pattern instance
+   is consulted on the way. The MatchData a search answers is built in C too,
+   so what a method reads back from it cannot have been planted by an
+   argument. Two dispatches are kept on purpose, both CRuby's: `match` sends
+   `match` to the pattern (rb_str_match_m() does so deliberately), and `=~`
+   hands an argument that is not a Regexp to that argument's own `=~`
+   (rb_str_match()).
+
+   The argument forms the captured core methods answer -- every non-Regexp
+   index, separator or prefix -- go back to them under the private names gem
+   init takes (`__index` and the rest), the way the mrblib overrides captured
+   them with `alias` before taking the name. The values live on the VM stack
+   while `mrb_get_args("*")` hands them out, so each method reads what it
+   needs into locals before anything can push a frame over them. */
+
+/*
+ * String#match(pattern, pos = 0), and Symbol#match through the same body.
+ *
+ * The one deliberate dispatch: `match` goes to the pattern because CRuby's
+ * rb_str_match_m() sends it there on purpose, block and all, so a Regexp
+ * subclass overriding `match` is asked. The pattern's type is settled first,
+ * so the dispatch target is a real Regexp or whatever an accepted String
+ * compiled into.
+ */
+static mrb_value
+str_match_common(mrb_state *mrb, mrb_value str)
+{
+  mrb_value re, pos = mrb_fixnum_value(0), block;
+
+  mrb_get_args(mrb, "o|o&", &re, &pos, &block);
+  re = check_pattern(mrb, re);
+  if (mrb_string_p(re)) {
+    re = mrb_obj_new(mrb, mrb_class_get_id(mrb, MRB_SYM(Regexp)), 1, &re);
+  }
+  mrb_value argv[2];
+  argv[0] = str;
+  argv[1] = pos;
+  return mrb_funcall_with_block(mrb, re, MRB_SYM(match), 2, argv, block);
+}
+
+static mrb_value
+str_match_m(mrb_state *mrb, mrb_value self)
+{
+  return str_match_common(mrb, self);
+}
+
+/*
+ * String#match?(pattern, pos = 0), and Symbol#match? through the same body.
+ *
+ * Unlike `match`, the search does not dispatch on the pattern: CRuby's
+ * rb_str_match_m_p() resolves the argument and searches it directly, where
+ * rb_str_match_m() sends `match` to it on purpose. The position is read as
+ * an Integer after the pattern is settled, which is the order the mrblib
+ * override read the two in.
+ */
+static mrb_value
+str_match_p_common(mrb_state *mrb, mrb_value str)
+{
+  mrb_value re, pos = mrb_fixnum_value(0);
+
+  mrb_get_args(mrb, "o|o", &re, &pos);
+  re = check_pattern(mrb, re);
+  if (mrb_string_p(re)) {
+    re = mrb_obj_new(mrb, mrb_class_get_id(mrb, MRB_SYM(Regexp)), 1, &re);
+  }
+  return exec_match_p(mrb, re, str, mrb_as_int(mrb, pos));
+}
+
+static mrb_value
+str_match_p_m(mrb_state *mrb, mrb_value self)
+{
+  return str_match_p_common(mrb, self);
+}
+
+/*
+ * String#=~(pattern), and Symbol#=~ through the same body.
+ */
+static mrb_value
+str_match_op_common(mrb_state *mrb, mrb_value str)
+{
+  mrb_value re = mrb_get_arg1(mrb);
+
+  /* A String argument would dispatch back to this method and recurse, so it
+     is rejected up front (CRuby raises the same TypeError). The real type is
+     read: a String subclass denying its own `is_a?` cannot slip past. */
+  if (mrb_string_p(re)) {
+    mrb_raise(mrb, E_TYPE_ERROR, "type mismatch: String given");
+  }
+  /* A real Regexp is searched here rather than asked, as CRuby's
+     rb_str_match() does: it sends `=~` to the argument only when the
+     argument is not a Regexp, which is what the tail below keeps doing. */
+  if (regexp_arg_p(mrb, re)) {
+    mrb_value md = re_search(mrb, re, str, 0, FALSE);
+    if (mrb_nil_p(md)) return mrb_nil_value();
+    mrb_match_data *m = DATA_GET_PTR(mrb, md, &matchdata_type, mrb_match_data);
+    return mrb_int_value(mrb, re_byte_to_char(mrb, m->source, m->captures[0]));
+  }
+  return mrb_funcall_argv(mrb, re, MRB_OPSYM(match), 1, &str);
+}
+
+static mrb_value
+str_match_op_m(mrb_state *mrb, mrb_value self)
+{
+  return str_match_op_common(mrb, self);
+}
+
 /* --- Gem init --- */
 
 void
@@ -2451,7 +2575,6 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, re, "__search", regexp_s_search, MRB_ARGS_ARG(2, 2));
   mrb_define_class_method(mrb, re, "__byte_search", regexp_s_byte_search, MRB_ARGS_ARG(2, 2));
   mrb_define_class_method(mrb, re, "__byte_rsearch", regexp_s_byte_rsearch, MRB_ARGS_REQ(3));
-  mrb_define_class_method(mrb, re, "__search_p", regexp_s_search_p, MRB_ARGS_ARG(2, 1));
 
   /* Instance methods */
   mrb_define_method(mrb, re, "match", regexp_match, MRB_ARGS_ARG(1, 1)|MRB_ARGS_BLOCK());
@@ -2472,6 +2595,11 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, re, "__sub_lit", regexp_s_sub_lit, MRB_ARGS_ARG(3, 1));
   mrb_define_class_method(mrb, re, "__gsub_block", regexp_s_gsub_block, MRB_ARGS_ARG(2, 1)|MRB_ARGS_BLOCK());
   mrb_define_class_method(mrb, re, "__scan", regexp_s_scan, MRB_ARGS_REQ(2));
+
+  struct RClass *str = mrb->string_class;
+  mrb_define_method(mrb, str, "match", str_match_m, MRB_ARGS_ARG(1, 1)|MRB_ARGS_BLOCK());
+  mrb_define_method(mrb, str, "match?", str_match_p_m, MRB_ARGS_ARG(1, 1));
+  mrb_define_method(mrb, str, "=~", str_match_op_m, MRB_ARGS_REQ(1));
 
   /* String#[] takes the name here rather than in mrblib, so that the indexes
      the core method answers do not pay a Ruby frame to reach it. `slice` is

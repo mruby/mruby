@@ -58,43 +58,6 @@ class String
   alias __rpartition rpartition
   alias __start_with? start_with?
 
-  # `match` and `match?` accept a Regexp or a String and reject everything
-  # else.  The check lives in C (see Regexp.__check_pattern) so that the
-  # argument cannot steer it: it cannot pose as a Regexp, and there is no
-  # helper on String for a subclass to redefine.  Compiling an accepted String
-  # stays here, so the check does not have to call back into the VM; `String
-  # ===` goes through `Module#===` and cannot be redefined either.
-  def match(re, pos = 0, &block)
-    re = Regexp.__check_pattern(re)
-    re = Regexp.new(re) if String === re
-    re.match(self, pos, &block)
-  end
-
-  # Unlike `match`, the search does not dispatch on the pattern: CRuby's
-  # `rb_str_match_m_p()` resolves the argument and searches it directly,
-  # where `rb_str_match_m()` sends `match` to it on purpose.
-  def match?(re, pos = 0)
-    re = Regexp.__check_pattern(re)
-    re = Regexp.new(re) if String === re
-    Regexp.__search_p(re, self, pos)
-  end
-
-  def =~(re)
-    # A String argument would dispatch back to this method and recurse, so
-    # reject it up front (CRuby raises the same TypeError).  `is_a?` is
-    # redefinable, so a String subclass denying its own type would slip past
-    # the guard and recurse anyway; `Module#===` reads the real type.
-    raise TypeError, "type mismatch: String given" if String === re
-    # A real Regexp is searched here rather than asked, as CRuby's
-    # `rb_str_match()` does: it sends `=~` to the argument only when the
-    # argument is not a Regexp, which is what the tail below keeps doing.
-    if Regexp === re
-      md = Regexp.__search(re, self)
-      return md && md.begin(0)
-    end
-    re =~ self
-  end
-
   def sub(*args, &block)
     # CRuby accepts 1..2 arguments with a block, but demands exactly 2
     # without one, and reports the expected count accordingly.  The count is
