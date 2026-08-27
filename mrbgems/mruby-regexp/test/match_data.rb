@@ -166,6 +166,14 @@ assert("Regexp.last_match") do
   assert_equal "123", Regexp.last_match(0)
 end
 
+assert("Regexp.last_match - an explicit nil is not an omitted argument") do
+  "lm" =~ /lm/
+  assert_equal "lm", Regexp.last_match[0]
+  assert_raise(TypeError) { Regexp.last_match(nil) }
+  "lm" =~ /nomatch/
+  assert_nil Regexp.last_match(nil)
+end
+
 assert("MatchData#[] - negative index") do
   md = /(a)(b)/.match("ab")
   assert_equal "b", md[-1]

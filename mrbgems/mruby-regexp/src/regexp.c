@@ -3175,16 +3175,18 @@ sym_match_op_m(mrb_state *mrb, mrb_value self)
  * Reads `$~` and indexes it the way MatchData#[] does: CRuby's
  * rb_reg_s_last_match() reaches rb_reg_nth_match() directly rather than
  * dispatching `[]`, so a program redefining `MatchData#[]` moves `md[n]`
- * and leaves this reader alone.
+ * and leaves this reader alone. The whole MatchData answers only an
+ * omitted argument, told apart by arity: an explicit nil goes on to the
+ * integer conversion and fails it, as it does in CRuby.
  */
 static mrb_value
 regexp_s_last_match(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value n = mrb_nil_value();
+  mrb_value n;
 
-  mrb_get_args(mrb, "|o", &n);
+  mrb_int argc = mrb_get_args(mrb, "|o", &n);
   mrb_value md = mrb_gv_get(mrb, ensure_match_sym(mrb));
-  if (mrb_nil_p(n)) return md;
+  if (argc == 0) return md;
   if (mrb_nil_p(md)) return mrb_nil_value();
   return md_aref(mrb, md, n);
 }
