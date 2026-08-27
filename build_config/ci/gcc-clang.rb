@@ -8,6 +8,11 @@ MRuby::Build.new('full-debug') do |conf|
   conf.gembox 'full-core'
   conf.cc.defines += %w(MRB_GC_STRESS MRB_USE_DEBUG_HOOK)
 
+  # The compile_commands.json at the source root speaks for this build: what it
+  # adds to a default build only turns code on, where every other build here
+  # turns some off and would have an editor grey out a path that is live.
+  conf.enable_compile_commands default: true
+
   conf.enable_test
 end
 

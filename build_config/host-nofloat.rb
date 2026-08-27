@@ -21,6 +21,9 @@ MRuby::Build.new('host-nofloat') do |conf|
     c.defines << "MRB_NO_FLOAT"
   end
 
+  # The compile_commands.json at the source root speaks for this build
+  conf.enable_compile_commands default: true
+
   conf.enable_debug
   conf.enable_test
   conf.enable_bintest

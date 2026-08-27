@@ -2,7 +2,7 @@
 # no include paths, so the force-includes below resolve nothing and every
 # `#include <mruby/...>` is a file-not-found. compile_flags.txt next to this
 # file supplies those paths; a compile_commands.json, when the tree has one,
-# still wins over it, so generating one (e.g. `bear -- rake`) still gives the
+# still wins over it, so the one this tree writes for itself gives the
 # per-file flags of a real build. The paths have to live there rather than
 # here, because a relative path added from this file resolves against the
 # directory of the file being edited, not against the project root.
