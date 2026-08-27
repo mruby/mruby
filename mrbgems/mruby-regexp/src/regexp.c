@@ -245,30 +245,49 @@ regexp_init_copy(mrb_state *mrb, mrb_value self)
   return re_initialize(mrb, self, src, get_iflags(mrb, orig));
 }
 
-/* Pre-interned symbol for $~ (cached on first use). MRB_GVSYM() takes a
-   word after the `$`, which `~` is not, so this one is looked up once here. */
-static mrb_sym match_sym;
-
-static mrb_sym
-ensure_match_sym(mrb_state *mrb)
-{
-  if (!match_sym) match_sym = mrb_intern_lit(mrb, "$~");
-  return match_sym;
-}
-
 /* $~ is the one name a match publishes. `$&`, `` $` ``, `$'`, `$+` and `$1`
    onward are readings of it that the compiler derives when they are read,
-   so publishing and clearing are each one write of `$~`. */
+   so publishing and clearing are each one write of `$~`.
+
+   The value lives in the owning scope's MRB_SVAR_BACKREF slot, not in the
+   globals table, which is what keeps a method's match out of its caller's
+   `$~`. The engine reaches that slot directly, the way CRuby's re.c and
+   string.c reach rb_backref_set(): the global name is how Ruby code spells
+   the slot, not the route a match publishes through. The pair below is
+   what that spelling needs, and nothing more. */
 static void
 set_match_globals(mrb_state *mrb, mrb_value obj)
 {
-  mrb_gv_set(mrb, ensure_match_sym(mrb), obj);
+  mrb_vm_svar_set(mrb, MRB_SVAR_BACKREF, obj);
 }
 
 static void
 clear_match_globals(mrb_state *mrb)
 {
   set_match_globals(mrb, mrb_nil_value());
+}
+
+/* The virtual-global pair `$~` dispatches to, registered in gem init, so
+   that Ruby code reading or assigning the name lands on the same slot the
+   engine publishes into. The slot is opaque to the core; that it holds a
+   MatchData is this gem's contract, and every value the engine stores is
+   one by construction, which leaves the setter, the only path an arbitrary
+   value arrives by, as the home of CRuby's TypeError for
+   `$~ = <not a MatchData>` (CRuby's match_setter()). */
+static mrb_value
+backref_gv_get(mrb_state *mrb)
+{
+  return mrb_vm_svar_get(mrb, MRB_SVAR_BACKREF);
+}
+
+static void
+backref_gv_set(mrb_state *mrb, mrb_value v)
+{
+  if (!mrb_nil_p(v) && !(mrb_data_p(v) && DATA_TYPE(v) == &matchdata_type)) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %s (expected MatchData)",
+               mrb_obj_classname(mrb, v));
+  }
+  mrb_vm_svar_set(mrb, MRB_SVAR_BACKREF, v);
 }
 
 /* Byte-based substring extraction. The regexp engine records all capture
@@ -2229,8 +2248,10 @@ str_aset(mrb_state *mrb, mrb_value str)
 
 /* --- The regexp-aware String methods --- */
 
-/* Each stands where CRuby implements the same method in C, a C frame in
-   place of the Ruby frame the mrblib override pushed.
+/* Each stands where CRuby implements the same method in C. Being C frames
+   they are transparent to `$~` owner resolution, so a match inside publishes
+   into the calling scope the way rb_str_sub_bang()'s does, with nothing
+   having to say so.
 
    Every entry point settles its pattern argument up front, so the argument
    cannot steer the decision: check_pattern() reads the real type, an accepted
@@ -3180,12 +3201,14 @@ sym_match_op_m(mrb_state *mrb, mrb_value self)
 /*
  * Regexp.last_match / Regexp.last_match(n)
  *
- * Reads `$~` and indexes it the way MatchData#[] does: CRuby's
- * rb_reg_s_last_match() reaches rb_reg_nth_match() directly rather than
- * dispatching `[]`, so a program redefining `MatchData#[]` moves `md[n]`
- * and leaves this reader alone. The whole MatchData answers only an
- * omitted argument, told apart by arity: an explicit nil goes on to the
- * integer conversion and fails it, as it does in CRuby.
+ * Reads the caller's `$~`, which this C frame is transparent to, and indexes
+ * it the way MatchData#[] does: CRuby's rb_reg_s_last_match() reaches
+ * rb_reg_nth_match() directly rather than dispatching `[]`, so a program
+ * redefining `MatchData#[]` moves `md[n]` and leaves this reader alone. The
+ * whole MatchData answers only an omitted argument, told apart by arity: an
+ * explicit nil goes on to the integer conversion and fails it, as it does
+ * in CRuby. Being the engine, it reads the slot rather than the global
+ * name, as CRuby's rb_reg_s_last_match() reads rb_backref_get().
  */
 static mrb_value
 regexp_s_last_match(mrb_state *mrb, mrb_value klass)
@@ -3193,7 +3216,7 @@ regexp_s_last_match(mrb_state *mrb, mrb_value klass)
   mrb_value n;
 
   mrb_int argc = mrb_get_args(mrb, "|o", &n);
-  mrb_value md = mrb_gv_get(mrb, ensure_match_sym(mrb));
+  mrb_value md = mrb_vm_svar_get(mrb, MRB_SVAR_BACKREF);
   if (argc == 0) return md;
   if (mrb_nil_p(md)) return mrb_nil_value();
   return md_aref(mrb, md, n);
@@ -3206,6 +3229,12 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
 {
   struct RClass *re = mrb_define_class(mrb, "Regexp", mrb->object_class);
   MRB_SET_INSTANCE_TT(re, MRB_TT_CDATA);
+
+  /* `$~` is a global name whose value is per method scope. This is the one
+     place the name is needed, so it is interned here rather than cached:
+     MRB_GVSYM() takes a word after the `$`, which `~` is not, and a cache
+     outside `mrb` would hand a second mrb_state the first one's numbering. */
+  mrb_gv_define_virtual(mrb, mrb_intern_lit(mrb, "$~"), backref_gv_get, backref_gv_set);
 
   /* Constants */
   mrb_define_const(mrb, re, "IGNORECASE", mrb_fixnum_value(1));
