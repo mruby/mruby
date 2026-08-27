@@ -888,6 +888,29 @@ MRB_API mrb_bool
 mrb_eql(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
 {
   if (mrb_obj_eq(mrb, obj1, obj2)) return TRUE;
+
+  /* The kinds whose `eql?` this file can answer for are answered here rather
+     than sent, which is what `Hash` already does with the same three before it
+     reaches this function at all. Every one asks what `eql?` asks and `==`
+     does not: the two have to be the same kind before their values are
+     compared, so `1.eql?(1.0)` stays false. A NaN never arrives, the identity
+     above having answered for the one object it is. */
+  switch (mrb_type(obj1)) {
+  case MRB_TT_INTEGER:
+    if (!mrb_integer_p(obj2)) return FALSE;
+    return mrb_integer(obj1) == mrb_integer(obj2);
+#ifndef MRB_NO_FLOAT
+  case MRB_TT_FLOAT:
+    if (!mrb_float_p(obj2)) return FALSE;
+    return mrb_float(obj1) == mrb_float(obj2);
+#endif
+  case MRB_TT_STRING:
+    if (!mrb_string_p(obj2)) return FALSE;
+    return mrb_str_equal(mrb, obj1, obj2);
+  default:
+    break;
+  }
+
   if (mrb_func_basic_p(mrb, obj1, MRB_SYM_Q(eql), mrb_obj_equal_m)) return FALSE;
   return mrb_test(mrb_funcall_argv(mrb, obj1, MRB_SYM_Q(eql), 1, &obj2));
 }
