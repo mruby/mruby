@@ -4686,7 +4686,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
         case PM_CONSTANT_OR_WRITE_NODE:
         case PM_CONSTANT_AND_WRITE_NODE:
           gen_setxv(s, op_set, cursp(), name, val);
-          push();
+          if (val) push();
           break;
         default: codegen_error(s, "Not implemented (or_write)");
       }
