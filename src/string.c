@@ -3990,8 +3990,12 @@ mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
   if (ptr_addr >= str_addr && ptr_addr - str_addr <= (uintptr_t)RSTR_LEN(s)) {
     off = (ptrdiff_t)(ptr_addr - str_addr);
     if (len > (size_t)(RSTR_LEN(s) - off)) {
-      char *tmp = (char*)mrb_alloca(mrb, len);
+      /* One byte more than the range: search_nonascii() below reads the
+         position the range ends at, which every mruby string carries as its
+         NUL sentinel and a raw buffer does not. */
+      char *tmp = (char*)mrb_alloca(mrb, len + 1);
       memcpy(tmp, ptr, len);
+      tmp[len] = '\0';
       ptr = tmp;
       off = -1;
     }
