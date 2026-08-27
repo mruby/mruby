@@ -286,9 +286,9 @@ assert("String#match / #match? with a non-Regexp argument raise TypeError") do
     "abc".match?(nil, Object.new)
   end
 
-  # The check lives on Regexp and no helper for it is defined on String, so a
-  # subclass defining a method by such a name cannot widen what `match` and
-  # `match?` accept.
+  # The check lives in C (check_pattern() in src/regexp.c) and no helper for
+  # it is defined on String, so a subclass defining a method by such a name
+  # cannot widen what `match` and `match?` accept.
   assert_raise_with_message(TypeError, "wrong argument type Symbol (expected Regexp)") do
     StringMatchHelperOverride.new("abc").match(:abc)
   end
@@ -423,6 +423,26 @@ assert("String#sub! / #gsub! with a Regexp pattern") do
   # A replacement argument wins over the block, as in `sub`/`gsub`.
   assert_equal "aYc", "abc".sub!(/b/, "Y") { "X" }
   assert_equal "aYcY", "abcb".gsub!(/b/, "Y") { "X" }
+end
+
+assert("String#sub! / #gsub! rewrite the receiver's character reading") do
+  # Only a build reading its strings as characters has two readings to tell
+  # apart; a byte-indexed build answers by byte either way.
+  skip unless __ENCODING__ == "UTF-8"
+  # The receiver takes the result's bytes and how they are read, both:
+  # str_assign() copies encoding and coderange together the way `replace`
+  # (str_replace() in src/string.c) carries them, so a receiver whose
+  # single-byte reading was already cached answers character questions for
+  # the bytes it now holds, in either direction.
+  s = "abc"
+  assert_equal 3, s.length  # caches the single-byte answer
+  s.gsub!(/b/, "あ")
+  assert_equal 3, s.length
+  t = "aあc"
+  assert_equal 3, t.length
+  t.sub!(/あ/, "b")
+  assert_equal "abc", t
+  assert_equal 3, t.length
 end
 
 assert("String#sub! / #gsub! with a Hash replacement") do

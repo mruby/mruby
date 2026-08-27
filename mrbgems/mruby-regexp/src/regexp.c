@@ -343,75 +343,23 @@ re_binary_string_p(mrb_value str)
    bytes make no claim that could be broken. A quoted String pattern is exempt
    for a narrower reason: CRuby searches for a literal byte by byte and reads
    the subject as UTF-8 nowhere along the way, so `"a\x80b".sub("b", "!")`
-   answers there while the same call with `/b/` is refused. `__sub_lit` and
-   `__gsub_lit` never ask, having no compiled pattern to ask on behalf of, and
-   the searches a literal reaches with one take a `checked` argument to say so.
+   answers there while the same call with `/b/` is refused. re_sub_lit() and
+   re_gsub_lit() never ask, having no compiled pattern to ask on behalf of,
+   and the searches a literal reaches with one take a `checked` argument to
+   say so.
 
-   The check walks the whole subject, so every entry point below runs it on the
-   subject it is handed and the C loops over a subject run it before the first
-   turn. Two searches are driven from mrblib once per match rather than once per
-   call, `__byte_search` and the `__search` the backward search steps, and they
-   check too: core remembers a string it has read as valid UTF-8, so every turn
-   after the first costs a flag test and not a walk. */
+   The check walks the whole subject, so every entry point below runs it on
+   the subject it is handed, and the loops that search per match (`scan`,
+   `split`, the gsub walks) ask again each turn: core remembers a string it
+   has read as valid UTF-8, so every turn after the first costs a flag test
+   and not a walk, and only a block that rewrote the receiver pays a new
+   one. */
 static void
 re_check_encoding(mrb_state *mrb, mrb_value str)
 {
   if (!mrb_str_valid_encoding_p(mrb, str)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid byte sequence in UTF-8");
   }
-}
-
-static mrb_value
-regexp_binary_string_p(mrb_state *mrb, mrb_value self)
-{
-  (void)self;
-  mrb_value str;
-  mrb_get_args(mrb, "S", &str);
-  return mrb_bool_value(re_binary_string_p(str));
-}
-
-/*
- * Regexp.__check_encoding(str)
- *
- * Internal: the check above, for the one caller that reaches no search of this
- * gem's. `String#split` hands a String or nil pattern to core's `split`, which
- * this gem keeps under `__split`, so nothing on that path passes an entry
- * point that would ask the question.
- */
-static mrb_value
-regexp_check_encoding(mrb_state *mrb, mrb_value self)
-{
-  (void)self;
-  mrb_value str;
-  mrb_get_args(mrb, "S", &str);
-  re_check_encoding(mrb, str);
-  return mrb_nil_value();
-}
-
-/*
- * Regexp.__check_byte_pos(str, pos)
- *
- * Internal: `mrb_str_check_byte_pos()`, for the byte searches this gem takes
- * over. `String#byteindex` and `String#byterindex` reach the C methods that
- * ask this for every argument form but a Regexp, and the answer a search gives
- * may not turn on which of the two it was reached through.
- */
-static mrb_value
-regexp_check_byte_pos(mrb_state *mrb, mrb_value self)
-{
-  (void)self;
-  mrb_value str;
-  mrb_int pos;
-  mrb_get_args(mrb, "Si", &str, &pos);
-  /* The mrblib callers read the position against the byte length and answer
-     both ends themselves before asking this, so one outside the subject
-     reaches here only from a direct call. There is no boundary to ask about
-     at a position the subject does not have, and mrb_str_check_byte_pos()
-     would read behind RSTRING_PTR(str) looking for one. A backstop, as
-     check_regexp_arg() below is for a pattern. */
-  if (pos < 0 || pos > RSTRING_LEN(str)) return mrb_nil_value();
-  mrb_str_check_byte_pos(mrb, str, pos);
-  return mrb_nil_value();
 }
 
 /* Create MatchData from captures, and make it the match the globals
@@ -535,27 +483,10 @@ regexp_match(mrb_state *mrb, mrb_value self)
   return md;
 }
 
-/* The pattern of a class-method search entry point arrives as an argument
-   rather than as `self`, so its type has to be established here. Every mrblib
-   caller passes a pattern that already went through `Regexp.__check_pattern`
-   or a `Regexp ===` guard, which makes this a backstop, not a gate. */
-static void
-check_regexp_arg(mrb_state *mrb, mrb_value re)
-{
-  if (!mrb_obj_is_kind_of(mrb, re, mrb_class_get_id(mrb, MRB_SYM(Regexp)))) {
-    mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %s (expected Regexp)",
-               mrb_obj_classname(mrb, re));
-  }
-}
-
 /*
- * Regexp.__search(re, str, pos = 0, checked = false)
- *
- * Internal: `Regexp#match` with the pattern as an argument and no block form.
- * The String overrides in mrblib search through this so that the search never
- * dispatches on the pattern, where a singleton method would replace it; see
- * the note at the top of mrblib/string_regexp.rb. A nil subject clears the
- * match globals and answers nil, as `Regexp#match` does, which is what the
+ * The search of every String-side entry point: `Regexp#match` with the
+ * pattern as an argument and no block form. A nil subject clears the match
+ * globals and answers nil, as `Regexp#match` does, which is what the
  * overrides use to report a miss.
  *
  * `checked` says the caller has settled the encoding question for the subject
@@ -580,95 +511,25 @@ re_search(mrb_state *mrb, mrb_value re, mrb_value str, mrb_int pos, mrb_bool che
   return exec_match(mrb, re, str, pos);
 }
 
-static mrb_value
-regexp_s_search(mrb_state *mrb, mrb_value klass)
-{
-  mrb_value re, str;
-  mrb_int pos = 0;
-  mrb_bool checked = FALSE;
-
-  mrb_get_args(mrb, "oo|ib", &re, &str, &pos, &checked);
-  check_regexp_arg(mrb, re);
-  return re_search(mrb, re, str, pos, checked);
-}
-
 /*
- * Regexp.__byte_search(re, str, pos = 0, len = -1)
+ * The backward search of `rindex`, `byterindex` and `rpartition`. `limit` is
+ * a byte offset and the answer is the last match that starts at or before it,
+ * or nil.
  *
- * Internal: the byte-offset search the mrblib loops of `scan`, `split` and
- * `byteindex` drive themselves. No position normalization, because the
- * callers already work in byte space, and no operand conversion, because
- * they always pass a String. The subject is the one the loop holds, so the
- * check reads the flag core left on it after the first turn, and walks it
- * again only where a block has written to it in between. Nor is there a
- * `checked` any more: `gsub` was the caller that set it, and its loop is
- * `__gsub_block` now, which takes the flag itself. `len`, where the caller
- * gives one, is the byte length its loop began with, and a subject that no
- * longer has it is refused before the search: this is `str_mod_check` for
- * the block loop of `scan`, asked here so that the loop pays one argument
- * per search rather than one `bytesize` call per match.
- */
-static mrb_value
-regexp_s_byte_search(mrb_state *mrb, mrb_value klass)
-{
-  mrb_value re, str;
-  mrb_int pos = 0;
-  mrb_int len = -1;
-
-  mrb_get_args(mrb, "oS|ii", &re, &str, &pos, &len);
-  if (len >= 0 && RSTRING_LEN(str) != len) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "string modified");
-  }
-  check_regexp_arg(mrb, re);
-  /* Every mrblib loop enters at zero or at an offset a match answered with,
-     so a position before the subject reaches here only from a direct call.
-     A backstop, as check_regexp_arg() above is: the answer is the miss a
-     position past the end already gives, rather than the read behind
-     RSTRING_PTR(str) that the engine would make of it. Asked before the
-     encoding is, as `__search` asks a position it cannot place, since a
-     subject the position names nothing in is not read either way. */
-  if (pos < 0) {
-    clear_match_globals(mrb);
-    return mrb_nil_value();
-  }
-  re_check_encoding(mrb, str);
-  return exec_match(mrb, re, str, pos);
-}
-
-/*
- * Regexp.__byte_rsearch(re, str, limit)
- *
- * Internal: the backward search of `rindex`, `byterindex` and `rpartition`.
- * `limit` is a byte offset and the answer is the last match that starts at or
- * before it, or nil.
- *
- * The three callers work in byte space and always pass a String, as the
- * callers of `__byte_search` do, so there is no position normalization and no
- * operand conversion here either. Nor is there a `checked`: none of the three
- * has a quoted String pattern to reach here with, a String argument being the
- * form each of them leaves to the C method it aliased.
+ * The three callers work in byte space and clamp the limit into the subject
+ * first, so there is no position normalization and no operand conversion
+ * here. Nor is there a `checked`: none of the three has a quoted String
+ * pattern to reach here with, a String argument being the form each of them
+ * leaves to the C method it captured.
  *
  * The match this answers with is the one the globals describe, and a miss
  * clears them, as in every other search. The walk that used to pass over
- * matches on its way to this one is inside this call now, so there is no
- * longer a caller that has to keep the globals off what it passes.
+ * matches on its way to this one is inside mrb_re_rexec(), so no caller has
+ * to keep the globals off what it passes.
  */
 static mrb_value
-regexp_s_byte_rsearch(mrb_state *mrb, mrb_value klass)
+re_byte_rsearch(mrb_state *mrb, mrb_value re, mrb_value str, mrb_int limit)
 {
-  mrb_value re, str;
-  mrb_int limit;
-
-  mrb_get_args(mrb, "oSi", &re, &str, &limit);
-  check_regexp_arg(mrb, re);
-  /* A backstop, as the one in `__byte_search` is: every caller clamps its
-     position into the subject first, so a negative offset reaches here only
-     from a direct call, and it is the miss it names rather than a read
-     behind RSTRING_PTR(str). */
-  if (limit < 0) {
-    clear_match_globals(mrb);
-    return mrb_nil_value();
-  }
   re_check_encoding(mrb, str);
 
   mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
@@ -717,23 +578,6 @@ regexp_match_p(mrb_state *mrb, mrb_value self)
   mrb_int pos = 0;
   mrb_get_args(mrb, "o|i", &str, &pos);
   return exec_match_p(mrb, self, str, pos);
-}
-
-/*
- * Regexp.__search_p(re, str, pos = 0)
- *
- * Internal: `Regexp#match?` with the pattern as an argument, for the
- * `String#match?` override; the same boundary as `Regexp.__search`.
- */
-static mrb_value
-regexp_s_search_p(mrb_state *mrb, mrb_value klass)
-{
-  mrb_value re, str;
-  mrb_int pos = 0;
-
-  mrb_get_args(mrb, "oo|i", &re, &str, &pos);
-  check_regexp_arg(mrb, re);
-  return exec_match_p(mrb, re, str, pos);
 }
 
 /*
@@ -1317,35 +1161,6 @@ matchdata_end(mrb_state *mrb, mrb_value self)
   return mrb_int_value(mrb, re_byte_to_char(mrb, md->source, pos));
 }
 
-/* Private byte-offset accessors used by String#gsub, which works in byte
-   space (byteslice). begin/end report character offsets; these report the
-   raw byte offsets the engine recorded. */
-static mrb_value
-matchdata_byte_begin(mrb_state *mrb, mrb_value self)
-{
-  mrb_int idx;
-  mrb_get_args(mrb, "i", &idx);
-
-  mrb_match_data *md = DATA_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
-  if (!md || idx < 0 || idx >= md->num_captures) return mrb_nil_value();
-  int pos = md->captures[idx * 2];
-  if (pos < 0) return mrb_nil_value();
-  return mrb_int_value(mrb, pos);
-}
-
-static mrb_value
-matchdata_byte_end(mrb_state *mrb, mrb_value self)
-{
-  mrb_int idx;
-  mrb_get_args(mrb, "i", &idx);
-
-  mrb_match_data *md = DATA_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
-  if (!md || idx < 0 || idx >= md->num_captures) return mrb_nil_value();
-  int pos = md->captures[idx * 2 + 1];
-  if (pos < 0) return mrb_nil_value();
-  return mrb_int_value(mrb, pos);
-}
-
 /* Whether `str` still reads as the subject `md` was made on. The block loops
    of `gsub` and `scan` end on a search from the offset their last match was
    found from, on the receiver as the block left it, the way CRuby's
@@ -1368,25 +1183,6 @@ re_subject_reads_as(mrb_state *mrb, mrb_value str, mrb_value mdv)
   if (re_binary_string_p(str) != re_binary_string_p(src)) return FALSE;
   const char *p = RSTRING_PTR(str), *q = RSTRING_PTR(src);
   return p == q || memcmp(p, q, (size_t)len) == 0;
-}
-
-/* Private: publish this match once more, if `str` still reads as the subject
-   it was made on, and say whether it did. The mrblib loop of `scan` ends on
-   a search from the offset its last match was found from, on the receiver as
-   the block left it, the way `rb_str_scan` does; `re_subject_reads_as()`
-   above is the test that spares that search, and this is it asked from
-   mrblib, with the publish folded in so that the loop asks once. Returns
-   false where `str` reads differently, and the caller searches. */
-static mrb_value
-matchdata_republish(mrb_state *mrb, mrb_value self)
-{
-  mrb_value str;
-  mrb_get_args(mrb, "S", &str);
-  mrb_match_data *md = DATA_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
-  if (!md) return mrb_false_value();
-  if (!re_subject_reads_as(mrb, str, self)) return mrb_false_value();
-  set_match_globals(mrb, self);
-  return mrb_true_value();
 }
 
 /*
@@ -1710,19 +1506,15 @@ re_mark_spliced(mrb_value result, mrb_value subject, mrb_value replacement,
 }
 
 /*
- * Regexp.__gsub_str(re, str, replacement) - gsub core without block
+ * gsub core with a String replacement and no block.
  *
  * A compiled pattern only: a String pattern is a literal and reaches
- * `__gsub_lit` instead, which is why there is no `checked` here to say that
+ * re_gsub_lit() instead, which is why there is no `checked` here to say that
  * the subject was left unread.
  */
 static mrb_value
-regexp_s_gsub_str(mrb_state *mrb, mrb_value klass)
+re_gsub_str(mrb_state *mrb, mrb_value re, mrb_value str, mrb_value replacement)
 {
-  mrb_value re, str, replacement;
-  mrb_get_args(mrb, "oSS", &re, &str, &replacement);
-  check_regexp_arg(mrb, re);
-
   mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
   if (re_uninitialized_p(pat)) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
   re_check_encoding(mrb, str);
@@ -1805,17 +1597,13 @@ regexp_s_gsub_str(mrb_state *mrb, mrb_value klass)
 }
 
 /*
- * Regexp.__sub_str(re, str, replacement) - sub core without block
+ * sub core with a String replacement and no block.
  *
- * A compiled pattern only, as `__gsub_str` above.
+ * A compiled pattern only, as re_gsub_str() above.
  */
 static mrb_value
-regexp_s_sub_str(mrb_state *mrb, mrb_value klass)
+re_sub_str(mrb_state *mrb, mrb_value re, mrb_value str, mrb_value replacement)
 {
-  mrb_value re, str, replacement;
-  mrb_get_args(mrb, "oSS", &re, &str, &replacement);
-  check_regexp_arg(mrb, re);
-
   mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
   if (re_uninitialized_p(pat)) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
   re_check_encoding(mrb, str);
@@ -1924,21 +1712,16 @@ re_lit_matchdata(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int end)
 }
 
 /*
- * Regexp.__gsub_lit(pattern, str, replacement, bang = false) - the gsub of a
- * literal String pattern and a String replacement, without a pattern compiled
- * to search with.
+ * The gsub of a literal String pattern and a String replacement, without a
+ * pattern compiled to search with.
  *
  * `bang` answers nil rather than a result when nothing matched, so that
  * `gsub!` reads the question it asks, whether a substitution happened, off
  * this search instead of making a second one ahead of it.
  */
 static mrb_value
-regexp_s_gsub_lit(mrb_state *mrb, mrb_value klass)
+re_gsub_lit(mrb_state *mrb, mrb_value lit, mrb_value str, mrb_value replacement, mrb_bool bang)
 {
-  mrb_value lit, str, replacement;
-  mrb_bool bang = FALSE;
-  mrb_get_args(mrb, "SSS|b", &lit, &str, &replacement, &bang);
-
   const char *s = RSTRING_PTR(str);
   mrb_int slen = RSTRING_LEN(str);
   const char *p = RSTRING_PTR(lit);
@@ -2000,16 +1783,11 @@ regexp_s_gsub_lit(mrb_state *mrb, mrb_value klass)
 }
 
 /*
- * Regexp.__sub_lit(pattern, str, replacement, bang = false) - `__gsub_lit` for
- * the first match alone.
+ * re_gsub_lit() for the first match alone.
  */
 static mrb_value
-regexp_s_sub_lit(mrb_state *mrb, mrb_value klass)
+re_sub_lit(mrb_state *mrb, mrb_value lit, mrb_value str, mrb_value replacement, mrb_bool bang)
 {
-  mrb_value lit, str, replacement;
-  mrb_bool bang = FALSE;
-  mrb_get_args(mrb, "SSS|b", &lit, &str, &replacement, &bang);
-
   const char *s = RSTRING_PTR(str);
   mrb_int slen = RSTRING_LEN(str);
   const char *rep = RSTRING_PTR(replacement);
@@ -2041,19 +1819,41 @@ regexp_s_sub_lit(mrb_state *mrb, mrb_value klass)
   return result;
 }
 
+/* The replacement one turn of a block or Hash substitution splices in: what
+   the block answers for the match, or what the match looks up in the table,
+   spelled as a String. CRuby runs the two down the same tail, so a `\1` in
+   what comes back stands for itself rather than naming a group, and a key
+   the Hash does not hold answers nil, which `to_s` spells as the empty
+   string. The Hash has to be one, as check_pattern() demands a real String:
+   mruby converts nothing with `to_hash` anywhere. */
+static mrb_value
+sub_piece(mrb_state *mrb, mrb_value block, mrb_value hash, mrb_value matched)
+{
+  mrb_value piece;
+  if (mrb_nil_p(hash)) {
+    piece = mrb_yield(mrb, block, matched);
+    /* A yield's return rides back on a popped stack slot and sits in no
+       arena (mrb_funcall_with_block() restores and re-protects its own, but
+       yield_with_attr() does neither), so the first allocation after it
+       could reclaim it; every caller allocates the result it is spliced
+       into. */
+    mrb_gc_protect(mrb, piece);
+  }
+  else {
+    piece = mrb_hash_get(mrb, hash, matched);
+  }
+  return mrb_obj_as_string(mrb, piece);
+}
+
 /*
- * Regexp.__gsub_block(re, str, checked = false, &block) - gsub core with a
- * block.
+ * gsub core with a block or a Hash: the walk of `gsub`'s remaining two
+ * replacement forms, `hash` standing where the block call would be when it
+ * is given.
  *
- * `checked` carries the same meaning as in `__search`.
+ * `checked` carries the same meaning as in re_search().
  *
- * The walk this replaced was written in mrblib to keep the block call out of
- * C.  What it cost was paid per match rather than per call: a `__byte_search`
- * frame, two `byteslice` frames and their strings, the `__byte_begin` and
- * `__byte_end` pair, an array to collect the pieces in and a `join` to spend
- * them, all around one `mrb_yield` that C can make directly.  The block still
- * reads what it read there: every match is published before the block sees it,
- * which is why a MatchData is built per turn here as it was there.
+ * The loop yields from C the way CRuby's does: every match is published
+ * before the block sees it, which is why a MatchData is built per turn.
  *
  * The block can reach the receiver, and CRuby's `str_gsub` answers for a
  * block that changes it in three ways this loop follows.  It refuses one that
@@ -2069,18 +1869,13 @@ regexp_s_sub_lit(mrb_state *mrb, mrb_value klass)
  * away.  On a receiver that still reads as it did when the last match was
  * made, that search can only find the match the loop already has, so the loop
  * republishes that one and searches only where the receiver reads differently.
+ * A Hash's default proc is as free to reach the receiver as a block is, so
+ * the lookup form walks under the same answers.
  */
 static mrb_value
-regexp_s_gsub_block(mrb_state *mrb, mrb_value klass)
+re_gsub_walk(mrb_state *mrb, mrb_value re, mrb_value str, mrb_bool checked,
+             mrb_value block, mrb_value hash)
 {
-  mrb_value re, str, block = mrb_nil_value();
-  mrb_bool checked = FALSE;
-  mrb_get_args(mrb, "oS|b&", &re, &str, &checked, &block);
-  check_regexp_arg(mrb, re);
-  /* A backstop, as check_regexp_arg() is: the one caller reaches here only
-     with a block, having handed the blockless forms to an enumerator. */
-  if (mrb_nil_p(block)) mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
-
   mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
   if (re_uninitialized_p(pat)) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
   if (!checked) re_check_encoding(mrb, str);
@@ -2111,7 +1906,7 @@ regexp_s_gsub_block(mrb_state *mrb, mrb_value klass)
     mrb_value matched = re_byte_substr(mrb, str, beg, end - beg);
     last_md = create_matchdata(mrb, re, str, captures, cap_size);
     last = pos;
-    mrb_value piece = mrb_obj_as_string(mrb, mrb_yield(mrb, block, matched));
+    mrb_value piece = sub_piece(mrb, block, hash, matched);
     /* What the block did to the receiver while it had it. A change of length
        moved every offset the walk holds, and the walk stops there. Bytes it
        rewrote in place are read from where they are now, since the write can
@@ -2175,15 +1970,11 @@ regexp_s_gsub_block(mrb_state *mrb, mrb_value klass)
 }
 
 /*
- * Regexp.__scan(re, str) - scan core, returns array
+ * scan core without a block: every match collected into the answered array.
  */
 static mrb_value
-regexp_s_scan(mrb_state *mrb, mrb_value klass)
+re_scan_ary(mrb_state *mrb, mrb_value re, mrb_value str)
 {
-  mrb_value re, str;
-  mrb_get_args(mrb, "oS", &re, &str);
-  check_regexp_arg(mrb, re);
-
   mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
   if (re_uninitialized_p(pat)) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
   re_check_encoding(mrb, str);
@@ -2258,18 +2049,14 @@ regexp_s_scan(mrb_state *mrb, mrb_value klass)
 
 /* Check the pattern given to String#match, #match?, #sub, #gsub, #scan and
    #split: a Regexp or a String passes through, everything else raises. The
-   test runs here rather than in Ruby so it never dispatches on the argument,
-   where a redefined `is_a?` or `class` could pose as a Regexp or fake the type
-   name. What to do with an accepted String is left to the caller, which
-   compiles it for `match` and quotes it first for `sub` and friends, so this
-   needs no callback into the VM. CRuby names `nil`, `true` and `false` by
-   value and everything else by class. */
+   real type is read rather than asked of the argument, so a redefined `is_a?`
+   or `class` cannot pose as a Regexp or fake the type name. What to do with
+   an accepted String is left to the caller, which compiles it for `match` and
+   quotes it first for `sub` and friends. CRuby names `nil`, `true` and
+   `false` by value and everything else by class. */
 static mrb_value
-regexp_check_pattern(mrb_state *mrb, mrb_value self)
+check_pattern(mrb_state *mrb, mrb_value re)
 {
-  mrb_value re;
-  mrb_get_args(mrb, "o", &re);
-
   if (mrb_obj_is_kind_of(mrb, re, mrb_class_get_id(mrb, MRB_SYM(Regexp)))) return re;
   if (mrb_string_p(re)) return re;
 
@@ -2279,6 +2066,32 @@ regexp_check_pattern(mrb_state *mrb, mrb_value self)
   else if (mrb_false_p(re)) name = "false";
   else name = mrb_obj_classname(mrb, re);
   mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %s (expected Regexp)", name);
+}
+
+/* True for the arguments the regexp-aware overrides take over; everything
+   else goes to the captured core method. The real type is read, not
+   `is_a?`, which a Regexp denying its own type could answer with: what it
+   settles is which implementation answers, not what the pattern goes on to
+   decide once it is here. Every Regexp is CDATA, including one of a
+   subclass, so the type test settles the common arguments without the
+   constant lookup the class test costs. */
+static mrb_bool
+regexp_arg_p(mrb_state *mrb, mrb_value obj)
+{
+  return mrb_type(obj) == MRB_TT_CDATA &&
+         mrb_obj_is_kind_of(mrb, obj, mrb_class_get_id(mrb, MRB_SYM(Regexp)));
+}
+
+/* The Regexp a literal String pattern compiles into where one is needed:
+   `sub`, `gsub` and `scan` quote the literal and search with the result, the
+   way CRuby's get_pat_quoted() does. Built fresh every time, as the mrblib
+   overrides built it: the memo re_quoted_regexp() keeps belongs to
+   MatchData#regexp alone. */
+static mrb_value
+quote_to_regexp(mrb_state *mrb, mrb_value lit)
+{
+  mrb_value src = re_escape_str(mrb, lit);
+  return mrb_obj_new(mrb, mrb_class_get_id(mrb, MRB_SYM(Regexp)), 1, &src);
 }
 
 /*
@@ -2302,13 +2115,7 @@ str_aref(mrb_state *mrb, mrb_value str)
   mrb_value a1, a2;
   mrb_int argc = mrb_get_args(mrb, "o|o", &a1, &a2);
 
-  /* The real type, not `a1.is_a?`, which a Regexp denying its own type could
-     answer with; what it settles is which implementation answers, not what
-     the pattern goes on to decide once it is here. Every Regexp is CDATA,
-     including one of a subclass, so the type test settles the common indexes
-     without the constant lookup the class test costs. */
-  if (mrb_type(a1) != MRB_TT_CDATA ||
-      !mrb_obj_is_kind_of(mrb, a1, mrb_class_get_id(mrb, MRB_SYM(Regexp)))) {
+  if (!regexp_arg_p(mrb, a1)) {
     return mrb_str_aref(mrb, str, a1, argc == 1 ? mrb_undef_value() : a2);
   }
 
@@ -2347,9 +2154,7 @@ str_aset(mrb_state *mrb, mrb_value str)
   mrb_int argc;
   mrb_get_args(mrb, "*", &argv, &argc);
 
-  /* The real type, not `argv[0].is_a?`; see str_aref() above. */
-  if (argc < 1 || mrb_type(argv[0]) != MRB_TT_CDATA ||
-      !mrb_obj_is_kind_of(mrb, argv[0], mrb_class_get_id(mrb, MRB_SYM(Regexp)))) {
+  if (argc < 1 || !regexp_arg_p(mrb, argv[0])) {
     if (argc >= 3 && !mrb_nil_p(argv[2])) mrb_ensure_string_type(mrb, argv[2]);
     if (argc < 2 || argc > 3) mrb_argnum_error(mrb, argc, 2, 3);
     mrb_value replace = argv[argc-1];
@@ -2414,6 +2219,976 @@ str_aset(mrb_state *mrb, mrb_value str)
   return replace;
 }
 
+/* --- The regexp-aware String methods --- */
+
+/* Each stands where CRuby implements the same method in C, a C frame in
+   place of the Ruby frame the mrblib override pushed.
+
+   Every entry point settles its pattern argument up front, so the argument
+   cannot steer the decision: check_pattern() reads the real type, an accepted
+   String is compiled or quoted here, and with the type established the search
+   reaches the engine directly, so nothing rewritten on the pattern instance
+   is consulted on the way. The MatchData a search answers is built in C too,
+   so what a method reads back from it cannot have been planted by an
+   argument. Two dispatches are kept on purpose, both CRuby's: `match` sends
+   `match` to the pattern (rb_str_match_m() does so deliberately), and `=~`
+   hands an argument that is not a Regexp to that argument's own `=~`
+   (rb_str_match()).
+
+   The argument forms the captured core methods answer -- every non-Regexp
+   index, separator or prefix -- go back to them under the private names gem
+   init takes (`__index` and the rest), the way the mrblib overrides captured
+   them with `alias` before taking the name. The values live on the VM stack
+   while `mrb_get_args("*")` hands them out, so each method reads what it
+   needs into locals before anything can push a frame over them. */
+
+/* Replace `str`'s bytes and their reading with `newstr`'s, which is what
+   `String#replace` leaves behind: the write path of `sub!`, `gsub!` and
+   `slice!`. Encoding and coderange cross together, as str_replace() carries
+   them: mrb_str_modify() has just reset the coderange, so without the copy
+   the next reader would re-derive what `newstr` already knows.
+   mrb_str_modify() also runs the frozen check, so a receiver a block froze
+   mid-call still raises, as it did when mrblib called `replace`. */
+static void
+str_assign(mrb_state *mrb, mrb_value str, mrb_value newstr)
+{
+  mrb_int len = RSTRING_LEN(newstr);
+  mrb_str_modify(mrb, mrb_str_ptr(str));
+  mrb_str_resize(mrb, str, len);
+  memcpy(RSTRING_PTR(str), RSTRING_PTR(newstr), (size_t)len);
+  RSTR_ENC_CR_COPY(mrb_str_ptr(str), mrb_str_ptr(newstr));
+}
+
+/*
+ * String#match(pattern, pos = 0), and Symbol#match through the same body.
+ *
+ * The one deliberate dispatch: `match` goes to the pattern because CRuby's
+ * rb_str_match_m() sends it there on purpose, block and all, so a Regexp
+ * subclass overriding `match` is asked. The pattern's type is settled first,
+ * so the dispatch target is a real Regexp or whatever an accepted String
+ * compiled into.
+ */
+static mrb_value
+str_match_common(mrb_state *mrb, mrb_value str)
+{
+  mrb_value re, pos = mrb_fixnum_value(0), block;
+
+  mrb_get_args(mrb, "o|o&", &re, &pos, &block);
+  re = check_pattern(mrb, re);
+  if (mrb_string_p(re)) {
+    re = mrb_obj_new(mrb, mrb_class_get_id(mrb, MRB_SYM(Regexp)), 1, &re);
+  }
+  mrb_value argv[2];
+  argv[0] = str;
+  argv[1] = pos;
+  return mrb_funcall_with_block(mrb, re, MRB_SYM(match), 2, argv, block);
+}
+
+static mrb_value
+str_match_m(mrb_state *mrb, mrb_value self)
+{
+  return str_match_common(mrb, self);
+}
+
+/*
+ * String#match?(pattern, pos = 0), and Symbol#match? through the same body.
+ *
+ * Unlike `match`, the search does not dispatch on the pattern: CRuby's
+ * rb_str_match_m_p() resolves the argument and searches it directly, where
+ * rb_str_match_m() sends `match` to it on purpose. The position is read as
+ * an Integer after the pattern is settled, which is the order the mrblib
+ * override read the two in.
+ */
+static mrb_value
+str_match_p_common(mrb_state *mrb, mrb_value str)
+{
+  mrb_value re, pos = mrb_fixnum_value(0);
+
+  mrb_get_args(mrb, "o|o", &re, &pos);
+  re = check_pattern(mrb, re);
+  if (mrb_string_p(re)) {
+    re = mrb_obj_new(mrb, mrb_class_get_id(mrb, MRB_SYM(Regexp)), 1, &re);
+  }
+  return exec_match_p(mrb, re, str, mrb_as_int(mrb, pos));
+}
+
+static mrb_value
+str_match_p_m(mrb_state *mrb, mrb_value self)
+{
+  return str_match_p_common(mrb, self);
+}
+
+/*
+ * String#=~(pattern), and Symbol#=~ through the same body.
+ */
+static mrb_value
+str_match_op_common(mrb_state *mrb, mrb_value str)
+{
+  mrb_value re = mrb_get_arg1(mrb);
+
+  /* A String argument would dispatch back to this method and recurse, so it
+     is rejected up front (CRuby raises the same TypeError). The real type is
+     read: a String subclass denying its own `is_a?` cannot slip past. */
+  if (mrb_string_p(re)) {
+    mrb_raise(mrb, E_TYPE_ERROR, "type mismatch: String given");
+  }
+  /* A real Regexp is searched here rather than asked, as CRuby's
+     rb_str_match() does: it sends `=~` to the argument only when the
+     argument is not a Regexp, which is what the tail below keeps doing. */
+  if (regexp_arg_p(mrb, re)) {
+    mrb_value md = re_search(mrb, re, str, 0, FALSE);
+    if (mrb_nil_p(md)) return mrb_nil_value();
+    mrb_match_data *m = DATA_GET_PTR(mrb, md, &matchdata_type, mrb_match_data);
+    return mrb_int_value(mrb, re_byte_to_char(mrb, m->source, m->captures[0]));
+  }
+  return mrb_funcall_argv(mrb, re, MRB_OPSYM(match), 1, &str);
+}
+
+static mrb_value
+str_match_op_m(mrb_state *mrb, mrb_value self)
+{
+  return str_match_op_common(mrb, self);
+}
+
+/* The two argument shapes `sub` and `sub!` accept: CRuby accepts 1..2
+   arguments with a block, but demands exactly 2 without one, and reports the
+   expected count accordingly. */
+static void
+sub_argnum_check(mrb_state *mrb, mrb_int argc, mrb_value block)
+{
+  if (!mrb_nil_p(block)) {
+    if (argc != 1 && argc != 2) mrb_argnum_error(mrb, argc, 1, 2);
+  }
+  else if (argc != 2) {
+    mrb_argnum_error(mrb, argc, 2, 2);
+  }
+}
+
+/*
+ * String#sub(pattern, replacement) / String#sub(pattern) { |match| }
+ */
+static mrb_value
+str_sub_m(mrb_state *mrb, mrb_value self)
+{
+  const mrb_value *argv;
+  mrb_int argc;
+  mrb_value block;
+
+  mrb_get_args(mrb, "*&", &argv, &argc, &block);
+  sub_argnum_check(mrb, argc, block);
+  mrb_value a1 = argc > 1 ? argv[1] : mrb_nil_value();
+
+  /* Unlike `match`, a String pattern is quoted rather than compiled: it is a
+     literal here, the distinction CRuby draws between get_pat_quoted and
+     get_pat. Only the quoting is taken from it: get_pat_quoted also accepts
+     anything answering `to_str`, where check_pattern() keeps to a real
+     String, as `match` already does. */
+  mrb_value pattern = check_pattern(mrb, argv[0]);
+  mrb_bool literal = mrb_string_p(pattern);
+  /* A replacement argument wins over the block, as in CRuby. A literal goes
+     to re_sub_lit(), which searches for its bytes without compiling anything
+     to search with; what a compiled pattern would be needed for is the
+     Regexp the `$~` it publishes names, and `MatchData#regexp` quotes that
+     one where CRuby quotes it: on the first call that asks for it. A Hash
+     replacement goes down to the block tail (see sub_piece()). */
+  mrb_value hash = mrb_nil_value();
+  if (argc == 2) {
+    if (mrb_obj_is_kind_of(mrb, a1, mrb->hash_class)) {
+      hash = a1;
+    }
+    else {
+      mrb_value replacement = mrb_obj_as_string(mrb, a1);
+      if (literal) return re_sub_lit(mrb, pattern, self, replacement, FALSE);
+      return re_sub_str(mrb, pattern, self, replacement);
+    }
+  }
+  /* CRuby searches for a literal byte by byte and never reads the subject as
+     UTF-8 on the way, so quoting one into a Regexp here must not put the
+     subject through a check CRuby does not make: `"a\x80b".sub("b", "!")`
+     answers there, where the same call with `/b/` is refused. */
+  if (literal) pattern = quote_to_regexp(mrb, pattern);
+  mrb_value md = re_search(mrb, pattern, self, 0, literal);
+  if (mrb_nil_p(md)) return mrb_str_dup(mrb, self);
+
+  /* Built from the snapshot the MatchData holds, so a block that mutated the
+     receiver changes nothing here; `sub!` is the form that reads the
+     receiver back. */
+  mrb_match_data *m = DATA_GET_PTR(mrb, md, &matchdata_type, mrb_match_data);
+  mrb_int beg = m->captures[0], end = m->captures[1];
+  mrb_value matched = re_byte_substr(mrb, m->source, beg, end - beg);
+  mrb_value piece = sub_piece(mrb, block, hash, matched);
+  mrb_value source = m->source;
+  mrb_int slen = RSTRING_LEN(source);
+  mrb_value result = mrb_str_new_capa(mrb, slen);
+  mrb_str_cat_str(mrb, result, mrb_str_byte_subseq(mrb, source, 0, beg));
+  mrb_str_cat_str(mrb, result, piece);
+  mrb_str_cat_str(mrb, result, mrb_str_byte_subseq(mrb, source, end, slen - end));
+  return result;
+}
+
+/*
+ * String#sub!(pattern, replacement) / String#sub!(pattern) { |match| }
+ */
+static mrb_value
+str_sub_bang(mrb_state *mrb, mrb_value self)
+{
+  const mrb_value *argv;
+  mrb_int argc;
+  mrb_value block;
+
+  mrb_get_args(mrb, "*&", &argv, &argc, &block);
+  /* The argument checks come before the frozen receiver, as in CRuby:
+     `"abc".freeze.sub!(/b/)` raises ArgumentError and
+     `"abc".freeze.sub!(:b, "X")` TypeError, while the two-argument form on
+     the same receiver raises FrozenError. `gsub!` orders it the other way,
+     also as CRuby does. */
+  sub_argnum_check(mrb, argc, block);
+  mrb_value a1 = argc > 1 ? argv[1] : mrb_nil_value();
+  /* Resolved here rather than shared with `sub` because the match below
+     decides the return value, and a String pattern is a literal on both
+     paths. */
+  mrb_value pattern = check_pattern(mrb, argv[0]);
+  mrb_bool literal = mrb_string_p(pattern);
+  mrb_value hash = mrb_nil_value();
+  if (argc == 2 && mrb_obj_is_kind_of(mrb, a1, mrb->hash_class)) {
+    hash = a1;
+  }
+  /* Quoting the literal below raises nothing, so asking here is the order
+     the mrblib override had: after the argument checks, before any search. */
+  mrb_check_frozen(mrb, mrb_str_ptr(self));
+  /* Whether a substitution happened is a question about the match, not about
+     the result: `"aaa".sub!(/a/, "a")` returns self even though the string
+     is unchanged. The `bang` argument is that question asked of the one
+     search re_sub_lit() already makes, so the literal path does not walk the
+     subject twice to answer it; a failed search clears $~ there too. */
+  if (literal && argc == 2 && mrb_nil_p(hash)) {
+    mrb_value str = re_sub_lit(mrb, pattern, self, mrb_obj_as_string(mrb, a1), TRUE);
+    if (mrb_nil_p(str)) return mrb_nil_value();
+    str_assign(mrb, self, str);
+    return self;
+  }
+  if (literal) pattern = quote_to_regexp(mrb, pattern);
+  /* A full search and not `match?`, so a failed match clears $~. */
+  mrb_value md = re_search(mrb, pattern, self, 0, literal);
+  if (mrb_nil_p(md)) return mrb_nil_value();
+  if (argc == 2 && mrb_nil_p(hash)) {
+    /* re_sub_str() matches again and publishes its own $~ over this one,
+       leaving the caller the match `sub` would have left, which is what the
+       mrblib override bought by delegating to `sub`. A literal with a
+       replacement never reaches here, having been answered by re_sub_lit()
+       above. Overwriting `self` afterwards is safe: a MatchData snapshots
+       its subject, so $~ keeps describing the string as it was matched. */
+    mrb_value str = re_sub_str(mrb, pattern, self, mrb_obj_as_string(mrb, a1));
+    str_assign(mrb, self, str);
+    return self;
+  }
+  /* The block form does not share `sub`'s tail, which builds its answer from
+     the snapshot the MatchData holds, because CRuby's rb_str_sub_bang builds
+     it from the receiver as the block left it: `s = "hello"; s.sub!(/l/) {
+     s.upcase!; "X" }` is "HEXLO" there, where `sub` on the same receiver is
+     "heXlo". It refuses a block that changed the length first, as `gsub`
+     does, so the offsets of the match still name the bytes they named. $~
+     stays what the search above published, or whatever the block put there.
+     A Hash replacement is here rather than above for the same reason: its
+     default proc is free to reach the receiver, and CRuby answers a lookup
+     that did with the receiver it left. */
+  mrb_int len = RSTRING_LEN(self);
+  mrb_match_data *m = DATA_GET_PTR(mrb, md, &matchdata_type, mrb_match_data);
+  mrb_int beg = m->captures[0], end = m->captures[1];
+  mrb_value matched = re_byte_substr(mrb, m->source, beg, end - beg);
+  mrb_value piece = sub_piece(mrb, block, hash, matched);
+  if (RSTRING_LEN(self) != len) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "string modified");
+  }
+  mrb_value result = mrb_str_new_capa(mrb, len);
+  mrb_str_cat_str(mrb, result, mrb_str_byte_subseq(mrb, self, 0, beg));
+  mrb_str_cat_str(mrb, result, piece);
+  mrb_str_cat_str(mrb, result, mrb_str_byte_subseq(mrb, self, end, len - end));
+  str_assign(mrb, self, result);
+  return self;
+}
+
+/*
+ * String#gsub(pattern, replacement) / String#gsub(pattern) { |match| }
+ */
+static mrb_value
+str_gsub_m(mrb_state *mrb, mrb_value self)
+{
+  const mrb_value *argv;
+  mrb_int argc;
+  mrb_value block;
+
+  mrb_get_args(mrb, "*&", &argv, &argc, &block);
+  if (argc != 1 && argc != 2) mrb_argnum_error(mrb, argc, 1, 2);
+  /* Without mruby-enumerator this is core Kernel#to_enum, which raises
+     NotImplementedError; every other path here stays usable, so the gem does
+     not depend on Enumerator. Before the pattern check, so that
+     `"abc".gsub(:b)` yields an Enumerator and raises on the first iteration,
+     as CRuby does. */
+  if (argc == 1 && mrb_nil_p(block)) {
+    mrb_value enum_args[2] = { mrb_symbol_value(MRB_SYM(gsub)), argv[0] };
+    return mrb_funcall_argv(mrb, self, MRB_SYM(to_enum), 2, enum_args);
+  }
+  mrb_value a1 = argc > 1 ? argv[1] : mrb_nil_value();
+  mrb_value pattern = check_pattern(mrb, argv[0]);
+  /* A String pattern is a literal, as in `sub`, and reaches the subject the
+     way CRuby reaches it: byte by byte, with no reading of it as UTF-8. */
+  mrb_bool literal = mrb_string_p(pattern);
+  mrb_value hash = mrb_nil_value();
+  if (argc == 2) {
+    if (mrb_obj_is_kind_of(mrb, a1, mrb->hash_class)) {
+      hash = a1;
+    }
+    else {
+      /* A replacement argument wins over the block, as in CRuby. A literal
+         is searched for as bytes and compiles nothing, as in `sub`. */
+      mrb_value replacement = mrb_obj_as_string(mrb, a1);
+      if (literal) return re_gsub_lit(mrb, pattern, self, replacement, FALSE);
+      return re_gsub_str(mrb, pattern, self, replacement);
+    }
+  }
+  if (literal) pattern = quote_to_regexp(mrb, pattern);
+  return re_gsub_walk(mrb, pattern, self, literal, block, hash);
+}
+
+/*
+ * String#gsub!(pattern, replacement) / String#gsub!(pattern) { |match| }
+ */
+static mrb_value
+str_gsub_bang(mrb_state *mrb, mrb_value self)
+{
+  const mrb_value *argv;
+  mrb_int argc;
+  mrb_value block;
+
+  mrb_get_args(mrb, "*&", &argv, &argc, &block);
+  /* Before the arity check and before the enumerator below, as in CRuby:
+     `"abc".freeze.gsub!(/a/)` raises FrozenError rather than handing back an
+     Enumerator that fails later. */
+  mrb_check_frozen(mrb, mrb_str_ptr(self));
+  if (argc != 1 && argc != 2) mrb_argnum_error(mrb, argc, 1, 2);
+  if (argc == 1 && mrb_nil_p(block)) {
+    mrb_value enum_args[2] = { mrb_symbol_value(MRB_SYM_B(gsub)), argv[0] };
+    return mrb_funcall_argv(mrb, self, MRB_SYM(to_enum), 2, enum_args);
+  }
+  mrb_value a1 = argc > 1 ? argv[1] : mrb_nil_value();
+  mrb_value pattern = check_pattern(mrb, argv[0]);
+  mrb_bool literal = mrb_string_p(pattern);
+  mrb_value hash = mrb_nil_value();
+  if (argc == 2 && mrb_obj_is_kind_of(mrb, a1, mrb->hash_class)) {
+    hash = a1;
+  }
+  /* As in `sub!`: the match decides the return value, and a failed search
+     clears $~. What it publishes on success is replaced right away by the
+     last match of the walk below, which is the one CRuby leaves behind. A
+     literal with a replacement asks the question of re_gsub_lit() itself
+     rather than searching once to ask and again to substitute; a Hash is no
+     replacement to hand it, and goes down the lookup walk instead. */
+  if (literal && argc == 2 && mrb_nil_p(hash)) {
+    mrb_value str = re_gsub_lit(mrb, pattern, self, mrb_obj_as_string(mrb, a1), TRUE);
+    if (mrb_nil_p(str)) return mrb_nil_value();
+    str_assign(mrb, self, str);
+    return self;
+  }
+  if (literal) pattern = quote_to_regexp(mrb, pattern);
+  if (mrb_nil_p(re_search(mrb, pattern, self, 0, literal))) return mrb_nil_value();
+  mrb_value str;
+  if (argc == 2 && mrb_nil_p(hash)) {
+    str = re_gsub_str(mrb, pattern, self, mrb_obj_as_string(mrb, a1));
+  }
+  else if (!mrb_nil_p(hash)) {
+    str = re_gsub_walk(mrb, pattern, self, literal, mrb_nil_value(), hash);
+  }
+  else {
+    str = re_gsub_walk(mrb, pattern, self, literal, block, mrb_nil_value());
+  }
+  str_assign(mrb, self, str);
+  return self;
+}
+
+/*
+ * String#scan(pattern) / String#scan(pattern) { |match| }
+ */
+static mrb_value
+str_scan_m(mrb_state *mrb, mrb_value self)
+{
+  mrb_value pattern, block;
+
+  mrb_get_args(mrb, "o&", &pattern, &block);
+  pattern = check_pattern(mrb, pattern);
+  if (mrb_string_p(pattern)) pattern = quote_to_regexp(mrb, pattern);
+  if (mrb_nil_p(block)) return re_scan_ary(mrb, pattern, self);
+
+  /* A block reads the match globals of the match it was handed, so the block
+     form walks the subject itself and lets each search publish as it goes:
+     re_scan_ary() collects every match before anything is yielded, which
+     would leave every call of the block the same final `$~` and `$1`.
+
+     Each turn yields what re_scan_ary() collects: the matched string where
+     the pattern has no group, and an array of the groups where it has any, a
+     single one included. A zero-width match steps one byte on, which is what
+     stops the next search reporting the same place; the engine steps over a
+     byte inside a character on its own.
+
+     A block that changes the receiver is answered for as rb_str_scan
+     answers for it, the way re_gsub_walk() does: one that changed the length
+     is refused with RuntimeError by the next search, the next match is
+     searched for in the string it left, and the match left in $~ is a search
+     once more from the offset the last match was found from, on the string
+     as it stands at the end. That search also republishes what the failed
+     one that ends the loop clears; a scan that matched nothing keeps the
+     cleared state. And as in `gsub`, a receiver that still reads as it did
+     when the last match was made gets that match republished, and the
+     search runs only where it reads differently. */
+  mrb_int len = RSTRING_LEN(self);
+  mrb_int pos = 0, last = 0;
+  mrb_value last_md = mrb_nil_value();
+  int ai = mrb_gc_arena_save(mrb);
+
+  while (pos <= len) {
+    if (RSTRING_LEN(self) != len) {
+      mrb_raise(mrb, E_RUNTIME_ERROR, "string modified");
+    }
+    re_check_encoding(mrb, self);
+    mrb_value md = exec_match(mrb, pattern, self, pos);
+    if (mrb_nil_p(md)) break;
+    last = pos;
+    last_md = md;
+    mrb_match_data *m = DATA_GET_PTR(mrb, md, &matchdata_type, mrb_match_data);
+    mrb_int beg = m->captures[0], end = m->captures[1];
+    mrb_value yv = (m->num_captures == 1)
+      ? re_byte_substr(mrb, m->source, beg, end - beg)
+      : matchdata_to_ary(mrb, md, 1);
+    mrb_yield(mrb, block, yv);
+    pos = (beg == end) ? end + 1 : end;
+    mrb_gc_arena_restore(mrb, ai);
+    /* As in re_gsub_walk(): the block is free to publish a match of its own,
+       so `$~` alone cannot be what keeps the last match alive. */
+    mrb_gc_protect(mrb, last_md);
+  }
+
+  if (!mrb_nil_p(last_md)) {
+    if (re_subject_reads_as(mrb, self, last_md)) {
+      set_match_globals(mrb, last_md);
+    }
+    else {
+      if (RSTRING_LEN(self) != len) {
+        mrb_raise(mrb, E_RUNTIME_ERROR, "string modified");
+      }
+      re_check_encoding(mrb, self);
+      exec_match(mrb, pattern, self, last);
+    }
+  }
+  return self;
+}
+
+/*
+ * String#split(pattern = nil, limit = 0)
+ *
+ * The regexp form is answered here; a nil or String pattern goes back to
+ * core's split, captured as `__split`, which reaches no search of this
+ * gem's. CRuby refuses an unreadable subject for a String or nil pattern
+ * too, unlike the literal a search is given, which is why this path does not
+ * take the exemption `sub` takes; a limit of 1 hands the subject back whole
+ * without looking into it, and CRuby answers for that as well, so the check
+ * waits behind it.
+ */
+static mrb_value
+str_split_m(mrb_state *mrb, mrb_value self)
+{
+  mrb_value pattern = mrb_nil_value(), limit_v = mrb_nil_value();
+  mrb_int argc = mrb_get_args(mrb, "|oo", &pattern, &limit_v);
+  mrb_bool limit_given = (argc > 1);
+
+  /* mrb_as_int() is mrb_ensure_int_type(), which asks the object nothing:
+     mruby has no implicit conversion protocol in core, so accepting a
+     `to_int` here would leave this the one place in the tree that does.
+     Every limit goes through it, an Integer included: a Bigint is an Integer
+     and does not fit `mrb_int`, and this is what narrows it and raises the
+     RangeError the String-pattern path raises. */
+  mrb_int limit = 0;
+  if (limit_given) limit = mrb_as_int(mrb, limit_v);
+
+  /* The real type, which an argument redefining `nil?` or `is_a?` cannot
+     steer, and the same reading `Module#===` would give the pair. */
+  if (mrb_nil_p(pattern) || mrb_string_p(pattern)) {
+    if (limit != 1) re_check_encoding(mrb, self);
+    mrb_value split_args[2] = { pattern, mrb_int_value(mrb, limit) };
+    return mrb_funcall_argv(mrb, self, MRB_SYM(__split), limit_given ? 2 : 1, split_args);
+  }
+  if (limit == 1) {
+    if (RSTRING_LEN(self) == 0) return mrb_ary_new(mrb);
+    return mrb_ary_new_from_values(mrb, 1, &self);
+  }
+  /* nil and String patterns already went to `__split` above, so the String
+     branch of the check is unreachable here and nothing needs quoting. */
+  pattern = check_pattern(mrb, pattern);
+
+  mrb_value result = mrb_ary_new(mrb);
+  mrb_int field_start = 0, search_pos = 0;
+  mrb_int len = RSTRING_LEN(self);
+  mrb_int count = 0;
+  mrb_bool binary = re_binary_string_p(self);
+  int ai = mrb_gc_arena_save(mrb);
+
+  while (search_pos <= len) {
+    if (limit > 0 && count >= limit - 1) {
+      mrb_value tail = re_byte_substr(mrb, self, field_start, len - field_start);
+      if (mrb_nil_p(tail)) tail = mrb_str_new(mrb, NULL, 0);
+      mrb_ary_push(mrb, result, tail);
+      return result;
+    }
+    re_check_encoding(mrb, self);
+    mrb_value md = exec_match(mrb, pattern, self, search_pos);
+    if (mrb_nil_p(md)) break;
+    mrb_match_data *m = DATA_GET_PTR(mrb, md, &matchdata_type, mrb_match_data);
+    mrb_int ms = m->captures[0], me = m->captures[1];
+
+    if (ms == me) {
+      if (binary) {
+        /* A byte-indexed subject has one position per byte, and the step
+           below reads the rest of it as UTF-8. `gsub` steps by a byte here
+           for the same reason. */
+        search_pos = me + 1;
+      }
+      else if (me < len) {
+        search_pos = me + mrb_re_charlen(RSTRING_PTR(self) + me, RSTRING_PTR(self) + len, binary);
+      }
+      else {
+        search_pos = me + 1;
+      }
+      if (ms == field_start) {
+        mrb_gc_arena_restore(mrb, ai);
+        continue;
+      }
+    }
+
+    mrb_ary_push(mrb, result, mrb_str_byte_subseq(mrb, self, field_start, ms - field_start));
+    count++;
+
+    field_start = me;
+    if (ms != me) search_pos = me;
+
+    for (int i = 1; i < m->num_captures; i++) {
+      int cs = m->captures[i * 2];
+      if (cs >= 0) {
+        mrb_ary_push(mrb, result, re_byte_substr(mrb, m->source, cs, m->captures[i * 2 + 1] - cs));
+      }
+    }
+    mrb_gc_arena_restore(mrb, ai);
+  }
+  if (len > 0 && field_start <= len && (field_start < len || limit != 0)) {
+    mrb_ary_push(mrb, result, mrb_str_byte_subseq(mrb, self, field_start, len - field_start));
+  }
+
+  if (limit == 0) {
+    /* The length and the element take a statement each: fused into one
+       expression, g++ under MRB_USE_CXX_ABI compiles the subscript wrong (a
+       `?:` between the embedded array member and the heap pointer, indexed
+       by an expression that itself branches, reads a temporary no path has
+       written) and the read dies. Plain C, clang++ and MSVC agree on either
+       spelling. */
+    for (;;) {
+      mrb_int n = RARRAY_LEN(result);
+      if (n == 0) break;
+      mrb_value last = RARRAY_PTR(result)[n - 1];
+      if (RSTRING_LEN(last) != 0) break;
+      mrb_ary_pop(mrb, result);
+    }
+  }
+  return result;
+}
+
+/*
+ * String#slice!(pattern, capture = 0), the regexp form; every other argument
+ * form goes back to the captured `__slice_bang` (mruby-string-ext's).
+ */
+static mrb_value
+str_slice_bang(mrb_state *mrb, mrb_value self)
+{
+  const mrb_value *argv;
+  mrb_int argc;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  if (argc == 0 || !regexp_arg_p(mrb, argv[0])) {
+    return mrb_funcall_argv(mrb, self, MRB_SYM(__slice_bang), argc, argv);
+  }
+  if (argc > 2) mrb_argnum_error(mrb, argc, 1, 2);
+  mrb_value pattern = argv[0];
+  mrb_value group = argc > 1 ? argv[1] : mrb_fixnum_value(0);
+
+  /* Before the search, where mrb_str_slice_bang() and CRuby both put it: a
+     frozen receiver raises even for a pattern that would not have matched,
+     and `$~` is left as it was. This is the opposite order from `[]=`, and
+     both are observable. */
+  mrb_check_frozen(mrb, mrb_str_ptr(self));
+  mrb_value md = re_search(mrb, pattern, self, 0, FALSE);
+  if (mrb_nil_p(md)) return mrb_nil_value();
+  mrb_match_data *m = DATA_GET_PTR(mrb, md, &matchdata_type, mrb_match_data);
+
+  mrb_int idx;
+  if (mrb_obj_is_kind_of(mrb, group, mrb->integer_class)) {
+    /* Where `[]=` raises, `slice!` answers nil: an index that reaches no
+       group removed nothing. The normalization is the same, so group 0 stays
+       out of the negative end's reach here too, and an index that does not
+       even fit an mrb_int reaches no group either. */
+    mrb_int size = m->num_captures;
+    if (!mrb_integer_p(group) ||
+        mrb_integer(group) >= size || mrb_integer(group) <= -size) {
+      return mrb_nil_value();
+    }
+    idx = mrb_integer(group);
+    if (idx < 0) idx += size;
+  }
+  else {
+    /* A String or Symbol resolves to the group it names, and everything
+       else is read as an index, both the way `MatchData#begin` reads its
+       argument. */
+    idx = matchdata_group_arg(mrb, m, group);
+  }
+
+  int bs = m->captures[idx * 2];
+  /* CRuby answers "" for a group that exists but did not take part in the
+     match, and removes nothing. That falls out of rb_str_slice_bang()
+     building the result from the group's -1 offset rather than out of a
+     decision, but it is what the method answers. */
+  if (bs < 0) return mrb_str_new(mrb, NULL, 0);
+  int be = m->captures[idx * 2 + 1];
+
+  /* Character offsets, the space the two-integer form of `[]=` works in.
+     The removed piece comes from the MatchData, whose subject is a snapshot
+     taken before this method mutates anything, and which is a plain String
+     even when the receiver is a subclass, both as in CRuby. */
+  mrb_int cbeg = re_byte_to_char(mrb, m->source, bs);
+  mrb_int clen = re_byte_to_char(mrb, m->source, be) - cbeg;
+  mrb_value removed = re_byte_substr(mrb, m->source, bs, be - bs);
+  mrb_str_aset(mrb, self, mrb_int_value(mrb, cbeg), mrb_int_value(mrb, clen),
+               mrb_str_new(mrb, NULL, 0));
+  return removed;
+}
+
+/*
+ * String#index(pattern, pos = 0), the regexp form; every other argument form
+ * goes back to the captured core `__index`.
+ */
+static mrb_value
+str_index_m(mrb_state *mrb, mrb_value self)
+{
+  const mrb_value *argv;
+  mrb_int argc;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  if (argc == 0 || !regexp_arg_p(mrb, argv[0])) {
+    return mrb_funcall_argv(mrb, self, MRB_SYM(__index), argc, argv);
+  }
+  if (argc > 2) mrb_argnum_error(mrb, argc, 1, 2);
+  /* re_search() normalizes the position the way `index` does: a negative one
+     counts back from the end, and one that lands outside the subject answers
+     nil after clearing the match globals. A full search and not `match?`,
+     because those globals are part of the answer. */
+  mrb_value md = re_search(mrb, argv[0], self,
+                           argc > 1 ? mrb_as_int(mrb, argv[1]) : 0, FALSE);
+  if (mrb_nil_p(md)) return mrb_nil_value();
+  mrb_match_data *m = DATA_GET_PTR(mrb, md, &matchdata_type, mrb_match_data);
+  /* A character offset, which is the space `index` answers in; `byteindex`
+     below is the same search read in the other space. */
+  return mrb_int_value(mrb, re_byte_to_char(mrb, m->source, m->captures[0]));
+}
+
+/*
+ * String#rindex(pattern, pos = end), the regexp form; every other argument
+ * form goes back to the captured core `__rindex`.
+ */
+static mrb_value
+str_rindex_m(mrb_state *mrb, mrb_value self)
+{
+  const mrb_value *argv;
+  mrb_int argc;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  if (argc == 0 || !regexp_arg_p(mrb, argv[0])) {
+    return mrb_funcall_argv(mrb, self, MRB_SYM(__rindex), argc, argv);
+  }
+  if (argc > 2) mrb_argnum_error(mrb, argc, 1, 2);
+  mrb_value pattern = argv[0];
+  mrb_int clen = mrb_str_char_len(mrb, self);
+  mrb_int pos = clen;
+  if (argc > 1) {
+    /* The position is arithmetic here rather than an argument handed
+       straight to the engine, so it has to be an Integer first. */
+    pos = mrb_as_int(mrb, argv[1]);
+    if (pos < 0) {
+      pos += clen;
+      /* Out of the subject at the negative end is a miss, and a miss clears
+         the match globals. */
+      if (pos < 0) {
+        clear_match_globals(mrb);
+        return mrb_nil_value();
+      }
+    }
+    else if (pos > clen) {
+      /* Past the other end is not: `rindex` searches back from the end of
+         the subject, and mrb_str_byterindex_m() clamps for the same reason.
+         `"abc".rindex(/b/, 10)` is 1. */
+      pos = clen;
+    }
+  }
+  /* The search reads the subject by byte, so the character position it is to
+     stop at has to be read as one here. A position at the end of the subject
+     is the end of its bytes and needs no reading, which is the form `rindex`
+     is called in when it is called with one argument at all. */
+  mrb_int byte_pos = (pos == clen) ? RSTRING_LEN(self)
+                                   : mrb_str_char_to_byte(mrb, self, 0, pos);
+  mrb_value md = re_byte_rsearch(mrb, pattern, self, byte_pos);
+  if (mrb_nil_p(md)) return mrb_nil_value();
+  mrb_match_data *m = DATA_GET_PTR(mrb, md, &matchdata_type, mrb_match_data);
+  return mrb_int_value(mrb, re_byte_to_char(mrb, m->source, m->captures[0]));
+}
+
+/*
+ * String#byteindex(pattern, pos = 0), the regexp form; every other argument
+ * form goes back to the captured core `__byteindex`.
+ */
+static mrb_value
+str_byteindex_m(mrb_state *mrb, mrb_value self)
+{
+  const mrb_value *argv;
+  mrb_int argc;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  if (argc == 0 || !regexp_arg_p(mrb, argv[0])) {
+    return mrb_funcall_argv(mrb, self, MRB_SYM(__byteindex), argc, argv);
+  }
+  if (argc > 2) mrb_argnum_error(mrb, argc, 1, 2);
+  mrb_value pattern = argv[0];
+  mrb_int len = RSTRING_LEN(self);
+  mrb_int pos = 0;
+  if (argc > 1) {
+    pos = mrb_as_int(mrb, argv[1]);
+    if (pos < 0) pos += len;
+  }
+  /* Both ends are a miss here, as they are for mrb_str_byteindex_m(), and a
+     miss clears the match globals. */
+  if (pos < 0 || pos > len) {
+    clear_match_globals(mrb);
+    return mrb_nil_value();
+  }
+  /* An offset that lands inside a character names no position the subject
+     has, and the C method refuses one. It is asked after the range test,
+     where the C method asks it too, so an offset outside the subject stays a
+     miss rather than becoming an error. */
+  mrb_str_check_byte_pos(mrb, self, pos);
+  re_check_encoding(mrb, self);
+  mrb_value md = exec_match(mrb, pattern, self, pos);
+  if (mrb_nil_p(md)) return mrb_nil_value();
+  mrb_match_data *m = DATA_GET_PTR(mrb, md, &matchdata_type, mrb_match_data);
+  return mrb_int_value(mrb, m->captures[0]);
+}
+
+/*
+ * String#byterindex(pattern, pos = end), the regexp form; every other
+ * argument form goes back to the captured core `__byterindex`.
+ */
+static mrb_value
+str_byterindex_m(mrb_state *mrb, mrb_value self)
+{
+  const mrb_value *argv;
+  mrb_int argc;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  if (argc == 0 || !regexp_arg_p(mrb, argv[0])) {
+    return mrb_funcall_argv(mrb, self, MRB_SYM(__byterindex), argc, argv);
+  }
+  if (argc > 2) mrb_argnum_error(mrb, argc, 1, 2);
+  mrb_value pattern = argv[0];
+  mrb_int len = RSTRING_LEN(self);
+  mrb_int pos = len;
+  if (argc > 1) {
+    pos = mrb_as_int(mrb, argv[1]);
+    if (pos < 0) {
+      pos += len;
+      if (pos < 0) {
+        clear_match_globals(mrb);
+        return mrb_nil_value();
+      }
+    }
+    else if (pos > len) {
+      pos = len;
+    }
+  }
+  /* As in `byteindex`, and after the same clamp: a position past the end of
+     the subject has already been read as its end, which is a boundary. */
+  mrb_str_check_byte_pos(mrb, self, pos);
+  mrb_value md = re_byte_rsearch(mrb, pattern, self, pos);
+  if (mrb_nil_p(md)) return mrb_nil_value();
+  mrb_match_data *m = DATA_GET_PTR(mrb, md, &matchdata_type, mrb_match_data);
+  return mrb_int_value(mrb, m->captures[0]);
+}
+
+/*
+ * String#partition(sep), the regexp form; every other argument goes back to
+ * the captured `__partition` (mruby-string-ext's).
+ */
+static mrb_value
+str_partition_m(mrb_state *mrb, mrb_value self)
+{
+  mrb_value sep = mrb_get_arg1(mrb);
+
+  if (!regexp_arg_p(mrb, sep)) {
+    return mrb_funcall_argv(mrb, self, MRB_SYM(__partition), 1, &sep);
+  }
+  mrb_value md = re_search(mrb, sep, self, 0, FALSE);
+  mrb_value ary = mrb_ary_new_capa(mrb, 3);
+  if (mrb_nil_p(md)) {
+    /* No match leaves the whole subject in the head, and the copy is a plain
+       String even when the receiver is a subclass, as CRuby's
+       str_duplicate(rb_cString, str) hands back. */
+    mrb_ary_push(mrb, ary, mrb_str_byte_subseq(mrb, self, 0, RSTRING_LEN(self)));
+    mrb_ary_push(mrb, ary, mrb_str_new(mrb, NULL, 0));
+    mrb_ary_push(mrb, ary, mrb_str_new(mrb, NULL, 0));
+    return ary;
+  }
+  mrb_match_data *m = DATA_GET_PTR(mrb, md, &matchdata_type, mrb_match_data);
+  mrb_int slen = RSTRING_LEN(m->source);
+  mrb_ary_push(mrb, ary, re_byte_substr(mrb, m->source, 0, m->captures[0]));
+  mrb_ary_push(mrb, ary, re_byte_substr(mrb, m->source, m->captures[0], m->captures[1] - m->captures[0]));
+  mrb_ary_push(mrb, ary, re_byte_substr(mrb, m->source, m->captures[1], slen - m->captures[1]));
+  return ary;
+}
+
+/*
+ * String#rpartition(sep), the regexp form; every other argument goes back to
+ * the captured `__rpartition` (mruby-string-ext's).
+ */
+static mrb_value
+str_rpartition_m(mrb_state *mrb, mrb_value self)
+{
+  mrb_value sep = mrb_get_arg1(mrb);
+
+  if (!regexp_arg_p(mrb, sep)) {
+    return mrb_funcall_argv(mrb, self, MRB_SYM(__rpartition), 1, &sep);
+  }
+  /* The last match anywhere in the subject, so the limit is its end and the
+     search below never stops early. */
+  mrb_value md = re_byte_rsearch(mrb, sep, self, RSTRING_LEN(self));
+  mrb_value ary = mrb_ary_new_capa(mrb, 3);
+  if (mrb_nil_p(md)) {
+    /* No match puts the whole subject in the tail, which is the row this
+       method is most often got wrong on. */
+    mrb_ary_push(mrb, ary, mrb_str_new(mrb, NULL, 0));
+    mrb_ary_push(mrb, ary, mrb_str_new(mrb, NULL, 0));
+    mrb_ary_push(mrb, ary, mrb_str_byte_subseq(mrb, self, 0, RSTRING_LEN(self)));
+    return ary;
+  }
+  mrb_match_data *m = DATA_GET_PTR(mrb, md, &matchdata_type, mrb_match_data);
+  mrb_int slen = RSTRING_LEN(m->source);
+  mrb_ary_push(mrb, ary, re_byte_substr(mrb, m->source, 0, m->captures[0]));
+  mrb_ary_push(mrb, ary, re_byte_substr(mrb, m->source, m->captures[0], m->captures[1] - m->captures[0]));
+  mrb_ary_push(mrb, ary, re_byte_substr(mrb, m->source, m->captures[1], slen - m->captures[1]));
+  return ary;
+}
+
+/*
+ * String#start_with?(*prefixes)
+ *
+ * Takes any mix of patterns and hands each non-regexp one to the captured
+ * `__start_with?` (mruby-string-ext's), so that a String keeps the C
+ * comparison and its error and the arguments are still read left to right.
+ */
+static mrb_value
+str_start_with_p(mrb_state *mrb, mrb_value self)
+{
+  const mrb_value *argv;
+  mrb_int argc;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  /* The common call holds no Regexp and goes back whole: one dispatch, and
+     the captured method reads its arguments left to right as this loop
+     would. `argv` points into the VM stack, so the walk below, which calls
+     back out per argument, works on a copy that no pushed frame can move. */
+  mrb_bool any_re = FALSE;
+  for (mrb_int i = 0; i < argc; i++) {
+    if (regexp_arg_p(mrb, argv[i])) { any_re = TRUE; break; }
+  }
+  if (!any_re) {
+    return mrb_funcall_argv(mrb, self, MRB_SYM_Q(__start_with), argc, argv);
+  }
+  mrb_value args = mrb_ary_new_from_values(mrb, argc, argv);
+  for (mrb_int i = 0; i < argc; i++) {
+    mrb_value arg = RARRAY_PTR(args)[i];
+    if (regexp_arg_p(mrb, arg)) {
+      /* A regexp is anchored at the start, not searched for, while the
+         search runs forward from its position. The engine matches leftmost,
+         so a pattern that can match at 0 does, which makes a match starting
+         at 0 the anchored answer rather than an approximation of it. */
+      mrb_value md = re_search(mrb, arg, self, 0, FALSE);
+      if (!mrb_nil_p(md)) {
+        mrb_match_data *m = DATA_GET_PTR(mrb, md, &matchdata_type, mrb_match_data);
+        if (m->captures[0] == 0) return mrb_true_value();
+        /* A match further along is not an answer and CRuby leaves none
+           behind for one, so clear what the search published. */
+        clear_match_globals(mrb);
+      }
+    }
+    else if (mrb_test(mrb_funcall_argv(mrb, self, MRB_SYM_Q(__start_with), 1, &arg))) {
+      return mrb_true_value();
+    }
+  }
+  return mrb_false_value();
+}
+
+/* --- The regexp-aware Symbol methods --- */
+
+/* CRuby defines these on Symbol so that a symbol can be matched against a
+   regexp without spelling out the `to_s`. Each applies the String body above
+   to the symbol's name, the way CRuby's sym_match_m() hands rb_sym2str(sym)
+   to the String function, so the argument handling is inherited rather than
+   repeated; `$~` is published by the shared body either way.
+
+   This covers the symbol-on-the-left direction only. The Regexp side
+   converts a symbol on its own, in match_operand(), so it needs nothing from
+   here. `sym[/re/]` needs nothing either: `Symbol#slice` (mruby-symbol-ext,
+   which this gem does not depend on) delegates to `String#slice`, so it
+   picks up the regexp form of str_aref() wherever that gem is built in. */
+
+static mrb_value
+sym_match_m(mrb_state *mrb, mrb_value self)
+{
+  return str_match_common(mrb, mrb_sym_str(mrb, mrb_symbol(self)));
+}
+
+static mrb_value
+sym_match_p_m(mrb_state *mrb, mrb_value self)
+{
+  return str_match_p_common(mrb, mrb_sym_str(mrb, mrb_symbol(self)));
+}
+
+static mrb_value
+sym_match_op_m(mrb_state *mrb, mrb_value self)
+{
+  return str_match_op_common(mrb, mrb_sym_str(mrb, mrb_symbol(self)));
+}
+
+/*
+ * Regexp.last_match / Regexp.last_match(n)
+ *
+ * Reads `$~` and indexes it the way MatchData#[] does: CRuby's
+ * rb_reg_s_last_match() reaches rb_reg_nth_match() directly rather than
+ * dispatching `[]`, so a program redefining `MatchData#[]` moves `md[n]`
+ * and leaves this reader alone.
+ */
+static mrb_value
+regexp_s_last_match(mrb_state *mrb, mrb_value klass)
+{
+  mrb_value n = mrb_nil_value();
+
+  mrb_get_args(mrb, "|o", &n);
+  mrb_value md = mrb_gv_get(mrb, ensure_match_sym(mrb));
+  if (mrb_nil_p(n)) return md;
+  if (mrb_nil_p(md)) return mrb_nil_value();
+  return md_aref(mrb, md, n);
+}
+
 /* --- Gem init --- */
 
 void
@@ -2444,14 +3219,7 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   /* compile is defined in Ruby (mrblib) as alias for new */
   mrb_define_class_method(mrb, re, "escape", regexp_escape, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, re, "quote", regexp_escape, MRB_ARGS_REQ(1));
-  mrb_define_class_method(mrb, re, "__binary_string?", regexp_binary_string_p, MRB_ARGS_REQ(1));
-  mrb_define_class_method(mrb, re, "__check_encoding", regexp_check_encoding, MRB_ARGS_REQ(1));
-  mrb_define_class_method(mrb, re, "__check_pattern", regexp_check_pattern, MRB_ARGS_REQ(1));
-  mrb_define_class_method(mrb, re, "__check_byte_pos", regexp_check_byte_pos, MRB_ARGS_REQ(2));
-  mrb_define_class_method(mrb, re, "__search", regexp_s_search, MRB_ARGS_ARG(2, 2));
-  mrb_define_class_method(mrb, re, "__byte_search", regexp_s_byte_search, MRB_ARGS_ARG(2, 2));
-  mrb_define_class_method(mrb, re, "__byte_rsearch", regexp_s_byte_rsearch, MRB_ARGS_REQ(3));
-  mrb_define_class_method(mrb, re, "__search_p", regexp_s_search_p, MRB_ARGS_ARG(2, 1));
+  mrb_define_class_method(mrb, re, "last_match", regexp_s_last_match, MRB_ARGS_OPT(1));
 
   /* Instance methods */
   mrb_define_method(mrb, re, "match", regexp_match, MRB_ARGS_ARG(1, 1)|MRB_ARGS_BLOCK());
@@ -2466,19 +3234,56 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, re, "hash", regexp_hash, MRB_ARGS_NONE());
   mrb_define_method(mrb, re, "options", regexp_options, MRB_ARGS_NONE());
   mrb_define_method(mrb, re, "casefold?", regexp_casefold_p, MRB_ARGS_NONE());
-  mrb_define_class_method(mrb, re, "__gsub_str", regexp_s_gsub_str, MRB_ARGS_REQ(3));
-  mrb_define_class_method(mrb, re, "__sub_str", regexp_s_sub_str, MRB_ARGS_REQ(3));
-  mrb_define_class_method(mrb, re, "__gsub_lit", regexp_s_gsub_lit, MRB_ARGS_ARG(3, 1));
-  mrb_define_class_method(mrb, re, "__sub_lit", regexp_s_sub_lit, MRB_ARGS_ARG(3, 1));
-  mrb_define_class_method(mrb, re, "__gsub_block", regexp_s_gsub_block, MRB_ARGS_ARG(2, 1)|MRB_ARGS_BLOCK());
-  mrb_define_class_method(mrb, re, "__scan", regexp_s_scan, MRB_ARGS_REQ(2));
 
-  /* String#[] takes the name here rather than in mrblib, so that the indexes
-     the core method answers do not pay a Ruby frame to reach it. `slice` is
-     registered under its own name rather than aliased, which is also what
-     makes `sym[re]` work: `Symbol#[]` delegates to `String#slice`. */
-  mrb_define_method(mrb, mrb->string_class, "[]", str_aref, MRB_ARGS_ARG(1, 1));
-  mrb_define_method(mrb, mrb->string_class, "slice", str_aref, MRB_ARGS_ARG(1, 1));
+  /* The String methods whose regexp form this gem answers. Every core or
+     mruby-string-ext method a non-Regexp argument goes back to is captured
+     under a private name first, before the override takes the name, the way
+     the mrblib overrides captured them with `alias` at the top of the class
+     body. On a build without MRB_UTF8_STRING the two of an index pair are
+     the same C function behind two method table entries, so each still
+     needs its own capture. `slice!`, `partition`, `rpartition` and
+     `start_with?` come from mruby-string-ext, which this gem depends on. */
+  struct RClass *str = mrb->string_class;
+  mrb_alias_method(mrb, str, MRB_SYM(__split), MRB_SYM(split));
+  mrb_alias_method(mrb, str, MRB_SYM(__slice_bang), MRB_SYM_B(slice));
+  mrb_alias_method(mrb, str, MRB_SYM(__index), MRB_SYM(index));
+  mrb_alias_method(mrb, str, MRB_SYM(__rindex), MRB_SYM(rindex));
+  mrb_alias_method(mrb, str, MRB_SYM(__byteindex), MRB_SYM(byteindex));
+  mrb_alias_method(mrb, str, MRB_SYM(__byterindex), MRB_SYM(byterindex));
+  mrb_alias_method(mrb, str, MRB_SYM(__partition), MRB_SYM(partition));
+  mrb_alias_method(mrb, str, MRB_SYM(__rpartition), MRB_SYM(rpartition));
+  mrb_alias_method(mrb, str, MRB_SYM_Q(__start_with), MRB_SYM_Q(start_with));
+
+  /* The methods reading their arguments with "*" declare MRB_ARGS_ANY(),
+     as the `*args` of the mrblib overrides did: their argument-count
+     errors are their own (sub_argnum_check() and the argc tests below), in
+     the order each method raises them in, and a declared count would raise
+     ahead of a check that is meant to come first, `gsub!`'s frozen test
+     ahead of its arity being the observable case. */
+  mrb_define_method(mrb, str, "match", str_match_m, MRB_ARGS_ARG(1, 1)|MRB_ARGS_BLOCK());
+  mrb_define_method(mrb, str, "match?", str_match_p_m, MRB_ARGS_ARG(1, 1));
+  mrb_define_method(mrb, str, "=~", str_match_op_m, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, str, "sub", str_sub_m, MRB_ARGS_ANY()|MRB_ARGS_BLOCK());
+  mrb_define_method(mrb, str, "sub!", str_sub_bang, MRB_ARGS_ANY()|MRB_ARGS_BLOCK());
+  mrb_define_method(mrb, str, "gsub", str_gsub_m, MRB_ARGS_ANY()|MRB_ARGS_BLOCK());
+  mrb_define_method(mrb, str, "gsub!", str_gsub_bang, MRB_ARGS_ANY()|MRB_ARGS_BLOCK());
+  mrb_define_method(mrb, str, "scan", str_scan_m, MRB_ARGS_REQ(1)|MRB_ARGS_BLOCK());
+  mrb_define_method(mrb, str, "split", str_split_m, MRB_ARGS_OPT(2));
+  mrb_define_method(mrb, str, "slice!", str_slice_bang, MRB_ARGS_ANY());
+  mrb_define_method(mrb, str, "index", str_index_m, MRB_ARGS_ANY());
+  mrb_define_method(mrb, str, "rindex", str_rindex_m, MRB_ARGS_ANY());
+  mrb_define_method(mrb, str, "byteindex", str_byteindex_m, MRB_ARGS_ANY());
+  mrb_define_method(mrb, str, "byterindex", str_byterindex_m, MRB_ARGS_ANY());
+  mrb_define_method(mrb, str, "partition", str_partition_m, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, str, "rpartition", str_rpartition_m, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, str, "start_with?", str_start_with_p, MRB_ARGS_ANY());
+
+  /* String#[] takes the name too, so that the indexes the core method
+     answers do not pay a dispatch to reach it. `slice` is registered under
+     its own name rather than aliased, which is also what makes `sym[re]`
+     work: `Symbol#[]` delegates to `String#slice`. */
+  mrb_define_method(mrb, str, "[]", str_aref, MRB_ARGS_ARG(1, 1));
+  mrb_define_method(mrb, str, "slice", str_aref, MRB_ARGS_ARG(1, 1));
   /* Taking the name disarmed the String branch of the index opcodes, which
      answer `str[Integer]`, `str[String]` and `str[Range]` only while `[]` is
      the implementation they stand in for.  For those three `str_aref()` calls
@@ -2491,12 +3296,16 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
 
   /* `String#[]=` the same way, and on the same terms: `str_aset()` answers an
      Integer, String or Range index through the same `mrb_str_aset()` the
-     opcode calls. `slice!` stays in mrblib and reaches the core method under
-     `__aset`, captured here rather than in mrblib so that it is the core one
-     and not the override defined next. */
-  mrb_alias_method(mrb, mrb->string_class, MRB_SYM(__aset), MRB_OPSYM(aset));
-  mrb_define_method(mrb, mrb->string_class, "[]=", str_aset, MRB_ARGS_ANY());
+     opcode calls. */
+  mrb_define_method(mrb, str, "[]=", str_aset, MRB_ARGS_ANY());
   mrb_idx_op_rearm(mrb, MRB_IDX_OP_STR_ASET);
+
+  /* The Symbol delegations, which share the String bodies; see the note
+     above sym_match_m(). */
+  struct RClass *sym = mrb->symbol_class;
+  mrb_define_method(mrb, sym, "match", sym_match_m, MRB_ARGS_ARG(1, 1)|MRB_ARGS_BLOCK());
+  mrb_define_method(mrb, sym, "match?", sym_match_p_m, MRB_ARGS_ARG(1, 1));
+  mrb_define_method(mrb, sym, "=~", sym_match_op_m, MRB_ARGS_REQ(1));
 
   /* MatchData class */
   struct RClass *md = mrb_define_class(mrb, "MatchData", mrb->object_class);
@@ -2516,9 +3325,6 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, md, "size", matchdata_length, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "begin", matchdata_begin, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, md, "end", matchdata_end, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, md, "__byte_begin", matchdata_byte_begin, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, md, "__byte_end", matchdata_byte_end, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, md, "__republish", matchdata_republish, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, md, "pre_match", matchdata_pre, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "post_match", matchdata_post, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "__pre_match", matchdata_pre, MRB_ARGS_NONE());

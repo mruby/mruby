@@ -162,53 +162,10 @@ assert("Regexp - match operand rejects other types") do
   assert_false(/a/ === nil)
 end
 
-assert("Regexp.__byte_search answers a position before the subject with a miss") do
-  # The mrblib loops enter this at zero or at an offset a match answered with,
-  # so a negative one arrives only from a direct call. Left to the engine it
-  # would read behind the subject; the answer instead is the miss a position
-  # past the end already gives, and it clears the match globals the same way.
-  $~ = /b/.match("abc")
-  assert_nil Regexp.__byte_search(/b/, "abc", -1)
-  assert_nil $~
-
-  $~ = /b/.match("abc")
-  assert_nil Regexp.__byte_search(/b/, "abc", -1000000)
-  assert_nil $~
-
-  $~ = /b/.match("abc")
-  assert_nil Regexp.__byte_search(/b/, "abc", 1000000)
-  assert_nil $~
-
-  # and it is answered before the subject is read, the way `__search` answers a
-  # position it cannot place: a subject the position names nothing in is not
-  # read either way
-  bad = "\xFF"
-  assert_nil Regexp.__byte_search(/b/, bad, -1)
-  if __ENCODING__ == "UTF-8"
-    assert_raise(ArgumentError) { Regexp.__byte_search(/b/, bad, 0) }
-  else
-    assert_nil Regexp.__byte_search(/b/, bad, 0)
-  end
-end
-
-assert("Regexp.__byte_rsearch reads its limit at both ends of the subject") do
-  # The limit is the last position a match may start at, so one past the end
-  # of the subject is every position in it and not the miss the forward
-  # search answers a position past the end with. `rindex` clamps for the same
-  # reason: `"abc".rindex(/b/, 10)` is 1.
-  assert_equal 1, Regexp.__byte_rsearch(/b/, "abc", 1000000).__byte_begin(0)
-  assert_equal 1, Regexp.__byte_rsearch(/b/, "abc", 3).__byte_begin(0)
-  assert_nil Regexp.__byte_rsearch(/b/, "abc", 0)
-
-  # A negative limit names no position and reaches here only from a direct
-  # call, as a negative position does in `__byte_search` above: it is the
-  # miss, and it clears the match globals.
-  $~ = /b/.match("abc")
-  assert_nil Regexp.__byte_rsearch(/b/, "abc", -1)
-  assert_nil $~
-
-  # and the answer is the one the globals describe
-  assert_equal 4, Regexp.__byte_rsearch(/b(c)/, "abcabc", 6).__byte_begin(0)
+assert("backward search - the match the globals describe is the answered one") do
+  # `rindex` searches backward through re_byte_rsearch(), and the match it
+  # answers with is the one `$~` and `$1` describe, as in every other search.
+  assert_equal 4, "abcabc".rindex(/b(c)/)
   assert_equal "c", $1
   assert_equal "bc", Regexp.last_match(0)
 end
@@ -239,28 +196,6 @@ assert("Regexp.escape") do
   end
   assert_true Regexp.new(Regexp.escape("a b"), Regexp::EXTENDED).match?("a b")
   assert_true Regexp.new(Regexp.escape("a # b"), Regexp::EXTENDED).match?("a # b")
-end
-
-assert("Regexp.__check_byte_pos passes a position the subject does not have") do
-  # `String#byteindex` and `String#byterindex` read the position against the
-  # byte length and answer both ends themselves before asking this, so one
-  # outside the subject arrives only from a direct call. A position the subject
-  # does not have sits on no boundary, and looking for one would read behind
-  # the subject.
-  s = "あいう"
-  assert_nil Regexp.__check_byte_pos(s, -1)
-  assert_nil Regexp.__check_byte_pos(s, -1000000)
-  assert_nil Regexp.__check_byte_pos(s, s.bytesize + 1)
-  assert_nil Regexp.__check_byte_pos(s, 1000000)
-
-  # the ones it does have are still asked
-  assert_nil Regexp.__check_byte_pos(s, 0)
-  assert_nil Regexp.__check_byte_pos(s, s.bytesize)
-  if __ENCODING__ == "UTF-8"
-    assert_raise(IndexError) { Regexp.__check_byte_pos(s, 1) }
-  else
-    assert_nil Regexp.__check_byte_pos(s, 1)
-  end
 end
 
 assert("Regexp#inspect") do

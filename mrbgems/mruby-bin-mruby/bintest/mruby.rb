@@ -200,11 +200,11 @@ assert('String#split still works when mruby-regexp is loaded') do
   _, _, stat = Open3.capture3(*(cmd_list(MRUBY_BIN) + ["-e", "Regexp"]))
   skip "mruby-regexp not loaded" unless stat.success?
 
-  # The regexp-aware override in mruby-regexp/mrblib/string_regexp.rb used to
-  # replace the C-defined String#split, leaving its `return super if ...`
-  # fast paths with no method to delegate to (NoMethodError).  Now the
-  # override delegates via `__split`, an alias of the original C method made
-  # at the top of that class body before the override replaces it.
+  # The regexp-aware override in mruby-regexp used to replace the C-defined
+  # String#split, leaving its `return super if ...` fast paths with no method
+  # to delegate to (NoMethodError).  Now the override delegates via
+  # `__split`, an alias of the original C method made in gem init before the
+  # override takes the name.
   assert_mruby(%Q(["a", "b", "c"]\n), "", true,
                ["-e", 'p "a,b,c".split(",")'])
   assert_mruby(%Q(["abc", "abc", "abc"]\n), "", true,
