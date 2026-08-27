@@ -162,35 +162,6 @@ assert("Regexp - match operand rejects other types") do
   assert_false(/a/ === nil)
 end
 
-assert("Regexp.__byte_search answers a position before the subject with a miss") do
-  # The mrblib loops enter this at zero or at an offset a match answered with,
-  # so a negative one arrives only from a direct call. Left to the engine it
-  # would read behind the subject; the answer instead is the miss a position
-  # past the end already gives, and it clears the match globals the same way.
-  $~ = /b/.match("abc")
-  assert_nil Regexp.__byte_search(/b/, "abc", -1)
-  assert_nil $~
-
-  $~ = /b/.match("abc")
-  assert_nil Regexp.__byte_search(/b/, "abc", -1000000)
-  assert_nil $~
-
-  $~ = /b/.match("abc")
-  assert_nil Regexp.__byte_search(/b/, "abc", 1000000)
-  assert_nil $~
-
-  # and it is answered before the subject is read, the way `__search` answers a
-  # position it cannot place: a subject the position names nothing in is not
-  # read either way
-  bad = "\xFF"
-  assert_nil Regexp.__byte_search(/b/, bad, -1)
-  if __ENCODING__ == "UTF-8"
-    assert_raise(ArgumentError) { Regexp.__byte_search(/b/, bad, 0) }
-  else
-    assert_nil Regexp.__byte_search(/b/, bad, 0)
-  end
-end
-
 assert("backward search - the match the globals describe is the answered one") do
   # `rindex` searches backward through re_byte_rsearch(), and the match it
   # answers with is the one `$~` and `$1` describe, as in every other search.
