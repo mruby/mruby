@@ -16,8 +16,6 @@ MRuby::Build.new('host') do |conf|
 
   # Regexp is included via stdlib.gembox
 
-  # The compile_commands.json at the source root speaks for this build
-  conf.enable_compile_commands default: true
 
   # test
   conf.enable_test

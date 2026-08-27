@@ -44,9 +44,13 @@ A database in a build directory is what `clangd --compile-commands-dir` and
 its like are pointed at, so reading the tree as a cross target is one option
 away. What a tool finds without being pointed anywhere is the copy at the
 source root, and that one describes a single target: the one whose
-configuration says `conf.enable_compile_commands default: true`, or failing
-that the target named `host`, or failing that the first target the
+configuration has a target named `host`, or failing that the first target the
 configuration declares. `MRUBY_CDB_TARGET` names another for one run.
+
+A configuration with several targets says which of them it means by declaring
+that one first. Where the order is fixed for another reason,
+`conf.enable_compile_commands default: true` names the target instead; no
+configuration in this tree needs it.
 
 A source no build in the tree compiled, one of a gem the configuration leaves
 out for instance, has no entry; `compile_flags.txt` and `.clangd` at the

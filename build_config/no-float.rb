@@ -11,8 +11,6 @@ MRuby::CrossBuild.new('no-float') do |conf|
 
   conf.test_runner.command = 'env'
 
-  # The compile_commands.json at the source root speaks for this build
-  conf.enable_compile_commands default: true
 
   conf.enable_debug
 #  conf.enable_bintest

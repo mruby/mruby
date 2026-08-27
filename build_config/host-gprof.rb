@@ -10,8 +10,6 @@ MRuby::Build.new('host-gprof') do |conf|
   conf.cc.flags << '-pg'
   conf.linker.flags << '-pg'
 
-  # The compile_commands.json at the source root speaks for this build
-  conf.enable_compile_commands default: true
 
   # Turn on `enable_debug` for better debugging
   conf.enable_debug

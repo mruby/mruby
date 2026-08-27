@@ -79,8 +79,6 @@ MRuby::Build.new do |conf|
   # Turn on `enable_debug` for better debugging
   # conf.enable_debug
 
-  # The compile_commands.json at the source root speaks for this build
-  conf.enable_compile_commands default: true
 
   conf.enable_bintest
   conf.enable_test
