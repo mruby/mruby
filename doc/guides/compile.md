@@ -33,6 +33,17 @@ inside of the mruby source root. To generate and execute the test tools call
 `rake test`. To clean all build files call `rake clean`. To see full command
 line on build, call `rake -v`.
 
+`rake compile_commands.json` writes a `compile_commands.json` at the source
+root, for editors and clang tools, out of the command lines the build records
+beside its own objects. No tracer such as `bear` is involved.
+
+The database describes one build: the target named `host` where there is one
+and the first target the configuration declares otherwise, or the target
+`MRUBY_CDB_TARGET` names. A source no build in the tree compiled, one of a
+gem the configuration leaves out for instance, has no entry;
+`compile_flags.txt` and `.clangd` at the source root are what answer for
+those.
+
 You can specify your own configuration file by the `MRUBY_CONFIG` environment
 variable (you can use `CONFIG` for shorthand for `MRUBY_CONFIG`). If the path
 doesn't exist, `build_config/${MRUBY_CONFIG}.rb` is used. The default
