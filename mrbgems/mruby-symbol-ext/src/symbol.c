@@ -57,9 +57,42 @@ mrb_sym_length(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(len);
 }
 
+/*
+ * call-seq:
+ *   sym.slice(index)          -> string or nil
+ *   sym.slice(start, length)  -> string or nil
+ *   sym.slice(range)          -> string or nil
+ *   sym[index]                -> string or nil
+ *
+ * Slices the symbol's name the way `String#slice` slices a string, and
+ * answers a String rather than a Symbol. The name comes from the symbol
+ * itself rather than through `to_s`, which is where CRuby's sym_aref() takes
+ * it from as well, so redefining `Symbol#to_s` does not move these two.
+ */
+static mrb_value
+mrb_sym_slice(mrb_state *mrb, mrb_value self)
+{
+  mrb_value *argv;
+  mrb_int argc;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  /* The name is handed to `String#slice` rather than to the core function
+     that answers it, because mruby-regexp registers a `String#slice` of its
+     own to answer a Regexp index and this gem does not depend on it. Sending
+     is what keeps `sym[re]` answering wherever that gem is built in, which is
+     what the Ruby definition this replaces did, and it leaves the argument
+     checking in the one place that already spells it out. What comes back is
+     the answer, so nothing is read from it here and nothing is held across
+     the call. */
+  return mrb_funcall_argv(mrb, mrb_sym_str(mrb, mrb_symbol(self)),
+                          MRB_SYM(slice), argc, argv);
+}
+
 static const mrb_mt_entry symbol_ext_rom_entries[] = {
   MRB_MT_ENTRY(mrb_sym_length, MRB_SYM(length), MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_sym_length, MRB_SYM(size), MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_sym_slice,  MRB_SYM(slice), MRB_ARGS_ANY()),
+  MRB_MT_ENTRY(mrb_sym_slice,  MRB_OPSYM(aref), MRB_ARGS_ANY()),
 };
 
 void
