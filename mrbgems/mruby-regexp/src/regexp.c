@@ -343,16 +343,17 @@ re_binary_string_p(mrb_value str)
    bytes make no claim that could be broken. A quoted String pattern is exempt
    for a narrower reason: CRuby searches for a literal byte by byte and reads
    the subject as UTF-8 nowhere along the way, so `"a\x80b".sub("b", "!")`
-   answers there while the same call with `/b/` is refused. `__sub_lit` and
-   `__gsub_lit` never ask, having no compiled pattern to ask on behalf of, and
-   the searches a literal reaches with one take a `checked` argument to say so.
+   answers there while the same call with `/b/` is refused. re_sub_lit() and
+   re_gsub_lit() never ask, having no compiled pattern to ask on behalf of,
+   and the searches a literal reaches with one take a `checked` argument to
+   say so.
 
-   The check walks the whole subject, so every entry point below runs it on the
-   subject it is handed and the C loops over a subject run it before the first
-   turn. Two searches are driven from mrblib once per match rather than once per
-   call, `__byte_search` and the `__search` the backward search steps, and they
-   check too: core remembers a string it has read as valid UTF-8, so every turn
-   after the first costs a flag test and not a walk. */
+   The check walks the whole subject, so every entry point below runs it on
+   the subject it is handed, and the loops that search per match (`scan`,
+   `split`, the gsub walks) ask again each turn: core remembers a string it
+   has read as valid UTF-8, so every turn after the first costs a flag test
+   and not a walk, and only a block that rewrote the receiver pays a new
+   one. */
 static void
 re_check_encoding(mrb_state *mrb, mrb_value str)
 {
@@ -523,13 +524,9 @@ check_regexp_arg(mrb_state *mrb, mrb_value re)
 }
 
 /*
- * Regexp.__search(re, str, pos = 0, checked = false)
- *
- * Internal: `Regexp#match` with the pattern as an argument and no block form.
- * The String overrides in mrblib search through this so that the search never
- * dispatches on the pattern, where a singleton method would replace it; see
- * the note at the top of mrblib/string_regexp.rb. A nil subject clears the
- * match globals and answers nil, as `Regexp#match` does, which is what the
+ * The search of every String-side entry point: `Regexp#match` with the
+ * pattern as an argument and no block form. A nil subject clears the match
+ * globals and answers nil, as `Regexp#match` does, which is what the
  * overrides use to report a miss.
  *
  * `checked` says the caller has settled the encoding question for the subject
@@ -552,18 +549,6 @@ re_search(mrb_state *mrb, mrb_value re, mrb_value str, mrb_int pos, mrb_bool che
   }
   if (!checked) re_check_encoding(mrb, str);
   return exec_match(mrb, re, str, pos);
-}
-
-static mrb_value
-regexp_s_search(mrb_state *mrb, mrb_value klass)
-{
-  mrb_value re, str;
-  mrb_int pos = 0;
-  mrb_bool checked = FALSE;
-
-  mrb_get_args(mrb, "oo|ib", &re, &str, &pos, &checked);
-  check_regexp_arg(mrb, re);
-  return re_search(mrb, re, str, pos, checked);
 }
 
 /*
@@ -1652,19 +1637,15 @@ re_mark_spliced(mrb_value result, mrb_value subject, mrb_value replacement,
 }
 
 /*
- * Regexp.__gsub_str(re, str, replacement) - gsub core without block
+ * gsub core with a String replacement and no block.
  *
  * A compiled pattern only: a String pattern is a literal and reaches
- * `__gsub_lit` instead, which is why there is no `checked` here to say that
+ * re_gsub_lit() instead, which is why there is no `checked` here to say that
  * the subject was left unread.
  */
 static mrb_value
-regexp_s_gsub_str(mrb_state *mrb, mrb_value klass)
+re_gsub_str(mrb_state *mrb, mrb_value re, mrb_value str, mrb_value replacement)
 {
-  mrb_value re, str, replacement;
-  mrb_get_args(mrb, "oSS", &re, &str, &replacement);
-  check_regexp_arg(mrb, re);
-
   mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
   if (re_uninitialized_p(pat)) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
   re_check_encoding(mrb, str);
@@ -1747,17 +1728,13 @@ regexp_s_gsub_str(mrb_state *mrb, mrb_value klass)
 }
 
 /*
- * Regexp.__sub_str(re, str, replacement) - sub core without block
+ * sub core with a String replacement and no block.
  *
- * A compiled pattern only, as `__gsub_str` above.
+ * A compiled pattern only, as re_gsub_str() above.
  */
 static mrb_value
-regexp_s_sub_str(mrb_state *mrb, mrb_value klass)
+re_sub_str(mrb_state *mrb, mrb_value re, mrb_value str, mrb_value replacement)
 {
-  mrb_value re, str, replacement;
-  mrb_get_args(mrb, "oSS", &re, &str, &replacement);
-  check_regexp_arg(mrb, re);
-
   mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
   if (re_uninitialized_p(pat)) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
   re_check_encoding(mrb, str);
@@ -1866,21 +1843,16 @@ re_lit_matchdata(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int end)
 }
 
 /*
- * Regexp.__gsub_lit(pattern, str, replacement, bang = false) - the gsub of a
- * literal String pattern and a String replacement, without a pattern compiled
- * to search with.
+ * The gsub of a literal String pattern and a String replacement, without a
+ * pattern compiled to search with.
  *
  * `bang` answers nil rather than a result when nothing matched, so that
  * `gsub!` reads the question it asks, whether a substitution happened, off
  * this search instead of making a second one ahead of it.
  */
 static mrb_value
-regexp_s_gsub_lit(mrb_state *mrb, mrb_value klass)
+re_gsub_lit(mrb_state *mrb, mrb_value lit, mrb_value str, mrb_value replacement, mrb_bool bang)
 {
-  mrb_value lit, str, replacement;
-  mrb_bool bang = FALSE;
-  mrb_get_args(mrb, "SSS|b", &lit, &str, &replacement, &bang);
-
   const char *s = RSTRING_PTR(str);
   mrb_int slen = RSTRING_LEN(str);
   const char *p = RSTRING_PTR(lit);
@@ -1942,16 +1914,11 @@ regexp_s_gsub_lit(mrb_state *mrb, mrb_value klass)
 }
 
 /*
- * Regexp.__sub_lit(pattern, str, replacement, bang = false) - `__gsub_lit` for
- * the first match alone.
+ * re_gsub_lit() for the first match alone.
  */
 static mrb_value
-regexp_s_sub_lit(mrb_state *mrb, mrb_value klass)
+re_sub_lit(mrb_state *mrb, mrb_value lit, mrb_value str, mrb_value replacement, mrb_bool bang)
 {
-  mrb_value lit, str, replacement;
-  mrb_bool bang = FALSE;
-  mrb_get_args(mrb, "SSS|b", &lit, &str, &replacement, &bang);
-
   const char *s = RSTRING_PTR(str);
   mrb_int slen = RSTRING_LEN(str);
   const char *rep = RSTRING_PTR(replacement);
@@ -1983,19 +1950,41 @@ regexp_s_sub_lit(mrb_state *mrb, mrb_value klass)
   return result;
 }
 
+/* The replacement one turn of a block or Hash substitution splices in: what
+   the block answers for the match, or what the match looks up in the table,
+   spelled as a String. CRuby runs the two down the same tail, so a `\1` in
+   what comes back stands for itself rather than naming a group, and a key
+   the Hash does not hold answers nil, which `to_s` spells as the empty
+   string. The Hash has to be one, as check_pattern() demands a real String:
+   mruby converts nothing with `to_hash` anywhere. */
+static mrb_value
+sub_piece(mrb_state *mrb, mrb_value block, mrb_value hash, mrb_value matched)
+{
+  mrb_value piece;
+  if (mrb_nil_p(hash)) {
+    piece = mrb_yield(mrb, block, matched);
+    /* A yield's return rides back on a popped stack slot and sits in no
+       arena (mrb_funcall_with_block() restores and re-protects its own, but
+       yield_with_attr() does neither), so the first allocation after it
+       could reclaim it; every caller allocates the result it is spliced
+       into. */
+    mrb_gc_protect(mrb, piece);
+  }
+  else {
+    piece = mrb_hash_get(mrb, hash, matched);
+  }
+  return mrb_obj_as_string(mrb, piece);
+}
+
 /*
- * Regexp.__gsub_block(re, str, checked = false, &block) - gsub core with a
- * block.
+ * gsub core with a block or a Hash: the walk of `gsub`'s remaining two
+ * replacement forms, `hash` standing where the block call would be when it
+ * is given.
  *
- * `checked` carries the same meaning as in `__search`.
+ * `checked` carries the same meaning as in re_search().
  *
- * The walk this replaced was written in mrblib to keep the block call out of
- * C.  What it cost was paid per match rather than per call: a `__byte_search`
- * frame, two `byteslice` frames and their strings, the `__byte_begin` and
- * `__byte_end` pair, an array to collect the pieces in and a `join` to spend
- * them, all around one `mrb_yield` that C can make directly.  The block still
- * reads what it read there: every match is published before the block sees it,
- * which is why a MatchData is built per turn here as it was there.
+ * The loop yields from C the way CRuby's does: every match is published
+ * before the block sees it, which is why a MatchData is built per turn.
  *
  * The block can reach the receiver, and CRuby's `str_gsub` answers for a
  * block that changes it in three ways this loop follows.  It refuses one that
@@ -2011,18 +2000,13 @@ regexp_s_sub_lit(mrb_state *mrb, mrb_value klass)
  * away.  On a receiver that still reads as it did when the last match was
  * made, that search can only find the match the loop already has, so the loop
  * republishes that one and searches only where the receiver reads differently.
+ * A Hash's default proc is as free to reach the receiver as a block is, so
+ * the lookup form walks under the same answers.
  */
 static mrb_value
-regexp_s_gsub_block(mrb_state *mrb, mrb_value klass)
+re_gsub_walk(mrb_state *mrb, mrb_value re, mrb_value str, mrb_bool checked,
+             mrb_value block, mrb_value hash)
 {
-  mrb_value re, str, block = mrb_nil_value();
-  mrb_bool checked = FALSE;
-  mrb_get_args(mrb, "oS|b&", &re, &str, &checked, &block);
-  check_regexp_arg(mrb, re);
-  /* A backstop, as check_regexp_arg() is: the one caller reaches here only
-     with a block, having handed the blockless forms to an enumerator. */
-  if (mrb_nil_p(block)) mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
-
   mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
   if (re_uninitialized_p(pat)) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
   if (!checked) re_check_encoding(mrb, str);
@@ -2053,7 +2037,7 @@ regexp_s_gsub_block(mrb_state *mrb, mrb_value klass)
     mrb_value matched = re_byte_substr(mrb, str, beg, end - beg);
     last_md = create_matchdata(mrb, re, str, captures, cap_size);
     last = pos;
-    mrb_value piece = mrb_obj_as_string(mrb, mrb_yield(mrb, block, matched));
+    mrb_value piece = sub_piece(mrb, block, hash, matched);
     /* What the block did to the receiver while it had it. A change of length
        moved every offset the walk holds, and the walk stops there. Bytes it
        rewrote in place are read from where they are now, since the write can
@@ -2233,6 +2217,18 @@ regexp_arg_p(mrb_state *mrb, mrb_value obj)
          mrb_obj_is_kind_of(mrb, obj, mrb_class_get_id(mrb, MRB_SYM(Regexp)));
 }
 
+/* The Regexp a literal String pattern compiles into where one is needed:
+   `sub`, `gsub` and `scan` quote the literal and search with the result, the
+   way CRuby's get_pat_quoted() does. Built fresh every time, as the mrblib
+   overrides built it: the memo re_quoted_regexp() keeps belongs to
+   MatchData#regexp alone. */
+static mrb_value
+quote_to_regexp(mrb_state *mrb, mrb_value lit)
+{
+  mrb_value src = re_escape_str(mrb, lit);
+  return mrb_obj_new(mrb, mrb_class_get_id(mrb, MRB_SYM(Regexp)), 1, &src);
+}
+
 /* Check the pattern given to String#match, #match?, #sub, #gsub, #scan and
    #split: a Regexp or a String passes through, everything else raises. The
    test runs here rather than in Ruby so it never dispatches on the argument,
@@ -2406,6 +2402,23 @@ str_aset(mrb_state *mrb, mrb_value str)
    while `mrb_get_args("*")` hands them out, so each method reads what it
    needs into locals before anything can push a frame over them. */
 
+/* Replace `str`'s bytes and their reading with `newstr`'s, which is what
+   `String#replace` leaves behind: the write path of `sub!`, `gsub!` and
+   `slice!`. Encoding and coderange cross together, as str_replace() carries
+   them: mrb_str_modify() has just reset the coderange, so without the copy
+   the next reader would re-derive what `newstr` already knows.
+   mrb_str_modify() also runs the frozen check, so a receiver a block froze
+   mid-call still raises, as it did when mrblib called `replace`. */
+static void
+str_assign(mrb_state *mrb, mrb_value str, mrb_value newstr)
+{
+  mrb_int len = RSTRING_LEN(newstr);
+  mrb_str_modify(mrb, mrb_str_ptr(str));
+  mrb_str_resize(mrb, str, len);
+  memcpy(RSTRING_PTR(str), RSTRING_PTR(newstr), (size_t)len);
+  RSTR_ENC_CR_COPY(mrb_str_ptr(str), mrb_str_ptr(newstr));
+}
+
 /*
  * String#match(pattern, pos = 0), and Symbol#match through the same body.
  *
@@ -2495,6 +2508,262 @@ static mrb_value
 str_match_op_m(mrb_state *mrb, mrb_value self)
 {
   return str_match_op_common(mrb, self);
+}
+
+/* The two argument shapes `sub` and `sub!` accept: CRuby accepts 1..2
+   arguments with a block, but demands exactly 2 without one, and reports the
+   expected count accordingly. */
+static void
+sub_argnum_check(mrb_state *mrb, mrb_int argc, mrb_value block)
+{
+  if (!mrb_nil_p(block)) {
+    if (argc != 1 && argc != 2) mrb_argnum_error(mrb, argc, 1, 2);
+  }
+  else if (argc != 2) {
+    mrb_argnum_error(mrb, argc, 2, 2);
+  }
+}
+
+/*
+ * String#sub(pattern, replacement) / String#sub(pattern) { |match| }
+ */
+static mrb_value
+str_sub_m(mrb_state *mrb, mrb_value self)
+{
+  const mrb_value *argv;
+  mrb_int argc;
+  mrb_value block;
+
+  mrb_get_args(mrb, "*&", &argv, &argc, &block);
+  sub_argnum_check(mrb, argc, block);
+  mrb_value a1 = argc > 1 ? argv[1] : mrb_nil_value();
+
+  /* Unlike `match`, a String pattern is quoted rather than compiled: it is a
+     literal here, the distinction CRuby draws between get_pat_quoted and
+     get_pat. Only the quoting is taken from it: get_pat_quoted also accepts
+     anything answering `to_str`, where check_pattern() keeps to a real
+     String, as `match` already does. */
+  mrb_value pattern = check_pattern(mrb, argv[0]);
+  mrb_bool literal = mrb_string_p(pattern);
+  /* A replacement argument wins over the block, as in CRuby. A literal goes
+     to re_sub_lit(), which searches for its bytes without compiling anything
+     to search with; what a compiled pattern would be needed for is the
+     Regexp the `$~` it publishes names, and `MatchData#regexp` quotes that
+     one where CRuby quotes it: on the first call that asks for it. A Hash
+     replacement goes down to the block tail (see sub_piece()). */
+  mrb_value hash = mrb_nil_value();
+  if (argc == 2) {
+    if (mrb_obj_is_kind_of(mrb, a1, mrb->hash_class)) {
+      hash = a1;
+    }
+    else {
+      mrb_value replacement = mrb_obj_as_string(mrb, a1);
+      if (literal) return re_sub_lit(mrb, pattern, self, replacement, FALSE);
+      return re_sub_str(mrb, pattern, self, replacement);
+    }
+  }
+  /* CRuby searches for a literal byte by byte and never reads the subject as
+     UTF-8 on the way, so quoting one into a Regexp here must not put the
+     subject through a check CRuby does not make: `"a\x80b".sub("b", "!")`
+     answers there, where the same call with `/b/` is refused. */
+  if (literal) pattern = quote_to_regexp(mrb, pattern);
+  mrb_value md = re_search(mrb, pattern, self, 0, literal);
+  if (mrb_nil_p(md)) return mrb_str_dup(mrb, self);
+
+  /* Built from the snapshot the MatchData holds, so a block that mutated the
+     receiver changes nothing here; `sub!` is the form that reads the
+     receiver back. */
+  mrb_match_data *m = DATA_GET_PTR(mrb, md, &matchdata_type, mrb_match_data);
+  mrb_int beg = m->captures[0], end = m->captures[1];
+  mrb_value matched = re_byte_substr(mrb, m->source, beg, end - beg);
+  mrb_value piece = sub_piece(mrb, block, hash, matched);
+  mrb_value source = m->source;
+  mrb_int slen = RSTRING_LEN(source);
+  mrb_value result = mrb_str_new_capa(mrb, slen);
+  mrb_str_cat_str(mrb, result, mrb_str_byte_subseq(mrb, source, 0, beg));
+  mrb_str_cat_str(mrb, result, piece);
+  mrb_str_cat_str(mrb, result, mrb_str_byte_subseq(mrb, source, end, slen - end));
+  return result;
+}
+
+/*
+ * String#sub!(pattern, replacement) / String#sub!(pattern) { |match| }
+ */
+static mrb_value
+str_sub_bang(mrb_state *mrb, mrb_value self)
+{
+  const mrb_value *argv;
+  mrb_int argc;
+  mrb_value block;
+
+  mrb_get_args(mrb, "*&", &argv, &argc, &block);
+  /* The argument checks come before the frozen receiver, as in CRuby:
+     `"abc".freeze.sub!(/b/)` raises ArgumentError and
+     `"abc".freeze.sub!(:b, "X")` TypeError, while the two-argument form on
+     the same receiver raises FrozenError. `gsub!` orders it the other way,
+     also as CRuby does. */
+  sub_argnum_check(mrb, argc, block);
+  mrb_value a1 = argc > 1 ? argv[1] : mrb_nil_value();
+  /* Resolved here rather than shared with `sub` because the match below
+     decides the return value, and a String pattern is a literal on both
+     paths. */
+  mrb_value pattern = check_pattern(mrb, argv[0]);
+  mrb_bool literal = mrb_string_p(pattern);
+  mrb_value hash = mrb_nil_value();
+  if (argc == 2 && mrb_obj_is_kind_of(mrb, a1, mrb->hash_class)) {
+    hash = a1;
+  }
+  /* Quoting the literal below raises nothing, so asking here is the order
+     the mrblib override had: after the argument checks, before any search. */
+  mrb_check_frozen(mrb, mrb_str_ptr(self));
+  /* Whether a substitution happened is a question about the match, not about
+     the result: `"aaa".sub!(/a/, "a")` returns self even though the string
+     is unchanged. The `bang` argument is that question asked of the one
+     search re_sub_lit() already makes, so the literal path does not walk the
+     subject twice to answer it; a failed search clears $~ there too. */
+  if (literal && argc == 2 && mrb_nil_p(hash)) {
+    mrb_value str = re_sub_lit(mrb, pattern, self, mrb_obj_as_string(mrb, a1), TRUE);
+    if (mrb_nil_p(str)) return mrb_nil_value();
+    str_assign(mrb, self, str);
+    return self;
+  }
+  if (literal) pattern = quote_to_regexp(mrb, pattern);
+  /* A full search and not `match?`, so a failed match clears $~. */
+  mrb_value md = re_search(mrb, pattern, self, 0, literal);
+  if (mrb_nil_p(md)) return mrb_nil_value();
+  if (argc == 2 && mrb_nil_p(hash)) {
+    /* re_sub_str() matches again and publishes its own $~ over this one,
+       leaving the caller the match `sub` would have left, which is what the
+       mrblib override bought by delegating to `sub`. A literal with a
+       replacement never reaches here, having been answered by re_sub_lit()
+       above. Overwriting `self` afterwards is safe: a MatchData snapshots
+       its subject, so $~ keeps describing the string as it was matched. */
+    mrb_value str = re_sub_str(mrb, pattern, self, mrb_obj_as_string(mrb, a1));
+    str_assign(mrb, self, str);
+    return self;
+  }
+  /* The block form does not share `sub`'s tail, which builds its answer from
+     the snapshot the MatchData holds, because CRuby's rb_str_sub_bang builds
+     it from the receiver as the block left it: `s = "hello"; s.sub!(/l/) {
+     s.upcase!; "X" }` is "HEXLO" there, where `sub` on the same receiver is
+     "heXlo". It refuses a block that changed the length first, as `gsub`
+     does, so the offsets of the match still name the bytes they named. $~
+     stays what the search above published, or whatever the block put there.
+     A Hash replacement is here rather than above for the same reason: its
+     default proc is free to reach the receiver, and CRuby answers a lookup
+     that did with the receiver it left. */
+  mrb_int len = RSTRING_LEN(self);
+  mrb_match_data *m = DATA_GET_PTR(mrb, md, &matchdata_type, mrb_match_data);
+  mrb_int beg = m->captures[0], end = m->captures[1];
+  mrb_value matched = re_byte_substr(mrb, m->source, beg, end - beg);
+  mrb_value piece = sub_piece(mrb, block, hash, matched);
+  if (RSTRING_LEN(self) != len) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "string modified");
+  }
+  mrb_value result = mrb_str_new_capa(mrb, len);
+  mrb_str_cat_str(mrb, result, mrb_str_byte_subseq(mrb, self, 0, beg));
+  mrb_str_cat_str(mrb, result, piece);
+  mrb_str_cat_str(mrb, result, mrb_str_byte_subseq(mrb, self, end, len - end));
+  str_assign(mrb, self, result);
+  return self;
+}
+
+/*
+ * String#gsub(pattern, replacement) / String#gsub(pattern) { |match| }
+ */
+static mrb_value
+str_gsub_m(mrb_state *mrb, mrb_value self)
+{
+  const mrb_value *argv;
+  mrb_int argc;
+  mrb_value block;
+
+  mrb_get_args(mrb, "*&", &argv, &argc, &block);
+  if (argc != 1 && argc != 2) mrb_argnum_error(mrb, argc, 1, 2);
+  /* Without mruby-enumerator this is core Kernel#to_enum, which raises
+     NotImplementedError; every other path here stays usable, so the gem does
+     not depend on Enumerator. Before the pattern check, so that
+     `"abc".gsub(:b)` yields an Enumerator and raises on the first iteration,
+     as CRuby does. */
+  if (argc == 1 && mrb_nil_p(block)) {
+    mrb_value enum_args[2] = { mrb_symbol_value(MRB_SYM(gsub)), argv[0] };
+    return mrb_funcall_argv(mrb, self, MRB_SYM(to_enum), 2, enum_args);
+  }
+  mrb_value a1 = argc > 1 ? argv[1] : mrb_nil_value();
+  mrb_value pattern = check_pattern(mrb, argv[0]);
+  /* A String pattern is a literal, as in `sub`, and reaches the subject the
+     way CRuby reaches it: byte by byte, with no reading of it as UTF-8. */
+  mrb_bool literal = mrb_string_p(pattern);
+  mrb_value hash = mrb_nil_value();
+  if (argc == 2) {
+    if (mrb_obj_is_kind_of(mrb, a1, mrb->hash_class)) {
+      hash = a1;
+    }
+    else {
+      /* A replacement argument wins over the block, as in CRuby. A literal
+         is searched for as bytes and compiles nothing, as in `sub`. */
+      mrb_value replacement = mrb_obj_as_string(mrb, a1);
+      if (literal) return re_gsub_lit(mrb, pattern, self, replacement, FALSE);
+      return re_gsub_str(mrb, pattern, self, replacement);
+    }
+  }
+  if (literal) pattern = quote_to_regexp(mrb, pattern);
+  return re_gsub_walk(mrb, pattern, self, literal, block, hash);
+}
+
+/*
+ * String#gsub!(pattern, replacement) / String#gsub!(pattern) { |match| }
+ */
+static mrb_value
+str_gsub_bang(mrb_state *mrb, mrb_value self)
+{
+  const mrb_value *argv;
+  mrb_int argc;
+  mrb_value block;
+
+  mrb_get_args(mrb, "*&", &argv, &argc, &block);
+  /* Before the arity check and before the enumerator below, as in CRuby:
+     `"abc".freeze.gsub!(/a/)` raises FrozenError rather than handing back an
+     Enumerator that fails later. */
+  mrb_check_frozen(mrb, mrb_str_ptr(self));
+  if (argc != 1 && argc != 2) mrb_argnum_error(mrb, argc, 1, 2);
+  if (argc == 1 && mrb_nil_p(block)) {
+    mrb_value enum_args[2] = { mrb_symbol_value(MRB_SYM_B(gsub)), argv[0] };
+    return mrb_funcall_argv(mrb, self, MRB_SYM(to_enum), 2, enum_args);
+  }
+  mrb_value a1 = argc > 1 ? argv[1] : mrb_nil_value();
+  mrb_value pattern = check_pattern(mrb, argv[0]);
+  mrb_bool literal = mrb_string_p(pattern);
+  mrb_value hash = mrb_nil_value();
+  if (argc == 2 && mrb_obj_is_kind_of(mrb, a1, mrb->hash_class)) {
+    hash = a1;
+  }
+  /* As in `sub!`: the match decides the return value, and a failed search
+     clears $~. What it publishes on success is replaced right away by the
+     last match of the walk below, which is the one CRuby leaves behind. A
+     literal with a replacement asks the question of re_gsub_lit() itself
+     rather than searching once to ask and again to substitute; a Hash is no
+     replacement to hand it, and goes down the lookup walk instead. */
+  if (literal && argc == 2 && mrb_nil_p(hash)) {
+    mrb_value str = re_gsub_lit(mrb, pattern, self, mrb_obj_as_string(mrb, a1), TRUE);
+    if (mrb_nil_p(str)) return mrb_nil_value();
+    str_assign(mrb, self, str);
+    return self;
+  }
+  if (literal) pattern = quote_to_regexp(mrb, pattern);
+  if (mrb_nil_p(re_search(mrb, pattern, self, 0, literal))) return mrb_nil_value();
+  mrb_value str;
+  if (argc == 2 && mrb_nil_p(hash)) {
+    str = re_gsub_str(mrb, pattern, self, mrb_obj_as_string(mrb, a1));
+  }
+  else if (!mrb_nil_p(hash)) {
+    str = re_gsub_walk(mrb, pattern, self, literal, mrb_nil_value(), hash);
+  }
+  else {
+    str = re_gsub_walk(mrb, pattern, self, literal, block, mrb_nil_value());
+  }
+  str_assign(mrb, self, str);
+  return self;
 }
 
 /*
@@ -2868,7 +3137,6 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, re, "__binary_string?", regexp_binary_string_p, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, re, "__check_encoding", regexp_check_encoding, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, re, "__check_pattern", regexp_check_pattern, MRB_ARGS_REQ(1));
-  mrb_define_class_method(mrb, re, "__search", regexp_s_search, MRB_ARGS_ARG(2, 2));
   mrb_define_class_method(mrb, re, "__byte_search", regexp_s_byte_search, MRB_ARGS_ARG(2, 2));
 
   /* Instance methods */
@@ -2884,11 +3152,6 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, re, "hash", regexp_hash, MRB_ARGS_NONE());
   mrb_define_method(mrb, re, "options", regexp_options, MRB_ARGS_NONE());
   mrb_define_method(mrb, re, "casefold?", regexp_casefold_p, MRB_ARGS_NONE());
-  mrb_define_class_method(mrb, re, "__gsub_str", regexp_s_gsub_str, MRB_ARGS_REQ(3));
-  mrb_define_class_method(mrb, re, "__sub_str", regexp_s_sub_str, MRB_ARGS_REQ(3));
-  mrb_define_class_method(mrb, re, "__gsub_lit", regexp_s_gsub_lit, MRB_ARGS_ARG(3, 1));
-  mrb_define_class_method(mrb, re, "__sub_lit", regexp_s_sub_lit, MRB_ARGS_ARG(3, 1));
-  mrb_define_class_method(mrb, re, "__gsub_block", regexp_s_gsub_block, MRB_ARGS_ARG(2, 1)|MRB_ARGS_BLOCK());
   mrb_define_class_method(mrb, re, "__scan", regexp_s_scan, MRB_ARGS_REQ(2));
 
   /* The String methods whose regexp form this gem answers. Every core or
@@ -2909,9 +3172,19 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_alias_method(mrb, str, MRB_SYM(__rpartition), MRB_SYM(rpartition));
   mrb_alias_method(mrb, str, MRB_SYM_Q(__start_with), MRB_SYM_Q(start_with));
 
+  /* The methods reading their arguments with "*" declare MRB_ARGS_ANY(),
+     as the `*args` of the mrblib overrides did: their argument-count
+     errors are their own (sub_argnum_check() and the argc tests below), in
+     the order each method raises them in, and a declared count would raise
+     ahead of a check that is meant to come first, `gsub!`'s frozen test
+     ahead of its arity being the observable case. */
   mrb_define_method(mrb, str, "match", str_match_m, MRB_ARGS_ARG(1, 1)|MRB_ARGS_BLOCK());
   mrb_define_method(mrb, str, "match?", str_match_p_m, MRB_ARGS_ARG(1, 1));
   mrb_define_method(mrb, str, "=~", str_match_op_m, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, str, "sub", str_sub_m, MRB_ARGS_ANY()|MRB_ARGS_BLOCK());
+  mrb_define_method(mrb, str, "sub!", str_sub_bang, MRB_ARGS_ANY()|MRB_ARGS_BLOCK());
+  mrb_define_method(mrb, str, "gsub", str_gsub_m, MRB_ARGS_ANY()|MRB_ARGS_BLOCK());
+  mrb_define_method(mrb, str, "gsub!", str_gsub_bang, MRB_ARGS_ANY()|MRB_ARGS_BLOCK());
   mrb_define_method(mrb, str, "slice!", str_slice_bang, MRB_ARGS_ANY());
   mrb_define_method(mrb, str, "index", str_index_m, MRB_ARGS_ANY());
   mrb_define_method(mrb, str, "rindex", str_rindex_m, MRB_ARGS_ANY());
