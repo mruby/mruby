@@ -577,17 +577,16 @@ mrb_make_exception(mrb_state *mrb, mrb_value exc, mrb_value mesg)
  * its `_sys_fail` method with the current `errno` and an optional
  * message. This typically results in a SystemCallError being raised.
  *
- * If SystemCallError is not defined, or if the call to `_sys_fail`
- * itself fails (which shouldn't happen in normal circumstances but leads
- * to mrb_raise), it falls back to raising a RuntimeError with the
- * given message (or a default message if `mesg` is NULL, though the
- * current implementation would pass NULL to mrb_raise which might be
- * an issue).
+ * If SystemCallError is not defined, or if `_sys_fail` returns instead of
+ * raising, it falls back to raising a RuntimeError reading
+ * "errno: <number>", with " - <mesg>" appended when a message was given.
+ * Only the number is spelled out: naming the code takes a table of them,
+ * and that table is what mruby-errno is.
  *
  * mrb: The mruby state.
- * mesg: An optional C string message to append to the error. If NULL,
- *       a default message or no message might be used depending on the
- *       error path.
+ * mesg: An optional C string naming what the failed call was working on,
+ *       appended after the error itself the way CRuby appends a path.
+ *       Pass NULL when the call names nothing, as `kill(2)` does.
  */
 MRB_API mrb_noreturn void
 mrb_sys_fail(mrb_state *mrb, const char *mesg)
@@ -605,7 +604,18 @@ mrb_sys_fail(mrb_state *mrb, const char *mesg)
     }
   }
 
-  mrb_exc_raise(mrb, mrb_exc_new_str(mrb, E_RUNTIME_ERROR, mesg ? mesg_str : mrb_str_new_lit(mrb, "")));
+  /* Reached where SystemCallError is not defined, and also where a
+     `_sys_fail` that does not raise returns here. Either way no class is
+     carrying the errno and nothing else will ever report it. Without it the
+     exception says only what the caller passed, which names the call that
+     failed but never why, and says nothing at all when the caller had
+     nothing to name. */
+  mrb_value str = mrb_format(mrb, "errno: %i", no);
+  if (mesg != NULL) {
+    mrb_str_cat_lit(mrb, str, " - ");
+    mrb_str_append(mrb, str, mesg_str);
+  }
+  mrb_exc_raise(mrb, mrb_exc_new_str(mrb, E_RUNTIME_ERROR, str));
 }
 
 /*
