@@ -237,11 +237,13 @@ void mrb_vm_svar_set(mrb_state *mrb, enum mrb_svar_index key, mrb_value v);
  * what out-of-tree code makes, and what the core's own envs fall back to
  * when there is no stack left to size (mrb_env_unshare() out of memory,
  * error.c's fault-time rewind). It reads as a scope holding no container,
- * and svar_slot_ensure() in vm.c grows it into the third state on the one
- * write that needs it: mrb_env_detach() installing a container or forward
- * at close time, svar_env_adopt_owner() adopting one just after, or
- * mrb_vm_svar_set()'s first non-nil write into a scope that outlived its
- * frame. So: every path that grows a stack into the slot goes through
+ * and grows into the third state on the one write that needs it:
+ * mrb_env_detach() sizes the closing allocation for the slot up front
+ * (env_unshare_with_svar() in vm.c) when it has a container or forward to
+ * install at close time; svar_env_adopt_owner() adopting one just after,
+ * or mrb_vm_svar_set()'s first non-nil write into a scope that outlived
+ * its frame, instead grow an already-closed env into it (svar_slot_ensure()
+ * in vm.c). So: every path that grows a stack into the slot goes through
  * MRB_ENV_SVAR_STACK_SIZE() and sets the flag, every path that reads or
  * writes the slot goes through MRB_ENV_SVAR_SLOT() under MRB_ENV_SVAR_P(),
  * and every path that drops the stack clears the flag. All three take the
