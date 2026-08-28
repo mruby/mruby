@@ -368,105 +368,46 @@ defines and hold nothing above it on any build.
 
 ## Checking against CRuby
 
-Everything under Limitations is a place this engine answers a pattern
-differently from CRuby, and the list is kept by hand. What keeps it honest is
-`tools/difftest`, which runs a corpus through both engines and reports where
-they disagree:
+The Limitations list is kept by hand. What keeps it honest is `tools/difftest`,
+which runs a corpus through both engines and reports where they disagree:
 
 ```console
 $ rake regexp:difftest
 5175 patterns, 101 known differences, no new ones
 ```
 
-The task asks the build the loaded config declares, so a working tree holding
-the builds of several configs still asks the one in hand. A config declaring
-more than one build with this gem in it leaves the choice to `MRUBY`, since a
-baseline describes one build.
+The task asks the build the loaded config declares, and leaves the choice to
+`MRUBY` where a config declares more than one build with this gem in it.
 
-`probe.rb` holds the corpus and runs under either engine. It asks along two
-axes, since a pattern and a character are worth asking about differently.
+`probe.rb` holds the corpus and runs under either engine, asking along two
+axes. The **pattern axis** prints a line per pattern: where a match starts in
+each of a fixed list of subjects, what it captured, and which class it raised,
+the class being part of the answer whether the pattern was refused at compile
+time or the search raised against a subject. The patterns are generated from
+the axes rather than listed, so an escape, a quantifier or a class form is
+covered in every context it can stand in, each asked under `//`, `/i`, `/m` and
+`/x`. The **character axis** turns that around: a line per character, a column
+per way of classifying one. The characters come out of the Unicode Character
+Database by the rule `tools/unicode/corpus_data.rb` states, one out of every
+class the engine's tables tell apart, where a class is the whole signature and
+not one property at a time, plus the whole of ASCII.
 
-The **pattern axis** prints a line per pattern: where a match starts in each of
-a fixed list of subjects, what it captured, and which class it raised. The
-class is part of the answer whether the pattern was refused at compile time or
-the search raised against a subject, since refusing with `RegexpError` and
-refusing with `ArgumentError` are different answers. The patterns are generated
-from the axes rather than listed, so an escape, a quantifier or a class form is
-covered in every context it can stand in — every printable ASCII character
-after a backslash, alone and beside a literal and inside a class and as an end
-of a range; every quantifier on every kind of atom; the groups, the anchors,
-the backreferences and the POSIX brackets. Each is asked under `//`, `/i`,
-`/m` and `/x`, one flag at a time rather than once per combination of them:
-asked once under all eight, no pattern differed under a combination that did
-not already differ under a single flag. The Unicode properties are four
-patterns rather than an axis, since this engine refuses `\p{...}` outright and
-asking it about every property would write the same refusal down once per
-property; what the four are for is the day it stops refusing, when the
-difference stops being one and the line goes GONE.
-
-The **character axis** turns that around: a line per character, a column per
-way of classifying one — the POSIX brackets and their complements, the
-shorthands, the boundaries, `.`, and a few of them under `i`. The characters
-come out of the Unicode Character Database, by the rule
-`tools/unicode/corpus_data.rb` states and written out as `corpus.rb` by `rake
-unicode:generate` with the tables, so a version bump moves the questions with
-the answers.
-
-What that rule takes is one character out of every class the engine's tables
-tell apart, where a class is a whole signature and not one property at a time:
-the general category, the script, which POSIX types hold the character, the
-shape its case folding takes, and the width the encoding spells it in. Taking a
-representative per category and another per script separately would leave the
-combinations of them unasked, and it is a combination that the tables can get
-wrong. Each is the lowest codepoint of its signature, which is the member that
-does not move as Unicode grows, and the whole of ASCII is taken as well.
-
-Picking by rule rather than by hand is what found the `\b` difference above. A
-list written by hand reaches for `Ā` and `ā` to stand for "a letter with a
-case", and those are U+0100 and U+0101 — one codepoint above the Latin-1 table
-where CRuby answers by other rules.
-
-`compare.rb` runs it in both and checks the disagreements against
-`baseline.txt`, which holds the ones that are meant: a construct this engine
-refuses rather than answers wrongly, a byte CRuby settles with the pattern's
-encoding, a boundary the two draw off different tables. Every line in it is one
-of the limitations above. A disagreement that is not in the baseline is what
-the tool is for, and it fails on one; a baseline line that has stopped
-disagreeing fails too, so that a fix prunes the list rather than leaving it to
+`compare.rb` checks the disagreements against `baseline.txt`, which holds the
+ones that are meant, every line in it being one of the limitations above. It
+fails on a disagreement the baseline does not hold and on a baseline line that
+has stopped disagreeing, so that a fix prunes the list rather than leaving it to
 describe an engine that has moved on. `rake regexp:difftest:update` takes a new
-baseline.
+baseline, and `rake regexp:difftest:selftest` puts those verdicts to
+`compare.rb` with answers made up rather than run. Both `probe.rb` and
+`corpus_data.rb` assert their shape rather than their size, so a corpus that has
+quietly shrunk stops the run instead of passing by not looking.
 
-Those three verdicts are the whole of what the tool reports, so
-`rake regexp:difftest:selftest` puts them to `compare.rb` with answers made up
-rather than run: a difference the baseline does not hold, one it holds
-differently, one it holds that has been fixed, and the two cases it has to stay
-quiet about. It runs at the start of every comparison as well, since a mistake
-there is a differential test that passes by not looking. So does the reading of
-the probe's own output, which is the same hazard a line further back: what
-`probe.rb` writes is a protocol, three tab separated fields per answer and one
-`#build` line, and a line of another shape, a label answered twice or a run
-that never said which build it is are each read as a probe to fix rather than
-taken for an answer.
-
-The same task asks the corpus whether it still holds what it says it does. A
-differential test goes quiet two ways, and the second one reads exactly like
-the first: fewer patterns, no disagreement, green. So `probe.rb` asserts its
-shape rather than its size, every escape in every context and every quantifier
-on every atom, with a case out of each axis that is not a product named
-besides; and `corpus_data.rb` reads the corpus back to check that every
-signature the database has really has a character standing for it. Both stop
-the run rather than the count going down unremarked.
-
-Two things bound what it can say, and `compare.rb` refuses rather than
-reporting either as a regression. The characters are chosen out of the Unicode
-release the tables are generated from, so a CRuby carrying an older one would
-call a character it has not heard of nothing at all; the check is `\p{Age=}`
-and CRuby 4.0 is the first that passes it. And a baseline describes the build
-it was taken against, since a build reading its strings as bytes or classifying
-them by ASCII answers differently wherever a table is read.
-
-Both are why this is a task to run rather than a job in the workflows, which
-use whatever CRuby a runner ships.
+Two things bound what the tool can say, and `compare.rb` refuses rather than
+reporting either as a regression: a CRuby carrying an older Unicode release than
+the tables were generated from (the check is `\p{Age=}`, and CRuby 4.0 is the
+first that passes it), and a baseline taken against a build that reads or
+classifies its strings differently. Both are why this is a task to run rather
+than a job in the workflows, which use whatever CRuby a runner ships.
 
 ## License
 
