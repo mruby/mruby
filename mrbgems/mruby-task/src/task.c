@@ -161,6 +161,14 @@ mrb_task_mark_all(mrb_state *mrb)
           if (ci->proc) {
             mrb_gc_mark(mrb, (struct RBasic*)ci->proc);
           }
+          if (ci->svar) {
+            /* the frame's special-variable slot, which mark_context() in
+               gc.c marks for every context this walk does not reach. A task
+               context has no fiber to be marked through, and a write to the
+               slot takes no barrier, so this walk is also its atomic
+               re-scan, like the value stack's above. */
+            mrb_gc_mark(mrb, (struct RBasic*)ci->svar);
+          }
           if (ci->u.target_class) {
             mrb_gc_mark(mrb, (struct RBasic*)ci->u.target_class);
           }
@@ -1752,6 +1760,9 @@ mrb_task_reset_context(mrb_state *mrb, mrb_value task)
   c->status = MRB_TASK_CREATED;
   if (c->ci) {
     mrb_vm_ci_target_class_set(c->ci, mrb->object_class);
+    /* the special variables of the previous run die with it: the next
+       body starts with `$~` unset, as a fresh task's does */
+    c->ci->svar = NULL;
   }
 }
 

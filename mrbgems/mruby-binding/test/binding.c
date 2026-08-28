@@ -53,9 +53,10 @@ binding_env_drop_svar(mrb_state *mrb, mrb_value self)
   return mrb_true_value();
 }
 
-/* Puts a marker in the slot and reads it back. What the core keeps there
-   has no Ruby face of its own; any marked value stands in for it here,
-   which is all the merge below moves. */
+/* Puts a marker in the slot and reads it back. What lives there in a
+   running VM is a special-variable container or a forwarded env, neither
+   of which has a Ruby face; any marked value stands in for one here, which
+   is all the merge below moves. */
 static mrb_value
 binding_env_slot_set(mrb_state *mrb, mrb_value self)
 {
