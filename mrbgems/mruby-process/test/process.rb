@@ -281,7 +281,7 @@ assert('Process::Status is frozen once built') do
   # pid and the raw status set at construction are what every other question
   # is read back from.  Freezing says so, and keeps the two from being
   # rewritten under the answers; CRuby freezes the status it leaves in $?.
-  st = Process::Status.new(1234, 0)
+  st = ProcessTestUtil.status(1234, 0)
   assert_true st.frozen?
   # Written through the one door there is: #initialize is where the two are
   # set, and a frozen receiver turns a second pass through it away.
@@ -296,22 +296,22 @@ assert('Process::Status subclass is left to finish building itself') do
   # and freezing there would turn the rest of its construction into a
   # FrozenError.  What gets frozen is what is a status and nothing more.
   cls = Class.new(Process::Status) do
-    def initialize(pid, raw_status, tag)
-      super(pid, raw_status)
-      @tag = tag
+    def initialize(pid, raw_status)
+      super
+      @tag = "reaped"
     end
 
     attr_reader :tag
   end
 
-  st = cls.new(1234, 0, "reaped")
+  st = ProcessTestUtil.status(1234, 0, cls)
   assert_false st.frozen?
   assert_equal "reaped", st.tag
   # Still a status, and still read as one.
   assert_equal 1234, st.pid
   assert_equal 0, st.to_i
   assert_true st.exited?
-  assert_operator st, :==, Process::Status.new(1234, 0)
+  assert_operator st, :==, ProcessTestUtil.status(1234, 0)
 end
 
 assert('Process::Status#==') do
