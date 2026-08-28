@@ -359,6 +359,7 @@ socket_family(int s)
   return ss.ss_family;
 }
 
+#ifdef HAVE_GETPEEREID
 /*
  * call-seq:
  *   basicsocket.getpeereid -> [euid, egid]
@@ -371,7 +372,6 @@ socket_family(int s)
 static mrb_value
 mrb_basicsocket_getpeereid(mrb_state *mrb, mrb_value self)
 {
-#ifdef HAVE_GETPEEREID
   gid_t egid;
   uid_t euid;
   int s = socket_fd(mrb, self);
@@ -382,11 +382,11 @@ mrb_basicsocket_getpeereid(mrb_state *mrb, mrb_value self)
   mrb_ary_push(mrb, ary, mrb_fixnum_value((mrb_int)euid));
   mrb_ary_push(mrb, ary, mrb_fixnum_value((mrb_int)egid));
   return ary;
-#else
-  mrb_raise(mrb, E_RUNTIME_ERROR, "getpeereid is not available on this system");
-  return mrb_nil_value();
-#endif
 }
+#else
+/* unimplemented, and named as such so `respond_to?` can answer false */
+# define mrb_basicsocket_getpeereid mrb_notimplement_m
+#endif
 
 /*
  * call-seq:
