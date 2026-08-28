@@ -53,8 +53,8 @@ status_class(mrb_state *mrb)
 static void
 status_decode(mrb_state *mrb, mrb_value self, mrb_process_status *st)
 {
-  mrb_int pid = status_ivar(mrb, self, MRB_IVSYM(pid));
-  mrb_int raw = status_ivar(mrb, self, MRB_IVSYM(status));
+  mrb_int pid = status_ivar(mrb, self, MRB_SYM(pid));
+  mrb_int raw = status_ivar(mrb, self, MRB_SYM(status));
 
   mrb_hal_process_status_decode(mrb, pid, raw, st);
 }
@@ -95,8 +95,8 @@ status_initialize(mrb_state *mrb, mrb_value self)
      read the low half of it.  The pid needs no such check, since it is
      carried and handed back whole rather than narrowed. */
   mrb_process_int_arg(mrb, raw_status, "status");
-  mrb_iv_set(mrb, self, MRB_IVSYM(pid), mrb_int_value(mrb, pid));
-  mrb_iv_set(mrb, self, MRB_IVSYM(status), mrb_int_value(mrb, raw_status));
+  mrb_iv_set(mrb, self, MRB_SYM(pid), mrb_int_value(mrb, pid));
+  mrb_iv_set(mrb, self, MRB_SYM(status), mrb_int_value(mrb, raw_status));
   /* Last, since the two above are what there is to write.  A second
      #initialize on the same object is refused from here on, which is what
      freezing a value means and not a case this gem's own paths reach.
@@ -123,7 +123,7 @@ status_initialize(mrb_state *mrb, mrb_value self)
 static mrb_value
 status_pid(mrb_state *mrb, mrb_value self)
 {
-  return mrb_int_value(mrb, status_ivar(mrb, self, MRB_IVSYM(pid)));
+  return mrb_int_value(mrb, status_ivar(mrb, self, MRB_SYM(pid)));
 }
 
 /*
@@ -136,7 +136,7 @@ status_pid(mrb_state *mrb, mrb_value self)
 static mrb_value
 status_to_i(mrb_state *mrb, mrb_value self)
 {
-  return mrb_int_value(mrb, status_ivar(mrb, self, MRB_IVSYM(status)));
+  return mrb_int_value(mrb, status_ivar(mrb, self, MRB_SYM(status)));
 }
 
 /*
@@ -248,7 +248,7 @@ status_coredump_p(mrb_state *mrb, mrb_value self)
 static mrb_value
 status_eq(mrb_state *mrb, mrb_value self)
 {
-  mrb_value raw = mrb_int_value(mrb, status_ivar(mrb, self, MRB_IVSYM(status)));
+  mrb_value raw = mrb_int_value(mrb, status_ivar(mrb, self, MRB_SYM(status)));
   mrb_value other;
 
   mrb_get_args(mrb, "o", &other);
@@ -260,7 +260,7 @@ status_eq(mrb_state *mrb, mrb_value self)
      one, and CRuby's way round reaches it through whichever #== the object
      carries. */
   if (mrb_obj_is_kind_of(mrb, other, status_class(mrb))) {
-    other = mrb_int_value(mrb, status_ivar(mrb, other, MRB_IVSYM(status)));
+    other = mrb_int_value(mrb, status_ivar(mrb, other, MRB_SYM(status)));
   }
   return mrb_bool_value(mrb_equal(mrb, raw, other));
 }

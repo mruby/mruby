@@ -277,6 +277,14 @@ assert('Process::Status') do
   assert_false st.coredump?
 end
 
+assert('Process::Status keeps its pid and raw status out of instance_variables') do
+  # The pid and raw status are internal state, not something a caller wrote or
+  # is meant to read back by name; CRuby answers the same empty array, since
+  # it keeps both in the object's own struct rather than in an ivar table.
+  st = ProcessTestUtil.status(1234, 0)
+  assert_equal [], st.instance_variables
+end
+
 assert('Process::Status with a status too large for the platform') do
   # A port reads a raw status as the `int` the platform reported it with, so a
   # value that does not fit one is refused where RangeError can be said rather
