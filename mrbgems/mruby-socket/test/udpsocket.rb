@@ -17,8 +17,8 @@ assert('UDPSocket.new(AF_INET6)') do
   # EAFNOSUPPORT specifically, not any failure: every other errno from
   # socket() is a real fault and should still fail the run. Naming it
   # needs Errno, which is why mrbgem.rake takes mruby-errno as a test
-  # dependency - without it this raises a bare RuntimeError("socket")
-  # and there is nothing to match on.
+  # dependency - without it this raises a RuntimeError that spells the
+  # errno as a bare number, and there is no class to match on.
   begin
     s = UDPSocket.new(Socket::AF_INET6)
   rescue Errno::EAFNOSUPPORT => e
