@@ -1191,10 +1191,12 @@ mrb_define_private_method(mrb_state *mrb, struct RClass *c, const char *name, mr
  *
  * @param mrb The mruby state.
  * @sideeffect Raises a NotImplementedError exception. This function does not return.
- *             If a method name is available from the callinfo, it's included
- *             in the error message (e.g., "foo() function is unimplemented on this machine").
+ *             The name comes from the callinfo of the frame the call is made on
+ *             (e.g., "foo() function is unimplemented on this machine"). A frame
+ *             that is not a method call has no name, and the message goes without
+ *             one.
  */
-MRB_API void
+MRB_API mrb_noreturn void
 mrb_notimplement(mrb_state *mrb)
 {
   mrb_callinfo *ci = mrb->c->ci;
@@ -1202,6 +1204,7 @@ mrb_notimplement(mrb_state *mrb)
   if (ci->mid) {
     mrb_raisef(mrb, E_NOTIMP_ERROR, "%n() function is unimplemented on this machine", ci->mid);
   }
+  mrb_raise(mrb, E_NOTIMP_ERROR, "function is unimplemented on this machine");
 }
 
 /*
