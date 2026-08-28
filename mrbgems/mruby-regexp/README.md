@@ -45,8 +45,9 @@ Three rules settle what a spelling means:
   `a{2}{3}` is `(?:a{2}){3}`. `{n}` has no non-greedy form, so `a{3}?` matches
   empty where the lazy `a{3,3}?` does not.
 - `\N` is a backreference where its decimal value is at most 9 or at most the
-  number of groups opened before it, and an octal escape past both. A number no
-  group in the whole pattern carries raises `RegexpError`, so `\1(a)` is valid.
+  number of groups opened before it, and an octal escape past both. A number
+  matching no group anywhere in the pattern raises `RegexpError` at compile
+  time, so `\1(a)` is valid because group 1 appears later.
 - A recursion no input could end (`(?<a>\g<a>)`) raises `RegexpError` at
   compile time, as in CRuby. One that can end is bounded at match time by
   `MRB_REGEXP_STACK_LIMIT`.
@@ -233,18 +234,15 @@ Every entry is a place this engine answers a pattern differently from CRuby.
   fixed-length too, recursion included, or `invalid pattern in look-behind`.
 - **No Unicode properties**: `\p{Alpha}`, `\p{L}` raise `RegexpError`, inside a
   character class as much as outside one. A bare `\p`, and `\pL`, is the
-  letter, as in CRuby. `[[:alpha:]]` asks for a letter of any script.
-- **A set is not an end of a range**: `[a-\d]` and `[\d-z]` raise
-  `RegexpError`, as in CRuby. A `-` at either edge is still a member: `[\d-]`
-  holds the digits and the dash.
-- **No `\M-X` meta escape**: it raises `RegexpError`, as it does in CRuby for a
-  pattern that is not binary.
+  letter. `[[:alpha:]]` asks for a letter of any script.
+- **No `\M-X` meta escape**: it always raises `RegexpError`, where CRuby
+  refuses it only outside a binary pattern.
 - **A `[` inside a class opens something**: only a POSIX bracket is read there.
   A collating element (`[[.a.]]`), an equivalence class (`[[=a=]]`) and a
-  nested class (`[[a][b]]`) raise `RegexpError`. Write `[\[]`, as in CRuby.
+  nested class (`[[a][b]]`) raise `RegexpError`. Write `[\[]`.
 - **No `\G`, `\K`, `\R` or `\X`**: they raise `RegexpError` rather than
   standing for their own letter. Inside a character class each is the letter,
-  as in CRuby, and so is a bare `\g` either way.
+  and so is a bare `\g` either way.
 - **No nest level on a backreference**: `\k<name+n>` and `\k<name-n>` ask for a
   capture memory per call level where this engine keeps one flat slot per
   group, so they raise `RegexpError`. A plain `\k<name>` still works inside a
@@ -254,9 +252,7 @@ Every entry is a place this engine answers a pattern differently from CRuby.
   capture-tracking empty check that answers a few of them differently, among
   them `/((?<g1>|){2}b){2}\g<g1>{0}/` and `/(?<g1>)b\g<g1>{1,3}?/`.
 - **No character class intersection**: `[a&&b]` raises `RegexpError`. A lone
-  `&` is a member of the class, as it is in CRuby.
-- **No `\x{...}` hex escape**: the hex escape is `\xHH`, and `\x{...}` raises
-  `RegexpError` as CRuby does. Write `\u{...}` for a codepoint above `0xff`.
+  `&` is a member of the class.
 - **No encodings**: a byte that starts no whole character is that byte, inside
   a character class as much as outside one. `[\xB5]` and `\xB5` both hold the
   byte `0xB5` and neither matches `µ` (`C2 B5`), where CRuby raises
@@ -266,7 +262,7 @@ Every entry is a place this engine answers a pattern differently from CRuby.
   pattern holding a character that needs a Unicode folding raises
   `RegexpError`; see Configuration.
 - **Case-insensitive backreferences match a superset**: `\1` under `i` folds
-  each side and compares, so it matches across a width change (`k` and `K`)
+  each side and compares, so it matches across a width change (`k` and `K`)
   where CRuby declines to.
 - **`\b` reads `[[:word:]]` below U+0100 too**: CRuby draws a boundary beside
   `²`, `³`, `¹` and `½`, reading a character under 256 off a Latin-1 word table
@@ -373,7 +369,7 @@ a script without case is unaffected and `/日本/i`, `/العربية/i` and `/�
 on working. The codepoints that do have one are held as ranges, and those
 ranges are coarse: the uncased codepoints inside them are refused with the
 rest, `ƻ` (U+01BB) among them. A codepoint with no single counterpart to fold
-to (`ﬀ` to `ff`) is never folded by either build. `/k/i` matching `"K"`
+to (`ﬀ` to `ff`) is never folded by either build. `/k/i` matching `"K"`
 (U+212A) and `/s/i` matching `"ſ"` need no table and work on both, though a
 class holding the letter only through `\w`, `[:word:]` or `[:ascii:]` does not
 reach them, those being sets ASCII defines.
