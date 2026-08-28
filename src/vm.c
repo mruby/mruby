@@ -436,16 +436,17 @@ svar_scopeless_frame_p(const mrb_callinfo *ci)
 }
 
 /* An escaped scope's slot (MRB_ENV_SVAR_SLOT in internal.h):
- * mrb_env_detach() sizes the stack for it and fills it, through
- * svar_slot_ensure(), only when it actually has a container or forward to
- * install; mrb_env_unshare() on its own never asks for the extra value.
- * NULL where the env carries none, which only the flag can say: a closed
- * env whose stack stops at its locals is the ordinary result of
- * mrb_env_unshare() itself, what out-of-tree code builds by hand, and what
- * error.c's fault-time rewind and the out-of-memory arm of
+ * mrb_env_detach() sizes the closing allocation for it and fills it,
+ * through env_unshare_with_svar(), only when it actually has a container
+ * or forward to install; mrb_env_unshare() on its own never asks for the
+ * extra value. NULL where the env carries none, which only the flag can
+ * say: a closed env whose stack stops at its locals is the ordinary result
+ * of mrb_env_unshare() itself, what out-of-tree code builds by hand, and
+ * what error.c's fault-time rewind and the out-of-memory arm of
  * mrb_env_unshare() leave behind, all three with no room past the locals.
- * Reads take it for a scope holding no container; the one write that
- * cannot grows the env into the slot first (svar_slot_ensure()).
+ * Reads take it for a scope holding no container; the one later write that
+ * cannot, a live scope's first, grows the already-closed env into the slot
+ * instead (svar_slot_ensure()).
  *
  * An env still on the stack carries no slot either, its locals being the
  * VM's own stack. That test comes first because it is also what a swept
@@ -937,6 +938,60 @@ mrb_env_unshare(mrb_state *mrb, struct REnv *e, mrb_bool noraise)
   }
 }
 
+/* mrb_env_unshare(), sized and filled for the special-variable slot up
+ * front instead of leaving mrb_env_detach() to grow the closed env by a
+ * second, separate allocation (svar_slot_ensure()) once the first has
+ * already succeeded. That second allocation used to run outside every
+ * noraise contract, raising NoMemoryError straight out of the closing
+ * detach: a caller relying on FALSE to decrement its own callinfo first
+ * (cipop(), for the #3087 invariant) never got the chance. Folding the
+ * slot into the one allocation removes the intermediate state that bug
+ * needed, a scope whose locals had already detached while its slot's own
+ * growth could still fail on its own: here, either both close in the same
+ * allocation or neither does.
+ * Structured exactly like mrb_env_unshare() above, with a slot's width
+ * added to the size throughout and no len == 0 fast path: a slot is owed
+ * here even where there are no locals to copy. Called only where sv is
+ * known non-NULL; mrb_env_detach() takes mrb_env_unshare()'s plain path
+ * itself where there is no container to carry. */
+static mrb_bool
+env_unshare_with_svar(mrb_state *mrb, struct REnv *e, struct RBasic *sv, mrb_bool noraise)
+{
+  mrb_assert(e != NULL);
+  mrb_assert(MRB_ENV_ONSTACK_P(e));
+  mrb_assert(sv != NULL);
+
+  size_t len = (size_t)MRB_ENV_LEN(e);
+  size_t live = mrb->gc.live;
+  mrb_value *p = (mrb_value*)mrb_malloc_simple(mrb, MRB_ENV_SVAR_STACK_SIZE(len));
+  if (live != mrb->gc.live && mrb_object_dead_p(mrb, (struct RBasic*)e)) {
+    // See mrb_env_unshare(): e is already gone, so an allocation failure
+    // here needs no handling either.
+    mrb_free(mrb, p);
+    return TRUE;
+  }
+  else if (p) {
+    stack_copy(p, e->stack, len);
+    e->stack = p;
+    MRB_ENV_CLOSE(e);
+    MRB_ENV_SET_SVAR(e);
+    MRB_ENV_SVAR_SLOT(p, len) = mrb_obj_value(sv);
+    mrb_write_barrier(mrb, (struct RBasic*)e);
+    return TRUE;
+  }
+  else {
+    e->stack = NULL;
+    MRB_ENV_CLOSE(e);
+    MRB_ENV_CLEAR_SVAR(e);
+    MRB_ENV_SET_LEN(e, 0);
+    MRB_ENV_SET_BIDX(e, 0);
+    if (!noraise) {
+      mrb_exc_raise(mrb, mrb_obj_value(mrb->nomem_err));
+    }
+    return FALSE;
+  }
+}
+
 /* Detaches a live env from the frame that owns it: mrb_env_unshare() moves
  * the locals into a heap copy, and the frame's special-variable container
  * follows them into the slot past the locals, so a proc that outlives the
@@ -949,19 +1004,16 @@ mrb_env_unshare(mrb_state *mrb, struct REnv *e, mrb_bool noraise)
  * NULL; a scopeless frame owns none to pass, and its callers hand the
  * slot what the scope below has instead (svar_env_adopt_owner() on a
  * return, mrb_svar_frame_container() on a teardown), which is that
- * scope's container or, where it holds none, its env as a forward. */
+ * scope's container or, where it holds none, its env as a forward.
+ * The two arms close the env in exactly one allocation either way (see
+ * env_unshare_with_svar()), so noraise's FALSE always comes back with the
+ * env's own state settled and c->ci still pointing at the frame being
+ * torn down, never mid-close. */
 mrb_bool
 mrb_env_detach(mrb_state *mrb, struct REnv *e, struct RBasic *sv, mrb_bool noraise)
 {
-  if (!mrb_env_unshare(mrb, e, noraise)) return FALSE;
-  /* MRB_ENV_ONSTACK_P(e) here means unshare's allocation collected e out
-     from under itself and left it untouched (see above): nothing to grow. */
-  if (sv && !MRB_ENV_ONSTACK_P(e)) {
-    mrb_value *slot = svar_slot_ensure(mrb, e);
-    *slot = mrb_obj_value(sv);
-    mrb_write_barrier(mrb, (struct RBasic*)e);
-  }
-  return TRUE;
+  if (!sv) return mrb_env_unshare(mrb, e, noraise);
+  return env_unshare_with_svar(mrb, e, sv, noraise);
 }
 
 /* A scopeless frame is transparent while it runs: svar_owner() walks past
