@@ -601,14 +601,6 @@ socket_option_bool(mrb_state *mrb, mrb_value self)
   return mrb_bool_value((mrb_bool)i);
 }
 
-/* Helper to raise not implemented error for unimplemented Socket::Option methods */
-static mrb_value
-socket_option_notimp(mrb_state *mrb, mrb_value self)
-{
-  mrb_notimplement(mrb);
-  return mrb_nil_value();
-}
-
 /*
  * call-seq:
  *   socket_option.inspect -> string
@@ -1381,8 +1373,9 @@ static const mrb_mt_entry socket_option_rom_entries[] = {
   MRB_MT_ENTRY(socket_option_data,    MRB_SYM(data),    MRB_ARGS_REQ(0)),
   MRB_MT_ENTRY(socket_option_bool,    MRB_SYM(bool),    MRB_ARGS_REQ(0)),
   MRB_MT_ENTRY(socket_option_int,     MRB_SYM(int),     MRB_ARGS_REQ(0)),
-  MRB_MT_ENTRY(socket_option_notimp,  MRB_SYM(linger),  MRB_ARGS_REQ(0)),
-  MRB_MT_ENTRY(socket_option_notimp,  MRB_SYM(unpack), MRB_ARGS_REQ(1)),
+  /* unimplemented, and named as such so `respond_to?` can answer false */
+  MRB_MT_ENTRY(mrb_notimplement_m,    MRB_SYM(linger),  MRB_ARGS_REQ(0)),
+  MRB_MT_ENTRY(mrb_notimplement_m,    MRB_SYM(unpack), MRB_ARGS_REQ(1)),
 };
 
 void
