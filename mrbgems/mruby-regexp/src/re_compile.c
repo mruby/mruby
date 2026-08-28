@@ -3307,8 +3307,9 @@ compute_first_set(const re_inst *code, uint32_t code_len,
    - consuming_stops off, look_forks off, wall_mask set: whether an
      invocation can complete without recursing. A lookaround is walked
      through its sub-pattern alone, since the text after it is reached only
-     once the sub-pattern has run; a call into the recursion under test is a
-     wall, and reaching the body's own RE_RETURN is the escape.
+     once the sub-pattern has run; a call no invocation is yet known to
+     return from is a wall, and reaching the body's own RE_RETURN is the
+     escape.
 
    A RE_RETURN ends every path: the walk has no call stack, and what follows
    one belongs to whoever called. seen[] is marked with `mark` so one buffer
@@ -3402,19 +3403,20 @@ call_closure(uint32_t *adj)
    - a call cycle a walk reaches with nothing consumed on the way, wherever
      the calls stand: `(?<a>\g<a>?x)` and `(?<a>x|\g<a>)` alike, since an
      engine that takes them re-enters the body at the position it left.
-   - a group no invocation can complete without re-entering its own
-     recursion: `(?<a>x\g<a>)` must recurse to match at all, and so must
-     `x(?=\g<0>)`, whose lookahead is not an alternative but a requirement.
+   - a group no invocation can complete: `(?<a>x\g<a>)` must recurse to match
+     at all, and so must `x(?=\g<0>)`, whose lookahead is not an alternative
+     but a requirement.
 
    What escapes both is a call every path can decline: `(?<a>x\g<a>?)` and
-   the balanced-parentheses pattern this feature exists for. */
+   the balanced-parentheses pattern this feature exists for. A body may also
+   decline through a call it can step through, which is how the mutual
+   recursion in `(?<a>\g<b>)(?<b>x\g<a>?)` compiles. */
 static void
 never_ending_check(re_compiler *c, uint32_t called, const uint32_t *entry)
 {
   uint32_t code_len = c->code_len;
   const re_inst *code = c->pat->code;
   uint32_t eps[RE_MAX_CAPTURES];   /* calls reached consuming nothing */
-  uint32_t any[RE_MAX_CAPTURES];   /* calls reached at all */
   uint32_t mark = 0;
   mrb_bool bad = FALSE;
 
@@ -3444,32 +3446,39 @@ never_ending_check(re_compiler *c, uint32_t called, const uint32_t *entry)
   }
 
   memset(eps, 0, sizeof(eps));
-  memset(any, 0, sizeof(any));
   for (int k = 0; k < RE_MAX_CAPTURES; k++) {
     if (!((called >> k) & 1)) continue;
     eps[k] = call_walk(code, code_len, entry[k], seen, ++mark, stack,
                        TRUE, TRUE, 0, eps_done, (uint16_t)k, NULL);
-    any[k] = call_walk(code, code_len, entry[k], seen, ++mark, stack,
-                       FALSE, TRUE, 0, ~(uint32_t)0, (uint16_t)k, NULL);
   }
   call_closure(eps);
-  call_closure(any);
 
   for (int k = 0; !bad && k < RE_MAX_CAPTURES; k++) {
     if (((called >> k) & 1) && ((eps[k] >> k) & 1)) bad = TRUE;
   }
-  for (int k = 0; !bad && k < RE_MAX_CAPTURES; k++) {
-    if (!((called >> k) & 1)) continue;
-    /* The walls are this group and everything a call chain leads back from:
-       a path that reaches one has re-entered the recursion under test. */
-    uint32_t wall = (uint32_t)1 << k;
-    for (int m = 0; m < RE_MAX_CAPTURES; m++) {
-      if ((any[m] >> k) & 1) wall |= (uint32_t)1 << m;
+
+  /* Which called bodies an invocation can complete, to fixpoint: a body
+     completes by declining every call it cannot step through, and it can
+     step through only a call some invocation is already known to complete,
+     its own excluded. The set starts empty and grows, so a mutual recursion
+     is admitted from whichever body stands on its own first:
+     `(?<a>\g<b>)(?<b>x\g<a>?)` compiles because b's body can stop at its
+     `x`, which is then what a's one call steps through. A body left out
+     when the set holds is one no input could end. */
+  if (!bad) {
+    uint32_t ends = 0;
+    for (;;) {
+      uint32_t before = ends;
+      for (int k = 0; k < RE_MAX_CAPTURES; k++) {
+        if (!((called >> k) & 1) || ((ends >> k) & 1)) continue;
+        mrb_bool escapes;
+        call_walk(code, code_len, entry[k], seen, ++mark, stack,
+                  FALSE, FALSE, ~ends, ~(uint32_t)0, (uint16_t)k, &escapes);
+        if (escapes) ends |= (uint32_t)1 << k;
+      }
+      if (ends == before) break;
     }
-    mrb_bool escapes;
-    call_walk(code, code_len, entry[k], seen, ++mark, stack,
-              FALSE, FALSE, wall, ~(uint32_t)0, (uint16_t)k, &escapes);
-    if (!escapes) bad = TRUE;
+    if (called & ~ends) bad = TRUE;
   }
 
   mrb_free(c->mrb, buf);

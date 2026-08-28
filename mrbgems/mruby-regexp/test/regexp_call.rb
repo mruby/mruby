@@ -316,6 +316,18 @@ assert("Regexp - the recursions an input can end compile") do
   assert_equal "xy", "xy".match(Regexp.new("(?<a>x(?:(?=\\g<a>)|y))"))[0]
   assert_equal "xx", "xx".match(Regexp.new("(?<a>(?>x)\\g<a>?)"))[0]
 
+  # mutual recursion is admitted from whichever body stands on its own: b's
+  # can stop at its `x`, and that is what a's one call steps through, where
+  # walling off every group a call chain leads back from would have left a's
+  # body with nowhere to go
+  assert_equal "xx", "xx".match(Regexp.new("(?<a>\\g<b>)(?<b>x\\g<a>?)"))[0]
+  assert_equal "xxx",
+               "xxx".match(Regexp.new("(?<a>\\g<b>){0}(?<b>x(?:\\g<a>)?){0}\\g<a>"))[0]
+  assert_equal "xxx",
+               "xxx".match(Regexp.new("(?<a>\\g<b>){0}(?<b>\\g<c>){0}(?<c>x\\g<a>?){0}\\g<a>"))[0]
+  assert_equal "yx",
+               "yxyx".match(Regexp.new("(?<a>\\g<b>x){0}(?<b>y\\g<a>?){0}\\g<a>"))[0]
+
   # a call on the way to a recursion prices in its body's minimum, so a call
   # to a group that always consumes keeps what follows off the head:
   # \g<0> here stands behind a's `b` and compiles, where a call to an
