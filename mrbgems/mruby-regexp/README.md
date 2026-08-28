@@ -186,132 +186,71 @@ Regexp.new("(a)(?<b>b)\\1")
 
 ## Engine Architecture
 
-The gem uses two execution engines:
+Two engines, chosen automatically at compile time by pattern analysis.
 
-**Pike VM (NFA simulation)**: Used for patterns without
-backreferences, non-greedy quantifiers, lookaround, atomic groups or
-subexpression calls. Guarantees O(pattern x text) time complexity, making it
-immune to ReDoS attacks.
-
-**Backtracking engine**: Used when patterns contain `\1`-`\9`
-backreferences, non-greedy quantifiers (`*?`, `+?`, `??`),
-lookaround assertions (`(?=...)`, `(?!...)`, `(?<=...)`, `(?<!...)`),
-atomic groups (`(?>...)`) or subexpression calls (`\g<name>`), whose call
-frames the Pike VM's threads have no stack to hold -- a call declines the
-Pike path the way a backreference does. It backtracks on a stack of its own on the
-heap, so a search spends a constant amount of C stack however long the
-subject is. Bounded by a configurable step limit (`MRB_REGEXP_STEP_LIMIT`,
-default 1M) against excessive backtracking and by a stack limit
-(`MRB_REGEXP_STACK_LIMIT`, default 2048) on how tall that stack may
-stand. A search that reaches either raises `RegexpError` naming the limit,
-since what it had found by then is not the answer; one whose stack the
-allocator refuses to grow raises `NoMemoryError` instead, that being a
-different thing to do something about.
-
-The engine is selected automatically at compile time based on
-pattern analysis.
+- **Pike VM (NFA simulation)** for patterns without backreferences, non-greedy
+  quantifiers, lookaround, atomic groups or subexpression calls. O(pattern x
+  text), so it is immune to ReDoS.
+- **Backtracking engine** for the rest, whose state the Pike VM's threads have
+  no stack to hold. It backtracks on a stack of its own on the heap, so a
+  search spends a constant amount of C stack however long the subject is.
+  Bounded by `MRB_REGEXP_STEP_LIMIT` and `MRB_REGEXP_STACK_LIMIT`.
 
 ## Limitations
 
-- **UTF-8 only where the build reads it**: the engine reads a pattern and a
-  subject the way the build's `String` reads them, so everything below about
-  characters holds on a build that defines `MRB_UTF8_STRING` (mruby-encoding
-  is what defines it). Where it is not defined a string is bytes and so is the
-  engine: `/./` matches one byte, `/Ā/` is two atoms of one byte each, and
-  `/i` folds ASCII letters and nothing else. A binary (`ASCII-8BIT`) subject
-  reads by byte on either build.
-- **Fixed-length lookbehind only**: `(?<=...)` and `(?<!...)`
-  require a fixed-length pattern (no `*`, `+`, `?`, or alternation).
-  Maximum 255 bytes.
-- **No Unicode properties**: `\p{Alpha}`, `\p{L}`, etc. are not
-  supported and raise `RegexpError`, inside a character class as much as
-  outside one. It is the braces that name a property: a bare `\p`, and `\pL`
-  as well, is the letter, which is how CRuby reads them too. The POSIX
-  brackets read the same data where the build carries it, so `[[:alpha:]]` is
-  the way to ask for a letter of any script.
-- **A set is not an end of a range**: a shorthand (`\d`, `\w`, ...) and a
-  POSIX bracket each name a set rather than a character, so `[a-\d]` and
-  `[\d-z]` raise `RegexpError` as they do in CRuby. A `-` at either edge of
-  the class is still a member: `[\d-]` holds the digits and the dash.
-- **No `\M-X` meta escape**: it sets the high bit, making a byte that starts
-  no character, and there is no encoding here to read one against. It raises
-  `RegexpError`, as it does in CRuby for a pattern that is not binary.
-- **A `[` inside a class opens something**: as in CRuby it never stands for
-  itself, and what it opens is read here only when it is a POSIX bracket.
+Every entry is a place this engine answers a pattern differently from CRuby.
+
+- **UTF-8 only where the build reads it**: a pattern and a subject read the way
+  the build's `String` reads them. Without `MRB_UTF8_STRING` both are bytes:
+  `/./` matches one byte, `/Ā/` is two atoms of one byte each, and `/i` folds
+  ASCII only. A binary (`ASCII-8BIT`) subject reads by byte on either build.
+- **Fixed-length lookbehind only**: `(?<=...)` and `(?<!...)` take no `*`, `+`,
+  `?` or alternation, and at most 255 bytes. A call inside one must be
+  fixed-length too, recursion included, or `invalid pattern in look-behind`.
+- **No Unicode properties**: `\p{Alpha}`, `\p{L}` raise `RegexpError`, inside a
+  character class as much as outside one. A bare `\p`, and `\pL`, is the
+  letter, as in CRuby. `[[:alpha:]]` asks for a letter of any script.
+- **A set is not an end of a range**: `[a-\d]` and `[\d-z]` raise
+  `RegexpError`, as in CRuby. A `-` at either edge is still a member: `[\d-]`
+  holds the digits and the dash.
+- **No `\M-X` meta escape**: it raises `RegexpError`, as it does in CRuby for a
+  pattern that is not binary.
+- **A `[` inside a class opens something**: only a POSIX bracket is read there.
   A collating element (`[[.a.]]`), an equivalence class (`[[=a=]]`) and a
-  class nested in this one (`[[a][b]]`) each raise `RegexpError`. Write
-  `[\[]` for the bracket itself, which is the spelling CRuby wants too.
-- **No `\G`, `\K`, `\R` or `\X`**: the search-start anchor, the match-start
-  reset, the linebreak and the grapheme cluster all raise `RegexpError`
-  rather than standing for their own letter. Inside a character class CRuby
-  reads each as the letter, and so does this; a bare `\g`, which calls a
-  group only with a `<name>` or `'name'` after it, is the letter either way.
-- **No nest level on a backreference**: `\k<name+n>` and `\k<name-n>` read the
-  group as the enclosing recursion left it `n` levels up, which asks for a
+  nested class (`[[a][b]]`) raise `RegexpError`. Write `[\[]`, as in CRuby.
+- **No `\G`, `\K`, `\R` or `\X`**: they raise `RegexpError` rather than
+  standing for their own letter. Inside a character class each is the letter,
+  as in CRuby, and so is a bare `\g` either way.
+- **No nest level on a backreference**: `\k<name+n>` and `\k<name-n>` ask for a
   capture memory per call level where this engine keeps one flat slot per
   group, so they raise `RegexpError`. A plain `\k<name>` still works inside a
-  recursion: it reads the pair the innermost completed invocation left, and
-  reads the group as unmatched inside an invocation no inner one has
-  completed within, which are CRuby's answers for the same shapes. The level
-  starts at the first `+`
-  or `-` past the name's first byte, in CRuby as here, which leaves a group
-  whose name holds one out of a backreference's reach: `(?<a-1>x)` names a
-  group in both, and `\k<a-1>` reaches it in neither, though `\g<a-1>`, a
-  call taking no level, reaches it in both. The first byte is the relative
-  form's sign, so `\k<-1>` is still the group one back.
-- **A call in a lookbehind must still be fixed-length**: `(?<=\g<a>)` runs
-  where the group's body is fixed-length, and where it is not -- recursion
-  included -- raises `invalid pattern in look-behind`, which is CRuby's
-  message for the same refusal.
-- **An empty iteration ends a repeat around a call too**: an iteration that
-  matched empty ends the repetition and keeps what it captured, which is the
-  rule every inline repeat here follows, and a repeat whose body runs
-  through a called group follows it unchanged. Onigmo switches such repeats
-  to a capture-tracking empty check that can lose matches its own inline
-  rule finds: `/((?<g1>|){2}b){2}\g<g1>{0}/` answers nil in CRuby although
-  the dead call never runs, and `/(?<g1>)b\g<g1>{1,3}?/` answers nil where
-  its greedy spelling matches `"b"`. This engine answers every such pattern
-  as the call-free spelling does.
-- **No character class intersection**: `[a&&b]` narrows a class to what both
-  sides hold in CRuby, and raises `RegexpError` here. A lone `&` is a member
-  of the class, as it is in CRuby, and so is an escaped one: `[\&&]` holds
-  `&` twice rather than intersecting.
-- **No `\x{...}` hex escape**: the hex escape is `\xHH`, so it reaches
-  `0xff` at most, and `\x{...}` raises `RegexpError` as CRuby does, since
-  the brace is not a hex digit. Write `\u{...}` for a codepoint above that.
-- **No encodings**: a pattern is a byte string read the way the build reads a
-  String, and there is no encoding to consult about a byte that starts no
-  whole character. Such a byte is that byte, inside a character class as much
-  as outside one: `[\xB5]` and `\xB5` both hold the byte `0xB5`, and neither
-  matches `µ`, which is `C2 B5`. CRuby settles the same question with the
-  pattern's encoding and raises `RegexpError` for either spelling. A range
-  whose ends are a byte and a character (`[\x80-µ]`) names neither and raises
-  `RegexpError`.
-- **Case folding follows the build**: The `i` flag reads the Unicode
-  foldings that pair one codepoint with one other off core's case table,
-  which a build converting case by ASCII does not carry. There `i` folds
-  ASCII letters, and a pattern holding a character that needs one of those
-  foldings raises `RegexpError` rather than answering as if the character had
-  no case. What it refuses is held as ranges, which take in some uncased
-  characters as well; see Configuration. A codepoint with no single
-  counterpart to fold to (`ﬀ` to `ff`) is never folded by either build.
-- **Case-insensitive backreferences match a superset**: `\1` under `i`
-  folds each side and compares, so it matches where the capture and the
-  repeat hold the same characters in different widths (`k` and `K`).
-  CRuby declines to fold across a width change there.
-- **`\b` reads `[[:word:]]` below U+0100 too**: CRuby draws a word boundary
-  beside `²`, `³`, `¹` and `½`, which its own `[[:word:]]` does not hold; it
-  reads a character under 256 off a Latin-1 word table for the boundary and
-  off the Unicode tables for the bracket. Here the two are the same question
-  at every codepoint, so neither takes them. The difference is CRuby's own
-  rather than a rule Ruby states.
-- **Step limit on backtracking**: Patterns that require the
-  backtracking engine are subject to a step limit.
-- **Backward search walks forward**: the engine searches forward only,
-  so `rindex`, `byterindex` and `rpartition` walk the subject from the
-  start and keep the last match that qualifies. The cost grows with the
-  number of positions a match starts at, where CRuby hands the search to
-  Onig.
+  recursion, reading the pair the innermost completed invocation left.
+- **An empty iteration ends a repeat around a call too**, which is the rule
+  every inline repeat here follows. Onigmo switches such repeats to a
+  capture-tracking empty check that answers a few of them differently, among
+  them `/((?<g1>|){2}b){2}\g<g1>{0}/` and `/(?<g1>)b\g<g1>{1,3}?/`.
+- **No character class intersection**: `[a&&b]` raises `RegexpError`. A lone
+  `&` is a member of the class, as it is in CRuby.
+- **No `\x{...}` hex escape**: the hex escape is `\xHH`, and `\x{...}` raises
+  `RegexpError` as CRuby does. Write `\u{...}` for a codepoint above `0xff`.
+- **No encodings**: a byte that starts no whole character is that byte, inside
+  a character class as much as outside one. `[\xB5]` and `\xB5` both hold the
+  byte `0xB5` and neither matches `µ` (`C2 B5`), where CRuby raises
+  `RegexpError` for either spelling. A range whose ends are a byte and a
+  character (`[\x80-µ]`) raises `RegexpError`.
+- **Case folding follows the build**: where the build converts case by ASCII, a
+  pattern holding a character that needs a Unicode folding raises
+  `RegexpError`; see Configuration.
+- **Case-insensitive backreferences match a superset**: `\1` under `i` folds
+  each side and compares, so it matches across a width change (`k` and `K`)
+  where CRuby declines to.
+- **`\b` reads `[[:word:]]` below U+0100 too**: CRuby draws a boundary beside
+  `²`, `³`, `¹` and `½`, reading a character under 256 off a Latin-1 word table
+  for the boundary and off the Unicode tables for the bracket. Here the two are
+  the same question at every codepoint, so neither takes them.
+- **Backward search walks forward**: `rindex`, `byterindex` and `rpartition`
+  walk the subject from the start and keep the last match that qualifies, so
+  the cost grows with the number of positions a match starts at.
 
 ## Configuration
 
