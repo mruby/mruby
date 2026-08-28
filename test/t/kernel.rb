@@ -406,6 +406,54 @@ assert('Kernel#respond_to?', '15.3.1.3.43') do
   assert_false Test4RespondTo.new.respond_to?(:test_method)
 end
 
+assert('Kernel#respond_to? with an unimplemented method') do
+  obj = TestNotImplement.new
+
+  assert_false obj.respond_to?(:gone)
+  assert_false obj.respond_to?(:gone, true)
+  assert_false TestNotImplement.respond_to?(:gone)
+  assert_false TestNotImplement.method_defined?(:gone)
+
+  # The method is defined all the same: calling it says why it is not there,
+  # rather than reporting no such method.
+  assert_raise(NotImplementedError) { obj.gone }
+  assert_raise(NotImplementedError) { TestNotImplement.gone }
+end
+
+assert('Kernel#respond_to? skips respond_to_missing? for an unimplemented method') do
+  cls = Class.new(TestNotImplement) do
+    def respond_to_missing?(name, priv = false)
+      true
+    end
+  end
+
+  # A method that exists leaves respond_to_missing? nothing to answer.
+  assert_false cls.new.respond_to?(:gone)
+  assert_true cls.new.respond_to?(:no_such_method)
+end
+
+assert('an unimplemented method can be overridden, aliased and undefined') do
+  overridden = Class.new(TestNotImplement) do
+    def gone
+      :here
+    end
+  end
+  assert_true overridden.new.respond_to?(:gone)
+  assert_equal :here, overridden.new.gone
+
+  aliased = Class.new(TestNotImplement) do
+    alias_method :also_gone, :gone
+  end
+  assert_false aliased.new.respond_to?(:also_gone)
+  assert_raise(NotImplementedError) { aliased.new.also_gone }
+
+  undefined = Class.new(TestNotImplement) do
+    undef_method :gone
+  end
+  assert_false undefined.new.respond_to?(:gone)
+  assert_raise(NoMethodError) { undefined.new.gone }
+end
+
 assert('Kernel#to_s', '15.3.1.3.46') do
   assert_equal to_s.class, String
 end
