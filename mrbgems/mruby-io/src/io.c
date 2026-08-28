@@ -119,7 +119,15 @@ io_set_process_status(mrb_state *mrb, pid_t pid, int status)
     }
   }
   if (c_status != NULL) {
-    v = mrb_funcall_argv2(mrb, mrb_obj_value(c_status), MRB_SYM(new), mrb_fixnum_value(pid), mrb_fixnum_value(status));
+    /* What this needs is the status object, and asking the class for `new` is
+       not the way to it: mrb_obj_new() allocates one and hands #initialize the
+       pid and the raw status, which is the path mruby-process takes itself.
+       CRuby's Process::Status has no `new` to call. */
+    mrb_value argv[2];
+
+    argv[0] = mrb_fixnum_value(pid);
+    argv[1] = mrb_fixnum_value(status);
+    v = mrb_obj_new(mrb, c_status, 2, argv);
   }
   else {
     v = mrb_fixnum_value(WEXITSTATUS(status));
