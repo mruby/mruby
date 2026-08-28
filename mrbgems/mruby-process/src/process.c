@@ -117,7 +117,7 @@ signal_to_number(mrb_state *mrb, mrb_value sig)
     len -= 3;
   }
   if ((size_t)len >= sizeof(bare)) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "bad signal name");
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "unsupported signal 'SIG%l'", name, (size_t)len);
   }
   /* The HAL takes a C string, and `name` is a slice of a longer one. */
   memcpy(bare, name, (size_t)len);
