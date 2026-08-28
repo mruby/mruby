@@ -35,6 +35,24 @@ assert('Socket#recvfrom') do
   end
 end
 
+end   # win?
+
+# Socket.ip_address_list works on both POSIX (getifaddrs) and Windows
+# (GetAdaptersAddresses), so this test runs everywhere.
+assert('Socket.ip_address_list') do
+  list = Socket.ip_address_list
+  assert_kind_of Array, list
+  # Every host should have at least one address (loopback at minimum).
+  assert_true list.length >= 1
+  list.each do |ai|
+    assert_kind_of Addrinfo, ai
+    # Only AF_INET and AF_INET6 are returned.
+    assert_true [Socket::AF_INET, Socket::AF_INET6].include?(ai.afamily)
+  end
+end
+
+# BasicSocket#getpeereid is defined on every platform, so this test runs
+# everywhere.
 assert('BasicSocket#getpeereid') do
   s = Socket.new(Socket::AF_INET, Socket::SOCK_DGRAM, 0)
   begin
@@ -49,18 +67,22 @@ assert('BasicSocket#getpeereid') do
   end
 end
 
-end   # win?
-
-# Socket.ip_address_list works on both POSIX (getifaddrs) and Windows
-# (GetAdaptersAddresses), so this test runs everywhere.
-assert('Socket.ip_address_list') do
-  list = Socket.ip_address_list
-  assert_kind_of Array, list
-  # Every host should have at least one address (loopback at minimum).
-  assert_true list.length >= 1
-  list.each do |ai|
-    assert_kind_of Addrinfo, ai
-    # Only AF_INET and AF_INET6 are returned.
-    assert_true [Socket::AF_INET, Socket::AF_INET6].include?(ai.afamily)
+# SocketTest.win? reads the same _WIN32 that guards the sysseek entry, so this
+# test runs everywhere and asks each platform for the answer it compiled.
+assert('BasicSocket#sysseek') do
+  s = Socket.new(Socket::AF_INET, Socket::SOCK_DGRAM, 0)
+  begin
+    if SocketTest.win?
+      # The entry is here to refuse, a socket having no position to seek to,
+      # and it shadows IO#sysseek for every socket.
+      assert_false s.respond_to?(:sysseek)
+      assert_raise(NotImplementedError) { s.sysseek(0) }
+    else
+      # Without that entry IO#sysseek is the nearest definition, and a socket
+      # answers with it.
+      assert_true s.respond_to?(:sysseek)
+    end
+  ensure
+    s.close rescue nil
   end
 end
