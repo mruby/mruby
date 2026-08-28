@@ -1591,11 +1591,15 @@ emit_cp_folded(re_compiler *c, uint32_t cp)
    A byte that starts no whole character is not a character to fold. It decodes
    as one byte and hands back its own value, which would read a lone 0xB5 as
    U+00B5 and answer /i for a character the pattern does not hold, so it falls
-   back to the bytes like every other invalid sequence in the literal path. */
+   back to the bytes like every other invalid sequence in the literal path.
+
+   A byte-indexed pattern holds no character to fold either, whatever its bytes
+   would spell: emit_escaped_byte() reads `\xC2\xB5` there as two bytes, and
+   the raw spelling of the same two bytes says the same thing. */
 static mrb_bool
 emit_char_folded(re_compiler *c, int ch)
 {
-  if (ch < 128 || !(c->flags & RE_FLAG_IGNORECASE)) return FALSE;
+  if (ch < 128 || !(c->flags & RE_FLAG_IGNORECASE) || c->binary) return FALSE;
   int len = 0;
   uint32_t cp = mrb_re_decode_char(c->p - 1, c->src_end, &len, FALSE);
   if (len == 1) return FALSE;

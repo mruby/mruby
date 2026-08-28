@@ -85,6 +85,25 @@ assert("Regexp - /i does not read a byte above 127 as a character") do
   assert_equal 0, (Regexp.new(lead, Regexp::IGNORECASE) =~ lead.b)
 end
 
+assert("Regexp - /i has no character to fold in a byte-indexed pattern") do
+  # A byte-indexed pattern holds bytes, so there is nothing in it for /i to
+  # fold even where the bytes do spell a character. Folding one emits a class,
+  # and a class compares a decoded character, which a byte-indexed subject
+  # never hands it: the two bytes of U+00B5 stopped matching the same two
+  # bytes. Read as bytes they are two atoms, so a quantifier after them
+  # repeats the last, the same reading the escaped spelling of them takes.
+  mu = "\xC2\xB5"       # the two bytes of U+00B5
+  assert_equal 0, (Regexp.new(mu.b, Regexp::IGNORECASE) =~ mu.b)
+  assert_equal 2, Regexp.new(mu.b, Regexp::IGNORECASE).match(mu.b)[0].bytesize
+  assert_equal 3, Regexp.new((mu + "+").b, Regexp::IGNORECASE).match((mu + "\xB5").b)[0].bytesize
+  assert_equal 3, Regexp.new("\\xC2\\xB5+".b, Regexp::IGNORECASE).match((mu + "\xB5").b)[0].bytesize
+  # The bytes of a character with an ASCII counterpart read the same way: what
+  # /i would fold is the character, and the pattern does not hold one.
+  kelvin = "\xE2\x84\xAA"  # U+212A KELVIN SIGN, which folds to "k"
+  assert_nil (Regexp.new(kelvin.b, Regexp::IGNORECASE) =~ "k")
+  assert_equal 0, (Regexp.new(kelvin.b, Regexp::IGNORECASE) =~ kelvin.b)
+end
+
 assert("Regexp - a backreference under /i folds a byte-indexed subject by ASCII") do
   need_backtracking_stack
   # A byte-indexed subject hands the folded comparison bytes, and a byte above
