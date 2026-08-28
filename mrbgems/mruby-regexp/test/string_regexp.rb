@@ -875,6 +875,15 @@ assert("String#gsub with a zero-width lookahead") do
   assert_equal [45, 195, 45, 169, 45, 120], bin.gsub(/(?=.)/) { "-" }.bytes
 end
 
+assert("String#gsub and #scan finish after repeated zero-width assertions") do
+  need_backtracking_stack
+  re = Regexp.new('(\\A{0,}${2}(?i:a)*(\\0*+|\\z??|\\s{,3}|(?!a){,3}){2}){,3}(?i:a)')
+  str = "AAayaB11Ab"
+
+  assert_equal "AAAyAB11Ab", str.gsub(re) { |match| match.upcase }
+  assert_equal [[nil, nil], [nil, nil], [nil, nil], [nil, nil], [nil, nil]], str.scan(re)
+end
+
 assert("String#gsub date reformat") do
   result = "2026-03-21".gsub(/(\d+)-(\d+)-(\d+)/) { "#{$~[3]}/#{$~[2]}/#{$~[1]}" }
   assert_equal "21/03/2026", result
