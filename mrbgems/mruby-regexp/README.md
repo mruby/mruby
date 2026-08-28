@@ -297,9 +297,10 @@ Every entry is a place this engine answers a pattern differently from CRuby.
 
 A build that sets a limit outside its range fails to compile, and so does one
 still defining `MRB_REGEXP_RECURSION_LIMIT`, the name the stack limit had while
-it counted C frames. The values a build chose are `Regexp::STEP_LIMIT` and
-`Regexp::STACK_LIMIT`, for a program that has to size a subject or a pattern to
-the build it runs on; CRuby's counterpart is `Regexp.timeout`.
+it counted C frames. The values a build chose are `Regexp::STEP_LIMIT`,
+`Regexp::STACK_LIMIT` and `Regexp::PARSE_DEPTH_LIMIT`, for a program that has
+to size a subject or a pattern to the build it runs on; CRuby's counterpart to
+the two search limits is `Regexp.timeout`.
 
 ### The two search limits
 
