@@ -88,6 +88,7 @@ and the one next to a `-` bounds the range, so `/[\u{61 62}-z]/` is `a` plus
 ```ruby
 # Regexp
 re = Regexp.new("pattern", Regexp::IGNORECASE)
+re = Regexp.compile("pattern")    # Regexp.new under its other name
 re = /pattern/i                   # literal syntax
 re.match("string")                # => MatchData or nil
 re.match("string") { |md| ... }   # => block result, or nil if no match
@@ -97,9 +98,16 @@ re === "string"                   # => true/false (for case/when)
 re.match(:symbol)                 # a Symbol is matched against its name
 re.source                         # => "pattern"
 re.options                        # => flags integer
+re.casefold?                      # => true where the pattern carries /i
 re.named_captures                 # => {"name" => [group_number], ...}
 re.names                          # => ["name", ...]
+re.to_s                           # => "(?i-mx:pattern)"
+re.inspect                        # => "/pattern/i"
+re == other                       # => true where source and options agree
+re.eql?(other)                    # => same as ==
+re.hash                           # => source and options hashed together
 Regexp.escape("a.b")              # => "a\\.b"
+Regexp.quote("a.b")               # => same as Regexp.escape
 Regexp.last_match(n)              # => nth capture from last match
 
 # MatchData
@@ -110,12 +118,17 @@ md[2]                             # => "host"
 md[:name]                         # named capture access
 md.captures                       # => ["user", "host"]
 md.to_a                           # => ["user@host", "user", "host"]
+md.to_s                           # => "user@host" (same as md[0])
+md.size                           # => group count, group 0 included
+md.length                         # => same as size
 md.begin(0)                       # => match start position
 md.end(0)                         # => match end position
 md.pre_match                      # => string before match
 md.post_match                     # => string after match
 md.named_captures                 # => {"name" => "value", ...}
 md.names                          # => ["name", ...]
+md.string                         # => the subject the match ran against
+md.regexp                         # => the Regexp that matched
 
 # String methods
 str.match(re)                     # => MatchData or nil
