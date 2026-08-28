@@ -11,10 +11,10 @@
 #include <mruby/error.h>
 #include <mruby/gc.h>
 #include <mruby/hash.h>
-#include <mruby/internal.h>
 #include <mruby/proc.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>
+#include <mruby/internal.h>
 #include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -39,7 +39,8 @@
  * An escaped closure keeps its REnv alive after the task is gone; if the
  * env still points into the freed stack, the next GC marks garbage and
  * crashes in mrb_gc_mark. mruby does the same for fibers in gc.c's
- * MRB_TT_FIBER free path.
+ * MRB_TT_FIBER free path; the walk both come through is
+ * mrb_env_detach_all() (vm.c).
  *
  * Only called while the VM is alive. A task stays GC-registered for its
  * whole life, so the GC frees one only while tearing the heap down, and
@@ -48,22 +49,7 @@
 static void
 task_unshare_envs(mrb_state *mrb, struct mrb_context *c)
 {
-  mrb_callinfo *ci;
-
-  if (!c->cibase || !c->ci) return;
-  /* Stop AT cibase rather than decrementing past it: forming a pointer
-   * one element before the start of an array is undefined behavior. */
-  for (ci = c->ci; ; ci--) {
-    struct REnv *e = ci->u.env;
-    /* mrb_env_unshare() allocates and can therefore run a GC cycle. In
-     * teardown paths the task may already be unlinked, so an env that no
-     * other object refers to may be swept mid-walk; check liveness first. */
-    if (e && !mrb_object_dead_p(mrb, (struct RBasic*)e) &&
-        e->tt == MRB_TT_ENV && MRB_ENV_ONSTACK_P(e)) {
-      mrb_env_unshare(mrb, e, TRUE);
-    }
-    if (ci == c->cibase) break;
-  }
+  mrb_env_detach_all(mrb, c);
 }
 
 /*
