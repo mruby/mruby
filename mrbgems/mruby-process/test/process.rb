@@ -137,6 +137,19 @@ assert('Process.kill with an unknown signal name') do
   end
 end
 
+assert('Process.kill with a signal name too long for any signal') do
+  # A name past the lookup buffer's width is still an unsupported signal, not
+  # a different kind of error; the name is reported in full rather than
+  # replaced by a generic message.
+  long_name = "A" * 40
+  assert_raise_with_message(ArgumentError, "unsupported signal 'SIG#{long_name}'") do
+    Process.kill(long_name, Process.pid)
+  end
+  assert_raise_with_message(ArgumentError, "unsupported signal 'SIG#{long_name}'") do
+    Process.kill(long_name.to_sym, Process.pid)
+  end
+end
+
 assert('Process.kill with a name that is nothing but the prefix') do
   # "SIG" loses the prefix like any longer name and leaves nothing behind, and
   # a name that was empty to begin with reaches the same place.  Neither is an
