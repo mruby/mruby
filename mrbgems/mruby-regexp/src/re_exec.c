@@ -311,14 +311,11 @@ add_thread(pike_state *s, re_threadlist *list,
       continue;
 
     case RE_SAVE:
-      /* Slot 1 is the end of group 0, so this is where the whole match
-         closes. It may not close inside a character, the same rule the
-         seeding loop applies to where a match opens. Killing the thread
-         rather than the attempt lets a longer branch match instead. */
-      if (inst.offset == 1 && !s->binary && sp < s->str_end &&
-          mrb_re_char_interior_p(s->str, sp, s->str_end)) {
-        return;
-      }
+      /* No test that the position is a character boundary: it is one. A byte
+         that spells no character is RE_BYTE and matches only where the subject
+         byte stands alone, so no atom stops between two bytes of a character
+         and no position a group is recorded at is inside one. The rule used to
+         be tested here, on the end of group 0 and then on every slot. */
       if (!s->match_only) {
         CAP(s, cap_slot)[inst.offset] = (int)(sp - s->str);
       }
@@ -605,6 +602,19 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
       switch (inst.op) {
       case RE_CHAR:
         if (ch == inst.a) {
+          int cp = 0;
+          if (!match_only && !pool_copy(&s, th->cap_slot, &cp)) break;
+          add_thread(&s, &next, th->pc + 1, cp, sp + 1, s.gen);
+        }
+        break;
+
+      case RE_BYTE:
+        /* A byte that spells no character matches only where the subject byte
+           spells none either: inside a character the byte belongs to that
+           character (see RE_BYTE). `curr_raw` is that question already asked
+           for the class path, and a byte-indexed subject answers it for every
+           byte, which is where this is RE_CHAR. */
+        if (ch == inst.a && curr_raw) {
           int cp = 0;
           if (!match_only && !pool_copy(&s, th->cap_slot, &cp)) break;
           add_thread(&s, &next, th->pc + 1, cp, sp + 1, s.gen);
@@ -1038,6 +1048,13 @@ bt_match(bt_state *m, const char *sp, uint32_t pc)
       sp++; pc++;
       break;
 
+    case RE_BYTE:
+      /* see the Pike VM case */
+      if (sp >= str_end || (uint8_t)*sp != inst.a) goto fail;
+      if (!binary && mrb_re_charlen(sp, str_end, FALSE) != 1) goto fail;
+      sp++; pc++;
+      break;
+
     case RE_ANY:
       if (sp >= str_end || *sp == '\n') goto fail;
       sp += mrb_re_charlen(sp, str_end, binary); pc++;
@@ -1135,13 +1152,7 @@ bt_match(bt_state *m, const char *sp, uint32_t pc)
     case RE_SAVE:
       {
         int slot = inst.offset;
-        /* End of group 0: the whole match may not close inside a character
-           (see the Pike VM case). Failing here backtracks into the other
-           branches, so a longer one can still match. */
-        if (slot == 1 && !binary && sp < str_end &&
-            mrb_re_char_interior_p(str, sp, str_end)) {
-          goto fail;
-        }
+        /* No boundary test: see the Pike VM case. */
         if (slot >= ncap) goto fail;
         /* The write is logged rather than recursed over: backtracking past
            it puts the slot back, which is what undoes what a branch captured
@@ -1294,6 +1305,9 @@ bt_match(bt_state *m, const char *sp, uint32_t pc)
         uint32_t idx;
         if (!bt_barrier_find(m, inst.offset, &idx)) goto fail;
         re_cpoint c = m->cp[idx];
+        /* No boundary test either: a sub-pattern reaches the same
+           positions as the rest of the search, so an assertion that used to
+           hold on half a character has no half to hold on. */
         m->cp_top = idx;
         m->pass = c.pass;
         if (inst.a) {
@@ -1554,12 +1568,10 @@ literal_exec(const mrb_regexp_pattern *pat,
       continue;
     }
     if (plen == 1 || memcmp(found + 1, pat->prefix + 1, plen - 1) == 0) {
-      if (!binary && found + plen < str_end &&
-          mrb_re_char_interior_p(str, found + plen, str_end)) {
-        sp = found + 1;  /* ends inside a character, same rule as the end of
-                            group 0 in the other engines */
-        continue;
-      }
+      /* No test that the end is a character boundary: a byte that spells no
+         character is RE_BYTE, which this path never holds (the prefix is
+         RE_CHAR only), so the literal is whole characters and a lead byte
+         that matched fixed the length of the one it starts. */
       /* match found */
       if (captures && captures_size >= 2) {
         captures[0] = (int)(found - str);

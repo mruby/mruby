@@ -28,7 +28,19 @@ MRB_BEGIN_DECL
 
 /* Bytecode instructions for the NFA engine */
 enum re_opcode {
-  RE_CHAR,       /* match literal byte: operand = byte value */
+  RE_CHAR,       /* match literal byte: operand = byte value. The bytes of one
+                    character are a run of these, so a run matches the
+                    character it spells and stops where the character does. */
+  RE_BYTE,       /* match one byte that spells no character: operand = the
+                    byte, always above 127. It matches only where the subject
+                    byte stands alone, starting no whole character of its own,
+                    which is the rule a class already reads such a byte by (see
+                    RE_CLASS_BYTE). A byte inside a character is that
+                    character's, not this one, so the position a search reaches
+                    is never inside one and every offset it records is a
+                    character boundary without a test for it. Against a
+                    byte-indexed subject every byte stands alone and this is
+                    RE_CHAR. */
   RE_ANY,        /* match any character (. without DOTALL) */
   RE_ANY_NL,     /* match any character including newline (. with DOTALL) */
   RE_CLASS,      /* match character class: operand = class_id */
@@ -372,7 +384,11 @@ typedef struct {
    zero fill is what lets mrb_re_free() read a pattern that got that far.
    `pat->code_len` is written last and stays zero until the pattern is
    complete. */
-void mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat, const char *pattern, mrb_int len, uint32_t flags);
+/* `binary` says the pattern string is byte-indexed, which is the one thing
+   mruby has where CRuby reads an encoding: a byte of an ASCII-8BIT pattern is
+   a byte, and bytes that would spell a character in a UTF-8 one do not spell
+   it here. It decides what a quantifier after them repeats. */
+void mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat, const char *pattern, mrb_int len, uint32_t flags, mrb_bool binary);
 
 /* Free a compiled pattern */
 void mrb_re_free(mrb_state *mrb, mrb_regexp_pattern *pat);
