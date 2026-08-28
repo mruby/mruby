@@ -255,104 +255,64 @@ Every entry is a place this engine answers a pattern differently from CRuby.
 ## Configuration
 
 ```c
-/* Maximum step count for backtracking engine (ReDoS protection) */
+/* Steps one backtracking search may take (ReDoS protection) */
 #ifndef MRB_REGEXP_STEP_LIMIT
 #define MRB_REGEXP_STEP_LIMIT 1000000
 #endif
 
-/* Maximum height of the backtracking engine's stack (heap) */
+/* Entries on the backtracking engine's heap stack (1 to 16,777,216) */
 #ifndef MRB_REGEXP_STACK_LIMIT
 #define MRB_REGEXP_STACK_LIMIT 2048
 #endif
 
-/* How deep a pattern may nest (the parser's own C stack) */
+/* How deep a pattern may nest, the parser's own C stack (1 to 1,048,576) */
 #ifndef MRB_REGEXP_PARSE_DEPTH_LIMIT
 #define MRB_REGEXP_PARSE_DEPTH_LIMIT 4096
 #endif
 ```
 
-A search that reaches either limit raises `RegexpError`, `step limit over
-(MRB_REGEXP_STEP_LIMIT)` or `stack limit over (MRB_REGEXP_STACK_LIMIT)`,
-rather than answer with what it had found by then. The step limit bounds
-the work one search may do; the stack limit bounds the state it holds while
-doing it: the branches it has not taken yet and the writes it has not taken
-back, an entry each. A write of the value already in the slot leaves nothing
-to take back and is not counted. What a repetition spends per iteration is
-what it holds: one choice point where it captures nothing, and undo records
-on top of that for a capture (up to two writes to open a group and one to
-close it, an iteration that opens one the attempt has not closed yet paying
-for one of the two) and for the record of an iteration that may match empty.
-A run longer than the limit reaches it on a pattern that is not pathological;
-a build with the memory for it can set it higher, and one that wants a
-smaller ceiling can set it lower.
+A build that sets a limit outside its range fails to compile, and so does one
+still defining `MRB_REGEXP_RECURSION_LIMIT`, the name the stack limit had while
+it counted C frames. The values a build chose are `Regexp::STEP_LIMIT` and
+`Regexp::STACK_LIMIT`, for a program that has to size a subject or a pattern to
+the build it runs on; CRuby's counterpart is `Regexp.timeout`.
 
-The default is where the state moving off the C stack costs no pattern the
-subject it used to match, and no higher. The limit that preceded it counted
-C frames, and a frame is not an entry: a fork was one frame and is one
-choice point, while a capture was one frame and is up to three undo records.
-Of the shapes measured across that change the tightest is `(a)*?b`, which
-crossed 498 characters on the old 1,000 frames and crosses 682 on 2,048
-entries; a chain of atomic groups or of lookarounds, which spent two frames
-a link and now spends none once each has closed, is bounded by the pattern
-rather than by this limit either way.
+### The two search limits
 
-The limit stands between 1 and 16,777,216, and a build that sets it outside
-that fails to compile: at 0 no search could hold one entry, and above the
-ceiling the arithmetic that sizes the arrays stops holding on a 32-bit ABI.
-A low limit is a build's to choose, and what it buys is memory at the price
-of the patterns the engine will match: the gem's tests ask for 48, which is
-where every pattern they take for granted matches, and the assertions that
-reach the engine skip below it while the rest go on running. The two limits
-are set apart from one another as well: a build that turns this one up far
-enough puts it out of the step limit's reach, since filling the stack costs
-a handful of steps an entry, and the tests that pin the stack limit size
-their subjects from it are skipped there. The values a build chose are
-`Regexp::STACK_LIMIT` and `Regexp::STEP_LIMIT`, for a program that has to
-size a subject or a pattern to the build it runs on; CRuby has no
-counterpart, its guard being `Regexp.timeout`.
+A search that reaches one raises `RegexpError`, `step limit over
+(MRB_REGEXP_STEP_LIMIT)` or `stack limit over (MRB_REGEXP_STACK_LIMIT)`, rather
+than answer with what it had found by then. One whose stack the allocator
+refuses to grow raises `NoMemoryError` instead, that being a different thing to
+do something about.
 
-What the stack limit counts is live entries and not bytes. Two arrays hold
-them, one for the branches and one for the writes, and they grow
-geometrically and keep their capacity for the rest of the search, so a search
-that fills one, backtracks, and then fills the other holds both high-water
-marks at once. Neither is grown past the limit, so the memory one search may
-ask for is bounded by it: at most `MRB_REGEXP_STACK_LIMIT` entries in each
-array, an entry being 32 and 16 bytes respectively on a 64-bit ABI and 24 and
-8 on a 32-bit one, so 96 KiB together at the default on a 64-bit build and
-64 KiB on a 32-bit one. Halving the limit halves that ceiling. The capture
-slots and the per-instruction iteration records a search also holds are sized
-by the pattern rather than by this limit.
+The step limit bounds the work one search may do; the stack limit bounds the
+state it holds while doing it, the branches it has not taken yet and the writes
+it has not taken back, an entry each. A write of the value already in the slot
+leaves nothing to take back and is not counted.
 
-A search whose stack the allocator refuses to grow raises `NoMemoryError`
-rather than `RegexpError`. The two are worth telling apart: a limit names the
-knob to turn, where turning `MRB_REGEXP_STACK_LIMIT` up in answer to an
-allocator that had nothing left would only let the next search ask for more.
+The stack limit counts live entries and not bytes, and so bounds the memory one
+search may ask for: two arrays of at most `MRB_REGEXP_STACK_LIMIT` entries, an
+entry being 32 and 16 bytes on a 64-bit ABI and 24 and 8 on a 32-bit one, so 96
+KiB together at the default and 64 KiB respectively. Halving the limit halves
+that ceiling. Lowering it costs patterns as well as buying memory: the gem's
+tests ask for 48, which is where every pattern they take for granted still
+matches, and the assertions that reach the engine skip below it.
 
-The macro was called `MRB_REGEXP_RECURSION_LIMIT` while the engine recursed
-once per fork and the limit counted C frames. A build that still defines that
-name fails to compile: the two limits count different things, so an old value
-does not carry over and the build has to choose a new one.
+### The parse depth limit
 
-`MRB_REGEXP_PARSE_DEPTH_LIMIT` is the third limit and the odd one out: it
-bounds the compiler rather than a search, and what it guards is the C stack
-rather than memory or work. A pattern past it raises `RegexpError`, `parse
-depth limit over`, which is CRuby's message for the same refusal.
-
-Every construct that opens a level costs one: a group of any kind, a
+`MRB_REGEXP_PARSE_DEPTH_LIMIT` bounds the compiler rather than a search, and
+guards the C stack rather than memory or work. A pattern past it raises
+`RegexpError`, `parse depth limit over`, which is CRuby's message for the same
+refusal. Every construct that opens a level costs one: a group of any kind, a
 lookaround, an atomic group, and an inline option toggle, which encloses the
-rest of the group it stands in and so is a level of its own. A pattern of 4096
-nested `(?:` and one of 4096 nested `(?i)` are refused alike, at the same
-depth CRuby refuses them: the default is Onigmo's `ONIG_MAX_PARSE_DEPTH`.
+rest of the group it stands in. The default is Onigmo's
+`ONIG_MAX_PARSE_DEPTH`, so the refusal point is CRuby's.
 
 **A build on a stack smaller than about 3 MiB has to lower it.** The parser
-recurses once per level, so the ceiling is a property of the build's stack
-rather than of the engine, and the default is chosen for the refusal point
-rather than for the stack. A level costs about 600 bytes on a 64-bit build, so
-the deepest pattern the default accepts spends some 2.4 MiB, and so does a
-deeper one before being refused, since the count is reached at the bottom of
-the recursion. Where the stack cannot pay that, the crash the limit exists to
-prevent comes back. The compiler is not the only thing standing on that stack
-either, so a third of it is the share to size the limit from:
+recurses once per level at some 600 bytes a level on a 64-bit build, so the
+deepest pattern the default accepts spends about 2.4 MiB. The compiler is not
+the only thing standing on that stack, so a third of it is the share to size
+the limit from:
 
 | Stack   | A limit that fits           |
 | ------- | --------------------------- |
@@ -361,73 +321,50 @@ either, so a third of it is the share to size the limit from:
 | 256 KiB | 128                         |
 | 64 KiB  | 32                          |
 
-Divide the build's own figure, not this one: `-Os` and a 32-bit ABI both make
-a level cheaper, and `-fstack-usage` over `re_compile.c` names it, the frames
-of `compile_alt` and `compile_seq` summed and the rest inlining into them (560
-bytes on a 64-bit gcc `-O2` build, 528 at `-Os`, 592 on a clang `-O3` one).
+Divide the build's own figure, not this one: `-Os` and a 32-bit ABI both make a
+level cheaper, and `-fstack-usage` over `re_compile.c` names it, the frames of
+`compile_alt` and `compile_seq` summed. Lowering it costs little, since nesting
+this deep is not what a written pattern does: a build that sets 128 still takes
+every pattern anyone writes, and gives up only the CRuby-exact refusal point.
 
-Lowering it costs little. Nesting this deep is not what a written pattern
-does, a handful of levels being ordinary and dozens unusual, so a build that
-sets 128 still takes every pattern anyone writes, and gives up only the
-CRuby-exact refusal point. The limit stands between 1 and 1,048,576, and a
-build that sets it outside that fails to compile.
+### What the build decides
 
-Case folding beyond ASCII is not this gem's to configure. The table is
-core's, carried by any build that defines `MRB_UTF8_STRING` without
-`MRB_USE_ASCII_CTYPE`, and is what `String#downcase` and the four case methods
-beside it read; `/i` reads the two directions it needs over that same table.
-So `/i` folds what the build's own case conversion folds, and a build
-converting case by ASCII has nothing for it to fold beyond ASCII either,
-whether the conversion was narrowed there or the strings are read as bytes and
-hold no character to fold in the first place.
+Case folding beyond ASCII and what a POSIX bracket holds above it are not this
+gem's to configure. Both need a build that defines `MRB_UTF8_STRING` without
+`MRB_USE_ASCII_CTYPE`.
 
-Where the build converts case by Unicode, `/Ā/i` matches `"ā"`, `/Σ/i` matches
-`"σ"`, and `[^Ā]` under `/i` stops accepting `"ā"`.
-
-Where it converts by ASCII, those same patterns do not compile:
+`/i` reads the two directions it needs off core's case table, the one
+`String#downcase` and the four case methods beside it read, so it folds what
+the build's own case conversion folds. There `/Ā/i` matches `"ā"`, `/Σ/i`
+matches `"σ"`, and `[^Ā]` under `/i` stops accepting `"ā"`. Where the build
+converts case by ASCII those same patterns do not compile:
 
 ```ruby
 /Ā/i     # RegexpError: /i needs Unicode case folding for this character
 ```
 
-The test is whether a character has a case folding, not whether it is
-non-ASCII, so a script without case is unaffected and `/日本/i`, `/العربية/i`
-and `/😀/i` go on working. The codepoints that do have one are held as ranges
-rather than one by one, and those ranges are coarse: the uncased codepoints
-inside them are refused with the rest, `ƻ` (U+01BB) among them.
-Patterns like `/Ā/i` were answering wrongly rather than narrowly before this:
-`[Ā]` under `/i` missed `"ā"`, and `[^Ā]` accepted it. Reaching this error
-means the pattern wants a build that converts case by Unicode.
+The test is whether a character has a folding, not whether it is non-ASCII, so
+a script without case is unaffected and `/日本/i`, `/العربية/i` and `/😀/i` go
+on working. The codepoints that do have one are held as ranges, and those
+ranges are coarse: the uncased codepoints inside them are refused with the
+rest, `ƻ` (U+01BB) among them. A codepoint with no single counterpart to fold
+to (`ﬀ` to `ff`) is never folded by either build. `/k/i` matching `"K"`
+(U+212A) and `/s/i` matching `"ſ"` need no table and work on both, though a
+class holding the letter only through `\w`, `[:word:]` or `[:ascii:]` does not
+reach them, those being sets ASCII defines.
 
-`/k/i` matching `"K"` (U+212A) and `/s/i` matching `"ſ"` need no table.
-Those two are the only foldings whose result is an ASCII letter, and both
-builds carry them, so that folding "ASCII only" covers the whole of the
-equivalence class an ASCII letter belongs to rather than the part of it that
-is ASCII. A class holding the letter only through `\w`, `[:word:]` or
-`[:ascii:]` does not reach them: those are sets ASCII defines, so `[\w]`
-under `/i` stays the ASCII word characters and `[^\w]` accepts `"K"` (U+212A),
-as in CRuby. A letter written out beside the shorthand (`[\ws]`) folds as usual.
-
-What a POSIX bracket holds above ASCII is this gem's table, `re_ctype.h`,
-carried on the same condition as the case table: a build that defines
-`MRB_UTF8_STRING` without `MRB_USE_ASCII_CTYPE`. There the brackets classify
-as CRuby's do, `[[:alpha:]]` holding `"あ"` and `[[:^alpha:]]` rejecting it,
-`[[:upper:]]` under `/i` reaching `"ā"` through `"Ā"`, and `[[:word:]]` every
-Unicode word character where `\w` stays ASCII. `\b` and `\B` read the
-bracket's set rather than the shorthand's, and so sit beside a character of
-any script; without the table they read as `[[:word:]]` does on such a build,
-which is the ASCII word characters and no more. The two are not two answers
-to one question: a class can be asked for another way, so the shorthand keeps
-the set CRuby gives it, while a boundary is the one thing a pattern cannot
-spell another way, and takes the set that is useful. The types are the ones the
-Unicode Character Database publishes: `alpha`, `upper` and `lower` are the
-derived properties Alphabetic, Uppercase and Lowercase, `space` is White_Space,
-and the rest are read off the general categories. Without the table a bracket
-holds its ASCII and no character above it, so `[[:alpha:]]` misses `"あ"` and
-`[[:^alpha:]]` takes it, and a build reading its strings by byte answers the
-same, having no character to classify. `[[:xdigit:]]` and `[[:ascii:]]` are
-sets ASCII defines and hold nothing above it on any build. The table is 13.9KB
-of read-only data; `MRB_USE_ASCII_CTYPE` is what leaves it out.
+The POSIX brackets read this gem's own table, `re_ctype.h`, 13.9KB of read-only
+data that `MRB_USE_ASCII_CTYPE` leaves out. With it the brackets classify as
+CRuby's do: `[[:alpha:]]` holds `"あ"` and `[[:^alpha:]]` rejects it,
+`[[:upper:]]` under `/i` reaches `"ā"` through `"Ā"`, and `[[:word:]]` holds
+every Unicode word character where `\w` stays ASCII. `\b` and `\B` read the
+bracket's set rather than the shorthand's, so a boundary sits beside a
+character of any script. The types are the ones the Unicode Character Database
+publishes: `alpha`, `upper` and `lower` are the derived properties Alphabetic,
+Uppercase and Lowercase, `space` is White_Space, and the rest are read off the
+general categories. Without the table a bracket holds its ASCII and no more, so
+`[[:alpha:]]` misses `"あ"`; `[[:xdigit:]]` and `[[:ascii:]]` are sets ASCII
+defines and hold nothing above it on any build.
 
 ## Checking against CRuby
 
