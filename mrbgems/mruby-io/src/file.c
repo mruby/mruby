@@ -666,6 +666,11 @@ mrb_file_mtime(mrb_state *mrb, mrb_value self)
   return mrb_int_value(mrb, st.st_mtime);
 }
 
+#if defined(sun)
+/* Solaris and Illumos have no flock(2): unimplemented, and named as such so
+   `respond_to?` can answer false */
+# define mrb_file_flock mrb_notimplement_m
+#else
 /*
  * call-seq:
  *   file.flock(locking_constant) -> 0 or false
@@ -680,9 +685,6 @@ mrb_file_mtime(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_file_flock(mrb_state *mrb, mrb_value self)
 {
-#if defined(sun)
-  mrb_raise(mrb, E_NOTIMP_ERROR, "flock is not supported on Illumos/Solaris/Windows");
-#else
   mrb_int operation;
 
   mrb_get_args(mrb, "i", &operation);
@@ -706,9 +708,9 @@ mrb_file_flock(mrb_state *mrb, mrb_value self)
         break;
     }
   }
-#endif
   return mrb_fixnum_value(0);
 }
+#endif
 
 /*
  * call-seq:

@@ -160,14 +160,13 @@ assert('File.extname') do
 end
 
 assert('File#flock') do
+  skip 'flock is not implemented on this platform' unless File.method_defined?(:flock)
   f = File.open $mrbtest_io_rfname
   begin
     assert_equal(f.flock(File::LOCK_SH), 0)
     assert_equal(f.flock(File::LOCK_UN), 0)
     assert_equal(f.flock(File::LOCK_EX | File::LOCK_NB), 0)
     assert_equal(f.flock(File::LOCK_UN), 0)
-  rescue NotImplementedError => e
-    skip e.message
   ensure
     f.close
   end
