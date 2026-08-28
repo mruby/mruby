@@ -931,6 +931,7 @@ mark_context(mrb_state *mrb, struct mrb_context *c)
   if (c->cibase) {
     for (ci = c->cibase; ci <= c->ci; ci++) {
       mrb_gc_mark(mrb, (struct RBasic*)ci->proc);
+      mrb_gc_mark(mrb, ci->svar);
       mrb_gc_mark(mrb, (struct RBasic*)ci->u.target_class);
     }
   }
@@ -1000,15 +1001,31 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
         mrb_gc_mark_value(mrb, e->stack[i]);
       }
       if (MRB_ENV_SVAR_P(e)) {
-        /* the escaped scope's special variables, one slot past the locals
-           (see internal.h). Only an env whose flag says it carries the slot
-           has one: a closed env sized without it, which out-of-tree code
-           builds by hand, ends its allocation at the locals. */
+        /* the escaped scope's special-variable container, one slot past the
+           locals (see mrb_env_detach() in vm.c). Only an env whose flag says
+           it carries the slot has one: a closed env sized without it, which
+           out-of-tree code builds by hand, ends its allocation at the
+           locals (see internal.h). */
         mrb_assert(!MRB_ENV_ONSTACK_P(e));
         mrb_assert(e->stack != NULL);
         mrb_gc_mark_value(mrb, MRB_ENV_SVAR_SLOT(e->stack, len));
       }
       children += len;
+    }
+    break;
+
+  case MRB_TT_SVAR:
+    {
+      struct RSvar *sv = (struct RSvar*)obj;
+
+      /* slots is NULL only in the window svar_new() (vm.c) leaves between
+         allocating the object and its slot array */
+      if (sv->slots) {
+        for (int i = 0; i < MRB_SVAR_MAX; i++) {
+          mrb_gc_mark_value(mrb, sv->slots[i]);
+        }
+        children += MRB_SVAR_MAX;
+      }
     }
     break;
 
@@ -1180,6 +1197,10 @@ obj_free(mrb_state *mrb, struct RBasic *obj, mrb_bool end)
         mrb_free(mrb, e->stack);
       }
     }
+    break;
+
+  case MRB_TT_SVAR:
+    mrb_free(mrb, ((struct RSvar*)obj)->slots);
     break;
 
   case MRB_TT_FIBER:

@@ -160,10 +160,62 @@ void mrb_gc_free_set(mrb_state *mrb, struct RBasic *set);
 size_t mrb_set_memsize(mrb_value);
 #endif
 
+/* One Ruby scope's special variables (CRuby's `struct vm_svar`): a plain
+ * container of MRB_SVAR_MAX slots, one per key of `enum mrb_svar_index`
+ * below, each holding any mrb_value. The container is an internal GC
+ * object so a frame and the env the scope escapes into can hold the same
+ * one, and it is allocated lazily, on the first non-nil write into a
+ * scope (svar_new() in vm.c), so a scope that never touches a special
+ * variable never carries one. The slots live outside the object because
+ * sizeof(mrb_value) varies with the boxing and RVALUE is sized tightly;
+ * gc.c marks them through the object and frees them with it. */
+struct RSvar {
+  MRB_OBJECT_HEADER;
+  mrb_value *slots;
+};
+
+/* The keys of a Ruby scope's special variables, CRuby's `enum
+ * vm_svar_index` with CRuby's numbering. Each scope holds one container of
+ * MRB_SVAR_MAX slots (allocated lazily, see mrb_vm_svar_set()), and each
+ * key names one slot in it. The namespace is owned by the core: a new
+ * special variable takes a new enumerator here, never a key minted at
+ * runtime, so a key means the same slot in every build and gem load order.
+ *
+ * This enum and the accessor pair below are core-internal rather than
+ * MRB_API: the namespace they index is not open to a key minted outside
+ * this file, so exposing them would freeze the container's representation
+ * and the scope-resolution rule without giving an out-of-tree caller
+ * anything a new key could not already do from `mrb_gv_define_virtual()`.
+ * A gem publishes a special variable by registering a virtual global whose
+ * get/set pair closes over its own key here, the way mruby-regexp keeps
+ * `$~`'s MatchData under MRB_SVAR_BACKREF. */
+enum mrb_svar_index {
+  MRB_SVAR_LASTLINE = 0,        /* $_ */
+  MRB_SVAR_BACKREF,             /* $~ */
+  MRB_SVAR_MAX
+};
+
+/* Reads one special-variable slot of the owning Ruby scope, resolved like
+ * CRuby's svar (a C frame reads through to the Ruby frame below it, a block
+ * shares its defining method's container, and a scope that returned keeps
+ * its container in its env, so a proc outliving it still reads the value).
+ * The core stores and marks the slots but gives them no meaning: a key's
+ * semantics belong to whoever pairs these accessors with a virtual global,
+ * the way mruby-regexp keeps `$~`'s MatchData under MRB_SVAR_BACKREF. */
+mrb_value mrb_vm_svar_get(mrb_state *mrb, enum mrb_svar_index key);
+
+/* Writes one special-variable slot of the owning Ruby scope. The slot holds
+ * any mrb_value, immediates included. Any richer contract, like
+ * mruby-regexp's TypeError for `$~ = <not a MatchData>`, belongs to the
+ * caller. The scope's container is allocated on the first non-nil write; a
+ * nil write into a scope that has none is dropped, nil being what a missing
+ * slot already reads as. */
+void mrb_vm_svar_set(mrb_state *mrb, enum mrb_svar_index key, mrb_value v);
+
 #ifdef MRUBY_PROC_H
-/* A closed env may carry one slot past its locals: the ground the special
- * variables of the scope the env escapes from live on, once the frame
- * that held them is gone.
+/* A closed env may carry one slot past its locals: the special-variable
+ * container of the scope the env escapes from, which mrb_env_detach()
+ * moves there and svar_owner() reads back.
  *
  * Whether the slot is there is not implied by the env being closed. struct
  * REnv, MRB_ENV_CLOSE() and MRB_ENV_SET_LEN() are public, and out-of-tree
@@ -179,10 +231,10 @@ size_t mrb_set_memsize(mrb_value);
  * The middle state is what out-of-tree code makes, and what the core's own
  * envs fall back to when there is no stack left to size (mrb_env_unshare()
  * out of memory, error.c's fault-time rewind). It reads as a scope holding
- * no special variables, and the first write that needs the slot grows
- * such an env into the third. So: every path that allocates or resizes a
- * stack with the slot goes through MRB_ENV_SVAR_STACK_SIZE() and sets the
- * flag, every path that reads or writes the slot goes through
+ * no container, and svar_slot_ensure() in vm.c grows it into the third on
+ * the first write that needs one. So: every path that allocates or resizes
+ * a stack with the slot goes through MRB_ENV_SVAR_STACK_SIZE() and sets
+ * the flag, every path that reads or writes the slot goes through
  * MRB_ENV_SVAR_SLOT() under MRB_ENV_SVAR_P(), and every path that drops
  * the stack clears the flag. All three take the number of locals, which is
  * MRB_ENV_LEN() once the env carries it.
@@ -201,6 +253,7 @@ struct RProc *mrb_closure_new(mrb_state*, const mrb_irep*);
 void mrb_proc_copy(mrb_state *mrb, struct RProc *a, const struct RProc *b);
 mrb_int mrb_proc_arity(const struct RProc *p);
 struct REnv *mrb_env_new(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci, int nstacks, mrb_value *stack, struct RClass *tc);
+mrb_bool mrb_env_detach(mrb_state *mrb, struct REnv *e, struct RBasic *sv, mrb_bool noraise);
 void mrb_env_detach_all(mrb_state *mrb, struct mrb_context *c);
 void mrb_proc_merge_lvar(mrb_state *mrb, mrb_irep *irep, struct REnv *env, int num, const mrb_sym *lv, const mrb_value *stack);
 mrb_value mrb_proc_local_variables(mrb_state *mrb, const struct RProc *proc);

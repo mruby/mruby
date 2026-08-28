@@ -113,8 +113,8 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj)
       const struct REnv *env = MRB_PROC_ENV(proc);
       size += mrb_objspace_page_slot_size();
       if (env) {
-        /* the locals, plus the slot past them where the env carries its
-           scope's special variables (see internal.h) */
+        /* the locals, plus the slot past them where the env carries the
+           special-variable container (see internal.h) */
         size += MRB_ENV_LEN(env) * sizeof(mrb_value);
         if (MRB_ENV_SVAR_P(env)) size += sizeof(mrb_value);
       }
@@ -178,6 +178,11 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj)
       break;
     case MRB_TT_BACKTRACE:
       size += ((struct RBacktrace*)mrb_obj_ptr(obj))->len * sizeof(struct mrb_backtrace_location);
+      break;
+    case MRB_TT_SVAR:
+      if (((struct RSvar*)mrb_obj_ptr(obj))->slots) {
+        size += MRB_SVAR_MAX * sizeof(mrb_value);
+      }
       break;
     /*  zero heap size types.
      *  immediate VM stack values, contained within mrb_state, or on C stack */

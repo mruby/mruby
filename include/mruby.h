@@ -182,6 +182,11 @@ typedef struct {
   struct RProc *blk;
   mrb_value *stack;
   const mrb_code *pc;           /* current address on iseq of this proc */
+  struct RBasic *svar;          /* special variables of this frame's scope (CRuby's svar): a keyed
+                                   container (struct RSvar), NULL until a first non-nil write allocates
+                                   it. The core stores and marks it; each key's meaning belongs to
+                                   whoever registers the matching virtual global (see
+                                   mrb_vm_svar_get()) */
   union {
     struct REnv *env;
     struct RClass *target_class;
