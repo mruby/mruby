@@ -66,3 +66,23 @@ assert('BasicSocket#getpeereid') do
     s.close rescue nil
   end
 end
+
+# SocketTest.win? reads the same _WIN32 that guards the sysseek entry, so this
+# test runs everywhere and asks each platform for the answer it compiled.
+assert('BasicSocket#sysseek') do
+  s = Socket.new(Socket::AF_INET, Socket::SOCK_DGRAM, 0)
+  begin
+    if SocketTest.win?
+      # The entry is here to refuse, a socket having no position to seek to,
+      # and it shadows IO#sysseek for every socket.
+      assert_false s.respond_to?(:sysseek)
+      assert_raise(NotImplementedError) { s.sysseek(0) }
+    else
+      # Without that entry IO#sysseek is the nearest definition, and a socket
+      # answers with it.
+      assert_true s.respond_to?(:sysseek)
+    end
+  ensure
+    s.close rescue nil
+  end
+end
