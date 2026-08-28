@@ -110,8 +110,14 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj)
     }
     case MRB_TT_PROC: {
       struct RProc* proc = mrb_proc_ptr(obj);
+      const struct REnv *env = MRB_PROC_ENV(proc);
       size += mrb_objspace_page_slot_size();
-      size += MRB_ENV_LEN(proc->e.env) * sizeof(mrb_value);
+      if (env) {
+        /* the locals, plus the slot past them where the env carries its
+           scope's special variables (see internal.h) */
+        size += MRB_ENV_LEN(env) * sizeof(mrb_value);
+        if (MRB_ENV_SVAR_P(env)) size += sizeof(mrb_value);
+      }
       if (!MRB_PROC_CFUNC_P(proc))
         size += os_memsize_of_irep(mrb, proc->body.irep);
       break;

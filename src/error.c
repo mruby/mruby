@@ -797,6 +797,8 @@ mrb_protect_atexit(mrb_state *mrb)
             MRB_ENV_SET_LEN(e, 0);
             MRB_ENV_SET_BIDX(e, 0);
             MRB_ENV_CLOSE(e);
+            /* the stack is gone, so the slot past it is too (internal.h) */
+            MRB_ENV_CLEAR_SVAR(e);
           }
         } while (c->ci-- > c->cibase);
         c->ci = c->cibase;
