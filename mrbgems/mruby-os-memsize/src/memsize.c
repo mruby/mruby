@@ -180,6 +180,7 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj)
       size += ((struct RBacktrace*)mrb_obj_ptr(obj))->len * sizeof(struct mrb_backtrace_location);
       break;
     case MRB_TT_SVAR:
+      size += mrb_objspace_page_slot_size();
       if (((struct RSvar*)mrb_obj_ptr(obj))->slots) {
         size += MRB_SVAR_MAX * sizeof(mrb_value);
       }
