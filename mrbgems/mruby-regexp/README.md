@@ -91,8 +91,10 @@ re = Regexp.new("pattern", Regexp::IGNORECASE)
 re = Regexp.compile("pattern")    # Regexp.new under its other name
 re = /pattern/i                   # literal syntax
 re.match("string")                # => MatchData or nil
+re.match("string", pos)           # => same, searching from pos
 re.match("string") { |md| ... }   # => block result, or nil if no match
 re.match?("string")               # => true/false
+re.match?("string", pos)          # => same, searching from pos
 re =~ "string"                    # => index or nil
 re === "string"                   # => true/false (for case/when)
 re.match(:symbol)                 # a Symbol is matched against its name
@@ -132,8 +134,10 @@ md.regexp                         # => the Regexp that matched
 
 # String methods
 str.match(re)                     # => MatchData or nil
+str.match(re, pos)                # => same, searching from pos
 str.match(re) { |md| ... }        # => block result, or nil if no match
 str.match?(re)                    # => true/false
+str.match?(re, pos)               # => same, searching from pos
 str =~ re                         # => index or nil
 str.sub(re, replacement)          # replace first occurrence
 str.sub(re) { |m| ... }           # replace with block
@@ -145,6 +149,8 @@ str.gsub!(re, replacement)        # => self, or nil if no match
 str.gsub!(re) { |m| ... }         # same, replacing with the block result
 str.scan(re)                      # => array of matches
 str.split(re)                     # => array of parts
+str.split(re, limit)              # => same, at most limit parts; a negative
+                                  #    limit keeps the trailing empty ones
 str[re]                           # => matched substring or nil
 str[re, capture]                  # => capture by index or name
 str.slice(re)                     # => same as str[re]
@@ -163,11 +169,14 @@ str.byterindex(re, pos)           # => same, at or before byte pos
 str.partition(re)                 # => [before, match, after]
 str.rpartition(re)                # => [before, last match, after]
 str.start_with?(re)               # => true/false (anchored at the start)
+str.start_with?(re, "s", ...)     # => true where any one of them does
 
 # Symbol methods (the String methods applied to the symbol's name)
 sym.match(re)                     # => MatchData or nil
+sym.match(re, pos)                # => same, searching from pos
 sym.match(re) { |md| ... }        # => block result, or nil if no match
 sym.match?(re)                    # => true/false
+sym.match?(re, pos)               # => same, searching from pos
 sym =~ re                         # => index or nil
 sym[re]                           # => matched substring or nil
                                   #    (Symbol#[] comes from mruby-symbol-ext)
