@@ -108,3 +108,10 @@ assert('REnv, the shutdown detach keeps the top-level container') do
   skip 'the teardown window opens under MRB_GC_STRESS with a compiler' if kept.nil?
   assert_true kept
 end
+
+assert('REnv, MRB_ENV_SET_BIDX() evaluates its index exactly once') do
+  # Unrelated to the slot above: mruby/proc.h documents the macro as
+  # public, so an idx argument with a side effect must run exactly once
+  # regardless of MRB_DEBUG (mrbgems/mruby-test/env.c).
+  assert_equal 1, __env_set_bidx_eval_count
+end

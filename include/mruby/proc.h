@@ -47,9 +47,18 @@ struct REnv {
    stored truncated rather than reaching the flag above it. That is silent,
    and this macro is public and was eight bits wide before, so a debug build
    says so instead. The tighter bound the VM itself works to, 43, is
-   asserted where the VM computes the index (mrb_env_new()). */
-#define MRB_ENV_SET_BIDX(e,idx) \
-  (mrb_assert((unsigned int)(idx) < 128), MRB_FLAGS_SET((e)->flags, 8, 7, (unsigned int)(idx)))
+   asserted where the VM computes the index (mrb_env_new()).
+   A static inline function rather than a bare macro: mrb_assert() expands
+   to nothing under release, so a macro body using it evaluates idx once in
+   release and twice under MRB_DEBUG, which a public macro cannot ask a
+   caller to plan around. */
+static inline void
+mrb_env_set_bidx(struct REnv *e, unsigned int idx)
+{
+  mrb_assert(idx < 128);
+  MRB_FLAGS_SET(e->flags, 8, 7, idx);
+}
+#define MRB_ENV_SET_BIDX(e, idx) mrb_env_set_bidx((e), (unsigned int)(idx))
 #define MRB_ENV_SET_VISIBILITY(e, vis) MRB_FLAGS_SET((e)->flags, 16, 2, vis)
 #define MRB_ENV_VISIBILITY(e) MRB_FLAGS_GET((e)->flags, 16, 2)
 #define MRB_ENV_VISIBILITY_BREAK_P(e) MRB_FLAG_CHECK((e)->flags, 18)

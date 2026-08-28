@@ -8,6 +8,11 @@
 **
 ** The shutdown probe at the bottom asks the same about the teardown
 ** mrb_close() runs, which no Ruby frame outlives.
+**
+** A second, unrelated probe lives here too: mruby/proc.h documents
+** MRB_ENV_SET_BIDX() as public, so its idx argument must be safe to pass
+** an expression with a side effect, which env_set_bidx_eval_count() below
+** checks by counting.
 */
 
 #include <stdlib.h>
@@ -24,6 +29,22 @@ env_of_proc(mrb_state *mrb, mrb_value proc)
 {
   mrb_check_type(mrb, proc, MRB_TT_PROC);
   return MRB_PROC_ENV(mrb_proc_ptr(proc));
+}
+
+/* MRB_ENV_SET_BIDX() is documented public (mruby/proc.h), so an idx
+   argument with a side effect must be evaluated exactly once: mrb_assert()
+   used to make the macro's own body evaluate idx a second time under
+   MRB_DEBUG. The fake env never reaches the GC; only its flags word is
+   touched. */
+static mrb_value
+env_set_bidx_eval_count(mrb_state *mrb, mrb_value self)
+{
+  struct REnv fake;
+  int count = 0;
+
+  fake.flags = 0;
+  MRB_ENV_SET_BIDX(&fake, count++);
+  return mrb_int_value(mrb, count);
 }
 
 /* Whether the proc's env carries the slot past its locals; nil where the
@@ -238,6 +259,7 @@ mrb_init_test_env(mrb_state *mrb)
   mrb_define_method(mrb, o, "__env_len", env_len, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, o, "__env_svar_slot", env_svar_slot, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, o, "__env_make_legacy", env_make_legacy, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, o, "__env_set_bidx_eval_count", env_set_bidx_eval_count, MRB_ARGS_NONE());
   mrb_define_method(mrb, o, "__env_svar_read", env_svar_read, MRB_ARGS_NONE());
   mrb_define_method(mrb, o, "__env_svar_write", env_svar_write, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, o, "__env_cfunc_proc", env_cfunc_proc_new, MRB_ARGS_REQ(1));
