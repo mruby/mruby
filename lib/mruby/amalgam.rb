@@ -724,10 +724,13 @@ module MRuby
       source_dirs = ["#{gem.dir}/src", "#{gem.dir}/core"].select { |d| File.directory?(d) }
       @build.effective_ports.each do |port|
         port_dir = "#{gem.dir}/ports/#{port}"
-        if File.directory?(port_dir)
-          source_dirs << port_dir
-          break
-        end
+        next unless File.directory?(port_dir)
+        # An external HAL provider supplies these entry points instead, and
+        # List#resolve_external_hal! has already dropped the port's objs from
+        # the build.  The sources have to go with them, or the amalgam ends up
+        # with both definitions.
+        source_dirs << port_dir unless (gem.port_objs & gem.objs).empty?
+        break
       end
       sources = source_dirs.flat_map { |d| Dir.glob("#{d}/**/*.c") }.sort
         .map { |s| File.expand_path(s) }
