@@ -39,8 +39,11 @@
  * An escaped closure keeps its REnv alive after the task is gone; if the
  * env still points into the freed stack, the next GC marks garbage and
  * crashes in mrb_gc_mark. mruby does the same for fibers in gc.c's
- * MRB_TT_FIBER free path; the walk both come through is
- * mrb_env_detach_all() (vm.c).
+ * MRB_TT_FIBER free path; the shared walk and the carrying policy for
+ * each frame's special-variable container live in mrb_env_detach_all()
+ * (vm.c). TRUE because this teardown runs outside a collection, so a
+ * scopeless frame's owner is resolved here, on this side of the C
+ * boundary a preempted nested load stopped at.
  *
  * Only called while the VM is alive. A task stays GC-registered for its
  * whole life, so the GC frees one only while tearing the heap down, and
@@ -49,7 +52,7 @@
 static void
 task_unshare_envs(mrb_state *mrb, struct mrb_context *c)
 {
-  mrb_env_detach_all(mrb, c);
+  mrb_env_detach_all(mrb, c, TRUE);
 }
 
 /*

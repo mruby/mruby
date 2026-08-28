@@ -95,3 +95,16 @@ assert('REnv, a grown env is the one scope both its procs see') do
   GC.start
   assert_equal "shared", reader.call
 end
+
+assert('REnv, the shutdown detach keeps the top-level container') do
+  # `mrb_close()` detaches the top-level frame's env before it runs the
+  # atexit callbacks, and carries the frame's special-variable container
+  # into the escaped env. The frame is the container's only root until that
+  # store, and the detach allocates on the way. The probe in
+  # mrbgems/mruby-test/env.c runs that teardown in a state of its own and
+  # answers what the escaped env's slot ended up holding; it answers nil
+  # where this build puts no collection in the window.
+  kept = __env_shutdown_svar
+  skip 'the teardown window opens under MRB_GC_STRESS with a compiler' if kept.nil?
+  assert_true kept
+end

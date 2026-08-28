@@ -1010,6 +1010,44 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
         mrb_assert(e->stack != NULL);
         mrb_gc_mark_value(mrb, MRB_ENV_SVAR_SLOT(e->stack, len));
       }
+      else if (MRB_ENV_ONSTACK_P(e) && e->cxt && e->cxt != mrb->root_c && e->cxt->cibase) {
+        /* The owning frame's special-variable container is kept alive
+           through the env, not only through the context: a suspended fiber
+           dead to the GC no longer marks its ci stack, while this env, held
+           by an escaped proc, still marks the locals; the container has to
+           survive the same way for the detach in the fiber's free to move
+           it into the heap copy (see mrb_env_detach() in vm.c). What is
+           marked is what that detach will carry: for a scopeless frame what
+           the scope further down has, resolved by
+           mrb_svar_frame_container() in vm.c and stashed in the frame's own
+           slot, because the free runs inside the sweep, where this
+           resolution's walk could chase objects already swept and recycled:
+           what it can trust is what this mark, running on intact memory,
+           left in ci->svar. The root frame is left out of the stash: its
+           container dies with the context, so the detach never reads it,
+           and a slot resolution can end on is one no forward may occupy.
+           Envs on the root context skip all of it: that context is never
+           torn down and root_scan_phase() marks its frames' containers, and
+           the owner a scopeless resolution would find is reached through
+           the marked proc chain. */
+        struct mrb_context *c = e->cxt;
+        /* Stop AT cibase rather than decrementing past it: forming a
+           pointer one element before the start of an array is undefined
+           behavior. */
+        for (mrb_callinfo *ci = c->ci; ; ci--) {
+          if (ci->u.env == e) {
+            struct RBasic *sv = ci->svar;
+            if (!sv && ci != c->cibase) {
+              sv = mrb_svar_frame_container(c, ci);
+              if (sv) ci->svar = sv;
+            }
+            mrb_gc_mark(mrb, sv);
+            children++;
+            break;
+          }
+          if (ci == c->cibase) break;
+        }
+      }
       children += len;
     }
     break;
@@ -1209,7 +1247,13 @@ obj_free(mrb_state *mrb, struct RBasic *obj, mrb_bool end)
 
       if (c && c != mrb->root_c) {
         if (!end && c->status != MRB_FIBER_TERMINATED) {
-          mrb_env_detach_all(mrb, c);
+          /* Every surviving env escapes with its frame's container (see
+             mrb_env_detach_all() in vm.c for the carrying policy); FALSE
+             because this runs inside the sweep, where resolving an owner
+             would chase objects already swept, so a scopeless frame's
+             carrier is what gc_mark_children() stashed in its ci->svar,
+             which is a container or a forward to the scope below's env. */
+          mrb_env_detach_all(mrb, c, FALSE);
         }
         mrb_free_context(mrb, c);
       }
