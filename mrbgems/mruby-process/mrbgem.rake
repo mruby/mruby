@@ -18,4 +18,8 @@ MRuby::Gem::Specification.new('mruby-process') do |spec|
   # that defines them.  Without this the tests still pass, by taking the
   # branch that settles for any StandardError.
   spec.add_test_dependency 'mruby-errno', core: 'mruby-errno'
+
+  # Asking a Process::Status what instance_variables it hands out needs the
+  # gem that defines Object#instance_variables in the first place.
+  spec.add_test_dependency 'mruby-metaprog', core: 'mruby-metaprog'
 end
