@@ -73,6 +73,12 @@ status_flag(mrb_state *mrb, mrb_value self, unsigned int flag)
  * Wraps a platform wait status for the process +pid+.  +raw_status+ is the
  * value the platform reported the process with, as Process.waitpid passes
  * on and as Process::Status#to_i gives back.
+ *
+ * A Process::Status is frozen once built, as CRuby freezes the one it leaves
+ * in <code>$?</code>.  What a process did is over by the time there is a
+ * status for it, and every question a status answers is read back from the
+ * two integers set here.  An instance of a subclass is left unfrozen, since
+ * whatever else it is made of is set after this returns.
  */
 static mrb_value
 status_initialize(mrb_state *mrb, mrb_value self)
@@ -88,6 +94,20 @@ status_initialize(mrb_state *mrb, mrb_value self)
   mrb_process_int_arg(mrb, raw_status, "status");
   mrb_iv_set(mrb, self, MRB_IVSYM(pid), mrb_int_value(mrb, pid));
   mrb_iv_set(mrb, self, MRB_IVSYM(status), mrb_int_value(mrb, raw_status));
+  /* Last, since the two above are what there is to write.  A second
+     #initialize on the same object is refused from here on, which is what
+     freezing a value means and not a case this gem's own paths reach.
+
+     Only when the object is a Process::Status and nothing more.  A subclass
+     is still being built when this returns: its own #initialize called super
+     to have the two set and goes on to set whatever else it is made of, and
+     freezing here would turn that into a FrozenError.  Every status this gem
+     and mruby-io publish through `$?` is of this exact class, so the ones
+     that answer for a reaped process are the ones that are frozen.  CRuby's
+     Range does the same, freezing in #initialize only what is a Range. */
+  if (mrb_obj_class(mrb, self) == status_class(mrb)) {
+    mrb_obj_freeze(mrb, self);
+  }
   return self;
 }
 
