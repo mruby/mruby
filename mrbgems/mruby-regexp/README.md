@@ -163,6 +163,27 @@ $&, $`, $', $+, $1, $2, ...       # read from $~ at the moment they are read
                                   #    (all nil while $~ is nil)
 ```
 
+### Named Captures
+
+As in CRuby, a named group anywhere in a pattern renumbers the whole of it: a
+plain `(...)` groups without capturing, and a numbered backreference raises
+`RegexpError` in every spelling (`\1`, `\k<1>`, `\k<-1>`). Refer to a group by
+name instead. A pattern with no named group numbers its groups as usual, and
+`\1`-`\9` work there.
+
+```ruby
+md = /(?<a>a)(b)/.match("ab")
+md.size                          # => 2
+md.captures                      # => ["a"]
+md[:a]                           # => "a"
+md[2]                            # => nil
+
+"aa".match(/(?<n>\w)\k<n>/)[0]   # => "aa"
+
+Regexp.new("(a)(?<b>b)\\1")
+# RegexpError: numbered backref/call is not allowed. (use name)
+```
+
 ## Engine Architecture
 
 The gem uses two execution engines:
@@ -291,29 +312,6 @@ pattern analysis.
   start and keep the last match that qualifies. The cost grows with the
   number of positions a match starts at, where CRuby hands the search to
   Onig.
-
-## Named Captures
-
-As in CRuby, declaring a named group anywhere in a pattern changes how the
-whole pattern is numbered: a plain `(...)` groups without capturing, and a
-numbered backreference is a `RegexpError` in every spelling (`\1`, `\k<1>`,
-`\k<-1>`). Refer to a group by name instead.
-
-```ruby
-md = /(?<a>a)(b)/.match("ab")
-md.size                          # => 2
-md.captures                      # => ["a"]
-md[:a]                           # => "a"
-md[2]                            # => nil
-
-"aa".match(/(?<n>\w)\k<n>/)[0]   # => "aa"
-
-Regexp.new("(a)(?<b>b)\\1")
-# RegexpError: numbered backref/call is not allowed. (use name)
-```
-
-A pattern with no named group numbers its groups as usual, and `\1`-`\9` work
-there.
 
 ## Configuration
 
