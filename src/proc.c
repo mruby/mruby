@@ -81,6 +81,10 @@ mrb_env_new(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci, int nstacks
   MRB_ENV_SET_LEN(e, nstacks);
   bidx += (n == 15) ? 1 : n;
   bidx += (nk == 15) ? 1 : (2*nk);
+  /* This is the only index the VM computes, and the field holding it is
+     seven bits wide (proc.h), which the widest call fits in: one for the
+     receiver, 14 positional arguments and 28 for 14 keyword pairs. */
+  mrb_assert(bidx <= 43);
   MRB_ENV_SET_BIDX(e, bidx);
   e->mid = ci->mid;
   e->stack = stack;

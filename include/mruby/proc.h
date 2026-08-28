@@ -30,13 +30,23 @@ struct REnv {
   mrb_sym mid;
 };
 
-/* flags (20bits): 1(ZERO):1(separate module):2(visibility):8(cioff/bidx):8(stack_len) */
+/* flags (20bits): 1(ZERO):1(separate module):2(visibility):1(unused):7(bidx):8(stack_len)
+ * The block argument index needs seven bits at most: it counts one for the
+ * receiver, at most 14 positional arguments (15 meaning a packed array,
+ * worth one) and at most 28 for 14 keyword pairs (15 meaning a packed
+ * hash, worth one), so 43. */
 #define MRB_ENV_SET_LEN(e,len) ((e)->flags = (((e)->flags & ~0xff)|((unsigned int)(len) & 0xff)))
 #define MRB_ENV_LEN(e) ((mrb_int)((e)->flags & 0xff))
 #define MRB_ENV_CLOSE(e) ((e)->cxt = NULL)
 #define MRB_ENV_ONSTACK_P(e) ((e)->cxt != NULL)
-#define MRB_ENV_BIDX(e) (((e)->flags >> 8) & 0xff)
-#define MRB_ENV_SET_BIDX(e,idx) ((e)->flags = (((e)->flags & ~(0xff<<8))|((unsigned int)(idx) & 0xff)<<8))
+#define MRB_ENV_BIDX(e) MRB_FLAGS_GET((e)->flags, 8, 7)
+/* MRB_FLAGS_SET() masks to the width, so an index that does not fit is
+   stored truncated rather than reaching the bit above it. That is silent,
+   and this macro is public and was eight bits wide before, so a debug build
+   says so instead. The tighter bound the VM itself works to, 43, is
+   asserted where the VM computes the index (mrb_env_new()). */
+#define MRB_ENV_SET_BIDX(e,idx) \
+  (mrb_assert((unsigned int)(idx) < 128), MRB_FLAGS_SET((e)->flags, 8, 7, (unsigned int)(idx)))
 #define MRB_ENV_SET_VISIBILITY(e, vis) MRB_FLAGS_SET((e)->flags, 16, 2, vis)
 #define MRB_ENV_VISIBILITY(e) MRB_FLAGS_GET((e)->flags, 16, 2)
 #define MRB_ENV_VISIBILITY_BREAK_P(e) MRB_FLAG_CHECK((e)->flags, 18)
