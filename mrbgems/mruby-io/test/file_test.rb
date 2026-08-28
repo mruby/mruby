@@ -35,13 +35,14 @@ assert("FileTest.file?") do
 end
 
 assert("FileTest.pipe?") do
+  skip 'pipe? is not implemented on this platform' unless FileTest.respond_to?(:pipe?)
+  assert_equal false, FileTest.pipe?("/tmp")
   begin
-    assert_equal false, FileTest.pipe?("/tmp")
     io = IO.popen("ls")
-    assert_equal true,  FileTest.pipe?(io)
   rescue NotImplementedError => e
     skip e.message
   end
+  assert_equal true,  FileTest.pipe?(io)
 end
 
 assert('FileTest.size') do
@@ -72,19 +73,13 @@ assert("FileTest.size?") do
 end
 
 assert("FileTest.socket?") do
-  begin
-    assert_true FileTest.socket?($mrbtest_io_socketname)
-  rescue NotImplementedError => e
-    skip e.message
-  end
+  skip 'socket? is not implemented on this platform' unless FileTest.respond_to?(:socket?)
+  assert_true FileTest.socket?($mrbtest_io_socketname)
 end
 
 assert("FileTest.symlink?") do
-  begin
-    assert_true FileTest.symlink?($mrbtest_io_symlinkname)
-  rescue NotImplementedError => e
-    skip e.message
-  end
+  skip 'symlink? is not implemented on this platform' unless FileTest.respond_to?(:symlink?)
+  assert_true FileTest.symlink?($mrbtest_io_symlinkname)
 end
 
 assert("FileTest.zero?") do
