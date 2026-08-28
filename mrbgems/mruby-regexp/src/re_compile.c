@@ -2407,6 +2407,36 @@ skip_quantifiers(re_compiler *c)
   }
 }
 
+/* TRUE for an assertion whose repeated evaluations at one position have no
+   observable difference. A capture write would make the repetitions visible,
+   and a call may write captures in a body outside this span. */
+static mrb_bool
+idempotent_assertion(const re_inst *code, uint32_t start, uint32_t end)
+{
+  if (end == start + 1) {
+    switch (code[start].op) {
+    case RE_BOL: case RE_EOL: case RE_BOT: case RE_EOT: case RE_EOTNL:
+    case RE_WBOUND: case RE_NWBOUND:
+      return TRUE;
+    default:
+      return FALSE;
+    }
+  }
+
+  switch (code[start].op) {
+  case RE_LOOKAHEAD: case RE_NEG_LOOKAHEAD:
+  case RE_LOOKBEHIND: case RE_NEG_LOOKBEHIND:
+    if (code[start].offset != end) return FALSE;
+    break;
+  default:
+    return FALSE;
+  }
+  for (uint32_t pc = start + 1; pc < end; pc++) {
+    if (code[pc].op == RE_SAVE || code[pc].op == RE_CALL) return FALSE;
+  }
+  return TRUE;
+}
+
 /* Compile atom with quantifiers (*, +, ?, {n,m}) */
 static void
 compile_quantified(re_compiler *c)
@@ -2432,6 +2462,7 @@ compile_quantified(re_compiler *c)
     if (atom) skip_quantifiers(c);
     return;
   }
+  mrb_bool assertion = idempotent_assertion(c->pat->code, start, c->code_len);
 
   /* Under /x the quantifier may stand apart from its atom, `a +` being `a+`.
      A `?` making it non-greedy is read right after it, though, as CRuby
@@ -2478,8 +2509,23 @@ compile_quantified(re_compiler *c)
       mrb_bool nongreedy = (peek(c) == '?');
       if (nongreedy) {
         next_char(c);
-        c->needs_backtrack = TRUE;
       }
+
+      /* Repeating a capture-free assertion at one position can only ask the
+         same question again. Zero repetitions therefore emit nothing, and a
+         positive minimum keeps the one copy already emitted. */
+      if (assertion) {
+        if (ch != '+') {
+          c->code_len = start;
+          skip_quantifiers(c);
+          return;
+        }
+        if (!nongreedy && peek(c) == '+') next_char(c);
+        greedy_rep = FALSE;
+        start = begin;
+        continue;
+      }
+      if (nongreedy) c->needs_backtrack = TRUE;
 
       if (ch == '*') {
         /* e* -> L: SPLIT(body, end); body; JMP L; end:
@@ -2519,8 +2565,18 @@ compile_quantified(re_compiler *c)
     mrb_bool nongreedy = (ranged && peek(c) == '?');
     if (nongreedy) {
       next_char(c);
-      c->needs_backtrack = TRUE;
     }
+    if (assertion) {
+      if (min == 0) {
+        c->code_len = start;
+        skip_quantifiers(c);
+        return;
+      }
+      greedy_rep = FALSE;
+      start = begin;
+      continue;
+    }
+    if (nongreedy) c->needs_backtrack = TRUE;
 
     /* For {n,m}: repeat atom min times, then optional (max-min) times */
     uint32_t atom_end = c->code_len;
