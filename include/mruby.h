@@ -906,7 +906,7 @@ MRB_API struct RClass * mrb_module_get_under(mrb_state *mrb, struct RClass *oute
 MRB_API struct RClass * mrb_module_get_under_id(mrb_state *mrb, struct RClass *outer, mrb_sym name);
 
 /* a function to raise NotImplementedError with current method name */
-MRB_API void mrb_notimplement(mrb_state*);
+MRB_API mrb_noreturn void mrb_notimplement(mrb_state*);
 /* a function to be replacement of unimplemented method */
 MRB_API mrb_value mrb_notimplement_m(mrb_state*, mrb_value);
 /* just return it self */

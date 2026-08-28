@@ -1196,7 +1196,7 @@ mrb_define_private_method(mrb_state *mrb, struct RClass *c, const char *name, mr
  *             that is not a method call has no name, and the message goes without
  *             one.
  */
-MRB_API void
+MRB_API mrb_noreturn void
 mrb_notimplement(mrb_state *mrb)
 {
   mrb_callinfo *ci = mrb->c->ci;
