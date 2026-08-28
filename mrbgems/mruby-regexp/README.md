@@ -12,15 +12,10 @@ simulation) with backtracking fallback.
 - `*?`, `+?`, `??` non-greedy quantifiers
 - `*+`, `++`, `?+` possessive quantifiers, `a*+` being `(?>a*)`
 - `{n}`, `{n,}`, `{n,m}` repetition counts
-- a quantifier after a quantifier repeats the repeat: `a**` is `(?:a*)*` and
-  `a{2}{3}` is `(?:a{2}){3}`. `{n}` has no non-greedy form, so its `?` is a
-  quantifier too and `a{3}?` matches empty where the lazy `a{3,3}?` does not
 - `[abc]`, `[a-z]`, `[^abc]` character classes
 - `[[:alpha:]]`, `[[:^alpha:]]` POSIX brackets inside a class: `alpha`,
   `digit`, `alnum`, `upper`, `lower`, `space`, `blank`, `xdigit`, `word`,
-  `cntrl`, `print`, `graph`, `ascii` and `punct`. Above ASCII each holds
-  what CRuby's does where the build classifies characters by Unicode, and
-  nothing where it does not; see Configuration
+  `cntrl`, `print`, `graph`, `ascii`, `punct`
 - `\d`, `\w`, `\s` digit, word, whitespace shortcuts, ASCII as in CRuby
 - `\D`, `\W`, `\S` negated shortcuts
 - `(...)` capture group
@@ -28,55 +23,46 @@ simulation) with backtracking fallback.
 - `(?#...)` comment group
 - `(?<name>...)`, `(?'name'...)` named capture group
 - `|` alternation
-- `\N` backreference: a digit run whose decimal value is at most 9 or at
-  most the number of groups opened before it; a run past both is an octal
-  escape (see below). A reference naming a group the pattern does not have
-  raises `RegexpError`, counting the groups of the whole pattern, so `\1(a)`
-  is valid
-- `\k<name>`, `\k'name'` named backreferences
-- `\k<n>`, `\k'n'` numbered backreferences
-- `\k<-n>`, `\k'-n'` relative backreferences
-- `\g<name>`, `\g'name'` subexpression calls: the group's sub-pattern runs
-  again where the call stands, recursively when the call stands inside it,
-  so `(?<p>\((?:[^()]|\g<p>)*\))` matches balanced parentheses. `\g<n>` is
-  absolute, `\g<-n>` counts back over the groups already opened, `\g<+n>`
-  counts forward, and `\g<0>` is the whole pattern. A recursion no input
-  could end (`(?<a>\g<a>)`, `(?<a>x\g<a>)`) raises `RegexpError` at compile
-  time, as in CRuby; one that can end is bounded at match time by
-  `MRB_REGEXP_STACK_LIMIT`, which counts the calls open or completed along
-  the current path -- a completed call's frame and return marker stay on
-  the backtracking stack until backtracking removes them -- so a long flat
-  repetition of a call reaches the limit as a deep recursion does
+- `\N` numbered backreference
+- `\k<name>`, `\k'name'` named backreference
+- `\k<n>`, `\k'n'` numbered backreference
+- `\k<-n>`, `\k'-n'` relative backreference
+- `\g<name>`, `\g'name'` subexpression call, recursive where the call stands
+  inside the group it names
+- `\g<n>`, `\g<-n>`, `\g<+n>` the same by number, `\g<0>` the whole pattern
 - `(?=...)` positive lookahead
 - `(?!...)` negative lookahead
 - `(?<=...)` positive lookbehind (fixed-length only)
 - `(?<!...)` negative lookbehind (fixed-length only)
 - `(?>...)` atomic group
-- `(?imx-imx)` options for the rest of the enclosing group,
-  `(?imx-imx:...)` options for the group's own body
+- `(?imx-imx)` options for the rest of the enclosing group
+- `(?imx-imx:...)` options for the group's own body
+
+Three rules settle what a spelling means:
+
+- A quantifier after a quantifier repeats the repeat: `a**` is `(?:a*)*` and
+  `a{2}{3}` is `(?:a{2}){3}`. `{n}` has no non-greedy form, so `a{3}?` matches
+  empty where the lazy `a{3,3}?` does not.
+- `\N` is a backreference where its decimal value is at most 9 or at most the
+  number of groups opened before it, and an octal escape past both. A number no
+  group in the whole pattern carries raises `RegexpError`, so `\1(a)` is valid.
+- A recursion no input could end (`(?<a>\g<a>)`) raises `RegexpError` at
+  compile time, as in CRuby. One that can end is bounded at match time by
+  `MRB_REGEXP_STACK_LIMIT`.
 
 ### Character Escapes
 
 - `\n`, `\t`, `\r`, `\f`, `\v`, `\a`, `\e` control characters
-- `\NNN` octal, one to three digits, when the digits spell no
-  backreference: `\101` is `A`, `\12` is a newline before twelve groups
-  and a backreference after them, `\0NN` is always octal; `\8` and `\9`
-  that spell no backreference are the digits themselves
+- `\NNN` octal, one to three digits, where the digits spell no backreference
 - `\xHH` hex, one or two digits; `\x` with no digit raises `RegexpError`
-- `\cX`, `\C-X` control characters, where a `\` in the X position opens an
-  escape of its own (`\c\n`). `\c?` is DEL, as it is in a String
+- `\cX`, `\C-X` control characters, `\c?` being DEL as it is in a String
 - `\uXXXX` Unicode codepoint, exactly four hex digits
-- `\u{...}` Unicode codepoints, one to six hex digits each, several of
-  them separated by spaces: `/\u{61 62}/` is `ab`
+- `\u{...}` Unicode codepoints, one to six hex digits each, space separated
 
-Outside a character class the list form is a sequence rather than one
-atom, so a quantifier after it repeats the last codepoint only:
-`/\u{61 62}+/` is `ab+`. Inside a class every codepoint is a member of
-its own, and the one next to a `-` still opens or closes a range: the
-last of the list before it and the first after it, so `/[\u{61 62}-z]/`
-is `a` plus `b-z` and `/[a-\u{63 7a}]/` is `a-c` plus `z`. A range
-written backwards, `[b-a]` or `[b-\u{61 63}]`, raises `RegexpError` as
-in CRuby.
+Outside a character class the list form is a sequence rather than one atom, so
+`/\u{61 62}+/` is `ab+`. Inside a class every codepoint is a member of its own
+and the one next to a `-` bounds the range, so `/[\u{61 62}-z]/` is `a` plus
+`b-z`. A range written backwards raises `RegexpError`, as in CRuby.
 
 ### Anchors
 
@@ -90,10 +76,10 @@ in CRuby.
 
 ### Flags
 
-- `i` (`Regexp::IGNORECASE`) case-insensitive matching (Unicode, or ASCII
-  where the build converts case by ASCII)
-- `m` (`Regexp::MULTILINE`) `.` matches newline; `^`/`$` match at line boundaries
-- `x` (`Regexp::EXTENDED`) free-spacing mode; unescaped whitespace ignored, `#` starts comments
+- `i` (`Regexp::IGNORECASE`) case-insensitive matching
+- `m` (`Regexp::MULTILINE`) `.` matches newline, `^`/`$` match at line
+  boundaries
+- `x` (`Regexp::EXTENDED`) free-spacing mode, `#` starts a comment
 
 ### Ruby API
 
