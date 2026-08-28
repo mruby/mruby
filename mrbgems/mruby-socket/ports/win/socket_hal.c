@@ -51,8 +51,10 @@ mrb_hal_socket_final(mrb_state *mrb)
 
 /* Map a Winsock error code to a POSIX errno value. Each case is guarded
  * with #ifdef so older MSVC CRTs that lack a particular Exxx still build;
- * unknown codes fall back to EIO so mrb_sys_fail still produces a non-zero
- * SystemCallError rather than reporting "success." */
+ * unknown codes fall back to EIO so that the errno mrb_sys_fail reports is
+ * still a failure rather than "success." Which exception carries it is the
+ * build's business: Errno::EIO where mruby-errno is present, a RuntimeError
+ * spelling the number where it is not. */
 static int
 wsa_to_errno(int wsa_err)
 {
