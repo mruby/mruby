@@ -446,6 +446,7 @@ fiber_terminate(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci)
     if (len == 0) {
       env->stack = NULL;
       MRB_ENV_CLOSE(env);
+      MRB_ENV_CLEAR_SVAR(env);
       mrb_free(mrb, stack);
     }
     else {
@@ -456,13 +457,15 @@ fiber_terminate(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci)
       // the reason is that env->stack may be freed by mrb_realloc() if MRB_DEBUG + MRB_GC_STRESS are enabled.
       // realloc() on a freed heap will cause double-free.
 
-      stack = (mrb_value*)mrb_realloc(mrb, stack, len * sizeof(mrb_value));
+      stack = (mrb_value*)mrb_realloc(mrb, stack, MRB_ENV_SVAR_STACK_SIZE(len));
       if (mrb_object_dead_p(mrb, (struct RBasic*)env)) {
         mrb_free(mrb, stack);
       }
       else {
+        SET_NIL_VALUE(MRB_ENV_SVAR_SLOT(stack, len));
         env->stack = stack;
         MRB_ENV_CLOSE(env);
+        MRB_ENV_SET_SVAR(env);
       }
     }
   }
@@ -484,11 +487,12 @@ mrb_env_unshare(mrb_state *mrb, struct REnv *e, mrb_bool noraise)
   if (len == 0) {
     e->stack = NULL;
     MRB_ENV_CLOSE(e);
+    MRB_ENV_CLEAR_SVAR(e);
     return TRUE;
   }
 
   size_t live = mrb->gc.live;
-  mrb_value *p = (mrb_value*)mrb_malloc_simple(mrb, sizeof(mrb_value)*len);
+  mrb_value *p = (mrb_value*)mrb_malloc_simple(mrb, MRB_ENV_SVAR_STACK_SIZE(len));
   if (live != mrb->gc.live && mrb_object_dead_p(mrb, (struct RBasic*)e)) {
     // The e object is now subject to GC inside mrb_malloc_simple().
     // Moreover, if NULL is returned due to mrb_malloc_simple() failure, simply ignore it.
@@ -497,14 +501,17 @@ mrb_env_unshare(mrb_state *mrb, struct REnv *e, mrb_bool noraise)
   }
   else if (p) {
     stack_copy(p, e->stack, len);
+    SET_NIL_VALUE(MRB_ENV_SVAR_SLOT(p, len));
     e->stack = p;
     MRB_ENV_CLOSE(e);
+    MRB_ENV_SET_SVAR(e);
     mrb_write_barrier(mrb, (struct RBasic*)e);
     return TRUE;
   }
   else {
     e->stack = NULL;
     MRB_ENV_CLOSE(e);
+    MRB_ENV_CLEAR_SVAR(e);
     MRB_ENV_SET_LEN(e, 0);
     MRB_ENV_SET_BIDX(e, 0);
     if (!noraise) {

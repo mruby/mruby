@@ -161,6 +161,42 @@ size_t mrb_set_memsize(mrb_value);
 #endif
 
 #ifdef MRUBY_PROC_H
+/* A closed env may carry one slot past its locals: the ground the special
+ * variables of the scope the env escapes from live on, once the frame
+ * that held them is gone.
+ *
+ * Whether the slot is there is not implied by the env being closed. struct
+ * REnv, MRB_ENV_CLOSE() and MRB_ENV_SET_LEN() are public, and out-of-tree
+ * code builds closed envs over a stack of exactly MRB_ENV_LEN() values, so
+ * reading one past the locals of any closed env runs off such an
+ * allocation. The flag below says it for the env instead, leaving three
+ * states:
+ *
+ *   on-stack                 ONSTACK_P, never SVAR_P; the stack is the VM's
+ *   closed, no slot         !ONSTACK_P, !SVAR_P; len values, or none at all
+ *   closed, with the slot   !ONSTACK_P,  SVAR_P; len + 1 values
+ *
+ * The middle state is what out-of-tree code makes, and what the core's own
+ * envs fall back to when there is no stack left to size (mrb_env_unshare()
+ * out of memory, error.c's fault-time rewind). It reads as a scope holding
+ * no special variables, and the first write that needs the slot grows
+ * such an env into the third. So: every path that allocates or resizes a
+ * stack with the slot goes through MRB_ENV_SVAR_STACK_SIZE() and sets the
+ * flag, every path that reads or writes the slot goes through
+ * MRB_ENV_SVAR_SLOT() under MRB_ENV_SVAR_P(), and every path that drops
+ * the stack clears the flag. All three take the number of locals, which is
+ * MRB_ENV_LEN() once the env carries it.
+ *
+ * Invariant, asserted where the core reads the slot: MRB_ENV_SVAR_P(e)
+ * implies e is closed, e->stack is non-NULL, and its allocation holds
+ * MRB_ENV_LEN(e) + 1 values. */
+#define MRB_ENV_SVAR_BIT 15
+#define MRB_ENV_SVAR_P(e) MRB_FLAG_CHECK((e)->flags, MRB_ENV_SVAR_BIT)
+#define MRB_ENV_SET_SVAR(e) MRB_FLAG_ON((e)->flags, MRB_ENV_SVAR_BIT)
+#define MRB_ENV_CLEAR_SVAR(e) MRB_FLAG_OFF((e)->flags, MRB_ENV_SVAR_BIT)
+#define MRB_ENV_SVAR_STACK_SIZE(len) (sizeof(mrb_value) * ((size_t)(len) + 1))
+#define MRB_ENV_SVAR_SLOT(stack, len) ((stack)[(len)])
+
 struct RProc *mrb_closure_new(mrb_state*, const mrb_irep*);
 void mrb_proc_copy(mrb_state *mrb, struct RProc *a, const struct RProc *b);
 mrb_int mrb_proc_arity(const struct RProc *p);
