@@ -1179,17 +1179,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj, mrb_bool end)
 
       if (c && c != mrb->root_c) {
         if (!end && c->status != MRB_FIBER_TERMINATED) {
-          mrb_callinfo *ci = c->ci;
-          mrb_callinfo *ce = c->cibase;
-
-          while (ce <= ci) {
-            struct REnv *e = ci->u.env;
-            if (e && heap_p(&mrb->gc, (struct RBasic*)e) && !is_dead(&mrb->gc, (struct RBasic*)e) &&
-                e->tt == MRB_TT_ENV && MRB_ENV_ONSTACK_P(e)) {
-              mrb_env_unshare(mrb, e, TRUE);
-            }
-            ci--;
-          }
+          mrb_env_detach_all(mrb, c);
         }
         mrb_free_context(mrb, c);
       }

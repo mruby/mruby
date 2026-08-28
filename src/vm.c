@@ -514,6 +514,33 @@ mrb_env_unshare(mrb_state *mrb, struct REnv *e, mrb_bool noraise)
   }
 }
 
+/* Detaches every live on-stack env of a context being torn down around it:
+ * the GC freeing a suspended fiber (gc.c) and mruby-task ending a task both
+ * come through here. An escaped closure keeps its REnv alive after the
+ * stack it stands on is gone, and an env still pointing into that freed
+ * stack makes the next marking chase whatever now sits there, so the
+ * locals move into a heap copy while the stack is still intact. */
+void
+mrb_env_detach_all(mrb_state *mrb, struct mrb_context *c)
+{
+  if (!c->cibase || !c->ci) return;
+
+  /* Stop AT cibase rather than decrementing past it: forming a pointer
+   * one element before the start of an array is undefined behavior. */
+  for (mrb_callinfo *ci = c->ci; ; ci--) {
+    struct REnv *e = ci->u.env;
+    /* mrb_env_unshare() allocates and can therefore run a GC cycle. In
+     * teardown paths the context may already be unlinked, so an env that
+     * no other object refers to may be swept before the walk reaches it;
+     * check liveness first. */
+    if (e && !mrb_object_dead_p(mrb, (struct RBasic*)e) &&
+        e->tt == MRB_TT_ENV && MRB_ENV_ONSTACK_P(e)) {
+      mrb_env_unshare(mrb, e, TRUE);
+    }
+    if (ci == c->cibase) break;
+  }
+}
+
 static inline mrb_callinfo*
 cipop(mrb_state *mrb)
 {
