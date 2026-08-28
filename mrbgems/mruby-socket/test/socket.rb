@@ -35,20 +35,6 @@ assert('Socket#recvfrom') do
   end
 end
 
-assert('BasicSocket#getpeereid') do
-  s = Socket.new(Socket::AF_INET, Socket::SOCK_DGRAM, 0)
-  begin
-    # getpeereid(2) is compiled in only where HAVE_GETPEEREID is defined.
-    # Where it is not, the method is here to refuse, and that is what
-    # respond_to? has to report rather than promise an answer.
-    unless s.respond_to?(:getpeereid)
-      assert_raise(NotImplementedError) { s.getpeereid }
-    end
-  ensure
-    s.close rescue nil
-  end
-end
-
 end   # win?
 
 # Socket.ip_address_list works on both POSIX (getifaddrs) and Windows
@@ -62,5 +48,21 @@ assert('Socket.ip_address_list') do
     assert_kind_of Addrinfo, ai
     # Only AF_INET and AF_INET6 are returned.
     assert_true [Socket::AF_INET, Socket::AF_INET6].include?(ai.afamily)
+  end
+end
+
+# BasicSocket#getpeereid is defined on every platform, so this test runs
+# everywhere.
+assert('BasicSocket#getpeereid') do
+  s = Socket.new(Socket::AF_INET, Socket::SOCK_DGRAM, 0)
+  begin
+    # getpeereid(2) is compiled in only where HAVE_GETPEEREID is defined.
+    # Where it is not, the method is here to refuse, and that is what
+    # respond_to? has to report rather than promise an answer.
+    unless s.respond_to?(:getpeereid)
+      assert_raise(NotImplementedError) { s.getpeereid }
+    end
+  ensure
+    s.close rescue nil
   end
 end
