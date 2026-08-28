@@ -436,13 +436,16 @@ svar_scopeless_frame_p(const mrb_callinfo *ci)
 }
 
 /* An escaped scope's slot (MRB_ENV_SVAR_SLOT in internal.h):
- * mrb_env_detach() fills it, mrb_env_unshare() sizes the stack for it.
+ * mrb_env_detach() sizes the stack for it and fills it, through
+ * svar_slot_ensure(), only when it actually has a container or forward to
+ * install; mrb_env_unshare() on its own never asks for the extra value.
  * NULL where the env carries none, which only the flag can say: a closed
- * env whose stack stops at its locals is what out-of-tree code builds by
- * hand, and what error.c's fault-time rewind and the out-of-memory arm of
- * mrb_env_unshare() leave behind, those two with no stack at all. Reads
- * take it for a scope holding no container; the one write that cannot
- * grows the env into the slot first (svar_slot_ensure()).
+ * env whose stack stops at its locals is the ordinary result of
+ * mrb_env_unshare() itself, what out-of-tree code builds by hand, and what
+ * error.c's fault-time rewind and the out-of-memory arm of
+ * mrb_env_unshare() leave behind, all three with no room past the locals.
+ * Reads take it for a scope holding no container; the one write that
+ * cannot grows the env into the slot first (svar_slot_ensure()).
  *
  * An env still on the stack carries no slot either, its locals being the
  * VM's own stack. That test comes first because it is also what a swept
@@ -869,17 +872,17 @@ fiber_terminate(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci)
       // the reason is that env->stack may be freed by mrb_realloc() if MRB_DEBUG + MRB_GC_STRESS are enabled.
       // realloc() on a freed heap will cause double-free.
 
-      stack = (mrb_value*)mrb_realloc(mrb, stack, MRB_ENV_SVAR_STACK_SIZE(len));
+      stack = (mrb_value*)mrb_realloc(mrb, stack, sizeof(mrb_value)*len);
       if (mrb_object_dead_p(mrb, (struct RBasic*)env)) {
         mrb_free(mrb, stack);
       }
       else {
-        /* nil, not the root frame's container: that one is the fiber's own
-           (CRuby's ec->root_svar) and dies with the fiber */
-        SET_NIL_VALUE(MRB_ENV_SVAR_SLOT(stack, len));
+        /* No slot: the fiber's root container (CRuby's ec->root_svar) dies
+           here rather than being carried, and a later write from a
+           surviving closure grows one fresh (svar_slot_ensure()). */
         env->stack = stack;
         MRB_ENV_CLOSE(env);
-        MRB_ENV_SET_SVAR(env);
+        MRB_ENV_CLEAR_SVAR(env);
       }
     }
   }
@@ -906,7 +909,7 @@ mrb_env_unshare(mrb_state *mrb, struct REnv *e, mrb_bool noraise)
   }
 
   size_t live = mrb->gc.live;
-  mrb_value *p = (mrb_value*)mrb_malloc_simple(mrb, MRB_ENV_SVAR_STACK_SIZE(len));
+  mrb_value *p = (mrb_value*)mrb_malloc_simple(mrb, sizeof(mrb_value)*len);
   if (live != mrb->gc.live && mrb_object_dead_p(mrb, (struct RBasic*)e)) {
     // The e object is now subject to GC inside mrb_malloc_simple().
     // Moreover, if NULL is returned due to mrb_malloc_simple() failure, simply ignore it.
@@ -915,10 +918,9 @@ mrb_env_unshare(mrb_state *mrb, struct REnv *e, mrb_bool noraise)
   }
   else if (p) {
     stack_copy(p, e->stack, len);
-    SET_NIL_VALUE(MRB_ENV_SVAR_SLOT(p, len));
     e->stack = p;
     MRB_ENV_CLOSE(e);
-    MRB_ENV_SET_SVAR(e);
+    MRB_ENV_CLEAR_SVAR(e);
     mrb_write_barrier(mrb, (struct RBasic*)e);
     return TRUE;
   }
@@ -952,8 +954,10 @@ mrb_bool
 mrb_env_detach(mrb_state *mrb, struct REnv *e, struct RBasic *sv, mrb_bool noraise)
 {
   if (!mrb_env_unshare(mrb, e, noraise)) return FALSE;
-  mrb_value *slot = sv ? env_svar_slot(e) : NULL;
-  if (slot) {
+  /* MRB_ENV_ONSTACK_P(e) here means unshare's allocation collected e out
+     from under itself and left it untouched (see above): nothing to grow. */
+  if (sv && !MRB_ENV_ONSTACK_P(e)) {
+    mrb_value *slot = svar_slot_ensure(mrb, e);
     *slot = mrb_obj_value(sv);
     mrb_write_barrier(mrb, (struct RBasic*)e);
   }
@@ -976,7 +980,9 @@ mrb_env_detach(mrb_state *mrb, struct REnv *e, struct RBasic *sv, mrb_bool norai
 static void
 svar_env_adopt_owner(mrb_state *mrb, struct REnv *e)
 {
-  if (env_svar_slot(e) == NULL) return;
+  /* MRB_ENV_ONSTACK_P(e) here is the same collected-out-from-under-unshare
+     case mrb_env_detach() skips: no closed env, nothing to grow. */
+  if (MRB_ENV_ONSTACK_P(e)) return;
   struct RSvar *sv = svar_owner_force(mrb);
   if (!sv) return;
   /* Whether the container allocation ran a collection cannot be read off
@@ -987,7 +993,13 @@ svar_env_adopt_owner(mrb_state *mrb, struct REnv *e)
      allocated in the window, so a reused slot can hold nothing but it. */
   struct RBasic *b = (struct RBasic*)e;
   if (b->tt != MRB_TT_ENV || mrb_object_dead_p(mrb, b)) return;
-  *env_svar_slot(e) = mrb_obj_value(sv);
+  /* Grows a closed env sized without the slot into one (see internal.h).
+     No allocation has run since the dead-check just above passed, so the
+     resize's own allocation still finds the object that check vouched
+     for, the same one-allocation tolerance svar_owner_force()'s own
+     grow relies on, immediately after its own fresh resolution. */
+  mrb_value *slot = svar_slot_ensure(mrb, e);
+  *slot = mrb_obj_value(sv);
   mrb_write_barrier(mrb, (struct RBasic*)e);
 }
 

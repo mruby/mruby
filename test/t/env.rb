@@ -1,12 +1,15 @@
 # The shape of a closed env's heap stack (mruby/internal.h).
 #
 # A closed env carries the special-variable slot past its locals only when
-# its flag says so. `struct REnv`, `MRB_ENV_CLOSE()` and
-# `MRB_ENV_SET_LEN()` are public, so out-of-tree code builds closed envs
-# over a stack of exactly `MRB_ENV_LEN()` values; reading one past the
-# locals of such an env runs off the allocation. The C helpers are in
-# mrbgems/mruby-test/env.c: `__env_make_legacy` shrinks a real closed env
-# into that shape for the tests below, and the reads and writes go through
+# its flag says so, and mrb_env_unshare() never asks for that extra value on
+# its own: an ordinary escaping closure whose scope never became an owner or
+# a forward target closes over exactly its locals, the same shape
+# `struct REnv`, `MRB_ENV_CLOSE()` and `MRB_ENV_SET_LEN()` let out-of-tree
+# code build by hand. The slot appears only where mrb_env_detach() installs
+# a container or forward at close time, svar_env_adopt_owner() adopts one
+# right after, or the first non-nil write grows it in
+# (svar_slot_ensure(), mruby/internal.h). The C helpers are in
+# mrbgems/mruby-test/env.c, and the reads and writes go through
 # `mrb_vm_svar_get()` / `mrb_vm_svar_set()`, which resolve the owning scope
 # the way `$~` does.
 
@@ -15,8 +18,8 @@ def env_capture(&blk)
 end
 
 # A block written in a method closes over that method's env, and the env is
-# closed on the return, so what comes back is a proc over a closed env that
-# carries the slot.
+# closed on the return; the scope never became an owner, so what comes back
+# is a proc over a closed env with no slot at all.
 def env_closed_proc
   local = :held
   env_capture { [local, __env_svar_read] }
@@ -27,6 +30,15 @@ def env_closed_writer(v)
   env_capture { __env_svar_write(v); __env_svar_read }
 end
 
+# The write lands on the method's own live frame, before the block (and the
+# env it closes over) ever escapes: mrb_env_detach() closes this env with a
+# container already in hand, rather than growing an empty one later.
+def env_owner_before_escape(v)
+  local = :held
+  __env_svar_write(v)
+  env_capture { [local, __env_svar_read] }
+end
+
 # Two blocks over one env: what one writes, the other reads, because both
 # resolve to the scope they were written in.
 def env_closed_pair
@@ -34,18 +46,24 @@ def env_closed_pair
   [env_capture { __env_svar_write("shared") }, env_capture { __env_svar_read }]
 end
 
-assert('REnv, closed env without the special-variable slot') do
+assert('REnv, closed env carries no slot until a scope needs one') do
   pr = env_closed_proc
-  assert_true __env_svar?(pr)
-  assert_equal :nil, __env_svar_slot(pr)
-
-  assert_true __env_make_legacy(pr)
   assert_false __env_svar?(pr)
   assert_equal :none, __env_svar_slot(pr)
 
-  # A collection over the shrunken env must not read past its locals.
+  # A collection over the slotless env must not read past its locals.
   GC.start
   assert_equal [:held, nil], pr.call
+end
+
+assert('REnv, a live write closes with the slot already made') do
+  pr = env_owner_before_escape("owned")
+  assert_true __env_svar?(pr)
+  assert_equal :svar, __env_svar_slot(pr)
+
+  GC.start
+  assert_equal [:held, "owned"], pr.call
+  assert_equal :svar, __env_svar_slot(pr)
 end
 
 assert('REnv, C closure env carries no slot') do
@@ -59,7 +77,6 @@ end
 
 assert('REnv, reading special variables leaves a slotless env alone') do
   pr = env_closed_proc
-  assert_true __env_make_legacy(pr)
 
   assert_equal [:held, nil], pr.call
   assert_false __env_svar?(pr)
@@ -69,7 +86,7 @@ end
 assert('REnv, the first write grows a slotless env into the slot') do
   pr = env_closed_writer("written")
   len = __env_len(pr)
-  assert_true __env_make_legacy(pr)
+  assert_false __env_svar?(pr)
 
   assert_equal "written", pr.call
   assert_true __env_svar?(pr)
@@ -87,7 +104,7 @@ end
 
 assert('REnv, a grown env is the one scope both its procs see') do
   writer, reader = env_closed_pair
-  assert_true __env_make_legacy(writer)
+  assert_false __env_svar?(writer)
   assert_false __env_svar?(reader)
 
   writer.call
