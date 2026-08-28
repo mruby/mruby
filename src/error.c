@@ -781,12 +781,18 @@ mrb_protect_atexit(mrb_state *mrb)
       if (c->ci == c->cibase) {
         // Since there is no problem with the ci, the env object is detached normally.
         struct REnv *e = mrb_vm_ci_env(c->ci);
-        *c->ci = zero;
-        c->ci->stack = c->stbase;
+        struct RBasic *sv = c->ci->svar;
         if (e) {
           c->ci->u.env = NULL;
-          mrb_env_unshare(mrb, e, TRUE);
+          /* carrying the top-level scope's special-variable container, so a
+             proc an atexit callback runs still reads the last match. The
+             frame is zeroed after the detach, not before: ci->svar is the
+             container's only root here, the arena having just been
+             restored, and mrb_env_unshare() allocates. */
+          mrb_env_detach(mrb, e, sv, TRUE);
         }
+        *c->ci = zero;
+        c->ci->stack = c->stbase;
       }
       else {
         // Any env objects on the ci that are in the process of being executed are destroyed.

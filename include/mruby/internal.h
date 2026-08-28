@@ -215,7 +215,10 @@ void mrb_vm_svar_set(mrb_state *mrb, enum mrb_svar_index key, mrb_value v);
 #ifdef MRUBY_PROC_H
 /* A closed env may carry one slot past its locals: the special-variable
  * container of the scope the env escapes from, which mrb_env_detach()
- * moves there and svar_owner() reads back.
+ * moves there and svar_owner() reads back, or, for a scope that holds no
+ * container of its own, the env of the scope below whose special variables
+ * it shares, which the same walk follows one hop further (CRuby's ep
+ * chain, and its own svar slot is polymorphic the same way).
  *
  * Whether the slot is there is not implied by the env being closed. struct
  * REnv, MRB_ENV_CLOSE() and MRB_ENV_SET_LEN() are public, and out-of-tree
@@ -254,7 +257,8 @@ void mrb_proc_copy(mrb_state *mrb, struct RProc *a, const struct RProc *b);
 mrb_int mrb_proc_arity(const struct RProc *p);
 struct REnv *mrb_env_new(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci, int nstacks, mrb_value *stack, struct RClass *tc);
 mrb_bool mrb_env_detach(mrb_state *mrb, struct REnv *e, struct RBasic *sv, mrb_bool noraise);
-void mrb_env_detach_all(mrb_state *mrb, struct mrb_context *c);
+void mrb_env_detach_all(mrb_state *mrb, struct mrb_context *c, mrb_bool resolve);
+struct RBasic *mrb_svar_frame_container(struct mrb_context *c, mrb_callinfo *ci);
 void mrb_proc_merge_lvar(mrb_state *mrb, mrb_irep *irep, struct REnv *env, int num, const mrb_sym *lv, const mrb_value *stack);
 mrb_value mrb_proc_local_variables(mrb_state *mrb, const struct RProc *proc);
 const struct RProc *mrb_proc_get_caller(mrb_state *mrb, struct REnv **env);
