@@ -808,3 +808,23 @@ assert("svar - a fiber's container stays its own, both keys") do
   skip unless Object.const_defined?(:Fiber)
   assert_equal [["fiber", "fiber"], "main", "main"], svar_container_fiber
 end
+
+def svar_container_fiber_root
+  Fiber.new do
+    local = :fiber_held
+    -> { [local, __svar_lastline] }
+  end.resume
+end
+
+assert("svar - a terminated fiber's root env carries no slot until needed") do
+  # fiber_terminate() (src/vm.c) closes the fiber's own root env by hand
+  # rather than through mrb_env_unshare(), so it needs the same no-slot
+  # default a plain method's escaping env gets (test/t/env.rb).
+  skip unless Object.const_defined?(:Fiber)
+  pr = svar_container_fiber_root
+  assert_false __env_svar?(pr)
+  assert_equal :none, __env_svar_slot(pr)
+
+  GC.start
+  assert_equal [:fiber_held, nil], pr.call
+end

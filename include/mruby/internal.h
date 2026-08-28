@@ -231,16 +231,21 @@ void mrb_vm_svar_set(mrb_state *mrb, enum mrb_svar_index key, mrb_value v);
  *   closed, no slot         !ONSTACK_P, !SVAR_P; len values, or none at all
  *   closed, with the slot   !ONSTACK_P,  SVAR_P; len + 1 values
  *
- * The middle state is what out-of-tree code makes, and what the core's own
- * envs fall back to when there is no stack left to size (mrb_env_unshare()
- * out of memory, error.c's fault-time rewind). It reads as a scope holding
- * no container, and svar_slot_ensure() in vm.c grows it into the third on
- * the first write that needs one. So: every path that allocates or resizes
- * a stack with the slot goes through MRB_ENV_SVAR_STACK_SIZE() and sets
- * the flag, every path that reads or writes the slot goes through
- * MRB_ENV_SVAR_SLOT() under MRB_ENV_SVAR_P(), and every path that drops
- * the stack clears the flag. All three take the number of locals, which is
- * MRB_ENV_LEN() once the env carries it.
+ * The middle state is the ordinary way every scope closes: mrb_env_unshare()
+ * never asks for the extra value, so a closure escaping a scope that never
+ * held a container or a forward to install pays nothing for it. It is also
+ * what out-of-tree code makes, and what the core's own envs fall back to
+ * when there is no stack left to size (mrb_env_unshare() out of memory,
+ * error.c's fault-time rewind). It reads as a scope holding no container,
+ * and svar_slot_ensure() in vm.c grows it into the third state on the one
+ * write that needs it: mrb_env_detach() installing a container or forward
+ * at close time, svar_env_adopt_owner() adopting one just after, or
+ * mrb_vm_svar_set()'s first non-nil write into a scope that outlived its
+ * frame. So: every path that grows a stack into the slot goes through
+ * MRB_ENV_SVAR_STACK_SIZE() and sets the flag, every path that reads or
+ * writes the slot goes through MRB_ENV_SVAR_SLOT() under MRB_ENV_SVAR_P(),
+ * and every path that drops the stack clears the flag. All three take the
+ * number of locals, which is MRB_ENV_LEN() once the env carries it.
  *
  * Invariant, asserted where the core reads the slot: MRB_ENV_SVAR_P(e)
  * implies e is closed, e->stack is non-NULL, and its allocation holds

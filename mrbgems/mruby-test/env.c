@@ -97,27 +97,6 @@ env_svar_slot(mrb_state *mrb, mrb_value self)
   return mrb_symbol_value(mrb_intern_lit(mrb, "other"));
 }
 
-/* Rewrites the proc's env into what out-of-tree code builds by hand: a
-   closed env over a heap stack of exactly its locals, carrying no slot.
-   The stack shrinks for real, so a later read one past the locals is an
-   out-of-bounds access a sanitizer build reports. FALSE where the env is
-   not one this can be done to (on the stack, already without the slot, or
-   holding no locals to keep the allocation non-empty). */
-static mrb_value
-env_make_legacy(mrb_state *mrb, mrb_value self)
-{
-  mrb_value proc = mrb_get_arg1(mrb);
-  struct REnv *e = env_of_proc(mrb, proc);
-
-  if (!e || MRB_ENV_ONSTACK_P(e) || !MRB_ENV_SVAR_P(e)) return mrb_false_value();
-  size_t len = (size_t)MRB_ENV_LEN(e);
-  if (len == 0) return mrb_false_value();
-
-  e->stack = (mrb_value*)mrb_realloc(mrb, e->stack, sizeof(mrb_value) * len);
-  MRB_ENV_CLEAR_SVAR(e);
-  return mrb_true_value();
-}
-
 /* A special-variable read and write from a C frame, which owns no scope of
    its own, so both land on the calling Ruby scope. MRB_SVAR_LASTLINE is
    the key no global is registered for in core, so what these drive is the
@@ -258,7 +237,6 @@ mrb_init_test_env(mrb_state *mrb)
   mrb_define_method(mrb, o, "__env_svar?", env_svar_p, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, o, "__env_len", env_len, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, o, "__env_svar_slot", env_svar_slot, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, o, "__env_make_legacy", env_make_legacy, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, o, "__env_set_bidx_eval_count", env_set_bidx_eval_count, MRB_ARGS_NONE());
   mrb_define_method(mrb, o, "__env_svar_read", env_svar_read, MRB_ARGS_NONE());
   mrb_define_method(mrb, o, "__env_svar_write", env_svar_write, MRB_ARGS_REQ(1));
