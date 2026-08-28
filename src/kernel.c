@@ -613,9 +613,9 @@ mrb_obj_remove_instance_variable(mrb_state *mrb, mrb_value self)
  *  method. Private methods are included in the search only if the
  *  optional second parameter evaluates to `true`.
  *
- *  If the method is not implemented,
- *  as Process.fork on Windows, File.lchmod on GNU/Linux, etc.,
- *  false is returned.
+ *  If the method is defined but unimplemented on this machine,
+ *  as IO#pread in a build without pread(2), false is returned
+ *  and `respond_to_missing?` is not consulted.
  *
  *  If the method is not defined, `respond_to_missing?`
  *  method is called and the result is returned.
@@ -624,18 +624,22 @@ static mrb_value
 obj_respond_to(mrb_state *mrb, mrb_value self)
 {
   mrb_sym id;
-  mrb_bool priv = FALSE, respond_to_p;
+  mrb_bool priv = FALSE;
 
   mrb_get_args(mrb, "n|b", &id, &priv);
-  respond_to_p = mrb_respond_to(mrb, self, id);
-  if (!respond_to_p) {
+  struct RClass *c = mrb_class(mrb, self);
+  mrb_method_t m = mrb_method_search_vm(mrb, &c, id);
+  if (MRB_METHOD_UNDEF_P(m)) {
     mrb_sym rtm_id = MRB_SYM_Q(respond_to_missing);
     if (!mrb_func_basic_p(mrb, self, rtm_id, mrb_false)) {
       mrb_value v = mrb_funcall_argv2(mrb, self, rtm_id, mrb_symbol_value(id), mrb_bool_value(priv));
       return mrb_bool_value(mrb_bool(v));
     }
+    return mrb_false_value();
   }
-  return mrb_bool_value(respond_to_p);
+  /* The method is there, so `respond_to_missing?` has nothing to add, and one
+     that is unimplemented on this machine answers a plain false. */
+  return mrb_bool_value(!MRB_METHOD_NOTIMPL_P(m));
 }
 
 static mrb_value

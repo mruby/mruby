@@ -186,6 +186,13 @@ MRB_API mrb_value mrb_proc_cfunc_env_get(mrb_state *mrb, mrb_int idx);
 #define MRB_METHOD_PROC_P(m) (!MRB_METHOD_FUNC_P(m))
 #define MRB_METHOD_PROC(m) ((m).as.proc)
 #define MRB_METHOD_UNDEF_P(m) ((m).as.proc==NULL)
+/* A method whose body is `mrb_notimplement_m` stands for a feature the build
+   does not have (`IO#pread` where there is no pread(2), etc.). It is defined,
+   so it is listed and can be taken as a `Method`, but `respond_to?` answers
+   false for it, as CRuby does for a method defined with `rb_f_notimplement`.
+   The body is the mark: a table entry in ROM cannot be written at startup,
+   and no flag bit is spent. */
+#define MRB_METHOD_NOTIMPL_P(m) (MRB_METHOD_FUNC_P(m) && MRB_METHOD_FUNC(m)==mrb_notimplement_m)
 #define MRB_METHOD_VISIBILITY(m) ((m).flags & MRB_METHOD_VISIBILITY_MASK)
 #define MRB_SET_VISIBILITY_FLAGS(f,v) ((f)=(((f)&~MRB_METHOD_VISIBILITY_MASK)|(v)))
 #define MRB_METHOD_SET_VISIBILITY(m,v) MRB_SET_VISIBILITY_FLAGS((m).flags,(v))
