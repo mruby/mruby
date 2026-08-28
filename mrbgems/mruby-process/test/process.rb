@@ -91,6 +91,16 @@ assert('Process.waitpid with a flag it does not define') do
   end
 end
 
+assert('Process.waitpid reports the error by itself') do
+  # What a SystemCallError message carries after the error is the object the
+  # call was working on, the way `File.open` names the path it could not open.
+  # A wait has no such object and CRuby names nothing here.  Compared against
+  # the text this platform gives that errno rather than against a literal, so
+  # the wording itself is not pinned.
+  e = assert_raise(Errno::EINVAL) { Process.waitpid(-1, 4) }
+  assert_equal SystemCallError.new(e.errno).message, e.message
+end
+
 assert('Process.kill with signal 0') do
   # Signal 0 sends nothing; it only asks whether the process can be signalled.
   assert_equal 1, Process.kill(0, Process.pid)
@@ -438,6 +448,23 @@ assert('Process.waitpid with no child to wait for') do
   Process.waitpid(pid)
   assert_raise(Errno::ECHILD) { Process.waitpid(pid) }
   io.close
+end
+
+assert('Process.kill reports the error by itself') do
+  # Signalling names no object either, so its message is the error alone.  A
+  # reaped pid is one nothing answers to any more, which is how the failure is
+  # reached without naming a process that might belong to someone else.
+  skip ProcessTestUtil.child_reason if ProcessTestUtil.child_reason
+  io = ProcessTestUtil.spawn("exit 0")
+  skip "IO.popen is not available" unless io
+
+  io.read
+  pid = io.pid
+  Process.waitpid(pid)
+  io.close
+
+  e = assert_raise(Errno::ESRCH) { Process.kill(0, pid) }
+  assert_equal SystemCallError.new(e.errno).message, e.message
 end
 
 assert('Process.wait') do
