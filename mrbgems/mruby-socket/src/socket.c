@@ -1297,20 +1297,6 @@ mrb_win32_basicsocket_sysread(mrb_state *mrb, mrb_value self)
 
 /*
  * call-seq:
- *   basicsocket.sysseek(offset, whence) -> integer
- *
- * Windows-specific implementation that raises NotImplementedError.
- * Sockets don't support seeking operations.
- */
-static mrb_value
-mrb_win32_basicsocket_sysseek(mrb_state *mrb, mrb_value self)
-{
-  mrb_raise(mrb, E_NOTIMP_ERROR, "sysseek not implemented for windows sockets");
-  return mrb_nil_value();
-}
-
-/*
- * call-seq:
  *   basicsocket.syswrite(string) -> integer
  *
  * Windows-specific implementation to write to socket using send().
@@ -1353,7 +1339,9 @@ static const mrb_mt_entry basicsocket_rom_entries[] = {
 #ifdef _WIN32
   MRB_MT_ENTRY(mrb_win32_basicsocket_close,    MRB_SYM(close), MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_win32_basicsocket_sysread,  MRB_SYM(sysread), MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1)),
-  MRB_MT_ENTRY(mrb_win32_basicsocket_sysseek,  MRB_SYM(sysseek), MRB_ARGS_REQ(1)),
+  /* a socket cannot seek: unimplemented, and named as such so `respond_to?`
+     can answer false */
+  MRB_MT_ENTRY(mrb_notimplement_m,             MRB_SYM(sysseek), MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(mrb_win32_basicsocket_syswrite, MRB_SYM(syswrite), MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(mrb_win32_basicsocket_sysread,  MRB_SYM(read), MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1)),
   MRB_MT_ENTRY(mrb_win32_basicsocket_syswrite, MRB_SYM(write), MRB_ARGS_REQ(1)),
