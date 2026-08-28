@@ -18,8 +18,8 @@
 **     when it creates them, so this is answerable once spawn exists and not
 **     before.  No process is ever reported as stopped either;
 **   - a raw status is the child's exit code, which is what mruby-io's
-**     `IO.popen` already hands to `Process::Status.new` on this platform, so
-**     a decoded status always reads as exited;
+**     `IO.popen` already gives the `Process::Status` it builds on this
+**     platform, so a decoded status always reads as exited;
 **   - only `KILL` and `TERM` can be delivered, both as TerminateProcess(),
 **     and signal 0 asks whether the process can be opened at all.
 */
@@ -223,11 +223,11 @@ mrb_hal_process_status_decode(mrb_state *mrb, mrb_int pid, mrb_int raw_status,
   /* A Windows raw status is an exit code and nothing else: a process killed
      with TerminateProcess() is indistinguishable from one that exited with
      the same code, so every status reads as exited.  Nothing in this port
-     produces one, since it performs no wait; a status reaching here came
-     from a caller of Process::Status.new, which is how mruby-io's IO.popen
-     reports a child on this platform.  An exit code such as 0xC0000005 does
-     not fit a 32-bit mrb_int unsigned and reads back negative, which is what
-     Process::Status#to_i then shows. */
+     produces one, since it performs no wait; a status reaching here was
+     built by a caller with a raw status of its own, which is how mruby-io's
+     IO.popen reports a child on this platform.  An exit code such as
+     0xC0000005 does not fit a 32-bit mrb_int unsigned and reads back
+     negative, which is what Process::Status#to_i then shows. */
   status->pid = pid;
   status->raw_status = raw_status;
   status->exitstatus = raw_status;
