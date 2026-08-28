@@ -8,6 +8,10 @@ assert('String', '15.2.10') do
   assert_equal Class, String.class
 end
 
+assert('RSTRING_CSTR with a non-terminated static string') do
+  assert_true Mrbtest.nofree_cstr?
+end
+
 assert('String#<=>', '15.2.10.5.1') do
   a = '' <=> ''
   b = '' <=> 'not empty'

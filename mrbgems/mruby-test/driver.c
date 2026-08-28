@@ -222,6 +222,21 @@ m_str_match_p(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(str_match_p(mrb, pat, pat_len, str, str_len, 0));
 }
 
+static mrb_value
+mrbtest_nofree_cstr(mrb_state *mrb, mrb_value self)
+{
+  mrb_int len = RSTRING_EMBED_LEN_MAX + 1;
+  char *buf = (char*)mrb_malloc(mrb, (size_t)len);
+  memset(buf, 'x', (size_t)len);
+
+  mrb_value str = mrb_str_new_static(mrb, buf, len);
+  const char *cstr = RSTRING_CSTR(mrb, str);
+  mrb_bool valid = cstr != buf &&
+    memcmp(cstr, buf, (size_t)len) == 0 && cstr[len] == '\0';
+  mrb_free(mrb, buf);
+  return mrb_bool_value(valid);
+}
+
 void
 mrb_init_test_driver(mrb_state *mrb, mrb_bool verbose)
 {
@@ -230,6 +245,7 @@ mrb_init_test_driver(mrb_state *mrb, mrb_bool verbose)
   mrb_define_method(mrb, krn, "_str_match?", m_str_match_p, MRB_ARGS_REQ(2));
 
   struct RClass *mrbtest = mrb_define_module(mrb, "Mrbtest");
+  mrb_define_module_function(mrb, mrbtest, "nofree_cstr?", mrbtest_nofree_cstr, MRB_ARGS_NONE());
 
 #ifndef MRB_NO_FLOAT
 #ifdef MRB_USE_FLOAT32
