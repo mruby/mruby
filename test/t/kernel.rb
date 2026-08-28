@@ -454,6 +454,23 @@ assert('an unimplemented method can be overridden, aliased and undefined') do
   assert_raise(NoMethodError) { undefined.new.gone }
 end
 
+assert('an unimplemented method reports itself by name') do
+  assert_raise_with_message(NotImplementedError,
+                            'gone() function is unimplemented on this machine') do
+    TestNotImplement.new.gone
+  end
+end
+
+assert('mrb_notimplement() raises where there is no method name to report') do
+  # The name comes from the frame the call is made on, and a call that does not
+  # come from a method has none. Ruby cannot build such a frame; TestNotImplement
+  # makes the call from its own init function and records what came back.
+  assert_true TestNotImplement::NAMELESS_RAISED
+  assert_kind_of NotImplementedError, TestNotImplement::NAMELESS_RESULT
+  assert_equal 'function is unimplemented on this machine',
+               TestNotImplement::NAMELESS_RESULT.message
+end
+
 assert('Kernel#to_s', '15.3.1.3.46') do
   assert_equal to_s.class, String
 end
