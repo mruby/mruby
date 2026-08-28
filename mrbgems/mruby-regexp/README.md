@@ -9,7 +9,7 @@ simulation) with backtracking fallback.
 
 - `.` any character (except newline by default)
 - `*`, `+`, `?` greedy quantifiers
-- `*?`, `+?`, `??` non-greedy quantifiers
+- `*?`, `+?`, `??`, `{n,m}?` non-greedy quantifiers
 - `*+`, `++`, `?+` possessive quantifiers, `a*+` being `(?>a*)`
 - `{n}`, `{n,}`, `{n,m}` repetition counts
 - `[abc]`, `[a-z]`, `[^abc]` character classes
@@ -18,6 +18,7 @@ simulation) with backtracking fallback.
   `cntrl`, `print`, `graph`, `ascii`, `punct`
 - `\d`, `\w`, `\s` digit, word, whitespace shortcuts, ASCII as in CRuby
 - `\D`, `\W`, `\S` negated shortcuts
+- `\h`, `\H` hex digit and non-hex-digit shortcuts
 - `(...)` capture group
 - `(?:...)` non-capturing group
 - `(?#...)` comment group
@@ -53,6 +54,7 @@ Three rules settle what a spelling means:
 ### Character Escapes
 
 - `\n`, `\t`, `\r`, `\f`, `\v`, `\a`, `\e` control characters
+- `\b` backspace inside a character class, where the word boundary cannot stand
 - `\NNN` octal, one to three digits, where the digits spell no backreference
 - `\xHH` hex, one or two digits; `\x` with no digit raises `RegexpError`
 - `\cX`, `\C-X` control characters, `\c?` being DEL as it is in a String
