@@ -48,6 +48,52 @@ module ProcessTestUtil
     ProcessStatusTest.build(pid, raw, cls)
   end
 
+  # The four clocks Process names.  The ids are 0 to 3, so `clocks.size` is
+  # the first number that names none of them.
+  def self.clocks
+    [Process::CLOCK_REALTIME, Process::CLOCK_MONOTONIC,
+     Process::CLOCK_PROCESS_CPUTIME_ID, Process::CLOCK_THREAD_CPUTIME_ID]
+  end
+
+  # Whether this platform has the clock +id+ names.  Every constant is
+  # defined everywhere, and a port without the clock behind one refuses to
+  # read it, so a test that means to exercise a reading asks first.  Asked in
+  # seconds, which every build's Integer can carry.
+  def self.clock?(id)
+    Process.clock_gettime(id, :second)
+    true
+  rescue Errno::EINVAL
+    false
+  end
+
+  # Whether a reading of +id+ in +unit+ is one this build can answer with.
+  # An Integer of 32 bits carries a clock in seconds and little finer, and a
+  # build without bigints has nothing wider to put such a reading in, so a
+  # test that reads nanoseconds asks rather than pinning a build's width.
+  def self.fits?(id, unit)
+    Process.clock_gettime(id, unit)
+    true
+  rescue RangeError
+    false
+  end
+
+  # The reading of +sec+ seconds and +nsec+ nanoseconds answered in +unit+,
+  # as the decimal the Integer of it spells, or nil where this build's
+  # Integer is too narrow to hold it and the conversion says so.  Both the
+  # seconds handed in and the answer read back are decimal Strings: the
+  # values worth asking about here are the ones a build may have no way to
+  # write as a literal.
+  def self.convert(sec, nsec, unit)
+    ProcessClockTest.convert(sec, nsec, unit).to_s
+  rescue RangeError
+    nil
+  end
+
+  # Whether this build has a Float for the float units to answer in.
+  def self.float?
+    Object.const_defined?(:Float)
+  end
+
   # Start a child running +cmd+ through a shell, or return nil where this
   # build has no child to give.
   def self.spawn(cmd)
@@ -560,4 +606,317 @@ assert('$? after IO.popen') do
   assert_kind_of Process::Status, $?
   assert_equal pid, $?.pid
   assert_true $?.success?
+end
+
+
+assert('Process::CLOCK_REALTIME and the rest') do
+  # Four distinct ids, all defined on every platform, so that a program
+  # naming one is naming the same clock wherever it runs.
+  clocks = ProcessTestUtil.clocks
+  seen = {}
+  clocks.each do |id|
+    assert_kind_of Integer, id
+    seen[id] = true
+  end
+  assert_equal clocks.size, seen.size
+end
+
+assert('Process.clock_gettime') do
+  ProcessTestUtil.clocks.each do |id|
+    next unless ProcessTestUtil.clock?(id)
+
+    if ProcessTestUtil.float?
+      assert_kind_of Float, Process.clock_gettime(id)
+    end
+    assert_kind_of Integer, Process.clock_gettime(id, :second)
+    if ProcessTestUtil.fits?(id, :nanosecond)
+      assert_kind_of Integer, Process.clock_gettime(id, :nanosecond)
+    end
+  end
+end
+
+assert('Process.clock_gettime with CLOCK_MONOTONIC') do
+  # What a monotonic clock promises is that a later reading is not a smaller
+  # one.  Where its origin is, and so what any single reading says, is the
+  # platform's to choose and nothing to assert on.
+  skip "no monotonic clock on this platform" unless ProcessTestUtil.clock?(Process::CLOCK_MONOTONIC)
+  skip "no Integer for a reading in nanoseconds" unless ProcessTestUtil.fits?(Process::CLOCK_MONOTONIC, :nanosecond)
+
+  first = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
+  second = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
+  assert_operator second, :>=, first
+end
+
+assert('Process.clock_gettime in each unit') do
+  # The units are scalings of one reading, so a later reading in a smaller
+  # unit is worth at least what an earlier one in a bigger unit was, and the
+  # two are no further apart than the moment between them.  Read from the
+  # monotonic clock, which cannot step between the two readings.
+  skip "no monotonic clock on this platform" unless ProcessTestUtil.clock?(Process::CLOCK_MONOTONIC)
+  skip "no Integer for a reading in nanoseconds" unless ProcessTestUtil.fits?(Process::CLOCK_MONOTONIC, :nanosecond)
+
+  sec = Process.clock_gettime(Process::CLOCK_MONOTONIC, :second)
+  msec = Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond)
+  usec = Process.clock_gettime(Process::CLOCK_MONOTONIC, :microsecond)
+  nsec = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
+
+  [sec, msec, usec, nsec].each { |v| assert_kind_of Integer, v }
+  # A whole unit is what the reading had reached, never the one it was about
+  # to reach, so scaling a bigger unit up never overtakes a later reading.
+  assert_operator sec * 1000, :<=, msec
+  assert_operator msec * 1000, :<=, usec
+  assert_operator usec * 1000, :<=, nsec
+  # The four were read moments apart (a scheduler pause on a loaded CI runner
+  # costs seconds, not the minute asserted here), while a reading the HAL
+  # built wrong, the way a swapped field or the wrong clock would, is off by
+  # an amount this catches easily.
+  assert_operator nsec - sec * 1_000_000_000, :<, 60 * 1_000_000_000
+end
+
+assert('Process.clock_gettime in a float unit') do
+  skip "this build has no Float" unless ProcessTestUtil.float?
+  skip "no monotonic clock on this platform" unless ProcessTestUtil.clock?(Process::CLOCK_MONOTONIC)
+
+  sec = Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_second)
+  msec = Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_millisecond)
+  usec = Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_microsecond)
+
+  [sec, msec, usec].each { |v| assert_kind_of Float, v }
+  # One reading in three scalings, taken in this order moments apart, so each
+  # is worth at least the one before it and the three say the same second.
+  # Every unit is scaled and rounded on its own, so comparing two of them
+  # rounds a second time, and that alone can read a live pair backwards once
+  # the clock's magnitude eats into the mantissa: hence the epsilon.  What a
+  # rounding costs is a share of the value rounded, not a fixed amount, so
+  # the epsilon is a share of the reading's magnitude too, the origin being
+  # the platform's to choose.  An absolute epsilon wide enough for a
+  # monotonic clock that has been running a while is either far too wide on
+  # a `double` or far too narrow on an `MRB_USE_FLOAT32` build, where the
+  # two roundings are worth two milliseconds after a day of uptime.  A
+  # millionth is many times the pair of them even there, and far short of
+  # what an ordering bug would show.  The minute is the same slack against a
+  # scheduler pause on a loaded CI runner that the integer test above uses.
+  epsilon = sec.abs * 1.0e-6
+  assert_operator msec / 1000, :>=, sec - epsilon
+  assert_operator usec / 1000000, :>=, msec / 1000 - epsilon
+  assert_operator usec / 1000000 - sec, :<, 60
+  # :float_second is what a caller who names no unit gets.
+  assert_operator Process.clock_gettime(Process::CLOCK_MONOTONIC), :>=, sec - epsilon
+end
+
+assert('Process.clock_gettime with a nil unit') do
+  # Naming no unit is what nil says, which is what leaving the argument out
+  # says: CRuby cannot tell the two apart at all, an omitted unit arriving
+  # there as nil, so neither is answered differently from the other here.
+  skip "this build has no Float" unless ProcessTestUtil.float?
+  skip "no monotonic clock on this platform" unless ProcessTestUtil.clock?(Process::CLOCK_MONOTONIC)
+
+  assert_kind_of Float, Process.clock_gettime(Process::CLOCK_MONOTONIC, nil)
+  assert_kind_of Float, Process.clock_getres(Process::CLOCK_MONOTONIC, nil)
+end
+
+assert('Process.clock_gettime in a float unit without a Float') do
+  # A build without Float cannot answer in one, and the method is not made
+  # to disappear over it: the integer units still answer, and asking for a
+  # float one is told so where it is asked.
+  skip "this build has a Float" if ProcessTestUtil.float?
+
+  assert_kind_of Integer, Process.clock_gettime(Process::CLOCK_REALTIME, :second)
+  [:float_second, :float_millisecond, :float_microsecond].each do |unit|
+    assert_raise(NotImplementedError) { Process.clock_gettime(Process::CLOCK_REALTIME, unit) }
+  end
+  # A resolution in hertz is a Float too, so it goes the same way, and it is
+  # still not a unit a reading has, which ArgumentError says first.
+  assert_raise(NotImplementedError) { Process.clock_getres(Process::CLOCK_REALTIME, :hertz) }
+  assert_raise(ArgumentError) { Process.clock_gettime(Process::CLOCK_REALTIME, :hertz) }
+  # Including the one a caller gets by not naming a unit at all, which is the
+  # one nil asks for as well.
+  assert_raise(NotImplementedError) { Process.clock_gettime(Process::CLOCK_REALTIME) }
+  assert_raise(NotImplementedError) { Process.clock_gettime(Process::CLOCK_REALTIME, nil) }
+  assert_raise(NotImplementedError) { Process.clock_getres(Process::CLOCK_REALTIME, nil) }
+end
+
+assert('Process.clock_gettime with a number naming no clock') do
+  # An id outside the list is refused before a port sees it, with the errno
+  # a platform's own call gives for a clock it does not have: nothing is
+  # wrong with the size of the number, it simply names nothing.
+  [-1, ProcessTestUtil.clocks.size, 99].each do |id|
+    assert_raise(Errno::EINVAL) { Process.clock_gettime(id) }
+    assert_raise(Errno::EINVAL) { Process.clock_getres(id) }
+  end
+end
+
+assert('Process.clock_gettime with a clock named by a Symbol') do
+  # A clock can be named as well as numbered, as it can in CRuby, and the
+  # name is the constant's, so a program need not depend on the number.
+  {
+    CLOCK_REALTIME: Process::CLOCK_REALTIME,
+    CLOCK_MONOTONIC: Process::CLOCK_MONOTONIC,
+    CLOCK_PROCESS_CPUTIME_ID: Process::CLOCK_PROCESS_CPUTIME_ID,
+    CLOCK_THREAD_CPUTIME_ID: Process::CLOCK_THREAD_CPUTIME_ID,
+  }.each do |name, id|
+    next unless ProcessTestUtil.clock?(id)
+
+    assert_kind_of Integer, Process.clock_gettime(name, :second)
+    assert_kind_of Integer, Process.clock_getres(name, :nanosecond)
+    assert_equal Process.clock_getres(id, :nanosecond),
+                 Process.clock_getres(name, :nanosecond)
+  end
+end
+
+assert('Process.clock_gettime with a clock_id that names nothing') do
+  # CRuby knows further names: the clocks only some platforms have, and the
+  # ways it emulates one the host lacks.  A port here either has one of the
+  # four or says it has not, so those pick nothing out, and are refused the
+  # way a number naming no clock is, which is also what CRuby answers for a
+  # name it does not know.
+  [:NOPE, :CLOCK_MONOTONIC_RAW, :GETTIMEOFDAY_BASED_CLOCK_REALTIME].each do |name|
+    assert_raise(Errno::EINVAL) { Process.clock_gettime(name, :second) }
+    assert_raise(Errno::EINVAL) { Process.clock_getres(name, :second) }
+  end
+  # A String is not a name: it is refused for its type, as CRuby refuses it,
+  # rather than read for a clock name it might spell.  nil is refused the
+  # same way: naming no clock is not the default a nil unit is.
+  assert_raise(TypeError) { Process.clock_gettime("CLOCK_MONOTONIC") }
+  assert_raise(TypeError) { Process.clock_gettime(nil) }
+end
+
+assert('Process.clock_gettime names the clock it failed on') do
+  # The failure says which call was made and which clock it was asked for,
+  # the way CRuby says it, so a caller who named a clock is shown the name
+  # back rather than a number never written.
+  begin
+    Process.clock_gettime(:NOPE, :second)
+    flunk "no error raised"
+  rescue Errno::EINVAL => e
+    assert_include e.message, "clock_gettime(:NOPE)"
+  end
+
+  begin
+    Process.clock_getres(99, :second)
+    flunk "no error raised"
+  rescue Errno::EINVAL => e
+    assert_include e.message, "clock_getres(99)"
+  end
+end
+
+assert('Process.clock_gettime with a unit it does not know') do
+  # A unit is a Symbol, as it is in CRuby, which takes nothing else: a String
+  # naming the same thing is not one of the units.
+  [:minute, :float_nanosecond, "second", 1].each do |unit|
+    assert_raise(ArgumentError) { Process.clock_gettime(Process::CLOCK_REALTIME, unit) }
+    assert_raise(ArgumentError) { Process.clock_getres(Process::CLOCK_REALTIME, unit) }
+  end
+  # :hertz is a resolution's unit alone: there is no rate at which a moment
+  # happened.  CRuby refuses it for a reading in the same words.
+  assert_raise(ArgumentError) { Process.clock_gettime(Process::CLOCK_REALTIME, :hertz) }
+end
+
+assert('Process.clock_gettime with a reading this build cannot carry') do
+  # A 32-bit Integer holds a wall clock in seconds and not in nanoseconds.
+  # What is wrong with such a reading is its size, so it is refused the way
+  # an oversized pid is, unless the build has bigints, which are what CRuby
+  # answers with here and are wide enough for any of these clocks.
+  skip "this build carries a wall clock in nanoseconds" if ProcessTestUtil.fits?(Process::CLOCK_REALTIME, :nanosecond)
+
+  assert_raise(RangeError) { Process.clock_gettime(Process::CLOCK_REALTIME, :nanosecond) }
+  # The same reading in seconds is untouched by it.
+  assert_kind_of Integer, Process.clock_gettime(Process::CLOCK_REALTIME, :second)
+end
+
+assert('Process.clock_gettime at the ends of what a reading fits in') do
+  # A reading becomes an Integer without a clock being read, so where that
+  # arithmetic ends can be asked about directly.  It has to be: the first of
+  # these is a wall clock in nanoseconds in 2262, and the ones below zero are
+  # centuries the other way.  The reading is handed over as a port hands one
+  # over, in whole seconds and nanoseconds within one, and the answer is read
+  # back as a decimal, these being numbers a build's own Integer may have no
+  # way to write.
+  #
+  # Where the build's Integer holds the answer it is that Integer, whether it
+  # took a bigint to hold it or not; where it does not, the reading is
+  # refused for its size, as an oversized pid is.
+  [
+    # int64_t's last value, and the nanosecond after it
+    ["9223372036", 854775807, :nanosecond, "9223372036854775807"],
+    ["9223372036", 854775808, :nanosecond, "9223372036854775808"],
+    # and its first, which falls in a second no whole product of seconds
+    # lands on, and the nanosecond before it
+    ["-9223372037", 145224192, :nanosecond, "-9223372036854775808"],
+    ["-9223372037", 145224191, :nanosecond, "-9223372036854775809"],
+    # a second int64_t holds, in a unit whose answer it does not: how far a
+    # reading reaches is the platform's business and how far an Integer
+    # reaches is mruby's, and the two are not the same question
+    ["9223372036854775807", 0, :second, "9223372036854775807"],
+    ["9223372036854775807", 0, :millisecond, "9223372036854775807000"],
+    ["10000000000", 123456789, :nanosecond, "10000000000123456789"],
+    # a reading before the epoch, whose nanoseconds count upwards from the
+    # second below it, as a port reports every reading
+    ["-2", 500000000, :second, "-2"],
+    ["-2", 500000000, :millisecond, "-1500"],
+    ["-2", 500000000, :nanosecond, "-1500000000"],
+  ].each do |sec, nsec, unit, expected|
+    if ProcessClockTest.fits?(expected)
+      assert_equal expected, ProcessTestUtil.convert(sec, nsec, unit)
+      assert_kind_of Integer, ProcessClockTest.convert(sec, nsec, unit)
+    else
+      assert_nil ProcessTestUtil.convert(sec, nsec, unit)
+      assert_raise(RangeError) { ProcessClockTest.convert(sec, nsec, unit) }
+    end
+  end
+end
+
+assert('Process.clock_getres in hertz') do
+  # How many times a second the clock can tell apart, which is one over what
+  # :float_second says.  Read back against the same resolution in
+  # nanoseconds: a hertz for every nanosecond of it is a second's worth,
+  # whatever the clock, and the two are computed apart from each other.
+  skip "this build has no Float" unless ProcessTestUtil.float?
+
+  ProcessTestUtil.clocks.each do |id|
+    next unless ProcessTestUtil.clock?(id)
+
+    hz = Process.clock_getres(id, :hertz)
+    res = Process.clock_getres(id, :nanosecond)
+    assert_kind_of Float, hz
+    assert_operator hz, :>, 0
+    assert_operator (hz * res - 1000000000).abs, :<, 1
+  end
+end
+
+assert('Process.clock_getres') do
+  ProcessTestUtil.clocks.each do |id|
+    next unless ProcessTestUtil.clock?(id)
+
+    # A clock a port can read is one it answers a granularity for, so
+    # nothing is skipped here for a port declining to say.
+    res = Process.clock_getres(id, :nanosecond)
+    assert_kind_of Integer, res
+    # A resolution is never zero, and no clock here is coarser than a whole
+    # second, so it is worth at least a nanosecond and at most one second.
+    assert_operator res, :>, 0
+    assert_operator res, :<=, 1000000000
+    # An integer unit truncates, so a resolution finer than one whole unit
+    # of it reads as 0; a clock coarser than a second is the only one that
+    # reads above it here.
+    assert_operator Process.clock_getres(id, :second), :>=, 0
+  end
+end
+
+assert('Process.clock_getres of a clock read as a FILETIME') do
+  # Windows accounts both CPU clocks in FILETIMEs, and a FILETIME is written
+  # in 100ns ticks, so that is how finely two of those readings can differ.
+  # The wall clock is left out, being read two different ways depending on
+  # the Windows; ports/win/process_hal.c pairs each way with its own
+  # granularity.
+  skip "not on Windows" unless ProcessTestUtil.windows?
+
+  # A tick is 100ns, so the resolution is asked for in nanoseconds; the
+  # reading beside it is asked in an integer unit too, the unit being
+  # resolved before the HAL is, so that a build without Float does not raise
+  # NotImplementedError before the port is reached at all.
+  [Process::CLOCK_PROCESS_CPUTIME_ID, Process::CLOCK_THREAD_CPUTIME_ID].each do |id|
+    assert_kind_of Integer, Process.clock_gettime(id, :nanosecond)
+    assert_equal 100, Process.clock_getres(id, :nanosecond)
+  end
 end

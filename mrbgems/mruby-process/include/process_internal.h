@@ -11,6 +11,7 @@
 #define MRUBY_PROCESS_INTERNAL_H
 
 #include <mruby.h>
+#include "process_hal.h"
 
 MRB_BEGIN_DECL
 
@@ -24,6 +25,16 @@ void mrb_process_status_init(mrb_state *mrb, struct RClass *process);
 /* Build a Process::Status for a pid and the platform status it was reaped
    with.  The status decodes itself through the HAL as it is asked questions. */
 mrb_value mrb_process_status_new(mrb_state *mrb, mrb_int pid, mrb_int raw_status);
+
+/* Answer the clock reading `t` in the unit `unit` names.  `resolution` says
+   whether `t` is a resolution rather than a moment, which is what makes
+   `:hertz` a unit it can be asked for.  Shared with the gem's tests, which
+   hand it readings no clock reports: the ends of an int64_t and of this
+   build's Integer are decided here, so that is where they can be asked
+   about. */
+mrb_value mrb_process_clock_result(mrb_state *mrb, mrb_value unit,
+                                   const mrb_process_clock_time *t,
+                                   mrb_bool resolution);
 
 MRB_END_DECL
 

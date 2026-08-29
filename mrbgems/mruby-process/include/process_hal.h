@@ -12,9 +12,12 @@
 ** nothing about `Process::Status`, `$?`, `$$`, blocks or any other Ruby
 ** notion: those belong to the common sources under src/.  In the other
 ** direction, no platform type or macro (`pid_t`, `WIFEXITED`, `SIGTERM`,
-** `WNOHANG`, ...) crosses into the common layer: process and signal
-** numbers travel as `mrb_int`, wait options as the MRB_PROCESS_WAIT_* bits
-** below, and a decoded wait status as `mrb_process_status`.
+** `WNOHANG`, `CLOCK_MONOTONIC`, ...) crosses into the common layer: process
+** and signal numbers travel as `mrb_int`, wait options as the
+** MRB_PROCESS_WAIT_* bits below, a decoded wait status as
+** `mrb_process_status`, a clock as one of the `mrb_process_clock_id` values
+** and a time it reported as `mrb_process_clock_time`, whose two fields are
+** `int64_t` rather than `mrb_int` for the reason given where it is defined.
 **
 ** What a signal is *called* is not asked here at all.  mruby-signal owns
 ** that table, and both `Process.kill` and `Process::Status#to_s` reach it
@@ -25,6 +28,7 @@
 #define MRUBY_PROCESS_HAL_H
 
 #include <mruby.h>
+#include <stdint.h>
 
 MRB_BEGIN_DECL
 
@@ -75,6 +79,53 @@ typedef struct mrb_process_status {
 #define MRB_PROCESS_WAIT_ANY ((mrb_int)-1)
 
 /*
+ * Clocks
+ *
+ * Which clocks there are is mruby's own list rather than the platform's, as
+ * the wait options above are: `CLOCK_MONOTONIC` is 1 on Linux, 6 on macOS
+ * and 4 on FreeBSD, and Windows has no `clockid_t` to give it a number at
+ * all, so a program that names a clock would otherwise be naming a different
+ * one on each port.  The common layer refuses an id outside this list before
+ * a port sees it, and a port whose platform has no such clock fails that
+ * one with EINVAL.
+ */
+typedef enum mrb_process_clock_id {
+  MRB_PROCESS_CLOCK_REALTIME = 0,     /* wall clock, counted from the epoch */
+  MRB_PROCESS_CLOCK_MONOTONIC,        /* never steps; unspecified origin */
+  MRB_PROCESS_CLOCK_PROCESS_CPUTIME,  /* CPU time this process has spent */
+  MRB_PROCESS_CLOCK_THREAD_CPUTIME,   /* CPU time this thread has spent */
+  MRB_PROCESS_CLOCK_COUNT             /* how many ids there are; not a clock */
+} mrb_process_clock_id;
+
+/*
+ * A time a clock reported, kept in two fields so that nothing is lost on the
+ * way up.
+ *
+ * A Float would hold 53 of the 61 bits a wall-clock nanosecond needs, which
+ * would leave `:nanosecond` unable to answer honestly however it was asked,
+ * and a single count of nanoseconds runs out in 2262.  A port therefore
+ * always reports the same two numbers and knows nothing of the unit a caller
+ * wanted: arriving at that unit is the common layer's.
+ *
+ * The fields are `int64_t` rather than `mrb_int`, which is what every other
+ * quantity crossing this interface travels as.  A reading is a fact about
+ * the platform and its size is the platform's, so a port reports what its
+ * clock said; how much of that this build's Integer can carry is a question
+ * about mruby, and is answered where RangeError can be said and a bigint
+ * can be built.  Were it `mrb_int`, a build with a 32-bit one would have
+ * every port refusing the wall clock from 2038 on, through `errno`, which
+ * has no way to say that the platform was fine and the Integer was not.
+ * `int64_t` is no more a platform type than `mrb_int` is: `time_t`,
+ * `clockid_t` and FILETIME still stop at the port.
+ *
+ * `nsec` is always in [0, 999999999], whatever the platform counts in.
+ */
+typedef struct mrb_process_clock_time {
+  int64_t sec;
+  int64_t nsec;
+} mrb_process_clock_time;
+
+/*
  * HAL Interface Functions
  */
 
@@ -119,6 +170,56 @@ int mrb_hal_process_kill(mrb_state *mrb, mrb_int pid, mrb_int signo);
  */
 void mrb_hal_process_status_decode(mrb_state *mrb, mrb_int pid, mrb_int raw_status,
                                    mrb_process_status *status);
+
+/*
+ * Read a clock.
+ *
+ * MRB_PROCESS_CLOCK_REALTIME is counted from the Unix epoch and may step,
+ * backwards included, when the host's idea of the time is corrected.  The
+ * other three are counted from an origin this interface does not name; a
+ * port must keep whichever it uses fixed for the life of the process, since
+ * subtracting two readings is the whole of what such a clock is for.
+ *
+ * @param clock_id  one of the mrb_process_clock_id values
+ * @param t         out: the reading, with nsec normalized to [0, 999999999]
+ * @return 0 on success, -1 on error, with errno set.  A clock the platform
+ *         does not have is EINVAL; a port that could read no clock at all
+ *         would answer ENOSYS, as an inexpressible wait pid does.
+ */
+int mrb_hal_process_clock_gettime(mrb_state *mrb, mrb_int clock_id,
+                                  mrb_process_clock_time *t);
+
+/*
+ * The granularity a clock is read at: how finely the mechanism a reading
+ * comes out of can tell two moments apart.  It describes the way the port
+ * reads the clock, not the clock itself: the interval a reading is driven
+ * by where the platform states one, and otherwise the unit a reading is
+ * written in, which is the finest two of them can differ by.  A caller gets
+ * a bound on what it can distinguish, never a period the clock is promised
+ * to advance on, and a port must not answer anything finer than the
+ * mechanism it used, since that promises a difference no two readings can
+ * show.
+ *
+ * A reading says little without it, since a monotonic clock that moves every
+ * 15ms and one that moves every 100ns are read the same way, so a clock a
+ * port can read is one it can answer this for: whatever a reading came out
+ * of has a granularity, even where the clock behind it does not state one.
+ *
+ * The looseness is the platforms', not this interface's.  POSIX's own
+ * clock_getres(2) is a statement of the same kind, Linux answering 1ns for
+ * clocks whose readings move in tens or hundreds of them, and CRuby reports
+ * the granularity of what it emulated a clock out of: a microsecond for the
+ * gettimeofday(2)-based wall clock, a tick for the times(2)-based CPU one.
+ * A port that refused to answer wherever a platform would not commit to a
+ * true period would refuse for nearly every clock on every platform.
+ *
+ * @param clock_id  one of the mrb_process_clock_id values
+ * @param t         out: the granularity, never zero (the common layer
+ *                  divides by it to answer `:hertz`), nsec in [0, 999999999]
+ * @return 0 on success, -1 on error, as for a reading
+ */
+int mrb_hal_process_clock_getres(mrb_state *mrb, mrb_int clock_id,
+                                 mrb_process_clock_time *t);
 
 /*
  * HAL Initialization/Finalization
