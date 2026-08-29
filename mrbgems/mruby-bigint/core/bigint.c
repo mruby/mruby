@@ -5375,6 +5375,11 @@ mrb_bint_new_int64(mrb_state *mrb, int64_t n)
   mpz_t x;
   MPZ_CTX_INIT(mrb, ctx, pool);
 
+  /* mpz_set_int64() reallocates `x` to hold the value, which reads the size
+     and the limbs it already has, so it is given an initialized one rather
+     than whatever the stack held.  mrb_bint_new_uint64() below does the
+     same. */
+  mpz_init(ctx, &x);
   mpz_set_int64(ctx, &x, n);
   struct RBigint *b = bint_new(ctx, &x);
   return mrb_obj_value(b);
