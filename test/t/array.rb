@@ -727,3 +727,20 @@ assert('Array#hash with self-referencing arrays') do
   b << b
   assert_equal a.hash, b.hash
 end
+
+assert('Array shared from an emptied heap array keeps a buffer') do
+  # ary_make_shared() shrinks the buffer to the length being carried, and
+  # that length can be zero: `pop` leaves the capacity where `clear` gives it
+  # back.  Asking mrb_realloc() for no bytes at all would free the buffer and
+  # answer NULL, so the shrink asks for one element where there are none, and
+  # both arrays are left reading a pointer rather than nothing.
+  a = Array.new(200) { |i| i }
+  200.times { a.pop }
+  skip 'this build keeps an emptied array off the heap' unless AryShared.heap_empty?(a)
+
+  assert_false AryShared.copy_ptr_null?(a)
+  # and it is still an array afterwards
+  assert_equal 0, a.size
+  a.push 1
+  assert_equal [1], a
+end

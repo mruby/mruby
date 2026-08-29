@@ -240,7 +240,14 @@ ary_make_shared(mrb_state *mrb, struct RArray *a)
 
     shared->refcnt = 1;
     if (a->as.heap.aux.capa > len) {
-      a->as.heap.ptr = shared->ptr = (mrb_value*)mrb_realloc(mrb, ptr, sizeof(mrb_value)*len+1);
+      /* Shrink to fit.  `len` can be zero here: a heap array emptied by
+         `pop` keeps the capacity it grew to, and mrb_ary_make_shared_copy()
+         brings such an array through.  mrb_realloc() with a size of zero
+         frees the buffer and answers NULL (see mrb_basic_alloc_func()), so
+         one element is asked for where there are none, keeping `ptr` a
+         pointer the shared array can be read and freed through. */
+      mrb_int size = len > 0 ? len : 1;
+      a->as.heap.ptr = shared->ptr = (mrb_value*)mrb_realloc(mrb, ptr, sizeof(mrb_value)*size);
     }
     else {
       shared->ptr = ptr;

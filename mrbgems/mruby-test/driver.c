@@ -28,6 +28,7 @@ void mrbgemtest_init(mrb_state* mrb);
 void mrb_init_test_vformat(mrb_state* mrb);
 void mrb_init_test_notimplement(mrb_state* mrb);
 void mrb_init_test_sysfail(mrb_state* mrb);
+void mrb_init_test_ary_shared(mrb_state* mrb);
 
 /* Print a short remark for the user */
 static void
@@ -266,6 +267,7 @@ mrb_init_test_driver(mrb_state *mrb, mrb_bool verbose)
   mrb_init_test_vformat(mrb);
   mrb_init_test_notimplement(mrb);
   mrb_init_test_sysfail(mrb);
+  mrb_init_test_ary_shared(mrb);
 
   if (verbose) {
     mrb_gv_set(mrb, mrb_intern_lit(mrb, "$mrbtest_verbose"), mrb_true_value());
