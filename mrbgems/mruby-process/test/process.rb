@@ -850,6 +850,16 @@ assert('Process.clock_gettime at the ends of what a reading fits in') do
     ["9223372036854775807", 0, :second, "9223372036854775807"],
     ["9223372036854775807", 0, :millisecond, "9223372036854775807000"],
     ["10000000000", 123456789, :nanosecond, "10000000000123456789"],
+    # the second int64_t's own first value falls in, asked for in a unit
+    # whose whole seconds land either side of it: the product of that second
+    # is itself past int64_t, so a reading there is counted up from INT64_MIN
+    # rather than multiplied, and the nanoseconds decide whether it lands
+    # back inside.  Without that counting the two below would be refused for
+    # a size they have.
+    ["-9223372036854776", 200000000, :millisecond, "-9223372036854775800"],
+    ["-9223372036854776", 999000000, :millisecond, "-9223372036854775001"],
+    # and one in the same second that really is past the end
+    ["-9223372036854776", 100000000, :millisecond, "-9223372036854775900"],
     # a reading before the epoch, whose nanoseconds count upwards from the
     # second below it, as a port reports every reading
     ["-2", 500000000, :second, "-2"],
