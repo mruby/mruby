@@ -495,3 +495,35 @@ assert('Bigint an mrb_int operand keeps every bit') do
   assert_equal 18446744069414584319, (1 << 64) - ((1 << 32) + 1)
   assert_equal 79228162514264337593543950336, (1 << 64) * (1 << 32)
 end
+
+assert('Bigint Integer#ceil keeps a value that is already a multiple') do
+  # A big integer that is already a multiple of 10**n is its own ceiling.
+  big = 10 ** 25
+  assert_equal big, big.ceil(-1)
+  assert_equal big, big.ceil(-2)
+  assert_equal big, big.ceil(-25)
+  assert_equal(-big, (-big).ceil(-1))
+  assert_equal(-big, (-big).ceil(-25))
+
+  assert_equal 10000000000000000000000010, (big + 5).ceil(-1)
+  assert_equal 10000000000000000000000010, (big + 4).ceil(-1)
+  assert_equal(-big, (-big - 5).ceil(-1))
+  assert_equal(-big, (-big - 4).ceil(-1))
+end
+
+assert('Bigint Integer#floor keeps a value that is already a multiple') do
+  big = 10 ** 25
+  assert_equal(-big, (-big).floor(-1))
+  assert_equal(-big, (-big).floor(-25))
+  assert_equal(-10000000000000000000000010, (-big - 5).floor(-1))
+end
+
+assert('Bigint Integer#round breaks a tie away from zero') do
+  big = 10 ** 25
+  assert_equal big, big.round(-1)
+  assert_equal 10000000000000000000000010, (big + 5).round(-1)
+  assert_equal big, (big + 4).round(-1)
+  assert_equal big, (big - 5).round(-1)
+  assert_equal(-10000000000000000000000010, (-big - 5).round(-1))
+  assert_equal(-big, (-big - 4).round(-1))
+end

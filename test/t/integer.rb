@@ -273,6 +273,19 @@ end
 
 assert('Integer#ceil', '15.2.8.3.14') do
   assert_equal 10, 10.ceil
+  assert_equal 10, 10.ceil(2)
+  assert_equal 1300, 1234.ceil(-2)
+  assert_equal(-1200, -1234.ceil(-2))
+  assert_equal 0, (-99).ceil(-2)
+end
+
+assert('Integer#ceil keeps a value that is already a multiple') do
+  assert_equal 0, 0.ceil(-1)
+  assert_equal 10, 10.ceil(-1)
+  assert_equal 100, 100.ceil(-2)
+  assert_equal 1200, 1200.ceil(-2)
+  assert_equal(-100, -100.ceil(-2))
+  assert_equal(-1200, -1200.ceil(-2))
 end
 
 assert('Integer#downto', '15.2.8.3.15') do
@@ -303,6 +316,19 @@ assert('Integer#floor', '15.2.8.3.17') do
   a = 1.floor
 
   assert_equal 1, a
+  assert_equal 1, 1.floor(2)
+  assert_equal 1200, 1234.floor(-2)
+  assert_equal(-1300, -1234.floor(-2))
+  assert_equal 0, 99.floor(-2)
+end
+
+assert('Integer#floor keeps a value that is already a multiple') do
+  assert_equal 0, 0.floor(-1)
+  assert_equal(-10, -10.floor(-1))
+  assert_equal(-100, -100.floor(-2))
+  assert_equal(-1200, -1200.floor(-2))
+  assert_equal 100, 100.floor(-2)
+  assert_equal 1200, 1200.floor(-2)
 end
 
 assert('Integer#next', '15.2.8.3.19') do
@@ -311,6 +337,34 @@ end
 
 assert('Integer#round', '15.2.8.3.20') do
   assert_equal 1, 1.round
+  assert_equal 1, 1.round(2)
+  assert_equal 12300, 12345.round(-2)
+  assert_equal 12350, 12345.round(-1)
+  assert_equal 12000, 12345.round(-3)
+  assert_equal(-12300, -12345.round(-2))
+  assert_equal 0, 4.round(-1)
+  assert_equal 100, 99.round(-2)
+  assert_equal 0, 0.round(-1)
+end
+
+assert('Integer#round keeps a value that is already a multiple') do
+  assert_equal 10, 10.round(-1)
+  assert_equal 100, 100.round(-2)
+  assert_equal 1200, 1200.round(-2)
+  assert_equal(-100, -100.round(-2))
+  assert_equal(-1200, -1200.round(-2))
+end
+
+assert('Integer#round breaks a tie away from zero') do
+  assert_equal 10, 5.round(-1)
+  assert_equal 20, 15.round(-1)
+  assert_equal 30, 25.round(-1)
+  assert_equal 200, 150.round(-2)
+  assert_equal 300, 250.round(-2)
+  assert_equal(-10, -5.round(-1))
+  assert_equal(-20, -15.round(-1))
+  assert_equal(-30, -25.round(-1))
+  assert_equal(-200, -150.round(-2))
 end
 
 assert('Integer#succ', '15.2.8.3.21') do
@@ -349,6 +403,23 @@ end
 
 assert('Integer#truncate', '15.2.8.3.26') do
   assert_equal 1, 1.truncate
+  assert_equal 1, 1.truncate(2)
+  assert_equal 1200, 1234.truncate(-2)
+  assert_equal(-1200, -1234.truncate(-2))
+  assert_equal 1200, 1200.truncate(-2)
+  assert_equal 0, 99.truncate(-2)
+end
+
+assert('Integer rounding to a power of ten wider than an mrb_int') do
+  # 10 ** 19 is wider than an mrb_int, so the four methods answer 0 rather than
+  # reaching for a power they cannot hold.
+  (19..25).each do |n|
+    assert_equal 0, 12345.round(-n)
+    assert_equal 0, (-12345).round(-n)
+    assert_equal 0, 12345.truncate(-n)
+    assert_equal 0, 12345.floor(-n)
+    assert_equal 0, (-12345).ceil(-n)
+  end
 end
 
 assert('Integer#upto', '15.2.8.3.27') do
