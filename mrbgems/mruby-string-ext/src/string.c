@@ -4,6 +4,7 @@
 #include <mruby/class.h>
 #include <mruby/string.h>
 #include <mruby/range.h>
+#include <mruby/numeric.h>
 #include <mruby/internal.h>
 
 #define ENC_ASCII_8BIT "ASCII-8BIT"
@@ -2346,7 +2347,8 @@ mrb_str_slice_bang(mrb_state *mrb, mrb_value self)
   }
 
   if (beg > str_len) return mrb_nil_value();
-  if (beg + len > str_len) {
+  mrb_int end;
+  if (mrb_int_add_overflow(beg, len, &end) || end > str_len) {
     len = str_len - beg;
   }
   if (len < 0) len = 0;
@@ -2354,7 +2356,9 @@ mrb_str_slice_bang(mrb_state *mrb, mrb_value self)
   mrb_int byte_beg = mrb_str_char_to_byte(mrb, self, 0, beg);
   mrb_int byte_len = mrb_str_char_to_byte(mrb, self, byte_beg, len);
 
-  if (byte_beg < 0 || byte_beg > RSTRING_LEN(self) || byte_beg + byte_len > RSTRING_LEN(self)) {
+  mrb_int byte_end;
+  if (byte_beg < 0 || byte_beg > RSTRING_LEN(self) ||
+      mrb_int_add_overflow(byte_beg, byte_len, &byte_end) || byte_end > RSTRING_LEN(self)) {
     return mrb_nil_value();
   }
 
