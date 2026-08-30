@@ -383,12 +383,10 @@ assert("the five names read the match, not the methods that read it") do
 end
 
 assert("the five names read whatever answers the private names") do
-  # They are sends, so they read what the `$~` in hand answers, MatchData or
-  # not. CRuby's setter refuses a `$~` that is not a MatchData and mruby has
-  # no hook on a global write to refuse from, so the private names buy one
-  # thing only: an accident (a `$~` holding an Array, a redefined
-  # `MatchData#[]`) is not read as a match. Rewriting the readings themselves
-  # is still asking for what comes back.
+  # They are sends, so they read what the `$~` in hand answers. The setter
+  # refuses anything that is not a MatchData (below), so the private names
+  # buy one thing: a redefined `MatchData#[]` is not read as a match.
+  # Rewriting the readings themselves is still asking for what comes back.
   /(b)(c)?/ =~ "abz"
   md = $~
   def md.__group(n)
@@ -398,41 +396,17 @@ assert("the five names read whatever answers the private names") do
   assert_equal "PWNED1", $1
   assert_equal "a", $`
   assert_equal "b", $+
-
-  # a stand-in that never was a match reads the same way
-  begin
-    fake = Object.new
-    def fake.__group(n)
-      "FAKE#{n}"
-    end
-    def fake.__pre_match
-      "FAKEPRE"
-    end
-    $~ = fake
-    assert_equal "FAKE0", $&
-    assert_equal "FAKE1", $1
-    assert_equal "FAKEPRE", $`
-  ensure
-    $~ = nil
-  end
 end
 
-assert("$& and $1 onward refuse a $~ that is not a MatchData") do
-  # `$~` is a plain global and takes any value, where CRuby's setter raises
-  # TypeError. A value that answers `[]` would answer `$1` as well were the
-  # names derived with `[]`, so they ask for the group by a name a MatchData
-  # alone carries and a wrong `$~` is a NoMethodError rather than an answer.
+assert("$& and $1 onward cannot see a $~ that is not a MatchData") do
+  # The names are derived from `$~`, and the setter is what stands between
+  # them and a wrong value: like CRuby's, it refuses anything but a
+  # MatchData or nil with TypeError at the write, so a `$~` holding an Array
+  # is a state the readers never see, and the refused write changes nothing.
   /(b)(c)?/ =~ "abz"
-  begin
-    $~ = [10, 20, 30]
-    assert_raise(NoMethodError) { $& }
-    assert_raise(NoMethodError) { $1 }
-    assert_raise(NoMethodError) { $+ }
-    assert_raise(NoMethodError) { $` }
-    assert_raise(NoMethodError) { $' }
-  ensure
-    $~ = nil
-  end
+  assert_raise(TypeError) { $~ = [10, 20, 30] }
+  assert_equal "b", $&
+  assert_equal "b", $1
 end
 
 assert("a piece cut from a subject is its own string") do

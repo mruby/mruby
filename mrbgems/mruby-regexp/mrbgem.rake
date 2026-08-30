@@ -41,6 +41,30 @@ MRuby::Gem::Specification.new('mruby-regexp') do |spec|
     spec.add_dependency 'mruby-symbol-ext', :core => 'mruby-symbol-ext'
   end
 
+  # Same deal for `$~` being per execution context (the slot lives on each
+  # context's ci stack): the test pinning that can only run where the build
+  # has mruby-fiber anyway; the test skips itself where Fiber is missing.
+  if build.gems.any? {|g| g.name == 'mruby-fiber'}
+    spec.add_test_dependency 'mruby-fiber', :core => 'mruby-fiber'
+  end
+
+  # The nested-load tests drive `$~` the way an embedding host does: a C
+  # function calling mrb_load_string() mid-execution. The helper is C
+  # (test/backref_scope.c) and needs the compiler in the test state, the
+  # way mruby-proc-binding's proc_in_c helper does.
+  spec.add_test_dependency 'mruby-compiler', :core => 'mruby-compiler'
+
+  # Same deal for the `eval` family, which lands on the calling scope as the
+  # nested loads do, by another rule: an `eval` proc captures its caller's
+  # env, so it resolves as a block. `instance_eval` given a String is that
+  # shape too, and `Binding#eval` takes the bound scope instead. mruby-eval
+  # carries all three (`Binding#eval` is defined there) and pulls in
+  # mruby-binding, so this one dependency covers the set; the tests skip
+  # themselves where the build has no `eval`.
+  if build.gems.any? {|g| g.name == 'mruby-eval'}
+    spec.add_test_dependency 'mruby-eval', :core => 'mruby-eval'
+  end
+
   # Same deal for taking a method back off a class. The test that pins `$&`
   # and `$1` reading the match rather than `MatchData#[]` redefines `[]` and
   # parks the original under another name, and dropping that name afterwards

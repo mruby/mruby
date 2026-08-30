@@ -90,7 +90,10 @@ static struct REnv *
 binding_env_new_lvspace(mrb_state *mrb, const struct REnv *e)
 {
   struct REnv *env = MRB_OBJ_ALLOC(mrb, MRB_TT_ENV, NULL);
-  mrb_value *stacks = (mrb_value*)mrb_calloc(mrb, 1, sizeof(mrb_value));
+  /* Born closed and off the stack, standing in for a Ruby scope, so it
+     carries the special-variable slot past its one local from the start
+     (MRB_ENV_SET_SVAR below; see internal.h). */
+  mrb_value *stacks = (mrb_value*)mrb_malloc(mrb, MRB_ENV_SVAR_STACK_SIZE(1));
   env->mid = 0;
   env->stack = stacks;
   if (e && e->stack && MRB_ENV_LEN(e) > 0) {
@@ -99,7 +102,10 @@ binding_env_new_lvspace(mrb_state *mrb, const struct REnv *e)
   else {
     env->stack[0] = mrb_nil_value();
   }
+  SET_NIL_VALUE(MRB_ENV_SVAR_SLOT(env->stack, 1));
   MRB_ENV_SET_LEN(env, 1);
+  MRB_ENV_CLOSE(env);
+  MRB_ENV_SET_SVAR(env);
   return env;
 }
 

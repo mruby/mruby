@@ -128,6 +128,32 @@ EOS
   assert_equal 0, status.exitstatus
 end
 
+assert('mruby -r option gives each chunk its own special-variable scope') do
+  # per-scope $~ comes with mruby-regexp; probe the binary rather than
+  # skip forever on a fixed gem list
+  probe, = Open3.capture2(*(cmd_list(MRUBY_BIN) + %w[-e print(Object.const_defined?(:Regexp))]))
+  skip unless probe == "true"
+
+  lib = Tempfile.new('lib.rb')
+  lib.write <<EOS
+"fromlib" =~ /fromlib/
+$pr = -> { $~ && $~[0] }
+EOS
+  lib.flush
+
+  script = Tempfile.new('test.rb')
+  script.write <<EOS
+p [$~ && $~[0], $pr.call]
+"inmain" =~ /inmain/
+p [$~ && $~[0], $pr.call]
+EOS
+  script.flush
+  # the main program starts with $~ unset, as a file `ruby -r` loads does,
+  # while a proc the library left behind keeps reading its own scope, in
+  # both directions
+  assert_mruby(%{[nil, "fromlib"]\n["inmain", "fromlib"]\n}, "", true, ['-r', lib.path, script.path])
+end
+
 assert('mruby -r option (no library specified)') do
   assert_mruby("", /\A.*: No library specified for -r\n\z/, false, %w[-r])
 end

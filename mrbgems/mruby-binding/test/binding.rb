@@ -62,3 +62,41 @@ end
 assert "Kernel#binding and .eval from C" do
   assert_raise(RuntimeError) { binding_in_c }
 end
+
+# The local-variable space a binding holds is a closed env carrying the
+# special-variable slot past its locals (mruby/internal.h), and
+# `local_variable_set` on a name the scope has not seen grows that stack
+# through mrb_proc_merge_lvar(). The new locals take the ground the slot
+# stood on, so the merge has to move it; an env sized without the slot,
+# which out-of-tree code builds by hand, must not be read past its locals
+# at all. The C helpers are in test/binding.c.
+assert "Binding#local_variable_set moves the special-variable slot" do
+  b = binding
+  assert_true __binding_env_svar?(b)
+  len = __binding_env_len(b)
+  marker = "slot marker"
+  assert_true __binding_env_slot_set(b, marker)
+
+  b.local_variable_set(:merged_lvar, 42)
+  assert_true __binding_env_svar?(b)
+  assert_equal len + 1, __binding_env_len(b)
+  assert_equal marker, __binding_env_slot_get(b)
+
+  GC.start
+  assert_equal 42, b.local_variable_get(:merged_lvar)
+  assert_equal marker, __binding_env_slot_get(b)
+end
+
+assert "Binding#local_variable_set over an env without the slot" do
+  b = binding
+  len = __binding_env_len(b)
+  assert_true __binding_env_drop_svar(b)
+  assert_false __binding_env_svar?(b)
+
+  b.local_variable_set(:merged_lvar, 42)
+  assert_false __binding_env_svar?(b)
+  assert_equal len + 1, __binding_env_len(b)
+
+  GC.start
+  assert_equal 42, b.local_variable_get(:merged_lvar)
+end

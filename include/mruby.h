@@ -182,6 +182,14 @@ typedef struct {
   struct RProc *blk;
   mrb_value *stack;
   const mrb_code *pc;           /* current address on iseq of this proc */
+  struct RBasic *svar;          /* special variables of this frame's scope (CRuby's svar): a keyed
+                                   container (struct RSvar), NULL until a first non-nil write allocates
+                                   it. The core stores and marks it; each key's meaning belongs to
+                                   whoever registers the matching virtual global (see
+                                   mrb_vm_svar_get()). A frame with no scope of its own holds instead
+                                   the env of the scope it resolves to, the forward the same slot of an
+                                   escaped env carries (see mrb_svar_frame_container() in vm.c), which
+                                   is why the field is typed by what both are rather than by one */
   union {
     struct REnv *env;
     struct RClass *target_class;

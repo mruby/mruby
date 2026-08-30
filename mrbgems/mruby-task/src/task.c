@@ -39,8 +39,11 @@
  * An escaped closure keeps its REnv alive after the task is gone; if the
  * env still points into the freed stack, the next GC marks garbage and
  * crashes in mrb_gc_mark. mruby does the same for fibers in gc.c's
- * MRB_TT_FIBER free path; the walk both come through is
- * mrb_env_detach_all() (vm.c).
+ * MRB_TT_FIBER free path; the shared walk and the carrying policy for
+ * each frame's special-variable container live in mrb_env_detach_all()
+ * (vm.c). TRUE because this teardown runs outside a collection, so a
+ * scopeless frame's owner is resolved here, on this side of the C
+ * boundary a preempted nested load stopped at.
  *
  * Only called while the VM is alive. A task stays GC-registered for its
  * whole life, so the GC frees one only while tearing the heap down, and
@@ -49,7 +52,7 @@
 static void
 task_unshare_envs(mrb_state *mrb, struct mrb_context *c)
 {
-  mrb_env_detach_all(mrb, c);
+  mrb_env_detach_all(mrb, c, TRUE);
 }
 
 /*
@@ -160,6 +163,14 @@ mrb_task_mark_all(mrb_state *mrb)
         for (ci = c->cibase; ci <= c->ci; ci++) {
           if (ci->proc) {
             mrb_gc_mark(mrb, (struct RBasic*)ci->proc);
+          }
+          if (ci->svar) {
+            /* the frame's special-variable slot, which mark_context() in
+               gc.c marks for every context this walk does not reach. A task
+               context has no fiber to be marked through, and a write to the
+               slot takes no barrier, so this walk is also its atomic
+               re-scan, like the value stack's above. */
+            mrb_gc_mark(mrb, (struct RBasic*)ci->svar);
           }
           if (ci->u.target_class) {
             mrb_gc_mark(mrb, (struct RBasic*)ci->u.target_class);
@@ -1752,6 +1763,9 @@ mrb_task_reset_context(mrb_state *mrb, mrb_value task)
   c->status = MRB_TASK_CREATED;
   if (c->ci) {
     mrb_vm_ci_target_class_set(c->ci, mrb->object_class);
+    /* the special variables of the previous run die with it: the next
+       body starts with `$~` unset, as a fresh task's does */
+    c->ci->svar = NULL;
   }
 }
 

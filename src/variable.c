@@ -7,6 +7,7 @@
 #include <mruby.h>
 #include <mruby/array.h>
 #include <mruby/class.h>
+#include <mruby/data.h>
 #include <mruby/proc.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>
@@ -1596,6 +1597,57 @@ mrb_mod_constants(mrb_state *mrb, mrb_value mod)
   return ary;
 }
 
+/* A virtual global's dispatch table, held behind a sentinel stored in the
+ * globals table itself: the name stays defined and listed, marking is the
+ * table's ordinary marking, and an ordinary global pays one type test on
+ * access. What the sentinel must never do is leak into Ruby as the
+ * variable's value, which is what the dispatch in mrb_gv_get()/mrb_gv_set()
+ * guarantees. */
+struct gv_virtual {
+  mrb_value (*get)(mrb_state *mrb);
+  void (*set)(mrb_state *mrb, mrb_value v);
+};
+
+static void
+gv_virtual_free(mrb_state *mrb, void *p)
+{
+  mrb_free(mrb, p);
+}
+
+static const mrb_data_type gv_virtual_type = { "gv_virtual", gv_virtual_free };
+
+static const struct gv_virtual*
+gv_virtual_check(mrb_value v)
+{
+  if (mrb_data_p(v) && DATA_TYPE(v) == &gv_virtual_type) {
+    return (const struct gv_virtual*)DATA_PTR(v);
+  }
+  return NULL;
+}
+
+/*
+ * Registers `sym` as a virtual global variable dispatching to `get` and
+ * `set`. See <mruby/variable.h>.
+ */
+MRB_API void
+mrb_gv_define_virtual(mrb_state *mrb, mrb_sym sym, mrb_value (*get)(mrb_state*), void (*set)(mrb_state*, mrb_value))
+{
+  /* classless, the way struct RSvar is: an internal object with no class
+     is what mruby-objectspace's each_object filter hides, so the sentinel
+     cannot be fished out of the heap and stored where the dispatch below
+     would mistake it for a second virtual variable */
+  struct RData *d = mrb_data_object_alloc(mrb, NULL, NULL, &gv_virtual_type);
+  struct gv_virtual *vt = (struct gv_virtual*)mrb_malloc(mrb, sizeof(struct gv_virtual));
+
+  vt->get = get;
+  vt->set = set;
+  d->data = vt;
+  if (!mrb->globals) {
+    mrb->globals = iv_new(mrb);
+  }
+  iv_put(mrb, mrb->globals, sym, mrb_obj_value(d));
+}
+
 /*
  * Retrieves a global variable.
  *
@@ -1612,8 +1664,11 @@ mrb_gv_get(mrb_state *mrb, mrb_sym sym)
 {
   mrb_value v;
 
-  if (iv_get(mrb, mrb->globals, sym, &v))
+  if (iv_get(mrb, mrb->globals, sym, &v)) {
+    const struct gv_virtual *vt = gv_virtual_check(v);
+    if (vt) return vt->get(mrb);
     return v;
+  }
   return mrb_nil_value();
 }
 
@@ -1623,6 +1678,31 @@ mrb_gv_defined(mrb_state *mrb, mrb_sym sym)
 {
   mrb_value v;
   return iv_get(mrb, mrb->globals, sym, &v) != 0;
+}
+
+/* iv_put() for the globals table: an ordinary name already present is
+ * stored in place off the one search above, a fresh name falls through
+ * to iv_put(), and a virtual name is never overwritten, its dispatch
+ * pair handed back instead for the caller to route the value through. */
+static const struct gv_virtual*
+gv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
+{
+  if (t->alloc == 0) {
+    iv_rehash(mrb, t);
+  }
+
+  mrb_sym   *keys = (mrb_sym*)&t->ptr[t->alloc];
+  mrb_value *vals =  t->ptr;
+  int lo = iv_bsearch_idx(keys, t->size, sym);
+
+  if (lo < t->size && keys[lo] == sym) {
+    const struct gv_virtual *vt = gv_virtual_check(vals[lo]);
+    if (vt) return vt;
+    vals[lo] = val;
+    return NULL;
+  }
+  iv_put(mrb, t, sym, val);
+  return NULL;
 }
 
 /*
@@ -1638,13 +1718,13 @@ mrb_gv_defined(mrb_state *mrb, mrb_sym sym)
 MRB_API void
 mrb_gv_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
 {
-  iv_tbl *t;
-
   if (!mrb->globals) {
     mrb->globals = iv_new(mrb);
   }
-  t = mrb->globals;
-  iv_put(mrb, t, sym, v);
+  const struct gv_virtual *vt = gv_put(mrb, mrb->globals, sym, v);
+  if (vt) {
+    vt->set(mrb, v);
+  }
 }
 
 /*

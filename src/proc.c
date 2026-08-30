@@ -81,6 +81,10 @@ mrb_env_new(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci, int nstacks
   MRB_ENV_SET_LEN(e, nstacks);
   bidx += (n == 15) ? 1 : n;
   bidx += (nk == 15) ? 1 : (2*nk);
+  /* This is the only index the VM computes, and the field holding it is
+     seven bits wide (proc.h), which the widest call fits in: one for the
+     receiver, 14 positional arguments and 28 for 14 keyword pairs. */
+  mrb_assert(bidx <= 43);
   MRB_ENV_SET_BIDX(e, bidx);
   e->mid = ci->mid;
   e->stack = stack;
@@ -174,6 +178,9 @@ mrb_proc_new_cfunc_with_env(mrb_state *mrb, mrb_func_t func, mrb_int argc, const
   mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)e);
   MRB_ENV_CLOSE(e);
 
+  /* A C frame owns no Ruby scope, so this env never carries the
+     special-variable slot (MRB_ENV_SVAR_P stays off; see internal.h) and
+     its stack is exactly the locals. */
   e->stack = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value) * argc);
   MRB_ENV_SET_LEN(e, argc);
 
@@ -547,8 +554,21 @@ mrb_proc_merge_lvar(mrb_state *mrb, mrb_irep *irep, struct REnv *env, int num, c
     mrb_raise(mrb, E_RUNTIME_ERROR, "unavailable local variable names");
   }
 
+  /* Only an env carrying the special-variable slot (see internal.h) has one
+     to keep: the new locals take the ground it stood on, so it is read off
+     the old stack and put back past the new ones. An env sized without it
+     grows by the locals alone and stays without it. */
+  mrb_bool has_svar = MRB_ENV_SVAR_P(env);
+  size_t old_len = (size_t)irep->nlocals;
+  size_t new_len = old_len + (size_t)num;
+  mrb_value svar = mrb_nil_value();
+
+  if (has_svar) svar = MRB_ENV_SVAR_SLOT(env->stack, old_len);
   irep->lv = (mrb_sym*)mrb_realloc(mrb, (mrb_sym*)irep->lv, sizeof(mrb_sym) * (irep->nlocals - 1 /* self */ + num));
-  env->stack = (mrb_value*)mrb_realloc(mrb, env->stack, sizeof(mrb_value) * (irep->nlocals + num));
+  env->stack = (mrb_value*)mrb_realloc(mrb, env->stack,
+                                       has_svar ? MRB_ENV_SVAR_STACK_SIZE(new_len)
+                                                : sizeof(mrb_value) * new_len);
+  if (has_svar) MRB_ENV_SVAR_SLOT(env->stack, new_len) = svar;
 
   mrb_sym *destlv = (mrb_sym*)irep->lv + irep->nlocals - 1 /* self */;
   mrb_value *destst = env->stack + irep->nlocals;
