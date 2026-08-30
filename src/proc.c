@@ -71,6 +71,10 @@ mrb_proc_new(mrb_state *mrb, const mrb_irep *irep)
 struct REnv*
 mrb_env_new(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci, int nstacks, mrb_value *stack, struct RClass *tc)
 {
+  /* A frame with an env is one a collection may have to record what it
+     carries for (gc_mark_children()), and that recording cannot allocate.
+     Asked for here, where allocating is allowed. */
+  mrb_svars_reserve(mrb, c);
   struct REnv *e;
   mrb_int bidx = 1;
   int n = ci->n;

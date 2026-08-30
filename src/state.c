@@ -178,6 +178,7 @@ mrb_free_context(mrb_state *mrb, struct mrb_context *c)
 {
   if (!c) return;
   mrb_free(mrb, c->stbase);
+  mrb_free(mrb, c->svars);
   mrb_free(mrb, c->cibase);
   mrb_free(mrb, c);
 }

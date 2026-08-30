@@ -12,6 +12,31 @@ void mrb_ary_decref(mrb_state*, mrb_shared_array*);
 mrb_value mrb_ary_subseq(mrb_state *mrb, mrb_value ary, mrb_int beg, mrb_int len);
 #endif
 
+/* What frame `ci` of context `c` carries as special variables, or NULL.
+ *
+ * They live beside the ci stack rather than in it (see `svars` in struct
+ * mrb_context): a frame carrying one is rare, and a mrb_callinfo is 48 bytes
+ * with nothing spare.  The array is NULL until a write needs one, so a
+ * program that never touches a special variable answers here with one load
+ * and one branch, and pays no memory for the frames it never fills. */
+static inline struct RBasic*
+mrb_ci_svar(const struct mrb_context *c, const mrb_callinfo *ci)
+{
+  if (!c->svars) return NULL;
+  return c->svars[ci - c->cibase];
+}
+
+/* Record `sv` for frame `ci`.  Making the array is left to vm.c, which is
+ * where the state to raise from is; a clear where there is no array is
+ * nothing to do, since an absent array reads as NULL throughout. */
+void mrb_ci_svar_set(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci, struct RBasic *sv);
+
+/* Make `c`'s array if the state has ever written a special variable and this
+   context has none yet.  Called where a frame gains an env, which is where a
+   later collection may need somewhere to record what that frame carries: the
+   recording itself runs inside marking and cannot allocate. */
+void mrb_svars_reserve(mrb_state *mrb, struct mrb_context *c);
+
 #ifdef MRUBY_CLASS_H
 struct RClass *mrb_vm_define_class(mrb_state*, mrb_value, mrb_value, mrb_sym);
 struct RClass *mrb_vm_define_module(mrb_state*, mrb_value, mrb_sym);

@@ -382,13 +382,13 @@ mrb_vm_ci_env_clear(mrb_state *mrb, mrb_callinfo *ci)
     ci->u.target_class = e->c;
     /* The escaping env carries the container, so a proc from the earlier
        top-level chunk keeps reading the scope it was written in. */
-    mrb_env_detach(mrb, e, ci->svar, FALSE);
+    mrb_env_detach(mrb, e, mrb_ci_svar(mrb->c, ci), FALSE);
   }
   /* The frame itself starts the next chunk in a fresh scope, the way each
      file `ruby -r` loads gets one of its own; a caller that wants a single
      scope across its chunks (mirb's interactive lines) does not call this,
      which is also how it keeps the top-level locals. */
-  ci->svar = NULL;
+  mrb_ci_svar_set(mrb, mrb->c, ci, NULL);
 }
 
 /* The local scope of a block or lambda: following p->upper toward the
@@ -638,11 +638,12 @@ svar_new(mrb_state *mrb)
  * own, and resolution walks past those rather than ending on one, so what
  * a resolved frame holds is a container or nothing. */
 static struct RSvar*
-svar_owner_container(mrb_callinfo *ci, struct REnv *e)
+svar_owner_container(const struct mrb_context *c, mrb_callinfo *ci, struct REnv *e)
 {
   if (ci) {
-    mrb_assert(ci->svar == NULL || ci->svar->tt == MRB_TT_SVAR);
-    return (struct RSvar*)ci->svar;
+    struct RBasic *sv = mrb_ci_svar(c, ci);
+    mrb_assert(sv == NULL || sv->tt == MRB_TT_SVAR);
+    return (struct RSvar*)sv;
   }
   if (e) {
     mrb_value *slot = env_svar_slot(e);
@@ -673,7 +674,7 @@ svar_owner_force(mrb_state *mrb)
   struct REnv *e;
 
   svar_owner(mrb->c, &ci, &oc, &e);
-  struct RSvar *sv = svar_owner_container(ci, e);
+  struct RSvar *sv = svar_owner_container(oc, ci, e);
   if (sv) return sv;
   sv = svar_new(mrb);
   /* The allocation may have run a collection, and the owner may have stood
@@ -686,10 +687,10 @@ svar_owner_force(mrb_state *mrb)
      in the closed env the sweep left behind, holding whatever container
      the detach carried. */
   svar_owner(mrb->c, &ci, &oc, &e);
-  struct RSvar *moved = svar_owner_container(ci, e);
+  struct RSvar *moved = svar_owner_container(oc, ci, e);
   if (moved) return moved;
   if (ci) {
-    ci->svar = (struct RBasic*)sv;
+    mrb_ci_svar_set(mrb, oc, ci, (struct RBasic*)sv);
     if (oc != mrb->c && oc != mrb->root_c && oc->fib) {
       mrb_write_barrier(mrb, (struct RBasic*)oc->fib);
     }
@@ -722,14 +723,15 @@ svar_owner_force(mrb_state *mrb)
 struct RBasic*
 mrb_svar_frame_container(struct mrb_context *c, mrb_callinfo *ci)
 {
-  if (ci->svar || !svar_scopeless_frame_p(ci)) return ci->svar;
+  struct RBasic *own = mrb_ci_svar(c, ci);
+  if (own || !svar_scopeless_frame_p(ci)) return own;
 
   mrb_callinfo *oci;
   struct mrb_context *oc;
   struct REnv *oe;
   svar_owner_from(c, ci, &oci, &oc, &oe);
   if (oc == c && oci == c->cibase) return NULL;
-  struct RSvar *sv = svar_owner_container(oci, oe);
+  struct RSvar *sv = svar_owner_container(oc, oci, oe);
   if (sv) return (struct RBasic*)sv;
   struct REnv *fwd = oci ? CI_ENV(oci) : oe;
   /* Nothing to forward to when the owner scope left no env behind: no proc
@@ -753,7 +755,7 @@ mrb_vm_svar_get(mrb_state *mrb, enum mrb_svar_index key)
 
   mrb_assert(key >= 0 && key < MRB_SVAR_MAX);
   svar_owner(mrb->c, &ci, &oc, &e);
-  struct RSvar *sv = svar_owner_container(ci, e);
+  struct RSvar *sv = svar_owner_container(oc, ci, e);
   if (!sv) return mrb_nil_value();
   return sv->slots[key];
 }
@@ -786,7 +788,7 @@ mrb_vm_svar_set(mrb_state *mrb, enum mrb_svar_index key, mrb_value v)
     struct mrb_context *oc;
     struct REnv *e;
     svar_owner(mrb->c, &ci, &oc, &e);
-    sv = svar_owner_container(ci, e);
+    sv = svar_owner_container(oc, ci, e);
     if (!sv) return;
   }
   else {
@@ -805,6 +807,30 @@ mrb_vm_svar_set(mrb_state *mrb, enum mrb_svar_index key, mrb_value v)
 #define CINFO_RESUMED 3 // resumed by `Fiber.yield` (probably the main call is `mrb_fiber_resume()`)
 
 #define BLK_PTR(b) ((mrb_proc_p(b)) ? mrb_proc_ptr(b) : NULL)
+
+/* See mrb_ci_svar() in internal.h for why these live beside the frames. */
+void
+mrb_ci_svar_set(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci, struct RBasic *sv)
+{
+  if (!c->svars) {
+    if (!sv) return;
+    mrb->svar_used = TRUE;
+    c->svars = (struct RBasic**)mrb_calloc(mrb, (size_t)(c->ciend - c->cibase),
+                                           sizeof(struct RBasic*));
+  }
+  c->svars[ci - c->cibase] = sv;
+}
+
+/* See internal.h.  Nothing to do before the first write anywhere in the
+   state, which is what keeps a program that never touches one from paying
+   for the frames it never fills. */
+void
+mrb_svars_reserve(mrb_state *mrb, struct mrb_context *c)
+{
+  if (!mrb->svar_used || c->svars) return;
+  c->svars = (struct RBasic**)mrb_calloc(mrb, (size_t)(c->ciend - c->cibase),
+                                         sizeof(struct RBasic*));
+}
 
 static inline mrb_callinfo*
 cipush(mrb_state *mrb, mrb_int push_stacks, uint8_t cci, struct RClass *target_class,
@@ -825,6 +851,12 @@ cipush(mrb_state *mrb, mrb_int push_stacks, uint8_t cci, struct RClass *target_c
     c->cibase = (mrb_callinfo*)mrb_realloc_with_gc_disabled(mrb, c->cibase, sizeof(mrb_callinfo)*size*2);
     c->ci = ci = c->cibase + size;
     c->ciend = c->cibase + size * 2;
+    if (c->svars) {
+      /* The frames moved and there are twice as many; the entries follow,
+         with the half that is new zeroed. */
+      c->svars = (struct RBasic**)mrb_realloc_with_gc_disabled(mrb, c->svars, sizeof(struct RBasic*)*size*2);
+      memset(c->svars + size, 0, sizeof(struct RBasic*)*size);
+    }
   }
   ci->mid = mid;
   CI_PROC_SET(ci, proc);
@@ -834,7 +866,7 @@ cipush(mrb_state *mrb, mrb_int push_stacks, uint8_t cci, struct RClass *target_c
   ci->nk = (argc>>4) & 0xf;
   ci->cci = cci;
   ci->vis = MRB_METHOD_PUBLIC_FL;
-  ci->svar = NULL;
+  if (c->svars) c->svars[ci - c->cibase] = NULL;
   ci->u.target_class = target_class;
 
   return ci;
@@ -849,6 +881,8 @@ fiber_terminate(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci)
   mrb_assert(env == NULL || MRB_ENV_LEN(env) <= c->stend - ci->stack);
 
   c->status = MRB_FIBER_TERMINATED;
+  mrb_free(mrb, c->svars);
+  c->svars = NULL;
   mrb_free(mrb, c->cibase);
   c->cibase = c->ciend = c->ci = NULL;
   mrb_value *stack = c->stbase;
@@ -1072,7 +1106,7 @@ svar_env_adopt_owner(mrb_state *mrb, struct REnv *e)
  * dying stack must survive to the detach that roots it in the escaping
  * env. The gc.c caller runs inside the sweep, where the walk could chase
  * objects already swept and recycled and the GC cannot be held off, so it
- * passes FALSE and relies on the frame's ci->svar alone, where
+ * passes FALSE and relies on the frame's own entry alone, where
  * gc_mark_children() stashed the same answer at mark time, on memory the
  * sweep had not yet touched. */
 void
@@ -1098,7 +1132,7 @@ mrb_env_detach_all(mrb_state *mrb, struct mrb_context *c, mrb_bool resolve)
         e->tt == MRB_TT_ENV && MRB_ENV_ONSTACK_P(e)) {
       struct RBasic *sv = NULL;
       if (ci != c->cibase) {
-        sv = ci->svar;
+        sv = mrb_ci_svar(c, ci);
         if (resolve && !sv) {
           sv = mrb_svar_frame_container(c, ci);
           /* A forward is only worth carrying to an env that survives the
@@ -1137,8 +1171,9 @@ cipop(mrb_state *mrb)
   if (env) {
     /* The container escapes with the locals (see mrb_env_detach()); a
        frame without an env leaves no proc behind that could look. */
-    mrb_bool transparent = (ci->svar == NULL && svar_scopeless_frame_p(ci));
-    if (!mrb_env_detach(mrb, env, ci->svar, TRUE)) {
+    struct RBasic *sv = mrb_ci_svar(c, ci);
+    mrb_bool transparent = (sv == NULL && svar_scopeless_frame_p(ci));
+    if (!mrb_env_detach(mrb, env, sv, TRUE)) {
       c->ci--; // exceptions are handled at the method caller; see #3087
       mrb_exc_raise(mrb, mrb_obj_value(mrb->nomem_err));
     }
@@ -2380,7 +2415,7 @@ mrb_vm_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, mrb_int sta
     struct REnv *e = CI_ENV(mrb->c->ci);
     if (e && (stack_keep == 0 || irep->nlocals < MRB_ENV_LEN(e))) {
       ci_env_set(mrb->c->ci, NULL);
-      mrb_env_detach(mrb, e, mrb->c->ci->svar, FALSE);
+      mrb_env_detach(mrb, e, mrb_ci_svar(mrb->c, mrb->c->ci), FALSE);
     }
   }
   stack_extend(mrb, nregs);

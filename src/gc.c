@@ -931,8 +931,14 @@ mark_context(mrb_state *mrb, struct mrb_context *c)
   if (c->cibase) {
     for (ci = c->cibase; ci <= c->ci; ci++) {
       mrb_gc_mark(mrb, (struct RBasic*)ci->proc);
-      mrb_gc_mark(mrb, ci->svar);
       mrb_gc_mark(mrb, (struct RBasic*)ci->u.target_class);
+    }
+    /* the frames' special variables, kept beside them (see mrb_ci_svar());
+       a context that never held one has no array to walk */
+    if (c->svars) {
+      for (ptrdiff_t i = 0; i <= c->ci - c->cibase; i++) {
+        mrb_gc_mark(mrb, c->svars[i]);
+      }
     }
   }
   /* mark fibers */
@@ -1023,7 +1029,7 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
            slot, because the free runs inside the sweep, where this
            resolution's walk could chase objects already swept and recycled:
            what it can trust is what this mark, running on intact memory,
-           left in ci->svar. The root frame is left out of the stash: its
+           left beside the frame. The root frame is left out of the stash: its
            container dies with the context, so the detach never reads it,
            and a slot resolution can end on is one no forward may occupy.
            Envs on the root context skip all of it: that context is never
@@ -1036,10 +1042,15 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
            behavior. */
         for (mrb_callinfo *ci = c->ci; ; ci--) {
           if (ci->u.env == e) {
-            struct RBasic *sv = ci->svar;
+            struct RBasic *sv = mrb_ci_svar(c, ci);
             if (!sv && ci != c->cibase) {
               sv = mrb_svar_frame_container(c, ci);
-              if (sv) ci->svar = sv;
+              /* Stashed only where there is somewhere to stash it: making
+                 the array allocates, and an allocation here would collect
+                 from inside a collection.  A context with no array has had
+                 no frame of its own carry anything, which is what the sweep
+                 would read back. */
+              if (sv && c->svars) c->svars[ci - c->cibase] = sv;
             }
             mrb_gc_mark(mrb, sv);
             children++;
@@ -1251,7 +1262,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj, mrb_bool end)
              mrb_env_detach_all() in vm.c for the carrying policy); FALSE
              because this runs inside the sweep, where resolving an owner
              would chase objects already swept, so a scopeless frame's
-             carrier is what gc_mark_children() stashed in its ci->svar,
+             carrier is what gc_mark_children() stashed beside it,
              which is a container or a forward to the scope below's env. */
           mrb_env_detach_all(mrb, c, FALSE);
         }

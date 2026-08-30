@@ -53,7 +53,7 @@ svar_container_p(mrb_state *mrb, mrb_value self)
     if (p && !MRB_PROC_CFUNC_P(p)) break;
     ci--;
   }
-  return mrb_bool_value(ci->svar != NULL);
+  return mrb_bool_value(mrb_ci_svar(mrb->c, ci) != NULL);
 }
 
 void
