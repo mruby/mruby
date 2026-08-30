@@ -699,6 +699,20 @@ assert('String#slice! with a multibyte match') do
   assert_equal "あ", a
 end if UTF8STRING
 
+assert('String#slice! with a length near mrb_int max') do
+  # slice!(beg, len) clamps len to the string; beg + len must not overflow.
+  # The maximum is built at runtime because a folded out-of-range literal
+  # fails the build, and the case is skipped where mrb_int cannot hold it.
+  begin
+    int_max = (1 << 63) - 1
+  rescue RangeError
+    skip 'mrb_int is narrower than the value this test needs'
+  end
+  a = "abc"
+  assert_equal "bc", a.slice!(1, int_max)
+  assert_equal "a", a
+end
+
 assert('String#succ') do
   assert_equal "", "".succ
   assert_equal "1", "0".succ
