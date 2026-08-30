@@ -149,7 +149,10 @@ assert('a directory as an input file is refused') do
   # of its own, so pin which message arrives, not merely that one did.
   Dir.mktmpdir do |dir|
     result, status = Open3.capture2e(*(cmd_list('mrbc') + ['-c', dir]))
-    assert_include result, 'compile.c: cannot read from program file.'
+    assert_true(
+      result.include?('compile.c: cannot read from program file.') ||
+      result.include?('compile.c: cannot get size of program file.') # AArch32/armhf
+    )
     assert_not_include result, 'compile.c: cannot read program file.'
     assert_equal 1, status.exitstatus
   end

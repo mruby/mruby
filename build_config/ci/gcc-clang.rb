@@ -1,5 +1,13 @@
 STDOUT.sync = STDERR.sync = true unless Rake.application.options.always_multitask
 
+# MRB_GC_STRESS collects on every allocation, so this build's suite is the one
+# that takes real time: 33 to 47 seconds against one second for each of the
+# others, on every runner that executes its own instructions.  Under emulation
+# that ratio is what decides a job's length -- 319 seconds of an armhf job's
+# 597 -- and what it buys there is a GC the other runners already stress.  A
+# runner that says it is emulated is left the four builds whose value is the
+# ABI they compile for.
+if ENV['MRUBY_CI_EMULATED'].to_s.empty?
 MRuby::Build.new('full-debug') do |conf|
   conf.toolchain
   conf.enable_debug
@@ -10,6 +18,7 @@ MRuby::Build.new('full-debug') do |conf|
 
 
   conf.enable_test
+end
 end
 
 MRuby::Build.new('bintest') do |conf|
