@@ -699,6 +699,47 @@ assert('String#slice! with a multibyte match') do
   assert_equal "あ", a
 end if UTF8STRING
 
+assert('String#slice! with a length near mrb_int max') do
+  # slice!(beg, len) clamps len to the string, and beg + len must not overflow
+  # on the way.  beg is 2 rather than 1 so the sum passes MRB_INT_MAX instead
+  # of landing on it: a length of exactly MRB_INT_MAX is refused for its size
+  # before the sum is reached, which is what hid this.
+  #
+  # The length is a shift into a variable rather than a literal: written out
+  # it is constant folded, and the fold fails while this file is compiled on
+  # MRB_INT32 without bigint, dropping every test in it.  Where bigint is
+  # present the same expression answers with a big integer rather than
+  # refusing, and slice! turns that away for its size, so the probe asks
+  # whether the value is one an mrb_int holds rather than assuming it.
+  shift = 62
+  len = begin
+          v = (1 << shift) - 1 + (1 << shift)  # MRB_INT_MAX where mrb_int is 64 bits
+          [][v]                                # nil for an mrb_int index, RangeError for a big integer
+          v
+        rescue RangeError
+          nil
+        end
+  if len.nil?
+    shift = 30
+    len = begin
+            v = (1 << shift) - 1 + (1 << shift)  # MRB_INT_MAX where mrb_int is 32 bits
+            [][v]
+            v
+          rescue RangeError
+            nil
+          end
+  end
+  skip 'no way to name this build\'s largest Integer' unless len
+
+  a = "abc"
+  assert_equal "c", a.slice!(2, len - 1)
+  assert_equal "ab", a
+  # the sum landing exactly on MRB_INT_MAX clamps as well
+  b = "abc"
+  assert_equal "bc", b.slice!(1, len - 1)
+  assert_equal "a", b
+end
+
 assert('String#succ') do
   assert_equal "", "".succ
   assert_equal "1", "0".succ
