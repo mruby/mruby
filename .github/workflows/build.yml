@@ -28,6 +28,13 @@ jobs:
             cc: i686-linux-gnu-gcc
             cxx: i686-linux-gnu-g++
             altname: "i686-gcc"
+          # AArch32 ILP32 with unsigned plain `char`, run under qemu.  The
+          # emulation is why this one says so: see build_config/ci/gcc-clang.rb.
+          - os: ubuntu-24.04
+            cc: arm-linux-gnueabihf-gcc
+            cxx: arm-linux-gnueabihf-g++
+            altname: "armhf-gcc"
+            emulated: "1"
           # AArch64 LP64 with signed plain `char`.
           - {os: macos-26, cc: clang, cxx: clang++}
           - {os: macos-15, cc: clang, cxx: clang++}
@@ -39,6 +46,7 @@ jobs:
       CC: ${{ matrix.cc }}
       CXX: ${{ matrix.cxx }}
       LD: ${{ matrix.cc }}
+      MRUBY_CI_EMULATED: ${{ matrix.emulated }}
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -50,6 +58,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             crossbuild-essential-i386
+      - name: Install armhf cross-build toolchain
+        if: matrix.altname == 'armhf-gcc'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            crossbuild-essential-armhf binfmt-support qemu-user-static
+          echo 'QEMU_LD_PREFIX=/usr/arm-linux-gnueabihf' >> "$GITHUB_ENV"
       - name: Ruby version
         run: ruby -v
       - name: Compiler version
