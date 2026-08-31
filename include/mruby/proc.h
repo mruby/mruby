@@ -34,10 +34,8 @@ struct REnv {
  * The bit above the block argument index says whether the heap stack of a
  * closed env carries the special-variable slot past its locals; it is an
  * implementation detail of the core, so its accessors live in
- * mruby/internal.h (MRB_ENV_SVAR_P) rather than here. The index below it
- * needs seven bits at most: it counts one for the receiver, at most 14
- * positional arguments (15 meaning a packed array, worth one) and at most
- * 28 for 14 keyword pairs (15 meaning a packed hash, worth one), so 43. */
+ * mruby/internal.h (MRB_ENV_SVAR_P) rather than here.
+ * The index range is 1..16. See also mrb_env_new(). */
 #define MRB_ENV_SET_LEN(e,len) ((e)->flags = (((e)->flags & ~0xff)|((unsigned int)(len) & 0xff)))
 #define MRB_ENV_LEN(e) ((mrb_int)((e)->flags & 0xff))
 #define MRB_ENV_CLOSE(e) ((e)->cxt = NULL)

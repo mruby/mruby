@@ -145,7 +145,7 @@ eval_irep(mrb_state *mrb, mrb_value self, struct RProc *proc)
 
   /* no argument passed from eval() */
   ci->n = 0;
-  ci->nk = 0;
+  ci->kw = FALSE;
   /* clear visibility */
   MRB_CI_SET_VISIBILITY_BREAK(ci);
   /* clear block */

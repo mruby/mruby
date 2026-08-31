@@ -257,7 +257,7 @@ mrb_data_new(mrb_state *mrb, mrb_value self)
 
   /* default initialize: store the members directly (fast path) */
   mrb_value *vals;
-  if (mrb->c->ci->nk > 0) {
+  if (mrb->c->ci->kw) {
     mrb_value tmp = mrb_str_new(mrb, NULL, sizeof(mrb_sym)*n);
     mrb_sym *knames = (mrb_sym*)RSTRING_PTR(tmp);
     mrb_value m = mrb_ary_new_capa(mrb, n);
@@ -572,7 +572,7 @@ mrb_data_with(mrb_state *mrb, mrb_value self)
     mrb_argnum_error(mrb, argc, 0, 0);
   }
   /* no keyword arguments: nothing to update, return self (matches CRuby) */
-  if (mrb->c->ci->nk == 0) {
+  if (!mrb->c->ci->kw) {
     return self;
   }
 
