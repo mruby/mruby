@@ -52,6 +52,21 @@ assert('Struct#== and #eql? with a member that replaces the storage') do
   end
 end
 
+assert('Struct#== and #eql? with recursive members') do
+  c = Struct.new(:m0, :m1, :m2, :m3)
+  a = c.new
+  b = c.new
+  d = c.new
+  a.initialize(a, 2, 3, 4)
+  b.initialize(b, 2, 3, 4)
+  d.initialize(d, 9, 3, 4)
+  [:==, :eql?].each do |op|
+    assert_true a.__send__(op, a)
+    assert_true a.__send__(op, b)
+    assert_false a.__send__(op, d)
+  end
+end
+
 assert('Struct#[]', '15.2.18.4.2') do
   c = Struct.new(:m1, :m2)
   cc = c.new(1,2)
