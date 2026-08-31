@@ -1012,33 +1012,42 @@ regexp_escape(mrb_state *mrb, mrb_value self)
   return re_escape_str(mrb, str);
 }
 
-/* Answer the group a pattern gives a name to, or -1 for a name it gives to
-   no group. The name is compared as the bytes the pattern spelled it with.
-   A NULL pattern names nothing, which is the answer for a match made
+/* Answer the group a name refers to in the match the captures stand for, or
+   -1 for a name the pattern gives to no group. A pattern may give one name
+   to several groups, and CRuby's named accessors then read the last of them
+   that took part in the match, so the candidates are walked back to front
+   and the first one that participated is the answer; when none of them took
+   part the last of them stands in, a real group the caller reads as one that
+   did not match. The name is compared as the bytes the pattern spelled it
+   with. A NULL pattern names nothing, which is the answer for a match made
    without a pattern to compile: a literal String one. */
 static int
-re_name_to_group(mrb_regexp_pattern *pat, const char *name, mrb_int name_len)
+re_name_to_group(const int *captures, int ncap, mrb_regexp_pattern *pat,
+                 const char *name, mrb_int name_len)
 {
   /* A stored name never exceeds RE_MAX_NAME_LEN, so a longer request can
      name no group. Rejecting it here keeps the cast in the loop lossless;
      without it the length test truncates while the memcmp() next to it does
      not. */
   if (!pat || !RE_NAME_LEN_FITS(name_len)) return -1;
-  for (uint16_t i = 0; i < pat->num_named; i++) {
+  int fallback = -1;
+  for (int i = pat->num_named - 1; i >= 0; i--) {
     if (pat->named_captures[i].name_len == (uint32_t)name_len &&
         memcmp(pat->named_captures[i].name, name, name_len) == 0) {
-      return pat->named_captures[i].group;
+      int group = pat->named_captures[i].group;
+      if (fallback < 0) fallback = group;
+      if (group < ncap && captures[group * 2] >= 0) return group;
     }
   }
-  return -1;
+  return fallback;
 }
 
 /* --- MatchData methods --- */
 
 /* Resolve a String or Symbol to the group it names. Shared by MatchData#[],
-   #begin and #end: the three disagree about what an out-of-range integer
-   means, but a name is looked up the same way for all of them. Does not
-   return when the name reaches no group. */
+   #begin, #end and #values_at: they disagree about what an out-of-range
+   integer means, but a name is looked up the same way for all of them. Does
+   not return when the name reaches no group. */
 static mrb_int
 matchdata_name_to_group(mrb_state *mrb, mrb_match_data *md, mrb_value arg)
 {
@@ -1055,7 +1064,7 @@ matchdata_name_to_group(mrb_state *mrb, mrb_match_data *md, mrb_value arg)
   if (!mrb_nil_p(md->regexp)) {
     pat = DATA_GET_PTR(mrb, md->regexp, &regexp_type, mrb_regexp_pattern);
   }
-  int group = re_name_to_group(pat, name, name_len);
+  int group = re_name_to_group(md->captures, md->num_captures, pat, name, name_len);
   if (group >= 0) return group;
   /* A name that resolves to no group is a mistake at the point of the call,
      not a failed match. CRuby raises here even when the pattern has no
@@ -1519,7 +1528,7 @@ apply_replacement(mrb_state *mrb, mrb_value result,
         /* What the name is asked of is the pattern, not the offsets, so a
            name no group carries raises where a group that took no part in
            the match would only have stood for nothing. */
-        g = re_name_to_group(pat, name, name_len);
+        g = re_name_to_group(captures, ncap, pat, name, name_len);
         if (g < 0) {
           mrb_raisef(mrb, E_INDEX_ERROR, "undefined group name reference: %l", name, (size_t)name_len);
         }

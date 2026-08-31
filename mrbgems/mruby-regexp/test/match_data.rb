@@ -132,6 +132,12 @@ assert("MatchData#begin / #end - group name") do
   assert_raise(IndexError) { md.end("zz") }
   # a pattern without any named group raises just the same
   assert_raise(IndexError) { /(a)/.match("a").begin(:zz) }
+  # a name the pattern gives to several groups reads the last one that took
+  # part in the match, nil when none of them did
+  assert_equal [0, 2], [/(?<y>ab)|(?<y>c)/.match("ab").begin(:y),
+                        /(?<y>ab)|(?<y>c)/.match("ab").end(:y)]
+  assert_equal 1, /(?<y>ab)|(?<y>c)/.match("c").end(:y)
+  assert_nil /(?<y>a)(?<y>b)|c/.match("c").begin(:y)
 end
 
 assert("MatchData#begin / #end - index out of matches") do
@@ -196,6 +202,14 @@ assert("MatchData#[] - undefined group name") do
   assert_raise(IndexError) { /(a)/.match("a")[:zz] }
 end
 
+assert("MatchData#[] - a name given to several groups") do
+  # a name the pattern gives to several groups reads the last one that took
+  # part in the match, nil when none of them did
+  assert_equal "b", /(?<x>a)|(?<x>b)/.match("b")[:x]
+  assert_equal "a", /(?<x>a)|(?<x>b)/.match("a")[:x]
+  assert_nil /(?<x>a)(?<y>b)|c/.match("c")[:x]
+end
+
 assert("MatchData#[] - group name longer than a uint16 length") do
   # Regression: the length test truncated the requested length to uint16_t
   # while the memcmp() next to it did not, so (uint16_t)65539 == 3 ==
@@ -246,6 +260,11 @@ assert("MatchData#values_at - group name") do
   assert_raise(IndexError) { /(a)/.match("a").values_at(:zz) }
   # a named group that did not take part in the match reads nil
   assert_equal ["b", nil], /(?<x>a)|(?<y>b)/.match("b").values_at(:y, :x)
+  # a name the pattern gives to several groups reads the last one that took
+  # part in the match, the way MatchData#[] does
+  assert_equal ["b"], /(?<x>a)|(?<x>b)/.match("b").values_at(:x)
+  assert_equal ["a"], /(?<x>a)|(?<x>b)/.match("a").values_at(:x)
+  assert_equal [nil], /(?<x>a)(?<y>b)|c/.match("c").values_at(:x)
 end
 
 assert("MatchData#values_at - range") do
