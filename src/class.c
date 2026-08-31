@@ -1312,7 +1312,7 @@ mrb_get_arg1(mrb_state *mrb)
     argc = ARY_LEN(a);
     array_argv = ARY_PTR(a);
   }
-  if (argc == 0 && ci->nk == 15) {
+  if (argc == 0 && ci->kw) {
     mrb_int n = ci->n;
     if (n == 15) n = 1;
     return ci->stack[n+1];      /* kwhash next to positional arguments */
@@ -1384,7 +1384,7 @@ get_args_fast(mrb_state *mrb, const char *format, void** ptr, va_list *ap)
   mrb_int i = 0;
 
   /* fast path only for non-packed, non-keyword args */
-  if (argc >= 15 || ci->nk > 0) return -1;
+  if (argc >= 15 || ci->kw) return -1;
   argv = ci->stack + 1;
 
   /* validate format and count args in one scan (table lookup, no switch) */
@@ -1552,8 +1552,7 @@ get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list *ap)
   }
 
  check_exit:
-  if (!reqkarg && ci->nk > 0) {
-    mrb_assert(ci->nk == 15);
+  if (!reqkarg && ci->kw) {
     kdict = ci->stack[mrb_ci_bidx(ci)-1];
     if (mrb_hash_p(kdict) && mrb_hash_size(mrb, kdict) > 0) {
       if (argc < 14) {
@@ -1573,12 +1572,11 @@ get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list *ap)
         }
         ci->stack[2] = ci->stack[mrb_ci_bidx(ci)];
       }
-      ci->nk = 0;
+      ci->kw = FALSE;
     }
   }
-  if (reqkarg && ci->nk > 0) {
+  if (reqkarg && ci->kw) {
     kdict = ci->stack[mrb_ci_bidx(ci)-1];
-    mrb_assert(ci->nk == 15);
     mrb_assert(mrb_hash_p(kdict));
   }
 
