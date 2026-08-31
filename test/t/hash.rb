@@ -1067,3 +1067,16 @@ assert('Hash#[] with a default proc that grows the VM stack') do
   assert_equal :from_proc, h[0]
   assert_equal :from_proc, h[1]
 end
+
+assert('Hash#== and #eql? with recursive values') do
+  # see the Array case: the pair under comparison is assumed equal and the
+  # rest of the entries settle it.
+  a = {x: 1}; a[:s] = a
+  b = {x: 1}; b[:s] = b
+  c = {x: 9}; c[:s] = c
+  [:==, :eql?].each do |op|
+    assert_true a.__send__(op, a), op.to_s
+    assert_true a.__send__(op, b), op.to_s
+    assert_false a.__send__(op, c), op.to_s
+  end
+end

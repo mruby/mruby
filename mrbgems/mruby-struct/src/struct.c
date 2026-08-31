@@ -603,9 +603,10 @@ mrb_struct_equal(mrb_state *mrb, mrb_value s)
     return mrb_false_value();
   }
 
-  /* Check for recursion */
+  /* A pair already being compared is taken as equal, as in CRuby's
+     recursive_equal(), and the other members decide the outcome. */
   if (MRB_RECURSIVE_BINARY_FUNC_P(mrb, MRB_OPSYM(eq), s, s2)) {
-    return mrb_false_value();
+    return mrb_true_value();
   }
 
   mrb_int len = RSTRUCT_LEN(s);
@@ -650,9 +651,9 @@ mrb_struct_eql(mrb_state *mrb, mrb_value s)
     return mrb_false_value();
   }
 
-  /* Check for recursion */
+  /* see mrb_struct_equal(): the pair being compared is taken as equal */
   if (MRB_RECURSIVE_BINARY_FUNC_P(mrb, MRB_SYM_Q(eql), s, s2)) {
-    return mrb_false_value();
+    return mrb_true_value();
   }
 
   len = RSTRUCT_LEN(s);
