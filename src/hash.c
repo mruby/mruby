@@ -2285,9 +2285,10 @@ mrb_hash_equal(mrb_state *mrb, mrb_value hash)
     return mrb_false_value();
   }
 
-  /* Check for recursion */
+  /* A pair already being compared is taken as equal, as in CRuby's
+     recursive_equal(), and the other elements decide the outcome. */
   if (MRB_RECURSIVE_BINARY_FUNC_P(mrb, MRB_OPSYM(eq), hash, hash2)) {
-    return mrb_false_value();
+    return mrb_true_value();
   }
 
   struct RHash *h1 = mrb_hash_ptr(hash);
@@ -2333,9 +2334,10 @@ mrb_hash_eql(mrb_state *mrb, mrb_value hash)
     return mrb_false_value();
   }
 
-  /* Check for recursion */
+  /* A pair already being compared is taken as equal, as in CRuby's
+     recursive_equal(), and the other elements decide the outcome. */
   if (MRB_RECURSIVE_BINARY_FUNC_P(mrb, MRB_SYM_Q(eql), hash, hash2)) {
-    return mrb_false_value();
+    return mrb_true_value();
   }
 
   struct RHash *h1 = mrb_hash_ptr(hash);

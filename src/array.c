@@ -1970,9 +1970,10 @@ mrb_ary_eq(mrb_state *mrb, mrb_value ary1)
   if (n == 1) return mrb_true_value();
   if (n == 0) return mrb_false_value();
 
-  /* Check for recursion */
+  /* A pair already being compared is taken as equal, as in CRuby's
+     recursive_equal(), and the other elements decide the outcome. */
   if (MRB_RECURSIVE_BINARY_FUNC_P(mrb, MRB_OPSYM(eq), ary1, ary2)) {
-    return mrb_false_value();
+    return mrb_true_value();
   }
 
   int ai = mrb_gc_arena_save(mrb);
@@ -2010,9 +2011,10 @@ mrb_ary_eql(mrb_state *mrb, mrb_value ary1)
   if (n == 1) return mrb_true_value();
   if (n == 0) return mrb_false_value();
 
-  /* Check for recursion */
+  /* A pair already being compared is taken as equal, as in CRuby's
+     recursive_equal(), and the other elements decide the outcome. */
   if (MRB_RECURSIVE_BINARY_FUNC_P(mrb, MRB_SYM_Q(eql), ary1, ary2)) {
-    return mrb_false_value();
+    return mrb_true_value();
   }
 
   int ai = mrb_gc_arena_save(mrb);
