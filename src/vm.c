@@ -1372,13 +1372,8 @@ static mrb_method_t
 prepare_missing(mrb_state *mrb, mrb_callinfo *ci, mrb_value recv, mrb_sym mid, mrb_value blk, mrb_bool super)
 {
   mrb_sym missing = MRB_SYM(method_missing);
-  mrb_value *argv = &ci->stack[1];
-  mrb_value args;
+  mrb_value args = mrb_args_pack_positional(mrb);
   mrb_method_t m;
-
-  /* pack positional arguments */
-  if (ci->n == 15) args = argv[0];
-  else args = mrb_ary_new_from_values(mrb, ci->n, argv);
 
   if (mrb_func_basic_p(mrb, recv, missing, mrb_obj_missing)) {
   method_missing:
@@ -1391,22 +1386,7 @@ prepare_missing(mrb_state *mrb, mrb_callinfo *ci, mrb_value recv, mrb_sym mid, m
   }
   m = mrb_vm_find_method(mrb, ci->u.target_class, &ci->u.target_class, missing);
   if (MRB_METHOD_UNDEF_P(m)) goto method_missing; /* just in case */
-  stack_extend(mrb, 4);
 
-  argv = &ci->stack[1];         /* maybe reallocated */
-  if (ci->nk == 0) {
-    argv[1] = blk;
-  }
-  else {
-    mrb_assert(ci->nk == 15);
-    if (ci->n != CALL_MAXARGS) {
-      argv[1] = argv[ci->n];    /* keyword arguments */
-    }
-    argv[2] = blk;
-  }
-  argv[0] = args;               /* must be replaced after saving argv[0] as it may be a keyword argument */
-  ci->n = CALL_MAXARGS;
-  /* ci->nk is already set to zero or CALL_MAXARGS */
   mrb_ary_unshift(mrb, args, mrb_symbol_value(mid));
   ci->mid = missing;
   return m;
