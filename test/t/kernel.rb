@@ -315,6 +315,19 @@ assert('Kernel#method_missing', '15.3.1.3.30') do
   assert_raise_with_message(NoMethodError, msg) do
     a.no_method_named_this
   end
+
+  a = Object.new
+  def a.method_missing(mid, *args, **opts, &blk)
+    [mid, args, opts, blk&.call]
+  end
+  assert_equal [:foo, [], {}, nil], a.foo
+  assert_equal [:foo, [1, 2], {}, nil], a.foo(1, 2)
+  assert_equal [:foo, (1..15).to_a, {}, nil], a.foo(*(1..15).to_a)
+  assert_equal [:foo, [], { k: 1 }, nil], a.foo(k: 1)
+  assert_equal [:foo, [1], { k: 2 }, nil], a.foo(1, k: 2)
+  assert_equal [:foo, [1, 2], {}, 3], a.foo(1, 2) { 3 }
+  assert_equal [:foo, [1], { k: 2 }, 3], a.foo(1, k: 2) { 3 }
+  assert_equal [:foo, [], { k: 1 }, 2], a.foo(k: 1) { 2 }
 end
 
 assert('Kernel#nil?', '15.3.1.3.32') do
