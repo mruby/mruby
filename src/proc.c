@@ -76,19 +76,16 @@ mrb_env_new(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci, int nstacks
      Asked for here, where allocating is allowed. */
   mrb_svars_reserve(mrb, c);
   struct REnv *e;
-  mrb_int bidx = 1;
+  mrb_int bidx = 1; /* stack: [self, args..., keywords (if any), block] */
   int n = ci->n;
-  int nk = ci->nk;
+  int kw = ci->kw;
 
   e = (struct REnv*)mrb_obj_alloc_core(mrb, MRB_TT_ENV, NULL);
   e->c = tc;
   MRB_ENV_SET_LEN(e, nstacks);
   bidx += (n == 15) ? 1 : n;
-  bidx += (nk == 15) ? 1 : (2*nk);
-  /* This is the only index the VM computes, and the field holding it is
-     seven bits wide (proc.h), which the widest call fits in: one for the
-     receiver, 14 positional arguments and 28 for 14 keyword pairs. */
-  mrb_assert(bidx <= 43);
+  bidx += kw;
+  mrb_assert(bidx >= 1 && bidx <= 16);
   MRB_ENV_SET_BIDX(e, bidx);
   e->mid = ci->mid;
   e->stack = stack;

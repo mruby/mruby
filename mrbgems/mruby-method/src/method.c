@@ -18,9 +18,8 @@ args_shift(mrb_state *mrb)
 
   if (ci->n < 15) {
     if (ci->n == 0) { goto argerr; }
-    mrb_assert(ci->nk == 0 || ci->nk == 15);
     mrb_value obj = argv[0];
-    int count = ci->n + (ci->nk == 0 ? 0 : 1) + 1 /* block */ - 1 /* first value */;
+    int count = ci->n + ci->kw + 1 /* block */ - 1 /* first value */;
     memmove(argv, argv + 1, count * sizeof(mrb_value));
     ci->n--;
     return obj;

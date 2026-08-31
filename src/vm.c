@@ -863,7 +863,7 @@ cipush(mrb_state *mrb, mrb_int push_stacks, uint8_t cci, struct RClass *target_c
   ci->blk = blk;
   ci->stack = ci[-1].stack + push_stacks;
   ci->n = argc & 0xf;
-  ci->nk = (argc>>4) & 0xf;
+  ci->kw = (argc>>4) ? 1 : 0;
   ci->cci = cci;
   ci->vis = MRB_METHOD_PUBLIC_FL;
   if (c->svars) c->svars[ci - c->cibase] = NULL;
@@ -1329,7 +1329,7 @@ mrb_funcall_id(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc, ...)
 static mrb_int
 mrb_ci_kidx(const mrb_callinfo *ci)
 {
-  if (ci->nk == 0) return -1;
+  if (!ci->kw) return -1;
   return (ci->n == CALL_MAXARGS) ? 2 : ci->n + 1;
 }
 
@@ -1345,7 +1345,10 @@ mrb_bidx(uint8_t n, uint8_t k)
 static inline mrb_int
 ci_bidx(mrb_callinfo *ci)
 {
-  return mrb_bidx(ci->n, ci->nk);
+  int n = ci->n;
+  if (n == CALL_MAXARGS) n = 1;
+  if (ci->kw) n++;
+  return n + 1; /* with self */
 }
 
 mrb_int
@@ -1406,12 +1409,11 @@ mrb_args_pack_positional(mrb_state *mrb)
        prepare_missing() makes the same room before writing the same ones. */
     stack_extend(mrb, 4);
     argv = ci->stack + 1;       /* maybe reallocated */
-    if (ci->nk == 0) {
+    if (ci->kw == FALSE) {
       mrb_value block = argv[argc];
       argv[1] = block;
     }
     else {
-      mrb_assert(ci->nk == CALL_MAXARGS);
       mrb_value keyword = argv[argc];
       mrb_value block = argv[argc + 1];
       argv[1] = keyword;
@@ -1431,7 +1433,7 @@ funcall_args_capture(mrb_state *mrb, int stoff, mrb_int argc, const mrb_value *a
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative or too big argc for funcall (%i)", argc);
   }
 
-  ci->nk = 0;                   /* funcall does not support keyword arguments */
+  ci->kw = FALSE;               /* funcall does not support keyword arguments */
   if (argc < CALL_MAXARGS) {
     mrb_int extends = stoff + argc + 2 /* self + block */;
     stack_extend_adjust(mrb, extends, &argv);
@@ -1582,7 +1584,7 @@ check_argument_count(mrb_state *mrb, const mrb_callinfo *ci, mrb_aspec aspec)
     argc = RARRAY_LEN(ci->stack[1]);
   }
   /* keyword hash counts as positional if method doesn't accept keywords */
-  if (ci->nk > 0 && MRB_ASPEC_KEY(aspec) == 0 && !MRB_ASPEC_KDICT(aspec)) {
+  if (ci->kw && MRB_ASPEC_KEY(aspec) == 0 && !MRB_ASPEC_KDICT(aspec)) {
     mrb_value kdict = ci->stack[mrb_ci_kidx(ci)];
     if (mrb_hash_p(kdict) && !mrb_hash_empty_p(mrb, kdict)) {
       argc++;
@@ -1609,7 +1611,7 @@ exec_irep(mrb_state *mrb, mrb_value self, const struct RProc *p)
     if (caspec_bits != 0) {
       check_argument_count(mrb, ci, mrb_proc_decompress_caspec(caspec_bits));
     }
-    else if (MRB_PROC_NOARG_P(p) && (ci->n > 0 || ci->nk > 0)) {
+    else if (MRB_PROC_NOARG_P(p) && (ci->n > 0 || ci->kw)) {
       check_argument_count(mrb, ci, 0);
     }
     return MRB_PROC_CFUNC(p)(mrb, self);
@@ -1639,17 +1641,17 @@ mrb_exec_irep(mrb_state *mrb, mrb_value self, const struct RProc *p)
   else {
     mrb_value ret;
     if (MRB_PROC_CFUNC_P(p)) {
-      if (MRB_PROC_NOARG_P(p) && (ci->n > 0 || ci->nk > 0)) {
+      if (MRB_PROC_NOARG_P(p) && (ci->n > 0 || ci->kw)) {
         check_argument_count(mrb, ci, 0);
       }
-      ci = cipush(mrb, 0, CINFO_DIRECT, CI_TARGET_CLASS(ci), p, NULL, ci->mid, ci->n|(ci->nk<<4));
+      ci = cipush(mrb, 0, CINFO_DIRECT, CI_TARGET_CLASS(ci), p, NULL, ci->mid, ci->n|(ci->kw?15<<4:0));
       mrb->exc = NULL;
       ret = MRB_PROC_CFUNC(p)(mrb, self);
       cipop(mrb);
     }
     else {
       mrb_int keep = ci_bidx(ci) + 1; /* receiver + block */
-      ci = cipush(mrb, 0, CINFO_SKIP, CI_TARGET_CLASS(ci), p, NULL, ci->mid, ci->n|(ci->nk<<4));
+      ci = cipush(mrb, 0, CINFO_SKIP, CI_TARGET_CLASS(ci), p, NULL, ci->mid, ci->n|(ci->kw?15<<4:0));
       ret = mrb_vm_run(mrb, p, self, keep);
     }
     if (mrb->exc && mrb->jmp) {
@@ -1747,7 +1749,7 @@ send_method(mrb_state *mrb, mrb_value self, mrb_bool pub)
       regs[i] = regs[i+1];
     }
     regs[n] = regs[n+1];        /* copy kdict or block */
-    if (ci->nk > 0) {
+    if (ci->kw) {
       regs[n+1] = regs[n+2];    /* copy block */
     }
     ci->n--;
@@ -1765,7 +1767,7 @@ send_method(mrb_state *mrb, mrb_value self, mrb_bool pub)
     if (caspec_bits != 0) {
       check_argument_count(mrb, ci, mrb_proc_decompress_caspec(caspec_bits));
     }
-    else if (MRB_PROC_NOARG_P(p) && (ci->n > 0 || ci->nk > 0)) {
+    else if (MRB_PROC_NOARG_P(p) && (ci->n > 0 || ci->kw)) {
       check_argument_count(mrb, ci, 0);
     }
     return MRB_PROC_CFUNC(p)(mrb, self);
@@ -1840,7 +1842,7 @@ eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
   if (p->body.irep == NULL) return mrb_nil_value();
   CI_PROC_SET(ci, p);
   ci->n = 1;
-  ci->nk = 0;
+  ci->kw = FALSE;
   ci->mid = ci[-1].mid;
   MRB_CI_SET_VISIBILITY_BREAK(ci);
   if (MRB_PROC_CFUNC_P(p)) {
@@ -2050,7 +2052,7 @@ mrb_yield_cont(mrb_state *mrb, mrb_value b, mrb_value self, mrb_int argc, const 
   mrb->c->ci->stack[2] = mrb_nil_value();
   mrb->c->ci->stack[3] = mrb_nil_value();
   ci->n = 15;
-  ci->nk = 0;
+  ci->kw = FALSE;
   return exec_irep(mrb, self, p);
 }
 
@@ -2159,7 +2161,7 @@ argnum_error(mrb_state *mrb, mrb_int num)
       argc = RARRAY_LEN(args);
     }
   }
-  if (argc == 0 && mrb->c->ci->nk != 0 && !mrb_hash_empty_p(mrb, mrb->c->ci->stack[1])) {
+  if (argc == 0 && mrb->c->ci->kw && !mrb_hash_empty_p(mrb, mrb->c->ci->stack[1])) {
     argc++;
   }
   mrb_value str = mrb_format(mrb, "wrong number of arguments (given %i, expected %i)", argc, num);
@@ -2550,7 +2552,7 @@ vm_op_enter(mrb_state *mrb, uint32_t a)
 
   /* no other args */
   if ((a & ~0x7c0001) == 0 && argc < 15 && MRB_PROC_STRICT_P(ci->proc)) {
-    if (mrb_unlikely(argc+(ci->nk==15) != m1)) { /* count kdict too */
+    if (mrb_unlikely(argc+ci->kw != m1)) { /* count kdict too */
       argnum_error(mrb, m1);
       return VM_RAISE;
     }
@@ -2583,7 +2585,7 @@ vm_op_enter(mrb_state *mrb, uint32_t a)
   mrb_value kdict = mrb_nil_value();
 
   /* keyword arguments */
-  if (ci->nk == 15) {
+  if (ci->kw) {
     kdict = regs[mrb_ci_kidx(ci)];
   }
   if (!kd) {
@@ -2603,7 +2605,7 @@ vm_op_enter(mrb_state *mrb, uint32_t a)
       }
     }
     kdict = mrb_nil_value();
-    ci->nk = 0;
+    ci->kw = FALSE;
   }
   else if (!mrb_nil_p(kdict)) {
     mrb_gc_protect(mrb, kdict);
@@ -2688,7 +2690,7 @@ vm_op_enter(mrb_state *mrb, uint32_t a)
       kdict = mrb_hash_new_capa(mrb, 0);
     }
     regs[kw_pos] = kdict;             /* set kwhash */
-    ci->nk = 15;
+    ci->kw = TRUE;
   }
 
   /* format arguments for generated code */
@@ -3682,7 +3684,7 @@ RETRY_TRY_BLOCK:
         /* handle alias */
         MRB_PROC_RESOLVE_ALIAS(ci, p);
         CI_PROC_SET(ci, p);
-        if (MRB_PROC_CFUNC_P(p) && MRB_PROC_ENV_P(p) && !ci->blk && ci->nk == 0) {
+        if (MRB_PROC_CFUNC_P(p) && MRB_PROC_ENV_P(p) && !ci->blk && !ci->kw) {
           /* attr accessor fast path: access the ivar in place and pop the
              frame instead of doing a full cfunc call. Only for cases that
              cannot raise: reads never do; writes are limited to unfrozen
@@ -3716,7 +3718,7 @@ RETRY_TRY_BLOCK:
           JUMP;
         }
         else {
-          if (MRB_PROC_NOARG_P(p) && (ci->n > 0 || ci->nk > 0)) {
+          if (MRB_PROC_NOARG_P(p) && (ci->n > 0 || ci->kw)) {
             check_argument_count(mrb, ci, 0);
           }
           recv = MRB_PROC_CFUNC(p)(mrb, recv);
