@@ -1369,7 +1369,7 @@ mrb_ci_nregs(mrb_callinfo *ci)
 mrb_value mrb_obj_missing(mrb_state *mrb, mrb_value mod);
 
 static mrb_method_t
-prepare_missing(mrb_state *mrb, mrb_callinfo *ci, mrb_value recv, mrb_sym mid, mrb_value blk, mrb_bool super)
+prepare_missing(mrb_state *mrb, mrb_callinfo *ci, mrb_value recv, mrb_sym mid, mrb_bool super)
 {
   mrb_sym missing = MRB_SYM(method_missing);
   mrb_value args = mrb_args_pack_positional(mrb);
@@ -1523,7 +1523,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     ci->u.target_class = mrb_class(mrb, self);
     m = mrb_vm_find_method(mrb, ci->u.target_class, &ci->u.target_class, mid);
     if (MRB_METHOD_UNDEF_P(m)) {
-      m = prepare_missing(mrb, ci, self, mid, mrb_nil_value(), FALSE);
+      m = prepare_missing(mrb, ci, self, mid, FALSE);
     }
     else {
       ci->mid = mid;
@@ -3652,7 +3652,7 @@ RETRY_TRY_BLOCK:
       ci->u.target_class = (insn == OP_SUPER) ? CI_TARGET_CLASS(ci - 1)->super : mrb_class(mrb, recv);
       m = mrb_vm_find_method(mrb, ci->u.target_class, &ci->u.target_class, mid);
       if (mrb_unlikely(MRB_METHOD_UNDEF_P(m))) {
-        m = prepare_missing(mrb, ci, recv, mid, blk, (insn == OP_SUPER));
+        m = prepare_missing(mrb, ci, recv, mid, (insn == OP_SUPER));
       }
       else {
         ci->mid = mid;
