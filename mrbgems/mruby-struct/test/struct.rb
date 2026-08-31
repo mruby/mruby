@@ -11,6 +11,15 @@ assert('Struct.new', '15.2.18.3.1') do
   assert_equal [:m1, :m2], c.members
 end
 
+assert('Struct.new with no arguments', '15.2.18.3.1') do
+  c = Struct.new
+  assert_equal Struct, c.superclass
+  assert_equal [], c.members
+  o = c.new
+  assert_equal [], o.members
+  assert_equal 0, o.size
+end
+
 assert('Struct#==', '15.2.18.4.1') do
   c = Struct.new(:m1, :m2)
   cc1 = c.new(1,2)
