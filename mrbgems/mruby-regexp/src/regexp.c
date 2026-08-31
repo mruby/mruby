@@ -11,6 +11,7 @@
 #include <mruby/array.h>
 #include <mruby/variable.h>
 #include <mruby/hash.h>
+#include <mruby/range.h>
 #include <mruby/error.h>
 #include <mruby/internal.h>
 #include "re_internal.h"
@@ -1065,6 +1066,21 @@ matchdata_name_to_group(mrb_state *mrb, mrb_match_data *md, mrb_value arg)
 /*
  * MatchData#[](n)
  */
+
+/* Read the group at the absolute index `idx`, or nil when it names no group
+   of the match: out of 0...num_captures, or in range but the group did not
+   take part in the match. */
+static mrb_value
+md_nth(mrb_state *mrb, mrb_match_data *md, mrb_int idx)
+{
+  if (idx < 0 || idx >= md->num_captures) return mrb_nil_value();
+  int start = md->captures[idx * 2];
+  int end = md->captures[idx * 2 + 1];
+  if (start < 0) return mrb_nil_value();
+
+  return re_byte_substr(mrb, md->source, start, end - start);
+}
+
 static mrb_value
 md_aref(mrb_state *mrb, mrb_value self, mrb_value arg)
 {
@@ -1088,12 +1104,7 @@ md_aref(mrb_state *mrb, mrb_value self, mrb_value arg)
     }
   }
 
-  if (idx >= md->num_captures) return mrb_nil_value();
-  int start = md->captures[idx * 2];
-  int end = md->captures[idx * 2 + 1];
-  if (start < 0) return mrb_nil_value();
-
-  return re_byte_substr(mrb, md->source, start, end - start);
+  return md_nth(mrb, md, idx);
 }
 
 static mrb_value
@@ -1135,6 +1146,65 @@ static mrb_value
 matchdata_to_a(mrb_state *mrb, mrb_value self)
 {
   return matchdata_to_ary(mrb, self, 0);
+}
+
+/*
+ * MatchData#values_at(*args)
+ */
+
+/* Read the arguments the way CRuby's rb_match_values_at() does. A String or
+   Symbol is the name of a named capture, looked up with the same rule as
+   MatchData#[], so a name the pattern does not carry raises and one that did
+   not take part in the match reads as nil. A Range reads the groups at its
+   positions, the way Array#values_at reads its indexes: a negative bound
+   counts back from the last group, so -num_captures reaches the whole match,
+    and the positions past the last group pad nil. A range that starts before
+    the match raises RangeError, the way an Array range index raises.
+    Everything else converts to an integer and reads the group as MatchData#[]
+    reads it, so a negative one never reaches the whole match and one out of
+    range reads as nil. */
+static mrb_value
+matchdata_values_at(mrb_state *mrb, mrb_value self)
+{
+  mrb_match_data *md = DATA_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
+  if (!md) return mrb_ary_new(mrb);
+
+  mrb_int argc = mrb_get_argc(mrb);
+  const mrb_value *argv = mrb_get_argv(mrb);
+  mrb_value ary = mrb_ary_new_capa(mrb, argc);
+  for (mrb_int i = 0; i < argc; i++) {
+    mrb_value v = argv[i];
+    if (mrb_string_p(v) || mrb_symbol_p(v)) {
+      mrb_ary_push(mrb, ary, md_nth(mrb, md, matchdata_name_to_group(mrb, md, v)));
+    }
+    else if (mrb_range_p(v)) {
+      mrb_int beg, len;
+      switch (mrb_range_beg_len(mrb, v, &beg, &len, md->num_captures, FALSE)) {
+      case MRB_RANGE_OK:
+        for (mrb_int j = 0; j < len; j++) {
+          mrb_ary_push(mrb, ary, md_nth(mrb, md, beg + j));
+        }
+        break;
+      case MRB_RANGE_OUT:
+        mrb_raisef(mrb, E_RANGE_ERROR, "%v out of range", v);
+        break;
+      default:
+        break;
+      }
+    }
+    else {
+      mrb_int idx = mrb_as_int(mrb, v);
+      if (idx < 0) {
+        idx += md->num_captures;
+        if (idx <= 0) {
+          mrb_ary_push(mrb, ary, mrb_nil_value());
+          continue;
+        }
+      }
+      mrb_ary_push(mrb, ary, md_nth(mrb, md, idx));
+    }
+  }
+  return ary;
 }
 
 /*
@@ -3360,6 +3430,7 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, md, "[]", matchdata_aref, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, md, "captures", matchdata_captures, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "to_a", matchdata_to_a, MRB_ARGS_NONE());
+  mrb_define_method(mrb, md, "values_at", matchdata_values_at, MRB_ARGS_ANY());
   mrb_define_method(mrb, md, "length", matchdata_length, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "size", matchdata_length, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "begin", matchdata_begin, MRB_ARGS_REQ(1));

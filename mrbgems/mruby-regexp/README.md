@@ -120,6 +120,7 @@ md[1]                             # => "user"
 md[2]                             # => "host"
 md[:name]                         # named capture access
 md.captures                       # => ["user", "host"]
+md.values_at(1, 2)                # => ["user", "host"]
 md.to_a                           # => ["user@host", "user", "host"]
 md.to_s                           # => "user@host" (same as md[0])
 md.size                           # => group count, group 0 included
