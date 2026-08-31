@@ -119,9 +119,25 @@ assert('every mutating method leaves an answer the string can stand behind') do
     # which is how `delete_prefix!` and `delete_suffix!` stayed broken. The
     # writes that do not announce themselves in their name (`<<`, `setbyte`,
     # `force_encoding` and the rest above) still have to be added by hand.
+    #
+    # This is the one assertion here that a change elsewhere can turn red: the
+    # methods come from whatever gems this gem's tests are built with, so
+    # adding a mutating String method to mruby-string-ext or
+    # mruby-string-bitops fails a test in mruby-encoding.  That is the point --
+    # the coderange cache is this gem's, and a write that forgets to clear it
+    # breaks strings that were fine -- so the message says whose turn it is
+    # rather than leaving the reader to work out why a file they did not touch
+    # is failing.
     untested = String.instance_methods.map { |m| m.to_s }
                      .select { |m| m.end_with?("!") && m != "!" && !ops[m] }
-    assert_equal [], untested.sort, "String methods that change a receiver with no case here"
+    assert_equal [], untested.sort,
+                 "new mutating String method(s) with no coderange case. " \
+                 "The cache this gem keeps says what a string's bytes read as, " \
+                 "and a write that leaves it saying the old answer breaks a " \
+                 "string nothing was wrong with. Add a line per name to `ops` " \
+                 "in mrbgems/mruby-encoding/test/string.rb calling it with " \
+                 "arguments that make it write, and this passes once the write " \
+                 "clears the cache"
 
     ops.each do |name, op|
       bases.each do |base|
