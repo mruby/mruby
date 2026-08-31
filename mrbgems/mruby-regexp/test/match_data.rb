@@ -206,6 +206,80 @@ assert("MatchData#[] - group name longer than a uint16 length") do
   assert_equal "x", md[:abc]
 end
 
+assert("MatchData#values_at") do
+  md = /(a)(b)/.match("ab")
+  assert_equal [], md.values_at
+  assert_equal ["a", "b"], md.values_at(1, 2)
+  assert_equal ["ab"], md.values_at(0)
+  assert_equal ["ab", "a", "b"], md.values_at(0, 1, 2)
+  # an index out of range and a group that did not participate both read nil
+  assert_equal ["b", nil, nil], md.values_at(-1, 3, 5)
+  assert_equal ["a", nil], /(a)|(b)/.match("a").values_at(1, 2)
+  # a group that took part in the match with an empty string reads "", not
+  # the nil a group that did not take part reads
+  assert_equal ["b", ""], /(a?)b/.match("b").values_at(0, 1)
+  # a negative index counts back the way MatchData#[] does, never reaching
+  # the whole match
+  assert_equal ["a", nil, nil], md.values_at(-2, -3, -4)
+  # a Float reads the group its integer part names
+  if Object.const_defined?(:Float)
+    assert_equal ["a"], md.values_at(1.5)
+    assert_equal ["a", "ab"], md.values_at(1.5, 0)
+  end
+  # a pattern without capture groups carries only the whole match, so a
+  # negative index reads nil where a range still reaches the match
+  m = /a/.match("a")
+  assert_equal ["a"], m.values_at(0)
+  assert_equal [nil, nil], m.values_at(1, -1)
+  assert_equal ["a"], m.values_at(0..-1)
+  assert_raise(RangeError) { m.values_at(-2..-1) }
+end
+
+assert("MatchData#values_at - group name") do
+  md = /(?<x>a)(?<y>b)/.match("ab")
+  assert_equal ["a", "b"], md.values_at(:x, :y)
+  assert_equal ["b", "a"], md.values_at(:y, "x")
+  # a String is a group name, not a number
+  assert_raise(IndexError) { md.values_at("1") }
+  # a name the pattern does not carry raises, as in MatchData#[]
+  assert_raise(IndexError) { md.values_at(:zz) }
+  assert_raise(IndexError) { /(a)/.match("a").values_at(:zz) }
+  # a named group that did not take part in the match reads nil
+  assert_equal ["b", nil], /(?<x>a)|(?<y>b)/.match("b").values_at(:y, :x)
+end
+
+assert("MatchData#values_at - range") do
+  md = /(a)(b)/.match("ab")
+  assert_equal ["a", "b"], md.values_at(1..2)
+  # an exclusive end stops before its bound, negative or not
+  assert_equal ["a"], md.values_at(1...2)
+  assert_equal ["ab", "a"], md.values_at(-3...-1)
+  # positions past the last group pad nil, as Array#values_at does
+  assert_equal ["a", "b", nil, nil, nil], md.values_at(1..5)
+  assert_equal [nil, nil, nil], md.values_at(5..7)
+  assert_equal [], md.values_at(2..1)
+  assert_equal [], md.values_at(4..)
+  # a negative bound counts back the way an Array index does, so a range can
+  # reach the whole match where a negative index cannot
+  assert_equal ["ab", "a", "b"], md.values_at(-3..-1)
+  assert_equal ["ab", "a", "b"], md.values_at(0..-1)
+  assert_equal [], md.values_at(-2..0)
+  assert_equal ["b"], md.values_at(-1..)
+  assert_equal ["b", nil, nil, nil], md.values_at(-1..5)
+  assert_equal ["a"], md.values_at(-2..-2)
+  assert_equal ["a", nil], /(a)|(b)/.match("a").values_at(1..2)
+  # a range that starts before the match raises, as Array#[] does
+  assert_raise(RangeError) { md.values_at(-4..-1) }
+  assert_raise(RangeError) { md.values_at(-10..-3) }
+end
+
+assert("MatchData#values_at - a bad argument") do
+  md = /(a)(b)/.match("ab")
+  assert_raise(TypeError) { md.values_at(nil) }
+  assert_raise(TypeError) { md.values_at([1, 2]) }
+  assert_raise(TypeError) { md.values_at(true) }
+end
+
 assert("MatchData#begin / #end - group name longer than a stored name") do
   # begin/end share the name lookup with MatchData#[], so the bound that keeps
   # the memcmp() from being handed a length larger than what was measured
