@@ -759,6 +759,11 @@ assert("String#sub / #gsub expand \\k<name> in the replacement") do
   # A group that took no part in the match stands for nothing, the way a
   # numbered reference to one does.
   assert_equal "a[]", "ab".sub(/(?<x>c)?b/, '[\k<x>]')
+  # A name the pattern gives to several groups reaches the last one that took
+  # part in the match, nothing when none of them did.
+  assert_equal "a", "xa".sub(/x(?<y>a)|(?<y>b)/, '\k<y>')
+  assert_equal "xb", "xb".sub(/x(?<y>a)|(?<y>b)/, '\k<y>')
+  assert_equal "", "c".sub(/(?<y>a)(?<y>b)|c/, '\k<y>')
   # The name is the bytes between the angles, so a multibyte one reaches its
   # group without the replacement being read as characters.
   assert_equal "ab!", "ab".sub(/(?<あ>b)/, '\k<あ>!')
