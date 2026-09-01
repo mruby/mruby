@@ -391,6 +391,7 @@ assert("Regexp - a capture spans whole characters") do
   assert_equal [0xc4, 0x80], m[1].bytes
   assert_equal "x", m[2]
   assert_equal [0, 1, 1, 2], [m.begin(1), m.end(1), m.begin(2), m.end(2)]
+  assert_equal [[0, 1], [1, 2]], [m.offset(1), m.offset(2)]
   # Read as binary every byte stands alone, so a byte capture works there.
   if Object.const_defined?(:Encoding)
     bm = Regexp.new("(\xc4).").match("\xc4\x80x".b)

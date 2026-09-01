@@ -1267,6 +1267,31 @@ matchdata_end(mrb_state *mrb, mrb_value self)
   return mrb_int_value(mrb, re_byte_to_char(mrb, md->source, pos));
 }
 
+/*
+ * MatchData#offset(n)
+ */
+
+/* The two offsets `begin` and `end` report, read in one call. CRuby's
+   rb_match_offset() reads the argument the way begin and end read theirs, so
+   a name reaches its group and an argument that reaches none raises. A group
+   that took no part in the match has neither offset, and the pair is
+   [nil, nil] rather than nil: the method always answers an array of two. */
+static mrb_value
+matchdata_offset(mrb_state *mrb, mrb_value self)
+{
+  mrb_value arg;
+  mrb_get_args(mrb, "o", &arg);
+
+  mrb_match_data *md = DATA_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
+  if (!md) return mrb_nil_value();
+  mrb_int idx = matchdata_group_arg(mrb, md, arg);
+  int beg = md->captures[idx * 2];
+  if (beg < 0) return mrb_assoc_new(mrb, mrb_nil_value(), mrb_nil_value());
+  int end = md->captures[idx * 2 + 1];
+  return mrb_assoc_new(mrb, mrb_int_value(mrb, re_byte_to_char(mrb, md->source, beg)),
+                       mrb_int_value(mrb, re_byte_to_char(mrb, md->source, end)));
+}
+
 /* Whether `str` still reads as the subject `md` was made on. The block loops
    of `gsub` and `scan` end on a search from the offset their last match was
    found from, on the receiver as the block left it, the way CRuby's
@@ -3444,6 +3469,7 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, md, "size", matchdata_length, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "begin", matchdata_begin, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, md, "end", matchdata_end, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, md, "offset", matchdata_offset, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, md, "pre_match", matchdata_pre, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "post_match", matchdata_post, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "__pre_match", matchdata_pre, MRB_ARGS_NONE());

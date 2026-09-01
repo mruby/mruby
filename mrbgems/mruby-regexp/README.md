@@ -127,6 +127,7 @@ md.size                           # => group count, group 0 included
 md.length                         # => same as size
 md.begin(0)                       # => match start position
 md.end(0)                         # => match end position
+md.offset(0)                      # => [begin, end] of the same group
 md.pre_match                      # => string before match
 md.post_match                     # => string after match
 md.named_captures                 # => {"name" => "value", ...}

@@ -154,6 +154,34 @@ assert("MatchData#begin / #end - index out of matches") do
   assert_nil md.end(2)
 end
 
+assert("MatchData#offset") do
+  md = /(a)(b)/.match("ab")
+  assert_equal [0, 2], md.offset(0)
+  assert_equal [0, 1], md.offset(1)
+  assert_equal [1, 2], md.offset(2)
+  # a name reaches its group, as it does in begin and end
+  md = /(?<x>b)(?<y>c)/.match("abcde")
+  assert_equal [1, 2], md.offset(:x)
+  assert_equal [2, 3], md.offset("y")
+end
+
+assert("MatchData#offset - a group that took no part in the match") do
+  # Neither offset exists, and the pair is [nil, nil]: an array of two comes
+  # back whatever the group did, where begin and end each answer nil.
+  assert_equal [nil, nil], /(a)|(b)/.match("a").offset(2)
+  assert_equal [nil, nil], /(?<y>a)(?<y>b)|c/.match("c").offset(:y)
+end
+
+assert("MatchData#offset - an argument that reaches no group") do
+  # The argument is read the way begin and end read theirs, so an index out of
+  # range raises rather than answering [nil, nil].
+  md = /(a)(b)/.match("ab")
+  assert_raise(IndexError) { md.offset(3) }
+  assert_raise(IndexError) { md.offset(-1) }
+  assert_raise(IndexError) { md.offset(:zz) }
+  assert_raise(IndexError) { /(a)/.match("a").offset(:zz) }
+end
+
 assert("$~ global variable") do
   /(\w+)@(\w+)/ =~ "user@host"
   assert_kind_of MatchData, $~
