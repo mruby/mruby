@@ -122,7 +122,18 @@ module MRuby
           @exts = Exts.new('.o', '', '.a', '.pi')
         end
 
-        build_dir = build_dir || ENV['MRUBY_BUILD_DIR'] || "#{MRUBY_ROOT}/build"
+        # The directory is named against the one the build was started from,
+        # by the config or by `MRUBY_BUILD_DIR`, and is expanded here so that
+        # every path built from it is absolute whatever directory a later step
+        # runs in. The spelling a name was given, a trailing slash or a `..`
+        # among it, does not reach the paths the build compiles with.
+        #
+        # `MRUBY_BUILD_DIR` set to nothing names no directory, and is read as
+        # the unset it was meant to be: left as it is, the empty name would
+        # put the whole build under `/`.
+        env_build_dir = ENV['MRUBY_BUILD_DIR']
+        env_build_dir = nil if env_build_dir.nil? || env_build_dir.empty?
+        build_dir = File.expand_path(build_dir || env_build_dir || "#{MRUBY_ROOT}/build")
 
         @file_separator = '/'
         # The directory every target of this config builds under. `@build_dir`
@@ -167,6 +178,7 @@ module MRuby
         @compile_commands_default = false
         @mrbcfile_external = false
         @file_prefix_map = nil
+        @file_prefix_map_source = nil
         @internal = internal
         @toolchains = []
         @port_names = nil
@@ -227,10 +239,15 @@ module MRuby
     # write the two names itself, and by calling it says that the build has
     # no say: the names a config writes are the only ones its output carries.
     #
-    # The build directory is written as `build` under the name of the tree,
-    # the place it takes when nothing moves it, so that a build with
-    # `MRUBY_BUILD_DIR` pointing outside the tree compiles what a build inside
-    # the tree compiles.
+    # The build directory is written as `build` beside the sources, the place
+    # it takes when nothing moves it, so that a build with `MRUBY_BUILD_DIR`
+    # pointing anywhere else compiles what a build inside the tree compiles.
+    #
+    # The tree is written as `.`, and under that name the build compiles the
+    # sources by the names they have from the tree, so that what it compiles
+    # is the same wherever the tree sits. A config that writes another name
+    # for the tree is asking for that name in the output, which no relative
+    # name carries, and its build compiles with the paths as they are.
     #
     # The two maps overlap where the build directory is inside the tree, and
     # both `gcc` and `clang` answer a path both cover with the longer prefix,
@@ -238,13 +255,14 @@ module MRuby
     # either map gives; a caller that names the two apart is asking for the
     # longer one to win.
     #
-    # This says nothing of the paths `mrbc` writes: the file names it records
-    # for a backtrace under `enable_debug` are the ones the build passes it,
-    # and no compiler flag reaches them.
-    def enable_file_prefix_map(source: ".", build: "#{source}/build")
+    # No compiler flag reaches the file names `mrbc` records for a backtrace
+    # under `enable_debug`: those are the names the build passes it, and the
+    # build passes the names of the tree wherever it compiles by them.
+    def enable_file_prefix_map(source: ".", build: source == "." ? "build" : "#{source}/build")
       file_prefix_map(MRUBY_ROOT, source)
       file_prefix_map(@build_root, build)
       @file_prefix_map = true
+      @file_prefix_map_source = source
     end
 
     # Compile with the paths of this build as they are, which a build that
@@ -253,6 +271,33 @@ module MRuby
     # them only from the directory they were mapped against.
     def disable_file_prefix_map
       @file_prefix_map = false
+      @file_prefix_map_source = nil
+    end
+
+    # Whether the compilers are handed the names the sources have from the
+    # tree, instead of the paths they have on this machine.
+    #
+    # This is the same question as whether the tree is written as `.`: a
+    # relative name is what a path under the tree looks like once the tree
+    # itself is dropped from it, so the build compiles under that name what
+    # the map would otherwise write. A build that keeps its paths, or that
+    # writes another name for the tree, has no such name to compile with.
+    def compile_relative?
+      @file_prefix_map_source == "."
+    end
+
+    # The name a compile is given for +path+: the one it has from the tree,
+    # where it sits under the tree and the build compiles by such names, and
+    # the path as it is anywhere else.
+    #
+    # A path this leaves alone is one no build of this tree can name the same
+    # way twice, an external gem or a build directory somewhere else, and it
+    # reaches the compiler as the machine spells it.
+    def compile_path(path)
+      return path unless compile_relative?
+      return "." if path == MRUBY_ROOT
+      prefix = "#{MRUBY_ROOT}/"
+      path.start_with?(prefix) ? path[prefix.length..-1] : path
     end
 
     # Set target port names for this build.
@@ -405,6 +450,21 @@ module MRuby
         obj = cxx_src.ext(@exts.object)
       end
 
+      # The generated source includes the file by its own name and the
+      # directory it sits in is searched for it, rather than the path being
+      # written into the file, so that what this generates says the same thing
+      # wherever the tree sits.
+      #
+      # The name the compiler then records is that directory and the name
+      # together, and the directory is the one the flags carry: the name the
+      # tree has for it where the build compiles by such names, and the path
+      # as it is otherwise. Written into the file instead, the name would be
+      # the one the search found it under, `./src/vm.c`, which `clang` keeps
+      # as it is or shortens depending on whether the build has any directory
+      # left to map, and two builds of the same tree would differ by it.
+      source_dir = File.dirname(File.absolute_path(src))
+      cxx.include_paths << source_dir unless cxx.include_paths.include?(source_dir)
+
       file cxx_src => [src, __FILE__] do |t|
         mkdir_p File.dirname t.name
         IO.write t.name, <<EOS
@@ -414,7 +474,7 @@ module MRuby
 #ifndef MRB_USE_CXX_ABI
 extern "C" {
 #endif
-#include "#{File.absolute_path src}"
+#include "#{File.basename(src)}"
 #ifndef MRB_USE_CXX_ABI
 }
 #endif
@@ -485,7 +545,10 @@ EOS
     end
 
     def mrbcfile=(path)
-      @mrbcfile = path
+      # Named against the directory the build was started from, like the
+      # build directory, and expanded here for the same reason: it is run
+      # from the tree.
+      @mrbcfile = File.expand_path(path)
       @mrbcfile_external = true
     end
 

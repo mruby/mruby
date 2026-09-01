@@ -30,15 +30,23 @@ module MRuby
     end
 
     private
-    def _run(options, params={})
-      sh "#{build.filename(command)} #{options % params}"
+    # Run the command, from +chdir+ where one is given.
+    #
+    # A command handed the names its files have from the tree is run from the
+    # tree, and is given the directory rather than the build being left in it:
+    # `rake -m` runs the tasks of a build in threads of one process, which
+    # have one working directory between them, while a directory given here
+    # belongs to the one child it is given to.
+    def _run(options, params={}, chdir: nil)
+      cmd = "#{build.filename(command)} #{options % params}"
+      chdir ? sh(cmd, chdir: chdir) : sh(cmd)
     end
   end
 
   class Command::Compiler < Command
-    # The answers `file_prefix_map?` has had from the commands it asked,
-    # which are the same from one compiler to the next.
-    FILE_PREFIX_MAP_SUPPORT = {}
+    # The answers `option_support?` has had from the commands it asked, which
+    # are the same from one compiler to the next.
+    OPTION_SUPPORT = {}
 
     # The answers `try_compile` has had, keyed by the command line and the
     # source it asked with.
@@ -58,6 +66,9 @@ module MRuby
     # because they name directories of the machine the build runs on, which
     # the flags a package exports are asked not to carry.
     attr_accessor :file_prefix_maps, :option_file_prefix_map
+    # The option that tells the compiler which directory to record as the one
+    # it compiled in, for a compiler that takes such a thing.
+    attr_accessor :option_compilation_dir
     attr_accessor :cxx_compile_flag, :cxx_exception_flag, :cxx_invalid_flags
     attr_writer :preprocess_options
 
@@ -74,6 +85,7 @@ module MRuby
       @option_define = %q[-D"%s"]
       @file_prefix_maps = {}
       @option_file_prefix_map = %q[-ffile-prefix-map="%s=%s"]
+      @option_compilation_dir = %q[-ffile-compilation-dir="%s"]
       @compile_options = %q[%{flags} -o "%{outfile}" -c "%{infile}"]
       @cxx_invalid_flags = []
       @out_ext = build.exts.object
@@ -97,14 +109,41 @@ module MRuby
         .any? {|d| d.to_s.split('=', 2).first == name}
     end
 
-    # The flags that have this compiler write the names in `file_prefix_maps`
-    # in place of the directories they stand for, wherever it writes a path of
-    # its own: in `__FILE__`, and in the debug information. Empty where this
-    # compiler cannot map a path at all, and the paths it writes stand as they
-    # are.
+    # The flags that keep the directories of this machine out of what the
+    # compiler writes: the names in `file_prefix_maps` in place of the
+    # directories they stand for, wherever the compiler writes a path of its
+    # own, in `__FILE__` and in the debug information. A compiler that can
+    # neither map a path nor be told which directory it compiled in is left
+    # alone, and the paths it writes stand as they are.
+    #
+    # A build that compiles by the names its sources have from the tree hands
+    # those names to the map too, so a directory of the machine is named here
+    # only where the build could not name it any other way. Two of them then
+    # answer for themselves: the tree, which every name is already written
+    # against, and a build directory that is already spelled the way the map
+    # would write it.
+    #
+    # What no name of a source can carry is the directory the compiler records
+    # as the one it compiled in, which it takes from the machine whatever it
+    # is handed. A compiler that spells that directory on its own is asked for
+    # it, since that spelling names no path of this machine; the map is what
+    # answers for a compiler that does not.
     def file_prefix_map_flags
-      return [] if file_prefix_maps.empty? || !file_prefix_map?
-      file_prefix_maps.map {|from, to| option_file_prefix_map % [filename(from), to]}
+      relative = build.compile_relative?
+      flags = []
+      file_prefix_maps.each do |from, to|
+        if relative && from == MRUBY_ROOT
+          if compilation_dir?
+            flags << option_compilation_dir % to
+            next
+          end
+        elsif relative
+          from = build.compile_path(from)
+          next if from == to
+        end
+        flags << option_file_prefix_map % [filename(from), to] if file_prefix_map?
+      end
+      flags
     end
 
     # Whether this compiler can map a path, which is two questions: whether
@@ -114,17 +153,23 @@ module MRuby
     # in the older ones: `-ffile-prefix-map` arrived in GCC 8 and in clang
     # 10. A command that answers no is compiled with as it always was, so a
     # build that used to work is not broken by a map it never asked for.
-    #
-    # The answer is kept per command line, since a build has four compilers
-    # and a config has several builds, and they name few commands between
-    # them.
     def file_prefix_map?
       return false unless option_file_prefix_map
-      probe = "#{build.filename(command)} #{option_file_prefix_map % ['/mruby', '.']}"
-      FILE_PREFIX_MAP_SUPPORT.fetch(probe) do
-        `echo | #{probe} -E - 2>&1`
-        FILE_PREFIX_MAP_SUPPORT[probe] = $?.exitstatus == 0
-      end
+      option_support?(option_file_prefix_map % ['/mruby', '.'])
+    end
+
+    # Whether this compiler is told the directory it compiled in, rather than
+    # left to record the one it is run from. The option names no path of this
+    # machine, so a build that compiles by the names of the tree carries the
+    # same directory wherever the tree sits, and a cache keyed on the command
+    # line answers for one tree what it learned from another.
+    #
+    # Only `clang` spells it, and only from the version the spelling arrived
+    # in; `gcc` has nothing of the kind, and a build compiled by it says which
+    # directory it compiled in through the map instead.
+    def compilation_dir?
+      return false unless option_compilation_dir
+      option_support?(option_compilation_dir % '.')
     end
 
     # Whether this compiler compiles +source+, asked with the flags it will
@@ -222,10 +267,18 @@ module MRuby
       path && build.filename("#{path}/#{name}").sub(/^"(.*)"$/, '\1')
     end
 
-    def all_flags(_defines=[], _include_paths=[], _flags=[])
+    # The flags a caller compiles with, or that a package carries away.
+    #
+    # +compiled+ says which of the two is asking. A compile is run from the
+    # tree and names the directories it reads by the names they have from it,
+    # where they have one; a package is compiled from somewhere else entirely,
+    # and its flags name every directory in full, for whoever rewrites them
+    # into the directories the package was installed in.
+    def all_flags(_defines=[], _include_paths=[], _flags=[], compiled: false)
       define_flags = [defines, internal_defines, _defines, build.defines].flatten
                        .map{ |d| option_define % d }
       include_path_flags = [include_paths, _include_paths].flatten.map do |f|
+        f = build.compile_path(f) if compiled
         option_include_path % filename(f)
       end
       [flags, file_prefix_map_flags, define_flags, include_path_flags, _flags].flatten.join(' ')
@@ -242,7 +295,11 @@ module MRuby
         opts = preprocess_options
       end
       _pp label, infile.relative_path, outfile.relative_path
-      _run opts, flags: flags, infile: filename(infile), outfile: filename(outfile)
+      _run opts, {
+        flags: flags,
+        infile: filename(build.compile_path(infile)),
+        outfile: filename(build.compile_path(outfile)),
+      }, chdir: (MRUBY_ROOT if build.compile_relative?)
       # Recorded after the compile, so that a compile that failed leaves
       # nothing claiming a configuration its output was not built with.
       File.write(flags_file(outfile), flags_record(opts, flags))
@@ -344,6 +401,14 @@ module MRuby
         #    []
         #    []
       end.flatten.uniq
+      # The names a +.d+ file carries are the ones the compile was given, so a
+      # compile that names its sources against the tree leaves relative names
+      # here. They are read against the directory the compile ran in, since
+      # everything below compares them with the names of the tasks, and those
+      # are absolute.
+      header_deps.map! do |dep|
+        Pathname.new(dep).absolute? ? dep : File.join(MRUBY_ROOT, dep)
+      end
       unless object_ext?(file)
         presym_dir = "#{build.presym.header_dir}/"
         header_deps.reject! {|dep| dep.start_with?(presym_dir) }
@@ -367,10 +432,25 @@ module MRuby
 
     private
 
+    # Whether the command this compiler names knows +option+, which is asked
+    # of the command itself: a toolchain stands for a family of compilers, and
+    # an option one of them takes is not in all of them.
+    #
+    # The answer is kept per command line, since a build has four compilers
+    # and a config has several builds, and they name few commands between
+    # them.
+    def option_support?(option)
+      probe = "#{build.filename(command)} #{option}"
+      OPTION_SUPPORT.fetch(probe) do
+        `echo | #{probe} -E - 2>&1`
+        OPTION_SUPPORT[probe] = $?.exitstatus == 0
+      end
+    end
+
     # Compile +source+ and answer whether it compiled.  The source and the
     # object are named inside a directory that is removed on the way out; the
-    # compiler is left in the working directory the build compiles from, which
-    # is what a relative path in the flags is written against.
+    # compiler is run from the directory a compile runs from, which is what a
+    # relative path in the flags is written against.
     def run_compile_probe(source)
       Dir.mktmpdir("mruby-probe") do |dir|
         infile = "#{dir}/probe#{source_exts.first || '.c'}"
@@ -379,10 +459,11 @@ module MRuby
         options = compile_options % {
           flags: all_flags, infile: filename(infile), outfile: filename(outfile)
         }
+        opts = {out: File::NULL, err: File::NULL}
+        opts[:chdir] = MRUBY_ROOT if build.compile_relative?
         # `system` answers nil where the command is not there to run at all,
         # which is an answer of no like any other failure to compile.
-        !!system("#{build.filename(command)} #{options}",
-                 out: File::NULL, err: File::NULL)
+        !!system("#{build.filename(command)} #{options}", **opts)
       end
     end
 
@@ -447,7 +528,7 @@ module MRuby
     # the presym scan is this compiler with one define more, so the define
     # belongs to the flags and to what is recorded of them.
     def compile_flags(outfile, _defines=[], _include_paths=[], _flags=[])
-      flags = all_flags(_defines, _include_paths, _flags)
+      flags = all_flags(_defines, _include_paths, _flags, compiled: true)
       flags += " -DMRB_PRESYM_SCANNING" unless object_ext?(outfile)
       flags
     end
@@ -657,9 +738,16 @@ module MRuby
       # leak into the captured stdout and corrupt the generated C file.
       tmpout = "#{out.path}.#{funcname}.mrbcout"
       opt = opt.sub(/\s-o-(?=\s|\z)/, %Q[ -o "#{filename tmpout}"])
-      cmd = %["#{filename @command}" #{opt} #{filename(infiles).map{|f| %["#{f}"]}.join(' ')}]
+      # The names given here are the ones `mrbc` records for a backtrace, so
+      # they are the names the sources have from the tree wherever the build
+      # compiles by those, and `mrbc` is run from the tree to read them. This
+      # is what the compilers are told through their own options, which reach
+      # nothing `mrbc` writes.
+      sources = infiles.map {|f| build.compile_path(f) }
+      cmd = %["#{filename @command}" #{opt} #{filename(sources).map{|f| %["#{f}"]}.join(' ')}]
       puts cmd if Rake.verbose
-      unless system(cmd)
+      opts = build.compile_relative? ? {chdir: MRUBY_ROOT} : {}
+      unless system(cmd, **opts)
         rm_f tmpout
         rm_f out.path
         fail "Command failed with status (#{$?.exitstatus}): [#{cmd[0,42]}...]"
