@@ -16,10 +16,6 @@
 #include <unistd.h>
 #include <errno.h>
 
-#ifdef HAVE_SYS_PARAM_H
-#include <sys/param.h>
-#endif
-
 /* On POSIX, mrb_dir_handle wraps DIR */
 struct mrb_dir_handle {
   DIR *dir;
