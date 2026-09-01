@@ -360,3 +360,13 @@ assert "Struct initialize when :keyword_init is non-boolean value (treat as true
     c.new(1, 2)
   end
 end
+
+assert "Struct.keyword_init?" do
+  assert_true Struct.new(:foo, keyword_init: true).keyword_init?
+  assert_false Struct.new(:foo, keyword_init: false).keyword_init?
+  assert_nil Struct.new(:foo).keyword_init?
+  assert_nil Struct.new(:foo, keyword_init: nil).keyword_init?
+  assert_true Struct.new(:foo, keyword_init: 12).keyword_init?
+  assert_false Struct.respond_to?(:keyword_init?)
+  assert_false Struct.new(:foo).new(1).respond_to?(:keyword_init?)
+end

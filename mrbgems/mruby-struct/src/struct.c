@@ -54,6 +54,38 @@ struct_s_members(mrb_state *mrb, struct RClass *c)
 }
 
 static mrb_value
+struct_s_keyword_init(mrb_state *mrb, struct RClass *c)
+{
+  struct RClass *sclass = struct_class(mrb);
+
+  while (c && c != sclass) {
+    mrb_value ki = mrb_iv_get(mrb, mrb_obj_value(c), MRB_IVSYM(__keyword_init__));
+    if (!mrb_nil_p(ki)) return ki;
+    c = c->super;
+  }
+  return mrb_nil_value();
+}
+
+/*
+ *  call-seq:
+ *     StructClass.keyword_init?    -> true or false or nil
+ *
+ *  Returns the value of the `keyword_init` option given to
+ *  `Struct.new`: `true` (only keyword arguments), `false` (only
+ *  positional arguments), or `nil` (either). Subclasses inherit
+ *  the value from the struct class they derive from.
+ *
+ *     Struct.new(:a).keyword_init?                      #=> nil
+ *     Struct.new(:a, keyword_init: true).keyword_init?  #=> true
+ *     Struct.new(:a, keyword_init: false).keyword_init? #=> false
+ */
+static mrb_value
+mrb_struct_s_keyword_init_p(mrb_state *mrb, mrb_value klass)
+{
+  return struct_s_keyword_init(mrb, mrb_class_ptr(klass));
+}
+
+static mrb_value
 struct_members(mrb_state *mrb, mrb_value s)
 {
   if (!mrb_struct_p(s)) {
@@ -211,6 +243,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass *kl
   mrb_define_class_method_id(mrb, c, MRB_SYM(new), mrb_instance_new, MRB_ARGS_ANY());
   mrb_define_class_method_id(mrb, c, MRB_OPSYM(aref), mrb_instance_new, MRB_ARGS_ANY());
   mrb_define_class_method_id(mrb, c, MRB_SYM(members), mrb_struct_s_members_m, MRB_ARGS_NONE());
+  mrb_define_class_method_id(mrb, c, MRB_SYM_Q(keyword_init), mrb_struct_s_keyword_init_p, MRB_ARGS_NONE());
   /* RSTRUCT(nstr)->basic.c->super = c->c; */
   make_struct_define_accessors(mrb, members, c);
   return nstr;
@@ -280,6 +313,9 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
 
     if (mrb_hash_key_p(mrb, options, keyword_init_sym)) {
       keyword_init_val = mrb_hash_get(mrb, options, keyword_init_sym);
+      if (!mrb_nil_p(keyword_init_val)) {
+        keyword_init_val = mrb_bool_value(mrb_test(keyword_init_val));
+      }
       argc--; /* Don't treat the options hash as a member name */
     }
   }
@@ -395,7 +431,7 @@ mrb_struct_initialize(mrb_state *mrb, mrb_value self)
   mrb_value klass = mrb_obj_value(mrb_obj_class(mrb, self));
   mrb_value keyword_init = mrb_iv_get(mrb, klass, MRB_IVSYM(__keyword_init__));
 
-  if (mrb_test(keyword_init)) { /* keyword_init: true or other truthy value */
+  if (mrb_test(keyword_init)) { /* keyword_init: true */
     if (argc > 1 || (argc == 1 && !mrb_hash_p(argv[0]))) {
       mrb_argnum_error(mrb, argc, 0, 0);
     }
