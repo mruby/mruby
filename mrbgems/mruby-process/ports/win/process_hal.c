@@ -260,8 +260,6 @@ mrb_hal_process_status_decode(mrb_state *mrb, mrb_int pid, mrb_int raw_status,
 #define FILETIME_EPOCH_DELTA   116444736000000000LL
 #define NSEC_PER_FILETIME_TICK 100
 
-#define NSEC_PER_SEC           1000000000LL
-
 static uint64_t
 filetime_to_u64(const FILETIME *ft)
 {

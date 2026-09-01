@@ -125,6 +125,13 @@ typedef struct mrb_process_clock_time {
   int64_t nsec;
 } mrb_process_clock_time;
 
+/* Nanoseconds in one second, the scale `nsec` above is a count in.  Darwin's
+   <mach/clock_types.h> spells the same name (as 1000000000ull), so a
+   definition already in scope is left standing. */
+#ifndef NSEC_PER_SEC
+#define NSEC_PER_SEC 1000000000LL
+#endif
+
 /*
  * HAL Interface Functions
  */
