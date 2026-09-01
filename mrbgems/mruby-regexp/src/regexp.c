@@ -1503,10 +1503,17 @@ matchdata_named_captures(mrb_state *mrb, mrb_value self)
   }
   if (!pat || pat->num_named == 0) return mrb_hash_new(mrb);
 
+  /* Each name gets the group re_name_to_group() picks for it, the same one
+     MatchData#[] reads, so a name given to several groups answers with the
+     one that took part in the match; walking the entries in order would
+     instead leave the value of whichever group the pattern spelled the name
+     on last. Duplicates re-resolve to the same group and overwrite with the
+     same value, and the first entry of each name fixes its key's position. */
   mrb_value result = mrb_hash_new_capa(mrb, pat->num_named);
   for (uint16_t i = 0; i < pat->num_named; i++) {
     mrb_value name = mrb_str_new(mrb, pat->named_captures[i].name, pat->named_captures[i].name_len);
-    int group = pat->named_captures[i].group;
+    int group = re_name_to_group(md->captures, md->num_captures, pat,
+                                 pat->named_captures[i].name, pat->named_captures[i].name_len);
     mrb_value val = mrb_nil_value();
     if (group >= 0 && group < md->num_captures) {
       int s = md->captures[group * 2];

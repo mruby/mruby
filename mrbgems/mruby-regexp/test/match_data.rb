@@ -403,6 +403,16 @@ assert("MatchData#named_captures") do
   assert_equal "host", nc["b"]
 end
 
+assert("MatchData#named_captures - a name given to several groups") do
+  # The name appears once and reads the group MatchData#[] reads, the one
+  # that took part in the match, whichever side of the alternation it was
+  # spelled on; when none of the name's groups took part it reads nil.
+  re = /(?<a>x)|(?<a>b)/
+  assert_equal({"a" => "x"}, re.match("x").named_captures)
+  assert_equal({"a" => "b"}, re.match("b").named_captures)
+  assert_equal({"a" => nil}, /(?:(?<a>x)|(?<a>b))?c/.match("c").named_captures)
+end
+
 assert("MatchData#names") do
   assert_equal ["a", "b"], /(?<a>\w+)@(?<b>\w+)/.match("user@host").names
   assert_equal [], /\w+/.match("user").names
