@@ -3862,6 +3862,19 @@ mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat,
     pat->has_first_bytes = compute_first_set(pat->code, code_len, pat->classes, bm);
     if (pat->has_first_bytes) {
       memcpy(pat->first_bytes, bm, 16);
+      /* A set of up to three bytes is also kept enumerated, so the skip can
+         ask memchr for each member instead of walking the subject a byte at
+         a time; see skip_to_first_byte(). Three covers the common shapes: an
+         alternation on one letter is one byte and a case-folded letter under
+         /i is two. */
+      int n = 0;
+      for (int b = 0; b < 128; b++) {
+        if (bm[b >> 3] & (1 << (b & 7))) {
+          if (n == 3) { n = 0; break; }
+          pat->first_byte[n++] = (uint8_t)b;
+        }
+      }
+      pat->first_byte_count = (uint8_t)n;
     }
   }
 

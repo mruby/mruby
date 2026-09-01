@@ -185,6 +185,11 @@ typedef struct mrb_regexp_pattern {
   uint8_t prefix_len;      /* length of prefix (0 = no prefix) */
   uint8_t first_bytes[16]; /* bitmap of possible first bytes (128-bit, ASCII) */
   mrb_bool has_first_bytes; /* true if first_bytes is usable for skipping */
+  uint8_t first_byte_count; /* how many bytes first_byte[] holds (1..3), or 0
+                               when the set is wider and only the bitmap
+                               serves; meaningful only under has_first_bytes */
+  uint8_t first_byte[3];   /* the whole first-byte set when it is this small,
+                              so the skip can memchr instead of walking */
   mrb_bool is_literal;     /* true if pattern is pure literal (no metacharacters) */
   uint8_t loop_depth;      /* deepest nesting of repetitions whose body can
                               match empty (see RE_MAX_PASS) */
