@@ -70,22 +70,34 @@ The `keyword_init` option supports three modes:
 
 1. **`keyword_init: true`** - Only keyword arguments are accepted
 2. **`keyword_init: false`** - Only positional arguments are accepted (hashes are treated as values)
-3. **`keyword_init: nil` (default)** - Flexible mode: accepts both positional arguments and keyword arguments (single hash)
+3. **`keyword_init: nil` (default)** - Flexible mode: accepts both positional arguments and keyword arguments
 
 ```ruby
 # Flexible mode (default behavior)
 FlexPoint = Struct.new(:x, :y)
 p1 = FlexPoint.new(1, 2)           # Positional arguments
-p2 = FlexPoint.new(x: 3, y: 4)     # Keyword arguments (single hash)
+p2 = FlexPoint.new(x: 3, y: 4)     # Keyword arguments
+p3 = FlexPoint.new({x: 3, y: 4})   # Hash passed positionally is a plain value: x={x: 3, y: 4}
 
 # Keyword-only mode
 KeywordPoint = Struct.new(:x, :y, keyword_init: true)
-p3 = KeywordPoint.new(x: 5, y: 6)  # Only keyword arguments allowed
+p4 = KeywordPoint.new(x: 5, y: 6)  # Only keyword arguments allowed
 
 # Positional-only mode
 PositionalPoint = Struct.new(:x, :y, keyword_init: false)
-p4 = PositionalPoint.new(7, 8)     # Only positional arguments
-p5 = PositionalPoint.new({x: 9, y: 10})  # Hash is treated as first value
+p5 = PositionalPoint.new(7, 8)     # Only positional arguments
+p6 = PositionalPoint.new({x: 9, y: 10})  # Hash is treated as first value
+```
+
+The generated class reports its mode through `keyword_init?`, which returns
+`true`, `false`, or `nil` accordingly. Subclasses inherit the mode from the
+struct class they derive from:
+
+```ruby
+KeywordPoint.keyword_init?     # => true
+PositionalPoint.keyword_init?  # => false
+FlexPoint.keyword_init?        # => nil
+Class.new(KeywordPoint).keyword_init?  # => true
 ```
 
 ## Available Methods

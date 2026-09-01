@@ -54,6 +54,38 @@ struct_s_members(mrb_state *mrb, struct RClass *c)
 }
 
 static mrb_value
+struct_s_keyword_init(mrb_state *mrb, struct RClass *c)
+{
+  struct RClass *sclass = struct_class(mrb);
+
+  while (c && c != sclass) {
+    mrb_value ki = mrb_iv_get(mrb, mrb_obj_value(c), MRB_IVSYM(__keyword_init__));
+    if (!mrb_nil_p(ki)) return ki;
+    c = c->super;
+  }
+  return mrb_nil_value();
+}
+
+/*
+ *  call-seq:
+ *     StructClass.keyword_init?    -> true or false or nil
+ *
+ *  Returns the value of the `keyword_init` option given to
+ *  `Struct.new`: `true` (only keyword arguments), `false` (only
+ *  positional arguments), or `nil` (either). Subclasses inherit
+ *  the value from the struct class they derive from.
+ *
+ *     Struct.new(:a).keyword_init?                      #=> nil
+ *     Struct.new(:a, keyword_init: true).keyword_init?  #=> true
+ *     Struct.new(:a, keyword_init: false).keyword_init? #=> false
+ */
+static mrb_value
+mrb_struct_s_keyword_init_p(mrb_state *mrb, mrb_value klass)
+{
+  return struct_s_keyword_init(mrb, mrb_class_ptr(klass));
+}
+
+static mrb_value
 struct_members(mrb_state *mrb, mrb_value s)
 {
   if (!mrb_struct_p(s)) {
@@ -208,9 +240,16 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass *kl
   mrb_value nstr = mrb_obj_value(c);
   mrb_iv_set(mrb, nstr, MRB_SYM(__members__), members);
 
-  mrb_define_class_method_id(mrb, c, MRB_SYM(new), mrb_instance_new, MRB_ARGS_ANY());
-  mrb_define_class_method_id(mrb, c, MRB_OPSYM(aref), mrb_instance_new, MRB_ARGS_ANY());
+  /* Shadow the class-creating Struct.new inherited through the metaclass
+     with the ordinary Class#new; unlike a C trampoline, its forwarding keeps
+     keyword arguments keywords all the way into #initialize */
+  struct RClass *cls = mrb->class_class;
+  mrb_method_t nm = mrb_method_search_vm(mrb, &cls, MRB_SYM(new));
+  struct RClass *sc = mrb_class_ptr(mrb_singleton_class(mrb, nstr));
+  mrb_define_method_raw(mrb, sc, MRB_SYM(new), nm);
+  mrb_define_method_raw(mrb, sc, MRB_OPSYM(aref), nm);
   mrb_define_class_method_id(mrb, c, MRB_SYM(members), mrb_struct_s_members_m, MRB_ARGS_NONE());
+  mrb_define_class_method_id(mrb, c, MRB_SYM_Q(keyword_init), mrb_struct_s_keyword_init_p, MRB_ARGS_NONE());
   /* RSTRUCT(nstr)->basic.c->super = c->c; */
   make_struct_define_accessors(mrb, members, c);
   return nstr;
@@ -280,6 +319,9 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
 
     if (mrb_hash_key_p(mrb, options, keyword_init_sym)) {
       keyword_init_val = mrb_hash_get(mrb, options, keyword_init_sym);
+      if (!mrb_nil_p(keyword_init_val)) {
+        keyword_init_val = mrb_bool_value(mrb_test(keyword_init_val));
+      }
       argc--; /* Don't treat the options hash as a member name */
     }
   }
@@ -387,32 +429,35 @@ mrb_struct_init_with_keywords(mrb_state *mrb, mrb_value hash, mrb_value self)
 static mrb_value
 mrb_struct_initialize(mrb_state *mrb, mrb_value self)
 {
+  /* Read before mrb_get_args, which folds the kdict into argv and clears
+     ci->kw. Class#new always forwards a kdict, so an empty one means the
+     caller wrote no keywords. */
+  mrb_callinfo *ci = mrb->c->ci;
+  mrb_bool kw_given = FALSE;
+  if (ci->kw) {
+    mrb_value kdict = ci->stack[mrb_ci_bidx(ci)-1];
+    kw_given = mrb_hash_p(kdict) && !mrb_hash_empty_p(mrb, kdict);
+  }
+
   const mrb_value *argv;
   mrb_int argc;
-
   mrb_get_args(mrb, "*", &argv, &argc);
 
-  mrb_value klass = mrb_obj_value(mrb_obj_class(mrb, self));
-  mrb_value keyword_init = mrb_iv_get(mrb, klass, MRB_IVSYM(__keyword_init__));
+  mrb_value keyword_init = struct_s_keyword_init(mrb, mrb_obj_class(mrb, self));
 
-  if (mrb_test(keyword_init)) { /* keyword_init: true or other truthy value */
+  if (mrb_test(keyword_init)) { /* keyword_init: true */
     if (argc > 1 || (argc == 1 && !mrb_hash_p(argv[0]))) {
       mrb_argnum_error(mrb, argc, 0, 0);
     }
     mrb_value hash = (argc == 1) ? argv[0] : mrb_hash_new(mrb);
     return mrb_struct_init_with_keywords(mrb, hash, self);
   }
-  else if (mrb_equal(mrb, keyword_init, mrb_false_value())) { /* keyword_init: false */
-    return mrb_struct_init_with_args(mrb, argc, argv, self);
+  if (mrb_nil_p(keyword_init) && kw_given && argc == 1 && mrb_hash_p(argv[0])) {
+    /* keyword_init: nil (default): keyword arguments initialize by member
+       name, while a hash passed positionally stays a plain member value */
+    return mrb_struct_init_with_keywords(mrb, argv[0], self);
   }
-  else { /* keyword_init: nil (default) */
-    if (argc == 1 && mrb_hash_p(argv[0])) {
-      return mrb_struct_init_with_keywords(mrb, argv[0], self);
-    }
-    else {
-      return mrb_struct_init_with_args(mrb, argc, argv, self);
-    }
-  }
+  return mrb_struct_init_with_args(mrb, argc, argv, self);
 }
 
 /* 15.2.18.4.9  */

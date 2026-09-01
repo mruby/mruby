@@ -309,6 +309,46 @@ assert "Struct initialize with keyword arguments" do
   end
 end
 
+assert "Struct initialize takes a positional hash as a plain value" do
+  c = Struct.new(:foo, :bar)
+
+  o = c.new({foo: 1, bar: 2})
+  assert_equal({foo: 1, bar: 2}, o.foo)
+  assert_nil o.bar
+
+  o2 = c.new({baz: 1})
+  assert_equal({baz: 1}, o2.foo)
+
+  o3 = c.new(1, bar: 2)
+  assert_equal 1, o3.foo
+  assert_equal({bar: 2}, o3.bar)
+
+  h = {foo: 1}
+  o4 = c.new(**h)
+  assert_equal 1, o4.foo
+
+  o5 = c[{foo: 1}]
+  assert_equal({foo: 1}, o5.foo)
+  assert_equal 1, c[foo: 1].foo
+end
+
+assert "Struct.new dispatches an overridden initialize" do
+  c = Struct.new(:foo)
+  sub = Class.new(c) do
+    def initialize(x)
+      super(x * 2)
+    end
+  end
+  assert_equal 2, sub.new(1).foo
+
+  kw = Class.new(c) do
+    def initialize(**h)
+      super(**h)
+    end
+  end
+  assert_equal 3, kw.new(foo: 3).foo
+end
+
 assert "Struct initialize when :keyword_init is true" do
   c = Struct.new(:foo, :bar, keyword_init: true)
 
@@ -359,4 +399,35 @@ assert "Struct initialize when :keyword_init is non-boolean value (treat as true
   assert_raise_with_message(ArgumentError, "wrong number of arguments (given 2, expected 0)") do
     c.new(1, 2)
   end
+end
+
+assert "Struct.keyword_init?" do
+  assert_true Struct.new(:foo, keyword_init: true).keyword_init?
+  assert_false Struct.new(:foo, keyword_init: false).keyword_init?
+  assert_nil Struct.new(:foo).keyword_init?
+  assert_nil Struct.new(:foo, keyword_init: nil).keyword_init?
+  assert_true Struct.new(:foo, keyword_init: 12).keyword_init?
+  assert_false Struct.respond_to?(:keyword_init?)
+  assert_false Struct.new(:foo).new(1).respond_to?(:keyword_init?)
+end
+
+assert "Struct subclass inherits :keyword_init" do
+  c = Struct.new(:foo, :bar, keyword_init: true)
+  sub = Class.new(c)
+
+  assert_true sub.keyword_init?
+
+  o = sub.new(foo: 1, bar: 2)
+  assert_equal 1, o.foo
+  assert_equal 2, o.bar
+
+  assert_raise_with_message(ArgumentError, "wrong number of arguments (given 2, expected 0)") do
+    sub.new(1, 2)
+  end
+
+  fsub = Class.new(Struct.new(:foo, keyword_init: false))
+  assert_false fsub.keyword_init?
+  assert_equal({foo: 1}, fsub.new(foo: 1).foo)
+
+  assert_nil Class.new(Struct.new(:foo)).keyword_init?
 end
