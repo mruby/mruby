@@ -81,6 +81,24 @@ skip_to_first_byte(const mrb_regexp_pattern *pat, const char *sp, const char *st
   return found;
 }
 
+/*
+ * Skip to the next position a line-anchored match could start at: the string
+ * start, or just after a \n. Everything between fails RE_BOL on its first
+ * step, so those positions are gone as candidates, found by memchr rather
+ * than proposed one at a time. The tests here are RE_BOL's own: the very end
+ * is no line start (a trailing \n opens no final line), except when the
+ * string is empty and the end is the start. Returns NULL when no candidate
+ * remains.
+ */
+static const char*
+skip_to_line_start(const char *str, const char *sp, const char *str_end)
+{
+  if (sp == str || (sp != str_end && sp[-1] == '\n')) return sp;
+  const char *nl = (const char*)memchr(sp, '\n', (size_t)(str_end - sp));
+  if (!nl || nl + 1 == str_end) return NULL;
+  return nl + 1;
+}
+
 /* Check if the current input character matches a character class. ASCII
    (cp < 128) hits the bitmap; non-ASCII falls back to the inclusive (lo, hi)
    range list, then to the types the class holds by POSIX bracket, then to the
@@ -444,6 +462,9 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
   const char *start_cap = str + start_limit;
   const char *sp = str + start;
   const char *str_end = str + len;
+  /* \A: no position past the string start can begin a match, which is what
+     start_cap already bounds, so the anchor costs the scan loop nothing. */
+  if (pat->anchor == RE_ANCHOR_BOT) start_cap = str;
   int ncap = pat->num_captures * 2;
   if (ncap == 0) ncap = 2;
 
@@ -540,6 +561,15 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
     if (!s.matched && sp <= start_cap) {
       /* Skip ahead when no active threads */
       if (curr.count == 0) {
+        /* ^: every branch asserts a line start first, so only those are
+           candidates. \A was folded into start_cap on entry; such a pattern
+           reaches here at the start alone, where the line-start answer is
+           the position unchanged. */
+        if (pat->anchor != RE_ANCHOR_NONE) {
+          const char *skip = skip_to_line_start(str, sp, str_end);
+          if (!skip) break;
+          sp = skip;
+        }
         if (pat->prefix_len > 0) {
           const char *skip = skip_to_prefix(pat, sp, str_end);
           if (!skip) break;
@@ -1488,6 +1518,8 @@ backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
 {
   const char *start_cap = str + start_limit;
   const char *str_end = str + len;
+  /* \A bounds the start positions the way pike_vm's clamp does. */
+  if (pat->anchor == RE_ANCHOR_BOT) start_cap = str;
   int ncap = pat->num_captures * 2;
   if (ncap == 0) ncap = 2;
 
@@ -1528,7 +1560,13 @@ backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
   memset(m.entered_in, 0, sizeof(int) * pat->code_len);
 
   for (const char *sp = str + start; sp <= str_end && sp <= start_cap; sp++) {
-    /* Skip ahead using literal prefix or first-byte bitmap */
+    /* Skip ahead using the anchor, the literal prefix or the first-byte
+       bitmap; the same composition as pike_vm's. */
+    if (pat->anchor != RE_ANCHOR_NONE) {
+      const char *skip = skip_to_line_start(str, sp, str_end);
+      if (!skip) break;
+      sp = skip;
+    }
     if (pat->prefix_len > 0) {
       const char *skip = skip_to_prefix(pat, sp, str_end);
       if (!skip) break;

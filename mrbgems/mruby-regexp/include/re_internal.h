@@ -191,6 +191,11 @@ typedef struct mrb_regexp_pattern {
   uint8_t first_byte[3];   /* the whole first-byte set when it is this small,
                               so the skip can memchr instead of walking */
   mrb_bool is_literal;     /* true if pattern is pure literal (no metacharacters) */
+  uint8_t anchor;          /* the anchor every branch asserts before consuming
+                              input (the weakest across branches), so the
+                              engines scan only positions it can pass: line
+                              starts under RE_ANCHOR_BOL, the string start
+                              alone under RE_ANCHOR_BOT */
   uint8_t loop_depth;      /* deepest nesting of repetitions whose body can
                               match empty (see RE_MAX_PASS) */
   /* Cached VM state for pike_vm (avoids malloc per mrb_re_exec call) */
@@ -199,6 +204,12 @@ typedef struct mrb_regexp_pattern {
   int cached_list_capa;         /* capacity of cached thread lists */
   mrb_bool cache_in_use;        /* re-entrancy guard */
 } mrb_regexp_pattern;
+
+/* mrb_regexp_pattern::anchor. Ordered by how much each restricts where a
+   match can start, so the weakest guarantee across branches is their min. */
+#define RE_ANCHOR_NONE 0
+#define RE_ANCHOR_BOL  1  /* every branch passes ^ first: line starts only */
+#define RE_ANCHOR_BOT  2  /* every branch passes \A first: string start only */
 
 /* Regexp flags */
 #define RE_FLAG_IGNORECASE  1
