@@ -3246,6 +3246,58 @@ first_set_walk(const re_inst *code, uint32_t code_len,
   return FALSE;
 }
 
+/*
+ * The anchor every path from pc asserts before consuming input, as the
+ * weakest guarantee: RE_ANCHOR_BOT when every path passes \A first,
+ * RE_ANCHOR_BOL when every path passes at least ^, RE_ANCHOR_NONE otherwise.
+ * The walk covers zero-width instructions only, so an anchor it finds holds
+ * at the position a match would start at; anything consuming, unknown, or an
+ * epsilon path to RE_MATCH answers NONE. A branch already seen answers BOT,
+ * the neutral value for the min: a path cut short there has no anchor of its
+ * own before the join (one before it would have been the walk's answer
+ * already), so its value is the join's, which the visit that explored the
+ * join contributed.
+ */
+static uint8_t
+anchor_walk(const re_inst *code, uint32_t code_len, uint32_t pc, uint8_t *seen)
+{
+  while (pc < code_len) {
+    if (seen[pc]) return RE_ANCHOR_BOT;
+    seen[pc] = 1;
+    switch (code[pc].op) {
+    case RE_BOT:
+      return RE_ANCHOR_BOT;
+    case RE_BOL:
+      return RE_ANCHOR_BOL;
+    case RE_SAVE:
+    case RE_EOL: case RE_EOT: case RE_EOTNL:
+    case RE_WBOUND: case RE_NWBOUND:
+    case RE_ATOMIC: case RE_ATOMIC_END:
+      pc++;
+      continue;
+    case RE_JMP:
+      pc = code[pc].offset;
+      continue;
+    case RE_CALL:
+      /* The body runs where the call stands, as in first_set_walk(); a body
+         that completes without consuming ends at its RE_RETURN, whose
+         default answers NONE. */
+      pc = code[pc].offset;
+      continue;
+    case RE_SPLIT:
+    case RE_SPLITNG: {
+      uint8_t other = anchor_walk(code, code_len, code[pc].offset, seen);
+      if (other == RE_ANCHOR_NONE) return RE_ANCHOR_NONE;
+      uint8_t mine = anchor_walk(code, code_len, pc + 1, seen);
+      return mine < other ? mine : other;
+    }
+    default:
+      return RE_ANCHOR_NONE;
+    }
+  }
+  return RE_ANCHOR_NONE;
+}
+
 /* TRUE when a path that need not consume runs from pc to goal, so the
    repetition that goal closes can complete an iteration without consuming.
    A lookaround is zero-width whatever its sub-pattern does, so the walk
@@ -3815,13 +3867,30 @@ mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat,
   pat->has_backref = c.has_backref;
   pat->needs_backtrack = c.needs_backtrack;
 
+  /* The anchor every branch asserts before consuming input, if any: the
+     engines then scan only the positions it can pass (line starts for ^, the
+     string start alone for \A) instead of proposing every position; see
+     skip_to_line_start(). Under \A the string is never scanned at all, which
+     is why a pattern carrying it leaves the prefix and the first-byte set
+     below unbuilt: they exist to move a scan along, and there is none. */
+  pat->anchor = RE_ANCHOR_NONE;
+  {
+    uint8_t seen[4096];
+    if (code_len < sizeof(seen)) {
+      memset(seen, 0, code_len + 1);
+      pat->anchor = anchor_walk(pat->code, code_len, 0, seen);
+    }
+  }
+
   /* Extract literal prefix for fast search skip.
      Walk bytecode from the start, skipping zero-width instructions,
      collecting RE_CHAR. A zero-width test consumes nothing, so the literal
      bytes after it still begin at the position a match would start at; the
      skip only proposes candidate positions, and the engine still runs the
      test there. */
-  {
+  pat->prefix = NULL;
+  pat->prefix_len = 0;
+  if (pat->anchor != RE_ANCHOR_BOT) {
     uint8_t pbuf[256];
     int plen = 0;
     for (uint32_t i = 0; i < code_len && plen < 255; i++) {
@@ -3841,10 +3910,6 @@ mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat,
       pat->prefix = (uint8_t*)mrb_malloc(mrb, plen);
       memcpy(pat->prefix, pbuf, plen);
       pat->prefix_len = (uint8_t)plen;
-    }
-    else {
-      pat->prefix = NULL;
-      pat->prefix_len = 0;
     }
   }
 
@@ -3866,7 +3931,8 @@ mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat,
 
   /* Compute first-byte bitmap: set of bytes that could start a match.
      Used when prefix is empty (e.g. alternation, character class patterns). */
-  {
+  pat->has_first_bytes = FALSE;
+  if (pat->anchor != RE_ANCHOR_BOT) {
     uint8_t bm[16];
     memset(bm, 0, sizeof(bm));
     pat->has_first_bytes = compute_first_set(pat->code, code_len, pat->classes, bm);
