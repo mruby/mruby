@@ -9,15 +9,17 @@
 ** declared here.
 **
 ** The HAL answers OS-level facts and performs OS-level operations.  It knows
-** nothing about `Process::Status`, `$?`, `$$`, blocks or any other Ruby
-** notion: those belong to the common sources under src/.  In the other
-** direction, no platform type or macro (`pid_t`, `WIFEXITED`, `SIGTERM`,
-** `WNOHANG`, `CLOCK_MONOTONIC`, ...) crosses into the common layer: process
-** and signal numbers travel as `mrb_int`, wait options as the
-** MRB_PROCESS_WAIT_* bits below, a decoded wait status as
-** `mrb_process_status`, a clock as one of the `mrb_process_clock_id` values
-** and a time it reported as `mrb_process_clock_time`, whose two fields are
-** `int64_t` rather than `mrb_int` for the reason given where it is defined.
+** nothing about `Process::Status`, `Process::Tms`, `$?`, `$$`, blocks or any
+** other Ruby notion: those belong to the common sources under src/.  In the
+** other direction, no platform type or macro (`pid_t`, `WIFEXITED`,
+** `SIGTERM`, `WNOHANG`, `CLOCK_MONOTONIC`, `clock_t`, ...) crosses into the
+** common layer: process and signal numbers travel as `mrb_int`, wait options
+** as the MRB_PROCESS_WAIT_* bits below, a decoded wait status as
+** `mrb_process_status`, a clock as one of the `mrb_process_clock_id` values,
+** a time it reported as `mrb_process_clock_time`, whose two fields are
+** `int64_t` rather than `mrb_int` for the reason given where it is defined,
+** and the four CPU time totals behind `Process.times` as `mrb_process_times`,
+** four more `mrb_process_clock_time` readings rather than platform ticks.
 **
 ** What a signal is *called* is not asked here at all.  mruby-signal owns
 ** that table, and both `Process.kill` and `Process::Status#to_s` reach it
@@ -133,6 +135,25 @@ typedef struct mrb_process_clock_time {
 #endif
 
 /*
+ * CPU time totals
+ *
+ * What Process.times reports: how much CPU time this process, and the
+ * children it has already reaped, have spent in user and kernel mode.  Each
+ * of the four travels the way a clock reading does, as an
+ * mrb_process_clock_time, for the reasons given above it, plus one of its
+ * own: mrb_float would not compile under MRB_NO_FLOAT.  Turning the four
+ * into a Ruby Float, and building the Process::Tms they are answered as, is
+ * Process.times's job once every port has answered the same shape; a port
+ * is asked for nothing beyond the four readings themselves.
+ */
+typedef struct mrb_process_times {
+  mrb_process_clock_time utime;   /* user CPU time this process has used */
+  mrb_process_clock_time stime;   /* system CPU time this process has used */
+  mrb_process_clock_time cutime;  /* user CPU time of reaped children */
+  mrb_process_clock_time cstime;  /* system CPU time of reaped children */
+} mrb_process_times;
+
+/*
  * HAL Interface Functions
  */
 
@@ -227,6 +248,21 @@ int mrb_hal_process_clock_gettime(mrb_state *mrb, mrb_int clock_id,
  */
 int mrb_hal_process_clock_getres(mrb_state *mrb, mrb_int clock_id,
                                  mrb_process_clock_time *t);
+
+/*
+ * Read the CPU time totals above.
+ *
+ * cutime and cstime cover only waited-for terminated children, whichever
+ * wait(2)/waitpid(2) call reaped them: Process.wait, Process.waitpid, or one
+ * this gem did not itself make (mruby-io's own reap on IO.popen(...).close,
+ * say). A child still running, or one never waited for, is not in them,
+ * which is what POSIX's times(2) reports too. A platform with no notion of
+ * a child's CPU time answers 0 for both.
+ *
+ * @param t  out: the four readings
+ * @return 0 on success, -1 on error (sets errno)
+ */
+int mrb_hal_process_times(mrb_state *mrb, mrb_process_times *t);
 
 /*
  * HAL Initialization/Finalization
