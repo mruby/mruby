@@ -562,6 +562,14 @@ check_file_descriptor(mrb_state *mrb, mrb_int fd)
     if (getsockopt(fdi, SOL_SOCKET, SO_ERROR, (char*)&err, &len) == 0) {
       return;
     }
+    /* A Winsock handle is not a CRT file descriptor, so the probes below
+       cannot vouch for one and would call it bad. Only WSAENOTSOCK says
+       the value is not a socket; every other error is a socket that would
+       not answer this particular question, and treating that as "not a
+       socket" fails IO.new on a healthy one. */
+    if (WSAGetLastError() != WSAENOTSOCK) {
+      return;
+    }
   }
 
   if (fdi < 0 || fdi > _getmaxstdio()) {
