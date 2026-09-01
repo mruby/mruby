@@ -11,8 +11,8 @@ version: "{build}"
 # commit (or the pull request merge ref) by name transfers just as little and
 # always contains the tree to check out.
 clone_script:
-  - cmd: git clone -q --no-checkout --depth=1 https://github.com/%APPVEYOR_REPO_NAME%.git %APPVEYOR_BUILD_FOLDER%
-  - cmd: cd %APPVEYOR_BUILD_FOLDER%
+  - cmd: git clone -q --no-checkout --depth=1 https://github.com/%APPVEYOR_REPO_NAME%.git "%APPVEYOR_BUILD_FOLDER%"
+  - cmd: cd /d "%APPVEYOR_BUILD_FOLDER%"
   - cmd: if defined APPVEYOR_PULL_REQUEST_NUMBER (set "CLONE_REF=+refs/pull/%APPVEYOR_PULL_REQUEST_NUMBER%/merge") else (set "CLONE_REF=%APPVEYOR_REPO_COMMIT%")
   - cmd: git fetch -q --depth=1 origin %CLONE_REF%
   - cmd: git checkout -qf FETCH_HEAD
