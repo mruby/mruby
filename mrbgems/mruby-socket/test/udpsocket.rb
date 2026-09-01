@@ -1,26 +1,3 @@
-# TEMPORARY diagnostic, to be removed before this branch is merged. The
-# 32-bit Windows job rejects UDPSocket.new(Socket::AF_INET6) with EBADF from
-# IO#initialize's descriptor check while the AF_INET case beside it passes,
-# and the descriptor Socket._socket hands over is the only thing that differs.
-# Print it.
-assert('DIAGNOSTIC descriptors') do
-  [["AF_INET", Socket::AF_INET], ["AF_INET6", Socket::AF_INET6]].each do |name, af|
-    begin
-      fd = Socket._socket(af, Socket::SOCK_DGRAM, 0)
-      puts "DIAG #{name}: af=#{af} fd=#{fd} (0x#{fd < 0 ? (fd + (1 << 32)).to_s(16) : fd.to_s(16)})"
-      begin
-        UDPSocket.for_fd(fd).close
-        puts "DIAG #{name}: wrapped and closed"
-      rescue Exception => e
-        puts "DIAG #{name}: wrap raised #{e.class}: #{e.message}"
-      end
-    rescue Exception => e
-      puts "DIAG #{name}: _socket raised #{e.class}: #{e.message}"
-    end
-  end
-  true
-end
-
 assert('UDPSocket.new') do
   s = UDPSocket.new
   assert_true(s.is_a? UDPSocket)
