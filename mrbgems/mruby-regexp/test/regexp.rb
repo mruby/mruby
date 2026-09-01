@@ -198,6 +198,47 @@ assert("Regexp.escape") do
   assert_true Regexp.new(Regexp.escape("a # b"), Regexp::EXTENDED).match?("a # b")
 end
 
+assert("Regexp.union") do
+  assert_equal(/a|b/, Regexp.union("a", "b"))
+  assert_equal 1, Regexp.union("a", "b") =~ "xby"
+
+  # strings are quoted so they match literally
+  assert_equal(/a\+b|c/, Regexp.union("a+b", "c"))
+  assert_true Regexp.union("a+b", "c").match?("a+b")
+
+  # a Regexp contributes its to_s form, so its flags stay its own
+  assert_equal(/(?i-mx:a)|(?-mix:b)/, Regexp.union(/a/i, /b/))
+  assert_equal(/a|(?i-mx:b)/, Regexp.union("a", /b/i))
+  assert_true Regexp.union("a", /b/i).match?("B")
+  assert_false Regexp.union("a", /b/i).match?("A")
+  assert_equal 0, Regexp.union(/a/im, /b/).options
+
+  # non-ASCII bytes pass through the quoting untouched and match literally,
+  # on a UTF-8 build and a byte build alike
+  assert_equal(/あ|い/, Regexp.union("あ", "い"))
+  assert_true Regexp.union("あ", "い").match?("い")
+  assert_true Regexp.union("あ+い", "う").match?("あ+い")
+
+  # no pattern is a pattern that never matches
+  assert_equal(/(?!)/, Regexp.union)
+  assert_nil Regexp.union =~ ""
+
+  # one pattern: a Regexp is answered as itself, a String is quoted
+  re = /a/i
+  assert_true Regexp.union(re).equal?(re)
+  assert_equal(/a\+b/, Regexp.union("a+b"))
+
+  # a single Array argument stands for its elements
+  assert_equal(/a|b/, Regexp.union(["a", "b"]))
+  assert_equal(/(?!)/, Regexp.union([]))
+  assert_true Regexp.union([re]).equal?(re)
+
+  # everything else is refused, an Array among other arguments included
+  assert_raise(TypeError) { Regexp.union(nil) }
+  assert_raise(TypeError) { Regexp.union("a", :b) }
+  assert_raise(TypeError) { Regexp.union(["a"], "b") }
+end
+
 assert("Regexp#inspect") do
   re = Regexp.new("abc", Regexp::IGNORECASE)
   assert_equal "/abc/i", re.inspect
