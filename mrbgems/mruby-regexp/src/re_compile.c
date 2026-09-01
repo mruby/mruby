@@ -3816,16 +3816,26 @@ mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat,
   pat->needs_backtrack = c.needs_backtrack;
 
   /* Extract literal prefix for fast search skip.
-     Walk bytecode from the start, skipping SAVE, collecting RE_CHAR. */
+     Walk bytecode from the start, skipping zero-width instructions,
+     collecting RE_CHAR. A zero-width test consumes nothing, so the literal
+     bytes after it still begin at the position a match would start at; the
+     skip only proposes candidate positions, and the engine still runs the
+     test there. */
   {
     uint8_t pbuf[256];
     int plen = 0;
     for (uint32_t i = 0; i < code_len && plen < 255; i++) {
-      if (pat->code[i].op == RE_SAVE) continue;
-      if (pat->code[i].op == RE_CHAR) {
-        pbuf[plen++] = pat->code[i].a;
+      uint8_t op = pat->code[i].op;
+      if (op == RE_SAVE ||
+          op == RE_BOL || op == RE_EOL || op == RE_BOT || op == RE_EOT ||
+          op == RE_EOTNL || op == RE_WBOUND || op == RE_NWBOUND) {
+        continue;
       }
-      else break;
+      if (op == RE_CHAR) {
+        pbuf[plen++] = pat->code[i].a;
+        continue;
+      }
+      break;
     }
     if (plen > 0) {
       pat->prefix = (uint8_t*)mrb_malloc(mrb, plen);
