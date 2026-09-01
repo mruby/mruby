@@ -21,11 +21,15 @@
 **     `IO.popen` already gives the `Process::Status` it builds on this
 **     platform, so a decoded status always reads as exited;
 **   - only `KILL` and `TERM` can be delivered, both as TerminateProcess(),
-**     and signal 0 asks whether the process can be opened at all.
+**     and signal 0 asks whether the process can be opened at all;
+**   - `Process.times`' cutime and cstime read 0, for the reason given at
+**     mrb_hal_process_times() below.
 **
 ** The clocks are the one part Win32 answers in full: the wall clock as a
 ** FILETIME, the monotonic one from the performance counter, and the two CPU
-** times from GetProcessTimes() and GetThreadTimes().
+** times from GetProcessTimes() and GetThreadTimes(); the same
+** GetProcessTimes() call also answers this process's own share of
+** Process.times.
 */
 
 #include <mruby.h>
@@ -444,10 +448,12 @@ monotonic_read(mrb_process_clock_time *t)
   return 0;
 }
 
-/* The CPU time a process or a thread has spent, as the sum of the kernel and
-   user halves Win32 reports it in. */
+/* The kernel and user FILETIMEs behind a process's or a thread's CPU time,
+   as raw FILETIME ticks: cpu_time() below sums the two into the one number
+   MRB_PROCESS_CLOCK_PROCESS_CPUTIME/THREAD_CPUTIME reports, and
+   mrb_hal_process_times() keeps them apart as utime and stime. */
 static int
-cpu_time(mrb_bool thread, mrb_process_clock_time *t)
+process_times_raw(mrb_bool thread, int64_t *kernel_ticks, int64_t *user_ticks)
 {
   FILETIME creation, exit, kernel, user;
   BOOL ok;
@@ -462,8 +468,20 @@ cpu_time(mrb_bool thread, mrb_process_clock_time *t)
     set_errno_from_win32(GetLastError());
     return -1;
   }
-  clock_time_from_ticks(t, (int64_t)(filetime_to_u64(&kernel) +
-                                     filetime_to_u64(&user)));
+  *kernel_ticks = (int64_t)filetime_to_u64(&kernel);
+  *user_ticks = (int64_t)filetime_to_u64(&user);
+  return 0;
+}
+
+/* The CPU time a process or a thread has spent, as the sum of the kernel and
+   user halves Win32 reports it in. */
+static int
+cpu_time(mrb_bool thread, mrb_process_clock_time *t)
+{
+  int64_t kernel_ticks, user_ticks;
+
+  if (process_times_raw(thread, &kernel_ticks, &user_ticks) != 0) return -1;
+  clock_time_from_ticks(t, kernel_ticks + user_ticks);
   return 0;
 }
 
@@ -601,6 +619,31 @@ mrb_hal_process_clock_getres(mrb_state *mrb, mrb_int clock_id,
     return -1;
   }
   return c->resolution(t);
+}
+
+/*
+ * CPU Time Totals
+ */
+
+int
+mrb_hal_process_times(mrb_state *mrb, mrb_process_times *t)
+{
+  int64_t kernel_ticks, user_ticks;
+  (void)mrb;
+
+  if (process_times_raw(FALSE, &kernel_ticks, &user_ticks) != 0) return -1;
+  clock_time_from_ticks(&t->utime, user_ticks);
+  clock_time_from_ticks(&t->stime, kernel_ticks);
+
+  /* Win32 has no call that answers a reaped child's CPU time, and this port
+     creates no children yet in any case (Process.spawn is a separate
+     change), so there is nothing to add up.  0 says exactly that: nothing
+     has been added, not that nothing was asked. */
+  t->cutime.sec = 0;
+  t->cutime.nsec = 0;
+  t->cstime.sec = 0;
+  t->cstime.nsec = 0;
+  return 0;
 }
 
 /*

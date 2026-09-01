@@ -11,7 +11,9 @@
 
 #include <mruby.h>
 #include <mruby/array.h>
+#include <mruby/class.h>
 #include <mruby/error.h>
+#include <mruby/proc.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>
 #ifdef MRB_USE_BIGINT
@@ -758,6 +760,48 @@ process_clock_getres(mrb_state *mrb, mrb_value self)
   return clock_unit_convert(mrb, u, &t, TRUE);
 }
 
+/*
+ * call-seq:
+ *   Process.times -> a Process::Tms
+ *
+ * How much CPU time this process, and its waited-for terminated children,
+ * have used, as a Process::Tms holding four Float numbers of seconds;
+ * Process::Tms says what each of the four members covers.
+ *
+ * Answers only in Float, as CRuby does, there being no argument to name an
+ * Integer unit by the way Process.clock_gettime has one, so a build without
+ * Float raises NotImplementedError rather than answering something narrower.
+ */
+static mrb_value
+process_times(mrb_state *mrb, mrb_value self)
+{
+#ifndef MRB_NO_FLOAT
+  /* The class gem_init captured into this method's environment, not
+     whatever the Tms constant holds now: CRuby's Process.times builds on
+     rb_cProcessTms the same way, so reassigning Process::Tms does not
+     change what this answers. */
+  struct RClass *tms = mrb_class_ptr(mrb_proc_cfunc_env_get(mrb, 0));
+  mrb_process_times pt;
+  mrb_value argv[4];
+
+  if (mrb_hal_process_times(mrb, &pt) != 0) {
+    /* Names no object, as a wait or a kill does not either: nothing this
+       call was working on failed, the reading itself did. */
+    mrb_sys_fail(mrb, NULL);
+  }
+  argv[0] = clock_float_result(mrb, &pt.utime,  1.0);
+  argv[1] = clock_float_result(mrb, &pt.stime,  1.0);
+  argv[2] = clock_float_result(mrb, &pt.cutime, 1.0);
+  argv[3] = clock_float_result(mrb, &pt.cstime, 1.0);
+  /* The four members go to Struct's #initialize in the order gem_init gave
+     them to Struct.new. */
+  return mrb_obj_new(mrb, tms, 4, argv);
+#else
+  mrb_raise(mrb, E_NOTIMP_ERROR, "Process.times needs a build with Float");
+  return mrb_nil_value(); /* not reached */
+#endif
+}
+
 void
 mrb_mruby_process_gem_init(mrb_state *mrb)
 {
@@ -796,6 +840,43 @@ mrb_mruby_process_gem_init(mrb_state *mrb)
   mrb_define_module_function_id(mrb, process, MRB_SYM(wait2),    process_waitpid2, MRB_ARGS_OPT(2));
   mrb_define_module_function_id(mrb, process, MRB_SYM(clock_gettime), process_clock_gettime, MRB_ARGS_ARG(1, 1));
   mrb_define_module_function_id(mrb, process, MRB_SYM(clock_getres),  process_clock_getres,  MRB_ARGS_ARG(1, 1));
+
+  /* Process::Tms, what Process.times answers with: a Struct of the four
+     members, as CRuby's own Process::Tms is, so a Tms answers to everything
+     a Struct does.  #utime and #stime are this process's own user and
+     system CPU time, in seconds; #cutime and #cstime total the same over
+     every terminated child this process has waited for so far.
+
+     The class is made through the same Struct.new Ruby source would call,
+     but from here rather than from mrblib, so that the created class itself
+     can ride into Process.times as cfunc environment: Process.times then
+     keeps answering instances of this class even after the Tms constant is
+     reassigned, as CRuby's does by holding it in rb_cProcessTms.
+     mrb_const_set is what names the anonymous Struct class "Process::Tms";
+     mrb_define_const_id skips naming.  The two raw defines lay the method
+     the way mrb_define_module_function_id would: public on the module's
+     singleton class, private as an instance method. */
+  {
+    struct RClass *struct_cls = mrb_class_get_id(mrb, MRB_SYM(Struct));
+    mrb_value tms = mrb_funcall_id(mrb, mrb_obj_value(struct_cls), MRB_SYM(new), 4,
+                                   mrb_symbol_value(MRB_SYM(utime)),
+                                   mrb_symbol_value(MRB_SYM(stime)),
+                                   mrb_symbol_value(MRB_SYM(cutime)),
+                                   mrb_symbol_value(MRB_SYM(cstime)));
+    struct RProc *times_proc = mrb_proc_new_cfunc_with_env(mrb, process_times, 1, &tms);
+    mrb_method_t m;
+
+    /* mrb_define_module_function_id would carry MRB_ARGS_NONE() for us; a
+       raw proc method checks nothing until the aspec is set on the proc. */
+    mrb_proc_set_cfunc_aspec(times_proc, MRB_ARGS_NONE());
+
+    mrb_const_set(mrb, mrb_obj_value(process), MRB_SYM(Tms), tms);
+    MRB_METHOD_FROM_PROC(m, times_proc);
+    mrb_define_method_raw(mrb, mrb_class_ptr(mrb_singleton_class(mrb, mrb_obj_value(process))),
+                          MRB_SYM(times), m);
+    MRB_METHOD_SET_VISIBILITY(m, MRB_METHOD_PRIVATE_FL);
+    mrb_define_method_raw(mrb, process, MRB_SYM(times), m);
+  }
 
   mrb_process_status_init(mrb, process);
 

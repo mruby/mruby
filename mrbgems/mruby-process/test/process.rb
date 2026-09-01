@@ -89,7 +89,8 @@ module ProcessTestUtil
     nil
   end
 
-  # Whether this build has a Float for the float units to answer in.
+  # Whether this build has a Float for the float units and Process.times to
+  # answer in.
   def self.float?
     Object.const_defined?(:Float)
   end
@@ -608,6 +609,128 @@ assert('$? after IO.popen') do
   assert_true $?.success?
 end
 
+
+assert('Process.times') do
+  skip "this build has no Float" unless ProcessTestUtil.float?
+
+  t = Process.times
+  assert_kind_of Process::Tms, t
+  [t.utime, t.stime, t.cutime, t.cstime].each do |v|
+    assert_kind_of Float, v
+    assert_operator v, :>=, 0.0
+  end
+end
+
+assert('Process.times keeps the class Tms was created as') do
+  skip "this build has no Float" unless ProcessTestUtil.float?
+
+  original = Process::Tms
+  Process.__send__(:remove_const, :Tms)
+  Process::Tms = Struct.new(:other)
+  begin
+    t = Process.times
+    assert_true t.class.equal?(original)
+    assert_false t.class.equal?(Process::Tms)
+  ensure
+    Process.__send__(:remove_const, :Tms)
+    Process::Tms = original
+  end
+end
+
+assert('Process.times counts CPU time this process spends') do
+  # utime or stime, at least one of them, is worth more after genuine CPU
+  # work than before it; which of the two the work lands in is the
+  # scheduler's to say. A busy loop is read as user time on every platform
+  # this gem supports, so utime alone would do, but stime is read too in
+  # case a host charges some of it to system time.
+  #
+  # The CLOCK_MONOTONIC test below reads two clocks back to back with no
+  # work forced between them, so it can only ask for a reading that is not
+  # smaller. This one drives a busy loop between the two readings, so a
+  # strict increase is asked for: three million iterations burn far more CPU
+  # than even the coarsest clock this gem falls back to (a times(2) tick,
+  # usually 10ms) can fail to notice. A HAL bug that pins the reading at
+  # zero, or anywhere else it never moves from, has to fail this one where
+  # >= would have let it pass.
+  skip "this build has no Float" unless ProcessTestUtil.float?
+
+  before = Process.times
+  n = 0
+  n += 1 while n < 3_000_000
+  after = Process.times
+
+  assert_operator after.utime + after.stime, :>, before.utime + before.stime
+end
+
+assert('Process.times without a Float') do
+  skip "this build has a Float" if ProcessTestUtil.float?
+
+  assert_raise(NotImplementedError) { Process.times }
+end
+
+assert('Process.times takes no argument') do
+  # The count is checked by the VM before the C function runs, so this holds
+  # on every build: without a Float the bare call above raises
+  # NotImplementedError, but an argument still raises ArgumentError first.
+  assert_raise(ArgumentError) { Process.times(1) }
+  assert_raise(ArgumentError) { Process.times(1, 2) }
+end
+
+assert('Process.times is laid as a module function') do
+  # The method is defined by two raw defines from a proc rather than by
+  # mrb_define_module_function_id, so the shape that call would have given,
+  # public on the singleton and private as an instance method, is pinned
+  # here rather than assumed.
+  assert_true Process.respond_to?(:times)
+  assert_false Process.public_instance_methods.include?(:times)
+  assert_true Process.private_instance_methods.include?(:times)
+end
+
+assert('Process.times and reaped children') do
+  # cutime and cstime total the CPU time of children this process has
+  # reaped, and nothing else: a child still running, or one that has
+  # already exited but sits unwaited as a zombie, does not contribute yet.
+  # "exit 0" burns too little CPU to tell that apart from a HAL that always
+  # answers 0, so this spawns a child that spins for a measurable stretch,
+  # confirms it is not yet counted while unreaped, and that reaping it
+  # through waitpid makes cutime + cstime increase strictly.
+  skip "this build has no Float" unless ProcessTestUtil.float?
+  skip ProcessTestUtil.child_reason if ProcessTestUtil.child_reason
+
+  baseline = Process.times
+  io = ProcessTestUtil.spawn('i=0; while [ "$i" -lt 200000 ]; do i=$((i+1)); done; exit 0')
+  skip "IO.popen is not available" unless io
+
+  io.read
+  before = Process.times
+  assert_equal baseline.cutime, before.cutime
+  assert_equal baseline.cstime, before.cstime
+
+  Process.waitpid(io.pid)
+  io.close
+  after = Process.times
+
+  assert_kind_of Float, after.cutime
+  assert_kind_of Float, after.cstime
+  assert_operator after.cutime + after.cstime, :>, before.cutime + before.cstime
+end
+
+# Process::Tms is a Struct, so what a Struct answers (#==, #inspect,
+# #initialize's arity, and the rest) is mruby-struct's to test, and is not
+# repeated here. What is this gem's is that Process::Tms is that Struct, with
+# those four members in that order, under that name.
+assert('Process::Tms') do
+  t = Process::Tms.new(1, 2, 3, 4)
+  assert_kind_of Struct, t
+  assert_equal [:utime, :stime, :cutime, :cstime], Process::Tms.members
+  assert_equal [1, 2, 3, 4], [t.utime, t.stime, t.cutime, t.cstime]
+  assert_equal [1, 2, 3, 4], t.to_a
+  # Built with plain Integers rather than the Floats Process.times always
+  # gives it, on purpose: a Struct stores whatever it is given without asking
+  # whether it is a Float, which also makes this read the same under
+  # MRB_NO_FLOAT, where a Float literal is not one.
+  assert_equal "#<struct Process::Tms utime=1, stime=2, cutime=3, cstime=4>", t.inspect
+end
 
 assert('Process::CLOCK_REALTIME and the rest') do
   # Four distinct ids, all defined on every platform, so that a program

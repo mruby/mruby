@@ -95,5 +95,14 @@ MRuby::Build.new('ascii-ctype') do |conf|
   # depth a pattern may nest is not what ASCII classification is about.
   conf.cc.defines << 'MRB_REGEXP_PARSE_DEPTH_LIMIT=512'
 
+  # mruby-process reads CPU time through getrusage(2) wherever the header
+  # probe finds <sys/resource.h>, which is every host this matrix runs on, so
+  # its times(2) fallback would otherwise compile nowhere in CI. Answering the
+  # probe no by hand is the override the port documents as standing on its
+  # own. It rides along here for the reason the depth limit above does: no
+  # extra pass, and CPU time accounting is not what ASCII classification is
+  # about.
+  conf.cc.defines << 'MRB_PROCESS_HAVE_GETRUSAGE=0'
+
   conf.enable_test
 end

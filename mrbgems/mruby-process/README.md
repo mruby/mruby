@@ -1,6 +1,6 @@
 # mruby-process
 
-`Process` module and `Process::Status` class for mruby.
+`Process` module and `Process::Status` / `Process::Tms` classes for mruby.
 
 ## Installation
 
@@ -11,7 +11,9 @@ Add the line below to your build configuration.
 ```
 
 It is part of the `stdlib-io` gembox, so `default.gembox` and `full-core.gembox`
-already include it.
+already include it. `mruby-signal` and `mruby-struct` come with it: the first
+owns the signal table `Process.kill` and `Process::Status#to_s` read names
+from, the second the `Struct` `Process::Tms` is one of.
 
 ## Implemented methods
 
@@ -24,6 +26,10 @@ already include it.
 | Process.waitpid                   | o             | sets `$?`; POSIX only, see below         |
 | Process.clock_gettime             | o             | seven units; symbolic clock ids          |
 | Process.clock_getres              | o             | takes `:hertz` too                       |
+| Process.times                     | o             | needs a build with Float, see below      |
+| Process::Tms                      | o             | a Struct, as in CRuby                    |
+| Process::Tms#utime, #stime        | o             |                                          |
+| Process::Tms#cutime, #cstime      | o             | reaped children only; 0 on Windows       |
 | Process::WNOHANG                  | o             | mruby's own value, not the platform's    |
 | Process::WUNTRACED                | o             | mruby's own value, not the platform's    |
 | Process::CLOCK_REALTIME           | o             | mruby's own value, not the platform's    |
@@ -63,6 +69,8 @@ other to provide its own feature set:
        v               v
    mruby-io       mruby-process ----> mruby-signal
        |               |                   |
+       |               +---> mruby-struct  |
+       |               |                   |
        v               v                   v
     io_hal         process_hal         signal_hal
        |               |                   |
@@ -75,9 +83,11 @@ other to provide its own feature set:
 `mrbgem.rake` names `mruby-io`, `mruby-errno` and `mruby-metaprog` as _test_
 dependencies only, for the reasons its comments give.
 
-`mruby-signal` is a real dependency: `Process.kill` takes a signal by name and
-`Process::Status#to_s` spells one out, and the signal table both need is
-`mruby-signal`'s, reached through `signal_hal.h`. Nothing runs the other way.
+`mruby-signal` and `mruby-struct` are the two real dependencies. `Process.kill`
+takes a signal by name and `Process::Status#to_s` spells one out, and the
+signal table both need is `mruby-signal`'s, reached through `signal_hal.h`;
+`Process.times` answers a `Process::Tms`, which is the `Struct` `mruby-struct`
+defines rather than a class written again here. Nothing runs the other way.
 `mruby-time` is not a dependency: the two gems ask the host the same question
 directly, so there is no table that could drift between them, and depending on
 it would pull a `Time` class into every build that only asked for I/O.
@@ -92,10 +102,11 @@ are dropped from the build.
 
 The HAL answers OS-level facts and performs OS-level operations, nothing more.
 No POSIX type or macro appears above it, and it knows nothing of `$?`, `$$`,
-blocks or `Process::Status`: everything Ruby promises lives in the common
-sources under `src/`, including which units a clock reading can be asked for
-in. What a signal is _called_ is `mruby-signal`'s to answer, and both callers
-reach its HAL directly.
+blocks, `Process::Status` or `Process::Tms`: everything Ruby promises lives in
+the common sources under `src/`, including which units a clock reading can be
+asked for in and the Floats a `Process::Tms` is built from. What a signal is
+_called_ is `mruby-signal`'s to answer, and both callers reach its HAL
+directly.
 
 ### Process::Status and mruby-io
 
@@ -144,6 +155,18 @@ constrains; this list is a map.
   `RangeError` in the common layer, where that can be said; `errno` has no
   spelling for it (`mrb_process_int_arg` in `src/process.c`,
   `status_initialize` in `src/status.c`).
+- `Process.times` crosses the HAL as four more clock readings, never as ticks
+  or a Float, and the conversion to Float happens once above it
+  (`mrb_process_times` in `include/process_hal.h`).
+- `Process.times` needs a build with Float, whole: it takes no unit argument
+  to name an Integer answer by, so `MRB_NO_FLOAT` raises `NotImplementedError`
+  rather than the method disappearing (`process_times` in `src/process.c`).
+- `Process::Tms` is the `Struct` CRuby's own is, with nothing left to decode
+  once built, so `Tms.new` stays public where `Process::Status.new` is
+  undefined (`mrb_mruby_process_gem_init` in `src/process.c`).
+- Whether `<sys/resource.h>` exists is asked of the compiler by `mrbgem.rake`
+  (`check_header`), not guessed inside the port; a target without it compiles
+  the `times(2)` fallback.
 
 ## Deviations from CRuby
 
@@ -165,6 +188,9 @@ constrains; this list is a map.
   and nothing more, so a status always reads as exited, and `Process.waitpid`
   fails for every process (`ENOSYS` for -1, `ECHILD` for a specific pid) until
   `Process.spawn` exists to make children; `ports/win/process_hal.c` says why.
+- On Windows `Process::Tms#cutime` and `#cstime` always read `0.0`: Win32
+  reports no reaped child's CPU time, and CRuby's Windows build answers the
+  same way.
 
 ## Adding a port
 
