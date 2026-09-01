@@ -181,11 +181,19 @@ module MRuby
       record = read_record("#{outfile}.flags")
       return nil unless record
       infile = source_of(outfile)
-      return nil unless infile && File.exist?(infile)
+      return nil unless infile
+      # The record and the dependency file name the source the way the compile
+      # was given it, which is the name it has from the tree where the build
+      # compiles by those names. The command keeps that name, since it is the
+      # command that was run and `directory` says what it was written against,
+      # while `file` is answered in full: it is what a tool matches the file it
+      # has open against, and it has that one by its path.
+      path = File.absolute_path(infile, MRUBY_ROOT)
+      return nil unless File.exist?(path)
 
       {
         "directory" => MRUBY_ROOT,
-        "file" => infile,
+        "file" => path,
         "command" => command_line(record, infile, outfile),
         "output" => outfile,
       }
@@ -199,7 +207,7 @@ module MRuby
       params = {
         :flags => record["flags"],
         :infile => @build.filename(infile),
-        :outfile => @build.filename(outfile),
+        :outfile => @build.filename(@build.compile_path(outfile)),
       }
       "#{record["command"]} #{record["options"] % params}"
     end
