@@ -33,6 +33,13 @@ assert("String#[] with regexp and capture") do
   # a failed match answers nil without ever looking at the capture argument
   assert_nil "hello"[/(z)/, 1]
   assert_nil "hello"[/(?<x>z)/, :zz]
+
+  # the capture argument selects one group, never a slice: a Range raises
+  # TypeError here where MatchData#[] would build an array, as in CRuby
+  assert_raise(TypeError) { "hello"[/(l+)(o)/, 0..1] }
+  assert_raise(TypeError) { "hello".slice(/(l+)(o)/, 0..1) }
+  assert_raise(TypeError) { s = "hello"; s.slice!(/(l+)(o)/, 0..1) }
+  assert_raise(TypeError) { s = "hello"; s[/(l+)(o)/, 0..1] = "X" }
 end
 
 assert("String#[] with regexp sets the match globals") do
