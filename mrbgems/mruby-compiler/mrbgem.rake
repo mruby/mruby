@@ -72,10 +72,32 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
 
   task prism_templates: :prism_submodule do
     missing = prism_generated_files.reject { |path| File.exist?(path) }
-    next if missing.empty?
+    unless missing.empty?
+      FileUtils.cd prism_dir do
+        sh "#{RbConfig.ruby} templates/template.rb"
+      end
+    end
 
-    FileUtils.cd prism_dir do
-      sh "#{RbConfig.ruby} templates/template.rb"
+    # The templates write #line directives that name themselves against the
+    # root of the prism repository ("prism/templates/..."), a path that
+    # resolves to nothing from MRUBY_ROOT, where mruby compiles: diagnostics
+    # point at a file the editor cannot open, and ccache drops its direct mode
+    # over the missing dependency. Rewrite the prefix to the gem's location in
+    # the tree. When the gem sits outside the tree no name from the tree
+    # reaches it, so there is nothing to write; on Windows a gem on another
+    # drive is outside with no relative path at all, which Pathname reports
+    # by raising instead of returning a ".."-prefixed path.
+    prism_rel_dir = begin
+      prism_dir.relative_path_from(MRUBY_ROOT)
+    rescue ArgumentError
+      nil
+    end
+    unless prism_rel_dir.nil? || prism_rel_dir.start_with?('..')
+      prism_generated_files.each do |path|
+        source = File.binread(path)
+        rewritten = source.gsub(/^(#line \d+ ")prism\//) { "#{$1}#{prism_rel_dir}/" }
+        File.binwrite(path, rewritten) unless rewritten == source
+      end
     end
   end
 
