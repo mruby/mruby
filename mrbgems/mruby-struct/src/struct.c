@@ -212,6 +212,8 @@ make_struct_define_accessors(mrb_state *mrb, mrb_value members, struct RClass *c
   }
 }
 
+static mrb_value mrb_struct_new(mrb_state *mrb, mrb_value klass);
+
 static mrb_value
 make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass *klass)
 {
@@ -241,13 +243,12 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass *kl
   mrb_iv_set(mrb, nstr, MRB_SYM(__members__), members);
 
   /* Shadow the class-creating Struct.new inherited through the metaclass
-     with the ordinary Class#new; unlike a C trampoline, its forwarding keeps
-     keyword arguments keywords all the way into #initialize */
-  struct RClass *cls = mrb->class_class;
-  mrb_method_t nm = mrb_method_search_vm(mrb, &cls, MRB_SYM(new));
-  struct RClass *sc = mrb_class_ptr(mrb_singleton_class(mrb, nstr));
-  mrb_define_method_raw(mrb, sc, MRB_SYM(new), nm);
-  mrb_define_method_raw(mrb, sc, MRB_OPSYM(aref), nm);
+     with a C constructor: while #initialize is not overridden it fills the
+     members from its own frame, and otherwise re-sends the arguments
+     through a Ruby bridge, which keeps keyword arguments keywords (a C
+     funcall cannot). */
+  mrb_define_class_method_id(mrb, c, MRB_SYM(new), mrb_struct_new, MRB_ARGS_ANY());
+  mrb_define_class_method_id(mrb, c, MRB_OPSYM(aref), mrb_struct_new, MRB_ARGS_ANY());
   mrb_define_class_method_id(mrb, c, MRB_SYM(members), mrb_struct_s_members_m, MRB_ARGS_NONE());
   mrb_define_class_method_id(mrb, c, MRB_SYM_Q(keyword_init), mrb_struct_s_keyword_init_p, MRB_ARGS_NONE());
   /* RSTRUCT(nstr)->basic.c->super = c->c; */
@@ -426,12 +427,14 @@ mrb_struct_init_with_keywords(mrb_state *mrb, mrb_value hash, mrb_value self)
   return self;
 }
 
+/* Fill `self` from the constructor arguments of the current C frame. */
 static mrb_value
-mrb_struct_initialize(mrb_state *mrb, mrb_value self)
+struct_init_body(mrb_state *mrb, mrb_value self)
 {
   /* Read before mrb_get_args, which folds the kdict into argv and clears
-     ci->kw. Class#new always forwards a kdict, so an empty one means the
-     caller wrote no keywords. */
+     ci->kw. In #initialize's frame, Class#new and the Ruby bridge always
+     forward a kdict, so an empty one means the caller wrote no keywords;
+     in the C constructor's frame the flag is the caller's own. */
   mrb_callinfo *ci = mrb->c->ci;
   mrb_bool kw_given = FALSE;
   if (ci->kw) {
@@ -458,6 +461,53 @@ mrb_struct_initialize(mrb_state *mrb, mrb_value self)
     return mrb_struct_init_with_keywords(mrb, argv[0], self);
   }
   return mrb_struct_init_with_args(mrb, argc, argv, self);
+}
+
+static mrb_value
+mrb_struct_initialize(mrb_state *mrb, mrb_value self)
+{
+  return struct_init_body(mrb, self);
+}
+
+/*
+ *  call-seq:
+ *     StructClass.new(arg, ...)  -> obj
+ *     StructClass[arg, ...]      -> obj
+ *
+ *  Creates a new instance of the generated struct class.
+ */
+static mrb_value
+mrb_struct_new(mrb_state *mrb, mrb_value klass)
+{
+  struct RArray *p = MRB_OBJ_ALLOC(mrb, MRB_TT_STRUCT, mrb_class_ptr(klass));
+  mrb_value obj = mrb_obj_value(p);
+
+  if (!mrb_func_basic_p(mrb, obj, MRB_SYM(initialize), mrb_struct_initialize)) {
+    /* overridden initialize */
+    if (mrb->c->ci->kw) {
+      /* only the VM can pass keyword arguments, so re-send positional
+         arguments, keywords, and block through the Ruby bridge (see mrblib) */
+      const mrb_value *argv;
+      mrb_int argc;
+      mrb_value kwrest, blk;
+      const mrb_kwargs kw = {0, 0, NULL, NULL, &kwrest};
+      mrb_get_args(mrb, "*:&", &argv, &argc, &kw, &blk);
+      mrb_value fargs[2];
+      fargs[0] = mrb_ary_new_from_values(mrb, argc, argv);
+      fargs[1] = kwrest;
+      mrb_funcall_with_block(mrb, obj, MRB_SYM(__struct_init_fwd), 2, fargs, blk);
+    }
+    else {
+      const mrb_value *argv;
+      mrb_int argc;
+      mrb_value blk;
+      mrb_get_args(mrb, "*&", &argv, &argc, &blk);
+      mrb_funcall_with_block(mrb, obj, MRB_SYM(initialize), argc, argv, blk);
+    }
+    return obj;
+  }
+
+  return struct_init_body(mrb, obj);
 }
 
 /* 15.2.18.4.9  */
