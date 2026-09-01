@@ -164,14 +164,25 @@ re_initialize(mrb_state *mrb, mrb_value self, mrb_value pattern, uint32_t flags)
   mrb_re_compile(mrb, pat, RSTRING_PTR(pattern), RSTRING_LEN(pattern), flags,
                  re_binary_string_p(pattern));
 
-  /* store named captures as hash */
+  /* Store named captures as a hash of name -> [group, ...]. A name may be
+     given to several groups, and each keeps its own number, so the table
+     carries them all; a name's slot in the hash is made by its first group
+     and later ones append to it, which is the order CRuby's named_captures
+     lists both the names and each name's groups in. */
   if (pat->num_named > 0) {
     mrb_value nc = mrb_hash_new_capa(mrb, pat->num_named);
+    mrb_iv_set(mrb, self, MRB_IVSYM(named_captures), nc);
+    int ai = mrb_gc_arena_save(mrb);
     for (uint16_t i = 0; i < pat->num_named; i++) {
       mrb_value name = mrb_str_new(mrb, pat->named_captures[i].name, pat->named_captures[i].name_len);
-      mrb_hash_set(mrb, nc, name, mrb_fixnum_value(pat->named_captures[i].group));
+      mrb_value groups = mrb_hash_get(mrb, nc, name);
+      if (mrb_nil_p(groups)) {
+        groups = mrb_ary_new_capa(mrb, 1);
+        mrb_hash_set(mrb, nc, name, groups);
+      }
+      mrb_ary_push(mrb, groups, mrb_fixnum_value(pat->named_captures[i].group));
+      mrb_gc_arena_restore(mrb, ai);
     }
-    mrb_iv_set(mrb, self, MRB_IVSYM(named_captures), nc);
   }
   else {
     /* The table belongs to the pattern compiled just above, so a pattern that
@@ -1492,10 +1503,17 @@ matchdata_named_captures(mrb_state *mrb, mrb_value self)
   }
   if (!pat || pat->num_named == 0) return mrb_hash_new(mrb);
 
+  /* Each name gets the group re_name_to_group() picks for it, the same one
+     MatchData#[] reads, so a name given to several groups answers with the
+     one that took part in the match; walking the entries in order would
+     instead leave the value of whichever group the pattern spelled the name
+     on last. Duplicates re-resolve to the same group and overwrite with the
+     same value, and the first entry of each name fixes its key's position. */
   mrb_value result = mrb_hash_new_capa(mrb, pat->num_named);
   for (uint16_t i = 0; i < pat->num_named; i++) {
     mrb_value name = mrb_str_new(mrb, pat->named_captures[i].name, pat->named_captures[i].name_len);
-    int group = pat->named_captures[i].group;
+    int group = re_name_to_group(md->captures, md->num_captures, pat,
+                                 pat->named_captures[i].name, pat->named_captures[i].name_len);
     mrb_value val = mrb_nil_value();
     if (group >= 0 && group < md->num_captures) {
       int s = md->captures[group * 2];

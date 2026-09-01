@@ -4,14 +4,14 @@ class Regexp
   end
 
   # Return named captures hash: {"name" => [group_number, ...], ...}
-  # @named_captures holds the internal name -> group_number table, so a fresh
+  # @named_captures holds the internal name -> group list table, so a fresh
   # Hash is derived on every call and the caller cannot corrupt the table.
   def named_captures
     __check_initialized
     table = @named_captures
     return {} unless table
     result = {}
-    table.each { |name, group| result[name] = [group] }
+    table.each { |name, groups| result[name] = groups.dup }
     result
   end
 
