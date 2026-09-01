@@ -349,6 +349,77 @@ assert "Struct.new dispatches an overridden initialize" do
   assert_equal 3, kw.new(foo: 3).foo
 end
 
+assert "StructClass.[] dispatches an overridden initialize" do
+  c = Class.new(Struct.new(:foo)) do
+    def initialize(x)
+      super(x * 2)
+    end
+  end
+  assert_equal 4, c[2].foo
+
+  kw = Class.new(Struct.new(:foo)) do
+    def initialize(foo: 0)
+      super(foo: foo + 1)
+    end
+  end
+  assert_equal 8, kw[foo: 7].foo
+end
+
+assert "Struct.new forwards a block to an overridden initialize" do
+  c = Class.new(Struct.new(:foo)) do
+    def initialize(&blk)
+      super(blk.call)
+    end
+  end
+  assert_equal 42, c.new { 42 }.foo
+end
+
+assert "Struct.new passes a positional hash to an overridden initialize as one value" do
+  c = Class.new(Struct.new(:foo)) do
+    def initialize(h)
+      super(h)
+    end
+  end
+  assert_equal({a: 1}, c.new({a: 1}).foo)
+end
+
+assert "Struct.new with a splatted empty hash makes a blank struct" do
+  c = Struct.new(:foo)
+  assert_nil c.new(**{}).foo
+
+  o = Class.new(c) do
+    def initialize(*a)
+      super(a.size)
+    end
+  end
+  assert_equal 0, o.new(**{}).foo
+end
+
+assert "Struct.new keeps the direct path on a class whose subclass overrides initialize" do
+  c = Struct.new(:foo)
+  plain = Class.new(c)
+  assert_equal 1, plain.new(1).foo
+  doubled = Class.new(plain) do
+    def initialize(x)
+      super(x * 2)
+    end
+  end
+  assert_equal 2, doubled.new(1).foo
+  assert_equal 1, plain.new(1).foo
+end
+
+assert "overridden initialize forwards keywords through super under keyword_init" do
+  c = Struct.new(:foo, :bar, keyword_init: true)
+  sub = Class.new(c) do
+    def initialize(**h)
+      super(foo: h[:foo], bar: 2)
+    end
+  end
+  s = sub.new(foo: 1)
+  assert_equal 1, s.foo
+  assert_equal 2, s.bar
+end
+
 assert "Struct initialize when :keyword_init is true" do
   c = Struct.new(:foo, :bar, keyword_init: true)
 
