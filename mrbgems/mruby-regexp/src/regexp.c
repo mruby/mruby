@@ -1073,7 +1073,7 @@ matchdata_name_to_group(mrb_state *mrb, mrb_match_data *md, mrb_value arg)
 }
 
 /*
- * MatchData#[](n)
+ * MatchData#[](n) / #[](name) / #[](start, length) / #[](range)
  */
 
 /* Read the group at the absolute index `idx`, or nil when it names no group
@@ -1116,12 +1116,48 @@ md_aref(mrb_state *mrb, mrb_value self, mrb_value arg)
   return md_nth(mrb, md, idx);
 }
 
+/* The (start, length) and Range forms slice the groups the way Array#[]
+   slices to_a. They are told apart from the group forms the way CRuby's
+   match_aref() tells them apart: a second argument, unless it is nil, forces
+   both arguments through integer conversion, so a name or a Range in the
+   first position raises TypeError there; without one, only a Range slices,
+   and everything that is not a name converts to a single index. */
 static mrb_value
 matchdata_aref(mrb_state *mrb, mrb_value self)
 {
-  mrb_value arg;
-  mrb_get_args(mrb, "o", &arg);
-  return md_aref(mrb, self, arg);
+  mrb_value arg, len_v = mrb_nil_value();
+  mrb_int argc = mrb_get_args(mrb, "o|o", &arg, &len_v);
+
+  if ((argc < 2 || mrb_nil_p(len_v)) && !mrb_range_p(arg)) {
+    return md_aref(mrb, self, arg);
+  }
+
+  mrb_match_data *md = DATA_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
+  if (!md) return mrb_nil_value();
+
+  mrb_int beg, len;
+  if (argc == 2 && !mrb_nil_p(len_v)) {
+    beg = mrb_as_int(mrb, arg);
+    len = mrb_as_int(mrb, len_v);
+    if (len < 0) return mrb_nil_value();
+    if (beg < 0) {
+      beg += md->num_captures;
+      if (beg < 0) return mrb_nil_value();
+    }
+    else if (beg > md->num_captures) {
+      return mrb_nil_value();
+    }
+    if (len > md->num_captures - beg) len = md->num_captures - beg;
+  }
+  else if (mrb_range_beg_len(mrb, arg, &beg, &len, md->num_captures, TRUE) != MRB_RANGE_OK) {
+    return mrb_nil_value();
+  }
+
+  mrb_value ary = mrb_ary_new_capa(mrb, len);
+  for (mrb_int i = 0; i < len; i++) {
+    mrb_ary_push(mrb, ary, md_nth(mrb, md, beg + i));
+  }
+  return ary;
 }
 
 /* Build array of capture strings from group `from` to num_captures-1 */
@@ -3461,7 +3497,7 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_undef_class_method(mrb, md, "new");
   mrb_undef_class_method(mrb, md, "allocate");
 
-  mrb_define_method(mrb, md, "[]", matchdata_aref, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, md, "[]", matchdata_aref, MRB_ARGS_ARG(1, 1));
   mrb_define_method(mrb, md, "captures", matchdata_captures, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "to_a", matchdata_to_a, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "values_at", matchdata_values_at, MRB_ARGS_ANY());
