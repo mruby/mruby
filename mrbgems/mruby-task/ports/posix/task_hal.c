@@ -23,9 +23,13 @@
 #include <unistd.h>
 #include <stdint.h>
 
-/* Time conversion constants */
+/* Time conversion constants.  NSEC_PER_SEC is spelled exactly as
+   mruby-process's process_hal.h spells it, so an amalgamated build carrying
+   both gems sees identical definitions rather than a redefinition. */
 #define NSEC_PER_MSEC 1000000ULL
-#define NSEC_PER_SEC  1000000000ULL
+#ifndef NSEC_PER_SEC
+#define NSEC_PER_SEC 1000000000LL
+#endif
 #define USEC_PER_MSEC 1000ULL
 
 #ifndef __EMSCRIPTEN__

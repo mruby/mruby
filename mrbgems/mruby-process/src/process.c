@@ -318,8 +318,6 @@ process_waitpid2(mrb_state *mrb, mrb_value self)
  * reports the same two numbers and is asked nothing about any of that.
  */
 
-#define NSEC_PER_SEC 1000000000
-
 /*
  * Put `sec` seconds and `frac` `per_sec`-ths of one together, and say
  * whether they fit an int64_t at all.

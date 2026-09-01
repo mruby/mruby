@@ -28,9 +28,6 @@ test_status_build(mrb_state *mrb, mrb_value self)
   return mrb_obj_new(mrb, klass, 2, argv);
 }
 
-/* Nanoseconds in a second, which is the range a port promises `nsec` in. */
-#define TEST_NSEC_PER_SEC 1000000000
-
 /* Read a decimal into an int64_t, refusing anything the type cannot hold. */
 static int64_t
 test_clock_int64(mrb_state *mrb, const char *s, const char *what)
@@ -71,7 +68,7 @@ test_clock_convert(mrb_state *mrb, mrb_value self)
   mrb_process_clock_time t;
 
   mrb_get_args(mrb, "zio|b", &sec, &nsec, &unit, &resolution);
-  if (nsec < 0 || nsec >= TEST_NSEC_PER_SEC) {
+  if (nsec < 0 || nsec >= NSEC_PER_SEC) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "nsec outside one second: %i", nsec);
   }
   t.sec = test_clock_int64(mrb, sec, "sec");
