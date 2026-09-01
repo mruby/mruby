@@ -84,9 +84,15 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
     # point at a file the editor cannot open, and ccache drops its direct mode
     # over the missing dependency. Rewrite the prefix to the gem's location in
     # the tree. When the gem sits outside the tree no name from the tree
-    # reaches it, so there is nothing to write.
-    prism_rel_dir = prism_dir.relative_path_from(MRUBY_ROOT)
-    unless prism_rel_dir.start_with?('..')
+    # reaches it, so there is nothing to write; on Windows a gem on another
+    # drive is outside with no relative path at all, which Pathname reports
+    # by raising instead of returning a ".."-prefixed path.
+    prism_rel_dir = begin
+      prism_dir.relative_path_from(MRUBY_ROOT)
+    rescue ArgumentError
+      nil
+    end
+    unless prism_rel_dir.nil? || prism_rel_dir.start_with?('..')
       prism_generated_files.each do |path|
         source = File.binread(path)
         rewritten = source.gsub(/^(#line \d+ ")prism\//) { "#{$1}#{prism_rel_dir}/" }
