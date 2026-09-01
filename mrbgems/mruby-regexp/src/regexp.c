@@ -468,7 +468,7 @@ re_check_exec_error(mrb_state *mrb, int n)
    Returns MatchData on match, nil on no match.
    Publishes the match as $~, and clears it on a miss. */
 static mrb_value
-exec_match(mrb_state *mrb, mrb_value self, mrb_value str, mrb_int pos)
+exec_match(mrb_state *mrb, mrb_value self, mrb_value str, mrb_int pos, mrb_bool literal)
 {
   mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, self, &regexp_type, mrb_regexp_pattern);
   if (re_uninitialized_p(pat)) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
@@ -484,7 +484,10 @@ exec_match(mrb_state *mrb, mrb_value self, mrb_value str, mrb_int pos)
     clear_match_globals(mrb);
     return mrb_nil_value();
   }
-  return create_matchdata(mrb, self, str, captures, cap_size);
+  /* `literal` says the caller quoted a String pattern into `self` to have
+     something to search with. Such a match carries no Regexp in CRuby until
+     MatchData#regexp builds one, so the quoted one is not recorded here. */
+  return create_matchdata(mrb, literal ? mrb_nil_value() : self, str, captures, cap_size);
 }
 
 /*
@@ -511,7 +514,7 @@ regexp_match(mrb_state *mrb, mrb_value self)
   }
 
   re_check_encoding(mrb, str);
-  md = exec_match(mrb, self, str, pos);
+  md = exec_match(mrb, self, str, pos, FALSE);
   if (!mrb_nil_p(md) && !mrb_nil_p(block)) {
     return mrb_yield(mrb, block, md);
   }
@@ -524,13 +527,13 @@ regexp_match(mrb_state *mrb, mrb_value self)
  * globals and answers nil, as `Regexp#match` does, which is what the
  * overrides use to report a miss.
  *
- * `checked` says the caller has settled the encoding question for the subject
- * and this search must not ask it again. `sub`, `sub!` and `gsub!` set it when
- * their pattern is a quoted String, which CRuby searches for without reading
- * the subject as UTF-8 at all.
+ * `literal` says the pattern arrived as a String and `re` is its quoting.
+ * `sub`, `sub!` and `gsub!` set it, and it carries what CRuby's literal
+ * search carries: the subject is not read as UTF-8 on the way, and the match
+ * records no Regexp (see exec_match()).
  */
 static mrb_value
-re_search(mrb_state *mrb, mrb_value re, mrb_value str, mrb_int pos, mrb_bool checked)
+re_search(mrb_state *mrb, mrb_value re, mrb_value str, mrb_int pos, mrb_bool literal)
 {
   if (mrb_nil_p(str)) {
     clear_match_globals(mrb);
@@ -542,8 +545,8 @@ re_search(mrb_state *mrb, mrb_value re, mrb_value str, mrb_int pos, mrb_bool che
     clear_match_globals(mrb);
     return mrb_nil_value();
   }
-  if (!checked) re_check_encoding(mrb, str);
-  return exec_match(mrb, re, str, pos);
+  if (!literal) re_check_encoding(mrb, str);
+  return exec_match(mrb, re, str, pos, literal);
 }
 
 /*
@@ -630,7 +633,7 @@ regexp_match_op(mrb_state *mrb, mrb_value self)
   str = match_operand(mrb, str);
   re_check_encoding(mrb, str);
 
-  mrb_value md = exec_match(mrb, self, str, 0);
+  mrb_value md = exec_match(mrb, self, str, 0, FALSE);
   if (mrb_nil_p(md)) return mrb_nil_value();
 
   mrb_match_data *m = DATA_GET_PTR(mrb, md, &matchdata_type, mrb_match_data);
@@ -654,7 +657,7 @@ regexp_case_match(mrb_state *mrb, mrb_value self)
   if (re_uninitialized_p(pat)) return mrb_false_value();
   re_check_encoding(mrb, str);
 
-  md = exec_match(mrb, self, str, 0);
+  md = exec_match(mrb, self, str, 0, FALSE);
   return mrb_bool_value(!mrb_nil_p(md));
 }
 
@@ -1576,11 +1579,13 @@ re_quoted_regexp(mrb_state *mrb, mrb_value lit)
  * MatchData#regexp - the Regexp used
  *
  * A literal String pattern leaves none behind: `__sub_lit` and `__gsub_lit`
- * search for its bytes without compiling anything to search with, so the
- * Regexp it names is built here, out of the bytes the match reports, the first
- * time something asks for one. That is what CRuby does with a match against a
- * String pattern, down to the memo the answer is kept in. A call that never
- * asks pays for no compile at all.
+ * search for its bytes without compiling anything to search with, and the
+ * paths that do quote one to search with withhold it from the match (see
+ * exec_match()). So the Regexp named here is built here, out of the bytes
+ * the match reports, the first time something asks for one; group 0 of a
+ * literal match spans the pattern itself, whichever path made it. That is
+ * what CRuby does with a match against a String pattern, down to the memo
+ * the answer is kept in. A call that never asks pays for no compile at all.
  */
 static mrb_value
 matchdata_regexp(mrb_state *mrb, mrb_value self)
@@ -1627,10 +1632,20 @@ matchdata_inspect(mrb_state *mrb, mrb_value self)
   mrb_match_data *md = DATA_CHECK_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
   if (!md) return mrb_any_to_s(mrb, self);
 
-  mrb_regexp_pattern *pat = NULL;
-  if (!mrb_nil_p(md->regexp)) {
-    pat = DATA_GET_PTR(mrb, md->regexp, &regexp_type, mrb_regexp_pattern);
+  /* A match a literal String pattern made carries no Regexp until
+     MatchData#regexp builds one. CRuby renders such a match as
+     "#<MatchData: ab>", the whole match raw, and switches to the group
+     listing once the memo is filled; the memo is mirrored here, so the
+     switch comes with it. */
+  if (mrb_nil_p(md->regexp)) {
+    mrb_value result = mrb_str_new_lit(mrb, "#<MatchData: ");
+    mrb_str_cat_str(mrb, result, re_byte_substr(mrb, md->source, md->captures[0],
+                                                md->captures[1] - md->captures[0]));
+    mrb_str_cat_lit(mrb, result, ">");
+    return result;
   }
+
+  mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, md->regexp, &regexp_type, mrb_regexp_pattern);
 
   mrb_value result = mrb_str_new_lit(mrb, "#<MatchData");
   int ai = mrb_gc_arena_save(mrb);
@@ -1641,12 +1656,10 @@ matchdata_inspect(mrb_state *mrb, mrb_value self)
          Each group carries at most one name, so the first entry that names
          it is the whole answer; several groups of one name each show it. */
       const re_named_capture *nc = NULL;
-      if (pat) {
-        for (uint16_t j = 0; j < pat->num_named; j++) {
-          if (pat->named_captures[j].group == i) {
-            nc = &pat->named_captures[j];
-            break;
-          }
+      for (uint16_t j = 0; j < pat->num_named; j++) {
+        if (pat->named_captures[j].group == i) {
+          nc = &pat->named_captures[j];
+          break;
         }
       }
       if (nc) {
@@ -2172,12 +2185,12 @@ sub_piece(mrb_state *mrb, mrb_value block, mrb_value hash, mrb_value matched)
  * the lookup form walks under the same answers.
  */
 static mrb_value
-re_gsub_walk(mrb_state *mrb, mrb_value re, mrb_value str, mrb_bool checked,
+re_gsub_walk(mrb_state *mrb, mrb_value re, mrb_value str, mrb_bool literal,
              mrb_value block, mrb_value hash)
 {
   mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
   if (re_uninitialized_p(pat)) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
-  if (!checked) re_check_encoding(mrb, str);
+  if (!literal) re_check_encoding(mrb, str);
 
   mrb_bool binary = re_binary_string_p(str);
   int cap_size = pat->num_captures * 2;
@@ -2203,7 +2216,7 @@ re_gsub_walk(mrb_state *mrb, mrb_value re, mrb_value str, mrb_bool checked,
     mrb_int beg = captures[0], end = captures[1];
 
     mrb_value matched = re_byte_substr(mrb, str, beg, end - beg);
-    last_md = create_matchdata(mrb, re, str, captures, cap_size);
+    last_md = create_matchdata(mrb, literal ? mrb_nil_value() : re, str, captures, cap_size);
     last = pos;
     mrb_value piece = sub_piece(mrb, block, hash, matched);
     /* What the block did to the receiver while it had it. A change of length
@@ -2215,7 +2228,7 @@ re_gsub_walk(mrb_state *mrb, mrb_value re, mrb_value str, mrb_bool checked,
     if (RSTRING_LEN(str) != slen) {
       mrb_raise(mrb, E_RUNTIME_ERROR, "string modified");
     }
-    if (!checked) re_check_encoding(mrb, str);
+    if (!literal) re_check_encoding(mrb, str);
     s = RSTRING_PTR(str);
     binary = re_binary_string_p(str);
 
@@ -2263,7 +2276,7 @@ re_gsub_walk(mrb_state *mrb, mrb_value re, mrb_value str, mrb_bool checked,
   else {
     /* The closing search of `str_gsub`, on the receiver as the block left it,
        which publishes what it finds or clears the globals for a miss. */
-    exec_match(mrb, re, str, last);
+    exec_match(mrb, re, str, last, literal);
   }
   return result;
 }
@@ -2272,7 +2285,7 @@ re_gsub_walk(mrb_state *mrb, mrb_value re, mrb_value str, mrb_bool checked,
  * scan core without a block: every match collected into the answered array.
  */
 static mrb_value
-re_scan_ary(mrb_state *mrb, mrb_value re, mrb_value str)
+re_scan_ary(mrb_state *mrb, mrb_value re, mrb_value str, mrb_bool literal)
 {
   mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
   if (re_uninitialized_p(pat)) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
@@ -2337,7 +2350,7 @@ re_scan_ary(mrb_state *mrb, mrb_value re, mrb_value str)
   }
 
   if (last_ncap > 0) {
-    create_matchdata(mrb, re, str, last_captures, last_ncap);
+    create_matchdata(mrb, literal ? mrb_nil_value() : re, str, last_captures, last_ncap);
   }
   else {
     clear_match_globals(mrb);
@@ -2917,8 +2930,9 @@ str_scan_m(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "o&", &pattern, &block);
   pattern = check_pattern(mrb, pattern);
-  if (mrb_string_p(pattern)) pattern = quote_to_regexp(mrb, pattern);
-  if (mrb_nil_p(block)) return re_scan_ary(mrb, pattern, self);
+  mrb_bool literal = mrb_string_p(pattern);
+  if (literal) pattern = quote_to_regexp(mrb, pattern);
+  if (mrb_nil_p(block)) return re_scan_ary(mrb, pattern, self, literal);
 
   /* A block reads the match globals of the match it was handed, so the block
      form walks the subject itself and lets each search publish as it goes:
@@ -2951,7 +2965,7 @@ str_scan_m(mrb_state *mrb, mrb_value self)
       mrb_raise(mrb, E_RUNTIME_ERROR, "string modified");
     }
     re_check_encoding(mrb, self);
-    mrb_value md = exec_match(mrb, pattern, self, pos);
+    mrb_value md = exec_match(mrb, pattern, self, pos, literal);
     if (mrb_nil_p(md)) break;
     last = pos;
     last_md = md;
@@ -2977,7 +2991,7 @@ str_scan_m(mrb_state *mrb, mrb_value self)
         mrb_raise(mrb, E_RUNTIME_ERROR, "string modified");
       }
       re_check_encoding(mrb, self);
-      exec_match(mrb, pattern, self, last);
+      exec_match(mrb, pattern, self, last, literal);
     }
   }
   return self;
@@ -3040,7 +3054,7 @@ str_split_m(mrb_state *mrb, mrb_value self)
       return result;
     }
     re_check_encoding(mrb, self);
-    mrb_value md = exec_match(mrb, pattern, self, search_pos);
+    mrb_value md = exec_match(mrb, pattern, self, search_pos, FALSE);
     if (mrb_nil_p(md)) break;
     mrb_match_data *m = DATA_GET_PTR(mrb, md, &matchdata_type, mrb_match_data);
     mrb_int ms = m->captures[0], me = m->captures[1];
@@ -3280,7 +3294,7 @@ str_byteindex_m(mrb_state *mrb, mrb_value self)
      miss rather than becoming an error. */
   mrb_str_check_byte_pos(mrb, self, pos);
   re_check_encoding(mrb, self);
-  mrb_value md = exec_match(mrb, pattern, self, pos);
+  mrb_value md = exec_match(mrb, pattern, self, pos, FALSE);
   if (mrb_nil_p(md)) return mrb_nil_value();
   mrb_match_data *m = DATA_GET_PTR(mrb, md, &matchdata_type, mrb_match_data);
   return mrb_int_value(mrb, m->captures[0]);

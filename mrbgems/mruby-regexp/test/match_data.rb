@@ -133,6 +133,31 @@ assert("MatchData#inspect - named groups") do
   assert_equal '#<MatchData "c" a:nil a:nil>', /(?:(?<a>x)|(?<a>b))?c/.match("c").inspect
 end
 
+assert("MatchData#inspect - a match a literal String pattern made") do
+  # such a match carries no Regexp until MatchData#regexp builds one, and
+  # CRuby renders it as the whole match raw, switching to the group listing
+  # once the memo is filled
+  "a\tb x".sub("a\tb", "z")
+  md = $~
+  assert_equal "#<MatchData: a\tb>", md.inspect
+  md.regexp
+  assert_equal '#<MatchData "a\tb">', md.inspect
+
+  # every literal search leaves the same regexp-less match behind, the block
+  # and Hash walks and scan included, though those quote a Regexp to search
+  # with; a Regexp pattern is recorded as itself
+  "ab x".sub("ab") { "z" }
+  assert_equal "#<MatchData: ab>", $~.inspect
+  "ab ab".gsub("ab", "ab" => "z")
+  assert_equal "#<MatchData: ab>", $~.inspect
+  "ab ab".scan("ab")
+  assert_equal "#<MatchData: ab>", $~.inspect
+  "ab ab".scan("ab") { }
+  assert_equal "#<MatchData: ab>", $~.inspect
+  "ab x".sub(/ab/) { "z" }
+  assert_equal '#<MatchData "ab">', $~.inspect
+end
+
 assert("MatchData#inspect - a copy without match data") do
   # dup does not carry the match over, and inspect answers about the object
   # it has rather than raising as the other readers do
