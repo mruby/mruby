@@ -428,8 +428,7 @@ mrb_struct_initialize(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "*", &argv, &argc);
 
-  mrb_value klass = mrb_obj_value(mrb_obj_class(mrb, self));
-  mrb_value keyword_init = mrb_iv_get(mrb, klass, MRB_IVSYM(__keyword_init__));
+  mrb_value keyword_init = struct_s_keyword_init(mrb, mrb_obj_class(mrb, self));
 
   if (mrb_test(keyword_init)) { /* keyword_init: true */
     if (argc > 1 || (argc == 1 && !mrb_hash_p(argv[0]))) {
