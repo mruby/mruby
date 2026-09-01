@@ -122,7 +122,18 @@ module MRuby
           @exts = Exts.new('.o', '', '.a', '.pi')
         end
 
-        build_dir = build_dir || ENV['MRUBY_BUILD_DIR'] || "#{MRUBY_ROOT}/build"
+        # The directory is named against the one the build was started from,
+        # by the config or by `MRUBY_BUILD_DIR`, and is expanded here so that
+        # every path built from it is absolute whatever directory a later step
+        # runs in. The spelling a name was given, a trailing slash or a `..`
+        # among it, does not reach the paths the build compiles with.
+        #
+        # `MRUBY_BUILD_DIR` set to nothing names no directory, and is read as
+        # the unset it was meant to be: left as it is, the empty name would
+        # put the whole build under `/`.
+        env_build_dir = ENV['MRUBY_BUILD_DIR']
+        env_build_dir = nil if env_build_dir.nil? || env_build_dir.empty?
+        build_dir = File.expand_path(build_dir || env_build_dir || "#{MRUBY_ROOT}/build")
 
         @file_separator = '/'
         # The directory every target of this config builds under. `@build_dir`
