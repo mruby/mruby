@@ -72,7 +72,7 @@ jobs:
       - name: Build
         run: rake -m test:build
       - name: Test
-        run: rake test:run:serial
+        run: rake test:run
 
   Cosmopolitan:
     runs-on: ubuntu-24.04
@@ -101,7 +101,7 @@ jobs:
           COSMO_ROOT=~/cosmo rake -m test:build MRUBY_CONFIG=cosmopolitan
       - name: Test
         run: |
-          COSMO_ROOT=~/cosmo rake test:run:serial MRUBY_CONFIG=cosmopolitan
+          COSMO_ROOT=~/cosmo rake test:run MRUBY_CONFIG=cosmopolitan
 
   Windows-VC:
     runs-on: windows-2022
@@ -124,4 +124,4 @@ jobs:
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-          rake test:run:serial
+          rake test:run
