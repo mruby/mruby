@@ -426,8 +426,9 @@ mrb_struct_init_with_keywords(mrb_state *mrb, mrb_value hash, mrb_value self)
   return self;
 }
 
+/* Fill `self` from the constructor arguments of the current C frame. */
 static mrb_value
-mrb_struct_initialize(mrb_state *mrb, mrb_value self)
+struct_init_body(mrb_state *mrb, mrb_value self)
 {
   /* Read before mrb_get_args, which folds the kdict into argv and clears
      ci->kw. Class#new always forwards a kdict, so an empty one means the
@@ -458,6 +459,12 @@ mrb_struct_initialize(mrb_state *mrb, mrb_value self)
     return mrb_struct_init_with_keywords(mrb, argv[0], self);
   }
   return mrb_struct_init_with_args(mrb, argc, argv, self);
+}
+
+static mrb_value
+mrb_struct_initialize(mrb_state *mrb, mrb_value self)
+{
+  return struct_init_body(mrb, self);
 }
 
 /* 15.2.18.4.9  */
