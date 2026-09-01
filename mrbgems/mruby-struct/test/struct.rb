@@ -320,11 +320,15 @@ assert "Struct initialize when :keyword_init is true" do
   assert_equal nil, o2.foo
   assert_equal nil, o2.bar
 
-  assert_raise(ArgumentError) do
+  assert_raise_with_message(ArgumentError, "wrong number of arguments (given 2, expected 0)") do
     c.new(1, 2)
   end
 
-  assert_raise(ArgumentError) do
+  assert_raise_with_message(ArgumentError, "wrong number of arguments (given 1, expected 0)") do
+    c.new(1)
+  end
+
+  assert_raise_with_message(ArgumentError, "wrong number of arguments (given 2, expected 0)") do
     c.new({foo: 1}, {bar: 2})
   end
 end
@@ -352,7 +356,7 @@ assert "Struct initialize when :keyword_init is non-boolean value (treat as true
   assert_equal 1, o.foo
   assert_equal 2, o.bar
 
-  assert_raise(ArgumentError) do
+  assert_raise_with_message(ArgumentError, "wrong number of arguments (given 2, expected 0)") do
     c.new(1, 2)
   end
 end
