@@ -255,9 +255,9 @@ module MRuby
     # either map gives; a caller that names the two apart is asking for the
     # longer one to win.
     #
-    # This says nothing of the paths `mrbc` writes: the file names it records
-    # for a backtrace under `enable_debug` are the ones the build passes it,
-    # and no compiler flag reaches them.
+    # No compiler flag reaches the file names `mrbc` records for a backtrace
+    # under `enable_debug`: those are the names the build passes it, and the
+    # build passes the names of the tree wherever it compiles by them.
     def enable_file_prefix_map(source: ".", build: source == "." ? "build" : "#{source}/build")
       file_prefix_map(MRUBY_ROOT, source)
       file_prefix_map(@build_root, build)
@@ -450,6 +450,21 @@ module MRuby
         obj = cxx_src.ext(@exts.object)
       end
 
+      # The generated source includes the file by its own name and the
+      # directory it sits in is searched for it, rather than the path being
+      # written into the file, so that what this generates says the same thing
+      # wherever the tree sits.
+      #
+      # The name the compiler then records is that directory and the name
+      # together, and the directory is the one the flags carry: the name the
+      # tree has for it where the build compiles by such names, and the path
+      # as it is otherwise. Written into the file instead, the name would be
+      # the one the search found it under, `./src/vm.c`, which `clang` keeps
+      # as it is or shortens depending on whether the build has any directory
+      # left to map, and two builds of the same tree would differ by it.
+      source_dir = File.dirname(File.absolute_path(src))
+      cxx.include_paths << source_dir unless cxx.include_paths.include?(source_dir)
+
       file cxx_src => [src, __FILE__] do |t|
         mkdir_p File.dirname t.name
         IO.write t.name, <<EOS
@@ -459,7 +474,7 @@ module MRuby
 #ifndef MRB_USE_CXX_ABI
 extern "C" {
 #endif
-#include "#{File.absolute_path src}"
+#include "#{File.basename(src)}"
 #ifndef MRB_USE_CXX_ABI
 }
 #endif
@@ -530,7 +545,10 @@ EOS
     end
 
     def mrbcfile=(path)
-      @mrbcfile = path
+      # Named against the directory the build was started from, like the
+      # build directory, and expanded here for the same reason: it is run
+      # from the tree.
+      @mrbcfile = File.expand_path(path)
       @mrbcfile_external = true
     end
 

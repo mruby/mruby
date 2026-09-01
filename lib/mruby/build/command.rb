@@ -738,9 +738,16 @@ module MRuby
       # leak into the captured stdout and corrupt the generated C file.
       tmpout = "#{out.path}.#{funcname}.mrbcout"
       opt = opt.sub(/\s-o-(?=\s|\z)/, %Q[ -o "#{filename tmpout}"])
-      cmd = %["#{filename @command}" #{opt} #{filename(infiles).map{|f| %["#{f}"]}.join(' ')}]
+      # The names given here are the ones `mrbc` records for a backtrace, so
+      # they are the names the sources have from the tree wherever the build
+      # compiles by those, and `mrbc` is run from the tree to read them. This
+      # is what the compilers are told through their own options, which reach
+      # nothing `mrbc` writes.
+      sources = infiles.map {|f| build.compile_path(f) }
+      cmd = %["#{filename @command}" #{opt} #{filename(sources).map{|f| %["#{f}"]}.join(' ')}]
       puts cmd if Rake.verbose
-      unless system(cmd)
+      opts = build.compile_relative? ? {chdir: MRUBY_ROOT} : {}
+      unless system(cmd, **opts)
         rm_f tmpout
         rm_f out.path
         fail "Command failed with status (#{$?.exitstatus}): [#{cmd[0,42]}...]"
