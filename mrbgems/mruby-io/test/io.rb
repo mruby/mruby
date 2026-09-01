@@ -27,7 +27,13 @@ def assert_io_open(meth)
       end
     end
 
-    assert_raise(Errno::EBADF) { IO.__send__(meth, 1023) } # For Windows
+    # 1023 and 500 are both descriptors nothing has opened, either side of the
+    # 512 that _getmaxstdio() answers on Windows. The number used to decide
+    # which way the check went there: above it the descriptor was refused, and
+    # below it the CRT was asked about a descriptor it did not have, which ends
+    # the process unless the invalid parameter handler is taken over first.
+    assert_raise(Errno::EBADF) { IO.__send__(meth, 1023) }
+    assert_raise(Errno::EBADF) { IO.__send__(meth, 500) }
     assert_raise(Errno::EBADF) { IO.__send__(meth, 1 << 26) }
   end
 end

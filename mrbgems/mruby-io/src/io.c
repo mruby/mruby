@@ -21,6 +21,7 @@
   #include <winsock.h>
   #include <io.h>
   #include <basetsd.h>
+  #include <stdlib.h>
   #define open  _open
   #define close _close
   #define dup _dup
@@ -541,6 +542,17 @@ badfd_error(mrb_state *mrb)
   mrb_sys_fail(mrb, "bad file descriptor");
 }
 
+#if defined(_WIN32) && defined(_MSC_VER)
+/* Stands in for the CRT's default invalid parameter handler, which ends the
+   process. Doing nothing lets the call that tripped it return an error. */
+static void
+ignore_invalid_parameter(const wchar_t *expression, const wchar_t *function,
+                         const wchar_t *file, unsigned int line, uintptr_t reserved)
+{
+  (void)expression; (void)function; (void)file; (void)line; (void)reserved;
+}
+#endif
+
 static void
 check_file_descriptor(mrb_state *mrb, mrb_int fd)
 {
@@ -555,6 +567,8 @@ check_file_descriptor(mrb_state *mrb, mrb_int fd)
 #endif
 
 #ifdef _WIN32
+  /* A Winsock handle is not a CRT file descriptor, and fstat below cannot
+     vouch for one, so ask Winsock before the CRT gets a say. */
   {
     DWORD err;
     int len = sizeof(err);
@@ -564,7 +578,24 @@ check_file_descriptor(mrb_state *mrb, mrb_int fd)
     }
   }
 
-  if (fdi < 0 || fdi > _getmaxstdio()) {
+  {
+    int ok;
+#ifdef _MSC_VER
+    /* Asking the CRT about a descriptor it does not have invokes the invalid
+       parameter handler, and the default one ends the process rather than
+       returning: a bare IO.new(400) would take the program with it. A handler
+       that does nothing leaves fstat to report the failure the way it reports
+       any other. Thread-local, so an embedding program's own handler stands. */
+    _invalid_parameter_handler prev =
+      _set_thread_local_invalid_parameter_handler(ignore_invalid_parameter);
+#endif
+    ok = (fdi >= 0 && fstat(fdi, &sb) == 0);
+#ifdef _MSC_VER
+    _set_thread_local_invalid_parameter_handler(prev);
+#endif
+    if (ok) return;
+    /* Whatever the CRT set errno to on the way out, what the caller asked is
+       whether the descriptor is one, and it is not. */
     errno = EBADF;
     badfd_error(mrb);
   }
