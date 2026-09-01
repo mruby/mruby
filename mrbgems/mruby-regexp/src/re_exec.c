@@ -38,6 +38,49 @@ skip_to_prefix(const mrb_regexp_pattern *pat, const char *sp, const char *str_en
 #define FIRST_BYTE_OK(pat, ch) \
   ((ch) >= 128 || ((pat)->first_bytes[(ch) >> 3] & (1 << ((ch) & 7))))
 
+/*
+ * Skip to the next position a match could start at, per the first-byte set.
+ * Returns NULL when no such position remains: the set never holds a byte the
+ * pattern can match empty at (first_set_walk() answers FALSE there), so a
+ * subject with none of it left holds no match either.
+ *
+ * A set of up to three bytes is scanned with one bounded memchr per member,
+ * each next call bounded by the nearest find so far, so every byte is read at
+ * most first_byte_count times and by memchr rather than one test at a time. A
+ * wider set walks the bitmap as before. The bitmap walk also stops at any
+ * byte above 127, which the memchr scan runs past: the set being usable at
+ * all means no match starts on a non-ASCII byte (see first_set_walk()), so
+ * those stops were never candidates, only where the walk gave up.
+ */
+static const char*
+skip_to_first_byte(const mrb_regexp_pattern *pat, const char *sp, const char *str_end)
+{
+  int n = pat->first_byte_count;
+  if (n == 0) {
+    while (sp < str_end && !FIRST_BYTE_OK(pat, (uint8_t)*sp)) sp++;
+    return sp < str_end ? sp : NULL;
+  }
+  if (sp >= str_end) return NULL;
+  /* The caller asks again after every failed attempt, and on a dense subject
+     the answer is usually the position it is already at: answer that with the
+     member tests alone, keeping the call per byte no dearer than the bitmap
+     test it replaces. */
+  uint8_t b = (uint8_t)*sp;
+  for (int i = 0; i < n; i++) {
+    if (b == pat->first_byte[i]) return sp;
+  }
+  const char *found = NULL;
+  size_t span = (size_t)(str_end - sp);
+  for (int i = 0; i < n; i++) {
+    const char *p = (const char*)memchr(sp, pat->first_byte[i], span);
+    if (p) {
+      found = p;
+      span = (size_t)(p - sp);
+    }
+  }
+  return found;
+}
+
 /* Check if the current input character matches a character class. ASCII
    (cp < 128) hits the bitmap; non-ASCII falls back to the inclusive (lo, hi)
    range list, then to the types the class holds by POSIX bracket, then to the
@@ -503,8 +546,9 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
           sp = skip;
         }
         else if (pat->has_first_bytes) {
-          while (sp < str_end && !FIRST_BYTE_OK(pat, (uint8_t)*sp)) sp++;
-          if (sp > str_end) break;
+          const char *skip = skip_to_first_byte(pat, sp, str_end);
+          if (!skip) break;
+          sp = skip;
         }
         if (sp > start_cap) break;
       }
@@ -1491,8 +1535,9 @@ backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
       sp = skip;
     }
     else if (pat->has_first_bytes) {
-      while (sp < str_end && !FIRST_BYTE_OK(pat, (uint8_t)*sp)) sp++;
-      if (sp > str_end) break;
+      const char *skip = skip_to_first_byte(pat, sp, str_end);
+      if (!skip) break;
+      sp = skip;
     }
     if (sp > start_cap) break;
     if (!binary && sp < str_end && mrb_re_char_interior_p(str, sp, str_end)) {
