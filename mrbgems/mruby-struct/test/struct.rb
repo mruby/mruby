@@ -309,6 +309,23 @@ assert "Struct initialize with keyword arguments" do
   end
 end
 
+assert "Struct.new dispatches an overridden initialize" do
+  c = Struct.new(:foo)
+  sub = Class.new(c) do
+    def initialize(x)
+      super(x * 2)
+    end
+  end
+  assert_equal 2, sub.new(1).foo
+
+  kw = Class.new(c) do
+    def initialize(**h)
+      super(**h)
+    end
+  end
+  assert_equal 3, kw.new(foo: 3).foo
+end
+
 assert "Struct initialize when :keyword_init is true" do
   c = Struct.new(:foo, :bar, keyword_init: true)
 

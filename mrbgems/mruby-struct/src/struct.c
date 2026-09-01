@@ -240,8 +240,14 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass *kl
   mrb_value nstr = mrb_obj_value(c);
   mrb_iv_set(mrb, nstr, MRB_SYM(__members__), members);
 
-  mrb_define_class_method_id(mrb, c, MRB_SYM(new), mrb_instance_new, MRB_ARGS_ANY());
-  mrb_define_class_method_id(mrb, c, MRB_OPSYM(aref), mrb_instance_new, MRB_ARGS_ANY());
+  /* Shadow the class-creating Struct.new inherited through the metaclass
+     with the ordinary Class#new; unlike a C trampoline, its forwarding keeps
+     keyword arguments keywords all the way into #initialize */
+  struct RClass *cls = mrb->class_class;
+  mrb_method_t nm = mrb_method_search_vm(mrb, &cls, MRB_SYM(new));
+  struct RClass *sc = mrb_class_ptr(mrb_singleton_class(mrb, nstr));
+  mrb_define_method_raw(mrb, sc, MRB_SYM(new), nm);
+  mrb_define_method_raw(mrb, sc, MRB_OPSYM(aref), nm);
   mrb_define_class_method_id(mrb, c, MRB_SYM(members), mrb_struct_s_members_m, MRB_ARGS_NONE());
   mrb_define_class_method_id(mrb, c, MRB_SYM_Q(keyword_init), mrb_struct_s_keyword_init_p, MRB_ARGS_NONE());
   /* RSTRUCT(nstr)->basic.c->super = c->c; */
