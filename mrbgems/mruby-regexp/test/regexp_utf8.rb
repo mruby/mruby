@@ -472,6 +472,13 @@ assert("Regexp - multibyte (UTF-8) match extraction") do
   assert_false /い/.match?("あいあ", 2)
 end
 
+assert("MatchData#inspect spells the groups by string mode") do
+  # The values go through String#inspect, which keeps a UTF-8 character
+  # whole only on a build that reads them
+  skip unless __ENCODING__ == "UTF-8"
+  assert_equal %(#<MatchData "あ" 1:"あ" 2:nil>), /(あ)(x)?/.match("あ").inspect
+end
+
 assert("Regexp - UTF-8 codepoints in character class") do
   assert_equal 0, ("β" =~ /[α-ω]/)
   assert_nil ("Z" =~ /[α-ω]/)

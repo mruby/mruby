@@ -12,6 +12,7 @@
 #include <mruby/variable.h>
 #include <mruby/hash.h>
 #include <mruby/range.h>
+#include <mruby/numeric.h>
 #include <mruby/error.h>
 #include <mruby/internal.h>
 #include "re_internal.h"
@@ -1611,6 +1612,63 @@ matchdata_to_s(mrb_state *mrb, mrb_value self)
   int s = md->captures[0];
   int e = md->captures[1];
   return re_byte_substr(mrb, md->source, s, e - s);
+}
+
+/*
+ * MatchData#inspect - the groups by number or name, e.g.
+ * #<MatchData "ab" 1:"a" 2:"b">
+ */
+static mrb_value
+matchdata_inspect(mrb_state *mrb, mrb_value self)
+{
+  /* dup/clone leave the copy without match data. inspect answers rather than
+     raising, as it does on an uninitialized Regexp, and CRuby's answer for a
+     MatchData with no data is the bare class-and-address form. */
+  mrb_match_data *md = DATA_CHECK_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
+  if (!md) return mrb_any_to_s(mrb, self);
+
+  mrb_regexp_pattern *pat = NULL;
+  if (!mrb_nil_p(md->regexp)) {
+    pat = DATA_GET_PTR(mrb, md->regexp, &regexp_type, mrb_regexp_pattern);
+  }
+
+  mrb_value result = mrb_str_new_lit(mrb, "#<MatchData");
+  int ai = mrb_gc_arena_save(mrb);
+  for (int i = 0; i < md->num_captures; i++) {
+    mrb_str_cat_lit(mrb, result, " ");
+    if (i > 0) {
+      /* A group a name reaches is labeled with the name, not its number.
+         Each group carries at most one name, so the first entry that names
+         it is the whole answer; several groups of one name each show it. */
+      const re_named_capture *nc = NULL;
+      if (pat) {
+        for (uint16_t j = 0; j < pat->num_named; j++) {
+          if (pat->named_captures[j].group == i) {
+            nc = &pat->named_captures[j];
+            break;
+          }
+        }
+      }
+      if (nc) {
+        mrb_str_cat(mrb, result, nc->name, nc->name_len);
+      }
+      else {
+        mrb_str_cat_str(mrb, result, mrb_integer_to_str(mrb, mrb_int_value(mrb, i), 10));
+      }
+      mrb_str_cat_lit(mrb, result, ":");
+    }
+    int s = md->captures[i * 2];
+    if (s < 0) {
+      mrb_str_cat_lit(mrb, result, "nil");
+    }
+    else {
+      mrb_value grp = re_byte_substr(mrb, md->source, s, md->captures[i * 2 + 1] - s);
+      mrb_str_cat_str(mrb, result, mrb_str_inspect(mrb, grp));
+    }
+    mrb_gc_arena_restore(mrb, ai);
+  }
+  mrb_str_cat_lit(mrb, result, ">");
+  return result;
 }
 
 /* --- C-level gsub/sub/scan core --- */
@@ -3591,6 +3649,7 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, md, "string", matchdata_string, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "regexp", matchdata_regexp, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "to_s", matchdata_to_s, MRB_ARGS_NONE());
+  mrb_define_method(mrb, md, "inspect", matchdata_inspect, MRB_ARGS_NONE());
 }
 
 void

@@ -115,6 +115,30 @@ assert("MatchData#to_s") do
   assert_equal "bc", md.to_s
 end
 
+assert("MatchData#inspect") do
+  assert_equal '#<MatchData "ab">', /ab/.match("ab").inspect
+  assert_equal '#<MatchData "ab" 1:"a" 2:"b">', /(a)(b)/.match("ab").inspect
+  # a group that took no part in the match shows nil
+  assert_equal '#<MatchData "a" 1:"a" 2:nil>', /(a)(z)?/.match("a").inspect
+  # the values go through String#inspect, so a quote in one is escaped
+  assert_equal '#<MatchData "a\"b" 1:"a\"b" 2:"\"b">',
+               /(a("b))/.match('a"b').inspect
+end
+
+assert("MatchData#inspect - named groups") do
+  # a group a name reaches is labeled with the name instead of its number
+  assert_equal '#<MatchData "ab" x:"a" y:"b">', /(?<x>a)(?<y>b)/.match("ab").inspect
+  # several groups of one name each show it, matched or not
+  assert_equal '#<MatchData "b" a:nil a:"b">', /(?<a>x)|(?<a>b)/.match("b").inspect
+  assert_equal '#<MatchData "c" a:nil a:nil>', /(?:(?<a>x)|(?<a>b))?c/.match("c").inspect
+end
+
+assert("MatchData#inspect - a copy without match data") do
+  # dup does not carry the match over, and inspect answers about the object
+  # it has rather than raising as the other readers do
+  assert_true /a/.match("a").dup.inspect.start_with?("#<MatchData:")
+end
+
 assert("MatchData#begin / #end") do
   re = Regexp.new("bc")
   md = re.match("abcde")
