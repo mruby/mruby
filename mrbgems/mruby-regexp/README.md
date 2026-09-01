@@ -111,6 +111,9 @@ re.eql?(other)                    # => same as ==
 re.hash                           # => source and options hashed together
 Regexp.escape("a.b")              # => "a\\.b"
 Regexp.quote("a.b")               # => same as Regexp.escape
+Regexp.union("a+", /b/i)          # => /a\+|(?i-mx:b)/
+Regexp.union(["a", "b"])          # => /a|b/, one Array stands for its elements
+Regexp.union                      # => /(?!)/, which never matches
 Regexp.last_match(n)              # => nth capture from last match
 
 # MatchData
