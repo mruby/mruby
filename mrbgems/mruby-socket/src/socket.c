@@ -1232,21 +1232,6 @@ mrb_tcpsocket_allocate(mrb_state *mrb, mrb_value klass)
 #ifdef _WIN32
 /*
  * call-seq:
- *   basicsocket.close -> nil
- *
- * Windows-specific implementation to close socket using closesocket().
- * Overrides IO#close for socket objects on Windows.
- */
-static mrb_value
-mrb_win32_basicsocket_close(mrb_state *mrb, mrb_value self)
-{
-  if (closesocket(socket_fd(mrb, self)) != NO_ERROR)
-    mrb_raise(mrb, E_SOCKET_ERROR, "closesocket unsuccessful");
-  return mrb_nil_value();
-}
-
-/*
- * call-seq:
  *   basicsocket.sysread(maxlen, outbuf=nil) -> string
  *
  * Windows-specific implementation to read from socket using recv().
@@ -1337,7 +1322,9 @@ static const mrb_mt_entry basicsocket_rom_entries[] = {
   MRB_MT_ENTRY(mrb_basicsocket_shutdown,      MRB_SYM(shutdown), MRB_ARGS_OPT(1)),
   MRB_MT_ENTRY(mrb_basicsocket_set_is_socket, MRB_SYM_E(_is_socket), MRB_ARGS_REQ(1)),
 #ifdef _WIN32
-  MRB_MT_ENTRY(mrb_win32_basicsocket_close,    MRB_SYM(close), MRB_ARGS_NONE()),
+  /* `close` is IO's: fptr_finalize() calls closesocket() for a socket on
+     Windows and then clears the descriptor, which an override here did not,
+     leaving the object open to being closed a second time */
   MRB_MT_ENTRY(mrb_win32_basicsocket_sysread,  MRB_SYM(sysread), MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1)),
   /* a socket cannot seek: unimplemented, and named as such so `respond_to?`
      can answer false */
