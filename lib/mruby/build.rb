@@ -176,6 +176,7 @@ module MRuby
         @enable_benchmark = true
         @enable_compile_commands = true
         @compile_commands_default = false
+        @size = nil
         @mrbcfile_external = false
         @file_prefix_map = nil
         @file_prefix_map_source = nil
@@ -331,6 +332,12 @@ module MRuby
     def lock_enabled?
       Lockfile.enabled? && @enable_lock
     end
+
+    # The program the section sizes of this build's `size.json` are measured
+    # with. Left unset, one is looked for by the C compiler's spelling
+    # (`arm-none-eabi-gcc` names `arm-none-eabi-size`), then `llvm-size` and
+    # plain `size` are tried; see MRuby::SizeReport.
+    attr_accessor :size
 
     # Whether this build writes a `compile_commands.json` of its own compiles
     # into its build directory.

@@ -56,6 +56,15 @@ A source no build in the tree compiled, one of a gem the configuration leaves
 out for instance, has no entry; `compile_flags.txt` and `.clangd` at the
 source root are what answer for those.
 
+Every target also leaves a `size.json` in its build directory: the byte
+counts of `libmruby.a` and the executables, text, data and bss sections and
+all, each with the object files it is made of, so that two builds can be
+subtracted down to the object that grew. The file names the commit it was
+built from, and `rake size.json` is the build asked for by that name. The
+`size` program is found by the C compiler's prefix, or named with
+`conf.size = "arm-none-eabi-size"`; a build whose objects none can read
+keeps its file sizes and carries `null` sections.
+
 You can specify your own configuration file by the `MRUBY_CONFIG` environment
 variable (you can use `CONFIG` for shorthand for `MRUBY_CONFIG`). If the path
 doesn't exist, `build_config/${MRUBY_CONFIG}.rb` is used. The default
