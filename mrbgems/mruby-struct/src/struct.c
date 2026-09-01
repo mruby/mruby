@@ -397,7 +397,7 @@ mrb_struct_initialize(mrb_state *mrb, mrb_value self)
 
   if (mrb_test(keyword_init)) { /* keyword_init: true or other truthy value */
     if (argc > 1 || (argc == 1 && !mrb_hash_p(argv[0]))) {
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong arguments, expected keyword arguments");
+      mrb_argnum_error(mrb, argc, 0, 0);
     }
     mrb_value hash = (argc == 1) ? argv[0] : mrb_hash_new(mrb);
     return mrb_struct_init_with_keywords(mrb, hash, self);

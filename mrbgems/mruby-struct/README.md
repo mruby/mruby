@@ -61,7 +61,7 @@ person3 = Person.new
 puts person3.name  # Output: nil
 
 # Positional arguments will raise an error when keyword_init: true
-# Person.new("Charlie", 25)  # ArgumentError: wrong arguments, expected keyword arguments
+# Person.new("Charlie", 25)  # ArgumentError: wrong number of arguments (given 2, expected 0)
 ```
 
 ### Keyword Initialization Modes
