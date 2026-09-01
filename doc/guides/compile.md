@@ -221,6 +221,68 @@ def conf.cc.header_search_paths
 end
 ```
 
+The header searcher answers whether a file is there, which is not the same
+question as whether the compiler will accept it: it looks the name up in the
+search paths, and the flags this build compiles with are no part of that
+lookup. Where a build passes `-m32`, a `--sysroot`, or anything else that
+moves the compiler's idea of its target, ask the compiler instead.
+
+#### Asking the compiler
+
+`check_header` compiles `#include <name>` with the flags this build compiles
+with, and answers whether that compiled. It is how a build settles a question
+the preprocessor cannot answer on its own: finding out whether a header is
+there means reading it, so a `#if` guarding the `#include` runs too late to
+help.
+
+```ruby
+# `<sys/resource.h>` is an XSI extension, not part of base POSIX, so a host
+# either has it or does not and only the compiler knows which.
+spec.build_settings do |spec|
+  spec.cc.defines << 'HAVE_SYS_RESOURCE_H' if spec.cc.check_header('sys/resource.h')
+end
+```
+
+`check_func` asks whether a name is declared once a header is included, or is
+a macro spelled that way:
+
+```ruby
+spec.build_settings do |spec|
+  spec.cc.defines << 'HAVE_GETRUSAGE' if spec.cc.check_func('getrusage', header: 'sys/resource.h')
+end
+```
+
+A gem asks from a `spec.build_settings` block, as both of those do. It runs
+after every gem's `mrbgem.rake` body and before the rules are defined, which
+is what lets the defines an answer is turned into reach the compile.
+
+`try_compile` takes the source itself, for a question neither of the two
+spells. A build configuration asks its own compiler where it stands, having no
+gem lifecycle to wait on:
+
+```ruby
+conf.cc.defines << 'HAVE_BUILTIN_CLZ' if conf.cc.try_compile(<<~SOURCE)
+  int mrb_probe(void);
+  int mrb_probe(void) { return __builtin_clz(1u); }
+SOURCE
+```
+
+The three compile and never link, so a target with no library to link against
+still answers, and a `check_func` answer is about the declaration a compile
+can see rather than a symbol a link would resolve.
+
+Each answer is kept for the life of the `rake` process, keyed by everything
+that goes into the compile: the command, the option string and the source
+extension it is spelled with, the flags, and the source. The extension is what
+tells a compiler whether it is reading C or C++, and can be all that separates
+two of a build's compilers, a toolchain being free to give them one command
+and one set of flags.
+
+An answer holds for the compiler that gave it. `rake amalgam` embeds the
+defines a gem writes to its own `cc` into the generated `mruby.h`, so an
+amalgam carries the answers the build that generated it got, the way it
+already carries every other define a gem writes.
+
 ### Linker
 
 Configuration of the Linker binary, flags and library paths.

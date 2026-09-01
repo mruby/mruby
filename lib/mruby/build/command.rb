@@ -1,4 +1,5 @@
 require 'forwardable'
+require 'tmpdir'
 
 module MRuby
   class Command
@@ -38,6 +39,10 @@ module MRuby
     # The answers `file_prefix_map?` has had from the commands it asked,
     # which are the same from one compiler to the next.
     FILE_PREFIX_MAP_SUPPORT = {}
+
+    # The answers `try_compile` has had, keyed by the command line and the
+    # source it asked with.
+    COMPILE_PROBES = {}
 
     attr_accessor :label, :flags, :include_paths, :defines, :source_exts
     # Defines are held in two lists, split by who asked for them. `defines` is
@@ -120,6 +125,90 @@ module MRuby
         `echo | #{probe} -E - 2>&1`
         FILE_PREFIX_MAP_SUPPORT[probe] = $?.exitstatus == 0
       end
+    end
+
+    # Whether this compiler compiles +source+, asked with the flags it will
+    # compile the build with.  This is how a build settles a question about
+    # the target that the preprocessor cannot answer on its own: whether a
+    # header is there to be included is one such question, since finding out
+    # means reading the header, and a `#if` that guards the `#include` runs
+    # too late to help.
+    #
+    # The compiler is asked rather than guessed at from a table of platforms.
+    # It is the one that knows what its target has, and it is asked with the
+    # flags it will compile with, so a cross build answers about the target's
+    # headers and not the host's: the `--sysroot` that says which is which is
+    # among those flags.
+    #
+    # The source is compiled and never linked, so a target with no library to
+    # link against still answers.  Both it and the object go in a directory of
+    # their own, which is removed afterwards; the compiler still runs where
+    # the build runs, so that a relative path among the flags, an `-I` a
+    # configuration wrote without spelling out a root, names what it names
+    # during a compile.
+    #
+    # The answer is kept for the life of the rake process, since a build has
+    # four compilers and a config has several builds, and they name few
+    # commands between them.  It is keyed by everything that goes into the
+    # compile, the extension included: that is what tells a compiler whether
+    # it is reading C or C++, and it can be all that separates two compilers,
+    # a toolchain being free to give them one command and one set of flags.
+    # `visualcpp` does exactly that, naming `cl` for both and handing the C++
+    # one the C flags when `CFLAGS` is set and `CXXFLAGS` is not.
+    def try_compile(source)
+      key = [build.filename(command), compile_options, source_exts.first,
+             all_flags, source]
+      COMPILE_PROBES.fetch(key) { COMPILE_PROBES[key] = run_compile_probe(source) }
+    end
+
+    # Whether the header +name+ is there, as `#include <name>` asks for it.
+    #
+    # Unlike `search_header_path`, which looks through the paths this build
+    # adds with `-I` and answers about those alone, this asks the compiler,
+    # so it answers about the headers the compiler brings itself: those of
+    # the target's C library, where a header base POSIX does not guarantee
+    # (`<sys/resource.h>`, an XSI extension) either is or is not.
+    def check_header(name)
+      # A translation unit needs a declaration in it, and a header alone may
+      # leave one empty, so one is written that costs nothing.
+      try_compile("#include <#{name}>\nextern int mrb_probe;\n")
+    end
+
+    # Whether +name+ is declared once +header+ is included, or is a macro
+    # spelled that way.  A macro answers yes because a call written as
+    # `name(...)` compiles either way, which is what a caller is asking.
+    #
+    # The answer is about the declaration a compile can see, not about a
+    # symbol a link would resolve: this never links.  A host whose headers
+    # declare what its library does not define is not told apart here.
+    def check_func(name, header: nil)
+      source = header ? "#include <#{header}>\n" : ""
+      # The name is mentioned and never called, so an undeclared one is the
+      # error that answers no while a declared one asks nothing of a library.
+      # A macro is caught before that, since a macro is not an identifier the
+      # compiler would have anything to say about.
+      #
+      # A C++ compile is handed a different mention.  A C header read as C++
+      # may declare a name more than once, `pow` and `strchr` among them, and
+      # a cast to `void` cannot name a set: picking from one takes a target
+      # type, which that cast does not give, so the mention that answers for
+      # every other name would answer no for those.  A using-declaration asks
+      # for no target and so names them all.
+      source += <<~SOURCE
+        int mrb_probe(void);
+        int mrb_probe(void) {
+        #ifdef #{name}
+          return 0;
+        #elif defined(__cplusplus)
+          using ::#{name};
+          return 0;
+        #else
+          (void)#{name};
+          return 0;
+        #endif
+        }
+      SOURCE
+      try_compile(source)
     end
 
     def search_header_path(name)
@@ -277,6 +366,25 @@ module MRuby
     end
 
     private
+
+    # Compile +source+ and answer whether it compiled.  The source and the
+    # object are named inside a directory that is removed on the way out; the
+    # compiler is left in the working directory the build compiles from, which
+    # is what a relative path in the flags is written against.
+    def run_compile_probe(source)
+      Dir.mktmpdir("mruby-probe") do |dir|
+        infile = "#{dir}/probe#{source_exts.first || '.c'}"
+        outfile = "#{dir}/probe#{out_ext}"
+        File.write(infile, source)
+        options = compile_options % {
+          flags: all_flags, infile: filename(infile), outfile: filename(outfile)
+        }
+        # `system` answers nil where the command is not there to run at all,
+        # which is an answer of no like any other failure to compile.
+        !!system("#{build.filename(command)} #{options}",
+                 out: File::NULL, err: File::NULL)
+      end
+    end
 
     #
     # === Example of +.flags+ file
