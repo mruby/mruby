@@ -429,9 +429,18 @@ mrb_struct_init_with_keywords(mrb_state *mrb, mrb_value hash, mrb_value self)
 static mrb_value
 mrb_struct_initialize(mrb_state *mrb, mrb_value self)
 {
+  /* Read before mrb_get_args, which folds the kdict into argv and clears
+     ci->kw. Class#new always forwards a kdict, so an empty one means the
+     caller wrote no keywords. */
+  mrb_callinfo *ci = mrb->c->ci;
+  mrb_bool kw_given = FALSE;
+  if (ci->kw) {
+    mrb_value kdict = ci->stack[mrb_ci_bidx(ci)-1];
+    kw_given = mrb_hash_p(kdict) && !mrb_hash_empty_p(mrb, kdict);
+  }
+
   const mrb_value *argv;
   mrb_int argc;
-
   mrb_get_args(mrb, "*", &argv, &argc);
 
   mrb_value keyword_init = struct_s_keyword_init(mrb, mrb_obj_class(mrb, self));
@@ -443,17 +452,12 @@ mrb_struct_initialize(mrb_state *mrb, mrb_value self)
     mrb_value hash = (argc == 1) ? argv[0] : mrb_hash_new(mrb);
     return mrb_struct_init_with_keywords(mrb, hash, self);
   }
-  else if (mrb_equal(mrb, keyword_init, mrb_false_value())) { /* keyword_init: false */
-    return mrb_struct_init_with_args(mrb, argc, argv, self);
+  if (mrb_nil_p(keyword_init) && kw_given && argc == 1 && mrb_hash_p(argv[0])) {
+    /* keyword_init: nil (default): keyword arguments initialize by member
+       name, while a hash passed positionally stays a plain member value */
+    return mrb_struct_init_with_keywords(mrb, argv[0], self);
   }
-  else { /* keyword_init: nil (default) */
-    if (argc == 1 && mrb_hash_p(argv[0])) {
-      return mrb_struct_init_with_keywords(mrb, argv[0], self);
-    }
-    else {
-      return mrb_struct_init_with_args(mrb, argc, argv, self);
-    }
-  }
+  return mrb_struct_init_with_args(mrb, argc, argv, self);
 }
 
 /* 15.2.18.4.9  */

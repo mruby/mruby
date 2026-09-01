@@ -309,6 +309,29 @@ assert "Struct initialize with keyword arguments" do
   end
 end
 
+assert "Struct initialize takes a positional hash as a plain value" do
+  c = Struct.new(:foo, :bar)
+
+  o = c.new({foo: 1, bar: 2})
+  assert_equal({foo: 1, bar: 2}, o.foo)
+  assert_nil o.bar
+
+  o2 = c.new({baz: 1})
+  assert_equal({baz: 1}, o2.foo)
+
+  o3 = c.new(1, bar: 2)
+  assert_equal 1, o3.foo
+  assert_equal({bar: 2}, o3.bar)
+
+  h = {foo: 1}
+  o4 = c.new(**h)
+  assert_equal 1, o4.foo
+
+  o5 = c[{foo: 1}]
+  assert_equal({foo: 1}, o5.foo)
+  assert_equal 1, c[foo: 1].foo
+end
+
 assert "Struct.new dispatches an overridden initialize" do
   c = Struct.new(:foo)
   sub = Class.new(c) do
