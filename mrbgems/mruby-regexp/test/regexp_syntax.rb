@@ -1974,6 +1974,16 @@ assert("Regexp#named_captures") do
   re = /(?<a>x)/
   re.named_captures["a"] = 99
   assert_equal({"a" => [1]}, re.named_captures)
+
+  # a name given to several groups lists every group it was given to, and
+  # each group keeps its own number
+  assert_equal({"a" => [1, 2]}, /(?<a>x)|(?<a>b)/.named_captures)
+  assert_equal({"b" => [1], "a" => [2, 3]}, /(?<b>1)(?<a>x)|(?<a>b)/.named_captures)
+
+  # the group lists are copies too
+  re = /(?<a>x)|(?<a>b)/
+  re.named_captures["a"] << 99
+  assert_equal({"a" => [1, 2]}, re.named_captures)
 end
 
 assert("Regexp#names") do

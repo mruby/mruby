@@ -164,14 +164,25 @@ re_initialize(mrb_state *mrb, mrb_value self, mrb_value pattern, uint32_t flags)
   mrb_re_compile(mrb, pat, RSTRING_PTR(pattern), RSTRING_LEN(pattern), flags,
                  re_binary_string_p(pattern));
 
-  /* store named captures as hash */
+  /* Store named captures as a hash of name -> [group, ...]. A name may be
+     given to several groups, and each keeps its own number, so the table
+     carries them all; a name's slot in the hash is made by its first group
+     and later ones append to it, which is the order CRuby's named_captures
+     lists both the names and each name's groups in. */
   if (pat->num_named > 0) {
     mrb_value nc = mrb_hash_new_capa(mrb, pat->num_named);
+    mrb_iv_set(mrb, self, MRB_IVSYM(named_captures), nc);
+    int ai = mrb_gc_arena_save(mrb);
     for (uint16_t i = 0; i < pat->num_named; i++) {
       mrb_value name = mrb_str_new(mrb, pat->named_captures[i].name, pat->named_captures[i].name_len);
-      mrb_hash_set(mrb, nc, name, mrb_fixnum_value(pat->named_captures[i].group));
+      mrb_value groups = mrb_hash_get(mrb, nc, name);
+      if (mrb_nil_p(groups)) {
+        groups = mrb_ary_new_capa(mrb, 1);
+        mrb_hash_set(mrb, nc, name, groups);
+      }
+      mrb_ary_push(mrb, groups, mrb_fixnum_value(pat->named_captures[i].group));
+      mrb_gc_arena_restore(mrb, ai);
     }
-    mrb_iv_set(mrb, self, MRB_IVSYM(named_captures), nc);
   }
   else {
     /* The table belongs to the pattern compiled just above, so a pattern that
