@@ -141,12 +141,34 @@ Typical sizes depend on included gems:
 
 ### Build Configuration Defines
 
-The defines the build compiles with are written at the top of `mruby.h`, so
-that including it is enough to get the same `mrb_value` layout, integer width
-and feature set as the build the amalgamation was generated from. Both the
-defines the build configuration names (`conf.cc.defines`) and the ones gems
-contribute (`spec.build.defines`) are emitted. Each is wrapped in `#ifndef`,
-so passing the same define on the command line is not a redefinition.
+The defines the build compiles with are written at the top of `mruby.h`,
+ahead of its first `#include`, so that including it is enough to get the same
+`mrb_value` layout, integer width and feature set as the build the
+amalgamation was generated from. Both the defines the build configuration
+names (`conf.cc.defines`) and the ones gems contribute (`spec.build.defines`,
+`spec.cc.defines`) are emitted. Each is wrapped in `#ifndef`, so passing the
+same define on the command line is not a redefinition.
+
+Not every name a gem lists in `spec.cc.defines` reaches the header. `MRB_*`
+and `MRBGEM_*` are dropped: a define that changes how `mruby.h` itself is
+read belongs to the whole build rather than to one gem, and the `MRBGEM_*`
+version strings are not C constants. `__STDC_*` is dropped as well, the
+preamble writing the ones the amalgamation needs itself. A gem whose `MRB_*`
+define belongs in the header declares it in `spec.build.defines`.
+
+Their position ahead of every `#include` mirrors a normal build, where each
+`-D` precedes every header. That is what makes libc feature test macros work:
+a gem that uses a GNU extension declares `spec.cc.defines << '_GNU_SOURCE'`
+in its `mrbgem.rake` and the declaration reaches the amalgamation consumer's
+plain compiler invocation. Writing `#define _GNU_SOURCE` at the top of a gem
+source file does not survive amalgamation: the file lands in the middle of
+the combined translation unit, after the first libc header has been read.
+
+Note that in the combined translation unit a gem's defines apply to every
+source file, not only to the gem's own objects as in a normal build. Macros
+that add declarations (`_GNU_SOURCE`, `_DEFAULT_SOURCE`) are safe there;
+macros that restrict the libc feature set (`_POSIX_C_SOURCE`,
+`_XOPEN_SOURCE`) can hide declarations the other sources rely on.
 
 Two kinds are not written, and are left to whoever compiles the amalgamation:
 
