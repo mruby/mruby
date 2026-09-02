@@ -2477,6 +2477,98 @@ assert("Regexp - negative lookbehind at string start") do
   assert_equal "a", md[0]
 end
 
+assert("Regexp - each branch of a lookbehind looks back its own way") do
+  need_backtracking_stack
+  # The body of a lookbehind is measured so the match knows how far to rewind,
+  # and the branches of an alternation need not measure the same: `(?<=ab|c)`
+  # looks back two characters down one branch and one down the other. Each
+  # branch carries its own rewind, so the widths do not have to be reconciled
+  # and none of them is tried for a branch it does not belong to.
+  assert_equal 2, ("abx" =~ /(?<=ab|c)x/)
+  assert_equal 1, ("cx" =~ /(?<=ab|c)x/)
+  assert_nil ("bx" =~ /(?<=ab|c)x/)
+  # three of them, and the shorter branch written last
+  assert_equal 3, ("abcx" =~ /(?<=abc|q|zz)x/)
+  assert_equal 1, ("qx" =~ /(?<=abc|q|zz)x/)
+  assert_equal 2, ("zzx" =~ /(?<=abc|q|zz)x/)
+  # a branch may be empty, which looks back at nothing and always holds
+  assert_equal 1, ("zx" =~ /(?<=a|)x/)
+  assert_equal 1, ("zx" =~ /(?<=|a)x/)
+  # the negative form is every branch failing
+  assert_nil ("abx" =~ /(?<!ab|c)x/)
+  assert_nil ("cx" =~ /(?<!ab|c)x/)
+  assert_equal 1, ("bx" =~ /(?<!ab|c)x/)
+  # a branch too near the start of the subject fails alone: the branches
+  # after it are still tried
+  assert_equal 1, ("cx" =~ /(?<=abcd|c)x/)
+end
+
+assert("Regexp - a lookbehind branch has to land where it was entered") do
+  need_backtracking_stack
+  # With one width per branch, a branch can match from another branch's
+  # rewind and stop short: rewound the two characters `ab` asks for, `c`
+  # matches the `c` of "cax" and ends before the `x`. That is a match of the
+  # text before the wrong position, so the sub-pattern has to have come back
+  # to where the lookbehind was entered. CRuby answers nil for both.
+  assert_nil ("cax" =~ /(?<=c|ab)x/)
+  assert_nil ("cax" =~ /(?<=ab|c)x/)
+  # and the branch that does land is still found, whichever order they are
+  # written in
+  assert_equal 2, ("acx" =~ /(?<=c|ab)x/)
+  assert_equal 2, ("abx" =~ /(?<=c|ab)x/)
+end
+
+assert("Regexp - the branches of a lookbehind are tried in order") do
+  need_backtracking_stack
+  # Two branches can match at once, and which one the captures come from is
+  # the order they are written in, not the order their widths are tried in.
+  # Both `(b)` and `(cb)` match before the `x` of "cbx"; the leftmost wins.
+  assert_equal ["x", nil, "b", nil], "cbx".match(/(?<=(ab)|(b)|(cb))x/).to_a
+  assert_equal ["x", "cb", nil, nil], "cbx".match(/(?<=(cb)|(b)|(ab))x/).to_a
+  # a capture a branch did not run stays unset
+  assert_equal ["x", "a", nil], "abx".match(/(?<=(a)b|(c))x/).to_a
+  assert_equal ["x", nil, "c"], "cx".match(/(?<=(a)b|(c))x/).to_a
+end
+
+assert("Regexp - an alternation a lookbehind body only holds must measure one width") do
+  need_backtracking_stack
+  # A body that *is* an alternation gives each branch its own rewind. An
+  # alternation anywhere else has to come out one width, since what stands
+  # beside it is measured from wherever it ends. CRuby draws the line in the
+  # same place, and reads the pattern the same way: `(?:...)` around the whole
+  # body is nothing at all, so the body is the alternation; a capture group is
+  # something, so the alternation is inside it.
+  assert_equal 2, ("abx" =~ /(?<=(?:ab|b))x/)
+  assert_equal 1, ("bx" =~ /(?<=(a|b))x/)
+  assert_equal 2, ("bcx" =~ /(?<=(?:a|b)c)x/)
+  assert_equal 2, ("xby" =~ /(?<=x(a|b))y/)
+
+  msg = "invalid pattern in look-behind"
+  ["(?<=(ab|b))x", "(?<=(?:a|bc)d)x", "(?<=a|b*)x", "(?<=(?:a|b)*)x"].each do |src|
+    assert_raise_with_message(RegexpError, "#{msg}: /#{src}/", src) do
+      Regexp.new(src)
+    end
+  end
+
+  # Which branches the body has is read from what the alternation left behind
+  # when it was compiled, and `{0}` throws the code away and emits the rest
+  # over the top of it. The branch heads then point at instructions belonging
+  # to something else, and this body, which is the refused `(?<=a?bc)` with
+  # such a record beside it, was taken for an alternation of two branches.
+  ["(?<=(?:a|b){0}a?bc)x", "(?<=(?:ab|c){0}a?bcd)x"].each do |src|
+    assert_raise_with_message(RegexpError, "#{msg}: /#{src}/", src) do
+      Regexp.new(src)
+    end
+  end
+
+  # An option construct is where the two engines part: it emits nothing here,
+  # so the alternation under it is still the body, where CRuby keeps it as an
+  # enclosure and refuses the first two of these. README.md lists it.
+  assert_equal 2, ("abx" =~ /(?<=(?i:ab|b))x/)
+  assert_equal 2, ("abx" =~ /(?<=(?i)ab|b)x/)
+  assert_equal 2, ("abx" =~ /(?<=(?i:ab)|b)x/)  # accepted by CRuby too
+end
+
 assert("Regexp - a lookbehind body of many forks is measured once per fork") do
   need_backtracking_stack
   # Both arms of a fork are measured to the end of the body, so a chain of

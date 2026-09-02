@@ -778,23 +778,22 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
 }
 
 /*
- * Where the lookbehind at pc starts matching from: sp rewound by the byte
- * count in the opcode for a binary subject, and otherwise by the character
- * count in the RE_LB_WIDTH that follows it. The backward walk steps over
+ * Where a lookbehind branch starts matching from: sp rewound by the byte
+ * count the RE_LB_WIDTH at its head carries for a binary subject, and
+ * otherwise by the character count beside it. The backward walk steps over
  * continuation bytes with mrb_re_char_interior_p(), which keeps it on the
  * boundaries the forward decode uses, broken input included. Returns NULL
  * when the text before sp runs out first.
  */
 static const char*
-lookbehind_start(const mrb_regexp_pattern *pat, const char *str,
-                 const char *str_end, const char *sp, uint32_t pc,
-                 mrb_bool binary)
+lookbehind_start(const char *str, const char *str_end, const char *sp,
+                 uint16_t width, mrb_bool binary)
 {
   if (binary) {
-    int lb_len = pat->code[pc].a;
+    int lb_len = RE_LB_BYTES(width);
     return (sp - str < lb_len) ? NULL : sp - lb_len;
   }
-  int nchars = pat->code[pc + 1].a;
+  int nchars = RE_LB_CHARS(width);
   while (nchars > 0) {
     if (sp <= str) return NULL;
     sp--;
@@ -1324,41 +1323,58 @@ bt_match(bt_state *m, const char *sp, uint32_t pc)
       break;
 
     case RE_LOOKAHEAD:
-    case RE_LOOKBEHIND:
     case RE_NEG_LOOKAHEAD:
+    case RE_LOOKBEHIND:
     case RE_NEG_LOOKBEHIND:
       {
         /* The lookaround is entered: a barrier stands where it began, and
-           the sub-pattern goes on from here, from sp for a lookahead, from
-           the rewound start for a lookbehind. What the barrier holds is
-           where the text after the lookaround goes on from and the pass to
-           go on in; for a negative one that is what taking the barrier
-           resumes, its sub-pattern running out of alternatives being the
-           assertion holding. The sub-pattern runs as a pass of its own, one
-           no run before it had, so the records of the loops inside it that
-           an earlier run may have left live are not taken for this run's
-           (see bt_state). */
+           the sub-pattern goes on from here. What the barrier holds is where
+           the text after the lookaround goes on from and the pass to go on
+           in; for a negative one that is what taking the barrier resumes,
+           its sub-pattern running out of alternatives being the assertion
+           holding. The sub-pattern runs as a pass of its own, one no run
+           before it had, so the records of the loops inside it that an
+           earlier run may have left live are not taken for this run's (see
+           bt_state).
+
+           A lookbehind is entered at the same position as a lookahead: the
+           rewind belongs to the branch, not to the opener, so that the
+           branches of a body whose widths differ each look back their own
+           way and are tried in the order the alternation gives them. The
+           RE_LB_WIDTH at the head of the branch does it (see there). */
         mrb_bool negated = (inst.op == RE_NEG_LOOKAHEAD || inst.op == RE_NEG_LOOKBEHIND);
-        const char *from = sp;
-        uint32_t body = pc + 1;
-        if (inst.op == RE_LOOKBEHIND || inst.op == RE_NEG_LOOKBEHIND) {
-          from = lookbehind_start(pat, str, str_end, sp, pc, binary);
-          if (!from) {
-            /* not enough text before: a positive lookbehind cannot hold and
-               a negative one holds without a sub-pattern to run */
-            if (!negated) goto fail;
-            pc = inst.offset;
-            break;
-          }
-          body = pc + 2;
-        }
         if ((r = bt_push(m, sp, inst.offset, negated ? RE_CP_NEG : RE_CP_BARRIER,
                          pat->code[inst.offset - 1].offset)) != BT_OK) {
           return r;
         }
         m->pass = ++m->pass_seq;
+        pc++;
+        /* A lookbehind whose body takes one width begins with that rewind,
+           and taking it here rather than through another turn of the loop is
+           what leaves such a lookbehind, every one this engine compiled
+           before a branch could have a width of its own, costing what it
+           did. A body whose branches differ begins with the fork that picks
+           between them, and each branch rewinds when it is reached.
+
+           The opcode alone tells the two apart for a lookahead as well: a
+           rewind stands at the head of a lookbehind branch and nowhere
+           else, so a lookahead's body never begins with one. */
+        if (pat->code[pc].op != RE_LB_WIDTH) break;
+        inst = pat->code[pc];
+      }
+      /* fall through */
+
+    case RE_LB_WIDTH:
+      {
+        /* The branch this heads looks back by the width it carries. Too
+           little text before is this branch failing and nothing more: what
+           the search tries next is the branch after it, and with none left
+           the barrier below answers, a positive lookbehind not holding and
+           a negative one holding with no sub-pattern having run. */
+        const char *from = lookbehind_start(str, str_end, sp, inst.offset, binary);
+        if (!from) goto fail;
         sp = from;
-        pc = body;
+        pc++;
       }
       break;
 
@@ -1379,12 +1395,22 @@ bt_match(bt_state *m, const char *sp, uint32_t pc)
         uint32_t idx;
         if (!bt_barrier_find(m, inst.offset, &idx)) goto fail;
         re_cpoint c = m->cp[idx];
-        /* No boundary test either: a sub-pattern reaches the same
+        /* Where the sub-pattern is one whose branches rewind by different
+           widths, it has to have landed back where the lookaround was
+           entered: `(?<=c|ab)` rewound the two characters `ab` asks for can
+           still match `c` and stop a character short, which is a match of
+           the text before the wrong position. The test comes before the cut
+           below, so that a branch that lands short leaves the search the
+           alternatives it has not tried, which are the branches after it,
+           each with its own rewind. Every other lookaround lands where it
+           must by construction and carries no such bit; see RE_LOOK_LANDING.
+           No boundary test either: a sub-pattern reaches the same
            positions as the rest of the search, so an assertion that used to
            hold on half a character has no half to hold on. */
+        if ((inst.a & RE_LOOK_LANDING) && sp != c.sp) goto fail;
         m->cp_top = idx;
         m->pass = c.pass;
-        if (inst.a) {
+        if (inst.a & RE_LOOK_NEGATED) {
           bt_undo_to(m, c.undo_top);
           goto fail;
         }

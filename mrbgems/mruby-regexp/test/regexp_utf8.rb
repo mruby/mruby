@@ -405,6 +405,25 @@ assert("Regexp - a capture spans whole characters") do
   assert_equal [0x81], bm[2].bytes
 end
 
+assert("Regexp - a lookbehind branch counts its own width in both units") do
+  need_backtracking_stack
+  # A rewind is counted in characters against a subject read as characters and
+  # in bytes against one read as bytes, so a branch carries both counts. With
+  # one width per branch there is a pair per branch, and the two branches here
+  # disagree in each unit on its own: `ā` is one character and two bytes, `bc`
+  # two characters and two bytes, so a rewind that had only the byte count
+  # could not tell them apart.
+  skip unless __ENCODING__ == "UTF-8"
+  assert_equal 1, ("ābx" =~ /(?<=ā|bc)b/)
+  assert_equal 2, ("bcbx" =~ /(?<=ā|bc)b/)
+  assert_nil ("abx" =~ /(?<=ā|bc)b/)
+  # the same pattern against a byte-indexed subject rewinds by the bytes, so
+  # both branches step back two of them
+  bin = "ābx".b
+  assert_equal 2, (bin =~ /(?<=ā|bc)b/)
+  assert_nil ("abx".b =~ /(?<=ā|bc)b/)
+end
+
 assert("Regexp - a lookaround holds where its sub-pattern matches") do
   # A lookaround consumes nothing, so where its sub-pattern stopped was not the
   # end of a match and nothing held it to a character. It could therefore

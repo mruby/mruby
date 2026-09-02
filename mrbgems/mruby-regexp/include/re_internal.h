@@ -60,12 +60,34 @@ enum re_opcode {
   RE_BACKREF,    /* backreference: a = group number, offset = 1 if case-insensitive */
   RE_LOOKAHEAD,  /* positive lookahead: offset = end of sub-pattern */
   RE_NEG_LOOKAHEAD, /* negative lookahead: offset = end of sub-pattern */
-  RE_LOOKBEHIND,     /* positive lookbehind: a = byte count, offset = end */
-  RE_NEG_LOOKBEHIND, /* negative lookbehind: a = byte count, offset = end */
-  RE_LB_WIDTH,       /* carrier after either lookbehind: a = character count.
-                        The executor rewinds by bytes against a binary subject
-                        and by characters otherwise, and the sub-pattern body
-                        starts past this instruction, at pc + 2. */
+  RE_LOOKBEHIND,     /* positive lookbehind: offset = end, a = 1 once the
+                        widths below are in place and 0 while the parse has
+                        left the measuring to measure_deferred_lookbehinds().
+                        It does not rewind: each branch of the sub-pattern
+                        rewinds by its own width, so the opener leaves the
+                        input where the lookbehind was entered and goes on at
+                        pc + 1. */
+  RE_NEG_LOOKBEHIND, /* negative lookbehind: as above */
+  RE_LB_WIDTH,       /* rewind by one fixed width, at the head of the branch
+                        that takes it: offset holds the byte count in its
+                        high 8 bits and the character count in its low 8
+                        bits, a fixed-width branch being at most 255 bytes
+                        wide so that both fit. The executor rewinds by bytes
+                        against a binary subject and by characters otherwise,
+                        which is why the two counts travel together; too
+                        little text before is this branch failing, and what
+                        the search tries next is the branch after it.
+
+                        A lookbehind whose top-level alternation takes
+                        different widths per branch, `(?<=ab|c)`, carries one
+                        of these at each branch's head, so the branches are
+                        tried in the order the alternation already gives them
+                        and each rewinds by its own measure; one whose body
+                        is a single fixed width carries one at the head of
+                        the body. RE_LOOK_END then asserts that the branch
+                        landed back where the lookbehind was entered, which
+                        is what keeps a branch of one width from matching
+                        from another's rewind. */
   RE_ATOMIC,         /* atomic group (?>...): offset = the group's number,
                         1 for the first one the pattern opens and no two the
                         same. The body follows and ends at the RE_ATOMIC_END
@@ -76,7 +98,8 @@ enum re_opcode {
                         the RE_ATOMIC it closes */
   RE_LOOK_END,       /* end of a lookaround's sub-pattern: offset = the
                         lookaround's number, from the same count as RE_ATOMIC;
-                        a = 1 for a negative one. The instruction after it is
+                        a holds RE_LOOK_NEGATED and RE_LOOK_LANDING. The
+                        instruction after it is
                         the text after the lookaround, which is where the
                         opener's `offset` points, so the opener finds its end
                         at offset - 1. */
@@ -103,6 +126,24 @@ enum re_opcode {
                         CRuby -- leaves a marker in the frame's place and
                         goes on where the frame says. */
 };
+
+/* RE_LOOK_END::a. The polarity says what a matched sub-pattern means. The
+   landing bit asks that the sub-pattern have ended where the lookaround was
+   entered, and stands only on a lookbehind whose branches take different
+   widths, the one shape that can miss: rewound by a branch two characters
+   wide, a branch one character wide matches and stops short. A lookahead
+   starts where the search stands and a lookbehind of one width is that wide
+   down every path, so neither can land anywhere else and neither pays for
+   the test. */
+#define RE_LOOK_NEGATED 1
+#define RE_LOOK_LANDING 2
+
+/* RE_LB_WIDTH::offset packs the two units one width is counted in. Both are
+   at most 255, the widest a lookbehind branch may be. */
+#define RE_LB_PACK(bytes, chars) \
+  ((uint16_t)((((bytes) & 0xff) << 8) | ((chars) & 0xff)))
+#define RE_LB_BYTES(offset) ((int)((offset) >> 8))
+#define RE_LB_CHARS(offset) ((int)((offset) & 0xff))
 
 /* Bytecode instruction (4 bytes each for alignment) */
 typedef struct {
