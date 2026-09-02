@@ -8,6 +8,7 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
   prism_templates_dir = "#{prism_dir}/templates"
 
   cc.include_paths << "#{dir}/include"
+  cc.include_paths << "#{build.build_root}/prism/include"
   cc.include_paths << "#{prism_dir}/include"
 
   cc.defines.flatten!
@@ -51,7 +52,7 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
   # would leave the Prism objects out of objs and break the link.
   next if (Rake.application.top_level_tasks - %w(clean deep_clean)).empty?
 
-  prism_generated_files = %w[
+  prism_template_names = %w[
     ext/prism/api_node.c
     include/prism/ast.h
     include/prism/diagnostic.h
@@ -60,7 +61,13 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
     src/prettyprint.c
     src/serialize.c
     src/token_type.c
-  ].map { |path| "#{prism_dir}/#{path}" }
+  ]
+  # Written where the build writes, not into the submodule: a checkout is not
+  # the build's to change, and an out-of-source build left it holding the
+  # generated sources. `build_root` rather than `build_dir` because every
+  # target of the config reads the same ones, the mrbc sub-build included.
+  prism_gen_dir = "#{build.build_root}/prism"
+  prism_generated_files = prism_template_names.map { |path| "#{prism_gen_dir}/#{path}" }
 
   task :prism_submodule do
     next if File.exist?("#{prism_dir}/templates/template.rb")
@@ -74,7 +81,9 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
     missing = prism_generated_files.reject { |path| File.exist?(path) }
     unless missing.empty?
       FileUtils.cd prism_dir do
-        sh "#{RbConfig.ruby} templates/template.rb"
+        prism_template_names.each do |name|
+          sh "#{RbConfig.ruby} templates/template.rb #{name} #{prism_gen_dir}/#{name}"
+        end
       end
     end
 
@@ -104,7 +113,7 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
   Rake::Task[:prism_templates].invoke
 
   %w(node prettyprint serialize token_type).each do |name|
-    dst = "#{prism_dir}/src/#{name}.c"
+    dst = "#{prism_gen_dir}/src/#{name}.c"
     file dst => ["#{prism_templates_dir}/src/#{name}.c.erb", "#{prism_templates_dir}/template.rb"] do
       Rake::Task[:prism_templates].invoke
     end
@@ -137,7 +146,21 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
       cc
     end
   end
+  prism_gen_src_dir = "#{prism_gen_dir}/src"
+  cc.define_rules(prism_obj_dir, prism_gen_src_dir) do
+    prism_cc ||= if build.cxx_abi_enabled?
+      cc.clone.tap do |c|
+        c.flags = cc.flags.flatten - [cc.cxx_compile_flag].flatten
+        c.defines = cc.defines + %w(MRC_ALLOC_LIBC)
+      end
+    else
+      cc
+    end
+  end
   Dir.glob("#{prism_src_dir}/**/*.c").each do |src|
     objs << objfile(src.relative_path_from(prism_src_dir).pathmap("#{prism_obj_dir}/%X"))
+  end
+  Dir.glob("#{prism_gen_src_dir}/**/*.c").each do |src|
+    objs << objfile(src.relative_path_from(prism_gen_src_dir).pathmap("#{prism_obj_dir}/%X"))
   end
 end
