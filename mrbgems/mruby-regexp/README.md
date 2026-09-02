@@ -273,6 +273,12 @@ Every entry is a place this engine answers a pattern differently from CRuby.
   refuses `(?(1)...)` there as it refuses `\1` and `\k<1>`, and reads the
   delimited spellings `(?(<1>)...)`, `(?(<-1>)...)` and `(?('1')...)` all the
   same. Here the number is read the way `\k<1>` reads it, and refused with it.
+- **A conditional's body is its own**: `(?(1)(?:b|c))` is `yes` = `(?:b|c)`
+  with no `no`. CRuby reads it as `(?(1)b|c)`: Onigmo's non-capturing group
+  leaves no node of its own, so an alternation that fills the body is taken
+  for the conditional's two bodies, and `(?(1)(?:b|c|d))` is refused as three
+  of them. A body the group does not fill, `(?(1)(?:b|c)x)`, and a group of
+  any other kind, `(?(1)(?i:b|c))`, are read alike by both.
 - **An empty iteration ends a repeat around a call too**, which is the rule
   every inline repeat here follows. Onigmo switches such repeats to a
   capture-tracking empty check that answers a few of them differently, among
