@@ -359,14 +359,24 @@ module MRuby
       end
     end
 
+    # The directories a gem's exported headers are found under, in the
+    # order they are written: the selected port's include/ first, since the
+    # gem's HAL header includes the port's feature header and has to come
+    # after it.  A header elsewhere under ports/<name>/ is the port's own
+    # and is not written here.
+    def gem_header_roots(gem)
+      [gem.port_include_dir, "#{gem.dir}/include"].compact
+        .select { |d| File.directory?(d) }
+    end
+
     def write_gem_headers(f)
       main_library_gems.each do |gem|
-        gem_include = "#{gem.dir}/include"
-        next unless File.directory?(gem_include)
+        roots = gem_header_roots(gem)
+        next if roots.empty?
 
-        paths = Dir.glob("#{gem_include}/**/*.h")
-        order_gem_headers(paths, gem_include).each do |path|
-          rel_path = path.sub("#{gem_include}/", "")
+        paths = roots.flat_map { |root| Dir.glob("#{root}/**/*.h") }
+        order_gem_headers(paths, roots).each do |path|
+          rel_path = header_rel_path(path, roots)
           # X-macro tables are inlined at each include site instead
           next if gem_xmacro_path(rel_path, '"')
           write_header_content(f, "#{gem.name}: #{rel_path}", path)
@@ -415,9 +425,22 @@ module MRuby
     # includes (e.g. mrc_ccontext.h <-> mrc_pool.h) form cycles that the real
     # build resolves with include guards; a DFS post-order breaks them stably
     # by skipping headers already on the current path.
-    def order_gem_headers(paths, gem_include)
+    # The name a header is included by: its path under whichever of
+    # `roots` holds it.
+    def header_rel_path(path, roots)
+      root = roots.find { |r| path.start_with?("#{r}/") }
+      root ? path.sub("#{root}/", "") : path
+    end
+
+    # `paths` in an order every header follows the ones it includes, when
+    # those are among `paths` themselves.  A header is named by its path
+    # under whichever of `roots` it sits in, so the port's feature header
+    # and the HAL header that includes it order the same way two headers
+    # under include/ do.
+    def order_gem_headers(paths, roots)
+      roots = Array(roots)
       by_name = {}
-      paths.each { |p| by_name[p.sub("#{gem_include}/", "")] = p }
+      paths.each { |p| by_name[header_rel_path(p, roots)] = p }
 
       deps = {}
       by_name.each do |rel, path|
@@ -492,12 +515,12 @@ module MRuby
     def write_compiler_headers(f, gems)
       f.puts "/* ======== Compiler headers ======== */"
       gems.each do |gem|
-        gem_include = "#{gem.dir}/include"
-        next unless File.directory?(gem_include)
+        roots = gem_header_roots(gem)
+        next if roots.empty?
 
-        paths = Dir.glob("#{gem_include}/**/*.h")
-        order_gem_headers(paths, gem_include).each do |path|
-          rel_path = path.sub("#{gem_include}/", "")
+        paths = roots.flat_map { |root| Dir.glob("#{root}/**/*.h") }
+        order_gem_headers(paths, roots).each do |path|
+          rel_path = header_rel_path(path, roots)
           # X-macro tables are inlined at each include site instead
           next if gem_xmacro_path(rel_path, '"')
           write_header_content(f, "#{gem.name}: #{rel_path}", path)

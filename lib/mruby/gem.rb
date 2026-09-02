@@ -25,7 +25,8 @@ module MRuby
       alias :author= :authors=
 
       attr_accessor :rbfiles, :objs
-      attr_reader :port_objs
+      attr_reader :port_objs, :port_dir
+      attr_accessor :port_include_dir
       attr_writer :test_objs, :test_rbfiles
       attr_accessor :test_args, :test_preload
 
@@ -67,12 +68,23 @@ module MRuby
         # a port for the earlier names.  These objs are tracked
         # separately so List#resolve_external_hal! can drop them when
         # an external HAL provider (gem named hal-<short>-*) is loaded.
+        #
+        # The port's include/ is an include path for the gem's own sources
+        # and for any gem that depends on it: a port declares what it
+        # implements in a header there, and the gem's HAL header reads it.
+        # Anything else under ports/<name>/ is the port's own, seen by its
+        # sources alone, as src/ is to the gem.
         @port_objs = []
+        @port_dir = nil
+        @port_include_dir = nil
         build.effective_ports.each do |port|
           port_dir = "#{@dir}/ports/#{port}"
           if File.directory?(port_dir)
             @port_objs = srcs_to_objs("ports/#{port}")
             @objs += @port_objs
+            @port_dir = port_dir
+            port_include = "#{port_dir}/include"
+            @port_include_dir = port_include if File.directory?(port_include)
             break
           end
         end
@@ -113,12 +125,21 @@ module MRuby
         @skip_test
       end
 
+      # The headers the selected port exports, by the names a source includes
+      # them under.  With no port selected, everything any bundled port
+      # exports: a provider standing in for all of them answers for all.
+      def port_exported_headers
+        roots = @port_dir ? ["#{@port_dir}/include"] : Dir.glob("#{@dir}/ports/*/include")
+        roots.flat_map { |r| Dir.glob("#{r}/**/*.h").map { |h| h.sub("#{r}/", "") } }.uniq.sort
+      end
+
       def setup_compilers
         (core? ? [@cc, *(@cxx if build.cxx_exception_enabled?)] : compilers).each do |compiler|
           compiler.define_rules build_dir, @dir, @build.exts.presym_preprocessed
           compiler.define_rules build_dir, @dir, @build.exts.object
           compiler.defines << %Q[MRBGEM_#{funcname.upcase}_VERSION=#{version}]
           compiler.include_paths << "#{@dir}/include" if File.directory? "#{@dir}/include"
+          compiler.include_paths << @port_include_dir if @port_include_dir
         end
 
         define_gem_init_builder if @generate_functions
@@ -497,11 +518,17 @@ module MRuby
       # HAL provider for the gem whose name's last `-`-separated
       # segment is <short> (e.g., hal-task-glib provides the HAL for
       # mruby-task).  The target gem's ports/* sources are dropped
-      # from its object list -- the matching gem supplies the
-      # implementation.  Two or more matches is a build error.
+      # from its object list, and the provider's include/ takes the
+      # port's include/ place on every include path the port's would
+      # have been on: the matching gem supplies the implementation and
+      # the declarations that go with it, whether or not a bundled port
+      # matched this build.  Two or more matches is a build error, and
+      # so is a provider that leaves out a header the port it replaces
+      # exports, since the target's HAL header includes that header by
+      # name and no build could then find it.
       def resolve_external_hal!
         each do |target|
-          next if target.port_objs.nil? || target.port_objs.empty?
+          next unless File.directory?("#{target.dir}/ports")
           short = target.name.split('-').last
           pattern = /\Ahal-#{Regexp.escape(short)}-.+\z/
           overriders = select { |g| g != target && g.name =~ pattern }
@@ -510,7 +537,48 @@ module MRuby
             fail "Multiple HAL providers for '#{target.name}': " +
                  overriders.map(&:name).join(", ")
           end
+          provider = overriders.first
+          provider_include = "#{provider.dir}/include"
+          missing = target.port_exported_headers.reject { |h| File.exist?("#{provider_include}/#{h}") }
+          unless missing.empty?
+            fail "HAL provider '#{provider.name}' for '#{target.name}' does not export " +
+                 missing.join(", ") + ", which the port it replaces does"
+          end
           target.objs.reject! { |o| target.port_objs.include?(o) }
+          target.port_include_dir = provider_include
+        end
+      end
+
+      # A header a port exports is included by name, and the name is
+      # searched on the include path of every gem that depends on the
+      # port's gem, where the other dependencies' headers sit too.  So a
+      # name a port exports is its gem's alone: another gem exporting the
+      # same one, from its include/ or from its port, is a build error
+      # rather than whichever file the compiler happens to find first,
+      # and so is a gem whose own include/ exports a name its port does.
+      def check_exported_header_names
+        owners = Hash.new { |h, k| h[k] = [] }
+        each do |g|
+          roots = ["#{g.dir}/include", g.port_include_dir].compact.uniq
+          roots.select { |d| File.directory?(d) }.each do |root|
+            Dir.glob("#{root}/**/*.h").each do |path|
+              owners[path.sub("#{root}/", "")] << [g, root]
+            end
+          end
+        end
+        each do |g|
+          next unless g.port_include_dir
+          Dir.glob("#{g.port_include_dir}/**/*.h").each do |path|
+            name = path.sub("#{g.port_include_dir}/", "")
+            others = owners[name].reject { |_, root| root == g.port_include_dir }
+            next if others.empty?
+            also = others.sort_by { |og, _| og == g ? 0 : 1 }.map do |og, root|
+              next "again from #{root.relative_path}" if og == g
+              "so does '#{og.name}' from #{root.relative_path}"
+            end
+            fail "'#{g.name}' exports #{name} from " +
+                 "#{g.port_include_dir.relative_path}, and #{also.join(", ")}"
+          end
         end
       end
 
@@ -613,6 +681,7 @@ module MRuby
 
         @ary = tsort_dependencies gem_table.keys, gem_table, true
 
+        check_exported_header_names
         each(&:setup_build)
         each(&:setup_compilers)
 
@@ -630,11 +699,15 @@ module MRuby
           # as circular dependency has already detected in the caller.
           import_include_paths(dep_g)
 
-          # Add dependency's include/ to compiler paths (for inter-gem use)
+          # Add dependency's include/ to compiler paths (for inter-gem use),
+          # and its port's include/ with it: a HAL header the dependency
+          # exports reads the port's feature header, so a gem that includes
+          # the one has to find the other.
           dep_include = "#{dep_g.dir}/include"
-          if File.directory?(dep_include)
+          [dep_include, dep_g.port_include_dir].compact.each do |inc|
+            next unless File.directory?(inc)
             g.compilers.each do |compiler|
-              compiler.include_paths << dep_include
+              compiler.include_paths << inc
               compiler.include_paths.uniq!
             end
           end
