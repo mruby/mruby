@@ -926,6 +926,30 @@ enum re_cp_kind {
                    back past the call pops the frame with everything above
                    it, and MRB_REGEXP_STACK_LIMIT bounds the call depth by
                    bounding the frames. */
+  RE_CP_ABSENT, /* not a branch: the state one absent repeater's scan runs
+                   on. `sp` is where the absent began. `pc` is how far it may
+                   still reach as an offset into the subject: the whole of
+                   what stands after it until a match of the body says
+                   otherwise, and below `sp` once the body has matched empty
+                   where the absent began, which is the absent matching
+                   nothing anywhere. `group` is the end of the subject the
+                   text around it runs against, put back when the scan ends.
+                   RE_ABSENT pops it at the head of each round and pushes it
+                   back for the next, so the scan's state is backtracking
+                   state like any other and a failure that goes back past the
+                   absent drops it. Reaching it while backtracking resumes
+                   nothing: there is no round left to try. */
+  RE_CP_ABSENT_ITER, /* the round after the one now running, pushed directly
+                        above the state it belongs to: the body failing at
+                        this position is the scan going on at the next.
+                        RE_ABSENT_END takes it by hand once the body has
+                        matched, which is what drops the alternatives the
+                        body left rather than trying them. */
+  RE_CP_ABSENT_BACK, /* the ends an absent repeater has not answered with
+                        yet: `sp` is the next one and `group` is where the
+                        absent began, which is the last. Taking one pushes
+                        the one below it, so a scan of any length leaves one
+                        choice point behind rather than one per position. */
   RE_CP_RET     /* not a branch either: the mark RE_RETURN leaves in place of
                    popping the frame it answered, which backtracking may
                    still need. The next RE_RETURN's downward scan counts
@@ -1176,6 +1200,15 @@ bt_match(bt_state *m, const char *sp, uint32_t pc)
 {
   const mrb_regexp_pattern *pat = m->pat;
   const char *str = m->str;
+  /* Where the subject ends, which is where it really ends except while the
+     body of an absent repeater runs: there it is the furthest the absent may
+     still reach, since a run of text the absent could never take is one the
+     body has no business reading. The whole of the search reads it, an
+     assertion as much as a literal, so `\z` inside such a body holds where
+     the scan stops rather than where the string does, which is CRuby's
+     answer: Onigmo keeps the reach in the same `end` the rest of its
+     executor measures against. RE_ABSENT puts it back at the head of every
+     round. */
   const char *str_end = m->str_end;
   int *captures = m->captures;
   int ncap = m->ncap;
@@ -1580,6 +1613,108 @@ bt_match(bt_state *m, const char *sp, uint32_t pc)
       }
       break;
 
+    case RE_ABSENT_START:
+      /* The absent repeater is entered. Its scan runs on the state pushed
+         here: it began at sp, it may reach as far as the subject reaches
+         around it, and that same end is what the scan puts back when it is
+         done. The subject an absent inside the body of another one runs
+         against is the one that one has narrowed. */
+      if ((r = bt_push(m, sp, (uint32_t)(str_end - str), RE_CP_ABSENT,
+                       (uint32_t)(str_end - str))) != BT_OK) {
+        return r;
+      }
+      pc++;
+      break;
+
+    case RE_ABSENT:
+      {
+        /* One round of the scan, at the position the round before left.
+           Every position from where the absent began to the end it may still
+           reach is an end the absent can take, so the round either takes the
+           furthest of them, leaving the shorter ones to backtracking under
+           one choice point for all of them, or runs the body once here and
+           goes on at the next position.
+
+           The state is popped and pushed back rather than read in place: the
+           round runs the body above it, and a body that fails has to land on
+           the choice point that begins the next round and not inside a state
+           the next round is about to read. */
+        if (m->cp_top == 0 || m->cp[m->cp_top - 1].kind != RE_CP_ABSENT) goto fail;
+        re_cpoint st = m->cp[--m->cp_top];
+        m->pass = st.pass;
+        str_end = str + st.group;
+        int begun = (int)(st.sp - str);
+        int reach = (int32_t)st.pc;
+        /* The body matched empty where the absent began, so every run of
+           text from here holds a match of it, the empty one included. */
+        if (reach < begun) goto fail;
+        if ((int)(sp - str) >= reach) {
+          if (reach > begun) {
+            const char *prev = lookbehind_start(str, str_end, str + reach,
+                                                RE_LB_PACK(1, 1), binary);
+            if (prev && (r = bt_push(m, prev, inst.offset, RE_CP_ABSENT_BACK,
+                                     (uint32_t)begun)) != BT_OK) {
+              return r;
+            }
+          }
+          sp = str + reach;
+          pc = inst.offset;
+          break;
+        }
+        {
+          const char *next = sp + mrb_re_charlen(sp, str_end, binary);
+          if ((r = bt_push(m, st.sp, st.pc, RE_CP_ABSENT, st.group)) != BT_OK) return r;
+          if ((r = bt_push(m, next, pc, RE_CP_ABSENT_ITER, 0)) != BT_OK) return r;
+        }
+        /* The body runs against a subject that ends where the absent may
+           still reach, and as a pass of its own, as a lookaround's
+           sub-pattern does, so that the records of the loops inside it are
+           read only by the round that wrote them. */
+        str_end = str + reach;
+        m->pass = ++m->pass_seq;
+        pc++;
+      }
+      break;
+
+    case RE_ABSENT_END:
+      {
+        /* The body has matched, which says how far the absent may still
+           reach: not past the text the body just read, so it stops at the
+           last character of that text, or, where the body matched empty, at
+           the position the body ran at, which the empty match stands after
+           rather than inside. An empty match where the absent began leaves
+           it nothing at all, recorded as a reach below that position and
+           answered at the head of the next round.
+
+           The alternatives the body left are dropped: the scan asks whether
+           the body matches here, and one match is the whole of the answer.
+           So is what it captured. The body is a test the scan runs and no
+           part of the match, so a group inside one is left as the match
+           found it, whether the run of the body matched or failed. */
+        uint32_t idx = m->cp_top;
+        while (idx > 0 && m->cp[idx - 1].kind != RE_CP_ABSENT_ITER) idx--;
+        if (idx == 0) goto fail;
+        idx--;
+        re_cpoint it = m->cp[idx];
+        if (idx == 0 || m->cp[idx - 1].kind != RE_CP_ABSENT) goto fail;
+        re_cpoint *st = &m->cp[idx - 1];
+        int reach;
+        if (sp < it.sp) {
+          reach = (sp == st->sp) ? -1 : (int)(sp - str);
+        }
+        else {
+          const char *prev = lookbehind_start(str, str_end, sp, RE_LB_PACK(1, 1), binary);
+          reach = prev ? (int)(prev - str) : -1;
+        }
+        if (reach < (int32_t)st->pc) st->pc = (uint32_t)reach;
+        m->cp_top = idx;
+        bt_undo_to(m, it.undo_top);
+        m->pass = it.pass;
+        sp = it.sp;
+        pc = it.pc;
+      }
+      break;
+
     default:
       goto fail;
     }
@@ -1605,6 +1740,18 @@ bt_match(bt_state *m, const char *sp, uint32_t pc)
          either: backtracking past a call is just the call unwinding, and
          what is left to try is below them. */
       if (c.kind == RE_CP_BARRIER || c.kind == RE_CP_CALL || c.kind == RE_CP_RET) continue;
+      /* An absent repeater's state is not a branch either: reaching it is
+         the scan having no round left, and the subject the text around it
+         runs against comes back with it. */
+      if (c.kind == RE_CP_ABSENT) { str_end = str + c.group; continue; }
+      /* The ends of an absent repeater are answered longest first, and the
+         one below the end being taken is what is left to try after it. */
+      if (c.kind == RE_CP_ABSENT_BACK && c.sp > str + c.group) {
+        const char *prev = lookbehind_start(str, str_end, c.sp, RE_LB_PACK(1, 1), binary);
+        if (prev && (r = bt_push(m, prev, c.pc, RE_CP_ABSENT_BACK, c.group)) != BT_OK) {
+          return r;
+        }
+      }
       sp = c.sp;
       pc = c.pc;
       if (c.kind == RE_CP_ITER && (r = bt_iter_begin(m, c.group, sp)) != BT_OK) return r;
