@@ -525,3 +525,49 @@ assert("Regexp literal /regex/") do
   assert_equal "123", /\d+/.match("abc123")[0]
   assert_true /hello/i.match?("HELLO")
 end
+
+assert('Regexp - a literal is found wherever the scan on its ends leaves it') do
+  # The search scans for the literal's first byte, and where the last byte is
+  # not at the offset it would then stand at, for that byte instead. These put
+  # a match where each of the two scans is the one that has to find it, and at
+  # the ends of the subject, where neither may propose a position the subject
+  # is too short to hold.
+  run = 'a' * 100
+
+  # the first byte is every byte of the subject and only the last one differs
+  assert_nil (run + 'aaaa').index(/aaaaab/)
+  assert_equal 100, (run + 'aaaaab').index(/aaaaab/)
+  assert_equal 0, 'aaaaab'.index(/aaaaab/)
+
+  # a literal of two bytes, which has nothing between its ends to compare
+  assert_equal 100, (run + 'ab').index(/ab/)
+  assert_nil run.index(/ab/)
+
+  # the ends both stand where they would and the bytes between them do not
+  assert_equal 3, 'axcabcabc'.index(/abc/)
+
+  # a match at the last position the subject can hold one, and a subject one
+  # byte too short to hold any
+  assert_equal 3, 'xxxab'.index(/ab/)
+  assert_nil 'xxxa'.index(/ab/)
+
+  # the second scan is the one that gets there
+  assert_equal 6, ('ab' * 3 + 'ac').index(/ac/)
+
+  # every match in turn, so the search resumes from each
+  assert_equal ['ab', 'ab', 'ab'], 'abXabXab'.scan(/ab/)
+
+  # the same scan feeds the NFA engines, which run at each position it names
+  assert_equal 100, (run + 'aaaaabbb').index(/aaaaab+/)
+  assert_nil (run + 'aaaa').index(/aaaaab+/)
+
+  # A subject holding both of the literal's ends all through it, never at the
+  # distance the literal puts them, is where the scan on the last byte skips
+  # nothing and is dropped. What is left has to answer for the whole subject
+  # just the same, so ask it for a subject with no match and for one whose
+  # match is past where the scan was dropped.
+  weave = ('a' + 'x' * 3 + 'b' + 'x' * 3) * 64
+  assert_nil weave.index(/ab/)
+  assert_equal 512, (weave + 'ab').index(/ab/)
+  assert_equal 513, (weave + 'zab').index(/ab/)
+end
