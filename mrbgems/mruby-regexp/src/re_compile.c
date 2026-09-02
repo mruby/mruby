@@ -192,6 +192,7 @@ op_holds_code_index(uint8_t op)
   case RE_JMP: case RE_SPLIT: case RE_SPLITNG:
   case RE_LOOKAHEAD: case RE_NEG_LOOKAHEAD:
   case RE_LOOKBEHIND: case RE_NEG_LOOKBEHIND:
+  case RE_ABSENT:
     return TRUE;
   default:
     return FALSE;
@@ -2032,6 +2033,32 @@ compile_atom(re_compiler *c)
           c->flags = saved_flags;
           break;
         }
+        else if (c->p[1] == '~') {
+          /* The absent repeater (?~e): the longest run of text from here
+             that holds no match of e. The body is no part of the match, it
+             is run at one position after another to say where the run has
+             to stop, so the three instructions are a scan rather than a
+             sub-pattern the search passes through, and RE_ABSENT is its
+             head. `offset` on that head is the text after the group, which
+             is patched in once the body is compiled, as a lookaround's is.
+
+             CRuby's syntax has no absent expression (?~|absent|exp) or
+             absent stopper (?~|absent): a `|` here opens an alternative of
+             the body like any other, so (?~|a|b) is this repeater over
+             `|a|b`, which matches empty everywhere and leaves the absent
+             with nothing it can reach. That is CRuby's answer too. */
+          next_char(c); next_char(c);  /* skip ?~ */
+          emit(c, RE_ABSENT_START, 0, 0);
+          uint32_t head = emit(c, RE_ABSENT, 0, 0);
+          compile_alt(c);
+          emit(c, RE_ABSENT_END, 0, 0);
+          if (peek(c) != ')') compile_error(c, "end pattern with unmatched parenthesis");
+          next_char(c);
+          c->pat->code[head].offset = (uint16_t)c->code_len;
+          c->needs_backtrack = TRUE;  /* the Pike VM has no scan of its own */
+          c->flags = saved_flags;
+          break;
+        }
         else if (c->p[1] == '\'' ||
                  (c->p[1] == '<' && c->p + 2 < c->src_end &&
                   c->p[2] != '=' && c->p[2] != '!')) {
@@ -2130,12 +2157,12 @@ compile_atom(re_compiler *c)
         }
         else {
           /* (?X) with an unsupported X: not one of the recognized (?: (?= (?!
-             (?<= (?<! (?<name> (?'name' (?> (?imx forms. Comment groups (?#...)
-             never get here either, having been removed by
-             preprocess_pattern(). The absent operator (?~...) and
-             conditionals (?(...)) are not implemented. Raise here rather
-             than falling through to the capturing-group path, which would
-             leave the stray `?` for compile_seq to spin on forever (A1). */
+             (?<= (?<! (?<name> (?'name' (?> (?~ (?imx forms. Comment groups
+             (?#...) never get here either, having been removed by
+             preprocess_pattern(). Conditionals (?(...)) are not implemented.
+             Raise here rather than falling through to the capturing-group
+             path, which would leave the stray `?` for compile_seq to spin on
+             forever (A1). */
           if (c->p[1] == '<') {
             /* `(?<` and nothing more, the only way a '<' reaches here: the
                pattern ends before the character that tells a lookbehind
@@ -3548,11 +3575,18 @@ epsilon_path(const re_inst *code, uint32_t code_len, uint32_t pc, uint32_t goal,
     case RE_ATOMIC: case RE_ATOMIC_END:
     case RE_BACKREF:
     case RE_CALL:
+    case RE_ABSENT_START:
       pc++;
       break;
     case RE_JMP:
     case RE_LOOKAHEAD: case RE_NEG_LOOKAHEAD:
     case RE_LOOKBEHIND: case RE_NEG_LOOKBEHIND:
+    /* An absent repeater takes no text where its body matches at the
+       position it began at, so a repetition around one has a body that can
+       match empty and needs the handling this pass turns on. The body of
+       the absent is not on the path: it is a test the scan runs, not text
+       the search passes through. */
+    case RE_ABSENT:
       pc = code[pc].offset;
       break;
     case RE_SPLIT:
@@ -3706,6 +3740,7 @@ call_walk(const re_inst *code, uint32_t code_len, uint32_t start,
       case RE_ATOMIC: case RE_ATOMIC_END:
       case RE_BACKREF: case RE_LOOK_END:
       case RE_LB_WIDTH:  /* a rewind, which consumes nothing */
+      case RE_ABSENT_START: case RE_ABSENT_END:
         pc++;
         continue;
       case RE_JMP:
@@ -3716,6 +3751,10 @@ call_walk(const re_inst *code, uint32_t code_len, uint32_t start,
         pc++;
         continue;
       case RE_LOOKAHEAD: case RE_NEG_LOOKAHEAD:
+      /* The scan of an absent repeater runs its body wherever it stands,
+         and the text after is reached once the scan is done, which is the
+         same shape a lookaround has here. */
+      case RE_ABSENT:
         if (look_forks) stack[top++] = in.offset;
         pc++;
         continue;

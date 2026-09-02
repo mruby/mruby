@@ -119,12 +119,27 @@ enum re_opcode {
                         that pass runs, `offset` is not a code index but the
                         parser's own bookkeeping, which is why this opcode is
                         not in op_holds_code_index(). */
-  RE_RETURN          /* end of a called group's body: a = the group. Finds
+  RE_RETURN,         /* end of a called group's body: a = the group. Finds
                         the topmost frame no return has answered yet, writes
                         the group's capture pair from it -- the invocation
                         that completes last is the one the pair names, as in
                         CRuby -- leaves a marker in the frame's place and
                         goes on where the frame says. */
+  RE_ABSENT_START,   /* the absent repeater (?~e) is entered: the state its
+                        scan runs on goes on the choice point stack, holding
+                        where the absent began and how far it may reach. */
+  RE_ABSENT,         /* the head of one round of that scan: offset = the
+                        instruction after the group, where the absent goes on
+                        once the scan has found the end it takes. The body
+                        follows and ends at the RE_ABSENT_END; the round
+                        either takes an end and jumps to `offset`, or runs
+                        the body once at the position it stands at and goes
+                        on to the next position. */
+  RE_ABSENT_END      /* end of the absent's body, reached where the body
+                        matched: the match is not the absent's, it is what
+                        says the absent may not reach past it, so the round
+                        records how far the absent may still reach and the
+                        scan goes on at the next position. */
 };
 
 /* RE_LOOK_END::a. The polarity says what a matched sub-pattern means. The

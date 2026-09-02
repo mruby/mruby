@@ -1010,9 +1010,8 @@ assert("Regexp - patterns that used to hang the compiler now raise (A1)") do
   # Regexp.new is used so the pattern reaches the regexp compiler directly,
   # bypassing the literal validation the parser performs on /.../ literals.
 
-  # (?X) with an unsupported X: the absent operator (?~...) and conditionals
-  # (?(...)) are not implemented (inline options (?i)/(?i:...) now are).
-  assert_raise(RegexpError) { Regexp.new("(?~foo)") }
+  # (?X) with an unsupported X: conditionals (?(...)) are not implemented
+  # (inline options (?i)/(?i:...) and the absent repeater (?~...) now are).
   assert_raise(RegexpError) { Regexp.new("(?(<x>)a|b)") }
   assert_raise(RegexpError) { Regexp.new("(?") }
   assert_raise(RegexpError) { Regexp.new("(?<") }
@@ -1703,6 +1702,72 @@ assert("Regexp - an atomic group the parser refuses") do
   assert_raise(RegexpError) { Regexp.new("(?>") }
   # not a fixed-length construct, so not allowed in a lookbehind
   assert_raise(RegexpError) { Regexp.new("(?<=(?>a))b") }
+end
+
+assert("Regexp - absent repeater (?~...)") do
+  need_backtracking_stack
+  # The longest run of text from where it stands that holds no match of the
+  # body. A match of the body that begins inside the run and ends past it is
+  # not one the run holds, which is why `bar` starting at index 3 still
+  # leaves `fooba`.
+  assert_equal "a", /(?~b)/.match("abc")[0]
+  assert_equal "fooba", /(?~bar)/.match("foobarbaz")[0]
+  assert_equal "xyz", /(?~b)/.match("xyz")[0]
+  assert_equal ["a", "", "b", "", "c", ""], "aXbXc".scan(/(?~X)/)
+  # It gives text back as a greedy repeat does, one character at a time.
+  assert_equal "abcd", /a(?~x)d/.match("abcd")[0]
+  assert_equal "a", /(?~a)a/.match("aa")[0]
+  assert_nil /\A(?~b)\z/ =~ "xbz"
+  assert_equal 0, /\A(?~b)\z/ =~ "xyz"
+
+  # The body is matched where the scan stands, with the branches tried in
+  # the order the pattern gives them: the run stops before the last
+  # character of the match that is found, not of the shortest one there is.
+  assert_equal "fooba", /(?~bar|ba)/.match("foobarbaz")[0]
+  assert_equal "foob", /(?~ba|bar)/.match("foobarbaz")[0]
+
+  # A body that matches empty where the absent began leaves it nothing
+  # anywhere, so the earliest position it can match at is the end of the
+  # subject, where the body is not run at all.
+  assert_equal 3, /(?~)/.match("abc").begin(0)
+  assert_equal 3, /(?~x?)/.match("abc").begin(0)
+  assert_equal "", /(?~)/.match("")[0]
+  # One that matches empty further along stops the run there.
+  assert_equal "bcdefg", /(?~\b)/.match("abcdefg")[0]
+  assert_equal "a", /(?~$)/.match("a\nb")[0]
+  assert_equal "bc", /(?~\A)/.match("abc")[0]
+
+  # The body runs against a subject ending where the absent may still reach,
+  # so a greedy body is cut down by the run it is testing.
+  assert_equal "a", /(?~a+)/.match("aaa")[0]
+  assert_equal "aa", /(?~a+)/.match("aaaa")[0]
+  assert_equal "ab", /(?~b+)/.match("abbbc")[0]
+  assert_equal "aba", /(?~(?:ab)+)/.match("ababab")[0]
+
+  # Quantified, it repeats as any atom does, and its own empty iteration
+  # ends the repeat.
+  assert_equal "bc", /(?~a)*/.match("bcad")[0]
+  assert_equal "bc", /(?~a)+/.match("bcad")[0]
+  assert_equal "bc", /(?~a){2}/.match("bcad")[0]
+  assert_equal "", /(?~a)??/.match("bcad")[0]
+
+  # The body is a test and no part of the match, so a group inside it is
+  # left as the match found it.
+  assert_nil /(?~(b))/.match("abc")[1]
+  assert_equal "a", /(a)(?~\1)/.match("xaay")[1]
+
+  # It reads back through to_s, and free-spacing applies to its body.
+  assert_equal "a", Regexp.new(/(?~b)/.to_s).match("abc")[0]
+  assert_equal "a", Regexp.new("(?~ b )", Regexp::EXTENDED).match("abc")[0]
+  # /i folds the body, as it folds anything else.
+  assert_equal "", Regexp.new("(?~A)", Regexp::IGNORECASE).match("aab")[0]
+end
+
+assert("Regexp - an absent repeater the parser refuses") do
+  assert_raise(RegexpError) { Regexp.new("(?~a") }
+  assert_raise(RegexpError) { Regexp.new("(?~") }
+  # not a fixed-length construct, so not allowed in a lookbehind
+  assert_raise(RegexpError) { Regexp.new("(?<=(?~a))b") }
 end
 
 assert("Regexp - a lookbehind body of no fixed width says which it was") do

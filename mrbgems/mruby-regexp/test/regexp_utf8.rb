@@ -1036,3 +1036,24 @@ assert('Regexp - a word boundary sits beside any script') do
     assert_equal 0, (byte =~ /\A\B/)
   end
 end
+
+assert("Regexp - an absent repeater's run stops on a character boundary") do
+  skip unless __ENCODING__ == "UTF-8"
+
+  # The run may not hold the body's match, so it stops before the first byte
+  # of the character the match begins at, not one byte back from its end.
+  assert_equal "い", /(?~あ)/.match("いあう")[0]
+  assert_equal "", /(?~い)/.match("いあう")[0]
+  assert_equal "いあ", /(?~う)/.match("いあう")[0]
+  assert_equal "いあう", /(?~x)/.match("いあう")[0]
+  # and it gives the characters back one at a time, not the bytes
+  assert_equal "いあう", /(?~x)う/.match("いあう")[0]
+
+  # A binary subject is bytes, so the same pattern stops one byte into the
+  # character the match begins at.
+  if "".respond_to?(:force_encoding)
+    bin = "いあう".dup.force_encoding("ASCII-8BIT")
+    pat = Regexp.new("(?~\xE3\x81\x82".dup.force_encoding("ASCII-8BIT") + ")")
+    assert_equal 5, pat.match(bin)[0].bytesize
+  end
+end

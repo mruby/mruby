@@ -36,6 +36,7 @@ simulation) with backtracking fallback.
 - `(?<=...)` positive lookbehind (fixed-length, per branch)
 - `(?<!...)` negative lookbehind (fixed-length, per branch)
 - `(?>...)` atomic group
+- `(?~...)` absent repeater
 - `(?imx-imx)` options for the rest of the enclosing group
 - `(?imx-imx:...)` options for the group's own body
 
@@ -221,8 +222,8 @@ Regexp.new("(a)(?<b>b)\\1")
 Two engines, chosen automatically at compile time by pattern analysis.
 
 - **Pike VM (NFA simulation)** for patterns without backreferences, non-greedy
-  quantifiers, lookaround, atomic groups or subexpression calls. O(pattern x
-  text), so it is immune to ReDoS.
+  quantifiers, lookaround, atomic groups, absent repeaters or subexpression
+  calls. O(pattern x text), so it is immune to ReDoS.
 - **Backtracking engine** for the rest, whose state the Pike VM's threads have
   no stack to hold. It backtracks on a stack of its own on the heap, so a
   search spends a constant amount of C stack however long the subject is.
@@ -268,6 +269,13 @@ Every entry is a place this engine answers a pattern differently from CRuby.
   every inline repeat here follows. Onigmo switches such repeats to a
   capture-tracking empty check that answers a few of them differently, among
   them `/((?<g1>|){2}b){2}\g<g1>{0}/` and `/(?<g1>)b\g<g1>{1,3}?/`.
+- **An absent repeater's body captures nothing**: the body of `(?~...)` is a
+  test the scan runs at one position after another and no part of the match,
+  so a group inside one is left as the match found it. CRuby keeps what the
+  runs of the body wrote where Onigmo has no restore for the group, so `(a)`
+  in `/(?~(a)(b))/` holds `"a"` there against a subject starting with one
+  though the body never matched, and drops it where it has one, which leaves
+  `/(?~(a|b)+)/` with an empty group in both engines.
 - **No character class intersection**: `[a&&b]` raises `RegexpError`. A lone
   `&` is a member of the class.
 - **No encodings**: a byte that starts no whole character is that byte, inside
