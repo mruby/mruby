@@ -30,21 +30,34 @@ module MRuby
     def self.collect(build)
       rows = {}
 
-      note(rows, build.defines, build.defines, "conf")
+      note(rows, build.defines, origins_of(build.defines), "conf")
       COMPILERS.each do |name|
         compiler = build.send(name)
-        note(rows, compiler.defines, compiler.defines, name)
-        note(rows, compiler.internal_defines, compiler.internal_defines,
-             "#{name} internal")
+        note(rows, compiler.defines, origins_of(compiler.defines), name)
+        note(rows, compiler.internal_defines,
+             origins_of(compiler.internal_defines), "#{name} internal")
       end
       # A gem's compilers start as clones of the build's, so what the gem
-      # itself wrote is what its list holds beyond the build's.
+      # itself wrote is what its list holds beyond its clone's: entries the
+      # build's list does not have, and, for an entry both lists have, the
+      # origins beyond the ones the clone came with (a gem writing a define
+      # the build already carries is still one of its writers).
       build.gems.each do |gem|
         COMPILERS.each do |name|
           gem_list = gem.send(name).defines
-          extra = gem_list.flatten.map(&:to_s) -
-                  build.send(name).defines.flatten.map(&:to_s)
-          note(rows, extra, gem_list, "#{gem.name} #{name}") unless extra.empty?
+          base = build.send(name).defines
+          base_strings = base.flatten.map(&:to_s)
+          base_origins = origins_of(base)
+          gem_origins = origins_of(gem_list)
+          owner = "#{gem.name} #{name}"
+          gem_list.flatten.map(&:to_s).uniq.each do |define|
+            unless base_strings.include?(define)
+              note(rows, [define], gem_origins, owner)
+              next
+            end
+            own = (gem_origins[define] || []) - (base_origins[define] || [])
+            note(rows, [define], {define => own}, owner) unless own.empty?
+          end
         end
       end
 
@@ -108,16 +121,23 @@ module MRuby
       "[#{marks.join('; ')}]"
     end
 
-    def self.note(rows, values, list, owner)
-      origins = list.is_a?(DefineList) ? list.origins : {}
+    # One MRBGEM_<NAME>_VERSION per gem, written by the machinery
+    # (`GemList#check`), not by anything a person configured. Only that
+    # exact shape: a configured MRBGEM_* define of another name is listed.
+    MECHANICAL_VERSION = /\AMRBGEM_\w+_VERSION\z/
+
+    def self.origins_of(list)
+      list.is_a?(DefineList) ? list.origins : {}
+    end
+
+    def self.note(rows, values, origins, owner)
       values.flatten.each do |value|
         define = value.to_s
-        # One MRBGEM_*_VERSION per gem, written by the machinery
-        # (`GemList#check`), not by anything a person configured.
-        next if define.start_with?("MRBGEM_")
+        next if DefineList.define_name(define) =~ MECHANICAL_VERSION
         row = (rows[define] ||= {owners: [], origins: []})
         row[:owners] |= [owner]
-        row[:origins] |= (origins[define] || ["(unknown)"])
+        origin = origins[define]
+        row[:origins] |= (origin.nil? || origin.empty? ? ["(unknown)"] : origin)
       end
     end
 

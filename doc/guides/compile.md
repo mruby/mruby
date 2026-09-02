@@ -314,9 +314,9 @@ for it. The mechanical `MRBGEM_*_VERSION` defines are left out.
 When one name is held with two values, the losing rows are marked with what
 beats them: the last `-D` of a name on a compile line is the one in effect,
 and `conf.defines` comes after the compilers' lists. An unmarked row is what
-objects compile with; `[FOO=1 wins]` on a row says every object gets `FOO=1`
-instead, and `[FOO=1 wins for mruby-x cc]` says only that gem's objects do,
-the gem's own compiler having redefined a build-wide name.
+its objects compile with; `[FOO=1 wins]` on a row says `FOO=1` is in effect
+wherever that row would apply, and `[FOO=1 wins for mruby-x cc]` says the row
+loses only there, the gem's own compiler having redefined a build-wide name.
 
 `rake defines` prints the same tables without building anything, and
 `conf.disable_define_log` leaves a build out of the log.
