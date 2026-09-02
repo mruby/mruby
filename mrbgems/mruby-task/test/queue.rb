@@ -195,7 +195,8 @@ end
 
 assert("Task::Queue timeout validates arguments") do
   q = Task::Queue.new
-  assert_raise(TypeError) { q.pop(timeout_ms: 1.0) }
+  # a build without Float reads the literal as Integer 0, which is accepted
+  assert_raise(TypeError) { q.pop(timeout_ms: 1.0) } if Object.const_defined?(:Float)
   assert_raise(ArgumentError) { q.pop(timeout_ms: -1) }
   assert_raise(ArgumentError) { q.pop(true, timeout_ms: 1) }
 end

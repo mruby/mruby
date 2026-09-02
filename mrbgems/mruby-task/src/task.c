@@ -832,8 +832,13 @@ sleep_ms_impl(mrb_state *mrb, uint32_t ms)
 static mrb_value
 mrb_f_sleep(mrb_state *mrb, mrb_value self)
 {
+#ifndef MRB_NO_FLOAT
   mrb_float sec = 0;
   mrb_int n = mrb_get_args(mrb, "|f", &sec);
+#else
+  mrb_int sec = 0;
+  mrb_int n = mrb_get_args(mrb, "|i", &sec);
+#endif
 
   if (n == 0) {
     /* No argument - suspend indefinitely */
