@@ -33,8 +33,8 @@ simulation) with backtracking fallback.
 - `\g<n>`, `\g<-n>`, `\g<+n>` the same by number, `\g<0>` the whole pattern
 - `(?=...)` positive lookahead
 - `(?!...)` negative lookahead
-- `(?<=...)` positive lookbehind (fixed-length only)
-- `(?<!...)` negative lookbehind (fixed-length only)
+- `(?<=...)` positive lookbehind (fixed-length, per branch)
+- `(?<!...)` negative lookbehind (fixed-length, per branch)
 - `(?>...)` atomic group
 - `(?imx-imx)` options for the rest of the enclosing group
 - `(?imx-imx:...)` options for the group's own body
@@ -236,9 +236,19 @@ Every entry is a place this engine answers a pattern differently from CRuby.
   the build's `String` reads them. Without `MRB_UTF8_STRING` both are bytes:
   `/./` matches one byte, `/Ā/` is two atoms of one byte each, and `/i` folds
   ASCII only. A binary (`ASCII-8BIT`) subject reads by byte on either build.
-- **Fixed-length lookbehind only**: `(?<=...)` and `(?<!...)` take no `*`, `+`,
-  `?` or alternation, and at most 255 bytes. A call inside one must be
-  fixed-length too, recursion included, or `invalid pattern in look-behind`.
+- **Fixed-length lookbehind only**: `(?<=...)` and `(?<!...)` take no `*`, `+`
+  or `?` and hold no lookaround of their own, which is
+  `invalid pattern in look-behind` when they do, and are at most 255 bytes
+  wide, which is `lookbehind too long (max 255 bytes)`. The body's branches
+  are fixed per branch as in CRuby, so `(?<=ab|c)` looks back two characters
+  down one branch and one down the other, and the line either side of that
+  falls in two places CRuby puts it elsewhere. A call narrows the whole body
+  to one width, since a body holding one is measured after the calls are
+  wired and can no longer be given a rewind per branch: `(?<=\g<1>|zz)(a)`
+  raises where CRuby accepts it. An option construct between the lookbehind
+  and its alternation is nothing here and an enclosure in CRuby, so
+  `(?<=(?i:ab|b))x` and `(?<=(?i)ab|b)x` are accepted where CRuby raises
+  (`(?<=(?i:ab)|b)x`, the option inside a branch, is accepted by both).
 - **No Unicode properties**: `\p{Alpha}`, `\p{L}` raise `RegexpError`, inside a
   character class as much as outside one. A bare `\p`, and `\pL`, is the
   letter. `[[:alpha:]]` asks for a letter of any script.
