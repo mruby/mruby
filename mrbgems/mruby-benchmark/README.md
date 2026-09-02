@@ -88,8 +88,8 @@ Holds timing measurement results. Provides methods to access individual timing c
 
 - `utime` - User CPU time in seconds (Float)
 - `stime` - System CPU time in seconds (Float)
-- `cutime` - User CPU time of child processes (Float, usually 0 in mruby)
-- `cstime` - System CPU time of child processes (Float, usually 0 in mruby)
+- `cutime` - User CPU time of child processes reaped inside the block (Float)
+- `cstime` - System CPU time of child processes reaped inside the block (Float)
 - `real` - Real (wall-clock) time in seconds (Float)
 - `objects` - Number of objects allocated (Integer, when memory tracking enabled)
 - `memory` - Memory allocated in bytes (Integer, when memory tracking enabled)
@@ -98,7 +98,7 @@ Holds timing measurement results. Provides methods to access individual timing c
 
 ##### `total` → Float
 
-Returns the total CPU time (user + system).
+Returns the total CPU time (`utime` + `stime` + `cutime` + `cstime`).
 
 ```ruby
 result = Benchmark.measure { heavy_computation }
@@ -230,7 +230,7 @@ end
 
 ### Time Measurement
 
-mruby-benchmark uses `Process.clock_gettime` (via mruby-time) for high-resolution timing when available. User and system CPU times are measured using platform-specific APIs where available, otherwise both are set to 0.
+mruby-benchmark measures the way CRuby's `benchmark` does: real time is the difference of two `Process.clock_gettime(Process::CLOCK_MONOTONIC)` readings, so a wall clock stepped by NTP during the block does not show up in it, and the four CPU times are the difference of two `Process.times` readings. Both come from mruby-process, which reads them through its platform port; see that gem's README for what each platform can tell apart.
 
 ### Memory Tracking
 
@@ -238,14 +238,16 @@ Memory profiling uses `ObjectSpace.count_objects` (via mruby-objectspace) to tra
 
 ### Limitations
 
-- Child process timing (`cutime`, `cstime`) is not supported in most mruby environments and always returns 0
-- System CPU time may not be available on all platforms
+- `cutime` and `cstime` cover only children the block waited for, as `Process.times` does; on Windows they are always 0
+- CPU time has the granularity of the platform's clock: microseconds under getrusage(2), one tick under times(2) or Win32
+- Real time needs a host with `CLOCK_MONOTONIC`; the rare POSIX host without it gets `Errno::EINVAL` from `measure` and `realtime`, as CRuby's `benchmark` would
+- The gem needs a build with Float: `Process.times` and the `%f` in `Tms#to_s` both raise without one
 - Memory measurements are estimates and may not reflect actual heap usage
 - GC activity during benchmarking may affect timing results
 
 ## Dependencies
 
-- **mruby-time** - Required for timing measurements
+- **mruby-process** - Required for timing measurements
 - **mruby-objectspace** - Required for memory profiling
 
 ## License
