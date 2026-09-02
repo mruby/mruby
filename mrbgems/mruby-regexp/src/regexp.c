@@ -380,7 +380,7 @@ re_binary_string_p(mrb_value str)
    the subject as UTF-8 nowhere along the way, so `"a\x80b".sub("b", "!")`
    answers there while the same call with `/b/` is refused. re_sub_lit() and
    re_gsub_lit() never ask, having no compiled pattern to ask on behalf of,
-   and the searches a literal reaches with one take a `checked` argument to
+   and the searches a literal reaches with one take a `literal` argument to
    say so.
 
    The check walks the whole subject, so every entry point below runs it on
@@ -556,7 +556,7 @@ re_search(mrb_state *mrb, mrb_value re, mrb_value str, mrb_int pos, mrb_bool lit
  *
  * The three callers work in byte space and clamp the limit into the subject
  * first, so there is no position normalization and no operand conversion
- * here. Nor is there a `checked`: none of the three has a quoted String
+ * here. Nor is there a `literal`: none of the three has a quoted String
  * pattern to reach here with, a String argument being the form each of them
  * leaves to the C method it captured.
  *
@@ -1821,7 +1821,7 @@ re_mark_spliced(mrb_value result, mrb_value subject, mrb_value replacement,
  * gsub core with a String replacement and no block.
  *
  * A compiled pattern only: a String pattern is a literal and reaches
- * re_gsub_lit() instead, which is why there is no `checked` here to say that
+ * re_gsub_lit() instead, which is why there is no `literal` here to say that
  * the subject was left unread.
  */
 static mrb_value
@@ -2162,7 +2162,7 @@ sub_piece(mrb_state *mrb, mrb_value block, mrb_value hash, mrb_value matched)
  * replacement forms, `hash` standing where the block call would be when it
  * is given.
  *
- * `checked` carries the same meaning as in re_search().
+ * `literal` carries the same meaning as in re_search().
  *
  * The loop yields from C the way CRuby's does: every match is published
  * before the block sees it, which is why a MatchData is built per turn.
