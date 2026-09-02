@@ -893,6 +893,7 @@ assert("Regexp - a subject whose bytes are not UTF-8 is refused") do
   broken.sub("b", "!")
   assert_equal broken.index("b"), $~.begin(0)
   assert_raise(ArgumentError) { broken.scan("b") }
+  assert_raise(ArgumentError) { broken.scan("b") {} }
 
   # `split` is the other exception, and it takes every pattern with it: CRuby
   # refuses a String, a nil and the awk form as well as a Regexp. A String
