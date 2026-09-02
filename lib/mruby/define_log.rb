@@ -7,9 +7,10 @@ module MRuby
   module DefineLog
     COMPILERS = MRuby::Build::COMPILERS
 
-    def self.print
+    def self.print(all: false)
       MRuby.targets.each_value do |build|
-        next if build.internal? || build.define_log_disabled?
+        next if build.internal?
+        next unless all || build.define_log?
 
         rows = collect(build)
         next if rows.empty?

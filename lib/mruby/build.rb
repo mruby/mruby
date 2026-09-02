@@ -583,13 +583,16 @@ EOS
       @defines = DefineList.assigned(list, @defines)
     end
 
-    # Leave this build out of the define log a build prints as it starts.
-    def disable_define_log
-      @define_log_disabled = true
+    # Have this build print the define log as it starts. `rake defines`
+    # prints it without this; a build says nothing by default, mruby being
+    # built from inside other projects' builds whose output is not its own
+    # to change.
+    def define_log
+      @define_log = true
     end
 
-    def define_log_disabled?
-      !!@define_log_disabled
+    def define_log?
+      !!@define_log
     end
 
     # Declare that every gem in the build has had its mrbgem.rake run, so the

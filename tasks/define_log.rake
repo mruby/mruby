@@ -1,10 +1,12 @@
 require_relative '../lib/mruby/define_log'
 
-# The log says where every define of the configuration came from, so it is
-# printed where the build starts. Every build entry point runs `:gensym`
+# The log says where every define of the configuration came from. A build
+# opens with it only when its configuration asks (`conf.define_log`): mruby
+# is built from inside other projects' builds, whose output is not this
+# build's to change. For a build that asked, every entry point runs `:gensym`
 # first, its prerequisites (the presym scan) before this action and every
 # compile after it, so the log opens the compile output whatever task asked
-# for the build. `conf.disable_define_log` leaves a build out.
+# for the build.
 task :gensym do
   MRuby::DefineLog.print
 end
@@ -17,5 +19,5 @@ task :build => :gensym
 
 desc "print where every define of each build came from"
 task :defines do
-  MRuby::DefineLog.print
+  MRuby::DefineLog.print(all: true)
 end

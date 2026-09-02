@@ -294,8 +294,8 @@ already carries every other define a gem writes.
 
 #### The define log
 
-A build opens by printing every define it will compile with and the file and
-line that wrote it, one table per target:
+`rake defines` prints, one table per target, every define the build will
+compile with and the file and line that wrote it:
 
 ```console
 Defines of 'host':
@@ -318,8 +318,9 @@ its objects compile with; `[FOO=1 wins]` on a row says `FOO=1` is in effect
 wherever that row would apply, and `[FOO=1 wins for mruby-x cc]` says the row
 loses only there, the gem's own compiler having redefined a build-wide name.
 
-`rake defines` prints the same tables without building anything, and
-`conf.disable_define_log` leaves a build out of the log.
+A build says nothing of this by default, mruby being built from inside other
+projects' builds. A configuration that says `conf.define_log` opens its build
+output with the same tables.
 
 ### Linker
 
