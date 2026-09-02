@@ -10,28 +10,104 @@
 #include "re_internal.h"
 #include <string.h>
 
+/* Whether the rest of a prefix of two bytes or more stands at `p`, whose
+   first byte is already known to. The last byte is tested before the ones
+   between it and the first, so that a position the scan below is about to
+   leave is left on one comparison. */
+static inline mrb_bool
+prefix_rest_at(const uint8_t *prefix, mrb_int plen, const char *p)
+{
+  return (uint8_t)p[plen - 1] == prefix[plen - 1] &&
+         (plen == 2 || memcmp(p + 1, prefix + 1, (size_t)(plen - 2)) == 0);
+}
+
+/*
+ * The first position at or after `sp` where a prefix of two bytes or more
+ * stands, or NULL when the subject holds none before `str_end`.
+ *
+ * A scan on the first byte alone proposes a position per occurrence of it, and
+ * a subject made mostly of that byte -- /aaaaab/ over a run of `a` -- then
+ * costs a rejected comparison per position. The prefix's last byte is scanned
+ * for too, at the offset it stands at: where it is not there, the next place
+ * it is names the next position worth proposing, and getting there is one
+ * scan rather than the occurrences of the first byte one at a time.
+ *
+ * The second scan runs only where the first byte was found and the last was
+ * not, so a subject that holds the first byte nowhere costs what it costs with
+ * one scan. Every round leaves `sp` past where it entered, so the two get
+ * through the subject once between them whichever of the bytes is the one that
+ * keeps being found.
+ *
+ * It earns its place by skipping positions the first scan would have proposed
+ * one at a time, and a subject can be built where it skips none: both bytes
+ * all through it, never at the distance the prefix puts them. It is dropped
+ * where that shows, leaving the walk the one scan it had before, so no subject
+ * pays for it twice over.
+ */
+static const char*
+find_prefix_ends(const uint8_t *prefix, mrb_int plen, const char *sp, const char *str_end)
+{
+  if (str_end - sp < plen) return NULL;
+  /* The last position a match can start at, so the first scan never proposes
+     one the subject is too short to hold. */
+  const char *limit = str_end - plen;
+  mrb_int last = plen - 1;
+  mrb_bool scan_last = TRUE;
+
+  while (sp <= limit) {
+    const char *base = sp;
+    const char *p0 = (const char*)memchr(sp, prefix[0], (size_t)(limit - sp) + 1);
+    if (!p0) return NULL;
+    if (prefix_rest_at(prefix, plen, p0)) return p0;
+    if (!scan_last || (uint8_t)p0[last] == prefix[last]) {
+      /* Nothing to scan for: either the last byte is here too and only the
+         bytes between the ends disagree, which says nothing about where the
+         next position is, or the scan has been dropped. */
+      sp = p0 + 1;
+      continue;
+    }
+    /* Where the last byte stands next names the position a match holding it
+       would start at, which is past the one the first byte just named. */
+    const char *p1 = (const char*)memchr(p0 + last + 1, prefix[last],
+                                         (size_t)(str_end - (p0 + last + 1)));
+    if (!p1) return NULL;
+    const char *cand = p1 - last;
+    /* Reaching no further than the first scan had just reached is the second
+       one proposing the positions it is supposed to be skipping. */
+    if (cand - p0 <= p0 - base) scan_last = FALSE;
+    sp = cand;
+  }
+  return NULL;
+}
+
+/* The first position at or after `sp` where a prefix of `plen` bytes stands,
+   or NULL when the subject holds none. The first scan, and the comparison at
+   the position it names, are here rather than behind the walk above: they are
+   the whole of the question for a prefix of one byte, and the whole of it
+   again wherever the position the scan names is the answer, which is what a
+   pattern that matches often asks over and over. The walk is entered only
+   where that answer was no. */
+static inline const char*
+find_prefix(const uint8_t *prefix, mrb_int plen, const char *sp, const char *str_end)
+{
+  const char *p = (const char*)memchr(sp, prefix[0], (size_t)(str_end - sp));
+  if (!p || plen == 1) return p;
+  /* A first occurrence of the first byte too near the end settles the whole
+     subject, since every later one stands nearer still. */
+  if (str_end - p < plen) return NULL;
+  if (prefix_rest_at(prefix, plen, p)) return p;
+  return find_prefix_ends(prefix, plen, p, str_end);
+}
+
 /*
  * Skip to the next position where the pattern's literal prefix could match.
- * Uses memchr on the first byte for fast scanning, then verifies the rest.
  * Returns the found position, or NULL if no match is possible.
  */
 static const char*
 skip_to_prefix(const mrb_regexp_pattern *pat, const char *sp, const char *str_end)
 {
   if (pat->prefix_len == 0) return sp;
-
-  uint8_t first = pat->prefix[0];
-  int plen = pat->prefix_len;
-
-  while (sp + plen <= str_end) {
-    const char *found = (const char*)memchr(sp, first, str_end - sp);
-    if (!found || found + plen > str_end) return NULL;
-    if (plen == 1 || memcmp(found + 1, pat->prefix + 1, plen - 1) == 0) {
-      return found;
-    }
-    sp = found + 1;
-  }
-  return NULL;
+  return find_prefix(pat->prefix, pat->prefix_len, sp, str_end);
 }
 
 /* Check if a byte is in the first-byte bitmap */
@@ -1632,7 +1708,8 @@ backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
   return ret;
 }
 
-/* Fast path for pure literal patterns: use memchr+memcmp, no NFA needed */
+/* Fast path for pure literal patterns: the whole pattern is the prefix, so
+   the search is the prefix skip itself and there is no NFA to run. */
 static int
 literal_exec(const mrb_regexp_pattern *pat,
              const char *str, mrb_int len, mrb_int start, mrb_int start_limit,
@@ -1641,28 +1718,24 @@ literal_exec(const mrb_regexp_pattern *pat,
   const char *start_cap = str + start_limit;
   const char *sp = str + start;
   const char *str_end = str + len;
-  int plen = pat->prefix_len;
+  mrb_int plen = pat->prefix_len;
 
   while (sp + plen <= str_end && sp <= start_cap) {
-    const char *found = (const char*)memchr(sp, pat->prefix[0], str_end - sp);
-    if (!found || found + plen > str_end || found > start_cap) return 0;
+    const char *found = find_prefix(pat->prefix, plen, sp, str_end);
+    if (!found || found > start_cap) return 0;
     if (!binary && mrb_re_char_interior_p(str, found, str_end)) {
       sp = found + 1;  /* not a char boundary, same rule as the other engines */
       continue;
     }
-    if (plen == 1 || memcmp(found + 1, pat->prefix + 1, plen - 1) == 0) {
-      /* No test that the end is a character boundary: a byte that spells no
-         character is RE_BYTE, which this path never holds (the prefix is
-         RE_CHAR only), so the literal is whole characters and a lead byte
-         that matched fixed the length of the one it starts. */
-      /* match found */
-      if (captures && captures_size >= 2) {
-        captures[0] = (int)(found - str);
-        captures[1] = (int)(found - str) + plen;
-      }
-      return 2;  /* group 0 start/end */
+    /* No test that the end is a character boundary: a byte that spells no
+       character is RE_BYTE, which this path never holds (the prefix is
+       RE_CHAR only), so the literal is whole characters and a lead byte
+       that matched fixed the length of the one it starts. */
+    if (captures && captures_size >= 2) {
+      captures[0] = (int)(found - str);
+      captures[1] = (int)(found - str) + plen;
     }
-    sp = found + 1;
+    return 2;  /* group 0 start/end */
   }
   return 0;
 }
