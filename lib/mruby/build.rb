@@ -95,7 +95,8 @@ module MRuby
 
     include Rake::DSL
     include LoadGems
-    attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir, :defines, :libdir_name
+    attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir, :libdir_name
+    attr_reader :defines
     attr_reader :products, :libmruby_core_objs, :libmruby_objs, :gems, :toolchains, :presym, :mrbc_build, :gem_dir_to_repo_url
     attr_reader :build_root
     attr_reader :install_excludes, :port_names
@@ -146,7 +147,7 @@ module MRuby
         @libdir_name = (self.kind_of?(MRuby::CrossBuild) ? nil : ENV["MRUBY_SYSTEM_LIBDIR_NAME"]) || "lib"
         @install_prefix = nil
         @install_excludes = []
-        @defines = []
+        @defines = DefineList.new
         @defines_final = false
         @flags_change_reported = false
         @cc = Command::Compiler.new(self, %w(.c), label: "CC")
@@ -576,6 +577,22 @@ EOS
       COMPILERS.map do |c|
         instance_variable_get("@#{c}")
       end
+    end
+
+    def defines=(list)
+      @defines = DefineList.assigned(list, @defines)
+    end
+
+    # Have this build print the define log as it starts. `rake defines`
+    # prints it without this; a build says nothing by default, mruby being
+    # built from inside other projects' builds whose output is not its own
+    # to change.
+    def define_log
+      @define_log = true
+    end
+
+    def define_log?
+      !!@define_log
     end
 
     # Declare that every gem in the build has had its mrbgem.rake run, so the
