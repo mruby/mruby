@@ -4,10 +4,6 @@
 # taken with ruby 4.0.6p0 x86_64-linux
 # against a build with chars=1 unicode=1
 010101010101010101011010010101010101101001| 010101010101010101011010010101010101011001| #char U+00B2
-...22................X...|;;;2-2;2-2;;;;;;;;;;;;;;;;;X:ArgumentError;;; E:RegexpError| (?<=ab|c)/
-...22................X...|;;;2-2;2-2;;;;;;;;;;;;;;;;;X:ArgumentError;;; E:RegexpError| (?<=ab|c)/i
-...22................X...|;;;2-2;2-2;;;;;;;;;;;;;;;;;X:ArgumentError;;; E:RegexpError| (?<=ab|c)/m
-...22................X...|;;;2-2;2-2;;;;;;;;;;;;;;;;;X:ArgumentError;;; E:RegexpError| (?<=ab|c)/x
 .....................X...|;;;;;;;;;;;;;;;;;;;;;X:ArgumentError;;; E:RegexpError| [&&a]/
 .....................X...|;;;;;;;;;;;;;;;;;;;;;X:ArgumentError;;; E:RegexpError| [&&a]/i
 .....................X...|;;;;;;;;;;;;;;;;;;;;;X:ArgumentError;;; E:RegexpError| [&&a]/m

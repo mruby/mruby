@@ -190,6 +190,17 @@ assert("Regexp - a call in a lookbehind must measure fixed") do
   assert_raise_with_message(RegexpError, "#{msg}: /(?<p>\\(\\g<p>?\\))(?<=\\g<p>)/") do
     Regexp.new("(?<p>\\(\\g<p>?\\))(?<=\\g<p>)")
   end
+
+  # A body without a call is measured while the parse still holds its
+  # branches, so each may rewind its own way. One with a call is measured
+  # after the calls are wired, when nothing may move code any more and the
+  # branches are long forgotten, so it gets the one rewind that was put in
+  # place for it and the whole body has to come out that width. CRuby, which
+  # divides the branches before it compiles either, accepts the second.
+  assert_equal 1, ("ba" =~ Regexp.new("(?<=\\g<1>)(a|b)"))
+  assert_raise_with_message(RegexpError, "#{msg}: /(?<=\\g<1>|zz)(a)/") do
+    Regexp.new("(?<=\\g<1>|zz)(a)")
+  end
 end
 
 assert("Regexp - the group numbering calls use") do

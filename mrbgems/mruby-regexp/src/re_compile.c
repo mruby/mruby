@@ -21,6 +21,9 @@
    silently alias different classes. */
 #define RE_MAX_CLASSES 256
 
+/* How many branches one alternation may hold. */
+#define RE_MAX_ALTS 64
+
 /* Compiler state.
 
    Everything the compile allocates and the finished pattern goes on owning
@@ -80,6 +83,23 @@ typedef struct {
   uint32_t depth;           /* nesting levels open at the parse point, one per
                                compile_alt() frame on the C stack; bounded by
                                MRB_REGEXP_PARSE_DEPTH_LIMIT */
+  /* The alternation that finished last, as the code index each of its
+     branches begins at, the span it covers, and how many branches it has.
+     The lookbehind arm reads it to tell a body that *is* an alternation
+     from one that merely holds one: only the first may give each branch a
+     rewind of its own, which is CRuby's line too. The record is cleared
+     when a lookbehind body begins, so what it holds is that body's own; the
+     alternation spanning the whole body is the last inside it to finish.
+
+     These are positions, so anything that moves or drops code ends the
+     record rather than adjusting it: insert_inst() clears it, and so does
+     every rollback in compile_quantified(). Without that, `(?:a|b){0}` would
+     leave the branch heads of an alternation whose code is gone, pointing at
+     whatever was emitted in its place. */
+  uint32_t alt_starts[RE_MAX_ALTS];
+  uint32_t alt_count;       /* 0 when no alternation has been compiled */
+  uint32_t alt_from;        /* code index of the alternation's first SPLIT */
+  uint32_t alt_to;          /* code index just past its last branch */
   mrb_bool has_call;        /* a \g call was emitted: resolve_calls() runs */
   mrb_value pending_calls;  /* the \g references the parse could not resolve,
                                as re_pending_call records in a String the GC
@@ -159,8 +179,8 @@ patch(re_compiler *c, uint32_t pos, uint16_t offset)
    each other and with the opcode set: both relocated the jumps alone, and a
    lookaround inside a quantified, repeated or alternated group kept an offset
    pointing at whatever the shift left in its place.
-   RE_LB_WIDTH is not here: it carries a character count in `a`, and RE_SAVE
-   and RE_BACKREF put a slot number and a case-fold flag in `offset` rather
+   RE_LB_WIDTH is not here: it carries a pair of widths in `offset`, and
+   RE_SAVE and RE_BACKREF put a slot number and a case-fold flag there rather
    than an index. RE_CALL is not here either, deliberately: while the parse
    runs, its `offset` is a pending-reference index that relocation would
    corrupt, and by the time resolve_calls() writes a code index into it, the
@@ -183,6 +203,12 @@ op_holds_code_index(uint8_t op)
 static void
 insert_inst(re_compiler *c, uint32_t pos, uint8_t op, uint8_t a, uint16_t offset)
 {
+  /* The alternation record is positions this does not adjust, so an insertion
+     is the end of it; see the record in re_compiler. The alternation that
+     writes one does so after its own insertions, and the lookbehind arm has
+     read the record into locals before it inserts anything, so nothing that
+     needs the record loses it here. */
+  c->alt_count = 0;
   emit(c, RE_JMP, 0, 0);  /* grow array */
   uint32_t len = c->code_len - 1 - pos;
   memmove(&c->pat->code[pos + 1], &c->pat->code[pos], sizeof(re_inst) * len);
@@ -1278,16 +1304,73 @@ parse_quantifier(re_compiler *c, int *min_out, int *max_out, mrb_bool *ranged)
   return TRUE;
 }
 
+/* What one pc's measure is once fixed_len_walk() has reached it, in the two
+   units a rewind may count (see RE_LB_WIDTH). `len` doubles as the state:
+   the two markers below stand where no measure does. A fork's arms are
+   measured to the same `end` and their measures compared, so what is
+   remembered per pc is the distance from it to `end`, the same question
+   whichever arm asks it, which is what makes one table serve them all. */
+typedef struct {
+  int32_t len;    /* bytes, or RE_FLEN_NEW / RE_FLEN_BUSY */
+  int32_t chars;
+} re_flen_memo;
+
+#define RE_FLEN_NEW  (-1)   /* not measured yet */
+#define RE_FLEN_BUSY (-2)   /* being measured: reaching it again is a cycle,
+                               and a cycle is a body of no fixed width */
+
+static int fixed_len_walk(re_compiler *c, uint32_t start, uint32_t end,
+                          int *chars_out, int depth,
+                          re_flen_memo *memo, uint32_t memo_base,
+                          uint32_t memo_len);
+static int fixed_len_span(re_compiler *c, uint32_t start, uint32_t end,
+                          int *chars_out, int depth);
+
+/* The measure from `pc` to `end`, remembered under the table when `pc` is one
+   the table covers. Without it a chain of forks is measured once per path
+   through it, both arms of every fork walking the whole tail, and `(?:a|b)`
+   thirty times over is 2^30 walks of a pattern a hundred bytes long. */
+static int
+fixed_len_at(re_compiler *c, uint32_t pc, uint32_t end, int *chars_out,
+             int depth, re_flen_memo *memo, uint32_t memo_base,
+             uint32_t memo_len)
+{
+  if (!memo || pc < memo_base || pc - memo_base >= memo_len) {
+    return fixed_len_walk(c, pc, end, chars_out, depth, memo, memo_base, memo_len);
+  }
+  re_flen_memo *slot = &memo[pc - memo_base];
+  if (slot->len == RE_FLEN_BUSY) return -1;
+  if (slot->len != RE_FLEN_NEW) {
+    *chars_out = slot->chars;
+    return slot->len;
+  }
+  slot->len = RE_FLEN_BUSY;
+  int chars = 0;
+  int len = fixed_len_walk(c, pc, end, &chars, depth, memo, memo_base, memo_len);
+  if (len < 0) {
+    /* Leave the slot BUSY: a body with one unmeasurable path has no fixed
+       width at all, so no later question about this pc has a different
+       answer, and the compile is about to be refused either way. */
+    return -1;
+  }
+  slot->len = len;
+  slot->chars = chars;
+  *chars_out = chars;
+  return len;
+}
+
 /*
  * Measure the bytecode in range [start, end) for a lookbehind, which must
  * know exactly how far back to rewind. Returns the byte count a binary
  * subject needs, one per consuming instruction since such a subject
  * advances one byte whatever the instruction is, and stores in *chars_out
  * the character count a UTF-8 subject needs. Returns -1 if the sub-pattern
- * has no fixed width (quantifiers, alternation, etc.).
+ * has no fixed width (a quantifier, or a fork whose arms disagree).
  */
 static int
-fixed_len_walk(re_compiler *c, uint32_t start, uint32_t end, int *chars_out, int depth)
+fixed_len_walk(re_compiler *c, uint32_t start, uint32_t end, int *chars_out,
+               int depth, re_flen_memo *memo, uint32_t memo_base,
+               uint32_t memo_len)
 {
   int len = 0;
   int chars = 0;
@@ -1348,12 +1431,28 @@ fixed_len_walk(re_compiler *c, uint32_t start, uint32_t end, int *chars_out, int
     case RE_JMP:
       pc = inst.offset;
       break;
-    case RE_SPLIT: {
-      /* alternation: both branches must have the same fixed length */
-      /* branch 1: pc+1 to next JMP before branch 2 */
-      /* branch 2: inst.offset to ... */
-      /* For simplicity, reject alternation in lookbehind */
-      return -1;
+    case RE_SPLIT:
+    case RE_SPLITNG: {
+      /* A fork the walk passes through is fixed only where both arms reach
+         `end` by the same measure: `(?<=(a|b)c)` is two characters whichever
+         arm runs, and `(?<=(a|bb)c)` is not two of anything. The arms are
+         measured to `end` rather than to the point they rejoin, which is
+         what makes what follows the fork part of each arm's measure and
+         leaves `(?:a|bc)d` unmeasured. CRuby refuses that body too, and
+         accepts a whole body of branches taking different widths only
+         through the per-branch rewind the lookbehind arm builds.
+
+         A loop closes with a backward fork, so this is also where a body
+         that repeats is refused: the memo marks the pc it is measuring and
+         reaching it again answers -1. */
+      int a_chars = 0, b_chars = 0;
+      int a = fixed_len_at(c, pc + 1, end, &a_chars, depth, memo, memo_base, memo_len);
+      if (a < 0) return -1;
+      int b = fixed_len_at(c, inst.offset, end, &b_chars, depth, memo, memo_base, memo_len);
+      if (b < 0) return -1;
+      if (a != b || a_chars != b_chars) return -1;
+      *chars_out = chars + a_chars;
+      return len + a;
     }
     case RE_LOOK_END:
       *chars_out = chars;
@@ -1374,7 +1473,9 @@ fixed_len_walk(re_compiler *c, uint32_t start, uint32_t end, int *chars_out, int
       }
       if (close >= c->code_len) return -1;
       int sub_chars = 0;
-      int sub_len = fixed_len_walk(c, body, close, &sub_chars, depth + 1);
+      /* The body is measured to its own end, so it gets a table of its own:
+         what a pc is worth is its distance to the end being asked about. */
+      int sub_len = fixed_len_span(c, body, close, &sub_chars, depth + 1);
       if (sub_len < 0) return -1;
       len += sub_len;
       chars += sub_chars;
@@ -1389,10 +1490,124 @@ fixed_len_walk(re_compiler *c, uint32_t start, uint32_t end, int *chars_out, int
   return len;
 }
 
+/* Measure [start, end) with whatever table the span needs. A span holding no
+   fork and no backward edge is a straight line the walk crosses once, and it
+   is measured with no table at all, which is every lookbehind that was
+   measurable before per-branch widths. A span holding either gets one, since
+   without it the walk would either repeat the tail of every fork or, on a
+   loop, not come back. */
+static int
+fixed_len_span(re_compiler *c, uint32_t start, uint32_t end, int *chars_out,
+               int depth)
+{
+  mrb_bool needs_memo = FALSE;
+  for (uint32_t pc = start; pc < end && pc < c->code_len; pc++) {
+    uint8_t op = c->pat->code[pc].op;
+    if (op == RE_SPLIT || op == RE_SPLITNG ||
+        (op == RE_JMP && c->pat->code[pc].offset <= pc)) {
+      needs_memo = TRUE;
+      break;
+    }
+  }
+  if (!needs_memo) return fixed_len_walk(c, start, end, chars_out, depth, NULL, 0, 0);
+
+  uint32_t span = end > start ? end - start : 0;
+  /* mrb_malloc_simple(), not mrb_malloc(): a raise here would longjmp past
+     the frees of the spans measuring around this one. A refusal is reported
+     as a body of no fixed width, which is what the caller does with every
+     other answer it cannot use. */
+  re_flen_memo *memo = (re_flen_memo*)mrb_malloc_simple(c->mrb, sizeof(re_flen_memo) * (span ? span : 1));
+  if (!memo) return -1;
+  for (uint32_t i = 0; i < span; i++) memo[i].len = RE_FLEN_NEW;
+  int len = fixed_len_walk(c, start, end, chars_out, depth, memo, start, span);
+  mrb_free(c->mrb, memo);
+  return len;
+}
+
 static int
 compute_fixed_len(re_compiler *c, uint32_t start, uint32_t end, int *chars_out)
 {
-  return fixed_len_walk(c, start, end, chars_out, 0);
+  return fixed_len_span(c, start, end, chars_out, 0);
+}
+
+/* One measured width, as the RE_LB_WIDTH that carries it. */
+static uint16_t
+lookbehind_width(re_compiler *c, uint32_t start, uint32_t end)
+{
+  int chars = 0;
+  int len = compute_fixed_len(c, start, end, &chars);
+  if (len < 0) compile_error(c, "invalid pattern in look-behind");
+  if (len > 255) compile_error(c, "lookbehind too long (max 255 bytes)");
+  /* The character count never exceeds the byte count, so it fits too. */
+  return RE_LB_PACK(len, chars);
+}
+
+/*
+ * Give the lookbehind at `lb_pos`, whose body is [sub_start, body_end), the
+ * rewinds it runs by, and refuse a body that has none.
+ *
+ * A body of a single fixed width carries one RE_LB_WIDTH at its head. A body
+ * that *is* an alternation carries one at the head of each branch, each
+ * measured on its own, which is how `(?<=ab|c)` looks back two characters
+ * down one branch and one down the other. CRuby draws its line in the same
+ * place, and by the same reading of the pattern: the branches of the body
+ * itself may differ, while an alternation anywhere else must come out one
+ * width or the body is refused, whether it stands under a capture,
+ * `(?<=(ab|b))`, or with anything beside it, `(?<=(?:a|bc)d)`. `(?:...)`
+ * around the whole body emits nothing, so `(?<=(?:ab|b))` is the first case
+ * there as it is here.
+ *
+ * The single width is tried first because the alternation may already be one:
+ * `(?<=ab|cd)` is two characters whichever branch runs, and one carrier for
+ * the whole body is one rewind rather than two identical ones.
+ */
+static void
+add_lookbehind_widths(re_compiler *c, uint32_t lb_pos, uint32_t sub_start,
+                      uint32_t body_end)
+{
+  uint16_t widths[RE_MAX_ALTS];
+  uint32_t heads[RE_MAX_ALTS];
+  uint32_t n;
+
+  int chars = 0;
+  int len = compute_fixed_len(c, sub_start, body_end, &chars);
+  if (len >= 0) {
+    if (len > 255) compile_error(c, "lookbehind too long (max 255 bytes)");
+    heads[0] = sub_start;
+    widths[0] = RE_LB_PACK(len, chars);
+    n = 1;
+  }
+  /* The alternation the body left behind is the body's own only when it
+     covers all of it: it starts where the body starts and ends at the
+     RE_LOOK_END, which stands at body_end - 1. */
+  else if (c->alt_count > 1 && c->alt_from == sub_start &&
+           c->alt_to == body_end - 1) {
+    n = c->alt_count;
+    for (uint32_t i = 0; i < n; i++) {
+      heads[i] = c->alt_starts[i];
+      widths[i] = lookbehind_width(c, heads[i], body_end);
+    }
+  }
+  else {
+    compile_error(c, "invalid pattern in look-behind");
+    return;  /* not reached */
+  }
+
+  /* With a rewind per branch, a branch can match from another's rewind and
+     stop short of where the lookbehind was entered, so the end has to check
+     where it landed. One width for the whole body is the width of every path
+     through it, and such a body cannot land anywhere else. */
+  if (n > 1) c->pat->code[body_end - 1].a |= RE_LOOK_LANDING;
+
+  /* Insert from the last head down, so that the heads still ahead of the
+     insertion keep the positions they were measured at. A branch's head is
+     what the alternation's SPLIT jumps to, and insert_inst() leaves such a
+     reference on the inserted instruction, so the branch now begins with its
+     rewind. */
+  c->pat->code[lb_pos].a = 1;  /* measured: measure_deferred skips it */
+  for (uint32_t i = n; i > 0; i--) {
+    insert_inst(c, heads[i - 1], RE_LB_WIDTH, 0, widths[i - 1]);
+  }
 }
 
 /* Parse the option letters of an inline (?...) group. The parser is
@@ -1692,16 +1907,18 @@ add_pending_call(re_compiler *c, uint8_t kind, const char *at, uint32_t len,
 }
 
 /* Compile the sub-pattern of a lookaround, whose opener has just been
-   emitted, up to and including the RE_LOOK_END that closes it. The end
-   carries the lookaround's number, from the count the atomic groups use, so
-   that a cut aimed at this lookaround is told from one aimed at a group
-   around or inside it; see bt_match(). */
-static void
+   emitted, up to and including the RE_LOOK_END that closes it, and answer
+   where that end stands. The end carries the lookaround's number, from the
+   count the atomic groups use, so that a cut aimed at this lookaround is
+   told from one aimed at a group around or inside it; see bt_match(). The
+   landing bit is not set here: whether it is needed is known only once the
+   body is measured, and add_lookbehind_widths() sets it. */
+static uint32_t
 compile_look_body(re_compiler *c, mrb_bool negative)
 {
   uint16_t cut = (uint16_t)++c->num_cuts;
   compile_alt(c);
-  emit(c, RE_LOOK_END, negative, cut);
+  return emit(c, RE_LOOK_END, negative ? RE_LOOK_NEGATED : 0, cut);
 }
 
 /* Compile a single atom (character, class, group, etc.). Returns whether one
@@ -1761,37 +1978,29 @@ compile_atom(re_compiler *c)
           mrb_bool negative = (c->p[2] == '!');
           next_char(c); next_char(c); next_char(c);  /* skip ?<= or ?<! */
           uint32_t lb_pos = emit(c, negative ? RE_NEG_LOOKBEHIND : RE_LOOKBEHIND, 0, 0);
-          emit(c, RE_LB_WIDTH, 0, 0);
           uint32_t sub_start = c->code_len;
+          c->alt_count = 0;  /* the record is this body's own; see there */
           compile_look_body(c, negative);
-          c->pat->code[lb_pos].offset = (uint16_t)c->code_len;
+          uint32_t body_end = c->code_len;  /* the RE_LOOK_END is at body_end - 1 */
 
           /* A sub-pattern holding a \g call cannot be measured yet: where
              the call jumps is not decided until resolve_calls(), and the
-             body it runs may not be written yet. The RE_LB_WIDTH's spare
-             field marks the lookbehind for measure_deferred_lookbehinds(),
-             which runs the same walk once the calls are wired. */
+             body it runs may not be written yet. A width of its own per
+             branch is out of reach for one of those, the record above being
+             long gone by then, so it is left with the single carrier it can
+             be given here and measure_deferred_lookbehinds() fills that in
+             once the calls are wired. */
           mrb_bool deferred = FALSE;
-          for (uint32_t i = sub_start; i < c->code_len; i++) {
+          for (uint32_t i = sub_start; i < body_end; i++) {
             if (c->pat->code[i].op == RE_CALL) { deferred = TRUE; break; }
           }
           if (deferred) {
-            c->pat->code[lb_pos + 1].offset = 1;
+            insert_inst(c, sub_start, RE_LB_WIDTH, 0, 0);
           }
           else {
-            /* measure the sub-pattern for both rewind units */
-            int fixed_chars;
-            int fixed_len = compute_fixed_len(c, sub_start, c->code_len, &fixed_chars);
-            if (fixed_len < 0) {
-              compile_error(c, "invalid pattern in look-behind");
-            }
-            if (fixed_len > 255) {
-              compile_error(c, "lookbehind too long (max 255 bytes)");
-            }
-            c->pat->code[lb_pos].a = (uint8_t)fixed_len;
-            /* the character count never exceeds the byte count, so it fits */
-            c->pat->code[lb_pos + 1].a = (uint8_t)fixed_chars;
+            add_lookbehind_widths(c, lb_pos, sub_start, body_end);
           }
+          c->pat->code[lb_pos].offset = (uint16_t)c->code_len;
 
           if (peek(c) != ')') compile_error(c, "end pattern with unmatched parenthesis");
           next_char(c);
@@ -2604,6 +2813,7 @@ compile_quantified(re_compiler *c)
       if (assertion) {
         if (ch != '+') {
           c->code_len = start;
+        c->alt_count = 0;  /* the record's positions are gone with the code */
           skip_quantifiers(c);
           return;
         }
@@ -2656,6 +2866,7 @@ compile_quantified(re_compiler *c)
     if (assertion) {
       if (min == 0) {
         c->code_len = start;
+        c->alt_count = 0;  /* the record's positions are gone with the code */
         skip_quantifiers(c);
         return;
       }
@@ -2686,6 +2897,7 @@ compile_quantified(re_compiler *c)
       }
       else {
         c->code_len = start;
+        c->alt_count = 0;  /* the record's positions are gone with the code */
       }
     }
     else {
@@ -2773,7 +2985,7 @@ compile_alt_body(re_compiler *c)
 
   /* Collect all alternatives, then emit SPLIT chain at the end.
      This avoids insert_inst offset corruption for multi-way alternation. */
-  uint32_t alt_starts[64];  /* start positions of each alternative */
+  uint32_t alt_starts[RE_MAX_ALTS];  /* start positions of each alternative */
   int num_alts = 0;
   alt_starts[num_alts++] = alt_start;
 
@@ -2781,7 +2993,7 @@ compile_alt_body(re_compiler *c)
     next_char(c);
     emit(c, RE_JMP, 0, 0);  /* placeholder: jump to end */
     alt_starts[num_alts++] = c->code_len;
-    if (num_alts >= 64) compile_error(c, "too many alternatives");
+    if (num_alts >= RE_MAX_ALTS) compile_error(c, "too many alternatives");
     compile_seq(c);
   }
 
@@ -2820,6 +3032,15 @@ compile_alt_body(re_compiler *c)
     c->pat->code[jmp_pos].op = RE_JMP;
     c->pat->code[jmp_pos].offset = (uint16_t)end;
   }
+
+  /* Leave the branches where the lookbehind arm can find them; see the
+     record's declaration. Nothing moves this code between here and the arm's
+     look at it: a lookbehind body ends with the RE_LOOK_END emitted right
+     after this returns. */
+  for (int i = 0; i < num_alts; i++) c->alt_starts[i] = alt_starts[i];
+  c->alt_count = (uint32_t)num_alts;
+  c->alt_from = alt_starts[0] - split_count;
+  c->alt_to = end;
 }
 
 /* Bound the parser's own recursion. Every nesting level it descends into is
@@ -3484,6 +3705,7 @@ call_walk(const re_inst *code, uint32_t code_len, uint32_t start,
       case RE_WBOUND: case RE_NWBOUND:
       case RE_ATOMIC: case RE_ATOMIC_END:
       case RE_BACKREF: case RE_LOOK_END:
+      case RE_LB_WIDTH:  /* a rewind, which consumes nothing */
         pc++;
         continue;
       case RE_JMP:
@@ -3499,7 +3721,7 @@ call_walk(const re_inst *code, uint32_t code_len, uint32_t start,
         continue;
       case RE_LOOKBEHIND: case RE_NEG_LOOKBEHIND:
         if (look_forks) stack[top++] = in.offset;
-        pc += 2;  /* over the RE_LB_WIDTH carrier, into the sub-pattern */
+        pc++;  /* into the sub-pattern, whose head is a rewind */
         continue;
       case RE_CALL:
         if ((wall_mask >> in.a) & 1) break;
@@ -3628,26 +3850,20 @@ never_ending_check(re_compiler *c, uint32_t called, const uint32_t *entry)
 }
 
 /* Measure the lookbehinds whose sub-pattern holds a call, which the parse
-   marked and left; see the lookbehind arm in compile_atom(). The walk is the
-   parse's own, now able to follow a call. */
+   left unmeasured with an empty RE_LB_WIDTH at the head of the body; see the
+   lookbehind arm in compile_atom(). The walk is the parse's own, now able to
+   follow a call. Nothing may move code from here on, so the carrier that is
+   already there is the only one such a lookbehind gets: its body has to come
+   out one width, where a body without a call may take one per branch. */
 static void
 measure_deferred_lookbehinds(re_compiler *c)
 {
   for (uint32_t pc = 0; pc + 1 < c->code_len; pc++) {
     re_inst in = c->pat->code[pc];
     if (in.op != RE_LOOKBEHIND && in.op != RE_NEG_LOOKBEHIND) continue;
-    if (c->pat->code[pc + 1].offset != 1) continue;
-    int fixed_chars = 0;
-    int fixed_len = compute_fixed_len(c, pc + 2, in.offset, &fixed_chars);
-    if (fixed_len < 0) {
-      compile_error(c, "invalid pattern in look-behind");
-    }
-    if (fixed_len > 255) {
-      compile_error(c, "lookbehind too long (max 255 bytes)");
-    }
-    c->pat->code[pc].a = (uint8_t)fixed_len;
-    c->pat->code[pc + 1].a = (uint8_t)fixed_chars;
-    c->pat->code[pc + 1].offset = 0;
+    if (in.a != 0) continue;  /* measured during the parse */
+    c->pat->code[pc + 1].offset = lookbehind_width(c, pc + 2, in.offset);
+    c->pat->code[pc].a = 1;
   }
 }
 
