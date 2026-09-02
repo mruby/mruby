@@ -551,18 +551,26 @@ nil_to_r(mrb_state *mrb, mrb_value self)
   return rational_new_i(mrb, 0, 1);
 }
 
-#if !defined(MRB_NO_FLOAT) || defined(RAT_BIGINT)
 static mrb_value
 rational_new(mrb_state *mrb, mrb_value a, mrb_value b)
 {
+  /* Rational(a, b) is a/b, and with a Rational among exact operands the
+     quotient is exact, so a Rational is asked about before anything that
+     would convert it: mrb_as_bint() below reaches a non-Bigint through
+     mrb_as_int(), and the integer coercion and the Float arm each lose it
+     the same way. */
 #ifdef MRB_NO_FLOAT
-  /* The #if above admits this arm only when RAT_BIGINT is on, so a Bigint
-     operand is possible here and takes the same route as in the arm below:
+  if (mrb_type(a) == MRB_TT_RATIONAL || mrb_type(b) == MRB_TT_RATIONAL) {
+    return mrb_rational_div(mrb, mrb_as_rational(mrb, a), b);
+  }
+#ifdef RAT_BIGINT
+  /* A Bigint operand takes the same route as in the arm below:
      mrb_ensure_int_type() narrows a Bigint to an mrb_int, which is what
      rational_new_b() exists to avoid. */
   if (mrb_bigint_p(a) || mrb_bigint_p(b)) {
     return rational_new_b(mrb, mrb_as_bint(mrb, a), b);
   }
+#endif
   a = mrb_ensure_int_type(mrb, a);
   b = mrb_ensure_int_type(mrb, b);
   return rational_new_i(mrb, mrb_integer(a), mrb_integer(b));
@@ -570,18 +578,17 @@ rational_new(mrb_state *mrb, mrb_value a, mrb_value b)
   if (mrb_integer_p(a) && mrb_integer_p(b)) {
     return rational_new_i(mrb, mrb_integer(a), mrb_integer(b));
   }
+  /* A Float operand is not exact, so the pair goes to the Float arm below
+     even with a Rational beside it. */
+  else if ((mrb_type(a) == MRB_TT_RATIONAL || mrb_type(b) == MRB_TT_RATIONAL) &&
+           !mrb_float_p(a) && !mrb_float_p(b)) {
+    return mrb_rational_div(mrb, mrb_as_rational(mrb, a), b);
+  }
 #ifdef RAT_BIGINT
   else if (mrb_bigint_p(a) || mrb_bigint_p(b)) {
     return rational_new_b(mrb, mrb_as_bint(mrb, a), b);
   }
 #endif
-  else if ((mrb_type(a) == MRB_TT_RATIONAL || mrb_type(b) == MRB_TT_RATIONAL) &&
-           !mrb_float_p(a) && !mrb_float_p(b)) {
-    /* Rational(a, b) is a/b, and with a Rational among exact operands the
-       quotient is exact; the Float arm below would round it through a
-       division of two doubles. */
-    return mrb_rational_div(mrb, mrb_as_rational(mrb, a), b);
-  }
   else {
     mrb_float x = mrb_as_float(mrb, a);
     mrb_float y = mrb_as_float(mrb, b);
@@ -609,29 +616,6 @@ rational_m(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "o|o", &a, &b);
   return rational_new(mrb, a, b);
 }
-
-#else
-
-/*
- * call-seq:
- *   Rational(numerator, denominator = 1) -> rational
- *
- * Creates a rational number from numerator and denominator.
- * The rational is automatically reduced to lowest terms.
- *
- *   Rational(1, 2)    #=> Rational(1, 2)
- *   Rational(6, 8)    #=> Rational(3, 4)
- *   Rational(5)       #=> Rational(5, 1)
- *   Rational(-2, 4)   #=> Rational(-1, 2)
- */
-static mrb_value
-rational_m(mrb_state *mrb, mrb_value self)
-{
-  mrb_int n, d = 1;
-  mrb_get_args(mrb, "i|i", &n, &d);
-  return rational_new_i(mrb, n, d);
-}
-#endif
 
 #ifdef RAT_BIGINT
 /* The bigint half of the union is what this reads, and rational_eq() reaches
@@ -1290,11 +1274,7 @@ rat_pow_int(mrb_state *mrb, mrb_value x, mrb_value e)
   if (inverse) {
     mrb_value t = a; a = b; b = t;   /* 0 in the numerator becomes 0 below */
   }
-#if !defined(MRB_NO_FLOAT) || defined(RAT_BIGINT)
   return rational_new(mrb, a, b);
-#else
-  return rational_new_i(mrb, mrb_integer(a), mrb_integer(b));
-#endif
 }
 
 /*

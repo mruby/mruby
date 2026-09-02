@@ -636,3 +636,19 @@ assert 'Kernel#Rational with a Rational operand stays exact' do
   assert_equal Rational(3, 1), Rational(1, Rational(1, 3))
   assert_equal Rational(1, 6), Rational(Rational(1, 3), 2)
 end
+
+assert 'Kernel#Rational with a Rational and a Bigint operand stays exact' do
+  # The Bigint arm reaches a non-Bigint operand through mrb_as_int(), which
+  # truncates a Rational, so the Rational has to be asked about first. The
+  # shift count is a variable because a constant shift wider than mrb_int is
+  # folded at compile time, which fails the build instead of raising.
+  k = 70
+  begin
+    big = 1 << k
+  rescue RangeError
+    skip 'requires mruby-bigint'
+  end
+  assert_equal Rational(1, big * 2), Rational(Rational(1, 2), big)
+  assert_equal Rational(big * 2, 1), Rational(big, Rational(1, 2))
+  assert_equal Rational(1, big * 3), Rational(Rational(1, 3), big)
+end
