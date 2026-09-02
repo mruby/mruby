@@ -1431,6 +1431,27 @@ bt_match(bt_state *m, const char *sp, uint32_t pc)
       }
       break;
 
+    case RE_COND:
+      {
+        /* The group has matched when its pair is closed, which is the test
+           RE_BACKREF makes before it reads one: an open group holds a start
+           and no end (see RE_SAVE), and a group nothing has entered holds
+           neither. No choice point: which body runs is settled by the
+           captures as they stand, and a failure inside the body backtracks
+           past this instruction to whatever was pushed before it, which is
+           what may change the captures and bring the search back here with
+           the other answer. */
+        int group = inst.a;
+        if (group * 2 + 1 < ncap &&
+            captures[group * 2] >= 0 && captures[group * 2 + 1] >= 0) {
+          pc++;
+        }
+        else {
+          pc = inst.offset;
+        }
+      }
+      break;
+
     case RE_LOOKAHEAD:
     case RE_NEG_LOOKAHEAD:
     case RE_LOOKBEHIND:

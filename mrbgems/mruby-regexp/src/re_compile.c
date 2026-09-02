@@ -109,6 +109,7 @@ typedef struct {
 } re_compiler;
 
 static void compile_alt(re_compiler *c);  /* forward */
+static void compile_seq(re_compiler *c);  /* forward */
 
 /* Take the message as a String rather than as a C string, for the messages
    that quote a group name: the name is a length-counted slice of the pattern
@@ -192,7 +193,7 @@ op_holds_code_index(uint8_t op)
   case RE_JMP: case RE_SPLIT: case RE_SPLITNG:
   case RE_LOOKAHEAD: case RE_NEG_LOOKAHEAD:
   case RE_LOOKBEHIND: case RE_NEG_LOOKBEHIND:
-  case RE_ABSENT:
+  case RE_ABSENT: case RE_COND:
     return TRUE;
   default:
     return FALSE;
@@ -1922,6 +1923,160 @@ compile_look_body(re_compiler *c, mrb_bool negative)
   return emit(c, RE_LOOK_END, negative ? RE_LOOK_NEGATED : 0, cut);
 }
 
+/* Read the group a reference names, `<name>` or `'name'` with the parse
+   point on the opening delimiter, and answer its number. This is what
+   `\k` reads after its letter and what a conditional reads inside its
+   parentheses, and the two agree on every spelling: a name looks up the
+   first group defined under it so far, digits are an absolute number a
+   group written later may still satisfy, `-n` counts back over the groups
+   already open, and a nest level is refused. A number that names no group
+   is caught by mrb_re_compile() once the whole pattern is read; see
+   `max_backref`. */
+static int
+parse_group_ref(re_compiler *c)
+{
+  int close = (peek(c) == '<') ? '>' : '\'';
+  next_char(c);  /* skip < or ' */
+  const char *name = c->p;
+  while (peek(c) != close && peek(c) >= 0) {
+    /* The reference reads a name the same way a definition does, and stops
+       at a ')' the same way too, from the second byte on: \k<)> reaches the
+       group (?<)>x) opened, while \k<a)b> is `invalid group name`. */
+    if (peek(c) == ')' && c->p > name) {
+      compile_error_str(c, mrb_format(c->mrb, "invalid group name <%l>",
+                                      name, (size_t)(c->src_end - name)));
+    }
+    next_char(c);
+  }
+  /* The end of the pattern ends the name the way a ')' does; see the
+     definition side for the pair. */
+  if (c->p == name) compile_error(c, "group name is empty");
+  /* A pattern that ends inside the name never closed it, so what was read
+     is not a name to look up: it is quoted back as the malformed one it
+     is. This comes before the level check below because an unclosed name
+     is not a level either. */
+  if (peek(c) != close) {
+    compile_error_str(c, mrb_format(c->mrb, "invalid group name <%l>",
+                                    name, (size_t)(c->p - name)));
+  }
+  uint32_t name_len = (uint32_t)(c->p - name);
+
+  /* A `+` or `-` past the first byte ends a \k name and opens a nest
+     level: `\k<name+n>` reads the group as the enclosing recursion left
+     it n levels up, which is a feature of the subexpression calls this
+     engine refuses (see `\g` below), so the reference is refused with it.
+     The first byte is exempt because that is where the relative form's
+     sign stands: `\k<-1>` is the group one back, and `\k<-1-1>` is that
+     group at a level. Reading the sign as part of the name instead let a
+     reference reach a group CRuby's own numbering puts out of reach, since
+     a definition takes the sign into the name where a reference never
+     does: `(?<a-1>x)\k<a-1>` matched here and is `undefined name <a>`
+     there. Only digits stand behind the sign, so a level CRuby itself
+     refuses is a malformed name here as it is there, `\k<a+>` and
+     `\k<a+1x>` reaching the message the rest of this arm gives one. The
+     name is quoted as it was read; CRuby quotes it to the end of the
+     pattern instead, the way it does for every name its own scan ended.
+     The whole check comes before the length one below because the sign is
+     where the name ends, so a name long enough to fail that one is a
+     level first. */
+  uint32_t sign = 1;
+  while (sign < name_len && name[sign] != '+' && name[sign] != '-') sign++;
+  if (sign < name_len) {
+    mrb_bool numeric = (sign + 1 < name_len);
+    for (uint32_t i = sign + 1; numeric && i < name_len; i++) {
+      if (name[i] < '0' || name[i] > '9') numeric = FALSE;
+    }
+    if (numeric) compile_error(c, "backreference with nest level is not supported");
+    compile_error_str(c, mrb_format(c->mrb, "invalid group name <%l>",
+                                    name, (size_t)name_len));
+  }
+
+  if (!RE_NAME_LEN_FITS(name_len)) compile_error(c, "group name too long");
+  next_char(c);  /* skip the closing > or ' */
+
+  int group = -1;
+  if (name_len > 0 && (name[0] == '-' || (name[0] >= '0' && name[0] <= '9'))) {
+    mrb_bool relative = (name[0] == '-');
+    uint32_t first = relative ? 1 : 0;
+
+    /* CRuby reads the whole name before converting it, so a name that is
+       not `-`? followed by digits is a malformed name whatever the digits
+       it does hold would come to: \k<99999999999999999999x> is `invalid
+       group name`, not `too big number`. A lone `-` is malformed too. */
+    mrb_bool numeric = (first < name_len);
+    for (uint32_t i = first; numeric && i < name_len; i++) {
+      if (name[i] < '0' || name[i] > '9') numeric = FALSE;
+    }
+
+    int n = 0;
+    for (uint32_t i = first; numeric && i < name_len; i++) {
+      int digit = name[i] - '0';
+      /* CRuby's scanner stops at RE_MAX_BACKREF_NUM, and a number past it
+         is too big rather than a reference to a group that is missing. */
+      if (n > (RE_MAX_BACKREF_NUM - digit) / 10) compile_error(c, "too big number");
+      n = n * 10 + digit;
+    }
+    /* n == 0 names group 0, the whole match, which \k cannot reference */
+    if (!numeric || n == 0) {
+      compile_error_str(c, mrb_format(c->mrb, "invalid group name <%l>",
+                                      name, (size_t)name_len));
+    }
+
+    if (relative) {
+      /* `\k<-n>` counts back from where it stands, so the groups it can
+         name are the ones already open; Onigmo resolves it the same way
+         (BACKREF_REL_TO_ABS) and refuses a relative forward reference.
+         The count is `num_groups` rather than `num_captures` because the
+         groups a named pattern demotes still count here, as they do
+         everywhere else the parse numbers a group; where nothing is
+         demoted the two agree, `num_groups` standing one below
+         `num_captures`, which counts group 0. The resolution comes before
+         the refusal below because CRuby reaches that refusal only once
+         the reference has resolved to a group the pattern has:
+         `(?<n>a)\k<-1>` is refused for being numbered, `(?<n>a)\k<-2>`
+         is out of range instead. */
+      group = (int)c->num_groups + 1 - n;
+      if (group < 1) compile_error(c, "invalid backref number/name");
+    }
+
+    /* CRuby rejects a numbered backreference in a named pattern whatever
+       its spelling, and it has to be rejected here too: once plain groups
+       stop consuming numbers, the check after the parse, which counts the
+       demoted groups, would silently accept a number naming a group that
+       no longer carries it. */
+    if (c->dont_capture) {
+      compile_error(c, "numbered backref/call is not allowed. (use name)");
+    }
+
+    if (!relative) {
+      /* The absolute form may name a group written later, `\k<1>(a)`
+         being as valid in CRuby as `\1(a)` is, so the number is only
+         recorded here and mrb_re_compile() checks it against the
+         pattern's group count once the parse is done. A number above
+         RE_MAX_CAPTURES names no group whatever the pattern goes on to
+         open, and is kept at that bound so the check still refuses it
+         while the number stays one a group field can hold. */
+      if (n > RE_MAX_CAPTURES) n = RE_MAX_CAPTURES;
+      if (n > (int)c->max_backref) c->max_backref = (uint16_t)n;
+      group = n;
+    }
+  }
+  else {
+    for (uint16_t i = 0; i < c->num_named; i++) {
+      if (c->pat->named_captures[i].name_len == name_len &&
+          memcmp(c->pat->named_captures[i].name, name, name_len) == 0) {
+        group = c->pat->named_captures[i].group;
+        break;
+      }
+    }
+    if (group < 1) {
+      compile_error_str(c, mrb_format(c->mrb, "undefined name <%l> reference",
+                                      name, (size_t)name_len));
+    }
+  }
+  return group;
+}
+
 /* Compile a single atom (character, class, group, etc.). Returns whether one
    was read: FALSE when what stands at the parse point is not an atom, either a
    quantifier metacharacter or the end of the sequence, neither of them
@@ -2149,6 +2304,115 @@ compile_atom(re_compiler *c)
             compile_error(c, "undefined group option");
           }
         }
+        else if (c->p[1] == '(') {
+          /* The conditional (?(cond)yes|no): `yes` where the group `cond`
+             names has matched, `no` where it has not, and `no` is empty
+             where it is left out. The condition is a group reference in the
+             spellings a backreference takes, `(1)`, `(<name>)` and
+             `('name')`, and a group has matched when its capture pair is
+             closed: one still open, the conditional standing inside it, has
+             not, and neither has one a repetition has just re-entered (see
+             RE_SAVE in bt_match()). That is Onigmo's reading too.
+
+             The number form is read here rather than by parse_group_ref():
+             the digits run to the ')' with no delimiter of their own, and
+             CRuby refuses the sign that gives the relative forms, so what is
+             read is digits or a malformed name. Every check the absolute
+             form makes there is made here in the same order, the count
+             check coming after the parse as it does for `\1(a)`, so
+             `(?(1)b|c)(a)` is as valid as that is. A named pattern refuses
+             the number as it refuses `\1`.
+
+             Two branches at most: a third `|` is `invalid conditional
+             pattern`, as in CRuby, so the bodies are read one sequence at a
+             time rather than through compile_alt(), which would take every
+             `|`. The bodies nest a level as a group's would, and the
+             count is kept the way compile_alt() keeps it.
+
+             One instruction carries the test and the layout is a fork's
+             with the choice made by the captures instead of pushed: RE_COND
+             goes on at pc + 1 where the group has matched and at `offset`
+             where it has not, `yes` ends with a jump past `no`, and with no
+             `no` the head's offset is the text after the group. */
+          next_char(c); next_char(c);  /* skip ?( */
+          int group = 0;
+          int cond = peek(c);
+          if (cond < 0) {
+            /* `(?(` and nothing more: CRuby answers for the prefix, not for
+               the condition it never began. */
+            compile_error(c, "undefined group option");
+          }
+          if (cond == '<' || cond == '\'') {
+            group = parse_group_ref(c);
+            /* A name closed by its delimiter and then something other than
+               the ')': CRuby's answer is the prefix's, as above. */
+            if (peek(c) != ')') compile_error(c, "undefined group option");
+          }
+          else if (cond >= '0' && cond <= '9') {
+            const char *digits = c->p;
+            while (peek(c) != ')' && peek(c) >= 0) next_char(c);
+            uint32_t dlen = (uint32_t)(c->p - digits);
+            mrb_bool numeric = TRUE;
+            for (uint32_t i = 0; numeric && i < dlen; i++) {
+              if (digits[i] < '0' || digits[i] > '9') numeric = FALSE;
+            }
+            /* A condition the pattern ends inside is quoted back the way a
+               name the pattern ends inside is, and so is one that is not
+               all digits, as in parse_group_ref(). */
+            if (!numeric || peek(c) < 0) {
+              compile_error_str(c, mrb_format(c->mrb, "invalid group name <%l>",
+                                              digits, (size_t)dlen));
+            }
+            int n = 0;
+            for (uint32_t i = 0; i < dlen; i++) {
+              int digit = digits[i] - '0';
+              if (n > (RE_MAX_BACKREF_NUM - digit) / 10) compile_error(c, "too big number");
+              n = n * 10 + digit;
+            }
+            /* Group 0 is the whole match, which is never closed while the
+               pattern runs, and CRuby refuses it as it refuses `\k<0>`. */
+            if (n == 0) {
+              compile_error_str(c, mrb_format(c->mrb, "invalid group name <%l>",
+                                              digits, (size_t)dlen));
+            }
+            if (c->dont_capture) {
+              compile_error(c, "numbered backref/call is not allowed. (use name)");
+            }
+            if (n > RE_MAX_CAPTURES) n = RE_MAX_CAPTURES;
+            if (n > (int)c->max_backref) c->max_backref = (uint16_t)n;
+            group = n;
+          }
+          else {
+            /* Anything else in the condition's place, a bare name, a signed
+               number, nothing at all: CRuby refuses the condition rather
+               than reading it as a name. */
+            compile_error(c, "invalid conditional pattern");
+          }
+          next_char(c);  /* skip the ')' closing the condition */
+
+          uint32_t head = emit(c, RE_COND, (uint8_t)group, 0);
+          if (++c->depth > (uint32_t)MRB_REGEXP_PARSE_DEPTH_LIMIT) {
+            compile_error(c, "parse depth limit over");
+          }
+          compile_seq(c);
+          if (peek(c) == '|') {
+            next_char(c);
+            uint32_t skip = emit(c, RE_JMP, 0, 0);
+            c->pat->code[head].offset = (uint16_t)c->code_len;
+            compile_seq(c);
+            if (peek(c) == '|') compile_error(c, "invalid conditional pattern");
+            c->pat->code[skip].offset = (uint16_t)c->code_len;
+          }
+          else {
+            c->pat->code[head].offset = (uint16_t)c->code_len;
+          }
+          c->depth--;
+          if (peek(c) != ')') compile_error(c, "end pattern with unmatched parenthesis");
+          next_char(c);
+          c->needs_backtrack = TRUE;  /* the Pike VM's threads carry no test of their captures */
+          c->flags = saved_flags;
+          break;
+        }
         else if (c->p[1] == '#') {
           /* preprocess_pattern() removes a terminated comment group before
              the parser runs, so one reaching here was never closed, which
@@ -2157,12 +2421,11 @@ compile_atom(re_compiler *c)
         }
         else {
           /* (?X) with an unsupported X: not one of the recognized (?: (?= (?!
-             (?<= (?<! (?<name> (?'name' (?> (?~ (?imx forms. Comment groups
-             (?#...) never get here either, having been removed by
-             preprocess_pattern(). Conditionals (?(...)) are not implemented.
-             Raise here rather than falling through to the capturing-group
-             path, which would leave the stray `?` for compile_seq to spin on
-             forever (A1). */
+             (?<= (?<! (?<name> (?'name' (?> (?~ (?( (?imx forms. Comment
+             groups (?#...) never get here either, having been removed by
+             preprocess_pattern(). Raise here rather than falling through to
+             the capturing-group path, which would leave the stray `?` for
+             compile_seq to spin on forever (A1). */
           if (c->p[1] == '<') {
             /* `(?<` and nothing more, the only way a '<' reaches here: the
                pattern ends before the character that tells a lookbehind
@@ -2316,145 +2579,7 @@ compile_atom(re_compiler *c)
          \k<2> (absolute) and \k<-1> (relative to the groups seen so far) are
          also accepted, like the \g/\k family in Onigmo. */
       next_char(c);  /* skip k */
-      int close = (peek(c) == '<') ? '>' : '\'';
-      next_char(c);  /* skip < or ' */
-      const char *name = c->p;
-      while (peek(c) != close && peek(c) >= 0) {
-        /* The reference reads a name the same way a definition does, and stops
-           at a ')' the same way too, from the second byte on: \k<)> reaches the
-           group (?<)>x) opened, while \k<a)b> is `invalid group name`. */
-        if (peek(c) == ')' && c->p > name) {
-          compile_error_str(c, mrb_format(c->mrb, "invalid group name <%l>",
-                                          name, (size_t)(c->src_end - name)));
-        }
-        next_char(c);
-      }
-      /* The end of the pattern ends the name the way a ')' does; see the
-         definition side for the pair. */
-      if (c->p == name) compile_error(c, "group name is empty");
-      /* A pattern that ends inside the name never closed it, so what was read
-         is not a name to look up: it is quoted back as the malformed one it
-         is. This comes before the level check below because an unclosed name
-         is not a level either. */
-      if (peek(c) != close) {
-        compile_error_str(c, mrb_format(c->mrb, "invalid group name <%l>",
-                                        name, (size_t)(c->p - name)));
-      }
-      uint32_t name_len = (uint32_t)(c->p - name);
-
-      /* A `+` or `-` past the first byte ends a \k name and opens a nest
-         level: `\k<name+n>` reads the group as the enclosing recursion left
-         it n levels up, which is a feature of the subexpression calls this
-         engine refuses (see `\g` below), so the reference is refused with it.
-         The first byte is exempt because that is where the relative form's
-         sign stands: `\k<-1>` is the group one back, and `\k<-1-1>` is that
-         group at a level. Reading the sign as part of the name instead let a
-         reference reach a group CRuby's own numbering puts out of reach, since
-         a definition takes the sign into the name where a reference never
-         does: `(?<a-1>x)\k<a-1>` matched here and is `undefined name <a>`
-         there. Only digits stand behind the sign, so a level CRuby itself
-         refuses is a malformed name here as it is there, `\k<a+>` and
-         `\k<a+1x>` reaching the message the rest of this arm gives one. The
-         name is quoted as it was read; CRuby quotes it to the end of the
-         pattern instead, the way it does for every name its own scan ended.
-         The whole check comes before the length one below because the sign is
-         where the name ends, so a name long enough to fail that one is a
-         level first. */
-      uint32_t sign = 1;
-      while (sign < name_len && name[sign] != '+' && name[sign] != '-') sign++;
-      if (sign < name_len) {
-        mrb_bool numeric = (sign + 1 < name_len);
-        for (uint32_t i = sign + 1; numeric && i < name_len; i++) {
-          if (name[i] < '0' || name[i] > '9') numeric = FALSE;
-        }
-        if (numeric) compile_error(c, "backreference with nest level is not supported");
-        compile_error_str(c, mrb_format(c->mrb, "invalid group name <%l>",
-                                        name, (size_t)name_len));
-      }
-
-      if (!RE_NAME_LEN_FITS(name_len)) compile_error(c, "group name too long");
-      next_char(c);  /* skip the closing > or ' */
-
-      int group = -1;
-      if (name_len > 0 && (name[0] == '-' || (name[0] >= '0' && name[0] <= '9'))) {
-        mrb_bool relative = (name[0] == '-');
-        uint32_t first = relative ? 1 : 0;
-
-        /* CRuby reads the whole name before converting it, so a name that is
-           not `-`? followed by digits is a malformed name whatever the digits
-           it does hold would come to: \k<99999999999999999999x> is `invalid
-           group name`, not `too big number`. A lone `-` is malformed too. */
-        mrb_bool numeric = (first < name_len);
-        for (uint32_t i = first; numeric && i < name_len; i++) {
-          if (name[i] < '0' || name[i] > '9') numeric = FALSE;
-        }
-
-        int n = 0;
-        for (uint32_t i = first; numeric && i < name_len; i++) {
-          int digit = name[i] - '0';
-          /* CRuby's scanner stops at RE_MAX_BACKREF_NUM, and a number past it
-             is too big rather than a reference to a group that is missing. */
-          if (n > (RE_MAX_BACKREF_NUM - digit) / 10) compile_error(c, "too big number");
-          n = n * 10 + digit;
-        }
-        /* n == 0 names group 0, the whole match, which \k cannot reference */
-        if (!numeric || n == 0) {
-          compile_error_str(c, mrb_format(c->mrb, "invalid group name <%l>",
-                                          name, (size_t)name_len));
-        }
-
-        if (relative) {
-          /* `\k<-n>` counts back from where it stands, so the groups it can
-             name are the ones already open; Onigmo resolves it the same way
-             (BACKREF_REL_TO_ABS) and refuses a relative forward reference.
-             The count is `num_groups` rather than `num_captures` because the
-             groups a named pattern demotes still count here, as they do
-             everywhere else the parse numbers a group; where nothing is
-             demoted the two agree, `num_groups` standing one below
-             `num_captures`, which counts group 0. The resolution comes before
-             the refusal below because CRuby reaches that refusal only once
-             the reference has resolved to a group the pattern has:
-             `(?<n>a)\k<-1>` is refused for being numbered, `(?<n>a)\k<-2>`
-             is out of range instead. */
-          group = (int)c->num_groups + 1 - n;
-          if (group < 1) compile_error(c, "invalid backref number/name");
-        }
-
-        /* CRuby rejects a numbered backreference in a named pattern whatever
-           its spelling, and it has to be rejected here too: once plain groups
-           stop consuming numbers, the check after the parse, which counts the
-           demoted groups, would silently accept a number naming a group that
-           no longer carries it. */
-        if (c->dont_capture) {
-          compile_error(c, "numbered backref/call is not allowed. (use name)");
-        }
-
-        if (!relative) {
-          /* The absolute form may name a group written later, `\k<1>(a)`
-             being as valid in CRuby as `\1(a)` is, so the number is only
-             recorded here and mrb_re_compile() checks it against the
-             pattern's group count once the parse is done. A number above
-             RE_MAX_CAPTURES names no group whatever the pattern goes on to
-             open, and is kept at that bound so the check still refuses it
-             while the number stays one a group field can hold. */
-          if (n > RE_MAX_CAPTURES) n = RE_MAX_CAPTURES;
-          if (n > (int)c->max_backref) c->max_backref = (uint16_t)n;
-          group = n;
-        }
-      }
-      else {
-        for (uint16_t i = 0; i < c->num_named; i++) {
-          if (c->pat->named_captures[i].name_len == name_len &&
-              memcmp(c->pat->named_captures[i].name, name, name_len) == 0) {
-            group = c->pat->named_captures[i].group;
-            break;
-          }
-        }
-        if (group < 1) {
-          compile_error_str(c, mrb_format(c->mrb, "undefined name <%l> reference",
-                                          name, (size_t)name_len));
-        }
-      }
+      int group = parse_group_ref(c);
       emit(c, RE_BACKREF, (uint8_t)group, (c->flags & RE_FLAG_IGNORECASE) ? 1 : 0);
       c->has_backref = TRUE;
     }
@@ -3451,6 +3576,7 @@ first_set_walk(const re_inst *code, uint32_t code_len,
       pc = code[pc].offset;
       continue;
     case RE_SPLIT:
+    case RE_COND:  /* either body may run first; the walk cannot know which */
       /* both branches: pc+1 and offset */
       if (!first_set_walk(code, code_len, classes, code[pc].offset, bm, seen))
         return FALSE;
@@ -3533,7 +3659,8 @@ anchor_walk(const re_inst *code, uint32_t code_len, uint32_t pc, uint8_t *seen)
       pc = code[pc].offset;
       continue;
     case RE_SPLIT:
-    case RE_SPLITNG: {
+    case RE_SPLITNG:
+    case RE_COND: {  /* a fork to this walk: both bodies are paths */
       uint8_t other = anchor_walk(code, code_len, code[pc].offset, seen);
       if (other == RE_ANCHOR_NONE) return RE_ANCHOR_NONE;
       uint8_t mine = anchor_walk(code, code_len, pc + 1, seen);
@@ -3591,6 +3718,7 @@ epsilon_path(const re_inst *code, uint32_t code_len, uint32_t pc, uint32_t goal,
       break;
     case RE_SPLIT:
     case RE_SPLITNG:
+    case RE_COND:  /* either body may be the one that runs */
       if (epsilon_path(code, code_len, code[pc].offset, goal, seen, mark)) return TRUE;
       pc++;
       break;
@@ -3747,6 +3875,7 @@ call_walk(const re_inst *code, uint32_t code_len, uint32_t start,
         pc = in.offset;
         continue;
       case RE_SPLIT: case RE_SPLITNG:
+      case RE_COND:  /* a fork to this walk: both bodies are paths */
         stack[top++] = in.offset;
         pc++;
         continue;
