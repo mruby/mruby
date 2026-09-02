@@ -1922,6 +1922,158 @@ compile_look_body(re_compiler *c, mrb_bool negative)
   return emit(c, RE_LOOK_END, negative ? RE_LOOK_NEGATED : 0, cut);
 }
 
+/* Read the group a reference names, `<name>` or `'name'` with the parse
+   point on the opening delimiter, and answer its number: a name looks up
+   the first group defined under it so far, digits are an absolute number a
+   group written later may still satisfy, `-n` counts back over the groups
+   already open, and a nest level is refused. A number that names no group
+   is caught by mrb_re_compile() once the whole pattern is read; see
+   `max_backref`. */
+static int
+parse_group_ref(re_compiler *c)
+{
+  int close = (peek(c) == '<') ? '>' : '\'';
+  next_char(c);  /* skip < or ' */
+  const char *name = c->p;
+  while (peek(c) != close && peek(c) >= 0) {
+    /* The reference reads a name the same way a definition does, and stops
+       at a ')' the same way too, from the second byte on: \k<)> reaches the
+       group (?<)>x) opened, while \k<a)b> is `invalid group name`. */
+    if (peek(c) == ')' && c->p > name) {
+      compile_error_str(c, mrb_format(c->mrb, "invalid group name <%l>",
+                                      name, (size_t)(c->src_end - name)));
+    }
+    next_char(c);
+  }
+  /* The end of the pattern ends the name the way a ')' does; see the
+     definition side for the pair. */
+  if (c->p == name) compile_error(c, "group name is empty");
+  /* A pattern that ends inside the name never closed it, so what was read
+     is not a name to look up: it is quoted back as the malformed one it
+     is. This comes before the level check below because an unclosed name
+     is not a level either. */
+  if (peek(c) != close) {
+    compile_error_str(c, mrb_format(c->mrb, "invalid group name <%l>",
+                                    name, (size_t)(c->p - name)));
+  }
+  uint32_t name_len = (uint32_t)(c->p - name);
+
+  /* A `+` or `-` past the first byte ends a \k name and opens a nest
+     level: `\k<name+n>` reads the group as the enclosing recursion left
+     it n levels up, which is a feature of the subexpression calls this
+     engine refuses (see `\g` below), so the reference is refused with it.
+     The first byte is exempt because that is where the relative form's
+     sign stands: `\k<-1>` is the group one back, and `\k<-1-1>` is that
+     group at a level. Reading the sign as part of the name instead let a
+     reference reach a group CRuby's own numbering puts out of reach, since
+     a definition takes the sign into the name where a reference never
+     does: `(?<a-1>x)\k<a-1>` matched here and is `undefined name <a>`
+     there. Only digits stand behind the sign, so a level CRuby itself
+     refuses is a malformed name here as it is there, `\k<a+>` and
+     `\k<a+1x>` reaching the message the rest of this arm gives one. The
+     name is quoted as it was read; CRuby quotes it to the end of the
+     pattern instead, the way it does for every name its own scan ended.
+     The whole check comes before the length one below because the sign is
+     where the name ends, so a name long enough to fail that one is a
+     level first. */
+  uint32_t sign = 1;
+  while (sign < name_len && name[sign] != '+' && name[sign] != '-') sign++;
+  if (sign < name_len) {
+    mrb_bool numeric = (sign + 1 < name_len);
+    for (uint32_t i = sign + 1; numeric && i < name_len; i++) {
+      if (name[i] < '0' || name[i] > '9') numeric = FALSE;
+    }
+    if (numeric) compile_error(c, "backreference with nest level is not supported");
+    compile_error_str(c, mrb_format(c->mrb, "invalid group name <%l>",
+                                    name, (size_t)name_len));
+  }
+
+  if (!RE_NAME_LEN_FITS(name_len)) compile_error(c, "group name too long");
+  next_char(c);  /* skip the closing > or ' */
+
+  int group = -1;
+  if (name_len > 0 && (name[0] == '-' || (name[0] >= '0' && name[0] <= '9'))) {
+    mrb_bool relative = (name[0] == '-');
+    uint32_t first = relative ? 1 : 0;
+
+    /* CRuby reads the whole name before converting it, so a name that is
+       not `-`? followed by digits is a malformed name whatever the digits
+       it does hold would come to: \k<99999999999999999999x> is `invalid
+       group name`, not `too big number`. A lone `-` is malformed too. */
+    mrb_bool numeric = (first < name_len);
+    for (uint32_t i = first; numeric && i < name_len; i++) {
+      if (name[i] < '0' || name[i] > '9') numeric = FALSE;
+    }
+
+    int n = 0;
+    for (uint32_t i = first; numeric && i < name_len; i++) {
+      int digit = name[i] - '0';
+      /* CRuby's scanner stops at RE_MAX_BACKREF_NUM, and a number past it
+         is too big rather than a reference to a group that is missing. */
+      if (n > (RE_MAX_BACKREF_NUM - digit) / 10) compile_error(c, "too big number");
+      n = n * 10 + digit;
+    }
+    /* n == 0 names group 0, the whole match, which \k cannot reference */
+    if (!numeric || n == 0) {
+      compile_error_str(c, mrb_format(c->mrb, "invalid group name <%l>",
+                                      name, (size_t)name_len));
+    }
+
+    if (relative) {
+      /* `\k<-n>` counts back from where it stands, so the groups it can
+         name are the ones already open; Onigmo resolves it the same way
+         (BACKREF_REL_TO_ABS) and refuses a relative forward reference.
+         The count is `num_groups` rather than `num_captures` because the
+         groups a named pattern demotes still count here, as they do
+         everywhere else the parse numbers a group; where nothing is
+         demoted the two agree, `num_groups` standing one below
+         `num_captures`, which counts group 0. The resolution comes before
+         the refusal below because CRuby reaches that refusal only once
+         the reference has resolved to a group the pattern has:
+         `(?<n>a)\k<-1>` is refused for being numbered, `(?<n>a)\k<-2>`
+         is out of range instead. */
+      group = (int)c->num_groups + 1 - n;
+      if (group < 1) compile_error(c, "invalid backref number/name");
+    }
+
+    /* CRuby rejects a numbered backreference in a named pattern whatever
+       its spelling, and it has to be rejected here too: once plain groups
+       stop consuming numbers, the check after the parse, which counts the
+       demoted groups, would silently accept a number naming a group that
+       no longer carries it. */
+    if (c->dont_capture) {
+      compile_error(c, "numbered backref/call is not allowed. (use name)");
+    }
+
+    if (!relative) {
+      /* The absolute form may name a group written later, `\k<1>(a)`
+         being as valid in CRuby as `\1(a)` is, so the number is only
+         recorded here and mrb_re_compile() checks it against the
+         pattern's group count once the parse is done. A number above
+         RE_MAX_CAPTURES names no group whatever the pattern goes on to
+         open, and is kept at that bound so the check still refuses it
+         while the number stays one a group field can hold. */
+      if (n > RE_MAX_CAPTURES) n = RE_MAX_CAPTURES;
+      if (n > (int)c->max_backref) c->max_backref = (uint16_t)n;
+      group = n;
+    }
+  }
+  else {
+    for (uint16_t i = 0; i < c->num_named; i++) {
+      if (c->pat->named_captures[i].name_len == name_len &&
+          memcmp(c->pat->named_captures[i].name, name, name_len) == 0) {
+        group = c->pat->named_captures[i].group;
+        break;
+      }
+    }
+    if (group < 1) {
+      compile_error_str(c, mrb_format(c->mrb, "undefined name <%l> reference",
+                                      name, (size_t)name_len));
+    }
+  }
+  return group;
+}
+
 /* Compile a single atom (character, class, group, etc.). Returns whether one
    was read: FALSE when what stands at the parse point is not an atom, either a
    quantifier metacharacter or the end of the sequence, neither of them
@@ -2316,145 +2468,7 @@ compile_atom(re_compiler *c)
          \k<2> (absolute) and \k<-1> (relative to the groups seen so far) are
          also accepted, like the \g/\k family in Onigmo. */
       next_char(c);  /* skip k */
-      int close = (peek(c) == '<') ? '>' : '\'';
-      next_char(c);  /* skip < or ' */
-      const char *name = c->p;
-      while (peek(c) != close && peek(c) >= 0) {
-        /* The reference reads a name the same way a definition does, and stops
-           at a ')' the same way too, from the second byte on: \k<)> reaches the
-           group (?<)>x) opened, while \k<a)b> is `invalid group name`. */
-        if (peek(c) == ')' && c->p > name) {
-          compile_error_str(c, mrb_format(c->mrb, "invalid group name <%l>",
-                                          name, (size_t)(c->src_end - name)));
-        }
-        next_char(c);
-      }
-      /* The end of the pattern ends the name the way a ')' does; see the
-         definition side for the pair. */
-      if (c->p == name) compile_error(c, "group name is empty");
-      /* A pattern that ends inside the name never closed it, so what was read
-         is not a name to look up: it is quoted back as the malformed one it
-         is. This comes before the level check below because an unclosed name
-         is not a level either. */
-      if (peek(c) != close) {
-        compile_error_str(c, mrb_format(c->mrb, "invalid group name <%l>",
-                                        name, (size_t)(c->p - name)));
-      }
-      uint32_t name_len = (uint32_t)(c->p - name);
-
-      /* A `+` or `-` past the first byte ends a \k name and opens a nest
-         level: `\k<name+n>` reads the group as the enclosing recursion left
-         it n levels up, which is a feature of the subexpression calls this
-         engine refuses (see `\g` below), so the reference is refused with it.
-         The first byte is exempt because that is where the relative form's
-         sign stands: `\k<-1>` is the group one back, and `\k<-1-1>` is that
-         group at a level. Reading the sign as part of the name instead let a
-         reference reach a group CRuby's own numbering puts out of reach, since
-         a definition takes the sign into the name where a reference never
-         does: `(?<a-1>x)\k<a-1>` matched here and is `undefined name <a>`
-         there. Only digits stand behind the sign, so a level CRuby itself
-         refuses is a malformed name here as it is there, `\k<a+>` and
-         `\k<a+1x>` reaching the message the rest of this arm gives one. The
-         name is quoted as it was read; CRuby quotes it to the end of the
-         pattern instead, the way it does for every name its own scan ended.
-         The whole check comes before the length one below because the sign is
-         where the name ends, so a name long enough to fail that one is a
-         level first. */
-      uint32_t sign = 1;
-      while (sign < name_len && name[sign] != '+' && name[sign] != '-') sign++;
-      if (sign < name_len) {
-        mrb_bool numeric = (sign + 1 < name_len);
-        for (uint32_t i = sign + 1; numeric && i < name_len; i++) {
-          if (name[i] < '0' || name[i] > '9') numeric = FALSE;
-        }
-        if (numeric) compile_error(c, "backreference with nest level is not supported");
-        compile_error_str(c, mrb_format(c->mrb, "invalid group name <%l>",
-                                        name, (size_t)name_len));
-      }
-
-      if (!RE_NAME_LEN_FITS(name_len)) compile_error(c, "group name too long");
-      next_char(c);  /* skip the closing > or ' */
-
-      int group = -1;
-      if (name_len > 0 && (name[0] == '-' || (name[0] >= '0' && name[0] <= '9'))) {
-        mrb_bool relative = (name[0] == '-');
-        uint32_t first = relative ? 1 : 0;
-
-        /* CRuby reads the whole name before converting it, so a name that is
-           not `-`? followed by digits is a malformed name whatever the digits
-           it does hold would come to: \k<99999999999999999999x> is `invalid
-           group name`, not `too big number`. A lone `-` is malformed too. */
-        mrb_bool numeric = (first < name_len);
-        for (uint32_t i = first; numeric && i < name_len; i++) {
-          if (name[i] < '0' || name[i] > '9') numeric = FALSE;
-        }
-
-        int n = 0;
-        for (uint32_t i = first; numeric && i < name_len; i++) {
-          int digit = name[i] - '0';
-          /* CRuby's scanner stops at RE_MAX_BACKREF_NUM, and a number past it
-             is too big rather than a reference to a group that is missing. */
-          if (n > (RE_MAX_BACKREF_NUM - digit) / 10) compile_error(c, "too big number");
-          n = n * 10 + digit;
-        }
-        /* n == 0 names group 0, the whole match, which \k cannot reference */
-        if (!numeric || n == 0) {
-          compile_error_str(c, mrb_format(c->mrb, "invalid group name <%l>",
-                                          name, (size_t)name_len));
-        }
-
-        if (relative) {
-          /* `\k<-n>` counts back from where it stands, so the groups it can
-             name are the ones already open; Onigmo resolves it the same way
-             (BACKREF_REL_TO_ABS) and refuses a relative forward reference.
-             The count is `num_groups` rather than `num_captures` because the
-             groups a named pattern demotes still count here, as they do
-             everywhere else the parse numbers a group; where nothing is
-             demoted the two agree, `num_groups` standing one below
-             `num_captures`, which counts group 0. The resolution comes before
-             the refusal below because CRuby reaches that refusal only once
-             the reference has resolved to a group the pattern has:
-             `(?<n>a)\k<-1>` is refused for being numbered, `(?<n>a)\k<-2>`
-             is out of range instead. */
-          group = (int)c->num_groups + 1 - n;
-          if (group < 1) compile_error(c, "invalid backref number/name");
-        }
-
-        /* CRuby rejects a numbered backreference in a named pattern whatever
-           its spelling, and it has to be rejected here too: once plain groups
-           stop consuming numbers, the check after the parse, which counts the
-           demoted groups, would silently accept a number naming a group that
-           no longer carries it. */
-        if (c->dont_capture) {
-          compile_error(c, "numbered backref/call is not allowed. (use name)");
-        }
-
-        if (!relative) {
-          /* The absolute form may name a group written later, `\k<1>(a)`
-             being as valid in CRuby as `\1(a)` is, so the number is only
-             recorded here and mrb_re_compile() checks it against the
-             pattern's group count once the parse is done. A number above
-             RE_MAX_CAPTURES names no group whatever the pattern goes on to
-             open, and is kept at that bound so the check still refuses it
-             while the number stays one a group field can hold. */
-          if (n > RE_MAX_CAPTURES) n = RE_MAX_CAPTURES;
-          if (n > (int)c->max_backref) c->max_backref = (uint16_t)n;
-          group = n;
-        }
-      }
-      else {
-        for (uint16_t i = 0; i < c->num_named; i++) {
-          if (c->pat->named_captures[i].name_len == name_len &&
-              memcmp(c->pat->named_captures[i].name, name, name_len) == 0) {
-            group = c->pat->named_captures[i].group;
-            break;
-          }
-        }
-        if (group < 1) {
-          compile_error_str(c, mrb_format(c->mrb, "undefined name <%l> reference",
-                                          name, (size_t)name_len));
-        }
-      }
+      int group = parse_group_ref(c);
       emit(c, RE_BACKREF, (uint8_t)group, (c->flags & RE_FLAG_IGNORECASE) ? 1 : 0);
       c->has_backref = TRUE;
     }
