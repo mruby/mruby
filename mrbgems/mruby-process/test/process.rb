@@ -647,17 +647,30 @@ assert('Process.times counts CPU time this process spends') do
   # The CLOCK_MONOTONIC test below reads two clocks back to back with no
   # work forced between them, so it can only ask for a reading that is not
   # smaller. This one drives a busy loop between the two readings, so a
-  # strict increase is asked for: three million iterations burn far more CPU
-  # than even the coarsest clock this gem falls back to (a times(2) tick,
-  # usually 10ms) can fail to notice. A HAL bug that pins the reading at
-  # zero, or anywhere else it never moves from, has to fail this one where
-  # >= would have let it pass.
+  # strict increase is asked for: a HAL bug that pins the reading at zero,
+  # or anywhere else it never moves from, has to fail this one where >=
+  # would have let it pass.
+  #
+  # How much work that takes is not a number a test may fix. A CPU time
+  # total is accumulated rather than read: Win32 charges a process the clock
+  # interrupts it was found running at, 15.625ms of one at a time, so the
+  # reading steps rather than flows, and a whole round of this loop can sit
+  # inside one step. On a virtualised runner it can sit inside several,
+  # which is what made a fixed count of iterations fail here. So the loop is
+  # driven again until the reading moves, which is how CRuby's own spec for
+  # this property asks it (`1 until Process.times.utime > user`). The bound
+  # is what keeps a pinned reading a failure rather than a hung suite; a
+  # clock that moves leaves after the first round.
   skip "this build has no Float" unless ProcessTestUtil.float?
 
   before = Process.times
-  n = 0
-  n += 1 while n < 3_000_000
-  after = Process.times
+  after = before
+  20.times do
+    n = 0
+    n += 1 while n < 3_000_000
+    after = Process.times
+    break if after.utime + after.stime > before.utime + before.stime
+  end
 
   assert_operator after.utime + after.stime, :>, before.utime + before.stime
 end
