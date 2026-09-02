@@ -866,10 +866,27 @@ mrb_f_sleep(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "time interval must be positive");
   }
 
-  mrb_int ms = (mrb_int)(sec * 1000);
+  /* The wait reaches sleep_ms_impl() as milliseconds, is multiplied to
+     microseconds in a uint32_t there, and is then handed to the HAL as an
+     mrb_int, which a narrow one cannot hold past its own maximum and answers
+     by not sleeping at all. The smaller of those two is the longest wait
+     that can be named: some 71 minutes where mrb_int is 64 bits, some 35
+     where it is 32. A longer one is given that, which is also what keeps the
+     conversion below defined, `sec * 1000` being a signed multiplication
+     that overflows without Float and a product no mrb_int can hold with
+     one. */
+#if MRB_INT_MAX < UINT32_MAX
+  const mrb_int sec_max = MRB_INT_MAX / 1000000;
+#else
+  const mrb_int sec_max = (mrb_int)(UINT32_MAX / 1000000);
+#endif
+  mrb_int ms = sec > sec_max ? sec_max * 1000 : (mrb_int)(sec * 1000);
   sleep_ms_impl(mrb, (uint32_t)ms);
 
-  return mrb_fixnum_value((mrb_int)sec);
+  /* The seconds waited, which is what the cap leaves of the seconds asked
+     for; casting `sec` itself is the second value a Float too wide for an
+     mrb_int has nowhere to go. */
+  return mrb_fixnum_value(ms / 1000);
 }
 
 static mrb_value
