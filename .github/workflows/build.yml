@@ -52,6 +52,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          submodules: true
       - name: Install i386 cross-build toolchain
         if: matrix.altname == 'i686-gcc'
         timeout-minutes: 5
@@ -71,6 +72,8 @@ jobs:
         run: ruby -v
       - name: Compiler version
         run: ${{ env.CC }} --version
+      - name: Defines
+        run: rake defines
       - name: Build
         run: rake -m test:build
       - name: Test
@@ -84,6 +87,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          submodules: true
       - name: Ruby version
         run: ruby -v
       - name: Cache cosmocc
@@ -98,6 +102,9 @@ jobs:
           mkdir -p ~/cosmo && cd ~/cosmo
           wget https://cosmo.zip/pub/cosmocc/cosmocc.zip
           unzip cosmocc.zip
+      - name: Defines
+        run: |
+          COSMO_ROOT=~/cosmo rake defines MRUBY_CONFIG=cosmopolitan
       - name: Build
         run: |
           COSMO_ROOT=~/cosmo rake -m test:build MRUBY_CONFIG=cosmopolitan
@@ -115,8 +122,14 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          submodules: true
       - name: Ruby version
         run: ruby -v
+      - name: Defines
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          rake defines
       - name: Build
         shell: cmd
         run: |
