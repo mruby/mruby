@@ -26,9 +26,10 @@ assert('Benchmark.measure') do
   assert_kind_of(Float, result.cstime)
   assert_kind_of(Float, result.real)
 
-  # For mruby, CPU times are typically 0
-  assert_equal(0.0, result.utime)
-  assert_equal(0.0, result.stime)
+  # The block spends CPU, but too little to promise the clock saw it
+  assert_true(result.utime >= 0)
+  assert_true(result.stime >= 0)
+  # cutime and cstime count children reaped inside the block, and there are none
   assert_equal(0.0, result.cutime)
   assert_equal(0.0, result.cstime)
 
@@ -45,6 +46,19 @@ assert('Benchmark.measure with actual delay') do
 
   # Real time should be measurable (greater than 0)
   assert_true(result.real > 0)
+end
+
+assert('Benchmark.measure counts CPU time') do
+  # Spin until Process.times itself has seen the CPU time, so the test
+  # asks nothing of a second clock and a tick-based Process.times
+  # (times(2), Win32) cannot have rounded the stretch to nothing
+  cpu = lambda { t = Process.times; t.utime + t.stime }
+  result = Benchmark.measure do
+    limit = cpu.call + 0.05
+    nil while cpu.call < limit
+  end
+
+  assert_true(result.utime + result.stime > 0)
 end
 
 assert('Benchmark.realtime') do
