@@ -932,7 +932,10 @@ memsearch_swar(const char *xs, mrb_int m, const char *ys, mrb_int n)
   }
 
   if (i+m < n) {
-    const char *p = s0;
+    /* From where the loop above stopped, not from the start: the positions
+       before it have been answered, and re-reading them is the whole subject
+       walked a second time on every search that ends in no match. */
+    const char *p = s0 + i;
     const char *e = ys + n;
     while (p<e) {
       p = (const char*)memchr(p, *xs, e - p);

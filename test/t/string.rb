@@ -800,6 +800,20 @@ assert('String#index', '15.2.10.5.22') do
   assert_raise(TypeError) { "hello".index(101) }
 end
 
+assert('String#index over a subject longer than one search word') do
+  # A needle of two bytes or more in a subject long enough to be read a word
+  # at a time is searched in two parts: whole words first, then the bytes past
+  # the last whole one, one at a time.  The cases above are all shorter than a
+  # word, so they only ever reach the second part; these place the same needle
+  # on either side of the seam, and past the seam at the last position it can
+  # start at.
+  head = 'x' * 100
+  assert_equal 100, (head + 'needle' + head).index('needle')
+  assert_equal 100, (head + 'needle' + 'x').index('needle')
+  assert_equal 100, (head + 'ne').index('ne')
+  assert_nil (head + head).index('needle')
+end
+
 assert('String#index(UTF-8)', '15.2.10.5.22') do
   assert_equal 0, '⓿➊➋➌➍➎'.index('⓿')
   assert_nil '⓿➊➋➌➍➎'.index('➓')
