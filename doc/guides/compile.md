@@ -292,6 +292,35 @@ defines a gem writes to its own `cc` into the generated `mruby.h`, so an
 amalgam carries the answers the build that generated it got, the way it
 already carries every other define a gem writes.
 
+#### The define log
+
+A build opens by printing every define it will compile with and the file and
+line that wrote it, one table per target:
+
+```console
+Defines of 'host':
+  HAVE_SYS_RESOURCE_H  mruby-process cc    mrbgems/mruby-process/mrbgem.rake:37
+  MRB_DEBUG            compilers internal  build_config/host-debug.rb:5 (via enable_debug)
+  MRB_USE_BIGINT       conf                mrbgems/mruby-bigint/mrbgem.rake:5
+```
+
+The middle column says who carries the define: `conf` is `conf.defines`, a
+compiler name is that compiler's own list (`compilers` when every compiler
+carries it, `internal` for what the build added from one of its own
+switches), and a gem name is the gem's own compiler. An add made through a
+switch such as `enable_debug` is charged to the configuration line that asked
+for it. The mechanical `MRBGEM_*_VERSION` defines are left out.
+
+When one name is held with two values, the losing rows are marked with what
+beats them: the last `-D` of a name on a compile line is the one in effect,
+and `conf.defines` comes after the compilers' lists. An unmarked row is what
+objects compile with; `[FOO=1 wins]` on a row says every object gets `FOO=1`
+instead, and `[FOO=1 wins for mruby-x cc]` says only that gem's objects do,
+the gem's own compiler having redefined a build-wide name.
+
+`rake defines` prints the same tables without building anything, and
+`conf.disable_define_log` leaves a build out of the log.
+
 ### Linker
 
 Configuration of the Linker binary, flags and library paths.

@@ -1,5 +1,6 @@
 require 'forwardable'
 require 'tmpdir'
+require 'mruby/build/define_list'
 
 module MRuby
   class Command
@@ -52,14 +53,23 @@ module MRuby
     # source it asked with.
     COMPILE_PROBES = {}
 
-    attr_accessor :label, :flags, :include_paths, :defines, :source_exts
+    attr_accessor :label, :flags, :include_paths, :source_exts
+    attr_reader :defines
     # Defines are held in two lists, split by who asked for them. `defines` is
     # what the build config and the gems write. `internal_defines` is what the
     # build adds on its own behalf, from its own switches (`enable_debug`,
     # `enable_cxx_abi`) or from a toolchain. Both reach the compiler as `-D`;
     # keeping them apart lets a toolchain set its own without overwriting what
     # the config already wrote, and lets a caller ask for one list alone.
-    attr_accessor :internal_defines
+    attr_reader :internal_defines
+
+    def defines=(list)
+      @defines = DefineList.assigned(list, @defines)
+    end
+
+    def internal_defines=(list)
+      @internal_defines = DefineList.assigned(list, @internal_defines)
+    end
     attr_accessor :compile_options, :option_define, :option_include_path, :out_ext
     # The directories the compiler writes another name for, as `from => to`,
     # and the option that spells that to it. They are kept out of `flags`
@@ -79,8 +89,8 @@ module MRuby
       @flags = [ENV['CFLAGS'] || []]
       @source_exts = source_exts
       @include_paths = ["#{MRUBY_ROOT}/include"]
-      @defines = []
-      @internal_defines = []
+      @defines = DefineList.new
+      @internal_defines = DefineList.new
       @option_include_path = %q[-I"%s"]
       @option_define = %q[-D"%s"]
       @file_prefix_maps = {}
