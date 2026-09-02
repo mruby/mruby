@@ -109,6 +109,7 @@ typedef struct {
 } re_compiler;
 
 static void compile_alt(re_compiler *c);  /* forward */
+static void compile_seq(re_compiler *c);  /* forward */
 
 /* Take the message as a String rather than as a C string, for the messages
    that quote a group name: the name is a length-counted slice of the pattern
@@ -192,7 +193,7 @@ op_holds_code_index(uint8_t op)
   case RE_JMP: case RE_SPLIT: case RE_SPLITNG:
   case RE_LOOKAHEAD: case RE_NEG_LOOKAHEAD:
   case RE_LOOKBEHIND: case RE_NEG_LOOKBEHIND:
-  case RE_ABSENT:
+  case RE_ABSENT: case RE_COND:
     return TRUE;
   default:
     return FALSE;
@@ -1923,8 +1924,10 @@ compile_look_body(re_compiler *c, mrb_bool negative)
 }
 
 /* Read the group a reference names, `<name>` or `'name'` with the parse
-   point on the opening delimiter, and answer its number: a name looks up
-   the first group defined under it so far, digits are an absolute number a
+   point on the opening delimiter, and answer its number. This is what
+   `\k` reads after its letter and what a conditional reads inside its
+   parentheses, and the two agree on every spelling: a name looks up the
+   first group defined under it so far, digits are an absolute number a
    group written later may still satisfy, `-n` counts back over the groups
    already open, and a nest level is refused. A number that names no group
    is caught by mrb_re_compile() once the whole pattern is read; see
@@ -2301,6 +2304,115 @@ compile_atom(re_compiler *c)
             compile_error(c, "undefined group option");
           }
         }
+        else if (c->p[1] == '(') {
+          /* The conditional (?(cond)yes|no): `yes` where the group `cond`
+             names has matched, `no` where it has not, and `no` is empty
+             where it is left out. The condition is a group reference in the
+             spellings a backreference takes, `(1)`, `(<name>)` and
+             `('name')`, and a group has matched when its capture pair is
+             closed: one still open, the conditional standing inside it, has
+             not, and neither has one a repetition has just re-entered (see
+             RE_SAVE in bt_match()). That is Onigmo's reading too.
+
+             The number form is read here rather than by parse_group_ref():
+             the digits run to the ')' with no delimiter of their own, and
+             CRuby refuses the sign that gives the relative forms, so what is
+             read is digits or a malformed name. Every check the absolute
+             form makes there is made here in the same order, the count
+             check coming after the parse as it does for `\1(a)`, so
+             `(?(1)b|c)(a)` is as valid as that is. A named pattern refuses
+             the number as it refuses `\1`.
+
+             Two branches at most: a third `|` is `invalid conditional
+             pattern`, as in CRuby, so the bodies are read one sequence at a
+             time rather than through compile_alt(), which would take every
+             `|`. The bodies nest a level as a group's would, and the
+             count is kept the way compile_alt() keeps it.
+
+             One instruction carries the test and the layout is a fork's
+             with the choice made by the captures instead of pushed: RE_COND
+             goes on at pc + 1 where the group has matched and at `offset`
+             where it has not, `yes` ends with a jump past `no`, and with no
+             `no` the head's offset is the text after the group. */
+          next_char(c); next_char(c);  /* skip ?( */
+          int group = 0;
+          int cond = peek(c);
+          if (cond < 0) {
+            /* `(?(` and nothing more: CRuby answers for the prefix, not for
+               the condition it never began. */
+            compile_error(c, "undefined group option");
+          }
+          if (cond == '<' || cond == '\'') {
+            group = parse_group_ref(c);
+            /* A name closed by its delimiter and then something other than
+               the ')': CRuby's answer is the prefix's, as above. */
+            if (peek(c) != ')') compile_error(c, "undefined group option");
+          }
+          else if (cond >= '0' && cond <= '9') {
+            const char *digits = c->p;
+            while (peek(c) != ')' && peek(c) >= 0) next_char(c);
+            uint32_t dlen = (uint32_t)(c->p - digits);
+            mrb_bool numeric = TRUE;
+            for (uint32_t i = 0; numeric && i < dlen; i++) {
+              if (digits[i] < '0' || digits[i] > '9') numeric = FALSE;
+            }
+            /* A condition the pattern ends inside is quoted back the way a
+               name the pattern ends inside is, and so is one that is not
+               all digits, as in parse_group_ref(). */
+            if (!numeric || peek(c) < 0) {
+              compile_error_str(c, mrb_format(c->mrb, "invalid group name <%l>",
+                                              digits, (size_t)dlen));
+            }
+            int n = 0;
+            for (uint32_t i = 0; i < dlen; i++) {
+              int digit = digits[i] - '0';
+              if (n > (RE_MAX_BACKREF_NUM - digit) / 10) compile_error(c, "too big number");
+              n = n * 10 + digit;
+            }
+            /* Group 0 is the whole match, which is never closed while the
+               pattern runs, and CRuby refuses it as it refuses `\k<0>`. */
+            if (n == 0) {
+              compile_error_str(c, mrb_format(c->mrb, "invalid group name <%l>",
+                                              digits, (size_t)dlen));
+            }
+            if (c->dont_capture) {
+              compile_error(c, "numbered backref/call is not allowed. (use name)");
+            }
+            if (n > RE_MAX_CAPTURES) n = RE_MAX_CAPTURES;
+            if (n > (int)c->max_backref) c->max_backref = (uint16_t)n;
+            group = n;
+          }
+          else {
+            /* Anything else in the condition's place, a bare name, a signed
+               number, nothing at all: CRuby refuses the condition rather
+               than reading it as a name. */
+            compile_error(c, "invalid conditional pattern");
+          }
+          next_char(c);  /* skip the ')' closing the condition */
+
+          uint32_t head = emit(c, RE_COND, (uint8_t)group, 0);
+          if (++c->depth > (uint32_t)MRB_REGEXP_PARSE_DEPTH_LIMIT) {
+            compile_error(c, "parse depth limit over");
+          }
+          compile_seq(c);
+          if (peek(c) == '|') {
+            next_char(c);
+            uint32_t skip = emit(c, RE_JMP, 0, 0);
+            c->pat->code[head].offset = (uint16_t)c->code_len;
+            compile_seq(c);
+            if (peek(c) == '|') compile_error(c, "invalid conditional pattern");
+            c->pat->code[skip].offset = (uint16_t)c->code_len;
+          }
+          else {
+            c->pat->code[head].offset = (uint16_t)c->code_len;
+          }
+          c->depth--;
+          if (peek(c) != ')') compile_error(c, "end pattern with unmatched parenthesis");
+          next_char(c);
+          c->needs_backtrack = TRUE;  /* the Pike VM's threads carry no test of their captures */
+          c->flags = saved_flags;
+          break;
+        }
         else if (c->p[1] == '#') {
           /* preprocess_pattern() removes a terminated comment group before
              the parser runs, so one reaching here was never closed, which
@@ -2309,12 +2421,11 @@ compile_atom(re_compiler *c)
         }
         else {
           /* (?X) with an unsupported X: not one of the recognized (?: (?= (?!
-             (?<= (?<! (?<name> (?'name' (?> (?~ (?imx forms. Comment groups
-             (?#...) never get here either, having been removed by
-             preprocess_pattern(). Conditionals (?(...)) are not implemented.
-             Raise here rather than falling through to the capturing-group
-             path, which would leave the stray `?` for compile_seq to spin on
-             forever (A1). */
+             (?<= (?<! (?<name> (?'name' (?> (?~ (?( (?imx forms. Comment
+             groups (?#...) never get here either, having been removed by
+             preprocess_pattern(). Raise here rather than falling through to
+             the capturing-group path, which would leave the stray `?` for
+             compile_seq to spin on forever (A1). */
           if (c->p[1] == '<') {
             /* `(?<` and nothing more, the only way a '<' reaches here: the
                pattern ends before the character that tells a lookbehind
@@ -3465,6 +3576,7 @@ first_set_walk(const re_inst *code, uint32_t code_len,
       pc = code[pc].offset;
       continue;
     case RE_SPLIT:
+    case RE_COND:  /* either body may run first; the walk cannot know which */
       /* both branches: pc+1 and offset */
       if (!first_set_walk(code, code_len, classes, code[pc].offset, bm, seen))
         return FALSE;
@@ -3547,7 +3659,8 @@ anchor_walk(const re_inst *code, uint32_t code_len, uint32_t pc, uint8_t *seen)
       pc = code[pc].offset;
       continue;
     case RE_SPLIT:
-    case RE_SPLITNG: {
+    case RE_SPLITNG:
+    case RE_COND: {  /* a fork to this walk: both bodies are paths */
       uint8_t other = anchor_walk(code, code_len, code[pc].offset, seen);
       if (other == RE_ANCHOR_NONE) return RE_ANCHOR_NONE;
       uint8_t mine = anchor_walk(code, code_len, pc + 1, seen);
@@ -3605,6 +3718,7 @@ epsilon_path(const re_inst *code, uint32_t code_len, uint32_t pc, uint32_t goal,
       break;
     case RE_SPLIT:
     case RE_SPLITNG:
+    case RE_COND:  /* either body may be the one that runs */
       if (epsilon_path(code, code_len, code[pc].offset, goal, seen, mark)) return TRUE;
       pc++;
       break;
@@ -3761,6 +3875,7 @@ call_walk(const re_inst *code, uint32_t code_len, uint32_t start,
         pc = in.offset;
         continue;
       case RE_SPLIT: case RE_SPLITNG:
+      case RE_COND:  /* a fork to this walk: both bodies are paths */
         stack[top++] = in.offset;
         pc++;
         continue;

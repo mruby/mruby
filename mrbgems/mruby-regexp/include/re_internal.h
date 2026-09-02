@@ -58,6 +58,16 @@ enum re_opcode {
   RE_WBOUND,     /* assert word boundary (\b) */
   RE_NWBOUND,    /* assert non-word boundary (\B) */
   RE_BACKREF,    /* backreference: a = group number, offset = 1 if case-insensitive */
+  RE_COND,       /* the conditional (?(cond)yes|no): a = the group the
+                    condition names, offset = where `no` begins. Goes on at
+                    pc + 1 where the group has matched, its capture pair
+                    being closed, and at `offset` where it has not; a group
+                    still open, or one a repetition has just re-entered,
+                    has not. Nothing is pushed: the choice is the captures'
+                    and a failure after it backtracks past it as past any
+                    straight-line instruction. `yes` ends with a jump past
+                    `no`, and with no `no` the offset is the text after the
+                    group. */
   RE_LOOKAHEAD,  /* positive lookahead: offset = end of sub-pattern */
   RE_NEG_LOOKAHEAD, /* negative lookahead: offset = end of sub-pattern */
   RE_LOOKBEHIND,     /* positive lookbehind: offset = end, a = 1 once the

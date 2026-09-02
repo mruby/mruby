@@ -1010,9 +1010,10 @@ assert("Regexp - patterns that used to hang the compiler now raise (A1)") do
   # Regexp.new is used so the pattern reaches the regexp compiler directly,
   # bypassing the literal validation the parser performs on /.../ literals.
 
-  # (?X) with an unsupported X: conditionals (?(...)) are not implemented
-  # (inline options (?i)/(?i:...) and the absent repeater (?~...) now are).
-  assert_raise(RegexpError) { Regexp.new("(?(<x>)a|b)") }
+  # A `(?` prefix the pattern ends inside. (?X) with an X that names no
+  # group option is refused the same way; every X CRuby reads is now read
+  # here too, inline options, the absent repeater and conditionals among
+  # them.
   assert_raise(RegexpError) { Regexp.new("(?") }
   assert_raise(RegexpError) { Regexp.new("(?<") }
 
@@ -1768,6 +1769,134 @@ assert("Regexp - an absent repeater the parser refuses") do
   assert_raise(RegexpError) { Regexp.new("(?~") }
   # not a fixed-length construct, so not allowed in a lookbehind
   assert_raise(RegexpError) { Regexp.new("(?<=(?~a))b") }
+end
+
+assert("Regexp - conditional (?(cond)yes|no)") do
+  need_backtracking_stack
+  # `yes` runs where the group the condition names has matched and `no`
+  # where it has not, and the choice is made afresh each time the search
+  # comes back through it: with the `a` taken the pattern asks for `b`,
+  # and once the search gives the `a` back it asks for `c`.
+  assert_equal 0, /(a)?(?(1)b|c)/ =~ "ab"
+  assert_equal 0, /(a)?(?(1)b|c)/ =~ "c"
+  assert_equal 1, /(a)?(?(1)b|c)/ =~ "ac"
+  assert_nil /(a)?(?(1)b|c)/ =~ "b"
+  assert_equal ["a"], /(a)?(?(1)b|c)/.match("ab").captures
+  assert_equal [nil], /(a)?(?(1)b|c)/.match("ac").captures
+  # A body left out is empty: with no `no` an unmatched group asks for
+  # nothing, and `(?(1)|c)` asks for nothing where the group matched.
+  assert_equal "", /(a)?(?(1)b)/.match("b")[0]
+  assert_equal "ab", /(a)?(?(1)b)/.match("ab")[0]
+  assert_equal "a", /(a)?(?(1)|c)/.match("ab")[0]
+  assert_equal "c", /(a)?(?(1)|c)/.match("c")[0]
+  assert_equal "a", /(a)?(?(1))/.match("a")[0]
+
+  # The condition names a group in the spellings a backreference takes.
+  assert_equal "ab", /(?<x>a)?(?(<x>)b|c)/.match("ab")[0]
+  assert_equal "c", /(?<x>a)?(?('x')b|c)/.match("c")[0]
+  assert_equal "ab", /(a)?(?(<1>)b|c)/.match("ab")[0]
+  assert_equal "ab", /(a)?(?(<-1>)b|c)/.match("ab")[0]
+  assert_equal "ab", /(a)?(?(01)b|c)/.match("ab")[0]
+  # Two groups under one name: the condition reads the first, as \k does.
+  assert_nil /(?<x>a)?(?<x>b)(?(<x>)c|d)/ =~ "bc"
+  assert_equal "bd", /(?<x>a)?(?<x>b)(?(<x>)c|d)/.match("bd")[0]
+  # The number may name a group written later, as `\1(a)` may; that group
+  # has not matched by the time the condition is asked.
+  assert_nil /(?(1)b|c)(a)/ =~ "ba"
+  assert_equal "ca", /(?(1)b|c)(a)/.match("ca")[0]
+
+  # A group has matched once its pair is closed. Inside itself it has
+  # not, and a repetition that took the group in an earlier iteration
+  # still holds it, so `(?:(x)|y)+` against "xyd" is asked for `c` at the
+  # start and finds its match at the `y`, where the group is untouched.
+  assert_nil /(a(?(1)b|c))/ =~ "ab"
+  assert_equal "ac", /(a(?(1)b|c))/.match("ac")[0]
+  assert_equal "yxc", /(?:(x)|y)+(?(1)c|d)/.match("yxc")[0]
+  assert_equal "yd", /(?:(x)|y)+(?(1)c|d)/.match("xyd")[0]
+  assert_equal 1, /(?:(x)|y)+(?(1)c|d)/ =~ "xyd"
+  # A called group is open while the call runs, as it is for \k.
+  assert_equal "xzxz", /(?<r>x(?(<r>)y|z))\g<r>/.match("xzxz")[0]
+  assert_nil /(?<r>x(?(<r>)y|z))\g<r>/ =~ "xzxy"
+
+  # Quantified, it repeats as any atom does, and either body may be a
+  # sequence holding anything a sequence may, a conditional included.
+  assert_equal "abb", /(a)?(?(1)b|c)*/.match("abb")[0]
+  assert_equal "ccc", /(a)?(?(1)b|c)+/.match("ccc")[0]
+  assert_equal "abb", /(a)?(?(1)b|c){2}/.match("abb")[0]
+  assert_equal "a", /(a)?(?(1)b|c)??/.match("ab")[0]
+  assert_equal "abbx", /(a)?(?(1)b|c)*+x/.match("abbx")[0]
+  assert_equal "ac", /(a)?(?(1)(b|c)|d)/.match("ac")[0]
+  # A group that fills the body is the body, `yes` here with no `no`.
+  # CRuby reads `(?(1)(?:b|c))` as `(?(1)b|c)`, Onigmo's non-capturing group
+  # leaving no node of its own; see README.
+  assert_equal "ac", /(a)?(?(1)(?:b|c))/.match("ac")[0]
+  assert_equal "", /(a)?(?(1)(?:b|c))/.match("c")[0]
+  assert_equal "ad", /(a)?(?(1)(?:b|c|d))/.match("ad")[0]
+  assert_equal "ax", /(a)?(b)?(?(1)(?(2)w|x)|(?(2)y|z))/.match("ax")[0]
+  assert_equal "z", /(a)?(b)?(?(1)(?(2)w|x)|(?(2)y|z))/.match("z")[0]
+  assert_equal "abb", /(a)?(?(1)(b)|c)\2/.match("abb")[0]
+  assert_equal "a", /(a)?(?=(?(1)b|c))/.match("ab")[0]
+  assert_equal "ab", /(a)?(?>(?(1)b|c))/.match("ab")[0]
+
+  # It reads back through to_s, and free-spacing applies to the bodies.
+  assert_equal "ab", Regexp.new(/(a)?(?(1)b|c)/.to_s).match("ab")[0]
+  assert_equal "ab", Regexp.new("(a)? (?(1) b | c )", Regexp::EXTENDED).match("ab")[0]
+  # /i folds the bodies, as it folds anything else.
+  assert_equal "aB", Regexp.new("(a)?(?(1)b|c)", Regexp::IGNORECASE).match("aB")[0]
+end
+
+assert("Regexp - a conditional the parser refuses") do
+  # The condition is a group number, or a name in its delimiters. Anything
+  # else standing there is `invalid conditional pattern`, the signed forms
+  # among them since their sign has no delimiter to stand in, and so is a
+  # third body.
+  ["(a)?(?(x)b|c)", "(a)?(?(-1)b|c)", "(a)?(?(+1)b|c)", "(a)?(?()b|c)",
+   "(a)?(?( 1)b|c)", "(a)?(?(1)b|c|d)", "(a)?(?(1)b||c)",
+   "(a)?(?(1)b|c|)"].each do |src|
+    assert_raise_with_message(RegexpError,
+                              "invalid conditional pattern: /#{src}/", src) do
+      Regexp.new(src)
+    end
+  end
+  # Free-spacing reaches the bodies and not the condition.
+  assert_raise_with_message(RegexpError,
+                            "invalid conditional pattern: /(a)?(?( 1 )b|c)/x") do
+    Regexp.new("(a)?(?( 1 )b|c)", Regexp::EXTENDED)
+  end
+
+  # A number is checked against the groups the whole pattern has, as a
+  # backreference's is; group 0 is never closed while the pattern runs.
+  { "(a)?(?(2)b|c)" => "invalid backref number/name",
+    "(?(1)b|c)" => "invalid backref number/name",
+    "(a)?(?(<-2>)b|c)" => "invalid backref number/name",
+    "(a)?(?(0)b|c)" => "invalid group name <0>",
+    "(a)?(?(00)b|c)" => "invalid group name <00>",
+    "(a)?(?(999999999999)b|c)" => "too big number",
+    "(a)?(?(<y>)b|c)" => "undefined name <y> reference",
+    "(?(<n>)b|c)(?<n>x)" => "undefined name <n> reference",
+    "(?<x>a)?(?(1)b|c)" => "numbered backref/call is not allowed. (use name)",
+    "(?<x>a)?(?(<x-1>)b|c)" => "backreference with nest level is not supported",
+    "(?(<>)b|c)" => "group name is empty",
+    "(a)?(?(1" => "invalid group name <1>",
+    "(a)?(?(1x)b|c)" => "invalid group name <1x>",
+    "(a)?(?(<x)b|c)" => "invalid group name <x)b|c)>",
+    "(a)?(?(1)" => "end pattern with unmatched parenthesis",
+    "(a)?(?(1)b|c" => "end pattern with unmatched parenthesis",
+    "(?(" => "undefined group option",
+    "(?<x>a)?(?(<x>b|c)" => "undefined group option" }.each do |src, msg|
+    assert_raise_with_message(RegexpError, "#{msg}: /#{src}/", src) do
+      Regexp.new(src)
+    end
+  end
+  # A named pattern refuses the numbered spellings in their delimiters too,
+  # where CRuby reads them; see README.
+  assert_raise(RegexpError) { Regexp.new("(?<x>a)?(?(<1>)b|c)") }
+  assert_raise(RegexpError) { Regexp.new("(?<x>a)?(?(<-1>)b|c)") }
+  # not a fixed-length construct, so not allowed in a lookbehind
+  assert_raise_with_message(RegexpError,
+                            "invalid pattern in look-behind: /(a)?(?<=(?(1)b|c))x/") do
+    Regexp.new("(a)?(?<=(?(1)b|c))x")
+  end
 end
 
 assert("Regexp - a lookbehind body of no fixed width says which it was") do

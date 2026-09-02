@@ -37,6 +37,8 @@ simulation) with backtracking fallback.
 - `(?<!...)` negative lookbehind (fixed-length, per branch)
 - `(?>...)` atomic group
 - `(?~...)` absent repeater
+- `(?(n)yes|no)`, `(?(<name>)yes|no)`, `(?('name')yes|no)` conditional: `yes`
+  where the group has matched, `no` where it has not, `no` optional
 - `(?imx-imx)` options for the rest of the enclosing group
 - `(?imx-imx:...)` options for the group's own body
 
@@ -222,8 +224,8 @@ Regexp.new("(a)(?<b>b)\\1")
 Two engines, chosen automatically at compile time by pattern analysis.
 
 - **Pike VM (NFA simulation)** for patterns without backreferences, non-greedy
-  quantifiers, lookaround, atomic groups, absent repeaters or subexpression
-  calls. O(pattern x text), so it is immune to ReDoS.
+  quantifiers, lookaround, atomic groups, absent repeaters, conditionals or
+  subexpression calls. O(pattern x text), so it is immune to ReDoS.
 - **Backtracking engine** for the rest, whose state the Pike VM's threads have
   no stack to hold. It backtracks on a stack of its own on the heap, so a
   search spends a constant amount of C stack however long the subject is.
@@ -263,8 +265,14 @@ Every entry is a place this engine answers a pattern differently from CRuby.
   and so is a bare `\g` either way.
 - **No nest level on a backreference**: `\k<name+n>` and `\k<name-n>` ask for a
   capture memory per call level where this engine keeps one flat slot per
-  group, so they raise `RegexpError`. A plain `\k<name>` still works inside a
-  recursion, reading the pair the innermost completed invocation left.
+  group, so they raise `RegexpError`, and so does a conditional whose
+  condition spells one, `(?(<name+n>)...)`. A plain `\k<name>` still works
+  inside a recursion, reading the pair the innermost completed invocation
+  left, and so does `(?(<name>)...)`.
+- **A named pattern refuses a numbered condition in every spelling**: CRuby
+  refuses `(?(1)...)` there as it refuses `\1` and `\k<1>`, and reads the
+  delimited spellings `(?(<1>)...)`, `(?(<-1>)...)` and `(?('1')...)` all the
+  same. Here the number is read the way `\k<1>` reads it, and refused with it.
 - **An empty iteration ends a repeat around a call too**, which is the rule
   every inline repeat here follows. Onigmo switches such repeats to a
   capture-tracking empty check that answers a few of them differently, among
