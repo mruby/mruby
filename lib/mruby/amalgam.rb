@@ -238,6 +238,11 @@ module MRuby
 
         #ifndef MRUBY_AMALGAM_H
         #define MRUBY_AMALGAM_H
+      PREAMBLE
+
+      write_baked_defines(f)
+
+      f.puts <<~PREAMBLE
 
         #ifdef __cplusplus
         #define __STDC_LIMIT_MACROS
@@ -253,18 +258,23 @@ module MRuby
 
       PREAMBLE
 
+      write_revision_define(f)
+    end
+
+    # Ahead of every #include, the way each -D of the real build's command
+    # line precedes every header: a feature test macro such as _GNU_SOURCE
+    # is dead once the first libc header has been read.
+    def write_baked_defines(f)
       build_defines = collect_build_defines
       unless build_defines.empty?
-        f.puts "/* Build configuration defines */"
+        f.puts "\n/* Build configuration defines */"
         build_defines.each do |name, value|
           f.puts "#ifndef #{name}"
           f.puts(value ? "#define #{name} #{value}" : "#define #{name}")
           f.puts "#endif"
         end
-        f.puts
       end
-
-      write_revision_define(f)
+      write_gem_cc_defines(f, main_library_gems)
     end
 
     # The revision the amalgam was generated from, ahead of the version.h that
@@ -350,8 +360,6 @@ module MRuby
     end
 
     def write_gem_headers(f)
-      write_gem_cc_defines(f, main_library_gems)
-
       main_library_gems.each do |gem|
         gem_include = "#{gem.dir}/include"
         next unless File.directory?(gem_include)
