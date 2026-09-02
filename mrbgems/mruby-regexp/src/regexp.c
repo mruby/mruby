@@ -403,6 +403,21 @@ re_subject_binary(mrb_state *mrb, mrb_value str, mrb_bool unread)
   return RSTR_BINARY_P(RSTRING(str));
 }
 
+/* What every search does before it runs: reads the subject, then takes the
+   pattern, and refuses one it cannot search on. The subject comes first, as
+   in CRuby, so that a subject refused is refused before the pattern is looked
+   at: `Regexp.allocate` handed a broken subject reports the subject. */
+static mrb_bool
+re_search_binary(mrb_state *mrb, mrb_value re, mrb_value str, mrb_bool unread,
+                 mrb_regexp_pattern **patp)
+{
+  mrb_bool binary = re_subject_binary(mrb, str, unread);
+  mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
+  if (re_uninitialized_p(pat)) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
+  *patp = pat;
+  return binary;
+}
+
 /* Create MatchData from captures, and make it the match the globals
    describe. */
 static mrb_value
@@ -473,16 +488,14 @@ re_check_exec_error(mrb_state *mrb, int n)
 /* Internal: execute match and create MatchData.
    Returns MatchData on match, nil on no match.
    Publishes the match as $~, and clears it on a miss.
-   `unread` is passed on to re_subject_binary(), and is asked first, so that
-   a subject it refuses is refused before the pattern is looked at. `literal`
-   says what the MatchData records (below); the two part only in `scan`. */
+   `unread` is passed on to re_search_binary(). `literal` says what the
+   MatchData records (below); the two part only in `scan`. */
 static mrb_value
 exec_match(mrb_state *mrb, mrb_value self, mrb_value str, mrb_int pos,
            mrb_bool unread, mrb_bool literal)
 {
-  mrb_bool binary = re_subject_binary(mrb, str, unread);
-  mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, self, &regexp_type, mrb_regexp_pattern);
-  if (re_uninitialized_p(pat)) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
+  mrb_regexp_pattern *pat;
+  mrb_bool binary = re_search_binary(mrb, self, str, unread, &pat);
 
   int cap_size = pat->num_captures * 2;
   int captures[RE_MAX_CAPTURES * 2];
@@ -577,10 +590,8 @@ re_search(mrb_state *mrb, mrb_value re, mrb_value str, mrb_int pos, mrb_bool lit
 static mrb_value
 re_byte_rsearch(mrb_state *mrb, mrb_value re, mrb_value str, mrb_int limit)
 {
-  mrb_bool binary = re_subject_binary(mrb, str, FALSE);
-
-  mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
-  if (!pat) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
+  mrb_regexp_pattern *pat;
+  mrb_bool binary = re_search_binary(mrb, re, str, FALSE, &pat);
 
   int cap_size = pat->num_captures * 2;
   int captures[RE_MAX_CAPTURES * 2];
@@ -605,9 +616,8 @@ exec_match_p(mrb_state *mrb, mrb_value re, mrb_value str, mrb_int pos)
   pos = re_char_to_byte(mrb, str, pos);
   if (pos < 0) return mrb_false_value();
 
-  mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
-  if (re_uninitialized_p(pat)) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
-  mrb_bool binary = re_subject_binary(mrb, str, FALSE);
+  mrb_regexp_pattern *pat;
+  mrb_bool binary = re_search_binary(mrb, re, str, FALSE, &pat);
 
   int ncap = mrb_re_exec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), pos, NULL, 0,
                          binary);
@@ -654,14 +664,11 @@ static mrb_value
 regexp_case_match(mrb_state *mrb, mrb_value self)
 {
   mrb_value str, md;
-  mrb_regexp_pattern *pat;
 
   mrb_get_args(mrb, "o", &str);
   if (!mrb_string_p(str) && !mrb_symbol_p(str)) return mrb_false_value();
   str = match_operand(mrb, str);
 
-  pat = DATA_GET_PTR(mrb, self, &regexp_type, mrb_regexp_pattern);
-  if (re_uninitialized_p(pat)) return mrb_false_value();
   md = exec_match(mrb, self, str, 0, FALSE, FALSE);
   return mrb_bool_value(!mrb_nil_p(md));
 }
@@ -1832,9 +1839,8 @@ re_mark_spliced(mrb_state *mrb, mrb_value result, mrb_value subject,
 static mrb_value
 re_gsub_str(mrb_state *mrb, mrb_value re, mrb_value str, mrb_value replacement)
 {
-  mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
-  if (re_uninitialized_p(pat)) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
-  mrb_bool binary = re_subject_binary(mrb, str, FALSE);
+  mrb_regexp_pattern *pat;
+  mrb_bool binary = re_search_binary(mrb, re, str, FALSE, &pat);
 
   const char *s = RSTRING_PTR(str);
   mrb_int slen = RSTRING_LEN(str);
@@ -1920,9 +1926,8 @@ re_gsub_str(mrb_state *mrb, mrb_value re, mrb_value str, mrb_value replacement)
 static mrb_value
 re_sub_str(mrb_state *mrb, mrb_value re, mrb_value str, mrb_value replacement)
 {
-  mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
-  if (re_uninitialized_p(pat)) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
-  mrb_bool binary = re_subject_binary(mrb, str, FALSE);
+  mrb_regexp_pattern *pat;
+  mrb_bool binary = re_search_binary(mrb, re, str, FALSE, &pat);
 
   const char *s = RSTRING_PTR(str);
   mrb_int slen = RSTRING_LEN(str);
@@ -2192,10 +2197,8 @@ static mrb_value
 re_gsub_walk(mrb_state *mrb, mrb_value re, mrb_value str, mrb_bool literal,
              mrb_value block, mrb_value hash)
 {
-  mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
-  if (re_uninitialized_p(pat)) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
-
-  mrb_bool binary = re_subject_binary(mrb, str, literal);
+  mrb_regexp_pattern *pat;
+  mrb_bool binary = re_search_binary(mrb, re, str, literal, &pat);
   int cap_size = pat->num_captures * 2;
   int captures[RE_MAX_CAPTURES * 2];
   mrb_value result = mrb_str_new_capa(mrb, RSTRING_LEN(str));
@@ -2289,9 +2292,8 @@ re_gsub_walk(mrb_state *mrb, mrb_value re, mrb_value str, mrb_bool literal,
 static mrb_value
 re_scan_ary(mrb_state *mrb, mrb_value re, mrb_value str, mrb_bool literal)
 {
-  mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, re, &regexp_type, mrb_regexp_pattern);
-  if (re_uninitialized_p(pat)) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
-  mrb_bool binary = re_subject_binary(mrb, str, FALSE);
+  mrb_regexp_pattern *pat;
+  mrb_bool binary = re_search_binary(mrb, re, str, FALSE, &pat);
 
   const char *s = RSTRING_PTR(str);
   mrb_int slen = RSTRING_LEN(str);
@@ -3043,6 +3045,11 @@ str_split_m(mrb_state *mrb, mrb_value self)
   mrb_int field_start = 0, search_pos = 0;
   mrb_int len = RSTRING_LEN(self);
   mrb_int count = 0;
+  /* The pattern before the subject, the one search where CRuby has that
+     order: its `split` reads the pattern to see whether it can be split on
+     as a literal, and refuses one that never compiled there. */
+  mrb_regexp_pattern *pat = DATA_GET_PTR(mrb, pattern, &regexp_type, mrb_regexp_pattern);
+  if (re_uninitialized_p(pat)) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Regexp");
   mrb_bool binary = re_subject_binary(mrb, self, FALSE);
   int ai = mrb_gc_arena_save(mrb);
 

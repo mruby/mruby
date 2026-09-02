@@ -925,6 +925,42 @@ assert("Regexp - a subject whose bytes are not UTF-8 is refused") do
   assert_equal 1, ("a\u{10FFFF}b" =~ /b\z|\u{10FFFF}/)
 end
 
+assert("Regexp - a broken subject is refused before the pattern is read") do
+  # CRuby reads the subject before it looks at the pattern, so a Regexp that
+  # never compiled is told about the subject first, and here too.
+  skip unless __ENCODING__ == "UTF-8"
+  broken = "あ\x80b"
+  re = Regexp.allocate
+  msg = "invalid byte sequence in UTF-8"
+
+  assert_raise_with_message(ArgumentError, msg) { re =~ broken }
+  assert_raise_with_message(ArgumentError, msg) { re.match(broken) }
+  assert_raise_with_message(ArgumentError, msg) { re.match?(broken) }
+  assert_raise_with_message(ArgumentError, msg) { re === broken }
+  assert_raise_with_message(ArgumentError, msg) { broken.match?(re) }
+  assert_raise_with_message(ArgumentError, msg) { broken.index(re) }
+  assert_raise_with_message(ArgumentError, msg) { broken.rindex(re) }
+  assert_raise_with_message(ArgumentError, msg) { broken.byteindex(re) }
+  assert_raise_with_message(ArgumentError, msg) { broken.byterindex(re) }
+  assert_raise_with_message(ArgumentError, msg) { broken.sub(re, "!") }
+  assert_raise_with_message(ArgumentError, msg) { broken.sub(re) { "!" } }
+  assert_raise_with_message(ArgumentError, msg) { broken.gsub(re, "!") }
+  assert_raise_with_message(ArgumentError, msg) { broken.gsub(re) { "!" } }
+  assert_raise_with_message(ArgumentError, msg) { broken.scan(re) }
+  assert_raise_with_message(ArgumentError, msg) { broken.scan(re) {} }
+
+  # A sound subject leaves the pattern to be refused.
+  assert_raise(TypeError) { re =~ "b" }
+  assert_raise(TypeError) { re === "b" }
+  assert_raise(TypeError) { "b".gsub(re) { "!" } }
+
+  # `split` is the one search where CRuby reads the pattern first, to see
+  # whether it can be split on as a literal, and the order is kept here. A
+  # limit of 1 answers before either is read, there and here.
+  assert_raise(TypeError) { broken.split(re) }
+  assert_equal [broken], broken.split(re, 1)
+end
+
 assert("Regexp - a piece of a byte-read subject is byte-read") do
   # What a match hands back is bytes of the subject, read the way the subject
   # was. Encoding introspection lives in mruby-encoding, which this gem does
