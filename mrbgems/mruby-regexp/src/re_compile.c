@@ -1278,16 +1278,73 @@ parse_quantifier(re_compiler *c, int *min_out, int *max_out, mrb_bool *ranged)
   return TRUE;
 }
 
+/* What one pc's measure is once fixed_len_walk() has reached it, in the two
+   units a rewind may count (see RE_LB_WIDTH). `len` doubles as the state:
+   the two markers below stand where no measure does. A fork's arms are
+   measured to the same `end` and their measures compared, so what is
+   remembered per pc is the distance from it to `end`, the same question
+   whichever arm asks it, which is what makes one table serve them all. */
+typedef struct {
+  int32_t len;    /* bytes, or RE_FLEN_NEW / RE_FLEN_BUSY */
+  int32_t chars;
+} re_flen_memo;
+
+#define RE_FLEN_NEW  (-1)   /* not measured yet */
+#define RE_FLEN_BUSY (-2)   /* being measured: reaching it again is a cycle,
+                               and a cycle is a body of no fixed width */
+
+static int fixed_len_walk(re_compiler *c, uint32_t start, uint32_t end,
+                          int *chars_out, int depth,
+                          re_flen_memo *memo, uint32_t memo_base,
+                          uint32_t memo_len);
+static int fixed_len_span(re_compiler *c, uint32_t start, uint32_t end,
+                          int *chars_out, int depth);
+
+/* The measure from `pc` to `end`, remembered under the table when `pc` is one
+   the table covers. Without it a chain of forks is measured once per path
+   through it, both arms of every fork walking the whole tail, and `(?:a|b)`
+   thirty times over is 2^30 walks of a pattern a hundred bytes long. */
+static int
+fixed_len_at(re_compiler *c, uint32_t pc, uint32_t end, int *chars_out,
+             int depth, re_flen_memo *memo, uint32_t memo_base,
+             uint32_t memo_len)
+{
+  if (!memo || pc < memo_base || pc - memo_base >= memo_len) {
+    return fixed_len_walk(c, pc, end, chars_out, depth, memo, memo_base, memo_len);
+  }
+  re_flen_memo *slot = &memo[pc - memo_base];
+  if (slot->len == RE_FLEN_BUSY) return -1;
+  if (slot->len != RE_FLEN_NEW) {
+    *chars_out = slot->chars;
+    return slot->len;
+  }
+  slot->len = RE_FLEN_BUSY;
+  int chars = 0;
+  int len = fixed_len_walk(c, pc, end, &chars, depth, memo, memo_base, memo_len);
+  if (len < 0) {
+    /* Leave the slot BUSY: a body with one unmeasurable path has no fixed
+       width at all, so no later question about this pc has a different
+       answer, and the compile is about to be refused either way. */
+    return -1;
+  }
+  slot->len = len;
+  slot->chars = chars;
+  *chars_out = chars;
+  return len;
+}
+
 /*
  * Measure the bytecode in range [start, end) for a lookbehind, which must
  * know exactly how far back to rewind. Returns the byte count a binary
  * subject needs, one per consuming instruction since such a subject
  * advances one byte whatever the instruction is, and stores in *chars_out
  * the character count a UTF-8 subject needs. Returns -1 if the sub-pattern
- * has no fixed width (quantifiers, alternation, etc.).
+ * has no fixed width (a quantifier, or a fork whose arms disagree).
  */
 static int
-fixed_len_walk(re_compiler *c, uint32_t start, uint32_t end, int *chars_out, int depth)
+fixed_len_walk(re_compiler *c, uint32_t start, uint32_t end, int *chars_out,
+               int depth, re_flen_memo *memo, uint32_t memo_base,
+               uint32_t memo_len)
 {
   int len = 0;
   int chars = 0;
@@ -1348,12 +1405,28 @@ fixed_len_walk(re_compiler *c, uint32_t start, uint32_t end, int *chars_out, int
     case RE_JMP:
       pc = inst.offset;
       break;
-    case RE_SPLIT: {
-      /* alternation: both branches must have the same fixed length */
-      /* branch 1: pc+1 to next JMP before branch 2 */
-      /* branch 2: inst.offset to ... */
-      /* For simplicity, reject alternation in lookbehind */
-      return -1;
+    case RE_SPLIT:
+    case RE_SPLITNG: {
+      /* A fork the walk passes through is fixed only where both arms reach
+         `end` by the same measure: `(?<=(a|b)c)` is two characters whichever
+         arm runs, and `(?<=(a|bb)c)` is not two of anything. The arms are
+         measured to `end` rather than to the point they rejoin, which is
+         what makes what follows the fork part of each arm's measure and
+         leaves `(?:a|bc)d` unmeasured. CRuby refuses that body too, and
+         accepts a whole body of branches taking different widths only
+         through the per-branch rewind the lookbehind arm builds.
+
+         A loop closes with a backward fork, so this is also where a body
+         that repeats is refused: the memo marks the pc it is measuring and
+         reaching it again answers -1. */
+      int a_chars = 0, b_chars = 0;
+      int a = fixed_len_at(c, pc + 1, end, &a_chars, depth, memo, memo_base, memo_len);
+      if (a < 0) return -1;
+      int b = fixed_len_at(c, inst.offset, end, &b_chars, depth, memo, memo_base, memo_len);
+      if (b < 0) return -1;
+      if (a != b || a_chars != b_chars) return -1;
+      *chars_out = chars + a_chars;
+      return len + a;
     }
     case RE_LOOK_END:
       *chars_out = chars;
@@ -1374,7 +1447,9 @@ fixed_len_walk(re_compiler *c, uint32_t start, uint32_t end, int *chars_out, int
       }
       if (close >= c->code_len) return -1;
       int sub_chars = 0;
-      int sub_len = fixed_len_walk(c, body, close, &sub_chars, depth + 1);
+      /* The body is measured to its own end, so it gets a table of its own:
+         what a pc is worth is its distance to the end being asked about. */
+      int sub_len = fixed_len_span(c, body, close, &sub_chars, depth + 1);
       if (sub_len < 0) return -1;
       len += sub_len;
       chars += sub_chars;
@@ -1389,10 +1464,44 @@ fixed_len_walk(re_compiler *c, uint32_t start, uint32_t end, int *chars_out, int
   return len;
 }
 
+/* Measure [start, end) with whatever table the span needs. A span holding no
+   fork and no backward edge is a straight line the walk crosses once, and it
+   is measured with no table at all, which is every lookbehind that was
+   measurable before per-branch widths. A span holding either gets one, since
+   without it the walk would either repeat the tail of every fork or, on a
+   loop, not come back. */
+static int
+fixed_len_span(re_compiler *c, uint32_t start, uint32_t end, int *chars_out,
+               int depth)
+{
+  mrb_bool needs_memo = FALSE;
+  for (uint32_t pc = start; pc < end && pc < c->code_len; pc++) {
+    uint8_t op = c->pat->code[pc].op;
+    if (op == RE_SPLIT || op == RE_SPLITNG ||
+        (op == RE_JMP && c->pat->code[pc].offset <= pc)) {
+      needs_memo = TRUE;
+      break;
+    }
+  }
+  if (!needs_memo) return fixed_len_walk(c, start, end, chars_out, depth, NULL, 0, 0);
+
+  uint32_t span = end > start ? end - start : 0;
+  /* mrb_malloc_simple(), not mrb_malloc(): a raise here would longjmp past
+     the frees of the spans measuring around this one. A refusal is reported
+     as a body of no fixed width, which is what the caller does with every
+     other answer it cannot use. */
+  re_flen_memo *memo = (re_flen_memo*)mrb_malloc_simple(c->mrb, sizeof(re_flen_memo) * (span ? span : 1));
+  if (!memo) return -1;
+  for (uint32_t i = 0; i < span; i++) memo[i].len = RE_FLEN_NEW;
+  int len = fixed_len_walk(c, start, end, chars_out, depth, memo, start, span);
+  mrb_free(c->mrb, memo);
+  return len;
+}
+
 static int
 compute_fixed_len(re_compiler *c, uint32_t start, uint32_t end, int *chars_out)
 {
-  return fixed_len_walk(c, start, end, chars_out, 0);
+  return fixed_len_span(c, start, end, chars_out, 0);
 }
 
 /* Parse the option letters of an inline (?...) group. The parser is

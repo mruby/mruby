@@ -2477,6 +2477,18 @@ assert("Regexp - negative lookbehind at string start") do
   assert_equal "a", md[0]
 end
 
+assert("Regexp - a lookbehind body of many forks is measured once per fork") do
+  need_backtracking_stack
+  # Both arms of a fork are measured to the end of the body, so a chain of
+  # them has a path per combination: twenty forks are a million paths, and
+  # walking each one is a compile that does not finish. What each pc is worth
+  # is remembered instead, which makes the measure one walk per arm.
+  re = Regexp.new("(?<=" + "(?:a|b)" * 20 + ")x")
+  assert_equal 20, (("a" * 20 + "x") =~ re)
+  assert_equal 20, (("b" * 10 + "a" * 10 + "x") =~ re)
+  assert_nil (("c" + "a" * 19 + "x") =~ re)
+end
+
 assert("Regexp - a capture inside a lookaround is undone with the lookaround") do
   need_backtracking_stack
   # A lookaround's sub-pattern used to run in a call of its own, so once it
