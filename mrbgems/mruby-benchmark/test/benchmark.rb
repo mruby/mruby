@@ -61,6 +61,19 @@ assert('Benchmark.measure counts CPU time') do
   assert_true(result.utime + result.stime > 0)
 end
 
+assert('Benchmark.measure counts the block CPU time and not the run so far') do
+  # Spend CPU before measuring, so a reading taken whole rather than as the
+  # difference of two carries it. An almost empty block cannot have spent
+  # more CPU than the wall clock it took, and one clock tick of slack leaves
+  # room for a tick-based Process.times to round the block's own stretch up.
+  cpu = lambda { t = Process.times; t.utime + t.stime }
+  limit = cpu.call + 0.05
+  nil while cpu.call < limit
+
+  result = Benchmark.measure { nil }
+  assert_true(result.utime + result.stime <= result.real + 0.05)
+end
+
 assert('Benchmark.realtime') do
   time = Benchmark.realtime do
     sum = 0
