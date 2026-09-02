@@ -189,11 +189,20 @@ assert('ENV.reject') do
 end
 
 assert('ENV.replace') do
-  ENV["MRUBY_ENV_TEST_U1"] = "old1"
-  ENV.replace({"MRUBY_ENV_TEST_U2" => "new2"})
-  assert_nil ENV["MRUBY_ENV_TEST_U1"]
-  assert_equal "new2", ENV["MRUBY_ENV_TEST_U2"]
-  ENV.delete("MRUBY_ENV_TEST_U2")
+  # `replace` clears the environment first, and that environment is the
+  # process's own: what is taken away is gone for every test that runs after
+  # this one, in a run where the whole suite is one process. PATH is the
+  # entry that costs, since a later test may need it to name a command or to
+  # load a library, so the whole environment is put back before returning.
+  saved = ENV.to_h
+  begin
+    ENV["MRUBY_ENV_TEST_U1"] = "old1"
+    ENV.replace({"MRUBY_ENV_TEST_U2" => "new2"})
+    assert_nil ENV["MRUBY_ENV_TEST_U1"]
+    assert_equal "new2", ENV["MRUBY_ENV_TEST_U2"]
+  ensure
+    ENV.replace(saved)
+  end
 end
 
 assert('ENV.update/merge!') do
