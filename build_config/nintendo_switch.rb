@@ -13,14 +13,14 @@ MRuby::CrossBuild.new('nintendo_switch_32bit') do |conf|
     cc.command = "#{NINTENDO_SDK_PATH}/Compilers/NX/bin/nx-clang++"
     cc.include_paths += include_paths
     cc.flags += ['-fpic -fno-short-enums -ffunction-sections -fdata-sections -fno-common -fno-strict-aliasing -fomit-frame-pointer -fno-vectorize -funsigned-char -O2 -g -mno-implicit-float']
-    cc.defines += 'NN_SDK_BUILD_RELEASE'
+    cc.defines << 'NN_SDK_BUILD_RELEASE'
   end
 
   conf.cxx do |cxx|
     cxx.command = "#{NINTENDO_SDK_PATH}/Compilers/NX/bin/nx-clang++"
     cxx.include_paths += include_paths
     cxx.flags += ['-fpic -fno-short-enums -ffunction-sections -fdata-sections -fno-common -fno-strict-aliasing -fomit-frame-pointer -fno-vectorize -funsigned-char -O2 -g -mno-implicit-float']
-    cxx.defines += 'NN_SDK_BUILD_RELEASE'
+    cxx.defines << 'NN_SDK_BUILD_RELEASE'
   end
 
   conf.archiver do |archiver|
@@ -49,7 +49,7 @@ MRuby::CrossBuild.new('nintendo_switch_64bit') do |conf|
     cc.include_paths += include_paths
     cc.flags += ['-fpic -fno-short-enums -ffunction-sections -fdata-sections -fno-common -fno-strict-aliasing -fomit-frame-pointer -fno-vectorize -funsigned-char -O2 -g -mno-implicit-float']
     cc.flags << '--target=aarch64-nintendo-nx-elf'
-    cc.defines += 'NN_SDK_BUILD_RELEASE'
+    cc.defines << 'NN_SDK_BUILD_RELEASE'
   end
 
   conf.cxx do |cxx|
@@ -57,7 +57,7 @@ MRuby::CrossBuild.new('nintendo_switch_64bit') do |conf|
     cxx.include_paths += include_paths
     cxx.flags += ['-fpic -fno-short-enums -ffunction-sections -fdata-sections -fno-common -fno-strict-aliasing -fomit-frame-pointer -fno-vectorize -funsigned-char -O2 -g -mno-implicit-float']
     cxx.flags << '--target=aarch64-nintendo-nx-elf'
-    cxx.defines += 'NN_SDK_BUILD_RELEASE'
+    cxx.defines << 'NN_SDK_BUILD_RELEASE'
   end
 
   conf.archiver do |archiver|
