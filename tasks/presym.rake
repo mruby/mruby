@@ -1,15 +1,7 @@
-all_prerequisites = ->(task_name, prereqs) do
-  Rake::Task[task_name].prerequisites.each do |prereq_name|
-    next if prereqs[prereq_name]
-    prereqs[prereq_name] = true
-    all_prerequisites.(Rake::Task[prereq_name].name, prereqs)
-  end
-end
-
-# Every target first, before the walk below resolves a rule: the products of
-# one target reach the objects of another (a build reaches the mrbc build it
-# generated), and a rule resolved for those objects must see the same include
-# paths as the compile that follows it.
+# Every target first, before `build.objects` below resolves a rule: the
+# products of one target reach the objects of another (a build reaches the
+# mrbc build it generated), and a rule resolved for those objects must see
+# the same include paths as the compile that follows it.
 MRuby.each_target do |build|
   include_dir = "#{build.build_dir}/include"
   build.compilers.each{|c| c.include_paths << include_dir}
@@ -31,20 +23,9 @@ MRuby.each_target do |build|
 
   presym = build.presym
 
-  prereqs = {}
-  ppps = []
-  build_dir = "#{build.build_dir}/"
-  mrbc_build_dir = "#{build.mrbc_build.build_dir}/" if build.mrbc_build
-  build.products.each{|product| all_prerequisites.(product, prereqs)}
-  prereqs.each_key do |prereq|
-    next unless File.extname(prereq) == build.exts.object
-    next unless prereq.start_with?(build_dir)
-    next if mrbc_build_dir && prereq.start_with?(mrbc_build_dir)
-    ppp = prereq.ext(build.exts.presym_preprocessed)
-    if Rake.application.lookup(ppp) ||
-       Rake.application.enhance_with_matching_rule(ppp)
-      ppps << ppp
-    end
+  objects = build.objects
+  ppps = objects.map { |obj| obj.ext(build.exts.presym_preprocessed) }.select do |ppp|
+    Rake.application.lookup(ppp) || Rake.application.enhance_with_matching_rule(ppp)
   end
 
   presym_task = file presym.list_path => ppps do
@@ -97,11 +78,8 @@ MRuby.each_target do |build|
   # build's presym scanning chain (before :gensym completes), e.g.:
   #   - internal sub-builds (mrbc) triggered by their parent build
   #   - the mrbc build generated for a cross build that has none to borrow
-  prereqs.each_key do |prereq|
-    next unless File.extname(prereq) == build.exts.object
-    next unless prereq.start_with?(build_dir)
-    next if mrbc_build_dir && prereq.start_with?(mrbc_build_dir)
-    file prereq => presym_proxy
+  objects.each do |obj|
+    file obj => presym_proxy
   end
 
   task gensym: presym.list_path

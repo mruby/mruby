@@ -98,6 +98,7 @@ module MRuby
     attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir, :libdir_name
     attr_reader :defines
     attr_reader :products, :libmruby_core_objs, :libmruby_objs, :gems, :toolchains, :presym, :mrbc_build, :gem_dir_to_repo_url
+    attr_reader :compile_rules
     attr_reader :build_root
     attr_reader :install_excludes, :port_names
 
@@ -166,6 +167,7 @@ module MRuby
         @gems = MRuby::Gem::List.new
         @libmruby_core_objs = []
         @libmruby_objs = [@libmruby_core_objs]
+        @compile_rules = []
         @enable_libmruby = true
         @build_mrbtest_lib_only = false
         @cxx_exception_enabled = false
@@ -632,6 +634,52 @@ EOS
         compiler.define_rules(@build_dir, MRUBY_ROOT, @exts.object)
         compiler.define_rules(@build_dir, MRUBY_ROOT, @exts.presym_preprocessed)
       end
+    end
+
+    # The objects the products of this build are made from: every object
+    # under the build directory that a product depends on, however far down.
+    #
+    # The objects of the +mrbc+ build this build makes for itself are left
+    # out. They are the same sources compiled with the defines of a bootstrap
+    # compiler, and that build is no target the config asked for. The +mrbc+
+    # a cross build borrows from another target sits under that target's
+    # directory, and is left out by that.
+    #
+    # Walking the prerequisites resolves the rule of every object on the way,
+    # so this is asked once every target is declared: the products of one
+    # target reach the objects of another (a build reaches the +mrbc+ build it
+    # generated), and a rule resolved for those objects must see the same
+    # include paths as the compile that follows it.
+    def objects
+      build_dir = "#{@build_dir}/"
+      donor = "#{@mrbc_build.build_dir}/" if @mrbc_build
+      objects = []
+      @products.each do |product|
+        Rake::Task[product].all_prerequisite_tasks.each do |task|
+          name = task.name
+          next unless File.extname(name) == @exts.object
+          next unless name.start_with?(build_dir)
+          next if donor && name.start_with?(donor)
+          objects << name
+        end
+      end
+      objects.uniq
+    end
+
+    # The compiler and the source a compile of +outfile+ runs with, or nothing
+    # where no rule of this build compiles it.
+    #
+    # The source is the one Rake resolved the rule of the output to, the
+    # first prerequisite of its task and the one the rule hands +run+; the
+    # rule is then known by that output and that source (see
+    # +Command::Compiler::Rule+), and the compiler is the rule's. A compile
+    # written out as a +file+ task by hand is no rule, and has no answer here.
+    def compile_of(outfile)
+      task = Rake.application.lookup(outfile) || Rake.application.enhance_with_matching_rule(outfile)
+      return nil unless task
+      source = task.prerequisites.first
+      rule = @compile_rules.find { |r| r.compiles?(outfile, source) }
+      [rule.compiler, source] if rule
     end
 
     def define_installer_outline(src, dst)

@@ -1,21 +1,29 @@
+require "fileutils"
 require "json"
 
 module MRuby
   # The compilation database (+compile_commands.json+) of a build, made from
-  # what the build already writes about itself.
+  # the rules the build compiles by, and from what the build has compiled
+  # besides.
   #
-  # Every compile leaves two files beside its output: +<output>.flags+, the
-  # command line it ran with (see +MRuby::Command::Compiler#run+), and
+  # A rule is the whole of a compile before it runs: which source the object
+  # is made from, which compiler makes it and with what flags. So the
+  # database is written from the rules, and asks for no compile to have run:
+  # a checkout has its database before its first build, and a tool that
+  # traces the compiles instead, +bear+ or +compiledb+ or an +strace+
+  # wrapper, is not needed and is not asked for.
+  #
+  # What a build compiled that no rule of the config declares is answered
+  # for by the record each compile leaves beside its output: +<output>.flags+,
+  # the command line it ran with (see +MRuby::Command::Compiler#run+), and
   # +<output>.d+, the files it read, whose first name is the source it
-  # compiled. The two together are an entry of the database, so nothing has
-  # to watch the build run to write one. A tool that traces the compiles
-  # instead, +bear+ or +compiledb+ or an +strace+ wrapper, is not needed and
-  # is not asked for.
+  # compiled. The test driver `rake test` loads is such a compile, and so is
+  # an object of a gem the config has since dropped.
   #
-  # What the database holds is what the build compiled. A source that no
-  # build in this directory has reached, a gem the config leaves out or a
-  # port for another platform, has no record and so no entry; the +.clangd+
-  # and +compile_flags.txt+ of the tree are what answer for those.
+  # A source no build in this directory compiles, a gem the config leaves
+  # out or a port for another platform, has no rule and no record, and so no
+  # entry; the +.clangd+ and +compile_flags.txt+ of the tree are what answer
+  # for those.
   class CompileCommands
     # The keys of a +.flags+ record, in the order it writes them.
     RECORD_KEYS = %w[command options flags].freeze
@@ -36,15 +44,10 @@ module MRuby
     # to read that build finds it: what clangd's +compile-commands-dir+
     # option names is a directory, so a cross build's flags are one option
     # away without the config or the environment being changed at all.
-    #
-    # A build that has compiled nothing is passed over rather than handed an
-    # empty database, since its build directory may not even be there yet.
     def self.write
       speaks_for_tree = target
       keepers.each do |build|
         database = new(build)
-        next if database.count.zero?
-
         write_one(database, database.path, "#{database.count} entries")
         next unless build.equal?(speaks_for_tree)
 
@@ -114,8 +117,14 @@ module MRuby
     # so that a language server watching it does not reindex the tree after
     # a build that compiled nothing. The same database is written to more
     # than one path, so what it holds is worked out once.
+    #
+    # The directory is made where it is not there yet: before the first
+    # build, the build directory is not.
     def write(path)
-      File.write(path, json) unless File.exist?(path) && File.read(path) == json
+      return if File.exist?(path) && File.read(path) == json
+
+      FileUtils.mkdir_p File.dirname(path)
+      File.write(path, json)
     end
 
     # How many entries the database holds.
@@ -123,17 +132,27 @@ module MRuby
       entries.size
     end
 
-    # The entries for the objects this build has compiled, ordered by the
-    # source they compile so that two runs over the same build directory
-    # write the same file.
+    # The entries of the database, ordered by the source they compile so
+    # that two runs over the same build directory write the same file.
+    #
+    # The objects the rules declare come first, from the rules, and the
+    # objects the build directory holds besides come from their records.
+    # A declared object has a record too once it is compiled, and the two
+    # say the same thing: an object whose flags no longer match what its
+    # build would compile it with is removed and made again (see
+    # +Command::Compiler#discard_foreign_output+), so the record beside a
+    # declared object is always the rule's own account. The rule answers
+    # for it and the record is passed over.
     def entries
       @entries ||= begin
-        list = records.map { |outfile| entry(outfile) }.compact
+        list = objects.filter_map { |outfile| rule_entry(outfile) }
+        declared = list.to_h { |e| [e["output"], true] }
+        list.concat(records.reject { |o| declared[o] }.filter_map { |o| record_entry(o) })
         list.sort_by! { |e| [e["file"], e["output"]] }
-        # One source is compiled once here, but a build directory that holds
-        # a nested build keeps a record for each. The first is the one the
-        # sort settled on, and a database with two answers for a file has
-        # none.
+        # One source is compiled once here, but an object a rule no longer
+        # declares may sit beside the one it moved to. The first is the one
+        # the sort settled on, and a database with two answers for a file
+        # has none.
         list.uniq! { |e| e["file"] }
         list
       end
@@ -145,18 +164,71 @@ module MRuby
       @json ||= JSON.pretty_generate(entries) << "\n"
     end
 
+    # The objects this build compiles: those its products are made from, and
+    # the test objects of its gems. `rake test` compiles those by the rules
+    # the gems defined when the config was read, but the test driver that
+    # links them is a gem loaded only then, so no product reaches them.
+    def objects
+      objects = @build.objects
+      objects += @build.gems.flat_map(&:test_objs) if @build.test_enabled?
+      objects
+    end
+
+    # The entry for an object from the rule that compiles it, or nothing
+    # where no rule does or its source is not there. A source the build
+    # generates is not there before the build has run, and a database that
+    # answers for a file that is not there helps nobody.
+    def rule_entry(outfile)
+      compiler, source = @build.compile_of(outfile)
+      return nil unless compiler
+
+      entry(source, outfile) { compiler.compile_command(outfile, source) }
+    end
+
+    # The entry for an object from the record beside it, or nothing where
+    # the record cannot be read or no longer describes a compile that could
+    # be run. A source that has been renamed or deleted is still named by
+    # the records of the object it used to be compiled to, and answering
+    # for a file that is not there helps nobody.
+    def record_entry(outfile)
+      record = read_record("#{outfile}.flags")
+      return nil unless record
+      infile = source_of(outfile)
+      return nil unless infile
+
+      entry(infile, outfile) { command_line(record, infile, outfile) }
+    end
+
+    # The entry for +outfile+ compiled from +infile+, with the command line
+    # the block gives, or nothing where the source is not there.
+    #
+    # The rule and the record name the source the way the compile is given
+    # it, which is the name it has from the tree where the build compiles by
+    # those names. The command keeps that name, since it is the command that
+    # is run and `directory` says what it is written against, while `file`
+    # is answered in full: it is what a tool matches the file it has open
+    # against, and it has that one by its path.
+    def entry(infile, outfile)
+      path = File.absolute_path(infile, MRUBY_ROOT)
+      return nil unless File.exist?(path)
+
+      {
+        "directory" => MRUBY_ROOT,
+        "file" => path,
+        "command" => yield,
+        "output" => outfile,
+      }
+    end
+
     # The objects this build directory holds, named by the record beside
     # them.
     #
     # Every one of them is walked, and not only those the build has just
     # compiled or still declares. An entry earns its place by being true, not
-    # by having been built a moment ago: an object whose flags no longer match
-    # what its build would compile it with is removed and made again (see
-    # +Command::Compiler#discard_foreign_output+), so every object a build
-    # declares carries a record of how that build compiles it, and an object
-    # left behind by a gem the config has since dropped carries the last true
-    # account of how this tree compiled that source. The second is worth more
-    # to a language server than the nothing that dropping it would leave.
+    # by having been built a moment ago: an object left behind by a gem the
+    # config has since dropped carries the last true account of how this
+    # tree compiled that source, which is worth more to a language server
+    # than the nothing that dropping it would leave.
     #
     # An object that is gone answers for nothing, so its record is passed
     # over rather than believed.
@@ -172,37 +244,11 @@ module MRuby
       paths.map { |path| path.sub(/\.flags\z/, "") }.select { |o| File.exist?(o) }
     end
 
-    # The entry for an object, or nothing where the record cannot be read or
-    # no longer describes a compile that could be run. A source that has been
-    # renamed or deleted is still named by the records of the object it used
-    # to be compiled to, and answering for a file that is not there helps
-    # nobody.
-    def entry(outfile)
-      record = read_record("#{outfile}.flags")
-      return nil unless record
-      infile = source_of(outfile)
-      return nil unless infile
-      # The record and the dependency file name the source the way the compile
-      # was given it, which is the name it has from the tree where the build
-      # compiles by those names. The command keeps that name, since it is the
-      # command that was run and `directory` says what it was written against,
-      # while `file` is answered in full: it is what a tool matches the file it
-      # has open against, and it has that one by its path.
-      path = File.absolute_path(infile, MRUBY_ROOT)
-      return nil unless File.exist?(path)
-
-      {
-        "directory" => MRUBY_ROOT,
-        "file" => path,
-        "command" => command_line(record, infile, outfile),
-        "output" => outfile,
-      }
-    end
-
     # The command line of the compile, put back together the way
-    # +MRuby::Command#_run+ builds it. The record keeps the options apart
-    # from the flags they carry, and names neither file, so the two names
-    # come from the output the record sits beside and the source it read.
+    # +MRuby::Command#command_line+ builds it. The record keeps the options
+    # apart from the flags they carry, and names neither file, so the two
+    # names come from the output the record sits beside and the source it
+    # read.
     def command_line(record, infile, outfile)
       params = {
         :flags => record["flags"],

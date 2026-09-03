@@ -30,6 +30,12 @@ module MRuby
       "\"#{s}\""
     end
 
+    # The command line +_run+ runs: the command, and +options+ with +params+
+    # filled in.
+    def command_line(options, params={})
+      "#{build.filename(command)} #{options % params}"
+    end
+
     private
     # Run the command, from +chdir+ where one is given.
     #
@@ -39,7 +45,7 @@ module MRuby
     # have one working directory between them, while a directory given here
     # belongs to the one child it is given to.
     def _run(options, params={}, chdir: nil)
-      cmd = "#{build.filename(command)} #{options % params}"
+      cmd = command_line(options, params)
       chdir ? sh(cmd, chdir: chdir) : sh(cmd)
     end
   end
@@ -296,23 +302,36 @@ module MRuby
 
     def run(outfile, infile, _defines=[], _include_paths=[], _flags=[])
       mkdir_p File.dirname(outfile)
-      flags = compile_flags(outfile, _defines, _include_paths, _flags)
-      if object_ext?(outfile)
-        label = @label
-        opts = compile_options
-      else
-        label = "CPP"
-        opts = preprocess_options
-      end
+      opts, params = compile_invocation(outfile, infile, _defines, _include_paths, _flags)
+      label = object_ext?(outfile) ? @label : "CPP"
       _pp label, infile.relative_path, outfile.relative_path
-      _run opts, {
-        flags: flags,
-        infile: filename(build.compile_path(infile)),
-        outfile: filename(build.compile_path(outfile)),
-      }, chdir: (MRUBY_ROOT if build.compile_relative?)
+      _run opts, params, chdir: (MRUBY_ROOT if build.compile_relative?)
       # Recorded after the compile, so that a compile that failed leaves
       # nothing claiming a configuration its output was not built with.
-      File.write(flags_file(outfile), flags_record(opts, flags))
+      File.write(flags_file(outfile), flags_record(opts, params[:flags]))
+    end
+
+    # The command line +run+ runs to compile +outfile+ from +infile+, for
+    # whoever wants it without the compile being run: the compilation
+    # database is written from it.
+    def compile_command(outfile, infile)
+      command_line(*compile_invocation(outfile, infile))
+    end
+
+    # A rule +define_rules+ defined, kept so that what the rule compiles, and
+    # with which compiler, can be asked without the rule being run.
+    Rule = Struct.new(:matcher, :source_of, :compiler_of) do
+      # Whether this rule is the one that compiles +outfile+ from +source+.
+      # The rules of a build differ in the output they match and in the
+      # source they look for beside it, so the two names together name one
+      # rule.
+      def compiles?(outfile, source)
+        matcher.match?(outfile) && source_of.call(outfile) == source
+      end
+
+      def compiler
+        compiler_of.call
+      end
     end
 
     # Define the rules that build the outputs under +build_dir+ from the
@@ -350,6 +369,7 @@ module MRuby
           ] do |t|
             compiler_of.call.run t.name, t.prerequisites.first
           end
+          build.compile_rules << Rule.new(generated_file_matcher, source_of, compiler_of)
         end
       end
     end
@@ -541,6 +561,19 @@ module MRuby
       flags = all_flags(_defines, _include_paths, _flags, compiled: true)
       flags += " -DMRB_PRESYM_SCANNING" unless object_ext?(outfile)
       flags
+    end
+
+    # The options a compile of +outfile+ from +infile+ runs with, and the
+    # parameters that fill them in: the compile options for an object, the
+    # preprocess options for the preprocessed source the presym scan reads.
+    def compile_invocation(outfile, infile, _defines=[], _include_paths=[], _flags=[])
+      options = object_ext?(outfile) ? compile_options : preprocess_options
+      params = {
+        flags: compile_flags(outfile, _defines, _include_paths, _flags),
+        infile: filename(build.compile_path(infile)),
+        outfile: filename(build.compile_path(outfile)),
+      }
+      [options, params]
     end
 
     def object_ext?(path)
