@@ -17,6 +17,22 @@ Dir class for mruby. Supported methods are:
 `#seek`
 `#tell`
 
+## What the port declares
+
+Whether a method exists is the port's to say, since the port is what a build
+names and a `hal-dir-<conf>` gem may stand in for the bundled ones. Each port
+publishes a `dir_hal_features.h` in its `include/`, which
+`include/dir_hal.h` reads before it declares anything. One macro there guards the prototype, the
+port's implementation and the method definition, so a capability the port does
+not declare has no method at all rather than one that fails, and
+`respond_to?` answers false. A port that declares a capability it does not
+implement fails to link.
+
+| macro                  | methods    | posix             | win |
+| ---------------------- | ---------- | ----------------- | --- |
+| `MRB_HAL_DIR_HAS_SEEK` | `Dir#seek` | o, not on Android |     |
+| `MRB_HAL_DIR_HAS_TELL` | `Dir#tell` | o, not on Android |     |
+
 ## License
 
 Copyright (c) 2012 Internet Initiative Japan Inc.

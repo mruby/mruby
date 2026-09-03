@@ -186,28 +186,6 @@ mrb_hal_dir_rewind(mrb_state *mrb, mrb_dir_handle *handle)
 }
 
 /*
- * Optional Operations
- */
-
-int
-mrb_hal_dir_seek(mrb_state *mrb, mrb_dir_handle *handle, long pos)
-{
-  /* Not supported on Windows */
-  (void)mrb; (void)handle; (void)pos;
-  errno = ENOSYS;
-  return -1;
-}
-
-long
-mrb_hal_dir_tell(mrb_state *mrb, mrb_dir_handle *handle)
-{
-  /* Not supported on Windows */
-  (void)mrb; (void)handle;
-  errno = ENOSYS;
-  return -1;
-}
-
-/*
  * Filesystem Operations
  */
 

@@ -62,37 +62,27 @@ mrb_hal_dir_rewind(mrb_state *mrb, mrb_dir_handle *handle)
 }
 
 /*
- * Optional Operations
+ * Operations this port declares in dir_hal_features.h
  */
 
+#ifdef MRB_HAL_DIR_HAS_SEEK
 int
 mrb_hal_dir_seek(mrb_state *mrb, mrb_dir_handle *handle, long pos)
 {
-#if defined(__ANDROID__)
-  /* Android doesn't have reliable seekdir */
-  (void)mrb; (void)handle; (void)pos;
-  errno = ENOSYS;
-  return -1;
-#else
   (void)mrb;
   seekdir(handle->dir, pos);
   return 0;
-#endif
 }
+#endif
 
+#ifdef MRB_HAL_DIR_HAS_TELL
 long
 mrb_hal_dir_tell(mrb_state *mrb, mrb_dir_handle *handle)
 {
-#if defined(__ANDROID__)
-  /* Android doesn't have reliable telldir */
-  (void)mrb; (void)handle;
-  errno = ENOSYS;
-  return -1;
-#else
   (void)mrb;
   return telldir(handle->dir);
-#endif
 }
+#endif
 
 /*
  * Filesystem Operations
