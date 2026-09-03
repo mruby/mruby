@@ -42,7 +42,8 @@ the rest. It is not in `default`, so a build asks for it.
 ## Syntax
 
 - Character classes, POSIX brackets, and nested classes read as the union
-  they are ([#7469](https://github.com/mruby/mruby/pull/7469))
+  they are ([#7469](https://github.com/mruby/mruby/pull/7469)), narrowed by the
+  intersection `&&` separates ([#7471](https://github.com/mruby/mruby/pull/7471))
 - Greedy, lazy and possessive quantifiers, and atomic groups `(?>...)`
 - Lookahead `(?=...)`, `(?!...)` and lookbehind `(?<=...)`, `(?<!...)`, the
   latter with each branch of the body carrying its own width ([#7456](https://github.com/mruby/mruby/pull/7456))
@@ -57,7 +58,6 @@ the rest. It is not in `default`, so a build asks for it.
 
 `mrbgems/mruby-regexp/README.md` lists these in full. The ones worth knowing:
 
-- Character class intersection `[a&&b]` is not read
 - A collating element `[[.a.]]` and an equivalence class `[[=a=]]` raise
 - A pattern that recurses past what the engine can carry raises rather than
   answering wrongly ([#7280](https://github.com/mruby/mruby/pull/7280))
@@ -724,3 +724,7 @@ any of those needs updating.
 - [#7467](https://github.com/mruby/mruby/pull/7467) mruby-regexp: implement the conditional `(?(cond)yes|no)`
 - [#7468](https://github.com/mruby/mruby/pull/7468) mruby-regexp: read the subject before the pattern in every search
 - [#7469](https://github.com/mruby/mruby/pull/7469) mruby-regexp: read a nested character class as the union it is
+- [#7470](https://github.com/mruby/mruby/pull/7470) mruby-process: split the sources by subject
+- [#7471](https://github.com/mruby/mruby/pull/7471) mruby-regexp: read `&&` as the character class intersection it is
+- [#7472](https://github.com/mruby/mruby/pull/7472) build: let a port hand headers to the gem it serves, and let mruby-dir use them
+- [#7473](https://github.com/mruby/mruby/pull/7473) NEWS.md: keep prettier from rewriting the 4.1 entries
