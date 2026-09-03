@@ -200,6 +200,40 @@ assert('Integer comparison with a Float at the ends of the mrb_int range') do
   assert_true(imin > -inf)
 end
 
+assert('Integer comparison of two values too wide to store inline') do
+  # Word boxing keeps an Integer in the value itself only while it fits a
+  # tagged machine word and allocates an object for a wider one, which is a
+  # difference in where the number is kept and not in the number: a pair of
+  # them stands in the same order as any other pair. The comparisons are asked
+  # for by name so that each is the method's own, the operators being opcodes
+  # that read a pair of Integers themselves.
+  #
+  # 2**30 is past what a 32-bit word carries inline and 2**62 past a 64-bit
+  # one, so one pair or the other is outside it wherever this runs. Where an
+  # mrb_int is too narrow for the wider pair, mruby-bigint answers the
+  # comparison and a build without it raises at the shift, which is what the
+  # rescue leaves that pair out for; the shift count is a variable for the
+  # reason the big integer tests give, a constant one out of range failing the
+  # build rather than raising.
+  pairs = [[1 << 30, (1 << 30) + 1]]
+  begin
+    k = 62
+    pairs << [1 << k, (1 << k) + 1]
+  rescue RangeError
+  end
+
+  pairs.each do |small, large|
+    assert_equal(-1, small.__send__(:<=>, large))
+    assert_equal(1, large.__send__(:<=>, small))
+    assert_equal(0, large.__send__(:<=>, large))
+    assert_true(small.__send__(:<, large))
+    assert_true(small.__send__(:<=, large))
+    assert_false(small.__send__(:>, large))
+    assert_false(small.__send__(:>=, large))
+    assert_true(large.__send__(:>, small))
+  end
+end
+
 assert('Integer#~', '15.2.8.3.8') do
   # Complement
   assert_equal(-1, ~0)
