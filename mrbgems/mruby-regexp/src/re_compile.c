@@ -933,7 +933,6 @@ read_class_atom(re_compiler *c, re_charclass *cc, mrb_bool *is_byte, mrb_bool cl
   return cp;
 }
 
-/* Parse [...] character class */
 /* Whether `\X` at `src` is one of the shorthand classes the class parser
    folds in whole. Each names a set rather than a character. */
 static mrb_bool
@@ -961,23 +960,13 @@ reject_set_as_range_start(re_compiler *c)
   }
 }
 
+/* Read the members of a class into class `id`, from just after its '[' (and
+   its '^') through its ']'. `ascii_set` is the caller's; see
+   compile_charclass() for what is held there and why. */
 static void
-compile_charclass(re_compiler *c)
+parse_class_body(re_compiler *c, uint16_t id, re_charclass *ascii_set)
 {
-  uint16_t id = add_class(c);
   re_charclass *cc = &c->pat->classes[id];
-  mrb_bool negated = FALSE;
-
-  if (peek(c) == '^') {
-    next_char(c);
-    negated = TRUE;
-  }
-
-  /* What \w, \W, [:word:] and [:ascii:] add is held apart until the class
-     has been closed under folding, and joins the bitmap after; see the fold
-     below for why. Only the bitmap and utf8_any are ever written here. */
-  re_charclass ascii_set;
-  memset(&ascii_set, 0, sizeof(ascii_set));
 
   mrb_bool first = TRUE;
   while (peek(c) != ']' || first) {
@@ -1026,7 +1015,7 @@ compile_charclass(re_compiler *c)
         }
         next_char(c);  /* ':' */
         next_char(c);  /* ']' */
-        re_charclass *dst = by_ascii ? &ascii_set : cc;
+        re_charclass *dst = by_ascii ? ascii_set : cc;
         for (int i = 0; i < 128; i++) {
           mrb_bool in = (bits[i >> 3] >> (i & 7)) & 1;
           if (in != neg) class_set_bit(dst, (uint8_t)i);
@@ -1072,7 +1061,7 @@ compile_charclass(re_compiler *c)
           esc == 's' || esc == 'S' || esc == 'h' || esc == 'H') {
         next_char(c);  /* '\\' */
         next_char(c);  /* spec  */
-        class_add_shorthand((esc == 'w' || esc == 'W') ? &ascii_set : cc, esc);
+        class_add_shorthand((esc == 'w' || esc == 'W') ? ascii_set : cc, esc);
         reject_set_as_range_start(c);
         continue;
       }
@@ -1121,9 +1110,31 @@ compile_charclass(re_compiler *c)
     }
   }
   next_char(c);  /* skip ']' */
+}
+
+/* Parse [...] character class */
+static void
+compile_charclass(re_compiler *c)
+{
+  uint16_t id = add_class(c);
+  mrb_bool negated = FALSE;
+
+  if (peek(c) == '^') {
+    next_char(c);
+    negated = TRUE;
+  }
+
+  /* What \w, \W, [:word:] and [:ascii:] add is held apart until the class
+     has been closed under folding, and joins the bitmap after; see the fold
+     below for why. Only the bitmap and utf8_any are ever written here. */
+  re_charclass ascii_set;
+  memset(&ascii_set, 0, sizeof(ascii_set));
+
+  parse_class_body(c, id, &ascii_set);
+  re_charclass *cc = &c->pat->classes[id];
 
   /* Close the class under case folding for /i. This runs once the class is
-     complete, so it covers every form the loop above merges in: POSIX
+     complete, so it covers every form parse_class_body() merges in: POSIX
      brackets, ranges and single literals. Negation is applied at match time
      against the same class (RE_NCLASS), so closing the positive set is also
      what keeps [^a-c] and [^Ā] from accepting what they were written to
@@ -3306,7 +3317,7 @@ skip_uninterpreted(const char *src, const char *end, mrb_bool *in_class, int *pa
   }
 
   if (*in_class) {
-    /* A POSIX bracket is consumed as a unit by compile_charclass(), so the
+    /* A POSIX bracket is consumed as a unit by parse_class_body(), so the
        ']' that closes it does not close the class. */
     const char *q = skip_posix_bracket(src, end);
     if (q) return q;
@@ -3318,7 +3329,7 @@ skip_uninterpreted(const char *src, const char *end, mrb_bool *in_class, int *pa
     *in_class = TRUE;
     src++;
     /* A ']' written first is a literal member, optionally after '^',
-       mirroring the `first` flag in compile_charclass(). */
+       mirroring the `first` flag in parse_class_body(). */
     if (src < end && *src == '^') src++;
     if (src < end && *src == ']') src++;
     return src;
