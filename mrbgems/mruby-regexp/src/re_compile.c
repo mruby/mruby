@@ -345,18 +345,30 @@ literal_class(re_compiler *c, uint32_t cp, mrb_bool *found)
 }
 
 static void
-class_set_bit(re_charclass *cc, uint8_t ch)
+bitmap_set(uint8_t *bits, uint8_t ch)
 {
   if (ch < 128) {
-    cc->bitmap[ch >> 3] |= (1 << (ch & 7));
+    bits[ch >> 3] |= (1 << (ch & 7));
   }
+}
+
+static void
+class_set_bit(re_charclass *cc, uint8_t ch)
+{
+  bitmap_set(cc->bitmap, ch);
+}
+
+static mrb_bool
+bitmap_get(const uint8_t *bits, uint8_t ch)
+{
+  if (ch >= 128) return FALSE;
+  return (bits[ch >> 3] >> (ch & 7)) & 1;
 }
 
 static mrb_bool
 class_get_bit(const re_charclass *cc, uint8_t ch)
 {
-  if (ch >= 128) return FALSE;
-  return (cc->bitmap[ch >> 3] >> (ch & 7)) & 1;
+  return bitmap_get(cc->bitmap, ch);
 }
 
 /* Add a non-ASCII codepoint range [lo, hi]. Both bounds must be >= 128.
@@ -590,9 +602,204 @@ class_union(re_compiler *c, re_charclass *dst, const re_charclass *src)
   }
   if (src->utf8_any) dst->utf8_any = TRUE;
 #ifdef RE_UNICODE_CTYPE
-  dst->ctype_yes |= src->ctype_yes;
-  dst->ctype_no |= src->ctype_no;
+  /* Two brackets joined are a character with a type either of them admits,
+     which the pair spells and the masks of an intersection do not: a class
+     that has to have every bit of one mask cannot also stand for a character
+     that has none of them. One side asking nothing about the type is what
+     lets the other's answer through whole. */
+  if (RE_CLASS_HAS_CTYPE(src)) {
+    if (!RE_CLASS_HAS_CTYPE(dst)) {
+      dst->ctype_yes = src->ctype_yes;
+      dst->ctype_no = src->ctype_no;
+      dst->ctype_all = src->ctype_all;
+      dst->ctype_none = src->ctype_none;
+    }
+    else if ((dst->ctype_all | dst->ctype_none | src->ctype_all | src->ctype_none) != 0) {
+      compile_error(c, "this character class union is not supported");
+    }
+    else {
+      dst->ctype_yes |= src->ctype_yes;
+      dst->ctype_no |= src->ctype_no;
+    }
+  }
 #endif
+}
+
+/* The spans both lists hold, into `out`. Each is sorted and holds no two
+   entries that overlap or touch, so one walk down the pair answers: the
+   entries facing each other overlap in at most one span, and the one ending
+   first is the one that can meet nothing further along. The byte ranges carry
+   RE_CLASS_BYTE, which sorts them above every codepoint in both lists, so the
+   walk keeps the two spaces apart without knowing they are there. */
+static void
+ranges_intersect(re_compiler *c, re_charclass *out,
+                 const uint32_t *a, uint32_t na, const uint32_t *b, uint32_t nb)
+{
+  uint32_t i = 0, j = 0;
+  while (i < na && j < nb) {
+    uint32_t lo = a[2 * i] > b[2 * j] ? a[2 * i] : b[2 * j];
+    uint32_t hi = a[2 * i + 1] < b[2 * j + 1] ? a[2 * i + 1] : b[2 * j + 1];
+    if (lo <= hi) class_add_range(c, out, lo, hi);
+    if (a[2 * i + 1] < b[2 * j + 1]) i++;
+    else j++;
+  }
+}
+
+#ifdef RE_UNICODE_CTYPE
+/* How many bits a mask has set, which is how many separate things it says
+   about a character's type. */
+static int
+count_bits(uint16_t v)
+{
+  int n = 0;
+  while (v) { v &= (uint16_t)(v - 1); n++; }
+  return n;
+}
+
+/* A bracket read on its own leaves the class asking for one type either way,
+   which is a disjunction of one and so a conjunct like any other: [[:alpha:]]
+   is a character whose type has RE_CTYPE_ALPHA and [[:^alpha:]] one whose
+   type has not. Moving it to the masks is what leaves the pair free for the
+   side of an intersection that needs it, so that [[:alpha:][:digit:]&&[:^lower:]]
+   keeps the one disjunction it is written with. */
+static void
+class_ctype_to_masks(re_charclass *cc)
+{
+  uint16_t yes = cc->ctype_yes, no = cc->ctype_no;
+  if (yes && !no && (yes & (yes - 1)) == 0) {
+    cc->ctype_all |= yes;
+    cc->ctype_yes = 0;
+  }
+  else if (no && !yes && (no & (no - 1)) == 0) {
+    cc->ctype_none |= no;
+    cc->ctype_no = 0;
+  }
+}
+
+/* The part of a range list that the brackets of `by` hold, into `out`. This
+   is the one place a bracket is written out as members: an intersection has
+   to say which characters of a range are letters, where a class that merely
+   holds [[:alpha:]] can leave the question to match time. What it writes is
+   bounded by the table's runs rather than by the length of the range. */
+static void
+ranges_filter_ctype(re_compiler *c, re_charclass *out,
+                    const uint32_t *r, uint32_t n, const re_charclass *by)
+{
+  for (uint32_t i = 0; i < n; i++) {
+    uint32_t lo = r[2 * i], hi = r[2 * i + 1];
+    if (lo & RE_CLASS_BYTE) {
+      /* A byte spells no character and has no type, so a bracket holds it
+         only in the negative. The whole run of them is one answer. */
+      if (mrb_re_class_ctype_match(by, lo)) class_add_range(c, out, lo, hi);
+      continue;
+    }
+    while (lo <= hi) {
+      mrb_bool in;
+      uint32_t end = mrb_re_ctype_span(by, lo, hi, &in);
+      if (in) class_add_range(c, out, lo, end);
+      lo = end + 1;
+    }
+  }
+}
+#endif
+
+/* Everything both classes hold, into the first of them. `&&` is what asks for
+   this, and the two are read the way class_match() reads one: a bitmap for
+   ASCII, and above it a range list, the brackets and the utf8_any catch-all,
+   any of which can answer for a character on its own.
+
+   An OR of terms on each side makes their intersection a product of sums, and
+   what keeps it from growing into one is that utf8_any is the whole of the
+   space above ASCII: a side that has it leaves the other side's answer to
+   stand. With neither of them holding it, what is left above ASCII is the
+   spans the two share and the spans of each that the other's brackets hold.
+   Both are written out as ranges. What the brackets are left saying is what
+   both sides said about the type, which is a conjunction: the class carries
+   it as the masks class_ctype_to_masks() moves a bracket into, and refuses
+   the one shape they cannot hold, a disjunction of brackets on either side of
+   the `&&`. */
+static void
+class_intersect(re_compiler *c, uint16_t dst_id, uint16_t src_id)
+{
+  {
+    re_charclass *dst = &c->pat->classes[dst_id];
+    re_charclass *src = &c->pat->classes[src_id];
+    for (int i = 0; i < RE_CLASS_BITMAP_SIZE; i++) dst->bitmap[i] &= src->bitmap[i];
+
+    /* src holds every character and every byte above ASCII, so dst keeps
+       what it holds there. */
+    if (src->utf8_any) return;
+
+    if (dst->utf8_any) {
+      /* The same the other way, which takes a copy rather than nothing: what
+         dst holds above ASCII becomes what src holds. */
+      mrb_free(c->mrb, dst->ranges);
+      dst->ranges = NULL;
+      dst->num_ranges = dst->range_capa = 0;
+      dst->utf8_any = FALSE;
+#ifdef RE_UNICODE_CTYPE
+      dst->ctype_yes = src->ctype_yes;
+      dst->ctype_no = src->ctype_no;
+      dst->ctype_all = src->ctype_all;
+      dst->ctype_none = src->ctype_none;
+#endif
+      for (uint32_t i = 0; i < src->num_ranges; i++) {
+        class_add_range(c, dst, src->ranges[2 * i], src->ranges[2 * i + 1]);
+      }
+      return;
+    }
+
+#ifdef RE_UNICODE_CTYPE
+    class_ctype_to_masks(dst);
+    class_ctype_to_masks(src);
+    if ((dst->ctype_yes | dst->ctype_no) && (src->ctype_yes | src->ctype_no)) {
+      /* Two disjunctions, where the class has room for one. */
+      compile_error(c, "this character class intersection is not supported");
+    }
+#endif
+  }
+
+  /* The result is built beside the two rather than over dst, whose entries
+     are still being read. It goes in the table so that an allocation failing
+     part way through leaves it for mrb_re_free() rather than for nobody, and
+     the table can move, so every pointer into it is taken after this. */
+  uint16_t out_id = add_class(c);
+  {
+    re_charclass *out = &c->pat->classes[out_id];
+    re_charclass *dst = &c->pat->classes[dst_id];
+    const re_charclass *src = &c->pat->classes[src_id];
+    ranges_intersect(c, out, dst->ranges, dst->num_ranges, src->ranges, src->num_ranges);
+#ifdef RE_UNICODE_CTYPE
+    /* Each side's ranges are asked of the other's brackets before the two
+       questions become one, since what is written out here is what a bracket
+       held on its own and the conjunction holds neither list. */
+    if (RE_CLASS_HAS_CTYPE(src)) {
+      ranges_filter_ctype(c, out, dst->ranges, dst->num_ranges, src);
+    }
+    if (RE_CLASS_HAS_CTYPE(dst)) {
+      ranges_filter_ctype(c, out, src->ranges, src->num_ranges, dst);
+    }
+    if (RE_CLASS_HAS_CTYPE(dst) && RE_CLASS_HAS_CTYPE(src)) {
+      dst->ctype_yes |= src->ctype_yes;
+      dst->ctype_no |= src->ctype_no;
+      dst->ctype_all |= src->ctype_all;
+      dst->ctype_none |= src->ctype_none;
+    }
+    else {
+      /* One side saying nothing about the type leaves the class saying
+         nothing: a character the other held that way is here only where this
+         one had it too, and that is a range now. */
+      dst->ctype_yes = dst->ctype_no = dst->ctype_all = dst->ctype_none = 0;
+    }
+#endif
+    mrb_free(c->mrb, dst->ranges);
+    dst->ranges = out->ranges;
+    dst->num_ranges = out->num_ranges;
+    dst->range_capa = out->range_capa;
+    out->ranges = NULL;
+    out->num_ranges = out->range_capa = 0;
+  }
+  drop_class(c, out_id);
 }
 
 /* The two spaces the range list keeps apart, as the bounds of each: the
@@ -622,7 +829,10 @@ static const uint32_t class_spaces[2][2] = {
      and mrb_re_class_ctype_match() reads a byte as having none. One bit is
      the bound the swap holds at, since [[:alpha:][:digit:]] is a character
      that is a letter *or* a digit and its complement one that is neither,
-     which no single polarity spells.
+     which no single polarity spells. A mask the pair moved into negates the
+     same way, into the polarity it left, and the conjunction an intersection
+     wrote is a term apiece: two of them are two to negate, and their
+     complement is the OR this cannot write either.
    - With no type in the class the ranges stand alone, and their gaps are the
      complement.
 
@@ -639,21 +849,26 @@ class_complement(re_compiler *c, re_charclass *cc)
     cc->utf8_any = FALSE;
     cc->num_ranges = 0;
 #ifdef RE_UNICODE_CTYPE
-    cc->ctype_yes = cc->ctype_no = 0;
+    cc->ctype_yes = cc->ctype_no = cc->ctype_all = cc->ctype_none = 0;
 #endif
     return;
   }
 
 #ifdef RE_UNICODE_CTYPE
-  if (cc->ctype_yes | cc->ctype_no) {
+  if (RE_CLASS_HAS_CTYPE(cc)) {
     uint16_t type = cc->ctype_yes | cc->ctype_no;
-    if (cc->num_ranges != 0 || (cc->ctype_yes && cc->ctype_no) ||
-        (type & (type - 1)) != 0) {
+    /* What the class asks about the type has to come to one term for there to
+       be a single one to negate: the pair is one of them, and each bit of a
+       mask is another. */
+    int terms = (type != 0) + count_bits(cc->ctype_all) + count_bits(cc->ctype_none);
+    if (cc->num_ranges != 0 || terms != 1 ||
+        (cc->ctype_yes && cc->ctype_no) || (type & (type - 1)) != 0) {
       compile_error(c, "this negated nested character class is not supported");
     }
     uint16_t yes = cc->ctype_yes;
-    cc->ctype_yes = cc->ctype_no;
-    cc->ctype_no = yes;
+    cc->ctype_yes = cc->ctype_no | cc->ctype_none;
+    cc->ctype_no = yes | cc->ctype_all;
+    cc->ctype_all = cc->ctype_none = 0;
     return;
   }
 #endif
@@ -708,7 +923,7 @@ static mrb_bool
 class_is_ascii_only(const re_charclass *cc)
 {
 #ifdef RE_UNICODE_CTYPE
-  if (cc->ctype_yes || cc->ctype_no) return FALSE;
+  if (RE_CLASS_HAS_CTYPE(cc)) return FALSE;
 #endif
   return cc->num_ranges == 0 && !cc->utf8_any;
 }
@@ -1100,20 +1315,32 @@ reject_set_as_range_start(re_compiler *c)
   }
 }
 
-static void parse_class_body(re_compiler *c, uint16_t id, re_charclass *ascii_set);
+static void parse_class_expr(re_compiler *c, uint16_t id, uint8_t *cross);
 
-/* One nested class, from its '[' through its ']', merged into class `id`.
+/* Everything an ASCII-only set brought joins the class it was written in. */
+static void
+class_join_ascii_set(re_charclass *cc, const re_charclass *ascii_set)
+{
+  for (int i = 0; i < RE_CLASS_BITMAP_SIZE; i++) cc->bitmap[i] |= ascii_set->bitmap[i];
+  if (ascii_set->utf8_any) cc->utf8_any = TRUE;
+}
 
-   A class that is not negated is the members themselves, so it is read
-   straight into the same class: [x[ab]] and [xab] are one set, and reading
-   it at this level is also what keeps the caller's ascii_set holding the
-   word class of a nest, apart from the fold as a `\w` written here would be.
+/* One nested class, from its '[' through its ']', joined to class `id`.
 
-   A negated one stands for what it leaves out, and a set can only join a
-   union once it is written out as members. It is read into a class of its
-   own, closed with an ascii_set of its own, complemented, and merged. The
-   class goes back afterwards, so a pattern's nests cost one id at a time
-   rather than one each.
+   It is read into a class of its own rather than into the same one, because
+   what it names is a set: a `&&` inside it takes the intersection of what is
+   written there and of nothing around it, so [x[a&&b]] holds `x` and whatever
+   `a` and `b` have in common. A class that is not negated then joins this one
+   as a union, which is the same set reading [xab] gives, and a negated one
+   joins it as the complement of what it holds, a set being able to join a
+   union only once it is written out as members. The class goes back
+   afterwards, so a pattern's nests cost one id at a time rather than one each.
+
+   The ASCII members a nest holds only through an ASCII-only set of its own go
+   to the caller's `ascii_set` rather than into the class, which is how the
+   fold at the end can still tell a `\w` written in a nest from one written
+   here. A complement is a set of members like any other, so all of one goes
+   into the class.
 
    Neither is closed under folding here. /i closes the union once at the end,
    which is where the counterparts of what a complement let in are picked up:
@@ -1127,48 +1354,58 @@ parse_nested_class(re_compiler *c, uint16_t id, re_charclass *ascii_set)
     compile_error(c, "parse depth limit over");
   }
   next_char(c);  /* '[' */
-  if (peek(c) != '^') {
-    parse_class_body(c, id, ascii_set);
+  mrb_bool negated = FALSE;
+  if (peek(c) == '^') {
+    next_char(c);
+    negated = TRUE;
+  }
+  /* The table can move here, so nothing above holds a pointer into it across
+     this call; the class is named by id throughout. */
+  uint8_t sub_cross[RE_CLASS_BITMAP_SIZE];
+  uint16_t sub_id = add_class(c);
+  parse_class_expr(c, sub_id, sub_cross);
+  re_charclass *sub = &c->pat->classes[sub_id];
+  if (negated) {
+    class_complement(c, sub);
   }
   else {
-    next_char(c);  /* '^' */
-    re_charclass sub_ascii;
-    memset(&sub_ascii, 0, sizeof(sub_ascii));
-    /* The table can move here, so nothing above holds a pointer into it
-       across this call; parse_class_body() takes the class by id. */
-    uint16_t sub = add_class(c);
-    parse_class_body(c, sub, &sub_ascii);
-    re_charclass *scc = &c->pat->classes[sub];
-    for (int i = 0; i < RE_CLASS_BITMAP_SIZE; i++) scc->bitmap[i] |= sub_ascii.bitmap[i];
-    if (sub_ascii.utf8_any) scc->utf8_any = TRUE;
-    class_complement(c, scc);
-    class_union(c, &c->pat->classes[id], scc);
-    drop_class(c, sub);
+    for (int i = 0; i < RE_CLASS_BITMAP_SIZE; i++) {
+      ascii_set->bitmap[i] |= sub->bitmap[i] & ~sub_cross[i];
+      sub->bitmap[i] &= sub_cross[i];
+    }
   }
+  class_union(c, &c->pat->classes[id], sub);
+  drop_class(c, sub_id);
   c->depth--;
 }
 
-/* Read the members of a class into class `id`, from just after its '[' (and
-   its '^') through its ']'. `ascii_set` is the caller's; see
-   compile_charclass() for what is held there and why. */
-static void
-parse_class_body(re_compiler *c, uint16_t id, re_charclass *ascii_set)
+/* TRUE where the two characters are the `&&` that separates one operand of a
+   class from the next. A lone `&` is a member, as it is in CRuby. */
+static mrb_bool
+at_intersection(const char *p, const char *end)
+{
+  return p + 1 < end && p[0] == '&' && p[1] == '&';
+}
+
+/* Read one operand of a class into class `id`: the members written between
+   the `&&` before it and the `&&` or `]` after it. TRUE where a `&&` ended
+   it, which is consumed. `first` says the operand opens the class, where a
+   ']' is a member rather than the end; only the first one does, so [a&&]a]
+   is the empty class followed by the two characters `a]`. `ascii_set` is the
+   operand's own; see compile_charclass() for what is held there and why. */
+static mrb_bool
+parse_class_operand(re_compiler *c, uint16_t id, re_charclass *ascii_set, mrb_bool first)
 {
   re_charclass *cc = &c->pat->classes[id];
 
-  mrb_bool first = TRUE;
   while (peek(c) != ']' || first) {
     if (peek(c) < 0) compile_error(c, "premature end of char-class");
     first = FALSE;
 
-    /* `&&` takes the intersection of what is written either side of it, which
-       this engine does not do. Read as members it is the opposite of what was
-       asked: [a&&b] would hold a, & and b where it names nothing at all, so a
-       class written to narrow one would widen it instead. A lone `&` is a
-       member here as it is in CRuby, and an escaped one (`\&&`) is that
-       member followed by whatever comes next. */
-    if (peek(c) == '&' && c->p + 1 < c->src_end && c->p[1] == '&') {
-      compile_error(c, "character class intersection is not supported");
+    if (at_intersection(c->p, c->src_end)) {
+      next_char(c);
+      next_char(c);
+      return TRUE;
     }
 
     /* A '[' inside a class opens something in CRuby rather than standing for
@@ -1227,6 +1464,12 @@ parse_class_body(re_compiler *c, uint16_t id, re_charclass *ascii_set)
            bracket is such a set. */
 #ifdef RE_UNICODE_CTYPE
         if (ctype) {
+          /* The bracket joins as a union, which is another type the class
+             admits, and a class already holding an intersection of brackets
+             has no room to say that. */
+          if (cc->ctype_all | cc->ctype_none) {
+            compile_error(c, "this character class union is not supported");
+          }
           if (neg) cc->ctype_no |= ctype;
           else cc->ctype_yes |= ctype;
         }
@@ -1270,8 +1513,11 @@ parse_class_body(re_compiler *c, uint16_t id, re_charclass *ascii_set)
     mrb_bool cp_byte;
     uint32_t cp = read_class_atom(c, cc, &cp_byte, FALSE);
 
-    /* check for range a-z (or U+xxxx-U+yyyy) */
-    if (peek(c) == '-' && c->p + 1 < c->src_end && c->p[1] != ']') {
+    /* check for range a-z (or U+xxxx-U+yyyy). A '-' the operand ends at is a
+       member, as one before the ']' is: [a-&&b] holds `a` and `-` on the one
+       side, which is what CRuby reads there too. */
+    if (peek(c) == '-' && c->p + 1 < c->src_end && c->p[1] != ']' &&
+        !at_intersection(c->p + 1, c->src_end)) {
       next_char(c);  /* skip '-' */
       /* A set cannot close a range either. Read as a character `\d` is the
          letter, so [a-\d] was [a-d], a class of four letters rather than the
@@ -1317,6 +1563,48 @@ parse_class_body(re_compiler *c, uint16_t id, re_charclass *ascii_set)
     }
   }
   next_char(c);  /* skip ']' */
+  return FALSE;
+}
+
+/* Read a class body into class `id`, from just after its '[' (and its '^')
+   through its ']': the intersection of the operands `&&` separates, each of
+   them the union of what is written in it.
+
+   `cross` receives the ASCII members the class holds in its own right, which
+   is what the caller needs to tell them from the ones an ASCII-only set is
+   the whole reason for; compile_charclass() says what the difference decides.
+   An operand's ASCII-only sets join it before the intersection is taken,
+   since the intersection is of what the operands hold and not of how they
+   were written, and `cross` is narrowed by each operand in step: a member
+   both sides put there in their own right is one this class holds in its
+   own right. */
+static void
+parse_class_expr(re_compiler *c, uint16_t id, uint8_t *cross)
+{
+  /* Only the bitmap and utf8_any are ever written to an ASCII-only set. */
+  re_charclass ascii_set;
+  memset(&ascii_set, 0, sizeof(ascii_set));
+
+  mrb_bool more = parse_class_operand(c, id, &ascii_set, TRUE);
+  {
+    re_charclass *cc = &c->pat->classes[id];
+    for (int i = 0; i < RE_CLASS_BITMAP_SIZE; i++) cross[i] = cc->bitmap[i];
+    class_join_ascii_set(cc, &ascii_set);
+  }
+
+  while (more) {
+    /* The operand is read beside this class rather than into it, there being
+       no way back from a union to the members it was made of. */
+    uint16_t sub_id = add_class(c);
+    re_charclass sub_ascii;
+    memset(&sub_ascii, 0, sizeof(sub_ascii));
+    more = parse_class_operand(c, sub_id, &sub_ascii, FALSE);
+    re_charclass *sub = &c->pat->classes[sub_id];
+    for (int i = 0; i < RE_CLASS_BITMAP_SIZE; i++) cross[i] &= sub->bitmap[i];
+    class_join_ascii_set(sub, &sub_ascii);
+    class_intersect(c, id, sub_id);
+    drop_class(c, sub_id);
+  }
 }
 
 /* Parse [...] character class */
@@ -1331,17 +1619,20 @@ compile_charclass(re_compiler *c)
     negated = TRUE;
   }
 
-  /* What \w, \W, [:word:] and [:ascii:] add is held apart until the class
-     has been closed under folding, and joins the bitmap after; see the fold
-     below for why. Only the bitmap and utf8_any are ever written here. */
-  re_charclass ascii_set;
-  memset(&ascii_set, 0, sizeof(ascii_set));
-
-  parse_class_body(c, id, &ascii_set);
+  /* The ASCII members a fold may leave ASCII from: the ones the class holds
+     in its own right, as against the ones \w, \W, [:word:] or [:ascii:] is
+     the whole reason for. The sets join the class before it is closed, so
+     that the closure reaches them with the foldings that stay inside ASCII:
+     what a class holds is one set however its members were written. Each of
+     the sets already holds both cases of every letter in it, so for a class
+     that is a union this adds nothing, and an intersection is where it tells:
+     the letters left in [b-z&&\w] are cased like any others. */
+  uint8_t cross[RE_CLASS_BITMAP_SIZE];
+  parse_class_expr(c, id, cross);
   re_charclass *cc = &c->pat->classes[id];
 
   /* Close the class under case folding for /i. This runs once the class is
-     complete, so it covers every form parse_class_body() merges in: POSIX
+     complete, so it covers every form parse_class_expr() reads in: POSIX
      brackets, ranges, single literals and the nested classes whose union the
      class is. Negation is applied at match time against the same class
      (RE_NCLASS), so closing the positive set is also what keeps [^a-c] and
@@ -1353,18 +1644,26 @@ compile_charclass(re_compiler *c)
      the tagged ranges, which is also what keeps /i from refusing a class of
      continuation bytes on a build without the folding tables.
 
-     The word class and [:ascii:] are still held apart here, so the closure
-     never sees them. Each is a set ASCII defines: \w is [a-zA-Z0-9_] and no
-     more, so a fold that leaves ASCII leaves the set, and [\w] under /i is
-     the ASCII word characters where [k] under /i reaches U+212A. CRuby reads
-     them the same way, keeping the two out of the class it folds across the
-     boundary from, and it is what makes [^\w] under /i accept U+017F. Both
-     hold both cases of every letter they hold, so the ASCII part of the
-     closure has nothing to add to them, and joining them after it costs
-     nothing. The other POSIX brackets are ASCII here only for want of a
-     table, and stay in: CRuby folds them too, and there their members above
-     ASCII hold what the fold adds anyway. */
+     What the word class and [:ascii:] brought is closed under the foldings
+     that stay inside ASCII and no others, which is what `cross` records.
+     Each is a set ASCII defines: \w is [a-zA-Z0-9_] and no more, so a fold
+     that leaves ASCII leaves the set, and [\w] under /i is the ASCII word
+     characters where [k] under /i reaches U+212A. CRuby reads them the same
+     way, holding the two back from the folds it takes across the boundary,
+     and it is what makes [^\w] under /i accept U+017F. The other POSIX
+     brackets are ASCII here only for want of a table, and are not held back:
+     CRuby folds them too, and there their members above ASCII hold what the
+     fold adds anyway. */
   if (c->flags & RE_FLAG_IGNORECASE) {
+    /* `cross` follows the class through the foldings that stay inside ASCII,
+       so that the walk which leaves ASCII starts from every member the class
+       holds in its own right and not only from the ones written in that case:
+       [\wS] under /i reaches U+017F through the `s` that `S` folds to, where
+       the `s` \w brought would not take it there. */
+    for (int ch = 'A'; ch <= 'Z'; ch++) {
+      if (bitmap_get(cross, (uint8_t)ch)) bitmap_set(cross, (uint8_t)(ch + 32));
+      else if (bitmap_get(cross, (uint8_t)(ch + 32))) bitmap_set(cross, (uint8_t)ch);
+    }
 #ifdef RE_UNICODE_CASE
     /* That takes two rounds rather than one walk in each direction, because a
        fold can have more than one source (U+03A3 and U+03C2 both fold to
@@ -1407,15 +1706,18 @@ compile_charclass(re_compiler *c)
       cp = hi + 1;
     }
     /* An ASCII member can have a non-ASCII source (U+212A folds to 'k'),
-       which the range walk cannot reach: the bitmap holds no ranges. A run of
-       set bits is asked about in one question, since a question costs a walk
-       of the tables whatever it spans. The tables hold no ASCII source, ASCII
-       being what they are the rest of, so nothing this walk finds lands in
-       the bitmap and no run of it grows while it is being read. */
+       which the range walk cannot reach: the bitmap holds no ranges. This is
+       the walk that leaves ASCII, so it reads `cross` rather than the class:
+       a run breaks where a member no ASCII-only set is behind gives way to one
+       that is. A run is asked about in one question, since a question costs a
+       walk of the tables whatever it spans. The tables hold no ASCII source,
+       ASCII being what they are the rest of, so nothing this walk finds lands
+       in the bitmap and no run of it grows while it is being read. */
     for (int ch = 0; ch < 128; ch++) {
-      if (!class_get_bit(cc, (uint8_t)ch)) continue;
+      if (!class_get_bit(cc, (uint8_t)ch) || !bitmap_get(cross, (uint8_t)ch)) continue;
       int end = ch;
-      while (end + 1 < 128 && class_get_bit(cc, (uint8_t)(end + 1))) end++;
+      while (end + 1 < 128 && class_get_bit(cc, (uint8_t)(end + 1)) &&
+             bitmap_get(cross, (uint8_t)(end + 1))) end++;
       mrb_uni_case_unfold_range((uint32_t)ch, (uint32_t)end, class_fold_add, &sink);
       ch = end;
     }
@@ -1445,13 +1747,10 @@ compile_charclass(re_compiler *c)
       if (class_get_bit(cc, (uint8_t)ch)) class_set_bit(cc, (uint8_t)(ch - 32));
       else if (class_get_bit(cc, (uint8_t)(ch - 32))) class_set_bit(cc, (uint8_t)ch);
     }
-    if (class_get_bit(cc, 'k')) class_add_codepoint(c, cc, RE_FOLD_KELVIN);
-    if (class_get_bit(cc, 's')) class_add_codepoint(c, cc, RE_FOLD_LONG_S);
+    if (class_get_bit(cc, 'k') && bitmap_get(cross, 'k')) class_add_codepoint(c, cc, RE_FOLD_KELVIN);
+    if (class_get_bit(cc, 's') && bitmap_get(cross, 's')) class_add_codepoint(c, cc, RE_FOLD_LONG_S);
 #endif
   }
-
-  for (int i = 0; i < RE_CLASS_BITMAP_SIZE; i++) cc->bitmap[i] |= ascii_set.bitmap[i];
-  if (ascii_set.utf8_any) cc->utf8_any = TRUE;
 
 #ifdef RE_UNICODE_CTYPE
   /* A type is not spelled out as members, so the closure above never saw it;
@@ -1460,7 +1759,7 @@ compile_charclass(re_compiler *c)
      ASCII of every bracket, and the closure has already reached across the
      boundary from there: U+017F is in the class once 's' is, so a type
      found only through an ASCII counterpart is found through the ranges. */
-  cc->ctype_fold = (c->flags & RE_FLAG_IGNORECASE) && (cc->ctype_yes || cc->ctype_no);
+  cc->ctype_fold = (c->flags & RE_FLAG_IGNORECASE) && RE_CLASS_HAS_CTYPE(cc) != 0;
 #endif
 
   cc->negated = negated;
@@ -3525,7 +3824,7 @@ skip_uninterpreted(const char *src, const char *end, uint32_t *class_depth, int 
   }
 
   if (*class_depth > 0) {
-    /* A POSIX bracket is consumed as a unit by parse_class_body(), so the
+    /* A POSIX bracket is consumed as a unit by parse_class_operand(), so the
        ']' that closes it does not close the class. */
     const char *q = skip_posix_bracket(src, end);
     if (q) return q;
@@ -3547,7 +3846,7 @@ skip_uninterpreted(const char *src, const char *end, uint32_t *class_depth, int 
   (*class_depth)++;
   src++;
   /* A ']' written first is a literal member, optionally after '^',
-     mirroring the `first` flag in parse_class_body(). */
+     mirroring the `first` flag in parse_class_operand(). */
   if (src < end && *src == '^') src++;
   if (src < end && *src == ']') src++;
   return src;

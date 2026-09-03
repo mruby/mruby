@@ -3193,18 +3193,41 @@ assert("Regexp - a character property escape is refused, not read as letters") d
   assert_equal "a", "1a"[/[[:alpha:]]/]
 end
 
-assert("Regexp - a character class intersection is refused, not read as members") do
-  # `&&` narrows a class to what both sides hold, which this engine does not
-  # do. Read as members it did the opposite: [a&&b] held a, & and b where it
-  # names nothing at all, so a class written to narrow one widened it instead.
-  assert_raise_with_message(RegexpError,
-                            "character class intersection is not supported: /[a&&b]/") do
-    Regexp.new("[a&&b]")
+assert("Regexp - `&&` narrows a character class to what both sides hold") do
+  # A class is the intersection of the operands `&&` separates, each of them
+  # the union of what is written in it.
+  assert_equal "b", "ab"[/[a-c&&b-d]/]
+  assert_nil /[a-c&&b-d]/ =~ "a"
+  assert_nil /[a-c&&b-d]/ =~ "d"
+  assert_equal "a", "a"[/[a-w&&[^c-g]z]/]
+  assert_nil /[a-w&&[^c-g]z]/ =~ "d"
+  assert_nil /[a-w&&[^c-g]z]/ =~ "z"
+
+  # An operand holding nothing leaves the class holding nothing, and an
+  # operand with nothing written in it is one.
+  ["[a&&]", "[&&a]", "[&&]", "[&&&]", "[a&&b]", "[a&&b&&c]", "[\\w&&\\s]"].each do |src|
+    re = Regexp.new(src)
+    assert_nil re =~ "a", src
+    assert_nil re =~ "&", src
   end
-  ["[a&&]", "[&&a]", "[&&]", "[a&&b&&c]", "[[:alpha:]&&[:digit:]]",
-   "[\\w&&\\d]", "[^a&&b]", "[a-c&&b]"].each do |src|
-    assert_raise(RegexpError, src) { Regexp.new(src) }
-  end
+
+  # The whole class is negated after the operands have met, so [^a&&a] is
+  # every character but `a`, and [^a&&b] is every character at all.
+  assert_equal "b", "ab"[/[^a&&a]/]
+  assert_equal "a", "a"[/[^a&&b]/]
+
+  # A ']' opens the class only where the class opens, so it is a member in the
+  # first operand and the end of the class in any other: [a&&]a] is the empty
+  # class followed by the two characters `a]`. Written out rather than as a
+  # literal, since a literal opening with `[]` is a syntax error in both.
+  assert_equal "a", "a]"[Regexp.new("[]a&&a]")]
+  assert_nil Regexp.new("[a&&]a]") =~ "a"
+  assert_equal "a", "a"[/[a&&\]a]/]
+
+  # A '-' the operand ends at is a member, as one before the ']' is.
+  assert_equal "-", "-"[/[a-&&-]/]
+  assert_nil /[a-&&b]/ =~ "a"
+  assert_nil /[a-&&b]/ =~ "-"
 
   # A lone `&` is a member, here as in CRuby
   assert_equal "&", "x&y"[/[&]/]
@@ -3215,6 +3238,34 @@ assert("Regexp - a character class intersection is refused, not read as members"
   # pair it makes with the next `&` is not an intersection
   assert_equal "&", "&"[/[\&]/]
   assert_equal "&", "x&y"[/[\&&]/]
+  assert_equal "&", "x&y"[/[a\&&b&]/]
+end
+
+assert("Regexp - a nested class carries its own intersection into the union") do
+  # `&&` in a nest takes the intersection of what is written there and of
+  # nothing around it, so [x[a&&b]] holds `x` and what `a` and `b` share.
+  assert_equal "x", "x"[/[x[b&&c]]/]
+  assert_nil /[x[b&&c]]/ =~ "b"
+  assert_equal "b", "b"[/[x[b&&b]]/]
+  assert_equal "b", "ab"[/[[a-c&&b]d]/]
+  assert_nil /[[a-c&&b]d]/ =~ "a"
+  assert_equal "d", "d"[/[[a-c&&b]d]/]
+
+  # and a negated nest holding one is the complement of that intersection
+  assert_equal "a", "a"[/[[^a&&b]]/]
+  assert_nil /[[^a&&a]]/ =~ "a"
+  assert_equal "b", "ab"[/[[^a&&a]]/]
+end
+
+assert("Regexp - an intersection meets an ASCII-only set as the set it holds") do
+  # \w and [:ascii:] are sets ASCII defines, and what an intersection leaves
+  # of one is not: the letters left in [b-z&&\w] are cased like any others
+  # under /i, where [\w] itself holds both cases already.
+  assert_equal "S", "S"[/[b-z&&\w]/i]
+  assert_equal "s", "s"[/[b-z&&\w]/i]
+  assert_nil /[b-z&&\w]/i =~ "a"
+  assert_nil /[b-z&&\w]/i =~ "A"
+  assert_equal "Q", "Q"[/[[:ascii:]&&b-z]/i]
 end
 
 assert("Regexp - the escapes this engine does not carry are refused") do

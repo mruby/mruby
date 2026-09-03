@@ -43,33 +43,72 @@ mrb_re_ctype(uint32_t cp)
   return t;
 }
 
-/* Whether a class holds a codepoint above ASCII through the POSIX brackets in
-   it, once its ranges have said nothing: yes when the codepoint's type has a
-   bit of ctype_yes, or lacks a bit of ctype_no, and failing both whatever
-   utf8_any says. A byte, tagged RE_CLASS_BYTE by the caller, has no type: it
-   is in the class through a negated bracket and not through a positive one.
+/* Whether the brackets in a class admit a type: the pair says the type has a
+   bit of ctype_yes or lacks a bit of ctype_no, and the masks that an
+   intersection writes say it has every bit of ctype_all and none of
+   ctype_none. A class with no pair puts only the masks, which is what a
+   bracket read on its own never leaves it with. */
+static mrb_bool
+ctype_admits(const re_charclass *cc, uint16_t t)
+{
+  if ((cc->ctype_yes | cc->ctype_no) &&
+      !((t & cc->ctype_yes) || (~t & cc->ctype_no))) {
+    return FALSE;
+  }
+  return (t & cc->ctype_all) == cc->ctype_all && (t & cc->ctype_none) == 0;
+}
 
-   Under /i a character is in the class when any character sharing its
-   folding is, so the question is put to every one of them: a positive
-   bracket wants a type any of them has, a negated one a type any of them
-   lacks. The ASCII ones are left out, since what the class holds through an
-   ASCII counterpart is in its ranges already; see compile_charclass(). */
+/* Whether a class holds a codepoint above ASCII through the POSIX brackets in
+   it, once its ranges have said nothing: yes when the brackets admit the
+   codepoint's type, and failing that whatever utf8_any says. A byte, tagged
+   RE_CLASS_BYTE by the caller, has no type: it is in the class through a
+   negated bracket and not through a positive one.
+
+   Under /i a character is in the class when any character sharing its folding
+   is, so the question is put to every one of them, and to each as a whole:
+   the brackets are a conjunction once an intersection has been taken, and it
+   is one character having to answer all of it rather than a bracket at a time
+   finding a different character to answer. The ASCII ones are left out, since
+   what the class holds through an ASCII counterpart is in its ranges already;
+   see compile_charclass(). */
 mrb_bool
 mrb_re_class_ctype_match(const re_charclass *cc, uint32_t cp)
 {
-  if (cp & RE_CLASS_BYTE) return cc->ctype_no != 0 || cc->utf8_any;
-  uint16_t any = mrb_re_ctype(cp), all = any;
+  if (cp & RE_CLASS_BYTE) return ctype_admits(cc, 0) || cc->utf8_any;
+  if (ctype_admits(cc, mrb_re_ctype(cp))) return TRUE;
   if (cc->ctype_fold) {
     uint32_t alt[MRB_UNI_MAX_UNFOLD];
     int n = mrb_uni_case_unfold(cp, alt, MRB_UNI_MAX_UNFOLD);
     for (int i = 0; i < n; i++) {
       if (alt[i] < 128) continue;
-      uint16_t t = mrb_re_ctype(alt[i]);
-      any |= t;
-      all &= t;
+      if (ctype_admits(cc, mrb_re_ctype(alt[i]))) return TRUE;
     }
   }
-  return (any & cc->ctype_yes) || (~all & cc->ctype_no) || cc->utf8_any;
+  return cc->utf8_any;
+}
+
+uint32_t
+mrb_re_ctype_span(const re_charclass *cc, uint32_t lo, uint32_t hi, mrb_bool *in)
+{
+  size_t i = 0, j = RE_CTYPE_RUN_COUNT;
+  while (j - i > 1) {
+    size_t mid = i + (j - i) / 2;
+    if ((re_ctype_runs[mid] >> RE_CTYPE_MASK_BITS) <= lo) i = mid;
+    else j = mid;
+  }
+  uint32_t end = i + 1 < RE_CTYPE_RUN_COUNT
+                   ? (re_ctype_runs[i + 1] >> RE_CTYPE_MASK_BITS) - 1 : 0x10ffff;
+  /* The control range is not a run of its own: mrb_re_ctype() lays it over
+     whatever runs it falls in, so it breaks a run the same way one does. */
+  if (lo < RE_CTYPE_CNTRL_LO) {
+    if (end >= RE_CTYPE_CNTRL_LO) end = RE_CTYPE_CNTRL_LO - 1;
+  }
+  else if (lo <= RE_CTYPE_CNTRL_HI) {
+    if (end > RE_CTYPE_CNTRL_HI) end = RE_CTYPE_CNTRL_HI;
+  }
+  if (end > hi) end = hi;
+  *in = mrb_re_class_ctype_match(cc, lo);
+  return end;
 }
 
 #endif  /* RE_UNICODE_CTYPE */
