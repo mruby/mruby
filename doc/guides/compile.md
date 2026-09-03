@@ -33,11 +33,15 @@ inside of the mruby source root. To generate and execute the test tools call
 `rake test`. To clean all build files call `rake clean`. To see full command
 line on build, call `rake -v`.
 
-Every target ends its build by writing a `compile_commands.json` of its own
-compiles into its build directory, for editors and clang tools, out of the
-command lines it records beside its objects. No tracer such as `bear` is
-involved. `rake compile_commands.json` is that same build, asked for by the
-name of the file it leaves behind. A target says
+Every target has a `compile_commands.json` of its own compiles in its build
+directory, for editors and clang tools, written out of the rules it compiles
+by. A rule says everything a compile is before it runs, so
+`rake compile_commands.json` writes the database without building anything:
+a fresh checkout has one before its first compile, and no tracer such as
+`bear` is involved. A build writes it again as it ends, since the sources a
+build generates join the database once they are there, and so does what the
+build compiled that no rule declares, the test driver `rake test` loads for
+one, out of the command lines recorded beside its objects. A target says
 `conf.disable_compile_commands` to keep none.
 
 A database in a build directory is what `clangd --compile-commands-dir` and
@@ -52,7 +56,7 @@ that one first. Where the order is fixed for another reason,
 `conf.enable_compile_commands default: true` names the target instead; no
 configuration in this tree needs it.
 
-A source no build in the tree compiled, one of a gem the configuration leaves
+A source no build in the tree compiles, one of a gem the configuration leaves
 out for instance, has no entry; `compile_flags.txt` and `.clangd` at the
 source root are what answer for those.
 
