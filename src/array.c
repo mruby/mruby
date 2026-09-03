@@ -2136,12 +2136,17 @@ mrb_ary_delete(mrb_state *mrb, mrb_value self)
 
 #define SMALL_ARRAY_SORT_THRESHOLD 16
 
-/* Check if all elements in the array are integers (fast path candidate) */
+/* Whether every element is an Integer the value itself carries, which is what
+   the three routines below sort: each of them reads an element with
+   mrb_integer() and writes the result back with SET_FIXNUM_VALUE(), and that
+   pair only holds for an Integer inside the inline range. Word boxing keeps a
+   wider one in an object, and writing its value back inline reinterprets the
+   bits as an address, so an array holding one is left to the general sort. */
 static mrb_bool
 ary_all_fixnum_p(const mrb_value *a, mrb_int n)
 {
   for (mrb_int i = 0; i < n; i++) {
-    if (!mrb_integer_p(a[i])) return FALSE;
+    if (!mrb_fixnum_p(a[i])) return FALSE;
   }
   return TRUE;
 }
@@ -2329,8 +2334,14 @@ sort_cmp(mrb_state *mrb, mrb_value ary, mrb_value a_val, mrb_value b_val, mrb_va
 
     if (type_a == type_b) {
       switch (type_a) {
-      case MRB_TT_FIXNUM:
-        cmp = (mrb_fixnum(a_val) > mrb_fixnum(b_val)) ? 1 : (mrb_fixnum(a_val) < mrb_fixnum(b_val)) ? -1 : 0;
+      case MRB_TT_INTEGER:
+        {
+          /* Read with mrb_integer(): an Integer too wide to sit in the value
+             is an object here, and reading that one as an inline value reads
+             its address. */
+          mrb_int a_i = mrb_integer(a_val), b_i = mrb_integer(b_val);
+          cmp = (a_i > b_i) ? 1 : (a_i < b_i) ? -1 : 0;
+        }
         break;
 #ifndef MRB_NO_FLOAT
       case MRB_TT_FLOAT:
