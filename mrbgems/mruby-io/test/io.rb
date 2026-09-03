@@ -526,7 +526,9 @@ assert('IO.popen') do
   begin
     $? = nil
     io = IO.popen("#{$cmd}echo mruby-io")
-    assert_true io.close_on_exec?
+    # A port without close-on-exec still runs the command and reports the
+    # child, so the rest of the test is for it too.
+    assert_true io.close_on_exec? if io.respond_to?(:close_on_exec?)
     assert_equal Integer, io.pid.class
 
     out = io.read

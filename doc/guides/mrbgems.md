@@ -417,9 +417,9 @@ int mrb_hal_dir_chroot(mrb_state *mrb, const char *path);
 One macro guards the prototype, the port's implementation and the
 method definition in `src/`, so a port that declares a capability and
 forgets to implement it fails to link, and one that declares nothing
-owes nothing. `mruby-dir` carries such a header under
-`ports/posix/include/` and `ports/win/include/`, and its README lists
-what each declares.
+owes nothing. A bundled gem that carries such a header keeps it
+under `ports/posix/include/` and `ports/win/include/`, and its README
+lists what each port declares.
 
 Only `include/` is exported. A header anywhere else under
 `ports/<name>/` is the port's own, reached by its sources through a
@@ -438,8 +438,8 @@ the HAL header it serves, `<short>_hal_features.h` beside
 
 The macros are the port's to define and nobody else's. A build that
 wants less than the port offers uses the gem's veto define where the
-gem provides one, which the HAL header applies after the port has
-spoken; a build that defines an
+gem provides one (`MRB_NO_IO_POPEN` for `mruby-io`), which the HAL
+header applies after the port has spoken; a build that defines an
 `MRB_HAL_*_HAS_*` macro itself on a port that does not implement it
 gets an undefined `mrb_hal_*` at link time, which is the port's
 answer. A build that supplies the HAL from its own sources, with no

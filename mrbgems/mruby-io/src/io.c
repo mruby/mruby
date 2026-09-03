@@ -102,11 +102,7 @@ io_get_open_fptr(mrb_state *mrb, mrb_value io)
   return fptr;
 }
 
-#if !defined(MRB_NO_IO_POPEN) && defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
-# define MRB_NO_IO_POPEN 1
-#endif
-
-#ifndef MRB_NO_IO_POPEN
+#ifdef MRB_HAL_IO_HAS_SPAWN_PROCESS
 static void
 io_set_process_status(mrb_state *mrb, pid_t pid, int status)
 {
@@ -323,7 +319,9 @@ io_alloc(mrb_state *mrb)
 #define NOFILE 64
 #endif
 
-#ifdef MRB_NO_IO_POPEN
+#ifndef MRB_HAL_IO_HAS_SPAWN_PROCESS
+/* this port runs no command: unimplemented, and named as such so
+   `respond_to?` can answer false */
 # define io_s_popen mrb_notimplement_m
 #else
 struct popen_params {
@@ -469,7 +467,7 @@ io_s_popen(mrb_state *mrb, mrb_value klass)
   DATA_PTR(io)  = fptr;
   return io;
 }
-#endif /* MRB_NO_IO_POPEN */
+#endif /* MRB_HAL_IO_HAS_SPAWN_PROCESS */
 
 static int
 symdup(mrb_state *mrb, int fd, mrb_bool *failed)
@@ -680,27 +678,19 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet)
     fptr->fd2 = -1;
   }
 
-#ifndef MRB_NO_IO_POPEN
+#ifdef MRB_HAL_IO_HAS_SPAWN_PROCESS
   if (fptr->pid != 0) {
-#if !defined(_WIN32)
-    pid_t pid;
-    int status;
+    /* The pid is whatever mrb_hal_io_spawn_process() handed out, and only
+       the port that made it knows what it names and how to wait on it. */
+    int pid, status;
     do {
-      pid = waitpid(fptr->pid, &status, 0);
+      pid = mrb_hal_io_waitpid(mrb, fptr->pid, &status, 0);
     } while (pid == -1 && errno == EINTR);
     if (!quiet && pid == fptr->pid) {
       io_set_process_status(mrb, pid, status);
     }
-#else
-    HANDLE h = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, fptr->pid);
-    DWORD status;
-    if (WaitForSingleObject(h, INFINITE) && GetExitCodeProcess(h, &status))
-      if (!quiet)
-        io_set_process_status(mrb, fptr->pid, (int)status);
-    CloseHandle(h);
-#endif
     fptr->pid = 0;
-    /* Note: we don't raise an exception when waitpid(3) fails */
+    /* Note: we don't raise an exception when the wait fails */
   }
 #endif
 
@@ -1412,7 +1402,6 @@ time2timeval(mrb_state *mrb, mrb_value time)
  *   f.puts "hello"
  */
 
-#if !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
 static mrb_value
 io_s_pipe(mrb_state *mrb, mrb_value klass)
 {
@@ -1440,7 +1429,6 @@ io_s_pipe(mrb_state *mrb, mrb_value klass)
 
   return mrb_assoc_new(mrb, r, w);
 }
-#endif
 
 static int
 mrb_io_read_data_pending(mrb_state *mrb, struct mrb_io *fptr)
@@ -2439,9 +2427,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_class_method_id(mrb, io, MRB_SYM(for_fd),  io_s_for_fd,   MRB_ARGS_ARG(1,2));
   mrb_define_class_method_id(mrb, io, MRB_SYM(select),  io_s_select,  MRB_ARGS_ARG(1,3));
   mrb_define_class_method_id(mrb, io, MRB_SYM(sysopen), io_s_sysopen, MRB_ARGS_ARG(1,2));
-#if !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
   mrb_define_class_method_id(mrb, io, MRB_SYM(_pipe), io_s_pipe, MRB_ARGS_NONE());
-#endif
 
   MRB_MT_INIT_ROM(mrb, io, io_rom_entries);
 
