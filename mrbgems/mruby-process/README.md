@@ -194,8 +194,10 @@ constrains; this list is a map.
 
 ## Adding a port
 
-Create `ports/<name>/process_hal.c` implementing every function in
+Create `ports/<name>/` with sources implementing every function in
 `include/process_hal.h`, then build with `conf.ports :<name>, :posix` so gems
-without a `<name>` port fall back. A port that cannot do something should set
+without a `<name>` port fall back. Every `.c` under the directory is compiled;
+the bundled ports keep the clocks apart in `clock_hal.c` and the rest in
+`process_hal.c`, which is a convenience rather than a rule. A port that cannot do something should set
 `errno` to `ENOSYS` and return the documented failure value rather than
 pretending to succeed.
