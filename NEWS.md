@@ -167,6 +167,8 @@ any of those needs updating.
 - `check_func` links what it found declared, so a host whose headers declare a
   function its C library does not define is told apart from one that has it
   ([#7482](https://github.com/mruby/mruby/pull/7482))
+- `rake size` prints the `size.json` a build wrote as a table, and every CI
+  job runs it ([#7489](https://github.com/mruby/mruby/pull/7489))
 - A build can ask the compiler whether a header is there ([#7432](https://github.com/mruby/mruby/pull/7432))
 - A generated output another configuration left behind is rebuilt ([#7236](https://github.com/mruby/mruby/pull/7236))
 - CI gained 32-bit x86 ([2fd16f3](https://github.com/mruby/mruby/commit/2fd16f3)),
@@ -801,3 +803,5 @@ any of those needs updating.
 - [#7485](https://github.com/mruby/mruby/pull/7485) mruby-regexp: keep the levels a pattern nests on a stack of the parser's own
 - [#7486](https://github.com/mruby/mruby/pull/7486) string.c: stop unsharing the buffer the Unicode case walk only reads
 - [#7487](https://github.com/mruby/mruby/pull/7487) unicase.c: binary-search the folding difference from the range walks
+- [#7488](https://github.com/mruby/mruby/pull/7488) mruby-io: drop the callback behind `IO#sysread` and `IO#syswrite`
+- [#7489](https://github.com/mruby/mruby/pull/7489) build: print the size.json of each build with `rake size`
