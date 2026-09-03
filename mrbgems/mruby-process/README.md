@@ -147,7 +147,7 @@ constrains; this list is a map.
 - The unit is resolved entirely above the HAL: in a build without `Float` the
   float units raise `NotImplementedError` at the call site, and a reading too
   large for the build's Integer becomes a bigint, or `RangeError` where there
-  are none (`src/process.c`).
+  are none (`src/clock.c`).
 - `Process.clock_getres` arrives with `Process.clock_gettime` and answers the
   granularity of the way a clock is read, never a period the clock is promised
   to advance on (`mrb_hal_process_clock_getres` in `include/process_hal.h`).
@@ -160,10 +160,10 @@ constrains; this list is a map.
   (`mrb_process_times` in `include/process_hal.h`).
 - `Process.times` needs a build with Float, whole: it takes no unit argument
   to name an Integer answer by, so `MRB_NO_FLOAT` raises `NotImplementedError`
-  rather than the method disappearing (`process_times` in `src/process.c`).
+  rather than the method disappearing (`process_times` in `src/clock.c`).
 - `Process::Tms` is the `Struct` CRuby's own is, with nothing left to decode
   once built, so `Tms.new` stays public where `Process::Status.new` is
-  undefined (`mrb_mruby_process_gem_init` in `src/process.c`).
+  undefined (`mrb_process_clock_init` in `src/clock.c`).
 - Whether `<sys/resource.h>` exists is asked of the compiler by `mrbgem.rake`
   (`check_header`), not guessed inside the port; a target without it compiles
   the `times(2)` fallback.
@@ -194,8 +194,10 @@ constrains; this list is a map.
 
 ## Adding a port
 
-Create `ports/<name>/process_hal.c` implementing every function in
+Create `ports/<name>/` with sources implementing every function in
 `include/process_hal.h`, then build with `conf.ports :<name>, :posix` so gems
-without a `<name>` port fall back. A port that cannot do something should set
+without a `<name>` port fall back. Every `.c` under the directory is compiled;
+the bundled ports keep the clocks apart in `clock_hal.c` and the rest in
+`process_hal.c`, which is a convenience rather than a rule. A port that cannot do something should set
 `errno` to `ENOSYS` and return the documented failure value rather than
 pretending to succeed.
