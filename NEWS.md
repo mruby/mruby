@@ -19,6 +19,10 @@
   as equal in `#==` and `#eql?`, so a container that holds itself equals
   another built the same way, as in CRuby; the other elements still decide
   ([#7425](https://github.com/mruby/mruby/pull/7425))
+- Under word boxing, an Integer too wide to sit in the value itself is
+  compared and sorted as the Integer it is: `<=>` read such a pair through
+  `Float` and answered `0` for two that differ, and `Array#sort` wrote their
+  bits back as inline values ([#7480](https://github.com/mruby/mruby/pull/7480), [#7481](https://github.com/mruby/mruby/pull/7481))
 
 # Regular expressions
 
@@ -65,6 +69,10 @@ the rest. It is not in `default`, so a build asks for it.
 - A collating element `[[.a.]]` and an equivalence class `[[=a=]]` raise
 - A pattern that recurses past what the engine can carry raises rather than
   answering wrongly ([#7280](https://github.com/mruby/mruby/pull/7280))
+- **_NOTE_**: how deeply a pattern may nest is one number for every build:
+  the parser keeps the levels on a stack of its own rather than descending a
+  C frame per level, so `MRB_REGEXP_PARSE_DEPTH_LIMIT` no longer has to be
+  sized to the C stack the build runs on ([#7485](https://github.com/mruby/mruby/pull/7485))
 - The `tools/difftest` corpus records where this engine and CRuby's differ on
   purpose, and checks the rest against a running CRuby
 
@@ -121,6 +129,10 @@ any of those needs updating.
   ([#7472](https://github.com/mruby/mruby/pull/7472), [#7476](https://github.com/mruby/mruby/pull/7476), [#7477](https://github.com/mruby/mruby/pull/7477))
 - `BasicSocket#getpeereid` is implemented on macOS and the BSDs, where before
   no build defined it ([#7477](https://github.com/mruby/mruby/pull/7477))
+- `mruby-process` declares what a port implements the same way, and the
+  Windows port declares no wait: Win32 opens a process ID into a handle for
+  any process it may open, so a wait on one could report a stranger's exit
+  code as a child's ([#7484](https://github.com/mruby/mruby/pull/7484))
 - The `mruby-io` HAL numbers a file mode itself, so a port maps its host's
   `st_mode` and permission bits both ways rather than handing them up as they
   are ([#7476](https://github.com/mruby/mruby/pull/7476))
@@ -152,6 +164,9 @@ any of those needs updating.
 - `rake defines` reports where every define came from ([#7453](https://github.com/mruby/mruby/pull/7453))
 - `rake compile_commands.json` writes the compilation database from the build
   rules, so a checkout has one before its first compile ([#7395](https://github.com/mruby/mruby/pull/7395), [#7475](https://github.com/mruby/mruby/pull/7475))
+- `check_func` links what it found declared, so a host whose headers declare a
+  function its C library does not define is told apart from one that has it
+  ([#7482](https://github.com/mruby/mruby/pull/7482))
 - A build can ask the compiler whether a header is there ([#7432](https://github.com/mruby/mruby/pull/7432))
 - A generated output another configuration left behind is rebuilt ([#7236](https://github.com/mruby/mruby/pull/7236))
 - CI gained 32-bit x86 ([2fd16f3](https://github.com/mruby/mruby/commit/2fd16f3)),
@@ -778,3 +793,11 @@ any of those needs updating.
 - [#7476](https://github.com/mruby/mruby/pull/7476) mruby-io: let the port say what it implements
 - [#7477](https://github.com/mruby/mruby/pull/7477) mruby-socket: let the port say what it implements
 - [#7478](https://github.com/mruby/mruby/pull/7478) mruby-regexp: shorten the README and list what it missed
+- [#7480](https://github.com/mruby/mruby/pull/7480) numeric.c: compare a pair of Integers as Integers however each is stored
+- [#7481](https://github.com/mruby/mruby/pull/7481) array.c: sort an array holding an Integer too wide to store inline
+- [#7482](https://github.com/mruby/mruby/pull/7482) build: have check_func ask the linker as well
+- [#7483](https://github.com/mruby/mruby/pull/7483) mruby-io: drop the compat layer the HAL replaced
+- [#7484](https://github.com/mruby/mruby/pull/7484) mruby-process: let the port say what it implements
+- [#7485](https://github.com/mruby/mruby/pull/7485) mruby-regexp: keep the levels a pattern nests on a stack of the parser's own
+- [#7486](https://github.com/mruby/mruby/pull/7486) string.c: stop unsharing the buffer the Unicode case walk only reads
+- [#7487](https://github.com/mruby/mruby/pull/7487) unicase.c: binary-search the folding difference from the range walks
