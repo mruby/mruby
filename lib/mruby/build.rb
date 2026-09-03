@@ -634,6 +634,36 @@ EOS
       end
     end
 
+    # The objects the products of this build are made from: every object
+    # under the build directory that a product depends on, however far down.
+    #
+    # The objects of the +mrbc+ build this build makes for itself are left
+    # out. They are the same sources compiled with the defines of a bootstrap
+    # compiler, and that build is no target the config asked for. The +mrbc+
+    # a cross build borrows from another target sits under that target's
+    # directory, and is left out by that.
+    #
+    # Walking the prerequisites resolves the rule of every object on the way,
+    # so this is asked once every target is declared: the products of one
+    # target reach the objects of another (a build reaches the +mrbc+ build it
+    # generated), and a rule resolved for those objects must see the same
+    # include paths as the compile that follows it.
+    def objects
+      build_dir = "#{@build_dir}/"
+      donor = "#{@mrbc_build.build_dir}/" if @mrbc_build
+      objects = []
+      @products.each do |product|
+        Rake::Task[product].all_prerequisite_tasks.each do |task|
+          name = task.name
+          next unless File.extname(name) == @exts.object
+          next unless name.start_with?(build_dir)
+          next if donor && name.start_with?(donor)
+          objects << name
+        end
+      end
+      objects.uniq
+    end
+
     def define_installer_outline(src, dst)
       file dst => src do
         _pp "GEN", src.relative_path, dst.relative_path
