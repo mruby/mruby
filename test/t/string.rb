@@ -542,15 +542,34 @@ assert('String#downcase - a receiver above the embedded buffer') do
 end if UNICODECASE
 
 assert('String case conversion - a frozen receiver') do
-  # Only upcase! reaches str_modify_keep_cr()'s check on its own: the other
-  # three raise from a second modify further in, so they answer FrozenError
-  # whether or not that check is there and pin nothing about it.
+  # upcase! and capitalize! find nothing to change in 'Ä' and would answer
+  # nil without the walk's own mrb_check_frozen(), so they are what pins it.
+  # downcase! changes the character and raises from str_replace() further in,
+  # so it answers FrozenError whether or not that check is there.
   assert_raise(FrozenError) { 'Ä'.freeze.upcase! }
   assert_raise(FrozenError) { 'Ä'.freeze.downcase! }
   assert_raise(FrozenError) { 'Ä'.freeze.capitalize! }
-  # An all-ASCII receiver never enters the walk and is the other half of what
-  # that one check guards.
+  # An all-ASCII receiver never enters the walk and raises from the ASCII
+  # loop's own mrb_str_modify_keep_cr() instead.
   assert_raise(FrozenError) { 'AB'.freeze.downcase! }
+end if UNICODECASE
+
+assert('String case conversion - a receiver sharing its buffer') do
+  # A copy above the embedded buffer shares the bytes of what it was copied
+  # from, and the walk reads them where they are rather than unsharing first.
+  # Converting the copy must leave the original holding what it held, and a
+  # copy the walk finds nothing to change in must still read as what it was.
+  src = "ÄÖÜ" * 20
+  copy = src.dup
+  assert_equal "äöü" * 20, copy.downcase!
+  assert_equal "ÄÖÜ" * 20, src
+  copy = src.dup
+  assert_nil copy.upcase!
+  assert_equal "ÄÖÜ" * 20, copy
+  assert_equal "ÄÖÜ" * 20, src
+  # A literal above the embedded buffer can read its bytes from the program
+  # itself, and lets go of them the same way, without freeing them.
+  assert_equal "äöüäöüäöüäöüäöüäöüäöüäöüäöüäöü", "ÄÖÜÄÖÜÄÖÜÄÖÜÄÖÜÄÖÜÄÖÜÄÖÜÄÖÜÄÖÜ".downcase!
 end if UNICODECASE
 
 assert('String case conversion - ASCII only') do

@@ -2387,7 +2387,16 @@ mrb_str_case_convert_unicode(mrb_state *mrb, mrb_value str, enum mrb_case_mode m
      not be recorded as holding one character per byte. */
   if (RSTR_BINARY_P(s) || str_ascii_p(s)) return -1;
 
-  mrb_str_modify_keep_cr(mrb, s);
+  /* The walk only reads the string and builds its answer beside it, so a
+     buffer the string shares is read where it is rather than copied first:
+     the copy would go unwritten, and str_replace() lets go of a shared buffer
+     by dropping the reference where it would free a private one. A string
+     the walk leaves as it was keeps what it carried, coderange included, and
+     one it changes takes the answer's along with the bytes, so nothing here
+     is prepared for a write. What is still owed is the frozen check: a
+     frozen receiver is turned away before anything is read, whether or not
+     the walk would have changed it, which is what CRuby's bang forms do. */
+  mrb_check_frozen(mrb, s);
 
   return str_case_convert_utf8(mrb, str, mode) ? 1 : 0;
 }
