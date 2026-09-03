@@ -79,8 +79,10 @@ int mrb_hal_dir_chdir(mrb_state *mrb, const char *path);
 /* Get current working directory as UTF-8. Returns 0 on success, -1 on error. */
 int mrb_hal_dir_getcwd(mrb_state *mrb, char *buf, size_t size);
 
-/* Change root directory (privileged operation). Returns -1 if unsupported (sets errno to ENOSYS). */
+#ifdef MRB_HAL_DIR_HAS_CHROOT
+/* Change root directory (privileged operation). Returns 0 on success, -1 on error (sets errno). */
 int mrb_hal_dir_chroot(mrb_state *mrb, const char *path);
+#endif
 
 /* Check if path is a directory. Returns 1 if directory, 0 if not. */
 int mrb_hal_dir_is_directory(mrb_state *mrb, const char *path);

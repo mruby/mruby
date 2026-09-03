@@ -20,4 +20,9 @@
 # define MRB_HAL_DIR_HAS_TELL
 #endif
 
+/* chroot(2): `Dir.chroot`.  Android forbids it and DJGPP has none. */
+#if !defined(__ANDROID__) && !defined(__MSDOS__)
+# define MRB_HAL_DIR_HAS_CHROOT
+#endif
+
 #endif /* MRUBY_DIR_HAL_FEATURES_H */

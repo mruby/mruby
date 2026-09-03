@@ -218,6 +218,7 @@ mrb_dir_chdir(mrb_state *mrb, mrb_value klass)
  *
  *   Dir.chroot("/production/secure/root")
  */
+#ifdef MRB_HAL_DIR_HAS_CHROOT
 static mrb_value
 mrb_dir_chroot(mrb_state *mrb, mrb_value self)
 {
@@ -227,14 +228,16 @@ mrb_dir_chroot(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "z", &path);
   res = mrb_hal_dir_chroot(mrb, path);
   if (res == -1) {
-    if (errno == ENOSYS) {
-      mrb_raise(mrb, E_NOTIMP_ERROR, "chroot() unreliable on your system");
-    }
     mrb_sys_fail(mrb, path);
   }
 
   return mrb_fixnum_value(res);
 }
+#else
+/* this port cannot change the root: unimplemented, and named as such so
+   `respond_to?` can answer false */
+# define mrb_dir_chroot mrb_notimplement_m
+#endif
 
 static mrb_bool
 skip_name_p(const char *name)

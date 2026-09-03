@@ -270,15 +270,6 @@ mrb_hal_dir_getcwd(mrb_state *mrb, char *buf, size_t size)
 }
 
 int
-mrb_hal_dir_chroot(mrb_state *mrb, const char *path)
-{
-  /* Not available on Windows */
-  (void)mrb; (void)path;
-  errno = ENOSYS;
-  return -1;
-}
-
-int
 mrb_hal_dir_is_directory(mrb_state *mrb, const char *path)
 {
   struct _stat sb;

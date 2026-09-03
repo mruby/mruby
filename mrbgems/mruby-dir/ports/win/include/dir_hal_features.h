@@ -16,4 +16,7 @@
 /* A FindNextFile() walk has no position to read or return to: `Dir#seek`
    and `Dir#tell` are left undefined rather than defined to fail. */
 
+/* No chroot(2), or anything standing for it: `Dir.chroot` is likewise
+   undefined. */
+
 #endif /* MRUBY_DIR_HAL_FEATURES_H */

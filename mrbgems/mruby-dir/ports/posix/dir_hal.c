@@ -116,19 +116,14 @@ mrb_hal_dir_getcwd(mrb_state *mrb, char *buf, size_t size)
   return getcwd(buf, size) ? 0 : -1;
 }
 
+#ifdef MRB_HAL_DIR_HAS_CHROOT
 int
 mrb_hal_dir_chroot(mrb_state *mrb, const char *path)
 {
-#if defined(__ANDROID__) || defined(__MSDOS__)
-  /* Not available on these platforms */
-  (void)mrb; (void)path;
-  errno = ENOSYS;
-  return -1;
-#else
   (void)mrb;
   return chroot(path);
-#endif
 }
+#endif
 
 int
 mrb_hal_dir_is_directory(mrb_state *mrb, const char *path)
