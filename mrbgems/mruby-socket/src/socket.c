@@ -296,6 +296,7 @@ mrb_addrinfo_getnameinfo(mrb_state *mrb, mrb_value self)
  *
  *   addr.unix_path  #=> "/tmp/socket"
  */
+#ifdef MRB_HAL_SOCKET_HAS_SOCKADDR_UN
 static mrb_value
 mrb_addrinfo_unix_path(mrb_state *mrb, mrb_value self)
 {
@@ -307,6 +308,11 @@ mrb_addrinfo_unix_path(mrb_state *mrb, mrb_value self)
 
   return mrb_hal_socket_unix_path(mrb, RSTRING_PTR(sastr), (size_t)RSTRING_LEN(sastr));
 }
+#else
+/* this port has no Unix domain addresses: unimplemented, and named as such
+   so `respond_to?` can answer false */
+# define mrb_addrinfo_unix_path mrb_notimplement_m
+#endif
 
 /* Helper to convert sockaddr to address list array [family, port, host, host] */
 static mrb_value
@@ -359,32 +365,32 @@ socket_family(int s)
   return ss.ss_family;
 }
 
-#ifdef HAVE_GETPEEREID
+#ifdef MRB_HAL_SOCKET_HAS_GETPEEREID
 /*
  * call-seq:
  *   basicsocket.getpeereid -> [euid, egid]
  *
  * Returns the effective user ID and group ID of the peer process.
- * Only available on systems that support getpeereid().
+ * Only available on ports that declare getpeereid().
  *
  *   euid, egid = sock.getpeereid
  */
 static mrb_value
 mrb_basicsocket_getpeereid(mrb_state *mrb, mrb_value self)
 {
-  gid_t egid;
-  uid_t euid;
+  mrb_int euid, egid;
   int s = socket_fd(mrb, self);
-  if (getpeereid(s, &euid, &egid) != 0)
+  if (mrb_hal_socket_getpeereid(mrb, s, &euid, &egid) != 0)
     sock_sys_fail(mrb, "getpeereid");
 
   mrb_value ary = mrb_ary_new_capa(mrb, 2);
-  mrb_ary_push(mrb, ary, mrb_fixnum_value((mrb_int)euid));
-  mrb_ary_push(mrb, ary, mrb_fixnum_value((mrb_int)egid));
+  mrb_ary_push(mrb, ary, mrb_int_value(mrb, euid));
+  mrb_ary_push(mrb, ary, mrb_int_value(mrb, egid));
   return ary;
 }
 #else
-/* unimplemented, and named as such so `respond_to?` can answer false */
+/* this port has no getpeereid(2): unimplemented, and named as such so
+   `respond_to?` can answer false */
 # define mrb_basicsocket_getpeereid mrb_notimplement_m
 #endif
 
@@ -1154,6 +1160,7 @@ mrb_socket_sockaddr_family(mrb_state *mrb, mrb_value klass)
  *   Socket.sockaddr_un("/tmp/socket")
  *   Socket.sockaddr_un("/var/run/daemon.sock")
  */
+#ifdef MRB_HAL_SOCKET_HAS_SOCKADDR_UN
 static mrb_value
 mrb_socket_sockaddr_un(mrb_state *mrb, mrb_value klass)
 {
@@ -1162,6 +1169,9 @@ mrb_socket_sockaddr_un(mrb_state *mrb, mrb_value klass)
   mrb_get_args(mrb, "S", &path);
   return mrb_hal_socket_sockaddr_un(mrb, RSTRING_PTR(path), (size_t)RSTRING_LEN(path));
 }
+#else
+# define mrb_socket_sockaddr_un mrb_notimplement_m
+#endif
 
 /*
  * call-seq:
@@ -1173,6 +1183,7 @@ mrb_socket_sockaddr_un(mrb_state *mrb, mrb_value klass)
  *   sock1, sock2 = Socket.socketpair(Socket::AF_UNIX, Socket::SOCK_STREAM)
  *   sock1, sock2 = Socket.pair(Socket::AF_UNIX, Socket::SOCK_DGRAM)
  */
+#ifdef MRB_HAL_SOCKET_HAS_SOCKETPAIR
 static mrb_value
 mrb_socket_socketpair(mrb_state *mrb, mrb_value klass)
 {
@@ -1190,6 +1201,11 @@ mrb_socket_socketpair(mrb_state *mrb, mrb_value klass)
   mrb_ary_push(mrb, ary, mrb_fixnum_value(sv[1]));
   return ary;
 }
+#else
+/* this port has no socketpair(2): unimplemented, and named as such so
+   `respond_to?` can answer false */
+# define mrb_socket_socketpair mrb_notimplement_m
+#endif
 
 /*
  * call-seq:
@@ -1224,21 +1240,18 @@ mrb_tcpsocket_allocate(mrb_state *mrb, mrb_value klass)
   return mrb_obj_value((struct RObject*)mrb_obj_alloc(mrb, ttype, c));
 }
 
-/* Windows overrides for IO methods on BasicSocket objects.
- * This is because sockets on Windows are not the same as file
- * descriptors, and thus functions which operate on file descriptors
- * will break on socket descriptors.
+/* On a port whose socket is not a file descriptor, IO's read and write
+ * cannot take it; these stand in for them through recv() and send().
  */
-#ifdef _WIN32
+#ifndef MRB_HAL_SOCKET_HAS_FD_IO
 /*
  * call-seq:
  *   basicsocket.sysread(maxlen, outbuf=nil) -> string
  *
- * Windows-specific implementation to read from socket using recv().
- * Overrides IO#sysread for socket objects on Windows.
+ * Reads from the socket with recv(), in place of IO#sysread.
  */
 static mrb_value
-mrb_win32_basicsocket_sysread(mrb_state *mrb, mrb_value self)
+mrb_basicsocket_recv_sysread(mrb_state *mrb, mrb_value self)
 {
   mrb_value buf = mrb_nil_value();
   mrb_int maxlen;
@@ -1267,7 +1280,7 @@ mrb_win32_basicsocket_sysread(mrb_state *mrb, mrb_value self)
         mrb_raise(mrb, E_EOF_ERROR, "sysread failed: End of File");
       }
       break;
-    case SOCKET_ERROR: /* Error */
+    case -1: /* Error */
       sock_sys_fail(mrb, "recv");
       break;
     default:
@@ -1284,24 +1297,23 @@ mrb_win32_basicsocket_sysread(mrb_state *mrb, mrb_value self)
  * call-seq:
  *   basicsocket.syswrite(string) -> integer
  *
- * Windows-specific implementation to write to socket using send().
- * Overrides IO#syswrite for socket objects on Windows.
+ * Writes to the socket with send(), in place of IO#syswrite.
  */
 static mrb_value
-mrb_win32_basicsocket_syswrite(mrb_state *mrb, mrb_value self)
+mrb_basicsocket_send_syswrite(mrb_state *mrb, mrb_value self)
 {
   mrb_value str;
-  SOCKET sd = socket_fd(mrb, self);
+  int sd = socket_fd(mrb, self);
 
   mrb_get_args(mrb, "S", &str);
 
   int n = send(sd, RSTRING_PTR(str), (int)RSTRING_LEN(str), 0);
-  if (n == SOCKET_ERROR)
+  if (n == -1)
     sock_sys_fail(mrb, "send");
   return mrb_int_value(mrb, n);
 }
 
-#endif
+#endif /* MRB_HAL_SOCKET_HAS_FD_IO */
 
 /* ---------------------------*/
 static const mrb_mt_entry addrinfo_rom_entries[] = {
@@ -1321,17 +1333,21 @@ static const mrb_mt_entry basicsocket_rom_entries[] = {
   MRB_MT_ENTRY(mrb_basicsocket_setsockopt,    MRB_SYM(setsockopt), MRB_ARGS_REQ(1)|MRB_ARGS_OPT(2)),
   MRB_MT_ENTRY(mrb_basicsocket_shutdown,      MRB_SYM(shutdown), MRB_ARGS_OPT(1)),
   MRB_MT_ENTRY(mrb_basicsocket_set_is_socket, MRB_SYM_E(_is_socket), MRB_ARGS_REQ(1)),
-#ifdef _WIN32
-  /* `close` is IO's: fptr_finalize() calls closesocket() for a socket on
-     Windows and then clears the descriptor, which an override here did not,
-     leaving the object open to being closed a second time */
-  MRB_MT_ENTRY(mrb_win32_basicsocket_sysread,  MRB_SYM(sysread), MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1)),
-  /* a socket cannot seek: unimplemented, and named as such so `respond_to?`
-     can answer false */
-  MRB_MT_ENTRY(mrb_notimplement_m,             MRB_SYM(sysseek), MRB_ARGS_REQ(1)),
-  MRB_MT_ENTRY(mrb_win32_basicsocket_syswrite, MRB_SYM(syswrite), MRB_ARGS_REQ(1)),
-  MRB_MT_ENTRY(mrb_win32_basicsocket_sysread,  MRB_SYM(read), MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1)),
-  MRB_MT_ENTRY(mrb_win32_basicsocket_syswrite, MRB_SYM(write), MRB_ARGS_REQ(1)),
+#ifndef MRB_HAL_SOCKET_HAS_FD_IO
+  /* The port's socket is not a file descriptor, so IO's read and write are
+     replaced and there is nothing to seek. `close` stays IO's: on Windows
+     fptr_finalize() closes a socket with closesocket() and then clears the
+     descriptor, which an override here did not, leaving the object open to
+     being closed a second time. That is mruby-io's knowledge of Winsock,
+     not this macro's: a port for another host whose socket is not a
+     descriptor has to teach IO.new and IO#close the same before it leaves
+     MRB_HAL_SOCKET_HAS_FD_IO out. */
+  MRB_MT_ENTRY(mrb_basicsocket_recv_sysread,  MRB_SYM(sysread), MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1)),
+  /* unimplemented, and named as such so `respond_to?` can answer false */
+  MRB_MT_ENTRY(mrb_notimplement_m,            MRB_SYM(sysseek), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(mrb_basicsocket_send_syswrite, MRB_SYM(syswrite), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(mrb_basicsocket_recv_sysread,  MRB_SYM(read), MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1)),
+  MRB_MT_ENTRY(mrb_basicsocket_send_syswrite, MRB_SYM(write), MRB_ARGS_REQ(1)),
 #endif
 };
 

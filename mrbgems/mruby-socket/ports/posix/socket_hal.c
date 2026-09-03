@@ -101,6 +101,7 @@ mrb_hal_socket_inet_pton(int af, const char *src, void *dst)
  * Platform-Specific Socket Features
  */
 
+#ifdef MRB_HAL_SOCKET_HAS_SOCKADDR_UN
 mrb_value
 mrb_hal_socket_sockaddr_un(mrb_state *mrb, const char *path, size_t pathlen)
 {
@@ -126,14 +127,33 @@ mrb_hal_socket_sockaddr_un(mrb_state *mrb, const char *path, size_t pathlen)
 
   return s;
 }
+#endif /* MRB_HAL_SOCKET_HAS_SOCKADDR_UN */
 
+#ifdef MRB_HAL_SOCKET_HAS_GETPEEREID
+int
+mrb_hal_socket_getpeereid(mrb_state *mrb, int fd, mrb_int *euid, mrb_int *egid)
+{
+  uid_t uid;
+  gid_t gid;
+  (void)mrb;
+
+  if (getpeereid(fd, &uid, &gid) != 0) return -1;
+  *euid = (mrb_int)uid;
+  *egid = (mrb_int)gid;
+  return 0;
+}
+#endif
+
+#ifdef MRB_HAL_SOCKET_HAS_SOCKETPAIR
 int
 mrb_hal_socket_socketpair(mrb_state *mrb, int domain, int type, int protocol, int sv[2])
 {
   (void)mrb;
   return socketpair(domain, type, protocol, sv);
 }
+#endif
 
+#ifdef MRB_HAL_SOCKET_HAS_SOCKADDR_UN
 mrb_value
 mrb_hal_socket_unix_path(mrb_state *mrb, const char *sockaddr, size_t socklen)
 {
@@ -149,6 +169,7 @@ mrb_hal_socket_unix_path(mrb_state *mrb, const char *sockaddr, size_t socklen)
 
   return mrb_str_new_cstr(mrb, ((const struct sockaddr_un*)sockaddr)->sun_path);
 }
+#endif /* MRB_HAL_SOCKET_HAS_SOCKADDR_UN */
 
 mrb_value
 mrb_hal_socket_ip_address_list(mrb_state *mrb)

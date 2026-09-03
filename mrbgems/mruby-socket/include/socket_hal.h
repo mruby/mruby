@@ -14,6 +14,19 @@
 
 #include <mruby.h>
 
+/*
+ * What the port implements
+ *
+ * The port publishes it in a header under its include/, and the build puts
+ * that directory on the include path of this gem and of every gem that
+ * depends on it.  Whether a method exists is the port's to say, because the
+ * port is what a build names: a cross build has no host to detect one from,
+ * and a `hal-socket-<conf>` gem may stand in for the bundled ports
+ * altogether.  What each macro says, and what it guards, is written where it
+ * is defined.
+ */
+#include "socket_hal_features.h"
+
 MRB_BEGIN_DECL
 
 /*
@@ -64,14 +77,27 @@ const char* mrb_hal_socket_inet_ntop(int af, const void *src, char *dst, size_t 
 int mrb_hal_socket_inet_pton(int af, const char *src, void *dst);
 
 /*
- * Platform-Specific Socket Features
+ * Operations a port declares in its socket_hal_features.h
  */
 
+#ifdef MRB_HAL_SOCKET_HAS_SOCKADDR_UN
 /* Create Unix domain socket address structure
  * path: Unix socket path
- * Returns: packed sockaddr string, or raises exception if not supported */
+ * Returns: packed sockaddr string; raises ArgumentError for a path too long */
 mrb_value mrb_hal_socket_sockaddr_un(mrb_state *mrb, const char *path, size_t pathlen);
 
+/* Get Unix socket path from sockaddr
+ * Returns: Unix socket path string; raises SocketError for another family */
+mrb_value mrb_hal_socket_unix_path(mrb_state *mrb, const char *sockaddr, size_t socklen);
+#endif
+
+#ifdef MRB_HAL_SOCKET_HAS_GETPEEREID
+/* Effective user and group id of the peer of a connected Unix domain socket
+ * Returns: 0 on success, -1 on error (sets errno) */
+int mrb_hal_socket_getpeereid(mrb_state *mrb, int fd, mrb_int *euid, mrb_int *egid);
+#endif
+
+#ifdef MRB_HAL_SOCKET_HAS_SOCKETPAIR
 /* Create a pair of connected sockets
  * domain: address family (e.g., AF_UNIX)
  * type: socket type (e.g., SOCK_STREAM)
@@ -79,10 +105,7 @@ mrb_value mrb_hal_socket_sockaddr_un(mrb_state *mrb, const char *path, size_t pa
  * sv: array to receive the two socket descriptors
  * Returns: 0 on success, -1 on error (sets errno) */
 int mrb_hal_socket_socketpair(mrb_state *mrb, int domain, int type, int protocol, int sv[2]);
-
-/* Get Unix socket path from sockaddr
- * Returns: Unix socket path string, or raises exception if not supported */
-mrb_value mrb_hal_socket_unix_path(mrb_state *mrb, const char *sockaddr, size_t socklen);
+#endif
 
 /* Enumerate local IP addresses for all network interfaces.
  * Returns an Array of String values, each a binary sockaddr_in (AF_INET) or

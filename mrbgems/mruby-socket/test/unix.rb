@@ -140,4 +140,26 @@ assert('Socket#recv and #recvfrom reject a negative length') do
   end
 end
 
+# getpeereid(2) is compiled in only where the port declares
+# MRB_HAL_SOCKET_HAS_GETPEEREID, which the POSIX port does on macOS and the
+# BSDs. It answers for a connected Unix domain socket, and both ends of a
+# pair belong to this process, so each reports the same credentials.
+assert('BasicSocket#getpeereid on a socket pair') do
+  a, b = UNIXSocket.socketpair
+  begin
+    if a.respond_to?(:getpeereid)
+      ids = a.getpeereid
+      assert_equal 2, ids.length
+      assert_kind_of Integer, ids[0]
+      assert_kind_of Integer, ids[1]
+      assert_equal ids, b.getpeereid
+    else
+      assert_raise(NotImplementedError) { a.getpeereid }
+    end
+  ensure
+    a.close rescue nil
+    b.close rescue nil
+  end
+end
+
 end # SocketTest.win?

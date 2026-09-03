@@ -248,39 +248,6 @@ mrb_hal_socket_inet_pton(int af, const char *src, void *dst)
  */
 
 mrb_value
-mrb_hal_socket_sockaddr_un(mrb_state *mrb, const char *path, size_t pathlen)
-{
-  (void)path;
-  (void)pathlen;
-  mrb_raise(mrb, mrb_class_get_id(mrb, MRB_SYM(NotImplementedError)),
-            "sockaddr_un unsupported on Windows");
-  return mrb_nil_value();
-}
-
-int
-mrb_hal_socket_socketpair(mrb_state *mrb, int domain, int type, int protocol, int sv[2])
-{
-  (void)mrb;
-  (void)domain;
-  (void)type;
-  (void)protocol;
-  (void)sv;
-  /* socketpair is not supported on Windows */
-  errno = ENOSYS;
-  return -1;
-}
-
-mrb_value
-mrb_hal_socket_unix_path(mrb_state *mrb, const char *sockaddr, size_t socklen)
-{
-  (void)sockaddr;
-  (void)socklen;
-  mrb_raise(mrb, mrb_class_get_id(mrb, MRB_SYM(NotImplementedError)),
-            "unix_path unsupported on Windows");
-  return mrb_nil_value();
-}
-
-mrb_value
 mrb_hal_socket_ip_address_list(mrb_state *mrb)
 {
   /* MSDN recommends 15 KiB as the initial buffer size to handle most
