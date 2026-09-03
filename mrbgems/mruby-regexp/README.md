@@ -14,6 +14,8 @@ simulation) with backtracking fallback.
 - `{n}`, `{n,}`, `{n,m}` repetition counts
 - `[abc]`, `[a-z]`, `[^abc]` character classes
 - `[[a]b]`, `[[^a]b]` nested character classes, whose union the class is
+- `[a-z&&[^aeiou]]` character class intersection, the class being what the
+  operands `&&` separates hold between them
 - `[[:alpha:]]`, `[[:^alpha:]]` POSIX brackets inside a class: `alpha`,
   `digit`, `alnum`, `upper`, `lower`, `space`, `blank`, `xdigit`, `word`,
   `cntrl`, `print`, `graph`, `ascii`, `punct`
@@ -299,8 +301,29 @@ Every entry is a place this engine answers a pattern differently from CRuby.
   in `/(?~(a)(b))/` holds `"a"` there against a subject starting with one
   though the body never matched, and drops it where it has one, which leaves
   `/(?~(a|b)+)/` with an empty group in both engines.
-- **No character class intersection**: `[a&&b]` raises `RegexpError`. A lone
-  `&` is a member of the class.
+- **An intersection puts one question about a character's type**: the POSIX
+  brackets of a class are a disjunction, and an intersection of them a
+  conjunction, which the class carries beside it. What has no room left is a
+  disjunction on both sides of a `&&`, `[[:alpha:][:digit:]&&[:alnum:][:space:]]`,
+  and a union of one of these conjunctions with another bracket,
+  `[[[:alpha:]&&[:^lower:]][:digit:]]`. Both raise `RegexpError`; CRuby holds
+  them. Anything short of that is read, `[[:alpha:]&&[:^lower:]&&[:^upper:]]`
+  included.
+- **A member of an intersection folds by what it is, not by how it was
+  written**: under `/i` the class is closed once the operands have met, and
+  what an ASCII-only set brought is closed no further than ASCII, so
+  `[s&&\w]` holds `s` and `S`. CRuby closes a single character where it
+  stands instead, which takes that one out of ASCII where the same character
+  written as a range does not: there `[s&&\w]` holds `ſ` and `[s-t&&\w]` does
+  not.
+- **An intersection folds a character above ASCII whatever admitted it**:
+  `[\u{100}-\u{200}&&\W]` under `/i` holds `s`, the long s in the range having
+  folded to it. CRuby holds that fold back, the side that admitted the long s
+  being `\W`, a set ASCII defines.
+- **A negated shorthand keeps its ASCII in an intersection**: `[[^\W]]` is the
+  ASCII word characters in both engines, and `[[^\W]&&[^a]]` is those without
+  `a` here. CRuby reads the nest as the Unicode word characters once it stands
+  in an intersection.
 - **No encodings**: a byte that starts no whole character is that byte, inside
   a character class as much as outside one. `[\xB5]` and `\xB5` both hold the
   byte `0xB5` and neither matches `µ` (`C2 B5`), where CRuby raises
