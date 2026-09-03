@@ -13,6 +13,7 @@ simulation) with backtracking fallback.
 - `*+`, `++`, `?+` possessive quantifiers, `a*+` being `(?>a*)`
 - `{n}`, `{n,}`, `{n,m}` repetition counts
 - `[abc]`, `[a-z]`, `[^abc]` character classes
+- `[[a]b]`, `[[^a]b]` nested character classes, whose union the class is
 - `[[:alpha:]]`, `[[:^alpha:]]` POSIX brackets inside a class: `alpha`,
   `digit`, `alnum`, `upper`, `lower`, `space`, `blank`, `xdigit`, `word`,
   `cntrl`, `print`, `graph`, `ascii`, `punct`
@@ -257,9 +258,17 @@ Every entry is a place this engine answers a pattern differently from CRuby.
   letter. `[[:alpha:]]` asks for a letter of any script.
 - **No `\M-X` meta escape**: it always raises `RegexpError`, where CRuby
   refuses it only outside a binary pattern.
-- **A `[` inside a class opens something**: only a POSIX bracket is read there.
-  A collating element (`[[.a.]]`), an equivalence class (`[[=a=]]`) and a
-  nested class (`[[a][b]]`) raise `RegexpError`. Write `[\[]`.
+- **A `[` inside a class opens something**: a POSIX bracket and a nested class
+  are read there, and a collating element (`[[.a.]]`) and an equivalence class
+  (`[[=a=]]`) raise `RegexpError`. Write `[\[]` to hold the bracket itself.
+  A nested class closing a range raises too: CRuby answers `[a-[b]]` with
+  neither the range nor an error, the class holding `b` alone with the `a` and
+  the `-` gone. A negated nest is written out as members at compile time, and
+  a bracket type is a question put to a table rather than members, so a
+  complement that would have to negate one type beside another or beside a
+  member is refused: `[[^[:alpha:][:digit:]]x]` and `[[^[:alpha:]é]x]` raise
+  where CRuby holds both. One type alone changes polarity, so
+  `[[^[:alpha:]]x]` is read as CRuby reads it, which is `[[:^alpha:]x]`.
 - **No `\G`, `\K`, `\R` or `\X`**: they raise `RegexpError` rather than
   standing for their own letter. Inside a character class each is the letter,
   and so is a bare `\g` either way.

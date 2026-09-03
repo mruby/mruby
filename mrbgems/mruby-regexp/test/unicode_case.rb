@@ -108,3 +108,19 @@ assert("Regexp - /i literals share one class per codepoint") do
   assert_true re.match?((cyr + lat + grk).upcase)
   assert_raise(RegexpError) { Regexp.new(cyr + lat + grk + arm, Regexp::IGNORECASE) }
 end
+
+assert("Regexp - /i closes the union a nested class makes, not its parts") do
+  # The complement of a negated nest joins the union unfolded, and /i closes
+  # the union once at the end. [[^é]a] under /i therefore holds É, and closing
+  # a class that holds É brings in é as well, so the class accepts the
+  # character it was written to reject. CRuby reads it the same way.
+  re = Regexp.new("[[^é]a]", Regexp::IGNORECASE)
+  assert_true re.match?("é")
+  assert_true re.match?("É")
+  assert_true re.match?("a")
+  # The same closure over ASCII: [[^a-z]Q] holds every capital, and their
+  # lower case letters come back with them.
+  ascii = Regexp.new("[[^a-z]Q]", Regexp::IGNORECASE)
+  assert_true ascii.match?("a")
+  assert_true ascii.match?("A")
+end

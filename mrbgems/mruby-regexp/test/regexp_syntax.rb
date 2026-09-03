@@ -1072,7 +1072,7 @@ assert("Regexp - inline options (?i) / (?i:...)") do
 
   # m enables dot-matches-newline for its scope.
   assert_equal 0, (/(?m:a.b)/ =~ "a\nb")
-  assert_nil (/a.b/ =~ "a\nb")
+  assert_nil /a.b/ =~ "a\nb"
 
   # x (extended) is scoped inline like the other two: the toggle form
   # reaches the end of the enclosing group, the scoped form its own body.
@@ -3138,9 +3138,9 @@ end
 
 assert("Regexp - \\h and \\H hex-digit shorthands") do
   assert_equal 0, (/\h/ =~ "f")
-  assert_nil (/\h/ =~ "g")
+  assert_nil /\h/ =~ "g"
   assert_equal 0, (/\H/ =~ "g")
-  assert_nil (/\H/ =~ "a")
+  assert_nil /\H/ =~ "a"
   assert_equal ["3f"], "3fX".scan(/[\h]+/)
   assert_equal ["XY"], "3fXY".scan(/[\H]+/)
   assert_equal ["deadBEEF"], "deadBEEFzz".scan(/\h+/)
@@ -3244,16 +3244,10 @@ assert("Regexp - \\k<name> is the group reference this engine does carry") do
   assert_equal "aa", "aa"[/(?<n>a)\k<n>/]
 end
 
-assert("Regexp - a '[' inside a class opens something, and is refused when it cannot") do
+assert("Regexp - a '[' inside a class opens something") do
   # A '[' inside a class never stands for itself in CRuby: it opens a POSIX
   # bracket, a collating element, an equivalence class, or a class nested in
-  # this one. Only the bracket is read here. Taken as a member the rest
-  # compiled to a different pattern than the one written: [[a][b]] is the
-  # union of two classes in CRuby and was `[` or `a`, then b, then `]` here.
-  assert_raise_with_message(RegexpError,
-                            "nested character class is not supported: /[[a][b]]/") do
-    Regexp.new("[[a][b]]")
-  end
+  # this one. The bracket and the nested class are read here.
   assert_raise_with_message(RegexpError,
                             "POSIX collating element is not supported: /[[.a.]]/") do
     Regexp.new("[[.a.]]")
@@ -3266,9 +3260,6 @@ assert("Regexp - a '[' inside a class opens something, and is refused when it ca
                             "premature end of char-class: /[[:alpha]/") do
     Regexp.new("[[:alpha]")
   end
-  ["[[]", "[a[]", "[[ab]c]", "[[^a]b]"].each do |src|
-    assert_raise(RegexpError, src) { Regexp.new(src) }
-  end
 
   # The bracket that is read, in every position it is written in
   assert_equal "a", "1a"[/[[:alpha:]]/]
@@ -3278,8 +3269,101 @@ assert("Regexp - a '[' inside a class opens something, and is refused when it ca
   # and the escaped bracket, which is how to hold one, in CRuby too
   assert_equal "[", "x[y"[/[\[]/]
 
-  # a '[' with nothing after it leaves the class unterminated
-  assert_raise(RegexpError) { Regexp.new("[a[") }
+  # A class that does not close, whichever level leaves it open. A '[' written
+  # last opens one of its own, so it takes the ']' that would have closed the
+  # class around it.
+  ["[[]", "[a[]", "[a[", "[a[b]", "[[a]"].each do |src|
+    assert_raise(RegexpError, src) { Regexp.new(src) }
+  end
+end
+
+assert("Regexp - a nested character class is the union it is written as") do
+  # [[a]b] is one class holding what the two hold between them, as it is in
+  # CRuby. Read as members instead, the pattern was `[` or `a`, then b, then
+  # `]`, which is a different pattern with the same letters in it.
+  assert_equal 0, (/[[a]b]/ =~ "a")
+  assert_equal 0, (/[[a]b]/ =~ "b")
+  assert_nil /[[a]b]/ =~ "]"
+  assert_nil /[[a]b]/ =~ "["
+
+  # in every position, at every depth, and with the union negated as a whole
+  assert_equal "b", "db"[/[x[a-c]]/]
+  assert_equal "c", "dc"[/[a[b]c]/]
+  assert_equal "b", "cb"[/[[a][b]]/]
+  assert_equal "a", "ba"[/[[[[a]]]]/]
+  assert_equal "c", "abc"[/[^[a]b]/]
+
+  # A POSIX bracket keeps its meaning at either level.
+  assert_equal "b", "1b"[/[[:alpha:][b]]/]
+  assert_equal "1", "-1"[/[[a][:digit:]]/]
+
+  # The word class is held apart from the fold at either level too, so [[\w]]
+  # is the ASCII word characters and no more; see the /i tests for what a
+  # letter written out reaches.
+  assert_equal "_", "-_"[/[[\w]]/]
+  assert_nil "-"[/[[\w]]/]
+  assert_equal "a", "a"[/[\W[a]]/]
+  assert_equal "-", "-"[/[\W[a]]/]
+  assert_nil "b"[/[\W[a]]/]
+end
+
+assert("Regexp - a negated nested class holds everything it leaves out") do
+  # A set can only join a union once it is written out as members, so the
+  # complement is taken at compile time. [[^a]b] then holds every character
+  # but `a`, and `b` twice over.
+  assert_equal 0, (/[[^a]b]/ =~ "b")
+  assert_equal 0, (/[[^a]b]/ =~ "x")
+  assert_nil /[[^a]b]/ =~ "a"
+
+  # what the complement of a shorthand, of a range and of the word class comes
+  # to, each with a member of its own beside it
+  assert_equal "5", "15"[/[[^\d]5]/]
+  assert_nil /[[^\d]5]/ =~ "1"
+  assert_equal "Q", "aQ"[/[[^a-z]Q]/]
+  assert_nil /[[^a-z]Q]/ =~ "a"
+  assert_equal "-", "a-"[/[[^\w]]/]
+  assert_nil /[[^\w]]/ =~ "a"
+
+  # A complement of a complement is the set again.
+  assert_equal 0, (/[[^[^a]]]/ =~ "a")
+  assert_nil /[[^[^a]]]/ =~ "b"
+
+  # Nothing above ASCII is left in the class the '^' opened, so its complement
+  # holds every byte that is not ASCII.
+  assert_equal "\xC3\xA9", "a\xC3\xA9"[/[[^a-z]]+/]
+end
+
+assert("Regexp - a '-' after a nested class is a member") do
+  # A nested class names a set, and CRuby opens no range on one: [[a]-z] holds
+  # `a`, `-` and `z` and not the span from `-` to `z`. The '-' after a POSIX
+  # bracket or a shorthand is the error reject_set_as_range_start() reports,
+  # which is CRuby's line there as well.
+  assert_equal "-", "b-"[/[[a]-z]/]
+  assert_equal "z", "bz"[/[[a]-z]/]
+  assert_nil /[[a]-z]/ =~ "b"
+  assert_equal "-", "x-"[/[[a]-[b]]/]
+  assert_equal "-", "x-"[/[[a]-]/]
+  assert_equal "-", "x-"[/[-[a]]/]
+  assert_raise(RegexpError) { Regexp.new("[[:alpha:]-z]") }
+
+  # A nested class in the other place, closing a range, is refused. CRuby
+  # answers [a-[b]] with neither the range nor an error: the class holds `b`
+  # alone, with the `a` and the `-` gone.
+  assert_raise_with_message(RegexpError,
+                            "char-class value at end of range: /[a-[b]]/") do
+    Regexp.new("[a-[b]]")
+  end
+end
+
+assert("Regexp - free-spacing mode reads a nested class as members") do
+  # The comment pass has to step over a class as one span, and a class nests:
+  # with a flag rather than a count the ']' of [[a]b#c] would end the class
+  # for the pass and leave `#c]` a comment, where the parser has the three as
+  # members. CRuby reads them as members too.
+  re = Regexp.new("[[a]b#c]", Regexp::EXTENDED)
+  assert_equal 0, (re =~ "#")
+  assert_equal 0, (re =~ "c")
+  assert_equal 0, (re =~ "b")
 end
 
 assert("Regexp - a control escape names the same character however it is written") do
