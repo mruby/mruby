@@ -12,7 +12,6 @@
 #include "io_hal.h"
 
 #include <sys/types.h>
-#include <sys/stat.h>
 
 #include <errno.h>
 #include <stdlib.h>
@@ -54,13 +53,11 @@ mrb_stat(mrb_state *mrb, mrb_value obj, mrb_io_stat *st)
   return mrb_stat0(mrb, obj, st, 0);
 }
 
-#if defined(S_ISLNK) || defined(_S_ISLNK) || defined(S_IFLNK) || defined(_S_IFLNK)
 static int
 mrb_lstat(mrb_state *mrb, mrb_value obj, mrb_io_stat *st)
 {
   return mrb_stat0(mrb, obj, st, 1);
 }
-#endif
 
 /*
  * call-seq:
@@ -77,16 +74,12 @@ mrb_lstat(mrb_state *mrb, mrb_value obj, mrb_io_stat *st)
 static mrb_value
 mrb_filetest_s_directory_p(mrb_state *mrb, mrb_value klass)
 {
-#ifndef S_ISDIR
-#   define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
-#endif
-
   mrb_io_stat st;
   mrb_value obj = mrb_get_arg1(mrb);
 
   if (mrb_stat(mrb, obj, &st) < 0)
     return mrb_false_value();
-  if (S_ISDIR(st.st_mode))
+  if (MRB_IO_S_ISDIR(st.st_mode))
     return mrb_true_value();
 
   return mrb_false_value();
@@ -111,20 +104,14 @@ mrb_filetest_s_directory_p(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_filetest_s_pipe_p(mrb_state *mrb, mrb_value klass)
 {
-#ifdef S_IFIFO
-#  ifndef S_ISFIFO
-#    define S_ISFIFO(m) (((m) & S_IFMT) == S_IFIFO)
-#  endif
-
   mrb_io_stat st;
   mrb_value obj = mrb_get_arg1(mrb);
 
   if (mrb_stat(mrb, obj, &st) < 0)
     return mrb_false_value();
-  if (S_ISFIFO(st.st_mode))
+  if (MRB_IO_S_ISFIFO(st.st_mode))
     return mrb_true_value();
 
-#endif
   return mrb_false_value();
 }
 #endif
@@ -148,29 +135,13 @@ mrb_filetest_s_pipe_p(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_filetest_s_symlink_p(mrb_state *mrb, mrb_value klass)
 {
-#ifndef S_ISLNK
-#  ifdef _S_ISLNK
-#    define S_ISLNK(m) _S_ISLNK(m)
-#  else
-#    ifdef _S_IFLNK
-#      define S_ISLNK(m) (((m) & S_IFMT) == _S_IFLNK)
-#    else
-#      ifdef S_IFLNK
-#        define S_ISLNK(m) (((m) & S_IFMT) == S_IFLNK)
-#      endif
-#    endif
-#  endif
-#endif
-
-#ifdef S_ISLNK
   mrb_io_stat st;
   mrb_value obj = mrb_get_arg1(mrb);
 
   if (mrb_lstat(mrb, obj, &st) == -1)
     return mrb_false_value();
-  if (S_ISLNK(st.st_mode))
+  if (MRB_IO_S_ISLNK(st.st_mode))
     return mrb_true_value();
-#endif
 
   return mrb_false_value();
 }
@@ -195,29 +166,13 @@ mrb_filetest_s_symlink_p(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_filetest_s_socket_p(mrb_state *mrb, mrb_value klass)
 {
-#ifndef S_ISSOCK
-#  ifdef _S_ISSOCK
-#    define S_ISSOCK(m) _S_ISSOCK(m)
-#  else
-#    ifdef _S_IFSOCK
-#      define S_ISSOCK(m) (((m) & S_IFMT) == _S_IFSOCK)
-#    else
-#      ifdef S_IFSOCK
-#        define S_ISSOCK(m) (((m) & S_IFMT) == S_IFSOCK)
-#      endif
-#    endif
-#  endif
-#endif
-
-#ifdef S_ISSOCK
   mrb_io_stat st;
   mrb_value obj = mrb_get_arg1(mrb);
 
   if (mrb_stat(mrb, obj, &st) < 0)
     return mrb_false_value();
-  if (S_ISSOCK(st.st_mode))
+  if (MRB_IO_S_ISSOCK(st.st_mode))
     return mrb_true_value();
-#endif
 
   return mrb_false_value();
 }
@@ -264,16 +219,12 @@ mrb_filetest_s_exist_p(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_filetest_s_file_p(mrb_state *mrb, mrb_value klass)
 {
-#ifndef S_ISREG
-#   define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
-#endif
-
   mrb_io_stat st;
   mrb_value obj = mrb_get_arg1(mrb);
 
   if (mrb_stat(mrb, obj, &st) < 0)
     return mrb_false_value();
-  if (S_ISREG(st.st_mode))
+  if (MRB_IO_S_ISREG(st.st_mode))
     return mrb_true_value();
 
   return mrb_false_value();

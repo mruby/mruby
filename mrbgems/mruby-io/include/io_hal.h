@@ -58,7 +58,18 @@ typedef struct mrb_io_timeval {
 typedef struct mrb_io_fdset mrb_io_fdset;
 
 /*
- * File mode constants (POSIX-style)
+ * File mode
+ *
+ * The encoding of mrb_io_stat's st_mode, and of the mode `File.chmod`,
+ * `File.umask` and the creation mode of mrb_hal_io_open() hand down.  These
+ * numbers are the HAL's own: POSIX fixes the names S_IFMT, S_IFLNK, S_IRUSR
+ * and the rest, and the S_IS*() macros that read them, but not the values
+ * behind any of them.  So a port tests the host's mode with the host's own
+ * macros and writes the answer in these terms, and maps them back for a
+ * mode handed down; the gem above reads and writes nothing else.  The
+ * permission bits are the numbers a Ruby program writes, as in
+ * File.chmod(0644, path), so the language fixes them, and a port whose host
+ * numbers them otherwise maps them in both directions.
  */
 
 /* File type masks */
@@ -79,6 +90,23 @@ typedef struct mrb_io_fdset mrb_io_fdset;
 #define MRB_IO_S_ISFIFO(m) (((m) & MRB_IO_S_IFMT) == MRB_IO_S_IFIFO)
 #define MRB_IO_S_ISLNK(m)  (((m) & MRB_IO_S_IFMT) == MRB_IO_S_IFLNK)
 #define MRB_IO_S_ISSOCK(m) (((m) & MRB_IO_S_IFMT) == MRB_IO_S_IFSOCK)
+
+/* Permission bits */
+#define MRB_IO_S_ISUID  0004000  /* Set user ID on execution */
+#define MRB_IO_S_ISGID  0002000  /* Set group ID on execution */
+#define MRB_IO_S_ISVTX  0001000  /* Restricted deletion (sticky) */
+#define MRB_IO_S_IRWXU  0000700  /* Read, write, execute by owner */
+#define MRB_IO_S_IRUSR  0000400  /* Read by owner */
+#define MRB_IO_S_IWUSR  0000200  /* Write by owner */
+#define MRB_IO_S_IXUSR  0000100  /* Execute by owner */
+#define MRB_IO_S_IRWXG  0000070  /* Read, write, execute by group */
+#define MRB_IO_S_IRGRP  0000040  /* Read by group */
+#define MRB_IO_S_IWGRP  0000020  /* Write by group */
+#define MRB_IO_S_IXGRP  0000010  /* Execute by group */
+#define MRB_IO_S_IRWXO  0000007  /* Read, write, execute by others */
+#define MRB_IO_S_IROTH  0000004  /* Read by others */
+#define MRB_IO_S_IWOTH  0000002  /* Write by others */
+#define MRB_IO_S_IXOTH  0000001  /* Execute by others */
 
 /* File lock constants */
 #define MRB_IO_LOCK_SH 1  /* Shared lock */
@@ -256,7 +284,7 @@ const char* mrb_hal_io_gethome(mrb_state *mrb, const char *username);
  * @param mrb mruby state
  * @param path File path (UTF-8)
  * @param flags Open flags (O_RDONLY, O_WRONLY, O_RDWR, etc.)
- * @param mode Creation mode (used if O_CREAT is set)
+ * @param mode Creation mode (used if O_CREAT is set), in the MRB_IO_S_I* bits
  * @return File descriptor on success, -1 on error (sets errno)
  */
 int mrb_hal_io_open(mrb_state *mrb, const char *path, int flags, mrb_int mode);

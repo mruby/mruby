@@ -30,13 +30,54 @@
  * Helper Functions
  */
 
+/* The permission bits, this host's to the HAL's.  The C runtime names
+   three, _S_IREAD, _S_IWRITE and _S_IEXEC, and they are the owner's.
+   _stat() reports all three, _S_IEXEC from the file's extension, while
+   _chmod(), _umask() and _open() read _S_IREAD and _S_IWRITE and no others,
+   so a mode handed down is read for its owner read and write bits alone.
+   `File.umask(0022)` must leave the owner writing; collapsing any write bit
+   into _S_IWRITE would hand _umask() the one bit that takes writing away.
+   What _stat() reports for group and other is a mirror of the owner's,
+   which convert_stat() makes for itself. */
+static mrb_int
+perm_to_hal(unsigned short m)
+{
+  return ((m & _S_IREAD)  ? MRB_IO_S_IRUSR : 0) |
+         ((m & _S_IWRITE) ? MRB_IO_S_IWUSR : 0) |
+         ((m & _S_IEXEC)  ? MRB_IO_S_IXUSR : 0);
+}
+
+/* The same the other way, for a mode handed down from Ruby.  No _S_IEXEC:
+   none of the three that take a mode reads it, and _open() is documented
+   to refuse a mode with anything beyond the two. */
+static int
+perm_from_hal(mrb_int m)
+{
+  return ((m & MRB_IO_S_IRUSR) ? _S_IREAD  : 0) |
+         ((m & MRB_IO_S_IWUSR) ? _S_IWRITE : 0);
+}
+
 /* Convert Windows struct _stat64 to mrb_io_stat */
 static void
 convert_stat(const struct _stat64 *src, mrb_io_stat *dst)
 {
   dst->st_dev = (mrb_int)src->st_dev;
   dst->st_ino = (mrb_int)src->st_ino;
-  dst->st_mode = (mrb_int)src->st_mode;
+  /* The kind is tested with the runtime's own names and written in the
+     HAL's terms; _stat64() names a regular file, a directory and a
+     character device and nothing else, and a kind it cannot name leaves
+     the type empty, which every MRB_IO_S_IS* reads as false. */
+  dst->st_mode = perm_to_hal(src->st_mode);
+  dst->st_mode |= (dst->st_mode >> 3) | (dst->st_mode >> 6);
+  if ((src->st_mode & _S_IFMT) == _S_IFREG) {
+    dst->st_mode |= MRB_IO_S_IFREG;
+  }
+  else if ((src->st_mode & _S_IFMT) == _S_IFDIR) {
+    dst->st_mode |= MRB_IO_S_IFDIR;
+  }
+  else if ((src->st_mode & _S_IFMT) == _S_IFCHR) {
+    dst->st_mode |= MRB_IO_S_IFCHR;
+  }
   dst->st_nlink = (mrb_int)src->st_nlink;
   dst->st_uid = 0;  /* Windows doesn't have Unix-style UIDs */
   dst->st_gid = 0;  /* Windows doesn't have Unix-style GIDs */
@@ -117,7 +158,7 @@ int
 mrb_hal_io_chmod(mrb_state *mrb, const char *path, mrb_int mode)
 {
   (void)mrb;
-  return _chmod(path, (int)mode);
+  return _chmod(path, perm_from_hal(mode));
 }
 
 mrb_int
@@ -132,9 +173,9 @@ mrb_hal_io_umask(mrb_state *mrb, mrb_int mask)
     _umask(old);
   }
   else {
-    old = _umask((int)mask);
+    old = _umask(perm_from_hal(mask));
   }
-  return (mrb_int)old;
+  return perm_to_hal((unsigned short)old);
 }
 
 int
@@ -270,7 +311,7 @@ mrb_hal_io_open(mrb_state *mrb, const char *path, int flags, mrb_int mode)
      mode itself (it adds O_BINARY only for a "b" mode), so forcing
      _O_BINARY here would override that and break the text-mode CRLF
      handling that IO#gets and friends rely on. */
-  fd = _open(path, flags, (int)mode);
+  fd = _open(path, flags, perm_from_hal(mode));
   if (fd == -1) {
     return -1;
   }

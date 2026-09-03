@@ -37,6 +37,61 @@
  * Helper Functions
  */
 
+/* POSIX requires the file type constants to be usable in `#if`, so whether
+   this host numbers the type as the HAL does is settled here rather than
+   assumed.  Where it does, the field carries across as it is; where it does
+   not, the kind is tested with the S_IS*() macros, which are what POSIX
+   actually guarantees.  Neither host pays for the other. */
+#if defined(S_IFMT)   && S_IFMT   == MRB_IO_S_IFMT   && \
+    defined(S_IFREG)  && S_IFREG  == MRB_IO_S_IFREG  && \
+    defined(S_IFDIR)  && S_IFDIR  == MRB_IO_S_IFDIR  && \
+    defined(S_IFCHR)  && S_IFCHR  == MRB_IO_S_IFCHR  && \
+    defined(S_IFBLK)  && S_IFBLK  == MRB_IO_S_IFBLK  && \
+    defined(S_IFIFO)  && S_IFIFO  == MRB_IO_S_IFIFO  && \
+    defined(S_IFLNK)  && S_IFLNK  == MRB_IO_S_IFLNK  && \
+    defined(S_IFSOCK) && S_IFSOCK == MRB_IO_S_IFSOCK
+# define MRB_IO_TYPE_IS_HAL_TYPE
+#endif
+
+/* The permission bits, this host's to the HAL's.  POSIX names them and
+   leaves the numbers to the implementation, so each is read by name; where
+   the two agree, as they do here, the compiler folds this to a mask. */
+static mrb_int
+perm_to_hal(mode_t m)
+{
+  return ((m & S_ISUID) ? MRB_IO_S_ISUID : 0) |
+         ((m & S_ISGID) ? MRB_IO_S_ISGID : 0) |
+         ((m & S_ISVTX) ? MRB_IO_S_ISVTX : 0) |
+         ((m & S_IRUSR) ? MRB_IO_S_IRUSR : 0) |
+         ((m & S_IWUSR) ? MRB_IO_S_IWUSR : 0) |
+         ((m & S_IXUSR) ? MRB_IO_S_IXUSR : 0) |
+         ((m & S_IRGRP) ? MRB_IO_S_IRGRP : 0) |
+         ((m & S_IWGRP) ? MRB_IO_S_IWGRP : 0) |
+         ((m & S_IXGRP) ? MRB_IO_S_IXGRP : 0) |
+         ((m & S_IROTH) ? MRB_IO_S_IROTH : 0) |
+         ((m & S_IWOTH) ? MRB_IO_S_IWOTH : 0) |
+         ((m & S_IXOTH) ? MRB_IO_S_IXOTH : 0);
+}
+
+/* The same the other way, for a mode handed down from Ruby */
+static mode_t
+perm_from_hal(mrb_int m)
+{
+  return (mode_t)
+         (((m & MRB_IO_S_ISUID) ? S_ISUID : 0) |
+          ((m & MRB_IO_S_ISGID) ? S_ISGID : 0) |
+          ((m & MRB_IO_S_ISVTX) ? S_ISVTX : 0) |
+          ((m & MRB_IO_S_IRUSR) ? S_IRUSR : 0) |
+          ((m & MRB_IO_S_IWUSR) ? S_IWUSR : 0) |
+          ((m & MRB_IO_S_IXUSR) ? S_IXUSR : 0) |
+          ((m & MRB_IO_S_IRGRP) ? S_IRGRP : 0) |
+          ((m & MRB_IO_S_IWGRP) ? S_IWGRP : 0) |
+          ((m & MRB_IO_S_IXGRP) ? S_IXGRP : 0) |
+          ((m & MRB_IO_S_IROTH) ? S_IROTH : 0) |
+          ((m & MRB_IO_S_IWOTH) ? S_IWOTH : 0) |
+          ((m & MRB_IO_S_IXOTH) ? S_IXOTH : 0));
+}
+
 /* Convert POSIX struct stat to mrb_io_stat */
 static void
 convert_stat(const struct stat *src, mrb_io_stat *dst)
@@ -69,7 +124,34 @@ convert_stat(const struct stat *src, mrb_io_stat *dst)
 
   dst->st_dev = (mrb_int)src->st_dev;
   dst->st_ino = (mrb_int)src->st_ino;
-  dst->st_mode = (mrb_int)src->st_mode;
+  /* The kind is written in the HAL's terms; a kind this host cannot name
+     leaves the type empty, which every MRB_IO_S_IS* reads as false. */
+  dst->st_mode = perm_to_hal(src->st_mode);
+#ifdef MRB_IO_TYPE_IS_HAL_TYPE
+  dst->st_mode |= (mrb_int)(src->st_mode & S_IFMT);
+#else
+  if (S_ISREG(src->st_mode)) {
+    dst->st_mode |= MRB_IO_S_IFREG;
+  }
+  else if (S_ISDIR(src->st_mode)) {
+    dst->st_mode |= MRB_IO_S_IFDIR;
+  }
+  else if (S_ISCHR(src->st_mode)) {
+    dst->st_mode |= MRB_IO_S_IFCHR;
+  }
+  else if (S_ISBLK(src->st_mode)) {
+    dst->st_mode |= MRB_IO_S_IFBLK;
+  }
+  else if (S_ISFIFO(src->st_mode)) {
+    dst->st_mode |= MRB_IO_S_IFIFO;
+  }
+  else if (S_ISLNK(src->st_mode)) {
+    dst->st_mode |= MRB_IO_S_IFLNK;
+  }
+  else if (S_ISSOCK(src->st_mode)) {
+    dst->st_mode |= MRB_IO_S_IFSOCK;
+  }
+#endif /* MRB_IO_TYPE_IS_HAL_TYPE */
   dst->st_nlink = (mrb_int)src->st_nlink;
   dst->st_uid = (mrb_int)src->st_uid;
   dst->st_gid = (mrb_int)src->st_gid;
@@ -138,7 +220,7 @@ int
 mrb_hal_io_chmod(mrb_state *mrb, const char *path, mrb_int mode)
 {
   (void)mrb;
-  return chmod(path, (mode_t)mode);
+  return chmod(path, perm_from_hal(mode));
 }
 
 mrb_int
@@ -153,9 +235,9 @@ mrb_hal_io_umask(mrb_state *mrb, mrb_int mask)
     umask(old);
   }
   else {
-    old = umask((mode_t)mask);
+    old = umask(perm_from_hal(mask));
   }
-  return (mrb_int)old;
+  return perm_to_hal(old);
 }
 
 int
@@ -268,7 +350,7 @@ mrb_hal_io_open(mrb_state *mrb, const char *path, int flags, mrb_int mode)
   int fd;
   (void)mrb;
 
-  fd = open(path, flags, (mode_t)mode);
+  fd = open(path, flags, perm_from_hal(mode));
   if (fd == -1) {
     return -1;
   }
