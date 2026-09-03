@@ -21,4 +21,13 @@
 # define MRB_HAL_IO_HAS_FLOCK
 #endif
 
+/* The file kinds mrb_hal_io_stat() and mrb_hal_io_lstat() can name in
+   st_mode, beyond a regular file and a directory: `FileTest.pipe?`,
+   `FileTest.symlink?` and `FileTest.socket?`.  Each guards the predicate
+   that reads the kind, and the arm that writes it where io_hal.c maps
+   the kinds one by one. */
+#define MRB_HAL_IO_HAS_STAT_FIFO
+#define MRB_HAL_IO_HAS_STAT_SYMLINK
+#define MRB_HAL_IO_HAS_STAT_SOCKET
+
 #endif /* MRUBY_IO_HAL_FEATURES_H */

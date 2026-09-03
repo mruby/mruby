@@ -20,4 +20,9 @@
 /* LockFileEx() stands in for flock(2): `File#flock`. */
 #define MRB_HAL_IO_HAS_FLOCK
 
+/* The st_mode _stat64() fills names a regular file, a directory or a
+   character device and nothing else: no FIFO (an anonymous pipe is not
+   one), no symbolic link, no socket.  `FileTest.pipe?`, `.symlink?` and
+   `.socket?` are left undefined rather than defined to answer wrongly. */
+
 #endif /* MRUBY_IO_HAL_FEATURES_H */

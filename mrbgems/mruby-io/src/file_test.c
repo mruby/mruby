@@ -53,11 +53,13 @@ mrb_stat(mrb_state *mrb, mrb_value obj, mrb_io_stat *st)
   return mrb_stat0(mrb, obj, st, 0);
 }
 
+#ifdef MRB_HAL_IO_HAS_STAT_SYMLINK
 static int
 mrb_lstat(mrb_state *mrb, mrb_value obj, mrb_io_stat *st)
 {
   return mrb_stat0(mrb, obj, st, 1);
 }
+#endif
 
 /*
  * call-seq:
@@ -85,11 +87,11 @@ mrb_filetest_s_directory_p(mrb_state *mrb, mrb_value klass)
   return mrb_false_value();
 }
 
-#ifdef _WIN32
-/* Windows anonymous pipes are not Unix FIFOs: unimplemented, and named as such
-   so `respond_to?` can answer false */
-# define mrb_filetest_s_pipe_p mrb_notimplement_m
-#else
+/* Whether a stat can name a FIFO, a symbolic link or a socket is the port's
+   to say, in its io_hal_features.h; a predicate the port cannot answer is
+   unimplemented, and named as such so `respond_to?` can answer false */
+
+#ifdef MRB_HAL_IO_HAS_STAT_FIFO
 /*
  * call-seq:
  *   File.pipe?(file_name)   ->  true or false
@@ -114,13 +116,11 @@ mrb_filetest_s_pipe_p(mrb_state *mrb, mrb_value klass)
 
   return mrb_false_value();
 }
+#else
+# define mrb_filetest_s_pipe_p mrb_notimplement_m
 #endif
 
-#ifdef _WIN32
-/* Symlinks are not reliably supported on Windows: unimplemented, and named as
-   such so `respond_to?` can answer false */
-# define mrb_filetest_s_symlink_p mrb_notimplement_m
-#else
+#ifdef MRB_HAL_IO_HAS_STAT_SYMLINK
 /*
  * call-seq:
  *   File.symlink?(file_name)   ->  true or false
@@ -145,13 +145,11 @@ mrb_filetest_s_symlink_p(mrb_state *mrb, mrb_value klass)
 
   return mrb_false_value();
 }
+#else
+# define mrb_filetest_s_symlink_p mrb_notimplement_m
 #endif
 
-#ifdef _WIN32
-/* Unix domain sockets are not supported on Windows: unimplemented, and named
-   as such so `respond_to?` can answer false */
-# define mrb_filetest_s_socket_p mrb_notimplement_m
-#else
+#ifdef MRB_HAL_IO_HAS_STAT_SOCKET
 /*
  * call-seq:
  *   File.socket?(file_name)   ->  true or false
@@ -176,6 +174,8 @@ mrb_filetest_s_socket_p(mrb_state *mrb, mrb_value klass)
 
   return mrb_false_value();
 }
+#else
+# define mrb_filetest_s_socket_p mrb_notimplement_m
 #endif
 
 /*

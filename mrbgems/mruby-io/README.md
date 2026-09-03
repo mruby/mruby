@@ -185,10 +185,17 @@ not declare has no method at all rather than one that fails, and
 `respond_to?` answers false. A port that declares a capability it does not
 implement fails to link.
 
-| macro                    | methods                         | posix             | win |
-| ------------------------ | ------------------------------- | ----------------- | --- |
-| `MRB_HAL_IO_HAS_SYMLINK` | `File.symlink`, `File.readlink` | o                 |     |
-| `MRB_HAL_IO_HAS_FLOCK`   | `File#flock`                    | o, not on Solaris | o   |
+| macro                         | methods                         | posix             | win |
+| ----------------------------- | ------------------------------- | ----------------- | --- |
+| `MRB_HAL_IO_HAS_SYMLINK`      | `File.symlink`, `File.readlink` | o                 |     |
+| `MRB_HAL_IO_HAS_FLOCK`        | `File#flock`                    | o, not on Solaris | o   |
+| `MRB_HAL_IO_HAS_STAT_FIFO`    | `FileTest.pipe?`                | o                 |     |
+| `MRB_HAL_IO_HAS_STAT_SYMLINK` | `FileTest.symlink?`             | o                 |     |
+| `MRB_HAL_IO_HAS_STAT_SOCKET`  | `FileTest.socket?`              | o                 |     |
+
+The three `STAT` macros name no port function. They say which file kinds the
+`st_mode` from `mrb_hal_io_stat()` can hold, and the predicate each guards
+reads that kind through the `MRB_IO_S_IS*` macros of `io_hal.h`.
 
 ## License
 

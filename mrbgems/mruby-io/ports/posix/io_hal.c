@@ -124,8 +124,9 @@ convert_stat(const struct stat *src, mrb_io_stat *dst)
 
   dst->st_dev = (mrb_int)src->st_dev;
   dst->st_ino = (mrb_int)src->st_ino;
-  /* The kind is written in the HAL's terms; a kind this host cannot name
-     leaves the type empty, which every MRB_IO_S_IS* reads as false. */
+  /* The kind is written in the HAL's terms.  What the gem may read of it
+     is the port's declaration; where the kinds are mapped one by one, a
+     kind the port does not declare is not written either. */
   dst->st_mode = perm_to_hal(src->st_mode);
 #ifdef MRB_IO_TYPE_IS_HAL_TYPE
   dst->st_mode |= (mrb_int)(src->st_mode & S_IFMT);
@@ -142,15 +143,21 @@ convert_stat(const struct stat *src, mrb_io_stat *dst)
   else if (S_ISBLK(src->st_mode)) {
     dst->st_mode |= MRB_IO_S_IFBLK;
   }
+#ifdef MRB_HAL_IO_HAS_STAT_FIFO
   else if (S_ISFIFO(src->st_mode)) {
     dst->st_mode |= MRB_IO_S_IFIFO;
   }
+#endif
+#ifdef MRB_HAL_IO_HAS_STAT_SYMLINK
   else if (S_ISLNK(src->st_mode)) {
     dst->st_mode |= MRB_IO_S_IFLNK;
   }
+#endif
+#ifdef MRB_HAL_IO_HAS_STAT_SOCKET
   else if (S_ISSOCK(src->st_mode)) {
     dst->st_mode |= MRB_IO_S_IFSOCK;
   }
+#endif
 #endif /* MRB_IO_TYPE_IS_HAL_TYPE */
   dst->st_nlink = (mrb_int)src->st_nlink;
   dst->st_uid = (mrb_int)src->st_uid;
