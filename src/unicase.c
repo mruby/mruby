@@ -175,18 +175,27 @@ mrb_uni_case_map(enum mrb_case_kind kind, uint32_t cp, char *buf)
 
 /* Whether the folding difference holds a run over any of [lo, hi]. A caller
    walking the lowercase runs asks this to know whether the difference has
-   something to say about the span it is about to report whole. */
+   something to say about the span it is about to report whole. Runs ascend
+   and never overlap, so their ends ascend too: the first run whose end
+   reaches lo is the only one that can start before hi, and the search below
+   keeps its start, since the last run it steps h down to is that one. */
 static mrb_bool
 fold_diff_touches(uint32_t lo, uint32_t hi)
 {
   const struct case_table *t = &case_tables[MRB_CASE_KIND_FOLD];
-  for (size_t i = 0; i < t->run_count; i++) {
+  size_t l = 0, h = t->run_count;
+  uint32_t start = UINT32_MAX;  /* past any hi, so no run found means FALSE */
+  while (l < h) {
+    size_t mid = l + (h - l) / 2;
     case_run r;
-    case_run_at(t->runs, i, &r);
-    if (r.start > hi) return FALSE;  /* runs ascend, so nothing later can hit */
-    if (r.start + (r.count - 1) * r.stride >= lo) return TRUE;
+    case_run_at(t->runs, mid, &r);
+    if (r.start + (r.count - 1) * r.stride < lo) l = mid + 1;
+    else {
+      h = mid;
+      start = r.start;
+    }
   }
-  return FALSE;
+  return start <= hi;
 }
 
 uint32_t
