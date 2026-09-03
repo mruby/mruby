@@ -417,7 +417,9 @@ int mrb_hal_dir_chroot(mrb_state *mrb, const char *path);
 One macro guards the prototype, the port's implementation and the
 method definition in `src/`, so a port that declares a capability and
 forgets to implement it fails to link, and one that declares nothing
-owes nothing.
+owes nothing. `mruby-dir` carries such a header under
+`ports/posix/include/` and `ports/win/include/`, and its README lists
+what each declares.
 
 Only `include/` is exported. A header anywhere else under
 `ports/<name>/` is the port's own, reached by its sources through a
