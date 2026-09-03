@@ -94,6 +94,8 @@ and the one next to a `-` bounds the range, so `/[\u{61 62}-z]/` is `a` plus
 ```ruby
 # Regexp
 re = Regexp.new("pattern", Regexp::IGNORECASE)
+re = Regexp.new("pattern", "im")  # the same options as letters
+re = Regexp.new(other)            # a copy of another Regexp
 re = Regexp.compile("pattern")    # Regexp.new under its other name
 re = /pattern/i                   # literal syntax
 re.match("string")                # => MatchData or nil
@@ -103,7 +105,8 @@ re.match?("string")               # => true/false
 re.match?("string", pos)          # => same, searching from pos
 re =~ "string"                    # => index or nil
 re === "string"                   # => true/false (for case/when)
-re.match(:symbol)                 # a Symbol is matched against its name
+re.match(:symbol)                 # a Symbol is matched against its name, here
+                                  #    and in match?, =~ and ===
 re.source                         # => "pattern"
 re.options                        # => flags integer
 re.casefold?                      # => true where the pattern carries /i
@@ -144,6 +147,8 @@ md.named_captures                 # => {"name" => "value", ...}
 md.names                          # => ["name", ...]
 md.string                         # => the subject the match ran against
 md.regexp                         # => the Regexp that matched
+md.inspect                        # => '#<MatchData "user@host" 1:"user"
+                                  #    2:"host">', groups by number or name
 
 # String methods
 str.match(re)                     # => MatchData or nil
@@ -253,6 +258,10 @@ Every entry is a place this engine answers a pattern differently from CRuby.
   letter of any script.
 - **No `\M-X`**: always `RegexpError`; CRuby refuses it only outside a binary
   pattern.
+- **No `(?a)`, `(?d)` or `(?u)`**: `undefined group option`, in the toggle and
+  the scoped form alike. CRuby's `(?u)` widens `\d`, `\s` and `\w` to Unicode
+  and its `(?a)` narrows the POSIX brackets and `\b` to ASCII; here nothing in
+  a pattern changes what those hold.
 - **A `[` inside a class opens something**: a POSIX bracket or a nested class.
   `[[.a.]]` and `[[=a=]]` raise `RegexpError`; write `[\[]` for the bracket.
   `[a-[b]]` raises where CRuby reads the class holding `b` alone. A negated
@@ -406,9 +415,13 @@ and `[[:ascii:]]` are ASCII on any build.
 The Limitations list is kept by hand; `tools/difftest` keeps it honest:
 
 ```console
-$ rake regexp:difftest
-5175 patterns, 101 known differences, no new ones
+$ MRUBY_CONFIG=host-debug rake regexp:difftest
+6791 patterns, 353 known differences, no new ones
 ```
+
+The baseline was taken against `build_config/host-debug.rb`, whose full-core
+gembox reads strings as UTF-8 and classifies them by Unicode; the default
+config has no `mruby-encoding`, so its build is refused against it.
 
 `probe.rb` runs a corpus under either engine and prints, per pattern, where a
 match starts in each of a fixed list of subjects, what it captured and which
