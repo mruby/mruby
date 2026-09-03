@@ -26,6 +26,42 @@ tasktest_block_then_raise(mrb_state *mrb, mrb_value self)
   return mrb_nil_value(); /* not reached */
 }
 
+static mrb_value
+tasktest_yield_nil(mrb_state *mrb, void *ud)
+{
+  return mrb_yield_argv(mrb, mrb_obj_value((struct RProc*)ud), 0, NULL);
+}
+
+/* mrb_disable_task_scheduler() is the embedder's call, so the test makes it
+   from C. What Ruby can then check is the promise it makes: a VM that
+   already has tasks refuses, because a queue nobody ticks is a hang. */
+static mrb_value
+tasktest_disable_tasks(mrb_state *mrb, mrb_value self)
+{
+  mrb_disable_task_scheduler(mrb);
+  return mrb_nil_value();
+}
+
+/* The flag off for the length of a block, so the refusal can be tested
+   in a VM that is otherwise running the suite's own tasks. Not an API -
+   mrb_disable_task_scheduler() is one-way on purpose. */
+static mrb_value
+tasktest_with_tasks_disabled(mrb_state *mrb, mrb_value self)
+{
+  mrb_value blk;
+  mrb_get_args(mrb, "&", &blk);
+  mrb->task.enabled = FALSE;
+  mrb_value ret = mrb_protect_error(mrb, tasktest_yield_nil, mrb_ptr(blk), NULL);
+  mrb->task.enabled = TRUE;
+  return ret;
+}
+
+static mrb_value
+tasktest_tasks_enabled(mrb_state *mrb, mrb_value self)
+{
+  return mrb_bool_value(mrb_task_scheduler_enabled_p(mrb));
+}
+
 /* Scheduler-hook probes. Two counters so the replace semantics can be
    observed: which counter grows tells which hook is installed. */
 static uint32_t probe_count_a;
@@ -271,6 +307,9 @@ void
 mrb_mruby_task_gem_test(mrb_state* mrb)
 {
   struct RClass *tasktest = mrb_define_module(mrb, "TaskTest");
+  mrb_define_module_function(mrb, tasktest, "disable_tasks", tasktest_disable_tasks, MRB_ARGS_NONE());
+  mrb_define_module_function(mrb, tasktest, "tasks_enabled?", tasktest_tasks_enabled, MRB_ARGS_NONE());
+  mrb_define_module_function(mrb, tasktest, "with_tasks_disabled", tasktest_with_tasks_disabled, MRB_ARGS_BLOCK());
   mrb_define_module_function(mrb, tasktest, "block_then_raise", tasktest_block_then_raise, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, tasktest, "install_probe_hook", tasktest_install_probe_hook, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, tasktest, "probe_count", tasktest_probe_count, MRB_ARGS_REQ(1));
