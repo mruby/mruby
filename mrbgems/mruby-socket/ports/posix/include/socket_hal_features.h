@@ -20,4 +20,12 @@
 /* socketpair(2): `Socket.socketpair`. */
 #define MRB_HAL_SOCKET_HAS_SOCKETPAIR
 
+/* A socket is a file descriptor: read(2), write(2), lseek(2) and close(2)
+   take it, so `BasicSocket` inherits every method of `IO` unchanged.  This
+   guards no port function; without it `src/` reads and writes a socket
+   through recv(2) and send(2), and leaves `BasicSocket#sysseek` undefined.
+   It changes nothing in mruby-io, whose `IO.new` and `IO#close` must still
+   know the socket for one; of the bundled io ports only Windows does. */
+#define MRB_HAL_SOCKET_HAS_FD_IO
+
 #endif /* MRUBY_SOCKET_HAL_FEATURES_H */

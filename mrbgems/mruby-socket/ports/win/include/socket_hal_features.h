@@ -18,4 +18,10 @@
 
 /* No socketpair(2): `Socket.socketpair` is likewise undefined. */
 
+/* A SOCKET is not a C runtime descriptor: read(), write() and lseek() do
+   not take it, so MRB_HAL_SOCKET_HAS_FD_IO is not declared and `src/` reads
+   and writes a socket through recv() and send() instead.  That mruby-io's
+   `IO.new` accepts the handle and `IO#close` closes it with closesocket()
+   is mruby-io's own doing for Winsock, not this header's. */
+
 #endif /* MRUBY_SOCKET_HAL_FEATURES_H */

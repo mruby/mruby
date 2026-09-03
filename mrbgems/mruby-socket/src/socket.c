@@ -1240,21 +1240,18 @@ mrb_tcpsocket_allocate(mrb_state *mrb, mrb_value klass)
   return mrb_obj_value((struct RObject*)mrb_obj_alloc(mrb, ttype, c));
 }
 
-/* Windows overrides for IO methods on BasicSocket objects.
- * This is because sockets on Windows are not the same as file
- * descriptors, and thus functions which operate on file descriptors
- * will break on socket descriptors.
+/* On a port whose socket is not a file descriptor, IO's read and write
+ * cannot take it; these stand in for them through recv() and send().
  */
-#ifdef _WIN32
+#ifndef MRB_HAL_SOCKET_HAS_FD_IO
 /*
  * call-seq:
  *   basicsocket.sysread(maxlen, outbuf=nil) -> string
  *
- * Windows-specific implementation to read from socket using recv().
- * Overrides IO#sysread for socket objects on Windows.
+ * Reads from the socket with recv(), in place of IO#sysread.
  */
 static mrb_value
-mrb_win32_basicsocket_sysread(mrb_state *mrb, mrb_value self)
+mrb_basicsocket_recv_sysread(mrb_state *mrb, mrb_value self)
 {
   mrb_value buf = mrb_nil_value();
   mrb_int maxlen;
@@ -1283,7 +1280,7 @@ mrb_win32_basicsocket_sysread(mrb_state *mrb, mrb_value self)
         mrb_raise(mrb, E_EOF_ERROR, "sysread failed: End of File");
       }
       break;
-    case SOCKET_ERROR: /* Error */
+    case -1: /* Error */
       sock_sys_fail(mrb, "recv");
       break;
     default:
@@ -1300,24 +1297,23 @@ mrb_win32_basicsocket_sysread(mrb_state *mrb, mrb_value self)
  * call-seq:
  *   basicsocket.syswrite(string) -> integer
  *
- * Windows-specific implementation to write to socket using send().
- * Overrides IO#syswrite for socket objects on Windows.
+ * Writes to the socket with send(), in place of IO#syswrite.
  */
 static mrb_value
-mrb_win32_basicsocket_syswrite(mrb_state *mrb, mrb_value self)
+mrb_basicsocket_send_syswrite(mrb_state *mrb, mrb_value self)
 {
   mrb_value str;
-  SOCKET sd = socket_fd(mrb, self);
+  int sd = socket_fd(mrb, self);
 
   mrb_get_args(mrb, "S", &str);
 
   int n = send(sd, RSTRING_PTR(str), (int)RSTRING_LEN(str), 0);
-  if (n == SOCKET_ERROR)
+  if (n == -1)
     sock_sys_fail(mrb, "send");
   return mrb_int_value(mrb, n);
 }
 
-#endif
+#endif /* MRB_HAL_SOCKET_HAS_FD_IO */
 
 /* ---------------------------*/
 static const mrb_mt_entry addrinfo_rom_entries[] = {
@@ -1337,17 +1333,21 @@ static const mrb_mt_entry basicsocket_rom_entries[] = {
   MRB_MT_ENTRY(mrb_basicsocket_setsockopt,    MRB_SYM(setsockopt), MRB_ARGS_REQ(1)|MRB_ARGS_OPT(2)),
   MRB_MT_ENTRY(mrb_basicsocket_shutdown,      MRB_SYM(shutdown), MRB_ARGS_OPT(1)),
   MRB_MT_ENTRY(mrb_basicsocket_set_is_socket, MRB_SYM_E(_is_socket), MRB_ARGS_REQ(1)),
-#ifdef _WIN32
-  /* `close` is IO's: fptr_finalize() calls closesocket() for a socket on
-     Windows and then clears the descriptor, which an override here did not,
-     leaving the object open to being closed a second time */
-  MRB_MT_ENTRY(mrb_win32_basicsocket_sysread,  MRB_SYM(sysread), MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1)),
-  /* a socket cannot seek: unimplemented, and named as such so `respond_to?`
-     can answer false */
-  MRB_MT_ENTRY(mrb_notimplement_m,             MRB_SYM(sysseek), MRB_ARGS_REQ(1)),
-  MRB_MT_ENTRY(mrb_win32_basicsocket_syswrite, MRB_SYM(syswrite), MRB_ARGS_REQ(1)),
-  MRB_MT_ENTRY(mrb_win32_basicsocket_sysread,  MRB_SYM(read), MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1)),
-  MRB_MT_ENTRY(mrb_win32_basicsocket_syswrite, MRB_SYM(write), MRB_ARGS_REQ(1)),
+#ifndef MRB_HAL_SOCKET_HAS_FD_IO
+  /* The port's socket is not a file descriptor, so IO's read and write are
+     replaced and there is nothing to seek. `close` stays IO's: on Windows
+     fptr_finalize() closes a socket with closesocket() and then clears the
+     descriptor, which an override here did not, leaving the object open to
+     being closed a second time. That is mruby-io's knowledge of Winsock,
+     not this macro's: a port for another host whose socket is not a
+     descriptor has to teach IO.new and IO#close the same before it leaves
+     MRB_HAL_SOCKET_HAS_FD_IO out. */
+  MRB_MT_ENTRY(mrb_basicsocket_recv_sysread,  MRB_SYM(sysread), MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1)),
+  /* unimplemented, and named as such so `respond_to?` can answer false */
+  MRB_MT_ENTRY(mrb_notimplement_m,            MRB_SYM(sysseek), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(mrb_basicsocket_send_syswrite, MRB_SYM(syswrite), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(mrb_basicsocket_recv_sysread,  MRB_SYM(read), MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1)),
+  MRB_MT_ENTRY(mrb_basicsocket_send_syswrite, MRB_SYM(write), MRB_ARGS_REQ(1)),
 #endif
 };
 

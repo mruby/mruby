@@ -47,6 +47,17 @@ it does not implement fails to link.
 | -------------------------------- | ------------------------------------------ | ----- | --- |
 | `MRB_HAL_SOCKET_HAS_SOCKADDR_UN` | `Socket.sockaddr_un`, `Addrinfo#unix_path` | o     |     |
 | `MRB_HAL_SOCKET_HAS_SOCKETPAIR`  | `Socket.socketpair`                        | o     |     |
+| `MRB_HAL_SOCKET_HAS_FD_IO`       | `BasicSocket#sysseek`                      | o     |     |
+
+`MRB_HAL_SOCKET_HAS_FD_IO` guards no port function. It says a socket is a
+file descriptor that read(2), write(2) and lseek(2) take, so `BasicSocket`
+inherits every method of `IO`; a port that leaves it out gets `sysread`,
+`syswrite`, `read` and `write` through recv(2) and send(2) instead, and no
+`sysseek`. That is all it changes. A socket that is not a descriptor still
+has to be one `IO.new` accepts and `IO#close` closes as a socket, and both
+of those are mruby-io's, which today knows a Winsock handle and no other;
+a port for another such host brings that knowledge to mruby-io before it
+leaves this macro out.
 
 The Ruby layer is not gated. `UNIXSocket.new`, `UNIXServer.new`,
 `UNIXSocket.socketpair` and `Socket.unpack_sockaddr_un` keep their bodies on

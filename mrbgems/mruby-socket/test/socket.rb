@@ -67,8 +67,9 @@ assert('BasicSocket#getpeereid') do
   end
 end
 
-# SocketTest.win? reads the same _WIN32 that guards the sysseek entry, so this
-# test runs everywhere and asks each platform for the answer it compiled.
+# Whether a socket is an IO descriptor is the port's to declare, and of the
+# bundled ports only Windows says it is not, so SocketTest.win? picks the
+# answer each build compiled and the test runs everywhere.
 assert('BasicSocket#sysseek') do
   s = Socket.new(Socket::AF_INET, Socket::SOCK_DGRAM, 0)
   begin
