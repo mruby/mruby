@@ -25,3 +25,17 @@ assert("Regexp - POSIX brackets hold ASCII and nothing above it") do
   assert_false Regexp.new("[[:upper:]]", Regexp::IGNORECASE).match?("ā")
   assert_true Regexp.new("[[:^upper:]]", Regexp::IGNORECASE).match?("ā")
 end
+
+assert("Regexp - a negated nested bracket is ASCII here") do
+  # Without the type table a bracket is the ASCII it bounds and nothing more,
+  # so a negated nested one is complemented as members and no type stands in
+  # the way of a second bracket beside it. The unicode_ctype.rb row refuses
+  # the two patterns below, where the type is a question the complement
+  # cannot turn around.
+  re = Regexp.new("[[^[:alpha:]]x]")
+  assert_equal 0, re =~ "1"
+  assert_equal 0, re =~ "x"
+  assert_nil re =~ "a"
+  assert_equal 0, Regexp.new("[[^[:alpha:][:digit:]]x]") =~ "-"
+  assert_nil Regexp.new("[[^[:alpha:][:digit:]]x]") =~ "1"
+end

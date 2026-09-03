@@ -88,3 +88,15 @@ assert("Regexp - /i leaves alone what it can answer") do
     assert_true(/[^\u{212a}]/i.match?("K"))
   end
 end
+
+assert("Regexp - /i over a complement that reaches above ASCII needs the tables") do
+  # The complement of a negated nest is members, and a member above ASCII is
+  # one this build cannot fold. The class is refused rather than folded by
+  # ASCII alone, as every class holding such a member is here.
+  assert_raise(RegexpError) { Regexp.new("[[^é]a]", Regexp::IGNORECASE) }
+  # A complement that reaches above ASCII as a whole is utf8_any rather than a
+  # span of characters, and there is nothing there for the fold to refuse.
+  re = Regexp.new("[[^a-z]Q]", Regexp::IGNORECASE)
+  assert_true re.match?("a")
+  assert_true re.match?("A")
+end

@@ -294,6 +294,22 @@ add_class(re_compiler *c)
   return id;
 }
 
+/* Give back the class added last, once what it held has been merged into
+   another. Only the last one can go: an id below it may already stand in an
+   emitted instruction, and num_classes is what mrb_re_free() walks. The
+   literal record goes with it, since the id is handed out again and an entry
+   left behind would let literal_class() take the next class for the /i
+   literal this one stood for. */
+static void
+drop_class(re_compiler *c, uint16_t id)
+{
+  mrb_assert(id + 1 == c->pat->num_classes);
+  mrb_free(c->mrb, c->pat->classes[id].ranges);
+  memset(&c->pat->classes[id], 0, sizeof(re_charclass));
+  c->literal_cp[id] = 0;
+  c->pat->num_classes = id;
+}
+
 /* The class a /i literal for `cp` compiles to, whether it exists yet or not.
 
    The class holds `cp` and its case counterparts, and nothing else reaches it:
@@ -557,6 +573,130 @@ class_add_shorthand(re_charclass *cc, int ch)
     cc->utf8_any = TRUE;
     break;
   }
+}
+
+/* Everything `src` holds joins `dst`. class_match() reads a class as one OR
+   -- the bitmap and the range list each answer for a side of 128, and
+   utf8_any and the bracket types answer above it -- so the union of two is a
+   merge field by field. The ranges go through class_add_range() rather than
+   being appended, since the list is held sorted and src's entries interleave
+   with dst's. */
+static void
+class_union(re_compiler *c, re_charclass *dst, const re_charclass *src)
+{
+  for (int i = 0; i < RE_CLASS_BITMAP_SIZE; i++) dst->bitmap[i] |= src->bitmap[i];
+  for (uint32_t i = 0; i < src->num_ranges; i++) {
+    class_add_range(c, dst, src->ranges[2 * i], src->ranges[2 * i + 1]);
+  }
+  if (src->utf8_any) dst->utf8_any = TRUE;
+#ifdef RE_UNICODE_CTYPE
+  dst->ctype_yes |= src->ctype_yes;
+  dst->ctype_no |= src->ctype_no;
+#endif
+}
+
+/* The two spaces the range list keeps apart, as the bounds of each: the
+   characters above ASCII, and the bytes that spell none, which carry
+   RE_CLASS_BYTE. A complement is taken over each of them separately, since a
+   member of one is no member of the other and the gap between them belongs
+   to neither. */
+static const uint32_t class_spaces[2][2] = {
+  { 128, 0x10ffff },
+  { RE_CLASS_BYTE | 0x80, RE_CLASS_BYTE | 0xff },
+};
+
+/* Turn the class into the set of everything it does not hold. A negated
+   class nested in another one is what needs this: [[^a]b] is a union, and a
+   set can only join a union once it is written out as members.
+
+   class_match() reads a class as an OR of terms, so a complement is an AND
+   of their negations, and this structure holds no AND. What saves it is that
+   at most one term is ever there to negate:
+
+   - The bitmap stands alone, ASCII being a space of its own. It inverts.
+   - utf8_any holds every byte above ASCII and every character whatever the
+     other terms say, so its negation holds none of either and leaves them
+     nothing to say.
+   - A bracket type, with no range beside it, negates by changing polarity:
+     ctype_yes is the type a character has and ctype_no the type it lacks,
+     and mrb_re_class_ctype_match() reads a byte as having none. One bit is
+     the bound the swap holds at, since [[:alpha:][:digit:]] is a character
+     that is a letter *or* a digit and its complement one that is neither,
+     which no single polarity spells.
+   - With no type in the class the ranges stand alone, and their gaps are the
+     complement.
+
+   A type beside a range, or two of them, is the AND this cannot write, and
+   is refused rather than answered with a set the pattern did not ask for. */
+static void
+class_complement(re_compiler *c, re_charclass *cc)
+{
+  for (int i = 0; i < RE_CLASS_BITMAP_SIZE; i++) {
+    cc->bitmap[i] = (uint8_t)~cc->bitmap[i];
+  }
+
+  if (cc->utf8_any) {
+    cc->utf8_any = FALSE;
+    cc->num_ranges = 0;
+#ifdef RE_UNICODE_CTYPE
+    cc->ctype_yes = cc->ctype_no = 0;
+#endif
+    return;
+  }
+
+#ifdef RE_UNICODE_CTYPE
+  if (cc->ctype_yes | cc->ctype_no) {
+    uint16_t type = cc->ctype_yes | cc->ctype_no;
+    if (cc->num_ranges != 0 || (cc->ctype_yes && cc->ctype_no) ||
+        (type & (type - 1)) != 0) {
+      compile_error(c, "this negated nested character class is not supported");
+    }
+    uint16_t yes = cc->ctype_yes;
+    cc->ctype_yes = cc->ctype_no;
+    cc->ctype_no = yes;
+    return;
+  }
+#endif
+
+  /* With nothing above ASCII in the class, the complement holds everything
+     there, and utf8_any says so in one field. Spelling it out as the two
+     full spans instead would put a range across the cased characters into
+     every such class, and a build without the folding tables refuses one
+     under /i: [[^a]x] would be refused for a fold with nothing to add, the
+     span already holding every counterpart it could reach. */
+  if (cc->num_ranges == 0) {
+    cc->utf8_any = TRUE;
+    return;
+  }
+
+  /* The gaps of a sorted list whose entries neither overlap nor touch, read
+     off in one walk per space. A space with k entries in it has at most k+1
+     gaps, so the two together fit in num_ranges + 2. */
+  uint32_t capa = cc->num_ranges + 2;
+  uint32_t *comp = (uint32_t*)mrb_malloc(c->mrb, sizeof(uint32_t) * 2 * capa);
+  uint32_t n = 0;
+  for (int s = 0; s < 2; s++) {
+    uint32_t next = class_spaces[s][0];
+    for (uint32_t i = 0; i < cc->num_ranges; i++) {
+      uint32_t lo = cc->ranges[2 * i], hi = cc->ranges[2 * i + 1];
+      if (lo < class_spaces[s][0] || lo > class_spaces[s][1]) continue;
+      if (lo > next) {
+        comp[2 * n] = next;
+        comp[2 * n + 1] = lo - 1;
+        n++;
+      }
+      if (hi + 1 > next) next = hi + 1;
+    }
+    if (next <= class_spaces[s][1]) {
+      comp[2 * n] = next;
+      comp[2 * n + 1] = class_spaces[s][1];
+      n++;
+    }
+  }
+  mrb_free(c->mrb, cc->ranges);
+  cc->ranges = comp;
+  cc->num_ranges = n;
+  cc->range_capa = capa;
 }
 
 /* TRUE when every character the class can match is ASCII, so it always
@@ -960,6 +1100,54 @@ reject_set_as_range_start(re_compiler *c)
   }
 }
 
+static void parse_class_body(re_compiler *c, uint16_t id, re_charclass *ascii_set);
+
+/* One nested class, from its '[' through its ']', merged into class `id`.
+
+   A class that is not negated is the members themselves, so it is read
+   straight into the same class: [x[ab]] and [xab] are one set, and reading
+   it at this level is also what keeps the caller's ascii_set holding the
+   word class of a nest, apart from the fold as a `\w` written here would be.
+
+   A negated one stands for what it leaves out, and a set can only join a
+   union once it is written out as members. It is read into a class of its
+   own, closed with an ascii_set of its own, complemented, and merged. The
+   class goes back afterwards, so a pattern's nests cost one id at a time
+   rather than one each.
+
+   Neither is closed under folding here. /i closes the union once at the end,
+   which is where the counterparts of what a complement let in are picked up:
+   [[^a]x] under /i holds `A`, and closing what holds it brings in `a` as
+   well, so the class accepts what it was written to reject. CRuby reads it
+   the same way, and reads [[^[:upper:]]x] under /i as [[:^upper:]x]. */
+static void
+parse_nested_class(re_compiler *c, uint16_t id, re_charclass *ascii_set)
+{
+  if (++c->depth > (uint32_t)MRB_REGEXP_PARSE_DEPTH_LIMIT) {
+    compile_error(c, "parse depth limit over");
+  }
+  next_char(c);  /* '[' */
+  if (peek(c) != '^') {
+    parse_class_body(c, id, ascii_set);
+  }
+  else {
+    next_char(c);  /* '^' */
+    re_charclass sub_ascii;
+    memset(&sub_ascii, 0, sizeof(sub_ascii));
+    /* The table can move here, so nothing above holds a pointer into it
+       across this call; parse_class_body() takes the class by id. */
+    uint16_t sub = add_class(c);
+    parse_class_body(c, sub, &sub_ascii);
+    re_charclass *scc = &c->pat->classes[sub];
+    for (int i = 0; i < RE_CLASS_BITMAP_SIZE; i++) scc->bitmap[i] |= sub_ascii.bitmap[i];
+    if (sub_ascii.utf8_any) scc->utf8_any = TRUE;
+    class_complement(c, scc);
+    class_union(c, &c->pat->classes[id], scc);
+    drop_class(c, sub);
+  }
+  c->depth--;
+}
+
 /* Read the members of a class into class `id`, from just after its '[' (and
    its '^') through its ']'. `ascii_set` is the caller's; see
    compile_charclass() for what is held there and why. */
@@ -985,16 +1173,28 @@ parse_class_body(re_compiler *c, uint16_t id, re_charclass *ascii_set)
 
     /* A '[' inside a class opens something in CRuby rather than standing for
        itself: a POSIX bracket, a collating element, an equivalence class, or
-       a class nested in this one. Only the bracket is read here and the rest
-       are refused, since taken as members they compile to a different pattern
-       than the one written: [[a][b]] is the union of two classes there and
-       was `[` or `a`, then b, then `]` here. `[\[]` holds the bracket itself,
-       in CRuby as well. A '[' with nothing after it leaves the class
-       unterminated, which the loop reports on its own. */
+       a class nested in this one. The bracket and the nested class are read
+       here; a collating element and an equivalence class are refused, since
+       taken as members they compile to a different pattern than the one
+       written. `[\[]` holds the bracket itself, in CRuby as well. A '[' with
+       nothing after it leaves the class unterminated, which the loop reports
+       on its own. */
     if (peek(c) == '[' && c->p + 1 < c->src_end) {
       if (c->p[1] == '.') compile_error(c, "POSIX collating element is not supported");
       if (c->p[1] == '=') compile_error(c, "POSIX equivalence class is not supported");
-      if (c->p[1] != ':') compile_error(c, "nested character class is not supported");
+      if (c->p[1] != ':') {
+        parse_nested_class(c, id, ascii_set);
+        cc = &c->pat->classes[id];  /* a negated nest moves the table */
+        /* A nested class names a set, and CRuby opens no range on one: the
+           '-' after it is a member, where the '-' after a POSIX bracket or a
+           shorthand is the error reject_set_as_range_start() reports. So
+           [[a]-z] holds `a`, `-` and `z`, and [[:alpha:]-z] raises. */
+        if (peek(c) == '-') {
+          next_char(c);
+          class_set_bit(cc, '-');
+        }
+        continue;
+      }
     }
 
     /* POSIX bracket class: [:name:] or negated [:^name:] inside [...]. */
@@ -1080,6 +1280,13 @@ parse_class_body(re_compiler *c, uint16_t id, re_charclass *ascii_set)
       if (at_shorthand_class(c->p, c->src_end)) {
         compile_error(c, "char-class value at end of range");
       }
+      /* A nested class names a set too, and CRuby answers one in that place
+         with neither the range nor an error: [a-[b]] holds `b` alone, with
+         the `a` and the `-` gone. Refused rather than reproduced. */
+      if (peek(c) == '[' && c->p + 1 < c->src_end &&
+          c->p[1] != ':' && c->p[1] != '.' && c->p[1] != '=') {
+        compile_error(c, "char-class value at end of range");
+      }
       mrb_bool hi_byte;
       uint32_t hi = read_class_atom(c, cc, &hi_byte, TRUE);
       /* An endpoint at or above 128 is a byte or a character, and a span from
@@ -1135,10 +1342,10 @@ compile_charclass(re_compiler *c)
 
   /* Close the class under case folding for /i. This runs once the class is
      complete, so it covers every form parse_class_body() merges in: POSIX
-     brackets, ranges and single literals. Negation is applied at match time
-     against the same class (RE_NCLASS), so closing the positive set is also
-     what keeps [^a-c] and [^Ā] from accepting what they were written to
-     reject.
+     brackets, ranges, single literals and the nested classes whose union the
+     class is. Negation is applied at match time against the same class
+     (RE_NCLASS), so closing the positive set is also what keeps [^a-c] and
+     [^Ā] from accepting what they were written to reject.
 
      Closing means: x belongs to the class whenever some written member folds
      the same way x does. A byte member has no case: it stands for no character,
@@ -3245,10 +3452,11 @@ skip_posix_bracket(const char *src, const char *end)
 /*
  * Step over the one construct at `src` that a pattern scan must not read
  * into: an escape sequence, or a character class from its '[' through its
- * ']'. Returns the position just past it, having updated *in_class, or NULL
- * when the byte at `src` is neither and the caller has to handle it itself.
- * A class spans several calls, with *in_class carrying the state between
- * them, so the caller keeps one flag and starts it FALSE.
+ * ']'. Returns the position just past it, having updated *class_depth, or
+ * NULL when the byte at `src` is neither and the caller has to handle it
+ * itself. A class spans several calls, with *class_depth carrying the state
+ * between them, so the caller keeps one counter and starts it 0. It counts
+ * rather than flags because a class nests: see the '[' arm below.
  *
  * An escape is stepped over at the width CRuby's pre-pass (re.c) reads it,
  * because preprocess_pattern() copies what is stepped over and removes
@@ -3284,7 +3492,7 @@ skip_posix_bracket(const char *src, const char *end)
  * in the other.
  */
 static const char*
-skip_uninterpreted(const char *src, const char *end, mrb_bool *in_class, int *pad)
+skip_uninterpreted(const char *src, const char *end, uint32_t *class_depth, int *pad)
 {
   char ch = *src;
 
@@ -3316,26 +3524,33 @@ skip_uninterpreted(const char *src, const char *end, mrb_bool *in_class, int *pa
     return src;
   }
 
-  if (*in_class) {
+  if (*class_depth > 0) {
     /* A POSIX bracket is consumed as a unit by parse_class_body(), so the
        ']' that closes it does not close the class. */
     const char *q = skip_posix_bracket(src, end);
     if (q) return q;
-    if (ch == ']') *in_class = FALSE;
-    return src + 1;
+    if (ch == ']') {
+      (*class_depth)--;
+      return src + 1;
+    }
+    /* A '[' that opens no bracket opens a class of its own, whose ']' closes
+       that one and not this. Counting the levels is what keeps this pass
+       reading the same span as parse_nested_class(): with a flag, the ']' of
+       [[a]b#c] would end the class here and leave `#c]` a comment under /x
+       where the parser has it as members. */
+    if (ch != '[') return src + 1;
+  }
+  else if (ch != '[') {
+    return NULL;
   }
 
-  if (ch == '[') {
-    *in_class = TRUE;
-    src++;
-    /* A ']' written first is a literal member, optionally after '^',
-       mirroring the `first` flag in parse_class_body(). */
-    if (src < end && *src == '^') src++;
-    if (src < end && *src == ']') src++;
-    return src;
-  }
-
-  return NULL;
+  (*class_depth)++;
+  src++;
+  /* A ']' written first is a literal member, optionally after '^',
+     mirroring the `first` flag in parse_class_body(). */
+  if (src < end && *src == '^') src++;
+  if (src < end && *src == ']') src++;
+  return src;
 }
 
 /* Read the letters of an inline option group whose "(?" starts at `src`,
@@ -3426,7 +3641,7 @@ preprocess_pattern(mrb_state *mrb, const char *src, mrb_int len,
   uint8_t *scope = (uint8_t*)buf + len * 2;
   mrb_int depth = 0;
   mrb_int o = 0;
-  mrb_bool in_class = FALSE;
+  uint32_t class_depth = 0;
   const char *end = src + len;
 
   while (src < end) {
@@ -3435,7 +3650,7 @@ preprocess_pattern(mrb_state *mrb, const char *src, mrb_int len,
        holds a comment. A numeric escape short of its full width is padded
        with zeros after its letter, `\x6` to `\x06`. */
     int pad;
-    const char *skip = skip_uninterpreted(src, end, &in_class, &pad);
+    const char *skip = skip_uninterpreted(src, end, &class_depth, &pad);
     if (skip) {
       if (pad) {
         buf[o++] = *src++;
@@ -3530,12 +3745,12 @@ static mrb_bool
 has_named_group(const char *src, mrb_int len)
 {
   const char *end = src + len;
-  mrb_bool in_class = FALSE;
+  uint32_t class_depth = 0;
 
   while (src < end) {
     char ch = *src;
     int pad;
-    const char *skip = skip_uninterpreted(src, end, &in_class, &pad);
+    const char *skip = skip_uninterpreted(src, end, &class_depth, &pad);
     if (skip) {
       src = skip;
       continue;
