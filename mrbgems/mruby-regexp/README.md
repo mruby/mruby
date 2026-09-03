@@ -13,9 +13,8 @@ simulation) with backtracking fallback.
 - `*+`, `++`, `?+` possessive quantifiers, `a*+` being `(?>a*)`
 - `{n}`, `{n,}`, `{n,m}` repetition counts
 - `[abc]`, `[a-z]`, `[^abc]` character classes
-- `[[a]b]`, `[[^a]b]` nested character classes, whose union the class is
-- `[a-z&&[^aeiou]]` character class intersection, the class being what the
-  operands `&&` separates hold between them
+- `[[a]b]`, `[[^a]b]` nested character classes, joined as a union
+- `[a-z&&[^aeiou]]` character class intersection
 - `[[:alpha:]]`, `[[:^alpha:]]` POSIX brackets inside a class: `alpha`,
   `digit`, `alnum`, `upper`, `lower`, `space`, `blank`, `xdigit`, `word`,
   `cntrl`, `print`, `graph`, `ascii`, `punct`
@@ -31,8 +30,8 @@ simulation) with backtracking fallback.
 - `\k<name>`, `\k'name'` named backreference
 - `\k<n>`, `\k'n'` numbered backreference
 - `\k<-n>`, `\k'-n'` relative backreference
-- `\g<name>`, `\g'name'` subexpression call, recursive where the call stands
-  inside the group it names
+- `\g<name>`, `\g'name'` subexpression call, recursive inside the group it
+  names
 - `\g<n>`, `\g<-n>`, `\g<+n>` the same by number, `\g<0>` the whole pattern
 - `(?=...)` positive lookahead
 - `(?!...)` negative lookahead
@@ -95,6 +94,8 @@ and the one next to a `-` bounds the range, so `/[\u{61 62}-z]/` is `a` plus
 ```ruby
 # Regexp
 re = Regexp.new("pattern", Regexp::IGNORECASE)
+re = Regexp.new("pattern", "im")  # the same options as letters
+re = Regexp.new(other)            # a copy of another Regexp
 re = Regexp.compile("pattern")    # Regexp.new under its other name
 re = /pattern/i                   # literal syntax
 re.match("string")                # => MatchData or nil
@@ -104,7 +105,8 @@ re.match?("string")               # => true/false
 re.match?("string", pos)          # => same, searching from pos
 re =~ "string"                    # => index or nil
 re === "string"                   # => true/false (for case/when)
-re.match(:symbol)                 # a Symbol is matched against its name
+re.match(:symbol)                 # a Symbol is matched against its name, here
+                                  #    and in match?, =~ and ===
 re.source                         # => "pattern"
 re.options                        # => flags integer
 re.casefold?                      # => true where the pattern carries /i
@@ -145,6 +147,8 @@ md.named_captures                 # => {"name" => "value", ...}
 md.names                          # => ["name", ...]
 md.string                         # => the subject the match ran against
 md.regexp                         # => the Regexp that matched
+md.inspect                        # => '#<MatchData "user@host" 1:"user"
+                                  #    2:"host">', groups by number or name
 
 # String methods
 str.match(re)                     # => MatchData or nil
@@ -230,118 +234,92 @@ Two engines, chosen automatically at compile time by pattern analysis.
   quantifiers, lookaround, atomic groups, absent repeaters, conditionals or
   subexpression calls. O(pattern x text), so it is immune to ReDoS.
 - **Backtracking engine** for the rest, whose state the Pike VM's threads have
-  no stack to hold. It backtracks on a stack of its own on the heap, so a
-  search spends a constant amount of C stack however long the subject is.
-  Bounded by `MRB_REGEXP_STEP_LIMIT` and `MRB_REGEXP_STACK_LIMIT`.
+  no stack to hold. It backtracks on a heap stack of its own, so a search
+  spends a constant amount of C stack however long the subject is. Bounded by
+  `MRB_REGEXP_STEP_LIMIT` and `MRB_REGEXP_STACK_LIMIT`.
 
 ## Limitations
 
 Every entry is a place this engine answers a pattern differently from CRuby.
 
-- **UTF-8 only where the build reads it**: a pattern and a subject read the way
-  the build's `String` reads them. Without `MRB_UTF8_STRING` both are bytes:
-  `/./` matches one byte, `/Ā/` is two atoms of one byte each, and `/i` folds
-  ASCII only. A binary (`ASCII-8BIT`) subject reads by byte on either build.
-- **Fixed-length lookbehind only**: `(?<=...)` and `(?<!...)` take no `*`, `+`
-  or `?` and hold no lookaround of their own, which is
-  `invalid pattern in look-behind` when they do, and are at most 255 bytes
-  wide, which is `lookbehind too long (max 255 bytes)`. The body's branches
-  are fixed per branch as in CRuby, so `(?<=ab|c)` looks back two characters
-  down one branch and one down the other, and the line either side of that
-  falls in two places CRuby puts it elsewhere. A call narrows the whole body
-  to one width, since a body holding one is measured after the calls are
-  wired and can no longer be given a rewind per branch: `(?<=\g<1>|zz)(a)`
-  raises where CRuby accepts it. An option construct between the lookbehind
-  and its alternation is nothing here and an enclosure in CRuby, so
-  `(?<=(?i:ab|b))x` and `(?<=(?i)ab|b)x` are accepted where CRuby raises
-  (`(?<=(?i:ab)|b)x`, the option inside a branch, is accepted by both).
-- **No Unicode properties**: `\p{Alpha}`, `\p{L}` raise `RegexpError`, inside a
-  character class as much as outside one. A bare `\p`, and `\pL`, is the
-  letter. `[[:alpha:]]` asks for a letter of any script.
-- **No `\M-X` meta escape**: it always raises `RegexpError`, where CRuby
-  refuses it only outside a binary pattern.
-- **A `[` inside a class opens something**: a POSIX bracket and a nested class
-  are read there, and a collating element (`[[.a.]]`) and an equivalence class
-  (`[[=a=]]`) raise `RegexpError`. Write `[\[]` to hold the bracket itself.
-  A nested class closing a range raises too: CRuby answers `[a-[b]]` with
-  neither the range nor an error, the class holding `b` alone with the `a` and
-  the `-` gone. A negated nest is written out as members at compile time, and
-  a bracket type is a question put to a table rather than members, so a
-  complement that would have to negate one type beside another or beside a
-  member is refused: `[[^[:alpha:][:digit:]]x]` and `[[^[:alpha:]é]x]` raise
-  where CRuby holds both. One type alone changes polarity, so
-  `[[^[:alpha:]]x]` is read as CRuby reads it, which is `[[:^alpha:]x]`.
-- **No `\G`, `\K`, `\R` or `\X`**: they raise `RegexpError` rather than
-  standing for their own letter. Inside a character class each is the letter,
-  and so is a bare `\g` either way.
-- **No nest level on a backreference**: `\k<name+n>` and `\k<name-n>` ask for a
-  capture memory per call level where this engine keeps one flat slot per
-  group, so they raise `RegexpError`, and so does a conditional whose
-  condition spells one, `(?(<name+n>)...)`. A plain `\k<name>` still works
-  inside a recursion, reading the pair the innermost completed invocation
-  left, and so does `(?(<name>)...)`.
-- **A named pattern refuses a numbered condition in every spelling**: CRuby
-  refuses `(?(1)...)` there as it refuses `\1` and `\k<1>`, and reads the
-  delimited spellings `(?(<1>)...)`, `(?(<-1>)...)` and `(?('1')...)` all the
-  same. Here the number is read the way `\k<1>` reads it, and refused with it.
+- **UTF-8 only where the build reads it**: without `MRB_UTF8_STRING` a pattern
+  and a subject are bytes: `/./` matches one byte, `/Ā/` is two atoms, and
+  `/i` folds ASCII only. A binary (`ASCII-8BIT`) subject is bytes on either
+  build.
+- **Fixed-length lookbehind only**: `(?<=...)` and `(?<!...)` take no
+  quantifier and no lookaround (`invalid pattern in look-behind`) and are at
+  most 255 bytes wide (`lookbehind too long (max 255 bytes)`). Each branch has
+  its own width, as in CRuby. A call narrows the whole body to one width, so
+  `(?<=\g<1>|zz)(a)` raises where CRuby accepts it, and an option construct
+  before the alternation does not enclose it here, so `(?<=(?i:ab|b))x` and
+  `(?<=(?i)ab|b)x` are accepted where CRuby raises.
+- **No Unicode properties**: `\p{...}` raises `RegexpError` inside a class or
+  outside one. A bare `\p` or `\pL` is the letter. `[[:alpha:]]` matches a
+  letter of any script.
+- **No `\M-X`**: always `RegexpError`; CRuby refuses it only outside a binary
+  pattern.
+- **No `(?a)`, `(?d)` or `(?u)`**: `undefined group option`, in the toggle and
+  the scoped form alike. CRuby's `(?u)` widens `\d`, `\s` and `\w` to Unicode
+  and its `(?a)` narrows the POSIX brackets and `\b` to ASCII; here nothing in
+  a pattern changes what those hold.
+- **A `[` inside a class opens something**: a POSIX bracket or a nested class.
+  `[[.a.]]` and `[[=a=]]` raise `RegexpError`; write `[\[]` for the bracket.
+  `[a-[b]]` raises where CRuby reads the class holding `b` alone. A negated
+  nest holding a bracket type beside another type or a member is refused, so
+  `[[^[:alpha:][:digit:]]x]` and `[[^[:alpha:]é]x]` raise where CRuby accepts
+  them; `[[^[:alpha:]]x]` is `[[:^alpha:]x]` in both.
+- **No `\G`, `\K`, `\R` or `\X`**: `RegexpError` rather than the letter. Inside
+  a class each is the letter, as is a bare `\g` anywhere.
+- **No nest level on a backreference**: `\k<name+n>`, `\k<name-n>` and
+  `(?(<name+n>)...)` raise `RegexpError`, the engine keeping one slot per
+  group. A plain `\k<name>` or `(?(<name>)...)` inside a recursion reads what
+  the innermost completed invocation left.
+- **A named pattern refuses every numbered condition**: CRuby refuses
+  `(?(1)...)` there but accepts `(?(<1>)...)`, `(?(<-1>)...)` and
+  `(?('1')...)`. Here all four are refused, as `\k<1>` is.
 - **A conditional's body is its own**: `(?(1)(?:b|c))` is `yes` = `(?:b|c)`
-  with no `no`. CRuby reads it as `(?(1)b|c)`: Onigmo's non-capturing group
-  leaves no node of its own, so an alternation that fills the body is taken
-  for the conditional's two bodies, and `(?(1)(?:b|c|d))` is refused as three
-  of them. A body the group does not fill, `(?(1)(?:b|c)x)`, and a group of
-  any other kind, `(?(1)(?i:b|c))`, are read alike by both.
-- **An empty iteration ends a repeat around a call too**, which is the rule
-  every inline repeat here follows. Onigmo switches such repeats to a
-  capture-tracking empty check that answers a few of them differently, among
-  them `/((?<g1>|){2}b){2}\g<g1>{0}/` and `/(?<g1>)b\g<g1>{1,3}?/`.
-- **An absent repeater's body captures nothing**: the body of `(?~...)` is a
-  test the scan runs at one position after another and no part of the match,
-  so a group inside one is left as the match found it. CRuby keeps what the
-  runs of the body wrote where Onigmo has no restore for the group, so `(a)`
-  in `/(?~(a)(b))/` holds `"a"` there against a subject starting with one
-  though the body never matched, and drops it where it has one, which leaves
-  `/(?~(a|b)+)/` with an empty group in both engines.
-- **An intersection puts one question about a character's type**: the POSIX
-  brackets of a class are a disjunction, and an intersection of them a
-  conjunction, which the class carries beside it. What has no room left is a
-  disjunction on both sides of a `&&`, `[[:alpha:][:digit:]&&[:alnum:][:space:]]`,
-  and a union of one of these conjunctions with another bracket,
-  `[[[:alpha:]&&[:^lower:]][:digit:]]`. Both raise `RegexpError`; CRuby holds
-  them. Anything short of that is read, `[[:alpha:]&&[:^lower:]&&[:^upper:]]`
-  included.
-- **A member of an intersection folds by what it is, not by how it was
-  written**: under `/i` the class is closed once the operands have met, and
-  what an ASCII-only set brought is closed no further than ASCII, so
-  `[s&&\w]` holds `s` and `S`. CRuby closes a single character where it
-  stands instead, which takes that one out of ASCII where the same character
-  written as a range does not: there `[s&&\w]` holds `ſ` and `[s-t&&\w]` does
-  not.
-- **An intersection folds a character above ASCII whatever admitted it**:
-  `[\u{100}-\u{200}&&\W]` under `/i` holds `s`, the long s in the range having
-  folded to it. CRuby holds that fold back, the side that admitted the long s
-  being `\W`, a set ASCII defines.
-- **A negated shorthand keeps its ASCII in an intersection**: `[[^\W]]` is the
-  ASCII word characters in both engines, and `[[^\W]&&[^a]]` is those without
-  `a` here. CRuby reads the nest as the Unicode word characters once it stands
-  in an intersection.
-- **No encodings**: a byte that starts no whole character is that byte, inside
-  a character class as much as outside one. `[\xB5]` and `\xB5` both hold the
-  byte `0xB5` and neither matches `µ` (`C2 B5`), where CRuby raises
-  `RegexpError` for either spelling. A range whose ends are a byte and a
-  character (`[\x80-µ]`) raises `RegexpError`.
+  with no `no`. CRuby reads it as `(?(1)b|c)` and refuses `(?(1)(?:b|c|d))` as
+  three bodies. `(?(1)(?:b|c)x)` and `(?(1)(?i:b|c))` read alike in both.
+- **An empty iteration ends a repeat around a call too**, as it ends every
+  repeat here. Onigmo's capture-tracking empty check answers a few
+  differently, among them `/((?<g1>|){2}b){2}\g<g1>{0}/` and
+  `/(?<g1>)b\g<g1>{1,3}?/`.
+- **An absent repeater's body captures nothing**: a group inside `(?~...)` is
+  left as the match found it. CRuby keeps what the body wrote where Onigmo has
+  no restore for the group, so `(a)` in `/(?~(a)(b))/` holds `"a"` there
+  against a subject starting with one; `/(?~(a|b)+)/` leaves the group empty
+  in both.
+- **An intersection asks one question about a character's type**: a class
+  carries one disjunction of POSIX brackets and one conjunction of them.
+  `[[:alpha:][:digit:]&&[:alnum:][:space:]]` and
+  `[[[:alpha:]&&[:^lower:]][:digit:]]` need more and raise `RegexpError`;
+  CRuby accepts them. `[[:alpha:]&&[:^lower:]&&[:^upper:]]` is read.
+- **Under `/i` an intersection folds the class it made, not its operands**:
+  what an ASCII-only set brought is closed within ASCII, so `[s&&\w]` holds
+  `s` and `S`, and a character above ASCII folds whatever admitted it, so
+  `[\u{100}-\u{200}&&\W]` holds `s` through `ſ`. CRuby folds a single
+  character where it stands and holds back a fold that a set ASCII defines
+  admitted: there `[s&&\w]` holds `ſ`, `[s-t&&\w]` does not, and
+  `[\u{100}-\u{200}&&\W]` misses `s`.
+- **A negated shorthand keeps its ASCII in an intersection**: `[[^\W]&&[^a]]`
+  is the ASCII word characters without `a`; CRuby reads `[^\W]` as the Unicode
+  word characters once it stands in an intersection.
+- **No encodings**: a byte that starts no character is that byte. `[\xB5]` and
+  `\xB5` hold `0xB5` and neither matches `µ` (`C2 B5`); CRuby raises
+  `RegexpError` for either. `[\x80-µ]` raises here.
 - **Case folding follows the build**: where the build converts case by ASCII, a
   pattern holding a character that needs a Unicode folding raises
   `RegexpError`; see Configuration.
 - **Case-insensitive backreferences match a superset**: `\1` under `i` folds
-  each side and compares, so it matches across a width change (`k` and `K`)
-  where CRuby declines to.
+  each side, so it matches across a width change (`k` and `K`) where CRuby
+  does not.
 - **`\b` reads `[[:word:]]` below U+0100 too**: CRuby draws a boundary beside
-  `²`, `³`, `¹` and `½`, reading a character under 256 off a Latin-1 word table
-  for the boundary and off the Unicode tables for the bracket. Here the two are
-  the same question at every codepoint, so neither takes them.
+  `²`, `³`, `¹` and `½`, reading a Latin-1 word table for the boundary and the
+  Unicode tables for the bracket. Here both are one question, so neither takes
+  them.
 - **Backward search walks forward**: `rindex`, `byterindex` and `rpartition`
-  walk the subject from the start and keep the last match that qualifies, so
-  the cost grows with the number of positions a match starts at.
+  scan from the start and keep the last match, so the cost grows with the
+  number of positions a match starts at.
 
 ## Configuration
 
@@ -362,49 +340,34 @@ Every entry is a place this engine answers a pattern differently from CRuby.
 #endif
 ```
 
-A build that sets a limit outside its range fails to compile, and so does one
-still defining `MRB_REGEXP_RECURSION_LIMIT`, the name the stack limit had while
-it counted C frames. The values a build chose are `Regexp::STEP_LIMIT`,
-`Regexp::STACK_LIMIT` and `Regexp::PARSE_DEPTH_LIMIT`, for a program that has
-to size a subject or a pattern to the build it runs on; CRuby's counterpart to
-the two search limits is `Regexp.timeout`.
+A limit outside its range fails the build, and so does
+`MRB_REGEXP_RECURSION_LIMIT`, the stack limit's old name. The values are
+`Regexp::STEP_LIMIT`, `Regexp::STACK_LIMIT` and `Regexp::PARSE_DEPTH_LIMIT`;
+CRuby's counterpart to the first two is `Regexp.timeout`.
 
 ### The two search limits
 
 A search that reaches one raises `RegexpError`, `step limit over
-(MRB_REGEXP_STEP_LIMIT)` or `stack limit over (MRB_REGEXP_STACK_LIMIT)`, rather
-than answer with what it had found by then. One whose stack the allocator
-refuses to grow raises `NoMemoryError` instead, that being a different thing to
-do something about.
-
-The step limit bounds the work one search may do; the stack limit bounds the
-state it holds while doing it, the branches it has not taken yet and the writes
-it has not taken back, an entry each. A write of the value already in the slot
-leaves nothing to take back and is not counted.
-
-The stack limit counts live entries and not bytes, and so bounds the memory one
-search may ask for: two arrays of at most `MRB_REGEXP_STACK_LIMIT` entries, an
-entry being 32 and 16 bytes on a 64-bit ABI and 24 and 8 on a 32-bit one, so 96
-KiB together at the default and 64 KiB respectively. Halving the limit halves
-that ceiling. Lowering it costs patterns as well as buying memory: the gem's
-tests ask for 48, which is where every pattern they take for granted still
-matches, and the assertions that reach the engine skip below it.
+(MRB_REGEXP_STEP_LIMIT)` or `stack limit over (MRB_REGEXP_STACK_LIMIT)`; a
+stack the allocator refuses to grow raises `NoMemoryError`. The step limit
+bounds the work of one search and the stack limit the state it holds, one entry
+per branch not yet taken and per capture write not yet undone (a write of the
+value already there is not counted). An entry is 32 and 16 bytes on a 64-bit
+ABI and 24 and 8 on a 32-bit one, so the default caps a search at 96 KiB or 64
+KiB, and halving the limit halves that. The gem's tests need 48 and skip the
+assertions that reach the engine below it.
 
 ### The parse depth limit
 
-`MRB_REGEXP_PARSE_DEPTH_LIMIT` bounds the compiler rather than a search, and
-guards the C stack rather than memory or work. A pattern past it raises
-`RegexpError`, `parse depth limit over`, which is CRuby's message for the same
-refusal. Every construct that opens a level costs one: a group of any kind, a
-lookaround, an atomic group, and an inline option toggle, which encloses the
-rest of the group it stands in. The default is Onigmo's
-`ONIG_MAX_PARSE_DEPTH`, so the refusal point is CRuby's.
+`MRB_REGEXP_PARSE_DEPTH_LIMIT` bounds the compiler and guards the C stack. A
+pattern past it raises `RegexpError`, `parse depth limit over`, CRuby's
+message. Every group, lookaround, atomic group and inline option toggle costs a
+level. The default is Onigmo's `ONIG_MAX_PARSE_DEPTH`, so the refusal point is
+CRuby's.
 
-**A build on a stack smaller than about 3 MiB has to lower it.** The parser
-recurses once per level at some 600 bytes a level on a 64-bit build, so the
-deepest pattern the default accepts spends about 2.4 MiB. The compiler is not
-the only thing standing on that stack, so a third of it is the share to size
-the limit from:
+**A build on a stack smaller than about 3 MiB has to lower it.** A level costs
+about 600 bytes on a 64-bit build, so the default's deepest pattern spends 2.4
+MiB. Size the limit from a third of the stack:
 
 | Stack   | A limit that fits           |
 | ------- | --------------------------- |
@@ -413,93 +376,72 @@ the limit from:
 | 256 KiB | 128                         |
 | 64 KiB  | 32                          |
 
-Divide the build's own figure, not this one: `-Os` and a 32-bit ABI both make a
-level cheaper, and `-fstack-usage` over `re_compile.c` names it, the frames of
-`compile_alt` and `compile_seq` summed. Lowering it costs little, since nesting
-this deep is not what a written pattern does: a build that sets 128 still takes
-every pattern anyone writes, and gives up only the CRuby-exact refusal point.
+`-Os` and a 32-bit ABI make a level cheaper; `-fstack-usage` over
+`re_compile.c` gives the figure as `compile_alt` plus `compile_seq`. Written
+patterns do not nest this deep: 128 still takes every pattern anyone writes and
+gives up only the CRuby-exact refusal point.
 
 ### What the build decides
 
-Case folding beyond ASCII and what a POSIX bracket holds above it are not this
-gem's to configure. Both need a build that defines `MRB_UTF8_STRING` without
-`MRB_USE_ASCII_CTYPE`.
+Case folding beyond ASCII and what a POSIX bracket holds above it need
+`MRB_UTF8_STRING` without `MRB_USE_ASCII_CTYPE`.
 
-`/i` reads the two directions it needs off core's case table, the one
-`String#downcase` and the four case methods beside it read, so it folds what
-the build's own case conversion folds. There `/Ā/i` matches `"ā"`, `/Σ/i`
-matches `"σ"`, and `[^Ā]` under `/i` stops accepting `"ā"`. Where the build
-converts case by ASCII those same patterns do not compile:
+`/i` reads core's case table, the one `String#downcase` reads, so where the
+build folds Unicode `/Ā/i` matches `"ā"` and `[^Ā]` under `/i` stops accepting
+`"ā"`. Where it folds ASCII only, such a pattern does not compile:
 
 ```ruby
 /Ā/i     # RegexpError: /i needs Unicode case folding for this character
 ```
 
-The test is whether a character has a folding, not whether it is non-ASCII, so
-a script without case is unaffected and `/日本/i`, `/العربية/i` and `/😀/i` go
-on working. The codepoints that do have one are held as ranges, and those
-ranges are coarse: the uncased codepoints inside them are refused with the
-rest, `ƻ` (U+01BB) among them. A codepoint with no single counterpart to fold
-to (`ﬀ` to `ff`) is never folded by either build. `/k/i` matching `"K"`
-(U+212A) and `/s/i` matching `"ſ"` need no table and work on both, though a
-class holding the letter only through `\w`, `[:word:]` or `[:ascii:]` does not
-reach them, those being sets ASCII defines.
+The test is whether the character has a folding, so `/日本/i` and `/😀/i` keep
+working. The cased codepoints are held as coarse ranges, so an uncased
+codepoint inside one (`ƻ`, U+01BB) is refused too. A codepoint with no single
+counterpart to fold to (`ﬀ`) is folded by neither build. `/k/i` matching `"K"`
+(U+212A) and `/s/i` matching `"ſ"` need no table, though `\w`, `[:word:]` and
+`[:ascii:]` do not reach them.
 
-The POSIX brackets read this gem's own table, `re_ctype.h`, 13.9KB of read-only
-data that `MRB_USE_ASCII_CTYPE` leaves out. With it the brackets classify as
-CRuby's do: `[[:alpha:]]` holds `"あ"` and `[[:^alpha:]]` rejects it,
-`[[:upper:]]` under `/i` reaches `"ā"` through `"Ā"`, and `[[:word:]]` holds
-every Unicode word character where `\w` stays ASCII. `\b` and `\B` read the
-bracket's set rather than the shorthand's, so a boundary sits beside a
-character of any script. The types are the ones the Unicode Character Database
-publishes: `alpha`, `upper` and `lower` are the derived properties Alphabetic,
-Uppercase and Lowercase, `space` is White_Space, and the rest are read off the
-general categories. Without the table a bracket holds its ASCII and no more, so
-`[[:alpha:]]` misses `"あ"`; `[[:xdigit:]]` and `[[:ascii:]]` are sets ASCII
-defines and hold nothing above it on any build.
+The POSIX brackets read `re_ctype.h`, 13.9KB of read-only data that
+`MRB_USE_ASCII_CTYPE` leaves out. With it `[[:alpha:]]` holds `"あ"`,
+`[[:upper:]]` under `/i` reaches `"ā"`, `[[:word:]]` holds every Unicode word
+character where `\w` stays ASCII, and `\b` sits beside a character of any
+script. `alpha`, `upper` and `lower` are the derived properties Alphabetic,
+Uppercase and Lowercase, `space` is White_Space, and the rest come from the
+general categories. Without the table a bracket holds its ASCII; `[[:xdigit:]]`
+and `[[:ascii:]]` are ASCII on any build.
 
 ## Checking against CRuby
 
-The Limitations list is kept by hand. What keeps it honest is `tools/difftest`,
-which runs a corpus through both engines and reports where they disagree:
+The Limitations list is kept by hand; `tools/difftest` keeps it honest:
 
 ```console
-$ rake regexp:difftest
-5175 patterns, 101 known differences, no new ones
+$ MRUBY_CONFIG=host-debug rake regexp:difftest
+6791 patterns, 353 known differences, no new ones
 ```
 
-The task asks the build the loaded config declares, and leaves the choice to
-`MRUBY` where a config declares more than one build with this gem in it.
+The baseline was taken against `build_config/host-debug.rb`, whose full-core
+gembox reads strings as UTF-8 and classifies them by Unicode; the default
+config has no `mruby-encoding`, so its build is refused against it.
 
-`probe.rb` holds the corpus and runs under either engine, asking along two
-axes. The **pattern axis** prints a line per pattern: where a match starts in
-each of a fixed list of subjects, what it captured, and which class it raised,
-the class being part of the answer whether the pattern was refused at compile
-time or the search raised against a subject. The patterns are generated from
-the axes rather than listed, so an escape, a quantifier or a class form is
-covered in every context it can stand in, each asked under `//`, `/i`, `/m` and
-`/x`. The **character axis** turns that around: a line per character, a column
-per way of classifying one. The characters come out of the Unicode Character
-Database by the rule `tools/unicode/corpus_data.rb` states, one out of every
-class the engine's tables tell apart, where a class is the whole signature and
-not one property at a time, plus the whole of ASCII.
+`probe.rb` runs a corpus under either engine and prints, per pattern, where a
+match starts in each of a fixed list of subjects, what it captured and which
+class it raised, and per character, a column per way of classifying it. The
+patterns are generated from their axes, every escape, quantifier and class
+form in every context it can stand in, under `//`, `/i`, `/m` and `/x`; the
+characters come out of the Unicode Character Database by the rule in
+`tools/unicode/corpus_data.rb`, one per class the engine's tables tell apart,
+plus ASCII. `compare.rb` diffs the two runs against `baseline.txt`, the
+differences that are meant, and fails on a new one or on a line that has
+stopped differing, so a fix prunes the list. `rake regexp:difftest:update`
+takes a new baseline and `rake regexp:difftest:selftest` feeds `compare.rb`
+made-up verdicts. The corpus asserts its shape rather than its size, so one
+that has quietly shrunk stops the run.
 
-`compare.rb` checks the disagreements against `baseline.txt`, which holds the
-ones that are meant, every line in it being one of the limitations above. It
-fails on a disagreement the baseline does not hold and on a baseline line that
-has stopped disagreeing, so that a fix prunes the list rather than leaving it to
-describe an engine that has moved on. `rake regexp:difftest:update` takes a new
-baseline, and `rake regexp:difftest:selftest` puts those verdicts to
-`compare.rb` with answers made up rather than run. Both `probe.rb` and
-`corpus_data.rb` assert their shape rather than their size, so a corpus that has
-quietly shrunk stops the run instead of passing by not looking.
-
-Two things bound what the tool can say, and `compare.rb` refuses rather than
-reporting either as a regression: a CRuby carrying an older Unicode release than
-the tables were generated from (the check is `\p{Age=}`, and CRuby 4.0 is the
-first that passes it), and a baseline taken against a build that reads or
-classifies its strings differently. Both are why this is a task to run rather
-than a job in the workflows, which use whatever CRuby a runner ships.
+`compare.rb` refuses a CRuby with an older Unicode than the tables (checked
+with `\p{Age=}`; 4.0 is the first that passes) and a baseline taken against a
+build that reads or classifies strings differently, which is why this is a task
+to run rather than a workflow job. The task uses the build the loaded config
+declares; with more than one, name it with `MRUBY`.
 
 ## License
 
