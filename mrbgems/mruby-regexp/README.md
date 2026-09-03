@@ -334,7 +334,7 @@ Every entry is a place this engine answers a pattern differently from CRuby.
 #define MRB_REGEXP_STACK_LIMIT 2048
 #endif
 
-/* How deep a pattern may nest, the parser's own C stack (1 to 1,048,576) */
+/* How deep a pattern may nest (1 to 1,048,576) */
 #ifndef MRB_REGEXP_PARSE_DEPTH_LIMIT
 #define MRB_REGEXP_PARSE_DEPTH_LIMIT 4096
 #endif
@@ -359,27 +359,35 @@ assertions that reach the engine below it.
 
 ### The parse depth limit
 
-`MRB_REGEXP_PARSE_DEPTH_LIMIT` bounds the compiler and guards the C stack. A
-pattern past it raises `RegexpError`, `parse depth limit over`, CRuby's
-message. Every group, lookaround, atomic group and inline option toggle costs a
-level. The default is Onigmo's `ONIG_MAX_PARSE_DEPTH`, so the refusal point is
-CRuby's.
+`MRB_REGEXP_PARSE_DEPTH_LIMIT` bounds how deep a pattern may nest. A pattern
+past it raises `RegexpError`, `parse depth limit over`, CRuby's message. Every
+group, lookaround, atomic group, inline option toggle and nested character
+class costs a level. The default is Onigmo's `ONIG_MAX_PARSE_DEPTH`, so the
+refusal point is CRuby's.
 
-**A build on a stack smaller than about 3 MiB has to lower it.** A level costs
-about 600 bytes on a 64-bit build, so the default's deepest pattern spends 2.4
-MiB. Size the limit from a third of the stack:
+The parser keeps the levels it has open on a heap stack of its own, as the
+backtracking engine keeps its state, so a compile spends a constant amount of C
+stack however deep the pattern nests. The limit is a matter of agreement with
+CRuby rather than of stack, and one value holds for every build.
 
-| Stack   | A limit that fits           |
-| ------- | --------------------------- |
-| 8 MiB   | 4096 (default, CRuby-exact) |
-| 1 MiB   | 512                         |
-| 256 KiB | 128                         |
-| 64 KiB  | 32                          |
+What the limit costs is heap, and only while a pattern that deep compiles: a
+level is 32 bytes on any ABI, the first eight (the pattern itself is one) live
+in the compiler's own frame, and past them the levels move to a buffer that
+doubles as it grows. Raising the limit reserves nothing; it bounds what one
+pattern can be made to use, at the limit rounded up to a power of two times 32
+bytes, plus one String header:
 
-`-Os` and a 32-bit ABI make a level cheaper; `-fstack-usage` over
-`re_compile.c` gives the figure as `compile_alt` plus `compile_seq`. Written
-patterns do not nest this deep: 128 still takes every pattern anyone writes and
-gives up only the CRuby-exact refusal point.
+| Limit          | Heap a pattern can spend |
+| -------------- | ------------------------ |
+| 4096 (default) | 128 KiB                  |
+| 512            | 16 KiB                   |
+| 128            | 4 KiB                    |
+| 32             | 1 KiB                    |
+
+A build that cannot make the allocation raises `NoMemoryError`. A nested
+character class is the one construct still read by recursion, at about 500
+bytes of C stack a level, which the class table bounds at 256 levels whatever
+the limit.
 
 ### What the build decides
 
