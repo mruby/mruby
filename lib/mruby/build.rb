@@ -98,6 +98,7 @@ module MRuby
     attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir, :libdir_name
     attr_reader :defines
     attr_reader :products, :libmruby_core_objs, :libmruby_objs, :gems, :toolchains, :presym, :mrbc_build, :gem_dir_to_repo_url
+    attr_reader :compile_rules
     attr_reader :build_root
     attr_reader :install_excludes, :port_names
 
@@ -166,6 +167,7 @@ module MRuby
         @gems = MRuby::Gem::List.new
         @libmruby_core_objs = []
         @libmruby_objs = [@libmruby_core_objs]
+        @compile_rules = []
         @enable_libmruby = true
         @build_mrbtest_lib_only = false
         @cxx_exception_enabled = false
@@ -662,6 +664,22 @@ EOS
         end
       end
       objects.uniq
+    end
+
+    # The compiler and the source a compile of +outfile+ runs with, or nothing
+    # where no rule of this build compiles it.
+    #
+    # The source is the one Rake resolved the rule of the output to, the
+    # first prerequisite of its task and the one the rule hands +run+; the
+    # rule is then known by that output and that source (see
+    # +Command::Compiler::Rule+), and the compiler is the rule's. A compile
+    # written out as a +file+ task by hand is no rule, and has no answer here.
+    def compile_of(outfile)
+      task = Rake.application.lookup(outfile) || Rake.application.enhance_with_matching_rule(outfile)
+      return nil unless task
+      source = task.prerequisites.first
+      rule = @compile_rules.find { |r| r.compiles?(outfile, source) }
+      [rule.compiler, source] if rule
     end
 
     def define_installer_outline(src, dst)
