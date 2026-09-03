@@ -52,6 +52,9 @@ module MRuby
     # The answers `try_compile` has had, keyed by the command line and the
     # source it asked with.
     COMPILE_PROBES = {}
+    # The answers `try_link` has had, keyed the same way and by the link
+    # line as well.
+    LINK_PROBES = {}
 
     attr_accessor :label, :flags, :include_paths, :source_exts
     attr_reader :defines
@@ -211,9 +214,26 @@ module MRuby
     # `visualcpp` does exactly that, naming `cl` for both and handing the C++
     # one the C flags when `CFLAGS` is set and `CXXFLAGS` is not.
     def try_compile(source)
-      key = [build.filename(command), compile_options, source_exts.first,
-             all_flags, source]
-      COMPILE_PROBES.fetch(key) { COMPILE_PROBES[key] = run_compile_probe(source) }
+      COMPILE_PROBES.fetch(probe_key(source)) do |key|
+        COMPILE_PROBES[key] = run_compile_probe(source)
+      end
+    end
+
+    # Compile +source+, link the object into a program, and answer whether
+    # both happened.  The link is the build's linker's, with the libraries
+    # and flags it links every binary with; a gem's own linker for +linker+
+    # adds that gem's, as its binary is linked with them.  The answer is kept
+    # as `try_compile`'s is, and keyed by the link line as well.
+    def try_link(source, linker=nil)
+      base = build.linker
+      extra = linker.is_a?(Command::Linker) && !linker.equal?(base) ? linker.run_attrs : []
+      params = base.link_params(*extra)
+      key = probe_key(source) + [build.filename(base.command), base.link_options, params]
+      LINK_PROBES.fetch(key) do
+        LINK_PROBES[key] = run_compile_probe(source) do |dir, objfile, opts|
+          base.run_probe("#{dir}/probe#{build.exts.executable}", objfile, params, **opts)
+        end
+      end
     end
 
     # Whether the header +name+ is there, as `#include <name>` asks for it.
@@ -229,14 +249,38 @@ module MRuby
       try_compile("#include <#{name}>\nextern int mrb_probe;\n")
     end
 
-    # Whether +name+ is declared once +header+ is included, or is a macro
-    # spelled that way.  A macro answers yes because a call written as
-    # `name(...)` compiles either way, which is what a caller is asking.
+    # Whether +name+ is there to be called once +header+ is included: it is
+    # declared there, or is a macro spelled that way, and, wherever this
+    # build can link a program at all, a link resolves it.  A macro answers
+    # yes on its declaration alone, there being no one symbol to ask after.
     #
-    # The answer is about the declaration a compile can see, not about a
-    # symbol a link would resolve: this never links.  A host whose headers
-    # declare what its library does not define is not told apart here.
-    def check_func(name, header: nil)
+    # The link is against what the build's linker links every binary with;
+    # a linker for +link+, a gem's own, links that gem's libraries and flags
+    # as well, as its binary is linked with them.  `link: false` asks about
+    # the declaration alone, which is the question for a C++ overload set,
+    # since that has no one address to hand a link.
+    #
+    # A build that cannot link a program, one that makes libmruby for
+    # another program to link and has no startup files or C library on its
+    # own link line, is answered about the declaration alone throughout: a
+    # link that fails there says nothing about the name.
+    def check_func(name, header: nil, link: nil)
+      if link != false && can_link?
+        try_link(func_link_source(name, header), link)
+      else
+        try_compile(func_decl_source(name, header))
+      end
+    end
+
+    # Whether this build's linker can link a program against the C library,
+    # asked once and kept: a program that names `strlen`.
+    def can_link?
+      try_link(func_link_source('strlen', 'string.h'))
+    end
+
+    # A source that compiles when +name+ is declared once +header+ is
+    # included, or is a macro spelled that way.
+    def func_decl_source(name, header)
       source = header ? "#include <#{header}>\n" : ""
       # The name is mentioned and never called, so an undeclared one is the
       # error that answers no while a declared one asks nothing of a library.
@@ -249,7 +293,7 @@ module MRuby
       # type, which that cast does not give, so the mention that answers for
       # every other name would answer no for those.  A using-declaration asks
       # for no target and so names them all.
-      source += <<~SOURCE
+      source + <<~SOURCE
         int mrb_probe(void);
         int mrb_probe(void) {
         #ifdef #{name}
@@ -263,7 +307,32 @@ module MRuby
         #endif
         }
       SOURCE
-      try_compile(source)
+    end
+
+    # A program that links when +name+, declared once +header+ is included,
+    # is defined by something on the link line; a macro is a program that
+    # asks nothing.
+    def func_link_source(name, header)
+      source = header ? "#include <#{header}>\n" : ""
+      # The name is handed to a variadic function through a pointer the
+      # compiler cannot see through: the reference then outlives
+      # optimisation and reaches the linker, and nothing is cast, a cast
+      # between function types being what -Wcast-function-type reports.
+      # The helper sits in the arm that uses it, or the macro arm would have
+      # an unused static function to report.
+      source + <<~SOURCE
+        #ifdef #{name}
+        int main(void) { return 0; }
+        #else
+        static void mrb_probe_use(int n, ...);
+        static void mrb_probe_use(int n, ...) { (void)n; }
+        int main(void) {
+          void (*volatile mrb_probe)(int, ...) = mrb_probe_use;
+          mrb_probe(0, #{name});
+          return 0;
+        }
+        #endif
+      SOURCE
     end
 
     def search_header_path(name)
@@ -457,10 +526,19 @@ module MRuby
       end
     end
 
+    # What an answer about +source+ is kept under: everything that goes into
+    # the compile, the extension included.
+    def probe_key(source)
+      [build.filename(command), compile_options, source_exts.first, all_flags, source]
+    end
+
     # Compile +source+ and answer whether it compiled.  The source and the
     # object are named inside a directory that is removed on the way out; the
     # compiler is run from the directory a compile runs from, which is what a
-    # relative path in the flags is written against.
+    # relative path in the flags is written against.  A block is given the
+    # directory, the object and the options the compiler ran with, while the
+    # directory is still there, and its answer stands for an object that
+    # compiled.
     def run_compile_probe(source)
       Dir.mktmpdir("mruby-probe") do |dir|
         infile = "#{dir}/probe#{source_exts.first || '.c'}"
@@ -473,7 +551,8 @@ module MRuby
         opts[:chdir] = MRUBY_ROOT if build.compile_relative?
         # `system` answers nil where the command is not there to run at all,
         # which is an answer of no like any other failure to compile.
-        !!system("#{build.filename(command)} #{options}", **opts)
+        compiled = !!system("#{build.filename(command)} #{options}", **opts)
+        compiled && block_given? ? yield(dir, outfile, opts) : compiled
       end
     end
 
@@ -579,16 +658,30 @@ module MRuby
       [@libraries, @library_paths, @flags, @flags_before_libraries, @flags_after_libraries]
     end
 
-    def run(outfile, objfiles, _libraries=[], _library_paths=[], _flags=[], _flags_before_libraries=[], _flags_after_libraries=[])
+    # The link line's parts other than the objects and the output, from this
+    # linker's settings and the per-gem five `run` takes after its files, in
+    # the order `run_attrs` has them.
+    def link_params(_libraries=[], _library_paths=[], _flags=[], _flags_before_libraries=[], _flags_after_libraries=[])
+      { :flags => all_flags(_library_paths, _flags),
+        :flags_before_libraries => [flags_before_libraries, _flags_before_libraries].flatten.join(' '),
+        :flags_after_libraries => [flags_after_libraries, _flags_after_libraries].flatten.join(' '),
+        :libs => library_flags(_libraries) }
+    end
+
+    def run(outfile, objfiles, *attrs)
       mkdir_p File.dirname(outfile)
-      library_flags = [libraries, _libraries].flatten.map { |d| option_library % d }
 
       _pp "LD", outfile.relative_path
-      _run link_options, { :flags => all_flags(_library_paths, _flags),
-                            :outfile => filename(outfile) , :objs => filename(objfiles).map{|f| %Q["#{f}"]}.join(' '),
-                            :flags_before_libraries => [flags_before_libraries, _flags_before_libraries].flatten.join(' '),
-                            :flags_after_libraries => [flags_after_libraries, _flags_after_libraries].flatten.join(' '),
-                            :libs => library_flags.join(' ') }
+      _run link_options, link_params(*attrs).merge(
+        :outfile => filename(outfile), :objs => filename(objfiles).map{|f| %Q["#{f}"]}.join(' '))
+    end
+
+    # Link the one +objfile+ into +outfile+, with +params+ from `link_params`,
+    # and answer whether it linked, saying nothing either way.  +opts+ are
+    # `system`'s, as the compile probe ran with them.
+    def run_probe(outfile, objfile, params, **opts)
+      options = link_options % params.merge(:outfile => filename(outfile), :objs => %Q["#{filename(objfile)}"])
+      !!system("#{build.filename(command)} #{options}", **opts)
     end
   end
 
