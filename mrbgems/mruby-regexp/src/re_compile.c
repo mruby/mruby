@@ -345,18 +345,30 @@ literal_class(re_compiler *c, uint32_t cp, mrb_bool *found)
 }
 
 static void
-class_set_bit(re_charclass *cc, uint8_t ch)
+bitmap_set(uint8_t *bits, uint8_t ch)
 {
   if (ch < 128) {
-    cc->bitmap[ch >> 3] |= (1 << (ch & 7));
+    bits[ch >> 3] |= (1 << (ch & 7));
   }
+}
+
+static void
+class_set_bit(re_charclass *cc, uint8_t ch)
+{
+  bitmap_set(cc->bitmap, ch);
+}
+
+static mrb_bool
+bitmap_get(const uint8_t *bits, uint8_t ch)
+{
+  if (ch >= 128) return FALSE;
+  return (bits[ch >> 3] >> (ch & 7)) & 1;
 }
 
 static mrb_bool
 class_get_bit(const re_charclass *cc, uint8_t ch)
 {
-  if (ch >= 128) return FALSE;
-  return (cc->bitmap[ch >> 3] >> (ch & 7)) & 1;
+  return bitmap_get(cc->bitmap, ch);
 }
 
 /* Add a non-ASCII codepoint range [lo, hi]. Both bounds must be >= 128.
@@ -1331,14 +1343,30 @@ compile_charclass(re_compiler *c)
     negated = TRUE;
   }
 
-  /* What \w, \W, [:word:] and [:ascii:] add is held apart until the class
-     has been closed under folding, and joins the bitmap after; see the fold
-     below for why. Only the bitmap and utf8_any are ever written here. */
+  /* What \w, \W, [:word:] and [:ascii:] add is held apart while the class is
+     read, and joins it below; see the fold for why. Only the bitmap and
+     utf8_any are ever written here. */
   re_charclass ascii_set;
   memset(&ascii_set, 0, sizeof(ascii_set));
 
   parse_class_body(c, id, &ascii_set);
   re_charclass *cc = &c->pat->classes[id];
+
+  /* The ASCII members a fold may leave ASCII from: the ones the class holds
+     in its own right, as against the ones an ASCII-only set is the whole
+     reason for. The two are told apart here, before the sets join the class,
+     and the fold below reads the answer. */
+  uint8_t cross[RE_CLASS_BITMAP_SIZE];
+  for (int i = 0; i < RE_CLASS_BITMAP_SIZE; i++) cross[i] = cc->bitmap[i];
+
+  /* The ASCII-only sets join the class before it is closed, so that the
+     closure reaches them with the foldings that stay inside ASCII: what a
+     class holds is one set however its members were written. Each of the sets
+     already holds both cases of every letter in it, so for a class that is a
+     union this adds nothing, and an intersection is where it tells: the
+     letters left in [b-z&&\w] are cased like any others. */
+  for (int i = 0; i < RE_CLASS_BITMAP_SIZE; i++) cc->bitmap[i] |= ascii_set.bitmap[i];
+  if (ascii_set.utf8_any) cc->utf8_any = TRUE;
 
   /* Close the class under case folding for /i. This runs once the class is
      complete, so it covers every form parse_class_body() merges in: POSIX
@@ -1353,18 +1381,26 @@ compile_charclass(re_compiler *c)
      the tagged ranges, which is also what keeps /i from refusing a class of
      continuation bytes on a build without the folding tables.
 
-     The word class and [:ascii:] are still held apart here, so the closure
-     never sees them. Each is a set ASCII defines: \w is [a-zA-Z0-9_] and no
-     more, so a fold that leaves ASCII leaves the set, and [\w] under /i is
-     the ASCII word characters where [k] under /i reaches U+212A. CRuby reads
-     them the same way, keeping the two out of the class it folds across the
-     boundary from, and it is what makes [^\w] under /i accept U+017F. Both
-     hold both cases of every letter they hold, so the ASCII part of the
-     closure has nothing to add to them, and joining them after it costs
-     nothing. The other POSIX brackets are ASCII here only for want of a
-     table, and stay in: CRuby folds them too, and there their members above
-     ASCII hold what the fold adds anyway. */
+     What the word class and [:ascii:] brought is closed under the foldings
+     that stay inside ASCII and no others, which is what `cross` records.
+     Each is a set ASCII defines: \w is [a-zA-Z0-9_] and no more, so a fold
+     that leaves ASCII leaves the set, and [\w] under /i is the ASCII word
+     characters where [k] under /i reaches U+212A. CRuby reads them the same
+     way, holding the two back from the folds it takes across the boundary,
+     and it is what makes [^\w] under /i accept U+017F. The other POSIX
+     brackets are ASCII here only for want of a table, and are not held back:
+     CRuby folds them too, and there their members above ASCII hold what the
+     fold adds anyway. */
   if (c->flags & RE_FLAG_IGNORECASE) {
+    /* `cross` follows the class through the foldings that stay inside ASCII,
+       so that the walk which leaves ASCII starts from every member the class
+       holds in its own right and not only from the ones written in that case:
+       [\wS] under /i reaches U+017F through the `s` that `S` folds to, where
+       the `s` \w brought would not take it there. */
+    for (int ch = 'A'; ch <= 'Z'; ch++) {
+      if (bitmap_get(cross, (uint8_t)ch)) bitmap_set(cross, (uint8_t)(ch + 32));
+      else if (bitmap_get(cross, (uint8_t)(ch + 32))) bitmap_set(cross, (uint8_t)ch);
+    }
 #ifdef RE_UNICODE_CASE
     /* That takes two rounds rather than one walk in each direction, because a
        fold can have more than one source (U+03A3 and U+03C2 both fold to
@@ -1407,15 +1443,18 @@ compile_charclass(re_compiler *c)
       cp = hi + 1;
     }
     /* An ASCII member can have a non-ASCII source (U+212A folds to 'k'),
-       which the range walk cannot reach: the bitmap holds no ranges. A run of
-       set bits is asked about in one question, since a question costs a walk
-       of the tables whatever it spans. The tables hold no ASCII source, ASCII
-       being what they are the rest of, so nothing this walk finds lands in
-       the bitmap and no run of it grows while it is being read. */
+       which the range walk cannot reach: the bitmap holds no ranges. This is
+       the walk that leaves ASCII, so it reads `cross` rather than the class:
+       a run breaks where a member no ASCII-only set is behind gives way to one
+       that is. A run is asked about in one question, since a question costs a
+       walk of the tables whatever it spans. The tables hold no ASCII source,
+       ASCII being what they are the rest of, so nothing this walk finds lands
+       in the bitmap and no run of it grows while it is being read. */
     for (int ch = 0; ch < 128; ch++) {
-      if (!class_get_bit(cc, (uint8_t)ch)) continue;
+      if (!class_get_bit(cc, (uint8_t)ch) || !bitmap_get(cross, (uint8_t)ch)) continue;
       int end = ch;
-      while (end + 1 < 128 && class_get_bit(cc, (uint8_t)(end + 1))) end++;
+      while (end + 1 < 128 && class_get_bit(cc, (uint8_t)(end + 1)) &&
+             bitmap_get(cross, (uint8_t)(end + 1))) end++;
       mrb_uni_case_unfold_range((uint32_t)ch, (uint32_t)end, class_fold_add, &sink);
       ch = end;
     }
@@ -1445,13 +1484,10 @@ compile_charclass(re_compiler *c)
       if (class_get_bit(cc, (uint8_t)ch)) class_set_bit(cc, (uint8_t)(ch - 32));
       else if (class_get_bit(cc, (uint8_t)(ch - 32))) class_set_bit(cc, (uint8_t)ch);
     }
-    if (class_get_bit(cc, 'k')) class_add_codepoint(c, cc, RE_FOLD_KELVIN);
-    if (class_get_bit(cc, 's')) class_add_codepoint(c, cc, RE_FOLD_LONG_S);
+    if (class_get_bit(cc, 'k') && bitmap_get(cross, 'k')) class_add_codepoint(c, cc, RE_FOLD_KELVIN);
+    if (class_get_bit(cc, 's') && bitmap_get(cross, 's')) class_add_codepoint(c, cc, RE_FOLD_LONG_S);
 #endif
   }
-
-  for (int i = 0; i < RE_CLASS_BITMAP_SIZE; i++) cc->bitmap[i] |= ascii_set.bitmap[i];
-  if (ascii_set.utf8_any) cc->utf8_any = TRUE;
 
 #ifdef RE_UNICODE_CTYPE
   /* A type is not spelled out as members, so the closure above never saw it;
