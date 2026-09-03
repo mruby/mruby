@@ -21,8 +21,51 @@
    silently alias different classes. */
 #define RE_MAX_CLASSES 256
 
-/* How many branches one alternation may hold. */
-#define RE_MAX_ALTS 64
+/* What opened a nesting level of the parse; see re_level. */
+enum {
+  RE_LEVEL_PATTERN,     /* the pattern itself, the level the parse begins in */
+  RE_LEVEL_GROUP,       /* (...), (?:...), (?<name>...) and (?'name'...) */
+  RE_LEVEL_LOOKAHEAD,   /* (?=...) and (?!...) */
+  RE_LEVEL_LOOKBEHIND,  /* (?<=...) and (?<!...) */
+  RE_LEVEL_ATOMIC,      /* (?>...) */
+  RE_LEVEL_ABSENT,      /* (?~...) */
+  RE_LEVEL_OPTION,      /* (?imx:...) */
+  RE_LEVEL_TOGGLE,      /* (?imx), whose scope is the rest of the group it stands in */
+  RE_LEVEL_COND         /* (?(cond)yes|no) */
+};
+
+/* One nesting level the parse has open: what the construct that opened it
+   needs at its close, and what the level it stands in needs back once the
+   close is done. The levels are a stack the parse keeps on the heap rather
+   than frames it keeps on the C stack, so what a deep pattern costs is an
+   allocation the code reads and answers, at any depth, on any stack; see
+   compile_levels(). */
+typedef struct {
+  uint8_t kind;         /* RE_LEVEL_* */
+  uint8_t state;        /* GROUP: it captures; LOOKAHEAD, LOOKBEHIND: it is
+                           negated; COND: the `no` body is being read */
+  uint16_t num;         /* GROUP: the capture index; LOOKAHEAD, LOOKBEHIND,
+                           ATOMIC: the cut number; see RE_ATOMIC */
+  uint32_t flags;       /* the options in effect when the level opened, which
+                           its close restores: an inline toggle inside a group
+                           does not leak past the group's ')' */
+  uint32_t head;        /* LOOKAHEAD, LOOKBEHIND, ABSENT, COND: the
+                           instruction that opened the level, whose offset the
+                           close patches to the code after it */
+  uint32_t aux;         /* LOOKBEHIND: where the body's code begins; COND:
+                           the RE_JMP that carries `yes` past `no` */
+  uint32_t begin;       /* code_len before the level's opener: what a
+                           quantifier after the close binds to */
+  uint32_t atom_start;  /* c->atom_start as the enclosing level had it */
+  uint32_t alt_start;   /* code_len where the level's first branch began */
+  uint32_t branches;    /* how many `|` the level has read so far */
+} re_level;
+
+/* Levels the compiler keeps inline before it spills to the heap. A written
+   pattern nests a handful deep, so this is every pattern anyone writes
+   compiling with no allocation for its levels; what the array costs is one
+   frame's worth of C stack once, not per level. */
+#define RE_LEVELS_INLINE 8
 
 /* Compiler state.
 
@@ -73,30 +116,40 @@ typedef struct {
                                the next number, so no two that nest share one;
                                see RE_ATOMIC and RE_LOOK_END */
   uint32_t atom_start;      /* where the atom a quantifier binds to begins;
-                               compile_quantified sets it to the position
+                               compile_levels() sets it to the position
                                before the atom, and a `\u{...}` list moves it
                                forward so the quantifier repeats the last
                                codepoint alone */
   uint32_t literal_cp[RE_MAX_CLASSES];  /* by class id: the codepoint whose
                                /i literal the class stands for, 0 for a class
                                made by anything else; see literal_class() */
-  uint32_t depth;           /* nesting levels open at the parse point, one per
-                               compile_alt() frame on the C stack; bounded by
+  uint32_t depth;           /* nesting levels open at the parse point: the
+                               levels on the stack below and the character
+                               classes open inside one another; bounded by
                                MRB_REGEXP_PARSE_DEPTH_LIMIT */
-  /* The alternation that finished last, as the code index each of its
-     branches begins at, the span it covers, and how many branches it has.
-     The lookbehind arm reads it to tell a body that *is* an alternation
-     from one that merely holds one: only the first may give each branch a
-     rewind of its own, which is CRuby's line too. The record is cleared
-     when a lookbehind body begins, so what it holds is that body's own; the
-     alternation spanning the whole body is the last inside it to finish.
+  /* The levels the parse has open, innermost last; see re_level. They
+     start in `levels_inline` and move to a String the GC arena keeps for
+     the compile once they outgrow it, as pending_calls is kept: a raise
+     unwinds nothing here, and the arena drops the String with the frame. */
+  re_level *levels;
+  uint32_t level_count;
+  uint32_t level_capa;
+  mrb_value level_store;    /* nil while the levels are inline */
+  re_level levels_inline[RE_LEVELS_INLINE];
+  /* The alternation that finished last, as the span it covers and how many
+     branches it has. The lookbehind arm reads it to tell a body that *is*
+     an alternation from one that merely holds one: only the first may give
+     each branch a rewind of its own, which is CRuby's line too. The record
+     is cleared when a lookbehind body begins, so what it holds is that
+     body's own; the alternation spanning the whole body is the last inside
+     it to finish. Where each branch begins is read off the SPLIT chain the
+     span starts with; see close_alternation() for its layout.
 
      These are positions, so anything that moves or drops code ends the
-     record rather than adjusting it: insert_inst() clears it, and so does
-     every rollback in compile_quantified(). Without that, `(?:a|b){0}` would
-     leave the branch heads of an alternation whose code is gone, pointing at
-     whatever was emitted in its place. */
-  uint32_t alt_starts[RE_MAX_ALTS];
+     record rather than adjusting it: insert_insts() clears it, and so does
+     every rollback in compile_quantifiers(). Without that, `(?:a|b){0}`
+     would leave the record of an alternation whose code is gone, pointing
+     at whatever was emitted in its place. */
   uint32_t alt_count;       /* 0 when no alternation has been compiled */
   uint32_t alt_from;        /* code index of the alternation's first SPLIT */
   uint32_t alt_to;          /* code index just past its last branch */
@@ -107,9 +160,6 @@ typedef struct {
                                first one */
   uint16_t num_pending;
 } re_compiler;
-
-static void compile_alt(re_compiler *c);  /* forward */
-static void compile_seq(re_compiler *c);  /* forward */
 
 /* Take the message as a String rather than as a C string, for the messages
    that quote a group name: the name is a length-counted slice of the pattern
@@ -200,42 +250,59 @@ op_holds_code_index(uint8_t op)
   }
 }
 
-/* Insert an instruction at position `pos` by shifting code.
-   Adjusts code indices so they still point at the same instructions. */
+/* Open `count` slots at position `pos` by shifting the code once, and leave
+   RE_JMP placeholders in them for the caller to fill. Adjusts code indices
+   so they still point at the same instructions. An alternation reserves its
+   whole SPLIT chain here in one call: the shift and the fixup below each walk
+   the code, so a reservation per branch would walk it once per branch. */
 static void
-insert_inst(re_compiler *c, uint32_t pos, uint8_t op, uint8_t a, uint16_t offset)
+insert_insts(re_compiler *c, uint32_t pos, uint32_t count)
 {
   /* The alternation record is positions this does not adjust, so an insertion
      is the end of it; see the record in re_compiler. The alternation that
      writes one does so after its own insertions, and the lookbehind arm has
-     read the record into locals before it inserts anything, so nothing that
-     needs the record loses it here. */
+     read what it needs of the record before it inserts anything, so nothing
+     that needs the record loses it here. */
   c->alt_count = 0;
-  emit(c, RE_JMP, 0, 0);  /* grow array */
-  uint32_t len = c->code_len - 1 - pos;
-  memmove(&c->pat->code[pos + 1], &c->pat->code[pos], sizeof(re_inst) * len);
-  c->pat->code[pos].op = op;
-  c->pat->code[pos].a = a;
-  c->pat->code[pos].offset = offset;
+  for (uint32_t i = 0; i < count; i++) {
+    emit(c, RE_JMP, 0, 0);  /* grow array */
+  }
+  uint32_t len = c->code_len - count - pos;
+  memmove(&c->pat->code[pos + count], &c->pat->code[pos], sizeof(re_inst) * len);
+  for (uint32_t i = 0; i < count; i++) {
+    c->pat->code[pos + i].op = RE_JMP;
+    c->pat->code[pos + i].a = 0;
+    c->pat->code[pos + i].offset = 0;
+  }
 
   /* Fix code indices across the insertion. An index past `pos` shifts down by
-     one. An index equal to `pos` is ambiguous:
-     - code that moved (i > pos) is a backward jump -- e.g. the SPLIT that
-       loops `\d+` back to its class -- and meant the instruction now at
-       pos+1, so it must follow.
+     `count`. An index equal to `pos` is ambiguous:
+     - code that moved (i >= pos + count) is a backward jump -- e.g. the SPLIT
+       that loops `\d+` back to its class -- and meant the instruction now at
+       pos+count, so it must follow.
      - code before the insertion (i < pos) is a forward "skip to here"
-       reference that should stay on the newly inserted instruction. A
+       reference that should stay on the first newly inserted instruction. A
        lookaround is always that second case, since the end of its sub-pattern
        lies ahead of it: leaving the end at `pos` puts the inserted
        instruction after the sub-pattern rather than inside it, which is what
        the quantifier wrapping the whole group wants. */
   for (uint32_t i = 0; i < c->code_len; i++) {
-    if (i == pos) continue;
+    if (i >= pos && i < pos + count) continue;
     if (op_holds_code_index(c->pat->code[i].op) &&
-        (c->pat->code[i].offset > pos || (c->pat->code[i].offset == pos && i > pos))) {
-      c->pat->code[i].offset++;
+        (c->pat->code[i].offset > pos || (c->pat->code[i].offset == pos && i >= pos + count))) {
+      c->pat->code[i].offset = (uint16_t)(c->pat->code[i].offset + count);
     }
   }
+}
+
+/* Insert one instruction at position `pos`; see insert_insts(). */
+static void
+insert_inst(re_compiler *c, uint32_t pos, uint8_t op, uint8_t a, uint16_t offset)
+{
+  insert_insts(c, pos, 1);
+  c->pat->code[pos].op = op;
+  c->pat->code[pos].a = a;
+  c->pat->code[pos].offset = offset;
 }
 
 static int
@@ -253,8 +320,8 @@ next_char(re_compiler *c)
 }
 
 /* Under /x, step over the whitespace between two tokens. Called where one
-   token ends and the next may begin, in compile_seq() and before the
-   quantifier in compile_quantified(), and nowhere else: whitespace inside a
+   token ends and the next may begin, in compile_levels() and before the
+   quantifier in compile_quantifiers(), and nowhere else: whitespace inside a
    token is the token's own, so `a{1, 2}` is not an interval and `(?<a b>x)`
    names the group "a b", as in CRuby, whose tokenizer skips whitespace only
    where it fetches a token. The bytes are the five Onigmo skips; a vertical
@@ -1810,7 +1877,7 @@ parse_quantifier(re_compiler *c, int *min_out, int *max_out, mrb_bool *ranged)
   next_char(c);  /* skip '}' */
   /* A range written backwards names no repeat count, and CRuby reports it
      rather than compiling a repeat that silently drops the upper bound:
-     compile_quantified() would lay out `min` mandatory copies and then a
+     compile_quantifiers() would lay out `min` mandatory copies and then a
      `max - min` loop that runs zero times, which is `{min}`. The check sits
      here, once the `}` is consumed, so that a `{...}` which is no quantifier
      at all is still restored as a literal brace above, and it lets the
@@ -1947,6 +2014,13 @@ fixed_len_walk(re_compiler *c, uint32_t start, uint32_t end, int *chars_out,
     case RE_WBOUND: case RE_NWBOUND:
       pc++;
       break;  /* zero-width assertions */
+    case RE_LB_WIDTH:
+      /* A rewind, which consumes nothing. A branch is measured once its
+         rewind is in place, and where the last branch of the body is empty
+         its rewind stands where the other branches exit to, so their walks
+         run through it; see add_lookbehind_widths(). */
+      pc++;
+      break;
     case RE_JMP:
       pc = inst.offset;
       break;
@@ -2061,6 +2135,17 @@ lookbehind_width(re_compiler *c, uint32_t start, uint32_t end)
   return RE_LB_PACK(len, chars);
 }
 
+/* Where branch `i` of an alternation of `n` branches begins, `from` being
+   the first SPLIT of its chain: the chain's last SPLIT falls through into
+   branch 0, and the SPLIT that jumps to branch i stands i places before
+   that; see close_alternation() for the layout. */
+static uint32_t
+branch_head(re_compiler *c, uint32_t from, uint32_t n, uint32_t i)
+{
+  if (i == 0) return from + n - 1;
+  return c->pat->code[from + n - 1 - i].offset;
+}
+
 /*
  * Give the lookbehind at `lb_pos`, whose body is [sub_start, body_end), the
  * rewinds it runs by, and refuse a body that has none.
@@ -2084,49 +2169,47 @@ static void
 add_lookbehind_widths(re_compiler *c, uint32_t lb_pos, uint32_t sub_start,
                       uint32_t body_end)
 {
-  uint16_t widths[RE_MAX_ALTS];
-  uint32_t heads[RE_MAX_ALTS];
-  uint32_t n;
-
   int chars = 0;
   int len = compute_fixed_len(c, sub_start, body_end, &chars);
   if (len >= 0) {
     if (len > 255) compile_error(c, "lookbehind too long (max 255 bytes)");
-    heads[0] = sub_start;
-    widths[0] = RE_LB_PACK(len, chars);
-    n = 1;
+    c->pat->code[lb_pos].a = 1;  /* measured: measure_deferred skips it */
+    insert_inst(c, sub_start, RE_LB_WIDTH, 0, RE_LB_PACK(len, chars));
+    return;
   }
+
   /* The alternation the body left behind is the body's own only when it
      covers all of it: it starts where the body starts and ends at the
      RE_LOOK_END, which stands at body_end - 1. */
-  else if (c->alt_count > 1 && c->alt_from == sub_start &&
-           c->alt_to == body_end - 1) {
-    n = c->alt_count;
-    for (uint32_t i = 0; i < n; i++) {
-      heads[i] = c->alt_starts[i];
-      widths[i] = lookbehind_width(c, heads[i], body_end);
-    }
-  }
-  else {
+  if (!(c->alt_count > 1 && c->alt_from == sub_start &&
+        c->alt_to == body_end - 1)) {
     compile_error(c, "invalid pattern in look-behind");
-    return;  /* not reached */
   }
+  uint32_t n = c->alt_count;
 
   /* With a rewind per branch, a branch can match from another's rewind and
      stop short of where the lookbehind was entered, so the end has to check
      where it landed. One width for the whole body is the width of every path
      through it, and such a body cannot land anywhere else. */
-  if (n > 1) c->pat->code[body_end - 1].a |= RE_LOOK_LANDING;
+  c->pat->code[body_end - 1].a |= RE_LOOK_LANDING;
 
-  /* Insert from the last head down, so that the heads still ahead of the
-     insertion keep the positions they were measured at. A branch's head is
-     what the alternation's SPLIT jumps to, and insert_inst() leaves such a
-     reference on the inserted instruction, so the branch now begins with its
-     rewind. */
-  c->pat->code[lb_pos].a = 1;  /* measured: measure_deferred skips it */
+  /* Each branch gets its rewind before any is measured, from the last head
+     down so that the heads still ahead of an insertion keep their positions.
+     A branch's head is what the alternation's SPLIT jumps to, and
+     insert_inst() leaves such a reference on the inserted instruction, so
+     the branch now begins with its rewind and the chain now names where
+     that rewind stands. The measuring then reads the chain again: what it
+     measures is the branch behind each rewind, which the inserted
+     instructions have moved but not changed. */
   for (uint32_t i = n; i > 0; i--) {
-    insert_inst(c, heads[i - 1], RE_LB_WIDTH, 0, widths[i - 1]);
+    insert_inst(c, branch_head(c, sub_start, n, i - 1), RE_LB_WIDTH, 0, 0);
   }
+  body_end += n;
+  for (uint32_t i = 0; i < n; i++) {
+    uint32_t at = branch_head(c, sub_start, n, i);
+    c->pat->code[at].offset = lookbehind_width(c, at + 1, body_end);
+  }
+  c->pat->code[lb_pos].a = 1;  /* measured: measure_deferred skips it */
 }
 
 /* Parse the option letters of an inline (?...) group. The parser is
@@ -2195,7 +2278,7 @@ emit_char(re_compiler *c, uint8_t ch)
    atom emitted: /Ā+/ compiled as \xC4(\x80)+ and matched one Ā in "ĀĀ". An
    invalid lead byte has a charlen of 1 and still emits alone. Every atom that
    consumes a character has to emit all of its bytes before returning, since
-   what compile_quantified() repeats is the bytes that atom emitted. */
+   what compile_quantifiers() repeats is the bytes that atom emitted. */
 static void
 emit_char_bytes(re_compiler *c, int ch)
 {
@@ -2425,21 +2508,6 @@ add_pending_call(re_compiler *c, uint8_t kind, const char *at, uint32_t len,
   return c->num_pending++;
 }
 
-/* Compile the sub-pattern of a lookaround, whose opener has just been
-   emitted, up to and including the RE_LOOK_END that closes it, and answer
-   where that end stands. The end carries the lookaround's number, from the
-   count the atomic groups use, so that a cut aimed at this lookaround is
-   told from one aimed at a group around or inside it; see bt_match(). The
-   landing bit is not set here: whether it is needed is known only once the
-   body is measured, and add_lookbehind_widths() sets it. */
-static uint32_t
-compile_look_body(re_compiler *c, mrb_bool negative)
-{
-  uint16_t cut = (uint16_t)++c->num_cuts;
-  compile_alt(c);
-  return emit(c, RE_LOOK_END, negative ? RE_LOOK_NEGATED : 0, cut);
-}
-
 /* Read the group a reference names, `<name>` or `'name'` with the parse
    point on the opening delimiter, and answer its number. This is what
    `\k` reads after its letter and what a conditional reads inside its
@@ -2594,28 +2662,63 @@ parse_group_ref(re_compiler *c)
   return group;
 }
 
-/* Compile what a '(' opens, the '(' itself just consumed: a group of any
-   kind, a lookaround, an atomic group, an absent repeater, a conditional or
-   an inline option, through the ')' that closes it where the construct has
-   one. Answers as compile_atom() does for it: TRUE, an atom having been
-   read. */
-static mrb_bool
-open_group(re_compiler *c)
+/* Open a nesting level; see re_level for what one is. The count is what
+   MRB_REGEXP_PARSE_DEPTH_LIMIT bounds, and the limit is met here rather than
+   at the bottom of a recursion: a pattern past it is refused at the level
+   that crosses it, having cost the levels below it and nothing more. */
+static re_level*
+open_level(re_compiler *c, uint8_t kind, uint32_t begin, uint32_t outer_atom_start)
+{
+  if (c->depth >= (uint32_t)MRB_REGEXP_PARSE_DEPTH_LIMIT) {
+    compile_error(c, "parse depth limit over");
+  }
+  if (c->level_count == c->level_capa) {
+    /* Outgrown: the levels move to a String the GC arena holds for the
+       compile, as pending_calls is held (see re_compiler), and double from
+       there. An allocation the allocator refuses is mrb_realloc()'s
+       NoMemoryError, which is the answer a pattern nested past what the
+       machine holds gets, at whatever depth that is. */
+    uint32_t capa = c->level_capa * 2;
+    size_t bytes = sizeof(re_level) * capa;
+    if (mrb_nil_p(c->level_store)) {
+      c->level_store = mrb_str_new(c->mrb, NULL, bytes);
+      memcpy(RSTRING_PTR(c->level_store), c->levels, sizeof(re_level) * c->level_count);
+    }
+    else {
+      mrb_str_resize(c->mrb, c->level_store, (mrb_int)bytes);
+    }
+    c->levels = (re_level*)RSTRING_PTR(c->level_store);
+    c->level_capa = capa;
+  }
+  c->depth++;
+  re_level *lv = &c->levels[c->level_count++];
+  memset(lv, 0, sizeof(*lv));
+  lv->kind = kind;
+  lv->flags = c->flags;
+  lv->begin = begin;
+  lv->atom_start = outer_atom_start;
+  lv->alt_start = c->code_len;
+  return lv;
+}
+
+/* Open the level a '(' begins, the '(' itself just consumed: read the
+   prefix that says which construct it is, emit what the construct puts
+   before its body, and push the level the body is read in. The body is
+   then read by compile_levels() as the sequence it stands in, and
+   close_level() emits what follows it. `begin` and `outer_atom_start`
+   are what the enclosing sequence needs back when the level closes; see
+   re_level. */
+static void
+open_group(re_compiler *c, uint32_t begin, uint32_t outer_atom_start)
 {
   mrb_bool capturing = TRUE;
-
-  /* Options in effect on entry. A group restores them on exit so an
-     inline toggle like (?i) inside it (which sets c->flags for the rest
-     of the group) does not leak past the closing ')'. */
-  uint32_t saved_flags = c->flags;
-
   const char *cap_name = NULL;
   uint32_t cap_name_len = 0;
 
   /* `(?` and nothing more: the prefix that names which group this is
      runs off the end of the pattern. It is reported here because what
      the parser would otherwise be left with is a `?` standing where no
-     atom is, which compile_seq() reads as a quantifier with nothing to
+     atom is, which compile_levels() reads as a quantifier with nothing to
      repeat. */
   if (peek(c) == '?' && c->p + 1 >= c->src_end) {
     compile_error(c, "end pattern in group");
@@ -2631,48 +2734,24 @@ open_group(re_compiler *c)
       mrb_bool negative = (c->p[1] == '!');
       next_char(c); next_char(c);  /* skip ?= or ?! */
       uint32_t la_pos = emit(c, negative ? RE_NEG_LOOKAHEAD : RE_LOOKAHEAD, 0, 0);
-      compile_look_body(c, negative);
-      c->pat->code[la_pos].offset = (uint16_t)c->code_len;  /* patch: skip past sub-pattern */
-      if (peek(c) != ')') compile_error(c, "end pattern with unmatched parenthesis");
-      next_char(c);
-      c->needs_backtrack = TRUE;  /* needs backtracking engine */
-      c->flags = saved_flags;
-      return TRUE;  /* done with this atom */
+      re_level *lv = open_level(c, RE_LEVEL_LOOKAHEAD, begin, outer_atom_start);
+      lv->state = negative;
+      lv->num = (uint16_t)++c->num_cuts;
+      lv->head = la_pos;
+      return;
     }
     else if (c->p[1] == '<' && c->p + 2 < c->src_end && (c->p[2] == '=' || c->p[2] == '!')) {
       /* lookbehind (?<=...) or (?<!...) */
       mrb_bool negative = (c->p[2] == '!');
       next_char(c); next_char(c); next_char(c);  /* skip ?<= or ?<! */
       uint32_t lb_pos = emit(c, negative ? RE_NEG_LOOKBEHIND : RE_LOOKBEHIND, 0, 0);
-      uint32_t sub_start = c->code_len;
       c->alt_count = 0;  /* the record is this body's own; see there */
-      compile_look_body(c, negative);
-      uint32_t body_end = c->code_len;  /* the RE_LOOK_END is at body_end - 1 */
-
-      /* A sub-pattern holding a \g call cannot be measured yet: where
-         the call jumps is not decided until resolve_calls(), and the
-         body it runs may not be written yet. A width of its own per
-         branch is out of reach for one of those, the record above being
-         long gone by then, so it is left with the single carrier it can
-         be given here and measure_deferred_lookbehinds() fills that in
-         once the calls are wired. */
-      mrb_bool deferred = FALSE;
-      for (uint32_t i = sub_start; i < body_end; i++) {
-        if (c->pat->code[i].op == RE_CALL) { deferred = TRUE; break; }
-      }
-      if (deferred) {
-        insert_inst(c, sub_start, RE_LB_WIDTH, 0, 0);
-      }
-      else {
-        add_lookbehind_widths(c, lb_pos, sub_start, body_end);
-      }
-      c->pat->code[lb_pos].offset = (uint16_t)c->code_len;
-
-      if (peek(c) != ')') compile_error(c, "end pattern with unmatched parenthesis");
-      next_char(c);
-      c->needs_backtrack = TRUE;  /* needs backtracking engine */
-      c->flags = saved_flags;
-      return TRUE;
+      re_level *lv = open_level(c, RE_LEVEL_LOOKBEHIND, begin, outer_atom_start);
+      lv->state = negative;
+      lv->num = (uint16_t)++c->num_cuts;
+      lv->head = lb_pos;
+      lv->aux = lv->alt_start;  /* where the body's code begins */
+      return;
     }
     else if (c->p[1] == '>') {
       /* atomic group (?>...): the body is a non-capturing group whose
@@ -2690,13 +2769,9 @@ open_group(re_compiler *c)
       next_char(c); next_char(c);  /* skip ?> */
       uint16_t cut = (uint16_t)++c->num_cuts;
       emit(c, RE_ATOMIC, 0, cut);
-      compile_alt(c);
-      emit(c, RE_ATOMIC_END, 0, cut);
-      if (peek(c) != ')') compile_error(c, "end pattern with unmatched parenthesis");
-      next_char(c);
-      c->needs_backtrack = TRUE;  /* the Pike VM cannot cut a thread */
-      c->flags = saved_flags;
-      return TRUE;
+      re_level *lv = open_level(c, RE_LEVEL_ATOMIC, begin, outer_atom_start);
+      lv->num = cut;
+      return;
     }
     else if (c->p[1] == '~') {
       /* The absent repeater (?~e): the longest run of text from here
@@ -2715,14 +2790,9 @@ open_group(re_compiler *c)
       next_char(c); next_char(c);  /* skip ?~ */
       emit(c, RE_ABSENT_START, 0, 0);
       uint32_t head = emit(c, RE_ABSENT, 0, 0);
-      compile_alt(c);
-      emit(c, RE_ABSENT_END, 0, 0);
-      if (peek(c) != ')') compile_error(c, "end pattern with unmatched parenthesis");
-      next_char(c);
-      c->pat->code[head].offset = (uint16_t)c->code_len;
-      c->needs_backtrack = TRUE;  /* the Pike VM has no scan of its own */
-      c->flags = saved_flags;
-      return TRUE;
+      re_level *lv = open_level(c, RE_LEVEL_ABSENT, begin, outer_atom_start);
+      lv->head = head;
+      return;
     }
     else if (c->p[1] == '\'' ||
              (c->p[1] == '<' && c->p + 2 < c->src_end &&
@@ -2787,27 +2857,22 @@ open_group(re_compiler *c)
            remainder here rather than returning to the sequence the
            toggle was read in, where the `|` would split at the level the
            toggle was written at and `c` would match with no `a` before
-           it. compile_alt() consumes every `|` and stops at the group's
-           ')' or the end of the pattern, which is where the caller
-           expects the parse point, so what follows is unchanged: the
-           enclosing compile_seq() finds its terminator, a stray ')' at
-           top level is still refused by mrb_re_compile(), and a
-           quantifier with nothing before it is refused by the
-           compile_seq() called from here. */
+           it. The level takes every `|` and closes at the group's ')' or
+           the end of the pattern, consuming neither, which is where the
+           enclosing level expects the parse point, so what follows is
+           unchanged: that level finds its terminator, a stray ')' at top
+           level is still refused by mrb_re_compile(), and a quantifier
+           with nothing before it is refused inside the level. */
         next_char(c);
+        open_level(c, RE_LEVEL_TOGGLE, begin, outer_atom_start);
         c->flags = new_flags;
-        compile_alt(c);
-        c->flags = saved_flags;
-        return TRUE;
+        return;
       }
       else if (peek(c) == ':') {
         next_char(c);
+        open_level(c, RE_LEVEL_OPTION, begin, outer_atom_start);
         c->flags = new_flags;
-        compile_alt(c);
-        c->flags = saved_flags;
-        if (peek(c) != ')') compile_error(c, "end pattern with unmatched parenthesis");
-        next_char(c);
-        return TRUE;
+        return;
       }
       else {
         if (peek(c) < 0) compile_error(c, "end pattern in group");
@@ -2834,10 +2899,10 @@ open_group(re_compiler *c)
          the number as it refuses `\1`.
 
          Two branches at most: a third `|` is `invalid conditional
-         pattern`, as in CRuby, so the bodies are read one sequence at a
-         time rather than through compile_alt(), which would take every
-         `|`. The bodies nest a level as a group's would, and the
-         count is kept the way compile_alt() keeps it.
+         pattern`, as in CRuby, so the level reads the `|` between the
+         bodies itself, where any other level reads every `|` as a branch
+         of its alternation; see compile_levels(). The bodies nest a level
+         as a group's would, and count as one.
 
          One instruction carries the test and the layout is a fork's
          with the choice made by the captures instead of pushed: RE_COND
@@ -2901,27 +2966,9 @@ open_group(re_compiler *c)
       next_char(c);  /* skip the ')' closing the condition */
 
       uint32_t head = emit(c, RE_COND, (uint8_t)group, 0);
-      if (++c->depth > (uint32_t)MRB_REGEXP_PARSE_DEPTH_LIMIT) {
-        compile_error(c, "parse depth limit over");
-      }
-      compile_seq(c);
-      if (peek(c) == '|') {
-        next_char(c);
-        uint32_t skip = emit(c, RE_JMP, 0, 0);
-        c->pat->code[head].offset = (uint16_t)c->code_len;
-        compile_seq(c);
-        if (peek(c) == '|') compile_error(c, "invalid conditional pattern");
-        c->pat->code[skip].offset = (uint16_t)c->code_len;
-      }
-      else {
-        c->pat->code[head].offset = (uint16_t)c->code_len;
-      }
-      c->depth--;
-      if (peek(c) != ')') compile_error(c, "end pattern with unmatched parenthesis");
-      next_char(c);
-      c->needs_backtrack = TRUE;  /* the Pike VM's threads carry no test of their captures */
-      c->flags = saved_flags;
-      return TRUE;
+      re_level *lv = open_level(c, RE_LEVEL_COND, begin, outer_atom_start);
+      lv->head = head;
+      return;
     }
     else if (c->p[1] == '#') {
       /* preprocess_pattern() removes a terminated comment group before
@@ -2935,7 +2982,7 @@ open_group(re_compiler *c)
          groups (?#...) never get here either, having been removed by
          preprocess_pattern(). Raise here rather than falling through to
          the capturing-group path, which would leave the stray `?` for
-         compile_seq to spin on forever (A1). */
+         compile_levels() to spin on forever (A1). */
       if (c->p[1] == '<') {
         /* `(?<` and nothing more, the only way a '<' reaches here: the
            pattern ends before the character that tells a lookbehind
@@ -2976,33 +3023,22 @@ open_group(re_compiler *c)
     }
   }
 
-  compile_alt(c);
-
-  if (peek(c) != ')') compile_error(c, "end pattern with unmatched parenthesis");
-  next_char(c);
-
-  if (capturing) {
-    emit(c, RE_SAVE, 0, group * 2 + 1);
-  }
-  c->flags = saved_flags;  /* the options this group opened with */
-  return TRUE;
+  re_level *lv = open_level(c, RE_LEVEL_GROUP, begin, outer_atom_start);
+  lv->state = capturing;
+  lv->num = group;
 }
 
-/* Compile a single atom (character, class, group, etc.). Returns whether one
-   was read: FALSE when what stands at the parse point is not an atom, either a
-   quantifier metacharacter or the end of the sequence, neither of them
-   consumed. An empty group `(?:)` emits nothing and is still an atom, and so
-   does an option toggle `(?i)` whose scope, the rest of the enclosing group,
-   is empty. */
+/* Compile a single atom (character, class, anchor, escape). Returns whether
+   one was read: FALSE when what stands at the parse point is not an atom,
+   either a quantifier metacharacter or the end of the sequence, neither of
+   them consumed. A '(' is not read here: it opens a level, which is
+   compile_levels()'s to push, through open_group(). */
 static mrb_bool
 compile_atom(re_compiler *c)
 {
   int ch = peek(c);
 
   switch (ch) {
-  case '(':
-    next_char(c);
-    return open_group(c);
 
   case '[':
     next_char(c);
@@ -3298,7 +3334,7 @@ compile_atom(re_compiler *c)
 
   case '{':
     {
-      /* `{` opens a repeat only as a valid quantifier, which compile_quantified
+      /* `{` opens a repeat only as a valid quantifier, which compile_quantifiers()
          consumes after an atom. Reaching it here means there is no atom to
          repeat: a real quantifier (e.g. {2}) is an error, like CRuby, and
          anything else (e.g. {a}, a lone {) is a literal `{`. parse_quantifier
@@ -3411,29 +3447,22 @@ idempotent_assertion(const re_inst *code, uint32_t start, uint32_t end)
   return TRUE;
 }
 
-/* Compile atom with quantifiers (*, +, ?, {n,m}) */
+/* Read the quantifiers after an atom, `*`, `+`, `?` and `{n,m}`, and wrap
+   the code the atom emitted, from `begin` to the end of the code, in them.
+   `start` is where the atom itself begins, which is `begin` except after a
+   `\u{...}` list, whose last codepoint alone is the quantifier's; see
+   compile_atom(). */
 static void
-compile_quantified(re_compiler *c)
+compile_quantifiers(re_compiler *c, uint32_t begin, uint32_t start)
 {
-  uint32_t begin = c->code_len;
-  /* atom_start normally stays at `begin`; compile_atom moves it only for a
-     `\u{...}` list, whose leading codepoints are atoms of their own. Saving
-     and restoring it keeps a nested compile_quantified (inside a group) from
-     leaving its own atom behind for this one. */
-  uint32_t saved_atom_start = c->atom_start;
-  c->atom_start = begin;
-  mrb_bool atom = compile_atom(c);
-  uint32_t start = c->atom_start;
-  c->atom_start = saved_atom_start;
   if (c->code_len == begin) {
     /* Nothing emitted. An empty group `(?:)` is an atom all the same, and
        one that matches empty matches empty however it is repeated, so its
        quantifiers are read and emit nothing, as those of `a{0}` are; CRuby
-       compiles `(?:)*` the same way. A stray metacharacter is no atom and
-       leaves the quantifier for compile_seq() to refuse; `(?i)*` is refused
-       there too, as CRuby refuses it, by the compile_seq() that reads the
-       toggle's scope. */
-    if (atom) skip_quantifiers(c);
+       compiles `(?:)*` the same way. `(?i)*` is refused, as CRuby refuses
+       it, but inside the toggle's level, where the `*` stands with no atom
+       before it; see compile_levels(). */
+    skip_quantifiers(c);
     return;
   }
   mrb_bool assertion = idempotent_assertion(c->pat->code, start, c->code_len);
@@ -3622,120 +3651,236 @@ compile_quantified(re_compiler *c)
   }
 }
 
-/* Compile a sequence of quantified atoms */
+/* Mark on the RE_JMP a branch ends with while the alternation it belongs to
+   is still open: the target is the code after the last branch, which is not
+   known until then. close_alternation() finds the level's branches by these
+   marks and clears them. By the time a level closes, every alternation
+   inside it has closed, so the marks left are the level's own; none survives
+   the parse, and the mark mark_empty_loops() writes on the same field
+   afterwards is another matter. */
+#define RE_JMP_BRANCH 1
+
+/* Close the alternation of a level that is closing: give its branches the
+   SPLIT chain that chooses among them and the exits that rejoin after the
+   last, and leave the record the lookbehind arm reads. A level that read no
+   `|` has one branch and nothing to do.
+
+   a|b|c lays out as
+
+     SPLIT c; SPLIT b; a; JMP end; b; JMP end; c; end:
+
+   Each SPLIT falls through to the next, and the chain's final fall-through
+   reaches the first branch, so the engines (which rank a SPLIT's
+   fall-through above its jump) explore branch 0 first. The jump targets are
+   then unwound in reverse, so SPLIT i must jump to branch (n - 1 - i) to
+   keep the remaining branches in source order, leftmost-first across three
+   or more. The chain goes in front of the first branch once the last has
+   been read, which is what moves the branches; the exits are found where
+   they stand by their marks, in the order the branches were read. */
 static void
-compile_seq(re_compiler *c)
+close_alternation(re_compiler *c, re_level *lv)
 {
-  for (;;) {
-    /* One token ends here and the next may begin, so under /x this is where
-       the whitespace between them goes: `a b` is `ab`, and the blanks before
-       a '|' or a ')' are gone by the time compile_alt() looks for one. */
-    skip_extended_space(c);
-    int ch = peek(c);
-    if (ch < 0 || ch == ')' || ch == '|') return;
-    uint32_t code_before = c->code_len;
-    const char *p_before = c->p;
-    compile_quantified(c);
-    if (c->code_len == code_before && c->p == p_before) {
-      /* compile_quantified neither consumed input nor emitted code: the
-         current character is a quantifier metacharacter with no atom to
-         repeat (a leading `*`, `+`, `?`, or one after the toggle `(?i)`).
-         CRuby raises RegexpError here; without this guard peek() never
-         advances and the loop spins forever (A1). */
-      compile_error(c, "target of repeat operator is not specified");
-    }
-  }
-}
-
-/* Compile alternation: seq | seq | ... */
-static void
-compile_alt_body(re_compiler *c)
-{
-  uint32_t alt_start = c->code_len;
-  compile_seq(c);
-
-  if (peek(c) != '|') return;
-
-  /* a|b → SPLIT L1 L2; L1: a; JMP END; L2: b; END:
-     We need to insert SPLIT before already-emitted code for first alt.
-     Strategy: emit JMP after first alt, then for each subsequent alt,
-     insert a SPLIT before it by shifting code. */
-
-  /* Collect all alternatives, then emit SPLIT chain at the end.
-     This avoids insert_inst offset corruption for multi-way alternation. */
-  uint32_t alt_starts[RE_MAX_ALTS];  /* start positions of each alternative */
-  int num_alts = 0;
-  alt_starts[num_alts++] = alt_start;
-
-  while (peek(c) == '|') {
-    next_char(c);
-    emit(c, RE_JMP, 0, 0);  /* placeholder: jump to end */
-    alt_starts[num_alts++] = c->code_len;
-    if (num_alts >= RE_MAX_ALTS) compile_error(c, "too many alternatives");
-    compile_seq(c);
-  }
-
-  if (num_alts <= 1) return;  /* shouldn't happen, but safety */
-
-  /* Now insert SPLIT chain before the alternatives.
-     For n alternatives: n-1 SPLIT instructions, each pointing to
-     their respective alternative. */
-  uint32_t split_count = (uint32_t)(num_alts - 1);
-  /* Insert split_count instructions at alt_starts[0] */
-  for (uint32_t i = 0; i < split_count; i++) {
-    insert_inst(c, alt_starts[0], RE_JMP, 0, 0);  /* placeholder */
-    /* adjust all alt_starts by +1 due to insertion */
-    for (int j = 0; j < num_alts; j++) {
-      alt_starts[j]++;
-    }
-  }
-
-  /* Now set up the SPLIT chain. Each SPLIT falls through to the next, and the
-     chain's final fall-through reaches the first alternative, so the engines
-     (which rank a SPLIT's fall-through above its jump) explore alternative 0
-     first. The jump targets are then unwound in reverse, so SPLIT i must jump
-     to alternative (split_count - i) to keep the remaining alternatives in
-     source order -- i.e. leftmost-first across three or more branches. */
-  for (uint32_t i = 0; i < split_count; i++) {
-    uint32_t pos = alt_starts[0] - split_count + i;
-    c->pat->code[pos].op = RE_SPLIT;
-    c->pat->code[pos].a = 0;
-    c->pat->code[pos].offset = (uint16_t)alt_starts[split_count - i];
-  }
-
-  /* Patch JMPs (they are right before each alt_starts[1..n-1]) to point to end */
+  if (lv->branches == 0) return;
+  uint32_t n = lv->branches + 1;
+  uint32_t split_count = n - 1;
+  insert_insts(c, lv->alt_start, split_count);
+  uint32_t first = lv->alt_start + split_count;  /* where branch 0 now begins */
   uint32_t end = c->code_len;
-  for (int i = 1; i < num_alts; i++) {
-    uint32_t jmp_pos = alt_starts[i] - 1;
-    c->pat->code[jmp_pos].op = RE_JMP;
-    c->pat->code[jmp_pos].offset = (uint16_t)end;
+  uint32_t k = 0;
+  for (uint32_t pc = first; pc < end; pc++) {
+    re_inst *in = &c->pat->code[pc];
+    if (in->op != RE_JMP || in->a != RE_JMP_BRANCH) continue;
+    in->a = 0;
+    in->offset = (uint16_t)end;
+    k++;  /* branch k begins right after the exit of branch k - 1 */
+    c->pat->code[first - k].op = RE_SPLIT;
+    c->pat->code[first - k].a = 0;
+    c->pat->code[first - k].offset = (uint16_t)(pc + 1);
   }
+  mrb_assert(k == split_count);
 
-  /* Leave the branches where the lookbehind arm can find them; see the
-     record's declaration. Nothing moves this code between here and the arm's
-     look at it: a lookbehind body ends with the RE_LOOK_END emitted right
-     after this returns. */
-  for (int i = 0; i < num_alts; i++) c->alt_starts[i] = alt_starts[i];
-  c->alt_count = (uint32_t)num_alts;
-  c->alt_from = alt_starts[0] - split_count;
+  /* Leave the span where the lookbehind arm can find it; see the record's
+     declaration. Nothing moves this code between here and the arm's look at
+     it: a lookbehind body ends with the RE_LOOK_END emitted right after
+     this returns. */
+  c->alt_count = n;
+  c->alt_from = lv->alt_start;
   c->alt_to = end;
 }
 
-/* Bound the parser's own recursion. Every nesting level it descends into is
-   one compile_alt() frame -- compile_alt -> compile_seq -> compile_quantified
-   -> compile_atom, whose group, lookaround, atomic and inline-option arms
-   call compile_alt again -- so the count stands here, at the one entry the
-   recursion passes through, and a pattern that nests deeper is refused rather
-   than run off the C stack. The message is CRuby's for the same refusal; see
-   MRB_REGEXP_PARSE_DEPTH_LIMIT for what the number is and what it costs. */
 static void
-compile_alt(re_compiler *c)
+close_paren(re_compiler *c)
 {
-  if (++c->depth > (uint32_t)MRB_REGEXP_PARSE_DEPTH_LIMIT) {
-    compile_error(c, "parse depth limit over");
+  if (peek(c) != ')') compile_error(c, "end pattern with unmatched parenthesis");
+  next_char(c);
+}
+
+/* Close the innermost level, the parse point on its ')' or at the end of the
+   pattern: finish its alternation, emit what its construct puts after the
+   body, consume the ')' where the construct owns one, and restore the
+   options it opened with. */
+static void
+close_level(re_compiler *c)
+{
+  re_level *lv = &c->levels[c->level_count - 1];
+
+  if (lv->kind != RE_LEVEL_COND) close_alternation(c, lv);
+  switch (lv->kind) {
+  case RE_LEVEL_PATTERN:
+    /* a ')' that ends the pattern is left for mrb_re_compile() to refuse */
+    break;
+
+  case RE_LEVEL_GROUP:
+    close_paren(c);
+    if (lv->state) emit(c, RE_SAVE, 0, (uint16_t)(lv->num * 2 + 1));
+    break;
+
+  case RE_LEVEL_LOOKAHEAD:
+    /* The end carries the lookaround's number, from the count the atomic
+       groups use, so that a cut aimed at this lookaround is told from one
+       aimed at a group around or inside it; see bt_match(). */
+    emit(c, RE_LOOK_END, lv->state ? RE_LOOK_NEGATED : 0, lv->num);
+    c->pat->code[lv->head].offset = (uint16_t)c->code_len;  /* patch: skip past sub-pattern */
+    close_paren(c);
+    c->needs_backtrack = TRUE;  /* needs backtracking engine */
+    break;
+
+  case RE_LEVEL_LOOKBEHIND: {
+    emit(c, RE_LOOK_END, lv->state ? RE_LOOK_NEGATED : 0, lv->num);
+    uint32_t sub_start = lv->aux;
+    uint32_t body_end = c->code_len;  /* the RE_LOOK_END is at body_end - 1 */
+
+    /* A sub-pattern holding a \g call cannot be measured yet: where the
+       call jumps is not decided until resolve_calls(), and the body it runs
+       may not be written yet. A width of its own per branch is out of reach
+       for one of those, the alternation record being long gone by then, so
+       it is left with the single carrier it can be given here and
+       measure_deferred_lookbehinds() fills that in once the calls are
+       wired. The landing bit is not set on the end here either: whether it
+       is needed is known only once the body is measured, and
+       add_lookbehind_widths() sets it. */
+    mrb_bool deferred = FALSE;
+    for (uint32_t i = sub_start; i < body_end; i++) {
+      if (c->pat->code[i].op == RE_CALL) { deferred = TRUE; break; }
+    }
+    if (deferred) {
+      insert_inst(c, sub_start, RE_LB_WIDTH, 0, 0);
+    }
+    else {
+      add_lookbehind_widths(c, lv->head, sub_start, body_end);
+    }
+    c->pat->code[lv->head].offset = (uint16_t)c->code_len;
+    close_paren(c);
+    c->needs_backtrack = TRUE;  /* needs backtracking engine */
+    break;
   }
-  compile_alt_body(c);
+
+  case RE_LEVEL_ATOMIC:
+    emit(c, RE_ATOMIC_END, 0, lv->num);
+    close_paren(c);
+    c->needs_backtrack = TRUE;  /* the Pike VM cannot cut a thread */
+    break;
+
+  case RE_LEVEL_ABSENT:
+    emit(c, RE_ABSENT_END, 0, 0);
+    close_paren(c);
+    c->pat->code[lv->head].offset = (uint16_t)c->code_len;
+    c->needs_backtrack = TRUE;  /* the Pike VM has no scan of its own */
+    break;
+
+  case RE_LEVEL_OPTION:
+    close_paren(c);
+    break;
+
+  case RE_LEVEL_TOGGLE:
+    /* Its scope ends at the ')' of the group it stands in, or at the end of
+       the pattern, and neither is its own to consume. */
+    break;
+
+  case RE_LEVEL_COND:
+    /* With no `no`, the head's offset is the text after the group; with
+       one, the jump that ends `yes` goes there. */
+    c->pat->code[lv->state ? lv->aux : lv->head].offset = (uint16_t)c->code_len;
+    close_paren(c);
+    c->needs_backtrack = TRUE;  /* the Pike VM's threads carry no test of their captures */
+    break;
+  }
+  c->flags = lv->flags;
   c->depth--;
+  c->level_count--;
+}
+
+/* Read the pattern from the parse point, one atom at a time, opening a level
+   at every '(' and closing one at every ')'. The descent a recursive parser
+   makes per level is a push here, so the parse stands in this one C frame
+   at any depth, and what a level costs is the re_level open_level() finds
+   room for. Returns at the end of the pattern, or at a ')' with no level
+   left to close, which is left standing for mrb_re_compile() to refuse.
+
+   A level is the atom its opener began: when it closes, the quantifiers
+   after its ')' bind the code from its `begin`, as those after a character
+   bind the character. Around any atom, c->atom_start is set to where the
+   atom begins and put back afterwards, so that an atom whose `\u{...}` list
+   moved it, inside a level or not, leaves nothing behind for the next one;
+   a level keeps the outer value until its close. */
+static void
+compile_levels(re_compiler *c)
+{
+  open_level(c, RE_LEVEL_PATTERN, c->code_len, c->atom_start);
+  for (;;) {
+    /* One token ends here and the next may begin, so under /x this is where
+       the whitespace between them goes: `a b` is `ab`, and the blanks before
+       a '|' or a ')' are gone by the time the level looks for one. */
+    skip_extended_space(c);
+    int ch = peek(c);
+    re_level *lv = &c->levels[c->level_count - 1];
+
+    if (ch == '|') {
+      next_char(c);
+      if (lv->kind == RE_LEVEL_COND) {
+        /* Two bodies at most: a third is `invalid conditional pattern`, as
+           in CRuby. `yes` ends with a jump past `no`, and the head goes on
+           at `no` where the group has not matched. */
+        if (lv->state) compile_error(c, "invalid conditional pattern");
+        lv->aux = emit(c, RE_JMP, 0, 0);
+        c->pat->code[lv->head].offset = (uint16_t)c->code_len;
+        lv->state = TRUE;
+        continue;
+      }
+      emit(c, RE_JMP, RE_JMP_BRANCH, 0);  /* the branch's exit; see close_alternation() */
+      lv->branches++;
+      continue;
+    }
+
+    if (ch < 0 || ch == ')') {
+      uint8_t kind = lv->kind;
+      uint32_t begin = lv->begin;
+      uint32_t outer = lv->atom_start;
+      close_level(c);
+      if (kind == RE_LEVEL_PATTERN) return;
+      compile_quantifiers(c, begin, begin);
+      c->atom_start = outer;
+      continue;
+    }
+
+    uint32_t begin = c->code_len;
+    uint32_t outer = c->atom_start;
+    c->atom_start = begin;
+    if (ch == '(') {
+      next_char(c);
+      open_group(c, begin, outer);
+      continue;
+    }
+    if (!compile_atom(c)) {
+      /* The character is a quantifier metacharacter with no atom to repeat,
+         a `*`, `+` or `?` opening a sequence or standing after the toggle
+         `(?i)`. CRuby raises RegexpError here; without this the loop would
+         come round to the same character forever (A1). */
+      compile_error(c, "target of repeat operator is not specified");
+    }
+    compile_quantifiers(c, begin, c->atom_start);
+    c->atom_start = outer;
+  }
 }
 
 /* Inside a character class, is `src` the start of a POSIX bracket [:name:]?
@@ -4702,6 +4847,9 @@ mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat,
   c.orig = pattern;
   c.orig_end = pattern + len;
   c.pending_calls = mrb_nil_value();  /* a zero fill is not a nil mrb_value */
+  c.level_store = mrb_nil_value();
+  c.levels = c.levels_inline;
+  c.level_capa = RE_LEVELS_INLINE;
 
   /* Both things the pre-pass removes, a (?#...) group and a `#` comment,
      are spelled with a '#', so a pattern without one is parsed as written.
@@ -4728,7 +4876,7 @@ mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat,
   /* group 0 start */
   emit(&c, RE_SAVE, 0, 0);
 
-  compile_alt(&c);
+  compile_levels(&c);
 
   if (c.p < c.src_end) {
     compile_error(&c, "unmatched close parenthesis");
