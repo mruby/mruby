@@ -129,12 +129,14 @@ mrb_hal_socket_sockaddr_un(mrb_state *mrb, const char *path, size_t pathlen)
 }
 #endif /* MRB_HAL_SOCKET_HAS_SOCKADDR_UN */
 
+#ifdef MRB_HAL_SOCKET_HAS_SOCKETPAIR
 int
 mrb_hal_socket_socketpair(mrb_state *mrb, int domain, int type, int protocol, int sv[2])
 {
   (void)mrb;
   return socketpair(domain, type, protocol, sv);
 }
+#endif
 
 #ifdef MRB_HAL_SOCKET_HAS_SOCKADDR_UN
 mrb_value

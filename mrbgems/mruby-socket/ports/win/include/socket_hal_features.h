@@ -16,4 +16,6 @@
 /* No Unix domain addresses: `Socket.sockaddr_un` and `Addrinfo#unix_path`
    are left undefined rather than defined to fail. */
 
+/* No socketpair(2): `Socket.socketpair` is likewise undefined. */
+
 #endif /* MRUBY_SOCKET_HAL_FEATURES_H */

@@ -247,19 +247,6 @@ mrb_hal_socket_inet_pton(int af, const char *src, void *dst)
  * Platform-Specific Socket Features
  */
 
-int
-mrb_hal_socket_socketpair(mrb_state *mrb, int domain, int type, int protocol, int sv[2])
-{
-  (void)mrb;
-  (void)domain;
-  (void)type;
-  (void)protocol;
-  (void)sv;
-  /* socketpair is not supported on Windows */
-  errno = ENOSYS;
-  return -1;
-}
-
 mrb_value
 mrb_hal_socket_ip_address_list(mrb_state *mrb)
 {

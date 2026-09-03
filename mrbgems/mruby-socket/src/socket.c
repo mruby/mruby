@@ -1183,6 +1183,7 @@ mrb_socket_sockaddr_un(mrb_state *mrb, mrb_value klass)
  *   sock1, sock2 = Socket.socketpair(Socket::AF_UNIX, Socket::SOCK_STREAM)
  *   sock1, sock2 = Socket.pair(Socket::AF_UNIX, Socket::SOCK_DGRAM)
  */
+#ifdef MRB_HAL_SOCKET_HAS_SOCKETPAIR
 static mrb_value
 mrb_socket_socketpair(mrb_state *mrb, mrb_value klass)
 {
@@ -1200,6 +1201,11 @@ mrb_socket_socketpair(mrb_state *mrb, mrb_value klass)
   mrb_ary_push(mrb, ary, mrb_fixnum_value(sv[1]));
   return ary;
 }
+#else
+/* this port has no socketpair(2): unimplemented, and named as such so
+   `respond_to?` can answer false */
+# define mrb_socket_socketpair mrb_notimplement_m
+#endif
 
 /*
  * call-seq:

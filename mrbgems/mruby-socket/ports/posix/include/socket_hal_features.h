@@ -17,4 +17,7 @@
    through them every `UNIXSocket` and `UNIXServer` address. */
 #define MRB_HAL_SOCKET_HAS_SOCKADDR_UN
 
+/* socketpair(2): `Socket.socketpair`. */
+#define MRB_HAL_SOCKET_HAS_SOCKETPAIR
+
 #endif /* MRUBY_SOCKET_HAL_FEATURES_H */

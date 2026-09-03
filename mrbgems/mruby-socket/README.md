@@ -46,10 +46,12 @@ it does not implement fails to link.
 | macro                            | methods                                    | posix | win |
 | -------------------------------- | ------------------------------------------ | ----- | --- |
 | `MRB_HAL_SOCKET_HAS_SOCKADDR_UN` | `Socket.sockaddr_un`, `Addrinfo#unix_path` | o     |     |
+| `MRB_HAL_SOCKET_HAS_SOCKETPAIR`  | `Socket.socketpair`                        | o     |     |
 
-The Ruby layer is not gated. `UNIXSocket.new`, `UNIXServer.new` and
-`Socket.unpack_sockaddr_un` keep their bodies on every port and reach the
-C method they build on, whose refusal is what a caller sees.
+The Ruby layer is not gated. `UNIXSocket.new`, `UNIXServer.new`,
+`UNIXSocket.socketpair` and `Socket.unpack_sockaddr_un` keep their bodies on
+every port and reach the C method they build on, whose refusal is what a
+caller sees.
 
 ## License
 

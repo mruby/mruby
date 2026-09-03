@@ -91,6 +91,7 @@ mrb_value mrb_hal_socket_sockaddr_un(mrb_state *mrb, const char *path, size_t pa
 mrb_value mrb_hal_socket_unix_path(mrb_state *mrb, const char *sockaddr, size_t socklen);
 #endif
 
+#ifdef MRB_HAL_SOCKET_HAS_SOCKETPAIR
 /* Create a pair of connected sockets
  * domain: address family (e.g., AF_UNIX)
  * type: socket type (e.g., SOCK_STREAM)
@@ -98,6 +99,7 @@ mrb_value mrb_hal_socket_unix_path(mrb_state *mrb, const char *sockaddr, size_t 
  * sv: array to receive the two socket descriptors
  * Returns: 0 on success, -1 on error (sets errno) */
 int mrb_hal_socket_socketpair(mrb_state *mrb, int domain, int type, int protocol, int sv[2]);
+#endif
 
 /* Enumerate local IP addresses for all network interfaces.
  * Returns an Array of String values, each a binary sockaddr_in (AF_INET) or
