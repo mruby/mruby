@@ -296,6 +296,7 @@ mrb_addrinfo_getnameinfo(mrb_state *mrb, mrb_value self)
  *
  *   addr.unix_path  #=> "/tmp/socket"
  */
+#ifdef MRB_HAL_SOCKET_HAS_SOCKADDR_UN
 static mrb_value
 mrb_addrinfo_unix_path(mrb_state *mrb, mrb_value self)
 {
@@ -307,6 +308,11 @@ mrb_addrinfo_unix_path(mrb_state *mrb, mrb_value self)
 
   return mrb_hal_socket_unix_path(mrb, RSTRING_PTR(sastr), (size_t)RSTRING_LEN(sastr));
 }
+#else
+/* this port has no Unix domain addresses: unimplemented, and named as such
+   so `respond_to?` can answer false */
+# define mrb_addrinfo_unix_path mrb_notimplement_m
+#endif
 
 /* Helper to convert sockaddr to address list array [family, port, host, host] */
 static mrb_value
@@ -1154,6 +1160,7 @@ mrb_socket_sockaddr_family(mrb_state *mrb, mrb_value klass)
  *   Socket.sockaddr_un("/tmp/socket")
  *   Socket.sockaddr_un("/var/run/daemon.sock")
  */
+#ifdef MRB_HAL_SOCKET_HAS_SOCKADDR_UN
 static mrb_value
 mrb_socket_sockaddr_un(mrb_state *mrb, mrb_value klass)
 {
@@ -1162,6 +1169,9 @@ mrb_socket_sockaddr_un(mrb_state *mrb, mrb_value klass)
   mrb_get_args(mrb, "S", &path);
   return mrb_hal_socket_sockaddr_un(mrb, RSTRING_PTR(path), (size_t)RSTRING_LEN(path));
 }
+#else
+# define mrb_socket_sockaddr_un mrb_notimplement_m
+#endif
 
 /*
  * call-seq:
