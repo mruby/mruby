@@ -76,6 +76,8 @@ jobs:
         run: rake defines
       - name: Build
         run: rake -m test:build
+      - name: Size
+        run: rake size
       - name: Test
         run: rake test:run
 
@@ -108,6 +110,9 @@ jobs:
       - name: Build
         run: |
           COSMO_ROOT=~/cosmo rake -m test:build MRUBY_CONFIG=cosmopolitan
+      - name: Size
+        run: |
+          COSMO_ROOT=~/cosmo rake size MRUBY_CONFIG=cosmopolitan
       - name: Test
         run: |
           COSMO_ROOT=~/cosmo rake test:run MRUBY_CONFIG=cosmopolitan
@@ -135,6 +140,11 @@ jobs:
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           rake -m test:build
+      - name: Size
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          rake size
       - name: Test
         shell: cmd
         run: |
