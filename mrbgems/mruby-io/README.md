@@ -174,6 +174,21 @@ Add the line below to your build configuration.
 If your (non Windows) platform does not support `getpwnam(3)` for some reason, define `MRB_IO_NO_PWNAM`.
 See [mruby#5358](https://github.com/mruby/mruby/issues/5358).
 
+## What the port declares
+
+Whether a method exists is the port's to say, since the port is what a build
+names and a `hal-io-<conf>` gem may stand in for the bundled ones. Each port
+publishes an `io_hal_features.h` in its `include/`, which
+`include/io_hal.h` reads before it declares anything. One macro there guards the prototype, the
+port's implementation and the method definition, so a capability the port does
+not declare has no method at all rather than one that fails, and
+`respond_to?` answers false. A port that declares a capability it does not
+implement fails to link.
+
+| macro                    | methods                         | posix | win |
+| ------------------------ | ------------------------------- | ----- | --- |
+| `MRB_HAL_IO_HAS_SYMLINK` | `File.symlink`, `File.readlink` | o     |     |
+
 ## License
 
 Copyright (c) 2013 Internet Initiative Japan Inc.

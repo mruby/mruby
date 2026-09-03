@@ -13,6 +13,18 @@
 
 #include <mruby.h>
 
+/*
+ * What the port implements
+ *
+ * The port publishes it in a header under its include/, and the build puts
+ * that directory on the include path of this gem and of every gem that
+ * depends on it.  Whether a method exists is the port's to say, because the
+ * port is what a build names: a cross build has no host to detect one from,
+ * and a `hal-io-<conf>` gem may stand in for the bundled ports altogether.
+ * What each macro says, and what it guards, is written where it is defined.
+ */
+#include "io_hal_features.h"
+
 MRB_BEGIN_DECL
 
 /*
@@ -171,6 +183,7 @@ int mrb_hal_io_unlink(mrb_state *mrb, const char *path);
  */
 int mrb_hal_io_rename(mrb_state *mrb, const char *oldpath, const char *newpath);
 
+#ifdef MRB_HAL_IO_HAS_SYMLINK
 /**
  * Create a symbolic link
  *
@@ -191,6 +204,7 @@ int mrb_hal_io_symlink(mrb_state *mrb, const char *target, const char *linkpath)
  * @return Number of bytes placed in buf, -1 on error (sets errno)
  */
 mrb_int mrb_hal_io_readlink(mrb_state *mrb, const char *path, char *buf, size_t bufsize);
+#endif /* MRB_HAL_IO_HAS_SYMLINK */
 
 /**
  * Resolve pathname to absolute path

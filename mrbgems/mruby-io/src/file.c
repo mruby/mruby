@@ -761,6 +761,7 @@ mrb_file_truncate(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(0);
 }
 
+#ifdef MRB_HAL_IO_HAS_SYMLINK
 /*
  * call-seq:
  *   File.symlink(old_name, new_name) -> 0
@@ -786,6 +787,11 @@ mrb_file_s_symlink(mrb_state *mrb, mrb_value klass)
   mrb_locale_free(dst);
   return mrb_fixnum_value(0);
 }
+#else
+/* this port has no symbolic links: unimplemented, and named as such so
+   `respond_to?` can answer false */
+# define mrb_file_s_symlink mrb_notimplement_m
+#endif
 
 /*
  * call-seq:
@@ -820,6 +826,11 @@ mrb_file_s_chmod(mrb_state *mrb, mrb_value klass)
   return mrb_fixnum_value(argc);
 }
 
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
+
+#ifdef MRB_HAL_IO_HAS_SYMLINK
 /*
  * call-seq:
  *   File.readlink(link_name) -> string
@@ -829,10 +840,6 @@ mrb_file_s_chmod(mrb_state *mrb, mrb_value klass)
  *   File.symlink("testfile", "link-to-test") #=> 0
  *   File.readlink("link-to-test")          #=> "testfile"
  */
-#ifndef PATH_MAX
-#define PATH_MAX 4096
-#endif
-
 static mrb_value
 mrb_file_s_readlink(mrb_state *mrb, mrb_value klass)
 {
@@ -856,6 +863,9 @@ mrb_file_s_readlink(mrb_state *mrb, mrb_value klass)
 
   return ret;
 }
+#else
+# define mrb_file_s_readlink mrb_notimplement_m
+#endif
 
 /*
  * call-seq:

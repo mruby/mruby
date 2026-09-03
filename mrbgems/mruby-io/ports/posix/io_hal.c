@@ -193,6 +193,7 @@ mrb_hal_io_rename(mrb_state *mrb, const char *oldpath, const char *newpath)
   return rename(oldpath, newpath);
 }
 
+#ifdef MRB_HAL_IO_HAS_SYMLINK
 int
 mrb_hal_io_symlink(mrb_state *mrb, const char *target, const char *linkpath)
 {
@@ -206,6 +207,7 @@ mrb_hal_io_readlink(mrb_state *mrb, const char *path, char *buf, size_t bufsize)
   (void)mrb;
   return (mrb_int)readlink(path, buf, bufsize);
 }
+#endif /* MRB_HAL_IO_HAS_SYMLINK */
 
 char*
 mrb_hal_io_realpath(mrb_state *mrb, const char *path, char *resolved)

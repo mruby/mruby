@@ -197,27 +197,6 @@ mrb_hal_io_rename(mrb_state *mrb, const char *oldpath, const char *newpath)
   return rename(oldpath, newpath);
 }
 
-int
-mrb_hal_io_symlink(mrb_state *mrb, const char *target, const char *linkpath)
-{
-  (void)target;
-  (void)linkpath;
-  /* Symlinks require special privileges on Windows */
-  mrb_raise(mrb, E_NOTIMP_ERROR, "symlink is not supported on Windows");
-  return -1;  /* not reached */
-}
-
-mrb_int
-mrb_hal_io_readlink(mrb_state *mrb, const char *path, char *buf, size_t bufsize)
-{
-  (void)path;
-  (void)buf;
-  (void)bufsize;
-  /* Symlinks require special handling on Windows */
-  mrb_raise(mrb, E_NOTIMP_ERROR, "readlink is not supported on Windows");
-  return -1;  /* not reached */
-}
-
 char*
 mrb_hal_io_realpath(mrb_state *mrb, const char *path, char *resolved)
 {
