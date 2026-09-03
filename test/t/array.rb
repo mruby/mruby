@@ -686,6 +686,31 @@ assert('Array#sort with a block that answers with a big integer') do
                Array.new(40) { |i| 40 - i }.sort { |a, b| a > b ? big : -big }
 end
 
+assert('Array#sort of Integers too wide to store inline') do
+  # The sort has a route of its own for an array of Integers, which reads each
+  # element as a number and writes the sorted order back the same way. Word
+  # boxing keeps an Integer past the inline range in an object instead, so that
+  # route is not one it can be written back through, and an array holding one
+  # is sorted like any other. 2**30 is past what a 32-bit word carries inline
+  # and 2**62 past a 64-bit one, so one base or the other is outside it
+  # wherever this runs, and a build too narrow for the wider one raises at the
+  # shift. A short array and a long one take different routes through the
+  # sort, so both are pinned. The shift count is a variable for the reason the
+  # big integer test above gives.
+  bases = [1 << 30]
+  begin
+    k = 62
+    bases << (1 << k)
+  rescue RangeError
+  end
+
+  bases.each do |base|
+    assert_equal [base, base + 1, base + 2], [base + 2, base, base + 1].sort
+    assert_equal Array.new(40) { |i| base + i },
+                 Array.new(40) { |i| base + 39 - i }.sort
+  end
+end
+
 assert('Array#freeze') do
   a = [].freeze
   assert_raise(FrozenError) do
