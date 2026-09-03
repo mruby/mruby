@@ -288,43 +288,23 @@ assert("Regexp - a backreference reads no group the running iteration reopened")
 end
 
 assert("Regexp - a pattern nested past the parse depth limit raises") do
-  # The parser recurses once per nesting level, so a deep enough pattern used
-  # to reach the end of the C stack, which is a crash and not an error:
-  # `(?:` x 50000 was a SIGSEGV. MRB_REGEXP_PARSE_DEPTH_LIMIT bounds it, and
-  # CRuby's message for the same refusal is the one raised here.
-  #
-  # A nesting the guard must not refuse: the count has to leave a pattern
-  # inside the limit alone, and a deep one it accepts has to still match. The
-  # depth comes from the build's own limit, since a build may set one below
-  # any figure written here.
+  # MRB_REGEXP_PARSE_DEPTH_LIMIT bounds how many levels a pattern may have
+  # open at once, at CRuby's default, and CRuby's message for the refusal is
+  # the one raised here. The parser keeps its levels on the heap rather than
+  # on the C stack, so reaching the limit costs a test no stack: the refusal
+  # is asked of every build at the limit that build set, which
+  # `Regexp::PARSE_DEPTH_LIMIT` reads back.
   limit = Regexp::PARSE_DEPTH_LIMIT
-  inside = limit > 200 ? 200 : limit - 1
-  if inside > 0
-    assert_equal 0, (Regexp.new("(?:" * inside + "a" + ")" * inside) =~ "a")
-    assert_equal 0, (Regexp.new("(?i)" * inside + "a") =~ "A")
-  end
 
-  # The refusal itself is sized from `Regexp::PARSE_DEPTH_LIMIT`, which reads
-  # back what the build set. Reaching it costs the stack the limit stands for:
-  # the count is checked at the bottom of the recursion, so a pattern past the
-  # limit descends to it before being refused, and at the CRuby-exact default
-  # that is some 2.4 MiB -- more C stack than a Windows thread has at all, and
-  # the very thing the limit exists to keep a pattern from spending. So a
-  # build whose limit stands above what a test may descend is left out rather
-  # than crashed, and the refusal is covered by a build that sets a limit a
-  # test can reach: the `ascii-ctype` build of build_config/ci/gcc-clang.rb
-  # sets 512, which runs on every entry of the CI matrix. The arithmetic that
-  # refuses is the same at any limit.
-  if limit > 512
-    skip "reaching this build's parse depth limit costs more C stack than a test may spend"
-  end
-
-  # Every construct that opens a level is asked, an inline toggle among them:
-  # it encloses the rest of the group it stands in, so it is a level of its
-  # own, and CRuby counts it as one too.
+  # A nesting the guard must not refuse: a pattern inside the limit is left
+  # alone and still matches. Every construct that opens a level is asked
+  # below, an inline toggle among them: it encloses the rest of the group it
+  # stands in, so it is a level of its own, and CRuby counts it as one too.
   fits = limit - 1
-  assert_equal 0, (Regexp.new("(?:" * fits + "a" + ")" * fits) =~ "a")
-  assert_equal 0, (Regexp.new("(?i)" * fits + "a") =~ "A")
+  if fits > 0
+    assert_equal 0, (Regexp.new("(?:" * fits + "a" + ")" * fits) =~ "a")
+    assert_equal 0, (Regexp.new("(?i)" * fits + "a") =~ "A")
+  end
 
   [
     ["(?:" * limit + "a" + ")" * limit, "a plain group"],
@@ -338,6 +318,36 @@ assert("Regexp - a pattern nested past the parse depth limit raises") do
       Regexp.new(pattern)
     end
   end
+end
+
+assert("Regexp - an alternation holds as many branches as the pattern writes") do
+  # The branches were once collected in an array of 64 and the 64th refused
+  # as `too many alternatives`. They are found in the code they were compiled
+  # to now, so the count is the pattern's to choose; Regexp.union over a word
+  # list is where it gets large. The branches stay in source order at any
+  # count, leftmost-first: the first branch that matches wins, however many
+  # after it would match more.
+  words = (1..300).map { |i| "<#{i}>" }
+  re = Regexp.union(words)
+  assert_equal "<300>", re.match("xx <300> yy")[0]
+  assert_equal "<1>", re.match("<1>")[0]
+  assert_nil re.match("<0>")
+  assert_nil re.match("<301>")
+
+  longest_first = Regexp.new((1..100).map { |i| "a" * i }.reverse.join("|"))
+  shortest_first = Regexp.new((1..100).map { |i| "a" * i }.join("|"))
+  assert_equal 100, longest_first.match("a" * 100)[0].size
+  assert_equal 1, shortest_first.match("a" * 100)[0].size
+
+  # A lookbehind body of that many branches carries a rewind per branch, as
+  # a body of two does: `3`, `11` and `222` stand among the seventy, one,
+  # two and three characters wide.
+  alts = (1..70).map { |i| i.to_s(36) * (i % 3 + 1) }
+  behind = Regexp.new("(?<=#{alts.join('|')})!")
+  assert_equal 1, behind =~ "3!"
+  assert_equal 2, behind =~ "11!"
+  assert_equal 3, behind =~ "222!"
+  assert_nil behind =~ "1!"
 end
 
 assert("Regexp - the backtracking engine raises at a limit rather than answer short") do

@@ -381,40 +381,23 @@ typedef struct mrb_regexp_pattern {
 #endif
 
 /* How deep a pattern may nest. Every construct that opens a level costs one:
-   a group of any kind, a lookaround, an atomic group, and an inline option
+   a group of any kind, a lookaround, an atomic group, an inline option
    toggle, which encloses the rest of the group it stands in and so is a level
-   of its own (see compile_alt() in re_compile.c). A pattern past this is
-   `parse depth limit over`, which is CRuby's message for the same refusal.
-
-   Unlike the two limits above, what this one guards is the C stack: the
-   parser recurses per level, so without it a deep enough pattern reaches the
-   end of the stack, which is a crash rather than an error.
+   of its own, and a character class nested in another (see open_level() and
+   parse_nested_class() in re_compile.c). A pattern past this is `parse depth
+   limit over`, which is CRuby's message for the same refusal.
 
    The default is Onigmo's ONIG_MAX_PARSE_DEPTH, so a pattern is refused
-   exactly where CRuby refuses it. What that costs is stack, and a build has
-   to know the price: a level takes about 600 bytes on a 64-bit build, so the
-   deepest pattern the default accepts spends around 2.4 MiB, and a pattern
-   deeper than that spends the same before being refused, the count being
-   reached at the bottom of the recursion. A build whose stack is smaller
-   than that -- the 1 MiB a Windows thread is given by default is, and an
-   RTOS task is by far -- has to set this to what it can pay for or keep the
-   crash the limit is here to prevent: a third of the stack is the share to
-   size it from, the compiler not being the only thing standing on that
-   stack, so about 512 for 1 MiB, 128 for 256 KiB, 32 for 64 KiB. The figure
-   to divide is the build's own: -Os and a 32-bit ABI both make a level
-   cheaper, and `-fstack-usage` over re_compile.c names it (the frames of
-   compile_alt and compile_seq, the rest inlining into them: 560 bytes on a
-   64-bit gcc -O2 build, 528 at -Os, 592 on a clang -O3 one).
-
-   Lowering it costs little in practice. Nesting this deep is not what a
-   written pattern does -- a handful of levels is ordinary and dozens are
-   unusual -- so a build that sets 128 still takes every pattern anyone
-   writes, and trades only the CRuby-exact refusal point for a crash it
-   cannot otherwise avoid.
+   exactly where CRuby refuses it, and that agreement is all this limit
+   guards: the parser keeps the levels it has open on the heap, 32 bytes
+   each, so a pattern nested past what the machine holds is refused by the
+   allocator, at whatever depth that is, and no build has a stack to size
+   this from. One value holds for every build. (A nested character class is
+   still read by recursion, at about 500 bytes of C stack a level, which the
+   class table bounds at 256 levels.)
 
    The floor is 1, a build that takes no nesting at all; the ceiling is where
-   the limit stops being one, every stack this engine runs on having ended
-   long before. */
+   the limit stops being one, a million levels being 32 MiB of them. */
 #ifndef MRB_REGEXP_PARSE_DEPTH_LIMIT
 #define MRB_REGEXP_PARSE_DEPTH_LIMIT 4096
 #endif
