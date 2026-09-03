@@ -30,14 +30,6 @@
 #include <stdint.h>
 #include <string.h>
 
-/* `$?` and `$$` are not word names, so MRB_GVSYM() cannot spell them and
-   they are interned where they are used. */
-static void
-set_last_status(mrb_state *mrb, mrb_value status)
-{
-  mrb_gv_set(mrb, mrb_intern_lit(mrb, "$?"), status);
-}
-
 /*
  * Refuse a value that would not survive the narrowing a port has to do with
  * it.
@@ -225,6 +217,15 @@ process_kill(mrb_state *mrb, mrb_value self)
   return mrb_int_value(mrb, argc);
 }
 
+#ifdef MRB_HAL_PROCESS_HAS_WAIT
+/* `$?` and `$$` are not word names, so MRB_GVSYM() cannot spell them and
+   they are interned where they are used. */
+static void
+set_last_status(mrb_state *mrb, mrb_value status)
+{
+  mrb_gv_set(mrb, mrb_intern_lit(mrb, "$?"), status);
+}
+
 /* The wait itself.  Two module functions differ only in whether the status
    is handed back beside the pid, so the wait is done here and both of them
    publish it through `$?`. */
@@ -311,6 +312,14 @@ process_waitpid2(mrb_state *mrb, mrb_value self)
   if (mrb_nil_p(pid)) return mrb_nil_value();
   return mrb_assoc_new(mrb, pid, status);
 }
+#else
+/* A port that declares no wait has no children to wait for.  The four
+   spellings are defined as `mrb_notimplement_m`, the mark of a body this
+   build does not supply: `respond_to?` answers false for them and a call
+   raises NotImplementedError, as mruby-dir and mruby-io mark theirs. */
+# define process_waitpid  mrb_notimplement_m
+# define process_waitpid2 mrb_notimplement_m
+#endif
 
 void
 mrb_mruby_process_gem_init(mrb_state *mrb)

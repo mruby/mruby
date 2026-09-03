@@ -18,13 +18,20 @@ module ProcessTestUtil
   # there is nothing there to give Process.waitpid or Process.kill, and its
   # IO.popen sets $? through a path that never fires; both are mruby-io's to
   # fix, and neither is what this gem is being tested for.  The Windows port
-  # would refuse the wait in any case: it cannot tell a child from any other
-  # process it may open, so it reports ECHILD rather than a stranger's exit
-  # code.  See the README.
+  # declares no wait in any case: it cannot tell a child from any other
+  # process it may open, so it does not wait at all rather than report a
+  # stranger's exit code.  See the README.
   def self.child_reason
     return "IO.popen is not available" unless popen?
     return "IO#pid is a process handle, not a pid, on this platform" if windows?
     nil
+  end
+
+  # Whether this port declares a wait.  The four spellings and the wait
+  # behind them come and go together, which the test below pins, so one of
+  # them is asked for all.
+  def self.wait?
+    Process.respond_to?(:waitpid)
   end
 
   # Whether Process.kill turned +pid+ down rather than passing it on.  What a
@@ -128,7 +135,28 @@ assert('Process::WNOHANG, Process::WUNTRACED') do
   assert_equal 0, Process::WNOHANG & Process::WUNTRACED
 end
 
+assert('the wait is what the port declares') do
+  # Whether there is a wait is the port's to say, through its
+  # process_hal_features.h, and it says it once for all four spellings: a
+  # port that declares none leaves all four marked as not implemented, which
+  # `respond_to?` answers false for and a call raises NotImplementedError
+  # from.  The two option constants are the shape of the call and stay
+  # defined either way.
+  spellings = [:wait, :waitpid, :wait2, :waitpid2]
+  spellings.each do |name|
+    assert_equal ProcessTestUtil.wait?, Process.respond_to?(name), name.to_s
+  end
+  unless ProcessTestUtil.wait?
+    spellings.each do |name|
+      assert_raise(NotImplementedError, name.to_s) { Process.__send__(name) }
+    end
+  end
+  assert_true Process.const_defined?(:WNOHANG)
+  assert_true Process.const_defined?(:WUNTRACED)
+end
+
 assert('Process.waitpid with a flag it does not define') do
+  skip "this port declares no wait" unless ProcessTestUtil.wait?
   # A port answers for the bits it is given and says nothing about the rest,
   # so a bit that stands for nothing is refused before it reaches one.  A
   # negative value is refused for the same reason: read as the unsigned value
@@ -139,6 +167,7 @@ assert('Process.waitpid with a flag it does not define') do
 end
 
 assert('Process.waitpid reports the error by itself') do
+  skip "this port declares no wait" unless ProcessTestUtil.wait?
   # What a SystemCallError message carries after the error is the object the
   # call was working on, the way `File.open` names the path it could not open.
   # A wait has no such object and CRuby names nothing here.  Compared against
@@ -289,7 +318,7 @@ assert('a pid or a signal number too large for the platform') do
   skip "this build cannot name a number wider than a pid" unless big
 
   assert_raise(RangeError) { Process.kill(0, big) }
-  assert_raise(RangeError) { Process.waitpid(big) }
+  assert_raise(RangeError) { Process.waitpid(big) } if ProcessTestUtil.wait?
 
   # As a signal, its size is only what is wrong with it where the build's own
   # Integer carries it: a build that promoted it to a big integer refuses it

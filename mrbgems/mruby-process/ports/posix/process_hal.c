@@ -63,6 +63,7 @@ mrb_hal_process_ppid(mrb_state *mrb)
  * Waiting
  */
 
+#ifdef MRB_HAL_PROCESS_HAS_WAIT
 int
 mrb_hal_process_waitpid(mrb_state *mrb, mrb_int pid, unsigned int flags,
                         mrb_int *result_pid, mrb_int *raw_status)
@@ -90,6 +91,7 @@ mrb_hal_process_waitpid(mrb_state *mrb, mrb_int pid, unsigned int flags,
   *raw_status = (result == 0) ? 0 : (mrb_int)status;
   return 0;
 }
+#endif
 
 /*
  * Signalling

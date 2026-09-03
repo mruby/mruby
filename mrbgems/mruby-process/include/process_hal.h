@@ -32,6 +32,19 @@
 #include <mruby.h>
 #include <stdint.h>
 
+/*
+ * What the port implements
+ *
+ * The port publishes it in a header under its include/, and the build puts
+ * that directory on the include path of this gem and of every gem that
+ * depends on it.  Whether a method exists is the port's to say, because the
+ * port is what a build names: a cross build has no host to detect one from,
+ * and a `hal-process-<conf>` gem may stand in for the bundled ports
+ * altogether.  What each macro says, and what it guards, is written where it
+ * is defined.
+ */
+#include "process_hal_features.h"
+
 MRB_BEGIN_DECL
 
 /*
@@ -164,8 +177,14 @@ mrb_int mrb_hal_process_pid(mrb_state *mrb);
    cannot name a parent (errno ENOSYS when it has no such notion at all). */
 mrb_int mrb_hal_process_ppid(mrb_state *mrb);
 
+#ifdef MRB_HAL_PROCESS_HAS_WAIT
 /*
  * Wait for a child process to change state.
+ *
+ * Declared in the port's process_hal_features.h.  A port without it has no
+ * children to wait for, and the gem defines no wait rather than one that
+ * fails; the status decoder below is asked for all the same, since a status
+ * can arrive from elsewhere, mruby-io's `IO.popen` being one source.
  *
  * @param pid         child to wait for, or MRB_PROCESS_WAIT_ANY
  * @param flags       zero or more MRB_PROCESS_WAIT_* bits
@@ -177,6 +196,7 @@ mrb_int mrb_hal_process_ppid(mrb_state *mrb);
  */
 int mrb_hal_process_waitpid(mrb_state *mrb, mrb_int pid, unsigned int flags,
                             mrb_int *result_pid, mrb_int *raw_status);
+#endif
 
 /*
  * Send a signal to a process.
