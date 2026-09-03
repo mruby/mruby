@@ -520,6 +520,7 @@ mrb_hal_io_pipe(mrb_state *mrb, int fds[2])
  * Process Operations
  */
 
+#ifdef MRB_HAL_IO_HAS_SPAWN_PROCESS
 int
 mrb_hal_io_spawn_process(mrb_state *mrb, const char *cmd,
                           int stdin_fd, int stdout_fd, int stderr_fd,
@@ -616,27 +617,32 @@ mrb_hal_io_waitpid(mrb_state *mrb, int pid, int *status, int options)
     return 0;  /* Non-blocking wait, no change */
   }
 
+  /* A -1 is final to the caller, which drops the pid, so the handle goes
+     with it either way. */
   if (wait_result != WAIT_OBJECT_0) {
     set_errno_from_win_error(GetLastError());
+    CloseHandle(h);
     return -1;
   }
 
-  /* Get exit code */
   if (!GetExitCodeProcess(h, &exit_code)) {
     set_errno_from_win_error(GetLastError());
+    CloseHandle(h);
     return -1;
   }
 
   if (status != NULL) {
-    /* Store exit code in status (shifted to match Unix convention) */
-    *status = (int)(exit_code << 8);
+    /* The raw status on this host is the exit code itself: io.c reads it
+       through a WEXITSTATUS() that is the identity here, and the Windows
+       port of mruby-process decodes it the same way. */
+    *status = (int)exit_code;
   }
 
-  /* Close process handle */
   CloseHandle(h);
 
   return pid;
 }
+#endif /* MRB_HAL_IO_HAS_SPAWN_PROCESS */
 
 /*
  * I/O Multiplexing

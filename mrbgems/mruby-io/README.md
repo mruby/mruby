@@ -185,17 +185,23 @@ not declare has no method at all rather than one that fails, and
 `respond_to?` answers false. A port that declares a capability it does not
 implement fails to link.
 
-| macro                         | methods                         | posix             | win |
-| ----------------------------- | ------------------------------- | ----------------- | --- |
-| `MRB_HAL_IO_HAS_SYMLINK`      | `File.symlink`, `File.readlink` | o                 |     |
-| `MRB_HAL_IO_HAS_FLOCK`        | `File#flock`                    | o, not on Solaris | o   |
-| `MRB_HAL_IO_HAS_STAT_FIFO`    | `FileTest.pipe?`                | o                 |     |
-| `MRB_HAL_IO_HAS_STAT_SYMLINK` | `FileTest.symlink?`             | o                 |     |
-| `MRB_HAL_IO_HAS_STAT_SOCKET`  | `FileTest.socket?`              | o                 |     |
+| macro                          | methods                         | posix             | win |
+| ------------------------------ | ------------------------------- | ----------------- | --- |
+| `MRB_HAL_IO_HAS_SYMLINK`       | `File.symlink`, `File.readlink` | o                 |     |
+| `MRB_HAL_IO_HAS_FLOCK`         | `File#flock`                    | o, not on Solaris | o   |
+| `MRB_HAL_IO_HAS_STAT_FIFO`     | `FileTest.pipe?`                | o                 |     |
+| `MRB_HAL_IO_HAS_STAT_SYMLINK`  | `FileTest.symlink?`             | o                 |     |
+| `MRB_HAL_IO_HAS_STAT_SOCKET`   | `FileTest.socket?`              | o                 |     |
+| `MRB_HAL_IO_HAS_SPAWN_PROCESS` | `IO.popen`                      | o, not on iOS     | o   |
 
 The three `STAT` macros name no port function. They say which file kinds the
 `st_mode` from `mrb_hal_io_stat()` can hold, and the predicate each guards
 reads that kind through the `MRB_IO_S_IS*` macros of `io_hal.h`.
+
+`MRB_NO_IO_POPEN` is a build's veto: a configuration that defines it gets the
+gem without `IO.popen` whatever the port could do, `io_hal.h` undefining
+`MRB_HAL_IO_HAS_SPAWN_PROCESS` after the port has spoken. Either way `IO.popen`
+raises `NotImplementedError` and `IO.respond_to?(:_popen)` answers false.
 
 ## License
 

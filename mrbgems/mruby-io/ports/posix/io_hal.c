@@ -481,6 +481,7 @@ mrb_hal_io_pipe(mrb_state *mrb, int fds[2])
  * Process Operations
  */
 
+#ifdef MRB_HAL_IO_HAS_SPAWN_PROCESS
 int
 mrb_hal_io_spawn_process(mrb_state *mrb, const char *cmd,
                           int stdin_fd, int stdout_fd, int stderr_fd,
@@ -563,6 +564,7 @@ mrb_hal_io_waitpid(mrb_state *mrb, int pid, int *status, int options)
 
   return (int)result;
 }
+#endif /* MRB_HAL_IO_HAS_SPAWN_PROCESS */
 
 /*
  * I/O Multiplexing

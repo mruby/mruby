@@ -30,4 +30,13 @@
 #define MRB_HAL_IO_HAS_STAT_SYMLINK
 #define MRB_HAL_IO_HAS_STAT_SOCKET
 
+/* fork(2) and execl(3), and waitpid(2) for the child: `IO.popen`.  iOS
+   lets no process run another, whatever the configuration asks for. */
+#if defined(__APPLE__)
+# include <TargetConditionals.h>
+#endif
+#if !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
+# define MRB_HAL_IO_HAS_SPAWN_PROCESS
+#endif
+
 #endif /* MRUBY_IO_HAL_FEATURES_H */

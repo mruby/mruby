@@ -25,4 +25,7 @@
    one), no symbolic link, no socket.  `FileTest.pipe?`, `.symlink?` and
    `.socket?` are left undefined rather than defined to answer wrongly. */
 
+/* CreateProcess(), and WaitForSingleObject() for the child: `IO.popen`. */
+#define MRB_HAL_IO_HAS_SPAWN_PROCESS
+
 #endif /* MRUBY_IO_HAL_FEATURES_H */

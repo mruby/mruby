@@ -22,8 +22,15 @@
  * port is what a build names: a cross build has no host to detect one from,
  * and a `hal-io-<conf>` gem may stand in for the bundled ports altogether.
  * What each macro says, and what it guards, is written where it is defined.
+ *
+ * MRB_NO_IO_POPEN is a build's veto over process creation: a configuration
+ * that defines it gets a gem with no `IO.popen` whatever the port could do.
  */
 #include "io_hal_features.h"
+
+#ifdef MRB_NO_IO_POPEN
+# undef MRB_HAL_IO_HAS_SPAWN_PROCESS
+#endif
 
 MRB_BEGIN_DECL
 
@@ -373,6 +380,7 @@ int mrb_hal_io_pipe(mrb_state *mrb, int fds[2]);
  * HAL Interface - Process Operations
  */
 
+#ifdef MRB_HAL_IO_HAS_SPAWN_PROCESS
 /**
  * Spawn a new process
  *
@@ -395,15 +403,24 @@ int mrb_hal_io_spawn_process(mrb_state *mrb, const char *cmd,
                                int *pid);
 
 /**
- * Wait for process to change state
+ * Wait for a process mrb_hal_io_spawn_process() started
+ *
+ * The pid is the one that function handed out, whatever it stands for on
+ * this port (a process ID on POSIX, a process handle on Windows): the gem
+ * never reads it, and the port owes it the wait and whatever release it
+ * needs afterwards. The status is the host's raw wait status, the value
+ * WEXITSTATUS() reads on this host and the one Process::Status is built
+ * from; on Windows that is the exit code itself. A wait a signal cut short
+ * returns -1 with errno EINTR, and the gem retries it as it does a read.
  *
  * @param mrb mruby state
  * @param pid Process ID to wait for
- * @param status Output parameter for exit status
+ * @param status Output parameter for the raw wait status
  * @param options Wait options (0 for blocking wait)
  * @return Process ID on success, -1 on error (sets errno)
  */
 int mrb_hal_io_waitpid(mrb_state *mrb, int pid, int *status, int options);
+#endif /* MRB_HAL_IO_HAS_SPAWN_PROCESS */
 
 /*
  * HAL Interface - I/O Multiplexing
