@@ -143,6 +143,27 @@ def class_patterns
   fixed + posix
 end
 
+# A '[' inside a class opens a class of its own, and the class holds what the
+# two hold between them. What a nest holds and where it stands are an axis
+# each: a nest is read at every position a member is, a negated one has to be
+# written out as members before it can join a union, and the '-' beside one is
+# a member where the '-' beside a POSIX bracket is an error. Named for the same
+# reason as the escape contexts: the corpus is their whole product.
+NEST_BODIES = ["a", "^a", "a-c", "^a-c", "\\d", "^\\d", "\\w", "^\\w",
+               "[:alpha:]", "^[:alpha:]", "[:alpha:][:digit:]",
+               "^[:alpha:][:digit:]", "\\u{e9}", "^\\u{e9}", "^a\\u{e9}",
+               "\\x80", "^\\x80", "[b]", "^[b]", "]", "^]", ""]
+NEST_CONTEXTS = [["[", "]"], ["[x", "]"], ["[", "z]"], ["[", "-z]"],
+                 ["[a-", "]"], ["[^", "]"], ["[", "&&b]"], ["[[:alpha:]", "]"]]
+
+def nest_patterns
+  out = []
+  NEST_BODIES.each do |body|
+    NEST_CONTEXTS.each { |pre, post| out << pre + "[" + body + "]" + post }
+  end
+  out
+end
+
 # Every kind of atom a quantifier can be put after, and everything that can
 # follow one. Named for the same reason as the escape contexts: the corpus is
 # their whole product, and the check below is what says so.
@@ -203,9 +224,9 @@ end
 # comparison would read as one. Held to the first time each is named, in the
 # order the axes give them.
 seen = {}
-PATTERNS = (escape_patterns + class_patterns + quantifier_patterns +
-            group_patterns + anchor_patterns + alternation_patterns +
-            property_patterns).select { |p| seen[p] ? false : (seen[p] = true) }
+PATTERNS = (escape_patterns + class_patterns + nest_patterns +
+            quantifier_patterns + group_patterns + anchor_patterns +
+            alternation_patterns + property_patterns).select { |p| seen[p] ? false : (seen[p] = true) }
 
 # Every pattern is asked under each of these, one flag at a time rather than
 # once per combination of them: asked once with all eight, no pattern differed
@@ -245,6 +266,8 @@ AXIS_CASES = [
   # class: the forms a bracket comes in, and the POSIX brackets
   "[a]", "[^a]", "[a-c]", "[\\d]", "[[:alpha:]]", "[[:^alpha:]]", "[^[:alpha:]]",
   "[\\x41]", "[\\u{41}]", "[\\x80]", "[a&&b]", "[[.a.]]", "[[=a=]]",
+  # class: a nest at each end of what one can hold and of where it can stand
+  "[[a]]", "[[]]", "[[^a]]", "[[:alpha:][]]", "[[a]&&b]",
   # group: capture, name, look, atomic, inline options, comment, references
   "(a)", "(?:a)", "(?<n>a)", "(?'n'a)", "(?=a)", "(?!a)", "(?<=a)", "(?<!a)",
   "(?>a)", "(?i)a", "(?i:a)", "(?#c)a", "(?<n>a)\\k<n>", "(a)\\g<1>", "(a)\\1",
@@ -270,6 +293,12 @@ def check_corpus(patterns)
   NAMED_ESCAPES.each do |c|
     NAMED_ESCAPE_FORMS.each do |pre, post|
       pat = pre + "\\" + c + post
+      missing << pat unless have[pat]
+    end
+  end
+  NEST_BODIES.each do |body|
+    NEST_CONTEXTS.each do |pre, post|
+      pat = pre + "[" + body + "]" + post
       missing << pat unless have[pat]
     end
   end
