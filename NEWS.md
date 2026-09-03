@@ -177,7 +177,7 @@ any of those needs updating.
 - [#6851](https://github.com/mruby/mruby/issues/6851) [mrdb] Missing return in mrb_debug_set_break_method leads to Double Free / UAF
 - [#6853](https://github.com/mruby/mruby/issues/6853) mruby-regexp: /\Aa(b)?c?\z/ does not match "a"
 - [#6854](https://github.com/mruby/mruby/issues/6854) Incompatibility in pattern matching between CRuby and mruby with array splatting
-- [#6858](https://github.com/mruby/mruby/issues/6858) Is the exposure of linkage symbols without the “mrb_” prefix intentional?
+- [#6858](https://github.com/mruby/mruby/issues/6858) Is the exposure of linkage symbols without the `mrb_` prefix intentional?
 - [#6859](https://github.com/mruby/mruby/issues/6859) Add String#scrub to mruby-string-ext
 - [#6860](https://github.com/mruby/mruby/issues/6860) The unit tests for mruby-string-ext are failing
 - [#6862](https://github.com/mruby/mruby/issues/6862) Assertion failed: (c->ci == c->cibase || (c->ci - c->cibase) == cioff - 1), function mrb_vm_run
@@ -218,15 +218,15 @@ any of those needs updating.
 - [#7044](https://github.com/mruby/mruby/issues/7044) `OP_ADDILV` and `OP_SUBILV` set the method call fallback up on the local variables, corrupting them
 - [#7090](https://github.com/mruby/mruby/issues/7090) mruby-io: partial IO#dup failure leaves a stale descriptor owner
 - [#7092](https://github.com/mruby/mruby/issues/7092) [BUG] Array replacement from callbacks causes out-of-bounds reads in case splats and IO#puts
-- [#7100](https://github.com/mruby/mruby/issues/7100) Hash#__except retains Array and Hash storage across Ruby callbacks
+- [#7100](https://github.com/mruby/mruby/issues/7100) `Hash#__except` retains Array and Hash storage across Ruby callbacks
 - [#7101](https://github.com/mruby/mruby/issues/7101) Struct#== and Struct#eql? retain member-storage pointers across Ruby callbacks
 - [#7111](https://github.com/mruby/mruby/issues/7111) mrbgems/mruby-test fails to link without mruby-compiler
 - [#7112](https://github.com/mruby/mruby/issues/7112) mrbgems/mruby-rational fails to compile without mruby-bigint
 - [#7277](https://github.com/mruby/mruby/issues/7277) Proposal: per-object pin flag for leaf objects (Strings/Data)
 - [#7290](https://github.com/mruby/mruby/issues/7290) Compiling top-level 'super' produces invalid OP_GETUPVAR bytecode
 - [#7293](https://github.com/mruby/mruby/issues/7293) NULL dereference in `mt_put` when `protected` copies an inherited method onto a singleton class with no method table
-- [#7346](https://github.com/mruby/mruby/issues/7346) mrb_gc_(un)register hangs after a few iterations
-- [#7422](https://github.com/mruby/mruby/issues/7422) Bug: ary_make_shared() allocates sizeof(mrb_value)*len+1 -operator precedence adds 1 byte instead of 1 element
+- [#7346](https://github.com/mruby/mruby/issues/7346) `mrb_gc_(un)register` hangs after a few iterations
+- [#7422](https://github.com/mruby/mruby/issues/7422) Bug: `ary_make_shared()` allocates `sizeof(mrb_value)*len+1`, operator precedence adds 1 byte instead of 1 element
 - [#7462](https://github.com/mruby/mruby/issues/7462) Build process writes Prism related files to source directory with out-of-source build
 
 # Merged Pull Requests
@@ -235,7 +235,7 @@ any of those needs updating.
 - [#6334](https://github.com/mruby/mruby/pull/6334) Remove `iterating` variable from `mrb_objspace_each_objects()`
 - [#6576](https://github.com/mruby/mruby/pull/6576) Share array entities if possible with `ary.replace(frozen_ary)`
 - [#6577](https://github.com/mruby/mruby/pull/6577) Sharing arrays with `ary_dup()`
-- [#6580](https://github.com/mruby/mruby/pull/6580)  Improve `File.basename`
+- [#6580](https://github.com/mruby/mruby/pull/6580) Improve `File.basename`
 - [#6596](https://github.com/mruby/mruby/pull/6596) pre-commit add official meta hook `check-useless-excludes`
 - [#6691](https://github.com/mruby/mruby/pull/6691) pre-commit: add hook to ensure Makefiles are indented with tabs
 - [#6774](https://github.com/mruby/mruby/pull/6774) Avoid using the deprecated function `mrb_data_check_and_get()`
@@ -274,7 +274,7 @@ any of those needs updating.
 - [#6891](https://github.com/mruby/mruby/pull/6891) mruby-task: return task result when mrb_task_run_once stops a task
 - [#6893](https://github.com/mruby/mruby/pull/6893) mruby-regexp: Fix String#gsub block handling for zero-width matches
 - [#6895](https://github.com/mruby/mruby/pull/6895) Fix build when `MRB_NO_FLOAT` is defined
-- [#6896](https://github.com/mruby/mruby/pull/6896) Add opt-in "mruby-*-prism" mgem family
+- [#6896](https://github.com/mruby/mruby/pull/6896) Add opt-in `mruby-*-prism` mgem family
 - [#6898](https://github.com/mruby/mruby/pull/6898) mruby-task: Use MRB_IVSYM instead of mrb_intern_lit
 - [#6902](https://github.com/mruby/mruby/pull/6902) mruby-bin-mrbc: define global_mrb for non-mruby targets
 - [#6909](https://github.com/mruby/mruby/pull/6909) Fix Documentation and Comments
@@ -284,7 +284,7 @@ any of those needs updating.
 - [#6917](https://github.com/mruby/mruby/pull/6917) Add new actions runner images to `build.yml`
 - [#6918](https://github.com/mruby/mruby/pull/6918) mruby-task: Introduce timeout_ms keyword to Task::Queue#pop
 - [#6926](https://github.com/mruby/mruby/pull/6926) gc.c: Add gc->collecting flag and gc_drive()
-- [#6928](https://github.com/mruby/mruby/pull/6928)  vm.c: defer pending task switch while an exception is in flight
+- [#6928](https://github.com/mruby/mruby/pull/6928) vm.c: defer pending task switch while an exception is in flight
 - [#6930](https://github.com/mruby/mruby/pull/6930) mruby-task: survive OOM during task context initialization
 - [#6931](https://github.com/mruby/mruby/pull/6931) mruby-task: exclude the tick IRQ while GC marks the task queues
 - [#6932](https://github.com/mruby/mruby/pull/6932) Fix: never drive incremental GC from a realloc (use-after-free)
@@ -305,7 +305,7 @@ any of those needs updating.
 - [#6978](https://github.com/mruby/mruby/pull/6978) mruby-pack: avoid signed overflow in pack_uu line count
 - [#6979](https://github.com/mruby/mruby/pull/6979) Fix a build error occurs if the setup block for mruby-compiler is not called before mruby-bin-mrbc
 - [#6981](https://github.com/mruby/mruby/pull/6981) Omitting mruby-compiler in `MRuby::Build#build_mrbc_exec`
-- [#6982](https://github.com/mruby/mruby/pull/6982) Add mrb_task_set_scheduler_hook for pre-scheduling deferred work. Remove  mrb_hal_task_switch_hook instead
+- [#6982](https://github.com/mruby/mruby/pull/6982) Add `mrb_task_set_scheduler_hook` for pre-scheduling deferred work. Remove `mrb_hal_task_switch_hook` instead
 - [#6983](https://github.com/mruby/mruby/pull/6983) mruby-task: Detach envs from a task stack before freeing it
 - [#6984](https://github.com/mruby/mruby/pull/6984) Restore `gc.disabled` when even out of memory
 - [#6986](https://github.com/mruby/mruby/pull/6986) guard mrb_int overflow in ary_insert and ary_fill_exec
