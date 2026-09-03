@@ -746,3 +746,4 @@ any of those needs updating.
 - [#7475](https://github.com/mruby/mruby/pull/7475) build: write `compile_commands.json` without a build
 - [#7476](https://github.com/mruby/mruby/pull/7476) mruby-io: let the port say what it implements
 - [#7477](https://github.com/mruby/mruby/pull/7477) mruby-socket: let the port say what it implements
+- [#7478](https://github.com/mruby/mruby/pull/7478) mruby-regexp: shorten the README and list what it missed
