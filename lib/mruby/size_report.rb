@@ -41,6 +41,19 @@ module MRuby
       end
     end
 
+    # Print the report of every build that has one, a table per build, the
+    # way a CI log is read: each artifact with its file size and sections.
+    # The objects stay in the file; three hundred rows a build are what a
+    # diff subtracts, not what a person scans.
+    def self.print
+      MRuby.targets.each_value do |build|
+        next if build.internal?
+
+        report = new(build)
+        report.print if File.exist?(report.path)
+      end
+    end
+
     # The commit the source tree sits at, or nil where neither the
     # repository nor the archive the tree was unpacked from could say.
     def self.commit
@@ -132,6 +145,33 @@ module MRuby
       _pp "GEN", path.relative_path
     rescue SystemCallError => e
       warn "#{path.relative_path} not written: #{e.message}"
+    end
+
+    # The columns of an entry, in the order the file holds them.
+    COLUMNS = %w[file_size text data bss].freeze
+
+    # The table of the file as written, not of a fresh measurement: what is
+    # printed is what a later build subtracts from.
+    def print
+      data = JSON.parse(File.read(path))
+      rows = data["artifacts"].map do |name, entry|
+        [name, *COLUMNS.map { |column| entry[column] ? entry[column].to_s : "-" }]
+      end
+      return if rows.empty?
+
+      head = "Size of '#{data['target']}'"
+      head << " at #{data['commit'][0, 10]}" if data["commit"]
+      head << " (dirty)" if data["dirty"]
+      puts "#{head}:"
+      table = [["", *COLUMNS], *rows]
+      widths = table.transpose.map { |column| column.map(&:size).max }
+      table.each do |row|
+        cells = row.each_with_index.map do |cell, i|
+          i.zero? ? cell.ljust(widths[i]) : cell.rjust(widths[i])
+        end
+        puts "  #{cells.join('  ')}".rstrip
+      end
+      puts
     end
 
     def report

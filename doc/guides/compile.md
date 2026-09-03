@@ -64,7 +64,9 @@ Every target also leaves a `size.json` in its build directory: the byte
 counts of `libmruby.a` and the executables, text, data and bss sections and
 all, each with the object files it is made of, so that two builds can be
 subtracted down to the object that grew. The file names the commit it was
-built from, and `rake size.json` is the build asked for by that name. The
+built from, and `rake size.json` is the build asked for by that name;
+`rake size` builds and then prints the file's artifacts as a table, one
+per target, as CI does after each build. The
 `size` program is found by the C compiler's prefix, or named with
 `conf.size = "arm-none-eabi-size"`; a build whose objects none can read
 keeps its file sizes and carries `null` sections.
