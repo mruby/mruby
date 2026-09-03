@@ -2190,7 +2190,14 @@ cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
     return mrb_bint_cmp(mrb, v1, v2);
   }
 #endif
-  if (!mrb_fixnum_p(v2)) {
+  /* Whether the value on the right is an Integer, which `mrb_fixnum_p()` does
+     not answer: word boxing keeps an Integer in the value itself only while it
+     fits a tagged machine word and allocates an object for a wider one, and
+     only the first of the two is a fixnum. Asking it here handed every Integer
+     past the inline range to the other side, and that hand-over asks this same
+     function again with the pair reversed, so two of them were passed back and
+     forth until the stack ran out. */
+  if (!mrb_integer_p(v2)) {
     if (!mrb_obj_is_kind_of(mrb, v2, mrb_class_get_id(mrb, MRB_SYM(Numeric)))) {
       return -2;
     }
@@ -2214,8 +2221,12 @@ cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
     return cmpnum_rev(cmpnum_int_float(mrb_integer(v2), mrb_float(v1)));
   }
 
-  if (mrb_fixnum_p(v1)) {
-    if (mrb_fixnum_p(v2)) {
+  /* A pair of Integers is compared as Integers however each of the two is
+     stored: `mrb_integer_p()` takes in the ones word boxing allocates an
+     object for, which are exactly the ones the cast below would round, and a
+     rounded pair reads as equal wherever the two sit inside one significand. */
+  if (mrb_integer_p(v1)) {
+    if (mrb_integer_p(v2)) {
       mrb_int x = mrb_integer(v1);
       mrb_int y = mrb_integer(v2);
 
