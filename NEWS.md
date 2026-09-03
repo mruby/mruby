@@ -108,6 +108,18 @@ any of those needs updating.
 - `mruby-io` handles UTF-8 output on Windows consoles and defines `IO.pipe`
   where the port has one ([#6996](https://github.com/mruby/mruby/pull/6996), [#7314](https://github.com/mruby/mruby/pull/7314))
 - `mruby-dir` supports UTF-8 directory paths on Windows ([#6967](https://github.com/mruby/mruby/pull/6967))
+- A port of `mruby-dir`, `mruby-io` or `mruby-socket` declares in a header of
+  its own which methods it implements, where the gem used to decide from the
+  platform macros the host happened to spell. The port is what a build names,
+  so a cross build and an out-of-tree `hal-<gem>-<conf>` now answer for
+  themselves; a method no port implements is `mrb_notimplement_m`, which
+  `respond_to?` answers false for, as before
+  ([#7472](https://github.com/mruby/mruby/pull/7472), [#7476](https://github.com/mruby/mruby/pull/7476), [#7477](https://github.com/mruby/mruby/pull/7477))
+- `BasicSocket#getpeereid` is implemented on macOS and the BSDs, where before
+  no build defined it ([#7477](https://github.com/mruby/mruby/pull/7477))
+- The `mruby-io` HAL numbers a file mode itself, so a port maps its host's
+  `st_mode` and permission bits both ways rather than handing them up as they
+  are ([#7476](https://github.com/mruby/mruby/pull/7476))
 - `mruby-benchmark` measures CPU time through `Process.times` ([#7452](https://github.com/mruby/mruby/pull/7452))
 
 # Changes in C API
@@ -134,6 +146,8 @@ any of those needs updating.
   into the submodule ([#7462](https://github.com/mruby/mruby/issues/7462))
 - Every build writes a `size.json` of its artifacts ([#7450](https://github.com/mruby/mruby/pull/7450))
 - `rake defines` reports where every define came from ([#7453](https://github.com/mruby/mruby/pull/7453))
+- `rake compile_commands.json` writes the compilation database from the build
+  rules, so a checkout has one before its first compile ([#7395](https://github.com/mruby/mruby/pull/7395), [#7475](https://github.com/mruby/mruby/pull/7475))
 - A build can ask the compiler whether a header is there ([#7432](https://github.com/mruby/mruby/pull/7432))
 - A generated output another configuration left behind is rebuilt ([#7236](https://github.com/mruby/mruby/pull/7236))
 - CI gained 32-bit x86 ([2fd16f3](https://github.com/mruby/mruby/commit/2fd16f3)),
@@ -728,3 +742,7 @@ any of those needs updating.
 - [#7471](https://github.com/mruby/mruby/pull/7471) mruby-regexp: read `&&` as the character class intersection it is
 - [#7472](https://github.com/mruby/mruby/pull/7472) build: let a port hand headers to the gem it serves, and let mruby-dir use them
 - [#7473](https://github.com/mruby/mruby/pull/7473) NEWS.md: keep prettier from rewriting the 4.1 entries
+- [#7474](https://github.com/mruby/mruby/pull/7474) build_config: let `nintendo_switch.rb` load
+- [#7475](https://github.com/mruby/mruby/pull/7475) build: write `compile_commands.json` without a build
+- [#7476](https://github.com/mruby/mruby/pull/7476) mruby-io: let the port say what it implements
+- [#7477](https://github.com/mruby/mruby/pull/7477) mruby-socket: let the port say what it implements
