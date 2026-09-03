@@ -15,6 +15,10 @@
 - `break` with an argument behaves as it does in CRuby ([#6927](https://github.com/mruby/mruby/issues/6927))
 - Numbered parameters no longer read as `nil` ([#6921](https://github.com/mruby/mruby/issues/6921))
 - `nil?` as a condition behaves as `self.nil?` does ([#6874](https://github.com/mruby/mruby/issues/6874))
+- **_NOTE_**: `Array`, `Hash` and `Struct` take a pair already being compared
+  as equal in `#==` and `#eql?`, so a container that holds itself equals
+  another built the same way, as in CRuby; the other elements still decide
+  ([#7425](https://github.com/mruby/mruby/pull/7425))
 
 # Regular expressions
 
@@ -245,6 +249,7 @@ any of those needs updating.
 
 # Merged Pull Requests
 
+- [#2479](https://github.com/mruby/mruby/pull/2479) Implement `Symbol#slice` and `Symbol#[]` in mruby-symbol-ext.
 - [#6218](https://github.com/mruby/mruby/pull/6218) Reduced description of `mrb_init_core()`
 - [#6334](https://github.com/mruby/mruby/pull/6334) Remove `iterating` variable from `mrb_objspace_each_objects()`
 - [#6576](https://github.com/mruby/mruby/pull/6576) Share array entities if possible with `ary.replace(frozen_ary)`
@@ -259,6 +264,11 @@ any of those needs updating.
 - [#6785](https://github.com/mruby/mruby/pull/6785) Store compressed aspec on cfunc RProc for correct arity/parameters
 - [#6786](https://github.com/mruby/mruby/pull/6786) Early conversion of `mesg` to a string object in `mrb_sys_fail()`
 - [#6787](https://github.com/mruby/mruby/pull/6787) Supplement to #6781
+- [#6790](https://github.com/mruby/mruby/pull/6790) class.h: avoid C99 designated initializers in MRB_MT_ENTRY
+- [#6791](https://github.com/mruby/mruby/pull/6791) mruby-bigint: avoid C99 compound literal in MPZ_CTX_INIT
+- [#6792](https://github.com/mruby/mruby/pull/6792) host-cxx: use distinct build directory from host-debug
+- [#6793](https://github.com/mruby/mruby/pull/6793) readfloat: correctly round fraction via division by exact 10^n
+- [#6794](https://github.com/mruby/mruby/pull/6794) readfloat: keep one extra fraction digit (17 -> 18)
 - [#6799](https://github.com/mruby/mruby/pull/6799) Define the typedef for `mrb_state` earlier
 - [#6800](https://github.com/mruby/mruby/pull/6800) mruby 4.0.0 released
 - [#6803](https://github.com/mruby/mruby/pull/6803) Disable some gems on build_config for playstationportable
@@ -436,6 +446,7 @@ any of those needs updating.
 - [#7123](https://github.com/mruby/mruby/pull/7123) mruby-bin-mirb: read UTF-8 through the core scanner
 - [#7124](https://github.com/mruby/mruby/pull/7124) boxing_nan.h: keep `nil` out of `mrb_false_p`
 - [#7125](https://github.com/mruby/mruby/pull/7125) mruby-regexp: measure a lookbehind in the characters its bytes spell
+- [#7127](https://github.com/mruby/mruby/pull/7127) mruby-regexp: exempt a quoted String pattern from the subject check
 - [#7128](https://github.com/mruby/mruby/pull/7128) Share the UTF-8 decoder between core, mruby-regexp and mruby-string-ext
 - [#7129](https://github.com/mruby/mruby/pull/7129) Check the Unicode range in `mrb_utf8_to_buf` instead of in its four callers
 - [#7131](https://github.com/mruby/mruby/pull/7131) Stop a broken string from being read one byte at a time
@@ -682,6 +693,7 @@ any of those needs updating.
 - [#7386](https://github.com/mruby/mruby/pull/7386) mruby-complex: take the `to_s` separator from the rendered part
 - [#7387](https://github.com/mruby/mruby/pull/7387) mruby-complex: hold the exact parts the numeric tower hands over
 - [#7388](https://github.com/mruby/mruby/pull/7388) mruby-regexp: implement `\g` subexpression calls
+- [#7389](https://github.com/mruby/mruby/pull/7389) vm.c: move `$~` into the owning scope
 - [#7390](https://github.com/mruby/mruby/pull/7390) mruby-compiler: avoid pushing discarded local assignment values
 - [#7391](https://github.com/mruby/mruby/pull/7391) mruby-process: file the `wait` row with the implemented methods
 - [#7392](https://github.com/mruby/mruby/pull/7392) clangd: read the tree without a compile_commands.json
@@ -694,13 +706,32 @@ any of those needs updating.
 - [#7399](https://github.com/mruby/mruby/pull/7399) mruby-process: read a `Process::Status` subclass as a status in `#==`
 - [#7400](https://github.com/mruby/mruby/pull/7400) string: copy a static string before checking its terminator
 - [#7401](https://github.com/mruby/mruby/pull/7401) mruby-regexp: read a mutual recursion from the body that ends
+- [#7402](https://github.com/mruby/mruby/pull/7402) mruby-process: freeze a `Process::Status` once it is built
+- [#7403](https://github.com/mruby/mruby/pull/7403) mruby-process: undefine `Process::Status.new`, as CRuby does
+- [#7404](https://github.com/mruby/mruby/pull/7404) mruby-regexp: read a pattern byte that spells no character as a byte
 - [#7405](https://github.com/mruby/mruby/pull/7405) mruby-regexp: collapse repeated capture-free assertions
 - [#7406](https://github.com/mruby/mruby/pull/7406) kernel.c: answer `respond_to?` false for a method unimplemented here
 - [#7407](https://github.com/mruby/mruby/pull/7407) class.c: raise from `mrb_notimplement()` even with no method name
+- [#7408](https://github.com/mruby/mruby/pull/7408) mruby-socket: name the two methods that only refuse as unimplemented
+- [#7409](https://github.com/mruby/mruby/pull/7409) mruby-io: name the four methods that only refuse as unimplemented
+- [#7410](https://github.com/mruby/mruby/pull/7410) vm.c: gather the stack teardown's env closing into one walk
+- [#7411](https://github.com/mruby/mruby/pull/7411) mruby-socket: test the two methods that only refuse, Windows included
+- [#7412](https://github.com/mruby/mruby/pull/7412) error.c: report the errno when SystemCallError is missing
+- [#7413](https://github.com/mruby/mruby/pull/7413) mruby-process: name nothing in the error `kill` and `waitpid` raise
+- [#7414](https://github.com/mruby/mruby/pull/7414) amalgam: leave out the port an external HAL provider replaced
+- [#7415](https://github.com/mruby/mruby/pull/7415) mruby-regexp: state the README as the answers a reader comes for
 - [#7416](https://github.com/mruby/mruby/pull/7416) mruby-process: name the signal in a `kill` refusal past the lookup width
+- [#7417](https://github.com/mruby/mruby/pull/7417) mruby-process: keep pid and status out of `instance_variables`
 - [#7419](https://github.com/mruby/mruby/pull/7419) numeric.c: round an Integer to a negative number of digits correctly
+- [#7420](https://github.com/mruby/mruby/pull/7420) mruby-bigint: initialize the mpz `mrb_bint_new_int64()` fills in
 - [#7421](https://github.com/mruby/mruby/pull/7421) mruby-process: add `Process.clock_gettime` and `Process.clock_getres`
+- [#7423](https://github.com/mruby/mruby/pull/7423) ci: add 32-bit x86 and Arm builds
+- [#7424](https://github.com/mruby/mruby/pull/7424) guard mrb_int overflow in String#slice!
+- [#7425](https://github.com/mruby/mruby/pull/7425) mruby-struct: take a recursive pair as equal in Struct#== and #eql?
+- [#7426](https://github.com/mruby/mruby/pull/7426) Use `mrb_args_pack_positional()` in `prepare_missing()`
 - [#7427](https://github.com/mruby/mruby/pull/7427) mruby-regexp: add MatchData#values_at
+- [#7428](https://github.com/mruby/mruby/pull/7428) mruby-regexp: read the last participating group for a duplicate name
+- [#7429](https://github.com/mruby/mruby/pull/7429) Change `mrb_callinfo::nk` to `kw`
 - [#7430](https://github.com/mruby/mruby/pull/7430) mruby-struct: let a bare Struct.new answer a memberless struct
 - [#7431](https://github.com/mruby/mruby/pull/7431) mruby-struct: raise the ordinary arity error for a keyword_init struct
 - [#7432](https://github.com/mruby/mruby/pull/7432) build: ask the compiler whether a header is there
