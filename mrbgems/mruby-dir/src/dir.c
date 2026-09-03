@@ -218,6 +218,7 @@ mrb_dir_chdir(mrb_state *mrb, mrb_value klass)
  *
  *   Dir.chroot("/production/secure/root")
  */
+#ifdef MRB_HAL_DIR_HAS_CHROOT
 static mrb_value
 mrb_dir_chroot(mrb_state *mrb, mrb_value self)
 {
@@ -227,14 +228,16 @@ mrb_dir_chroot(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "z", &path);
   res = mrb_hal_dir_chroot(mrb, path);
   if (res == -1) {
-    if (errno == ENOSYS) {
-      mrb_raise(mrb, E_NOTIMP_ERROR, "chroot() unreliable on your system");
-    }
     mrb_sys_fail(mrb, path);
   }
 
   return mrb_fixnum_value(res);
 }
+#else
+/* this port cannot change the root: unimplemented, and named as such so
+   `respond_to?` can answer false */
+# define mrb_dir_chroot mrb_notimplement_m
+#endif
 
 static mrb_bool
 skip_name_p(const char *name)
@@ -378,6 +381,7 @@ mrb_dir_rewind(mrb_state *mrb, mrb_value self)
  *   d.seek(pos)       #=> #<Dir:testdir>
  *   d.read            #=> "."
  */
+#ifdef MRB_HAL_DIR_HAS_SEEK
 static mrb_value
 mrb_dir_seek(mrb_state *mrb, mrb_value self)
 {
@@ -391,12 +395,15 @@ mrb_dir_seek(mrb_state *mrb, mrb_value self)
   }
   mrb_get_args(mrb, "i", &pos);
   if (mrb_hal_dir_seek(mrb, mdir->handle, (long)pos) == -1) {
-    if (errno == ENOSYS) {
-      mrb_raise(mrb, E_NOTIMP_ERROR, "dirseek() unreliable on your system");
-    }
+    mrb_sys_fail(mrb, "seekdir");
   }
   return self;
 }
+#else
+/* this port has no directory position: unimplemented, and named as such so
+   `respond_to?` can answer false */
+# define mrb_dir_seek mrb_notimplement_m
+#endif
 
 /*
  * call-seq:
@@ -410,6 +417,7 @@ mrb_dir_seek(mrb_state *mrb, mrb_value self)
  *   d.read   #=> "."
  *   d.tell   #=> 1
  */
+#ifdef MRB_HAL_DIR_HAS_TELL
 static mrb_value
 mrb_dir_tell(mrb_state *mrb, mrb_value self)
 {
@@ -423,12 +431,13 @@ mrb_dir_tell(mrb_state *mrb, mrb_value self)
   }
   pos = mrb_hal_dir_tell(mrb, mdir->handle);
   if (pos == -1) {
-    if (errno == ENOSYS) {
-      mrb_raise(mrb, E_NOTIMP_ERROR, "dirtell() unreliable on your system");
-    }
+    mrb_sys_fail(mrb, "telldir");
   }
   return mrb_fixnum_value((mrb_int)pos);
 }
+#else
+# define mrb_dir_tell mrb_notimplement_m
+#endif
 
 /*
  * call-seq:

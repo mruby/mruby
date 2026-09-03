@@ -13,6 +13,18 @@
 
 #include <mruby.h>
 
+/*
+ * What the port implements
+ *
+ * The port publishes it in a header under its include/, and the build puts
+ * that directory on the include path of this gem and of every gem that
+ * depends on it.  Whether a method exists is the port's to say, because the
+ * port is what a build names: a cross build has no host to detect one from,
+ * and a `hal-dir-<conf>` gem may stand in for the bundled ports altogether.
+ * What each macro says, and what it guards, is written where it is defined.
+ */
+#include "dir_hal_features.h"
+
 MRB_BEGIN_DECL
 
 /*
@@ -38,14 +50,18 @@ const char* mrb_hal_dir_read(mrb_state *mrb, mrb_dir_handle *dir);
 void mrb_hal_dir_rewind(mrb_state *mrb, mrb_dir_handle *dir);
 
 /*
- * Optional Operations (may not be available on all platforms)
+ * Operations a port declares in its dir_hal_features.h
  */
 
-/* Seek to position in directory. Returns -1 if unsupported (sets errno to ENOSYS). */
+#ifdef MRB_HAL_DIR_HAS_SEEK
+/* Seek to position in directory. Returns 0 on success, -1 on error (sets errno). */
 int mrb_hal_dir_seek(mrb_state *mrb, mrb_dir_handle *dir, long pos);
+#endif
 
-/* Get current position in directory. Returns -1 if unsupported (sets errno to ENOSYS). */
+#ifdef MRB_HAL_DIR_HAS_TELL
+/* Get current position in directory. Returns the position, -1 on error (sets errno). */
 long mrb_hal_dir_tell(mrb_state *mrb, mrb_dir_handle *dir);
+#endif
 
 /*
  * Filesystem Operations
@@ -63,8 +79,10 @@ int mrb_hal_dir_chdir(mrb_state *mrb, const char *path);
 /* Get current working directory as UTF-8. Returns 0 on success, -1 on error. */
 int mrb_hal_dir_getcwd(mrb_state *mrb, char *buf, size_t size);
 
-/* Change root directory (privileged operation). Returns -1 if unsupported (sets errno to ENOSYS). */
+#ifdef MRB_HAL_DIR_HAS_CHROOT
+/* Change root directory (privileged operation). Returns 0 on success, -1 on error (sets errno). */
 int mrb_hal_dir_chroot(mrb_state *mrb, const char *path);
+#endif
 
 /* Check if path is a directory. Returns 1 if directory, 0 if not. */
 int mrb_hal_dir_is_directory(mrb_state *mrb, const char *path);

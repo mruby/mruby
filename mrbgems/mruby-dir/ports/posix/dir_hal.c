@@ -62,37 +62,27 @@ mrb_hal_dir_rewind(mrb_state *mrb, mrb_dir_handle *handle)
 }
 
 /*
- * Optional Operations
+ * Operations this port declares in dir_hal_features.h
  */
 
+#ifdef MRB_HAL_DIR_HAS_SEEK
 int
 mrb_hal_dir_seek(mrb_state *mrb, mrb_dir_handle *handle, long pos)
 {
-#if defined(__ANDROID__)
-  /* Android doesn't have reliable seekdir */
-  (void)mrb; (void)handle; (void)pos;
-  errno = ENOSYS;
-  return -1;
-#else
   (void)mrb;
   seekdir(handle->dir, pos);
   return 0;
-#endif
 }
+#endif
 
+#ifdef MRB_HAL_DIR_HAS_TELL
 long
 mrb_hal_dir_tell(mrb_state *mrb, mrb_dir_handle *handle)
 {
-#if defined(__ANDROID__)
-  /* Android doesn't have reliable telldir */
-  (void)mrb; (void)handle;
-  errno = ENOSYS;
-  return -1;
-#else
   (void)mrb;
   return telldir(handle->dir);
-#endif
 }
+#endif
 
 /*
  * Filesystem Operations
@@ -126,19 +116,14 @@ mrb_hal_dir_getcwd(mrb_state *mrb, char *buf, size_t size)
   return getcwd(buf, size) ? 0 : -1;
 }
 
+#ifdef MRB_HAL_DIR_HAS_CHROOT
 int
 mrb_hal_dir_chroot(mrb_state *mrb, const char *path)
 {
-#if defined(__ANDROID__) || defined(__MSDOS__)
-  /* Not available on these platforms */
-  (void)mrb; (void)path;
-  errno = ENOSYS;
-  return -1;
-#else
   (void)mrb;
   return chroot(path);
-#endif
 }
+#endif
 
 int
 mrb_hal_dir_is_directory(mrb_state *mrb, const char *path)

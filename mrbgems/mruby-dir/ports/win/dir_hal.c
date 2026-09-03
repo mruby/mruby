@@ -186,28 +186,6 @@ mrb_hal_dir_rewind(mrb_state *mrb, mrb_dir_handle *handle)
 }
 
 /*
- * Optional Operations
- */
-
-int
-mrb_hal_dir_seek(mrb_state *mrb, mrb_dir_handle *handle, long pos)
-{
-  /* Not supported on Windows */
-  (void)mrb; (void)handle; (void)pos;
-  errno = ENOSYS;
-  return -1;
-}
-
-long
-mrb_hal_dir_tell(mrb_state *mrb, mrb_dir_handle *handle)
-{
-  /* Not supported on Windows */
-  (void)mrb; (void)handle;
-  errno = ENOSYS;
-  return -1;
-}
-
-/*
  * Filesystem Operations
  */
 
@@ -289,15 +267,6 @@ mrb_hal_dir_getcwd(mrb_state *mrb, char *buf, size_t size)
   }
   mrb_free(mrb, utf16);
   return 0;
-}
-
-int
-mrb_hal_dir_chroot(mrb_state *mrb, const char *path)
-{
-  /* Not available on Windows */
-  (void)mrb; (void)path;
-  errno = ENOSYS;
-  return -1;
 }
 
 int

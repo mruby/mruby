@@ -393,6 +393,60 @@ Host builds auto-detect `:posix` or `:win` when `conf.ports` is
 not set. Sources outside `ports/` (i.e. `src/`) are always
 compiled regardless of the port selection.
 
+### What a Port Declares
+
+The selected port's `ports/<name>/include/` directory is an include
+path, for the gem's own sources and for every gem that depends on
+it, as the gem's own `include/` is. That is where a port says what
+it implements: a header of feature macros, which the gem's HAL
+header includes and its `src/` sources read. Whether a method exists
+is the port's to answer, since the port is the only thing that
+knows, and `src/` asks the macro rather than the platform:
+
+```c
+/* ports/posix/include/dir_hal_features.h */
+#define MRB_HAL_DIR_HAS_CHROOT
+
+/* include/dir_hal.h */
+#include "dir_hal_features.h"
+#ifdef MRB_HAL_DIR_HAS_CHROOT
+int mrb_hal_dir_chroot(mrb_state *mrb, const char *path);
+#endif
+```
+
+One macro guards the prototype, the port's implementation and the
+method definition in `src/`, so a port that declares a capability and
+forgets to implement it fails to link, and one that declares nothing
+owes nothing. `mruby-dir` carries such a header under
+`ports/posix/include/` and `ports/win/include/`, and its README lists
+what each declares.
+
+Only `include/` is exported. A header anywhere else under
+`ports/<name>/` is the port's own, reached by its sources through a
+relative include and by nothing else, the way a header under `src/`
+is the gem's own; it is neither on another gem's include path nor
+written into the amalgamated `mruby.h`.
+
+A name a port exports is its gem's alone. The name is searched on
+the include path of every gem that depends on the port's gem, where
+the other dependencies' headers sit too, so the build refuses a
+build in which another gem exports the same name, from its
+`include/` or from its port, rather than let the compiler pick
+whichever it finds first. The bundled ports name the header after
+the HAL header it serves, `<short>_hal_features.h` beside
+`<short>_hal.h`.
+
+The macros are the port's to define and nobody else's. A build that
+wants less than the port offers uses the gem's veto define where the
+gem provides one, which the HAL header applies after the port has
+spoken; a build that defines an
+`MRB_HAL_*_HAS_*` macro itself on a port that does not implement it
+gets an undefined `mrb_hal_*` at link time, which is the port's
+answer. A build that supplies the HAL from its own sources, with no
+bundled port and no provider gem, puts its own `<short>_hal_features.h`
+on the include path with `conf.cc.include_paths` and declares there
+what its sources implement.
+
 ### External HAL Provider Gems
 
 A third-party gem may replace another gem's bundled port at build
@@ -417,14 +471,20 @@ When a matching HAL provider gem is present in the build, the
 target gem's `ports/<conf.ports>/` sources are dropped from the
 build automatically. The HAL provider's own sources supply the
 implementation instead, avoiding duplicate symbol errors at link
-time. Loading two gems that match the same `hal-<short>-*`
-prefix is a build error.
+time, and its `include/` takes the port's `include/` place as the
+include path the feature header is found on, whether or not a
+bundled port matched the build. Loading two gems that match the same
+`hal-<short>-*` prefix is a build error, and so is a provider that
+leaves out a header the port it replaces exports, since the target's
+HAL header includes that header by name.
 
-The naming convention is the only signal -- no spec attribute,
-no `add_dependency` flag is required. A gem author who wants to
-contribute an additional bundled port upstream sends a PR adding
-`<target-gem>/ports/<name>/`; a gem author who prefers to ship
-out of tree publishes a `hal-<short>-<conf>` gem instead.
+The naming convention is the only signal -- no spec attribute and
+no HAL-specific `add_dependency` option is required. The ordinary
+dependency on the target gem still is, since the provider includes
+the target's HAL header. A gem author who wants to contribute an
+additional bundled port upstream sends a PR adding
+`<target-gem>/ports/<name>/`; a gem author who prefers to ship out
+of tree publishes a `hal-<short>-<conf>` gem instead.
 
 ## C Extension
 
