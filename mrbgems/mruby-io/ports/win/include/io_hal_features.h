@@ -17,4 +17,7 @@
    on, so `File.symlink` and `File.readlink` are left undefined rather than
    defined to fail. */
 
+/* LockFileEx() stands in for flock(2): `File#flock`. */
+#define MRB_HAL_IO_HAS_FLOCK
+
 #endif /* MRUBY_IO_HAL_FEATURES_H */

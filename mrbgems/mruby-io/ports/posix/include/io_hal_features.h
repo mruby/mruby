@@ -16,4 +16,9 @@
 /* symlink(2) and readlink(2): `File.symlink` and `File.readlink`. */
 #define MRB_HAL_IO_HAS_SYMLINK
 
+/* flock(2): `File#flock`.  Solaris and Illumos have no flock(2). */
+#if !defined(sun) && !defined(__sun)
+# define MRB_HAL_IO_HAS_FLOCK
+#endif
+
 #endif /* MRUBY_IO_HAL_FEATURES_H */

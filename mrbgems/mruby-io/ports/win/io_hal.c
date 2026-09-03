@@ -144,6 +144,7 @@ mrb_hal_io_ftruncate(mrb_state *mrb, int fd, mrb_int length)
   return _chsize_s(fd, (__int64)length);
 }
 
+#ifdef MRB_HAL_IO_HAS_FLOCK
 int
 mrb_hal_io_flock(mrb_state *mrb, int fd, int operation)
 {
@@ -182,6 +183,7 @@ mrb_hal_io_flock(mrb_state *mrb, int fd, int operation)
 
   return 0;
 }
+#endif /* MRB_HAL_IO_HAS_FLOCK */
 
 int
 mrb_hal_io_unlink(mrb_state *mrb, const char *path)

@@ -185,9 +185,10 @@ not declare has no method at all rather than one that fails, and
 `respond_to?` answers false. A port that declares a capability it does not
 implement fails to link.
 
-| macro                    | methods                         | posix | win |
-| ------------------------ | ------------------------------- | ----- | --- |
-| `MRB_HAL_IO_HAS_SYMLINK` | `File.symlink`, `File.readlink` | o     |     |
+| macro                    | methods                         | posix             | win |
+| ------------------------ | ------------------------------- | ----------------- | --- |
+| `MRB_HAL_IO_HAS_SYMLINK` | `File.symlink`, `File.readlink` | o                 |     |
+| `MRB_HAL_IO_HAS_FLOCK`   | `File#flock`                    | o, not on Solaris | o   |
 
 ## License
 

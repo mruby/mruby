@@ -154,6 +154,7 @@ mrb_int mrb_hal_io_umask(mrb_state *mrb, mrb_int mask);
  */
 int mrb_hal_io_ftruncate(mrb_state *mrb, int fd, mrb_int length);
 
+#ifdef MRB_HAL_IO_HAS_FLOCK
 /**
  * Apply or remove advisory lock on file
  *
@@ -163,6 +164,7 @@ int mrb_hal_io_ftruncate(mrb_state *mrb, int fd, mrb_int length);
  * @return 0 on success, -1 on error (sets errno)
  */
 int mrb_hal_io_flock(mrb_state *mrb, int fd, int operation);
+#endif /* MRB_HAL_IO_HAS_FLOCK */
 
 /**
  * Delete a file

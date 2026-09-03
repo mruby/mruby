@@ -666,8 +666,8 @@ mrb_file_mtime(mrb_state *mrb, mrb_value self)
   return mrb_int_value(mrb, st.st_mtime);
 }
 
-#if defined(sun)
-/* Solaris and Illumos have no flock(2): unimplemented, and named as such so
+#ifndef MRB_HAL_IO_HAS_FLOCK
+/* this port has no file locking: unimplemented, and named as such so
    `respond_to?` can answer false */
 # define mrb_file_flock mrb_notimplement_m
 #else
