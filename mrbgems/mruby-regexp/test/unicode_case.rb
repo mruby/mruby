@@ -124,3 +124,22 @@ assert("Regexp - /i closes the union a nested class makes, not its parts") do
   assert_true ascii.match?("a")
   assert_true ascii.match?("A")
 end
+
+assert("Regexp - /i closes an intersection, not the operands it was taken of") do
+  # The operands meet as they were written and the class closes once after,
+  # which is CRuby's reading too: [a&&A] holds nothing to close, where closing
+  # each side first would have left both letters in it.
+  assert_false Regexp.new("[a&&A]", Regexp::IGNORECASE).match?("a")
+  assert_false Regexp.new("[a&&A]", Regexp::IGNORECASE).match?("A")
+  assert_true Regexp.new("[a&&a]", Regexp::IGNORECASE).match?("A")
+  assert_true Regexp.new("[A-Z&&[^B]]", Regexp::IGNORECASE).match?("a")
+  assert_false Regexp.new("[A-Z&&[^B]]", Regexp::IGNORECASE).match?("b")
+
+  # An ASCII-only set holds the closure inside ASCII wherever it stands, so
+  # the letters left in [b-z&&\w] reach no further than the ASCII capitals
+  # where [b-z&&[^a]] reaches U+017F through its `s`.
+  wordish = Regexp.new("[b-z&&\\w]", Regexp::IGNORECASE)
+  assert_true wordish.match?("S")
+  assert_false wordish.match?("ſ")
+  assert_true Regexp.new("[b-z&&[^a]]", Regexp::IGNORECASE).match?("ſ")
+end

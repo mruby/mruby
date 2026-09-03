@@ -522,6 +522,15 @@ uint16_t mrb_re_ctype(uint32_t cp);
    class matcher calls this for a class holding any bracket, once the ranges
    have said nothing. */
 mrb_bool mrb_re_class_ctype_match(const re_charclass *cc, uint32_t cp);
+
+/* The longest run of [lo, hi] the brackets in a class answer alike, as its
+   last codepoint, with *in the answer they give it. The table holds the types
+   as runs of codepoints sharing a set, so a span is read off it a run at a
+   time where asking codepoint by codepoint would be a search each. Both
+   bounds are above ASCII. The compiler calls this to write out the part of a
+   range list a bracket holds, which is what an intersection needs and a class
+   that only holds its brackets does not. */
+uint32_t mrb_re_ctype_span(const re_charclass *cc, uint32_t lo, uint32_t hi, mrb_bool *in);
 #endif
 
 /* Simple case folding: the folded codepoint, or cp itself when it folds to

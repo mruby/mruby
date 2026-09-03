@@ -72,6 +72,30 @@ mrb_re_class_ctype_match(const re_charclass *cc, uint32_t cp)
   return (any & cc->ctype_yes) || (~all & cc->ctype_no) || cc->utf8_any;
 }
 
+uint32_t
+mrb_re_ctype_span(const re_charclass *cc, uint32_t lo, uint32_t hi, mrb_bool *in)
+{
+  size_t i = 0, j = RE_CTYPE_RUN_COUNT;
+  while (j - i > 1) {
+    size_t mid = i + (j - i) / 2;
+    if ((re_ctype_runs[mid] >> RE_CTYPE_MASK_BITS) <= lo) i = mid;
+    else j = mid;
+  }
+  uint32_t end = i + 1 < RE_CTYPE_RUN_COUNT
+                   ? (re_ctype_runs[i + 1] >> RE_CTYPE_MASK_BITS) - 1 : 0x10ffff;
+  /* The control range is not a run of its own: mrb_re_ctype() lays it over
+     whatever runs it falls in, so it breaks a run the same way one does. */
+  if (lo < RE_CTYPE_CNTRL_LO) {
+    if (end >= RE_CTYPE_CNTRL_LO) end = RE_CTYPE_CNTRL_LO - 1;
+  }
+  else if (lo <= RE_CTYPE_CNTRL_HI) {
+    if (end > RE_CTYPE_CNTRL_HI) end = RE_CTYPE_CNTRL_HI;
+  }
+  if (end > hi) end = hi;
+  *in = mrb_re_class_ctype_match(cc, lo);
+  return end;
+}
+
 #endif  /* RE_UNICODE_CTYPE */
 
 /* Check if character is a "word" character (\w): [a-zA-Z0-9_] */
