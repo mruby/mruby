@@ -256,8 +256,10 @@ spec.build_settings do |spec|
 end
 ```
 
-`check_func` asks whether a name is declared once a header is included, or is
-a macro spelled that way:
+`check_func` asks whether a name is there to be called once a header is
+included: declared there, or a macro spelled that way, and defined by
+something the build links every binary with, which is the question on a host
+whose headers declare a function its C library does not define:
 
 ```ruby
 spec.build_settings do |spec|
@@ -265,13 +267,28 @@ spec.build_settings do |spec|
 end
 ```
 
+A name that a library of the gem's own defines is asked for with the gem's
+linker, `link: spec.linker`, and that linker's libraries and flags are linked
+as they are into the gem's binary; a gem adds them in its `build_settings`
+block, which is where a gem that has one writes them. `link: false` asks
+about the declaration alone, which is the question for a name C++ overloads,
+since an overload set has no one address to hand a link. A macro answers yes
+on its declaration alone either way, there being no one symbol to ask after.
+
+A build that cannot link a program, one that makes libmruby for another
+program to link and has no startup files or C library on its own link line,
+is answered about declarations alone throughout, since a link that fails
+there says nothing about the name. Whether it can is asked once, with a
+program that names `strlen`.
+
 A gem asks from a `spec.build_settings` block, as both of those do. It runs
 after every gem's `mrbgem.rake` body and before the rules are defined, which
 is what lets the defines an answer is turned into reach the compile.
 
 `try_compile` takes the source itself, for a question neither of the two
-spells. A build configuration asks its own compiler where it stands, having no
-gem lifecycle to wait on:
+spells, and `try_link` takes it and links it into a program as well. A build
+configuration asks its own compiler where it stands, having no gem lifecycle
+to wait on:
 
 ```ruby
 conf.cc.defines << 'HAVE_BUILTIN_CLZ' if conf.cc.try_compile(<<~SOURCE)
@@ -280,13 +297,13 @@ conf.cc.defines << 'HAVE_BUILTIN_CLZ' if conf.cc.try_compile(<<~SOURCE)
 SOURCE
 ```
 
-The three compile and never link, so a target with no library to link against
-still answers, and a `check_func` answer is about the declaration a compile
-can see rather than a symbol a link would resolve.
+`check_header` and `try_compile` compile and never link, so a target with no
+library to link against answers them as any other does.
 
 Each answer is kept for the life of the `rake` process, keyed by everything
 that goes into the compile: the command, the option string and the source
-extension it is spelled with, the flags, and the source. The extension is what
+extension it is spelled with, the flags, and the source, and for a link the
+link line's parts besides the object and the output. The extension is what
 tells a compiler whether it is reading C or C++, and can be all that separates
 two of a build's compilers, a toolchain being free to give them one command
 and one set of flags.
