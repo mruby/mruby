@@ -129,6 +129,21 @@ mrb_hal_socket_sockaddr_un(mrb_state *mrb, const char *path, size_t pathlen)
 }
 #endif /* MRB_HAL_SOCKET_HAS_SOCKADDR_UN */
 
+#ifdef MRB_HAL_SOCKET_HAS_GETPEEREID
+int
+mrb_hal_socket_getpeereid(mrb_state *mrb, int fd, mrb_int *euid, mrb_int *egid)
+{
+  uid_t uid;
+  gid_t gid;
+  (void)mrb;
+
+  if (getpeereid(fd, &uid, &gid) != 0) return -1;
+  *euid = (mrb_int)uid;
+  *egid = (mrb_int)gid;
+  return 0;
+}
+#endif
+
 #ifdef MRB_HAL_SOCKET_HAS_SOCKETPAIR
 int
 mrb_hal_socket_socketpair(mrb_state *mrb, int domain, int type, int protocol, int sv[2])

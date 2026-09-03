@@ -56,12 +56,15 @@ end
 assert('BasicSocket#getpeereid') do
   s = Socket.new(Socket::AF_INET, Socket::SOCK_DGRAM, 0)
   begin
-    # getpeereid(2) is compiled in only where HAVE_GETPEEREID is defined.
-    # Where it is not, the method is here to refuse, and that is what
-    # respond_to? has to report rather than promise an answer.
-    unless s.respond_to?(:getpeereid)
-      assert_raise(NotImplementedError) { s.getpeereid }
-    end
+    # getpeereid(2) is compiled in only where the port declares
+    # MRB_HAL_SOCKET_HAS_GETPEEREID. Where it does not, the method is here
+    # to refuse, and that is what respond_to? has to report rather than
+    # promise an answer. Where it does, unix.rb runs it on a socket pair.
+    # getpeereid(2) is documented to refuse a socket that is not a Unix
+    # domain SOCK_STREAM with EINVAL, but macOS answers for this one, so
+    # what it does here is not asserted.
+    skip "the port has getpeereid(2); unix.rb runs it" if s.respond_to?(:getpeereid)
+    assert_raise(NotImplementedError) { s.getpeereid }
   ensure
     s.close rescue nil
   end

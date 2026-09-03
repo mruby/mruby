@@ -365,32 +365,32 @@ socket_family(int s)
   return ss.ss_family;
 }
 
-#ifdef HAVE_GETPEEREID
+#ifdef MRB_HAL_SOCKET_HAS_GETPEEREID
 /*
  * call-seq:
  *   basicsocket.getpeereid -> [euid, egid]
  *
  * Returns the effective user ID and group ID of the peer process.
- * Only available on systems that support getpeereid().
+ * Only available on ports that declare getpeereid().
  *
  *   euid, egid = sock.getpeereid
  */
 static mrb_value
 mrb_basicsocket_getpeereid(mrb_state *mrb, mrb_value self)
 {
-  gid_t egid;
-  uid_t euid;
+  mrb_int euid, egid;
   int s = socket_fd(mrb, self);
-  if (getpeereid(s, &euid, &egid) != 0)
+  if (mrb_hal_socket_getpeereid(mrb, s, &euid, &egid) != 0)
     sock_sys_fail(mrb, "getpeereid");
 
   mrb_value ary = mrb_ary_new_capa(mrb, 2);
-  mrb_ary_push(mrb, ary, mrb_fixnum_value((mrb_int)euid));
-  mrb_ary_push(mrb, ary, mrb_fixnum_value((mrb_int)egid));
+  mrb_ary_push(mrb, ary, mrb_int_value(mrb, euid));
+  mrb_ary_push(mrb, ary, mrb_int_value(mrb, egid));
   return ary;
 }
 #else
-/* unimplemented, and named as such so `respond_to?` can answer false */
+/* this port has no getpeereid(2): unimplemented, and named as such so
+   `respond_to?` can answer false */
 # define mrb_basicsocket_getpeereid mrb_notimplement_m
 #endif
 

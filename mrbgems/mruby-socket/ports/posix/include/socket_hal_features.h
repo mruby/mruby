@@ -28,4 +28,12 @@
    know the socket for one; of the bundled io ports only Windows does. */
 #define MRB_HAL_SOCKET_HAS_FD_IO
 
+/* getpeereid(2): `BasicSocket#getpeereid`.  A BSD interface, which macOS
+   and the BSDs have and Linux does not; a build on another libc that has
+   one may say so with HAVE_GETPEEREID. */
+#if defined(HAVE_GETPEEREID) || defined(__APPLE__) || defined(__FreeBSD__) || \
+    defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
+# define MRB_HAL_SOCKET_HAS_GETPEEREID
+#endif
+
 #endif /* MRUBY_SOCKET_HAL_FEATURES_H */

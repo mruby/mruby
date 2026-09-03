@@ -43,11 +43,12 @@ a capability the port does not declare has no method at all rather than one
 that fails, and `respond_to?` answers false. A port that declares a capability
 it does not implement fails to link.
 
-| macro                            | methods                                    | posix | win |
-| -------------------------------- | ------------------------------------------ | ----- | --- |
-| `MRB_HAL_SOCKET_HAS_SOCKADDR_UN` | `Socket.sockaddr_un`, `Addrinfo#unix_path` | o     |     |
-| `MRB_HAL_SOCKET_HAS_SOCKETPAIR`  | `Socket.socketpair`                        | o     |     |
-| `MRB_HAL_SOCKET_HAS_FD_IO`       | `BasicSocket#sysseek`                      | o     |     |
+| macro                            | methods                                    | posix                    | win |
+| -------------------------------- | ------------------------------------------ | ------------------------ | --- |
+| `MRB_HAL_SOCKET_HAS_SOCKADDR_UN` | `Socket.sockaddr_un`, `Addrinfo#unix_path` | o                        |     |
+| `MRB_HAL_SOCKET_HAS_SOCKETPAIR`  | `Socket.socketpair`                        | o                        |     |
+| `MRB_HAL_SOCKET_HAS_FD_IO`       | `BasicSocket#sysseek`                      | o                        |     |
+| `MRB_HAL_SOCKET_HAS_GETPEEREID`  | `BasicSocket#getpeereid`                   | o, on macOS and the BSDs |     |
 
 `MRB_HAL_SOCKET_HAS_FD_IO` guards no port function. It says a socket is a
 file descriptor that read(2), write(2) and lseek(2) take, so `BasicSocket`

@@ -24,4 +24,6 @@
    `IO.new` accepts the handle and `IO#close` closes it with closesocket()
    is mruby-io's own doing for Winsock, not this header's. */
 
+/* No getpeereid(2): `BasicSocket#getpeereid` is undefined. */
+
 #endif /* MRUBY_SOCKET_HAL_FEATURES_H */

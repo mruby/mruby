@@ -91,6 +91,12 @@ mrb_value mrb_hal_socket_sockaddr_un(mrb_state *mrb, const char *path, size_t pa
 mrb_value mrb_hal_socket_unix_path(mrb_state *mrb, const char *sockaddr, size_t socklen);
 #endif
 
+#ifdef MRB_HAL_SOCKET_HAS_GETPEEREID
+/* Effective user and group id of the peer of a connected Unix domain socket
+ * Returns: 0 on success, -1 on error (sets errno) */
+int mrb_hal_socket_getpeereid(mrb_state *mrb, int fd, mrb_int *euid, mrb_int *egid);
+#endif
+
 #ifdef MRB_HAL_SOCKET_HAS_SOCKETPAIR
 /* Create a pair of connected sockets
  * domain: address family (e.g., AF_UNIX)
