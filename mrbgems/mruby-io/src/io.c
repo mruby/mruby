@@ -18,15 +18,12 @@
 #include <sys/stat.h>
 
 /* A descriptor and the bytes moved through it go through the HAL, so what a
-   platform is asked for here is the width of a size and of a mode, the open
-   flags it names, and the way it reports a child's exit. */
+   platform is asked for here is the open flags it names and the way it
+   reports a child's exit. */
 #if defined(_WIN32)
   #include <winsock.h>    /* getsockopt(), to tell a socket from a descriptor */
   #include <stdlib.h>
   #define WEXITSTATUS(x) (x)
-  typedef int fsize_t;
-  typedef int fmode_t;
-  typedef int fssize_t;
 
   #ifndef O_TMPFILE
     #define O_TMPFILE O_TEMPORARY
@@ -35,9 +32,6 @@
 #else
   #include <sys/wait.h>   /* WEXITSTATUS() */
   #include <unistd.h>
-  typedef size_t fsize_t;
-  typedef mode_t fmode_t;
-  typedef ssize_t fssize_t;
 #endif
 
 #ifdef _MSC_VER
@@ -751,7 +745,7 @@ io_s_sysclose(mrb_state *mrb, mrb_value klass)
 }
 
 static int
-io_cloexec_open(mrb_state *mrb, const char *pathname, int flags, fmode_t mode)
+io_cloexec_open(mrb_state *mrb, const char *pathname, int flags, mrb_int mode)
 {
   int retry = FALSE;
   char *fname = mrb_locale_from_utf8(pathname, -1);
@@ -799,7 +793,7 @@ io_s_sysopen(mrb_state *mrb, mrb_value klass)
 
   const char *pat = RSTRING_CSTR(mrb, path);
   int flags = io_mode_to_flags(mrb, mode);
-  mrb_int fd = io_cloexec_open(mrb, pat, flags, (fmode_t)perm);
+  mrb_int fd = io_cloexec_open(mrb, pat, flags, perm);
   return mrb_fixnum_value(fd);
 }
 
@@ -809,16 +803,18 @@ eof_error(mrb_state *mrb)
   mrb_raise(mrb, E_EOF_ERROR, "end of file reached");
 }
 
+/* The unbuffered readers (#sysread, #pread) hand the descriptor a string of
+   `maxlen` bytes and trim it to what arrived. Sizing the string comes first;
+   a read of nothing is answered here with an empty string and asks the
+   stream for nothing, not even to be open. */
 static mrb_value
-io_read_common(mrb_state *mrb,
-    fssize_t (*readfunc)(mrb_state*, int, void*, fsize_t, off_t),
-    mrb_value io, mrb_value buf, mrb_int maxlen, off_t offset)
+io_sysread_buf(mrb_state *mrb, mrb_value buf, mrb_int maxlen)
 {
   if (maxlen < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "negative expanding string size");
   }
   else if (maxlen == 0) {
-    return mrb_str_new(mrb, NULL, maxlen);
+    return mrb_str_new(mrb, NULL, 0);
   }
 
   if (mrb_nil_p(buf)) {
@@ -831,27 +827,23 @@ io_read_common(mrb_state *mrb,
   else {
     mrb_str_modify(mrb, RSTRING(buf));
   }
+  return buf;
+}
 
-  struct mrb_io *fptr = io_get_read_fptr(mrb, io);
-  int ret = readfunc(mrb, fptr->fd, RSTRING_PTR(buf), (fsize_t)maxlen, offset);
-  if (ret < 0) {
+static mrb_value
+io_sysread_done(mrb_state *mrb, struct mrb_io *fptr, mrb_value buf, mrb_int n)
+{
+  if (n < 0) {
     mrb_sys_fail(mrb, "sysread failed");
   }
-  if (RSTRING_LEN(buf) != ret) {
-    buf = mrb_str_resize(mrb, buf, ret);
+  if (RSTRING_LEN(buf) != n) {
+    buf = mrb_str_resize(mrb, buf, n);
   }
-  if (ret == 0 && maxlen > 0) {
+  if (n == 0) {
     fptr->eof = 1;
     eof_error(mrb);
   }
   return buf;
-}
-
-static fssize_t
-sysread(mrb_state *mrb, int fd, void *buf, fsize_t nbytes, off_t offset)
-{
-  (void)offset;
-  return (fssize_t)mrb_hal_io_read(mrb, fd, buf, nbytes);
 }
 
 static mrb_value
@@ -862,7 +854,11 @@ io_sysread(mrb_state *mrb, mrb_value io)
 
   mrb_get_args(mrb, "i|S", &maxlen, &buf);
 
-  return io_read_common(mrb, sysread, io, buf, maxlen, 0);
+  buf = io_sysread_buf(mrb, buf, maxlen);
+  if (maxlen == 0) return buf;
+  struct mrb_io *fptr = io_get_read_fptr(mrb, io);
+  mrb_int n = mrb_hal_io_read(mrb, fptr->fd, RSTRING_PTR(buf), (size_t)maxlen);
+  return io_sysread_done(mrb, fptr, buf, n);
 }
 
 static mrb_value
@@ -900,33 +896,18 @@ io_seek(mrb_state *mrb, mrb_value io)
 }
 
 static mrb_value
-io_write_common(mrb_state *mrb,
-    fssize_t (*writefunc)(mrb_state*, int, const void*, fsize_t, off_t),
-    struct mrb_io *fptr, const void *buf, mrb_ssize blen, off_t offset)
-{
-  int fd = io_get_write_fd(fptr);
-  fssize_t length = writefunc(mrb, fd, buf, (fsize_t)blen, offset);
-  if (length == -1) {
-    mrb_sys_fail(mrb, "syswrite");
-  }
-  return mrb_int_value(mrb, (mrb_int)length);
-}
-
-static fssize_t
-syswrite(mrb_state *mrb, int fd, const void *buf, fsize_t nbytes, off_t offset)
-{
-  (void)offset;
-  return (fssize_t)mrb_hal_io_write(mrb, fd, buf, nbytes);
-}
-
-static mrb_value
 io_syswrite(mrb_state *mrb, mrb_value io)
 {
   mrb_value buf;
 
   mrb_get_args(mrb, "S", &buf);
 
-  return io_write_common(mrb, syswrite, io_get_write_fptr(mrb, io), RSTRING_PTR(buf), RSTRING_LEN(buf), 0);
+  int fd = io_get_write_fd(io_get_write_fptr(mrb, io));
+  mrb_int n = mrb_hal_io_write(mrb, fd, RSTRING_PTR(buf), (size_t)RSTRING_LEN(buf));
+  if (n == -1) {
+    mrb_sys_fail(mrb, "syswrite");
+  }
+  return mrb_int_value(mrb, n);
 }
 
   /* def write(string) */
@@ -940,9 +921,9 @@ static mrb_int
 fd_write_buf(mrb_state *mrb, int fd, const char *ptr, mrb_int len)
 {
   if (len == 0) return 0;
-  fssize_t sum = 0;
-  while (sum < (fssize_t)len) {
-    fssize_t n = mrb_hal_io_write(mrb, fd, ptr + sum, (size_t)(len - sum));
+  mrb_int sum = 0;
+  while (sum < len) {
+    mrb_int n = mrb_hal_io_write(mrb, fd, ptr + sum, (size_t)(len - sum));
     if (n == -1) {
       if (errno == EINTR) continue;
       mrb_sys_fail(mrb, "syswrite");
@@ -1774,32 +1755,12 @@ io_sync(mrb_state *mrb, mrb_value io)
 # define io_pread   mrb_notimplement_m
 # define io_pwrite  mrb_notimplement_m
 #else
-static off_t
-value2off(mrb_state *mrb, mrb_value offv)
-{
-  return (off_t)mrb_as_int(mrb, offv);
-}
-
 /* pread/pwrite are POSIX-only positional I/O, compiled only where the
    platform provides pread(2)/pwrite(2) (see MRB_USE_IO_PREAD_PWRITE in
    mruby/io.h). They call the platform functions directly rather than going
    through the IO HAL: the HAL has no positional entry point, and emulating
    them with seek + read/write would be slower and non-atomic for no gain
-   on the only platforms that compile this code. The mrb_state parameter is
-   unused but keeps the readfunc/writefunc callback signature uniform. */
-static fssize_t
-sys_pread(mrb_state *mrb, int fd, void *buf, fsize_t nbytes, off_t offset)
-{
-  (void)mrb;
-  return (fssize_t)pread(fd, buf, nbytes, offset);
-}
-
-static fssize_t
-sys_pwrite(mrb_state *mrb, int fd, const void *buf, fsize_t nbytes, off_t offset)
-{
-  (void)mrb;
-  return (fssize_t)pwrite(fd, buf, nbytes, offset);
-}
+   on the only platforms that compile this code. */
 
 /*
  * call-seq:
@@ -1814,7 +1775,12 @@ io_pread(mrb_state *mrb, mrb_value io)
 
   mrb_get_args(mrb, "io|S!", &maxlen, &off, &buf);
 
-  return io_read_common(mrb, sys_pread, io, buf, maxlen, value2off(mrb, off));
+  off_t offset = (off_t)mrb_as_int(mrb, off);
+  buf = io_sysread_buf(mrb, buf, maxlen);
+  if (maxlen == 0) return buf;
+  struct mrb_io *fptr = io_get_read_fptr(mrb, io);
+  mrb_int n = (mrb_int)pread(fptr->fd, RSTRING_PTR(buf), (size_t)maxlen, offset);
+  return io_sysread_done(mrb, fptr, buf, n);
 }
 
 /*
@@ -1828,7 +1794,13 @@ io_pwrite(mrb_state *mrb, mrb_value io)
 
   mrb_get_args(mrb, "So", &buf, &off);
 
-  return io_write_common(mrb, sys_pwrite, io_get_write_fptr(mrb, io), RSTRING_PTR(buf), RSTRING_LEN(buf), value2off(mrb, off));
+  off_t offset = (off_t)mrb_as_int(mrb, off);
+  int fd = io_get_write_fd(io_get_write_fptr(mrb, io));
+  mrb_int n = (mrb_int)pwrite(fd, RSTRING_PTR(buf), (size_t)RSTRING_LEN(buf), offset);
+  if (n == -1) {
+    mrb_sys_fail(mrb, "syswrite");
+  }
+  return mrb_int_value(mrb, n);
 }
 #endif /* MRB_USE_IO_PREAD_PWRITE */
 
