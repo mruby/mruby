@@ -77,6 +77,8 @@ SUBJECTS = [
   "\u{ff11}",     # FULLWIDTH DIGIT ONE
   "a\u{301}",     # a and a combining acute
   "\u{212a}",     # KELVIN SIGN, which folds to 'k'
+  "\u{17f}",      # LATIN SMALL LETTER LONG S, which folds to 's', so that a
+                  # fold leaving ASCII is asked of a class written in ASCII
   "\xb5",         # a byte that starts no character
   # The runs that make an escape discriminating: `\!` and `!` agree on every
   # subject holding no `!`, so a subject holding each of the punctuation, the
@@ -164,6 +166,29 @@ def nest_patterns
   out
 end
 
+# `&&` splits a class into the operands it takes the intersection of, and what
+# stands either side of one is an axis: a member, a range, a shorthand, a
+# bracket, a nest and an operand with nothing in it each meet the others
+# differently, and the pair is asked in both orders because the two sides of an
+# intersection are not written alike. The whole product is the corpus, for the
+# reason the escape contexts are.
+AND_OPERANDS = ["", "a", "a-c", "s-t", "\\w", "\\W", "\\d", "\\u{e9}",
+                "\\u{100}-\\u{200}", "\\x80", "[:alpha:]", "[:^lower:]",
+                "[:alpha:][:digit:]", "[b]", "[^b]"]
+# Where an intersection can stand: on its own, beside a member on either side,
+# negated as a whole, inside a nest and with a third operand after it.
+AND_CONTEXTS = [["[", "]"], ["[x", "]"], ["[", "z]"], ["[^", "]"],
+                ["[[", "]]"], ["[", "&&a]"]]
+
+def intersection_patterns
+  out = []
+  AND_OPERANDS.each do |left|
+    AND_OPERANDS.each { |right| out << "[" + left + "&&" + right + "]" }
+  end
+  AND_CONTEXTS.each { |pre, post| out << pre + "a-c&&b" + post }
+  out
+end
+
 # Every kind of atom a quantifier can be put after, and everything that can
 # follow one. Named for the same reason as the escape contexts: the corpus is
 # their whole product, and the check below is what says so.
@@ -225,8 +250,9 @@ end
 # order the axes give them.
 seen = {}
 PATTERNS = (escape_patterns + class_patterns + nest_patterns +
-            quantifier_patterns + group_patterns + anchor_patterns +
-            alternation_patterns + property_patterns).select { |p| seen[p] ? false : (seen[p] = true) }
+            intersection_patterns + quantifier_patterns + group_patterns +
+            anchor_patterns + alternation_patterns +
+            property_patterns).select { |p| seen[p] ? false : (seen[p] = true) }
 
 # Every pattern is asked under each of these, one flag at a time rather than
 # once per combination of them: asked once with all eight, no pattern differed
@@ -301,6 +327,16 @@ def check_corpus(patterns)
       pat = pre + "[" + body + "]" + post
       missing << pat unless have[pat]
     end
+  end
+  AND_OPERANDS.each do |left|
+    AND_OPERANDS.each do |right|
+      pat = "[" + left + "&&" + right + "]"
+      missing << pat unless have[pat]
+    end
+  end
+  AND_CONTEXTS.each do |pre, post|
+    pat = pre + "a-c&&b" + post
+    missing << pat unless have[pat]
   end
   QUANT_ATOMS.each do |a|
     QUANT_SUFFIXES.each do |q|
