@@ -362,7 +362,7 @@ any of those needs updating.
 - [#7022](https://github.com/mruby/mruby/pull/7022) vm.c: restore the GC arena in the allocating inline opcodes
 - [#7023](https://github.com/mruby/mruby/pull/7023) vm.c: refresh regs before storing the OP_GETIDX0 Hash result
 - [#7024](https://github.com/mruby/mruby/pull/7024) mruby-regexp: do not truncate a POSIX bracket class name length
-- [#7025](https://github.com/mruby/mruby/pull/7025) mruby-regexp: set $&, $`, $' and $+ after a match
+- [#7025](https://github.com/mruby/mruby/pull/7025) mruby-regexp: set `$&`, `` $` ``, `$'` and `$+` after a match
 - [#7026](https://github.com/mruby/mruby/pull/7026) mruby-regexp: return Arrays from `Regexp#named_captures`
 - [#7027](https://github.com/mruby/mruby/pull/7027) mruby-regexp: add `Regexp#names` and `MatchData#names`
 - [#7031](https://github.com/mruby/mruby/pull/7031) mruby-regexp: quote the pattern as written in `RegexpError` messages
