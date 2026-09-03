@@ -4,7 +4,7 @@
 ** See Copyright Notice in mruby.h
 **
 ** Not part of the HAL and not for other gems: these are the handful of
-** things process.c and status.c say to each other.
+** things process.c, clock.c and status.c say to each other.
 */
 
 #ifndef MRUBY_PROCESS_INTERNAL_H
@@ -21,6 +21,10 @@ mrb_int mrb_process_int_arg(mrb_state *mrb, mrb_int v, const char *what);
 
 /* Define Process::Status under `process`.  Called once from gem init. */
 void mrb_process_status_init(mrb_state *mrb, struct RClass *process);
+
+/* Define the CLOCK_* constants, Process.clock_gettime, Process.clock_getres,
+   Process.times and Process::Tms on `process`.  Called once from gem init. */
+void mrb_process_clock_init(mrb_state *mrb, struct RClass *process);
 
 /* Build a Process::Status for a pid and the platform status it was reaped
    with.  The status decodes itself through the HAL as it is asked questions. */
