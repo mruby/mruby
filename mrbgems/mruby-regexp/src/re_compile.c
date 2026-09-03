@@ -602,8 +602,26 @@ class_union(re_compiler *c, re_charclass *dst, const re_charclass *src)
   }
   if (src->utf8_any) dst->utf8_any = TRUE;
 #ifdef RE_UNICODE_CTYPE
-  dst->ctype_yes |= src->ctype_yes;
-  dst->ctype_no |= src->ctype_no;
+  /* Two brackets joined are a character with a type either of them admits,
+     which the pair spells and the masks of an intersection do not: a class
+     that has to have every bit of one mask cannot also stand for a character
+     that has none of them. One side asking nothing about the type is what
+     lets the other's answer through whole. */
+  if (RE_CLASS_HAS_CTYPE(src)) {
+    if (!RE_CLASS_HAS_CTYPE(dst)) {
+      dst->ctype_yes = src->ctype_yes;
+      dst->ctype_no = src->ctype_no;
+      dst->ctype_all = src->ctype_all;
+      dst->ctype_none = src->ctype_none;
+    }
+    else if ((dst->ctype_all | dst->ctype_none | src->ctype_all | src->ctype_none) != 0) {
+      compile_error(c, "this character class union is not supported");
+    }
+    else {
+      dst->ctype_yes |= src->ctype_yes;
+      dst->ctype_no |= src->ctype_no;
+    }
+  }
 #endif
 }
 
@@ -628,6 +646,36 @@ ranges_intersect(re_compiler *c, re_charclass *out,
 }
 
 #ifdef RE_UNICODE_CTYPE
+/* How many bits a mask has set, which is how many separate things it says
+   about a character's type. */
+static int
+count_bits(uint16_t v)
+{
+  int n = 0;
+  while (v) { v &= (uint16_t)(v - 1); n++; }
+  return n;
+}
+
+/* A bracket read on its own leaves the class asking for one type either way,
+   which is a disjunction of one and so a conjunct like any other: [[:alpha:]]
+   is a character whose type has RE_CTYPE_ALPHA and [[:^alpha:]] one whose
+   type has not. Moving it to the masks is what leaves the pair free for the
+   side of an intersection that needs it, so that [[:alpha:][:digit:]&&[:^lower:]]
+   keeps the one disjunction it is written with. */
+static void
+class_ctype_to_masks(re_charclass *cc)
+{
+  uint16_t yes = cc->ctype_yes, no = cc->ctype_no;
+  if (yes && !no && (yes & (yes - 1)) == 0) {
+    cc->ctype_all |= yes;
+    cc->ctype_yes = 0;
+  }
+  else if (no && !yes && (no & (no - 1)) == 0) {
+    cc->ctype_none |= no;
+    cc->ctype_no = 0;
+  }
+}
+
 /* The part of a range list that the brackets of `by` hold, into `out`. This
    is the one place a bracket is written out as members: an intersection has
    to say which characters of a range are letters, where a class that merely
@@ -665,15 +713,17 @@ ranges_filter_ctype(re_compiler *c, re_charclass *out,
    space above ASCII: a side that has it leaves the other side's answer to
    stand. With neither of them holding it, what is left above ASCII is the
    spans the two share and the spans of each that the other's brackets hold.
-   Both are written out as ranges, and the brackets are gone from the answer:
-   a character a bracket held is in the class only where the other side had it
-   too, and that is a range now. */
+   Both are written out as ranges. What the brackets are left saying is what
+   both sides said about the type, which is a conjunction: the class carries
+   it as the masks class_ctype_to_masks() moves a bracket into, and refuses
+   the one shape they cannot hold, a disjunction of brackets on either side of
+   the `&&`. */
 static void
 class_intersect(re_compiler *c, uint16_t dst_id, uint16_t src_id)
 {
   {
     re_charclass *dst = &c->pat->classes[dst_id];
-    const re_charclass *src = &c->pat->classes[src_id];
+    re_charclass *src = &c->pat->classes[src_id];
     for (int i = 0; i < RE_CLASS_BITMAP_SIZE; i++) dst->bitmap[i] &= src->bitmap[i];
 
     /* src holds every character and every byte above ASCII, so dst keeps
@@ -690,6 +740,8 @@ class_intersect(re_compiler *c, uint16_t dst_id, uint16_t src_id)
 #ifdef RE_UNICODE_CTYPE
       dst->ctype_yes = src->ctype_yes;
       dst->ctype_no = src->ctype_no;
+      dst->ctype_all = src->ctype_all;
+      dst->ctype_none = src->ctype_none;
 #endif
       for (uint32_t i = 0; i < src->num_ranges; i++) {
         class_add_range(c, dst, src->ranges[2 * i], src->ranges[2 * i + 1]);
@@ -698,9 +750,10 @@ class_intersect(re_compiler *c, uint16_t dst_id, uint16_t src_id)
     }
 
 #ifdef RE_UNICODE_CTYPE
+    class_ctype_to_masks(dst);
+    class_ctype_to_masks(src);
     if ((dst->ctype_yes | dst->ctype_no) && (src->ctype_yes | src->ctype_no)) {
-      /* Both sides ask about the type, and the class has one question to put
-         about it rather than two to put together. */
+      /* Two disjunctions, where the class has room for one. */
       compile_error(c, "this character class intersection is not supported");
     }
 #endif
@@ -717,13 +770,27 @@ class_intersect(re_compiler *c, uint16_t dst_id, uint16_t src_id)
     const re_charclass *src = &c->pat->classes[src_id];
     ranges_intersect(c, out, dst->ranges, dst->num_ranges, src->ranges, src->num_ranges);
 #ifdef RE_UNICODE_CTYPE
-    if (src->ctype_yes | src->ctype_no) {
+    /* Each side's ranges are asked of the other's brackets before the two
+       questions become one, since what is written out here is what a bracket
+       held on its own and the conjunction holds neither list. */
+    if (RE_CLASS_HAS_CTYPE(src)) {
       ranges_filter_ctype(c, out, dst->ranges, dst->num_ranges, src);
     }
-    if (dst->ctype_yes | dst->ctype_no) {
+    if (RE_CLASS_HAS_CTYPE(dst)) {
       ranges_filter_ctype(c, out, src->ranges, src->num_ranges, dst);
     }
-    dst->ctype_yes = dst->ctype_no = 0;
+    if (RE_CLASS_HAS_CTYPE(dst) && RE_CLASS_HAS_CTYPE(src)) {
+      dst->ctype_yes |= src->ctype_yes;
+      dst->ctype_no |= src->ctype_no;
+      dst->ctype_all |= src->ctype_all;
+      dst->ctype_none |= src->ctype_none;
+    }
+    else {
+      /* One side saying nothing about the type leaves the class saying
+         nothing: a character the other held that way is here only where this
+         one had it too, and that is a range now. */
+      dst->ctype_yes = dst->ctype_no = dst->ctype_all = dst->ctype_none = 0;
+    }
 #endif
     mrb_free(c->mrb, dst->ranges);
     dst->ranges = out->ranges;
@@ -762,7 +829,10 @@ static const uint32_t class_spaces[2][2] = {
      and mrb_re_class_ctype_match() reads a byte as having none. One bit is
      the bound the swap holds at, since [[:alpha:][:digit:]] is a character
      that is a letter *or* a digit and its complement one that is neither,
-     which no single polarity spells.
+     which no single polarity spells. A mask the pair moved into negates the
+     same way, into the polarity it left, and the conjunction an intersection
+     wrote is a term apiece: two of them are two to negate, and their
+     complement is the OR this cannot write either.
    - With no type in the class the ranges stand alone, and their gaps are the
      complement.
 
@@ -779,21 +849,26 @@ class_complement(re_compiler *c, re_charclass *cc)
     cc->utf8_any = FALSE;
     cc->num_ranges = 0;
 #ifdef RE_UNICODE_CTYPE
-    cc->ctype_yes = cc->ctype_no = 0;
+    cc->ctype_yes = cc->ctype_no = cc->ctype_all = cc->ctype_none = 0;
 #endif
     return;
   }
 
 #ifdef RE_UNICODE_CTYPE
-  if (cc->ctype_yes | cc->ctype_no) {
+  if (RE_CLASS_HAS_CTYPE(cc)) {
     uint16_t type = cc->ctype_yes | cc->ctype_no;
-    if (cc->num_ranges != 0 || (cc->ctype_yes && cc->ctype_no) ||
-        (type & (type - 1)) != 0) {
+    /* What the class asks about the type has to come to one term for there to
+       be a single one to negate: the pair is one of them, and each bit of a
+       mask is another. */
+    int terms = (type != 0) + count_bits(cc->ctype_all) + count_bits(cc->ctype_none);
+    if (cc->num_ranges != 0 || terms != 1 ||
+        (cc->ctype_yes && cc->ctype_no) || (type & (type - 1)) != 0) {
       compile_error(c, "this negated nested character class is not supported");
     }
     uint16_t yes = cc->ctype_yes;
-    cc->ctype_yes = cc->ctype_no;
-    cc->ctype_no = yes;
+    cc->ctype_yes = cc->ctype_no | cc->ctype_none;
+    cc->ctype_no = yes | cc->ctype_all;
+    cc->ctype_all = cc->ctype_none = 0;
     return;
   }
 #endif
@@ -848,7 +923,7 @@ static mrb_bool
 class_is_ascii_only(const re_charclass *cc)
 {
 #ifdef RE_UNICODE_CTYPE
-  if (cc->ctype_yes || cc->ctype_no) return FALSE;
+  if (RE_CLASS_HAS_CTYPE(cc)) return FALSE;
 #endif
   return cc->num_ranges == 0 && !cc->utf8_any;
 }
@@ -1389,6 +1464,12 @@ parse_class_operand(re_compiler *c, uint16_t id, re_charclass *ascii_set, mrb_bo
            bracket is such a set. */
 #ifdef RE_UNICODE_CTYPE
         if (ctype) {
+          /* The bracket joins as a union, which is another type the class
+             admits, and a class already holding an intersection of brackets
+             has no room to say that. */
+          if (cc->ctype_all | cc->ctype_none) {
+            compile_error(c, "this character class union is not supported");
+          }
           if (neg) cc->ctype_no |= ctype;
           else cc->ctype_yes |= ctype;
         }
@@ -1678,7 +1759,7 @@ compile_charclass(re_compiler *c)
      ASCII of every bracket, and the closure has already reached across the
      boundary from there: U+017F is in the class once 's' is, so a type
      found only through an ASCII counterpart is found through the ranges. */
-  cc->ctype_fold = (c->flags & RE_FLAG_IGNORECASE) && (cc->ctype_yes || cc->ctype_no);
+  cc->ctype_fold = (c->flags & RE_FLAG_IGNORECASE) && RE_CLASS_HAS_CTYPE(cc) != 0;
 #endif
 
   cc->negated = negated;

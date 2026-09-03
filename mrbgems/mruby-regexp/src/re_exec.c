@@ -198,7 +198,7 @@ class_match(const re_charclass *cc, uint32_t cp, mrb_bool raw)
     if (cp >= cc->ranges[2*i] && cp <= cc->ranges[2*i + 1]) return TRUE;
   }
 #ifdef RE_UNICODE_CTYPE
-  if (cc->ctype_yes | cc->ctype_no) return mrb_re_class_ctype_match(cc, cp);
+  if (RE_CLASS_HAS_CTYPE(cc)) return mrb_re_class_ctype_match(cc, cp);
 #endif
   return cc->utf8_any;
 }

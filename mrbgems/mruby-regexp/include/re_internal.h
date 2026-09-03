@@ -208,13 +208,23 @@ typedef struct {
      every character. A byte that is no character has no type: it belongs
      under ctype_no and not under ctype_yes.
 
-     ctype_fold is set under /i when either is: the type read is then that of
-     the character and of every character sharing its folding, so that
-     [[:upper:]] under /i holds "ā" through "Ā". A member the class holds by
-     bit or by range is closed under folding at compile time instead; see
-     compile_charclass(). */
+     ctype_all and ctype_none are the same question in the other direction:
+     the character's type must have every bit of the one and no bit of the
+     other. `&&` is what asks for them, an intersection of brackets being a
+     conjunction where a union is the disjunction the pair above spells, and
+     a bracket on its own reaches them through the pair, [[:alpha:]] naming
+     one bit either way. A class holds a character through its brackets when
+     the pair admits it, if the class has one, and the two masks do.
+
+     ctype_fold is set under /i when the class has any of the four: the type
+     read is then that of the character and of every character sharing its
+     folding, so that [[:upper:]] under /i holds "ā" through "Ā". A member the
+     class holds by bit or by range is closed under folding at compile time
+     instead; see compile_charclass(). */
   uint16_t ctype_yes;
   uint16_t ctype_no;
+  uint16_t ctype_all;
+  uint16_t ctype_none;
   mrb_bool ctype_fold;
 #endif
 } re_charclass;
@@ -522,6 +532,10 @@ uint16_t mrb_re_ctype(uint32_t cp);
    class matcher calls this for a class holding any bracket, once the ranges
    have said nothing. */
 mrb_bool mrb_re_class_ctype_match(const re_charclass *cc, uint32_t cp);
+
+/* Whether the class says anything about a character's type at all. */
+#define RE_CLASS_HAS_CTYPE(cc) \
+  ((cc)->ctype_yes | (cc)->ctype_no | (cc)->ctype_all | (cc)->ctype_none)
 
 /* The longest run of [lo, hi] the brackets in a class answer alike, as its
    last codepoint, with *in the answer they give it. The table holds the types
