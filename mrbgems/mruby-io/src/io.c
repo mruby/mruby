@@ -17,23 +17,14 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+/* A descriptor and the bytes moved through it go through the HAL, so what a
+   platform is asked for here is the width of a size and of a mode, the open
+   flags it names, and the way it reports a child's exit. */
 #if defined(_WIN32)
-  #include <winsock.h>
-  #include <io.h>
-  #include <basetsd.h>
+  #include <winsock.h>    /* getsockopt(), to tell a socket from a descriptor */
   #include <stdlib.h>
-  #define open  _open
-  #define close _close
-  #define dup _dup
-  #define dup2 _dup2
-  #define read  _read
-  #define write _write
-  #define lseek _lseek
-  #define isatty _isatty
   #define WEXITSTATUS(x) (x)
   typedef int fsize_t;
-  typedef long ftime_t;
-  typedef long fsuseconds_t;
   typedef int fmode_t;
   typedef int fssize_t;
 
@@ -42,16 +33,9 @@
   #endif
 
 #else
-  #include <sys/wait.h>
-  #include <sys/time.h>
+  #include <sys/wait.h>   /* WEXITSTATUS() */
   #include <unistd.h>
   typedef size_t fsize_t;
-  typedef time_t ftime_t;
-#ifdef __DJGPP__
-  typedef long fsuseconds_t;
-#else
-  typedef suseconds_t fsuseconds_t;
-#endif
   typedef mode_t fmode_t;
   typedef ssize_t fssize_t;
 #endif
@@ -314,10 +298,6 @@ io_alloc(mrb_state *mrb)
   fptr->close_fd2 = 1;
   return fptr;
 }
-
-#ifndef NOFILE
-#define NOFILE 64
-#endif
 
 #ifndef MRB_HAL_IO_HAS_SPAWN_PROCESS
 /* this port runs no command: unimplemented, and named as such so

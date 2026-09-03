@@ -13,15 +13,29 @@
 #include "io_hal.h"
 
 #include <sys/types.h>
-#include <sys/stat.h>
-
-#include <fcntl.h>
 
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 
-/* Undefine system macros that conflict with mrb_io_stat field names */
+/* Every file operation goes through the HAL, so what a platform is asked for
+   here is the spelling of a path and the numbers File::Constants publishes. */
+#if defined(_WIN32)
+  #define NULL_FILE "NUL"
+  #define MAXPATHLEN 1024
+ #if !defined(PATH_MAX)
+  #define PATH_MAX _MAX_PATH
+ #endif
+#else
+  #define NULL_FILE "/dev/null"
+  #include <sys/file.h>   /* LOCK_* */
+  #include <sys/param.h>  /* MAXPATHLEN */
+#endif
+
+/* A host that names struct stat's time fields with macros (st_atime for
+   st_atim.tv_sec, as glibc does) would rewrite the same field names on
+   mrb_io_stat, whose own are plain members.  Undone after the last system
+   header, so that a header included above is free to define them. */
 #ifdef st_atime
 #undef st_atime
 #endif
@@ -32,39 +46,11 @@
 #undef st_ctime
 #endif
 
-#if defined(_WIN32)
-  #include <windows.h>
-  #include <io.h>
-  #define NULL_FILE "NUL"
-  #define UNLINK _unlink
-  #define GETCWD _getcwd
-  #define CHMOD(a, b) 0
-  #define MAXPATHLEN 1024
- #if !defined(PATH_MAX)
-  #define PATH_MAX _MAX_PATH
- #endif
-  #define realpath(N,R) _fullpath((R),(N),_MAX_PATH)
-  #include <direct.h>
-#else
-  #define NULL_FILE "/dev/null"
-  #include <unistd.h>
-  #define UNLINK unlink
-  #define GETCWD getcwd
-  #define CHMOD(a, b) chmod(a,b)
-  #include <sys/file.h>
-#ifndef __DJGPP__
-  #include <libgen.h>
-#endif
-  #include <sys/param.h>
-  #include <pwd.h>
-#endif
-
 #define FILE_SEPARATOR "/"
 
 #if defined(_WIN32)
   #define PATH_SEPARATOR ";"
   #define FILE_ALT_SEPARATOR "\\"
-  #define VOLUME_SEPARATOR ":"
   #define DIRSEP_P(ch) (((ch) == '/') | ((ch) == '\\'))
   #define VOLSEP_P(ch) ((ch) == ':')
   #define UNC_PATH_P(path) (DIRSEP_P((path)[0]) && DIRSEP_P((path)[1]))
@@ -87,17 +73,6 @@
 #endif
 #ifndef LOCK_UN
 #define LOCK_UN MRB_IO_LOCK_UN
-#endif
-
-#if !defined(_WIN32) || defined(MRB_MINGW32_LEGACY)
-# define mrb_stat(path, sb) stat(path, sb)
-# define mrb_fstat(fd, sb)  fstat(fd, sb)
-#elif defined MRB_INT32
-# define mrb_stat(path, sb) _stat32(path, sb)
-# define mrb_fstat(fd, sb)  _fstat32(fd, sb)
-#else
-# define mrb_stat(path, sb) _stat64(path, sb)
-# define mrb_fstat(fd, sb)  _fstat64(fd, sb)
 #endif
 
 /*
@@ -731,12 +706,6 @@ mrb_file_size(mrb_state *mrb, mrb_value self)
   return mrb_int_value(mrb, st.st_size);
 }
 
-static int
-mrb_ftruncate(mrb_state *mrb, int fd, mrb_int length)
-{
-  return mrb_hal_io_ftruncate(mrb, fd, length);
-}
-
 /*
  * call-seq:
  *   file.truncate(integer) -> 0
@@ -754,7 +723,7 @@ mrb_file_truncate(mrb_state *mrb, mrb_value self)
   mrb_value lenv = mrb_get_arg1(mrb);
   int fd = mrb_io_fileno(mrb, self);
   mrb_int length = mrb_as_int(mrb, lenv);
-  if (mrb_ftruncate(mrb, fd, length) != 0) {
+  if (mrb_hal_io_ftruncate(mrb, fd, length) != 0) {
     mrb_sys_fail(mrb, "ftruncate");
   }
 
