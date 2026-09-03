@@ -8,15 +8,8 @@
 ** part of the interface Win32 can answer honestly and fails, rather than
 ** guesses, at the rest:
 **
-**   - a wait cannot be answered at all.  Win32 identifies a process to wait
-**     on by handle, and a handle is obtained by opening a process ID, which
-**     succeeds for any process this one may open rather than only for its
-**     own children.  Waiting on it would report a stranger's exit code as a
-**     child's, so every wait fails instead: ECHILD for a specific process,
-**     since this port can name no child, and ENOSYS for MRB_PROCESS_WAIT_ANY,
-**     which has no handle standing for it.  A port learns of its children
-**     when it creates them, so this is answerable once spawn exists and not
-**     before.  No process is ever reported as stopped either;
+**   - a wait is not declared at all; include/process_hal_features.h says
+**     why.  No process is ever reported as stopped either;
 **   - a raw status is the child's exit code, which is what mruby-io's
 **     `IO.popen` already gives the `Process::Status` it builds on this
 **     platform, so a decoded status always reads as exited;
@@ -127,37 +120,6 @@ mrb_hal_process_ppid(mrb_state *mrb)
 
   if (ppid < 0) errno = ESRCH;
   return ppid;
-}
-
-/*
- * Waiting
- */
-
-int
-mrb_hal_process_waitpid(mrb_state *mrb, mrb_int pid, unsigned int flags,
-                        mrb_int *result_pid, mrb_int *raw_status)
-{
-  (void)mrb;
-  (void)flags;
-  (void)result_pid;
-  (void)raw_status;
-
-  /* A wait needs a handle, and there is no handle standing for "any child". */
-  if (pid <= 0) {
-    errno = ENOSYS;
-    return -1;
-  }
-
-  /* OpenProcess() opens any process this one is allowed to open, and asks
-     nothing about parentage, so a handle got that way is no evidence that
-     the process is a child.  Waiting on it would answer Process.waitpid with
-     an unrelated process's exit code and publish it as `$?`.  ECHILD is both
-     the honest answer and the same one a real child gets from a wait that
-     has already reaped it: this port knows of no children, because a port
-     learns of its children by creating them, and creating them is spawn's
-     to add. */
-  errno = ECHILD;
-  return -1;
 }
 
 /*

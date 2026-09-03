@@ -22,8 +22,8 @@ from, the second the `Struct` `Process::Tms` is one of.
 | Process.pid                       | o             | also `$$`                                |
 | Process.ppid                      | o             |                                          |
 | Process.kill                      | o             | no negative-signal form yet, see below   |
-| Process.wait, .wait2              | o             | `.waitpid2` too; not `.waitall`          |
-| Process.waitpid                   | o             | sets `$?`; POSIX only, see below         |
+| Process.wait, .wait2              | o             | if the port waits; not `.waitall`        |
+| Process.waitpid, .waitpid2        | o             | sets `$?`; if the port waits, see below  |
 | Process.clock_gettime             | o             | seven units; symbolic clock ids          |
 | Process.clock_getres              | o             | takes `:hertz` too                       |
 | Process.times                     | o             | needs a build with Float, see below      |
@@ -55,6 +55,27 @@ from, the second the `Struct` `Process::Tms` is one of.
 | Process.exit, .exit!              |               | see mruby-exit                           |
 | Process.uid, .gid, ...            |               | separate change                          |
 | Process.getpgrp, ...              |               | separate change                          |
+
+## What the port declares
+
+Whether a method exists is the port's to say, since the port is what a build
+names and a `hal-process-<conf>` gem may stand in for the bundled ones. Each
+port publishes a `process_hal_features.h` in its `include/`, which
+`include/process_hal.h` reads before it declares anything. One macro there
+guards the prototype, the port's implementation and the method definition, so
+a capability the port does not declare is marked not implemented, as mruby-dir
+and mruby-io mark theirs: `respond_to?` answers false for it and a call raises
+`NotImplementedError`. A port that declares a capability it does not implement
+fails to link.
+
+| macro                      | methods                                           | posix | win |
+| -------------------------- | ------------------------------------------------- | ----- | --- |
+| `MRB_HAL_PROCESS_HAS_WAIT` | `Process.wait`, `.waitpid`, `.wait2`, `.waitpid2` | o     |     |
+
+`Process::WNOHANG` and `Process::WUNTRACED` are the shape of the call and are
+defined whether or not the port waits. What a port has but cannot do for the
+arguments it was given, a signal Windows cannot deliver or a pid selector it
+does not read, fails at the call site through `errno` instead.
 
 ## Architecture
 
@@ -131,9 +152,10 @@ constrains; this list is a map.
   from `mruby-io` decodes through the same path (`src/status.c`).
 - `raw_status` is permanent, not a compatibility detail: it is what `#to_i`
   returns and the only thing a status needs to store.
-- Unsupported operations fail through `errno` (`ENOSYS`) rather than by the
-  method being absent, so a program is told at the call site what this
-  platform will not do.
+- A port says in its `process_hal_features.h` what it does not implement at
+  all, and the method is marked not implemented; an operation it has but
+  cannot do for these arguments fails through `errno` (`ENOSYS`), so a program
+  is told at the call site what this platform will not do.
 - `Process::Status.new` is undefined, as in CRuby; the allocator is left
   alone so `mrb_obj_new()` keeps working (`src/status.c`).
 - A `Process::Status` is frozen once built; a subclass instance is not
@@ -184,20 +206,23 @@ constrains; this list is a map.
   port sources detail the calls.
 - On Windows only `KILL` and `TERM` can be delivered (as
   `TerminateProcess()`), signal 0 asks whether the process can be opened, and
-  any other signal fails with `ENOSYS`. A wait status is the child's exit code
-  and nothing more, so a status always reads as exited, and `Process.waitpid`
-  fails for every process (`ENOSYS` for -1, `ECHILD` for a specific pid) until
-  `Process.spawn` exists to make children; `ports/win/process_hal.c` says why.
+  any other signal fails with `ENOSYS`. A raw status is the child's exit code
+  and nothing more, so a status always reads as exited. The port declares no
+  wait until `Process.spawn` exists to make children;
+  `ports/win/include/process_hal_features.h` says why.
 - On Windows `Process::Tms#cutime` and `#cstime` always read `0.0`: Win32
   reports no reaped child's CPU time, and CRuby's Windows build answers the
   same way.
 
 ## Adding a port
 
-Create `ports/<name>/` with sources implementing every function in
-`include/process_hal.h`, then build with `conf.ports :<name>, :posix` so gems
-without a `<name>` port fall back. Every `.c` under the directory is compiled;
-the bundled ports keep the clocks apart in `clock_hal.c` and the rest in
-`process_hal.c`, which is a convenience rather than a rule. A port that cannot do something should set
-`errno` to `ENOSYS` and return the documented failure value rather than
-pretending to succeed.
+Create `ports/<name>/` with an `include/process_hal_features.h` declaring what
+the port implements and sources implementing every function
+`include/process_hal.h` declares under it, then build with
+`conf.ports :<name>, :posix` so gems without a `<name>` port fall back. Every
+`.c` under the directory is compiled; the bundled ports keep the clocks apart
+in `clock_hal.c` and the rest in `process_hal.c`, which is a convenience rather
+than a rule. A port that cannot do something for the arguments it was given
+should set `errno` to `ENOSYS` and return the documented failure value rather
+than pretending to succeed; something it cannot do at all it leaves
+undeclared.
