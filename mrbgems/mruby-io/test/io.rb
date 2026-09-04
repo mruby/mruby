@@ -480,6 +480,26 @@ assert('IO#pos=, IO#seek') do
   io.close
 end
 
+assert('IO#seek from the current position') do
+  # $mrbtest_io_msg is "mruby io test\n", and reading a byte of it buffers
+  # the rest. A relative seek counts from the byte the caller is at, not from
+  # the end of what the buffer read ahead.
+  io = IO.open(IO.sysopen($mrbtest_io_rfname))
+  begin
+    assert_equal 'm', io.getc
+    assert_equal 1, io.pos
+    assert_equal 1, io.seek(0, IO::SEEK_CUR)
+    assert_equal 1, io.pos
+    assert_equal 'r', io.getc
+    assert_equal 5, io.seek(3, IO::SEEK_CUR)
+    assert_equal ' io test', io.read(8)
+    assert_equal 2, io.seek(-11, IO::SEEK_CUR)
+    assert_equal 'u', io.getc
+  ensure
+    io.close
+  end
+end
+
 assert('IO#rewind') do
   fd = IO.sysopen $mrbtest_io_rfname
   io = IO.new(fd)

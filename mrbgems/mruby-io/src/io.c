@@ -862,17 +862,9 @@ io_sysread(mrb_state *mrb, mrb_value io)
 }
 
 static mrb_value
-io_sysseek(mrb_state *mrb, mrb_value io)
+io_seek_to(mrb_state *mrb, struct mrb_io *fptr, mrb_int offset, mrb_int whence)
 {
-  mrb_int offset, whence = -1;
-
-  mrb_get_args(mrb, "i|i", &offset, &whence);
-  if (whence < 0) {
-    whence = 0;
-  }
-
-  struct mrb_io *fptr = io_get_open_fptr(mrb, io);
-  off_t pos = (off_t)mrb_hal_io_lseek(mrb, fptr->fd, (mrb_int)offset, (int)whence);
+  off_t pos = (off_t)mrb_hal_io_lseek(mrb, fptr->fd, offset, (int)whence);
   if (pos == -1) {
     mrb_sys_fail(mrb, "sysseek");
   }
@@ -883,11 +875,43 @@ io_sysseek(mrb_state *mrb, mrb_value io)
   return mrb_int_value(mrb, (mrb_int)pos);
 }
 
+static void
+io_seek_args(mrb_state *mrb, mrb_int *offset, mrb_int *whence)
+{
+  *whence = -1;
+  mrb_get_args(mrb, "i|i", offset, whence);
+  if (*whence < 0) {
+    *whence = MRB_IO_SEEK_SET;
+  }
+}
+
+static mrb_value
+io_sysseek(mrb_state *mrb, mrb_value io)
+{
+  mrb_int offset, whence;
+
+  io_seek_args(mrb, &offset, &whence);
+  return io_seek_to(mrb, io_get_open_fptr(mrb, io), offset, whence);
+}
+
 static mrb_value
 io_seek(mrb_state *mrb, mrb_value io)
 {
-  mrb_value pos = io_sysseek(mrb, io);
+  mrb_int offset, whence;
+
+  io_seek_args(mrb, &offset, &whence);
+
   struct mrb_io *fptr = io_get_open_fptr(mrb, io);
+  if (whence == MRB_IO_SEEK_CUR && fptr->buf && fptr->buf->len > 0) {
+    /* The descriptor sits at the end of what was read ahead, and the caller
+       sits at the front of it. A relative seek counts from where the caller
+       is, so what is still buffered is given back to the descriptor first. */
+    if (offset < MRB_INT_MIN + fptr->buf->len) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "seek offset too far back for mrb_int");
+    }
+    offset -= fptr->buf->len;
+  }
+  mrb_value pos = io_seek_to(mrb, fptr, offset, whence);
   if (fptr->buf) {
     fptr->buf->start = 0;
     fptr->buf->len = 0;
