@@ -1913,7 +1913,7 @@ io_buf_shift(struct mrb_io_buf *buf, mrb_int n)
    returned: bytes are put in front of the descriptor by #ungetc, and held back
    across a fill by #gets, and a stream is not at its end while they are
    there. */
-static void
+static int
 io_fill_buf_comp(mrb_state *mrb, struct mrb_io *fptr)
 {
   struct mrb_io_buf *buf = fptr->buf;
@@ -1923,7 +1923,7 @@ io_fill_buf_comp(mrb_state *mrb, struct mrb_io *fptr)
      room to read into. What is already there is what the stream hands out. */
   if (keep >= MRB_IO_BUF_SIZE) {
     fptr->eof = 0;
-    return;
+    return 0;
   }
   if (buf->start > 0) {
     memmove(buf->mem, buf->mem+buf->start, keep);
@@ -1933,6 +1933,7 @@ io_fill_buf_comp(mrb_state *mrb, struct mrb_io *fptr)
   if (n < 0) mrb_sys_fail(mrb, 0);
   buf->len = (short)(keep + n);
   fptr->eof = (buf->len == 0);
+  return n;
 }
 
 static void
@@ -2138,9 +2139,9 @@ io_gets(mrb_state *mrb, mrb_value io)
     outbuf = mrb_str_new(mrb, NULL, 0);
   }
 
+  mrb_int rslen = rs_given ? RSTRING_LEN(rs) : 0;
   for (;;) {
     if (rs_given) {                /* with RS */
-      mrb_int rslen = RSTRING_LEN(rs);
       mrb_int idx = io_find_index(fptr, RSTRING_PTR(rs), rslen);
       if (idx >= 0) {              /* found */
         mrb_int n = idx+rslen;
@@ -2151,16 +2152,31 @@ io_gets(mrb_state *mrb, mrb_value io)
         return outbuf;
       }
     }
-    if (limit_given) {
-      if (limit <= buf->len) {
+    /* A separator of more than one byte can lie across the seam between what
+       this fill read and what the next one will, and the scan above sees only
+       one side of it. Its first rslen-1 bytes stay behind so that the next
+       scan reads them beside what follows. Room to read into has to be left,
+       or the fill below has nowhere to put the other side. */
+    mrb_int keep = 0;
+    if (rslen > 1) {
+      keep = (rslen - 1 < buf->len) ? rslen - 1 : buf->len;
+      if (keep >= MRB_IO_BUF_SIZE) keep = MRB_IO_BUF_SIZE - 1;
+    }
+    mrb_int avail = buf->len - keep;
+    if (limit_given && limit <= avail) {
+      io_buf_cat(mrb, outbuf, buf, limit);
+      return outbuf;
+    }
+    if (limit_given) limit -= avail;
+    io_buf_cat(mrb, outbuf, buf, avail);
+    if (io_fill_buf_comp(mrb, fptr) == 0) {
+      /* The descriptor has no more to give, so whatever was held back for the
+         seam ends the last line rather than starting a separator. */
+      if (limit_given && limit < buf->len) {
         io_buf_cat(mrb, outbuf, buf, limit);
         return outbuf;
       }
-      limit -= buf->len;
-    }
-    io_buf_cat_all(mrb, outbuf, buf);
-    io_fill_buf(mrb, fptr);
-    if (fptr->eof) {
+      io_buf_cat_all(mrb, outbuf, buf);
       if (RSTRING_LEN(outbuf) == 0) return mrb_nil_value();
       return outbuf;
     }

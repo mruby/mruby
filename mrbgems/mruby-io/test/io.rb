@@ -559,6 +559,35 @@ assert('IO#gets - paragraph mode') do
   io.close
 end
 
+assert('IO#gets - separator across a buffer boundary') do
+  buf_size = 4096  # copied from io.c
+  dir = MRubyIOTestUtil.mkdtemp("mruby-io-test.XXXXXX")
+  path = "#{dir}/straddle"
+  begin
+    # Each separator starts on the last byte one fill can reach and ends in
+    # what the next one reads.
+    ["ab", "\n\n"].each do |sep|
+      head = "x" * (buf_size - 1)
+      File.open(path, "wb") { |f| f.write "#{head}#{sep}yy#{sep}" }
+      File.open(path, "rb") do |f|
+        assert_equal "#{head}#{sep}", f.gets(sep)
+        assert_equal "yy#{sep}", f.gets(sep)
+        assert_nil f.gets(sep)
+      end
+      # The tail of a separator left unmatched at the end of the file is
+      # still part of the last line.
+      File.open(path, "wb") { |f| f.write "#{head}#{sep[0]}" }
+      File.open(path, "rb") do |f|
+        assert_equal "#{head}#{sep[0]}", f.gets(sep)
+        assert_nil f.gets(sep)
+      end
+    end
+  ensure
+    File.delete(path) rescue nil
+    MRubyIOTestUtil.rmdir dir
+  end
+end
+
 assert('IO.popen') do
   begin
     $? = nil
