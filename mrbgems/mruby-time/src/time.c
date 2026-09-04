@@ -267,7 +267,7 @@ fixable_time_t_p(time_t v)
   if (MRB_INT_MIN <= MRB_TIME_MIN && MRB_TIME_MAX <= MRB_INT_MAX) return TRUE;
   if (v > (time_t)MRB_INT_MAX) return FALSE;
   if (MRB_TIME_T_UINT) return TRUE;
-  if (MRB_INT_MIN > (mrb_int)v) return FALSE;
+  if (v < (time_t)MRB_INT_MIN) return FALSE;
   return TRUE;
 }
 
