@@ -22,24 +22,30 @@ static mrc_sym_entry symTable[] = {
   {0, NULL} // sentinel
 };
 
-static uint32_t offset = 0;
+/* mrc_presym.inc numbers its literals from 1 in table order, which is what
+   lets the enum in mrc_presym.h index this array; slot 0 stays unused. */
+static mrc_sym presym_ids[sizeof(symTable) / sizeof(symTable[0])];
 
-mrc_sym mrc_sym_offset(mrc_sym sym)
+mrc_sym
+mrc_presym_id(mrc_sym sym)
 {
-  return sym + offset;
+  mrc_assert(0 < sym && sym < sizeof(presym_ids) / sizeof(presym_ids[0]));
+  return presym_ids[sym];
 }
 
 void
 mrc_init_presym(pm_constant_pool_t *pool)
 {
-  offset = pool->size;
+  /* The pool is not necessarily empty here: when the compile context carries
+     enclosing scopes (an eval or a binding), the parser has already interned
+     those scopes' local names, and a local can be named after a presym
+     literal; an anonymous rest parameter is stored under the name `*`. The
+     insert then hands back the id that name already has, so the presym ids
+     are not contiguous and have to be recorded one by one. */
   for (int i = 0; ; i++) {
     if (symTable[i].lit == NULL) { break; }
-#ifdef MRC_DEBUG
-    pm_constant_id_t id = pm_constant_pool_insert_constant(pool, (const uint8_t *)symTable[i].lit, strlen(symTable[i].lit));
-    mrc_assert(id == symTable[i].index + offset);
-#else
-    pm_constant_pool_insert_constant(pool, (const uint8_t *)symTable[i].lit, strlen(symTable[i].lit));
-#endif
+    mrc_assert(symTable[i].index == i + 1);
+    presym_ids[symTable[i].index] =
+      (mrc_sym)pm_constant_pool_insert_constant(pool, (const uint8_t *)symTable[i].lit, strlen(symTable[i].lit));
   }
 }

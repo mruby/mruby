@@ -250,3 +250,21 @@ assert('symbol GC keeps the names of live global variables') do
 
   assert_true global_variables.include?("$symbol_gc_eval_global".to_sym)
 end
+
+assert('eval in a scope whose locals are named after a presym literal') do
+  # An anonymous rest parameter is recorded under the local name `*`, which is
+  # also one of the compiler's presym literals. Parsing the eval interns the
+  # enclosing scope's local names into the constant pool first, so `*` is
+  # already there when the presym literals go in and they no longer land on
+  # consecutive pool ids. The compiler used to derive every presym id from one
+  # offset, which gave each presym past `*` the id of its neighbour, so
+  # `StandardError` resolved to `call` and `each` to `__case_eqq`.
+  q = 1
+  results = []
+  [11].each { |*|
+    results << eval("begin; raise 'x'; rescue => e; 'caught'; end")
+    results << eval("s = 0; for i in [1, 2, 3]; s += i; end; s")
+    results << eval("q")
+  }
+  assert_equal ['caught', 6, 1], results
+end
