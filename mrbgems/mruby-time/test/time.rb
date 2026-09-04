@@ -203,6 +203,20 @@ assert('Time#to_i', '15.2.19.7.25') do
   assert_operator(2, :eql?, Time.at(2).to_i)
 end
 
+assert('Time#to_i wider than mrb_int') do
+  skip unless Object.const_defined?(:Float)
+  # -20 * 2**32 has zero low 32 bits, so a time_t truncated to a 32-bit
+  # mrb_int reads back as 0
+  sec = -4294967296.0 * 20
+  t = begin
+    Time.at(sec)
+  rescue RangeError
+    skip "time_t is not wider than 32 bits"
+  end
+  assert_equal(-753, t.utc.year)
+  assert_equal(sec, t.to_i.to_f)
+end
+
 assert('Time#usec', '15.2.19.7.26') do
   assert_equal(0, Time.at(1300000000).usec)
   skip unless Object.const_defined?(:Float)
