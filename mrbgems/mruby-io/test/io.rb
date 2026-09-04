@@ -655,6 +655,28 @@ assert('IO.popen with err option') do
   end
 end
 
+assert('IO#write to a duplex stream after a buffered read') do
+  # The read caught more than the line it handed out, and what stayed behind
+  # says nothing about where the write end stands.
+  #
+  # The read below is the one the write has to survive, and it has to happen
+  # while the write end is still open. Windows stands in `findstr` for `cat`,
+  # and that holds its output until its input is closed, so there is nothing
+  # to read until the test is over.
+  skip "no command that writes a line back as it arrives" if MRubyIOTestUtil.win?
+  begin
+    io = IO.popen($cat, "r+")
+    io.write "a\nb\n"
+    assert_equal "a\n", io.gets
+    io.write "c\n"
+    io.close_write
+    assert_equal "b\nc\n", io.read
+    io.close
+  rescue NotImplementedError => e
+    skip e.message
+  end
+end
+
 assert('IO#close_write') do
   begin
     io = IO.popen($cat, "r+")

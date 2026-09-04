@@ -942,22 +942,28 @@ fd_write(mrb_state *mrb, int fd, mrb_value str)
 
 #define FD_WRITE_LIT(mrb, fd, s) fd_write_buf(mrb, fd, "" s "", sizeof(s) - 1)
 
-/* Helper function to prepare IO object for writing by adjusting buffer state */
+/* Writing to a stream that has read ahead of what the caller consumed puts
+   the descriptor's position back where the caller stands, so the write lands
+   where the reader left off. Only a stream whose two ends share one seekable
+   descriptor has such a position to give back. */
 static void
 io_prepare_write(mrb_state *mrb, struct mrb_io *fptr)
 {
-  if (fptr->buf && fptr->buf->len > 0) {
-    int fd = io_get_write_fd(fptr);
-    off_t n;
+  if (fptr->buf == NULL || fptr->buf->len == 0) return;
+  /* Reads come from `fd` and writes go to `fd2`, which carries a position of
+     its own that owes nothing to what was read. */
+  if (fptr->fd2 != -1) return;
 
-    /* get current position */
-    n = (off_t)mrb_hal_io_lseek(mrb, fd, 0, MRB_IO_SEEK_CUR);
-    if (n == -1) mrb_sys_fail(mrb, "lseek");
-    /* move cursor */
-    n = (off_t)mrb_hal_io_lseek(mrb, fd, (mrb_int)(n - fptr->buf->len), MRB_IO_SEEK_SET);
-    if (n == -1) mrb_sys_fail(mrb, "lseek(2)");
-    fptr->buf->start = fptr->buf->len = 0;
+  off_t n = (off_t)mrb_hal_io_lseek(mrb, fptr->fd, 0, MRB_IO_SEEK_CUR);
+  if (n == -1) {
+    /* A pipe or a socket has no position at all, so nothing was taken from it
+       that a seek could hand back. The read-ahead stays for the reader. */
+    if (errno == ESPIPE) return;
+    mrb_sys_fail(mrb, "lseek");
   }
+  n = (off_t)mrb_hal_io_lseek(mrb, fptr->fd, (mrb_int)(n - fptr->buf->len), MRB_IO_SEEK_SET);
+  if (n == -1) mrb_sys_fail(mrb, "lseek(2)");
+  fptr->buf->start = fptr->buf->len = 0;
 }
 
 static mrb_value
