@@ -28,7 +28,7 @@ MRB_BEGIN_DECL
 /*
  * The version of Ruby used by mruby.
  */
-#define MRUBY_RUBY_VERSION "4.0"
+#define MRUBY_RUBY_VERSION "4.1"
 
 /*
  * Ruby engine.
@@ -43,7 +43,7 @@ MRB_BEGIN_DECL
 /*
  * Minor release version number.
  */
-#define MRUBY_RELEASE_MINOR 0
+#define MRUBY_RELEASE_MINOR 1
 
 /*
  * Tiny release version number.
@@ -58,7 +58,7 @@ MRB_BEGIN_DECL
 /*
  * Patch level string. (optional)
  */
-#define MRUBY_PATCHLEVEL_STR ""
+#define MRUBY_PATCHLEVEL_STR "RC"
 
 #ifndef MRUBY_PATCHLEVEL_STR
 # if MRUBY_PATCHLEVEL < 0
@@ -86,12 +86,12 @@ MRB_BEGIN_DECL
 /*
  * Release month.
  */
-#define MRUBY_RELEASE_MONTH 4
+#define MRUBY_RELEASE_MONTH 9
 
 /*
  * Release day.
  */
-#define MRUBY_RELEASE_DAY 20
+#define MRUBY_RELEASE_DAY 4
 
 /*
  * Release date as a string.
