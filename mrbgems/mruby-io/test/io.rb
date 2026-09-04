@@ -101,6 +101,43 @@ assert('IO#eof?', '15.2.20.5.6') do
   io.close
 end
 
+assert('IO#eof? is answered again after the end') do
+  # Bytes put back after the end are there to be read, and so are bytes that
+  # reach a file after a reader has seen the end of it.
+  io = IO.open(IO.sysopen($mrbtest_io_rfname))
+  begin
+    io.read
+    assert_true io.eof?
+    io.ungetc("z")
+    assert_false io.eof?
+    assert_equal "z", io.getc
+    assert_true io.eof?
+  ensure
+    io.close
+  end
+
+  dir = MRubyIOTestUtil.mkdtemp("mruby-io-test.XXXXXX")
+  path = "#{dir}/growing"
+  begin
+    File.open(path, "w") { |f| f.write "one\n" }
+    io = File.open(path)
+    begin
+      assert_equal "one\n", io.gets
+      assert_nil io.gets
+      assert_true io.eof?
+      File.open(path, "a") { |f| f.write "two\n" }
+      assert_false io.eof?
+      assert_equal "two\n", io.gets
+      assert_nil io.gets
+    ensure
+      io.close
+    end
+  ensure
+    File.delete(path) rescue nil
+    MRubyIOTestUtil.rmdir dir
+  end
+end
+
 assert('IO#flush', '15.2.20.5.7') do
   # Note: mruby-io does not have any buffer to be flushed now.
   io = IO.new(IO.sysopen($mrbtest_io_wfname))
@@ -443,6 +480,26 @@ assert('IO#pos=, IO#seek') do
   io.close
 end
 
+assert('IO#seek from the current position') do
+  # $mrbtest_io_msg is "mruby io test\n", and reading a byte of it buffers
+  # the rest. A relative seek counts from the byte the caller is at, not from
+  # the end of what the buffer read ahead.
+  io = IO.open(IO.sysopen($mrbtest_io_rfname))
+  begin
+    assert_equal 'm', io.getc
+    assert_equal 1, io.pos
+    assert_equal 1, io.seek(0, IO::SEEK_CUR)
+    assert_equal 1, io.pos
+    assert_equal 'r', io.getc
+    assert_equal 5, io.seek(3, IO::SEEK_CUR)
+    assert_equal ' io test', io.read(8)
+    assert_equal 2, io.seek(-11, IO::SEEK_CUR)
+    assert_equal 'u', io.getc
+  ensure
+    io.close
+  end
+end
+
 assert('IO#rewind') do
   fd = IO.sysopen $mrbtest_io_rfname
   io = IO.new(fd)
@@ -522,6 +579,35 @@ assert('IO#gets - paragraph mode') do
   io.close
 end
 
+assert('IO#gets - separator across a buffer boundary') do
+  buf_size = 4096  # copied from io.c
+  dir = MRubyIOTestUtil.mkdtemp("mruby-io-test.XXXXXX")
+  path = "#{dir}/straddle"
+  begin
+    # Each separator starts on the last byte one fill can reach and ends in
+    # what the next one reads.
+    ["ab", "\n\n"].each do |sep|
+      head = "x" * (buf_size - 1)
+      File.open(path, "wb") { |f| f.write "#{head}#{sep}yy#{sep}" }
+      File.open(path, "rb") do |f|
+        assert_equal "#{head}#{sep}", f.gets(sep)
+        assert_equal "yy#{sep}", f.gets(sep)
+        assert_nil f.gets(sep)
+      end
+      # The tail of a separator left unmatched at the end of the file is
+      # still part of the last line.
+      File.open(path, "wb") { |f| f.write "#{head}#{sep[0]}" }
+      File.open(path, "rb") do |f|
+        assert_equal "#{head}#{sep[0]}", f.gets(sep)
+        assert_nil f.gets(sep)
+      end
+    end
+  ensure
+    File.delete(path) rescue nil
+    MRubyIOTestUtil.rmdir dir
+  end
+end
+
 assert('IO.popen') do
   begin
     $? = nil
@@ -584,6 +670,28 @@ assert('IO.popen with err option') do
       # in what it prints, so the Windows side carries a trailing space.
       assert_equal MRubyIOTestUtil.win? ? "hello \r\n" : "hello\n", r.read
     end
+  rescue NotImplementedError => e
+    skip e.message
+  end
+end
+
+assert('IO#write to a duplex stream after a buffered read') do
+  # The read caught more than the line it handed out, and what stayed behind
+  # says nothing about where the write end stands.
+  #
+  # The read below is the one the write has to survive, and it has to happen
+  # while the write end is still open. Windows stands in `findstr` for `cat`,
+  # and that holds its output until its input is closed, so there is nothing
+  # to read until the test is over.
+  skip "no command that writes a line back as it arrives" if MRubyIOTestUtil.win?
+  begin
+    io = IO.popen($cat, "r+")
+    io.write "a\nb\n"
+    assert_equal "a\n", io.gets
+    io.write "c\n"
+    io.close_write
+    assert_equal "b\nc\n", io.read
+    io.close
   rescue NotImplementedError => e
     skip e.message
   end

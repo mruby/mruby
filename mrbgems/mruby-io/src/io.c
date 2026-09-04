@@ -862,17 +862,9 @@ io_sysread(mrb_state *mrb, mrb_value io)
 }
 
 static mrb_value
-io_sysseek(mrb_state *mrb, mrb_value io)
+io_seek_to(mrb_state *mrb, struct mrb_io *fptr, mrb_int offset, mrb_int whence)
 {
-  mrb_int offset, whence = -1;
-
-  mrb_get_args(mrb, "i|i", &offset, &whence);
-  if (whence < 0) {
-    whence = 0;
-  }
-
-  struct mrb_io *fptr = io_get_open_fptr(mrb, io);
-  off_t pos = (off_t)mrb_hal_io_lseek(mrb, fptr->fd, (mrb_int)offset, (int)whence);
+  off_t pos = (off_t)mrb_hal_io_lseek(mrb, fptr->fd, offset, (int)whence);
   if (pos == -1) {
     mrb_sys_fail(mrb, "sysseek");
   }
@@ -883,11 +875,43 @@ io_sysseek(mrb_state *mrb, mrb_value io)
   return mrb_int_value(mrb, (mrb_int)pos);
 }
 
+static void
+io_seek_args(mrb_state *mrb, mrb_int *offset, mrb_int *whence)
+{
+  *whence = -1;
+  mrb_get_args(mrb, "i|i", offset, whence);
+  if (*whence < 0) {
+    *whence = MRB_IO_SEEK_SET;
+  }
+}
+
+static mrb_value
+io_sysseek(mrb_state *mrb, mrb_value io)
+{
+  mrb_int offset, whence;
+
+  io_seek_args(mrb, &offset, &whence);
+  return io_seek_to(mrb, io_get_open_fptr(mrb, io), offset, whence);
+}
+
 static mrb_value
 io_seek(mrb_state *mrb, mrb_value io)
 {
-  mrb_value pos = io_sysseek(mrb, io);
+  mrb_int offset, whence;
+
+  io_seek_args(mrb, &offset, &whence);
+
   struct mrb_io *fptr = io_get_open_fptr(mrb, io);
+  if (whence == MRB_IO_SEEK_CUR && fptr->buf && fptr->buf->len > 0) {
+    /* The descriptor sits at the end of what was read ahead, and the caller
+       sits at the front of it. A relative seek counts from where the caller
+       is, so what is still buffered is given back to the descriptor first. */
+    if (offset < MRB_INT_MIN + fptr->buf->len) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "seek offset too far back for mrb_int");
+    }
+    offset -= fptr->buf->len;
+  }
+  mrb_value pos = io_seek_to(mrb, fptr, offset, whence);
   if (fptr->buf) {
     fptr->buf->start = 0;
     fptr->buf->len = 0;
@@ -942,22 +966,28 @@ fd_write(mrb_state *mrb, int fd, mrb_value str)
 
 #define FD_WRITE_LIT(mrb, fd, s) fd_write_buf(mrb, fd, "" s "", sizeof(s) - 1)
 
-/* Helper function to prepare IO object for writing by adjusting buffer state */
+/* Writing to a stream that has read ahead of what the caller consumed puts
+   the descriptor's position back where the caller stands, so the write lands
+   where the reader left off. Only a stream whose two ends share one seekable
+   descriptor has such a position to give back. */
 static void
 io_prepare_write(mrb_state *mrb, struct mrb_io *fptr)
 {
-  if (fptr->buf && fptr->buf->len > 0) {
-    int fd = io_get_write_fd(fptr);
-    off_t n;
+  if (fptr->buf == NULL || fptr->buf->len == 0) return;
+  /* Reads come from `fd` and writes go to `fd2`, which carries a position of
+     its own that owes nothing to what was read. */
+  if (fptr->fd2 != -1) return;
 
-    /* get current position */
-    n = (off_t)mrb_hal_io_lseek(mrb, fd, 0, MRB_IO_SEEK_CUR);
-    if (n == -1) mrb_sys_fail(mrb, "lseek");
-    /* move cursor */
-    n = (off_t)mrb_hal_io_lseek(mrb, fd, (mrb_int)(n - fptr->buf->len), MRB_IO_SEEK_SET);
-    if (n == -1) mrb_sys_fail(mrb, "lseek(2)");
-    fptr->buf->start = fptr->buf->len = 0;
+  off_t n = (off_t)mrb_hal_io_lseek(mrb, fptr->fd, 0, MRB_IO_SEEK_CUR);
+  if (n == -1) {
+    /* A pipe or a socket has no position at all, so nothing was taken from it
+       that a seek could hand back. The read-ahead stays for the reader. */
+    if (errno == ESPIPE) return;
+    mrb_sys_fail(mrb, "lseek");
   }
+  n = (off_t)mrb_hal_io_lseek(mrb, fptr->fd, (mrb_int)(n - fptr->buf->len), MRB_IO_SEEK_SET);
+  if (n == -1) mrb_sys_fail(mrb, "lseek(2)");
+  fptr->buf->start = fptr->buf->len = 0;
 }
 
 static mrb_value
@@ -1908,34 +1938,44 @@ io_buf_shift(struct mrb_io_buf *buf, mrb_int n)
   buf->len -= (short)n;
 }
 
-#ifdef MRB_UTF8_STRING
-static void
+/* Read after what the buffer already holds, keeping those bytes. `eof` is
+   the answer to what the buffer can hand out and not to what the last read(2)
+   returned: bytes are put in front of the descriptor by #ungetc, and held back
+   across a fill by #gets, and a stream is not at its end while they are
+   there. */
+static int
 io_fill_buf_comp(mrb_state *mrb, struct mrb_io *fptr)
 {
   struct mrb_io_buf *buf = fptr->buf;
   int keep = buf->len;
 
-  memmove(buf->mem, buf->mem+buf->start, keep);
+  /* #ungetc can grow the buffer past MRB_IO_BUF_SIZE, and then there is no
+     room to read into. What is already there is what the stream hands out. */
+  if (keep >= MRB_IO_BUF_SIZE) {
+    fptr->eof = 0;
+    return 0;
+  }
+  if (buf->start > 0) {
+    memmove(buf->mem, buf->mem+buf->start, keep);
+    buf->start = 0;
+  }
   int n = mrb_hal_io_read(mrb, fptr->fd, buf->mem+keep, MRB_IO_BUF_SIZE-keep);
   if (n < 0) mrb_sys_fail(mrb, 0);
-  if (n == 0) fptr->eof = 1;
-  buf->start = 0;
-  buf->len += (short)n;
+  buf->len = (short)(keep + n);
+  fptr->eof = (buf->len == 0);
+  return n;
 }
-#endif
 
 static void
 io_fill_buf(mrb_state *mrb, struct mrb_io *fptr)
 {
-  struct mrb_io_buf *buf = fptr->buf;
-
-  if (buf->len > 0) return;
-
-  int n = mrb_hal_io_read(mrb, fptr->fd, buf->mem, MRB_IO_BUF_SIZE);
-  if (n < 0) mrb_sys_fail(mrb, 0);
-  if (n == 0) fptr->eof = 1;
-  buf->start = 0;
-  buf->len = (short)n;
+  /* Bytes to hand out already, so the descriptor is not asked again and the
+     stream is not at its end whatever an earlier read(2) reported. */
+  if (fptr->buf->len > 0) {
+    fptr->eof = 0;
+    return;
+  }
+  io_fill_buf_comp(mrb, fptr);
 }
 
 static mrb_value
@@ -1943,8 +1983,6 @@ io_eof(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr = io_get_read_fptr(mrb, io);
 
-  if (fptr->eof) return mrb_true_value();
-  if (fptr->buf->len > 0) return mrb_false_value();
   io_fill_buf(mrb, fptr);
   return mrb_bool_value(fptr->eof);
 }
@@ -2131,9 +2169,9 @@ io_gets(mrb_state *mrb, mrb_value io)
     outbuf = mrb_str_new(mrb, NULL, 0);
   }
 
+  mrb_int rslen = rs_given ? RSTRING_LEN(rs) : 0;
   for (;;) {
     if (rs_given) {                /* with RS */
-      mrb_int rslen = RSTRING_LEN(rs);
       mrb_int idx = io_find_index(fptr, RSTRING_PTR(rs), rslen);
       if (idx >= 0) {              /* found */
         mrb_int n = idx+rslen;
@@ -2144,16 +2182,31 @@ io_gets(mrb_state *mrb, mrb_value io)
         return outbuf;
       }
     }
-    if (limit_given) {
-      if (limit <= buf->len) {
+    /* A separator of more than one byte can lie across the seam between what
+       this fill read and what the next one will, and the scan above sees only
+       one side of it. Its first rslen-1 bytes stay behind so that the next
+       scan reads them beside what follows. Room to read into has to be left,
+       or the fill below has nowhere to put the other side. */
+    mrb_int keep = 0;
+    if (rslen > 1) {
+      keep = (rslen - 1 < buf->len) ? rslen - 1 : buf->len;
+      if (keep >= MRB_IO_BUF_SIZE) keep = MRB_IO_BUF_SIZE - 1;
+    }
+    mrb_int avail = buf->len - keep;
+    if (limit_given && limit <= avail) {
+      io_buf_cat(mrb, outbuf, buf, limit);
+      return outbuf;
+    }
+    if (limit_given) limit -= avail;
+    io_buf_cat(mrb, outbuf, buf, avail);
+    if (io_fill_buf_comp(mrb, fptr) == 0) {
+      /* The descriptor has no more to give, so whatever was held back for the
+         seam ends the last line rather than starting a separator. */
+      if (limit_given && limit < buf->len) {
         io_buf_cat(mrb, outbuf, buf, limit);
         return outbuf;
       }
-      limit -= buf->len;
-    }
-    io_buf_cat_all(mrb, outbuf, buf);
-    io_fill_buf(mrb, fptr);
-    if (fptr->eof) {
+      io_buf_cat_all(mrb, outbuf, buf);
       if (RSTRING_LEN(outbuf) == 0) return mrb_nil_value();
       return outbuf;
     }
