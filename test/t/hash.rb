@@ -253,6 +253,13 @@ end
       assert_predicate(h_k, :frozen?)
       assert_not_predicate(k, :frozen?)
 
+      # a store to a key the hash already has keeps the key it holds
+      size = h.size
+      h.__send__(meth, k, 2)
+      assert_equal(size, h.size)
+      assert_same(h_k, h.keys[-1])
+      assert_equal(2, h[k])
+
       # frozen string key
       k = "_immutable".freeze
       h.__send__(meth, k, 2)

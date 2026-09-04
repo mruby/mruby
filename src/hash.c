@@ -273,6 +273,7 @@ static void ht_init(
   mrb_state *mrb, struct RHash *h, uint32_t size,
   hash_entry *ea, uint32_t ea_capa, hash_table *ht, uint32_t ib_bit);
 static void ht_set(mrb_state *mrb, struct RHash *h, mrb_value key, mrb_value val);
+static mrb_value h_key_for(mrb_state *mrb, struct RHash *h, mrb_value key);
 
 static uint32_t
 next_power2(uint32_t v)
@@ -619,6 +620,7 @@ ar_set(mrb_state *mrb, struct RHash *h, mrb_value key, mrb_value val)
   }
   else {
     uint32_t ea_capa = ar_ea_capa(h), ea_n_used = ar_ea_n_used(h);
+    key = h_key_for(mrb, h, key);
     if (ea_capa == ea_n_used) {
       if (size == ea_n_used) {
         if (size == AR_MAX_SIZE) {
@@ -996,6 +998,7 @@ ht_set(mrb_state *mrb, struct RHash *h, mrb_value key, mrb_value val)
         mrb_assert(ht_size(h) == ea_n_used);
         mrb_raise(mrb, E_ARGUMENT_ERROR, "hash too big");
       }
+      key = h_key_for(mrb, h, key);
       if (ea_n_used == ht_ea_capa(h)) ht_adjust_ea(mrb, h, ea_n_used, EA_MAX_CAPA);
       ib_it_set(it, ea_n_used);
       ea_set(ht_ea(h), ea_n_used, key, val);
@@ -1075,12 +1078,22 @@ ht_rehash(mrb_state *mrb, struct RHash *h)
   size <= AR_MAX_SIZE ? ht_to_ar(mrb, h) : ht_adjust_ea(mrb, h, size, ea_capa);
 }
 
+/*
+ * The key an entry is given: an unfrozen `String` is stored as a frozen copy,
+ * so that changing the caller's string cannot move an entry away from the
+ * place its hash code put it.
+ *
+ * This is asked for where an entry is inserted, not where a key is looked up
+ * or an entry overwritten. A store to a key the table already has keeps the
+ * key it already holds and copies nothing.
+ */
 static mrb_value
-h_key_for(mrb_state *mrb, mrb_value key)
+h_key_for(mrb_state *mrb, struct RHash *h, mrb_value key)
 {
   if (mrb_string_p(key) && !mrb_frozen_p(mrb_str_ptr(key))) {
     key = mrb_str_dup(mrb, key);
     mrb_str_ptr(key)->frozen = 1;
+    mrb_field_write_barrier_value(mrb, (struct RBasic*)h, key);
   }
   return key;
 }
@@ -1454,8 +1467,9 @@ mrb_hash_fetch(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value def)
  * its value is updated. If `key` does not exist, a new entry is created.
  * The hash is modified in place.
  *
- * If the `key` is a `MRB_TT_STRING` and not frozen, it will be duplicated
- * and the duplicate will be frozen before use.
+ * If a new entry is created and the `key` is a `MRB_TT_STRING` and not frozen,
+ * it will be duplicated and the duplicate will be frozen before use. Updating
+ * an entry that is already there keeps the key it holds and duplicates nothing.
  * Write barriers are triggered for garbage collection purposes for the key and value.
  *
  * @param mrb The mruby state.
@@ -1467,7 +1481,6 @@ MRB_API void
 mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val)
 {
   hash_modify(mrb, hash);
-  key = h_key_for(mrb, key);
   h_set(mrb, mrb_hash_ptr(hash), key, val);
   mrb_field_write_barrier_value(mrb, mrb_basic_ptr(hash), key);
   mrb_field_write_barrier_value(mrb, mrb_basic_ptr(hash), val);
