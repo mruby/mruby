@@ -124,6 +124,8 @@ MRB_API void mrb_tick(mrb_state *mrb);
 /* Take a VM out of the scheduler for good; see task.c for what it saves.
  * After mrb_open(), before anything runs. Raises if tasks already exist. */
 MRB_API void mrb_disable_task_scheduler(mrb_state *mrb);
+
+/* TRUE while this VM still runs tasks. A VM starts enabled. */
 MRB_API mrb_bool mrb_task_scheduler_enabled_p(mrb_state *mrb);
 MRB_API mrb_value mrb_task_run(mrb_state *mrb);
 MRB_API mrb_value mrb_task_run_once(mrb_state *mrb);
