@@ -334,7 +334,7 @@ Example:
 
 ### `String#swapcase`
 
-Returns a copy of `str` with uppercase alphabetic characters converted to lowercase and lowercase characters converted to uppercase. Effective only in ASCII region.
+Returns a copy of `str` with uppercase alphabetic characters converted to lowercase and lowercase characters converted to uppercase. On a build defining `MRB_UTF8_STRING` every character Unicode gives a case is swapped, and a swap may spell a character as several (`"ß".swapcase` is `"SS"`); otherwise, and for a string read as bytes, only the ASCII region is affected.
 
 ```ruby
 str.swapcase   #=> new_str
@@ -661,7 +661,7 @@ Example:
 
 ### `String#succ` (alias `String#next`)
 
-Returns the successor to `str`. Increments the rightmost alphanumeric characters.
+Returns the successor to `str`. Increments the rightmost alphanumeric character, carrying into the alphanumeric before it when it wraps. The carry crosses characters that are not alphanumeric, but not from a letter into a digit or from a digit into a letter; a new character goes in instead. A string with no alphanumeric increments its last character instead: a byte in a binary string (or in a build without `MRB_UTF8_STRING`), a code point in a UTF-8 string.
 
 ```ruby
 str.succ    #=> new_str
@@ -670,13 +670,29 @@ str.succ    #=> new_str
 Example:
 
 ```ruby
-"a".succ     #=> "b"
-"z".succ     #=> "aa"
-"9".succ     #=> "10"
-"a9".succ    #=> "b0"
-"Az".succ    #=> "Ba"
-"zz".succ    #=> "aaa"
+"a".succ         #=> "b"
+"z".succ         #=> "aa"
+"9".succ         #=> "10"
+"a9".succ        #=> "b0"
+"Az".succ        #=> "Ba"
+"zz".succ        #=> "aaa"
+"1.9".succ       #=> "2.0"
+"1-z".succ       #=> "1-aa"
+"a-9".succ       #=> "a-10"
+"-".succ         #=> "."
+"\xff".b.succ    #=> "\x01\x00"
 ```
+
+Which characters above ASCII are letters and which are digits is the Unicode character database's answer, the same properties `[[:alpha:]]` and `[[:digit:]]` hold. A letter increments within its own run of letters and wraps at the end of it, and what the wrap carries in is a character of that run rather than an ASCII letter:
+
+```ruby
+"ÿ".succ     #=> "Ā"
+"ת".succ    #=> "אא"
+"aｚ".succ    #=> "bａ"
+"٩".succ     #=> "١٠"
+```
+
+A build that reads its strings as bytes, and one narrowed by `MRB_USE_ASCII_CTYPE`, carries no such table: nothing above ASCII is a letter or a digit there, so `"aÿ".succ` is `"bÿ"` and a string with no ASCII alphanumeric increments its last character. That is the trade `MRB_USE_ASCII_CTYPE` already makes for case.
 
 ### `String#succ!` (alias `String#next!`)
 
@@ -779,7 +795,7 @@ b.delete_suffix!("hel") #=> nil
 
 ### `String#casecmp`
 
-Case-insensitive version of `String#<=>`. Returns -1, 0, or +1. Returns `nil` if `other_str` is not a String.
+Case-insensitive version of `String#<=>`. Returns -1, 0, or +1. Returns `nil` if `other_str` is not a String. Only ASCII case is ignored, whatever the build reads a string as; `casecmp?` is the one that folds Unicode.
 
 ```ruby
 str.casecmp(other_str)   #=> -1, 0, +1 or nil
@@ -807,6 +823,23 @@ Example:
 ```ruby
 "aBcDeF".casecmp?("abcdef")    #=> true
 "aBcDeF".casecmp?("abcdeg")    #=> false
+```
+
+On a build defining `MRB_UTF8_STRING`, folding follows Unicode, and one folding may spell a character as several:
+
+```ruby
+"ä".casecmp?("Ä")     #=> true
+"ß".casecmp?("ss")    #=> true
+```
+
+There, a string holding bytes that spell no character is refused with `ArgumentError`, since bytes that spell nothing have no folding. One read as bytes folds ASCII alone, having no characters to fold.
+
+`MRB_USE_ASCII_CTYPE` narrows the folding of such a build back to ASCII, and the refusal goes with it, since what folds no longer reads characters:
+
+```ruby
+"ä".casecmp?("Ä")         #=> false
+"ß".casecmp?("ss")        #=> false
+"\xff".casecmp?("\xff")   #=> true
 ```
 
 ### `String#+@` (Unary Plus)

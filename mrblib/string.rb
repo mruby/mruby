@@ -15,10 +15,10 @@ class String
     return to_enum(:each_line, separator) unless block
 
     if separator.nil?
-      block.call(self)
+      yield(self)
       return self
     end
-    raise TypeError unless separator.is_a?(String)
+    raise TypeError unless String === separator
 
     paragraph_mode = false
     if separator.empty?
@@ -33,12 +33,12 @@ class String
     while (pointer = string.byteindex(separator, start))
       pointer += sep_len
       pointer += 1 while paragraph_mode && string.getbyte(pointer) == 10 # 10 == \n
-      block.call(string.byteslice(start, pointer - start))
+      yield(string.byteslice(start, pointer - start))
       start = pointer
     end
     return self if start == self_len
 
-    block.call(string.byteslice(start, self_len - start))
+    yield(string.byteslice(start, self_len - start))
     self
   end
 
@@ -64,7 +64,7 @@ class String
       result << self.byteslice(offset, found - offset)
       offset = found + plen
       result << if block
-        block.call(pattern).to_s
+        yield(pattern).to_s
       else
         self.__sub_replace(replace, pattern, found)
       end
@@ -124,7 +124,7 @@ class String
     result << self.byteslice(0, found)
     offset = found + pattern.length
     result << if block
-      block.call(pattern).to_s
+      yield(pattern).to_s
     else
       self.__sub_replace(replace, pattern, found)
     end
@@ -152,7 +152,7 @@ class String
     return to_enum(:each_byte, &block) unless block
     pos = 0
     while pos < bytesize
-      block.call(getbyte(pos))
+      yield(getbyte(pos))
       pos += 1
     end
     self

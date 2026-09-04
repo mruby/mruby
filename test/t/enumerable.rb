@@ -132,3 +132,34 @@ end
 assert('Enumerable#to_a', '15.3.2.2.20') do
   assert_equal [1], [1].to_a
 end
+
+assert('Enumerable#max, #min - a comparison with no answer') do
+  # `<=>` answers nil where the two stand in no order, and the loop would
+  # otherwise ask that nil whether it is positive. A NaN is the numeric case;
+  # a block answering nil is the other way to reach it.
+  assert_raise(ArgumentError) { [1, 2].max { |a, b| nil } }
+  assert_raise(ArgumentError) { [1, 2].min { |a, b| nil } }
+
+  if Object.const_defined?(:Float)
+    nan = Float::NAN
+    assert_raise(ArgumentError) { [1.0, nan, 2.0].max }
+    assert_raise(ArgumentError) { [1.0, nan, 2.0].min }
+    assert_raise(ArgumentError) { [1, nan].max }
+  end
+
+  # A pair of different kinds stands in no order either.
+  assert_raise(ArgumentError) { [1, 'a'].max }
+  assert_raise(ArgumentError) { [1, 'a'].min }
+
+  # An ordering that holds is left alone.
+  assert_equal 3, [3, 1, 2].max
+  assert_equal 1, [3, 1, 2].min
+  assert_equal 3, [3, 1, 2].max { |a, b| a <=> b }
+  assert_equal 1, [3, 1, 2].min { |a, b| a <=> b }
+
+  # The first element is never compared, and an empty collection has none.
+  assert_equal 'a', ['a'].max
+  assert_equal 'a', ['a'].min
+  assert_nil [].max
+  assert_nil [].min
+end

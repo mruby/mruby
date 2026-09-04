@@ -262,10 +262,10 @@ replace_ext(mrb_state *mrb, const char *filename, const char *ext)
     len = strlen(filename);
   }
 
-  s = (char*)mrb_malloc(mrb, len + strlen(ext) + 1);
-  memset(s, '\0', len + strlen(ext) + 1);
-  strncpy(s, filename, len);
-  strcat(s, ext);
+  size_t ext_len = strlen(ext);
+  s = (char*)mrb_malloc(mrb, len + ext_len + 1);
+  memcpy(s, filename, len);
+  memcpy(s + len, ext, ext_len + 1);
 
   return s;
 }

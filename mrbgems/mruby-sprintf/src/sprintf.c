@@ -50,7 +50,7 @@ mrb_uint_to_cstr(char *buf, size_t len, mrb_int num, int base)
   char *b = buf + len - 1;
   const int mask = base-1;
   int shift;
-  mrb_uint val = (uint64_t)num;
+  mrb_uint val = (mrb_uint)num;
 
   if (num == 0) {
     buf[0] = '0'; buf[1] = '\0';
@@ -345,6 +345,23 @@ get_hash(mrb_state *mrb, mrb_value *hash, mrb_int argc, const mrb_value *argv)
   *hash = tmp;
 }
 
+/* Bytes that were read as bytes and go above ASCII spell no character in the
+   string they are written into, so they hand it the byte reading along with
+   themselves, the same as an append through mrb_str_cat_str(). ASCII bytes
+   read the same under any reading and move nothing. */
+static void
+mark_written_bytes(mrb_value result, mrb_value src)
+{
+  struct RString *r = mrb_str_ptr(result);
+  struct RString *s = mrb_str_ptr(src);
+
+  if (RSTR_BINARY_P(r) || !RSTR_BINARY_P(s)) return;
+  const char *p = RSTR_PTR(s);
+  const char *e = p + RSTR_LEN(s);
+  while (p < e && !(*p & 0x80)) p++;
+  if (p < e) RSTR_ENCODING_SET(r, MRB_STR_ENCODING_BINARY);
+}
+
 static mrb_value
 mrb_str_format(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value fmt)
 {
@@ -386,7 +403,7 @@ mrb_str_format(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value fm
      buffer, so this is O(1); String#replace on the original goes
      through str_replace which decrements the shared refcount, leaving
      our copy's buffer intact. */
-  fmt = mrb_str_dup(mrb, fmt);
+  fmt = mrb_str_dup_frozen(mrb, fmt);
   p = RSTRING_PTR(fmt);
   end = p + RSTRING_LEN(fmt);
   blen = 0;
@@ -402,6 +419,11 @@ mrb_str_format(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value fm
   }
   if (bsiz > 4096) bsiz = 4096;
   result = mrb_str_new_capa(mrb, bsiz);
+  /* The bytes between the specifiers are the format string's own, so what is
+     built out of them is read the way the format string was read, ASCII bytes
+     and all: the reading a receiver holds, which nothing written into it
+     lifts. */
+  RSTR_ENC_COPY(mrb_str_ptr(result), mrb_str_ptr(fmt));
   buf = RSTRING_PTR(result);
   memset(buf, 0, bsiz);
 
@@ -536,8 +558,13 @@ retry:
             /* Integer: encode directly to stack buffer (no allocation) */
             mrb_int code = mrb_integer(val);
 #ifdef MRB_UTF8_STRING
-            clen = (int)mrb_utf8_to_buf(cbuf, (uint32_t)code);
-            if (clen == 0) clen = 1;  /* invalid codepoint: write single byte */
+            /* A value that spells no character writes no byte, and is what
+               CRuby reports here as an invalid character rather than as a
+               range error. */
+            clen = (int)mrb_utf8_to_buf(cbuf, code);
+            if (clen == 0) {
+              mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid character");
+            }
 #else
             cbuf[0] = (char)(code & 0xff);
             clen = 1;
@@ -553,6 +580,7 @@ retry:
             if (RSTRING_LEN(tmp) != 1) {
               mrb_raise(mrb, E_ARGUMENT_ERROR, "%c requires a character");
             }
+            mark_written_bytes(result, tmp);
             c = RSTRING_PTR(tmp);
             clen = (int)RSTRING_LEN(tmp);
           }
@@ -584,17 +612,15 @@ retry:
           /* Convert to string (with inspect for %p) */
           if (spec.subtype == 1) arg = mrb_inspect(mrb, arg); /* 'p' format */
           str = mrb_obj_as_string(mrb, arg);
+          /* What the argument is read as is a property of the argument, so
+             precision cutting the byte above ASCII off the written part moves
+             nothing. This is where CRuby lands on every pair it accepts. */
+          mark_written_bytes(result, str);
           len = RSTRING_LEN(str);
 
-          /* Update result string length for embedded strings */
-          if (RSTRING(result)->flags & MRB_STR_EMBED) {
-            mrb_int tmp_n = len;
-            RSTRING(result)->flags &= ~MRB_STR_EMBED_LEN_MASK;
-            RSTRING(result)->flags |= tmp_n << MRB_STR_EMBED_LEN_SHIFT;
-          }
-          else {
-            RSTRING(result)->as.heap.len = blen;
-          }
+          /* Keep the result's length at what has been written into it, which
+             CHECK() leaves at the size of the whole buffer. */
+          RSTR_SET_LEN(mrb_str_ptr(result), blen);
 
           /* Handle precision and width formatting */
           if (flags&(FPREC|FWIDTH)) {
@@ -881,7 +907,12 @@ retry:
           if (i > 0)
             need = BIT_DIGITS(i);
         }
-        if (need > MRB_INT_MAX - ((flags&FPREC) ? prec : 6)) {
+        /* The float formatter works in `int` (buffer offsets and the return
+           value), so the buffer must fit in an int. Bound against INT_MAX, not
+           MRB_INT_MAX: on a 64-bit mrb_int the latter never trips, letting a
+           prec/width near INT_MAX (e.g. "%.2147483647e") allocate ~2GB and then
+           overflow the int length into a negative memmove size (segfault). */
+        if (need > INT_MAX - ((flags&FPREC) ? prec : 6)) {
         too_big_width_prec:
           mrb_raise(mrb, E_ARGUMENT_ERROR,
                     (width > prec ? "width too big" : "prec too big"));
@@ -889,7 +920,7 @@ retry:
         need += (flags&FPREC) ? prec : 6;
         if ((flags&FWIDTH) && need < width)
           need = width;
-        if ((mrb_int)need > MRB_INT_MAX - 20) {
+        if ((mrb_int)need > INT_MAX - 20) {
           goto too_big_width_prec;
         }
         need += 20;

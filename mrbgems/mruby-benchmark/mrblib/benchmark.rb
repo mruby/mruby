@@ -70,7 +70,6 @@ module Benchmark
 
   # Measure execution time of a block
   def self.measure(memory: false)
-    start_time = Time.now
     start_objects = nil
     start_count = nil
 
@@ -81,10 +80,11 @@ module Benchmark
       end
     end
 
+    t0 = Process.times
+    r0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     yield
-
-    end_time = Time.now
-    real = end_time - start_time
+    t1 = Process.times
+    r1 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
     objects_allocated = nil
     memory_allocated = nil
@@ -99,17 +99,16 @@ module Benchmark
       memory_allocated = objects_allocated * 40
     end
 
-    # mruby typically doesn't have per-process CPU time
-    # Set user/system times to 0
-    Tms.new(0.0, 0.0, 0.0, 0.0, real, nil, objects_allocated, memory_allocated)
+    Tms.new(t1.utime - t0.utime, t1.stime - t0.stime,
+            t1.cutime - t0.cutime, t1.cstime - t0.cstime,
+            r1 - r0, nil, objects_allocated, memory_allocated)
   end
 
   # Return only real time as a float
   def self.realtime
-    start_time = Time.now
+    r0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     yield
-    end_time = Time.now
-    end_time - start_time
+    Process.clock_gettime(Process::CLOCK_MONOTONIC) - r0
   end
 
   # Formatted benchmark with labeled reports

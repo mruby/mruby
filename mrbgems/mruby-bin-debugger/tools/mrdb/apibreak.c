@@ -239,6 +239,7 @@ mrb_debug_set_break_method(mrb_state *mrb, mrb_debug_context *dbg, const char *c
   set_method = mrdb_strdup(mrb, method_name);
   if (set_method == NULL) {
     mrb_free(mrb, set_class);
+    return MRB_DEBUG_NOBUF;
   }
 
   index = alloc_breakpoint(dbg, MRB_DEBUG_BPTYPE_METHOD);

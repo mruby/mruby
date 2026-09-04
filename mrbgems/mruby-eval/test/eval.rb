@@ -54,6 +54,50 @@ assert 'eval syntax error' do
   end
 end
 
+assert 'eval deeply nested input does not crash the parser' do
+  # The recursive-descent parser must hit its nesting cap and report an error
+  # rather than overflowing the C stack on pathologically nested source.
+  assert_raise(SyntaxError) do
+    eval('(' * 1000 + '1' + ')' * 1000)
+  end
+  assert_raise(SyntaxError) do
+    eval('[' * 1000)
+  end
+end
+
+assert 'eval an operator assignment whose write name is only the `=`' do
+  # A call written this way leaves the parser with a write name of exactly
+  # "=", so the read name it copies out of it is zero bytes long.  mruby's
+  # allocator answers a request for zero bytes with NULL where malloc answers
+  # with a pointer, and the parser hands what it gets straight to memcpy() and
+  # then keeps it in the constant pool for memcmp() to read.  Both are
+  # undefined with a null pointer even at a length of zero.  Only a sanitizer
+  # build says so, so what is asserted here is the parse; the value of the
+  # test is that a sanitizer build parses this at all.  Twice in one parse,
+  # since the pool only compares the second against what the first left.
+  assert_raise(SyntaxError) { eval('[.m M:+=') }
+  assert_raise(SyntaxError) { eval("[.m M:+=\n[.m N:+=\n") }
+end
+
+assert 'eval a string literal at the width of the pool length' do
+  # The dump records a pool string's length in 16 bits, so 65535 bytes is the
+  # longest one that survives the round trip into an mrb_irep.
+  assert_equal 65535, eval('"' + 'x' * 65535 + '"').size
+  assert_raise(SyntaxError) do
+    eval('"' + 'x' * 65536 + '"')
+  end
+end
+
+assert 'eval a symbol name at the width of the symbol length' do
+  # The dump records a symbol name's length in 16 bits too, and 0xffff of them
+  # is the length it writes for a null symbol, so 65534 bytes is the longest
+  # name that comes back as itself.
+  assert_equal 65534, eval(':"' + 'x' * 65534 + '"').to_s.size
+  assert_raise(SyntaxError) do
+    eval(':"' + 'x' * 65535 + '"')
+  end
+end
+
 assert('String instance_eval') do
   obj = Object.new
   obj.instance_eval{ @test = 'test' }
@@ -182,4 +226,27 @@ assert 'method visibility with eval' do
   assert_equal "GOOD!" do
     c.new.good!
   end
+end
+
+assert('alias and undef reject a dynamic symbol') do
+  # OP_ALIAS and OP_UNDEF carry a symbol index, so an interpolated name cannot
+  # be expressed. The codegen used to read the InterpolatedSymbolNode as if it
+  # were a SymbolNode, which ran off the end of the node
+  # (clusterfuzz 6308929387429888, `alias p:"#{}"`).
+  assert_raise(SyntaxError) { eval 'alias p :"#{}"' }
+  assert_raise(SyntaxError) { eval 'alias :"#{1}" p' }
+  assert_raise(SyntaxError) { eval 'undef :"#{}"' }
+end
+
+assert('symbol GC keeps the names of live global variables') do
+  # The global outlives the code that set it: once that code is collected its
+  # name is reachable from the global variable table alone, which is a root
+  # the sweep has to walk in its own right.
+  eval("$symbol_gc_eval_global = 99")
+  GC.start
+
+  6000.times { |i| "gc-filler-global-name-#{i}".to_sym }
+  GC.start
+
+  assert_true global_variables.include?("$symbol_gc_eval_global".to_sym)
 end

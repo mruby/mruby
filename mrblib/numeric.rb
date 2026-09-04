@@ -17,7 +17,7 @@ class Numeric
   #
   # ISO 15.2.7.4.2
   def -@
-    0 - self
+    -1 * self
   end
 
   ##
@@ -106,20 +106,20 @@ class Integer
 
     i = __coerce_step_counter(step)
     if num == self || step.infinite?
-      block.call(i) if step > 0 && i <= (num||i) || step < 0 && i >= (num||-i)
+      yield(i) if step > 0 && i <= (num||i) || step < 0 && i >= (num||-i)
     elsif num == nil
       while true
-        block.call(i)
+        yield(i)
         i += step
       end
     elsif step > 0
       while i <= num
-        block.call(i)
+        yield(i)
         i += step
       end
     else
       while i >= num
-        block.call(i)
+        yield(i)
         i += step
       end
     end
@@ -138,20 +138,20 @@ class Float
 
     i = self
     if num == self || step.infinite?
-      block.call(i) if step > 0 && i <= (num||i) || step < 0 && i >= (num||-i)
+      yield(i) if step > 0 && i <= (num||i) || step < 0 && i >= (num||-i)
     elsif num == nil
       while true
-        block.call(i)
+        yield(i)
         i += step
       end
     elsif step > 0
       while i <= num
-        block.call(i)
+        yield(i)
         i += step
       end
     else
       while i >= num
-        block.call(i)
+        yield(i)
         i += step
       end
     end

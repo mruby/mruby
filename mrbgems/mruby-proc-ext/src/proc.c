@@ -182,13 +182,38 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
   };
   int i;
   const struct RProc *proc = mrb_proc_ptr(self);
-  if (MRB_PROC_CFUNC_P(proc)) {
-    /* TODO: cfunc aspec is not implemented yet - C functions don't store argument spec info */
-    return mrb_ary_new(mrb);
+  /* An alias proc carries no irep of its own: body.mid holds the aliased
+     method's name and `upper` points at the original proc (see mrb_alias_method
+     in class.c). Without this, the else branch below reads body.mid as an
+     mrb_irep* and dereferences it -> misaligned read / SEGV. Resolve to the
+     underlying proc, exactly as method_to_s already does, so an aliased method
+     reports the original's parameters. Alias chains are collapsed at creation,
+     but loop (as mruby-method does) and bail to empty on a broken chain. */
+  while (MRB_PROC_ALIAS_P(proc)) {
+    proc = proc->upper;
+    if (!proc) return mrb_ary_new(mrb);
   }
-  const struct mrb_irep *irep = proc->body.irep;
-  if (!irep || !irep->lv || *irep->iseq != OP_ENTER) {
-    return mrb_ary_new(mrb);
+  mrb_aspec aspec;
+  mrb_bool has_lv = TRUE;
+  if (MRB_PROC_CFUNC_P(proc)) {
+    uint32_t caspec_bits = proc->flags & MRB_PROC_CASPEC_MASK;
+    if (caspec_bits != 0) {
+      aspec = mrb_proc_decompress_caspec(caspec_bits);
+    }
+    else if (MRB_PROC_NOARG_P(proc)) {
+      aspec = 0;
+    }
+    else {
+      return mrb_ary_new(mrb);
+    }
+    has_lv = FALSE;
+  }
+  else {
+    const struct mrb_irep *irep = proc->body.irep;
+    if (!irep || !irep->lv || *irep->iseq != OP_ENTER) {
+      return mrb_ary_new(mrb);
+    }
+    aspec = PEEK_W(irep->iseq+1);
   }
 
   if (!MRB_PROC_STRICT_P(proc)) {
@@ -196,7 +221,6 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
     parameters_list[3].name = MRB_SYM(opt);
   }
 
-  mrb_aspec aspec = PEEK_W(irep->iseq+1);
   parameters_list[0].size = MRB_ASPEC_REQ(aspec);
   parameters_list[1].size = MRB_ASPEC_OPT(aspec);
   parameters_list[2].size = MRB_ASPEC_REST(aspec);
@@ -214,18 +238,19 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
   mrb_value krest = mrb_nil_value();
   mrb_value block = mrb_nil_value();
 
+  const mrb_sym *lv = has_lv ? proc->body.irep->lv : NULL;
   for (i = 0, p = parameters_list; p->name; p++) {
     mrb_value sname = mrb_symbol_value(p->name);
 
     for (int j = 0; j < p->size; i++, j++) {
       mrb_value a = mrb_ary_new(mrb);
       mrb_ary_push(mrb, a, sname);
-      if (i < max && irep->lv[i]) {
-        mrb_ary_push(mrb, a, mrb_symbol_value(irep->lv[i]));
+      if (lv && i < max && lv[i]) {
+        mrb_ary_push(mrb, a, mrb_symbol_value(lv[i]));
       }
       if (p->name == MRB_SYM(block)) {
-        if (irep->lv[i+1]) {
-          mrb_ary_push(mrb, a, mrb_symbol_value(irep->lv[i+1]));
+        if (lv && lv[i+1]) {
+          mrb_ary_push(mrb, a, mrb_symbol_value(lv[i+1]));
         }
         block = a; continue;
       }
@@ -257,7 +282,7 @@ mrb_mruby_proc_ext_gem_init(mrb_state* mrb)
   struct RClass *p = mrb->proc_class;
 
   MRB_MT_INIT_ROM(mrb, p, proc_ext_rom_entries);
-  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(proc), kernel_proc, MRB_ARGS_BLOCK());
+  mrb_define_module_function_id(mrb, mrb->kernel_module, MRB_SYM(proc), kernel_proc, MRB_ARGS_BLOCK());
 }
 
 void

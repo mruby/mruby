@@ -1,4 +1,7 @@
-boxings = %w[no word nan]
+# word boxing first: the tree's compile_commands.json is written from the
+# first build a config declares unless one claims it, and word boxing is
+# what mruby picks when nothing asks for another.
+boxings = %w[word no nan]
 bits = [64, 32]
 ints = [64, 32]
 
@@ -12,6 +15,8 @@ boxings.product(bits, ints) do |boxing, bit, int|
       c.flags << "-m#{bit}"
     end
     conf.linker.flags << "-m#{bit}"
+
+
     conf.enable_debug
     conf.enable_test
     conf.enable_bintest

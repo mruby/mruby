@@ -117,13 +117,11 @@ throw_m(mrb_state *mrb, mrb_value self)
 /*
  * Initializes the mruby-catch gem by defining catch and throw methods.
  *
- * - catch: defined using the pre-compiled bytecode procedure for efficiency,
- *   marked as private method in Kernel module
- * - throw: defined as a regular C method that searches for matching catch blocks,
- *   also marked as private method in Kernel module
+ * - catch: defined using the pre-compiled bytecode procedure for efficiency
+ * - throw: defined as a regular C method that searches for matching catch blocks
  *
- * Both methods are added to the Kernel module, making them available globally
- * as private methods that can be called without a receiver.
+ * Both are module functions of Kernel: private instance methods callable
+ * without a receiver, plus public `Kernel.catch` / `Kernel.throw`.
  */
 void
 mrb_mruby_catch_gem_init(mrb_state *mrb)
@@ -132,10 +130,12 @@ mrb_mruby_catch_gem_init(mrb_state *mrb)
 
   MRB_PRESYM_INIT_SYMBOLS(mrb, catch_syms);
   MRB_METHOD_FROM_PROC(m, &catch_proc);
+  mrb_define_method_raw(mrb, mrb_singleton_class_ptr(mrb, mrb_obj_value(mrb->kernel_module)),
+                        MRB_SYM(catch), m);
   m.flags |= MRB_METHOD_PRIVATE_FL;
   mrb_define_method_raw(mrb, mrb->kernel_module, MRB_SYM(catch), m);
 
-  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(throw), throw_m, MRB_ARGS_ARG(1,1));
+  mrb_define_module_function_id(mrb, mrb->kernel_module, MRB_SYM(throw), throw_m, MRB_ARGS_ARG(1,1));
 }
 
 /*

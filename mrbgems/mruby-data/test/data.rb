@@ -74,3 +74,70 @@ assert 'Data#freeze' do
     o.freeze
   }
 end
+
+assert 'Data#with' do
+  c = Data.define(:x, :y)
+  a = c.new(1, 2)
+
+  # replace a subset of members, leaving the rest unchanged
+  b = a.with(y: 20)
+  assert_equal 1, b.x
+  assert_equal 20, b.y
+  # receiver is not modified
+  assert_equal 1, a.x
+  assert_equal 2, a.y
+  # result is a frozen instance of the same class
+  assert_true b.frozen?
+  assert_equal c, b.class
+
+  # replace every member
+  assert_equal c.new(10, 20), a.with(x: 10, y: 20)
+
+  # no arguments returns the receiver itself
+  assert_true a.with.equal?(a)
+
+  # unknown keyword is rejected
+  assert_raise(ArgumentError) { a.with(z: 9) }
+  # positional arguments are rejected
+  assert_raise(ArgumentError) { a.with(1) }
+end
+
+assert 'Data#with with more than four members' do
+  c = Data.define(:a, :b, :c, :d, :e, :f)
+  x = c.new(1, 2, 3, 4, 5, 6)
+  y = x.with(a: 10, f: 60)
+  assert_equal [10, 2, 3, 4, 5, 60], [y.a, y.b, y.c, y.d, y.e, y.f]
+  assert_true y.frozen?
+end
+
+assert 'Data with overridden initialize (keyword style)' do
+  c = Data.define(:amount, :unit) do
+    def initialize(amount:, unit: "USD")
+      super(amount: amount, unit: unit.to_s)
+    end
+  end
+
+  # keyword construction runs through the custom initialize
+  a = c.new(amount: 5, unit: :EUR)
+  assert_equal 5, a.amount
+  assert_equal "EUR", a.unit
+  assert_true a.frozen?
+
+  # default value from the custom initialize applies
+  assert_equal "USD", c.new(amount: 5).unit
+
+  # positional arguments map to members in order, then run initialize
+  b = c.new(5, :JPY)
+  assert_equal "JPY", b.unit
+
+  # too many positional arguments
+  assert_raise(ArgumentError) { c.new(1, 2, 3) }
+
+  # #with copies stored values and does NOT re-run the custom initialize
+  d = Data.define(:v) do
+    def initialize(v:); super(v: v * 2); end
+  end
+  e = d.new(v: 3)             # initialize doubles -> 6
+  assert_equal 6, e.v
+  assert_equal 5, e.with(v: 5).v   # with bypasses initialize -> 5, not 10
+end

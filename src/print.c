@@ -8,6 +8,7 @@
 #include <mruby/string.h>
 #include <mruby/variable.h>
 #include <mruby/error.h>
+#include <mruby/internal.h>
 #include <string.h>
 #if defined(_WIN32)
 # include <windows.h>
@@ -27,14 +28,16 @@ printcstr(mrb_state *mrb, const char *str, size_t len, FILE *stream)
 #if defined(_WIN32)
   if (isatty(fileno(stream))) {
     DWORD written;
-    int wlen = MultiByteToWideChar(CP_UTF8, 0, str, (int)len, NULL, 0);
-    wchar_t* utf16 = (wchar_t*)mrb_malloc(mrb, (wlen+1) * sizeof(wchar_t));
-    if (MultiByteToWideChar(CP_UTF8, 0, str, (int)len, utf16, wlen) > 0) {
-      utf16[wlen] = 0;
+    wchar_t *utf16;
+    /* A byte the console's code page cannot read is replaced rather than
+       refused, as it was here before: what cannot be written is still better
+       written as the replacement than not written at all. */
+    int wlen = mrb_mbs_to_wcs_m(mrb, str, (int)len, &utf16, CP_UTF8, 0);
+    if (wlen >= 0) {
       WriteConsoleW(GetStdHandle(STD_OUTPUT_HANDLE),
                     utf16, (DWORD)wlen, &written, NULL);
+      mrb_free(mrb, utf16);
     }
-    mrb_free(mrb, utf16);
     return;
   }
 #endif

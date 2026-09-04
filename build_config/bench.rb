@@ -8,4 +8,5 @@ MRuby::Build.new('bench') do |conf|
   end
 
   conf.gembox 'default'
+
 end

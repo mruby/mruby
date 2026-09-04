@@ -172,6 +172,8 @@ The maximal GEM structure looks like this:
     |
     +- src/             <- Source for C extension
     |
+    +- ports/<name>/    <- Platform-specific C sources (see Platform Ports)
+    |
     +- tools/           <- Source for Executable (in C)
     |
     +- test/            <- Test code (Ruby)
@@ -182,6 +184,8 @@ contains C/C++ files to extend mruby. The `include` directory contains C/C++ hea
 files. The `test` directory contains C/C++ and pure Ruby files for testing purposes
 which will be used by `mrbtest`. `mrbgem.rake` contains the specification
 to compile C and Ruby files. `README.md` is a short description of your GEM.
+The optional `ports/<name>/` directories hold platform-specific C sources
+selected at build time; see [Platform Ports](#platform-ports-ports) below.
 
 ## Build process
 
@@ -329,8 +333,158 @@ spec.build_settings do
 end
 ```
 
+The block passed to `MRuby::Gem::Specification#build_settings` is called in the order of the dependent GEMs,
+after all setup blocks for GEMs including dependencies have been called.
+
 **NOTE**: Using the `build_settings` method will cause GEM's all build command settings
 directly written in the block passed to `MRuby::Gem::Specification.new` to be ignored.
+
+### Asking what the build defines
+
+A GEM announces a capability to the rest of the build by adding to
+`spec.build.defines`, which becomes a `-D` on every translation unit:
+
+```ruby
+spec.build.defines << "HAVE_MRUBY_IO_GEM"
+```
+
+`MRuby::Build#has_define?` is how another GEM reads one back:
+
+```ruby
+spec.build_settings do
+  spec.cc.flags << "-any_flags" if build.has_define?("MRB_UTF8_STRING")
+end
+```
+
+It reports a define whether the build configuration asked for it or a GEM
+contributed it, and matches on the name alone, so a define added as `"FOO=1"`
+answers `has_define?("FOO")`. The `-D` belongs to the compiler flag and not to
+the define, so it is no part of the name to ask under.
+
+It has to be asked from `build_settings` and not from the block passed to
+`MRuby::Gem::Specification.new`. A GEM contributes its defines when its own
+block runs, and the blocks run in the order the GEMs were added, so during
+that phase the answer would depend on how far down the list the caller sits.
+`has_define?` raises there rather than hand back an answer that is right for
+some GEM orders and wrong for others.
+
+## Platform Ports (ports/)
+
+A gem may ship platform-specific C sources under `ports/<name>/`
+subdirectories. The build configuration selects which port name(s)
+are active via `conf.ports`, and each gem compiles the sources of
+the first matching `ports/<name>/` it ships:
+
+```ruby
+MRuby::Build.new do |conf|
+  conf.toolchain
+  conf.ports :posix     # selects ports/posix/ across all gems
+end
+```
+
+`conf.ports` accepts multiple names as a fallback chain. Each gem
+picks the first directory in the list that exists on its side:
+
+```ruby
+conf.ports :rp2040, :posix    # try rp2040 per-gem, else posix
+```
+
+Host builds auto-detect `:posix` or `:win` when `conf.ports` is
+not set. Sources outside `ports/` (i.e. `src/`) are always
+compiled regardless of the port selection.
+
+### What a Port Declares
+
+The selected port's `ports/<name>/include/` directory is an include
+path, for the gem's own sources and for every gem that depends on
+it, as the gem's own `include/` is. That is where a port says what
+it implements: a header of feature macros, which the gem's HAL
+header includes and its `src/` sources read. Whether a method exists
+is the port's to answer, since the port is the only thing that
+knows, and `src/` asks the macro rather than the platform:
+
+```c
+/* ports/posix/include/dir_hal_features.h */
+#define MRB_HAL_DIR_HAS_CHROOT
+
+/* include/dir_hal.h */
+#include "dir_hal_features.h"
+#ifdef MRB_HAL_DIR_HAS_CHROOT
+int mrb_hal_dir_chroot(mrb_state *mrb, const char *path);
+#endif
+```
+
+One macro guards the prototype, the port's implementation and the
+method definition in `src/`, so a port that declares a capability and
+forgets to implement it fails to link, and one that declares nothing
+owes nothing. A bundled gem that carries such a header keeps it
+under `ports/posix/include/` and `ports/win/include/`, and its README
+lists what each port declares.
+
+Only `include/` is exported. A header anywhere else under
+`ports/<name>/` is the port's own, reached by its sources through a
+relative include and by nothing else, the way a header under `src/`
+is the gem's own; it is neither on another gem's include path nor
+written into the amalgamated `mruby.h`.
+
+A name a port exports is its gem's alone. The name is searched on
+the include path of every gem that depends on the port's gem, where
+the other dependencies' headers sit too, so the build refuses a
+build in which another gem exports the same name, from its
+`include/` or from its port, rather than let the compiler pick
+whichever it finds first. The bundled ports name the header after
+the HAL header it serves, `<short>_hal_features.h` beside
+`<short>_hal.h`.
+
+The macros are the port's to define and nobody else's. A build that
+wants less than the port offers uses the gem's veto define where the
+gem provides one (`MRB_NO_IO_POPEN` for `mruby-io`), which the HAL
+header applies after the port has spoken; a build that defines an
+`MRB_HAL_*_HAS_*` macro itself on a port that does not implement it
+gets an undefined `mrb_hal_*` at link time, which is the port's
+answer. A build that supplies the HAL from its own sources, with no
+bundled port and no provider gem, puts its own `<short>_hal_features.h`
+on the include path with `conf.cc.include_paths` and declares there
+what its sources implement.
+
+### External HAL Provider Gems
+
+A third-party gem may replace another gem's bundled port at build
+time. A gem whose name matches `hal-<short>-<conf>` is recognized
+as the external HAL provider for the target gem whose name's last
+`-`-separated segment is `<short>`. For example, `hal-task-glib`
+overrides the HAL of `mruby-task`; `hal-io-uring` would override
+`mruby-io`. The HAL provider must depend on its target so it can
+`#include` the target's HAL header:
+
+```ruby
+MRuby::Gem::Specification.new('hal-task-glib') do |spec|
+  spec.license = 'MIT'
+  spec.author  = 'Your Name'
+  spec.summary = 'GLib HAL for mruby-task'
+  spec.add_dependency 'mruby-task', core: 'mruby-task'
+  # src/ contains the HAL implementation
+end
+```
+
+When a matching HAL provider gem is present in the build, the
+target gem's `ports/<conf.ports>/` sources are dropped from the
+build automatically. The HAL provider's own sources supply the
+implementation instead, avoiding duplicate symbol errors at link
+time, and its `include/` takes the port's `include/` place as the
+include path the feature header is found on, whether or not a
+bundled port matched the build. Loading two gems that match the same
+`hal-<short>-*` prefix is a build error, and so is a provider that
+leaves out a header the port it replaces exports, since the target's
+HAL header includes that header by name.
+
+The naming convention is the only signal -- no spec attribute and
+no HAL-specific `add_dependency` option is required. The ordinary
+dependency on the target gem still is, since the provider includes
+the target's HAL header. A gem author who wants to contribute an
+additional bundled port upstream sends a PR adding
+`<target-gem>/ports/<name>/`; a gem author who prefers to ship out
+of tree publishes a `hal-<short>-<conf>` gem instead.
 
 ## C Extension
 

@@ -1,4 +1,6 @@
-MRuby::Build.new do |conf|
+# 32-bit build in a dedicated build directory (build/host-m32) so it does not
+# clobber a normal host build.
+MRuby::Build.new('host-m32') do |conf|
   # load specific toolchain settings
   toolchain :gcc
 
@@ -7,6 +9,7 @@ MRuby::Build.new do |conf|
 
   conf.cc.flags << '-m32'
   conf.linker.flags << '-m32'
+
 
   # Turn on `enable_debug` for better debugging
   conf.enable_debug

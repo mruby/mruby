@@ -1,6 +1,21 @@
 version: "{build}"
 
-shallow_clone: true
+# Do not use shallow_clone: it fetches a source archive with no .git, so the
+# Prism compiler submodule (mrbgems/mruby-compiler/lib/prism) cannot be checked
+# out and the build aborts on "git submodule update". A normal clone keeps .git
+# so the submodule can be initialized in install below.
+#
+# Clone by script instead of clone_depth: a depth-limited clone holds only the
+# newest commits of the branch, so a build that waited in the queue while the
+# branch moved on can no longer check out its commit. Fetching the queued
+# commit (or the pull request merge ref) by name transfers just as little and
+# always contains the tree to check out.
+clone_script:
+  - cmd: git clone -q --no-checkout --depth=1 https://github.com/%APPVEYOR_REPO_NAME%.git "%APPVEYOR_BUILD_FOLDER%"
+  - cmd: cd /d "%APPVEYOR_BUILD_FOLDER%"
+  - cmd: if defined APPVEYOR_PULL_REQUEST_NUMBER (set "CLONE_REF=+refs/pull/%APPVEYOR_PULL_REQUEST_NUMBER%/merge") else (set "CLONE_REF=%APPVEYOR_REPO_COMMIT%")
+  - cmd: git fetch -q --depth=1 origin %CLONE_REF%
+  - cmd: git checkout -qf FETCH_HEAD
 
 environment:
   matrix:
@@ -16,31 +31,18 @@ environment:
       visualcpp: C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars32.bat
       appveyor_build_worker_image: Visual Studio 2019
 
-    - job_name: Visual Studio 2017 64-bit
-      visualcpp: C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat
-      appveyor_build_worker_image: Visual Studio 2017
-
-    - job_name: Visual Studio 2017 32-bit
-      visualcpp: C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars32.bat
-      appveyor_build_worker_image: Visual Studio 2017
-
-    - job_name: Visual Studio 2015 64-bit
-      visualcpp: C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat
-      appveyor_build_worker_image: Visual Studio 2015
-      machine: x86_amd64
-
-    - job_name: Visual Studio 2015 32-bit
-      visualcpp: C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat
-      appveyor_build_worker_image: Visual Studio 2015
-      machine: x86
+# Visual Studio 2015 and 2017 are dropped: their worker images top out at Ruby
+# 2.6, but the Prism compiler the build now depends on requires Ruby >= 2.7 to
+# generate its sources. The 2019 and 2022 images ship a new enough Ruby.
 
 init:
   - call "%visualcpp%" %machine%
-  # For using RubyInstaller's Ruby 2.6 64-bit
-  # 2.6 is the highest supported Ruby version across all historical
-  # Visual Studio AppVeyor images. Ruby 2.7 is only on the 2019 image.
-  - set PATH=C:\Ruby26-x64\bin;%PATH%
   - ruby --version
+
+install:
+  # Fetch the Prism compiler submodule (init runs before the clone, so this
+  # must be here, after the repository is checked out).
+  - git submodule update --init --recursive
 
 build_script:
   - set MRUBY_CONFIG=ci/msvc

@@ -117,8 +117,8 @@ Defined in `include/mruby/class.h`:
 
 ```c
 union mrb_mt_ptr {
+  mrb_func_t func;            /* first member: see MRB_MT_ENTRY note */
   const struct RProc *proc;
-  mrb_func_t func;
 };
 
 typedef struct mrb_mt_entry {
@@ -139,9 +139,12 @@ typedef struct mrb_mt_tbl {
 
 ```c
 /* ROM table entry: 3rd param is MRB_ARGS_*() optionally OR'd with
-   MRB_MT_PRIVATE.  The macro OR's in MRB_MT_FUNC automatically. */
+   MRB_MT_PRIVATE.  The macro OR's in MRB_MT_FUNC automatically.
+   `func` must be the first member of `union mrb_mt_ptr` so that
+   positional initialization works on legacy C++ compilers that do
+   not accept C99 designated initializers. */
 #define MRB_MT_ENTRY(fn, sym, flags) \
-  { { .func = (fn) }, (sym), (flags) | MRB_MT_FUNC }
+  { { (fn) }, (sym), (flags) | MRB_MT_FUNC }
 
 /* Extract aspec from combined flags */
 #define MRB_MT_ASPEC(flags) ((mrb_aspec)((flags) & 0xffffff))

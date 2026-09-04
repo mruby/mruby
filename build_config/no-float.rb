@@ -11,6 +11,7 @@ MRuby::CrossBuild.new('no-float') do |conf|
 
   conf.test_runner.command = 'env'
 
+
   conf.enable_debug
 #  conf.enable_bintest
   conf.enable_test

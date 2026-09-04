@@ -28,8 +28,119 @@ assert('GC.step_ratio=') do
   origin = GC.step_ratio
   begin
     assert_equal 150, (GC.step_ratio = 150)
+    assert_raise(ArgumentError) { GC.step_ratio = 0 }
+    assert_raise(ArgumentError) { GC.step_ratio = -1 }
   ensure
     GC.step_ratio = origin
+  end
+end
+
+assert('GC.step_limit=') do
+  origin = GC.step_limit
+  begin
+    assert_equal 0, origin           # default: unlimited
+    assert_equal 512, (GC.step_limit = 512)
+    assert_equal 512, GC.step_limit
+    assert_equal 0, (GC.step_limit = 0)  # back to unlimited
+  ensure
+    GC.step_limit = origin
+  end
+end
+
+assert('GC.step_limit - GC completes with small limit') do
+  origin = GC.step_limit
+  begin
+    GC.step_limit = 64
+    # GC should still complete even with a small step limit
+    GC.start
+    assert_true GC.stat[:live] > 0
+  ensure
+    GC.step_limit = origin
+  end
+end
+
+assert('GC.malloc_threshold=') do
+  origin = GC.malloc_threshold
+  begin
+    # No assertion on `origin`: the initial value is MRB_GC_MALLOC_THRESHOLD,
+    # which a build may set to anything including 0.
+    assert_equal 65536, (GC.malloc_threshold = 65536)
+    assert_equal 65536, GC.malloc_threshold
+    assert_equal 0, (GC.malloc_threshold = 0)  # back to disabled
+  ensure
+    GC.malloc_threshold = origin
+  end
+end
+
+assert('GC.malloc_threshold - triggers GC on large allocations') do
+  origin = GC.malloc_threshold
+  begin
+    GC.malloc_threshold = 4096
+    GC.start  # force a full GC cycle
+    # allocate large strings to exceed threshold
+    100.times { "x" * 1024 }
+    stat = GC.stat
+    assert_true stat[:malloc_increase] >= 0
+  ensure
+    GC.malloc_threshold = origin
+  end
+end
+
+# A cycle that runs incrementally needs one call per step, and outside this
+# path every one of those calls comes from an object allocation.  A workload
+# that allocates bytes without allocating objects therefore has to advance the
+# cycle on byte pressure alone; if it cannot, the first threshold crossing
+# starts a cycle that parks mid-mark and no later crossing is ever honoured.
+# `malloc_increase` is cleared on every crossing, so its value at the end
+# counts the bytes allocated since the last one: it stays near the threshold
+# while the axis keeps working and grows to the whole loop once it stops.
+#
+# The 40 buffers below are Strings, and an object allocation does step the
+# collector, so the loop has to stay far enough under that axis for the
+# reading to mean what it says.  It does, by construction: `GC.start` ends
+# with `gc_debt` at minus a credit that is floored at `GC_STEP_SIZE`, so the
+# object axis takes at least 1024 allocations to step even once.  40 is
+# twenty-five times under that floor, and the floor is the worst case, since
+# a build with a larger live set gets a proportionally larger credit.
+#
+# That floor is the one thing MRB_GC_STRESS takes away: it collects fully at
+# every object allocation, and with MRB_DEBUG at every heap allocation too, so
+# the assertion passes there whether or not byte pressure works.  It is not
+# weaker than it looks, it is measuring a build that cannot hold the state it
+# is about: a cycle can only park where something allocates without collecting,
+# which is exactly what those builds rule out.
+assert('GC.malloc_threshold - byte pressure advances an incremental cycle') do
+  origin = GC.malloc_threshold
+  origin_mode = GC.generational_mode
+  begin
+    GC.generational_mode = false   # every cycle is incremental in this mode
+    GC.start                       # start from MRB_GC_STATE_ROOT
+    GC.malloc_threshold = 1024
+    40.times { "x" * 65536 }       # 2.6MB of buffers, 40 objects
+    assert_true GC.stat[:malloc_increase] < 262144
+  ensure
+    GC.malloc_threshold = origin
+    GC.generational_mode = origin_mode
+  end
+end
+
+assert('GC.malloc_threshold - does not mark through stale realloc buffers') do
+  origin = GC.malloc_threshold
+  begin
+    GC.malloc_threshold = 1
+    GC.start  # reset malloc_increase
+
+    h = {}
+    300.times { |i| h[i] = i }
+    assert_equal 300, h.size
+    300.times { |i| assert_equal i, h[i] }
+
+    a = []
+    1000.times { |i| a << i }
+    assert_equal 1000, a.size
+    1000.times { |i| assert_equal i, a[i] }
+  ensure
+    GC.malloc_threshold = origin
   end
 end
 
@@ -42,4 +153,313 @@ assert('GC.generational_mode=') do
   ensure
     GC.generational_mode = origin
   end
+end
+
+# The inline `[]`, `[]=` and arithmetic opcodes answer from C without a method
+# call, so the arena restore that every cfunc return performs never runs for
+# them.  What they allocate then stays arena-protected for the rest of the
+# enclosing method.  The loop bodies below are built only from opcodes that do
+# not restore, since a single send in the body would empty the arena and hide
+# the retention.
+#
+# Each assertion runs a full GC while the arena still holds what the loop left
+# there.  The arena is a GC root, so exactly the pinned objects survive that
+# collection and the rise in `GC.stat[:live]` counts them and nothing else.
+# The `GC.start` has to be the first send after the loop: any cfunc return
+# drains the arena, so reading `GC.stat` first would discard the very thing
+# being measured.
+#
+# A retaining branch pins one object per iteration and reports the full 20000.
+# The margin below covers the few objects `GC.stat` allocates for its own
+# result; it is not slack for a partial leak, and a branch that retains on even
+# a small fraction of the iterations is over it.
+#
+# An index opcode answers from C only while the operator it reimplements is
+# still the builtin, so a loop body stops being send-free the moment something
+# redefines that operator on the core class.  Nothing in this tree redefines
+# `Hash#[]` or `Hash#[]=`, so the Hash loops below need no help; mruby-regexp
+# does redefine `String#[]`, which is what `with_builtin_string_aref` puts back.
+
+# Runs the block with the C implementation of `String#[]` in place, so that
+# `s[0]` and `s[1]` inside it reach `OP_GETIDX0` and `OP_GETIDX` rather than
+# compiling down to a send, whose cfunc return would drain the arena and pass
+# the assertion for the wrong reason.  mruby-regexp keeps the C implementation
+# under `__aref` when it replaces `String#[]`; where no gem replaced it there
+# is nothing to swap and the block runs as it stands.
+def with_builtin_string_aref
+  swapped = String.method_defined?(:__aref)
+  if swapped
+    String.class_eval do
+      alias_method :__aref_gc_test_saved, :[]
+      alias_method :[], :__aref
+    end
+  end
+  begin
+    yield
+  ensure
+    if swapped
+      String.class_eval do
+        alias_method :[], :__aref_gc_test_saved
+        # `remove_method` comes from mruby-metaprog, which the core test build
+        # does not have; the saved alias is harmless where it is missing.
+        remove_method :__aref_gc_test_saved if respond_to?(:remove_method, true)
+      end
+    end
+  end
+end
+
+assert('OP_GETIDX does not retain its result in the GC arena') do
+  with_builtin_string_aref do
+    s = "hello"
+    GC.start
+    base = GC.stat[:live]
+    i = 0
+    while i < 20000
+      s[1]
+      i += 1
+    end
+    GC.start
+    assert_operator GC.stat[:live] - base, :<, 100
+  end
+end
+
+assert('OP_GETIDX does not retain a Hash default in the GC arena') do
+  h = Hash.new { Object.new }
+  GC.start
+  base = GC.stat[:live]
+  i = 0
+  while i < 20000
+    h[1]
+    i += 1
+  end
+  GC.start
+  assert_operator GC.stat[:live] - base, :<, 100
+end
+
+assert('OP_GETIDX0 does not retain a String result in the GC arena') do
+  with_builtin_string_aref do
+    s = "hello"
+    GC.start
+    base = GC.stat[:live]
+    i = 0
+    while i < 20000
+      s[0]
+      i += 1
+    end
+    GC.start
+    assert_operator GC.stat[:live] - base, :<, 100
+  end
+end
+
+assert('OP_GETIDX0 does not retain a Hash default in the GC arena') do
+  h = Hash.new { Object.new }
+  GC.start
+  base = GC.stat[:live]
+  i = 0
+  while i < 20000
+    h[0]
+    i += 1
+  end
+  GC.start
+  assert_operator GC.stat[:live] - base, :<, 100
+end
+
+assert('OP_SETIDX does not retain a duplicated Hash key in the GC arena') do
+  h = {}
+  k = "a"
+  GC.start
+  base = GC.stat[:live]
+  i = 0
+  while i < 20000
+    h[k] = 1
+    i += 1
+  end
+  GC.start
+  assert_operator GC.stat[:live] - base, :<, 100
+end
+
+assert('OP_ADD does not retain an overflowed Integer in the GC arena') do
+  # The overflow branch promotes to a big integer, so it only exists with
+  # mruby-bigint.  The shift count is a variable because a constant shift is
+  # folded at compile time, and a folded result out of mrb_int range makes the
+  # build fail rather than raise.
+  begin
+    k = 62
+    x = 1 << k
+    x + x
+  rescue RangeError
+    skip "requires mruby-bigint"
+  end
+  # 1 << 30 overflows mrb_int on MRB_INT32 and 1 << 62 on MRB_INT64, so
+  # whichever width this build has, one of the two takes the overflow branch.
+  [30, 62].each do |shift|
+    x = 1 << shift
+    GC.start
+    base = GC.stat[:live]
+    i = 0
+    while i < 20000
+      x + x
+      i += 1
+    end
+    GC.start
+    assert_operator GC.stat[:live] - base, :<, 100
+  end
+end
+
+# The assertions below cover the boxing sites inside the interpreter loop
+# rather than the calls out of it.  `SET_INT_VALUE()` heap-allocates an
+# RInteger for a value outside the fixnum range, and the inline opcodes that
+# box one have no cfunc epilogue behind them either, so what they allocate
+# stays in the arena the same way.  Where the fixnum range ends depends on the
+# boxing mode, so the arithmetic loops are run at more than one width; on a
+# build whose boxing macro cannot allocate at all they retain nothing and the
+# assertions hold trivially.  `1 << shift` is written with a variable shift
+# because a constant shift is folded at compile time, and a folded result out
+# of mrb_int range makes the build fail rather than raise.
+
+assert('OP_ADD does not retain a boxed Integer in the GC arena') do
+  [30, 31, 62].each do |shift|
+    begin
+      x = 1 << shift
+    rescue RangeError
+      next  # mrb_int is narrower than this and mruby-bigint is absent
+    end
+    one = 1
+    GC.start
+    base = GC.stat[:live]
+    i = 0
+    while i < 20000
+      x + one   # OP_ADD
+      x + 1     # OP_ADDI
+      i += 1
+    end
+    GC.start
+    assert_operator GC.stat[:live] - base, :<, 100
+  end
+end
+
+assert('OP_DIV does not retain a boxed Integer in the GC arena') do
+  [30, 31, 62].each do |shift|
+    begin
+      x = 1 << shift
+    rescue RangeError
+      next
+    end
+    one = 1
+    GC.start
+    base = GC.stat[:live]
+    i = 0
+    while i < 20000
+      x / one
+      i += 1
+    end
+    GC.start
+    assert_operator GC.stat[:live] - base, :<, 100
+  end
+end
+
+assert('OP_LOADI32 does not retain a boxed Integer in the GC arena') do
+  # `1073741824` is `2**30`, which fits in the operand of `OP_LOADI32` rather
+  # than going to the pool, and is the first value outside the fixnum range of
+  # a 32-bit host under word boxing.  That is the only configuration where this
+  # opcode can allocate: everywhere else the value is a fixnum, the loop retains
+  # nothing and the assertion holds trivially.
+  GC.start
+  base = GC.stat[:live]
+  i = 0
+  while i < 20000
+    z = 1073741824
+    i += 1
+  end
+  GC.start
+  assert_operator GC.stat[:live] - base, :<, 100
+  assert_equal 1073741824, z
+end
+
+# The Float branches of the same opcodes box through `SET_FLOAT_VALUE()`, which
+# under word boxing heap-allocates an RFloat whenever the mrb_value word cannot
+# hold the value inline.  With `MRB_WORDBOX_NO_INLINE_FLOAT` that is every
+# Float; without it, on a 64-bit host, it is a subnormal, an exponent outside
+# the inlinable range, or a rotation that would collide with a sentinel.
+# `5.0e-324` and `1.0e100` are on the wrong side of both bounds, so the loops
+# allocate under either setting.  The immediate-operand opcodes are run only on
+# `1.0e100`, since a subnormal plus a non-zero integer is an ordinary Float that
+# does inline.  On a boxing mode that keeps the Float in the word the loops
+# retain nothing and the assertions hold trivially.
+
+assert('OP_MATH does not retain a boxed Float in the GC arena') do
+  skip unless Object.const_defined?(:Float)
+  [1.0e100, 5.0e-324].each do |x|
+    zero = 0.0
+    one = 1.0
+    y = nil
+    GC.start
+    base = GC.stat[:live]
+    i = 0
+    while i < 20000
+      y = x + zero   # OP_ADD
+      y = x - zero   # OP_SUB
+      y = x * one    # OP_MUL
+      i += 1
+    end
+    GC.start
+    assert_operator GC.stat[:live] - base, :<, 100
+    assert_equal x, y
+  end
+end
+
+assert('OP_DIV does not retain a boxed Float in the GC arena') do
+  skip unless Object.const_defined?(:Float)
+  # OP_DIV boxes from a helper outside the interpreter loop, so it restores to
+  # its own saved arena index rather than to the frame's.
+  [1.0e100, 5.0e-324].each do |x|
+    one = 1.0
+    y = nil
+    GC.start
+    base = GC.stat[:live]
+    i = 0
+    while i < 20000
+      y = x / one
+      i += 1
+    end
+    GC.start
+    assert_operator GC.stat[:live] - base, :<, 100
+    assert_equal x, y
+  end
+end
+
+assert('OP_ADDI does not retain a boxed Float in the GC arena') do
+  skip unless Object.const_defined?(:Float)
+  x = 1.0e100
+  y = nil
+  GC.start
+  base = GC.stat[:live]
+  i = 0
+  while i < 20000
+    y = x + 1   # OP_ADDI
+    y = x - 1   # OP_SUBI
+    x += 1      # OP_ADDILV, the fused local form
+    x -= 1      # OP_SUBILV
+    i += 1
+  end
+  GC.start
+  assert_operator GC.stat[:live] - base, :<, 100
+  assert_equal 1.0e100, x
+  assert_equal 1.0e100, y
+end
+
+assert('OP_LOADL does not retain a boxed Float in the GC arena') do
+  skip unless Object.const_defined?(:Float)
+  y = nil
+  GC.start
+  base = GC.stat[:live]
+  i = 0
+  while i < 20000
+    y = 1.0e100
+    y = 5.0e-324
+    i += 1
+  end
+  GC.start
+  assert_operator GC.stat[:live] - base, :<, 100
+  assert_equal 5.0e-324, y
 end

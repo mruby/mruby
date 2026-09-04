@@ -13,15 +13,29 @@
 #include "io_hal.h"
 
 #include <sys/types.h>
-#include <sys/stat.h>
-
-#include <fcntl.h>
 
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 
-/* Undefine system macros that conflict with mrb_io_stat field names */
+/* Every file operation goes through the HAL, so what a platform is asked for
+   here is the spelling of a path and the numbers File::Constants publishes. */
+#if defined(_WIN32)
+  #define NULL_FILE "NUL"
+  #define MAXPATHLEN 1024
+ #if !defined(PATH_MAX)
+  #define PATH_MAX _MAX_PATH
+ #endif
+#else
+  #define NULL_FILE "/dev/null"
+  #include <sys/file.h>   /* LOCK_* */
+  #include <sys/param.h>  /* MAXPATHLEN */
+#endif
+
+/* A host that names struct stat's time fields with macros (st_atime for
+   st_atim.tv_sec, as glibc does) would rewrite the same field names on
+   mrb_io_stat, whose own are plain members.  Undone after the last system
+   header, so that a header included above is free to define them. */
 #ifdef st_atime
 #undef st_atime
 #endif
@@ -32,39 +46,11 @@
 #undef st_ctime
 #endif
 
-#if defined(_WIN32)
-  #include <windows.h>
-  #include <io.h>
-  #define NULL_FILE "NUL"
-  #define UNLINK _unlink
-  #define GETCWD _getcwd
-  #define CHMOD(a, b) 0
-  #define MAXPATHLEN 1024
- #if !defined(PATH_MAX)
-  #define PATH_MAX _MAX_PATH
- #endif
-  #define realpath(N,R) _fullpath((R),(N),_MAX_PATH)
-  #include <direct.h>
-#else
-  #define NULL_FILE "/dev/null"
-  #include <unistd.h>
-  #define UNLINK unlink
-  #define GETCWD getcwd
-  #define CHMOD(a, b) chmod(a,b)
-  #include <sys/file.h>
-#ifndef __DJGPP__
-  #include <libgen.h>
-#endif
-  #include <sys/param.h>
-  #include <pwd.h>
-#endif
-
 #define FILE_SEPARATOR "/"
 
 #if defined(_WIN32)
   #define PATH_SEPARATOR ";"
   #define FILE_ALT_SEPARATOR "\\"
-  #define VOLUME_SEPARATOR ":"
   #define DIRSEP_P(ch) (((ch) == '/') | ((ch) == '\\'))
   #define VOLSEP_P(ch) ((ch) == ':')
   #define UNC_PATH_P(path) (DIRSEP_P((path)[0]) && DIRSEP_P((path)[1]))
@@ -89,17 +75,6 @@
 #define LOCK_UN MRB_IO_LOCK_UN
 #endif
 
-#if !defined(_WIN32) || defined(MRB_MINGW32_LEGACY)
-# define mrb_stat(path, sb) stat(path, sb)
-# define mrb_fstat(fd, sb)  fstat(fd, sb)
-#elif defined MRB_INT32
-# define mrb_stat(path, sb) _stat32(path, sb)
-# define mrb_fstat(fd, sb)  _fstat32(fd, sb)
-#else
-# define mrb_stat(path, sb) _stat64(path, sb)
-# define mrb_fstat(fd, sb)  _fstat64(fd, sb)
-#endif
-
 /*
  * call-seq:
  *   File.umask([mask]) -> integer
@@ -114,14 +89,13 @@
 static mrb_value
 mrb_file_s_umask(mrb_state *mrb, mrb_value klass)
 {
-  mrb_int mask;
-  uint32_t omask;
+  mrb_int mask, omask;
 
   if (mrb_get_args(mrb, "|i", &mask) == 0) {
     omask = mrb_hal_io_umask(mrb, -1);
   }
   else {
-    omask = mrb_hal_io_umask(mrb, (int32_t)mask);
+    omask = mrb_hal_io_umask(mrb, mask);
   }
   return mrb_fixnum_value(omask);
 }
@@ -281,85 +255,58 @@ mrb_file_dirname(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_file_basename(mrb_state *mrb, mrb_value klass)
 {
-#if defined(_WIN32)
-  char bname[_MAX_DIR];
-  char extname[_MAX_EXT];
-  char *path;
-  const char *suffix = NULL;
-
-  mrb_get_args(mrb, "z|z", &path, &suffix);
-  size_t ridx = strlen(path);
-  if (ridx > 0) {
-    ridx--;
-    while (ridx > 0 && (path[ridx] == '/' || path[ridx] == '\\')) {
-      path[ridx] = '\0';
-      ridx--;
-    }
-    if (ridx == 0 && path[0] == '/') {
-      mrb_value result = mrb_str_new_cstr(mrb, path);
-      if (suffix && *suffix) {
-        mrb_int blen = RSTRING_LEN(result);
-        mrb_int slen = strlen(suffix);
-        if (blen > slen && memcmp(RSTRING_PTR(result) + blen - slen, suffix, slen) == 0) {
-          mrb_str_resize(mrb, result, blen - slen);
-        }
-      }
-      return result;
-    }
-  }
-  _splitpath((const char*)path, NULL, NULL, bname, extname);
-  mrb_value buffer = mrb_str_new_cstr(mrb, bname);
-  mrb_str_cat_cstr(mrb, buffer, extname);
-  if (suffix && *suffix) {
-    mrb_int blen = RSTRING_LEN(buffer);
-    mrb_int slen = strlen(suffix);
-    if (blen > slen && memcmp(RSTRING_PTR(buffer) + blen - slen, suffix, slen) == 0) {
-      mrb_str_resize(mrb, buffer, blen - slen);
-    }
-  }
-  return buffer;
-#else
-  char *path;
+  const char *path;
   const char *suffix = NULL;
 
   mrb_get_args(mrb, "z|z", &path, &suffix);
 
-  // Copy path to a local buffer to avoid modifying the original string
-  size_t len = strlen(path);
-  if (len == 0) {
+  const char *endp = path + strlen(path);
+  if (path == endp) {
     return mrb_str_new_lit(mrb, ".");
   }
 
+#ifdef _WIN32
+  if (UNC_PATH_P(path)) {
+    path += 2;
+    SKIP_DIRSEP(path);
+    NEXT_DIRSEP(path); // skip server name
+    SKIP_DIRSEP(path);
+    NEXT_DIRSEP(path); // skip share name
+  }
+  else if (DRIVE_LETTER_P(path)) {
+    path += 2;
+    if (path == endp) {
+      return mrb_str_new_lit(mrb, "");
+    }
+  }
+#endif // _WIN32
+
   // Remove trailing slashes (except when path is only "/")
-  while (len > 1 && path[len - 1] == '/') {
-    len--;
+  while (path < endp && DIRSEP_P(endp[-1])) {
+    endp--;
   }
 
   // Find the last path separator
-  ssize_t base = len - 1;
-  while (base >= 0 && path[base] != '/') {
+  const char *base = endp;
+  while (path < base && !DIRSEP_P(base[-1])) {
     base--;
   }
-  base++; // move to the first character after '/'
 
   // If path is all slashes, return "/"
-  if ((size_t)base == len) {
+  if (base == endp) {
     return mrb_str_new_lit(mrb, "/");
   }
 
-  mrb_value result = mrb_str_new(mrb, path + base, len - base);
-
   // Suffix removal (CRuby compatible)
   if (suffix && *suffix) {
-    mrb_int blen = RSTRING_LEN(result);
+    mrb_int blen = endp - base;
     mrb_int slen = strlen(suffix);
-    if (blen > slen && memcmp(RSTRING_PTR(result) + blen - slen, suffix, slen) == 0) {
-      mrb_str_resize(mrb, result, blen - slen);
+    if (blen > slen && memcmp(endp - slen, suffix, slen) == 0) {
+      endp -= slen;
     }
   }
 
-  return result;
-#endif
+  return mrb_str_new(mrb, base, endp - base);
 }
 
 /*
@@ -658,18 +605,6 @@ mrb_file_absolute_path_p(mrb_state *mrb, mrb_value klass)
   return mrb_bool_value(path_absolute_p(RSTRING_CSTR(mrb, path)));
 }
 
-#define TIME_OVERFLOW_P(a) (sizeof(time_t) >= sizeof(mrb_int) && ((a) > MRB_INT_MAX || (a) < MRB_INT_MIN))
-#define TIME_T_UINT (~(time_t)0 > 0)
-#if defined(MRB_USE_BITINT)
-#define TIME_BIGTIME(mrb, a)                                                   \
-  return (TIME_T_UINT ? mrb_bint_new_uint64((mrb), (uint64_t)(a))              \
-               : mrb_bint_new_int64(mrb, (int64_t)(a)))
-#elif !defined(MRB_NO_FLOAT)
-#define TIME_BIGTIME(mrb,a) return mrb_float_value((mrb), (mrb_float)(a))
-#else
-#define TIME_BIGTIME(mrb, a) mrb_raise(mrb, E_IO_ERROR, #a " overflow")
-#endif
-
 static mrb_value
 mrb_file_atime(mrb_state *mrb, mrb_value self)
 {
@@ -679,10 +614,7 @@ mrb_file_atime(mrb_state *mrb, mrb_value self)
   mrb->c->ci->mid = 0;
   if (mrb_hal_io_fstat(mrb, fd, &st) == -1)
     mrb_sys_fail(mrb, "atime");
-  if (TIME_OVERFLOW_P(st.st_atime)) {
-    TIME_BIGTIME(mrb, st.st_atime);
-  }
-  return mrb_int_value(mrb, (mrb_int)st.st_atime);
+  return mrb_int_value(mrb, st.st_atime);
 }
 
 static mrb_value
@@ -694,10 +626,7 @@ mrb_file_ctime(mrb_state *mrb, mrb_value self)
   mrb->c->ci->mid = 0;
   if (mrb_hal_io_fstat(mrb, fd, &st) == -1)
     mrb_sys_fail(mrb, "ctime");
-  if (TIME_OVERFLOW_P(st.st_ctime)) {
-    TIME_BIGTIME(mrb, st.st_ctime);
-  }
-  return mrb_int_value(mrb, (mrb_int)st.st_ctime);
+  return mrb_int_value(mrb, st.st_ctime);
 }
 
 static mrb_value
@@ -709,12 +638,14 @@ mrb_file_mtime(mrb_state *mrb, mrb_value self)
   mrb->c->ci->mid = 0;
   if (mrb_hal_io_fstat(mrb, fd, &st) == -1)
     mrb_sys_fail(mrb, "mtime");
-  if (TIME_OVERFLOW_P(st.st_mtime)) {
-    TIME_BIGTIME(mrb, st.st_mtime);
-  }
-  return mrb_int_value(mrb, (mrb_int)st.st_mtime);
+  return mrb_int_value(mrb, st.st_mtime);
 }
 
+#ifndef MRB_HAL_IO_HAS_FLOCK
+/* this port has no file locking: unimplemented, and named as such so
+   `respond_to?` can answer false */
+# define mrb_file_flock mrb_notimplement_m
+#else
 /*
  * call-seq:
  *   file.flock(locking_constant) -> 0 or false
@@ -729,9 +660,6 @@ mrb_file_mtime(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_file_flock(mrb_state *mrb, mrb_value self)
 {
-#if defined(sun)
-  mrb_raise(mrb, E_NOTIMP_ERROR, "flock is not supported on Illumos/Solaris/Windows");
-#else
   mrb_int operation;
 
   mrb_get_args(mrb, "i", &operation);
@@ -755,9 +683,9 @@ mrb_file_flock(mrb_state *mrb, mrb_value self)
         break;
     }
   }
-#endif
   return mrb_fixnum_value(0);
 }
+#endif
 
 /*
  * call-seq:
@@ -775,22 +703,7 @@ mrb_file_size(mrb_state *mrb, mrb_value self)
   if (mrb_hal_io_fstat(mrb, fd, &st) == -1) {
     mrb_sys_fail(mrb, "fstat");
   }
-
-  if (sizeof(st.st_size) >= sizeof(mrb_int) && st.st_size > MRB_INT_MAX) {
-#ifdef MRB_NO_FLOAT
-    mrb_raise(mrb, E_RUNTIME_ERROR, "File#size too large for MRB_NO_FLOAT");
-#else
-    return mrb_float_value(mrb, (mrb_float)st.st_size);
-#endif
-  }
-
-  return mrb_int_value(mrb, (mrb_int)st.st_size);
-}
-
-static int
-mrb_ftruncate(mrb_state *mrb, int fd, mrb_int length)
-{
-  return mrb_hal_io_ftruncate(mrb, fd, (int64_t)length);
+  return mrb_int_value(mrb, st.st_size);
 }
 
 /*
@@ -810,13 +723,14 @@ mrb_file_truncate(mrb_state *mrb, mrb_value self)
   mrb_value lenv = mrb_get_arg1(mrb);
   int fd = mrb_io_fileno(mrb, self);
   mrb_int length = mrb_as_int(mrb, lenv);
-  if (mrb_ftruncate(mrb, fd, length) != 0) {
+  if (mrb_hal_io_ftruncate(mrb, fd, length) != 0) {
     mrb_sys_fail(mrb, "ftruncate");
   }
 
   return mrb_fixnum_value(0);
 }
 
+#ifdef MRB_HAL_IO_HAS_SYMLINK
 /*
  * call-seq:
  *   File.symlink(old_name, new_name) -> 0
@@ -842,6 +756,11 @@ mrb_file_s_symlink(mrb_state *mrb, mrb_value klass)
   mrb_locale_free(dst);
   return mrb_fixnum_value(0);
 }
+#else
+/* this port has no symbolic links: unimplemented, and named as such so
+   `respond_to?` can answer false */
+# define mrb_file_s_symlink mrb_notimplement_m
+#endif
 
 /*
  * call-seq:
@@ -865,7 +784,7 @@ mrb_file_s_chmod(mrb_state *mrb, mrb_value klass)
     mrb_ensure_string_type(mrb, filenames[i]);
     const char *utf8_path = RSTRING_CSTR(mrb, filenames[i]);
     char *path = mrb_locale_from_utf8(utf8_path, -1);
-    if (mrb_hal_io_chmod(mrb, path, (uint32_t)mode) == -1) {
+    if (mrb_hal_io_chmod(mrb, path, mode) == -1) {
       mrb_locale_free(path);
       mrb_sys_fail(mrb, utf8_path);
     }
@@ -876,6 +795,11 @@ mrb_file_s_chmod(mrb_state *mrb, mrb_value klass)
   return mrb_fixnum_value(argc);
 }
 
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
+
+#ifdef MRB_HAL_IO_HAS_SYMLINK
 /*
  * call-seq:
  *   File.readlink(link_name) -> string
@@ -885,10 +809,6 @@ mrb_file_s_chmod(mrb_state *mrb, mrb_value klass)
  *   File.symlink("testfile", "link-to-test") #=> 0
  *   File.readlink("link-to-test")          #=> "testfile"
  */
-#ifndef PATH_MAX
-#define PATH_MAX 4096
-#endif
-
 static mrb_value
 mrb_file_s_readlink(mrb_state *mrb, mrb_value klass)
 {
@@ -900,7 +820,7 @@ mrb_file_s_readlink(mrb_state *mrb, mrb_value klass)
   /* Use mrb_temp_alloc for exception safety - GC will clean up on exception */
   char *buf = (char*)mrb_temp_alloc(mrb, PATH_MAX);
 
-  int64_t rc = mrb_hal_io_readlink(mrb, tmp, buf, PATH_MAX);
+  mrb_int rc = mrb_hal_io_readlink(mrb, tmp, buf, PATH_MAX);
   mrb_locale_free(tmp);
   if (rc == -1) {
     mrb_sys_fail(mrb, path);
@@ -912,6 +832,9 @@ mrb_file_s_readlink(mrb_state *mrb, mrb_value klass)
 
   return ret;
 }
+#else
+# define mrb_file_s_readlink mrb_notimplement_m
+#endif
 
 /*
  * call-seq:

@@ -104,6 +104,17 @@ assert('Hash#fetch') do
   end
 end
 
+assert("Hash - a frozen receiver of a call that writes nothing") do
+  # Each of these leaves the hash as it was and used to return before the
+  # write that carries the frozen check.
+  assert_raise(FrozenError) { {a: 1}.freeze.merge!({}) { |*x| x } }
+  assert_raise(FrozenError) { {}.freeze.delete_if { true } }
+  assert_raise(FrozenError) { {}.freeze.keep_if { true } }
+  assert_raise(FrozenError) { {a: 1}.freeze.delete_if { false } }
+  assert_raise(FrozenError) { {a: 1}.freeze.keep_if { true } }
+  assert_raise(FrozenError) { {}.freeze.transform_values! { |v| v } }
+end
+
 assert("Hash#delete_if") do
   base = { 1 => 'one', 2 => false, true => 'true', 'cat' => 99 }
   h1   = { 1 => 'one', 2 => false, true => 'true' }
@@ -314,4 +325,13 @@ assert("Hash#except") do
   assert_equal({:b=>200, :c=>300}, h.except(:a))
   assert_equal({:a=>100}, h.except(:b, :c, :d))
   assert_equal(h, h.except)
+  assert_not_same(h, h.except)
+
+  # as in CRuby, the result is a plain Hash without the receiver's default
+  h2 = Class.new(Hash).new
+  h2[:a] = 1
+  assert_equal(Hash, h2.except.class)
+  h3 = { a: 1 }
+  h3.default = 42
+  assert_nil(h3.except(:a).default)
 end

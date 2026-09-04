@@ -2,9 +2,14 @@
 # String ISO Test
 
 UTF8STRING = __ENCODING__ == "UTF-8"
+UNICODECASE = "\u00C4".downcase == "\u00E4"
 
 assert('String', '15.2.10') do
   assert_equal Class, String.class
+end
+
+assert('RSTRING_CSTR with a non-terminated static string') do
+  assert_true Mrbtest.nofree_cstr?
 end
 
 assert('String#<=>', '15.2.10.5.1') do
@@ -78,6 +83,31 @@ assert('String#[](UTF-8)', '15.2.10.5.6') do
   assert_equal "世", "こんにちは世界"["世"]
 end if UTF8STRING
 
+assert('String#[](UTF-8) indexes a byte that spells no character on its own') do
+  # Such a byte is a position of its own, which is what String#length counts
+  # it as, and it takes that one position beside whole characters too.
+  s = "\xED\xA0\x80"
+  assert_equal "\xED", s[0]
+  assert_equal "\xA0", s[1]
+  assert_equal "\x80", s[2]
+  assert_nil s[3]
+  assert_equal "\xA0\x80", s[1, 2]
+  assert_equal "b", "a\xE3\x81b"[3]
+  assert_equal "\x80", "あ\x80"[1]
+  assert_equal "あ", "\x80あ"[1]
+end if UTF8STRING
+
+assert('String#[](UTF-8) counts a negative index back from the end') do
+  # Stepping back off the first character leaves the string, so a negative
+  # index reaching past the head names no position rather than wrapping to
+  # one. The length the range asks for is clamped to what is left after it.
+  assert_equal "あ", "あい"[-2]
+  assert_nil "あい"[-3]
+  assert_equal "あ", "あい"[-2, 1]
+  assert_nil "あい"[-3, 1]
+  assert_equal "あい", "あい"[-2, 5]
+end if UTF8STRING
+
 assert('String#[] with Range') do
   a1 = 'abc'[1..0]
   b1 = 'abc'[1..1]
@@ -124,6 +154,121 @@ assert('String#[] with Range') do
   assert_nil i2
   assert_equal 'bc', j2
   assert_equal 'xyz', k2
+end
+
+assert('String#[] redefined on String itself reaches the redefinition') do
+  # `OP_GETIDX` answers `s[1]` from C, and `OP_GETIDX0` answers `s[0]` the same
+  # way, whenever the receiver's class is exactly `String`. Answering from C is
+  # allowed only while `String#[]` is still the builtin those opcodes
+  # reimplement, so both test the receiver against `mrb->idx_class[]`, which
+  # the method table drops the moment `String#[]` is replaced. A redefinition
+  # installed on `String` itself is therefore honored, as in CRuby, and not
+  # only the subclass and singleton receivers that already failed the class
+  # test for the other reason.
+  String.class_eval do
+    alias_method :__aref_before_test, :[]
+    def [](*args)
+      :overridden
+    end
+  end
+  begin
+    s = 'hello'
+    sub = Class.new(String).new('hello')
+    assert_equal :overridden, s[0]
+    assert_equal :overridden, s[1]
+    assert_equal :overridden, sub[0]
+  ensure
+    String.class_eval do
+      alias_method :[], :__aref_before_test
+      # `remove_method` comes from mruby-metaprog, which the core test build
+      # does not have; the saved alias is harmless where it is missing.
+      remove_method :__aref_before_test if respond_to?(:remove_method, true)
+    end
+  end
+  # Aliasing the original implementation back makes `String#[]` resolve to it
+  # again, which re-arms the opcodes.
+  assert_equal 'h', 'hello'[0]
+  assert_equal 'e', 'hello'[1]
+end
+
+assert('String#[]= redefined on String itself reaches the redefinition') do
+  # `OP_SETIDX` answers `s[0] = 'X'` from C whenever the receiver's class is
+  # exactly `String`, on the same terms as the `[]` test above: it tests the
+  # receiver against `mrb->idx_class[]`, which the method table drops the
+  # moment `String#[]=` is replaced. A redefinition that stores nothing makes
+  # the difference visible in the receiver as well as in the return value.
+  String.class_eval do
+    alias_method :__aset_before_test, :[]=
+    def []=(*args)
+      $string_aset_redefinition_args = args
+    end
+  end
+  begin
+    s = 'hello'
+    s[0] = 'X'
+    seen = $string_aset_redefinition_args
+    untouched = s.dup
+    sub = Class.new(String).new('hello')
+    sub[0] = 'X'
+    seen_sub = $string_aset_redefinition_args
+  ensure
+    String.class_eval do
+      alias_method :[]=, :__aset_before_test
+      # `remove_method` comes from mruby-metaprog, which the core test build
+      # does not have; the saved alias is harmless where it is missing.
+      remove_method :__aset_before_test if respond_to?(:remove_method, true)
+    end
+    $string_aset_redefinition_args = nil
+  end
+  assert_equal [0, 'X'], seen
+  assert_equal 'hello', untouched
+  assert_equal [0, 'X'], seen_sub
+  # Aliasing the original implementation back re-arms the opcode.
+  s = 'hello'
+  s[0] = 'X'
+  assert_equal 'Xello', s
+end
+
+assert('String#[]= answers the same through the opcode and through a send') do
+  # `s[x] = repl` is answered by `OP_SETIDX` in C, without a method lookup,
+  # while `s.[]=(x, repl)` reaches `String#[]=` itself. The opcode
+  # answers an Integer, String or Range index and a String replacement, and
+  # leaves every other form to the method, so ask both ways and compare the
+  # receiver each left behind.
+  [0, 1, 4, -1, -5].each do |i|
+    a = 'hello'; b = 'hello'
+    a[i] = 'X'
+    b.[]=(i, 'X')
+    assert_equal b, a, "s[#{i}] = 'X'"
+  end
+  ['h', 'll', 'hello', ''].each do |sub|
+    a = 'hello'; b = 'hello'
+    a[sub] = 'X'
+    b.[]=(sub, 'X')
+    assert_equal b, a, "s[#{sub.inspect}] = 'X'"
+  end
+  [0..2, 1...3, -3..-1, 0..-1, 2..99, 3..1].each do |r|
+    a = 'hello'; b = 'hello'
+    a[r] = 'X'
+    b.[]=(r, 'X')
+    assert_equal b, a, "s[#{r.inspect}] = 'X'"
+  end
+  # Each loop above compares the two forms with each other, so anchor one case
+  # of every index type to the result itself: a defect that made both forms
+  # store nothing would agree with itself.
+  a = 'hello'; a[1] = 'X'
+  assert_equal 'hXllo', a
+  a = 'hello'; a['ll'] = 'X'
+  assert_equal 'heXo', a
+  a = 'hello'; a[1..3] = 'X'
+  assert_equal 'hXo', a
+  # The forms the opcode leaves to the method raise what the method raises.
+  assert_raise(IndexError) { 'hello'[99] = 'X' }
+  assert_raise(IndexError) { 'hello'['zz'] = 'X' }
+  assert_raise(IndexError) { 'hello'[99..100] = 'X' }
+  assert_raise(TypeError) { 'hello'[0] = :sym }
+  assert_raise(TypeError) { 'hello'[nil] = 'X' }
+  assert_raise(FrozenError) { 'hello'.freeze[0] = 'X' }
 end
 
 assert('String#[]=') do
@@ -259,6 +404,37 @@ assert('String[]=(UTF-8)') do
   assert_equal "➀➁➂➃➄", m
 end if UTF8STRING
 
+assert('String#[]= on a shared buffer') do
+  # Assigning to the empty range at the end appends, and an append writes
+  # only above what every other sharer of the buffer reads, so it stays in
+  # the buffer instead of taking a copy of it. The sharer must not see the
+  # bytes the string gained. Each string is shortened before it is shared, to
+  # leave spare capacity behind: one that has none cannot be grown in place
+  # anyway, so it would not tell the two behaviours apart.
+  a = "a" * 100 + "z" * 100
+  a[100, 100] = ""
+  a_slice = a[0, 60]
+  a[a.length, 0] = "1234567890"
+  assert_equal "a" * 100 + "1234567890", a
+  assert_equal "a" * 60, a_slice
+
+  # Assigning below the end writes where the sharer reads, so the buffer has
+  # to be taken away from it first.
+  b = "b" * 100 + "y" * 100
+  b[100, 100] = ""
+  b_slice = b[0, 60]
+  b[0, 1] = "1234567890"
+  assert_equal "1234567890" + "b" * 99, b
+  assert_equal "b" * 60, b_slice
+
+  # The loop that made growth at the end quadratic: the slice shares the
+  # buffer again on every turn, and the append past it stays in place.
+  c = ""
+  50.times { c[c.length, 0] = "0123456789012345678901234567890123456789"; c[0, 30] }
+  assert_equal 2000, c.length
+  assert_equal "0123456789012345678901234567890123456789", c[-40, 40]
+end
+
 assert('String#capitalize', '15.2.10.5.7') do
   a = 'abc'
   a.capitalize
@@ -274,6 +450,148 @@ assert('String#capitalize!', '15.2.10.5.8') do
   assert_equal 'Abc', a
   assert_equal nil, 'Abc'.capitalize!
 end
+
+assert('String#capitalize - Unicode') do
+  # The first character takes title case, which is not always its upper case.
+  assert_equal 'ǲ', 'ǳ'.capitalize
+  assert_equal 'Ǳ', 'ǳ'.upcase
+  # The rest takes lower case, whatever case it came in.
+  assert_equal 'ǲabc', 'ǳabc'.capitalize
+  assert_equal 'Aä', 'aÄ'.capitalize
+  # A mapping that spells more than one character.
+  assert_equal 'Fi', 'ﬁ'.capitalize
+  # Georgian Mkhedruli upper cases to Mtavruli and title cases to itself, so
+  # the two answers have to be told apart rather than shared.
+  assert_equal 'Ა', 'ა'.upcase
+  assert_equal 'ა', 'ა'.capitalize
+  assert_nil 'ა'.capitalize!
+end if UNICODECASE
+
+assert('String#downcase - Unicode') do
+  assert_equal 'äöü', 'ÄÖÜ'.downcase
+  # Word final sigma is a mapping that reads its neighbours, which neither
+  # this nor CRuby applies: both answer "σ" for the last one too.
+  assert_equal 'σοφοσ', 'ΣΟΦΟΣ'.downcase
+  # A mapping changes how many bytes a character takes: U+212A is three bytes
+  # and lower cases to the one of "k".
+  assert_equal 'k', "\u{212a}".downcase
+  assert_equal 1, "\u{212a}".downcase.bytesize
+  # And it can spell more characters than it was handed.
+  assert_equal "i\u{307}", 'İ'.downcase
+  assert_equal 2, 'İ'.downcase.length
+  # A script without case has nothing to map.
+  assert_equal '日本', '日本'.downcase
+  assert_nil '日本'.downcase!
+end if UNICODECASE
+
+assert('String case conversion - bytes that spell no character') do
+  # A run of bytes that spells no character has no case, and answering as
+  # though it were the byte it starts with would hand back a string nobody
+  # asked for, so the conversion refuses it.
+  broken = "\xC3ABC"
+  assert_raise(ArgumentError) { broken.downcase }
+  assert_raise(ArgumentError) { broken.upcase }
+  assert_raise(ArgumentError) { broken.capitalize }
+  assert_raise_with_message(ArgumentError, 'input string invalid') { broken.downcase }
+  # The receiver of a refused conversion stands as it was.
+  assert_raise(ArgumentError) { broken.downcase! }
+  assert_equal [195, 65, 66, 67], broken.bytes
+  # ASCII ahead of the broken run does not save it, and neither does a
+  # conversion that would have changed nothing.
+  assert_raise(ArgumentError) { "abc\x80".downcase }
+  assert_raise(ArgumentError) { "\x80".downcase }
+end if UNICODECASE
+
+assert('String#upcase - Unicode') do
+  assert_equal 'ÄÖÜ', 'äöü'.upcase
+  assert_equal 'ΣΟΦΟΣ', 'σοφος'.upcase
+  # A mapping that spells more than one character.
+  assert_equal 'SS', 'ß'.upcase
+  assert_equal 2, 'ß'.upcase.length
+  assert_equal 'FI', 'ﬁ'.upcase
+  # And one that shortens: U+0131 is two bytes and upper cases to "I".
+  assert_equal 'I', 'ı'.upcase
+  assert_equal 1, 'ı'.upcase.bytesize
+  assert_equal '日本', '日本'.upcase
+  assert_nil '日本'.upcase!
+end if UNICODECASE
+
+assert('String#upcase - an answer that outgrows an embedded buffer') do
+  # U+0390 is two bytes and upper cases to six, so a string short enough to
+  # live inside its own object converts to one that cannot. The answer is
+  # built beside the string, and a buffer that leaves an object carries over
+  # what the object says it holds: the walk has to say how much it has
+  # written, or the bytes written so far are dropped where the buffer moves.
+  assert_equal "Ϊ́" * 4, ("ΐ" * 4).upcase
+  assert_equal 24, ("ΐ" * 4).upcase.bytesize
+  # The same crossing one character at a time, so wherever the boundary of an
+  # embedded string falls, some length below walks over it.
+  1.upto(12) do |n|
+    assert_equal "Ϊ́" * n, ("ΐ" * n).upcase
+  end
+end if UNICODECASE
+
+assert('String#downcase - a receiver above the embedded buffer') do
+  # A receiver too long to live inside its own object holds its bytes in a
+  # heap (or shared) buffer that str_replace() has to release rather than
+  # overwrite, and the coderange the walk sets has to survive the copy that
+  # hands the converted buffer to the receiver.
+  long = "ÄÖÜ" * 20
+  assert_equal 60, long.downcase.length
+  assert_equal "äöü" * 20, long.downcase
+end if UNICODECASE
+
+assert('String case conversion - a frozen receiver') do
+  # upcase! and capitalize! find nothing to change in 'Ä' and would answer
+  # nil without the walk's own mrb_check_frozen(), so they are what pins it.
+  # downcase! changes the character and raises from str_replace() further in,
+  # so it answers FrozenError whether or not that check is there.
+  assert_raise(FrozenError) { 'Ä'.freeze.upcase! }
+  assert_raise(FrozenError) { 'Ä'.freeze.downcase! }
+  assert_raise(FrozenError) { 'Ä'.freeze.capitalize! }
+  # An all-ASCII receiver never enters the walk and raises from the ASCII
+  # loop's own mrb_str_modify_keep_cr() instead.
+  assert_raise(FrozenError) { 'AB'.freeze.downcase! }
+end if UNICODECASE
+
+assert('String case conversion - a receiver sharing its buffer') do
+  # A copy above the embedded buffer shares the bytes of what it was copied
+  # from, and the walk reads them where they are rather than unsharing first.
+  # Converting the copy must leave the original holding what it held, and a
+  # copy the walk finds nothing to change in must still read as what it was.
+  src = "ÄÖÜ" * 20
+  copy = src.dup
+  assert_equal "äöü" * 20, copy.downcase!
+  assert_equal "ÄÖÜ" * 20, src
+  copy = src.dup
+  assert_nil copy.upcase!
+  assert_equal "ÄÖÜ" * 20, copy
+  assert_equal "ÄÖÜ" * 20, src
+  # A literal above the embedded buffer can read its bytes from the program
+  # itself, and lets go of them the same way, without freeing them.
+  assert_equal "äöüäöüäöüäöüäöüäöüäöüäöüäöüäöü", "ÄÖÜÄÖÜÄÖÜÄÖÜÄÖÜÄÖÜÄÖÜÄÖÜÄÖÜÄÖÜ".downcase!
+end if UNICODECASE
+
+assert('String case conversion - ASCII only') do
+  # The other reading of case: a build that converts by ASCII, whether by
+  # MRB_USE_ASCII_CTYPE or by reading its strings as bytes, has no mapping above
+  # ASCII, so a character that has one on the Unicode side stands as it was
+  # while the ASCII beside it still converts.
+  assert_equal 'Ä', 'Ä'.downcase
+  assert_equal 'ä', 'ä'.upcase
+  assert_equal 'Ä', 'Ä'.capitalize
+  assert_equal 'äb', 'äB'.downcase
+  assert_equal 'ÄB', 'Äb'.upcase
+  assert_equal 'Äb', 'ÄB'.capitalize
+  # A conversion that maps nothing is one that changed nothing.
+  assert_nil 'Ä'.downcase!
+  assert_nil 'ä'.upcase!
+  assert_nil 'Ä'.capitalize!
+  # Refusing a run of bytes that spells no character belongs to the walk over
+  # characters; a walk that only knows ASCII hands the bytes back untouched.
+  assert_equal [195, 97, 98, 99], "\xC3ABC".downcase.bytes
+  assert_equal [195, 65, 66, 67], "\xC3ABC".upcase.bytes
+end unless UNICODECASE
 
 assert('String#chomp', '15.2.10.5.9') do
   a = 'abc'.chomp
@@ -292,6 +610,20 @@ assert('String#chomp', '15.2.10.5.9') do
   assert_equal 'abc', e
   assert_equal "abc\n", f
 end
+
+assert('String#chomp does not cut inside a character') do
+  # The separator is matched byte by byte, so it can line up with the tail of
+  # a character rather than a character of its own. Cutting there would leave
+  # a string that is not UTF-8, so it counts as no match.
+  assert_equal "あ", "あ".chomp("\x82")
+  assert_equal "あ", "あ".chomp("\x81\x82")
+  assert_equal "あい", "あい".chomp("\x84")
+  assert_equal "aあ", "aあ".chomp("\x82")
+  assert_nil "あ".chomp!("\x82")
+  # a separator that is a whole character still cuts
+  assert_equal "", "あ".chomp("あ")
+  assert_equal "あ", "あい".chomp("い")
+end if UTF8STRING
 
 assert('String#chomp!', '15.2.10.5.10') do
   a = 'abc'
@@ -359,6 +691,22 @@ assert('String#chop!(UTF-8)', '15.2.10.5.12') do
   assert_equal a, ''
   assert_equal b, 'あいうえ'
   assert_equal c, 'あいう'
+end if UTF8STRING
+
+assert('String#chop! cuts where String#length counts a character') do
+  # The last character starts where the character covering the last byte
+  # starts, and a byte that no lead byte reaches is a character of its own.
+  assert_equal "あ", "あ\x82".chop
+  assert_equal "\x80\x80", "\x80\x80\x80".chop
+  # A sequence RFC 3629 forbids spells no character, so its bytes stand alone.
+  assert_equal "\xC0", "\xC0\x80".chop
+  assert_equal "\xED\xA0", "\xED\xA0\x80".chop
+  # A lead byte the string end cuts short reaches none of the bytes after it.
+  assert_equal "a\xE3", "a\xE3\x81".chop
+  # a whole character still goes at once, however many bytes it spells
+  assert_equal "", "\u{1F600}".chop
+  # and the \r\n pair is still taken together after one
+  assert_equal "あ", "あ\r\n".chop
 end if UTF8STRING
 
 assert('String#downcase', '15.2.10.5.13') do
@@ -471,6 +819,20 @@ assert('String#index', '15.2.10.5.22') do
   assert_raise(TypeError) { "hello".index(101) }
 end
 
+assert('String#index over a subject longer than one search word') do
+  # A needle of two bytes or more in a subject long enough to be read a word
+  # at a time is searched in two parts: whole words first, then the bytes past
+  # the last whole one, one at a time.  The cases above are all shorter than a
+  # word, so they only ever reach the second part; these place the same needle
+  # on either side of the seam, and past the seam at the last position it can
+  # start at.
+  head = 'x' * 100
+  assert_equal 100, (head + 'needle' + head).index('needle')
+  assert_equal 100, (head + 'needle' + 'x').index('needle')
+  assert_equal 100, (head + 'ne').index('ne')
+  assert_nil (head + head).index('needle')
+end
+
 assert('String#index(UTF-8)', '15.2.10.5.22') do
   assert_equal 0, '⓿➊➋➌➍➎'.index('⓿')
   assert_nil '⓿➊➋➌➍➎'.index('➓')
@@ -478,8 +840,11 @@ assert('String#index(UTF-8)', '15.2.10.5.22') do
   assert_equal 6, '⓿➊➋➌➍➎⓿➊➋➌➍➎'.index('⓿', -7)
   assert_equal 6, "⓿➊➋➌➍➎".index("", 6)
   assert_equal nil, "⓿➊➋➌➍➎".index("", 7)
-  assert_equal 0, '⓿➊➋➌➍➎'.index("\xe2")
-  assert_equal nil, '⓿➊➋➌➍➎'.index("\xe3")
+  # A needle whose bytes spell no character is found nowhere; the
+  # byte-indexed counterparts live in mruby-string-ext's tests, where
+  # String#b is available to write them.
+  assert_nil '⓿➊➋➌➍➎'.index("\xe2")
+  assert_nil '⓿➊➋➌➍➎'.index("\xe3")
   assert_equal 6, "\xd1\xd1\xd1\xd1\xd1\xd1⓿➊➋➌➍➎".index('⓿')
 end if UTF8STRING
 
@@ -506,6 +871,31 @@ end
 assert('String#length', '15.2.10.5.26') do
   assert_equal 3, 'abc'.length
 end
+
+assert('String#length(UTF-8)', '15.2.10.5.26') do
+  assert_equal 3, 'あいう'.length
+
+  # A substring too long to embed shares the parent's buffer, so the byte
+  # after its last one belongs to the parent instead of terminating it.
+  s = ('あ' * 40)[0, 20]
+  assert_equal 60, s.bytesize
+  assert_equal 20, s.length
+  assert_nil s[20]
+  assert_equal 20, ('あ' * 40)[10, 20].length
+  assert_equal 10, ("\u{1F600}" * 20)[0, 10].length
+
+  # These answered correctly all along: a substring short enough to embed is
+  # copied and terminated, one reaching the parent's end stops at the parent's
+  # terminator, and a run of non-ASCII bytes ends on an ASCII one.
+  assert_equal 2, ('あ' * 40)[0, 2].length
+  assert_equal 20, ('あ' * 40)[20, 20].length
+  assert_equal 20, ('aあ' * 30)[0, 20].length
+
+  # Cut in the middle of a character, the loose bytes count one each,
+  # whether the string ends in the parent's buffer or in its own.
+  assert_equal 21, ('あ' * 40).byteslice(0, 59).length
+  assert_equal 2, "\xe3\x81".length
+end if UTF8STRING
 
 # 'String#match', '15.2.10.5.27' will be tested in mrbgems.
 
@@ -555,6 +945,28 @@ assert('String#reverse!', '15.2.10.5.30') do
   assert_equal 'cba', 'abc'.reverse!
 end
 
+assert('String#reverse! - a frozen receiver') do
+  # A string of one character or none reverses into itself and returns
+  # without writing, which is where the frozen check used to sit.
+  assert_raise(FrozenError) { ''.freeze.reverse! }
+  assert_raise(FrozenError) { 'a'.freeze.reverse! }
+  assert_raise(FrozenError) { 'ab'.freeze.reverse! }
+end
+
+assert('String#reverse!(UTF-8) - a frozen receiver') do
+  # One character of several bytes is the same early return, reached by the
+  # character count rather than the byte count.
+  assert_raise(FrozenError) { 'あ'.freeze.reverse! }
+end if UTF8STRING
+
+assert('String - a frozen receiver of an empty splice at the end') do
+  # The empty splice at the end is handed to mrb_str_cat() as an append of
+  # no bytes, whose frozen check covers what the callers used to ask.
+  assert_raise(FrozenError) { 'abc'.freeze.bytesplice(3, 0, '') }
+  s = 'abc'.freeze
+  assert_raise(FrozenError) { s[3, 0] = '' }
+end
+
 assert('String#reverse!(UTF-8)', '15.2.10.5.30') do
   a = 'こんにちは世界!'
   a.reverse!
@@ -596,6 +1008,92 @@ assert('String#rindex(UTF-8)', '15.2.10.5.31') do
   assert_equal  3, broken.rindex("☁", 10)
 end if UTF8STRING
 
+assert('String#rindex reaches the first character from a negative position') do
+  # A negative `pos` counts characters back from the end, so minus the length
+  # names the first character rather than a step past it.
+  assert_equal 0, "あいう".rindex("あ", -3)
+  assert_nil "あいう".rindex("あ", -4)
+  assert_equal 3, "あいうあ".rindex("あ", -1)
+  assert_equal 0, "あいうあ".rindex("あ", -4)
+  assert_nil "あいうあ".rindex("あ", -5)
+end if UTF8STRING
+
+assert('String#rindex steps by the characters String#length counts') do
+  # A byte that no lead byte reaches spells no character with its neighbours,
+  # so it is one position of its own, which is what #length counts it as.
+  str = "あ\x80x"
+  assert_equal 3, str.length
+  assert_equal 0, str.rindex("あ", -2)
+  # The byte is a position of its own, but a needle spelling no character is
+  # found nowhere, so neither direction reports it. They agree, which is what
+  # this block is about.
+  assert_nil str.rindex("\x80")
+  assert_equal str.index("\x80"), str.rindex("\x80")
+
+  # Searching backward from `pos` may not answer a position after it.
+  assert_nil str.rindex("x", 1)
+  assert_equal 2, str.rindex("x", 2)
+
+  # A sequence RFC 3629 forbids spells no character either, and its bytes
+  # stand alone the same way.
+  assert_equal 3, "\xC0\x80a".length
+  assert_nil "\xC0\x80a".rindex("\xC0")
+  assert_nil "\xC0\x80a".rindex("\x80")
+  assert_equal 3, "\xED\xA0\x80".length
+  assert_nil "\xED\xA0\x80".rindex("\x80")
+
+  # A lead byte the string end cuts short reaches none of the bytes that
+  # follow it, so those stand alone too.
+  assert_equal 3, "a\xE3\x81".length
+  assert_nil "a\xE3\x81".rindex("\xE3")
+  assert_nil "a\xE3\x81".rindex("\x81")
+end if UTF8STRING
+
+assert('a byte search refuses an offset inside a character') do
+  # An offset that lands inside a character names no position the string has,
+  # so searching from it is refused rather than started from the middle of
+  # one. The boundaries are the ones #length counts over.
+  s = "aあb"          # 61 E3 81 82 62; boundaries 0, 1, 4, 5
+  assert_equal 4, s.byteindex("b", 1)
+  assert_equal 4, s.byteindex("b", 4)
+  assert_raise(IndexError) { s.byteindex("b", 2) }
+  assert_raise(IndexError) { s.byteindex("b", 3) }
+  assert_raise(IndexError) { s.byterindex("a", 2) }
+  # a negative offset is counted from the end first, then asked the same
+  assert_equal 4, s.byteindex("b", -1)
+  assert_raise(IndexError) { s.byteindex("b", -2) }
+  # past either end is out of range rather than off a boundary
+  assert_nil s.byteindex("b", 6)
+  assert_nil s.byteindex("b", -6)
+  assert_equal 0, s.byterindex("a", 99)
+  # ASCII has a boundary at every byte, and so does a byte-indexed string
+  assert_equal 2, "abc".byteindex("c", 1)
+end if UTF8STRING
+
+assert('String#byterindex searches bytes') do
+  # `byterindex` answers byte positions, so it walks bytes the way
+  # `byteindex` does. Walking characters instead, it passed over every byte
+  # inside a multi-byte sequence and reported nothing there.
+  str = "aあb" # "\x61\xe3\x81\x82\x62"
+  assert_equal 4, str.byterindex("b")
+  # Whatever a needle that spells no character answers, the two directions
+  # answer it alike, which is what this block is about. On a UTF-8 build that
+  # is nil, since such a needle names nothing to look for; the byte search
+  # itself is asked of a byte-indexed subject in mruby-string-ext's tests,
+  # where String#b is available to write one.
+  assert_equal str.byteindex("\x81"), str.byterindex("\x81")
+  if UTF8STRING
+    assert_nil str.byterindex("\xe3")
+    assert_nil str.byterindex("\x81")
+    assert_nil str.byterindex("\x81", 1)
+  end
+
+  assert_equal 3, 'abcabc'.byterindex('a')
+  assert_equal 0, 'abcabc'.byterindex('a', 1)
+  assert_equal 6, 'abcabc'.byterindex('')
+  assert_nil 'abc'.byterindex('d')
+end
+
 # assert('String#scan', '15.2.10.5.32') do
 #   # Not implemented yet
 # end
@@ -609,6 +1107,31 @@ assert('String#size(UTF-8)', '15.2.10.5.33') do
   assert_equal 8, str.size
   assert_not_equal str.bytesize, str.size
   assert_equal 2, str[1, 2].size
+end if UTF8STRING
+
+assert('String#size(UTF-8) counts invalid sequences per byte') do
+  # RFC 3629: overlong forms, UTF-16 surrogates, and code points above
+  # U+10FFFF are not characters, so each of their bytes counts on its own
+  assert_equal 2, "\xC0\x80".size          # overlong NUL
+  assert_equal 3, "\xE0\x9F\xBF".size      # overlong (< U+0800)
+  assert_equal 3, "\xED\xA0\x80".size      # surrogate U+D800
+  assert_equal 4, "\xF0\x8F\xBF\xBF".size  # overlong (< U+10000)
+  assert_equal 4, "\xF4\x90\x80\x80".size  # above U+10FFFF
+  assert_equal 4, "\xF5\x80\x80\x80".size  # above U+10FFFF
+  assert_equal 1, "\u{D7FF}".size          # last code point before surrogates
+  assert_equal 1, "\u{E000}".size          # first code point after surrogates
+  assert_equal 1, "\u{10FFFF}".size        # largest valid code point
+end if UTF8STRING
+
+assert('String#size(UTF-8) counts a broken sequence beside whole characters') do
+  # The bytes of a broken sequence count one each wherever they sit, so a
+  # string that carries one counts more positions than it holds characters.
+  assert_equal 4, "abc\x80".size
+  assert_equal 4, "\x80abc".size
+  assert_equal 2, "あ\x80".size
+  assert_equal 2, "\x80あ".size
+  assert_equal 4, "a\xE3\x81b".size
+  assert_equal 4, "\u{1F600}\xC0\xAF\xC0".size
 end if UTF8STRING
 
 assert('String#slice', '15.2.10.5.34') do
@@ -723,6 +1246,10 @@ assert('String#to_f', '15.2.10.5.38') do
   assert_operator(12.3, :eql?, '1_2.3__4'.to_f)
   assert_operator(0.9, :eql?, '.9'.to_f)
   assert_operator(0.9, :eql?, "\t\r\n\f\v .9 \t\r\n\f\v".to_f)
+  # an extremely long digit string must not overflow the truncated-digit
+  # counter; the value is far beyond Float range, so it saturates to
+  # Infinity instead of triggering signed-overflow UB (#6958)
+  assert_operator(Float::INFINITY, :eql?, ('9' * 200000).to_f)
 end if Object.const_defined?(:Float)
 
 assert('String#to_i', '15.2.10.5.39') do
@@ -779,10 +1306,12 @@ end
 assert('String#inspect', '15.2.10.5.46') do
   assert_equal "\"\\x00\"", "\0".inspect
   assert_equal "\"foo\"", "foo".inspect
+  # a byte spelled out as hex reads out in upper case, the way CRuby writes it
+  assert_equal "\"\\xAB\"", "\xAB".inspect
   if UTF8STRING
     assert_equal '"る"', "る".inspect
   else
-    assert_equal '"\xe3\x82\x8b"', "る".inspect
+    assert_equal '"\xE3\x82\x8B"', "る".inspect
   end
 
   # should not raise an exception - regress #1210
@@ -966,7 +1495,11 @@ assert('String#bytesplice') do
 
   # check the overflow to index and length (to be pass without crash)
   assert_nothing_raised { "0123456789".bytesplice(8, ~(-1 << 31), "ab") } # for MRB_INT32
-  assert_nothing_raised { begin; "0123456789".bytesplice(8, ~(-1 << 63), "ab"); rescue ArgumentError, RangeError; end } # for MRB_INT64
+  # The shift width comes from a variable because `1 << 63` written out is
+  # constant folded, and the fold fails while this file is compiled on
+  # MRB_INT32 without bigint, dropping every test in it.
+  shift = 63
+  assert_nothing_raised { begin; "0123456789".bytesplice(8, ~(-1 << shift), "ab"); rescue ArgumentError, RangeError; end } # for MRB_INT64
 
   # check the negative index
   assert_equal "0ab3456789", "0123456789".bytesplice(-9, 2, "ab")
@@ -978,4 +1511,44 @@ assert('String#bytesplice') do
 
   # with an empty string
   assert_equal "012789", "0123456789".bytesplice(3, 4, "")
+end
+
+assert('String#bytesplice on a shared buffer') do
+  # A longer replacement grows the string and then writes from `idx1`, which
+  # a string sharing the same buffer still reads, so growing has to take the
+  # buffer away from it. Each string is shortened before it is shared, to
+  # leave spare capacity behind: one that has none cannot be grown in place
+  # anyway, so it would not tell the two behaviours apart.
+  a = "a" * 100 + "z" * 100
+  a.bytesplice(100, 100, "")
+  a_slice = a[0, 60]
+  a.bytesplice(0, 1, "1234567890")
+  assert_equal "1234567890" + "a" * 99, a
+  assert_equal "a" * 60, a_slice
+
+  # The sharer is the one that grows, ending below what its parent holds.
+  # Contract rather than detection: that is already the case where a growth
+  # keeping the buffer would have to take a copy regardless.
+  b = "b" * 100 + "y" * 100
+  b.bytesplice(100, 100, "")
+  b_slice = b[0, 60]
+  b_slice.bytesplice(0, 1, "1234567890")
+  assert_equal "1234567890" + "b" * 59, b_slice
+  assert_equal "b" * 100, b
+
+  # Splicing the empty range at the end appends, and an append writes only
+  # above what the sharer reads, so it stays in the buffer.
+  c = "c" * 100 + "x" * 100
+  c.bytesplice(100, 100, "")
+  c_slice = c[0, 60]
+  c.bytesplice(c.bytesize, 0, "1234567890")
+  assert_equal "c" * 100 + "1234567890", c
+  assert_equal "c" * 60, c_slice
+
+  # The loop that made growth at the end quadratic: the slice shares the
+  # buffer again on every turn, and the append past it stays in place.
+  d = ""
+  50.times { d.bytesplice(d.bytesize, 0, "0123456789012345678901234567890123456789"); d[0, 30] }
+  assert_equal 2000, d.bytesize
+  assert_equal "0123456789012345678901234567890123456789", d.byteslice(-40, 40)
 end

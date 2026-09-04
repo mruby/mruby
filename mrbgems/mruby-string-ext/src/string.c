@@ -4,6 +4,7 @@
 #include <mruby/class.h>
 #include <mruby/string.h>
 #include <mruby/range.h>
+#include <mruby/numeric.h>
 #include <mruby/internal.h>
 
 #define ENC_ASCII_8BIT "ASCII-8BIT"
@@ -20,7 +21,17 @@ int_chr_binary(mrb_state *mrb, mrb_value num)
   }
   char c = (char)cp;
   mrb_value str = mrb_str_new(mrb, &c, 1);
-  RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+  /* A byte below 0x80 is a character of its own and the string is ASCII. Above
+     it the byte spells no UTF-8 character at all, so the string is not one
+     character per byte and saying that it is left every reader of the flag
+     handing the byte back as a character. What it is instead is a string read
+     by bytes, which is what MRB_STR_ENCODING_BINARY names. */
+  if (cp < 0x80) {
+    RSTR_CODERANGE_SET(mrb_str_ptr(str), MRB_STR_CODERANGE_7BIT);
+  }
+  else {
+    RSTR_ENCODING_SET(mrb_str_ptr(str), MRB_STR_ENCODING_BINARY);
+  }
   return str;
 }
 
@@ -33,13 +44,17 @@ int_chr_utf8(mrb_state *mrb, mrb_value num)
   mrb_int len;
   mrb_value str;
 
-  if (cp < 0 || 0x10FFFF < cp) {
+  /* A value outside the Unicode range spells no character and comes back as a
+     zero length. A surrogate does spell one to the encoder, because CRuby's
+     sprintf("%c") and pack("U") spell one; Integer#chr is where CRuby refuses
+     it, so the refusal belongs here rather than in the encoder. */
+  len = mrb_utf8_to_buf(utf8, cp);
+  if (len == 0 || (0xD800 <= cp && cp <= 0xDFFF)) {
     mrb_raisef(mrb, E_RANGE_ERROR, "%v out of char range", num);
   }
-  len = mrb_utf8_to_buf(utf8, (uint32_t)cp);
   str = mrb_str_new(mrb, utf8, len);
   if (len == 1) {
-    RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+    RSTR_CODERANGE_SET(mrb_str_ptr(str), MRB_STR_CODERANGE_7BIT);
   }
   return str;
 }
@@ -51,15 +66,21 @@ int_chr_utf8(mrb_state *mrb, mrb_value num)
  *
  *  Equivalent to `String#swapcase`, but modifies the receiver in
  *  place, returning *str*, or `nil` if no changes were made.
- *  Note: case conversion is effective only in ASCII region.
  */
 static mrb_value
 str_swapcase_bang(mrb_state *mrb, mrb_value str)
 {
+  int uc = mrb_str_case_convert_unicode(mrb, str, MRB_CASE_SWAP);
+  if (uc >= 0) return uc ? str : mrb_nil_value();
+
   int modify = 0;
   struct RString *s = mrb_str_ptr(str);
 
-  mrb_str_modify(mrb, s);
+  /* The loop below swaps ASCII letters and passes every other byte through, so
+     it puts ASCII where ASCII stood and leaves what the bytes read as standing.
+     That holds both where the walk above declined the string and where the
+     build carries no tables for it to walk with. */
+  mrb_str_modify_keep_cr(mrb, s);
   char *p = RSTRING_PTR(str);
   char *pend = p + RSTRING_LEN(str);
   while (p < pend) {
@@ -83,8 +104,10 @@ str_swapcase_bang(mrb_state *mrb, mrb_value str)
  *     str.swapcase   -> new_str
  *
  *  Returns a copy of *str* with uppercase alphabetic characters converted
- *  to lowercase and lowercase characters converted to uppercase.
- *  Note: case conversion is effective only in ASCII region.
+ *  to lowercase and lowercase characters converted to uppercase. A build that
+ *  reads a string as characters swaps every character Unicode gives a case,
+ *  which can spell more characters than it was handed ("ß" to "SS"); one that
+ *  reads it as bytes swaps ASCII letters alone.
  *
  *     "Hello".swapcase          #=> "hELLO"
  *     "cYbEr_PuNk11".swapcase   #=> "CyBeR_pUnK11"
@@ -95,6 +118,23 @@ str_swapcase(mrb_state *mrb, mrb_value self)
   mrb_value str = mrb_str_dup(mrb, self);
   str_swapcase_bang(mrb, str);
   return str;
+}
+
+/* Bytes that were read as bytes and go above ASCII spell no character in the
+   string they are spliced into, so they hand it the byte reading along with
+   themselves, the same as an append through mrb_str_cat_str(). ASCII bytes
+   read the same under any reading and move nothing. */
+static void
+str_mark_spliced_bytes(mrb_value recv, mrb_value src)
+{
+  struct RString *r = mrb_str_ptr(recv);
+  struct RString *s = mrb_str_ptr(src);
+
+  if (RSTR_BINARY_P(r) || !RSTR_BINARY_P(s)) return;
+  const char *p = RSTR_PTR(s);
+  const char *e = p + RSTR_LEN(s);
+  while (p < e && !(*p & 0x80)) p++;
+  if (p < e) RSTR_ENCODING_SET(r, MRB_STR_ENCODING_BINARY);
 }
 
 static void
@@ -114,7 +154,15 @@ str_concat(mrb_state *mrb, mrb_value self, mrb_value str, mrb_bool binary)
   }
   else
     mrb_ensure_string_type(mrb, str);
-  mrb_str_cat_str(mrb, self, str);
+  if (binary) {
+    /* append_as_bytes takes only the bytes of its argument, and a byte-read
+       receiver already reads everything as bytes, so neither lets the
+       argument's own reading move the receiver's. */
+    mrb_str_cat(mrb, self, RSTRING_PTR(str), RSTRING_LEN(str));
+  }
+  else {
+    mrb_str_cat_str(mrb, self, str);
+  }
 }
 
 static mrb_value
@@ -225,6 +273,9 @@ str_end_with(mrb_state *mrb, mrb_value self)
     mrb_value sub = argv[i];
     mrb_ensure_string_type(mrb, sub);
     mrb_gc_arena_restore(mrb, ai);
+    /* A suffix whose bytes are not the encoding it is taken to be in ends
+       nothing, the way one is found nowhere by String#index. */
+    if (!mrb_str_valid_encoding_p(mrb, sub)) continue;
     size_t len_l = RSTRING_LEN(self);
     size_t len_r = RSTRING_LEN(sub);
     if (len_l >= len_r) {
@@ -870,6 +921,190 @@ int_chr(mrb_state *mrb, mrb_value num)
   return mrb_nil_value();
 }
 
+/* String#succ steps the last character of a string, and it steps a run of
+   ASCII letters or digits the way an odometer does: the rightmost one that
+   can go up goes up, and one that cannot ('9', 'z', 'Z') wraps to the start of
+   its run and carries into the one before it. What a step did to a character
+   is one of these three, which is what CRuby's `enc_succ_char()` and
+   `enc_succ_alnum_char()` answer. */
+enum succ_step {
+  SUCC_NOT_CHAR,   /* not one this walk steps; left as it is, walk moves on */
+  SUCC_FOUND,      /* stepped in place; the walk is done */
+  SUCC_WRAPPED     /* wrapped to the start of its run; the walk carries on */
+};
+
+/* Where the character before `p` starts, and how many bytes the character at
+   `p` covers, in the reading the string has. A string read as bytes has a
+   character per byte, and so has every string of a build without
+   MRB_UTF8_STRING; a UTF-8 string steps by character, and a run of bytes in
+   it that spells no character has length 0 here, which is what the walks
+   below step over without touching. */
+static char*
+succ_prev_char(char *sbeg, char *p, char *e, mrb_bool chars)
+{
+#ifdef MRB_UTF8_STRING
+  if (chars) return (char*)mrb_utf8_char_head(sbeg, p - 1, e);
+#else
+  (void)sbeg; (void)e; (void)chars;
+#endif
+  return p - 1;
+}
+
+static mrb_int
+succ_char_len(char *p, char *e, mrb_bool chars)
+{
+#ifdef MRB_UTF8_STRING
+  if (chars) {
+    mrb_int len = mrb_utf8len(p, e);
+    return (len == 1 && (unsigned char)*p >= 0x80) ? 0 : len;
+  }
+#else
+  (void)p; (void)e; (void)chars;
+#endif
+  return 1;
+}
+
+#ifdef MRB_UTF8_STRING
+/* Whether `cp` is the code point that spells a character of `len` bytes after
+   the one at `p`: it is written there when it is. A surrogate spells no
+   character, and neither does the byte length growing, since a wider
+   character would move every character behind it. */
+static mrb_bool
+succ_utf8_write(char *p, mrb_int len, mrb_int cp)
+{
+  char buf[4];
+
+  if (0xD800 <= cp && cp <= 0xDFFF) return FALSE;
+  if (mrb_utf8_to_buf(buf, cp) != len) return FALSE;
+  memcpy(p, buf, len);
+  return TRUE;
+}
+
+/* The first character of each byte length, which is where a wrap of that
+   length goes back to when nothing before it is left to wrap to. */
+static const mrb_int succ_first_of_len[] = { 0, 0, 0x80, 0x800, 0x10000 };
+
+/* The code point after `cp`, over the surrogates, which spell no character. */
+static mrb_int
+succ_next_cp(mrb_int cp)
+{
+  return cp + 1 == 0xD800 ? 0xE000 : cp + 1;
+}
+#endif
+
+#if defined(MRB_UTF8_STRING) && !defined(MRB_USE_ASCII_CTYPE)
+/* Which letters and digits there are above ASCII, and where each run of them
+   starts, out of the Unicode character database. A build that reads its
+   strings as bytes has nothing above ASCII to ask about, and one narrowed by
+   MRB_USE_ASCII_CTYPE answers that nothing above ASCII is a letter or a
+   digit, which is the trade it already makes for case: the table is compiled
+   into neither. */
+#include "str_alnum.h"
+
+/* Which of the two the character `cp` is, or 0 for neither, and where the run
+   holding it starts. Nothing is both, so a run is as long as its kind goes,
+   and its start is what a wrap goes back to. */
+static uint32_t
+succ_alnum_run(mrb_int cp, mrb_int *start)
+{
+  size_t lo = 0, hi = STR_ALNUM_RUN_COUNT;
+
+  if (cp < STR_ALNUM_MIN) return 0;
+  while (hi - lo > 1) {
+    size_t mid = (lo + hi) / 2;
+    if ((mrb_int)(str_alnum_runs[mid] >> STR_ALNUM_MASK_BITS) <= cp) lo = mid;
+    else hi = mid;
+  }
+  *start = (mrb_int)(str_alnum_runs[lo] >> STR_ALNUM_MASK_BITS);
+  return str_alnum_runs[lo] & ((1u << STR_ALNUM_MASK_BITS) - 1);
+}
+#endif
+
+/* Step the character at `p` as an alphanumeric, which is what String#succ
+   looks for first. A letter or a digit steps within its own run: to the next
+   one of its kind where there is one, and where there is not, back to the
+   first of the run, leaving the run's carry (its first member, or the digit
+   after it) in `carry` for the character before it. Anything else, and every
+   byte of a string read as bytes, is not one.
+
+   Which characters those are above ASCII is str_alnum.h's to say, and it says
+   what CRuby's `enc_succ_alnum_char()` asks its encoding, so "ת" steps to
+   "אא" and "ｚ" to "ａ" with a carry. The step over one code point that is
+   not of the kind is CRuby's too: it is what takes "Ρ" to "Σ" over the
+   unassigned U+03A2. A build with no table above ASCII finds nothing there to
+   step, and the walk moves on to the character before it. */
+static enum succ_step
+succ_alnum(char *p, mrb_int len, char *carry, mrb_int *carry_len)
+{
+  unsigned char c = (unsigned char)*p;
+
+  if (len == 1) {
+    if (!ISALNUM(c)) return SUCC_NOT_CHAR;
+    *carry_len = 1;
+    if (c == '9') { *p = '0'; *carry = '1'; return SUCC_WRAPPED; }
+    if (c == 'z') { *p = 'a'; *carry = 'a'; return SUCC_WRAPPED; }
+    if (c == 'Z') { *p = 'A'; *carry = 'A'; return SUCC_WRAPPED; }
+    *p = (char)(c + 1);
+    return SUCC_FOUND;
+  }
+#if defined(MRB_UTF8_STRING) && !defined(MRB_USE_ASCII_CTYPE)
+  {
+    mrb_int l, start, first, next, cp = (mrb_int)mrb_utf8_decode(p, p + len, &l);
+    uint32_t kind = succ_alnum_run(cp, &start);
+    int step;
+
+    if (kind == 0) return SUCC_NOT_CHAR;
+
+    for (step = 0, next = cp; step < 2; step++) {
+      mrb_int at;
+      next = succ_next_cp(next);
+      if (succ_alnum_run(next, &at) == kind && succ_utf8_write(p, len, next)) {
+        return SUCC_FOUND;
+      }
+    }
+
+    /* Nothing of the kind is left at this byte length, so the run wraps. A
+       character alone in its run has nowhere to wrap to and is not one this
+       walk steps. */
+    first = start > succ_first_of_len[len] ? start : succ_first_of_len[len];
+    if (first == cp) return SUCC_NOT_CHAR;
+    succ_utf8_write(p, len, first);
+    *carry_len = mrb_utf8_to_buf(carry, kind == STR_ALNUM_DIGIT ? first + 1 : first);
+    return SUCC_WRAPPED;
+  }
+#else
+  return SUCC_NOT_CHAR;
+#endif
+}
+
+/* Step the character at `p` as a character, which is what String#succ falls
+   back to when the string holds no alphanumeric: the next one that spells a
+   character of the same byte length. A byte steps to the next byte and 0xFF
+   wraps to 0x00; a UTF-8 character steps to the next code point, over the
+   surrogates, and wraps to the first character of its byte length ("\u{7FF}"
+   to "\u{80}") where the next would take one more. */
+static enum succ_step
+succ_char(char *p, mrb_int len, mrb_bool chars)
+{
+#ifdef MRB_UTF8_STRING
+  if (chars) {
+    mrb_int l;
+    mrb_int cp = (mrb_int)mrb_utf8_decode(p, p + len, &l);
+    if (succ_utf8_write(p, len, succ_next_cp(cp))) return SUCC_FOUND;
+    succ_utf8_write(p, len, succ_first_of_len[len]);
+    return SUCC_WRAPPED;
+  }
+#else
+  (void)len; (void)chars;
+#endif
+  if ((unsigned char)*p == 0xFF) {
+    *p = 0;
+    return SUCC_WRAPPED;
+  }
+  (*p)++;
+  return SUCC_FOUND;
+}
+
 /*
  *  call-seq:
  *     string.succ    ->  string
@@ -882,77 +1117,68 @@ int_chr(mrb_state *mrb, mrb_value num)
 static mrb_value
 str_succ_bang(mrb_state *mrb, mrb_value self)
 {
-  mrb_value result;
-  const char *prepend;
   struct RString *s = mrb_str_ptr(self);
-
-  if (RSTRING_LEN(self) == 0)
-    return self;
+  mrb_int slen = RSTR_LEN(s);
+  char *sbeg, *e, *p, *last_alnum = NULL;
+  mrb_bool chars = FALSE, found_alnum = FALSE;
+  char carry[4] = { '\1' };
+  mrb_int carry_len = 1, carry_pos = 0;
+  enum succ_step step = SUCC_FOUND;
 
   mrb_str_modify(mrb, s);
-  mrb_int l = RSTRING_LEN(self);
-  unsigned char *p, *e, *b, *t;
-  b = p = (unsigned char*) RSTRING_PTR(self);
-  t = e = p + l;
-  *(e--) = 0;
+  if (slen == 0) return self;
+#ifdef MRB_UTF8_STRING
+  chars = !RSTR_BINARY_P(s);
+#endif
+  sbeg = RSTR_PTR(s);
+  e = sbeg + slen;
 
-  // find trailing ascii/number
-  while (e >= b) {
-    if (ISALNUM(*e))
+  /* The rightmost alphanumeric steps; one that wraps carries into the
+     alphanumeric before it, across whatever is not one, but a letter does not
+     carry into a digit nor a digit into a letter across such a gap: "1.9" is
+     "2.0" and "a-z" is "b-a", while "1-z" is "1-aa". */
+  p = e;
+  while (p > sbeg) {
+    mrb_int len;
+    p = succ_prev_char(sbeg, p, e, chars);
+    if (step == SUCC_NOT_CHAR && last_alnum &&
+        (ISALPHA(*last_alnum) ? ISDIGIT(*p) :
+         ISDIGIT(*last_alnum) ? ISALPHA(*p) : FALSE)) {
       break;
-    e--;
-  }
-  if (e < b) {
-    e = p + l - 1;
-    result = mrb_str_new_lit(mrb, "");
-  }
-  else {
-    // find leading letter of the ascii/number
-    b = e;
-    while (b > p) {
-      if (!ISALNUM(*b) || (ISALNUM(*b) && *b != '9' && *b != 'z' && *b != 'Z'))
-        break;
-      b--;
     }
-    if (!ISALNUM(*b))
-      b++;
-    result = mrb_str_new(mrb, (char*) p, b - p);
+    len = succ_char_len(p, e, chars);
+    if (len == 0) continue;
+    step = succ_alnum(p, len, carry, &carry_len);
+    if (step == SUCC_NOT_CHAR) continue;
+    if (step == SUCC_FOUND) return self;
+    last_alnum = p;
+    found_alnum = TRUE;
+    carry_pos = p - sbeg;
   }
 
-  while (e >= b) {
-    if (!ISALNUM(*e)) {
-      if (*e == 0xff) {
-        mrb_str_cat_lit(mrb, result, "\x01");
-        (*e) = 0;
-      }
-      else
-        (*e)++;
-      break;
+  /* No alphanumeric: the last character steps instead, and one that wraps
+     carries into the character before it. */
+  if (!found_alnum) {
+    p = e;
+    while (p > sbeg) {
+      mrb_int len;
+      p = succ_prev_char(sbeg, p, e, chars);
+      len = succ_char_len(p, e, chars);
+      if (len == 0) continue;
+      if (succ_char(p, len, chars) == SUCC_FOUND) return self;
+      carry_pos = p - sbeg;
     }
-    prepend = NULL;
-    if (*e == '9') {
-      if (e == b) prepend = "1";
-      *e = '0';
-    }
-    else if (*e == 'z') {
-      if (e == b) prepend = "a";
-      *e = 'a';
-    }
-    else if (*e == 'Z') {
-      if (e == b) prepend = "A";
-      *e = 'A';
-    }
-    else {
-      (*e)++;
-      break;
-    }
-    if (prepend) mrb_str_cat_cstr(mrb, result, prepend);
-    e--;
   }
-  result = mrb_str_cat(mrb, result, (char*) b, t - b);
-  l = RSTRING_LEN(result);
-  mrb_str_resize(mrb, self, l);
-  memcpy(RSTRING_PTR(self), RSTRING_PTR(result), l);
+
+  /* Everything that could carry has wrapped, so the carry goes in before the
+     leftmost character that did: "zz" to "aaa", "\xff\xff".b to
+     "\x01\x00\x00", and "\xff" read as UTF-8, which spells nothing to step,
+     to "\x01\xff". The carry of a wrap above ASCII is a character of that
+     run, so what goes in is as wide as it is: "ת" to "אא". */
+  mrb_str_resize(mrb, self, slen + carry_len);
+  sbeg = RSTR_PTR(s);
+  memmove(sbeg + carry_pos + carry_len, sbeg + carry_pos, slen - carry_pos);
+  memcpy(sbeg + carry_pos, carry, carry_len);
   return self;
 }
 
@@ -965,31 +1191,19 @@ str_succ(mrb_state *mrb, mrb_value self)
 }
 
 #ifdef MRB_UTF8_STRING
-extern const char mrb_utf8len_table[];
-
+/* Decodes the UTF-8 character starting at p, storing its byte length through
+   lenp when that is not NULL. mrb_utf8_decode() hands back a rejected
+   sequence as its lead byte over one byte; String treats that as an error. */
 MRB_INLINE mrb_int
-utf8code(mrb_state* mrb, const unsigned char* p, const unsigned char *e)
+utf8code(mrb_state* mrb, const unsigned char* p, const unsigned char *e, mrb_int *lenp)
 {
-  if (p[0] < 0x80) return p[0];
-
-  mrb_int len = mrb_utf8len_table[p[0]>>3];
-  if (p+len <= e && len > 1 && (p[1] & 0xc0) == 0x80) {
-    if (len == 2)
-      return ((p[0] & 0x1f) << 6) + (p[1] & 0x3f);
-    if ((p[2] & 0xc0) == 0x80) {
-      if (len == 3)
-        return ((p[0] & 0x0f) << 12) + ((p[1] & 0x3f) << 6)
-          + (p[2] & 0x3f);
-      if ((p[3] & 0xc0) == 0x80) {
-        if (len == 4)
-          return ((p[0] & 0x07) << 18) + ((p[1] & 0x3f) << 12)
-            + ((p[2] & 0x3f) << 6) + (p[3] & 0x3f);
-      }
-    }
+  mrb_int len;
+  uint32_t cp = mrb_utf8_decode((const char*)p, (const char*)e, &len);
+  if (lenp) *lenp = len;
+  if (len == 1 && p[0] >= 0x80) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid UTF-8 byte sequence");
   }
-  mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid UTF-8 byte sequence");
-  /* not reached */
-  return -1;
+  return (mrb_int)cp;
 }
 
 static mrb_value
@@ -1003,13 +1217,162 @@ str_ord(mrb_state* mrb, mrb_value str)
   if (p == e) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "empty string");
   }
-  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
+  if (RSTR_SINGLE_BYTE_P(s)) {
     c = p[0];
   }
   else {
-    c = utf8code(mrb, p, e);
+    c = utf8code(mrb, p, e, NULL);
   }
   return mrb_fixnum_value(c);
+}
+
+/* Returns the byte length of a valid UTF-8 char starting at p, or -1 for
+   any invalid sequence (illegal lead byte, truncated tail, invalid
+   continuation byte, overlong encoding, UTF-16 surrogate, or codepoint
+   above U+10FFFF). Like utf8code() but reports rather than raises. */
+static mrb_int
+str_scrub_char_len(const unsigned char *p, const unsigned char *e)
+{
+  mrb_int len = mrb_utf8len((const char*)p, (const char*)e);
+  if (len == 1 && p[0] >= 0x80) return -1;
+  return len;
+}
+
+/* The byte length of the maximal subpart at p, which is the longest prefix
+   that could still have grown into a well-formed sequence. Unicode 3.9 gives
+   one U+FFFD to each of those rather than one to a whole run of bad bytes, so
+   "\xE0\x80\xAF" is three replacements and a truncated "\xE3\x81" is one.
+   Only called where the sequence at p is known to be ill-formed. */
+static mrb_int
+str_scrub_subpart_len(const unsigned char *p, const unsigned char *e)
+{
+  unsigned char c = p[0], lo = 0x80, hi = 0xBF;
+  mrb_int want;
+
+  /* a byte that leads nothing stands alone, continuation bytes included */
+  if (c < 0xC2 || 0xF4 < c) return 1;
+  if (c < 0xE0)      want = 2;
+  else if (c < 0xF0) want = 3;
+  else               want = 4;
+  /* the second byte is the one whose range depends on the lead */
+  switch (c) {
+  case 0xE0: lo = 0xA0; break;
+  case 0xED: hi = 0x9F; break;
+  case 0xF0: lo = 0x90; break;
+  case 0xF4: hi = 0x8F; break;
+  }
+
+  mrb_int n = 1;
+  while (n < want && p + n < e) {
+    unsigned char b = p[n];
+    if (n == 1 ? (b < lo || hi < b) : (b < 0x80 || 0xBF < b)) break;
+    n++;
+  }
+  return n;
+}
+
+static void
+str_scrub_validate_replacement(mrb_state *mrb, mrb_value repl)
+{
+  const unsigned char *p = (const unsigned char*)RSTRING_PTR(repl);
+  const unsigned char *e = p + RSTRING_LEN(repl);
+  while (p < e) {
+    mrb_int len = str_scrub_char_len(p, e);
+    if (len < 0) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "replacement must be valid UTF-8");
+    }
+    p += len;
+  }
+}
+
+/* Core of String#scrub for the no-block case. Returns a new string with
+   each maximal run of invalid UTF-8 bytes replaced by `repl` (or U+FFFD
+   if `repl` is nil). Already-valid strings are returned via mrb_str_dup. */
+static mrb_value
+str_scrub_core(mrb_state *mrb, mrb_value self)
+{
+  mrb_value repl = mrb_nil_value();
+  mrb_get_args(mrb, "|S!", &repl);
+
+  const char *replace;
+  mrb_int replace_len;
+  if (mrb_nil_p(repl)) {
+    replace = "\xEF\xBF\xBD";  /* U+FFFD REPLACEMENT CHARACTER */
+    replace_len = 3;
+  }
+  else {
+    str_scrub_validate_replacement(mrb, repl);
+    replace = RSTRING_PTR(repl);
+    replace_len = RSTRING_LEN(repl);
+  }
+
+  struct RString *s = mrb_str_ptr(self);
+  if (RSTR_SINGLE_BYTE_P(s)) {
+    return mrb_str_dup(mrb, self);
+  }
+
+  const unsigned char *p = (const unsigned char*)RSTR_PTR(s);
+  const unsigned char *e = p + RSTR_LEN(s);
+  const unsigned char *valid_start = p;
+  const unsigned char *q = p;
+  mrb_value result = mrb_nil_value();  /* lazily allocated on first invalid byte */
+
+  while (q < e) {
+    mrb_int len = str_scrub_char_len(q, e);
+    if (len < 0) {
+      if (mrb_nil_p(result)) {
+        result = mrb_str_new(mrb, NULL, 0);
+      }
+      mrb_str_cat(mrb, result, (const char*)valid_start, q - valid_start);
+      mrb_str_cat(mrb, result, replace, replace_len);
+      q += str_scrub_subpart_len(q, e);
+      valid_start = q;
+    }
+    else {
+      q += len;
+    }
+  }
+
+  if (mrb_nil_p(result)) {
+    return mrb_str_dup(mrb, self);  /* already valid */
+  }
+  mrb_str_cat(mrb, result, (const char*)valid_start, q - valid_start);
+  return result;
+}
+
+/* Splits self into alternating valid/invalid byte runs and returns them
+   as an Array of strings ([valid, invalid, valid, ...], odd length).
+   Used by the block form of String#scrub in mrblib; the block can then
+   map each invalid run to a replacement of its choosing without the C
+   side having to call back into the VM. */
+static mrb_value
+str_scrub_chunks(mrb_state *mrb, mrb_value self)
+{
+  mrb_value ary = mrb_ary_new(mrb);
+  struct RString *s = mrb_str_ptr(self);
+  if (RSTR_SINGLE_BYTE_P(s)) {
+    mrb_ary_push(mrb, ary, mrb_str_dup(mrb, self));
+    return ary;
+  }
+  const unsigned char *p = (const unsigned char*)RSTR_PTR(s);
+  const unsigned char *e = p + RSTR_LEN(s);
+  const unsigned char *valid_start = p;
+  const unsigned char *q = p;
+  while (q < e) {
+    mrb_int len = str_scrub_char_len(q, e);
+    if (len < 0) {
+      mrb_ary_push(mrb, ary, mrb_str_new(mrb, (const char*)valid_start, q - valid_start));
+      const unsigned char *invalid_start = q;
+      q += str_scrub_subpart_len(q, e);
+      mrb_ary_push(mrb, ary, mrb_str_new(mrb, (const char*)invalid_start, q - invalid_start));
+      valid_start = q;
+    }
+    else {
+      q += len;
+    }
+  }
+  mrb_ary_push(mrb, ary, mrb_str_new(mrb, (const char*)valid_start, q - valid_start));
+  return ary;
 }
 
 /* Internal helper for String#codepoints - returns array of character codepoints */
@@ -1022,7 +1385,7 @@ str_codepoints(mrb_state *mrb, mrb_value str)
 
   mrb->c->ci->mid = 0;
   mrb_value result = mrb_ary_new(mrb);
-  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
+  if (RSTR_SINGLE_BYTE_P(s)) {
     while (p < e) {
       mrb_ary_push(mrb, result, mrb_int_value(mrb, (mrb_int)*p));
       p++;
@@ -1030,9 +1393,10 @@ str_codepoints(mrb_state *mrb, mrb_value str)
   }
   else {
     while (p < e) {
-      mrb_int c = utf8code(mrb, p, e);
+      mrb_int len;
+      mrb_int c = utf8code(mrb, p, e, &len);
       mrb_ary_push(mrb, result, mrb_int_value(mrb, c));
-      p += mrb_utf8len_table[p[0]>>3];
+      p += len;
     }
   }
   return result;
@@ -1060,7 +1424,68 @@ str_codepoints(mrb_state *mrb, mrb_value self)
   }
   return result;
 }
+
+/* Non-UTF-8 builds: scrub is a no-op. The replacement arg is accepted
+   (and validated only as a String) for API parity with the UTF-8 build. */
+static mrb_value
+str_scrub_core(mrb_state *mrb, mrb_value self)
+{
+  mrb_value repl = mrb_nil_value();
+  mrb_get_args(mrb, "|S!", &repl);
+  return mrb_str_dup(mrb, self);
+}
+
+static mrb_value
+str_scrub_chunks(mrb_state *mrb, mrb_value self)
+{
+  mrb_value ary = mrb_ary_new(mrb);
+  mrb_ary_push(mrb, ary, mrb_str_dup(mrb, self));
+  return ary;
+}
 #endif
+
+/* Whether cutting the `cutlen` bytes at `cut` off an end of `s` leaves what
+   the rest of it is read as standing. A byte below 0x80 stands for a character
+   of its own and is never part of one that began earlier, so a cut of nothing
+   but ASCII lands exactly where a character ends; and it cannot have taken the
+   last non-ASCII byte with it either, so a string that was read as UTF-8 with
+   characters in it still is. Cutting a byte at or above 0x80 can do both, and
+   what is left has to be asked about again. This is the question `chomp!` in
+   src/string.c asks of the bytes it cuts.
+
+   Asked before the cut, of a string that has an answer to keep: one carrying
+   nothing has none, and one holding a character per byte is cutting ASCII
+   whatever it cuts, so neither is worth reading a byte for. */
+static mrb_bool
+str_cut_keeps_cr(struct RString *s, const char *cut, mrb_int cutlen)
+{
+#ifdef MRB_UTF8_STRING
+  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_UNKNOWN) return FALSE;
+  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_7BIT) return TRUE;
+  for (mrb_int i = 0; i < cutlen; i++) {
+    if ((uint8_t)cut[i] & 0x80) return FALSE;
+  }
+  return TRUE;
+#else
+  (void)s; (void)cut; (void)cutlen;
+  return FALSE;
+#endif
+}
+
+/* mrb_str_modify_keep_cr()'s rule without the unsharing, which a cut that
+   writes no byte has no use for. A build that records nothing has nothing to
+   say here, down to the arguments. */
+static void
+str_cut_coderange(struct RString *s, mrb_bool keep_cr)
+{
+#ifdef MRB_UTF8_STRING
+  if (!keep_cr || RSTR_CODERANGE(s) == MRB_STR_CODERANGE_BROKEN) {
+    RSTR_CODERANGE_SET(s, MRB_STR_CODERANGE_UNKNOWN);
+  }
+#else
+  (void)s; (void)keep_cr;
+#endif
+}
 
 static mrb_bool
 str_prefix_p(mrb_state *mrb, mrb_value str, const char *prefix_ptr, mrb_int prefix_len)
@@ -1092,15 +1517,21 @@ str_del_prefix_bang(mrb_state *mrb, mrb_value self)
   if (plen > slen) return mrb_nil_value();
   char *s = RSTR_PTR(str);
   if (!str_prefix_p(mrb, self, ptr, plen)) return mrb_nil_value();
+  /* The prefix matched, so its bytes are the ones being cut. */
+  mrb_bool keep_cr = str_cut_keeps_cr(str, ptr, plen);
   if (!mrb_frozen_p(str) && (RSTR_SHARED_P(str) || RSTR_FSHARED_P(str))) {
+    /* Sliding the start of a shared buffer writes no byte, so there is nothing
+       to unshare, and nothing here drops the answer the string was carrying,
+       which is what the branch below gets from its modify. */
     str->as.heap.ptr += plen;
   }
   else {
-    mrb_str_modify(mrb, str);
+    mrb_str_modify_keep_cr(mrb, str);
     s = RSTR_PTR(str);
     memmove(s, s+plen, slen-plen);
   }
   RSTR_SET_LEN(str, slen-plen);
+  str_cut_coderange(str, keep_cr);
   return self;
 }
 
@@ -1157,7 +1588,11 @@ str_del_suffix_bang(mrb_state *mrb, mrb_value self)
   mrb_int slen = RSTR_LEN(str);
   if (plen > slen) return mrb_nil_value();
   if (!str_suffix_p(mrb, self, ptr, plen)) return mrb_nil_value();
+  /* Cutting the end back writes no byte, so there is nothing to unshare. The
+     suffix matched, so its bytes are the ones being cut. */
+  mrb_bool keep_cr = str_cut_keeps_cr(str, ptr, plen);
   RSTR_SET_LEN(str, slen-plen);
+  str_cut_coderange(str, keep_cr);
   return self;
 }
 
@@ -1215,7 +1650,10 @@ str_casecmp(mrb_state *mrb, mrb_value self)
   if (p1 == p2) return mrb_fixnum_value(0);
 
   for (mrb_int i=0; i<len; i++) {
-    int c1 = p1[i], c2 = p2[i];
+    /* Read as unsigned, as `String#<=>` reads the same bytes: a plain `char`
+       is signed on most targets, which would order a byte of 0x80 or above
+       below every ASCII one. */
+    int c1 = (unsigned char)p1[i], c2 = (unsigned char)p2[i];
     if (ISASCII(c1) && ISUPPER(c1)) c1 = TOLOWER(c1);
     if (ISASCII(c2) && ISUPPER(c2)) c2 = TOLOWER(c2);
     if (c1 > c2) return mrb_fixnum_value(1);
@@ -1227,16 +1665,73 @@ str_casecmp(mrb_state *mrb, mrb_value self)
 }
 #undef lesser
 
+#ifdef MRB_UTF8_STRING
+/* Whether a string holds anything the fold table could speak about. A string
+   of nothing but ASCII does not, and one read as bytes spells no characters
+   at all, so neither needs the walk: those are the two a single-byte string is
+   arrived at from.
+
+   The reading is asked for rather than taken off the flags, so that a string
+   nobody has read through yet is read through here. The answer is left on the
+   string, so the next comparison of it is a flag away; sending it down the
+   folding path instead would copy it, read the copy, and throw the answer away
+   with the copy, which is a cost that never stops being paid. */
+static mrb_bool
+str_folds_beyond_ascii(mrb_state *mrb, mrb_value str)
+{
+  return !mrb_str_single_byte_p(mrb, str);
+}
+
+/* Fold the one side the tables have nothing to say about. Only one of the two
+   has to hold a character above ASCII for both to be folded, and folding is
+   ASCII's lower case where it is nothing more: "SS" has to reach "ss" for
+   `"ß".casecmp?("SS")` to be true, and the walk in core hands such a string
+   back untouched. */
+static void
+str_fold_ascii(mrb_state *mrb, mrb_value str)
+{
+  struct RString *s = mrb_str_ptr(str);
+  mrb_str_modify(mrb, s);
+  char *p = RSTR_PTR(s);
+  for (char *pend = p + RSTR_LEN(s); p < pend; p++) {
+    if (ISUPPER(*p)) *p = TOLOWER(*p);
+  }
+}
+#endif
+
 /*
  * call-seq:
  *   str.casecmp?(other)  -> true, false, or nil
  *
  * Returns true if str and other_str are equal after case folding,
  * false if they are not equal, and nil if other is not a string.
+ *
+ * Folding is what makes this wider than `casecmp`, which orders strings by
+ * ASCII case alone: a build that reads a string as characters folds every
+ * character Unicode gives a folding, and one folding spells a character as
+ * several ("ß" as "ss").
+ *
+ *   "ä".casecmp("Ä")    #=> 1
+ *   "ä".casecmp?("Ä")   #=> true
+ *   "ß".casecmp?("ss")  #=> true
  */
 static mrb_value
 str_casecmp_p(mrb_state *mrb, mrb_value self)
 {
+#ifdef MRB_UTF8_STRING
+  mrb_value other = mrb_get_arg1(mrb);
+  if (!mrb_string_p(other)) return mrb_nil_value();
+
+  /* Nothing above ASCII on either side leaves nothing for the tables to fold,
+     and the two strings order by their bytes as they always have. */
+  if (str_folds_beyond_ascii(mrb, self) || str_folds_beyond_ascii(mrb, other)) {
+    mrb_value a = mrb_str_dup(mrb, self);
+    mrb_value b = mrb_str_dup(mrb, other);
+    if (mrb_str_case_convert_unicode(mrb, a, MRB_CASE_FOLD) < 0) str_fold_ascii(mrb, a);
+    if (mrb_str_case_convert_unicode(mrb, b, MRB_CASE_FOLD) < 0) str_fold_ascii(mrb, b);
+    return mrb_bool_value(mrb_str_equal(mrb, a, b));
+  }
+#endif
   mrb_value c = str_casecmp(mrb, self);
   if (mrb_nil_p(c)) return c;
   return mrb_bool_value(mrb_fixnum(c) == 0);
@@ -1258,7 +1753,11 @@ str_lines(mrb_state *mrb, mrb_value self)
     while (p < e && *p != '\n') p++;
     if (*p == '\n') p++;
     mrb_int len = (mrb_int) (p - t);
-    mrb_ary_push(mrb, result, mrb_str_new(mrb, t, len));
+    /* a line of a byte-read string is a subrange of its bytes, read the
+       same way */
+    mrb_value line = mrb_str_new(mrb, t, len);
+    RSTR_ENC_COPY(mrb_str_ptr(line), mrb_str_ptr(self));
+    mrb_ary_push(mrb, result, line);
     mrb_gc_arena_restore(mrb, ai);
   }
   return result;
@@ -1311,7 +1810,7 @@ str_ascii_only_p(mrb_state *mrb, mrb_value str)
     if (*p & 0x80) return mrb_false_value();
     p++;
   }
-  mrb_str_ptr(str)->flags |= MRB_STR_SINGLE_BYTE;
+  RSTR_CODERANGE_SET(s, MRB_STR_CODERANGE_7BIT);
   return mrb_true_value();
 }
 
@@ -1320,24 +1819,17 @@ static mrb_value
 str_b(mrb_state *mrb, mrb_value self)
 {
   mrb_value str = mrb_str_dup(mrb, self);
-  mrb_str_ptr(str)->flags |= MRB_STR_BINARY;
+  RSTR_ENCODING_SET(mrb_str_ptr(str), MRB_STR_ENCODING_BINARY);
   return str;
 }
 
 /*
- * Check if character is whitespace (space, tab, newline, carriage return, form feed, vertical tab)
+ * Check if character is whitespace for the strip family: space, tab, newline,
+ * carriage return, form feed, vertical tab, and NUL.  CRuby's `strip`,
+ * `lstrip` and `rstrip` all treat NUL as whitespace on both ends.
  */
 static inline mrb_bool
 is_whitespace(char c)
-{
-  return (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v');
-}
-
-/*
- * Check if character is whitespace or null (for rstrip)
- */
-static inline mrb_bool
-is_whitespace_or_null(char c)
 {
   return (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v' || c == '\0');
 }
@@ -1391,7 +1883,7 @@ str_rstrip(mrb_state *mrb, mrb_value self)
   mrb_int end = len;
 
   /* Find last non-whitespace character */
-  while (end > 0 && is_whitespace_or_null(ptr[end - 1])) {
+  while (end > 0 && is_whitespace(ptr[end - 1])) {
     end--;
   }
 
@@ -1428,7 +1920,7 @@ str_strip(mrb_state *mrb, mrb_value self)
   }
 
   /* Find last non-whitespace character */
-  while (end > start && is_whitespace_or_null(ptr[end - 1])) {
+  while (end > start && is_whitespace(ptr[end - 1])) {
     end--;
   }
 
@@ -1454,12 +1946,14 @@ static mrb_value
 str_lstrip_bang(mrb_state *mrb, mrb_value self)
 {
   struct RString *s = mrb_str_ptr(self);
-  char *ptr = RSTR_PTR(s);
   mrb_int len = RSTR_LEN(s);
   mrb_int start = 0;
 
   mrb_check_frozen(mrb, mrb_obj_ptr(self));
-  mrb_str_modify(mrb, s);
+  /* Whitespace is ASCII, so the cut below lands where a character ends and
+     what the rest is read as stands. */
+  mrb_str_modify_keep_cr(mrb, s);
+  char *ptr = RSTR_PTR(s);
 
   /* Find first non-whitespace character */
   while (start < len && is_whitespace(ptr[start])) {
@@ -1499,15 +1993,17 @@ static mrb_value
 str_rstrip_bang(mrb_state *mrb, mrb_value self)
 {
   struct RString *s = mrb_str_ptr(self);
-  char *ptr = RSTR_PTR(s);
   mrb_int len = RSTR_LEN(s);
   mrb_int end = len;
 
   mrb_check_frozen(mrb, mrb_obj_ptr(self));
-  mrb_str_modify(mrb, s);
+  /* Whitespace is ASCII, so the cut below lands where a character ends and
+     what the rest is read as stands. */
+  mrb_str_modify_keep_cr(mrb, s);
+  char *ptr = RSTR_PTR(s);
 
   /* Find last non-whitespace character */
-  while (end > 0 && is_whitespace_or_null(ptr[end - 1])) {
+  while (end > 0 && is_whitespace(ptr[end - 1])) {
     end--;
   }
 
@@ -1536,14 +2032,16 @@ static mrb_value
 str_strip_bang(mrb_state *mrb, mrb_value self)
 {
   struct RString *s = mrb_str_ptr(self);
-  char *ptr = RSTR_PTR(s);
   mrb_int len = RSTR_LEN(s);
   mrb_int start = 0;
   mrb_int end = len;
   mrb_bool changed = FALSE;
 
   mrb_check_frozen(mrb, mrb_obj_ptr(self));
-  mrb_str_modify(mrb, s);
+  /* Whitespace is ASCII, so the cuts below land where a character ends and
+     what the rest is read as stands. */
+  mrb_str_modify_keep_cr(mrb, s);
+  char *ptr = RSTR_PTR(s);
 
   /* Find first non-whitespace character */
   while (start < len && is_whitespace(ptr[start])) {
@@ -1551,7 +2049,7 @@ str_strip_bang(mrb_state *mrb, mrb_value self)
   }
 
   /* Find last non-whitespace character */
-  while (end > start && is_whitespace_or_null(ptr[end - 1])) {
+  while (end > start && is_whitespace(ptr[end - 1])) {
     end--;
   }
 
@@ -1578,87 +2076,45 @@ str_strip_bang(mrb_state *mrb, mrb_value self)
   return self;
 }
 
-/* Internal helper to count UTF-8 characters in a string using mruby's standard function */
-static mrb_int
-str_char_count(mrb_value str)
-{
-#ifdef MRB_UTF8_STRING
-  struct RString *s = mrb_str_ptr(str);
-
-  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
-    /* ASCII/Binary: each byte is a character */
-    return RSTR_LEN(s);
-  }
-
-  /* UTF-8: use mruby's standard UTF-8 character counting function */
-  return mrb_utf8_strlen(RSTR_PTR(s), RSTR_LEN(s));
-#else
-  /* Non-UTF8 build: treat as single bytes */
-  return RSTRING_LEN(str);
-#endif
-}
-
 /* Internal fast path for String#chars - returns array of individual characters */
 static mrb_value
 str_chars_ary(mrb_state *mrb, mrb_value self)
 {
   struct RString *s = mrb_str_ptr(self);
-  const unsigned char *p = (unsigned char*)RSTR_PTR(s);
-  const unsigned char *e = p + RSTR_LEN(s);
+  const char *p = RSTR_PTR(s);
+  const char *e = p + RSTR_LEN(s);
+  /* the count comes first: it is the exact capacity, and where every byte is
+     ASCII it also settles at 7BIT the answer the walk reads */
+  mrb_value result = mrb_ary_new_capa(mrb, mrb_str_char_len(mrb, self));
+  /* Saved after `result`, so restoring keeps it. Each piece is unreachable
+     from anything but the arena until it is pushed, and reachable from
+     `result` after, so the arena has no more to say about it: without the
+     restore a string of more than MRB_GC_ARENA_SIZE characters leaves that
+     many pieces in an arena sized for 100, which is what `str_lines()` below
+     avoids the same way. */
+  int ai = mrb_gc_arena_save(mrb);
 
-  /* Estimate character count for array pre-allocation */
-  mrb_int estimated_chars = RSTR_LEN(s);
-  if (!RSTR_SINGLE_BYTE_P(s) && !RSTR_BINARY_P(s)) {
-    estimated_chars = estimated_chars / 2; /* rough estimate for UTF-8 */
-  }
-  mrb_value result = mrb_ary_new_capa(mrb, estimated_chars);
-
-  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
-    /* ASCII/Binary: each byte is a character */
-    while (p < e) {
-      mrb_value char_str = mrb_str_new(mrb, (char*)p, 1);
-      mrb_ary_push(mrb, result, char_str);
-      p++;
-    }
-  }
-  else {
 #ifdef MRB_UTF8_STRING
-    /* UTF-8: handle multi-byte characters */
+  if (!RSTR_SINGLE_BYTE_P(s)) {
     while (p < e) {
-      mrb_int char_len = mrb_utf8len_table[p[0] >> 3];
-      if (char_len == 0 || char_len > 4 || p + char_len > e) {
-        /* Invalid UTF-8, treat as single byte */
-        char_len = 1;
-      }
-      else {
-        /* Validate UTF-8 sequence */
-        mrb_bool valid = TRUE;
-        if (char_len > 1) {
-          for (mrb_int i = 1; i < char_len; i++) {
-            if ((p[i] & 0xC0) != 0x80) {
-              valid = FALSE;
-              break;
-            }
-          }
-        }
-        if (!valid) {
-          char_len = 1;
-        }
-      }
-      mrb_value char_str = mrb_str_new(mrb, (char*)p, char_len);
-      mrb_ary_push(mrb, result, char_str);
+      mrb_int char_len = mrb_utf8len(p, e);
+      mrb_ary_push(mrb, result, mrb_str_new(mrb, p, char_len));
       p += char_len;
+      mrb_gc_arena_restore(mrb, ai);
     }
-#else
-    /* Non-UTF8 build: treat as single bytes */
-    while (p < e) {
-      mrb_value char_str = mrb_str_new(mrb, (char*)p, 1);
-      mrb_ary_push(mrb, result, char_str);
-      p++;
-    }
-#endif
+    return result;
   }
+#endif
 
+  /* one character per byte; a piece of a byte-read string is read the same
+     way, so the marking goes with each one */
+  while (p < e) {
+    mrb_value piece = mrb_str_new(mrb, p, 1);
+    RSTR_ENC_COPY(mrb_str_ptr(piece), s);
+    mrb_ary_push(mrb, result, piece);
+    p++;
+    mrb_gc_arena_restore(mrb, ai);
+  }
   return result;
 }
 
@@ -1682,13 +2138,13 @@ str_ljust_core(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
   }
 
-  mrb_int char_len = str_char_count(self);
+  mrb_int char_len = mrb_str_char_len(mrb, self);
   if (width <= char_len) {
     return mrb_str_dup(mrb, self);
   }
 
   mrb_int padsize = width - char_len;
-  mrb_int pad_char_len = str_char_count(padstr);
+  mrb_int pad_char_len = mrb_str_char_len(mrb, padstr);
   if (pad_char_len == 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
   }
@@ -1732,13 +2188,13 @@ str_rjust_core(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
   }
 
-  mrb_int char_len = str_char_count(self);
+  mrb_int char_len = mrb_str_char_len(mrb, self);
   if (width <= char_len) {
     return mrb_str_dup(mrb, self);
   }
 
   mrb_int padsize = width - char_len;
-  mrb_int pad_char_len = str_char_count(padstr);
+  mrb_int pad_char_len = mrb_str_char_len(mrb, padstr);
   if (pad_char_len == 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
   }
@@ -1759,7 +2215,13 @@ str_rjust_core(mrb_state *mrb, mrb_value self)
     }
   }
 
-  return mrb_str_cat_str(mrb, padding, self);
+  mrb_value result = mrb_str_cat_str(mrb, padding, self);
+  /* the padded string is the receiver's bytes in wider clothes, so it is
+     read the way the receiver was, ASCII bytes and all */
+  if (RSTR_BINARY_P(mrb_str_ptr(self))) {
+    RSTR_ENCODING_SET(mrb_str_ptr(result), MRB_STR_ENCODING_BINARY);
+  }
+  return result;
 }
 
 /*
@@ -1782,7 +2244,7 @@ str_center_core(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
   }
 
-  mrb_int char_len = str_char_count(self);
+  mrb_int char_len = mrb_str_char_len(mrb, self);
   if (width <= char_len) {
     return mrb_str_dup(mrb, self);
   }
@@ -1791,7 +2253,7 @@ str_center_core(mrb_state *mrb, mrb_value self)
   mrb_int left_pad = total_pad / 2;
   mrb_int right_pad = total_pad - left_pad;
 
-  mrb_int pad_char_len = str_char_count(padstr);
+  mrb_int pad_char_len = mrb_str_char_len(mrb, padstr);
   if (pad_char_len == 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
   }
@@ -1827,69 +2289,14 @@ str_center_core(mrb_state *mrb, mrb_value self)
   }
 
   mrb_value result = mrb_str_cat_str(mrb, left_padding, self);
-  return mrb_str_cat_str(mrb, result, right_padding);
+  result = mrb_str_cat_str(mrb, result, right_padding);
+  /* the padded string is the receiver's bytes in wider clothes, so it is
+     read the way the receiver was, ASCII bytes and all */
+  if (RSTR_BINARY_P(mrb_str_ptr(self))) {
+    RSTR_ENCODING_SET(mrb_str_ptr(result), MRB_STR_ENCODING_BINARY);
+  }
+  return result;
 }
-
-#ifdef MRB_UTF8_STRING
-/*
- * Given a character index, find the byte offset in a UTF-8 string.
- * Returns -1 if the character index is out of bounds.
- */
-static mrb_int
-str_char_to_byte_offset(mrb_value str, mrb_int char_index)
-{
-  struct RString *s = mrb_str_ptr(str);
-  const char *p = RSTR_PTR(s);
-  mrb_int byte_len = RSTR_LEN(s);
-
-  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
-    return char_index;
-  }
-
-  if (char_index < 0) return -1;
-
-  mrb_int byte_offset = 0;
-  mrb_int current_char_index = 0;
-  while (byte_offset < byte_len && current_char_index < char_index) {
-    mrb_int char_len = mrb_utf8len(p + byte_offset, p + byte_len - byte_offset);
-    if (char_len == 0) break;
-    byte_offset += char_len;
-    current_char_index++;
-  }
-
-  if (current_char_index < char_index) return -1;
-  return byte_offset;
-}
-
-/*
- * Given a starting character index and a character length, find the byte length.
- */
-static mrb_int
-str_chars_to_byte_len(mrb_value str, mrb_int char_start, mrb_int char_len)
-{
-  struct RString *s = mrb_str_ptr(str);
-  const char *p = RSTR_PTR(s);
-  mrb_int str_byte_len = RSTR_LEN(s);
-
-  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
-    return char_len;
-  }
-
-  mrb_int start_byte_offset = str_char_to_byte_offset(str, char_start);
-  if (start_byte_offset == -1) return 0;
-
-  mrb_int byte_offset = start_byte_offset;
-  mrb_int current_char_len = 0;
-  while (byte_offset < str_byte_len && current_char_len < char_len) {
-    mrb_int cl = mrb_utf8len(p + byte_offset, p + str_byte_len - byte_offset);
-    if (cl == 0) break;
-    byte_offset += cl;
-    current_char_len++;
-  }
-
-  return byte_offset - start_byte_offset;
-}
-#endif
 
 static mrb_value
 mrb_str_slice_bang(mrb_state *mrb, mrb_value self)
@@ -1902,25 +2309,22 @@ mrb_str_slice_bang(mrb_state *mrb, mrb_value self)
   struct RString *str = mrb_str_ptr(self);
   const char *ptr = RSTRING_PTR(self);
 
-#ifdef MRB_UTF8_STRING
-  mrb_int str_len = str_char_count(self);
-#else
-  mrb_int str_len = RSTRING_LEN(self);
-#endif
+  mrb_int str_len = mrb_str_char_len(mrb, self);
 
   mrb_int beg, len;
 
   if (argc == 1) {
     if (mrb_string_p(arg1)) {
+      /* see String#index: a needle that spells no character is found nowhere */
+      if (!mrb_str_valid_encoding_p(mrb, arg1)) return mrb_nil_value();
       mrb_int pos = mrb_str_index(mrb, self, RSTRING_PTR(arg1), RSTRING_LEN(arg1), 0);
       if (pos == -1) return mrb_nil_value();
-#ifdef MRB_UTF8_STRING
-      beg = str_char_count(mrb_str_substr(mrb, self, 0, pos));
-      len = str_char_count(arg1);
-#else
-      beg = pos;
-      len = RSTRING_LEN(arg1);
-#endif
+      /* The search runs over bytes, so a match may start inside a character;
+         mrb_str_byte_to_char() answers -1 there, and a match no character
+         index reaches is no match. */
+      beg = mrb_str_byte_to_char(mrb, self, pos);
+      if (beg < 0) return mrb_nil_value();
+      len = mrb_str_char_len(mrb, arg1);
     }
     else if (mrb_range_p(arg1)) {
       if (mrb_range_beg_len(mrb, arg1, &beg, &len, str_len, TRUE) != MRB_RANGE_OK) {
@@ -1943,24 +2347,26 @@ mrb_str_slice_bang(mrb_state *mrb, mrb_value self)
   }
 
   if (beg > str_len) return mrb_nil_value();
-  if (beg + len > str_len) {
+  mrb_int end;
+  if (mrb_int_add_overflow(beg, len, &end) || end > str_len) {
     len = str_len - beg;
   }
   if (len < 0) len = 0;
 
-#ifdef MRB_UTF8_STRING
-  mrb_int byte_beg = str_char_to_byte_offset(self, beg);
-  mrb_int byte_len = str_chars_to_byte_len(self, beg, len);
-#else
-  mrb_int byte_beg = beg;
-  mrb_int byte_len = len;
-#endif
+  mrb_int byte_beg = mrb_str_char_to_byte(mrb, self, 0, beg);
+  mrb_int byte_len = mrb_str_char_to_byte(mrb, self, byte_beg, len);
 
-  if (byte_beg < 0 || byte_beg > RSTRING_LEN(self) || byte_beg + byte_len > RSTRING_LEN(self)) {
+  mrb_int byte_end;
+  if (byte_beg < 0 || byte_beg > RSTRING_LEN(self) ||
+      mrb_int_add_overflow(byte_beg, byte_len, &byte_end) || byte_end > RSTRING_LEN(self)) {
     return mrb_nil_value();
   }
 
   mrb_value result = mrb_str_new(mrb, RSTRING_PTR(self) + byte_beg, byte_len);
+  /* the piece cut out is a subrange of the receiver's bytes, read the same
+     way; copied rather than shared, since the memmove below would slide the
+     receiver's remaining bytes through a shared buffer */
+  RSTR_ENC_COPY(mrb_str_ptr(result), str);
 
   mrb_str_modify(mrb, str);
   ptr = RSTRING_PTR(self);
@@ -1986,6 +2392,17 @@ str_clear(mrb_state *mrb, mrb_value self)
   mrb_str_modify(mrb, s);
   RSTR_SET_LEN(s, 0);
   return self;
+}
+
+/* A piece cut out of a string holds nothing but bytes of it, so it is read the
+   way the string is. An empty piece stands for a place in the string and is
+   read the same way, having no bytes to say otherwise. */
+static mrb_value
+str_cut_piece(mrb_state *mrb, mrb_value str, const char *p, mrb_int len)
+{
+  mrb_value piece = mrb_str_new(mrb, p, len);
+  RSTR_ENC_COPY(mrb_str_ptr(piece), mrb_str_ptr(str));
+  return piece;
 }
 
 /*
@@ -2017,17 +2434,21 @@ str_partition(mrb_state *mrb, mrb_value self)
   mrb_value result_ary = mrb_ary_new_capa(mrb, 3);
 
   if (sep_len == 0) {
-    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
-    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
+    mrb_ary_push(mrb, result_ary, str_cut_piece(mrb, self, self_ptr, 0));
+    mrb_ary_push(mrb, result_ary, mrb_str_dup(mrb, sep));
     mrb_ary_push(mrb, result_ary, mrb_str_dup(mrb, self));
     return result_ary;
   }
 
   const char *found_ptr = NULL;
-  for (mrb_int i = 0; i <= self_len - sep_len; ++i) {
-    if (memcmp(self_ptr + i, sep_ptr, sep_len) == 0) {
-      found_ptr = self_ptr + i;
-      break;
+  /* A separator whose bytes are not the encoding it is taken to be in
+     splits nothing, the way one is found nowhere by String#index. */
+  if (mrb_str_valid_encoding_p(mrb, sep)) {
+    for (mrb_int i = 0; i <= self_len - sep_len; ++i) {
+      if (memcmp(self_ptr + i, sep_ptr, sep_len) == 0) {
+        found_ptr = self_ptr + i;
+        break;
+      }
     }
   }
 
@@ -2035,14 +2456,14 @@ str_partition(mrb_state *mrb, mrb_value self)
     mrb_int pre_len = found_ptr - self_ptr;
     mrb_int post_len = self_len - pre_len - sep_len;
 
-    mrb_ary_push(mrb, result_ary, mrb_str_new(mrb, self_ptr, pre_len));
+    mrb_ary_push(mrb, result_ary, str_cut_piece(mrb, self, self_ptr, pre_len));
     mrb_ary_push(mrb, result_ary, mrb_str_dup(mrb, sep));
-    mrb_ary_push(mrb, result_ary, mrb_str_new(mrb, found_ptr + sep_len, post_len));
+    mrb_ary_push(mrb, result_ary, str_cut_piece(mrb, self, found_ptr + sep_len, post_len));
   }
   else {
     mrb_ary_push(mrb, result_ary, mrb_str_dup(mrb, self));
-    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
-    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
+    mrb_ary_push(mrb, result_ary, str_cut_piece(mrb, self, self_ptr, 0));
+    mrb_ary_push(mrb, result_ary, str_cut_piece(mrb, self, self_ptr, 0));
   }
 
   return result_ary;
@@ -2078,16 +2499,20 @@ str_rpartition(mrb_state *mrb, mrb_value self)
 
   if (sep_len == 0) {
     mrb_ary_push(mrb, result_ary, mrb_str_dup(mrb, self));
-    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
-    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
+    mrb_ary_push(mrb, result_ary, mrb_str_dup(mrb, sep));
+    mrb_ary_push(mrb, result_ary, str_cut_piece(mrb, self, self_ptr, 0));
     return result_ary;
   }
 
   const char *found_ptr = NULL;
-  for (mrb_int i = self_len - sep_len; i >= 0; --i) {
-    if (memcmp(self_ptr + i, sep_ptr, sep_len) == 0) {
-      found_ptr = self_ptr + i;
-      break;
+  /* A separator whose bytes are not the encoding it is taken to be in
+     splits nothing, the way one is found nowhere by String#index. */
+  if (mrb_str_valid_encoding_p(mrb, sep)) {
+    for (mrb_int i = self_len - sep_len; i >= 0; --i) {
+      if (memcmp(self_ptr + i, sep_ptr, sep_len) == 0) {
+        found_ptr = self_ptr + i;
+        break;
+      }
     }
   }
 
@@ -2095,13 +2520,13 @@ str_rpartition(mrb_state *mrb, mrb_value self)
     mrb_int pre_len = found_ptr - self_ptr;
     mrb_int post_len = self_len - pre_len - sep_len;
 
-    mrb_ary_push(mrb, result_ary, mrb_str_new(mrb, self_ptr, pre_len));
+    mrb_ary_push(mrb, result_ary, str_cut_piece(mrb, self, self_ptr, pre_len));
     mrb_ary_push(mrb, result_ary, mrb_str_dup(mrb, sep));
-    mrb_ary_push(mrb, result_ary, mrb_str_new(mrb, found_ptr + sep_len, post_len));
+    mrb_ary_push(mrb, result_ary, str_cut_piece(mrb, self, found_ptr + sep_len, post_len));
   }
   else {
-    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
-    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
+    mrb_ary_push(mrb, result_ary, str_cut_piece(mrb, self, self_ptr, 0));
+    mrb_ary_push(mrb, result_ary, str_cut_piece(mrb, self, self_ptr, 0));
     mrb_ary_push(mrb, result_ary, mrb_str_dup(mrb, self));
   }
 
@@ -2145,12 +2570,22 @@ str_insert(mrb_state *mrb, mrb_value self)
     mrb_raisef(mrb, E_INDEX_ERROR, "index %S out of string", mrb_int_value(mrb, idx));
   }
 
+  /* Inserting at the end is an append: it writes nothing any sharer of the
+     buffer can see, so mrb_str_cat() may grow the string inside that buffer
+     where mrb_str_modify() below would copy the whole of it first. */
+  if (idx == self_len) {
+    mrb_str_cat(mrb, self, RSTRING_PTR(str_to_insert), (size_t)insert_len);
+    str_mark_spliced_bytes(self, str_to_insert);
+    return self;
+  }
+
   mrb_str_modify(mrb, s);
   mrb_str_resize(mrb, self, self_len + insert_len);
 
   char *p = RSTRING_PTR(self);
   memmove(p + idx + insert_len, p + idx, self_len - idx);
   memcpy(p + idx, RSTRING_PTR(str_to_insert), insert_len);
+  str_mark_spliced_bytes(self, str_to_insert);
 
   return self;
 }
@@ -2177,12 +2612,14 @@ str_prepend(mrb_state *mrb, mrb_value self)
   mrb_int argc;
   mrb_get_args(mrb, "*", &argv, &argc);
 
+  struct RString *s = mrb_str_ptr(self);
+  /* Ahead of the return for no arguments below: prepending nothing is still
+     a prepend, and a frozen receiver answers FrozenError either way. */
+  mrb_check_frozen(mrb, s);
+
   if (argc == 0) {
     return self;
   }
-
-  struct RString *s = mrb_str_ptr(self);
-  mrb_check_frozen(mrb, s);
 
   /* Calculate total length needed for all prepended strings */
   mrb_int total_prepend_len = 0;
@@ -2224,6 +2661,7 @@ str_prepend(mrb_state *mrb, mrb_value self)
       memcpy(p + offset, src, arg_len);
       offset += arg_len;
     }
+    str_mark_spliced_bytes(self, argv[i]);
   }
 
   return self;
@@ -2274,6 +2712,8 @@ static const mrb_mt_entry string_ext_rom_entries[] = {
   MRB_MT_ENTRY(str_b,               MRB_SYM(b),               MRB_ARGS_NONE()),
   MRB_MT_ENTRY(str_lines,           MRB_SYM(__lines),         MRB_ARGS_NONE()),
   MRB_MT_ENTRY(str_codepoints,      MRB_SYM(__codepoints),    MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(str_scrub_core,      MRB_SYM(__scrub),         MRB_ARGS_OPT(1)),
+  MRB_MT_ENTRY(str_scrub_chunks,    MRB_SYM(__scrub_chunks),  MRB_ARGS_NONE()),
   MRB_MT_ENTRY(str_lstrip,          MRB_SYM(lstrip),          MRB_ARGS_NONE()),
   MRB_MT_ENTRY(str_rstrip,          MRB_SYM(rstrip),          MRB_ARGS_NONE()),
   MRB_MT_ENTRY(str_strip,           MRB_SYM(strip),           MRB_ARGS_NONE()),

@@ -22,6 +22,11 @@ assert('Integer#chr') do
     assert_equal("«", 171.chr("utf-8"))
     assert_equal("あ", 12354.chr("Utf-8"))
     assert_raise(RangeError) { -1.chr("utf-8") }
-    assert_raise(RangeError) { 0x110000.chr.chr("UTF-8") }
+    assert_raise(RangeError) { 0x110000.chr("UTF-8") }
+    # UTF-16 surrogates are not valid Unicode scalar values (RFC 3629, #2708)
+    assert_raise(RangeError) { 0xD800.chr("UTF-8") }
+    assert_raise(RangeError) { 0xDFFF.chr("UTF-8") }
+    assert_equal "\u{D7FF}", 0xD7FF.chr("UTF-8")
+    assert_equal "\u{E000}", 0xE000.chr("UTF-8")
   end
 end

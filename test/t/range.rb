@@ -37,6 +37,19 @@ assert('Range#===', '15.2.14.4.2') do
   assert_true c === 0
 end
 
+assert('Range#=== with a NaN') do
+  # A NaN stands in no order with either end, so it falls in no range at all.
+  # `Range` tests the comparison for the answers that hold and takes anything
+  # else for a miss, so this follows from what the comparison itself reports.
+  skip unless Object.const_defined?(:Float)
+  nan = Float::NAN
+
+  assert_false((1..2) === nan)
+  assert_false((1..) === nan)
+  assert_false((..2) === nan)
+  assert_false((1.0..2.0) === nan)
+end
+
 assert('Range#begin', '15.2.14.4.3') do
   assert_equal 1, (1..10).begin
   assert_equal 1, (1..).begin
@@ -107,6 +120,31 @@ assert('Range#initialize', '15.2.14.4.9') do
   assert_true c.exclude_end?
   assert_equal (1..nil), d
   assert_false d.exclude_end?
+end
+
+assert('Range with a NaN for an end') do
+  # A NaN stands in no order with anything, so a range bounded by one holds
+  # nothing and covers nothing. The pair is refused the way a pair that cannot
+  # be compared at all is, rather than built and left to answer nothing.
+  #
+  # One end alone is no pair, and an end left out is nil rather than a number,
+  # so an endless or beginless range bounded by a NaN is still a range. CRuby
+  # draws the line in the same place.
+  skip unless Object.const_defined?(:Float)
+  nan = Float::NAN
+
+  assert_raise(ArgumentError) { (nan..2) }
+  assert_raise(ArgumentError) { (1..nan) }
+  assert_raise(ArgumentError) { (nan..nan) }
+  assert_raise(ArgumentError) { (nan...2) }
+  assert_raise(ArgumentError) { (1.0..nan) }
+  assert_raise(ArgumentError) { Range.new(nan, 2) }
+
+  assert_predicate((nan..).begin, :nan?)
+  assert_nil((nan..).end)
+  assert_predicate((..nan).end, :nan?)
+  assert_nil((..nan).begin)
+  assert_equal(1.0, (1.0..2.0).begin)      # an ordinary pair is untouched
 end
 
 assert('Range#last', '15.2.14.4.10') do
@@ -191,4 +229,20 @@ assert('Range#to_a') do
   assert_equal([1, 2, 3, 4, 5], (1..5).to_a)
   assert_equal([1, 2, 3, 4], (1...5).to_a)
   assert_raise(RangeError) { (1..).to_a }
+end
+
+assert('symbol GC keeps the symbols a Range holds') do
+  # A Range is a container like an Array, and its ends are the only holder of
+  # these two names; re-interning answers the same symbol only if the sweep
+  # left them alone.
+  r = "range_symbol_gc_beg".to_sym.."range_symbol_gc_end".to_sym
+  GC.start
+  i = 0
+  while i < 6000
+    "range-symbol-gc-filler-#{i}".to_sym
+    i += 1
+  end
+  GC.start
+  assert_true r.begin.equal?("range_symbol_gc_beg".to_sym)
+  assert_true r.end.equal?("range_symbol_gc_end".to_sym)
 end

@@ -12,13 +12,32 @@ $LOAD_PATH << File.join(MRUBY_ROOT, "lib")
 require "mruby/core_ext"
 require "mruby/build"
 
+if ENV["MRB_COMPILER_PRISM"] == "yes" && ENV["MRUBY_CONFIG"].to_s.empty? && ENV["CONFIG"].to_s.empty?
+  ENV["MRUBY_CONFIG"] = "prism"
+end
+
 # load configuration file
 MRUBY_CONFIG = MRuby::Build.mruby_config_path
 load MRUBY_CONFIG
 
-# set up all gems
-MRuby.each_target do
+# Give every cross build the `mrbc` it compiles with. The whole config has been
+# read, so a `host` declared after a cross build is as visible as one declared
+# before it, and no gem has been set up yet, so nothing has asked for `mrbc`.
+MRuby.resolve_mrbc_hosts
+
+# define MRB_NO_GEMS and set up all gems
+MRuby.each_target do |build|
+  unless enable_gems? && libmruby_enabled?
+    compilers.each do |compiler|
+      compiler.defines << "MRB_NO_GEMS"
+    end
+  end
   gems.setup(self) if enable_gems?
+
+  # The config has been read and every gem's mrbgem.rake body has run, so the
+  # defines a gem contributes are all in. `build.has_define?` answers from
+  # here on, and refuses before.
+  build.defines_final!
 end
 
 # load basic rules
@@ -32,12 +51,20 @@ load "#{MRUBY_ROOT}/tasks/mrblib.rake"
 load "#{MRUBY_ROOT}/tasks/mrbgems.rake"
 load "#{MRUBY_ROOT}/tasks/libmruby.rake"
 load "#{MRUBY_ROOT}/tasks/bin.rake"
+# `revision.rake` adds a define to the compilers, and `presym.rake` resolves
+# rules as it is loaded: the two are in this order and not the other one.
+load "#{MRUBY_ROOT}/tasks/revision.rake"
 load "#{MRUBY_ROOT}/tasks/presym.rake"
 load "#{MRUBY_ROOT}/tasks/test.rake"
 load "#{MRUBY_ROOT}/tasks/benchmark.rake"
 load "#{MRUBY_ROOT}/tasks/doc.rake"
 load "#{MRUBY_ROOT}/tasks/install.rake"
 load "#{MRUBY_ROOT}/tasks/amalgam.rake"
+load "#{MRUBY_ROOT}/tasks/compile_commands.rake"
+load "#{MRUBY_ROOT}/tasks/size.rake"
+load "#{MRUBY_ROOT}/tasks/define_log.rake"
+load "#{MRUBY_ROOT}/tasks/unicode.rake"
+load "#{MRUBY_ROOT}/tasks/difftest.rake"
 
 ##############################
 # generic build targets, rules
@@ -56,6 +83,13 @@ task :all => :gensym do
 end
 
 task :build => MRuby.targets.flat_map{|_, build| build.products}
+
+desc "download all gem dependencies without building"
+task :fetch do
+  MRuby.each_target do |build|
+    puts "Dependencies ready for '#{build.name}'"
+  end
+end
 
 desc "clean all built and in-repo installed artifacts"
 task :clean do

@@ -13,8 +13,11 @@ The primary purpose of `mruby-task` is to enable mruby applications to:
 - Schedule tasks based on priority (0-255, where 0 is highest priority).
 - Provide cooperative yielding with `Task.pass`.
 - Support preemptive scheduling via timer-based interrupts.
-- Synchronize tasks using `sleep` and `join` operations.
+- Synchronize tasks using `sleep`, `join` and `Task::Queue`.
 - Suspend and resume tasks programmatically.
+- Coordinate producers and consumers via `Task::Queue` without polling.
+- Drive garbage collection from the scheduler's idle points, so allocating
+  tasks never pause for GC (see [Task-Scheduled GC](#task-scheduled-gc)).
 
 ## Architecture
 
@@ -186,6 +189,116 @@ Task.run
   puts "Worker finished"
   ```
 
+### Task::Error
+
+`Task::Error` is the base error class for queue-related errors. It inherits
+from `StandardError`.
+
+```ruby
+begin
+  q = Task::Queue.new
+  q.close
+  q.push(1)   # raises Task::Error: queue closed
+rescue Task::Error => e
+  puts e.message  # => "queue closed"
+end
+```
+
+Errors raised by `Task::Queue`:
+
+| Situation                          | Error class   | Message          |
+| ---------------------------------- | ------------- | ---------------- |
+| `push` on a closed queue           | `Task::Error` | `"queue closed"` |
+| `pop(true)` on an empty open queue | `Task::Error` | `"queue empty"`  |
+
+Internal consistency errors (programming errors, not queue logic) still use
+`RuntimeError`:
+
+| Situation                                               | Error class    |
+| ------------------------------------------------------- | -------------- |
+| Blocking `pop` called from root context                 | `RuntimeError` |
+| Blocking `pop` called from inside a C function boundary | `RuntimeError` |
+
+### Task::Queue
+
+`Task::Queue` is a thread-safe FIFO queue for inter-task communication, analogous to CRuby's `Queue`. A task that calls `pop` on an empty queue is automatically moved to the WAITING state and rescheduled when another task pushes an item.
+No polling or explicit sleep is required.
+
+#### Creating a Queue
+
+```ruby
+q = Task::Queue.new
+```
+
+#### Pushing Items
+
+```ruby
+q.push(item)   # add to the back of the queue; raises Task::Error if closed
+q << item      # alias for push
+q.enq(item)    # alias for push
+```
+
+#### Popping Items
+
+```ruby
+item = q.pop           # block until an item is available
+item = q.pop(true)     # non-blocking: raises Task::Error if empty
+item = q.deq           # alias for pop
+item = q.shift         # alias for pop
+```
+
+Behavior when the queue is **closed**:
+
+- `pop` on a non-empty closed queue returns the remaining items normally.
+- `pop` on an empty closed queue returns `nil` immediately (no blocking).
+
+#### Inspecting the Queue
+
+```ruby
+q.size        # => Integer: number of items currently in the queue
+q.length      # alias for size
+q.empty?      # => true if the queue has no items
+q.num_waiting # => Integer: number of tasks currently blocked in pop
+```
+
+#### Clearing and Closing
+
+```ruby
+q.clear       # remove all items; returns self
+q.close       # close the queue; returns self
+q.closed?     # => true if the queue has been closed
+```
+
+After `close`:
+
+- `push` raises `Task::Error`.
+- Tasks blocked in `pop` are woken and receive `nil` for an empty queue.
+- `pop` on remaining items still returns them normally; returns `nil` when empty.
+
+#### Producer/Consumer Example
+
+```ruby
+q = Task::Queue.new
+
+Task.new(name: "producer") do
+  10.times do |i|
+    q.push(i)
+    sleep 0.1
+  end
+  q.close
+end
+
+Task.new(name: "consumer") do
+  loop do
+    item = q.pop   # blocks until an item arrives or the queue closes
+    break if item.nil?
+    puts "got #{item}"
+  end
+end
+
+Task.run
+```
+
 ### Kernel Methods (Sleep)
 
 The task scheduler provides task-aware sleep methods that cooperatively yield
@@ -260,180 +373,107 @@ These grow automatically as needed, similar to Fiber.
 
 ### HAL (Hardware Abstraction Layer)
 
-The task scheduler uses a Hardware Abstraction Layer (HAL) to support different platforms. Platform-specific timer and interrupt handling is provided by separate HAL gems.
+The task scheduler uses a Hardware Abstraction Layer (HAL) to support
+different platforms. Platform-specific timer and interrupt handling
+lives in `mruby-task/ports/<port_name>/task_hal.c`, and the active
+port is selected at build configuration time.
 
-#### Built-in HAL Gems
+#### Built-in Ports
 
-**hal-posix-task** - For POSIX systems (Linux, macOS, BSD, Unix)
+**`ports/posix/`** - For POSIX systems (Linux, macOS, BSD, Unix)
 
-- Uses `SIGALRM` and `setitimer()` for timer
+- Uses `SIGALRM` and `setitimer()` for the timer
 - Uses `sigprocmask()` for interrupt protection
 - Uses `SA_RESTART` to prevent `EINTR` on system calls
 - Supports multiple VMs per process
-- **WASM/Emscripten support**: When compiled with Emscripten (`__EMSCRIPTEN__` defined), the SIGALRM timer is automatically disabled. JavaScript handles tick calls via `setInterval`, preventing double-increment of the tick counter
+- **WASM/Emscripten support**: When compiled with Emscripten
+  (`__EMSCRIPTEN__` defined), the SIGALRM timer is automatically
+  disabled. JavaScript handles tick calls via `setInterval`,
+  preventing double-increment of the tick counter
 
-**hal-win-task** - For Windows
+**`ports/win/`** - For Windows
 
-- Uses multimedia timer API (`timeSetEvent`/`timeKillEvent`)
+- Uses the multimedia timer API (`timeSetEvent`/`timeKillEvent`)
 - Uses `CRITICAL_SECTION` for interrupt protection
 - Supports multiple VMs per process
 
-#### HAL Selection
+#### Port Selection
 
-The task scheduler will automatically select an appropriate HAL gem based on your platform. For explicit control, you can specify the HAL gem in your build configuration:
+The build system auto-detects `:posix` on Linux/macOS/BSD and `:win`
+on Windows. For explicit control (cross-compilation, Cosmopolitan,
+etc.) set `conf.ports` in your build configuration:
 
 ```ruby
 MRuby::Build.new do |conf|
-  # Option 1: Explicit HAL selection (recommended)
-  conf.gem core: 'hal-posix-task'   # For Linux/macOS/BSD
-  # or
-  conf.gem core: 'hal-win-task'     # For Windows
-
-  # mruby-task automatically loads if HAL is loaded
-  # But you can also specify it explicitly:
+  conf.ports :posix   # or :win, or your own port name
   conf.gem core: 'mruby-task'
 end
 ```
 
-**Auto-detection behavior:**
-
-- If you include `mruby-task` but no HAL gem, it will automatically load the appropriate HAL
-- On Linux/macOS/BSD: loads `hal-posix-task`
-- On Windows: loads `hal-win-task`
-- On unknown platforms: fails with helpful error message
+When `conf.ports` is set, the corresponding `ports/<name>/`
+directory in every gem is compiled in; directories for other port
+names are skipped. This is how `build_config/cosmopolitan.rb` reuses
+the POSIX HAL on Cosmopolitan.
 
 **Multi-VM support:**
 
-- Both HAL implementations support multiple `mrb_state` instances
+- Both built-in ports support multiple `mrb_state` instances
 - A single system timer ticks all registered VMs
 - Maximum VMs: configurable via `MRB_TASK_MAX_VMS` (default: 8)
 
-#### Custom HAL Implementation
+#### Adding a New HAL
 
-For embedded systems or unsupported platforms, you can create a custom HAL gem. The HAL must provide five functions defined in `mruby-task/include/task_hal.h`:
+To support a new platform (an RTOS, a UI runloop like GLib or Cocoa,
+a bare-metal target), add a new directory
+`mruby-task/ports/<name>/task_hal.c` and contribute it upstream. The
+HAL must implement the six functions declared in
+`mruby-task/include/task_hal.h`:
 
 ```c
 /**
- * Initialize timer and register VM
- * Called during gem initialization
- * Must set up periodic timer to call mrb_tick(mrb) every MRB_TICK_UNIT ms
+ * Initialize timer and register VM.
+ * Called during gem initialization. Must set up a periodic timer
+ * that calls mrb_tick(mrb) every MRB_TICK_UNIT milliseconds.
  */
-void mrb_task_hal_init(mrb_state *mrb);
+void mrb_hal_task_init(mrb_state *mrb);
 
 /**
- * Cleanup timer and unregister VM
- * Called during gem finalization
+ * Cleanup timer and unregister VM.
+ * Called during gem finalization.
  */
-void mrb_task_hal_final(mrb_state *mrb);
+void mrb_hal_task_final(mrb_state *mrb);
 
 /**
- * Enable timer interrupts (exit critical section)
- * Must be reentrant for nested calls
+ * Enable timer interrupts (exit critical section).
+ * Must be reentrant for nested calls.
  */
 void mrb_task_enable_irq(void);
 
 /**
- * Disable timer interrupts (enter critical section)
- * Must be reentrant for nested calls
+ * Disable timer interrupts (enter critical section).
+ * Must be reentrant for nested calls.
  */
 void mrb_task_disable_irq(void);
 
 /**
- * Put CPU in low-power/idle mode
- * Called when no tasks are ready but some are waiting
- * Should sleep ~MRB_TICK_UNIT milliseconds
+ * Put CPU in low-power/idle mode.
+ * Called when no tasks are ready but some are waiting; should sleep
+ * roughly MRB_TICK_UNIT milliseconds and allow the timer to fire.
  */
-void mrb_task_hal_idle_cpu(mrb_state *mrb);
+void mrb_hal_task_idle_cpu(mrb_state *mrb);
+
+/**
+ * Sleep for the given number of microseconds of wall-clock time.
+ * Must allow timer interrupts/callbacks during the sleep and should
+ * complete the full duration even if interrupted.
+ */
+void mrb_hal_task_sleep_us(mrb_state *mrb, mrb_int usec);
 ```
 
-**Example custom HAL gem structure:**
-
-```
-mrbgems/hal-myplatform-task/
-├── mrbgem.rake              # Gem specification
-├── include/
-│   └── task_hal.h          # Symlink to mruby-task/include/task_hal.h
-└── src/
-    └── task_hal.c          # Platform implementation
-```
-
-**mrbgem.rake:**
-
-```ruby
-MRuby::Gem::Specification.new('hal-myplatform-task') do |spec|
-  spec.license = 'MIT'
-  spec.authors = 'Your Name'
-  spec.summary = 'My Platform HAL for mruby-task'
-
-  # HAL gem depends on feature gem (important for build order)
-  spec.add_dependency 'mruby-task', core: 'mruby-task'
-
-  # Add any platform-specific libraries or flags
-  # spec.linker.libraries << 'myplatform_timer'
-end
-```
-
-**task_hal.c example for embedded system:**
-
-```c
-#include <mruby.h>
-#include "task_hal.h"
-#include "myplatform_hardware.h"
-
-static mrb_state *registered_vm = NULL;
-
-void mrb_task_hal_init(mrb_state *mrb)
-{
-  registered_vm = mrb;
-
-  // Setup hardware timer to fire every MRB_TICK_UNIT milliseconds
-  hardware_timer_init(MRB_TICK_UNIT, timer_isr);
-  hardware_timer_start();
-}
-
-void mrb_task_hal_final(mrb_state *mrb)
-{
-  hardware_timer_stop();
-  registered_vm = NULL;
-}
-
-void mrb_task_enable_irq(void)
-{
-  hardware_enable_interrupts();
-}
-
-void mrb_task_disable_irq(void)
-{
-  hardware_disable_interrupts();
-}
-
-void mrb_task_hal_idle_cpu(mrb_state *mrb)
-{
-  (void)mrb;
-  hardware_sleep_mode();  // Enter low-power mode until interrupt
-}
-
-// Timer ISR - must call mrb_tick() for scheduler
-void timer_isr(void)
-{
-  if (registered_vm) {
-    mrb_tick(registered_vm);
-  }
-}
-
-// Gem initialization (required but can be empty)
-void mrb_hal_myplatform_task_gem_init(mrb_state *mrb)
-{
-  (void)mrb;
-}
-
-void mrb_hal_myplatform_task_gem_final(mrb_state *mrb)
-{
-  (void)mrb;
-}
-```
-
-See `hal-posix-task` and `hal-win-task` source code for complete reference implementations.
+Users selecting your port set `conf.ports :<name>`; the built-in
+POSIX and Windows ports are then skipped, so there is no symbol
+clash. See `mruby-task/ports/posix/task_hal.c` and
+`mruby-task/ports/win/task_hal.c` for reference implementations.
 
 ## C API
 
@@ -452,7 +492,7 @@ MRB_API mrb_value mrb_task_run(mrb_state *mrb);
 MRB_API mrb_value mrb_task_run_once(mrb_state *mrb);
 ```
 
-**`mrb_task_run_once()`** executes one ready task and returns. This is designed for WASM/JavaScript event loop integration where the scheduler should yield control back to the browser between task executions.
+**`mrb_task_run_once()`** executes one ready task and returns. This is designed for WASM/JavaScript event loop integration where the scheduler should yield control back to the browser between task executions. When the executed task stops during that step, the return value is the task result, including an exception object for unhandled task errors.
 
 ### Task Creation API
 
@@ -657,6 +697,129 @@ sleep 1
 task.terminate   # Stop permanently
 ```
 
+### Producer/Consumer with Task::Queue
+
+Using `Task::Queue` eliminates polling. The consumer blocks on `pop` and wakes
+automatically when the producer pushes an item.
+
+```ruby
+q = Task::Queue.new
+results = []
+
+Task.new(name: "producer") do
+  ["a", "b", "c"].each do |v|
+    q.push(v)
+    sleep 0.1
+  end
+  q.close
+end
+
+Task.new(name: "consumer") do
+  loop do
+    item = q.pop  # blocks here until an item is available or the queue closes
+    break if item.nil?
+    results << item
+  end
+end
+
+Task.run
+puts results.inspect  # => ["a", "b", "c"]
+```
+
+Multiple producers and consumers work naturally:
+
+```ruby
+q = Task::Queue.new
+
+3.times { |i| Task.new { q.push(i) } }
+
+received = []
+3.times { Task.new { received << q.pop } }
+
+Task.run
+puts received.sort.inspect  # => [0, 1, 2]
+```
+
+## Task-Scheduled GC
+
+By default, mruby drives its incremental GC from the allocation path: whichever
+task happens to allocate pays the GC pause, at a moment it does not control.
+`mruby-task` can instead move GC scheduling into the scheduler itself: GC steps
+run only when every task is waiting for a tick — the point where the scheduler
+would otherwise idle the CPU — so allocating tasks never pause for GC at all.
+
+Enable it with one call:
+
+```ruby
+origin_gen = GC.generational_mode
+GC.scheduler_driven = true    # auto_step off + generational off, in one call
+GC.step_limit = 1024          # optional: longest single GC pause you tolerate
+GC.debt_limit = 20_000        # optional: allocation-path backstop if starved
+
+Task.new { do_the_real_work }
+Task.run                      # scheduler runs GC only while all tasks sleep
+
+GC.scheduler_driven = false   # restores auto_step; generational mode stays off
+GC.generational_mode = origin_gen  # restore it yourself if you want it back
+```
+
+The scheduler drives collection from its idle points in both `mrb_task_run`
+and `mrb_task_run_once` (the WASM/event-loop driver advances GC one step per
+host tick). GC consumes strictly otherwise-idle CPU (the ready queue is empty)
+and yields the instant a tick wakes a task, so it never delays a wakeup. There
+is no Ruby GC task, no `Task.list` scan, and no task-switch overhead.
+
+### Primitives
+
+| Method                       | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GC.scheduler_driven = bool` | `true` hands GC scheduling to the scheduler (turns `auto_step` off and generational mode off); it drives GC from its idle points. Enabling raises while GC is disabled or ObjectSpace iteration is active, because generational mode cannot be changed safely then. `false` restores `auto_step` (stock allocation-synchronous GC) but does **not** restore generational mode — call `GC.generational_mode = true` yourself if you want it back.                                                  |
+| `GC.scheduler_driven`        | Whether scheduler-driven GC is on.                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `GC.step_limit = n`          | Cap the work of one step (`0` = unlimited). Bounds the length of one non-preemptible GC pause. Not scheduler-driven-specific: also bounds ordinary auto_step-driven and manual `GC.step` pauses.                                                                                                                                                                                                                                                                                                  |
+| `GC.debt_limit = n`          | Safety valve: while scheduler-driven, if the system is 100 % busy and debt exceeds `n`, the allocation path forces a bounded synchronous step. `0` disables. Only has an effect while scheduler-driven — there is no other way to turn `auto_step` off.                                                                                                                                                                                                                                           |
+| `GC.malloc_threshold = n`    | Byte-pressure threshold (`GC.debt` counts objects, not bytes). Not scheduler-driven-specific: the ordinary allocation path also triggers an incremental GC cycle once malloc-backed growth crosses this threshold, even with `auto_step` on. Scheduler-driven GC does not read the threshold at all: any byte growth since the last completed cycle is reason enough to spend idle time stepping, so `0` disables byte-driven collection on the allocation path but not the scheduler's stepping. |
+
+Observability (`GC.stat`) still reports `:debt`, `:state`, `:malloc_increase`,
+`:live`, and — under `MRB_GC_PROFILE` — the `:prof_sync_*` / `:prof_step_*`
+pause histograms.
+
+The equivalent C entry points are `mrb_gc_scheduler_driven()`,
+`mrb_gc_scheduler_pending()` and `mrb_gc_step()` (see `mruby/gc.h`).
+
+### Tuning
+
+- **Generational mode is turned off for you.** In generational mode a minor
+  cycle runs to completion inside a single step, and a step is one C call —
+  atomic with respect to preemption. On a large heap that is a long
+  non-preemptible pause, _worse_ than the stock behaviour. `GC.scheduler_driven
+= true` disables generational mode so steps stay finely divisible, and it
+  _stays_ off: `GC.generational_mode = true` raises while scheduler-driven GC
+  is on. If GC is disabled or ObjectSpace is iterating, enabling
+  scheduler-driven GC raises instead of entering a mode it cannot make safe.
+- **`GC.step_limit`** bounds the pause of one step. Size it to the longest
+  delay your highest-priority task can tolerate: a step in progress cannot be
+  preempted, so a task becoming ready mid-step waits for the step to finish.
+- **`GC.debt_limit`** is the backstop for starvation: on a 100 %-busy system
+  the scheduler never idles, so it never steps and the heap would grow without
+  bound. The valve forces bounded synchronous steps once debt passes the cap.
+  It bounds heap _growth_, not latency — pick a cap small enough that the valve
+  fires before the heap bloats. Note the valve keys on _object_ debt: a starved
+  workload whose pressure is purely malloc bytes (few objects, large buffers,
+  no idle time) is only backstopped by the out-of-memory emergency collection.
+
+### What it does not buy
+
+- Total GC work does not decrease — it increases (idle collection runs more
+  cycles), but the extra work consumes only idle time.
+- A system with no idle time gains nothing: the benefit assumes the typical
+  embedded shape of periodic tasks plus idle gaps.
+- `final_marking_phase` (the atomic root re-scan of all task stacks) is a
+  pause floor a step cannot subdivide; it grows with task count and stack
+  depth.
+- For C embedders: while `auto_step` is off, `mrb_incremental_gc()` silently
+  no-ops. `GC.start` / `mrb_full_gc()` and the out-of-memory emergency
+  collection keep working either way.
+
 ## Limitations and Compatibility
 
 ### Relationship with Fiber
@@ -689,7 +852,9 @@ tasks. The exception is not propagated to the scheduler.
 ### GC Integration
 
 Task contexts are registered with the garbage collector. Tasks and their
-stacks/callinfo are properly marked and freed.
+stacks/callinfo are properly marked and freed. GC scheduling can also be
+handed to the scheduler itself, which then collects at its idle points;
+see [Task-Scheduled GC](#task-scheduled-gc).
 
 ## Testing
 
@@ -701,6 +866,10 @@ The gem includes tests that verify:
 - Join synchronization
 - Suspend and resume
 - Task.pass cooperative yielding
+- Task::Queue push/pop FIFO order
+- Task::Queue blocking pop and wakeup on push
+- Task::Queue close semantics
+- Task::Queue num_waiting count
 
 Run tests with:
 
@@ -717,7 +886,7 @@ Each task can be in one of five states:
 - `DORMANT (0x00)`: Not started or finished
 - `READY (0x02)`: Ready to run
 - `RUNNING (0x03)`: Currently executing
-- `WAITING (0x04)`: Waiting (sleep, join, mutex)
+- `WAITING (0x04)`: Waiting (sleep, join, queue)
 - `SUSPENDED (0x08)`: Manually suspended
 
 ### Wait Reasons
@@ -728,6 +897,7 @@ When a task is in WAITING state, the reason indicates why:
 - `SLEEP (0x01)`: Sleeping for time
 - `MUTEX (0x02)`: Waiting for mutex (reserved, not yet implemented)
 - `JOIN (0x04)`: Waiting for another task
+- `QUEUE (0x08)`: Waiting for an item to be pushed to a `Task::Queue`
 
 ### Scheduler Algorithm
 
@@ -756,6 +926,7 @@ The scheduler includes a lock counter (`mrb->task.scheduler_lock`) that prevents
 Planned features not yet implemented:
 
 - **Mutex support**: Thread-safe synchronization primitives
+- **Task::SizedQueue**: Bounded queue with backpressure (push blocks when full)
 - **Task.raise**: Throw exceptions to other tasks
 - **Task#value**: Retrieve task return value (like Thread#value)
 - **Per-task timeslice configuration**

@@ -191,10 +191,25 @@ DEFINE_SWITCHER(ht, HT)                                         /* h_ht_on  h_ht
        ib_it_find_by_key(mrb, it_var, key);                                   \
        it_var[0].h = NULL)
 
+/* Same live-entry iteration as EA_EACH (visit the live count of entries,
+   skipping deleted slots), but the deleted-entry skip is bounded by the end of
+   the entry allocation (ea + ea_capa). For valid iterations the live count is
+   reached well before the bound, so behaviour is identical to EA_EACH; when a
+   callback deletes entries ahead of the cursor, the bound keeps the iterator
+   inside the allocation instead of reading out of bounds
+   (GHSA-jfmr-44fc-gfhg). ea_capa is used rather than ea_n_used because the
+   latter is transiently inconsistent with the entry positions while a rehash
+   that raised mid-way is being observed; ea_capa always spans every entry. */
 #define H_EACH(h, entry_var)                                                  \
-  EA_EACH((h_ar_p(h) ? ar_ea(h) : ht_ea(h)),                                  \
-          (h_ar_p(h) ? ar_size(h) : ht_size(h)),                              \
-          entry_var)
+  for (uint32_t ea_size__ = (h_ar_p(h) ? ar_size(h) : ht_size(h));            \
+       ea_size__; ea_size__ = 0)                                             \
+    for (hash_entry *entry_var = (h_ar_p(h) ? ar_ea(h) : ht_ea(h)),           \
+                    *ea_end__ = entry_var +                                   \
+                      (h_ar_p(h) ? ar_ea_capa(h) : ht_ea_capa(h));            \
+         ea_size__ &&                                                         \
+           (entry_var = entry_skip_deleted_bounded(entry_var, ea_end__))      \
+             < ea_end__;                                                      \
+         entry_var++, ea_size__--)
 
 /*
  * In `H_CHECK_MODIFIED()`, in the case of `MRB_NO_BOXING`, `ht_ea()` or
@@ -315,9 +330,8 @@ h_check_modified_validate(mrb_state *mrb, struct h_check_modified *checker, stru
 static uint32_t
 float_hash_code(mrb_float f)
 {
-  if (f == 0.0) return 0;
   /* normalize -0.0 to 0.0 */
-  if (f == -0.0) f = 0.0;
+  if (f == 0.0) f = 0.0;
   return mrb_byte_hash((const uint8_t*)&f, sizeof(f));
 }
 #endif
@@ -361,7 +375,10 @@ mrb_obj_hash_code(mrb_state *mrb, mrb_value key)
     hash_code = U32(tt) ^ U32(mrb_integer(hash_code_obj));
     break;
   }
-  return hash_code ^ (hash_code << 2) ^ (hash_code >> 2);
+  hash_code ^= hash_code >> 16;
+  hash_code *= 0x45d9f3b;
+  hash_code ^= hash_code >> 16;
+  return hash_code;
 }
 
 static uint32_t
@@ -393,9 +410,17 @@ obj_eql(mrb_state *mrb, mrb_value a, mrb_value b, struct RHash *h)
     return mrb_integer(a) == mrb_integer(b);
 
 #ifndef MRB_NO_FLOAT
-  case MRB_TT_FLOAT:
+  case MRB_TT_FLOAT: {
     if (!mrb_float_p(b)) return FALSE;
-    return mrb_float(a) == mrb_float(b);
+    mrb_float fa = mrb_float(a);
+    if (fa == mrb_float(b)) return TRUE;
+    /* A NaN is equal to no value, its own key included, so a Hash handed the
+       very key it stored would not find it again. The key it holds is that
+       object, and an object is the same key as itself. Only a key that is not
+       equal to itself asks, so what an ordinary key pays is the comparison
+       against the value already in hand. */
+    return fa != fa && mrb_obj_eq(mrb, a, b);
+  }
 #endif
 
   default:
@@ -424,6 +449,19 @@ entry_skip_deleted(hash_entry *e)
   return e;
 }
 
+/* Like entry_skip_deleted, but never advances past `end` (one past the last
+   allocated entry slot). H_EACH uses this so that a callback which deletes
+   entries ahead of the cursor mid-iteration cannot walk the iterator off the
+   end of the allocation (GHSA-jfmr-44fc-gfhg, CWE-125). A realloc-causing
+   mutation is still caught separately by H_CHECK_MODIFIED in the loop body. */
+static hash_entry*
+entry_skip_deleted_bounded(hash_entry *e, const hash_entry *end)
+{
+  for (; e < end && entry_deleted_p(e); e++)
+    ;
+  return e;
+}
+
 static uint32_t
 ea_next_capa_for(uint32_t size, uint32_t max_capa)
 {
@@ -445,9 +483,17 @@ ea_next_capa_for(uint32_t size, uint32_t max_capa)
 }
 
 static hash_entry*
-ea_resize(mrb_state *mrb, hash_entry *ea, uint32_t capa)
+ea_resize(mrb_state *mrb, hash_entry *ea, uint32_t old_capa, uint32_t capa)
 {
-  return (hash_entry*)mrb_realloc(mrb, ea, sizeof(hash_entry) * capa);
+  ea = (hash_entry*)mrb_realloc(mrb, ea, sizeof(hash_entry) * capa);
+  /* Mark the newly grown slots as deleted so the unused tail of the entry
+     array is always skippable. H_EACH bounds its scan by ea_capa and relies
+     on every slot outside the live range being deleted (GHSA-jfmr-44fc-gfhg);
+     mrb_realloc leaves grown slots uninitialized. */
+  for (uint32_t i = old_capa; i < capa; i++) {
+    entry_delete(&ea[i]);
+  }
+  return ea;
 }
 
 static void
@@ -459,6 +505,12 @@ ea_compress(hash_entry *ea, uint32_t n_used)
     if (r_entry != w_entry) *w_entry = *r_entry;
     w_entry++;
   }
+  /* Mark the slots vacated by compaction as deleted; they hold stale copies
+     of moved entries, which must not be read as live by a later H_EACH scan
+     that overruns the live range (GHSA-jfmr-44fc-gfhg). */
+  for (hash_entry *end = ea + n_used; w_entry < end; w_entry++) {
+    entry_delete(w_entry);
+  }
 }
 
 /*
@@ -469,8 +521,9 @@ ea_compress(hash_entry *ea, uint32_t n_used)
 static hash_entry*
 ea_adjust(mrb_state *mrb, hash_entry *ea, uint32_t *capap, uint32_t max_capa)
 {
+  uint32_t old_capa = *capap;
   *capap = ea_next_capa_for(*capap, max_capa);
-  return ea_resize(mrb, ea, *capap);
+  return ea_resize(mrb, ea, old_capa, *capap);
 }
 
 static hash_entry*
@@ -1242,7 +1295,7 @@ mrb_hash_new_capa(mrb_state *mrb, mrb_int capa)
   else {
     uint32_t size = U32(capa);
     struct RHash *h = h_alloc(mrb);
-    hash_entry *ea = ea_resize(mrb, NULL, size);
+    hash_entry *ea = ea_resize(mrb, NULL, 0, size);
     if (size <= AR_MAX_SIZE) {
       ar_init(h, 0, ea, size, 0);
     }
@@ -1266,7 +1319,7 @@ hash_default(mrb_state *mrb, mrb_value hash, mrb_value key)
 {
   if (MRB_RHASH_DEFAULT_P(hash)) {
     if (MRB_RHASH_PROCDEFAULT_P(hash)) {
-      return mrb_funcall_id(mrb, RHASH_PROCDEFAULT(hash), MRB_SYM(call), 2, hash, key);
+      return mrb_funcall_argv2(mrb, RHASH_PROCDEFAULT(hash), MRB_SYM(call), hash, key);
     }
     else {
       return RHASH_IFNONE(hash);
@@ -1543,7 +1596,7 @@ mrb_hash_default(mrb_state *mrb, mrb_value hash)
   if (MRB_RHASH_DEFAULT_P(hash)) {
     if (MRB_RHASH_PROCDEFAULT_P(hash)) {
       if (!given) return mrb_nil_value();
-      return mrb_funcall_id(mrb, RHASH_PROCDEFAULT(hash), MRB_SYM(call), 2, hash, key);
+      return mrb_funcall_argv2(mrb, RHASH_PROCDEFAULT(hash), MRB_SYM(call), hash, key);
     }
     else {
       return RHASH_IFNONE(hash);
@@ -2054,15 +2107,17 @@ mrb_hash_pat_values(mrb_state *mrb, mrb_value hash)
   mrb_value keys;
   mrb_get_args(mrb, "A", &keys);
 
-  const mrb_value *ary = RARRAY_PTR(keys);
   mrb_int klen = RARRAY_LEN(keys);
   struct RHash *h = mrb_hash_ptr(hash);
   mrb_value result = mrb_ary_new_capa(mrb, klen);
   int ai = mrb_gc_arena_save(mrb);
 
-  for (mrb_int i = 0; i < klen; i++) {
+  /* h_get() calls #hash and #eql? on the key, and Ruby there can replace
+     `keys` with a shorter array, moving the buffer as well as the length.
+     Neither survives the call, so read both afresh each time. */
+  for (mrb_int i = 0; i < klen && i < RARRAY_LEN(keys); i++) {
     mrb_value val;
-    if (!h_get(mrb, h, ary[i], &val)) {
+    if (!h_get(mrb, h, RARRAY_PTR(keys)[i], &val)) {
       return mrb_false_value();
     }
     mrb_ary_push(mrb, result, val);
@@ -2083,22 +2138,27 @@ mrb_hash_except_keys(mrb_state *mrb, mrb_value hash)
   mrb_value keys;
   mrb_get_args(mrb, "A", &keys);
 
-  const mrb_value *ary = RARRAY_PTR(keys);
   mrb_int klen = RARRAY_LEN(keys);
   mrb_value result = mrb_hash_new(mrb);
   struct RHash *h = mrb_hash_ptr(hash);
   int ai = mrb_gc_arena_save(mrb);
 
+  /* Both calls below run Ruby: #== on a key, and #hash and #eql? on the key
+     being stored. That can replace `keys`, so its buffer and length are read
+     afresh each time, and it can rehash `hash` out from under H_EACH, which
+     is what H_CHECK_MODIFIED refuses. */
   H_EACH(h, entry) {
     mrb_bool found = FALSE;
-    for (mrb_int i = 0; i < klen; i++) {
-      if (mrb_equal(mrb, entry->key, ary[i])) {
+    for (mrb_int i = 0; i < klen && i < RARRAY_LEN(keys); i++) {
+      mrb_bool eq;
+      H_CHECK_MODIFIED(mrb, h) {eq = mrb_equal(mrb, entry->key, RARRAY_PTR(keys)[i]);}
+      if (eq) {
         found = TRUE;
         break;
       }
     }
     if (!found) {
-      mrb_hash_set(mrb, result, entry->key, entry->val);
+      H_CHECK_MODIFIED(mrb, h) {mrb_hash_set(mrb, result, entry->key, entry->val);}
     }
     mrb_gc_arena_restore(mrb, ai);
   }
@@ -2225,9 +2285,10 @@ mrb_hash_equal(mrb_state *mrb, mrb_value hash)
     return mrb_false_value();
   }
 
-  /* Check for recursion */
+  /* A pair already being compared is taken as equal, as in CRuby's
+     recursive_equal(), and the other elements decide the outcome. */
   if (MRB_RECURSIVE_BINARY_FUNC_P(mrb, MRB_OPSYM(eq), hash, hash2)) {
-    return mrb_false_value();
+    return mrb_true_value();
   }
 
   struct RHash *h1 = mrb_hash_ptr(hash);
@@ -2273,9 +2334,10 @@ mrb_hash_eql(mrb_state *mrb, mrb_value hash)
     return mrb_false_value();
   }
 
-  /* Check for recursion */
+  /* A pair already being compared is taken as equal, as in CRuby's
+     recursive_equal(), and the other elements decide the outcome. */
   if (MRB_RECURSIVE_BINARY_FUNC_P(mrb, MRB_SYM_Q(eql), hash, hash2)) {
-    return mrb_false_value();
+    return mrb_true_value();
   }
 
   struct RHash *h1 = mrb_hash_ptr(hash);

@@ -1,4 +1,4 @@
-MRuby::Build.new do |conf|
+MRuby::Build.new('host-cxx') do |conf|
   conf.toolchain
 
   # include the default GEMs
@@ -6,6 +6,8 @@ MRuby::Build.new do |conf|
 
   # C compiler settings
   conf.cc.defines = %w(MRB_USE_DEBUG_HOOK)
+
+
   conf.enable_debug
   conf.enable_cxx_abi
   conf.enable_test

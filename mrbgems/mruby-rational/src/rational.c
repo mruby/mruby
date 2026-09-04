@@ -124,10 +124,12 @@ static mrb_value
 rational_numerator(mrb_state *mrb, mrb_value self)
 {
   mrb_value n = rat_numerator(mrb, self);
+#ifdef RAT_BIGINT
   if (mrb_bigint_p(n)) {
     /* normalize bigint */
     return mrb_bint_mul(mrb, n, ONE);
   }
+#endif
   return n;
 }
 
@@ -159,10 +161,12 @@ static mrb_value
 rational_denominator(mrb_state *mrb, mrb_value self)
 {
   mrb_value n = rat_denominator(mrb, self);
+#ifdef RAT_BIGINT
   if (mrb_bigint_p(n)) {
     /* normalize bigint */
     return mrb_bint_mul(mrb, n, ONE);
   }
+#endif
   return n;
 }
 
@@ -262,12 +266,24 @@ rational_new_b(mrb_state *mrb, mrb_value n, mrb_value d)
   }
   /* normalize (n/gcd, d/gcd) */
   mrb_bint_reduce(mrb, &n, &d);
+  /* demote halves that now fit mrb_int, the same way bint_norm() would;
+     mrb_bint_reduce() itself hands back bigint objects unconditionally */
+  n = mrb_bint_mul(mrb, n, ONE);
+  d = mrb_bint_mul(mrb, d, ONE);
   struct RClass *c = mrb_class_get_id(mrb, MRB_SYM(Rational));
   struct RBasic *rat;
   struct mrb_rational *p = rat_alloc(mrb, c, &rat);
+  if (!mrb_bigint_p(n) && !mrb_bigint_p(d)) {
+    /* both halves fit mrb_int: store the same layout mrb_rational_new()
+       would, so this value hashes the same as one built from fixnums */
+    p->numerator = mrb_integer(n);
+    p->denominator = mrb_integer(d);
+    rat->frozen = 1;
+    return mrb_obj_value(rat);
+  }
   rat->flags |= RAT_BIGINT;
-  p->b.num = (struct RBasic*)mrb_obj_ptr(n);
-  p->b.den = (struct RBasic*)mrb_obj_ptr(d);
+  p->b.num = (struct RBasic*)mrb_obj_ptr(mrb_as_bint(mrb, n));
+  p->b.den = (struct RBasic*)mrb_obj_ptr(mrb_as_bint(mrb, d));
   rat->frozen = 1;
   return mrb_obj_value(rat);
 }
@@ -307,6 +323,30 @@ mrb_rational_new(mrb_state *mrb, mrb_int nume, mrb_int deno)
 }
 
 #define rational_new_i(mrb,n,d) mrb_rational_new(mrb, n, d)
+
+/* (n/1) is the Integer n to the callers that hand a Rational back to the
+   rest of the tower, such as an exact Complex division; every other value
+   passes through untouched.  The denominator is 1 and not -1 or 0 here,
+   because both constructors move the sign onto the numerator and refuse a
+   zero denominator. */
+mrb_value
+mrb_rational_canonicalize(mrb_state *mrb, mrb_value x)
+{
+  if (mrb_type(x) != MRB_TT_RATIONAL) return x;
+  struct mrb_rational *p = rat_ptr(mrb, x);
+#ifdef RAT_BIGINT
+  if (RAT_BIGINT_P(x)) {
+    if (mrb_bint_cmp(mrb, mrb_obj_value(p->b.den), mrb_int_value(mrb, 1)) != 0) {
+      return x;
+    }
+    /* rational_new_b() demotes a half that fits an mrb_int, so a bigint
+       numerator beside a denominator of 1 is a value only a Bigint holds */
+    return mrb_obj_value(p->b.num);
+  }
+#endif
+  if (p->denominator != 1) return x;
+  return mrb_int_value(mrb, p->numerator);
+}
 
 #ifndef MRB_NO_FLOAT
 
@@ -511,17 +551,38 @@ nil_to_r(mrb_state *mrb, mrb_value self)
   return rational_new_i(mrb, 0, 1);
 }
 
-#if !defined(MRB_NO_FLOAT) || defined(RAT_BIGINT)
 static mrb_value
 rational_new(mrb_state *mrb, mrb_value a, mrb_value b)
 {
+  /* Rational(a, b) is a/b, and with a Rational among exact operands the
+     quotient is exact, so a Rational is asked about before anything that
+     would convert it: mrb_as_bint() below reaches a non-Bigint through
+     mrb_as_int(), and the integer coercion and the Float arm each lose it
+     the same way. */
 #ifdef MRB_NO_FLOAT
-  a = mrb_as_int(mrb, a);
-  b = mrb_as_int(mrb, b);
+  if (mrb_type(a) == MRB_TT_RATIONAL || mrb_type(b) == MRB_TT_RATIONAL) {
+    return mrb_rational_div(mrb, mrb_as_rational(mrb, a), b);
+  }
+#ifdef RAT_BIGINT
+  /* A Bigint operand takes the same route as in the arm below:
+     mrb_ensure_int_type() narrows a Bigint to an mrb_int, which is what
+     rational_new_b() exists to avoid. */
+  if (mrb_bigint_p(a) || mrb_bigint_p(b)) {
+    return rational_new_b(mrb, mrb_as_bint(mrb, a), b);
+  }
+#endif
+  a = mrb_ensure_int_type(mrb, a);
+  b = mrb_ensure_int_type(mrb, b);
   return rational_new_i(mrb, mrb_integer(a), mrb_integer(b));
 #else
   if (mrb_integer_p(a) && mrb_integer_p(b)) {
     return rational_new_i(mrb, mrb_integer(a), mrb_integer(b));
+  }
+  /* A Float operand is not exact, so the pair goes to the Float arm below
+     even with a Rational beside it. */
+  else if ((mrb_type(a) == MRB_TT_RATIONAL || mrb_type(b) == MRB_TT_RATIONAL) &&
+           !mrb_float_p(a) && !mrb_float_p(b)) {
+    return mrb_rational_div(mrb, mrb_as_rational(mrb, a), b);
   }
 #ifdef RAT_BIGINT
   else if (mrb_bigint_p(a) || mrb_bigint_p(b)) {
@@ -556,29 +617,10 @@ rational_m(mrb_state *mrb, mrb_value self)
   return rational_new(mrb, a, b);
 }
 
-#else
-
-/*
- * call-seq:
- *   Rational(numerator, denominator = 1) -> rational
- *
- * Creates a rational number from numerator and denominator.
- * The rational is automatically reduced to lowest terms.
- *
- *   Rational(1, 2)    #=> Rational(1, 2)
- *   Rational(6, 8)    #=> Rational(3, 4)
- *   Rational(5)       #=> Rational(5, 1)
- *   Rational(-2, 4)   #=> Rational(-1, 2)
- */
-static mrb_value
-rational_m(mrb_state *mrb, mrb_value self)
-{
-  mrb_int n, d = 1;
-  mrb_get_args(mrb, "i|i", &n, &d);
-  return rational_new_i(mrb, n, d);
-}
-#endif
-
+#ifdef RAT_BIGINT
+/* The bigint half of the union is what this reads, and rational_eq() reaches
+   it only for a rational that carries RAT_BIGINT, so a build without bigint
+   support has neither the fields nor a caller. */
 static mrb_value
 rational_eq_b(mrb_state *mrb, mrb_value x, mrb_value y)
 {
@@ -620,11 +662,15 @@ rational_eq_b(mrb_state *mrb, mrb_value x, mrb_value y)
 #endif
   case MRB_TT_RATIONAL:
     {
-      /* Compare by converting to float - less precise but safe */
-      mrb_float v1 = mrb_bint_as_float(mrb, mrb_obj_value(p1->b.num)) /
-                     mrb_bint_as_float(mrb, mrb_obj_value(p1->b.den));
-      mrb_float v2 = rat_float(mrb, y);
-      result = v1 == v2;
+      /* Cross-multiply instead of dividing: num1/den1 == num2/den2 becomes
+         num1*den2 == num2*den1, which is exact and needs no Float. Both
+         denominators are positive (rational_new_b() moves the sign onto the
+         numerator), so the direction of the equality is unaffected. */
+      mrb_value num2 = mrb_as_bint(mrb, rat_numerator(mrb, y));
+      mrb_value den2 = rat_denominator(mrb, y);
+      mrb_value a = mrb_bint_mul_n(mrb, mrb_obj_value(p1->b.num), den2);
+      mrb_value b = mrb_bint_mul_n(mrb, num2, mrb_obj_value(p1->b.den));
+      result = mrb_bint_cmp(mrb, a, b) == 0;
       break;
     }
 
@@ -641,6 +687,7 @@ rational_eq_b(mrb_state *mrb, mrb_value x, mrb_value y)
   }
   return mrb_bool_value(result);
 }
+#endif  /* RAT_BIGINT */
 
 /*
  * call-seq:
@@ -653,25 +700,31 @@ rational_eq_b(mrb_state *mrb, mrb_value x, mrb_value y)
  *   Rational(1, 2) == 0.5             #=> true
  *   Rational(1, 2) == Rational(1, 3)  #=> false
  */
-static mrb_value
-rational_eq(mrb_state *mrb, mrb_value x)
+mrb_bool
+mrb_rational_eq(mrb_state *mrb, mrb_value x, mrb_value y)
 {
-  mrb_value y = mrb_get_arg1(mrb);
 #ifdef RAT_BIGINT
-  if (RAT_BIGINT_P(x)) return rational_eq_b(mrb, x, y);
+  if (RAT_BIGINT_P(x)) return mrb_test(rational_eq_b(mrb, x, y));
+  /* rational_eq_b() reads the bigint half of the union from its left operand
+     only, so a bigint-backed right-hand side is answered by swapping the two.
+     Equality is symmetric, and without the swap the MRB_TT_RATIONAL arm below
+     reads y's `struct RBasic*` fields through the mrb_int half. */
+  if (mrb_type(y) == MRB_TT_RATIONAL && RAT_BIGINT_P(y)) {
+    return mrb_test(rational_eq_b(mrb, y, x));
+  }
 #endif
   struct mrb_rational *p1 = rat_ptr(mrb, x);
   mrb_bool result;
 
   switch (mrb_type(y)) {
   case MRB_TT_INTEGER:
-    if (p1->denominator != 1) return mrb_false_value();
+    if (p1->denominator != 1) return FALSE;
     result = p1->numerator == mrb_integer(y);
     break;
 #ifdef MRB_USE_BIGINT
   case MRB_TT_BIGINT:
     /* Non-bigint rational comparing with bigint */
-    if (p1->denominator != 1) return mrb_false_value();
+    if (p1->denominator != 1) return FALSE;
     result = mrb_bint_cmp(mrb, y, mrb_int_value(mrb, p1->numerator)) == 0;
     break;
 #endif
@@ -686,14 +739,25 @@ rational_eq(mrb_state *mrb, mrb_value x)
       mrb_int a, b;
 
       if (p1->numerator == p2->numerator && p1->denominator == p2->denominator) {
-        return mrb_true_value();
+        return TRUE;
       }
       if (mrb_int_mul_overflow(p1->numerator, p2->denominator, &a) ||
           mrb_int_mul_overflow(p2->numerator, p1->denominator, &b)) {
-#ifdef MRB_NO_FLOAT
+        /* Cross-multiply exactly instead of falling to Float: the products
+           are what mrb_bint_mul_n() already holds for the bigint-backed
+           arm above, and a double can round two unequal Rationals equal
+           near its precision limit. */
+#ifdef RAT_BIGINT
+        mrb_value na = mrb_bint_mul_n(mrb, mrb_as_bint(mrb, mrb_int_value(mrb, p1->numerator)),
+                                       mrb_int_value(mrb, p2->denominator));
+        mrb_value nb = mrb_bint_mul_n(mrb, mrb_as_bint(mrb, mrb_int_value(mrb, p2->numerator)),
+                                       mrb_int_value(mrb, p1->denominator));
+        result = mrb_bint_cmp(mrb, na, nb) == 0;
+        break;
+#elif defined(MRB_NO_FLOAT)
         rat_overflow(mrb);
 #else
-        result = (double)p1->numerator*p2->denominator == (double)p2->numerator*p2->denominator;
+        result = (double)p1->numerator*p2->denominator == (double)p2->numerator*p1->denominator;
         break;
 #endif
       }
@@ -712,7 +776,13 @@ rational_eq(mrb_state *mrb, mrb_value x)
     result = mrb_equal(mrb, y, x);
     break;
   }
-  return mrb_bool_value(result);
+  return result;
+}
+
+static mrb_value
+rational_eq(mrb_state *mrb, mrb_value x)
+{
+  return mrb_bool_value(mrb_rational_eq(mrb, x, mrb_get_arg1(mrb)));
 }
 
 /*
@@ -826,7 +896,11 @@ mrb_rational_add(mrb_state *mrb, mrb_value x, mrb_value y)
 
 #if defined(MRB_USE_COMPLEX)
   case MRB_TT_COMPLEX:
+#ifdef MRB_COMPLEX_FLOAT_ONLY
     return mrb_complex_add(mrb, mrb_complex_new(mrb, rat_float(mrb, x), 0), y);
+#else
+    return mrb_complex_add(mrb, mrb_complex_new_value(mrb, x, mrb_fixnum_value(0)), y);
+#endif
 #endif
 
   default:
@@ -922,7 +996,11 @@ mrb_rational_sub(mrb_state *mrb, mrb_value x, mrb_value y)
 
 #if defined(MRB_USE_COMPLEX)
   case MRB_TT_COMPLEX:
+#ifdef MRB_COMPLEX_FLOAT_ONLY
     return mrb_complex_sub(mrb, mrb_complex_new(mrb, rat_float(mrb, x), 0), y);
+#else
+    return mrb_complex_sub(mrb, mrb_complex_new_value(mrb, x, mrb_fixnum_value(0)), y);
+#endif
 #endif
 
 #ifndef MRB_NO_FLOAT
@@ -1029,7 +1107,11 @@ mrb_rational_mul(mrb_state *mrb, mrb_value x, mrb_value y)
 
 #if defined(MRB_USE_COMPLEX)
   case MRB_TT_COMPLEX:
+#ifdef MRB_COMPLEX_FLOAT_ONLY
     return mrb_complex_mul(mrb, mrb_complex_new(mrb, rat_float(mrb, x), 0), y);
+#else
+    return mrb_complex_mul(mrb, mrb_complex_new_value(mrb, x, mrb_fixnum_value(0)), y);
+#endif
 #endif
 
   default:
@@ -1120,7 +1202,11 @@ mrb_rational_div(mrb_state *mrb, mrb_value x, mrb_value y)
 
 #ifdef MRB_USE_COMPLEX
   case MRB_TT_COMPLEX:
+#ifdef MRB_COMPLEX_FLOAT_ONLY
     return mrb_complex_div(mrb, mrb_complex_new(mrb, rat_float(mrb, x), 0), y);
+#else
+    return mrb_complex_div(mrb, mrb_complex_new_value(mrb, x, mrb_fixnum_value(0)), y);
+#endif
 #endif
 
 #ifndef MRB_NO_FLOAT
@@ -1160,38 +1246,81 @@ rational_div(mrb_state *mrb, mrb_value x)
 
 mrb_value mrb_int_pow(mrb_state *mrb, mrb_value x, mrb_value y);
 
+/* (n/d) raised to a whole number, which is exact: the numerator and the
+   denominator are raised on their own, and a negative exponent turns the
+   fraction over first. mrb_int_pow() is what Integer#** answers with, so a
+   result too large to hold ends the same way there as here. */
+static mrb_value
+rat_pow_int(mrb_state *mrb, mrb_value x, mrb_value e)
+{
+  mrb_value num = rat_numerator(mrb, x);
+  mrb_value den = rat_denominator(mrb, x);
+  mrb_bool inverse = FALSE;
+
+  if (mrb_integer_p(e)) {
+    mrb_int n = mrb_integer(e);
+    if (n == 0) return rational_new_i(mrb, 1, 1);
+    if (n < 0) {
+      /* -MRB_INT_MIN is not an mrb_int, and nothing survives being raised to
+         it anyway */
+      if (n == MRB_INT_MIN) rat_overflow(mrb);
+      inverse = TRUE;
+      e = mrb_int_value(mrb, -n);
+    }
+  }
+
+  mrb_value a = mrb_int_pow(mrb, num, e);
+  mrb_value b = mrb_int_pow(mrb, den, e);
+  if (inverse) {
+    mrb_value t = a; a = b; b = t;   /* 0 in the numerator becomes 0 below */
+  }
+  return rational_new(mrb, a, b);
+}
+
 /*
  * call-seq:
  *   rational ** numeric -> numeric
  *
- * Returns rational raised to the power of numeric. The result is typically
- * a float unless the result can be exactly represented as a rational.
+ * Returns rational raised to the power of numeric. A whole-number exponent
+ * gives a Rational, worked out exactly; an exponent with a fraction in it
+ * gives a Float.
  *
- *   Rational(1, 2) ** 2    #=> Rational(1, 4)
- *   Rational(4, 1) ** 0.5  #=> 2.0
- *   Rational(2, 1) ** 3    #=> Rational(8, 1)
+ *   Rational(1, 2) ** 2          #=> Rational(1, 4)
+ *   Rational(3, 7) ** 3          #=> Rational(27, 343)
+ *   Rational(2, 3) ** -3         #=> Rational(27, 8)
+ *   Rational(4, 1) ** Rational(2, 1) #=> Rational(16, 1)
+ *   Rational(4, 1) ** 0.5        #=> 2.0
  */
 static mrb_value
 rational_pow(mrb_state *mrb, mrb_value x)
 {
-#ifndef MRB_NO_FLOAT
   mrb_value y = mrb_get_arg1(mrb);
+  mrb_value e = y;
+
+  /* a Rational exponent whose denominator is 1 is a whole number */
+  if (mrb_type(e) == MRB_TT_RATIONAL) {
+    mrb_value d = rat_denominator(mrb, e);
+    e = (mrb_integer_p(d) && mrb_integer(d) == 1) ? rat_numerator(mrb, e)
+                                                  : mrb_nil_value();
+  }
+  if (mrb_integer_p(e)
+#ifdef MRB_USE_BIGINT
+      || mrb_bigint_p(e)
+#endif
+      ) {
+    return rat_pow_int(mrb, x, e);
+  }
+
+#ifndef MRB_NO_FLOAT
   double d1 = rat_float(mrb, x);
   double d2 = mrb_as_float(mrb, y);
 
-  d1 = pow(d1, d2);
-  switch (mrb_type(y)) {
-  case MRB_TT_FLOAT:
-    return mrb_float_value(mrb, d1);
-  case MRB_TT_INTEGER:
-  case MRB_TT_RATIONAL:
-    return rational_new_f(mrb, d1);
-  case MRB_TT_BIGINT:
-  default:
-    return mrb_float_value(mrb, d1);
-  }
+  /* what is left is an exponent with a fraction in it, and the answer to that
+     is a Float, as it is in CRuby */
+  return mrb_float_value(mrb, pow(d1, d2));
 #else
-  mrb_raisef(mrb, E_NOTIMP_ERROR, "Rational#** not implemented with MRB_NO_FLOAT");
+  mrb_raisef(mrb, E_NOTIMP_ERROR,
+             "Rational#** with a fractional exponent needs Float");
   /* not reached */
   return mrb_nil_value();
 #endif
@@ -1206,8 +1335,8 @@ rational_pow(mrb_state *mrb, mrb_value x)
  *
  *   Rational(1, 2).hash == Rational(2, 4).hash  #=> true
  */
-static mrb_value
-rational_hash(mrb_state *mrb, mrb_value rat)
+mrb_value
+mrb_rational_hash(mrb_state *mrb, mrb_value rat)
 {
   struct mrb_rational *r = rat_ptr(mrb, rat);
   uint32_t hash;
@@ -1215,15 +1344,129 @@ rational_hash(mrb_state *mrb, mrb_value rat)
 #ifdef RAT_BIGINT
   if (RAT_BIGINT_P(rat)) {
     mrb_value tmp = mrb_bint_hash(mrb, mrb_obj_value(r->b.num));
-    hash = (uint32_t)mrb_integer(tmp);
+    uint32_t num_hash = (uint32_t)mrb_integer(tmp);
     tmp = mrb_bint_hash(mrb, mrb_obj_value(r->b.den));
-    hash ^= (uint32_t)mrb_integer(tmp);
+    uint32_t den_hash = (uint32_t)mrb_integer(tmp);
+    /* chain rather than XOR, so swapping the halves changes the hash the
+       same way the mrb_int path below does */
+    hash = mrb_byte_hash((uint8_t*)&num_hash, sizeof(num_hash));
+    hash = mrb_byte_hash_step((uint8_t*)&den_hash, sizeof(den_hash), hash);
     return mrb_int_value(mrb, hash);
   }
 #endif
   hash = mrb_byte_hash((uint8_t*)&r->numerator, sizeof(mrb_int));
   hash = mrb_byte_hash_step((uint8_t*)&r->denominator, sizeof(mrb_int), hash);
   return mrb_int_value(mrb, hash);
+}
+
+/* Compare a/b with c/d, both denominators positive, without forming either
+   product, so that no multiplication can overflow. Each round compares the
+   two integer parts; where they agree, what is left of each is a proper
+   fraction, and the two are compared by their reciprocals, which reverses the
+   answer. That is the continued fraction of the two numbers, and it ends
+   because the remainders shrink. */
+static mrb_int
+rat_cmp_frac(mrb_int a, mrb_int b, mrb_int c, mrb_int d)
+{
+  mrb_int sign = 1;
+
+  for (;;) {
+    /* floor division: `a % b` is negative where `a` is, and the remainder a
+       continued fraction wants is the one inside [0, b) */
+    mrb_int qa = a / b, ra = a % b;
+    mrb_int qc = c / d, rc = c % d;
+
+    if (ra < 0) { qa--; ra += b; }
+    if (rc < 0) { qc--; rc += d; }
+    if (qa != qc) return qa < qc ? -sign : sign;
+    if (ra == 0) return rc == 0 ? 0 : -sign;
+    if (rc == 0) return sign;
+    /* every value is positive from here on */
+    a = b; b = ra;
+    c = d; d = rc;
+    sign = -sign;
+  }
+}
+
+#ifdef RAT_BIGINT
+/* The bigint spelling of the same comparison, for a rational that carries
+   RAT_BIGINT or a right-hand side that does. */
+static mrb_int
+rational_cmp_b(mrb_state *mrb, mrb_value x, mrb_value y)
+{
+  mrb_value n1 = mrb_as_bint(mrb, rat_numerator(mrb, x));
+  mrb_value d1 = mrb_as_bint(mrb, rat_denominator(mrb, x));
+  mrb_value n2, d2;
+
+  if (mrb_type(y) == MRB_TT_RATIONAL) {
+    n2 = mrb_as_bint(mrb, rat_numerator(mrb, y));
+    d2 = mrb_as_bint(mrb, rat_denominator(mrb, y));
+  }
+  else {
+    n2 = mrb_as_bint(mrb, y);
+    d2 = mrb_as_bint(mrb, mrb_fixnum_value(1));
+  }
+  /* both denominators are positive, so cross-multiplying keeps the direction */
+  return mrb_bint_cmp(mrb, mrb_bint_mul_n(mrb, n1, d2),
+                      mrb_bint_mul_n(mrb, n2, d1));
+}
+#endif
+
+/*
+ * call-seq:
+ *   rational.__cmp(other) -> -1, 0, 1 or false
+ *
+ * The exact half of Rational#<=>: an Integer or another Rational is answered
+ * here without a Float in the way, so that the answer survives a numerator
+ * that a Float cannot hold and a build carrying no Float at all. Anything
+ * else answers false, and Rational#<=> takes it from there.
+ */
+static mrb_value
+rational_cmp(mrb_state *mrb, mrb_value x)
+{
+  mrb_value y = mrb_get_arg1(mrb);
+  mrb_int result;
+
+  switch (mrb_type(y)) {
+  case MRB_TT_INTEGER:
+  case MRB_TT_RATIONAL:
+#ifdef MRB_USE_BIGINT
+  case MRB_TT_BIGINT:
+#endif
+    break;
+  default:
+    return mrb_false_value();
+  }
+
+#ifdef RAT_BIGINT
+  if (RAT_BIGINT_P(x) || mrb_type(y) == MRB_TT_BIGINT ||
+      (mrb_type(y) == MRB_TT_RATIONAL && RAT_BIGINT_P(y))) {
+    result = rational_cmp_b(mrb, x, y);
+  }
+  else
+#endif
+  {
+    struct mrb_rational *p1 = rat_ptr(mrb, x);
+    mrb_int n1 = p1->numerator, d1 = p1->denominator;
+    mrb_int n2, d2, a, b;
+
+    if (mrb_type(y) == MRB_TT_RATIONAL) {
+      struct mrb_rational *p2 = rat_ptr(mrb, y);
+      n2 = p2->numerator;
+      d2 = p2->denominator;
+    }
+    else {
+      n2 = mrb_integer(y);
+      d2 = 1;
+    }
+    if (mrb_int_mul_overflow(n1, d2, &a) || mrb_int_mul_overflow(n2, d1, &b)) {
+      result = rat_cmp_frac(n1, d1, n2, d2);
+    }
+    else {
+      result = a < b ? -1 : (a > b ? 1 : 0);
+    }
+  }
+  return mrb_int_value(mrb, result);
 }
 
 /* ---------------------------*/
@@ -1234,6 +1477,7 @@ static const mrb_mt_entry rational_rom_entries[] = {
   MRB_MT_ENTRY(mrb_obj_itself,       MRB_SYM(to_r),     MRB_ARGS_NONE()),  /* Returns self - already a rational */
   MRB_MT_ENTRY(rational_negative_p,  MRB_SYM_Q(negative), MRB_ARGS_NONE()),
   MRB_MT_ENTRY(rational_eq,          MRB_OPSYM(eq), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(rational_cmp,         MRB_SYM(__cmp), MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(rational_minus,       MRB_OPSYM(minus),  MRB_ARGS_NONE()),
   MRB_MT_ENTRY(rational_add,         MRB_OPSYM(add), MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(rational_sub,         MRB_OPSYM(sub), MRB_ARGS_REQ(1)),
@@ -1241,7 +1485,7 @@ static const mrb_mt_entry rational_rom_entries[] = {
   MRB_MT_ENTRY(rational_div,         MRB_OPSYM(div), MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(rational_div,         MRB_SYM(quo), MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(rational_pow,         MRB_OPSYM(pow), MRB_ARGS_REQ(1)),
-  MRB_MT_ENTRY(rational_hash,        MRB_SYM(hash),     MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_rational_hash,    MRB_SYM(hash),     MRB_ARGS_NONE()),
 #ifndef MRB_NO_FLOAT
   MRB_MT_ENTRY(mrb_rational_to_f,   MRB_SYM(to_f),     MRB_ARGS_NONE()),
 #endif
@@ -1256,7 +1500,7 @@ void mrb_mruby_rational_gem_init(mrb_state *mrb)
   MRB_MT_INIT_ROM(mrb, rat, rational_rom_entries);
   mrb_define_method_id(mrb, mrb->integer_class, MRB_SYM(to_r), int_to_r, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, mrb->nil_class, MRB_SYM(to_r), nil_to_r, MRB_ARGS_NONE());
-  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(Rational), rational_m, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
+  mrb_define_module_function_id(mrb, mrb->kernel_module, MRB_SYM(Rational), rational_m, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
 #ifndef MRB_NO_FLOAT
   mrb_define_method_id(mrb, mrb->float_class, MRB_SYM(to_r), float_to_r, MRB_ARGS_NONE());
 #endif

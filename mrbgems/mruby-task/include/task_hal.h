@@ -13,6 +13,8 @@
 
 #include <mruby.h>
 
+MRB_BEGIN_DECL
+
 /*
  * Configuration - can be overridden in platform-specific build configs
  */
@@ -35,8 +37,8 @@
 /*
  * HAL Interface Functions
  *
- * Platform-specific implementations (hal-posix-task, hal-win-task, etc.)
- * must provide these functions.
+ * The port directory under mruby-task/ports/<port_name>/ provides
+ * these functions. See README.md for adding a new port.
  */
 
 /**
@@ -75,13 +77,17 @@ void mrb_hal_task_final(mrb_state *mrb);
 /**
  * Enable timer interrupts (exit critical section)
  *
- * Called by the task scheduler when it's safe to allow timer interrupts.
- * Should enable timer interrupts/callbacks that were disabled by
+ * Called when it's safe to allow timer interrupts again. Should enable
+ * the timer interrupts/callbacks that were disabled by
  * mrb_task_disable_irq().
  *
- * Requirements:
- * - Must be reentrant (can be called multiple times)
- * - Should use nesting counter or equivalent for nested critical sections
+ * HAL implementers: this primitive is NOT required to nest — the
+ * scheduler only ever calls it at the outermost exclusion level.
+ * Scheduler/gem code must NOT call it directly: use the counted
+ * helpers mrb_task_excl_enter()/mrb_task_excl_exit() from task.h,
+ * which guarantee that property (see the invariant comment there).
+ *
+ * Typical implementations:
  * - On POSIX: unmask signals
  * - On Windows: leave critical section
  * - On embedded: enable timer interrupts
@@ -91,12 +97,16 @@ void mrb_task_enable_irq(void);
 /**
  * Disable timer interrupts (enter critical section)
  *
- * Called by the task scheduler before modifying shared task state.
- * Should disable timer interrupts/callbacks to prevent concurrent access.
+ * Called before shared task state is modified. Should disable timer
+ * interrupts/callbacks to prevent concurrent access.
  *
- * Requirements:
- * - Must be reentrant (can be called multiple times)
- * - Should use nesting counter or equivalent for nested critical sections
+ * HAL implementers: this primitive is NOT required to nest — the
+ * scheduler only ever calls it at the outermost exclusion level.
+ * Scheduler/gem code must NOT call it directly: use the counted
+ * helpers mrb_task_excl_enter()/mrb_task_excl_exit() from task.h,
+ * which guarantee that property (see the invariant comment there).
+ *
+ * Typical implementations:
  * - On POSIX: block signals
  * - On Windows: enter critical section
  * - On embedded: disable timer interrupts
@@ -158,5 +168,7 @@ void mrb_hal_task_sleep_us(mrb_state *mrb, mrb_int usec);
  * @param mrb The mruby state to tick
  */
 void mrb_tick(mrb_state *mrb);
+
+MRB_END_DECL
 
 #endif /* MRUBY_TASK_HAL_H */

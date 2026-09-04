@@ -1,3 +1,5 @@
+require "mruby/source"
+
 module MRuby
   class Amalgam
     # Top-level headers to include (internal dependencies are inlined recursively)
@@ -20,7 +22,6 @@ module MRuby
       mruby/debug.h
       mruby/dump.h
       mruby/irep.h
-      mruby/opcode.h
       mruby/re.h
       mruby/throw.h
       mruby/khash.h
@@ -36,12 +37,22 @@ module MRuby
       mruby/boxing_nan.h
     ].freeze
 
+    # Gems emitted as their own translation unit (mruby_compiler.c)
+    # instead of being merged into mruby.c. mruby-compiler's sources
+    # define file-scope static functions and operand-fetch macros that
+    # mirror the core VM's (cdump.c, codedump.c, dump.c, mrc_opcode.h vs
+    # mruby/opcode.h), so they cannot share a translation unit with the
+    # core sources.
+    SEPARATE_TU_GEMS = %w[
+      mruby-compiler
+    ].freeze
+
     # Core sources in recommended order
     CORE_SOURCE_ORDER = %w[
       allocf.c
       readnum.c
       readint.c
-      readfloat.c
+      fp_uscale.c
       state.c
       symbol.c
       class.c
@@ -52,6 +63,7 @@ module MRuby
       array.c
       hash.c
       string.c
+      unicase.c
       range.c
       numeric.c
       numops.c
@@ -66,7 +78,6 @@ module MRuby
       cdump.c
       codedump.c
       print.c
-      fmt_fp.c
       debug.c
       etc.c
       version.c
@@ -77,23 +88,67 @@ module MRuby
       @build = build
       @processed_guards = {}
       @processed_headers = []  # Track header paths for include transformation
-      # Pre-collect gem header names for source include transformation
-      @gem_header_names = collect_gem_header_names
+      @xmacro_cache = {}
+      @inline_mruby = true     # inline mruby core headers (false in the compiler TU)
+      # Pre-collect gem header names for include transformation
+      build_gem_header_map(main_library_gems)
     end
 
-    def collect_gem_header_names
-      names = []
-      library_gems.each do |gem|
-        gem_include = "#{gem.dir}/include"
-        next unless File.directory?(gem_include)
-        Dir.glob("#{gem_include}/**/*.h").each do |path|
-          rel_path = path.sub("#{gem_include}/", "")
-          names << rel_path
-          # Also track basename for simple includes like "io_hal.h"
-          names << File.basename(rel_path)
+    # Resolve an include to the gem header file providing it. Basename
+    # resolution ("io_hal.h", "../include/mrc_ccontext.h") only applies to
+    # quoted includes: an angle include of a basename (#include <time.h>)
+    # names a system header even when some gem ships a header with the same
+    # basename (mruby/time.h).
+    def gem_header_path(header, quote_type)
+      @gem_header_map[header] ||
+        (quote_type == '"' ? @gem_header_basenames[File.basename(header)] : nil)
+    end
+
+    # Include dirs a gem contributes from inside its own tree: its include/
+    # dir plus any gem-local cc.include_paths, e.g. mruby-compiler's vendored
+    # lib/prism/include. Paths outside the gem dir (build dirs, other gems)
+    # are not gem-local headers and are left alone.
+    def gem_include_dirs(gem)
+      gem_root = File.expand_path(gem.dir)
+      dirs = ["#{gem.dir}/include"] + gem.cc.include_paths
+      dirs.map { |d| File.expand_path(d) }
+        .select { |d| d.start_with?("#{gem_root}/") }
+        .select { |d| File.directory?(d) }
+        .uniq
+    end
+
+    # Map every header name a gem source may #include to the file providing
+    # it: @gem_header_map keys paths relative to each include dir
+    # ("prism/ast.h"), @gem_header_basenames keys bare basenames ("io_hal.h")
+    # for quoted includes. *.inc files are included for X-macro tables like
+    # mruby-compiler's mrc_presym.inc. Built per output file: mruby.h and
+    # mruby.c see the main gems' headers, mruby_compiler.c sees only the
+    # separate-TU gems' (including their vendored include dirs).
+    def build_gem_header_map(gems)
+      @gem_header_map = {}
+      @gem_header_basenames = {}
+      gems.each do |gem|
+        gem_include_dirs(gem).each do |inc|
+          Dir.glob("#{inc}/**/*.{h,inc}").each do |path|
+            rel_path = path.sub("#{inc}/", "")
+            @gem_header_map[rel_path] ||= path
+            @gem_header_basenames[File.basename(rel_path)] ||= path
+          end
         end
       end
-      names.uniq
+    end
+
+    # Headers without an include guard are X-macro tables (mrc_ops.h,
+    # mrc_presym.inc): their expansion depends on macros defined at each
+    # include site, so they must be inlined every time, never deduplicated.
+    def gem_xmacro_path(header, quote_type)
+      path = gem_header_path(header, quote_type)
+      return nil unless path
+      unless @xmacro_cache.key?(path)
+        @xmacro_cache[path] =
+          extract_include_guard(File.read(path, mode: "rb")).nil?
+      end
+      @xmacro_cache[path] ? path : nil
     end
 
     def generate_header(output_path)
@@ -123,6 +178,24 @@ module MRuby
       end
     end
 
+    # mruby_compiler.c: mruby-compiler (and its vendored prism) as a
+    # separate translation unit. Compiled against the shared mruby.h;
+    # the mrc_*/prism headers stay private to this file.
+    def generate_compiler_source(output_path)
+      FileUtils.mkdir_p(File.dirname(output_path))
+      _pp "GEN", output_path.relative_path
+
+      gems = separate_tu_gems
+      @inline_mruby = false  # mruby core headers live in the shared mruby.h
+      build_gem_header_map(gems)
+
+      File.open(output_path, "w:binary") do |f|
+        write_compiler_preamble(f, gems)
+        write_compiler_headers(f, gems)
+        write_compiler_sources(f, gems)
+      end
+    end
+
     private
 
     def include_dir
@@ -142,6 +215,16 @@ module MRuby
       @build.gems.reject { |gem| gem.name.start_with?("mruby-bin-") }
     end
 
+    # Gems merged into mruby.c
+    def main_library_gems
+      library_gems.reject { |gem| SEPARATE_TU_GEMS.include?(gem.name) }
+    end
+
+    # Gems emitted as mruby_compiler.c
+    def separate_tu_gems
+      library_gems.select { |gem| SEPARATE_TU_GEMS.include?(gem.name) }
+    end
+
     # ========== Header Generation ==========
 
     def write_header_preamble(f)
@@ -155,6 +238,11 @@ module MRuby
 
         #ifndef MRUBY_AMALGAM_H
         #define MRUBY_AMALGAM_H
+      PREAMBLE
+
+      write_baked_defines(f)
+
+      f.puts <<~PREAMBLE
 
         #ifdef __cplusplus
         #define __STDC_LIMIT_MACROS
@@ -170,25 +258,67 @@ module MRuby
 
       PREAMBLE
 
-      # Add build-level defines from gems (e.g., MRB_USE_TASK_SCHEDULER)
-      gem_defines = collect_gem_defines
-      unless gem_defines.empty?
-        f.puts "/* Gem-required defines */"
-        gem_defines.each do |d|
-          f.puts "#define #{d}"
-        end
-        f.puts
-      end
+      write_revision_define(f)
     end
 
-    # Collect defines added by gems that affect core headers
-    def collect_gem_defines
-      defines = []
-      @build.defines.each do |d|
-        # Include defines that affect mrb_state or core functionality
-        defines << d if d =~ /^MRB_USE_|^MRB_UTF8_|^HAVE_MRUBY_/
+    # Ahead of every #include, the way each -D of the real build's command
+    # line precedes every header: a feature test macro such as _GNU_SOURCE
+    # is dead once the first libc header has been read.
+    def write_baked_defines(f)
+      build_defines = collect_build_defines
+      unless build_defines.empty?
+        f.puts "\n/* Build configuration defines */"
+        build_defines.each do |name, value|
+          f.puts "#ifndef #{name}"
+          f.puts(value ? "#define #{name} #{value}" : "#define #{name}")
+          f.puts "#endif"
+        end
       end
-      defines.uniq.sort
+      write_gem_cc_defines(f, main_library_gems)
+    end
+
+    # The revision the amalgam was generated from, ahead of the version.h that
+    # reads it: the real build hands it to `src/version.c` through a generated
+    # `mruby/revision.h` that the consumer of the amalgam has no copy of, so
+    # without this the amalgam would report `"HEAD"` for a revision it knows.
+    def write_revision_define(f)
+      return if MRuby::Source::MRUBY_FULL_REVISION.empty?
+
+      f.puts "/* The source revision this amalgam was generated from */"
+      {"MRUBY_REVISION" => MRuby::Source::MRUBY_REVISION,
+       "MRUBY_FULL_REVISION" => MRuby::Source::MRUBY_FULL_REVISION}.each do |name, revision|
+        f.puts "#ifndef #{name}"
+        f.puts "#define #{name} #{revision.inspect}"
+        f.puts "#endif"
+      end
+      f.puts
+    end
+
+    # The defines this build compiles with, which the consumer must compile with
+    # too: they decide the layout of `mrb_value` and `mrb_state` and which
+    # functions exist, so a header read without them describes a different
+    # mruby than the one in mruby.c. The build config writes most of them
+    # (`MRB_NO_STDIO`, `MRB_INT64`, the boxing choice), a gem writes the rest
+    # through `spec.build.defines` (`MRB_USE_BIGINT`, `HAVE_MRUBY_IO_GEM`);
+    # neither is distinguishable from the header's side, so both are emitted.
+    #
+    # `internal_defines` is left out on purpose: it holds what the build adds
+    # from its own switches, and `MRB_USE_CXX_ABI` there would make the header
+    # unusable from C. `cxx.defines` is left out for the same reason, the
+    # amalgam being C. The consumer that wants a C++ build passes those itself.
+    def collect_build_defines
+      defines = {}
+      [@build.defines, @build.cc.defines].flatten.each do |d|
+        name, value = d.to_s.split("=", 2)
+        next unless name =~ /\A[A-Za-z_][A-Za-z0-9_]*\z/
+        next if name.start_with?("__STDC_")
+        # First writer wins, `@build.defines` over `@build.cc.defines`, which is
+        # the way the two land on the command line: `all_flags` puts
+        # `build.defines` last and the last `-D` of a name is the one in effect.
+        # `||=` would be wrong here, a valueless define holding nil.
+        defines[name] = value unless defines.key?(name)
+      end
+      defines.sort
     end
 
     def write_header_postamble(f)
@@ -229,19 +359,106 @@ module MRuby
       end
     end
 
-    def write_gem_headers(f)
-      library_gems.each do |gem|
-        gem_include = "#{gem.dir}/include"
-        next unless File.directory?(gem_include)
+    # The directories a gem's exported headers are found under, in the
+    # order they are written: the selected port's include/ first, since the
+    # gem's HAL header includes the port's feature header and has to come
+    # after it.  A header elsewhere under ports/<name>/ is the port's own
+    # and is not written here.
+    def gem_header_roots(gem)
+      [gem.port_include_dir, "#{gem.dir}/include"].compact
+        .select { |d| File.directory?(d) }
+    end
 
-        Dir.glob("#{gem_include}/**/*.h").sort.each do |path|
-          rel_path = path.sub("#{gem_include}/", "")
+    def write_gem_headers(f)
+      main_library_gems.each do |gem|
+        roots = gem_header_roots(gem)
+        next if roots.empty?
+
+        paths = roots.flat_map { |root| Dir.glob("#{root}/**/*.h") }
+        order_gem_headers(paths, roots).each do |path|
+          rel_path = header_rel_path(path, roots)
+          # X-macro tables are inlined at each include site instead
+          next if gem_xmacro_path(rel_path, '"')
           write_header_content(f, "#{gem.name}: #{rel_path}", path)
           # Also track the relative path for source include transformation
           # (handles includes like #include "io_hal.h")
           @processed_headers << rel_path unless @processed_headers.include?(rel_path)
         end
       end
+    end
+
+    # Defines a gem's mrbgem.rake adds to its own cc (e.g. mruby-compiler's
+    # MRC_TARGET_MRUBY and PRISM_XALLOCATOR). In a normal build these are
+    # command-line flags for that gem's objects only; the amalgam consumer
+    # compiles with a plain cc invocation, so embed them before the headers
+    # that need them. #ifndef lets the consumer override valued ones.
+    def write_gem_cc_defines(f, gems)
+      defines = {}
+      build_defines = @build.cc.defines.flatten.map { |d| d.to_s }
+      gems.each do |gem|
+        (gem.cc.defines.flatten.map { |d| d.to_s } - build_defines).each do |d|
+          name, value = d.split("=", 2)
+          next unless name =~ /\A[A-Za-z_][A-Za-z0-9_]*\z/
+          next if name.start_with?("__STDC_")
+          # MRB_* configuration belongs to the whole build (it changes how
+          # mruby.h itself is interpreted, e.g. value boxing); embedding it
+          # in one translation unit would split the ABI. MRBGEM_* version
+          # strings are not valid C constants.
+          next if name.start_with?("MRB_", "MRBGEM_")
+          defines[name] ||= value
+        end
+      end
+      return if defines.empty?
+
+      f.puts "\n/* Gem compiler defines */"
+      defines.sort.each do |name, value|
+        f.puts "#ifndef #{name}"
+        f.puts(value ? "#define #{name} #{value}" : "#define #{name}")
+        f.puts "#endif"
+      end
+    end
+
+    # Order a gem's headers so each header is emitted after the intra-gem
+    # headers it includes. Alphabetical order is wrong: mruby-compiler's
+    # mrc_ccontext.h sorts before its dependency mrc_common.h, which left the
+    # base types defined too late in the amalgam (see issue #6929). Mutual
+    # includes (e.g. mrc_ccontext.h <-> mrc_pool.h) form cycles that the real
+    # build resolves with include guards; a DFS post-order breaks them stably
+    # by skipping headers already on the current path.
+    # The name a header is included by: its path under whichever of
+    # `roots` holds it.
+    def header_rel_path(path, roots)
+      root = roots.find { |r| path.start_with?("#{r}/") }
+      root ? path.sub("#{root}/", "") : path
+    end
+
+    # `paths` in an order every header follows the ones it includes, when
+    # those are among `paths` themselves.  A header is named by its path
+    # under whichever of `roots` it sits in, so the port's feature header
+    # and the HAL header that includes it order the same way two headers
+    # under include/ do.
+    def order_gem_headers(paths, roots)
+      roots = Array(roots)
+      by_name = {}
+      paths.each { |p| by_name[header_rel_path(p, roots)] = p }
+
+      deps = {}
+      by_name.each do |rel, path|
+        included = File.read(path, mode: "rb").scan(/^\s*#\s*include\s+"([^"]+)"/).flatten
+        deps[rel] = included.select { |h| by_name.key?(h) }.uniq
+      end
+
+      ordered = []
+      state = {}   # rel => :active (on path) | :done
+      visit = lambda do |rel|
+        return if state[rel]
+        state[rel] = :active
+        deps[rel].sort.each { |d| visit.call(d) unless state[d] == :active }
+        state[rel] = :done
+        ordered << by_name[rel]
+      end
+      by_name.keys.sort.each { |rel| visit.call(rel) }
+      ordered
     end
 
     def write_header_content(f, name, path)
@@ -264,6 +481,78 @@ module MRuby
       f.puts content
     end
 
+    # ========== Compiler TU Generation ==========
+
+    def write_compiler_preamble(f, gems)
+      f.puts <<~PREAMBLE
+        /*
+        ** mruby amalgamated compiler source (mruby-compiler + prism)
+        ** Generated from mruby source files
+        **
+        ** This file is auto-generated. Do not edit directly.
+        ** Compile together with the amalgamated mruby.c.
+        */
+      PREAMBLE
+
+      write_gem_cc_defines(f, gems)
+      f.puts %(\n#include "mruby.h"\n)
+
+      # mruby/internal.h is not part of the public mruby.h; compiler
+      # sources (mruby_compat.c) use its declarations, so inline it here
+      # the same way mruby.c does, unless a gem header has already put it in
+      # mruby.h, which this file includes.
+      internal_path = "#{include_dir}/mruby/internal.h"
+      if File.exist?(internal_path) && !internal_header_in_public?
+        content = File.read(internal_path, mode: "rb")
+        content = strip_include_guard(content, extract_include_guard(content))
+        content = transform_source_includes(content)
+        f.puts "\n/* mruby/internal.h */"
+        f.puts content
+      end
+      f.puts
+    end
+
+    def write_compiler_headers(f, gems)
+      f.puts "/* ======== Compiler headers ======== */"
+      gems.each do |gem|
+        roots = gem_header_roots(gem)
+        next if roots.empty?
+
+        paths = roots.flat_map { |root| Dir.glob("#{root}/**/*.h") }
+        order_gem_headers(paths, roots).each do |path|
+          rel_path = header_rel_path(path, roots)
+          # X-macro tables are inlined at each include site instead
+          next if gem_xmacro_path(rel_path, '"')
+          write_header_content(f, "#{gem.name}: #{rel_path}", path)
+          @processed_headers << rel_path unless @processed_headers.include?(rel_path)
+        end
+      end
+    end
+
+    def write_compiler_sources(f, gems)
+      f.puts "\n/* ======== Compiler sources ======== */"
+      gems.each do |gem|
+        sources = gem_source_files(gem)
+        sources.each_with_index do |path, idx|
+          rel_path = path.sub("#{File.expand_path(gem.dir)}/", "")
+          write_source_content(f, "#{gem.name}: #{rel_path}", path)
+          write_macro_cleanup(f, "#{gem.name}/#{File.basename(path)}") if idx < sources.size - 1
+        end
+
+        gem_mrblib = "#{gem.build_dir}/gem_mrblib.c"
+        if File.exist?(gem_mrblib)
+          write_source_content(f, "#{gem.name}: gem_mrblib.c", gem_mrblib)
+        end
+
+        gem_init = "#{gem.build_dir}/gem_init.c"
+        if File.exist?(gem_init)
+          write_source_content(f, "#{gem.name}: gem_init.c", gem_init)
+        end
+
+        write_macro_cleanup(f, gem.name)
+      end
+    end
+
     # ========== Source Generation ==========
 
     def write_source_preamble(f)
@@ -280,31 +569,58 @@ module MRuby
       PREAMBLE
     end
 
+    # Whether mruby/internal.h reaches mruby.h. A gem header that includes it
+    # is inlined into mruby.h along with everything it includes, so the
+    # declarations land there rather than only here. Read from the gem headers
+    # rather than from mruby.h, because the two files are generated by separate
+    # instances and in either order.
+    def internal_header_in_public?
+      return @internal_in_public unless @internal_in_public.nil?
+
+      @internal_in_public = main_library_gems.any? do |gem|
+        gem_include = "#{gem.dir}/include"
+        next false unless File.directory?(gem_include)
+        Dir.glob("#{gem_include}/**/*.h").any? do |path|
+          File.read(path, mode: "rb") =~ /^\s*#\s*include\s*[<"]mruby\/internal\.h[>"]/
+        end
+      end
+    end
+
     def write_internal_headers(f)
       f.puts "/* ======== Internal headers ======== */"
 
-      # Forward declarations needed for amalgamation
-      # (functions called before defined due to source file ordering)
-      # Note: mrb_irep_catch_handler_table is static inline in internal.h, no forward decl needed
-      f.puts <<~FORWARD
-        /* Forward declarations for amalgamation */
-        static void mrb_irep_free(mrb_state *mrb, mrb_irep *irep);
-        static mrb_value mrb_class_find_path(mrb_state *mrb, struct RClass *c);
-        static void mrb_method_added(mrb_state *mrb, struct RClass *c, mrb_sym mid);
-        static void mrb_proc_copy(mrb_state *mrb, struct RProc *a, const struct RProc *b);
-        static size_t mrb_gc_mark_range(mrb_state *mrb, struct RRange *r);
-        static void mrb_ary_decref(mrb_state *mrb, mrb_shared_array *shared);
-        static mrb_int mrb_proc_arity(const struct RProc *p);
-      FORWARD
+      # mruby.c includes mruby.h, so where a gem header has already put
+      # mruby/internal.h there, emitting it again redefines everything in it,
+      # and the forward declarations below name the same functions `static`,
+      # contradicting the non-static declarations mruby.h now carries. What
+      # they are for, a declaration ahead of the definition, is what those
+      # declarations already give.
+      if internal_header_in_public?
+        f.puts "/* mruby/internal.h - already in mruby.h */"
+      else
+        # Forward declarations needed for amalgamation
+        # (functions called before defined due to source file ordering)
+        # Note: mrb_irep_catch_handler_table is static inline in internal.h, no forward decl needed
+        f.puts <<~FORWARD
+          /* Forward declarations for amalgamation */
+          static void mrb_irep_free(mrb_state *mrb, mrb_irep *irep);
+          static mrb_value mrb_class_find_path(mrb_state *mrb, struct RClass *c);
+          static void mrb_method_added(mrb_state *mrb, struct RClass *c, mrb_sym mid);
+          static void mrb_proc_copy(mrb_state *mrb, struct RProc *a, const struct RProc *b);
+          static size_t mrb_gc_mark_range(mrb_state *mrb, struct RRange *r);
+          static void mrb_ary_decref(mrb_state *mrb, mrb_shared_array *shared);
+          static mrb_int mrb_proc_arity(const struct RProc *p);
+        FORWARD
 
-      # internal.h
-      internal_path = "#{include_dir}/mruby/internal.h"
-      if File.exist?(internal_path)
-        content = File.read(internal_path, mode: "rb")
-        content = strip_include_guard(content, extract_include_guard(content))
-        content = transform_source_includes(content)
-        f.puts "\n/* mruby/internal.h */"
-        f.puts content
+        # internal.h
+        internal_path = "#{include_dir}/mruby/internal.h"
+        if File.exist?(internal_path)
+          content = File.read(internal_path, mode: "rb")
+          content = strip_include_guard(content, extract_include_guard(content))
+          content = transform_source_includes(content)
+          f.puts "\n/* mruby/internal.h */"
+          f.puts content
+        end
       end
 
       # presym/table.h (generated, needed by symbol.c)
@@ -323,6 +639,18 @@ module MRuby
         content = strip_include_guard(content, extract_include_guard(content))
         content = transform_source_includes(content)
         f.puts "\n/* src/value_array.h */"
+        f.puts content
+      end
+
+      # mruby/opcode.h is deliberately kept out of the shared mruby.h: its
+      # operand-fetch macros (FETCH_*) conflict with mruby-compiler's
+      # mrc_opcode.h variants, so each translation unit inlines its own.
+      opcode_path = "#{include_dir}/mruby/opcode.h"
+      if File.exist?(opcode_path)
+        content = File.read(opcode_path, mode: "rb")
+        content = strip_include_guard(content, extract_include_guard(content))
+        content = transform_source_includes(content)
+        f.puts "\n/* mruby/opcode.h */"
         f.puts content
       end
     end
@@ -366,23 +694,107 @@ module MRuby
       peek
     ].freeze
 
+    # File-local names defined in a C source: static functions and tables,
+    # plus struct/union/enum tags defined at file scope. mruby style puts
+    # the name at the start of the line after the type:
+    #   static mrb_value
+    #   ary_pop(mrb_state *mrb, ...)
+    # so scan both same-line and next-line forms.
+    def collect_static_syms(paths)
+      syms = {}
+      paths.each do |path|
+        content = File.read(path, mode: "rb")
+        content.scan(/^static\s+(?:const\s+)?[\w\s\*]*?\b([a-z_][a-z0-9_]*)\s*[(\[=]/) do |(name)|
+          syms[name] = true
+        end
+        content.scan(/^static\s+(?:const\s+)?[\w\s\*]*?\n([a-z_][a-z0-9_]*)\s*\(/) do |(name)|
+          syms[name] = true
+        end
+        content.scan(/^(?:typedef\s+)?(?:struct|union|enum)\s+([a-z_][a-z0-9_]*)\s*\{/) do |(name)|
+          syms[name] = true
+        end
+      end
+      syms
+    end
+
+    def seen_static_syms
+      @seen_static_syms ||= collect_static_syms(
+        CORE_SOURCE_ORDER.map { |s| "#{src_dir}/#{s}" }.select { |p| File.exist?(p) })
+    end
+
+    # Within the amalgamated mruby.c, a gem's static helpers can collide
+    # with same-named static symbols in core sources or earlier gems
+    # (mruby-bigint and mruby-regexp both define a `pool_alloc`). Rename
+    # the colliding ones for the span of the gem's sources with #define,
+    # which rewrites definitions and uses consistently.
+    def write_static_renames(f, gem, sources)
+      gem_syms = collect_static_syms(sources)
+      collisions = gem_syms.keys.select { |s| seen_static_syms[s] }
+      seen_static_syms.merge!(gem_syms)
+      return [] if collisions.empty?
+
+      f.puts "\n/* Rename #{gem.name} static symbols colliding with earlier ones */"
+      collisions.sort.each do |sym|
+        f.puts "#define #{sym} #{gem.name.tr('-', '_')}_amalg_#{sym}"
+      end
+      collisions
+    end
+
+    def write_static_rename_cleanup(f, collisions)
+      return if collisions.empty?
+      f.puts
+      collisions.sort.each { |sym| f.puts "#undef #{sym}" }
+    end
+
+    # C sources of a gem: the conventional src/ and core/ trees, the first
+    # matching ports/<name>/ dir (same fallback chain as the normal build,
+    # see Gem::Specification#setup), plus any sources registered only
+    # through custom obj file tasks (e.g. mruby-compiler's vendored
+    # lib/prism), recovered from each obj's file-task prerequisite.
+    def gem_source_files(gem)
+      source_dirs = ["#{gem.dir}/src", "#{gem.dir}/core"].select { |d| File.directory?(d) }
+      @build.effective_ports.each do |port|
+        port_dir = "#{gem.dir}/ports/#{port}"
+        next unless File.directory?(port_dir)
+        # An external HAL provider supplies these entry points instead, and
+        # List#resolve_external_hal! has already dropped the port's objs from
+        # the build.  The sources have to go with them, or the amalgam ends up
+        # with both definitions.
+        source_dirs << port_dir unless (gem.port_objs & gem.objs).empty?
+        break
+      end
+      sources = source_dirs.flat_map { |d| Dir.glob("#{d}/**/*.c") }.sort
+        .map { |s| File.expand_path(s) }
+      gem_prefix = "#{File.expand_path(gem.dir)}/"
+      gem.objs.flatten.each do |obj|
+        next unless Rake::Task.task_defined?(obj)
+        src = Rake::Task[obj].prerequisites.first
+        next unless src && src.end_with?(".c") && File.exist?(src)
+        src = File.expand_path(src)
+        # Only gem-local sources; build-generated ones are handled separately
+        next unless src.start_with?(gem_prefix)
+        sources << src unless sources.include?(src)
+      end
+      sources
+    end
+
     def write_gem_sources(f)
       f.puts "\n/* ======== Gem sources ======== */"
 
-      library_gems.each do |gem|
-        # Some gems use 'core/' instead of 'src/' (mruby-compiler, mruby-bigint)
-        source_dirs = ["#{gem.dir}/src", "#{gem.dir}/core"].select { |d| File.directory?(d) }
+      main_library_gems.each do |gem|
+        sources = gem_source_files(gem)
 
         # Include C sources if the gem has any
-        unless source_dirs.empty?
-          sources = source_dirs.flat_map { |d| Dir.glob("#{d}/**/*.c") }.sort
+        unless sources.empty?
+          renamed = write_static_renames(f, gem, sources)
           sources.each_with_index do |path, idx|
-            rel_path = path.sub("#{gem.dir}/", "")
+            rel_path = path.sub("#{File.expand_path(gem.dir)}/", "")
             write_source_content(f, "#{gem.name}: #{rel_path}", path)
             # Clear macros between source files to avoid conflicts
             # (e.g., mrb_stat macro in file.c vs function in file_test.c)
             write_macro_cleanup(f, "#{gem.name}/#{File.basename(path)}") if idx < sources.size - 1
           end
+          write_static_rename_cleanup(f, renamed)
         end
 
         # Gem's compiled mrblib (Ruby-only gems like mruby-enum-ext have this)
@@ -417,6 +829,10 @@ module MRuby
       # and inline local includes (like .cstub files)
       source_dir = File.dirname(path)
       content = transform_source_includes(content, source_dir)
+      # Drop #line markers (prism's generated sources carry them): they would
+      # make compiler diagnostics point into .erb templates instead of the
+      # amalgamated file.
+      content = content.gsub(/^\s*#\s*line\b.*\n/, "")
 
       f.puts "\n/* ======== #{name} ======== */"
       f.puts content
@@ -437,6 +853,46 @@ module MRuby
       mruby/ops.h
     ].freeze
 
+    # mruby/opcode.h and mruby-compiler's mrc_opcode.h share an include
+    # guard (a TU normally sees only one of them) but their operand-fetch
+    # macros differ: mrc code reserves `c` for the mrc_ccontext parameter
+    # and fetches the third operand into `cc`. In an amalgamated TU both
+    # kinds of consumer can appear (e.g. mruby_compat.c uses the core
+    # variant inside the compiler TU), so an include of either header
+    # re-points the differing macros to that header's variant.
+    OPCODE_FETCH_MACROS = {
+      "mruby/opcode.h" => <<~MACROS,
+        #define FETCH_BBB() do {a=READ_B(); b=READ_B(); c=READ_B();} while (0)
+        #define FETCH_BSS() do {a=READ_B(); b=READ_S(); c=READ_S();} while (0)
+        #define FETCH_BBB_1() do {a=READ_S(); b=READ_B(); c=READ_B();} while (0)
+        #define FETCH_BSS_1() do {a=READ_S(); b=READ_S(); c=READ_S();} while (0)
+        #define FETCH_BBB_2() do {a=READ_B(); b=READ_S(); c=READ_B();} while (0)
+        #define FETCH_BBB_3() do {a=READ_S(); b=READ_S(); c=READ_B();} while (0)
+      MACROS
+      "mrc_opcode.h" => <<~MACROS,
+        #define FETCH_BBB() do {a=READ_B(); b=READ_B(); cc=READ_B();} while (0)
+        #define FETCH_BSS() do {a=READ_B(); b=READ_S(); cc=READ_S();} while (0)
+        #define FETCH_BBB_1() do {a=READ_S(); b=READ_B(); cc=READ_B();} while (0)
+        #define FETCH_BSS_1() do {a=READ_S(); b=READ_S(); cc=READ_S();} while (0)
+        #define FETCH_BBB_2() do {a=READ_B(); b=READ_S(); cc=READ_B();} while (0)
+        #define FETCH_BBB_3() do {a=READ_S(); b=READ_S(); cc=READ_B();} while (0)
+      MACROS
+    }.freeze
+
+    def opcode_macro_reconciliation(header)
+      undefs = %w[FETCH_BBB FETCH_BSS FETCH_BBB_1 FETCH_BSS_1 FETCH_BBB_2 FETCH_BBB_3]
+        .map { |m| "#undef #{m}\n" }.join
+      "/* #{header}: operand-fetch macro variant */\n" + undefs + OPCODE_FETCH_MACROS[header]
+    end
+
+    # The opcode-header name an include refers to, if any; quoted includes
+    # also match by basename ("../include/mrc_opcode.h")
+    def opcode_header_name(header, quote_type)
+      return header if OPCODE_FETCH_MACROS.key?(header)
+      base = File.basename(header)
+      quote_type == '"' && OPCODE_FETCH_MACROS.key?(base) ? base : nil
+    end
+
     def transform_source_includes(content, source_dir = nil)
       content.gsub(/^(\s*)(#\s*include\s+([<"])([^>"]+)[>"])/m) do |match|
         prefix = $1
@@ -446,17 +902,22 @@ module MRuby
 
         # X-macro headers must be inlined every time (not commented out)
         # because they expand differently based on surrounding macro definitions
-        if XMACRO_HEADERS.include?(header)
-          xmacro_path = "#{include_dir}/#{header}"
+        if XMACRO_HEADERS.include?(header) || gem_xmacro_path(header, quote_type)
+          xmacro_path = XMACRO_HEADERS.include?(header) ?
+                        "#{include_dir}/#{header}" : gem_xmacro_path(header, quote_type)
           if File.exist?(xmacro_path)
             xmacro_content = File.read(xmacro_path, mode: "rb")
             "#{prefix}/* Inlined X-macro: #{header} */\n#{xmacro_content}"
           else
             match
           end
+        # Opcode headers: re-point the operand-fetch macros to this
+        # header's variant (the rest of the header is already in the TU)
+        elsif (opcode = opcode_header_name(header, quote_type))
+          "#{prefix}#{opcode_macro_reconciliation(opcode)}"
         # Comment out all mruby-related includes and any header already in amalgam
         elsif mruby_header?(header) || header == "mruby.h" ||
-           @processed_headers.include?(header) || @gem_header_names.include?(header)
+           @processed_headers.include?(header) || gem_header_path(header, quote_type)
           "#{prefix}// #{include_stmt} - in amalgam header"
         elsif source_dir && quote_type == '"' && !header.include?("/")
           # Check for local includes like "known_errors_def.cstub"
@@ -475,9 +936,14 @@ module MRuby
 
     # ========== Content Transformation ==========
 
+    # A C comment that ends at its own */ — unlike /\*.*?\*/m it cannot
+    # stretch across code under backtracking, which would let a guard-less
+    # header with a #ifndef further down be misdetected as guarded.
+    C_COMMENT = /\/\*(?:[^*]|\*(?!\/))*\*\//
+
     def extract_include_guard(content)
       # Match #ifndef GUARD_NAME at start of file (after comments)
-      if content =~ /\A(?:\/\*.*?\*\/\s*|\/\/[^\n]*\n)*\s*#ifndef\s+(\w+)\s*\n\s*#define\s+\1/m
+      if content =~ /\A(?:#{C_COMMENT}\s*|\/\/[^\n]*\n)*\s*#ifndef\s+(\w+)\s*\n\s*#define\s+\1/
         $1
       end
     end
@@ -486,7 +952,7 @@ module MRuby
       return content unless guard
 
       # Remove opening #ifndef GUARD but KEEP #define GUARD (needed for #ifdef checks)
-      content = content.sub(/\A((?:\/\*.*?\*\/\s*|\/\/[^\n]*\n)*\s*)#ifndef\s+#{guard}\s*\n/m, '\1')
+      content = content.sub(/\A((?:#{C_COMMENT}\s*|\/\/[^\n]*\n)*\s*)#ifndef\s+#{guard}\s*\n/, '\1')
 
       # Remove closing #endif (any comment is ok, guard name may not match exactly)
       content = content.sub(/\n#endif\s*(?:\/\*[^*]*\*\/|\/\/[^\n]*)?\s*\z/m, "\n")
@@ -497,17 +963,36 @@ module MRuby
     def transform_includes(content, inline: false)
       # Match both "#include" and "# include" (preprocessor allows spaces)
       # Only match includes at the start of a line (real preprocessor directives)
-      content.gsub(/^(\s*)(#\s*include\s+[<"]([^>"]+)[>"])/m) do |match|
+      content.gsub(/^(\s*)(#\s*include\s+([<"])([^>"]+)[>"])/m) do |match|
         prefix = $1
         include_stmt = $2
-        header = $3
+        quote_type = $3
+        header = $4
 
-        if already_included?(header)
+        if (xmacro_path = gem_xmacro_path(header, quote_type))
+          # X-macro tables expand differently at each include site
+          "#{prefix}/* Inlined X-macro: #{header} */\n" +
+            File.read(xmacro_path, mode: "rb")
+        elsif already_included?(header)
           # Keep original whitespace, comment out the include
           "#{prefix}// #{include_stmt} - in amalgam"
         elsif inline && mruby_header?(header)
-          # Recursively inline this header
-          "#{prefix}#{inline_header(header)}"
+          if @inline_mruby
+            # Recursively inline this header
+            "#{prefix}#{inline_header(header)}"
+          else
+            # Compiler TU: mruby core headers live in the shared mruby.h
+            "#{prefix}// #{include_stmt} - in amalgam header"
+          end
+        elsif (gem_path = gem_header_path(header, quote_type))
+          # Gem-local header (e.g. mruby-compiler's mrc_common.h or its
+          # vendored prism.h). Inline it at the first include site; later
+          # occurrences are commented out via already_included?.
+          if inline
+            "#{prefix}#{inline_gem_header(header, gem_path)}"
+          else
+            "#{prefix}// #{include_stmt} - in amalgam (gem header)"
+          end
         else
           match
         end
@@ -528,7 +1013,7 @@ module MRuby
     def mruby_header?(header)
       # Check if this is an mruby header that should be inlined/transformed
       header == "mruby.h" || header.start_with?("mruby/") ||
-        %w[mrbconf.h boxing_nan.h boxing_word.h boxing_no.h common.h object.h value_array.h].include?(header)
+        %w[mrbconf.h boxing_nan.h boxing_word.h boxing_no.h common.h object.h platform.h value_array.h].include?(header)
     end
 
     def inline_header(header)
@@ -563,6 +1048,24 @@ module MRuby
       content = transform_includes(content, inline: true)
 
       "\n/* ======== #{full_header} (inlined) ======== */\n#{content}"
+    end
+
+    # Inline a gem-provided header at its include site, recursively
+    # transforming its own includes.
+    def inline_gem_header(header, path)
+      content = File.read(path, mode: "rb")
+      guard = extract_include_guard(content)
+
+      if guard && @processed_guards[guard]
+        return "/* #{header} - already included */"
+      end
+      @processed_guards[guard] = true if guard
+      @processed_headers << header unless @processed_headers.include?(header)
+
+      content = strip_include_guard(content, guard) if guard
+      content = transform_includes(content, inline: true)
+
+      "\n/* ======== #{header} (inlined) ======== */\n#{content}"
     end
   end
 end

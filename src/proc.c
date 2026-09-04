@@ -47,7 +47,7 @@ mrb_proc_new(mrb_state *mrb, const mrb_irep *irep)
   struct RProc *p;
   mrb_callinfo *ci = mrb->c->ci;
 
-  p = MRB_OBJ_ALLOC(mrb, MRB_TT_PROC, mrb->proc_class);
+  p = (struct RProc*)mrb_obj_alloc_core(mrb, MRB_TT_PROC, mrb->proc_class);
   if (ci) {
     struct RClass *tc = NULL;
 
@@ -71,16 +71,21 @@ mrb_proc_new(mrb_state *mrb, const mrb_irep *irep)
 struct REnv*
 mrb_env_new(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci, int nstacks, mrb_value *stack, struct RClass *tc)
 {
+  /* A frame with an env is one a collection may have to record what it
+     carries for (gc_mark_children()), and that recording cannot allocate.
+     Asked for here, where allocating is allowed. */
+  mrb_svars_reserve(mrb, c);
   struct REnv *e;
-  mrb_int bidx = 1;
+  mrb_int bidx = 1; /* stack: [self, args..., keywords (if any), block] */
   int n = ci->n;
-  int nk = ci->nk;
+  int kw = ci->kw;
 
-  e = MRB_OBJ_ALLOC(mrb, MRB_TT_ENV, NULL);
+  e = (struct REnv*)mrb_obj_alloc_core(mrb, MRB_TT_ENV, NULL);
   e->c = tc;
   MRB_ENV_SET_LEN(e, nstacks);
   bidx += (n == 15) ? 1 : n;
-  bidx += (nk == 15) ? 1 : (2*nk);
+  bidx += kw;
+  mrb_assert(bidx >= 1 && bidx <= 16);
   MRB_ENV_SET_BIDX(e, bidx);
   e->mid = ci->mid;
   e->stack = stack;
@@ -174,6 +179,9 @@ mrb_proc_new_cfunc_with_env(mrb_state *mrb, mrb_func_t func, mrb_int argc, const
   mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)e);
   MRB_ENV_CLOSE(e);
 
+  /* A C frame owns no Ruby scope, so this env never carries the
+     special-variable slot (MRB_ENV_SVAR_P stays off; see internal.h) and
+     its stack is exactly the locals. */
   e->stack = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value) * argc);
   MRB_ENV_SET_LEN(e, argc);
 
@@ -322,6 +330,14 @@ mrb_proc_init_copy(mrb_state *mrb, mrb_value self)
 
   check_proc(mrb, proc);
   mrb_proc_copy(mrb, mrb_proc_ptr(self), mrb_proc_ptr(proc));
+  /* A copied Proc is always treated as an orphan block: it cannot
+     `break` / `return` from the original yielding method.  This is
+     stricter than CRuby (which only marks the copy orphan once the
+     original becomes orphan), but matches mruby's memory-first
+     design — tracking the original via a back pointer would grow
+     RProc and the GC mark set.  See limitations.md for the spec
+     divergence note. */
+  mrb_proc_ptr(self)->flags |= MRB_PROC_ORPHAN;
   return self;
 }
 
@@ -411,8 +427,28 @@ mrb_proc_arity(const struct RProc *p)
   mrb_aspec aspec;
   int ma, op, ra, pa, arity;
 
+  /* Resolve alias procs first: an alias carries body.mid (a symbol), not an
+     irep, with `upper` pointing at the original proc. Without this the irep
+     branch below reads body.mid as an mrb_irep* and dereferences it -> SEGV.
+     Mirrors the guard already present in mrb_proc_source_location / mrb_proc_eql. */
+  while (p && MRB_PROC_ALIAS_P(p)) {
+    p = p->upper;
+  }
+  if (!p) return 0;
+
   if (MRB_PROC_CFUNC_P(p)) {
-    /* TODO cfunc aspec not implemented yet */
+    uint32_t caspec_bits = p->flags & MRB_PROC_CASPEC_MASK;
+    if (caspec_bits != 0) {
+      aspec = mrb_proc_decompress_caspec(caspec_bits);
+      ma = MRB_ASPEC_REQ(aspec);
+      op = MRB_ASPEC_OPT(aspec);
+      ra = MRB_ASPEC_REST(aspec);
+      pa = MRB_ASPEC_POST(aspec);
+      return ra || op ? -(ma + pa + 1) : ma + pa;
+    }
+    if (MRB_PROC_NOARG_P(p)) {
+      return 0;
+    }
     return -1;
   }
 
@@ -519,8 +555,21 @@ mrb_proc_merge_lvar(mrb_state *mrb, mrb_irep *irep, struct REnv *env, int num, c
     mrb_raise(mrb, E_RUNTIME_ERROR, "unavailable local variable names");
   }
 
+  /* Only an env carrying the special-variable slot (see internal.h) has one
+     to keep: the new locals take the ground it stood on, so it is read off
+     the old stack and put back past the new ones. An env sized without it
+     grows by the locals alone and stays without it. */
+  mrb_bool has_svar = MRB_ENV_SVAR_P(env);
+  size_t old_len = (size_t)irep->nlocals;
+  size_t new_len = old_len + (size_t)num;
+  mrb_value svar = mrb_nil_value();
+
+  if (has_svar) svar = MRB_ENV_SVAR_SLOT(env->stack, old_len);
   irep->lv = (mrb_sym*)mrb_realloc(mrb, (mrb_sym*)irep->lv, sizeof(mrb_sym) * (irep->nlocals - 1 /* self */ + num));
-  env->stack = (mrb_value*)mrb_realloc(mrb, env->stack, sizeof(mrb_value) * (irep->nlocals + num));
+  env->stack = (mrb_value*)mrb_realloc(mrb, env->stack,
+                                       has_svar ? MRB_ENV_SVAR_STACK_SIZE(new_len)
+                                                : sizeof(mrb_value) * new_len);
+  if (has_svar) MRB_ENV_SVAR_SLOT(env->stack, new_len) = svar;
 
   mrb_sym *destlv = (mrb_sym*)irep->lv + irep->nlocals - 1 /* self */;
   mrb_value *destst = env->stack + irep->nlocals;
@@ -567,5 +616,5 @@ mrb_init_proc(mrb_state *mrb)
   mrb_define_method_raw(mrb, pc, MRB_SYM(call), m);   /* 15.2.17.4.3 */
   mrb_define_method_raw(mrb, pc, MRB_OPSYM(aref), m); /* 15.2.17.4.1 */
 
-  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(lambda), proc_lambda, MRB_ARGS_NONE()|MRB_ARGS_BLOCK()); /* 15.3.1.3.27 */
+  mrb_define_module_function_id(mrb, mrb->kernel_module, MRB_SYM(lambda), proc_lambda, MRB_ARGS_NONE()|MRB_ARGS_BLOCK()); /* 15.3.1.3.27 */
 }

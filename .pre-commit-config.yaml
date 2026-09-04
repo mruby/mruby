@@ -5,7 +5,6 @@ default_language_version:
   python: python3
   node: 24.14.0
 minimum_pre_commit_version: "3.2.0"
-exclude: "^tools/lrama/"
 repos:
   - repo: meta
     hooks:
@@ -15,6 +14,9 @@ repos:
       - id: check-hooks-apply
         name: run check-hooks-apply
         description: check hooks apply to the repository
+      - id: check-useless-excludes
+        name: run check-useless-excludes
+        description: clean up unnecessary exclusion patterns
   - repo: local
     hooks:
       - id: prettier
@@ -25,6 +27,15 @@ repos:
         language: node
         additional_dependencies: ["prettier@3.7.4"]
         pass_filenames: false
+        stages: [manual]
+      - id: check-makefile-indentation
+        name: check Makefiles are indented with tabs
+        description: ensures that Makefiles are indented with tabs
+        entry: ./scripts/check_makefiles_for_tabs.sh
+        language: system
+        files: "(?i)^makefile$"
+        pass_filenames: true # <-- Crucial change: pass filenames to the script
+        types: [file] # Ensure only regular files are passed, not directories
         stages: [manual]
       - id: check-zip-file-is-not-committed
         name: disallow zip files
@@ -41,7 +52,7 @@ repos:
         name: run gitleaks
         description: detect hardcoded secrets with gitleaks
   - repo: https://github.com/oxipng/oxipng
-    rev: v10.1.0
+    rev: v10.2.0
     hooks:
       - id: oxipng
         name: run oxipng
@@ -70,6 +81,9 @@ repos:
         files: ^\.github/linters/codespell\.txt$
       - id: fix-byte-order-marker
       - id: forbid-submodules
+        # The vendored Prism compiler is a legitimate submodule; still forbid
+        # any other submodule from being added.
+        exclude: ^mrbgems/mruby-compiler/lib/prism$
       - id: mixed-line-ending
       - id: trailing-whitespace
   - repo: https://github.com/Lucas-C/pre-commit-hooks
@@ -91,13 +105,13 @@ repos:
         name: run actionlint
         description: lint GitHub Actions workflow files
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.2
+    rev: v2.4.3
     hooks:
       - id: codespell
         name: run codespell
         description: check spelling with codespell
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.48.0
+    rev: v0.49.1
     hooks:
       - id: markdownlint
         name: run markdownlint
@@ -105,14 +119,6 @@ repos:
         args: [--config=.github/linters/.markdown-lint.yml]
         types: [markdown]
         files: \.md$
-  - repo: https://github.com/rubocop/rubocop
-    rev: v1.86.0
-    hooks:
-      - id: rubocop
-        name: run rubocop
-        description: RuboCop is a Ruby code style checker (linter) and formatter based on the community-driven Ruby Style Guide
-        exclude: ^test/t/syntax\.rb$
-        args: [--config=.github/linters/.rubocop.yml]
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.11.0.1
     hooks:

@@ -155,7 +155,10 @@ hash_except(mrb_state *mrb, mrb_value hash)
   mrb_int argc;
 
   mrb_get_args(mrb, "*", &argv, &argc);
-  mrb_value result = mrb_hash_dup(mrb, hash);
+  /* build a plain Hash instead of a dup: as in CRuby, the receiver's class
+     and default value do not carry over to the result */
+  mrb_value result = mrb_hash_new_capa(mrb, mrb_hash_size(mrb, hash));
+  mrb_hash_merge(mrb, result, hash);
   for (mrb_int i = 0; i < argc; i++) {
     mrb_hash_delete_key(mrb, result, argv[i]);
   }

@@ -17,25 +17,7 @@
 static mrb_value
 str_valid_enc_p(mrb_state *mrb, mrb_value str)
 {
-#define utf8_islead(c) ((unsigned char)((c)&0xc0) != 0x80)
-
-  struct RString *s = mrb_str_ptr(str);
-  if (RSTR_SINGLE_BYTE_P(s)) return mrb_true_value();
-  if (RSTR_BINARY_P(s)) return mrb_true_value();
-
-  mrb_int byte_len = RSTR_LEN(s);
-  mrb_int utf8_len = 0;
-  const char *p = RSTR_PTR(s);
-  const char *e = p + byte_len;
-  while (p < e) {
-    mrb_int len = mrb_utf8len(p, e);
-
-    if (len == 1 && (*p & 0x80)) return mrb_false_value();
-    p += len;
-    utf8_len++;
-  }
-  if (byte_len == utf8_len) RSTR_SET_SINGLE_BYTE_FLAG(s);
-  return mrb_true_value();
+  return mrb_bool_value(mrb_str_valid_encoding_p(mrb, str));
 }
 
 static mrb_value
@@ -87,10 +69,10 @@ str_force_encoding(mrb_state *mrb, mrb_value self)
   struct RString *s = mrb_str_ptr(self);
   if (MRB_STR_CASECMP_P(enc, ENC_ASCII_8BIT) ||
       MRB_STR_CASECMP_P(enc, ENC_BINARY)) {
-    s->flags |= MRB_STR_BINARY;
+    RSTR_ENCODING_SET(s, MRB_STR_ENCODING_BINARY);
   }
   else if (MRB_STR_CASECMP_P(enc, ENC_UTF8)) {
-    s->flags &= ~MRB_STR_BINARY;
+    RSTR_ENCODING_SET(s, MRB_STR_ENCODING_UTF8);
   }
   else {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "unknown encoding name - %v", enc);

@@ -334,6 +334,13 @@ assert('Module#instance_methods', '15.2.2.4.33') do
   assert_true r.include?(:method2)
 end
 
+assert('Module#instance_methods lists a method that is unimplemented here') do
+  # `respond_to?` answers false for it, but it is a defined method and the
+  # listing says so; see "Kernel#respond_to? with an unimplemented method".
+  assert_true TestNotImplement.instance_methods(false).include?(:gone)
+  assert_false TestNotImplement.new.respond_to?(:gone)
+end
+
 assert 'Module#prepend #instance_methods(false)' do
   bug6660 = '[ruby-dev:45863]'
   assert_equal([:m1], Class.new{ prepend Module.new; def m1; end }.instance_methods(false), bug6660)
@@ -462,4 +469,38 @@ assert('alias_method and remove_method') do
     Integer.alias_method :to_s, :to_s_
     Integer.remove_method :to_s_
   end
+end
+
+assert('Object#public_send visibility') do
+  klass = Class.new do
+    def pub
+      :pub
+    end
+    private
+    def priv
+      :priv
+    end
+    protected
+    def prot
+      :prot
+    end
+  end
+  obj = klass.new
+
+  assert_equal :pub, obj.public_send(:pub)
+  assert_raise(NoMethodError) { obj.public_send(:priv) }
+  assert_raise(NoMethodError) { obj.public_send(:prot) }
+
+  # send ignores visibility
+  assert_equal :priv, obj.send(:priv)
+  assert_equal :prot, obj.send(:prot)
+
+  # public_send falls back to method_missing for undefined methods
+  mm = Class.new do
+    private
+    def method_missing(name, *args)
+      [name, args]
+    end
+  end.new
+  assert_equal [:nope, [1]], mm.public_send(:nope, 1)
 end

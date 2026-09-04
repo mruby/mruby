@@ -28,7 +28,7 @@ MRuby::Gem::Specification.new('mruby-bin-config') do |spec|
   if iscross
     build.products << mruby_config_path
   else
-    build.bins << mruby_config
+    build.products << build.define_installer(mruby_config_path)
   end
 
   directory mruby_config_dir

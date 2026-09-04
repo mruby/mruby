@@ -36,3 +36,57 @@ assert('Socket#recvfrom') do
 end
 
 end   # win?
+
+# Socket.ip_address_list works on both POSIX (getifaddrs) and Windows
+# (GetAdaptersAddresses), so this test runs everywhere.
+assert('Socket.ip_address_list') do
+  list = Socket.ip_address_list
+  assert_kind_of Array, list
+  # Every host should have at least one address (loopback at minimum).
+  assert_true list.length >= 1
+  list.each do |ai|
+    assert_kind_of Addrinfo, ai
+    # Only AF_INET and AF_INET6 are returned.
+    assert_true [Socket::AF_INET, Socket::AF_INET6].include?(ai.afamily)
+  end
+end
+
+# BasicSocket#getpeereid is defined on every platform, so this test runs
+# everywhere.
+assert('BasicSocket#getpeereid') do
+  s = Socket.new(Socket::AF_INET, Socket::SOCK_DGRAM, 0)
+  begin
+    # getpeereid(2) is compiled in only where the port declares
+    # MRB_HAL_SOCKET_HAS_GETPEEREID. Where it does not, the method is here
+    # to refuse, and that is what respond_to? has to report rather than
+    # promise an answer. Where it does, unix.rb runs it on a socket pair.
+    # getpeereid(2) is documented to refuse a socket that is not a Unix
+    # domain SOCK_STREAM with EINVAL, but macOS answers for this one, so
+    # what it does here is not asserted.
+    skip "the port has getpeereid(2); unix.rb runs it" if s.respond_to?(:getpeereid)
+    assert_raise(NotImplementedError) { s.getpeereid }
+  ensure
+    s.close rescue nil
+  end
+end
+
+# Whether a socket is an IO descriptor is the port's to declare, and of the
+# bundled ports only Windows says it is not, so SocketTest.win? picks the
+# answer each build compiled and the test runs everywhere.
+assert('BasicSocket#sysseek') do
+  s = Socket.new(Socket::AF_INET, Socket::SOCK_DGRAM, 0)
+  begin
+    if SocketTest.win?
+      # The entry is here to refuse, a socket having no position to seek to,
+      # and it shadows IO#sysseek for every socket.
+      assert_false s.respond_to?(:sysseek)
+      assert_raise(NotImplementedError) { s.sysseek(0) }
+    else
+      # Without that entry IO#sysseek is the nearest definition, and a socket
+      # answers with it.
+      assert_true s.respond_to?(:sysseek)
+    end
+  ensure
+    s.close rescue nil
+  end
+end

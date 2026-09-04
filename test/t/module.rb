@@ -683,6 +683,49 @@ end
   assert 'Module#prepend to frozen class' do
     assert_raise(FrozenError) { Class.new.freeze.prepend Module.new }
   end
+
+  assert 'Module#prepend leaves a frozen class frozen' do
+    c = Class.new { def bar; :own; end; prepend Module.new }
+    c.freeze
+
+    assert_raise(FrozenError, 'def') { c.class_eval { def baz; :new; end } }
+    assert_raise(FrozenError, 'define_method') { c.class_eval { define_method(:baz) { :new } } }
+    assert_raise(FrozenError, 'alias_method') { c.class_eval { alias_method :baz, :bar } }
+    assert_raise(FrozenError, 'undef_method') { c.class_eval { undef_method :bar } }
+
+    assert_false c.new.respond_to?(:baz), 'no definition may have got through'
+    assert_true c.new.respond_to?(:bar), 'no removal may have got through'
+  end
+
+  assert 'Module#private on a method a prepended module also defines' do
+    m = Module.new { def foo; :prepended; end }
+    c = Class.new { def foo; :own; end; prepend m }
+
+    assert_equal :prepended, c.new.foo
+
+    c.class_eval { private :foo }
+    assert_equal :prepended, c.new.foo, 'private on the origin must not shadow the module ahead of it'
+
+    c.class_eval { public :foo }
+    assert_equal :prepended, c.new.foo
+
+    m.module_eval { def foo; :prepended2; end }
+    assert_equal :prepended2, c.new.foo, 'the origin copy must not freeze what foo answers'
+
+    c.class_eval { def foo; :own2; end }
+    assert_equal :prepended2, c.new.foo
+
+    d = c.dup
+    assert_equal :prepended2, d.new.foo
+
+    # `remove_method` comes from mruby-metaprog, which the core test build
+    # does not have.
+    if c.respond_to?(:remove_method, true)
+      c.class_eval { remove_method :foo }
+      m.module_eval { remove_method :foo }
+      assert_raise(NoMethodError) { c.new.foo }
+    end
+  end
 # @!endgroup prepend
 
 assert('Module#to_s') do
@@ -799,6 +842,74 @@ assert('method visibility') do
   assert_equal :test, v.test_private { :test }
 end
 
+assert('protected method with an explicit receiver') do
+  class ProtRecvTest
+    def call_other(o)
+      o.val
+    end
+    protected
+    def val
+      42
+    end
+  end
+  class ProtRecvSubTest < ProtRecvTest; end
+  class ProtRecvOtherTest
+    def call_other(o)
+      o.val
+    end
+  end
+  module ProtRecvModTest
+    def call_other(o)
+      o.mval
+    end
+    protected
+    def mval
+      :mod
+    end
+  end
+  class ProtRecvIncTest
+    include ProtRecvModTest
+  end
+
+  # permitted: the caller's `self` belongs to the defining class
+  assert_equal 42, ProtRecvTest.new.call_other(ProtRecvTest.new)
+  assert_equal 42, ProtRecvTest.new.call_other(ProtRecvSubTest.new)
+  assert_equal 42, ProtRecvSubTest.new.call_other(ProtRecvTest.new)
+  assert_equal :mod, ProtRecvIncTest.new.call_other(ProtRecvIncTest.new)
+
+  # rejected: the caller's `self` is unrelated to the defining class
+  assert_raise_with_message_pattern(NoMethodError, "protected method 'val' called for ProtRecvTest") do
+    ProtRecvTest.new.val
+  end
+  assert_raise_with_message_pattern(NoMethodError, "protected method 'val' called for ProtRecvTest") do
+    ProtRecvOtherTest.new.call_other(ProtRecvTest.new)
+  end
+  assert_equal 42, ProtRecvTest.new.__send__(:val)
+end
+
+assert('method_missing is dispatched regardless of its visibility') do
+  class PrivMissingTest
+    private
+    def method_missing(name, *args)
+      [name, args]
+    end
+  end
+
+  assert_equal [:foo, [1, 2]], PrivMissingTest.new.foo(1, 2)
+  assert_equal [:bar, []], PrivMissingTest.new.bar
+
+  class ProtMissingTest
+    protected
+    def method_missing(name, *args)
+      [name, args]
+    end
+  end
+  assert_equal [:baz, [3]], ProtMissingTest.new.baz(3)
+
+  # an explicit call to `method_missing` itself is still checked
+  assert_raise(NoMethodError) { PrivMissingTest.new.method_missing(:x) }
+end
+
 assert('method visibility with meta programming') do
   assert_equal "GOOD!" do
     f = nil
@@ -864,6 +975,55 @@ assert('Module#module_function') do
   assert_equal nil do
     M.modfunc
   end
+
+  # the instance-side copy turns private, like the no-argument form
+  mod = Module.new do
+    def foo; 42; end
+    module_function :foo
+    module_function def bar; 43; end
+  end
+  assert_equal 42, mod.foo
+  assert_equal 43, mod.bar
+
+  klass = Class.new do
+    include mod
+    def call_foo; foo; end
+    def call_bar; bar; end
+  end
+  obj = klass.new
+  assert_equal 42, obj.call_foo
+  assert_equal 43, obj.call_bar
+  assert_raise(NoMethodError) { obj.foo }
+  assert_raise(NoMethodError) { obj.bar }
+
+  assert_raise(NameError) { Module.new { module_function :no_such_method } }
+end
+
+assert('Module#module_function with no arguments (toggle mode)') do
+  mod = Module.new do
+    module_function
+    def foo; 42; end
+    def bar; 43; end
+    public
+    def baz; 44; end   # public ends the module_function scope
+  end
+
+  # subsequent defs become module (singleton) methods
+  assert_equal 42, mod.foo
+  assert_equal 43, mod.bar
+  # while public/private turns the toggle off again
+  assert_false mod.respond_to?(:baz)
+
+  # the instance-side methods are private: callable without an explicit
+  # receiver, but not with one; baz stayed public
+  klass = Class.new do
+    include mod
+    def call_foo; foo; end
+  end
+  obj = klass.new
+  assert_equal 42, obj.call_foo
+  assert_equal 44, obj.baz
+  assert_raise(NoMethodError) { obj.foo }
 end
 
 assert('module with non-class/module outer raises TypeError') do

@@ -51,6 +51,19 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
 #define khash_mask(h) ((h)->n_buckets-1)
 #define khash_upper_bound(h) (KH_UPPER_BOUND((h)->n_buckets))
 
+/*
+ * A hash/eql callback that dispatches into Ruby (as mruby-set does) can mutate
+ * the same table mid-probe: a rehash frees h->data, leaving the keys/flags
+ * pointers cached before the callback dangling. Snapshot h->data around every
+ * such callback and raise if it moved, the way Hash does with H_CHECK_MODIFIED,
+ * so the stale pointers are never dereferenced.
+ */
+#define KHASH_CHECK_MODIFIED(mrb, h, saved)                              \
+  do {                                                                   \
+    if ((h)->data != (saved))                                           \
+      mrb_raise((mrb), E_RUNTIME_ERROR, "hash table modified during callback"); \
+  } while (0)
+
 /* BREAKING CHANGE: khash structure optimized for 50% memory reduction
  *
  * The structure now uses a single data pointer instead of separate keys,
@@ -159,8 +172,11 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
   }                                                                     \
   static inline khint_t kh__get_small_##name(mrb_state *mrb, kh_##name##_t *h, khkey_t key) { \
     khkey_t *keys = kh_keys_##name(h);                                  \
+    void *kh__data = h->data;                                           \
     for (khint_t i = 0; i < h->size; i++) {                             \
-      if (__hash_equal(mrb, keys[i], key)) return i;                    \
+      mrb_bool kh__eq = __hash_equal(mrb, keys[i], key);                \
+      KHASH_CHECK_MODIFIED(mrb, h, kh__data);                           \
+      if (kh__eq) return i;                                             \
     }                                                                   \
     return h->size;  /* Not found - return end position */              \
   }                                                                     \
@@ -237,11 +253,21 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     /* Cache calculated pointers for performance */                     \
     khkey_t *keys = kh_keys_##name(h);                                  \
     uint8_t *ed_flags = kh_flags_##name(h);                             \
+    void *kh__data = h->data;                                           \
     khint_t k = kh__key_idx_##name(mrb, key, h), step = 0;              \
+    khint_t probes = h->n_buckets;                                      \
+    KHASH_CHECK_MODIFIED(mrb, h, kh__data);                             \
     (void)mrb;                                                          \
-    while (!__ac_isempty(ed_flags, k)) {                                \
+    /* A deleted bucket is not an empty one, so a table drained one      \
+       element at a time can hold no empty bucket at all; this walk      \
+       would then revisit the same buckets forever.  The probe visits    \
+       every bucket once before it repeats, so a full round without a    \
+       hit is a miss. */                                                 \
+    while (!__ac_isempty(ed_flags, k) && probes-- > 0) {                \
       if (!__ac_isdel(ed_flags, k)) {                                   \
-        if (__hash_equal(mrb, keys[k], key)) return k;                  \
+        mrb_bool kh__eq = __hash_equal(mrb, keys[k], key);              \
+        KHASH_CHECK_MODIFIED(mrb, h, kh__data);                         \
+        if (kh__eq) return k;                                           \
       }                                                                 \
       k = kh__next_probe_##name(k, &step, h);                           \
     }                                                                   \
@@ -259,18 +285,25 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     if (kh__is_small_##name(h)) {                                       \
       return kh__put_small_##name(mrb, h, key, ret);                    \
     }                                                                   \
-    khint_t k, del_k, step = 0;                                         \
+    khint_t k, del_k, step = 0, probes;                                 \
     if (h->size >= khash_upper_bound(h)) {                              \
       kh_resize_##name(mrb, h, h->n_buckets*2);                         \
     }                                                                   \
+   kh__put_retry:                                                       \
+    step = 0;                                                           \
+    probes = h->n_buckets;                                              \
     /* Cache calculated pointers for performance */                     \
     khkey_t *keys = kh_keys_##name(h);                                  \
     uint8_t *ed_flags = kh_flags_##name(h);                             \
+    void *kh__data = h->data;                                           \
     k = kh__key_idx_##name(mrb, key, h);                                \
+    KHASH_CHECK_MODIFIED(mrb, h, kh__data);                             \
     del_k = kh_end(h);                                                  \
-    while (!__ac_isempty(ed_flags, k)) {                                \
+    while (!__ac_isempty(ed_flags, k) && probes-- > 0) {                \
       if (!__ac_isdel(ed_flags, k)) {                                   \
-        if (__hash_equal(mrb, keys[k], key)) {                          \
+        mrb_bool kh__eq = __hash_equal(mrb, keys[k], key);              \
+        KHASH_CHECK_MODIFIED(mrb, h, kh__data);                         \
+        if (kh__eq) {                                                   \
           if (ret) *ret = 0;                                            \
           return k;                                                     \
         }                                                               \
@@ -285,6 +318,18 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
       kh__insert_key_##name(h, del_k, key);                             \
       if (ret) *ret = 2;                                                \
       return del_k;                                                     \
+    }                                                                   \
+    else if (!__ac_isempty(ed_flags, k)) {                              \
+      /* A whole round of the probe without an empty bucket and without \
+         a deleted one to take: every bucket is live.  The upper bound  \
+         above keeps that from happening, so this is the table that has \
+         been drained rather than filled and holds nothing but deleted  \
+         buckets between the live ones.  Rebuilding is what gives those \
+         back; the size is unchanged, and the bound above grows the     \
+         table on the next call if the live count really has reached    \
+         it. */                                                         \
+      kh_resize_##name(mrb, h, h->n_buckets);                           \
+      goto kh__put_retry;                                               \
     }                                                                   \
     else {                                                              \
       /* put at empty */                                                \

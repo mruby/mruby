@@ -17,42 +17,21 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+/* A descriptor and the bytes moved through it go through the HAL, so what a
+   platform is asked for here is the open flags it names and the way it
+   reports a child's exit. */
 #if defined(_WIN32)
-  #include <winsock.h>
-  #include <io.h>
-  #include <basetsd.h>
-  #define open  _open
-  #define close _close
-  #define dup _dup
-  #define dup2 _dup2
-  #define read  _read
-  #define write _write
-  #define lseek _lseek
-  #define isatty _isatty
+  #include <winsock.h>    /* getsockopt(), to tell a socket from a descriptor */
+  #include <stdlib.h>
   #define WEXITSTATUS(x) (x)
-  typedef int fsize_t;
-  typedef long ftime_t;
-  typedef long fsuseconds_t;
-  typedef int fmode_t;
-  typedef int fssize_t;
 
   #ifndef O_TMPFILE
     #define O_TMPFILE O_TEMPORARY
   #endif
 
 #else
-  #include <sys/wait.h>
-  #include <sys/time.h>
+  #include <sys/wait.h>   /* WEXITSTATUS() */
   #include <unistd.h>
-  typedef size_t fsize_t;
-  typedef time_t ftime_t;
-#ifdef __DJGPP__
-  typedef long fsuseconds_t;
-#else
-  typedef suseconds_t fsuseconds_t;
-#endif
-  typedef mode_t fmode_t;
-  typedef ssize_t fssize_t;
 #endif
 
 #ifdef _MSC_VER
@@ -79,24 +58,29 @@ static int io_modestr_to_flags(mrb_state *mrb, const char *modestr);
 static int io_mode_to_flags(mrb_state *mrb, mrb_value mode);
 static void fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet);
 
+/* Every method that touches the stream starts here; only the ones that give a
+   descriptor up rather than use it go on to accept a closed one. */
 static struct mrb_io*
-io_get_open_fptr(mrb_state *mrb, mrb_value io)
+io_get_fptr(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr = (struct mrb_io*)mrb_data_get_ptr(mrb, io, &mrb_io_type);
   if (fptr == NULL) {
     mrb_raise(mrb, E_IO_ERROR, "uninitialized stream");
   }
+  return fptr;
+}
+
+static struct mrb_io*
+io_get_open_fptr(mrb_state *mrb, mrb_value io)
+{
+  struct mrb_io *fptr = io_get_fptr(mrb, io);
   if (fptr->fd < 0) {
     mrb_raise(mrb, E_IO_ERROR, "closed stream");
   }
   return fptr;
 }
 
-#if !defined(MRB_NO_IO_POPEN) && defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
-# define MRB_NO_IO_POPEN 1
-#endif
-
-#ifndef MRB_NO_IO_POPEN
+#ifdef MRB_HAL_IO_HAS_SPAWN_PROCESS
 static void
 io_set_process_status(mrb_state *mrb, pid_t pid, int status)
 {
@@ -110,7 +94,15 @@ io_set_process_status(mrb_state *mrb, pid_t pid, int status)
     }
   }
   if (c_status != NULL) {
-    v = mrb_funcall_id(mrb, mrb_obj_value(c_status), MRB_SYM(new), 2, mrb_fixnum_value(pid), mrb_fixnum_value(status));
+    /* What this needs is the status object, and asking the class for `new` is
+       not the way to it: mrb_obj_new() allocates one and hands #initialize the
+       pid and the raw status, which is the path mruby-process takes itself.
+       CRuby's Process::Status has no `new` to call. */
+    mrb_value argv[2];
+
+    argv[0] = mrb_fixnum_value(pid);
+    argv[1] = mrb_fixnum_value(status);
+    v = mrb_obj_new(mrb, c_status, 2, argv);
   }
   else {
     v = mrb_fixnum_value(WEXITSTATUS(status));
@@ -242,7 +234,7 @@ static void
 io_fd_cloexec(mrb_state *mrb, int fd)
 {
 #if defined(F_GETFD) && defined(F_SETFD) && defined(FD_CLOEXEC)
-  int flags = fcntl(fd, F_GETFD);
+  int flags = mrb_hal_io_fcntl(mrb, fd, F_GETFD, 0);
   int flags2;
 
   if (flags < 0) {
@@ -255,7 +247,7 @@ io_fd_cloexec(mrb_state *mrb, int fd)
     flags2 = flags | FD_CLOEXEC; /* Set CLOEXEC for non-standard file descriptors: 3, 4, 5, ... */
   }
   if (flags != flags2) {
-    if (fcntl(fd, F_SETFD, flags2) < 0) {
+    if (mrb_hal_io_fcntl(mrb, fd, F_SETFD, flags2) < 0) {
       mrb_sys_fail(mrb, "cloexec SETFD");
     }
   }
@@ -301,11 +293,9 @@ io_alloc(mrb_state *mrb)
   return fptr;
 }
 
-#ifndef NOFILE
-#define NOFILE 64
-#endif
-
-#ifdef MRB_NO_IO_POPEN
+#ifndef MRB_HAL_IO_HAS_SPAWN_PROCESS
+/* this port runs no command: unimplemented, and named as such so
+   `respond_to?` can answer false */
 # define io_s_popen mrb_notimplement_m
 #else
 struct popen_params {
@@ -451,7 +441,7 @@ io_s_popen(mrb_state *mrb, mrb_value klass)
   DATA_PTR(io)  = fptr;
   return io;
 }
-#endif /* MRB_NO_IO_POPEN */
+#endif /* MRB_HAL_IO_HAS_SPAWN_PROCESS */
 
 static int
 symdup(mrb_state *mrb, int fd, mrb_bool *failed)
@@ -462,8 +452,8 @@ symdup(mrb_state *mrb, int fd, mrb_bool *failed)
   if (fd < 0)
     return fd;
 
-  new_fd = dup(fd);
-  if (new_fd > 0) *failed = FALSE;
+  new_fd = mrb_hal_io_dup(mrb, fd);
+  if (new_fd >= 0) *failed = FALSE;  /* 0 is a descriptor, not a failure */
   return new_fd;
 }
 
@@ -503,7 +493,13 @@ io_init_copy(mrb_state *mrb, mrb_value copy)
   if (fptr_orig->fd2 != -1) {
     fptr_copy->fd2 = symdup(mrb, fptr_orig->fd2, &failed);
     if (failed) {
-      close(fptr_copy->fd);
+      /* `copy` is already reachable from the GC, so it outlives this error and
+         is finalized later. Give up the descriptor rather than leaving it in
+         `fd`, or that finalizer closes whatever has since reused the number. */
+      int err = errno;
+      mrb_hal_io_close(mrb, fptr_copy->fd);
+      fptr_copy->fd = -1;
+      errno = err;
       mrb_sys_fail(mrb, 0);
     }
     io_fd_cloexec(mrb, fptr_copy->fd2);
@@ -517,6 +513,17 @@ badfd_error(mrb_state *mrb)
 {
   mrb_sys_fail(mrb, "bad file descriptor");
 }
+
+#if defined(_WIN32) && defined(_MSC_VER)
+/* Stands in for the CRT's default invalid parameter handler, which ends the
+   process. Doing nothing lets the call that tripped it return an error. */
+static void
+ignore_invalid_parameter(const wchar_t *expression, const wchar_t *function,
+                         const wchar_t *file, unsigned int line, uintptr_t reserved)
+{
+  (void)expression; (void)function; (void)file; (void)line; (void)reserved;
+}
+#endif
 
 static void
 check_file_descriptor(mrb_state *mrb, mrb_int fd)
@@ -532,6 +539,8 @@ check_file_descriptor(mrb_state *mrb, mrb_int fd)
 #endif
 
 #ifdef _WIN32
+  /* A Winsock handle is not a CRT file descriptor, and fstat below cannot
+     vouch for one, so ask Winsock before the CRT gets a say. */
   {
     DWORD err;
     int len = sizeof(err);
@@ -541,7 +550,24 @@ check_file_descriptor(mrb_state *mrb, mrb_int fd)
     }
   }
 
-  if (fdi < 0 || fdi > _getmaxstdio()) {
+  {
+    int ok;
+#ifdef _MSC_VER
+    /* Asking the CRT about a descriptor it does not have invokes the invalid
+       parameter handler, and the default one ends the process rather than
+       returning: a bare IO.new(400) would take the program with it. A handler
+       that does nothing leaves fstat to report the failure the way it reports
+       any other. Thread-local, so an embedding program's own handler stands. */
+    _invalid_parameter_handler prev =
+      _set_thread_local_invalid_parameter_handler(ignore_invalid_parameter);
+#endif
+    ok = (fdi >= 0 && fstat(fdi, &sb) == 0);
+#ifdef _MSC_VER
+    _set_thread_local_invalid_parameter_handler(prev);
+#endif
+    if (ok) return;
+    /* Whatever the CRT set errno to on the way out, what the caller asked is
+       whether the descriptor is one, and it is not. */
     errno = EBADF;
     badfd_error(mrb);
   }
@@ -610,7 +636,7 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet)
     }
 #endif
     if (fptr->fd != -1 && fptr->close_fd) {
-      if (close(fptr->fd) == -1) {
+      if (mrb_hal_io_close(mrb, fptr->fd) == -1) {
         saved_errno = errno;
       }
     }
@@ -618,7 +644,7 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet)
   }
 
   if (fptr->fd2 >= limit) {
-    if (fptr->close_fd2 && close(fptr->fd2) == -1) {
+    if (fptr->close_fd2 && mrb_hal_io_close(mrb, fptr->fd2) == -1) {
       if (saved_errno == 0) {
         saved_errno = errno;
       }
@@ -626,27 +652,19 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet)
     fptr->fd2 = -1;
   }
 
-#ifndef MRB_NO_IO_POPEN
+#ifdef MRB_HAL_IO_HAS_SPAWN_PROCESS
   if (fptr->pid != 0) {
-#if !defined(_WIN32)
-    pid_t pid;
-    int status;
+    /* The pid is whatever mrb_hal_io_spawn_process() handed out, and only
+       the port that made it knows what it names and how to wait on it. */
+    int pid, status;
     do {
-      pid = waitpid(fptr->pid, &status, 0);
+      pid = mrb_hal_io_waitpid(mrb, fptr->pid, &status, 0);
     } while (pid == -1 && errno == EINTR);
     if (!quiet && pid == fptr->pid) {
       io_set_process_status(mrb, pid, status);
     }
-#else
-    HANDLE h = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, fptr->pid);
-    DWORD status;
-    if (WaitForSingleObject(h, INFINITE) && GetExitCodeProcess(h, &status))
-      if (!quiet)
-        io_set_process_status(mrb, fptr->pid, (int)status);
-    CloseHandle(h);
-#endif
     fptr->pid = 0;
-    /* Note: we don't raise an exception when waitpid(3) fails */
+    /* Note: we don't raise an exception when the wait fails */
   }
 #endif
 
@@ -696,7 +714,7 @@ static mrb_value
 io_isatty(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr = io_get_open_fptr(mrb, io);
-  if (isatty(fptr->fd) == 0)
+  if (mrb_hal_io_isatty(mrb, fptr->fd) == 0)
     return mrb_false_value();
   return mrb_true_value();
 }
@@ -720,14 +738,14 @@ io_s_sysclose(mrb_state *mrb, mrb_value klass)
   mrb_int fd;
   mrb->c->ci->mid = 0;
   mrb_get_args(mrb, "i", &fd);
-  if (close((int)fd) == -1) {
+  if (mrb_hal_io_close(mrb, (int)fd) == -1) {
     mrb_sys_fail(mrb, "close");
   }
   return mrb_fixnum_value(0);
 }
 
 static int
-io_cloexec_open(mrb_state *mrb, const char *pathname, int flags, fmode_t mode)
+io_cloexec_open(mrb_state *mrb, const char *pathname, int flags, mrb_int mode)
 {
   int retry = FALSE;
   char *fname = mrb_locale_from_utf8(pathname, -1);
@@ -740,7 +758,7 @@ io_cloexec_open(mrb_state *mrb, const char *pathname, int flags, fmode_t mode)
   flags |= O_NOINHERIT;
 #endif
 reopen:
-  fd = open(fname, flags, mode);
+  fd = mrb_hal_io_open(mrb, fname, flags, mode);
   if (fd == -1) {
     if (!retry) {
       switch (errno) {
@@ -775,7 +793,7 @@ io_s_sysopen(mrb_state *mrb, mrb_value klass)
 
   const char *pat = RSTRING_CSTR(mrb, path);
   int flags = io_mode_to_flags(mrb, mode);
-  mrb_int fd = io_cloexec_open(mrb, pat, flags, (fmode_t)perm);
+  mrb_int fd = io_cloexec_open(mrb, pat, flags, perm);
   return mrb_fixnum_value(fd);
 }
 
@@ -785,16 +803,18 @@ eof_error(mrb_state *mrb)
   mrb_raise(mrb, E_EOF_ERROR, "end of file reached");
 }
 
+/* The unbuffered readers (#sysread, #pread) hand the descriptor a string of
+   `maxlen` bytes and trim it to what arrived. Sizing the string comes first;
+   a read of nothing is answered here with an empty string and asks the
+   stream for nothing, not even to be open. */
 static mrb_value
-io_read_common(mrb_state *mrb,
-    fssize_t (*readfunc)(int, void*, fsize_t, off_t),
-    mrb_value io, mrb_value buf, mrb_int maxlen, off_t offset)
+io_sysread_buf(mrb_state *mrb, mrb_value buf, mrb_int maxlen)
 {
   if (maxlen < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "negative expanding string size");
   }
   else if (maxlen == 0) {
-    return mrb_str_new(mrb, NULL, maxlen);
+    return mrb_str_new(mrb, NULL, 0);
   }
 
   if (mrb_nil_p(buf)) {
@@ -807,26 +827,23 @@ io_read_common(mrb_state *mrb,
   else {
     mrb_str_modify(mrb, RSTRING(buf));
   }
+  return buf;
+}
 
-  struct mrb_io *fptr = io_get_read_fptr(mrb, io);
-  int ret = readfunc(fptr->fd, RSTRING_PTR(buf), (fsize_t)maxlen, offset);
-  if (ret < 0) {
+static mrb_value
+io_sysread_done(mrb_state *mrb, struct mrb_io *fptr, mrb_value buf, mrb_int n)
+{
+  if (n < 0) {
     mrb_sys_fail(mrb, "sysread failed");
   }
-  if (RSTRING_LEN(buf) != ret) {
-    buf = mrb_str_resize(mrb, buf, ret);
+  if (RSTRING_LEN(buf) != n) {
+    buf = mrb_str_resize(mrb, buf, n);
   }
-  if (ret == 0 && maxlen > 0) {
+  if (n == 0) {
     fptr->eof = 1;
     eof_error(mrb);
   }
   return buf;
-}
-
-static fssize_t
-sysread(int fd, void *buf, fsize_t nbytes, off_t offset)
-{
-  return (fssize_t)read(fd, buf, nbytes);
 }
 
 static mrb_value
@@ -837,7 +854,11 @@ io_sysread(mrb_state *mrb, mrb_value io)
 
   mrb_get_args(mrb, "i|S", &maxlen, &buf);
 
-  return io_read_common(mrb, sysread, io, buf, maxlen, 0);
+  buf = io_sysread_buf(mrb, buf, maxlen);
+  if (maxlen == 0) return buf;
+  struct mrb_io *fptr = io_get_read_fptr(mrb, io);
+  mrb_int n = mrb_hal_io_read(mrb, fptr->fd, RSTRING_PTR(buf), (size_t)maxlen);
+  return io_sysread_done(mrb, fptr, buf, n);
 }
 
 static mrb_value
@@ -851,7 +872,7 @@ io_sysseek(mrb_state *mrb, mrb_value io)
   }
 
   struct mrb_io *fptr = io_get_open_fptr(mrb, io);
-  off_t pos = lseek(fptr->fd, (off_t)offset, (int)whence);
+  off_t pos = (off_t)mrb_hal_io_lseek(mrb, fptr->fd, (mrb_int)offset, (int)whence);
   if (pos == -1) {
     mrb_sys_fail(mrb, "sysseek");
   }
@@ -875,32 +896,18 @@ io_seek(mrb_state *mrb, mrb_value io)
 }
 
 static mrb_value
-io_write_common(mrb_state *mrb,
-    fssize_t (*writefunc)(int, const void*, fsize_t, off_t),
-    struct mrb_io *fptr, const void *buf, mrb_ssize blen, off_t offset)
-{
-  int fd = io_get_write_fd(fptr);
-  fssize_t length = writefunc(fd, buf, (fsize_t)blen, offset);
-  if (length == -1) {
-    mrb_sys_fail(mrb, "syswrite");
-  }
-  return mrb_int_value(mrb, (mrb_int)length);
-}
-
-static fssize_t
-syswrite(int fd, const void *buf, fsize_t nbytes, off_t offset)
-{
-  return (fssize_t)write(fd, buf, nbytes);
-}
-
-static mrb_value
 io_syswrite(mrb_state *mrb, mrb_value io)
 {
   mrb_value buf;
 
   mrb_get_args(mrb, "S", &buf);
 
-  return io_write_common(mrb, syswrite, io_get_write_fptr(mrb, io), RSTRING_PTR(buf), RSTRING_LEN(buf), 0);
+  int fd = io_get_write_fd(io_get_write_fptr(mrb, io));
+  mrb_int n = mrb_hal_io_write(mrb, fd, RSTRING_PTR(buf), (size_t)RSTRING_LEN(buf));
+  if (n == -1) {
+    mrb_sys_fail(mrb, "syswrite");
+  }
+  return mrb_int_value(mrb, n);
 }
 
   /* def write(string) */
@@ -911,18 +918,12 @@ io_syswrite(mrb_state *mrb, mrb_value io)
   /* end */
 
 static mrb_int
-fd_write(mrb_state *mrb, int fd, mrb_value str)
+fd_write_buf(mrb_state *mrb, int fd, const char *ptr, mrb_int len)
 {
-  fssize_t n;
-
-  str = mrb_obj_as_string(mrb, str);
-  fssize_t len = (fssize_t)RSTRING_LEN(str);
   if (len == 0) return 0;
-
-  const char *ptr = RSTRING_PTR(str);
-  fssize_t sum = 0;
+  mrb_int sum = 0;
   while (sum < len) {
-    n = write(fd, ptr + sum, len - sum);
+    mrb_int n = mrb_hal_io_write(mrb, fd, ptr + sum, (size_t)(len - sum));
     if (n == -1) {
       if (errno == EINTR) continue;
       mrb_sys_fail(mrb, "syswrite");
@@ -931,6 +932,15 @@ fd_write(mrb_state *mrb, int fd, mrb_value str)
   }
   return len;
 }
+
+static mrb_int
+fd_write(mrb_state *mrb, int fd, mrb_value str)
+{
+  str = mrb_obj_as_string(mrb, str);
+  return fd_write_buf(mrb, fd, RSTRING_PTR(str), RSTRING_LEN(str));
+}
+
+#define FD_WRITE_LIT(mrb, fd, s) fd_write_buf(mrb, fd, "" s "", sizeof(s) - 1)
 
 /* Helper function to prepare IO object for writing by adjusting buffer state */
 static void
@@ -941,10 +951,10 @@ io_prepare_write(mrb_state *mrb, struct mrb_io *fptr)
     off_t n;
 
     /* get current position */
-    n = lseek(fd, 0, SEEK_CUR);
+    n = (off_t)mrb_hal_io_lseek(mrb, fd, 0, MRB_IO_SEEK_CUR);
     if (n == -1) mrb_sys_fail(mrb, "lseek");
     /* move cursor */
-    n = lseek(fd, n - fptr->buf->len, SEEK_SET);
+    n = (off_t)mrb_hal_io_lseek(mrb, fd, (mrb_int)(n - fptr->buf->len), MRB_IO_SEEK_SET);
     if (n == -1) mrb_sys_fail(mrb, "lseek(2)");
     fptr->buf->start = fptr->buf->len = 0;
   }
@@ -987,8 +997,7 @@ io_puts_str(mrb_state *mrb, int fd, mrb_value str)
 
   /* Add newline if string doesn't end with one */
   if (len == 0 || ptr[len-1] != '\n') {
-    mrb_value newline = mrb_str_new_lit(mrb, "\n");
-    fd_write(mrb, fd, newline);
+    FD_WRITE_LIT(mrb, fd, "\n");
   }
 }
 
@@ -1001,8 +1010,7 @@ static void
 io_puts_ary(mrb_state *mrb, int fd, mrb_value ary, int depth)
 {
   if (depth >= IO_PUTS_MAX_DEPTH) {
-    mrb_value mark = mrb_str_new_lit(mrb, "[...]\n");
-    fd_write(mrb, fd, mark);
+    FD_WRITE_LIT(mrb, fd, "[...]\n");
     return;
   }
 
@@ -1010,12 +1018,15 @@ io_puts_ary(mrb_state *mrb, int fd, mrb_value ary, int depth)
 
   if (len == 0) {
     /* Empty array - write a single newline */
-    mrb_value newline = mrb_str_new_lit(mrb, "\n");
-    fd_write(mrb, fd, newline);
+    FD_WRITE_LIT(mrb, fd, "\n");
     return;
   }
 
-  for (mrb_int i = 0; i < len; i++) {
+  /* An element's #to_s can replace `ary` with a shorter array, which moves the
+     buffer as well as the length, so the next index has to be checked against
+     what RARRAY_PTR() now points at. The saved length stays as the upper
+     bound: an element that grows the array does not extend the traversal. */
+  for (mrb_int i = 0; i < len && i < RARRAY_LEN(ary); i++) {
     mrb_value elem = RARRAY_PTR(ary)[i];
     if (mrb_array_p(elem)) {
       io_puts_ary(mrb, fd, elem, depth + 1);
@@ -1041,8 +1052,7 @@ io_puts(mrb_state *mrb, mrb_value io)
 
   if (argc == 0) {
     /* No arguments - just write a newline */
-    mrb_value newline = mrb_str_new_lit(mrb, "\n");
-    fd_write(mrb, fd, newline);
+    FD_WRITE_LIT(mrb, fd, "\n");
     return mrb_nil_value();
   }
 
@@ -1113,7 +1123,7 @@ io_putc(mrb_state *mrb, mrb_value io)
     unsigned char byte = (unsigned char)(mrb_integer(c) & 0xff);
     ssize_t n;
     do {
-      n = write(fd, &byte, 1);
+      n = mrb_hal_io_write(mrb, fd, &byte, 1);
     } while (n == -1 && errno == EINTR);
     if (n == -1) mrb_sys_fail(mrb, "write");
     return c;
@@ -1140,7 +1150,7 @@ io_putc(mrb_state *mrb, mrb_value io)
 
   /* Write the character bytes */
   while (write_len > 0) {
-    ssize_t n = write(fd, ptr, write_len);
+    ssize_t n = mrb_hal_io_write(mrb, fd, ptr, write_len);
     if (n == -1) {
       if (errno == EINTR) continue;
       mrb_sys_fail(mrb, "write");
@@ -1175,11 +1185,26 @@ io_lshift(mrb_state *mrb, mrb_value io)
   return io;
 }
 
+/*
+ * call-seq:
+ *   ios.close -> nil
+ *
+ * Closes the stream. A stream that is already closed is left as it is.
+ *
+ *   f = File.new("testfile")
+ *   f.close         #=> nil
+ *   f.close         #=> nil
+ */
 static mrb_value
 io_close(mrb_state *mrb, mrb_value io)
 {
-  struct mrb_io *fptr;
-  fptr = io_get_open_fptr(mrb, io);
+  struct mrb_io *fptr = io_get_fptr(mrb, io);
+
+  /* Closing what is closed asks for nothing, and the stream already answers
+     #closed? with true, so there is nothing for a raise to tell. */
+  if (fptr->fd < 0) {
+    return mrb_nil_value();
+  }
   fptr_finalize(mrb, fptr, FALSE);
   return mrb_nil_value();
 }
@@ -1189,7 +1214,11 @@ io_close(mrb_state *mrb, mrb_value io)
  *   ios.close_write -> nil
  *
  * Closes the write end of a duplex I/O stream (i.e., a pipe).
- * It will raise an `IOError` if the stream is not duplex.
+ *
+ * A stream that is not duplex has no write end of its own. If it cannot be
+ * read from, or it was opened to a child process, its only end is the one
+ * being closed and the whole stream is closed; otherwise an `IOError` is
+ * raised. A stream that is already closed is left as it is.
  *
  *   r, w = IO.pipe
  *   w.close_write
@@ -1198,8 +1227,35 @@ io_close(mrb_state *mrb, mrb_value io)
 static mrb_value
 io_close_write(mrb_state *mrb, mrb_value io)
 {
-  struct mrb_io *fptr = io_get_open_fptr(mrb, io);
-  if (close((int)fptr->fd2) == -1) {
+  struct mrb_io *fptr = io_get_fptr(mrb, io);
+
+  /* A closed stream has no write end left to give up, duplex or not, so the
+     answer is the one #close gives and nothing below it applies. */
+  if (fptr->fd < 0) {
+    return mrb_nil_value();
+  }
+
+  int fd2 = fptr->fd2;
+  if (fd2 == -1) {
+    /* No second descriptor, so writing goes through fd, which is also what
+       reading goes through. There is a write end to give up only where
+       nothing reads from the stream for the caller's own sake, and then it is
+       the whole stream: what a stream opened to a child process reads is the
+       child, which ends with the pipe. */
+    if (fptr->readable && fptr->pid == 0) {
+      mrb_raise(mrb, E_IO_ERROR, "closing non-duplex IO for writing");
+    }
+    fptr_finalize(mrb, fptr, FALSE);
+    return mrb_nil_value();
+  }
+  /* The write end is gone whatever close(2) answers, and leaving its number
+     behind would have #close try to close it a second time. */
+  fptr->fd2 = -1;
+  /* A stream that has an fd2 writes to it and reads from fd, so closing the
+     write end leaves nowhere to write to: the flag every writer is gated on
+     has to fall with the descriptor. */
+  fptr->writable = 0;
+  if (mrb_hal_io_close(mrb, fd2) == -1) {
     mrb_sys_fail(mrb, "close");
   }
   return mrb_nil_value();
@@ -1230,7 +1286,7 @@ static mrb_value
 io_pos(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr = io_get_open_fptr(mrb, io);
-  off_t pos = lseek(fptr->fd, 0, SEEK_CUR);
+  off_t pos = (off_t)mrb_hal_io_lseek(mrb, fptr->fd, 0, MRB_IO_SEEK_CUR);
   if (pos == -1) mrb_sys_fail(mrb, 0);
 
   if (fptr->buf) {
@@ -1278,14 +1334,14 @@ time2timeval(mrb_state *mrb, mrb_value time)
 
   switch (mrb_type(time)) {
     case MRB_TT_INTEGER:
-      t.tv_sec = (int64_t)mrb_integer(time);
+      t.tv_sec = mrb_integer(time);
       t.tv_usec = 0;
       break;
 
 #ifndef MRB_NO_FLOAT
     case MRB_TT_FLOAT:
-      t.tv_sec = (int64_t)mrb_float(time);
-      t.tv_usec = (int64_t)((mrb_float(time) - t.tv_sec) * 1000000.0);
+      t.tv_sec = (mrb_int)mrb_float(time);
+      t.tv_usec = (mrb_int)((mrb_float(time) - t.tv_sec) * 1000000.0);
       break;
 #endif
 
@@ -1307,7 +1363,6 @@ time2timeval(mrb_state *mrb, mrb_value time)
  *   f.puts "hello"
  */
 
-#if !defined(_WIN32) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
 static mrb_value
 io_s_pipe(mrb_state *mrb, mrb_value klass)
 {
@@ -1335,7 +1390,6 @@ io_s_pipe(mrb_state *mrb, mrb_value klass)
 
   return mrb_assoc_new(mrb, r, w);
 }
-#endif
 
 static int
 mrb_io_read_data_pending(mrb_state *mrb, struct mrb_io *fptr)
@@ -1600,11 +1654,11 @@ io_close_on_exec_p(mrb_state *mrb, mrb_value io)
   int ret;
 
   if (fptr->fd2 >= 0) {
-    if ((ret = fcntl(fptr->fd2, F_GETFD)) == -1) mrb_sys_fail(mrb, "F_GETFD failed");
+    if ((ret = mrb_hal_io_fcntl(mrb, fptr->fd2, F_GETFD, 0)) == -1) mrb_sys_fail(mrb, "F_GETFD failed");
     if (!(ret & FD_CLOEXEC)) return mrb_false_value();
   }
 
-  if ((ret = fcntl(fptr->fd, F_GETFD)) == -1) mrb_sys_fail(mrb, "F_GETFD failed");
+  if ((ret = mrb_hal_io_fcntl(mrb, fptr->fd, F_GETFD, 0)) == -1) mrb_sys_fail(mrb, "F_GETFD failed");
   if (!(ret & FD_CLOEXEC)) return mrb_false_value();
   return mrb_true_value();
 }
@@ -1636,19 +1690,19 @@ io_set_close_on_exec(mrb_state *mrb, mrb_value io)
   int ret;
 
   if (fptr->fd2 >= 0) {
-    if ((ret = fcntl(fptr->fd2, F_GETFD)) == -1) mrb_sys_fail(mrb, "F_GETFD failed");
+    if ((ret = mrb_hal_io_fcntl(mrb, fptr->fd2, F_GETFD, 0)) == -1) mrb_sys_fail(mrb, "F_GETFD failed");
     if ((ret & FD_CLOEXEC) != flag) {
       ret = (ret & ~FD_CLOEXEC) | flag;
-      ret = fcntl(fptr->fd2, F_SETFD, ret);
+      ret = mrb_hal_io_fcntl(mrb, fptr->fd2, F_SETFD, ret);
 
       if (ret == -1) mrb_sys_fail(mrb, "F_SETFD failed");
     }
   }
 
-  if ((ret = fcntl(fptr->fd, F_GETFD)) == -1) mrb_sys_fail(mrb, "F_GETFD failed");
+  if ((ret = mrb_hal_io_fcntl(mrb, fptr->fd, F_GETFD, 0)) == -1) mrb_sys_fail(mrb, "F_GETFD failed");
   if ((ret & FD_CLOEXEC) != flag) {
     ret = (ret & ~FD_CLOEXEC) | flag;
-    ret = fcntl(fptr->fd, F_SETFD, ret);
+    ret = mrb_hal_io_fcntl(mrb, fptr->fd, F_SETFD, ret);
     if (ret == -1) mrb_sys_fail(mrb, "F_SETFD failed");
   }
 
@@ -1701,11 +1755,12 @@ io_sync(mrb_state *mrb, mrb_value io)
 # define io_pread   mrb_notimplement_m
 # define io_pwrite  mrb_notimplement_m
 #else
-static off_t
-value2off(mrb_state *mrb, mrb_value offv)
-{
-  return (off_t)mrb_as_int(mrb, offv);
-}
+/* pread/pwrite are POSIX-only positional I/O, compiled only where the
+   platform provides pread(2)/pwrite(2) (see MRB_USE_IO_PREAD_PWRITE in
+   mruby/io.h). They call the platform functions directly rather than going
+   through the IO HAL: the HAL has no positional entry point, and emulating
+   them with seek + read/write would be slower and non-atomic for no gain
+   on the only platforms that compile this code. */
 
 /*
  * call-seq:
@@ -1720,7 +1775,12 @@ io_pread(mrb_state *mrb, mrb_value io)
 
   mrb_get_args(mrb, "io|S!", &maxlen, &off, &buf);
 
-  return io_read_common(mrb, pread, io, buf, maxlen, value2off(mrb, off));
+  off_t offset = (off_t)mrb_as_int(mrb, off);
+  buf = io_sysread_buf(mrb, buf, maxlen);
+  if (maxlen == 0) return buf;
+  struct mrb_io *fptr = io_get_read_fptr(mrb, io);
+  mrb_int n = (mrb_int)pread(fptr->fd, RSTRING_PTR(buf), (size_t)maxlen, offset);
+  return io_sysread_done(mrb, fptr, buf, n);
 }
 
 /*
@@ -1734,7 +1794,13 @@ io_pwrite(mrb_state *mrb, mrb_value io)
 
   mrb_get_args(mrb, "So", &buf, &off);
 
-  return io_write_common(mrb, pwrite, io_get_write_fptr(mrb, io), RSTRING_PTR(buf), RSTRING_LEN(buf), value2off(mrb, off));
+  off_t offset = (off_t)mrb_as_int(mrb, off);
+  int fd = io_get_write_fd(io_get_write_fptr(mrb, io));
+  mrb_int n = (mrb_int)pwrite(fd, RSTRING_PTR(buf), (size_t)RSTRING_LEN(buf), offset);
+  if (n == -1) {
+    mrb_sys_fail(mrb, "syswrite");
+  }
+  return mrb_int_value(mrb, n);
 }
 #endif /* MRB_USE_IO_PREAD_PWRITE */
 
@@ -1764,6 +1830,15 @@ io_unget_data(mrb_state *mrb, struct mrb_io *fptr, const char *ptr, mrb_int len)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "total ungetc buffer exceeds maximum size");
   }
   if (buf->len + len > MRB_IO_BUF_SIZE) {
+    /* Compact the live bytes to the front before the realloc. The realloc is
+       sized from len, but the memmove below reads buf->len bytes starting at
+       buf->start, and a prior grow followed by a partial read can leave
+       start+len past the new (possibly smaller) block. Compacting first, the
+       way io_fill_buf_comp does, keeps that read in bounds (#6964). */
+    if (buf->start > 0) {
+      memmove(buf->mem, buf->mem+buf->start, buf->len);
+      buf->start = 0;
+    }
     fptr->buf = (struct mrb_io_buf*)mrb_realloc(mrb, buf, sizeof(struct mrb_io_buf)+buf->len+len-MRB_IO_BUF_SIZE);
     buf = fptr->buf;
   }
@@ -1841,7 +1916,7 @@ io_fill_buf_comp(mrb_state *mrb, struct mrb_io *fptr)
   int keep = buf->len;
 
   memmove(buf->mem, buf->mem+buf->start, keep);
-  int n = read(fptr->fd, buf->mem+keep, MRB_IO_BUF_SIZE-keep);
+  int n = mrb_hal_io_read(mrb, fptr->fd, buf->mem+keep, MRB_IO_BUF_SIZE-keep);
   if (n < 0) mrb_sys_fail(mrb, 0);
   if (n == 0) fptr->eof = 1;
   buf->start = 0;
@@ -1856,7 +1931,7 @@ io_fill_buf(mrb_state *mrb, struct mrb_io *fptr)
 
   if (buf->len > 0) return;
 
-  int n = read(fptr->fd, buf->mem, MRB_IO_BUF_SIZE);
+  int n = mrb_hal_io_read(mrb, fptr->fd, buf->mem, MRB_IO_BUF_SIZE);
   if (n < 0) mrb_sys_fail(mrb, 0);
   if (n == 0) fptr->eof = 1;
   buf->start = 0;
@@ -2205,6 +2280,51 @@ io_flush(mrb_state *mrb, mrb_value io)
   return io;
 }
 
+/*
+ * call-seq:
+ *   ios.autoclose = bool -> bool
+ *
+ * Sets the autoclose flag.
+ *
+ * If the autoclose flag is set, the underlying file descriptor(s) of +ios+
+ * will be closed when +ios+ is closed (explicitly via +#close+, or implicitly
+ * when the +IO+ object is garbage-collected). When unset, the file
+ * descriptor(s) are left open.
+ *
+ *   f = File.open("testfile")
+ *   IO.for_fd(f.fileno).autoclose = false
+ */
+static mrb_value
+io_set_autoclose(mrb_state *mrb, mrb_value io)
+{
+  struct mrb_io *fptr = io_get_open_fptr(mrb, io);
+  mrb_bool b;
+
+  mrb_get_args(mrb, "b", &b);
+  fptr->close_fd = b;
+  fptr->close_fd2 = b;
+  return mrb_bool_value(b);
+}
+
+/*
+ * call-seq:
+ *   ios.autoclose? -> true or false
+ *
+ * Returns +true+ if the underlying file descriptor of +ios+ will be closed
+ * when +ios+ is closed, otherwise +false+.
+ *
+ *   f = File.open("testfile")
+ *   f.autoclose?         #=> true
+ *   f.autoclose = false
+ *   f.autoclose?         #=> false
+ */
+static mrb_value
+io_autoclose_p(mrb_state *mrb, mrb_value io)
+{
+  struct mrb_io *fptr = io_get_open_fptr(mrb, io);
+  return mrb_bool_value(fptr->close_fd);
+}
+
 /* ---------------------------*/
 static const mrb_mt_entry io_rom_entries[] = {
   MRB_MT_ENTRY(io_init,              MRB_SYM(initialize), MRB_ARGS_ARG(1,2)),
@@ -2243,6 +2363,8 @@ static const mrb_mt_entry io_rom_entries[] = {
   MRB_MT_ENTRY(io_pwrite,            MRB_SYM(pwrite), MRB_ARGS_ANY()),  /* Ruby 2.5 feature */
   MRB_MT_ENTRY(io_getbyte,           MRB_SYM(getbyte),       MRB_ARGS_NONE()),
   MRB_MT_ENTRY(io_readbyte,          MRB_SYM(readbyte),      MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(io_set_autoclose,     MRB_SYM_E(autoclose),   MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(io_autoclose_p,       MRB_SYM_Q(autoclose),   MRB_ARGS_NONE()),
 };
 
 void
@@ -2257,13 +2379,13 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_class_method_id(mrb, io, MRB_SYM(for_fd),  io_s_for_fd,   MRB_ARGS_ARG(1,2));
   mrb_define_class_method_id(mrb, io, MRB_SYM(select),  io_s_select,  MRB_ARGS_ARG(1,3));
   mrb_define_class_method_id(mrb, io, MRB_SYM(sysopen), io_s_sysopen, MRB_ARGS_ARG(1,2));
-#if !defined(_WIN32) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
   mrb_define_class_method_id(mrb, io, MRB_SYM(_pipe), io_s_pipe, MRB_ARGS_NONE());
-#endif
 
   MRB_MT_INIT_ROM(mrb, io, io_rom_entries);
 
-  mrb_define_const_id(mrb, io, MRB_SYM(SEEK_SET), mrb_fixnum_value(SEEK_SET));
-  mrb_define_const_id(mrb, io, MRB_SYM(SEEK_CUR), mrb_fixnum_value(SEEK_CUR));
-  mrb_define_const_id(mrb, io, MRB_SYM(SEEK_END), mrb_fixnum_value(SEEK_END));
+  /* Use the HAL's platform-independent whence values; mrb_hal_io_lseek()
+     maps them back to the platform SEEK_* (these coincide on POSIX). */
+  mrb_define_const_id(mrb, io, MRB_SYM(SEEK_SET), mrb_fixnum_value(MRB_IO_SEEK_SET));
+  mrb_define_const_id(mrb, io, MRB_SYM(SEEK_CUR), mrb_fixnum_value(MRB_IO_SEEK_CUR));
+  mrb_define_const_id(mrb, io, MRB_SYM(SEEK_END), mrb_fixnum_value(MRB_IO_SEEK_END));
 }

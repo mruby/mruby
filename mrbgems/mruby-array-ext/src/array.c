@@ -18,10 +18,20 @@ ary_set_hash_func(mrb_state *mrb, mrb_value key)
   return (khint_t)mrb_obj_hash_code(mrb, key);
 }
 
+/* The one definition of "the same element" for the operations written against
+   ary_memb below. The khash callback and the walk both come through here, so
+   the two kinds of path cannot drift apart the way they did when one compared
+   with `==` and the other with `eql?`. */
+static inline mrb_bool
+ary_elem_eql(mrb_state *mrb, mrb_value a, mrb_value b)
+{
+  return mrb_eql(mrb, a, b);
+}
+
 static inline mrb_bool
 ary_set_equal_func(mrb_state *mrb, mrb_value a, mrb_value b)
 {
-  return mrb_eql(mrb, a, b);
+  return ary_elem_eql(mrb, a, b);
 }
 
 KHASH_DECLARE(ary_set, mrb_value, char, 0)
@@ -32,10 +42,8 @@ typedef khash_t(ary_set) ary_set_t;
 /* Combination state structure for repeated_combination optimization */
 struct mrb_combination_state {
   mrb_int *indices;
-  mrb_int n;
-  mrb_int array_size;
-  mrb_bool permutation;
-  mrb_bool finished;
+  mrb_int n, k; /* nPk, nCk */
+  int mode;
 };
 
 static void
@@ -404,7 +412,13 @@ ary_rotate_bang(mrb_state *mrb, mrb_value self)
   return self;
 }
 
-#define SET_OP_HASH_THRESHOLD 32
+/* Above this many deciding elements the khash set repays building it; at and
+   below, the linear walk wins and allocates nothing. Driving the deciding
+   length directly against a build that always walks and one that always
+   builds the set, the walk stops winning at 6 elements for `uniq`, 4 for `|`
+   and 8 for `&`, and the set is ahead from 8, 6 and 12; 8 takes the whole of
+   the set's win without giving any operation's small sizes away. */
+#define SET_OP_HASH_THRESHOLD 8
 
 /* Helper functions for temporary khash sets */
 static void
@@ -453,12 +467,185 @@ ary_get_array_args(mrb_state *mrb, mrb_int argc, const mrb_value **argv_ptr)
   return total_len;
 }
 
+/* Remembers elements and answers questions about them, hiding which of two
+   strategies did the remembering. A khash set when there are enough elements
+   to repay building one, a linear scan of an array the caller can already
+   see when there are not.
+
+   Choosing between those two is what makes this file fast and is worth
+   keeping. Writing the surrounding operation twice, once per strategy, is
+   what made it wrong: the two copies compared elements with different
+   functions until #7352, and `Array#intersection` narrowed by the union of
+   its arguments on one side and by each argument on the other until #7368.
+   A caller states its algorithm once, against one of three questions, and
+   never learns which strategy replied:
+
+     ary_memb_has()    is this value one of the elements I hold?
+     ary_memb_take()   the same, but each distinct element is handed out at
+                       most once; asking spends it
+     ary_memb_first()  is this the first time the caller meets this value? */
+typedef struct ary_memb {
+  mrb_bool use_set;
+  ary_set_t set;
+  mrb_int total_len;
+  const mrb_value *arys;  /* shared copies under the set, the caller's own
+                             arrays under the walk */
+  mrb_int n_arys;
+} ary_memb;
+
+static void
+ary_memb_init(mrb_state *mrb, ary_memb *m, const mrb_value *arys, mrb_int n_arys,
+              mrb_int total_len, mrb_bool use_set)
+{
+  m->use_set = use_set;
+  m->n_arys = n_arys;
+  m->total_len = total_len;
+  m->arys = arys;
+
+  if (!use_set) {
+    /* The walk reads the caller's arrays in place. It allocates nothing, which
+       is most of why it is worth choosing at all. */
+    return;
+  }
+
+  if (n_arys > 0) {
+    /* Shared copies hold the elements while kh_put() runs `hash`, which is
+       Ruby code and free to empty the caller's arrays. A caller that hands
+       over no arrays has to pin the set's keys some other way; `|` holds
+       every key in its result. */
+    mrb_value *copies = (mrb_value *)mrb_alloca(mrb, sizeof(mrb_value) * n_arys);
+    for (mrb_int i = 0; i < n_arys; i++) {
+      copies[i] = mrb_ary_make_shared_copy(mrb, arys[i]);
+    }
+    m->arys = copies;
+  }
+  ary_init_temp_set(mrb, &m->set, total_len);
+}
+
+/* Filling is separate from init because `hash` can raise, and the set has to
+   already be under an ensure when it does. A no-op for the walk. */
+static inline void
+ary_memb_fill(mrb_state *mrb, ary_memb *m)
+{
+  if (!m->use_set) return;
+  for (mrb_int i = 0; i < m->n_arys; i++) {
+    ary_populate_temp_set(mrb, &m->set, m->arys[i]);
+  }
+}
+
+static void
+ary_memb_destroy(mrb_state *mrb, ary_memb *m)
+{
+  if (m->use_set) {
+    ary_destroy_temp_set(mrb, &m->set);
+  }
+}
+
+static inline mrb_bool
+ary_memb_has(mrb_state *mrb, ary_memb *m, mrb_value v)
+{
+  if (m->use_set) {
+    return !kh_is_end(&m->set, kh_get(ary_set, mrb, &m->set, v));
+  }
+  for (mrb_int i = 0; i < m->n_arys; i++) {
+    mrb_value ary = m->arys[i];
+    for (mrb_int j = 0; j < RARRAY_LEN(ary); j++) {
+      if (ary_elem_eql(mrb, v, RARRAY_PTR(ary)[j])) {
+        return TRUE;
+      }
+    }
+  }
+  return FALSE;
+}
+
+/* Narrows take() to one of the init arrays. Arguments are selected in order,
+   each at most once: the set forgets the previous argument's elements and
+   holds this one's, the walk just reads the array named by `sel` when asked.
+   Replaces ary_memb_fill() for a caller that takes; fill() answers for all
+   the arrays at once and select() for one at a time. */
+static void
+ary_memb_select(mrb_state *mrb, ary_memb *m, mrb_int sel)
+{
+  if (!m->use_set) return;
+  if (sel > 0) {
+    kh_clear(ary_set, mrb, &m->set);
+  }
+  ary_populate_temp_set(mrb, &m->set, m->arys[sel]);
+}
+
+/* Membership in the selected array, spending each distinct element as it is
+   taken so that a duplicate no longer finds it. The set spends by deleting
+   the key. The walk cannot cross an element off an array it only reads, so
+   it consults the caller's record of what was already taken, the first
+   `kept_len` slots of `kept`; a caller whose source holds no duplicates
+   passes 0 and skips that scan. */
+static inline mrb_bool
+ary_memb_take(mrb_state *mrb, ary_memb *m, mrb_int sel, mrb_value v,
+              mrb_value kept, mrb_int kept_len)
+{
+  if (m->use_set) {
+    khiter_t k = kh_get(ary_set, mrb, &m->set, v);
+    if (kh_is_end(&m->set, k)) return FALSE;
+    kh_del(ary_set, mrb, &m->set, k);
+    return TRUE;
+  }
+  mrb_value ary = m->arys[sel];
+  mrb_bool found = FALSE;
+  for (mrb_int i = 0; i < RARRAY_LEN(ary); i++) {
+    if (ary_elem_eql(mrb, v, RARRAY_PTR(ary)[i])) {
+      found = TRUE;
+      break;
+    }
+  }
+  if (!found) return FALSE;
+  for (mrb_int i = 0; i < kept_len && i < RARRAY_LEN(kept); i++) {
+    if (ary_elem_eql(mrb, v, RARRAY_PTR(kept)[i])) return FALSE;
+  }
+  return TRUE;
+}
+
+/* Is this the first time the caller meets this value? The set remembers every
+   value it is asked about. The walk remembers nothing and reads the caller's
+   record of what it kept, the first `kept_len` slots of `kept`; bounding the
+   scan by the caller's own count is what lets `uniq!` ask about the array it
+   is still compacting. A caller of first() never calls fill(): the record
+   starts empty and grows one answer at a time. */
+static inline mrb_bool
+ary_memb_first(mrb_state *mrb, ary_memb *m, mrb_value v,
+               mrb_value kept, mrb_int kept_len)
+{
+  if (m->use_set) {
+    khiter_t k = kh_get(ary_set, mrb, &m->set, v);
+    if (!kh_is_end(&m->set, k)) return FALSE;
+    kh_put(ary_set, mrb, &m->set, v);
+    return TRUE;
+  }
+  for (mrb_int i = 0; i < kept_len && i < RARRAY_LEN(kept); i++) {
+    if (ary_elem_eql(mrb, v, RARRAY_PTR(kept)[i])) return FALSE;
+  }
+  return TRUE;
+}
+
+/* Runs `body` with the set destroyed even if it raises. The walk owns nothing
+   to destroy, so it calls straight through rather than paying for the setjmp
+   that mrb_protect_error() sets up; the walk is picked exactly when the work
+   is too small to absorb that. */
+#define ARY_MEMB_RUN(mrb, result_var, body, ctx, memb)  \
+  do {                                                  \
+    if ((memb)->use_set) {                              \
+      MRB_ENSURE(mrb, result_var, body, ctx) {          \
+        ary_memb_destroy(mrb, memb);                    \
+      }                                                 \
+    }                                                   \
+    else {                                              \
+      (result_var) = body(mrb, ctx);                    \
+    }                                                   \
+  } while (0)
+
 struct ary_subtract_ctx {
-  ary_set_t *set;
+  ary_memb *memb;
   mrb_value self;
   mrb_value result;
-  const mrb_value *argv;
-  mrb_int argc;
 };
 
 static mrb_value
@@ -466,16 +653,13 @@ ary_subtract_body(mrb_state *mrb, void *data)
 {
   struct ary_subtract_ctx *ctx = (struct ary_subtract_ctx *)data;
 
-  for (mrb_int i = 0; i < ctx->argc; i++) {
-    ary_populate_temp_set(mrb, ctx->set, ctx->argv[i]);
-  }
+  ary_memb_fill(mrb, ctx->memb);
 
   int ai = mrb_gc_arena_save(mrb);
   for (mrb_int i = 0; i < RARRAY_LEN(ctx->self); i++) {
     mrb_value p = RARRAY_PTR(ctx->self)[i];
-    mrb_gc_protect(mrb, p); // p may be removed from self by kh_get(ary_set, ...)
-    khiter_t k = kh_get(ary_set, mrb, ctx->set, p);
-    if (kh_is_end(ctx->set, k)) {  /* key doesn't exist in any ary */
+    mrb_gc_protect(mrb, p); // p may be removed from self by ary_memb_has()
+    if (!ary_memb_has(mrb, ctx->memb, p)) {  /* held by none of the arguments */
       mrb_ary_push(mrb, ctx->result, p);
     }
     mrb_gc_arena_restore(mrb, ai);
@@ -495,43 +679,17 @@ ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_va
 
   mrb_value result = mrb_ary_new(mrb);
 
-  if (total_len > SET_OP_HASH_THRESHOLD) {
-    /* Create shared copies to protect elements during khash operations */
-    mrb_value *argv_copies = (mrb_value *)mrb_alloca(mrb, sizeof(mrb_value) * argc);
-    for (mrb_int i = 0; i < argc; i++) {
-      argv_copies[i] = mrb_ary_make_shared_copy(mrb, argv[i]);
-    }
+  /* Both sides have to be worth a set: it costs O(total_len) to build and is
+     then asked RARRAY_LEN(self) questions. A short receiver cannot repay a
+     long set, one lookup into a thousand entries losing to one linear scan of
+     them, so, as CRuby does, either side being small picks the walk. */
+  ary_memb memb;
+  ary_memb_init(mrb, &memb, argv, argc, total_len,
+                total_len > SET_OP_HASH_THRESHOLD &&
+                RARRAY_LEN(self) > SET_OP_HASH_THRESHOLD);
 
-    ary_set_t set_struct;
-    ary_set_t *set = &set_struct;
-    ary_init_temp_set(mrb, set, total_len);
-
-    struct ary_subtract_ctx ctx = { set, self, result, argv_copies, argc };
-    MRB_ENSURE(mrb, result, ary_subtract_body, &ctx) {
-      ary_destroy_temp_set(mrb, set);
-    }
-  }
-  else {
-    int ai = mrb_gc_arena_save(mrb);
-    for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
-      mrb_value p = RARRAY_PTR(self)[i];
-      mrb_gc_protect(mrb, p); // p may be removed from self by mrb_equal()
-      mrb_bool found = FALSE;
-      for (mrb_int j = 0; j < argc; j++) {
-        for (mrb_int k = 0; k < RARRAY_LEN(argv[j]); k++) {
-          if (mrb_equal(mrb, p, RARRAY_PTR(argv[j])[k])) {
-            found = TRUE;
-            break;
-          }
-        }
-        if (found) break;
-      }
-      if (!found) {
-        mrb_ary_push(mrb, result, p);
-      }
-      mrb_gc_arena_restore(mrb, ai);
-    }
-  }
+  struct ary_subtract_ctx ctx = { &memb, self, result };
+  ARY_MEMB_RUN(mrb, result, ary_subtract_body, &ctx, &memb);
 
   return result;
 }
@@ -573,56 +731,36 @@ ary_difference(mrb_state *mrb, mrb_value self)
   return ary_subtract_internal(mrb, self, argc, argv);
 }
 
-static void
-add_uniq(mrb_state *mrb, mrb_value item, mrb_value result)
-{
-  for (mrb_int i = 0; i < RARRAY_LEN(result); i++) {
-    if (mrb_eql(mrb, item, RARRAY_PTR(result)[i])) {
-      return;
-    }
-  }
-  mrb_ary_push(mrb, result, item);
-}
-
 struct ary_union_ctx {
-  ary_set_t *set;
-  mrb_value self_copy;
+  ary_memb *memb;
+  mrb_value self;
   mrb_value result;
   const mrb_value *argv;
   mrb_int argc;
 };
 
+static void
+ary_union_add(mrb_state *mrb, ary_memb *memb, mrb_value src, mrb_value result)
+{
+  int ai = mrb_gc_arena_save(mrb);
+  for (mrb_int i = 0; i < RARRAY_LEN(src); i++) {
+    mrb_value elem = RARRAY_PTR(src)[i];
+    mrb_gc_protect(mrb, elem); // elem may be removed from src by ary_memb_first()
+    if (ary_memb_first(mrb, memb, elem, result, RARRAY_LEN(result))) {
+      mrb_ary_push(mrb, result, elem);
+    }
+    mrb_gc_arena_restore(mrb, ai);
+  }
+}
+
 static mrb_value
 ary_union_body(mrb_state *mrb, void *data)
 {
   struct ary_union_ctx *ctx = (struct ary_union_ctx *)data;
-  int ai = mrb_gc_arena_save(mrb);
 
-  /* Add unique elements from self */
-  for (mrb_int i = 0; i < RARRAY_LEN(ctx->self_copy); i++) {
-    mrb_value elem = RARRAY_PTR(ctx->self_copy)[i];
-    mrb_gc_protect(mrb, elem); // elem may be removed from self_copy by kh_get(ary_set, ...)
-    khiter_t k = kh_get(ary_set, mrb, ctx->set, elem);
-    if (kh_is_end(ctx->set, k)) {
-      kh_put(ary_set, mrb, ctx->set, elem);
-      mrb_ary_push(mrb, ctx->result, elem);
-    }
-    mrb_gc_arena_restore(mrb, ai);
-  }
-
-  /* Add unique elements from others */
+  ary_union_add(mrb, ctx->memb, ctx->self, ctx->result);
   for (mrb_int i = 0; i < ctx->argc; i++) {
-    mrb_value other = ctx->argv[i];
-    for (mrb_int j = 0; j < RARRAY_LEN(other); j++) {
-      mrb_value elem = RARRAY_PTR(other)[j];
-      mrb_gc_protect(mrb, elem); // elem may be removed from other by kh_get(ary_set, ...)
-      khiter_t k = kh_get(ary_set, mrb, ctx->set, elem);
-      if (kh_is_end(ctx->set, k)) {
-        kh_put(ary_set, mrb, ctx->set, elem);
-        mrb_ary_push(mrb, ctx->result, elem);
-      }
-      mrb_gc_arena_restore(mrb, ai);
-    }
+    ary_union_add(mrb, ctx->memb, ctx->argv[i], ctx->result);
   }
 
   return ctx->result;
@@ -635,46 +773,17 @@ ary_union_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value
 
   mrb_value result = mrb_ary_new(mrb);
 
-  if (total_len > SET_OP_HASH_THRESHOLD) {
-    /* Create shared copies to protect elements during khash operations */
-    mrb_value self_copy = mrb_ary_make_shared_copy(mrb, self);
-    mrb_value *argv_copies = (mrb_value *)mrb_alloca(mrb, sizeof(mrb_value) * argc);
-    for (mrb_int i = 0; i < argc; i++) {
-      argv_copies[i] = mrb_ary_make_shared_copy(mrb, argv[i]);
-    }
+  /* The record of what has been kept is the result itself, and the result is
+     also what keeps the set's keys alive: every element the set remembers
+     was pushed there in the same turn. So the membership object is handed no
+     arrays, and the sources are walked in place, each element kept in
+     encounter order the first time it is met. */
+  ary_memb memb;
+  ary_memb_init(mrb, &memb, NULL, 0, total_len,
+                total_len > SET_OP_HASH_THRESHOLD);
 
-    ary_set_t set_struct;
-    ary_set_t *set = &set_struct;
-    ary_init_temp_set(mrb, set, total_len);
-
-    struct ary_union_ctx ctx = { set, self_copy, result, argv_copies, argc };
-    MRB_ENSURE(mrb, result, ary_union_body, &ctx) {
-      ary_destroy_temp_set(mrb, set);
-    }
-  }
-  else {
-    int ai = mrb_gc_arena_save(mrb);
-
-    /* Use linear search for small arrays */
-    /* Add unique elements from self */
-    for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
-      mrb_value p = RARRAY_PTR(self)[i];
-      mrb_gc_protect(mrb, p); // p may be removed from self by add_uniq()
-      add_uniq(mrb, p, result);
-      mrb_gc_arena_restore(mrb, ai);
-    }
-
-    /* Add unique elements from others */
-    for (mrb_int i = 0; i < argc; i++) {
-      mrb_value other = argv[i];
-      for (mrb_int j = 0; j < RARRAY_LEN(other); j++) {
-        mrb_value p = RARRAY_PTR(other)[j];
-        mrb_gc_protect(mrb, p); // p may be removed from other by add_uniq()
-        add_uniq(mrb, p, result);
-        mrb_gc_arena_restore(mrb, ai);
-      }
-    }
-  }
+  struct ary_union_ctx ctx = { &memb, self, result, argv, argc };
+  ARY_MEMB_RUN(mrb, result, ary_union_body, &ctx, &memb);
 
   return result;
 }
@@ -718,32 +827,59 @@ ary_union_multi(mrb_state *mrb, mrb_value self)
 }
 
 struct ary_intersection_ctx {
-  ary_set_t *set;
+  ary_memb *memb;
   mrb_value self;
   mrb_value result;
-  const mrb_value *argv;
-  mrb_int argc;
 };
 
 static mrb_value
 ary_intersection_body(mrb_state *mrb, void *data)
 {
   struct ary_intersection_ctx *ctx = (struct ary_intersection_ctx *)data;
+  ary_memb *memb = ctx->memb;
 
-  for (mrb_int i = 0; i < ctx->argc; i++) {
-    ary_populate_temp_set(mrb, ctx->set, ctx->argv[i]);
-  }
+  /* An element belongs in the result only if every argument holds it, so the
+     arguments have to narrow the result one at a time. Asking one membership
+     question over all of them instead answers `self & (a | b | ...)`, which
+     let an element missing from one argument survive because another
+     argument carried it. */
+  for (mrb_int j = 0; j < memb->n_arys; j++) {
+    ary_memb_select(mrb, memb, j);
 
-  int ai = mrb_gc_arena_save(mrb);
-  for (mrb_int i = 0; i < RARRAY_LEN(ctx->self); i++) {
-    mrb_value p = RARRAY_PTR(ctx->self)[i];
-    mrb_gc_protect(mrb, p); // p may be removed from self by kh_get(ary_set, ...)
-    khiter_t k = kh_get(ary_set, mrb, ctx->set, p);
-    if (!kh_is_end(ctx->set, k)) {
-      mrb_ary_push(mrb, ctx->result, p);
-      kh_del(ary_set, mrb, ctx->set, k);
+    /* The first argument selects out of `self` into the still empty result;
+       every later one narrows that result, which is ours alone and can be
+       compacted in place since the write position never runs ahead of the
+       read position. take() gives up an element the first time it is taken,
+       so a duplicate in `self` no longer finds it and the result keeps one
+       of each; from the second argument on the source is the result itself,
+       already duplicate-free, so its record of taken elements stays empty. */
+    mrb_value src = ctx->self;
+    if (j > 0) {
+      src = ctx->result;
+      mrb_ary_modify(mrb, mrb_ary_ptr(ctx->result));
     }
-    mrb_gc_arena_restore(mrb, ai);
+
+    mrb_int write_pos = 0;
+    int ai = mrb_gc_arena_save(mrb);
+    for (mrb_int i = 0; i < RARRAY_LEN(src); i++) {
+      mrb_value p = RARRAY_PTR(src)[i];
+      mrb_gc_protect(mrb, p); // p may be removed from src by ary_memb_take()
+      if (ary_memb_take(mrb, memb, j, p, ctx->result, j == 0 ? write_pos : 0)) {
+        if (j == 0) {
+          mrb_ary_push(mrb, ctx->result, p);
+        }
+        else {
+          RARRAY_PTR(ctx->result)[write_pos] = p;
+        }
+        write_pos++;
+      }
+      mrb_gc_arena_restore(mrb, ai);
+    }
+    if (j > 0) {
+      mrb_ary_resize(mrb, ctx->result, write_pos);
+    }
+
+    if (write_pos == 0) break;
   }
 
   return ctx->result;
@@ -753,65 +889,23 @@ static mrb_value
 ary_intersection_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value *argv)
 {
   if (argc == 0) {
-    return mrb_ary_new(mrb);
+    /* Nothing to narrow by, so every element of the receiver survives, which
+       CRuby answers with a copy of it. Duplicates are kept: what collapses
+       them is an argument selecting each one the first time it is taken. */
+    return mrb_ary_new_from_values(mrb, RARRAY_LEN(self), RARRAY_PTR(self));
   }
 
   mrb_int total_len = ary_get_array_args(mrb, argc, &argv);
 
   mrb_value result = mrb_ary_new(mrb);
 
-  if (total_len > SET_OP_HASH_THRESHOLD) {
-    /* Create shared copies to protect elements during khash operations */
-    mrb_value *argv_copies = (mrb_value *)mrb_alloca(mrb, sizeof(mrb_value) * argc);
-    for (mrb_int i = 0; i < argc; i++) {
-      argv_copies[i] = mrb_ary_make_shared_copy(mrb, argv[i]);
-    }
+  ary_memb memb;
+  ary_memb_init(mrb, &memb, argv, argc, total_len,
+                total_len > SET_OP_HASH_THRESHOLD);
 
-    ary_set_t set_struct;
-    ary_set_t *set = &set_struct;
-    ary_init_temp_set(mrb, set, total_len);
+  struct ary_intersection_ctx ctx = { &memb, self, result };
+  ARY_MEMB_RUN(mrb, result, ary_intersection_body, &ctx, &memb);
 
-    struct ary_intersection_ctx ctx = { set, self, result, argv_copies, argc };
-    MRB_ENSURE(mrb, result, ary_intersection_body, &ctx) {
-      ary_destroy_temp_set(mrb, set);
-    }
-  }
-  else {
-    int ai = mrb_gc_arena_save(mrb);
-    for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
-      mrb_value p = RARRAY_PTR(self)[i];
-      mrb_gc_protect(mrb, p); // p may be removed from self by mrb_equal()
-      mrb_bool found_in_all = TRUE;
-
-      for (mrb_int j = 0; j < argc; j++) {
-        mrb_bool found_in_current_other = FALSE;
-        for (mrb_int k = 0; k < RARRAY_LEN(argv[j]); k++) {
-          if (mrb_equal(mrb, p, RARRAY_PTR(argv[j])[k])) {
-            found_in_current_other = TRUE;
-            break;
-          }
-        }
-        if (!found_in_current_other) {
-          found_in_all = FALSE;
-          break;
-        }
-      }
-
-      if (found_in_all) {
-        mrb_bool already_added = FALSE;
-        for (mrb_int j = 0; j < RARRAY_LEN(result); j++) {
-          if (mrb_equal(mrb, p, RARRAY_PTR(result)[j])) {
-            already_added = TRUE;
-            break;
-          }
-        }
-        if (!already_added) {
-          mrb_ary_push(mrb, result, p);
-        }
-      }
-      mrb_gc_arena_restore(mrb, ai);
-    }
-  }
   return result;
 }
 
@@ -867,8 +961,7 @@ ary_intersection_multi(mrb_state *mrb, mrb_value self)
  */
 
 struct ary_intersect_p_ctx {
-  ary_set_t *set;
-  mrb_value shorter_ary_copy;
+  ary_memb *memb;
   mrb_value longer_ary;
   mrb_bool *found;
 };
@@ -878,15 +971,15 @@ ary_intersect_p_body(mrb_state *mrb, void *data)
 {
   struct ary_intersect_p_ctx *ctx = (struct ary_intersect_p_ctx *)data;
 
-  ary_populate_temp_set(mrb, ctx->set, ctx->shorter_ary_copy);
+  ary_memb_fill(mrb, ctx->memb);
 
   int ai = mrb_gc_arena_save(mrb);
   for (mrb_int i = 0; i < RARRAY_LEN(ctx->longer_ary); i++) {
     mrb_value p = RARRAY_PTR(ctx->longer_ary)[i];
-    mrb_gc_protect(mrb, p); // p may be removed from longer_ary by kh_get(ary_set, ...)
-    khiter_t k = kh_get(ary_set, mrb, ctx->set, p);
+    mrb_gc_protect(mrb, p); // p may be removed from longer_ary by ary_memb_has()
+    mrb_bool hit = ary_memb_has(mrb, ctx->memb, p);
     mrb_gc_arena_restore(mrb, ai);
-    if (!kh_is_end(ctx->set, k)) {
+    if (hit) {
       *ctx->found = TRUE;
       break;
     }
@@ -915,40 +1008,18 @@ ary_intersect_p(mrb_state *mrb, mrb_value self)
     return mrb_false_value();
   }
 
-  if (RARRAY_LEN(shorter_ary) > SET_OP_HASH_THRESHOLD) {
-    mrb_value shorter_ary_copy = mrb_ary_make_shared_copy(mrb, shorter_ary);
+  /* The shorter side is the one that would become the set, so it is the one
+     that has to be long enough to be worth building. */
+  ary_memb memb;
+  ary_memb_init(mrb, &memb, &shorter_ary, 1, RARRAY_LEN(shorter_ary),
+                RARRAY_LEN(shorter_ary) > SET_OP_HASH_THRESHOLD);
 
-    ary_set_t set_struct;
-    ary_set_t *set = &set_struct;
-    ary_init_temp_set(mrb, set, RARRAY_LEN(shorter_ary_copy));
+  mrb_bool found = FALSE;
+  struct ary_intersect_p_ctx ctx = { &memb, longer_ary, &found };
+  mrb_value result;
+  ARY_MEMB_RUN(mrb, result, ary_intersect_p_body, &ctx, &memb);
 
-    mrb_bool found = FALSE;
-
-    struct ary_intersect_p_ctx ctx = { set, shorter_ary_copy, longer_ary, &found };
-    mrb_value result;
-    MRB_ENSURE(mrb, result, ary_intersect_p_body, &ctx) {
-      ary_destroy_temp_set(mrb, set);
-    }
-
-    if (found) {
-      return mrb_true_value();
-    }
-  }
-  else {
-    int ai = mrb_gc_arena_save(mrb);
-    for (mrb_int i = 0; i < RARRAY_LEN(longer_ary); i++) {
-      mrb_value p = RARRAY_PTR(longer_ary)[i];
-      mrb_gc_protect(mrb, p); // p may be removed from longer_ary by mrb_equal()
-      for (mrb_int j = 0; j < RARRAY_LEN(shorter_ary); j++) {
-        if (mrb_equal(mrb, p, RARRAY_PTR(shorter_ary)[j])) {
-          return mrb_true_value();
-        }
-      }
-      mrb_gc_arena_restore(mrb, ai);
-    }
-  }
-
-  return mrb_false_value();
+  return found ? mrb_true_value() : mrb_false_value();
 }
 
 /*
@@ -1062,15 +1133,26 @@ ary_fill_exec(mrb_state *mrb, mrb_value self)
   struct RArray *ary = mrb_ary_ptr(self);
   mrb_int ary_len = ARY_LEN(ary);
 
+  mrb_int end;
+  if (mrb_int_add_overflow(start, length, &end)) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
+  }
+
   /* Extend array if necessary */
-  if (start + length > ary_len) {
-    mrb_ary_resize(mrb, self, start + length);
+  if (end > ary_len) {
+    mrb_ary_resize(mrb, self, end);
     ary = mrb_ary_ptr(self);  /* refresh pointer after resize */
   }
 
   /* Ensure we don't go beyond array bounds */
-  if (start >= ARY_LEN(ary) || length <= 0) return self;
-  if (start + length > ARY_LEN(ary)) {
+  if (start >= ARY_LEN(ary) || length <= 0) {
+    /* Nothing to fill, so this returns ahead of the mrb_ary_modify() below
+       that turns a frozen receiver away. The fill is a destructive call
+       whatever the run comes to, so it is asked here. */
+    mrb_check_frozen(mrb, ary);
+    return self;
+  }
+  if (end > ARY_LEN(ary)) {
     length = ARY_LEN(ary) - start;
   }
 
@@ -1089,8 +1171,7 @@ ary_fill_exec(mrb_state *mrb, mrb_value self)
  *  Modifies array in-place, returns nil if no changes.
  */
 struct ary_uniq_bang_ctx {
-  ary_set_t *set;
-  mrb_value self_copy;
+  ary_memb *memb;
   mrb_value self;
   mrb_int *write_pos;
 };
@@ -1099,23 +1180,24 @@ static mrb_value
 ary_uniq_bang_body(mrb_state *mrb, void *data)
 {
   struct ary_uniq_bang_ctx *ctx = (struct ary_uniq_bang_ctx *)data;
-
-  ary_populate_temp_set(mrb, ctx->set, ctx->self_copy);
+  mrb_value self = ctx->self;
 
   int ai = mrb_gc_arena_save(mrb);
-  for (mrb_int read_pos = 0; read_pos < RARRAY_LEN(ctx->self); read_pos++) {
-    mrb_value elem = RARRAY_PTR(ctx->self)[read_pos];
-    mrb_gc_protect(mrb, elem); // elem may be removed from self by kh_get(ary_set, ...)
-    khiter_t k = kh_get(ary_set, mrb, ctx->set, elem);
-    if (!kh_is_end(ctx->set, k)) {
-      if (*ctx->write_pos != read_pos && *ctx->write_pos < RARRAY_LEN(ctx->self)) {
-        mrb_ary_modify(mrb, mrb_ary_ptr(ctx->self));
-        RARRAY_PTR(ctx->self)[*ctx->write_pos] = elem;
+  for (mrb_int read_pos = 0; read_pos < RARRAY_LEN(self); read_pos++) {
+    mrb_value elem = RARRAY_PTR(self)[read_pos];
+    mrb_gc_protect(mrb, elem); // elem may be removed from self by ary_memb_first()
+    if (ary_memb_first(mrb, ctx->memb, elem, self, *ctx->write_pos)) {
+      if (*ctx->write_pos != read_pos && *ctx->write_pos < RARRAY_LEN(self)) {
+        mrb_ary_modify(mrb, mrb_ary_ptr(self));
+        RARRAY_PTR(self)[*ctx->write_pos] = elem;
       }
       (*ctx->write_pos)++;
-      kh_del(ary_set, mrb, ctx->set, k);
-      mrb_gc_arena_restore(mrb, ai);
     }
+    /* Every turn protects `elem`, so every turn has to give the slot back:
+       an element already seen took the other branch and left its slot behind,
+       which filled a fixed arena after a hundred duplicates and raised where
+       the answer was in reach. */
+    mrb_gc_arena_restore(mrb, ai);
   }
 
   return mrb_nil_value();
@@ -1127,48 +1209,27 @@ ary_uniq_bang(mrb_state *mrb, mrb_value self)
   mrb_int len = RARRAY_LEN(self);
 
   if (len <= 1) {
+    /* No room for a duplicate, so this returns without reaching the
+       mrb_ary_modify() below that turns a frozen receiver away. The call is
+       destructive at any length, so it is asked here. */
+    mrb_check_frozen(mrb, mrb_ary_ptr(self));
     return mrb_nil_value();
   }
 
   mrb_ary_modify(mrb, mrb_ary_ptr(self));
+
+  /* The kept prefix of `self` is the record of first occurrences, so the
+     membership object holds `self` itself: under the set as a shared copy
+     that keeps every element alive while `hash` runs, under the walk as the
+     array whose prefix first() reads. */
+  ary_memb memb;
+  ary_memb_init(mrb, &memb, &self, 1, len, len > SET_OP_HASH_THRESHOLD);
+
   mrb_int write_pos = 0;
-
-  if (len > SET_OP_HASH_THRESHOLD) {
-    /* Create shared copy to protect elements during khash operations */
-    mrb_value self_copy = mrb_ary_make_shared_copy(mrb, self);
-
-    ary_set_t set_struct;
-    ary_set_t *set = &set_struct;
-    ary_init_temp_set(mrb, set, len);
-
-    struct ary_uniq_bang_ctx ctx = { set, self_copy, self, &write_pos };
-    mrb_value result;
-    MRB_ENSURE(mrb, result, ary_uniq_bang_body, &ctx) {
-      ary_destroy_temp_set(mrb, set);
-    }
-  }
-  else {
-    int ai = mrb_gc_arena_save(mrb);
-    for (mrb_int read_pos = 0; read_pos < RARRAY_LEN(self); read_pos++) {
-      mrb_value elem = RARRAY_PTR(self)[read_pos];
-      mrb_gc_protect(mrb, elem); // elem may be removed from self by mrb_equal()
-      mrb_bool found = FALSE;
-      for (mrb_int j = 0; j < write_pos && j < RARRAY_LEN(self); j++) {
-        if (mrb_equal(mrb, elem, RARRAY_PTR(self)[j])) {
-          found = TRUE;
-          break;
-        }
-      }
-      if (!found) {
-        if (write_pos != read_pos && write_pos < RARRAY_LEN(self)) {
-          mrb_ary_modify(mrb, mrb_ary_ptr(self));
-          RARRAY_PTR(self)[write_pos] = elem;
-        }
-        write_pos++;
-      }
-      mrb_gc_arena_restore(mrb, ai);
-    }
-  }
+  struct ary_uniq_bang_ctx ctx = { &memb, self, &write_pos };
+  mrb_value discard;
+  ARY_MEMB_RUN(mrb, discard, ary_uniq_bang_body, &ctx, &memb);
+  (void)discard;
 
   if (write_pos == len) {
     return mrb_nil_value();
@@ -1387,6 +1448,9 @@ ary_insert(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "i*", &idx, &argv, &argc);
 
   if (argc == 0) {
+    /* Inserting nothing is still an insert, and this returns ahead of the
+       mrb_ary_modify() below that a frozen receiver would have met. */
+    mrb_check_frozen(mrb, mrb_ary_ptr(self));
     return self;
   }
 
@@ -1401,7 +1465,10 @@ ary_insert(mrb_state *mrb, mrb_value self)
 
   mrb_ary_modify(mrb, mrb_ary_ptr(self));
 
-  mrb_int new_len = (idx > len ? idx : len) + argc;
+  mrb_int new_len;
+  if (mrb_int_add_overflow(idx > len ? idx : len, argc, &new_len)) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
+  }
   mrb_ary_resize(mrb, self, new_len);
 
   if (idx < len) {
@@ -1533,6 +1600,13 @@ ary_deconstruct(mrb_state *mrb, mrb_value ary)
   return ary;
 }
 
+enum {
+  comb_finished             = 0,
+  comb_repeated_permutation = 1,
+  comb_repeated_combination = 2,
+  comb_permutation          = 3,
+  comb_combination          = 4
+};
 
 /*
  *  Internal method to initialize combination state.
@@ -1541,31 +1615,72 @@ ary_deconstruct(mrb_state *mrb, mrb_value ary)
 static mrb_value
 ary_combination_init(mrb_state *mrb, mrb_value self)
 {
-  mrb_int n;
-  mrb_bool permutation;
+  mrb_int k;
+  mrb_sym mode_sym;
 
-  mrb_get_args(mrb, "ib", &n, &permutation);
+  mrb_get_args(mrb, "ni", &mode_sym, &k);
 #if MRB_INT_MAX > SIZE_MAX
-  if (n > SIZE_MAX) {
+  if (k > SIZE_MAX) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "number too large");
   }
 #endif
+
+  if (k < 1 || RARRAY_LEN(self) < 1) {
+    return mrb_nil_value();
+  }
+
+  int mode;
+  switch (mode_sym) {
+  case MRB_SYM(repeated_permutation):
+    mode = comb_repeated_permutation;
+    break;
+  case MRB_SYM(repeated_combination):
+    mode = comb_repeated_combination;
+    break;
+  case MRB_SYM(permutation):
+    if (k > RARRAY_LEN(self)) {
+      return mrb_nil_value();
+    }
+    mode = comb_permutation;
+    break;
+  case MRB_SYM(combination):
+    if (k > RARRAY_LEN(self)) {
+      return mrb_nil_value();
+    }
+    mode = comb_combination;
+    break;
+  default:
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong mode");
+  }
 
   struct RData *d;
   struct mrb_combination_state *state;
   Data_Make_Struct(mrb, mrb->object_class, struct mrb_combination_state,
                    &mrb_combination_state_type, state, d);
 
-  state->n = n;
-  state->array_size = RARRAY_LEN(self);
-  state->permutation = permutation;
-  state->finished = (n <= 0 && n != 0);
+  state->k = k;
+  state->n = RARRAY_LEN(self);
+  state->mode = mode;
+  state->indices = (mrb_int*)mrb_calloc(mrb, k, sizeof(mrb_int));
 
-  if (n > 0) {
-    state->indices = (mrb_int*)mrb_calloc(mrb, n, sizeof(mrb_int));
+  if (mode == comb_permutation || mode == comb_combination) {
+    for (mrb_int i = 0; i < k; i++) {
+      state->indices[i] = i;
+    }
   }
 
   return mrb_obj_value(d);
+}
+
+static void
+adjust_next_permutation_index(struct mrb_combination_state *state, mrb_int i)
+{
+  for (mrb_int j = i - 1; j >= 0; j--) {
+    if (state->indices[i] == state->indices[j]) {
+      state->indices[i]++;
+      j = i;
+    }
+  }
 }
 
 /*
@@ -1575,72 +1690,174 @@ ary_combination_init(mrb_state *mrb, mrb_value self)
 static mrb_value
 ary_combination_next(mrb_state *mrb, mrb_value self)
 {
-  mrb_value state_obj;
-  mrb_get_args(mrb, "o", &state_obj);
-
   struct mrb_combination_state *state;
-
-  /* Validate state object type and get data */
-  state = (struct mrb_combination_state*)mrb_data_check_and_get(mrb, state_obj, &mrb_combination_state_type);
-  if (!state) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid combination state");
-  }
+  mrb_get_args(mrb, "d", &state, &mrb_combination_state_type);
 
   /* Check if iteration is complete */
-  if (state->finished) return mrb_nil_value();
+  if (state->mode == comb_finished) return mrb_nil_value();
 
   /* Validate array hasn't been modified during iteration */
-  if (RARRAY_LEN(self) != state->array_size) {
+  if (RARRAY_LEN(self) != state->n) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "array modified during iteration");
   }
 
-  /* Edge case: empty array */
-  if (state->array_size == 0) {
-    state->finished = TRUE;
-    return mrb_nil_value();
-  }
-
   /* Validate current indices are still in bounds */
-  for (mrb_int i = 0; i < state->n; i++) {
-    if (state->indices[i] >= state->array_size) {
-      state->finished = TRUE;
+  for (mrb_int i = 0; i < state->k; i++) {
+    if (state->indices[i] >= state->n) {
+      state->mode = comb_finished;
+      mrb_free(mrb, state->indices);
+      state->indices = NULL;
       return mrb_nil_value();
     }
   }
 
-  /* Build current combination indices */
-  mrb_value result = mrb_ary_new_capa(mrb, state->n);
-  for (mrb_int i = 0; i < state->n; i++) {
-    mrb_ary_push(mrb, result, mrb_fixnum_value(state->indices[i]));
+  /* Build current combination */
+  mrb_value result = mrb_ary_new_capa(mrb, state->k);
+  const mrb_value *p = RARRAY_PTR(self);
+  for (mrb_int i = 0; i < state->k; i++) {
+    mrb_ary_push(mrb, result, p[state->indices[i]]);
   }
 
-  mrb_int pos = state->n - 1;
-
-  while (pos >= 0) {
-    state->indices[pos]++;
-    if (state->indices[pos] < state->array_size) break;
-    pos--;
-  }
-
-  if (pos < 0) {
-    state->finished = TRUE;
-  }
-  else {
-    /* Reset dependent indices */
-    for (mrb_int i = pos + 1; i < state->n; i++) {
-      if (state->permutation) {
-        state->indices[i] = 0;
-      }
-      else {
-        state->indices[i] = state->indices[i - 1];
+  switch (state->mode) {
+  case comb_repeated_permutation:
+  case comb_repeated_combination:
+    for (mrb_int i = state->k - 1; i >= 0; i--) {
+      state->indices[i]++;
+      if (state->indices[i] < state->n) {
+        /* Reset dependent indices */
+        mrb_int reset = (state->mode == comb_repeated_permutation) ? 0 : state->indices[i];
+        for (i++; i < state->k; i++) {
+          state->indices[i] = reset;
+        }
+        return result;
       }
     }
+    break;
+  case comb_permutation:
+    for (mrb_int i = state->k - 1; i >= 0; i--) {
+      state->indices[i]++;
+
+      // adjust so that it does not overlap with the leading index
+      adjust_next_permutation_index(state, i);
+
+      if (state->indices[i] < state->n) {
+        // adjust all trailing indexes to complete the function
+        for (i++; i < state->k; i++) {
+          state->indices[i] = 0;
+          adjust_next_permutation_index(state, i);
+        }
+        return result;
+      }
+    }
+    break;
+  case comb_combination:
+    for (mrb_int i = state->k - 1; i >= 0; i--) {
+      state->indices[i]++;
+
+      if (state->indices[i] <= state->n - state->k + i) {
+        // replace each overflowed indices with an index incremented by 1 from the previous one
+        for (i++; i < state->k; i++) {
+          state->indices[i] = state->indices[i - 1] + 1;
+        }
+        return result;
+      }
+    }
+    break;
+  default: // it probably won’t happen, but just in case
+    result = mrb_nil_value();
+    break;
   }
 
+  state->mode = comb_finished;
+  mrb_free(mrb, state->indices);
+  state->indices = NULL;
   return result;
 }
 
 /* ---------------------------*/
+
+/* `Enumerable#max` and `#min` reach an element through a call to `each`, a
+   block call and a `__svalue` send, then compare it with a `<=>` send. An
+   Array is walked in place instead, and `mrb_cmp()` answers for an Integer, a
+   Float and a String without a send at all, as `Array#sort` already does. */
+static mrb_int
+ary_cmp_ordered(mrb_state *mrb, mrb_value a, mrb_value b)
+{
+  mrb_int cmp = mrb_cmp(mrb, a, b);
+  if (cmp == -2) {
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "comparison of %T with %T failed", a, b);
+  }
+  return cmp;
+}
+
+/* `<=>` can run Ruby, which can grow the array, shrink it or drop the element
+   held as the answer so far, so the length and the element are read afresh
+   each time round and the answer is kept in the arena. */
+static mrb_value
+ary_max_min(mrb_state *mrb, mrb_value self, mrb_int want)
+{
+  if (RARRAY_LEN(self) == 0) return mrb_nil_value();
+
+  mrb_value result = RARRAY_PTR(self)[0];
+  int ai = mrb_gc_arena_save(mrb);
+  for (mrb_int i = 1; i < RARRAY_LEN(self); i++) {
+    mrb_value val = RARRAY_PTR(self)[i];
+    if (ary_cmp_ordered(mrb, val, result) == want) result = val;
+    mrb_gc_arena_restore(mrb, ai);
+    mrb_gc_protect(mrb, result);
+  }
+  return result;
+}
+
+static mrb_value
+ary_max(mrb_state *mrb, mrb_value self)
+{
+  return ary_max_min(mrb, self, 1);
+}
+
+static mrb_value
+ary_min(mrb_state *mrb, mrb_value self)
+{
+  return ary_max_min(mrb, self, -1);
+}
+
+/*
+ *  call-seq:
+ *     array.include?(obj) -> true or false
+ *     array.member?(obj)  -> true or false
+ *
+ *  Returns `true` if the array holds an element equal to `obj`.
+ *
+ *  This is an optimized version of `Enumerable#include?` for arrays: the walk
+ *  is made in C, and the pair is compared with `mrb_equal()`, which is what
+ *  `Array#index` and `#delete` search with and what `a == b` reaches through
+ *  `OP_EQ`.
+ *
+ *     [1, 2, 3].include?(2)   #=> true
+ *     [1, 2, 3].include?(4)   #=> false
+ *
+ *  ISO 15.3.2.2.10, 15.3.2.2.15
+ */
+static mrb_value
+ary_include(mrb_state *mrb, mrb_value self)
+{
+  mrb_value obj = mrb_get_arg1(mrb);
+
+  /* `==` may run Ruby that grows or shrinks the array under us, so the length
+     and the pointer are read afresh each turn.
+
+     Nothing accumulates in the GC arena over the walk, which is why there is
+     no arena restore in it, as there is none in `Array#index`: what a call
+     leaves behind is its return value, and this walk returns at the first one
+     that is true. The answers it walks past are false, which is immediate. */
+  for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
+    if (mrb_equal(mrb, RARRAY_PTR(self)[i], obj)) {
+      return mrb_true_value();
+    }
+  }
+  return mrb_false_value();
+}
+
 static const mrb_mt_entry array_ext_rom_entries[] = {
   MRB_MT_ENTRY(ary_assoc,              MRB_SYM(assoc),              MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(ary_at,                 MRB_SYM(at),                 MRB_ARGS_REQ(1)),
@@ -1672,6 +1889,10 @@ static const mrb_mt_entry array_ext_rom_entries[] = {
   MRB_MT_ENTRY(ary_product_next,       MRB_SYM(__product_next),     MRB_ARGS_REQ(2)),
   MRB_MT_ENTRY(ary_combination_init,   MRB_SYM(__combination_init), MRB_ARGS_REQ(2)),
   MRB_MT_ENTRY(ary_combination_next,   MRB_SYM(__combination_next), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(ary_max,                MRB_SYM(__max),              MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(ary_min,                MRB_SYM(__min),              MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(ary_include,            MRB_SYM_Q(include),          MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(ary_include,            MRB_SYM_Q(member),           MRB_ARGS_REQ(1)),
 };
 
 void

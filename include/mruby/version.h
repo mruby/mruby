@@ -8,6 +8,7 @@
 #define MRUBY_VERSION_H
 
 #include "common.h"
+#include "platform.h"
 
 /**
  * mruby version definition macros
@@ -109,6 +110,28 @@ MRB_BEGIN_DECL
 #define MRUBY_RELEASE_DAY_STR "0" MRB_STRINGIZE(MRUBY_RELEASE_DAY)
 #else
 #define MRUBY_RELEASE_DAY_STR MRB_STRINGIZE(MRUBY_RELEASE_DAY)
+#endif
+
+/*
+ * The revision of the source mruby was built from: `MRUBY_REVISION` as the
+ * abbreviated commit hash the source came from, `MRUBY_FULL_REVISION` as the
+ * whole one.
+ *
+ * The build writes what it read to a generated `mruby/revision.h`, which
+ * `src/version.c` includes ahead of this header. Only that one source is
+ * compiled with the revision, so a commit recompiles a single object rather
+ * than every one of them.
+ *
+ * A build with no revision to read leaves the `"HEAD"` below: a tree that is
+ * neither a checkout nor an archive cut from one has nothing to say, and a
+ * build driven by rules other than the ones under `tasks/` writes no header
+ * at all.
+ */
+#ifndef MRUBY_REVISION
+#define MRUBY_REVISION "HEAD"
+#endif
+#ifndef MRUBY_FULL_REVISION
+#define MRUBY_FULL_REVISION MRUBY_REVISION
 #endif
 
 /*

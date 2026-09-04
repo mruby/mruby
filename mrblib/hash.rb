@@ -25,7 +25,7 @@ class Hash
   # ISO 15.2.13.4.8
   def delete(key, &block)
     if block && !self.has_key?(key)
-      return block.call(key)
+      return yield(key)
     end
     self.__delete(key)
   end
@@ -59,7 +59,7 @@ class Hash
     len = self.size
     i = 0
     while i < len
-      block.call([keys[i], vals[i]])
+      yield([keys[i], vals[i]])
       i += 1
     end
     self
@@ -87,7 +87,7 @@ class Hash
   def each_key(&block)
     return to_enum(:each_key) unless block
 
-    self.keys.each {|k| block.call(k)}
+    self.keys.each {|k| yield(k)}
     self
   end
 
@@ -112,7 +112,7 @@ class Hash
   def each_value(&block)
     return to_enum(:each_value) unless block
 
-    self.values.each {|v| block.call(v)}
+    self.values.each {|v| yield(v)}
     self
   end
 
@@ -148,7 +148,7 @@ class Hash
       i += 1
       raise TypeError, "Hash required (#{other.class} given)" unless Hash === other
       other.each_key {|k|
-        h[k] = (self.has_key?(k))? block.call(k, self[k], other[k]): other[k]
+        h[k] = (self.has_key?(k))? yield(k, self[k], other[k]): other[k]
       }
     end
     h
@@ -166,10 +166,13 @@ class Hash
   #
   def reject!(&block)
     return to_enum(:reject!) unless block
+    # Nothing to reject means no `delete` below, and `delete` is what would
+    # otherwise refuse a frozen receiver.
+    raise FrozenError, "can't modify frozen #{self.class}" if frozen?
 
     keys = []
     self.each {|k,v|
-      if block.call([k, v])
+      if yield([k, v])
         keys.push(k)
       end
     }
@@ -200,7 +203,7 @@ class Hash
 
     h = {}
     self.each {|k,v|
-      unless block.call([k, v])
+      unless yield([k, v])
         h[k] = v
       end
     }
@@ -219,10 +222,13 @@ class Hash
   #
   def select!(&block)
     return to_enum(:select!) unless block
+    # Keeping every pair means no `delete` below, and `delete` is what would
+    # otherwise refuse a frozen receiver.
+    raise FrozenError, "can't modify frozen #{self.class}" if frozen?
 
     keys = []
     self.each {|k,v|
-      unless block.call([k, v])
+      unless yield([k, v])
         keys.push(k)
       end
     }
@@ -253,7 +259,7 @@ class Hash
 
     h = {}
     self.each {|k,v|
-      if block.call([k, v])
+      if yield([k, v])
         h[k] = v
       end
     }

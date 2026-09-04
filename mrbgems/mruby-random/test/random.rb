@@ -10,6 +10,10 @@ assert("Random.new") do
 end
 
 assert("Kernel#srand") do
+  # Kernel#rand with no argument yields a Float in [0, 1); without float
+  # support it falls back to an integer in [0, 100), where distinct seeds can
+  # collide on their first draw.
+  skip unless Object.const_defined?(:Float)
   srand(234)
   r1 = rand
   srand(234)
@@ -137,6 +141,8 @@ assert('Array#sample(random)') do
 end
 
 assert("Kernel#rand()") do
+  # The no-argument and Float-range forms only exist with float support.
+  skip unless Object.const_defined?(:Float)
   100.times {
     assert_include(0.0..1.0, rand)
     assert_include(0...100, rand(0...100))
@@ -148,4 +154,48 @@ assert("Kernel#rand()") do
   assert_equal(rand(0...0.0), nil)
   assert_equal(rand(0.0...0.0), nil)
   assert_equal(rand(1..0), nil)
+end
+
+assert("Kernel#rand integer range overflow") do
+  # Width-independent guard behaviour for reversed/empty/single ranges.
+  assert_equal(5, rand(5..5))   # single-element inclusive range
+  assert_nil(rand(5...5))       # empty exclusive range
+  assert_nil(rand(10..3))       # reversed inclusive range
+  assert_nil(rand(10...3))      # reversed exclusive range
+  100.times { assert_include(3..7, rand(3..7)) }
+
+  # Wide fixnum ranges whose span exceeds the mrb_int range only exist on
+  # 64-bit mrb_int builds. Such bounds used to overflow `end - begin` in C
+  # (UndefinedBehaviorSanitizer signed-integer-overflow), found via a
+  # minimized mruby_fuzzer testcase. On 32-bit mrb_int (or when bigint
+  # promotes the bounds) these take a different path, so probe for the bounds
+  # themselves and skip where they are out of reach. The probe asks what the
+  # bounds are rather than what `rand` returns for them: the regression answers
+  # `nil` for the wide range too, so a `rand` guard would read that as "path
+  # absent" and skip the assertions written to catch it.
+  # The shift width comes from a variable because `1 << 62` written out is
+  # constant folded, and the fold fails while this file is compiled on
+  # MRB_INT32 without bigint, dropping every test in it.
+  shift = 62
+  hi = nil
+  wide = begin
+    hi = (1 << shift) + (1 << (shift - 1))  # RangeError where mrb_int is 32 bits and bigint is absent
+    [][hi]                                  # nil for an mrb_int index, RangeError for a big integer
+    true
+  rescue RangeError
+    false
+  end
+  if wide
+    lo = -hi
+    # reversed wide range -> nil; old code overflowed `end - begin`.
+    assert_nil(rand(hi..lo))
+    assert_nil(rand(hi...lo))
+    # valid wide range -> in-range Integer; old code overflowed and wrongly
+    # returned nil instead of a uniform value.
+    100.times do
+      v = rand(lo..hi)
+      assert_kind_of(Integer, v)
+      assert_true(lo <= v && v <= hi)
+    end
+  end
 end

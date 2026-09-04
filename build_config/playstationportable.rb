@@ -72,7 +72,9 @@ MRuby::CrossBuild.new("playstationportable") do |conf|
   conf.gem :core => "mruby-os-memsize"
   conf.gem :core => "mruby-proc-binding"
   conf.gem :core => "mruby-sleep"
-  conf.gem :core => "mruby-io"
-  conf.gem :core => "mruby-dir"
-  #conf.gem :core => "mruby-socket" unsupported
+  # Disabled until PSP-specific HALs are available; the POSIX HALs depend on
+  # APIs that the PSP SDK does not fully provide.
+  # conf.gem :core => "mruby-io"
+  # conf.gem :core => "mruby-dir"
+  # conf.gem :core => "mruby-socket"
 end

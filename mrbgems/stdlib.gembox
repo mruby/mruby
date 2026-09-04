@@ -31,6 +31,9 @@ MRuby::GemBox.new do |conf|
   # Use Object class extension
   conf.gem :core => "mruby-object-ext"
 
+  # Use Regexp class
+  conf.gem :core => "mruby-regexp"
+
   # Use ObjectSpace class
   conf.gem :core => "mruby-objectspace"
 

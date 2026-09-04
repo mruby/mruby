@@ -179,6 +179,18 @@ assert('Creation of a proc through the block of a method') do
   end
 end
 
+assert('#6345: dup of a block from method is treated as orphan') do
+  def m(&b) b.dup end
+
+  # The dup is orphan, so calling it raises LocalJumpError on break.
+  assert_raise LocalJumpError do
+    m { break 1 }.call
+  end
+
+  # A dup of a block without break still returns normally.
+  assert_equal 42, m { 42 }.call
+end
+
 assert('identity check for proc object') do
   b = []
   t = 2
@@ -195,4 +207,49 @@ assert('identity check for proc object') do
   }
   assert_false b[0] == b[1]
   assert_not_equal b[0].hash, b[1].hash
+end
+
+assert('block parameter with trailing comma (implicit rest)') do
+  # A trailing comma in a block parameter list (|a,|) is an implicit-rest
+  # parameter. It used to emit a bogus local-variable symbol that crashed the
+  # bytecode dumper. The exact destructuring is not asserted here because the
+  # bundled Prism parser builds the rest differently between the C and C++
+  # builds; this test only guards against the dumper crash.
+  assert_nothing_raised do
+    [[1, 2, 3]].each { |a,| a }
+    [[1, 2, 3, 4]].each { |a, b,| [a, b] }
+  end
+end
+
+assert('return leaves captured local variables alone') do
+  # OP_RETNIL, OP_RETTRUE and OP_RETFALSE end a frame whose registers may
+  # still be the storage of a block's environment. The environment is moved
+  # to the heap when the frame is popped, so anything written into a register
+  # on the way out is read back by the block afterwards.
+  c = Class.new do
+    attr_reader :blk
+
+    def ret_nil(x)
+      @blk = Proc.new { x }
+      return
+    end
+
+    def ret_true(x)
+      @blk = Proc.new { x }
+      return true
+    end
+
+    def ret_false(x, y)
+      @blk = Proc.new { [x, y] }
+      return false
+    end
+  end
+
+  o = c.new
+  assert_nil o.ret_nil(42)
+  assert_equal 42, o.blk.call
+  assert_true o.ret_true(43)
+  assert_equal 43, o.blk.call
+  assert_false o.ret_false(1, 2)
+  assert_equal [1, 2], o.blk.call
 end

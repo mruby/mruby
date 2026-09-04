@@ -6,9 +6,16 @@
 
 #include <string.h>
 #include <mruby.h>
+#include <mruby/array.h>
 #include <mruby/string.h>
 #include <mruby/dump.h>
 #include <mruby/class.h>
+#include <mruby/hash.h>
+#include <mruby/proc.h>
+#include <mruby/variable.h>
+#include <mruby/gc.h>
+#include <mruby/range.h>
+#include <mruby/error.h>
 #include <mruby/internal.h>
 
 #ifndef MRB_PRESYM_SCANNING
@@ -47,6 +54,14 @@ presym_sym2name(mrb_sym sym, mrb_int *lenp)
 }
 
 /* ------------------------------------------------------ */
+
+/* Per-symbol flags (stored in mrb->sym_flags[]) */
+#define SYM_FL_DYNAMIC  0x01  /* created at runtime (to_sym, send, etc.) */
+#define SYM_FL_MARK     0x02  /* marked during symbol GC */
+
+#if MRB_SYMBOL_MAX > 0
+static void mrb_symbol_gc(mrb_state *mrb);
+#endif
 
 /* LSB pointer tagging for literal flags */
 #define SYMTBL_LITERAL_FLAG ((uintptr_t)1)
@@ -176,6 +191,7 @@ static mrb_bool
 sym_check(mrb_state *mrb, const char *name, size_t len, mrb_sym i)
 {
   const char *tagged_ptr = mrb->symtbl[i];
+  if (tagged_ptr == NULL) return FALSE;  /* tombstone (freed by symbol GC) */
   const char *symname = symtbl_get_ptr(tagged_ptr);  /* Untag for access */
   size_t symlen;
 
@@ -184,7 +200,9 @@ sym_check(mrb_state *mrb, const char *name, size_t len, mrb_sym i)
   }
   else {
     /* length in BER */
-    symlen = mrb_packed_int_decode((const uint8_t*)symname, (const uint8_t**)&symname);
+    const uint8_t *p = (const uint8_t*)symname;
+    symlen = mrb_packed_int_decode(p, &p);
+    symname = (const char*)p;
   }
   if (len == symlen && memcmp(symname, name, len) == 0) {
     return TRUE;
@@ -198,6 +216,7 @@ find_symbol_linear(mrb_state *mrb, const char *name, size_t len)
   mrb_sym i;
 
   for (i = 1; i <= mrb->symidx; i++) {
+    if (mrb->symtbl[i] == NULL) continue;  /* skip tombstones */
     if (sym_check(mrb, name, len, i)) {
       return (i + MRB_PRESYM_MAX);
     }
@@ -278,6 +297,7 @@ migrate_to_hash_table(mrb_state *mrb)
   /* Rebuild hash table from existing linear data */
   for (i = 1; i <= mrb->symidx; i++) {
     const char *tagged_ptr = mrb->symtbl[i];
+    if (tagged_ptr == NULL) continue;  /* skip tombstones */
     const char *name = symtbl_get_ptr(tagged_ptr);
     size_t len;
     uint8_t hash;
@@ -288,7 +308,9 @@ migrate_to_hash_table(mrb_state *mrb)
     }
     else {
       /* This is a packed length string */
-      len = mrb_packed_int_decode((const uint8_t*)name, (const uint8_t**)&name);
+      const uint8_t *p = (const uint8_t*)name;
+      len = mrb_packed_int_decode(p, &p);
+      name = (const char*)p;
     }
 
     hash = mrb_byte_hash((const uint8_t*)name, len);
@@ -318,6 +340,8 @@ sym_intern_common(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
     if (symcapa == 0) symcapa = 100;
     else symcapa = (size_t)(symcapa * 6 / 5);
     mrb->symtbl = (const char**)mrb_realloc(mrb, (void*)mrb->symtbl, sizeof(char*)*symcapa);
+    mrb->sym_flags = (uint8_t*)mrb_realloc(mrb, mrb->sym_flags, symcapa);
+    memset(mrb->sym_flags + mrb->symcapa, 0, symcapa - mrb->symcapa);
     if (using_hash_table(mrb)) {
       struct mrb_sym_hash_table *ht = mrb->symhash;
       ht->symlink = (uint8_t*)mrb_realloc(mrb, ht->symlink, symcapa);
@@ -335,10 +359,17 @@ sym_intern_common(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
   }
   else {
   heap_allocation:;
-    /* Always heap-allocate when not explicitly literal */
     uint32_t ulen = (uint32_t)len;
     size_t ilen = mrb_packed_int_len(ulen);
-    char *p = sym_pool_alloc(mrb, len+ilen+1);
+    char *p;
+    if (lit) {
+      /* Static symbol from unaligned literal: use pool (not individually freeable) */
+      p = sym_pool_alloc(mrb, len+ilen+1);
+    }
+    else {
+      /* Dynamic symbol: use individual malloc (freeable by symbol GC) */
+      p = (char*)mrb_malloc(mrb, len+ilen+1);
+    }
     mrb_packed_int_encode(ulen, (uint8_t*)p);
     memcpy(p+ilen, name, len);
     p[ilen+len] = 0;
@@ -346,6 +377,13 @@ sym_intern_common(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
   }
 
   mrb->symidx = sym;
+  if (!lit) {
+    mrb->sym_flags[sym] = SYM_FL_DYNAMIC;
+    mrb->dynamic_sym_count++;
+  }
+  else {
+    mrb->sym_flags[sym] = 0;
+  }
   return sym;
 }
 
@@ -386,6 +424,18 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
   sym_validate_len(mrb, len);
   sym = find_symbol(mrb, name, len, NULL);
   if (sym > 0) return sym;
+
+#if MRB_SYMBOL_MAX > 0
+  if (!lit && mrb->dynamic_sym_count >= MRB_SYMBOL_MAX) {
+    mrb_symbol_gc(mrb);
+    /* re-check: the symbol might have been reclaimed and re-interned */
+    sym = find_symbol(mrb, name, len, NULL);
+    if (sym > 0) return sym;
+    if (mrb->dynamic_sym_count >= MRB_SYMBOL_MAX) {
+      mrb_raise(mrb, E_RUNTIME_ERROR, "symbol table overflow");
+    }
+  }
+#endif
 
   /* Check if we need to migrate to hash table */
   if (!using_hash_table(mrb) && mrb->symidx >= MRB_SYMBOL_LINEAR_THRESHOLD) {
@@ -586,10 +636,13 @@ sym2name_len(mrb_state *mrb, mrb_sym sym, char *buf, mrb_int *lenp)
   }
 
   const char *tagged_ptr = mrb->symtbl[sym];
+  if (tagged_ptr == NULL) goto outofsym;  /* tombstone (freed by symbol GC) */
   const char *symname = symtbl_get_ptr(tagged_ptr);  /* Untag for access */
 
   if (!symtbl_is_literal(tagged_ptr)) {
-    uint32_t len = mrb_packed_int_decode((const uint8_t*)symname, (const uint8_t**)&symname);
+    const uint8_t *p = (const uint8_t*)symname;
+    uint32_t len = mrb_packed_int_decode(p, &p);
+    symname = (const char*)p;
     if (lenp) *lenp = (mrb_int)len;
   }
   else if (lenp) {
@@ -621,10 +674,305 @@ mrb_sym_name_len(mrb_state *mrb, mrb_sym sym, mrb_int *lenp)
 #endif
 }
 
+/*
+ * Tells whether symbol GC may free the buffer holding the symbol's name.
+ *
+ * Only dynamic symbols own an individual allocation. Inline symbols carry
+ * their name in the value, presym names are static data and literal names
+ * come from the symbol pool, so none of those is ever freed and a string
+ * may share them.
+ */
+static mrb_bool
+sym_name_freeable_p(mrb_state *mrb, mrb_sym sym)
+{
+#if MRB_SYMBOL_MAX > 0
+  if (SYMBOL_INLINE_P(sym)) return FALSE;
+  if (sym <= MRB_PRESYM_MAX) return FALSE;
+  sym -= MRB_PRESYM_MAX;
+  if (sym > mrb->symidx) return FALSE;
+  return (mrb->sym_flags[sym] & SYM_FL_DYNAMIC) != 0;
+#else
+  (void)mrb; (void)sym;
+  return FALSE;
+#endif
+}
+
+/*
+ * Symbol GC: mark and sweep unreferenced dynamic symbols.
+ * Called lazily when dynamic symbol count reaches MRB_SYMBOL_MAX.
+ */
+#if MRB_SYMBOL_MAX > 0
+
+/* Mark a runtime symbol as live (skip presym/inline) */
+static void
+sym_gc_mark(mrb_state *mrb, mrb_sym sym)
+{
+  if (sym == 0) return;
+  if (SYMBOL_INLINE_P(sym)) return;
+  if (sym <= MRB_PRESYM_MAX) return;
+  mrb_sym idx = sym - MRB_PRESYM_MAX;
+  if (idx > mrb->symidx) return;
+  mrb->sym_flags[idx] |= SYM_FL_MARK;
+}
+
+/* Callback: mark symbols in method table keys */
+static int
+sym_gc_mark_mt(mrb_state *mrb, mrb_sym sym, mrb_method_t m, void *p)
+{
+  sym_gc_mark(mrb, sym);
+  return 0;
+}
+
+/* Callback: mark symbols in IV table keys */
+static int
+sym_gc_mark_iv(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
+{
+  sym_gc_mark(mrb, sym);
+  /* also mark symbol values stored in IV tables */
+  if (mrb_symbol_p(v)) {
+    sym_gc_mark(mrb, mrb_symbol(v));
+  }
+  return 0;
+}
+
+/* Callback: mark symbols in hash keys and values */
+static int
+sym_gc_mark_hash_entry(mrb_state *mrb, mrb_value key, mrb_value val, void *p)
+{
+  if (mrb_symbol_p(key)) sym_gc_mark(mrb, mrb_symbol(key));
+  if (mrb_symbol_p(val)) sym_gc_mark(mrb, mrb_symbol(val));
+  return 0;
+}
+
+/* `sym_gc_mark_object` reaches a suspended fiber, whose stack this walks. */
+static void sym_gc_mark_context(mrb_state *mrb, struct mrb_context *c);
+
+/* Mark the symbols an irep holds: the pool the bytecode loads them from, the
+   local variable names, and the same for every irep nested inside it.  An
+   irep is not an object, so the sweep below never reaches one on its own, and
+   a symbol whose only holder is bytecode that has not run yet would be freed
+   out from under the instruction that is going to load it. */
+static void
+sym_gc_mark_irep(mrb_state *mrb, const mrb_irep *irep)
+{
+  if (irep == NULL) return;
+  for (int i = 0; i < irep->slen; i++) {
+    sym_gc_mark(mrb, irep->syms[i]);
+  }
+  if (irep->lv) {
+    for (int i = 0; i + 1 < irep->nlocals; i++) {
+      sym_gc_mark(mrb, irep->lv[i]);
+    }
+  }
+  for (int i = 0; i < irep->rlen; i++) {
+    sym_gc_mark_irep(mrb, irep->reps[i]);
+  }
+}
+
+/* Mark symbols from a single object */
+static int
+sym_gc_mark_object(mrb_state *mrb, struct RBasic *obj, void *data)
+{
+  if (mrb_object_dead_p(mrb, obj)) return MRB_EACH_OBJ_OK;
+
+  switch (obj->tt) {
+  case MRB_TT_CLASS:
+  case MRB_TT_MODULE:
+  case MRB_TT_SCLASS:
+    mrb_mt_foreach(mrb, (struct RClass*)obj, sym_gc_mark_mt, NULL);
+    /* fall through for IV */
+  case MRB_TT_OBJECT:
+  case MRB_TT_EXCEPTION:
+  case MRB_TT_CDATA:
+    mrb_iv_foreach(mrb, mrb_obj_value(obj), sym_gc_mark_iv, NULL);
+    break;
+  case MRB_TT_ICLASS:
+    if (MRB_FLAG_TEST(obj, MRB_FL_CLASS_IS_ORIGIN)) {
+      mrb_mt_foreach(mrb, (struct RClass*)obj, sym_gc_mark_mt, NULL);
+    }
+    break;
+  case MRB_TT_ENV:
+    {
+      struct REnv *e = (struct REnv*)obj;
+      sym_gc_mark(mrb, e->mid);
+      mrb_int len = MRB_ENV_LEN(e);
+      for (mrb_int i = 0; i < len; i++) {
+        if (mrb_symbol_p(e->stack[i])) {
+          sym_gc_mark(mrb, mrb_symbol(e->stack[i]));
+        }
+      }
+    }
+    break;
+  case MRB_TT_STRUCT:
+  case MRB_TT_ARRAY:
+    {
+      struct RArray *a = (struct RArray*)obj;
+      mrb_int len = ARY_LEN(a);
+      const mrb_value *p = ARY_PTR(a);
+      for (mrb_int i = 0; i < len; i++) {
+        if (mrb_symbol_p(p[i])) {
+          sym_gc_mark(mrb, mrb_symbol(p[i]));
+        }
+      }
+    }
+    break;
+  case MRB_TT_HASH:
+    mrb_iv_foreach(mrb, mrb_obj_value(obj), sym_gc_mark_iv, NULL);
+    mrb_hash_foreach(mrb, (struct RHash*)obj, sym_gc_mark_hash_entry, NULL);
+    break;
+  case MRB_TT_PROC:
+    {
+      struct RProc *p = (struct RProc*)obj;
+      if (MRB_PROC_ALIAS_P(p)) {
+        /* an alias keeps a method name where a proc keeps its irep */
+        sym_gc_mark(mrb, p->body.mid);
+      }
+      else if (!MRB_PROC_CFUNC_P(p)) {
+        sym_gc_mark_irep(mrb, p->body.irep);
+      }
+    }
+    break;
+  case MRB_TT_FIBER:
+    {
+      /* A suspended fiber's stack is a root of its own; `mrb_symbol_gc`
+         reaches only the current and the root context. */
+      struct mrb_context *c = ((struct RFiber*)obj)->cxt;
+      if (c && c != mrb->root_c && c != mrb->c &&
+          c->status != MRB_FIBER_TERMINATED) {
+        sym_gc_mark_context(mrb, c);
+      }
+    }
+    break;
+  case MRB_TT_RANGE:
+    {
+      struct RRange *r = (struct RRange*)obj;
+      if (RANGE_INITIALIZED_P(r)) {
+        if (mrb_symbol_p(RANGE_BEG(r))) sym_gc_mark(mrb, mrb_symbol(RANGE_BEG(r)));
+        if (mrb_symbol_p(RANGE_END(r))) sym_gc_mark(mrb, mrb_symbol(RANGE_END(r)));
+      }
+    }
+    break;
+  case MRB_TT_BREAK:
+    {
+      mrb_value v = mrb_break_value_get((struct RBreak*)obj);
+      if (mrb_symbol_p(v)) sym_gc_mark(mrb, mrb_symbol(v));
+    }
+    break;
+  default:
+    break;
+  }
+  return MRB_EACH_OBJ_OK;
+}
+
+/* Mark symbols from VM stack and callinfo */
+static void
+sym_gc_mark_context(mrb_state *mrb, struct mrb_context *c)
+{
+  if (!c || !c->stbase) return;
+
+  /* Mark symbols on value stack */
+  mrb_value *stend = c->ci ? c->ci->stack + mrb_ci_nregs(c->ci) : c->stbase;
+  if (stend > c->stend) stend = c->stend;
+  for (mrb_value *v = c->stbase; v < stend; v++) {
+    if (mrb_symbol_p(*v)) {
+      sym_gc_mark(mrb, mrb_symbol(*v));
+    }
+  }
+
+  /* Mark method IDs in call stack */
+  if (c->cibase) {
+    for (mrb_callinfo *ci = c->cibase; ci <= c->ci; ci++) {
+      sym_gc_mark(mrb, ci->mid);
+    }
+  }
+}
+
+static void
+mrb_symbol_gc(mrb_state *mrb)
+{
+  static mrb_bool in_symbol_gc = FALSE;
+  mrb_sym i;
+
+  if (mrb->symidx == 0) return;
+  if (in_symbol_gc) return;  /* prevent recursive invocation */
+  in_symbol_gc = TRUE;
+
+  /* Phase 1: clear marks on all dynamic symbols */
+  for (i = 1; i <= mrb->symidx; i++) {
+    mrb->sym_flags[i] &= ~SYM_FL_MARK;
+  }
+
+  /* Phase 2: mark symbols referenced from all objects */
+  /* Note: mrb_objspace_each_objects runs full GC first, then iterates */
+  mrb_objspace_each_objects(mrb, sym_gc_mark_object, NULL);
+
+  /* Mark symbols from root context */
+  sym_gc_mark_context(mrb, mrb->root_c);
+  if (mrb->c != mrb->root_c) {
+    sym_gc_mark_context(mrb, mrb->c);
+  }
+
+  /* Mark symbols from global variable table.
+     `mrb->globals` is a table of its own, not the instance variables of
+     `Object`; walking the latter reaches none of the global names. */
+  mrb_gv_foreach(mrb, sym_gc_mark_iv, NULL);
+
+  /* Phase 3: sweep unmarked dynamic symbols */
+  mrb_sym freed = 0;
+  for (i = 1; i <= mrb->symidx; i++) {
+    if ((mrb->sym_flags[i] & SYM_FL_DYNAMIC) &&
+        !(mrb->sym_flags[i] & SYM_FL_MARK)) {
+      /* Free individually-allocated string */
+      mrb_free(mrb, (void*)mrb->symtbl[i]);
+      mrb->symtbl[i] = NULL;  /* tombstone */
+      mrb->sym_flags[i] = 0;
+      freed++;
+    }
+  }
+  mrb->dynamic_sym_count -= freed;
+
+  /* Phase 4: rebuild hash table if in hash mode (chains may be broken) */
+  if (freed > 0 && using_hash_table(mrb)) {
+    struct mrb_sym_hash_table *ht = mrb->symhash;
+    memset(ht->buckets, 0, sizeof(ht->buckets));
+    memset(ht->symlink, 0, mrb->symcapa);
+    for (i = 1; i <= mrb->symidx; i++) {
+      if (mrb->symtbl[i] == NULL) continue;  /* skip tombstones */
+      const char *name = symtbl_get_ptr(mrb->symtbl[i]);
+      size_t len;
+      if (symtbl_is_literal(mrb->symtbl[i])) {
+        len = strlen(name);
+      }
+      else {
+        const uint8_t *p = (const uint8_t*)name;
+        len = mrb_packed_int_decode(p, &p);
+        name = (const char*)p;
+      }
+      uint8_t hash = mrb_byte_hash((const uint8_t*)name, len);
+      if (ht->buckets[hash] != 0) {
+        mrb_sym diff = i - ht->buckets[hash];
+        ht->symlink[i] = (diff > 0xff) ? 0xff : (uint8_t)diff;
+      }
+      ht->buckets[hash] = i;
+    }
+  }
+  in_symbol_gc = FALSE;
+}
+#endif /* MRB_SYMBOL_MAX > 0 */
+
 void
 mrb_free_symtbl(mrb_state *mrb)
 {
-  /* Free symbol string pool chunks */
+  /* Free individually-allocated dynamic symbol strings */
+  if (mrb->sym_flags) {
+    for (mrb_sym i = 1; i <= mrb->symidx; i++) {
+      if ((mrb->sym_flags[i] & SYM_FL_DYNAMIC) && mrb->symtbl[i] != NULL) {
+        mrb_free(mrb, (void*)mrb->symtbl[i]);
+      }
+    }
+  }
+
+  /* Free symbol string pool chunks (static symbols) */
   struct sym_pool_chunk *chunk = (struct sym_pool_chunk*)mrb->sym_pool;
   while (chunk) {
     struct sym_pool_chunk *next = chunk->next;
@@ -634,6 +982,7 @@ mrb_free_symtbl(mrb_state *mrb)
   mrb->sym_pool = NULL;
 
   mrb_free(mrb, (void*)mrb->symtbl);
+  mrb_free(mrb, mrb->sym_flags);
 
   /* Free hash table if allocated */
   if (mrb->symhash) {
@@ -718,7 +1067,7 @@ sym_name(mrb_state *mrb, mrb_value vsym)
   const char *name = mrb_sym_name_len(mrb, sym, &len);
 
   mrb_assert(name != NULL);
-  if (SYMBOL_INLINE_P(sym)) {
+  if (SYMBOL_INLINE_P(sym) || sym_name_freeable_p(mrb, sym)) {
     return mrb_str_new_frozen(mrb, name, len);
   }
   return mrb_str_new_static_frozen(mrb, name, len);
@@ -882,7 +1231,7 @@ sym_inspect(mrb_state *mrb, mrb_value sym)
     sp[1] = '"';
   }
 #ifdef MRB_UTF8_STRING
-  if (SYMBOL_INLINE_P(id)) RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+  if (SYMBOL_INLINE_P(id)) RSTR_CODERANGE_SET(mrb_str_ptr(str), MRB_STR_CODERANGE_7BIT);
 #endif
   return str;
 }
@@ -894,7 +1243,8 @@ sym_inspect(mrb_state *mrb, mrb_value sym)
  * sym: The symbol to convert.
  *
  * Returns the mruby string value corresponding to the symbol.
- * If the symbol is an inline symbol, a new string is created.
+ * The name is copied for an inline symbol and for a dynamic symbol, whose
+ * name buffer symbol GC may free while the string is still alive.
  * Otherwise, a static string (sharing the symbol's name buffer) is returned.
  * Returns an undefined value if the symbol is invalid (though this should not happen).
  */
@@ -907,8 +1257,11 @@ mrb_sym_str(mrb_state *mrb, mrb_sym sym)
   if (!name) return mrb_undef_value(); /* can't happen */
   if (SYMBOL_INLINE_P(sym)) {
     mrb_value str = mrb_str_new(mrb, name, len);
-    RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+    RSTR_CODERANGE_SET(mrb_str_ptr(str), MRB_STR_CODERANGE_7BIT);
     return str;
+  }
+  if (sym_name_freeable_p(mrb, sym)) {
+    return mrb_str_new(mrb, name, len);
   }
   return mrb_str_new_static(mrb, name, len);
 }

@@ -208,3 +208,22 @@ begin
 ensure
   $fiber_test_activity = nil
 end
+
+assert('symbol GC keeps the symbols a suspended fiber holds') do
+  # A fiber that is not running is neither the current context nor the root
+  # one, so its stack is a root of its own.
+  f = Fiber.new do
+    s = "fiber_symbol_gc_probe".to_sym
+    Fiber.yield
+    s.equal?("fiber_symbol_gc_probe".to_sym)
+  end
+  f.resume
+  GC.start
+  i = 0
+  while i < 6000
+    "fiber-symbol-gc-filler-#{i}".to_sym
+    i += 1
+  end
+  GC.start
+  assert_true f.resume
+end

@@ -52,6 +52,33 @@ assert 'Module#<=' do
   assert_raise(TypeError) { a <= Object.new }
 end
 
+assert 'Module#<=>' do
+  a = Class.new
+  b = Class.new(a)
+  c = Class.new(a)
+  d = Module.new
+  e = Class.new { include d }
+  f = Module.new { include d }
+
+  # compare class to class
+  assert_equal 0, a <=> a
+  assert_equal(-1, b <=> a)
+  assert_equal 1, a <=> b
+  assert_nil c <=> b
+
+  # compare class to module
+  assert_equal(-1, e <=> d)
+  assert_equal 1, d <=> e
+  assert_nil a <=> d
+
+  # compare module to module
+  assert_equal(-1, f <=> d)
+  assert_equal 1, d <=> f
+  assert_nil a <=> f
+
+  assert_nil a <=> Object.new
+end
+
 assert 'Module#name' do
   module Outer
     class Inner; end

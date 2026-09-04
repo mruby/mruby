@@ -194,3 +194,182 @@ assert('register window of calls (#3783)') do
     end
   end
 end
+
+assert('bare `nil?` in if/unless uses self as receiver (#6874)') do
+  klass = Class.new do
+    def unless_form
+      reached = false
+      unless nil?
+        reached = true
+      end
+      reached
+    end
+
+    def if_form
+      if nil?
+        :yes
+      else
+        :no
+      end
+    end
+  end
+
+  assert_true klass.new.unless_form
+  assert_equal :no, klass.new.if_form
+  # Sanity: explicit literal nil receiver still optimized correctly.
+  result = if nil.nil? then :yes else :no end
+  assert_equal :yes, result
+end
+
+assert('op-assign on empty index does not crash the compiler') do
+  # Empty index `recv[] op= val` must compile; it used to segfault codegen
+  # because the index argument list was NULL.
+  obj = Class.new do
+    def initialize; @v = 1; end
+    def []; @v; end
+    def []=(x); @v = x; end
+  end.new
+  assert_nothing_raised do
+    obj[] += 3
+    obj[] ||= 0
+    obj[] &&= 9
+  end
+  assert_equal 9, obj[]
+end
+
+assert('block inside a for body sees its own locals') do
+  # `for` needs a loop body scope that Prism does not have, and the depth
+  # compensation for it used to be inherited by a block nested in the body.
+  # `gen_lvar()` reads a depth only as local-or-upvar, so every local of the
+  # block became an upvar the enclosing scopes do not hold, and the file
+  # failed to compile with "Can't find local variables".
+  a = []
+  for i in 0...2
+    [10, 20].each do |j|
+      k = j + i
+      a << k
+    end
+  end
+  assert_equal [10, 20, 11, 21], a
+
+  # the outer scope stays reachable from the same block
+  m = 100
+  b = []
+  for i in 0...2
+    [1].each { b << m + i }
+  end
+  assert_equal [100, 101], b
+
+  # and an assignment to an outer variable still lands outside
+  x = 0
+  for i in 0...3
+    [1].each { x += 1 }
+  end
+  assert_equal 3, x
+end
+
+assert('assignment to a captured local is worth its value') do
+  # `a = v` inside a block stores through OP_SETUPVAR, which unlike OP_MOVE
+  # leaves no value behind. Folding the preceding move into it used to happen
+  # even where the assignment is an expression, so the register the value
+  # belonged in was never written and the block answered whatever it held.
+  a = nil
+  assert_equal [7], [7].map {|v| a = v }
+  assert_equal 7, a
+
+  assert_equal [7], [7].select {|v| a = v }
+
+  # every name of a chain gets the value, not just the last
+  b = nil
+  [7].each {|v| a = b = v }
+  assert_equal [7, 7], [a, b]
+
+  # the register is not merely nil: `f` below is what it held
+  a = nil; b = nil; f = true
+  [7].each {|v| if f; a = b = v; f = false; end }
+  assert_equal [7, 7], [a, b]
+
+  a = nil
+  assert_equal [7], [7].map {|v| a ||= v }
+
+  # a block nested in another block, and one reached through `yield`
+  a = nil
+  assert_equal [[7]], [[7]].map {|arr| arr.map {|v| a = v } }
+  def give7; yield 7; end
+  assert_equal 7, give7 {|v| a = v }
+
+  # as a statement the value is unused, and the store still lands
+  a = nil
+  [7].each {|v| a = v }
+  assert_equal 7, a
+end
+
+assert('multiple assignment to an attribute counts its registers') do
+  # `a, o.v = 1, 2` sends `v=` with the value in the register after the
+  # receiver, and OP_SEND reads its block from the register after that.
+  # Neither was reserved, so `nregs` left the frame two short of what the
+  # send reads: an assertion in a debug build, and a read past the frame in
+  # one without.
+  klass = Class.new do
+    attr_accessor :v, :w
+  end
+  o = klass.new
+
+  a, o.v = 1, 2
+  assert_equal [1, 2], [a, o.v]
+
+  # the target in front, and more than one of them
+  o.v, b = 3, 4
+  assert_equal [3, 4], [o.v, b]
+  c, o.v, o.w = 5, 6, 7
+  assert_equal [5, 6, 7], [c, o.v, o.w]
+
+  # a splat either side of it, and a nested target
+  d, o.v, *e = 1, 2, 3, 4
+  assert_equal [1, 2, [3, 4]], [d, o.v, e]
+  (f, o.v), g = [8, 9], 10
+  assert_equal [8, 9, 10], [f, o.v, g]
+
+  # the index form, which reserves its registers already, still answers
+  h = []
+  i, h[0] = 11, 12
+  assert_equal [11, 12], [i, h[0]]
+end
+
+assert('a discarded interpolation leaves the register pointer where it was') do
+  # A string literal whose value is thrown away is compiled for the side
+  # effects of its interpolations alone. Each part was popped though nothing
+  # had been pushed for it, so the register pointer walked down one per part
+  # and the parts were compiled over whatever the frame held below: inside an
+  # `ensure` that is the register `OP_EXCEPT` put the pending exception in.
+  cls = Class.new do
+    def initialize(log); @log = log; end
+    def m(a)
+      raise 'kept'
+    ensure
+      "#{}#{}#{}#{a.inspect}"
+    end
+    def side(a)
+      "#{@log << 1}#{}#{@log << 2}x#{a.inspect}"
+      :done
+    end
+  end
+  log = []
+  o = cls.new(log)
+
+  # the exception raised in the body survives the ensure
+  assert_raise_with_message(RuntimeError, 'kept') { o.m([1, 2]) }
+
+  # and the interpolations of a discarded literal are still evaluated
+  assert_equal :done, o.side([1])
+  assert_equal [1, 2], log
+
+  # the same literal in a method that returns normally leaves its locals alone
+  worker = Class.new do
+    def run(a, b, c)
+      "#{}#{}#{}#{a.inspect}"
+      [a, b, c]
+    end
+  end.new
+  assert_equal [[1], 2, 3], worker.run([1], 2, 3)
+end

@@ -762,3 +762,46 @@ assert("Set#hash") do
   assert_not_equal(hash, Set[1, 2, 4].hash)
   assert_not_equal(hash, Set[].hash)
 end
+
+assert('Set reentrant mutation during #eql? is rejected, not a use-after-free') do
+  # A #hash/#eql? that adds to the same Set can trigger a rehash that frees the
+  # bucket array the probe is walking. The operation must raise rather than
+  # dereference the freed pointers (GHSA-4jw6-mq65-g3c8).
+  cls = Class.new do
+    attr_accessor :target, :armed
+    def hash; 42; end
+    def eql?(other)
+      if @armed
+        @armed = false
+        @target.add(:grow)   # crosses the small-table threshold -> rehash
+      end
+      false
+    end
+  end
+  s = Set.new
+  t = cls.new
+  t.target = s
+  s.add(t); s.add(1); s.add(2); s.add(3)
+  t.armed = true
+  assert_raise(RuntimeError) { s.include?(:probe) }
+end
+
+assert('Set - adding and deleting past the small-table mode') do
+  # The hash a Set is built on marks a deleted bucket rather than emptying
+  # it, and only the live count decides when to rebuild. A set that is grown
+  # and then has members added and removed one at a time therefore keeps its
+  # live count low while spending a fresh bucket on every turn, until no
+  # bucket is empty and the probe that stops on one has nothing to stop at.
+  # Reported for mrb_gc_register/unregister, which is the same table.
+  # Note this fails by not finishing rather than by answering wrongly.
+  s = Set.new
+  100.times { |i| s.add("seed#{i}") }
+  300.times do |i|
+    k = "fresh#{i}"
+    s.add(k)
+    s.delete(k)
+  end
+  assert_equal 100, s.size
+  assert_true s.include?("seed0")
+  assert_false s.include?("fresh0")
+end

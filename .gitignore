@@ -28,7 +28,6 @@ bin
 doc/api
 doc/capi
 compile_commands.json
-compile_flags.txt
 cscope.files
 cscope.out
 gmon.out
@@ -36,4 +35,5 @@ mruby-source-*.gem
 node_modules
 perf.data*
 tags
+/tools/unicode/data
 !Gemfile.lock

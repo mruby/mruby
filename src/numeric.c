@@ -53,6 +53,45 @@ mrb_int_noconv(mrb_state *mrb, mrb_value y)
   mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %Y into Integer", y);
 }
 
+#ifndef MRB_NO_FLOAT
+/**
+ * Compares an integer with a Float without rounding either operand.
+ *
+ * The usual arithmetic conversions turn the integer into an `mrb_float`, and a
+ * Float holds fewer significant bits than an `mrb_int` does. Every integer past
+ * the significand lands on a neighbouring Float, so it answers equal to a Float
+ * it is not equal to. Compare the integer parts as integers instead, and let
+ * what the Float carries below them break the tie.
+ *
+ * @param x The integer operand.
+ * @param y The Float operand.
+ * @return 1, 0 or -1 as `x` is greater than, equal to or less than `y`, and -2
+ *         when `y` is NaN, which stands in no order with anything.
+ */
+mrb_int
+mrb_int_float_cmp(mrb_int x, mrb_float y)
+{
+  if (isnan(y)) return -2;
+  /* Outside the `mrb_int` range the sign of `y` settles the comparison, and
+     the infinities are answered here as well. Both bounds are built from
+     `MRB_INT_MIN`, whose magnitude is a power of two and so is exact as a
+     Float; `MRB_INT_MAX` cast to a Float would have been rounded up to a value
+     no `mrb_int` reaches. */
+  if (y < (mrb_float)MRB_INT_MIN) return 1;
+  if (y >= -(mrb_float)MRB_INT_MIN) return -1;
+
+  mrb_int yi = (mrb_int)y;      /* truncates toward zero, and exactly */
+  if (x > yi) return 1;
+  if (x < yi) return -1;
+  /* The integer parts are equal, so what the truncation dropped decides.
+     `(mrb_float)yi` is exact: either `yi` fits the significand, or `y` was too
+     large to carry a fraction and `yi` is the value of `y` itself. */
+  if (y > (mrb_float)yi) return -1;
+  if (y < (mrb_float)yi) return 1;
+  return 0;
+}
+#endif
+
 /**
  * Calculates x raised to the power of y, where x is an integer.
  * y can be an integer or float. The result type can be Integer,
@@ -226,7 +265,11 @@ int_div(mrb_state *mrb, mrb_value x)
 #endif
 #ifdef MRB_USE_COMPLEX
   case MRB_TT_COMPLEX:
+#ifdef MRB_COMPLEX_FLOAT_ONLY
     x = mrb_complex_new(mrb, mrb_as_float(mrb, x), 0);
+#else
+    x = mrb_complex_new_value(mrb, x, mrb_fixnum_value(0));
+#endif
     return mrb_complex_div(mrb, x, y);
 #endif
 #ifndef MRB_NO_FLOAT
@@ -351,6 +394,14 @@ flo_idiv(mrb_state *mrb, mrb_value xv)
   mrb_float x = mrb_float(xv);
   mrb_check_num_exact(mrb, x);
   mrb_int y = mrb_as_int(mrb, mrb_get_arg1(mrb));
+  /* (mrb_int)x is UB when x is outside mrb_int range. */
+  if (!FIXABLE_FLOAT(x)) {
+#ifdef MRB_USE_BIGINT
+    return mrb_bint_div(mrb, mrb_bint_new_float(mrb, x), mrb_int_value(mrb, y));
+#else
+    mrb_int_overflow(mrb, "div");
+#endif
+  }
   return mrb_div_int_value(mrb, (mrb_int)x, y);
 }
 
@@ -418,14 +469,10 @@ mrb_value
 mrb_float_to_str(mrb_state *mrb, mrb_value flo, const char *fmt)
 {
   char buf[25];
-#ifdef MRB_USE_FLOAT32
-  const int prec =  7;
-#else
-  const int prec =  15;
-#endif
+  char *p;
 
-  mrb_format_float(mrb_float(flo), buf, sizeof(buf), 'g', prec, '\0');
-  for (char *p = buf; *p; p++) {
+  mrb_format_float(mrb_float(flo), buf, sizeof(buf), 'g', -2, '\0');
+  for (p = buf; *p; p++) {
     if (*p == '.') goto exit;
     if (*p == 'e') {
       memmove(p+2, p, strlen(p)+1);
@@ -434,7 +481,7 @@ mrb_float_to_str(mrb_state *mrb, mrb_value flo, const char *fmt)
       goto exit;
     }
   }
-  strcat(buf, ".0");
+  memcpy(p, ".0", sizeof(".0"));   /* `p` points to the terminating NUL */
  exit:
   return mrb_str_new_cstr(mrb, buf);
 }
@@ -471,7 +518,7 @@ flo_to_s(mrb_state *mrb, mrb_value flt)
     str = mrb_float_to_str(mrb, flt, NULL);
   }
 
-  RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+  RSTR_CODERANGE_SET(mrb_str_ptr(str), MRB_STR_CODERANGE_7BIT);
   return str;
 }
 
@@ -634,6 +681,9 @@ num_eql(mrb_state *mrb, mrb_value x)
 
 #ifdef MRB_USE_BIGINT
   if (mrb_bigint_p(x)) {
+    /* `eql?` compares class as well as value, and `mrb_bint_cmp()` compares a
+       Float argument numerically, so reject non-Integer arguments up front. */
+    if (!mrb_bigint_p(y) && !mrb_integer_p(y)) return mrb_false_value();
     return mrb_bool_value(mrb_bint_cmp(mrb, x, y) == 0);
   }
 #endif
@@ -647,6 +697,10 @@ num_eql(mrb_state *mrb, mrb_value x)
     if (!mrb_integer_p(y)) return mrb_false_value();
     return mrb_bool_value(mrb_integer(x) == mrb_integer(y));
   }
+  /* Numeric subclasses such as Rational and Complex land here. Their `==`
+     converts the argument, so `Rational(2,1) == 2` is true; `eql?` must not,
+     because `#hash` does not treat them as the same key either. */
+  if (mrb_type(x) != mrb_type(y)) return mrb_false_value();
   return mrb_bool_value(mrb_equal(mrb, x, y));
 }
 
@@ -671,9 +725,16 @@ flo_eq(mrb_state *mrb, mrb_value x)
 
   switch (mrb_type(y)) {
   case MRB_TT_INTEGER:
-    return mrb_bool_value(mrb_float(x) == (mrb_float)mrb_integer(y));
+    return mrb_bool_value(mrb_int_float_cmp(mrb_integer(y), mrb_float(x)) == 0);
   case MRB_TT_FLOAT:
     return mrb_bool_value(mrb_float(x) == mrb_float(y));
+#ifdef MRB_USE_BIGINT
+  case MRB_TT_BIGINT:
+    /* `mrb_bint_cmp()` takes the big integer first and compares a Float
+       argument exactly; `int_equal()` makes the same call for the mirror
+       image of this comparison. */
+    return mrb_bool_value(mrb_bint_cmp(mrb, y, x) == 0);
+#endif
 #ifdef MRB_USE_RATIONAL
   case MRB_TT_RATIONAL:
     return mrb_bool_value(mrb_float(x) == mrb_as_float(mrb, y));
@@ -1301,12 +1362,19 @@ int_equal(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
 
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x)) {
+    if (mrb_integer_p(y) || mrb_bigint_p(y) || mrb_float_p(y)) {
+      return mrb_bool_value(mrb_bint_cmp(mrb, x, y) == 0);
+    }
+  }
+#endif
   switch (mrb_type(y)) {
   case MRB_TT_INTEGER:
     return mrb_bool_value(mrb_integer(x) == mrb_integer(y));
 #ifndef MRB_NO_FLOAT
   case MRB_TT_FLOAT:
-    return mrb_bool_value((mrb_float)mrb_integer(x) == mrb_float(y));
+    return mrb_bool_value(mrb_int_float_cmp(mrb_integer(x), mrb_float(y)) == 0);
 #endif
 #ifdef MRB_USE_BIGINT
   case MRB_TT_BIGINT:
@@ -1349,6 +1417,7 @@ int_rev(mrb_state *mrb, mrb_value num)
 }
 
 #define bit_op(x,y,op1,op2) do {\
+  if (!mrb_integer_p(y)) mrb_int_noconv(mrb, y);\
   return mrb_int_value(mrb, (mrb_integer(x) op2 mrb_integer(y)));\
 } while(0)
 
@@ -1555,7 +1624,7 @@ static mrb_value
 prepare_int_rounding(mrb_state *mrb, mrb_value x)
 {
   mrb_int nd = 0;
-  size_t bytes;
+  double bytes = (double)sizeof(mrb_int) - 0.125;
 
   mrb_get_args(mrb, "|i", &nd);
   if (nd >= 0) {
@@ -1563,12 +1632,10 @@ prepare_int_rounding(mrb_state *mrb, mrb_value x)
   }
 #ifdef MRB_USE_BIGINT
   if (mrb_bigint_p(x)) {
-    bytes = mrb_bint_memsize(x);
+    bytes = (double)mrb_bint_memsize(x) + 0.125;
   }
-  else
 #endif
-    bytes = sizeof(mrb_int);
-  if (-0.415241 * nd - 0.125 > bytes) {
+  if (-0.415241 * nd > bytes) {
     return mrb_undef_value();
   }
   return mrb_int_pow(mrb, mrb_fixnum_value(10), mrb_fixnum_value(-nd));
@@ -1593,13 +1660,16 @@ int_ceil(mrb_state *mrb, mrb_value x)
   if (mrb_nil_p(f)) return x;
 #ifdef MRB_USE_BIGINT
   if (mrb_bigint_p(x)) {
-    x = mrb_bint_add_n(mrb, x, f);
-    return mrb_bint_sub(mrb, x, mrb_bint_mod(mrb, x, f));
+    mrb_value m = mrb_bint_mod(mrb, x, f);
+    if (mrb_integer_p(m) && mrb_integer(m) == 0) return x;
+    x = mrb_bint_sub_n(mrb, x, m);
+    return mrb_bint_add(mrb, x, f);
   }
 #endif
   mrb_int a = mrb_integer(x);
   mrb_int b = mrb_integer(f);
   mrb_int c = a % b;
+  if (c == 0) return x;
   int neg = a < 0;
   a -= c;
   if (!neg) {
@@ -1641,6 +1711,7 @@ int_floor(mrb_state *mrb, mrb_value x)
   mrb_int a = mrb_integer(x);
   mrb_int b = mrb_integer(f);
   mrb_int c = a % b;
+  if (c == 0) return x;
   int neg = a < 0;
   a -= c;
   if (neg) {
@@ -1690,35 +1761,31 @@ int_round(mrb_state *mrb, mrb_value x)
   mrb_int a = mrb_integer(x);
   mrb_int b = mrb_integer(f);
   mrb_int c = a % b;
+  mrb_int half = b / 2;
   a -= c;
   if (c < 0) {
-    c = -c;
-    if (b/2 < c) {
-      if (mrb_int_sub_overflow(a, b, &c)) {
+    if (-c < half) return mrb_int_value(mrb, a);
+    if (mrb_int_sub_overflow(a, b, &c)) {
 #ifdef MRB_USE_BIGINT
-        x = mrb_bint_new_int(mrb, a);
-        return mrb_bint_sub(mrb, x, f);
+      x = mrb_bint_new_int(mrb, a);
+      return mrb_bint_sub(mrb, x, f);
 #else
-        mrb_int_overflow(mrb, "round");
+      mrb_int_overflow(mrb, "round");
 #endif
-      }
     }
-    a = c;
   }
   else {
-    if (b/2 < c) {
-      if (mrb_int_add_overflow(a, b, &c)) {
+    if (c < half) return mrb_int_value(mrb, a);
+    if (mrb_int_add_overflow(a, b, &c)) {
 #ifdef MRB_USE_BIGINT
-        x = mrb_bint_new_int(mrb, a);
-        return mrb_bint_add(mrb, x, f);
+      x = mrb_bint_new_int(mrb, a);
+      return mrb_bint_add(mrb, x, f);
 #else
-        mrb_int_overflow(mrb, "round");
+      mrb_int_overflow(mrb, "round");
 #endif
-      }
     }
-    a = c;
   }
-  return mrb_int_value(mrb, a);
+  return mrb_int_value(mrb, c);
 }
 
 /* 15.2.8.3.26 Integer#truncate */
@@ -1924,7 +1991,11 @@ mrb_int_sub(mrb_state *mrb, mrb_value x, mrb_value y)
 #endif
 #ifdef MRB_USE_COMPLEX
   case MRB_TT_COMPLEX:
+#ifdef MRB_COMPLEX_FLOAT_ONLY
     return mrb_complex_sub(mrb, mrb_complex_new(mrb, (mrb_float)a, 0), y);
+#else
+    return mrb_complex_sub(mrb, mrb_complex_new_value(mrb, mrb_int_value(mrb, a), mrb_fixnum_value(0)), y);
+#endif
 #endif
   default:
 #ifdef MRB_NO_FLOAT
@@ -2026,7 +2097,7 @@ mrb_integer_to_str(mrb_state *mrb, mrb_value x, mrb_int base)
   const char *p = mrb_int_to_cstr(buf, sizeof(buf), val, base);
   mrb_assert(p != NULL);
   mrb_value str = mrb_str_new_cstr(mrb, p);
-  RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+  RSTR_CODERANGE_SET(mrb_str_ptr(str), MRB_STR_CODERANGE_7BIT);
   return str;
 }
 
@@ -2060,13 +2131,73 @@ int_to_s(mrb_state *mrb, mrb_value self)
   return mrb_integer_to_str(mrb, self, base);
 }
 
-/* compare two numbers: (1:0:-1; -2 for error) */
+/* `cmpnum()` answers this for a pair that stands in no order, which is what a
+   NaN operand makes of every comparison. It is neither 0, which would say the
+   two are equal, nor -2, which says they cannot be compared at all: `num_cmp()`
+   answers nil for both, but `num_lt()` and its neighbours raise on -2 while a
+   comparison against NaN is false rather than an error. */
+#define CMP_UNORDERED (-3)
+
+#ifndef MRB_NO_FLOAT
+/* An integer wider than the significand rounds when it is cast to `mrb_float`,
+   so a mixed pair is compared exactly rather than as two Floats further down.
+   `mrb_int_float_cmp()` reports a NaN as -2, the only answer it has for a pair
+   it cannot place; report it here as unordered instead, which is the one the
+   callers of `cmpnum()` can tell apart from a type mismatch. */
+static mrb_int
+cmpnum_int_float(mrb_int x, mrb_float y)
+{
+  mrb_int c = mrb_int_float_cmp(x, y);
+  return c == -2 ? CMP_UNORDERED : c;
+}
+
+/* Only 1, 0 and -1 flip when the operands are read the other way round: a pair
+   that cannot be compared, or that stands in no order, is the same pair either
+   way round and its answer has no opposite. */
+static mrb_int
+cmpnum_rev(mrb_int c)
+{
+  return (c == -2 || c == CMP_UNORDERED) ? c : -c;
+}
+
+#ifdef MRB_USE_BIGINT
+/* `mrb_bint_cmp()` answers -2 both for a NaN on the right and for a value it
+   cannot compare with at all. Every call below has settled the types first, so
+   the only -2 left to answer is the NaN. */
+static mrb_int
+cmpnum_bint(mrb_state *mrb, mrb_value x, mrb_value y)
+{
+  mrb_int c = mrb_bint_cmp(mrb, x, y);
+  return c == -2 ? CMP_UNORDERED : c;
+}
+#endif
+#endif
+
+/* compare two numbers: (1:0:-1; -2 for error, -3 for an unordered pair) */
 static mrb_int
 cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
 {
 #ifdef MRB_NO_FLOAT             /* integer version */
 
-  if (!mrb_fixnum_p(v2)) {
+#ifdef MRB_USE_BIGINT
+  /* A big integer on the left is compared without being narrowed first.
+     Neither path below can carry one: mrb_as_int() raises on a big integer
+     that does not fit, and handing the comparison to the other side asks this
+     same function again, which is what made `(1<<70) <=> (1<<71)` run out of
+     stack. A big integer on the right needs nothing here -- the hand-over
+     below reaches this arm with the two the other way round. */
+  if (mrb_bigint_p(v1) && (mrb_integer_p(v2) || mrb_bigint_p(v2))) {
+    return mrb_bint_cmp(mrb, v1, v2);
+  }
+#endif
+  /* Whether the value on the right is an Integer, which `mrb_fixnum_p()` does
+     not answer: word boxing keeps an Integer in the value itself only while it
+     fits a tagged machine word and allocates an object for a wider one, and
+     only the first of the two is a fixnum. Asking it here handed every Integer
+     past the inline range to the other side, and that hand-over asks this same
+     function again with the pair reversed, so two of them were passed back and
+     forth until the stack ran out. */
+  if (!mrb_integer_p(v2)) {
     if (!mrb_obj_is_kind_of(mrb, v2, mrb_class_get_id(mrb, MRB_SYM(Numeric)))) {
       return -2;
     }
@@ -2083,8 +2214,19 @@ cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
 
   mrb_float x, y;
 
-  if (mrb_fixnum_p(v1)) {
-    if (mrb_fixnum_p(v2)) {
+  if (mrb_integer_p(v1) && mrb_float_p(v2)) {
+    return cmpnum_int_float(mrb_integer(v1), mrb_float(v2));
+  }
+  if (mrb_float_p(v1) && mrb_integer_p(v2)) {
+    return cmpnum_rev(cmpnum_int_float(mrb_integer(v2), mrb_float(v1)));
+  }
+
+  /* A pair of Integers is compared as Integers however each of the two is
+     stored: `mrb_integer_p()` takes in the ones word boxing allocates an
+     object for, which are exactly the ones the cast below would round, and a
+     rounded pair reads as equal wherever the two sit inside one significand. */
+  if (mrb_integer_p(v1)) {
+    if (mrb_integer_p(v2)) {
       mrb_int x = mrb_integer(v1);
       mrb_int y = mrb_integer(v2);
 
@@ -2101,8 +2243,8 @@ cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
   }
 #ifdef MRB_USE_BIGINT
   else if (mrb_bigint_p(v1)) {
-    if (mrb_integer_p(v2) || mrb_bigint_p(v2)) {
-      return mrb_bint_cmp(mrb, v1, v2);
+    if (mrb_integer_p(v2) || mrb_bigint_p(v2) || mrb_float_p(v2)) {
+      return cmpnum_bint(mrb, v1, v2);
     }
     x = mrb_as_float(mrb, v1);
   }
@@ -2111,12 +2253,19 @@ cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
     x = mrb_as_float(mrb, v1);
   }
 
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(v2)) {
+    /* The switch below would convert `v2` with `mrb_as_float()` and lose the
+       low bits of a big integer. `mrb_bint_cmp()` keeps it exact. The operands
+       are read the other way round here, so the answer is reversed rather than
+       the pair. */
+    return cmpnum_rev(cmpnum_bint(mrb, v2, mrb_float_value(mrb, x)));
+  }
+#endif
+
   switch (mrb_type(v2)) {
 #ifdef MRB_USE_RATIONAL
   case MRB_TT_RATIONAL:
-#endif
-#ifdef MRB_USE_BIGINT
-  case MRB_TT_BIGINT:
 #endif
   case MRB_TT_INTEGER:
     if (mrb_fixnum_p(v2)) {
@@ -2141,6 +2290,10 @@ cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
     }
     return -2;
   }
+
+  /* Neither test below holds when either side is NaN, and falling out of them
+     would answer 0, which says the two are equal. */
+  if (isnan(x) || isnan(y)) return CMP_UNORDERED;
 #endif
   if (x > y)
     return 1;
@@ -2180,7 +2333,7 @@ num_cmp(mrb_state *mrb, mrb_value self)
   mrb_value other = mrb_get_arg1(mrb);
   mrb_int n = cmpnum(mrb, self, other);
 
-  if (n == -2) return mrb_nil_value();
+  if (n == -2 || n == CMP_UNORDERED) return mrb_nil_value();
   return mrb_fixnum_value(n);
 }
 
@@ -2196,6 +2349,9 @@ num_lt(mrb_state *mrb, mrb_value self)
   mrb_value other = mrb_get_arg1(mrb);
   mrb_int n = cmpnum(mrb, self, other);
 
+  /* A NaN stands in no order with anything, so every comparison against one is
+     false; an exception is not an answer CRuby gives here either. */
+  if (n == CMP_UNORDERED) return mrb_false_value();
   if (n == -2) cmperr(mrb, self, other);
   if (n < 0) return mrb_true_value();
   return mrb_false_value();
@@ -2207,6 +2363,7 @@ num_le(mrb_state *mrb, mrb_value self)
   mrb_value other = mrb_get_arg1(mrb);
   mrb_int n = cmpnum(mrb, self, other);
 
+  if (n == CMP_UNORDERED) return mrb_false_value();
   if (n == -2) cmperr(mrb, self, other);
   if (n <= 0) return mrb_true_value();
   return mrb_false_value();
@@ -2218,6 +2375,7 @@ num_gt(mrb_state *mrb, mrb_value self)
   mrb_value other = mrb_get_arg1(mrb);
   mrb_int n = cmpnum(mrb, self, other);
 
+  if (n == CMP_UNORDERED) return mrb_false_value();
   if (n == -2) cmperr(mrb, self, other);
   if (n > 0) return mrb_true_value();
   return mrb_false_value();
@@ -2229,9 +2387,21 @@ num_ge(mrb_state *mrb, mrb_value self)
   mrb_value other = mrb_get_arg1(mrb);
   mrb_int n = cmpnum(mrb, self, other);
 
+  if (n == CMP_UNORDERED) return mrb_false_value();
   if (n == -2) cmperr(mrb, self, other);
   if (n >= 0) return mrb_true_value();
   return mrb_false_value();
+}
+
+/* `mrb_cmp()` reports an unordered pair as one it cannot compare. Its callers
+   sort, search and test ranges with the answer, and a NaN belongs at neither
+   end of an order; -2 is the answer they already refuse, which is what CRuby
+   does with a NaN in `Array#sort`. */
+static mrb_int
+cmpnum_total(mrb_state *mrb, mrb_value v1, mrb_value v2)
+{
+  mrb_int n = cmpnum(mrb, v1, v2);
+  return n == CMP_UNORDERED ? -2 : n;
 }
 
 /**
@@ -2255,13 +2425,13 @@ mrb_cmp(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
   mrb_value v;
 
   if (mrb_fixnum_p(obj1) || mrb_float_p(obj1)) {
-    return cmpnum(mrb, obj1, obj2);
+    return cmpnum_total(mrb, obj1, obj2);
   }
   switch (mrb_type(obj1)) {
   case MRB_TT_INTEGER:
   case MRB_TT_FLOAT:
   case MRB_TT_BIGINT:
-    return cmpnum(mrb, obj1, obj2);
+    return cmpnum_total(mrb, obj1, obj2);
   case MRB_TT_STRING:
     if (!mrb_string_p(obj2))
       return -2;
@@ -2306,6 +2476,23 @@ static const mrb_mt_entry numeric_rom_entries[] = {
   MRB_MT_ENTRY(num_fdiv, MRB_SYM(fdiv), MRB_ARGS_REQ(1)),
 #endif
 };
+
+/*
+ * Integer.__ensure(val) -> Integer
+ *
+ * Internal. Converts `val` the way `mrb_ensure_int_type()` does, as a check
+ * ON its argument rather than a dispatch TO it. `val.__to_int` used to be the
+ * mrblib idiom, but `__to_int` was an ordinary public method, so an object
+ * defining one was accepted where an object defining `to_int` is rejected
+ * (#7014).
+ */
+static mrb_value
+int_s_ensure(mrb_state *mrb, mrb_value self)
+{
+  mrb_value val;
+  mrb_get_args(mrb, "o", &val);
+  return mrb_ensure_int_type(mrb, val);
+}
 
 static const mrb_mt_entry integer_rom_entries[] = {
   MRB_MT_ENTRY(int_pow,              MRB_OPSYM(pow),    MRB_ARGS_REQ(1)),
@@ -2397,6 +2584,7 @@ mrb_init_numeric(mrb_state *mrb)
   MRB_UNDEF_ALLOCATOR(integer);
   mrb_undef_class_method_id(mrb, integer, MRB_SYM(new));
   MRB_MT_INIT_ROM(mrb, integer, integer_rom_entries);
+  mrb_define_class_method_id(mrb, integer, MRB_SYM(__ensure), int_s_ensure, MRB_ARGS_REQ(1));
 
   /* Fixnum Class for compatibility */
   mrb_define_const_id(mrb, mrb->object_class, MRB_SYM(Fixnum), mrb_obj_value(integer));

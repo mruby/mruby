@@ -50,6 +50,13 @@ struct RRange {
 #define mrb_range_value(p) mrb_obj_value((void*)(p))
 #define RANGE_EXCL(p) ((p)->excl)
 
+/* A range is born uninitialized: `Range.allocate` hands one out before
+   `initialize` has set its ends, and reading them before that flag is on
+   reads whatever the allocation left behind. */
+#define RANGE_INITIALIZED_FLAG 1
+#define RANGE_INITIALIZED(p) ((p)->flags |= RANGE_INITIALIZED_FLAG)
+#define RANGE_INITIALIZED_P(p) ((p)->flags & RANGE_INITIALIZED_FLAG)
+
 MRB_API struct RRange* mrb_range_ptr(mrb_state *mrb, mrb_value range);
 
 /*

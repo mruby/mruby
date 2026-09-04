@@ -154,14 +154,45 @@ rand_i(rand_state *t, mrb_int max)
   return (mrb_int)(r % (uint32_t)max);
 }
 
+/* Full-width unsigned random value in [0, 2**MRB_INT_BIT). */
+static mrb_uint
+rand_uint(rand_state *t)
+{
+#ifdef MRB_INT64
+  return ((mrb_uint)rand_uint32(t) << 32) | rand_uint32(t);
+#else
+  return (mrb_uint)rand_uint32(t);
+#endif
+}
+
+/* Uniform unsigned value in [0, span) without modulo bias.
+   span == 0 selects the entire domain [0, 2**MRB_INT_BIT). */
+static mrb_uint
+rand_u(rand_state *t, mrb_uint span)
+{
+  if (span == 0) return rand_uint(t);
+  mrb_uint threshold = (mrb_uint)(-span) % span; /* == 2**MRB_INT_BIT % span */
+  mrb_uint r;
+  do {
+    r = rand_uint(t);
+  } while (r < threshold);
+  return r % span;
+}
+
 static mrb_value
 rand_range_int(mrb_state *mrb, rand_state *t, mrb_int begin,
                mrb_int end, mrb_bool excl) {
-  mrb_int span = end - begin + (excl ? 0 : 1);
-  if (span <= 0)
+  /* Reversed or empty range -> nil (as CRuby does). Compare before
+     subtracting so extreme bounds cannot overflow mrb_int. */
+  if (begin > end || (excl && begin == end))
     return mrb_nil_value();
 
-  return mrb_int_value(mrb, (rand_i(t, span)) + begin);
+  /* Candidate count in unsigned arithmetic to avoid signed overflow.
+     An inclusive full-width range wraps to 0, which rand_u reads as
+     "the entire domain". */
+  mrb_uint span = (mrb_uint)end - (mrb_uint)begin + (excl ? 0 : 1);
+  mrb_uint r = rand_u(t, span);
+  return mrb_int_value(mrb, (mrb_int)((mrb_uint)begin + r));
 }
 
 #ifndef MRB_NO_FLOAT
@@ -192,6 +223,11 @@ random_range(mrb_state *mrb, rand_state *t, mrb_value rv)
                           mrb_integer(RANGE_END(r)), RANGE_EXCL(r));
   }
 
+#ifdef MRB_NO_FLOAT
+  /* Without float support only integer ranges are meaningful. */
+  range_error(mrb, RANGE_BEG(r));
+  return mrb_nil_value();
+#else
 #define cast_to_float(v)                                                       \
   (mrb_float_p(v)     ? mrb_float(v)                                           \
    : mrb_integer_p(v) ? (mrb_float)mrb_integer(v)                              \
@@ -200,6 +236,7 @@ random_range(mrb_state *mrb, rand_state *t, mrb_value rv)
   return rand_range_float(mrb, t, cast_to_float(RANGE_BEG(r)),
                           cast_to_float(RANGE_END(r)), RANGE_EXCL(r));
 #undef cast_to_float
+#endif
 }
 
 static mrb_value
@@ -210,9 +247,11 @@ random_rand_impl(mrb_state *mrb, rand_state *t, mrb_value self)
     return random_rand(mrb, t, 0);
   }
 
+#ifndef MRB_NO_FLOAT
   if (mrb_float_p(arg)) {
     return random_rand(mrb, t, (mrb_int)mrb_float(arg));
   }
+#endif
 
   if (mrb_integer_p(arg)) {
     return random_rand(mrb, t, mrb_integer(arg));
@@ -587,8 +626,8 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
   mrb_define_class_method_id(mrb, random, MRB_SYM(srand), random_f_srand, MRB_ARGS_OPT(1));
   mrb_define_class_method_id(mrb, random, MRB_SYM(bytes), random_f_bytes, MRB_ARGS_REQ(1));
 
-  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(rand), random_f_rand, MRB_ARGS_OPT(1));
-  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(srand), random_f_srand, MRB_ARGS_OPT(1));
+  mrb_define_module_function_id(mrb, mrb->kernel_module, MRB_SYM(rand), random_f_rand, MRB_ARGS_OPT(1));
+  mrb_define_module_function_id(mrb, mrb->kernel_module, MRB_SYM(srand), random_f_srand, MRB_ARGS_OPT(1));
   MRB_MT_INIT_ROM(mrb, random, random_rom_entries);
   mrb_define_method_id(mrb, array, MRB_SYM(shuffle), mrb_ary_shuffle, MRB_ARGS_OPT(1));
   mrb_define_method_id(mrb, array, MRB_SYM_B(shuffle), mrb_ary_shuffle_bang, MRB_ARGS_OPT(1));

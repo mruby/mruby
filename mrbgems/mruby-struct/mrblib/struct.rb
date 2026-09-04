@@ -66,4 +66,12 @@ class Struct
       n
     end
   end
+
+  # Bridge used by the C constructor when #initialize is overridden.
+  # mruby has no C API to send keyword arguments, so the arguments are
+  # re-sent to the (user-defined) #initialize here; kw is always a hash,
+  # possibly empty, matching what Class#new's forwarding would send.
+  private def __struct_init_fwd(args, kw, &blk)
+    initialize(*args, **kw, &blk)
+  end
 end

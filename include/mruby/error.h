@@ -26,7 +26,7 @@ struct RException {
 #define MRB_EXC_EXIT 65536
 #define MRB_EXC_EXIT_P(e) ((e)->flags & MRB_EXC_EXIT)
 /* retrieve status value from exc; need <mruby/variable.h> and <mruby/presym.h> */
-#define MRB_EXC_EXIT_STATUS(mrb,e) ((int)mrb_as_int((mrb),mrb_obj_iv_get((mrb),(e),MRB_SYM(status))))
+#define MRB_EXC_EXIT_STATUS(mrb,e) ((int)mrb_as_int((mrb),mrb_obj_iv_get((mrb),(e),MRB_IVSYM(status))))
 /* exit with SystemExit status */
 #define MRB_EXC_CHECK_EXIT(mrb,e) do {if (MRB_EXC_EXIT_P(e)) exit(MRB_EXC_EXIT_STATUS((mrb),(e)));} while (0)
 
@@ -37,7 +37,14 @@ MRB_API mrb_value mrb_exc_new_str(mrb_state *mrb, struct RClass* c, mrb_value st
 #define mrb_exc_new_lit(mrb, c, lit) mrb_exc_new_str(mrb, c, mrb_str_new_lit(mrb, lit))
 MRB_API mrb_noreturn void mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_value args, const char *fmt, ...);
 
-#if defined(MRB_NAN_BOXING) || defined(MRB_WORD_BOXING) || defined(MRB_64BIT)
+/* On 32-bit platforms whose ABI gives uint64_t/double 8-byte alignment
+   (ARM, MIPS, PowerPC, xtensa, ...), embedding mrb_value directly in
+   RBreak forces 8-byte alignment that pushes the struct past the 5-word
+   RVALUE budget via padding.  Store the value bits as a uint32_t array
+   (4-byte aligned) to dodge that padding.  Word-boxing's mrb_value is
+   just a uintptr_t with no over-alignment, and 64-bit platforms have no
+   alignment gap to begin with, so neither needs the workaround. */
+#if defined(MRB_64BIT) || defined(MRB_WORD_BOXING)
 #undef MRB_USE_RBREAK_VALUE_UNION
 #else
 #define MRB_USE_RBREAK_VALUE_UNION 1
@@ -45,7 +52,8 @@ MRB_API mrb_noreturn void mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_va
 
 /*
  *  flags:
- *      0..7:   enum mrb_vtype (only when defined MRB_USE_RBREAK_VALUE_UNION)
+ *      0..7:   enum mrb_vtype (only when MRB_USE_RBREAK_VALUE_UNION and
+ *              !MRB_NAN_BOXING; nan-boxing encodes the type in the bits)
  *      8..10:  RBREAK_TAGs in src/vm.c (otherwise, set to 0)
  */
 struct RBreak {
@@ -53,11 +61,11 @@ struct RBreak {
   uintptr_t ci_break_index; // The top-level ci index to break. One before the return destination.
 #ifndef MRB_USE_RBREAK_VALUE_UNION
   mrb_value val;
+#elif defined(MRB_NAN_BOXING)
+  /* nan-boxing: mrb_value is a single 64-bit word (type encoded in NaN bits) */
+  uint32_t value[sizeof(mrb_value) / sizeof(uint32_t)];
 #else
-  /* Store value as uint32_t words instead of union mrb_value_union
-     to avoid 8-byte alignment of int64_t/double on 32-bit platforms
-     (e.g., ARM, MIPS, PowerPC) which would inflate struct size beyond
-     the 5-word RVALUE limit due to padding. */
+  /* no-boxing: store only the union bits; tt goes in flags */
   uint32_t value[sizeof(union mrb_value_union) / sizeof(uint32_t)];
 #endif
 };
@@ -65,6 +73,19 @@ struct RBreak {
 #ifndef MRB_USE_RBREAK_VALUE_UNION
 #define mrb_break_value_get(brk) ((brk)->val)
 #define mrb_break_value_set(brk, v) ((brk)->val = v)
+#elif defined(MRB_NAN_BOXING)
+static inline mrb_value
+mrb_break_value_get(struct RBreak *brk)
+{
+  mrb_value val;
+  memcpy(&val, brk->value, sizeof(val));
+  return val;
+}
+static inline void
+mrb_break_value_set(struct RBreak *brk, mrb_value val)
+{
+  memcpy(brk->value, &val, sizeof(val));
+}
 #else
 #define RBREAK_VALUE_TT_MASK ((1 << 8) - 1)
 static inline mrb_value

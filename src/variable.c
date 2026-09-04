@@ -7,6 +7,7 @@
 #include <mruby.h>
 #include <mruby/array.h>
 #include <mruby/class.h>
+#include <mruby/data.h>
 #include <mruby/proc.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>
@@ -239,35 +240,11 @@ iv_free(mrb_state *mrb, iv_tbl *t)
 }
 
 /*
- * Object Shape (Hidden Class) structures.
- *
- * A shape describes the IV layout of an object: which syms are stored
- * at which indices. Shapes form a tree rooted at the empty root shape.
- * Each child adds one IV (its "edge" sym). Objects sharing the same
- * set of IVs (assigned in the same order) share the same shape,
- * eliminating per-object key storage.
- *
- * Only MRB_TT_OBJECT instances are shaped. RClass, RHash, etc. keep
- * traditional iv_tbl.
+ * Object Shape (Hidden Class) storage. The mrb_iv_shape / mrb_shaped_iv
+ * structures and the mrb_shape_lookup index lookup live in
+ * mruby/internal.h so the VM can inline the shaped OP_GETIV/OP_SETIV
+ * fast path; the tree construction and the slow paths stay here.
  */
-
-/* Maximum IV count before de-shaping to iv_tbl */
-#define MRB_SHAPE_MAX_IVS 16
-
-/* Shape descriptor -- shared across objects with same IV layout */
-typedef struct mrb_iv_shape {
-  struct mrb_iv_shape *parent;    /* parent shape (one fewer IV) */
-  struct mrb_iv_shape *children;  /* linked list of child shapes */
-  struct mrb_iv_shape *sibling;   /* next child of same parent */
-  mrb_sym edge;                   /* IV sym added from parent */
-  uint16_t count;                 /* number of IV slots */
-} mrb_iv_shape;
-
-/* Per-object shaped IV storage (allocated via struct hack) */
-typedef struct mrb_shaped_iv {
-  mrb_iv_shape *shape;
-  mrb_value values[1];  /* shape->count elements */
-} mrb_shaped_iv;
 
 /* Create the empty root shape */
 static mrb_iv_shape*
@@ -305,21 +282,6 @@ shape_transition(mrb_state *mrb, mrb_iv_shape *shape, mrb_sym sym)
   child->count = shape->count + 1;
   shape->children = child;
   return child;
-}
-
-/*
- * Look up sym in shape by walking the parent chain.
- * Returns the value index (0-based), or -1 if not found.
- */
-static int
-shape_lookup(mrb_iv_shape *shape, mrb_sym sym)
-{
-  mrb_iv_shape *s = shape;
-  while (s->count > 0) {
-    if (s->edge == sym) return s->count - 1;
-    s = s->parent;
-  }
-  return -1;
 }
 
 /* Recursively free all shapes in the tree */
@@ -387,7 +349,7 @@ shaped_iv_set(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
   mrb_iv_shape *shape = siv ? siv->shape : mrb->root_shape;
 
   /* check if sym already exists in current shape */
-  int idx = shape_lookup(shape, sym);
+  int idx = mrb_shape_lookup(mrb, shape, sym);
   if (idx >= 0) {
     siv->values[idx] = v;
     return;
@@ -422,22 +384,22 @@ shaped_iv_set(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
 }
 
 static mrb_value
-shaped_iv_get(struct RObject *obj, mrb_sym sym)
+shaped_iv_get(mrb_state *mrb, struct RObject *obj, mrb_sym sym)
 {
   mrb_shaped_iv *siv = (mrb_shaped_iv*)obj->iv;
   if (!siv) return mrb_nil_value();
-  int idx = shape_lookup(siv->shape, sym);
+  int idx = mrb_shape_lookup(mrb, siv->shape, sym);
   if (idx >= 0 && !mrb_undef_p(siv->values[idx]))
     return siv->values[idx];
   return mrb_nil_value();
 }
 
 static mrb_bool
-shaped_iv_defined(struct RObject *obj, mrb_sym sym)
+shaped_iv_defined(mrb_state *mrb, struct RObject *obj, mrb_sym sym)
 {
   mrb_shaped_iv *siv = (mrb_shaped_iv*)obj->iv;
   if (!siv) return FALSE;
-  int idx = shape_lookup(siv->shape, sym);
+  int idx = mrb_shape_lookup(mrb, siv->shape, sym);
   if (idx >= 0 && !mrb_undef_p(siv->values[idx]))
     return TRUE;
   return FALSE;
@@ -619,7 +581,7 @@ MRB_API mrb_value
 mrb_obj_iv_get(mrb_state *mrb, struct RObject *obj, mrb_sym sym)
 {
   if (MRB_OBJ_SHAPED_P(obj)) {
-    return shaped_iv_get(obj, sym);
+    return shaped_iv_get(mrb, obj, sym);
   }
 
   mrb_value v;
@@ -665,7 +627,8 @@ assign_class_name(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
 {
   if (namespace_p(mrb_type(v))) {
     struct RObject *c = mrb_obj_ptr(v);
-    if (obj != c && ISUPPER(mrb_sym_name_len(mrb, sym, NULL)[0])) {
+    const char *name = mrb_sym_name_len(mrb, sym, NULL);
+    if (obj != c && name && ISUPPER(name[0])) {
       mrb_sym id_classname = MRB_SYM(__classname__);
       mrb_value o = mrb_obj_iv_get(mrb, c, id_classname);
 
@@ -792,7 +755,7 @@ MRB_API mrb_bool
 mrb_obj_iv_defined(mrb_state *mrb, struct RObject *obj, mrb_sym sym)
 {
   if (MRB_OBJ_SHAPED_P(obj)) {
-    return shaped_iv_defined(obj, sym);
+    return shaped_iv_defined(mrb, obj, sym);
   }
 
   iv_tbl *t = obj->iv;
@@ -962,7 +925,7 @@ mrb_iv_remove(mrb_state *mrb, mrb_value obj, mrb_sym sym)
     if (MRB_OBJ_SHAPED_P(o)) {
       mrb_shaped_iv *siv = (mrb_shaped_iv*)o->iv;
       if (siv) {
-        int idx = shape_lookup(siv->shape, sym);
+        int idx = mrb_shape_lookup(mrb, siv->shape, sym);
         if (idx >= 0 && !mrb_undef_p(siv->values[idx])) {
           mrb_value val = siv->values[idx];
           /* de-shape, then remove the key */
@@ -1266,6 +1229,23 @@ mrb_vm_cv_get(mrb_state *mrb, mrb_sym sym)
   return mrb_mod_cv_get(mrb, c, sym);
 }
 
+/* Non-raising class-variable lookup for `defined?(@@v)`. Resolves the class
+   from the given lexical scope's proc (the caller's, via ci[-1]), mirroring
+   mrb_vm_cv_get's class selection. */
+mrb_bool
+mrb_vm_cv_defined_p(mrb_state *mrb, const struct RProc *proc, mrb_sym sym)
+{
+  struct RClass *c;
+
+  for (;;) {
+    c = MRB_PROC_TARGET_CLASS(proc);
+    if (c && c->tt != MRB_TT_SCLASS) break;
+    proc = proc->upper;
+    if (!proc) { c = mrb->object_class; break; }
+  }
+  return mrb_mod_cv_defined(mrb, c, sym);
+}
+
 void
 mrb_vm_cv_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
 {
@@ -1405,6 +1385,45 @@ mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
   return const_get(mrb, c, sym, TRUE);
 }
 
+/* Non-raising lexical constant lookup for `defined?`. Mirrors the search
+   order of mrb_vm_const_get but takes the lexical scope's proc as an argument
+   (the caller's, via ci[-1]) and returns the value or undef, without invoking
+   const_missing or raising. */
+mrb_value
+mrb_vm_const_get_noraise(mrb_state *mrb, const struct RProc *proc, mrb_sym sym)
+{
+  struct RClass *c = MRB_PROC_TARGET_CLASS(proc), *c2;
+  mrb_value v;
+
+  if (!c) c = mrb->object_class;
+  if (iv_get(mrb, class_iv_ptr(c), sym, &v)) return v;
+  for (proc = proc->upper; proc; proc = proc->upper) {
+    c2 = MRB_PROC_TARGET_CLASS(proc);
+    if (!c2) c2 = mrb->object_class;
+    if (iv_get(mrb, class_iv_ptr(c2), sym, &v)) return v;
+  }
+  if (c->tt == MRB_TT_SCLASS) {
+    v = const_get_nohook(mrb, c, sym, TRUE);
+    if (!mrb_undef_p(v)) return v;
+
+    mrb_value klass;
+    for (c2 = c; c2 && c2->tt == MRB_TT_SCLASS; c2 = mrb_class_ptr(klass)) {
+      if (!iv_get(mrb, class_iv_ptr(c2), MRB_SYM(__attached__), &klass)) {
+        c2 = NULL;
+        break;
+      }
+    }
+    if (c2 && (c2->tt == MRB_TT_CLASS || c2->tt == MRB_TT_MODULE)) c = c2;
+  }
+  return const_get_nohook(mrb, c, sym, TRUE);
+}
+
+mrb_bool
+mrb_vm_const_defined_p(mrb_state *mrb, const struct RProc *proc, mrb_sym sym)
+{
+  return !mrb_undef_p(mrb_vm_const_get_noraise(mrb, proc, sym));
+}
+
 /*
  * Sets a constant in a module or class.
  *
@@ -1423,6 +1442,18 @@ mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
  * Raises:
  *   E_TYPE_ERROR: If `mod` is not a class or module.
  */
+#ifndef MRB_NO_CONST_CACHE
+void
+mrb_const_cache_clear(mrb_state *mrb)
+{
+  struct mrb_const_cache_entry *cc = mrb->const_cache;
+
+  for (int i=0; i<MRB_CONST_CACHE_SIZE; cc++,i++) {
+    cc->irep = NULL;
+  }
+}
+#endif
+
 MRB_API void
 mrb_const_set(mrb_state *mrb, mrb_value mod, mrb_sym sym, mrb_value v)
 {
@@ -1431,6 +1462,7 @@ mrb_const_set(mrb_state *mrb, mrb_value mod, mrb_sym sym, mrb_value v)
     mrb_class_name_class(mrb, mrb_class_ptr(mod), mrb_class_ptr(v), sym);
   }
   mrb_obj_iv_set(mrb, mrb_obj_ptr(mod), sym, v);
+  mrb_const_cache_clear(mrb);
 
   if (!mrb->bootstrapping) {
     mrb_value name = mrb_symbol_value(sym);
@@ -1457,6 +1489,7 @@ mrb_const_remove(mrb_state *mrb, mrb_value mod, mrb_sym sym)
 {
   mod_const_check(mrb, mod);
   mrb_iv_remove(mrb, mod, sym);
+  mrb_const_cache_clear(mrb);
 }
 
 /*
@@ -1474,6 +1507,7 @@ MRB_API void
 mrb_define_const_id(mrb_state *mrb, struct RClass *mod, mrb_sym name, mrb_value v)
 {
   mrb_obj_iv_set(mrb, (struct RObject*)mod, name, v);
+  mrb_const_cache_clear(mrb);
 }
 
 /*
@@ -1563,6 +1597,57 @@ mrb_mod_constants(mrb_state *mrb, mrb_value mod)
   return ary;
 }
 
+/* A virtual global's dispatch table, held behind a sentinel stored in the
+ * globals table itself: the name stays defined and listed, marking is the
+ * table's ordinary marking, and an ordinary global pays one type test on
+ * access. What the sentinel must never do is leak into Ruby as the
+ * variable's value, which is what the dispatch in mrb_gv_get()/mrb_gv_set()
+ * guarantees. */
+struct gv_virtual {
+  mrb_value (*get)(mrb_state *mrb);
+  void (*set)(mrb_state *mrb, mrb_value v);
+};
+
+static void
+gv_virtual_free(mrb_state *mrb, void *p)
+{
+  mrb_free(mrb, p);
+}
+
+static const mrb_data_type gv_virtual_type = { "gv_virtual", gv_virtual_free };
+
+static const struct gv_virtual*
+gv_virtual_check(mrb_value v)
+{
+  if (mrb_data_p(v) && DATA_TYPE(v) == &gv_virtual_type) {
+    return (const struct gv_virtual*)DATA_PTR(v);
+  }
+  return NULL;
+}
+
+/*
+ * Registers `sym` as a virtual global variable dispatching to `get` and
+ * `set`. See <mruby/variable.h>.
+ */
+MRB_API void
+mrb_gv_define_virtual(mrb_state *mrb, mrb_sym sym, mrb_value (*get)(mrb_state*), void (*set)(mrb_state*, mrb_value))
+{
+  /* classless, the way struct RSvar is: an internal object with no class
+     is what mruby-objectspace's each_object filter hides, so the sentinel
+     cannot be fished out of the heap and stored where the dispatch below
+     would mistake it for a second virtual variable */
+  struct RData *d = mrb_data_object_alloc(mrb, NULL, NULL, &gv_virtual_type);
+  struct gv_virtual *vt = (struct gv_virtual*)mrb_malloc(mrb, sizeof(struct gv_virtual));
+
+  vt->get = get;
+  vt->set = set;
+  d->data = vt;
+  if (!mrb->globals) {
+    mrb->globals = iv_new(mrb);
+  }
+  iv_put(mrb, mrb->globals, sym, mrb_obj_value(d));
+}
+
 /*
  * Retrieves a global variable.
  *
@@ -1579,9 +1664,45 @@ mrb_gv_get(mrb_state *mrb, mrb_sym sym)
 {
   mrb_value v;
 
-  if (iv_get(mrb, mrb->globals, sym, &v))
+  if (iv_get(mrb, mrb->globals, sym, &v)) {
+    const struct gv_virtual *vt = gv_virtual_check(v);
+    if (vt) return vt->get(mrb);
     return v;
+  }
   return mrb_nil_value();
+}
+
+/* Whether a global variable has been assigned, for `defined?($g)`. */
+mrb_bool
+mrb_gv_defined(mrb_state *mrb, mrb_sym sym)
+{
+  mrb_value v;
+  return iv_get(mrb, mrb->globals, sym, &v) != 0;
+}
+
+/* iv_put() for the globals table: an ordinary name already present is
+ * stored in place off the one search above, a fresh name falls through
+ * to iv_put(), and a virtual name is never overwritten, its dispatch
+ * pair handed back instead for the caller to route the value through. */
+static const struct gv_virtual*
+gv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
+{
+  if (t->alloc == 0) {
+    iv_rehash(mrb, t);
+  }
+
+  mrb_sym   *keys = (mrb_sym*)&t->ptr[t->alloc];
+  mrb_value *vals =  t->ptr;
+  int lo = iv_bsearch_idx(keys, t->size, sym);
+
+  if (lo < t->size && keys[lo] == sym) {
+    const struct gv_virtual *vt = gv_virtual_check(vals[lo]);
+    if (vt) return vt;
+    vals[lo] = val;
+    return NULL;
+  }
+  iv_put(mrb, t, sym, val);
+  return NULL;
 }
 
 /*
@@ -1597,13 +1718,13 @@ mrb_gv_get(mrb_state *mrb, mrb_sym sym)
 MRB_API void
 mrb_gv_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
 {
-  iv_tbl *t;
-
   if (!mrb->globals) {
     mrb->globals = iv_new(mrb);
   }
-  t = mrb->globals;
-  iv_put(mrb, t, sym, v);
+  const struct gv_virtual *vt = gv_put(mrb, mrb->globals, sym, v);
+  if (vt) {
+    vt->set(mrb, v);
+  }
 }
 
 /*
@@ -1625,6 +1746,19 @@ gv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
   mrb_value ary = *(mrb_value*)p;
   mrb_ary_push(mrb, ary, mrb_symbol_value(sym));
   return 0;
+}
+
+/* Iterate over the global variable table.
+ *
+ * `mrb_iv_foreach` only reaches the instance variables of an object; the
+ * globals live in `mrb->globals`, a table of their own that nothing outside
+ * this file can name. Symbol GC needs to walk it to keep the names of live
+ * globals from being swept.
+ */
+void
+mrb_gv_foreach(mrb_state *mrb, mrb_iv_foreach_func *func, void *p)
+{
+  iv_foreach(mrb, mrb->globals, func, p);
 }
 
 /* 15.3.1.2.4  */

@@ -285,6 +285,9 @@ gembox provides the class or feature you need:
 | Socket                | stdlib-io  | mruby-socket      |
 | Dir                   | stdlib-io  | mruby-dir         |
 | Errno                 | stdlib-io  | mruby-errno       |
+| ENV                   | stdlib-io  | mruby-env         |
+| Process               | stdlib-io  | mruby-process     |
+| Signal                | stdlib-io  | mruby-signal      |
 | Math                  | math       | mruby-math        |
 | Rational              | math       | mruby-rational    |
 | Complex               | math       | mruby-complex     |
@@ -326,14 +329,14 @@ methods. These are included by default:
 
 ### Gembox Summary
 
-| Gembox       | Contents                                      | Notes                                        |
-| ------------ | --------------------------------------------- | -------------------------------------------- |
-| `stdlib`     | Core class extensions, Fiber, Enumerator, Set | Works with `MRB_NO_STDIO` and `MRB_NO_FLOAT` |
-| `stdlib-ext` | Time, Struct, Data, Random, sprintf, pack     | Works with `MRB_NO_STDIO` and `MRB_NO_FLOAT` |
-| `stdlib-io`  | IO, File, Dir, Socket, Errno                  | Requires stdio                               |
-| `math`       | Math, Rational, Complex, Bigint               | Works with `MRB_NO_STDIO`                    |
-| `metaprog`   | eval, binding, Method, compiler               | Works with `MRB_NO_STDIO` and `MRB_NO_FLOAT` |
-| `default`    | All of the above + CLI tools                  | Full installation                            |
+| Gembox       | Contents                                           | Notes                                        |
+| ------------ | -------------------------------------------------- | -------------------------------------------- |
+| `stdlib`     | Core class extensions, Fiber, Enumerator, Set      | Works with `MRB_NO_STDIO` and `MRB_NO_FLOAT` |
+| `stdlib-ext` | Time, Struct, Data, Random, sprintf, pack          | Works with `MRB_NO_STDIO` and `MRB_NO_FLOAT` |
+| `stdlib-io`  | IO, File, Dir, Socket, Errno, ENV, Process, Signal | Requires stdio                               |
+| `math`       | Math, Rational, Complex, Bigint                    | Works with `MRB_NO_STDIO`                    |
+| `metaprog`   | eval, binding, Method, compiler                    | Works with `MRB_NO_STDIO` and `MRB_NO_FLOAT` |
+| `default`    | All of the above + CLI tools                       | Full installation                            |
 
 ## Key Differences from CRuby
 
@@ -416,15 +419,16 @@ differently on 32-bit or NaN boxing configurations.
 
 Key compile-time macros that affect language behavior:
 
-| Macro                | Effect                             |
-| -------------------- | ---------------------------------- |
-| `MRB_NO_FLOAT`       | Remove all float support           |
-| `MRB_USE_FLOAT32`    | Use 32-bit float instead of double |
-| `MRB_UTF8_STRING`    | Enable UTF-8 string handling       |
-| `MRB_INT32`          | Force 32-bit integer               |
-| `MRB_INT64`          | Force 64-bit integer               |
-| `MRB_STR_LENGTH_MAX` | Max string length (default 1MB)    |
-| `MRB_ARY_LENGTH_MAX` | Max array length (default 2^17)    |
+| Macro                 | Effect                             |
+| --------------------- | ---------------------------------- |
+| `MRB_NO_FLOAT`        | Remove all float support           |
+| `MRB_USE_FLOAT32`     | Use 32-bit float instead of double |
+| `MRB_UTF8_STRING`     | UTF-8 strings and Unicode case     |
+| `MRB_USE_ASCII_CTYPE` | Keep UTF-8, convert case by ASCII  |
+| `MRB_INT32`           | Force 32-bit integer               |
+| `MRB_INT64`           | Force 64-bit integer               |
+| `MRB_STR_LENGTH_MAX`  | Max string length (default 1MB)    |
+| `MRB_ARY_LENGTH_MAX`  | Max array length (default 2^17)    |
 
 See [mrbconf.md](mrbconf.md) for the complete list of configuration
 macros.

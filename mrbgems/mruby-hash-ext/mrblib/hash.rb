@@ -28,6 +28,9 @@ class Hash
   def merge!(*others, &block)
     i = 0; len=others.size
     return self.__merge(*others) unless block
+    # With a block, an empty `others` (or empty hashes in it) assigns nothing
+    # below, so nothing on that path asks about a frozen receiver.
+    raise FrozenError, "can't modify frozen #{self.class}" if frozen?
     while i<len
       other = others[i]
       i += 1
@@ -130,6 +133,9 @@ class Hash
 
   def delete_if(&block)
     return to_enum(:delete_if) unless block
+    # An empty hash, or a block that keeps every pair, never reaches the
+    # `delete` below that would refuse a frozen receiver.
+    raise FrozenError, "can't modify frozen #{self.class}" if frozen?
 
     self.each do |k, v|
       self.delete(k) if block.call(k, v)
@@ -187,6 +193,9 @@ class Hash
 
   def keep_if(&block)
     return to_enum(:keep_if) unless block
+    # An empty hash, or a block that keeps every pair, never reaches the
+    # `delete` below that would refuse a frozen receiver.
+    raise FrozenError, "can't modify frozen #{self.class}" if frozen?
 
     self.each do |k, v|
       unless block.call([k, v])
@@ -372,6 +381,9 @@ class Hash
   #
   def transform_values!(&b)
     return to_enum(:transform_values!) unless block_given?
+    # An empty hash assigns nothing below, so no `[]=` asks about a frozen
+    # receiver.
+    raise FrozenError, "can't modify frozen #{self.class}" if frozen?
     self.keys.each do |k|
       self[k] = yield(self[k])
     end

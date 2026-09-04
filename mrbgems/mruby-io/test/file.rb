@@ -23,9 +23,7 @@ end
 assert('File#initialize', '15.2.21.4.1') do
   io = File.open($mrbtest_io_rfname, "r")
   assert_nil io.close
-  assert_raise IOError do
-    io.close
-  end
+  assert_nil io.close
 end
 
 assert('File#path', '15.2.21.4.2') do
@@ -55,6 +53,40 @@ assert('File.basename with suffix') do
   assert_equal 'foo', File.basename('foo', '')
   assert_equal 'foo.rb', File.basename('foo.rb', '')
   assert_equal 'foo.rb', File.basename('foo.rb', '.RB') # case-sensitive
+end
+
+if MRubyIOTestUtil.win?
+  assert('File.basename (for Windows)') do
+    assert_equal '/',  File.basename('/')
+    assert_equal '/',  File.basename('//a')
+    assert_equal '/',  File.basename('//a/')
+    assert_equal '/',  File.basename('//a/b')
+    assert_equal '/',  File.basename('//a/b/')
+    assert_equal 'c',  File.basename('//a/b/c')
+    assert_equal 'c',  File.basename('//a/b/c/')
+    assert_equal '/',  File.basename("\\\\a\\b")
+    assert_equal '',   File.basename('c:')
+    assert_equal '/',  File.basename('c:/')
+    assert_equal 'a',  File.basename('c:/a')
+    assert_equal 'a',  File.basename('c:/a/')
+    assert_equal 'b',  File.basename('c:/a/b')
+    assert_equal '/',  File.basename("c:\\")
+  end
+else
+  assert('File.basename (for generic)') do
+    assert_equal '/',  File.basename('/')
+    assert_equal 'a',  File.basename('//a')
+    assert_equal 'a',  File.basename('//a/')
+    assert_equal 'b',  File.basename('//a/b')
+    assert_equal 'b',  File.basename('//a/b/')
+    assert_equal 'c',  File.basename('//a/b/c')
+    assert_equal 'c',  File.basename('//a/b/c/')
+    assert_equal 'c:', File.basename('c:')
+    assert_equal 'c:', File.basename('c:/')
+    assert_equal 'a',  File.basename('c:/a')
+    assert_equal 'a',  File.basename('c:/a/')
+    assert_equal 'b',  File.basename('c:/a/b')
+  end
 end
 
 assert('File.dirname') do
@@ -128,14 +160,13 @@ assert('File.extname') do
 end
 
 assert('File#flock') do
+  skip 'flock is not implemented on this platform' unless File.method_defined?(:flock)
   f = File.open $mrbtest_io_rfname
   begin
     assert_equal(f.flock(File::LOCK_SH), 0)
     assert_equal(f.flock(File::LOCK_UN), 0)
     assert_equal(f.flock(File::LOCK_EX | File::LOCK_NB), 0)
     assert_equal(f.flock(File::LOCK_UN), 0)
-  rescue NotImplementedError => e
-    skip e.message
   ensure
     f.close
   end
@@ -242,17 +273,11 @@ assert("File.readlink") do
 end
 
 assert("File.readlink fails with non-symlink") do
-  skip "readlink is not supported on this platform" if MRubyIOTestUtil.win?
   begin
     e2 = nil
-    assert_raise(RuntimeError) {
+    assert_raise(Errno::EINVAL) {
       begin
         File.readlink($mrbtest_io_rfname)
-      rescue => e
-        if Object.const_defined?(:SystemCallError) and e.kind_of?(SystemCallError)
-          raise RuntimeError, "SystemCallError converted to RuntimeError"
-        end
-        raise e
       rescue NotImplementedError => e
         e2 = e
       end
@@ -376,13 +401,67 @@ assert('File.symlink') do
 end
 
 assert('File.chmod') do
-  File.open("#{$mrbtest_io_wfname}.chmod-test", 'w') {}
+  path = "#{$mrbtest_io_wfname}.chmod-test"
+  File.open(path, 'w') {}
   begin
-    assert_equal 1, File.chmod(0400, "#{$mrbtest_io_wfname}.chmod-test")
+    assert_equal 1, File.chmod(0400, path)
+    # An execute bit is nothing a Windows mode carries; the call takes it
+    # and leaves the file writable rather than refusing the mode.
+    assert_equal 1, File.chmod(0755, path)
+    File.open(path, 'w') {}
   ensure
     # On Windows, must restore write permission before deletion
-    File.chmod(0600, "#{$mrbtest_io_wfname}.chmod-test") rescue nil
-    File.delete("#{$mrbtest_io_wfname}.chmod-test")
+    File.chmod(0600, path) rescue nil
+    File.delete(path)
+  end
+end
+
+assert('File.open - a mode with an execute bit') do
+  path = "#{$mrbtest_io_wfname}.exec-test"
+  begin
+    File.open(path, 'w', 0755) { |f| f.write 'x' }
+    assert_equal 'x', File.open(path) { |f| f.read }
+  ensure
+    File.chmod(0600, path) rescue nil
+    File.delete(path) rescue nil
+  end
+end
+
+assert('File.umask') do
+  path = "#{$mrbtest_io_wfname}.umask-test"
+  probe = "#{$mrbtest_io_wfname}.umask-probe"
+  old = File.umask
+  begin
+    # A caller that overrides permissions, root on POSIX, writes to a file
+    # whatever its bits say, so a read-only file is asked first whether it
+    # refuses this one; the second half means nothing where it does not.
+    File.open(probe, 'w') {}
+    File.chmod(0400, probe)
+    enforced = begin
+      File.open(probe, 'w') {}
+      false
+    rescue Errno::EACCES
+      true
+    end
+
+    # 0022 keeps the owner's write bit, so the file it made opens for writing
+    File.umask(0022)
+    File.open(path, 'w') {}
+    assert_nothing_raised { File.open(path, 'w') {} }
+    File.delete(path)
+
+    if enforced
+      # 0222 takes it from everyone, so the file it made refuses to
+      File.umask(0222)
+      File.open(path, 'w') {}
+      assert_raise(Errno::EACCES) { File.open(path, 'w') {} }
+    end
+  ensure
+    File.umask(old)
+    [probe, path].each do |f|
+      File.chmod(0600, f) rescue nil
+      File.delete(f) rescue nil
+    end
   end
 end
 
@@ -391,7 +470,7 @@ assert('File.open with "x" mode') do
   assert_nothing_raised do
     File.open($mrbtest_io_wfname, "wx") {}
   end
-  assert_raise(RuntimeError) do
+  assert_raise(Errno::EEXIST) do
     File.open($mrbtest_io_wfname, "wx") {}
   end
 
@@ -399,7 +478,7 @@ assert('File.open with "x" mode') do
   assert_nothing_raised do
     File.open($mrbtest_io_wfname, "w+x") {}
   end
-  assert_raise(RuntimeError) do
+  assert_raise(Errno::EEXIST) do
     File.open($mrbtest_io_wfname, "w+x") {}
   end
 

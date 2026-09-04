@@ -1,8 +1,11 @@
 require 'tempfile'
 require 'open3'
+require 'tmpdir'
+
+MRUBY_BIN = "mruby"
 
 def assert_mruby(exp_out, exp_err, exp_success, args)
-  out, err, stat = Open3.capture3( *(cmd_list("mruby") + args))
+  out, err, stat = Open3.capture3( *(cmd_list(MRUBY_BIN) + args))
   assert "assert_mruby" do
     assert_operator(exp_out, :===, out, "standard output")
     assert_operator(exp_err, :===, err, "standard error")
@@ -11,16 +14,19 @@ def assert_mruby(exp_out, exp_err, exp_success, args)
 end
 
 assert('regression for #1564') do
-  assert_mruby("", /\A-e:1:2: syntax error, .*\n\z/, false, %w[-e <<])
-  assert_mruby("", /\A-e:1:3: syntax error, .*\n\z/, false, %w[-e <<-])
+  # Prism reports the column at the start of the offending token and may
+  # emit more than one diagnostic, so match a located syntax error at the
+  # start of stderr rather than an exact column or a single line.
+  assert_mruby("", /\A-e:1:\d+: syntax error,/, false, %w[-e <<])
+  assert_mruby("", /\A-e:1:\d+: syntax error,/, false, %w[-e <<-])
 end
 
 assert('regression for #1572') do
   script, bin = Tempfile.new('test.rb'), Tempfile.new('test.mrb')
   File.write script.path, 'p "ok"'
-  system "#{cmd('mrbc')} -g -o #{bin.path} #{script.path}"
-  o = `#{cmd('mruby')} #{bin.path}`.strip
-  assert_equal '"ok"', o
+  assert_run('mrbc', '-g', '-o', bin.path, script.path)
+  o, = Open3.capture2(*(cmd_list(MRUBY_BIN) + [bin.path]))
+  assert_equal '"ok"', o.strip
 end
 
 assert '$0 value' do
@@ -29,14 +35,17 @@ assert '$0 value' do
   # .rb script
   script.write "p $0\n"
   script.flush
-  assert_equal "\"#{script.path}\"", `#{cmd('mruby')} "#{script.path}"`.chomp
+  o, = Open3.capture2(*(cmd_list(MRUBY_BIN) + [script.path]))
+  assert_equal "\"#{script.path}\"", o.chomp
 
   # .mrb file
-  `#{cmd('mrbc')} -o "#{bin.path}" "#{script.path}"`
-  assert_equal "\"#{bin.path}\"", `#{cmd('mruby')} "#{bin.path}"`.chomp
+  assert_run('mrbc', '-o', bin.path, script.path)
+  o, = Open3.capture2(*(cmd_list(MRUBY_BIN) + [bin.path]))
+  assert_equal "\"#{bin.path}\"", o.chomp
 
   # one liner
-  assert_equal '"-e"', `#{cmd('mruby')} -e #{shellquote('p $0')}`.chomp
+  o, = Open3.capture2(*(cmd_list(MRUBY_BIN) + ['-e', 'p $0']))
+  assert_equal '"-e"', o.chomp
 end
 
 assert 'ARGV value' do
@@ -55,7 +64,8 @@ __END__
 p 'legend'
 EOS
   script.flush
-  assert_equal "\"test\"\n\"fin\"\n", `#{cmd('mruby')} #{script.path}`
+  o, = Open3.capture2(*(cmd_list(MRUBY_BIN) + [script.path]))
+  assert_equal "\"test\"\n\"fin\"\n", o
 end
 
 assert('garbage collecting built-in classes') do
@@ -68,13 +78,15 @@ Array.dup
 print nil.class.to_s
 RUBY
   script.flush
-  assert_equal "NilClass", `#{cmd('mruby')} #{script.path}`
-  assert_equal 0, $?.exitstatus
+  o, status = Open3.capture2(*(cmd_list(MRUBY_BIN) + [script.path]))
+  assert_equal "NilClass", o
+  assert_equal 0, status.exitstatus
 end
 
 assert('mruby -c option') do
   assert_mruby("Syntax OK\n", "", true, ["-c", "-e", "p 1"])
-  assert_mruby("", /\A-e:1:7: syntax error, .*\n\z/, false, ["-c", "-e", "p 1; 1."])
+  # Column is Prism's (start of the token); just require a located error.
+  assert_mruby("", /\A-e:1:\d+: syntax error,/, false, ["-c", "-e", "p 1; 1."])
 end
 
 assert('mruby -d option') do
@@ -87,7 +99,7 @@ assert('mruby -e option (no code specified)') do
 end
 
 assert('mruby -h option') do
-  assert_mruby(/\AUsage: #{Regexp.escape cmd_bin("mruby")} .*/m, "", true, %w[-h])
+  assert_mruby(/\AUsage: #{Regexp.escape cmd_bin(MRUBY_BIN)} .*/m, "", true, %w[-h])
 end
 
 assert('mruby -r option') do
@@ -106,11 +118,40 @@ EOS
 print Hoge.new.hoge
 EOS
   script.flush
-  assert_equal 'hoge', `#{cmd('mruby')} -r #{lib.path} #{script.path}`
-  assert_equal 0, $?.exitstatus
+  o, status = Open3.capture2(*(cmd_list(MRUBY_BIN) + ['-r', lib.path, script.path]))
+  assert_equal 'hoge', o
+  assert_equal 0, status.exitstatus
 
-  assert_equal 'hogeClass', `#{cmd('mruby')} -r #{lib.path} -r #{script.path} -e #{shellquote('print Hoge.class')}`
-  assert_equal 0, $?.exitstatus
+  o, status = Open3.capture2(*(cmd_list(MRUBY_BIN) +
+                               ['-r', lib.path, '-r', script.path, '-e', 'print Hoge.class']))
+  assert_equal 'hogeClass', o
+  assert_equal 0, status.exitstatus
+end
+
+assert('mruby -r option gives each chunk its own special-variable scope') do
+  # per-scope $~ comes with mruby-regexp; probe the binary rather than
+  # skip forever on a fixed gem list
+  probe, = Open3.capture2(*(cmd_list(MRUBY_BIN) + %w[-e print(Object.const_defined?(:Regexp))]))
+  skip unless probe == "true"
+
+  lib = Tempfile.new('lib.rb')
+  lib.write <<EOS
+"fromlib" =~ /fromlib/
+$pr = -> { $~ && $~[0] }
+EOS
+  lib.flush
+
+  script = Tempfile.new('test.rb')
+  script.write <<EOS
+p [$~ && $~[0], $pr.call]
+"inmain" =~ /inmain/
+p [$~ && $~[0], $pr.call]
+EOS
+  script.flush
+  # the main program starts with $~ unset, as a file `ruby -r` loads does,
+  # while a proc the library left behind keeps reading its own scope, in
+  # both directions
+  assert_mruby(%{[nil, "fromlib"]\n["inmain", "fromlib"]\n}, "", true, ['-r', lib.path, script.path])
 end
 
 assert('mruby -r option (no library specified)') do
@@ -124,11 +165,14 @@ end
 assert('mruby -v option') do
   ver_re = '\Amruby \d+\.\d+\.\d+.* \(\d+-\d+-\d+\)\n'
   assert_mruby(/#{ver_re}\z/, "", true, %w[-v])
-  assert_mruby(/#{ver_re}^[^\n]*NODE.*\n:end\n\z/m, "", true, %w[-v -e p(:end)])
+  # Verbose output is the irep disassembly followed by the program output.
+  # Debug builds print prism's AST dump first; PRISM_BUILD_MINIMAL stubs the
+  # pretty printer out, so elsewhere the irep is all there is.
+  assert_mruby(/#{ver_re}.*irep .*:end\n\z/m, "", true, %w[-v -e p(:end)])
 end
 
 assert('mruby --verbose option') do
-  assert_mruby(/\A[^\n]*NODE.*\n:end\n\z/m, "", true, %w[--verbose -e p(:end)])
+  assert_mruby(/\A(@ ProgramNode\b.*\n\n)?irep .*:end\n\z/m, "", true, %w[--verbose -e p(:end)])
 end
 
 assert('mruby --') do
@@ -163,16 +207,119 @@ assert('top level local variables are in file scope') do
   drb, dmrb = Tempfile.new('d.rb'), Tempfile.new('d.mrb')
 
   File.write arb.path, 'a = 1'
-  system "#{cmd('mrbc')} -g -o #{amrb.path} #{arb.path}"
+  assert_run('mrbc', '-g', '-o', amrb.path, arb.path)
   File.write brb.path, 'p a'
-  system "#{cmd('mrbc')} -g -o #{bmrb.path} #{brb.path}"
+  assert_run('mrbc', '-g', '-o', bmrb.path, brb.path)
   assert_mruby("", /:1: undefined method 'a' .*\(NoMethodError\)\n\z/, false, ["-r", arb.path, brb.path])
   assert_mruby("", /:1: undefined method 'a' .*\(NoMethodError\)\n\z/, false, ["-b", "-r", amrb.path, bmrb.path])
 
   File.write crb.path, 'a, b, c = 1, 2, 3; A = -> { b = -2; [a, b, c] }'
-  system "#{cmd('mrbc')} -g -o #{cmrb.path} #{crb.path}"
+  assert_run('mrbc', '-g', '-o', cmrb.path, crb.path)
   File.write drb.path, 'a, b = 5, 6; p A.call; p a, b'
-  system "#{cmd('mrbc')} -g -o #{dmrb.path} #{drb.path}"
+  assert_run('mrbc', '-g', '-o', dmrb.path, drb.path)
   assert_mruby("[1, -2, 3]\n5\n6\n", "", true, ["-r", crb.path, drb.path])
   assert_mruby("[1, -2, 3]\n5\n6\n", "", true, ["-b", "-r", cmrb.path, dmrb.path])
+end
+
+assert('String#split still works when mruby-regexp is loaded') do
+  # Only meaningful when mruby-regexp is built in; skip otherwise.
+  _, _, stat = Open3.capture3(*(cmd_list(MRUBY_BIN) + ["-e", "Regexp"]))
+  skip "mruby-regexp not loaded" unless stat.success?
+
+  # The regexp-aware override in mruby-regexp used to replace the C-defined
+  # String#split, leaving its `return super if ...` fast paths with no method
+  # to delegate to (NoMethodError).  Now the override delegates via
+  # `__split`, an alias of the original C method made in gem init before the
+  # override takes the name.
+  assert_mruby(%Q(["a", "b", "c"]\n), "", true,
+               ["-e", 'p "a,b,c".split(",")'])
+  assert_mruby(%Q(["abc", "abc", "abc"]\n), "", true,
+               ["-e", 'p "abc abc abc".split'])
+  assert_mruby(%Q(["hello", "world"]\n), "", true,
+               ["-e", 'p "hello world".split(/\s+/)'])
+end
+
+assert('a directory as the program file is refused') do
+  # Only POSIX systems open a directory for reading; Windows refuses it at
+  # fopen() and reports that instead.
+  skip 'fopen() refuses a directory' if target_win?
+  # A directory opens for reading and then fails every read, and the loader
+  # answers nil for that without raising, so without a check it ran as an
+  # empty program: no output, no diagnostic, exit 0.
+  Dir.mktmpdir do |dir|
+    assert_mruby("", /Cannot read program file/, false, [dir])
+  end
+end
+
+assert('a directory as a library file is refused') do
+  skip 'fopen() refuses a directory' if target_win?
+  # -r took the same swallowed read, and went on to run the program.
+  Dir.mktmpdir do |dir|
+    assert_mruby("", /Cannot read library file/, false, ["-r", dir, "-e", "puts 1"])
+  end
+end
+
+assert('symbol GC keeps a symbol its bytecode has not loaded yet') do
+  # The symbol GC took its roots from live objects only, so a symbol whose
+  # single holder was bytecode that had not run yet was freed under the
+  # instruction about to load it: the method answered a symbol with no name,
+  # and joining an array of such symbols dereferenced the undefined value
+  # mrb_sym_str() answers for one.  Compiled here rather than in mrbtest
+  # because an embedded irep interns its symbols statically, and the sweep
+  # passes those over.
+  #
+  # MRB_SYMBOL_MAX defaults to 4096, and names short enough to pack into the
+  # symbol itself spend no entry, so the filler names have to be long.
+  script = Tempfile.new('symbol_gc.rb')
+  script.write <<~'SRC'
+    def probe
+      :mruby_symbol_gc_probe
+    end
+    def probe_ary
+      %I[mruby_symbol_gc_a mruby_symbol_gc_b]
+    end
+    i = 0
+    while i < 5000
+      "symbol_gc_probe_name_#{i}".to_sym
+      i += 1
+    end
+    p probe
+    p probe_ary
+    p(probe_ary * ",")
+  SRC
+  script.flush
+  out, _err, stat = Open3.capture3(*(cmd_list(MRUBY_BIN) + [script.path]))
+  assert_true stat.success?, "mruby exited #{stat.exitstatus.inspect}"
+  assert_equal <<~'EXP', out
+    :mruby_symbol_gc_probe
+    [:mruby_symbol_gc_a, :mruby_symbol_gc_b]
+    "mruby_symbol_gc_a,mruby_symbol_gc_b"
+  EXP
+end
+
+assert('a -r library that does not load is fatal') do
+  # The library's exception was left on the state and nowhere else, and the
+  # program's first successful run overwrote it, so the failure vanished: a
+  # syntax error printed its diagnostic and carried on, a library that raised
+  # said nothing at all, and both exited 0 with the program's output.  `ruby
+  # -r` exits 1 for each of these.
+  lib = Tempfile.new(['lib', '.rb'])
+
+  File.write(lib.path, "def f(\n")
+  assert_mruby("", /syntax error/, false, ["-r", lib.path, "-e", "puts 1"])
+
+  File.write(lib.path, "raise 'lib boom'\n")
+  assert_mruby("", /lib boom/, false, ["-r", lib.path, "-e", "puts 1"])
+
+  # An .mrb library takes the irep loader instead, which has always raised
+  # for this; only the check that reads the exception was missing.
+  bin = Tempfile.new(['lib', '.mrb'])
+  File.write(bin.path, "not an irep\n")
+  assert_mruby("", /irep load error/, false, ["-r", bin.path, "-e", "puts 1"])
+end
+
+assert('a -r library that loads still runs the program') do
+  lib = Tempfile.new(['lib', '.rb'])
+  File.write(lib.path, "def libfn; 42; end\n")
+  assert_mruby("42\n", "", true, ["-r", lib.path, "-e", "puts libfn"])
 end

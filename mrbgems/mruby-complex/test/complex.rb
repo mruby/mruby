@@ -88,6 +88,14 @@ assert 'Complex#==' do
   assert_true  0.0 == Complex(0)
 end
 
+assert 'Complex#eql?' do
+  assert_true  Complex(1, 2).eql?(Complex(1, 2))
+  assert_false Complex(1, 0).eql?(1)
+  assert_false Complex(0, 0).eql?(0.0)
+  assert_false 1.eql?(Complex(1, 0))
+  assert_false Complex(1, 0).eql?(nil)
+end
+
 assert 'Complex#abs' do
   assert_float Complex(-1).abs,        1
   assert_float Complex(3.0, -4.0).abs, 5.0
@@ -158,6 +166,18 @@ assert 'Complex::to_i' do
   end
 end
 
+assert 'Complex#to_s' do
+  assert_equal "1.0+2.0i", Complex(1.0, 2.0).to_s
+  assert_equal "1.0-2.0i", Complex(1.0, -2.0).to_s
+  assert_equal "1.0+0.0i", Complex(1.0, 0.0).to_s
+  assert_equal "1.0-0.0i", Complex(1.0, -0.0).to_s
+  assert_equal "-0.0-0.0i", Complex(-0.0, -0.0).to_s
+  assert_equal "(1.0-0.0i)", Complex(1.0, -0.0).inspect
+  assert_equal "1.0+Infinity*i", Complex(1.0, 1.0 / 0).to_s
+  assert_equal "1.0-Infinity*i", Complex(1.0, -1.0 / 0).to_s
+  assert_equal "0.0+NaN*i", Complex(0.0, 0.0 / 0).to_s
+end
+
 assert 'Complex#frozen?' do
   assert_predicate(1i, :frozen?)
   assert_predicate(Complex(2,3), :frozen?)
@@ -171,4 +191,135 @@ assert 'Complex#**' do
   assert_complex Complex(2, 3) ** Complex(1, 0), Complex(2, 3)
   assert_complex Complex(0, 1) ** 2, Complex(-1, 0)
   assert_complex Complex(0, 1) ** Complex(0, 1), Complex(Math::E ** (-Math::PI / 2), 0)
+end
+
+# An MRB_COMPLEX_FLOAT_ONLY build coerces every part through Float; the
+# tests below ask about exact parts, so each skips itself there. The probe
+# sits outside the assert helpers, as does the bigint one further down, so
+# no rescue inside a helper can swallow what it asks.
+complex_exact = Complex(1, 0).real.class == Integer
+
+assert 'Complex parts keep their class' do
+  skip "float-only build" unless complex_exact
+  assert_equal Integer, Complex(1, 2).real.class
+  assert_equal Integer, Complex(1, 2).imaginary.class
+  assert_equal [1, 2], Complex(1, 2).rectangular
+  assert_equal Float, Complex(1.5, 2).real.class
+  assert_equal Integer, Complex(1.5, 2).imaginary.class
+  assert_equal [1.5, 2.5], Complex(1.5, 2.5).rectangular
+  assert_equal [0, 0], nil.to_c.rectangular
+  assert_equal Integer, nil.to_c.real.class
+  assert_equal Integer, 1.to_c.real.class
+  assert_equal Integer, (-42.i).imaginary.class
+end
+
+assert 'Complex#to_s with exact parts' do
+  skip "float-only build" unless complex_exact
+  assert_equal "2+0i", Complex(2).to_s
+  assert_equal "-8+6i", Complex(-8, 6).to_s
+  assert_equal "1-2i", Complex(1, -2).to_s
+  assert_equal "0-42i", (-42.i).to_s
+  assert_equal "(2+0i)", Complex(2).inspect
+  assert_equal "(1-2i)", Complex(1, -2).inspect
+  assert_equal "2.0+2i", (Complex(1, 2) + 1.0).to_s
+end
+
+assert 'exact arithmetic keeps exact parts' do
+  skip "float-only build" unless complex_exact
+  c = Complex(1, 2) * Complex(3, 4)
+  assert_equal [-5, 10], c.rectangular
+  assert_equal Integer, c.real.class
+  c = Complex(1, 2) + Complex(3, 4)
+  assert_equal [4, 6], c.rectangular
+  assert_equal Integer, c.real.class
+  c = 2 - Complex(1, 2)
+  assert_equal [1, -2], c.rectangular
+  assert_equal Integer, c.real.class
+  c = 3 * Complex(1, 2)
+  assert_equal [3, 6], c.rectangular
+  assert_equal Integer, c.real.class
+end
+
+assert 'a real scalar touches only the part it lands on' do
+  skip "float-only build" unless complex_exact
+  c = Complex(1, 2) + 1.0
+  assert_equal Float, c.real.class
+  assert_equal Integer, c.imaginary.class
+  assert_equal [2.0, 2], c.rectangular
+  c = Complex(1, 2) - 1.0
+  assert_equal Integer, c.imaginary.class
+  c = Complex(1, 2) * 2.0
+  assert_equal Float, c.imaginary.class
+end
+
+assert 'Complex#** with an integer exponent is exact' do
+  skip "float-only build" unless complex_exact
+  c = Complex(1, 2) ** 2
+  assert_equal [-3, 4], c.rectangular
+  assert_equal Integer, c.real.class
+  c = Complex(1, 2) ** 0
+  assert_equal [1, 0], c.rectangular
+  assert_equal Integer, c.real.class
+end
+
+assert 'Complex#** with an integer exponent multiplies float parts exactly' do
+  c = Complex(1.0, 2.0) ** 2
+  assert_equal [-3.0, 4.0], c.rectangular
+  assert_equal Float, c.real.class
+end
+
+assert 'Complex#== converts across part classes' do
+  assert_true Complex(1, 2) == Complex(1.0, 2.0)
+  assert_true Complex(2, 0) == 2
+  assert_true Complex(2, 0) == 2.0
+  assert_false Complex(2, 1) == 2
+  assert_false Complex(1, 2) == Complex(2, 1)
+end
+
+assert 'Complex#eql? and #hash key by part class' do
+  skip "float-only build" unless complex_exact
+  assert_true Complex(1, 2).eql?(Complex(1, 2))
+  assert_false Complex(1, 2).eql?(Complex(1.0, 2.0))
+  assert_false Complex(1, 2).eql?(1)
+  assert_equal Complex(1, 2).hash, Complex(1, 2).hash
+  assert_equal Complex(1.0, 2.0).hash, Complex(1.0, 2.0).hash
+  assert_not_equal Complex(1, 2).hash, Complex(1.0, 2.0).hash
+end
+
+assert 'the two float zeros are one hash key' do
+  assert_equal Complex(1.0, 0.0).hash, Complex(1.0, -0.0).hash
+  assert_true Complex(1.0, 0.0).eql?(Complex(1.0, -0.0))
+end
+
+assert 'Complex#to_i and #to_f with exact parts' do
+  assert_equal 3, Complex(3, 0).to_i
+  assert_equal Integer, Complex(3, 0).to_i.class
+  assert_float 3.0, Complex(3, 0).to_f
+  assert_raise(RangeError) { Complex(3, 4).to_i }
+  assert_raise(RangeError) { Complex(3, 4).to_f }
+end
+
+assert 'Complex#abs2 with exact parts' do
+  skip "float-only build" unless complex_exact
+  assert_equal 1, Complex(-1).abs2
+  assert_equal Integer, Complex(-1).abs2.class
+  assert_float 25.0, Complex(3.0, -4.0).abs2
+end
+
+complex_test_bigint = begin
+  10 ** 20
+rescue RangeError
+  nil
+end
+
+assert 'Complex holds a Bigint part' do
+  skip "float-only build" unless complex_exact
+  skip "no bigint in this build" unless complex_test_bigint
+  big = complex_test_bigint
+  c = Complex(big, 0)
+  assert_equal big, c.real
+  assert_equal big * 2, (c * 2).real
+  assert_equal big + 1, (c + 1).real
+  assert_true c == big
+  assert_equal big, c.to_i
 end

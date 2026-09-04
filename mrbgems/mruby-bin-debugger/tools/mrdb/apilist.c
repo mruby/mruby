@@ -39,23 +39,23 @@ source_file_free(mrb_state *mrb, source_file *file)
 static char*
 build_path(mrb_state *mrb, const char *dir, const char *base)
 {
-  int len;
-  char *path = NULL;
+  size_t base_len = strlen(base);
+  size_t dir_len = strcmp(dir, ".") ? strlen(dir) : 0;
+  size_t len = base_len + 1;
+  char *path, *p;
 
-  len = strlen(base) + 1;
-
-  if (strcmp(dir, ".")) {
-    len += strlen(dir) + sizeof("/") - 1;
+  if (dir_len) {
+    len += dir_len + 1;  /* dir + "/" */
   }
 
-  path = (char*)mrb_malloc(mrb, len);
-  memset(path, 0, len);
+  path = p = (char*)mrb_malloc(mrb, len);
 
-  if (strcmp(dir, ".")) {
-    strcat(path, dir);
-    strcat(path, "/");
+  if (dir_len) {
+    memcpy(p, dir, dir_len); p += dir_len;
+    *p++ = '/';
   }
-  strcat(path, base);
+  memcpy(p, base, base_len); p += base_len;
+  *p = '\0';
 
   return path;
 }
@@ -87,6 +87,14 @@ source_file_new(mrb_state *mrb, mrb_debug_context *dbg, char *filename)
   file->fp = fopen(filename, "rb");
 
   if (file->fp == NULL) {
+    source_file_free(mrb, file);
+    return NULL;
+  }
+  if (mrb_stream_is_unreadable(file->fp)) {
+    /* A directory answers fopen() and then no read, so show_lines() printed
+       nothing and mrb_debug_list() answered OK: `list` was silent where it
+       has a message for a file it cannot show.  Refusing it here reaches
+       that message. */
     source_file_free(mrb, file);
     return NULL;
   }
@@ -192,6 +200,15 @@ mrb_debug_get_source(mrb_state *mrb, mrdb_state *mrdb, const char *srcpath, cons
     }
 
     if ((fp = fopen(path, "rb")) == NULL) {
+      mrb_free(mrb, path);
+      path = NULL;
+      continue;
+    }
+    if (mrb_stream_is_unreadable(fp)) {
+      /* fopen() alone is the existence test here, and a directory passes it.
+         Taking one for a hit ended the search on a path the lister cannot
+         show, hiding a readable source further down the search order. */
+      fclose(fp);
       mrb_free(mrb, path);
       path = NULL;
       continue;

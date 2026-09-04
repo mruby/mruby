@@ -7,6 +7,7 @@ assert('super class of Addrinfo') do
 end
 
 assert('Addrinfo.getaddrinfo') do
+  skip "localhost resolution unreliable in Windows getaddrinfo" if SocketTest.win?
   ary = Addrinfo.getaddrinfo("localhost", 53, Socket::AF_INET, Socket::SOCK_STREAM)
   assert_true(ary.size >= 1)
   ai = ary[0]
@@ -17,7 +18,50 @@ assert('Addrinfo.getaddrinfo') do
   assert_equal(ai.ip_port, 53)
 end
 
+assert('Addrinfo.getaddrinfo rejects out-of-range integer hints') do
+  # a 64-bit mrb_int that does not fit C int must raise, not be silently
+  # truncated into a different but still-valid-looking hint (#6960)
+  # The shift width comes from a variable because `1 << 40` written out is
+  # constant folded, and the fold fails while this file is compiled on
+  # MRB_INT32 without bigint, dropping every test in it.
+  shift = 40
+  big = nil
+  wide = begin
+    big = 1 << shift  # RangeError where mrb_int is 32 bits and bigint is absent
+    [][big]           # nil for an mrb_int index, RangeError for a big integer
+    true
+  rescue RangeError
+    false
+  end
+  # A big integer is not an mrb_int either: the hints keep their unconverted
+  # type, `Addrinfo.getaddrinfo` leaves the field at its default, and the
+  # narrowing under test never runs.
+  skip "needs 64-bit mrb_int" unless wide
+  assert_raise(RangeError) { Addrinfo.getaddrinfo("localhost", nil, big) }
+  assert_raise(RangeError) { Addrinfo.getaddrinfo("localhost", nil, nil, nil, nil, big) }
+end
+
+assert('Addrinfo.getaddrinfo rejects a big integer hint') do
+  # a hint too wide for mrb_int arrives as a big integer, which used to miss
+  # the `mrb_integer_p` check and leave the field at its default: the caller
+  # asked for something unrepresentable and got an unhinted lookup instead
+  # The shift width comes from a variable because a literal wide shift is
+  # constant folded, and the fold fails where bigint is absent, dropping every
+  # test in this file.
+  shift = 70
+  big = begin
+    1 << shift
+  rescue RangeError
+    nil
+  end
+  skip "needs mruby-bigint" unless big
+  assert_raise(RangeError) { Addrinfo.getaddrinfo("localhost", nil, big) }
+  assert_raise(RangeError) { Addrinfo.getaddrinfo("localhost", nil, nil, big) }
+  assert_raise(RangeError) { Addrinfo.getaddrinfo("localhost", nil, nil, nil, big) }
+end
+
 assert('Addrinfo.foreach') do
+  skip "localhost resolution unreliable in Windows getaddrinfo" if SocketTest.win?
   # assume Addrinfo.getaddrinfo works well
   a = Addrinfo.getaddrinfo("localhost", 80)
   b = []

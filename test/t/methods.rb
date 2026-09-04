@@ -12,7 +12,12 @@ assert('The alias statement', '13.3.6 a) 4)') do
   assert_true(alias_test_method_original)
   assert_true(alias_test_method_a)
   assert_true(alias_test_method_b)
+
+  # a quoted name with no interpolation is still a plain symbol
+  alias :"alias_test_method_c" :"alias_test_method_original"
+  assert_true(alias_test_method_c)
 end
+
 
 assert('The alias statement (overwrite original)', '13.3.6 a) 4)') do
   # check that an aliased method can be overwritten

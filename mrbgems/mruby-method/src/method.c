@@ -18,9 +18,8 @@ args_shift(mrb_state *mrb)
 
   if (ci->n < 15) {
     if (ci->n == 0) { goto argerr; }
-    mrb_assert(ci->nk == 0 || ci->nk == 15);
     mrb_value obj = argv[0];
-    int count = ci->n + (ci->nk == 0 ? 0 : 1) + 1 /* block */ - 1 /* first value */;
+    int count = ci->n + ci->kw + 1 /* block */ - 1 /* first value */;
     memmove(argv, argv + 1, count * sizeof(mrb_value));
     ci->n--;
     return obj;
@@ -38,28 +37,8 @@ args_shift(mrb_state *mrb)
 static void
 args_unshift(mrb_state *mrb, mrb_value obj)
 {
-  mrb_callinfo *ci = mrb->c->ci;
-  mrb_value *argv = ci->stack + 1;
-
-  if (ci->n < 15) {
-    mrb_assert(ci->nk == 0 || ci->nk == 15);
-    mrb_value args = mrb_ary_new_from_values(mrb, ci->n, argv);
-    if (ci->nk == 0) {
-      mrb_value block = argv[ci->n];
-      argv[0] = args;
-      argv[1] = block;
-    }
-    else {
-      mrb_value keyword = argv[ci->n];
-      mrb_value block = argv[ci->n + 1];
-      argv[0] = args;
-      argv[1] = keyword;
-      argv[2] = block;
-    }
-    ci->n = 15;
-  }
-
-  mrb_ary_unshift(mrb, *argv, obj);
+  mrb_value args = mrb_args_pack_positional(mrb);
+  mrb_ary_unshift(mrb, args, obj);
 }
 
 static const struct RProc*
@@ -85,6 +64,7 @@ method_missing_prepare(mrb_state *mrb, mrb_sym *mid, mrb_value recv, struct RCla
   const struct RProc *proc;
   if (MRB_METHOD_FUNC_P(m)) {
     struct RProc *p = mrb_proc_new_cfunc(mrb, MRB_METHOD_FUNC(m));
+    mrb_proc_set_cfunc_aspec(p, MRB_MT_ASPEC(m.flags));
     MRB_PROC_SET_TARGET_CLASS(p, *tc);
     proc = p;
   }
@@ -393,9 +373,7 @@ method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
     return MRB_METHOD_PROC(m);
 
   struct RProc *proc = mrb_proc_new_cfunc(mrb, MRB_METHOD_FUNC(m));
-  if (MRB_MT_ASPEC(m.flags) == 0) {
-    proc->flags |= MRB_PROC_NOARG;
-  }
+  mrb_proc_set_cfunc_aspec(proc, MRB_MT_ASPEC(m.flags));
   return proc;
 }
 
@@ -603,7 +581,7 @@ method_to_s(mrb_state *mrb, mrb_value self)
   if (!mrb_nil_p(proc)) {
     const struct RProc *p = mrb_proc_ptr(proc);
     if (MRB_PROC_ALIAS_P(p)) {
-      mrb_sym mid;
+      mrb_sym mid = 0;
       while (MRB_PROC_ALIAS_P(p)) {
         mid = p->body.mid;
         p = p->upper;
@@ -636,7 +614,7 @@ search_method_owner(mrb_state *mrb, struct RClass *c, mrb_value obj, mrb_sym nam
     if (!mrb_respond_to(mrb, obj, MRB_SYM_Q(respond_to_missing))) {
       return FALSE;
     }
-    mrb_value ret = mrb_funcall_id(mrb, obj, MRB_SYM_Q(respond_to_missing), 2, mrb_symbol_value(name), mrb_true_value());
+    mrb_value ret = mrb_funcall_argv2(mrb, obj, MRB_SYM_Q(respond_to_missing), mrb_symbol_value(name), mrb_true_value());
     if (!mrb_test(ret)) {
       return FALSE;
     }

@@ -134,6 +134,27 @@ to check code for common misspellings. We have a small custom dictionary file [c
 
 How to style your C and Ruby code which you want to submit.
 
+### Argument conversion
+
+mruby has no implicit conversion protocol, so do not dispatch `to_int` or
+`to_str` to convert an argument. Ask for an integer with
+`mrb_ensure_integer_type()` in C or `Integer.__ensure(obj)` in Ruby, and for a
+string with a plain type check. Both take the value as an argument rather than
+as a receiver: a conversion written as `obj.something` is a dispatch, and the
+argument can redefine it.
+
+`Array.new(obj)`, `ary[obj]` and `"s" * obj` all raise `TypeError` for an object
+that merely defines `to_int`, and `String#match` does the same for one that
+defines `to_str`. A method that honours the protocol is more permissive than the
+tree it sits in, which is a worse inconsistency than the difference from CRuby.
+Nor can the gap be closed by honouring it everywhere: `convert_type()` in
+`src/object.c` dispatches without CRuby's `method_missing` step, so a partial
+protocol only trades one surprise for another.
+
+CRuby's `NUM2LONG()` and `StringValue()` do convert, so a faithful port of a
+CRuby method will arrive with the dispatch in it. Removing it is a deliberate
+difference, not a defect in the port.
+
 ### C code
 
 The core part (parser, bytecode-interpreter, core-lib, etc.) of mruby is
@@ -168,6 +189,33 @@ main(void)
 }
 ```
 
+#### Avoid re-entering the VM from C
+
+A C function whose job is to validate an argument, determine a type, normalize
+a value, or read an internal representation should do that work in C and stop
+there. Do not call back into the Ruby VM from it, whether through
+`mrb_funcall*()`, `mrb_yield*()`, `mrb_obj_new()`, or a conversion that
+dispatches a user-definable method. Re-entrant VM execution can move the stack
+and invalidate pointers held across the call, and a redefined method can change
+the outcome of a check that was meant to be authoritative.
+
+When a method needs both, split it: keep the check in C and express the rest in
+Ruby. `String#match` validates its pattern in C and compiles an accepted String
+in mrblib. A method that takes a block generally belongs in Ruby for the same
+reason; where speed matters, define a C fast path (conventionally named with a
+`__` prefix) and call it from a wrapping Ruby method.
+
+The rule is about the responsibility of the function, not about the presence of
+`mrb_funcall*()`. Entering the VM is legitimate where dispatch is itself the
+specification: `convert_type()` in `src/object.c` for the `to_proc` protocol,
+`mrb_obj_new()` in `src/class.c` running `initialize` and the `inherited`,
+`included` and `method_missing` hooks, the default proc in `src/hash.c`, and
+the `to_a` and `to_enum` delegations in `src/array.c`. When you rely on such a
+case, say why in a comment or in the pull request, and check that exceptions
+and `break` propagate, that intermediate state survives re-entry, and that live
+values stay rooted (see `mrb_gc_arena_restore(mrb, ai); // for mrb_funcall` in
+`src/array.c`).
+
 ### Ruby code
 
 Parts of the standard library of mruby are written in the Ruby programming
@@ -178,6 +226,28 @@ language itself. Please note the following hints for your Ruby code:
 mruby is currently targeting to execute Ruby code which complies to ISO/IEC
 30170:2012 (<https://www.iso.org/standard/59579.html>),
 unless there's a clear reason, e.g. the latest Ruby has changed behavior from ISO.
+
+#### Do not ask an argument what it is
+
+When a method changes what it does based on an argument's type, read that type
+with `Module#===` rather than asking the argument. `is_a?`, `kind_of?`, `nil?`,
+`class` and `respond_to?` are all ordinary methods and can be redefined, so an
+argument that answers them dishonestly decides which branch runs. `Module#===`
+is `mrb_obj_is_kind_of()` in C and cannot be redefined.
+
+```ruby
+raise TypeError, "..." if String === arg   # reads the real type
+raise TypeError, "..." if arg.is_a?(String) # the argument decides
+```
+
+The failures are quiet rather than obvious. A guard skipped this way lets an
+argument reach code written on the assumption that the guard held: recursing
+until the stack runs out, driving a loop with an unconverted value and giving
+back a plausible wrong answer, or naming a class the argument does not have.
+
+This is about type dispatch, not about duck typing. Asking an object what it
+can do is still how a method decides how to use it, once the type question is
+settled.
 
 ## Building documentation
 

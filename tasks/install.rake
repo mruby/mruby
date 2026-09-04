@@ -1,8 +1,13 @@
+# A build config of cross builds alone declares no `host`, and the `mrbc` its
+# targets borrow is internal and installs nothing. There is no host build to
+# install, so these fall back to every target the config did declare.
+host_build = MRuby.targets["host"]
+
 desc "install compiled products (on host)"
-task :install => "install:full:host"
+task :install => (host_build ? "install:full:host" : "install:full")
 
 desc "install compiled executable (on host)"
-task :install_bin => "install:bin:host"
+task :install_bin => (host_build ? "install:bin:host" : "install:bin")
 
 desc "install compiled products (all build targets)"
 task "install:full"

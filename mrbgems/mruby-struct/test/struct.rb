@@ -11,6 +11,15 @@ assert('Struct.new', '15.2.18.3.1') do
   assert_equal [:m1, :m2], c.members
 end
 
+assert('Struct.new with no arguments', '15.2.18.3.1') do
+  c = Struct.new
+  assert_equal Struct, c.superclass
+  assert_equal [], c.members
+  o = c.new
+  assert_equal [], o.members
+  assert_equal 0, o.size
+end
+
 assert('Struct#==', '15.2.18.4.1') do
   c = Struct.new(:m1, :m2)
   cc1 = c.new(1,2)
@@ -19,6 +28,52 @@ assert('Struct#==', '15.2.18.4.1') do
 
   Struct.new(:m1, :m2) { def foo; end }
   assert_raise(NoMethodError) { Struct.new(:m1).new.foo }
+end
+
+assert('Struct#== and #eql? with a member that replaces the storage') do
+  # A member's #== runs while both structs are being compared, and
+  # initialize_copy() there moves the member storage out from under the walk.
+  probe = Class.new do
+    attr_accessor :victim, :donor
+    def ==(_); @victim.replace_from(@donor); true; end
+    alias eql? ==
+  end
+  k = Struct.new(*(0...24).map { |i| "m#{i}".to_sym }) do
+    def replace_from(other); initialize_copy(other); end
+  end
+  donor = k.new(*(0...24).map { |i| 10_000 + i })
+
+  [:==, :eql?].each do |op|
+    p1 = probe.new
+    left = k.new(p1, *(1...24).to_a)
+    right = k.new(Object.new, *(1...24).to_a)
+    p1.victim = left
+    p1.donor = donor
+    assert_false left.__send__(op, right)
+
+    # and with the right operand replaced instead
+    p2 = probe.new
+    l2 = k.new(p2, *(1...24).to_a)
+    r2 = k.new(Object.new, *(1...24).to_a)
+    p2.victim = r2
+    p2.donor = donor
+    assert_false l2.__send__(op, r2)
+  end
+end
+
+assert('Struct#== and #eql? with recursive members') do
+  c = Struct.new(:m0, :m1, :m2, :m3)
+  a = c.new
+  b = c.new
+  d = c.new
+  a.initialize(a, 2, 3, 4)
+  b.initialize(b, 2, 3, 4)
+  d.initialize(d, 9, 3, 4)
+  [:==, :eql?].each do |op|
+    assert_true a.__send__(op, a)
+    assert_true a.__send__(op, b)
+    assert_false a.__send__(op, d)
+  end
 end
 
 assert('Struct#[]', '15.2.18.4.2') do
@@ -254,6 +309,117 @@ assert "Struct initialize with keyword arguments" do
   end
 end
 
+assert "Struct initialize takes a positional hash as a plain value" do
+  c = Struct.new(:foo, :bar)
+
+  o = c.new({foo: 1, bar: 2})
+  assert_equal({foo: 1, bar: 2}, o.foo)
+  assert_nil o.bar
+
+  o2 = c.new({baz: 1})
+  assert_equal({baz: 1}, o2.foo)
+
+  o3 = c.new(1, bar: 2)
+  assert_equal 1, o3.foo
+  assert_equal({bar: 2}, o3.bar)
+
+  h = {foo: 1}
+  o4 = c.new(**h)
+  assert_equal 1, o4.foo
+
+  o5 = c[{foo: 1}]
+  assert_equal({foo: 1}, o5.foo)
+  assert_equal 1, c[foo: 1].foo
+end
+
+assert "Struct.new dispatches an overridden initialize" do
+  c = Struct.new(:foo)
+  sub = Class.new(c) do
+    def initialize(x)
+      super(x * 2)
+    end
+  end
+  assert_equal 2, sub.new(1).foo
+
+  kw = Class.new(c) do
+    def initialize(**h)
+      super(**h)
+    end
+  end
+  assert_equal 3, kw.new(foo: 3).foo
+end
+
+assert "StructClass.[] dispatches an overridden initialize" do
+  c = Class.new(Struct.new(:foo)) do
+    def initialize(x)
+      super(x * 2)
+    end
+  end
+  assert_equal 4, c[2].foo
+
+  kw = Class.new(Struct.new(:foo)) do
+    def initialize(foo: 0)
+      super(foo: foo + 1)
+    end
+  end
+  assert_equal 8, kw[foo: 7].foo
+end
+
+assert "Struct.new forwards a block to an overridden initialize" do
+  c = Class.new(Struct.new(:foo)) do
+    def initialize(&blk)
+      super(blk.call)
+    end
+  end
+  assert_equal 42, c.new { 42 }.foo
+end
+
+assert "Struct.new passes a positional hash to an overridden initialize as one value" do
+  c = Class.new(Struct.new(:foo)) do
+    def initialize(h)
+      super(h)
+    end
+  end
+  assert_equal({a: 1}, c.new({a: 1}).foo)
+end
+
+assert "Struct.new with a splatted empty hash makes a blank struct" do
+  c = Struct.new(:foo)
+  assert_nil c.new(**{}).foo
+
+  o = Class.new(c) do
+    def initialize(*a)
+      super(a.size)
+    end
+  end
+  assert_equal 0, o.new(**{}).foo
+end
+
+assert "Struct.new keeps the direct path on a class whose subclass overrides initialize" do
+  c = Struct.new(:foo)
+  plain = Class.new(c)
+  assert_equal 1, plain.new(1).foo
+  doubled = Class.new(plain) do
+    def initialize(x)
+      super(x * 2)
+    end
+  end
+  assert_equal 2, doubled.new(1).foo
+  assert_equal 1, plain.new(1).foo
+end
+
+assert "overridden initialize forwards keywords through super under keyword_init" do
+  c = Struct.new(:foo, :bar, keyword_init: true)
+  sub = Class.new(c) do
+    def initialize(**h)
+      super(foo: h[:foo], bar: 2)
+    end
+  end
+  s = sub.new(foo: 1)
+  assert_equal 1, s.foo
+  assert_equal 2, s.bar
+end
+
 assert "Struct initialize when :keyword_init is true" do
   c = Struct.new(:foo, :bar, keyword_init: true)
 
@@ -265,11 +431,15 @@ assert "Struct initialize when :keyword_init is true" do
   assert_equal nil, o2.foo
   assert_equal nil, o2.bar
 
-  assert_raise(ArgumentError) do
+  assert_raise_with_message(ArgumentError, "wrong number of arguments (given 2, expected 0)") do
     c.new(1, 2)
   end
 
-  assert_raise(ArgumentError) do
+  assert_raise_with_message(ArgumentError, "wrong number of arguments (given 1, expected 0)") do
+    c.new(1)
+  end
+
+  assert_raise_with_message(ArgumentError, "wrong number of arguments (given 2, expected 0)") do
     c.new({foo: 1}, {bar: 2})
   end
 end
@@ -297,7 +467,38 @@ assert "Struct initialize when :keyword_init is non-boolean value (treat as true
   assert_equal 1, o.foo
   assert_equal 2, o.bar
 
-  assert_raise(ArgumentError) do
+  assert_raise_with_message(ArgumentError, "wrong number of arguments (given 2, expected 0)") do
     c.new(1, 2)
   end
+end
+
+assert "Struct.keyword_init?" do
+  assert_true Struct.new(:foo, keyword_init: true).keyword_init?
+  assert_false Struct.new(:foo, keyword_init: false).keyword_init?
+  assert_nil Struct.new(:foo).keyword_init?
+  assert_nil Struct.new(:foo, keyword_init: nil).keyword_init?
+  assert_true Struct.new(:foo, keyword_init: 12).keyword_init?
+  assert_false Struct.respond_to?(:keyword_init?)
+  assert_false Struct.new(:foo).new(1).respond_to?(:keyword_init?)
+end
+
+assert "Struct subclass inherits :keyword_init" do
+  c = Struct.new(:foo, :bar, keyword_init: true)
+  sub = Class.new(c)
+
+  assert_true sub.keyword_init?
+
+  o = sub.new(foo: 1, bar: 2)
+  assert_equal 1, o.foo
+  assert_equal 2, o.bar
+
+  assert_raise_with_message(ArgumentError, "wrong number of arguments (given 2, expected 0)") do
+    sub.new(1, 2)
+  end
+
+  fsub = Class.new(Struct.new(:foo, keyword_init: false))
+  assert_false fsub.keyword_init?
+  assert_equal({foo: 1}, fsub.new(foo: 1).foo)
+
+  assert_nil Class.new(Struct.new(:foo)).keyword_init?
 end

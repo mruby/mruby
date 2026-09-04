@@ -78,12 +78,39 @@ Instances of classes created by `Data.define` have several useful methods:
   # Output: {:name=>"John Doe", :address=>"123 Main St", :zip=>12345}
   ```
 
+- **`with`**: Takes keyword arguments and returns a new instance with the members they name replaced; the remaining members keep their current values. With no arguments, returns the receiver itself.
+
+  ```ruby
+  point1 = Point.new(1, 2)
+  p point1.with(y: 20)  # Output: #<data Point x=1, y=20>
+  p point1              # Output: #<data Point x=1, y=2> (unchanged)
+  ```
+
 - **`to_s` / `inspect`**: Returns a string representation of the data instance.
 
   ```ruby
   puts customer1 # Output: #<data Customer name="John Doe", address="123 Main St", zip=12345>
   p customer1    # Output: #<data Customer name="John Doe", address="123 Main St", zip=12345>
   ```
+
+## Custom Initialization
+
+You can override `initialize` to validate or normalize attributes. As in CRuby,
+it receives the members as keyword arguments and should pass them to `super`.
+`new` accepts the same positional or keyword arguments and routes them to your
+`initialize`, while `with` copies the already-built values and does not re-run
+it.
+
+```ruby
+Measure = Data.define(:amount, :unit) do
+  def initialize(amount:, unit: "USD")
+    super(amount: amount, unit: unit.to_s)
+  end
+end
+
+Measure.new(amount: 5)            #=> #<data Measure amount=5, unit="USD">
+Measure.new(5, :EUR)              #=> #<data Measure amount=5, unit="EUR">
+```
 
 ## Freezing
 

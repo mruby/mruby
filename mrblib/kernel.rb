@@ -24,7 +24,7 @@ module Kernel
   # Calls the given block repetitively.
   #
   # ISO 15.3.1.3.29
-  private def loop(&block)
+  module_function def loop(&block)
     return to_enum(:loop) unless block
 
     while true
@@ -32,11 +32,6 @@ module Kernel
     end
   rescue StopIteration => e
     e.result
-  end
-
-  # 11.4.4 Step c)
-  def !~(y)
-    !(self =~ y)
   end
 
   def to_enum(*a)

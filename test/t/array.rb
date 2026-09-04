@@ -65,6 +65,71 @@ assert('Array#[]', '15.2.12.5.4') do
   assert_equal("b", a[1.1])
 end
 
+assert('Array#[] redefined on Array itself reaches the redefinition') do
+  # `OP_GETIDX` answers `a[1]` from C and `OP_GETIDX0` answers `a[0]` the same
+  # way whenever the receiver's class is exactly `Array`, which they may only
+  # do while `Array#[]` is still the builtin they reimplement. Both test the
+  # receiver against `mrb->idx_class[]`, which the method table drops the
+  # moment `Array#[]` is replaced, so a redefinition installed on `Array`
+  # itself is honored as in CRuby. The results are read before the operator is
+  # put back because the assertions themselves index arrays.
+  Array.class_eval do
+    alias_method :__aref_before_test, :[]
+    def [](*args)
+      :overridden
+    end
+  end
+  begin
+    a = [7, 8]
+    sub = Class.new(Array).new
+    got0 = a[0]
+    got1 = a[1]
+    got_sub = sub[0]
+  ensure
+    Array.class_eval do
+      alias_method :[], :__aref_before_test
+      # `remove_method` comes from mruby-metaprog, which the core test build
+      # does not have; the saved alias is harmless where it is missing.
+      remove_method :__aref_before_test if respond_to?(:remove_method, true)
+    end
+  end
+  assert_equal :overridden, got0
+  assert_equal :overridden, got1
+  assert_equal :overridden, got_sub
+  # Aliasing the original implementation back re-arms the opcodes.
+  assert_equal 7, [7, 8][0]
+  assert_equal 8, [7, 8][1]
+end
+
+assert('Array#[]= redefined on Array itself reaches the redefinition') do
+  # `OP_SETIDX` answers `a[0] = 9` from C on the same terms; see the `[]` test
+  # above. A redefinition that stores nothing makes the difference visible in
+  # the receiver as well as in the return value.
+  Array.class_eval do
+    alias_method :__aset_before_test, :[]=
+    def []=(*args)
+      $aset_redefinition_args = args
+    end
+  end
+  begin
+    a = [7, 8]
+    a[0] = 9
+    seen = $aset_redefinition_args
+    untouched = a
+  ensure
+    Array.class_eval do
+      alias_method :[]=, :__aset_before_test
+      remove_method :__aset_before_test if respond_to?(:remove_method, true)
+    end
+    $aset_redefinition_args = nil
+  end
+  assert_equal [0, 9], seen
+  assert_equal [7, 8], untouched
+  a = [7, 8]
+  a[0] = 9
+  assert_equal [9, 8], a
+end
+
 assert('Array#[]=', '15.2.12.5.5') do
   a = Array.new
   assert_raise(ArgumentError) do
@@ -107,6 +172,17 @@ assert('Array#[]=', '15.2.12.5.5') do
   a = [1,2,3]
   a[-1,0] = a
   assert_equal([1,2,1,2,3,3], a)
+
+  # passing self with length above ARY_REPLACE_SHARED_MIN (=20).
+  # ary_dup -> ary_replace converts the source to shared as a
+  # copy-on-write optimization; without re-modifying `a` afterwards,
+  # ARY_CAPA(a) reads from aux.shared's pointer bits and the
+  # expand-capa check silently mis-sizes -> heap-buffer-overflow in
+  # value_move. Reported via clusterfuzz mruby_fuzzer.
+  a = (0..30).to_a
+  a[3, 2] = a
+  assert_equal(60, a.length)
+  assert_equal([0, 1, 2] + (0..30).to_a + (5..30).to_a, a)
 end
 
 assert('Array#clear', '15.2.12.5.6') do
@@ -221,6 +297,31 @@ assert('Array#join', '15.2.12.5.17') do
   assert_equal('1,2,3', b)
 end
 
+assert('Array#join nested arrays') do
+  assert_equal('1-2-3-4', [1, [2, 3], 4].join('-'))
+  assert_equal('12345', [[1, 2], [3, [4, 5]]].join)
+end
+
+assert('Array#join detects recursion') do
+  a = []
+  a << a
+  assert_raise(ArgumentError) { a.join }
+
+  x = []
+  y = []
+  x << y
+  y << x
+  assert_raise(ArgumentError) { x.join }
+end
+
+assert('Array#join deeply nested array does not overflow the C stack') do
+  a = []
+  10000.times { a = [a] }
+  # join is iterative, so a deeply nested (non-cyclic) array must not overflow
+  # the native stack; every leaf here is empty, so the result is "".
+  assert_equal('', a.join)
+end
+
 assert('Array#last', '15.2.12.5.18') do
   assert_raise(ArgumentError) do
     # this will cause an exception due to the wrong argument
@@ -229,7 +330,12 @@ assert('Array#last', '15.2.12.5.18') do
 
   a = [1,2,3]
   assert_equal(3, a.last)
+  assert_equal([2,3], a.last(2))
   assert_nil([].last)
+  assert_raise(TypeError) { a.last("2") }
+
+  skip unless Object.const_defined?(:Float)
+  assert_equal([2,3], a.last(2.0))
 end
 
 assert('Array#length', '15.2.12.5.19') do
@@ -380,6 +486,31 @@ assert('Array#unshift', '15.2.12.5.30') do
   assert_equal([0,1,2,3], d)
 end
 
+assert("Array#unshift with shared arrays") do
+  a = Array.new(16) { _1 }
+  a0 = Array.new(16) { _1 }
+  s = a.shift(4)
+  a.unshift(*s)
+  assert_equal a0, a
+
+  a = Array.new(16) { _1 }
+  exp = [-1, *a]
+  s = a.shift(4)
+  a.unshift(-1, *s) # unshift not in-place because of the extra element
+  assert_equal exp, a
+end
+
+assert("Array#unshift taking shared self") do
+  #define ARY_REPLACE_SHARED_MIN 20
+  a = Array.new(32) { _1 }
+  a0 = Array.new(32) { _1 }
+  a1 = a.dup
+  a.unshift(*a1)
+  assert_equal(a0 * 2, a)
+  assert_equal(a0, a1)
+end
+
+
 assert('Array#to_s', '15.2.12.5.31 / 15.2.12.5.32') do
   a = [2, 3,   4, 5]
   a[4] = a
@@ -394,6 +525,26 @@ assert('Array#==', '15.2.12.5.33') do
   assert_false(["a", "c"] == ["a", "c", 7])
   assert_true(["a", "c", 7] == ["a", "c", 7])
   assert_false(["a", "c", 7] == ["a", "d", "f"])
+end
+
+assert('Array#== takes an element for equal to itself') do
+  # `a == b` is answered by `OP_EQ`, which takes two values for equal where
+  # they are the same object and dispatches `==` only after. Comparing the
+  # elements here with `==` went around that, so an object whose `==` answers
+  # false to everything was not equal to itself inside an array while it was
+  # outside one. `#index` searches with the first of the two.
+  class ArrayEqNever
+    def ==(other)
+      false
+    end
+  end
+  never = ArrayEqNever.new
+
+  # `never == never` reads true whatever the definition says, `OP_EQ` having
+  # answered it from the object; the definition is reached by name.
+  assert_false(never.__send__(:==, never))
+  assert_true([never] == [never])
+  assert_equal(0, [never].index(never))
 end
 
 assert('Array#eql?', '15.2.12.5.34') do
@@ -449,11 +600,136 @@ assert('Array#sort!') do
   assert_equal [1, 2, 3], a    # it is sorted.
 end
 
+assert('Array#sort with a NaN in it') do
+  # A NaN stands in no order with anything, so there is no sorted order for an
+  # array holding one and the comparison is refused rather than answered. The
+  # all-Float array takes a comparison of its own inside the sort, so it is
+  # pinned alongside the mixed one, and a longer array is sorted as well
+  # because a short one takes a different route through the sort.
+  skip unless Object.const_defined?(:Float)
+  nan = Float::NAN
+
+  assert_raise(ArgumentError) { [1.0, nan].sort }
+  assert_raise(ArgumentError) { [1, nan].sort }
+  assert_raise(ArgumentError) { [nan, 1.0].sort }
+  assert_raise(ArgumentError) { ([1.0] * 40 + [nan]).sort }
+end
+
+assert('Array#sort with a block that answers with something other than an Integer') do
+  # The block's answer stands for an ordering, and an Integer is one of the
+  # forms it takes rather than the only one: anything else is asked `> 0` and
+  # then `< 0`, and is a tie when neither holds. `nil` is the one answer with
+  # no order in it. This is the map `Enumerable#max` and `#min` already read
+  # their own block through, so an object that orders one orders the other.
+  class SortSign
+    def initialize(n)
+      @n = n
+    end
+
+    def >(other)
+      @n > other
+    end
+
+    def <(other)
+      @n < other
+    end
+  end
+
+  # A short array and a long one take different routes through the sort, so
+  # both are ordered here.
+  descending = Array.new(40) { |i| 40 - i }
+  ascending = Array.new(40) { |i| i + 1 }
+
+  assert_equal [1, 2, 3], [3, 1, 2].sort { |a, b| SortSign.new(a - b) }
+  assert_equal ascending, descending.sort { |a, b| SortSign.new(a - b) }
+  assert_equal [1, 2, 3], [3, 1, 2].sort! { |a, b| SortSign.new(a - b) }
+  assert_equal 3, [3, 1, 2].max { |a, b| SortSign.new(a - b) }
+
+  # An Integer answer is read for its sign alone. -2 is the value the sort
+  # keeps for a pair it cannot order, and a block that answered with it used to
+  # be taken for one.
+  assert_equal [1, 2, 3], [3, 1, 2].sort { |a, b| (a <=> b) * 2 }
+
+  # The wording is the one the rest of the tree gives a pair with no order,
+  # `Comparable` and `Enumerable#max` included.
+  assert_raise_with_message(ArgumentError, "comparison of Integer with Integer failed") {
+    [3, 1, 2].sort { |a, b| nil }
+  }
+end
+
+assert('Array#sort with a block that answers with a Float') do
+  skip unless Object.const_defined?(:Float)
+
+  assert_equal [1, 2, 3], [3, 1, 2].sort { |a, b| (a - b).to_f }
+  assert_equal Array.new(40) { |i| i + 1 },
+               Array.new(40) { |i| 40 - i }.sort { |a, b| (a - b).to_f }
+
+  # A NaN is greater than and less than nothing at all, so every pair it
+  # answers for is a tie and the sort has nothing to order by. Which order it
+  # leaves is its own business; that it answers at all is what is asserted.
+  assert_equal [1, 2, 3], [3, 1, 2].sort { |a, b| Float::NAN }.sort
+end
+
+assert('Array#sort with a block that answers with a big integer') do
+  # A big integer is read for its sign, which is the one thing it can say about
+  # an ordering. The shift count is a variable because a constant shift out of
+  # mrb_int range makes the build fail rather than raise.
+  begin
+    k = 100
+    big = 1 << k
+  rescue RangeError
+    skip 'requires mruby-bigint'
+  end
+
+  assert_equal [1, 2, 3], [3, 1, 2].sort { |a, b| a > b ? big : -big }
+  assert_equal Array.new(40) { |i| i + 1 },
+               Array.new(40) { |i| 40 - i }.sort { |a, b| a > b ? big : -big }
+end
+
+assert('Array#sort of Integers too wide to store inline') do
+  # The sort has a route of its own for an array of Integers, which reads each
+  # element as a number and writes the sorted order back the same way. Word
+  # boxing keeps an Integer past the inline range in an object instead, so that
+  # route is not one it can be written back through, and an array holding one
+  # is sorted like any other. 2**30 is past what a 32-bit word carries inline
+  # and 2**62 past a 64-bit one, so one base or the other is outside it
+  # wherever this runs, and a build too narrow for the wider one raises at the
+  # shift. A short array and a long one take different routes through the
+  # sort, so both are pinned. The shift count is a variable for the reason the
+  # big integer test above gives.
+  bases = [1 << 30]
+  begin
+    k = 62
+    bases << (1 << k)
+  rescue RangeError
+  end
+
+  bases.each do |base|
+    assert_equal [base, base + 1, base + 2], [base + 2, base, base + 1].sort
+    assert_equal Array.new(40) { |i| base + i },
+                 Array.new(40) { |i| base + 39 - i }.sort
+  end
+end
+
 assert('Array#freeze') do
   a = [].freeze
   assert_raise(FrozenError) do
     a[0] = 1
   end
+end
+
+assert('Array - a frozen receiver of a call that writes nothing') do
+  # Each of these leaves the array as it was and used to return before the
+  # write that carries the frozen check.
+  assert_raise(FrozenError) { [].freeze.reverse! }
+  assert_raise(FrozenError) { [1].freeze.reverse! }
+  assert_raise(FrozenError) { [].freeze.sort! }
+  assert_raise(FrozenError) { [1].freeze.sort! }
+  assert_raise(FrozenError) { [].freeze.collect! { |e| e } }
+  assert_raise(FrozenError) { [].freeze.map! { |e| e } }
+  assert_raise(FrozenError) { [1, 2].freeze.__send__(:initialize) }
+  a = [1, 2].freeze
+  assert_raise(FrozenError) { a.replace(a) }
 end
 
 assert('Array#delete') do
@@ -475,4 +751,42 @@ assert('Array#hash with self-referencing arrays') do
   b = []
   b << b
   assert_equal a.hash, b.hash
+end
+
+assert('Array shared from an emptied heap array keeps a buffer') do
+  # ary_make_shared() shrinks the buffer to the length being carried, and
+  # that length can be zero: `pop` leaves the capacity where `clear` gives it
+  # back.  Asking mrb_realloc() for no bytes at all would free the buffer and
+  # answer NULL, so the shrink asks for one element where there are none, and
+  # both arrays are left reading a pointer rather than nothing.
+  a = Array.new(200) { |i| i }
+  200.times { a.pop }
+  skip 'this build keeps an emptied array off the heap' unless AryShared.heap_empty?(a)
+
+  assert_false AryShared.copy_ptr_null?(a)
+  # and it is still an array afterwards
+  assert_equal 0, a.size
+  a.push 1
+  assert_equal [1], a
+end
+
+assert('Array#== and #eql? with recursive elements') do
+  # A pair already being compared is taken as equal and the other elements
+  # decide, as CRuby's recursive_equal() does: read the other way, two arrays
+  # that hold themselves would each be told apart by that very element.
+  a = [1]; a << a
+  b = [1]; b << b
+  c = [9]; c << c
+  d = [1, 2]; d << d
+  [:==, :eql?].each do |op|
+    assert_true a.__send__(op, a), op.to_s
+    assert_true a.__send__(op, b), op.to_s
+    assert_false a.__send__(op, c), op.to_s
+    # the assumption does not paper over a difference elsewhere
+    assert_false a.__send__(op, d), op.to_s
+  end
+  # a cycle through two arrays rather than one
+  e = [1]; f = [1]; e << f; f << e
+  g = [1]; h = [1]; g << h; h << g
+  assert_true e == g
 end

@@ -184,6 +184,29 @@ make_data_define_accessors(mrb_state *mrb, mrb_value members, struct RClass *c)
 
 static mrb_value mrb_data_initialize(mrb_state *mrb, mrb_value self);
 
+/* Store the n values into a Data instance and freeze it, bypassing
+   #initialize.  Used by .new's default path and by #with (which, like CRuby,
+   copies already-built member values and does not re-run a custom initialize). */
+static void
+data_store(mrb_state *mrb, mrb_value data, mrb_int n, mrb_value *vals)
+{
+  mrb_ary_resize(mrb, data, n);
+  for (mrb_int i = 0; i < n; i++) {
+    mrb_ary_set(mrb, data, i, vals[i]);
+  }
+  mrb_obj_freeze(mrb, data);
+}
+
+/* Allocate a frozen Data instance of class c holding the n values directly. */
+static mrb_value
+data_alloc(mrb_state *mrb, struct RClass *c, mrb_int n, mrb_value *vals)
+{
+  struct RArray *p = MRB_OBJ_ALLOC(mrb, MRB_TT_STRUCT, c);
+  mrb_value data = mrb_obj_value(p);
+  data_store(mrb, data, n, vals);
+  return data;
+}
+
 /*
  * call-seq:
  *   DataClass.new(*args)     -> data_instance
@@ -202,11 +225,39 @@ mrb_data_new(mrb_state *mrb, mrb_value self)
 {
   struct RClass *c = mrb_class_ptr(self);
   mrb_value members = data_s_members(mrb, c);
-  mrb_value *vals;
-
   mrb_int n = RARRAY_LEN(members);
   mrb_value *mems = RARRAY_PTR(members);
-  if (mrb->c->ci->nk > 0) {
+
+  struct RArray *p = MRB_OBJ_ALLOC(mrb, MRB_TT_STRUCT, c);
+  mrb_value data = mrb_obj_value(p);
+
+  if (!mrb_func_basic_p(mrb, data, MRB_SYM(initialize), mrb_data_initialize)) {
+    /* overridden initialize: forward the arguments as keyword arguments and
+       let the user-defined initialize decide what is required (matches CRuby).
+       Positional arguments map to members in definition order. */
+    mrb_int argc;
+    const mrb_value *argv;
+    mrb_value kwrest = mrb_nil_value();
+    const mrb_kwargs kw = {0, 0, NULL, NULL, &kwrest};
+    mrb_get_args(mrb, "*:", &argv, &argc, &kw);
+    if (argc > n) {
+      mrb_raisef(mrb, E_ARGUMENT_ERROR,
+                 "wrong number of arguments (given %i, expected 0..%i)", argc, n);
+    }
+    mrb_value hash = mrb_hash_new_capa(mrb, n);
+    for (mrb_int i = 0; i < argc; i++) {
+      mrb_hash_set(mrb, hash, mems[i], argv[i]);
+    }
+    if (!mrb_nil_p(kwrest)) {
+      mrb_hash_merge(mrb, hash, kwrest);
+    }
+    mrb_funcall_argv(mrb, data, MRB_SYM(__init_with_kw), 1, &hash);
+    return data;
+  }
+
+  /* default initialize: store the members directly (fast path) */
+  mrb_value *vals;
+  if (mrb->c->ci->kw) {
     mrb_value tmp = mrb_str_new(mrb, NULL, sizeof(mrb_sym)*n);
     mrb_sym *knames = (mrb_sym*)RSTRING_PTR(tmp);
     mrb_value m = mrb_ary_new_capa(mrb, n);
@@ -225,24 +276,7 @@ mrb_data_new(mrb_state *mrb, mrb_value self)
     }
   }
 
-  struct RArray* p = MRB_OBJ_ALLOC(mrb, MRB_TT_STRUCT, c);
-  mrb_value data = mrb_obj_value(p);
-  if (!mrb_func_basic_p(mrb, data, MRB_SYM(initialize), mrb_data_initialize)) {
-    /* overridden initialize - create hash and call initialize explicitly */
-    mrb_value hash = mrb_hash_new_capa(mrb, n);
-    for (mrb_int i=0; i<n; i++) {
-      mrb_hash_set(mrb, hash, mems[i], vals[i]);
-    }
-    mrb_funcall_argv(mrb, data, MRB_SYM(initialize), 1, &hash);
-  }
-  else {
-    /* default initialize - skip calling initialize */
-    mrb_ary_resize(mrb, data, n);
-    for (mrb_int i = 0; i < n; i++) {
-      mrb_ary_set(mrb, data, i, vals[i]);
-    }
-  }
-  mrb_obj_freeze(mrb, data);
+  data_store(mrb, data, n, vals);
   return data;
 }
 
@@ -326,22 +360,25 @@ mrb_data_s_def(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_data_initialize(mrb_state *mrb, mrb_value self)
 {
-  mrb_value members = data_members(mrb, self);
-
+  /* self is not sized yet, so read members from the class (no length check) */
+  mrb_value members = data_s_members(mrb, mrb_obj_class(mrb, self));
   mrb_int n = RARRAY_LEN(members);
-  mrb_value hash;
-  mrb_get_args(mrb, "H", &hash);
-  if (mrb_hash_size(mrb, hash) != n) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
-  }
-  mrb_ary_resize(mrb, self, n);
-
   mrb_value *mems = RARRAY_PTR(members);
+
+  /* accept the members as keyword arguments (all required), matching CRuby */
+  mrb_value tmp = mrb_str_new(mrb, NULL, sizeof(mrb_sym)*n);
+  mrb_sym *knames = (mrb_sym*)RSTRING_PTR(tmp);
+  mrb_value m = mrb_ary_new_capa(mrb, n);
+  mrb_value *vals = RARRAY_PTR(m);
   for (mrb_int i = 0; i < n; i++) {
-    if (!mrb_hash_key_p(mrb, hash, mems[i])) {
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "undefined data member %v", mems[i]);
-    }
-    mrb_ary_set(mrb, self, i, mrb_hash_get(mrb, hash, mems[i]));
+    knames[i] = mrb_symbol(mems[i]);
+  }
+  const mrb_kwargs kw = {n, n, knames, vals, NULL};
+  mrb_get_args(mrb, ":", &kw);
+
+  mrb_ary_resize(mrb, self, n);
+  for (mrb_int i = 0; i < n; i++) {
+    mrb_ary_set(mrb, self, i, vals[i]);
   }
   mrb_obj_freeze(mrb, self);
   return self;
@@ -509,6 +546,58 @@ mrb_data_to_s(mrb_state *mrb, mrb_value self)
 }
 
 /*
+ * call-seq:
+ *    data.with(**kwargs) -> new_data
+ *
+ * Returns a shallow copy of self with the members named by the keyword
+ * arguments replaced by the given values. The remaining members keep their
+ * current values. With no arguments, returns self.
+ *
+ *    Point = Data.define(:x, :y)
+ *    a = Point.new(x: 1, y: 2)
+ *    a.with(y: 20)   #=> #<data Point x=1, y=20>
+ *    a               #=> #<data Point x=1, y=2>  (unchanged)
+ */
+static mrb_value
+mrb_data_with(mrb_state *mrb, mrb_value self)
+{
+  struct RClass *c = mrb_obj_class(mrb, self);
+  mrb_value members = data_members(mrb, self);
+  mrb_int n = RARRAY_LEN(members);
+  mrb_value *mems = RARRAY_PTR(members);
+
+  /* positional arguments are not allowed */
+  mrb_int argc = mrb_get_argc(mrb);
+  if (argc > 0) {
+    mrb_argnum_error(mrb, argc, 0, 0);
+  }
+  /* no keyword arguments: nothing to update, return self (matches CRuby) */
+  if (!mrb->c->ci->kw) {
+    return self;
+  }
+
+  mrb_value tmp = mrb_str_new(mrb, NULL, sizeof(mrb_sym)*n);
+  mrb_sym *knames = (mrb_sym*)RSTRING_PTR(tmp);
+  mrb_value m = mrb_ary_new_capa(mrb, n);
+  mrb_value *vals = RARRAY_PTR(m);
+  for (mrb_int i=0; i<n; i++) {
+    knames[i] = mrb_symbol(mems[i]);
+    vals[i] = mrb_undef_value();
+  }
+  /* required=0: every member is optional; rest=NULL rejects unknown keywords */
+  const mrb_kwargs kw = {n, 0, knames, vals, NULL};
+  mrb_get_args(mrb, ":", &kw);
+
+  /* members not given as keywords keep the receiver's current values */
+  for (mrb_int i=0; i<n; i++) {
+    if (mrb_undef_p(vals[i])) {
+      vals[i] = RARRAY_PTR(self)[i];
+    }
+  }
+  return data_alloc(mrb, c, n, vals);
+}
+
+/*
  *  A `Data` is a convenient way to bundle a number of
  *  attributes together, using accessor methods, without having to write
  *  an explicit class.
@@ -538,6 +627,7 @@ mrb_mruby_data_gem_init(mrb_state* mrb)
   mrb_define_private_method_id(mrb, d, MRB_SYM(initialize_copy), mrb_data_init_copy,  MRB_ARGS_ANY());
   mrb_define_method_id(mrb, d, MRB_SYM_Q(eql),           mrb_data_eql,        MRB_ARGS_REQ(1));
 
+  mrb_define_method_id(mrb, d, MRB_SYM(with),           mrb_data_with,       MRB_ARGS_ANY());
   mrb_define_method_id(mrb, d, MRB_SYM(to_h),            mrb_data_to_h,       MRB_ARGS_NONE());
   mrb_define_method_id(mrb, d, MRB_SYM(to_s),            mrb_data_to_s,       MRB_ARGS_NONE());
   mrb_define_method_id(mrb, d, MRB_SYM(inspect),         mrb_data_to_s,       MRB_ARGS_NONE());

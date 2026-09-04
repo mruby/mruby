@@ -26,9 +26,10 @@ assert('Benchmark.measure') do
   assert_kind_of(Float, result.cstime)
   assert_kind_of(Float, result.real)
 
-  # For mruby, CPU times are typically 0
-  assert_equal(0.0, result.utime)
-  assert_equal(0.0, result.stime)
+  # The block spends CPU, but too little to promise the clock saw it
+  assert_true(result.utime >= 0)
+  assert_true(result.stime >= 0)
+  # cutime and cstime count children reaped inside the block, and there are none
   assert_equal(0.0, result.cutime)
   assert_equal(0.0, result.cstime)
 
@@ -45,6 +46,44 @@ assert('Benchmark.measure with actual delay') do
 
   # Real time should be measurable (greater than 0)
   assert_true(result.real > 0)
+end
+
+assert('Benchmark.measure counts CPU time') do
+  # Work until Process.times itself has seen the CPU time, so the test asks
+  # nothing of a second clock and a tick-based Process.times (times(2),
+  # Win32) cannot have rounded the stretch to nothing. Bounded, so a reading
+  # that never moves fails the assertion below rather than spinning here
+  # forever; a clock that moves leaves after one round.
+  cpu = lambda { t = Process.times; t.utime + t.stime }
+  result = Benchmark.measure do
+    before = cpu.call
+    20.times do
+      n = 0
+      n += 1 while n < 3_000_000
+      break if cpu.call > before
+    end
+  end
+
+  assert_true(result.utime + result.stime > 0)
+end
+
+assert('Benchmark.measure counts the block CPU time and not the run so far') do
+  # Spend CPU before measuring, so a reading taken whole rather than as the
+  # difference of two carries it. An almost empty block cannot have spent
+  # more CPU than the wall clock it took, and one clock tick of slack leaves
+  # room for a tick-based Process.times to round the block's own stretch up.
+  # Bounded, so a reading that never moves fails the assertion below rather
+  # than spinning here forever: a clock that moves leaves after one round.
+  cpu = lambda { t = Process.times; t.utime + t.stime }
+  before = cpu.call
+  20.times do
+    n = 0
+    n += 1 while n < 3_000_000
+    break if cpu.call > before
+  end
+
+  result = Benchmark.measure { nil }
+  assert_true(result.utime + result.stime <= result.real + 0.05)
 end
 
 assert('Benchmark.realtime') do

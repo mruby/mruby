@@ -53,3 +53,49 @@ end
 assert('Symbol#intern') do
   assert_equal :test, :test.intern
 end
+
+assert('Symbol#slice') do
+  assert_equal 'a', :abc.slice(0)
+  assert_equal 'ab', :abc.slice(0, 2)
+  assert_nil :abc.slice(4, 4)
+  assert_equal 'bc', :abc.slice(1..)
+  assert_equal 'b', :abc.slice("b")
+  assert_nil :abc.slice("z")
+
+  # the answer is a String of its own, not the name the symbol holds on to
+  s = :abc.slice(0, 3)
+  assert_equal 'abc', s
+  assert_false s.frozen?
+
+  # whatever slices the name is what checks the arguments
+  assert_raise(TypeError) { :abc.slice(:b) }
+  assert_raise(ArgumentError) { :abc.slice }
+end
+
+assert('Symbol#[]') do
+  assert_equal 'a', :abc[0]
+  assert_equal 'ab', :abc[0, 2]
+  assert_nil :abc[4, 4]
+  assert_equal 'bc', :abc[1..]
+  assert_equal 'b', :abc["b"]
+end
+
+assert('Symbol#slice - the name comes from the symbol, not from #to_s') do
+  # CRuby's sym_aref() reads the name with rb_sym2str(), so a redefined
+  # Symbol#to_s moves `to_s` and leaves these two where they were.
+  class Symbol
+    alias __slice_test_to_s to_s
+    def to_s
+      "redefined"
+    end
+  end
+  begin
+    assert_equal 'redefined', :abc.to_s
+    assert_equal 'a', :abc.slice(0)
+    assert_equal 'abc', :abc[0, 3]
+  ensure
+    class Symbol
+      alias to_s __slice_test_to_s
+    end
+  end
+end

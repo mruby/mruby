@@ -55,8 +55,5 @@
     |   |
     |   +- 📁 t/                mruby test cases.
     |
-    +- 📁 tools/                External programs used for the mruby project.
-        |
-        +- 📁 lrama/            LALR parser generator as an alternative to bison.
-                                Import from https://github.com/ruby/lrama
+    +- 📁 tools/                Helper scripts used when building mruby.
 ```

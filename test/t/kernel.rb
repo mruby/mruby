@@ -315,6 +315,19 @@ assert('Kernel#method_missing', '15.3.1.3.30') do
   assert_raise_with_message(NoMethodError, msg) do
     a.no_method_named_this
   end
+
+  a = Object.new
+  def a.method_missing(mid, *args, **opts, &blk)
+    [mid, args, opts, blk&.call]
+  end
+  assert_equal [:foo, [], {}, nil], a.foo
+  assert_equal [:foo, [1, 2], {}, nil], a.foo(1, 2)
+  assert_equal [:foo, (1..15).to_a, {}, nil], a.foo(*(1..15).to_a)
+  assert_equal [:foo, [], { k: 1 }, nil], a.foo(k: 1)
+  assert_equal [:foo, [1], { k: 2 }, nil], a.foo(1, k: 2)
+  assert_equal [:foo, [1, 2], {}, 3], a.foo(1, 2) { 3 }
+  assert_equal [:foo, [1], { k: 2 }, 3], a.foo(1, k: 2) { 3 }
+  assert_equal [:foo, [], { k: 1 }, 2], a.foo(k: 1) { 2 }
 end
 
 assert('Kernel#nil?', '15.3.1.3.32') do
@@ -406,6 +419,71 @@ assert('Kernel#respond_to?', '15.3.1.3.43') do
   assert_false Test4RespondTo.new.respond_to?(:test_method)
 end
 
+assert('Kernel#respond_to? with an unimplemented method') do
+  obj = TestNotImplement.new
+
+  assert_false obj.respond_to?(:gone)
+  assert_false obj.respond_to?(:gone, true)
+  assert_false TestNotImplement.respond_to?(:gone)
+  assert_false TestNotImplement.method_defined?(:gone)
+
+  # The method is defined all the same: calling it says why it is not there,
+  # rather than reporting no such method.
+  assert_raise(NotImplementedError) { obj.gone }
+  assert_raise(NotImplementedError) { TestNotImplement.gone }
+end
+
+assert('Kernel#respond_to? skips respond_to_missing? for an unimplemented method') do
+  cls = Class.new(TestNotImplement) do
+    def respond_to_missing?(name, priv = false)
+      true
+    end
+  end
+
+  # A method that exists leaves respond_to_missing? nothing to answer.
+  assert_false cls.new.respond_to?(:gone)
+  assert_true cls.new.respond_to?(:no_such_method)
+end
+
+assert('an unimplemented method can be overridden, aliased and undefined') do
+  overridden = Class.new(TestNotImplement) do
+    def gone
+      :here
+    end
+  end
+  assert_true overridden.new.respond_to?(:gone)
+  assert_equal :here, overridden.new.gone
+
+  aliased = Class.new(TestNotImplement) do
+    alias_method :also_gone, :gone
+  end
+  assert_false aliased.new.respond_to?(:also_gone)
+  assert_raise(NotImplementedError) { aliased.new.also_gone }
+
+  undefined = Class.new(TestNotImplement) do
+    undef_method :gone
+  end
+  assert_false undefined.new.respond_to?(:gone)
+  assert_raise(NoMethodError) { undefined.new.gone }
+end
+
+assert('an unimplemented method reports itself by name') do
+  assert_raise_with_message(NotImplementedError,
+                            'gone() function is unimplemented on this machine') do
+    TestNotImplement.new.gone
+  end
+end
+
+assert('mrb_notimplement() raises where there is no method name to report') do
+  # The name comes from the frame the call is made on, and a call that does not
+  # come from a method has none. Ruby cannot build such a frame; TestNotImplement
+  # makes the call from its own init function and records what came back.
+  assert_true TestNotImplement::NAMELESS_RAISED
+  assert_kind_of NotImplementedError, TestNotImplement::NAMELESS_RESULT
+  assert_equal 'function is unimplemented on this machine',
+               TestNotImplement::NAMELESS_RESULT.message
+end
+
 assert('Kernel#to_s', '15.3.1.3.46') do
   assert_equal to_s.class, String
 end
@@ -439,6 +517,35 @@ assert('Kernel#!~') do
   assert_false y !~ "y"
   assert_false y !~ "z"
   assert_true  y !~ "not y"
+
+  # the answer is a truth value read off what `=~` returned, not that value
+  z = "z"
+  def z.=~(other)
+    other == "z" ? 0 : nil
+  end
+  assert_false z !~ "z"
+  assert_true  z !~ "not z"
+
+  # an exception raised by `=~` is the answer to `!~`
+  e = "e"
+  def e.=~(other)
+    raise ArgumentError, "no match for you"
+  end
+  assert_raise(ArgumentError) { e !~ "e" }
+
+  # `=~` may ask another object the same question while answering
+  class Test4NotMatchPeer
+    def =~(other)
+      other == "b"
+    end
+  end
+  class Test4NotMatch
+    def =~(other)
+      Test4NotMatchPeer.new !~ other
+    end
+  end
+  assert_true  Test4NotMatch.new !~ "b"
+  assert_false Test4NotMatch.new !~ "c"
 end
 
 assert('Kernel#respond_to_missing?') do
@@ -459,4 +566,20 @@ assert('stack extend') do
   end
 
   assert_equal 6, recurse(0, 5)
+end
+
+assert('Kernel module functions') do
+  # the qualified form reaches the module function
+  assert_raise(ArgumentError) { Kernel.raise ArgumentError }
+  assert_false Kernel.block_given?
+  assert_false Kernel.iterator?
+
+  # while the instance-side copies stay private
+  obj = Object.new
+  assert_raise(NoMethodError) { obj.raise ArgumentError }
+  assert_raise(NoMethodError) { obj.block_given? }
+  assert_raise(NoMethodError) { obj.loop }
+
+  # and unrelated modules do not gain them
+  assert_raise(NoMethodError) { Comparable.raise ArgumentError }
 end

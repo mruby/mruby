@@ -25,6 +25,7 @@
   typedef size_t fsize_t;
 #endif
 
+#include <limits.h>
 #include <string.h>
 
 #include <mruby.h>
@@ -134,6 +135,16 @@ static inline const char *get_pf_name(int family) {
 
 #define E_SOCKET_ERROR             mrb_class_get_id(mrb, MRB_SYM(SocketError))
 
+/* Raise a SystemCallError for the most recent socket-API failure.
+ * On Windows the HAL translates WSAGetLastError() into errno first;
+ * on POSIX errno is already set, so this is just mrb_sys_fail. */
+static mrb_noreturn void
+sock_sys_fail(mrb_state *mrb, const char *mesg)
+{
+  mrb_hal_socket_set_errno_from_last_error();
+  mrb_sys_fail(mrb, mesg);
+}
+
 struct gen_addrinfo_args {
   struct RClass *klass;
   struct addrinfo *addrinfo;
@@ -174,6 +185,24 @@ free_addrinfo(mrb_state *mrb, mrb_value addrinfo)
  *   Addrinfo.getaddrinfo("localhost", "http")
  *   Addrinfo.getaddrinfo("www.example.com", 80, Socket::AF_INET)
  */
+static int
+getaddrinfo_hint(mrb_state *mrb, mrb_value val, const char *name)
+{
+  /* getaddrinfo() hint fields are C int; reject values that would not
+     survive the narrowing rather than silently truncating them (#6960).
+     A big integer outgrows mrb_int itself, so it never fits a C int either. */
+  if (mrb_bigint_p(val)) {
+    mrb_raisef(mrb, E_RANGE_ERROR, "getaddrinfo %s out of range: %v", name, val);
+  }
+  mrb_int v = mrb_integer(val);
+#if MRB_INT_MAX > INT_MAX
+  if (v < INT_MIN || v > INT_MAX) {
+    mrb_raisef(mrb, E_RANGE_ERROR, "getaddrinfo %s out of range: %v", name, val);
+  }
+#endif
+  return (int)v;
+}
+
 static mrb_value
 mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
 {
@@ -199,18 +228,21 @@ mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
     mrb_raise(mrb, E_TYPE_ERROR, "service must be String, Integer, or nil");
   }
 
-  hints.ai_flags = (int)flags;
+  hints.ai_flags = getaddrinfo_hint(mrb, mrb_int_value(mrb, flags), "flags");
 
-  if (mrb_integer_p(family)) {
-    hints.ai_family = (int)mrb_integer(family);
+  /* an out of range hint reaches here as a big integer wherever bigint is
+     built in, and `mrb_integer_p` alone would leave the field at its default
+     rather than report the value as out of range */
+  if (mrb_integer_p(family) || mrb_bigint_p(family)) {
+    hints.ai_family = getaddrinfo_hint(mrb, family, "family");
   }
 
-  if (mrb_integer_p(socktype)) {
-    hints.ai_socktype = (int)mrb_integer(socktype);
+  if (mrb_integer_p(socktype) || mrb_bigint_p(socktype)) {
+    hints.ai_socktype = getaddrinfo_hint(mrb, socktype, "socktype");
   }
 
-  if (mrb_integer_p(protocol)) {
-    hints.ai_protocol = (int)mrb_integer(protocol);
+  if (mrb_integer_p(protocol) || mrb_bigint_p(protocol)) {
+    hints.ai_protocol = getaddrinfo_hint(mrb, protocol, "protocol");
   }
 
   int error = getaddrinfo(hostname, servname, &hints, &addr);
@@ -264,6 +296,7 @@ mrb_addrinfo_getnameinfo(mrb_state *mrb, mrb_value self)
  *
  *   addr.unix_path  #=> "/tmp/socket"
  */
+#ifdef MRB_HAL_SOCKET_HAS_SOCKADDR_UN
 static mrb_value
 mrb_addrinfo_unix_path(mrb_state *mrb, mrb_value self)
 {
@@ -275,6 +308,11 @@ mrb_addrinfo_unix_path(mrb_state *mrb, mrb_value self)
 
   return mrb_hal_socket_unix_path(mrb, RSTRING_PTR(sastr), (size_t)RSTRING_LEN(sastr));
 }
+#else
+/* this port has no Unix domain addresses: unimplemented, and named as such
+   so `respond_to?` can answer false */
+# define mrb_addrinfo_unix_path mrb_notimplement_m
+#endif
 
 /* Helper to convert sockaddr to address list array [family, port, host, host] */
 static mrb_value
@@ -295,7 +333,7 @@ sa2addrlist(mrb_state *mrb, const struct sockaddr *sa, socklen_t salen)
   port = ntohs(port);
   mrb_value host = mrb_str_new_capa(mrb, NI_MAXHOST);
   if (getnameinfo(sa, salen, RSTRING_PTR(host), NI_MAXHOST, NULL, 0, NI_NUMERICHOST) == -1)
-    mrb_sys_fail(mrb, "getnameinfo");
+    sock_sys_fail(mrb, "getnameinfo");
   mrb_str_resize(mrb, host, strlen(RSTRING_PTR(host)));
 
   mrb_value ary = mrb_ary_new_capa(mrb, 4);
@@ -327,34 +365,34 @@ socket_family(int s)
   return ss.ss_family;
 }
 
+#ifdef MRB_HAL_SOCKET_HAS_GETPEEREID
 /*
  * call-seq:
  *   basicsocket.getpeereid -> [euid, egid]
  *
  * Returns the effective user ID and group ID of the peer process.
- * Only available on systems that support getpeereid().
+ * Only available on ports that declare getpeereid().
  *
  *   euid, egid = sock.getpeereid
  */
 static mrb_value
 mrb_basicsocket_getpeereid(mrb_state *mrb, mrb_value self)
 {
-#ifdef HAVE_GETPEEREID
-  gid_t egid;
-  uid_t euid;
+  mrb_int euid, egid;
   int s = socket_fd(mrb, self);
-  if (getpeereid(s, &euid, &egid) != 0)
-    mrb_sys_fail(mrb, "getpeereid");
+  if (mrb_hal_socket_getpeereid(mrb, s, &euid, &egid) != 0)
+    sock_sys_fail(mrb, "getpeereid");
 
   mrb_value ary = mrb_ary_new_capa(mrb, 2);
-  mrb_ary_push(mrb, ary, mrb_fixnum_value((mrb_int)euid));
-  mrb_ary_push(mrb, ary, mrb_fixnum_value((mrb_int)egid));
+  mrb_ary_push(mrb, ary, mrb_int_value(mrb, euid));
+  mrb_ary_push(mrb, ary, mrb_int_value(mrb, egid));
   return ary;
-#else
-  mrb_raise(mrb, E_RUNTIME_ERROR, "getpeereid is not available on this system");
-  return mrb_nil_value();
-#endif
 }
+#else
+/* this port has no getpeereid(2): unimplemented, and named as such so
+   `respond_to?` can answer false */
+# define mrb_basicsocket_getpeereid mrb_notimplement_m
+#endif
 
 /*
  * call-seq:
@@ -371,7 +409,7 @@ mrb_basicsocket_getpeername(mrb_state *mrb, mrb_value self)
   socklen_t salen = sizeof(ss);
 
   if (getpeername(socket_fd(mrb, self), (struct sockaddr*)&ss, &salen) != 0)
-    mrb_sys_fail(mrb, "getpeername");
+    sock_sys_fail(mrb, "getpeername");
 
   return mrb_str_new(mrb, (char*)&ss, salen);
 }
@@ -391,7 +429,7 @@ mrb_basicsocket_getsockname(mrb_state *mrb, mrb_value self)
   socklen_t salen = sizeof(ss);
 
   if (getsockname(socket_fd(mrb, self), (struct sockaddr*)&ss, &salen) != 0)
-    mrb_sys_fail(mrb, "getsockname");
+    sock_sys_fail(mrb, "getsockname");
 
   return mrb_str_new(mrb, (char*)&ss, salen);
 }
@@ -569,14 +607,6 @@ socket_option_bool(mrb_state *mrb, mrb_value self)
   return mrb_bool_value((mrb_bool)i);
 }
 
-/* Helper to raise not implemented error for unimplemented Socket::Option methods */
-static mrb_value
-socket_option_notimp(mrb_state *mrb, mrb_value self)
-{
-  mrb_notimplement(mrb);
-  return mrb_nil_value();
-}
-
 /*
  * call-seq:
  *   socket_option.inspect -> string
@@ -636,7 +666,7 @@ mrb_basicsocket_getsockopt(mrb_state *mrb, mrb_value self)
   socklen_t optlen = sizeof(opt);
 
   if (getsockopt(s, (int)level, (int)optname, opt, &optlen) == -1)
-    mrb_sys_fail(mrb, "getsockopt");
+    sock_sys_fail(mrb, "getsockopt");
   mrb_int family = socket_family(s);
   mrb_value data = mrb_str_new(mrb, opt, optlen);
   mrb_value args[4] = {mrb_fixnum_value(family), mrb_fixnum_value(level), mrb_fixnum_value(optname), data};
@@ -658,11 +688,14 @@ mrb_basicsocket_recv(mrb_state *mrb, mrb_value self)
   mrb_int maxlen, flags = 0;
 
   mrb_get_args(mrb, "i|i", &maxlen, &flags);
+  if (maxlen < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative length");
+  }
 
   mrb_value buf = mrb_str_new_capa(mrb, maxlen);
   ssize_t n = recv(socket_fd(mrb, self), RSTRING_PTR(buf), (fsize_t)maxlen, (int)flags);
   if (n == -1)
-    mrb_sys_fail(mrb, "recv");
+    sock_sys_fail(mrb, "recv");
   mrb_str_resize(mrb, buf, (mrb_int)n);
   return buf;
 }
@@ -680,13 +713,16 @@ mrb_basicsocket_recvfrom(mrb_state *mrb, mrb_value self)
   mrb_int maxlen, flags = 0;
 
   mrb_get_args(mrb, "i|i", &maxlen, &flags);
+  if (maxlen < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative length");
+  }
 
   mrb_value buf = mrb_str_new_capa(mrb, maxlen);
   socklen_t socklen = sizeof(struct sockaddr_storage);
   mrb_value sa = mrb_str_new_capa(mrb, socklen);
   ssize_t n = recvfrom(socket_fd(mrb, self), RSTRING_PTR(buf), (fsize_t)maxlen, (int)flags, (struct sockaddr*)RSTRING_PTR(sa), &socklen);
   if (n == -1)
-    mrb_sys_fail(mrb, "recvfrom");
+    sock_sys_fail(mrb, "recvfrom");
   mrb_str_resize(mrb, buf, (mrb_int)n);
   mrb_str_resize(mrb, sa, (mrb_int)socklen);
 
@@ -721,7 +757,7 @@ mrb_basicsocket_send(mrb_state *mrb, mrb_value self)
     n = sendto(socket_fd(mrb, self), RSTRING_PTR(mesg), (fsize_t)RSTRING_LEN(mesg), (int)flags, (const struct sockaddr*)RSTRING_PTR(dest), (fsize_t)RSTRING_LEN(dest));
   }
   if (n == -1)
-    mrb_sys_fail(mrb, "send");
+    sock_sys_fail(mrb, "send");
   return mrb_fixnum_value((mrb_int)n);
 }
 
@@ -743,7 +779,7 @@ mrb_basicsocket_setnonblock(mrb_state *mrb, mrb_value self)
   int fd = socket_fd(mrb, self);
 
   if (mrb_hal_socket_set_nonblock(mrb, fd, nonblocking) == -1)
-    mrb_sys_fail(mrb, "set_nonblock");
+    sock_sys_fail(mrb, "set_nonblock");
 
   return mrb_nil_value();
 }
@@ -801,7 +837,7 @@ mrb_basicsocket_setsockopt(mrb_state *mrb, mrb_value self)
 
   int s = socket_fd(mrb, self);
   if (setsockopt(s, (int)level, (int)optname, RSTRING_PTR(optval), (socklen_t)RSTRING_LEN(optval)) == -1)
-    mrb_sys_fail(mrb, "setsockopt");
+    sock_sys_fail(mrb, "setsockopt");
   return mrb_fixnum_value(0);
 }
 
@@ -822,7 +858,7 @@ mrb_basicsocket_shutdown(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "|i", &how);
   if (shutdown(socket_fd(mrb, self), (int)how) != 0)
-    mrb_sys_fail(mrb, "shutdown");
+    sock_sys_fail(mrb, "shutdown");
   return mrb_fixnum_value(0);
 }
 
@@ -927,6 +963,9 @@ mrb_ipsocket_recvfrom(mrb_state *mrb, mrb_value self)
   mrb_int flags = 0;
 
   mrb_get_args(mrb, "i|i", &maxlen, &flags);
+  if (maxlen < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative length");
+  }
 
   mrb_value buf = mrb_str_new_capa(mrb, maxlen);
   struct sockaddr_storage ss;
@@ -935,7 +974,7 @@ mrb_ipsocket_recvfrom(mrb_state *mrb, mrb_value self)
   ssize_t n = recvfrom(fd, RSTRING_PTR(buf), (fsize_t)maxlen, (int)flags,
                        (struct sockaddr*)&ss, &socklen);
   if (n == -1) {
-    mrb_sys_fail(mrb, "recvfrom");
+    sock_sys_fail(mrb, "recvfrom");
   }
   mrb_str_resize(mrb, buf, (mrb_int)n);
 
@@ -965,9 +1004,39 @@ mrb_socket_gethostname(mrb_state *mrb, mrb_value cls)
   mrb_value buf = mrb_str_new_capa(mrb, (mrb_int)bufsize);
 
   if (gethostname(RSTRING_PTR(buf), (fsize_t)bufsize) != 0)
-    mrb_sys_fail(mrb, "gethostname");
+    sock_sys_fail(mrb, "gethostname");
   mrb_str_resize(mrb, buf, (mrb_int)strlen(RSTRING_PTR(buf)));
   return buf;
+}
+
+/*
+ * call-seq:
+ *   Socket.ip_address_list -> array
+ *
+ * Returns an array of `Addrinfo` objects representing all local IP addresses
+ * on every network interface (both IPv4 and IPv6).  Loopback and link-local
+ * addresses are included; the caller is responsible for filtering.
+ *
+ *   Socket.ip_address_list
+ *   #=> [#<Addrinfo: 127.0.0.1>, #<Addrinfo: ::1>, #<Addrinfo: 192.0.2.1>, ...]
+ *
+ * Backed by `getifaddrs(3)` on POSIX and `GetAdaptersAddresses` on Windows.
+ */
+static mrb_value
+mrb_socket_ip_address_list(mrb_state *mrb, mrb_value klass)
+{
+  (void)klass;
+  mrb_value sas = mrb_hal_socket_ip_address_list(mrb);
+  struct RClass *ainfo = mrb_class_get_id(mrb, MRB_SYM(Addrinfo));
+  mrb_value result = mrb_ary_new_capa(mrb, RARRAY_LEN(sas));
+  int arena_idx = mrb_gc_arena_save(mrb);
+  for (mrb_int i = 0; i < RARRAY_LEN(sas); i++) {
+    mrb_value sa = RARRAY_PTR(sas)[i];
+    mrb_value addr = mrb_obj_new(mrb, ainfo, 1, &sa);
+    mrb_ary_push(mrb, result, addr);
+    mrb_gc_arena_restore(mrb, arena_idx);
+  }
+  return result;
 }
 
 /*
@@ -985,7 +1054,7 @@ mrb_socket_accept(mrb_state *mrb, mrb_value klass)
   mrb_get_args(mrb, "i", &s0);
   int s1 = (int)accept(s0, NULL, NULL);
   if (s1 == -1) {
-    mrb_sys_fail(mrb, "accept");
+    sock_sys_fail(mrb, "accept");
   }
   return mrb_fixnum_value(s1);
 }
@@ -1003,7 +1072,7 @@ mrb_socket_accept2(mrb_state *mrb, mrb_value klass)
 
   int s1 = (int)accept(s0, (struct sockaddr*)RSTRING_PTR(sastr), &socklen);
   if (s1 == -1) {
-    mrb_sys_fail(mrb, "accept");
+    sock_sys_fail(mrb, "accept");
   }
 
   mrb_str_resize(mrb, sastr, socklen);
@@ -1026,7 +1095,7 @@ mrb_socket_bind(mrb_state *mrb, mrb_value klass)
 
   mrb_get_args(mrb, "iS", &s, &sastr);
   if (bind((int)s, (struct sockaddr*)RSTRING_PTR(sastr), (socklen_t)RSTRING_LEN(sastr)) == -1) {
-    mrb_sys_fail(mrb, "bind");
+    sock_sys_fail(mrb, "bind");
   }
   return mrb_nil_value();
 }
@@ -1045,7 +1114,7 @@ mrb_socket_connect(mrb_state *mrb, mrb_value klass)
 
   mrb_get_args(mrb, "iS", &s, &sastr);
   if (connect((int)s, (struct sockaddr*)RSTRING_PTR(sastr), (socklen_t)RSTRING_LEN(sastr)) == -1) {
-    mrb_sys_fail(mrb, "connect");
+    sock_sys_fail(mrb, "connect");
   }
   return mrb_nil_value();
 }
@@ -1063,7 +1132,7 @@ mrb_socket_listen(mrb_state *mrb, mrb_value klass)
 
   mrb_get_args(mrb, "ii", &s, &backlog);
   if (listen((int)s, (int)backlog) == -1) {
-    mrb_sys_fail(mrb, "listen");
+    sock_sys_fail(mrb, "listen");
   }
   return mrb_nil_value();
 }
@@ -1091,6 +1160,7 @@ mrb_socket_sockaddr_family(mrb_state *mrb, mrb_value klass)
  *   Socket.sockaddr_un("/tmp/socket")
  *   Socket.sockaddr_un("/var/run/daemon.sock")
  */
+#ifdef MRB_HAL_SOCKET_HAS_SOCKADDR_UN
 static mrb_value
 mrb_socket_sockaddr_un(mrb_state *mrb, mrb_value klass)
 {
@@ -1099,6 +1169,9 @@ mrb_socket_sockaddr_un(mrb_state *mrb, mrb_value klass)
   mrb_get_args(mrb, "S", &path);
   return mrb_hal_socket_sockaddr_un(mrb, RSTRING_PTR(path), (size_t)RSTRING_LEN(path));
 }
+#else
+# define mrb_socket_sockaddr_un mrb_notimplement_m
+#endif
 
 /*
  * call-seq:
@@ -1110,6 +1183,7 @@ mrb_socket_sockaddr_un(mrb_state *mrb, mrb_value klass)
  *   sock1, sock2 = Socket.socketpair(Socket::AF_UNIX, Socket::SOCK_STREAM)
  *   sock1, sock2 = Socket.pair(Socket::AF_UNIX, Socket::SOCK_DGRAM)
  */
+#ifdef MRB_HAL_SOCKET_HAS_SOCKETPAIR
 static mrb_value
 mrb_socket_socketpair(mrb_state *mrb, mrb_value klass)
 {
@@ -1119,7 +1193,7 @@ mrb_socket_socketpair(mrb_state *mrb, mrb_value klass)
   mrb_get_args(mrb, "iii", &domain, &type, &protocol);
 
   if (mrb_hal_socket_socketpair(mrb, (int)domain, (int)type, (int)protocol, sv) == -1) {
-    mrb_sys_fail(mrb, "socketpair");
+    sock_sys_fail(mrb, "socketpair");
   }
 
   mrb_value ary = mrb_ary_new_capa(mrb, 2);
@@ -1127,6 +1201,11 @@ mrb_socket_socketpair(mrb_state *mrb, mrb_value klass)
   mrb_ary_push(mrb, ary, mrb_fixnum_value(sv[1]));
   return ary;
 }
+#else
+/* this port has no socketpair(2): unimplemented, and named as such so
+   `respond_to?` can answer false */
+# define mrb_socket_socketpair mrb_notimplement_m
+#endif
 
 /*
  * call-seq:
@@ -1145,7 +1224,7 @@ mrb_socket_socket(mrb_state *mrb, mrb_value klass)
 
   int s = (int)socket((int)domain, (int)type, (int)protocol);
   if (s == -1)
-    mrb_sys_fail(mrb, "socket");
+    sock_sys_fail(mrb, "socket");
   return mrb_fixnum_value(s);
 }
 
@@ -1161,36 +1240,18 @@ mrb_tcpsocket_allocate(mrb_state *mrb, mrb_value klass)
   return mrb_obj_value((struct RObject*)mrb_obj_alloc(mrb, ttype, c));
 }
 
-/* Windows overrides for IO methods on BasicSocket objects.
- * This is because sockets on Windows are not the same as file
- * descriptors, and thus functions which operate on file descriptors
- * will break on socket descriptors.
+/* On a port whose socket is not a file descriptor, IO's read and write
+ * cannot take it; these stand in for them through recv() and send().
  */
-#ifdef _WIN32
-/*
- * call-seq:
- *   basicsocket.close -> nil
- *
- * Windows-specific implementation to close socket using closesocket().
- * Overrides IO#close for socket objects on Windows.
- */
-static mrb_value
-mrb_win32_basicsocket_close(mrb_state *mrb, mrb_value self)
-{
-  if (closesocket(socket_fd(mrb, self)) != NO_ERROR)
-    mrb_raise(mrb, E_SOCKET_ERROR, "closesocket unsuccessful");
-  return mrb_nil_value();
-}
-
+#ifndef MRB_HAL_SOCKET_HAS_FD_IO
 /*
  * call-seq:
  *   basicsocket.sysread(maxlen, outbuf=nil) -> string
  *
- * Windows-specific implementation to read from socket using recv().
- * Overrides IO#sysread for socket objects on Windows.
+ * Reads from the socket with recv(), in place of IO#sysread.
  */
 static mrb_value
-mrb_win32_basicsocket_sysread(mrb_state *mrb, mrb_value self)
+mrb_basicsocket_recv_sysread(mrb_state *mrb, mrb_value self)
 {
   mrb_value buf = mrb_nil_value();
   mrb_int maxlen;
@@ -1219,8 +1280,8 @@ mrb_win32_basicsocket_sysread(mrb_state *mrb, mrb_value self)
         mrb_raise(mrb, E_EOF_ERROR, "sysread failed: End of File");
       }
       break;
-    case SOCKET_ERROR: /* Error */
-      mrb_sys_fail(mrb, "recv");
+    case -1: /* Error */
+      sock_sys_fail(mrb, "recv");
       break;
     default:
       if (RSTRING_LEN(buf) != ret) {
@@ -1234,40 +1295,25 @@ mrb_win32_basicsocket_sysread(mrb_state *mrb, mrb_value self)
 
 /*
  * call-seq:
- *   basicsocket.sysseek(offset, whence) -> integer
- *
- * Windows-specific implementation that raises NotImplementedError.
- * Sockets don't support seeking operations.
- */
-static mrb_value
-mrb_win32_basicsocket_sysseek(mrb_state *mrb, mrb_value self)
-{
-  mrb_raise(mrb, E_NOTIMP_ERROR, "sysseek not implemented for windows sockets");
-  return mrb_nil_value();
-}
-
-/*
- * call-seq:
  *   basicsocket.syswrite(string) -> integer
  *
- * Windows-specific implementation to write to socket using send().
- * Overrides IO#syswrite for socket objects on Windows.
+ * Writes to the socket with send(), in place of IO#syswrite.
  */
 static mrb_value
-mrb_win32_basicsocket_syswrite(mrb_state *mrb, mrb_value self)
+mrb_basicsocket_send_syswrite(mrb_state *mrb, mrb_value self)
 {
   mrb_value str;
-  SOCKET sd = socket_fd(mrb, self);
+  int sd = socket_fd(mrb, self);
 
   mrb_get_args(mrb, "S", &str);
 
   int n = send(sd, RSTRING_PTR(str), (int)RSTRING_LEN(str), 0);
-  if (n == SOCKET_ERROR)
-    mrb_sys_fail(mrb, "send");
+  if (n == -1)
+    sock_sys_fail(mrb, "send");
   return mrb_int_value(mrb, n);
 }
 
-#endif
+#endif /* MRB_HAL_SOCKET_HAS_FD_IO */
 
 /* ---------------------------*/
 static const mrb_mt_entry addrinfo_rom_entries[] = {
@@ -1287,13 +1333,21 @@ static const mrb_mt_entry basicsocket_rom_entries[] = {
   MRB_MT_ENTRY(mrb_basicsocket_setsockopt,    MRB_SYM(setsockopt), MRB_ARGS_REQ(1)|MRB_ARGS_OPT(2)),
   MRB_MT_ENTRY(mrb_basicsocket_shutdown,      MRB_SYM(shutdown), MRB_ARGS_OPT(1)),
   MRB_MT_ENTRY(mrb_basicsocket_set_is_socket, MRB_SYM_E(_is_socket), MRB_ARGS_REQ(1)),
-#ifdef _WIN32
-  MRB_MT_ENTRY(mrb_win32_basicsocket_close,    MRB_SYM(close), MRB_ARGS_NONE()),
-  MRB_MT_ENTRY(mrb_win32_basicsocket_sysread,  MRB_SYM(sysread), MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1)),
-  MRB_MT_ENTRY(mrb_win32_basicsocket_sysseek,  MRB_SYM(sysseek), MRB_ARGS_REQ(1)),
-  MRB_MT_ENTRY(mrb_win32_basicsocket_syswrite, MRB_SYM(syswrite), MRB_ARGS_REQ(1)),
-  MRB_MT_ENTRY(mrb_win32_basicsocket_sysread,  MRB_SYM(read), MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1)),
-  MRB_MT_ENTRY(mrb_win32_basicsocket_syswrite, MRB_SYM(write), MRB_ARGS_REQ(1)),
+#ifndef MRB_HAL_SOCKET_HAS_FD_IO
+  /* The port's socket is not a file descriptor, so IO's read and write are
+     replaced and there is nothing to seek. `close` stays IO's: on Windows
+     fptr_finalize() closes a socket with closesocket() and then clears the
+     descriptor, which an override here did not, leaving the object open to
+     being closed a second time. That is mruby-io's knowledge of Winsock,
+     not this macro's: a port for another host whose socket is not a
+     descriptor has to teach IO.new and IO#close the same before it leaves
+     MRB_HAL_SOCKET_HAS_FD_IO out. */
+  MRB_MT_ENTRY(mrb_basicsocket_recv_sysread,  MRB_SYM(sysread), MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1)),
+  /* unimplemented, and named as such so `respond_to?` can answer false */
+  MRB_MT_ENTRY(mrb_notimplement_m,            MRB_SYM(sysseek), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(mrb_basicsocket_send_syswrite, MRB_SYM(syswrite), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(mrb_basicsocket_recv_sysread,  MRB_SYM(read), MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1)),
+  MRB_MT_ENTRY(mrb_basicsocket_send_syswrite, MRB_SYM(write), MRB_ARGS_REQ(1)),
 #endif
 };
 
@@ -1310,8 +1364,9 @@ static const mrb_mt_entry socket_option_rom_entries[] = {
   MRB_MT_ENTRY(socket_option_data,    MRB_SYM(data),    MRB_ARGS_REQ(0)),
   MRB_MT_ENTRY(socket_option_bool,    MRB_SYM(bool),    MRB_ARGS_REQ(0)),
   MRB_MT_ENTRY(socket_option_int,     MRB_SYM(int),     MRB_ARGS_REQ(0)),
-  MRB_MT_ENTRY(socket_option_notimp,  MRB_SYM(linger),  MRB_ARGS_REQ(0)),
-  MRB_MT_ENTRY(socket_option_notimp,  MRB_SYM(unpack), MRB_ARGS_REQ(1)),
+  /* unimplemented, and named as such so `respond_to?` can answer false */
+  MRB_MT_ENTRY(mrb_notimplement_m,    MRB_SYM(linger),  MRB_ARGS_REQ(0)),
+  MRB_MT_ENTRY(mrb_notimplement_m,    MRB_SYM(unpack), MRB_ARGS_REQ(1)),
 };
 
 void
@@ -1342,6 +1397,7 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
   mrb_define_class_method_id(mrb, sock, MRB_SYM(_sockaddr_family), mrb_socket_sockaddr_family, MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, sock, MRB_SYM(_socket), mrb_socket_socket, MRB_ARGS_REQ(3));
   mrb_define_class_method_id(mrb, sock, MRB_SYM(gethostname), mrb_socket_gethostname, MRB_ARGS_NONE());
+  mrb_define_class_method_id(mrb, sock, MRB_SYM(ip_address_list), mrb_socket_ip_address_list, MRB_ARGS_NONE());
   mrb_define_class_method_id(mrb, sock, MRB_SYM(sockaddr_un), mrb_socket_sockaddr_un, MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, sock, MRB_SYM(socketpair), mrb_socket_socketpair, MRB_ARGS_REQ(3));
 

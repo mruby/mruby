@@ -13,7 +13,7 @@ module Enumerable
   #    a.drop(3)             #=> [4, 5, 0]
 
   def drop(n)
-    n = n.__to_int
+    n = Integer.__ensure(n)
     raise ArgumentError, "attempt to drop negative size" if n < 0
 
     ary = []
@@ -56,8 +56,7 @@ module Enumerable
   #    a.take(3)             #=> [1, 2, 3]
 
   def take(n)
-    n = n.__to_int
-    i = n.to_i
+    i = Integer.__ensure(n)
     raise ArgumentError, "attempt to take negative size" if i < 0
     ary = []
     return ary if i == 0
@@ -112,7 +111,7 @@ module Enumerable
   #     [8, 9, 10]
 
   def each_cons(n, &block)
-    n = n.__to_int
+    n = Integer.__ensure(n)
     raise ArgumentError, "invalid size" if n <= 0
 
     return to_enum(:each_cons,n) unless block
@@ -140,7 +139,7 @@ module Enumerable
   #     [10]
 
   def each_slice(n, &block)
-    n = n.__to_int
+    n = Integer.__ensure(n)
     raise ArgumentError, "invalid slice size" if n <= 0
 
     return to_enum(:each_slice,n) unless block
@@ -210,7 +209,7 @@ module Enumerable
       end
       return nil
     when 1
-      i = args[0].__to_int
+      i = Integer.__ensure(args[0])
       raise ArgumentError, "attempt to take negative size" if i < 0
       ary = []
       return ary if i == 0
@@ -237,17 +236,20 @@ module Enumerable
   # counts the number of elements yielding a true value.
   def count(v=NONE, &block)
     count = 0
-    if block
-      self.each do |*val|
-        count += 1 if block.call(*val)
+    # An argument decides even where a block came with it, as in CRuby and as
+    # in Array#count; the block was tested first here, so the argument was
+    # read only where none came.
+    if NONE.equal?(v)
+      if block
+        self.each do |*val|
+          count += 1 if block.call(*val)
+        end
+      else
+        self.each { count += 1 }
       end
     else
-      if NONE.equal?(v)
-        self.each { count += 1 }
-      else
-        self.each do |*val|
-          count += 1 if val.__svalue == v
-        end
+      self.each do |*val|
+        count += 1 if val.__svalue == v
       end
     end
     count
@@ -308,9 +310,15 @@ module Enumerable
         max_cmp = block.call(*val)
         first = false
       else
-        if (cmp = block.call(*val)) > max_cmp
+        value = block.call(*val)
+        # A comparison with no answer is not an ordering, the same as in
+        # Enumerable#max: without this the operator below would place a pair
+        # that stands in none.
+        cmp = (value <=> max_cmp)
+        raise ArgumentError, "comparison of #{value.class} with #{max_cmp.class} failed" if cmp.nil?
+        if cmp > 0
           max = val.__svalue
-          max_cmp = cmp
+          max_cmp = value
         end
       end
     end
@@ -342,9 +350,14 @@ module Enumerable
         min_cmp = block.call(*val)
         first = false
       else
-        if (cmp = block.call(*val)) < min_cmp
+        value = block.call(*val)
+        # A comparison with no answer is not an ordering, the same as in
+        # Enumerable#min.
+        cmp = (value <=> min_cmp)
+        raise ArgumentError, "comparison of #{value.class} with #{min_cmp.class} failed" if cmp.nil?
+        if cmp < 0
           min = val.__svalue
-          min_cmp = cmp
+          min_cmp = value
         end
       end
     end
@@ -370,20 +383,41 @@ module Enumerable
     min = nil
     first = true
 
-    self.each do |*val|
-      if first
+    # The block is asked for out here rather than once an element, as in
+    # `Enumerable#max`; the loop body is the same either way but for what it
+    # compares with.
+    if block
+      self.each do |*val|
         val = val.__svalue
-        max = val
-        min = val
-        first = false
-      else
-        val = val.__svalue
-        if block
-          max = val if block.call(val, max) > 0
-          min = val if block.call(val, min) < 0
+        if first
+          max = val
+          min = val
+          first = false
         else
-          max = val if (val <=> max) > 0
-          min = val if (val <=> min) < 0
+          # A comparison with no answer is not an ordering, the same as in
+          # Enumerable#max and #min.
+          cmp = block.call(val, max)
+          raise ArgumentError, "comparison of #{val.class} with #{max.class} failed" if cmp.nil?
+          max = val if cmp > 0
+          cmp = block.call(val, min)
+          raise ArgumentError, "comparison of #{val.class} with #{min.class} failed" if cmp.nil?
+          min = val if cmp < 0
+        end
+      end
+    else
+      self.each do |*val|
+        val = val.__svalue
+        if first
+          max = val
+          min = val
+          first = false
+        else
+          cmp = (val <=> max)
+          raise ArgumentError, "comparison of #{val.class} with #{max.class} failed" if cmp.nil?
+          max = val if cmp > 0
+          cmp = (val <=> min)
+          raise ArgumentError, "comparison of #{val.class} with #{min.class} failed" if cmp.nil?
+          min = val if cmp < 0
         end
       end
     end
@@ -418,13 +452,24 @@ module Enumerable
         max_cmp = min_cmp = block.call(*val)
         first = false
       else
-        if (cmp = block.call(*val)) > max_cmp
+        # The block is asked once an element and its value held, as it is in
+        # Enumerable#max_by and #min_by: the two bounds are both placed against
+        # the one value, where asking again would let a block that answers
+        # differently each time place the element in two orders.
+        value = block.call(*val)
+        # A comparison with no answer is not an ordering, the same as in
+        # Enumerable#minmax, which this walks by the block's values.
+        cmp = (value <=> max_cmp)
+        raise ArgumentError, "comparison of #{value.class} with #{max_cmp.class} failed" if cmp.nil?
+        if cmp > 0
           max = val.__svalue
-          max_cmp = cmp
+          max_cmp = value
         end
-        if (cmp = block.call(*val)) < min_cmp
+        cmp = (value <=> min_cmp)
+        raise ArgumentError, "comparison of #{value.class} with #{min_cmp.class} failed" if cmp.nil?
+        if cmp < 0
           min = val.__svalue
-          min_cmp = cmp
+          min_cmp = value
         end
       end
     end
@@ -658,7 +703,7 @@ module Enumerable
     if nv.nil?
       n = -1
     else
-      n = nv.__to_int
+      n = Integer.__ensure(nv)
       return nil if n <= 0
     end
 
@@ -785,14 +830,14 @@ module Enumerable
     if blk
       self.each do |v|
         v = blk.call(v)
-        raise TypeError, "wrong element type #{v.class} (expected Array)" unless v.is_a? Array
+        raise TypeError, "wrong element type #{v.class} (expected Array)" unless Array === v
         raise ArgumentError, "element has wrong array length (expected 2, was #{v.size})" if v.size != 2
         h[v[0]] = v[1]
       end
     else
       self.each do |*v|
         v = v.__svalue
-        raise TypeError, "wrong element type #{v.class} (expected Array)" unless v.is_a? Array
+        raise TypeError, "wrong element type #{v.class} (expected Array)" unless Array === v
         raise ArgumentError, "element has wrong array length (expected 2, was #{v.size})" if v.size != 2
         h[v[0]] = v[1]
       end

@@ -845,11 +845,15 @@ end
       assert_equal(pairs, h.to_a)
 
       assert_raise(FrozenError){h.freeze.__send__(meth, &filter)}
+      # A block that leaves every pair where it is never reaches the delete
+      # that carries the frozen check.
+      assert_raise(FrozenError){h.freeze.__send__(meth){meth == :select!}}
     end
 
     h = {}
     assert_nil(h.__send__(meth){})
     assert_predicate(h, :empty?)
+    assert_raise(FrozenError){{}.freeze.__send__(meth){}}
   end
 end
 
@@ -947,6 +951,28 @@ assert('Hash#rehash') do
   [1, 17].each{assert_equal(_1 * 2, h[_1])}
 end
 
+assert('Hash iteration with entries deleted ahead of the cursor') do
+  # Regression for GHSA-jfmr-44fc-gfhg: a block that deletes not-yet-visited
+  # entries during iteration must not let the entry scan run past the end of
+  # the entry array (heap out-of-bounds read / type confusion).
+  h = {}
+  20.times { |i| h[i] = i * 10 }
+  visited = 0
+  h.each do |k, v|
+    visited += 1
+    # On the first call, delete every entry except the current one.
+    h.keys.each { |kk| h.delete(kk) unless kk == k } if visited == 1
+  end
+  assert_true(visited >= 1)   # must have run without crashing
+  assert_equal(1, h.size)     # only the first-visited entry remains
+
+  # Deleting the current entry on every step (delete_if-style) stays correct.
+  g = {}
+  20.times { |i| g[i] = i }
+  g.each { |k, v| g.delete(k) }
+  assert_predicate(g, :empty?)
+end
+
 assert('Hash#assoc, Hash#rassoc') do
   h = {foo: 0, bar: 1, baz: 2}
   assert_equal([:bar, 1], h.assoc(:bar))
@@ -973,4 +999,84 @@ assert('test value omission') do
   x = 1
   y = 2
   assert_equal({x:1, y:2}, {x:, y:})
+end
+
+assert('Hash#[] and Hash#[]= redefined on Hash itself reach the redefinition') do
+  # `OP_GETIDX`, `OP_GETIDX0` and `OP_SETIDX` answer from C whenever the
+  # receiver's class is exactly `Hash`, which they may only do while `Hash#[]`
+  # and `Hash#[]=` are still the builtins they reimplement. Each tests the
+  # receiver against `mrb->idx_class[]`, which the method table drops the
+  # moment the operator is replaced, so a redefinition installed on `Hash`
+  # itself is honored as in CRuby.
+  Hash.class_eval do
+    alias_method :__aref_before_test, :[]
+    alias_method :__aset_before_test, :[]=
+    def [](*args)
+      :overridden
+    end
+    def []=(*args)
+      $hash_aset_redefinition_args = args
+    end
+  end
+  begin
+    h = {0 => :zero, 1 => :one}
+    got0 = h[0]
+    got1 = h[1]
+    h[2] = :two
+    seen = $hash_aset_redefinition_args
+    untouched = h.size
+    sub = Class.new(Hash).new
+    got_sub = sub[0]
+  ensure
+    Hash.class_eval do
+      alias_method :[], :__aref_before_test
+      alias_method :[]=, :__aset_before_test
+      # `remove_method` comes from mruby-metaprog, which the core test build
+      # does not have; the saved aliases are harmless where it is missing.
+      if respond_to?(:remove_method, true)
+        remove_method :__aref_before_test
+        remove_method :__aset_before_test
+      end
+    end
+    $hash_aset_redefinition_args = nil
+  end
+  assert_equal :overridden, got0
+  assert_equal :overridden, got1
+  assert_equal :overridden, got_sub
+  assert_equal [2, :two], seen
+  assert_equal 2, untouched
+  # Aliasing the original implementations back re-arms the opcodes.
+  h = {0 => :zero, 1 => :one}
+  h[2] = :two
+  assert_equal :zero, h[0]
+  assert_equal :one, h[1]
+  assert_equal 3, h.size
+end
+
+assert('Hash#[] with a default proc that grows the VM stack') do
+  # The default proc re-enters the VM, and enough frames of it reallocate the
+  # stack. `OP_GETIDX0` and `OP_GETIDX` answer from C, so each has to store its
+  # result through the refreshed registers rather than the ones it came in
+  # with. The corruption is silent without a sanitizer, so this only fails
+  # reliably under `build_config/clang-asan.rb`.
+  def self.deep(n)
+    return 0 if n == 0
+    deep(n - 1)
+  end
+  h = Hash.new { |_, _| deep(50); :from_proc }
+  assert_equal :from_proc, h[0]
+  assert_equal :from_proc, h[1]
+end
+
+assert('Hash#== and #eql? with recursive values') do
+  # see the Array case: the pair under comparison is assumed equal and the
+  # rest of the entries settle it.
+  a = {x: 1}; a[:s] = a
+  b = {x: 1}; b[:s] = b
+  c = {x: 9}; c[:s] = c
+  [:==, :eql?].each do |op|
+    assert_true a.__send__(op, a), op.to_s
+    assert_true a.__send__(op, b), op.to_s
+    assert_false a.__send__(op, c), op.to_s
+  end
 end

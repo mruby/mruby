@@ -24,6 +24,19 @@ assert('Range#cover?') do
   assert_false (.."c").cover?("d"..)
 end
 
+assert('Range#cover? with a NaN') do
+  # `cover?` reads the same comparison `===` does, and an endless range answers
+  # a covered range by testing that comparison for the pair it cannot compare,
+  # which a NaN now is.
+  skip unless Object.const_defined?(:Float)
+  nan = Float::NAN
+
+  assert_false (1..2).cover?(nan)
+  assert_false (1..).cover?(nan)
+  assert_false (..2).cover?(nan)
+  assert_false (1..).cover?(nan..)
+end
+
 assert('Range#first') do
   assert_equal 10, (10..20).first
   assert_equal [10, 11, 12], (10..20).first(3)
@@ -42,6 +55,9 @@ assert('Range#last') do
   assert_raise(RangeError) { (10...).last }
   assert_equal [18, 19, 20], (10..20).last(3)
   assert_equal [17, 18, 19], (10...20).last(3)
+
+  skip unless Object.const_defined?(:Float)
+  assert_equal [18, 19, 20], (10..20).last(3.0)
 end
 
 assert('Range#size') do

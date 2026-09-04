@@ -64,6 +64,19 @@ assert("Array#uniq!") do
   assert_nil d.uniq! { |s| s.first }
 end
 
+assert("Array - a frozen receiver of a call that writes nothing") do
+  # Each of these leaves the array as it was and used to return before the
+  # write that carries the frozen check.
+  assert_raise(FrozenError) { [].freeze.uniq! }
+  assert_raise(FrozenError) { [1].freeze.uniq! }
+  assert_raise(FrozenError) { [1, 2].freeze.uniq! { |e| e } }
+  assert_raise(FrozenError) { [1, 2].freeze.insert(0) }
+  assert_raise(FrozenError) { [1, 2].freeze.fill(9, 0, 0) }
+  assert_raise(FrozenError) { [1, 2].freeze.fill(0, 0) { |i| i } }
+  assert_raise(FrozenError) { [1, 2].freeze.reject! { false } }
+  assert_raise(FrozenError) { [1, 2].freeze.select! { true } }
+end
+
 assert("Array#uniq") do
   a = [1, 2, 3, 1]
   assert_equal [1, 2, 3], a.uniq
@@ -71,6 +84,31 @@ assert("Array#uniq") do
 
   b = [["student","sam"], ["student","george"], ["teacher","matz"]]
   assert_equal [["student", "sam"], ["teacher", "matz"]], b.uniq { |s| s.first }
+end
+
+assert("Array#uniq, Array#- and Array#include? with a NaN") do
+  # A NaN is equal to no value, its own included, so none of these can find one
+  # by what it is equal to; they search for the object instead, and every NaN
+  # made is one of its own, so that two made apart are two objects.
+  skip unless Object.const_defined?(:Float)
+  z = [0.0][0]
+  a = z / z
+  b = z / z
+
+  assert_equal 1, [a, a].uniq.size
+  assert_equal 2, [a, b].uniq.size
+  assert_equal 0, ([a] - [a]).size
+  assert_equal 1, ([a] - [b]).size
+  assert_equal 1, ([a] & [a]).size
+  assert_equal 0, ([a] & [b]).size
+  assert_true [a].include?(a)
+  assert_false [a].include?(b)
+  assert_true [a].member?(a)
+
+  # a Float that is equal to itself is found by what it is equal to
+  x = z + 1.5
+  y = z + 1.5
+  assert_true [x].include?(y)
 end
 
 assert("Array#-") do
@@ -83,9 +121,9 @@ assert("Array#-") do
   assert_equal [2, 3], (a - b)
   assert_equal [1, 2, 3, 1], a
 
-  # Test hash-based implementation (other_ary length > 32)
+  # Test hash-based implementation (other_ary length past the hash threshold)
   a = (1..50).to_a
-  b = (15..50).to_a  # 36 elements > 32, triggers hash approach
+  b = (15..50).to_a  # well past the hash threshold
   result = a - b
   expected = (1..14).to_a
 
@@ -94,7 +132,7 @@ assert("Array#-") do
 
   # Test with larger removal set
   a = (1..60).to_a
-  b = (20..55).to_a  # 36 elements > 32, triggers hash approach
+  b = (20..55).to_a  # well past the hash threshold
   result = a - b
   expected = (1..19).to_a + (56..60).to_a
 
@@ -112,7 +150,7 @@ assert("Array#-") do
 
   # Test removing no elements
   a = (1..20).to_a
-  b = (30..50).to_a  # 21 elements > 16, triggers hash approach
+  b = (30..50).to_a  # past the hash threshold
   result = a - b
   expected = (1..20).to_a
 
@@ -139,9 +177,9 @@ assert("Array#|") do
 end
 
 assert("Array#| with large arrays") do
-  # Test hash-based implementation (total length > 32)
+  # Test hash-based implementation (total length past the hash threshold)
   a = (1..25).to_a
-  b = (20..45).to_a  # total = 51 > 32, triggers hash approach
+  b = (20..45).to_a  # well past the hash threshold
   result = a | b
   expected = (1..45).to_a
 
@@ -150,7 +188,7 @@ assert("Array#| with large arrays") do
 
   # Test with overlapping ranges
   a = (1..20).to_a
-  b = (15..35).to_a  # total = 41 > 32, triggers hash approach
+  b = (15..35).to_a  # well past the hash threshold
   result = a | b
   expected = (1..35).to_a
 
@@ -182,6 +220,22 @@ assert("Array#difference") do
   assert_equal [2, 3], a.difference(b,c)
 end
 
+assert("Array#difference drops an element found in any argument, on either path") do
+  # `-` keeps a set path and a walk, and several arguments mean "drop what any
+  # one of them holds". Only the walk was ever asked that with more than one
+  # argument: every case above is small enough to take it. The set path had
+  # the same gap when `Array#intersection` answered `self & (a | b)` there and
+  # nothing caught it, so ask this one on both sides and require agreement.
+  pad = (100..140).to_a
+  a = [1, 2, 3] + pad             # 44 elements, long enough for the set path
+  b = [1] + (200..220).to_a       # holds 1 but not 2
+  c = [2] + (300..320).to_a       # holds 2 but not 1; 44 argument elements
+  assert_equal [3] + pad, a.difference(b, c)
+
+  # the same question below the threshold, where the walk answers it
+  assert_equal [3], [1, 2, 3].difference([1], [2])
+end
+
 assert("Array#&") do
   a = [1, 2, 3, 1]
   b = [1, 4]
@@ -193,9 +247,9 @@ assert("Array#&") do
 end
 
 assert("Array#& with large arrays") do
-  # Test hash-based implementation (other_ary length > 32)
+  # Test hash-based implementation (other_ary length past the hash threshold)
   a = (1..50).to_a
-  b = (20..55).to_a  # 36 elements > 32, triggers hash approach
+  b = (20..55).to_a  # well past the hash threshold
   result = a & b
   expected = (20..50).to_a
 
@@ -204,7 +258,7 @@ assert("Array#& with large arrays") do
 
   # Test with larger intersection set
   a = (1..60).to_a
-  b = (25..60).to_a  # 36 elements > 32, triggers hash approach
+  b = (25..60).to_a  # well past the hash threshold
   result = a & b
   expected = (25..60).to_a
 
@@ -213,7 +267,7 @@ assert("Array#& with large arrays") do
 
   # Test with duplicates in first array
   a = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10]
-  b = (5..25).to_a  # 21 elements > 16, triggers hash approach
+  b = (5..25).to_a  # past the hash threshold
   result = a & b
   expected = [5, 6, 7, 8, 9, 10]  # no duplicates in result
 
@@ -222,7 +276,7 @@ assert("Array#& with large arrays") do
 
   # Test no intersection
   a = (1..20).to_a
-  b = (30..50).to_a  # 21 elements > 16, triggers hash approach
+  b = (30..50).to_a  # past the hash threshold
   result = a & b
   expected = []
 
@@ -264,27 +318,27 @@ assert("Array#intersect?") do
 end
 
 assert("Array#intersect? with large arrays") do
-  # Test hash-based implementation (shorter array > 32)
+  # Test hash-based implementation (shorter array past the hash threshold)
   a = (1..50).to_a
-  b = (40..75).to_a  # 36 elements > 32, but a is longer so b is shorter
+  b = (40..75).to_a  # well past the threshold, but a is longer so b is shorter
   result = a.intersect?(b)
   assert_true(result)  # should find intersection at 40-50
 
   # Test with larger arrays, no intersection
   a = (1..30).to_a
-  b = (50..85).to_a  # 36 elements > 32, triggers hash approach
+  b = (50..85).to_a  # well past the hash threshold
   result = a.intersect?(b)
   assert_false(result)  # no intersection
 
   # Test with first element matching (early termination)
   a = (1..30).to_a
-  b = [1] + (50..70).to_a  # 22 elements > 16, first element matches
+  b = [1] + (50..70).to_a  # past the threshold, first element matches
   result = a.intersect?(b)
   assert_true(result)  # should terminate early on first element
 
   # Test with last element matching
   a = (1..30).to_a
-  b = (50..70).to_a + [30]  # 22 elements > 16, last element matches
+  b = (50..70).to_a + [30]  # past the threshold, last element matches
   result = a.intersect?(b)
   assert_true(result)  # should find match at the end
 
@@ -301,13 +355,13 @@ assert("Array#intersect? with large arrays") do
 
   # Test array size optimization (shorter array used for hash)
   a = (1..5).to_a  # shorter
-  b = (3..30).to_a  # longer, 28 elements > 16
+  b = (3..30).to_a  # longer, past the threshold
   result = a.intersect?(b)
   assert_true(result)  # should use a (shorter) for hash, find 3,4,5
 
   # Test with duplicates
   a = [1, 1, 2, 2, 3, 3] * 5  # 30 elements with duplicates
-  b = (25..50).to_a  # 26 elements > 16, no intersection
+  b = (25..50).to_a  # past the threshold, no intersection
   result = a.intersect?(b)
   assert_false(result)
 
@@ -411,6 +465,13 @@ assert("Array#fill") do
   # Test extending array
   a = [1, 2]
   assert_equal [1, 2, nil, nil, "x"], a.fill("x", 4, 1)
+
+  # start + length must not overflow mrb_int
+  # (shift width via a variable; the folded literal is unrepresentable on MRB_INT32)
+  bits = 63
+  a = [1, 2, 3, 4, 5]
+  assert_raise(ArgumentError, RangeError) { a.fill(0, 1, ~(-1 << bits)) }
+  assert_equal [1, 2, 3, 4, 5], a
 end
 
 
@@ -530,6 +591,13 @@ assert("Array#insert") do
   assert_equal "x", a[500]
   assert_equal 499, a[499]
   assert_equal 500, a[501]
+
+  # index + argc must not overflow mrb_int
+  # (shift width via a variable; the folded literal is unrepresentable on MRB_INT32)
+  bits = 63
+  a = [1, 2, 3, 4, 5]
+  assert_raise(ArgumentError, RangeError) { a.insert(~(-1 << bits), 99) }
+  assert_equal [1, 2, 3, 4, 5], a
 end
 
 assert("Array#bsearch") do
@@ -846,4 +914,241 @@ assert("Array#rfind") do
 
   # Works with different types
   assert_equal "b", ["a", "b", "c", "b", "a"].rfind { |x| x > "a" }  # scanning from end: a,b - b matches
+end
+
+assert('Array#uniq over an array of duplicates keeps the arena') do
+  # Every turn of the walk protects the element it reads, so every turn has to
+  # give the arena slot back. The restore sat inside the branch an element not
+  # seen before takes, so a duplicate left its slot behind, and a hundred of
+  # them filled a fixed arena and raised where the answer was one comparison
+  # away. A build whose arena grows never noticed.
+  a = Array.new(300) { "x" }
+  assert_equal ["x"], a.uniq
+  assert_equal ["x"], a.dup.uniq!
+
+  b = Array.new(300) { |i| (i % 3).to_s }
+  assert_equal ["0", "1", "2"], b.uniq
+end
+
+assert('mrb_ary_unshift respects a frozen receiver') do
+  # An array that has been shifted keeps the room in front of it and carries
+  # its storage as shared. mrb_ary_unshift() used to take that room without
+  # asking whether the array may be written to, so a frozen array was quietly
+  # changed; the same call on an array that is not shared raised.
+  a = Array.new(16) { |i| i }
+  a.shift(4)
+  a.freeze
+  assert_raise(FrozenError) { a.__unshift_from_c(99) }
+  assert_equal (4..15).to_a, a
+
+  b = [1, 2, 3].freeze
+  assert_raise(FrozenError) { b.__unshift_from_c(0) }
+  assert_equal [1, 2, 3], b
+
+  # and the two paths still answer where the receiver may be written to
+  c = Array.new(16) { |i| i }
+  c.shift(4)
+  assert_equal 99, c.__unshift_from_c(99)[0]
+  assert_equal 13, c.size
+  d = [1, 2]
+  assert_equal [0, 1, 2], d.__unshift_from_c(0)
+end
+
+assert('Array set operations compare with eql? on both sides of the hash threshold') do
+  # What the block is about is a pair that `==` calls equal and `eql?` does
+  # not, which is `1` and `1.0`. Under MRB_NO_FLOAT there is no such pair:
+  # every literal below reads as an Integer, `pad.map { |i| i + 0.0 }` is
+  # `pad` itself, and the rows stop asking what they were written to ask.
+  skip unless Object.const_defined?(:Float)
+  # Each of these operations has two implementations, picked by a length
+  # threshold of 8: a hash path whose equality callback is eql?, and a linear
+  # walk that used to compare with ==. 1 == 1.0 is true where 1.eql?(1.0) is
+  # false, so the same pair of elements was one element or two depending only
+  # on how long the array was. The linear walks now compare with eql? too.
+  pad = (2..40).to_a  # enough to carry any of these arrays past the threshold
+  long_receiver = [1] + pad
+  long_floats = pad.map { |i| i + 0.0 } + [1.0]
+
+  # uniq/uniq! take the threshold from the receiver
+  assert_equal [1, 1.0], [1, 1.0].uniq
+  assert_equal [1, 1.0] + pad, ([1, 1.0] + pad).uniq
+  # nothing to remove any more, so uniq! reports no change on either path
+  assert_nil [1, 1.0].uniq!
+  big = [1, 1.0] + pad
+  assert_nil big.uniq!
+  # and it still reports a change, and removes the right element, when the
+  # duplicate really is eql?
+  small_dup = [1, 1.0, 1]
+  assert_equal [1, 1.0], small_dup.uniq!
+
+  # `-` takes the set only when both sides are long enough to pay for it, so
+  # it needs a row for each way of being short as well as one for neither
+  assert_equal [1], [1] - [1.0]
+  assert_equal [1] + pad, long_receiver - [1.0]
+  assert_equal [1], [1] - [1.0, 2.0]
+  assert_equal [1], [1] - long_floats
+  assert_equal [1] + pad, long_receiver - long_floats
+
+  assert_equal [], [1] & [1.0]
+  assert_equal [], long_receiver & [1.0]
+  assert_equal [], [1] & long_floats
+  # the result dedup inside `&` is the same comparison
+  assert_equal [1, 1.0], ([1, 1.0] & [1, 1.0])
+
+  # intersect? takes it from the shorter of the two
+  assert_false [1].intersect?([1.0])
+  assert_false long_receiver.intersect?([1.0])
+  assert_false long_floats.intersect?([1])
+
+  # `|` already compared with eql? on both paths, and so did the block form of
+  # uniq, which is written over a Hash; they have to keep agreeing with the
+  # operations above rather than contradicting them
+  assert_equal [1, 1.0], [1] | [1.0]
+  assert_equal [1] + pad + [1.0], long_receiver | [1.0]
+  assert_equal [1, 1.0], [1, 1.0].uniq { |x| x }
+
+  # and elements that really are eql? still collapse on the linear paths
+  assert_equal [1.0], [1.0, 1.0].uniq
+  assert_equal [], [1.0] - [1.0]
+  assert_equal [1.0], [1.0] & [1.0]
+  assert_true [1.0].intersect?([1.0])
+end
+
+assert('Array#max, #min - the walk made in C') do
+  # Without a block the walk is made in C rather than through Enumerable#max,
+  # so every answer the Ruby walk gave has to survive the move.
+  assert_nil [].max
+  assert_nil [].min
+  assert_equal 5, [5].max          # one element is never compared
+  assert_equal 5, [5].min
+  assert_equal 3, [3, 1, 2].max
+  assert_equal 1, [3, 1, 2].min
+  assert_equal "b", ["a", "b"].max
+  assert_equal "a", ["a", "b"].min
+
+  # a tie is answered by the element that came first, as `cmp > 0` decided.
+  # Under MRB_NO_FLOAT the literal below is Integer 0, not a tie at all.
+  if Object.const_defined?(:Float)
+    a = [1, 1.0]
+    assert_true 1.eql?(a.max) && 1.eql?(a.min)
+  end
+
+  # the block form is still Enumerable#max, reached through super
+  assert_equal 1, [3, 1, 2].max {|x, y| y <=> x }
+  assert_equal 3, [3, 1, 2].min {|x, y| y <=> x }
+
+  # a pair that stands in no order is refused the same way either side
+  assert_raise(ArgumentError) { [1, "a"].max }
+  assert_raise(ArgumentError) { [1, "a"].min }
+  assert_raise(ArgumentError) { [1, "a"].max {|x, y| x <=> y } }
+  if Object.const_defined?(:Float)
+    assert_raise(ArgumentError) { [1.0, Float::NAN, 2.0].max }
+    assert_raise(ArgumentError) { [1.0, Float::NAN, 2.0].min }
+  end
+end
+
+assert('Array#max, #min - a comparison that runs Ruby') do
+  # `<=>` can run Ruby, which can empty the array being walked or grow it.
+  # The C walk reads the length and the element afresh each time round.
+  cls = Class.new do
+    include Comparable
+    def initialize(v, a); @v = v; @a = a; end
+    attr_reader :v
+    def <=>(o); @a.clear; @v <=> o.v; end
+  end
+  a = []
+  3.times {|i| a << cls.new(i, a) }
+  assert_kind_of cls, a.max
+  assert_equal 0, a.size
+end
+
+assert('Array#include?, #member? - the walk made in C') do
+  # `Enumerable#include?` reaches an element through a call to `each`, a block
+  # call and a `__svalue` send, then compares it with `==`. An Array is walked
+  # in place instead, and the pair is compared with `mrb_equal()`, which is
+  # what `Array#index` and `#delete` search with.
+  assert_false [].include?(1)
+  assert_true [1, 2, 3].include?(1)      # the first element is reached
+  assert_true [1, 2, 3].include?(3)      # and so is the last
+  assert_false [1, 2, 3].include?(4)
+  assert_true [1, 2, 3].member?(2)
+  assert_false [1, 2, 3].member?(4)
+
+  assert_true ["a", "b"].include?("a")   # found by what it is equal to
+  assert_true [nil].include?(nil)
+  assert_true [false].include?(false)
+  assert_false [nil].include?(false)
+
+  # an element is taken for equal to itself before `==` is asked anything,
+  # which is how `#index` reads a pair
+  never = Class.new { def ==(other); false; end }.new
+  assert_true [never].include?(never)
+  assert_equal 0, [never].index(never)
+end
+
+assert('Array#include? - a comparison that runs Ruby') do
+  # `==` can run Ruby, which can empty the array being walked. The C walk
+  # reads the length and the pointer afresh each time round.
+  cls = Class.new do
+    def initialize(a); @a = a; end
+    def ==(o); @a.clear; false; end
+  end
+  a = [1, 2]
+  a << cls.new(a)
+  assert_false a.include?(:missing)
+  assert_equal 0, a.size
+end
+
+assert('Array#intersection narrows by every argument, not by their union') do
+  # The hash path used to pour every argument into one set and then keep the
+  # elements of `self` found in it, which answers `self & (a | b | ...)`: an
+  # element missing from one argument survived because another one carried it.
+  # The linear path always looped over the arguments and got this right, so
+  # the answer depended on whether the arguments totalled more than 32.
+  a = [1, 2]
+  b = (1..20).to_a    # holds 1 and 2
+  c = (10..30).to_a   # holds neither; 41 elements in all, so the hash path
+  assert_equal [], a.intersection(b, c)
+
+  # the same shape below the threshold, which was already correct
+  assert_equal [], a.intersection([1, 2, 3], [10, 11])
+
+  # a narrowing that keeps something; each pair below is the same question
+  # asked once above and once below the threshold, so both must answer alike
+  d = [1, 2, 3, 4]
+  assert_equal [2, 3, 4], d.intersection((1..20).to_a, (2..30).to_a)
+  assert_equal [2, 3, 4], d.intersection([1, 2, 3, 4], [2, 3, 4])
+
+  # duplicates in the receiver still collapse to one, on both paths
+  assert_equal [2, 5], [2, 2, 5].intersection((1..20).to_a, (2..30).to_a)
+  assert_equal [2, 5], [2, 2, 5].intersection([2, 5], [2, 5])
+
+  # an argument holding nothing empties the answer whatever the others hold
+  assert_equal [], [1, 2, 3].intersection((1..40).to_a, [])
+  assert_equal [], [1, 2, 3].intersection([1, 2, 3], [])
+
+  # three arguments narrow in turn, and the receiver still decides the order
+  assert_equal [3, 1], [3, 1, 2, 1].intersection((1..40).to_a, (1..40).to_a, [1, 3])
+  assert_equal [3, 1], [3, 1, 2, 1].intersection([1, 2, 3], [1, 2, 3], [1, 3])
+
+  # a single argument is the `&` case and must not regress
+  assert_equal [1, 2], a.intersection((1..40).to_a)
+  assert_equal [1, 2], a.intersection([1, 2, 3])
+end
+
+assert('Array#intersection with no argument copies the receiver') do
+  # Nothing to narrow by, so every element survives. An empty Array was
+  # answered instead, which is what narrowing by nothing at all would give.
+  a = [1, 2, 2, 3]
+  r = a.intersection
+  assert_equal [1, 2, 2, 3], r      # duplicates are kept: no argument took them
+  assert_false r.equal?(a)          # and it is a copy, not the receiver
+  assert_equal [], [].intersection
+
+  # a frozen receiver still answers, the copy being a new Array
+  assert_equal [1, 2], [1, 2].freeze.intersection
+
+  # an argument narrows as before, on both sides of the length threshold
+  assert_equal [2, 3], [1, 2, 3].intersection([2, 3])
+  assert_equal [1, 2, 3], [1, 2, 3].intersection((1..40).to_a)
 end

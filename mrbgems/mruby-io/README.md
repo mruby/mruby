@@ -33,8 +33,8 @@ Add the line below to your build configuration.
 | IO.write                   |          |          |
 | IO#<<                      |          |          |
 | IO#advise                  |          |          |
-| IO#autoclose=              |          |          |
-| IO#autoclose?              |          |          |
+| IO#autoclose=              | o        |          |
+| IO#autoclose?              | o        |          |
 | IO#binmode                 |          |          |
 | IO#binmode?                |          |          |
 | IO#bytes                   |          | obsolete |
@@ -173,6 +173,35 @@ Add the line below to your build configuration.
 
 If your (non Windows) platform does not support `getpwnam(3)` for some reason, define `MRB_IO_NO_PWNAM`.
 See [mruby#5358](https://github.com/mruby/mruby/issues/5358).
+
+## What the port declares
+
+Whether a method exists is the port's to say, since the port is what a build
+names and a `hal-io-<conf>` gem may stand in for the bundled ones. Each port
+publishes an `io_hal_features.h` in its `include/`, which
+`include/io_hal.h` reads before it declares anything. One macro there guards the prototype, the
+port's implementation and the method definition, so a capability the port does
+not declare has no method at all rather than one that fails, and
+`respond_to?` answers false. A port that declares a capability it does not
+implement fails to link.
+
+| macro                          | methods                         | posix             | win |
+| ------------------------------ | ------------------------------- | ----------------- | --- |
+| `MRB_HAL_IO_HAS_SYMLINK`       | `File.symlink`, `File.readlink` | o                 |     |
+| `MRB_HAL_IO_HAS_FLOCK`         | `File#flock`                    | o, not on Solaris | o   |
+| `MRB_HAL_IO_HAS_STAT_FIFO`     | `FileTest.pipe?`                | o                 |     |
+| `MRB_HAL_IO_HAS_STAT_SYMLINK`  | `FileTest.symlink?`             | o                 |     |
+| `MRB_HAL_IO_HAS_STAT_SOCKET`   | `FileTest.socket?`              | o                 |     |
+| `MRB_HAL_IO_HAS_SPAWN_PROCESS` | `IO.popen`                      | o, not on iOS     | o   |
+
+The three `STAT` macros name no port function. They say which file kinds the
+`st_mode` from `mrb_hal_io_stat()` can hold, and the predicate each guards
+reads that kind through the `MRB_IO_S_IS*` macros of `io_hal.h`.
+
+`MRB_NO_IO_POPEN` is a build's veto: a configuration that defines it gets the
+gem without `IO.popen` whatever the port could do, `io_hal.h` undefining
+`MRB_HAL_IO_HAS_SPAWN_PROCESS` after the port has spoken. Either way `IO.popen`
+raises `NotImplementedError` and `IO.respond_to?(:_popen)` answers false.
 
 ## License
 

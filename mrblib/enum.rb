@@ -25,7 +25,7 @@ module Enumerable
   # ISO 15.3.2.2.1
   def all?(&block)
     if block
-      self.each {|*val| return false unless block.call(*val)}
+      self.each {|*val| return false unless yield(*val)}
     else
       self.each {|*val| return false unless val.__svalue}
     end
@@ -42,7 +42,7 @@ module Enumerable
   # ISO 15.3.2.2.2
   def any?(&block)
     if block
-      self.each {|*val| return true if block.call(*val)}
+      self.each {|*val| return true if yield(*val)}
     else
       self.each {|*val| return true if val.__svalue}
     end
@@ -60,7 +60,7 @@ module Enumerable
     return to_enum(:collect) unless block
 
     ary = []
-    self.each {|*val| ary.push(block.call(*val))}
+    self.each {|*val| ary.push(yield(*val))}
     ary
   end
 
@@ -76,7 +76,7 @@ module Enumerable
     return to_enum(:detect, ifnone) unless block
 
     self.each {|*val|
-      if block.call(*val)
+      if yield(*val)
         return val.__svalue
       end
     }
@@ -95,7 +95,7 @@ module Enumerable
 
     i = 0
     self.each {|*val|
-      block.call(val.__svalue, i)
+      yield(val.__svalue, i)
       i += 1
     }
     self
@@ -133,7 +133,7 @@ module Enumerable
 
     ary = []
     self.each {|*val|
-      ary.push(val.__svalue) if block.call(*val)
+      ary.push(val.__svalue) if yield(*val)
     }
     ary
   end
@@ -151,7 +151,7 @@ module Enumerable
     self.each {|*val|
       sv = val.__svalue
       if pattern === sv
-        ary.push((block)? block.call(*val): sv)
+        ary.push((block)? yield(*val): sv)
       end
     }
     ary
@@ -223,20 +223,37 @@ module Enumerable
   def max(&block)
     flag = true  # 1st element?
     result = nil
-    self.each {|*val|
-      val = val.__svalue
-      if flag
-        # 1st element
-        result = val
-        flag = false
-      else
-        if block
-          result = val if block.call(val, result) > 0
+    # The block is asked for out here rather than once an element: what the
+    # loop does with a pair is the same either way, and the test is worth more
+    # outside the loop than the second copy of the body costs.
+    if block
+      self.each {|*val|
+        val = val.__svalue
+        if flag
+          # 1st element
+          result = val
+          flag = false
         else
-          result = val if (val <=> result) > 0
+          cmp = yield(val, result)
+          # A comparison with no answer is not an ordering: without this the
+          # line below would ask nil whether it is positive.
+          raise ArgumentError, "comparison of #{val.class} with #{result.class} failed" if cmp.nil?
+          result = val if cmp > 0
         end
-      end
-    }
+      }
+    else
+      self.each {|*val|
+        val = val.__svalue
+        if flag
+          result = val
+          flag = false
+        else
+          cmp = (val <=> result)
+          raise ArgumentError, "comparison of #{val.class} with #{result.class} failed" if cmp.nil?
+          result = val if cmp > 0
+        end
+      }
+    end
     result
   end
 
@@ -250,20 +267,33 @@ module Enumerable
   def min(&block)
     flag = true  # 1st element?
     result = nil
-    self.each {|*val|
-      val = val.__svalue
-      if flag
-        # 1st element
-        result = val
-        flag = false
-      else
-        if block
-          result = val if block.call(val, result) < 0
+    # see `max` above for why the block is asked for out here
+    if block
+      self.each {|*val|
+        val = val.__svalue
+        if flag
+          # 1st element
+          result = val
+          flag = false
         else
-          result = val if (val <=> result) < 0
+          cmp = yield(val, result)
+          raise ArgumentError, "comparison of #{val.class} with #{result.class} failed" if cmp.nil?
+          result = val if cmp < 0
         end
-      end
-    }
+      }
+    else
+      self.each {|*val|
+        val = val.__svalue
+        if flag
+          result = val
+          flag = false
+        else
+          cmp = (val <=> result)
+          raise ArgumentError, "comparison of #{val.class} with #{result.class} failed" if cmp.nil?
+          result = val if cmp < 0
+        end
+      }
+    end
     result
   end
 
@@ -289,7 +319,7 @@ module Enumerable
     ary_T = []
     ary_F = []
     self.each {|*val|
-      if block.call(*val)
+      if yield(*val)
         ary_T.push(val.__svalue)
       else
         ary_F.push(val.__svalue)
@@ -310,7 +340,7 @@ module Enumerable
 
     ary = []
     self.each {|*val|
-      ary.push(val.__svalue) unless block.call(*val)
+      ary.push(val.__svalue) unless yield(*val)
     }
     ary
   end

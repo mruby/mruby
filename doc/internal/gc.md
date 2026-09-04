@@ -131,7 +131,9 @@ limit = (GC_STEP_SIZE / 100) * step_ratio
 ```
 
 With default `step_ratio = 200` and `GC_STEP_SIZE = 1024`, the
-limit is 2048 objects per step.
+limit is 2048 objects per step. After each step, `gc_debt` is
+decremented by the actual number of objects processed, so larger
+steps repay more debt.
 
 When the gray stack is exhausted, the final marking phase re-marks
 the arena and global variables to catch objects created during
@@ -273,7 +275,7 @@ From Ruby: `GC.generational_mode = true/false`.
 `mrb_obj_alloc()` is the core allocation function:
 
 1. If `MRB_GC_STRESS` is defined, run a full GC
-2. If `gc->live >= gc->threshold`, run `mrb_incremental_gc()`
+2. Increment `gc->gc_debt`; if positive, run `mrb_incremental_gc()`
 3. Ensure arena has space (`gc_arena_keep`)
 4. Pop an object from the freelist of `gc->free_heaps`
 5. If no free pages, allocate a new page (`add_heap`)
@@ -299,18 +301,49 @@ The object's type is set to `MRB_TT_FREE` after freeing.
 
 ## Triggering GC
 
-### Automatic
+### Debt Model
 
-GC runs automatically when `gc->live >= gc->threshold` during
-object allocation. After each cycle:
+GC uses a **debt-based feedback model** to balance allocation
+rate against collection work. The key field is `gc->gc_debt`
+(signed integer):
+
+- **Negative** = credit (GC is ahead, no collection needed)
+- **Zero** = balanced
+- **Positive** = debt (allocation outpacing collection, GC runs)
+
+Each object allocation increments `gc_debt` by 1. When debt
+goes positive, `mrb_incremental_gc()` runs. Each incremental
+step decrements debt by `GC_STEP_SIZE` (1024), giving credit
+for many future allocations.
+
+When a GC cycle completes, credit is calculated from
+`interval_ratio`:
 
 ```text
-threshold = (live_after_mark / 100) * interval_ratio
+credit = (live_after_mark / 100) * interval_ratio - live_after_mark
 minimum: GC_STEP_SIZE (1024)
+gc_debt = -credit
 ```
 
-With default `interval_ratio = 200`, GC triggers when live objects
-roughly double.
+With default `interval_ratio = 200` and 1000 live objects:
+`credit = (1000/100)*200 - 1000 = 1000`, so approximately 1000
+allocations can occur before the next GC cycle begins.
+
+### Malloc Pressure
+
+When `gc->malloc_threshold` is non-zero (it is `MRB_GC_MALLOC_THRESHOLD`
+by default), the GC also tracks bytes allocated through
+`mrb_realloc_simple()` in `gc->malloc_increase`. When
+`malloc_increase` reaches `malloc_threshold`, the counter resets
+and an incremental GC step runs. This captures memory pressure
+from large buffers (e.g., long strings) that would otherwise be
+invisible to the object-count-based debt model.
+
+Only a fresh allocation may step the collector here; a `realloc`
+has already freed the caller's old block and the caller has not
+yet stored the new pointer, so marking in that window would walk
+freed memory. Byte pressure from reallocs is not lost, it fires
+at the next fresh allocation.
 
 ### Manual
 
@@ -333,6 +366,7 @@ From Ruby: `GC.start`.
 | `MRB_GC_FIXED_ARENA`           | off     | Use fixed-size arena                    |
 | `MRB_GC_TURN_OFF_GENERATIONAL` | off     | Disable generational mode               |
 | `MRB_GC_STRESS`                | off     | Full GC on every allocation (debug)     |
+| `MRB_GC_STATS`                 | off     | Enable GC statistics counters           |
 | `MRB_USE_MALLOC_TRIM`          | off     | Call `malloc_trim()` after full GC      |
 
 ### Runtime
@@ -340,18 +374,135 @@ From Ruby: `GC.start`.
 From Ruby code:
 
 ```ruby
-GC.interval_ratio = 200   # threshold = live * ratio / 100
-GC.step_ratio = 200       # objects per incremental step
+GC.interval_ratio = 200     # controls debt credit after GC cycle
+GC.step_ratio = 200         # objects per incremental step
+GC.step_limit = 0           # 0=unlimited, >0=absolute step cap
+GC.malloc_threshold = 16777216 # 0=disabled, >0=bytes to trigger GC
 GC.generational_mode = true
-GC.start                   # force full GC
-GC.enable                  # re-enable GC
-GC.disable                 # disable GC
+GC.start                     # force full GC
+GC.enable                    # re-enable GC
+GC.disable                   # disable GC
 ```
+
+### GC Statistics
+
+`GC.stat` returns a Hash with GC state and statistics:
+
+```ruby
+GC.stat
+# => {
+#   :live => 5432,              # live object count
+#   :debt => -1024,             # GC debt (negative=credit, positive=behind)
+#   :state => 0,                # 0=root, 1=marking, 2=sweeping
+#   :generational => true,      # generational mode enabled
+#   :full => false,             # major GC in progress
+#   :step_limit => 0,           # current step limit setting
+#   :malloc_increase => 8192,   # malloc bytes since last cycle
+#   :malloc_threshold => 16777216, # current malloc threshold setting
+# }
+```
+
+With `MRB_GC_STATS` enabled, additional keys are available:
+
+```ruby
+#   :total => 15,               # total GC invocations
+#   :minor => 12,               # minor GC count
+#   :major => 3,                # major GC count
+```
+
+### Tuning Guide
+
+**`interval_ratio`** (default 200): Controls how many allocations
+occur between GC cycles. Higher values reduce GC frequency but
+increase peak memory. The debt credit after each cycle is
+`(live_after_mark / 100) * interval_ratio - live_after_mark`.
+
+**`step_ratio`** (default 200): Controls how much work each
+incremental step performs. Higher values make each step larger,
+reducing total GC overhead but increasing individual pause times.
+
+**`step_limit`** (default 0, unlimited): Caps the maximum work
+per incremental step regardless of `step_ratio`. Useful for
+real-time applications that need bounded pause times. The
+effective step size is `min(step_ratio calculation, step_limit)`.
+
+**`malloc_threshold`** (default `MRB_GC_MALLOC_THRESHOLD`, 16MiB,
+or `SIZE_MAX/4` where `size_t` is too narrow to hold that; 0
+disables it): Triggers GC when cumulative `malloc`/`realloc`
+bytes reach this threshold. This is what collects large buffers
+(strings, data objects) that create memory pressure without a
+proportional object count increase; without it a workload that
+churns buffers has no debt to pay and the collector never runs.
+Lower it to react sooner on a small memory budget.
+
+### Practical Tuning Examples
+
+**Allocation-heavy workloads** (many short-lived Procs, closures,
+blocks): GC sweep dominates because of high object churn. Increase
+`interval_ratio` to reduce GC frequency:
+
+```ruby
+GC.interval_ratio = 400  # ~12% faster than default (200)
+```
+
+Higher values (400-600) reduce sweep overhead at the cost of more
+dead objects accumulating before collection. Values above 600 show
+diminishing returns. Peak memory usage increases temporarily, but
+live object count after GC remains the same.
+
+**CPU-intensive workloads** (numeric computation, recursive methods
+with no object allocation): GC parameters have negligible impact
+because GC rarely runs. No tuning needed.
+
+**Real-time or latency-sensitive** applications: Use `step_limit`
+to bound pause times:
+
+```ruby
+GC.step_limit = 256  # cap incremental step to 256 objects
+```
+
+This makes GC pauses more predictable but increases total GC
+overhead (more steps needed per cycle).
+
+**Large buffer workloads** (reading files, building long strings):
+`malloc_threshold` already collects these at its 16MiB default.
+Lower it to react sooner, at the cost of more collections:
+
+```ruby
+GC.malloc_threshold = 1024 * 1024  # trigger GC per ~1MB allocated
+```
+
+**Small memory budgets** (a target with a few hundred KiB of RAM):
+the default is inert there, because the counter is cleared at the end
+of every collection cycle and a small heap collects often enough that
+it never accumulates 16MiB. Measured high-water marks of
+`malloc_increase` on a host build: 188KB over two million small
+allocations, 710KB for `benchmark/bm_ao_render.rb`, and a small heap
+collects more often than either. To make the byte axis fire on such a
+target, set `MRB_GC_MALLOC_THRESHOLD` to something on the order of the
+memory budget. On the two million allocation workload, `65536` leaves
+the collection count unchanged and `32768` adds 3% more minor
+collections.
+
+### Diagnosing GC Overhead
+
+Use `GC.stat` to monitor GC behavior at runtime:
+
+```ruby
+s = GC.stat
+puts "live objects: #{s[:live]}"
+puts "GC debt: #{s[:debt]}"     # positive = GC is behind
+puts "GC state: #{s[:state]}"   # 0=idle, 1=marking, 2=sweeping
+```
+
+If `debt` is frequently positive during performance-critical
+sections, increase `interval_ratio`. If memory usage is too high,
+decrease it.
 
 ## Source Files
 
 | File                 | Contents                          |
 | -------------------- | --------------------------------- |
-| `src/gc.c`           | GC implementation (~1400 lines)   |
+| `src/gc.c`           | GC implementation                 |
 | `include/mruby/gc.h` | `mrb_gc` structure, public GC API |
 | `include/mruby.h`    | Arena save/restore macros         |

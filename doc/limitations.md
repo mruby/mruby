@@ -15,6 +15,23 @@ This document is collecting these limitations.
 This document does not contain a complete list of limitations.
 Please help to improve it by submitting your findings.
 
+## Features provided by mrbgems
+
+Many Ruby features that CRuby builds into its core are provided by
+mrbgems in mruby. Which features are actually available depends on
+which mrbgems are linked into the build. The `default.gembox` and
+`stdlib.gembox` cover the common cases, but a minimal build can omit
+familiar features such as `Kernel#binding` (provided by
+`mruby-binding`), `Kernel#catch`/`throw` (by `mruby-catch`),
+`Enumerable` extensions, `Comparable`, IO, regular expressions, and
+many more.
+
+This is by design rather than a limitation per se. When porting Ruby
+code to mruby, a `NoMethodError` or `NameError` often means "the gem
+providing this feature is not linked in" rather than "mruby does not
+support it." Adding the relevant gem to the build configuration is
+usually enough.
+
 ## `Kernel.raise` in rescue clause
 
 `Kernel.raise` without arguments does not raise the current exception within
@@ -132,12 +149,6 @@ The re-defined `+` operator does not accept any arguments.
 
 `'ab'`
 Behavior of the operator wasn't changed.
-
-## `Kernel#binding` is not supported without mruby-binding gem
-
-`Kernel#binding` method requires the `mruby-binding` gem (included
-in the `metaprog` gembox). Without this gem, `binding` is not
-available.
 
 ## `nil?` redefinition in conditional expressions
 
@@ -268,7 +279,11 @@ Module refinements (`refine`, `using`) are not supported in mruby.
 
 mruby does not have an `Encoding` class. Strings are treated as
 byte sequences by default. UTF-8 aware string operations can be
-enabled with the `MRB_UTF8_STRING` compile flag.
+enabled with the `MRB_UTF8_STRING` compile flag, which is also what
+makes case conversion follow Unicode rather than ASCII; `MRB_USE_ASCII_CTYPE`
+narrows that half back without giving up the indexing. A Unicode conversion
+refuses bytes that spell no character with `ArgumentError`; one narrowed to
+ASCII reads no characters and hands those bytes back untouched.
 
 ## Integer Precision Varies by Boxing Mode
 
@@ -290,3 +305,151 @@ arbitrary-precision integers when included.
 (included in the `stdlib` gembox). Even with the gem,
 `ObjectSpace.each_object` has limited functionality compared
 to CRuby.
+
+## No Implicit Type Conversion (`to_int`, `to_str`, `to_ary`, ...)
+
+mruby does not perform implicit type conversion through methods
+like `to_int`, `to_str`, `to_ary`, or `to_hash`. CRuby uses these
+to let user-defined classes duck-type as built-in types — for
+example `Array#[]` calls `to_int` on its argument, `String#+` calls
+`to_str`, and multiple assignment calls `to_ary` on its right-hand
+side. mruby's built-in operations require the actual built-in type
+and do not consult these conversion methods.
+
+```ruby
+class MyInt;  def to_int; 42; end;     end
+class MyStr;  def to_str; "x"; end;    end
+class MyAry;  def to_ary; [1,2,3]; end; end
+```
+
+#### CRuby
+
+```
+[1,2,3][MyInt.new]   # => nil   (to_int called -> ary[42])
+"a" + MyStr.new      # => "ax"  (to_str called)
+a, b, c = MyAry.new  # => a=1, b=2, c=3   (to_ary called)
+```
+
+#### mruby
+
+```
+[1,2,3][MyInt.new]   # TypeError
+"a" + MyStr.new      # TypeError
+a, b, c = MyAry.new  # a=<MyAry obj>, b=nil, c=nil   (treated as single value)
+```
+
+Identity versions of `to_int`, `to_str`, `to_sym`, and `to_hash`
+remain defined on the corresponding built-in types so that
+`respond_to?(:to_str)`-style checks work for built-in instances.
+`Float#to_int` and `Array#to_ary` are intentionally not defined.
+
+Explicit conversion methods (`to_i`, `to_s`, `to_a`) work as in
+CRuby and are called by features such as string interpolation and
+the splat operator (`*obj`).
+
+This is a deliberate trade-off: implicit conversion forces every
+coercion site to go through method dispatch and can silently mask
+type-mismatch bugs.
+
+## Nested `def` in Singleton-Method Context
+
+`def` written inside a singleton method (`def self.foo`) is placed
+on a different class in mruby than in CRuby. CRuby registers the
+inner method as an instance method of the lexical enclosing class.
+mruby registers it as a method of the enclosing receiver's
+singleton class, which makes it visible as a class method of the
+enclosing class.
+
+```ruby
+class SomeClass
+  def self.class_method
+    def nested; 'nested!'; end
+  end
+end
+SomeClass.class_method
+```
+
+#### CRuby
+
+```
+SomeClass.nested        # NoMethodError
+SomeClass.new.nested    # => "nested!"   (instance method)
+```
+
+#### mruby
+
+```
+SomeClass.nested        # => "nested!"   (class method)
+SomeClass.new.nested    # NoMethodError
+```
+
+Writing nested `def` like this is unusual; this difference rarely
+surfaces in practical code.
+
+## `Proc#dup` / `Proc#clone` is Always Orphan
+
+A `dup` or `clone` of a block given to a method is always treated as
+an orphan block in mruby — calling it raises `LocalJumpError` if the
+block contains `break` or `return`. CRuby is finer-grained: the copy
+inherits the orphan status of its original, so the copy only becomes
+orphan once the original yielding method returns.
+
+```ruby
+def m(&b)
+  b.dup
+end
+
+x = m { break 1 }
+x.call
+```
+
+#### CRuby
+
+```
+LocalJumpError  # raised only after m returns; if called inside m,
+                # the dup is still a live block
+```
+
+#### mruby
+
+```
+LocalJumpError  # always raised — the dup is orphan from the moment
+                # it is created
+```
+
+mruby's stricter rule keeps `RProc` from needing a back-pointer to
+the original block (which would also enlarge the GC mark set).
+
+## `Class#initialize` Can Be Re-Invoked
+
+CRuby raises `TypeError: already initialized class` when `initialize`
+is invoked on a class that has already been set up. mruby's
+`Class#initialize` has no such guard — invoking it on an existing
+class through `__send__`, `send`, or `UnboundMethod#bind_call`
+silently succeeds. The superclass argument is ignored in this case,
+so the call cannot rewrite the class hierarchy; only the block (if
+any) is evaluated with the class as receiver.
+
+```ruby
+Klass = Class.new
+Klass.__send__(:initialize) {}
+```
+
+#### CRuby
+
+```
+TypeError: already initialized class
+```
+
+#### mruby
+
+```
+The block is evaluated in the context of Klass; no error is raised.
+The superclass is not changed even when one is passed as an argument.
+```
+
+`Module#initialize` is re-callable in both implementations, so this
+divergence is `Class`-specific. Adding the CRuby check would require
+an additional flag bit on every `RClass`; mruby leaves the bit
+unspent because no destructive side effects are possible through
+this path.

@@ -54,6 +54,38 @@ struct_s_members(mrb_state *mrb, struct RClass *c)
 }
 
 static mrb_value
+struct_s_keyword_init(mrb_state *mrb, struct RClass *c)
+{
+  struct RClass *sclass = struct_class(mrb);
+
+  while (c && c != sclass) {
+    mrb_value ki = mrb_iv_get(mrb, mrb_obj_value(c), MRB_IVSYM(__keyword_init__));
+    if (!mrb_nil_p(ki)) return ki;
+    c = c->super;
+  }
+  return mrb_nil_value();
+}
+
+/*
+ *  call-seq:
+ *     StructClass.keyword_init?    -> true or false or nil
+ *
+ *  Returns the value of the `keyword_init` option given to
+ *  `Struct.new`: `true` (only keyword arguments), `false` (only
+ *  positional arguments), or `nil` (either). Subclasses inherit
+ *  the value from the struct class they derive from.
+ *
+ *     Struct.new(:a).keyword_init?                      #=> nil
+ *     Struct.new(:a, keyword_init: true).keyword_init?  #=> true
+ *     Struct.new(:a, keyword_init: false).keyword_init? #=> false
+ */
+static mrb_value
+mrb_struct_s_keyword_init_p(mrb_state *mrb, mrb_value klass)
+{
+  return struct_s_keyword_init(mrb, mrb_class_ptr(klass));
+}
+
+static mrb_value
 struct_members(mrb_state *mrb, mrb_value s)
 {
   if (!mrb_struct_p(s)) {
@@ -180,6 +212,8 @@ make_struct_define_accessors(mrb_state *mrb, mrb_value members, struct RClass *c
   }
 }
 
+static mrb_value mrb_struct_new(mrb_state *mrb, mrb_value klass);
+
 static mrb_value
 make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass *klass)
 {
@@ -208,9 +242,15 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass *kl
   mrb_value nstr = mrb_obj_value(c);
   mrb_iv_set(mrb, nstr, MRB_SYM(__members__), members);
 
-  mrb_define_class_method_id(mrb, c, MRB_SYM(new), mrb_instance_new, MRB_ARGS_ANY());
-  mrb_define_class_method_id(mrb, c, MRB_OPSYM(aref), mrb_instance_new, MRB_ARGS_ANY());
+  /* Shadow the class-creating Struct.new inherited through the metaclass
+     with a C constructor: while #initialize is not overridden it fills the
+     members from its own frame, and otherwise re-sends the arguments
+     through a Ruby bridge, which keeps keyword arguments keywords (a C
+     funcall cannot). */
+  mrb_define_class_method_id(mrb, c, MRB_SYM(new), mrb_struct_new, MRB_ARGS_ANY());
+  mrb_define_class_method_id(mrb, c, MRB_OPSYM(aref), mrb_struct_new, MRB_ARGS_ANY());
   mrb_define_class_method_id(mrb, c, MRB_SYM(members), mrb_struct_s_members_m, MRB_ARGS_NONE());
+  mrb_define_class_method_id(mrb, c, MRB_SYM_Q(keyword_init), mrb_struct_s_keyword_init_p, MRB_ARGS_NONE());
   /* RSTRUCT(nstr)->basic.c->super = c->c; */
   make_struct_define_accessors(mrb, members, c);
   return nstr;
@@ -272,9 +312,6 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
   mrb_value keyword_init_val = mrb_nil_value();
 
   mrb_get_args(mrb, "*&", &argv, &argc, &b);
-  if (argc == 0) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (given 0, expected 1+)");
-  }
 
   /* Check for keyword_init option in arguments */
   if (argc > 0 && mrb_hash_p(argv[argc-1])) {
@@ -283,6 +320,9 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
 
     if (mrb_hash_key_p(mrb, options, keyword_init_sym)) {
       keyword_init_val = mrb_hash_get(mrb, options, keyword_init_sym);
+      if (!mrb_nil_p(keyword_init_val)) {
+        keyword_init_val = mrb_bool_value(mrb_test(keyword_init_val));
+      }
       argc--; /* Don't treat the options hash as a member name */
     }
   }
@@ -387,35 +427,87 @@ mrb_struct_init_with_keywords(mrb_state *mrb, mrb_value hash, mrb_value self)
   return self;
 }
 
+/* Fill `self` from the constructor arguments of the current C frame. */
 static mrb_value
-mrb_struct_initialize(mrb_state *mrb, mrb_value self)
+struct_init_body(mrb_state *mrb, mrb_value self)
 {
+  /* Read before mrb_get_args, which folds the kdict into argv and clears
+     ci->kw. In #initialize's frame, Class#new and the Ruby bridge always
+     forward a kdict, so an empty one means the caller wrote no keywords;
+     in the C constructor's frame the flag is the caller's own. */
+  mrb_callinfo *ci = mrb->c->ci;
+  mrb_bool kw_given = FALSE;
+  if (ci->kw) {
+    mrb_value kdict = ci->stack[mrb_ci_bidx(ci)-1];
+    kw_given = mrb_hash_p(kdict) && !mrb_hash_empty_p(mrb, kdict);
+  }
+
   const mrb_value *argv;
   mrb_int argc;
-
   mrb_get_args(mrb, "*", &argv, &argc);
 
-  mrb_value klass = mrb_obj_value(mrb_obj_class(mrb, self));
-  mrb_value keyword_init = mrb_iv_get(mrb, klass, MRB_IVSYM(__keyword_init__));
+  mrb_value keyword_init = struct_s_keyword_init(mrb, mrb_obj_class(mrb, self));
 
-  if (mrb_test(keyword_init)) { /* keyword_init: true or other truthy value */
+  if (mrb_test(keyword_init)) { /* keyword_init: true */
     if (argc > 1 || (argc == 1 && !mrb_hash_p(argv[0]))) {
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong arguments, expected keyword arguments");
+      mrb_argnum_error(mrb, argc, 0, 0);
     }
     mrb_value hash = (argc == 1) ? argv[0] : mrb_hash_new(mrb);
     return mrb_struct_init_with_keywords(mrb, hash, self);
   }
-  else if (mrb_equal(mrb, keyword_init, mrb_false_value())) { /* keyword_init: false */
-    return mrb_struct_init_with_args(mrb, argc, argv, self);
+  if (mrb_nil_p(keyword_init) && kw_given && argc == 1 && mrb_hash_p(argv[0])) {
+    /* keyword_init: nil (default): keyword arguments initialize by member
+       name, while a hash passed positionally stays a plain member value */
+    return mrb_struct_init_with_keywords(mrb, argv[0], self);
   }
-  else { /* keyword_init: nil (default) */
-    if (argc == 1 && mrb_hash_p(argv[0])) {
-      return mrb_struct_init_with_keywords(mrb, argv[0], self);
+  return mrb_struct_init_with_args(mrb, argc, argv, self);
+}
+
+static mrb_value
+mrb_struct_initialize(mrb_state *mrb, mrb_value self)
+{
+  return struct_init_body(mrb, self);
+}
+
+/*
+ *  call-seq:
+ *     StructClass.new(arg, ...)  -> obj
+ *     StructClass[arg, ...]      -> obj
+ *
+ *  Creates a new instance of the generated struct class.
+ */
+static mrb_value
+mrb_struct_new(mrb_state *mrb, mrb_value klass)
+{
+  struct RArray *p = MRB_OBJ_ALLOC(mrb, MRB_TT_STRUCT, mrb_class_ptr(klass));
+  mrb_value obj = mrb_obj_value(p);
+
+  if (!mrb_func_basic_p(mrb, obj, MRB_SYM(initialize), mrb_struct_initialize)) {
+    /* overridden initialize */
+    if (mrb->c->ci->kw) {
+      /* only the VM can pass keyword arguments, so re-send positional
+         arguments, keywords, and block through the Ruby bridge (see mrblib) */
+      const mrb_value *argv;
+      mrb_int argc;
+      mrb_value kwrest, blk;
+      const mrb_kwargs kw = {0, 0, NULL, NULL, &kwrest};
+      mrb_get_args(mrb, "*:&", &argv, &argc, &kw, &blk);
+      mrb_value fargs[2];
+      fargs[0] = mrb_ary_new_from_values(mrb, argc, argv);
+      fargs[1] = kwrest;
+      mrb_funcall_with_block(mrb, obj, MRB_SYM(__struct_init_fwd), 2, fargs, blk);
     }
     else {
-      return mrb_struct_init_with_args(mrb, argc, argv, self);
+      const mrb_value *argv;
+      mrb_int argc;
+      mrb_value blk;
+      mrb_get_args(mrb, "*&", &argv, &argc, &blk);
+      mrb_funcall_with_block(mrb, obj, MRB_SYM(initialize), argc, argv, blk);
     }
+    return obj;
   }
+
+  return struct_init_body(mrb, obj);
 }
 
 /* 15.2.18.4.9  */
@@ -603,17 +695,22 @@ mrb_struct_equal(mrb_state *mrb, mrb_value s)
     return mrb_false_value();
   }
 
-  /* Check for recursion */
+  /* A pair already being compared is taken as equal, as in CRuby's
+     recursive_equal(), and the other members decide the outcome. */
   if (MRB_RECURSIVE_BINARY_FUNC_P(mrb, MRB_OPSYM(eq), s, s2)) {
-    return mrb_false_value();
+    return mrb_true_value();
   }
 
-  mrb_value *ptr = RSTRUCT_PTR(s);
-  mrb_value *ptr2 = RSTRUCT_PTR(s2);
   mrb_int len = RSTRUCT_LEN(s);
   int ai = mrb_gc_arena_save(mrb);
+  /* A member's #== runs Ruby, where initialize_copy() replaces a struct's
+     member storage, so neither buffer survives the call. Read both afresh,
+     and take a struct that changed shape as no longer equal. */
   for (mrb_int i=0; i<len; i++) {
-    if (!mrb_equal(mrb, ptr[i], ptr2[i])) {
+    if (RSTRUCT_LEN(s) != len || RSTRUCT_LEN(s2) != len) {
+      return mrb_false_value();
+    }
+    if (!mrb_equal(mrb, RSTRUCT_PTR(s)[i], RSTRUCT_PTR(s2)[i])) {
       return mrb_false_value();
     }
     mrb_gc_arena_restore(mrb, ai);
@@ -634,7 +731,6 @@ static mrb_value
 mrb_struct_eql(mrb_state *mrb, mrb_value s)
 {
   mrb_value s2 = mrb_get_arg1(mrb);
-  mrb_value *ptr, *ptr2;
   mrb_int i, len;
 
   if (mrb_obj_equal(mrb, s, s2)) {
@@ -647,16 +743,18 @@ mrb_struct_eql(mrb_state *mrb, mrb_value s)
     return mrb_false_value();
   }
 
-  /* Check for recursion */
+  /* see mrb_struct_equal(): the pair being compared is taken as equal */
   if (MRB_RECURSIVE_BINARY_FUNC_P(mrb, MRB_SYM_Q(eql), s, s2)) {
-    return mrb_false_value();
+    return mrb_true_value();
   }
 
-  ptr = RSTRUCT_PTR(s);
-  ptr2 = RSTRUCT_PTR(s2);
   len = RSTRUCT_LEN(s);
+  /* see mrb_struct_equal(): the member storage does not survive #eql? */
   for (i=0; i<len; i++) {
-    if (!mrb_eql(mrb, ptr[i], ptr2[i])) {
+    if (RSTRUCT_LEN(s) != len || RSTRUCT_LEN(s2) != len) {
+      return mrb_false_value();
+    }
+    if (!mrb_eql(mrb, RSTRUCT_PTR(s)[i], RSTRUCT_PTR(s2)[i])) {
       return mrb_false_value();
     }
   }

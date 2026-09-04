@@ -61,6 +61,30 @@ assert('pack("u")') do
   packed_long = [long_data].pack("u")
   assert_equal [long_data], packed_long.unpack("u")
 
+  # Huge explicit line length must not overflow the buffer size calculation
+  assert_equal ["ab"].pack("u"), ["ab"].pack("u2147483647")
+  assert_equal ["ab"], ["ab"].pack("x124u2147483647")[124..-1].unpack("u")
+
+  # The leading length character holds six bits, so a line carries at most 63
+  # bytes; encoding works on whole 3-byte groups, so the length rounds down to
+  # a multiple of 3. Under 3 it falls back to the default 45.
+  data = "abcdefghij" * 12
+  line_length = ->(n) { [data].pack("u#{n}").getbyte(0) - 32 }
+  assert_equal 45, line_length.call(0)
+  assert_equal 45, line_length.call(2)
+  assert_equal 3, line_length.call(3)
+  assert_equal 42, line_length.call(44)
+  assert_equal 45, line_length.call(45)
+  assert_equal 45, line_length.call(47)
+  assert_equal 63, line_length.call(63)
+  assert_equal 63, line_length.call(64)
+  assert_equal 63, line_length.call(1000)
+
+  # every line length must survive a round trip
+  (0..70).each do |n|
+    assert_equal [data], [data].pack("u#{n}").unpack("u"), "round trip failed for u#{n}"
+  end
+
   # Test that packed data ends with zero-length line for non-empty input
   packed = ["test"].pack("u")
   # Check if last two characters are backtick and newline
@@ -138,6 +162,22 @@ assert 'pack double' do
   end
 end
 
+assert 'unpack a NaN that signals' do
+  skip unless Object.const_defined?(:Float)
+  # A NaN that signals has every bit it is set in the low payload, which is
+  # where a build that keeps no object for a NaN writes what tells one from
+  # another. Reading one back has to leave a NaN rather than the infinity an
+  # empty payload under that exponent would be, and two reads have to leave
+  # two objects, as they do for a NaN made any other way.
+  s = "\x01\x00\x00\x00\x00\x00\xf0\x7f"
+  a = s.unpack1("E")
+  b = s.unpack1("E")
+
+  assert_predicate(a, :nan?)
+  assert_predicate(b, :nan?)
+  assert_false(a.equal?(b))
+end
+
 assert 'pack/unpack "i"' do
   int_size = [0].pack('i').size
   raise "pack('i').size is too small (#{int_size})" if int_size < 2
@@ -184,6 +224,42 @@ assert 'pack/unpack "U"' do
   assert_raise(RangeError) { [-0x40000000].pack("U") }
   assert_raise(RangeError) { [-1].pack("U") }
   assert_raise(RangeError) { [0x40000000].pack("U") }
+end
+
+assert 'pack("U") with a value outside the Unicode range' do
+  assert_equal [0xF4, 0x8F, 0xBF, 0xBF], [0x10FFFF].pack("U").unpack("C*")
+  assert_raise(RangeError) { [0x110000].pack("U") }
+
+  # A value that would land inside the Unicode range if it were truncated to
+  # 32 bits must not come out as the character it truncates to.
+  # The shift width comes from a variable because `1 << 32` written out is
+  # constant folded, and the fold fails while this file is compiled on
+  # MRB_INT32 without bigint, dropping every test in it.
+  shift = 32
+  wrapping = nil
+  wide = begin
+    wrapping = (1 << shift) + 0x41  # RangeError where mrb_int is 32 bits and bigint is absent
+    [][wrapping]                    # nil for an mrb_int index, RangeError for a big integer
+    true
+  rescue RangeError
+    false
+  end
+  # A big integer is not an mrb_int either: `pack` refuses it while converting
+  # the element, so the encoder never sees the value and the truncation this
+  # guards against never runs.
+  assert_raise(RangeError) { [wrapping].pack("U") } if wide
+end
+
+assert 'pack("U") with a UTF-16 surrogate' do
+  # A surrogate has a spelling here even though it is not a character: CRuby
+  # writes these three bytes too, and refuses the value in Integer#chr rather
+  # than here. unpack("U") reads them back, so the two stay a pair whatever
+  # the character scanner makes of the bytes.
+  assert_equal [0xED, 0xA0, 0x80], [0xD800].pack("U").unpack("C*")
+  assert_equal [0xED, 0xBF, 0xBF], [0xDFFF].pack("U").unpack("C*")
+  assert_equal [0xD800], [0xD800].pack("U").unpack("U*")
+  assert_equal [0xED, 0x9F, 0xBF], [0xD7FF].pack("U").unpack("C*")
+  assert_equal [0xEE, 0x80, 0x80], [0xE000].pack("U").unpack("C*")
 end
 
 assert 'unpack1' do

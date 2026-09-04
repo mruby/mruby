@@ -1,0 +1,12 @@
+{
+    "Verbose": false,
+    "IgnoreDefaults": false,
+    "Exclude": ["oss-fuzz/", "src/"],
+    "Disable": {
+        "EndOfLine": false,
+        "TrimTrailingWhitespace": false,
+        "InsertFinalNewline": false,
+        "IndentSize": true,
+        "Indentation": true
+   }
+}

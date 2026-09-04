@@ -13,7 +13,7 @@ class BinTest_MRubyBinDebugger
     script.flush
 
     # compile
-    `#{cmd("mrbc")} -g -o "#{bin.path}" "#{script.path}"`
+    assert_run('mrbc', '-g', '-o', bin.path, script.path)
 
     # add mrdb quit
     testcase << {:cmd=>"quit"}
@@ -21,8 +21,9 @@ class BinTest_MRubyBinDebugger
     stdin_data = testcase.map{|t| t[:cmd]}.join("\n") << "\n"
 
     prompt = /^\(#{Regexp.escape(script.path)}:\d+\) /
-    ["#{cmd('mrdb')} #{script.path}", "#{cmd('mrdb')} -b #{bin.path}"].each do |cmd|
-      o, s = Open3.capture2(cmd, :stdin_data => stdin_data)
+    # Both arms of the same program: the source, and the compiled form of it.
+    [[script.path], ['-b', bin.path]].each do |args|
+      o, s = Open3.capture2(*(cmd_list('mrdb') + args), :stdin_data => stdin_data)
       scanner = StringScanner.new(o)
       scanner.skip_until(prompt)
       testcase.each do |tc|
@@ -93,7 +94,7 @@ assert('mruby-bin-debugger(print) error') do
 
   # test case
   tc = []
-  tc << {:cmd=>"p (1+2",  :exp=>'$1 = line 1: syntax error'}
+  tc << {:cmd=>"p (1+2",  :exp=>'$1 = syntax error'}
   tc << {:cmd=>"p bar",   :exp=>'$2 = undefined method'}
 
   BinTest_MRubyBinDebugger.test(src, tc)
@@ -371,7 +372,7 @@ SRC
 
   tc << {:cmd=>'p "str"',        :exp=>'$1 = "str"'}
   tc << {:cmd=>'p "s\tt\rr\n"',  :exp=>'$2 = "s\\tt\\rr\\n"'}
-  tc << {:cmd=>'p "\C-a\C-z"',   :exp=>'$3 = "\\x01\\x1a"'}
+  tc << {:cmd=>'p "\C-a\C-z"',   :exp=>'$3 = "\\x01\\x1A"'}
   tc << {:cmd=>'p "#{foo+bar}"', :exp=>'$4 = "foobar"'}
 
   tc << {:cmd=>'p \'str\'',          :exp=>'$5 = "str"'}
@@ -381,12 +382,12 @@ SRC
 
   tc << {:cmd=>'p %!str!',        :exp=>'$9 = "str"'}
   tc << {:cmd=>'p %!s\tt\rr\n!',  :exp=>'$10 = "s\\tt\\rr\\n"'}
-  tc << {:cmd=>'p %!\C-a\C-z!',   :exp=>'$11 = "\\x01\\x1a"'}
+  tc << {:cmd=>'p %!\C-a\C-z!',   :exp=>'$11 = "\\x01\\x1A"'}
   tc << {:cmd=>'p %!#{foo+bar}!', :exp=>'$12 = "foobar"'}
 
   tc << {:cmd=>'p %Q!str!',        :exp=>'$13 = "str"'}
   tc << {:cmd=>'p %Q!s\tt\rr\n!',  :exp=>'$14 = "s\\tt\\rr\\n"'}
-  tc << {:cmd=>'p %Q!\C-a\C-z!',   :exp=>'$15 = "\\x01\\x1a"'}
+  tc << {:cmd=>'p %Q!\C-a\C-z!',   :exp=>'$15 = "\\x01\\x1A"'}
   tc << {:cmd=>'p %Q!#{foo+bar}!', :exp=>'$16 = "foobar"'}
 
   tc << {:cmd=>'p %q!str!',          :exp=>'$17 = "str"'}

@@ -1,0 +1,196 @@
+/*
+** socket_hal.c - POSIX HAL implementation for mruby-socket
+**
+** See Copyright Notice in mruby.h
+**
+** POSIX implementation for socket operations using standard POSIX APIs.
+** Supported platforms: Linux, macOS, BSD, Unix
+*/
+
+#include <mruby.h>
+#include <mruby/array.h>
+#include <mruby/string.h>
+#include <mruby/class.h>
+#include <mruby/error.h>
+#include "socket_hal.h"
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <ifaddrs.h>
+#include <string.h>
+#include <errno.h>
+
+/*
+ * Socket HAL Initialization/Finalization
+ */
+
+void
+mrb_hal_socket_init(mrb_state *mrb)
+{
+  (void)mrb;
+  /* No initialization needed for POSIX sockets */
+}
+
+void
+mrb_hal_socket_final(mrb_state *mrb)
+{
+  (void)mrb;
+  /* No cleanup needed for POSIX sockets */
+}
+
+/*
+ * Error Handling
+ */
+
+void
+mrb_hal_socket_set_errno_from_last_error(void)
+{
+  /* POSIX socket calls already set errno on failure; nothing to do. */
+}
+
+/*
+ * Socket Control Operations
+ */
+
+int
+mrb_hal_socket_set_nonblock(mrb_state *mrb, int fd, int nonblock)
+{
+  (void)mrb;
+
+  int flags = fcntl(fd, F_GETFL, 0);
+  if (flags == -1) {
+    return -1;
+  }
+
+  if (nonblock) {
+    flags |= O_NONBLOCK;
+  }
+  else {
+    flags &= ~O_NONBLOCK;
+  }
+
+  if (fcntl(fd, F_SETFL, flags) == -1) {
+    return -1;
+  }
+
+  return 0;
+}
+
+/*
+ * Address Conversion Functions
+ */
+
+const char*
+mrb_hal_socket_inet_ntop(int af, const void *src, char *dst, size_t size)
+{
+  return inet_ntop(af, src, dst, (socklen_t)size);
+}
+
+int
+mrb_hal_socket_inet_pton(int af, const char *src, void *dst)
+{
+  return inet_pton(af, src, dst);
+}
+
+/*
+ * Platform-Specific Socket Features
+ */
+
+#ifdef MRB_HAL_SOCKET_HAS_SOCKADDR_UN
+mrb_value
+mrb_hal_socket_sockaddr_un(mrb_state *mrb, const char *path, size_t pathlen)
+{
+  struct sockaddr_un *sunp;
+
+  if (pathlen > sizeof(sunp->sun_path) - 1) {
+    mrb_raisef(mrb, mrb_class_get_id(mrb, MRB_SYM(ArgumentError)),
+               "too long unix socket path (max: %d bytes)",
+               (int)sizeof(sunp->sun_path) - 1);
+  }
+
+  mrb_value s = mrb_str_new_capa(mrb, sizeof(struct sockaddr_un));
+  sunp = (struct sockaddr_un*)RSTRING_PTR(s);
+
+#if defined(HAVE_SA_LEN) && HAVE_SA_LEN
+  sunp->sun_len = sizeof(struct sockaddr_un);
+#endif
+
+  sunp->sun_family = AF_UNIX;
+  memcpy(sunp->sun_path, path, pathlen);
+  sunp->sun_path[pathlen] = '\0';
+  mrb_str_resize(mrb, s, sizeof(struct sockaddr_un));
+
+  return s;
+}
+#endif /* MRB_HAL_SOCKET_HAS_SOCKADDR_UN */
+
+#ifdef MRB_HAL_SOCKET_HAS_GETPEEREID
+int
+mrb_hal_socket_getpeereid(mrb_state *mrb, int fd, mrb_int *euid, mrb_int *egid)
+{
+  uid_t uid;
+  gid_t gid;
+  (void)mrb;
+
+  if (getpeereid(fd, &uid, &gid) != 0) return -1;
+  *euid = (mrb_int)uid;
+  *egid = (mrb_int)gid;
+  return 0;
+}
+#endif
+
+#ifdef MRB_HAL_SOCKET_HAS_SOCKETPAIR
+int
+mrb_hal_socket_socketpair(mrb_state *mrb, int domain, int type, int protocol, int sv[2])
+{
+  (void)mrb;
+  return socketpair(domain, type, protocol, sv);
+}
+#endif
+
+#ifdef MRB_HAL_SOCKET_HAS_SOCKADDR_UN
+mrb_value
+mrb_hal_socket_unix_path(mrb_state *mrb, const char *sockaddr, size_t socklen)
+{
+  const struct sockaddr *sa = (const struct sockaddr*)sockaddr;
+
+  if (sa->sa_family != AF_UNIX) {
+    mrb_raise(mrb, mrb_class_get_id(mrb, MRB_SYM(SocketError)), "need AF_UNIX address");
+  }
+
+  if (socklen < offsetof(struct sockaddr_un, sun_path) + 1) {
+    return mrb_str_new(mrb, "", 0);
+  }
+
+  return mrb_str_new_cstr(mrb, ((const struct sockaddr_un*)sockaddr)->sun_path);
+}
+#endif /* MRB_HAL_SOCKET_HAS_SOCKADDR_UN */
+
+mrb_value
+mrb_hal_socket_ip_address_list(mrb_state *mrb)
+{
+  struct ifaddrs *ifap = NULL;
+  if (getifaddrs(&ifap) != 0) {
+    mrb_sys_fail(mrb, "getifaddrs");
+  }
+  mrb_value ary = mrb_ary_new(mrb);
+  int arena_idx = mrb_gc_arena_save(mrb);
+  for (struct ifaddrs *ifa = ifap; ifa != NULL; ifa = ifa->ifa_next) {
+    if (ifa->ifa_addr == NULL) continue;
+    socklen_t salen;
+    switch (ifa->ifa_addr->sa_family) {
+      case AF_INET:  salen = sizeof(struct sockaddr_in);  break;
+      case AF_INET6: salen = sizeof(struct sockaddr_in6); break;
+      default: continue;
+    }
+    mrb_ary_push(mrb, ary, mrb_str_new(mrb, (const char*)ifa->ifa_addr, salen));
+    mrb_gc_arena_restore(mrb, arena_idx);
+  }
+  freeifaddrs(ifap);
+  return ary;
+}

@@ -50,11 +50,15 @@ typedef struct mpz_context {
   mpz_pool_t *pool;  /* NULL for heap-only operations */
 } mpz_ctx_t;
 
-/* Convenience macros for context creation */
+/* Convenience macros for context creation.
+ * Uses positional aggregate initialization instead of a C99 compound
+ * literal with designated initializers, so the file compiles as C++
+ * on legacy toolchains (pre-C++20).  Member order must match the
+ * mpz_context struct declaration above. */
 #define MPZ_CTX_INIT(mrb_ptr, ctx, pool_ptr) \
   mpz_pool_t pool ## _storage = {{0}};\
   mpz_pool_t *pool_ptr = &pool ## _storage;\
-  mpz_ctx_t ctx ## _struct = ((mpz_ctx_t){.mrb = (mrb_ptr), .pool = (pool_ptr)}); \
+  mpz_ctx_t ctx ## _struct = { (mrb_ptr), (pool_ptr) }; \
   mpz_ctx_t *ctx = &(ctx ## _struct);
 
 /* Access macros for readability */
@@ -227,6 +231,22 @@ mpz_init_set(mpz_ctx_t *ctx, mpz_t *s, mpz_t *t)
 }
 
 static void
+mpz_set_uint64(mpz_ctx_t *ctx, mpz_t *y, uint64_t u)
+{
+  size_t len = 0;
+
+  for (uint64_t u0=u; u0; u0>>=DIG_SIZE,len++)
+    ;
+  y->sn = (u != 0);
+  mpz_realloc(ctx, y, len);
+  y->sz = len;
+  for (size_t i=0; i<len; i++) {
+    y->p[i] = (mp_limb)LOW(u);
+    u >>= DIG_SIZE;
+  }
+}
+
+static void
 mpz_set_int(mpz_ctx_t *ctx, mpz_t *y, mrb_int v)
 {
   mrb_uint u;
@@ -247,33 +267,17 @@ mpz_set_int(mpz_ctx_t *ctx, mpz_t *y, mrb_int v)
   }
 #if MRB_INT_BIT > DIG_SIZE
   if ((u & ~DIG_MASK) != 0) {
-    mpz_realloc(ctx, y, 2);
-    y->p[1] = (mp_limb)HIGH(u);
-    y->p[0] = (mp_limb)LOW(u);
-    y->sz = 2;
+    /* An mrb_int can be wider than two limbs; mpz_set_uint64() counts them.
+       It derives the sign from the magnitude, so keep the one v gave. */
+    short sn = y->sn;
+    mpz_set_uint64(ctx, y, u);
+    y->sn = sn;
     return;
   }
 #endif
   mpz_realloc(ctx, y, 1);
   y->p[0] = (mp_limb)u;
   y->sz = 1;
-}
-
-
-static void
-mpz_set_uint64(mpz_ctx_t *ctx, mpz_t *y, uint64_t u)
-{
-  size_t len = 0;
-
-  for (uint64_t u0=u; u0; u0>>=DIG_SIZE,len++)
-    ;
-  y->sn = (u != 0);
-  mpz_realloc(ctx, y, len);
-  y->sz = len;
-  for (size_t i=0; i<len; i++) {
-    y->p[i] = (mp_limb)LOW(u);
-    u >>= DIG_SIZE;
-  }
 }
 
 #ifdef MRB_INT32
@@ -344,6 +348,14 @@ mpz_move(mpz_ctx_t *ctx, mpz_t *y, mpz_t *x)
   x->sz = 0;
 }
 
+static inline void
+mpz_swap(mpz_t *a, mpz_t *b)
+{
+  mpz_t tmp = *a;
+  *a = *b;
+  *b = tmp;
+}
+
 static size_t
 digits(mpz_t *x)
 {
@@ -361,6 +373,8 @@ trim(mpz_t *x)
   while (x->sz && x->p[x->sz-1] == 0) {
     x->sz--;
   }
+  /* Maintain invariant: sz == 0 implies sn == 0 (zero is canonical). */
+  if (x->sz == 0) x->sn = 0;
 }
 
 /* z = x + y, without regard for sign */
@@ -1236,7 +1250,8 @@ mpn_add_var(mp_limb *rp, const mp_limb *ap, size_t an,
       rp[i] = LOW(sum);
       carry = HIGH(sum);
     }
-  } else {
+  }
+  else {
     for (; i < bn; i++) {
       mp_dbl_limb sum = (mp_dbl_limb)bp[i] + carry;
       rp[i] = LOW(sum);
@@ -1560,7 +1575,8 @@ mpz_mul_toom3(mpz_ctx_t *ctx, mp_limb *result,
     mpn_add(t2, t2, w_len, w0, w_len);
     mpn_add(t2, t2, w_len, winf, w_len);
     mpn_neg(t2, t2, w_len);
-  } else {
+  }
+  else {
     mpn_sub(t2, t2, w_len, w0, w_len);
     mpn_sub(t2, t2, w_len, winf, w_len);
   }
@@ -3133,8 +3149,11 @@ mpz_mod(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *y)
     return;
   }
 
-  /* Barrett reduction for moderate-sized moduli (>= 4 limbs where setup is worthwhile) */
-  if (y->sz >= 4 && y->sz <= 16 && x->sz >= y->sz + 2) {
+  /* Barrett reduction for moderate-sized moduli (>= 4 limbs where setup is worthwhile).
+   * Barrett's precondition is x < 2^(2*bits(m)); inputs beyond ~2*m.sz limbs
+   * violate it and the algorithm silently truncates high limbs. Fall through
+   * to general division for those. */
+  if (y->sz >= 4 && y->sz <= 16 && x->sz >= y->sz + 2 && x->sz <= 2 * y->sz) {
     mpz_t mu;
     mpz_init_temp(ctx, &mu, y->sz + 1);
     mpz_barrett_mu(ctx, &mu, y);
@@ -4030,7 +4049,7 @@ mpz_get_str(mpz_ctx_t *ctx, char *s, mrb_int sz, mrb_int base, mpz_t *x)
         }
 
         // convert to character
-        for (mp_limb b=b2; b>=base; b/=(mp_limb)base) {
+        for (mp_limb b=b2; b>=(mp_limb)base; b/=(mp_limb)base) {
           char a0 = (char)(a % base);
           if (a0 < 10) a0 += '0';
           else a0 += 'a' - 10;
@@ -4072,6 +4091,10 @@ mpz_get_int(mpz_t *y, mrb_int *v)
     return TRUE;
   }
 
+  /* The negative range is one wider than the positive one, so MRB_INT_MIN
+     fits as an absolute value of MRB_INT_MAX + 1. */
+  mrb_uint limit = (mrb_uint)MRB_INT_MAX + (y->sn < 0 ? 1 : 0);
+
 #ifdef MRB_NO_MPZ64BIT
   /* When using 16-bit limbs, we need to handle larger accumulation */
   mrb_uint i = 0;
@@ -4079,13 +4102,13 @@ mpz_get_int(mpz_t *y, mrb_int *v)
 
   while (d-- > y->p) {
     /* Check for overflow before shifting */
-    if (i > (mrb_uint)(MRB_INT_MAX >> DIG_SIZE)) {
+    if (i > (limit >> DIG_SIZE)) {
       return FALSE;
     }
     i = (i << DIG_SIZE) | *d;
   }
 
-  if (i > (mrb_uint)MRB_INT_MAX) {
+  if (i > limit) {
     return FALSE;
   }
 #else
@@ -4100,14 +4123,16 @@ mpz_get_int(mpz_t *y, mrb_int *v)
     }
     i = (i << DIG_SIZE) | *d;
   }
-  if (i > MRB_INT_MAX) {
+  if (i > limit) {
     /* overflow */
     return FALSE;
   }
 #endif
 
   if (y->sn < 0) {
-    *v = -(mrb_int)i;
+    /* On this branch `limit` is the absolute value of MRB_INT_MIN, which has
+       no positive counterpart to negate, so it is spelled out instead. */
+    *v = (i == limit) ? MRB_INT_MIN : -(mrb_int)i;
   }
   else {
     *v = (mrb_int)i;
@@ -4735,14 +4760,16 @@ limb_gcd(mp_limb a, mp_limb b)
       b >>= 1;
     }
 
-    /* Now both a and b are odd. Ensure a >= b */
-    if (a < b) {
+    /* Now both a and b are odd. Ensure a <= b, since a limb is unsigned and
+       the subtraction below has to stay one: with a the larger, b - a borrows
+       past zero and the loop never reaches it. */
+    if (a > b) {
       mp_limb temp = a;
       a = b;
       b = temp;
     }
 
-    /* Replace b with (b - a) */
+    /* Replace b with (b - a), which is even and smaller than b was */
     b = b - a;
 
   } while (b != 0);
@@ -4817,7 +4844,11 @@ mpz_power_of_2_p(mpz_t *x)
   return (limb != 0) && ((limb & (limb - 1)) == 0);
 }
 
-/* Binary GCD algorithm (Stein's algorithm) - faster than Euclidean GCD */
+/* Binary GCD (Stein's algorithm): factor out common powers of 2,
+   then iterate on odd operands with subtract + trailing-zero shift.
+   For heavily unbalanced pairs (one operand has at least two more
+   limbs than the other) a single Euclidean step via mpz_mod replaces
+   many Stein subtracts. */
 static void
 mpz_gcd(mpz_ctx_t *ctx, mpz_t *gg, mpz_t *aa, mpz_t *bb)
 {
@@ -4889,14 +4920,29 @@ mpz_gcd(mpz_ctx_t *ctx, mpz_t *gg, mpz_t *aa, mpz_t *bb)
   mpz_div_2exp(ctx, &a, &a, a_zeros);
   mpz_div_2exp(ctx, &b, &b, b_zeros);
 
-  /* Euclidean algorithm for multi-limb numbers */
+  /* Stein main loop. Invariant: a and b are positive and odd.
+     Euclidean fallback when b has >=2 more limbs than a. */
   while (!zero_p(&b)) {
-    mpz_t temp;
-    mpz_init_temp(ctx, &temp, a.sz);
-    mpz_mod(ctx, &temp, &a, &b);
-    mpz_move(ctx, &a, &b);
-    mpz_move(ctx, &b, &temp);
-    mpz_clear(ctx, &temp);
+    if (mpz_cmp(ctx, &a, &b) > 0) {
+      mpz_swap(&a, &b);
+    }
+    if (b.sz >= a.sz + 2) {
+      mpz_t temp;
+      mpz_init_temp(ctx, &temp, a.sz);
+      mpz_mod(ctx, &temp, &b, &a);
+      mpz_move(ctx, &b, &temp);
+      mpz_clear(ctx, &temp);
+      if (zero_p(&b)) break;
+      size_t bz = mpz_trailing_zeros(&b);
+      if (bz > 0)
+        mpz_div_2exp(ctx, &b, &b, bz);
+    }
+    else {
+      mpz_sub(ctx, &b, &b, &a);
+      if (zero_p(&b)) break;
+      size_t bz = mpz_trailing_zeros(&b);
+      mpz_div_2exp(ctx, &b, &b, bz);
+    }
   }
   mpz_mul_2exp(ctx, gg, &a, shift);
   mpz_clear(ctx, &a);
@@ -5215,12 +5261,19 @@ mpz_powm_montgomery(mpz_ctx_t *ctx, mpz_t *result,
   mpz_init(ctx, &one_mont);
   mpz_montgomery_reduce(ctx, &one_mont, &R2, n, rho);
 
-  /* Convert base to Montgomery form: base_mont = base * R mod n = REDC(base * R^2) */
-  mpz_t base_mont, temp;
+  /* Convert base to Montgomery form: base_mont = base * R mod n = REDC(base * R^2).
+   * REDC requires its input T to satisfy T < R*N. If `base` is not already
+   * reduced (e.g. base >= n), `base * R^2` can exceed R*N and REDC produces
+   * a wrong result. Pre-reduce base modulo n via mpz_mmod (the general
+   * division path) -- both operands are non-negative here so this is
+   * semantically equivalent to mpz_mod. */
+  mpz_t base_mont, base_reduced, temp;
   mpz_init(ctx, &base_mont);
+  mpz_init(ctx, &base_reduced);
   mpz_init_temp(ctx, &temp, n->sz * 4);
 
-  mpz_mul(ctx, &temp, (mpz_t*)base, &R2);
+  mpz_mmod(ctx, &base_reduced, (mpz_t*)base, (mpz_t*)n);
+  mpz_mul(ctx, &temp, &base_reduced, &R2);
   mpz_montgomery_reduce(ctx, &base_mont, &temp, n, rho);
 
   /* Initialize accumulator to 1 in Montgomery form */
@@ -5252,6 +5305,7 @@ mpz_powm_montgomery(mpz_ctx_t *ctx, mpz_t *result,
   mpz_clear(ctx, &R2);
   mpz_clear(ctx, &one_mont);
   mpz_clear(ctx, &base_mont);
+  mpz_clear(ctx, &base_reduced);
   mpz_clear(ctx, &temp);
   mpz_clear(ctx, &acc);
   pool_restore(ctx, pool_state);
@@ -5321,6 +5375,11 @@ mrb_bint_new_int64(mrb_state *mrb, int64_t n)
   mpz_t x;
   MPZ_CTX_INIT(mrb, ctx, pool);
 
+  /* mpz_set_int64() reallocates `x` to hold the value, which reads the size
+     and the limbs it already has, so it is given an initialized one rather
+     than whatever the stack held.  mrb_bint_new_uint64() below does the
+     same. */
+  mpz_init(ctx, &x);
   mpz_set_int64(ctx, &x, n);
   struct RBigint *b = bint_new(ctx, &x);
   return mrb_obj_value(b);
@@ -5426,6 +5485,10 @@ mrb_bint_new_float(mrb_state *mrb, mrb_float x)
     mrb_assert(x < 1.0);
     rp[i] = f;
     if (i == 0) break;
+    /* The digit just taken leaves the fraction below it, which is the next
+       digit divided by the base. Without scaling it back the loop reads zero
+       for every digit but the highest, and 1e20 came out as 5 * 2**64. */
+    x *= b;
   }
   return bint_norm(mrb, bint_new(ctx, &r));
 }
@@ -5836,11 +5899,23 @@ mrb_bint_cmp(mrb_state *mrb, mrb_value x, mrb_value y)
 {
 #ifndef MRB_NO_FLOAT
   if (mrb_float_p(y)) {
-    mrb_float v1 = mrb_bint_as_float(mrb, x);
-    mrb_float v2 = mrb_float(y);
-    if (v1 == v2) return 0;
-    if (v1 > v2)  return 1;
-    return -1;
+    mrb_float f = mrb_float(y);
+    /* NaN and an infinity have no integer part to split off, so both are
+       answered before the split. */
+    if (isnan(f)) return -2;
+    if (isinf(f)) return f < 0 ? 1 : -1;
+    /* Split `y` where the exact comparison can be made: `trunc()` is exact and
+       neither arm below rounds the integer part, so the fraction is all that is
+       left to decide. `mrb_bint_new_float()` is written for what no `mrb_int`
+       holds, which is what every caller checks before reaching it. */
+    mrb_float fi = trunc(f);
+    mrb_value yi = FIXABLE_FLOAT(fi) ? mrb_int_value(mrb, (mrb_int)fi)
+                                     : mrb_bint_new_float(mrb, fi);
+    mrb_int c = mrb_bint_cmp(mrb, x, yi);
+    if (c != 0) return c;
+    if (f > fi) return -1;
+    if (f < fi) return 1;
+    return 0;
   }
 #endif
   mpz_t a;
@@ -5900,8 +5975,7 @@ mrb_bint_pow(mrb_state *mrb, mrb_value x, mrb_value y)
   MPZ_CTX_INIT(mrb, ctx, pool);
   mpz_pow(ctx, &z, &a, exp);
 
-  struct RBigint *b = bint_new(ctx, &z);
-  return mrb_obj_value(b);
+  return bint_norm(mrb, bint_new(ctx, &z));
 }
 
 mrb_value

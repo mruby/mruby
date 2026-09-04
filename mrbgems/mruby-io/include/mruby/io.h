@@ -11,14 +11,24 @@
 # error IO and File conflicts 'MRB_NO_STDIO' in your build configuration
 #endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
+MRB_BEGIN_DECL
 
+/* IO#pread / IO#pwrite are backed directly by POSIX pread(2)/pwrite(2),
+   so enable them only where those calls are actually available.
+   pread/pwrite were standardized in POSIX.1-2001, hence the _POSIX_VERSION
+   check. The UNIX-family guard is kept because some Windows toolchains
+   (e.g. MinGW) expose _POSIX_VERSION via <unistd.h> without providing
+   pread/pwrite. MRB_WITH_IO_PREAD_PWRITE forces them on regardless. */
 #if defined(MRB_NO_IO_PREAD_PWRITE) || defined(MRB_WITHOUT_IO_PREAD_PWRITE)
 # undef MRB_USE_IO_PREAD_PWRITE
 #elif !defined(MRB_USE_IO_PREAD_PWRITE)
-# if defined(__unix__) || defined(__MACH__) || defined(MRB_WITH_IO_PREAD_PWRITE)
+# if defined(__unix__) || defined(__MACH__)
+#  include <unistd.h>
+#  if defined(_POSIX_VERSION) && _POSIX_VERSION >= 200112L
+#   define MRB_USE_IO_PREAD_PWRITE
+#  endif
+# endif
+# if defined(MRB_WITH_IO_PREAD_PWRITE) && !defined(MRB_USE_IO_PREAD_PWRITE)
 #  define MRB_USE_IO_PREAD_PWRITE
 # endif
 #endif
@@ -70,7 +80,5 @@ struct mrb_io {
 
 int mrb_io_fileno(mrb_state *mrb, mrb_value io);
 
-#if defined(__cplusplus)
-} /* extern "C" { */
-#endif
+MRB_END_DECL
 #endif /* MRUBY_IO_H */

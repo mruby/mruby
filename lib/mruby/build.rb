@@ -22,6 +22,22 @@ module MRuby
         target.instance_eval(&block)
       end
     end
+
+    # Bind every cross build to the build it borrows `mrbc` from.
+    #
+    # A cross build cannot settle this as it is declared, because the `host`
+    # it would borrow from may be written after it, and `Build.new` reopens a
+    # name already taken rather than initialising it afresh: a build generated
+    # then to fill the gap would swallow the `host` the config goes on to
+    # declare. So the question is asked here instead, once from the Rakefile,
+    # where the config has been read whole and the set of targets is final.
+    # This still runs before the gems are set up, both because they ask for
+    # `mrbcfile` as they go and because the answer turns on defines, which the
+    # config alone has written this early.
+    def resolve_mrbc_hosts
+      mrbc_builds = {}
+      targets.values.grep(CrossBuild).each{|target| target.bind_mrbc_host(mrbc_builds)}
+    end
   end
 
   class Toolchain
@@ -79,9 +95,12 @@ module MRuby
 
     include Rake::DSL
     include LoadGems
-    attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir, :defines, :libdir_name
+    attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir, :libdir_name
+    attr_reader :defines
     attr_reader :products, :libmruby_core_objs, :libmruby_objs, :gems, :toolchains, :presym, :mrbc_build, :gem_dir_to_repo_url
-    attr_reader :install_excludes
+    attr_reader :compile_rules
+    attr_reader :build_root
+    attr_reader :install_excludes, :port_names
 
     alias libmruby libmruby_objs
 
@@ -90,6 +109,10 @@ module MRuby
     attr_block MRuby::Build::COMMANDS
 
     Exts = Struct.new(:object, :executable, :library, :presym_preprocessed)
+
+    # `rake -m` resolves the dependencies of several outputs at once, and each
+    # of them compares its own record, so the report is guarded to print once.
+    FLAGS_CHANGE_LOCK = Mutex.new
 
     def initialize(name='host', build_dir=nil, internal: false, &block)
       @name = name.to_s
@@ -101,15 +124,33 @@ module MRuby
           @exts = Exts.new('.o', '', '.a', '.pi')
         end
 
-        build_dir = build_dir || ENV['MRUBY_BUILD_DIR'] || "#{MRUBY_ROOT}/build"
+        # The directory is named against the one the build was started from,
+        # by the config or by `MRUBY_BUILD_DIR`, and is expanded here so that
+        # every path built from it is absolute whatever directory a later step
+        # runs in. The spelling a name was given, a trailing slash or a `..`
+        # among it, does not reach the paths the build compiles with.
+        #
+        # `MRUBY_BUILD_DIR` set to nothing names no directory, and is read as
+        # the unset it was meant to be: left as it is, the empty name would
+        # put the whole build under `/`.
+        env_build_dir = ENV['MRUBY_BUILD_DIR']
+        env_build_dir = nil if env_build_dir.nil? || env_build_dir.empty?
+        build_dir = File.expand_path(build_dir || env_build_dir || "#{MRUBY_ROOT}/build")
 
         @file_separator = '/'
+        # The directory every target of this config builds under. `@build_dir`
+        # is this target's share of it, and the clones of remote gems sit
+        # beside that. `MRUBY_BUILD_DIR` may put it anywhere, so this is the
+        # one a build maps to keep its own paths out of what it compiles.
+        @build_root = build_dir
         @build_dir = "#{build_dir}/#{@name}"
         @gem_clone_dir = "#{build_dir}/repos/#{@name}"
         @libdir_name = (self.kind_of?(MRuby::CrossBuild) ? nil : ENV["MRUBY_SYSTEM_LIBDIR_NAME"]) || "lib"
         @install_prefix = nil
         @install_excludes = []
-        @defines = []
+        @defines = DefineList.new
+        @defines_final = false
+        @flags_change_reported = false
         @cc = Command::Compiler.new(self, %w(.c), label: "CC")
         @cxx = Command::Compiler.new(self, %w(.cc .cxx .cpp), label: "CXX")
         @objc = Command::Compiler.new(self, %w(.m), label: "OBJC")
@@ -126,6 +167,7 @@ module MRuby
         @gems = MRuby::Gem::List.new
         @libmruby_core_objs = []
         @libmruby_objs = [@libmruby_core_objs]
+        @compile_rules = []
         @enable_libmruby = true
         @build_mrbtest_lib_only = false
         @cxx_exception_enabled = false
@@ -135,17 +177,16 @@ module MRuby
         @enable_test = false
         @enable_lock = true
         @enable_benchmark = true
+        @enable_compile_commands = true
+        @compile_commands_default = false
+        @size = nil
         @mrbcfile_external = false
+        @file_prefix_map = nil
+        @file_prefix_map_source = nil
         @internal = internal
         @toolchains = []
+        @port_names = nil
         @gem_dir_to_repo_url = {}
-
-        # Add lambda instead of string because libdir_name or lib may be changed by user configuration
-        libmruby_core_name = nil
-        @install_excludes << ->(file) {
-          libmruby_core_name ||= File.join(libdir_name, libfile("libmruby_core"))
-          file == libmruby_core_name
-        }
 
         MRuby.targets[@name] = current = self
       end
@@ -154,6 +195,9 @@ module MRuby
       begin
         current.instance_eval(&block)
       ensure
+        # Before the compilers are copied: `create_mrbc_build` below takes a
+        # copy of them, and so does every gem when it is set up.
+        current.apply_default_file_prefix_map
         if current.libmruby_enabled? && !current.mrbcfile_external?
           current.create_mrbc_build if current.host? || current.gems["mruby-bin-mrbc"]
         end
@@ -175,12 +219,113 @@ module MRuby
 
     def enable_debug
       compilers.each do |c|
-        c.defines += %w(MRB_DEBUG)
+        c.internal_defines += %w(MRB_DEBUG)
         c.setup_debug(self)
       end
       @mrbc.compile_options += ' -g'
 
       @enable_debug = true
+    end
+
+    # Have the compilers write +to+ in place of +from+ wherever they write a
+    # path of their own: in `__FILE__`, which `mrb_assert` reaches through
+    # `assert`, and in the debug information `-g` writes. A compiler that
+    # cannot map a path is left alone.
+    def file_prefix_map(from, to)
+      compilers.each {|c| c.file_prefix_maps[from] = to}
+    end
+
+    # Keep the paths of this build out of what it compiles, by mapping the two
+    # directories its sources come from: the mruby tree, and the build
+    # directory, where the generated sources and the presym headers are.
+    #
+    # Every build does this much on its own, so a config calls this only to
+    # write the two names itself, and by calling it says that the build has
+    # no say: the names a config writes are the only ones its output carries.
+    #
+    # The build directory is written as `build` beside the sources, the place
+    # it takes when nothing moves it, so that a build with `MRUBY_BUILD_DIR`
+    # pointing anywhere else compiles what a build inside the tree compiles.
+    #
+    # The tree is written as `.`, and under that name the build compiles the
+    # sources by the names they have from the tree, so that what it compiles
+    # is the same wherever the tree sits. A config that writes another name
+    # for the tree is asking for that name in the output, which no relative
+    # name carries, and its build compiles with the paths as they are.
+    #
+    # The two maps overlap where the build directory is inside the tree, and
+    # both `gcc` and `clang` answer a path both cover with the longer prefix,
+    # which is the build directory. Under the names above that is the answer
+    # either map gives; a caller that names the two apart is asking for the
+    # longer one to win.
+    #
+    # No compiler flag reaches the file names `mrbc` records for a backtrace
+    # under `enable_debug`: those are the names the build passes it, and the
+    # build passes the names of the tree wherever it compiles by them.
+    def enable_file_prefix_map(source: ".", build: source == "." ? "build" : "#{source}/build")
+      file_prefix_map(MRUBY_ROOT, source)
+      file_prefix_map(@build_root, build)
+      @file_prefix_map = true
+      @file_prefix_map_source = source
+    end
+
+    # Compile with the paths of this build as they are, which a build that
+    # is meant to be debugged from outside the tree wants: a debugger looks
+    # for the sources of a mapped build under the mapped names, and finds
+    # them only from the directory they were mapped against.
+    def disable_file_prefix_map
+      @file_prefix_map = false
+      @file_prefix_map_source = nil
+    end
+
+    # Whether the compilers are handed the names the sources have from the
+    # tree, instead of the paths they have on this machine.
+    #
+    # This is the same question as whether the tree is written as `.`: a
+    # relative name is what a path under the tree looks like once the tree
+    # itself is dropped from it, so the build compiles under that name what
+    # the map would otherwise write. A build that keeps its paths, or that
+    # writes another name for the tree, has no such name to compile with.
+    def compile_relative?
+      @file_prefix_map_source == "."
+    end
+
+    # The name a compile is given for +path+: the one it has from the tree,
+    # where it sits under the tree and the build compiles by such names, and
+    # the path as it is anywhere else.
+    #
+    # A path this leaves alone is one no build of this tree can name the same
+    # way twice, an external gem or a build directory somewhere else, and it
+    # reaches the compiler as the machine spells it.
+    def compile_path(path)
+      return path unless compile_relative?
+      return "." if path == MRUBY_ROOT
+      prefix = "#{MRUBY_ROOT}/"
+      path.start_with?(prefix) ? path[prefix.length..-1] : path
+    end
+
+    # Set target port names for this build.
+    # Each gem compiles the first matching ports/<name>/ directory;
+    # later names in the list act as fallbacks for gems that don't
+    # ship a port for the earlier names.
+    #   conf.ports :esp32
+    #   conf.ports :rp2040, :posix    # use rp2040 if available, else posix
+    def ports(*names)
+      @port_names = names.map { |n| n.to_s }
+    end
+
+    # Returns the effective port names for this build.
+    # If not explicitly set, auto-detects :posix or :win for host builds.
+    def effective_ports
+      return @port_names if @port_names
+      if kind_of?(MRuby::CrossBuild)
+        []
+      elsif ENV['OS'] == 'Windows_NT' ||
+            ('A'..'Z').any? { |v| Dir.exist?("#{v}:") }
+        ['win']
+      else
+        ['posix']
+      end
     end
 
     def disable_lock
@@ -189,6 +334,55 @@ module MRuby
 
     def lock_enabled?
       Lockfile.enabled? && @enable_lock
+    end
+
+    # The program the section sizes of this build's `size.json` are measured
+    # with. Left unset, one is looked for by the C compiler's spelling
+    # (`arm-none-eabi-gcc` names `arm-none-eabi-size`), then `llvm-size` and
+    # plain `size` are tried; see MRuby::SizeReport.
+    attr_accessor :size
+
+    # Whether this build writes a `compile_commands.json` of its own compiles
+    # into its build directory.
+    def compile_commands_enabled?
+      @enable_compile_commands
+    end
+
+    # Whether this build is the one the tree's own `compile_commands.json`
+    # is written from. A tool opening a source without being told which build
+    # to read it as wants one answer, and a config with several builds is the
+    # only thing that knows which of them a reader of this tree means.
+    def compile_commands_default?
+      @compile_commands_default
+    end
+
+    # +default:+ makes this build the one the tree's `compile_commands.json`
+    # is written from. Two builds claiming it would leave the answer to
+    # declaration order, so the second to claim it says so.
+    #
+    # Almost no configuration needs to call this. Every build keeps its
+    # records already, and which one speaks for the tree is settled without
+    # being told: a build named `host`, or failing that the first one the
+    # configuration declares. A config with several builds says which it means
+    # by declaring that one first, which is what `build_config/boxing.rb`
+    # does. What is left for +default:+ is the case where the build that
+    # should speak cannot be the first one declared -- an order the
+    # configuration needs for another reason -- and there is no such config in
+    # this tree.
+    def enable_compile_commands(default: false)
+      @enable_compile_commands = true
+      return unless default
+
+      claimed = MRuby.targets.each_value.find do |build|
+        !build.equal?(self) && !build.internal? && build.compile_commands_default?
+      end
+      fail "compile_commands default is already '#{claimed.name}'" if claimed
+      @compile_commands_default = true
+    end
+
+    def disable_compile_commands
+      @enable_compile_commands = false
+      @compile_commands_default = false
     end
 
     def disable_cxx_exception
@@ -206,7 +400,7 @@ module MRuby
       end
       @cxx_exception_enabled = true
       compilers.each { |c|
-        c.defines += %w(MRB_USE_CXX_EXCEPTION)
+        c.internal_defines += %w(MRB_USE_CXX_EXCEPTION)
         c.flags << c.cxx_exception_flag
       }
       linker.command = cxx.command if toolchains.find { |v| v == 'gcc' }
@@ -226,7 +420,7 @@ module MRuby
         raise "cxx_exception already enabled"
       end
       compilers.each { |c|
-        c.defines += %w(MRB_USE_CXX_EXCEPTION MRB_USE_CXX_ABI)
+        c.internal_defines += %w(MRB_USE_CXX_EXCEPTION MRB_USE_CXX_ABI)
         c.flags << c.cxx_compile_flag
         c.flags = c.flags.flatten - c.cxx_invalid_flags.flatten
       }
@@ -266,6 +460,21 @@ module MRuby
         obj = cxx_src.ext(@exts.object)
       end
 
+      # The generated source includes the file by its own name and the
+      # directory it sits in is searched for it, rather than the path being
+      # written into the file, so that what this generates says the same thing
+      # wherever the tree sits.
+      #
+      # The name the compiler then records is that directory and the name
+      # together, and the directory is the one the flags carry: the name the
+      # tree has for it where the build compiles by such names, and the path
+      # as it is otherwise. Written into the file instead, the name would be
+      # the one the search found it under, `./src/vm.c`, which `clang` keeps
+      # as it is or shortens depending on whether the build has any directory
+      # left to map, and two builds of the same tree would differ by it.
+      source_dir = File.dirname(File.absolute_path(src))
+      cxx.include_paths << source_dir unless cxx.include_paths.include?(source_dir)
+
       file cxx_src => [src, __FILE__] do |t|
         mkdir_p File.dirname t.name
         IO.write t.name, <<EOS
@@ -275,7 +484,7 @@ module MRuby
 #ifndef MRB_USE_CXX_ABI
 extern "C" {
 #endif
-#include "#{File.absolute_path src}"
+#include "#{File.basename(src)}"
 #ifndef MRB_USE_CXX_ABI
 }
 #endif
@@ -333,11 +542,10 @@ EOS
     def mrbcfile
       return @mrbcfile if @mrbcfile
 
-      gem_name = "mruby-bin-mrbc"
-      if (gem = @gems[gem_name])
+      if (gem = @gems["mruby-bin-mrbc"])
         @mrbcfile = exefile("#{gem.build.build_dir}/bin/mrbc")
       elsif !host? && (host = MRuby.targets["host"])
-        if (gem = host.gems[gem_name])
+        if (gem = host.gems["mruby-bin-mrbc"])
           @mrbcfile = exefile("#{gem.build.build_dir}/bin/mrbc")
         elsif host.mrbcfile_external?
           @mrbcfile = host.mrbcfile
@@ -347,8 +555,20 @@ EOS
     end
 
     def mrbcfile=(path)
-      @mrbcfile = path
+      # Named against the directory the build was started from, like the
+      # build directory, and expanded here for the same reason: it is run
+      # from the tree.
+      @mrbcfile = File.expand_path(path)
       @mrbcfile_external = true
+    end
+
+    # Whether this build has a `mrbc` to lend: one it was given, one it
+    # generated for itself (`create_mrbc_build` hands that one over through
+    # `mrbcfile=`), or one it builds from the gem. This is the question
+    # `mrbcfile` asks of `host` on behalf of a native build; a build with
+    # `disable_libmruby` and no `mruby-bin-mrbc` answers no.
+    def supplies_mrbc?
+      mrbcfile_external? || !@gems['mruby-bin-mrbc'].nil?
     end
 
     def mrbcfile_external?
@@ -361,14 +581,105 @@ EOS
       end
     end
 
-    def define_rules
-      compilers.each do |compiler|
-        compiler.defines << "MRB_NO_GEMS" unless enable_gems? && libmruby_enabled?
+    def defines=(list)
+      @defines = DefineList.assigned(list, @defines)
+    end
+
+    # Have this build print the define log as it starts. `rake defines`
+    # prints it without this; a build says nothing by default, mruby being
+    # built from inside other projects' builds whose output is not its own
+    # to change.
+    def define_log
+      @define_log = true
+    end
+
+    def define_log?
+      !!@define_log
+    end
+
+    # Declare that every gem in the build has had its mrbgem.rake run, so the
+    # defines gems contribute through `spec.build.defines` are all in.  Called
+    # once from the Rakefile, between loading the build config and defining
+    # any rule.
+    def defines_final!
+      @defines_final = true
+    end
+
+    # True when this build compiles with -D<name>, whether the build config
+    # asked for it, a gem contributed it, or the build added it from one of
+    # its own switches.  A gem reads this to configure itself against a
+    # capability another gem provides.
+    #
+    # Until `defines_final!` the answer would depend on how far down the gem
+    # list the caller sits, since a gem contributes its defines when its own
+    # mrbgem.rake body runs.  Rather than hand back an answer that is right
+    # for some gem orders and wrong for others, this refuses to answer at all
+    # before then.  `spec.build_settings` is the hook that runs late enough.
+    def has_define?(name)
+      unless @defines_final
+        fail "build.has_define?(#{name.inspect}) cannot be answered while gems " \
+             "are still being set up, because a gem contributes its defines " \
+             "then. Ask from a `spec.build_settings` block instead."
       end
+      name = name.to_s
+      # A define may carry a value, as `FOO=1` does, so compare the name and
+      # not the value.  The `-D` is the compiler's, added when the flags are
+      # assembled, and is no part of the name.
+      return true if defines.flatten.any? {|d| d.to_s.split('=', 2).first == name}
+      compilers.any? {|c| c.has_define?(name)}
+    end
+
+    def define_rules
       [@cc, *(@cxx if cxx_exception_enabled?)].each do |compiler|
         compiler.define_rules(@build_dir, MRUBY_ROOT, @exts.object)
         compiler.define_rules(@build_dir, MRUBY_ROOT, @exts.presym_preprocessed)
       end
+    end
+
+    # The objects the products of this build are made from: every object
+    # under the build directory that a product depends on, however far down.
+    #
+    # The objects of the +mrbc+ build this build makes for itself are left
+    # out. They are the same sources compiled with the defines of a bootstrap
+    # compiler, and that build is no target the config asked for. The +mrbc+
+    # a cross build borrows from another target sits under that target's
+    # directory, and is left out by that.
+    #
+    # Walking the prerequisites resolves the rule of every object on the way,
+    # so this is asked once every target is declared: the products of one
+    # target reach the objects of another (a build reaches the +mrbc+ build it
+    # generated), and a rule resolved for those objects must see the same
+    # include paths as the compile that follows it.
+    def objects
+      build_dir = "#{@build_dir}/"
+      donor = "#{@mrbc_build.build_dir}/" if @mrbc_build
+      objects = []
+      @products.each do |product|
+        Rake::Task[product].all_prerequisite_tasks.each do |task|
+          name = task.name
+          next unless File.extname(name) == @exts.object
+          next unless name.start_with?(build_dir)
+          next if donor && name.start_with?(donor)
+          objects << name
+        end
+      end
+      objects.uniq
+    end
+
+    # The compiler and the source a compile of +outfile+ runs with, or nothing
+    # where no rule of this build compiles it.
+    #
+    # The source is the one Rake resolved the rule of the output to, the
+    # first prerequisite of its task and the one the rule hands +run+; the
+    # rule is then known by that output and that source (see
+    # +Command::Compiler::Rule+), and the compiler is the rule's. A compile
+    # written out as a +file+ task by hand is no rule, and has no answer here.
+    def compile_of(outfile)
+      task = Rake.application.lookup(outfile) || Rake.application.enhance_with_matching_rule(outfile)
+      return nil unless task
+      source = task.prerequisites.first
+      rule = @compile_rules.find { |r| r.compiles?(outfile, source) }
+      [rule.compiler, source] if rule
     end
 
     def define_installer_outline(src, dst)
@@ -463,9 +774,38 @@ EOS
       puts ">>> Bintest #{name} <<<"
       targets = @gems.select { |v| File.directory? "#{v.dir}/bintest" }.map { |v| filename v.dir }
       mrbc = @gems["mruby-bin-mrbc"] ? exefile("#{@build_dir}/bin/mrbc") : mrbcfile
-      env = {"BUILD_DIR" => @build_dir, "MRBCFILE" => mrbc}
+      env = {"BUILD_DIR" => @build_dir, "MRBCFILE" => mrbc,
+             "EXECUTABLE_EXT" => @exts.executable}
       bintest = File.join(MRUBY_ROOT, "test/bintest.rb")
       sh env, "ruby #{bintest}#{verbose_flag} #{targets.join ' '}"
+    end
+
+    # Report that this build directory holds output produced by another
+    # configuration, once for the whole directory: the command line is
+    # recorded per output, so every output that follows carries the same
+    # change and would report it again.
+    #
+    # `recorded` is nil when there is no record at all, which is what a
+    # directory built before this check looks like.
+    def report_flags_change(recorded, current)
+      FLAGS_CHANGE_LOCK.synchronize do
+        return if @flags_change_reported
+        @flags_change_reported = true
+
+        unless recorded
+          warn "#{build_dir}: output here has no record of what built it, rebuilding it"
+          return
+        end
+
+        warn "#{build_dir}: output here was built by another configuration, rebuilding it"
+        recorded.lines.zip(current.lines).each do |before, after|
+          next if before == after
+          field = (after || before)[/\A[^:]+/]
+          before, after = [before, after].map {|line| line.to_s.split(": ", 2)[1].to_s.split}
+          warn "  #{field} added: #{(after - before).join(" ")}" unless (after - before).empty?
+          warn "  #{field} removed: #{(before - after).join(" ")}" unless (before - after).empty?
+        end
+      end
     end
 
     def print_build_summary
@@ -489,10 +829,6 @@ EOS
 
     def libmruby_static
       libfile("#{build_dir}/#{libdir_name}/libmruby")
-    end
-
-    def libmruby_core_static
-      libfile("#{build_dir}/#{libdir_name}/libmruby_core")
     end
 
     def libraries
@@ -534,6 +870,12 @@ EOS
 
     attr_writer :presym
 
+    # Map the directories of this build unless the config has spoken for
+    # itself, either way.
+    def apply_default_file_prefix_map
+      enable_file_prefix_map if @file_prefix_map.nil?
+    end
+
     def create_mrbc_build
       exclusions = %i[@name @build_dir @gems @enable_test @enable_bintest @internal @install_excludes]
       name = "#{@name}/mrbc"
@@ -551,6 +893,8 @@ EOS
             end
         build.instance_variable_set(n, v)
       end
+      # Bootstrap mrbc with the Prism compiler so mrblib is compiled with
+      # matching presyms. This runs before dependency resolution.
       build.build_mrbc_exec
       build.disable_libmruby
       build.presym = Presym.new(build)
@@ -570,18 +914,55 @@ EOS
     def initialize(name, build_dir=nil, &block)
       @test_runner = Command::CrossTestRunner.new(self)
       super
-      unless mrbcfile_external? || MRuby.targets['host']
-        # add minimal 'host'
-        MRuby::Build.new('host') do |conf|
-          conf.toolchain
-          conf.build_mrbc_exec
-          conf.disable_libmruby
-        end
-      end
     end
 
     def mrbcfile
-      mrbcfile_external? ? super : MRuby::targets['host'].mrbcfile
+      return super if mrbcfile_external?
+      unless @mrbc_host
+        fail "the `mrbc' for '#{@name}' is not bound yet; `MRuby.resolve_mrbc_hosts' " \
+             "binds it once the whole build config has been read"
+      end
+      MRuby::targets[@mrbc_host].mrbcfile
+    end
+
+    # The defines a target and the `mrbc` it borrows have to agree on.
+    #
+    # The bytecode `mrbc` emits has to be loadable on the target, and
+    # `src/load.c` refuses a whole irep over a single pool entry the target
+    # cannot represent: under `MRB_NO_FLOAT` a float literal is one. A define
+    # that decides what a pool entry may hold belongs in this list, which is
+    # where the comparison below, the name of a generated build and the
+    # defines it carries all read the question from.
+    MRBC_DEFINES = %w[MRB_NO_FLOAT].freeze
+
+    # Bind this target to the build it borrows `mrbc` from, generating one
+    # where none will do.
+    #
+    # A `host` the build config declares is borrowed as it is written. Where
+    # there is none, where it has no `mrbc` to lend, or where it answers
+    # otherwise, the target borrows a build generated here, named for the
+    # answer it carries rather than for the target that asked for it: targets
+    # that agree share one, and it belongs to none of them. `mrbc_builds`
+    # carries the ones this pass has generated, so a config with several
+    # cross targets builds `mrbc` once per answer.
+    #
+    # The name is one the build config does not write, so a build generated
+    # here cannot take a name the config wants, and `build/mrbc` is where
+    # `mrbc` built for its own sake goes, which is where `build_config/mrbc.rb`
+    # already puts it. `build/host` is left to a `host` the config declares.
+    def bind_mrbc_host(mrbc_builds)
+      return if mrbcfile_external?
+      needed = mrbc_defines(self)
+      host = MRuby.targets['host']
+      if host && host.supplies_mrbc? && mrbc_defines(host) == needed
+        @mrbc_host = 'host'
+      else
+        @mrbc_host = (mrbc_builds[needed] ||= generate_mrbc_build(needed))
+        # `tasks/presym.rake` reads this to leave the generated build's
+        # objects to it, which a target named `mrbc` would otherwise scan as
+        # its own.
+        @mrbc_build = MRuby.targets[@mrbc_host]
+      end
     end
 
     def run_test
@@ -604,6 +985,7 @@ EOS
         "BUILD_DIR" => @build_dir,
         "MRBCFILE" => mrbc,
         "EMULATOR" => @test_runner.emulator,
+        "EXECUTABLE_EXT" => @exts.executable,
       }
       bintest = File.join(MRUBY_ROOT, "test/bintest.rb")
       sh env, "ruby #{bintest}#{verbose_flag} #{targets.join ' '}"
@@ -612,5 +994,46 @@ EOS
     protected
 
     def create_mrbc_build; end
+
+    private
+
+    def generate_mrbc_build(needed)
+      name = mrbc_build_name(needed)
+      if MRuby.targets[name]
+        fail "cannot generate the `mrbc' build for '#{@name}': " \
+             "the build config already declares a build named '#{name}'"
+      end
+      MRuby::Build.new(name, internal: true) do |conf|
+        conf.toolchain
+        conf.build_mrbc_exec
+        conf.disable_libmruby
+        conf.compilers.each {|c| c.defines.concat(needed)}
+      end
+      name
+    end
+
+    # The answer `build` gives to every question in `MRBC_DEFINES`, as the
+    # defines it says yes to.
+    #
+    # Both lists a build config writes answer, the way `Build#has_define?`
+    # reads them, because `Command::Compiler#all_flags` puts `build.defines`
+    # on the same command line as a compiler's own. `Build#has_define?` itself
+    # cannot be asked here: it refuses until the gems are set up, and every
+    # `mrbc` is bound before that.
+    def mrbc_defines(build)
+      own = build.defines.flatten.map {|d| d.to_s.split('=', 2).first}
+      MRBC_DEFINES.select do |d|
+        own.include?(d) || build.compilers.any? {|c| c.has_define?(d)}
+      end
+    end
+
+    # Name a generated build after the defines it carries, so that the name
+    # says which targets can borrow it. A build that carries none is the one a
+    # plain `host` would have been.
+    def mrbc_build_name(defines)
+      answer = defines.empty? ? 'default' :
+               defines.map {|d| d.delete_prefix('MRB_').downcase.tr('_', '-')}.join('+')
+      "mrbc/#{answer}"
+    end
   end # CrossBuild
 end # MRuby

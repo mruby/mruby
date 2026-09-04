@@ -48,6 +48,22 @@ assert('yield', '11.3.5') do
   end
 end
 
+assert('yield with keyword arguments') do
+  # keywords must reach the block, alone and mixed with positional/splat args
+  def ky_kw; yield b: true; end
+  assert_equal [{b: true}], ky_kw { |*a| a }
+
+  def ky_pos_kw; yield 1, b: true; end
+  assert_equal [1, {b: true}], ky_pos_kw { |*a| a }
+
+  def ky_splat_kw; yield 1, *[2], b: true; end
+  assert_equal [1, 2, {b: true}], ky_splat_kw { |*a| a }
+
+  # a block declaring keyword parameters receives them as keywords
+  def ky_decl; yield 1, x: 2, y: 3; end
+  assert_equal [1, 2, 3], ky_decl { |a, x:, y:| [a, x, y] }
+end
+
 assert('break', '11.5.2.4.3') do
   n = 0
   a = []
@@ -128,6 +144,91 @@ assert('break', '11.5.2.4.3') do
     a.push 4
   end
   assert_equal [1, 2, 3, 4], a
+end
+
+assert('next with value from a block') do
+  def next_yield; yield; end
+  # next v returns v itself, not [v]
+  assert_equal 234, (next_yield { next 234 })
+  # multiple values become an array
+  assert_equal [1, 2], (next_yield { next 1, 2 })
+  # a splat argument is expanded, not double-wrapped
+  assert_equal [7, 8], (next_yield { next *[7, 8] })
+  # bare next yields nil
+  assert_nil (next_yield { next })
+  # next as loop control still discards its value
+  assert_equal [1, 20, 3], [1, 2, 3].map { |x| next x * 10 if x == 2; x }
+end
+
+assert('safe navigation operator-assignment short-circuits on nil') do
+  # a nil receiver yields nil without invoking the read or write method
+  assert_nil (nil&.foo += 5)
+  assert_nil (nil&.foo ||= 5)
+  assert_nil (nil&.foo &&= 5)
+
+  # the right-hand side is not evaluated when the receiver is nil
+  evaluated = false
+  nil&.foo += (evaluated = true; 1)
+  assert_false evaluated
+
+  # a non-nil receiver still performs the operation
+  acc = Class.new { attr_accessor :x }
+  c = acc.new
+  c.x = 10
+  assert_equal 15, (c&.x += 5)
+  assert_equal 15, c.x
+
+  d = acc.new
+  d&.x ||= 7
+  assert_equal 7, d.x
+end
+
+assert('local variable or/and-assignment yields its value') do
+  # gen_assignment_lvar() only moves, so the local-variable branch has to push
+  # the result the way the other branches do. Without it the expression yields
+  # nothing and every later register is off by one, which the VM catches as
+  # `bidx < irep->nregs`.
+  q = 1;   assert_equal 1, (q ||= 7); assert_equal 1, q
+  r = nil; assert_equal 7, (r ||= 7); assert_equal 7, r
+  s = 1;   assert_equal 7, (s &&= 7); assert_equal 7, s
+  t = nil; assert_nil (t &&= 7)
+
+  # in argument position, where the register slip used to assert
+  u = 1
+  assert_equal [1], [].push(u ||= 7)
+  v = 1
+  assert_equal [1, 8], [(v ||= 7), 8]
+
+  # combined with a splat argument (clusterfuzz 6212427713413120)
+  w = 1
+  assert_equal [1, :h], [(w ||= 7), *[:h]]
+
+  # and in a nested scope, through an upvar
+  outer = nil
+  [1].each { outer ||= 5 }
+  assert_equal 5, outer
+end
+
+assert('attribute or/and-assignment persists the write in a value context') do
+  acc = Class.new { attr_accessor :x }
+
+  # ||= writing when the value is used (e.g. as a method argument): the
+  # peephole must not hoist the RHS out of the write's argument register
+  c = acc.new
+  assert_equal 7, (c.x ||= 7)
+  assert_equal 7, c.x
+
+  # ||= skipping when the attribute is already truthy
+  c2 = acc.new
+  c2.x = 5
+  assert_equal 5, (c2.x ||= 7)
+  assert_equal 5, c2.x
+
+  # &&= writing when truthy
+  c3 = acc.new
+  c3.x = 3
+  assert_equal 9, (c3.x &&= 9)
+  assert_equal 9, c3.x
 end
 
 assert('redo', '11.5.2.4.5') do
@@ -388,6 +489,23 @@ assert('multiple assignment (rest)') do
   assert_equal [0], a
 end
 
+assert('multiple assignment (index targets)') do
+  a = [1, 2]
+  a[0], a[1] = 9, 8
+  assert_equal [9, 8], a
+
+  a[0], a[1] = a[1], a[0]
+  assert_equal [8, 9], a
+
+  h = {}
+  h[:x], h[:y] = 1, 2
+  assert_equal({:x => 1, :y => 2}, h)
+
+  b = Array.new(4, 0)
+  b[0, 2], b[2, 2] = [1, 2], [3, 4]
+  assert_equal [1, 2, 3, 4], b
+end
+
 assert('multiple assignment (rest+post)') do
   *a, b = 0, 1, 2
   *c, d = 3
@@ -504,6 +622,23 @@ assert('splat object in case statement') do
     1
   end
   assert_equal 1, a
+end
+
+assert('splat in case statement with a pattern that replaces the array') do
+  # #=== runs while the splatted array is being walked, and replacing it with a
+  # shorter one moves the buffer out from under the traversal.
+  pat = Class.new do
+    def initialize(a); @a = a; end
+    def ===(o); @a.replace(Array.new(64, 0)); false; end
+  end
+  a = []
+  400.times { a << pat.new(a) }
+  r = case 1
+      when *a then :matched
+      else :none
+      end
+  assert_equal :none, r
+  assert_equal 64, a.size
 end
 
 assert('splat in case statement') do
@@ -822,6 +957,17 @@ assert('numbered parameters') do
   assert_equal(5, -> { _1 }.call(5))
 end
 
+assert('numbered parameter after ordinary local (#6921)') do
+  # a local assigned before the first _1 reference used to steal _1's
+  # register, leaving the numbered parameter nil
+  result = nil
+  [1].each { tmp = _1 + 1; result = tmp }
+  assert_equal(2, result)
+
+  [[1, 2]].each { t = _2; result = [_1, t] }
+  assert_equal([1, 2], result)
+end
+
 assert('_0 is not numbered parameter') do
   _0 = :l
   assert_equal(:l, ->{_0}.call)
@@ -863,12 +1009,16 @@ assert('argument forwarding') do
       assert_equal(a,1)
       b(1,...)
     end
+    def e(...)
+      [1].each { a0(...) }
+    end
   }
   o = c.new
   o.a(1,2,3){}
   o.b(1,2,3){}
   o.c(1,2,3){}
   o.d(1,2,3){}
+  o.e(1,2,3){}   # forwarding from inside a block
 end
 
 assert('endless def') do
@@ -981,6 +1131,32 @@ assert('pattern matching - basic case/in') do
   assert_equal :other, result
 end
 
+assert('pattern matching - string literal patterns') do
+  result = case "hello"
+           in "hello" then :match
+           end
+  assert_equal :match, result
+
+  # double-quoted vs single-quoted should both work
+  result = case 'world'
+           in "world" then :double
+           end
+  assert_equal :double, result
+
+  # alternation with strings
+  result = case "ab"
+           in "ab" | "cd" then :alt
+           end
+  assert_equal :alt, result
+
+  # string interpolation in pattern
+  expected = "lo"
+  result = case "hello"
+           in "hel#{expected}" then :interp
+           end
+  assert_equal :interp, result
+end
+
 assert('pattern matching - array patterns') do
   # simple array pattern
   case [1, 2, 3]
@@ -1017,6 +1193,21 @@ assert('pattern matching - array patterns') do
     x
   end
   assert_equal 3, result
+
+  # array literal with splat as case value (#6854):
+  # the array-literal-length optimization must bail out for splat,
+  # since the runtime length is unknown statically.
+  a = [1, 2]
+  result = case [*a]
+           in [1, 2] then :match
+           else :nomatch
+           end
+  assert_equal :match, result
+
+  # same bug in one-line `in` pattern
+  assert_true ([*a] in [1, 2])
+  assert_false ([*a] in [1, 2, 3])
+  assert_true ([1, *a, 4] in [1, 1, 2, 4])
 end
 
 assert('pattern matching - find patterns') do
@@ -1073,6 +1264,47 @@ assert('pattern matching - find patterns') do
     assert_equal 3, x
     assert_equal [4, 5], post
   end
+end
+
+assert('pattern matching - a key that moves the subject') do
+  # A key's #== and #eql? run while the pattern helpers are walking the key
+  # array and the subject hash, and both were held as raw storage across the
+  # call. Rehashing the subject is refused by the Hash implementation's own
+  # check; replacing the key array is allowed, so the walk has to keep up.
+  moving = Class.new do
+    attr_accessor :owner, :arr, :armed, :found
+    def initialize(id); @id = id; @armed = false; @found = false; end
+    def hash; @id; end
+    def ==(_)
+      if @armed
+        @armed = false
+        @arr.replace(Array.new(64) { |j| self.class.new(j + 100) }) if @arr
+        2_000.times { |i| @owner[i + 10_000] = i } if @owner
+      end
+      @found
+    end
+    alias eql? ==
+  end
+
+  # `in {a: 1}` reaches __pat_values, which walks the key array. The lookup
+  # keys are separate objects from the stored ones, so the hash has to ask
+  # #eql? rather than settle it by identity.
+  h1 = {}
+  30.times { |i| h1[moving.new(i + 1)] = i }
+  keys = Array.new(30) { |i| moving.new(i + 1) }
+  keys.each { |k| k.arr = keys; k.found = true }
+  keys[0].armed = true
+  # The replacement keys are not in the hash, so the lookup fails; what
+  # matters is that the walk follows the array it was given rather than the
+  # buffer it started with.
+  assert_false h1.__pat_values(keys)
+
+  # `**rest` reaches __except, which walks the subject hash as well
+  h2 = {a: 1}
+  ks = Array.new(30) { |i| k = moving.new(i + 1); h2[k] = k; k }
+  ks.each { |k| k.owner = h2 }
+  ks[0].armed = true
+  assert_raise(RuntimeError) { h2.__except([:a]) }
 end
 
 assert('pattern matching - hash patterns') do
@@ -1158,6 +1390,17 @@ assert('pattern matching - alternative patterns') do
     :no_match
   end
   assert_equal :match, result
+
+  # an unimplemented pattern (`self`) on the left of `|` used to corrupt the
+  # bytecode through the JMPNOT->JMPIF peephole and crash the VM; it must just
+  # fail to match and fall through to the right alternative.
+  result = case 42
+  in self | _
+    :matched
+  else
+    :no
+  end
+  assert_equal :matched, result
 end
 
 assert('pattern matching - pin operator') do
@@ -1287,25 +1530,162 @@ assert('pattern matching - complex patterns') do
   end
 end
 
-assert('&nil in formal parameters') do
-  def m(&nil); end
-  m
-  m(&nil)
-  assert_raise(ArgumentError) { m {} }
+assert('defined? on statically-decidable operands') do
+  # literals and pure expressions
+  assert_equal 'expression', defined?(1)
+  assert_equal 'expression', defined?("s")
+  assert_equal 'expression', defined?(:sym)
+  assert_equal 'expression', defined?([1, 2])
+  assert_equal 'expression', defined?({a: 1})
+  assert_equal 'expression', defined?(nil)
+  assert_equal 'expression', defined?(true)
+  assert_equal 'expression', defined?(false)
+  assert_equal 'expression', defined?(1..2)
+  assert_equal 'expression', defined?(defined?(x))
 
-  def m2(a, b, &nil); end
-  m2(1, 2)
-  assert_raise(ArgumentError) { m2(1, 2) {} }
+  # self
+  assert_equal 'self', defined?(self)
 
-  def m3(a, b=1, *c, &nil); end
-  m3(1)
-  assert_raise(ArgumentError) { m3(1) {} }
+  # a local variable in scope
+  lv = 1
+  assert_equal 'local-variable', defined?(lv)
 
-  def m4(a:, &nil); end
-  m4(a: 1)
-  assert_raise(ArgumentError) { m4(a: 1) {} }
+  # assignments report "assignment" without being evaluated
+  assert_equal 'assignment', defined?(unset = 1)
+  assert_nil unset
+  n = 5
+  assert_equal 'assignment', defined?(n += 100)
+  assert_equal 5, n
+end
 
-  f = ->(&nil) { :ok }
-  assert_equal :ok, f.call
-  assert_raise(ArgumentError) { f.call {} }
+DEFINED_TEST_CONST = 1
+
+assert('defined? on operands resolved at run time') do
+  # constants (in the lexical scope of this method)
+  assert_equal 'constant', defined?(DEFINED_TEST_CONST)
+  assert_equal 'constant', defined?(Object)
+  assert_nil defined?(NoSuchConstantHere)
+
+  # methods reachable from self, including private ones
+  assert_equal 'method', defined?(assert)          # available here
+  assert_nil defined?(no_such_method_at_all)
+
+  # instance variables of self
+  o = Object.new
+  o.instance_eval { @ivar_present = 1 }
+  assert_equal 'instance-variable', o.instance_eval { defined?(@ivar_present) }
+  assert_nil o.instance_eval { defined?(@ivar_absent) }
+
+  # yield depends on whether the enclosing method got a block
+  m = Object.new
+  def m.with_block; defined?(yield); end
+  assert_equal 'yield', m.with_block {}
+  assert_nil m.with_block
+
+  # the operand is not evaluated
+  evaluated = false
+  defined?(no_such_method_at_all(evaluated = true))
+  assert_false evaluated
+end
+
+$defined_test_gvar = 1
+
+assert('defined? on global/class variables and super') do
+  # global variables (defined once assigned)
+  assert_equal 'global-variable', defined?($defined_test_gvar)
+  assert_nil defined?($no_such_global_anywhere)
+
+  # class variables, in the lexical class scope
+  cls = Class.new do
+    @@cv_present = 1
+    def read_present; defined?(@@cv_present); end
+    def read_absent;  defined?(@@cv_absent); end
+  end
+  obj = cls.new
+  assert_equal 'class variable', obj.read_present
+  assert_nil obj.read_absent
+
+  # super depends on whether the method has a super method
+  base = Class.new { def greet; end }
+  derived = Class.new(base) { def greet; defined?(super); end }
+  assert_equal 'super', derived.new.greet
+  standalone = Class.new { def solo; defined?(super); end }
+  assert_nil standalone.new.solo
+end
+
+module DefinedPathOuter
+  Inner = 1
+end
+
+class DefinedPathBase; Sub = 2; end
+class DefinedPathChild < DefinedPathBase; end
+
+assert('defined? on constant paths (A::B)') do
+  assert_equal 'constant', defined?(DefinedPathOuter::Inner)
+  assert_nil defined?(DefinedPathOuter::Missing)
+  assert_nil defined?(NoSuchOuter::Inner)      # undefined parent, no raise
+
+  # the ::  lookup follows the ancestor chain of the parent
+  assert_equal 'constant', defined?(DefinedPathChild::Sub)
+
+  # a builtin nested constant
+  assert_equal 'constant', defined?(Float::INFINITY) if Object.const_defined?(:Float)
+end
+
+# NOTE: `&nil` block-forbidding parameters live in syntax_block_forbid.rb,
+# which the build excludes when compiling with mruby-compiler-prism (the
+# Prism parser does not accept `&nil` yet).
+
+assert('brace-less variable interpolation') do
+  # `"#@iv"` is the short form of `"#{@iv}"`. It reaches the codegen as an
+  # EmbeddedVariableNode, which used to be unimplemented.
+  @iv = "IV"
+  $gv = "GV"
+
+  assert_equal "aIVb", "a#@iv" + "b"
+  assert_equal "xGVy", "x#$gv" + "y"
+  assert_equal "IVGV", "#@iv#$gv"
+  assert_equal :sIV, :"s#@iv"
+
+  # a class variable, which is only readable from a class body or method
+  c = Class.new do
+    @@cv = "CV"
+    def self.t; "c#@@cv"; end
+  end
+  assert_equal "cCV", c.t
+
+  # non-string values go through to_s, as with #{}
+  @n = 42
+  @u = nil
+  assert_equal "42", "#@n"
+  assert_equal "", "#@u"
+
+  # `#` not followed by a variable sigil stays literal
+  assert_equal "# x", "# x"
+  assert_equal 3, "#@ ".length
+end
+
+assert('local variable operator-assignment with a non-numeric receiver') do
+  # `x += 1` on a local variable compiles to OP_ADDILV, whose fast path handles
+  # Integer and Float in place.  Anything else has to go through the method,
+  # and that call must not be set up on the local variables: both the argument
+  # register and the callee frame would start at the local being assigned.
+  obj = Class.new { def +(n); [:added, n]; end }.new
+  a = 10
+  b = 20
+  obj += 1
+  assert_equal [:added, 1], obj
+  assert_equal 10, a
+  assert_equal 20, b
+
+  obj2 = Class.new { def -(n); [:subtracted, n]; end }.new
+  c = 30
+  obj2 -= 2
+  assert_equal [:subtracted, 2], obj2
+  assert_equal 30, c
+
+  # the operand is passed as an Integer, and an exception from the method
+  # propagates rather than being swallowed
+  obj3 = Class.new { def +(n); raise ArgumentError, n.to_s; end }.new
+  assert_raise_with_message(ArgumentError, "7") { obj3 += 7 }
 end

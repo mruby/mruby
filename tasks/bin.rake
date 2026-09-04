@@ -10,7 +10,7 @@ MRuby.each_target do |build|
     linker_attrs = build.gems.linker_attrs(gem)
     gem.bins.each do |bin|
       exe = build.exefile("#{build.build_dir}/bin/#{bin}")
-      objs = Dir["#{gem.dir}/tools/#{bin}/*.{c,cpp,cxx,cc}"].map do |f|
+      objs = Dir["#{gem.dir}/tools/#{bin}/*.{c,cpp,cxx,cc}"].sort.map do |f|
         build.objfile(f.pathmap("#{gem.build_dir}/tools/#{bin}/%n"))
       end
       file exe => objs.concat(build.libraries) do |t|

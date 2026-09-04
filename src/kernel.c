@@ -128,7 +128,41 @@ mrb_eqq_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value arg = mrb_get_arg1(mrb);
 
+#ifndef MRB_NO_FLOAT
+  /* Case equality is `==` for an Object, and a NaN is equal to nothing at all,
+     itself included. `mrb_equal()` answers a value that holds what the other
+     one holds before it asks `==` anything, which is the answer a container
+     searching for the object it was handed wants, and the wrong one here. */
+  if (mrb_float_p(self) && isnan(mrb_float(self))) return mrb_false_value();
+#endif
   return mrb_bool_value(mrb_equal(mrb, self, arg));
+}
+
+/* 11.4.4 Step c) */
+/*
+ *  call-seq:
+ *     obj !~ other  -> true or false
+ *
+ *  Returns true when *obj* does not match *other*, which is what `=~`
+ *  answering a false value means.  Overriding `=~` is what gives a class a
+ *  meaning for both operators; overriding this one separately is what makes
+ *  the two disagree, as it does in CRuby.
+ */
+static mrb_value
+mrb_obj_not_match(mrb_state *mrb, mrb_value self)
+{
+  mrb_value arg = mrb_get_arg1(mrb);
+
+  /* Dispatching `=~` is the meaning of this method rather than a convenience,
+     so the VM call belongs here.  What comes back is read as a truth value and
+     then dropped, so nothing has to survive the arena restore, and an exception
+     raised by `=~` unwinds past this frame with nothing left behind to clean
+     up.  Answering from C is also what keeps `=~` writing `$~` into the scope
+     that wrote `!~`, the way CRuby's `rb_obj_not_match()` does. */
+  int ai = mrb_gc_arena_save(mrb);
+  mrb_bool matched = mrb_test(mrb_funcall_argv(mrb, self, MRB_OPSYM(match), 1, &arg));
+  mrb_gc_arena_restore(mrb, ai);
+  return mrb_bool_value(!matched);
 }
 
 static mrb_value
@@ -320,7 +354,7 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
   }
   else {
     uint8_t n = ci->n == 15 ? 1 : ci->n;
-    uint8_t k = ci->nk == 15 ? 1 : ci->nk*2;
+    uint8_t k = ci->kw;
     bidx = n + k + 1;      /* self + args + kargs => bidx */
     bp = &ci->stack[bidx];
   }
@@ -579,9 +613,9 @@ mrb_obj_remove_instance_variable(mrb_state *mrb, mrb_value self)
  *  method. Private methods are included in the search only if the
  *  optional second parameter evaluates to `true`.
  *
- *  If the method is not implemented,
- *  as Process.fork on Windows, File.lchmod on GNU/Linux, etc.,
- *  false is returned.
+ *  If the method is defined but unimplemented on this machine,
+ *  as IO#pread in a build without pread(2), false is returned
+ *  and `respond_to_missing?` is not consulted.
  *
  *  If the method is not defined, `respond_to_missing?`
  *  method is called and the result is returned.
@@ -590,18 +624,22 @@ static mrb_value
 obj_respond_to(mrb_state *mrb, mrb_value self)
 {
   mrb_sym id;
-  mrb_bool priv = FALSE, respond_to_p;
+  mrb_bool priv = FALSE;
 
   mrb_get_args(mrb, "n|b", &id, &priv);
-  respond_to_p = mrb_respond_to(mrb, self, id);
-  if (!respond_to_p) {
+  struct RClass *c = mrb_class(mrb, self);
+  mrb_method_t m = mrb_method_search_vm(mrb, &c, id);
+  if (MRB_METHOD_UNDEF_P(m)) {
     mrb_sym rtm_id = MRB_SYM_Q(respond_to_missing);
     if (!mrb_func_basic_p(mrb, self, rtm_id, mrb_false)) {
-      mrb_value v = mrb_funcall_id(mrb, self, rtm_id, 2, mrb_symbol_value(id), mrb_bool_value(priv));
+      mrb_value v = mrb_funcall_argv2(mrb, self, rtm_id, mrb_symbol_value(id), mrb_bool_value(priv));
       return mrb_bool_value(mrb_bool(v));
     }
+    return mrb_false_value();
   }
-  return mrb_bool_value(respond_to_p);
+  /* The method is there, so `respond_to_missing?` has nothing to add, and one
+     that is unimplemented on this machine answers a plain false. */
+  return mrb_bool_value(!MRB_METHOD_NOTIMPL_P(m));
 }
 
 static mrb_value
@@ -630,8 +668,12 @@ mrb_obj_ceqq(mrb_state *mrb, mrb_value self)
     }
     mrb_ensure_array_type(mrb, ary);
   }
+  /* A pattern's #=== can replace `ary` with a shorter array, which moves the
+     buffer as well as the length, so the next index has to be checked against
+     what RARRAY_PTR() now points at. The saved length stays as the upper
+     bound: a pattern that grows the array does not extend the traversal. */
   mrb_int len = RARRAY_LEN(ary);
-  for (mrb_int i=0; i<len; i++) {
+  for (mrb_int i=0; i<len && i<RARRAY_LEN(ary); i++) {
     mrb_value c = mrb_funcall_argv(mrb, RARRAY_PTR(ary)[i], eqq, 1, &v);
     if (mrb_test(c)) return mrb_true_value();
   }
@@ -664,9 +706,120 @@ mrb_p_m(mrb_state *mrb, mrb_value self)
 }
 #endif
 
+/* defined? runtime helpers: each returns the CRuby result string, or nil when
+   undefined. The compiler emits calls to these for `defined?(...)` operands
+   whose kind can only be resolved at run time. */
+static mrb_value
+mrb_f_defined_method(mrb_state *mrb, mrb_value self)
+{
+  mrb_sym sym;
+  mrb_get_args(mrb, "n", &sym);
+  struct RClass *c = mrb_class(mrb, self);
+  mrb_method_t m = mrb_method_search_vm(mrb, &c, sym);
+  if (!MRB_METHOD_UNDEF_P(m)) return mrb_str_new_lit(mrb, "method");
+  return mrb_nil_value();
+}
+
+static mrb_value
+mrb_f_defined_ivar(mrb_state *mrb, mrb_value self)
+{
+  mrb_sym sym;
+  mrb_get_args(mrb, "n", &sym);
+  if (mrb_iv_defined(mrb, self, sym)) return mrb_str_new_lit(mrb, "instance-variable");
+  return mrb_nil_value();
+}
+
+static mrb_value
+mrb_f_defined_const(mrb_state *mrb, mrb_value self)
+{
+  mrb_sym sym;
+  mrb_get_args(mrb, "n", &sym);
+  /* resolve in the caller's lexical scope (ci[-1]), not this helper's */
+  mrb_callinfo *ci = &mrb->c->ci[-1];
+  if (ci >= mrb->c->cibase && ci->proc &&
+      mrb_vm_const_defined_p(mrb, ci->proc, sym)) {
+    return mrb_str_new_lit(mrb, "constant");
+  }
+  return mrb_nil_value();
+}
+
+static mrb_value
+mrb_f_defined_yield(mrb_state *mrb, mrb_value self)
+{
+  /* mrb_f_block_given_p_m inspects ci[-1], i.e. the frame that used defined? */
+  if (mrb_test(mrb_f_block_given_p_m(mrb, self))) return mrb_str_new_lit(mrb, "yield");
+  return mrb_nil_value();
+}
+
+static mrb_value
+mrb_f_defined_gvar(mrb_state *mrb, mrb_value self)
+{
+  mrb_sym sym;
+  mrb_get_args(mrb, "n", &sym);
+  if (mrb_gv_defined(mrb, sym)) return mrb_str_new_lit(mrb, "global-variable");
+  return mrb_nil_value();
+}
+
+static mrb_value
+mrb_f_defined_cvar(mrb_state *mrb, mrb_value self)
+{
+  mrb_sym sym;
+  mrb_get_args(mrb, "n", &sym);
+  /* class-variable scope follows the caller's lexical class (ci[-1]) */
+  mrb_callinfo *ci = &mrb->c->ci[-1];
+  if (ci >= mrb->c->cibase && ci->proc &&
+      mrb_vm_cv_defined_p(mrb, ci->proc, sym)) {
+    return mrb_str_new_lit(mrb, "class variable");
+  }
+  return mrb_nil_value();
+}
+
+static mrb_value
+mrb_f_defined_super(mrb_state *mrb, mrb_value self)
+{
+  /* "super" is defined when the caller's method has a super method */
+  mrb_callinfo *ci = &mrb->c->ci[-1];
+  if (ci < mrb->c->cibase) return mrb_nil_value();
+  mrb_sym mid = ci->mid;
+  struct RClass *tc = mrb_vm_ci_target_class(ci);
+  if (mid != 0 && tc != NULL && tc->super != NULL) {
+    struct RClass *c = tc->super;
+    mrb_method_t m = mrb_method_search_vm(mrb, &c, mid);
+    if (!MRB_METHOD_UNDEF_P(m)) return mrb_str_new_lit(mrb, "super");
+  }
+  return mrb_nil_value();
+}
+
+static mrb_value
+mrb_f_defined_const_path(mrb_state *mrb, mrb_value self)
+{
+  mrb_sym parent, child;
+  mrb_get_args(mrb, "nn", &parent, &child);
+  /* resolve the parent constant in the caller's lexical scope (ci[-1]) */
+  mrb_callinfo *ci = &mrb->c->ci[-1];
+  if (ci < mrb->c->cibase || ci->proc == NULL) return mrb_nil_value();
+  mrb_value pv = mrb_vm_const_get_noraise(mrb, ci->proc, parent);
+  if (mrb_undef_p(pv)) return mrb_nil_value();
+  enum mrb_vtype t = mrb_type(pv);
+  if (t != MRB_TT_CLASS && t != MRB_TT_MODULE && t != MRB_TT_SCLASS) {
+    return mrb_nil_value();
+  }
+  if (mrb_const_defined(mrb, pv, child)) return mrb_str_new_lit(mrb, "constant");
+  return mrb_nil_value();
+}
+
 /* ---------------------------*/
 static const mrb_mt_entry kernel_rom_entries[] = {
+  MRB_MT_ENTRY(mrb_f_defined_const_path, MRB_SYM_Q(__defined_const_path), MRB_ARGS_REQ(2) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_f_defined_method, MRB_SYM_Q(__defined_method), MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_f_defined_ivar,   MRB_SYM_Q(__defined_ivar),   MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_f_defined_const,  MRB_SYM_Q(__defined_const),  MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_f_defined_yield,  MRB_SYM_Q(__defined_yield),  MRB_ARGS_NONE() | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_f_defined_gvar,   MRB_SYM_Q(__defined_gvar),   MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_f_defined_cvar,   MRB_SYM_Q(__defined_cvar),   MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_f_defined_super,  MRB_SYM_Q(__defined_super),  MRB_ARGS_NONE() | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_eqq_m,                        MRB_OPSYM(eqq),        MRB_ARGS_REQ(1)),  /* 15.3.1.3.2  */
+  MRB_MT_ENTRY(mrb_obj_not_match,                MRB_OPSYM(nmatch),      MRB_ARGS_REQ(1)),  /* 11.4.4 c) */
   MRB_MT_ENTRY(mrb_cmp_m,                        MRB_OPSYM(cmp),         MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(mrb_f_block_given_p_m,    MRB_SYM_Q(block_given),                           MRB_ARGS_NONE() | MRB_MT_PRIVATE),  /* 15.3.1.3.6  */
   MRB_MT_ENTRY(mrb_obj_class_m,                  MRB_SYM(class),                     MRB_ARGS_NONE()),  /* 15.3.1.3.7  */
@@ -690,12 +843,24 @@ static const mrb_mt_entry kernel_rom_entries[] = {
   MRB_MT_ENTRY(obj_respond_to,                   MRB_SYM_Q(respond_to), MRB_ARGS_ARG(1,1)),  /* 15.3.1.3.43 */
   MRB_MT_ENTRY(mrb_any_to_s,                     MRB_SYM(to_s),                      MRB_ARGS_NONE()),  /* 15.3.1.3.46 */
   MRB_MT_ENTRY(mrb_obj_ceqq,                     MRB_SYM(__case_eqq),     MRB_ARGS_REQ(1)),  /* internal */
-  MRB_MT_ENTRY(mrb_ensure_int_type,              MRB_SYM(__to_int),                  MRB_ARGS_NONE()),  /* internal */
   MRB_MT_ENTRY(mrb_false,                MRB_SYM_Q(respond_to_missing),      MRB_ARGS_ARG(1,1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_obj_method_recursive_p,       MRB_SYM_Q(__method_recursive), MRB_ARGS_ARG(1,1)),
 #ifndef HAVE_MRUBY_IO_GEM
   MRB_MT_ENTRY(mrb_p_m, MRB_SYM(p),     MRB_ARGS_ANY() | MRB_MT_PRIVATE),  /* 15.3.1.3.34 */
   MRB_MT_ENTRY(mrb_print_m, MRB_SYM(print), MRB_ARGS_ANY() | MRB_MT_PRIVATE),  /* 15.3.1.3.35 */
+#endif
+};
+
+/* Public counterparts on `Kernel` itself, so that the qualified form
+   `Kernel.raise` works while the instance methods above stay private.
+   This is what `module_function` gives these methods in CRuby. */
+static const mrb_mt_entry kernel_module_function_entries[] = {
+  MRB_MT_ENTRY(mrb_f_block_given_p_m, MRB_SYM_Q(block_given), MRB_ARGS_NONE()),  /* 15.3.1.2.2  */
+  MRB_MT_ENTRY(mrb_f_block_given_p_m, MRB_SYM_Q(iterator),    MRB_ARGS_NONE()),  /* 15.3.1.2.5  */
+  MRB_MT_ENTRY(mrb_f_raise,           MRB_SYM(raise),      MRB_ARGS_OPT(2)),  /* 15.3.1.2.12 */
+#ifndef HAVE_MRUBY_IO_GEM
+  MRB_MT_ENTRY(mrb_p_m,               MRB_SYM(p),          MRB_ARGS_ANY()),
+  MRB_MT_ENTRY(mrb_print_m,           MRB_SYM(print),      MRB_ARGS_ANY()),
 #endif
 };
 
@@ -705,13 +870,10 @@ mrb_init_kernel(mrb_state *mrb)
   struct RClass *krn;
 
   mrb->kernel_module = krn = mrb_define_module_id(mrb, MRB_SYM(Kernel));                                                    /* 15.3.1 */
-#if 0
-  mrb_define_class_method_id(mrb, krn, MRB_SYM_Q(block_given),        mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.2.2  */
-  mrb_define_class_method_id(mrb, krn, MRB_SYM_Q(iterator),           mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.2.5  */
-#endif
-  mrb_define_class_method_id(mrb, krn, MRB_SYM(raise),                mrb_f_raise,                     MRB_ARGS_OPT(2));    /* 15.3.1.2.12 */
 
   MRB_MT_INIT_ROM(mrb, krn, kernel_rom_entries);
+  MRB_MT_INIT_ROM(mrb, mrb_singleton_class_ptr(mrb, mrb_obj_value(krn)),
+                  kernel_module_function_entries);
 
   mrb_include_module(mrb, mrb->object_class, mrb->kernel_module);
 }

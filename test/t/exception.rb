@@ -423,3 +423,45 @@ assert('Method call in rescue') do
                  exception.backtrace.first)
   end
 end
+
+assert('break value from begin/rescue/ensure in while loop') do
+  # https://github.com/mruby/mruby/issues/6927
+  side = []
+  v = while true
+    begin
+      break 123
+    rescue
+      side << :rescue
+    ensure
+      side << :ensure
+    end
+  end
+  assert_equal 123, v
+  assert_equal [:ensure], side
+
+  v = while true
+    begin
+      raise "e"
+    rescue
+      break 9
+    ensure
+      side << :ensure2
+    end
+  end
+  assert_equal 9, v
+  assert_equal [:ensure, :ensure2], side
+end
+
+assert('next inside rescue continues the loop') do
+  i = 0
+  v = while true
+    i += 1
+    begin
+      raise "e" if i < 3
+      break i * 100
+    rescue
+      next
+    end
+  end
+  assert_equal 300, v
+end

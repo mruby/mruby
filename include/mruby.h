@@ -33,9 +33,18 @@
 #define MRUBY_H
 
 #ifdef __cplusplus
+/* Guard against redefinition: the C++ ABI build also defines these on the
+   command line (see mruby-compiler/mrbgem.rake), and some toolchains predefine
+   them, so a bare redefine here trips -Wmacro-redefined. */
+#ifndef __STDC_LIMIT_MACROS
 #define __STDC_LIMIT_MACROS
+#endif
+#ifndef __STDC_CONSTANT_MACROS
 #define __STDC_CONSTANT_MACROS
+#endif
+#ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
+#endif
 #endif
 
 #include <stdarg.h>
@@ -113,6 +122,8 @@
 
 #include "mrbconf.h"
 
+typedef struct mrb_state mrb_state;
+
 #include <mruby/common.h>
 #include <mruby/value.h>
 #include <mruby/gc.h>
@@ -156,17 +167,15 @@ typedef uint32_t mrb_aspec;
 
 typedef struct mrb_irep mrb_irep;
 
-struct mrb_state;
-
 #ifndef MRB_FIXED_STATE_ATEXIT_STACK_SIZE
 #define MRB_FIXED_STATE_ATEXIT_STACK_SIZE 5
 #endif
 
 typedef struct {
-  uint8_t n:4;                  /* (15=*) c=n|nk<<4 */
-  uint8_t nk:4;                 /* (15=*) */
+  uint8_t n:4;                  /* number of positional arguments; 15 means packed arguments */
+  uint8_t kw:1;                 /* has keyword arguments (TRUE or FALSE) */
   uint8_t cci;                  /* called from C function */
-  uint8_t vis;                  /* 5(ZERO):1(separate module):2(method visibility) */
+  uint8_t vis;                  /* 4(ZERO):1(module_function):1(separate module):2(method visibility) */
                                 /* under 3-bit flags are copied to env, and after that, env takes precedence */
   mrb_sym mid;
   const struct RProc *proc;
@@ -201,6 +210,23 @@ struct mrb_context {
   mrb_callinfo *ci;
   mrb_callinfo *cibase, *ciend;
 
+  /* One entry per call frame, indexed the way the frame is: `svars[ci -
+     cibase]`.  It holds what that frame's scope carries as special variables
+     (CRuby's svar): a keyed container (struct RSvar), or, for a frame with no
+     scope of its own, the env of the scope it resolves to -- the forward the
+     same slot of an escaped env carries (see mrb_svar_frame_container() in
+     vm.c), which is why the entries are typed by what both are rather than by
+     one.  The core stores and marks them; each key's meaning belongs to
+     whoever registers the matching virtual global (see mrb_vm_svar_get()).
+
+     Kept beside the frames rather than in them: a mrb_callinfo is 48 bytes
+     with nothing spare, and a frame that carries no special variable is the
+     overwhelming case.  NULL until a first write needs one, so a program that
+     never touches `$~` pays this pointer and nothing else, where a field
+     would have cost every frame of every call stack eight bytes.  Grown with
+     cibase and freed with it. */
+  struct RBasic **svars;
+
   enum mrb_fiber_state status : 4;
   mrb_bool vmexec : 1;
   struct RFiber *fib;
@@ -215,6 +241,14 @@ mrb_static_assert_powerof2(MRB_METHOD_CACHE_SIZE);
 # define MRB_METHOD_CACHE_SIZE (1<<8)
 #endif
 
+#ifdef MRB_IV_CACHE_SIZE
+# undef MRB_NO_IV_CACHE
+mrb_static_assert_powerof2(MRB_IV_CACHE_SIZE);
+#else
+/* default instance-variable (object shape) index cache size: 256 */
+# define MRB_IV_CACHE_SIZE (1<<8)
+#endif
+
 /**
  * Function pointer type for a function callable by mruby.
  *
@@ -224,7 +258,7 @@ mrb_static_assert_powerof2(MRB_METHOD_CACHE_SIZE);
  * @param self The self object
  * @return [mrb_value] The function's return value
  */
-typedef mrb_value (*mrb_func_t)(struct mrb_state *mrb, mrb_value self);
+typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value self);
 
 typedef struct {
   uint32_t flags;                       /* method flags (no symbol packed) */
@@ -243,9 +277,51 @@ struct mrb_cache_entry {
 };
 #endif
 
+#ifndef MRB_NO_IV_CACHE
+/* Caches the (object shape, IV symbol) -> value-slot index lookup so a shaped
+   instance-variable access is O(1). Shapes live for the whole mrb_state, so a
+   shape pointer is a stable key; the cache is per-state, hence multi-state safe. */
+struct mrb_iv_cache_entry {
+  struct mrb_iv_shape *shape;
+  mrb_sym sym;
+  int idx;
+};
+#endif
+
+#ifdef MRB_CONST_CACHE_SIZE
+# undef MRB_NO_CONST_CACHE
+mrb_static_assert_powerof2(MRB_CONST_CACHE_SIZE);
+#else
+/* default constant cache size: 64 */
+/* cache size needs to be power of 2 */
+# define MRB_CONST_CACHE_SIZE (1<<6)
+#endif
+
+#ifndef MRB_NO_CONST_CACHE
+struct mrb_const_cache_entry {
+  const struct mrb_irep *irep;
+  mrb_sym sym;
+  mrb_value value;
+};
+#endif
+
 struct mrb_jmpbuf;
 
-typedef void (*mrb_atexit_func)(struct mrb_state*);
+typedef void (*mrb_atexit_func)(mrb_state*);
+
+/**
+ * Slots of `mrb_state.idx_class`, one per builtin the inline index opcodes
+ * (`OP_GETIDX`, `OP_GETIDX0`, `OP_SETIDX`) reimplement in C.
+ */
+enum mrb_idx_op_slot {
+  MRB_IDX_OP_ARY_AREF,          /* Array#[]  */
+  MRB_IDX_OP_HASH_AREF,         /* Hash#[]   */
+  MRB_IDX_OP_STR_AREF,          /* String#[] */
+  MRB_IDX_OP_ARY_ASET,          /* Array#[]= */
+  MRB_IDX_OP_HASH_ASET,         /* Hash#[]=  */
+  MRB_IDX_OP_STR_ASET,          /* String#[]= */
+  MRB_IDX_OP_SLOT_COUNT
+};
 
 #ifdef MRB_USE_TASK_SCHEDULER
 struct mrb_task;
@@ -257,10 +333,15 @@ typedef struct mrb_task_state {
   volatile mrb_bool switching;      /* Context switch pending flag */
   struct mrb_task *main_task;       /* Main task wrapper for root context */
   uint8_t scheduler_lock;           /* Lock counter for synchronous execution */
+  uint8_t irq_nesting;              /* Depth counter for scheduler-IRQ exclusion */
+  mrb_bool loop_running;            /* Active mrb_task_run loop flag */
+  mrb_bool exception_as_result;     /* Return unhandled task exceptions as values */
+  void (*scheduler_hook)(struct mrb_state *mrb, void *ud); /* Pre-scheduling servicing hook */
+  void *scheduler_hook_ud;            /* Opaque argument for scheduler_hook */
 } mrb_task_state;
 #endif
 
-typedef struct mrb_state {
+struct mrb_state {
   struct mrb_jmpbuf *jmp;
 
   struct mrb_context *c;
@@ -289,7 +370,22 @@ typedef struct mrb_state {
   struct RClass *symbol_class;
   struct RClass *kernel_module;
 
+  /* Whether any special variable has been written in this state.  While it
+     is false no frame can be carrying one, so the per-context arrays behind
+     mrb_ci_svar() are not made: a build with a gem that registers a virtual
+     global still pays nothing until a program actually writes through it. */
+  mrb_bool svar_used;
+
   mrb_gc gc;
+
+#if !defined(MRB_NO_FLOAT) && !defined(MRB_WORD_BOXING)
+  /* Counts the NaNs made so far. A NaN is equal to nothing at all, its own
+     operand included, so a container searching for one has only the object to
+     go by; where a Float is a value and not an object, the count is what tells
+     two of them apart. See the comment above `MRB_NAN_SERIAL_MAX` in
+     `mruby/value.h`. */
+  uint64_t nan_serial;
+#endif
 
   mrb_bool bootstrapping;
 
@@ -297,22 +393,32 @@ typedef struct mrb_state {
   struct mrb_cache_entry cache[MRB_METHOD_CACHE_SIZE];
 #endif
 
+#ifndef MRB_NO_IV_CACHE
+  struct mrb_iv_cache_entry iv_cache[MRB_IV_CACHE_SIZE];
+#endif
+
+#ifndef MRB_NO_CONST_CACHE
+  struct mrb_const_cache_entry const_cache[MRB_CONST_CACHE_SIZE];
+#endif
+
   mrb_sym symidx;
   const char **symtbl;
+  uint8_t *sym_flags;                     /* per-symbol flags (SYM_FL_*) */
   size_t symcapa;
   struct mrb_sym_hash_table *symhash;
   void *sym_pool;
+  mrb_sym dynamic_sym_count;              /* count of dynamic (GC-candidate) symbols */
 #ifndef MRB_USE_ALL_SYMBOLS
   char symbuf[8];                         /* buffer for small symbol names */
 #endif
 
 #ifdef MRB_USE_DEBUG_HOOK
-  void (*code_fetch_hook)(struct mrb_state* mrb, const struct mrb_irep *irep, const mrb_code *pc, mrb_value *regs);
-  void (*debug_op_hook)(struct mrb_state* mrb, const struct mrb_irep *irep, const mrb_code *pc, mrb_value *regs);
+  void (*code_fetch_hook)(mrb_state* mrb, const struct mrb_irep *irep, const mrb_code *pc, mrb_value *regs);
+  void (*debug_op_hook)(mrb_state* mrb, const struct mrb_irep *irep, const mrb_code *pc, mrb_value *regs);
 #endif
 
 #ifdef MRB_BYTECODE_DECODE_OPTION
-  mrb_code (*bytecode_decoder)(struct mrb_state* mrb, mrb_code code);
+  mrb_code (*bytecode_decoder)(mrb_state* mrb, mrb_code code);
 #endif
 
   struct RClass *eException_class;
@@ -336,10 +442,22 @@ typedef struct mrb_state {
 #endif
   uint16_t atexit_stack_len;
 
+  /* The inline index opcodes answer `[]` and `[]=` from C for a receiver whose
+     class is exactly Array, Hash or String, which would bypass a redefinition
+     installed on those classes themselves.  Each slot holds the core class
+     while the name still resolves to the builtin recorded in `idx_builtin`,
+     and NULL once it does not, so the class-pointer test the opcodes already
+     perform rejects a redefined operator at no extra cost.  NULL is safe as
+     the disabled value because no live object has a NULL class pointer.
+     Armed by mrb_idx_op_init(), rechecked by mrb_idx_op_update().  Placed at
+     the end of the struct so that adding them moves no existing field. */
+  struct RClass *idx_class[MRB_IDX_OP_SLOT_COUNT];
+  mrb_method_t idx_builtin[MRB_IDX_OP_SLOT_COUNT];
+
 #ifdef MRB_USE_TASK_SCHEDULER
   mrb_task_state task;                    /* Task scheduler state */
 #endif
-} mrb_state;
+};
 
 /**
  * Defines a new class.
@@ -811,7 +929,7 @@ MRB_API struct RClass * mrb_module_get_under(mrb_state *mrb, struct RClass *oute
 MRB_API struct RClass * mrb_module_get_under_id(mrb_state *mrb, struct RClass *outer, mrb_sym name);
 
 /* a function to raise NotImplementedError with current method name */
-MRB_API void mrb_notimplement(mrb_state*);
+MRB_API mrb_noreturn void mrb_notimplement(mrb_state*);
 /* a function to be replacement of unimplemented method */
 MRB_API mrb_value mrb_notimplement_m(mrb_state*, mrb_value);
 /* just return it self */
@@ -1159,6 +1277,21 @@ MRB_API mrb_value mrb_funcall_id(mrb_state *mrb, mrb_value val, mrb_sym mid, mrb
  * @see mrb_funcall
  */
 MRB_API mrb_value mrb_funcall_argv(mrb_state *mrb, mrb_value val, mrb_sym name, mrb_int argc, const mrb_value *argv);
+/*
+ * Convenience wrappers for `mrb_funcall_argv` with a fixed argument count.
+ * Avoids the 16-slot fixed argv buffer used by the variadic `mrb_funcall_id`.
+ */
+MRB_INLINE mrb_value
+mrb_funcall_argv1(mrb_state *mrb, mrb_value val, mrb_sym name, mrb_value a1)
+{
+  return mrb_funcall_argv(mrb, val, name, 1, &a1);
+}
+MRB_INLINE mrb_value
+mrb_funcall_argv2(mrb_state *mrb, mrb_value val, mrb_sym name, mrb_value a1, mrb_value a2)
+{
+  const mrb_value argv[] = { a1, a2 };
+  return mrb_funcall_argv(mrb, val, name, 2, argv);
+}
 /**
  * Call existing Ruby functions with a block.
  */
@@ -1239,6 +1372,15 @@ MRB_API mrb_value mrb_obj_freeze(mrb_state*, mrb_value);
 #define mrb_str_new_lit_frozen(mrb,lit) mrb_obj_freeze(mrb,mrb_str_new_lit(mrb,lit))
 
 #ifdef _WIN32
+/* Convert between a multibyte string and a wide-character one, allocating the
+   answer with malloc() and always terminating it. `len` is a length or -1 for
+   a NUL-terminated input; `flags` is the dwFlags of the Win32 call, where 0
+   replaces a byte the code page cannot read and MB_ERR_INVALID_CHARS /
+   WC_ERR_INVALID_CHARS refuse it instead. The return is the converted length
+   without the terminator, or -1 on failure. If out is non-NULL, *out is set to
+   NULL, and is left NULL unless the conversion succeeds. */
+MRB_API int mrb_mbs_to_wcs(const char *mbsp, int len, wchar_t **out, uint32_t from_cp, uint32_t flags);
+MRB_API int mrb_wcs_to_mbs(const wchar_t *wcsp, int len, char **out, uint32_t to_cp, uint32_t flags);
 MRB_API char* mrb_utf8_from_locale(const char *p, int len);
 MRB_API char* mrb_locale_from_utf8(const char *p, int len);
 #define mrb_locale_free(p) free(p)
@@ -1283,6 +1425,11 @@ MRB_API void mrb_close(mrb_state *mrb);
 MRB_API void mrb_method_cache_clear(mrb_state *mrb);
 #else
 #define mrb_method_cache_clear(mrb) ((void)0)
+#endif
+#ifndef MRB_NO_CONST_CACHE
+MRB_API void mrb_const_cache_clear(mrb_state *mrb);
+#else
+#define mrb_const_cache_clear(mrb) ((void)0)
 #endif
 
 /**
@@ -1397,6 +1544,7 @@ MRB_API mrb_bool mrb_recursive_func_p(mrb_state *mrb, mrb_sym mid, mrb_value obj
 
 MRB_API void mrb_garbage_collect(mrb_state*);
 MRB_API void mrb_full_gc(mrb_state*);
+/* no-op while auto_step is disabled (task-scheduled GC); see src/gc.c */
 MRB_API void mrb_incremental_gc(mrb_state*);
 MRB_API void mrb_gc_mark(mrb_state*,struct RBasic*);
 #define mrb_gc_mark_value(mrb,val) do {\

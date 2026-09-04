@@ -1,10 +1,4 @@
 MRuby.each_target do
-  file libmruby_core_static => libmruby_core_objs.flatten do |t|
-    archiver.run t.name, t.prerequisites
-  end
-
-  products << libmruby_core_static
-
   next unless libmruby_enabled?
 
   copy_headers_task = "expose_header_files:#{self.name}"
@@ -63,6 +57,10 @@ MRuby.each_target do
         end
         modcc = cc.clone
         modcc.include_paths = incpaths.replace_prefix_by(dirmaps).uniq
+        # The file prefix maps name directories of the machine that built the
+        # package, and nothing the package is compiled with from here sits
+        # under them.
+        modcc.file_prefix_maps = {}
 
         f.puts "#{cmd} = #{cc.command}"
         f.puts "#{flags} = #{modcc.all_flags}"
@@ -87,4 +85,7 @@ MRuby.each_target do
   end
 
   products << libmruby_static
+  # The license text of the gems in the archive is a product beside it, not
+  # a member of it.
+  products << "#{build_dir}/LEGAL"
 end

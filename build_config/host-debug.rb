@@ -8,10 +8,14 @@ MRuby::Build.new('host') do |conf|
   conf.gembox 'full-core'
 
   # C compiler settings
-  conf.cc.defines = %w(MRB_USE_DEBUG_HOOK MRB_NO_BOXING)
+  # `+=` keeps MRB_DEBUG, which conf.enable_debug added above
+  conf.cc.defines += %w(MRB_USE_DEBUG_HOOK MRB_NO_BOXING)
 
   # Generate mruby debugger command (require mruby-eval)
   conf.gem :core => "mruby-bin-debugger"
+
+  # Regexp is included via stdlib.gembox
+
 
   # test
   conf.enable_test

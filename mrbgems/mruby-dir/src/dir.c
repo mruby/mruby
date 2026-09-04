@@ -15,7 +15,11 @@
 #include <string.h>
 #include <errno.h>
 
+/* mruby-io's <mruby/io.h> defines the same lookup; reuse it when visible
+   in this translation unit (e.g. the amalgamated build) */
+#ifndef E_IO_ERROR
 #define E_IO_ERROR mrb_exc_get_id(mrb, MRB_SYM(IOError))
+#endif
 
 struct mrb_dir {
   mrb_dir_handle *handle;
@@ -214,6 +218,7 @@ mrb_dir_chdir(mrb_state *mrb, mrb_value klass)
  *
  *   Dir.chroot("/production/secure/root")
  */
+#ifdef MRB_HAL_DIR_HAS_CHROOT
 static mrb_value
 mrb_dir_chroot(mrb_state *mrb, mrb_value self)
 {
@@ -223,14 +228,16 @@ mrb_dir_chroot(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "z", &path);
   res = mrb_hal_dir_chroot(mrb, path);
   if (res == -1) {
-    if (errno == ENOSYS) {
-      mrb_raise(mrb, E_NOTIMP_ERROR, "chroot() unreliable on your system");
-    }
     mrb_sys_fail(mrb, path);
   }
 
   return mrb_fixnum_value(res);
 }
+#else
+/* this port cannot change the root: unimplemented, and named as such so
+   `respond_to?` can answer false */
+# define mrb_dir_chroot mrb_notimplement_m
+#endif
 
 static mrb_bool
 skip_name_p(const char *name)
@@ -240,6 +247,40 @@ skip_name_p(const char *name)
   if (name[1] != '.') return FALSE;
   if (name[2] == '\0') return TRUE;
   return FALSE;
+}
+
+struct mrb_dir_iteration {
+  mrb_dir_handle *handle;
+  mrb_bool skip_special;
+};
+
+static mrb_value
+mrb_dir_empty_body(mrb_state *mrb, void *ptr)
+{
+  struct mrb_dir_iteration *ctx = (struct mrb_dir_iteration*)ptr;
+  const char *name;
+
+  while ((name = mrb_hal_dir_read(mrb, ctx->handle)) != NULL) {
+    if (!skip_name_p(name)) {
+      return mrb_false_value();
+    }
+  }
+  return mrb_true_value();
+}
+
+static mrb_value
+mrb_dir_collect_body(mrb_state *mrb, void *ptr)
+{
+  struct mrb_dir_iteration *ctx = (struct mrb_dir_iteration*)ptr;
+  mrb_value ary = mrb_ary_new(mrb);
+  const char *name;
+
+  while ((name = mrb_hal_dir_read(mrb, ctx->handle)) != NULL) {
+    if (!ctx->skip_special || !skip_name_p(name)) {
+      mrb_ary_push(mrb, ary, mrb_str_new_cstr(mrb, name));
+    }
+  }
+  return ary;
 }
 
 /*
@@ -255,21 +296,18 @@ static mrb_value
 mrb_dir_empty(mrb_state *mrb, mrb_value self)
 {
   mrb_dir_handle *handle;
-  const char *name;
   const char *path;
-  mrb_value result = mrb_true_value();
+  mrb_value result;
 
   mrb_get_args(mrb, "z", &path);
   if ((handle = mrb_hal_dir_open(mrb, path)) == NULL) {
     mrb_sys_fail(mrb, path);
   }
-  while ((name = mrb_hal_dir_read(mrb, handle)) != NULL) {
-    if (!skip_name_p(name)) {
-      result = mrb_false_value();
-      break;
-    }
+
+  struct mrb_dir_iteration ctx = { handle, FALSE };
+  MRB_ENSURE(mrb, result, mrb_dir_empty_body, &ctx) {
+    mrb_hal_dir_close(mrb, handle);
   }
-  mrb_hal_dir_close(mrb, handle);
   return result;
 }
 
@@ -343,6 +381,7 @@ mrb_dir_rewind(mrb_state *mrb, mrb_value self)
  *   d.seek(pos)       #=> #<Dir:testdir>
  *   d.read            #=> "."
  */
+#ifdef MRB_HAL_DIR_HAS_SEEK
 static mrb_value
 mrb_dir_seek(mrb_state *mrb, mrb_value self)
 {
@@ -356,12 +395,15 @@ mrb_dir_seek(mrb_state *mrb, mrb_value self)
   }
   mrb_get_args(mrb, "i", &pos);
   if (mrb_hal_dir_seek(mrb, mdir->handle, (long)pos) == -1) {
-    if (errno == ENOSYS) {
-      mrb_raise(mrb, E_NOTIMP_ERROR, "dirseek() unreliable on your system");
-    }
+    mrb_sys_fail(mrb, "seekdir");
   }
   return self;
 }
+#else
+/* this port has no directory position: unimplemented, and named as such so
+   `respond_to?` can answer false */
+# define mrb_dir_seek mrb_notimplement_m
+#endif
 
 /*
  * call-seq:
@@ -375,6 +417,7 @@ mrb_dir_seek(mrb_state *mrb, mrb_value self)
  *   d.read   #=> "."
  *   d.tell   #=> 1
  */
+#ifdef MRB_HAL_DIR_HAS_TELL
 static mrb_value
 mrb_dir_tell(mrb_state *mrb, mrb_value self)
 {
@@ -388,12 +431,13 @@ mrb_dir_tell(mrb_state *mrb, mrb_value self)
   }
   pos = mrb_hal_dir_tell(mrb, mdir->handle);
   if (pos == -1) {
-    if (errno == ENOSYS) {
-      mrb_raise(mrb, E_NOTIMP_ERROR, "dirtell() unreliable on your system");
-    }
+    mrb_sys_fail(mrb, "telldir");
   }
   return mrb_fixnum_value((mrb_int)pos);
 }
+#else
+# define mrb_dir_tell mrb_notimplement_m
+#endif
 
 /*
  * call-seq:
@@ -406,6 +450,7 @@ static mrb_value
 mrb_dir_entries(mrb_state *mrb, mrb_value klass)
 {
   const char *path;
+  mrb_value result;
 
   mrb_get_args(mrb, "z", &path);
 
@@ -414,14 +459,11 @@ mrb_dir_entries(mrb_state *mrb, mrb_value klass)
     mrb_sys_fail(mrb, path);
   }
 
-  mrb_value ary = mrb_ary_new(mrb);
-  const char *name;
-  while ((name = mrb_hal_dir_read(mrb, handle)) != NULL) {
-    mrb_ary_push(mrb, ary, mrb_str_new_cstr(mrb, name));
+  struct mrb_dir_iteration ctx = { handle, FALSE };
+  MRB_ENSURE(mrb, result, mrb_dir_collect_body, &ctx) {
+    mrb_hal_dir_close(mrb, handle);
   }
-
-  mrb_hal_dir_close(mrb, handle);
-  return ary;
+  return result;
 }
 
 /*
@@ -436,6 +478,7 @@ static mrb_value
 mrb_dir_children(mrb_state *mrb, mrb_value klass)
 {
   const char *path;
+  mrb_value result;
 
   mrb_get_args(mrb, "z", &path);
 
@@ -444,16 +487,11 @@ mrb_dir_children(mrb_state *mrb, mrb_value klass)
     mrb_sys_fail(mrb, path);
   }
 
-  mrb_value ary = mrb_ary_new(mrb);
-  const char *name;
-  while ((name = mrb_hal_dir_read(mrb, handle)) != NULL) {
-    if (!skip_name_p(name)) {
-      mrb_ary_push(mrb, ary, mrb_str_new_cstr(mrb, name));
-    }
+  struct mrb_dir_iteration ctx = { handle, TRUE };
+  MRB_ENSURE(mrb, result, mrb_dir_collect_body, &ctx) {
+    mrb_hal_dir_close(mrb, handle);
   }
-
-  mrb_hal_dir_close(mrb, handle);
-  return ary;
+  return result;
 }
 
 void

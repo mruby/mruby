@@ -10,6 +10,7 @@
 #include <mruby/string.h>
 #include <mruby/class.h>
 #include <mruby/internal.h>
+#include <string.h>
 
 /*
  * Checks if two mruby values, `v1` and `v2`, are identical.
@@ -45,7 +46,12 @@ mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
 
 #ifndef MRB_NO_FLOAT
   case MRB_TT_FLOAT:
-    return (mrb_float(v1) == mrb_float(v2));
+    /* What a Float holds is compared bit for bit rather than as a number, so
+       that a NaN, which is equal to no number at all, is still the same object
+       as itself and no other. The two forms part only over a NaN and over
+       -0.0, which holds what 0.0 does not; a boxed build, where this reads the
+       representation, answers both the same way. */
+    return memcmp(&v1.value.f, &v2.value.f, sizeof(mrb_float)) == 0;
 #endif
 
   default:
@@ -82,11 +88,11 @@ mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
 #ifndef MRB_NO_FLOAT
   /* value mixing with integer and float */
   else if (mrb_integer_p(obj1) && mrb_float_p(obj2)) {
-    if ((mrb_float)mrb_integer(obj1) == mrb_float(obj2))
+    if (mrb_int_float_cmp(mrb_integer(obj1), mrb_float(obj2)) == 0)
       return TRUE;
   }
   else if (mrb_float_p(obj1) && mrb_integer_p(obj2)) {
-    if (mrb_float(obj1) == (mrb_float)mrb_integer(obj2))
+    if (mrb_int_float_cmp(mrb_integer(obj2), mrb_float(obj1)) == 0)
       return TRUE;
   }
 #endif
@@ -136,7 +142,7 @@ static mrb_value
 nil_to_s(mrb_state *mrb, mrb_value obj)
 {
   mrb_value str = mrb_str_new_frozen(mrb, NULL, 0);
-  RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+  RSTR_CODERANGE_SET(mrb_str_ptr(str), MRB_STR_CODERANGE_7BIT);
   return str;
 }
 
@@ -144,8 +150,25 @@ static mrb_value
 nil_inspect(mrb_state *mrb, mrb_value obj)
 {
   mrb_value str = mrb_str_new_lit_frozen(mrb, "nil");
-  RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+  RSTR_CODERANGE_SET(mrb_str_ptr(str), MRB_STR_CODERANGE_7BIT);
   return str;
+}
+
+/*
+ *  call-seq:
+ *     nil =~ other  -> nil
+ *
+ *  Always returns `nil`, as CRuby does.  It belongs here rather than in an
+ *  mrbgem because `Kernel#!~` is `!(self =~ other)` and is always present:
+ *  without this method `nil !~ other` raises even in a build carrying no gem
+ *  at all.  It is also what answers `str =~ nil` instead of raising, for a
+ *  `String#=~` that dispatches a non-String argument as `other =~ self`.
+ */
+
+static mrb_value
+nil_match(mrb_state *mrb, mrb_value obj)
+{
+  return mrb_nil_value();
 }
 
 /***********************************************************************
@@ -207,7 +230,7 @@ static mrb_value
 true_to_s(mrb_state *mrb, mrb_value obj)
 {
   mrb_value str = mrb_str_new_lit_frozen(mrb, "true");
-  RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+  RSTR_CODERANGE_SET(mrb_str_ptr(str), MRB_STR_CODERANGE_7BIT);
   return str;
 }
 
@@ -316,7 +339,7 @@ static mrb_value
 false_to_s(mrb_state *mrb, mrb_value obj)
 {
   mrb_value str = mrb_str_new_lit_frozen(mrb, "false");
-  RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+  RSTR_CODERANGE_SET(mrb_str_ptr(str), MRB_STR_CODERANGE_7BIT);
   return str;
 }
 
@@ -328,6 +351,7 @@ static const mrb_mt_entry nil_rom_entries[] = {
   MRB_MT_ENTRY(mrb_true,    MRB_SYM_Q(nil), MRB_ARGS_NONE()),  /* 15.2.4.3.4  */
   MRB_MT_ENTRY(nil_to_s,    MRB_SYM(to_s),  MRB_ARGS_NONE()),  /* 15.2.4.3.5  */
   MRB_MT_ENTRY(nil_inspect, MRB_SYM(inspect), MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(nil_match,   MRB_OPSYM(match), MRB_ARGS_REQ(1)),
 };
 
 static const mrb_mt_entry true_rom_entries[] = {
@@ -611,25 +635,23 @@ mrb_ensure_integer_type(mrb_state *mrb, mrb_value val)
     if (mrb_float_p(val)) {
       return mrb_float_to_integer(mrb, val);
     }
-    else {
-      switch (mrb_type(val)) {
+#endif
+    switch (mrb_type(val)) {
 #ifdef MRB_USE_BIGINT
-      case MRB_TT_BIGINT:
-        return val;
+    case MRB_TT_BIGINT:
+      return val;
 #endif
 #ifdef MRB_USE_RATIONAL
-      case MRB_TT_RATIONAL:
-        return mrb_rational_to_i(mrb, val);
+    case MRB_TT_RATIONAL:
+      return mrb_rational_to_i(mrb, val);
 #endif
 #ifdef MRB_USE_COMPLEX
-      case MRB_TT_COMPLEX:
-        return mrb_complex_to_i(mrb, val);
+    case MRB_TT_COMPLEX:
+      return mrb_complex_to_i(mrb, val);
 #endif
-      default:
-        break;
-      }
+    default:
+      break;
     }
-#endif
     mrb_raisef(mrb, E_TYPE_ERROR, "%Y cannot be converted to Integer", val);
   }
   return val;
@@ -854,6 +876,8 @@ mrb_inspect(mrb_state *mrb, mrb_value obj)
  *
  * Otherwise, it calls the `eql?` method on `obj1`, passing `obj2` as
  * an argument. The symbol for the `eql?` method is `MRB_SYM_Q(eql)`.
+ * A receiver that still has the default `eql?` skips that call: the
+ * default is `mrb_obj_equal_m`, the identity just tested.
  *
  * The function returns `TRUE` if the `eql?` method call returns a truthy
  * value (any value other than `false` or `nil`). Otherwise, it returns
@@ -864,6 +888,30 @@ MRB_API mrb_bool
 mrb_eql(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
 {
   if (mrb_obj_eq(mrb, obj1, obj2)) return TRUE;
+
+  /* The kinds whose `eql?` this file can answer for are answered here rather
+     than sent, which is what `Hash` already does with the same three before it
+     reaches this function at all. Every one asks what `eql?` asks and `==`
+     does not: the two have to be the same kind before their values are
+     compared, so `1.eql?(1.0)` stays false. A NaN never arrives, the identity
+     above having answered for the one object it is. */
+  switch (mrb_type(obj1)) {
+  case MRB_TT_INTEGER:
+    if (!mrb_integer_p(obj2)) return FALSE;
+    return mrb_integer(obj1) == mrb_integer(obj2);
+#ifndef MRB_NO_FLOAT
+  case MRB_TT_FLOAT:
+    if (!mrb_float_p(obj2)) return FALSE;
+    return mrb_float(obj1) == mrb_float(obj2);
+#endif
+  case MRB_TT_STRING:
+    if (!mrb_string_p(obj2)) return FALSE;
+    return mrb_str_equal(mrb, obj1, obj2);
+  default:
+    break;
+  }
+
+  if (mrb_func_basic_p(mrb, obj1, MRB_SYM_Q(eql), mrb_obj_equal_m)) return FALSE;
   return mrb_test(mrb_funcall_argv(mrb, obj1, MRB_SYM_Q(eql), 1, &obj2));
 }
 

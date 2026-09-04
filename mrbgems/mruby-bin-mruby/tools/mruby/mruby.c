@@ -13,6 +13,8 @@
 #include <mruby/proc.h>
 #include <mruby/error.h>
 
+extern mrb_state *global_mrb; /* defined in mruby-compiler (ccontext.c) */
+
 #if defined(_WIN32)
 # include <io.h> /* for setmode */
 # include <fcntl.h>
@@ -238,6 +240,14 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
         fprintf(stderr, "%s: Cannot open program file: %s\n", opts->program, argv[0]);
         return EXIT_FAILURE;
       }
+      if (args->rfp != stdin && mrb_stream_is_unreadable(args->rfp)) {
+        /* Without this, the failed read is swallowed: the loader returns nil
+           without raising, so a directory argument ran as an empty program
+           with no output, no diagnostic and exit status 0.  The stream is
+           closed by cleanup() on the way out. */
+        fprintf(stderr, "%s: Cannot read program file: %s\n", opts->program, argv[0]);
+        return EXIT_FAILURE;
+      }
       args->fname = TRUE;
       args->cmdline = argv[0];
       argc--; argv++;
@@ -286,6 +296,7 @@ main(int argc, char **argv)
     mrb_close(mrb);        /* handles NULL */
     return EXIT_FAILURE;
   }
+  global_mrb = mrb;
 
   n = parse_args(mrb, argc, argv, &args);
   if (n == EXIT_FAILURE || (args.cmdline == NULL && args.rfp == NULL)) {
@@ -330,14 +341,41 @@ main(int argc, char **argv)
         cleanup(mrb, &args);
         return EXIT_FAILURE;
       }
+      if (mrb_stream_is_unreadable(lfp)) {
+        /* Same swallowed read as the program file above: -r on a directory
+           loaded nothing and said nothing. */
+        fprintf(stderr, "%s: Cannot read library file: %s\n", *argv, args.libv[i]);
+        fclose(lfp);
+        mrb_ccontext_free(mrb, c);
+        cleanup(mrb, &args);
+        return EXIT_FAILURE;
+      }
       mrb_ccontext_filename(mrb, c, args.libv[i]);
       if (mrb_extension_p(args.libv[i])) {
-        mrb_load_irep_file_cxt(mrb, lfp, c);
+        v = mrb_load_irep_file_cxt(mrb, lfp, c);
       }
       else {
-        mrb_load_detect_file_cxt(mrb, lfp, c);
+        v = mrb_load_detect_file_cxt(mrb, lfp, c);
       }
       fclose(lfp);
+      if (mrb->exc) {
+        /* A library that does not load leaves the exception here and nothing
+           else: the program below overwrites it on its first successful run,
+           so without this the failure vanished and the program ran as if the
+           library had been there: a syntax error printed its diagnostic and
+           carried on, a library that raised said nothing at all, and both
+           exited 0.  Reported the way the program's own failure is below,
+           then fatal, matching `ruby -r`. */
+        MRB_EXC_CHECK_EXIT(mrb, mrb->exc);
+        if (!mrb_undef_p(v)) {
+          /* undef means the loader already reported it: a syntax error goes
+             to stderr as it is parsed. */
+          mrb_print_error(mrb);
+        }
+        mrb_ccontext_free(mrb, c);
+        cleanup(mrb, &args);
+        return EXIT_FAILURE;
+      }
       mrb_vm_ci_env_clear(mrb, mrb->c->cibase);
       mrb_ccontext_cleanup_local_variables(c);
     }

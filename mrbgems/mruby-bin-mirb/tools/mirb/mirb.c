@@ -21,6 +21,8 @@
 #include <mruby/error.h>
 #include <mruby/internal.h>
 
+extern mrb_state *global_mrb; /* defined in mruby-compiler (ccontext.c) */
+
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
@@ -28,6 +30,7 @@
 #ifdef _WIN32
 #include <io.h>
 #define isatty(fd) _isatty(fd)
+#define fileno(fd) _fileno(fd)
 #else
 #include <unistd.h>
 #endif
@@ -117,6 +120,11 @@ is_code_block_open(struct mrb_parser_state *parser)
   /* check if parser error are available */
   if (0 < parser->nerr) {
     const char unexpected_end[] = "syntax error, unexpected end of file";
+    /* Prism phrases an unterminated construct (open def/class/if/block/
+       paren/...) as "unexpected end-of-input": the parser reached EOF
+       while still expecting a closing token, which is exactly the signal
+       to keep reading another line. */
+    const char unexpected_eoi[] = "syntax error, unexpected end-of-input";
     const char *message = parser->error_buffer[0].message;
 
     /* a parser error occur, we have to check if */
@@ -124,7 +132,8 @@ is_code_block_open(struct mrb_parser_state *parser)
     /* a different issue which we have to show to */
     /* the user */
 
-    if (strncmp(message, unexpected_end, sizeof(unexpected_end) - 1) == 0) {
+    if (strncmp(message, unexpected_end, sizeof(unexpected_end) - 1) == 0 ||
+        strncmp(message, unexpected_eoi, sizeof(unexpected_eoi) - 1) == 0) {
       code_block_open = TRUE;
     }
     else if (strcmp(message, "syntax error, unexpected keyword_end") == 0) {
@@ -300,6 +309,15 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
         printf("Cannot open program file. (%s)\n", *argv);
         return EXIT_FAILURE;
       }
+      if (mrb_stream_is_unreadable(args->rfp)) {
+        /* Without this, the failed read is swallowed: the REPL loop takes the
+           first fgets() failure for end of input and falls through to its
+           `cleanup:` with the initial EXIT_SUCCESS, so a directory argument
+           ran as an empty program with no output, no diagnostic and exit
+           status 0.  The stream is closed by `cleanup:` on the way out. */
+        printf("Cannot read program file. (%s)\n", *argv);
+        return EXIT_FAILURE;
+      }
       argc--; argv++;
     }
   }
@@ -455,7 +473,7 @@ main(int argc, char **argv)
   char ruby_code[4096] = { 0 };
   char last_code_line[1024] = { 0 };
   int last_char;
-  size_t char_index;
+  size_t char_index, code_len, line_len;
   mirb_editor editor;
   mirb_check_data check_data;
   mrb_bool use_editor = FALSE;
@@ -481,6 +499,7 @@ main(int argc, char **argv)
     mrb_close(mrb);        /* handles NULL */
     return EXIT_FAILURE;
   }
+  global_mrb = mrb;
 
   ret = parse_args(mrb, argc, argv, &args);
   if (ret == EXIT_FAILURE) {
@@ -513,6 +532,15 @@ main(int argc, char **argv)
     FILE *lfp = fopen(args.libv[i], "r");
     if (lfp == NULL) {
       printf("Cannot open library file. (%s)\n", args.libv[i]);
+      ret = EXIT_FAILURE;
+      goto cleanup;
+    }
+    if (mrb_stream_is_unreadable(lfp)) {
+      /* -r took the same swallowed read: mrb_load_file_cxt() answers an
+         undefined value without setting mrb->exc, and the result is
+         discarded, so the library loaded nothing and said nothing. */
+      printf("Cannot read library file. (%s)\n", args.libv[i]);
+      fclose(lfp);
       ret = EXIT_FAILURE;
       goto cleanup;
     }
@@ -581,12 +609,13 @@ main(int argc, char **argv)
       }
 
       /* The editor returns complete multi-line input */
-      if (strlen(input) >= sizeof(ruby_code) - 1) {
+      code_len = strlen(input);
+      if (code_len >= sizeof(ruby_code) - 1) {
         fputs("input string too long\n", stderr);
         free(input);
         continue;
       }
-      strcpy(ruby_code, input);
+      memcpy(ruby_code, input, code_len+1);
       free(input);
 
       /* Count lines for line number update */
@@ -641,18 +670,20 @@ main(int argc, char **argv)
     line_num++;
 
   done:
+    line_len = strlen(last_code_line);
     if (code_block_open) {
-      if (strlen(ruby_code)+strlen(last_code_line) > sizeof(ruby_code)-1) {
+      code_len = strlen(ruby_code);
+      if (code_len+line_len > sizeof(ruby_code)-1) {
         fputs("concatenated input string too long\n", stderr);
         continue;
       }
-      strcat(ruby_code, last_code_line);
+      memcpy(ruby_code+code_len, last_code_line, line_len+1);
     }
     else {
       if (check_keyword(last_code_line, "quit") || check_keyword(last_code_line, "exit")) {
         break;
       }
-      strcpy(ruby_code, last_code_line);
+      memcpy(ruby_code, last_code_line, line_len+1);
     }
 
   evaluate:

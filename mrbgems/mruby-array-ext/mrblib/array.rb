@@ -16,6 +16,10 @@ class Array
   #    c.uniq! { |s| s.first } # => [["student", "sam"], ["teacher", "matz"]]
   #
   def uniq!(&block)
+    # The block form below answers nil without touching the array when it
+    # holds no duplicate, and __uniq! returns early for one element or none.
+    raise FrozenError, "can't modify frozen #{self.class}" if frozen?
+
     if block
       hash = {}
       result = []
@@ -155,6 +159,11 @@ class Array
     start, length = __fill_parse_arg(arg0, arg1, arg2, &block)
 
     if block
+      # A run of zero elements assigns nothing below, so nothing on this path
+      # asks whether the receiver may be written to. __fill_exec answers for
+      # the value form. Asked before the block runs, as CRuby does.
+      raise FrozenError, "can't modify frozen #{self.class}" if frozen?
+
       # Block-based filling in Ruby
       i = start
       while i < start + length
@@ -218,6 +227,9 @@ class Array
 
   def reject!(&block)
     return to_enum(:reject!) unless block
+    # Rejecting nothing skips the `replace` below, which is what would
+    # otherwise refuse a frozen receiver.
+    raise FrozenError, "can't modify frozen #{self.class}" if frozen?
 
     result = []
     idx = 0
@@ -390,6 +402,9 @@ class Array
 
   def select!(&block)
     return to_enum(:select!) unless block
+    # Keeping every element skips the `replace` below, which is what would
+    # otherwise refuse a frozen receiver.
+    raise FrozenError, "can't modify frozen #{self.class}" if frozen?
 
     result = []
     idx = 0
@@ -414,7 +429,7 @@ class Array
   # intermediate step is `nil`.
   #
   def dig(idx,*args)
-    idx = idx.__to_int
+    idx = Integer.__ensure(idx)
     n = self[idx]
     if args.size > 0
       n&.dig(*args)
@@ -450,27 +465,7 @@ class Array
   #  a.permutation(0).to_a #=> [[]] # one permutation of length 0
   #  a.permutation(4).to_a #=> []   # no permutations of length 4
   def permutation(n=self.size, &block)
-    n = n.__to_int
-    return to_enum(:permutation, n) unless block
-    size = self.size
-    if n == 0
-      yield []
-    elsif 0 < n && n <= size
-      i = 0
-      while i<size
-        result = [self[i]]
-        if n-1 > 0
-          ary = self[0...i] + self[i+1..-1]
-          ary.permutation(n-1) do |c|
-            yield result + c
-          end
-        else
-          yield result
-        end
-        i += 1
-      end
-    end
-    self
+    __combination(:permutation, n, &block)
   end
 
   ##
@@ -497,28 +492,7 @@ class Array
   #    a.combination(5).to_a  #=> []   # no combinations of length 5
 
   def combination(n, &block)
-    n = n.__to_int
-    return to_enum(:combination, n) unless block
-    size = self.size
-    if n == 0
-      yield []
-    elsif n == 1
-      i = 0
-      while i<size
-        yield [self[i]]
-        i += 1
-      end
-    elsif n <= size
-      i = 0
-      while i<size
-        result = [self[i]]
-        self[i+1..-1].combination(n-1) do |c|
-          yield result + c
-        end
-        i += 1
-      end
-    end
-    self
+    __combination(:combination, n, &block)
   end
 
   ##
@@ -539,7 +513,7 @@ class Array
 
     column_count = nil
     self.each do |row|
-      raise TypeError unless row.is_a?(Array)
+      raise TypeError unless Array === row
       column_count ||= row.size
       raise IndexError, 'element size differs' unless column_count == row.size
     end
@@ -642,9 +616,7 @@ class Array
   #   a = [1, 2, 3]
   #   a.repeated_combination(2).to_a #=> [[1,1],[1,2],[1,3],[2,2],[2,3],[3,3]]
   def repeated_combination(n, &block)
-    raise TypeError, "no implicit conversion into Integer" unless 0 <=> n
-    return to_enum(:repeated_combination, n) unless block
-    __repeated_combination(n, false, &block)
+    __combination(:repeated_combination, n, &block)
   end
 
   ##
@@ -667,36 +639,27 @@ class Array
   #   a = [1, 2]
   #   a.repeated_permutation(2).to_a #=> [[1,1],[1,2],[2,1],[2,2]]
   def repeated_permutation(n, &block)
-    n = n.__to_int
-    raise TypeError, "no implicit conversion into Integer" unless 0 <=> n
-    return to_enum(:repeated_permutation, n) unless block
-    __repeated_combination(n, true, &block)
+    __combination(:repeated_permutation, n, &block)
   end
 
-  def __repeated_combination(n, permutation, &block)
-    n = n.__to_int
-    case n
+  def __combination(mode, k, &block)
+    k = Integer.__ensure(k)
+    return to_enum(mode, k) unless block
+
+    case k
     when 0
       yield []
     when 1
-      # Keep fast Ruby path for n=1
+      # Keep fast Ruby path for k=1
       i = 0
       while i < self.size
         yield [self[i]]
         i += 1
       end
     else
-      if n > 0
+      if state = __combination_init(mode, k)
         # Use C iterator for complex cases
-        state = __combination_init(n, permutation)
-        while (indices = __combination_next(state))
-          # Convert indices to elements in Ruby
-          tmp = [nil] * n
-          i = 0
-          while i < n
-            tmp[i] = self[indices[i]]
-            i += 1
-          end
+        while tmp = __combination_next(state)
           yield tmp
         end
       end
@@ -720,6 +683,39 @@ class Array
   #    [1, 2, 3, 4].find { |x| x > 10 }       #=> nil
   #    [1, 2, 3, 4].find(->{0}) { |x| x > 10 } #=> 0
   #
+  ##
+  # call-seq:
+  #   array.max -> element
+  #   array.max {|a, b| ... } -> element
+  #
+  # Returns the element of `self` that no other element is greater than.
+  #
+  # This is an optimized version of Enumerable#max for arrays: without a block
+  # the walk is made in C, where an Integer, a Float and a String are compared
+  # without a `<=>` send, as they are by Array#sort.
+  #
+  #    [3, 1, 2].max                    #=> 3
+  #    [3, 1, 2].max {|a, b| b <=> a }  #=> 1
+  #
+  def max(&block)
+    block ? super : __max
+  end
+
+  ##
+  # call-seq:
+  #   array.min -> element
+  #   array.min {|a, b| ... } -> element
+  #
+  # Returns the element of `self` that no other element is less than.
+  # See Array#max for how the two forms are walked.
+  #
+  #    [3, 1, 2].min                    #=> 1
+  #    [3, 1, 2].min {|a, b| b <=> a }  #=> 3
+  #
+  def min(&block)
+    block ? super : __min
+  end
+
   def find(ifnone=nil, &block)
     return to_enum(:find, ifnone) unless block
 

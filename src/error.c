@@ -190,7 +190,7 @@ mrb_exc_set(mrb_state *mrb, mrb_value exc)
         (struct RBasic*)mrb->exc == mrb->gc.arena[mrb->gc.arena_idx-1]) {
       mrb->gc.arena_idx--;
     }
-    if (!mrb->gc.out_of_memory && !mrb_frozen_p(mrb->exc)) {
+    if (mrb->exc != mrb->nomem_err && !mrb_frozen_p(mrb->exc)) {
       mrb_keep_backtrace(mrb, exc);
     }
   }
@@ -577,33 +577,45 @@ mrb_make_exception(mrb_state *mrb, mrb_value exc, mrb_value mesg)
  * its `_sys_fail` method with the current `errno` and an optional
  * message. This typically results in a SystemCallError being raised.
  *
- * If SystemCallError is not defined, or if the call to `_sys_fail`
- * itself fails (which shouldn't happen in normal circumstances but leads
- * to mrb_raise), it falls back to raising a RuntimeError with the
- * given message (or a default message if `mesg` is NULL, though the
- * current implementation would pass NULL to mrb_raise which might be
- * an issue).
+ * If SystemCallError is not defined, or if `_sys_fail` returns instead of
+ * raising, it falls back to raising a RuntimeError reading
+ * "errno: <number>", with " - <mesg>" appended when a message was given.
+ * Only the number is spelled out: naming the code takes a table of them,
+ * and that table is what mruby-errno is.
  *
  * mrb: The mruby state.
- * mesg: An optional C string message to append to the error. If NULL,
- *       a default message or no message might be used depending on the
- *       error path.
+ * mesg: An optional C string naming what the failed call was working on,
+ *       appended after the error itself the way CRuby appends a path.
+ *       Pass NULL when the call names nothing, as `kill(2)` does.
  */
 MRB_API mrb_noreturn void
 mrb_sys_fail(mrb_state *mrb, const char *mesg)
 {
+  mrb_int no = (mrb_int)errno;
+  mrb_value mesg_str = mesg ? mrb_str_new_cstr(mrb, mesg) : mrb_nil_value();
+
   if (mrb_class_defined_id(mrb, MRB_SYM(SystemCallError))) {
     struct RClass *sce = mrb_class_get_id(mrb, MRB_SYM(SystemCallError));
-    mrb_int no = (mrb_int)errno;
     if (mesg != NULL) {
-      mrb_funcall_id(mrb, mrb_obj_value(sce), MRB_SYM(_sys_fail), 2, mrb_fixnum_value(no), mrb_str_new_cstr(mrb, mesg));
+      mrb_funcall_argv2(mrb, mrb_obj_value(sce), MRB_SYM(_sys_fail), mrb_fixnum_value(no), mesg_str);
     }
     else {
-      mrb_funcall_id(mrb, mrb_obj_value(sce), MRB_SYM(_sys_fail), 1, mrb_fixnum_value(no));
+      mrb_funcall_argv1(mrb, mrb_obj_value(sce), MRB_SYM(_sys_fail), mrb_fixnum_value(no));
     }
   }
 
-  mrb_raise(mrb, E_RUNTIME_ERROR, mesg);
+  /* Reached where SystemCallError is not defined, and also where a
+     `_sys_fail` that does not raise returns here. Either way no class is
+     carrying the errno and nothing else will ever report it. Without it the
+     exception says only what the caller passed, which names the call that
+     failed but never why, and says nothing at all when the caller had
+     nothing to name. */
+  mrb_value str = mrb_format(mrb, "errno: %i", no);
+  if (mesg != NULL) {
+    mrb_str_cat_lit(mrb, str, " - ");
+    mrb_str_append(mrb, str, mesg_str);
+  }
+  mrb_exc_raise(mrb, mrb_exc_new_str(mrb, E_RUNTIME_ERROR, str));
 }
 
 /*
@@ -769,12 +781,18 @@ mrb_protect_atexit(mrb_state *mrb)
       if (c->ci == c->cibase) {
         // Since there is no problem with the ci, the env object is detached normally.
         struct REnv *e = mrb_vm_ci_env(c->ci);
-        *c->ci = zero;
-        c->ci->stack = c->stbase;
+        struct RBasic *sv = mrb_ci_svar(c, c->ci);
         if (e) {
           c->ci->u.env = NULL;
-          mrb_env_unshare(mrb, e, TRUE);
+          /* carrying the top-level scope's special-variable container, so a
+             proc an atexit callback runs still reads the last match. The
+             frame is zeroed after the detach, not before: that entry is the
+             container's only root here, the arena having just been
+             restored, and mrb_env_unshare() allocates. */
+          mrb_env_detach(mrb, e, sv, TRUE);
         }
+        *c->ci = zero;
+        c->ci->stack = c->stbase;
       }
       else {
         // Any env objects on the ci that are in the process of being executed are destroyed.
@@ -785,6 +803,8 @@ mrb_protect_atexit(mrb_state *mrb)
             MRB_ENV_SET_LEN(e, 0);
             MRB_ENV_SET_BIDX(e, 0);
             MRB_ENV_CLOSE(e);
+            /* the stack is gone, so the slot past it is too (internal.h) */
+            MRB_ENV_CLEAR_SVAR(e);
           }
         } while (c->ci-- > c->cibase);
         c->ci = c->cibase;
