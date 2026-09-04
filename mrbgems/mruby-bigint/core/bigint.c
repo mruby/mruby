@@ -5552,8 +5552,15 @@ mrb_bint_as_int64(mrb_state *mrb, mrb_value x)
     u |= m.p[i];
     if (i==0) break;
   }
+  if (m.sn < 0) {
+    /* The negative range reaches one further than the positive one, so the
+       magnitude is compared against |INT64_MIN| here.  That boundary is
+       returned as the constant because negating it as an int64_t overflows. */
+    if (u > (uint64_t)INT64_MAX + 1) goto out_of_range;
+    if (u == (uint64_t)INT64_MAX + 1) return INT64_MIN;
+    return -(int64_t)u;
+  }
   if (u > INT64_MAX) goto out_of_range;
-  if (m.sn < 0) return -(int64_t)u;
   return (int64_t)u;
 }
 #endif
