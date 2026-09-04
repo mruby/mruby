@@ -13,8 +13,9 @@
 ** it builds when this gem happens to be present, and that has to keep
 ** working without either gem depending on the other.  `Process::Status.new`
 ** is undefined here as it is in CRuby, so the seam is not a constructor but
-** the allocate-and-#initialize pair `mrb_obj_new()` performs, which is also
-** how Process.waitpid builds the status it publishes.
+** the allocate-and-#initialize pair `mrb_obj_new()` performs.  This gem
+** reaches the same two integers without that call; see
+** mrb_process_status_new() at the end of this file.
 */
 
 #include <mruby.h>
@@ -69,26 +70,14 @@ status_flag(mrb_state *mrb, mrb_value self, unsigned int flag)
 }
 
 /*
- * Wraps a platform wait status for the process +pid+.  +raw_status+ is the
- * value the platform reported the process with, as Process.waitpid passes
- * on and as Process::Status#to_i gives back.
+ * Write the two integers a status is made of.
  *
- * Reached by allocating an instance and initializing it rather than through
- * `new`, which this class does not have.  Private, as mruby makes every
- * #initialize.
- *
- * A Process::Status is frozen once built, as CRuby freezes the one it leaves
- * in <code>$?</code>.  What a process did is over by the time there is a
- * status for it, and every question a status answers is read back from the
- * two integers set here.  An instance of a subclass is left unfrozen, since
- * whatever else it is made of is set after this returns.
+ * Both the #initialize below and the constructor at the end of this file
+ * write through here, so a status reads the same whichever built it.
  */
-static mrb_value
-status_initialize(mrb_state *mrb, mrb_value self)
+static void
+status_set(mrb_state *mrb, mrb_value self, mrb_int pid, mrb_int raw_status)
 {
-  mrb_int pid, raw_status;
-
-  mrb_get_args(mrb, "ii", &pid, &raw_status);
   /* A port reads a raw status as the `int` the platform reported, so a value
      that does not fit one would be answered about from bits nobody wrote:
      #to_i would give back what was passed in while #exited? and the rest
@@ -111,6 +100,30 @@ status_initialize(mrb_state *mrb, mrb_value self)
   if (mrb_obj_class(mrb, self) == status_class(mrb)) {
     mrb_obj_freeze(mrb, self);
   }
+}
+
+/*
+ * Wraps a platform wait status for the process +pid+.  +raw_status+ is the
+ * value the platform reported the process with, as Process.waitpid passes
+ * on and as Process::Status#to_i gives back.
+ *
+ * Reached by allocating an instance and initializing it rather than through
+ * `new`, which this class does not have.  Private, as mruby makes every
+ * #initialize.
+ *
+ * A Process::Status is frozen once built, as CRuby freezes the one it leaves
+ * in <code>$?</code>.  What a process did is over by the time there is a
+ * status for it, and every question a status answers is read back from the
+ * two integers set here.  An instance of a subclass is left unfrozen, since
+ * whatever else it is made of is set after this returns.
+ */
+static mrb_value
+status_initialize(mrb_state *mrb, mrb_value self)
+{
+  mrb_int pid, raw_status;
+
+  mrb_get_args(mrb, "ii", &pid, &raw_status);
+  status_set(mrb, self, pid, raw_status);
   return self;
 }
 
@@ -352,11 +365,29 @@ mrb_value
 mrb_process_status_new(mrb_state *mrb, mrb_int pid, mrb_int raw_status)
 {
   struct RClass *status = status_class(mrb);
-  mrb_value argv[2];
+  mrb_value self = mrb_obj_value(MRB_OBJ_ALLOC(mrb, MRB_TT_OBJECT, status));
 
-  argv[0] = mrb_int_value(mrb, pid);
-  argv[1] = mrb_int_value(mrb, raw_status);
-  return mrb_obj_new(mrb, status, 2, argv);
+  /* Written straight into the object where #initialize is the one below,
+     rather than through mrb_obj_new(), which would call it back through the
+     VM.  What a wait reported cannot be asked for a second time, and until
+     it is written it exists only in the arguments to this call, so the
+     stretch between reaping a child and recording what it did is no place to
+     run a method that a program can replace.  Struct and Data tell their own
+     #initialize from a replaced one the same way.
+
+     A replaced one is still called, since a program that wrote it asked for
+     it to run; what it does with the status is then its own business. */
+  if (mrb_func_basic_p(mrb, self, MRB_SYM(initialize), status_initialize)) {
+    status_set(mrb, self, pid, raw_status);
+  }
+  else {
+    mrb_value argv[2];
+
+    argv[0] = mrb_int_value(mrb, pid);
+    argv[1] = mrb_int_value(mrb, raw_status);
+    mrb_funcall_argv(mrb, self, MRB_SYM(initialize), 2, argv);
+  }
+  return self;
 }
 
 void

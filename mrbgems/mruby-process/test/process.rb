@@ -348,6 +348,43 @@ assert('Process.waitpid') do
   io.close
 end
 
+assert('Process.waitpid through a replaced Process::Status#initialize') do
+  # A status is written into the object without calling #initialize where it
+  # is the one the gem defines, so that the stretch between reaping a child
+  # and recording what it did runs no method a program can replace.  One that
+  # was replaced is still called: writing it is asking for it to run, and by
+  # then the status it is handed is the one the wait reported.
+  skip ProcessTestUtil.child_reason if ProcessTestUtil.child_reason
+  io = ProcessTestUtil.spawn("exit 6")
+  skip "IO.popen is not available" unless io
+
+  io.read
+  pid = io.pid
+  seen = nil
+  Process::Status.class_eval do
+    alias_method :__test_initialize, :initialize
+    define_method(:initialize) do |child, raw_status|
+      seen = [child, raw_status]
+      __test_initialize(child, raw_status)
+    end
+  end
+  begin
+    assert_equal pid, Process.waitpid(pid)
+    assert_kind_of Array, seen
+    assert_equal pid, seen[0]
+    # The status it built is the one published, and reads as any other does.
+    assert_equal pid, $?.pid
+    assert_equal 6, $?.exitstatus
+    assert_equal seen[1], $?.to_i
+  ensure
+    Process::Status.class_eval do
+      alias_method :initialize, :__test_initialize
+      remove_method :__test_initialize
+    end
+    io.close
+  end
+end
+
 assert('Process.waitpid with Process::WNOHANG') do
   skip ProcessTestUtil.child_reason if ProcessTestUtil.child_reason
   # `exec` so that the pid this knows is the one that sleeps.  IO.popen runs
