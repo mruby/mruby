@@ -24,9 +24,21 @@ MRB_BEGIN_DECL
 #ifndef MRB_NO_STDIO
 MRB_API mrb_value mrb_load_irep_file(mrb_state*,FILE*);
 MRB_API mrb_value mrb_load_irep_file_cxt(mrb_state*, FILE*, mrb_ccontext*);
-mrb_irep *mrb_read_irep_file(mrb_state*, FILE*);
-int mrb_dump_irep_binary(mrb_state*, const mrb_irep*, uint8_t, FILE*);
+MRB_API mrb_irep *mrb_read_irep_file(mrb_state*, FILE*);
+MRB_API int mrb_dump_irep_binary(mrb_state*, const mrb_irep*, uint8_t, FILE*);
 #endif
+
+/* Write the binary representation of `irep` to a buffer this allocates and
+ * stores in `*bin`, its size in `*bin_size`; the caller frees the buffer with
+ * mrb_free(). Answers MRB_DUMP_OK, or one of the error codes below.
+ *
+ * What travels is the irep alone: the code, its pool, its symbols and its
+ * child ireps. The environment around it does not. A proc built from a
+ * loaded irep has no REnv, so a block that read an outer local reads nil
+ * there rather than raising, where a method or a constant the other side
+ * lacks raises as usual.
+ */
+MRB_API int mrb_dump_irep(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, uint8_t **bin, size_t *bin_size);
 /* avoid mrb_read_irep(); use mrb_read_irep_buf() instead (may cause buffer overflow) */
 MRB_API mrb_irep *mrb_read_irep(mrb_state*, const uint8_t*);
 MRB_API mrb_irep *mrb_read_irep_buf(mrb_state*, const void*, size_t);

@@ -816,7 +816,7 @@ lv_defined_p(const mrb_irep *irep)
  * @return MRB_DUMP_OK on success, or an error code (e.g., MRB_DUMP_GENERAL_FAILURE,
  *         MRB_DUMP_INVALID_ARGUMENT) on failure.
  */
-int
+MRB_API int
 mrb_dump_irep(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, uint8_t **bin, size_t *bin_size)
 {
   size_t section_lineno_size = 0, section_lv_size = 0;
@@ -910,7 +910,7 @@ error_exit:
  * @return MRB_DUMP_OK on success, or an error code (e.g., MRB_DUMP_INVALID_ARGUMENT,
  *         MRB_DUMP_WRITE_FAULT) on failure.
  */
-int
+MRB_API int
 mrb_dump_irep_binary(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE* fp)
 {
   uint8_t *bin = NULL;

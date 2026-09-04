@@ -853,7 +853,7 @@ irep_exit:
 }
 
 DEFINE_READ_IREP_FUNC(
-  mrb_irep *mrb_read_irep_file(mrb_state *mrb, FILE *fp),
+  MRB_API mrb_irep *mrb_read_irep_file(mrb_state *mrb, FILE *fp),
   mrb_proc_read_irep_file(mrb, fp))
 
 MRB_API mrb_value
