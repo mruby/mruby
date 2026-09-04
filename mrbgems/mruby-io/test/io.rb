@@ -101,6 +101,43 @@ assert('IO#eof?', '15.2.20.5.6') do
   io.close
 end
 
+assert('IO#eof? is answered again after the end') do
+  # Bytes put back after the end are there to be read, and so are bytes that
+  # reach a file after a reader has seen the end of it.
+  io = IO.open(IO.sysopen($mrbtest_io_rfname))
+  begin
+    io.read
+    assert_true io.eof?
+    io.ungetc("z")
+    assert_false io.eof?
+    assert_equal "z", io.getc
+    assert_true io.eof?
+  ensure
+    io.close
+  end
+
+  dir = MRubyIOTestUtil.mkdtemp("mruby-io-test.XXXXXX")
+  path = "#{dir}/growing"
+  begin
+    File.open(path, "w") { |f| f.write "one\n" }
+    io = File.open(path)
+    begin
+      assert_equal "one\n", io.gets
+      assert_nil io.gets
+      assert_true io.eof?
+      File.open(path, "a") { |f| f.write "two\n" }
+      assert_false io.eof?
+      assert_equal "two\n", io.gets
+      assert_nil io.gets
+    ensure
+      io.close
+    end
+  ensure
+    File.delete(path) rescue nil
+    MRubyIOTestUtil.rmdir dir
+  end
+end
+
 assert('IO#flush', '15.2.20.5.7') do
   # Note: mruby-io does not have any buffer to be flushed now.
   io = IO.new(IO.sysopen($mrbtest_io_wfname))

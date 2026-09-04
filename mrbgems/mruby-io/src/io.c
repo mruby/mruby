@@ -1908,34 +1908,43 @@ io_buf_shift(struct mrb_io_buf *buf, mrb_int n)
   buf->len -= (short)n;
 }
 
-#ifdef MRB_UTF8_STRING
+/* Read after what the buffer already holds, keeping those bytes. `eof` is
+   the answer to what the buffer can hand out and not to what the last read(2)
+   returned: bytes are put in front of the descriptor by #ungetc, and held back
+   across a fill by #gets, and a stream is not at its end while they are
+   there. */
 static void
 io_fill_buf_comp(mrb_state *mrb, struct mrb_io *fptr)
 {
   struct mrb_io_buf *buf = fptr->buf;
   int keep = buf->len;
 
-  memmove(buf->mem, buf->mem+buf->start, keep);
+  /* #ungetc can grow the buffer past MRB_IO_BUF_SIZE, and then there is no
+     room to read into. What is already there is what the stream hands out. */
+  if (keep >= MRB_IO_BUF_SIZE) {
+    fptr->eof = 0;
+    return;
+  }
+  if (buf->start > 0) {
+    memmove(buf->mem, buf->mem+buf->start, keep);
+    buf->start = 0;
+  }
   int n = mrb_hal_io_read(mrb, fptr->fd, buf->mem+keep, MRB_IO_BUF_SIZE-keep);
   if (n < 0) mrb_sys_fail(mrb, 0);
-  if (n == 0) fptr->eof = 1;
-  buf->start = 0;
-  buf->len += (short)n;
+  buf->len = (short)(keep + n);
+  fptr->eof = (buf->len == 0);
 }
-#endif
 
 static void
 io_fill_buf(mrb_state *mrb, struct mrb_io *fptr)
 {
-  struct mrb_io_buf *buf = fptr->buf;
-
-  if (buf->len > 0) return;
-
-  int n = mrb_hal_io_read(mrb, fptr->fd, buf->mem, MRB_IO_BUF_SIZE);
-  if (n < 0) mrb_sys_fail(mrb, 0);
-  if (n == 0) fptr->eof = 1;
-  buf->start = 0;
-  buf->len = (short)n;
+  /* Bytes to hand out already, so the descriptor is not asked again and the
+     stream is not at its end whatever an earlier read(2) reported. */
+  if (fptr->buf->len > 0) {
+    fptr->eof = 0;
+    return;
+  }
+  io_fill_buf_comp(mrb, fptr);
 }
 
 static mrb_value
@@ -1943,8 +1952,6 @@ io_eof(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr = io_get_read_fptr(mrb, io);
 
-  if (fptr->eof) return mrb_true_value();
-  if (fptr->buf->len > 0) return mrb_false_value();
   io_fill_buf(mrb, fptr);
   return mrb_bool_value(fptr->eof);
 }
