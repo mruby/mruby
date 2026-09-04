@@ -51,8 +51,12 @@ tasktest_with_tasks_disabled(mrb_state *mrb, mrb_value self)
   mrb_value blk;
   mrb_get_args(mrb, "&", &blk);
   mrb->task.enabled = FALSE;
-  mrb_value ret = mrb_protect_error(mrb, tasktest_yield_nil, mrb_ptr(blk), NULL);
+  mrb_bool error = FALSE;
+  mrb_value ret = mrb_protect_error(mrb, tasktest_yield_nil, mrb_ptr(blk), &error);
   mrb->task.enabled = TRUE;
+  /* mrb_protect_error returns the exception as an ordinary value. Without
+     this, a raise in the block looks like a result and the test passes. */
+  if (error) mrb_exc_raise(mrb, ret);
   return ret;
 }
 
