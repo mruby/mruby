@@ -527,3 +527,21 @@ assert('Bigint Integer#round breaks a tie away from zero') do
   assert_equal(-10000000000000000000000010, (-big - 5).round(-1))
   assert_equal(-big, (-big - 4).round(-1))
 end
+
+assert('Bigint int64 conversion covers the whole signed 64-bit range') do
+  int64_min = -9223372036854775808
+  int64_max = 9223372036854775807
+
+  assert_equal 0, BigintTest.int64_roundtrip(0)
+  assert_equal(-1, BigintTest.int64_roundtrip(-1))
+  assert_equal int64_max, BigintTest.int64_roundtrip(int64_max)
+  assert_equal int64_min + 1, BigintTest.int64_roundtrip(int64_min + 1)
+  assert_equal int64_min, BigintTest.int64_roundtrip(int64_min)
+end
+
+assert('Bigint int64 conversion refuses what int64_t cannot hold') do
+  assert_raise(RangeError) { BigintTest.int64_roundtrip(9223372036854775808) }
+  assert_raise(RangeError) { BigintTest.int64_roundtrip(-9223372036854775809) }
+  assert_raise(RangeError) { BigintTest.int64_roundtrip(10 ** 25) }
+  assert_raise(RangeError) { BigintTest.int64_roundtrip(-(10 ** 25)) }
+end
