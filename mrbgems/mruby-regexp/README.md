@@ -232,7 +232,9 @@ Two engines, chosen automatically at compile time by pattern analysis.
 
 - **Pike VM (NFA simulation)** for patterns without backreferences, non-greedy
   quantifiers, lookaround, atomic groups, absent repeaters, conditionals or
-  subexpression calls. O(pattern x text), so it is immune to ReDoS.
+  subexpression calls. O(pattern x text), so it is immune to ReDoS. The branch
+  a fork leaves for later waits on a stack the search owns, so a step spends a
+  constant amount of C stack however often the pattern forks.
 - **Backtracking engine** for the rest, whose state the Pike VM's threads have
   no stack to hold. It backtracks on a heap stack of its own, so a search
   spends a constant amount of C stack however long the subject is. Bounded by
@@ -388,6 +390,12 @@ A build that cannot make the allocation raises `NoMemoryError`. A nested
 character class is the one construct still read by recursion, at about 500
 bytes of C stack a level, which the class table bounds at 256 levels whatever
 the limit.
+
+The passes that read the finished program keep their branches on stacks of
+their own as well: the anchor and first-byte scans, the marks on the
+repetitions that can run empty, and the width of a lookbehind. What a compile
+spends on the C stack follows neither the pattern's length nor how often it
+forks.
 
 ### What the build decides
 

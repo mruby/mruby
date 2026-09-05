@@ -1905,44 +1905,67 @@ typedef struct {
 #define RE_FLEN_BUSY (-2)   /* being measured: reaching it again is a cycle,
                                and a cycle is a body of no fixed width */
 
-static int fixed_len_walk(re_compiler *c, uint32_t start, uint32_t end,
-                          int *chars_out, int depth,
-                          re_flen_memo *memo, uint32_t memo_base,
-                          uint32_t memo_len);
 static int fixed_len_span(re_compiler *c, uint32_t start, uint32_t end,
                           int *chars_out, int depth);
 
-/* The measure from `pc` to `end`, remembered under the table when `pc` is one
-   the table covers. Without it a chain of forks is measured once per path
-   through it, both arms of every fork walking the whole tail, and `(?:a|b)`
-   thirty times over is 2^30 walks of a pattern a hundred bytes long. */
-static int
-fixed_len_at(re_compiler *c, uint32_t pc, uint32_t end, int *chars_out,
-             int depth, re_flen_memo *memo, uint32_t memo_base,
-             uint32_t memo_len)
+/* A measure the walk left standing while it takes another. A fork is two
+   measures of its own and the walk can only answer once both are in, so what
+   it had taken before the fork waits here, with what the first arm answered
+   once that is known, and a pc the table covers waits here to be filled from
+   the measure it asked for. */
+#define FLEN_MEMO  0   /* fill this pc's slot with what comes back */
+#define FLEN_ARM_A 1   /* the fork's first arm is being measured */
+#define FLEN_ARM_B 2   /* its second, with the first's measure in hand */
+
+typedef struct {
+  uint32_t pc;      /* MEMO: the pc measured. ARM_A: the fork itself. */
+  int32_t len;      /* the arms: the measure taken before the fork */
+  int32_t chars;
+  int32_t a_len;    /* ARM_B: what the first arm answered */
+  int32_t a_chars;
+  uint8_t kind;
+} flen_frame;
+
+typedef struct {
+  flen_frame *at;      /* `given` until the walk outgrows it, the heap after */
+  flen_frame *given;   /* the room the caller carved out, and never freed */
+  uint32_t top;
+  uint32_t capa;
+} flen_stack;
+
+/* Room for one more measure, once the room the caller gave is all in use.
+   FALSE is the allocator having refused it, which the walk reports as a body
+   of no fixed width, the answer it gives for everything else it cannot
+   measure (see fixed_len_span()). */
+static mrb_bool
+flen_grow(mrb_state *mrb, flen_stack *s)
 {
-  if (!memo || pc < memo_base || pc - memo_base >= memo_len) {
-    return fixed_len_walk(c, pc, end, chars_out, depth, memo, memo_base, memo_len);
+  uint32_t capa = s->capa ? s->capa * 2 : 8;
+  flen_frame *p;
+  if (s->at == s->given) {
+    p = (flen_frame*)mrb_malloc_simple(mrb, sizeof(flen_frame) * capa);
+    /* A span the caller found no fork in is given no room at all, and a walk
+       that leaves the span by a jump can still want some: there is nothing to
+       carry over, and memcpy() is owed a pointer whatever the length is. */
+    if (p && s->capa) memcpy(p, s->given, sizeof(flen_frame) * s->capa);
   }
-  re_flen_memo *slot = &memo[pc - memo_base];
-  if (slot->len == RE_FLEN_BUSY) return -1;
-  if (slot->len != RE_FLEN_NEW) {
-    *chars_out = slot->chars;
-    return slot->len;
+  else {
+    p = (flen_frame*)mrb_realloc_simple(mrb, s->at, sizeof(flen_frame) * capa);
   }
-  slot->len = RE_FLEN_BUSY;
-  int chars = 0;
-  int len = fixed_len_walk(c, pc, end, &chars, depth, memo, memo_base, memo_len);
-  if (len < 0) {
-    /* Leave the slot BUSY: a body with one unmeasurable path has no fixed
-       width at all, so no later question about this pc has a different
-       answer, and the compile is about to be refused either way. */
-    return -1;
-  }
-  slot->len = len;
-  slot->chars = chars;
-  *chars_out = chars;
-  return len;
+  if (!p) return FALSE;
+  s->at = p;
+  s->capa = capa;
+  return TRUE;
+}
+
+/* Leave a measure standing. Inline: this stands where the recursive call it
+   replaced stood, in the walk's own loop. */
+static inline mrb_bool
+flen_push(mrb_state *mrb, flen_stack *s, const flen_frame *f)
+{
+  if (s->top == s->capa && !flen_grow(mrb, s)) return FALSE;
+  s->at[s->top++] = *f;
+  return TRUE;
 }
 
 /*
@@ -1952,23 +1975,64 @@ fixed_len_at(re_compiler *c, uint32_t pc, uint32_t end, int *chars_out,
  * advances one byte whatever the instruction is, and stores in *chars_out
  * the character count a UTF-8 subject needs. Returns -1 if the sub-pattern
  * has no fixed width (a quantifier, or a fork whose arms disagree).
+ *
+ * A measure the walk cannot finish before taking another stands on `stack`
+ * rather than in a C frame of its own, so a body forking as often as it is
+ * long is measured on the stack any build has: a body of 1,500 `(?:a|a)`
+ * used to need more than 256 KiB of one and 3,000 more than 512 KiB.
+ * What a pc is worth is remembered in the
+ * table `memo` covers, without which a chain of forks is measured once per
+ * path through it, both arms of every fork walking the whole tail, and
+ * `(?:a|b)` thirty times over is 2^30 walks of a pattern a hundred bytes
+ * long.
  */
 static int
 fixed_len_walk(re_compiler *c, uint32_t start, uint32_t end, int *chars_out,
                int depth, re_flen_memo *memo, uint32_t memo_base,
-               uint32_t memo_len)
+               uint32_t memo_len, flen_frame *room, uint32_t room_capa)
 {
   int len = 0;
   int chars = 0;
   uint32_t pc = start;
+  int r_len = 0, r_chars = 0;  /* the measure being handed back */
+  int ret = -1;
+  flen_stack stack;
+  stack.at = stack.given = room;
+  stack.top = 0;
+  stack.capa = room_capa;
 
   /* The walk runs to `end` rather than while it is below it, because a call
      steps outside the span: an inline occurrence of a called group is a jump
      to the trampoline after the pattern and a jump back. The bound below is
      what keeps a walk that misses `end` finite; a cycle without RE_SPLIT does
      not exist, and RE_SPLIT answers -1. */
+  goto walk;  /* the measure asked for here is not one the table holds */
+
+ enter:
+  /* Measure from `pc` to `end`, through the table where it covers this pc:
+     a measure already taken is the answer, one being taken is a cycle and no
+     fixed width, and one not taken yet is left to fill on the way back. */
+  if (memo && pc >= memo_base && pc - memo_base < memo_len) {
+    re_flen_memo *slot = &memo[pc - memo_base];
+    if (slot->len == RE_FLEN_BUSY) goto fail;
+    if (slot->len != RE_FLEN_NEW) {
+      r_len = slot->len;
+      r_chars = slot->chars;
+      goto unwind;
+    }
+    slot->len = RE_FLEN_BUSY;
+    flen_frame f;
+    f.kind = FLEN_MEMO;
+    f.pc = pc;
+    f.len = f.chars = f.a_len = f.a_chars = 0;
+    if (!flen_push(c->mrb, &stack, &f)) goto fail;
+  }
+  len = 0;
+  chars = 0;
+
+ walk:
   while (pc != end) {
-    if (pc >= c->code_len) return -1;
+    if (pc >= c->code_len) goto fail;
     re_inst inst = c->pat->code[pc];
     switch (inst.op) {
     case RE_CHAR: {
@@ -2038,25 +2102,27 @@ fixed_len_walk(re_compiler *c, uint32_t start, uint32_t end, int *chars_out,
          A loop closes with a backward fork, so this is also where a body
          that repeats is refused: the memo marks the pc it is measuring and
          reaching it again answers -1. */
-      int a_chars = 0, b_chars = 0;
-      int a = fixed_len_at(c, pc + 1, end, &a_chars, depth, memo, memo_base, memo_len);
-      if (a < 0) return -1;
-      int b = fixed_len_at(c, inst.offset, end, &b_chars, depth, memo, memo_base, memo_len);
-      if (b < 0) return -1;
-      if (a != b || a_chars != b_chars) return -1;
-      *chars_out = chars + a_chars;
-      return len + a;
+      flen_frame f;
+      f.kind = FLEN_ARM_A;
+      f.pc = pc;
+      f.len = len;
+      f.chars = chars;
+      f.a_len = f.a_chars = 0;
+      if (!flen_push(c->mrb, &stack, &f)) goto fail;
+      pc = pc + 1;
+      goto enter;
     }
     case RE_LOOK_END:
-      *chars_out = chars;
-      return len;
+      r_len = len;
+      r_chars = chars;
+      goto unwind;
     case RE_CALL: {
       /* The call runs the body it points at, so the body's measure is this
          instruction's. The depth bound is what answers a recursive call:
          distinct groups nest no deeper than there are groups, so a walk
          past that is going round a cycle, which no fixed length fits --
          CRuby refuses recursion in a lookbehind the same way. */
-      if (depth > RE_MAX_CAPTURES) return -1;
+      if (depth > RE_MAX_CAPTURES) goto fail;
       uint32_t body = inst.offset;
       uint32_t close = body;
       while (close < c->code_len &&
@@ -2064,23 +2130,76 @@ fixed_len_walk(re_compiler *c, uint32_t start, uint32_t end, int *chars_out,
                c->pat->code[close].a == inst.a)) {
         close++;
       }
-      if (close >= c->code_len) return -1;
+      if (close >= c->code_len) goto fail;
       int sub_chars = 0;
       /* The body is measured to its own end, so it gets a table of its own:
-         what a pc is worth is its distance to the end being asked about. */
+         what a pc is worth is its distance to the end being asked about. The
+         depth bound above is what keeps this a call and not a walk of its
+         own: a body nests no deeper than there are groups. */
       int sub_len = fixed_len_span(c, body, close, &sub_chars, depth + 1);
-      if (sub_len < 0) return -1;
+      if (sub_len < 0) goto fail;
       len += sub_len;
       chars += sub_chars;
       pc++;
       break;
     }
     default:
-      return -1;  /* unknown/variable-length instruction */
+      goto fail;  /* unknown/variable-length instruction */
     }
   }
-  *chars_out = chars;
-  return len;
+  r_len = len;
+  r_chars = chars;
+
+ unwind:
+  /* Hand the measure to whatever was left standing for it. */
+  if (stack.top == 0) {
+    *chars_out = r_chars;
+    ret = r_len;
+    goto done;
+  }
+  {
+    flen_frame *f = &stack.at[--stack.top];
+    switch (f->kind) {
+    case FLEN_MEMO: {
+      re_flen_memo *slot = &memo[f->pc - memo_base];
+      slot->len = r_len;
+      slot->chars = r_chars;
+      goto unwind;
+    }
+    case FLEN_ARM_A: {
+      /* The first arm is measured; keep it and measure the second, which the
+         fork's offset opens. */
+      flen_frame b;
+      b.kind = FLEN_ARM_B;
+      b.pc = f->pc;
+      b.len = f->len;
+      b.chars = f->chars;
+      b.a_len = r_len;
+      b.a_chars = r_chars;
+      uint32_t arm = c->pat->code[f->pc].offset;
+      if (!flen_push(c->mrb, &stack, &b)) goto fail;
+      pc = arm;
+      goto enter;
+    }
+    default: {  /* FLEN_ARM_B */
+      if (r_len != f->a_len || r_chars != f->a_chars) goto fail;
+      r_len = f->len + f->a_len;
+      r_chars = f->chars + f->a_chars;
+      goto unwind;
+    }
+    }
+  }
+
+ fail:
+  /* A slot left BUSY is one whose measure was refused: a body with one
+     unmeasurable path has no fixed width at all, so no later question about
+     that pc has a different answer, and the compile is about to be refused
+     either way. */
+  ret = -1;
+
+ done:
+  if (stack.at != room) mrb_free(c->mrb, stack.at);
+  return ret;
 }
 
 /* Measure [start, end) with whatever table the span needs. A span holding no
@@ -2102,17 +2221,32 @@ fixed_len_span(re_compiler *c, uint32_t start, uint32_t end, int *chars_out,
       break;
     }
   }
-  if (!needs_memo) return fixed_len_walk(c, start, end, chars_out, depth, NULL, 0, 0);
+  /* A span with no fork and no table has nothing to leave standing either:
+     what the walk keeps is a fork's other arm and a pc whose slot is to be
+     filled, and this span holds neither. */
+  if (!needs_memo) {
+    return fixed_len_walk(c, start, end, chars_out, depth, NULL, 0, 0, NULL, 0);
+  }
 
   uint32_t span = end > start ? end - start : 0;
-  /* mrb_malloc_simple(), not mrb_malloc(): a raise here would longjmp past
+  uint32_t slots = span ? span : 1;
+  /* The measures the walk leaves standing are carved out of the same block
+     as the table, so measuring a span asks the allocator once: a slot to
+     fill and an arm to take are one apiece per pc the walk stands on, and
+     the walk grows its own stack where a path it did not expect wants more.
+
+     mrb_malloc_simple(), not mrb_malloc(): a raise here would longjmp past
      the frees of the spans measuring around this one. A refusal is reported
      as a body of no fixed width, which is what the caller does with every
      other answer it cannot use. */
-  re_flen_memo *memo = (re_flen_memo*)mrb_malloc_simple(c->mrb, sizeof(re_flen_memo) * (span ? span : 1));
+  uint32_t room = slots + 8;
+  if (room > 1024) room = 1024;  /* past a body of this size, let it grow */
+  re_flen_memo *memo = (re_flen_memo*)mrb_malloc_simple(
+      c->mrb, sizeof(re_flen_memo) * slots + sizeof(flen_frame) * room);
   if (!memo) return -1;
   for (uint32_t i = 0; i < span; i++) memo[i].len = RE_FLEN_NEW;
-  int len = fixed_len_walk(c, start, end, chars_out, depth, memo, start, span);
+  int len = fixed_len_walk(c, start, end, chars_out, depth, memo, start, span,
+                           (flen_frame*)(memo + slots), room);
   mrb_free(c->mrb, memo);
   return len;
 }
@@ -4224,79 +4358,108 @@ has_named_group(const char *src, mrb_int len)
   return FALSE;
 }
 
+/* Instructions the anchor and first-byte walks mark and keep pcs for without
+   asking the allocator for room. A program this long or shorter is scanned
+   from the frame of the scan that calls them, which is most of what a pattern
+   spells: the marks and the pcs are five bytes an instruction. */
+#define RE_WALK_INLINE 128
+
+/* A walk's marks and the pcs it has yet to take, one apiece per instruction,
+   in one block: the pcs come first, since the marks are bytes and would leave
+   them unaligned. NULL is the allocator having refused, which leaves the scan
+   that asked unbuilt. What these walks answer moves a search along and is
+   nothing a pattern's answer depends on, so a build with nothing left
+   compiles the pattern and scans it the long way. */
+static uint32_t*
+walk_room(mrb_state *mrb, uint32_t n)
+{
+  return (uint32_t*)mrb_malloc_simple(mrb, (size_t)n * (sizeof(uint32_t) + 1));
+}
+
 /*
  * Compute the set of bytes that could be the first consumed byte of a match.
  * Walks bytecode from pc=0, following epsilon transitions (SAVE, JMP, SPLIT).
  * Returns TRUE if the set is narrower than "any byte" (i.e., useful for skip).
+ *
+ * Every path has to answer TRUE for the set to be one, so a path that
+ * answers FALSE ends the walk there; the others put their bytes in `bm` and
+ * hand the walk back the branch a fork left on `stack`, newest first, which
+ * is the order taking one in a call of its own gave.
  */
 static mrb_bool
 first_set_walk(const re_inst *code, uint32_t code_len,
                const re_charclass *classes, uint32_t pc,
-               uint8_t *bm, uint8_t *seen)
+               uint8_t *bm, uint8_t *seen, uint32_t *stack)
 {
-  while (pc < code_len) {
-    if (seen[pc]) return TRUE;  /* already visited */
-    seen[pc] = 1;
-    switch (code[pc].op) {
-    case RE_SAVE:
-    case RE_BOL: case RE_EOL: case RE_BOT: case RE_EOT: case RE_EOTNL:
-    case RE_WBOUND: case RE_NWBOUND:
-    case RE_ATOMIC: case RE_ATOMIC_END:
-      pc++;
-      continue;  /* zero-width, keep walking */
-    case RE_JMP:
-      pc = code[pc].offset;
-      continue;
-    case RE_CALL:
-      /* The body runs where the call stands, so its first bytes are the
-         call's. What follows a body that can complete without consuming is
-         unknown to this walk, which has no call stack; that path ends at
-         the body's RE_RETURN, whose default below answers FALSE. */
-      pc = code[pc].offset;
-      continue;
-    case RE_SPLIT:
-    case RE_COND:  /* either body may run first; the walk cannot know which */
-      /* both branches: pc+1 and offset */
-      if (!first_set_walk(code, code_len, classes, code[pc].offset, bm, seen))
+  uint32_t top = 0;
+
+  for (;;) {
+    while (pc < code_len) {
+      if (seen[pc]) goto next;  /* already visited */
+      seen[pc] = 1;
+      switch (code[pc].op) {
+      case RE_SAVE:
+      case RE_BOL: case RE_EOL: case RE_BOT: case RE_EOT: case RE_EOTNL:
+      case RE_WBOUND: case RE_NWBOUND:
+      case RE_ATOMIC: case RE_ATOMIC_END:
+        pc++;
+        continue;  /* zero-width, keep walking */
+      case RE_JMP:
+        pc = code[pc].offset;
+        continue;
+      case RE_CALL:
+        /* The body runs where the call stands, so its first bytes are the
+           call's. What follows a body that can complete without consuming is
+           unknown to this walk, which has no call stack; that path ends at
+           the body's RE_RETURN, whose default below answers FALSE. */
+        pc = code[pc].offset;
+        continue;
+      case RE_SPLIT:
+      case RE_COND:  /* either body may run first; the walk cannot know which */
+        /* both branches: pc+1 and offset */
+        stack[top++] = pc + 1;
+        pc = code[pc].offset;
+        continue;
+      case RE_SPLITNG:
+        stack[top++] = code[pc].offset;
+        pc = pc + 1;
+        continue;
+      case RE_BYTE:
+        return FALSE;  /* always non-ASCII: bm covers ASCII only */
+      case RE_CHAR:
+        if (code[pc].a >= 128) return FALSE;  /* non-ASCII: bm covers ASCII only */
+        bm[code[pc].a >> 3] |= (1 << (code[pc].a & 7));
+        goto next;
+      case RE_CLASS: {
+        const re_charclass *cc = &classes[code[pc].a];
+        for (int i = 0; i < 16; i++) bm[i] |= cc->bitmap[i];
+        if (!class_is_ascii_only(cc)) return FALSE;  /* non-ASCII possible */
+        goto next;
+      }
+      case RE_NCLASS: {
+        /* negated class: complement of bitmap. Too many bits; not useful. */
         return FALSE;
-      pc++;
-      continue;
-    case RE_SPLITNG:
-      if (!first_set_walk(code, code_len, classes, pc + 1, bm, seen))
+      }
+      case RE_ANY: case RE_ANY_NL:
+        return FALSE;  /* any byte possible */
+      case RE_MATCH:
+        /* Reaching MATCH via epsilon transitions means the regex can match
+           zero characters at any position. Skipping bytes that aren't in the
+           first-byte set would skip past valid empty-match positions, so the
+           optimization isn't safe -- bail out and accept any starting byte. */
         return FALSE;
-      pc = code[pc].offset;
-      continue;
-    case RE_BYTE:
-      return FALSE;  /* always non-ASCII: bm covers ASCII only */
-    case RE_CHAR:
-      if (code[pc].a >= 128) return FALSE;  /* non-ASCII: bm covers ASCII only */
-      bm[code[pc].a >> 3] |= (1 << (code[pc].a & 7));
-      return TRUE;
-    case RE_CLASS: {
-      const re_charclass *cc = &classes[code[pc].a];
-      for (int i = 0; i < 16; i++) bm[i] |= cc->bitmap[i];
-      if (!class_is_ascii_only(cc)) return FALSE;  /* non-ASCII possible */
-      return TRUE;
+      default:
+        return FALSE;
+      }
     }
-    case RE_NCLASS: {
-      /* negated class: complement of bitmap. Too many bits; not useful. */
-      return FALSE;
-    }
-    case RE_ANY: case RE_ANY_NL:
-      return FALSE;  /* any byte possible */
-    case RE_MATCH:
-      /* Reaching MATCH via epsilon transitions means the regex can match
-         zero characters at any position. Skipping bytes that aren't in the
-         first-byte set would skip past valid empty-match positions, so the
-         optimization isn't safe -- bail out and accept any starting byte. */
-      return FALSE;
-    default:
-      return FALSE;
-    }
+    /* Walked off the end without hitting MATCH or a consuming op. Treat as
+       empty-matchable, same as RE_MATCH. */
+    return FALSE;
+
+  next:
+    if (top == 0) return TRUE;
+    pc = stack[--top];
   }
-  /* Walked off the end without hitting MATCH or a consuming op. Treat as
-     empty-matchable, same as RE_MATCH. */
-  return FALSE;
 }
 
 /*
@@ -4310,46 +4473,85 @@ first_set_walk(const re_inst *code, uint32_t code_len,
  * own before the join (one before it would have been the walk's answer
  * already), so its value is the join's, which the visit that explored the
  * join contributed.
+ *
+ * The branch of a fork the walk has yet to take waits on `stack`, newest
+ * first, and every branch that ends folds its value into the answer. NONE
+ * ends the whole walk where the recursion returned it up: what it says is
+ * that a path asserts nothing, and no other path can make up for it.
  */
 static uint8_t
-anchor_walk(const re_inst *code, uint32_t code_len, uint32_t pc, uint8_t *seen)
+anchor_walk(const re_inst *code, uint32_t code_len, uint32_t pc, uint8_t *seen,
+            uint32_t *stack)
 {
-  while (pc < code_len) {
-    if (seen[pc]) return RE_ANCHOR_BOT;
-    seen[pc] = 1;
-    switch (code[pc].op) {
-    case RE_BOT:
-      return RE_ANCHOR_BOT;
-    case RE_BOL:
-      return RE_ANCHOR_BOL;
-    case RE_SAVE:
-    case RE_EOL: case RE_EOT: case RE_EOTNL:
-    case RE_WBOUND: case RE_NWBOUND:
-    case RE_ATOMIC: case RE_ATOMIC_END:
-      pc++;
-      continue;
-    case RE_JMP:
-      pc = code[pc].offset;
-      continue;
-    case RE_CALL:
-      /* The body runs where the call stands, as in first_set_walk(); a body
-         that completes without consuming ends at its RE_RETURN, whose
-         default answers NONE. */
-      pc = code[pc].offset;
-      continue;
-    case RE_SPLIT:
-    case RE_SPLITNG:
-    case RE_COND: {  /* a fork to this walk: both bodies are paths */
-      uint8_t other = anchor_walk(code, code_len, code[pc].offset, seen);
-      if (other == RE_ANCHOR_NONE) return RE_ANCHOR_NONE;
-      uint8_t mine = anchor_walk(code, code_len, pc + 1, seen);
-      return mine < other ? mine : other;
+  uint8_t best = RE_ANCHOR_BOT;  /* the neutral value for the min */
+  uint32_t top = 0;
+  uint8_t here;
+
+  for (;;) {
+    while (pc < code_len) {
+      if (seen[pc]) { here = RE_ANCHOR_BOT; goto joined; }
+      seen[pc] = 1;
+      switch (code[pc].op) {
+      case RE_BOT:
+        here = RE_ANCHOR_BOT;
+        goto joined;
+      case RE_BOL:
+        here = RE_ANCHOR_BOL;
+        goto joined;
+      case RE_SAVE:
+      case RE_EOL: case RE_EOT: case RE_EOTNL:
+      case RE_WBOUND: case RE_NWBOUND:
+      case RE_ATOMIC: case RE_ATOMIC_END:
+        pc++;
+        continue;
+      case RE_JMP:
+        pc = code[pc].offset;
+        continue;
+      case RE_CALL:
+        /* The body runs where the call stands, as in first_set_walk(); a body
+           that completes without consuming ends at its RE_RETURN, whose
+           default answers NONE. */
+        pc = code[pc].offset;
+        continue;
+      case RE_SPLIT:
+      case RE_SPLITNG:
+      case RE_COND:  /* a fork to this walk: both bodies are paths */
+        stack[top++] = pc + 1;
+        pc = code[pc].offset;
+        continue;
+      default:
+        return RE_ANCHOR_NONE;
+      }
     }
-    default:
-      return RE_ANCHOR_NONE;
-    }
+    return RE_ANCHOR_NONE;
+
+  joined:
+    if (here < best) best = here;
+    if (top == 0) return best;
+    pc = stack[--top];
   }
-  return RE_ANCHOR_NONE;
+}
+
+/* The anchor of the program, with the room anchor_walk() needs. */
+static uint8_t
+compute_anchor(mrb_state *mrb, const re_inst *code, uint32_t code_len)
+{
+  uint32_t n = code_len + 1;
+  uint32_t pcs[RE_WALK_INLINE];
+  uint8_t marks[RE_WALK_INLINE];
+  uint32_t *heap = NULL;
+  uint32_t *stack = pcs;
+  uint8_t *seen = marks;
+  if (n > RE_WALK_INLINE) {
+    heap = walk_room(mrb, n);
+    if (!heap) return RE_ANCHOR_NONE;
+    stack = heap;
+    seen = (uint8_t*)(heap + n);
+  }
+  memset(seen, 0, n);
+  uint8_t anchor = anchor_walk(code, code_len, 0, seen, stack);
+  mrb_free(mrb, heap);
+  return anchor;
 }
 
 /* TRUE when a path that need not consume runs from pc to goal, so the
@@ -4366,46 +4568,59 @@ anchor_walk(const re_inst *code, uint32_t code_len, uint32_t pc, uint8_t *seen)
    finite, and the answer stays conservative: what a stray path can add is a
    mark on a loop whose body cannot in fact match empty, and a marked loop
    whose iterations all consume never triggers the handling the mark turns
-   on. */
+   on.
+
+   `stack` holds the branch of each fork the walk has still to take, newest
+   first, which is the order following one in a call of its own gave. A pc
+   goes on it only where the walk marked a fork, and a mark is made once,
+   so the caller's code_len entries are room enough for any pattern. */
 static mrb_bool
 epsilon_path(const re_inst *code, uint32_t code_len, uint32_t pc, uint32_t goal,
-             uint32_t *seen, uint32_t mark)
+             uint32_t *seen, uint32_t mark, uint32_t *stack)
 {
-  while (pc != goal) {
-    if (pc >= code_len || seen[pc] == mark) return FALSE;
-    seen[pc] = mark;
-    switch (code[pc].op) {
-    case RE_SAVE:
-    case RE_BOL: case RE_EOL: case RE_BOT: case RE_EOT: case RE_EOTNL:
-    case RE_WBOUND: case RE_NWBOUND:
-    case RE_ATOMIC: case RE_ATOMIC_END:
-    case RE_BACKREF:
-    case RE_CALL:
-    case RE_ABSENT_START:
-      pc++;
-      break;
-    case RE_JMP:
-    case RE_LOOKAHEAD: case RE_NEG_LOOKAHEAD:
-    case RE_LOOKBEHIND: case RE_NEG_LOOKBEHIND:
-    /* An absent repeater takes no text where its body matches at the
-       position it began at, so a repetition around one has a body that can
-       match empty and needs the handling this pass turns on. The body of
-       the absent is not on the path: it is a test the scan runs, not text
-       the search passes through. */
-    case RE_ABSENT:
-      pc = code[pc].offset;
-      break;
-    case RE_SPLIT:
-    case RE_SPLITNG:
-    case RE_COND:  /* either body may be the one that runs */
-      if (epsilon_path(code, code_len, code[pc].offset, goal, seen, mark)) return TRUE;
-      pc++;
-      break;
-    default:
-      return FALSE;  /* consumes input */
+  uint32_t top = 0;
+
+  for (;;) {
+    while (pc != goal) {
+      if (pc >= code_len || seen[pc] == mark) goto next;
+      seen[pc] = mark;
+      switch (code[pc].op) {
+      case RE_SAVE:
+      case RE_BOL: case RE_EOL: case RE_BOT: case RE_EOT: case RE_EOTNL:
+      case RE_WBOUND: case RE_NWBOUND:
+      case RE_ATOMIC: case RE_ATOMIC_END:
+      case RE_BACKREF:
+      case RE_CALL:
+      case RE_ABSENT_START:
+        pc++;
+        break;
+      case RE_JMP:
+      case RE_LOOKAHEAD: case RE_NEG_LOOKAHEAD:
+      case RE_LOOKBEHIND: case RE_NEG_LOOKBEHIND:
+      /* An absent repeater takes no text where its body matches at the
+         position it began at, so a repetition around one has a body that can
+         match empty and needs the handling this pass turns on. The body of
+         the absent is not on the path: it is a test the scan runs, not text
+         the search passes through. */
+      case RE_ABSENT:
+        pc = code[pc].offset;
+        break;
+      case RE_SPLIT:
+      case RE_SPLITNG:
+      case RE_COND:  /* either body may be the one that runs */
+        stack[top++] = pc + 1;
+        pc = code[pc].offset;
+        break;
+      default:
+        goto next;  /* consumes input */
+      }
     }
+    return TRUE;
+
+  next:
+    if (top == 0) return FALSE;
+    pc = stack[--top];
   }
-  return TRUE;
 }
 
 /* Find the repetitions whose body can match empty and mark the backward edge
@@ -4421,14 +4636,15 @@ epsilon_path(const re_inst *code, uint32_t code_len, uint32_t pc, uint32_t goal,
 static uint8_t
 mark_empty_loops(mrb_state *mrb, re_inst *code, uint32_t code_len)
 {
-  /* One block holds both arrays. Asking twice puts a raising call between the
-     first allocation and anything that could free it: mrb_calloc() raises
-     when it cannot answer, and this frame is the only owner `delta` has.
-     code_len is capped at RE_MAX_CODE_LEN, so the doubled element count stays
+  /* One block holds all three arrays. Asking three times puts a raising call
+     between the first allocation and anything that could free it: mrb_calloc()
+     raises when it cannot answer, and this frame is the only owner `delta` has.
+     code_len is capped at RE_MAX_CODE_LEN, so the tripled element count stays
      well inside the overflow check mrb_calloc() makes. */
   uint32_t n = code_len + 1;
-  int32_t *delta = (int32_t*)mrb_calloc(mrb, 2 * (size_t)n, sizeof(int32_t));
+  int32_t *delta = (int32_t*)mrb_calloc(mrb, 3 * (size_t)n, sizeof(int32_t));
   uint32_t *seen = (uint32_t*)(delta + n);
+  uint32_t *stack = seen + n;  /* the forks epsilon_path() has yet to take */
   uint32_t mark = 0;
 
   for (uint32_t pc = 0; pc < code_len; pc++) {
@@ -4446,7 +4662,7 @@ mark_empty_loops(mrb_state *mrb, re_inst *code, uint32_t code_len)
     if (in.op != RE_JMP && in.op != RE_SPLIT && in.op != RE_SPLITNG) continue;
     code[pc].a = 0;                /* this pass owns `a` on the edge opcodes */
     if (in.offset > pc) continue;  /* forward edge: alternation, not a loop */
-    if (!epsilon_path(code, code_len, in.offset, pc, seen, ++mark)) continue;
+    if (!epsilon_path(code, code_len, in.offset, pc, seen, ++mark, stack)) continue;
     code[pc].a = 1;
     if (in.op == RE_JMP) {
       /* The head was passed earlier in this scan, so its mark stays. */
@@ -4467,14 +4683,25 @@ mark_empty_loops(mrb_state *mrb, re_inst *code, uint32_t code_len)
 }
 
 static mrb_bool
-compute_first_set(const re_inst *code, uint32_t code_len,
+compute_first_set(mrb_state *mrb, const re_inst *code, uint32_t code_len,
                   const re_charclass *classes, uint8_t *bm)
 {
-  uint8_t seen[4096];
-  if (code_len >= sizeof(seen)) return FALSE;  /* pattern too large */
-  memset(seen, 0, code_len + 1);
-  if (!first_set_walk(code, code_len, classes, 0, bm, seen))
-    return FALSE;
+  uint32_t n = code_len + 1;
+  uint32_t pcs[RE_WALK_INLINE];
+  uint8_t marks[RE_WALK_INLINE];
+  uint32_t *heap = NULL;
+  uint32_t *stack = pcs;
+  uint8_t *seen = marks;
+  if (n > RE_WALK_INLINE) {
+    heap = walk_room(mrb, n);
+    if (!heap) return FALSE;
+    stack = heap;
+    seen = (uint8_t*)(heap + n);
+  }
+  memset(seen, 0, n);
+  mrb_bool narrow = first_set_walk(code, code_len, classes, 0, bm, seen, stack);
+  mrb_free(mrb, heap);
+  if (!narrow) return FALSE;
   /* Check if bitmap is all-ones (no benefit to skip) */
   int set_bits = 0;
   for (int i = 0; i < 16; i++) {
@@ -4939,14 +5166,7 @@ mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat,
      skip_to_line_start(). Under \A the string is never scanned at all, which
      is why a pattern carrying it leaves the prefix and the first-byte set
      below unbuilt: they exist to move a scan along, and there is none. */
-  pat->anchor = RE_ANCHOR_NONE;
-  {
-    uint8_t seen[4096];
-    if (code_len < sizeof(seen)) {
-      memset(seen, 0, code_len + 1);
-      pat->anchor = anchor_walk(pat->code, code_len, 0, seen);
-    }
-  }
+  pat->anchor = compute_anchor(mrb, pat->code, code_len);
 
   /* Extract literal prefix for fast search skip.
      Walk bytecode from the start, skipping zero-width instructions,
@@ -5001,7 +5221,8 @@ mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat,
   if (pat->anchor != RE_ANCHOR_BOT) {
     uint8_t bm[16];
     memset(bm, 0, sizeof(bm));
-    pat->has_first_bytes = compute_first_set(pat->code, code_len, pat->classes, bm);
+    pat->has_first_bytes = compute_first_set(mrb, pat->code, code_len,
+                                             pat->classes, bm);
     if (pat->has_first_bytes) {
       memcpy(pat->first_bytes, bm, 16);
       /* A set of up to three bytes is also kept enumerated, so the skip can

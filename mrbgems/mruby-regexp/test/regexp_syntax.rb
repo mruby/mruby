@@ -320,6 +320,57 @@ assert("Regexp - a pattern nested past the parse depth limit raises") do
   end
 end
 
+assert("Regexp - a pattern whose forks nest deeply matches") do
+  # A step's epsilon closure walks the branches a fork leaves standing, and
+  # what that walk spent on the C stack used to follow how deep the pattern
+  # nests its forks, with nothing above it but MRB_REGEXP_PARSE_DEPTH_LIMIT.
+  # The `?` is what makes every level a fork, the `b` is what makes the
+  # closure cross all of them, and the greedy answer is what says it took the
+  # branch inside as well as the one that skips it.
+  #
+  # Every level here is one the parser holds open at once, the pattern itself
+  # among them, so what the build allows is the ceiling: a build that lowers
+  # the limit is asked a shallower question rather than met with a refusal.
+  nest = Regexp::PARSE_DEPTH_LIMIT - 1
+  nest = 1000 if nest > 1000
+  nest = 0 if nest < 0
+  re = Regexp.new("(?:" * nest + "a" + ")?" * nest + "b")
+  assert_equal "ab", re.match("ab")[0]
+  assert_nil re.match("c")
+  # Where the build left no level at all there is no branch to skip.
+  assert_equal "b", re.match("b")[0] if nest > 0
+end
+
+assert("Regexp - a pattern forking as often as it is long compiles") do
+  # Nothing bounds how often a pattern forks but its length, which `regexp
+  # too large` puts at 65,535 instructions, and the passes that read a
+  # finished program used to spend a C frame per fork they passed: the marks
+  # on the repetitions that can run empty, and the anchor and first-byte
+  # scans. Each keeps its branches on a stack of its own now, so the patterns
+  # below are a question of heap and not of the stack the build runs on.
+  forks = 2000
+  assert_equal 0, (Regexp.new("a*" * forks) =~ "")
+  assert_equal 0, (Regexp.new("a*" * forks) =~ "aaa")
+  assert_equal 0, (Regexp.new("a?" * forks) =~ "")
+
+  # Past 4096 instructions, which is where the anchor and first-byte scans
+  # used to give up for want of room in the frame they marked from.
+  assert_equal 0, (Regexp.new("(?:x?)" * 3000 + "ab") =~ "xxab")
+  assert_equal 2, (Regexp.new("^" + "(?:x?)" * 3000 + "ab") =~ "\n\nab")
+end
+
+assert("Regexp - a lookbehind body forking as often as it is long is measured") do
+  # A lookbehind is measured by a walk of its body, and a fork in it is two
+  # measures that have to agree, which the walk used to take in a C call
+  # apiece. The width stays inside the 255 bytes a rewind carries; what grows
+  # is the number of forks measured. The measure is the compile's, so a
+  # compile is what this asks for: running such a body keeps a choice point
+  # per fork, which is more than a build that sets MRB_REGEXP_STACK_LIMIT low
+  # grants, and what the widths come to is asked of twenty forks further
+  # down, where the guard for that engine stands.
+  assert_kind_of Regexp, Regexp.new("(?<=" + "(?:a|a)" * 200 + ")b")
+end
+
 assert("Regexp - an alternation holds as many branches as the pattern writes") do
   # The branches were once collected in an array of 64 and the 64th refused
   # as `too many alternatives`. They are found in the code they were compiled
