@@ -790,22 +790,43 @@ mrb_f_defined_super(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
+/* `path` holds the names of a constant path from its root down, and `start`
+   says where to look the first one up: nil for the caller's lexical scope
+   (`A::B::C`), or the module the path is rooted at (`Object` for `::A::B`).
+   A name that is missing, or an outer value that is not a module, ends the
+   walk at nil rather than raising. */
 static mrb_value
 mrb_f_defined_const_path(mrb_state *mrb, mrb_value self)
 {
-  mrb_sym parent, child;
-  mrb_get_args(mrb, "nn", &parent, &child);
-  /* resolve the parent constant in the caller's lexical scope (ci[-1]) */
-  mrb_callinfo *ci = &mrb->c->ci[-1];
-  if (ci < mrb->c->cibase || ci->proc == NULL) return mrb_nil_value();
-  mrb_value pv = mrb_vm_const_get_noraise(mrb, ci->proc, parent);
-  if (mrb_undef_p(pv)) return mrb_nil_value();
-  enum mrb_vtype t = mrb_type(pv);
-  if (t != MRB_TT_CLASS && t != MRB_TT_MODULE && t != MRB_TT_SCLASS) {
-    return mrb_nil_value();
+  mrb_value start, path;
+  mrb_get_args(mrb, "oA", &start, &path);
+  mrb_int len = RARRAY_LEN(path);
+  mrb_int i = 0;
+  mrb_value outer;
+
+  if (len == 0) return mrb_nil_value();
+  if (!mrb_symbol_p(RARRAY_PTR(path)[0])) return mrb_nil_value();
+  if (mrb_nil_p(start)) {
+    mrb_callinfo *ci = &mrb->c->ci[-1];
+    if (ci < mrb->c->cibase || ci->proc == NULL) return mrb_nil_value();
+    outer = mrb_vm_const_get_noraise(mrb, ci->proc, mrb_symbol(RARRAY_PTR(path)[0]));
+    if (mrb_undef_p(outer)) return mrb_nil_value();
+    i = 1;
   }
-  if (mrb_const_defined(mrb, pv, child)) return mrb_str_new_lit(mrb, "constant");
-  return mrb_nil_value();
+  else {
+    outer = start;
+  }
+  for (; i < len; i++) {
+    enum mrb_vtype t = mrb_type(outer);
+    if (t != MRB_TT_CLASS && t != MRB_TT_MODULE && t != MRB_TT_SCLASS) {
+      return mrb_nil_value();
+    }
+    if (!mrb_symbol_p(RARRAY_PTR(path)[i])) return mrb_nil_value();
+    mrb_sym name = mrb_symbol(RARRAY_PTR(path)[i]);
+    if (!mrb_const_defined(mrb, outer, name)) return mrb_nil_value();
+    if (i + 1 < len) outer = mrb_const_get(mrb, outer, name);
+  }
+  return mrb_str_new_lit(mrb, "constant");
 }
 
 /* ---------------------------*/
