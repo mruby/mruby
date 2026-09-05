@@ -384,7 +384,7 @@ typedef struct mrb_regexp_pattern {
    a group of any kind, a lookaround, an atomic group, an inline option
    toggle, which encloses the rest of the group it stands in and so is a level
    of its own, and a character class nested in another (see open_level() and
-   parse_nested_class() in re_compile.c). A pattern past this is `parse depth
+   parse_class_levels() in re_compile.c). A pattern past this is `parse depth
    limit over`, which is CRuby's message for the same refusal.
 
    The default is Onigmo's ONIG_MAX_PARSE_DEPTH, so a pattern is refused
@@ -392,9 +392,10 @@ typedef struct mrb_regexp_pattern {
    guards: the parser keeps the levels it has open on the heap, 32 bytes
    each, so a pattern nested past what the machine holds is refused by the
    allocator, at whatever depth that is, and no build has a stack to size
-   this from. One value holds for every build. (A nested character class is
-   still read by recursion, at about 500 bytes of C stack a level, which the
-   class table bounds at 256 levels.)
+   this from. One value holds for every build. (A nested character class is a
+   level on a stack of its own, and the class table bounds those at 256 as
+   well, so a build at the default limit meets the table there and one that
+   sets this at or below 256 meets this.)
 
    The floor is 1, a build that takes no nesting at all; the ceiling is where
    the limit stops being one, a million levels being 32 MiB of them. */
