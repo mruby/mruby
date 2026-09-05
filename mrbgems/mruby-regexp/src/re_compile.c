@@ -1905,44 +1905,67 @@ typedef struct {
 #define RE_FLEN_BUSY (-2)   /* being measured: reaching it again is a cycle,
                                and a cycle is a body of no fixed width */
 
-static int fixed_len_walk(re_compiler *c, uint32_t start, uint32_t end,
-                          int *chars_out, int depth,
-                          re_flen_memo *memo, uint32_t memo_base,
-                          uint32_t memo_len);
 static int fixed_len_span(re_compiler *c, uint32_t start, uint32_t end,
                           int *chars_out, int depth);
 
-/* The measure from `pc` to `end`, remembered under the table when `pc` is one
-   the table covers. Without it a chain of forks is measured once per path
-   through it, both arms of every fork walking the whole tail, and `(?:a|b)`
-   thirty times over is 2^30 walks of a pattern a hundred bytes long. */
-static int
-fixed_len_at(re_compiler *c, uint32_t pc, uint32_t end, int *chars_out,
-             int depth, re_flen_memo *memo, uint32_t memo_base,
-             uint32_t memo_len)
+/* A measure the walk left standing while it takes another. A fork is two
+   measures of its own and the walk can only answer once both are in, so what
+   it had taken before the fork waits here, with what the first arm answered
+   once that is known, and a pc the table covers waits here to be filled from
+   the measure it asked for. */
+#define FLEN_MEMO  0   /* fill this pc's slot with what comes back */
+#define FLEN_ARM_A 1   /* the fork's first arm is being measured */
+#define FLEN_ARM_B 2   /* its second, with the first's measure in hand */
+
+typedef struct {
+  uint32_t pc;      /* MEMO: the pc measured. ARM_A: the fork itself. */
+  int32_t len;      /* the arms: the measure taken before the fork */
+  int32_t chars;
+  int32_t a_len;    /* ARM_B: what the first arm answered */
+  int32_t a_chars;
+  uint8_t kind;
+} flen_frame;
+
+typedef struct {
+  flen_frame *at;      /* `given` until the walk outgrows it, the heap after */
+  flen_frame *given;   /* the room the caller carved out, and never freed */
+  uint32_t top;
+  uint32_t capa;
+} flen_stack;
+
+/* Room for one more measure, once the room the caller gave is all in use.
+   FALSE is the allocator having refused it, which the walk reports as a body
+   of no fixed width, the answer it gives for everything else it cannot
+   measure (see fixed_len_span()). */
+static mrb_bool
+flen_grow(mrb_state *mrb, flen_stack *s)
 {
-  if (!memo || pc < memo_base || pc - memo_base >= memo_len) {
-    return fixed_len_walk(c, pc, end, chars_out, depth, memo, memo_base, memo_len);
+  uint32_t capa = s->capa ? s->capa * 2 : 8;
+  flen_frame *p;
+  if (s->at == s->given) {
+    p = (flen_frame*)mrb_malloc_simple(mrb, sizeof(flen_frame) * capa);
+    /* A span the caller found no fork in is given no room at all, and a walk
+       that leaves the span by a jump can still want some: there is nothing to
+       carry over, and memcpy() is owed a pointer whatever the length is. */
+    if (p && s->capa) memcpy(p, s->given, sizeof(flen_frame) * s->capa);
   }
-  re_flen_memo *slot = &memo[pc - memo_base];
-  if (slot->len == RE_FLEN_BUSY) return -1;
-  if (slot->len != RE_FLEN_NEW) {
-    *chars_out = slot->chars;
-    return slot->len;
+  else {
+    p = (flen_frame*)mrb_realloc_simple(mrb, s->at, sizeof(flen_frame) * capa);
   }
-  slot->len = RE_FLEN_BUSY;
-  int chars = 0;
-  int len = fixed_len_walk(c, pc, end, &chars, depth, memo, memo_base, memo_len);
-  if (len < 0) {
-    /* Leave the slot BUSY: a body with one unmeasurable path has no fixed
-       width at all, so no later question about this pc has a different
-       answer, and the compile is about to be refused either way. */
-    return -1;
-  }
-  slot->len = len;
-  slot->chars = chars;
-  *chars_out = chars;
-  return len;
+  if (!p) return FALSE;
+  s->at = p;
+  s->capa = capa;
+  return TRUE;
+}
+
+/* Leave a measure standing. Inline: this stands where the recursive call it
+   replaced stood, in the walk's own loop. */
+static inline mrb_bool
+flen_push(mrb_state *mrb, flen_stack *s, const flen_frame *f)
+{
+  if (s->top == s->capa && !flen_grow(mrb, s)) return FALSE;
+  s->at[s->top++] = *f;
+  return TRUE;
 }
 
 /*
@@ -1952,23 +1975,64 @@ fixed_len_at(re_compiler *c, uint32_t pc, uint32_t end, int *chars_out,
  * advances one byte whatever the instruction is, and stores in *chars_out
  * the character count a UTF-8 subject needs. Returns -1 if the sub-pattern
  * has no fixed width (a quantifier, or a fork whose arms disagree).
+ *
+ * A measure the walk cannot finish before taking another stands on `stack`
+ * rather than in a C frame of its own, so a body forking as often as it is
+ * long is measured on the stack any build has: a body of 1,500 `(?:a|a)`
+ * used to need more than 256 KiB of one and 3,000 more than 512 KiB.
+ * What a pc is worth is remembered in the
+ * table `memo` covers, without which a chain of forks is measured once per
+ * path through it, both arms of every fork walking the whole tail, and
+ * `(?:a|b)` thirty times over is 2^30 walks of a pattern a hundred bytes
+ * long.
  */
 static int
 fixed_len_walk(re_compiler *c, uint32_t start, uint32_t end, int *chars_out,
                int depth, re_flen_memo *memo, uint32_t memo_base,
-               uint32_t memo_len)
+               uint32_t memo_len, flen_frame *room, uint32_t room_capa)
 {
   int len = 0;
   int chars = 0;
   uint32_t pc = start;
+  int r_len = 0, r_chars = 0;  /* the measure being handed back */
+  int ret = -1;
+  flen_stack stack;
+  stack.at = stack.given = room;
+  stack.top = 0;
+  stack.capa = room_capa;
 
   /* The walk runs to `end` rather than while it is below it, because a call
      steps outside the span: an inline occurrence of a called group is a jump
      to the trampoline after the pattern and a jump back. The bound below is
      what keeps a walk that misses `end` finite; a cycle without RE_SPLIT does
      not exist, and RE_SPLIT answers -1. */
+  goto walk;  /* the measure asked for here is not one the table holds */
+
+ enter:
+  /* Measure from `pc` to `end`, through the table where it covers this pc:
+     a measure already taken is the answer, one being taken is a cycle and no
+     fixed width, and one not taken yet is left to fill on the way back. */
+  if (memo && pc >= memo_base && pc - memo_base < memo_len) {
+    re_flen_memo *slot = &memo[pc - memo_base];
+    if (slot->len == RE_FLEN_BUSY) goto fail;
+    if (slot->len != RE_FLEN_NEW) {
+      r_len = slot->len;
+      r_chars = slot->chars;
+      goto unwind;
+    }
+    slot->len = RE_FLEN_BUSY;
+    flen_frame f;
+    f.kind = FLEN_MEMO;
+    f.pc = pc;
+    f.len = f.chars = f.a_len = f.a_chars = 0;
+    if (!flen_push(c->mrb, &stack, &f)) goto fail;
+  }
+  len = 0;
+  chars = 0;
+
+ walk:
   while (pc != end) {
-    if (pc >= c->code_len) return -1;
+    if (pc >= c->code_len) goto fail;
     re_inst inst = c->pat->code[pc];
     switch (inst.op) {
     case RE_CHAR: {
@@ -2038,25 +2102,27 @@ fixed_len_walk(re_compiler *c, uint32_t start, uint32_t end, int *chars_out,
          A loop closes with a backward fork, so this is also where a body
          that repeats is refused: the memo marks the pc it is measuring and
          reaching it again answers -1. */
-      int a_chars = 0, b_chars = 0;
-      int a = fixed_len_at(c, pc + 1, end, &a_chars, depth, memo, memo_base, memo_len);
-      if (a < 0) return -1;
-      int b = fixed_len_at(c, inst.offset, end, &b_chars, depth, memo, memo_base, memo_len);
-      if (b < 0) return -1;
-      if (a != b || a_chars != b_chars) return -1;
-      *chars_out = chars + a_chars;
-      return len + a;
+      flen_frame f;
+      f.kind = FLEN_ARM_A;
+      f.pc = pc;
+      f.len = len;
+      f.chars = chars;
+      f.a_len = f.a_chars = 0;
+      if (!flen_push(c->mrb, &stack, &f)) goto fail;
+      pc = pc + 1;
+      goto enter;
     }
     case RE_LOOK_END:
-      *chars_out = chars;
-      return len;
+      r_len = len;
+      r_chars = chars;
+      goto unwind;
     case RE_CALL: {
       /* The call runs the body it points at, so the body's measure is this
          instruction's. The depth bound is what answers a recursive call:
          distinct groups nest no deeper than there are groups, so a walk
          past that is going round a cycle, which no fixed length fits --
          CRuby refuses recursion in a lookbehind the same way. */
-      if (depth > RE_MAX_CAPTURES) return -1;
+      if (depth > RE_MAX_CAPTURES) goto fail;
       uint32_t body = inst.offset;
       uint32_t close = body;
       while (close < c->code_len &&
@@ -2064,23 +2130,76 @@ fixed_len_walk(re_compiler *c, uint32_t start, uint32_t end, int *chars_out,
                c->pat->code[close].a == inst.a)) {
         close++;
       }
-      if (close >= c->code_len) return -1;
+      if (close >= c->code_len) goto fail;
       int sub_chars = 0;
       /* The body is measured to its own end, so it gets a table of its own:
-         what a pc is worth is its distance to the end being asked about. */
+         what a pc is worth is its distance to the end being asked about. The
+         depth bound above is what keeps this a call and not a walk of its
+         own: a body nests no deeper than there are groups. */
       int sub_len = fixed_len_span(c, body, close, &sub_chars, depth + 1);
-      if (sub_len < 0) return -1;
+      if (sub_len < 0) goto fail;
       len += sub_len;
       chars += sub_chars;
       pc++;
       break;
     }
     default:
-      return -1;  /* unknown/variable-length instruction */
+      goto fail;  /* unknown/variable-length instruction */
     }
   }
-  *chars_out = chars;
-  return len;
+  r_len = len;
+  r_chars = chars;
+
+ unwind:
+  /* Hand the measure to whatever was left standing for it. */
+  if (stack.top == 0) {
+    *chars_out = r_chars;
+    ret = r_len;
+    goto done;
+  }
+  {
+    flen_frame *f = &stack.at[--stack.top];
+    switch (f->kind) {
+    case FLEN_MEMO: {
+      re_flen_memo *slot = &memo[f->pc - memo_base];
+      slot->len = r_len;
+      slot->chars = r_chars;
+      goto unwind;
+    }
+    case FLEN_ARM_A: {
+      /* The first arm is measured; keep it and measure the second, which the
+         fork's offset opens. */
+      flen_frame b;
+      b.kind = FLEN_ARM_B;
+      b.pc = f->pc;
+      b.len = f->len;
+      b.chars = f->chars;
+      b.a_len = r_len;
+      b.a_chars = r_chars;
+      uint32_t arm = c->pat->code[f->pc].offset;
+      if (!flen_push(c->mrb, &stack, &b)) goto fail;
+      pc = arm;
+      goto enter;
+    }
+    default: {  /* FLEN_ARM_B */
+      if (r_len != f->a_len || r_chars != f->a_chars) goto fail;
+      r_len = f->len + f->a_len;
+      r_chars = f->chars + f->a_chars;
+      goto unwind;
+    }
+    }
+  }
+
+ fail:
+  /* A slot left BUSY is one whose measure was refused: a body with one
+     unmeasurable path has no fixed width at all, so no later question about
+     that pc has a different answer, and the compile is about to be refused
+     either way. */
+  ret = -1;
+
+ done:
+  if (stack.at != room) mrb_free(c->mrb, stack.at);
+  return ret;
 }
 
 /* Measure [start, end) with whatever table the span needs. A span holding no
@@ -2102,17 +2221,32 @@ fixed_len_span(re_compiler *c, uint32_t start, uint32_t end, int *chars_out,
       break;
     }
   }
-  if (!needs_memo) return fixed_len_walk(c, start, end, chars_out, depth, NULL, 0, 0);
+  /* A span with no fork and no table has nothing to leave standing either:
+     what the walk keeps is a fork's other arm and a pc whose slot is to be
+     filled, and this span holds neither. */
+  if (!needs_memo) {
+    return fixed_len_walk(c, start, end, chars_out, depth, NULL, 0, 0, NULL, 0);
+  }
 
   uint32_t span = end > start ? end - start : 0;
-  /* mrb_malloc_simple(), not mrb_malloc(): a raise here would longjmp past
+  uint32_t slots = span ? span : 1;
+  /* The measures the walk leaves standing are carved out of the same block
+     as the table, so measuring a span asks the allocator once: a slot to
+     fill and an arm to take are one apiece per pc the walk stands on, and
+     the walk grows its own stack where a path it did not expect wants more.
+
+     mrb_malloc_simple(), not mrb_malloc(): a raise here would longjmp past
      the frees of the spans measuring around this one. A refusal is reported
      as a body of no fixed width, which is what the caller does with every
      other answer it cannot use. */
-  re_flen_memo *memo = (re_flen_memo*)mrb_malloc_simple(c->mrb, sizeof(re_flen_memo) * (span ? span : 1));
+  uint32_t room = slots + 8;
+  if (room > 1024) room = 1024;  /* past a body of this size, let it grow */
+  re_flen_memo *memo = (re_flen_memo*)mrb_malloc_simple(
+      c->mrb, sizeof(re_flen_memo) * slots + sizeof(flen_frame) * room);
   if (!memo) return -1;
   for (uint32_t i = 0; i < span; i++) memo[i].len = RE_FLEN_NEW;
-  int len = fixed_len_walk(c, start, end, chars_out, depth, memo, start, span);
+  int len = fixed_len_walk(c, start, end, chars_out, depth, memo, start, span,
+                           (flen_frame*)(memo + slots), room);
   mrb_free(c->mrb, memo);
   return len;
 }

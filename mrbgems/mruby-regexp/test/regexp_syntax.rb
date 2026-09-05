@@ -359,6 +359,18 @@ assert("Regexp - a pattern forking as often as it is long compiles") do
   assert_equal 2, (Regexp.new("^" + "(?:x?)" * 3000 + "ab") =~ "\n\nab")
 end
 
+assert("Regexp - a lookbehind body forking as often as it is long is measured") do
+  # A lookbehind is measured by a walk of its body, and a fork in it is two
+  # measures that have to agree, which the walk used to take in a C call
+  # apiece. The width stays inside the 255 bytes a rewind carries; what grows
+  # is the number of forks measured. The measure is the compile's, so a
+  # compile is what this asks for: running such a body keeps a choice point
+  # per fork, which is more than a build that sets MRB_REGEXP_STACK_LIMIT low
+  # grants, and what the widths come to is asked of twenty forks further
+  # down, where the guard for that engine stands.
+  assert_kind_of Regexp, Regexp.new("(?<=" + "(?:a|a)" * 200 + ")b")
+end
+
 assert("Regexp - an alternation holds as many branches as the pattern writes") do
   # The branches were once collected in an array of 64 and the 64th refused
   # as `too many alternatives`. They are found in the code they were compiled
