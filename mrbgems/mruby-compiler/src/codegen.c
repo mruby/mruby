@@ -3189,6 +3189,7 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
             genop_3(s, OP_SEND, val_reg, new_sym(s, MRC_OPSYM_2(aref)), 1);
 
             if (assoc->value) {
+              push(); /* keep the value below cursp() for the sub-pattern */
               codegen_pattern(s, (mrc_node *)assoc->value, val_reg, fail_pos, -1);
             }
             else {

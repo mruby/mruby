@@ -1343,6 +1343,56 @@ assert('pattern matching - hash patterns') do
   end
 end
 
+assert('pattern matching - value patterns as a hash value') do
+  # a value pattern is the receiver of `===`, the hash value its argument
+  case {a: 1}
+  in {a: Integer}
+    assert_true true
+  else
+    flunk "Integer did not match the value 1"
+  end
+
+  case {a: "s"}
+  in {a: Integer}
+    flunk "Integer matched the value \"s\""
+  else
+    assert_true true
+  end
+
+  # a range is asymmetric the same way
+  case {a: 1}
+  in {a: 0..2}
+    assert_true true
+  else
+    flunk "0..2 did not match the value 1"
+  end
+
+  # binding after a class pattern
+  case {a: 1, b: {c: 2}}
+  in {a: Integer => x, b: {c: Integer => y}}
+    assert_equal 1, x
+    assert_equal 2, y
+  else
+    flunk "nested class patterns did not match"
+  end
+
+  # the same pattern nested inside an array pattern
+  case [{a: 1}]
+  in [{a: Integer}]
+    assert_true true
+  else
+    flunk "class pattern in a nested hash did not match"
+  end
+
+  # the value keeps its register for the patterns that follow
+  case {a: 1, b: 2}
+  in {a: Integer, b: Integer => y}
+    assert_equal 2, y
+  else
+    flunk "two class patterns in one hash did not match"
+  end
+end
+
 assert('pattern matching - guard clauses') do
   # if guard
   result = case 10
