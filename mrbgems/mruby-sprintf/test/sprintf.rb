@@ -214,3 +214,43 @@ assert('what the string sprintf builds claims') do
   # is the same cell, answered the same way on purpose.
   assert_equal Encoding::BINARY, ("%s".force_encoding(Encoding::BINARY) % ["あ"]).encoding
 end
+
+assert('sprintf - a width past what the buffer can hold is refused, not wrapped') do
+  # CHECK() grows the output buffer, and it used to ask whether blen+(l)
+  # reached bsiz.  That sum is evaluated in mrb_int, so a width near the
+  # maximum wrapped negative, read as below bsiz, and the resize was skipped:
+  # the FILL or the fmt_float that followed then wrote about 2GB into a buffer
+  # of some 120 bytes (CVE-2018-14337, fixed once in 180f39bf4 and
+  # reintroduced by b58094c88).  A literal ahead of the directive is what makes
+  # blen non-zero and the sum wrap.
+  #
+  # The wrap itself needs a width near mrb_int's own maximum, which Ruby has no
+  # way to name: a 32-bit build wraps on 2147483647 while a 64-bit one takes it
+  # as an ordinary 2GB request, and nothing here reports the width.  What every
+  # build can be asked is that a width past what a String may hold is refused
+  # rather than wrapped, which is the same guard reached from further out.
+  # The directive spells the width itself; `*` reads it from an argument and is
+  # capped before this point, so it answers a different question.
+  w = 2 ** 40
+  assert_raise(ArgumentError) { sprintf("ab%#{w}d", 0) }
+  assert_raise(ArgumentError) { sprintf("ab%#{w}s", "x") }
+  assert_raise(ArgumentError) { sprintf("ab%#{w}c", 65) }
+  assert_raise(ArgumentError) { sprintf("ab%#{w}x", 255) }
+end
+
+assert('sprintf - a float width past what the buffer can hold is refused') do
+  # fmt_float reaches CHECK by a path of its own, through `need`.
+  skip unless Object.const_defined?(:Float)
+  w = 2 ** 40
+  assert_raise(ArgumentError) { sprintf("ab%#{w}f", 1.0) }
+  assert_raise(ArgumentError) { sprintf("ab%#{w}e", 1.0) }
+  assert_raise(ArgumentError) { sprintf("ab%#{w}g", 1.0) }
+end
+
+assert('sprintf - the widths a buffer can still be asked for keep working') do
+  assert_equal "  42", sprintf("%4d", 42)
+  assert_equal "00042", sprintf("%.*d", 5, 42)
+  assert_equal 1000, sprintf("%1000d", 7).size
+  assert_equal 500, sprintf("%500s", "x").size
+  assert_equal "     1.000000", sprintf("%13f", 1.0) if Object.const_defined?(:Float)
+end

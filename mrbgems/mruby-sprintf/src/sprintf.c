@@ -218,9 +218,15 @@ fmt_float(char *buf, size_t buf_size, char fmt, int flags, int width, int prec, 
 }
 #endif
 
+/* Compare by subtracting from bsiz rather than adding to blen: blen+(l) is
+   evaluated in mrb_int and wraps where (l) is near MRB_INT_MAX, which on a
+   32-bit mrb_int leaves a negative sum below bsiz and skips the resize
+   entirely (CVE-2018-14337, fixed in 180f39bf4 and reintroduced here by
+   b58094c88 while cutting redundant mrb_str_resize calls).  bsiz-blen cannot
+   wrap: blen is how much of bsiz is written, so it never exceeds it. */
 #define CHECK(l) do { \
-  if (blen+(l) >= bsiz) {\
-    while (blen+(l) >= bsiz) {\
+  if ((l) >= bsiz - blen) {\
+    while ((l) >= bsiz - blen) {\
       if (bsiz > MRB_INT_MAX/2) mrb_raise(mrb, E_ARGUMENT_ERROR, "too big specifier");\
       bsiz*=2;\
     }\
