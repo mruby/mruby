@@ -660,7 +660,7 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet)
     do {
       pid = mrb_hal_io_waitpid(mrb, fptr->pid, &status, 0);
     } while (pid == -1 && errno == EINTR);
-    if (!quiet && pid == fptr->pid) {
+    if (!quiet && pid > 0 && pid == fptr->pid) {
       io_set_process_status(mrb, pid, status);
     }
     fptr->pid = 0;
