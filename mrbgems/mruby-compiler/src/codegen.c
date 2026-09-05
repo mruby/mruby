@@ -1842,6 +1842,11 @@ mrc_generate_code(mrc_ccontext *c, mrc_node *node)
 
 #define nint(node) PM_NODE_TYPE(node)
 
+/* Names `defined?` will name in one constant path.  The walk holds them on
+   the stack of a recursive codegen, so the bound stays well under what
+   OP_ARRAY could carry; a path deeper than this is answered nil. */
+#define DEFINED_PATH_MAX 32
+
 #define CAST3(name, from, to) \
   pm_##name##_node_t *to = (pm_##name##_node_t *)from
 #define CAST(name) CAST3(name,tree,cast)
@@ -6259,7 +6264,9 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       const char *type = NULL;
       int helper = 0;             /* runtime helper symbol, 0 = none */
       pm_constant_id_t arg = 0;   /* symbol operand for the helper, 0 = none */
-      pm_constant_id_t arg2 = 0;  /* second symbol operand (A::B), 0 = none */
+      pm_constant_id_t path[DEFINED_PATH_MAX];  /* A::B::C, root first */
+      int path_len = 0;           /* names in `path`, 0 = not a constant path */
+      mrc_bool path_toplevel = FALSE;           /* ::A, so rooted at Object */
       /* parentheses around a single expression are transparent here, so
          `defined?((x))` answers what `defined?(x)` does; parentheses holding
          no statement or several fall through to the "expression" cases */
@@ -6333,14 +6340,35 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
         arg = ((pm_constant_read_node_t *)value)->name;
         break;
       case PM_CONSTANT_PATH_NODE:
-        /* only A::B where A is a plain constant; nested/toplevel/expression
-           parents are left to fall through to nil */
+        /* Walk the path to its root, collecting the names leaf first.  The
+           root is either a plain constant, so the first name resolves in the
+           lexical scope, or nothing at all, so `::A` starts at Object.  A
+           root that is any other expression would have to be evaluated, and
+           falls through to nil. */
         {
-          pm_constant_path_node_t *cp = (pm_constant_path_node_t *)value;
-          if (cp->parent && nint(cp->parent) == PM_CONSTANT_READ_NODE) {
+          mrc_node *seg = value;
+          pm_constant_id_t names[DEFINED_PATH_MAX];
+          int n = 0;
+          mrc_bool rooted = FALSE;
+
+          while (nint(seg) == PM_CONSTANT_PATH_NODE && n < DEFINED_PATH_MAX) {
+            names[n++] = ((pm_constant_path_node_t *)seg)->name;
+            seg = (mrc_node *)((pm_constant_path_node_t *)seg)->parent;
+            if (seg == NULL) {      /* ::A, rooted at Object */
+              path_toplevel = TRUE;
+              rooted = TRUE;
+              break;
+            }
+          }
+          if (!rooted && seg != NULL && nint(seg) == PM_CONSTANT_READ_NODE &&
+              n < DEFINED_PATH_MAX) {
+            names[n++] = ((pm_constant_read_node_t *)seg)->name;
+            rooted = TRUE;
+          }
+          if (rooted) {
             helper = MRC_SYM_2(defined_const_path_q);
-            arg = ((pm_constant_read_node_t *)cp->parent)->name;
-            arg2 = cp->name;
+            path_len = n;
+            for (int i = 0; i < n; i++) path[i] = names[n - 1 - i];
           }
         }
         break;
@@ -6385,11 +6413,17 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
         }
         else if (helper) {
           genop_1(s, OP_LOADSELF, cursp());   /* receiver slot for the SSEND */
-          if (arg2 != 0) {          /* A::B: two symbol operands */
+          if (path_len > 0) {       /* A::B::C: where to start, then the names */
             push();
-            genop_2(s, OP_LOADSYM, cursp(), new_sym(s, arg));
+            if (path_toplevel) genop_1(s, OP_OCLASS, cursp());
+            else genop_1(s, OP_LOADNIL, cursp());
             push();
-            genop_2(s, OP_LOADSYM, cursp(), new_sym(s, arg2));
+            for (int i = 0; i < path_len; i++) {
+              genop_2(s, OP_LOADSYM, cursp(), new_sym(s, path[i]));
+              push();
+            }
+            pop_n(path_len);
+            genop_2(s, OP_ARRAY, cursp(), path_len);
             push(); push();         /* reserve args + block slots (nregs) */
             pop_n(4);
             genop_3(s, OP_SSEND, cursp(), new_sym(s, helper), 2);
