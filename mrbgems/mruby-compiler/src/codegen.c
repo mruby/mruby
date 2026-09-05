@@ -6260,7 +6260,18 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       int helper = 0;             /* runtime helper symbol, 0 = none */
       pm_constant_id_t arg = 0;   /* symbol operand for the helper, 0 = none */
       pm_constant_id_t arg2 = 0;  /* second symbol operand (A::B), 0 = none */
-      switch (nint(cast->value)) {
+      /* parentheses around a single expression are transparent here, so
+         `defined?((x))` answers what `defined?(x)` does; parentheses holding
+         no statement or several fall through to the "expression" cases */
+      mrc_node *value = cast->value;
+      while (nint(value) == PM_PARENTHESES_NODE) {
+        mrc_node *body = (mrc_node *)((pm_parentheses_node_t *)value)->body;
+        if (body == NULL || nint(body) != PM_STATEMENTS_NODE) break;
+        pm_node_list_t *stmts = &((pm_statements_node_t *)body)->body;
+        if (stmts->size != 1) break;
+        value = (mrc_node *)stmts->nodes[0];
+      }
+      switch (nint(value)) {
       case PM_INTEGER_NODE: case PM_FLOAT_NODE:
       case PM_RATIONAL_NODE: case PM_IMAGINARY_NODE:
       case PM_STRING_NODE: case PM_INTERPOLATED_STRING_NODE:
@@ -6271,6 +6282,18 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       case PM_NIL_NODE: case PM_TRUE_NODE: case PM_FALSE_NODE:
       case PM_RANGE_NODE: case PM_LAMBDA_NODE: case PM_DEFINED_NODE:
       case PM_SOURCE_FILE_NODE: case PM_SOURCE_LINE_NODE: case PM_SOURCE_ENCODING_NODE:
+      /* control flow, jumps and definitions: CRuby answers "expression" for
+         every one of these without looking inside them */
+      case PM_AND_NODE: case PM_OR_NODE:
+      case PM_IF_NODE: case PM_UNLESS_NODE:
+      case PM_CASE_NODE: case PM_CASE_MATCH_NODE:
+      case PM_WHILE_NODE: case PM_UNTIL_NODE: case PM_FOR_NODE:
+      case PM_BEGIN_NODE: case PM_PARENTHESES_NODE:
+      case PM_RETURN_NODE: case PM_BREAK_NODE: case PM_NEXT_NODE:
+      case PM_REDO_NODE: case PM_RETRY_NODE:
+      case PM_DEF_NODE: case PM_CLASS_NODE: case PM_MODULE_NODE:
+      case PM_SINGLETON_CLASS_NODE:
+      case PM_MATCH_PREDICATE_NODE: case PM_MATCH_REQUIRED_NODE:
         type = "expression";
         break;
       case PM_SELF_NODE:
@@ -6303,17 +6326,17 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
         break;
       case PM_INSTANCE_VARIABLE_READ_NODE:
         helper = MRC_SYM_2(defined_ivar_q);
-        arg = ((pm_instance_variable_read_node_t *)cast->value)->name;
+        arg = ((pm_instance_variable_read_node_t *)value)->name;
         break;
       case PM_CONSTANT_READ_NODE:
         helper = MRC_SYM_2(defined_const_q);
-        arg = ((pm_constant_read_node_t *)cast->value)->name;
+        arg = ((pm_constant_read_node_t *)value)->name;
         break;
       case PM_CONSTANT_PATH_NODE:
         /* only A::B where A is a plain constant; nested/toplevel/expression
            parents are left to fall through to nil */
         {
-          pm_constant_path_node_t *cp = (pm_constant_path_node_t *)cast->value;
+          pm_constant_path_node_t *cp = (pm_constant_path_node_t *)value;
           if (cp->parent && nint(cp->parent) == PM_CONSTANT_READ_NODE) {
             helper = MRC_SYM_2(defined_const_path_q);
             arg = ((pm_constant_read_node_t *)cp->parent)->name;
@@ -6323,11 +6346,11 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
         break;
       case PM_GLOBAL_VARIABLE_READ_NODE:
         helper = MRC_SYM_2(defined_gvar_q);
-        arg = ((pm_global_variable_read_node_t *)cast->value)->name;
+        arg = ((pm_global_variable_read_node_t *)value)->name;
         break;
       case PM_CLASS_VARIABLE_READ_NODE:
         helper = MRC_SYM_2(defined_cvar_q);
-        arg = ((pm_class_variable_read_node_t *)cast->value)->name;
+        arg = ((pm_class_variable_read_node_t *)value)->name;
         break;
       case PM_YIELD_NODE:
         helper = MRC_SYM_2(defined_yield_q);
@@ -6336,13 +6359,22 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
         helper = MRC_SYM_2(defined_super_q);
         break;
       case PM_CALL_NODE:
+      {
+        pm_call_node_t *call = (pm_call_node_t *)value;
+        /* CRuby answers "expression" for a call carrying a literal block,
+           without asking whether the method is there; a block passed as
+           `&arg` keeps the call an ordinary one */
+        if (call->block != NULL && nint(call->block) == PM_BLOCK_NODE) {
+          type = "expression";
+        }
         /* a bare method call on self (no explicit receiver, so no operand to
            evaluate); a call with a receiver would need to evaluate it */
-        if (((pm_call_node_t *)cast->value)->receiver == NULL) {
+        else if (call->receiver == NULL) {
           helper = MRC_SYM_2(defined_method_q);
-          arg = ((pm_call_node_t *)cast->value)->name;
+          arg = call->name;
         }
         break;
+      }
       default:
         break;
       }
