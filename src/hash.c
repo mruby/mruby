@@ -2169,7 +2169,7 @@ mrb_hash_except_keys(mrb_state *mrb, mrb_value hash)
   H_EACH(h, entry) {
     mrb_bool found = FALSE;
     for (mrb_int i = 0; i < klen && i < RARRAY_LEN(keys); i++) {
-      mrb_bool eq;
+      mrb_bool eq = FALSE;
       H_CHECK_MODIFIED(mrb, h) {eq = mrb_equal(mrb, entry->key, RARRAY_PTR(keys)[i]);}
       if (eq) {
         found = TRUE;
