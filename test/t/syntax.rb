@@ -1672,6 +1672,20 @@ assert('defined? on control flow, jumps and definitions') do
   assert_equal 'expression', defined?(class << self; end)
 end
 
+assert('defined? sees through parentheses around one expression') do
+  lv = 1
+  @defined_paren_iv = 1
+
+  assert_equal 'local-variable', defined?((lv))
+  assert_equal 'local-variable', defined?(((lv)))
+  assert_equal 'instance-variable', defined?((@defined_paren_iv))
+  assert_equal 'constant', defined?((Object))
+  assert_nil defined?((no_such_method_at_all))
+
+  # parentheses holding several statements are an expression of their own
+  assert_equal 'expression', defined?((1; 2))
+end
+
 # NOTE: `&nil` block-forbidding parameters live in syntax_block_forbid.rb,
 # which the build excludes when compiling with mruby-compiler-prism (the
 # Prism parser does not accept `&nil` yet).
