@@ -807,12 +807,20 @@ assert("Regexp - /i folds an ASCII letter's class whole") do
   assert_true Regexp.new("s", Regexp::IGNORECASE).match?(long_s)
   assert_false Regexp.new("[^s]", Regexp::IGNORECASE).match?(long_s)
   assert_true Regexp.new(long_s, Regexp::IGNORECASE).match?("S")
-  # A backreference compares the same way, so the capture and the repeat need
-  # not hold the same bytes.
-  assert_equal "k#{kelvin}", "k#{kelvin}".match(Regexp.new("(k)\\1", Regexp::IGNORECASE))[0]
   # Without /i none of it folds.
   assert_false Regexp.new("k").match?(kelvin)
   assert_true Regexp.new("[^k]").match?(kelvin)
+end
+
+assert("Regexp - /i folds an ASCII letter's class for a backreference") do
+  need_backtracking_stack
+  # A backreference compares the same way the class above does, so the capture
+  # and the repeat need not hold the same bytes. It is a backreference that
+  # sends this to the backtracking engine, where the assertions above run on
+  # the Pike VM whatever the build's stack limit is.
+  skip unless __ENCODING__ == "UTF-8"
+  kelvin = "K"
+  assert_equal "k#{kelvin}", "k#{kelvin}".match(Regexp.new("(k)\\1", Regexp::IGNORECASE))[0]
 end
 
 assert("Regexp - /i keeps the word class inside ASCII") do
@@ -2909,6 +2917,7 @@ assert("Regexp - a capture inside a lookaround is undone with the lookaround") d
 end
 
 assert("Regexp - lookbehind over a class that can match a multibyte character") do
+  need_backtracking_stack
   # A class consumes exactly one character whatever its members are, so the
   # rewind steps back that many characters rather than assuming a byte each.
   # A build that reads its strings by byte has one byte per character, so it
@@ -2942,6 +2951,7 @@ assert("Regexp - lookbehind over a class that can match a multibyte character") 
 end
 
 assert("Regexp - lookbehind against a binary subject rewinds by bytes") do
+  need_backtracking_stack
   # A binary subject advances one byte at a time, so the same compiled
   # pattern rewinds by its byte count there: two for the literal Ā, and one
   # for a class, which is handed the raw byte as its codepoint. What this

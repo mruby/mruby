@@ -53,8 +53,6 @@ assert("Regexp - Unicode case folding under /i") do
   # U+0103 folds from U+0102, which the range holds.
   assert_equal "ă", "ă".match(/[\u{100}-\u{102}]/i)[0]
   assert_nil "ą".match(/[\u{100}-\u{102}]/i)
-  # Backreferences compare folded too.
-  assert_equal "Āā", "Āā".match(/(Ā)\1/i)[0]
   # Without /i nothing folds.
   assert_nil "ā".match(/Ā/)
   assert_nil "K".match(/k/)
@@ -65,6 +63,15 @@ assert("Regexp - Unicode case folding under /i") do
   # The expansion into several codepoints is what stays out of reach.
   assert_nil "ss".match(/ß/i)
   assert_nil "ff".match(/ﬀ/i)
+end
+
+assert("Regexp - a backreference under /i folds by Unicode") do
+  need_backtracking_stack
+  # A backreference compares folded too, which is the one assertion of the
+  # folding above that runs on the backtracking engine rather than the Pike
+  # VM.
+  skip unless __ENCODING__ == "UTF-8"
+  assert_equal "Āā", "Āā".match(/(Ā)\1/i)[0]
 end
 
 assert("Regexp - /i literals share one class per codepoint") do
