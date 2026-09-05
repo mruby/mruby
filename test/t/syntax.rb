@@ -1632,6 +1632,46 @@ assert('defined? on constant paths (A::B)') do
   assert_equal 'constant', defined?(Float::INFINITY) if Object.const_defined?(:Float)
 end
 
+assert('defined? on control flow, jumps and definitions') do
+  lv = 1
+
+  # logical operators
+  assert_equal 'expression', defined?(lv && lv)
+  assert_equal 'expression', defined?(lv || lv)
+  assert_equal 'expression', defined?(lv and lv)
+  assert_equal 'expression', defined?(lv or lv)
+
+  # control flow
+  assert_equal 'expression', defined?(if lv then 1 else 2 end)
+  assert_equal 'expression', defined?(unless lv then 1 end)
+  assert_equal 'expression', defined?(lv ? 1 : 2)
+  assert_equal 'expression', defined?(case lv; when 1 then 2; end)
+  assert_equal 'expression', defined?(case lv; in Integer then 1; end)
+  assert_equal 'expression', defined?(lv in Integer)
+  assert_equal 'expression', defined?(lv => Integer)
+  assert_equal 'expression', defined?(while false do end)
+  assert_equal 'expression', defined?(until true do end)
+  assert_equal 'expression', defined?(for i in [1] do end)
+  assert_equal 'expression', defined?(begin; 1; end)
+  assert_equal 'expression', defined?(if (lv == 1)..(lv == 2) then 1 end)
+
+  # jumps, which `defined?` reports on without needing a place to jump to
+  assert_equal 'expression', defined?(return)
+  assert_equal 'expression', defined?(break)
+  assert_equal 'expression', defined?(next)
+  assert_equal 'expression', defined?(redo)
+  assert_equal 'expression', defined?(retry)
+
+  # definitions, which stay undefined because the operand is not evaluated
+  assert_equal 'expression', defined?(def defined_never_defined; end)
+  assert_false respond_to?(:defined_never_defined, true)
+  assert_equal 'expression', defined?(class DefinedNeverClass; end)
+  assert_equal 'expression', defined?(module DefinedNeverModule; end)
+  assert_false Object.const_defined?(:DefinedNeverClass)
+  assert_false Object.const_defined?(:DefinedNeverModule)
+  assert_equal 'expression', defined?(class << self; end)
+end
+
 # NOTE: `&nil` block-forbidding parameters live in syntax_block_forbid.rb,
 # which the build excludes when compiling with mruby-compiler-prism (the
 # Prism parser does not accept `&nil` yet).

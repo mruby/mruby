@@ -6270,6 +6270,18 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       case PM_NIL_NODE: case PM_TRUE_NODE: case PM_FALSE_NODE:
       case PM_RANGE_NODE: case PM_LAMBDA_NODE: case PM_DEFINED_NODE:
       case PM_SOURCE_FILE_NODE: case PM_SOURCE_LINE_NODE: case PM_SOURCE_ENCODING_NODE:
+      /* control flow, jumps and definitions: CRuby answers "expression" for
+         every one of these without looking inside them */
+      case PM_AND_NODE: case PM_OR_NODE:
+      case PM_IF_NODE: case PM_UNLESS_NODE:
+      case PM_CASE_NODE: case PM_CASE_MATCH_NODE:
+      case PM_WHILE_NODE: case PM_UNTIL_NODE: case PM_FOR_NODE:
+      case PM_BEGIN_NODE:
+      case PM_RETURN_NODE: case PM_BREAK_NODE: case PM_NEXT_NODE:
+      case PM_REDO_NODE: case PM_RETRY_NODE:
+      case PM_DEF_NODE: case PM_CLASS_NODE: case PM_MODULE_NODE:
+      case PM_SINGLETON_CLASS_NODE:
+      case PM_MATCH_PREDICATE_NODE: case PM_MATCH_REQUIRED_NODE:
         type = "expression";
         break;
       case PM_SELF_NODE:
