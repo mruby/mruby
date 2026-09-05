@@ -531,6 +531,42 @@ execute_task(mrb_state *mrb, mrb_task *t)
 }
 
 /* Tick handler - called by timer interrupt */
+/* Task::Error, resolved from this VM. Both refusals below raise it, so a
+   caller can rescue the scheduler's own answer instead of matching on
+   RuntimeError and catching whatever else went wrong. */
+static struct RClass *
+task_error_class(mrb_state *mrb)
+{
+  return mrb_class_get_under_id(mrb, mrb_class_get_id(mrb, MRB_SYM(Task)), MRB_SYM(Error));
+}
+
+/* Take this VM out of the scheduler for good.
+ *
+ * A process may hold VMs of both kinds - a pool whose workers run tasks
+ * so a runaway callback can be preempted, and one VM that never does.
+ * The second kind still paid for the first: RETURN_IF_TASK_STOPPED is
+ * expanded at every dispatch, and its context-status arm is read whether
+ * or not any task exists. Disabled, that check is one test of a word the
+ * dispatch loop already has.
+ *
+ * Call it after mrb_open() and before running anything. It refuses once
+ * tasks exist rather than stranding them, since a queue nobody ticks is
+ * a hang, not a saving. */
+MRB_API void
+mrb_disable_task_scheduler(mrb_state *mrb)
+{
+  if (q_ready_ || q_waiting_ || q_suspended_ || q_dormant_) {
+    mrb_raise(mrb, task_error_class(mrb), "mrb_disable_task_scheduler: this VM already has tasks");
+  }
+  mrb->task.enabled = FALSE;
+}
+
+MRB_API mrb_bool
+mrb_task_scheduler_enabled_p(mrb_state *mrb)
+{
+  return mrb->task.enabled;
+}
+
 MRB_API void
 mrb_tick(mrb_state *mrb)
 {
@@ -926,6 +962,16 @@ static mrb_task*
 task_create_common(mrb_state *mrb, const struct RProc *proc,
                    mrb_value name, uint8_t priority)
 {
+  /* Every task is born here - Task.new, mrb_create_task, the C API - so
+     this is the one place a disabled VM has to say no. A task made in a
+     VM the dispatch loop no longer checks would never be preempted and
+     never be switched away from: a hang, arriving later and somewhere
+     else. mrb_disable_task_scheduler() refuses when tasks already exist
+     for the same reason, from the other side. */
+  if (!mrb->task.enabled) {
+    mrb_raise(mrb, task_error_class(mrb), "tasks are disabled for this mrb_state");
+  }
+
   mrb_task *t = task_alloc(mrb);
   t->priority = priority;
   t->status = MRB_TASK_STATUS_READY;
@@ -1884,6 +1930,10 @@ mrb_mruby_task_gem_init(mrb_state *mrb)
 
   /* Initialize HAL (timer and interrupts) */
   mrb_hal_task_init(mrb);
+
+  /* On unless the embedder says otherwise: a VM that will never run
+     tasks calls mrb_disable_task_scheduler() right after mrb_open(). */
+  mrb->task.enabled = TRUE;
 
   /* Initialize main task to NULL and scheduler_lock to 0 */
   mrb->task.main_task = NULL;

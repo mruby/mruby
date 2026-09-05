@@ -2343,10 +2343,11 @@ task_across_c_boundary(mrb_state *mrb)
    This macro must only be expanded where prev_jmp is in scope, i.e.
    inside mrb_vm_exec (via NEXT / END_DISPATCH). */
 #define RETURN_IF_TASK_STOPPED(mrb) do { \
-  if (((mrb)->task.switching && (mrb)->c != (mrb)->root_c && \
-       !(mrb)->exc && \
-       !(mrb)->gc.iterating && !task_across_c_boundary(mrb)) || \
-      (mrb)->c->status == MRB_TASK_STOPPED) { \
+  if ((mrb)->task.enabled && \
+      ((((mrb)->task.switching && (mrb)->c != (mrb)->root_c && \
+        !(mrb)->exc && \
+        !(mrb)->gc.iterating && !task_across_c_boundary(mrb)) || \
+       (mrb)->c->status == MRB_TASK_STOPPED))) { \
     (mrb)->jmp = prev_jmp; \
     return mrb_nil_value(); \
   } \
