@@ -38,6 +38,27 @@ MRB_BEGIN_DECL
  * Platform-independent type definitions
  */
 
+/* A host that names struct stat's time fields with macros (st_atime for
+   st_atim.tv_sec, as glibc does) would rewrite the same names below, whose
+   own are plain members.  A source of this gem includes <sys/stat.h> after
+   this header and never sees them defined here, but the amalgamated build
+   puts every header in one translation unit, where another gem's header
+   (mruby-compiler's prism) has pulled <sys/stat.h> in first.  Set them
+   aside across the struct and put them back, so that reading the system's
+   fields by their documented names still works afterwards. */
+#ifdef st_atime
+# define MRB_IO_STAT_TIME_MACROS_SET_ASIDE
+# if defined(__GNUC__) || defined(__clang__) || defined(_MSC_VER)
+#  pragma push_macro("st_atime")
+#  pragma push_macro("st_mtime")
+#  pragma push_macro("st_ctime")
+#  define MRB_IO_STAT_TIME_MACROS_RESTORABLE
+# endif
+# undef st_atime
+# undef st_mtime
+# undef st_ctime
+#endif
+
 /* File status structure - platform-independent representation */
 typedef struct mrb_io_stat {
   mrb_int st_dev;       /* Device ID */
@@ -54,6 +75,16 @@ typedef struct mrb_io_stat {
   mrb_int  st_blksize;   /* Block size for filesystem I/O */
   mrb_int  st_blocks;    /* Number of 512B blocks allocated */
 } mrb_io_stat;
+
+#ifdef MRB_IO_STAT_TIME_MACROS_SET_ASIDE
+# ifdef MRB_IO_STAT_TIME_MACROS_RESTORABLE
+#  pragma pop_macro("st_ctime")
+#  pragma pop_macro("st_mtime")
+#  pragma pop_macro("st_atime")
+#  undef MRB_IO_STAT_TIME_MACROS_RESTORABLE
+# endif
+# undef MRB_IO_STAT_TIME_MACROS_SET_ASIDE
+#endif
 
 /* Timeval structure for select() */
 typedef struct mrb_io_timeval {

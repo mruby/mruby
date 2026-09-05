@@ -9,5 +9,6 @@ mrc_sym_name_len(mrc_ccontext *c, mrc_sym sym, mrc_int *lenp)
     *lenp = constant->length;
     return (const char*)constant->start;
   }
+  *lenp = 0;
   return NULL;
 }

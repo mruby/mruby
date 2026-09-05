@@ -121,8 +121,8 @@ MRUBY_CONFIG=build_config/amalgam.rb rake amalgam
 
 Typical sizes depend on included gems:
 
-- `mruby.h`: 200-500 KB
-- `mruby.c`: 2-4 MB
+- `mruby.h`: 270-800 KB
+- `mruby.c`: 1.4-6.9 MB
 
 ## Technical Details
 
@@ -141,7 +141,7 @@ Typical sizes depend on included gems:
 
 ### The `MRB_AMALGAMATION` Define
 
-Both generated `.c` files define `MRB_AMALGAMATION` ahead of everything else.
+The generated `mruby.c` defines `MRB_AMALGAMATION` ahead of everything else.
 It marks a translation unit that holds the whole runtime rather than one
 source file, so that a source asking the compiler for work proportional to
 the translation unit can keep the request scoped the way a per-file build
