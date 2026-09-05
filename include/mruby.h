@@ -327,15 +327,16 @@ enum mrb_idx_op_slot {
 struct mrb_task;
 
 typedef struct mrb_task_state {
-  /* Read once per dispatched instruction, so it is the first field: a VM
-     that will never run tasks says so with mrb_disable_task_scheduler() and the
-     dispatch loop's check costs one test of an already-hot word instead
-     of two dependent loads. */
-  mrb_bool enabled;
   struct mrb_task *queues[4];      /* Task queues (dormant, ready, waiting, suspended) */
   volatile uint32_t tick;           /* Current tick count */
   volatile uint32_t wakeup_tick;    /* Next wakeup tick */
   volatile mrb_bool switching;      /* Context switch pending flag */
+  /* Read once per dispatched instruction: a VM that will never run tasks
+     says so with mrb_disable_task_scheduler(), and the dispatch loop's
+     check costs one test of an already-hot word instead of two dependent
+     loads. It sits HERE, beside switching, because the check loads that
+     word first anyway - and because padding already wasted this byte. */
+  mrb_bool enabled;
   struct mrb_task *main_task;       /* Main task wrapper for root context */
   uint8_t scheduler_lock;           /* Lock counter for synchronous execution */
   uint8_t irq_nesting;              /* Depth counter for scheduler-IRQ exclusion */
