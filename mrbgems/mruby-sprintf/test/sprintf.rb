@@ -227,18 +227,21 @@ assert('sprintf - a width near mrb_int is refused, not wrapped') do
   # 2147483647 is the width that wrapped.  Where mrb_int is 32-bit it is past
   # what a String can hold and has to be refused; where mrb_int is wider it is
   # an ordinary request and the answer is a 2GB string, which is not something
-  # to allocate in a test.  `%c` costs one pass either way and says which
-  # build this is, so it is asked first and the rest follow only where the
-  # width does not fit.
+  # to allocate in a test.  Asking sprintf which build this is would build that
+  # string to find out, so the width is read off an integer instead: 2**31 is
+  # an object of its own where mrb_int stops below it, and where the build has
+  # no wider integer at all it cannot be reached.  Spelling it as a literal
+  # would take the whole file down on the builds this guards, so it is raised.
   narrow =
     begin
-      sprintf("ab%2147483647c", 65)
-      false
-    rescue ArgumentError
+      n = 2 ** 31
+      !n.equal?(2 ** 31)
+    rescue RangeError
       true
     end
   skip "mrb_int holds a width of 2147483647" unless narrow
 
+  assert_raise(ArgumentError) { sprintf("ab%2147483647c", 65) }
   assert_raise(ArgumentError) { sprintf("ab%2147483647d", 0) }
   assert_raise(ArgumentError) { sprintf("ab%2147483647s", "x") }
   assert_raise(ArgumentError) { sprintf("ab%.2147483647d", 0) }
