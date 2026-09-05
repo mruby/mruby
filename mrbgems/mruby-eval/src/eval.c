@@ -14,10 +14,6 @@ mrb_bool mrb_binding_p(mrb_state *mrb, mrb_value binding);
 const struct RProc * mrb_binding_extract_proc(mrb_state *mrb, mrb_value binding);
 struct REnv * mrb_binding_extract_env(mrb_state *mrb, mrb_value binding);
 
-/* provided by mruby-compiler */
-typedef mrb_bool mrb_parser_foreach_top_variable_func(mrb_state *mrb, mrb_sym sym, void *user);
-void mrb_parser_foreach_top_variable(mrb_state *mrb, struct mrb_parser_state *p, mrb_parser_foreach_top_variable_func *func, void *user);
-
 static struct RProc*
 create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value binding, const char *file, mrb_int line)
 {
