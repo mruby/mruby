@@ -24,8 +24,6 @@
 
 int mrc_dump_irep(mrc_ccontext *c, const mrc_irep *irep, uint8_t flags, uint8_t **bin, size_t *bin_size);
 
-typedef mrb_bool mrb_parser_foreach_top_variable_func(mrb_state *mrb, mrb_sym sym, void *user);
-
 static void
 copy_context_to_mrc(mrc_ccontext *dst, const mrb_ccontext *src)
 {
