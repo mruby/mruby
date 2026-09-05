@@ -341,6 +341,24 @@ assert("Regexp - a pattern whose forks nest deeply matches") do
   assert_equal "b", re.match("b")[0] if nest > 0
 end
 
+assert("Regexp - a pattern forking as often as it is long compiles") do
+  # Nothing bounds how often a pattern forks but its length, which `regexp
+  # too large` puts at 65,535 instructions, and the passes that read a
+  # finished program used to spend a C frame per fork they passed: the marks
+  # on the repetitions that can run empty, and the anchor and first-byte
+  # scans. Each keeps its branches on a stack of its own now, so the patterns
+  # below are a question of heap and not of the stack the build runs on.
+  forks = 2000
+  assert_equal 0, (Regexp.new("a*" * forks) =~ "")
+  assert_equal 0, (Regexp.new("a*" * forks) =~ "aaa")
+  assert_equal 0, (Regexp.new("a?" * forks) =~ "")
+
+  # Past 4096 instructions, which is where the anchor and first-byte scans
+  # used to give up for want of room in the frame they marked from.
+  assert_equal 0, (Regexp.new("(?:x?)" * 3000 + "ab") =~ "xxab")
+  assert_equal 2, (Regexp.new("^" + "(?:x?)" * 3000 + "ab") =~ "\n\nab")
+end
+
 assert("Regexp - an alternation holds as many branches as the pattern writes") do
   # The branches were once collected in an array of 64 and the 64th refused
   # as `too many alternatives`. They are found in the code they were compiled

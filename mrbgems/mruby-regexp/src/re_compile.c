@@ -4224,79 +4224,108 @@ has_named_group(const char *src, mrb_int len)
   return FALSE;
 }
 
+/* Instructions the anchor and first-byte walks mark and keep pcs for without
+   asking the allocator for room. A program this long or shorter is scanned
+   from the frame of the scan that calls them, which is most of what a pattern
+   spells: the marks and the pcs are five bytes an instruction. */
+#define RE_WALK_INLINE 128
+
+/* A walk's marks and the pcs it has yet to take, one apiece per instruction,
+   in one block: the pcs come first, since the marks are bytes and would leave
+   them unaligned. NULL is the allocator having refused, which leaves the scan
+   that asked unbuilt. What these walks answer moves a search along and is
+   nothing a pattern's answer depends on, so a build with nothing left
+   compiles the pattern and scans it the long way. */
+static uint32_t*
+walk_room(mrb_state *mrb, uint32_t n)
+{
+  return (uint32_t*)mrb_malloc_simple(mrb, (size_t)n * (sizeof(uint32_t) + 1));
+}
+
 /*
  * Compute the set of bytes that could be the first consumed byte of a match.
  * Walks bytecode from pc=0, following epsilon transitions (SAVE, JMP, SPLIT).
  * Returns TRUE if the set is narrower than "any byte" (i.e., useful for skip).
+ *
+ * Every path has to answer TRUE for the set to be one, so a path that
+ * answers FALSE ends the walk there; the others put their bytes in `bm` and
+ * hand the walk back the branch a fork left on `stack`, newest first, which
+ * is the order taking one in a call of its own gave.
  */
 static mrb_bool
 first_set_walk(const re_inst *code, uint32_t code_len,
                const re_charclass *classes, uint32_t pc,
-               uint8_t *bm, uint8_t *seen)
+               uint8_t *bm, uint8_t *seen, uint32_t *stack)
 {
-  while (pc < code_len) {
-    if (seen[pc]) return TRUE;  /* already visited */
-    seen[pc] = 1;
-    switch (code[pc].op) {
-    case RE_SAVE:
-    case RE_BOL: case RE_EOL: case RE_BOT: case RE_EOT: case RE_EOTNL:
-    case RE_WBOUND: case RE_NWBOUND:
-    case RE_ATOMIC: case RE_ATOMIC_END:
-      pc++;
-      continue;  /* zero-width, keep walking */
-    case RE_JMP:
-      pc = code[pc].offset;
-      continue;
-    case RE_CALL:
-      /* The body runs where the call stands, so its first bytes are the
-         call's. What follows a body that can complete without consuming is
-         unknown to this walk, which has no call stack; that path ends at
-         the body's RE_RETURN, whose default below answers FALSE. */
-      pc = code[pc].offset;
-      continue;
-    case RE_SPLIT:
-    case RE_COND:  /* either body may run first; the walk cannot know which */
-      /* both branches: pc+1 and offset */
-      if (!first_set_walk(code, code_len, classes, code[pc].offset, bm, seen))
+  uint32_t top = 0;
+
+  for (;;) {
+    while (pc < code_len) {
+      if (seen[pc]) goto next;  /* already visited */
+      seen[pc] = 1;
+      switch (code[pc].op) {
+      case RE_SAVE:
+      case RE_BOL: case RE_EOL: case RE_BOT: case RE_EOT: case RE_EOTNL:
+      case RE_WBOUND: case RE_NWBOUND:
+      case RE_ATOMIC: case RE_ATOMIC_END:
+        pc++;
+        continue;  /* zero-width, keep walking */
+      case RE_JMP:
+        pc = code[pc].offset;
+        continue;
+      case RE_CALL:
+        /* The body runs where the call stands, so its first bytes are the
+           call's. What follows a body that can complete without consuming is
+           unknown to this walk, which has no call stack; that path ends at
+           the body's RE_RETURN, whose default below answers FALSE. */
+        pc = code[pc].offset;
+        continue;
+      case RE_SPLIT:
+      case RE_COND:  /* either body may run first; the walk cannot know which */
+        /* both branches: pc+1 and offset */
+        stack[top++] = pc + 1;
+        pc = code[pc].offset;
+        continue;
+      case RE_SPLITNG:
+        stack[top++] = code[pc].offset;
+        pc = pc + 1;
+        continue;
+      case RE_BYTE:
+        return FALSE;  /* always non-ASCII: bm covers ASCII only */
+      case RE_CHAR:
+        if (code[pc].a >= 128) return FALSE;  /* non-ASCII: bm covers ASCII only */
+        bm[code[pc].a >> 3] |= (1 << (code[pc].a & 7));
+        goto next;
+      case RE_CLASS: {
+        const re_charclass *cc = &classes[code[pc].a];
+        for (int i = 0; i < 16; i++) bm[i] |= cc->bitmap[i];
+        if (!class_is_ascii_only(cc)) return FALSE;  /* non-ASCII possible */
+        goto next;
+      }
+      case RE_NCLASS: {
+        /* negated class: complement of bitmap. Too many bits; not useful. */
         return FALSE;
-      pc++;
-      continue;
-    case RE_SPLITNG:
-      if (!first_set_walk(code, code_len, classes, pc + 1, bm, seen))
+      }
+      case RE_ANY: case RE_ANY_NL:
+        return FALSE;  /* any byte possible */
+      case RE_MATCH:
+        /* Reaching MATCH via epsilon transitions means the regex can match
+           zero characters at any position. Skipping bytes that aren't in the
+           first-byte set would skip past valid empty-match positions, so the
+           optimization isn't safe -- bail out and accept any starting byte. */
         return FALSE;
-      pc = code[pc].offset;
-      continue;
-    case RE_BYTE:
-      return FALSE;  /* always non-ASCII: bm covers ASCII only */
-    case RE_CHAR:
-      if (code[pc].a >= 128) return FALSE;  /* non-ASCII: bm covers ASCII only */
-      bm[code[pc].a >> 3] |= (1 << (code[pc].a & 7));
-      return TRUE;
-    case RE_CLASS: {
-      const re_charclass *cc = &classes[code[pc].a];
-      for (int i = 0; i < 16; i++) bm[i] |= cc->bitmap[i];
-      if (!class_is_ascii_only(cc)) return FALSE;  /* non-ASCII possible */
-      return TRUE;
+      default:
+        return FALSE;
+      }
     }
-    case RE_NCLASS: {
-      /* negated class: complement of bitmap. Too many bits; not useful. */
-      return FALSE;
-    }
-    case RE_ANY: case RE_ANY_NL:
-      return FALSE;  /* any byte possible */
-    case RE_MATCH:
-      /* Reaching MATCH via epsilon transitions means the regex can match
-         zero characters at any position. Skipping bytes that aren't in the
-         first-byte set would skip past valid empty-match positions, so the
-         optimization isn't safe -- bail out and accept any starting byte. */
-      return FALSE;
-    default:
-      return FALSE;
-    }
+    /* Walked off the end without hitting MATCH or a consuming op. Treat as
+       empty-matchable, same as RE_MATCH. */
+    return FALSE;
+
+  next:
+    if (top == 0) return TRUE;
+    pc = stack[--top];
   }
-  /* Walked off the end without hitting MATCH or a consuming op. Treat as
-     empty-matchable, same as RE_MATCH. */
-  return FALSE;
 }
 
 /*
@@ -4310,46 +4339,85 @@ first_set_walk(const re_inst *code, uint32_t code_len,
  * own before the join (one before it would have been the walk's answer
  * already), so its value is the join's, which the visit that explored the
  * join contributed.
+ *
+ * The branch of a fork the walk has yet to take waits on `stack`, newest
+ * first, and every branch that ends folds its value into the answer. NONE
+ * ends the whole walk where the recursion returned it up: what it says is
+ * that a path asserts nothing, and no other path can make up for it.
  */
 static uint8_t
-anchor_walk(const re_inst *code, uint32_t code_len, uint32_t pc, uint8_t *seen)
+anchor_walk(const re_inst *code, uint32_t code_len, uint32_t pc, uint8_t *seen,
+            uint32_t *stack)
 {
-  while (pc < code_len) {
-    if (seen[pc]) return RE_ANCHOR_BOT;
-    seen[pc] = 1;
-    switch (code[pc].op) {
-    case RE_BOT:
-      return RE_ANCHOR_BOT;
-    case RE_BOL:
-      return RE_ANCHOR_BOL;
-    case RE_SAVE:
-    case RE_EOL: case RE_EOT: case RE_EOTNL:
-    case RE_WBOUND: case RE_NWBOUND:
-    case RE_ATOMIC: case RE_ATOMIC_END:
-      pc++;
-      continue;
-    case RE_JMP:
-      pc = code[pc].offset;
-      continue;
-    case RE_CALL:
-      /* The body runs where the call stands, as in first_set_walk(); a body
-         that completes without consuming ends at its RE_RETURN, whose
-         default answers NONE. */
-      pc = code[pc].offset;
-      continue;
-    case RE_SPLIT:
-    case RE_SPLITNG:
-    case RE_COND: {  /* a fork to this walk: both bodies are paths */
-      uint8_t other = anchor_walk(code, code_len, code[pc].offset, seen);
-      if (other == RE_ANCHOR_NONE) return RE_ANCHOR_NONE;
-      uint8_t mine = anchor_walk(code, code_len, pc + 1, seen);
-      return mine < other ? mine : other;
+  uint8_t best = RE_ANCHOR_BOT;  /* the neutral value for the min */
+  uint32_t top = 0;
+  uint8_t here;
+
+  for (;;) {
+    while (pc < code_len) {
+      if (seen[pc]) { here = RE_ANCHOR_BOT; goto joined; }
+      seen[pc] = 1;
+      switch (code[pc].op) {
+      case RE_BOT:
+        here = RE_ANCHOR_BOT;
+        goto joined;
+      case RE_BOL:
+        here = RE_ANCHOR_BOL;
+        goto joined;
+      case RE_SAVE:
+      case RE_EOL: case RE_EOT: case RE_EOTNL:
+      case RE_WBOUND: case RE_NWBOUND:
+      case RE_ATOMIC: case RE_ATOMIC_END:
+        pc++;
+        continue;
+      case RE_JMP:
+        pc = code[pc].offset;
+        continue;
+      case RE_CALL:
+        /* The body runs where the call stands, as in first_set_walk(); a body
+           that completes without consuming ends at its RE_RETURN, whose
+           default answers NONE. */
+        pc = code[pc].offset;
+        continue;
+      case RE_SPLIT:
+      case RE_SPLITNG:
+      case RE_COND:  /* a fork to this walk: both bodies are paths */
+        stack[top++] = pc + 1;
+        pc = code[pc].offset;
+        continue;
+      default:
+        return RE_ANCHOR_NONE;
+      }
     }
-    default:
-      return RE_ANCHOR_NONE;
-    }
+    return RE_ANCHOR_NONE;
+
+  joined:
+    if (here < best) best = here;
+    if (top == 0) return best;
+    pc = stack[--top];
   }
-  return RE_ANCHOR_NONE;
+}
+
+/* The anchor of the program, with the room anchor_walk() needs. */
+static uint8_t
+compute_anchor(mrb_state *mrb, const re_inst *code, uint32_t code_len)
+{
+  uint32_t n = code_len + 1;
+  uint32_t pcs[RE_WALK_INLINE];
+  uint8_t marks[RE_WALK_INLINE];
+  uint32_t *heap = NULL;
+  uint32_t *stack = pcs;
+  uint8_t *seen = marks;
+  if (n > RE_WALK_INLINE) {
+    heap = walk_room(mrb, n);
+    if (!heap) return RE_ANCHOR_NONE;
+    stack = heap;
+    seen = (uint8_t*)(heap + n);
+  }
+  memset(seen, 0, n);
+  uint8_t anchor = anchor_walk(code, code_len, 0, seen, stack);
+  mrb_free(mrb, heap);
+  return anchor;
 }
 
 /* TRUE when a path that need not consume runs from pc to goal, so the
@@ -4366,46 +4434,59 @@ anchor_walk(const re_inst *code, uint32_t code_len, uint32_t pc, uint8_t *seen)
    finite, and the answer stays conservative: what a stray path can add is a
    mark on a loop whose body cannot in fact match empty, and a marked loop
    whose iterations all consume never triggers the handling the mark turns
-   on. */
+   on.
+
+   `stack` holds the branch of each fork the walk has still to take, newest
+   first, which is the order following one in a call of its own gave. A pc
+   goes on it only where the walk marked a fork, and a mark is made once,
+   so the caller's code_len entries are room enough for any pattern. */
 static mrb_bool
 epsilon_path(const re_inst *code, uint32_t code_len, uint32_t pc, uint32_t goal,
-             uint32_t *seen, uint32_t mark)
+             uint32_t *seen, uint32_t mark, uint32_t *stack)
 {
-  while (pc != goal) {
-    if (pc >= code_len || seen[pc] == mark) return FALSE;
-    seen[pc] = mark;
-    switch (code[pc].op) {
-    case RE_SAVE:
-    case RE_BOL: case RE_EOL: case RE_BOT: case RE_EOT: case RE_EOTNL:
-    case RE_WBOUND: case RE_NWBOUND:
-    case RE_ATOMIC: case RE_ATOMIC_END:
-    case RE_BACKREF:
-    case RE_CALL:
-    case RE_ABSENT_START:
-      pc++;
-      break;
-    case RE_JMP:
-    case RE_LOOKAHEAD: case RE_NEG_LOOKAHEAD:
-    case RE_LOOKBEHIND: case RE_NEG_LOOKBEHIND:
-    /* An absent repeater takes no text where its body matches at the
-       position it began at, so a repetition around one has a body that can
-       match empty and needs the handling this pass turns on. The body of
-       the absent is not on the path: it is a test the scan runs, not text
-       the search passes through. */
-    case RE_ABSENT:
-      pc = code[pc].offset;
-      break;
-    case RE_SPLIT:
-    case RE_SPLITNG:
-    case RE_COND:  /* either body may be the one that runs */
-      if (epsilon_path(code, code_len, code[pc].offset, goal, seen, mark)) return TRUE;
-      pc++;
-      break;
-    default:
-      return FALSE;  /* consumes input */
+  uint32_t top = 0;
+
+  for (;;) {
+    while (pc != goal) {
+      if (pc >= code_len || seen[pc] == mark) goto next;
+      seen[pc] = mark;
+      switch (code[pc].op) {
+      case RE_SAVE:
+      case RE_BOL: case RE_EOL: case RE_BOT: case RE_EOT: case RE_EOTNL:
+      case RE_WBOUND: case RE_NWBOUND:
+      case RE_ATOMIC: case RE_ATOMIC_END:
+      case RE_BACKREF:
+      case RE_CALL:
+      case RE_ABSENT_START:
+        pc++;
+        break;
+      case RE_JMP:
+      case RE_LOOKAHEAD: case RE_NEG_LOOKAHEAD:
+      case RE_LOOKBEHIND: case RE_NEG_LOOKBEHIND:
+      /* An absent repeater takes no text where its body matches at the
+         position it began at, so a repetition around one has a body that can
+         match empty and needs the handling this pass turns on. The body of
+         the absent is not on the path: it is a test the scan runs, not text
+         the search passes through. */
+      case RE_ABSENT:
+        pc = code[pc].offset;
+        break;
+      case RE_SPLIT:
+      case RE_SPLITNG:
+      case RE_COND:  /* either body may be the one that runs */
+        stack[top++] = pc + 1;
+        pc = code[pc].offset;
+        break;
+      default:
+        goto next;  /* consumes input */
+      }
     }
+    return TRUE;
+
+  next:
+    if (top == 0) return FALSE;
+    pc = stack[--top];
   }
-  return TRUE;
 }
 
 /* Find the repetitions whose body can match empty and mark the backward edge
@@ -4421,14 +4502,15 @@ epsilon_path(const re_inst *code, uint32_t code_len, uint32_t pc, uint32_t goal,
 static uint8_t
 mark_empty_loops(mrb_state *mrb, re_inst *code, uint32_t code_len)
 {
-  /* One block holds both arrays. Asking twice puts a raising call between the
-     first allocation and anything that could free it: mrb_calloc() raises
-     when it cannot answer, and this frame is the only owner `delta` has.
-     code_len is capped at RE_MAX_CODE_LEN, so the doubled element count stays
+  /* One block holds all three arrays. Asking three times puts a raising call
+     between the first allocation and anything that could free it: mrb_calloc()
+     raises when it cannot answer, and this frame is the only owner `delta` has.
+     code_len is capped at RE_MAX_CODE_LEN, so the tripled element count stays
      well inside the overflow check mrb_calloc() makes. */
   uint32_t n = code_len + 1;
-  int32_t *delta = (int32_t*)mrb_calloc(mrb, 2 * (size_t)n, sizeof(int32_t));
+  int32_t *delta = (int32_t*)mrb_calloc(mrb, 3 * (size_t)n, sizeof(int32_t));
   uint32_t *seen = (uint32_t*)(delta + n);
+  uint32_t *stack = seen + n;  /* the forks epsilon_path() has yet to take */
   uint32_t mark = 0;
 
   for (uint32_t pc = 0; pc < code_len; pc++) {
@@ -4446,7 +4528,7 @@ mark_empty_loops(mrb_state *mrb, re_inst *code, uint32_t code_len)
     if (in.op != RE_JMP && in.op != RE_SPLIT && in.op != RE_SPLITNG) continue;
     code[pc].a = 0;                /* this pass owns `a` on the edge opcodes */
     if (in.offset > pc) continue;  /* forward edge: alternation, not a loop */
-    if (!epsilon_path(code, code_len, in.offset, pc, seen, ++mark)) continue;
+    if (!epsilon_path(code, code_len, in.offset, pc, seen, ++mark, stack)) continue;
     code[pc].a = 1;
     if (in.op == RE_JMP) {
       /* The head was passed earlier in this scan, so its mark stays. */
@@ -4467,14 +4549,25 @@ mark_empty_loops(mrb_state *mrb, re_inst *code, uint32_t code_len)
 }
 
 static mrb_bool
-compute_first_set(const re_inst *code, uint32_t code_len,
+compute_first_set(mrb_state *mrb, const re_inst *code, uint32_t code_len,
                   const re_charclass *classes, uint8_t *bm)
 {
-  uint8_t seen[4096];
-  if (code_len >= sizeof(seen)) return FALSE;  /* pattern too large */
-  memset(seen, 0, code_len + 1);
-  if (!first_set_walk(code, code_len, classes, 0, bm, seen))
-    return FALSE;
+  uint32_t n = code_len + 1;
+  uint32_t pcs[RE_WALK_INLINE];
+  uint8_t marks[RE_WALK_INLINE];
+  uint32_t *heap = NULL;
+  uint32_t *stack = pcs;
+  uint8_t *seen = marks;
+  if (n > RE_WALK_INLINE) {
+    heap = walk_room(mrb, n);
+    if (!heap) return FALSE;
+    stack = heap;
+    seen = (uint8_t*)(heap + n);
+  }
+  memset(seen, 0, n);
+  mrb_bool narrow = first_set_walk(code, code_len, classes, 0, bm, seen, stack);
+  mrb_free(mrb, heap);
+  if (!narrow) return FALSE;
   /* Check if bitmap is all-ones (no benefit to skip) */
   int set_bits = 0;
   for (int i = 0; i < 16; i++) {
@@ -4939,14 +5032,7 @@ mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat,
      skip_to_line_start(). Under \A the string is never scanned at all, which
      is why a pattern carrying it leaves the prefix and the first-byte set
      below unbuilt: they exist to move a scan along, and there is none. */
-  pat->anchor = RE_ANCHOR_NONE;
-  {
-    uint8_t seen[4096];
-    if (code_len < sizeof(seen)) {
-      memset(seen, 0, code_len + 1);
-      pat->anchor = anchor_walk(pat->code, code_len, 0, seen);
-    }
-  }
+  pat->anchor = compute_anchor(mrb, pat->code, code_len);
 
   /* Extract literal prefix for fast search skip.
      Walk bytecode from the start, skipping zero-width instructions,
@@ -5001,7 +5087,8 @@ mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat,
   if (pat->anchor != RE_ANCHOR_BOT) {
     uint8_t bm[16];
     memset(bm, 0, sizeof(bm));
-    pat->has_first_bytes = compute_first_set(pat->code, code_len, pat->classes, bm);
+    pat->has_first_bytes = compute_first_set(mrb, pat->code, code_len,
+                                             pat->classes, bm);
     if (pat->has_first_bytes) {
       memcpy(pat->first_bytes, bm, 16);
       /* A set of up to three bytes is also kept enumerated, so the skip can
