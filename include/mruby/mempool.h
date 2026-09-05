@@ -4,6 +4,9 @@
 ** See Copyright Notice in mruby.h
 */
 
+#ifndef MRUBY_MEMPOOL_H
+#define MRUBY_MEMPOOL_H
+
 /* memory pool implementation */
 typedef struct mempool mempool;
 MRB_API struct mempool* mempool_open(void);
@@ -17,3 +20,5 @@ typedef struct mempool mrb_mempool;
 #define mrb_mempool_close(m) mempool_close(m)
 #define mrb_mempool_alloc(m, size) mempool_alloc((m),(size))
 #define mrb_mempool_realloc(m, ptr, oldlen, newlen) mempool_realloc((m),(ptr),(oldlen),(newlen))
+
+#endif  /* MRUBY_MEMPOOL_H */
