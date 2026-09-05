@@ -65,15 +65,22 @@ assert("Regexp - POSIX brackets classify by Unicode above ASCII") do
   assert_equal "あいう", "123あいう456".match(/[[:^digit:]]+/)[0]
   assert_equal "１２３", "abc１２３def".match(/[[:digit:]]+/)[0]
   assert_equal ["あ", "い"], "あ\u{3000}い".scan(/[[:^space:]]/)
-  # A lookbehind steps back over the whole of the character a bracket admits.
-  assert_equal 1, "あx" =~ /(?<=[[:alpha:]])x/
-  assert_nil "あx" =~ /(?<![[:alpha:]])x/
   # [:xdigit:] and [:ascii:] are sets ASCII defines, so they hold nothing
   # above it on any build and their negations hold everything.
   assert_false "Ａ".match?(/[[:xdigit:]]/)
   assert_true "Ａ".match?(/[[:^xdigit:]]/)
   assert_false "あ".match?(/[[:ascii:]]/)
   assert_true "あ".match?(/[[:^ascii:]]/)
+end
+
+assert("Regexp - a lookbehind steps back over a character a bracket admits") do
+  need_backtracking_stack
+  # The rewind counts the whole of the character, as the forward match above
+  # consumes the whole of it. A lookbehind is what puts this on the
+  # backtracking stack, where the brackets above run on the Pike VM.
+  skip unless __ENCODING__ == "UTF-8"
+  assert_equal 1, "あx" =~ /(?<=[[:alpha:]])x/
+  assert_nil "あx" =~ /(?<![[:alpha:]])x/
 end
 
 assert("Regexp - POSIX brackets combine above ASCII") do

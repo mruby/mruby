@@ -139,9 +139,8 @@ assert("Regexp - quantifier on a multibyte literal") do
   # Three and four byte characters take the same path.
   assert_equal 6, "日日".match(/日+/)[0].bytesize
   assert_equal 8, "𝕏𝕏".match(/𝕏+/)[0].bytesize
-  # A quantified literal after another atom, and a non-greedy one.
+  # A quantified literal after another atom.
   assert_equal 5, "aĀĀ".match(/aĀ+/)[0].bytesize
-  assert_equal 2, "ĀĀ".match(/Ā+?/)[0].bytesize
   # Scanning must not split a run into one match per character.
   assert_equal [4, 2], "ĀĀxĀ".scan(/Ā+/).map { |s| s.bytesize }
   # An optional multibyte literal that is absent still matches empty.
@@ -165,7 +164,6 @@ assert("Regexp - quantifier on an escaped multibyte literal") do
   assert_equal 6, Regexp.new("\\日+").match("日日")[0].bytesize
   assert_equal 8, Regexp.new("\\𝕏+").match("𝕏𝕏")[0].bytesize
   assert_equal 5, Regexp.new("a\\Ā+").match("aĀĀ")[0].bytesize
-  assert_equal 2, Regexp.new("\\Ā+?").match("ĀĀ")[0].bytesize
   # Inside [...] the same escape has to read as one codepoint, or the class
   # holds the lead byte and the continuation byte as two wrong members.
   assert_true Regexp.new("[\\Ā]").match?("Ā")
@@ -177,6 +175,17 @@ assert("Regexp - quantifier on an escaped multibyte literal") do
   # same way however the pattern spells them.
   assert_equal 4, Regexp.new("\\xC4\\x80+").match("ĀĀ")[0].bytesize
   assert_equal 4, Regexp.new("\\xC4\\x80\\xC4\\x80").match("ĀĀ")[0].bytesize
+end
+
+assert("Regexp - a non-greedy quantifier on a multibyte literal binds to the character") do
+  need_backtracking_stack
+  # The two spellings above, asked to stop as early as they may. A non-greedy
+  # repeat is what the Pike VM cannot run, so these are the assertions of the
+  # two blocks that stand on the backtracking stack; the rest run at any
+  # stack limit.
+  skip unless __ENCODING__ == "UTF-8"
+  assert_equal 2, "ĀĀ".match(/Ā+?/)[0].bytesize
+  assert_equal 2, Regexp.new("\\Ā+?").match("ĀĀ")[0].bytesize
 end
 
 assert("Regexp - quantifier on an invalid multibyte literal") do
@@ -335,17 +344,14 @@ assert("Regexp - a byte that spells no character matches only a byte") do
   assert_nil j.match(Regexp.new("\xc4"))          # literal fast path
   assert_nil ("x" + j).match(Regexp.new("\xc4"))
   assert_nil j.match(Regexp.new("\xc4+"))         # pike VM
-  assert_nil j.match(Regexp.new("(\xc4)\\1?"))    # backtracking engine
   assert_equal j.bytes, j.gsub(Regexp.new("\xc4"), "!").bytes
   # Nothing built on it reaches the character either, where the rule used to be
   # a test on the end of the match and let these through.
   assert_nil j.match(Regexp.new("\xc4."))
   assert_nil j.match(Regexp.new("\xc4(?:\xb5)?"))
-  assert_nil j.match(Regexp.new("(?=\xc4)\xc4\xb5"))
   assert_equal 0, j.match(Regexp.new("\xc4*"))[0].bytesize
   # The bytes that do spell the character are the character, so they match it.
   assert_equal 2, j.match(Regexp.new("\xc4\xb5"))[0].bytesize
-  assert_equal 2, j.match(Regexp.new("(\xc4\xb5)\\1?"))[0].bytesize
   # Read as binary every byte stands alone, so every one of them is a byte the
   # pattern can name.
   if Object.const_defined?(:Encoding)
@@ -359,6 +365,18 @@ assert("Regexp - a byte that spells no character matches only a byte") do
   assert_equal 1, (b + b).b.match(Regexp.new(b))[0].bytesize
   assert_equal 2, (b + b).b.match(Regexp.new(b + "+"))[0].bytesize
   assert_equal 1, ("a" + b).b.match(Regexp.new(b))[0].bytesize
+end
+
+assert("Regexp - the backtracking engine reads such a byte the same way") do
+  need_backtracking_stack
+  # The same question put to the third engine: a backreference or a lookaround
+  # is what sends a pattern there, where the block above stays with the
+  # literal fast path and the Pike VM and runs at any stack limit.
+  skip unless __ENCODING__ == "UTF-8"
+  j = "ĵ"
+  assert_nil j.match(Regexp.new("(\xc4)\\1?"))
+  assert_nil j.match(Regexp.new("(?=\xc4)\xc4\xb5"))
+  assert_equal 2, j.match(Regexp.new("(\xc4\xb5)\\1?"))[0].bytesize
 end
 
 assert("Regexp - a capture spans whole characters") do
@@ -382,9 +400,6 @@ assert("Regexp - a capture spans whole characters") do
   assert_nil Regexp.new("(\xc4).").match(a)
   assert_nil Regexp.new("\xc4(\x80)").match(a)
   assert_nil Regexp.new("((\xc4).)").match(a)
-  assert_nil Regexp.new("(\xc4).\\1?").match(a)      # backtracking engine
-  assert_nil Regexp.new("(?=(\xc4))\xc4\x80").match(a)
-  assert_equal 0, Regexp.new("(?!(\xc4))").match(a).begin(0)
   # A capture that does span whole characters matches, and its offsets are the
   # characters it holds.
   m = Regexp.new("(\xc4\x80)(.)").match(a)
@@ -403,6 +418,18 @@ assert("Regexp - a capture spans whole characters") do
   bm = Regexp.new("(" + b + ")(" + b + ")").match((b + b).b)
   assert_equal [0x81], bm[1].bytes
   assert_equal [0x81], bm[2].bytes
+end
+
+assert("Regexp - a capture the backtracking engine records spans whole characters") do
+  need_backtracking_stack
+  # A group inside a lookaround, and one a backreference reads back, are
+  # recorded by the engine the block above does not reach. The rule is the
+  # same there: no group opens or closes inside a character.
+  skip unless __ENCODING__ == "UTF-8"
+  a = "Āx"  # C4 80 78
+  assert_nil Regexp.new("(\xc4).\\1?").match(a)
+  assert_nil Regexp.new("(?=(\xc4))\xc4\x80").match(a)
+  assert_equal 0, Regexp.new("(?!(\xc4))").match(a).begin(0)
 end
 
 assert("Regexp - a lookbehind branch counts its own width in both units") do
@@ -425,6 +452,7 @@ assert("Regexp - a lookbehind branch counts its own width in both units") do
 end
 
 assert("Regexp - a lookaround holds where its sub-pattern matches") do
+  need_backtracking_stack
   # A lookaround consumes nothing, so where its sub-pattern stopped was not the
   # end of a match and nothing held it to a character. It could therefore
   # answer the opposite of the body it asserts: at the start of "Ā" the pattern
@@ -1075,6 +1103,7 @@ assert('Regexp - a word boundary sits beside any script') do
 end
 
 assert("Regexp - an absent repeater's run stops on a character boundary") do
+  need_backtracking_stack
   skip unless __ENCODING__ == "UTF-8"
 
   # The run may not hold the body's match, so it stops before the first byte

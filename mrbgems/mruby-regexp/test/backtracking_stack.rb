@@ -11,8 +11,13 @@
 #
 # The engine is doing what the build asked there, and the assertions have
 # nothing to say about it. 48 is the limit at which every pattern in these
-# files matches again (at 44 one test is left, at 36 two, at 1 fifty-one),
-# so a test that reaches the engine asks for that much and skips below it.
+# files matches again: with the guard off, a build reading its strings as
+# characters leaves one test at 47, two at 40, three at 36, thirty-nine at 4
+# and eighty-four at 1. A test that reaches the engine asks for that much and
+# skips below it. What stands at the top of that is the search that reaches
+# the step limit, which holds some three entries per character of its run.
+# A test wanting more than this is a test to size down: a lookbehind body of
+# forty branches sits under it at one entry per branch.
 #
 # What asks for it is a test and not a subject: an assertion that reaches no
 # further than the parser, or one whose pattern the Pike VM runs, holds none
