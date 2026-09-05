@@ -386,10 +386,12 @@ bytes, plus one String header:
 | 128            | 4 KiB                    |
 | 32             | 1 KiB                    |
 
-A build that cannot make the allocation raises `NoMemoryError`. A nested
-character class is the one construct still read by recursion, at about 500
-bytes of C stack a level, which the class table bounds at 256 levels whatever
-the limit.
+A build that cannot make the allocation raises `NoMemoryError`. A class written
+inside a class is a level on a stack of its own, held the same way, and the
+class table bounds those as well: a level open holds an entry in it, and the
+257th is `too many character classes`. The shallower of the two answers, so at
+the default limit a class nests 256 deep and at a limit of 256 or less it nests
+as deep as the limit.
 
 The passes that read the finished program keep their branches on stacks of
 their own as well: the anchor and first-byte scans, the marks on the

@@ -67,6 +67,51 @@ typedef struct {
    frame's worth of C stack once, not per level. */
 #define RE_LEVELS_INLINE 8
 
+/* What ended the operand of a character class parse_class_operand() was
+   reading. The ']' and the '&&' are consumed there; the '[' is left standing,
+   since what follows it is read as a level of its own. */
+enum {
+  RE_CLASS_END,    /* the ']' that closes the class */
+  RE_CLASS_MORE,   /* the '&&' that stands before the next operand */
+  RE_CLASS_NEST    /* the '[' of a class written inside this one */
+};
+
+/* One character class the parse has open: the class a '[' began, the operand
+   of it being read, and what its ']' closes with. A class written inside a
+   class is one of these too, so what a pattern nests is a stack the parse
+   keeps of its own rather than frames on the C stack, as the levels the
+   pattern itself nests are; see parse_class_levels(). */
+typedef struct {
+  uint16_t id;       /* the class the body is read into: the operands come to
+                        an intersection here, and this is what joins the level
+                        below once the class closes */
+  uint16_t cur_id;   /* the class the operand being read goes into: `id` for
+                        the first, there being nothing yet to intersect it
+                        with, and one of its own after each `&&` */
+  mrb_bool negated;  /* the '[^' of a nest opened the level, so what joins the
+                        level below is the complement of what it holds. The
+                        outermost class carries its own negation in the class
+                        (RE_NCLASS) instead */
+  mrb_bool first;    /* the operand opens the class and nothing has been read
+                        into it, where a ']' is a member rather than the
+                        close; only the first operand does, so [a&&]a] is the
+                        empty class followed by the two characters `a]` */
+  uint8_t cross[RE_CLASS_BITMAP_SIZE];  /* the ASCII members the class holds
+                        in its own right, as against the ones an ASCII-only
+                        set brought, narrowed by each operand in step; see
+                        close_class_operand() */
+  re_charclass ascii_set;  /* the operand's ASCII-only sets, held beside the
+                        class until the operand ends; see compile_charclass()
+                        for what is held there and why */
+} re_class_level;
+
+/* Class levels the compiler keeps inline before it spills to the heap: a
+   class takes one and a class written inside it the other, which is as deep
+   as a written pattern goes. What the array costs is one frame's worth of C
+   stack once, not per level, and a class deeper than this pays an allocation
+   rather than the stack it used to descend. */
+#define RE_CLASS_LEVELS_INLINE 2
+
 /* Compiler state.
 
    Everything the compile allocates and the finished pattern goes on owning
@@ -136,6 +181,17 @@ typedef struct {
   uint32_t level_capa;
   mrb_value level_store;    /* nil while the levels are inline */
   re_level levels_inline[RE_LEVELS_INLINE];
+  /* The character classes the parse has open, innermost last; see
+     re_class_level. They are held as the levels above are, and are the same
+     answer to the same question: a class written inside a class is a level
+     rather than a descent, so no pattern's classes reach the C stack. The
+     stack is empty between one class and the next, so a pattern pays for the
+     deepest class it writes and not for the sum of them. */
+  re_class_level *class_levels;
+  uint32_t class_level_count;
+  uint32_t class_level_capa;
+  mrb_value class_level_store;  /* nil while the class levels are inline */
+  re_class_level class_levels_inline[RE_CLASS_LEVELS_INLINE];
   /* The alternation that finished last, as the span it covers and how many
      branches it has. The lookbehind arm reads it to tell a body that *is*
      an alternation from one that merely holds one: only the first may give
@@ -1382,8 +1438,6 @@ reject_set_as_range_start(re_compiler *c)
   }
 }
 
-static void parse_class_expr(re_compiler *c, uint16_t id, uint8_t *cross);
-
 /* Everything an ASCII-only set brought joins the class it was written in. */
 static void
 class_join_ascii_set(re_charclass *cc, const re_charclass *ascii_set)
@@ -1392,22 +1446,53 @@ class_join_ascii_set(re_charclass *cc, const re_charclass *ascii_set)
   if (ascii_set->utf8_any) cc->utf8_any = TRUE;
 }
 
-/* One nested class, from its '[' through its ']', joined to class `id`.
+/* Open a level for a class body to be read into; see re_class_level. */
+static re_class_level*
+open_class_level(re_compiler *c, uint16_t id, mrb_bool negated)
+{
+  if (c->class_level_count == c->class_level_capa) {
+    /* Outgrown: the levels move to a String the GC arena holds for the
+       compile, as the levels the pattern nests do (see open_level()), and
+       double from there. */
+    uint32_t capa = c->class_level_capa * 2;
+    size_t bytes = sizeof(re_class_level) * capa;
+    if (mrb_nil_p(c->class_level_store)) {
+      c->class_level_store = mrb_str_new(c->mrb, NULL, bytes);
+      memcpy(RSTRING_PTR(c->class_level_store), c->class_levels,
+             sizeof(re_class_level) * c->class_level_count);
+    }
+    else {
+      mrb_str_resize(c->mrb, c->class_level_store, (mrb_int)bytes);
+    }
+    c->class_levels = (re_class_level*)RSTRING_PTR(c->class_level_store);
+    c->class_level_capa = capa;
+  }
+  re_class_level *lv = &c->class_levels[c->class_level_count++];
+  memset(lv, 0, sizeof(*lv));
+  lv->id = lv->cur_id = id;
+  lv->negated = negated;
+  lv->first = TRUE;
+  return lv;
+}
+
+/* The ']' of a nested class: the level closes, what it holds joins the
+   operand the level below has open, and the class it was read into goes
+   back.
 
    It is read into a class of its own rather than into the same one, because
    what it names is a set: a `&&` inside it takes the intersection of what is
    written there and of nothing around it, so [x[a&&b]] holds `x` and whatever
-   `a` and `b` have in common. A class that is not negated then joins this one
-   as a union, which is the same set reading [xab] gives, and a negated one
+   `a` and `b` have in common. A class that is not negated then joins the outer
+   one as a union, which is the same set reading [xab] gives, and a negated one
    joins it as the complement of what it holds, a set being able to join a
    union only once it is written out as members. The class goes back
    afterwards, so a pattern's nests cost one id at a time rather than one each.
 
    The ASCII members a nest holds only through an ASCII-only set of its own go
-   to the caller's `ascii_set` rather than into the class, which is how the
-   fold at the end can still tell a `\w` written in a nest from one written
-   here. A complement is a set of members like any other, so all of one goes
-   into the class.
+   to the outer level's `ascii_set` rather than into the class, which is how
+   the fold at the end can still tell a `\w` written in a nest from one written
+   beside it. A complement is a set of members like any other, so all of one
+   goes into the class.
 
    Neither is closed under folding here. /i closes the union once at the end,
    which is where the counterparts of what a complement let in are picked up:
@@ -1415,35 +1500,33 @@ class_join_ascii_set(re_charclass *cc, const re_charclass *ascii_set)
    well, so the class accepts what it was written to reject. CRuby reads it
    the same way, and reads [[^[:upper:]]x] under /i as [[:^upper:]x]. */
 static void
-parse_nested_class(re_compiler *c, uint16_t id, re_charclass *ascii_set)
+close_nested_class(re_compiler *c)
 {
-  if (++c->depth > (uint32_t)MRB_REGEXP_PARSE_DEPTH_LIMIT) {
-    compile_error(c, "parse depth limit over");
-  }
-  next_char(c);  /* '[' */
-  mrb_bool negated = FALSE;
-  if (peek(c) == '^') {
-    next_char(c);
-    negated = TRUE;
-  }
-  /* The table can move here, so nothing above holds a pointer into it across
-     this call; the class is named by id throughout. */
-  uint8_t sub_cross[RE_CLASS_BITMAP_SIZE];
-  uint16_t sub_id = add_class(c);
-  parse_class_expr(c, sub_id, sub_cross);
-  re_charclass *sub = &c->pat->classes[sub_id];
-  if (negated) {
+  re_class_level *lv = &c->class_levels[c->class_level_count - 1];
+  re_class_level *outer = lv - 1;
+  re_charclass *sub = &c->pat->classes[lv->id];
+  if (lv->negated) {
     class_complement(c, sub);
   }
   else {
     for (int i = 0; i < RE_CLASS_BITMAP_SIZE; i++) {
-      ascii_set->bitmap[i] |= sub->bitmap[i] & ~sub_cross[i];
-      sub->bitmap[i] &= sub_cross[i];
+      outer->ascii_set.bitmap[i] |= sub->bitmap[i] & ~lv->cross[i];
+      sub->bitmap[i] &= lv->cross[i];
     }
   }
-  class_union(c, &c->pat->classes[id], sub);
-  drop_class(c, sub_id);
+  class_union(c, &c->pat->classes[outer->cur_id], sub);
+  drop_class(c, lv->id);
+  c->class_level_count--;
   c->depth--;
+
+  /* A nested class names a set, and CRuby opens no range on one: the '-'
+     after it is a member, where the '-' after a POSIX bracket or a shorthand
+     is the error reject_set_as_range_start() reports. So [[a]-z] holds `a`,
+     `-` and `z`, and [[:alpha:]-z] raises. */
+  if (peek(c) == '-') {
+    next_char(c);
+    class_set_bit(&c->pat->classes[outer->cur_id], '-');
+  }
 }
 
 /* TRUE where the two characters are the `&&` that separates one operand of a
@@ -1454,25 +1537,32 @@ at_intersection(const char *p, const char *end)
   return p + 1 < end && p[0] == '&' && p[1] == '&';
 }
 
-/* Read one operand of a class into class `id`: the members written between
-   the `&&` before it and the `&&` or `]` after it. TRUE where a `&&` ended
-   it, which is consumed. `first` says the operand opens the class, where a
-   ']' is a member rather than the end; only the first one does, so [a&&]a]
-   is the empty class followed by the two characters `a]`. `ascii_set` is the
-   operand's own; see compile_charclass() for what is held there and why. */
-static mrb_bool
-parse_class_operand(re_compiler *c, uint16_t id, re_charclass *ascii_set, mrb_bool first)
-{
-  re_charclass *cc = &c->pat->classes[id];
+/* Read the operand `lv` has open: the members written between the `&&` before
+   it and the `&&`, the ']' or the nested '[' after it, which is what the
+   return says; see RE_CLASS_END. The members go into the class the level is
+   reading into, and the ASCII-only sets among them into the level's own
+   `ascii_set`; see compile_charclass() for what is held there and why.
 
-  while (peek(c) != ']' || first) {
+   A nest is reported rather than read here, so a class inside a class costs
+   the level parse_class_levels() pushes and no C frame; the operand is read
+   on from here once that level has closed. */
+static int
+parse_class_operand(re_compiler *c, re_class_level *lv)
+{
+  /* Nothing an operand holds adds a class, and a nest is reported before one
+     is opened, so the table cannot move under this pointer while the operand
+     is read. */
+  re_charclass *cc = &c->pat->classes[lv->cur_id];
+  re_charclass *ascii_set = &lv->ascii_set;
+
+  while (peek(c) != ']' || lv->first) {
     if (peek(c) < 0) compile_error(c, "premature end of char-class");
-    first = FALSE;
+    lv->first = FALSE;
 
     if (at_intersection(c->p, c->src_end)) {
       next_char(c);
       next_char(c);
-      return TRUE;
+      return RE_CLASS_MORE;
     }
 
     /* A '[' inside a class opens something in CRuby rather than standing for
@@ -1486,19 +1576,7 @@ parse_class_operand(re_compiler *c, uint16_t id, re_charclass *ascii_set, mrb_bo
     if (peek(c) == '[' && c->p + 1 < c->src_end) {
       if (c->p[1] == '.') compile_error(c, "POSIX collating element is not supported");
       if (c->p[1] == '=') compile_error(c, "POSIX equivalence class is not supported");
-      if (c->p[1] != ':') {
-        parse_nested_class(c, id, ascii_set);
-        cc = &c->pat->classes[id];  /* a negated nest moves the table */
-        /* A nested class names a set, and CRuby opens no range on one: the
-           '-' after it is a member, where the '-' after a POSIX bracket or a
-           shorthand is the error reject_set_as_range_start() reports. So
-           [[a]-z] holds `a`, `-` and `z`, and [[:alpha:]-z] raises. */
-        if (peek(c) == '-') {
-          next_char(c);
-          class_set_bit(cc, '-');
-        }
-        continue;
-      }
+      if (c->p[1] != ':') return RE_CLASS_NEST;
     }
 
     /* POSIX bracket class: [:name:] or negated [:^name:] inside [...]. */
@@ -1630,47 +1708,102 @@ parse_class_operand(re_compiler *c, uint16_t id, re_charclass *ascii_set, mrb_bo
     }
   }
   next_char(c);  /* skip ']' */
-  return FALSE;
+  return RE_CLASS_END;
+}
+
+/* The operand ends: what it holds joins the class the level is reading into.
+
+   The ASCII-only sets join before the intersection is taken, since the
+   intersection is of what the operands hold and not of how they were written,
+   and `cross` is narrowed by each operand in step: a member both sides put
+   there in their own right is one the class holds in its own right. */
+static void
+close_class_operand(re_compiler *c, re_class_level *lv)
+{
+  re_charclass *cc = &c->pat->classes[lv->cur_id];
+
+  if (lv->cur_id == lv->id) {
+    for (int i = 0; i < RE_CLASS_BITMAP_SIZE; i++) lv->cross[i] = cc->bitmap[i];
+    class_join_ascii_set(cc, &lv->ascii_set);
+    return;
+  }
+  for (int i = 0; i < RE_CLASS_BITMAP_SIZE; i++) lv->cross[i] &= cc->bitmap[i];
+  class_join_ascii_set(cc, &lv->ascii_set);
+  class_intersect(c, lv->id, lv->cur_id);
+  drop_class(c, lv->cur_id);
+  lv->cur_id = lv->id;
+}
+
+/* The `&&` opens the next operand, which is read beside the class rather than
+   into it, there being no way back from a union to the members it was made
+   of. Only the bitmap and utf8_any are ever written to an ASCII-only set. */
+static void
+open_class_operand(re_compiler *c, re_class_level *lv)
+{
+  lv->cur_id = add_class(c);
+  memset(&lv->ascii_set, 0, sizeof(lv->ascii_set));
 }
 
 /* Read a class body into class `id`, from just after its '[' (and its '^')
    through its ']': the intersection of the operands `&&` separates, each of
-   them the union of what is written in it.
+   them the union of what is written in it, and each of them able to hold a
+   class written inside this one.
+
+   A nest opens a level here rather than a C frame, as a '(' opens one in
+   compile_levels(): the operand loop reports the '[' it stopped at, what
+   follows is read by the same loop one level in, and the ']' pops the level
+   into the operand the level below has open. So the classes a pattern nests
+   cost the levels and no stack, at any depth, on any build.
+
+   Two things bound the depth and the shallower answers: the class table,
+   every open level holding an entry in it until it closes, and
+   MRB_REGEXP_PARSE_DEPTH_LIMIT, which a nest counts against beside the
+   levels the pattern has open. At the default limit the table is the one a
+   pattern meets, at RE_MAX_CLASSES; a build that sets the limit at or below
+   that meets the limit here first.
 
    `cross` receives the ASCII members the class holds in its own right, which
    is what the caller needs to tell them from the ones an ASCII-only set is
-   the whole reason for; compile_charclass() says what the difference decides.
-   An operand's ASCII-only sets join it before the intersection is taken,
-   since the intersection is of what the operands hold and not of how they
-   were written, and `cross` is narrowed by each operand in step: a member
-   both sides put there in their own right is one this class holds in its
-   own right. */
+   the whole reason for; compile_charclass() says what the difference
+   decides. */
 static void
-parse_class_expr(re_compiler *c, uint16_t id, uint8_t *cross)
+parse_class_levels(re_compiler *c, uint16_t id, uint8_t *cross)
 {
-  /* Only the bitmap and utf8_any are ever written to an ASCII-only set. */
-  re_charclass ascii_set;
-  memset(&ascii_set, 0, sizeof(ascii_set));
+  open_class_level(c, id, FALSE);
 
-  mrb_bool more = parse_class_operand(c, id, &ascii_set, TRUE);
-  {
-    re_charclass *cc = &c->pat->classes[id];
-    for (int i = 0; i < RE_CLASS_BITMAP_SIZE; i++) cross[i] = cc->bitmap[i];
-    class_join_ascii_set(cc, &ascii_set);
-  }
+  for (;;) {
+    /* A push can move the levels, so the one being read is taken afresh. */
+    re_class_level *lv = &c->class_levels[c->class_level_count - 1];
+    int ended = parse_class_operand(c, lv);
 
-  while (more) {
-    /* The operand is read beside this class rather than into it, there being
-       no way back from a union to the members it was made of. */
-    uint16_t sub_id = add_class(c);
-    re_charclass sub_ascii;
-    memset(&sub_ascii, 0, sizeof(sub_ascii));
-    more = parse_class_operand(c, sub_id, &sub_ascii, FALSE);
-    re_charclass *sub = &c->pat->classes[sub_id];
-    for (int i = 0; i < RE_CLASS_BITMAP_SIZE; i++) cross[i] &= sub->bitmap[i];
-    class_join_ascii_set(sub, &sub_ascii);
-    class_intersect(c, id, sub_id);
-    drop_class(c, sub_id);
+    if (ended == RE_CLASS_NEST) {
+      /* The limit is met at the level that crosses it, as open_level() meets
+         it, rather than at the bottom of a descent. */
+      if (++c->depth > (uint32_t)MRB_REGEXP_PARSE_DEPTH_LIMIT) {
+        compile_error(c, "parse depth limit over");
+      }
+      next_char(c);  /* '[' */
+      mrb_bool negated = FALSE;
+      if (peek(c) == '^') {
+        next_char(c);
+        negated = TRUE;
+      }
+      open_class_level(c, add_class(c), negated);
+      continue;
+    }
+
+    close_class_operand(c, lv);
+    if (ended == RE_CLASS_MORE) {
+      open_class_operand(c, lv);
+      continue;
+    }
+    if (c->class_level_count > 1) {
+      close_nested_class(c);
+      continue;
+    }
+    memcpy(cross, lv->cross, RE_CLASS_BITMAP_SIZE);
+    c->class_level_count--;
+    return;
   }
 }
 
@@ -1695,11 +1828,11 @@ compile_charclass(re_compiler *c)
      that is a union this adds nothing, and an intersection is where it tells:
      the letters left in [b-z&&\w] are cased like any others. */
   uint8_t cross[RE_CLASS_BITMAP_SIZE];
-  parse_class_expr(c, id, cross);
+  parse_class_levels(c, id, cross);
   re_charclass *cc = &c->pat->classes[id];
 
   /* Close the class under case folding for /i. This runs once the class is
-     complete, so it covers every form parse_class_expr() reads in: POSIX
+     complete, so it covers every form parse_class_levels() reads in: POSIX
      brackets, ranges, single literals and the nested classes whose union the
      class is. Negation is applied at match time against the same class
      (RE_NCLASS), so closing the positive set is also what keeps [^a-c] and
@@ -4122,7 +4255,7 @@ skip_uninterpreted(const char *src, const char *end, uint32_t *class_depth, int 
     }
     /* A '[' that opens no bracket opens a class of its own, whose ']' closes
        that one and not this. Counting the levels is what keeps this pass
-       reading the same span as parse_nested_class(): with a flag, the ']' of
+       reading the same span as the class levels do: with a flag, the ']' of
        [[a]b#c] would end the class here and leave `#c]` a comment under /x
        where the parser has it as members. */
     if (ch != '[') return src + 1;
@@ -5077,6 +5210,9 @@ mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat,
   c.level_store = mrb_nil_value();
   c.levels = c.levels_inline;
   c.level_capa = RE_LEVELS_INLINE;
+  c.class_level_store = mrb_nil_value();
+  c.class_levels = c.class_levels_inline;
+  c.class_level_capa = RE_CLASS_LEVELS_INLINE;
 
   /* Both things the pre-pass removes, a (?#...) group and a `#` comment,
      are spelled with a '#', so a pattern without one is parsed as written.
