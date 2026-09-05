@@ -152,6 +152,25 @@ assert("Regexp#=== - Symbol argument") do
   assert_equal "has digits", result
 end
 
+assert("Regexp#=== - value pattern in a hash value") do
+  # a pattern in value position is the receiver of #===, and the hash value its
+  # argument; the operands used to come out the other way around, which a
+  # regexp cannot survive
+  case {a: "value"}
+  in {a: /\Avalue\z/}
+    assert_true true
+  else
+    flunk "the regexp did not match the hash value"
+  end
+
+  case {a: "other"}
+  in {a: /\Avalue\z/}
+    flunk "the regexp matched a value it does not describe"
+  else
+    assert_true true
+  end
+end
+
 assert("Regexp - match operand rejects other types") do
   assert_raise(TypeError) { /a/.match(1) }
   assert_raise(TypeError) { /a/.match?(1) }
