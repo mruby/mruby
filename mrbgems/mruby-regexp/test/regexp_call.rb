@@ -133,8 +133,8 @@ end
 
 assert("Regexp - {0} erases a call's code but not its reference checks") do
   # The reference a {0}-erased call spelled is still read against the whole
-  # pattern: CRuby refuses each of these, erased or not. No call survives to
-  # run, so no backtracking stack is asked for.
+  # pattern: CRuby refuses each of these, erased or not. Each stops at the
+  # parser, so no search runs and no backtracking stack is asked for.
   assert_raise_with_message(RegexpError,
                             "undefined name <nope> reference: /(?:\\g<nope>){0}/") do
     Regexp.new("(?:\\g<nope>){0}")
@@ -151,8 +151,13 @@ assert("Regexp - {0} erases a call's code but not its reference checks") do
                             "multiplex definition name <a> call: /(?:\\g<a>){0}(?<a>x)(?<a>y)/") do
     Regexp.new("(?:\\g<a>){0}(?<a>x)(?<a>y)")
   end
+end
 
-  # a reference the pattern does define stays fine erased
+assert("Regexp - a {0}-erased call leaves the group it named callable") do
+  need_backtracking_stack
+  # A reference the pattern does define stays fine erased. The group stays
+  # callable whether or not a call reaches it, which is what puts this search
+  # on the backtracking stack: the frame is there to be returned to.
   assert_equal "x", "x".match(Regexp.new("(?:\\g<a>){0}(?<a>x)"))[0]
 end
 

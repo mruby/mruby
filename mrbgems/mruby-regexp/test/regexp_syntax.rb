@@ -390,10 +390,24 @@ assert("Regexp - an alternation holds as many branches as the pattern writes") d
   assert_equal 100, longest_first.match("a" * 100)[0].size
   assert_equal 1, shortest_first.match("a" * 100)[0].size
 
-  # A lookbehind body of that many branches carries a rewind per branch, as
-  # a body of two does: `3`, `11` and `222` stand among the seventy, one,
-  # two and three characters wide.
+  # A lookbehind body counts its branches the same way, seventy of them
+  # compiling where the array of 64 refused the 64th. Compiling asks for no
+  # backtracking stack, so the count stands here rather than with the match
+  # below, which pays an entry per branch.
   alts = (1..70).map { |i| i.to_s(36) * (i % 3 + 1) }
+  assert_kind_of Regexp, Regexp.new("(?<=#{alts.join('|')})!")
+end
+
+assert("Regexp - a lookbehind rewinds once per branch of its body") do
+  need_backtracking_stack
+  # A lookbehind body of many branches carries a rewind per branch, as a body
+  # of two does: `3`, `11` and `222` stand among the forty, one, two and
+  # three characters wide. The branch a rewind is trying stands on the
+  # backtracking stack while it runs, so a body of N branches asks the build
+  # for N entries and the lookaround's barrier for one more: forty of them
+  # match at a limit of 41 and not at 40, which is why the count is one the
+  # guard's stack covers rather than the seventy compiled above.
+  alts = (1..40).map { |i| i.to_s(36) * (i % 3 + 1) }
   behind = Regexp.new("(?<=#{alts.join('|')})!")
   assert_equal 1, behind =~ "3!"
   assert_equal 2, behind =~ "11!"

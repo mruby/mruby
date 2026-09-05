@@ -221,7 +221,6 @@ assert("Regexp.union") do
 
   # no pattern is a pattern that never matches
   assert_equal(/(?!)/, Regexp.union)
-  assert_nil Regexp.union =~ ""
 
   # one pattern: a Regexp is answered as itself, a String is quoted
   re = /a/i
@@ -237,6 +236,14 @@ assert("Regexp.union") do
   assert_raise(TypeError) { Regexp.union(nil) }
   assert_raise(TypeError) { Regexp.union("a", :b) }
   assert_raise(TypeError) { Regexp.union(["a"], "b") }
+end
+
+assert("Regexp.union of no patterns matches nothing") do
+  need_backtracking_stack
+  # What union answers with there is a lookaround, so the search runs on the
+  # backtracking stack rather than the Pike VM, and the assertion's barrier
+  # is what it asks the build for.
+  assert_nil Regexp.union =~ ""
 end
 
 assert("Regexp#inspect") do
