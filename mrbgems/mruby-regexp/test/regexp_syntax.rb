@@ -320,6 +320,27 @@ assert("Regexp - a pattern nested past the parse depth limit raises") do
   end
 end
 
+assert("Regexp - a pattern whose forks nest deeply matches") do
+  # A step's epsilon closure walks the branches a fork leaves standing, and
+  # what that walk spent on the C stack used to follow how deep the pattern
+  # nests its forks, with nothing above it but MRB_REGEXP_PARSE_DEPTH_LIMIT.
+  # The `?` is what makes every level a fork, the `b` is what makes the
+  # closure cross all of them, and the greedy answer is what says it took the
+  # branch inside as well as the one that skips it.
+  #
+  # Every level here is one the parser holds open at once, the pattern itself
+  # among them, so what the build allows is the ceiling: a build that lowers
+  # the limit is asked a shallower question rather than met with a refusal.
+  nest = Regexp::PARSE_DEPTH_LIMIT - 1
+  nest = 1000 if nest > 1000
+  nest = 0 if nest < 0
+  re = Regexp.new("(?:" * nest + "a" + ")?" * nest + "b")
+  assert_equal "ab", re.match("ab")[0]
+  assert_nil re.match("c")
+  # Where the build left no level at all there is no branch to skip.
+  assert_equal "b", re.match("b")[0] if nest > 0
+end
+
 assert("Regexp - an alternation holds as many branches as the pattern writes") do
   # The branches were once collected in an array of 64 and the 64th refused
   # as `too many alternatives`. They are found in the code they were compiled

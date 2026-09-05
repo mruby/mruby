@@ -254,6 +254,22 @@ typedef struct {
   int capa;
 } re_threadlist;
 
+/* A branch of a fork the closure has yet to walk: where it starts and what
+   it starts with. The walk carries the higher-priority branch on and keeps
+   the other one of these (see add_thread()). The position is not in here
+   because a closure stands at one: the walk crosses no instruction that
+   consumes, so every branch it keeps begins where the walk began. */
+typedef struct {
+  uint32_t pc;
+  uint32_t key;
+  int cap_slot;
+} re_pending;
+
+/* Branches the state holds without asking the allocator for room. A pattern
+   whose forks nest no deeper than this spends nothing on them, which is
+   every pattern short of the ones written to nest. */
+#define RE_PEND_INLINE 16
+
 /* All Pike VM state */
 typedef struct {
   mrb_state *mrb;
@@ -276,6 +292,11 @@ typedef struct {
   mrb_bool nomem;         /* the allocator refused the search a buffer it
                              needed: it stops and answers RE_NOMEM */
   int *result_caps;       /* best match (ncap ints) */
+  re_pending *pend;       /* branches a closure left for later: pend_inline
+                             until the nesting outgrows it, the heap after */
+  uint32_t pend_top;      /* entries in use, the newest at the top */
+  uint32_t pend_capa;
+  re_pending pend_inline[RE_PEND_INLINE];
 } pike_state;
 
 /* Hand out a capture slot, growing the pool where it has none left. TRUE is
@@ -366,168 +387,238 @@ re_loop_back(pike_state *s, re_inst inst, uint32_t pc, uint32_t key)
   return key < s->key_max ? key + 1 : key;
 }
 
+/* Room for one more branch, once the ones the state holds are all in use.
+   Answers as pool_alloc() does, and for the same reason: FALSE is the
+   allocator having refused the room, which is the search stopping, and the
+   refusal is recorded on the state since the walk that asked for it hands
+   nothing back. Kept out of pend_push() because a pattern reaching it at all
+   is one written to nest. */
+static mrb_bool
+pend_grow(pike_state *s)
+{
+  uint32_t capa = s->pend_capa * 2;
+  re_pending *p;
+  if (s->pend == s->pend_inline) {
+    p = (re_pending*)mrb_malloc_simple(s->mrb, sizeof(re_pending) * capa);
+    if (p) memcpy(p, s->pend_inline, sizeof(re_pending) * s->pend_capa);
+  }
+  else {
+    p = (re_pending*)mrb_realloc_simple(s->mrb, s->pend,
+                                        sizeof(re_pending) * capa);
+  }
+  if (!p) {
+    s->nomem = TRUE;
+    return FALSE;
+  }
+  s->pend = p;
+  s->pend_capa = capa;
+  return TRUE;
+}
+
+/* Keep a fork's lower-priority branch for the walk to come back to. Inline:
+   this stands where the recursive call it replaced stood, in the closure's
+   own loop, and a call of its own is what the walk is here to stop making. */
+static inline mrb_bool
+pend_push(pike_state *s, uint32_t pc, int cap_slot, uint32_t key)
+{
+  if (s->pend_top == s->pend_capa && !pend_grow(s)) return FALSE;
+  re_pending *e = &s->pend[s->pend_top++];
+  e->pc = pc;
+  e->cap_slot = cap_slot;
+  e->key = key;
+  return TRUE;
+}
+
 /* Add thread following epsilon transitions. `key` is s->gen for the first
    pass over this step's closure and one higher per further pass, and
    visited[pc] holds the key of the pass that last walked pc: a later pass may
    re-walk what an earlier one marked, and no key is ever reused by a later
-   step. */
+   step.
+
+   A fork's branches are walked in priority order: the walk carries the
+   higher-priority one on and keeps the other on the state's own stack,
+   coming back to the newest of them whenever the branch it followed ends.
+   That order is the one walking the higher branch in a call of its own gave,
+   and a closure now costs one C frame however deeply the forks it walks
+   nest: 1,000 nested `(?:...)?` used to need more C stack than a 128 KiB
+   build has, and the 4,095 levels the parse depth limit allows more than
+   256 KiB. */
 static void
 add_thread(pike_state *s, re_threadlist *list,
            uint32_t pc, int cap_slot, const char *sp, uint32_t key)
 {
-  for (;;) {
-    /* Both of these end the walk without an answer to hand back: a cut is
-       this step having been settled by a higher-priority thread, and a
-       refused allocation is the search stopping (see pool_alloc()). */
-    if (s->cut || s->nomem) return;
-    if (pc >= s->pat->code_len) return;
-    if (s->visited[pc] >= key) return;
-    s->visited[pc] = key;
+  s->pend_top = 0;
 
-    re_inst inst = s->pat->code[pc];
-    switch (inst.op) {
-    case RE_JMP:
-      /* A backward jump closes a repetition (e*, e{n,}): it returns to the
-         RE_SPLIT/RE_SPLITNG head, whose offset is the loop's exit. `a` is set
-         only when that body can run empty (see mark_empty_loops()), which is
-         the only case with a final empty iteration to account for. */
-      if (inst.offset <= pc && inst.a) {
-        uint32_t head = inst.offset;
-        if (loop_head_seen(s, head)) {
-          /* The head was walked at this position, so the iteration that just
-             finished consumed nothing. Onigmo stops a repetition on an empty
-             iteration and keeps what that iteration captured, so leave the
-             loop from here rather than dying on the head's mark: this path
-             outranks the exit the head itself queued before the body ran, and
-             claims the exit pc first. */
-          pc = s->pat->code[head].offset;
+  for (;;) {
+    for (;;) {
+      /* Both of these end the walk without an answer to hand back: a cut is
+         this step having been settled by a higher-priority thread, and a
+         refused allocation is the search stopping (see pool_alloc()). */
+      if (s->cut || s->nomem) goto leave;
+      if (pc >= s->pat->code_len) goto next;
+      if (s->visited[pc] >= key) goto next;
+      s->visited[pc] = key;
+
+      re_inst inst = s->pat->code[pc];
+      switch (inst.op) {
+      case RE_JMP:
+        /* A backward jump closes a repetition (e*, e{n,}): it returns to the
+           RE_SPLIT/RE_SPLITNG head, whose offset is the loop's exit. `a` is set
+           only when that body can run empty (see mark_empty_loops()), which is
+           the only case with a final empty iteration to account for. */
+        if (inst.offset <= pc && inst.a) {
+          uint32_t head = inst.offset;
+          if (loop_head_seen(s, head)) {
+            /* The head was walked at this position, so the iteration that just
+               finished consumed nothing. Onigmo stops a repetition on an empty
+               iteration and keeps what that iteration captured, so leave the
+               loop from here rather than dying on the head's mark: this path
+               outranks the exit the head itself queued before the body ran, and
+               claims the exit pc first. */
+            pc = s->pat->code[head].offset;
+            continue;
+          }
+          /* The head is unmarked, so this closure resumed inside the body and
+             the iteration it just finished is a real one. Run the next
+             iteration in a fresh pass, past the marks the resumed tail left. */
+          if (key < s->key_max) key++;
+          pc = head;
           continue;
         }
-        /* The head is unmarked, so this closure resumed inside the body and
-           the iteration it just finished is a real one. Run the next
-           iteration in a fresh pass, past the marks the resumed tail left. */
-        if (key < s->key_max) key++;
-        pc = head;
-        continue;
-      }
-      pc = inst.offset;
-      continue;
-
-    case RE_SPLIT:
-      /* Greedy fork: the fall-through (pc+1) outranks the jump target, the
-         same priority order the backtracking engine uses. Explore the
-         higher-priority branch first so it claims shared pcs (visited[]) and
-         reaches a match before the lower one. Snapshot the captures before
-         pc+1's closure can mutate the shared slot; the jump branch then runs
-         on that snapshot. */
-      {
-        uint32_t back = re_loop_back(s, inst, pc, key);
-        if (back == RE_LOOP_STOP) { pc++; continue; }
-        int cp = 0;
-        if (!s->match_only && !pool_copy(s, cap_slot, &cp)) return;
-        add_thread(s, list, pc + 1, cap_slot, sp, key);
-        if (s->cut || s->nomem) return;
         pc = inst.offset;
-        cap_slot = cp;
-        key = back;
+        continue;
+
+      case RE_SPLIT:
+        /* Greedy fork: the fall-through (pc+1) outranks the jump target, the
+           same priority order the backtracking engine uses. Follow the
+           higher-priority branch first so it claims shared pcs (visited[]) and
+           reaches a match before the lower one. Snapshot the captures before
+           pc+1's closure can mutate the shared slot; the jump branch then runs
+           on that snapshot. */
+        {
+          uint32_t back = re_loop_back(s, inst, pc, key);
+          if (back == RE_LOOP_STOP) { pc++; continue; }
+          int cp = 0;
+          if (!s->match_only && !pool_copy(s, cap_slot, &cp)) goto leave;
+          if (!pend_push(s, inst.offset, cp, back)) goto leave;
+          pc = pc + 1;
+        }
+        continue;
+
+      case RE_SPLITNG:
+        /* Non-greedy fork: the jump target outranks the fall-through. */
+        {
+          uint32_t back = re_loop_back(s, inst, pc, key);
+          if (back == RE_LOOP_STOP) { pc++; continue; }
+          int cp = 0;
+          if (!s->match_only && !pool_copy(s, cap_slot, &cp)) goto leave;
+          if (!pend_push(s, pc + 1, cp, key)) goto leave;
+          pc = inst.offset;
+          key = back;
+        }
+        continue;
+
+      case RE_SAVE:
+        /* No test that the position is a character boundary: it is one. A byte
+           that spells no character is RE_BYTE and matches only where the subject
+           byte stands alone, so no atom stops between two bytes of a character
+           and no position a group is recorded at is inside one. The rule used to
+           be tested here, on the end of group 0 and then on every slot. */
+        if (!s->match_only) {
+          CAP(s, cap_slot)[inst.offset] = (int)(sp - s->str);
+        }
+        pc++;
+        continue;
+
+      case RE_BOL:
+        /* ^ always matches at a line start (string start or just after a \n);
+           Ruby's /m only affects `.`, not the line anchors. \A is RE_BOT. A
+           trailing \n does not open a final line, so ^ does not match at the
+           very end. */
+        if (sp == s->str || (sp != s->str_end && sp[-1] == '\n')) {
+          pc++; continue;
+        }
+        goto next;
+
+      case RE_EOL:
+        /* $ always matches at a line end (string end or just before a \n). */
+        if (sp == s->str_end || *sp == '\n') {
+          pc++; continue;
+        }
+        goto next;
+
+      case RE_BOT:
+        if (sp == s->str) { pc++; continue; }
+        goto next;
+
+      case RE_EOT:
+        if (sp == s->str_end) { pc++; continue; }
+        goto next;
+
+      case RE_EOTNL:
+        if (sp == s->str_end || (sp + 1 == s->str_end && *sp == '\n')) { pc++; continue; }
+        goto next;
+
+      case RE_WBOUND:
+        {
+          mrb_bool before = (sp > s->str) && mrb_re_word_before(s->str, sp, s->str_end, s->binary);
+          mrb_bool after = (sp < s->str_end) && mrb_re_word_at(sp, s->str_end, s->binary);
+          if (before != after) { pc++; continue; }
+        }
+        goto next;
+
+      case RE_NWBOUND:
+        {
+          mrb_bool before = (sp > s->str) && mrb_re_word_before(s->str, sp, s->str_end, s->binary);
+          mrb_bool after = (sp < s->str_end) && mrb_re_word_at(sp, s->str_end, s->binary);
+          if (before == after) { pc++; continue; }
+        }
+        goto next;
+
+      case RE_MATCH:
+        s->matched = TRUE;
+        if (s->result_caps) {
+          memcpy(s->result_caps, CAP(s, cap_slot), sizeof(int) * s->ncap);
+        }
+        /* Leftmost-first: this is the highest-priority thread to reach a match
+           this step (closures run in priority order), so cut every lower one.
+           A surviving higher-priority thread can still match later and override
+           this in a subsequent step, which is the correct greedy/longest case. */
+        s->cut = TRUE;
+        goto leave;
+
+      default:
+        break;
       }
-      continue;
-
-    case RE_SPLITNG:
-      /* Non-greedy fork: the jump target outranks the fall-through. */
-      {
-        uint32_t back = re_loop_back(s, inst, pc, key);
-        if (back == RE_LOOP_STOP) { pc++; continue; }
-        int cp = 0;
-        if (!s->match_only && !pool_copy(s, cap_slot, &cp)) return;
-        add_thread(s, list, inst.offset, cap_slot, sp, back);
-        if (s->cut || s->nomem) return;
-        pc = pc + 1;
-        cap_slot = cp;
-      }
-      continue;
-
-    case RE_SAVE:
-      /* No test that the position is a character boundary: it is one. A byte
-         that spells no character is RE_BYTE and matches only where the subject
-         byte stands alone, so no atom stops between two bytes of a character
-         and no position a group is recorded at is inside one. The rule used to
-         be tested here, on the end of group 0 and then on every slot. */
-      if (!s->match_only) {
-        CAP(s, cap_slot)[inst.offset] = (int)(sp - s->str);
-      }
-      pc++;
-      continue;
-
-    case RE_BOL:
-      /* ^ always matches at a line start (string start or just after a \n);
-         Ruby's /m only affects `.`, not the line anchors. \A is RE_BOT. A
-         trailing \n does not open a final line, so ^ does not match at the
-         very end. */
-      if (sp == s->str || (sp != s->str_end && sp[-1] == '\n')) {
-        pc++; continue;
-      }
-      return;
-
-    case RE_EOL:
-      /* $ always matches at a line end (string end or just before a \n). */
-      if (sp == s->str_end || *sp == '\n') {
-        pc++; continue;
-      }
-      return;
-
-    case RE_BOT:
-      if (sp == s->str) { pc++; continue; }
-      return;
-
-    case RE_EOT:
-      if (sp == s->str_end) { pc++; continue; }
-      return;
-
-    case RE_EOTNL:
-      if (sp == s->str_end || (sp + 1 == s->str_end && *sp == '\n')) { pc++; continue; }
-      return;
-
-    case RE_WBOUND:
-      {
-        mrb_bool before = (sp > s->str) && mrb_re_word_before(s->str, sp, s->str_end, s->binary);
-        mrb_bool after = (sp < s->str_end) && mrb_re_word_at(sp, s->str_end, s->binary);
-        if (before != after) { pc++; continue; }
-      }
-      return;
-
-    case RE_NWBOUND:
-      {
-        mrb_bool before = (sp > s->str) && mrb_re_word_before(s->str, sp, s->str_end, s->binary);
-        mrb_bool after = (sp < s->str_end) && mrb_re_word_at(sp, s->str_end, s->binary);
-        if (before == after) { pc++; continue; }
-      }
-      return;
-
-    case RE_MATCH:
-      s->matched = TRUE;
-      if (s->result_caps) {
-        memcpy(s->result_caps, CAP(s, cap_slot), sizeof(int) * s->ncap);
-      }
-      /* Leftmost-first: this is the highest-priority thread to reach a match
-         this step (closures run in priority order), so cut every lower one.
-         A surviving higher-priority thread can still match later and override
-         this in a subsequent step, which is the correct greedy/longest case. */
-      s->cut = TRUE;
-      return;
-
-    default:
       break;
     }
-    break;
+
+    if (list->count < list->capa) {
+      re_thread *t = &list->threads[list->count++];
+      t->pc = pc;
+      t->cap_slot = cap_slot;
+      t->sp = sp;
+    }
+
+  next:
+    /* The branch the walk followed is finished, whether it left a thread
+       behind or died on an assertion. What a fork kept is walked newest
+       first, which is the order a call of its own gave the higher branch:
+       every branch a fork opened below this one has been walked by now. */
+    if (s->pend_top == 0) return;
+    {
+      re_pending *e = &s->pend[--s->pend_top];
+      pc = e->pc;
+      cap_slot = e->cap_slot;
+      key = e->key;
+    }
   }
 
-  if (list->count < list->capa) {
-    re_thread *t = &list->threads[list->count++];
-    t->pc = pc;
-    t->cap_slot = cap_slot;
-    t->sp = sp;
-  }
+leave:
+  /* A cut and a refusal both end the closure whole, the branches kept for
+     later included: the cut has nothing lower to add and the refusal has
+     nowhere to add it. */
+  s->pend_top = 0;
 }
 
 static int
@@ -569,6 +660,9 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
   s.pass_span = RE_PASS_SPAN(pat->loop_depth);
   s.gen = 0;
   s.key_max = s.pass_span - 1;
+  s.pend = s.pend_inline;
+  s.pend_top = 0;
+  s.pend_capa = RE_PEND_INLINE;
 
   /* Everything this search holds is given back by one epilogue below, which
      an allocator that raises would jump past: what had been taken by then
@@ -849,6 +943,7 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
   }
   mrb_free(mrb, s.cap_pool);
   if (s.result_caps) mrb_free(mrb, s.result_caps);
+  if (s.pend != s.pend_inline) mrb_free(mrb, s.pend);
 
   return ret;
 }
