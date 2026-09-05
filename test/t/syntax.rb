@@ -1686,6 +1686,19 @@ assert('defined? sees through parentheses around one expression') do
   assert_equal 'expression', defined?((1; 2))
 end
 
+assert('defined? on a call carrying a block') do
+  # a literal block makes the whole call an expression, whether or not the
+  # method is there and whatever the call is written on
+  assert_equal 'expression', defined?(loop { break })
+  assert_equal 'expression', defined?(no_such_method_at_all { })
+  assert_equal 'expression', defined?([1, 2].map { |e| e })
+  assert_equal 'expression', defined?(nil&.no_such_method_at_all { })
+
+  # a block passed as `&arg` leaves an ordinary call behind
+  assert_equal 'method', defined?(assert(&:to_s))
+  assert_nil defined?(no_such_method_at_all(&:to_s))
+end
+
 # NOTE: `&nil` block-forbidding parameters live in syntax_block_forbid.rb,
 # which the build excludes when compiling with mruby-compiler-prism (the
 # Prism parser does not accept `&nil` yet).
