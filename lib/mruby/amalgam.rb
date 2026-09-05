@@ -492,6 +492,10 @@ module MRuby
         ** This file is auto-generated. Do not edit directly.
         ** Compile together with the amalgamated mruby.c.
         */
+
+        #ifndef MRB_AMALGAMATION
+        #define MRB_AMALGAMATION 1
+        #endif
       PREAMBLE
 
       write_gem_cc_defines(f, gems)
@@ -563,6 +567,14 @@ module MRuby
         **
         ** This file is auto-generated. Do not edit directly.
         */
+
+        /* Marks a translation unit that holds the whole runtime rather than
+        ** one source file. Sources that ask the compiler for whole-callgraph
+        ** work (src/vm.c and __attribute__((flatten))) read this to keep the
+        ** request scoped the way a per-file build scopes it. */
+        #ifndef MRB_AMALGAMATION
+        #define MRB_AMALGAMATION 1
+        #endif
 
         #include "mruby.h"
 
