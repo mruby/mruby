@@ -493,6 +493,7 @@ uint32_t mrb_utf8_decode(const char *p, const char *e, mrb_int *lenp);
 mrb_int mrb_utf8_strlen(const char *str, mrb_int byte_len);
 #endif
 
+#ifdef HAVE_MRUBY_REGEXP_GEM
 /* Whether more than one byte can spell one character in what this build
    reads. The three functions below answer what a given run of bytes spells,
    which is what a reader wants; this is for the few places that have to know
@@ -548,6 +549,8 @@ mrb_enc_decode(const char *p, const char *e, mrb_int *lenp)
   return (uint8_t)*p;
 #endif
 }
+#endif  /* HAVE_MRUBY_REGEXP_GEM */
+
 /* What a case conversion makes of each character. `capitalize` asks two things
    of one string, title case at the front and lower case behind it, and `swap`
    asks per character, so a mode is what a method does rather than one case. */
