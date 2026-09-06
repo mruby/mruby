@@ -262,6 +262,79 @@ assert 'pack("U") with a UTF-16 surrogate' do
   assert_equal [0xEE, 0x80, 0x80], [0xE000].pack("U").unpack("C*")
 end
 
+assert 'unpack("U") over every lead byte' do
+  # Every lead byte followed by up to five continuation bytes, once with the
+  # lowest continuation byte and once with the highest, so that every boundary
+  # has a sequence on each side of it: a shorter spelling (C0, C1, E0 80,
+  # F0 80, F8 80, FC 80), a surrogate (ED A0 and above), U+10FFFF (F4 90 and
+  # above, F5 to F7), and the five and six byte lengths (F8 to FD). A shorter
+  # spelling of a value is "redundant" and everything else short of a
+  # character is "malformed", which is how CRuby tells the two apart. What
+  # CRuby admits past U+10FFFF, the four byte spellings above it and the
+  # five and six byte ones, is refused here; over these 3072 strings that is
+  # the whole of the difference. The next test holds the sequences right on
+  # either side of each bound on the second byte.
+  min = [0, 128, 2048, 65536, 2097152, 67108864]
+  claim = ->(c) {
+    if c < 0x80 then 1 elsif c < 0xC0 then 0 elsif c < 0xE0 then 2
+    elsif c < 0xF0 then 3 elsif c < 0xF8 then 4 elsif c < 0xFC then 5
+    elsif c < 0xFE then 6 else 0 end
+  }
+  # the fillers are continuation bytes, so only the count and the value can
+  # fall short
+  expected = ->(bytes) {
+    c = bytes[0]
+    n = claim.call(c)
+    next [c] if n == 1
+    next :malformed if n == 0 || bytes.size < n
+    v = c & (0x7F >> n)
+    (1...n).each {|k| v = (v << 6) | (bytes[k] & 0x3F) }
+    next :redundant if v < min[n - 1]
+    next :malformed if v > 0x10FFFF
+    [v]
+  }
+  0.upto(255) do |c|
+    [0x80, 0xBF].each do |f|
+      0.upto(5) do |k|
+        bytes = [c] + [f] * k
+        got = begin
+          bytes.pack("C*").unpack("U")
+        rescue ArgumentError => e
+          e.message.split(" ").first.to_sym
+        end
+        assert_equal expected.call(bytes), got, bytes.inspect
+      end
+    end
+  end
+end
+
+assert 'unpack("U") on either side of each bound on the second byte' do
+  read = ->(s) {
+    begin
+      s.unpack("U")
+    rescue ArgumentError => e
+      e.message.split(" ").first.to_sym
+    end
+  }
+  # Each pair differs in the byte after the lead alone, one step across the
+  # floor of three to six bytes, the surrogates and U+10FFFF.
+  [
+    ["\xE0\x9F\xBF", :redundant],             ["\xE0\xA0\x80", [0x800]],
+    ["\xED\x9F\xBF", [0xD7FF]],               ["\xED\xA0\x80", [0xD800]],
+    ["\xF0\x8F\xBF\xBF", :redundant],         ["\xF0\x90\x80\x80", [0x10000]],
+    ["\xF4\x8F\xBF\xBF", [0x10FFFF]],         ["\xF4\x90\x80\x80", :malformed],
+    ["\xF8\x87\xBF\xBF\xBF", :redundant],     ["\xF8\x88\x80\x80\x80", :malformed],
+    ["\xFC\x83\xBF\xBF\xBF\xBF", :redundant], ["\xFC\x84\x80\x80\x80\x80", :malformed],
+  ].each do |s, v|
+    assert_equal v, read.call(s), s.inspect
+  end
+  # A second byte below the floor says "redundant" only once every byte the
+  # lead claims has continued it, as CRuby checks them.
+  ["\xE0\x80\x41", "\xF0\x80\x80\x41", "\xF8\x80\x80\x80\x41", "\xFC\x80\x80\x80\x80\x41"].each do |s|
+    assert_equal :malformed, read.call(s), s.inspect
+  end
+end
+
 assert 'unpack1' do
   d = 1234
   assert_equal(d, [d].pack("i").unpack1("i"))

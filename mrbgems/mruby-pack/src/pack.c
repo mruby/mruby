@@ -202,43 +202,6 @@ static inline uint8_t char_class(unsigned char c) {
     default: return 0;
   }
 }
-/* UTF-8 optimization lookup tables */
-/* UTF-8 sequence length lookup table for non-ASCII bytes (0x80-0xFF) */
-/* Index = byte_value - 0x80, so table[0] = info for byte 0x80 */
-static const uint8_t utf8_seq_len_high[128] = {
-  /* 0x80-0xBF: Invalid start bytes (continuation bytes) - return 0 for error */
-  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
-  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
-
-  /* 0xC0-0xDF: 2-byte sequences */
-  2,2,2,2,2,2,2,2, 2,2,2,2,2,2,2,2, 2,2,2,2,2,2,2,2, 2,2,2,2,2,2,2,2,
-
-  /* 0xE0-0xEF: 3-byte sequences */
-  3,3,3,3,3,3,3,3, 3,3,3,3,3,3,3,3,
-
-  /* 0xF0-0xF7: 4-byte sequences */
-  4,4,4,4,4,4,4,4,
-
-  /* 0xF8-0xFF: Invalid start bytes - return 0 for error */
-  0,0,0,0,0,0,0,0
-};
-
-/* Fast validation for UTF-8 continuation bytes (0x80-0xBF) */
-/* Index = byte_value - 0x80 */
-static const uint8_t utf8_is_continuation[128] = {
-  /* 0x80-0xBF: Valid continuation bytes */
-  1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
-  1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
-
-  /* 0xC0-0xFF: Invalid continuation bytes */
-  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
-  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0
-};
-
-/* Helper macro for continuation byte validation */
-#define IS_UTF8_CONTINUATION(byte) \
-  ((byte) >= 0x80 && utf8_is_continuation[(byte) - 0x80])
-
 /* Quoted-printable optimization lookup table */
 /* 0=literal, 1=encode, 2=special (newline) */
 static const uint8_t qprint_encode_type[256] = {
@@ -800,81 +763,76 @@ pack_utf8(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, int count, u
 
 
 
-static int
-unpack_utf8(mrb_state *mrb, const unsigned char * src, mrb_int srclen, mrb_value ary, unsigned int flags)
+/* What a lead byte's second byte may be for unpack("U") to read the
+   sequence as a value: RFC 3629's bounds with the UTF-16 surrogates let
+   through (0xED up to BF), and the two long lengths refused at their
+   floors, so that a shorter spelling under 0xF8 or 0xFC is reported as
+   one and everything at or above the floor as no character, which is what
+   the value bound at U+10FFFF made of them before. */
+#define R(lo, hi) {0x##lo, 0x##hi}
+static const uint8_t unpack_utf8_bounds[64][2] = {
+  R(C0,BF), R(C0,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF),  /* C0..C7 */
+  R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF),  /* C8..CF */
+  R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF),  /* D0..D7 */
+  R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF),  /* D8..DF */
+  R(A0,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF),  /* E0..E7 */
+  R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF),  /* E8..EF */
+  R(90,BF), R(80,BF), R(80,BF), R(80,BF), R(80,8F), R(80,7F), R(80,7F), R(80,7F),  /* F0..F7 */
+  R(88,87), R(80,7F), R(80,7F), R(80,7F), R(84,83), R(80,7F), R(80,7F), R(80,7F),  /* F8..FF */
+};
+#undef R
+
+/* The five and six byte lengths, which mrb_utf8_scan() hands back unread:
+   the same walk over the claimed length and the same bounds on the second
+   byte, for the one reader that has to say what it found in them. */
+static mrb_int
+unpack_utf8_long(const unsigned char *q, mrb_int len, uint32_t *uv)
 {
-  if (srclen == 0) {
-    return 1;
+  mrb_int n = q[0] < 0xFC ? 5 : 6;
+  if (n > len) return MRB_UTF8_TRUNCATED;
+  uint32_t v = q[0] & (0x7F >> n);
+  for (mrb_int i = 1; i < n; i++) {
+    if ((q[i] & 0xC0) != 0x80) return MRB_UTF8_MALFORMED;
+    v = (v << 6) | (q[i] & 0x3F);
   }
+  const uint8_t *b = unpack_utf8_bounds[q[0] - 0xC0];
+  if (q[1] < b[0]) return MRB_UTF8_REDUNDANT;
+  if (q[1] > b[1]) return MRB_UTF8_EXCLUDED;
+  *uv = v;
+  return n;
+}
 
+/* Read up to `count` characters (all of them for -1) and return the bytes
+   read. Nothing a push runs moves the bytes of the string, so the loop keeps
+   its pointer rather than taking it again for each character. */
+static mrb_int
+unpack_utf8(mrb_state *mrb, const unsigned char *src, mrb_int srclen, mrb_value ary, mrb_int count)
+{
   const unsigned char *p = src;
-  uint8_t first_byte = *p;
+  const unsigned char *e = src + srclen;
 
-  /* ASCII fast path - most common case */
-  if (first_byte < 0x80) {
-    mrb_ary_push(mrb, ary, mrb_fixnum_value(first_byte));
-    return 1;
+  for (; count != 0 && p < e; count--) {
+    if (*p < 0x80) {
+      mrb_ary_push(mrb, ary, mrb_fixnum_value(*p));
+      p++;
+      continue;
+    }
+
+    /* A shorter spelling of a value is reported apart from bytes that spell
+       nothing, as CRuby reports it. */
+    uint32_t uv;
+    mrb_int n = mrb_utf8_scan((const char*)p, (const char*)e, &uv, unpack_utf8_bounds);
+    if (n == MRB_UTF8_LONG) n = unpack_utf8_long(p, e - p, &uv);
+    if (n == MRB_UTF8_REDUNDANT) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "redundant UTF-8 sequence");
+    }
+    if (n < 0) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "malformed UTF-8 character");
+    }
+    mrb_ary_push(mrb, ary, mrb_fixnum_value((mrb_int)uv));
+    p += n;
   }
-
-  /* Multi-byte UTF-8 with optimized lookup table */
-  uint8_t seq_len = utf8_seq_len_high[first_byte - 0x80];
-  if (seq_len == 0 || seq_len > srclen) {
-    goto malformed;
-  }
-
-  /* Inline 2-byte sequence optimization - common case */
-  if (seq_len == 2) {
-    if (!IS_UTF8_CONTINUATION(p[1])) {
-      goto malformed;
-    }
-    uint32_t uv = ((first_byte & 0x1F) << 6) | (p[1] & 0x3F);
-    /* validate minimum value for 2-byte sequence */
-    if (uv >= 0x80) {
-      mrb_ary_push(mrb, ary, mrb_fixnum_value((mrb_int)uv));
-      return 2;
-    }
-    goto redundant;
-  }
-
-  /* Inline 3-byte sequence optimization */
-  if (seq_len == 3) {
-    if (!IS_UTF8_CONTINUATION(p[1]) || !IS_UTF8_CONTINUATION(p[2])) {
-      goto malformed;
-    }
-    uint32_t uv = ((first_byte & 0x0F) << 12) |
-                  ((p[1] & 0x3F) << 6) |
-                  (p[2] & 0x3F);
-    /* validate minimum value for 3-byte sequence */
-    if (uv >= 0x800) {
-      mrb_ary_push(mrb, ary, mrb_fixnum_value((mrb_int)uv));
-      return 3;
-    }
-    goto redundant;
-  }
-
-  /* 4-byte sequence - less common, use original implementation */
-  if (seq_len == 4) {
-    if (!IS_UTF8_CONTINUATION(p[1]) || !IS_UTF8_CONTINUATION(p[2]) || !IS_UTF8_CONTINUATION(p[3])) {
-      goto malformed;
-    }
-    uint32_t uv = ((first_byte & 0x07) << 18) |
-                  ((p[1] & 0x3F) << 12) |
-                  ((p[2] & 0x3F) << 6) |
-                  (p[3] & 0x3F);
-    /* validate minimum value and maximum valid Unicode */
-    if (uv >= 0x10000 && uv <= 0x10FFFF) {
-      mrb_ary_push(mrb, ary, mrb_fixnum_value((mrb_int)uv));
-      return 4;
-    }
-    if (uv < 0x10000) goto redundant;
-    goto malformed;
-  }
-
-malformed:
-  mrb_raise(mrb, E_ARGUMENT_ERROR, "malformed UTF-8 character");
-
-redundant:
-  mrb_raise(mrb, E_ARGUMENT_ERROR, "redundant UTF-8 sequence");
+  return p - src;
 }
 
 static int
@@ -2030,6 +1988,11 @@ pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
       if (single) goto single_return;
       continue;
 
+    /* UTF8 format - reads its whole count in one call */
+    case PACK_DIR_UTF8:
+      srcidx += unpack_utf8(mrb, sptr, srclen - srcidx, result, count);
+      continue;
+
     default:
       break;
     }
@@ -2071,11 +2034,6 @@ pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
         srcidx += unpack_double(mrb, sptr, srclen - srcidx, result, flags);
         break;
 #endif
-
-      /* UTF8 format - uses (mrb, sptr, len, result, flags) signature */
-      case PACK_DIR_UTF8:
-        srcidx += unpack_utf8(mrb, sptr, srclen - srcidx, result, flags);
-        break;
 
       default:
         mrb_raise(mrb, E_RUNTIME_ERROR, "mruby-pack's bug");

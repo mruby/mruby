@@ -477,10 +477,13 @@ mrb_int mrb_utf8_to_buf(char *buf, mrb_int cp);
 
 /* UTF-8: what a run of bytes spells. A build that indexes strings by
    character reads through this on every character, so it is compiled
-   wherever that build compiles; a build that indexes by byte has no reader
-   of it and compiles none of it. What a caller reading a string whatever
-   the build encodes it in asks is mrb_enc_* below. */
-#ifdef MRB_UTF8_STRING
+   wherever that build compiles. A build that indexes by byte has one
+   reader, unpack("U") in mruby-pack, which reads UTF-8 whatever the build
+   indexes by: the gem defines HAVE_MRUBY_PACK_GEM for its own files alone,
+   so that build compiles the scan there and nowhere else, and a byte
+   build without the gem compiles none of it. What a caller reading a
+   string whatever the build encodes it in asks is mrb_enc_* below. */
+#if defined(MRB_UTF8_STRING) || defined(HAVE_MRUBY_PACK_GEM)
 /* What the sequence at `p`, which has to be a byte of the string rather than
    `e` itself, has the form of. Which forms spell a character is a view the
    scan keeps none of: it reads the length the lead byte claims, asks that
