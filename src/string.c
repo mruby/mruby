@@ -381,54 +381,38 @@ mrb_utf8_to_buf(char *buf, mrb_int cp)
 }
 
 /* UTF-8: what a run of bytes spells, and what a string holds character by
-   character. Only a build that indexes strings by character has to answer
-   either, so a build without MRB_UTF8_STRING carries none of it. */
+   character. The scan is mrb_utf8_scan() in internal.h, taken inline by
+   each reader; what this file adds is the view it reads through. Only a
+   build that indexes strings by character has to answer, so a build
+   without MRB_UTF8_STRING carries none of it. */
 #ifdef MRB_UTF8_STRING
 
 #define utf8_islead(c) ((unsigned char)((c)&0xc0) != 0x80)
 
-/* the byte length a lead byte claims, read only through mrb_utf8len() */
-static const char mrb_utf8len_table[] = {
-  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-  0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 3, 3, 4, 0
+/* What a lead byte's second byte may be for the sequence to spell a
+   character under RFC 3629 (Unicode D93b), one pair per lead byte from
+   0xC0: the floor of each length (0xE0 A0, 0xF0 90; 0xC0 and 0xC1 have
+   nothing to spell), the UTF-16 surrogates (0xED up to 9F), U+10FFFF
+   (0xF4 up to 8F), and nothing at all for 0xF5 and above. This is the one
+   view the scan keeps none of; unpack("U") in mruby-pack holds its own. */
+#define R(lo, hi) {0x##lo, 0x##hi}
+static const uint8_t utf8_rfc3629_bounds[64][2] = {
+  R(C0,BF), R(C0,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF),  /* C0..C7 */
+  R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF),  /* C8..CF */
+  R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF),  /* D0..D7 */
+  R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF),  /* D8..DF */
+  R(A0,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF),  /* E0..E7 */
+  R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,9F), R(80,BF), R(80,BF),  /* E8..EF */
+  R(90,BF), R(80,BF), R(80,BF), R(80,BF), R(80,8F), R(80,7F), R(80,7F), R(80,7F),  /* F0..F7 */
+  R(80,7F), R(80,7F), R(80,7F), R(80,7F), R(80,7F), R(80,7F), R(80,7F), R(80,7F),  /* F8..FF */
 };
+#undef R
 
 mrb_int
 mrb_utf8len(const char* p, const char* e)
 {
-  mrb_int len = mrb_utf8len_table[(unsigned char)p[0] >> 3];
-  if (len > e - p) return 1;
-  switch (len) {
-  case 0:
-    return 1;
-  case 4:
-    if (utf8_islead(p[3])) return 1;
-  case 3:
-    if (utf8_islead(p[2])) return 1;
-  case 2:
-    if (utf8_islead(p[1])) return 1;
-  }
-  /* Reject overlong sequences, UTF-16 surrogates, and code points above
-     U+10FFFF (RFC 3629, Unicode D93b). */
-  switch ((unsigned char)p[0]) {
-  case 0xC0: case 0xC1:                       /* overlong (< U+0080) */
-    return 1;
-  case 0xE0:                                  /* overlong (< U+0800) */
-    if ((unsigned char)p[1] < 0xA0) return 1;
-    break;
-  case 0xED:                                  /* surrogate (U+D800..U+DFFF) */
-    if ((unsigned char)p[1] > 0x9F) return 1;
-    break;
-  case 0xF0:                                  /* overlong (< U+10000) */
-    if ((unsigned char)p[1] < 0x90) return 1;
-    break;
-  case 0xF4:                                  /* above U+10FFFF */
-    if ((unsigned char)p[1] > 0x8F) return 1;
-    break;
-  case 0xF5: case 0xF6: case 0xF7:            /* above U+10FFFF */
-    return 1;
-  }
-  return len;
+  mrb_int n = mrb_utf8_scan(p, e, NULL, utf8_rfc3629_bounds);
+  return n < 0 ? 1 : n;
 }
 
 /* The byte the character covering `p` starts at, or `p` itself when `p` is
@@ -451,36 +435,21 @@ mrb_utf8_char_head(const char *beg, const char *p, const char *end)
 }
 
 /* Decode a UTF-8 character and return its codepoint.
-   *lenp is set to the byte length consumed. mrb_utf8len() answers 1 for every
-   sequence it rejects, so those consume a single byte and come back as the
-   lead byte itself. */
+   *lenp is set to the byte length consumed. What mrb_utf8len() rejects is
+   rejected here by the same view, so those consume a single byte and come
+   back as the lead byte itself. */
 uint32_t
 mrb_utf8_decode(const char *p, const char *e, mrb_int *lenp)
 {
-  uint8_t c = (uint8_t)p[0];
-  uint32_t cp;
-  mrb_int n = mrb_utf8len(p, e);
+  uint32_t uv;
+  mrb_int n = mrb_utf8_scan(p, e, &uv, utf8_rfc3629_bounds);
 
-  *lenp = n;
-  switch (n) {
-  case 2:
-    cp = (c & 0x1f) << 6;
-    cp |= ((uint8_t)p[1] & 0x3f);
-    return cp;
-  case 3:
-    cp = (c & 0x0f) << 12;
-    cp |= ((uint8_t)p[1] & 0x3f) << 6;
-    cp |= ((uint8_t)p[2] & 0x3f);
-    return cp;
-  case 4:
-    cp = (c & 0x07) << 18;
-    cp |= ((uint8_t)p[1] & 0x3f) << 12;
-    cp |= ((uint8_t)p[2] & 0x3f) << 6;
-    cp |= ((uint8_t)p[3] & 0x3f);
-    return cp;
-  default:
-    return c;  /* ASCII, or invalid/truncated byte returned as-is */
+  if (n < 0) {
+    *lenp = 1;
+    return (uint8_t)p[0];
   }
+  *lenp = n;
+  return uv;
 }
 
 #define NOASCII(c) ((c) & 0x80)

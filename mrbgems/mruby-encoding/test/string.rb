@@ -228,6 +228,58 @@ assert('String#valid_encoding?') do
   end
 end
 
+assert('String#valid_encoding? over every lead byte') do
+  # Every lead byte followed by up to five continuation bytes, once with the
+  # lowest continuation byte and once with the highest, so that every boundary
+  # RFC 3629 draws has a sequence on each side of it: a shorter spelling (C0,
+  # C1, E0 80, F0 80), a surrogate (ED A0 and above), U+10FFFF (F4 90 and
+  # above, F5 to F7), and the five and six byte lengths (F8 to FD). The string
+  # is valid when one sequence RFC 3629 admits covers it exactly, which the
+  # reading of the RFC below decides; over these 3072 strings its answers are
+  # CRuby's. The next test holds the sequences right on either side of each
+  # bound on the second byte.
+  min = [0, 128, 2048, 65536, 2097152, 67108864]
+  claim = ->(c) {
+    if c < 0x80 then 1 elsif c < 0xC0 then 0 elsif c < 0xE0 then 2
+    elsif c < 0xF0 then 3 elsif c < 0xF8 then 4 elsif c < 0xFC then 5
+    elsif c < 0xFE then 6 else 0 end
+  }
+  # whether bytes[i..] is one sequence RFC 3629 admits; the fillers are
+  # continuation bytes, so only the count and the value can fall short
+  admits = ->(bytes) {
+    c = bytes[0]
+    n = claim.call(c)
+    next true if n == 1 && bytes.size == 1
+    next false if n < 2 || n > 4 || bytes.size != n
+    v = c & (0x7F >> n)
+    (1...n).each {|k| v = (v << 6) | (bytes[k] & 0x3F) }
+    v >= min[n - 1] && v <= 0x10FFFF && !(0xD800 <= v && v <= 0xDFFF)
+  }
+  0.upto(255) do |c|
+    [0x80, 0xBF].each do |f|
+      0.upto(5) do |k|
+        bytes = [c] + [f] * k
+        s = "\0" * bytes.size
+        bytes.each_with_index {|b, i| s.setbyte(i, b) }
+        assert_equal admits.call(bytes), s.valid_encoding?, bytes.inspect
+      end
+    end
+  end
+end if UTF8STRING
+
+assert('String#valid_encoding? on either side of each bound on the second byte') do
+  # Each pair differs in the byte after the lead alone, one step across the
+  # floor of three and four bytes, the surrogates and U+10FFFF.
+  [
+    ["\xE0\x9F\xBF", false],     ["\xE0\xA0\x80", true],
+    ["\xED\x9F\xBF", true],      ["\xED\xA0\x80", false],
+    ["\xF0\x8F\xBF\xBF", false], ["\xF0\x90\x80\x80", true],
+    ["\xF4\x8F\xBF\xBF", true],  ["\xF4\x90\x80\x80", false],
+  ].each do |s, valid|
+    assert_equal valid, s.valid_encoding?, s.inspect
+  end
+end if UTF8STRING
+
 assert('String#valid_encoding? answers the same however the string was read first') do
   # A string read once is marked as holding one character per byte where every
   # byte of it is ASCII, and the answer here is taken off that mark rather than

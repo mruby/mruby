@@ -475,10 +475,104 @@ void mrb_str_check_byte_pos(mrb_state *mrb, mrb_value str, mrb_int pos);
    while mrb_utf8len() says it does not, is in the definition in string.c. */
 mrb_int mrb_utf8_to_buf(char *buf, mrb_int cp);
 
-/* UTF-8: what a run of bytes spells, and how many characters a string holds.
-   Only a build that indexes strings by character has to answer either, so a
-   build without MRB_UTF8_STRING carries none of them. What has to read a
-   string whatever the build encodes it in asks through mrb_enc_* below. */
+/* UTF-8: what a run of bytes spells. A build that indexes strings by
+   character reads through this on every character, so it is compiled
+   wherever that build compiles; a build that indexes by byte has no reader
+   of it and compiles none of it. What a caller reading a string whatever
+   the build encodes it in asks is mrb_enc_* below. */
+#ifdef MRB_UTF8_STRING
+/* What the sequence at `p`, which has to be a byte of the string rather than
+   `e` itself, has the form of. Which forms spell a character is a view the
+   scan keeps none of: it reads the length the lead byte claims, asks that
+   every byte after the lead continue it, and holds the byte after the lead
+   inside the bounds the caller's table gives for that lead. Everything a
+   view has to say about a sequence shows in those two bytes, so the table
+   is the view, one pair {lo, hi} per lead byte from 0xC0 that admits no
+   byte outside the continuation bytes 0x80-0xBF, and the answer is
+     n > 0               the shortest spelling, over n (1-4) bytes, of the
+                         value stored through `uv`
+     MRB_UTF8_MALFORMED  a byte that leads nothing, or a byte inside the
+                         claimed length that is no continuation byte
+     MRB_UTF8_TRUNCATED  fewer bytes before `e` than the lead byte claims
+     MRB_UTF8_REDUNDANT  a second byte below the table's lower bound, which
+                         a table set at the floor of each length makes the
+                         form of a value that has a shorter spelling
+     MRB_UTF8_EXCLUDED   a second byte above the table's upper bound
+     MRB_UTF8_LONG       a lead byte claiming five or six bytes, the lengths
+                         RFC 3629 withdrew, which a reader that admits them
+                         reads for itself
+   Nothing is stored through `uv` for a negative answer, and a caller that
+   wants the form alone passes NULL for it. The tables sit above: string.c
+   holds RFC 3629's for mrb_utf8len() below, and mruby-pack holds
+   unpack("U")'s. The scan is inline so that each reader takes it with its
+   table folded in, and one that counts characters pays nothing for the
+   value it never asked for. */
+#define MRB_UTF8_MALFORMED (-1)
+#define MRB_UTF8_TRUNCATED (-2)
+#define MRB_UTF8_REDUNDANT (-3)
+#define MRB_UTF8_EXCLUDED  (-4)
+#define MRB_UTF8_LONG      (-5)
+
+static inline mrb_int
+mrb_utf8_scan(const char *p, const char *e, uint32_t *uv, const uint8_t bounds[][2])
+{
+  /* the byte length a lead byte claims, by its top five bits; the last entry
+     folds 0xF8-0xFF together and they are told apart below. The table lives
+     in the function, as the lookup tables of boxing_word.h do, so that a
+     translation unit that never reads through the scan emits neither, at
+     any optimization level. */
+  static const uint8_t lead[32] = {
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 3, 3, 4, 0
+  };
+  const unsigned char *q = (const unsigned char*)p;
+  unsigned char c = q[0];
+  mrb_int n = lead[c >> 3];
+
+  if (n <= 1) {
+    if (n == 1) {
+      if (uv) *uv = c;
+      return 1;
+    }
+    /* a continuation byte leads nothing; 0xF8-0xFD claim five or six,
+       the lengths RFC 3629 withdrew, which a reader that wants them reads
+       for itself */
+    return (c < 0xF8 || c >= 0xFE) ? MRB_UTF8_MALFORMED : MRB_UTF8_LONG;
+  }
+  if (n > e - p) return MRB_UTF8_TRUNCATED;
+
+  /* Each byte after the lead has to continue it. A second byte inside its
+     bounds has, since the table admits nothing else, so only one outside
+     them walks the sequence to tell a malformed one from a bounded one. The
+     later checks nest in the order the bytes come, so a length costs the
+     compares up to its own and none past it. Read as a signed char, a
+     continuation byte is one below -0x40, a single compare where the mask
+     takes three. A caller that wants the form alone passes no `uv`, and the
+     value is dead code the compiler drops. */
+  const uint8_t *b = bounds[c - 0xC0];
+  if (q[1] < b[0] || q[1] > b[1]) {
+    for (mrb_int i = 1; i < n; i++) {
+      if ((signed char)q[i] >= -0x40) return MRB_UTF8_MALFORMED;
+    }
+    return q[1] < b[0] ? MRB_UTF8_REDUNDANT : MRB_UTF8_EXCLUDED;
+  }
+  uint32_t v = ((c & (0x7F >> n)) << 6) | (q[1] & 0x3F);
+  if (n > 2) {
+    if ((signed char)q[2] >= -0x40) return MRB_UTF8_MALFORMED;
+    v = (v << 6) | (q[2] & 0x3F);
+    if (n > 3) {
+      if ((signed char)q[3] >= -0x40) return MRB_UTF8_MALFORMED;
+      v = (v << 6) | (q[3] & 0x3F);
+    }
+  }
+  if (uv) *uv = v;
+  return n;
+}
+#endif
+
+/* How many characters a string holds, and where each one is. Only a build
+   that indexes strings by character has to answer, so a build without
+   MRB_UTF8_STRING carries none of them. */
 #ifdef MRB_UTF8_STRING
 /* The byte length of the character at `str`, which has to be a byte of the
    string rather than `end` itself, and 1 for a run of bytes that spells no
