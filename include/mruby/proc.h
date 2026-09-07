@@ -121,6 +121,13 @@ struct RProc {
 } while (0)
 #define MRB_PROC_SCOPE 2048
 #define MRB_PROC_SCOPE_P(p) (((p)->flags & MRB_PROC_SCOPE) != 0)
+/* Where a walk up the `upper` chain looking for local variables has to
+   stop.  A proc `def` made carries no env, and the locals of the scope it
+   was written in are not its own.  `define_method` marks the block it
+   installs a scope too, but that block keeps the closure it was made with:
+   its `upper` chain is that closure chain, which is what the runtime walk
+   (`uvenv()`) follows, so its locals go on up. */
+#define MRB_PROC_LVAR_BOUNDARY_P(p) (MRB_PROC_SCOPE_P(p) && !MRB_PROC_ENV_P(p))
 #define MRB_PROC_NOARG 4096 /* for MRB_PROC_CFUNC_FL, aspec == MRB_ARGS_NONE() */
 #define MRB_PROC_NOARG_P(p) (((p)->flags & MRB_PROC_NOARG) != 0)
 #define MRB_PROC_ALIAS 8192

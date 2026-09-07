@@ -498,7 +498,7 @@ mrb_proc_local_variables(mrb_state *mrb, const struct RProc *proc)
         }
       }
     }
-    if (MRB_PROC_SCOPE_P(proc)) break;
+    if (MRB_PROC_LVAR_BOUNDARY_P(proc)) break;
     proc = proc->upper;
   }
 

@@ -1005,7 +1005,7 @@ search_upvar(mrc_codegen_scope *s, mrc_sym id, int *idx)
           }
         }
       }
-      if (MRC_PROC_SCOPE_P(u)) break;
+      if (MRC_PROC_LVAR_BOUNDARY_P(u)) break;
       u = u->upper;
       lv++;
     }

@@ -32,8 +32,12 @@ struct RProc {
 /* The flags of that struct, mirrored the same way. */
 #define MRC_PROC_CFUNC_FL 128
 #define MRC_PROC_CFUNC_P(p) (((p)->flags & MRC_PROC_CFUNC_FL) != 0)
+#define MRC_PROC_ENVSET 1024
+#define MRC_PROC_ENV_P(p) (((p)->flags & MRC_PROC_ENVSET) != 0)
 #define MRC_PROC_SCOPE 2048
 #define MRC_PROC_SCOPE_P(p) (((p)->flags & MRC_PROC_SCOPE) != 0)
+/* MRB_PROC_LVAR_BOUNDARY_P() in mruby/proc.h */
+#define MRC_PROC_LVAR_BOUNDARY_P(p) (MRC_PROC_SCOPE_P(p) && !MRC_PROC_ENV_P(p))
 
 MRC_END_DECL
 

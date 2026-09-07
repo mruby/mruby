@@ -100,3 +100,36 @@ assert "Binding#local_variable_set over an env without the slot" do
   GC.start
   assert_equal 42, b.local_variable_get(:merged_lvar)
 end
+
+assert "a binding taken in a `define_method` block sees the block's closure" do
+  # `define_method` marks the block it installs a scope, the way `def` marks
+  # a method body, but the block keeps the closure it was made with: the
+  # locals a direct reference reaches from inside it are the binding's too.
+  factory = Object.new
+  def factory.build
+    x = 10
+    k = Class.new
+    k.send(:define_method, :direct) { x }
+    k.send(:define_method, :names) { binding.local_variables.sort }
+    k.send(:define_method, :get) { binding.local_variable_get(:x) }
+    k.send(:define_method, :set) { binding.local_variable_set(:x, 20) }
+    k.send(:define_method, :own) { |a| b = 1; binding.local_variables.sort }
+    k
+  end
+  k = factory.build
+  o = k.new
+
+  assert_equal [:k, :x], o.names
+  assert_equal 10, o.get
+  assert_equal [:a, :b, :k, :x], o.own(0)
+
+  # The store reaches the captured local itself, so the direct reference and
+  # the next instance both see it.
+  assert_equal 20, o.set
+  assert_equal 20, o.direct
+  assert_equal 20, k.new.get
+
+  # A `def` body carries no closure, and the locals around it are not its own.
+  c = Class.new { def m; binding.local_variables; end }
+  assert_equal [], c.new.m
+end
