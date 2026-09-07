@@ -897,6 +897,18 @@ mrb_f_defined_method_on(mrb_state *mrb, mrb_value self)
 }
 
 /* ---------------------------*/
+/*
+ * A hash pattern reads what #deconstruct_keys answered through __pat_values,
+ * which only Hash carries, so anything else lands here and gets the TypeError
+ * CRuby raises for it.
+ */
+static mrb_value
+obj_pat_values(mrb_state *mrb, mrb_value self)
+{
+  mrb_raise(mrb, E_TYPE_ERROR, "deconstruct_keys must return Hash");
+  return mrb_nil_value();       /* not reached */
+}
+
 static const mrb_mt_entry kernel_rom_entries[] = {
   MRB_MT_ENTRY(mrb_f_defined_const_path, MRB_SYM_Q(__defined_const_path), MRB_ARGS_REQ(2) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_f_defined_method, MRB_SYM_Q(__defined_method), MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
@@ -932,6 +944,7 @@ static const mrb_mt_entry kernel_rom_entries[] = {
   MRB_MT_ENTRY(obj_respond_to,                   MRB_SYM_Q(respond_to), MRB_ARGS_ARG(1,1)),  /* 15.3.1.3.43 */
   MRB_MT_ENTRY(mrb_any_to_s,                     MRB_SYM(to_s),                      MRB_ARGS_NONE()),  /* 15.3.1.3.46 */
   MRB_MT_ENTRY(mrb_obj_ceqq,                     MRB_SYM(__case_eqq),     MRB_ARGS_REQ(1)),  /* internal */
+  MRB_MT_ENTRY(obj_pat_values,                   MRB_SYM(__pat_values),   MRB_ARGS_REQ(1)),  /* internal */
   MRB_MT_ENTRY(mrb_false,                MRB_SYM_Q(respond_to_missing),      MRB_ARGS_ARG(1,1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_obj_method_recursive_p,       MRB_SYM_Q(__method_recursive), MRB_ARGS_ARG(1,1)),
 #ifndef HAVE_MRUBY_IO_GEM

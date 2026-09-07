@@ -3062,14 +3062,13 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
       }
       push(); /* protect hash_reg */
 
-      /* Fail if deconstruct_keys returned nil */
-      tmp = genjmp2(s, OP_JMPNIL, hash_reg, *fail_pos, 0);
-      *fail_pos = tmp;
-
       /* Check all keys exist and get values via __pat_values.
        * __pat_values(keys_array) returns an array of values in key order,
-       * or false if any key is missing. */
-      if (num_keys > 0) {
+       * or false if any key is missing.  It runs even for a pattern with no
+       * keys, since it is also the type check: __pat_values is Hash's, and
+       * Object's raises the TypeError CRuby raises when #deconstruct_keys
+       * answers anything but a Hash, a nil included. */
+      {
         int vals_reg = cursp();
         gen_move(s, vals_reg, hash_reg, 0);
         push(); /* protect receiver */

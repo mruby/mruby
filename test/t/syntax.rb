@@ -2469,3 +2469,33 @@ assert('pattern matching - a subject with no deconstruction hook does not match'
   assert_false((only_ary in {a: 1}))
   assert_true((only_ary in [*, 1, *]))
 end
+
+assert('pattern matching - a deconstruction hook has to answer a Hash') do
+  # The key check a hash pattern makes reads what #deconstruct_keys answered
+  # through a method only Hash carries, so anything else raises where it used
+  # to leak the name of that method.
+  bad_hash = Class.new { def deconstruct_keys(keys); :nothash; end }.new
+  nil_hash = Class.new { def deconstruct_keys(keys); nil; end }.new
+  assert_raise_with_message(TypeError, "deconstruct_keys must return Hash") do
+    bad_hash in {a: 1}
+  end
+  assert_raise_with_message(TypeError, "deconstruct_keys must return Hash") do
+    nil_hash in {a: 1}
+  end
+  # a pattern with no keys of its own reads the answer too
+  assert_raise_with_message(TypeError, "deconstruct_keys must return Hash") do
+    bad_hash in {}
+  end
+  assert_raise_with_message(TypeError, "deconstruct_keys must return Hash") do
+    bad_hash in {**rest}
+  end
+  assert_raise_with_message(TypeError, "deconstruct_keys must return Hash") do
+    bad_hash in {**nil}
+  end
+
+  # a hook that answers a Hash still matches
+  good = Class.new do
+    def deconstruct_keys(keys); {a: 1}; end
+  end.new
+  assert_true((good in {a: 1}))
+end
