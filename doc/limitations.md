@@ -150,49 +150,32 @@ For performance reasons, mruby avoids calling the `#hash` method on keys when a 
 
 ## Pattern Matching
 
-Pattern matching is only partially supported in mruby. Currently, only the rightward assignment operator (`=>`) with simple variable binding is implemented.
+`case/in` and the patterns it takes are answered here, and what a pattern
+answers is what CRuby answers, with one exception: a `#deconstruct` that
+gives back something other than an Array is passed over rather than
+refused, where CRuby raises `TypeError`.
 
 ```ruby
-expr => var  # Supported: assigns expr to var
+class Odd
+  def deconstruct = 42
+end
+case Odd.new
+in [x] then x
+else :no
+end
 ```
 
 #### CRuby
 
-Full pattern matching with `case/in` syntax and various pattern types:
-
-```ruby
-case [1, 2, 3]
-in [a, b, c]
-  puts "#{a}, #{b}, #{c}"  # => "1, 2, 3"
-end
-
-case {name: "Alice", age: 30}
-in {name:, age:}
-  puts "#{name} is #{age}"  # => "Alice is 30"
-end
-```
+`TypeError` is raised.
 
 #### mruby
 
-Only rightward assignment with simple variable binding:
+`:no`, the value falling through to the next clause.
 
-```ruby
-[1, 2, 3] => x
-puts x  # => [1, 2, 3]
-```
-
-The following are **not supported**:
-
-- `case/in` syntax
-- Array patterns: `in [a, b, c]`
-- Hash patterns: `in {name:, age:}`
-- Guard clauses: `in pattern if condition`
-- Pin operator: `in ^variable`
-- Find patterns: `in [*, x, *]`
-- Alternative patterns: `in pattern1 | pattern2`
-- Boolean pattern check: `value in pattern`
-
-Note: mruby does provide `Array#deconstruct` and `Hash#deconstruct_keys` methods for future pattern matching compatibility.
+`#deconstruct_keys` is held to the Hash it has to answer, and a value
+carrying neither hook falls through rather than raising, both as CRuby
+does.
 
 ## No Refinements
 
