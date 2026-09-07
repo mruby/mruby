@@ -274,41 +274,6 @@ This is a deliberate trade-off: implicit conversion forces every
 coercion site to go through method dispatch and can silently mask
 type-mismatch bugs.
 
-## Nested `def` in Singleton-Method Context
-
-`def` written inside a singleton method (`def self.foo`) is placed
-on a different class in mruby than in CRuby. CRuby registers the
-inner method as an instance method of the lexical enclosing class.
-mruby registers it as a method of the enclosing receiver's
-singleton class, which makes it visible as a class method of the
-enclosing class.
-
-```ruby
-class SomeClass
-  def self.class_method
-    def nested; 'nested!'; end
-  end
-end
-SomeClass.class_method
-```
-
-#### CRuby
-
-```
-SomeClass.nested        # NoMethodError
-SomeClass.new.nested    # => "nested!"   (instance method)
-```
-
-#### mruby
-
-```
-SomeClass.nested        # => "nested!"   (class method)
-SomeClass.new.nested    # NoMethodError
-```
-
-Writing nested `def` like this is unusual; this difference rarely
-surfaces in practical code.
-
 ## `Proc#dup` / `Proc#clone` is Always Orphan
 
 A `dup` or `clone` of a block given to a method is always treated as
