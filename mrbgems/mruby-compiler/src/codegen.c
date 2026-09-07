@@ -1589,6 +1589,25 @@ gen_blkmove(mrc_codegen_scope *s, uint16_t ainfo, int lv)
   push();
 }
 
+/* Whether a `return` here leaves a method that is not part of this compile
+   unit.  A string compiled for `eval` holds no method scope of its own, and
+   `return` in it leaves the method that encloses the `eval` call, which is
+   the frame the proc chain reaches and the one `OP_RETURN_BLK` unwinds to. */
+static mrc_bool
+return_leaves_upper_p(mrc_codegen_scope *s)
+{
+#if defined(MRC_TARGET_MRUBY)
+  if (!s->c->upper) return FALSE;
+  for (mrc_codegen_scope *s2 = s; s2; s2 = s2->prev) {
+    if (s2->mscope) return FALSE;
+  }
+  return TRUE;
+#else
+  (void)s;
+  return FALSE;
+#endif
+}
+
 /* Find the method scope that a `super`, a `zsuper` or a `yield` belongs to.
    Answers its `ainfo`, the argument layout that the forwarded arguments and
    the block are read by, and sets `lvp` to the number of levels between it
@@ -6332,7 +6351,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       else {
         genop_1(s, OP_LOADNIL, cursp());
       }
-      if (s->loop) {
+      if (s->loop || return_leaves_upper_p(s)) {
         gen_return(s, OP_RETURN_BLK, cursp());
       }
       else {

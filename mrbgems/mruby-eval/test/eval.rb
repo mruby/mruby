@@ -397,3 +397,21 @@ assert('`super` and `yield` in a string given to eval belong to the caller') do
   # Outside a method there is still no block to reach.
   assert_raise(SyntaxError) { eval("yield") }
 end
+
+assert('`return` in a string given to eval leaves the calling method') do
+  # `OP_RETURN` returns to the string's own frame, whose caller is the C
+  # function `eval`, so the value became `eval`'s and the method carried on.
+  # A `return` here leaves the method the way one from a block does.
+  k = Class.new do
+    def ret; eval("return :from_string"); :after_eval; end
+    def ret_nested; eval("eval('return :from_nested')"); :after_eval; end
+    def ret_def; eval("def inner; return :inner; end"); inner; end
+    def ret_lambda; eval("-> { return :lambda }.call"); end
+  end
+  o = k.new
+
+  assert_equal :from_string, o.ret
+  assert_equal :from_nested, o.ret_nested
+  assert_equal :inner, o.ret_def
+  assert_equal :lambda, o.ret_lambda
+end
