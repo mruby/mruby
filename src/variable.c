@@ -1438,8 +1438,9 @@ mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
    (the caller's, via ci[-1]) and returns the value or undef, without invoking
    const_missing or raising. */
 mrb_value
-mrb_vm_const_get_noraise(mrb_state *mrb, const struct RProc *proc, mrb_sym sym)
+mrb_vm_const_get_noraise(mrb_state *mrb, mrb_callinfo *ci, mrb_sym sym)
 {
+  const struct RProc *proc = ci->proc;
   struct RClass *c = cref_class(mrb, proc), *c2;
   mrb_value v;
 
@@ -1466,9 +1467,9 @@ mrb_vm_const_get_noraise(mrb_state *mrb, const struct RProc *proc, mrb_sym sym)
 }
 
 mrb_bool
-mrb_vm_const_defined_p(mrb_state *mrb, const struct RProc *proc, mrb_sym sym)
+mrb_vm_const_defined_p(mrb_state *mrb, mrb_callinfo *ci, mrb_sym sym)
 {
-  return !mrb_undef_p(mrb_vm_const_get_noraise(mrb, proc, sym));
+  return !mrb_undef_p(mrb_vm_const_get_noraise(mrb, ci, sym));
 }
 
 /* The lookup a constant path read makes from a module, `Mod::NAME`, without
