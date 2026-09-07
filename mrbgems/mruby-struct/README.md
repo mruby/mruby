@@ -112,6 +112,8 @@ Instances of classes created with `Struct.new` have several useful methods, incl
 - `to_h`: Returns a hash mapping member names (symbols) to their values.
 - `length` / `size`: Returns the number of members in the struct.
 - `dig`: Extracts a nested value specified by a sequence of keys.
+- `deconstruct`: Returns the values as an array, as `to_a` does. Called by the array patterns of `case/in`.
+- `deconstruct_keys`: Returns a hash of the members an array of keys names, or of every member when given `nil`. Called by the hash patterns of `case/in`.
 - `==`, `eql?`: For comparing struct instances.
 
 For more details on specific methods, please refer to the mruby documentation or the core Ruby `Struct` class documentation, as `mruby-struct` aims for compatibility.
