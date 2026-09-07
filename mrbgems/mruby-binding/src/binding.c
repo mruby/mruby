@@ -94,7 +94,10 @@ binding_env_new_lvspace(mrb_state *mrb, const struct REnv *e)
      carries the special-variable slot past its one local from the start
      (MRB_ENV_SET_SVAR below; see internal.h). */
   mrb_value *stacks = (mrb_value*)mrb_malloc(mrb, MRB_ENV_SVAR_STACK_SIZE(1));
-  env->mid = 0;
+  /* The space stands in for the frame the binding was taken from, so it
+     answers for the method that frame was called by: that is the name a
+     string evaluated in the binding is named for. */
+  env->mid = e ? e->mid : 0;
   env->stack = stacks;
   if (e && e->stack && MRB_ENV_LEN(e) > 0) {
     env->stack[0] = e->stack[0];

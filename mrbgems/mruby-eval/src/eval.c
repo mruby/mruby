@@ -344,9 +344,6 @@ object_eval(mrb_state *mrb, mrb_value self, mrb_bool class_eval)
   mrb_value binding = mrb_nil_value();
   if (env) {
     binding = mrb_binding_new(mrb, caller, self, env);
-    /* The binding's own env starts with no method name; keep the caller's
-       so `__method__` and `super` inside the string see the caller. */
-    mrb_binding_extract_env(mrb, binding)->mid = env->mid;
   }
   struct RProc *proc = create_proc_from_string(mrb, s, len, binding, file, line);
   MRB_PROC_SET_TARGET_CLASS(proc, c);
