@@ -4264,7 +4264,12 @@ mrb_mod_method_defined(mrb_state *mrb, mrb_value mod)
   mrb_sym id;
 
   mrb_get_args(mrb, "n", &id);
-  return mrb_bool_value(mrb_obj_respond_to(mrb, mrb_class_ptr(mod), id));
+  /* `mrb_obj_respond_to` answers for any method it finds, so the search is
+     made here to weigh the visibility the listing reports on. */
+  struct RClass *c = mrb_class_ptr(mod);
+  mrb_method_t m = mrb_method_search_vm(mrb, &c, id);
+  if (MRB_METHOD_UNDEF_P(m) || MRB_METHOD_NOTIMPL_P(m)) return mrb_false_value();
+  return mrb_bool_value(!(m.flags & MRB_METHOD_PRIVATE_FL));
 }
 
 void

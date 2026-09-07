@@ -376,6 +376,63 @@ assert('Module#method_defined?', '15.2.2.4.34') do
   assert_false Test4MethodDefined::C.method_defined? "method4"
 end
 
+assert('Module#method_defined? reports the methods a listing reports') do
+  mod = Module.new do
+    def mpub; end
+    private def mpriv; end
+    protected def mprot; end
+  end
+  ahead = Module.new do
+    private def ppriv; end
+  end
+  cls = Class.new do
+    include mod
+    prepend ahead
+    def pub; end
+    private def priv; end
+    protected def prot; end
+    class << self
+      def spub; end
+      private def spriv; end
+      protected def sprot; end
+    end
+  end
+  sub = Class.new(cls)
+
+  # public and protected methods are matched, private ones are not
+  assert_true  cls.method_defined?(:pub)
+  assert_false cls.method_defined?(:priv)
+  assert_true  cls.method_defined?(:prot)
+
+  # wherever the method is found
+  assert_false sub.method_defined?(:priv)
+  assert_true  sub.method_defined?(:prot)
+  assert_true  cls.method_defined?(:mpub)
+  assert_false cls.method_defined?(:mpriv)
+  assert_true  cls.method_defined?(:mprot)
+  assert_false cls.method_defined?(:ppriv)
+
+  # a singleton class reports its own methods the same way
+  sclass = class << cls; self; end
+  assert_true  sclass.method_defined?(:spub)
+  assert_false sclass.method_defined?(:spriv)
+  assert_true  sclass.method_defined?(:sprot)
+
+  # the private methods mruby itself defines are not reported either
+  assert_false cls.method_defined?(:initialize)
+  assert_false cls.method_defined?(:method_missing)
+
+  # a name with no method behind it is not put to respond_to_missing?, which
+  # answers for a receiver rather than for what a module defines
+  answering = Class.new do
+    def respond_to_missing?(name, include_private = false)
+      true
+    end
+  end
+  assert_false answering.method_defined?(:no_such_method)
+  assert_true  answering.new.respond_to?(:no_such_method)
+end
+
 assert('Module#module_eval', '15.2.2.4.35') do
   module Test4ModuleEval
     @a = 11

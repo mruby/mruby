@@ -1005,7 +1005,12 @@ MRB_API mrb_value mrb_obj_dup(mrb_state *mrb, mrb_value obj);
 
 /**
  * Returns true if obj responds to the given method. If the method was defined for that
- * class it returns true, it returns false otherwise.
+ * class, and this build implements it, it returns true; it returns false otherwise.
+ *
+ * Visibility is not weighed: a private or protected method answers true here,
+ * where `Kernel#respond_to?` asked without `include_private` answers false. A
+ * method that stands for a feature this build does not have answers false, as
+ * it does there.
  *
  *      Example:
  *      # Ruby style
