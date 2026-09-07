@@ -510,6 +510,85 @@ mrb_data_to_h(mrb_state *mrb, mrb_value self)
   return ret;
 }
 
+/* Returns the position `key` names among the members of `obj`, or -1 when it
+   names none.  A member is named by a symbol or a string; unlike Struct, which
+   has `#[]` to index by position, Data takes no index here, as CRuby has it. */
+static mrb_int
+data_pos(mrb_state *mrb, mrb_value obj, mrb_value key)
+{
+  mrb_sym id;
+
+  if (mrb_symbol_p(key)) {
+    id = mrb_symbol(key);
+  }
+  else if (mrb_string_p(key)) {
+    id = mrb_intern_check_str(mrb, key);
+    if (id == 0) return -1;     /* no symbol of that name, so no such member */
+  }
+  else {
+    mrb_raisef(mrb, E_TYPE_ERROR, "%!v is not a symbol nor a string", key);
+    return -1;                  /* not reached */
+  }
+
+  mrb_value members = data_members(mrb, obj);
+  const mrb_value *mems = RARRAY_PTR(members);
+  mrb_int len = RARRAY_LEN(members);
+  for (mrb_int i=0; i<len; i++) {
+    if (mrb_symbol_p(mems[i]) && mrb_symbol(mems[i]) == id) return i;
+  }
+  return -1;
+}
+
+/*
+ * call-seq:
+ *    data.deconstruct              -> array
+ *    data.deconstruct_keys(keys)   -> hash
+ *
+ * The two hooks the array and hash patterns of `case/in` call.  `deconstruct`
+ * answers the values, in member order.  `deconstruct_keys` answers the members
+ * `keys` names and their values, or every member when `keys` is nil.
+ *
+ * `deconstruct_keys` stops at the first key naming no member, and answers an
+ * empty hash when there are more keys than members: a pattern asking for a key
+ * the object does not have cannot match, whatever the remaining keys hold.
+ *
+ *    Point = Data.define(:x, :y)
+ *    point = Point.new(1, 2)
+ *    point.deconstruct              #=> [1, 2]
+ *    point.deconstruct_keys([:x])   #=> {x: 1}
+ *    point.deconstruct_keys([:z])   #=> {}
+ *
+ * A key that is neither a symbol nor a string raises TypeError.
+ */
+static mrb_value
+mrb_data_deconstruct(mrb_state *mrb, mrb_value self)
+{
+  return mrb_ary_new_from_values(mrb, RDATA_LEN(self), RDATA_PTR(self));
+}
+
+static mrb_value
+mrb_data_deconstruct_keys(mrb_state *mrb, mrb_value self)
+{
+  mrb_value keys = mrb_get_arg1(mrb);
+
+  if (mrb_nil_p(keys)) return mrb_data_to_h(mrb, self);
+  if (!mrb_array_p(keys)) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %T (expected Array or nil)", keys);
+  }
+
+  mrb_int klen = RARRAY_LEN(keys);
+  if (RARRAY_LEN(data_members(mrb, self)) < klen) return mrb_hash_new(mrb);
+
+  mrb_value ret = mrb_hash_new_capa(mrb, klen);
+  for (mrb_int i=0; i<klen; i++) {
+    mrb_value key = RARRAY_PTR(keys)[i];
+    mrb_int pos = data_pos(mrb, self, key);
+    if (pos < 0) break;
+    mrb_hash_set(mrb, ret, key, RDATA_PTR(self)[pos]);
+  }
+  return ret;
+}
+
 /*
  * call-seq:
  *    data.to_s    -> string
@@ -629,6 +708,8 @@ mrb_mruby_data_gem_init(mrb_state* mrb)
 
   mrb_define_method_id(mrb, d, MRB_SYM(with),           mrb_data_with,       MRB_ARGS_ANY());
   mrb_define_method_id(mrb, d, MRB_SYM(to_h),            mrb_data_to_h,       MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, d, MRB_SYM(deconstruct),     mrb_data_deconstruct, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, d, MRB_SYM(deconstruct_keys), mrb_data_deconstruct_keys, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, d, MRB_SYM(to_s),            mrb_data_to_s,       MRB_ARGS_NONE());
   mrb_define_method_id(mrb, d, MRB_SYM(inspect),         mrb_data_to_s,       MRB_ARGS_NONE());
 }
