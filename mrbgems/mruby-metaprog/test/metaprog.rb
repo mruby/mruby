@@ -550,3 +550,34 @@ assert('Module.nesting from a method with a receiver', '15.2.2.2.2') do
   assert_equal([Test4NestingInSdef.singleton_class, Test4NestingInSdef],
                Test4NestingInSdef.in_sclass)
 end
+
+assert('Module#define_method - where a def in the block lands') do
+  # A `define_method` block keeps the scope it was written in, its cref
+  # along with its locals, so a `def` in it adds to that scope's class and
+  # not to the class the block was installed in.
+  class Test4DmDefTarget
+    def self.install; define_method(:go) { def m; :from_dm; end }; end
+  end
+  Test4DmDefTarget.install
+  Test4DmDefTarget.new.go
+  assert_equal(:from_dm, Test4DmDefTarget.new.m)
+
+  class Test4DmDefWritten
+    def self.body; ::Proc.new { def m; :from_written; end }; end
+  end
+  class Test4DmDefInstalled; end
+  Test4DmDefInstalled.send(:define_method, :go, Test4DmDefWritten.body)
+  Test4DmDefInstalled.new.go
+  assert_equal(:from_written, Test4DmDefWritten.new.m)
+  assert_raise(NoMethodError) { Test4DmDefInstalled.new.m }
+end
+
+assert('Module.nesting from a block given a class to run under') do
+  # `class_eval` names where a `def` in the block goes; the nesting the block
+  # answers with is still the one it was written in.
+  class Test4NestingRecv; end
+  module Test4NestingLex
+    def self.go; Test4NestingRecv.class_eval { Module.nesting }; end
+  end
+  assert_equal([Test4NestingLex], Test4NestingLex.go)
+end

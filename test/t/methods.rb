@@ -141,3 +141,122 @@ assert('singleton_method_added hook') do
   end
   assert_equal(:bar, a.name)
 end
+
+assert('The def statement in a method with a receiver', '13.3.1') do
+  # a `def` in a method body adds to the class the method was written in,
+  # which for `def self.name` is the class around it, not the singleton
+  class DefTargetInSingleton
+    def self.go; def m; :from_go; end; end
+  end
+  DefTargetInSingleton.go
+  assert_equal(:from_go, DefTargetInSingleton.new.m)
+  assert_raise(NoMethodError) { DefTargetInSingleton.m }
+
+  # a block adds no scope of its own, so the class around it still answers
+  class DefTargetInBlock
+    def self.go; [1].each { def m; :from_block; end }; end
+  end
+  DefTargetInBlock.go
+  assert_equal(:from_block, DefTargetInBlock.new.m)
+  assert_raise(NoMethodError) { DefTargetInBlock.m }
+
+  # `class << self` does open a scope, and a method written there adds to it
+  class DefTargetInSclass
+    class << self
+      def go; def m; :from_sclass; end; end
+    end
+  end
+  DefTargetInSclass.go
+  assert_equal(:from_sclass, DefTargetInSclass.m)
+  assert_raise(NoMethodError) { DefTargetInSclass.new.m }
+
+  # the class a method was found in is not the one it was written in
+  class DefTargetBase
+    def go; def m; :from_base; end; end
+  end
+  class DefTargetSub < DefTargetBase; end
+  DefTargetSub.new.go
+  assert_equal(:from_base, DefTargetBase.new.m)
+
+  # the top level is the scope around a `def` on an object written there
+  receiver = Object.new
+  def receiver.go; def def_target_at_top_level; :from_top_level; end; end
+  receiver.go
+  assert_equal(:from_top_level, def_target_at_top_level)
+end
+
+assert('The def statement in a class body written as a block', '13.3.1') do
+  # `Class.new` and its kin hand the class to the frame running the block.
+  # A `def self.name` written there is a scope of its own and keeps that
+  # class, so a `def` in its body adds to the class and not to the singleton
+  # or to the class the block was written in.
+  k = Class.new do
+    def self.go; def m; :from_class_new; end; end
+  end
+  k.go
+  assert_equal(:from_class_new, k.new.m)
+  assert_raise(NoMethodError) { k.m }
+
+  mod = Module.new do
+    def self.go; def m; :from_module_new; end; end
+  end
+  mod.go
+  host = Class.new do
+    include mod
+    def probe; m; end
+  end
+  assert_equal(:from_module_new, host.new.probe)
+
+  class DefTargetClassEval; end
+  DefTargetClassEval.class_eval do
+    def self.go; def m; :from_class_eval; end; end
+  end
+  DefTargetClassEval.go
+  assert_equal(:from_class_eval, DefTargetClassEval.new.m)
+  assert_raise(NoMethodError) { DefTargetClassEval.m }
+
+  # a `def` written straight in such a block still adds to the class it
+  # was handed
+  assert_equal(:handed, Class.new { def m; :handed; end }.new.m)
+
+  # so does one written in a block inside it: the inner block was made in a
+  # scope that was handed the class, and carries it
+  nested = Class.new do
+    [1].each { def m; :from_nested_block; end }
+  end
+  assert_equal(:from_nested_block, nested.new.m)
+  assert_raise(NoMethodError) { Object.new.m }
+end
+
+assert('The alias statement in a method with a receiver', '13.3.6') do
+  class AliasTargetInSingleton
+    def original; :original; end
+    def self.go; alias aliased original; end
+  end
+  AliasTargetInSingleton.go
+  assert_equal(:original, AliasTargetInSingleton.new.aliased)
+end
+
+assert('The undef statement in a method with a receiver', '13.3.7') do
+  class UndefTargetInSingleton
+    def original; :original; end
+    def self.go; undef original; end
+  end
+  UndefTargetInSingleton.go
+  assert_raise(NoMethodError) { UndefTargetInSingleton.new.original }
+end
+
+assert('super in a method with a receiver') do
+  # the class a `def` adds to and the class `super` walks up from are two
+  # answers, and `super` keeps taking the class the method was found in
+  class SuperInSdefBase
+    def self.go; :base; end
+    def self.in_block; :base_block; end
+  end
+  class SuperInSdefSub < SuperInSdefBase
+    def self.go; super; end
+    def self.in_block; [1].map { super() }; end
+  end
+  assert_equal(:base, SuperInSdefSub.go)
+  assert_equal([:base_block], SuperInSdefSub.in_block)
+end

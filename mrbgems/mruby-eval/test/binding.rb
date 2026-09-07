@@ -88,3 +88,26 @@ assert "a binding answers for the method it was taken from" do
   assert_equal :binding_named_probe, b.eval("__method__")
   assert_equal :binding_named_probe, eval("__method__", b)
 end
+
+assert "Binding#eval on a binding taken in a method with a receiver" do
+  # The string runs in the scope the binding was taken from, and that scope
+  # carries no class of its own, so a `def` in it reaches the class the
+  # method holding the binding was written in.
+  class BindingDefTarget
+    def self.scope; binding; end
+  end
+  BindingDefTarget.scope.eval("def m; :m; end")
+
+  assert_equal :m, BindingDefTarget.new.m
+  assert_raise(NoMethodError) { BindingDefTarget.m }
+end
+
+assert 'Binding#eval on a binding taken under a given class' do
+  # `instance_eval` gives the block the singleton class to define in, and a
+  # binding taken there names that scope, so a `def` through the binding
+  # reaches the singleton rather than the class the block was written in.
+  obj = Object.new
+  obj.instance_eval { binding }.eval "def m; :m; end"
+  assert_equal :m, obj.m
+  assert_false Object.new.respond_to?(:m)
+end

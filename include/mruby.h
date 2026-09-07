@@ -175,7 +175,7 @@ typedef struct {
   uint8_t n:4;                  /* number of positional arguments; 15 means packed arguments */
   uint8_t kw:1;                 /* has keyword arguments (TRUE or FALSE) */
   uint8_t cci;                  /* called from C function */
-  uint8_t vis;                  /* 4(ZERO):1(module_function):1(separate module):2(method visibility) */
+  uint8_t vis;                  /* 3(ZERO):1(given class):1(module_function):1(separate module):2(method visibility) */
                                 /* under 3-bit flags are copied to env, and after that, env takes precedence */
   mrb_sym mid;
   const struct RProc *proc;
