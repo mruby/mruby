@@ -254,6 +254,97 @@ assert 'method visibility with eval' do
   end
 end
 
+assert 'a `def` in an eval string takes the visibility around the call' do
+  class Test4EvalVisibility
+    private
+    eval("def from_string; end")
+    protected
+    eval("def protected_from_string; end")
+    public
+    eval("def public_from_string; :ok; end")
+  end
+
+  o = Test4EvalVisibility.new
+  assert_raise(NoMethodError) { o.from_string }
+  assert_raise(NoMethodError) { o.protected_from_string }
+  assert_include Test4EvalVisibility.protected_instance_methods(false), :protected_from_string
+  assert_equal :ok, o.public_from_string
+end
+
+assert 'the visibility an eval string starts at is the one its whole scope is at' do
+  # The scope reaches the string through the env it shares with the caller, so
+  # a block between the two, and a second eval inside the first, are steps on
+  # the way to the `private` rather than scopes of their own.
+  class Test4EvalVisibilityNested
+    private
+    [1].each { eval("def from_block; end") }
+    eval("eval('def from_nested_string; end')")
+  end
+
+  o = Test4EvalVisibilityNested.new
+  assert_raise(NoMethodError) { o.from_block }
+  assert_raise(NoMethodError) { o.from_nested_string }
+end
+
+assert 'a `def` in an eval string follows a `module_function` around the call' do
+  module Test4EvalVisibilityModuleFunction
+    module_function
+    eval("def from_string; :ok; end")
+  end
+
+  assert_equal :ok, Test4EvalVisibilityModuleFunction.from_string
+  assert_include Test4EvalVisibilityModuleFunction.private_instance_methods(false), :from_string
+end
+
+assert 'eval with a binding takes the visibility where the binding was made' do
+  class Test4EvalVisibilityPublicScope
+    SCOPE = binding
+  end
+  class Test4EvalVisibilityPrivateScope
+    private
+    SCOPE = binding
+  end
+
+  # the binding names the scope the string runs in, so the visibility comes
+  # from there and not from the private scope the `eval` is called in
+  class Test4EvalVisibilityBindingCaller
+    private
+    eval("def from_public_scope; :ok; end", Test4EvalVisibilityPublicScope::SCOPE)
+    eval("def from_private_scope; end", Test4EvalVisibilityPrivateScope::SCOPE)
+  end
+
+  assert_equal :ok, Test4EvalVisibilityPublicScope.new.from_public_scope
+  assert_raise(NoMethodError) { Test4EvalVisibilityPrivateScope.new.from_private_scope }
+end
+
+assert 'a visibility written in a string given a binding stays with the scope' do
+  # A binding names a scope where a plain eval string copies one, so what the
+  # string writes reaches the scope itself and every other binding on it.
+  class Test4EvalVisibilityBindingWrite
+    FIRST = binding
+    SECOND = binding
+    eval("private", FIRST)
+    def written_after; end
+  end
+  eval("def from_the_other_binding; end", Test4EvalVisibilityBindingWrite::SECOND)
+
+  o = Test4EvalVisibilityBindingWrite.new
+  assert_raise(NoMethodError) { o.written_after }
+  assert_raise(NoMethodError) { o.from_the_other_binding }
+end
+
+assert 'a string given to class_eval starts public wherever it is called' do
+  # `class_eval` gives the string the receiver for a scope rather than the
+  # caller's, and a scope of one's own starts at the default.
+  class Test4EvalVisibilityClassEvalCaller
+    private
+    TARGET = Class.new
+    TARGET.class_eval("def from_string; :ok; end")
+  end
+
+  assert_equal :ok, Test4EvalVisibilityClassEvalCaller::TARGET.new.from_string
+end
+
 assert('alias and undef reject a dynamic symbol') do
   # OP_ALIAS and OP_UNDEF carry a symbol index, so an interpolated name cannot
   # be expressed. The codegen used to read the InterpolatedSymbolNode as if it

@@ -953,6 +953,21 @@ check_visibility_break(const struct RProc *p, const struct RClass *c, mrb_callin
   return mrb_vm_ci_target_class(ci) != c || MRB_CI_VISIBILITY_BREAK_P(ci);
 }
 
+/* The env a scope wrote its visibility to, following p->upper from a proc
+   that has already passed check_visibility_break(): the first step that
+   breaks leaves the env of the level below it, which is the scope's own. */
+static struct REnv*
+find_visibility_env(const struct RProc *p, const struct RClass *c)
+{
+  for (;;) {
+    struct REnv *env = p->e.env;
+    p = p->upper;
+    if (check_visibility_break(p, c, NULL, env)) {
+      return env;
+    }
+  }
+}
+
 static void
 find_visibility_scope(mrb_state *mrb, const struct RClass *c, int n, mrb_callinfo **cp, struct REnv **ep)
 {
@@ -968,14 +983,29 @@ find_visibility_scope(mrb_state *mrb, const struct RClass *c, int n, mrb_callinf
     return;
   }
 
-  for (;;) {
-    struct REnv *env = p->e.env;
-    p = p->upper;
-    if (check_visibility_break(p, c, ci, env)) {
-      *ep = env;
-      *cp = NULL;
-      return;
-    }
+  *ep = find_visibility_env(p, c);
+  *cp = NULL;
+}
+
+/* Gives the current frame the visibility of the scope `p` was compiled
+   against. `eval` on a string wants this: the string runs in that scope, so a
+   `def` in it takes the visibility written there, while the frame goes on
+   breaking the scope so that a `private` written inside the string stops at
+   the end of it, the way CRuby's copy of the caller's cref does. A proc that
+   captured no env was compiled against no Ruby scope and has none to lend. */
+void
+mrb_vm_ci_inherit_visibility(mrb_state *mrb, const struct RProc *p)
+{
+  mrb_callinfo *ci = mrb->c->ci;
+
+  if (MRB_PROC_ENV(p) == NULL) return;
+  struct REnv *e = find_visibility_env(p, mrb_vm_ci_target_class(ci));
+  MRB_CI_SET_VISIBILITY(ci, MRB_ENV_VISIBILITY(e));
+  if (MRB_ENV_MODFUNC_P(e)) {
+    MRB_CI_SET_MODFUNC(ci);
+  }
+  else {
+    MRB_CI_CLEAR_MODFUNC(ci);
   }
 }
 
