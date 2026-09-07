@@ -443,6 +443,139 @@ assert('Kernel#respond_to? skips respond_to_missing? for an unimplemented method
   # A method that exists leaves respond_to_missing? nothing to answer.
   assert_false cls.new.respond_to?(:gone)
   assert_true cls.new.respond_to?(:no_such_method)
+
+  # Hiding it changes nothing: what the build does not implement is answered
+  # before visibility is weighed, at either visibility asked for.
+  hidden = Class.new(TestNotImplement) do
+    private :gone
+    def respond_to_missing?(name, priv = false)
+      true
+    end
+  end
+  assert_false hidden.new.respond_to?(:gone)
+  assert_false hidden.new.respond_to?(:gone, true)
+end
+
+class RespondToVisibility
+  def pub; end
+  private def priv; end
+  protected def prot; end
+
+  def later; end
+  def again; end
+  private :later, :again
+  public :again
+
+  alias_method :priv_alias, :priv
+
+  def self.smeth; end
+  class << self
+    private def shidden; end
+  end
+end
+
+class RespondToVisibilityChild < RespondToVisibility; end
+
+module RespondToVisibilityModule
+  def mpub; end
+  private def mpriv; end
+  protected def mprot; end
+end
+
+class RespondToVisibilityIncluder
+  include RespondToVisibilityModule
+end
+
+module RespondToVisibilityPrepended
+  private def ppriv; end
+end
+
+class RespondToVisibilityPrepender
+  prepend RespondToVisibilityPrepended
+end
+
+assert('Kernel#respond_to? weighs how the method may be called') do
+  obj = RespondToVisibility.new
+
+  assert_true  obj.respond_to?(:pub)
+  assert_true  obj.respond_to?(:pub, true)
+
+  # A method a call with a receiver cannot reach is not one the object
+  # responds to, unless the second parameter asks for it.
+  assert_false obj.respond_to?(:priv)
+  assert_true  obj.respond_to?(:priv, true)
+  assert_false obj.respond_to?(:prot)
+  assert_true  obj.respond_to?(:prot, true)
+
+  # the visibility a name carries is what counts, however it got there,
+  # and it is the one it carries now
+  assert_false obj.respond_to?(:later)
+  assert_true  obj.respond_to?(:later, true)
+  assert_true  obj.respond_to?(:again)
+  assert_false obj.respond_to?(:priv_alias)
+  assert_true  obj.respond_to?(:priv_alias, true)
+
+  # a singleton method is public where the surrounding scope said nothing,
+  # and private where its own class body said so
+  assert_true  RespondToVisibility.respond_to?(:smeth)
+  assert_false RespondToVisibility.respond_to?(:shidden)
+  assert_true  RespondToVisibility.respond_to?(:shidden, true)
+
+  # the answer comes from wherever the method is found
+  child = RespondToVisibilityChild.new
+  assert_false child.respond_to?(:priv)
+  assert_true  child.respond_to?(:priv, true)
+
+  includer = RespondToVisibilityIncluder.new
+  assert_true  includer.respond_to?(:mpub)
+  assert_false includer.respond_to?(:mpriv)
+  assert_true  includer.respond_to?(:mpriv, true)
+  assert_false includer.respond_to?(:mprot)
+  assert_true  includer.respond_to?(:mprot, true)
+
+  prepender = RespondToVisibilityPrepender.new
+  assert_false prepender.respond_to?(:ppriv)
+  assert_true  prepender.respond_to?(:ppriv, true)
+
+  # the private methods mruby itself defines answer the same way
+  assert_false obj.respond_to?(:initialize)
+  assert_true  obj.respond_to?(:initialize, true)
+  assert_false obj.respond_to?(:method_missing)
+  assert_false obj.respond_to?(:respond_to_missing?)
+end
+
+class RespondToHidden
+  private def hidden; end
+
+  def asked; @asked; end
+
+  def respond_to_missing?(name, include_private = false)
+    @asked = [name, include_private]
+    name == :hidden
+  end
+end
+
+class RespondToRefused < RespondToHidden
+  def respond_to_missing?(name, include_private = false)
+    @asked = [name, include_private]
+    false
+  end
+end
+
+assert('Kernel#respond_to? leaves a method out of reach to respond_to_missing?') do
+  obj = RespondToHidden.new
+  assert_true obj.respond_to?(:hidden)
+  assert_equal [:hidden, false], obj.asked
+
+  # the second parameter is handed over as it was given
+  refused = RespondToRefused.new
+  assert_false refused.respond_to?(:hidden)
+  assert_equal [:hidden, false], refused.asked
+
+  # a method the second parameter reaches is answered without asking
+  reached = RespondToRefused.new
+  assert_true reached.respond_to?(:hidden, true)
+  assert_nil reached.asked
 end
 
 assert('an unimplemented method can be overridden, aliased and undefined') do

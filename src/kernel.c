@@ -618,32 +618,38 @@ mrb_obj_remove_instance_variable(mrb_state *mrb, mrb_value self)
  *     obj.respond_to?(symbol, include_private=false) -> true or false
  *
  *  Returns `true` if _obj_ responds to the given
- *  method. Private methods are included in the search only if the
- *  optional second parameter evaluates to `true`.
+ *  method. Private and protected methods are included in the search
+ *  only if the optional second parameter evaluates to `true`.
  *
  *  If the method is defined but unimplemented on this machine,
  *  as IO#pread in a build without pread(2), false is returned
  *  and `respond_to_missing?` is not consulted.
  *
- *  If the method is not defined, `respond_to_missing?`
- *  method is called and the result is returned.
+ *  If the method is not defined, or is defined where the second
+ *  parameter does not reach it, `respond_to_missing?` method is
+ *  called and the result is returned.
  */
 static mrb_bool
 obj_respond_to_p(mrb_state *mrb, mrb_value self, mrb_sym id, mrb_bool priv)
 {
   struct RClass *c = mrb_class(mrb, self);
   mrb_method_t m = mrb_method_search_vm(mrb, &c, id);
-  if (MRB_METHOD_UNDEF_P(m)) {
-    mrb_sym rtm_id = MRB_SYM_Q(respond_to_missing);
-    if (!mrb_func_basic_p(mrb, self, rtm_id, mrb_false)) {
-      mrb_value v = mrb_funcall_argv2(mrb, self, rtm_id, mrb_symbol_value(id), mrb_bool_value(priv));
-      return mrb_bool(v);
+  if (!MRB_METHOD_UNDEF_P(m)) {
+    /* A method that is unimplemented on this machine answers a plain false,
+       and leaves `respond_to_missing?` nothing to add. */
+    if (MRB_METHOD_NOTIMPL_P(m)) return FALSE;
+    /* A method the caller may not reach is answered as if it were not there,
+       so `respond_to_missing?` gets its say, as in CRuby. */
+    if (priv || !(m.flags & (MRB_METHOD_PRIVATE_FL|MRB_METHOD_PROTECTED_FL))) {
+      return TRUE;
     }
-    return FALSE;
   }
-  /* The method is there, so `respond_to_missing?` has nothing to add, and one
-     that is unimplemented on this machine answers a plain false. */
-  return !MRB_METHOD_NOTIMPL_P(m);
+  mrb_sym rtm_id = MRB_SYM_Q(respond_to_missing);
+  if (!mrb_func_basic_p(mrb, self, rtm_id, mrb_false)) {
+    mrb_value v = mrb_funcall_argv2(mrb, self, rtm_id, mrb_symbol_value(id), mrb_bool_value(priv));
+    return mrb_bool(v);
+  }
+  return FALSE;
 }
 
 static mrb_value
