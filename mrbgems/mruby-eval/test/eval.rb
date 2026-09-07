@@ -184,14 +184,17 @@ assert('Calling the same method as the variable name') do
   assert_equal("Hit!") { fuga = "Miss!"; eval("-> { hoge.fuga }").call }
 end
 
-assert('Access numbered parameter from eval') do
+assert('a numbered parameter is not a name an eval string can use') do
+  # A numbered parameter belongs to the block that spells it, and a string is
+  # compiled with no block of its own, so the name is a method call there.
   hoge = Object.new
   def hoge.fuga(a, &b)
     b.call(a)
   end
-  assert_equal(6) {
-    hoge.fuga(3) { _1 + eval("_1") }
-  }
+  assert_equal(3) { hoge.fuga(3) { _1 } }
+  assert_raise(NameError) { hoge.fuga(3) { _1 + eval("_1") } }
+  assert_raise(NameError) { hoge.fuga(3) { eval("_1") } }
+  assert_raise(NameError) { hoge.fuga(3) { |a| eval("_1") } }
 end
 
 assert('Module#class_eval with string') do
