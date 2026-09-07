@@ -292,6 +292,14 @@ f_eval(mrb_state *mrb, mrb_value self)
     self = mrb_iv_get(mrb, binding, MRB_SYM(recv));
   }
   mrb_assert(!MRB_PROC_CFUNC_P(proc));
+  /* The string runs on a frame of its own, and `mrb_exec_irep()` copies this
+     frame's `mid` to it. Left as `eval`, a `super` in the string looks for
+     the superclass method of `eval` itself; the env the string shares with
+     the caller carries the name the caller was called by, which is the one
+     the string's `super` and `defined?(super)` must answer for. A caller
+     with no env is a C function, which has no such name to lend. */
+  struct REnv *e = MRB_PROC_ENV(proc);
+  if (e) mrb->c->ci->mid = e->mid;
   return eval_irep(mrb, self, proc);
 }
 
@@ -349,6 +357,10 @@ object_eval(mrb_state *mrb, mrb_value self, mrb_bool class_eval)
   MRB_PROC_SET_TARGET_CLASS(proc, c);
   mrb_assert(!MRB_PROC_CFUNC_P(proc));
   mrb_vm_ci_target_class_set(mrb->c->ci, c);
+  /* The frame carries one class, and it is given to `c` here so that a `def`
+     in the string lands on the receiver. A `super` reads that same field for
+     the class the method was found in, so there is no answer for it to give
+     from this frame; the name the frame carries is left alone. */
   return eval_irep(mrb, self, proc);
 }
 

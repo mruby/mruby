@@ -340,3 +340,33 @@ assert('a string class_eval still runs inside the caller\'s scope') do
   c.method(:class_eval).call("def from_c_caller; end")
   assert_true c.method_defined?(:from_c_caller)
 end
+
+assert('a string given to eval is named for the method that called eval') do
+  # The string runs on a frame of its own, pushed on top of the C frame of
+  # `eval`, and that frame used to carry `eval` as its method name: a `super`
+  # in the string looked for the superclass method of `eval` itself, and
+  # `defined?(super)` answered `"super"` in a method that has no superclass
+  # method to call.
+  base = Class.new do
+    def m(x); [:base, x]; end
+    def has_super(x); end
+  end
+  sub = Class.new(base) do
+    def m(x); eval("super(x + 10)"); end
+    def has_super(x); eval("defined?(super)"); end
+    def no_super; eval("defined?(super)"); end
+    def named; eval("__method__"); end
+  end
+  o = sub.new
+
+  assert_equal [:base, 11], o.m(1)
+  assert_equal 'super', o.has_super(1)
+  assert_nil o.no_super
+  assert_equal :named, o.named
+
+  # Outside a method there is no name to carry, and `eval`'s own must not
+  # stand in for one.
+  assert_nil eval("__method__")
+  assert_nil binding.eval("__method__")
+  assert_raise(NoMethodError) { eval("super") }
+end
