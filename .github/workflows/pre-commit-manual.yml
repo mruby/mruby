@@ -1,7 +1,11 @@
 # https://github.com/j178/prek
 name: Manual hooks
 
-on: [pull_request]
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
 
 permissions:
   contents: read
