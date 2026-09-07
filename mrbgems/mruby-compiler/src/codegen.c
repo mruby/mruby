@@ -1891,8 +1891,12 @@ gen_forward_arg(mrc_codegen_scope *s, mrc_sym sym, int val)
   }
 }
 
+/* The first `upto` of the arguments, which is all of them for gen_values()
+   below.  An attribute write asks for one fewer: the last of its arguments
+   is the value being assigned, which it has to hold on to rather than let
+   into the array a splat gathers the rest into. */
 static int
-gen_values(mrc_codegen_scope *s, mrc_node *tree, int val, int limit)
+gen_values_upto(mrc_codegen_scope *s, mrc_node *tree, int val, int limit, size_t upto)
 {
   if (tree == NULL) return 0;   /* no arguments (e.g. empty index `a[]`) */
   CAST(arguments);
@@ -1906,7 +1910,7 @@ gen_values(mrc_codegen_scope *s, mrc_node *tree, int val, int limit)
   if (cursp() >= slimit) slimit = INT16_MAX;
 
   if (!val) {
-    for (size_t i = 0; i < cast->arguments.size; i++) {
+    for (size_t i = 0; i < upto; i++) {
       t = (mrc_node *)cast->arguments.nodes[i];
       codegen(s, t, NOVAL);
       n++;
@@ -1914,7 +1918,7 @@ gen_values(mrc_codegen_scope *s, mrc_node *tree, int val, int limit)
     return n;
   }
 
-  for (size_t i = 0; i < cast->arguments.size; i++) {
+  for (size_t i = 0; i < upto; i++) {
     t = (mrc_node *)cast->arguments.nodes[i];
     if (nint(t) == PM_KEYWORD_HASH_NODE) break;
     int is_splat = nint(t) == PM_SPLAT_NODE;
@@ -1990,6 +1994,14 @@ gen_values(mrc_codegen_scope *s, mrc_node *tree, int val, int limit)
     return -1;
   }
   return n;
+}
+
+static int
+gen_values(mrc_codegen_scope *s, mrc_node *tree, int val, int limit)
+{
+  if (tree == NULL) return 0;
+  CAST(arguments);
+  return gen_values_upto(s, tree, val, limit, cast->arguments.size);
 }
 
 static void
@@ -2405,13 +2417,23 @@ gen_call_assign(mrc_codegen_scope *s, mrc_node *tree, int val, int safe, int rec
     skip = genjmp2_0(s, OP_JMPNIL, cursp(), val);
   }
 
-  /* positional arguments, the last of which is the RHS */
+  /* The indices, then the RHS, which is the last of the arguments and is
+     generated apart from them: a splat among the indices gathers them into
+     an array, and the RHS has to be held back from it until it has been
+     copied to the result slot.  13 leaves room for the RHS under
+     CALL_MAXARGS, which is the mark for arguments gathered in an array
+     rather than a count of them. */
   CAST3(arguments, cast->arguments, arguments);
-  if (arguments) {
-    for (size_t i = 0; i < arguments->arguments.size; i++) {
-      codegen(s, (mrc_node *)arguments->arguments.nodes[i], VAL);
-      n++;
+  int gathered = 0;
+  if (arguments && 0 < arguments->arguments.size) {
+    size_t last = arguments->arguments.size - 1;
+    n = gen_values_upto(s, (mrc_node *)arguments, VAL, 13, last);
+    if (n < 0) {                /* the indices are in an array at cursp() */
+      gathered = 1;
+      push();
     }
+    codegen(s, (mrc_node *)arguments->arguments.nodes[last], VAL);
+    if (!gathered) n++;
   }
   if (val) {
     /* nopeep: keep the RHS in its argument slot for the SEND, while also
@@ -2419,13 +2441,11 @@ gen_call_assign(mrc_codegen_scope *s, mrc_node *tree, int val, int safe, int rec
     gen_move(s, top, cursp()-1, 1);   /* preserve the RHS as the result */
   }
 
-  if (n >= CALL_MAXARGS) {
-    /* A count of CALL_MAXARGS is the mark for arguments gathered in an
-       array rather than a count of them, and a count above it does not fit
-       the field at all, so from there on they are gathered.  The RHS is the
-       last of them and has already been copied to the result slot. */
-    pop_n(n);
-    genop_2(s, OP_ARRAY, cursp(), n);
+  if (gathered) {
+    /* the RHS joins the indices in their array, which is the one argument */
+    pop();
+    pop();
+    genop_2(s, OP_ARYPUSH, cursp(), 1);
     push();
     n = CALL_MAXARGS;
   }
@@ -2463,8 +2483,9 @@ attr_assign_simple_args(pm_call_node_t *cast)
   if (arguments->arguments.size == 0) return FALSE;
   for (size_t i = 0; i < arguments->arguments.size; i++) {
     int t = nint((mrc_node *)arguments->arguments.nodes[i]);
-    if (t == PM_SPLAT_NODE || t == PM_KEYWORD_HASH_NODE ||
-        t == PM_FORWARDING_ARGUMENTS_NODE) {
+    /* A splat is gathered by gen_values_upto(); keywords and forwarding are
+       not what an index assignment can be written with. */
+    if (t == PM_KEYWORD_HASH_NODE || t == PM_FORWARDING_ARGUMENTS_NODE) {
       return FALSE;
     }
   }
