@@ -2604,6 +2604,37 @@ gen_massignment(mrc_codegen_scope *s, mrc_node *tree, int rhs, int val)
   }
 }
 
+/* Fail the match unless `value` answers `===` for the value at `target`: the
+   test the constant of `Const[...]` and `Const(...)` makes, and the one a pin
+   pattern makes over what `^` names. */
+static void
+gen_pattern_eqq(mrc_codegen_scope *s, mrc_node *value, int target, uint32_t *fail_pos)
+{
+  codegen(s, value, VAL);
+  gen_move(s, cursp(), target, 0);
+  push(); push(); pop(); pop(); pop();
+  genop_3(s, OP_SEND, cursp(), new_sym(s, MRC_OPSYM_2(eqq)), 1);
+  *fail_pos = genjmp2(s, OP_JMPNOT, cursp(), *fail_pos, 1);
+}
+
+/* Fail the match unless the value at `target` answers `mid`.  A pattern asks
+   before it sends, so a subject with no deconstruction hook simply does not
+   match, the way CRuby has it, rather than raising NoMethodError. */
+static void
+gen_pattern_respond_to(mrc_codegen_scope *s, int target, mrc_sym mid, uint32_t *fail_pos)
+{
+  int reg = cursp();
+
+  gen_move(s, reg, target, 0);
+  push();                       /* protect receiver */
+  genop_2(s, OP_LOADSYM, cursp(), new_sym(s, mid));
+  push();                       /* protect the argument */
+  push(); pop();                /* touch block slot */
+  s->sp = reg;
+  genop_3(s, OP_SEND, reg, new_sym(s, MRC_SYM_2(respond_to_p)), 1);
+  *fail_pos = genjmp2(s, OP_JMPNOT, reg, *fail_pos, 1);
+}
+
 /* Generate pattern matching code for a single pattern.
  * target: stack position of the value being matched
  * fail_pos: linked list of jump positions for pattern match failure
@@ -2613,6 +2644,13 @@ static void
 codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *fail_pos, int known_array_len)
 {
   uint32_t tmp;
+
+  /* A pattern reads `target` more than once: it asks whether the value answers
+     the deconstruction hook before sending it, and a later alternative or a
+     later `in` clause reads it again.  The instruction that produced the value
+     is therefore not the last use the peephole would take this pattern's first
+     read for, so label the point before generating any of the pattern. */
+  new_label(s);
 
   /* Handle guard clause wrapper (PM_IF_NODE wrapping the actual pattern) */
   if (nint(pattern) == PM_IF_NODE) {
@@ -2777,42 +2815,21 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
     }
     break;
 
+  /* `^x`, `^@x`, `^@@x`, `^$x` and `^(expression)`: what the pin names is
+     read the way any other expression is read, then asked `===`.  Reading it
+     through codegen is what lets the pin reach a variable of an enclosing
+     scope, an instance, class or global variable, and an expression. */
   case PM_PINNED_VARIABLE_NODE:
     {
       CAST3(pinned_variable, pattern, pat_pin);
-      /* Get the variable based on its type */
-      mrc_node *var_node = (mrc_node *)pat_pin->variable;
-      mrc_sym var_name = 0;
+      gen_pattern_eqq(s, (mrc_node *)pat_pin->variable, target, fail_pos);
+    }
+    break;
 
-      if (nint(var_node) == PM_LOCAL_VARIABLE_READ_NODE) {
-        pm_local_variable_read_node_t *lvar = (pm_local_variable_read_node_t *)var_node;
-        var_name = lvar->name;
-      }
-
-      if (var_name) {
-        int idx = lv_idx(s, var_name);
-        if (idx > 0) {
-          /* Compare: pinned_value === target */
-          gen_move(s, cursp(), idx, 0);  /* Load pinned variable */
-          push();
-          gen_move(s, cursp(), target, 0);  /* Load target */
-          push(); push(); pop(); pop(); pop();
-          genop_3(s, OP_SEND, cursp(), new_sym(s, MRC_OPSYM_2(eqq)), 1);
-          /* Jump to fail if not matched */
-          tmp = genjmp2(s, OP_JMPNOT, cursp(), *fail_pos, 1);
-          *fail_pos = tmp;
-        }
-        else {
-          /* Variable not found - fail the match */
-          tmp = genjmp(s, OP_JMP, *fail_pos);
-          *fail_pos = tmp;
-        }
-      }
-      else {
-        /* Unable to extract variable name - fail the match */
-        tmp = genjmp(s, OP_JMP, *fail_pos);
-        *fail_pos = tmp;
-      }
+  case PM_PINNED_EXPRESSION_NODE:
+    {
+      CAST3(pinned_expression, pattern, pat_pin);
+      gen_pattern_eqq(s, (mrc_node *)pat_pin->expression, target, fail_pos);
     }
     break;
 
@@ -2823,6 +2840,10 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
       int post_len = pat_arr->posts.size;
       int arr_reg;
       int i;
+
+      if (pat_arr->constant) {
+        gen_pattern_eqq(s, (mrc_node *)pat_arr->constant, target, fail_pos);
+      }
 
       /* Optimization: if we know the target is an array, skip deconstruct */
       if (known_array_len >= 0) {
@@ -2906,6 +2927,8 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
         }
       }
       else {
+        gen_pattern_respond_to(s, target, MRC_SYM_1(deconstruct), fail_pos);
+
         /* Call target.deconstruct() */
         gen_move(s, cursp(), target, 0);
         push_n(2); pop_n(2);  /* space for receiver and a block */
@@ -2993,6 +3016,10 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
       int hash_reg;
       int num_keys = 0;
 
+      if (pat_hash->constant) {
+        gen_pattern_eqq(s, (mrc_node *)pat_hash->constant, target, fail_pos);
+      }
+
       /* Count regular (non-rest) keys */
       for (size_t i = 0; i < pat_hash->elements.size; i++) {
         if (nint(pat_hash->elements.nodes[i]) == PM_ASSOC_NODE) num_keys++;
@@ -3004,6 +3031,8 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
       /* Call target.deconstruct_keys(keys_array or nil).
        * Pass keys_array only when no rest pattern (partial-match optimization).
        * Pass nil when any ** is present so deconstruct_keys returns all keys. */
+      gen_pattern_respond_to(s, target, MRC_SYM_1(deconstruct_keys), fail_pos);
+
       hash_reg = cursp();
       gen_move(s, hash_reg, target, 0);
       push(); /* protect receiver */
@@ -3033,14 +3062,13 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
       }
       push(); /* protect hash_reg */
 
-      /* Fail if deconstruct_keys returned nil */
-      tmp = genjmp2(s, OP_JMPNIL, hash_reg, *fail_pos, 0);
-      *fail_pos = tmp;
-
       /* Check all keys exist and get values via __pat_values.
        * __pat_values(keys_array) returns an array of values in key order,
-       * or false if any key is missing. */
-      if (num_keys > 0) {
+       * or false if any key is missing.  It runs even for a pattern with no
+       * keys, since it is also the type check: __pat_values is Hash's, and
+       * Object's raises the TypeError CRuby raises when #deconstruct_keys
+       * answers anything but a Hash, a nil included. */
+      {
         int vals_reg = cursp();
         gen_move(s, vals_reg, hash_reg, 0);
         push(); /* protect receiver */
@@ -3169,6 +3197,12 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
       int arr_reg = cursp();
       int idx_reg;
       uint32_t loop_start, match_fail, loop_end;
+
+      if (pat_find->constant) {
+        gen_pattern_eqq(s, (mrc_node *)pat_find->constant, target, fail_pos);
+      }
+
+      gen_pattern_respond_to(s, target, MRC_SYM_1(deconstruct), fail_pos);
 
       /* Call deconstruct on target */
       gen_move(s, cursp(), target, 0);

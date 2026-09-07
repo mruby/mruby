@@ -2285,3 +2285,217 @@ assert('local variable operator-assignment with a non-numeric receiver') do
   obj3 = Class.new { def +(n); raise ArgumentError, n.to_s; end }.new
   assert_raise_with_message(ArgumentError, "7") { obj3 += 7 }
 end
+
+assert('pattern matching - the case value survives a failed clause') do
+  # The move that puts the case value in a register of its own is not the
+  # last read of the value: every `in` clause reads that register again.
+  # Folding the move into the first clause's own move left the register the
+  # later clauses read never written.
+  f = ->(x) {
+    case x
+    in {zz: 1} then :zz
+    in {a: 1} then :a
+    else :none
+    end
+  }
+  assert_equal :a, f.call({a: 1})
+  assert_equal :zz, f.call({zz: 1})
+  assert_equal :none, f.call({b: 1})
+
+  g = ->(x) {
+    case x
+    in [1, 2] then :two
+    in [1] then :one
+    else :none
+    end
+  }
+  assert_equal :two, g.call([1, 2])
+  assert_equal :one, g.call([1])
+  assert_equal :none, g.call([3])
+
+  # a third clause reads it as well
+  h = ->(x) {
+    case x
+    in {zz: 1} then :zz
+    in {yy: 1} then :yy
+    in {a: 1} then :a
+    else :none
+    end
+  }
+  assert_equal :a, h.call({a: 1})
+  assert_equal :none, h.call({b: 1})
+
+  # the one-line forms read it again for a later alternative
+  i = ->(x) { x in {a: 1} | {b: 2} }
+  assert_true i.call({b: 2})
+  assert_true i.call({a: 1})
+  assert_false i.call({c: 3})
+
+  j = ->(x) { x => {a: 1} | {b: 2}; :ok }
+  assert_equal :ok, j.call({b: 2})
+  assert_raise(NoMatchingPatternError) { j.call({c: 3}) }
+end
+
+assert('pattern matching - the constant of a constant pattern is a test of its own') do
+  # `Const[...]` and `Const(...)` reach the rest of the pattern only when the
+  # constant answers `===` for the subject.
+  assert_true(([1, 2] in Array[1, 2]))
+  assert_false(([1, 2] in String[1, 2]))
+  assert_true(({a: 1} in Hash(a: 1)))
+  assert_false(({a: 1} in String(a: 1)))
+  assert_true(([1, 2] in Array[*, 1, *]))
+  assert_false(([1, 2] in String[*, 1, *]))
+
+  assert_true(([] in Array[]))
+  assert_false(([] in Hash[]))
+  assert_true(([[1]] in Array[Array[1]]))
+  assert_false(([[1]] in Array[Hash[1]]))
+
+  [1, 2, 3] in Array[1, *rest]
+  assert_equal [2, 3], rest
+
+  # it is `===` that the constant is asked, not a class check of its own
+  EqqAlways = Class.new do
+    def self.===(_o); :truthy; end
+  end
+  assert_true(([1] in EqqAlways[1]))
+  assert_false(([1] in Comparable[1]))
+
+  # the next clause is reached when the constant refuses
+  got = case [1, 2]
+        in Hash[1, 2] then :hash
+        in Array[1, 2] then :array
+        else :none
+        end
+  assert_equal :array, got
+end
+
+assert('pattern matching - what a pin may name') do
+  # A pin reads what it names the way any other expression is read, so it
+  # reaches beyond a local of the pattern's own scope.
+  outer = 5
+  reader = ->(v) { v in [^outer] }
+  assert_true reader.call([5])
+  assert_false reader.call([6])
+
+  # an expression
+  assert_true(([3] in [^(1 + 2)]))
+  assert_false(([4] in [^(1 + 2)]))
+  assert_true(([5] in [^(1..9)]))
+  assert_true(([1] in [^(Integer)]))
+  assert_true((["ab"] in [^("a" + "b")]))
+
+  # the expression is evaluated where the pin sits, once
+  counter = [0]
+  bump = ->{ counter[0] += 1; 3 }
+  assert_true(([3] in [^(bump.call)]))
+  assert_equal 1, counter[0]
+
+  # an instance variable
+  holder = Class.new do
+    def initialize; @iv = 1; end
+    def pinned(v); v in [^@iv]; end
+  end.new
+  assert_true holder.pinned([1])
+  assert_false holder.pinned([2])
+
+  # a class variable
+  class PinCvarHolder
+    @@cv = 7
+    def pinned(v); v in [^@@cv]; end
+  end
+  assert_true PinCvarHolder.new.pinned([7])
+  assert_false PinCvarHolder.new.pinned([8])
+
+  # a global variable
+  $syntax_pin_gvar = 3
+  assert_true(([3] in [^$syntax_pin_gvar]))
+  assert_false(([4] in [^$syntax_pin_gvar]))
+
+  # every pattern shape a pin can sit in
+  z = 2
+  assert_true(({a: 2} in {a: ^z}))
+  assert_true(([1, 2, 3] in [*, ^z, *]))
+  assert_true(([[1, 2]] in [[1, ^z]]))
+  assert_true(([2] in [1] | [^z]))
+  assert_equal :two, (case [2]
+                      in [1] then :one
+                      in [^z] then :two
+                      else :none
+                      end)
+  [2] => [^z]
+
+  # a pin can name a variable the pattern bound to its left
+  assert_equal :ok, (case [1, 1]; in [a, ^a] then :ok; else :no; end)
+  assert_equal :no, (case [1, 2]; in [a, ^a] then :ok; else :no; end)
+end
+
+assert('pattern matching - a subject with no deconstruction hook does not match') do
+  # The pattern asks whether the subject answers the hook before it sends one,
+  # as CRuby does, so a subject that has none fails the pattern rather than
+  # raising NoMethodError.
+  f = ->(x) {
+    case x
+    in [1] then :arr
+    in {a: 1} then :hash
+    in [*, 9, *] then :find
+    else :none
+    end
+  }
+  assert_equal :none, f.call(3)
+  assert_false((3 in [1]))
+  assert_false((3 in {a: 1}))
+
+  # a private hook is not one the pattern may call
+  priv = Class.new do
+    private def deconstruct; [1]; end
+    private def deconstruct_keys(keys); {a: 1}; end
+  end.new
+  assert_false((priv in [1]))
+  assert_false((priv in {a: 1}))
+
+  pub = Class.new do
+    def deconstruct; [1]; end
+    def deconstruct_keys(keys); {a: 1}; end
+  end.new
+  assert_true((pub in [1]))
+  assert_true((pub in {a: 1}))
+
+  # one hook does not stand in for the other
+  only_ary = Class.new do
+    def deconstruct; [1]; end
+  end.new
+  assert_true((only_ary in [1]))
+  assert_false((only_ary in {a: 1}))
+  assert_true((only_ary in [*, 1, *]))
+end
+
+assert('pattern matching - a deconstruction hook has to answer a Hash') do
+  # The key check a hash pattern makes reads what #deconstruct_keys answered
+  # through a method only Hash carries, so anything else raises where it used
+  # to leak the name of that method.
+  bad_hash = Class.new { def deconstruct_keys(keys); :nothash; end }.new
+  nil_hash = Class.new { def deconstruct_keys(keys); nil; end }.new
+  assert_raise_with_message(TypeError, "deconstruct_keys must return Hash") do
+    bad_hash in {a: 1}
+  end
+  assert_raise_with_message(TypeError, "deconstruct_keys must return Hash") do
+    nil_hash in {a: 1}
+  end
+  # a pattern with no keys of its own reads the answer too
+  assert_raise_with_message(TypeError, "deconstruct_keys must return Hash") do
+    bad_hash in {}
+  end
+  assert_raise_with_message(TypeError, "deconstruct_keys must return Hash") do
+    bad_hash in {**rest}
+  end
+  assert_raise_with_message(TypeError, "deconstruct_keys must return Hash") do
+    bad_hash in {**nil}
+  end
+
+  # a hook that answers a Hash still matches
+  good = Class.new do
+    def deconstruct_keys(keys); {a: 1}; end
+  end.new
+  assert_true((good in {a: 1}))
+end
