@@ -1356,32 +1356,6 @@ proc_class(mrb_state *mrb, const struct RProc *proc)
   return c ? c : mrb->object_class;
 }
 
-/* The class a proc looks constants up from, which is its target class except
-   for a method defined with `def self.name`.  That method runs with the
-   singleton class as its target, but CRuby does not push the singleton as a
-   cref there: the name is looked up from the class body around it, so
-   `def self.name; K; end` finds K in a superclass before the top level and
-   does not see a K set inside `class << self`.  `class << self` does push
-   one.  The two leave the same target class on the proc, and the difference
-   is in what opened the run of procs sharing it: walk up while the target
-   stays the singleton, and the topmost proc is either that method body (a
-   scope that is strict) or the `class << self` body (a scope that is not).
-   A block given a class of its own, instance_eval's, is neither and keeps
-   its class, as it did. */
-static struct RClass*
-cref_class(mrb_state *mrb, const struct RProc *proc)
-{
-  struct RClass *c = proc_class(mrb, proc);
-  const struct RProc *p = proc;
-
-  if (c->tt != MRB_TT_SCLASS) return c;
-  while (p->upper && proc_class(mrb, p->upper) == c) p = p->upper;
-  if (MRB_PROC_SCOPE_P(p) && MRB_PROC_STRICT_P(p) && p->upper) {
-    return proc_class(mrb, p->upper);
-  }
-  return c;
-}
-
 /* Whether a proc on the `upper` chain is a lexical scope of its own for
    the constant walk, the way a cref is in CRuby. A class or method body
    is one. A block is not: it runs in the class scope of the proc it was
@@ -1402,7 +1376,9 @@ mrb_value
 mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
 {
   const struct RProc *proc = mrb->c->ci->proc;
-  struct RClass *c = cref_class(mrb, proc), *c2;
+  struct RClass *c = mrb_vm_cref_class(mrb, mrb->c->ci), *c2;
+
+  if (!c) c = mrb->object_class;
   mrb_value v;
 
   if (iv_get(mrb, class_iv_ptr(c), sym, &v)) {
@@ -1410,7 +1386,7 @@ mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
   }
   for (proc = proc->upper; proc && proc->upper; proc = proc->upper) {
     if (!lexical_scope_p(mrb, proc)) continue;
-    c2 = cref_class(mrb, proc);
+    c2 = proc_class(mrb, proc);
     if (iv_get(mrb, class_iv_ptr(c2), sym, &v)) {
       return v;
     }
@@ -1438,15 +1414,18 @@ mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
    (the caller's, via ci[-1]) and returns the value or undef, without invoking
    const_missing or raising. */
 mrb_value
-mrb_vm_const_get_noraise(mrb_state *mrb, const struct RProc *proc, mrb_sym sym)
+mrb_vm_const_get_noraise(mrb_state *mrb, mrb_callinfo *ci, mrb_sym sym)
 {
-  struct RClass *c = cref_class(mrb, proc), *c2;
+  const struct RProc *proc = ci->proc;
+  struct RClass *c = mrb_vm_cref_class(mrb, ci), *c2;
+
+  if (!c) c = mrb->object_class;
   mrb_value v;
 
   if (iv_get(mrb, class_iv_ptr(c), sym, &v)) return v;
   for (proc = proc->upper; proc && proc->upper; proc = proc->upper) {
     if (!lexical_scope_p(mrb, proc)) continue;
-    c2 = cref_class(mrb, proc);
+    c2 = proc_class(mrb, proc);
     if (iv_get(mrb, class_iv_ptr(c2), sym, &v)) return v;
   }
   if (c->tt == MRB_TT_SCLASS) {
@@ -1466,9 +1445,9 @@ mrb_vm_const_get_noraise(mrb_state *mrb, const struct RProc *proc, mrb_sym sym)
 }
 
 mrb_bool
-mrb_vm_const_defined_p(mrb_state *mrb, const struct RProc *proc, mrb_sym sym)
+mrb_vm_const_defined_p(mrb_state *mrb, mrb_callinfo *ci, mrb_sym sym)
 {
-  return !mrb_undef_p(mrb_vm_const_get_noraise(mrb, proc, sym));
+  return !mrb_undef_p(mrb_vm_const_get_noraise(mrb, ci, sym));
 }
 
 /* The lookup a constant path read makes from a module, `Mod::NAME`, without

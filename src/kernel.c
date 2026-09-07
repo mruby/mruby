@@ -770,7 +770,7 @@ mrb_f_defined_const(mrb_state *mrb, mrb_value self)
   /* resolve in the caller's lexical scope (ci[-1]), not this helper's */
   mrb_callinfo *ci = &mrb->c->ci[-1];
   if (ci >= mrb->c->cibase && ci->proc &&
-      mrb_vm_const_defined_p(mrb, ci->proc, sym)) {
+      mrb_vm_const_defined_p(mrb, ci, sym)) {
     return mrb_str_new_lit_frozen(mrb, "constant");
   }
   return mrb_nil_value();
@@ -844,7 +844,7 @@ mrb_f_defined_const_path(mrb_state *mrb, mrb_value self)
   if (mrb_nil_p(start)) {
     mrb_callinfo *ci = &mrb->c->ci[-1];
     if (ci < mrb->c->cibase || ci->proc == NULL) return mrb_nil_value();
-    outer = mrb_vm_const_get_noraise(mrb, ci->proc, mrb_symbol(RARRAY_PTR(path)[0]));
+    outer = mrb_vm_const_get_noraise(mrb, ci, mrb_symbol(RARRAY_PTR(path)[0]));
     if (mrb_undef_p(outer)) return mrb_nil_value();
     i = 1;
   }

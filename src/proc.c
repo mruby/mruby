@@ -41,6 +41,69 @@ static const struct RProc call_proc = {
   { &call_irep }, NULL, { NULL }
 };
 
+/* Whether the scope this proc closes over was given the class it runs
+   under.  A scope of its own is where the run ends: MRB_PROC_CREF answers
+   from its own cref and is asked first. */
+static mrb_bool
+given_class_env_p(const struct RProc *p)
+{
+  return MRB_PROC_ENV_P(p) && MRB_ENV_GIVEN_CLASS_P(MRB_PROC_ENV(p));
+}
+
+/* The class a constant written in the frame's scope is looked up from, which
+   is that scope's cref.  NULL where the chain holds no scope at all, a
+   method body written in C among them: the caller says what stands in.
+
+   A scope keeps its cref on its proc, so a method written `def self.name`
+   keeps the class around it rather than the singleton class it was
+   installed in.  A block is not a scope of its own and the walk passes over
+   it, up to the one it was written in.  A proc installed as a method is on
+   the chain and is read that way, which is what keeps a method found in a
+   subclass from answering with the subclass.
+
+   A class given to a block to run under does not enter here.  `class_eval`
+   and its kin name where a `def` goes, not where a constant is read from;
+   the block keeps looking constants up from the scope it was written in.
+   An eval string is the other case: it opens a scope of its own, and one
+   given a class carries that class as its cref, so it is on the chain and
+   this walk finds it. */
+struct RClass*
+mrb_vm_cref_class(mrb_state *mrb, mrb_callinfo *ci)
+{
+  const struct RProc *p = ci->proc;
+
+  while (p && !MRB_PROC_CFUNC_P(p) && !MRB_PROC_CREF_P(p)) p = p->upper;
+  return (p && !MRB_PROC_CFUNC_P(p)) ? MRB_PROC_TARGET_CLASS(p) : NULL;
+}
+
+/* The class a `def`, an `alias` or an `undef` written in the frame's scope
+   adds to.  The cref, except where a class was given to the frame to run
+   under: `class_eval`, `instance_eval`, `Class.new` and `Module.new` leave
+   one there, and a `def` written in the block goes to it.
+
+   The given class is on the frame and nowhere on the `upper` chain, so the
+   env the giving scope leaves behind is marked instead: a block made there
+   closes over that env and answers with the class it holds, which is how a
+   `def` in a block inside the block reaches the same place, and how a string
+   evaluated over a binding taken there does.  A scope of its own ends the
+   run: a method written in such a block adds to the given class, but the
+   blocks inside the method body belong to the method and follow its cref. */
+struct RClass*
+mrb_vm_definee_class(mrb_state *mrb, mrb_callinfo *ci)
+{
+  const struct RProc *p = ci->proc;
+
+  if (MRB_CI_GIVEN_CLASS_P(ci)) {
+    return mrb_vm_ci_target_class(ci);
+  }
+  while (p && !MRB_PROC_CFUNC_P(p)) {
+    if (MRB_PROC_CREF_P(p)) return MRB_PROC_TARGET_CLASS(p);
+    if (given_class_env_p(p)) return MRB_PROC_ENV(p)->c;
+    p = p->upper;
+  }
+  return NULL;
+}
+
 struct RProc*
 mrb_proc_new(mrb_state *mrb, const mrb_irep *irep)
 {
@@ -49,11 +112,8 @@ mrb_proc_new(mrb_state *mrb, const mrb_irep *irep)
 
   p = (struct RProc*)mrb_obj_alloc_core(mrb, MRB_TT_PROC, mrb->proc_class);
   if (ci) {
-    struct RClass *tc = NULL;
+    struct RClass *tc = mrb_vm_cref_class(mrb, ci);
 
-    if (ci->proc) {
-      tc = MRB_PROC_TARGET_CLASS(ci->proc);
-    }
     if (tc == NULL) {
       tc = mrb_vm_ci_target_class(ci);
     }
@@ -91,6 +151,15 @@ mrb_env_new(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci, int nstacks
   e->stack = stack;
   e->cxt = c;
   MRB_ENV_COPY_FLAGS_FROM_CI(e, ci);
+  /* The frame was given the class it runs under, or it took one from a
+     scope that was: either way a `def` written here adds to that class, and
+     so does one written in a block made here, which closes over this env.
+     A scope of its own does not pass it on; it has a cref to answer with. */
+  if (tc && ci->proc && !MRB_PROC_CFUNC_P(ci->proc) &&
+      (MRB_CI_GIVEN_CLASS_P(ci) ||
+       (!MRB_PROC_CREF_P(ci->proc) && given_class_env_p(ci->proc)))) {
+    MRB_ENV_SET_GIVEN_CLASS(e);
+  }
 
   return e;
 }

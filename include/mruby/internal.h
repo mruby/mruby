@@ -656,10 +656,12 @@ void mrb_vm_special_set(mrb_state*, mrb_sym, mrb_value);
 mrb_value mrb_vm_cv_get(mrb_state*, mrb_sym);
 void mrb_vm_cv_set(mrb_state*, mrb_sym, mrb_value);
 mrb_value mrb_vm_const_get(mrb_state*, mrb_sym);
-mrb_bool mrb_vm_const_defined_p(mrb_state *mrb, const struct RProc *proc, mrb_sym sym);
-mrb_value mrb_vm_const_get_noraise(mrb_state *mrb, const struct RProc *proc, mrb_sym sym);
+mrb_bool mrb_vm_const_defined_p(mrb_state *mrb, mrb_callinfo *ci, mrb_sym sym);
+mrb_value mrb_vm_const_get_noraise(mrb_state *mrb, mrb_callinfo *ci, mrb_sym sym);
 mrb_value mrb_const_get_noraise(mrb_state *mrb, struct RClass *mod, mrb_sym sym);
 mrb_bool mrb_vm_cv_defined_p(mrb_state *mrb, const struct RProc *proc, mrb_sym sym);
+struct RClass *mrb_vm_cref_class(mrb_state *mrb, mrb_callinfo *ci);
+struct RClass *mrb_vm_definee_class(mrb_state *mrb, mrb_callinfo *ci);
 mrb_bool mrb_gv_defined(mrb_state *mrb, mrb_sym sym);
 #ifdef MRUBY_VARIABLE_H
 void mrb_gv_foreach(mrb_state *mrb, mrb_iv_foreach_func *func, void *p);
@@ -767,6 +769,13 @@ mrb_shape_lookup(mrb_state *mrb, mrb_iv_shape *shape, mrb_sym sym)
 #define MRB_CI_MODFUNC_P(ci) MRB_FLAG_CHECK((ci)->vis, 3)
 #define MRB_CI_SET_MODFUNC(ci) MRB_FLAG_ON((ci)->vis, 3)
 #define MRB_CI_CLEAR_MODFUNC(ci) MRB_FLAG_OFF((ci)->vis, 3)
+/* The frame was given the class to define in rather than finding a method
+   in it: `class_eval` and its kin run a block this way.  A `def` written in
+   the block adds to that class, and so does one written in a block inside
+   it, which carries the class as MRB_PROC_GIVEN_CLASS.  Not copied to the
+   env, unlike the flags below bit 4; the walk reads the procs. */
+#define MRB_CI_GIVEN_CLASS_P(ci) MRB_FLAG_CHECK((ci)->vis, 4)
+#define MRB_CI_SET_GIVEN_CLASS(ci) MRB_FLAG_ON((ci)->vis, 4)
 void mrb_vm_ci_inherit_visibility(mrb_state *mrb, const struct RProc *p);
 mrb_int mrb_ci_bidx(mrb_callinfo *ci);
 mrb_int mrb_ci_nregs(mrb_callinfo *ci);

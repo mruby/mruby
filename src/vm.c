@@ -1845,6 +1845,7 @@ eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
   ci->kw = FALSE;
   ci->mid = ci[-1].mid;
   MRB_CI_SET_VISIBILITY_BREAK(ci);
+  MRB_CI_SET_GIVEN_CLASS(ci);
   if (MRB_PROC_CFUNC_P(p)) {
     stack_extend(mrb, 4);
     mrb->c->ci->stack[0] = self;
@@ -1916,9 +1917,13 @@ mrb_obj_instance_eval(mrb_state *mrb, mrb_value self)
   return eval_under(mrb, self, b, mrb_singleton_class_ptr(mrb, self));
 }
 
+/* `given_class` says the caller named the class the block runs under, the
+   way `class_eval` and `Class.new` do, rather than taking the one the block
+   already carries.  A `def` written in the block adds to that class, and the
+   visibility written in it is the block's own. */
 static mrb_value
 yield_with_attr(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv, mrb_value self, struct RClass *c,
-                mrb_bool vis_break)
+                mrb_bool given_class)
 {
   check_block(mrb, b);
 
@@ -1937,8 +1942,9 @@ yield_with_attr(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv
   funcall_args_capture(mrb, 0, argc, argv, mrb_nil_value(), ci);
   ci->u.target_class = c;
   ci->proc = p;
-  if (vis_break) {
+  if (given_class) {
     MRB_CI_SET_VISIBILITY_BREAK(ci);
+    MRB_CI_SET_GIVEN_CLASS(ci);
   }
 
   mrb_value val;
@@ -1964,7 +1970,7 @@ yield_with_attr(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv
  * This function executes a given block (`b`) with the provided arguments (`argv`).
  * The `self` object within the block will be `self`, and the class context
  * will be `c`. This allows for more control over the execution environment of
- * the block. The `vis_break` flag is set to TRUE, meaning visibility checks
+ * the block. The `given_class` flag is set to TRUE, meaning visibility checks
  * (public/private/protected) are enforced.
  *
  * @param mrb The mruby state.
@@ -1991,7 +1997,7 @@ mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value 
  * The `self` object and class context for the block execution are determined
  * from the block itself (its captured environment).
  * Visibility checks (public/private/protected) are not strictly enforced
- * in the same way as `mrb_yield_with_class` (vis_break is FALSE).
+ * in the same way as `mrb_yield_with_class` (given_class is FALSE).
  *
  * @param mrb The mruby state.
  * @param b The block (proc) to yield to.
@@ -2019,7 +2025,7 @@ mrb_yield_argv(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv)
  * It's a convenience function for the common case of yielding with one argument.
  * The `self` object and class context for the block execution are determined
  * from the block itself.
- * Visibility checks are not strictly enforced (vis_break is FALSE).
+ * Visibility checks are not strictly enforced (given_class is FALSE).
  *
  * @param mrb The mruby state.
  * @param b The block (proc) to yield to.
@@ -2435,7 +2441,9 @@ mrb_vm_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, mrb_int sta
 static struct RClass*
 check_target_class(mrb_state *mrb)
 {
-  struct RClass *target = CI_TARGET_CLASS(mrb->c->ci);
+  mrb_callinfo *ci = mrb->c->ci;
+  struct RClass *target = mrb_vm_definee_class(mrb, ci);
+  if (!target) target = CI_TARGET_CLASS(ci);
   if (!target) {
     mrb_raise(mrb, E_TYPE_ERROR, "no class/module to add method");
   }
@@ -2989,7 +2997,7 @@ vm_define_method(mrb_state *mrb, struct RClass *tc, const mrb_irep *irep, uint16
   mrb_sym mid = irep->syms[b];
   mrb_method_t m;
 
-  p->flags |= MRB_PROC_SCOPE | MRB_PROC_STRICT;
+  p->flags |= MRB_PROC_SCOPE | MRB_PROC_STRICT | MRB_PROC_CREF;
   MRB_METHOD_FROM_PROC(m, p);
   MRB_METHOD_SET_VISIBILITY(m, MRB_METHOD_VDEFAULT_FL);
   mrb_define_method_raw(mrb, tc, mid, m);
@@ -4580,8 +4588,9 @@ RETRY_TRY_BLOCK:
         p = mrb_closure_new(mrb, nirep);
       }
       else {
+        /* OP_METHOD is the only one here without OP_L_CAPTURE: a method body */
         p = mrb_proc_new(mrb, nirep);
-        p->flags |= MRB_PROC_SCOPE;
+        p->flags |= MRB_PROC_SCOPE | MRB_PROC_CREF;
       }
       if (c & OP_L_STRICT) p->flags |= MRB_PROC_STRICT;
       regs[a] = mrb_obj_value(p);
@@ -4664,7 +4673,7 @@ RETRY_TRY_BLOCK:
       p->c = NULL;
       mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)ci->proc);
       MRB_PROC_SET_TARGET_CLASS(p, c);
-      p->flags |= MRB_PROC_SCOPE;
+      p->flags |= MRB_PROC_SCOPE | MRB_PROC_CREF;
 
       /* prepare call stack */
       ci = cipush(mrb, a, 0, c, p, NULL, 0, 0);

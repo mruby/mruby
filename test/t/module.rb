@@ -1264,3 +1264,42 @@ assert('constant lookup: def self.name looks up from the class body') do
   # `def self.name` inside `class << self` looks up from that singleton body
   assert_equal :singleton, s.nested_in_sclass
 end
+
+assert('Module#module_function - where a def in the body lands') do
+  # the copy on the singleton runs the same body, and the body was written
+  # in the module
+  module Test4ModfuncDefTarget
+    module_function
+    def go; def m; :from_modfunc; end; end
+  end
+  Test4ModfuncDefTarget.go
+  host = Class.new do
+    include Test4ModfuncDefTarget
+    def probe; m; end
+  end
+  assert_equal(:from_modfunc, host.new.probe)
+  assert_raise(NoMethodError) { Test4ModfuncDefTarget.m }
+end
+
+assert('constant lookup: a block given a class to run under keeps its own') do
+  # `class_eval` and its kin name where a `def` in the block goes, not where
+  # a constant in it is read from: the block goes on reading constants from
+  # the scope it was written in, and so does a method written in the block.
+  module Test4ConstScopeRecv
+    K = :recv
+  end
+  module Test4ConstScopeLex
+    K = :lex
+    def self.direct;  Test4ConstScopeRecv.class_eval { K }; end
+    def self.nested;  Test4ConstScopeRecv.class_eval { [1].map { K }[0] }; end
+    def self.install; Test4ConstScopeRecv.class_eval { def k; K; end }; end
+  end
+  assert_equal(:lex, Test4ConstScopeLex.direct)
+  assert_equal(:lex, Test4ConstScopeLex.nested)
+  Test4ConstScopeLex.install
+  host = Class.new do
+    include Test4ConstScopeRecv
+    def probe; k; end
+  end
+  assert_equal(:lex, host.new.probe)
+end

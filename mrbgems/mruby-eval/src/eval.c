@@ -364,6 +364,7 @@ object_eval(mrb_state *mrb, mrb_value self, mrb_bool class_eval)
   }
   struct RProc *proc = create_proc_from_string(mrb, s, len, binding, file, line);
   MRB_PROC_SET_TARGET_CLASS(proc, c);
+  proc->flags |= MRB_PROC_CREF;
   mrb_assert(!MRB_PROC_CFUNC_P(proc));
   mrb_vm_ci_target_class_set(mrb->c->ci, c);
   /* The frame carries one class, and it is given to `c` here so that a `def`
