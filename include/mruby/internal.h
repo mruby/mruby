@@ -301,6 +301,10 @@ void mrb_env_detach_all(mrb_state *mrb, struct mrb_context *c, mrb_bool resolve)
 struct RBasic *mrb_svar_frame_container(struct mrb_context *c, mrb_callinfo *ci);
 void mrb_proc_merge_lvar(mrb_state *mrb, mrb_irep *irep, struct REnv *env, int num, const mrb_sym *lv, const mrb_value *stack);
 mrb_value mrb_proc_local_variables(mrb_state *mrb, const struct RProc *proc);
+/* The env of `ci`'s frame, made if the frame has none; NULL where the frame
+   is a cfunc's and has no locals to keep.  A scope that has to outlive its
+   frame asks for one. */
+struct REnv *mrb_vm_ci_env_reify(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci);
 const struct RProc *mrb_proc_get_caller(mrb_state *mrb, struct REnv **env);
 mrb_value mrb_proc_get_self(mrb_state *mrb, const struct RProc *p, struct RClass **target_class_p);
 mrb_bool mrb_proc_eql(mrb_state *mrb, mrb_value self, mrb_value other);

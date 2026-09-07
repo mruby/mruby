@@ -993,13 +993,38 @@ find_visibility_scope(mrb_state *mrb, const struct RClass *c, int n, mrb_callinf
    breaking the scope so that a `private` written inside the string stops at
    the end of it, the way CRuby's copy of the caller's cref does. A proc that
    captured no env was compiled against no Ruby scope and has none to lend. */
+/* The scope an eval string starts at.  find_visibility_env() answers the env
+   of the frame the string runs in, which is the class body itself where the
+   `eval` was written there.  Called from inside a method it is the method's
+   frame, whose visibility is the default: a `def` keeps a scope for what is
+   written in it but no env to write a visibility to, so the scope the string
+   starts at is the body the `def` was written in, one step further up.  The
+   env found is the body's own and is read now rather than copied at `def`,
+   which is what makes a `private` written after the `def` reach it, as
+   CRuby's cref does. */
+static struct REnv*
+find_eval_visibility_env(const struct RProc *p, const struct RClass *c)
+{
+  struct REnv *env = MRB_PROC_ENV(p);
+
+  for (const struct RProc *up = p->upper; up; up = up->upper) {
+    struct REnv *e = MRB_PROC_ENV(up);
+    if (e == NULL) continue;            /* a `def`, which keeps none */
+    if (e->c != c) break;               /* another class's scope */
+    env = e;
+    if (MRB_PROC_SCOPE_P(up)) break;    /* the body the `def` was written in */
+    if (MRB_ENV_VISIBILITY_BREAK_P(e)) break;
+  }
+  return env;
+}
+
 void
 mrb_vm_ci_inherit_visibility(mrb_state *mrb, const struct RProc *p)
 {
   mrb_callinfo *ci = mrb->c->ci;
 
   if (MRB_PROC_ENV(p) == NULL) return;
-  struct REnv *e = find_visibility_env(p, mrb_vm_ci_target_class(ci));
+  struct REnv *e = find_eval_visibility_env(p, mrb_vm_ci_target_class(ci));
   MRB_CI_SET_VISIBILITY(ci, MRB_ENV_VISIBILITY(e));
   if (MRB_ENV_MODFUNC_P(e)) {
     MRB_CI_SET_MODFUNC(ci);
@@ -2559,6 +2584,31 @@ mrb_mod_initialize(mrb_state *mrb, mrb_value mod)
   return mod;
 }
 
+/* A visibility written in a class body has to outlive the body: a `def` there
+   keeps no visibility of its own, and an eval string run inside such a method
+   reads the body's.  The body keeps it on its frame until something needs it
+   later, so the frame is given an env to keep it in.  Only a visibility that
+   is not the default is worth an env: a body that writes `public` where
+   `public` already stands would pay for saying nothing. */
+static void
+vis_scope_persist(mrb_state *mrb, mrb_callinfo **cp, struct REnv **ep, uint32_t vis)
+{
+  if (*ep || vis == (MRB_METHOD_PUBLIC_FL >> 25)) return;
+  struct REnv *e = mrb_vm_ci_env_reify(mrb, mrb->c, *cp);
+  if (e == NULL) return;
+  /* The frame keeps the env, and so does the proc running in it: the walk a
+     `def` inside this body makes later reads procs rather than frames, and
+     the frame will be gone by then. */
+  struct RProc *proc = (struct RProc*)(*cp)->proc;
+  if (proc && !MRB_PROC_ENV_P(proc)) {
+    proc->e.env = e;
+    proc->flags |= MRB_PROC_ENVSET;
+    mrb_field_write_barrier(mrb, (struct RBasic*)proc, (struct RBasic*)e);
+  }
+  *ep = e;
+  *cp = NULL;
+}
+
 static void
 mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int vis)
 {
@@ -2572,6 +2622,7 @@ mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int vis)
     mrb_callinfo *ci;
     struct REnv *e;
     find_visibility_scope(mrb, NULL, 1, &ci, &e);
+    vis_scope_persist(mrb, &ci, &e, (uint32_t)(vis >> 25));
     if (e) {
       MRB_ENV_SET_VISIBILITY(e, vis >> 25);
       MRB_ENV_CLEAR_MODFUNC(e);  /* an explicit visibility ends module_function scope */
@@ -4405,6 +4456,7 @@ mrb_mod_module_function(mrb_state *mrb, mrb_value mod)
     mrb_callinfo *ci;
     struct REnv *e;
     find_visibility_scope(mrb, NULL, 1, &ci, &e);
+    vis_scope_persist(mrb, &ci, &e, MRB_METHOD_PRIVATE_FL >> 25);
     if (e) {
       MRB_ENV_SET_VISIBILITY(e, MRB_METHOD_PRIVATE_FL >> 25);
       MRB_ENV_SET_MODFUNC(e);

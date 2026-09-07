@@ -505,6 +505,23 @@ mrb_proc_local_variables(mrb_state *mrb, const struct RProc *proc)
   return mrb_hash_keys(mrb, vars);
 }
 
+/* The env of `ci`'s frame, made if the frame has none.  A frame keeps its
+   locals on the stack until something has to outlive it; an env is that
+   something, and this is where a caller that needs one asks for it. */
+struct REnv*
+mrb_vm_ci_env_reify(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci)
+{
+  struct REnv *e = mrb_vm_ci_env(ci);
+  const struct RProc *proc = ci->proc;
+
+  if (e) return e;
+  if (!proc || MRB_PROC_CFUNC_P(proc)) return NULL;
+  e = mrb_env_new(mrb, c, ci, proc->body.irep->nlocals, ci->stack,
+                  mrb_vm_ci_target_class(ci));
+  ci->u.env = e;
+  return e;
+}
+
 const struct RProc *
 mrb_proc_get_caller(mrb_state *mrb, struct REnv **envp)
 {
@@ -516,14 +533,7 @@ mrb_proc_get_caller(mrb_state *mrb, struct REnv **envp)
     if (envp) *envp = NULL;
   }
   else {
-    struct REnv *e = mrb_vm_ci_env(ci);
-
-    if (e == NULL) {
-      int nstacks = proc->body.irep->nlocals;
-      e = mrb_env_new(mrb, c, ci, nstacks, ci->stack, mrb_vm_ci_target_class(ci));
-      ci->u.env = e;
-    }
-    if (envp) *envp = e;
+    if (envp) *envp = mrb_vm_ci_env_reify(mrb, c, ci);
   }
 
   return proc;

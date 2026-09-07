@@ -575,3 +575,61 @@ assert('a string given to eval in a `def` body has no scope around it') do
   assert_raise(NameError) { TestEvalDefScope.hidden_singleton }
   assert_raise(NameError) { TestEvalDefScope.hidden_sclass }
 end
+
+class EvalVisHidden
+  private
+  def make; eval("def written; :w; end"); end
+end
+
+class EvalVisShown
+  public
+  def make; eval("def written; end"); end
+end
+
+class EvalVisGuarded
+  protected
+  def make; eval("def written; end"); end
+end
+
+class EvalVisLater
+  def make; eval("def written; end"); end
+  private
+end
+
+class EvalVisReopened
+  def make; eval("def written; end"); end
+end
+class EvalVisReopened
+  private
+end
+
+assert('eval string in a method starts at the visibility of the scope the method was written in') do
+  # A class body keeps one visibility for the whole of itself and a `def` in
+  # it keeps none of its own, so a string evaluated inside such a method
+  # reads the body's, as it stands rather than as it stood at the `def`.
+  o = EvalVisHidden.new
+  o.send(:make)
+  assert_false o.respond_to?(:written)
+  assert_true o.respond_to?(:written, true)
+  assert_equal :w, o.send(:written)
+
+  o = EvalVisShown.new
+  o.make
+  assert_true o.respond_to?(:written)
+
+  o = EvalVisGuarded.new
+  o.send(:make)
+  assert_false o.respond_to?(:written)
+  assert_true o.respond_to?(:written, true)
+
+  # written after the `def` and reaching it: one body, one visibility
+  o = EvalVisLater.new
+  o.send(:make)
+  assert_false o.respond_to?(:written)
+
+  # a body opened again is a scope of its own, and what it says reaches
+  # nothing the first one wrote
+  o = EvalVisReopened.new
+  o.make
+  assert_true o.respond_to?(:written)
+end
