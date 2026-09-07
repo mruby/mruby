@@ -55,7 +55,7 @@ data_s_members(mrb_state *mrb, struct RClass *c)
 static mrb_value
 data_members(mrb_state *mrb, mrb_value obj)
 {
-  if (!data_p(obj) || RDATA_LEN(obj) == 0) {
+  if (!data_p(obj)) {
     data_corrupted(mrb);
   }
 
@@ -529,7 +529,7 @@ mrb_data_to_s(mrb_state *mrb, mrb_value self)
 
   if (!mrb_nil_p(cname)) {
     mrb_str_cat_str(mrb, ret, cname);
-    mrb_str_cat_lit(mrb, ret, " ");
+    if (mlen > 0) mrb_str_cat_lit(mrb, ret, " ");
   }
   for (mrb_int i=0; i<mlen; i++) {
     mrb_int len;

@@ -141,3 +141,19 @@ assert 'Data with overridden initialize (keyword style)' do
   assert_equal 6, e.v
   assert_equal 5, e.with(v: 5).v   # with bypasses initialize -> 5, not 10
 end
+
+assert 'Data with no members' do
+  # Data.define takes no members at all, and what it builds is not a broken
+  # object: everything that reads the members has to answer for it.
+  c = Data.define
+  d = c.new
+
+  assert_equal [], c.members
+  assert_equal [], d.members
+  assert_equal({}, d.to_h)
+  assert_equal "#<data >", d.inspect
+  assert_equal "#<data >", d.to_s
+  assert_equal "#<data >", d.with.inspect
+  assert_true d == c.new
+  assert_true d.frozen?
+end
