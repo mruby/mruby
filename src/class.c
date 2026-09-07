@@ -953,6 +953,21 @@ check_visibility_break(const struct RProc *p, const struct RClass *c, mrb_callin
   return mrb_vm_ci_target_class(ci) != c || MRB_CI_VISIBILITY_BREAK_P(ci);
 }
 
+/* The env a scope wrote its visibility to, following p->upper from a proc
+   that has already passed check_visibility_break(): the first step that
+   breaks leaves the env of the level below it, which is the scope's own. */
+static struct REnv*
+find_visibility_env(const struct RProc *p, const struct RClass *c)
+{
+  for (;;) {
+    struct REnv *env = p->e.env;
+    p = p->upper;
+    if (check_visibility_break(p, c, NULL, env)) {
+      return env;
+    }
+  }
+}
+
 static void
 find_visibility_scope(mrb_state *mrb, const struct RClass *c, int n, mrb_callinfo **cp, struct REnv **ep)
 {
@@ -968,15 +983,8 @@ find_visibility_scope(mrb_state *mrb, const struct RClass *c, int n, mrb_callinf
     return;
   }
 
-  for (;;) {
-    struct REnv *env = p->e.env;
-    p = p->upper;
-    if (check_visibility_break(p, c, ci, env)) {
-      *ep = env;
-      *cp = NULL;
-      return;
-    }
-  }
+  *ep = find_visibility_env(p, c);
+  *cp = NULL;
 }
 
 /*
