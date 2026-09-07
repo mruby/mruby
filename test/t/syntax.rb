@@ -2335,3 +2335,37 @@ assert('pattern matching - the case value survives a failed clause') do
   assert_equal :ok, j.call({b: 2})
   assert_raise(NoMatchingPatternError) { j.call({c: 3}) }
 end
+
+assert('pattern matching - the constant of a constant pattern is a test of its own') do
+  # `Const[...]` and `Const(...)` reach the rest of the pattern only when the
+  # constant answers `===` for the subject.
+  assert_true(([1, 2] in Array[1, 2]))
+  assert_false(([1, 2] in String[1, 2]))
+  assert_true(({a: 1} in Hash(a: 1)))
+  assert_false(({a: 1} in String(a: 1)))
+  assert_true(([1, 2] in Array[*, 1, *]))
+  assert_false(([1, 2] in String[*, 1, *]))
+
+  assert_true(([] in Array[]))
+  assert_false(([] in Hash[]))
+  assert_true(([[1]] in Array[Array[1]]))
+  assert_false(([[1]] in Array[Hash[1]]))
+
+  [1, 2, 3] in Array[1, *rest]
+  assert_equal [2, 3], rest
+
+  # it is `===` that the constant is asked, not a class check of its own
+  EqqAlways = Class.new do
+    def self.===(_o); :truthy; end
+  end
+  assert_true(([1] in EqqAlways[1]))
+  assert_false(([1] in Comparable[1]))
+
+  # the next clause is reached when the constant refuses
+  got = case [1, 2]
+        in Hash[1, 2] then :hash
+        in Array[1, 2] then :array
+        else :none
+        end
+  assert_equal :array, got
+end

@@ -2604,6 +2604,19 @@ gen_massignment(mrc_codegen_scope *s, mrc_node *tree, int rhs, int val)
   }
 }
 
+/* Fail the match unless `value` answers `===` for the value at `target`: the
+   test the constant of `Const[...]` and `Const(...)` makes, and the one a pin
+   pattern makes over what `^` names. */
+static void
+gen_pattern_eqq(mrc_codegen_scope *s, mrc_node *value, int target, uint32_t *fail_pos)
+{
+  codegen(s, value, VAL);
+  gen_move(s, cursp(), target, 0);
+  push(); push(); pop(); pop(); pop();
+  genop_3(s, OP_SEND, cursp(), new_sym(s, MRC_OPSYM_2(eqq)), 1);
+  *fail_pos = genjmp2(s, OP_JMPNOT, cursp(), *fail_pos, 1);
+}
+
 /* Generate pattern matching code for a single pattern.
  * target: stack position of the value being matched
  * fail_pos: linked list of jump positions for pattern match failure
@@ -2831,6 +2844,10 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
       int arr_reg;
       int i;
 
+      if (pat_arr->constant) {
+        gen_pattern_eqq(s, (mrc_node *)pat_arr->constant, target, fail_pos);
+      }
+
       /* Optimization: if we know the target is an array, skip deconstruct */
       if (known_array_len >= 0) {
         /* Use target directly as array register */
@@ -2999,6 +3016,10 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
       CAST3(hash_pattern, pattern, pat_hash);
       int hash_reg;
       int num_keys = 0;
+
+      if (pat_hash->constant) {
+        gen_pattern_eqq(s, (mrc_node *)pat_hash->constant, target, fail_pos);
+      }
 
       /* Count regular (non-rest) keys */
       for (size_t i = 0; i < pat_hash->elements.size; i++) {
@@ -3176,6 +3197,10 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
       int arr_reg = cursp();
       int idx_reg;
       uint32_t loop_start, match_fail, loop_end;
+
+      if (pat_find->constant) {
+        gen_pattern_eqq(s, (mrc_node *)pat_find->constant, target, fail_pos);
+      }
 
       /* Call deconstruct on target */
       gen_move(s, cursp(), target, 0);
