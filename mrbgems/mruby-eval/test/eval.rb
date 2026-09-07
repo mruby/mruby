@@ -462,3 +462,22 @@ assert('a string given to eval in a `define_method` block sees the closure') do
   assert_equal 20, o.direct
   assert_equal 20, k.new.read
 end
+
+assert('a string given to eval in a `def` body has no scope around it') do
+  # A method body carries no closure, so a local of the scope it was written
+  # in is not a name it can reach: it is a method call there.
+  class TestEvalDefScope
+    x = 10
+    def hidden; eval("x"); end
+    def self.hidden_singleton; eval("x"); end
+
+    class << self
+      y = 30
+      def hidden_sclass; eval("y"); end
+    end
+  end
+
+  assert_raise(NameError) { TestEvalDefScope.new.hidden }
+  assert_raise(NameError) { TestEvalDefScope.hidden_singleton }
+  assert_raise(NameError) { TestEvalDefScope.hidden_sclass }
+end
