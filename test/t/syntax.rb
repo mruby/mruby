@@ -2369,3 +2369,63 @@ assert('pattern matching - the constant of a constant pattern is a test of its o
         end
   assert_equal :array, got
 end
+
+assert('pattern matching - what a pin may name') do
+  # A pin reads what it names the way any other expression is read, so it
+  # reaches beyond a local of the pattern's own scope.
+  outer = 5
+  reader = ->(v) { v in [^outer] }
+  assert_true reader.call([5])
+  assert_false reader.call([6])
+
+  # an expression
+  assert_true(([3] in [^(1 + 2)]))
+  assert_false(([4] in [^(1 + 2)]))
+  assert_true(([5] in [^(1..9)]))
+  assert_true(([1] in [^(Integer)]))
+  assert_true((["ab"] in [^("a" + "b")]))
+
+  # the expression is evaluated where the pin sits, once
+  counter = [0]
+  bump = ->{ counter[0] += 1; 3 }
+  assert_true(([3] in [^(bump.call)]))
+  assert_equal 1, counter[0]
+
+  # an instance variable
+  holder = Class.new do
+    def initialize; @iv = 1; end
+    def pinned(v); v in [^@iv]; end
+  end.new
+  assert_true holder.pinned([1])
+  assert_false holder.pinned([2])
+
+  # a class variable
+  class PinCvarHolder
+    @@cv = 7
+    def pinned(v); v in [^@@cv]; end
+  end
+  assert_true PinCvarHolder.new.pinned([7])
+  assert_false PinCvarHolder.new.pinned([8])
+
+  # a global variable
+  $syntax_pin_gvar = 3
+  assert_true(([3] in [^$syntax_pin_gvar]))
+  assert_false(([4] in [^$syntax_pin_gvar]))
+
+  # every pattern shape a pin can sit in
+  z = 2
+  assert_true(({a: 2} in {a: ^z}))
+  assert_true(([1, 2, 3] in [*, ^z, *]))
+  assert_true(([[1, 2]] in [[1, ^z]]))
+  assert_true(([2] in [1] | [^z]))
+  assert_equal :two, (case [2]
+                      in [1] then :one
+                      in [^z] then :two
+                      else :none
+                      end)
+  [2] => [^z]
+
+  # a pin can name a variable the pattern bound to its left
+  assert_equal :ok, (case [1, 1]; in [a, ^a] then :ok; else :no; end)
+  assert_equal :no, (case [1, 2]; in [a, ^a] then :ok; else :no; end)
+end

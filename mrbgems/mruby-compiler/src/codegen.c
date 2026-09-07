@@ -2797,42 +2797,21 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
     }
     break;
 
+  /* `^x`, `^@x`, `^@@x`, `^$x` and `^(expression)`: what the pin names is
+     read the way any other expression is read, then asked `===`.  Reading it
+     through codegen is what lets the pin reach a variable of an enclosing
+     scope, an instance, class or global variable, and an expression. */
   case PM_PINNED_VARIABLE_NODE:
     {
       CAST3(pinned_variable, pattern, pat_pin);
-      /* Get the variable based on its type */
-      mrc_node *var_node = (mrc_node *)pat_pin->variable;
-      mrc_sym var_name = 0;
+      gen_pattern_eqq(s, (mrc_node *)pat_pin->variable, target, fail_pos);
+    }
+    break;
 
-      if (nint(var_node) == PM_LOCAL_VARIABLE_READ_NODE) {
-        pm_local_variable_read_node_t *lvar = (pm_local_variable_read_node_t *)var_node;
-        var_name = lvar->name;
-      }
-
-      if (var_name) {
-        int idx = lv_idx(s, var_name);
-        if (idx > 0) {
-          /* Compare: pinned_value === target */
-          gen_move(s, cursp(), idx, 0);  /* Load pinned variable */
-          push();
-          gen_move(s, cursp(), target, 0);  /* Load target */
-          push(); push(); pop(); pop(); pop();
-          genop_3(s, OP_SEND, cursp(), new_sym(s, MRC_OPSYM_2(eqq)), 1);
-          /* Jump to fail if not matched */
-          tmp = genjmp2(s, OP_JMPNOT, cursp(), *fail_pos, 1);
-          *fail_pos = tmp;
-        }
-        else {
-          /* Variable not found - fail the match */
-          tmp = genjmp(s, OP_JMP, *fail_pos);
-          *fail_pos = tmp;
-        }
-      }
-      else {
-        /* Unable to extract variable name - fail the match */
-        tmp = genjmp(s, OP_JMP, *fail_pos);
-        *fail_pos = tmp;
-      }
+  case PM_PINNED_EXPRESSION_NODE:
+    {
+      CAST3(pinned_expression, pattern, pat_pin);
+      gen_pattern_eqq(s, (mrc_node *)pat_pin->expression, target, fail_pos);
     }
     break;
 
