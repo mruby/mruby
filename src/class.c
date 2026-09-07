@@ -987,6 +987,28 @@ find_visibility_scope(mrb_state *mrb, const struct RClass *c, int n, mrb_callinf
   *cp = NULL;
 }
 
+/* Gives the current frame the visibility of the scope `p` was compiled
+   against. `eval` on a string wants this: the string runs in that scope, so a
+   `def` in it takes the visibility written there, while the frame goes on
+   breaking the scope so that a `private` written inside the string stops at
+   the end of it, the way CRuby's copy of the caller's cref does. A proc that
+   captured no env was compiled against no Ruby scope and has none to lend. */
+void
+mrb_vm_ci_inherit_visibility(mrb_state *mrb, const struct RProc *p)
+{
+  mrb_callinfo *ci = mrb->c->ci;
+
+  if (MRB_PROC_ENV(p) == NULL) return;
+  struct REnv *e = find_visibility_env(p, mrb_vm_ci_target_class(ci));
+  MRB_CI_SET_VISIBILITY(ci, MRB_ENV_VISIBILITY(e));
+  if (MRB_ENV_MODFUNC_P(e)) {
+    MRB_CI_SET_MODFUNC(ci);
+  }
+  else {
+    MRB_CI_CLEAR_MODFUNC(ci);
+  }
+}
+
 /*
  * Defines a method with raw mrb_method_t structure.
  * This is a low-level function for method definition.
