@@ -340,3 +340,78 @@ assert('a string class_eval still runs inside the caller\'s scope') do
   c.method(:class_eval).call("def from_c_caller; end")
   assert_true c.method_defined?(:from_c_caller)
 end
+
+assert('a string given to eval is named for the method that called eval') do
+  # The string runs on a frame of its own, pushed on top of the C frame of
+  # `eval`, and that frame used to carry `eval` as its method name: a `super`
+  # in the string looked for the superclass method of `eval` itself, and
+  # `defined?(super)` answered `"super"` in a method that has no superclass
+  # method to call.
+  base = Class.new do
+    def m(x); [:base, x]; end
+    def has_super(x); end
+  end
+  sub = Class.new(base) do
+    def m(x); eval("super(x + 10)"); end
+    def has_super(x); eval("defined?(super)"); end
+    def no_super; eval("defined?(super)"); end
+    def named; eval("__method__"); end
+  end
+  o = sub.new
+
+  assert_equal [:base, 11], o.m(1)
+  assert_equal 'super', o.has_super(1)
+  assert_nil o.no_super
+  assert_equal :named, o.named
+
+  # Outside a method there is no name to carry, and `eval`'s own must not
+  # stand in for one.
+  assert_nil eval("__method__")
+  assert_nil binding.eval("__method__")
+  assert_raise(NoMethodError) { eval("super") }
+end
+
+assert('`super` and `yield` in a string given to eval belong to the caller') do
+  # The string's own scope chain holds no method scope, so the argument
+  # layout that a bare `super` forwards and that `yield` finds the block by
+  # comes from the method on the proc chain the compile context carries.
+  base = Class.new do
+    def m(x); [:base, x]; end
+    def blk; block_given? ? yield(:b) : :noblk; end
+  end
+  sub = Class.new(base) do
+    def m(x); eval("super"); end
+    def blk; eval("super"); end
+    def y; eval("yield 21"); end
+    def y_nested; eval("[1].map { yield 2 }"); end
+    def y_args(a, b = 1, *r, c, d: 4, &e); eval("yield a"); end
+  end
+  o = sub.new
+
+  assert_equal [:base, 1], o.m(1)
+  assert_equal [:blk, :b], o.blk { |v| [:blk, v] }
+  assert_equal 42, o.y { |v| v * 2 }
+  assert_equal [4], o.y_nested { |v| v * 2 }
+  assert_equal 35, o.y_args(7, 8) { |v| v * 5 }
+
+  # Outside a method there is still no block to reach.
+  assert_raise(SyntaxError) { eval("yield") }
+end
+
+assert('`return` in a string given to eval leaves the calling method') do
+  # `OP_RETURN` returns to the string's own frame, whose caller is the C
+  # function `eval`, so the value became `eval`'s and the method carried on.
+  # A `return` here leaves the method the way one from a block does.
+  k = Class.new do
+    def ret; eval("return :from_string"); :after_eval; end
+    def ret_nested; eval("eval('return :from_nested')"); :after_eval; end
+    def ret_def; eval("def inner; return :inner; end"); inner; end
+    def ret_lambda; eval("-> { return :lambda }.call"); end
+  end
+  o = k.new
+
+  assert_equal :from_string, o.ret
+  assert_equal :from_nested, o.ret_nested
+  assert_equal :inner, o.ret_def
+  assert_equal :lambda, o.ret_lambda
+end

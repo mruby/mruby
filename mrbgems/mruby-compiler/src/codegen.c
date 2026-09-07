@@ -1581,9 +1581,80 @@ gen_blkmove(mrc_codegen_scope *s, uint16_t ainfo, int lv)
     gen_move(s, cursp(), off, 0);
   }
   else {
-    genop_3(s, OP_GETUPVAR, cursp(), off, lv);
+    /* `lv` counts the scopes between here and the method, while `OP_GETUPVAR`
+       counts the envs above this frame's own, and the method's env is the
+       first of those: one level fewer. */
+    genop_3(s, OP_GETUPVAR, cursp(), off, lv-1);
   }
   push();
+}
+
+/* Whether a `return` here leaves a method that is not part of this compile
+   unit.  A string compiled for `eval` holds no method scope of its own, and
+   `return` in it leaves the method that encloses the `eval` call, which is
+   the frame the proc chain reaches and the one `OP_RETURN_BLK` unwinds to. */
+static mrc_bool
+return_leaves_upper_p(mrc_codegen_scope *s)
+{
+#if defined(MRC_TARGET_MRUBY)
+  if (!s->c->upper) return FALSE;
+  for (mrc_codegen_scope *s2 = s; s2; s2 = s2->prev) {
+    if (s2->mscope) return FALSE;
+  }
+  return TRUE;
+#else
+  (void)s;
+  return FALSE;
+#endif
+}
+
+/* Find the method scope that a `super`, a `zsuper` or a `yield` belongs to.
+   Answers its `ainfo`, the argument layout that the forwarded arguments and
+   the block are read by, and sets `lvp` to the number of levels between it
+   and `s`.  Answers -1 when there is no method scope to find. */
+static int
+search_mscope(mrc_codegen_scope *s, int *lvp)
+{
+  mrc_codegen_scope *s2 = s;
+  int lv = 0;
+
+  while (!s2->mscope) {
+    lv++;
+    s2 = s2->prev;
+    if (!s2) break;
+  }
+  *lvp = lv;
+  if (s2) return (int)s2->ainfo;
+
+#if defined(MRC_TARGET_MRUBY)
+  /* A string compiled for `eval` has a scope chain of its own, and the method
+     that encloses the `eval` call is not on it: it is on the proc chain the
+     context carries.  The walk above ended on the scope `generate_code()`
+     wraps a compile unit in, which is one level more than the string's own
+     scope and stands for no frame, so `c->upper` is the proc the level count
+     has now reached.  Restate the `OP_ENTER` that the method scope emitted
+     for itself as the `ainfo` it would have answered. */
+  const struct RProc *u = s->c->upper;
+
+  (*lvp)--;
+
+  while (u && !MRC_PROC_CFUNC_P(u)) {
+    if (MRC_PROC_SCOPE_P(u)) {
+      const struct mrc_irep *ir = (const struct mrc_irep *)u->body.irep;
+      if (!ir || ir->ilen == 0 || ir->iseq[0] != OP_ENTER) break;
+      uint32_t a = PEEK_W(ir->iseq + 1);
+      uint32_t ma = MRC_ASPEC_REQ(a) + MRC_ASPEC_OPT(a);
+      return (int)(((ma & 0x3f) << 7)
+                   | (MRC_ASPEC_REST(a) << 6)
+                   | ((MRC_ASPEC_POST(a) & 0x1f) << 1)
+                   | ((MRC_ASPEC_KEY(a) || MRC_ASPEC_KDICT(a)) ? 1 : 0));
+    }
+    u = u->upper;
+    (*lvp)++;
+  }
+#endif
+
+  return -1;
 }
 
 static void
@@ -6176,16 +6247,11 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
     case PM_SUPER_NODE:
     {
       CAST(super);
-      mrc_codegen_scope *s2 = s;
-      int lv = 0;
+      int lv;
+      int ainfo = search_mscope(s, &lv);
       int n = 0, nk = 0, st = 0;
 
       push();
-      while (!s2->mscope) {
-        lv++;
-        s2 = s2->prev;
-        if (!s2) break;
-      }
       CAST3(arguments, cast->arguments, arguments);
       if (arguments) {
         st = n = gen_values(s, (mrc_node *)arguments, VAL, 14);
@@ -6207,7 +6273,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
         if (cast->block) {
           codegen(s, (mrc_node *)cast->block, VAL);
         }
-        else if (s2) gen_blkmove(s, s2->ainfo, lv);
+        else if (ainfo >= 0) gen_blkmove(s, (uint16_t)ainfo, lv);
         else {
           genop_1(s, OP_LOADNIL, cursp());
           push();
@@ -6218,7 +6284,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
         if (cast->block) {
           codegen(s, (mrc_node *)cast->block, VAL);
         }
-        else if (s2) gen_blkmove(s, s2->ainfo, lv);
+        else if (ainfo >= 0) gen_blkmove(s, (uint16_t)ainfo, lv);
         else {
           genop_1(s, OP_LOADNIL, cursp());
           push();
@@ -6233,21 +6299,12 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
     case PM_FORWARDING_SUPER_NODE:
     {
       CAST(forwarding_super);
-      mrc_codegen_scope *s2 = s;
-      int lv = 0;
-      uint16_t ainfo = 0;
+      int lv;
+      int ainfo = search_mscope(s, &lv);
       int n = CALL_MAXARGS;
       int sp = cursp();
 
       push();        /* room for receiver */
-      while (!s2->mscope) {
-        lv++;
-        s2 = s2->prev;
-        if (!s2) break;
-      }
-      if (s2 && s2->ainfo > 0) {
-        ainfo = s2->ainfo;
-      }
       if (ainfo > 0) {
         genop_2S(s, OP_ARGARY, cursp(), (ainfo<<4)|(lv & 0xf));
         push(); push(); push();   /* ARGARY pushes 3 values at most */
@@ -6268,13 +6325,13 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
         if (cast->block) {
           codegen(s, (mrc_node *)cast->block, VAL);
         }
-        else if (s2) {
+        else if (ainfo >= 0) {
           gen_blkmove(s, 0, lv);
         }
         else {
-          /* The walk above found no method scope, so `lv` counts past the
-             outermost one and there is no block to forward: a `super` here
-             raises rather than call anything. PM_SUPER_NODE says the same. */
+          /* There is no method scope to belong to, so there is no block to
+             forward: a `super` here raises rather than call anything.
+             PM_SUPER_NODE says the same. */
           genop_1(s, OP_LOADNIL, cursp());
           push();
         }
@@ -6294,7 +6351,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       else {
         genop_1(s, OP_LOADNIL, cursp());
       }
-      if (s->loop) {
+      if (s->loop || return_leaves_upper_p(s)) {
         gen_return(s, OP_RETURN_BLK, cursp());
       }
       else {
@@ -6306,18 +6363,10 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
     case PM_YIELD_NODE:
     {
       CAST(yield);
-      mrc_codegen_scope *s2 = s;
-      int lv = 0, ainfo = -1;
+      int lv;
+      int ainfo = search_mscope(s, &lv);
       int n = 0, nk = 0, st = 0;
 
-      while (!s2->mscope) {
-        lv++;
-        s2 = s2->prev;
-        if (!s2) break;
-      }
-      if (s2) {
-        ainfo = (int)s2->ainfo;
-      }
       if (ainfo < 0) codegen_error(s, "invalid yield (SyntaxError)");
       push();
       CAST3(arguments, cast->arguments, arguments);

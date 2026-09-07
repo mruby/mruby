@@ -79,3 +79,12 @@ assert "Binding#eval on another target class" do
   assert_equal :m1, obj.m1
   assert_equal :m2, obj.m2
 end
+
+assert "a binding answers for the method it was taken from" do
+  # The space a binding keeps its own locals in stands in for the frame the
+  # binding was taken from, so it carries that frame's method name too.
+  def binding_named_probe(x); binding; end
+  b = binding_named_probe(1)
+  assert_equal :binding_named_probe, b.eval("__method__")
+  assert_equal :binding_named_probe, eval("__method__", b)
+end
