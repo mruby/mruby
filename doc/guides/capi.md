@@ -831,7 +831,7 @@ mrb_cmp(mrb, a, b)      /* Ruby <=> (returns mrb_int) */
 mrb_obj_classname(mrb, obj)          /* class name as C string */
 mrb_obj_class(mrb, obj)              /* class as RClass* */
 mrb_obj_is_kind_of(mrb, obj, klass)  /* is_a? / kind_of? */
-mrb_obj_respond_to(mrb, klass, mid)  /* respond_to? */
+mrb_obj_respond_to(mrb, klass, mid)  /* implemented? any visibility */
 mrb_obj_id(obj)                      /* object_id */
 mrb_obj_freeze(mrb, obj)             /* freeze */
 mrb_obj_dup(mrb, obj)                /* dup */
