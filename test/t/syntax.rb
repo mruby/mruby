@@ -2429,3 +2429,43 @@ assert('pattern matching - what a pin may name') do
   assert_equal :ok, (case [1, 1]; in [a, ^a] then :ok; else :no; end)
   assert_equal :no, (case [1, 2]; in [a, ^a] then :ok; else :no; end)
 end
+
+assert('pattern matching - a subject with no deconstruction hook does not match') do
+  # The pattern asks whether the subject answers the hook before it sends one,
+  # as CRuby does, so a subject that has none fails the pattern rather than
+  # raising NoMethodError.
+  f = ->(x) {
+    case x
+    in [1] then :arr
+    in {a: 1} then :hash
+    in [*, 9, *] then :find
+    else :none
+    end
+  }
+  assert_equal :none, f.call(3)
+  assert_false((3 in [1]))
+  assert_false((3 in {a: 1}))
+
+  # a private hook is not one the pattern may call
+  priv = Class.new do
+    private def deconstruct; [1]; end
+    private def deconstruct_keys(keys); {a: 1}; end
+  end.new
+  assert_false((priv in [1]))
+  assert_false((priv in {a: 1}))
+
+  pub = Class.new do
+    def deconstruct; [1]; end
+    def deconstruct_keys(keys); {a: 1}; end
+  end.new
+  assert_true((pub in [1]))
+  assert_true((pub in {a: 1}))
+
+  # one hook does not stand in for the other
+  only_ary = Class.new do
+    def deconstruct; [1]; end
+  end.new
+  assert_true((only_ary in [1]))
+  assert_false((only_ary in {a: 1}))
+  assert_true((only_ary in [*, 1, *]))
+end

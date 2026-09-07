@@ -2617,6 +2617,24 @@ gen_pattern_eqq(mrc_codegen_scope *s, mrc_node *value, int target, uint32_t *fai
   *fail_pos = genjmp2(s, OP_JMPNOT, cursp(), *fail_pos, 1);
 }
 
+/* Fail the match unless the value at `target` answers `mid`.  A pattern asks
+   before it sends, so a subject with no deconstruction hook simply does not
+   match, the way CRuby has it, rather than raising NoMethodError. */
+static void
+gen_pattern_respond_to(mrc_codegen_scope *s, int target, mrc_sym mid, uint32_t *fail_pos)
+{
+  int reg = cursp();
+
+  gen_move(s, reg, target, 0);
+  push();                       /* protect receiver */
+  genop_2(s, OP_LOADSYM, cursp(), new_sym(s, mid));
+  push();                       /* protect the argument */
+  push(); pop();                /* touch block slot */
+  s->sp = reg;
+  genop_3(s, OP_SEND, reg, new_sym(s, MRC_SYM_2(respond_to_p)), 1);
+  *fail_pos = genjmp2(s, OP_JMPNOT, reg, *fail_pos, 1);
+}
+
 /* Generate pattern matching code for a single pattern.
  * target: stack position of the value being matched
  * fail_pos: linked list of jump positions for pattern match failure
@@ -2909,6 +2927,8 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
         }
       }
       else {
+        gen_pattern_respond_to(s, target, MRC_SYM_1(deconstruct), fail_pos);
+
         /* Call target.deconstruct() */
         gen_move(s, cursp(), target, 0);
         push_n(2); pop_n(2);  /* space for receiver and a block */
@@ -3011,6 +3031,8 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
       /* Call target.deconstruct_keys(keys_array or nil).
        * Pass keys_array only when no rest pattern (partial-match optimization).
        * Pass nil when any ** is present so deconstruct_keys returns all keys. */
+      gen_pattern_respond_to(s, target, MRC_SYM_1(deconstruct_keys), fail_pos);
+
       hash_reg = cursp();
       gen_move(s, hash_reg, target, 0);
       push(); /* protect receiver */
@@ -3180,6 +3202,8 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
       if (pat_find->constant) {
         gen_pattern_eqq(s, (mrc_node *)pat_find->constant, target, fail_pos);
       }
+
+      gen_pattern_respond_to(s, target, MRC_SYM_1(deconstruct), fail_pos);
 
       /* Call deconstruct on target */
       gen_move(s, cursp(), target, 0);
