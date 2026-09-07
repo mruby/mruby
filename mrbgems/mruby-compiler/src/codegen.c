@@ -969,11 +969,6 @@ lv_idx(mrc_codegen_scope *s, mrc_sym id)
 }
 
 
-#define MRC_PROC_CFUNC_FL 128
-#define MRC_PROC_CFUNC_P(p) (((p)->flags & MRC_PROC_CFUNC_FL) != 0)
-#define MRC_PROC_SCOPE 2048
-#define MRC_PROC_SCOPE_P(p) (((p)->flags & MRC_PROC_SCOPE) != 0)
-
 static int
 search_upvar(mrc_codegen_scope *s, mrc_sym id, int *idx)
 {
@@ -1010,7 +1005,7 @@ search_upvar(mrc_codegen_scope *s, mrc_sym id, int *idx)
           }
         }
       }
-      if (MRC_PROC_SCOPE_P(u)) break;
+      if (MRC_PROC_LVAR_BOUNDARY_P(u)) break;
       u = u->upper;
       lv++;
     }
@@ -2329,48 +2324,6 @@ gen_hash(mrc_codegen_scope *s, mrc_node *tree, int val, int limit)
   return len;
 }
 
-#if defined(MRC_TARGET_MRUBY)
-static mrc_bool
-mrc_mruby_numbered_parameter_upvar(mrc_codegen_scope *s, mrc_sym id, int *lv, int *idx)
-{
-  if (id == PM_CONSTANT_ID_UNSET || id > s->c->p->constant_pool.size) {
-    return FALSE;
-  }
-
-  pm_constant_t *constant = pm_constant_pool_id_to_constant(&s->c->p->constant_pool, id);
-  if (constant->length != 2 || constant->start[0] != '_' ||
-      constant->start[1] < '1' || constant->start[1] > '9') {
-    return FALSE;
-  }
-
-  mrc_sym intern = mrb_intern(s->c->mrb, (const char *)constant->start, constant->length);
-  const struct RProc *u = s->c->upper;
-  *lv = 0;
-  while (u && !MRC_PROC_CFUNC_P(u)) {
-    const struct mrc_irep *ir = (const struct mrc_irep *)u->body.irep;
-    uint_fast16_t n = ir->nlocals;
-    const mrc_sym *v = ir->lv;
-    int number = constant->start[1] - '0';
-    if (v) {
-      for (int i = 1; n > 1; n--, v++, i++) {
-        if (*v == intern) {
-          *idx = i;
-          return TRUE;
-        }
-      }
-    }
-    else if (number < ir->nlocals) {
-      *idx = number;
-      return TRUE;
-    }
-    if (MRC_PROC_SCOPE_P(u)) break;
-    u = u->upper;
-    (*lv)++;
-  }
-  return FALSE;
-}
-#endif
-
 /* Attribute assignment (`recv.attr = v`, `recv[i] = v`) as an expression.
    Prism bundles the RHS as the last positional argument of the call node.
    The whole expression must evaluate to that RHS, not to the setter's
@@ -2505,19 +2458,6 @@ gen_call(mrc_codegen_scope *s, mrc_node *tree, int val, int safe, int recv_ready
   }
   int skip = 0, n = 0, nk = 0, noop = no_optimize(s), noself = 0, blk = 0;
   int sp_save = recv_ready ? cursp()-1 : cursp();
-
-#if defined(MRC_TARGET_MRUBY)
-  if (cast->receiver == NULL && cast->arguments == NULL && cast->block == NULL) {
-    int lv, idx;
-    if (mrc_mruby_numbered_parameter_upvar(s, sym, &lv, &idx)) {
-      if (val) {
-        genop_3(s, OP_GETUPVAR, cursp(), idx, lv);
-        push();
-      }
-      return;
-    }
-  }
-#endif
 
   if (recv_ready) {
     /* the receiver has been evaluated already and sits at cursp()-1 */

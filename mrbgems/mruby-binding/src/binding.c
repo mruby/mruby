@@ -121,7 +121,7 @@ binding_check_proc_upper_count(mrb_state *mrb, const struct RProc *proc)
       mrb_raise(mrb, E_RUNTIME_ERROR,
                 "too many upper procs for local variables (mruby limitation; maximum is " MRB_STRINGIZE(BINDING_UPPER_MAX) ")");
     }
-    if (MRB_PROC_SCOPE_P(proc)) break;
+    if (MRB_PROC_LVAR_BOUNDARY_P(proc)) break;
   }
 }
 
@@ -242,7 +242,7 @@ binding_local_variable_search(mrb_state *mrb, const struct RProc *proc, struct R
       }
     }
 
-    if (MRB_PROC_SCOPE_P(proc)) break;
+    if (MRB_PROC_LVAR_BOUNDARY_P(proc)) break;
     env = MRB_PROC_ENV(proc);
     proc = proc->upper;
   }

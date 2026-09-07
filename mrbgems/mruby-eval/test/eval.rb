@@ -184,14 +184,17 @@ assert('Calling the same method as the variable name') do
   assert_equal("Hit!") { fuga = "Miss!"; eval("-> { hoge.fuga }").call }
 end
 
-assert('Access numbered parameter from eval') do
+assert('a numbered parameter is not a name an eval string can use') do
+  # A numbered parameter belongs to the block that spells it, and a string is
+  # compiled with no block of its own, so the name is a method call there.
   hoge = Object.new
   def hoge.fuga(a, &b)
     b.call(a)
   end
-  assert_equal(6) {
-    hoge.fuga(3) { _1 + eval("_1") }
-  }
+  assert_equal(3) { hoge.fuga(3) { _1 } }
+  assert_raise(NameError) { hoge.fuga(3) { _1 + eval("_1") } }
+  assert_raise(NameError) { hoge.fuga(3) { eval("_1") } }
+  assert_raise(NameError) { hoge.fuga(3) { |a| eval("_1") } }
 end
 
 assert('Module#class_eval with string') do
@@ -414,4 +417,70 @@ assert('`return` in a string given to eval leaves the calling method') do
   assert_equal :from_nested, o.ret_nested
   assert_equal :inner, o.ret_def
   assert_equal :lambda, o.ret_lambda
+end
+
+assert('a string given to eval in a `define_method` block sees the closure') do
+  # `define_method` marks the block it installs a scope, the way `def` marks a
+  # method body, but the block keeps the closure it was made with: what a
+  # direct reference reaches from inside it, `eval` reaches too.
+  class TestEvalDefineMethod
+    x = 10
+    define_method(:direct) { x }
+    define_method(:read) { eval("x") }
+    define_method(:own) { |a| b = 1; eval("[a, b, x]") }
+    define_method(:nested) { [1].map { eval("x") } }
+    define_method(:by_lambda, lambda { eval("x") })
+    define_method(:write) { eval("x = 20") }
+
+    class << self
+      y = 30
+      define_method(:sclass_read) { eval("y") }
+    end
+  end
+
+  # A scope with no locals of its own is still a scope the block closes over,
+  # and the walk that builds the parser's scope list has to end at it all the
+  # same: it is the shape a binding's local-variable space takes too.
+  class TestEvalEmptyScope
+    1.times do
+      z = 40
+      define_method(:from_block) { eval("z") }
+    end
+  end
+
+  k = TestEvalDefineMethod
+  o = k.new
+
+  assert_equal 10, o.direct
+  assert_equal 10, o.read
+  assert_equal [5, 1, 10], o.own(5)
+  assert_equal [10], o.nested
+  assert_equal 10, o.by_lambda
+  assert_equal 30, k.sclass_read
+  assert_equal 40, TestEvalEmptyScope.new.from_block
+
+  # The store reaches the captured local itself, so the direct reference and
+  # the next instance both see it.
+  assert_equal 20, o.write
+  assert_equal 20, o.direct
+  assert_equal 20, k.new.read
+end
+
+assert('a string given to eval in a `def` body has no scope around it') do
+  # A method body carries no closure, so a local of the scope it was written
+  # in is not a name it can reach: it is a method call there.
+  class TestEvalDefScope
+    x = 10
+    def hidden; eval("x"); end
+    def self.hidden_singleton; eval("x"); end
+
+    class << self
+      y = 30
+      def hidden_sclass; eval("y"); end
+    end
+  end
+
+  assert_raise(NameError) { TestEvalDefScope.new.hidden }
+  assert_raise(NameError) { TestEvalDefScope.hidden_singleton }
+  assert_raise(NameError) { TestEvalDefScope.hidden_sclass }
 end

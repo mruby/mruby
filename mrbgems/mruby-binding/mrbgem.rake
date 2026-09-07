@@ -4,4 +4,5 @@ MRuby::Gem::Specification.new('mruby-binding') do |spec|
   spec.summary = 'Binding class (core features only)'
 
   spec.add_test_dependency('mruby-proc-ext', :core => 'mruby-proc-ext')
+  spec.add_test_dependency('mruby-metaprog', :core => 'mruby-metaprog')
 end

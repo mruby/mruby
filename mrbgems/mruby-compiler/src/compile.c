@@ -78,9 +78,6 @@ partial_hook(void *data, pm_parser_t *p, pm_token_t *token)
 }
 
 #if defined(MRC_TARGET_MRUBY)
-#define MRC_PROC_CFUNC_FL 128
-#define MRC_PROC_CFUNC_P(p) (((p)->flags & MRC_PROC_CFUNC_FL) != 0)
-
 static mrc_bool
 mrc_mruby_lvspace_proc_p(const struct RProc *proc)
 {
@@ -135,11 +132,20 @@ mrc_pm_options_init(mrc_ccontext *cc)
   pm_string_t *encoding = &options->encoding;
   pm_string_constant_init(encoding, "UTF-8", 5);
 
+  /* The scopes the string is compiled against are the ones codegen can reach
+     from here, so this walk ends where the chain of local variables does
+     (MRB_PROC_LVAR_BOUNDARY_P() in mruby/proc.h). A scope past that end
+     resolves a name in the parser that codegen would then have nowhere to
+     put. Both loops below ask the question of every proc, including one whose
+     scope is left out: an empty scope is indistinguishable from a binding's
+     local-variable space, and the two have to end on the same proc for the
+     index the second one counts down to hold. */
   size_t scopes_count = 0;
   for (u = (struct RProc *)cc->upper; u && !MRC_PROC_CFUNC_P(u); u = (struct RProc *)u->upper) {
     if (!mrc_mruby_lvspace_proc_p(u)) {
       scopes_count++;
     }
+    if (MRC_PROC_LVAR_BOUNDARY_P(u)) break;
   }
 
   pm_options_scopes_init(options, scopes_count + 1); // Prism requires one more scope
@@ -148,26 +154,26 @@ mrc_pm_options_init(mrc_ccontext *cc)
   pm_options_scope_t *scope;
   size_t scope_index = scopes_count;
   for (; u && !MRC_PROC_CFUNC_P(u); u = (struct RProc *)u->upper) {
-    if (mrc_mruby_lvspace_proc_p(u)) {
-      continue;
-    }
-    const struct mrc_irep *ir = (const struct mrc_irep *)u->body.irep;
-    size_t lv_count = ir->nlocals > 0 ? ir->nlocals - 1 : 0;
-    const mrc_sym *v = ir->lv;
-    size_t locals_count = mrc_mruby_irep_local_count(cc->mrb, ir);
+    if (!mrc_mruby_lvspace_proc_p(u)) {
+      const struct mrc_irep *ir = (const struct mrc_irep *)u->body.irep;
+      size_t lv_count = ir->nlocals > 0 ? ir->nlocals - 1 : 0;
+      const mrc_sym *v = ir->lv;
+      size_t locals_count = mrc_mruby_irep_local_count(cc->mrb, ir);
 
-    scope = &options->scopes[--scope_index];
-    pm_options_scope_init(scope, locals_count);
-    if (v) {
-      const char *name;
-      size_t local_index = 0;
-      for (size_t j = 0; j < lv_count; j++) {
-        name = mrb_sym_name(cc->mrb, v[j]);
-        if (name) {
-          mrc_mruby_options_scope_local_init(cc, &scope->locals[local_index++], v[j]);
+      scope = &options->scopes[--scope_index];
+      pm_options_scope_init(scope, locals_count);
+      if (v) {
+        const char *name;
+        size_t local_index = 0;
+        for (size_t j = 0; j < lv_count; j++) {
+          name = mrb_sym_name(cc->mrb, v[j]);
+          if (name) {
+            mrc_mruby_options_scope_local_init(cc, &scope->locals[local_index++], v[j]);
+          }
         }
       }
     }
+    if (MRC_PROC_LVAR_BOUNDARY_P(u)) break;
   }
 
   cc->options = options;

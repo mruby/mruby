@@ -121,6 +121,17 @@ assert('Kernel#local_variables', '15.3.1.3.28') do
   end
 
   assert_equal [:a], local_var_list
+
+  # A `define_method` block keeps the closure it was made with, so the locals
+  # it closes over are among its own; the `def` above it ends the walk.
+  def local_var_dm_maker(kl)
+    b = 2
+    kl.send(:define_method, :dm_list) { local_variables.sort }
+  end
+
+  k = Class.new
+  local_var_dm_maker(k)
+  assert_equal [:b, :kl], k.new.dm_list
 end
 
 # Kernel.local_variables is not provided by mruby. '15.3.1.2.7'
