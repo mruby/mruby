@@ -34,6 +34,19 @@ assert('super', '11.3.4') do
   assert_equal [1,2,3], bar.bar(1,2,3)
 end
 
+assert('super forwards the caller\'s block from inside a block') do
+  # `super` reads the block from the frame of the method it belongs to.  From
+  # inside a block that frame is reached through an env, and the level the
+  # instruction carries counts the envs above this frame's own, one fewer
+  # than the scopes the compiler walked to find the method.
+  base = Class.new { def m; block_given? ? yield(:b) : :noblk; end }
+  sub = Class.new(base) { def m; r = nil; [1].each { r = super }; r; end }
+  assert_equal [:blk, :b], sub.new.m { |v| [:blk, v] }
+
+  deep = Class.new(base) { def m; r = nil; [1].each { [2].each { r = super } }; r; end }
+  assert_equal [:blk, :b], deep.new.m { |v| [:blk, v] }
+end
+
 assert('yield', '11.3.5') do
 # it's syntax error now
 #  assert_raise LocalJumpError do

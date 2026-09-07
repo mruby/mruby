@@ -1581,7 +1581,10 @@ gen_blkmove(mrc_codegen_scope *s, uint16_t ainfo, int lv)
     gen_move(s, cursp(), off, 0);
   }
   else {
-    genop_3(s, OP_GETUPVAR, cursp(), off, lv);
+    /* `lv` counts the scopes between here and the method, while `OP_GETUPVAR`
+       counts the envs above this frame's own, and the method's env is the
+       first of those: one level fewer. */
+    genop_3(s, OP_GETUPVAR, cursp(), off, lv-1);
   }
   push();
 }
