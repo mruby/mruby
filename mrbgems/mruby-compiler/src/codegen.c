@@ -2614,6 +2614,13 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
 {
   uint32_t tmp;
 
+  /* A pattern reads `target` more than once: it asks whether the value answers
+     the deconstruction hook before sending it, and a later alternative or a
+     later `in` clause reads it again.  The instruction that produced the value
+     is therefore not the last use the peephole would take this pattern's first
+     read for, so label the point before generating any of the pattern. */
+  new_label(s);
+
   /* Handle guard clause wrapper (PM_IF_NODE wrapping the actual pattern) */
   if (nint(pattern) == PM_IF_NODE) {
     pm_if_node_t *if_n = (pm_if_node_t *)pattern;

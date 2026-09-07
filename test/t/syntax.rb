@@ -2285,3 +2285,53 @@ assert('local variable operator-assignment with a non-numeric receiver') do
   obj3 = Class.new { def +(n); raise ArgumentError, n.to_s; end }.new
   assert_raise_with_message(ArgumentError, "7") { obj3 += 7 }
 end
+
+assert('pattern matching - the case value survives a failed clause') do
+  # The move that puts the case value in a register of its own is not the
+  # last read of the value: every `in` clause reads that register again.
+  # Folding the move into the first clause's own move left the register the
+  # later clauses read never written.
+  f = ->(x) {
+    case x
+    in {zz: 1} then :zz
+    in {a: 1} then :a
+    else :none
+    end
+  }
+  assert_equal :a, f.call({a: 1})
+  assert_equal :zz, f.call({zz: 1})
+  assert_equal :none, f.call({b: 1})
+
+  g = ->(x) {
+    case x
+    in [1, 2] then :two
+    in [1] then :one
+    else :none
+    end
+  }
+  assert_equal :two, g.call([1, 2])
+  assert_equal :one, g.call([1])
+  assert_equal :none, g.call([3])
+
+  # a third clause reads it as well
+  h = ->(x) {
+    case x
+    in {zz: 1} then :zz
+    in {yy: 1} then :yy
+    in {a: 1} then :a
+    else :none
+    end
+  }
+  assert_equal :a, h.call({a: 1})
+  assert_equal :none, h.call({b: 1})
+
+  # the one-line forms read it again for a later alternative
+  i = ->(x) { x in {a: 1} | {b: 2} }
+  assert_true i.call({b: 2})
+  assert_true i.call({a: 1})
+  assert_false i.call({c: 3})
+
+  j = ->(x) { x => {a: 1} | {b: 2}; :ok }
+  assert_equal :ok, j.call({b: 2})
+  assert_raise(NoMatchingPatternError) { j.call({c: 3}) }
+end
