@@ -537,6 +537,7 @@ mrb_load_exec(mrb_state *mrb, struct mrb_parser_state *p, mrb_ccontext *c)
     }
   }
   MRB_PROC_SET_TARGET_CLASS(proc, target);
+  proc->flags |= MRB_PROC_CREF;
   if (mrb->c->ci) {
     mrb_vm_ci_target_class_set(mrb->c->ci, target);
   }

@@ -2989,7 +2989,7 @@ vm_define_method(mrb_state *mrb, struct RClass *tc, const mrb_irep *irep, uint16
   mrb_sym mid = irep->syms[b];
   mrb_method_t m;
 
-  p->flags |= MRB_PROC_SCOPE | MRB_PROC_STRICT;
+  p->flags |= MRB_PROC_SCOPE | MRB_PROC_STRICT | MRB_PROC_CREF;
   MRB_METHOD_FROM_PROC(m, p);
   MRB_METHOD_SET_VISIBILITY(m, MRB_METHOD_VDEFAULT_FL);
   mrb_define_method_raw(mrb, tc, mid, m);
@@ -4580,8 +4580,9 @@ RETRY_TRY_BLOCK:
         p = mrb_closure_new(mrb, nirep);
       }
       else {
+        /* OP_METHOD is the only one here without OP_L_CAPTURE: a method body */
         p = mrb_proc_new(mrb, nirep);
-        p->flags |= MRB_PROC_SCOPE;
+        p->flags |= MRB_PROC_SCOPE | MRB_PROC_CREF;
       }
       if (c & OP_L_STRICT) p->flags |= MRB_PROC_STRICT;
       regs[a] = mrb_obj_value(p);
@@ -4664,7 +4665,7 @@ RETRY_TRY_BLOCK:
       p->c = NULL;
       mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)ci->proc);
       MRB_PROC_SET_TARGET_CLASS(p, c);
-      p->flags |= MRB_PROC_SCOPE;
+      p->flags |= MRB_PROC_SCOPE | MRB_PROC_CREF;
 
       /* prepare call stack */
       ci = cipush(mrb, a, 0, c, p, NULL, 0, 0);

@@ -131,6 +131,16 @@ struct RProc {
 #define MRB_PROC_NOARG 4096 /* for MRB_PROC_CFUNC_FL, aspec == MRB_ARGS_NONE() */
 #define MRB_PROC_NOARG_P(p) (((p)->flags & MRB_PROC_NOARG) != 0)
 #define MRB_PROC_ALIAS 8192
+/* A proc the VM made as a lexical scope: a class or module body, a method
+   body, or an eval string given a class to run under.  What a `def` written
+   in it adds to is the class the scope carries, and a walk up the `upper`
+   chain looking for that class stops here.
+   Not the same as MRB_PROC_SCOPE, which mrb_define_method_raw() also puts on
+   a block installed by `define_method`: that block keeps the scope it was
+   written in, its class along with its locals, and the walk goes on past
+   it. */
+#define MRB_PROC_CREF 16384
+#define MRB_PROC_CREF_P(p) (((p)->flags & MRB_PROC_CREF) != 0)
 #define MRB_PROC_ALIAS_P(p) (((p)->flags & MRB_PROC_ALIAS) != 0)
 
 /* Compressed aspec for cfunc procs (13 bits in RProc.flags).
