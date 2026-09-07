@@ -349,6 +349,13 @@ hex2int(unsigned char ch)
   return hex_lookup[ch];
 }
 
+/* The buffer pack() fills, whose length is the room in it rather than what
+   has been written: the directives write through RSTRING_PTR() at an offset
+   of their own and mrb_pack_pack() cuts the string to that offset at the end.
+   Until it does, the room past the offset is a live String's contents, which
+   a heap walk can reach and print, so it is filled with NUL rather than left
+   as whatever the allocator returned.  A directive that raises leaves the
+   string at its full length, and that is where the walk finds it. */
 static mrb_value
 str_len_ensure(mrb_state *mrb, mrb_value str, mrb_int len)
 {
@@ -357,10 +364,12 @@ str_len_ensure(mrb_state *mrb, mrb_value str, mrb_int len)
     mrb_raise(mrb, E_RANGE_ERROR, "negative (or overflowed) integer");
   }
   if (len > n) {
+    mrb_int was = n;
     do {
       n *= 2;
     } while (len > n);
     str = mrb_str_resize(mrb, str, n);
+    memset(RSTRING_PTR(str) + was, 0, (size_t)(n - was));
   }
   return str;
 }
@@ -1822,7 +1831,10 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
 
   prepare_tmpl(mrb, &tmpl);
 
-  mrb_value result = mrb_str_new(mrb, NULL, 128);  /* allocate initial buffer */
+  /* See str_len_ensure(): the length is the room, and it holds NUL until a
+     directive writes over it. */
+  mrb_value result = mrb_str_new(mrb, NULL, 128);
+  memset(RSTRING_PTR(result), 0, 128);
   mrb_int aidx = 0;
   mrb_int ridx = 0;
   while (has_tmpl(&tmpl)) {
