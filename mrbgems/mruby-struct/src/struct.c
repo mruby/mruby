@@ -528,23 +528,31 @@ mrb_struct_init_copy(mrb_state *mrb, mrb_value copy)
   return copy;
 }
 
-static mrb_value
-struct_aref_sym(mrb_state *mrb, mrb_value obj, mrb_sym id)
+/* Returns the position `id` holds among the members of `obj`, or -1 when it
+   names no member. */
+static mrb_int
+struct_member_pos(mrb_state *mrb, mrb_value obj, mrb_sym id)
 {
   mrb_value members = struct_members(mrb, obj);
   const mrb_value *ptr_members = RARRAY_PTR(members);
   mrb_int len = RARRAY_LEN(members);
-  mrb_value *ptr = RSTRUCT_PTR(obj);
-  mrb_int plen = RARRAY_LEN(obj);
   for (mrb_int i=0; i<len; i++) {
     mrb_value slot = ptr_members[i];
-    if (mrb_symbol_p(slot) && mrb_symbol(slot) == id) {
-      if (i < plen) return ptr[i];
-      return mrb_nil_value();
-    }
+    if (mrb_symbol_p(slot) && mrb_symbol(slot) == id) return i;
   }
-  mrb_name_error(mrb, id, "no member '%n' in struct", id);
-  return mrb_nil_value();       /* not reached */
+  return -1;
+}
+
+static mrb_value
+struct_aref_sym(mrb_state *mrb, mrb_value obj, mrb_sym id)
+{
+  mrb_int i = struct_member_pos(mrb, obj, id);
+
+  if (i < 0) {
+    mrb_name_error(mrb, id, "no member '%n' in struct", id);
+  }
+  if (i >= RSTRUCT_LEN(obj)) return mrb_nil_value();
+  return RSTRUCT_PTR(obj)[i];
 }
 
 static mrb_int
@@ -606,17 +614,13 @@ mrb_struct_aref(mrb_state *mrb, mrb_value s)
 static mrb_value
 mrb_struct_aset_sym(mrb_state *mrb, mrb_value s, mrb_sym id, mrb_value val)
 {
-  mrb_value members = struct_members(mrb, s);
-  mrb_int len = RARRAY_LEN(members);
-  const mrb_value *ptr_members = RARRAY_PTR(members);
-  for (mrb_int i=0; i<len; i++) {
-    if (mrb_symbol(ptr_members[i]) == id) {
-      mrb_ary_set(mrb, s, i, val);
-      return val;
-    }
+  mrb_int i = struct_member_pos(mrb, s, id);
+
+  if (i < 0) {
+    mrb_name_error(mrb, id, "no member '%n' in struct", id);
   }
-  mrb_name_error(mrb, id, "no member '%n' in struct", id);
-  return val;                   /* not reach */
+  mrb_ary_set(mrb, s, i, val);
+  return val;
 }
 
 /* 15.2.18.4.3  */
@@ -807,6 +811,71 @@ mrb_struct_to_h(mrb_state *mrb, mrb_value self)
   return ret;
 }
 
+/* Returns the position `key` names among the members of `s`, or -1 when it
+   names none.  Takes the key forms Struct#[] takes: a member name, spelled as
+   a symbol or a string, or an index into the members. */
+static mrb_int
+struct_pos(mrb_state *mrb, mrb_value s, mrb_value key)
+{
+  if (mrb_string_p(key)) {
+    mrb_sym id = mrb_intern_check_str(mrb, key);
+    if (id == 0) return -1;
+    return struct_member_pos(mrb, s, id);
+  }
+  if (mrb_symbol_p(key)) {
+    return struct_member_pos(mrb, s, mrb_symbol(key));
+  }
+
+  mrb_int len = num_members(mrb, s);
+  mrb_int i = mrb_as_int(mrb, key);
+  if (i < 0) i += len;
+  if (i < 0 || len <= i) return -1;
+  return i;
+}
+
+/*
+ * call-seq:
+ *    struct.deconstruct        -> array
+ *    struct.deconstruct_keys(keys) -> hash
+ *
+ * The two hooks the array and hash patterns of `case/in` call.  `deconstruct`
+ * answers the values, in member order, as `to_a` does.  `deconstruct_keys`
+ * answers the members `keys` names and their values, or every member when
+ * `keys` is nil.
+ *
+ * `deconstruct_keys` stops at the first key naming no member, and answers an
+ * empty hash when there are more keys than members: a pattern asking for a key
+ * the struct does not have cannot match, whatever the remaining keys hold.
+ *
+ *    Customer = Struct.new(:name, :address, :zip)
+ *    joe = Customer.new("Joe Smith", "123 Maple, Anytown NC", 12345)
+ *    joe.deconstruct                #=> ["Joe Smith", "123 Maple, Anytown NC", 12345]
+ *    joe.deconstruct_keys([:zip])   #=> {zip: 12345}
+ *    joe.deconstruct_keys([:phone]) #=> {}
+ */
+static mrb_value
+mrb_struct_deconstruct_keys(mrb_state *mrb, mrb_value self)
+{
+  mrb_value keys = mrb_get_arg1(mrb);
+
+  if (mrb_nil_p(keys)) return mrb_struct_to_h(mrb, self);
+  if (!mrb_array_p(keys)) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %T (expected Array or nil)", keys);
+  }
+
+  mrb_int klen = RARRAY_LEN(keys);
+  if (num_members(mrb, self) < klen) return mrb_hash_new(mrb);
+
+  mrb_value ret = mrb_hash_new_capa(mrb, klen);
+  for (mrb_int i=0; i<klen; i++) {
+    mrb_value key = RARRAY_PTR(keys)[i];
+    mrb_int pos = struct_pos(mrb, self, key);
+    if (pos < 0) break;
+    mrb_hash_set(mrb, ret, key, mrb_ary_ref(mrb, self, pos));
+  }
+  return ret;
+}
+
 static mrb_value
 mrb_struct_values_at(mrb_state *mrb, mrb_value self)
 {
@@ -888,6 +957,8 @@ static const mrb_mt_entry struct_rom_entries[] = {
   MRB_MT_ENTRY(mrb_struct_to_a,       MRB_SYM(to_a),         MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_struct_to_a,       MRB_SYM(values),       MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_struct_to_h,       MRB_SYM(to_h),         MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_struct_to_a,       MRB_SYM(deconstruct),  MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_struct_deconstruct_keys, MRB_SYM(deconstruct_keys), MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(mrb_struct_values_at,  MRB_SYM(values_at), MRB_ARGS_ANY()),
 };
 

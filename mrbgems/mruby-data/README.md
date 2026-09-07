@@ -78,6 +78,25 @@ Instances of classes created by `Data.define` have several useful methods:
   # Output: {:name=>"John Doe", :address=>"123 Main St", :zip=>12345}
   ```
 
+- **`deconstruct`**: Returns the values as an array, in member order. Called by the array patterns of `case/in`.
+
+  ```ruby
+  p customer1.deconstruct
+  # Output: ["John Doe", "123 Main St", 12345]
+  ```
+
+- **`deconstruct_keys(keys)`**: Returns a hash of the members `keys` names, or of every member when `keys` is `nil`. A member is named by a symbol or a string; any other key raises `TypeError`. Called by the hash patterns of `case/in`.
+
+  ```ruby
+  p customer1.deconstruct_keys([:name])
+  # Output: {name: "John Doe"}
+
+  case customer1
+  in {name: String => name, zip: Integer}
+    p name  # Output: "John Doe"
+  end
+  ```
+
 - **`with`**: Takes keyword arguments and returns a new instance with the members they name replaced; the remaining members keep their current values. With no arguments, returns the receiver itself.
 
   ```ruby
