@@ -2020,6 +2020,50 @@ assert("Regexp - a lookbehind body of no fixed width says which it was") do
   end
 end
 
+assert("Regexp - a capture inside a negative lookbehind is refused") do
+  need_backtracking_stack
+  # A negative lookbehind holds only where its body did not match, so a
+  # capture written inside one claims a slot that can never be set. CRuby
+  # refuses the pattern rather than keep the slot, wherever in the body the
+  # capture stands and whatever the assertion itself stands inside. Each of
+  # these is a place a capture can hide from a walk over the body: past the
+  # head, in either branch of an alternation the body is, behind the jump
+  # `{0}` leaves the group under, past the call that defers the measure, and
+  # inside an assertion that is not the whole pattern.
+  ["(?<!(a))x", "(?<!a(b))x", "(?<!(?<n>a))x", "(?<!(a)|b)x", "(?<!a|(b))x",
+   "(a)(?<!(b))\\1", "(?<!(a){0})x", "(?<!\\g<1>(b))(a)",
+   "((?<!(a))b)x"].each do |src|
+    assert_raise_with_message(RegexpError,
+                              "invalid pattern in look-behind: /#{src}/", src) do
+      Regexp.new(src)
+    end
+  end
+
+  # What is refused is the capture, not the group and not the assertion: a shy
+  # group in the same place is taken, a positive lookbehind keeps what its body
+  # captured, and a negative lookahead keeps a slot as unsettable as this one.
+  assert_equal 1, ("bx" =~ /(?<!(?:a))x/)
+  assert_equal 1, ("ax" =~ /(?<=(a))x/)
+  assert_equal "a", $~[1]
+  assert_equal 0, ("xa" =~ /(?!(a))x/)
+  assert_nil $~[1]
+
+  # A capture written before the assertion is outside the body: it opens a slot
+  # the walk must not read as the assertion's own.
+  assert_equal 0, ("aa" =~ /(a)(?<!b)\1/)
+  assert_equal "a", $~[1]
+
+  # A group the body reaches by a call is written outside the assertion, so it
+  # is a capture the pattern can read; CRuby takes that too.
+  assert_equal 1, ("ba" =~ /(?<!\g<1>x)(a)/)
+  assert_equal "a", $~[1]
+
+  # A named group anywhere makes the plain groups non-capturing, and what the
+  # body then holds is not a capture.
+  assert_equal 0, ("xy" =~ /(?<a>x)(?<!(b))y/)
+  assert_equal 2, $~.size
+end
+
 assert("Regexp - a named group makes plain groups non-capturing") do
   # Onigmo's ONIG_OPTION_DONT_CAPTURE_GROUP, which CRuby turns on once the
   # pattern declares a named group: (...) then groups without capturing.
