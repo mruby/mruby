@@ -2106,7 +2106,24 @@ gen_assignment(mrc_codegen_scope *s, mrc_node *tree, mrc_node *rhs, int sp, int 
     {
       CAST(index_target);
       codegen(s, cast->receiver, VAL);
-      int n = gen_values(s, (mrc_node *)cast->arguments, VAL, 14);
+      /* 13 rather than 14: the value to assign is an argument too, and a
+         count that reaches CALL_MAXARGS is the mark for arguments gathered
+         in an array rather than a count of them. */
+      int n = gen_values(s, (mrc_node *)cast->arguments, VAL, 13);
+      if (n < 0) {
+        /* More indices than a count carries: gen_values() gathered them into
+           an array at cursp(), and the value joins them there. */
+        push();
+        genop_2(s, OP_MOVE, cursp(), sp);
+        push();          /* the value, which is also the block slot the send
+                            reads after the array */
+        pop();
+        pop();
+        genop_2(s, OP_ARYPUSH, cursp(), 1);
+        pop();
+        genop_3(s, OP_SEND, cursp(), new_sym(s, MRC_OPSYM_2(aset)), CALL_MAXARGS);
+        break;
+      }
       /* the value to assign lives in sp (set by the caller for multiple
          assignment); cursp()-n*2+1 would point at an index register */
       genop_2(s, OP_MOVE, cursp(), sp);
@@ -2400,6 +2417,17 @@ gen_call_assign(mrc_codegen_scope *s, mrc_node *tree, int val, int safe, int rec
     /* nopeep: keep the RHS in its argument slot for the SEND, while also
        copying it to the reserved result slot */
     gen_move(s, top, cursp()-1, 1);   /* preserve the RHS as the result */
+  }
+
+  if (n >= CALL_MAXARGS) {
+    /* A count of CALL_MAXARGS is the mark for arguments gathered in an
+       array rather than a count of them, and a count above it does not fit
+       the field at all, so from there on they are gathered.  The RHS is the
+       last of them and has already been copied to the result slot. */
+    pop_n(n);
+    genop_2(s, OP_ARRAY, cursp(), n);
+    push();
+    n = CALL_MAXARGS;
   }
 
   push(); pop();
