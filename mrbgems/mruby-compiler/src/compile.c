@@ -78,9 +78,6 @@ partial_hook(void *data, pm_parser_t *p, pm_token_t *token)
 }
 
 #if defined(MRC_TARGET_MRUBY)
-#define MRC_PROC_CFUNC_FL 128
-#define MRC_PROC_CFUNC_P(p) (((p)->flags & MRC_PROC_CFUNC_FL) != 0)
-
 static mrc_bool
 mrc_mruby_lvspace_proc_p(const struct RProc *proc)
 {

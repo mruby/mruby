@@ -969,11 +969,6 @@ lv_idx(mrc_codegen_scope *s, mrc_sym id)
 }
 
 
-#define MRC_PROC_CFUNC_FL 128
-#define MRC_PROC_CFUNC_P(p) (((p)->flags & MRC_PROC_CFUNC_FL) != 0)
-#define MRC_PROC_SCOPE 2048
-#define MRC_PROC_SCOPE_P(p) (((p)->flags & MRC_PROC_SCOPE) != 0)
-
 static int
 search_upvar(mrc_codegen_scope *s, mrc_sym id, int *idx)
 {
